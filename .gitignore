@@ -2,3 +2,4 @@
 *.md~
 *.gitignore~
 Makefile~
+*.tcl~
