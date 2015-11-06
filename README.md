@@ -10,16 +10,15 @@ This project aims to bring together the best practices of software development o
 * Easy setup of modern Linux distributions
 * Fast and simple remote control using scripting languages
 
-## Boards we would like to support
+### Boards
 
 * [Red Pitaya](http://redpitaya.com)
-* ...
 
-## Linux distributions
+### Linux distributions
 
 * Ubuntu
 
-## Scripting languages
+### Scripting languages
 
 * Python
 * Javascript
