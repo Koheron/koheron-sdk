@@ -15,6 +15,9 @@ CORES = axis_red_pitaya_adc_v1_0 axis_red_pitaya_dac_v1_0
 
 PART = `cat boards/$(BOARD)/PART`
 
+PATCHES = boards/$(BOARD)/patches
+
+
 # PART = xc7z010clg400-1
 
 PROC = ps7_cortexa9_0
@@ -69,18 +72,18 @@ $(RTL_TAR):
 $(UBOOT_DIR): $(UBOOT_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
-	patch -d tmp -p 0 < patches/u-boot-xlnx-$(UBOOT_TAG).patch
-	cp patches/zynq_red_pitaya_defconfig $@/configs
-	cp patches/zynq-red-pitaya.dts $@/arch/arm/dts
-	cp patches/zynq_red_pitaya.h $@/include/configs
-	cp patches/u-boot-lantiq.c $@/drivers/net/phy/lantiq.c
+	patch -d tmp -p 0 < $(PATCHES)/u-boot-xlnx-$(UBOOT_TAG).patch
+	cp $(PATCHES)/zynq_red_pitaya_defconfig $@/configs
+	cp $(PATCHES)/zynq-red-pitaya.dts $@/arch/arm/dts
+	cp $(PATCHES)/zynq_red_pitaya.h $@/include/configs
+	cp $(PATCHES)/u-boot-lantiq.c $@/drivers/net/phy/lantiq.c
 
 $(LINUX_DIR): $(LINUX_TAR) $(RTL_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
 	tar -zxf $(RTL_TAR) --directory=$@/drivers/net/wireless
-	patch -d tmp -p 0 < patches/linux-xlnx-$(LINUX_TAG).patch
-	cp patches/linux-lantiq.c $@/drivers/net/phy/lantiq.c
+	patch -d tmp -p 0 < $(PATCHES)/linux-xlnx-$(LINUX_TAG).patch
+	cp $(PATCHES)/linux-lantiq.c $@/drivers/net/phy/lantiq.c
 
 $(DTREE_DIR): $(DTREE_TAR)
 	mkdir -p $@
@@ -114,7 +117,6 @@ devicetree.dtb: uImage tmp/$(NAME).tree/system.dts
 	$(LINUX_DIR)/scripts/dtc/dtc -I dts -O dtb -o devicetree.dtb \
 	  -i tmp/$(NAME).tree tmp/$(NAME).tree/system.dts
 
-
 tmp/cores/%: cores/%/core_config.tcl cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
@@ -138,7 +140,7 @@ tmp/%.fsbl/executable.elf: tmp/%.hwdef
 tmp/%.tree/system.dts: tmp/%.hwdef $(DTREE_DIR)
 	mkdir -p $(@D)
 	$(HSI) -source scripts/devicetree.tcl -tclargs $* $(PROC) $(DTREE_DIR)
-	patch $@ patches/devicetree.patch
+	patch $@ $(PATCHES)/devicetree.patch
 
 clean:
 	$(RM) uImage fw_printenv boot.bin devicetree.dtb tmp
