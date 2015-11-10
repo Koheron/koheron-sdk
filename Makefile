@@ -11,6 +11,8 @@ LD_LIBRARY_PATH =
 NAME = base_system
 BOARD = red-pitaya
 
+CORES = axis_red_pitaya_adc_v1_0 axis_red_pitaya_dac_v1_0
+
 PART = `cat boards/$(BOARD)/PART`
 
 # PART = xc7z010clg400-1
@@ -112,7 +114,12 @@ devicetree.dtb: uImage tmp/$(NAME).tree/system.dts
 	$(LINUX_DIR)/scripts/dtc/dtc -I dts -O dtb -o devicetree.dtb \
 	  -i tmp/$(NAME).tree tmp/$(NAME).tree/system.dts
 
-tmp/%.xpr: projects/%
+
+tmp/cores/%: cores/%/core_config.tcl cores/%/*.v
+	mkdir -p $(@D)
+	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
+
+tmp/%.xpr: projects/% $(addprefix tmp/cores/, $(CORES))
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)
 
