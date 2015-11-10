@@ -69,6 +69,7 @@ proc module {module_name module_body {module_ports {}}} {
 }
 
 source projects/$project_name/block_design.tcl
+
 rename cell {}
 rename module {}
 
