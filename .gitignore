@@ -1,3 +1,6 @@
 # Temporary files :
 *.md~
 *.gitignore~
+Makefile~
+*.tcl~
+PART~
