@@ -68,10 +68,21 @@ proc module {module_name module_body {module_ports {}}} {
   }
 }
 
+proc properties {cell_name {cell_props {}}} {
+  set prop_list {}
+  foreach {prop_name prop_value} $cell_props {
+    lappend prop_list CONFIG.$prop_name $prop_value
+  }
+  if {[llength $prop_list] > 1} {
+    set_property -dict $prop_list [get_bd_cells $cell_name]
+  }
+}
+
 source projects/$project_name/block_design.tcl
 
 rename cell {}
 rename module {}
+rename properties {}
 
 generate_target all [get_files $bd_path/system.bd]
 make_wrapper -files [get_files $bd_path/system.bd] -top
