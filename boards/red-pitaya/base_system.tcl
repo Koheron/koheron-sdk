@@ -48,6 +48,16 @@ set num_mi 1
 set axi_interconnect_name ${ps_name}_axi_periph
 
 # Add dual-port BRAM
+set bram_name bram0
+set bram_size 16K
 set num_mi [expr $num_mi+1]
 properties ps_0_axi_periph [list NUM_MI $num_mi]
+
+create_bd_cell -type ip -vlnv xilinx.com:ip:axi_bram_ctrl:4.0 axi_bram_ctrl_$bram_name
+create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_$bram_name
+properties blk_mem_gen_$bram_name {Memory_Type True_Dual_Port_RAM}
+apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config [list Master "/${ps_name}/M_AXI_GP0" Clk "Auto"] [get_bd_intf_pins axi_bram_ctrl_$bram_name/S_AXI]
+connect_bd_intf_net [get_bd_intf_pins axi_bram_ctrl_$bram_name/BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_$bram_name/BRAM_PORTA]
+properties axi_bram_ctrl_$bram_name {SINGLE_PORT_BRAM 1}
+set_property range $bram_size [get_bd_addr_segs $ps_name/Data/SEG_axi_bram_ctrl_${bram_name}_Mem0]
 
