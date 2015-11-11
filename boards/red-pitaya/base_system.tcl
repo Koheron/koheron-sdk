@@ -43,12 +43,31 @@ foreach {port_name} {
   connect_bd_intf_net [get_bd_intf_pins $xadc_name/$port_name] [get_bd_intf_ports $port_name]
 }
 
+# Add GPIO
+# Add a new Master Interface to AXI Interconnect
+set num_master_interfaces [get_property CONFIG.NUM_MI [get_bd_cells ${ps_name}_axi_periph]]
+incr num_master_interfaces
+properties ${ps_name}_axi_periph [list NUM_MI $num_master_interfaces]
+
+set gpio_name axi_gpio_0
+cell xilinx.com:ip:axi_gpio:2.0 $gpio_name {
+  C_GPIO_WIDTH 8
+  C_GPIO2_WIDTH 8
+  C_IS_DUAL 1
+} {}
+
+apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config [list Master "/${ps_name}/M_AXI_GP0" Clk "Auto"]  [get_bd_intf_pins $gpio_name/S_AXI]
+apply_bd_automation -rule xilinx.com:bd_rule:board  [get_bd_intf_pins $gpio_name/GPIO]
+apply_bd_automation -rule xilinx.com:bd_rule:board  [get_bd_intf_pins $gpio_name/GPIO2]
+set_property name exp_n [get_bd_intf_ports gpio_rtl]
+set_property name exp_p [get_bd_intf_ports gpio_rtl_0]
+
+
 # Add dual-port BRAM
 source scripts/bram.tcl
 add_bram adc_bram_1 8K
 add_bram adc_bram_2 8K
 add_bram dac_bram   8K
-
 
 # Create axis_red_pitaya_adc
 cell pavel-demin:user:axis_red_pitaya_adc:1.0 adc_0 {} {
