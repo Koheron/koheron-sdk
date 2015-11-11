@@ -44,8 +44,42 @@ foreach {port_name} {
 }
 
 # Add dual-port BRAM
-set bram_name bram0
-set bram_size 16K
 source scripts/bram.tcl
-add_bram $bram_name $bram_size
+add_bram adc_bram_1 8K
+add_bram adc_bram_2 8K
+add_bram dac_bram   8K
+
+
+# Create axis_red_pitaya_adc
+cell pavel-demin:user:axis_red_pitaya_adc:1.0 adc_0 {} {
+  adc_clk_p adc_clk_p_i
+  adc_clk_n adc_clk_n_i
+  adc_dat_a adc_dat_a_i
+  adc_dat_b adc_dat_b_i
+  adc_csn adc_csn_o
+}
+
+# Create clk_wiz
+cell xilinx.com:ip:clk_wiz:5.2 pll_0 {
+  PRIMITIVE PLL
+  PRIM_IN_FREQ.VALUE_SRC USER
+  PRIM_IN_FREQ 125.0
+  CLKOUT1_USED true
+  CLKOUT1_REQUESTED_OUT_FREQ 250
+} {
+  clk_in1 adc_0/adc_clk
+}
+
+# Create axis_red_pitaya_dac
+cell pavel-demin:user:axis_red_pitaya_dac:1.0 dac_0 {} {
+  aclk adc_0/adc_clk
+  ddr_clk pll_0/clk_out1
+  locked pll_0/locked
+  S_AXIS adc_0/M_AXIS
+  dac_clk dac_clk_o
+  dac_rst dac_rst_o
+  dac_sel dac_sel_o
+  dac_wrt dac_wrt_o
+  dac_dat dac_dat_o
+}
 
