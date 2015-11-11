@@ -102,3 +102,12 @@ cell pavel-demin:user:axis_red_pitaya_dac:1.0 dac_0 {} {
   dac_dat dac_dat_o
 }
 
+# Add PWM
+
+cell pavel-demin:user:pwm:1.0 pwm {
+  PERIOD 1024
+} {
+  clk pll_0/clk_out1
+}
+
+
