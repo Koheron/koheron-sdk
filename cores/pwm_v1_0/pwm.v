@@ -9,12 +9,12 @@ module pwm #
   input clk,
   input rst,
   input [PERIOD-1:0] threshold,
-  output pwm
+  output out
 );   
   reg pwm, pwm_reg;
   reg [PERIOD-1:0] count, count_reg;
    
-  assign pwm = pwm_reg;
+  assign out = pwm_reg;
 
   always @(*) begin
     count = count_reg + 1'b1;

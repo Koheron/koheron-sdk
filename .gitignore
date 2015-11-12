@@ -5,3 +5,7 @@ Makefile~
 *.tcl~
 PART~
 *.v~
+
+*.jou
+*.log
+tmp
