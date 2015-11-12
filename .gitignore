@@ -4,3 +4,10 @@
 Makefile~
 *.tcl~
 PART~
+*.xdc~
+*.v~
+
+*.jou
+*.log
+tmp
+
