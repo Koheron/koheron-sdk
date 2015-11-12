@@ -11,7 +11,7 @@ LD_LIBRARY_PATH =
 NAME = base_system
 BOARD = red-pitaya
 
-CORES = axis_red_pitaya_adc_v1_0 axis_red_pitaya_dac_v1_0
+CORES = redp_adc_dac_v1_0
 
 PART = `cat boards/$(BOARD)/PART`
 

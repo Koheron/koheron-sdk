@@ -64,41 +64,30 @@ set_property name exp_p [get_bd_intf_ports gpio_rtl_0]
 
 
 # Add dual-port BRAM
-source scripts/bram.tcl
-add_bram adc_bram_1 8K
-add_bram adc_bram_2 8K
-add_bram dac_bram   8K
+#source scripts/bram.tcl
+#add_bram adc_bram_1 8K
+#add_bram adc_bram_2 8K
+#add_bram dac_bram   8K
 
-# Create axis_red_pitaya_adc
-cell pavel-demin:user:axis_red_pitaya_adc:1.0 adc_0 {} {
-  adc_clk_p adc_clk_p_i
-  adc_clk_n adc_clk_n_i
-  adc_dat_a adc_dat_a_i
-  adc_dat_b adc_dat_b_i
-  adc_csn adc_csn_o
-}
-
-# Create clk_wiz
-cell xilinx.com:ip:clk_wiz:5.2 pll_0 {
-  PRIMITIVE PLL
-  PRIM_IN_FREQ.VALUE_SRC USER
-  PRIM_IN_FREQ 125.0
-  CLKOUT1_USED true
-  CLKOUT1_REQUESTED_OUT_FREQ 250
+# Add ADC/DAC IP block
+set adc_dac_name adc_dac_0
+create_bd_cell -type ip -vlnv pavel-demin:user:redp_adc_dac:1.0 $adc_dac_name
+foreach {port_name} {
+  adc_dat_a_i
+  adc_dat_b_i
+  adc_clk_p_i
+  adc_clk_n_i
+  adc_clk_source
+  adc_cdcs_o
+  dac_clk_o
+  dac_dat_o
+  dac_rst_o
+  dac_sel_o
+  dac_wrt_o
 } {
-  clk_in1 adc_0/adc_clk
+  connect_bd_net [get_bd_ports $port_name] [get_bd_pins $adc_dac_name/$port_name]
 }
-
-# Create axis_red_pitaya_dac
-cell pavel-demin:user:axis_red_pitaya_dac:1.0 dac_0 {} {
-  aclk adc_0/adc_clk
-  ddr_clk pll_0/clk_out1
-  locked pll_0/locked
-  S_AXIS adc_0/M_AXIS
-  dac_clk dac_clk_o
-  dac_rst dac_rst_o
-  dac_sel dac_sel_o
-  dac_wrt dac_wrt_o
-  dac_dat dac_dat_o
-}
+# Connect reset
+create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 adc_rst
+connect_bd_net [get_bd_pins adc_rst/dout] [get_bd_pins $adc_dac_name/adc_rst_i]
 
