@@ -91,3 +91,12 @@ foreach {port_name} {
 create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 adc_rst
 connect_bd_net [get_bd_pins adc_rst/dout] [get_bd_pins $adc_dac_name/adc_rst_i]
 
+# Add PWM
+
+cell pavel-demin:user:pwm:1.0 pwm {
+  PERIOD 1024
+} {
+  clk adc_dac_0/adc_clk_o
+}
+
+
