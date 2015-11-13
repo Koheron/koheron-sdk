@@ -188,7 +188,7 @@ set_property PACKAGE_PIN M15 [get_ports {exp_n_tri_io[7]}]
 
 set_property IOSTANDARD LVCMOS33 [get_ports {led_o[*]}]
 set_property SLEW SLOW [get_ports {led_o[*]}]
-set_property DRIVE 8 [get_ports {led_o[*]}]
+set_property DRIVE 4 [get_ports {led_o[*]}]
 
 set_property PACKAGE_PIN F16 [get_ports {led_o[0]}]
 set_property PACKAGE_PIN F17 [get_ports {led_o[1]}]
