@@ -3,18 +3,18 @@
 
 module pwm #
 (
-  parameter PERIOD = 256
+  parameter NBITS = 10
 )
 (
   input clk,
   input rst,
-  input [PERIOD-1:0] threshold,
-  output out
+  input [NBITS-1:0] threshold,
+  output pwm_out
 );   
   reg pwm, pwm_reg;
-  reg [PERIOD-1:0] count, count_reg;
+  reg [NBITS-1:0] count, count_reg;
    
-  assign out = pwm_reg;
+  assign pwm_out = pwm_reg;
 
   always @(*) begin
     count = count_reg + 1'b1;

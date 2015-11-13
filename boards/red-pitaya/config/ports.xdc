@@ -51,19 +51,6 @@ set_property PACKAGE_PIN U19 [get_ports adc_clk_n_i]
 
 # clock output
 
-#set_property IOSTANDARD LVCMOS18 [get_ports adc_enc_p_o]
-#set_property IOSTANDARD LVCMOS18 [get_ports adc_enc_n_o]
-
-
-#set_property SLEW FAST [get_ports adc_enc_p_o]
-#set_property SLEW FAST [get_ports adc_enc_n_o]
-
-#set_property DRIVE 8 [get_ports adc_enc_p_o]
-#set_property DRIVE 8 [get_ports adc_enc_n_o]
-
-#set_property PACKAGE_PIN N20 [get_ports adc_enc_p_o]
-#set_property PACKAGE_PIN P20 [get_ports adc_enc_n_o]
-
 set_property IOSTANDARD LVCMOS18 [get_ports {adc_clk_source[*]}]
 set_property SLEW FAST [get_ports {adc_clk_source[*]}]
 set_property DRIVE 8 [get_ports {adc_clk_source[*]}]
@@ -78,7 +65,6 @@ set_property IOSTANDARD LVCMOS18 [get_ports adc_cdcs_o]
 set_property PACKAGE_PIN V18 [get_ports adc_cdcs_o]
 set_property SLEW FAST [get_ports adc_cdcs_o]
 set_property DRIVE 8 [get_ports adc_cdcs_o]
-
 
 ### DAC
 
@@ -202,7 +188,7 @@ set_property PACKAGE_PIN M15 [get_ports {exp_n_tri_io[7]}]
 
 set_property IOSTANDARD LVCMOS33 [get_ports {led_o[*]}]
 set_property SLEW SLOW [get_ports {led_o[*]}]
-set_property DRIVE 8 [get_ports {led_o[*]}]
+set_property DRIVE 4 [get_ports {led_o[*]}]
 
 set_property PACKAGE_PIN F16 [get_ports {led_o[0]}]
 set_property PACKAGE_PIN F17 [get_ports {led_o[1]}]

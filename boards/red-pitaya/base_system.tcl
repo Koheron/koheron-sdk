@@ -91,34 +91,44 @@ foreach {port_name} {
 create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 adc_rst
 connect_bd_net [get_bd_pins adc_rst/dout] [get_bd_pins $adc_dac_name/adc_rst_i]
 
-# Add PWM
-cell pavel-demin:user:pwm:1.0 pwm {
-  PERIOD 1024
-} {
-  clk adc_dac_0/adc_clk_o
-}
-
 # Add AXI configuration register from red-pitaya-notes
 
 set_property -dict [list CONFIG.NUM_MI {3}] [get_bd_cells ps_0_axi_periph]
 connect_bd_net [get_bd_pins /ps_0_axi_periph/M02_ACLK] [get_bd_pins ps_0/FCLK_CLK0]
-connect_bd_net [get_bd_pins ps_0_axi_periph/M02_ARESETN] [get_bd_pins rst_ps_0_142M/peripheral_aresetn]
-
+connect_bd_net [get_bd_pins ps_0_axi_periph/M02_ARESETN] [get_bd_pins rst_ps_0_125M/peripheral_aresetn]
+# Add AXI clock converter
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_0
-
 connect_bd_intf_net -boundary_type upper [get_bd_intf_pins ps_0_axi_periph/M02_AXI] [get_bd_intf_pins axi_clock_converter_0/S_AXI]
 connect_bd_net [get_bd_pins axi_clock_converter_0/s_axi_aclk] [get_bd_pins ps_0/FCLK_CLK0]
-connect_bd_net [get_bd_pins axi_clock_converter_0/s_axi_aresetn] [get_bd_pins rst_ps_0_142M/peripheral_aresetn]
+connect_bd_net [get_bd_pins axi_clock_converter_0/s_axi_aresetn] [get_bd_pins rst_ps_0_125M/peripheral_aresetn]
 connect_bd_net [get_bd_pins axi_clock_converter_0/m_axi_aclk] [get_bd_pins adc_dac_0/adc_clk_o]
 connect_bd_net [get_bd_pins axi_clock_converter_0/m_axi_aresetn] [get_bd_pins adc_rst/dout]
-
+# Add AXI configuration register (synchronous with ADC clock)
 create_bd_cell -type ip -vlnv pavel-demin:user:axi_cfg_register:1.0 axi_cfg_register_0
 connect_bd_intf_net [get_bd_intf_pins axi_cfg_register_0/S_AXI] [get_bd_intf_pins axi_clock_converter_0/M_AXI]
-
-
-
 connect_bd_net [get_bd_pins axi_cfg_register_0/aclk] [get_bd_pins axi_clock_converter_0/m_axi_aclk]
 connect_bd_net [get_bd_pins axi_cfg_register_0/aresetn] [get_bd_pins adc_rst/dout]
-connect_bd_net [get_bd_pins axi_cfg_register_0/cfg_data] [get_bd_pins pwm/threshold]
-connect_bd_net [get_bd_pins pwm/rst] [get_bd_pins adc_rst/dout]
+assign_bd_address [get_bd_addr_segs {axi_cfg_register_0/s_axi/reg0 }]
+set_property range 4K [get_bd_addr_segs {ps_0/Data/SEG_axi_cfg_register_0_reg0}]
 
+
+# Connect LEDs
+set led_offset 0
+cell xilinx.com:ip:xlslice:1.0 led_slice \
+  [list DIN_WIDTH 1024 DIN_FROM [expr 7+$led_offset] DIN_TO [expr $led_offset]] \
+  [list Din axi_cfg_register_0/cfg_data]
+connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
+
+# Add PWM
+set n_pwm 4
+set pwm_offset 32
+cell xilinx.com:ip:xlconcat:2.1 concat_pwm [list NUM_PORTS $n_pwm] {}
+connect_bd_net [get_bd_ports dac_pwm_o] [get_bd_pins concat_pwm/dout]
+
+for {set i 0} {$i < $n_pwm} {incr i} {
+  cell pavel-demin:user:pwm:1.0 pwm_$i {NBITS 10} \
+    [list clk adc_dac_0/adc_clk_o rst adc_rst/dout pwm_out concat_pwm/In$i]
+  cell xilinx.com:ip:xlslice:1.0 pwm_slice_$i \
+    [list DIN_WIDTH 1024 DIN_FROM [expr 9+32*$i+$pwm_offset] DIN_TO [expr 32*$i+$pwm_offset]] \
+    [list Din axi_cfg_register_0/cfg_data Dout pwm_$i/threshold]
+}
