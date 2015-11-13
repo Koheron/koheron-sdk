@@ -108,6 +108,9 @@ create_bd_cell -type ip -vlnv pavel-demin:user:axi_cfg_register:1.0 axi_cfg_regi
 connect_bd_intf_net [get_bd_intf_pins axi_cfg_register_0/S_AXI] [get_bd_intf_pins axi_clock_converter_0/M_AXI]
 connect_bd_net [get_bd_pins axi_cfg_register_0/aclk] [get_bd_pins axi_clock_converter_0/m_axi_aclk]
 connect_bd_net [get_bd_pins axi_cfg_register_0/aresetn] [get_bd_pins adc_rst/dout]
+assign_bd_address [get_bd_addr_segs {axi_cfg_register_0/s_axi/reg0 }]
+set_property range 4K [get_bd_addr_segs {ps_0/Data/SEG_axi_cfg_register_0_reg0}]
+
 
 # Connect LEDs
 set led_offset 0
