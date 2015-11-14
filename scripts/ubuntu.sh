@@ -52,6 +52,11 @@ cp patches/fw_env.config $root_dir/etc/
 cp fw_printenv $root_dir/usr/local/bin/fw_printenv
 cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 
+# Add Koheron Server
+mkdir $root_dir/usr/local/kserver
+cp tmp/koheron-server/kserverd $root_dir/usr/local/kserver
+cp tmp/koheron-server/kserver.conf $root_dir/usr/local/kserver.conf
+
 curl -L $hostapd_url -o $root_dir/usr/local/sbin/hostapd
 chmod +x $root_dir/usr/local/sbin/hostapd
 
@@ -105,6 +110,7 @@ touch etc/udev/rules.d/75-persistent-net-generator.rules
 cat <<- EOF_CAT >> etc/network/interfaces.d/eth0
 allow-hotplug eth0
 iface eth0 inet dhcp
+post-up /usr/local/kserver/kserverd -c /usr/local/kserver/kserver.conf &
 EOF_CAT
 
 cat <<- EOF_CAT > etc/network/interfaces.d/wlan0
@@ -115,6 +121,7 @@ iface wlan0 inet static
   post-up service hostapd restart
   post-up service isc-dhcp-server restart
   post-up iptables-restore < /etc/iptables.ipv4.nat
+  post-up /usr/local/kserver/kserverd -c /usr/local/kserver/kserver.conf &
   pre-down iptables-restore < /etc/iptables.ipv4.nonat
   pre-down service isc-dhcp-server stop
   pre-down service hostapd stop
