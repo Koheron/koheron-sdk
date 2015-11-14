@@ -49,9 +49,21 @@ ARMHF_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 RTL_TAR = tmp/rtl8192cu.tgz
 RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
 
+KSERVER_DIR = tmp/koheron-server
+
 .PRECIOUS: tmp/cores/% tmp/%.xpr tmp/%.hwdef tmp/%.bit tmp/%.fsbl/executable.elf tmp/%.tree/system.dts
 
-all: boot.bin uImage devicetree.dtb fw_printenv
+all: boot.bin uImage devicetree.dtb fw_printenv lase koheron-server
+
+$(KSERVER_DIR):
+	git clone --depth 1 git@github.com:Koheron/koheron-server $(KSERVER_DIR)
+
+koheron-server: $(KSERVER_DIR)
+	cd tmp/koheron-server && make TARGET_HOST=redpitaya
+
+lase:
+	git clone --depth 1 git@github.com:Koheron/lase tmp/lase
+	cp -r tmp/lase/lase lase
 
 $(UBOOT_TAR):
 	mkdir -p $(@D)
@@ -144,6 +156,6 @@ tmp/%.tree/system.dts: tmp/%.hwdef $(DTREE_DIR)
 
 clean:
 	$(RM) uImage fw_printenv boot.bin devicetree.dtb tmp
-	$(RM) .Xil usage_statistics_webtalk.html usage_statistics_webtalk.xml
-	$(RM) *.log *.jou
+	$(RM) .Xil usage_statistics_webtalk.html usage_statistics_webtalk.xml *.log *.jou
+	$(RM) lase
 
