@@ -51,7 +51,11 @@ RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1h
 
 .PRECIOUS: tmp/cores/% tmp/%.xpr tmp/%.hwdef tmp/%.bit tmp/%.fsbl/executable.elf tmp/%.tree/system.dts
 
-all: boot.bin uImage devicetree.dtb fw_printenv
+all: boot.bin uImage devicetree.dtb fw_printenv lase
+
+lase:
+	git clone --depth 1 git@github.com:Koheron/lase tmp/lase
+	cp -r tmp/lase/lase lase
 
 $(UBOOT_TAR):
 	mkdir -p $(@D)
@@ -144,6 +148,6 @@ tmp/%.tree/system.dts: tmp/%.hwdef $(DTREE_DIR)
 
 clean:
 	$(RM) uImage fw_printenv boot.bin devicetree.dtb tmp
-	$(RM) .Xil usage_statistics_webtalk.html usage_statistics_webtalk.xml
-	$(RM) *.log *.jou
+	$(RM) .Xil usage_statistics_webtalk.html usage_statistics_webtalk.xml *.log *.jou
+	$(RM) lase
 
