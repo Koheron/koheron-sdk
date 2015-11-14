@@ -1,14 +1,8 @@
-from lase.core import KClient, DevMem, Gpio
-# Driver to use
-
-from lase.drivers import Oscillo
-
-# Modules to import
+from lase.core import KClient, DevMem
 import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-# Connect to Lase
 host = '192.168.1.12'
 client = KClient(host)
 dvm = DevMem(client)
