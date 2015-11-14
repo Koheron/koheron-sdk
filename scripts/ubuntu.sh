@@ -55,7 +55,7 @@ cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 # Add Koheron Server
 mkdir $root_dir/usr/local/kserver
 cp tmp/koheron-server/kserverd $root_dir/usr/local/kserver
-cp tmp/koheron-server/kserver.conf $root_dir/usr/local/kserver.conf
+cp tmp/koheron-server/kserver.conf $root_dir/usr/local/kserver
 
 curl -L $hostapd_url -o $root_dir/usr/local/sbin/hostapd
 chmod +x $root_dir/usr/local/sbin/hostapd
