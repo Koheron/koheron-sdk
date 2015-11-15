@@ -33,6 +33,8 @@ dvm.write(GPIO, GPIO_TRI, 0)
 # Turn ON (3.3 V) the first 4 GPIOs of channel 1
 dvm.write(GPIO, GPIO_DATA, 15)
 
+print dvm.read(GPIO, GPIO2_DATA)
+
 # Turn on LEDs 0, 1 and 3
 dvm.write(CONFIG, LED, 11)
 

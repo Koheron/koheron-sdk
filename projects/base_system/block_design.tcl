@@ -3,13 +3,13 @@ source boards/$board_name/base_system.tcl
 # Add DAC BRAM
 source scripts/bram.tcl
 set bram_name dac_bram
-add_bram dac_bram 8K
+add_bram dac_bram 32K
 # Connect port B of BRAM to ADC clock
 connect_bd_net [get_bd_pins blk_mem_gen_$bram_name/clkb] [get_bd_pins adc_dac_0/adc_clk_o]
 
 set n_bits_bram 13
 cell xilinx.com:ip:c_counter_binary:12.0 base_counter \
-  [list Output_Width [expr $n_bits_bram+3] Increment_Value 4] \
+  [list Output_Width [expr $n_bits_bram+2] Increment_Value 4] \
   [list CLK adc_dac_0/adc_clk_o Q blk_mem_gen_$bram_name/addrb]
 
 # Connect BRAM output to DACs
