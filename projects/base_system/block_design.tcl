@@ -24,4 +24,4 @@ for {set i 0} {$i < 2} {incr i} {
 cell xilinx.com:ip:xlconstant:1.1 ${bram_name}_dinb {CONST_VAL 0 CONST_WIDTH 32} [list dout blk_mem_gen_$bram_name/dinb]
 cell xilinx.com:ip:xlconstant:1.1 ${bram_name}_enb {CONST_VAL 1} [list dout blk_mem_gen_$bram_name/enb]
 cell xilinx.com:ip:xlconstant:1.1 ${bram_name}_web {CONST_VAL 0 CONST_WIDTH 4} [list dout blk_mem_gen_$bram_name/web]
-connect_bd_net [get_bd_pins blk_mem_gen_$bram_name/rstb] [get_bd_pins adc_rst/dout]
+connect_bd_net [get_bd_pins blk_mem_gen_$bram_name/rstb] [get_bd_pins rst_ps_0_125M/peripheral_reset]

@@ -102,12 +102,12 @@ connect_bd_intf_net -boundary_type upper [get_bd_intf_pins ps_0_axi_periph/M02_A
 connect_bd_net [get_bd_pins axi_clock_converter_0/s_axi_aclk] [get_bd_pins ps_0/FCLK_CLK0]
 connect_bd_net [get_bd_pins axi_clock_converter_0/s_axi_aresetn] [get_bd_pins rst_ps_0_125M/peripheral_aresetn]
 connect_bd_net [get_bd_pins axi_clock_converter_0/m_axi_aclk] [get_bd_pins adc_dac_0/adc_clk_o]
-connect_bd_net [get_bd_pins axi_clock_converter_0/m_axi_aresetn] [get_bd_pins adc_rst/dout]
+connect_bd_net [get_bd_pins axi_clock_converter_0/m_axi_aresetn] [get_bd_pins rst_ps_0_125M/peripheral_aresetn]
 # Add AXI configuration register (synchronous with ADC clock)
 create_bd_cell -type ip -vlnv pavel-demin:user:axi_cfg_register:1.0 axi_cfg_register_0
 connect_bd_intf_net [get_bd_intf_pins axi_cfg_register_0/S_AXI] [get_bd_intf_pins axi_clock_converter_0/M_AXI]
 connect_bd_net [get_bd_pins axi_cfg_register_0/aclk] [get_bd_pins axi_clock_converter_0/m_axi_aclk]
-connect_bd_net [get_bd_pins axi_cfg_register_0/aresetn] [get_bd_pins adc_rst/dout]
+connect_bd_net [get_bd_pins axi_cfg_register_0/aresetn] [get_bd_pins rst_ps_0_125M/peripheral_aresetn]
 assign_bd_address [get_bd_addr_segs {axi_cfg_register_0/s_axi/reg0 }]
 set_property range 4K [get_bd_addr_segs {ps_0/Data/SEG_axi_cfg_register_0_reg0}]
 
@@ -127,7 +127,7 @@ connect_bd_net [get_bd_ports dac_pwm_o] [get_bd_pins concat_pwm/dout]
 
 for {set i 0} {$i < $n_pwm} {incr i} {
   cell pavel-demin:user:pwm:1.0 pwm_$i {NBITS 10} \
-    [list clk adc_dac_0/adc_clk_o rst adc_rst/dout pwm_out concat_pwm/In$i]
+    [list clk adc_dac_0/adc_clk_o rst rst_ps_0_125M/peripheral_reset pwm_out concat_pwm/In$i]
   cell xilinx.com:ip:xlslice:1.0 pwm_slice_$i \
     [list DIN_WIDTH 1024 DIN_FROM [expr 9+32*$i+$pwm_offset] DIN_TO [expr 32*$i+$pwm_offset]] \
     [list Din axi_cfg_register_0/cfg_data Dout pwm_$i/threshold]
