@@ -27,7 +27,7 @@ module rp_dac #
   reg  [14-1: 0] dac_dat_b  ;
 
   // output registers + signed to unsigned (also to negative slope)
-  always @(posedge dac_clk) begin
+  always @(posedge dac_clk1x) begin
     dac_dat_a <= {dac_dat_a_i[14-1], ~dac_dat_a_i[14-2:0]};
     dac_dat_b <= {dac_dat_b_i[14-1], ~dac_dat_b_i[14-2:0]};
     dac_rst   <= !dac_locked;
