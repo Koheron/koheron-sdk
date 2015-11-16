@@ -14,7 +14,7 @@ module rp_adc #
   // user interface
   output   [ 14-1: 0] adc_dat_a_o        ,  //!< ADC CHA data
   output   [ 14-1: 0] adc_dat_b_o        ,  //!< ADC CHB data
-  input               adc_rst_i          ,  //!< ADC reset - active low
+  input               adc_rst_i             //!< ADC reset - active low
 );
   // ADC clock duty cycle stabilizer is enabled
   assign adc_cdcs_o = 1'b1 ;

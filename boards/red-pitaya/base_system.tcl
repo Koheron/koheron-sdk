@@ -69,29 +69,26 @@ set_property name exp_p [get_bd_intf_ports gpio_rtl_0]
 #add_bram adc_bram_2 8K
 #add_bram dac_bram   8K
 
-# Clock utility buffer
-cell xilinx.com:ip:util_ds_buf:2.1 ibufds {C_BUF_TYPE IBUFDS} {} 
-connect_bd_net [get_bd_ports adc_clk_p_i] [get_bd_pins ibufds/IBUF_DS_P]
-connect_bd_net [get_bd_ports adc_clk_n_i] [get_bd_pins ibufds/IBUF_DS_N]
-
 # Phase-locked Loop (PLL)
 cell xilinx.com:ip:clk_wiz:5.2 pll {
-  PRIMITIVE PLL
+  PRIMITIVE              PLL
   PRIM_IN_FREQ.VALUE_SRC USER
-  PRIM_IN_FREQ 125.0
+  PRIM_IN_FREQ           125.0
+  PRIM_SOURCE            Differential_clock_capable_pin
   CLKOUT1_USED true CLKOUT1_REQUESTED_OUT_FREQ 125.0
   CLKOUT2_USED true CLKOUT2_REQUESTED_OUT_FREQ 125.0
   CLKOUT3_USED true CLKOUT3_REQUESTED_OUT_FREQ 250.0
   CLKOUT4_USED true CLKOUT4_REQUESTED_OUT_FREQ 250.0 CLKOUT4_REQUESTED_PHASE -45
   CLKOUT5_USED true CLKOUT5_REQUESTED_OUT_FREQ 250.0
-  CLKOUT6_USED true CLKOUT5_REQUESTED_OUT_FREQ 250.0
+  CLKOUT6_USED true CLKOUT6_REQUESTED_OUT_FREQ 250.0
   RESET_TYPE ACTIVE_LOW RESET_PORT resetn
-} {clk_in1 ibufds/IBUF_OUT}
-
+} {}
+connect_bd_net [get_bd_ports adc_clk_p_i] [get_bd_pins pll/clk_in1_p]
+connect_bd_net [get_bd_ports adc_clk_n_i] [get_bd_pins pll/clk_in1_n]
 
 # Add ADC IP block
 set adc_name adc_0
-create_bd_cell -type ip -vlnv pavel-demin:user:redp_adc_dac:1.0 $adc_name
+create_bd_cell -type ip -vlnv pavel-demin:user:redp_adc:1.0 $adc_name
 foreach {port_name} {
   adc_dat_a_i
   adc_dat_b_i
@@ -102,9 +99,9 @@ foreach {port_name} {
 }
 connect_bd_net [get_bd_pins $adc_name/adc_clk]    [get_bd_pins pll/clk_out1]
 
-# Add ADC IP block
+# Add DAC IP block
 set dac_name dac_0
-create_bd_cell -type ip -vlnv pavel-demin:user:redp_adc_dac:1.0 $adc_name
+create_bd_cell -type ip -vlnv pavel-demin:user:redp_dac:1.0 $dac_name
 foreach {port_name} {
   dac_clk_o
   dac_dat_o
@@ -114,7 +111,6 @@ foreach {port_name} {
 } {
   connect_bd_net [get_bd_ports $port_name] [get_bd_pins $dac_name/$port_name]
 }
-connect_bd_net [get_bd_pins $dac_name/adc_clk]    [get_bd_pins pll/clk_out1]
 connect_bd_net [get_bd_pins $dac_name/dac_clk_1x] [get_bd_pins pll/clk_out2]
 connect_bd_net [get_bd_pins $dac_name/dac_clk_2x] [get_bd_pins pll/clk_out3]
 connect_bd_net [get_bd_pins $dac_name/dac_clk_2p] [get_bd_pins pll/clk_out4]
