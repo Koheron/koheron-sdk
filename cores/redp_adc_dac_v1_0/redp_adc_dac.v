@@ -68,14 +68,18 @@ module rp_adc_dac #
   // ADC IC
   input    [ 14-1: 0] adc_dat_a_i        ,  //!< ADC IC CHA data connection
   input    [ 14-1: 0] adc_dat_b_i        ,  //!< ADC IC CHB data connection
-  input               adc_clk_p_i        ,  //!< ADC IC clock P connection
-  input               adc_clk_n_i        ,  //!< ADC IC clock N connection
-  output [ 2-1: 0]    adc_clk_source          ,  // optional ADC clock source
+  input               adc_clk            ,
+  output [ 2-1: 0]    adc_clk_source     ,  // optional ADC clock source
   //output              adc_enc_p_o	 ,
   //output              adc_enc_n_o	 ,
   output              adc_cdcs_o         ,  // ADC clock duty cycle stabilizer
 
   
+  input               dac_clk_1x         ,
+  input               dac_clk_2x         ,  
+  input               dac_clk_2p         ,
+  input               dac_locked         ,
+
   // DAC IC
   output   [ 14-1: 0] dac_dat_o          ,  //!< DAC IC combined data
   output              dac_wrt_o          ,  //!< DAC IC write enable
@@ -89,18 +93,10 @@ module rp_adc_dac #
   // user interface
   output   [ 14-1: 0] adc_dat_a_o        ,  //!< ADC CHA data
   output   [ 14-1: 0] adc_dat_b_o        ,  //!< ADC CHB data
-  output              adc_clk_o          ,  //!< ADC clock
   input               adc_rst_i          ,  //!< ADC reset - active low
-  output              ser_clk_o          ,  //!< fast serial clock
 
   input    [ 14-1: 0] dac_dat_a_i        ,  //!< DAC CHA data
   input    [ 14-1: 0] dac_dat_b_i           //!< DAC CHB data
-
-  //input    [ 24-1: 0] dac_pwm_a_i        ,  //!< DAC PWM CHA
-  //input    [ 24-1: 0] dac_pwm_b_i        ,  //!< DAC PWM CHB
-  //input    [ 24-1: 0] dac_pwm_c_i        ,  //!< DAC PWM CHC
-  //input    [ 24-1: 0] dac_pwm_d_i        ,  //!< DAC PWM CHD
-  //output              dac_pwm_sync_o        //!< DAC PWM sync  
 
 );
 //---------------------------------------------------------------------------------
@@ -121,11 +117,6 @@ assign adc_clk_source = 2'b10;
 
 reg  [14-1: 0] adc_dat_a  ;
 reg  [14-1: 0] adc_dat_b  ;
-wire           adc_clk_in ;
-wire           adc_clk    ;
-
-IBUFDS i_clk ( .I(adc_clk_p_i), .IB(adc_clk_n_i), .O(adc_clk_in));  // differential clock input
-BUFG i_adc_buf  (.O(adc_clk), .I(adc_clk_in)); // use global clock buffer
 
 always @(posedge adc_clk) begin
    adc_dat_a <= adc_dat_a_i[14-1:0]; // lowest 2 bits reserved for 16bit ADC
@@ -134,88 +125,12 @@ end
     
 assign adc_dat_a_o = {adc_dat_a[14-1], ~adc_dat_a[14-2:0]}; // transform into 2's complement (negative slope)
 assign adc_dat_b_o = {adc_dat_b[14-1], ~adc_dat_b[14-2:0]};
-assign adc_clk_o   =  adc_clk ;
-
-
-
-
 
 //---------------------------------------------------------------------------------
 //
 //  Fast DAC - DDR interface
 
-wire  dac_clk_fb      ;
-wire  dac_clk_fb_buf  ;
-wire  dac_clk_out     ;
-wire  dac_2clk_out    ;
-wire  dac_clk         ;
-wire  dac_2clk        ;
-wire  dac_locked      ;
 reg   dac_rst         ;
-wire  ser_clk_out     ;
-wire  dac_2ph_out     ;
-wire  dac_2ph         ;
-
-PLLE2_ADV
-#(
-   .BANDWIDTH            ( "OPTIMIZED"   ),
-   .COMPENSATION         ( "ZHOLD"       ),
-   .DIVCLK_DIVIDE        (  1            ),
-   .CLKFBOUT_MULT        (  8            ),
-   .CLKFBOUT_PHASE       (  0.000        ),
-   .CLKOUT0_DIVIDE       (  8            ),
-   .CLKOUT0_PHASE        (  0.000        ),
-   .CLKOUT0_DUTY_CYCLE   (  0.5          ),
-   .CLKOUT1_DIVIDE       (  4            ),
-   .CLKOUT1_PHASE        (  0.000        ),
-   .CLKOUT1_DUTY_CYCLE   (  0.5          ),
-   .CLKOUT2_DIVIDE       (  4            ),
-   .CLKOUT2_PHASE        ( -45.000       ),
-   .CLKOUT2_DUTY_CYCLE   (  0.5          ),
-   .CLKOUT3_DIVIDE       (  4            ),  // 4->250MHz, 2->500MHz
-   .CLKOUT3_PHASE        (  0.000        ),
-   .CLKOUT3_DUTY_CYCLE   (  0.5          ),
-   .CLKIN1_PERIOD        (  8.000        ),
-   .REF_JITTER1          (  0.010        )
-)
-i_dac_plle2
-(
-   // Output clocks
-   .CLKFBOUT     (  dac_clk_fb     ),
-   .CLKOUT0      (  dac_clk_out    ),
-   .CLKOUT1      (  dac_2clk_out   ),
-   .CLKOUT2      (  dac_2ph_out    ),
-   .CLKOUT3      (  ser_clk_out    ),
-   .CLKOUT4      (        ),
-   .CLKOUT5      (        ),
-   // Input clock control
-   .CLKFBIN      (  dac_clk_fb_buf ),
-   .CLKIN1       (  adc_clk        ),
-   .CLKIN2       (  1'b0           ),
-   // Tied to always select the primary input clock
-   .CLKINSEL     (  1'b1           ),
-   // Ports for dynamic reconfiguration
-   .DADDR        (  7'h0           ),
-   .DCLK         (  1'b0           ),
-   .DEN          (  1'b0           ),
-   .DI           (  16'h0          ),
-   .DO           (        ),
-   .DRDY         (        ),
-   .DWE          (  1'b0           ),
-   // Other control and status signals
-   .LOCKED       (  dac_locked     ),
-   .PWRDWN       (  1'b0           ),
-   .RST          ( !adc_rst_i      )
-);
-
-BUFG i_dacfb_buf   (.O(dac_clk_fb_buf), .I(dac_clk_fb));
-BUFG i_dac1_buf    (.O(dac_clk),        .I(dac_clk_out));
-BUFG i_dac2_buf    (.O(dac_2clk),       .I(dac_2clk_out));
-BUFG i_dac2ph_buf  (.O(dac_2ph),        .I(dac_2ph_out));
-BUFG i_ser_buf     (.O(ser_clk_o),      .I(ser_clk_out));
-
-
-
 
 reg  [14-1: 0] dac_dat_a  ;
 reg  [14-1: 0] dac_dat_b  ;
@@ -227,11 +142,10 @@ always @(posedge dac_clk) begin
    dac_rst   <= !dac_locked;
 end
 
-
-ODDR oddr_dac_clk ( .Q(dac_clk_o), .D1(1'b0), .D2(1'b1), .C(dac_2ph),  .CE(1'b1), .R(dac_rst), .S(1'b0) );
-ODDR oddr_dac_wrt ( .Q(dac_wrt_o), .D1(1'b0), .D2(1'b1), .C(dac_2clk), .CE(1'b1), .R(dac_rst), .S(1'b0) );
-ODDR oddr_dac_sel ( .Q(dac_sel_o), .D1(1'b1), .D2(1'b0), .C(dac_clk ), .CE(1'b1), .R(dac_rst), .S(1'b0) );
-ODDR oddr_dac_rst ( .Q(dac_rst_o), .D1(dac_rst), .D2(dac_rst), .C(dac_clk ), .CE(1'b1), .R(1'b0), .S(1'b0) );
+ODDR oddr_dac_clk          (.Q(dac_clk_o), .D1(1'b0     ), .D2(1'b1     ), .C(dac_clk_2p), .CE(1'b1), .R(1'b0   ), .S(1'b0));
+ODDR oddr_dac_wrt          (.Q(dac_wrt_o), .D1(1'b0     ), .D2(1'b1     ), .C(dac_clk_2x), .CE(1'b1), .R(1'b0   ), .S(1'b0));
+ODDR oddr_dac_sel          (.Q(dac_sel_o), .D1(1'b1     ), .D2(1'b0     ), .C(dac_clk_1x), .CE(1'b1), .R(dac_rst), .S(1'b0));
+ODDR oddr_dac_rst          (.Q(dac_rst_o), .D1(dac_rst  ), .D2(dac_rst  ), .C(dac_clk_1x), .CE(1'b1), .R(1'b0   ), .S(1'b0));
 
 ODDR oddr_dac_dat [14-1:0] (.Q(dac_dat_o), .D1(dac_dat_b), .D2(dac_dat_a), .C(dac_clk), .CE(1'b1), .R(dac_rst), .S(1'b0));
 
