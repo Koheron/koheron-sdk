@@ -161,3 +161,18 @@ for {set i 0} {$i < $n_pwm} {incr i} {
     [list DIN_WIDTH 1024 DIN_FROM [expr 9+32*$i+$pwm_offset] DIN_TO [expr 32*$i+$pwm_offset]] \
     [list Din axi_cfg_register_0/cfg_data Dout pwm_$i/threshold]
 }
+
+## Add FIFO
+
+cell xilinx.com:ip:axi_data_fifo:2.1 fifo {
+  Input_Data_Width 32
+  Input_Depth      8192
+  Data_Count       true
+  Data_Count_Width 13
+} {}
+
+cell xilinx.com:ip:xlconcat:2.1 concat_adc_a {} {dout fifo/din In0 adc_0/adc_dat_a_o}
+
+cell xilinx.com:ip:xlconstant:1.1 zero_18bits {CONST_WIDTH 18 CONST_VAL 0} {dout concat_adc_a/In1}
+
+
