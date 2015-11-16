@@ -81,7 +81,7 @@ cell xilinx.com:ip:clk_wiz:5.2 pll {
   CLKOUT4_USED true CLKOUT4_REQUESTED_OUT_FREQ 250.0 CLKOUT4_REQUESTED_PHASE -45
   CLKOUT5_USED true CLKOUT5_REQUESTED_OUT_FREQ 250.0
   CLKOUT6_USED true CLKOUT6_REQUESTED_OUT_FREQ 250.0
-  RESET_TYPE ACTIVE_LOW RESET_PORT resetn
+  USE_RESET false
 } {}
 connect_bd_net [get_bd_ports adc_clk_p_i] [get_bd_pins pll/clk_in1_p]
 connect_bd_net [get_bd_ports adc_clk_n_i] [get_bd_pins pll/clk_in1_n]

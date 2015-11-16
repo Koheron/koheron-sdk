@@ -1,7 +1,14 @@
-from lase.core import KClient, DevMem
+from lase.core import KClient, DevMem, ZynqSSH
 import numpy as np
+import os
 
 host = '192.168.1.12'
+password = 'changeme'
+
+# Load bitstream
+ssh = ZynqSSH(host, password)
+ssh.load_pl(os.path.join(os.getcwd(),'tmp/base_system.bit'))
+
 client = KClient(host)
 dvm = DevMem(client)
 
