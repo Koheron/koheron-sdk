@@ -27,7 +27,7 @@ module rp_dac #
   reg  [14-1: 0] dac_dat_b  ;
 
   // output registers + signed to unsigned (also to negative slope)
-  always @(posedge dac_clk) begin
+  always @(posedge dac_clk_1x) begin
     dac_dat_a <= {dac_dat_a_i[14-1], ~dac_dat_a_i[14-2:0]};
     dac_dat_b <= {dac_dat_b_i[14-1], ~dac_dat_b_i[14-2:0]};
     dac_rst   <= !dac_locked;
@@ -38,7 +38,7 @@ module rp_dac #
   ODDR oddr_dac_sel          (.Q(dac_sel_o), .D1(1'b1     ), .D2(1'b0     ), .C(dac_clk_1x), .CE(1'b1), .R(dac_rst), .S(1'b0));
   ODDR oddr_dac_rst          (.Q(dac_rst_o), .D1(dac_rst  ), .D2(dac_rst  ), .C(dac_clk_1x), .CE(1'b1), .R(1'b0   ), .S(1'b0));
 
-  ODDR oddr_dac_dat [14-1:0] (.Q(dac_dat_o), .D1(dac_dat_b), .D2(dac_dat_a), .C(dac_clk), .CE(1'b1), .R(dac_rst), .S(1'b0));
+  ODDR oddr_dac_dat [14-1:0] (.Q(dac_dat_o), .D1(dac_dat_b), .D2(dac_dat_a), .C(dac_clk_1x), .CE(1'b1), .R(dac_rst), .S(1'b0));
 
 endmodule
 
