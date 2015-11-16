@@ -1,5 +1,5 @@
 
-create_clock -period 8.000 -name clk_out1_system_pll_0 [get_ports adc_clk_p_i]
+#create_clock -period 8.000 -name clk_out1_system_pll_0 [get_ports adc_clk_p_i]
 
 set_input_delay -clock adc_clk 3.400 [get_ports adc_dat_a_i[*]]
 set_input_delay -clock adc_clk 3.400 [get_ports adc_dat_b_i[*]]
