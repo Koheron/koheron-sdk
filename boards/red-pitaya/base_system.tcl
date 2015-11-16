@@ -69,14 +69,32 @@ set_property name exp_p [get_bd_intf_ports gpio_rtl_0]
 #add_bram adc_bram_2 8K
 #add_bram dac_bram   8K
 
+# Clock utility buffer
+cell xilinx.com:ip:util_ds_buf:2.1 ibufds {C_BUF_TYPE IBUFDS} {} 
+connect_bd_net [get_bd_ports adc_clk_p_i] [get_bd_pins ibufds/IBUF_DS_P]
+connect_bd_net [get_bd_ports adc_clk_n_i] [get_bd_pins ibufds/IBUF_DS_N]
+
+# Phase-locked Loop (PLL)
+cell xilinx.com:ip:clk_wiz:5.2 pll {
+  PRIMITIVE PLL
+  PRIM_IN_FREQ.VALUE_SRC USER
+  PRIM_IN_FREQ 125.0
+  CLKOUT1_USED true CLKOUT1_REQUESTED_OUT_FREQ 125.0
+  CLKOUT2_USED true CLKOUT2_REQUESTED_OUT_FREQ 125.0
+  CLKOUT3_USED true CLKOUT3_REQUESTED_OUT_FREQ 250.0
+  CLKOUT4_USED true CLKOUT4_REQUESTED_OUT_FREQ 250.0 CLKOUT4_REQUESTED_PHASE -45
+  CLKOUT5_USED true CLKOUT5_REQUESTED_OUT_FREQ 250.0
+  CLKOUT6_USED true CLKOUT5_REQUESTED_OUT_FREQ 250.0
+  RESET_TYPE ACTIVE_LOW RESET_PORT resetn
+} {clk_in1 ibufds/IBUF_OUT}
+
+
 # Add ADC/DAC IP block
 set adc_dac_name adc_dac_0
 create_bd_cell -type ip -vlnv pavel-demin:user:redp_adc_dac:1.0 $adc_dac_name
 foreach {port_name} {
   adc_dat_a_i
   adc_dat_b_i
-  adc_clk_p_i
-  adc_clk_n_i
   adc_clk_source
   adc_cdcs_o
   dac_clk_o
@@ -87,6 +105,8 @@ foreach {port_name} {
 } {
   connect_bd_net [get_bd_ports $port_name] [get_bd_pins $adc_dac_name/$port_name]
 }
+#connect_bd_net [get_bd_pins $adc_dac_name/adc_clk_in] [get_bd_pins ibufds/IBUF_OUT]
+
 # Connect reset
 create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 adc_rst
 connect_bd_net [get_bd_pins adc_rst/dout] [get_bd_pins $adc_dac_name/adc_rst_i]

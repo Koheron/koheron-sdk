@@ -68,9 +68,8 @@ module rp_adc_dac #
   // ADC IC
   input    [ 14-1: 0] adc_dat_a_i        ,  //!< ADC IC CHA data connection
   input    [ 14-1: 0] adc_dat_b_i        ,  //!< ADC IC CHB data connection
-  input               adc_clk_p_i        ,  //!< ADC IC clock P connection
-  input               adc_clk_n_i        ,  //!< ADC IC clock N connection
-  output [ 2-1: 0]    adc_clk_source          ,  // optional ADC clock source
+  input               adc_clk_in         ,  
+  output [ 2-1: 0]    adc_clk_source     ,  // optional ADC clock source
   //output              adc_enc_p_o	 ,
   //output              adc_enc_n_o	 ,
   output              adc_cdcs_o         ,  // ADC clock duty cycle stabilizer
@@ -124,7 +123,6 @@ reg  [14-1: 0] adc_dat_b  ;
 wire           adc_clk_in ;
 wire           adc_clk    ;
 
-IBUFDS i_clk ( .I(adc_clk_p_i), .IB(adc_clk_n_i), .O(adc_clk_in));  // differential clock input
 BUFG i_adc_buf  (.O(adc_clk), .I(adc_clk_in)); // use global clock buffer
 
 always @(posedge adc_clk) begin
