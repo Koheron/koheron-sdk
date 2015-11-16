@@ -17,7 +17,7 @@ for {set i 0} {$i < 2} {incr i} {
   set channel [lindex {a b} $i]
   cell xilinx.com:ip:xlslice:1.0 dac_${channel}_slice \
     [list DIN_WIDTH 32 DIN_FROM [expr 13+16*$i] DIN_TO [expr 16*$i]] \
-    [list Din blk_mem_gen_$bram_name/doutb Dout adc_dac_0/dac_dat_${channel}_i]
+    [list Din blk_mem_gen_$bram_name/doutb Dout $dac_name/dac_dat_${channel}_i]
 }
 
 # Connect remaining ports of BRAM
