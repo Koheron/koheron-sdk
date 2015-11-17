@@ -225,4 +225,16 @@ cell xilinx.com:ip:xlslice:1.0 comp_slice \
   [list DIN_WIDTH 1024 DIN_FROM [expr 12+$comp_offset] DIN_TO [expr $comp_offset]] \
   [list Din axi_cfg_register_0/cfg_data Dout comp/b]
 
+set start_offset [expr 6*32]
+cell xilinx.com:ip:xlslice:1.0 start_slice \
+  [list DIN_WIDTH 1024 DIN_FROM [expr $start_offset] DIN_TO [expr $start_offset]] \
+  [list Din axi_cfg_register_0/cfg_data]
+
+cell pavel-demin:user:edge_detector:1.0 edge_detector {} {din start_slice/Dout clk pll/clk_out1}
+
+cell pavel-demin:user:write_enable:1.0 write_enable {BRAM_WIDTH 13} {
+  start_acq edge_detector/dout
+  clk pll/clk_out1
+  address base_counter/Q
+}
 
