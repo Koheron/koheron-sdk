@@ -62,84 +62,27 @@ apply_bd_automation -rule xilinx.com:bd_rule:board  [get_bd_intf_pins $gpio_name
 set_property name exp_n [get_bd_intf_ports gpio_rtl]
 set_property name exp_p [get_bd_intf_ports gpio_rtl_0]
 
-
-# Add dual-port BRAM
-#source scripts/bram.tcl
-#add_bram adc_bram_1 8K
-#add_bram adc_bram_2 8K
-#add_bram dac_bram   8K
-
-# Phase-locked Loop (PLL)
-cell xilinx.com:ip:clk_wiz:5.2 pll {
-  PRIMITIVE              PLL
-  PRIM_IN_FREQ.VALUE_SRC USER
-  PRIM_IN_FREQ           125.0
-  PRIM_SOURCE            Differential_clock_capable_pin
-  CLKOUT1_USED true CLKOUT1_REQUESTED_OUT_FREQ 125.0
-  CLKOUT2_USED true CLKOUT2_REQUESTED_OUT_FREQ 125.0
-  CLKOUT3_USED true CLKOUT3_REQUESTED_OUT_FREQ 250.0
-  CLKOUT4_USED true CLKOUT4_REQUESTED_OUT_FREQ 250.0 CLKOUT4_REQUESTED_PHASE -45
-  CLKOUT5_USED true CLKOUT5_REQUESTED_OUT_FREQ 250.0
-  CLKOUT6_USED true CLKOUT6_REQUESTED_OUT_FREQ 250.0
-  USE_RESET false
-} {}
-connect_bd_net [get_bd_ports adc_clk_p_i] [get_bd_pins pll/clk_in1_p]
-connect_bd_net [get_bd_ports adc_clk_n_i] [get_bd_pins pll/clk_in1_n]
-
-# Add ADC IP block
-set adc_name adc_0
-create_bd_cell -type ip -vlnv pavel-demin:user:redp_adc:1.0 $adc_name
-foreach {port_name} {
-  adc_dat_a_i
-  adc_dat_b_i
-  adc_clk_source
-  adc_cdcs_o
-} {
-  connect_bd_net [get_bd_ports $port_name] [get_bd_pins $adc_name/$port_name]
-}
-connect_bd_net [get_bd_pins $adc_name/adc_clk]    [get_bd_pins pll/clk_out1]
-
-# Add DAC IP block
-set dac_name dac_0
-create_bd_cell -type ip -vlnv pavel-demin:user:redp_dac:1.0 $dac_name
-foreach {port_name} {
-  dac_clk_o
-  dac_dat_o
-  dac_rst_o
-  dac_sel_o
-  dac_wrt_o
-} {
-  connect_bd_net [get_bd_ports $port_name] [get_bd_pins $dac_name/$port_name]
-}
-connect_bd_net [get_bd_pins $dac_name/dac_clk_1x] [get_bd_pins pll/clk_out2]
-connect_bd_net [get_bd_pins $dac_name/dac_clk_2x] [get_bd_pins pll/clk_out3]
-connect_bd_net [get_bd_pins $dac_name/dac_clk_2p] [get_bd_pins pll/clk_out4]
-connect_bd_net [get_bd_pins $dac_name/dac_locked] [get_bd_pins pll/locked]
-
-# Connect reset
-create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 adc_rst
-connect_bd_net [get_bd_pins adc_rst/dout] [get_bd_pins $adc_name/adc_rst_i]
+# Add ADCs and DACs
+source boards/red-pitaya/adc_dac.tcl
 
 # Add AXI configuration register (synchronous with ADC clock)
-
 set_property -dict [list CONFIG.NUM_MI {3}] [get_bd_cells ps_0_axi_periph]
 connect_bd_net [get_bd_pins /ps_0_axi_periph/M02_ACLK] [get_bd_pins ps_0/FCLK_CLK0]
 connect_bd_net [get_bd_pins ps_0_axi_periph/M02_ARESETN] [get_bd_pins rst_ps_0_125M/peripheral_aresetn]
-# Add AXI clock converter
+# AXI clock converter
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_0
 connect_bd_intf_net -boundary_type upper [get_bd_intf_pins ps_0_axi_periph/M02_AXI] [get_bd_intf_pins axi_clock_converter_0/S_AXI]
 connect_bd_net [get_bd_pins axi_clock_converter_0/s_axi_aclk] [get_bd_pins ps_0/FCLK_CLK0]
 connect_bd_net [get_bd_pins axi_clock_converter_0/s_axi_aresetn] [get_bd_pins rst_ps_0_125M/peripheral_aresetn]
 connect_bd_net [get_bd_pins axi_clock_converter_0/m_axi_aclk] [get_bd_pins pll/clk_out1]
 connect_bd_net [get_bd_pins axi_clock_converter_0/m_axi_aresetn] [get_bd_pins rst_ps_0_125M/peripheral_aresetn]
-
+# Cfg register
 create_bd_cell -type ip -vlnv pavel-demin:user:axi_cfg_register:1.0 axi_cfg_register_0
 connect_bd_intf_net [get_bd_intf_pins axi_cfg_register_0/S_AXI] [get_bd_intf_pins axi_clock_converter_0/M_AXI]
 connect_bd_net [get_bd_pins axi_cfg_register_0/aclk] [get_bd_pins axi_clock_converter_0/m_axi_aclk]
 connect_bd_net [get_bd_pins axi_cfg_register_0/aresetn] [get_bd_pins rst_ps_0_125M/peripheral_aresetn]
 assign_bd_address [get_bd_addr_segs {axi_cfg_register_0/s_axi/reg0 }]
 set_property range 4K [get_bd_addr_segs {ps_0/Data/SEG_axi_cfg_register_0_reg0}]
-
 
 # Connect LEDs
 set led_offset 0
@@ -151,18 +94,20 @@ connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 # Add PWM
 source boards/red-pitaya/pwm.tcl
 
+# Add address counter
+set bram_width 13
+cell xilinx.com:ip:c_counter_binary:12.0 base_counter \
+  [list Output_Width [expr $bram_width+2] Increment_Value 4] {
+  CLK pll/clk_out1
+}
+
 # Add DAC BRAM
 source scripts/bram.tcl
 set dac_bram_name dac_bram
 add_bram $dac_bram_name 32K
 # Connect port B of BRAM to ADC clock
 connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/clkb] [get_bd_pins pll/clk_out1]
-
-# Add address counter
-set n_bits_bram 13
-cell xilinx.com:ip:c_counter_binary:12.0 base_counter \
-  [list Output_Width [expr $n_bits_bram+2] Increment_Value 4] \
-  [list CLK pll/clk_out1 Q blk_mem_gen_$dac_bram_name/addrb]
+connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/addrb] [get_bd_pins base_counter/Q]
 
 # Connect BRAM output to DACs
 for {set i 0} {$i < 2} {incr i} {
@@ -187,47 +132,7 @@ cell xilinx.com:ip:xlconstant:1.1 ${adc1_bram_name}_enb {CONST_VAL 1} [list dout
 connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/addrb] [get_bd_pins base_counter/Q]
 connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/rstb] [get_bd_pins rst_ps_0_125M/peripheral_reset]
 
-set module_name adc_module
-set bd [current_bd_instance .]
-current_bd_instance [create_bd_cell -type hier $module_name]
+# Add averaging module
+source projects/averaging.tcl
 
-## Add FIFO
 
-cell xilinx.com:ip:fifo_generator:13.0 fifo {
-  Input_Data_Width 32
-  Input_Depth      8192
-  Data_Count       true
-  Data_Count_Width 13
-} {clk /pll/clk_out1}
-
-connect_bd_net [get_bd_pins /blk_mem_gen_$adc1_bram_name/dinb] [get_bd_pins fifo/dout]
-
-cell xilinx.com:ip:xlconcat:2.1 concat_adc_a {} {dout fifo/din In0 /adc_0/adc_dat_a_o}
-
-cell xilinx.com:ip:xlconstant:1.1 zero_18bits {CONST_WIDTH 18 CONST_VAL 0} {dout concat_adc_a/In1}
-
-cell pavel-demin:user:comparator:1.0 comp {DATA_WIDTH 13} {
-  a fifo/data_count
-  a_geq_b fifo/rd_en
-}
-
-set comp_offset [expr 5*32]
-cell xilinx.com:ip:xlslice:1.0 comp_slice \
-  [list DIN_WIDTH 1024 DIN_FROM [expr 12+$comp_offset] DIN_TO [expr $comp_offset]] \
-  [list Din /axi_cfg_register_0/cfg_data Dout comp/b]
-
-set start_offset [expr 6*32]
-cell xilinx.com:ip:xlslice:1.0 start_slice \
-  [list DIN_WIDTH 1024 DIN_FROM [expr $start_offset] DIN_TO [expr $start_offset]] \
-  [list Din /axi_cfg_register_0/cfg_data]
-
-cell pavel-demin:user:edge_detector:1.0 edge_detector {} {din start_slice/Dout clk /pll/clk_out1}
-
-cell pavel-demin:user:write_enable:1.0 write_enable {BRAM_WIDTH 13} {
-  start_acq edge_detector/dout
-  clk /pll/clk_out1
-  address /base_counter/Q
-}
-connect_bd_net [get_bd_pins write_enable/wen] [get_bd_pins /blk_mem_gen_$adc1_bram_name/web]
-
-current_bd_instance $bd
