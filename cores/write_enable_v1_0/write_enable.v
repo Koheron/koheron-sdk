@@ -41,11 +41,10 @@ module write_enable #
 
   always @(posedge clk) begin
     if (rst) begin
-      rst <= 1'b1;
       count2 <= {(BRAM_WIDTH){1'b0}};
       count2_running <= 1'b1;
     end else begin 
-      if (count_out != {(BRAM_WIDTH){1'b1}}) begin
+      if (count2 != {(BRAM_WIDTH){1'b1}}) begin
         count2 <= count2 + 1;
       end else begin
         count2_running <= 1'b0;
