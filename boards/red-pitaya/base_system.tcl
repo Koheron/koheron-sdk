@@ -236,5 +236,6 @@ cell pavel-demin:user:write_enable:1.0 write_enable {BRAM_WIDTH 13} {
   start_acq edge_detector/dout
   clk pll/clk_out1
   address base_counter/Q
+  wen blk_mem_gen_$adc1_bram_name/wen
 }
 

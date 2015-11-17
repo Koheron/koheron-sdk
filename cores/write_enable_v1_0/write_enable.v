@@ -8,7 +8,7 @@ module write_enable #
   input  wire                  start_acq,
   input  wire [BRAM_WIDTH-1:0] address,
   input  wire                  clk,
-  output wire                  wen
+  output wire [4-1:0]          wen
 );
 
   reg [BRAM_WIDTH-1:0] count1;
@@ -53,6 +53,6 @@ module write_enable #
     end
   end
 
-  assign wen = count2_running;
+  assign wen = {4{count2_running}};
 
 endmodule
