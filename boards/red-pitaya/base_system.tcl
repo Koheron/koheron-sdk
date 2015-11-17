@@ -162,6 +162,44 @@ for {set i 0} {$i < $n_pwm} {incr i} {
     [list Din axi_cfg_register_0/cfg_data Dout pwm_$i/threshold]
 }
 
+
+# Add DAC BRAM
+source scripts/bram.tcl
+set dac_bram_name dac_bram
+add_bram $dac_bram_name 32K
+# Connect port B of BRAM to ADC clock
+connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/clkb] [get_bd_pins pll/clk_out1]
+
+# Add address counter
+set n_bits_bram 13
+cell xilinx.com:ip:c_counter_binary:12.0 base_counter \
+  [list Output_Width [expr $n_bits_bram+2] Increment_Value 4] \
+  [list CLK pll/clk_out1 Q blk_mem_gen_$dac_bram_name/addrb]
+
+# Connect BRAM output to DACs
+for {set i 0} {$i < 2} {incr i} {
+  set channel [lindex {a b} $i]
+  cell xilinx.com:ip:xlslice:1.0 dac_${channel}_slice \
+    [list DIN_WIDTH 32 DIN_FROM [expr 13+16*$i] DIN_TO [expr 16*$i]] \
+    [list Din blk_mem_gen_$dac_bram_name/doutb Dout $dac_name/dac_dat_${channel}_i]
+}
+
+# Connect remaining ports of BRAM
+cell xilinx.com:ip:xlconstant:1.1 ${dac_bram_name}_dinb {CONST_VAL 0 CONST_WIDTH 32} [list dout blk_mem_gen_$dac_bram_name/dinb]
+cell xilinx.com:ip:xlconstant:1.1 ${dac_bram_name}_enb {CONST_VAL 1} [list dout blk_mem_gen_$dac_bram_name/enb]
+cell xilinx.com:ip:xlconstant:1.1 ${dac_bram_name}_web {CONST_VAL 0 CONST_WIDTH 4} [list dout blk_mem_gen_$dac_bram_name/web]
+connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/rstb] [get_bd_pins rst_ps_0_125M/peripheral_reset]
+
+
+# Add ADC1 BRAM
+set adc1_bram_name adc1_bram
+add_bram $adc1_bram_name 32K
+# Connect port B of BRAM to ADC clock
+connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/clkb] [get_bd_pins pll/clk_out1]
+cell xilinx.com:ip:xlconstant:1.1 ${adc1_bram_name}_enb {CONST_VAL 1} [list dout blk_mem_gen_$adc1_bram_name/enb]
+connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/addrb] [get_bd_pins base_counter/Q]
+connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/rstb] [get_bd_pins rst_ps_0_125M/peripheral_reset]
+
 ## Add FIFO
 
 cell xilinx.com:ip:fifo_generator:13.0 fifo {
@@ -170,6 +208,8 @@ cell xilinx.com:ip:fifo_generator:13.0 fifo {
   Data_Count       true
   Data_Count_Width 13
 } {clk pll/clk_out1}
+
+connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/dinb] [get_bd_pins fifo/dout]
 
 cell xilinx.com:ip:xlconcat:2.1 concat_adc_a {} {dout fifo/din In0 adc_0/adc_dat_a_o}
 
