@@ -13,13 +13,37 @@ cell xilinx.com:ip:fifo_generator:13.0 fifo {
 
 connect_bd_net [get_bd_pins /blk_mem_gen_$adc1_bram_name/dinb] [get_bd_pins fifo/dout]
 
-cell xilinx.com:ip:xlconcat:2.1 concat_adc_a {} {dout fifo/din In0 /adc_0/adc_dat_a_o}
+cell xilinx.com:ip:c_addsub:12.0 adder {
+  A_Width.VALUE_SRC USER
+  B_Width.VALUE_SRC USER
+  A_Width 32
+  B_Width 14
+  Out_Width 32
+  CE false
+  Latency 3
+  Reset_Pin false
+} {
+  CLK /pll/clk_out1
+  B /adc_0/adc_dat_a_o
+  S fifo/din
+}
 
-cell xilinx.com:ip:xlconstant:1.1 zero_18bits {CONST_WIDTH 18 CONST_VAL 0} {dout concat_adc_a/In1}
+cell xilinx.com:ip:xlconstant:1.1 wr_en_one {} {dout fifo/wr_en}
 
 cell pavel-demin:user:comparator:1.0 comp {DATA_WIDTH 13} {
   a fifo/data_count
   a_geq_b fifo/rd_en
+}
+
+cell xilinx.com:ip:c_shift_ram:12.0 shift_reg {
+  Width.VALUE_SRC USER
+  Width 32
+  Depth 1
+  SCLR true
+} {
+  CLK /pll/clk_out1
+  Q adder/A
+  D fifo/dout
 }
 
 set comp_offset [expr 5*32]
@@ -40,5 +64,7 @@ cell pavel-demin:user:write_enable:1.0 write_enable [list BRAM_WIDTH $bram_width
   address /base_counter/Q
 }
 connect_bd_net [get_bd_pins write_enable/wen] [get_bd_pins /blk_mem_gen_$adc1_bram_name/web]
+
+cell xilinx.com:ip:xlslice:1.0 wen_slice {DIN_WIDTH 4} {Din write_enable/wen Dout shift_reg/SCLR}
 
 current_bd_instance $bd
