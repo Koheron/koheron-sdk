@@ -9,6 +9,7 @@ cell xilinx.com:ip:fifo_generator:13.0 fifo {
   Input_Depth      8192
   Data_Count       true
   Data_Count_Width 13
+  Reset_Pin false
 } [list clk /$adc_clk]
 
 connect_bd_net [get_bd_pins /blk_mem_gen_$adc1_bram_name/dinb] [get_bd_pins fifo/dout]
