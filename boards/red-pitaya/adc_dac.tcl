@@ -1,3 +1,7 @@
+set module_name adc_dac
+set bd [current_bd_instance .]
+current_bd_instance [create_bd_cell -type hier $module_name]
+
 # Phase-locked Loop (PLL)
 cell xilinx.com:ip:clk_wiz:5.2 pll {
   PRIMITIVE              PLL
@@ -12,8 +16,8 @@ cell xilinx.com:ip:clk_wiz:5.2 pll {
   CLKOUT6_USED true CLKOUT6_REQUESTED_OUT_FREQ 250.0
   USE_RESET false
 } {}
-connect_bd_net [get_bd_ports adc_clk_p_i] [get_bd_pins pll/clk_in1_p]
-connect_bd_net [get_bd_ports adc_clk_n_i] [get_bd_pins pll/clk_in1_n]
+connect_bd_net [get_bd_ports /adc_clk_p_i] [get_bd_pins pll/clk_in1_p]
+connect_bd_net [get_bd_ports /adc_clk_n_i] [get_bd_pins pll/clk_in1_n]
 
 # Add ADC IP block
 set adc_name adc_0
@@ -24,7 +28,7 @@ foreach {port_name} {
   adc_clk_source
   adc_cdcs_o
 } {
-  connect_bd_net [get_bd_ports $port_name] [get_bd_pins $adc_name/$port_name]
+  connect_bd_net [get_bd_ports /$port_name] [get_bd_pins $adc_name/$port_name]
 }
 connect_bd_net [get_bd_pins $adc_name/adc_clk] [get_bd_pins pll/clk_out1]
 
@@ -38,7 +42,7 @@ foreach {port_name} {
   dac_sel_o
   dac_wrt_o
 } {
-  connect_bd_net [get_bd_ports $port_name] [get_bd_pins $dac_name/$port_name]
+  connect_bd_net [get_bd_ports /$port_name] [get_bd_pins $dac_name/$port_name]
 }
 connect_bd_net [get_bd_pins $dac_name/dac_clk_1x] [get_bd_pins pll/clk_out2]
 connect_bd_net [get_bd_pins $dac_name/dac_clk_2x] [get_bd_pins pll/clk_out3]
@@ -47,4 +51,7 @@ connect_bd_net [get_bd_pins $dac_name/dac_locked] [get_bd_pins pll/locked]
 
 # Connect reset
 create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 adc_rst
+
 connect_bd_net [get_bd_pins adc_rst/dout] [get_bd_pins $adc_name/adc_rst_i]
+
+current_bd_instance $bd

@@ -64,6 +64,9 @@ set_property name exp_p [get_bd_intf_ports gpio_rtl_0]
 
 # Add ADCs and DACs
 source boards/red-pitaya/adc_dac.tcl
+# Rename clocks
+set adc_clk adc_dac/pll/clk_out1
+set pwm_clk adc_dac/pll/clk_out6
 
 # Add Configuration register (synchronous with ADC clock)
 source projects/config_register.tcl
@@ -84,16 +87,15 @@ source boards/red-pitaya/pwm.tcl
 # Add address counter
 set bram_width 13
 cell xilinx.com:ip:c_counter_binary:12.0 base_counter \
-  [list Output_Width [expr $bram_width+2] Increment_Value 4] {
-  CLK pll/clk_out1
-}
+  [list Output_Width [expr $bram_width+2] Increment_Value 4] \
+  [list CLK $adc_clk]
 
 # Add DAC BRAM
 source scripts/bram.tcl
 set dac_bram_name dac_bram
 add_bram $dac_bram_name 32K
 # Connect port B of BRAM to ADC clock
-connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/clkb] [get_bd_pins pll/clk_out1]
+connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/clkb] [get_bd_pins $adc_clk]
 connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/addrb] [get_bd_pins base_counter/Q]
 
 # Connect BRAM output to DACs
@@ -101,7 +103,7 @@ for {set i 0} {$i < 2} {incr i} {
   set channel [lindex {a b} $i]
   cell xilinx.com:ip:xlslice:1.0 dac_${channel}_slice \
     [list DIN_WIDTH 32 DIN_FROM [expr 13+16*$i] DIN_TO [expr 16*$i]] \
-    [list Din blk_mem_gen_$dac_bram_name/doutb Dout $dac_name/dac_dat_${channel}_i]
+    [list Din blk_mem_gen_$dac_bram_name/doutb Dout adc_dac/$dac_name/dac_dat_${channel}_i]
 }
 
 # Connect remaining ports of BRAM
@@ -114,7 +116,7 @@ connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/rstb] [get_bd_pins rst_ps
 set adc1_bram_name adc1_bram
 add_bram $adc1_bram_name 32K
 # Connect port B of BRAM to ADC clock
-connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/clkb] [get_bd_pins pll/clk_out1]
+connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/clkb] [get_bd_pins $adc_clk]
 cell xilinx.com:ip:xlconstant:1.1 ${adc1_bram_name}_enb {CONST_VAL 1} [list dout blk_mem_gen_$adc1_bram_name/enb]
 connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/addrb] [get_bd_pins base_counter/Q]
 connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/rstb] [get_bd_pins rst_ps_0_125M/peripheral_reset]

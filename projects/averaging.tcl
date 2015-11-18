@@ -9,7 +9,7 @@ cell xilinx.com:ip:fifo_generator:13.0 fifo {
   Input_Depth      8192
   Data_Count       true
   Data_Count_Width 13
-} {clk /pll/clk_out1}
+} [list clk /$adc_clk]
 
 connect_bd_net [get_bd_pins /blk_mem_gen_$adc1_bram_name/dinb] [get_bd_pins fifo/dout]
 
@@ -22,11 +22,7 @@ cell xilinx.com:ip:c_addsub:12.0 adder {
   CE false
   Latency 3
   Reset_Pin false
-} {
-  CLK /pll/clk_out1
-  B /adc_0/adc_dat_a_o
-  S fifo/din
-}
+} [list CLK /$adc_clk B /adc_dac/adc_0/adc_dat_a_o S fifo/din]
 
 cell xilinx.com:ip:xlconstant:1.1 wr_en_one {} {dout fifo/wr_en}
 
@@ -40,11 +36,7 @@ cell xilinx.com:ip:c_shift_ram:12.0 shift_reg {
   Width 32
   Depth 1
   SCLR true
-} {
-  CLK /pll/clk_out1
-  Q adder/A
-  D fifo/dout
-}
+} [list CLK /$adc_clk Q adder/A D fifo/dout]
 
 set comp_offset [expr 5*32]
 cell xilinx.com:ip:xlslice:1.0 comp_slice \
@@ -56,13 +48,11 @@ cell xilinx.com:ip:xlslice:1.0 start_slice \
   [list DIN_WIDTH 1024 DIN_FROM [expr $start_offset] DIN_TO [expr $start_offset]] \
   [list Din /axi_cfg_register_0/cfg_data]
 
-cell pavel-demin:user:edge_detector:1.0 edge_detector {} {din start_slice/Dout clk /pll/clk_out1}
+cell pavel-demin:user:edge_detector:1.0 edge_detector {} [list din start_slice/Dout clk /$adc_clk]
 
-cell pavel-demin:user:write_enable:1.0 write_enable [list BRAM_WIDTH $bram_width] {
-  start_acq edge_detector/dout
-  clk /pll/clk_out1
-  address /base_counter/Q
-}
+cell pavel-demin:user:write_enable:1.0 write_enable [list BRAM_WIDTH $bram_width] \
+  [list start_acq edge_detector/dout clk /$adc_clk address /base_counter/Q]
+
 connect_bd_net [get_bd_pins write_enable/wen] [get_bd_pins /blk_mem_gen_$adc1_bram_name/web]
 
 cell xilinx.com:ip:xlslice:1.0 wen_slice {DIN_WIDTH 4} {Din write_enable/wen Dout shift_reg/SCLR}
