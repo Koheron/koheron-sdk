@@ -54,4 +54,10 @@ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 adc_rst
 
 connect_bd_net [get_bd_pins adc_rst/dout] [get_bd_pins $adc_name/adc_rst_i]
 
+create_bd_pin -dir O adc_clk
+connect_bd_net [get_bd_pins adc_clk] [get_bd_pins pll/clk_out1]
+
+create_bd_pin -dir O pwm_clk
+connect_bd_net [get_bd_pins pwm_clk] [get_bd_pins pll/clk_out6]
+
 current_bd_instance $bd

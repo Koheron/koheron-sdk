@@ -65,8 +65,8 @@ set_property name exp_p [get_bd_intf_ports gpio_rtl_0]
 # Add ADCs and DACs
 source boards/red-pitaya/adc_dac.tcl
 # Rename clocks
-set adc_clk adc_dac/pll/clk_out1
-set pwm_clk adc_dac/pll/clk_out6
+set adc_clk adc_dac/adc_clk
+set pwm_clk adc_dac/pwm_clk
 
 # Add Configuration register (synchronous with ADC clock)
 source projects/config_register.tcl
