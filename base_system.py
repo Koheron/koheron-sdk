@@ -80,7 +80,7 @@ dac_data_2 = np.mod(np.floor(8192*dac[1,:]) + 8192,16384)+8192
 dvm.write_buffer(DAC, 0, dac_data_1 + 65536 * dac_data_2)
 
 # Test ADC
-dvm.write(CONFIG, AVG_COMP, 1*8187+0)
+dvm.write(CONFIG, AVG_COMP, 1*8187+1*2**13)
 dvm.write(CONFIG, START_ACQ, 1)
 
 a = dvm.read_buffer(ADC1, 0, 8192)

@@ -53,15 +53,19 @@ cell xilinx.com:ip:xlslice:1.0 avg_on_slice \
   [list DIN_WIDTH 1024 DIN_FROM [expr 13+$comp_offset] DIN_TO [expr 13+$comp_offset]] \
   [list Din /axi_cfg_register_0/cfg_data Dout wen_or_avg_on/Op2]
 
-set start_offset [expr 6*32]
+set start_offset [expr $reset_offset+1]
 cell xilinx.com:ip:xlslice:1.0 start_slice \
   [list DIN_WIDTH 1024 DIN_FROM [expr $start_offset] DIN_TO [expr $start_offset]] \
   [list Din /axi_cfg_register_0/cfg_data]
 
 cell pavel-demin:user:edge_detector:1.0 edge_detector {} [list din start_slice/Dout clk /$adc_clk]
 
+cell xilinx.com:ip:xlslice:1.0 address_slice \
+  [list DIN_WIDTH 15 DIN_FROM 14 DIN_TO 2] \
+  [list Din /base_counter/Q]
+
 cell pavel-demin:user:write_enable:1.0 write_enable [list BRAM_WIDTH $bram_width] \
-  [list start_acq edge_detector/dout clk /$adc_clk address /base_counter/Q]
+  [list start_acq edge_detector/dout clk /$adc_clk address address_slice/Dout]
 
 connect_bd_net [get_bd_pins write_enable/wen] [get_bd_pins /blk_mem_gen_$adc1_bram_name/web]
 

@@ -87,8 +87,17 @@ source boards/red-pitaya/pwm.tcl
 # Add address counter
 set bram_width 13
 cell xilinx.com:ip:c_counter_binary:12.0 base_counter \
-  [list Output_Width [expr $bram_width+2] Increment_Value 4] \
+  [list Output_Width [expr $bram_width+2] Increment_Value 4 SCLR true] \
   [list CLK $adc_clk]
+
+set reset_offset [expr 6*32]
+
+cell pavel-demin:user:edge_detector:1.0 reset_base_counter {} \
+  [list clk $adc_clk dout base_counter/SCLR]
+
+cell xilinx.com:ip:xlslice:1.0 reset_base_counter_slice \
+    [list DIN_WIDTH 1024 DIN_FROM $reset_offset DIN_TO $reset_offset] \
+    [list Din axi_cfg_register_0/cfg_data Dout reset_base_counter/din]
 
 # Add DAC BRAM
 source scripts/bram.tcl
