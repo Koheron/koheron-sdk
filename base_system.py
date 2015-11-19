@@ -2,6 +2,7 @@ from lase.core import KClient, DevMem, ZynqSSH
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import time
 
 host = '192.168.1.12'
 password = 'changeme'
@@ -79,17 +80,20 @@ dac_data_2 = np.mod(np.floor(8192*dac[1,:]) + 8192,16384)+8192
 dvm.write_buffer(DAC, 0, dac_data_1 + 65536 * dac_data_2)
 
 # Test ADC
-dvm.write(CONFIG, AVG_COMP, 6500)
+dvm.write(CONFIG, AVG_COMP, 1*8187+0)
 dvm.write(CONFIG, START_ACQ, 1)
 
 a = dvm.read_buffer(ADC1, 0, 8192)
 a = np.mod(a-2**31,2**32)-2**31
 print np.mean(a)
 
+
 dvm.write(CONFIG, START_ACQ, 1)
 a = dvm.read_buffer(ADC1, 0, 8192)
 a = np.mod(a-2**31,2**32)-2**31
 plt.plot(a)
+
+print np.sum(np.abs(a) > 20000)
 
 plt.show()
 
