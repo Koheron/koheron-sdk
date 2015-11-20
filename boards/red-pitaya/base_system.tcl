@@ -1,6 +1,5 @@
 set board_preset boards/$board_name/config/board_preset.xml
 
-
 set ps_name ps_0
 set xadc_name xadc_wiz_0
 
@@ -91,5 +90,9 @@ connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/rstb] [get_bd_pins rst_p
 
 # Add averaging module
 source projects/averaging.tcl
-
-
+connect_bd_net [get_bd_pins averaging/clk]      [get_bd_pins $adc_clk]
+connect_bd_net [get_bd_pins averaging/cfg]      [get_bd_pins axi_cfg_register_0/cfg_data]
+connect_bd_net [get_bd_pins averaging/data_in]  [get_bd_pins adc_dac/adc_0/adc_dat_a_o]
+connect_bd_net [get_bd_pins averaging/addr]     [get_bd_pins $address_name/addr]
+connect_bd_net [get_bd_pins averaging/data_out] [get_bd_pins blk_mem_gen_$adc1_bram_name/dinb]
+connect_bd_net [get_bd_pins averaging/wen]      [get_bd_pins blk_mem_gen_$adc1_bram_name/web]

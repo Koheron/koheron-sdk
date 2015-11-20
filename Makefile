@@ -159,4 +159,3 @@ clean:
 	$(RM) uImage fw_printenv boot.bin devicetree.dtb tmp
 	$(RM) .Xil usage_statistics_webtalk.html usage_statistics_webtalk.xml *.log *.jou
 	$(RM) lase
-
