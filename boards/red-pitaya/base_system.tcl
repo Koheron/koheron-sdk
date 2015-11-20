@@ -56,7 +56,6 @@ add_address_module $address_name $bram_width $adc_clk $reset_offset
 connect_bd_net [get_bd_pins $address_name/clk] [get_bd_pins $adc_clk]
 connect_bd_net [get_bd_pins $address_name/cfg] [get_bd_pins axi_cfg_register_0/cfg_data]
 
-
 # Add DAC BRAM
 source scripts/bram.tcl
 set dac_bram_name dac_bram
@@ -90,9 +89,16 @@ connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/rstb] [get_bd_pins rst_p
 
 # Add averaging module
 source projects/averaging.tcl
-connect_bd_net [get_bd_pins averaging/clk]      [get_bd_pins $adc_clk]
-connect_bd_net [get_bd_pins averaging/cfg]      [get_bd_pins axi_cfg_register_0/cfg_data]
-connect_bd_net [get_bd_pins averaging/data_in]  [get_bd_pins adc_dac/adc_0/adc_dat_a_o]
-connect_bd_net [get_bd_pins averaging/addr]     [get_bd_pins $address_name/addr]
-connect_bd_net [get_bd_pins averaging/data_out] [get_bd_pins blk_mem_gen_$adc1_bram_name/dinb]
-connect_bd_net [get_bd_pins averaging/wen]      [get_bd_pins blk_mem_gen_$adc1_bram_name/web]
+
+set avg_name averaging
+set avg_offset [expr 5*32]
+
+add_averaging_module $avg_name $bram_width $adc_clk $avg_offset
+
+connect_bd_net [get_bd_pins $avg_name/clk]      [get_bd_pins $adc_clk]
+connect_bd_net [get_bd_pins $avg_name/start]    [get_bd_pins $address_name/start]
+connect_bd_net [get_bd_pins $avg_name/cfg]      [get_bd_pins axi_cfg_register_0/cfg_data]
+connect_bd_net [get_bd_pins $avg_name/data_in]  [get_bd_pins adc_dac/adc_0/adc_dat_a_o]
+connect_bd_net [get_bd_pins $avg_name/addr]     [get_bd_pins $address_name/addr]
+connect_bd_net [get_bd_pins $avg_name/data_out] [get_bd_pins blk_mem_gen_$adc1_bram_name/dinb]
+connect_bd_net [get_bd_pins $avg_name/wen]      [get_bd_pins blk_mem_gen_$adc1_bram_name/web]
