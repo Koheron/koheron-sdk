@@ -64,6 +64,9 @@ set_property name exp_p [get_bd_intf_ports gpio_rtl_0]
 
 # Add ADCs and DACs
 source boards/red-pitaya/adc_dac.tcl
+# Rename clocks
+set adc_clk adc_dac/adc_clk
+set pwm_clk adc_dac/pwm_clk
 
 # Add Configuration register (synchronous with ADC clock)
 source projects/config_register.tcl
@@ -84,16 +87,24 @@ source boards/red-pitaya/pwm.tcl
 # Add address counter
 set bram_width 13
 cell xilinx.com:ip:c_counter_binary:12.0 base_counter \
-  [list Output_Width [expr $bram_width+2] Increment_Value 4] {
-  CLK pll/clk_out1
-}
+  [list Output_Width [expr $bram_width+2] Increment_Value 4 SCLR true] \
+  [list CLK $adc_clk]
+
+set reset_offset [expr 6*32]
+
+cell pavel-demin:user:edge_detector:1.0 reset_base_counter {} \
+  [list clk $adc_clk dout base_counter/SCLR]
+
+cell xilinx.com:ip:xlslice:1.0 reset_base_counter_slice \
+    [list DIN_WIDTH 1024 DIN_FROM $reset_offset DIN_TO $reset_offset] \
+    [list Din axi_cfg_register_0/cfg_data Dout reset_base_counter/din]
 
 # Add DAC BRAM
 source scripts/bram.tcl
 set dac_bram_name dac_bram
 add_bram $dac_bram_name 32K
 # Connect port B of BRAM to ADC clock
-connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/clkb] [get_bd_pins pll/clk_out1]
+connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/clkb] [get_bd_pins $adc_clk]
 connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/addrb] [get_bd_pins base_counter/Q]
 
 # Connect BRAM output to DACs
@@ -101,7 +112,7 @@ for {set i 0} {$i < 2} {incr i} {
   set channel [lindex {a b} $i]
   cell xilinx.com:ip:xlslice:1.0 dac_${channel}_slice \
     [list DIN_WIDTH 32 DIN_FROM [expr 13+16*$i] DIN_TO [expr 16*$i]] \
-    [list Din blk_mem_gen_$dac_bram_name/doutb Dout $dac_name/dac_dat_${channel}_i]
+    [list Din blk_mem_gen_$dac_bram_name/doutb Dout adc_dac/$dac_name/dac_dat_${channel}_i]
 }
 
 # Connect remaining ports of BRAM
@@ -110,11 +121,20 @@ cell xilinx.com:ip:xlconstant:1.1 ${dac_bram_name}_enb {CONST_VAL 1} [list dout 
 cell xilinx.com:ip:xlconstant:1.1 ${dac_bram_name}_web {CONST_VAL 0 CONST_WIDTH 4} [list dout blk_mem_gen_$dac_bram_name/web]
 connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/rstb] [get_bd_pins rst_ps_0_125M/peripheral_reset]
 
+cell xilinx.com:ip:c_shift_ram:12.0 delay_addr {
+  ShiftRegType Variable_Length_Lossless
+  Width 14
+} [list D write_enable/wen CLK /$adc_clk]
+
+cell xilinx.com:ip:xlslice:1.0 wen_delay_slice \
+  [list DIN_WIDTH 1024 DIN_FROM [expr 17+$averaging_offset] DIN_TO [expr 14+$averaging_offset]] \
+  [list Din /axi_cfg_register_0/cfg_data Dout delay_wen/A]
+
 # Add ADC1 BRAM
 set adc1_bram_name adc1_bram
 add_bram $adc1_bram_name 32K
 # Connect port B of BRAM to ADC clock
-connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/clkb] [get_bd_pins pll/clk_out1]
+connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/clkb] [get_bd_pins $adc_clk]
 cell xilinx.com:ip:xlconstant:1.1 ${adc1_bram_name}_enb {CONST_VAL 1} [list dout blk_mem_gen_$adc1_bram_name/enb]
 connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/addrb] [get_bd_pins base_counter/Q]
 connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/rstb] [get_bd_pins rst_ps_0_125M/peripheral_reset]
