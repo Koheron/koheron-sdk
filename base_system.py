@@ -25,7 +25,7 @@ PWM0 = 4
 PWM1 = 8
 PWM2 = 12
 PWM3 = 16
-AVG_COMP = 20
+AVG  = 20
 RESET = 24
 
 
@@ -80,13 +80,13 @@ dac_data_2 = np.mod(np.floor(8192*dac[1,:]) + 8192,16384)+8192
 dvm.write_buffer(DAC, 0, dac_data_1 + 65536 * dac_data_2)
 
 # Test ADC (don't forget to connect DAC2 with ADC1)
-no_avg = 1
-dvm.write(CONFIG, AVG_COMP, 8187+no_avg*2**13)
+no_avg = 0
+dvm.write(CONFIG, AVG, 8187+no_avg*2**13+ 8*2**14)
 dvm.set_bit(CONFIG, RESET, 0)
 dvm.set_bit(CONFIG, RESET, 1)
 dvm.clear_bit(CONFIG, RESET, 1)
 
-time.sleep(1)
+time.sleep(2)
 
 dvm.set_bit(CONFIG, RESET, 1)
 a = dvm.read_buffer(ADC1, 0, 8192)

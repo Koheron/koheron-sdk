@@ -121,6 +121,15 @@ cell xilinx.com:ip:xlconstant:1.1 ${dac_bram_name}_enb {CONST_VAL 1} [list dout 
 cell xilinx.com:ip:xlconstant:1.1 ${dac_bram_name}_web {CONST_VAL 0 CONST_WIDTH 4} [list dout blk_mem_gen_$dac_bram_name/web]
 connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/rstb] [get_bd_pins rst_ps_0_125M/peripheral_reset]
 
+cell xilinx.com:ip:c_shift_ram:12.0 delay_addr {
+  ShiftRegType Variable_Length_Lossless
+  Width 14
+} [list D write_enable/wen CLK /$adc_clk]
+
+cell xilinx.com:ip:xlslice:1.0 wen_delay_slice \
+  [list DIN_WIDTH 1024 DIN_FROM [expr 17+$averaging_offset] DIN_TO [expr 14+$averaging_offset]] \
+  [list Din /axi_cfg_register_0/cfg_data Dout delay_wen/A]
+
 # Add ADC1 BRAM
 set adc1_bram_name adc1_bram
 add_bram $adc1_bram_name 32K

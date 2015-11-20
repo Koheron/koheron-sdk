@@ -44,13 +44,13 @@ cell xilinx.com:ip:util_vector_logic:2.0 wen_or_avg_on {
   C_OPERATION or
 } {Res shift_reg/SCLR}
 
-set comp_offset [expr 5*32]
+set averaging_offset [expr 5*32]
 cell xilinx.com:ip:xlslice:1.0 comp_slice \
-  [list DIN_WIDTH 1024 DIN_FROM [expr 12+$comp_offset] DIN_TO [expr $comp_offset]] \
+  [list DIN_WIDTH 1024 DIN_FROM [expr 12+$averaging_offset] DIN_TO [expr $averaging_offset]] \
   [list Din /axi_cfg_register_0/cfg_data Dout comp/b]
 
 cell xilinx.com:ip:xlslice:1.0 avg_on_slice \
-  [list DIN_WIDTH 1024 DIN_FROM [expr 13+$comp_offset] DIN_TO [expr 13+$comp_offset]] \
+  [list DIN_WIDTH 1024 DIN_FROM [expr 13+$averaging_offset] DIN_TO [expr 13+$averaging_offset]] \
   [list Din /axi_cfg_register_0/cfg_data Dout wen_or_avg_on/Op2]
 
 set start_offset [expr $reset_offset+1]
@@ -69,6 +69,15 @@ cell pavel-demin:user:write_enable:1.0 write_enable [list BRAM_WIDTH $bram_width
 
 connect_bd_net [get_bd_pins write_enable/wen] [get_bd_pins /blk_mem_gen_$adc1_bram_name/web]
 
-cell xilinx.com:ip:xlslice:1.0 wen_slice {DIN_WIDTH 4} {Din write_enable/wen Dout wen_or_avg_on/Op1}
+cell xilinx.com:ip:c_shift_ram:12.0 delay_wen {
+  ShiftRegType Variable_Length_Lossless
+  Width 1
+} [list D write_enable/wen CLK /$adc_clk]
+
+cell xilinx.com:ip:xlslice:1.0 wen_delay_slice \
+  [list DIN_WIDTH 1024 DIN_FROM [expr 17+$averaging_offset] DIN_TO [expr 14+$averaging_offset]] \
+  [list Din /axi_cfg_register_0/cfg_data Dout delay_wen/A]
+
+cell xilinx.com:ip:xlslice:1.0 wen_slice {DIN_WIDTH 4} {Din delay_wen/Q Dout wen_or_avg_on/Op1}
 
 current_bd_instance $bd
