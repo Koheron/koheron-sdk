@@ -1,3 +1,6 @@
+
+#proc add_config_register {} 
+
 set_property -dict [list CONFIG.NUM_MI {3}] [get_bd_cells ps_0_axi_periph]
 connect_bd_net [get_bd_pins /ps_0_axi_periph/M02_ACLK] [get_bd_pins ps_0/FCLK_CLK0]
 connect_bd_net [get_bd_pins ps_0_axi_periph/M02_ARESETN] [get_bd_pins rst_ps_0_125M/peripheral_aresetn]

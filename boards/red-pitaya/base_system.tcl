@@ -46,29 +46,13 @@ connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 # Add PWM
 source boards/red-pitaya/pwm.tcl
 
-# Add address counter
+# Add address module
+source projects/address.tcl
 set bram_width 13
-cell xilinx.com:ip:c_counter_binary:12.0 base_counter \
-  [list Output_Width [expr $bram_width+2] Increment_Value 4 SCLR true] \
-  [list CLK $adc_clk]
-
 set reset_offset [expr 6*32]
 
-cell pavel-demin:user:edge_detector:1.0 reset_base_counter {} \
-  [list clk $adc_clk dout base_counter/SCLR]
-
-cell xilinx.com:ip:xlslice:1.0 reset_base_counter_slice \
-    [list DIN_WIDTH 1024 DIN_FROM $reset_offset DIN_TO $reset_offset] \
-    [list Din axi_cfg_register_0/cfg_data Dout reset_base_counter/din]
-
-cell xilinx.com:ip:xlslice:1.0 addr_delay_slice \
-  [list DIN_WIDTH 1024 DIN_FROM [expr 15+$reset_offset] DIN_TO [expr 2+$reset_offset]] \
-  [list Din /axi_cfg_register_0/cfg_data]
-
-cell xilinx.com:ip:c_shift_ram:12.0 delay_addr \
-  [list ShiftRegType Variable_Length_Lossless Width [expr $bram_width+2]] \
-  [list D base_counter/Q CLK /$adc_clk A addr_delay_slice/Dout]
-
+set address_name address
+add_address_module $address_name $bram_width $adc_clk $reset_offset
 
 # Add DAC BRAM
 source scripts/bram.tcl
@@ -76,7 +60,7 @@ set dac_bram_name dac_bram
 add_bram $dac_bram_name 32K
 # Connect port B of BRAM to ADC clock
 connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/clkb] [get_bd_pins $adc_clk]
-connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/addrb] [get_bd_pins delay_addr/Q]
+connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/addrb] [get_bd_pins $address_name/delay_addr/Q]
 
 # Connect BRAM output to DACs
 for {set i 0} {$i < 2} {incr i} {
@@ -98,7 +82,7 @@ add_bram $adc1_bram_name 32K
 # Connect port B of BRAM to ADC clock
 connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/clkb] [get_bd_pins $adc_clk]
 cell xilinx.com:ip:xlconstant:1.1 ${adc1_bram_name}_enb {CONST_VAL 1} [list dout blk_mem_gen_$adc1_bram_name/enb]
-connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/addrb] [get_bd_pins delay_addr/Q]
+connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/addrb] [get_bd_pins $address_name/delay_addr/Q]
 connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/rstb] [get_bd_pins rst_ps_0_125M/peripheral_reset]
 
 # Add averaging module
