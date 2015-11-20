@@ -62,7 +62,7 @@ cell pavel-demin:user:edge_detector:1.0 edge_detector {} [list din start_slice/D
 
 cell xilinx.com:ip:xlslice:1.0 address_slice \
   [list DIN_WIDTH 15 DIN_FROM 14 DIN_TO 2] \
-  [list Din /$address_name/base_counter/Q]
+  [list Din /$address_name/addr]
 
 cell pavel-demin:user:write_enable:1.0 write_enable [list BRAM_WIDTH $bram_width] \
   [list start_acq edge_detector/dout clk /$adc_clk address address_slice/Dout]

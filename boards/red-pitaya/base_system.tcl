@@ -54,13 +54,17 @@ set reset_offset [expr 6*32]
 set address_name address
 add_address_module $address_name $bram_width $adc_clk $reset_offset
 
+connect_bd_net [get_bd_pins $address_name/clk] [get_bd_pins $adc_clk]
+connect_bd_net [get_bd_pins $address_name/cfg] [get_bd_pins axi_cfg_register_0/cfg_data]
+
+
 # Add DAC BRAM
 source scripts/bram.tcl
 set dac_bram_name dac_bram
 add_bram $dac_bram_name 32K
 # Connect port B of BRAM to ADC clock
 connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/clkb] [get_bd_pins $adc_clk]
-connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/addrb] [get_bd_pins $address_name/delay_addr/Q]
+connect_bd_net [get_bd_pins blk_mem_gen_$dac_bram_name/addrb] [get_bd_pins $address_name/addr_delayed]
 
 # Connect BRAM output to DACs
 for {set i 0} {$i < 2} {incr i} {
@@ -82,7 +86,7 @@ add_bram $adc1_bram_name 32K
 # Connect port B of BRAM to ADC clock
 connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/clkb] [get_bd_pins $adc_clk]
 cell xilinx.com:ip:xlconstant:1.1 ${adc1_bram_name}_enb {CONST_VAL 1} [list dout blk_mem_gen_$adc1_bram_name/enb]
-connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/addrb] [get_bd_pins $address_name/delay_addr/Q]
+connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/addrb] [get_bd_pins $address_name/addr_delayed]
 connect_bd_net [get_bd_pins blk_mem_gen_$adc1_bram_name/rstb] [get_bd_pins rst_ps_0_125M/peripheral_reset]
 
 # Add averaging module
