@@ -12,6 +12,7 @@ proc add_averaging_module {module_name bram_width clk offset} {
   create_bd_pin -dir O -from 31   -to 0 data_out
   create_bd_pin -dir O -from 3    -to 0 wen
 
+  connect_bd_net [get_bd_pins clk] [get_bd_pins /$clk]
 
   ## Add FIFO
 

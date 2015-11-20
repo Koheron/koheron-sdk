@@ -31,6 +31,7 @@ set pwm_clk adc_dac/pwm_clk
 
 # Add Configuration register (synchronous with ADC clock)
 source projects/config_register.tcl
+add_config_register cfg $adc_clk
 
 # Add Status register
 # TODO
@@ -44,6 +45,9 @@ connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 
 # Add PWM
 source boards/red-pitaya/pwm.tcl
+set pwm_offset 32
+add_pwm pwm $pwm_clk $pwm_offset
+connect_bd_net [get_bd_pins pwm/cfg] [get_bd_pins axi_cfg_register_0/cfg_data]
 
 # Add address module
 source projects/address.tcl
@@ -95,7 +99,6 @@ set avg_offset [expr 5*32]
 
 add_averaging_module $avg_name $bram_width $adc_clk $avg_offset
 
-connect_bd_net [get_bd_pins $avg_name/clk]      [get_bd_pins $adc_clk]
 connect_bd_net [get_bd_pins $avg_name/start]    [get_bd_pins $address_name/start]
 connect_bd_net [get_bd_pins $avg_name/cfg]      [get_bd_pins axi_cfg_register_0/cfg_data]
 connect_bd_net [get_bd_pins $avg_name/data_in]  [get_bd_pins adc_dac/adc_0/adc_dat_a_o]
