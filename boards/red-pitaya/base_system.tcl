@@ -32,7 +32,7 @@ set pwm_clk adc_dac/pwm_clk
 # Add Configuration register (synchronous with ADC clock)
 source projects/config_register.tcl
 set config_name cfg
-add_config_register $config_name $adc_clk
+add_config_register $config_name $ps_name $adc_clk
 
 # Add Status register
 # TODO
