@@ -20,11 +20,14 @@ set avg_name       averaging
 # Define offsets
 set led_offset   0
 set pwm_offset   32
-set reset_offset [expr 6*32]
-set avg_offset   [expr 5*32]
+set addr_offset  [expr 5*32]
+set avg_offset   [expr 6*32]
 
 # Define parameters
 set bram_width 13
+
+set bram_size [expr 2**($bram_width-8)]K
+
 
 init_bd $ps_name $board_preset $xadc_name
 
@@ -55,12 +58,12 @@ add_pwm pwm $ps_name $pwm_clk $pwm_offset
 connect_pins pwm/cfg  $config_name/cfg
 
 # Add address module
-add_address_module $address_name $bram_width $adc_clk $reset_offset
+add_address_module $address_name $bram_width $adc_clk $addr_offset
 connect_pins $address_name/clk  $adc_clk
 connect_pins $address_name/cfg  $config_name/cfg
 
 # Add DAC BRAM
-add_bram $dac_bram_name 32K
+add_bram $dac_bram_name $bram_size
 # Connect port B of BRAM to ADC clock
 connect_pins blk_mem_gen_$dac_bram_name/clkb    $adc_clk
 connect_pins blk_mem_gen_$dac_bram_name/addrb   $address_name/addr_delayed
@@ -74,15 +77,16 @@ for {set i 0} {$i < 2} {incr i} {
 }
 
 # Connect remaining ports of BRAM
-cell xilinx.com:ip:xlconstant:1.1 ${dac_bram_name}_dinb {CONST_VAL 0 CONST_WIDTH 32} [list dout blk_mem_gen_$dac_bram_name/dinb]
-cell xilinx.com:ip:xlconstant:1.1 ${dac_bram_name}_enb {CONST_VAL 1} [list dout blk_mem_gen_$dac_bram_name/enb]
-cell xilinx.com:ip:xlconstant:1.1 ${dac_bram_name}_web {CONST_VAL 0 CONST_WIDTH 4} [list dout blk_mem_gen_$dac_bram_name/web]
+connect_constant ${dac_bram_name}_dinb 0 32 blk_mem_gen_$dac_bram_name/dinb
+connect_constant ${dac_bram_name}_enb  1 1  blk_mem_gen_$dac_bram_name/enb
+connect_constant ${dac_bram_name}_web  0 4  blk_mem_gen_$dac_bram_name/web
+
 connect_pins blk_mem_gen_$dac_bram_name/rstb     rst_${ps_name}_125M/peripheral_reset
 
 # Add ADC1 BRAM
-add_bram $adc1_bram_name 32K
+add_bram $adc1_bram_name $bram_size
 # Connect port B of BRAM to ADC clock
-cell xilinx.com:ip:xlconstant:1.1 ${adc1_bram_name}_enb {CONST_VAL 1} [list dout blk_mem_gen_$adc1_bram_name/enb]
+connect_constant ${adc1_bram_name}_enb 1 1 blk_mem_gen_$adc1_bram_name/enb
 connect_pins blk_mem_gen_$adc1_bram_name/clkb    $adc_clk
 connect_pins blk_mem_gen_$adc1_bram_name/addrb   $address_name/addr_delayed
 connect_pins blk_mem_gen_$adc1_bram_name/rstb    rst_${ps_name}_125M/peripheral_reset
