@@ -3,7 +3,7 @@ proc init_bd {ps_name board_preset xadc_name} {
   # Create processing_system7
   cell xilinx.com:ip:processing_system7:5.5 $ps_name \
     [list PCW_IMPORT_BOARD_PRESET $board_preset PCW_USE_S_AXI_HP0 0] \
-    [list M_AXI_GP0_ACLK ps_0/FCLK_CLK0]
+    [list M_AXI_GP0_ACLK $ps_name/FCLK_CLK0]
 
   # Create all required interconnections
 	apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 -config {

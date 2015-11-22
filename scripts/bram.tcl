@@ -12,3 +12,8 @@ proc add_bram {bram_name bram_size} {
   properties axi_bram_ctrl_$bram_name {SINGLE_PORT_BRAM 1}
   set_property range $bram_size [get_bd_addr_segs ${::ps_name}/Data/SEG_axi_bram_ctrl_${bram_name}_Mem0]
 }
+
+proc connect_pins {pin1 pin2} {
+  connect_bd_net [get_bd_pins $pin1] [get_bd_pins $pin2]
+}
+
