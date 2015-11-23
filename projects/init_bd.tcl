@@ -44,6 +44,8 @@ proc init_bd {board_preset xadc_name} {
 	} {
 		connect_bd_intf_net [get_bd_intf_pins $xadc_name/$port_name] [get_bd_intf_ports $port_name]
 	}
+
+  set_property -dict [list CONFIG.S00_HAS_REGSLICE 4] [get_bd_cells ${::ps_name}_axi_periph]
 }
 
 proc add_master_interface {} {
