@@ -8,8 +8,10 @@ source projects/address.tcl
 
 set board_preset boards/$board_name/config/board_preset.xml
 
-# Define block names
+# Define global variables
 set ps_name        ps_1
+
+# Define block names
 set xadc_name      xadc_wiz_0
 set config_name    cfg
 set address_name   address
@@ -32,10 +34,10 @@ set pwm_width       10
 set bram_size [expr 2**($bram_addr_width-8)]K
 
 
-init_bd $ps_name $board_preset $xadc_name
+init_bd $board_preset $xadc_name
 
 # Add GPIO
-add_gpio $ps_name
+add_gpio
 
 # Add ADCs and DACs
 source boards/$board_name/adc_dac.tcl
@@ -45,7 +47,7 @@ set adc_clk adc_dac/adc_clk
 set pwm_clk adc_dac/pwm_clk
 
 # Add Configuration register (synchronous with ADC clock)
-add_config_register $config_name $ps_name $adc_clk
+add_config_register $config_name $adc_clk
 
 # Add Status register
 # TODO
@@ -57,7 +59,7 @@ cell xilinx.com:ip:xlslice:1.0 led_slice \
 connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 
 # Add PWM
-add_pwm pwm $ps_name $pwm_clk $pwm_offset $pwm_width
+add_pwm pwm $pwm_clk $pwm_offset $pwm_width
 connect_pins pwm/cfg  $config_name/cfg
 
 # Add address module
