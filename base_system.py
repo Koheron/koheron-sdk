@@ -19,15 +19,15 @@ MAP_SIZE = 4096
 # Base address of configuration register
 CONFIG_ADDR = int('0x60000000',0)
 CONFIG_SIZE = MAP_SIZE
+
 # Offsets of configuration register
 LED  = 0
 PWM0 = 4
 PWM1 = 8
 PWM2 = 12
 PWM3 = 16
-AVG  = 20
-RESET = 24
-
+ADDR = 20
+AVG  = 24
 
 # Base address of AXI GPIO
 GPIO_ADDR = int('0x41200000',0)
@@ -50,12 +50,17 @@ XADC_SIZE = 16 * MAP_SIZE
 ADC1_ADDR = int('0x42000000',0)
 ADC1_SIZE = 8 * MAP_SIZE
 
+# Base address of ADC2
+ADC2_ADDR = int('0x44000000',0)
+ADC2_SIZE = 8 * MAP_SIZE
+
 # Ask Koheron server to open memory maps
 CONFIG = dvm.add_memory_map(CONFIG_ADDR, CONFIG_SIZE)
 GPIO   = dvm.add_memory_map(GPIO_ADDR  , GPIO_SIZE)
 DAC    = dvm.add_memory_map(DAC_ADDR   , DAC_SIZE)
 XADC   = dvm.add_memory_map(XADC_ADDR  , XADC_SIZE)
 ADC1   = dvm.add_memory_map(ADC1_ADDR  , ADC1_SIZE)
+ADC2   = dvm.add_memory_map(ADC2_ADDR  , ADC2_SIZE)
 
 # Set all GPIOs of channel 1 to output 
 dvm.write(GPIO, GPIO_TRI, 0)
@@ -72,7 +77,7 @@ dvm.write(CONFIG, LED, 11)
 dvm.write(CONFIG, PWM0, 512)
 
 # Set DAC1 to 0.5 V
-dac = np.zeros((2, 8192))
+dac = np.zeros((2, 8192)) - 0.5
 dac[0,:] = 0.5
 dac[1,4096:4096+127] = 0.5
 dac_data_1 = np.mod(np.floor(8192*dac[0,:]) + 8192,16384)+8192
@@ -81,14 +86,15 @@ dvm.write_buffer(DAC, 0, dac_data_1 + 65536 * dac_data_2)
 
 # Test ADC (don't forget to connect DAC2 with ADC1)
 no_avg = 0
-dvm.write(CONFIG, AVG, 8187+no_avg*2**13+ 8*2**14)
-dvm.set_bit(CONFIG, RESET, 0)
-dvm.set_bit(CONFIG, RESET, 1)
-dvm.clear_bit(CONFIG, RESET, 1)
+dvm.write(CONFIG, ADDR, 0*2**2)
+dvm.write(CONFIG, AVG, 8187+no_avg*2**13+ 0*2**14)
+dvm.set_bit(CONFIG, ADDR, 0)
+dvm.set_bit(CONFIG, ADDR, 1)
+dvm.clear_bit(CONFIG, ADDR, 1)
 
-time.sleep(2)
+time.sleep(0.01)
 
-dvm.set_bit(CONFIG, RESET, 1)
+dvm.set_bit(CONFIG, ADDR, 1)
 a = dvm.read_buffer(ADC1, 0, 8192)
 a = np.mod(a-2**31,2**32)-2**31
 

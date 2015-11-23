@@ -22,7 +22,7 @@ proc add_address_module {module_name bram_width clk offset} {
       [list Din cfg Dout reset_base_counter/din]
 
   cell xilinx.com:ip:xlslice:1.0 addr_delay_slice \
-    [list DIN_WIDTH 1024 DIN_FROM [expr $bram_width+2+$offset] DIN_TO [expr 2+$offset]] \
+    [list DIN_WIDTH 1024 DIN_FROM [expr 3+2+$offset] DIN_TO [expr 2+$offset]] \
     [list Din cfg]
 
   set start_offset [expr $offset+1]

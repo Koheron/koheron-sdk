@@ -84,22 +84,39 @@ proc add_averaging_module {module_name bram_addr_width adc_witdh clk offset} {
       start_acq start                                 \
       clk       clk                                   \
       address   address_slice/Dout                    \
-      wen       wen                                   \
     ]
 
-  cell xilinx.com:ip:c_shift_ram:12.0 delay_wen {
+  cell xilinx.com:ip:c_shift_ram:12.0 delay_wen_int {
     ShiftRegType Variable_Length_Lossless
     Width 1
   } [list D write_enable/wen CLK clk]
 
-  cell xilinx.com:ip:xlslice:1.0 wen_delay_slice \
-    [list                                        \
-      DIN_WIDTH 1024                             \
-      DIN_FROM  [expr 17+$offset]                \
-      DIN_TO    [expr 14+$offset]]               \
-    [list Din cfg Dout delay_wen/A]
+  cell xilinx.com:ip:xlslice:1.0 wen_int_delay_slice \
+    [list                                            \
+      DIN_WIDTH 1024                                 \
+      DIN_FROM  [expr 17+$offset]                    \
+      DIN_TO    [expr 14+$offset]]                   \
+    [list Din cfg Dout delay_wen_int/A]
 
-  cell xilinx.com:ip:xlslice:1.0 wen_slice {DIN_WIDTH 4} {Din delay_wen/Q Dout wen_or_avg_on/Op1}
+  cell xilinx.com:ip:xlslice:1.0 wen_slice {DIN_WIDTH 4} {Din delay_wen_int/Q Dout wen_or_avg_on/Op1}
+
+  cell xilinx.com:ip:c_shift_ram:12.0 delay_wen_ext {
+    ShiftRegType Variable_Length_Lossless
+    Width 1
+  } [list D write_enable/wen CLK clk]
+
+  cell xilinx.com:ip:xlslice:1.0 wen_ext_delay_slice \
+    [list                                            \
+      DIN_WIDTH 1024                                 \
+      DIN_FROM  [expr 21+$offset]                    \
+      DIN_TO    [expr 18+$offset]]                   \
+    [list Din cfg Dout delay_wen_ext/A]
+
+  cell xilinx.com:ip:xlconcat:2.1 concat_wen {NUM_PORTS 4} {dout wen}
+
+  for {set i 0} {$i < 4} {incr i} {
+    connect_pins concat_wen/In$i delay_wen_ext/Q
+  }
 
   current_bd_instance $bd
 
