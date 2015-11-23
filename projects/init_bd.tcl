@@ -6,7 +6,7 @@ proc init_bd {board_preset xadc_name} {
     [list M_AXI_GP0_ACLK ${::ps_name}/FCLK_CLK0]
 
   # Create all required interconnections
-	apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 -config {
+  apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 -config {
 		make_external {FIXED_IO, DDR}
 		Master Disable
 		Slave Disable

@@ -110,7 +110,7 @@ for {set i 0} {$i < 2} {incr i} {
       DIN_TO [expr 16*$i]]                            \
     [list                                             \
       Din blk_mem_gen_$dac_bram_name/doutb            \
-      Dout adc_dac/$dac_name/dac_dat_${channel}_i]
+      Dout adc_dac/dac/dac_dat_${channel}_i]
 }
 # Connect remaining ports of BRAM
 connect_constant ${dac_bram_name}_dinb 0 32 blk_mem_gen_$dac_bram_name/dinb
@@ -137,7 +137,7 @@ for {set i 0} {$i < 2} {incr i} {
 
   connect_pins $avg_name/start      $address_name/start
   connect_pins $avg_name/cfg        $config_name/cfg
-  connect_pins $avg_name/data_in    adc_dac/adc_0/adc_dat_${channel}_o
+  connect_pins $avg_name/data_in    adc_dac/adc/adc_dat_${channel}_o
   connect_pins $avg_name/addr       $address_name/addr
   connect_pins $avg_name/data_out   blk_mem_gen_$adc_bram_name/dinb
   connect_pins $avg_name/wen        blk_mem_gen_$adc_bram_name/web
