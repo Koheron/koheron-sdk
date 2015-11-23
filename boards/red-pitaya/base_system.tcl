@@ -24,9 +24,12 @@ set addr_offset  [expr 5*32]
 set avg_offset   [expr 6*32]
 
 # Define parameters
-set bram_width 13
+set bram_addr_width 13
+set dac_width       14
+set adc_width       14
+set pwm_width       10
 
-set bram_size [expr 2**($bram_width-8)]K
+set bram_size [expr 2**($bram_addr_width-8)]K
 
 
 init_bd $ps_name $board_preset $xadc_name
@@ -54,11 +57,11 @@ cell xilinx.com:ip:xlslice:1.0 led_slice \
 connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 
 # Add PWM
-add_pwm pwm $ps_name $pwm_clk $pwm_offset
+add_pwm pwm $ps_name $pwm_clk $pwm_offset $pwm_width
 connect_pins pwm/cfg  $config_name/cfg
 
 # Add address module
-add_address_module $address_name $bram_width $adc_clk $addr_offset
+add_address_module $address_name $bram_addr_width $adc_clk $addr_offset
 connect_pins $address_name/clk  $adc_clk
 connect_pins $address_name/cfg  $config_name/cfg
 
@@ -72,7 +75,7 @@ connect_pins blk_mem_gen_$dac_bram_name/addrb   $address_name/addr_delayed
 for {set i 0} {$i < 2} {incr i} {
   set channel [lindex {a b} $i]
   cell xilinx.com:ip:xlslice:1.0 dac_${channel}_slice \
-    [list DIN_WIDTH 32 DIN_FROM [expr 13+16*$i] DIN_TO [expr 16*$i]] \
+    [list DIN_WIDTH 32 DIN_FROM [expr $dac_width-1+16*$i] DIN_TO [expr 16*$i]] \
     [list Din blk_mem_gen_$dac_bram_name/doutb Dout adc_dac/$dac_name/dac_dat_${channel}_i]
 }
 
@@ -92,7 +95,7 @@ connect_pins blk_mem_gen_$adc1_bram_name/addrb   $address_name/addr_delayed
 connect_pins blk_mem_gen_$adc1_bram_name/rstb    rst_${ps_name}_125M/peripheral_reset
 
 # Add averaging module
-add_averaging_module $avg_name $bram_width $adc_clk $avg_offset
+add_averaging_module $avg_name $bram_addr_width $adc_width $adc_clk $avg_offset
 
 connect_pins $avg_name/start      $address_name/start
 connect_pins $avg_name/cfg        $config_name/cfg
