@@ -9,7 +9,7 @@ password = 'changeme'
 
 # Load bitstream
 ssh = ZynqSSH(host, password)
-ssh.load_pl(os.path.join(os.getcwd(),'tmp/base_system.bit'))
+#ssh.load_pl(os.path.join(os.getcwd(),'tmp/base_system.bit'))
 
 client = KClient(host)
 dvm = DevMem(client)
@@ -86,8 +86,8 @@ dvm.write_buffer(DAC, 0, dac_data_1 + 65536 * dac_data_2)
 
 # Test ADC (don't forget to connect DAC2 with ADC1)
 no_avg = 0
-dvm.write(CONFIG, ADDR, 0*2**2)
-dvm.write(CONFIG, AVG, 8187+no_avg*2**13+ 0*2**14)
+dvm.write(CONFIG, ADDR, 2*2**2)
+dvm.write(CONFIG, AVG, 8187+no_avg*2**13+ 0*2**14 + 0*2**17)
 dvm.set_bit(CONFIG, ADDR, 0)
 dvm.set_bit(CONFIG, ADDR, 1)
 dvm.clear_bit(CONFIG, ADDR, 1)
