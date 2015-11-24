@@ -11,6 +11,7 @@ proc add_averaging_module {module_name bram_addr_width adc_witdh clk offset} {
   create_bd_pin -dir I -from [expr $bram_addr_width+1] -to 0 addr
   create_bd_pin -dir O -from 31                        -to 0 data_out
   create_bd_pin -dir O -from 3                         -to 0 wen
+  create_bd_pin -dir O -from 31                        -to 0 count_cycle
 
   connect_bd_net [get_bd_pins clk] [get_bd_pins /$clk]
 
@@ -81,9 +82,10 @@ proc add_averaging_module {module_name bram_addr_width adc_witdh clk offset} {
   cell pavel-demin:user:write_enable:1.0 write_enable \
     [list BRAM_WIDTH $bram_addr_width]                \
     [list                                             \
-      start_acq start                                 \
-      clk       clk                                   \
-      address   address_slice/Dout                    \
+      start_acq   start                               \
+      clk         clk                                 \
+      address     address_slice/Dout                  \
+      count_cycle count_cycle
     ]
 
   cell xilinx.com:ip:c_shift_ram:12.0 delay_wen_int {

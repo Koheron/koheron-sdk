@@ -72,7 +72,7 @@ add_config_register $config_name $adc_clk
 ##########################################################
 # Add Status register
 ##########################################################
-add_status_register $status_name $adc_clk
+add_status_register $status_name $adc_clk 4
 
 ##########################################################
 # Connect LEDs
