@@ -2,6 +2,7 @@ source scripts/bram.tcl
 source projects/init_bd.tcl
 source boards/$board_name/gpio.tcl
 source projects/config_register.tcl
+source projects/status_register.tcl
 source boards/$board_name/pwm.tcl
 source projects/averaging.tcl
 source projects/address.tcl
@@ -13,11 +14,15 @@ set board_preset boards/$board_name/config/board_preset.xml
 ##########################################################
 set ps_name        ps_1
 
+set rst_name       rst_${ps_name}_125M
+
+
 ##########################################################
 # Define block names
 ##########################################################
 set xadc_name      xadc_wiz_0
 set config_name    cfg
+set status_name    sts
 set address_name   address
 set dac_bram_name  dac_bram
 set adc1_bram_name adc1_bram
@@ -67,7 +72,7 @@ add_config_register $config_name $adc_clk
 ##########################################################
 # Add Status register
 ##########################################################
-# TODO
+add_status_register $status_name $adc_clk
 
 ##########################################################
 # Connect LEDs
@@ -116,7 +121,7 @@ for {set i 0} {$i < 2} {incr i} {
 connect_constant ${dac_bram_name}_dinb 0 32 blk_mem_gen_$dac_bram_name/dinb
 connect_constant ${dac_bram_name}_enb  1 1  blk_mem_gen_$dac_bram_name/enb
 connect_constant ${dac_bram_name}_web  0 4  blk_mem_gen_$dac_bram_name/web
-connect_pins blk_mem_gen_$dac_bram_name/rstb     rst_${ps_name}_125M/peripheral_reset
+connect_pins blk_mem_gen_$dac_bram_name/rstb     $rst_name/peripheral_reset
 
 ###########################################################
 # Add ADC BRAMs
@@ -130,7 +135,7 @@ for {set i 0} {$i < 2} {incr i} {
   connect_constant ${adc_bram_name}_enb 1 1 blk_mem_gen_$adc_bram_name/enb
   connect_pins blk_mem_gen_$adc_bram_name/clkb    $adc_clk
   connect_pins blk_mem_gen_$adc_bram_name/addrb   $address_name/addr_delayed
-  connect_pins blk_mem_gen_$adc_bram_name/rstb    rst_${ps_name}_125M/peripheral_reset
+  connect_pins blk_mem_gen_$adc_bram_name/rstb    $rst_name/peripheral_reset
 
   # Add averaging module
   add_averaging_module $avg_name $bram_addr_width $adc_width $adc_clk $avg_offset
