@@ -64,10 +64,9 @@ source boards/$board_name/adc_dac.tcl
 set adc_clk adc_dac/adc_clk
 set pwm_clk adc_dac/pwm_clk
 
-
 # Add Configuration register (synchronous with ADC clock)
 ##########################################################
-add_config_register $config_name $adc_clk
+add_config_register $config_name $adc_clk 32
 
 ##########################################################
 # Add Status register
@@ -79,16 +78,16 @@ add_status_register $status_name $adc_clk 4
 ##########################################################
 cell xilinx.com:ip:xlslice:1.0 led_slice \
   [list                                  \
-    DIN_WIDTH 1024                       \
-    DIN_FROM  [expr 7+$led_offset]       \
-    DIN_TO    [expr $led_offset]]        \
-  [list Din $config_name/cfg]
+    DIN_WIDTH 32                         \
+    DIN_FROM  7                          \
+    DIN_TO    0]                         \
+  [list Din $config_name/Out0]
 connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 
 ##########################################################
 # Add PWM
 ##########################################################
-add_pwm pwm $pwm_clk $pwm_offset $pwm_width
+add_pwm pwm $pwm_clk $pwm_offset $pwm_width 4
 connect_pins pwm/cfg  $config_name/cfg
 
 ##########################################################
@@ -140,10 +139,11 @@ for {set i 0} {$i < 2} {incr i} {
   # Add averaging module
   add_averaging_module $avg_name $bram_addr_width $adc_width $adc_clk $avg_offset
 
-  connect_pins $avg_name/start      $address_name/start
-  connect_pins $avg_name/cfg        $config_name/cfg
-  connect_pins $avg_name/data_in    adc_dac/adc/adc_dat_${channel}_o
-  connect_pins $avg_name/addr       $address_name/addr
-  connect_pins $avg_name/data_out   blk_mem_gen_$adc_bram_name/dinb
-  connect_pins $avg_name/wen        blk_mem_gen_$adc_bram_name/web
+  connect_pins $avg_name/start       $address_name/start
+  connect_pins $avg_name/cfg         $config_name/cfg
+  connect_pins $avg_name/data_in     adc_dac/adc/adc_dat_${channel}_o
+  connect_pins $avg_name/addr        $address_name/addr
+  connect_pins $avg_name/data_out    blk_mem_gen_$adc_bram_name/dinb
+  connect_pins $avg_name/wen         blk_mem_gen_$adc_bram_name/web
+  connect_pins $avg_name/count_cycle sts/In$i
 }

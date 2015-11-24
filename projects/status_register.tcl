@@ -45,7 +45,7 @@ proc add_status_register {module_name clk num_ports} {
 
   for {set i 0} {$i < $num_ports} {incr i} {
     set_property -dict \
-     [list CONFIG.IN${i}_VALUE_SRC USER CONFIG.IN${i}_WIDTH 32] \
+     [list CONFIG.IN${i}_WIDTH 32] \
      [get_bd_cells concat_0]
     connect_pins concat_0/In$i In$i
   }

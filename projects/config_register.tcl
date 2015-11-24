@@ -1,10 +1,13 @@
-
-proc add_config_register {module_name clk} {
+proc add_config_register {module_name clk num_ports} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
   create_bd_pin -dir O -from 1023 -to 0 cfg
+
+  for {set i 0} {$i < $num_ports} {incr i} {
+    create_bd_pin -dir O -from 31 -to 0 Out$i
+  }
 
   # Number of Master interfaces
   set num_mi [get_property CONFIG.NUM_MI [get_bd_cells /${::ps_name}_axi_periph]]
@@ -30,6 +33,8 @@ proc add_config_register {module_name clk} {
   connect_pins axi_clock_converter_0/m_axi_aresetn /${::rst_name}/peripheral_aresetn
   # Cfg register
   create_bd_cell -type ip -vlnv pavel-demin:user:axi_cfg_register:1.0 axi_cfg_register_0
+  set_property -dict [list CONFIG.CFG_DATA_WIDTH [expr $num_ports*32]] [get_bd_cells axi_cfg_register_0]
+
   connect_bd_intf_net [get_bd_intf_pins axi_cfg_register_0/S_AXI] [get_bd_intf_pins axi_clock_converter_0/M_AXI]
   
   connect_pins axi_cfg_register_0/aclk     axi_clock_converter_0/m_axi_aclk
@@ -38,6 +43,15 @@ proc add_config_register {module_name clk} {
 
   assign_bd_address [get_bd_addr_segs {axi_cfg_register_0/s_axi/reg0 }]
   set_property range 4K [get_bd_addr_segs /${::ps_name}/Data/SEG_axi_cfg_register_0_reg0]
+
+  for {set i 0} {$i < $num_ports} {incr i} {
+    cell xilinx.com:ip:xlslice:1.0 slice_$i \
+      [list                                 \
+        DIN_WIDTH 1024                      \
+        DIN_FROM  [expr 31+$i*32]           \
+        DIN_TO    [expr $i*32]]             \
+      [list Din axi_cfg_register_0/cfg_data Dout Out$i]
+  }
 
   current_bd_instance $bd
 
