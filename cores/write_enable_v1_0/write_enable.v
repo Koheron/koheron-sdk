@@ -8,7 +8,8 @@ module write_enable #
   input  wire                  start_acq,
   input  wire [BRAM_WIDTH-1:0] address,
   input  wire                  clk,
-  output wire                  wen
+  output wire                  wen,
+  output wire [32-1:0]         count_cycle
 );
 
   reg [BRAM_WIDTH-1:0] count1;
@@ -16,6 +17,7 @@ module write_enable #
   reg [BRAM_WIDTH-1:0] count2;
   reg count2_running;
   reg rst;
+  reg [31:0] count_cycle_next;
 
   always @(posedge clk) begin
     if (start_acq) begin
@@ -34,7 +36,12 @@ module write_enable #
   always @(posedge clk) begin
     if (count1_running && (address == {(BRAM_WIDTH){1'b0}})) begin
       rst <= 1'b1;
-    end else begin 
+      count_cycle_next <= 32'b0;
+      count_cycle <= count_cycle_next;
+    end else if ((address == {(BRAM_WIDTH){1'b0}})) begin
+      rst <= 1'b0;
+      count_cycle_next <= count_cycle_next + 1;
+    end else begin
       rst <= 1'b0;
     end
   end
