@@ -7,7 +7,8 @@ proc add_spectrum_module {module_name bram_addr_width adc_width clk} {
 	create_bd_pin -dir I                                   clk
 	create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc1
 	create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc2
-	create_bd_pin -dir I -from 31                    -to 0 cfg
+	create_bd_pin -dir I -from 31                    -to 0 cfg_sub
+  create_bd_pin -dir I -from 31                    -to 0 cfg_fft
 	create_bd_pin -dir O -from 31                    -to 0 psd
 
   connect_pins clk /$clk
@@ -69,9 +70,12 @@ proc add_spectrum_module {module_name bram_addr_width adc_width clk} {
         DIN_WIDTH 32                                 \
         DIN_FROM  [expr $adc_width*$i-1]             \
         DIN_TO    [expr $adc_width*($i-1)]]          \
-      [list Din cfg Dout subtract_$i/B]
+      [list Din cfg_sub Dout subtract_$i/B]
   }
 
+  cell xilinx.com:ip:xlslice:1.0 subtract_slice_$i \
+    [list DIN_WIDTH 32 DIN_FROM 15 DIN_TO 0]       \
+    [list Din cfg_fft Dout fft_0/s_axis_config_tdata]
 
 	current_bd_instance $bd
 
