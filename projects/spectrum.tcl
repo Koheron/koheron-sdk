@@ -10,6 +10,7 @@ proc add_spectrum_module {module_name bram_addr_width adc_width clk} {
 	create_bd_pin -dir I -from 31                    -to 0 cfg_sub
   create_bd_pin -dir I -from 31                    -to 0 cfg_fft
 	create_bd_pin -dir O -from 31                    -to 0 psd
+  create_bd_pin -dir O                                   tvalid
 
   connect_pins clk /$clk
 
@@ -58,9 +59,19 @@ proc add_spectrum_module {module_name bram_addr_width adc_width clk} {
       output_ordering natural_order] \
     [list \
       aclk clk \
-      S_AXIS_DATA complex_mult/M_AXIS_DOUT]
+      S_AXIS_DATA complex_mult/M_AXIS_DOUT \
+      m_axis_data_tvalid tvalid]
 
   cell xilinx.com:ip:xlconstant:1.1 config_tvalid_const {} {dout fft_0/s_axis_config_tvalid}
+
+  for {set i 0} {$i < 2} {incr i} {
+    cell xilinx.com:ip:xlslice:1.0 fft_slice_$i \
+      [list \
+        DIN_WIDTH 64 \
+        DIN_FROM  [expr 31+32*$i] \
+        DIN_TO    [expr 32*$i]] \
+      [list Din fft_0/m_axis_data_tdata]
+  }
 
   # Configuration registers
 
