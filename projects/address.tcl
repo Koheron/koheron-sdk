@@ -17,25 +17,25 @@ proc add_address_module {module_name bram_width clk} {
   cell pavel-demin:user:edge_detector:1.0 reset_base_counter {} \
     [list clk clk dout base_counter/SCLR]
 
-  cell pavel-demin:user:edge_detector:1.0 edge_detector {} [list din start_slice/Dout clk clk dout start]
+  cell pavel-demin:user:edge_detector:1.0 edge_detector {} [list clk clk dout start]
 
   cell xilinx.com:ip:c_shift_ram:12.0 delay_addr \
     [list ShiftRegType Variable_Length_Lossless Width [expr $bram_width+2]] \
-    [list D base_counter/Q CLK clk A addr_delay_slice/Dout Q addr_delayed]
+    [list D base_counter/Q CLK clk Q addr_delayed]
 
   # Configuration registers
 
   cell xilinx.com:ip:xlslice:1.0 reset_base_counter_slice \
-      [list DIN_WIDTH 32 DIN_FROM 0 DIN_TO 0]             \
-      [list Din cfg Dout reset_base_counter/din]
+    [list DIN_WIDTH 32 DIN_FROM 0 DIN_TO 0]               \
+    [list Din cfg Dout reset_base_counter/din]
 
   cell xilinx.com:ip:xlslice:1.0 start_slice \
-    [list DIN_WIDTH 32 DIN_FROM 1 DIN_TO 1] \
-    [list Din cfg]
+    [list DIN_WIDTH 32 DIN_FROM 1 DIN_TO 1]  \
+    [list Din cfg Dout edge_detector/Din]
 
   cell xilinx.com:ip:xlslice:1.0 addr_delay_slice \
     [list DIN_WIDTH 32 DIN_FROM 5 DIN_TO 2]       \
-    [list Din cfg]
+    [list Din cfg Dout delay_addr/A]
 
   #
 

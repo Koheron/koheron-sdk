@@ -9,7 +9,7 @@ module write_enable #
   input  wire [BRAM_WIDTH-1:0] address,
   input  wire                  clk,
   output wire                  wen,
-  output wire [32-1:0]         count_cycle
+  output reg  [32-1:0]         count_cycle
 );
 
   reg [BRAM_WIDTH-1:0] count1;
