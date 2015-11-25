@@ -32,9 +32,9 @@ set avg_name       averaging
 # Define offsets
 ##########################################################
 set led_offset   0
-set pwm_offset   32
-set addr_offset  [expr 5*32]
-set avg_offset   [expr 6*32]
+set pwm_offset   1
+set addr_offset  5
+set avg_offset   6
 
 ##########################################################
 # Define parameters
@@ -43,6 +43,7 @@ set bram_addr_width 13
 set dac_width       14
 set adc_width       14
 set pwm_width       10
+set n_pwm           4
 
 set bram_size [expr 2**($bram_addr_width-8)]K
 
@@ -66,7 +67,7 @@ set pwm_clk adc_dac/pwm_clk
 
 # Add Configuration register (synchronous with ADC clock)
 ##########################################################
-add_config_register $config_name $adc_clk 32
+add_config_register $config_name $adc_clk 8
 
 ##########################################################
 # Add Status register
@@ -81,7 +82,7 @@ cell xilinx.com:ip:xlslice:1.0 led_slice \
     DIN_WIDTH 32                         \
     DIN_FROM  7                          \
     DIN_TO    0]                         \
-  [list Din $config_name/Out0]
+  [list Din $config_name/Out[expr $led_offset]]
 connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 
 ##########################################################
@@ -89,13 +90,16 @@ connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 ##########################################################
 add_pwm pwm $pwm_clk $pwm_offset $pwm_width 4
 connect_pins pwm/cfg  $config_name/cfg
+for {set i 0} {$i < $n_pwm} {incr i} {
+  connect_pins pwm/pwm$i  $config_name/Out[expr $pwm_offset + $i]
+}
 
 ##########################################################
 # Add address module
 ##########################################################
-add_address_module $address_name $bram_addr_width $adc_clk $addr_offset
+add_address_module $address_name $bram_addr_width $adc_clk
 connect_pins $address_name/clk  $adc_clk
-connect_pins $address_name/cfg  $config_name/cfg
+connect_pins $address_name/cfg  $config_name/Out$addr_offset
 
 ##########################################################
 # Add DAC BRAM
@@ -137,10 +141,10 @@ for {set i 0} {$i < 2} {incr i} {
   connect_pins blk_mem_gen_$adc_bram_name/rstb    $rst_name/peripheral_reset
 
   # Add averaging module
-  add_averaging_module $avg_name $bram_addr_width $adc_width $adc_clk $avg_offset
+  add_averaging_module $avg_name $bram_addr_width $adc_width $adc_clk
 
   connect_pins $avg_name/start       $address_name/start
-  connect_pins $avg_name/cfg         $config_name/cfg
+  connect_pins $avg_name/cfg         $config_name/Out[expr $avg_offset + $i]
   connect_pins $avg_name/data_in     adc_dac/adc/adc_dat_${channel}_o
   connect_pins $avg_name/addr        $address_name/addr
   connect_pins $avg_name/data_out    blk_mem_gen_$adc_bram_name/dinb

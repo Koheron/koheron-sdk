@@ -3,7 +3,7 @@ proc add_config_register {module_name clk num_ports} {
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir O -from 1023 -to 0 cfg
+  create_bd_pin -dir O -from [expr $num_ports*32] -to 0 cfg
 
   for {set i 0} {$i < $num_ports} {incr i} {
     create_bd_pin -dir O -from 31 -to 0 Out$i
@@ -47,7 +47,7 @@ proc add_config_register {module_name clk num_ports} {
   for {set i 0} {$i < $num_ports} {incr i} {
     cell xilinx.com:ip:xlslice:1.0 slice_$i \
       [list                                 \
-        DIN_WIDTH 1024                      \
+        DIN_WIDTH [expr $num_ports*32]      \
         DIN_FROM  [expr 31+$i*32]           \
         DIN_TO    [expr $i*32]]             \
       [list Din axi_cfg_register_0/cfg_data Dout Out$i]
