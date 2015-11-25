@@ -19,7 +19,7 @@ for {set i 0} {$i < 2} {incr i} {
 
   connect_pins $avg_name/start       $address_name/start
   connect_pins $avg_name/cfg         $config_name/Out[expr $avg_offset + $i]
-  connect_pins $avg_name/data_in     adc_dac/adc/adc_dat_${channel}_o
+  connect_pins $avg_name/data_in     adc_dac/adc[expr $i + 1]
   connect_pins $avg_name/addr        $address_name/addr
   connect_pins $avg_name/data_out    blk_mem_gen_$adc_bram_name/dinb
   connect_pins $avg_name/wen         blk_mem_gen_$adc_bram_name/web

@@ -13,7 +13,7 @@ proc add_averaging_module {module_name bram_addr_width adc_witdh clk} {
   create_bd_pin -dir O -from 3                         -to 0 wen
   create_bd_pin -dir O -from 31                        -to 0 count_cycle
 
-  connect_bd_net [get_bd_pins clk] [get_bd_pins /$clk]
+  connect_pins clk /$clk
 
   ## Add FIFO
 
