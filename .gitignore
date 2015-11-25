@@ -6,9 +6,14 @@ Makefile~
 PART~
 *.xdc~
 *.v~
+*.xml~
+*.py~
 
 *.jou
 *.log
 tmp
 lase
+*.tar.gz
+.Xil
+*.str
 
