@@ -4,7 +4,7 @@ proc add_averaging_module {module_name bram_addr_width adc_witdh clk} {
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir I                                       clk
+  create_bd_pin -dir I -type clk                             clk
   create_bd_pin -dir I                                       start
   create_bd_pin -dir I -from 32                        -to 0 cfg
   create_bd_pin -dir I -from [expr $adc_witdh-1]       -to 0 data_in
@@ -13,7 +13,7 @@ proc add_averaging_module {module_name bram_addr_width adc_witdh clk} {
   create_bd_pin -dir O -from 3                         -to 0 wen
   create_bd_pin -dir O -from 31                        -to 0 count_cycle
 
-  connect_bd_net [get_bd_pins clk] [get_bd_pins /$clk]
+  connect_pins clk /$clk
 
   ## Add FIFO
 

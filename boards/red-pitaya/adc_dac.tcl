@@ -6,6 +6,9 @@ create_bd_pin -dir O adc_clk
 create_bd_pin -dir O ser_clk
 create_bd_pin -dir O pwm_clk
 
+create_bd_pin -dir O -from 14 -to 0 adc1
+create_bd_pin -dir O -from 14 -to 0 adc2
+
 # Phase-locked Loop (PLL)
 cell xilinx.com:ip:clk_wiz:5.2 pll {
   PRIMITIVE              PLL
@@ -33,7 +36,9 @@ foreach {port_name} {
 } {
   connect_bd_net [get_bd_ports /$port_name] [get_bd_pins adc/$port_name]
 }
-connect_pins adc/adc_clk pll/clk_out1
+connect_pins adc/adc_clk     pll/clk_out1
+connect_pins adc/adc_dat_a_o adc1
+connect_pins adc/adc_dat_b_o adc2
 
 # Add DAC IP block
 create_bd_cell -type ip -vlnv pavel-demin:user:redp_dac:1.0 dac

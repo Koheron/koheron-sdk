@@ -8,6 +8,7 @@ proc add_address_module {module_name bram_width clk} {
   create_bd_pin -dir O -from 15   -to 0 addr
   create_bd_pin -dir O -from 15   -to 0 addr_delayed
   create_bd_pin -dir O                  start
+  create_bd_pin -dir O                  tvalid
 
   # Add address counter
   cell xilinx.com:ip:c_counter_binary:12.0 base_counter \
@@ -38,6 +39,8 @@ proc add_address_module {module_name bram_width clk} {
     [list Din cfg Dout delay_addr/A]
 
   #
+
+  connect_pins reset_base_counter_slice/Dout tvalid
 
   current_bd_instance $bd
 
