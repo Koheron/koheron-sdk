@@ -4,11 +4,13 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
 	set bd [current_bd_instance .]
 	current_bd_instance [create_bd_cell -type hier $module_name]
 
-	create_bd_pin -dir I -type clk                         clk
-	create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc1
-	create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc2
-	create_bd_pin -dir I -from 31                    -to 0 cfg_sub
+  create_bd_pin -dir I -type clk                         clk
+  create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc1
+  create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc2
+  create_bd_pin -dir I -from 31                    -to 0 cfg_sub
   create_bd_pin -dir I -from 31                    -to 0 cfg_fft
+  create_bd_pin -dir I                                   tvalid
+
 
   create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 MAXIS_RESULT
 
@@ -44,8 +46,13 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
       aclk clk \
       s_axis_a_tdata concat_0/dout]
 
-  cell xilinx.com:ip:xlconstant:1.1 a_tvalid_const {} {dout complex_mult/s_axis_a_tvalid}
-  cell xilinx.com:ip:xlconstant:1.1 b_tvalid_const {} {dout complex_mult/s_axis_b_tvalid}
+  cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
+    ShiftRegType Variable_Length_Lossless
+    Width 1
+  } [list CLK clk D tvalid]
+
+  connect_pins shift_tvalid/Q complex_mult/s_axis_a_tvalid
+  connect_pins shift_tvalid/Q complex_mult/s_axis_b_tvalid
 
   cell xilinx.com:ip:xfft:9.0 fft_0 \
     [list \
@@ -107,9 +114,13 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
       [list Din cfg_sub Dout subtract_$i/B]
   }
 
-  cell xilinx.com:ip:xlslice:1.0 subtract_slice_$i \
-    [list DIN_WIDTH 32 DIN_FROM 15 DIN_TO 0]       \
+  cell xilinx.com:ip:xlslice:1.0 cfg_fft_slice \
+    [list DIN_WIDTH 32 DIN_FROM 15 DIN_TO 0]   \
     [list Din cfg_fft Dout fft_0/s_axis_config_tdata]
+
+  cell xilinx.com:ip:xlslice:1.0 delay_tvalid_slice \
+    [list DIN_WIDTH 32 DIN_FROM 19 DIN_TO 16]   \
+    [list Din cfg_fft Dout shift_tvalid/A]
 
 	current_bd_instance $bd
 
