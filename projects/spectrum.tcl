@@ -12,6 +12,8 @@ proc add_spectrum_module {module_name bram_addr_width adc_width clk} {
 	create_bd_pin -dir O -from 31                    -to 0 psd
   create_bd_pin -dir O                                   tvalid
 
+  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 MAXIS_RESULT
+
   connect_pins clk /$clk
 
   for {set i 1} {$i < 3} {incr i} {
@@ -66,12 +68,33 @@ proc add_spectrum_module {module_name bram_addr_width adc_width clk} {
 
   for {set i 0} {$i < 2} {incr i} {
     cell xilinx.com:ip:xlslice:1.0 fft_slice_$i \
-      [list \
-        DIN_WIDTH 64 \
-        DIN_FROM  [expr 31+32*$i] \
-        DIN_TO    [expr 32*$i]] \
+      [list                                     \
+        DIN_WIDTH 64                            \
+        DIN_FROM  [expr 31+32*$i]               \
+        DIN_TO    [expr 32*$i]]                 \
       [list Din fft_0/m_axis_data_tdata]
+
+    cell xilinx.com:ip:floating_point:7.1 mult_$i \
+      [list                                       \
+        Operation_Type Multiply                   \
+        Flow_Control NonBlocking ]                \
+      [list                                       \
+        aclk clk                                  \
+        s_axis_a_tdata fft_slice_$i/Dout          \
+        s_axis_b_tdata fft_slice_$i/Dout          \
+        s_axis_a_tvalid fft_0/m_axis_data_tvalid  \
+        s_axis_b_tvalid fft_0/m_axis_data_tvalid  \
+      ]
   }
+
+  cell xilinx.com:ip:floating_point:7.1 floating_point_0 \
+    [list                                                \
+      Add_Sub_Value Add]                                 \
+    [list                                                \
+      aclk clk                                           \
+      S_AXIS_A mult_0/M_AXIS_RESULT                      \
+      S_AXIS_B mult_1/M_AXIS_RESULT                      \
+    ]
 
   # Configuration registers
 
