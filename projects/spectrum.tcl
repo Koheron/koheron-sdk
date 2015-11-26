@@ -1,16 +1,14 @@
 
-proc add_spectrum_module {module_name bram_addr_width adc_width clk} {
+proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
 
 	set bd [current_bd_instance .]
 	current_bd_instance [create_bd_cell -type hier $module_name]
 
-	create_bd_pin -dir I                                   clk
+	create_bd_pin -dir I -type clk                         clk
 	create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc1
 	create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc2
 	create_bd_pin -dir I -from 31                    -to 0 cfg_sub
   create_bd_pin -dir I -from 31                    -to 0 cfg_fft
-	create_bd_pin -dir O -from 31                    -to 0 psd
-  create_bd_pin -dir O                                   tvalid
 
   create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 MAXIS_RESULT
 
@@ -51,7 +49,7 @@ proc add_spectrum_module {module_name bram_addr_width adc_width clk} {
 
   cell xilinx.com:ip:xfft:9.0 fft_0 \
     [list \
-      transform_length 4096 \
+      transform_length $n_pts_fft \
       target_clock_frequency 125 \
       implementation_options pipelined_streaming_io \
       target_data_throughput 125 \
@@ -61,8 +59,7 @@ proc add_spectrum_module {module_name bram_addr_width adc_width clk} {
       output_ordering natural_order] \
     [list \
       aclk clk \
-      S_AXIS_DATA complex_mult/M_AXIS_DOUT \
-      m_axis_data_tvalid tvalid]
+      S_AXIS_DATA complex_mult/M_AXIS_DOUT]
 
   cell xilinx.com:ip:xlconstant:1.1 config_tvalid_const {} {dout fft_0/s_axis_config_tvalid}
 
@@ -89,12 +86,15 @@ proc add_spectrum_module {module_name bram_addr_width adc_width clk} {
 
   cell xilinx.com:ip:floating_point:7.1 floating_point_0 \
     [list                                                \
+      Flow_Control NonBlocking                           \
       Add_Sub_Value Add]                                 \
     [list                                                \
       aclk clk                                           \
       S_AXIS_A mult_0/M_AXIS_RESULT                      \
       S_AXIS_B mult_1/M_AXIS_RESULT                      \
     ]
+
+  connect_bd_intf_net [get_bd_intf_pins MAXIS_RESULT] [get_bd_intf_pins floating_point_0/M_AXIS_RESULT]
 
   # Configuration registers
 
