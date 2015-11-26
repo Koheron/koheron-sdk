@@ -1,4 +1,23 @@
+##########################################################
+# Define offsets
+##########################################################
+set led_offset   0
+set pwm_offset   1
+set addr_offset  5
+set avg_offset   6
+
+##########################################################
+# Define parameters
+##########################################################
+set bram_addr_width 13
+set pwm_width       10
+set n_pwm           4
+
+set bram_size [expr 2**($bram_addr_width-8)]K
+
 source boards/$board_name/base_system.tcl
+
+source projects/averaging.tcl
 
 ###########################################################
 # Add ADC BRAMs
