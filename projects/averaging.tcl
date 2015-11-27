@@ -58,6 +58,13 @@ proc add_averaging_module {module_name bram_addr_width adc_witdh clk} {
     C_OPERATION or
   } {Res shift_reg/SCLR}
 
+  cell xilinx.com:ip:c_shift_ram:12.0 avg_on_shift_reg {
+    Width.VALUE_SRC USER
+    Width 1
+    Depth 1
+    CE    true
+  } [list CLK clk Q wen_or_avg_on/Op2]
+
   cell xilinx.com:ip:xlslice:1.0 address_slice \
     [list                                      \
       DIN_WIDTH [expr $bram_addr_width+2]      \
@@ -71,7 +78,8 @@ proc add_averaging_module {module_name bram_addr_width adc_witdh clk} {
       start_acq   start                               \
       clk         clk                                 \
       address     address_slice/Dout                  \
-      count_cycle count_cycle
+      count_cycle count_cycle                         \
+      start_out   avg_on_shift_reg/CE                 \
     ]
 
   cell xilinx.com:ip:c_shift_ram:12.0 delay_wen_int {
@@ -106,7 +114,7 @@ proc add_averaging_module {module_name bram_addr_width adc_witdh clk} {
       DIN_WIDTH 32                            \
       DIN_FROM  [expr $bram_addr_width]       \
       DIN_TO    [expr $bram_addr_width]]      \
-    [list Din cfg Dout wen_or_avg_on/Op2]
+    [list Din cfg Dout avg_on_shift_reg/D]
 
   cell xilinx.com:ip:xlslice:1.0 wen_int_delay_slice \
     [list                                            \

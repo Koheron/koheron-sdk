@@ -9,7 +9,8 @@ module write_enable #
   input  wire [BRAM_WIDTH-1:0] address,
   input  wire                  clk,
   output wire                  wen,
-  output reg  [32-1:0]         count_cycle
+  output reg  [32-1:0]         count_cycle,
+  output wire                  start_out
 );
 
   reg [BRAM_WIDTH-1:0] count1;
@@ -60,5 +61,6 @@ module write_enable #
   end
 
   assign wen = count2_running;
+  assign start_out = rst;
 
 endmodule
