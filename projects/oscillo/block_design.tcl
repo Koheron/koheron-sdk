@@ -17,8 +17,12 @@ set bram_size [expr 2**($bram_addr_width-8)]K
 
 source boards/$board_name/base_system.tcl
 
-source projects/averaging.tcl
+source projects/averager.tcl
 
+add_averager_module avger $bram_addr_width
+connect_pins avger/clk $adc_clk
+
+source projects/averaging.tcl
 ###########################################################
 # Add ADC BRAMs
 ###########################################################
