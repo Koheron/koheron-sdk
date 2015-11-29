@@ -5,12 +5,14 @@ proc add_averager_module {module_name bram_addr_width} {
   current_bd_instance [create_bd_cell -type hier $module_name]
 
   create_bd_pin -dir I -type clk                             clk
+  create_bd_pin -dir I                                       avg_off
   create_bd_pin -dir I                                       tvalid
   create_bd_pin -dir I                                       restart
   create_bd_pin -dir I -from 31                        -to 0 din
   create_bd_pin -dir O -from 31                        -to 0 dout
   create_bd_pin -dir O                                       wen
   create_bd_pin -dir O -from 31                        -to 0 count
+  create_bd_pin -dir O -from 31                        -to 0 n_avg
 
   set add_latency 3
   set sr_latency 1
@@ -41,7 +43,7 @@ proc add_averager_module {module_name bram_addr_width} {
       Reset_Pin         false]           \
     [list                                \
       CLK clk                            \
-      B   din                        \
+      B   din                            \
       S   fifo/din]
 
   # Connect tvalid to FIFO write enable
@@ -89,11 +91,42 @@ proc add_averager_module {module_name bram_addr_width} {
   cell xilinx.com:ip:c_counter_binary:12.0 counter \
     [list                                          \
       Output_Width 32                              \
-      CE true]                                     \
+      CE true                                      \
+      SCLR true]                                   \
     [list                                          \
       CLK clk                                      \
-      Q   count                                    \
       CE  comp/a_geq_b]
+
+  cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_counter \
+    [list                                       \
+      Width.VALUE_SRC USER                      \
+      Width 32                                  \
+      Depth 1]                                  \
+     [list                                      \
+      CLK clk                                   \
+      Q count                                   \
+      D counter/Q]
+
+  # Number of averages
+
+  cell xilinx.com:ip:xlslice:1.0 n_avg_slice \
+    [list                                    \
+      DOUT_WIDTH [expr 32-$bram_addr_width]  \
+      DIN_FROM   [expr 32-1]                 \
+      DIN_TO     [expr $bram_addr_width]]    \
+    [list Din shift_reg_counter/Q]
+
+  cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_n_avg \
+    [list                                       \
+      Width.VALUE_SRC USER                      \
+      Width 32                                  \
+      CE    true                                \
+      Depth 1]                                  \
+     [list                                      \
+      CLK clk                                   \
+      Q n_avg                                   \
+      D n_avg_slice/Dout]
+
 
   current_bd_instance $bd
 
