@@ -7,7 +7,7 @@ proc add_address_module {module_name bram_width clk} {
   create_bd_pin -dir I -from 32   -to 0 cfg
   create_bd_pin -dir O -from 15   -to 0 addr
   create_bd_pin -dir O -from 15   -to 0 addr_delayed
-  create_bd_pin -dir O                  start
+  create_bd_pin -dir O                  restart
   create_bd_pin -dir O                  tvalid
 
   # Add address counter
@@ -18,7 +18,7 @@ proc add_address_module {module_name bram_width clk} {
   cell pavel-demin:user:edge_detector:1.0 reset_base_counter {} \
     [list clk clk dout base_counter/SCLR]
 
-  cell pavel-demin:user:edge_detector:1.0 edge_detector {} [list clk clk dout start]
+  cell pavel-demin:user:edge_detector:1.0 edge_detector {} [list clk clk dout restart]
 
   cell xilinx.com:ip:c_shift_ram:12.0 delay_addr \
     [list ShiftRegType Variable_Length_Lossless Width [expr $bram_width+2]] \

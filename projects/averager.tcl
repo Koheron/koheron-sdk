@@ -16,6 +16,7 @@ proc add_averager_module {module_name bram_addr_width} {
 
   set add_latency 3
   set sr_latency 1
+  set sr_avg_off_latency 1
   set fifo_rd_latency 1 
 
   # Create FIFO
@@ -57,6 +58,29 @@ proc add_averager_module {module_name bram_addr_width} {
       D   tvalid                                    \
       Q   fifo/wr_en]
 
+  # Avg_off 
+
+  cell xilinx.com:ip:c_shift_ram:12.0 sr_avg_off \
+    [list                                        \
+      Width.VALUE_SRC USER                       \
+      Width 32                                    \
+      Depth $sr_avg_off_latency                  \
+      SCLR true]                                 \
+    [list                                        \
+      CLK clk                                    \
+      D fifo/dout]
+
+  cell xilinx.com:ip:c_shift_ram:12.0 sr_avg_off_en \
+    [list                                           \
+      Width.VALUE_SRC USER                          \
+      Width 1                                       \
+      Depth 1                                       \
+      CE true]                                      \
+    [list                                           \
+      CLK clk                                       \
+      Q sr_avg_off/SCLR                             \
+      D avg_off]
+
   # Connect FIFO/dout to Adder (insert shift register)
   cell xilinx.com:ip:c_shift_ram:12.0 shift_reg \
     [list                                       \
@@ -67,12 +91,12 @@ proc add_averager_module {module_name bram_addr_width} {
     [list                                       \
       CLK clk                                   \
       Q adder/A                                 \
-      D fifo/dout]
+      D sr_avg_off/Q]
 
   # Enable reading FIFO once 
-  # data_count == 2**$bram_addr_width - $add_latency - $sr_latency - fifo_rd_latency)
+  # data_count == 2**$bram_addr_width - $add_latency - $sr_latency - $fifo_rd_latency)
 
-  set threshold_val [expr 2**$bram_addr_width-$add_latency-$sr_latency-$fifo_rd_latency]
+  set threshold_val [expr 2**$bram_addr_width-$add_latency-$sr_latency-$sr_avg_off_latency-$fifo_rd_latency]
 
   cell pavel-demin:user:comparator:1.0 comp \
     [list DATA_WIDTH $bram_addr_width]      \
@@ -127,6 +151,19 @@ proc add_averager_module {module_name bram_addr_width} {
       Q n_avg                                   \
       D n_avg_slice/Dout]
 
+  # Write enable
+
+  cell pavel-demin:user:write_enable:1.0 write_enable_0 \
+    [list BRAM_WIDTH $bram_addr_width]                  \
+    [list                                               \
+      clk clk                                           \
+      restart restart                                   \
+      address counter/Q                                 \
+      wen wen                                           \
+      init counter/SCLR]
+
+  connect_pins write_enable_0/init sr_avg_off_en/CE
+  connect_pins write_enable_0/wen  shift_reg_n_avg/CE
 
   current_bd_instance $bd
 
