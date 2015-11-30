@@ -10,9 +10,10 @@ proc add_averager_module {module_name bram_addr_width} {
   create_bd_pin -dir I                                       restart
   create_bd_pin -dir I -from ${::adc_width}            -to 0 din
   create_bd_pin -dir O -from 31                        -to 0 dout
-  create_bd_pin -dir O                                       wen
+  create_bd_pin -dir O -from 3                         -to 0 wen
   create_bd_pin -dir O -from 31                        -to 0 count
   create_bd_pin -dir O -from 31                        -to 0 n_avg
+  create_bd_pin -dir O -from 31                        -to 0 addr
 
   set add_latency 3
   set sr_latency 1
@@ -159,12 +160,37 @@ proc add_averager_module {module_name bram_addr_width} {
       clk clk                                           \
       restart restart                                   \
       address counter/Q                                 \
-      wen wen                                           \
       init counter/SCLR]
 
   connect_pins write_enable_0/init sr_avg_off_en/CE
   connect_pins write_enable_0/wen  shift_reg_n_avg/CE
   connect_pins write_enable_0/wen  shift_reg/SCLR
+
+  cell xilinx.com:ip:xlconcat:2.1 concat_wen {NUM_PORTS 4} {dout wen}
+
+  for {set i 0} {$i < 4} {incr i} {
+    connect_pins concat_wen/In$i write_enable_0/wen
+  }
+
+  # Connect address
+
+  cell xilinx.com:ip:xlconcat:2.1 concat_addr \
+    [list \
+      NUM_PORTS 3 \
+      IN0_WIDTH.VALUE_SRC USER IN0_WIDTH 2 \
+      IN1_WIDTH.VALUE_SRC USER IN1_WIDTH $bram_addr_width \
+      IN2_WIDTH.VALUE_SRC USER IN2_WIDTH [expr 32-2-$bram_addr_width]] \
+    [list \
+      In1 shift_reg_counter/Q \
+      dout addr]
+
+  cell xilinx.com:ip:xlconstant:1.1 xlconstant_0 \
+    [list CONST_WIDTH 2 CONST_VAL 0] \
+    [list dout concat_addr/In0]
+
+  cell xilinx.com:ip:xlconstant:1.1 xlconstant_2 \
+    [list CONST_WIDTH [expr 32-2-$bram_addr_width] CONST_VAL 0] \
+    [list dout concat_addr/In2]
 
   current_bd_instance $bd
 
