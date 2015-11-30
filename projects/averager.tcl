@@ -8,7 +8,7 @@ proc add_averager_module {module_name bram_addr_width} {
   create_bd_pin -dir I                                       avg_off
   create_bd_pin -dir I                                       tvalid
   create_bd_pin -dir I                                       restart
-  create_bd_pin -dir I -from 31                        -to 0 din
+  create_bd_pin -dir I -from ${::adc_width}            -to 0 din
   create_bd_pin -dir O -from 31                        -to 0 dout
   create_bd_pin -dir O                                       wen
   create_bd_pin -dir O -from 31                        -to 0 count
@@ -37,7 +37,7 @@ proc add_averager_module {module_name bram_addr_width} {
       A_Width.VALUE_SRC USER             \
       B_Width.VALUE_SRC USER             \
       A_Width           32               \
-      B_Width           32               \
+      B_Width           ${::adc_width}   \
       Out_Width         32               \
       CE                false            \
       Latency           $add_latency     \
@@ -164,6 +164,7 @@ proc add_averager_module {module_name bram_addr_width} {
 
   connect_pins write_enable_0/init sr_avg_off_en/CE
   connect_pins write_enable_0/wen  shift_reg_n_avg/CE
+  connect_pins write_enable_0/wen  shift_reg/SCLR
 
   current_bd_instance $bd
 
