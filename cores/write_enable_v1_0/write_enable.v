@@ -46,10 +46,12 @@ module write_enable #
     if (rst) begin
       count2 <= {(BRAM_WIDTH){1'b0}};
       count2_running <= 1'b1;
+      init_reg <= 1'b0;
     end else begin 
       if (count2 != {(BRAM_WIDTH){1'b1}}) begin
         count2 <= count2 + 1;
-        if (count2 == {{(BRAM_WIDTH-2){1'b1}},1'b0,1'b1}) begin
+        init_reg <= 1'b0;
+        if (count2 == {{(BRAM_WIDTH-2){1'b1}},1'b1,1'b0}) begin
           init_reg <= 1'b1;
         end
       end else begin
