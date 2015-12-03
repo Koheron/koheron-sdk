@@ -17,14 +17,16 @@ proc add_averaging_module {module_name bram_addr_width adc_witdh clk} {
 
   ## Add FIFO
 
-  cell xilinx.com:ip:fifo_generator:13.0 fifo     \
-    [list                                         \
-      Input_Data_Width 32                         \
-      Input_Depth      [expr 2**$bram_addr_width] \
-      Data_Count       true                       \
-      Data_Count_Width $bram_addr_width           \
-      Reset_Pin        false]                     \
-    [list clk clk dout data_out]
+  cell xilinx.com:ip:fifo_generator:13.0 fifo {
+    Input_Data_Width 32
+    Input_Depth      [expr 2**$bram_addr_width]
+    Data_Count       true
+    Data_Count_Width $bram_addr_width
+    Reset_Pin        false
+  } {
+    clk clk
+    dout data_out
+  }
 
   cell xilinx.com:ip:c_addsub:12.0 adder \
     [list                                \
