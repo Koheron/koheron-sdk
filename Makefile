@@ -55,7 +55,7 @@ KSERVER_DIR = tmp/kserver
 
 .PRECIOUS: tmp/cores/% tmp/%.xpr tmp/%.hwdef tmp/%.bit tmp/%.fsbl/executable.elf tmp/%.tree/system.dts
 
-all: boot.bin uImage devicetree.dtb fw_printenv lase kserver
+all: boot.bin uImage devicetree.dtb fw_printenv python-api kserver
 
 $(KSERVER_DIR):
 	git clone --depth 1 git@github.com:Koheron/kserver $(KSERVER_DIR)
@@ -63,9 +63,9 @@ $(KSERVER_DIR):
 kserver: $(KSERVER_DIR)
 	cd tmp/kserver && make TARGET_HOST=redpitaya
 
-lase:
-	git clone --depth 1 git@github.com:Koheron/lase tmp/lase
-	cp -r tmp/lase/lase lase
+python-api:
+	git clone --depth 1 git@github.com:Koheron/python-api tmp/python-api
+	cp -r tmp/python-api/lase lase
 
 $(UBOOT_TAR):
 	mkdir -p $(@D)
