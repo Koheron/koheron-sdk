@@ -9,6 +9,7 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
   create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc2
   create_bd_pin -dir I -from 31                    -to 0 cfg_sub
   create_bd_pin -dir I -from 31                    -to 0 cfg_fft
+  create_bd_pin -dir I -from 31                    -to 0 demod_data
   create_bd_pin -dir I                                   tvalid
 
 
@@ -17,16 +18,15 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
   connect_pins clk /$clk
 
   for {set i 1} {$i < 3} {incr i} {
-
-	  cell xilinx.com:ip:c_addsub:12.0 subtract_$i {
-	    A_Width   $adc_width
-	    B_Width   $adc_width
-	    Add_mode  Subtract
-	    CE        false
-	    Out_Width $adc_width
+    cell xilinx.com:ip:c_addsub:12.0 subtract_$i {
+      A_Width   $adc_width
+      B_Width   $adc_width
+      Add_mode  Subtract
+      CE        false
+      Out_Width $adc_width
     } {
       A   adc$i
-	    clk clk
+      clk clk
     }
   }
 
@@ -46,6 +46,7 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
   } {
     aclk clk
     s_axis_a_tdata concat_0/dout
+    s_axis_b_tdata demod_data
   }
 
   cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
@@ -136,6 +137,6 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
     Dout shift_tvalid/A
   }
 
-	current_bd_instance $bd
+  current_bd_instance $bd
 
 }
