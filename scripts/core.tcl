@@ -13,6 +13,13 @@ create_project -part $part_name $project_name tmp/cores
 
 add_files -norecurse [glob cores/$core_name/*.v]
 
+# Remove testbench files
+set testbench_files [glob -nocomplain cores/$core_name/*_tb.v]
+if {[llength testbench_files] > 0} {
+  remove_files $testbench_files
+}
+
+
 ipx::package_project -import_files -root_dir tmp/cores/$core_name
 
 set core [ipx::current_core]

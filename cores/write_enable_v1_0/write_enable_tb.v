@@ -23,12 +23,13 @@ module write_enable_tb();
   parameter CLK_PERIOD = 8;
 
   initial begin
-    clk = 0;
+    clk = 1;
     restart = 0;
     address = 5'b00110;
     #(10*CLK_PERIOD) restart = 1;
     #(1*CLK_PERIOD) restart = 0;
-    #(5*CLK_PERIOD) address = 5'b00000;
+    #(5*CLK_PERIOD) address = 5'b11111;
+    #(CLK_PERIOD) address = 5'b00000;
     #(100*CLK_PERIOD)
     $finish;
   end
