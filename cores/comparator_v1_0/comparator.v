@@ -9,6 +9,6 @@ module comparator #
   input  wire [DATA_WIDTH-1:0]  b,
   output wire a_geq_b              // a greater or equal than b     
 );
-  assign a_geq_b = (a >= b);  
+  assign a_geq_b = (a >= b);
 endmodule
 
