@@ -35,7 +35,7 @@ module write_enable #
   end
 
   always @(posedge clk) begin
-    if (count1_running && (address == {(BRAM_WIDTH){1'b1}})) begin
+    if (count1_running && (address == {{(BRAM_WIDTH-1){1'b1}},1'b1})) begin
       rst <= 1'b1;
     end else begin
       rst <= 1'b0;
