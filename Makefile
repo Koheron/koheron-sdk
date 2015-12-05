@@ -55,13 +55,16 @@ KSERVER_DIR = tmp/kserver
 
 .PRECIOUS: tmp/cores/% tmp/%.xpr tmp/%.hwdef tmp/%.bit tmp/%.fsbl/executable.elf tmp/%.tree/system.dts
 
-all: boot.bin uImage devicetree.dtb fw_printenv python-api kserver
+all: boot.bin uImage devicetree.dtb fw_printenv python-api kserver kserver_cli
 
 $(KSERVER_DIR):
 	git clone --depth 1 git@github.com:Koheron/kserver $(KSERVER_DIR)
 
 kserver: $(KSERVER_DIR)
 	cd tmp/kserver && make TARGET_HOST=redpitaya
+	
+kserver_cli: $(KSERVER_DIR)
+	cd tmp/kserver && make -C cli TARGET_HOST=redpitaya clean all
 
 python-api:
 	git clone --depth 1 git@github.com:Koheron/python-api tmp/python-api
