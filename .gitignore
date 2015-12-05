@@ -6,6 +6,8 @@ Makefile~
 PART~
 *.xdc~
 *.v~
+*.sh~
+*.bash~
 
 *.jou
 *.log
