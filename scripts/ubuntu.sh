@@ -118,7 +118,7 @@ cat <<- EOF_CAT >> etc/network/interfaces.d/eth0
 allow-hotplug eth0
 iface eth0 inet dhcp
 post-up /usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
-post-up kserver init_tasks --ip_on_leds
+post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds
 EOF_CAT
 
 cat <<- EOF_CAT > etc/network/interfaces.d/wlan0
@@ -130,7 +130,7 @@ iface wlan0 inet static
   post-up service isc-dhcp-server restart
   post-up iptables-restore < /etc/iptables.ipv4.nat
   post-up /usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
-  post-up kserver init_tasks --ip_on_leds
+  post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds
   pre-down iptables-restore < /etc/iptables.ipv4.nonat
   pre-down service isc-dhcp-server stop
   pre-down service hostapd stop
