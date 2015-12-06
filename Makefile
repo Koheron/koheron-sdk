@@ -64,9 +64,9 @@ $(KSERVER_DIR):
 kserver: $(KSERVER_DIR)
 	cd $(TMP)/kserver && make TARGET_HOST=redpitaya
 
-python-api:
-	git clone --depth 1 git@github.com:Koheron/python-api $(TMP)/python-api
-	cp -r $(TMP)/python-api/lase lase
+laser-development-kit:
+	git clone --depth 1 git@github.com:Koheron/laser-development-kit $(TMP)/laser-development-kit
+	cp -r $(TMP)/laser-development-kit/lase lase
 
 $(UBOOT_TAR):
 	mkdir -p $(@D)
