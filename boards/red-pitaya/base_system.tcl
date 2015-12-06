@@ -53,7 +53,7 @@ set pwm_clk adc_dac/pwm_clk
 
 # Add Configuration register (synchronous with ADC clock)
 ##########################################################
-add_config_register $config_name $adc_clk 8
+add_config_register $config_name $adc_clk 16
 
 ##########################################################
 # Add Status register
@@ -63,12 +63,13 @@ add_status_register $status_name $adc_clk 4
 ##########################################################
 # Connect LEDs
 ##########################################################
-cell xilinx.com:ip:xlslice:1.0 led_slice \
-  [list                                  \
-    DIN_WIDTH 32                         \
-    DIN_FROM  7                          \
-    DIN_TO    0]                         \
-  [list Din $config_name/Out[expr $led_offset]]
+cell xilinx.com:ip:xlslice:1.0 led_slice {
+  DIN_WIDTH 32
+  DIN_FROM  7
+  DIN_TO    0
+} {
+  Din $config_name/Out[expr $led_offset]
+}
 connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 
 ##########################################################
@@ -97,14 +98,14 @@ connect_pins blk_mem_gen_$dac_bram_name/addrb   $address_name/addr_delayed
 # Connect BRAM output to DACs
 for {set i 0} {$i < 2} {incr i} {
   set channel [lindex {a b} $i]
-  cell xilinx.com:ip:xlslice:1.0 dac_${channel}_slice \
-    [list                                             \
-      DIN_WIDTH 32                                    \
-      DIN_FROM [expr $dac_width-1+16*$i]              \
-      DIN_TO [expr 16*$i]]                            \
-    [list                                             \
-      Din blk_mem_gen_$dac_bram_name/doutb            \
-      Dout adc_dac/dac/dac_dat_${channel}_i]
+  cell xilinx.com:ip:xlslice:1.0 dac_${channel}_slice {
+    DIN_WIDTH 32
+    DIN_FROM [expr $dac_width-1+16*$i]
+    DIN_TO [expr 16*$i]
+  } {
+    Din blk_mem_gen_$dac_bram_name/doutb
+    Dout adc_dac/dac/dac_dat_${channel}_i
+  }
 }
 # Connect remaining ports of BRAM
 connect_constant ${dac_bram_name}_dinb 0 32 blk_mem_gen_$dac_bram_name/dinb

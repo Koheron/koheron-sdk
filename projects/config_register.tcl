@@ -45,12 +45,14 @@ proc add_config_register {module_name clk num_ports} {
   set_property range 4K [get_bd_addr_segs /${::ps_name}/Data/SEG_axi_cfg_register_0_reg0]
 
   for {set i 0} {$i < $num_ports} {incr i} {
-    cell xilinx.com:ip:xlslice:1.0 slice_$i \
-      [list                                 \
-        DIN_WIDTH [expr $num_ports*32]      \
-        DIN_FROM  [expr 31+$i*32]           \
-        DIN_TO    [expr $i*32]]             \
-      [list Din axi_cfg_register_0/cfg_data Dout Out$i]
+    cell xilinx.com:ip:xlslice:1.0 slice_$i {
+      DIN_WIDTH [expr $num_ports*32]
+      DIN_FROM  [expr 31+$i*32]
+      DIN_TO    [expr $i*32]
+    } {
+      Din axi_cfg_register_0/cfg_data
+      Dout Out$i
+    }
   }
 
   current_bd_instance $bd
