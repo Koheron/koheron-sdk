@@ -8,7 +8,7 @@
 # solution taken from http://www.googoolia.com/wp/2015/04/21/awk-symbol-lookup-error-awk-undefined-symbol-mpfr_z_sub/
 LD_LIBRARY_PATH =
 
-NAME = base_system
+NAME = oscillo
 BOARD = red-pitaya
 
 CORES = redp_adc_v1_0 redp_dac_v1_0 pwm_v1_0 axi_cfg_register_v1_0 \
