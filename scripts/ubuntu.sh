@@ -53,15 +53,22 @@ cp fw_printenv $root_dir/usr/local/bin/fw_printenv
 cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 
 # Add Koheron Server
-mkdir $root_dir/usr/local/kserver
-cp tmp/kserver/kserverd $root_dir/usr/local/kserver
-cp tmp/kserver/kserver.conf $root_dir/usr/local/kserver
+mkdir $root_dir/usr/local/tcp-server
+cp tmp/tcp-server/kserverd $root_dir/usr/local/tcp-server
+cp tmp/tcp-server/kserver.conf $root_dir/usr/local/tcp-server
+cp tmp/tcp-server/cli/kserver $root_dir/usr/local/tcp-server
+cp tmp/tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
 
 curl -L $hostapd_url -o $root_dir/usr/local/sbin/hostapd
 chmod +x $root_dir/usr/local/sbin/hostapd
 
 chroot $root_dir <<- EOF_CHROOT
 export LANG=C
+
+# Add /usr/local/tcp-server to the environment PATH
+cat <<- EOF_CAT > etc/environment
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/tcp-server"
+EOF_CAT
 
 cat <<- EOF_CAT > etc/apt/apt.conf.d/99norecommends
 APT::Install-Recommends "0";
@@ -110,7 +117,8 @@ touch etc/udev/rules.d/75-persistent-net-generator.rules
 cat <<- EOF_CAT >> etc/network/interfaces.d/eth0
 allow-hotplug eth0
 iface eth0 inet dhcp
-post-up /usr/local/kserver/kserverd -c /usr/local/kserver/kserver.conf &
+post-up /usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
+post-up kserver init_tasks --ip_on_leds
 EOF_CAT
 
 cat <<- EOF_CAT > etc/network/interfaces.d/wlan0
@@ -121,7 +129,8 @@ iface wlan0 inet static
   post-up service hostapd restart
   post-up service isc-dhcp-server restart
   post-up iptables-restore < /etc/iptables.ipv4.nat
-  post-up /usr/local/kserver/kserverd -c /usr/local/kserver/kserver.conf &
+  post-up /usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
+  post-up kserver init_tasks --ip_on_leds
   pre-down iptables-restore < /etc/iptables.ipv4.nonat
   pre-down service isc-dhcp-server stop
   pre-down service hostapd stop

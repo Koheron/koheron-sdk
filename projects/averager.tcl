@@ -2,7 +2,7 @@
 proc add_averager_module {module_name bram_addr_width args} {
 
   # Input type
-  # examples: float, fix_14+
+  # examples: float, fix_14
   array set optional [list -input_type "float" {*}$args]
   set input_type $optional(-input_type)
 

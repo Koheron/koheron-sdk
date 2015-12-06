@@ -52,17 +52,20 @@ ARMHF_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 RTL_TAR = $(TMP)/rtl8192cu.tgz
 RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
 
-KSERVER_DIR = $(TMP)/kserver
+TCP_SERVER_DIR = $(TMP)/tcp-server
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-all: boot.bin uImage devicetree.dtb fw_printenv python-api kserver
+all: boot.bin uImage devicetree.dtb fw_printenv python-api tcp-server tcp-server_cli
 
-$(KSERVER_DIR):
-	git clone --depth 1 git@github.com:Koheron/kserver $(KSERVER_DIR)
+$(TCP_SERVER_DIR):
+	git clone --depth 1 git@github.com:Koheron/tcp-server $(TCPSERVER_DIR)
 
-kserver: $(KSERVER_DIR)
-	cd $(TMP)/kserver && make TARGET_HOST=redpitaya
+tcp-server: $(TCP_SERVER_DIR)
+	cd $(TMP)/tcp-server && make TARGET_HOST=redpitaya
+	
+tcp-server_cli: $(TCP_SERVER_DIR)
+	cd $(TMP)/tcp-server && make -C cli TARGET_HOST=redpitaya clean all
 
 laser-development-kit:
 	git clone --depth 1 git@github.com:Koheron/laser-development-kit $(TMP)/laser-development-kit
