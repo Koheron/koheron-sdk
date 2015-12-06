@@ -53,8 +53,8 @@ connect_pins $avg_name/clk         $adc_clk
 connect_pins $avg_name/restart     $address_name/restart
 connect_pins $avg_name/avg_off     $config_name/Out[expr $spectrum_offset + 3]
 
-connect_pins $spectrum_name/MAXIS_RESULT_tdata  $avg_name/din
-connect_pins $spectrum_name/MAXIS_RESULT_tvalid $avg_name/tvalid
+connect_pins $spectrum_name/m_axis_result_tdata  $avg_name/din
+connect_pins $spectrum_name/m_axis_result_tvalid $avg_name/tvalid
 
 connect_pins $avg_name/addr        blk_mem_gen_$spectrum_bram_name/addrb
 connect_pins $avg_name/dout        blk_mem_gen_$spectrum_bram_name/dinb

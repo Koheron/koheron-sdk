@@ -11,9 +11,10 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
   create_bd_pin -dir I -from 31                    -to 0 cfg_fft
   create_bd_pin -dir I -from 31                    -to 0 demod_data
   create_bd_pin -dir I                                   tvalid
+  create_bd_pin -dir O -from 31                    -to 0 m_axis_result_tdata
+  create_bd_pin -dir O                                   m_axis_result_tvalid
 
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 MAXIS_RESULT
+  #create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 MAXIS_RESULT
 
   connect_pins clk /$clk
 
@@ -49,11 +50,40 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
     s_axis_b_tdata demod_data
   }
 
+  for {set i 0} {$i < 2} {incr i} {
+    cell xilinx.com:ip:xlslice:1.0 mult_slice_$i {
+      DIN_WIDTH 64
+      DIN_FROM  [expr 31+32*$i]
+      DIN_TO    [expr 32*$i]
+    } {
+      Din complex_mult/m_axis_dout_tdata
+    }
+    cell xilinx.com:ip:floating_point:7.1 float_$i {
+      Operation_Type Fixed_to_float
+      A_Precision_Type Custom
+      C_A_Exponent_Width 28
+      Flow_Control NonBlocking
+    } {
+      aclk CLK
+      s_axis_a_tdata mult_slice_$i/dout
+      s_axis_a_tvalid complex_mult/m_axis_dout_tvalid
+    }
+  }
+
+  cell xilinx.com:ip:xlconcat:2.1 concat_float {
+    IN0_WIDTH 32
+    IN1_WIDTH 32
+  } {
+    In0 float_0/m_axis_result_tdata
+    In1 float_1/m_axis_result_tdata
+  }
+
   cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
     ShiftRegType Variable_Length_Lossless
     Width 1
   } {
-    CLK clk D tvalid
+    CLK clk
+    D tvalid
   }
 
   connect_pins shift_tvalid/Q complex_mult/s_axis_a_tvalid
@@ -63,15 +93,17 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
     transform_length $n_pts_fft
     target_clock_frequency 125
     implementation_options pipelined_streaming_io
-    data_format fixed_point
+    data_format floating_point
     phase_factor_width 24
     throttle_scheme realtime
     output_ordering natural_order
   } {
     aclk clk
-    S_AXIS_DATA complex_mult/M_AXIS_DOUT
+    s_axis_data_tdata concat_float/dout
+    s_axis_data_tvalid float_0/m_axis_result_tvalid
   }
 
+  cell xilinx.com:ip:xlconstant:1.1 config_tlast_const {CONST_VAL 0} {dout fft_0/s_axis_data_tlast}
   cell xilinx.com:ip:xlconstant:1.1 config_tvalid_const {} {dout fft_0/s_axis_config_tvalid}
 
   for {set i 0} {$i < 2} {incr i} {
@@ -102,9 +134,9 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
     aclk clk
     S_AXIS_A mult_0/M_AXIS_RESULT
     S_AXIS_B mult_1/M_AXIS_RESULT
+    m_axis_result_tdata m_axis_result_tdata
+    m_axis_result_tvalid m_axis_result_tvalid
   }
-
-  connect_bd_intf_net [get_bd_intf_pins MAXIS_RESULT] [get_bd_intf_pins floating_point_0/M_AXIS_RESULT]
 
   # Configuration registers
 
