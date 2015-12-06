@@ -33,7 +33,7 @@ for {set i 0} {$i < 2} {incr i} {
   connect_pins blk_mem_gen_$adc_bram_name/rstb    $rst_name/peripheral_reset
 
   # Add averaging module
-  add_averager_module $avg_name $bram_addr_width 
+  add_averager_module $avg_name $bram_addr_width -input_type fix_$adc_width
 
   connect_pins $avg_name/clk         $adc_clk
   connect_pins $avg_name/restart     $address_name/restart

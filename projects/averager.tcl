@@ -1,5 +1,22 @@
 
-proc add_averager_module {module_name bram_addr_width} {
+proc add_averager_module {module_name bram_addr_width args} {
+
+  # Input type
+  # examples: float, fix_14+
+  array set optional [list -input_type "float" {*}$args]
+  set input_type $optional(-input_type)
+
+  puts $input_type
+
+  if { [string match "fix_*" $input_type] } {
+    set type fix
+    scan $input_type {fix_%d} width
+    puts "type == fix"
+  } else {
+    set type float
+    set width 32
+    puts "type == float"
+  }
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
@@ -8,7 +25,7 @@ proc add_averager_module {module_name bram_addr_width} {
   create_bd_pin -dir I                                       avg_off
   create_bd_pin -dir I                                       tvalid
   create_bd_pin -dir I                                       restart
-  create_bd_pin -dir I -from ${::adc_width}            -to 0 din
+  create_bd_pin -dir I -from [expr $width-1]           -to 0 din
   create_bd_pin -dir O -from 31                        -to 0 dout
   create_bd_pin -dir O -from 3                         -to 0 wen
   create_bd_pin -dir O -from 31                        -to 0 count
@@ -41,22 +58,44 @@ proc add_averager_module {module_name bram_addr_width} {
     Q   dout
   }
 
+  # Create Adder (depends on input type)
+  if { $type == "fix" } {	  
+	  cell xilinx.com:ip:c_addsub:12.0 adder {
+	    A_Width.VALUE_SRC USER
+	    B_Width.VALUE_SRC USER
+	    A_Width           32
+	    B_Width           $width
+	    Out_Width         32
+	    CE                false
+	    Latency           $add_latency
+	    Reset_Pin         false
+	  } {
+	    CLK clk
+	    B   din
+	    S   fifo/din
+	  }
+    set adder_A {adder/A}
+  } else {
+    cell xilinx.com:ip:floating_point:7.1 adder {
+      A_Precision_Type.VALUE_SRC PROPAGATED
+      Add_Sub_Value Add
+      C_Optimization Low_Latency
+      Flow_Control NonBlocking
+      Maximum_Latency false
+      C_Latency $add_latency
+      C_Mult_Usage No_Usage
+      C_Rate 1
+    } {
+      aclk clk
+      s_axis_b_tdata din
+      m_axis_result_tdata fifo/din
+    }
+    set adder_A {adder/s_axis_a_tdata}
 
+    cell xilinx.com:ip:xlconstant:1.1 adder_valid {} {}
+    connect_pins adder_valid/dout adder/s_axis_a_tvalid
+    connect_pins adder_valid/dout adder/s_axis_b_tvalid
 
-  # Create Adder 
-  cell xilinx.com:ip:c_addsub:12.0 adder {
-    A_Width.VALUE_SRC USER
-    B_Width.VALUE_SRC USER
-    A_Width           32
-    B_Width           ${::adc_width}
-    Out_Width         32
-    CE                false
-    Latency           $add_latency
-    Reset_Pin         false
-  } {
-    CLK clk
-    B   din
-    S   fifo/din
   }
 
   # Connect tvalid to FIFO write enable
@@ -101,7 +140,7 @@ proc add_averager_module {module_name bram_addr_width} {
     SCLR true
   } {
     CLK clk
-    Q adder/A
+    Q $adder_A
     D sr_avg_off/Q
   }
 

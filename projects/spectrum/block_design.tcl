@@ -45,9 +45,9 @@ connect_pins blk_mem_gen_$spectrum_bram_name/clkb    $adc_clk
 connect_pins blk_mem_gen_$spectrum_bram_name/rstb    $rst_name/peripheral_reset
 
 # Add averaging module
-source projects/averager_float.tcl
+source projects/averager.tcl
 set avg_name avg
-add_averager_float_module $avg_name $bram_addr_width
+add_averager_module $avg_name $bram_addr_width
 
 connect_pins $avg_name/clk         $adc_clk
 connect_pins $avg_name/restart     $address_name/restart
