@@ -56,10 +56,10 @@ TCP_SERVER_DIR = $(TMP)/tcp-server
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-all: boot.bin uImage devicetree.dtb fw_printenv python-api tcp-server tcp-server_cli
+all: boot.bin uImage devicetree.dtb fw_printenv laser-development-kit tcp-server tcp-server_cli
 
 $(TCP_SERVER_DIR):
-	git clone --depth 1 git@github.com:Koheron/tcp-server $(TCPSERVER_DIR)
+	git clone --depth 1 git@github.com:Koheron/tcp-server $(TCP_SERVER_DIR)
 
 tcp-server: $(TCP_SERVER_DIR)
 	cd $(TMP)/tcp-server && make TARGET_HOST=redpitaya
