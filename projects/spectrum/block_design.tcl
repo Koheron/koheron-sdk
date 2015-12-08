@@ -35,14 +35,24 @@ for {set i 1} {$i < 3} {incr i} {
 connect_pins $spectrum_name/tvalid     $address_name/tvalid
 connect_pins $spectrum_name/cfg_sub    $config_name/Out[expr $spectrum_offset]
 connect_pins $spectrum_name/cfg_fft    $config_name/Out[expr $spectrum_offset + 1]
-connect_pins $spectrum_name/demod_data $config_name/Out[expr $spectrum_offset + 2]
 
-# Add BRAM
+# Add spectrum BRAM
+set spectrum_bram_name spectrum_bram
 add_bram $spectrum_bram_name $bram_size
-# Connect port B of BRAM to ADC clock
-connect_constant ${spectrum_bram_name}_enb 1 1 blk_mem_gen_$spectrum_bram_name/enb
-connect_pins blk_mem_gen_$spectrum_bram_name/clkb    $adc_clk
-connect_pins blk_mem_gen_$spectrum_bram_name/rstb    $rst_name/peripheral_reset
+connect_pins blk_mem_gen_$spectrum_bram_name/clkb $adc_clk
+connect_pins blk_mem_gen_$spectrum_bram_name/rstb $rst_name/peripheral_reset
+connect_pins blk_mem_gen_$spectrum_bram_name/enb ${dac_bram_name}_enb/dout
+
+# Add demod BRAM
+set demod_bram_name    demod_bram
+add_bram $demod_bram_name $bram_size
+connect_pins blk_mem_gen_$demod_bram_name/clkb  $adc_clk
+connect_pins blk_mem_gen_$demod_bram_name/rstb  $rst_name/peripheral_reset
+connect_pins blk_mem_gen_$demod_bram_name/web   ${dac_bram_name}_web/dout
+connect_pins blk_mem_gen_$demod_bram_name/dinb  ${dac_bram_name}_dinb/dout
+connect_pins blk_mem_gen_$demod_bram_name/enb   ${dac_bram_name}_enb/dout
+connect_pins blk_mem_gen_$demod_bram_name/doutb $spectrum_name/demod_data
+connect_pins blk_mem_gen_$demod_bram_name/addrb $address_name/addr
 
 # Add averaging module
 source projects/averager.tcl
@@ -51,7 +61,7 @@ add_averager_module $avg_name $bram_addr_width
 
 connect_pins $avg_name/clk         $adc_clk
 connect_pins $avg_name/restart     $address_name/restart
-connect_pins $avg_name/avg_off     $config_name/Out[expr $spectrum_offset + 3]
+connect_pins $avg_name/avg_off     $config_name/Out[expr $spectrum_offset + 2]
 
 connect_pins $spectrum_name/m_axis_result_tdata  $avg_name/din
 connect_pins $spectrum_name/m_axis_result_tvalid $avg_name/tvalid

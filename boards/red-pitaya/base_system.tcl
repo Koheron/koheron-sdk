@@ -94,7 +94,7 @@ connect_pins $address_name/cfg  $config_name/Out$addr_offset
 add_bram $dac_bram_name $bram_size
 # Connect port B of BRAM to ADC clock
 connect_pins blk_mem_gen_$dac_bram_name/clkb    $adc_clk
-connect_pins blk_mem_gen_$dac_bram_name/addrb   $address_name/addr_delayed
+connect_pins blk_mem_gen_$dac_bram_name/addrb   $address_name/addr
 # Connect BRAM output to DACs
 for {set i 0} {$i < 2} {incr i} {
   set channel [lindex {a b} $i]
