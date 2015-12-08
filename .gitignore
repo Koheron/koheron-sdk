@@ -14,3 +14,8 @@ PART~
 tmp
 lase
 
+devicetree.dtb
+fw_printenv
+*.img
+uImage
+*.tar.gz
