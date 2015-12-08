@@ -20,13 +20,13 @@ proc add_address_module {module_name bram_width clk} {
     Q addr
   }
 
-  cell pavel-demin:user:edge_detector:1.0 reset_base_counter {
+  cell koheron:user:edge_detector:1.0 reset_base_counter {
   } {
     clk clk
     dout base_counter/SCLR
   }
 
-  cell pavel-demin:user:edge_detector:1.0 edge_detector {
+  cell koheron:user:edge_detector:1.0 edge_detector {
   } { 
     clk clk
     dout restart

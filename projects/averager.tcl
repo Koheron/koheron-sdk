@@ -149,7 +149,7 @@ proc add_averager_module {module_name bram_addr_width args} {
 
   set threshold_val [expr 2**$bram_addr_width-$add_latency-$sr_latency-$sr_avg_off_latency-$fifo_rd_latency]
 
-  cell pavel-demin:user:comparator:1.0 comp {
+  cell koheron:user:comparator:1.0 comp {
     DATA_WIDTH $bram_addr_width
   } {
     a       fifo/data_count
@@ -207,7 +207,7 @@ proc add_averager_module {module_name bram_addr_width args} {
 
   # Write enable
 
-  cell pavel-demin:user:write_enable:1.0 write_enable_0 {
+  cell koheron:user:write_enable:1.0 write_enable_0 {
     BRAM_WIDTH $bram_addr_width
   } {
     clk clk

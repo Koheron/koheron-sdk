@@ -18,7 +18,7 @@ proc add_pwm {module_name clk offset pwm_width num_ports} {
   connect_bd_net [get_bd_ports /dac_pwm_o] [get_bd_pins concat_pwm/dout]
 
   for {set i 0} {$i < $num_ports} {incr i} {
-    cell pavel-demin:user:pwm:1.0 pwm_$i \
+    cell koheron:user:pwm:1.0 pwm_$i \
       [list NBITS $pwm_width] \
       [list clk clk rst /${::rst_name}/peripheral_reset pwm_out concat_pwm/In$i]
     cell xilinx.com:ip:xlslice:1.0 pwm_slice_$i \
