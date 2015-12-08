@@ -22,3 +22,25 @@ This project aims to bring together the best practices of software development o
 
 * Python
 * Javascript
+
+## Usage 
+
+```
+$ source /opt/Xilinx/Vivado/2015.4/settings64.sh
+$ source /opt/Xilinx/SDK/2015.4/settings64.sh
+```
+
+Builds `oscillo` bitstream and Linux kernel:
+```
+$ make
+```
+
+Build Ubuntu image:
+```
+$ sudo bash scripts/image.sh scripts/ubuntu.sh oscillo.img 1024
+```
+
+Build the bitstream `spectrum`:
+```
+$ make tmp/spectrum.bit
+```
