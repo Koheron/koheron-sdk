@@ -56,6 +56,7 @@ cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 mkdir $root_dir/usr/local/tcp-server
 cp tmp/tcp-server/kserverd $root_dir/usr/local/tcp-server
 cp tmp/tcp-server/kserver.conf $root_dir/usr/local/tcp-server
+cp tmp/tcp-server/VERSION $root_dir/usr/local/tcp-server
 cp tmp/tcp-server/cli/kserver $root_dir/usr/local/tcp-server
 cp tmp/tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
 
