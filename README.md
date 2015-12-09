@@ -23,7 +23,7 @@ This project aims to bring together the best practices of software development o
 * Python
 * Javascript
 
-## Usage 
+## Usage
 
 [Install Vivado](https://github.com/Koheron/zynq-sdk/issues/37)
 
