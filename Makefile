@@ -63,10 +63,10 @@ $(TCP_SERVER_DIR):
 	echo `cd $(TMP)/tcp-server && git rev-parse HEAD` > $(TMP)/tcp-server/VERSION
 
 tcp-server: $(TCP_SERVER_DIR)
-	cd $(TMP)/tcp-server && make TARGET_HOST=redpitaya
-	
+	cd $(TMP)/tcp-server && make CROSS_COMPILE=arm-linux-gnueabihf-
+
 tcp-server_cli: $(TCP_SERVER_DIR)
-	cd $(TMP)/tcp-server && make -C cli TARGET_HOST=redpitaya clean all
+	cd $(TMP)/tcp-server && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
 
 laser-development-kit:
 	git clone --depth 1 git@github.com:Koheron/laser-development-kit $(TMP)/laser-development-kit
