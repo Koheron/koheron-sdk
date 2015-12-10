@@ -59,7 +59,8 @@ TCP_SERVER_DIR = $(TMP)/tcp-server
 all: boot.bin uImage devicetree.dtb fw_printenv laser-development-kit tcp-server tcp-server_cli
 
 $(TCP_SERVER_DIR):
-	git clone --depth 1 git@github.com:Koheron/tcp-server $(TCP_SERVER_DIR)
+	git clone git@github.com:Koheron/tcp-server $(TCP_SERVER_DIR)
+	cd $(TMP)/tcp-server && git checkout v0.2
 	echo `cd $(TMP)/tcp-server && git rev-parse HEAD` > $(TMP)/tcp-server/VERSION
 
 tcp-server: $(TCP_SERVER_DIR)
