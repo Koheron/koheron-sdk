@@ -91,7 +91,7 @@ EOF_CAT
 
 sed 's/tty1/ttyPS0/g; s/38400/115200/' etc/init/tty1.conf > etc/init/ttyPS0.conf
 
-echo red-pitaya > etc/hostname
+echo koheron > etc/hostname
 
 sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
 
@@ -119,7 +119,7 @@ cat <<- EOF_CAT >> etc/network/interfaces.d/eth0
 allow-hotplug eth0
 iface eth0 inet dhcp
 post-up /usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
-post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds
+post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds 0x60000000
 EOF_CAT
 
 cat <<- EOF_CAT > etc/network/interfaces.d/wlan0
@@ -139,7 +139,7 @@ EOF_CAT
 
 cat <<- EOF_CAT > etc/hostapd/hostapd.conf
 interface=wlan0
-ssid=RedPitaya
+ssid=Koheron
 driver=nl80211
 hw_mode=g
 channel=6
@@ -147,7 +147,7 @@ macaddr_acl=0
 auth_algs=1
 ignore_broadcast_ssid=0
 wpa=2
-wpa_passphrase=RedPitaya
+wpa_passphrase=Koheron
 wpa_key_mgmt=WPA-PSK
 wpa_pairwise=TKIP
 rsn_pairwise=CCMP
