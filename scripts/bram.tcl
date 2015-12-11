@@ -1,8 +1,8 @@
 proc add_bram {bram_name bram_size} {
   # Add a new Master Interface to AXI Interconnect
-  set num_master_interfaces [get_property CONFIG.NUM_MI [get_bd_cells ${::ps_name}_axi_periph]]
+  set num_master_interfaces [get_property CONFIG.NUM_MI [get_bd_cells axi_mem_intercon]]
   incr num_master_interfaces
-  properties ${::ps_name}_axi_periph [list NUM_MI $num_master_interfaces]
+  properties axi_mem_intercon [list NUM_MI $num_master_interfaces]
   # Add BRAM
   create_bd_cell -type ip -vlnv xilinx.com:ip:axi_bram_ctrl:4.0 axi_bram_ctrl_$bram_name
   create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_$bram_name
