@@ -5,6 +5,7 @@ source projects/config_register.tcl
 source projects/status_register.tcl
 source boards/$board_name/pwm.tcl
 source projects/address.tcl
+source projects/xadc.tcl
 
 set board_preset boards/$board_name/config/board_preset.xml
 
@@ -34,9 +35,9 @@ set dac_width       14
 set adc_width       14
 
 ##########################################################
-# Init block design and add XADC
+# Init block design and add DAC BRAM
 ##########################################################
-init_bd $board_preset $xadc_name
+init_bd $board_preset $dac_bram_name $bram_size
 
 ##########################################################
 # Add GPIO
@@ -73,6 +74,11 @@ cell xilinx.com:ip:xlslice:1.0 led_slice {
 connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 
 ##########################################################
+# Add XADC
+##########################################################
+add_xadc $xadc_name
+
+##########################################################
 # Add PWM
 ##########################################################
 add_pwm pwm $pwm_clk $pwm_offset $pwm_width 4
@@ -89,9 +95,9 @@ connect_pins $address_name/clk  $adc_clk
 connect_pins $address_name/cfg  $config_name/Out$addr_offset
 
 ##########################################################
-# Add DAC BRAM
+# DAC BRAM
 ##########################################################
-add_bram $dac_bram_name $bram_size
+
 # Connect port B of BRAM to ADC clock
 connect_pins blk_mem_gen_$dac_bram_name/clkb    $adc_clk
 connect_pins blk_mem_gen_$dac_bram_name/addrb   $address_name/addr
