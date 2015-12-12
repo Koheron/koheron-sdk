@@ -93,6 +93,11 @@ sed 's/tty1/ttyPS0/g; s/38400/115200/' etc/init/tty1.conf > etc/init/ttyPS0.conf
 
 echo koheron > etc/hostname
 
+cat <<- EOF_CAT >> etc/hosts
+127.0.0.1    localhost.localdomain localhost
+127.0.1.1    koheron
+EOF_CAT
+
 sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
 
 apt-get update
@@ -109,16 +114,29 @@ dpkg-reconfigure --frontend=noninteractive tzdata
 apt-get -y install openssh-server ca-certificates ntp usbutils psmisc lsof \
   parted curl less vim man-db iw wpasupplicant linux-firmware ntfs-3g
 
+apt-get install -y nginx
+apt-get install -y git
+apt-get install -y sqlite3
+apt-get install -y python-pip python-virtualenv
+apt-get install -y build-essential python-dev
+pip install uwsgi
+
 sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
 
 apt-get -y install hostapd isc-dhcp-server iptables
 
 touch etc/udev/rules.d/75-persistent-net-generator.rules
 
+cat <<- EOF_CAT > etc/rc.local
+#!/bin/sh -e
+# rc.local
+/usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
+exit 0
+EOF_CAT
+
 cat <<- EOF_CAT >> etc/network/interfaces.d/eth0
 allow-hotplug eth0
 iface eth0 inet dhcp
-post-up /usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
 post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds 0x60000000
 EOF_CAT
 
@@ -130,7 +148,6 @@ iface wlan0 inet static
   post-up service hostapd restart
   post-up service isc-dhcp-server restart
   post-up iptables-restore < /etc/iptables.ipv4.nat
-  post-up /usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
   post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds 0x60000000
   pre-down iptables-restore < /etc/iptables.ipv4.nonat
   pre-down service isc-dhcp-server stop
@@ -191,19 +208,6 @@ subnet 192.168.42.0 netmask 255.255.255.0 {
 }
 EOF_CAT
 
-cat <<- EOF_CAT >> etc/dhcp/dhclient.conf
-timeout 20;
-
-lease {
-  interface "eth0";
-  fixed-address 192.168.1.100;
-  option subnet-mask 255.255.255.0;
-  renew 2 2030/1/1 00:00:01;
-  rebind 2 2030/1/1 00:00:01;
-  expire 2 2030/1/1 00:00:01;
-}
-EOF_CAT
-
 sed -i '/^#net.ipv4.ip_forward=1$/s/^#//' etc/sysctl.conf
 
 cat <<- EOF_CAT > etc/iptables.ipv4.nat
@@ -254,6 +258,8 @@ EOF_CAT
 apt-get clean
 
 echo root:$passwd | chpasswd
+
+ntpdate -u ntp.u-psud.fr
 
 service ntp stop
 
