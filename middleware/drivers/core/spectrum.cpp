@@ -32,7 +32,7 @@ int Spectrum::Open(uint32_t samples_num_)
         // Factor two because depending whether TRIG_ACQ
         // is received at the beginning or the end of a
         // period the acquisition time can be twice as long
-        acq_time_us = 20*(samples_num*1E6)/SAMPLING_RATE;
+        acq_time_us = 2*(samples_num*1E6)/SAMPLING_RATE;
     
         config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, 16*MAP_SIZE);
         
@@ -62,7 +62,7 @@ int Spectrum::Open(uint32_t samples_num_)
             return -1;
         }
         
-        raw_data = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(spectrum_map));
+        raw_data = reinterpret_cast<float*>(dev_mem.GetBaseAddr(spectrum_map));
         data = Klib::KVector<float>(samples_num, 0);
         
         Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+AVG_OFF_OFF, 0);
@@ -113,7 +113,6 @@ Klib::KVector<float>& Spectrum::get_spectrum()
 
     for(unsigned int i=0; i<data.size(); i++)
         data[i] = raw_data[i] / float(n_avg);
-//            data[i] = raw_data[i];
     
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return data;

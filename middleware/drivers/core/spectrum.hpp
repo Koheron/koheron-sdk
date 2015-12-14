@@ -68,7 +68,7 @@ class Spectrum
     Klib::MemMapID demod_map;
     
     // Acquired data buffers
-    uint32_t *raw_data;
+    float *raw_data;
     Klib::KVector<float> data;
     
     // Internal functions
