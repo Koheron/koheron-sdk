@@ -137,7 +137,8 @@ EOF_CAT
 cat <<- EOF_CAT >> etc/network/interfaces.d/eth0
 allow-hotplug eth0
 iface eth0 inet dhcp
-post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds 0x60000000
+  post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds 0x60000000
+  post-up ntpdate -u ntp.u-psud.fr
 EOF_CAT
 
 cat <<- EOF_CAT > etc/network/interfaces.d/wlan0
