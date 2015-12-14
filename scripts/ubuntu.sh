@@ -52,10 +52,10 @@ cp patches/fw_env.config $root_dir/etc/
 cp fw_printenv $root_dir/usr/local/bin/fw_printenv
 cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 
-# Add Koheron Server
+# Add Koheron TCP Server
 mkdir $root_dir/usr/local/tcp-server
-cp tmp/tcp-server/kserverd $root_dir/usr/local/tcp-server
-cp tmp/tcp-server/kserver.conf $root_dir/usr/local/tcp-server
+cp tmp/tcp-server/tmp/server/kserverd $root_dir/usr/local/tcp-server
+cp middleware/kserver.conf $root_dir/usr/local/tcp-server
 cp tmp/tcp-server/VERSION $root_dir/usr/local/tcp-server
 cp tmp/tcp-server/cli/kserver $root_dir/usr/local/tcp-server
 cp tmp/tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
@@ -156,7 +156,7 @@ EOF_CAT
 
 cat <<- EOF_CAT > etc/hostapd/hostapd.conf
 interface=wlan0
-ssid=Koheron
+ssid=koheron
 driver=nl80211
 hw_mode=g
 channel=6
@@ -164,7 +164,7 @@ macaddr_acl=0
 auth_algs=1
 ignore_broadcast_ssid=0
 wpa=2
-wpa_passphrase=Koheron
+wpa_passphrase=koheron
 wpa_key_mgmt=WPA-PSK
 wpa_pairwise=TKIP
 rsn_pairwise=CCMP

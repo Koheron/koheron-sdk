@@ -13,6 +13,7 @@ PART~
 *.hpp~
 *.h~
 *.o
+*.yaml~
 
 
 *.jou
