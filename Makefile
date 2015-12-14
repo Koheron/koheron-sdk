@@ -60,11 +60,14 @@ all: boot.bin uImage devicetree.dtb fw_printenv laser-development-kit tcp-server
 
 $(TCP_SERVER_DIR):
 	git clone git@github.com:Koheron/tcp-server $(TCP_SERVER_DIR)
-	cd $(TMP)/tcp-server && git checkout v0.2
+	cd $(TMP)/tcp-server && git checkout devgen
 	echo `cd $(TMP)/tcp-server && git rev-parse HEAD` > $(TMP)/tcp-server/VERSION
+	cp middleware/config.yaml $(TMP)/tcp-server/config/config.yaml
 
 tcp-server: $(TCP_SERVER_DIR)
-	cd $(TMP)/tcp-server && make CROSS_COMPILE=arm-linux-gnueabihf-
+	rm -rf $(TMP)/tcp-server/middleware
+	cp -R middleware $(TMP)/tcp-server/middleware
+	cd $(TMP)/tcp-server && make CONFIG=config.yaml
 
 tcp-server_cli: $(TCP_SERVER_DIR)
 	cd $(TMP)/tcp-server && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all

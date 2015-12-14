@@ -8,6 +8,14 @@ PART~
 *.v~
 *.sh~
 *.bash~
+*.cpp~
+*.c~
+*.hpp~
+*.h~
+*.o
+*.yaml~
+*.conf~
+
 
 *.jou
 *.log
