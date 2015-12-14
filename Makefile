@@ -63,10 +63,10 @@ $(TCP_SERVER_DIR):
 	cd $(TMP)/tcp-server && git checkout devgen
 	echo `cd $(TMP)/tcp-server && git rev-parse HEAD` > $(TMP)/tcp-server/VERSION
 	cp middleware/config.yaml $(TMP)/tcp-server/config/config.yaml
-	rm -rf $(TMP)/tcp-server/middleware
-	cp -R middleware $(TMP)/tcp-server/middleware
 
 tcp-server: $(TCP_SERVER_DIR)
+	rm -rf $(TMP)/tcp-server/middleware
+	cp -R middleware $(TMP)/tcp-server/middleware
 	cd $(TMP)/tcp-server && make CONFIG=config.yaml
 
 tcp-server_cli: $(TCP_SERVER_DIR)
