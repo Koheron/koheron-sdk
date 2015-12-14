@@ -8,6 +8,12 @@ PART~
 *.v~
 *.sh~
 *.bash~
+*.cpp~
+*.c~
+*.hpp~
+*.h~
+*.o
+
 
 *.jou
 *.log
