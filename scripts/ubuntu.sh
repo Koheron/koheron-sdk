@@ -259,8 +259,6 @@ apt-get clean
 
 echo root:$passwd | chpasswd
 
-ntpdate -u ntp.u-psud.fr
-
 service ntp stop
 
 history -c
