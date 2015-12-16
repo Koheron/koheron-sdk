@@ -14,7 +14,7 @@ extern "C" {
   #include <ifaddrs.h>
 }
 
-#include "../drivers/core/wr_register.hpp"
+#include "../drivers/wr_register.hpp"
 
 InitTasks::InitTasks(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)

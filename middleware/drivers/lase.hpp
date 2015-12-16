@@ -7,12 +7,11 @@
 
 #include <tuple>
 
-#include "core/dev_mem.hpp"
-#include "core/wr_register.hpp"
-#include "core/xadc.hpp"
-#include "core/gpio.hpp"
-#include "core/addresses.hpp"
-#include "core/dac.hpp"
+#include "dev_mem.hpp"
+#include "wr_register.hpp"
+#include "xadc.hpp"
+#include "gpio.hpp"
+#include "addresses.hpp"
 
 // XADC channels
 #define LASER_POWER_CHANNEL   1

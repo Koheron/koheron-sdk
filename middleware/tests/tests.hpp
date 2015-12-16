@@ -4,7 +4,7 @@
 #ifndef __TESTS_TEST_HPP__
 #define __TESTS_TEST_HPP__
 
-#include "../drivers/core/dev_mem.hpp" // Unused but needed for now
+#include "../drivers/dev_mem.hpp" // Unused but needed for now
 
 #include <signal/kvector.hpp>
 

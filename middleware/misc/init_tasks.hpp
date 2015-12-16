@@ -5,7 +5,7 @@
 #ifndef __MISC_INIT_HPP__
 #define __MISC_INIT_HPP__
 
-#include "../drivers/core/dev_mem.hpp"
+#include "../drivers/dev_mem.hpp"
 
 //> \description Task to be performed at init. Callable via the CLI.
 class InitTasks
