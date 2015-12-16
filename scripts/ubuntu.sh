@@ -136,7 +136,18 @@ EOF_CAT
 
 cat <<- EOF_CAT >> etc/network/interfaces.d/eth0
 allow-hotplug eth0
+
+# DHCP configuration
 iface eth0 inet dhcp
+
+# Static IP
+#iface ethX inet static
+#  address 192.168.1.100
+#  gateway 192.168.1.0
+#  netmask 255.255.255.0
+#  network 192.168.1.0
+#  broadcast 192.168.1.255
+
   post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds 0x60000000
   post-up ntpdate -u ntp.u-psud.fr
 EOF_CAT
