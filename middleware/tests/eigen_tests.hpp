@@ -12,7 +12,7 @@
 
 #include <Eigen/Dense>
 
-#include "../drivers/core/dev_mem.hpp" // Unused but needed for now
+#include "../drivers/dev_mem.hpp" // Unused but needed for now
 
 //> \description Tests for tuple tranfers
 class EigenTests
