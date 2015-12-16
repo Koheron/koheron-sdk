@@ -12,6 +12,7 @@
 #include "core/xadc.hpp"
 #include "core/gpio.hpp"
 #include "core/addresses.hpp"
+#include "core/dac.hpp"
 
 // XADC channels
 #define LASER_POWER_CHANNEL   1
@@ -60,6 +61,9 @@ class Lase
     //> \param current Laser current in mA
     //> \io_type WRITE
     void set_laser_current(float current);
+
+    //> \io_type WRITE_ARRAY param=>data param=>len
+    void set_dac_buffer(const uint32_t *data, uint32_t len);
     
     //> \io_type READ
     uint32_t get_bitstream_id();

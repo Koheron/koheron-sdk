@@ -96,6 +96,12 @@ void Spectrum::set_offset(uint32_t offset_real, uint32_t offset_imag)
                      offset_real + 16384 * offset_imag);
 }
 
+void Spectrum::set_demod_buffer(const uint32_t *data, uint32_t len)
+{
+    for (uint32_t i=0; i<len; i++)
+        Klib::WriteReg32(dev_mem.GetBaseAddr(demod_map)+sizeof(uint32_t)*i, data[i]);
+}
+
 void Spectrum::_wait_for_acquisition()
 {
     // The overhead of sleep_for might be of the order of our waiting time:

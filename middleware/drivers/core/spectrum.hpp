@@ -36,6 +36,9 @@ class Spectrum
     //> \io_type WRITE
     void set_offset(uint32_t offset_real, uint32_t offset_imag);
 
+    //> \io_type WRITE_ARRAY param=>data param=>len
+    void set_demod_buffer(const uint32_t *data, uint32_t len);
+
     //> \description Read the acquired data
     //> \io_type READ
     Klib::KVector<float>& get_spectrum();

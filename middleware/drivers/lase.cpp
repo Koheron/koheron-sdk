@@ -131,6 +131,12 @@ void Lase::set_laser_current(float current)
     Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PWM3_OFF, voltage);
 }
 
+void Lase::set_dac_buffer(const uint32_t *data, uint32_t len)
+{
+    for (uint32_t i=0; i<len; i++)
+        Klib::WriteReg32(dev_mem.GetBaseAddr(dac_map)+sizeof(uint32_t)*i, data[i]);
+}
+
 uint32_t Lase::get_bitstream_id()
 {
     return Klib::ReadReg32(dev_mem.GetBaseAddr(config_map) + BITSTREAM_ID_OFF);
