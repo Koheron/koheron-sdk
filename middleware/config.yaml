@@ -11,6 +11,7 @@ devices:
     - ../middleware/drivers/core/xadc.hpp
     - ../middleware/drivers/core/gpio.hpp
     - ../middleware/drivers/core/oscillo.hpp
+    - ../middleware/drivers/core/dac.hpp
     - ../middleware/drivers/core/spectrum.hpp
     - ../middleware/drivers/lase.hpp
     
