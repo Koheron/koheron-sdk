@@ -67,7 +67,7 @@ $(TCP_SERVER_DIR):
 tcp-server: $(TCP_SERVER_DIR)
 	rm -rf $(TMP)/tcp-server/middleware
 	cp -R middleware $(TMP)/tcp-server/middleware
-	cd $(TMP)/tcp-server && make CONFIG=config.yaml
+	cd $(TMP)/tcp-server && make INTERNAL=False CONFIG=config.yaml
 
 tcp-server_cli: $(TCP_SERVER_DIR)
 	cd $(TMP)/tcp-server && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
