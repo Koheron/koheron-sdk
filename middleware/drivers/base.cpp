@@ -1,8 +1,8 @@
 /// (c) Koheron
 
-#include "lase.hpp"
+#include "base.hpp"
 
-Lase::Lase(Klib::DevMem& dev_mem_)
+Base::Base(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_),
   xadc(dev_mem_),
   gpio(dev_mem_)
@@ -11,14 +11,14 @@ Lase::Lase(Klib::DevMem& dev_mem_)
     status = CLOSED;
 }
 
-Lase::~Lase()
+Base::~Base()
 {
     Close();
 }
 
 # define MAP_SIZE 4096
 
-int Lase::Open(uint32_t dac_wfm_size_)
+int Base::Open(uint32_t dac_wfm_size_)
 {  
     // Reopening
     if(status == OPENED && dac_wfm_size_ != dac_wfm_size) {
@@ -61,7 +61,7 @@ int Lase::Open(uint32_t dac_wfm_size_)
     return 0;
 }
 
-void Lase::Close()
+void Base::Close()
 {
     if(status == OPENED) {
         reset();
@@ -77,7 +77,7 @@ void Lase::Close()
     }
 }
 
-void Lase::reset()
+void Base::reset()
 {
     assert(status == OPENED);
 
@@ -98,32 +98,32 @@ void Lase::reset()
     set_laser_current(0.0);
 }
 
-uint32_t Lase::get_laser_current()
+uint32_t Base::get_laser_current()
 {
     return xadc.read(LASER_CURRENT_CHANNEL);
 }
 
-uint32_t Lase::get_laser_power()
+uint32_t Base::get_laser_power()
 {
     return xadc.read(LASER_POWER_CHANNEL);
 }
 
-std::tuple<uint32_t, uint32_t> Lase::get_monitoring()
+std::tuple<uint32_t, uint32_t> Base::get_monitoring()
 {
     return std::make_tuple(get_laser_current(), get_laser_power());
 }
 
-void Lase::start_laser()
+void Base::start_laser()
 {
     gpio.clear_bit(7, 2); // Laser enable on pin DIO7_P
 }
 
-void Lase::stop_laser()
+void Base::stop_laser()
 {
     gpio.set_bit(7, 2); // Laser enable on pin DIO7_P
 }
 
-void Lase::set_laser_current(float current)
+void Base::set_laser_current(float current)
 {
     float current_;
     current > MAX_LASER_CURRENT ? current_ = MAX_LASER_CURRENT : current_ = current;    
@@ -131,26 +131,24 @@ void Lase::set_laser_current(float current)
     Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PWM3_OFF, voltage);
 }
 
-void Lase::set_dac_buffer(const uint32_t *data, uint32_t len)
+void Base::set_dac_buffer(const uint32_t *data, uint32_t len)
 {
     for (uint32_t i=0; i<len; i++)
         Klib::WriteReg32(dev_mem.GetBaseAddr(dac_map)+sizeof(uint32_t)*i, data[i]);
 }
 
-uint32_t Lase::get_bitstream_id()
+uint32_t Base::get_bitstream_id()
 {
     return Klib::ReadReg32(dev_mem.GetBaseAddr(config_map) + BITSTREAM_ID_OFF);
 }
 
-void Lase::set_led(uint32_t value)
+void Base::set_led(uint32_t value)
 {
     Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + LEDS_OFF, value);
 }
 
-void Lase::reset_acquisition()
+void Base::reset_acquisition()
 {
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
     Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
 }
-
-

@@ -9,7 +9,7 @@ devices:
     # Core devices
     - ../middleware/drivers/oscillo.hpp
     - ../middleware/drivers/spectrum.hpp
-    - ../middleware/drivers/lase.hpp
+    - ../middleware/drivers/base.hpp
     
     # Misc
     - ../middleware/tests/tests.hpp

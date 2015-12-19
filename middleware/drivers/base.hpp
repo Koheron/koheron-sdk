@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_LASE_HPP__
-#define __DRIVERS_LASE_HPP__
+#ifndef __DRIVERS_BASE_HPP__
+#define __DRIVERS_BASE_HPP__
 
 #include <tuple>
 
@@ -19,17 +19,17 @@
 
 #define MAX_LASER_CURRENT 50.0 // mA
 
-//> \description Laser development kit driver
-class Lase
+//> \description Laser development kit base driver
+class Base
 {
   public:
-    Lase(Klib::DevMem& dev_mem_);
-    ~Lase();
+    Base(Klib::DevMem& dev_mem_);
+    ~Base();
     
     //> \description Open the device
     //> \io_type WRITE
     //> \status ERROR_IF_NEG
-    //> \on_error Cannot open LASE device
+    //> \on_error Cannot open BASE device
     //> \flag AT_INIT
     int Open(uint32_t dac_wfm_size_);
     
@@ -99,4 +99,4 @@ class Lase
     Klib::MemMapID dac_map;
 };
 
-#endif // __DRIVERS_LASE_HPP__
+#endif // __DRIVERS_BASE_HPP__
