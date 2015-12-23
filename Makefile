@@ -60,7 +60,7 @@ all: boot.bin uImage devicetree.dtb fw_printenv laser-development-kit tcp-server
 
 $(TCP_SERVER_DIR):
 	git clone git@github.com:Koheron/tcp-server $(TCP_SERVER_DIR)
-	cd $(TMP)/tcp-server && git checkout devgen
+	cd $(TMP)/tcp-server && git checkout master
 	echo `cd $(TMP)/tcp-server && git rev-parse HEAD` > $(TMP)/tcp-server/VERSION
 	cp middleware/config.yaml $(TMP)/tcp-server/config/config.yaml
 
