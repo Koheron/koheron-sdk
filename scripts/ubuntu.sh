@@ -141,7 +141,7 @@ allow-hotplug eth0
 iface eth0 inet dhcp
 
 # Static IP
-#iface ethX inet static
+#iface eth0 inet static
 #  address 192.168.1.100
 #  gateway 192.168.1.0
 #  netmask 255.255.255.0
