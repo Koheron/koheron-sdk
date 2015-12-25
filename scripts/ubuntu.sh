@@ -112,14 +112,20 @@ echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 
 apt-get -y install openssh-server ca-certificates ntp usbutils psmisc lsof \
-  parted curl less vim man-db iw wpasupplicant linux-firmware ntfs-3g
+  parted curl less vim man-db iw wpasupplicant linux-firmware ntfs-3g gdb  \
+  bash-completion
 
 apt-get install -y nginx
 apt-get install -y git
 apt-get install -y sqlite3
 apt-get install -y python-pip python-virtualenv
 apt-get install -y build-essential python-dev
+
 pip install uwsgi
+pip install numpy
+pip install koheron_tcp_client
+pip install Jinja2
+pip install Flask
 
 sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
 
