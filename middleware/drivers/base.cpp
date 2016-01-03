@@ -90,7 +90,7 @@ void Base::reset()
     gpio.set_as_output(7, 2);
     
     // Config
-    Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 0);
+    //Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 0);
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
     Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 0);
     
