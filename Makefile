@@ -58,8 +58,10 @@ TCP_SERVER_DIR = $(TMP)/tcp-server
 
 all: boot.bin uImage devicetree.dtb fw_printenv laser-development-kit tcp-server tcp-server_cli
 
+
+
 $(TCP_SERVER_DIR):
-	git clone git@github.com:Koheron/tcp-server $(TCP_SERVER_DIR)
+	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
 	cd $(TMP)/tcp-server && git checkout master
 	echo `cd $(TMP)/tcp-server && git rev-parse HEAD` > $(TMP)/tcp-server/VERSION
 	cp middleware/config.yaml $(TMP)/tcp-server/config/config.yaml
@@ -73,7 +75,7 @@ tcp-server_cli: $(TCP_SERVER_DIR)
 	cd $(TMP)/tcp-server && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
 
 laser-development-kit:
-	git clone --depth 1 git@github.com:Koheron/laser-development-kit $(TMP)/laser-development-kit
+	git clone --depth 1 https://github.com/Koheron/laser-development-kit.git $(TMP)/laser-development-kit
 	cp -r $(TMP)/laser-development-kit/lase lase
 
 $(UBOOT_TAR):
