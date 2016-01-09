@@ -47,7 +47,7 @@ tar -zxf $root_tar --directory=$root_dir
 cp /etc/resolv.conf $root_dir/etc/
 cp /usr/bin/qemu-arm-static $root_dir/usr/bin/
 
-cp patches/fw_env.config $root_dir/etc/
+cp boards/red-pitaya/patches/fw_env.config $root_dir/etc/
 
 cp fw_printenv $root_dir/usr/local/bin/fw_printenv
 cp fw_printenv $root_dir/usr/local/bin/fw_setenv
@@ -107,6 +107,7 @@ apt-get -y install locales
 
 locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
+update-locale LC_ALL=en_US.UTF-8
 
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
@@ -114,12 +115,14 @@ dpkg-reconfigure --frontend=noninteractive tzdata
 apt-get -y install openssh-server ca-certificates ntp usbutils psmisc lsof \
   parted curl less vim man-db iw wpasupplicant linux-firmware ntfs-3g
 
-apt-get install -y nginx
+# apt-get install -y nginx
 apt-get install -y git
-apt-get install -y sqlite3
-apt-get install -y python-pip python-virtualenv
-apt-get install -y build-essential python-dev
-pip install uwsgi
+# apt-get install -y sqlite3
+# apt-get install -y python-pip python-virtualenv
+# apt-get install -y build-essential python-dev
+# pip install uwsgi
+
+apt-get install -y lxc cgroup-lite apparmor docker.io
 
 sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
 
