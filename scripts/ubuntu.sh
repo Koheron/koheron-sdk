@@ -114,12 +114,17 @@ dpkg-reconfigure --frontend=noninteractive tzdata
 apt-get -y install openssh-server ca-certificates ntp usbutils psmisc lsof \
   parted curl less vim man-db iw wpasupplicant linux-firmware ntfs-3g
 
-apt-get install -y nginx
-apt-get install -y git
-apt-get install -y sqlite3
-apt-get install -y python-pip python-virtualenv
-apt-get install -y build-essential python-dev
-pip install uwsgi
+apt-get install -y python python-numpy
+
+apt-get install -y python-pip
+pip install koheron-tcp-client
+
+# apt-get install -y python-virtualenv
+# apt-get install -y nginx
+# apt-get install -y git
+# apt-get install -y sqlite3
+# apt-get install -y build-essential python-dev
+# pip install uwsgi
 
 sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
 
