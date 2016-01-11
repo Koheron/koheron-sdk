@@ -47,7 +47,7 @@ tar -zxf $root_tar --directory=$root_dir
 cp /etc/resolv.conf $root_dir/etc/
 cp /usr/bin/qemu-arm-static $root_dir/usr/bin/
 
-cp patches/fw_env.config $root_dir/etc/
+cp boards/red-pitaya/patches/fw_env.config $root_dir/etc/
 
 cp fw_printenv $root_dir/usr/local/bin/fw_printenv
 cp fw_printenv $root_dir/usr/local/bin/fw_setenv
@@ -105,8 +105,11 @@ apt-get -y upgrade
 
 apt-get -y install locales
 
+export LANGUAGE=en_US.UTF-8
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
 locale-gen en_US.UTF-8
-update-locale LANG=en_US.UTF-8
+dpkg-reconfigure locales
 
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
