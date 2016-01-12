@@ -36,55 +36,48 @@ module at93c46d_spi #
     if (cs == 1'b1) begin
       cnt_clk <= cnt_clk + 1;
       if (cnt_clk == 7'b0111111) begin
-        sclk_int <= 1'b1;
         sclk <= 1'b0;
+        cnt_sclk_out <= cnt_sclk;
+        if (cs == 1'b1) begin
+          cnt_sclk <= cnt_sclk + 1;
+          if (cmd_reg[8-1:6] == 2'b10) begin // READ Instruction
+            if (cnt_sclk == 5'b00000) begin
+              din <= 1'b1;
+            end else if ((cnt_sclk > 5'b00000) && (cnt_sclk <= 5'b01000)) begin
+              din <= cmd_reg[8-cnt_sclk];
+            end else if (cnt_sclk == 5'b01001) begin
+              // dummy bit preceding data
+           end else if ((cnt_sclk > 5'b01001) && (cnt_sclk <= 5'b11001)) begin
+             data_out_reg[25-cnt_sclk] <= dout;
+            end else begin
+              cs <= 1'b0;
+              cnt_sclk <= 5'b00000;
+              data_out <= data_out_reg;
+            end
+          end
+          else if (cmd_reg[8-1:6] == 2'b01) begin // WRITE Instruction
+            if (cnt_sclk == 5'b00000) begin
+              din <= 1'b1;
+            end else if ((cnt_sclk > 5'b00000) && (cnt_sclk <= 5'b01000)) begin
+              din <= cmd_reg[8-cnt_sclk];
+            end else if ((cnt_sclk > 5'b01000) && (cnt_sclk <= 5'b11000)) begin
+              din <= data_in[24 - cnt_sclk];
+            end else begin
+              cs <= 1'b0;
+              cnt_sclk <= 5'b00000;
+            end
+          end
+        end
       end
                
       if (cnt_clk == 7'b1111111) begin
-        sclk_int <= 1'b0;
         sclk <= 1'b1;
       end
       
     end else begin
-      sclk_int <= 1'b0;
       sclk <= 1'b0;
       cnt_clk  = 7'b0000000;
     end
   end
-
-  always @(posedge sclk_int) begin
-    cnt_sclk_out <= cnt_sclk;
-    if (cs == 1'b1) begin
-      cnt_sclk <= cnt_sclk + 1;
-      if (cmd_reg[8-1:6] == 2'b10) begin // READ Instruction
-        if (cnt_sclk == 5'b00000) begin
-          din <= 1'b1;
-        end else if ((cnt_sclk > 5'b00000) && (cnt_sclk <= 5'b01000)) begin
-          din <= cmd_reg[8-cnt_sclk];
-        end else if (cnt_sclk == 5'b01001) begin
-          // dummy bit preceding data
-       end else if ((cnt_sclk > 5'b01001) && (cnt_sclk <= 5'b11001)) begin
-         data_out_reg[25-cnt_sclk] <= dout;
-        end else begin
-          cs <= 1'b0;
-          cnt_sclk <= 1'b0;
-          data_out <= data_out_reg;
-        end
-      end
-      else if (cmd_reg[8-1:6] == 2'b01) begin // WRITE Instruction
-        if (cnt_sclk == 5'b00000) begin
-          din <= 1'b1;
-        end else if ((cnt_sclk > 5'b00000) && (cnt_sclk <= 5'b01000)) begin
-          din <= cmd_reg[8-cnt_sclk];
-        end else if ((cnt_sclk > 5'b01000) && (cnt_sclk <= 5'b11000)) begin
-          din <= data_in[24 - cnt_sclk];
-        end else begin
-          cs <= 1'b0;
-          cnt_sclk <= 1'b0;
-        end
-      end
-    end  
-  end
-  
 
 endmodule
