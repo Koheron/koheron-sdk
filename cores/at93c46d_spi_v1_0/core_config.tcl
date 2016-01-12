@@ -1,4 +1,4 @@
-set display_name {AD5676 SPI}
+set display_name {at93c46d EEPROM SPI driver}
 
 set core [ipx::current_core]
 

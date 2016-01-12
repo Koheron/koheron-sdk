@@ -13,7 +13,7 @@ BOARD = red-pitaya
 
 CORES = redp_adc_v1_0 redp_dac_v1_0 pwm_v1_0 axi_cfg_register_v1_0 \
         comparator_v1_0 edge_detector_v1_0 write_enable_v1_0 \
-        axi_sts_register_v1_0 bus_multiplexer_v1_0
+        axi_sts_register_v1_0 bus_multiplexer_v1_0 at93c46d_spi_v1_0
 
 PART = `cat boards/$(BOARD)/PART`
 

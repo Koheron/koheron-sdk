@@ -5,8 +5,8 @@ proc add_gpio {} {
 
 	set gpio_name axi_gpio_0
 	cell xilinx.com:ip:axi_gpio:2.0 $gpio_name {
-		C_GPIO_WIDTH 8
-		C_GPIO2_WIDTH 8
+		C_GPIO_WIDTH 5
+		C_GPIO2_WIDTH 5
 		C_IS_DUAL 1
 	} {}
 
