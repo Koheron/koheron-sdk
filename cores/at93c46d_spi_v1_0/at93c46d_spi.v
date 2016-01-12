@@ -17,6 +17,7 @@ module at93c46d_spi #
   output reg [16-1:0]             data_out
 );
   reg start_next;
+  reg sclk_int;
   reg [8-1:0] cmd_reg;
   reg [16-1:0] data_in_reg;
   reg [16-1:0] data_out_reg;
@@ -35,19 +36,23 @@ module at93c46d_spi #
     if (cs == 1'b1) begin
       cnt_clk <= cnt_clk + 1;
       if (cnt_clk == 7'b0111111) begin
-        sclk <= 1'b1;
-      end
-      if (cnt_clk == 7'b1111111) begin
-        //cnt_clk <= 2'b00;
+        sclk_int <= 1'b1;
         sclk <= 1'b0;
       end
+               
+      if (cnt_clk == 7'b1111111) begin
+        sclk_int <= 1'b0;
+        sclk <= 1'b1;
+      end
+      
     end else begin
+      sclk_int <= 1'b0;
       sclk <= 1'b0;
       cnt_clk  = 7'b0000000;
     end
   end
 
-  always @(posedge sclk) begin
+  always @(posedge sclk_int) begin
     cnt_sclk_out <= cnt_sclk;
     if (cs == 1'b1) begin
       cnt_sclk <= cnt_sclk + 1;
