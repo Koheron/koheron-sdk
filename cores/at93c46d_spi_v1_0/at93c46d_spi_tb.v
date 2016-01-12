@@ -31,14 +31,14 @@ module at93c46d_spi_tb();
   initial begin
     clk = 1;
     start = 0;
-    cmd = 8'b01100000; // Write instruction
+    cmd = 8'b00110101; // Write instruction
     data_in = 16'b1110100000000001;
-    dout = 0;
+    dout = 1;
     #(1000*CLK_PERIOD)
     start = 1;
     #(2000*CLK_PERIOD)
     start = 0;
-    cmd = 8'b10100000; // Read instruction
+    cmd = 8'b10100011; // Read instruction
     #(4000*CLK_PERIOD)
     start = 1;
     #(100000*CLK_PERIOD)

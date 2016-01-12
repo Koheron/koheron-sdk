@@ -40,7 +40,8 @@ module at93c46d_spi #
         cnt_sclk_out <= cnt_sclk;
         if (cs == 1'b1) begin
           cnt_sclk <= cnt_sclk + 1;
-          if (cmd_reg[8-1:6] == 2'b10) begin // READ Instruction
+          
+          if (cmd_reg[8-1:6] == 2'b10) begin // READ mode
             if (cnt_sclk == 5'b00000) begin
               din <= 1'b1;
             end else if ((cnt_sclk > 5'b00000) && (cnt_sclk <= 5'b01000)) begin
@@ -55,13 +56,27 @@ module at93c46d_spi #
               data_out <= data_out_reg;
             end
           end
-          else if (cmd_reg[8-1:6] == 2'b01) begin // WRITE Instruction
+          else if (cmd_reg[8-1:6] == 2'b01 | cmd_reg[8-1:4] == 2'b0001) begin // WRITE or WRAL mode
             if (cnt_sclk == 5'b00000) begin
               din <= 1'b1;
             end else if ((cnt_sclk > 5'b00000) && (cnt_sclk <= 5'b01000)) begin
               din <= cmd_reg[8-cnt_sclk];
             end else if ((cnt_sclk > 5'b01000) && (cnt_sclk <= 5'b11000)) begin
               din <= data_in[24 - cnt_sclk];
+            end else begin
+              cs <= 1'b0;
+              cnt_sclk <= 5'b00000;
+            end
+          end
+          else begin // Other modes (EWEN, ERASE, ERAL, EWDS)
+            if (cnt_sclk == 5'b00000) begin
+              din <= 1'b1;
+            end else if ((cnt_sclk > 5'b00000) && (cnt_sclk <= 5'b01000)) begin
+              din <= cmd_reg[8-cnt_sclk];
+            end else if (cnt_sclk == 5'b01001) begin
+              // dummy bit preceding data
+            end else if ((cnt_sclk > 5'b01001) && (cnt_sclk <= 5'b11001)) begin
+              // nothing happens here
             end else begin
               cs <= 1'b0;
               cnt_sclk <= 5'b00000;
