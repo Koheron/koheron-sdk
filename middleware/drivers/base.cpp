@@ -18,7 +18,7 @@ Base::~Base()
 
 # define MAP_SIZE 4096
 
-# define LASER_ENABLE_PIN 4
+# define LASER_ENABLE_PIN 5
 
 int Base::Open(uint32_t dac_wfm_size_)
 {  

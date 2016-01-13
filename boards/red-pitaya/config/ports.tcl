@@ -18,13 +18,13 @@ create_bd_port -dir O adc_cdcs_o
 
 create_bd_port -dir O -from 13 -to 0 dac_dat_o
 
+### EEPROM
+
 create_bd_port -dir I eeprom_do
 create_bd_port -dir O eeprom_di
 create_bd_port -dir O eeprom_sk
 create_bd_port -dir O eeprom_cs
 
-create_bd_port -dir I dig_in
-create_bd_port -dir O dig_out
 
 ### PWM
 
