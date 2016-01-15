@@ -11,6 +11,8 @@ hostapd_url=https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE
 passwd=changeme
 timezone=Europe/Brussels
 
+sha=`git rev-parse --short HEAD`
+
 # Create partitions
 
 parted -s $device mklabel msdos
@@ -71,6 +73,10 @@ export LC_ALL=C
 # Add /usr/local/tcp-server to the environment PATH
 cat <<- EOF_CAT > etc/environment
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/tcp-server"
+EOF_CAT
+
+cat <<- EOF_CAT > etc/zynq_sdk_version
+$sha
 EOF_CAT
 
 cat <<- EOF_CAT > etc/apt/apt.conf.d/99norecommends
