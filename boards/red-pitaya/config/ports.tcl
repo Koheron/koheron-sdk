@@ -18,10 +18,13 @@ create_bd_port -dir O adc_cdcs_o
 
 create_bd_port -dir O -from 13 -to 0 dac_dat_o
 
-create_bd_port -dir O dac_clk_o
-create_bd_port -dir O dac_rst_o
-create_bd_port -dir O dac_sel_o
-create_bd_port -dir O dac_wrt_o
+### EEPROM
+
+create_bd_port -dir I eeprom_do
+create_bd_port -dir O eeprom_di
+create_bd_port -dir O eeprom_sk
+create_bd_port -dir O eeprom_cs
+
 
 ### PWM
 
@@ -36,6 +39,11 @@ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_analog_io_rtl:1.
 create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_analog_io_rtl:1.0 Vaux8
 
 ### Expansion connector
+
+create_bd_port -dir O dac_clk_o
+create_bd_port -dir O dac_rst_o
+create_bd_port -dir O dac_sel_o
+create_bd_port -dir O dac_wrt_o
 
 #create_bd_port -dir O -from 7 -to 0 exp_p_io
 #create_bd_port -dir O -from 7 -to 0 exp_n_io

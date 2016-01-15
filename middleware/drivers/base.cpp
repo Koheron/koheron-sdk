@@ -18,6 +18,8 @@ Base::~Base()
 
 # define MAP_SIZE 4096
 
+# define LASER_ENABLE_PIN 5
+
 int Base::Open(uint32_t dac_wfm_size_)
 {  
     // Reopening
@@ -87,7 +89,7 @@ void Base::reset()
     xadc.set_averaging(256);
     
     // GPIO
-    gpio.set_as_output(7, 2);
+    gpio.set_as_output(LASER_ENABLE_PIN, 2);
     
     // Config
     //Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 0);
@@ -115,12 +117,12 @@ std::tuple<uint32_t, uint32_t> Base::get_monitoring()
 
 void Base::start_laser()
 {
-    gpio.clear_bit(7, 2); // Laser enable on pin DIO7_P
+    gpio.clear_bit(LASER_ENABLE_PIN, 2); // Laser enable on pin DIO7_P
 }
 
 void Base::stop_laser()
 {
-    gpio.set_bit(7, 2); // Laser enable on pin DIO7_P
+    gpio.set_bit(LASER_ENABLE_PIN, 2); // Laser enable on pin DIO7_P
 }
 
 

@@ -79,6 +79,34 @@ connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 add_xadc $xadc_name
 
 ##########################################################
+# Add EEPROM
+##########################################################
+
+create_bd_cell -type ip -vlnv koheron:user:at93c46d_spi:1.0 at93c46d_spi_0
+connect_bd_net [get_bd_ports eeprom_do] [get_bd_pins at93c46d_spi_0/dout]
+connect_bd_net [get_bd_ports eeprom_cs] [get_bd_pins at93c46d_spi_0/cs]
+connect_bd_net [get_bd_ports eeprom_sk] [get_bd_pins at93c46d_spi_0/sclk]
+connect_bd_net [get_bd_ports eeprom_di] [get_bd_pins at93c46d_spi_0/din]
+
+connect_pins at93c46d_spi_0/clk $adc_clk
+
+create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 slice_start_eeprom
+connect_pins slice_start_eeprom/Dout at93c46d_spi_0/start
+connect_pins slice_start_eeprom/Din $config_name/Out8
+
+create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 slice_cmd_eeprom
+set_property -dict [list CONFIG.DIN_TO {1} CONFIG.DIN_FROM {8}] [get_bd_cells slice_cmd_eeprom]
+connect_pins slice_cmd_eeprom/Dout at93c46d_spi_0/cmd
+connect_pins slice_cmd_eeprom/Din $config_name/Out8
+
+create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 slice_data_in_eeprom
+set_property -dict [list CONFIG.DIN_TO {16} CONFIG.DIN_FROM {31}] [get_bd_cells slice_data_in_eeprom]
+connect_pins slice_data_in_eeprom/Dout at93c46d_spi_0/data_in
+connect_pins slice_data_in_eeprom/Din $config_name/Out8
+
+connect_pins at93c46d_spi_0/data_out $status_name/In2
+
+##########################################################
 # Add PWM
 ##########################################################
 add_pwm pwm $pwm_clk $pwm_offset $pwm_width 4

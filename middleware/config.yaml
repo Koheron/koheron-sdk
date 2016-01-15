@@ -7,6 +7,7 @@ host: armhf
 
 devices:
     # Core devices
+    - ../devices/dev_mem.yaml
     - ../middleware/drivers/oscillo.hpp
     - ../middleware/drivers/spectrum.hpp
     - ../middleware/drivers/base.hpp

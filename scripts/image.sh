@@ -1,5 +1,7 @@
 script=$1
-image=$2
+sha=`git rev-parse --short HEAD`
+
+image=${2}-${sha}.img
 
 size=512
 
