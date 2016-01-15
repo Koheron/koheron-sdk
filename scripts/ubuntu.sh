@@ -66,6 +66,7 @@ chmod +x $root_dir/usr/local/sbin/hostapd
 
 chroot $root_dir <<- EOF_CHROOT
 export LANG=C
+export LC_ALL=C
 
 # Add /usr/local/tcp-server to the environment PATH
 cat <<- EOF_CAT > etc/environment
@@ -99,17 +100,15 @@ cat <<- EOF_CAT >> etc/hosts
 127.0.1.1    koheron
 EOF_CAT
 
+apt-get -y install locales
+
+locale-gen en_US.UTF-8
+update-locale LANG=en_US.UTF-8
+
 sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
 
 apt-get update
 apt-get -y upgrade
-
-apt-get -y install locales
-
-locale-gen en_US.UTF-8
-export LC_ALL="en_US.UTF-8"
-update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LC_MESSAGES=POSIX
-dpkg-reconfigure locales
 
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
