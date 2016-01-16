@@ -15,6 +15,8 @@ CORES = redp_adc_v1_0 redp_dac_v1_0 pwm_v1_0 axi_cfg_register_v1_0 \
         comparator_v1_0 edge_detector_v1_0 write_enable_v1_0 \
         axi_sts_register_v1_0 bus_multiplexer_v1_0 at93c46d_spi_v1_0
 
+VERSION = `git rev-parse --short HEAD`
+
 PART = `cat boards/$(BOARD)/PART`
 
 PATCHES = boards/$(BOARD)/patches
@@ -53,16 +55,18 @@ RTL_TAR = $(TMP)/rtl8192cu.tgz
 RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
 
 TCP_SERVER_DIR = $(TMP)/tcp-server
+TCP_SERVER_SHA = master
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-all: boot.bin uImage devicetree.dtb fw_printenv laser-development-kit tcp-server tcp-server_cli
+all: boot.bin uImage devicetree.dtb fw_printenv laser-development-kit zip tcp-server_cli
 
-
+zip: $(TMP)/$(NAME).bit tcp-server
+	zip --junk-paths $(TMP)/$(NAME)-$(VERSION).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd
 
 $(TCP_SERVER_DIR):
 	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
-	cd $(TMP)/tcp-server && git checkout master
+	cd $(TMP)/tcp-server && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TMP)/tcp-server && git rev-parse HEAD` > $(TMP)/tcp-server/VERSION
 	cp middleware/config.yaml $(TMP)/tcp-server/config/config.yaml
 
