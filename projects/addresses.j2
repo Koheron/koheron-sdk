@@ -1,0 +1,27 @@
+/// Hardware addresses
+///
+/// (c) Koheron
+
+#ifndef __DRIVERS_CORE_ADDRESSES_HPP__
+#define __DRIVERS_CORE_ADDRESSES_HPP__
+
+// -- Base addresses
+{% for addr in config['addresses'] -%}
+#define {{ addr|upper }}_ADDR {{ config['addresses'][addr] }}
+{% endfor %}
+#define CONFIG_ADDR        0x60000000
+#define STATUS_ADDR        0x50000000
+#define DAC_ADDR           0x40000000
+
+#define SPECTRUM_ADDR      0x42000000
+#define DEMOD_ADDR         0x44000000
+
+// -- Config offsets
+{% for offset in config['config_offsets'] -%}
+#define {{ offset|upper }}_OFF {{ 4 * config['config_offsets'][offset] }}
+{% endfor %}
+// -- Status offsets
+{% for offset in config['status_offsets'] -%}
+#define {{ offset|upper }}_OFF {{ 4 * config['status_offsets'][offset] }}
+{% endfor %}
+#endif // __DRIVERS_CORE_ADDRESSES_HPP__

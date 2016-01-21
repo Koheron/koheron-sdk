@@ -2,6 +2,9 @@
 *.md~
 *.gitignore~
 Makefile~
+Dockerfile~
+*.py~
+*.j2~
 *.tcl~
 PART~
 *.xdc~
@@ -14,7 +17,14 @@ PART~
 *.h~
 *.o
 *.yaml~
+*.yml~
 *.conf~
+
+.dockerignore~
+
+venv
+
+config.tcl
 
 
 *.jou

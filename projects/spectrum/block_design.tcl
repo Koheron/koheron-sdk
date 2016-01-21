@@ -1,26 +1,12 @@
-##########################################################
-# Define offsets
-##########################################################
-set led_offset      0
-set pwm_offset      1
-set addr_offset     5
-set spectrum_offset 6
-
-##########################################################
-# Define parameters
-##########################################################
-set bram_addr_width 12
-set pwm_width       10
-set n_pwm           4
+source projects/spectrum/config.tcl
 
 set bram_size [expr 2**($bram_addr_width-8)]K
 
-source boards/$board_name/base_system.tcl
+source projects/base/block_design.tcl
 
-source projects/spectrum.tcl
+source projects/spectrum/spectrum.tcl
 
 set spectrum_name spectrum_0
-
 
 set spectrum_bram_name spectrum_bram
 set n_pts_fft [expr 2**$bram_addr_width]
@@ -33,8 +19,8 @@ for {set i 1} {$i < 3} {incr i} {
 }
 
 connect_pins $spectrum_name/tvalid     $address_name/tvalid
-connect_pins $spectrum_name/cfg_sub    $config_name/Out[expr $spectrum_offset]
-connect_pins $spectrum_name/cfg_fft    $config_name/Out[expr $spectrum_offset + 1]
+connect_pins $spectrum_name/cfg_sub    $config_name/Out[expr $substract_mean_offset]
+connect_pins $spectrum_name/cfg_fft    $config_name/Out[expr $cfg_fft_offset]
 
 # Add spectrum BRAM
 set spectrum_bram_name spectrum_bram
@@ -55,13 +41,13 @@ connect_pins blk_mem_gen_$demod_bram_name/doutb $spectrum_name/demod_data
 connect_pins blk_mem_gen_$demod_bram_name/addrb $address_name/addr
 
 # Add averaging module
-source projects/averager.tcl
+source projects/base/averager.tcl
 set avg_name avg
 add_averager_module $avg_name $bram_addr_width
 
 connect_pins $avg_name/clk         $adc_clk
 connect_pins $avg_name/restart     $address_name/restart
-connect_pins $avg_name/avg_off     $config_name/Out[expr $spectrum_offset + 2]
+connect_pins $avg_name/avg_off     $config_name/Out[expr $avg_off_offset]
 
 connect_pins $spectrum_name/m_axis_result_tdata  $avg_name/din
 connect_pins $spectrum_name/m_axis_result_tvalid $avg_name/tvalid

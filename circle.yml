@@ -1,0 +1,11 @@
+machine:
+  services:
+    - docker
+    
+dependencies:
+  override:
+    - docker info
+        
+test:
+  pre:
+    - docker build -t koheron/zynq-sdk .

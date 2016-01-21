@@ -1,23 +1,10 @@
-##########################################################
-# Define offsets
-##########################################################
-set led_offset   0
-set pwm_offset   1
-set addr_offset  5
-set avg_offset   6
-
-##########################################################
-# Define parameters
-##########################################################
-set bram_addr_width 13
-set pwm_width       10
-set n_pwm           4
+source projects/oscillo/config.tcl
 
 set bram_size [expr 2**($bram_addr_width-8)]K
 
-source boards/$board_name/base_system.tcl
+source projects/base/block_design.tcl
 
-source projects/averager.tcl
+source projects/base/averager.tcl
 
 ###########################################################
 # Add ADC BRAMs
@@ -35,9 +22,11 @@ for {set i 0} {$i < 2} {incr i} {
   # Add averaging module
   add_averager_module $avg_name $bram_addr_width -input_type fix_$adc_width
 
+  set offset avg${i}_offset
+
   connect_pins $avg_name/clk         $adc_clk
   connect_pins $avg_name/restart     $address_name/restart
-  connect_pins $avg_name/avg_off     $config_name/Out[expr $avg_offset + $i]
+  connect_pins $avg_name/avg_off     $config_name/Out[expr $$offset + $i]
   connect_pins $avg_name/tvalid      $address_name/tvalid
   connect_pins $avg_name/din         adc_dac/adc[expr $i + 1]
   connect_pins $avg_name/addr        blk_mem_gen_$adc_bram_name/addrb
