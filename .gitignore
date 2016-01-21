@@ -2,6 +2,7 @@
 *.md~
 *.gitignore~
 Makefile~
+Dockerfile~
 *.py~
 *.j2~
 *.tcl~
