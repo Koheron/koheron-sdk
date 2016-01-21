@@ -20,6 +20,8 @@ PART~
 *.yml~
 *.conf~
 
+.dockerignore~
+
 venv
 
 config.tcl

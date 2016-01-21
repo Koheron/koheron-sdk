@@ -2,6 +2,8 @@
 
 #### `Software Development Kit for Zynq-based Systems`
 
+[![Circle CI](https://circleci.com/gh/Koheron/zynq-sdk.svg?style=shield)](https://circleci.com/gh/Koheron/zynq-sdk)
+
 This project aims to bring together the best practices of software development on the Zynq platform.
 
 ## Objectives
