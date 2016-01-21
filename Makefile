@@ -54,7 +54,7 @@ RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1h
 APP_DIR = $(TMP)/app
 
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
-TCP_SERVER_SHA = inc_middleware
+TCP_SERVER_SHA = master
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
