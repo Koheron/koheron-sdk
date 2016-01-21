@@ -2,6 +2,8 @@
 *.md~
 *.gitignore~
 Makefile~
+*.py~
+*.j2~
 *.tcl~
 PART~
 *.xdc~
@@ -14,7 +16,12 @@ PART~
 *.h~
 *.o
 *.yaml~
+*.yml~
 *.conf~
+
+venv
+
+config.tcl
 
 
 *.jou

@@ -1,0 +1,20 @@
+##########################################################
+# Define config offsets
+##########################################################
+{% for key in dic['config_offsets'] -%}
+set {{ key }}_offset {{ dic['config_offsets'][key] }}
+{% endfor -%}
+
+##########################################################
+# Define status offsets
+##########################################################
+{% for key in dic['status_offsets'] -%}
+set {{ key }}_offset {{ dic['status_offsets'][key] }}
+{% endfor -%}
+
+##########################################################
+# Define parameters
+##########################################################
+{% for key in dic['parameters'] -%}
+set {{ key }} {{ dic['parameters'][key] }}
+{% endfor -%}

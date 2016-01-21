@@ -9,21 +9,18 @@
 LD_LIBRARY_PATH =
 
 NAME = oscillo
-BOARD = red-pitaya
 
-CORES = redp_adc_v1_0 redp_dac_v1_0 pwm_v1_0 axi_cfg_register_v1_0 \
-        comparator_v1_0 edge_detector_v1_0 write_enable_v1_0 \
-        axi_sts_register_v1_0 bus_multiplexer_v1_0 at93c46d_spi_v1_0
+BOARD:=$(shell python make.py $(NAME) --board)
+
+TMP = tmp
 
 VERSION = `git rev-parse --short HEAD`
+
+CORES:=$(shell python make.py $(NAME) --cores)
 
 PART = `cat boards/$(BOARD)/PART`
 
 PATCHES = boards/$(BOARD)/patches
-
-TMP = tmp
-
-# PART = xc7z010clg400-1
 
 PROC = ps7_cortexa9_0
 
@@ -54,33 +51,29 @@ ARMHF_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 RTL_TAR = $(TMP)/rtl8192cu.tgz
 RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
 
-TCP_SERVER_DIR = $(TMP)/tcp-server
-TCP_SERVER_SHA = master
+APP_DIR = $(TMP)/app
+
+TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
+TCP_SERVER_SHA = inc_middleware
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-all: boot.bin uImage devicetree.dtb fw_printenv laser-development-kit zip tcp-server_cli
+all: boot.bin uImage devicetree.dtb fw_printenv zip tcp-server_cli
 
 zip: $(TMP)/$(NAME).bit tcp-server
 	zip --junk-paths $(TMP)/$(NAME)-$(VERSION).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd
 
 $(TCP_SERVER_DIR):
 	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
-	cd $(TMP)/tcp-server && git checkout $(TCP_SERVER_SHA)
-	echo `cd $(TMP)/tcp-server && git rev-parse HEAD` > $(TMP)/tcp-server/VERSION
-	cp middleware/config.yaml $(TMP)/tcp-server/config/config.yaml
+	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
+	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
 tcp-server: $(TCP_SERVER_DIR)
-	rm -rf $(TMP)/tcp-server/middleware
-	cp -R middleware $(TMP)/tcp-server/middleware
-	cd $(TMP)/tcp-server && make INTERNAL=False CONFIG=config.yaml
+	python make.py $(NAME) --middleware
+	cd $(TCP_SERVER_DIR) && make CONFIG=config.yaml
 
 tcp-server_cli: $(TCP_SERVER_DIR)
-	cd $(TMP)/tcp-server && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
-
-laser-development-kit:
-	git clone --depth 1 https://github.com/Koheron/laser-development-kit.git $(TMP)/laser-development-kit
-	cp -r $(TMP)/laser-development-kit/lase lase
+	cd $(TCP_SERVER_DIR) && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
 
 $(UBOOT_TAR):
 	mkdir -p $(@D)
@@ -153,6 +146,7 @@ $(TMP)/cores/%: cores/%/core_config.tcl cores/%/*.v
 
 $(TMP)/%.xpr: projects/% $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
+	python make.py $(NAME) --xdc
 	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)
 
 $(TMP)/%.hwdef: $(TMP)/%.xpr
