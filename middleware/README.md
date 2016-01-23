@@ -1,3 +1,0 @@
-# Middleware
-
-wr_register
