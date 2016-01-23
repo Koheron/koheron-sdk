@@ -26,7 +26,7 @@ for {set i 0} {$i < 2} {incr i} {
 
   connect_pins $avg_name/clk         $adc_clk
   connect_pins $avg_name/restart     $address_name/restart
-  connect_pins $avg_name/avg_off     $config_name/Out[expr $$offset + $i]
+  connect_pins $avg_name/avg_off     $config_name/Out[expr $$offset]
   connect_pins $avg_name/tvalid      $address_name/tvalid
   connect_pins $avg_name/din         adc_dac/adc[expr $i + 1]
   connect_pins $avg_name/addr        blk_mem_gen_$adc_bram_name/addrb
