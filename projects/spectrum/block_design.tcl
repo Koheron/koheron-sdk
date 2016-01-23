@@ -57,3 +57,9 @@ connect_pins $avg_name/dout        blk_mem_gen_$spectrum_bram_name/dinb
 connect_pins $avg_name/wen         blk_mem_gen_$spectrum_bram_name/web
 
 connect_pins $avg_name/n_avg       sts/In0
+
+##########################################################
+# Add EEPROM
+##########################################################
+
+source projects/base/at93c46d.tcl
