@@ -18,7 +18,7 @@ This project aims to bring together the best practices of software development o
 
 ### Linux distributions
 
-* Ubuntu
+* Ubuntu 14.04
 
 ### Scripting languages
 
