@@ -22,8 +22,7 @@ config_offsets:
   
 status_offsets: # [0-7] reserved for sha
   spi_out: 8
-  n_avg0: 9
-  n_avg1: 10
+  n_avg: 9
 
 parameters:
   bram_addr_width: 12
