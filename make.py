@@ -12,37 +12,38 @@ from subprocess import call
 def get_list(project, prop, prop_list=None):
     if prop_list is None: 
        prop_list = []
-    config = _load_config_file(project)
+    config = load_config(project)
     if 'parent' in config and config['parent'] != None:
         prop_list.extend(get_list(config['parent'], prop, prop_list))
     if prop in config:
         prop_list.extend(config[prop])
+    config_default = load_config('default')
     # Ensure each item is only included once:
     prop_list = list(set(prop_list))
     return prop_list
 
 def get_prop(project, prop):
-    config = _load_config_file(project)
+    config = load_config(project)
     if not prop in config:
         config[prop] = get_prop(config['parent'], prop)
     return config[prop]
 
 def get_parents(project, parents=[]):
-    config = _load_config_file(project)
+    config = load_config(project)
     if 'parent' in config and config['parent'] != None:
         parents.append(config['parent'])
         get_parents(config['parent'], parents)
     return parents
 
 def fill_config_tcl(config):
-    template = renderer.get_template(os.path.join('projects', 'config.j2'))
+    template = get_renderer().get_template(os.path.join('projects', 'config.j2'))
     output = file(os.path.join('projects', config['project'], 'config.tcl'),'w')
     output.write(template.render(dic=config))
     output.close()
 
 def build_middleware(project, tcp_server_dir):
     _check_project(project)
-    config = _load_config_file(project)
+    config = load_config(project)
     assert os.path.exists(os.path.join(tcp_server_dir,'middleware'))
     
     # We recursively traverse the requirements and build the middleware
@@ -72,7 +73,7 @@ def build_server_config(project, tcp_server_dir):
         yaml.dump(server_config, f, indent=2, default_flow_style=False)
     
 def fill_addresses(config, tcp_server_dir):
-    template = renderer.get_template(os.path.join('projects', 'addresses.j2'))
+    template = get_renderer().get_template(os.path.join('projects', 'addresses.j2'))
     output = file(os.path.join(tcp_server_dir, 'middleware', 'drivers', 'addresses.hpp'),'w')
     output.write(template.render(config=config))
     output.close()
@@ -88,14 +89,24 @@ def _check_project(project):
         return
 	raise RuntimeError('Unknown project ' + project_name)
 
-def _load_config_file(project):
+def load_config(project):
     config_filename = os.path.join('projects', project, 'main.yml')    
     with open(config_filename) as config_file:
         config = yaml.load(config_file)        
     return config
 
+def get_renderer():
+    renderer = jinja2.Environment(
+      block_start_string = '{%',
+      block_end_string = '%}',
+      variable_start_string = '{{',
+      variable_end_string = '}}',
+      loader = jinja2.FileSystemLoader(os.path.abspath('.'))
+    )
+    return renderer
+
 def get_config(project):
-    config = _load_config_file(project)
+    config = load_config(project)
     # Get missing elements from ancestors
     lists = ['python','cores']
     for list_ in lists:
@@ -114,14 +125,6 @@ if __name__ == "__main__":
 
     reload(sys)
     sys.setdefaultencoding('utf-8')
-
-    renderer = jinja2.Environment(
-      block_start_string = '{%',
-      block_end_string = '%}',
-      variable_start_string = '{{',
-      variable_end_string = '}}',
-      loader = jinja2.FileSystemLoader(os.path.abspath('.'))
-    )
 
     config = get_config(project)
     fill_config_tcl(config)

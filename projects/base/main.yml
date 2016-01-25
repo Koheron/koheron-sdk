@@ -1,6 +1,8 @@
 ---
 project: base
 
+parent: default
+
 board: red-pitaya
 
 cores:
