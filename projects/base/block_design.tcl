@@ -63,9 +63,7 @@ add_status_register $status_name $adc_clk 16
 
 for {set i 0} {$i < 8} {incr i} {
   set sha sha${i}
-  cell xilinx.com:ip:xlconstant:1.1 $name \
-    [list CONST_VAL [expr $$sha] CONST_WIDTH 32] \
-    [list dout $status_name/In$i]
+  connect_constant sha_constant_$i [expr $$sha] 32 $status_name/In$i
 }
 ##########################################################
 # Connect LEDs

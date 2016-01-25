@@ -16,15 +16,16 @@ for {set i 0} {$i < 2} {incr i} {
   # Add averaging module
   add_averager_module $avg_name $bram_addr_width -input_type fix_$adc_width
 
-  set offset avg${i}_offset
+  set avg avg${i}_offset
+  set n_avg n_avg${i}_offset
 
   connect_pins $avg_name/clk         $adc_clk
   connect_pins $avg_name/restart     $address_name/restart
-  connect_pins $avg_name/avg_off     $config_name/Out[expr $$offset]
+  connect_pins $avg_name/avg_off     $config_name/Out[expr $$avg]
   connect_pins $avg_name/tvalid      $address_name/tvalid
   connect_pins $avg_name/din         adc_dac/adc[expr $i + 1]
   connect_pins $avg_name/addr        blk_mem_gen_$adc_bram_name/addrb
   connect_pins $avg_name/dout        blk_mem_gen_$adc_bram_name/dinb
   connect_pins $avg_name/wen         blk_mem_gen_$adc_bram_name/web
-  connect_pins $avg_name/n_avg       sts/In$i
+  connect_pins $avg_name/n_avg       sts/In[expr $${n_avg}]
 }

@@ -160,7 +160,7 @@ $(TMP)/cores/%: cores/%/core_config.tcl cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
 
-$(TMP)/%.xpr: projects/% $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/%.xpr: sha projects/% $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
 	python make.py $(NAME) --xdc
 	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)

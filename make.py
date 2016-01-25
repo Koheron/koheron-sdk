@@ -50,10 +50,12 @@ def get_config(project):
     props = ['board','host','xdc']
     for prop in props:
         config[prop] = get_prop(project, prop)
-    with open(os.path.join('tmp', project+'.sha')) as sha_file:
-        sha = sha_file.read()
-        for i in range(8):
-            config['parameters']['sha'+str(i)] = int('0x'+sha[8*i:8*i+8],0)
+    sha_filename = os.path.join('tmp', project+'.sha')
+    if os.path.isfile(sha_filename):
+        with open(sha_filename) as sha_file:
+            sha = sha_file.read()
+            for i in range(8):
+                config['parameters']['sha'+str(i)] = int('0x'+sha[8*i:8*i+8],0)
     return config
 
 ###################
