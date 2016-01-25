@@ -35,11 +35,52 @@ def get_parents(project, parents=[]):
         get_parents(config['parent'], parents)
     return parents
 
+def load_config(project):
+    config_filename = os.path.join('projects', project, 'main.yml')    
+    with open(config_filename) as config_file:
+        config = yaml.load(config_file)        
+    return config
+
+def get_config(project):
+    config = load_config(project)
+    # Get missing elements from ancestors
+    lists = ['python','cores']
+    for list_ in lists:
+        config[list_] = get_list(project, list_)
+    props = ['board','host','xdc']
+    for prop in props:
+        config[prop] = get_prop(project, prop)
+    return config
+
+###################
+# Jinja:
+###################
+
 def fill_config_tcl(config):
     template = get_renderer().get_template(os.path.join('projects', 'config.j2'))
     output = file(os.path.join('projects', config['project'], 'config.tcl'),'w')
     output.write(template.render(dic=config))
     output.close()
+
+def fill_addresses(config, tcp_server_dir):
+    template = get_renderer().get_template(os.path.join('projects', 'addresses.j2'))
+    output = file(os.path.join(tcp_server_dir, 'middleware', 'drivers', 'addresses.hpp'),'w')
+    output.write(template.render(config=config))
+    output.close()
+
+def get_renderer():
+    renderer = jinja2.Environment(
+      block_start_string = '{%',
+      block_end_string = '%}',
+      variable_start_string = '{{',
+      variable_end_string = '}}',
+      loader = jinja2.FileSystemLoader(os.path.abspath('.'))
+    )
+    return renderer
+
+###################
+# Build directories
+###################
 
 def build_middleware(project, tcp_server_dir):
     _check_project(project)
@@ -71,12 +112,16 @@ def build_server_config(project, tcp_server_dir):
     }
     with open(os.path.join(tcp_server_dir,'config','config.yaml'), 'w') as f:
         yaml.dump(server_config, f, indent=2, default_flow_style=False)
-    
-def fill_addresses(config, tcp_server_dir):
-    template = get_renderer().get_template(os.path.join('projects', 'addresses.j2'))
-    output = file(os.path.join(tcp_server_dir, 'middleware', 'drivers', 'addresses.hpp'),'w')
-    output.write(template.render(config=config))
-    output.close()
+
+def build_python(project):
+    for parent in get_parents(project):
+        config = load_config(parent)
+        for py_file in config['python']:
+            shutil.copy(os.path.join('projects',parent,py_file),'tmp')    
+
+###################
+# Check
+###################
 
 def _check_device(project, device):
     device_path = os.path.dirname(device)
@@ -89,32 +134,9 @@ def _check_project(project):
         return
 	raise RuntimeError('Unknown project ' + project_name)
 
-def load_config(project):
-    config_filename = os.path.join('projects', project, 'main.yml')    
-    with open(config_filename) as config_file:
-        config = yaml.load(config_file)        
-    return config
-
-def get_renderer():
-    renderer = jinja2.Environment(
-      block_start_string = '{%',
-      block_end_string = '%}',
-      variable_start_string = '{{',
-      variable_end_string = '}}',
-      loader = jinja2.FileSystemLoader(os.path.abspath('.'))
-    )
-    return renderer
-
-def get_config(project):
-    config = load_config(project)
-    # Get missing elements from ancestors
-    lists = ['python','cores']
-    for list_ in lists:
-        config[list_] = get_list(project, list_)
-    props = ['board','host','xdc']
-    for prop in props:
-        config[prop] = get_prop(project, prop)
-    return config
+###################
+# Main
+###################
 
 if __name__ == "__main__":
     project = sys.argv[1]
@@ -129,6 +151,8 @@ if __name__ == "__main__":
     config = get_config(project)
     fill_config_tcl(config)
     tcp_server_dir = os.path.join('tmp', config['project']+'.tcp-server')
+
+    build_python(project)
     
     if (len(sys.argv) == 3 and sys.argv[2] == '--python'):
         with open(os.path.join('tmp', project + '.python'), 'w') as f:
