@@ -16,7 +16,7 @@ BOARD:=$(shell (python make.py $(NAME) --board) && (cat $(TMP)/$(NAME).board))
 
 VERSION = `git rev-parse --short HEAD`
 
-CORES:=$(shell (python make.py $(NAME) --cores) && (cat $(TMP)/$(NAME).cores))
+CORES:=$(shell python make.py $(NAME) --cores && cat $(TMP)/$(NAME).cores)
 
 PART = `cat boards/$(BOARD)/PART`
 

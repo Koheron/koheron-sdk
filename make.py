@@ -99,9 +99,7 @@ def get_config(project):
     # Get missing elements from ancestors
     lists = ['python','cores']
     for list_ in lists:
-        print list_
         config[list_] = get_list(project, list_)
-        print config[list_]
     props = ['board','host','xdc']
     for prop in props:
         config[prop] = get_prop(project, prop)
