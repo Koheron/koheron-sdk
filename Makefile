@@ -59,17 +59,24 @@ TCP_SERVER_SHA = master
 PYTHON_DIR = $(TMP)/$(NAME).python
 PYTHON_ZIP = $(PYTHON_DIR)/python.zip
 
+SHA_MESSAGE = $(NAME)-$(VERSION)
+
+SHA_BITSTREAM:=$(shell printf $(SHA_MESSAGE) | sha256sum | sed 's/\W//g')
+
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
 all: boot.bin uImage devicetree.dtb fw_printenv zip tcp-server_cli
 
 zip: $(TMP)/$(NAME).bit tcp-server $(PYTHON_ZIP)
-	zip --junk-paths $(TMP)/$(NAME)-$(VERSION).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd $(PYTHON_ZIP)
+	zip --junk-paths $(TMP)/$(SHA_MESSAGE).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd $(PYTHON_ZIP)
+
+sha:
+	echo $(SHA_BITSTREAM) > $(TMP)/sha
 
 $(PYTHON_DIR):
 	mkdir -p $@
 	python make.py $(NAME) --python
-	
+
 $(PYTHON_ZIP): $(PYTHON_DIR)
 	zip --junk-paths $(PYTHON_ZIP) $(PYTHON_DIR)/*
 
