@@ -113,11 +113,13 @@ def build_server_config(project, tcp_server_dir):
     with open(os.path.join(tcp_server_dir,'config','config.yaml'), 'w') as f:
         yaml.dump(server_config, f, indent=2, default_flow_style=False)
 
-def build_python(project):
-    for parent in get_parents(project):
+def build_python(project, python_dir):
+    parents = get_parents(project)
+    parents.append(project)
+    for parent in parents:
         config = load_config(parent)
         for py_file in config['python']:
-            shutil.copy(os.path.join('projects',parent,py_file),'tmp')    
+            shutil.copy(os.path.join('projects',parent,py_file), python_dir)    
 
 ###################
 # Check
@@ -151,12 +153,10 @@ if __name__ == "__main__":
     config = get_config(project)
     fill_config_tcl(config)
     tcp_server_dir = os.path.join('tmp', config['project']+'.tcp-server')
-
-    build_python(project)
-    
+    python_dir = os.path.join('tmp', config['project']+'.python')
+  
     if (len(sys.argv) == 3 and sys.argv[2] == '--python'):
-        with open(os.path.join('tmp', project + '.python'), 'w') as f:
-            f.write(' '.join(config['python']))
+        build_python(project, python_dir)
 
     if (len(sys.argv) == 3 and sys.argv[2] == '--cores'):
         with open(os.path.join('tmp', project + '.cores'), 'w') as f:
