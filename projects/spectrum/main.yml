@@ -19,9 +19,9 @@ config_offsets:
   avg_off: 8
   bitstream_id: 9
   
-status_offsets:
-  n_avg0: 0
-  n_avg1: 1
+status_offsets: # [0-7] reserved for sha
+  n_avg0: 8
+  n_avg1: 9
 
 parameters:
   bram_addr_width: 12
