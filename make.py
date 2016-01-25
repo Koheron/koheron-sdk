@@ -104,7 +104,9 @@ def _load_config_file(project):
 def get_config(project):
     config = _load_config_file(project)    
     # Get missing elements from ancestors
-    config['cores'] = get_list(project, 'cores')
+    lists = ['cores','python']
+    for list_ in lists:
+        config[list_] = get_list(project, list_)
     props = ['board','host','xdc']
     for prop in props:
         config[prop] = get_prop(project, prop)
@@ -129,14 +131,16 @@ if __name__ == "__main__":
     tcp_server_dir = os.path.join('tmp', config['project']+'.tcp-server')
     
     if (len(sys.argv) == 3 and sys.argv[2] == '--cores'):
-        print(' '.join(config['cores']))
+        f = open(os.path.join('tmp', project + '.cores'), 'w')
+        f.write(' '.join(config['cores']))
 
     if (len(sys.argv) == 3 and sys.argv[2] == '--xdc'):
         print config['xdc']
         shutil.copyfile(config['xdc'], os.path.join('tmp', config['project']+'.xdc'))
 
     if (len(sys.argv) == 3 and sys.argv[2] == '--board'):
-        print(config['board'])
+        f = open(os.path.join('tmp', project + '.board'), 'w')
+        f.write(config['board'])
 
     if (len(sys.argv) == 3 and sys.argv[2] == '--middleware'):
         build_middleware(project, tcp_server_dir)

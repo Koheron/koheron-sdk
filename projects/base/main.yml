@@ -24,4 +24,5 @@ devices:
   - gpio.hpp
   - base.hpp
 
-  
+python: 
+  - base.py

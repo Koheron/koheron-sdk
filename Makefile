@@ -10,13 +10,13 @@ LD_LIBRARY_PATH =
 
 NAME = oscillo
 
-BOARD:=$(shell python make.py $(NAME) --board)
-
 TMP = tmp
+
+BOARD:=$(shell (python make.py $(NAME) --board) && (cat $(TMP)/$(NAME).board))
 
 VERSION = `git rev-parse --short HEAD`
 
-CORES:=$(shell python make.py $(NAME) --cores)
+CORES:=$(shell (python make.py $(NAME) --cores) && (cat $(TMP)/$(NAME).cores))
 
 PART = `cat boards/$(BOARD)/PART`
 

@@ -33,3 +33,6 @@ devices:
   - base/base.hpp
   - base/gpio.hpp
   - base/xadc.hpp
+
+python:
+  - spectrum.py
