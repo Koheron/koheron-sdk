@@ -118,7 +118,7 @@ def build_python(project, python_dir):
     parents.append(project)
     for parent in parents:
         config = load_config(parent)
-        for py_file in config['python']:
+        for py_file in config['python'] or []:
             shutil.copy(os.path.join('projects',parent,py_file), python_dir)    
 
 ###################
