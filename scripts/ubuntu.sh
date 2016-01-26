@@ -129,12 +129,13 @@ apt-get install -y python python-numpy
 apt-get install -y python-pip
 pip install koheron-tcp-client
 
-# apt-get install -y python-virtualenv
-# apt-get install -y nginx
+apt-get install -y python-virtualenv
+apt-get install -y nginx
+apt-get install -y build-essential python-dev
+pip install uwsgi
+
 # apt-get install -y git
 # apt-get install -y sqlite3
-# apt-get install -y build-essential python-dev
-# pip install uwsgi
 
 sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
 
