@@ -1,4 +1,5 @@
 device=$1
+name=$2
 
 boot_dir=/tmp/BOOT
 root_dir=/tmp/ROOT
@@ -56,12 +57,12 @@ cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 
 # Add Koheron TCP Server
 mkdir $root_dir/usr/local/tcp-server
-cp tmp/tcp-server/tmp/server/kserverd $root_dir/usr/local/tcp-server
-cp middleware/kserver.conf $root_dir/usr/local/tcp-server
-cp tmp/tcp-server/VERSION $root_dir/usr/local/tcp-server
-cp tmp/tcp-server/cli/kserver $root_dir/usr/local/tcp-server
-cp tmp/tcp-server/relaunch_kserver.sh $root_dir/usr/local/tcp-server
-cp tmp/tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
+cp tmp/${name}.tcp-server/tmp/server/kserverd $root_dir/usr/local/tcp-server
+cp kserver.conf $root_dir/usr/local/tcp-server
+cp tmp/${name}.tcp-server/VERSION $root_dir/usr/local/tcp-server
+cp tmp/${name}.tcp-server/cli/kserver $root_dir/usr/local/tcp-server
+cp tmp/${name}.tcp-server/relaunch_kserver.sh $root_dir/usr/local/tcp-server
+cp tmp/${name}.tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
 
 curl -L $hostapd_url -o $root_dir/usr/local/sbin/hostapd
 chmod +x $root_dir/usr/local/sbin/hostapd
@@ -145,8 +146,8 @@ cat <<- EOF_CAT > etc/rc.local
 #!/bin/sh -e
 # rc.local
 /usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
-chmod u+x /usr/local/tcp-server/relaunch_kserver.sh
-nohup /usr/local/tcp-server/relaunch_kserver.sh 0<&- &>/dev/null &
+# chmod u+x /usr/local/tcp-server/relaunch_kserver.sh
+# nohup /usr/local/tcp-server/relaunch_kserver.sh 0<&- &>/dev/null &
 exit 0
 EOF_CAT
 
