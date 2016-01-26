@@ -55,7 +55,6 @@ APP_DIR = $(TMP)/app
 
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 TCP_SERVER_SHA = master
-
 PYTHON_DIR = $(TMP)/$(NAME).python
 PYTHON_ZIP = $(PYTHON_DIR)/python.zip
 

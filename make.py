@@ -105,8 +105,7 @@ def build_middleware(project, tcp_server_dir):
 def build_server_config(project, tcp_server_dir):
     config = get_config(project)
     dev_paths = [
-      '../devices/dev_mem.yaml', 
-      '../middleware/misc/init_tasks.hpp'
+      '../devices/dev_mem.yaml'
     ]    
     for device in config['devices']:
         _check_device(project, device)
