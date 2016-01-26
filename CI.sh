@@ -9,4 +9,4 @@ make clean
 #make zip NAME=spectrum
 
 make
-sudo bash scripts/image.sh scripts/ubuntu.sh oscillo 1024 
+bash scripts/image.sh scripts/ubuntu.sh oscillo 1024 
