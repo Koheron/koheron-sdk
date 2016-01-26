@@ -64,9 +64,9 @@ SHA:=$(shell printf $(ID) | sha256sum | sed 's/\W//g')
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-all: boot.bin uImage devicetree.dtb fw_printenv zip tcp-server_cli
+all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli
 
-zip: $(TMP)/$(NAME).bit tcp-server $(PYTHON_ZIP)
+zip: tcp-server $(PYTHON_ZIP) $(TMP)/$(NAME).bit
 	zip --junk-paths $(TMP)/$(ID).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd $(PYTHON_ZIP)
 
 sha:
