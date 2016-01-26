@@ -8,4 +8,5 @@ make clean
 #make zip NAME=oscillo
 #make zip NAME=spectrum
 
+make
 sudo bash scripts/image.sh scripts/ubuntu.sh oscillo 1024 
