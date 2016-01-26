@@ -5,7 +5,8 @@
 Base::Base(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_),
   xadc(dev_mem_),
-  gpio(dev_mem_)
+  gpio(dev_mem_),
+  bitstream_id(BITSTREAM_ID_SIZE)
 {
     dac_wfm_size = 0;
     status = CLOSED;
@@ -147,9 +148,11 @@ void Base::set_dac_buffer(const uint32_t *data, uint32_t len)
         Klib::WriteReg32(dev_mem.GetBaseAddr(dac_map)+sizeof(uint32_t)*i, data[i]);
 }
 
-uint32_t Base::get_bitstream_id()
+std::vector<uint32_t> Base::get_bitstream_id()
 {
-    return Klib::ReadReg32(dev_mem.GetBaseAddr(config_map) + BITSTREAM_ID_OFF);
+    for (uint32_t i=0; i<BITSTREAM_ID_SIZE; i++)
+        bitstream_id[i] = Klib::ReadReg32(dev_mem.GetBaseAddr(config_map) + BITSTREAM_ID_OFF + 4*i);
+    return bitstream_id;
 }
 
 void Base::set_led(uint32_t value)

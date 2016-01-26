@@ -17,7 +17,6 @@ config_offsets:
   addr: 6
   avg0: 7
   avg1: 8
-  bitstream_id: 9
   
 status_offsets: # [0-7] reserved for sha
   spi_out: 8 

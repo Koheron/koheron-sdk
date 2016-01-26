@@ -99,7 +99,7 @@ class Base(object):
 
     @command('BASE')
     def get_bitstream_id(self):
-        pass
+        return self.client.recv_buffer(8, data_type='int32')
 
     @command('BASE')
     def set_led(self, value):

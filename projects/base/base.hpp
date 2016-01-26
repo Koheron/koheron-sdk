@@ -13,6 +13,8 @@
 #include "gpio.hpp"
 #include "addresses.hpp"
 
+#define BITSTREAM_ID_SIZE 8
+
 // XADC channels
 #define LASER_POWER_CHANNEL   1
 #define LASER_CURRENT_CHANNEL 8
@@ -65,7 +67,7 @@ class Base
     void set_dac_buffer(const uint32_t *data, uint32_t len);
     
     //> \io_type READ
-    uint32_t get_bitstream_id();
+    std::vector<uint32_t> get_bitstream_id();
     
     //> \io_type WRITE
     void set_led(uint32_t value);
@@ -92,6 +94,7 @@ class Base
     
     // Number of point in the DAC waveform
     uint32_t dac_wfm_size;
+    std::vector<uint32_t> bitstream_id;
     
     // Memory maps IDs:
     Klib::MemMapID config_map;

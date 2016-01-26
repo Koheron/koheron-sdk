@@ -18,7 +18,6 @@ config_offsets:
   substract_mean: 7
   cfg_fft: 8
   avg_off: 9
-  bitstream_id: 10
   
 status_offsets: # [0-7] reserved for sha
   spi_out: 8
