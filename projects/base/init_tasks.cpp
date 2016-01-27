@@ -14,8 +14,8 @@ extern "C" {
   #include <ifaddrs.h>
 }
 
-#include "wr_register.hpp"
-#include "addresses.hpp"
+#include <drivers/wr_register.hpp>
+#include <drivers/addresses.hpp>
 
 InitTasks::InitTasks(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)

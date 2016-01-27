@@ -5,9 +5,9 @@
 #ifndef __DRIVERS_CORE_OSCILLO_HPP__
 #define __DRIVERS_CORE_OSCILLO_HPP__
 
-#include "dev_mem.hpp"
-#include "wr_register.hpp"
-#include "addresses.hpp"
+#include <drivers/dev_mem.hpp>
+#include <drivers/wr_register.hpp>
+#include <drivers/addresses.hpp>
 
 #include <signal/kvector.hpp>
  
