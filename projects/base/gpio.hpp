@@ -7,8 +7,8 @@
 #ifndef __DRIVERS_CORE_GPIO_HPP__
 #define __DRIVERS_CORE_GPIO_HPP__
 
-#include "dev_mem.hpp"
-#include "wr_register.hpp"
+#include <drivers/dev_mem.hpp>
+#include <drivers/wr_register.hpp>
 
 #define GPIO_ADDR 0x41200000
 

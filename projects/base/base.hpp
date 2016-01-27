@@ -7,11 +7,11 @@
 
 #include <tuple>
 
-#include "dev_mem.hpp"
-#include "wr_register.hpp"
-#include "xadc.hpp"
-#include "gpio.hpp"
-#include "addresses.hpp"
+#include <drivers/dev_mem.hpp>
+#include <drivers/wr_register.hpp>
+#include <drivers/xadc.hpp>
+#include <drivers/gpio.hpp>
+#include <drivers/addresses.hpp>
 
 #define BITSTREAM_ID_SIZE 8
 
