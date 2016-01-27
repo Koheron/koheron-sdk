@@ -43,7 +43,7 @@ $ make
 
 Build Ubuntu image:
 ```
-$ sudo bash scripts/image.sh scripts/ubuntu.sh oscillo.img 1024
+$ sudo bash scripts/image.sh scripts/ubuntu.sh oscillo 1024
 ```
 
 Build the bitstream `spectrum`:
