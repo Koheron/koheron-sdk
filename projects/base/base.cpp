@@ -151,7 +151,8 @@ void Base::set_dac_buffer(const uint32_t *data, uint32_t len)
 std::vector<uint32_t> Base::get_bitstream_id()
 {
     for (uint32_t i=0; i<BITSTREAM_ID_SIZE; i++)
-        bitstream_id[i] = Klib::ReadReg32(dev_mem.GetBaseAddr(config_map) + BITSTREAM_ID_OFF + 4*i);
+        bitstream_id[i] = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map) + BITSTREAM_ID_OFF + 4*i);
+  
     return bitstream_id;
 }
 
