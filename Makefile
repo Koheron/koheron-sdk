@@ -10,13 +10,13 @@ LD_LIBRARY_PATH =
 
 NAME = oscillo
 
-BOARD:=$(shell python make.py $(NAME) --board)
-
 TMP = tmp
+
+BOARD:=$(shell (python make.py $(NAME) --board) && (cat $(TMP)/$(NAME).board))
 
 VERSION = `git rev-parse --short HEAD`
 
-CORES:=$(shell python make.py $(NAME) --cores)
+CORES:=$(shell python make.py $(NAME) --cores && cat $(TMP)/$(NAME).cores)
 
 PART = `cat boards/$(BOARD)/PART`
 
@@ -55,13 +55,28 @@ APP_DIR = $(TMP)/app
 
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 TCP_SERVER_SHA = master
+PYTHON_DIR = $(TMP)/$(NAME).python
+PYTHON_ZIP = $(PYTHON_DIR)/python.zip
+
+ID = $(NAME)-$(VERSION)
+SHA:=$(shell printf $(ID) | sha256sum | sed 's/\W//g')
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-all: boot.bin uImage devicetree.dtb fw_printenv zip tcp-server_cli
+all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli
 
-zip: $(TMP)/$(NAME).bit tcp-server
-	zip --junk-paths $(TMP)/$(NAME)-$(VERSION).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd
+zip: tcp-server $(PYTHON_ZIP) $(TMP)/$(NAME).bit
+	zip --junk-paths $(TMP)/$(ID).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd $(PYTHON_ZIP)
+
+sha:
+	echo $(SHA) > $(TMP)/$(NAME).sha
+
+$(PYTHON_DIR):
+	mkdir -p $@
+	python make.py $(NAME) --python
+
+$(PYTHON_ZIP): $(PYTHON_DIR)
+	zip --junk-paths $(PYTHON_ZIP) $(PYTHON_DIR)/*
 
 $(TCP_SERVER_DIR):
 	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
@@ -144,7 +159,7 @@ $(TMP)/cores/%: cores/%/core_config.tcl cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
 
-$(TMP)/%.xpr: projects/% $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/%.xpr: sha projects/% $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
 	python make.py $(NAME) --xdc
 	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)

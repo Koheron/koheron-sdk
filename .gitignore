@@ -20,6 +20,8 @@ PART~
 *.yml~
 *.conf~
 
+*.bin
+
 .dockerignore~
 
 venv

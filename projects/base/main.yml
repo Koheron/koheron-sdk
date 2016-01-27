@@ -1,6 +1,8 @@
 ---
 project: base
 
+parent: default
+
 board: red-pitaya
 
 cores:
@@ -24,4 +26,5 @@ devices:
   - gpio.hpp
   - base.hpp
 
-  
+python: 
+  - base.py

@@ -126,6 +126,6 @@ Klib::KVector<float>& Spectrum::get_spectrum()
 
 uint32_t Spectrum::get_num_average()
 {
-    return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF);
+    return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG_OFF);
 }
 

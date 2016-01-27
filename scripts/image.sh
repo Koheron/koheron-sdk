@@ -1,7 +1,9 @@
 script=$1
+name=$2 
+
 sha=`git rev-parse --short HEAD`
 
-image=${2}-${sha}.img
+image=${name}-${sha}.img
 
 size=512
 
@@ -16,6 +18,6 @@ device=`losetup -f`
 
 losetup $device $image
 
-sh $script $device
+sh $script $device $name
 
 losetup -d $device

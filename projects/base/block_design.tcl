@@ -59,8 +59,12 @@ add_config_register $config_name $adc_clk 16
 ##########################################################
 # Add Status register
 ##########################################################
-add_status_register $status_name $adc_clk 4
+add_status_register $status_name $adc_clk 16
 
+for {set i 0} {$i < 8} {incr i} {
+  set sha sha${i}
+  connect_constant sha_constant_$i [expr $$sha] 32 $status_name/In$i
+}
 ##########################################################
 # Connect LEDs
 ##########################################################

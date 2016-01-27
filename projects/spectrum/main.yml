@@ -8,20 +8,20 @@ addresses:
   demod: '0x44000000'
 
 config_offsets:
-  led: 0
-  pwm0: 1
-  pwm1: 2
-  pwm2: 3
-  pwm3: 4
-  addr: 5
-  substract_mean: 6
-  cfg_fft: 7
-  avg_off: 8
-  bitstream_id: 9
+  spi_in: 0
+  led: 1
+  pwm0: 2
+  pwm1: 3
+  pwm2: 4
+  pwm3: 5
+  addr: 6
+  substract_mean: 7
+  cfg_fft: 8
+  avg_off: 9
   
-status_offsets:
-  n_avg0: 0
-  n_avg1: 1
+status_offsets: # [0-7] reserved for sha
+  spi_out: 8
+  n_avg: 9
 
 parameters:
   bram_addr_width: 12
@@ -33,3 +33,7 @@ devices:
   - base/base.hpp
   - base/gpio.hpp
   - base/xadc.hpp
+  - base/init_tasks.hpp
+
+python:
+  - spectrum.py

@@ -56,7 +56,7 @@ connect_pins $avg_name/addr        blk_mem_gen_$spectrum_bram_name/addrb
 connect_pins $avg_name/dout        blk_mem_gen_$spectrum_bram_name/dinb
 connect_pins $avg_name/wen         blk_mem_gen_$spectrum_bram_name/web
 
-connect_pins $avg_name/n_avg       sts/In0
+connect_pins $avg_name/n_avg       sts/In[expr $n_avg_offset]
 
 ##########################################################
 # Add EEPROM
