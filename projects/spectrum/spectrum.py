@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 from .base import Base
-from ..core import command, write_buffer
+from koheron_tcp_client import command, write_buffer
 
 class Spectrum(Base):
     """ Driver for the spectrum bitstream """
