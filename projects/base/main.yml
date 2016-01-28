@@ -3,11 +3,6 @@ project: base
 
 parent: default
 
-addresses:
-  config: '0x60000000'
-  status: '0x50000000'
-  dac: '0x40000000'
-
 board: red-pitaya
 
 cores:
