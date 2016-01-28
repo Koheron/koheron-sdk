@@ -151,6 +151,7 @@ std::array<uint32_t, BITSTREAM_ID_SIZE> Base::get_bitstream_id()
 {
     for (uint32_t i=0; i<bitstream_id.size(); i++)
         bitstream_id[i] = Klib::ReadReg32(dev_mem.GetBaseAddr(config_map) + BITSTREAM_ID_OFF + 4*i);
+        
     return bitstream_id;
 }
 
