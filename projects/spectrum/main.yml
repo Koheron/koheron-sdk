@@ -4,6 +4,9 @@ project: spectrum
 parent: base
 
 addresses:
+  config: '0x60000000'
+  status: '0x50000000'
+  dac: '0x40000000'
   spectrum: '0x42000000'
   demod: '0x44000000'
 

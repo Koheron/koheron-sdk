@@ -6,12 +6,13 @@
 #define __DRIVERS_BASE_HPP__
 
 #include <tuple>
+#include <array>
 
-#include "dev_mem.hpp"
-#include "wr_register.hpp"
-#include "xadc.hpp"
-#include "gpio.hpp"
-#include "addresses.hpp"
+#include <drivers/dev_mem.hpp>
+#include <drivers/wr_register.hpp>
+#include <drivers/xadc.hpp>
+#include <drivers/gpio.hpp>
+#include <drivers/addresses.hpp>
 
 #define BITSTREAM_ID_SIZE 8
 
@@ -67,7 +68,7 @@ class Base
     void set_dac_buffer(const uint32_t *data, uint32_t len);
     
     //> \io_type READ
-    std::vector<uint32_t> get_bitstream_id();
+    std::array<uint32_t, BITSTREAM_ID_SIZE> get_bitstream_id();
     
     //> \io_type WRITE
     void set_led(uint32_t value);
@@ -94,7 +95,7 @@ class Base
     
     // Number of point in the DAC waveform
     uint32_t dac_wfm_size;
-    std::vector<uint32_t> bitstream_id;
+    std::array<uint32_t, BITSTREAM_ID_SIZE> bitstream_id;
     
     // Memory maps IDs:
     Klib::MemMapID config_map;

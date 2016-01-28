@@ -21,10 +21,5 @@ xdc: boards/red-pitaya/config/ports.xdc
 
 host: armhf
 
-devices:
-  - xadc.hpp
-  - gpio.hpp
-  - base.hpp
-
 python: 
   - base.py
