@@ -44,7 +44,7 @@ def load_config(project):
 def get_config(project):
     config = load_config(project)
     # Get missing elements from ancestors
-    lists = ['python','cores']
+    lists = ['python','cores','addresses']
     for list_ in lists:
         config[list_] = get_list(project, list_)
     props = ['board','host','xdc']
