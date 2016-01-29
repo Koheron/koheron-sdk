@@ -70,6 +70,7 @@ zip: tcp-server $(PYTHON_ZIP) $(TMP)/$(NAME).bit
 
 sha:
 	echo $(SHA) > $(TMP)/$(NAME).sha
+	python make.py $(NAME)
 
 $(PYTHON_DIR):
 	mkdir -p $@

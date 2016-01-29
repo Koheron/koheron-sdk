@@ -172,9 +172,6 @@ if __name__ == "__main__":
         with open(os.path.join('tmp', project + '.cores'), 'w') as f:
             f.write(' '.join(config['cores']))
 
-    if (len(sys.argv) == 3 and sys.argv[2] == '--xdc'):
-        shutil.copyfile(config['xdc'], os.path.join('tmp', config['project']+'.xdc'))
-
     if (len(sys.argv) == 3 and sys.argv[2] == '--board'):
         with open(os.path.join('tmp', project + '.board'), 'w') as f:
             f.write(config['board'])
