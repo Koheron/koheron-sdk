@@ -19,7 +19,7 @@ cores:
 
 xdc: boards/red-pitaya/config/ports.xdc
 
-host: armhf
+cross-compile: arm-linux-gnueabihf-
 
 devices:
   - xadc.hpp
