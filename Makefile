@@ -161,7 +161,6 @@ $(TMP)/cores/%: cores/%/core_config.tcl cores/%/*.v
 
 $(TMP)/%.xpr: sha projects/% $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
-	python make.py $(NAME) --xdc
 	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)
 
 $(TMP)/%.hwdef: $(TMP)/%.xpr

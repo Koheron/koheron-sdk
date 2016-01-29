@@ -25,7 +25,11 @@ def get_list(project, prop, prop_list=None):
 def get_prop(project, prop):
     config = load_config(project)
     if not prop in config:
-        config[prop] = get_prop(config['parent'], prop)
+        if 'parent' in config:
+            config[prop] = get_prop(config['parent'], prop)
+        else:
+            print('Property %s not found', prop)
+            return None
     return config[prop]
 
 def get_parents(project, parents=[]):
@@ -47,7 +51,7 @@ def get_config(project):
     lists = ['python','cores']
     for list_ in lists:
         config[list_] = get_list(project, list_)
-    props = ['board','host','xdc']
+    props = ['board','host']
     for prop in props:
         config[prop] = get_prop(project, prop)
     sha_filename = os.path.join('tmp', project+'.sha')
