@@ -110,11 +110,12 @@ def build_server_config(project, tcp_server_dir):
     config = get_config(project)
     dev_paths = [
       '../devices/dev_mem.yaml'
-    ]    
-    for device in config['devices']:
-        _check_device(project, device)
-        filename = os.path.basename(device)
-        dev_paths.append(os.path.join('../middleware/drivers/', filename))
+    ]
+    if 'devices' in config:
+        for device in config['devices']:
+            _check_device(project, device)
+            filename = os.path.basename(device)
+            dev_paths.append(os.path.join('../middleware/drivers/', filename))
     server_config = {
       'host': config['host'],
       'devices': dev_paths

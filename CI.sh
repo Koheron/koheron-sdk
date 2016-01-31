@@ -7,4 +7,3 @@ make clean
 
 make zip NAME=oscillo
 make zip NAME=spectrum
-
