@@ -119,13 +119,44 @@ def build_server_config(project, tcp_server_dir):
         yaml.dump(server_config, f, indent=2, default_flow_style=False)
 
 def build_python(project, python_dir):
+    if not os.path.exists(python_dir):
+        os.makedirs(python_dir)
+
     parents = get_parents(project)
     parents.append(project)
     for parent in parents:
         config = load_config(parent)
         if config.has_key('python'):
             for py_file in config['python']:
-                shutil.copy(os.path.join('projects',parent,py_file), python_dir)    
+                shutil.copy(os.path.join('projects',parent,py_file), python_dir)
+                    
+    _build_init_file(python_dir)
+                
+def _build_init_file(python_dir):
+    ''' Build Python package __init__.py '''
+    # TODO Put in jinja file
+    
+    init_filename = os.path.join(python_dir, '__init__.py')
+    
+    with open(init_filename, 'w') as init_file:
+        for name in os.listdir(python_dir):
+            if name.endswith(".py") and name != "__init__.py":
+                module = name[:-3]
+                init_file.write("from " + module + " import *\n")
+
+        init_file.write("\n__all__ = [\n")
+        is_first = True
+        
+        for name in os.listdir(python_dir):
+            if name.endswith(".py") and name != "__init__.py":
+                module = name[:-3]
+                if is_first:
+                    init_file.write('  "' + module + '"')
+                    is_first = False
+                else:
+                    init_file.write(',\n  "' + module + '"')
+                
+        init_file.write("\n]\n")     
 
 ###################
 # Check
