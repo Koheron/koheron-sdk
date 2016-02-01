@@ -111,17 +111,14 @@ $(UBOOT_DIR): $(UBOOT_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
 	patch -d $(TMP) -p 0 < $(PATCHES)/u-boot-xlnx-$(UBOOT_TAG).patch
-	cp $(PATCHES)/zynq_red_pitaya_defconfig $@/configs
-	cp $(PATCHES)/zynq-red-pitaya.dts $@/arch/arm/dts
-	cp $(PATCHES)/zynq_red_pitaya.h $@/include/configs
-	cp $(PATCHES)/u-boot-lantiq.c $@/drivers/net/phy/lantiq.c
+	bash $(PATCHES)/uboot.sh $(PATCHES) $@
 
 $(LINUX_DIR): $(LINUX_TAR) $(RTL_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
 	tar -zxf $(RTL_TAR) --directory=$@/drivers/net/wireless
 	patch -d $(TMP) -p 0 < $(PATCHES)/linux-xlnx-$(LINUX_TAG).patch
-	cp $(PATCHES)/linux-lantiq.c $@/drivers/net/phy/lantiq.c
+	bash $(PATCHES)/linux.sh $(PATCHES) $@
 
 $(DTREE_DIR): $(DTREE_TAR)
 	mkdir -p $@
@@ -138,7 +135,7 @@ uImage: $(LINUX_DIR)
 $(TMP)/u-boot.elf: $(UBOOT_DIR)
 	mkdir -p $(@D)
 	make -C $< mrproper
-	make -C $< arch=arm zynq_red_pitaya_defconfig
+	make -C $< arch=arm `find $(PATCHES) -name '*_defconfig' -exec basename {} \;`
 	make -C $< arch=arm CFLAGS=$(UBOOT_CFLAGS) \
 	  CROSS_COMPILE=arm-xilinx-linux-gnueabi- all
 	cp $</u-boot $@
