@@ -7,7 +7,7 @@ source boards/$board_name/pwm.tcl
 source projects/base/address.tcl
 source projects/base/xadc.tcl
 
-set board_preset boards/$board_name/config/board_preset.xml
+set board_preset boards/$board_name/config/board_preset.tcl
 
 ##########################################################
 # Define global variables

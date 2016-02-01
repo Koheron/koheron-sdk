@@ -25,7 +25,11 @@ def get_list(project, prop, prop_list=None):
 def get_prop(project, prop):
     config = load_config(project)
     if not prop in config:
-        config[prop] = get_prop(config['parent'], prop)
+        if 'parent' in config:
+            config[prop] = get_prop(config['parent'], prop)
+        else:
+            print('Property %s not found', prop)
+            return None
     return config[prop]
 
 def get_parents(project, parents=[]):
@@ -47,7 +51,7 @@ def get_config(project):
     lists = ['python','cores']
     for list_ in lists:
         config[list_] = get_list(project, list_)
-    props = ['board','host','xdc']
+    props = ['board','host']
     for prop in props:
         config[prop] = get_prop(project, prop)
     sha_filename = os.path.join('tmp', project+'.sha')
@@ -106,11 +110,12 @@ def build_server_config(project, tcp_server_dir):
     config = get_config(project)
     dev_paths = [
       '../devices/dev_mem.yaml'
-    ]    
-    for device in config['devices']:
-        _check_device(project, device)
-        filename = os.path.basename(device)
-        dev_paths.append(os.path.join('../middleware/drivers/', filename))
+    ]
+    if 'devices' in config:
+        for device in config['devices']:
+            _check_device(project, device)
+            filename = os.path.basename(device)
+            dev_paths.append(os.path.join('../middleware/drivers/', filename))
     server_config = {
       'host': config['host'],
       'devices': dev_paths
@@ -198,9 +203,6 @@ if __name__ == "__main__":
     if (len(sys.argv) == 3 and sys.argv[2] == '--cores'):
         with open(os.path.join('tmp', project + '.cores'), 'w') as f:
             f.write(' '.join(config['cores']))
-
-    if (len(sys.argv) == 3 and sys.argv[2] == '--xdc'):
-        shutil.copyfile(config['xdc'], os.path.join('tmp', config['project']+'.xdc'))
 
     if (len(sys.argv) == 3 and sys.argv[2] == '--board'):
         with open(os.path.join('tmp', project + '.board'), 'w') as f:

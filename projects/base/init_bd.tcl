@@ -2,8 +2,10 @@ proc init_bd {board_preset bram_name bram_size} {
 
   # Create processing_system7
   cell xilinx.com:ip:processing_system7:5.5 ${::ps_name} \
-    [list PCW_IMPORT_BOARD_PRESET $board_preset PCW_USE_S_AXI_HP0 0] \
+    [list PCW_USE_S_AXI_HP0 0] \
     [list M_AXI_GP0_ACLK ${::ps_name}/FCLK_CLK0]
+
+  source $board_preset
 
   # Create all required interconnections
   apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 -config {
