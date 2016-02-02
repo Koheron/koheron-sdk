@@ -51,7 +51,7 @@ def get_config(project):
     lists = ['python','cores']
     for list_ in lists:
         config[list_] = get_list(project, list_)
-    props = ['board','host']
+    props = ['board','cross-compile']
     for prop in props:
         config[prop] = get_prop(project, prop)
     sha_filename = os.path.join('tmp', project+'.sha')
@@ -117,7 +117,7 @@ def build_server_config(project, tcp_server_dir):
             filename = os.path.basename(device)
             dev_paths.append(os.path.join('../middleware/drivers/', filename))
     server_config = {
-      'host': config['host'],
+      'cross-compile': config['cross-compile'],
       'devices': dev_paths
     }
     with open(os.path.join(tcp_server_dir,'config','config.yaml'), 'w') as f:
