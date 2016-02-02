@@ -20,6 +20,8 @@ PART~
 *.yml~
 *.conf~
 
+*.patch~
+
 *.bin
 
 .dockerignore~

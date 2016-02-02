@@ -25,7 +25,11 @@ def get_list(project, prop, prop_list=None):
 def get_prop(project, prop):
     config = load_config(project)
     if not prop in config:
-        config[prop] = get_prop(config['parent'], prop)
+        if 'parent' in config:
+            config[prop] = get_prop(config['parent'], prop)
+        else:
+            print('Property %s not found', prop)
+            return None
     return config[prop]
 
 def get_parents(project, parents=[]):
@@ -47,7 +51,7 @@ def get_config(project):
     lists = ['python','cores']
     for list_ in lists:
         config[list_] = get_list(project, list_)
-    props = ['board','host','xdc']
+    props = ['board','cross-compile']
     for prop in props:
         config[prop] = get_prop(project, prop)
     sha_filename = os.path.join('tmp', project+'.sha')
@@ -106,26 +110,58 @@ def build_server_config(project, tcp_server_dir):
     config = get_config(project)
     dev_paths = [
       '../devices/dev_mem.yaml'
-    ]    
-    for device in config['devices']:
-        _check_device(project, device)
-        filename = os.path.basename(device)
-        dev_paths.append(os.path.join('../middleware/drivers/', filename))
+    ]
+    if 'devices' in config:
+        for device in config['devices']:
+            _check_device(project, device)
+            filename = os.path.basename(device)
+            dev_paths.append(os.path.join('../middleware/drivers/', filename))
     server_config = {
-      'host': config['host'],
+      'cross-compile': config['cross-compile'],
       'devices': dev_paths
     }
     with open(os.path.join(tcp_server_dir,'config','config.yaml'), 'w') as f:
         yaml.dump(server_config, f, indent=2, default_flow_style=False)
 
 def build_python(project, python_dir):
+    if not os.path.exists(python_dir):
+        os.makedirs(python_dir)
+
     parents = get_parents(project)
     parents.append(project)
     for parent in parents:
         config = load_config(parent)
         if config.has_key('python'):
             for py_file in config['python']:
-                shutil.copy(os.path.join('projects',parent,py_file), python_dir)    
+                shutil.copy(os.path.join('projects',parent,py_file), python_dir)
+                    
+    _build_init_file(python_dir)
+                
+def _build_init_file(python_dir):
+    ''' Build Python package __init__.py '''
+    # TODO Put in jinja file
+    
+    init_filename = os.path.join(python_dir, '__init__.py')
+    
+    with open(init_filename, 'w') as init_file:
+        for name in os.listdir(python_dir):
+            if name.endswith(".py") and name != "__init__.py":
+                module = name[:-3]
+                init_file.write("from " + module + " import *\n")
+
+        init_file.write("\n__all__ = [\n")
+        is_first = True
+        
+        for name in os.listdir(python_dir):
+            if name.endswith(".py") and name != "__init__.py":
+                module = name[:-3]
+                if is_first:
+                    init_file.write('  "' + module + '"')
+                    is_first = False
+                else:
+                    init_file.write(',\n  "' + module + '"')
+                
+        init_file.write("\n]\n")     
 
 ###################
 # Check
@@ -167,9 +203,6 @@ if __name__ == "__main__":
     if (len(sys.argv) == 3 and sys.argv[2] == '--cores'):
         with open(os.path.join('tmp', project + '.cores'), 'w') as f:
             f.write(' '.join(config['cores']))
-
-    if (len(sys.argv) == 3 and sys.argv[2] == '--xdc'):
-        shutil.copyfile(config['xdc'], os.path.join('tmp', config['project']+'.xdc'))
 
     if (len(sys.argv) == 3 and sys.argv[2] == '--board'):
         with open(os.path.join('tmp', project + '.board'), 'w') as f:
