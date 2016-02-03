@@ -16,8 +16,6 @@ Base::~Base()
     Close();
 }
 
-# define MAP_SIZE 4096
-
 # define LASER_ENABLE_PIN 5
 
 int Base::Open(uint32_t dac_wfm_size_)
@@ -31,21 +29,21 @@ int Base::Open(uint32_t dac_wfm_size_)
         dac_wfm_size = dac_wfm_size_;
     
         // Initializes memory maps
-        config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, MAP_SIZE);
+        config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
         
         if(static_cast<int>(config_map) < 0) {
             status = FAILED;
             return -1;
         }
         
-        status_map = dev_mem.AddMemoryMap(STATUS_ADDR, MAP_SIZE);
+        status_map = dev_mem.AddMemoryMap(STATUS_ADDR, STATUS_RANGE);
         
         if(static_cast<int>(status_map) < 0) {
             status = FAILED;
             return -1;
         }
         
-        dac_map = dev_mem.AddMemoryMap(DAC_ADDR, dac_wfm_size*MAP_SIZE/1024);
+        dac_map = dev_mem.AddMemoryMap(DAC_ADDR, DAC_RANGE);
         
         if(static_cast<int>(dac_map) < 0) {
             status = FAILED;

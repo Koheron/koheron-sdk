@@ -10,8 +10,7 @@
 #include <drivers/addresses.hpp>
 
 #include <signal/kvector.hpp>
- 
-#define MAP_SIZE 4096
+
 #define SAMPLING_RATE 125E6
 
 //> \description Spectrum analyzer driver
