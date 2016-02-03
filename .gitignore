@@ -20,6 +20,8 @@ PART~
 *.yml~
 *.conf~
 
+*.pyc
+
 *.patch~
 
 *.bin
