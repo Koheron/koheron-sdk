@@ -7,7 +7,7 @@
 
 // -- Base addresses
 {% for addr in dic['addresses'] -%}
-#define {{ addr|upper }}_ADDR {{ config['addresses'][addr] }}
+#define {{ addr|upper }}_ADDR {{ dic['addresses'][addr] }}
 {% endfor %}
 
 // -- Config offsets
