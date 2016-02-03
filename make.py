@@ -81,7 +81,7 @@ def fill_config_python(config):
 def fill_addresses(config, tcp_server_dir):
     template = get_renderer().get_template(os.path.join('projects', 'addresses.j2'))
     output = file(os.path.join(tcp_server_dir, 'middleware', 'drivers', 'addresses.hpp'),'w')
-    output.write(template.render(config=config))
+    output.write(template.render(dic=config))
     output.close()
 
 def get_renderer():

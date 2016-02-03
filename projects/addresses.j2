@@ -6,17 +6,17 @@
 #define __DRIVERS_CORE_ADDRESSES_HPP__
 
 // -- Base addresses
-{% for addr in config['addresses'] -%}
+{% for addr in dic['addresses'] -%}
 #define {{ addr|upper }}_ADDR {{ config['addresses'][addr] }}
 {% endfor %}
 
 // -- Config offsets
-{% for offset in config['config_offsets'] -%}
-#define {{ offset|upper }}_OFF {{ 4 * config['config_offsets'][offset] }}
+{% for offset in dic['config_offsets'] -%}
+#define {{ offset|upper }}_OFF {{ 4 * dic['config_offsets'][offset] }}
 {% endfor %}
 // -- Status offsets
-{% for offset in config['status_offsets'] -%}
-#define {{ offset|upper }}_OFF {{ 4 * config['status_offsets'][offset] }}
+{% for offset in dic['status_offsets'] -%}
+#define {{ offset|upper }}_OFF {{ 4 * dic['status_offsets'][offset] }}
 {% endfor %}
 #endif // __DRIVERS_CORE_ADDRESSES_HPP__
 
