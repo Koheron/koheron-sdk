@@ -1,0 +1,14 @@
+# Memory mappped addresses
+{% for addr in config['addresses'] -%}
+{{ addr|upper }}_ADDR = {{ config['addresses'][addr] }}
+{% endfor %}
+
+# Config offsets
+{% for offset in config['config_offsets'] -%}
+{{ offset|upper }}_OFF = {{ 4 * config['config_offsets'][offset] }}
+{% endfor %}
+
+# Status offsets
+{% for offset in config['status_offsets'] -%}
+{{ offset|upper }}_OFF = {{ 4 * config['status_offsets'][offset] }}
+{% endfor %}

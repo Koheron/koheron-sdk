@@ -29,6 +29,7 @@ PART~
 venv
 
 config.tcl
+config.py
 
 
 *.jou
