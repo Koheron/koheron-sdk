@@ -34,28 +34,28 @@ int Spectrum::Open(uint32_t samples_num_)
         // period the acquisition time can be twice as long
         acq_time_us = 2*(samples_num*1E6)/SAMPLING_RATE;
     
-        config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, 16*MAP_SIZE);
+        config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
         
         if(static_cast<int>(config_map) < 0) {
             status = FAILED;
             return -1;
         }
         
-        status_map = dev_mem.AddMemoryMap(STATUS_ADDR, 16*MAP_SIZE);
+        status_map = dev_mem.AddMemoryMap(STATUS_ADDR, STATUS_RANGE);
         
         if(static_cast<int>(status_map) < 0) {
             status = FAILED;
             return -1;
         }
         
-        spectrum_map = dev_mem.AddMemoryMap(SPECTRUM_ADDR, 16*MAP_SIZE);
+        spectrum_map = dev_mem.AddMemoryMap(SPECTRUM_ADDR, SPECTRUM_RANGE);
         
         if(static_cast<int>(spectrum_map) < 0) {
             status = FAILED;
             return -1;
         }
         
-        demod_map = dev_mem.AddMemoryMap(DEMOD_ADDR, 16*MAP_SIZE);
+        demod_map = dev_mem.AddMemoryMap(DEMOD_ADDR, DEMOD_RANGE);
         
         if(static_cast<int>(demod_map) < 0) {
             status = FAILED;

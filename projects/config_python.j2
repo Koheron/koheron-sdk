@@ -1,6 +1,14 @@
-# Memory mappped addresses
+from koheron_tcp_client import KClient, DevMem
+
+client = KClient(host)
+dvm = DevMem(self.client)
+
+        # Memory mappped addresses
 {% for addr in dic['addresses'] -%}
 {{ addr|upper }}_ADDR = int('{{ dic['addresses'][addr] }}', 0)
+
+
+{{ addr|upper }} = dvm.add_memory_map({{ addr|upper }}_ADDR, CONFIG_SIZE)
 {% endfor %}
 
 # Config offsets
