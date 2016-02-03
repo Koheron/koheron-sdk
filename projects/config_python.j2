@@ -1,6 +1,6 @@
 # Memory mappped addresses
 {% for addr in dic['addresses'] -%}
-{{ addr|upper }}_ADDR = {{ dic['addresses'][addr] }}
+{{ addr|upper }}_ADDR = int('{{ dic['addresses'][addr] }}', 0)
 {% endfor %}
 
 # Config offsets
