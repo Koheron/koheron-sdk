@@ -51,7 +51,7 @@ def get_config(project):
     lists = ['python','cores']
     for list_ in lists:
         config[list_] = get_list(project, list_)
-    props = ['board','cross-compile']
+    props = ['board','cross-compile','host']
     for prop in props:
         config[prop] = get_prop(project, prop)
     sha_filename = os.path.join('tmp', project+'.sha')
@@ -67,15 +67,21 @@ def get_config(project):
 ###################
 
 def fill_config_tcl(config):
-    template = get_renderer().get_template(os.path.join('projects', 'config.j2'))
+    template = get_renderer().get_template(os.path.join('projects', 'config_tcl.j2'))
     output = file(os.path.join('projects', config['project'], 'config.tcl'),'w')
+    output.write(template.render(dic=config))
+    output.close()
+
+def fill_config_python(config):
+    template = get_renderer().get_template(os.path.join('projects', 'config_python.j2'))
+    output = file(os.path.join('projects', config['project'], 'config.py'),'w')
     output.write(template.render(dic=config))
     output.close()
 
 def fill_addresses(config, tcp_server_dir):
     template = get_renderer().get_template(os.path.join('projects', 'addresses.j2'))
     output = file(os.path.join(tcp_server_dir, 'middleware', 'drivers', 'addresses.hpp'),'w')
-    output.write(template.render(config=config))
+    output.write(template.render(dic=config))
     output.close()
 
 def get_renderer():
@@ -194,6 +200,7 @@ if __name__ == "__main__":
 
     config = get_config(project)
     fill_config_tcl(config)
+    fill_config_python(config)
     tcp_server_dir = os.path.join('tmp', config['project']+'.tcp-server')
     python_dir = os.path.join('tmp', config['project']+'.python')
   

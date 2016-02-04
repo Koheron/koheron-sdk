@@ -20,6 +20,8 @@ PART~
 *.yml~
 *.conf~
 
+*.pyc
+
 *.patch~
 
 *.bin
@@ -29,6 +31,7 @@ PART~
 venv
 
 config.tcl
+config.py
 
 
 *.jou

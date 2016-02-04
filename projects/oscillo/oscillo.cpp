@@ -37,37 +37,33 @@ int Oscillo::Open(uint32_t waveform_size_)
         // period the acquisition time can be twice as long
         acq_time_us = 2*(waveform_size*1E6)/SAMPLING_RATE;
     
-        config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, 16*MAP_SIZE);
+        config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
         
         if(static_cast<int>(config_map) < 0) {
             status = FAILED;
             return -1;
         }
         
-        status_map = dev_mem.AddMemoryMap(STATUS_ADDR, 16*MAP_SIZE);
+        status_map = dev_mem.AddMemoryMap(STATUS_ADDR, STATUS_RANGE);
         
         if(static_cast<int>(status_map) < 0) {
             status = FAILED;
             return -1;
         }
         
-        adc_1_map = dev_mem.AddMemoryMap(ADC1_ADDR, (waveform_size/1024)*MAP_SIZE);
+        adc_1_map = dev_mem.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
         
         if(static_cast<int>(adc_1_map) < 0) {
             status = FAILED;
             return -1;
         }
         
-        adc_2_map = dev_mem.AddMemoryMap(ADC2_ADDR, (waveform_size/1024)*MAP_SIZE);
+        adc_2_map = dev_mem.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
         
         if(static_cast<int>(adc_2_map) < 0) {
             status = FAILED;
             return -1;
         }
-        
-//        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+TRIG_START_OFFSET,0);
-//        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+TRIG_ACQ_OFFSET, 0);
-//        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+TRIG_START_OFFSET,1);
         
         data = Klib::KVector<float>(waveform_size, 0);
         data_all = Klib::KVector<float>(2*waveform_size, 0);

@@ -17,8 +17,6 @@ cores:
   - bus_multiplexer_v1_0
   - at93c46d_spi_v1_0
 
-xdc: boards/red-pitaya/config/ports.xdc
-
 cross-compile: arm-linux-gnueabihf-
 
 python: 

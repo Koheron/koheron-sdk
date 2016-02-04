@@ -1,0 +1,29 @@
+import os
+from koheron_tcp_client import KClient, DevMem
+
+host = os.getenv('HOST','{{ dic['host'] }}')
+
+client = KClient(host)
+dvm = DevMem(client)
+
+##############################################
+# Memory maps
+##############################################
+
+{% for addr in dic['addresses'] -%}
+# {{ addr['name']| capitalize }}:
+{{ addr['name']|upper }}_ADDR  = int('{{ addr['offset'] }}', 0)
+{{ addr['name']|upper }}_RANGE = {{ addr['range']|replace('K','*1024') }}
+{{ addr['name']|upper }} = dvm.add_memory_map({{ addr['name']|upper }}_ADDR, {{ addr['name']|upper }}_RANGE)
+
+{% endfor %}
+
+# Config offsets
+{% for offset in dic['config_offsets'] -%}
+{{ offset|upper }}_OFF = {{ 4 * dic['config_offsets'][offset] }}
+{% endfor %}
+
+# Status offsets
+{% for offset in dic['status_offsets'] -%}
+{{ offset|upper }}_OFF = {{ 4 * dic['status_offsets'][offset] }}
+{% endfor %}

@@ -4,11 +4,21 @@ project: spectrum
 parent: base
 
 addresses:
-  config: '0x60000000'
-  status: '0x50000000'
-  dac: '0x40000000'
-  spectrum: '0x42000000'
-  demod: '0x44000000'
+  - name: config
+    offset: '0x60000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+  - name: dac
+    offset: '0x40000000'
+    range: 16K
+  - name: spectrum
+    offset: '0x42000000'
+    range: 16K
+  - name: demod
+    offset: '0x44000000'
+    range: 16K
 
 config_offsets:
   spi_in: 0
