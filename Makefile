@@ -51,7 +51,11 @@ ARMHF_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 RTL_TAR = $(TMP)/rtl8192cu.tgz
 RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
 
-APP_DIR = $(TMP)/app
+S3_URL = http://zynq-sdk.s3-website-eu-west-1.amazonaws.com
+# Get last app release :
+APP_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
+APP_URL = $(S3_URL)/app-$(APP_SHA).zip
+APP_ZIP = $(TMP)/app.zip
 
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 TCP_SERVER_SHA = master
@@ -63,7 +67,10 @@ SHA:=$(shell printf $(ID) | sha256sum | sed 's/\W//g')
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli
+all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli app
+
+$(TMP):
+	mkdir -p $(TMP)
 
 zip: tcp-server $(PYTHON_ZIP) $(TMP)/$(NAME).bit
 	zip --junk-paths $(TMP)/$(ID).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd $(PYTHON_ZIP)
@@ -71,6 +78,10 @@ zip: tcp-server $(PYTHON_ZIP) $(TMP)/$(NAME).bit
 sha:
 	echo $(SHA) > $(TMP)/$(NAME).sha
 	python make.py $(NAME)
+
+app: $(TMP)
+	echo $(APP_SHA)
+	curl -L $(APP_URL) -o $(APP_ZIP)
 
 $(PYTHON_DIR):
 	mkdir -p $@

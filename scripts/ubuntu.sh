@@ -55,6 +55,10 @@ cp boards/red-pitaya/patches/fw_env.config $root_dir/etc/
 cp fw_printenv $root_dir/usr/local/bin/fw_printenv
 cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 
+# Add Web app
+mkdir $root_dir/usr/local/flask
+cp tmp/app.zip $root_dir/usr/local/flask
+
 # Add Koheron TCP Server
 mkdir $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/tmp/server/kserverd $root_dir/usr/local/tcp-server
@@ -133,9 +137,6 @@ apt-get install -y python-virtualenv
 apt-get install -y nginx
 apt-get install -y build-essential python-dev
 pip install uwsgi
-
-# apt-get install -y git
-# apt-get install -y sqlite3
 
 sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
 
