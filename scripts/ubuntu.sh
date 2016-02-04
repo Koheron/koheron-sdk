@@ -122,7 +122,7 @@ dpkg-reconfigure --frontend=noninteractive tzdata
 
 apt-get -y install openssh-server ca-certificates ntp usbutils psmisc lsof \
   parted curl less vim man-db iw wpasupplicant linux-firmware ntfs-3g gdb  \
-  bash-completion
+  bash-completion unzip
 
 apt-get install -y python python-numpy
 
@@ -146,9 +146,17 @@ touch etc/udev/rules.d/75-persistent-net-generator.rules
 cat <<- EOF_CAT > etc/rc.local
 #!/bin/sh -e
 # rc.local
+exec 2> /var/log/rc.local.log  # send stderr from rc.local to a log file
+exec 1>&2                      # send stdout to the same log file
+set -x                         # tell sh to display commands before execution
+
 /usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
 # chmod u+x /usr/local/tcp-server/relaunch_kserver.sh
 # nohup /usr/local/tcp-server/relaunch_kserver.sh 0<&- &>/dev/null &
+
+# Unzip app
+unzip -o /usr/local/flask/app.zip -d /usr/local/flask
+chmod u+x /usr/local/flask/deploy.sh
 exit 0
 EOF_CAT
 
@@ -168,6 +176,8 @@ iface eth0 inet dhcp
 
   post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds 0x60000000
   post-up ntpdate -u ntp.u-psud.fr
+  post-up bash /usr/local/flask/deploy.sh /usr/local/flask
+# post-up nohup /usr/local/flask/deploy.sh /usr/local/flask 0<&- &>/dev/null &
 EOF_CAT
 
 cat <<- EOF_CAT > etc/network/interfaces.d/wlan0
@@ -179,6 +189,8 @@ iface wlan0 inet static
   post-up service isc-dhcp-server restart
   post-up iptables-restore < /etc/iptables.ipv4.nat
   post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds 0x60000000
+  post-up bash /usr/local/flask/deploy.sh /usr/local/flask
+# post-up nohup /usr/local/flask/deploy.sh /usr/local/flask 0<&- &>/dev/null &
   pre-down iptables-restore < /etc/iptables.ipv4.nonat
   pre-down service isc-dhcp-server stop
   pre-down service hostapd stop
