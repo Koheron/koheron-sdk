@@ -132,8 +132,11 @@ apt-get install -y python python-numpy
 
 apt-get install -y python-pip
 pip install koheron-tcp-client
+pip install flask
+pip install jinja2
+pip install urllib3
+pip install pyyaml
 
-apt-get install -y python-virtualenv
 apt-get install -y nginx
 apt-get install -y build-essential python-dev
 pip install uwsgi
