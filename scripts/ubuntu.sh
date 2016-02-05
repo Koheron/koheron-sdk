@@ -61,12 +61,12 @@ cp tmp/app.zip $root_dir/usr/local/flask
 
 # Add Koheron TCP Server
 mkdir $root_dir/usr/local/tcp-server
-cp tmp/${name}.tcp-server/tmp/server/kserverd $root_dir/usr/local/tcp-server
-cp kserver.conf $root_dir/usr/local/tcp-server
-cp tmp/${name}.tcp-server/VERSION $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver $root_dir/usr/local/tcp-server
-cp tmp/${name}.tcp-server/relaunch_kserver.sh $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
+
+# Add zip
+mkdir $root_dir/usr/local/instruments
+cp tmp/${name}-${sha}.zip $root_dir/usr/local/instruments
 
 curl -L $hostapd_url -o $root_dir/usr/local/sbin/hostapd
 chmod +x $root_dir/usr/local/sbin/hostapd
@@ -169,8 +169,6 @@ iface eth0 inet dhcp
 #  network 192.168.1.0
 #  broadcast 192.168.1.255
   post-up unzip -o /usr/local/flask/app.zip -d /usr/local/flask
-  post-up /usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
-  post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds 0x60000000
   post-up ntpdate -u ntp.u-psud.fr
   post-up bash /usr/local/flask/nginx.sh
 EOF_CAT
@@ -184,8 +182,6 @@ iface wlan0 inet static
   post-up service isc-dhcp-server restart
   post-up iptables-restore < /etc/iptables.ipv4.nat
   post-up unzip -o /usr/local/flask/app.zip -d /usr/local/flask
-  post-up /usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
-  post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds 0x60000000
   post-up ntpdate -u ntp.u-psud.fr
   post-up bash /usr/local/flask/nginx.sh
   pre-down iptables-restore < /etc/iptables.ipv4.nonat
