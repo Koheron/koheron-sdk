@@ -61,6 +61,9 @@ cp tmp/app.zip $root_dir/usr/local/flask
 
 # Add Koheron TCP Server
 mkdir $root_dir/usr/local/tcp-server
+cp tmp/${name}.tcp-server/tmp/server/kserverd $root_dir/usr/local/tcp-server
+cp kserver.conf $root_dir/usr/local/tcp-server
+cp tmp/${name}.tcp-server/VERSION $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
 
@@ -149,10 +152,7 @@ touch etc/udev/rules.d/75-persistent-net-generator.rules
 cat <<- EOF_CAT > etc/rc.local
 #!/bin/sh -e
 # rc.local
-#exec 2> /var/log/rc.local.log  # send stderr from rc.local to a log file
-#exec 1>&2                      # send stdout to the same log file
-#set -x                         # tell sh to display commands before execution
-/usr/local/tcp-server/kserverd
+/usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
 exit 0
 EOF_CAT
 
