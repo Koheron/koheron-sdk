@@ -7,15 +7,14 @@
 
 #include <drivers/dev_mem.hpp>
 
-//> \description Task to be performed at init. Callable via the CLI.
-class InitTasks
+//> \description Operations to be performed at init. Callable via the CLI.
+class Init
 {
   public:
-    InitTasks(Klib::DevMem& dev_mem_);
-    
-    //> \description Display IP address last number onto the board LEDs
+    Init(Klib::DevMem& dev_mem_);
+
     //> \io_type WRITE
-    void show_ip_on_leds(uint32_t leds_addr);
+    void run();
     
   private:
     Klib::DevMem& dev_mem;

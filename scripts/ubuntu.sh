@@ -169,7 +169,7 @@ iface eth0 inet dhcp
 #  netmask 255.255.255.0
 #  network 192.168.1.0
 #  broadcast 192.168.1.255
-  post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds 0x60000000
+  post-up /usr/local/tcp-server/kserver init
   post-up unzip -o /usr/local/flask/app.zip -d /usr/local/flask
   post-up ntpdate -u ntp.u-psud.fr
   post-up bash /usr/local/flask/nginx.sh
@@ -183,7 +183,7 @@ iface wlan0 inet static
   post-up service hostapd restart
   post-up service isc-dhcp-server restart
   post-up iptables-restore < /etc/iptables.ipv4.nat
-  post-up /usr/local/tcp-server/kserver init_tasks --ip_on_leds 0x60000000
+  post-up /usr/local/tcp-server/kserver init
   post-up unzip -o /usr/local/flask/app.zip -d /usr/local/flask
   post-up ntpdate -u ntp.u-psud.fr
   post-up bash /usr/local/flask/nginx.sh

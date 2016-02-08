@@ -46,7 +46,7 @@ devices:
   - base/base.hpp
   - base/gpio.hpp
   - base/xadc.hpp
-  - base/init_tasks.hpp
+  - base/init.hpp
 
 python:
   - spectrum.py
