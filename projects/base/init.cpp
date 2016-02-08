@@ -2,7 +2,7 @@
 ///
 /// (c) Koheron
 
-#include "init_tasks.hpp"
+#include "init.hpp"
 
 #include <cstdio>
 #include <cstring>
@@ -17,22 +17,20 @@ extern "C" {
 #include <drivers/wr_register.hpp>
 #include <drivers/addresses.hpp>
 
-InitTasks::InitTasks(Klib::DevMem& dev_mem_)
+Init::Init(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)
 {}
 
-#define MAP_SIZE 4096
-
 // http://stackoverflow.com/questions/20800319/how-to-get-my-ip-address-in-c-linux
-void InitTasks::show_ip_on_leds(uint32_t leds_addr)
-{   
+void Init::run()
+{ 
     struct ifaddrs *addrs;
     getifaddrs(&addrs);
     ifaddrs *tmp = addrs;
 
     // Turn all the leds ON
-    Klib::MemMapID dev_num = dev_mem.AddMemoryMap(leds_addr, 16*MAP_SIZE);
-    Klib::WriteReg32(dev_mem.GetBaseAddr(dev_num) + LED_OFF, 255);
+    Klib::MemMapID config = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config) + LED_OFF, 255);
 
     char interface[] = "eth0";
 
@@ -54,7 +52,7 @@ void InitTasks::show_ip_on_leds(uint32_t leds_addr)
 
             // Write IP address in FPGA memory
             // The 8 Least Significant Bits should be connected to the FPGA LEDs
-            Klib::WriteReg32(dev_mem.GetBaseAddr(dev_num) + LED_OFF, ip);
+            Klib::WriteReg32(dev_mem.GetBaseAddr(config) + LED_OFF, ip);
 
             break;
         }
@@ -63,6 +61,6 @@ void InitTasks::show_ip_on_leds(uint32_t leds_addr)
     }
 
     freeifaddrs(addrs);
-    dev_mem.RmMemoryMap(dev_num);
+    dev_mem.RmMemoryMap(config);
 }
 
