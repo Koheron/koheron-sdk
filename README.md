@@ -31,7 +31,6 @@ This project aims to bring together the best practices of software development o
 
 ```
 $ source /opt/Xilinx/Vivado/2015.4/settings64.sh
-$ source /opt/Xilinx/SDK/2015.4/settings64.sh
 ```
 
 [Full list of requirements](https://github.com/Koheron/zynq-sdk/issues/4)
