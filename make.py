@@ -92,6 +92,14 @@ def get_renderer():
       variable_end_string = '}}',
       loader = jinja2.FileSystemLoader(os.path.abspath('.'))
     )
+    def quote(list_):
+        return ['"%s"' % element for element in list_]
+    def remove_extension(filename):
+        toks = filename.split('.')
+        return toks[0]
+    renderer.filters['quote'] = quote
+    renderer.filters['remove_extension'] = remove_extension
+
     return renderer
 
 ###################
@@ -132,43 +140,23 @@ def build_server_config(project, tcp_server_dir):
 def build_python(project, python_dir):
     if not os.path.exists(python_dir):
         os.makedirs(python_dir)
-
+    include_list = []
     parents = get_parents(project)
     parents.append(project)
     for parent in parents:
         config = load_config(parent)
         if config.has_key('python'):
-            for py_file in config['python']:
-                shutil.copy(os.path.join('projects',parent,py_file), python_dir)
-                    
-    _build_init_file(python_dir)
+            for file_ in config['python']:
+                toks = file_.split('.')
+                if toks[1] == 'py':
+                    shutil.copy(os.path.join('projects',parent,file_), python_dir)
+                    include_list.append(toks[0])
+    template = get_renderer().get_template(os.path.join('projects', 'init_python.j2'))
+    config = load_config(project)
+    output = file(os.path.join(python_dir, '__init__.py'),'w')
+    output.write(template.render(dic={'include': include_list, 'driver': config['python_driver']}))
+    output.close()
                 
-def _build_init_file(python_dir):
-    ''' Build Python package __init__.py '''
-    # TODO Put in jinja file
-    
-    init_filename = os.path.join(python_dir, '__init__.py')
-    
-    with open(init_filename, 'w') as init_file:
-        for name in os.listdir(python_dir):
-            if name.endswith(".py") and name != "__init__.py":
-                module = name[:-3]
-                init_file.write("from " + module + " import *\n")
-
-        init_file.write("\n__all__ = [\n")
-        is_first = True
-        
-        for name in os.listdir(python_dir):
-            if name.endswith(".py") and name != "__init__.py":
-                module = name[:-3]
-                if is_first:
-                    init_file.write('  "' + module + '"')
-                    is_first = False
-                else:
-                    init_file.write(',\n  "' + module + '"')
-                
-        init_file.write("\n]\n")     
-
 ###################
 # Check
 ###################

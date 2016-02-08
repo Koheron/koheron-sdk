@@ -48,5 +48,9 @@ devices:
   - base/xadc.hpp
   - base/init.hpp
 
+python_driver:
+  name: Spectrum
+  file: spectrum.py 
+
 python:
   - spectrum.py
