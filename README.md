@@ -2,7 +2,7 @@
 
 #### `Software Development Kit for Zynq-based Systems`
 
-[![Build Status](http://3c60fce9.ngrok.io/job/zynq-sdk/badge/icon)](http://3c60fce9.ngrok.io/job/zynq-sdk/)
+[![Build Status](http://5e512223.ngrok.io/job/zynq-sdk/badge/icon)](http://5e512223.ngrok.io/job/zynq-sdk/)
 
 This project aims to bring together the best practices of software development on the Zynq platform.
 
