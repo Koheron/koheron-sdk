@@ -46,7 +46,11 @@ devices:
   - base/base.hpp
   - base/gpio.hpp
   - base/xadc.hpp
-  - base/init_tasks.hpp
+  - base/init.hpp
+
+python_driver:
+  name: Oscillo
+  file: oscillo.py 
 
 python:
   - oscillo.py
