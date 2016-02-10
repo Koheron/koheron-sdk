@@ -72,8 +72,11 @@ all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli app
 $(TMP):
 	mkdir -p $(TMP)
 
-zip: tcp-server $(PYTHON_ZIP) $(TMP)/$(NAME).bit
-	zip --junk-paths $(TMP)/$(ID).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd $(PYTHON_ZIP)
+zip: tcp-server $(PYTHON_DIR) $(TMP)/$(NAME).bit
+	zip --junk-paths $(TMP)/$(ID).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd
+	mv $(PYTHON_DIR) $(TMP)/py_drivers
+	cd $(TMP) && zip $(ID).zip py_drivers/*.py
+	rm -r $(TMP)/py_drivers
 
 sha:
 	echo $(SHA) > $(TMP)/$(NAME).sha
@@ -86,9 +89,6 @@ app: $(TMP)
 $(PYTHON_DIR):
 	mkdir -p $@
 	python make.py $(NAME) --python
-
-$(PYTHON_ZIP): $(PYTHON_DIR)
-	zip --junk-paths $(PYTHON_ZIP) $(PYTHON_DIR)/*
 
 $(TCP_SERVER_DIR):
 	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
