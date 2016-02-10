@@ -73,7 +73,10 @@ $(TMP):
 	mkdir -p $(TMP)
 
 zip: tcp-server $(PYTHON_DIR) $(TMP)/$(NAME).bit
-	zip --junk-paths $(TMP)/$(ID).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd $(PYTHON_DIR)
+	zip --junk-paths $(TMP)/$(ID).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd
+	mv $(PYTHON_DIR) $(TMP)/py_drivers
+	cd $(TMP) && zip $(ID).zip py_drivers/*.py
+	rm -r $(TMP)/py_drivers
 
 sha:
 	echo $(SHA) > $(TMP)/$(NAME).sha
