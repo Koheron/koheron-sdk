@@ -69,7 +69,7 @@ cp tmp/${name}.tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
 
 # Add zip
 mkdir $root_dir/usr/local/instruments
-cp tmp/${name}-${sha}.zip $root_dir/usr/local/instruments
+cp tmp/*-${sha}.zip $root_dir/usr/local/instruments
 # Copy all available instruments in backup directory
 mkdir $root_dir/usr/local/instruments/backup
 cp tmp/*-${sha}.zip $root_dir/usr/local/instruments/backup
