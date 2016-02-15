@@ -48,6 +48,8 @@ LINUX_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=softfp"
 UBOOT_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=softfp"
 ARMHF_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 
+MAIN_YML = projects/$(NAME)/main.yml
+
 RTL_TAR = $(TMP)/rtl8192cu.tgz
 RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
 
@@ -78,6 +80,8 @@ zip: tcp-server $(PYTHON_DIR) $(TMP)/$(NAME).bit
 	cd $(TMP) && zip $(ID).zip py_drivers/*.py
 	rm -r $(TMP)/py_drivers
 
+xdc: $(MAIN_YML)
+	python make.py $(NAME) --xdc
 sha:
 	echo $(SHA) > $(TMP)/$(NAME).sha
 	python make.py $(NAME)
@@ -86,7 +90,7 @@ app: $(TMP)
 	echo $(APP_SHA)
 	curl -L $(APP_URL) -o $(APP_ZIP)
 
-$(PYTHON_DIR):
+$(PYTHON_DIR): $(MAIN_YML)
 	mkdir -p $@
 	python make.py $(NAME) --python
 
@@ -168,7 +172,7 @@ $(TMP)/cores/%: cores/%/core_config.tcl cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
 
-$(TMP)/%.xpr: sha projects/% $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/%.xpr: sha xdc projects/% $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)
 
