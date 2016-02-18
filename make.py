@@ -63,7 +63,7 @@ def get_config(project):
     return config
 
 ###################
-# Jinja:
+# Jinja
 ###################
 
 def fill_config_tcl(config):
@@ -177,7 +177,12 @@ def _check_project(project):
 ###################
 
 if __name__ == "__main__":
-    project = sys.argv[1]
+    if len(sys.argv) == 2:
+        cmd = None
+        project = sys.argv[1]
+    elif len(sys.argv) >= 3:
+        cmd = sys.argv[1]
+        project = sys.argv[2]
 
     tmp_dir = 'tmp'
     if not os.path.exists(tmp_dir):
@@ -192,18 +197,15 @@ if __name__ == "__main__":
     tcp_server_dir = os.path.join('tmp', config['project']+'.tcp-server')
     python_dir = os.path.join('tmp', config['project']+'.python')
   
-    if (len(sys.argv) == 3 and sys.argv[2] == '--python'):
+    if cmd == '--python':
         build_python(project, python_dir)
-
-    if (len(sys.argv) == 3 and sys.argv[2] == '--cores'):
+    elif cmd == '--cores':
         with open(os.path.join('tmp', project + '.cores'), 'w') as f:
             f.write(' '.join(config['cores']))
-
-    if (len(sys.argv) == 3 and sys.argv[2] == '--board'):
+    elif cmd == '--board':
         with open(os.path.join('tmp', project + '.board'), 'w') as f:
             f.write(config['board'])
-
-    if (len(sys.argv) == 3 and sys.argv[2] == '--middleware'):
+    elif cmd == '--middleware':
         build_middleware(project, tcp_server_dir)
         build_server_config(project, tcp_server_dir)
         fill_addresses(config, tcp_server_dir)

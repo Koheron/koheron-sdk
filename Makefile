@@ -12,11 +12,11 @@ NAME = oscillo
 
 TMP = tmp
 
-BOARD:=$(shell (python make.py $(NAME) --board) && (cat $(TMP)/$(NAME).board))
+BOARD:=$(shell (python make.py --board $(NAME)) && (cat $(TMP)/$(NAME).board))
 
 VERSION = `git rev-parse --short HEAD`
 
-CORES:=$(shell python make.py $(NAME) --cores && cat $(TMP)/$(NAME).cores)
+CORES:=$(shell python make.py --cores $(NAME) && cat $(TMP)/$(NAME).cores)
 
 PART = `cat boards/$(BOARD)/PART`
 
@@ -88,7 +88,7 @@ app: $(TMP)
 
 $(PYTHON_DIR):
 	mkdir -p $@
-	python make.py $(NAME) --python
+	python make.py --python $(NAME)
 
 $(TCP_SERVER_DIR):
 	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
@@ -96,7 +96,7 @@ $(TCP_SERVER_DIR):
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
 tcp-server: $(TCP_SERVER_DIR)
-	python make.py $(NAME) --middleware
+	python make.py --middleware $(NAME)
 	cd $(TCP_SERVER_DIR) && make CONFIG=config.yaml
 
 tcp-server_cli: $(TCP_SERVER_DIR)
