@@ -72,10 +72,10 @@ def fill_config_tcl(config):
     output.write(template.render(dic=config))
     output.close()
 
-def fill_config_python(config):
+def fill_config_python(config, version):
     template = get_renderer().get_template(os.path.join('projects', 'config_python.j2'))
     output = file(os.path.join('projects', config['project'], 'config.py'),'w')
-    output.write(template.render(dic=config))
+    output.write(template.render(dic=config, version=version))
     output.close()
 
 def fill_addresses(config, tcp_server_dir):
@@ -177,12 +177,11 @@ def _check_project(project):
 ###################
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        cmd = None
-        project = sys.argv[1]
-    elif len(sys.argv) >= 3:
-        cmd = sys.argv[1]
-        project = sys.argv[2]
+    cmd = sys.argv[1]
+    project = sys.argv[2]
+
+    if len(sys.argv) == 4:
+        version = sys.argv[3]
 
     tmp_dir = 'tmp'
     if not os.path.exists(tmp_dir):
@@ -192,12 +191,12 @@ if __name__ == "__main__":
     sys.setdefaultencoding('utf-8')
 
     config = get_config(project)
-    fill_config_tcl(config)
-    fill_config_python(config)
-    tcp_server_dir = os.path.join('tmp', config['project']+'.tcp-server')
-    python_dir = os.path.join('tmp', config['project']+'.python')
-  
-    if cmd == '--python':
+
+    if cmd == '--configs':
+        fill_config_tcl(config)
+        fill_config_python(config, version)
+    elif cmd == '--python':
+        python_dir = os.path.join('tmp', config['project'] + '.python')
         build_python(project, python_dir)
     elif cmd == '--cores':
         with open(os.path.join('tmp', project + '.cores'), 'w') as f:
@@ -206,6 +205,7 @@ if __name__ == "__main__":
         with open(os.path.join('tmp', project + '.board'), 'w') as f:
             f.write(config['board'])
     elif cmd == '--middleware':
+        tcp_server_dir = os.path.join('tmp', config['project'] + '.tcp-server')
         build_middleware(project, tcp_server_dir)
         build_server_config(project, tcp_server_dir)
         fill_addresses(config, tcp_server_dir)

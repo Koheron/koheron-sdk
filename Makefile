@@ -78,9 +78,9 @@ zip: tcp-server $(PYTHON_DIR) $(TMP)/$(NAME).bit
 	cd $(TMP) && zip $(ID).zip py_drivers/*.py
 	rm -r $(TMP)/py_drivers
 
-sha:
+configs:
 	echo $(SHA) > $(TMP)/$(NAME).sha
-	python make.py $(NAME)
+	python make.py --configs $(NAME) $(VERSION)
 
 app: $(TMP)
 	echo $(APP_SHA)
@@ -168,7 +168,7 @@ $(TMP)/cores/%: cores/%/core_config.tcl cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
 
-$(TMP)/%.xpr: sha projects/% $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/%.xpr: configs projects/% $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)
 
@@ -193,4 +193,3 @@ clean:
 	$(RM) uImage fw_printenv boot.bin devicetree.dtb $(TMP)
 	$(RM) .Xil usage_statistics_webtalk.html usage_statistics_webtalk.xml
 	$(RM) webtalk*.log webtalk*.jou
-	$(RM) lase
