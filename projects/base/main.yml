@@ -21,3 +21,8 @@ cross-compile: arm-linux-gnueabihf-
 
 python: 
   - base.py
+
+xdc:
+  - boards/red-pitaya/config/ports.xdc
+  - boards/red-pitaya/config/clocks.xdc
+  - projects/base/expansion_connector.xdc

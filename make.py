@@ -48,7 +48,7 @@ def load_config(project):
 def get_config(project):
     config = load_config(project)
     # Get missing elements from ancestors
-    lists = ['python','cores']
+    lists = ['python','cores','xdc']
     for list_ in lists:
         config[list_] = get_list(project, list_)
     props = ['board','cross-compile','host']
@@ -156,7 +156,14 @@ def build_python(project, python_dir):
     output = file(os.path.join(python_dir, '__init__.py'),'w')
     output.write(template.render(dic={'include': include_list, 'driver': config['python_driver']}))
     output.close()
-                
+
+def build_xdc(project, xdc_dir):
+    config = get_config(project)
+    if not os.path.exists(xdc_dir):
+        os.makedirs(xdc_dir)
+    for file_ in config['xdc']:
+        shutil.copy(file_, xdc_dir)
+
 ###################
 # Check
 ###################
@@ -206,6 +213,6 @@ if __name__ == "__main__":
             f.write(config['board'])
     elif cmd == '--middleware':
         tcp_server_dir = os.path.join('tmp', config['project'] + '.tcp-server')
-        build_middleware(project, tcp_server_dir)
-        build_server_config(project, tcp_server_dir)
-        fill_addresses(config, tcp_server_dir)
+    elif cmd == '--xdc':
+        xdc_dir = os.path.join('tmp', config['project'] + '.xdc')
+        build_xdc(project, xdc_dir)
