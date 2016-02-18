@@ -82,4 +82,4 @@ if __name__ == "__main__":
 #    print(http.remove_local_instrument('oscillo', '06ee48f'))
 #    print(http.get_local_instruments())
 #    http.install_instrument("spectrum")
-    http.upload_and_install_instrument('../pmod_modules-be286c9.zip')
+    http.upload_and_install_instrument('../pmod_modules-1e1ae52.zip')

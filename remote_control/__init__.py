@@ -3,5 +3,5 @@ from .zynq_http import ZynqHTTP
 
 __all__ = [
   'ZynqSSH',
-  'HTTPInterface'
+  'ZynqHTTP'
 ]
