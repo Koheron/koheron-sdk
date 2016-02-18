@@ -10,6 +10,9 @@ host = os.getenv('HOST','{{ dic['host'] }}')
 client = KClient(host)
 dvm = DevMem(client)
 
+ssh = ZynqSSH(host, 'changeme')
+http = ZynqHTTP(host)
+
 ##############################################
 # Memory maps
 ##############################################
