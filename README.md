@@ -1,31 +1,83 @@
 # zynq-sdk
 
-#### `Software Development Kit for Zynq-based Systems`
+#### `Software Development Kit for Zynq-based instruments`
 
-[![Build Status](http://5e512223.ngrok.io/job/zynq-sdk/badge/icon)](http://5e512223.ngrok.io/job/zynq-sdk/)
+* YAML-based instrument configuration
+* IP-centric workflow for Hardware / FPGA prototyping
+* [tcp-server](https://github.com/Koheron/tcp-server) for direct access of mapped memory
+* Python and Javascript APIs
+* Continuous Delivery pipeline
 
-This project aims to bring together the best practices of software development on the Zynq platform.
-
-## Objectives
-
-* Simple workflow for FPGA prototyping
-* Easy setup of modern Linux distributions
-* Fast and simple remote control using scripting languages
-
-### Boards
+###  Supported Base Boards
 
 * [Red Pitaya](http://redpitaya.com)
+* [Ask for another board](https://github.com/Koheron/zynq-sdk/issues/new)
 
-### Linux distributions
+## Start an instrument project
 
-* Ubuntu 14.04
+Instrument configuration is done via a YAML file:
 
-### Scripting languages
+```yaml
+---
+project: oscillo
 
-* Python
-* Javascript
+parent: base 
 
-## Usage
+addresses:
+  - name: config
+    offset: '0x60000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+  - name: dac
+    offset: '0x40000000'
+    range: 32K
+  - name: adc1
+    offset: '0x42000000'
+    range: 32K
+  - name: adc2
+    offset: '0x44000000'
+    range: 32K
+
+config_offsets:
+  spi_in: 0
+  led: 1
+  pwm0: 2
+  pwm1: 3
+  pwm2: 4
+  pwm3: 5
+  addr: 6
+  avg0: 7
+  avg1: 8
+  
+status_offsets: # [0-7] reserved for sha
+  spi_out: 8 
+  n_avg0: 9
+  n_avg1: 10
+  
+parameters:
+  bram_addr_width: 13
+  pwm_width: 10
+  n_pwm: 4
+  
+devices:
+  - oscillo.hpp
+  - base/base.hpp
+  - base/gpio.hpp
+  - base/xadc.hpp
+  - base/init.hpp
+
+python_driver:
+  name: Oscillo
+  file: oscillo.py 
+
+python:
+  - oscillo.py
+```
+
+
+## Get started
 
 [Install Vivado](https://github.com/Koheron/zynq-sdk/issues/37)
 
@@ -37,15 +89,10 @@ $ source /opt/Xilinx/Vivado/2015.4/settings64.sh
 
 Builds `oscillo` bitstream and Linux kernel:
 ```
-$ make
+$ make NAME=oscillo
 ```
 
 Build Ubuntu image:
 ```
 $ sudo bash scripts/image.sh scripts/ubuntu.sh oscillo 1024
-```
-
-Build the bitstream `spectrum`:
-```
-$ make tmp/spectrum.bit
 ```
