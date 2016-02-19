@@ -37,7 +37,7 @@ mount $root_dev $root_dir
 
 # Copy files to the boot file system
 
-cp boot.bin devicetree.dtb uImage uEnv.txt $boot_dir
+cp boot.bin devicetree.dtb uImage config/uEnv.txt $boot_dir
 
 # Copy Ubuntu Core to the root file system
 
@@ -62,7 +62,7 @@ cp tmp/app.zip $root_dir/usr/local/flask
 # Add Koheron TCP Server
 mkdir $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/tmp/server/kserverd $root_dir/usr/local/tcp-server
-cp kserver.conf $root_dir/usr/local/tcp-server
+cp config/kserver.conf $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/VERSION $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
