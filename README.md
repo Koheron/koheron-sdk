@@ -2,6 +2,8 @@
 
 #### `Software Development Kit for Zynq-based instruments`
 
+### Goals
+
 * YAML-based instrument configuration
 * IP-centric workflow for Hardware / FPGA prototyping
 * [tcp-server](https://github.com/Koheron/tcp-server) for direct access of mapped memory
