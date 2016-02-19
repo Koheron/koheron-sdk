@@ -213,6 +213,9 @@ if __name__ == "__main__":
             f.write(config['board'])
     elif cmd == '--middleware':
         tcp_server_dir = os.path.join('tmp', config['project'] + '.tcp-server')
+        build_middleware(project, tcp_server_dir)
+        build_server_config(project, tcp_server_dir)
+        fill_addresses(config, tcp_server_dir)
     elif cmd == '--xdc':
         xdc_dir = os.path.join('tmp', config['project'] + '.xdc')
         build_xdc(project, xdc_dir)
