@@ -119,10 +119,10 @@ def build_middleware(project, tcp_server_dir):
             if project_name != "":
                 _import_middleware_from_project(project_name)
             
-def _import_middleware_from_project(project_name):
-    for basename in os.listdir(os.path.join('projects', project_name)):
+def _import_middleware_from_project(project):
+    for basename in os.listdir(os.path.join('projects', project)):
         if basename.endswith('.hpp') or basename.endswith('.cpp'):
-            import_filename = os.path.join('projects', project_name, basename)
+            import_filename = os.path.join('projects', project, basename)
             shutil.copy(import_filename, 
                         os.path.join(tcp_server_dir,'middleware','drivers'))
 
