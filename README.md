@@ -27,11 +27,7 @@ This project aims to bring together the best practices of software development o
 
 ## Usage
 
-[Install Vivado](https://github.com/Koheron/zynq-sdk/issues/37)
-
-```
-$ source /opt/Xilinx/Vivado/2015.4/settings64.sh
-```
+[Install Vivado](https://github.com/Koheron/zynq-sdk/issues/37) in the directory `/opt/Xilinx/Vivado/`.
 
 [Full list of requirements](https://github.com/Koheron/zynq-sdk/issues/4)
 
