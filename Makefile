@@ -16,11 +16,9 @@ TMP = tmp
 
 BOARD:=$(shell (python make.py --board $(NAME)) && (cat $(TMP)/$(NAME).board))
 
-VERSION = `git rev-parse --short HEAD`
-
 CORES:=$(shell python make.py --cores $(NAME) && cat $(TMP)/$(NAME).cores)
 
-PART = `cat boards/$(BOARD)/PART`
+PART:=`cat boards/$(BOARD)/PART`
 
 PATCHES = boards/$(BOARD)/patches
 
@@ -55,6 +53,12 @@ ARMHF_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 
 MAIN_YML = projects/$(NAME)/main.yml
 
+VERSION_FILE = $(TMP)/$(NAME).version
+SHA_FILE = $(TMP)/$(NAME).sha
+
+VERSION = $(cat $(VERSION_FILE))
+SHA = $(cat $(SHA_FILE))
+
 RTL_TAR = $(TMP)/rtl8192cu.tgz
 RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
 
@@ -69,8 +73,8 @@ TCP_SERVER_SHA = master
 PYTHON_DIR = $(TMP)/$(NAME).python
 PYTHON_ZIP = $(PYTHON_DIR)/python.zip
 
-ID = $(NAME)-$(VERSION)
-SHA:=$(shell printf $(ID) | sha256sum | sed 's/\W//g')
+CONFIG_TCL = projects/$(NAME)/config.tcl
+CONFIG_PY  = projects/$(NAME)/config.py
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
@@ -79,18 +83,26 @@ all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli app
 $(TMP):
 	mkdir -p $(TMP)
 
-zip: tcp-server $(PYTHON_DIR) $(TMP)/$(NAME).bit
-	zip --junk-paths $(TMP)/$(ID).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd
+zip: tcp-server $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
+	zip --junk-paths $(TMP)/$(NAME)-$(VERSION).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd
 	mv $(PYTHON_DIR) $(TMP)/py_drivers
-	cd $(TMP) && zip $(ID).zip py_drivers/*.py
+	cd $(TMP) && zip $(NAME)-$(VERSION).zip py_drivers/*.py
 	rm -r $(TMP)/py_drivers
 
 xdc: $(MAIN_YML)
 	python make.py --xdc $(NAME)
 
-configs:
-	echo $(SHA) > $(TMP)/$(NAME).sha
-	python make.py --configs $(NAME) $(VERSION)
+$(VERSION_FILE): .git/refs/heads | $(TMP)
+	echo $(shell (git rev-parse --short HEAD)) > $@
+
+$(SHA_FILE): $(VERSION_FILE)
+	echo $(shell (printf $(NAME)-$(cat $(VERSION_FILE)) | sha256sum | sed 's/\W//g')) > $@
+
+$(CONFIG_PY): $(MAIN_YML) $(SHA)
+	python make.py --config_py $(NAME) `cat $(SHA)`
+
+$(CONFIG_TCL): $(MAIN_YML)
+	python make.py --config_tcl $(NAME)
 
 app: $(TMP)
 	echo $(APP_SHA)
@@ -178,7 +190,7 @@ $(TMP)/cores/%: cores/%/core_config.tcl cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
 
-$(TMP)/%.xpr: configs xdc projects/% $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/%.xpr: $(CONFIG_TCL) xdc projects/% $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)
 
