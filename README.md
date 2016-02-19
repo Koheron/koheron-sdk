@@ -43,20 +43,20 @@ addresses:
     range: 32K
 
 config_offsets:
-  spi_in: 0
-  led: 1
-  pwm0: 2
-  pwm1: 3
-  pwm2: 4
-  pwm3: 5
-  addr: 6
-  avg0: 7
-  avg1: 8
+  - spi_in
+  - led
+  - pwm0
+  - pwm1
+  - pwm2
+  - pwm3
+  - addr
+  - avg0
+  - avg1
   
-status_offsets: # [0-7] reserved for sha
-  spi_out: 8 
-  n_avg0: 9
-  n_avg1: 10
+status_offsets:
+  - spi_out
+  - n_avg0
+  - n_avg1
   
 parameters:
   bram_addr_width: 13

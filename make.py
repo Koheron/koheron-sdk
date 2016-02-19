@@ -67,19 +67,19 @@ def get_config(project):
 ###################
 
 def fill_config_tcl(config):
-    template = get_renderer().get_template(os.path.join('projects', 'config_tcl.j2'))
+    template = get_renderer().get_template(os.path.join('templates', 'config.tcl'))
     output = file(os.path.join('projects', config['project'], 'config.tcl'),'w')
     output.write(template.render(dic=config))
     output.close()
 
 def fill_config_python(config, version):
-    template = get_renderer().get_template(os.path.join('projects', 'config_python.j2'))
+    template = get_renderer().get_template(os.path.join('templates', 'config.py'))
     output = file(os.path.join('projects', config['project'], 'config.py'),'w')
     output.write(template.render(dic=config, version=version))
     output.close()
 
 def fill_addresses(config, tcp_server_dir):
-    template = get_renderer().get_template(os.path.join('projects', 'addresses.j2'))
+    template = get_renderer().get_template(os.path.join('templates', 'addresses.hpp'))
     output = file(os.path.join(tcp_server_dir, 'middleware', 'drivers', 'addresses.hpp'),'w')
     output.write(template.render(dic=config))
     output.close()
@@ -151,7 +151,7 @@ def build_python(project, python_dir):
                 if toks[1] == 'py':
                     shutil.copy(os.path.join('projects',parent,file_), python_dir)
                     include_list.append(toks[0])
-    template = get_renderer().get_template(os.path.join('projects', 'init_python.j2'))
+    template = get_renderer().get_template(os.path.join('templates', '__init__.py'))
     config = load_config(project)
     output = file(os.path.join(python_dir, '__init__.py'),'w')
     output.write(template.render(dic={'include': include_list, 'driver': config['python_driver']}))
@@ -213,6 +213,9 @@ if __name__ == "__main__":
             f.write(config['board'])
     elif cmd == '--middleware':
         tcp_server_dir = os.path.join('tmp', config['project'] + '.tcp-server')
+        build_middleware(project, tcp_server_dir)
+        build_server_config(project, tcp_server_dir)
+        fill_addresses(config, tcp_server_dir)
     elif cmd == '--xdc':
         xdc_dir = os.path.join('tmp', config['project'] + '.xdc')
         build_xdc(project, xdc_dir)

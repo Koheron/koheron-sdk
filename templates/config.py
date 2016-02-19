@@ -34,10 +34,10 @@ zippath = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../tmp', z
 
 # Config offsets
 {% for offset in dic['config_offsets'] -%}
-{{ offset|upper }}_OFF = {{ 4 * dic['config_offsets'][offset] }}
+{{ offset|upper }}_OFF = {{ 4 * loop.index0 }}
 {% endfor %}
 
 # Status offsets
 {% for offset in dic['status_offsets'] -%}
-{{ offset|upper }}_OFF = {{ 4 * dic['status_offsets'][offset] }}
+{{ offset|upper }}_OFF = {{ 4 * loop.index0 }}
 {% endfor %}
