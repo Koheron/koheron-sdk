@@ -109,16 +109,22 @@ def get_renderer():
 def build_middleware(project, tcp_server_dir):
     _check_project(project)
     config = load_config(project)
-    assert os.path.exists(os.path.join(tcp_server_dir,'middleware'))
-    
-    # We recursively traverse the requirements and build the middleware
-    if 'parent' in config and config['parent'] != None:
-        build_middleware(config['parent'], tcp_server_dir)
-        
+    assert os.path.exists(os.path.join(tcp_server_dir, 'middleware'))
+
+    _import_middleware_from_project(project)
+
+    if 'devices' in config:
+        for device in config['devices']:
+            project_name = os.path.dirname(device)
+            if project_name != "":
+                _import_middleware_from_project(project_name)
+            
+def _import_middleware_from_project(project):
     for basename in os.listdir(os.path.join('projects', project)):
         if basename.endswith('.hpp') or basename.endswith('.cpp'):
             import_filename = os.path.join('projects', project, basename)
-            shutil.copy(import_filename, os.path.join(tcp_server_dir,'middleware','drivers'))
+            shutil.copy(import_filename, 
+                        os.path.join(tcp_server_dir,'middleware','drivers'))
 
 def build_server_config(project, tcp_server_dir):
     config = get_config(project)
@@ -127,7 +133,6 @@ def build_server_config(project, tcp_server_dir):
     ]
     if 'devices' in config:
         for device in config['devices']:
-            _check_device(project, device)
             filename = os.path.basename(device)
             dev_paths.append(os.path.join('../middleware/drivers/', filename))
     server_config = {
@@ -167,12 +172,6 @@ def build_xdc(project, xdc_dir):
 ###################
 # Check
 ###################
-
-def _check_device(project, device):
-    device_path = os.path.dirname(device)
-    if device_path in get_parents(project) or device_path == '':
-        return
-    raise RuntimeError('Project ' + path + ' error for device '+ device)
 
 def _check_project(project):
     if project in os.listdir('projects'):
