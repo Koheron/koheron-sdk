@@ -198,7 +198,7 @@ if __name__ == "__main__":
     if cmd == '--config_py':
         version = sys.argv[3]        
         fill_config_python(config, version)
-    elif cmd == 'config_tcl':
+    elif cmd == '--config_tcl':
         fill_config_tcl(config)
     elif cmd == '--python':
         python_dir = os.path.join('tmp', config['project'] + '.python')
@@ -217,3 +217,5 @@ if __name__ == "__main__":
     elif cmd == '--xdc':
         xdc_dir = os.path.join('tmp', config['project'] + '.xdc')
         build_xdc(project, xdc_dir)
+    else:
+        raise ValueError('Unknown command')

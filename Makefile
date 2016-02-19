@@ -56,8 +56,8 @@ MAIN_YML = projects/$(NAME)/main.yml
 VERSION_FILE = $(TMP)/$(NAME).version
 SHA_FILE = $(TMP)/$(NAME).sha
 
-VERSION = $(cat $(VERSION_FILE))
-SHA = $(cat $(SHA_FILE))
+VERSION = $(shell cat $(VERSION_FILE))
+SHA = $(shell cat $(SHA_FILE))
 
 RTL_TAR = $(TMP)/rtl8192cu.tgz
 RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
@@ -83,7 +83,7 @@ all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli app
 $(TMP):
 	mkdir -p $(TMP)
 
-zip: tcp-server $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
+zip:  $(CONFIG_PY) tcp-server $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 	zip --junk-paths $(TMP)/$(NAME)-$(VERSION).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd
 	mv $(PYTHON_DIR) $(TMP)/py_drivers
 	cd $(TMP) && zip $(NAME)-$(VERSION).zip py_drivers/*.py
@@ -98,10 +98,10 @@ $(VERSION_FILE): .git/refs/heads | $(TMP)
 $(SHA_FILE): $(VERSION_FILE)
 	echo $(shell (printf $(NAME)-$(cat $(VERSION_FILE)) | sha256sum | sed 's/\W//g')) > $@
 
-$(CONFIG_PY): $(MAIN_YML) $(SHA)
-	python make.py --config_py $(NAME) `cat $(SHA)`
+$(CONFIG_PY): $(MAIN_YML) $(VERSION_FILE)
+	python make.py --config_py $(NAME) $(VERSION)
 
-$(CONFIG_TCL): $(MAIN_YML)
+$(CONFIG_TCL): $(MAIN_YML) $(SHA_FILE)
 	python make.py --config_tcl $(NAME)
 
 app: $(TMP)
