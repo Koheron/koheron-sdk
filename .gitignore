@@ -1,46 +1,25 @@
 # Temporary files :
-*.md~
-*.gitignore~
-Makefile~
-Dockerfile~
-*.py~
-*.j2~
-*.tcl~
-PART~
-*.xdc~
-*.v~
-*.sh~
-*.bash~
-*.cpp~
-*.c~
-*.hpp~
-*.h~
-*.o
-*.yaml~
-*.yml~
-*.conf~
+*~
 
+# Python:
 *.pyc
 
-*.patch~
-
-*.bin
-
-.dockerignore~
-
+# Folders
 venv
+tmp
 
-config.tcl
-config.py
+# Jinja generated config files
+projects/*/config.tcl
+projects/*/config.py
 
-
+# Vivado :
 *.jou
 *.log
-tmp
-lase
 
+# Binaries
 devicetree.dtb
 fw_printenv
 *.img
 uImage
 *.tar.gz
+*.bin
