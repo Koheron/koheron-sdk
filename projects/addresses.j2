@@ -13,11 +13,11 @@
 
 // -- Config offsets
 {% for offset in dic['config_offsets'] -%}
-#define {{ offset|upper }}_OFF {{ 4 * dic['config_offsets'][offset] }}
+#define {{ offset|upper }}_OFF {{ 4 * loop.index0 }}
 {% endfor %}
 // -- Status offsets
 {% for offset in dic['status_offsets'] -%}
-#define {{ offset|upper }}_OFF {{ 4 * dic['status_offsets'][offset] }}
+#define {{ offset|upper }}_OFF {{ 4 * loop.index0 }}
 {% endfor %}
 #endif // __DRIVERS_CORE_ADDRESSES_HPP__
 

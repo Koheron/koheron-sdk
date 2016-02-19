@@ -1,15 +1,15 @@
 ##########################################################
 # Define config offsets
 ##########################################################
-{% for key in dic['config_offsets'] -%}
-set {{ key }}_offset {{ dic['config_offsets'][key] }}
+{% for offset in dic['config_offsets'] -%}
+set {{ offset }}_offset {{ loop.index0 }}
 {% endfor -%}
 
 ##########################################################
 # Define status offsets
 ##########################################################
-{% for key in dic['status_offsets'] -%}
-set {{ key }}_offset {{ dic['status_offsets'][key] }}
+{% for offset in dic['status_offsets'] -%}
+set {{ offset }}_offset {{ 8 + loop.index0 }}
 {% endfor -%}
 
 ##########################################################

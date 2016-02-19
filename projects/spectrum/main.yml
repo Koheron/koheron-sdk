@@ -21,20 +21,20 @@ addresses:
     range: 16K
 
 config_offsets:
-  spi_in: 0
-  led: 1
-  pwm0: 2
-  pwm1: 3
-  pwm2: 4
-  pwm3: 5
-  addr: 6
-  substract_mean: 7
-  cfg_fft: 8
-  avg_off: 9
+  - spi_in
+  - led
+  - pwm0
+  - pwm1
+  - pwm2
+  - pwm3
+  - addr
+  - substract_mean
+  - cfg_fft
+  - avg_off
   
 status_offsets: # [0-7] reserved for sha
-  spi_out: 8
-  n_avg: 9
+  - spi_out
+  - n_avg
 
 parameters:
   bram_addr_width: 12
