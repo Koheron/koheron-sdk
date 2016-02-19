@@ -32,7 +32,7 @@ config_offsets:
   - cfg_fft
   - avg_off
   
-status_offsets: # [0-7] reserved for sha
+status_offsets:
   - spi_out
   - n_avg
 

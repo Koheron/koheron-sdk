@@ -31,7 +31,7 @@ config_offsets:
   - avg0
   - avg1
   
-status_offsets: # [0-7] reserved for sha
+status_offsets:
   - spi_out
   - n_avg0
   - n_avg1
