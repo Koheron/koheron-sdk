@@ -1,9 +1,9 @@
 script=$1
 name=$2 
 
-sha=`git rev-parse --short HEAD`
+version=$(cat tmp/${name}.version)
 
-image=${name}-${sha}.img
+image=${name}-${version}.img
 
 size=512
 

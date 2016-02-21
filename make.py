@@ -186,9 +186,6 @@ if __name__ == "__main__":
     cmd = sys.argv[1]
     project = sys.argv[2]
 
-    if len(sys.argv) == 4:
-        version = sys.argv[3]
-
     tmp_dir = 'tmp'
     if not os.path.exists(tmp_dir):
         os.makedirs(tmp_dir)
@@ -198,9 +195,11 @@ if __name__ == "__main__":
 
     config = get_config(project)
 
-    if cmd == '--configs':
-        fill_config_tcl(config)
+    if cmd == '--config_py':
+        version = sys.argv[3]        
         fill_config_python(config, version)
+    elif cmd == '--config_tcl':
+        fill_config_tcl(config)
     elif cmd == '--python':
         python_dir = os.path.join('tmp', config['project'] + '.python')
         build_python(project, python_dir)
@@ -218,3 +217,5 @@ if __name__ == "__main__":
     elif cmd == '--xdc':
         xdc_dir = os.path.join('tmp', config['project'] + '.xdc')
         build_xdc(project, xdc_dir)
+    else:
+        raise ValueError('Unknown command')
