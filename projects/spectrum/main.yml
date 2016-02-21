@@ -38,6 +38,8 @@ status_offsets:
 
 parameters:
   bram_addr_width: 12
+  dac_width: 14
+  adc_width: 14
   pwm_width: 10
   n_pwm: 4
   

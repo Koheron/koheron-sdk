@@ -13,9 +13,7 @@ set board_preset boards/$board_name/config/board_preset.tcl
 # Define global variables
 ##########################################################
 set ps_name        ps_1
-
 set rst_name       rst_${ps_name}_125M
-
 
 ##########################################################
 # Define block names
@@ -27,12 +25,6 @@ set address_name   address
 set dac_bram_name  dac_bram
 set adc1_bram_name adc1_bram
 set avg_name       averaging
-
-##########################################################
-# Define parameters
-##########################################################
-set dac_width       14
-set adc_width       14
 
 ##########################################################
 # Init block design and add DAC BRAM
