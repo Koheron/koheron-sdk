@@ -7,6 +7,7 @@
 # Folders
 venv
 tmp
+.Xil
 
 # Jinja generated config files
 projects/*/config.tcl
@@ -15,6 +16,7 @@ projects/*/config.py
 # Vivado :
 *.jou
 *.log
+vivado_*.str
 
 # Binaries
 devicetree.dtb

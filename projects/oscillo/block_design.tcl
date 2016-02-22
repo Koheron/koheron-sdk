@@ -10,4 +10,4 @@ source projects/oscillo/oscillo.tcl
 # Add EEPROM
 ##########################################################
 
-source projects/base/at93c46d.tcl
+source lib/at93c46d.tcl

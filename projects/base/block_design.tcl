@@ -1,11 +1,14 @@
-source scripts/bram.tcl
-source projects/base/init_bd.tcl
-source boards/$board_name/gpio.tcl
-source projects/base/config_register.tcl
-source projects/base/status_register.tcl
-source boards/$board_name/pwm.tcl
-source projects/base/address.tcl
 source projects/base/xadc.tcl
+
+source boards/$board_name/gpio.tcl
+source boards/$board_name/pwm.tcl
+
+source lib/utilities.tcl
+source lib/init_bd.tcl
+source lib/bram.tcl
+source lib/config_register.tcl
+source lib/status_register.tcl
+source lib/address.tcl
 
 set board_preset boards/$board_name/config/board_preset.tcl
 
@@ -39,7 +42,7 @@ add_gpio
 ##########################################################
 # Add ADCs and DACs
 ##########################################################
-source boards/$board_name/adc_dac.tcl
+source lib/redp_adc_dac.tcl
 # Rename clocks
 set adc_clk adc_dac/adc_clk
 set pwm_clk adc_dac/pwm_clk
