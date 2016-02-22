@@ -82,8 +82,10 @@ python:
 ## Get started
 
 The build is tested on Ubuntu 14.04.
-* [Install Vivado](https://github.com/Koheron/zynq-sdk/issues/37) in `/opt/Xilinx`.
-* [Full list of requirements](https://github.com/Koheron/zynq-sdk/issues/4)
+[Install Vivado](https://github.com/Koheron/zynq-sdk/issues/37) and source it ([Full list of requirements](https://github.com/Koheron/zynq-sdk/issues/4)):
+```
+$ source /opt/Xilinx/Vivado/2015.4/settings64.sh
+```
 
 Build zip file including bitstream, middleware and python drivers:
 ```

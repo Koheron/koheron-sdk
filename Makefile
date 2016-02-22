@@ -6,7 +6,6 @@
 
 # solves problem with awk while building linux kernel
 # solution taken from http://www.googoolia.com/wp/2015/04/21/awk-symbol-lookup-error-awk-undefined-symbol-mpfr_z_sub/
-SHELL := /bin/bash
 
 LD_LIBRARY_PATH =
 
@@ -27,8 +26,8 @@ PROC = ps7_cortexa9_0
 VIVADO_VERSION = 2015.4
 VIVADO_PATH = /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh
 
-VIVADO = source $(VIVADO_PATH) && vivado -nolog -nojournal -mode batch
-HSI = source $(VIVADO_PATH) && hsi -nolog -nojournal -mode batch
+VIVADO = vivado -nolog -nojournal -mode batch
+HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
 
 UBOOT_TAG = xilinx-v$(VIVADO_VERSION)
