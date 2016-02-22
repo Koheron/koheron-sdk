@@ -83,14 +83,9 @@ all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli app
 $(TMP):
 	mkdir -p $(TMP)
 
-zip:  $(CONFIG_PY) tcp-server $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
-	zip --junk-paths $(TMP)/$(NAME)-$(VERSION).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd
-	mv $(PYTHON_DIR) $(TMP)/py_drivers
-	cd $(TMP) && zip $(NAME)-$(VERSION).zip py_drivers/*.py
-	rm -r $(TMP)/py_drivers
-
-xdc: $(MAIN_YML)
-	python make.py --xdc $(NAME)
+###############################################################################
+# versioning
+###############################################################################
 
 $(VERSION_FILE): .git/refs/heads | $(TMP)
 	echo $(shell (git rev-parse --short HEAD)) > $@
@@ -98,72 +93,49 @@ $(VERSION_FILE): .git/refs/heads | $(TMP)
 $(SHA_FILE): $(VERSION_FILE)
 	echo $(shell (printf $(NAME)-$(cat $(VERSION_FILE)) | sha256sum | sed 's/\W//g')) > $@
 
-$(CONFIG_PY): $(MAIN_YML) $(VERSION_FILE)
-	python make.py --config_py $(NAME) $(VERSION)
+###############################################################################
+# FPGA
+###############################################################################
 
 $(CONFIG_TCL): $(MAIN_YML) $(SHA_FILE)
 	python make.py --config_tcl $(NAME)
 
-app: $(TMP)
-	echo $(APP_SHA)
-	curl -L $(APP_URL) -o $(APP_ZIP)
+xdc: $(MAIN_YML)
+	python make.py --xdc $(NAME)
 
-$(PYTHON_DIR): $(MAIN_YML)
-	mkdir -p $@
-	python make.py --python $(NAME)
+$(TMP)/cores/%: cores/%/core_config.tcl cores/%/*.v
+	mkdir -p $(@D)
+	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
 
-$(TCP_SERVER_DIR):
-	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
-	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
-	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
+$(TMP)/%.xpr: $(CONFIG_TCL) xdc projects/% $(addprefix $(TMP)/cores/, $(CORES))
+	mkdir -p $(@D)
+	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)
 
-tcp-server: $(TCP_SERVER_DIR)
-	python make.py --middleware $(NAME)
-	cd $(TCP_SERVER_DIR) && make CONFIG=config.yaml
+$(TMP)/%.bit: $(TMP)/%.xpr
+	mkdir -p $(@D)
+	$(VIVADO) -source scripts/bitstream.tcl -tclargs $*
 
-tcp-server_cli: $(TCP_SERVER_DIR)
-	cd $(TCP_SERVER_DIR) && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
+###############################################################################
+# first-stage boot loader
+###############################################################################
+
+$(TMP)/%.fsbl/executable.elf: $(TMP)/%.hwdef
+	mkdir -p $(@D)
+	$(HSI) -source scripts/fsbl.tcl -tclargs $* $(PROC)
+
+###############################################################################
+# U-Boot
+###############################################################################
 
 $(UBOOT_TAR):
 	mkdir -p $(@D)
 	curl -L $(UBOOT_URL) -o $@
-
-$(LINUX_TAR):
-	mkdir -p $(@D)
-	curl -L $(LINUX_URL) -o $@
-
-$(DTREE_TAR):
-	mkdir -p $(@D)
-	curl -L $(DTREE_URL) -o $@
-
-$(RTL_TAR):
-	mkdir -p $(@D)
-	curl -L $(RTL_URL) -o $@
 
 $(UBOOT_DIR): $(UBOOT_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
 	patch -d $(TMP) -p 0 < $(PATCHES)/u-boot-xlnx-$(UBOOT_TAG).patch
 	bash $(PATCHES)/uboot.sh $(PATCHES) $@
-
-$(LINUX_DIR): $(LINUX_TAR) $(RTL_TAR)
-	mkdir -p $@
-	tar -zxf $< --strip-components=1 --directory=$@
-	tar -zxf $(RTL_TAR) --directory=$@/drivers/net/wireless
-	patch -d $(TMP) -p 0 < $(PATCHES)/linux-xlnx-$(LINUX_TAG).patch
-	bash $(PATCHES)/linux.sh $(PATCHES) $@
-
-$(DTREE_DIR): $(DTREE_TAR)
-	mkdir -p $@
-	tar -zxf $< --strip-components=1 --directory=$@
-
-uImage: $(LINUX_DIR)
-	make -C $< mrproper
-	make -C $< ARCH=arm xilinx_zynq_defconfig
-	make -C $< ARCH=arm CFLAGS=$(LINUX_CFLAGS) \
-	  -j $(shell nproc 2> /dev/null || echo 1) \
-	  CROSS_COMPILE=arm-xilinx-linux-gnueabi- UIMAGE_LOADADDR=0x8000 uImage
-	cp $</arch/arm/boot/uImage $@
 
 $(TMP)/u-boot.elf: $(UBOOT_DIR)
 	mkdir -p $(@D)
@@ -178,38 +150,110 @@ fw_printenv: $(UBOOT_DIR) $(TMP)/u-boot.elf
 	  CROSS_COMPILE=arm-linux-gnueabihf- env
 	cp $</tools/env/fw_printenv $@
 
+###############################################################################
+# boot.bin
+###############################################################################
+
 boot.bin: $(TMP)/$(NAME).fsbl/executable.elf $(TMP)/$(NAME).bit $(TMP)/u-boot.elf
 	echo "img:{[bootloader] $^}" > $(TMP)/boot.bif
 	bootgen -image $(TMP)/boot.bif -w -o i $@
 
-devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
-	$(LINUX_DIR)/scripts/dtc/dtc -I dts -O dtb -o devicetree.dtb \
-	  -i $(TMP)/$(NAME).tree $(TMP)/$(NAME).tree/system.dts
-
-$(TMP)/cores/%: cores/%/core_config.tcl cores/%/*.v
-	mkdir -p $(@D)
-	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
-
-$(TMP)/%.xpr: $(CONFIG_TCL) xdc projects/% $(addprefix $(TMP)/cores/, $(CORES))
-	mkdir -p $(@D)
-	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)
+###############################################################################
+# device tree
+###############################################################################
 
 $(TMP)/%.hwdef: $(TMP)/%.xpr
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/hwdef.tcl -tclargs $*
 
-$(TMP)/%.bit: $(TMP)/%.xpr
+$(DTREE_TAR):
 	mkdir -p $(@D)
-	$(VIVADO) -source scripts/bitstream.tcl -tclargs $*
+	curl -L $(DTREE_URL) -o $@
 
-$(TMP)/%.fsbl/executable.elf: $(TMP)/%.hwdef
-	mkdir -p $(@D)
-	$(HSI) -source scripts/fsbl.tcl -tclargs $* $(PROC)
+$(DTREE_DIR): $(DTREE_TAR)
+	mkdir -p $@
+	tar -zxf $< --strip-components=1 --directory=$@
 
 $(TMP)/%.tree/system.dts: $(TMP)/%.hwdef $(DTREE_DIR)
 	mkdir -p $(@D)
 	$(HSI) -source scripts/devicetree.tcl -tclargs $* $(PROC) $(DTREE_DIR)
 	patch $@ $(PATCHES)/devicetree.patch
+
+###############################################################################
+# Linux
+###############################################################################
+
+$(RTL_TAR):
+	mkdir -p $(@D)
+	curl -L $(RTL_URL) -o $@
+
+$(LINUX_TAR):
+	mkdir -p $(@D)
+	curl -L $(LINUX_URL) -o $@
+
+$(LINUX_DIR): $(LINUX_TAR) $(RTL_TAR)
+	mkdir -p $@
+	tar -zxf $< --strip-components=1 --directory=$@
+	tar -zxf $(RTL_TAR) --directory=$@/drivers/net/wireless
+	patch -d $(TMP) -p 0 < $(PATCHES)/linux-xlnx-$(LINUX_TAG).patch
+	bash $(PATCHES)/linux.sh $(PATCHES) $@
+
+uImage: $(LINUX_DIR)
+	make -C $< mrproper
+	make -C $< ARCH=arm xilinx_zynq_defconfig
+	make -C $< ARCH=arm CFLAGS=$(LINUX_CFLAGS) \
+	  -j $(shell nproc 2> /dev/null || echo 1) \
+	  CROSS_COMPILE=arm-xilinx-linux-gnueabi- UIMAGE_LOADADDR=0x8000 uImage
+	cp $</arch/arm/boot/uImage $@
+
+devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
+	$(LINUX_DIR)/scripts/dtc/dtc -I dts -O dtb -o devicetree.dtb \
+	  -i $(TMP)/$(NAME).tree $(TMP)/$(NAME).tree/system.dts
+
+###############################################################################
+# tcp-server
+###############################################################################
+
+$(TCP_SERVER_DIR):
+	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
+	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
+	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
+
+tcp-server: $(TCP_SERVER_DIR)
+	python make.py --middleware $(NAME)
+	cd $(TCP_SERVER_DIR) && make CONFIG=config.yaml
+
+tcp-server_cli: $(TCP_SERVER_DIR)
+	cd $(TCP_SERVER_DIR) && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
+
+###############################################################################
+# zip : bitstream, tcp-server and python drivers
+###############################################################################
+
+$(CONFIG_PY): $(MAIN_YML) $(VERSION_FILE)
+	python make.py --config_py $(NAME) $(VERSION)
+
+$(PYTHON_DIR): $(MAIN_YML)
+	mkdir -p $@
+	python make.py --python $(NAME)
+
+zip:  $(CONFIG_PY) tcp-server $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
+	zip --junk-paths $(TMP)/$(NAME)-$(VERSION).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd
+	mv $(PYTHON_DIR) $(TMP)/py_drivers
+	cd $(TMP) && zip $(NAME)-$(VERSION).zip py_drivers/*.py
+	rm -r $(TMP)/py_drivers
+
+###############################################################################
+# app
+###############################################################################
+
+app: $(TMP)
+	echo $(APP_SHA)
+	curl -L $(APP_URL) -o $(APP_ZIP)
+
+###############################################################################
+# clean
+###############################################################################
 
 clean:
 	$(RM) uImage fw_printenv boot.bin devicetree.dtb $(TMP)
