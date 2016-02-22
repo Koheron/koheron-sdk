@@ -141,7 +141,8 @@ $(TMP)/u-boot.elf: $(UBOOT_DIR)
 	mkdir -p $(@D)
 	make -C $< mrproper
 	make -C $< arch=arm `find $(PATCHES) -name '*_defconfig' -exec basename {} \;`
-	make -C $< arch=arm CFLAGS=$(UBOOT_CFLAGS) \
+	source $(VIVADO_PATH) && \
+	  make -C $< arch=arm CFLAGS=$(UBOOT_CFLAGS) \
 	  CROSS_COMPILE=arm-xilinx-linux-gnueabi- all
 	cp $</u-boot $@
 
@@ -201,7 +202,8 @@ $(LINUX_DIR): $(LINUX_TAR) $(RTL_TAR)
 uImage: $(LINUX_DIR)
 	make -C $< mrproper
 	make -C $< ARCH=arm xilinx_zynq_defconfig
-	make -C $< ARCH=arm CFLAGS=$(LINUX_CFLAGS) \
+	source $(VIVADO_PATH) && \
+	  make -C $< ARCH=arm CFLAGS=$(LINUX_CFLAGS) \
 	  -j $(shell nproc 2> /dev/null || echo 1) \
 	  CROSS_COMPILE=arm-xilinx-linux-gnueabi- UIMAGE_LOADADDR=0x8000 uImage
 	cp $</arch/arm/boot/uImage $@
