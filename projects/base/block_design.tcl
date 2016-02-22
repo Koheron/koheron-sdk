@@ -1,10 +1,10 @@
-source projects/base/init_bd.tcl
 source projects/base/xadc.tcl
 
 source boards/$board_name/gpio.tcl
 source boards/$board_name/pwm.tcl
 
 source lib/utilities.tcl
+source lib/init_bd.tcl
 source lib/bram.tcl
 source lib/config_register.tcl
 source lib/status_register.tcl
