@@ -25,6 +25,11 @@ proc add_xadc {name} {
     CHANNEL_ENABLE_VAUXP8_VAUXN8 true
     CHANNEL_ENABLE_VAUXP9_VAUXN9 true
     CHANNEL_ENABLE_VP_VN         true
+    AVERAGE_ENABLE_VAUXP0_VAUXN0 true
+    AVERAGE_ENABLE_VAUXP1_VAUXN1 true
+    AVERAGE_ENABLE_VAUXP8_VAUXN8 true
+    AVERAGE_ENABLE_VAUXP9_VAUXN9 true
+    AVERAGE_ENABLE_VP_VN         true
   } {}
 
   connect_bd_intf_net -boundary_type upper [get_bd_intf_pins axi_mem_intercon/M${idx}_AXI] [get_bd_intf_pins $name/s_axi_lite]
