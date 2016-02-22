@@ -6,7 +6,6 @@
 
 # solves problem with awk while building linux kernel
 # solution taken from http://www.googoolia.com/wp/2015/04/21/awk-symbol-lookup-error-awk-undefined-symbol-mpfr_z_sub/
-SHELL := /bin/bash
 
 LD_LIBRARY_PATH =
 
@@ -27,8 +26,8 @@ PROC = ps7_cortexa9_0
 VIVADO_VERSION = 2015.4
 VIVADO_PATH = /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh
 
-VIVADO = source $(VIVADO_PATH) && vivado -nolog -nojournal -mode batch
-HSI = source $(VIVADO_PATH) && hsi -nolog -nojournal -mode batch
+VIVADO = $(VIVADO_PATH) && vivado -nolog -nojournal -mode batch
+HSI = $(VIVADO_PATH) && hsi -nolog -nojournal -mode batch
 RM = rm -rf
 
 UBOOT_TAG = xilinx-v$(VIVADO_VERSION)
@@ -141,8 +140,7 @@ $(TMP)/u-boot.elf: $(UBOOT_DIR)
 	mkdir -p $(@D)
 	make -C $< mrproper
 	make -C $< arch=arm `find $(PATCHES) -name '*_defconfig' -exec basename {} \;`
-	source $(VIVADO_PATH) && \
-	  make -C $< arch=arm CFLAGS=$(UBOOT_CFLAGS) \
+	make -C $< arch=arm CFLAGS=$(UBOOT_CFLAGS) \
 	  CROSS_COMPILE=arm-xilinx-linux-gnueabi- all
 	cp $</u-boot $@
 
@@ -202,8 +200,7 @@ $(LINUX_DIR): $(LINUX_TAR) $(RTL_TAR)
 uImage: $(LINUX_DIR)
 	make -C $< mrproper
 	make -C $< ARCH=arm xilinx_zynq_defconfig
-	source $(VIVADO_PATH) && \
-	  make -C $< ARCH=arm CFLAGS=$(LINUX_CFLAGS) \
+	make -C $< ARCH=arm CFLAGS=$(LINUX_CFLAGS) \
 	  -j $(shell nproc 2> /dev/null || echo 1) \
 	  CROSS_COMPILE=arm-xilinx-linux-gnueabi- UIMAGE_LOADADDR=0x8000 uImage
 	cp $</arch/arm/boot/uImage $@
