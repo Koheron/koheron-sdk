@@ -26,8 +26,8 @@ PROC = ps7_cortexa9_0
 VIVADO_VERSION = 2015.4
 VIVADO_PATH = /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh
 
-VIVADO = $(VIVADO_PATH) && vivado -nolog -nojournal -mode batch
-HSI = $(VIVADO_PATH) && hsi -nolog -nojournal -mode batch
+VIVADO = vivado -nolog -nojournal -mode batch
+HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
 
 UBOOT_TAG = xilinx-v$(VIVADO_VERSION)
