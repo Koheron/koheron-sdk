@@ -41,7 +41,7 @@ connect_pins blk_mem_gen_$demod_bram_name/doutb $spectrum_name/demod_data
 connect_pins blk_mem_gen_$demod_bram_name/addrb $address_name/addr
 
 # Add averaging module
-source projects/base/averager.tcl
+source lib/averager.tcl
 set avg_name avg
 add_averager_module $avg_name $bram_addr_width
 
@@ -62,4 +62,4 @@ connect_pins $avg_name/n_avg       sts/In[expr $n_avg_offset]
 # Add EEPROM
 ##########################################################
 
-source projects/base/at93c46d.tcl
+source lib/at93c46d.tcl
