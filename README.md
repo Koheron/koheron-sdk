@@ -81,16 +81,21 @@ python:
 
 ## Get started
 
-[Install Vivado](https://github.com/Koheron/zynq-sdk/issues/37) in the directory `/opt/Xilinx/Vivado/`.
+The build is tested on Ubuntu 14.04.
+* [Install Vivado](https://github.com/Koheron/zynq-sdk/issues/37) in `/opt/Xilinx`.
+* [Full list of requirements](https://github.com/Koheron/zynq-sdk/issues/4)
 
-[Full list of requirements](https://github.com/Koheron/zynq-sdk/issues/4)
-
-Builds `oscillo` bitstream and Linux kernel:
+Build zip file including bitstream, middleware and python drivers:
 ```
-$ make NAME=oscillo
+$ make NAME=<project> zip
+```
+
+Build bitstream, boot-loader and Linux kernel:
+```
+$ make NAME=<project>
 ```
 
 Build Ubuntu image:
 ```
-$ sudo bash scripts/image.sh scripts/ubuntu.sh oscillo 1024
+$ sudo bash scripts/image.sh scripts/ubuntu.sh <project> 1024
 ```
