@@ -91,7 +91,7 @@ $(VERSION_FILE): .git/refs/heads | $(TMP)
 	echo $(shell (git rev-parse --short HEAD)) > $@
 
 $(SHA_FILE): $(VERSION_FILE)
-	echo $(shell (printf $(NAME)-$(cat $(VERSION_FILE) | sed '/^$/d') | sha256sum | sed 's/\W//g')) > $@
+	echo $(shell (printf $(NAME)-$(cat $(VERSION_FILE) | sed -e 's/^[ \t]*//' ) | sha256sum | sed 's/\W//g')) > $@
 
 ###############################################################################
 # FPGA
