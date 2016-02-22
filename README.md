@@ -81,9 +81,12 @@ python:
 
 ## Get started
 
-[Install Vivado](https://github.com/Koheron/zynq-sdk/issues/37) in the directory `/opt/Xilinx/Vivado/`.
-
 [Full list of requirements](https://github.com/Koheron/zynq-sdk/issues/4)
+
+[Install Vivado](https://github.com/Koheron/zynq-sdk/issues/37) and source it:
+```
+$ source /opt/Xilinx/Vivado/2015.4/settings64.sh
+```
 
 Builds `oscillo` bitstream and Linux kernel:
 ```
