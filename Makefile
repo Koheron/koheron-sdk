@@ -227,7 +227,7 @@ tcp-server_cli: $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
 
 ###############################################################################
-# zip : bitstream, tcp-server and python drivers
+# zip (contains bitstream, tcp-server and python drivers)
 ###############################################################################
 
 $(CONFIG_PY): $(MAIN_YML) $(VERSION_FILE)
