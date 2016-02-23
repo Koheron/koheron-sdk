@@ -207,7 +207,7 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 	  -i $(TMP)/$(NAME).tree $(TMP)/$(NAME).tree/system.dts
 
 ###############################################################################
-# tcp-server
+# tcp-server (compiled with project specific middleware)
 ###############################################################################
 
 $(TCP_SERVER_DIR):
