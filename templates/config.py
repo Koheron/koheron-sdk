@@ -41,3 +41,6 @@ zippath = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../tmp', z
 {% for offset in dic['status_offsets'] -%}
 {{ offset|upper }}_OFF = {{ 4 * (10 + loop.index0) }}
 {% endfor %}
+
+BITSTREAM_ID_OFF = 0
+DNA_OFF = 4 * 8
