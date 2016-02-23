@@ -2,12 +2,15 @@ set module_name adc_dac
 set bd [current_bd_instance .]
 current_bd_instance [create_bd_cell -type hier $module_name]
 
+create_bd_pin -dir I -from 13 -to 0 dac1
+create_bd_pin -dir I -from 13 -to 0 dac2
+
 create_bd_pin -dir O adc_clk
 create_bd_pin -dir O ser_clk
 create_bd_pin -dir O pwm_clk
 
-create_bd_pin -dir O -from 14 -to 0 adc1
-create_bd_pin -dir O -from 14 -to 0 adc2
+create_bd_pin -dir O -from 13 -to 0 adc1
+create_bd_pin -dir O -from 13 -to 0 adc2
 
 # Phase-locked Loop (PLL)
 cell xilinx.com:ip:clk_wiz:5.2 pll {
@@ -41,7 +44,10 @@ connect_pins adc/adc_dat_a_o adc1
 connect_pins adc/adc_dat_b_o adc2
 
 # Add DAC IP block
-create_bd_cell -type ip -vlnv pavel-demin:user:redp_dac:1.0 dac
+cell pavel-demin:user:redp_dac:1.0 dac {} {
+  dac_dat_a_i dac1
+  dac_dat_b_i dac2
+}
 foreach {port_name} {
   dac_clk_o
   dac_dat_o

@@ -20,26 +20,26 @@ proc add_config_register {module_name clk num_ports} {
   
   incr num_mi
   set_property -dict [list CONFIG.NUM_MI $num_mi] [get_bd_cells /axi_mem_intercon]
-
   connect_pins /axi_mem_intercon/M${idx}_ACLK    /${::ps_name}/FCLK_CLK0
   connect_pins /axi_mem_intercon/M${idx}_ARESETN /${::rst_name}/peripheral_aresetn
+
   # AXI clock converter
-  create_bd_cell -type ip -vlnv xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_0
+  cell xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_0 {} {
+    s_axi_aclk /${::ps_name}/FCLK_CLK0
+    s_axi_aresetn /${::rst_name}/peripheral_aresetn
+    m_axi_aclk    /$clk
+  }
   connect_bd_intf_net -boundary_type upper [get_bd_intf_pins /axi_mem_intercon/M${idx}_AXI] [get_bd_intf_pins axi_clock_converter_0/S_AXI]
   
-  connect_pins axi_clock_converter_0/s_axi_aclk    /${::ps_name}/FCLK_CLK0
-  connect_pins axi_clock_converter_0/s_axi_aresetn /${::rst_name}/peripheral_aresetn
-  connect_pins axi_clock_converter_0/m_axi_aclk    /$clk
-  connect_pins axi_clock_converter_0/m_axi_aresetn /${::rst_name}/peripheral_aresetn
   # Cfg register
-  create_bd_cell -type ip -vlnv pavel-demin:user:axi_cfg_register:1.0 axi_cfg_register_0
-  set_property -dict [list CONFIG.CFG_DATA_WIDTH [expr $num_ports*32]] [get_bd_cells axi_cfg_register_0]
+  cell pavel-demin:user:axi_cfg_register:1.0 axi_cfg_register_0 {
+    CFG_DATA_WIDTH [expr $num_ports*32]
+  } {
+    aclk axi_clock_converter_0/m_axi_aclk
+    cfg_data cfg
+  }
 
   connect_bd_intf_net [get_bd_intf_pins axi_cfg_register_0/S_AXI] [get_bd_intf_pins axi_clock_converter_0/M_AXI]
-  
-  connect_pins axi_cfg_register_0/aclk     axi_clock_converter_0/m_axi_aclk
-  connect_pins axi_cfg_register_0/aresetn  /${::rst_name}/peripheral_aresetn
-  connect_pins axi_cfg_register_0/cfg_data cfg
 
   assign_bd_address [get_bd_addr_segs {axi_cfg_register_0/s_axi/reg0 }]
   set_property range 4K [get_bd_addr_segs /${::ps_name}/Data/SEG_axi_cfg_register_0_reg0]

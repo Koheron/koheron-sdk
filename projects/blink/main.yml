@@ -24,11 +24,12 @@ addresses:
 
 config_offsets:
   - led
-  - pwm0
-  - pwm1
-  - pwm2
-  - pwm3
-  - addr
+  - dac1
+  - dac2
+
+status_offsets:
+  - adc1
+  - adc2
 
 parameters:
   bram_addr_width: 13
