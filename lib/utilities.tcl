@@ -14,4 +14,3 @@ proc connect_constant {name value width pin} {
     [list CONST_VAL $value CONST_WIDTH $width] \
     [list dout $pin]
 }
-

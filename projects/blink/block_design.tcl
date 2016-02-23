@@ -31,6 +31,11 @@ cell xilinx.com:ip:xlslice:1.0 led_slice {
 }
 connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 
+# Add XADC
+source lib/xadc.tcl
+set xadc_name xadc_wiz_0
+add_xadc $xadc_name
+
 # Connect DAC to config and ADC to status
 connect_pins $config_name/Out${dac1_offset} adc_dac/dac1
 connect_pins $config_name/Out${dac2_offset} adc_dac/dac2

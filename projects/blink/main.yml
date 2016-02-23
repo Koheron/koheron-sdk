@@ -8,8 +8,6 @@ cores:
   - redp_dac_v1_0
   - axi_cfg_register_v1_0
   - axi_sts_register_v1_0
-  - pwm_v1_0
-  - edge_detector_v1_0
 
 addresses:
   - name: config
@@ -18,9 +16,6 @@ addresses:
   - name: status
     offset: '0x50000000'
     range: 4K
-  - name: dac
-    offset: '0x40000000'
-    range: 32K
 
 config_offsets:
   - led

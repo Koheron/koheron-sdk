@@ -1,5 +1,3 @@
-source projects/base/xadc.tcl
-
 source boards/$board_name/gpio.tcl
 source boards/$board_name/pwm.tcl
 
@@ -9,6 +7,7 @@ source lib/bram.tcl
 source lib/config_register.tcl
 source lib/status_register.tcl
 source lib/address.tcl
+source lib/xadc.tcl
 
 set board_preset boards/$board_name/config/board_preset.tcl
 
