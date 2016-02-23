@@ -34,7 +34,6 @@ parameters:
   n_pwm: 4
 
 devices:
-  - base/init.hpp
   - blink.hpp
 
 python_driver:
