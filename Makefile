@@ -8,28 +8,24 @@
 # solution taken from http://www.googoolia.com/wp/2015/04/21/awk-symbol-lookup-error-awk-undefined-symbol-mpfr_z_sub/
 
 LD_LIBRARY_PATH =
-
-NAME = oscillo
-
 TMP = tmp
 
+# Project specific variables
+NAME = oscillo
 BOARD:=$(shell (python make.py --board $(NAME)) && (cat $(TMP)/$(NAME).board))
-
 CORES:=$(shell python make.py --cores $(NAME) && cat $(TMP)/$(NAME).cores)
-
 PART:=`cat boards/$(BOARD)/PART`
-
 PATCHES = boards/$(BOARD)/patches
-
 PROC = ps7_cortexa9_0
 
+# Custom commands
 VIVADO_VERSION = 2015.4
 VIVADO_PATH = /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh
-
 VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
 
+# Linux and U-boot
 UBOOT_TAG = xilinx-v$(VIVADO_VERSION)
 LINUX_TAG = xilinx-v$(VIVADO_VERSION)
 DTREE_TAG = xilinx-v$(VIVADO_VERSION)
@@ -50,30 +46,31 @@ LINUX_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=softfp"
 UBOOT_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=softfp"
 ARMHF_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 
-MAIN_YML = projects/$(NAME)/main.yml
-
-VERSION_FILE = $(TMP)/$(NAME).version
-SHA_FILE = $(TMP)/$(NAME).sha
-
-VERSION = $(shell cat $(VERSION_FILE))
-SHA = $(shell cat $(SHA_FILE))
-
 RTL_TAR = $(TMP)/rtl8192cu.tgz
 RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
 
-S3_URL = http://zynq-sdk.s3-website-eu-west-1.amazonaws.com
-# Get last app release :
-APP_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
-APP_URL = $(S3_URL)/app-$(APP_SHA).zip
-APP_ZIP = $(TMP)/app.zip
+# Project configuration
+MAIN_YML = projects/$(NAME)/main.yml
+CONFIG_TCL = projects/$(NAME)/config.tcl
+CONFIG_PY  = projects/$(NAME)/config.py
 
+# Versioning
+VERSION_FILE = $(TMP)/$(NAME).version
+VERSION = $(shell cat $(VERSION_FILE))
+SHA_FILE = $(TMP)/$(NAME).sha
+SHA = $(shell cat $(SHA_FILE))
+
+# Zip
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 TCP_SERVER_SHA = master
 PYTHON_DIR = $(TMP)/$(NAME).python
 PYTHON_ZIP = $(PYTHON_DIR)/python.zip
 
-CONFIG_TCL = projects/$(NAME)/config.tcl
-CONFIG_PY  = projects/$(NAME)/config.py
+# App
+S3_URL = http://zynq-sdk.s3-website-eu-west-1.amazonaws.com
+APP_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
+APP_URL = $(S3_URL)/app-$(APP_SHA).zip
+APP_ZIP = $(TMP)/app.zip
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
