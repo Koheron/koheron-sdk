@@ -1,8 +1,8 @@
 
 proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
 
-	set bd [current_bd_instance .]
-	current_bd_instance [create_bd_cell -type hier $module_name]
+  set bd [current_bd_instance .]
+  current_bd_instance [create_bd_cell -type hier $module_name]
 
   create_bd_pin -dir I -type clk                         clk
   create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc1
@@ -64,7 +64,7 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
       C_A_Exponent_Width 28
       Flow_Control NonBlocking
     } {
-      aclk CLK
+      aclk clk
       s_axis_a_tdata mult_slice_$i/dout
       s_axis_a_tvalid complex_mult/m_axis_dout_tvalid
     }
