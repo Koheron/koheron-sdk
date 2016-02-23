@@ -41,9 +41,9 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
   }
 
   cell xilinx.com:ip:cmpy:6.0 complex_mult {
-    APortWidth 14
-    BPortWidth 14
-    OutputWidth 28
+    APortWidth $adc_width
+    BPortWidth $adc_width
+    OutputWidth [expr 2*$adc_width + 1]
   } {
     aclk clk
     s_axis_a_tdata concat_0/dout
@@ -61,7 +61,7 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
     cell xilinx.com:ip:floating_point:7.1 float_$i {
       Operation_Type Fixed_to_float
       A_Precision_Type Custom
-      C_A_Exponent_Width 28
+      C_A_Exponent_Width [expr 2*$adc_width + 1]
       Flow_Control NonBlocking
     } {
       aclk clk
@@ -76,6 +76,14 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
   } {
     In0 float_0/m_axis_result_tdata
     In1 float_1/m_axis_result_tdata
+  }
+
+  cell xilinx.com:ip:util_vector_logic:2.0 tvalid_and {
+    C_SIZE 1
+    C_OPERATION and
+  } {
+    Op1 float_0/m_axis_result_tvalid
+    Op2 float_1/m_axis_result_tvalid
   }
 
   cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
@@ -100,7 +108,7 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
   } {
     aclk clk
     s_axis_data_tdata concat_float/dout
-    s_axis_data_tvalid float_0/m_axis_result_tvalid
+    s_axis_data_tvalid tvalid_and/Res
   }
 
   cell xilinx.com:ip:xlconstant:1.1 config_tlast_const {CONST_VAL 0} {dout fft_0/s_axis_data_tlast}
