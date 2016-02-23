@@ -17,6 +17,6 @@ device=`losetup -f`
 
 losetup $device $image
 
-sh script/ubuntu.sh $device $name
+sh scripts/ubuntu.sh $device $name
 
 losetup -d $device
