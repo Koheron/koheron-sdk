@@ -17,8 +17,6 @@ cores:
   - bus_multiplexer_v1_0
   - at93c46d_spi_v1_0
 
-cross-compile: arm-linux-gnueabihf-
-
 python: 
   - base.py
 

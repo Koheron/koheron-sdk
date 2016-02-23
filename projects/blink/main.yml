@@ -4,19 +4,19 @@ parent: default
 board: red-pitaya
 
 cores:
+  - redp_adc_v1_0
+  - redp_dac_v1_0
   - axi_cfg_register_v1_0
   - axi_sts_register_v1_0
+  - pwm_v1_0
 
 config_offsets:
   - led
-
-python: 
-  - blink.py
-  
+ 
 devices:
-  - blink.hpp
+  - base/init.hpp
 
 xdc:
   - boards/red-pitaya/config/ports.xdc
   - boards/red-pitaya/config/clocks.xdc
-  - projects/base/expansion_connector.xdc
+  - boards/red-pitaya/config/clocks.xdc

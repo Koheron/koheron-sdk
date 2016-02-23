@@ -32,10 +32,3 @@ proc init_bd {board_preset bram_name bram_size} {
 
   set_property -dict [list CONFIG.S00_HAS_REGSLICE 4] [get_bd_cells axi_mem_intercon]
 }
-
-proc add_master_interface {} {
-  # Add a new Master Interface to AXI Interconnect
-  set num_master_interfaces [get_property CONFIG.NUM_MI [get_bd_cells axi_mem_intercon]]
-  incr num_master_interfaces
-  properties axi_mem_intercon [list NUM_MI $num_master_interfaces]
-}

@@ -130,7 +130,7 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
   cell xilinx.com:ip:floating_point:7.1 floating_point_0 {
     Flow_Control NonBlocking
     Add_Sub_Value Add
-    C_Mult_Usage Medium_Usage
+    C_Mult_Usage No_Usage
   } {
     aclk clk
     S_AXIS_A mult_0/M_AXIS_RESULT
