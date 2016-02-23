@@ -97,7 +97,7 @@ Build bitstream, boot-loader and Linux kernel:
 $ make NAME=<project>
 ```
 
-Build Ubuntu image:
+Build Ubuntu SD card image:
 ```
-$ sudo bash scripts/image.sh scripts/ubuntu.sh <project> 1024
+$ sudo bash scripts/image.sh <project>
 ```

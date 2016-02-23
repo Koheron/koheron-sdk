@@ -1,16 +1,14 @@
-source projects/base/xadc.tcl
-
-source boards/$board_name/gpio.tcl
-source boards/$board_name/pwm.tcl
+source projects/blink/config.tcl
 
 source lib/utilities.tcl
 source lib/init_bd.tcl
-source lib/bram.tcl
 source lib/config_register.tcl
 source lib/status_register.tcl
 source lib/address.tcl
 
-set board_preset boards/$board_name/config/board_preset.tcl
+source projects/base/xadc.tcl
+source boards/$board_name/pwm.tcl
+set bram_size [expr 2**($bram_addr_width-8)]K
 
 ##########################################################
 # Define global variables
@@ -21,23 +19,17 @@ set rst_name       rst_${ps_name}_125M
 ##########################################################
 # Define block names
 ##########################################################
-set xadc_name      xadc_wiz_0
 set config_name    cfg
 set status_name    sts
-set address_name   address
 set dac_bram_name  dac_bram
-set adc1_bram_name adc1_bram
-set avg_name       averaging
+set xadc_name      xadc_wiz_0
+set address_name   address
 
 ##########################################################
 # Init block design and add DAC BRAM
 ##########################################################
+set board_preset boards/$board_name/config/board_preset.tcl
 init_bd $board_preset $dac_bram_name $bram_size
-
-##########################################################
-# Add GPIO
-##########################################################
-add_gpio
 
 ##########################################################
 # Add ADCs and DACs
@@ -59,29 +51,6 @@ add_status_register $status_name $adc_clk 16
 for {set i 0} {$i < 8} {incr i} {
   set sha sha${i}
   connect_constant sha_constant_$i [expr $$sha] 32 $status_name/In$i
-}
-
-cell pavel-demin:user:dna_reader:1.0 dna_0 {} {
-  aclk $adc_clk
-  aresetn $rst_name/peripheral_aresetn
-}
-
-cell xilinx.com:ip:xlslice:1.0 dna_slice_0 {
-  DIN_WIDTH 57
-  DIN_FROM  31
-  DIN_TO    0
-} {
-  Din dna_0/dna_data
-  Dout $status_name/In8
-}
-
-cell xilinx.com:ip:xlslice:1.0 dna_slice_1 {
-  DIN_WIDTH 57
-  DIN_FROM  56
-  DIN_TO    32
-} {
-  Din dna_0/dna_data
-  Dout $status_name/In9
 }
 
 ##########################################################

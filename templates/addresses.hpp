@@ -17,8 +17,9 @@
 {% endfor %}
 // -- Status offsets
 {% for offset in dic['status_offsets'] -%}
-#define {{ offset|upper }}_OFF {{ 4 * (8 + loop.index0) }}
+#define {{ offset|upper }}_OFF {{ 4 * (10 + loop.index0) }}
 {% endfor %}
 #endif // __DRIVERS_CORE_ADDRESSES_HPP__
 
 #define BITSTREAM_ID_OFF 0
+#define DNA_OFF 8*4

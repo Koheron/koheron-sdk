@@ -1,0 +1,54 @@
+---
+project: blink
+parent: default
+board: red-pitaya
+
+cores:
+  - redp_adc_v1_0
+  - redp_dac_v1_0
+  - axi_cfg_register_v1_0
+  - axi_sts_register_v1_0
+  - pwm_v1_0
+  - edge_detector_v1_0
+
+addresses:
+  - name: config
+    offset: '0x60000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+  - name: dac
+    offset: '0x40000000'
+    range: 32K
+
+config_offsets:
+  - led
+  - pwm0
+  - pwm1
+  - pwm2
+  - pwm3
+  - addr
+
+parameters:
+  bram_addr_width: 13
+  dac_width: 14
+  adc_width: 14
+  pwm_width: 10
+  n_pwm: 4
+
+devices:
+  - base/init.hpp
+  - blink.hpp
+
+python_driver:
+  name: Blink
+  file: blink.py
+
+python:
+  - blink.py
+
+xdc:
+  - boards/red-pitaya/config/ports.xdc
+  - boards/red-pitaya/config/clocks.xdc
+  - boards/red-pitaya/config/clocks.xdc

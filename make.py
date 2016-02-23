@@ -109,7 +109,7 @@ def get_renderer():
 def build_middleware(project, tcp_server_dir):
     _check_project(project)
     config = load_config(project)
-    assert os.path.exists(os.path.join(tcp_server_dir, 'middleware'))
+    #assert os.path.exists(os.path.join(tcp_server_dir, 'middleware'))
 
     _import_middleware_from_project(project)
 
