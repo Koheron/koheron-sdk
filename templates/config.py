@@ -39,5 +39,5 @@ zippath = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../tmp', z
 
 # Status offsets
 {% for offset in dic['status_offsets'] -%}
-{{ offset|upper }}_OFF = {{ 4 * loop.index0 }}
+{{ offset|upper }}_OFF = {{ 4 * (8 + loop.index0) }}
 {% endfor %}
