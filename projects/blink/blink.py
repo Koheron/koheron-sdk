@@ -46,7 +46,6 @@ class Blink(object):
 
         return power
 
-
     @write_buffer('BLINK')
     def set_dac_buffer(self, data):
         pass
