@@ -4,6 +4,11 @@ project: default
 python: 
   - sampling.py
 
+cores:
+  - axi_cfg_register_v1_0
+  - axi_sts_register_v1_0
+  - dna_reader_v1_0
+
 cross-compile: arm-linux-gnueabihf-
 
 host: '192.168.1.100'

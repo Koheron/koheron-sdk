@@ -9,7 +9,7 @@ set {{ offset }}_offset {{ loop.index0 }}
 # Define status offsets
 ##########################################################
 {% for offset in dic['status_offsets'] -%}
-set {{ offset }}_offset {{ 8 + loop.index0 }}
+set {{ offset }}_offset {{ 10 + loop.index0 }}
 {% endfor -%}
 
 ##########################################################
