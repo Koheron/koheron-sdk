@@ -22,3 +22,4 @@
 #endif // __DRIVERS_CORE_ADDRESSES_HPP__
 
 #define BITSTREAM_ID_OFF 0
+#define DNA_OFF 8*4

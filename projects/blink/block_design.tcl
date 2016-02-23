@@ -4,6 +4,11 @@ source lib/utilities.tcl
 source lib/init_bd.tcl
 source lib/config_register.tcl
 source lib/status_register.tcl
+source lib/address.tcl
+
+source projects/base/xadc.tcl
+source boards/$board_name/pwm.tcl
+set bram_size [expr 2**($bram_addr_width-8)]K
 
 ##########################################################
 # Define global variables
@@ -16,6 +21,9 @@ set rst_name       rst_${ps_name}_125M
 ##########################################################
 set config_name    cfg
 set status_name    sts
+set dac_bram_name  dac_bram
+set xadc_name      xadc_wiz_0
+set address_name   address
 
 ##########################################################
 # Init block design and add DAC BRAM
@@ -73,6 +81,13 @@ for {set i 0} {$i < $n_pwm} {incr i} {
 }
 
 connect_pins pwm/rst $rst_name/peripheral_reset
+
+##########################################################
+# Add address module
+##########################################################
+add_address_module $address_name $bram_addr_width $adc_clk
+connect_pins $address_name/clk  $adc_clk
+connect_pins $address_name/cfg  $config_name/Out$addr_offset
 
 ##########################################################
 # DAC BRAM
