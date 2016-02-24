@@ -34,7 +34,7 @@ parameters:
   n_pwm: 4
 
 devices:
-  - blink.hpp
+  - devices/common
 
 python_driver:
   name: Blink
