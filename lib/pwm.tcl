@@ -11,9 +11,9 @@ proc add_pwm {module_name clk offset pwm_width num_ports {output_port dac_pwm_o}
     create_bd_pin -dir I -from 31 -to 0 pwm$i
   }
 
-  connect_bd_net [get_bd_pins clk] [get_bd_pins /$clk]
+  connect_pins clk /$clk
 
-  cell xilinx.com:ip:xlconcat:2.1 concat_pwm [list NUM_PORTS $num_ports] {}
+  cell xilinx.com:ip:xlconcat:2.1 concat_pwm {NUM_PORTS $num_ports} {}
   connect_bd_net [get_bd_ports /$output_port] [get_bd_pins concat_pwm/dout]
 
   for {set i 0} {$i < $num_ports} {incr i} {
