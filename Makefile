@@ -11,7 +11,7 @@ LD_LIBRARY_PATH =
 TMP = tmp
 
 # Project specific variables
-NAME = oscillo
+NAME = blink
 BOARD:=$(shell (python make.py --board $(NAME)) && (cat $(TMP)/$(NAME).board))
 CORES:=$(shell python make.py --cores $(NAME) && cat $(TMP)/$(NAME).cores)
 PART:=`cat boards/$(BOARD)/PART`
