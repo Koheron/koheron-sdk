@@ -9,25 +9,15 @@ proc add_config_register {module_name clk num_ports} {
     create_bd_pin -dir O -from 31 -to 0 Out$i
   }
 
-  # Number of Master interfaces
-  set num_mi [get_property CONFIG.NUM_MI [get_bd_cells /axi_mem_intercon]]
-  
-  if { $num_mi < 10 } {
-    set idx 0$num_mi
-  } else {
-    set idx $num_mi
-  }
-  
-  incr num_mi
-  set_property -dict [list CONFIG.NUM_MI $num_mi] [get_bd_cells /axi_mem_intercon]
-  connect_pins /axi_mem_intercon/M${idx}_ACLK    /${::ps_name}/FCLK_CLK0
-  connect_pins /axi_mem_intercon/M${idx}_ARESETN /${::rst_name}/peripheral_aresetn
+  # Add a new Master Interface to AXI Interconnect
+  set idx [add_master_interface]
 
   # AXI clock converter
   cell xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_0 {} {
     s_axi_aclk /${::ps_name}/FCLK_CLK0
     s_axi_aresetn /${::rst_name}/peripheral_aresetn
     m_axi_aclk    /$clk
+    m_axi_aresetn /${::rst_name}/peripheral_aresetn
   }
   connect_bd_intf_net -boundary_type upper [get_bd_intf_pins /axi_mem_intercon/M${idx}_AXI] [get_bd_intf_pins axi_clock_converter_0/S_AXI]
   

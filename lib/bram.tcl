@@ -1,17 +1,6 @@
 proc add_bram {bram_name bram_range {bram_offset "auto"}} {
   # Add a new Master Interface to AXI Interconnect
-  set num_mi [get_property CONFIG.NUM_MI [get_bd_cells axi_mem_intercon]]
-  if { $num_mi < 10 } {
-    set idx 0$num_mi
-  } else {
-    set idx $num_mi
-  }
-  incr num_mi
-  properties axi_mem_intercon [list NUM_MI $num_mi]
-  puts "Increasing number of master interfaces to $num_mi"
-  puts "Connecting BRAM to M${idx}_AXI"
-  connect_pins axi_mem_intercon/M${idx}_ACLK    ${::ps_name}/FCLK_CLK0
-  connect_pins axi_mem_intercon/M${idx}_ARESETN ${::rst_name}/peripheral_aresetn
+  set idx [add_master_interface]
 
   # Add BRAM Controller
   cell xilinx.com:ip:axi_bram_ctrl:4.0 axi_bram_ctrl_$bram_name {
