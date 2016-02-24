@@ -16,7 +16,7 @@ proc add_bram {bram_name bram_size} {
     SINGLE_PORT_BRAM 1
   } {
     s_axi_aclk ${::ps_name}/FCLK_CLK0
-    s_axi_aresetn/${::rst_name}/peripheral_aresetn
+    s_axi_aresetn ${::rst_name}/peripheral_aresetn
   }
   cell xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_$bram_name {
     Memory_Type True_Dual_Port_RAM
