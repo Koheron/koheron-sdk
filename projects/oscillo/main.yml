@@ -46,10 +46,10 @@ parameters:
   status_size: 16
   
 devices:
+  - devices/gpio
+  - devices/xadc
   - projects/oscillo/oscillo
   - projects/base/base
-  - projects/base/gpio
-  - projects/base/xadc
   - projects/base/init
 
 python_driver:
