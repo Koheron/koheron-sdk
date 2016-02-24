@@ -14,11 +14,11 @@ set pwm_clk adc_dac/pwm_clk
 # Add config and status registers
 source lib/config_register.tcl
 set config_name cfg
-add_config_register $config_name $adc_clk 16
+add_config_register $config_name $adc_clk 16 $axi_config_range $axi_config_offset
 
 source lib/status_register.tcl
 set status_name sts
-add_status_register $status_name $adc_clk 16
+add_status_register $status_name $adc_clk 16 $axi_status_range $axi_status_offset
 source lib/sha_dna.tcl
 
 # Connect LEDs
@@ -37,8 +37,7 @@ set xadc_name xadc_wiz_0
 add_xadc $xadc_name
 
 # Connect DAC to config and ADC to status
-connect_pins $config_name/Out${dac1_offset} adc_dac/dac1
-connect_pins $config_name/Out${dac2_offset} adc_dac/dac2
-
-connect_pins $status_name/In${adc1_offset} adc_dac/adc1
-connect_pins $status_name/In${adc2_offset} adc_dac/adc2
+for {set i 1} {$i < 3} {incr i} {
+  connect_pins $config_name/Out[set dac${i}_offset] adc_dac/dac$i
+  connect_pins $status_name/In[set adc${i}_offset] adc_dac/adc$i
+}
