@@ -21,9 +21,15 @@ Instrument configuration is done via a YAML file:
 
 ```yaml
 ---
-project: oscillo
+project: blink
+parent: default
+board: red-pitaya
 
-parent: base 
+cores:
+  - redp_adc_v1_0
+  - redp_dac_v1_0
+  - axi_cfg_register_v1_0
+  - axi_sts_register_v1_0
 
 addresses:
   - name: config
@@ -32,50 +38,37 @@ addresses:
   - name: status
     offset: '0x50000000'
     range: 4K
-  - name: dac
-    offset: '0x40000000'
-    range: 32K
-  - name: adc1
-    offset: '0x42000000'
-    range: 32K
-  - name: adc2
-    offset: '0x44000000'
-    range: 32K
 
 config_offsets:
-  - spi_in
   - led
-  - pwm0
-  - pwm1
-  - pwm2
-  - pwm3
-  - addr
-  - avg0
-  - avg1
-  
+  - dac1
+  - dac2
+
 status_offsets:
-  - spi_out
-  - n_avg0
-  - n_avg1
-  
+  - adc1
+  - adc2
+
 parameters:
   bram_addr_width: 13
+  dac_width: 14
+  adc_width: 14
   pwm_width: 10
   n_pwm: 4
-  
+
 devices:
-  - oscillo.hpp
-  - base/base.hpp
-  - base/gpio.hpp
-  - base/xadc.hpp
-  - base/init.hpp
+  - blink.hpp
 
 python_driver:
-  name: Oscillo
-  file: oscillo.py 
+  name: Blink
+  file: blink.py
 
 python:
-  - oscillo.py
+  - blink.py
+
+xdc:
+  - boards/red-pitaya/config/ports.xdc
+  - boards/red-pitaya/config/clocks.xdc
+  - boards/red-pitaya/config/clocks.xdc
 ```
 
 
