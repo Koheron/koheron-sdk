@@ -7,7 +7,7 @@ proc add_bram {bram_name bram_size} {
     set idx $num_mi
   }
   incr num_mi
-  properties axi_mem_intercon [list NUM_MI $num_master_interfaces]
+  properties axi_mem_intercon [list NUM_MI $num_mi]
   connect_pins /axi_mem_intercon/M${idx}_ACLK    /${::ps_name}/FCLK_CLK0
   connect_pins /axi_mem_intercon/M${idx}_ARESETN /${::rst_name}/peripheral_aresetn
 
@@ -18,7 +18,9 @@ proc add_bram {bram_name bram_size} {
     s_axi_aclk ${::ps_name}/FCLK_CLK0
     s_axi_aresetn/${::rst_name}/peripheral_aresetn
   }
-  cell xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_$bram_name {Memory_Type True_Dual_Port_RAM} {}
+  cell xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_$bram_name {
+    Memory_Type True_Dual_Port_RAM
+  } {}
   connect_bd_intf_net [get_bd_intf_pins axi_bram_ctrl_$bram_name/BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_$bram_name/BRAM_PORTA]
   set_property range $bram_size [get_bd_addr_segs ${::ps_name}/Data/SEG_axi_bram_ctrl_${bram_name}_Mem0]
 }
