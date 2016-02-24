@@ -93,7 +93,7 @@ $(SHA_FILE): $(VERSION_FILE)
 # FPGA
 ###############################################################################
 
-$(CONFIG_TCL): $(MAIN_YML) $(SHA_FILE)
+$(CONFIG_TCL): $(MAIN_YML) $(SHA_FILE) templates/config.tcl
 	python make.py --config_tcl $(NAME)
 
 xdc: $(MAIN_YML)

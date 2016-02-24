@@ -1,4 +1,4 @@
-proc add_config_register {module_name clk num_ports} {
+proc add_config_register {module_name clk {num_ports 32} {range 4K} {offset "auto"}} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
@@ -32,7 +32,12 @@ proc add_config_register {module_name clk num_ports} {
   connect_bd_intf_net [get_bd_intf_pins axi_cfg_register_0/S_AXI] [get_bd_intf_pins axi_clock_converter_0/M_AXI]
 
   assign_bd_address [get_bd_addr_segs {axi_cfg_register_0/s_axi/reg0 }]
-  set_property range 4K [get_bd_addr_segs /${::ps_name}/Data/SEG_axi_cfg_register_0_reg0]
+  set memory_segment [get_bd_addr_segs /${::ps_name}/Data/SEG_axi_cfg_register_0_reg0]
+  set_property range $range $memory_segment
+
+  if { $offset ne "auto"} {
+    set_property offset $offset $memory_segment
+  }
 
   for {set i 0} {$i < $num_ports} {incr i} {
     cell xilinx.com:ip:xlslice:1.0 slice_$i {

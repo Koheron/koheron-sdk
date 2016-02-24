@@ -13,11 +13,11 @@ set pwm_clk adc_dac/pwm_clk
 # Add config and status registers
 source lib/config_register.tcl
 set config_name cfg
-add_config_register $config_name $adc_clk 16
+add_config_register $config_name $adc_clk 16 $axi_config_range $axi_config_offset
 
 source lib/status_register.tcl
 set status_name sts
-add_status_register $status_name $adc_clk 16
+add_status_register $status_name $adc_clk 16 $axi_status_range $axi_status_offset
 source lib/sha_dna.tcl
 
 # Connect LEDs
@@ -54,7 +54,7 @@ connect_pins pwm/rst $rst_name/peripheral_reset
 source lib/bram.tcl
 set bram_size [expr 2**($bram_addr_width-8)]K
 set dac_bram_name dac_bram 
-add_bram $dac_bram_name $bram_size
+add_bram $dac_bram_name $axi_dac_range $axi_dac_offset
 
 # Add address module
 source lib/address.tcl

@@ -1,5 +1,5 @@
 
-proc add_status_register {module_name clk num_ports} {
+proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "auto"}}  {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
@@ -29,9 +29,13 @@ proc add_status_register {module_name clk num_ports} {
   }
   connect_bd_intf_net [get_bd_intf_pins axi_sts_register_0/S_AXI] [get_bd_intf_pins axi_clock_converter_0/M_AXI]
 
-  #connect_bd_net [get_bd_pins axi_sts_register_0/sts_data] [get_bd_pins sts]
   assign_bd_address [get_bd_addr_segs {axi_sts_register_0/s_axi/reg0 }]
-  set_property range 4K [get_bd_addr_segs /${::ps_name}/Data/SEG_axi_sts_register_0_reg0]
+  set memory_segment [get_bd_addr_segs /${::ps_name}/Data/SEG_axi_sts_register_0_reg0]
+  set_property range $range $memory_segment
+
+  if { $offset ne "auto"} {
+    set_property offset $offset $memory_segment
+  }
 
   cell xilinx.com:ip:xlconcat:2.1 concat_0 {
     NUM_PORTS $num_ports

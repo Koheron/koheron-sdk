@@ -1,3 +1,4 @@
+
 proc add_bram {bram_name bram_range {bram_offset "auto"}} {
   # Add a new Master Interface to AXI Interconnect
   set idx [add_master_interface]
