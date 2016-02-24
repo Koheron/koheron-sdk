@@ -11,8 +11,6 @@
 #include <drivers/wr_register.hpp>
 #include <drivers/addresses.hpp>
 
-#define BITSTREAM_ID_SIZE 8
-
 class Common
 {
   public:
