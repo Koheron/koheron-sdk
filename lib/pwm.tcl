@@ -1,5 +1,5 @@
 
-proc add_pwm {module_name clk offset pwm_width num_ports} {
+proc add_pwm {module_name clk offset pwm_width num_ports {output_port dac_pwm_o}} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
@@ -14,7 +14,7 @@ proc add_pwm {module_name clk offset pwm_width num_ports} {
   connect_bd_net [get_bd_pins clk] [get_bd_pins /$clk]
 
   cell xilinx.com:ip:xlconcat:2.1 concat_pwm [list NUM_PORTS $num_ports] {}
-  connect_bd_net [get_bd_ports /dac_pwm_o] [get_bd_pins concat_pwm/dout]
+  connect_bd_net [get_bd_ports /$output_port] [get_bd_pins concat_pwm/dout]
 
   for {set i 0} {$i < $num_ports} {incr i} {
     cell koheron:user:pwm:1.0 pwm_$i {
