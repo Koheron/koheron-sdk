@@ -46,11 +46,11 @@ parameters:
   status_size: 16
   
 devices:
-  - oscillo.hpp
-  - base/base.hpp
-  - base/gpio.hpp
-  - base/xadc.hpp
-  - base/init.hpp
+  - devices/gpio
+  - devices/xadc
+  - projects/oscillo/oscillo
+  - projects/base/base
+  - projects/base/init
 
 python_driver:
   name: Oscillo

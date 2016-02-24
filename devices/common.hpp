@@ -1,32 +1,34 @@
-/// Blink bitstream driver
+/// Common commands for all bitstreams
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_BLINK_HPP__
-#define __DRIVERS_BLINK_HPP__
+#ifndef __DRIVERS_COMMON_HPP__
+#define __DRIVERS_COMMON_HPP__
 
-#include <tuple>
 #include <array>
 
 #include <drivers/dev_mem.hpp>
 #include <drivers/wr_register.hpp>
 #include <drivers/addresses.hpp>
 
-//> \description Blink driver
-class Blink
+#define BITSTREAM_ID_SIZE 8
+
+class Common
 {
   public:
-    Blink(Klib::DevMem& dev_mem_);
-    ~Blink();
+    Common(Klib::DevMem& dev_mem_);
+    ~Common();
     
     //> \io_type WRITE
     //> \flag AT_INIT
-    int Open(uint32_t dac_wfm_size_);
+    int Open();
     
     void Close();
 
     //> \io_type READ
     std::array<uint32_t, BITSTREAM_ID_SIZE> get_bitstream_id();
+
+    // TODO Add DNA
     
     enum Status {
         CLOSED,
@@ -38,18 +40,13 @@ class Blink
     bool IsFailed() const {return status == FAILED;}
     
   private:
-    // Core drivers
     Klib::DevMem& dev_mem;
-
     int status;
-    
-    // Number of point in the DAC waveform
-    uint32_t dac_wfm_size;
     std::array<uint32_t, BITSTREAM_ID_SIZE> bitstream_id;
     
-    // Memory maps IDs:
+    // Memory maps IDs
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
 };
 
-#endif // __DRIVERS_Blink_HPP__
+#endif // __DRIVERS_COMMON_HPP__

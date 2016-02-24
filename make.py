@@ -107,33 +107,31 @@ def get_renderer():
 ###################
 
 def build_middleware(project, tcp_server_dir):
-    _check_project(project)
     config = load_config(project)
-    #assert os.path.exists(os.path.join(tcp_server_dir, 'middleware'))
+    drivers_path = os.path.join(tcp_server_dir,'middleware','drivers')
 
-    _import_middleware_from_project(project)
+    # Include Common
+    shutil.copy('devices/common.hpp', drivers_path)
+    shutil.copy('devices/common.cpp', drivers_path)
 
     if 'devices' in config:
         for device in config['devices']:
-            project_name = os.path.dirname(device)
-            if project_name != "":
-                _import_middleware_from_project(project_name)
+            hpp_filename = device + '.hpp'
+            cpp_filename = device + '.cpp'
+            if not (os.path.exists(hpp_filename) or os.path.exists(cpp_filename)):
+                raise ValueError('Missing source file for device ' + device)
+            shutil.copy(hpp_filename, drivers_path)
+            shutil.copy(cpp_filename, drivers_path)
             
-def _import_middleware_from_project(project):
-    for basename in os.listdir(os.path.join('projects', project)):
-        if basename.endswith('.hpp') or basename.endswith('.cpp'):
-            import_filename = os.path.join('projects', project, basename)
-            shutil.copy(import_filename, 
-                        os.path.join(tcp_server_dir,'middleware','drivers'))
-
 def build_server_config(project, tcp_server_dir):
     config = get_config(project)
     dev_paths = [
-      '../devices/dev_mem.yaml'
+      '../devices/dev_mem.yaml',
+      '../middleware/drivers/common.hpp'
     ]
     if 'devices' in config:
         for device in config['devices']:
-            filename = os.path.basename(device)
+            filename = os.path.basename(device) + ".hpp"
             dev_paths.append(os.path.join('../middleware/drivers/', filename))
     server_config = {
       'cross-compile': config['cross-compile'],
@@ -159,7 +157,10 @@ def build_python(project, python_dir):
     template = get_renderer().get_template(os.path.join('templates', '__init__.py'))
     config = load_config(project)
     output = file(os.path.join(python_dir, '__init__.py'),'w')
-    output.write(template.render(dic={'include': include_list, 'driver': config['python_driver']}))
+    output.write(template.render(dic={
+                                   'include': include_list,
+                                   'driver': config['python_driver']
+                                 }))
     output.close()
 
 def build_xdc(project, xdc_dir):
@@ -170,21 +171,15 @@ def build_xdc(project, xdc_dir):
         shutil.copy(file_, xdc_dir)
 
 ###################
-# Check
-###################
-
-def _check_project(project):
-    if project in os.listdir('projects'):
-        return
-	raise RuntimeError('Unknown project ' + project_name)
-
-###################
 # Main
 ###################
 
 if __name__ == "__main__":
     cmd = sys.argv[1]
     project = sys.argv[2]
+
+    if project not in os.listdir('projects'):
+	    raise RuntimeError('Unknown project ' + project)
 
     tmp_dir = 'tmp'
     if not os.path.exists(tmp_dir):
