@@ -5,7 +5,7 @@ source boards/$board_name/gpio.tcl
 add_gpio
 
 # Add PWM
-source boards/$board_name/pwm.tcl
+source lib/pwm.tcl
 add_pwm pwm $pwm_clk $pwm0_offset $pwm_width $n_pwm
 
 for {set i 0} {$i < $n_pwm} {incr i} {
