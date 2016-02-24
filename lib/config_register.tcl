@@ -10,7 +10,7 @@ proc add_config_register {module_name clk {num_ports 32} {range 4K} {offset "aut
   }
 
   # Add a new Master Interface to AXI Interconnect
-  set idx [add_master_interface]
+  set idx 00
 
   # AXI clock converter
   cell xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_0 {} {
@@ -26,6 +26,7 @@ proc add_config_register {module_name clk {num_ports 32} {range 4K} {offset "aut
     CFG_DATA_WIDTH [expr $num_ports*32]
   } {
     aclk axi_clock_converter_0/m_axi_aclk
+    aresetn /${::rst_name}/peripheral_aresetn
     cfg_data cfg
   }
 
