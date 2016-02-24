@@ -46,11 +46,11 @@ parameters:
   status_size: 16
   
 devices:
-  - spectrum.hpp
-  - base/base.hpp
-  - base/gpio.hpp
-  - base/xadc.hpp
-  - base/init.hpp
+  - projects/spectrum/spectrum
+  - projects/base/base
+  - projects/base/gpio
+  - projects/base/xadc
+  - projects/base/init
 
 python_driver:
   name: Spectrum

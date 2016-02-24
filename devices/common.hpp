@@ -11,6 +11,8 @@
 #include <drivers/wr_register.hpp>
 #include <drivers/addresses.hpp>
 
+#define BITSTREAM_ID_SIZE 8
+
 class Common
 {
   public:
@@ -25,6 +27,8 @@ class Common
 
     //> \io_type READ
     std::array<uint32_t, BITSTREAM_ID_SIZE> get_bitstream_id();
+
+    // TODO Add DNA
     
     enum Status {
         CLOSED,

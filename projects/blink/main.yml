@@ -35,9 +35,6 @@ parameters:
   config_size: 16
   status_size: 16
 
-devices:
-  - devices/common
-
 python_driver:
   name: Blink
   file: blink.py
