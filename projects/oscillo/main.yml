@@ -48,8 +48,9 @@ parameters:
 devices:
   - devices/gpio
   - devices/xadc
+  - devices/dac
+  - devices/laser
   - projects/oscillo/oscillo
-  - projects/base/base
   - projects/base/init
 
 python_driver:
