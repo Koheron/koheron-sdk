@@ -6,7 +6,7 @@ proc add_averager_module {module_name bram_addr_width args} {
   array set optional [list -input_type "float" {*}$args]
   set input_type $optional(-input_type)
 
-  puts $input_type
+  puts "Input type = $input_type"
 
   if { [string match "fix_*" $input_type] } {
     set type fix
@@ -60,20 +60,20 @@ proc add_averager_module {module_name bram_addr_width args} {
 
   # Create Adder (depends on input type)
   if { $type == "fix" } {	  
-	  cell xilinx.com:ip:c_addsub:12.0 adder {
-	    A_Width.VALUE_SRC USER
-	    B_Width.VALUE_SRC USER
-	    A_Width           32
-	    B_Width           $width
-	    Out_Width         32
-	    CE                false
-	    Latency           $add_latency
-	    Reset_Pin         false
-	  } {
-	    CLK clk
-	    B   din
-	    S   fifo/din
-	  }
+    cell xilinx.com:ip:c_addsub:12.0 adder {
+      A_Width.VALUE_SRC USER
+      B_Width.VALUE_SRC USER
+      A_Width           32
+      B_Width           $width
+      Out_Width         32
+      CE                false
+      Latency           $add_latency
+      Reset_Pin         false
+    } {
+      CLK clk
+      B   din
+      S   fifo/din
+    }
     set adder_A {adder/A}
   } else {
     cell xilinx.com:ip:floating_point:7.1 adder {

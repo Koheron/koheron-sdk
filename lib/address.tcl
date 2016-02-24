@@ -70,8 +70,6 @@ proc add_address_module {module_name bram_width clk} {
     Dout delay_addr/A
   }
 
-  #
-
   connect_pins reset_base_counter_slice/Dout tvalid
 
   current_bd_instance $bd
