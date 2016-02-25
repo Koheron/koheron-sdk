@@ -30,10 +30,6 @@ class Dac
     //> \io_type WRITE_ARRAY param=>data param=>len
     void set_dac_buffer(const uint32_t *data, uint32_t len);
 
-    // TODO (TV) Should be moved somewhere else ...
-    //> \io_type WRITE
-    void set_led(uint32_t value);
-
     // XXX (TV) Is it for oscillo ??
     //> \io_type WRITE
     void reset_acquisition();

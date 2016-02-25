@@ -53,15 +53,10 @@ void Laser::Close()
 void Laser::reset()
 {
     assert(status == OPENED);
-
-    // XADC
     xadc.set_channel(LASER_POWER_CHANNEL, LASER_CURRENT_CHANNEL);
     xadc.enable_averaging();
     xadc.set_averaging(256);
-
-    // GPIO
     gpio.set_as_output(LASER_ENABLE_PIN, 2);
-    
     stop_laser();
     set_laser_current(0.0);
 }

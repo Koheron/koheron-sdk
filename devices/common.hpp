@@ -27,7 +27,13 @@ class Common
     std::array<uint32_t, BITSTREAM_ID_SIZE> get_bitstream_id();
 
     // TODO Add DNA
+
+    //> \io_type WRITE
+    void set_led(uint32_t value);
     
+    //> \io_type READ
+    uint32_t get_led();
+
     enum Status {
         CLOSED,
         OPENED,

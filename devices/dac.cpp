@@ -70,12 +70,7 @@ void Dac::reset()
 void Dac::set_dac_buffer(const uint32_t *data, uint32_t len)
 {
     for (uint32_t i=0; i<len; i++)
-        Klib::WriteReg32(dev_mem.GetBaseAddr(dac_map)+sizeof(uint32_t)*i, data[i]);
-}
-
-void Dac::set_led(uint32_t value)
-{
-    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + LED_OFF, value);
+        Klib::WriteReg32(dev_mem.GetBaseAddr(dac_map) + sizeof(uint32_t) * i, data[i]);
 }
 
 void Dac::reset_acquisition()

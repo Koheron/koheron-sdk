@@ -39,7 +39,7 @@ int Common::Open()
 
 void Common::Close()
 {
-    if(status == OPENED) {
+    if (status == OPENED) {
         dev_mem.RmMemoryMap(config_map);
         dev_mem.RmMemoryMap(status_map);
         status = CLOSED;
@@ -55,3 +55,12 @@ std::array<uint32_t, BITSTREAM_ID_SIZE> Common::get_bitstream_id()
     return bitstream_id;
 }
 
+void Common::set_led(uint32_t value)
+{
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + LED_OFF, value);
+}
+
+uint32_t Common::get_led()
+{
+    return Klib::ReadReg32(dev_mem.GetBaseAddr(config_map) + LED_OFF);
+}
