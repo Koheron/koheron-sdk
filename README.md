@@ -54,16 +54,8 @@ parameters:
   adc_width: 14
   pwm_width: 10
   n_pwm: 4
-
-devices:
-  - blink.hpp
-
-python_driver:
-  name: Blink
-  file: blink.py
-
-python:
-  - blink.py
+  config_size: 16
+  status_size: 16
 
 xdc:
   - boards/red-pitaya/config/ports.xdc
