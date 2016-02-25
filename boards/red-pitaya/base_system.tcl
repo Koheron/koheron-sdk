@@ -14,7 +14,7 @@ set pwm_clk adc_dac/pwm_clk
 # Add config and status registers
 source lib/config_register.tcl
 set config_name cfg
-add_config_register $config_name $adc_clk $config_size $axi_config_range $axi_config_offset
+add_config_register $config_name $adc_clk $config_size $axi_config_range $axi_config_offset 00
 
 source lib/status_register.tcl
 set status_name sts
