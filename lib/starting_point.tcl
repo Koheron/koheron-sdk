@@ -27,7 +27,7 @@ cell xilinx.com:ip:proc_sys_reset:5.0 $rst_name {} {
 
 # Add AXI interconnect
 cell xilinx.com:ip:axi_interconnect:2.1 $interconnect_name {
-  S00_HAS_REGSLICE 4
+  S00_HAS_REGSLICE 1
   NUM_MI 1
 } {
   ARESETN $rst_name/interconnect_aresetn

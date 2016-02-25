@@ -27,4 +27,8 @@ proc add_bram {bram_name bram_range {bram_offset "auto"} {idx "auto"}} {
     set_property offset $bram_offset $memory_segment
   }
   set_property range $bram_range $memory_segment
+
+  # Use data fifo (depth 32) to help timing closure
+  #set_property -dict [list CONFIG.M${idx}_HAS_DATA_FIFO 1] [get_bd_cells axi_mem_intercon]
+  set_property -dict [list CONFIG.M${idx}_HAS_REGSLICE 1] [get_bd_cells axi_mem_intercon]
 }
