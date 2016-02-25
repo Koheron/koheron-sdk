@@ -10,7 +10,6 @@ class Laser(object):
         self.client = client
         self.open_laser()
         self.max_current = 40  # mA
-        self.opened = True
 
     def open_laser(self):
         @command('LASER')

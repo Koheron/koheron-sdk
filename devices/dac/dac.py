@@ -21,11 +21,6 @@ class DAC(object):
         self.sampling = Sampling(wfm_size, 125e6)
         self.data = np.zeros((2, self.sampling.n))
 
-        self.opened = True
-
-
-        self.failed = False
-
     def open_dac(self, wfm_size):
         @command('DAC')
         def open(self, wfm_size): pass
