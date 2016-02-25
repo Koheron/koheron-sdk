@@ -11,7 +11,7 @@ for {set i 0} {$i < 2} {incr i} {
   # Connect port B of BRAM to ADC clock
   connect_constant ${adc_bram_name}_enb 1 1 blk_mem_gen_$adc_bram_name/enb
   connect_pins blk_mem_gen_$adc_bram_name/clkb    $adc_clk
-  connect_pins blk_mem_gen_$adc_bram_name/rstb    $rst_name/peripheral_reset
+  connect_pins blk_mem_gen_$adc_bram_name/rstb    $rst_adc_clk_name/peripheral_reset
 
   # Add averaging module
   add_averager_module $avg_name $bram_addr_width -input_type fix_$adc_width

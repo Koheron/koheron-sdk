@@ -23,14 +23,14 @@ connect_pins $spectrum_name/cfg_fft    $config_name/Out$cfg_fft_offset
 set spectrum_bram_name spectrum_bram
 add_bram $spectrum_bram_name $axi_spectrum_range $axi_spectrum_offset
 connect_pins blk_mem_gen_$spectrum_bram_name/clkb $adc_clk
-connect_pins blk_mem_gen_$spectrum_bram_name/rstb $rst_name/peripheral_reset
+connect_pins blk_mem_gen_$spectrum_bram_name/rstb $rst_adc_clk_name/peripheral_reset
 connect_pins blk_mem_gen_$spectrum_bram_name/enb ${dac_bram_name}_enb/dout
 
 # Add demod BRAM
 set demod_bram_name    demod_bram
 add_bram $demod_bram_name $axi_demod_range $axi_demod_offset
 connect_pins blk_mem_gen_$demod_bram_name/clkb  $adc_clk
-connect_pins blk_mem_gen_$demod_bram_name/rstb  $rst_name/peripheral_reset
+connect_pins blk_mem_gen_$demod_bram_name/rstb  $rst_adc_clk_name/peripheral_reset
 connect_pins blk_mem_gen_$demod_bram_name/web   ${dac_bram_name}_web/dout
 connect_pins blk_mem_gen_$demod_bram_name/dinb  ${dac_bram_name}_dinb/dout
 connect_pins blk_mem_gen_$demod_bram_name/enb   ${dac_bram_name}_enb/dout
