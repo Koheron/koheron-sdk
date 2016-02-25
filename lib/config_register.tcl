@@ -1,4 +1,4 @@
-proc add_config_register {module_name clk {num_ports 32} {range 4K} {offset "auto"}} {
+proc add_config_register {module_name clk {num_ports 32} {range 4K} {offset "auto"} {idx "auto"}} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
@@ -9,8 +9,10 @@ proc add_config_register {module_name clk {num_ports 32} {range 4K} {offset "aut
     create_bd_pin -dir O -from 31 -to 0 Out$i
   }
 
-  # Add a new Master Interface to AXI Interconnect
-  set idx 00
+  if { $idx eq "auto"} {
+    # Add a new Master Interface to AXI Interconnect
+    set idx [add_master_interface]
+  }
 
   # AXI clock converter
   cell xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_0 {} {
