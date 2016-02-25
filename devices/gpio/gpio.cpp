@@ -57,7 +57,7 @@ int get_dir_offset(uint32_t channel)
 int Gpio::set_bit(uint32_t index, uint32_t channel)
 {
     int offset = get_value_offset(channel);
-    
+
     if (offset < 0 || index > MAX_BIT_IDX)
         return -1;
 
@@ -68,7 +68,7 @@ int Gpio::set_bit(uint32_t index, uint32_t channel)
 int Gpio::clear_bit(uint32_t index, uint32_t channel)
 {
     int offset = get_value_offset(channel);
-    
+
     if (offset < 0 || index > MAX_BIT_IDX)
         return -1;
 
@@ -79,7 +79,7 @@ int Gpio::clear_bit(uint32_t index, uint32_t channel)
 int Gpio::toggle_bit(uint32_t index, uint32_t channel)
 {
     int offset = get_value_offset(channel);
-    
+
     if(offset < 0 || index > MAX_BIT_IDX)
         return -1;
 
@@ -90,7 +90,7 @@ int Gpio::toggle_bit(uint32_t index, uint32_t channel)
 int Gpio::set_as_input(uint32_t index, uint32_t channel)
 {
     int offset = get_dir_offset(channel);
-    
+
     if(offset < 0 || index > MAX_BIT_IDX)
         return -1;
 
@@ -101,11 +101,10 @@ int Gpio::set_as_input(uint32_t index, uint32_t channel)
 int Gpio::set_as_output(uint32_t index, uint32_t channel)
 {
     int offset = get_dir_offset(channel);
-    
+
     if(offset < 0 || index > MAX_BIT_IDX)
         return -1;
 
     Klib::ClearBit(dev_mem.GetBaseAddr(dev_num) + offset, index);
     return 0;
 }
-

@@ -22,22 +22,22 @@ int Dac::Open(uint32_t dac_wfm_size_)
 
     if (status == CLOSED) {
         dac_wfm_size = dac_wfm_size_;
-    
+
         // Initializes memory maps
         config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-        
+
         if (static_cast<int>(config_map) < 0) {
             status = FAILED;
             return -1;
         }
-        
+
         dac_map = dev_mem.AddMemoryMap(DAC_ADDR, DAC_RANGE);
-        
+
         if (static_cast<int>(dac_map) < 0) {
             status = FAILED;
             return -1;
         }
-       
+
         status = OPENED;
         reset();
     }
@@ -49,10 +49,10 @@ void Dac::Close()
 {
     if (status == OPENED) {
         reset();
-        
+
         dev_mem.RmMemoryMap(config_map);
         dev_mem.RmMemoryMap(dac_map);
-    
+
         status = CLOSED;
     }
 }
@@ -60,7 +60,6 @@ void Dac::Close()
 void Dac::reset()
 {
     assert(status == OPENED);
-    
     // Config
     //Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 0);
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
