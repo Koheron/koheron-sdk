@@ -18,7 +18,7 @@ proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "aut
     s_axi_aclk /${::ps_name}/FCLK_CLK0
     s_axi_aresetn /${::rst_name}/peripheral_aresetn
     m_axi_aclk /$clk
-    m_axi_aresetn /${::rst_name}/peripheral_aresetn
+    m_axi_aresetn /${::rst_adc_clk_name}/peripheral_aresetn
   }
   connect_bd_intf_net -boundary_type upper [get_bd_intf_pins /axi_mem_intercon/M${idx}_AXI] [get_bd_intf_pins axi_clock_converter_0/S_AXI]
 
@@ -27,7 +27,7 @@ proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "aut
     STS_DATA_WIDTH [expr $num_ports*32]
   } {
     aclk axi_clock_converter_0/m_axi_aclk
-    aresetn /${::rst_name}/peripheral_aresetn
+    aresetn /${::rst_adc_clk_name}/peripheral_aresetn
   }
   connect_bd_intf_net [get_bd_intf_pins axi_sts_register_0/S_AXI] [get_bd_intf_pins axi_clock_converter_0/M_AXI]
 

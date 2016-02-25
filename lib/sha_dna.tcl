@@ -9,7 +9,7 @@ for {set i 0} {$i < 8} {incr i} {
 
 cell pavel-demin:user:dna_reader:1.0 dna_0 {} {
   aclk $adc_clk
-  aresetn $rst_name/peripheral_aresetn
+  aresetn $rst_adc_clk_name/peripheral_aresetn
 }
 
 cell xilinx.com:ip:xlslice:1.0 dna_slice_0 {

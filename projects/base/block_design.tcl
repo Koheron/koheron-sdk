@@ -12,7 +12,7 @@ for {set i 0} {$i < $n_pwm} {incr i} {
   connect_pins pwm/pwm$i  $config_name/Out[set pwm${i}_offset]
 }
 
-connect_pins pwm/rst $rst_name/peripheral_reset
+connect_pins pwm/rst $rst_adc_clk_name/peripheral_reset
 
 # Add DAC BRAM
 source lib/bram.tcl
