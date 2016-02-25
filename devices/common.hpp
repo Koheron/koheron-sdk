@@ -26,7 +26,8 @@ class Common
     //> \io_type READ
     std::array<uint32_t, BITSTREAM_ID_SIZE> get_bitstream_id();
 
-    // TODO Add DNA
+    //> \io_type READ
+    uint64_t get_dna();
 
     //> \io_type WRITE
     void set_led(uint32_t value);
