@@ -20,9 +20,9 @@ class Dac
     //> \on_error Cannot open DAC device
     //> \flag AT_INIT
     int Open(uint32_t dac_wfm_size_);
-    
+
     void Close();
-    
+
     //> \description Reset to default state
     //> \io_type WRITE
     void reset();
@@ -44,14 +44,12 @@ class Dac
     bool IsFailed() const {return status == FAILED;}
 
   private:
-    // Core drivers
     Klib::DevMem& dev_mem;
-        
     int status;
-    
+
     // Number of point in the DAC waveform
     uint32_t dac_wfm_size;
-    
+
     // Memory maps IDs:
     Klib::MemMapID config_map;
     Klib::MemMapID dac_map;

@@ -25,7 +25,7 @@ class Xadc
 {
   public:
     Xadc(Klib::DevMem& dev_mem_);
-    
+
     ~Xadc();
 
     //> \description Open the device
@@ -35,7 +35,7 @@ class Xadc
     //> \on_error Cannot open XADC device
     //> \flag AT_INIT
     int Open(uint32_t map_size = 16*4096);
-    
+
     void Close();
 
     //> \description Select 2 channels among the four available channels (0, 1, 8 and 9)
@@ -76,10 +76,9 @@ class Xadc
 
   private:
     Klib::DevMem& dev_mem;
-
     int status;
 
-    // Memory maps IDs:
+    // Memory maps IDs
     Klib::MemMapID dev_num;
 
     uint32_t channel_0 = 1;

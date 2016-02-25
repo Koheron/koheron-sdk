@@ -30,12 +30,12 @@ config_offsets:
   - addr
   - avg0
   - avg1
-  
+
 status_offsets:
   - spi_out
   - n_avg0
   - n_avg1
-  
+
 parameters:
   bram_addr_width: 13
   dac_width: 14
@@ -44,14 +44,13 @@ parameters:
   n_pwm: 4
   config_size: 16
   status_size: 16
-  
+
 devices:
   - devices/gpio
   - devices/xadc
   - devices/dac
   - devices/laser
   - projects/oscillo/oscillo
-  - projects/base/init
 
 python_driver:
   name: Oscillo
