@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from koheron_tcp_client import command, write_buffer
+from koheron_tcp_client import command
 
 class Common(object):
     """ Common commands for all bitstreams.
@@ -9,11 +9,11 @@ class Common(object):
     args:
         client : instance of KClient connected to tcp-server.
     """
-    def __init__(self, wfm_size, client):
+    def __init__(self, client):
         self.client = client
         self.open_common()
 
-    def open_common(self, wfm_size):
+    def open_common(self):
         @command('COMMON')
         def open(self): pass
 
