@@ -148,19 +148,24 @@ def build_python(project, python_dir):
     parents.append(project)
     for parent in parents:
         config = load_config(parent)
-        if config.has_key('python'):
+        if 'devices' in config:
+            for device in config['devices']:
+                file_ = os.path.join(device, os.path.basename(device) + '.py')
+                if os.path.exists(file_):
+                    shutil.copy(file_, python_dir)
+                    include_list.append(os.path.basename(file_).split('.')[0])
+        if 'python' in config:
             for file_ in config['python']:
-                toks = file_.split('.')
-                if toks[1] == 'py':
-                    shutil.copy(os.path.join('projects',parent,file_), python_dir)
-                    include_list.append(toks[0])
+                if os.path.exists(file_):
+                    shutil.copy(file_, python_dir)
+                    include_list.append(os.path.basename(file_).split('.')[0])
+                else:
+                    raise ValueError("Unknown Python file: " + file_)
+
     template = get_renderer().get_template(os.path.join('templates', '__init__.py'))
     config = load_config(project)
-    output = file(os.path.join(python_dir, '__init__.py'),'w')
-    output.write(template.render(dic={
-                                   'include': include_list,
-                                   'driver': config['python_driver']
-                                 }))
+    output = file(os.path.join(python_dir, '__init__.py'), 'w')
+    output.write(template.render(dic={'include': include_list}))
     output.close()
 
 def build_xdc(project, xdc_dir):
