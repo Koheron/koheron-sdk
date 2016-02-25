@@ -74,7 +74,7 @@ connect_pins pwm_clk pll/clk_out6
 current_bd_instance $bd
 
 # Add processor system reset synchronous to adc clock
-set $rst_adc_clk_name proc_sys_reset_adc_clk
+set rst_adc_clk_name proc_sys_reset_adc_clk
 
 cell xilinx.com:ip:proc_sys_reset:5.0 $rst_adc_clk_name {} {
   ext_reset_in $ps_name/FCLK_RESET0_N
