@@ -11,13 +11,13 @@ addresses:
     offset: '0x50000000'
     range: 4K
   - name: dac
-    offset: '0x40000000'
+    offset: '0x80000000'
     range: 16K
   - name: spectrum
-    offset: '0x42000000'
+    offset: '0x82000000'
     range: 16K
   - name: demod
-    offset: '0x44000000'
+    offset: '0x84000000'
     range: 16K
 
 config_offsets:
@@ -31,7 +31,7 @@ config_offsets:
   - substract_mean
   - cfg_fft
   - avg_off
-  
+
 status_offsets:
   - spi_out
   - n_avg
@@ -42,17 +42,12 @@ parameters:
   adc_width: 14
   pwm_width: 10
   n_pwm: 4
-  
+  config_size: 16
+  status_size: 16
+
 devices:
-  - spectrum.hpp
-  - base/base.hpp
-  - base/gpio.hpp
-  - base/xadc.hpp
-  - base/init.hpp
-
-python_driver:
-  name: Spectrum
-  file: spectrum.py 
-
-python:
-  - spectrum.py
+  - devices/gpio
+  - devices/xadc
+  - devices/dac
+  - devices/laser
+  - projects/spectrum/spectrum

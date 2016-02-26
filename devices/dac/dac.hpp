@@ -1,70 +1,58 @@
-/// Blink bitstream driver
+/// Fast DAC driver
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_BLINK_HPP__
-#define __DRIVERS_BLINK_HPP__
-
-#include <tuple>
-#include <array>
+#ifndef __DRIVERS_DAC_HPP__
+#define __DRIVERS_DAC_HPP__
 
 #include <drivers/dev_mem.hpp>
 #include <drivers/wr_register.hpp>
 #include <drivers/addresses.hpp>
 
-#define BITSTREAM_ID_SIZE 8
-
-//> \description Blink driver
-class Blink
+class Dac
 {
   public:
-    Blink(Klib::DevMem& dev_mem_);
-    ~Blink();
-    
-    //> \description Open the device
+    Dac(Klib::DevMem& dev_mem_);
+    ~Dac();
+
     //> \io_type WRITE
     //> \status ERROR_IF_NEG
-    //> \on_error Cannot open Blink device
+    //> \on_error Cannot open DAC device
     //> \flag AT_INIT
     int Open(uint32_t dac_wfm_size_);
-    
+
     void Close();
 
+    //> \description Reset to default state
     //> \io_type WRITE
     void reset();
 
     //> \io_type WRITE_ARRAY param=>data param=>len
     void set_dac_buffer(const uint32_t *data, uint32_t len);
-    
-    //> \io_type READ
-    std::array<uint32_t, BITSTREAM_ID_SIZE> get_bitstream_id();
-       
+
+    // XXX (TV) Is it for oscillo ??
     //> \io_type WRITE
     void reset_acquisition();
-    
+
     enum Status {
         CLOSED,
         OPENED,
         FAILED
     };
-    
+
     //> \is_failed
     bool IsFailed() const {return status == FAILED;}
-    
+
   private:
-    // Core drivers
     Klib::DevMem& dev_mem;
-        
     int status;
-    
+
     // Number of point in the DAC waveform
     uint32_t dac_wfm_size;
-    std::array<uint32_t, BITSTREAM_ID_SIZE> bitstream_id;
-    
+
     // Memory maps IDs:
     Klib::MemMapID config_map;
-    Klib::MemMapID status_map;
     Klib::MemMapID dac_map;
 };
 
-#endif // __DRIVERS_Blink_HPP__
+#endif // __DRIVERS_DAC_HPP__

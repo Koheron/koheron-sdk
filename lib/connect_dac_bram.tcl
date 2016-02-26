@@ -17,4 +17,4 @@ for {set i 0} {$i < 2} {incr i} {
 connect_constant ${dac_bram_name}_dinb 0 32 blk_mem_gen_$dac_bram_name/dinb
 connect_constant ${dac_bram_name}_enb  1 1  blk_mem_gen_$dac_bram_name/enb
 connect_constant ${dac_bram_name}_web  0 4  blk_mem_gen_$dac_bram_name/web
-connect_pins blk_mem_gen_$dac_bram_name/rstb     $rst_name/peripheral_reset
+connect_pins blk_mem_gen_$dac_bram_name/rstb     $rst_adc_clk_name/peripheral_reset

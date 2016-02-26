@@ -2,19 +2,16 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_BASE_HPP__
-#define __DRIVERS_BASE_HPP__
+#ifndef __DRIVERS_LASER_HPP__
+#define __DRIVERS_LASER_HPP__
 
 #include <tuple>
-#include <array>
 
 #include <drivers/dev_mem.hpp>
 #include <drivers/wr_register.hpp>
+#include <drivers/addresses.hpp>
 #include <drivers/xadc.hpp>
 #include <drivers/gpio.hpp>
-#include <drivers/addresses.hpp>
-
-#define BITSTREAM_ID_SIZE 8
 
 // XADC channels
 #define LASER_POWER_CHANNEL   1
@@ -22,19 +19,18 @@
 
 #define MAX_LASER_CURRENT 50.0 // mA
 
-//> \description Laser development kit base driver
-class Base
+class Laser
 {
   public:
-    Base(Klib::DevMem& dev_mem_);
-    ~Base();
+    Laser(Klib::DevMem& dev_mem_);
+    ~Laser();
     
     //> \description Open the device
     //> \io_type WRITE
     //> \status ERROR_IF_NEG
     //> \on_error Cannot open BASE device
     //> \flag AT_INIT
-    int Open(uint32_t dac_wfm_size_);
+    int Open();
     
     void Close();
     
@@ -63,18 +59,6 @@ class Base
     //> \param current Laser current in mA
     //> \io_type WRITE
     void set_laser_current(float current);
-
-    //> \io_type WRITE_ARRAY param=>data param=>len
-    void set_dac_buffer(const uint32_t *data, uint32_t len);
-    
-    //> \io_type READ
-    std::array<uint32_t, BITSTREAM_ID_SIZE> get_bitstream_id();
-    
-    //> \io_type WRITE
-    void set_led(uint32_t value);
-    
-    //> \io_type WRITE
-    void reset_acquisition();
     
     enum Status {
         CLOSED,
@@ -93,14 +77,8 @@ class Base
         
     int status;
     
-    // Number of point in the DAC waveform
-    uint32_t dac_wfm_size;
-    std::array<uint32_t, BITSTREAM_ID_SIZE> bitstream_id;
-    
-    // Memory maps IDs:
+    // Memory maps IDs
     Klib::MemMapID config_map;
-    Klib::MemMapID status_map;
-    Klib::MemMapID dac_map;
 };
 
-#endif // __DRIVERS_BASE_HPP__
+#endif // __DRIVERS_LASER_HPP__
