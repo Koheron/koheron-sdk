@@ -1,15 +1,10 @@
 
-proc add_xadc {name} {
+proc add_xadc {name {idx "auto"} {intercon_idx 0}} {
 
-  # Add a new Master Interface to AXI Interconnect
-  set num_mi [get_property CONFIG.NUM_MI [get_bd_cells axi_mem_intercon]]
-  if { $num_mi < 10 } {
-    set idx 0$num_mi
-  } else {
-    set idx $num_mi
+  if { $idx eq "auto"} {
+    # Add a new Master Interface to AXI Interconnect
+    set idx [add_master_interface $intercon_idx]
   }
-  incr num_mi
-  properties axi_mem_intercon [list NUM_MI $num_mi]
 
   cell xilinx.com:ip:xadc_wiz:3.2 $name {
     XADC_STARUP_SELECTION        independent_adc
@@ -30,15 +25,12 @@ proc add_xadc {name} {
     AVERAGE_ENABLE_VAUXP8_VAUXN8 true
     AVERAGE_ENABLE_VAUXP9_VAUXN9 true
     AVERAGE_ENABLE_VP_VN         true
-  } {}
+  } {
+    s_axi_aclk ${::ps_name}/FCLK_CLK0
+    s_axi_aresetn ${::rst_name}/peripheral_aresetn
+  }
 
-  connect_bd_intf_net -boundary_type upper [get_bd_intf_pins axi_mem_intercon/M${idx}_AXI] [get_bd_intf_pins $name/s_axi_lite]
-
-  connect_bd_net [get_bd_pins axi_mem_intercon/M${idx}_ACLK] [get_bd_pins ${::ps_name}/FCLK_CLK0]
-  connect_bd_net [get_bd_pins axi_mem_intercon/M${idx}_ARESETN] [get_bd_pins ${::rst_name}/peripheral_aresetn]
-
-  connect_bd_net [get_bd_pins $name/s_axi_aclk] [get_bd_pins ${::ps_name}/FCLK_CLK0]
-  connect_bd_net [get_bd_pins $name/s_axi_aresetn] [get_bd_pins ${::rst_name}/peripheral_aresetn]
+  connect_bd_intf_net -boundary_type upper [get_bd_intf_pins axi_mem_intercon_$intercon_idx/M${idx}_AXI] [get_bd_intf_pins $name/s_axi_lite]
 
   foreach {port_name} {
     Vp_Vn
