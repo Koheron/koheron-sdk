@@ -107,33 +107,31 @@ def get_renderer():
 ###################
 
 def build_middleware(project, tcp_server_dir):
-    _check_project(project)
     config = load_config(project)
-    #assert os.path.exists(os.path.join(tcp_server_dir, 'middleware'))
+    drivers_path = os.path.join(tcp_server_dir,'middleware','drivers')
 
-    _import_middleware_from_project(project)
+    # Include Common
+    shutil.copy('devices/common/common.hpp', drivers_path)
+    shutil.copy('devices/common/common.cpp', drivers_path)
 
     if 'devices' in config:
         for device in config['devices']:
-            project_name = os.path.dirname(device)
-            if project_name != "":
-                _import_middleware_from_project(project_name)
+            hpp_filename = os.path.join(device, os.path.basename(device) + '.hpp')
+            cpp_filename = os.path.join(device, os.path.basename(device) + '.cpp')
+            if not (os.path.exists(hpp_filename) or os.path.exists(cpp_filename)):
+                raise ValueError('Missing source file for device ' + device)
+            shutil.copy(hpp_filename, drivers_path)
+            shutil.copy(cpp_filename, drivers_path)
             
-def _import_middleware_from_project(project):
-    for basename in os.listdir(os.path.join('projects', project)):
-        if basename.endswith('.hpp') or basename.endswith('.cpp'):
-            import_filename = os.path.join('projects', project, basename)
-            shutil.copy(import_filename, 
-                        os.path.join(tcp_server_dir,'middleware','drivers'))
-
 def build_server_config(project, tcp_server_dir):
     config = get_config(project)
     dev_paths = [
-      '../devices/dev_mem.yaml'
+      '../devices/dev_mem.yaml',
+      '../middleware/drivers/common.hpp'
     ]
     if 'devices' in config:
         for device in config['devices']:
-            filename = os.path.basename(device)
+            filename = os.path.basename(device) + ".hpp"
             dev_paths.append(os.path.join('../middleware/drivers/', filename))
     server_config = {
       'cross-compile': config['cross-compile'],
@@ -150,16 +148,24 @@ def build_python(project, python_dir):
     parents.append(project)
     for parent in parents:
         config = load_config(parent)
-        if config.has_key('python'):
+        if 'devices' in config:
+            for device in config['devices']:
+                file_ = os.path.join(device, os.path.basename(device) + '.py')
+                if os.path.exists(file_):
+                    shutil.copy(file_, python_dir)
+                    include_list.append(os.path.basename(file_).split('.')[0])
+        if 'python' in config:
             for file_ in config['python']:
-                toks = file_.split('.')
-                if toks[1] == 'py':
-                    shutil.copy(os.path.join('projects',parent,file_), python_dir)
-                    include_list.append(toks[0])
+                if os.path.exists(file_):
+                    shutil.copy(file_, python_dir)
+                    include_list.append(os.path.basename(file_).split('.')[0])
+                else:
+                    raise ValueError("Unknown Python file: " + file_)
+
     template = get_renderer().get_template(os.path.join('templates', '__init__.py'))
     config = load_config(project)
-    output = file(os.path.join(python_dir, '__init__.py'),'w')
-    output.write(template.render(dic={'include': include_list, 'driver': config['python_driver']}))
+    output = file(os.path.join(python_dir, '__init__.py'), 'w')
+    output.write(template.render(dic={'include': include_list}))
     output.close()
 
 def build_xdc(project, xdc_dir):
@@ -170,21 +176,15 @@ def build_xdc(project, xdc_dir):
         shutil.copy(file_, xdc_dir)
 
 ###################
-# Check
-###################
-
-def _check_project(project):
-    if project in os.listdir('projects'):
-        return
-	raise RuntimeError('Unknown project ' + project_name)
-
-###################
 # Main
 ###################
 
 if __name__ == "__main__":
     cmd = sys.argv[1]
     project = sys.argv[2]
+
+    if project not in os.listdir('projects'):
+	    raise RuntimeError('Unknown project ' + project)
 
     tmp_dir = 'tmp'
     if not os.path.exists(tmp_dir):

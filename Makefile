@@ -11,7 +11,7 @@ LD_LIBRARY_PATH =
 TMP = tmp
 
 # Project specific variables
-NAME = oscillo
+NAME = blink
 BOARD:=$(shell (python make.py --board $(NAME)) && (cat $(TMP)/$(NAME).board))
 CORES:=$(shell python make.py --cores $(NAME) && cat $(TMP)/$(NAME).cores)
 PART:=`cat boards/$(BOARD)/PART`
@@ -93,7 +93,7 @@ $(SHA_FILE): $(VERSION_FILE)
 # FPGA
 ###############################################################################
 
-$(CONFIG_TCL): $(MAIN_YML) $(SHA_FILE)
+$(CONFIG_TCL): $(MAIN_YML) $(SHA_FILE) templates/config.tcl
 	python make.py --config_tcl $(NAME)
 
 xdc: $(MAIN_YML)

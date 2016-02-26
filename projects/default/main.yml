@@ -2,7 +2,7 @@
 project: default
 
 python: 
-  - sampling.py
+  - projects/default/sampling.py
 
 cores:
   - axi_cfg_register_v1_0
