@@ -43,5 +43,6 @@ class Laser(object):
         return self.client.recv_tuple()
 
     @command('LASER')
-    def set_laser_current(self, current): pass
+    def set_laser_current(self, current):
         """ current: The bias in mA """
+        pass
