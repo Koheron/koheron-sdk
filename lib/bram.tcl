@@ -22,11 +22,11 @@ proc add_bram {bram_name bram_range {bram_offset "auto"} {idx "auto"} {intercon_
   connect_bd_intf_net [get_bd_intf_pins axi_bram_ctrl_$bram_name/BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_$bram_name/BRAM_PORTA]
 
   assign_bd_address [get_bd_addr_segs {axi_bram_ctrl_$bram_name/S_AXI/Mem0 }]
-  #set memory_segment [get_bd_addr_segs ${::ps_name}/Data/SEG_axi_bram_ctrl_${bram_name}_Mem0]
+  set memory_segment [get_bd_addr_segs ${::ps_name}/Data/SEG_axi_bram_ctrl_${bram_name}_Mem0]
   if { $bram_offset ne "auto"} {
-    #set_property offset $bram_offset $memory_segment
+    set_property offset $bram_offset $memory_segment
   }
-  #set_property range $bram_range $memory_segment
+  set_property range $bram_range $memory_segment
 
   # Use data fifo (depth 32) to help timing closure
   #set_property -dict [list CONFIG.M${idx}_HAS_DATA_FIFO 1] [get_bd_cells axi_mem_intercon]

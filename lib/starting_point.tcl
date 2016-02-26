@@ -41,7 +41,5 @@ for {set i 0} {$i < 2} {incr i} {
     S00_ACLK $ps_clk
     M00_ACLK $ps_clk
   }
-  #connect_bd_intf_net -boundary_type upper [get_bd_intf_pins [set interconnect_${i}_name]/S00_AXI] [get_bd_intf_pins ps_0/M_AXI_GP$i]
+  connect_bd_intf_net -boundary_type upper [get_bd_intf_pins [set interconnect_${i}_name]/S00_AXI] [get_bd_intf_pins ps_0/M_AXI_GP$i]
 }
-set i 0
-connect_bd_intf_net -boundary_type upper [get_bd_intf_pins [set interconnect_${i}_name]/S00_AXI] [get_bd_intf_pins ps_0/M_AXI_GP$i]
