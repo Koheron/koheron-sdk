@@ -1,5 +1,5 @@
 
-proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "auto"} {idx "auto"}}  {
+proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "auto"} {idx "auto"} {intercon_idx 0}}  {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
@@ -10,7 +10,7 @@ proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "aut
 
   if { $idx eq "auto"} {
     # Add a new Master Interface to AXI Interconnect
-    set idx [add_master_interface]
+    set idx [add_master_interface $intercon_idx]
   }
   
   # AXI clock converter
@@ -20,7 +20,7 @@ proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "aut
     m_axi_aclk /$clk
     m_axi_aresetn /${::rst_adc_clk_name}/peripheral_aresetn
   }
-  connect_bd_intf_net -boundary_type upper [get_bd_intf_pins /axi_mem_intercon/M${idx}_AXI] [get_bd_intf_pins axi_clock_converter_0/S_AXI]
+  connect_bd_intf_net -boundary_type upper [get_bd_intf_pins /axi_mem_intercon_$intercon_idx/M${idx}_AXI] [get_bd_intf_pins axi_clock_converter_0/S_AXI]
 
   # Sts register
   cell pavel-demin:user:axi_sts_register:1.0 axi_sts_register_0 {

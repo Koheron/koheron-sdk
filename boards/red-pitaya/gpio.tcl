@@ -1,7 +1,7 @@
 
-proc add_gpio {{gpio_width 6}} {
+proc add_gpio {{gpio_width 6} {idx "auto"} {intercon_idx 0}} {
 
-  set idx [add_master_interface]
+  set idx [add_master_interface $intercon_idx]
   
   set gpio_name axi_gpio_0
   cell xilinx.com:ip:axi_gpio:2.0 $gpio_name {
@@ -13,7 +13,7 @@ proc add_gpio {{gpio_width 6}} {
     s_axi_aresetn /${::rst_name}/peripheral_aresetn
   }
 
-  connect_bd_intf_net -boundary_type upper [get_bd_intf_pins /axi_mem_intercon/M${idx}_AXI] [get_bd_intf_pins $gpio_name/S_AXI]
+  connect_bd_intf_net -boundary_type upper [get_bd_intf_pins /axi_mem_intercon_$intercon_idx/M${idx}_AXI] [get_bd_intf_pins $gpio_name/S_AXI]
 
   apply_bd_automation -rule xilinx.com:bd_rule:board  [get_bd_intf_pins $gpio_name/GPIO]
   apply_bd_automation -rule xilinx.com:bd_rule:board  [get_bd_intf_pins $gpio_name/GPIO2]

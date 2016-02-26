@@ -11,13 +11,13 @@ addresses:
     offset: '0x50000000'
     range: 4K
   - name: dac
-    offset: '0x40000000'
+    offset: '0x80000000'
     range: 16K
   - name: spectrum
-    offset: '0x42000000'
+    offset: '0x82000000'
     range: 16K
   - name: demod
-    offset: '0x44000000'
+    offset: '0x84000000'
     range: 16K
 
 config_offsets:

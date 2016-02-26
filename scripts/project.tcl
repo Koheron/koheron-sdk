@@ -8,7 +8,7 @@ set board_name [lindex $argv 2]
 set cfg boards/$board_name/config
 
 
-file delete -force tmp/$project_name.cache tmp/$project_name.hw tmp/$project_name.srcs tmp/$project_name.runs tmp/$project_name.xpr
+file delete -force tmp/$project_name.cache tmp/$project_name.hw tmp/$project_name.srcs tmp/$project_name.runs tmp/$project_name.xpr tmp/$project_name.sim
 
 create_project -part $part_name $project_name tmp
 

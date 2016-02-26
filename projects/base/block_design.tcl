@@ -18,7 +18,7 @@ connect_pins pwm/rst $rst_adc_clk_name/peripheral_reset
 source lib/bram.tcl
 set bram_size [expr 2**($bram_addr_width-8)]K
 set dac_bram_name dac_bram 
-add_bram $dac_bram_name $axi_dac_range $axi_dac_offset
+add_bram $dac_bram_name $axi_dac_range $axi_dac_offset 00
 
 # Add address module
 source lib/address.tcl
