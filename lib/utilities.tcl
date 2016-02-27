@@ -10,8 +10,8 @@ proc add_master_interface {{intercon_idx 0}} {
   puts "Increasing number of master interfaces to $num_mi on interconnect $intercon_idx"
   puts "Connect your AXI Slave to axi_mem_intercon_$intercon_idx/M${idx}_AXI"
   set_property -dict [list CONFIG.NUM_MI $num_mi] [get_bd_cells /axi_mem_intercon_$intercon_idx]
-  connect_pins /axi_mem_intercon_$intercon_idx/M${idx}_ACLK    /${::ps_name}/FCLK_CLK0
-  connect_pins /axi_mem_intercon_$intercon_idx/M${idx}_ARESETN /${::rst_name}/peripheral_aresetn
+  connect_pins /axi_mem_intercon_$intercon_idx/M${idx}_ACLK    /[set ::ps_clk$intercon_idx]
+  connect_pins /axi_mem_intercon_$intercon_idx/M${idx}_ARESETN /[set ::rst${intercon_idx}_name]/peripheral_aresetn
   return $idx
 }
 

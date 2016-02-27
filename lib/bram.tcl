@@ -10,8 +10,8 @@ proc add_bram {bram_name bram_range {bram_offset "auto"} {idx "auto"} {intercon_
   cell xilinx.com:ip:axi_bram_ctrl:4.0 axi_bram_ctrl_$bram_name {
     SINGLE_PORT_BRAM 1
   } {
-    s_axi_aclk ${::ps_name}/FCLK_CLK0
-    s_axi_aresetn ${::rst_name}/peripheral_aresetn
+    s_axi_aclk [set ::ps_clk$intercon_idx]
+    s_axi_aresetn [set ::rst${intercon_idx}_name]/peripheral_aresetn
   }
   connect_bd_intf_net [get_bd_intf_pins axi_bram_ctrl_$bram_name/S_AXI] [get_bd_intf_pins axi_mem_intercon_$intercon_idx/M${idx}_AXI]
 
