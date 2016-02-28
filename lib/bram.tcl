@@ -9,6 +9,7 @@ proc add_bram {bram_name bram_range {bram_offset "auto"} {idx "auto"} {intercon_
   # Add BRAM Controller
   cell xilinx.com:ip:axi_bram_ctrl:4.0 axi_bram_ctrl_$bram_name {
     SINGLE_PORT_BRAM 1
+    PROTOCOL AXI4LITE
   } {
     s_axi_aclk [set ::ps_clk$intercon_idx]
     s_axi_aresetn [set ::rst${intercon_idx}_name]/peripheral_aresetn
@@ -28,7 +29,6 @@ proc add_bram {bram_name bram_range {bram_offset "auto"} {idx "auto"} {intercon_
   }
   set_property range $bram_range $memory_segment
 
-  # Use data fifo (depth 32) to help timing closure
-  #set_property -dict [list CONFIG.M${idx}_HAS_DATA_FIFO 1] [get_bd_cells axi_mem_intercon]
+  # A register slice on the master side is helpful since the net delays to the BRAMs can be quite long
   set_property -dict [list CONFIG.M${idx}_HAS_REGSLICE 1] [get_bd_cells axi_mem_intercon_$intercon_idx]
 }
