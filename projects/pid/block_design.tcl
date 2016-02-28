@@ -28,7 +28,7 @@ cell xilinx.com:ip:xlslice:1.0 slice_pid_cmd_out {
 cell xilinx.com:ip:c_addsub:12.0 set_point_minus_signal {
   Add_Mode Subtract
   CE false
-  Latency 2
+  Latency 1
   Out_Width [expr $adc_width + 1]
 } {
   clk $adc_clk
