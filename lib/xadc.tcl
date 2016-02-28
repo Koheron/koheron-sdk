@@ -20,11 +20,6 @@ proc add_xadc {name {idx "auto"} {intercon_idx 0}} {
     CHANNEL_ENABLE_VAUXP8_VAUXN8 true
     CHANNEL_ENABLE_VAUXP9_VAUXN9 true
     CHANNEL_ENABLE_VP_VN         true
-    AVERAGE_ENABLE_VAUXP0_VAUXN0 true
-    AVERAGE_ENABLE_VAUXP1_VAUXN1 true
-    AVERAGE_ENABLE_VAUXP8_VAUXN8 true
-    AVERAGE_ENABLE_VAUXP9_VAUXN9 true
-    AVERAGE_ENABLE_VP_VN         true
   } {
     s_axi_aclk ${::ps_name}/FCLK_CLK0
     s_axi_aresetn ${::rst_name}/peripheral_aresetn
