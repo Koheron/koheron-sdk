@@ -14,7 +14,7 @@ proc add_pid_module {module_name width acc_width} {
 
   foreach {name} {p i d} {
     cell xilinx.com:ip:mult_gen:12.0 mult_$name {
-      PipeStages 1
+      PipeStages 2
       Use_Custom_Output_Width true
       PortAWidth $width
       PortBWidth $width
@@ -26,7 +26,7 @@ proc add_pid_module {module_name width acc_width} {
     }
   }
 
-  set_property -dict [list CONFIG.PipeStages 2] [get_bd_cells mult_p]
+  set_property -dict [list CONFIG.PipeStages 3] [get_bd_cells mult_p]
 
   # Integral part
   cell xilinx.com:ip:c_accum:12.0 accumulator {
