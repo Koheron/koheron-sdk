@@ -1,0 +1,47 @@
+---
+project: pid
+parent: default
+board: red-pitaya
+
+cores:
+  - redp_adc_v1_0
+  - redp_dac_v1_0
+  - axi_cfg_register_v1_0
+  - axi_sts_register_v1_0
+
+addresses:
+  - name: config
+    offset: '0x60000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+
+config_offsets:
+  - led
+  - dac1
+  - coef_p
+  - coef_i
+  - coef_d
+  - set_point
+  - integral_reset
+
+status_offsets:
+  - adc1
+  - adc2
+  - error_in
+  - cmd_out
+
+parameters:
+  bram_addr_width: 13
+  dac_width: 14
+  adc_width: 14
+  pwm_width: 10
+  n_pwm: 4
+  config_size: 16
+  status_size: 16
+
+xdc:
+  - boards/red-pitaya/config/ports.xdc
+  - boards/red-pitaya/config/clocks.xdc
+  - boards/red-pitaya/config/clocks.xdc
