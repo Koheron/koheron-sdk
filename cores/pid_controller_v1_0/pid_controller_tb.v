@@ -6,11 +6,11 @@ module pid_controller_tb();
 
   reg                   clk;
   reg                   rst;
-  reg [DATA_WIDTH-1:0]  data_in;
-  reg [DATA_WIDTH-1:0]  set_point;
-  reg [DATA_WIDTH-1:0]  p_coef;
-  reg [DATA_WIDTH-1:0]  i_coef;
-  reg [DATA_WIDTH-1:0]  d_coef;
+  reg signed [DATA_WIDTH-1:0]  data_in;
+  reg signed [DATA_WIDTH-1:0]  set_point;
+  reg signed [DATA_WIDTH-1:0]  p_coef;
+  reg signed [DATA_WIDTH-1:0]  i_coef;
+  reg signed [DATA_WIDTH-1:0]  d_coef;
 
   wire [2*DATA_WIDTH+1-1:0] data_out;
 

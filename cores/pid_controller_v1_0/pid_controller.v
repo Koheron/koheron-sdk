@@ -5,13 +5,13 @@ module pid_controller #
   parameter DATA_WIDTH = 14
 )
 (
-  input  wire clk,
-  input  wire rst,
-  input  wire [DATA_WIDTH-1:0] data_in,
-  input  wire [DATA_WIDTH-1:0] set_point,
-  input  wire [DATA_WIDTH-1:0] p_coef,
-  input  wire [DATA_WIDTH-1:0] i_coef,
-  input  wire [DATA_WIDTH-1:0] d_coef,
+  input wire clk,
+  input wire rst,
+  input wire signed [DATA_WIDTH-1:0] data_in,
+  input wire signed [DATA_WIDTH-1:0] set_point,
+  input wire signed [DATA_WIDTH-1:0] p_coef,
+  input wire signed [DATA_WIDTH-1:0] i_coef,
+  input wire signed [DATA_WIDTH-1:0] d_coef,
 
   output reg  [2*DATA_WIDTH+1-1:0] data_out
 );
@@ -28,14 +28,14 @@ module pid_controller #
     if (rst == 1'b1) begin
       error <= 0;
     end else begin
-      error <= $signed(set_point) - $signed(data_in);
+      error <= set_point - data_in;
       data_out <= p_reg;
     end
   end
 
   wire [MULT_WIDTH-1:0] p_mult;
 
-  assign p_mult = $signed(error) * $signed(p_coef);
+  assign p_mult = error * p_coef;
 
   // Proportional
   always @(posedge clk) begin
