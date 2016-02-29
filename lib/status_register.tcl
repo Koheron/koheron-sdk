@@ -15,8 +15,8 @@ proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "aut
   
   # AXI clock converter
   cell xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_0 {} {
-    s_axi_aclk /${::ps_name}/FCLK_CLK0
-    s_axi_aresetn /${::rst_name}/peripheral_aresetn
+    s_axi_aclk /[set ::ps_clk$intercon_idx]
+    s_axi_aresetn /[set ::rst${intercon_idx}_name]/peripheral_aresetn
     m_axi_aclk /$clk
     m_axi_aresetn /${::rst_adc_clk_name}/peripheral_aresetn
   }
