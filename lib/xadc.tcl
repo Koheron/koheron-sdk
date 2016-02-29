@@ -6,26 +6,30 @@ proc add_xadc {name {idx "auto"} {intercon_idx 0}} {
     set idx [add_master_interface $intercon_idx]
   }
 
+  cell xilinx.com:ip:axi_clock_converter:2.1 axi_clk_conv_xadc {} {
+    s_axi_aclk [set ::ps_clk$intercon_idx]
+    s_axi_aresetn [set ::rst${intercon_idx}_name]/peripheral_aresetn
+    m_axi_aclk $::adc_clk
+    m_axi_aresetn $::rst_adc_clk_name/peripheral_aresetn
+  }
+ 
+  connect_bd_intf_net -boundary_type upper [get_bd_intf_pins axi_mem_intercon_$intercon_idx/M${idx}_AXI] [get_bd_intf_pins axi_clk_conv_xadc/S_AXI]
+
   cell xilinx.com:ip:xadc_wiz:3.2 $name {
     XADC_STARUP_SELECTION        independent_adc
-    OT_ALARM                     false
-    USER_TEMP_ALARM              false
-    VCCINT_ALARM                 false
-    VCCAUX_ALARM                 false
-    ENABLE_VCCPINT_ALARM         false
-    ENABLE_VCCPAUX_ALARM         false
-    ENABLE_VCCDDRO_ALARM         false
     CHANNEL_ENABLE_VAUXP0_VAUXN0 true
     CHANNEL_ENABLE_VAUXP1_VAUXN1 true
     CHANNEL_ENABLE_VAUXP8_VAUXN8 true
     CHANNEL_ENABLE_VAUXP9_VAUXN9 true
     CHANNEL_ENABLE_VP_VN         true
+    DCLK_FREQUENCY               125
+    ADC_CONVERSION_RATE          1000
   } {
-    s_axi_aclk ${::ps_name}/FCLK_CLK0
-    s_axi_aresetn ${::rst_name}/peripheral_aresetn
+    s_axi_aclk $::adc_clk
+    s_axi_aresetn $::rst_adc_clk_name/peripheral_aresetn
   }
 
-  connect_bd_intf_net -boundary_type upper [get_bd_intf_pins axi_mem_intercon_$intercon_idx/M${idx}_AXI] [get_bd_intf_pins $name/s_axi_lite]
+  connect_bd_intf_net -boundary_type upper [get_bd_intf_pins axi_clk_conv_xadc/M_AXI] [get_bd_intf_pins $name/s_axi_lite]
 
   foreach {port_name} {
     Vp_Vn

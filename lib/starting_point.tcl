@@ -1,5 +1,5 @@
 set ps_name ps_0
-set rst_name proc_sys_reset_0
+#set rst_name proc_sys_reset_0
 set interconnect_0_name axi_mem_intercon_0
 set interconnect_1_name axi_mem_intercon_1
 set ps_clk0 $ps_name/FCLK_CLK0
