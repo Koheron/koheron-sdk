@@ -34,7 +34,6 @@ for {set i 0} {$i < 2} {incr i} {
   }
   # Add AXI interconnect
   cell xilinx.com:ip:axi_interconnect:2.1 [set interconnect_${i}_name] {
-    S00_HAS_REGSLICE $i
     NUM_MI 1
   } {
     ARESETN [set rst${i}_name]/interconnect_aresetn
