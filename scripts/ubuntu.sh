@@ -1,5 +1,6 @@
 device=$1
 name=$2
+version=$3
 
 boot_dir=/tmp/BOOT
 root_dir=/tmp/ROOT
@@ -11,8 +12,6 @@ hostapd_url=https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE
 
 passwd=changeme
 timezone=Europe/Brussels
-
-sha=`git rev-parse --short HEAD`
 
 # Create partitions
 
@@ -67,12 +66,14 @@ cp tmp/${name}.tcp-server/VERSION $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
 
+
 # Add zip
 mkdir $root_dir/usr/local/instruments
-cp tmp/*-${sha}.zip $root_dir/usr/local/instruments
+cp tmp/*-${version}.zip $root_dir/usr/local/instruments
+echo "last_deployed: /usr/local/instruments/${name}-${version}.zip" > $root_dir/usr/local/instruments/.instruments
 # Copy all available instruments in backup directory
 mkdir $root_dir/usr/local/instruments/backup
-cp tmp/*-${sha}.zip $root_dir/usr/local/instruments/backup
+cp tmp/*-${version}.zip $root_dir/usr/local/instruments/backup
 
 curl -L $hostapd_url -o $root_dir/usr/local/sbin/hostapd
 chmod +x $root_dir/usr/local/sbin/hostapd
@@ -87,7 +88,7 @@ PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/u
 EOF_CAT
 
 cat <<- EOF_CAT > etc/zynq_sdk_version
-$sha
+$version
 EOF_CAT
 
 cat <<- EOF_CAT > etc/apt/apt.conf.d/99norecommends
