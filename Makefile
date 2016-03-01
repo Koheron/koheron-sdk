@@ -83,8 +83,8 @@ $(TMP):
 # versioning
 ###############################################################################
 
-$(VERSION_FILE): .git/refs/heads | $(TMP)
-	echo $(shell (git rev-parse --short HEAD)) > $@
+$(VERSION_FILE): | $(TMP)
+	echo $(shell (git rev-parse --short HEAD || echo "default")) > $@
 
 $(SHA_FILE): $(VERSION_FILE)
 	echo $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g')) > $@
