@@ -11,8 +11,6 @@
 #include <drivers/wr_register.hpp>
 #include <drivers/addresses.hpp>
 
-#include <signal/kvector.hpp>
- 
 #define SAMPLING_RATE 125E6
 
 //> \description Oscilloscope driver
@@ -33,11 +31,19 @@ class Oscillo
 
     //> \description Read the acquired data
     //> \io_type READ
-    Klib::KVector<float>& read_data(bool channel);
+    std::vector<float>& read_data(bool channel);
     
     //> \description Read all the acquired data
     //> \io_type READ
-    Klib::KVector<float>& read_all_channels();
+    std::vector<float>& read_all_channels();
+
+    //> \description Read all the acquired data (raw)
+    //> \io_type READ
+    std::vector<float>& read_raw_all();
+
+    //> \description Read zeros
+    //> \io_type READ
+    std::vector<float>& read_zeros();
 
     //> \description Read all the acquired data
     //> \io_type READ
@@ -78,17 +84,16 @@ class Oscillo
     Klib::MemMapID adc_2_map;
     
     // Acquired data buffers
-    Klib::KVector<float> data;
-    Klib::KVector<float> data_all;
-
-    Klib::KVector<float> data_int;
-    Klib::KVector<uint32_t> data_all_int;
+    std::vector<float> data;
+    std::vector<float> data_all;
+    std::vector<float> data_zeros;
+    std::vector<uint32_t> data_all_int;
     
     // Internal functions
     void _wait_for_acquisition();
     void _raw_to_vector(uint32_t *raw_data);
     void _raw_to_vector_all(uint32_t *raw_data_1, uint32_t *raw_data_2);
-    void _raw_to_vector_all_int(uint32_t size, uint32_t *raw_data_1, uint32_t *raw_data_2);
+    void _raw_to_vector_all_raw(uint32_t *raw_data_1, uint32_t *raw_data_2);
 }; // class Oscillo
 
 #endif // __DRIVERS_CORE_OSCILLO_HPP__
