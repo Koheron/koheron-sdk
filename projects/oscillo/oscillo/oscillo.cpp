@@ -9,6 +9,7 @@ Oscillo::Oscillo(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)
 , data(0)
 , data_all(0)
+, data_all_int(0)
 {
     avg_on = false;
     
@@ -67,6 +68,7 @@ int Oscillo::Open(uint32_t waveform_size_)
         
         data = Klib::KVector<float>(waveform_size, 0);
         data_all = Klib::KVector<float>(2*waveform_size, 0);
+        data_all_int = Klib::KVector<float>(2*waveform_size, 0);
         
         status = OPENED;
         
@@ -142,6 +144,14 @@ void Oscillo::_raw_to_vector_all(uint32_t *raw_data_1, uint32_t *raw_data_2)
     }
 }
 
+void Oscillo::_raw_to_vector_all_int(uint32_t size, uint32_t *raw_data_1, uint32_t *raw_data_2)
+{    
+    for(unsigned int i=0; i<waveform_size; i++) {
+            data_all_int[i] = raw_data_1[i];
+            data_all_int[i + waveform_size] = raw_data_2[i];
+    }
+}
+
 Klib::KVector<float>& Oscillo::read_data(bool channel)
 {
     Klib::MemMapID adc_map;
@@ -175,6 +185,23 @@ Klib::KVector<float>& Oscillo::read_all_channels()
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return data_all;
 }
+
+std::vector<uint32_t> Oscillo::speed_test(uint32_t n_outer_loop, uint32_t n_inner_loop, uint32_t n_pts)
+{
+    std::vector<uint32_t> durations(n_outer_loop);
+    for(uint32_t j = 0; j < n_outer_loop; ++j) {
+        auto begin = std::chrono::high_resolution_clock::now();
+        for(uint32_t i = 0; i < n_inner_loop; ++i) {
+            uint32_t *raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
+            uint32_t *raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
+            _raw_to_vector_all_int(n_pts, raw_data_1, raw_data_2);
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        durations[j] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count();
+    }
+    return durations;
+}
+
 
 void Oscillo::set_averaging(bool avg_status)
 {

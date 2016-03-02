@@ -5,6 +5,8 @@
 #ifndef __DRIVERS_CORE_OSCILLO_HPP__
 #define __DRIVERS_CORE_OSCILLO_HPP__
 
+#include <vector>
+
 #include <drivers/dev_mem.hpp>
 #include <drivers/wr_register.hpp>
 #include <drivers/addresses.hpp>
@@ -36,6 +38,10 @@ class Oscillo
     //> \description Read all the acquired data
     //> \io_type READ
     Klib::KVector<float>& read_all_channels();
+
+    //> \description Read all the acquired data
+    //> \io_type READ
+    std::vector<uint32_t> speed_test(uint32_t n_outer_loop, uint32_t n_inner_loop, uint32_t n_pts);
 
     //> \description Enable/disable averaging
     //> \io_type WRITE
@@ -74,11 +80,15 @@ class Oscillo
     // Acquired data buffers
     Klib::KVector<float> data;
     Klib::KVector<float> data_all;
+
+    Klib::KVector<float> data_int;
+    Klib::KVector<uint32_t> data_all_int;
     
     // Internal functions
     void _wait_for_acquisition();
     void _raw_to_vector(uint32_t *raw_data);
     void _raw_to_vector_all(uint32_t *raw_data_1, uint32_t *raw_data_2);
+    void _raw_to_vector_all_int(uint32_t size, uint32_t *raw_data_1, uint32_t *raw_data_2);
 }; // class Oscillo
 
 #endif // __DRIVERS_CORE_OSCILLO_HPP__
