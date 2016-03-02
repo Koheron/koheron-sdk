@@ -63,11 +63,13 @@ xdc:
   - boards/red-pitaya/config/clocks.xdc
 ```
 
-## Get started
+## Quick start
 
 You can find the latest release of the SD card image `oscillo-<version>.img` on this [link](https://github.com/Koheron/zynq-sdk/releases). The image contains an Ubuntu distribution with the `oscillo` and `spectrum` projects preinstalled.
 
-## Build steps
+* [Connect the board](http://www.koheron.com/products/lase/getting-started/) to your computer (Windows and Linux).
+
+## Build your own image
 
 The build is tested on Ubuntu 14.04.
 [Install Vivado](https://github.com/Koheron/zynq-sdk/issues/37) and source it ([Full list of requirements](https://github.com/Koheron/zynq-sdk/issues/4)):
