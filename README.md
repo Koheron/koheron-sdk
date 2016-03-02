@@ -63,13 +63,16 @@ xdc:
   - boards/red-pitaya/config/clocks.xdc
 ```
 
-
 ## Get started
+
+You can find the latest release of the SD card image `oscillo-<version>.img` on this [link](https://github.com/Koheron/zynq-sdk/releases). The image contains an Ubuntu distribution with the `oscillo` and `spectrum` projects preinstalled.
+
+## Build steps
 
 The build is tested on Ubuntu 14.04.
 [Install Vivado](https://github.com/Koheron/zynq-sdk/issues/37) and source it ([Full list of requirements](https://github.com/Koheron/zynq-sdk/issues/4)):
 ```
-$ source /opt/Xilinx/Vivado/2015.4/settings64.sh
+$ source settings.sh
 ```
 
 Build zip file including bitstream, middleware and python drivers:
@@ -77,7 +80,7 @@ Build zip file including bitstream, middleware and python drivers:
 $ make NAME=<project> zip
 ```
 
-Build bitstream, boot-loader and Linux kernel:
+Build zip, boot-loader and Linux kernel:
 ```
 $ make NAME=<project>
 ```
@@ -86,3 +89,4 @@ Build Ubuntu SD card image:
 ```
 $ sudo bash scripts/image.sh <project>
 ```
+
