@@ -32,10 +32,14 @@ class Oscillo
     //> \description Read the acquired data
     //> \io_type READ
     std::vector<float>& read_data(bool channel);
-    
+
     //> \description Read all the acquired data
     //> \io_type READ
     std::vector<float>& read_all_channels();
+
+    //> \description Read all the acquired data
+    //> \io_type READ_ARRAY param => two_n_pts
+    float* read_all_channels_decim(uint32_t two_n_pts);
 
     //> \description Read all the acquired data (raw)
     //> \io_type READ

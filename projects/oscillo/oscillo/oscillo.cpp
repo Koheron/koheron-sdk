@@ -146,15 +146,6 @@ void Oscillo::_raw_to_vector_all(uint32_t *raw_data_1, uint32_t *raw_data_2)
     }
 }
 
-void Oscillo::_raw_to_vector_all_raw(uint32_t *raw_data_1, uint32_t *raw_data_2)
-{    
-    for(unsigned int i=0; i<waveform_size; i++) {
-        data_all[i] = raw_data_1[i];
-        data_all[i + waveform_size] = raw_data_2[i];
-    }
-}
-
-
 std::vector<float>& Oscillo::read_data(bool channel)
 {
     Klib::MemMapID adc_map;
@@ -189,6 +180,28 @@ std::vector<float>& Oscillo::read_all_channels()
     return data_all;
 }
 
+float* Oscillo::read_all_channels_decim(uint32_t two_n_pts)
+{
+    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    uint32_t n_pts = two_n_pts/2;
+    uint32_t dec_factor = waveform_size/n_pts;
+
+    _wait_for_acquisition();
+    
+    uint32_t *raw_data_1
+        = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
+    uint32_t *raw_data_2
+        = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
+        
+    for(unsigned int i=0; i<n_pts; i++) {
+        data_all[i] = raw_data_1[dec_factor * i];
+        data_all[i + n_pts] = raw_data_2[dec_factor * i];
+    }
+
+    Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    return data_all.data();
+}
+
 void Oscillo::set_averaging(bool avg_status)
 {
     avg_on = avg_status;
@@ -210,6 +223,14 @@ uint32_t Oscillo::get_num_average()
 //////////////////////////////////////////////////////////
 // Functions used for speed test :
 //////////////////////////////////////////////////////////
+
+void Oscillo::_raw_to_vector_all_raw(uint32_t *raw_data_1, uint32_t *raw_data_2)
+{    
+    for(unsigned int i=0; i<waveform_size; i++) {
+        data_all[i] = raw_data_1[i];
+        data_all[i + waveform_size] = raw_data_2[i];
+    }
+}
 
 std::vector<float>& Oscillo::read_raw_all()
 {
