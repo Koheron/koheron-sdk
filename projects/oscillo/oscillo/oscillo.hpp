@@ -15,6 +15,9 @@
 
 #define WFM_SIZE ADC1_RANGE/sizeof(float)
 
+#define RAMBUF_ADDR 0x1E000000
+#define RAMBUF_RANGE 2048*4096
+
 //> \description Oscilloscope driver
 class Oscillo
 {
@@ -41,6 +44,9 @@ class Oscillo
 
     //> \io_type READ
     std::array<float, 2*WFM_SIZE>& read_zeros();
+
+    //> \io_type READ_ARRAY param => 2*WFM_SIZE
+    float* read_rambuf();
 
     //> \io_type READ
     std::vector<uint32_t> speed_test(uint32_t n_outer_loop, uint32_t n_inner_loop, uint32_t n_pts);
@@ -71,13 +77,15 @@ class Oscillo
     uint32_t acq_time_us;
 
     uint32_t *raw_data_1 = nullptr;
-    uint32_t *raw_data_2 = nullptr; 
+    uint32_t *raw_data_2 = nullptr;
+    float *rambuf_data = nullptr;
 
     // Memory maps IDs:
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
     Klib::MemMapID adc_1_map;
     Klib::MemMapID adc_2_map;
+    Klib::MemMapID rambuf_map;
     
     // Acquired data buffers
     std::array<float, WFM_SIZE> data;

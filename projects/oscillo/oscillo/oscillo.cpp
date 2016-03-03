@@ -65,8 +65,16 @@ int Oscillo::Open(uint32_t waveform_size_)
             return -1;
         }
 
+        rambuf_map = dev_mem.AddMemoryMap(RAMBUF_ADDR, RAMBUF_RANGE);
+        
+        if (static_cast<int>(rambuf_map) < 0) {
+            status = FAILED;
+            return -1;
+        }
+
         raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
         raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
+        rambuf_data = reinterpret_cast<float*>(dev_mem.GetBaseAddr(rambuf_map));
 
         data_all_int = std::vector<uint32_t>(waveform_size, 0);
 
@@ -217,6 +225,12 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_raw_all()
 std::array<float, 2*WFM_SIZE>& Oscillo::read_zeros()
 {
     return data_zeros;
+}
+
+// Read data in RAM buffer
+float* Oscillo::read_rambuf()
+{
+    return rambuf_data;
 }
 
 // Speed test : return time spend inside the loop
