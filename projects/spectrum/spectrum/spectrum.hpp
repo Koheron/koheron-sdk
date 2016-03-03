@@ -12,6 +12,8 @@
 #include <signal/kvector.hpp>
 
 #define SAMPLING_RATE 125E6
+#define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
+
 
 //> \description Spectrum analyzer driver
 class Spectrum
@@ -35,7 +37,7 @@ class Spectrum
     void set_demod_buffer(const uint32_t *data, uint32_t len);
 
     //> \io_type READ
-    std::vector<float>& get_spectrum();
+    std::array<float, WFM_SIZE>& get_spectrum();
 
     //> \io_type READ
     uint32_t get_num_average();
@@ -65,7 +67,7 @@ class Spectrum
     
     // Acquired data buffers
     float *raw_data;
-    std::vector<float> data;
+    std::array<float, WFM_SIZE> data;
     
     // Internal functions
     void _wait_for_acquisition();
