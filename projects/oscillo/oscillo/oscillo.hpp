@@ -33,8 +33,8 @@ class Oscillo
     //> \io_type READ
     std::array<float, 2*WFM_SIZE>& read_all_channels();
 
-    //> \io_type READ_ARRAY param => two_n_pts
-    float* read_all_channels_decim(uint32_t two_n_pts);
+    //> \io_type READ
+    std::vector<float>& read_all_channels_decim(uint32_t decim_factor);
 
     //> \io_type READ
     std::array<float, 2*WFM_SIZE>& read_raw_all();
@@ -82,6 +82,7 @@ class Oscillo
     // Acquired data buffers
     std::array<float, WFM_SIZE> data;
     std::array<float, 2*WFM_SIZE> data_all;
+    std::vector<float> data_decim;
     std::vector<float> data_zeros;
     std::vector<uint32_t> data_all_int;
     

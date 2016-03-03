@@ -7,6 +7,7 @@
 
 Oscillo::Oscillo(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)
+, data_decim(0)
 , data_zeros(0)
 , data_all_int(0)
 {
@@ -167,19 +168,19 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
     return data_all;
 }
 
-float* Oscillo::read_all_channels_decim(uint32_t two_n_pts)
+std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor)
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
-    uint32_t n_pts = two_n_pts/2;
-    uint32_t dec_factor = waveform_size/n_pts;
+    uint32_t n_pts = WFM_SIZE/decim_factor;
+    data_decim.resize(2*n_pts);
     _wait_for_acquisition();
 
     for(unsigned int i=0; i<n_pts; i++) {
-        data_all[i] = raw_data_1[dec_factor * i];
-        data_all[i + n_pts] = raw_data_2[dec_factor * i];
+        data_decim[i] = raw_data_1[decim_factor * i];
+        data_decim[i + n_pts] = raw_data_2[decim_factor * i];
     }
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
-    return data_all.data();
+    return data_decim;
 }
 
 void Oscillo::set_averaging(bool avg_status)
