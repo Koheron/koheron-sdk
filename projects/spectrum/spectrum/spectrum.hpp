@@ -9,8 +9,6 @@
 #include <drivers/wr_register.hpp>
 #include <drivers/addresses.hpp>
 
-#include <signal/kvector.hpp>
-
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
 

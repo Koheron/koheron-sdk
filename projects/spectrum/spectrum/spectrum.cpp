@@ -84,14 +84,12 @@ void Spectrum::Close()
 
 void Spectrum::set_scale_sch(uint32_t scale_sch)
 {
-    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + CFG_FFT_OFF, 
-                     1 + 2 * scale_sch);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + CFG_FFT_OFF, 1 + 2 * scale_sch);
 }
 
 void Spectrum::set_offset(uint32_t offset_real, uint32_t offset_imag)
 {
-    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + SUBSTRACT_MEAN_OFF, 
-                     offset_real + 16384 * offset_imag);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + SUBSTRACT_MEAN_OFF, offset_real + 16384 * offset_imag);
 }
 
 void Spectrum::set_demod_buffer(const uint32_t *data, uint32_t len)
