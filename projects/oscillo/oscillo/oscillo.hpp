@@ -45,8 +45,8 @@ class Oscillo
     //> \io_type READ
     std::array<float, 2*WFM_SIZE>& read_zeros();
 
-    //> \io_type READ_ARRAY param => 2*WFM_SIZE
-    float* read_rambuf();
+    //> \io_type READ
+    std::array<float, 2*WFM_SIZE>& read_rambuf();
 
     //> \io_type READ
     std::vector<uint32_t> speed_test(uint32_t n_outer_loop, uint32_t n_inner_loop, uint32_t n_pts);
@@ -79,6 +79,7 @@ class Oscillo
     uint32_t *raw_data_1 = nullptr;
     uint32_t *raw_data_2 = nullptr;
     float *rambuf_data = nullptr;
+    std::array<float, 2*WFM_SIZE> rambuf_copy;
 
     // Memory maps IDs:
     Klib::MemMapID config_map;

@@ -1,7 +1,7 @@
 /// (c) Koheron
 
 #include "oscillo.hpp"
-
+#include <string.h>
 #include <thread>
 #include <chrono>
 
@@ -228,9 +228,10 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_zeros()
 }
 
 // Read data in RAM buffer
-float* Oscillo::read_rambuf()
+std::array<float, 2*WFM_SIZE>& Oscillo::read_rambuf()
 {
-    return rambuf_data;
+    memcpy(rambuf_copy.data(), rambuf_data, 2*WFM_SIZE*sizeof(float));
+    return rambuf_copy;
 }
 
 // Speed test : return time spend inside the loop
