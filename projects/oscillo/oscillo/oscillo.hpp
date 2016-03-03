@@ -20,45 +20,32 @@ class Oscillo
     Oscillo(Klib::DevMem& dev_mem_);
     ~Oscillo();
 
-    //> \description Open the device
-    //> \io_type WRITE
-    //> \status ERROR_IF_NEG
-    //> \on_error Cannot open OSCILLO device
-    //> \flag AT_INIT
+    //> \io_type READ
     int Open(uint32_t waveform_size_);
     
     void Close();
 
-    //> \description Read the acquired data
     //> \io_type READ
     std::vector<float>& read_data(bool channel);
 
-    //> \description Read all the acquired data
     //> \io_type READ
     std::vector<float>& read_all_channels();
 
-    //> \description Read all the acquired data
     //> \io_type READ_ARRAY param => two_n_pts
     float* read_all_channels_decim(uint32_t two_n_pts);
 
-    //> \description Read all the acquired data (raw)
     //> \io_type READ
     std::vector<float>& read_raw_all();
 
-    //> \description Read zeros
     //> \io_type READ
     std::vector<float>& read_zeros();
 
-    //> \description Read all the acquired data
     //> \io_type READ
     std::vector<uint32_t> speed_test(uint32_t n_outer_loop, uint32_t n_inner_loop, uint32_t n_pts);
 
-    //> \description Enable/disable averaging
     //> \io_type WRITE
-    //> \param avg_status Status ON or OFF
     void set_averaging(bool avg_status);
     
-    //> \description Number of averages
     //> \io_type READ
     uint32_t get_num_average();
 
