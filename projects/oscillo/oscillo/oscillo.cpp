@@ -113,8 +113,14 @@ float _raw_to_float(uint32_t raw)
     return float(mod(raw - POW_2_31, POW_2_32) - POW_2_31);
 }
 
-void Oscillo::_raw_to_vector(uint32_t *raw_data)
-{    
+// Read only one channel
+std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
+{
+    Klib::MemMapID adc_map;
+    channel ? adc_map = adc_1_map : adc_map = adc_2_map;
+    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    _wait_for_acquisition();
+    uint32_t *raw_data = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_map));
     if(avg_on) {
         uint32_t num_avg = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF);  
         for(unsigned int i=0; i<data.size(); i++)
@@ -123,61 +129,49 @@ void Oscillo::_raw_to_vector(uint32_t *raw_data)
         for(unsigned int i=0; i<data.size(); i++)
             data[i] = _raw_to_float(raw_data[i]);
     }
-}
-
-void Oscillo::_raw_to_vector_all()
-{    
-    if(avg_on) {
-        uint32_t num_avg = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF);
-    
-        for(unsigned int i=0; i<waveform_size; i++) {
-            data_all[i] = _raw_to_float(raw_data_1[i]) / float(num_avg);
-            data_all[i + waveform_size] 
-                = _raw_to_float(raw_data_2[i]) / float(num_avg);
-        }
-    } else {
-        for(unsigned int i=0; i<waveform_size; i++) {
-            data_all[i] = _raw_to_float(raw_data_1[i]);
-            data_all[i + waveform_size] = _raw_to_float(raw_data_2[i]);
-        }
-    }
-}
-
-std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
-{
-    Klib::MemMapID adc_map;
-    channel ? adc_map = adc_1_map : adc_map = adc_2_map;
-
-    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
-    
-    _wait_for_acquisition();
-    
-    uint32_t *raw_data = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_map));
-    _raw_to_vector(raw_data);
-
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return data;
 }
 
+// Read the two channels
 std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     _wait_for_acquisition();
-    _raw_to_vector_all();
+    if(avg_on) {
+        float num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF)); 
+        for(unsigned int i=0; i<WFM_SIZE; i++) {
+            data_all[i] = _raw_to_float(raw_data_1[i])/num_avg;
+            data_all[i + WFM_SIZE] = _raw_to_float(raw_data_2[i])/num_avg;
+        }
+    } else {
+        for(unsigned int i=0; i<WFM_SIZE; i++) {
+            data_all[i] = _raw_to_float(raw_data_1[i]);
+            data_all[i + WFM_SIZE] = _raw_to_float(raw_data_2[i]);
+        }
+    }
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return data_all;
 }
 
+// Read the two channels but take only one point every decim_factor points
 std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor)
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     uint32_t n_pts = WFM_SIZE/decim_factor;
     data_decim.resize(2*n_pts);
     _wait_for_acquisition();
-
-    for(unsigned int i=0; i<n_pts; i++) {
-        data_decim[i] = raw_data_1[decim_factor * i];
-        data_decim[i + n_pts] = raw_data_2[decim_factor * i];
+    if(avg_on) {
+        float num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF)); 
+        for(unsigned int i=0; i<n_pts; i++) {
+            data_decim[i] = _raw_to_float(raw_data_1[decim_factor * i])/num_avg;
+            data_decim[i + n_pts] = _raw_to_float(raw_data_2[decim_factor * i])/num_avg;
+        }
+    } else {
+        for(unsigned int i=0; i<n_pts; i++) {
+            data_decim[i] = _raw_to_float(raw_data_1[decim_factor * i]);
+            data_decim[i + n_pts] = _raw_to_float(raw_data_2[decim_factor * i]);
+        }
     }
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return data_decim;
@@ -202,33 +196,29 @@ uint32_t Oscillo::get_num_average()
 }
 
 //////////////////////////////////////////////////////////
-// Functions used for speed test :
+// Functions used for speed test only :
 //////////////////////////////////////////////////////////
 
-void Oscillo::_raw_to_vector_all_raw()
-{    
+// Read the two channels in raw format
+std::array<float, 2*WFM_SIZE>& Oscillo::read_raw_all()
+{
+    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    //_wait_for_acquisition();
     for(unsigned int i=0; i<waveform_size; i++) {
         data_all[i] = raw_data_1[i];
         data_all[i + waveform_size] = raw_data_2[i];
     }
-}
-
-std::array<float, 2*WFM_SIZE>& Oscillo::read_raw_all()
-{
-    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
-    
-    //_wait_for_acquisition();
-        
-    _raw_to_vector_all_raw();
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return data_all;
 }
 
+// Return zeros (does not perform FPGA memory access)
 std::vector<float>& Oscillo::read_zeros()
 {
     return data_zeros;
 }
 
+// Speed test : return time spend inside the loop
 std::vector<uint32_t> Oscillo::speed_test(uint32_t n_outer_loop, uint32_t n_inner_loop, uint32_t n_pts)
 {
     std::vector<uint32_t> durations(n_outer_loop);

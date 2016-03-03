@@ -88,9 +88,6 @@ class Oscillo
     
     // Internal functions
     void _wait_for_acquisition();
-    void _raw_to_vector(uint32_t *raw_data);
-    void _raw_to_vector_all();
-    void _raw_to_vector_all_raw();
 }; // class Oscillo
 
 #endif // __DRIVERS_CORE_OSCILLO_HPP__
