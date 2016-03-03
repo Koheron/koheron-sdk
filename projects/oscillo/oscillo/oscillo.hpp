@@ -68,6 +68,9 @@ class Oscillo
     uint32_t waveform_size;
     uint32_t acq_time_us;
 
+    uint32_t *raw_data_1 = nullptr;
+    uint32_t *raw_data_2 = nullptr; 
+
     // Memory maps IDs:
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
@@ -83,8 +86,8 @@ class Oscillo
     // Internal functions
     void _wait_for_acquisition();
     void _raw_to_vector(uint32_t *raw_data);
-    void _raw_to_vector_all(uint32_t *raw_data_1, uint32_t *raw_data_2);
-    void _raw_to_vector_all_raw(uint32_t *raw_data_1, uint32_t *raw_data_2);
+    void _raw_to_vector_all();
+    void _raw_to_vector_all_raw();
 }; // class Oscillo
 
 #endif // __DRIVERS_CORE_OSCILLO_HPP__
