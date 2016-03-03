@@ -13,6 +13,8 @@
 
 #define SAMPLING_RATE 125E6
 
+#define WFM_SIZE ADC1_RANGE/sizeof(float)
+
 //> \description Oscilloscope driver
 class Oscillo
 {
@@ -26,16 +28,16 @@ class Oscillo
     void Close();
 
     //> \io_type READ
-    std::vector<float>& read_data(bool channel);
+    std::array<float, WFM_SIZE>& read_data(bool channel);
 
     //> \io_type READ
-    std::vector<float>& read_all_channels();
+    std::array<float, 2*WFM_SIZE>& read_all_channels();
 
     //> \io_type READ_ARRAY param => two_n_pts
     float* read_all_channels_decim(uint32_t two_n_pts);
 
     //> \io_type READ
-    std::vector<float>& read_raw_all();
+    std::array<float, 2*WFM_SIZE>& read_raw_all();
 
     //> \io_type READ
     std::vector<float>& read_zeros();
@@ -78,8 +80,8 @@ class Oscillo
     Klib::MemMapID adc_2_map;
     
     // Acquired data buffers
-    std::vector<float> data;
-    std::vector<float> data_all;
+    std::array<float, WFM_SIZE> data;
+    std::array<float, 2*WFM_SIZE> data_all;
     std::vector<float> data_zeros;
     std::vector<uint32_t> data_all_int;
     

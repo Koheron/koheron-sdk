@@ -7,8 +7,6 @@
 
 Oscillo::Oscillo(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)
-, data(0)
-, data_all(0)
 , data_zeros(0)
 , data_all_int(0)
 {
@@ -70,8 +68,6 @@ int Oscillo::Open(uint32_t waveform_size_)
         raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
         raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
         
-        data = std::vector<float>(waveform_size, 0);
-        data_all = std::vector<float>(2*waveform_size, 0);
         data_zeros = std::vector<float>(2*waveform_size, 0);
         data_all_int = std::vector<uint32_t>(waveform_size, 0);
 
@@ -146,7 +142,7 @@ void Oscillo::_raw_to_vector_all()
     }
 }
 
-std::vector<float>& Oscillo::read_data(bool channel)
+std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
 {
     Klib::MemMapID adc_map;
     channel ? adc_map = adc_1_map : adc_map = adc_2_map;
@@ -162,7 +158,7 @@ std::vector<float>& Oscillo::read_data(bool channel)
     return data;
 }
 
-std::vector<float>& Oscillo::read_all_channels()
+std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     _wait_for_acquisition();
@@ -216,7 +212,7 @@ void Oscillo::_raw_to_vector_all_raw()
     }
 }
 
-std::vector<float>& Oscillo::read_raw_all()
+std::array<float, 2*WFM_SIZE>& Oscillo::read_raw_all()
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     
