@@ -20,11 +20,7 @@ class Spectrum
     Spectrum(Klib::DevMem& dev_mem_);
     ~Spectrum();
 
-    //> \description Open the device
-    //> \io_type WRITE
-    //> \status ERROR_IF_NEG
-    //> \on_error Cannot open SPECTRUM device
-    //> \flag AT_INIT
+    //> \io_type READ
     int Open(uint32_t samples_num_);
     
     void Close();
@@ -38,11 +34,9 @@ class Spectrum
     //> \io_type WRITE_ARRAY param=>data param=>len
     void set_demod_buffer(const uint32_t *data, uint32_t len);
 
-    //> \description Read the acquired data
     //> \io_type READ
-    Klib::KVector<float>& get_spectrum();
-    
-    //> \description Number of averages
+    std::vector<float>& get_spectrum();
+
     //> \io_type READ
     uint32_t get_num_average();
 
@@ -71,7 +65,7 @@ class Spectrum
     
     // Acquired data buffers
     float *raw_data;
-    Klib::KVector<float> data;
+    std::vector<float> data;
     
     // Internal functions
     void _wait_for_acquisition();
