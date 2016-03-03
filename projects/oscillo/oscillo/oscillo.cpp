@@ -8,7 +8,6 @@
 Oscillo::Oscillo(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)
 , data_decim(0)
-, data_zeros(0)
 , data_all_int(0)
 {
     avg_on = false;
@@ -40,36 +39,35 @@ int Oscillo::Open(uint32_t waveform_size_)
     
         config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
         
-        if(static_cast<int>(config_map) < 0) {
+        if (static_cast<int>(config_map) < 0) {
             status = FAILED;
             return -1;
         }
         
         status_map = dev_mem.AddMemoryMap(STATUS_ADDR, STATUS_RANGE);
         
-        if(static_cast<int>(status_map) < 0) {
+        if (static_cast<int>(status_map) < 0) {
             status = FAILED;
             return -1;
         }
         
         adc_1_map = dev_mem.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
         
-        if(static_cast<int>(adc_1_map) < 0) {
+        if (static_cast<int>(adc_1_map) < 0) {
             status = FAILED;
             return -1;
         }
         
         adc_2_map = dev_mem.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
         
-        if(static_cast<int>(adc_2_map) < 0) {
+        if (static_cast<int>(adc_2_map) < 0) {
             status = FAILED;
             return -1;
         }
 
         raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
         raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
-        
-        data_zeros = std::vector<float>(2*waveform_size, 0);
+
         data_all_int = std::vector<uint32_t>(waveform_size, 0);
 
         status = OPENED;
@@ -100,7 +98,7 @@ void Oscillo::_wait_for_acquisition()
 }
 
 // http://stackoverflow.com/questions/12276675/modulus-with-negative-numbers-in-c
-long long int mod(long long int k, long long int n)
+inline long long int mod(long long int k, long long int n) 
 {
     return ((k %= n) < 0) ? k+n : k;
 }
@@ -108,7 +106,7 @@ long long int mod(long long int k, long long int n)
 #define POW_2_31 2147483648 // 2^31
 #define POW_2_32 4294967296 // 2^32
 
-float _raw_to_float(uint32_t raw)
+inline float _raw_to_float(uint32_t raw) 
 {
     return float(mod(raw - POW_2_31, POW_2_32) - POW_2_31);
 }
@@ -121,6 +119,7 @@ std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     _wait_for_acquisition();
     uint32_t *raw_data = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_map));
+
     if(avg_on) {
         uint32_t num_avg = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF);  
         for(unsigned int i=0; i<data.size(); i++)
@@ -138,6 +137,7 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     _wait_for_acquisition();
+
     if(avg_on) {
         float num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF)); 
         for(unsigned int i=0; i<WFM_SIZE; i++) {
@@ -161,6 +161,7 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor)
     uint32_t n_pts = WFM_SIZE/decim_factor;
     data_decim.resize(2*n_pts);
     _wait_for_acquisition();
+
     if(avg_on) {
         float num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF)); 
         for(unsigned int i=0; i<n_pts; i++) {
@@ -213,7 +214,7 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_raw_all()
 }
 
 // Return zeros (does not perform FPGA memory access)
-std::vector<float>& Oscillo::read_zeros()
+std::array<float, 2*WFM_SIZE>& Oscillo::read_zeros()
 {
     return data_zeros;
 }
@@ -222,6 +223,7 @@ std::vector<float>& Oscillo::read_zeros()
 std::vector<uint32_t> Oscillo::speed_test(uint32_t n_outer_loop, uint32_t n_inner_loop, uint32_t n_pts)
 {
     std::vector<uint32_t> durations(n_outer_loop);
+
     for(uint32_t j = 0; j < n_outer_loop; ++j) {
         auto begin = std::chrono::high_resolution_clock::now();
         for(uint32_t i = 0; i < n_inner_loop; ++i) {

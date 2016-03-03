@@ -40,7 +40,7 @@ class Oscillo
     std::array<float, 2*WFM_SIZE>& read_raw_all();
 
     //> \io_type READ
-    std::vector<float>& read_zeros();
+    std::array<float, 2*WFM_SIZE>& read_zeros();
 
     //> \io_type READ
     std::vector<uint32_t> speed_test(uint32_t n_outer_loop, uint32_t n_inner_loop, uint32_t n_pts);
@@ -82,8 +82,8 @@ class Oscillo
     // Acquired data buffers
     std::array<float, WFM_SIZE> data;
     std::array<float, 2*WFM_SIZE> data_all;
+    std::array<float, 2*WFM_SIZE> data_zeros;
     std::vector<float> data_decim;
-    std::vector<float> data_zeros;
     std::vector<uint32_t> data_all_int;
     
     // Internal functions
