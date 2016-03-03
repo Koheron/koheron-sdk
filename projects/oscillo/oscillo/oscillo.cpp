@@ -254,7 +254,7 @@ float* Oscillo::read_rambuf()
 // Read data in RAM buffer (with copy)
 std::array<float, 2*WFM_SIZE>& Oscillo::read_rambuf_memcpy()
 {
-    mycopy((unsigned char*)rambuf_copy.data(), (unsigned char*)rambuf_data, 2*WFM_SIZE*sizeof(float));
+    memcpy((unsigned char*)rambuf_copy.data(), (unsigned char*)rambuf_data, 2*WFM_SIZE*sizeof(float));
     return rambuf_copy;
 }
 
