@@ -51,7 +51,7 @@ proc add_averager_module {module_name bram_addr_width args} {
   cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_dout {
     Width.VALUE_SRC USER
     Width 32
-    Depth 1
+    Depth 2
   } {
     CLK clk
     D   fifo/dout
