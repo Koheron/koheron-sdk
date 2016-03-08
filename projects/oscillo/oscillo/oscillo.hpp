@@ -28,7 +28,7 @@ class Oscillo
     Oscillo(Klib::DevMem& dev_mem_);
     ~Oscillo();
 
-    //> \io_type READ
+    //> \io_type WRITE
     int Open(uint32_t waveform_size_);
     
     void Close();
