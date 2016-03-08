@@ -25,6 +25,7 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
       Add_mode  Subtract
       CE        false
       Out_Width $adc_width
+      Latency 2
     } {
       A   adc$i
       clk clk
@@ -87,8 +88,8 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
   }
 
   cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
-    ShiftRegType Variable_Length_Lossless
     Width 1
+    Depth 2
   } {
     CLK clk
     D tvalid
@@ -135,7 +136,7 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
     }
   }
 
-  cell xilinx.com:ip:floating_point:7.1 floating_point_0 {
+  cell xilinx.com:ip:floating_point:7.1 add_0 {
     Flow_Control NonBlocking
     Add_Sub_Value Add
     C_Mult_Usage No_Usage
@@ -167,15 +168,6 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
   } {
     Din cfg_fft
     Dout fft_0/s_axis_config_tdata
-  }
-
-  cell xilinx.com:ip:xlslice:1.0 delay_tvalid_slice {
-    DIN_WIDTH 32
-    DIN_FROM  19
-    DIN_TO 16
-  } {
-    Din cfg_fft
-    Dout shift_tvalid/A
   }
 
   current_bd_instance $bd

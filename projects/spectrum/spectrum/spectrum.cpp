@@ -86,6 +86,7 @@ void Spectrum::Close()
 
 void Spectrum::set_scale_sch(uint32_t scale_sch)
 {
+    // LSB at 1 for forward FFT
     Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + CFG_FFT_OFF, 
                      1 + 2 * scale_sch);
 }

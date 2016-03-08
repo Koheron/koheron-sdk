@@ -177,7 +177,7 @@ proc add_averager_module {module_name bram_addr_width args} {
   cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_counter {
     Width.VALUE_SRC USER
     Width 32
-    Depth 1
+    Depth 2
   } {
     CLK clk
     Q count
@@ -215,7 +215,6 @@ proc add_averager_module {module_name bram_addr_width args} {
     address counter/Q
     init counter/SCLR
   }
-
   connect_pins write_enable_0/init sr_avg_off_en/CE
   connect_pins write_enable_0/wen  shift_reg_n_avg/CE
   connect_pins write_enable_0/wen  shift_reg/SCLR
