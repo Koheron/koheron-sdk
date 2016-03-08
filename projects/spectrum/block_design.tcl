@@ -4,6 +4,15 @@ set bram_size [expr 2**($bram_addr_width-8)]K
 
 source projects/base/block_design.tcl
 
+# shift address/tvalid to take into account demod_data bram read latency
+cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
+  Width 1
+  Depth 1
+} {
+  CLK $adc_clk
+  D $address_name/tvalid
+}
+
 # Add spectrum IP
 source projects/spectrum/spectrum.tcl
 set spectrum_name spectrum_0
@@ -15,7 +24,7 @@ for {set i 1} {$i < 3} {incr i} {
   connect_pins spectrum_0/adc$i adc_dac/adc$i
 }
 
-connect_pins $spectrum_name/tvalid     $address_name/tvalid
+connect_pins $spectrum_name/tvalid     shift_tvalid/Q
 connect_pins $spectrum_name/cfg_sub    $config_name/Out$substract_mean_offset
 connect_pins $spectrum_name/cfg_fft    $config_name/Out$cfg_fft_offset
 
