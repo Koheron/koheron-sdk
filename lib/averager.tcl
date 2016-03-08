@@ -216,22 +216,13 @@ proc add_averager_module {module_name bram_addr_width args} {
     init counter/SCLR
   }
   connect_pins write_enable_0/init sr_avg_off_en/CE
+  connect_pins write_enable_0/wen  shift_reg_n_avg/CE
   connect_pins write_enable_0/wen  shift_reg/SCLR
-
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_wen {
-    Width.VALUE_SRC USER
-    Width 1
-    Depth 1
-  } {
-    CLK clk
-    D write_enable_0/wen
-    Q shift_reg_n_avg/CE
-  }
 
   cell xilinx.com:ip:xlconcat:2.1 concat_wen {NUM_PORTS 4} {dout wen}
 
   for {set i 0} {$i < 4} {incr i} {
-    connect_pins concat_wen/In$i shift_reg_wen/Q
+    connect_pins concat_wen/In$i write_enable_0/wen
   }
 
   # Connect address
