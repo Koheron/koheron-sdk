@@ -103,10 +103,9 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
     target_clock_frequency 125
     implementation_options pipelined_streaming_io
     data_format floating_point
-    phase_factor_width 25
+    phase_factor_width 24
     throttle_scheme realtime
     output_ordering natural_order
-    memory_options_hybrid true
   } {
     aclk clk
     s_axis_data_tdata concat_float/dout
