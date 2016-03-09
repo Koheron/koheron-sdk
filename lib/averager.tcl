@@ -151,9 +151,10 @@ proc add_averager_module {module_name bram_addr_width args} {
 
   cell koheron:user:comparator:1.0 comp {
     DATA_WIDTH $bram_addr_width
+    OPERATION "GEQ"
   } {
     a       fifo/data_count
-    a_geq_b fifo/rd_en
+    out fifo/rd_en
   }
 
   cell xilinx.com:ip:xlconstant:1.1 threshold {
@@ -171,7 +172,7 @@ proc add_averager_module {module_name bram_addr_width args} {
     SCLR true
   } {
     CLK clk
-    CE  comp/a_geq_b
+    CE  comp/out
   }
 
   cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_counter {
@@ -215,6 +216,7 @@ proc add_averager_module {module_name bram_addr_width args} {
     address counter/Q
     init counter/SCLR
   }
+
   connect_pins write_enable_0/init sr_avg_off_en/CE
   connect_pins write_enable_0/wen  shift_reg_n_avg/CE
   connect_pins write_enable_0/wen  shift_reg/SCLR

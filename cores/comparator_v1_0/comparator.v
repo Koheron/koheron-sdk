@@ -2,13 +2,39 @@
 
 module comparator #
 (
-  parameter integer DATA_WIDTH = 16
+  parameter integer DATA_WIDTH = 16,
+  parameter OPERATION = "EQ"
 )
 (
   input  wire [DATA_WIDTH-1:0]  a,
   input  wire [DATA_WIDTH-1:0]  b,
-  output wire a_geq_b              // a greater or equal than b     
+  output wire out  
 );
-  assign a_geq_b = (a >= b);
-endmodule
 
+  generate
+    if (OPERATION == "GE")
+    begin : GE
+      assign out = (a >= b);
+    end
+    if (OPERATION == "GT")
+    begin : GE
+      assign out = (a > b);
+    end
+    if (OPERATION == "LE")
+    begin : LE
+      assign out = (a <= b);
+    end
+    if (OPERATION == "LT")
+    begin : LE
+      assign out = (a < b);
+    end
+    if (OPERATION == "EQ")
+    begin : EQ
+      assign out = (a == b);
+    end
+    if (OPERATION == "NE")
+    begin : NEQ
+      assign out = (a != b);
+    end
+  endgenerate
+endmodule
