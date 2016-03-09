@@ -154,7 +154,7 @@ proc add_averager_module {module_name bram_addr_width args} {
     OPERATION "GEQ"
   } {
     a       fifo/data_count
-    out fifo/rd_en
+    dout fifo/rd_en
   }
 
   cell xilinx.com:ip:xlconstant:1.1 threshold {
@@ -172,7 +172,7 @@ proc add_averager_module {module_name bram_addr_width args} {
     SCLR true
   } {
     CLK clk
-    CE  comp/out
+    CE  comp/dout
   }
 
   cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_counter {
