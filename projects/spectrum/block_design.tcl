@@ -64,6 +64,17 @@ connect_pins $avg_name/wen         blk_mem_gen_$spectrum_bram_name/web
 
 connect_pins $avg_name/n_avg       sts/In$n_avg_offset
 
+
+# Add peak detector
+
+source lib/peak_detector.tcl
+set peak_detector_name peak
+add_peak_detector $peak_detector_name $bram_addr_width
+
+connect_pins $peak_detector_name/clk $adc_clk
+connect_pins $peak_detector_name/din $spectrum_name/m_axis_result_tdata
+connect_pins $peak_detector_name/tvalid $spectrum_name/m_axis_result_tvalid
+
 ##########################################################
 # Add EEPROM
 ##########################################################
