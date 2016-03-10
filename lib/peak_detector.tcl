@@ -9,7 +9,7 @@ proc add_peak_detector {module_name wfm_width} {
   create_bd_pin -dir I                        tvalid
   create_bd_pin -dir O -from $wfm_width -to 0 address_out
   create_bd_pin -dir O -from 31 -to 0         maximum_out
-  set compare_latency 2
+  set compare_latency 0
 
   # Add comparator
   cell xilinx.com:ip:floating_point:7.1 comparator {
@@ -19,7 +19,6 @@ proc add_peak_detector {module_name wfm_width} {
     Maximum_Latency False
     C_Latency $compare_latency
   } {
-    aclk clk
     s_axis_a_tdata din
     s_axis_a_tvalid tvalid
     s_axis_b_tvalid tvalid
@@ -31,27 +30,7 @@ proc add_peak_detector {module_name wfm_width} {
     Din comparator/m_axis_result_tdata
   }
 
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_data {
-    Width 32
-    Depth $compare_latency
-  } {
-    CLK clk
-    D din
-  }
-
-  # 
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_maximum {
-    CE true
-    Width 32
-    Depth 1
-    SCLR true
-  } {
-    CLK clk
-    D shift_data/Q
-    CE slice_compare/Dout
-    Q comparator/s_axis_b_tdata
-  }
-
+  # Address starting counting at tvalid
   cell xilinx.com:ip:c_counter_binary:12.0 address_counter {
     CE true
     Output_Width $wfm_width
@@ -60,62 +39,74 @@ proc add_peak_detector {module_name wfm_width} {
     CE tvalid
   }
 
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_address {
-    Width $wfm_width
-    Depth 1
-  } {
-    CLK clk
-    D address_counter/Q
-  }
-
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_address {
-    CE true
-    Width $wfm_width
-    Depth 1
-    SCLR true
-  } {
-    CLK clk
-    CE slice_compare/Dout
-    D shift_address/Q
-  }
-
-  cell xilinx.com:ip:xlconstant:1.1 start_cycle_constant {
+  cell xilinx.com:ip:xlconstant:1.1 reset_cycle_constant {
     CONST_WIDTH $wfm_width
-    CONST_VAL 0
+    CONST_VAL [expr 2**$wfm_width-1]
   } {}
 
-  cell koheron:user:comparator:1.0 start_cycle {
+  cell koheron:user:comparator:1.0 reset_cycle {
     DATA_WIDTH $wfm_width
     OPERATION "EQ"
   } {
     a address_counter/Q
-    b start_cycle_constant/dout
-    dout shift_reg_maximum/SCLR
-    dout shift_reg_address/SCLR
+    b reset_cycle_constant/dout
   }
 
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_address_out {
-    CE true
-    Width $wfm_width
-    Depth 1
+  # OR
+  cell xilinx.com:ip:util_vector_logic:2.0 logic_or {
+    C_SIZE 1
+    C_OPERATION or
   } {
-    CLK clk
-    CE start_cycle/dout
-    D shift_reg_address/Q
-    Q address_out
+    Op1 slice_compare/Dout
+    Op2 reset_cycle/dout
   }
 
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_maximum_out {
+  # Register storing the current maximum
+  cell xilinx.com:ip:c_shift_ram:12.0 maximum_reg {
     CE true
     Width 32
     Depth 1
   } {
     CLK clk
-    CE start_cycle/dout
-    D shift_reg_maximum/Q
+    D din
+    CE logic_or/Res
+    Q comparator/s_axis_b_tdata
+  }
+
+  # Register storing the address of current maximum
+  cell xilinx.com:ip:c_shift_ram:12.0 address_reg {
+    CE true
+    Width $wfm_width
+    Depth 1
+  } {
+    CLK clk
+    D address_counter/Q
+    CE logic_or/Res
+  }
+
+  # Register storing the maximum of one cycle
+  cell xilinx.com:ip:c_shift_ram:12.0 maximum_out {
+    CE true
+    Width 32
+    Depth 1
+  } {
+    CLK clk
+    CE reset_cycle/dout
+    D maximum_reg/Q
     Q maximum_out
   }
 
+  # Register storing the address of the maximum of one cycle
+  cell xilinx.com:ip:c_shift_ram:12.0 address_out {
+    CE true
+    Width $wfm_width
+    Depth 1
+  } {
+    CLK clk
+    CE reset_cycle/Dout
+    D address_reg/Q
+    Q address_out
+  }
 
   current_bd_instance $bd
 

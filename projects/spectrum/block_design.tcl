@@ -75,6 +75,9 @@ connect_pins $peak_detector_name/clk $adc_clk
 connect_pins $peak_detector_name/din $spectrum_name/m_axis_result_tdata
 connect_pins $peak_detector_name/tvalid $spectrum_name/m_axis_result_tvalid
 
+delete_bd_objs [get_bd_nets dac_b_slice_Dout]
+connect_bd_net [get_bd_pins $peak_detector_name/address_out] [get_bd_pins adc_dac/dac2]
+
 ##########################################################
 # Add EEPROM
 ##########################################################
