@@ -17,7 +17,7 @@ module comparator #
       assign dout = (a >= b);
     end
     if (OPERATION == "GT")
-    begin : GE
+    begin : GT
       assign dout = (a > b);
     end
     if (OPERATION == "LE")
@@ -25,7 +25,7 @@ module comparator #
       assign dout = (a <= b);
     end
     if (OPERATION == "LT")
-    begin : LE
+    begin : LT
       assign dout = (a < b);
     end
     if (OPERATION == "EQ")
@@ -33,7 +33,7 @@ module comparator #
       assign dout = (a == b);
     end
     if (OPERATION == "NE")
-    begin : NEQ
+    begin : NE
       assign dout = (a != b);
     end
   endgenerate
