@@ -54,7 +54,7 @@ cell xilinx.com:ip:c_counter_binary:12.0 noise_floor_address_counter {
   Increment_Value 4
 } {
   CLK $adc_clk
-  CE $spectrum_name/m_axis_result_tvalid
+  CE $spectrum_name/M_AXIS_RESULT_tvalid
 }
 
 set noise_floor_bram_name noise_floor_bram
@@ -71,7 +71,7 @@ cell xilinx.com:ip:c_shift_ram:12.0 tdata_reg {
   Depth 1
 } {
   CLK $adc_clk
-  D $spectrum_name/m_axis_result_tdata
+  D $spectrum_name/M_AXIS_RESULT_tdata
 }
 
 cell xilinx.com:ip:c_shift_ram:12.0 tvalid_reg {
@@ -79,7 +79,7 @@ cell xilinx.com:ip:c_shift_ram:12.0 tvalid_reg {
   Depth 1
 } {
   CLK $adc_clk
-  D $spectrum_name/m_axis_result_tvalid
+  D $spectrum_name/M_AXIS_RESULT_tvalid
 }
 
 set subtract_name subtract_noise_floor
