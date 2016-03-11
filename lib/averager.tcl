@@ -151,7 +151,7 @@ proc add_averager_module {module_name bram_addr_width args} {
 
   cell koheron:user:comparator:1.0 comp {
     DATA_WIDTH $bram_addr_width
-    OPERATION "GEQ"
+    OPERATION "GE"
   } {
     a       fifo/data_count
     dout fifo/rd_en
