@@ -47,57 +47,10 @@ connect_pins blk_mem_gen_$demod_bram_name/doutb $spectrum_name/demod_data
 connect_pins blk_mem_gen_$demod_bram_name/addrb $address_name/addr
 
 # Substract noise floor
-
-cell xilinx.com:ip:c_counter_binary:12.0 noise_floor_address_counter {
-  CE true
-  Output_Width [expr $bram_addr_width + 2]
-  Increment_Value 4
-} {
-  CLK $adc_clk
-  CE $spectrum_name/M_AXIS_RESULT_tvalid
-}
-
-set noise_floor_bram_name noise_floor_bram
-add_bram $noise_floor_bram_name $axi_noise_floor_range $axi_noise_floor_offset
-connect_pins blk_mem_gen_$noise_floor_bram_name/clkb  $adc_clk
-connect_pins blk_mem_gen_$noise_floor_bram_name/rstb  $rst_adc_clk_name/peripheral_reset
-connect_pins blk_mem_gen_$noise_floor_bram_name/web   ${dac_bram_name}_web/dout
-connect_pins blk_mem_gen_$noise_floor_bram_name/dinb  ${dac_bram_name}_dinb/dout
-connect_pins blk_mem_gen_$noise_floor_bram_name/enb   ${dac_bram_name}_enb/dout
-connect_pins blk_mem_gen_$noise_floor_bram_name/addrb noise_floor_address_counter/Q
-
-cell xilinx.com:ip:c_shift_ram:12.0 tdata_reg {
-  Width 32
-  Depth 1
-} {
-  CLK $adc_clk
-  D $spectrum_name/M_AXIS_RESULT_tdata
-}
-
-cell xilinx.com:ip:c_shift_ram:12.0 tvalid_reg {
-  Width 1
-  Depth 1
-} {
-  CLK $adc_clk
-  D $spectrum_name/M_AXIS_RESULT_tvalid
-}
-
-set subtract_name subtract_noise_floor
-cell xilinx.com:ip:floating_point:7.1 $subtract_name {
-  Add_Sub_Value Subtract
-  C_Optimization Low_Latency
-  C_Mult_Usage No_Usage
-  Flow_Control NonBlocking
-  Maximum_Latency false
-  C_Latency 4
-} {
-  aclk $adc_clk
-  s_axis_a_tvalid tvalid_reg/Q
-  s_axis_b_tvalid tvalid_reg/Q
-  s_axis_a_tdata tdata_reg/Q
-  s_axis_b_tdata blk_mem_gen_$noise_floor_bram_name/doutb
-}
-
+source projects/spectrum/noise_floor.tcl
+set subtract_name noise_floor
+add_noise_floor $subtract_name $bram_addr_width $adc_clk
+connect_pins $subtract_name/clk         $adc_clk
 
 # Add averaging module
 source lib/averager.tcl
