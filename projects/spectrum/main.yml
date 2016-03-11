@@ -19,6 +19,9 @@ addresses:
   - name: demod
     offset: '0x84000000'
     range: 16K
+  - name: noise_floor
+    offset: '0x86000000'
+    range: 16K
 
 config_offsets:
   - spi_in

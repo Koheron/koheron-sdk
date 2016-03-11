@@ -14,7 +14,7 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
   create_bd_pin -dir O -from 31                    -to 0 m_axis_result_tdata
   create_bd_pin -dir O                                   m_axis_result_tvalid
 
-  #create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 MAXIS_RESULT
+  #create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 M_AXIS_RESULT
 
   connect_pins clk /$clk
 
