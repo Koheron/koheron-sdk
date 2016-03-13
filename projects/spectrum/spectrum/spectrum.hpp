@@ -13,37 +13,24 @@
 
 #define SAMPLING_RATE 125E6
 
-//> \description Spectrum analyzer driver
 class Spectrum
 {
   public:
     Spectrum(Klib::DevMem& dev_mem_);
     ~Spectrum();
 
-    //> \description Open the device
-    //> \io_type WRITE
-    //> \status ERROR_IF_NEG
-    //> \on_error Cannot open SPECTRUM device
-    //> \flag AT_INIT
     int Open(uint32_t samples_num_);
     
+    #pragma tcp-server exclude
     void Close();
     
-    //> \io_type WRITE
     void set_scale_sch(uint32_t scale_sch);
-    
-    //> \io_type WRITE
     void set_offset(uint32_t offset_real, uint32_t offset_imag);
 
-    //> \io_type WRITE_ARRAY param=>data param=>len
+    #pragma tcp-server write_array arg{data} arg{len}
     void set_demod_buffer(const uint32_t *data, uint32_t len);
 
-    //> \description Read the acquired data
-    //> \io_type READ
-    Klib::KVector<float>& get_spectrum();
-    
-    //> \description Number of averages
-    //> \io_type READ
+    std::vector<float>& get_spectrum();
     uint32_t get_num_average();
 
     enum Status {
@@ -52,7 +39,7 @@ class Spectrum
         FAILED
     };
 
-    //> \is_failed
+    #pragma tcp-server is_failed
     bool IsFailed() const {return status == FAILED;}
 
   private:
@@ -71,7 +58,7 @@ class Spectrum
     
     // Acquired data buffers
     float *raw_data;
-    Klib::KVector<float> data;
+    std::vector<float> data;
     
     // Internal functions
     void _wait_for_acquisition();

@@ -62,7 +62,7 @@ SHA = $(shell cat $(SHA_FILE))
 
 # Zip
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
-TCP_SERVER_SHA = master
+TCP_SERVER_SHA = simplify_tags
 PYTHON_DIR = $(TMP)/$(NAME).python
 PYTHON_ZIP = $(PYTHON_DIR)/python.zip
 
