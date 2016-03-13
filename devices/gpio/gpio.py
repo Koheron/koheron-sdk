@@ -11,25 +11,32 @@ class Gpio(object):
     """
     def __init__(self, client):
         self.client = client
-        self.open_gpio()
+        if self.open_gpio() < 0:
+            print('Cannot open GPIO device')
 
     def open_gpio(self):
         @command('GPIO')
-        def open(self): pass
+        def open(self):
+            return self.client.recv_int(4)
 
-        open(self)
-
-    @command('GPIO')
-    def set_bit(self, index, channel): pass
+        return open(self)
 
     @command('GPIO')
-    def clear_bit(self, index, channel): pass
+    def set_bit(self, index, channel):
+        return self.client.recv_int(4)
 
     @command('GPIO')
-    def toggle_bit(self, index, channel): pass
+    def clear_bit(self, index, channel):
+        return self.client.recv_int(4)
 
     @command('GPIO')
-    def set_as_input(self, index, channel): pass
+    def toggle_bit(self, index, channel):
+        return self.client.recv_int(4)
 
     @command('GPIO')
-    def set_as_output(self, index, channel): pass
+    def set_as_input(self, index, channel):
+        return self.client.recv_int(4)
+
+    @command('GPIO')
+    def set_as_output(self, index, channel):
+        return self.client.recv_int(4)

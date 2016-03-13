@@ -23,7 +23,7 @@ class Spectrum
     
     #pragma tcp-server exclude
     void Close();
-    
+
     void set_scale_sch(uint32_t scale_sch);
     void set_offset(uint32_t offset_real, uint32_t offset_imag);
 
@@ -44,9 +44,8 @@ class Spectrum
 
   private:
     Klib::DevMem& dev_mem;
-
     int status;
-    
+
     uint32_t samples_num;
     uint32_t acq_time_us;
 
@@ -55,11 +54,11 @@ class Spectrum
     Klib::MemMapID status_map;
     Klib::MemMapID spectrum_map;
     Klib::MemMapID demod_map;
-    
+
     // Acquired data buffers
     float *raw_data;
     std::vector<float> data;
-    
+
     // Internal functions
     void _wait_for_acquisition();
 }; // class Spectrum

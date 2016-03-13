@@ -11,13 +11,15 @@ class Common(object):
     """
     def __init__(self, client):
         self.client = client
-        self.open_common()
+        if self.open_common() < 0:
+            print('Cannot open COMMON device')
 
     def open_common(self):
         @command('COMMON')
-        def open(self): pass
+        def open(self):
+            return self.client.recv_int(4)
 
-        open(self)
+        return open(self)
 
     @command('COMMON')
     def get_bitstream_id(self):

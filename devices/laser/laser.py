@@ -8,14 +8,16 @@ class Laser(object):
     def __init__(self, client):
         """ client : instance of KClient connected to tcp-server."""
         self.client = client
-        self.open_laser()
+        if self.open_laser() < 0 :
+            print('Cannot open LASER device')
         self.max_current = 40  # mA
 
     def open_laser(self):
         @command('LASER')
-        def open(self): pass
+        def open(self):
+            return self.client.recv_int(4)
 
-        open(self)
+        return open(self)
 
     def close(self):
         self.reset()
