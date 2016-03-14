@@ -5,18 +5,14 @@ import time
 import math
 import numpy as np
 
-from base import Base
 from koheron_tcp_client import command
 
-class Oscillo(Base):
-    """ Driver for the oscillo bitstream
-    """
-
+class Oscillo(Object):
     def __init__(self, client, verbose=False):
         self.wfm_size = 8192
-        super(Oscillo, self).__init__(self.wfm_size, client)
 
-        self.open(self.wfm_size)
+        if self.open(self.wfm_size) < 0:
+            print('Cannot open device OSCILLO')
        
         self.avg_on = False
 
@@ -40,7 +36,7 @@ class Oscillo(Base):
 
     @command('OSCILLO')
     def open(self, wfm_size):
-        pass
+        return self.client.recv_int(4)
 
     def reset(self):
         super(Oscillo, self).reset()

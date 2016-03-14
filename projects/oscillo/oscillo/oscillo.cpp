@@ -65,8 +65,8 @@ int Oscillo::Open(uint32_t waveform_size_)
             return -1;
         }
         
-        data = Klib::KVector<float>(waveform_size, 0);
-        data_all = Klib::KVector<float>(2*waveform_size, 0);
+        data = std::vector<float>(waveform_size, 0);
+        data_all = std::vector<float>(2*waveform_size, 0);
         
         status = OPENED;
         
@@ -142,7 +142,7 @@ void Oscillo::_raw_to_vector_all(uint32_t *raw_data_1, uint32_t *raw_data_2)
     }
 }
 
-Klib::KVector<float>& Oscillo::read_data(bool channel)
+std::vector<float>& Oscillo::read_data(bool channel)
 {
     Klib::MemMapID adc_map;
     channel ? adc_map = adc_1_map : adc_map = adc_2_map;
@@ -159,7 +159,7 @@ Klib::KVector<float>& Oscillo::read_data(bool channel)
     return data;
 }
 
-Klib::KVector<float>& Oscillo::read_all_channels()
+std::vector<float>& Oscillo::read_all_channels()
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     

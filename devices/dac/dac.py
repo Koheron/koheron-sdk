@@ -15,7 +15,8 @@ class DAC(object):
     """
     def __init__(self, wfm_size, client):
         self.client = client
-        self.open_dac(wfm_size)
+        if self.open_dac(wfm_size) < 0:
+            print('Cannot open DAC device')
 
         self.n = wfm_size
         self.sampling = Sampling(wfm_size, 125e6)
@@ -23,9 +24,10 @@ class DAC(object):
 
     def open_dac(self, wfm_size):
         @command('DAC')
-        def open(self, wfm_size): pass
+        def open(self, wfm_size):
+            return self.client.recv_int(4)
 
-        open(self, wfm_size)
+        return open(self, wfm_size)
 
     def close(self):
         self.reset()

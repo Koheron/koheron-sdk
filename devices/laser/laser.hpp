@@ -25,39 +25,17 @@ class Laser
     Laser(Klib::DevMem& dev_mem_);
     ~Laser();
     
-    //> \description Open the device
-    //> \io_type WRITE
-    //> \status ERROR_IF_NEG
-    //> \on_error Cannot open BASE device
-    //> \flag AT_INIT
     int Open();
     
+    #pragma tcp-server exclude
     void Close();
     
-    //> \description Reset to default state
-    //> \io_type WRITE
     void reset();
-    
-    //> \description Laser current monitoring
-    //> \io_type READ
     uint32_t get_laser_current();
-    
-    //> \description Laser power monitoring
-    //> \io_type READ
     uint32_t get_laser_power();
-    
-    //> \description Send all monitoring data at once
-    //> \io_type READ
     std::tuple<uint32_t, uint32_t> get_monitoring();
-    
-    //> \io_type WRITE
     void start_laser();
-    
-    //> \io_type WRITE
     void stop_laser();
-    
-    //> \param current Laser current in mA
-    //> \io_type WRITE
     void set_laser_current(float current);
     
     enum Status {
@@ -65,8 +43,8 @@ class Laser
         OPENED,
         FAILED
     };
-    
-    //> \is_failed
+
+    #pragma tcp-server is_failed
     bool IsFailed() const {return status == FAILED;}
     
   private:

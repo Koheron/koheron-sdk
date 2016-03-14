@@ -15,23 +15,17 @@ class Dac
     Dac(Klib::DevMem& dev_mem_);
     ~Dac();
 
-    //> \io_type WRITE
-    //> \status ERROR_IF_NEG
-    //> \on_error Cannot open DAC device
-    //> \flag AT_INIT
     int Open(uint32_t dac_wfm_size_);
 
+    #pragma tcp-server exclude
     void Close();
 
-    //> \description Reset to default state
-    //> \io_type WRITE
     void reset();
 
-    //> \io_type WRITE_ARRAY param=>data param=>len
+    #pragma tcp-server write_array arg{data} arg{len}
     void set_dac_buffer(const uint32_t *data, uint32_t len);
 
     // XXX (TV) Is it for oscillo ??
-    //> \io_type WRITE
     void reset_acquisition();
 
     enum Status {
@@ -40,7 +34,7 @@ class Dac
         FAILED
     };
 
-    //> \is_failed
+    #pragma tcp-server is_failed
     bool IsFailed() const {return status == FAILED;}
 
   private:

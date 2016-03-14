@@ -17,25 +17,16 @@ class Common
     Common(Klib::DevMem& dev_mem_);
     ~Common();
 
-    //> \io_type WRITE
-    //> \flag AT_INIT
     int Open();
 
+    #pragma tcp-server exclude
     void Close();
 
-    //> \io_type READ
     std::array<uint32_t, BITSTREAM_ID_SIZE> get_bitstream_id();
 
-    //> \io_type READ
     uint64_t get_dna();
-
-    //> \io_type WRITE
     void set_led(uint32_t value);
-
-    //> \io_type READ
     uint32_t get_led();
-
-    //> \io_type WRITE
     void ip_on_leds();
 
     enum Status {
@@ -44,7 +35,7 @@ class Common
         FAILED
     };
 
-    //> \is_failed
+    #pragma tcp-server is_failed
     bool IsFailed() const {return status == FAILED;}
 
   private:

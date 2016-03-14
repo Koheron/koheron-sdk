@@ -63,7 +63,7 @@ int Spectrum::Open(uint32_t samples_num_)
         }
         
         raw_data = reinterpret_cast<float*>(dev_mem.GetBaseAddr(spectrum_map));
-        data = Klib::KVector<float>(samples_num, 0);
+        data = std::vector<float>(samples_num, 0);
         
         Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+AVG_OFF_OFF, 0);
         
@@ -110,7 +110,7 @@ void Spectrum::_wait_for_acquisition()
     std::this_thread::sleep_for(std::chrono::microseconds(acq_time_us));
 }
 
-Klib::KVector<float>& Spectrum::get_spectrum()
+std::vector<float>& Spectrum::get_spectrum()
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     

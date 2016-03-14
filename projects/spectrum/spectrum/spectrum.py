@@ -4,44 +4,36 @@
 import time
 import numpy as np
 
-from .base import Base
 from koheron_tcp_client import command, write_buffer
 
-class Spectrum(Base):
+class Spectrum(Object):
     """ Driver for the spectrum bitstream """
 
     def __init__(self, client, verbose=False):
         self.wfm_size = 4096
-        super(Spectrum, self).__init__(self.wfm_size, client)
-        self.open(self.wfm_size)
+        if self.open(self.wfm_size) < 0:
+            print('Cannot open device SPECTRUM')
 
         self.spectrum = np.zeros(self.wfm_size, dtype=np.float32)
         self.demod = np.zeros((2, self.wfm_size))
-
         self.demod[0, :] = 0.49 * (1 - np.cos(2 * np.pi * np.arange(self.wfm_size) / self.wfm_size))
         self.demod[1, :] = 0
-
         # self.set_offset(0, 0)
-
         self.set_demod()
-
         self.reset()
 
     @command('SPECTRUM')
     def open(self, wfm_size):
-        pass
+        return self.client.recv_int(4)
 
     @command('SPECTRUM')
-    def set_scale_sch(self, scale_sch):
-        pass
+    def set_scale_sch(self, scale_sch): pass
 
     @command('SPECTRUM')
-    def set_offset(self, offset_real, offset_imag):
-        pass
+    def set_offset(self, offset_real, offset_imag): pass
 
     @write_buffer('SPECTRUM')
-    def set_demod_buffer(self, data):
-        pass
+    def set_demod_buffer(self, data): pass
 
     def set_demod(self, warning=False):
         if warning:
