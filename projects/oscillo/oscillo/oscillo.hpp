@@ -12,11 +12,8 @@
 #include <drivers/addresses.hpp>
 
 #define SAMPLING_RATE 125E6
-
 #define WFM_SIZE ADC1_RANGE/sizeof(float)
-
-#define RAMBUF_ADDR 0x1E000000
-#define RAMBUF_RANGE 2048*4096
+#define ACQ_TIME_US uint32_t(2*(WFM_SIZE*1E6)/SAMPLING_RATE)
 
 class Oscillo
 {
@@ -51,8 +48,7 @@ class Oscillo
     void Close();
 
     int status;
-    bool avg_on; ///< True if averaging is enabled
-    uint32_t acq_time_us;
+    bool avg_on; // True if averaging is enabled
 
     uint32_t *raw_data_1 = nullptr;
     uint32_t *raw_data_2 = nullptr;

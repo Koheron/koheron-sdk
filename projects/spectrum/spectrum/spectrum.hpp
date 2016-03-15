@@ -11,7 +11,7 @@
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
-
+#define ACQ_TIME_US uint32_t(2*(WFM_SIZE*1E6)/SAMPLING_RATE)
 
 class Spectrum
 {
@@ -46,7 +46,6 @@ class Spectrum
     void Close();
 
     uint32_t samples_num;
-    uint32_t acq_time_us;
 
     // Memory maps IDs:
     Klib::MemMapID config_map;

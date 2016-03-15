@@ -25,14 +25,8 @@ int Oscillo::Open()
         Close();
     }
 
-    if(status == CLOSED) {
-       
-        // Acquisition time in microseconds
-        // Factor two because depending whether TRIG_ACQ
-        // is received at the beginning or the end of a
-        // period the acquisition time can be twice as long
-        acq_time_us = 2*(WFM_SIZE*1E6)/SAMPLING_RATE;
-    
+    if(status == CLOSED) {       
+   
         config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
         
         if (static_cast<int>(config_map) < 0) {
@@ -88,7 +82,7 @@ void Oscillo::_wait_for_acquisition()
 {
     // The overhead of sleep_for might be of the order of our waiting time:
     // http://stackoverflow.com/questions/18071664/stdthis-threadsleep-for-and-nanoseconds
-    std::this_thread::sleep_for(std::chrono::microseconds(acq_time_us));
+    std::this_thread::sleep_for(std::chrono::microseconds(ACQ_TIME_US));
 }
 
 // http://stackoverflow.com/questions/12276675/modulus-with-negative-numbers-in-c
