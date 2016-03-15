@@ -18,9 +18,6 @@
 #define RAMBUF_ADDR 0x1E000000
 #define RAMBUF_RANGE 2048*4096
 
-//http://es.codeover.org/questions/34888683/arm-neon-memcpy-optimized-for-uncached-memory
-void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz);
-
 class Oscillo
 {
   public:
@@ -34,25 +31,6 @@ class Oscillo
     std::array<float, 2*WFM_SIZE>& read_all_channels();
 
     std::vector<float>& read_all_channels_decim(uint32_t decim_factor);
-
-    std::array<float, 2*WFM_SIZE>& read_raw_all();
-
-    std::array<float, 2*WFM_SIZE>& read_zeros();
-
-    #pragma tcp-server read_array 2*WFM_SIZE
-    float* read_rambuf();
-
-    std::array<float, 2*WFM_SIZE>& read_rambuf_memcpy();
-
-    std::array<float, 2*WFM_SIZE>& read_rambuf_mycopy();
-
-    #pragma tcp-server read_array 2*WFM_SIZE
-    float* read_mmapbuf_nocopy();
-
-    #pragma tcp-server read_array 2*WFM_SIZE
-    float* read_rambuf_mmap_memcpy();
-
-    std::vector<uint32_t> speed_test(uint32_t n_outer_loop, uint32_t n_inner_loop, uint32_t n_pts);
 
     void set_averaging(bool avg_status);
     
@@ -79,23 +57,17 @@ class Oscillo
 
     uint32_t *raw_data_1 = nullptr;
     uint32_t *raw_data_2 = nullptr;
-    float *rambuf_data = nullptr;
-    std::array<float, 2*WFM_SIZE> rambuf_copy;
 
     // Memory maps IDs:
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
     Klib::MemMapID adc_1_map;
     Klib::MemMapID adc_2_map;
-    Klib::MemMapID rambuf_map;
-    void *mmap_buf;
     
     // Acquired data buffers
     std::array<float, WFM_SIZE> data;
     std::array<float, 2*WFM_SIZE> data_all;
-    std::array<float, 2*WFM_SIZE> data_zeros;
     std::vector<float> data_decim;
-    std::vector<uint32_t> data_all_int;
     
     // Internal functions
     void _wait_for_acquisition();

@@ -5,29 +5,11 @@
 #include <thread>
 #include <chrono>
 
-//http://es.codeover.org/questions/34888683/arm-neon-memcpy-optimized-for-uncached-memory
-void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz)
-{
-    if (sz & 63) {
-        sz = (sz & -64) + 64;
-    }
-    asm volatile (
-        "NEONCopyPLD:                          \n"
-        "    VLDM %[src]!,{d0-d7}                 \n"
-        "    VSTM %[dst]!,{d0-d7}                 \n"
-        "    SUBS %[sz],%[sz],#0x40                 \n"
-        "    BGT NEONCopyPLD                  \n"
-        : [dst]"+r"(dst), [src]"+r"(src), [sz]"+r"(sz) : : "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "cc", "memory");
-}
-
-
 Oscillo::Oscillo(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)
 , data_decim(0)
-, data_all_int(0)
 {
     avg_on = false;
-    
     waveform_size = 0;
     status = CLOSED;
 }
@@ -81,20 +63,8 @@ int Oscillo::Open(uint32_t waveform_size_)
             return -1;
         }
 
-        rambuf_map = dev_mem.AddMemoryMap(RAMBUF_ADDR, RAMBUF_RANGE);
-        
-        if (static_cast<int>(rambuf_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-
         raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
         raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
-        rambuf_data = reinterpret_cast<float*>(dev_mem.GetBaseAddr(rambuf_map));
-
-        mmap_buf = mmap(NULL, 16384*4, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
-
-        data_all_int = std::vector<uint32_t>(waveform_size, 0);
 
         status = OPENED;
         
@@ -221,80 +191,3 @@ uint32_t Oscillo::get_num_average()
 {
     return avg_on ? Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF) : 0;
 }
-
-//////////////////////////////////////////////////////////
-// Functions used for speed test only :
-//////////////////////////////////////////////////////////
-
-// Read the two channels in raw format
-std::array<float, 2*WFM_SIZE>& Oscillo::read_raw_all()
-{
-    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
-    //_wait_for_acquisition();
-    for(unsigned int i=0; i<waveform_size; i++) {
-        data_all[i] = raw_data_1[i];
-        data_all[i + waveform_size] = raw_data_2[i];
-    }
-    Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
-    return data_all;
-}
-
-// Return zeros (does not perform FPGA memory access)
-std::array<float, 2*WFM_SIZE>& Oscillo::read_zeros()
-{
-    return data_zeros;
-}
-
-// Read data in RAM buffer
-float* Oscillo::read_rambuf()
-{
-    return rambuf_data;
-}
-
-// Read data in RAM buffer (with copy)
-std::array<float, 2*WFM_SIZE>& Oscillo::read_rambuf_memcpy()
-{
-    memcpy((unsigned char*)rambuf_copy.data(), (unsigned char*)rambuf_data, 2*WFM_SIZE*sizeof(float));
-    return rambuf_copy;
-}
-
-// Read data in RAM buffer (with optimized copy)
-std::array<float, 2*WFM_SIZE>& Oscillo::read_rambuf_mycopy()
-{
-    mycopy((unsigned char*)rambuf_copy.data(), (unsigned char*)rambuf_data, 2*WFM_SIZE*sizeof(float));
-    return rambuf_copy;
-}
-
-// Read data in RAM buffer
-float* Oscillo::read_mmapbuf_nocopy()
-{
-    return (float*)mmap_buf;
-}
-
-// Read data in RAM buffer
-float* Oscillo::read_rambuf_mmap_memcpy()
-{
-    memcpy(mmap_buf, rambuf_data, 2*WFM_SIZE*sizeof(float));
-    return (float*)mmap_buf;
-}
-
-// Speed test : return time spend inside the loop
-std::vector<uint32_t> Oscillo::speed_test(uint32_t n_outer_loop, uint32_t n_inner_loop, uint32_t n_pts)
-{
-    std::vector<uint32_t> durations(n_outer_loop);
-
-    for(uint32_t j = 0; j < n_outer_loop; ++j) {
-        auto begin = std::chrono::high_resolution_clock::now();
-        for(uint32_t i = 0; i < n_inner_loop; ++i) {
-            uint32_t *raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
-            for(unsigned int i=0; i<n_pts; i++) {
-                data_all_int[i] = raw_data_1[i];
-            }
-        }
-        auto end = std::chrono::high_resolution_clock::now();
-        durations[j] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count();
-    }
-    return durations;
-}
-
-
