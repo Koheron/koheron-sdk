@@ -138,6 +138,7 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
             data_all[i + WFM_SIZE] = _raw_to_float(raw_data_2[i]);
         }
     }
+    Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return data_all;
 }
 
