@@ -19,7 +19,7 @@ class Spectrum
     Spectrum(Klib::DevMem& dev_mem_);
     ~Spectrum();
 
-    int Open(uint32_t samples_num_);
+    int Open();
     void set_scale_sch(uint32_t scale_sch);
     void set_offset(uint32_t offset_real, uint32_t offset_imag);
 
