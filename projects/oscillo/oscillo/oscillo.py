@@ -11,7 +11,7 @@ class Oscillo(Object):
     def __init__(self, client, verbose=False):
         self.wfm_size = 8192
 
-        if self.open(self.wfm_size) < 0:
+        if self.open() < 0:
             print('Cannot open device OSCILLO')
        
         self.avg_on = False
@@ -35,7 +35,7 @@ class Oscillo(Object):
         self.reset()
 
     @command('OSCILLO')
-    def open(self, wfm_size):
+    def open(self):
         return self.client.recv_int(4)
 
     def reset(self):
