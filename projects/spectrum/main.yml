@@ -35,6 +35,8 @@ config_offsets:
 status_offsets:
   - spi_out
   - n_avg
+  - peak_address
+  - peak_maximum
 
 parameters:
   bram_addr_width: 12

@@ -64,6 +64,8 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
       A_Precision_Type Custom
       C_A_Exponent_Width [expr 2*$adc_width + 1]
       Flow_Control NonBlocking
+      Maximum_Latency False
+      C_Latency 2
     } {
       aclk clk
       s_axis_a_tdata mult_slice_$i/dout
@@ -127,6 +129,8 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
     cell xilinx.com:ip:floating_point:7.1 mult_$i {
       Operation_Type Multiply
       Flow_Control NonBlocking
+      Maximum_Latency False
+      C_Latency 3
     } {
       aclk clk
       s_axis_a_tdata fft_slice_$i/Dout
@@ -140,6 +144,8 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
     Flow_Control NonBlocking
     Add_Sub_Value Add
     C_Mult_Usage No_Usage
+    Maximum_Latency False
+    C_Latency 3
   } {
     aclk clk
     S_AXIS_A mult_0/M_AXIS_RESULT

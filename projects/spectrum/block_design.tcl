@@ -62,7 +62,25 @@ connect_pins $avg_name/addr        blk_mem_gen_$spectrum_bram_name/addrb
 connect_pins $avg_name/dout        blk_mem_gen_$spectrum_bram_name/dinb
 connect_pins $avg_name/wen         blk_mem_gen_$spectrum_bram_name/web
 
-connect_pins $avg_name/n_avg       sts/In$n_avg_offset
+connect_pins $avg_name/n_avg      $status_name/In$n_avg_offset
+
+
+# Add peak detector
+
+source lib/peak_detector.tcl
+set peak_detector_name peak
+add_peak_detector $peak_detector_name $bram_addr_width
+
+connect_pins $peak_detector_name/clk $adc_clk
+connect_pins $peak_detector_name/din $spectrum_name/m_axis_result_tdata
+connect_pins $peak_detector_name/tvalid $spectrum_name/m_axis_result_tvalid
+
+delete_bd_objs [get_bd_nets dac_b_slice_Dout]
+connect_bd_net [get_bd_pins $peak_detector_name/address_out] [get_bd_pins adc_dac/dac2]
+
+connect_pins $peak_detector_name/address_out $status_name/In$peak_address_offset
+connect_pins $peak_detector_name/maximum_out $status_name/In$peak_maximum_offset
+
 
 ##########################################################
 # Add EEPROM
