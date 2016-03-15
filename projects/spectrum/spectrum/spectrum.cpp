@@ -84,7 +84,9 @@ void Spectrum::Close()
 
 void Spectrum::set_scale_sch(uint32_t scale_sch)
 {
-    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + CFG_FFT_OFF, 1 + 2 * scale_sch);
+    // LSB at 1 for forward FFT
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + CFG_FFT_OFF, 
+                     1 + 2 * scale_sch);
 }
 
 void Spectrum::set_offset(uint32_t offset_real, uint32_t offset_imag)
@@ -104,6 +106,7 @@ void Spectrum::_wait_for_acquisition()
     // http://stackoverflow.com/questions/18071664/stdthis-threadsleep-for-and-nanoseconds
     std::this_thread::sleep_for(std::chrono::microseconds(acq_time_us));
 }
+
 
 std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
 {

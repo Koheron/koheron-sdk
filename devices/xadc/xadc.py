@@ -11,22 +11,26 @@ class Xadc(object):
     """
     def __init__(self, client):
         self.client = client
-        self.open_xadc()
+        if self.open_xadc() < 0:
+            print('Cannot open XADC device')
 
     def open_xadc(self):
         @command('XADC')
-        def open(self): pass
+        def open(self):
+            return self.client.recv_int(4)
 
-        open(self)
+        return open(self)
 
     @command('XADC')
-    def set_channel(self, channel_0, channel_1): pass
+    def set_channel(self, channel_0, channel_1):
+        return self.client.recv_int(4)
 
     @command('XADC')
     def enable_averaging(self): pass
 
     @command('XADC')
-    def set_averaging(self, n_avg): pass
+    def set_averaging(self, n_avg):
+        return self.client.recv_int(4)
 
     @command('XADC')
     def read(self, channel):

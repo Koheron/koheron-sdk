@@ -5,8 +5,7 @@ proc add_address_module {module_name bram_width clk} {
 
   create_bd_pin -dir I                  clk
   create_bd_pin -dir I -from 32   -to 0 cfg
-  create_bd_pin -dir O -from 15   -to 0 addr
-  create_bd_pin -dir O -from 15   -to 0 addr_delayed
+  create_bd_pin -dir O -from [expr $bram_width+2]   -to 0 addr
   create_bd_pin -dir O                  restart
   create_bd_pin -dir O                  tvalid
 
@@ -32,15 +31,6 @@ proc add_address_module {module_name bram_width clk} {
     dout restart
   }
 
-  cell xilinx.com:ip:c_shift_ram:12.0 delay_addr {
-    ShiftRegType Variable_Length_Lossless
-    Width [expr $bram_width+2]
-  } {
-    D base_counter/Q
-    CLK clk
-    Q addr_delayed
-  }
-
   # Configuration registers
 
   cell xilinx.com:ip:xlslice:1.0 reset_base_counter_slice {
@@ -61,16 +51,14 @@ proc add_address_module {module_name bram_width clk} {
     Dout edge_detector/Din
   }
 
-  cell xilinx.com:ip:xlslice:1.0 addr_delay_slice {
-    DIN_WIDTH 32
-    DIN_FROM 5
-    DIN_TO 2
+  cell xilinx.com:ip:c_shift_ram:12.0 delay_tvalid {
+    Depth 1
+    Width 1
   } {
-    Din cfg
-    Dout delay_addr/A
+    D reset_base_counter_slice/Dout
+    CLK clk
+    Q tvalid
   }
-
-  connect_pins reset_base_counter_slice/Dout tvalid
 
   current_bd_instance $bd
 

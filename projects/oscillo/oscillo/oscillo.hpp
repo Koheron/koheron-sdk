@@ -21,55 +21,41 @@
 //http://es.codeover.org/questions/34888683/arm-neon-memcpy-optimized-for-uncached-memory
 void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz);
 
-//> \description Oscilloscope driver
 class Oscillo
 {
   public:
     Oscillo(Klib::DevMem& dev_mem_);
     ~Oscillo();
 
-    //> \io_type READ
     int Open(uint32_t waveform_size_);
-    
-    void Close();
 
-    //> \io_type READ
     std::array<float, WFM_SIZE>& read_data(bool channel);
 
-    //> \io_type READ
     std::array<float, 2*WFM_SIZE>& read_all_channels();
 
-    //> \io_type READ
     std::vector<float>& read_all_channels_decim(uint32_t decim_factor);
 
-    //> \io_type READ
     std::array<float, 2*WFM_SIZE>& read_raw_all();
 
-    //> \io_type READ
     std::array<float, 2*WFM_SIZE>& read_zeros();
 
-    //> \io_type READ_ARRAY param => 2*WFM_SIZE
+    #pragma tcp-server read_array 2*WFM_SIZE
     float* read_rambuf();
 
-    //> \io_type READ
     std::array<float, 2*WFM_SIZE>& read_rambuf_memcpy();
 
-    //> \io_type READ
     std::array<float, 2*WFM_SIZE>& read_rambuf_mycopy();
 
-    //> \io_type READ_ARRAY param => 2*WFM_SIZE
+    #pragma tcp-server read_array 2*WFM_SIZE
     float* read_mmapbuf_nocopy();
 
-    //> \io_type READ_ARRAY param => 2*WFM_SIZE
+    #pragma tcp-server read_array 2*WFM_SIZE
     float* read_rambuf_mmap_memcpy();
 
-    //> \io_type READ
     std::vector<uint32_t> speed_test(uint32_t n_outer_loop, uint32_t n_inner_loop, uint32_t n_pts);
 
-    //> \io_type WRITE
     void set_averaging(bool avg_status);
     
-    //> \io_type READ
     uint32_t get_num_average();
 
     enum Status {
@@ -78,16 +64,16 @@ class Oscillo
         FAILED
     };
 
-    //> \is_failed
+    #pragma tcp-server is_failed
     bool IsFailed() const {return status == FAILED;}
 
   private:
     Klib::DevMem& dev_mem;
 
+    void Close();
+
     int status;
-    
     bool avg_on; ///< True if averaging is enabled
-    
     uint32_t waveform_size;
     uint32_t acq_time_us;
 
