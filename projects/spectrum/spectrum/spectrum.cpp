@@ -52,6 +52,13 @@ int Spectrum::Open()
             status = FAILED;
             return -1;
         }
+
+        demod_map = dev_mem.AddMemoryMap(NOISE_FLOOR_ADDR, NOISE_FLOOR_RANGE);
+        
+        if(static_cast<int>(noise_floor_map) < 0) {
+            status = FAILED;
+            return -1;
+        }
         
         raw_data = reinterpret_cast<float*>(dev_mem.GetBaseAddr(spectrum_map));
         
@@ -70,6 +77,7 @@ void Spectrum::Close()
         dev_mem.RmMemoryMap(status_map);
         dev_mem.RmMemoryMap(spectrum_map);
         dev_mem.RmMemoryMap(demod_map);
+        dev_mem.RmMemoryMap(noise_floor_map);
         status = CLOSED;
     }
 }
@@ -90,6 +98,12 @@ void Spectrum::set_demod_buffer(const uint32_t *data, uint32_t len)
 {
     for (uint32_t i=0; i<len; i++)
         Klib::WriteReg32(dev_mem.GetBaseAddr(demod_map)+sizeof(uint32_t)*i, data[i]);
+}
+
+void Spectrum::set_noise_floor_buffer(const uint32_t *data, uint32_t len)
+{
+    for (uint32_t i=0; i<len; i++)
+        Klib::WriteReg32(dev_mem.GetBaseAddr(noise_floor_map)+sizeof(uint32_t)*i, data[i]);
 }
 
 void Spectrum::_wait_for_acquisition()
@@ -115,4 +129,15 @@ uint32_t Spectrum::get_num_average()
 {
     return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG_OFF);
 }
+
+uint32_t Spectrum::get_peak_address()
+{
+    return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+PEAK_ADDRESS_OFF);
+}
+
+uint32_t Spectrum::get_peak_maximum()
+{
+    return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+PEAK_MAXIMUM_OFF);
+}
+
 

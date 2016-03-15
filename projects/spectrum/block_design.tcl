@@ -50,7 +50,9 @@ connect_pins blk_mem_gen_$demod_bram_name/addrb $address_name/addr
 source projects/spectrum/noise_floor.tcl
 set subtract_name noise_floor
 add_noise_floor $subtract_name $bram_addr_width $adc_clk
-connect_pins $subtract_name/clk         $adc_clk
+connect_pins $subtract_name/clk $adc_clk
+connect_pins $subtract_name/s_axis_tdata $spectrum_name/m_axis_result_tdata
+connect_pins $subtract_name/s_axis_tvalid $spectrum_name/m_axis_result_tvalid
 
 # Add averaging module
 source lib/averager.tcl

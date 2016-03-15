@@ -26,9 +26,14 @@ class Spectrum
     #pragma tcp-server write_array arg{data} arg{len}
     void set_demod_buffer(const uint32_t *data, uint32_t len);
 
+    #pragma tcp-server write_array arg{data} arg{len}
+    void set_noise_floor_buffer(const uint32_t *data, uint32_t len);
+
     std::array<float, WFM_SIZE>& get_spectrum();
 
     uint32_t get_num_average();
+    uint32_t get_peak_address();
+    uint32_t get_peak_maximum();
 
     enum Status {
         CLOSED,
@@ -52,6 +57,7 @@ class Spectrum
     Klib::MemMapID status_map;
     Klib::MemMapID spectrum_map;
     Klib::MemMapID demod_map;
+    Klib::MemMapID noise_floor_map;
 
     // Acquired data buffers
     float *raw_data;

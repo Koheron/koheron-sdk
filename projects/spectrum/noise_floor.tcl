@@ -5,8 +5,8 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
   current_bd_instance [create_bd_cell -type hier $module_name]
 
   create_bd_pin -dir I -type clk      clk
-  create_bd_pin -dir I -from 31 -to 0 s_axis_result_tdata
-  create_bd_pin -dir I                s_axis_result_tvalid
+  create_bd_pin -dir I -from 31 -to 0 s_axis_tdata
+  create_bd_pin -dir I                s_axis_tvalid
 
   #create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 S_AXIS
 
@@ -19,7 +19,7 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
     Increment_Value 4
   } {
     CLK clk
-    CE s_axis_result_tvalid
+    CE s_axis_tvalid
   }
 
   set bram_name noise_floor_bram
@@ -39,7 +39,7 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
     Depth 1
   } {
     CLK clk
-    D s_axis_result_tdata
+    D s_axis_tdata
   }
 
   cell xilinx.com:ip:c_shift_ram:12.0 tvalid_reg {
@@ -47,7 +47,7 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
     Depth 1
   } {
     CLK clk
-    D s_axis_result_tvalid
+    D s_axis_tvalid
   }
 
   set subtract_name subtract_noise_floor
