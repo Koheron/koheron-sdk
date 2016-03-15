@@ -109,11 +109,11 @@ std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
     uint32_t *raw_data = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_map));
 
     if(avg_on) {
-        uint32_t num_avg = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF);  
-        for(unsigned int i=0; i<data.size(); i++)
-            data[i] = _raw_to_float(raw_data[i]) / float(num_avg);
+        float num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF));  
+        for(unsigned int i=0; i < WFM_SIZE; i++)
+            data[i] = _raw_to_float(raw_data[i]) / num_avg;
     } else {
-        for(unsigned int i=0; i<data.size(); i++)
+        for(unsigned int i=0; i < WFM_SIZE; i++)
             data[i] = _raw_to_float(raw_data[i]);
     }
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
@@ -129,8 +129,8 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
     if(avg_on) {
         float num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF)); 
         for(unsigned int i=0; i<WFM_SIZE; i++) {
-            data_all[i] = _raw_to_float(raw_data_1[i])/num_avg;
-            data_all[i + WFM_SIZE] = _raw_to_float(raw_data_2[i])/num_avg;
+            data_all[i] = _raw_to_float(raw_data_1[i]) / num_avg;
+            data_all[i + WFM_SIZE] = _raw_to_float(raw_data_2[i]) / num_avg;
         }
     } else {
         for(unsigned int i=0; i<WFM_SIZE; i++) {
