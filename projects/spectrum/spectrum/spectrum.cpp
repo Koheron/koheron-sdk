@@ -7,7 +7,6 @@
 
 Spectrum::Spectrum(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)
-, data(0)
 {
     samples_num = 0;
     status = CLOSED;
@@ -63,7 +62,6 @@ int Spectrum::Open(uint32_t samples_num_)
         }
         
         raw_data = reinterpret_cast<float*>(dev_mem.GetBaseAddr(spectrum_map));
-        data = std::vector<float>(samples_num, 0);
         
         Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+AVG_OFF_OFF, 0);
         
@@ -93,8 +91,7 @@ void Spectrum::set_scale_sch(uint32_t scale_sch)
 
 void Spectrum::set_offset(uint32_t offset_real, uint32_t offset_imag)
 {
-    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + SUBSTRACT_MEAN_OFF, 
-                     offset_real + 16384 * offset_imag);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + SUBSTRACT_MEAN_OFF, offset_real + 16384 * offset_imag);
 }
 
 void Spectrum::set_demod_buffer(const uint32_t *data, uint32_t len)
@@ -110,17 +107,14 @@ void Spectrum::_wait_for_acquisition()
     std::this_thread::sleep_for(std::chrono::microseconds(acq_time_us));
 }
 
-std::vector<float>& Spectrum::get_spectrum()
-{
-    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
-    
-    _wait_for_acquisition();
-    
-    uint32_t n_avg = get_num_average();
 
+std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
+{
+    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);    
+    _wait_for_acquisition();    
+    uint32_t n_avg = get_num_average();
     for(unsigned int i=0; i<data.size(); i++)
         data[i] = raw_data[i] / float(n_avg);
-    
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return data;
 }

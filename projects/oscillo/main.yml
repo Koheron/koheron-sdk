@@ -51,3 +51,4 @@ devices:
   - devices/dac
   - devices/laser
   - projects/oscillo/oscillo
+  - projects/oscillo/speed_test

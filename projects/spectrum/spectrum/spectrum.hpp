@@ -9,9 +9,9 @@
 #include <drivers/wr_register.hpp>
 #include <drivers/addresses.hpp>
 
-#include <signal/kvector.hpp>
-
 #define SAMPLING_RATE 125E6
+#define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
+
 
 class Spectrum
 {
@@ -22,7 +22,7 @@ class Spectrum
     int Open(uint32_t samples_num_);
     
     #pragma tcp-server exclude
-    void Close();
+
 
     void set_scale_sch(uint32_t scale_sch);
     void set_offset(uint32_t offset_real, uint32_t offset_imag);
@@ -30,7 +30,8 @@ class Spectrum
     #pragma tcp-server write_array arg{data} arg{len}
     void set_demod_buffer(const uint32_t *data, uint32_t len);
 
-    std::vector<float>& get_spectrum();
+    std::array<float, WFM_SIZE>& get_spectrum();
+
     uint32_t get_num_average();
 
     enum Status {
@@ -46,6 +47,8 @@ class Spectrum
     Klib::DevMem& dev_mem;
     int status;
 
+    void Close();
+
     uint32_t samples_num;
     uint32_t acq_time_us;
 
@@ -57,8 +60,8 @@ class Spectrum
 
     // Acquired data buffers
     float *raw_data;
-    std::vector<float> data;
-
+    std::array<float, WFM_SIZE> data;
+    
     // Internal functions
     void _wait_for_acquisition();
 }; // class Spectrum

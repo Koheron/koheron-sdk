@@ -1,18 +1,15 @@
 /// (c) Koheron
 
 #include "oscillo.hpp"
-
+#include <string.h>
 #include <thread>
 #include <chrono>
 
 Oscillo::Oscillo(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)
-, data(0)
-, data_all(0)
+, data_decim(0)
 {
     avg_on = false;
-    
-    waveform_size = 0;
     status = CLOSED;
 }
  
@@ -21,53 +18,52 @@ Oscillo::~Oscillo()
     Close();
 }
 
-int Oscillo::Open(uint32_t waveform_size_)
+int Oscillo::Open()
 {
     // Reopening
-    if(status == OPENED && waveform_size_ != waveform_size) {
+    if(status == OPENED) {
         Close();
     }
 
     if(status == CLOSED) {
-        waveform_size = waveform_size_;
-        
+       
         // Acquisition time in microseconds
         // Factor two because depending whether TRIG_ACQ
         // is received at the beginning or the end of a
         // period the acquisition time can be twice as long
-        acq_time_us = 2*(waveform_size*1E6)/SAMPLING_RATE;
+        acq_time_us = 2*(WFM_SIZE*1E6)/SAMPLING_RATE;
     
         config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
         
-        if(static_cast<int>(config_map) < 0) {
+        if (static_cast<int>(config_map) < 0) {
             status = FAILED;
             return -1;
         }
         
         status_map = dev_mem.AddMemoryMap(STATUS_ADDR, STATUS_RANGE);
         
-        if(static_cast<int>(status_map) < 0) {
+        if (static_cast<int>(status_map) < 0) {
             status = FAILED;
             return -1;
         }
         
         adc_1_map = dev_mem.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
         
-        if(static_cast<int>(adc_1_map) < 0) {
+        if (static_cast<int>(adc_1_map) < 0) {
             status = FAILED;
             return -1;
         }
         
         adc_2_map = dev_mem.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
         
-        if(static_cast<int>(adc_2_map) < 0) {
+        if (static_cast<int>(adc_2_map) < 0) {
             status = FAILED;
             return -1;
         }
-        
-        data = std::vector<float>(waveform_size, 0);
-        data_all = std::vector<float>(2*waveform_size, 0);
-        
+
+        raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
+        raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
+
         status = OPENED;
         
         // Reset averaging
@@ -96,7 +92,7 @@ void Oscillo::_wait_for_acquisition()
 }
 
 // http://stackoverflow.com/questions/12276675/modulus-with-negative-numbers-in-c
-long long int mod(long long int k, long long int n)
+inline long long int mod(long long int k, long long int n) 
 {
     return ((k %= n) < 0) ? k+n : k;
 }
@@ -104,76 +100,76 @@ long long int mod(long long int k, long long int n)
 #define POW_2_31 2147483648 // 2^31
 #define POW_2_32 4294967296 // 2^32
 
-float _raw_to_float(uint32_t raw)
+inline float _raw_to_float(uint32_t raw) 
 {
     return float(mod(raw - POW_2_31, POW_2_32) - POW_2_31);
 }
 
-void Oscillo::_raw_to_vector(uint32_t *raw_data)
-{    
+// Read only one channel
+std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
+{
+    Klib::MemMapID adc_map;
+    channel ? adc_map = adc_1_map : adc_map = adc_2_map;
+    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    _wait_for_acquisition();
+    uint32_t *raw_data = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_map));
+
     if(avg_on) {
-        uint32_t num_avg 
-            = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF);
-    
+        uint32_t num_avg = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF);  
         for(unsigned int i=0; i<data.size(); i++)
             data[i] = _raw_to_float(raw_data[i]) / float(num_avg);
     } else {
         for(unsigned int i=0; i<data.size(); i++)
             data[i] = _raw_to_float(raw_data[i]);
     }
-}
-
-void Oscillo::_raw_to_vector_all(uint32_t *raw_data_1, uint32_t *raw_data_2)
-{    
-    if(avg_on) {
-        uint32_t num_avg 
-            = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF);
-    
-        for(unsigned int i=0; i<waveform_size; i++) {
-            data_all[i] = _raw_to_float(raw_data_1[i]) / float(num_avg);
-            data_all[i + waveform_size] 
-                = _raw_to_float(raw_data_2[i]) / float(num_avg);
-        }
-    } else {
-        for(unsigned int i=0; i<waveform_size; i++) {
-            data_all[i] = _raw_to_float(raw_data_1[i]);
-            data_all[i + waveform_size] = _raw_to_float(raw_data_2[i]);
-        }
-    }
-}
-
-std::vector<float>& Oscillo::read_data(bool channel)
-{
-    Klib::MemMapID adc_map;
-    channel ? adc_map = adc_1_map : adc_map = adc_2_map;
-
-    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
-    
-    _wait_for_acquisition();
-    
-    uint32_t *raw_data 
-        = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_map));
-    _raw_to_vector(raw_data);
-
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return data;
 }
 
-std::vector<float>& Oscillo::read_all_channels()
+// Read the two channels
+std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
-    
     _wait_for_acquisition();
-    
-    uint32_t *raw_data_1
-        = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
-    uint32_t *raw_data_2
-        = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
-        
-    _raw_to_vector_all(raw_data_1, raw_data_2);
 
-    Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    if(avg_on) {
+        float num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF)); 
+        for(unsigned int i=0; i<WFM_SIZE; i++) {
+            data_all[i] = _raw_to_float(raw_data_1[i])/num_avg;
+            data_all[i + WFM_SIZE] = _raw_to_float(raw_data_2[i])/num_avg;
+        }
+    } else {
+        for(unsigned int i=0; i<WFM_SIZE; i++) {
+            data_all[i] = _raw_to_float(raw_data_1[i]);
+            data_all[i + WFM_SIZE] = _raw_to_float(raw_data_2[i]);
+        }
+    }
     return data_all;
+}
+
+
+// Read the two channels but take only one point every decim_factor points
+std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor)
+{
+    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    uint32_t n_pts = WFM_SIZE/decim_factor;
+    data_decim.resize(2*n_pts);
+    _wait_for_acquisition();
+
+    if(avg_on) {
+        float num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF)); 
+        for(unsigned int i=0; i<n_pts; i++) {
+            data_decim[i] = _raw_to_float(raw_data_1[decim_factor * i])/num_avg;
+            data_decim[i + n_pts] = _raw_to_float(raw_data_2[decim_factor * i])/num_avg;
+        }
+    } else {
+        for(unsigned int i=0; i<n_pts; i++) {
+            data_decim[i] = _raw_to_float(raw_data_1[decim_factor * i]);
+            data_decim[i + n_pts] = _raw_to_float(raw_data_2[decim_factor * i]);
+        }
+    }
+    Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    return data_decim;
 }
 
 void Oscillo::set_averaging(bool avg_status)
