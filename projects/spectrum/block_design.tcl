@@ -46,6 +46,12 @@ connect_pins blk_mem_gen_$demod_bram_name/enb   ${dac_bram_name}_enb/dout
 connect_pins blk_mem_gen_$demod_bram_name/doutb $spectrum_name/demod_data
 connect_pins blk_mem_gen_$demod_bram_name/addrb $address_name/addr
 
+# Substract noise floor
+source projects/spectrum/noise_floor.tcl
+set subtract_name noise_floor
+add_noise_floor $subtract_name $bram_addr_width $adc_clk
+connect_pins $subtract_name/clk         $adc_clk
+
 # Add averaging module
 source lib/averager.tcl
 set avg_name avg
@@ -55,15 +61,14 @@ connect_pins $avg_name/clk         $adc_clk
 connect_pins $avg_name/restart     $address_name/restart
 connect_pins $avg_name/avg_off     $config_name/Out$avg_off_offset
 
-connect_pins $spectrum_name/m_axis_result_tdata  $avg_name/din
-connect_pins $spectrum_name/m_axis_result_tvalid $avg_name/tvalid
+connect_pins $subtract_name/m_axis_result_tdata  $avg_name/din
+connect_pins $subtract_name/m_axis_result_tvalid $avg_name/tvalid
 
 connect_pins $avg_name/addr        blk_mem_gen_$spectrum_bram_name/addrb
 connect_pins $avg_name/dout        blk_mem_gen_$spectrum_bram_name/dinb
 connect_pins $avg_name/wen         blk_mem_gen_$spectrum_bram_name/web
 
 connect_pins $avg_name/n_avg      $status_name/In$n_avg_offset
-
 
 # Add peak detector
 
@@ -72,8 +77,8 @@ set peak_detector_name peak
 add_peak_detector $peak_detector_name $bram_addr_width
 
 connect_pins $peak_detector_name/clk $adc_clk
-connect_pins $peak_detector_name/din $spectrum_name/m_axis_result_tdata
-connect_pins $peak_detector_name/tvalid $spectrum_name/m_axis_result_tvalid
+connect_pins $peak_detector_name/din $subtract_name/m_axis_result_tdata
+connect_pins $peak_detector_name/tvalid $subtract_name/m_axis_result_tvalid
 
 delete_bd_objs [get_bd_nets dac_b_slice_Dout]
 connect_bd_net [get_bd_pins $peak_detector_name/address_out] [get_bd_pins adc_dac/dac2]
