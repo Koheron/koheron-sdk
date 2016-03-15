@@ -10,7 +10,6 @@ Oscillo::Oscillo(Klib::DevMem& dev_mem_)
 , data_decim(0)
 {
     avg_on = false;
-    waveform_size = 0;
     status = CLOSED;
 }
  
@@ -19,21 +18,20 @@ Oscillo::~Oscillo()
     Close();
 }
 
-int Oscillo::Open(uint32_t waveform_size_)
+int Oscillo::Open()
 {
     // Reopening
-    if(status == OPENED && waveform_size_ != waveform_size) {
+    if(status == OPENED) {
         Close();
     }
 
     if(status == CLOSED) {
-        waveform_size = waveform_size_;
-        
+       
         // Acquisition time in microseconds
         // Factor two because depending whether TRIG_ACQ
         // is received at the beginning or the end of a
         // period the acquisition time can be twice as long
-        acq_time_us = 2*(waveform_size*1E6)/SAMPLING_RATE;
+        acq_time_us = 2*(WFM_SIZE*1E6)/SAMPLING_RATE;
     
         config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
         

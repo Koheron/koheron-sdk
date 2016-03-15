@@ -24,7 +24,7 @@ class Oscillo
     Oscillo(Klib::DevMem& dev_mem_);
     ~Oscillo();
 
-    int Open(uint32_t waveform_size_);
+    int Open();
 
     std::array<float, WFM_SIZE>& read_data(bool channel);
 
@@ -52,7 +52,6 @@ class Oscillo
 
     int status;
     bool avg_on; ///< True if averaging is enabled
-    uint32_t waveform_size;
     uint32_t acq_time_us;
 
     uint32_t *raw_data_1 = nullptr;
