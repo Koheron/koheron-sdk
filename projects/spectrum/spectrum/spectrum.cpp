@@ -18,13 +18,7 @@ Spectrum::~Spectrum()
 
 int Spectrum::Open()
 {
-    // Reopening
-    if(status == OPENED) {
-        Close();
-    }
-
     if(status == CLOSED) {
-   
         config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
         
         if(static_cast<int>(config_map) < 0) {
@@ -61,9 +55,7 @@ int Spectrum::Open()
         }
         
         raw_data = reinterpret_cast<float*>(dev_mem.GetBaseAddr(spectrum_map));
-        
         Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+AVG_OFF_OFF, 0);
-        
         status = OPENED;
     }
     
