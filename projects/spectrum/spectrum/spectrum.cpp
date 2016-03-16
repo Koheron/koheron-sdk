@@ -119,10 +119,10 @@ std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);    
     _wait_for_acquisition();    
     uint32_t n_avg = get_num_average();
-    for(unsigned int i=0; i<data.size(); i++)
-        data[i] = raw_data[i] / float(n_avg);
+    for(unsigned int i=0; i<WFM_SIZE; i++)
+        spectrum_data[i] = raw_data[i] / float(n_avg);
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
-    return data;
+    return spectrum_data;
 }
 
 uint32_t Spectrum::get_num_average()

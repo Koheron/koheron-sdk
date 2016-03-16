@@ -61,7 +61,7 @@ class Spectrum
 
     // Acquired data buffers
     float *raw_data;
-    std::array<float, WFM_SIZE> data;
+    std::array<float, WFM_SIZE> spectrum_data;
     
     // Internal functions
     void _wait_for_acquisition();

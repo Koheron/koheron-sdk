@@ -4,6 +4,9 @@ set bram_size [expr 2**($bram_addr_width-8)]K
 
 source projects/base/block_design.tcl
 
+# Improve timing on BRAM interconnect
+set_property -dict [list CONFIG.S00_HAS_REGSLICE {1}] [get_bd_cells axi_mem_intercon_1]
+
 # shift address/tvalid to take into account demod_data bram read latency
 cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
   Width 1
