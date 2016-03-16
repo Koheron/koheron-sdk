@@ -47,7 +47,7 @@ int Spectrum::Open()
             return -1;
         }
 
-        demod_map = dev_mem.AddMemoryMap(NOISE_FLOOR_ADDR, NOISE_FLOOR_RANGE);
+        noise_floor_map = dev_mem.AddMemoryMap(NOISE_FLOOR_ADDR, NOISE_FLOOR_RANGE);
         
         if(static_cast<int>(noise_floor_map) < 0) {
             status = FAILED;
