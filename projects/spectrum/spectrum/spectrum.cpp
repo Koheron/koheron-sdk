@@ -132,4 +132,9 @@ uint32_t Spectrum::get_peak_maximum()
     return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+PEAK_MAXIMUM_OFF);
 }
 
+void Spectrum::set_address_range(uint32_t address_low, uint32_t address_high)
+{
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + ADDRESS_LOW_OFF, address_low);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + ADDRESS_HIGH_OFF, address_high);
+}
 

@@ -6,6 +6,8 @@ proc add_peak_detector {module_name wfm_width} {
 
   create_bd_pin -dir I -type clk              clk
   create_bd_pin -dir I -from 31 -to 0         din
+  create_bd_pin -dir I -from $wfm_width -to 0 address_low
+  create_bd_pin -dir I -from $wfm_width -to 0 address_high
   create_bd_pin -dir I                        tvalid
   create_bd_pin -dir O -from $wfm_width -to 0 address_out
   create_bd_pin -dir O -from 31 -to 0         maximum_out
@@ -57,7 +59,6 @@ proc add_peak_detector {module_name wfm_width} {
     C_SIZE 1
     C_OPERATION or
   } {
-    Op1 slice_compare/Dout
     Op2 reset_cycle/dout
   }
 
@@ -106,6 +107,41 @@ proc add_peak_detector {module_name wfm_width} {
     CE reset_cycle/Dout
     D address_reg/Q
     Q address_out
+  }
+
+  # Restrict peak detection between address_low and address_high
+
+  cell koheron:user:comparator:1.0 address_ge_low {
+    DATA_WIDTH $wfm_width
+    OPERATION 'GE'  
+  } {
+    a address_counter/Q
+    b address_low
+  }
+
+  cell koheron:user:comparator:1.0 address_le_high {
+    DATA_WIDTH $wfm_width
+    OPERATION 'LE'  
+  } {
+    a address_counter/Q
+    b address_high
+  }
+
+  cell xilinx.com:ip:util_vector_logic:2.0 address_in_range {
+    C_SIZE 1
+    C_OPERATION and
+  } {
+    Op1 address_ge_low/dout
+    Op2 address_le_high/dout
+  }
+
+  cell xilinx.com:ip:util_vector_logic:2.0 maximum_detected_in_range {
+    C_SIZE 1
+    C_OPERATION and
+  } {
+    Op1 address_in_range/Res
+    Op2 slice_compare/dout
+    Res logic_or/Op1
   }
 
   current_bd_instance $bd

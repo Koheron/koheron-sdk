@@ -34,6 +34,8 @@ config_offsets:
   - substract_mean
   - cfg_fft
   - avg_off
+  - address_low
+  - address_high
 
 status_offsets:
   - spi_out

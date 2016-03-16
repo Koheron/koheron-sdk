@@ -85,8 +85,8 @@ connect_pins $peak_detector_name/clk $adc_clk
 connect_pins $peak_detector_name/din $subtract_name/m_axis_result_tdata
 connect_pins $peak_detector_name/tvalid $subtract_name/m_axis_result_tvalid
 
-delete_bd_objs [get_bd_nets dac_b_slice_Dout]
-connect_bd_net [get_bd_pins $peak_detector_name/address_out] [get_bd_pins adc_dac/dac2]
+connect_pins $peak_detector_name/address_low $config_name/Out$address_low_offset
+connect_pins $peak_detector_name/address_high $config_name/Out$address_high_offset
 
 connect_pins $peak_detector_name/address_out $status_name/In$peak_address_offset
 connect_pins $peak_detector_name/maximum_out $status_name/In$peak_maximum_offset

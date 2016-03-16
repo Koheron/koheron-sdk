@@ -35,6 +35,8 @@ class Spectrum
     uint32_t get_peak_address();
     uint32_t get_peak_maximum();
 
+    void set_address_range(uint32_t address_low, uint32_t address_high);
+
     enum Status {
         CLOSED,
         OPENED,
@@ -49,8 +51,6 @@ class Spectrum
     int status;
 
     void Close();
-
-    uint32_t samples_num;
 
     // Memory maps IDs:
     Klib::MemMapID config_map;
