@@ -113,7 +113,7 @@ proc add_peak_detector {module_name wfm_width} {
 
   cell koheron:user:comparator:1.0 address_ge_low {
     DATA_WIDTH $wfm_width
-    OPERATION 'GE'  
+    OPERATION "GE"  
   } {
     a address_counter/Q
     b address_low
@@ -121,7 +121,7 @@ proc add_peak_detector {module_name wfm_width} {
 
   cell koheron:user:comparator:1.0 address_le_high {
     DATA_WIDTH $wfm_width
-    OPERATION 'LE'  
+    OPERATION "LE"  
   } {
     a address_counter/Q
     b address_high
