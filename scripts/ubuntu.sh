@@ -146,6 +146,7 @@ pip install jinja2
 pip install urllib3
 pip install pyyaml
 pip install uwsgi
+pip install jupyter
 
 sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
 
