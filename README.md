@@ -89,6 +89,5 @@ parameters:
 xdc:
   - boards/red-pitaya/config/ports.xdc
   - boards/red-pitaya/config/clocks.xdc
-  - boards/red-pitaya/config/clocks.xdc
 ```
 
