@@ -50,14 +50,6 @@ proc add_peak_detector {module_name wfm_width} {
     b address_reset
   }
 
-  cell xilinx.com:ip:c_addsub:12.0 reset_value {
-    Add_Mode Subtract
-    B_Constant true
-    B_Value [string repeat [expr $wfm_width - 1]]1
-  } {
-    
-  }
-
   # OR
   cell xilinx.com:ip:util_vector_logic:2.0 logic_or {
     C_SIZE 1
