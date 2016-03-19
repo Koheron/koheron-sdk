@@ -85,8 +85,9 @@ connect_pins $peak_detector_name/clk $adc_clk
 connect_pins $peak_detector_name/din $subtract_name/m_axis_result_tdata
 connect_pins $peak_detector_name/tvalid $subtract_name/m_axis_result_tvalid
 
-connect_pins $peak_detector_name/address_low $config_name/Out$address_low_offset
-connect_pins $peak_detector_name/address_high $config_name/Out$address_high_offset
+connect_pins $peak_detector_name/address_low $config_name/Out$peak_address_low_offset
+connect_pins $peak_detector_name/address_high $config_name/Out$peak_address_high_offset
+connect_pins $peak_detector_name/address_high $config_name/Out$peak_address_reset_offset
 
 connect_pins $peak_detector_name/address_out $status_name/In$peak_address_offset
 connect_pins $peak_detector_name/maximum_out $status_name/In$peak_maximum_offset

@@ -109,7 +109,7 @@ void Spectrum::_wait_for_acquisition()
 std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);    
-    _wait_for_acquisition();    
+    _wait_for_acquisition();
     uint32_t n_avg = get_num_average();
     for(unsigned int i=0; i<WFM_SIZE; i++)
         spectrum_data[i] = raw_data[i] / float(n_avg);
@@ -146,7 +146,8 @@ uint32_t Spectrum::get_peak_maximum()
 
 void Spectrum::set_address_range(uint32_t address_low, uint32_t address_high)
 {
-    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + ADDRESS_LOW_OFF, address_low);
-    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + ADDRESS_HIGH_OFF, address_high);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_LOW_OFF, address_low);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_HIGH_OFF, address_high);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_RESET_OFF, (address_low + 4095) % WFM_WIDTH);
 }
 
