@@ -12,6 +12,7 @@ proc add_peak_detector {module_name wfm_width} {
   create_bd_pin -dir I                        tvalid
   create_bd_pin -dir O -from $wfm_width -to 0 address_out
   create_bd_pin -dir O -from 31 -to 0         maximum_out
+  create_bd_pin -dir O                        tvalid
   set compare_latency 0
 
   # Add comparator
@@ -138,6 +139,16 @@ proc add_peak_detector {module_name wfm_width} {
     Op1 address_in_range/Res
     Op2 slice_compare/dout
     Res logic_or/Op1
+  }
+
+  # Register storing the current maximum
+  cell xilinx.com:ip:c_shift_ram:12.0 maximum_reg {
+    Width 32
+    Depth 1
+  } {
+    CLK clk
+    D reset_cycle/dout
+    Q tvalid
   }
 
   current_bd_instance $bd
