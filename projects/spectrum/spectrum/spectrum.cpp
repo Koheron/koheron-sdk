@@ -7,6 +7,7 @@
 
 Spectrum::Spectrum(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)
+, spectrum_decim(0)
 {
     status = CLOSED;
 }
@@ -105,7 +106,6 @@ void Spectrum::_wait_for_acquisition()
     std::this_thread::sleep_for(std::chrono::microseconds(ACQ_TIME_US));
 }
 
-
 std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);    
@@ -115,6 +115,18 @@ std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
         spectrum_data[i] = raw_data[i] / float(n_avg);
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return spectrum_data;
+}
+
+std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high)
+{
+    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    uint32_t n_pts = (index_high - index_low)/decim_factor;
+    _wait_for_acquisition();   
+    uint32_t n_avg = get_num_average();
+    for(unsigned int i=0; i<n_pts; i++)
+        spectrum_decim[i] = raw_data[index_low + decim_factor * i] / float(n_avg);
+    Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    return spectrum_decim;
 }
 
 uint32_t Spectrum::get_num_average()
