@@ -148,6 +148,6 @@ void Spectrum::set_address_range(uint32_t address_low, uint32_t address_high)
 {
     Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_LOW_OFF, address_low);
     Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_HIGH_OFF, address_high);
-    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_RESET_OFF, (address_low+WFM_WIDTH-1) % WFM_WIDTH);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_RESET_OFF, (address_low+WFM_SIZE-1) % WFM_SIZE);
 }
 
