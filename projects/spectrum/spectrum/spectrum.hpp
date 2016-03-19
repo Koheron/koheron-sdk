@@ -31,6 +31,8 @@ class Spectrum
 
     std::array<float, WFM_SIZE>& get_spectrum();
 
+    std::vector<float>& get_spectrum_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high);
+
     uint32_t get_num_average();
     uint32_t get_peak_address();
     uint32_t get_peak_maximum();
@@ -62,6 +64,7 @@ class Spectrum
     // Acquired data buffers
     float *raw_data;
     std::array<float, WFM_SIZE> spectrum_data;
+    std::vector<float> spectrum_decim;
     
     // Internal functions
     void _wait_for_acquisition();
