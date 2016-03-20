@@ -8,9 +8,11 @@ proc add_peak_detector {module_name wfm_width} {
   create_bd_pin -dir I -from 31 -to 0         din
   create_bd_pin -dir I -from $wfm_width -to 0 address_low
   create_bd_pin -dir I -from $wfm_width -to 0 address_high
-  create_bd_pin -dir I                        tvalid
+  create_bd_pin -dir I -from $wfm_width -to 0 address_reset
+  create_bd_pin -dir I                        s_axis_tvalid
   create_bd_pin -dir O -from $wfm_width -to 0 address_out
   create_bd_pin -dir O -from 31 -to 0         maximum_out
+  create_bd_pin -dir O                        m_axis_tvalid
   set compare_latency 0
 
   # Add comparator
@@ -22,8 +24,8 @@ proc add_peak_detector {module_name wfm_width} {
     C_Latency $compare_latency
   } {
     s_axis_a_tdata din
-    s_axis_a_tvalid tvalid
-    s_axis_b_tvalid tvalid
+    s_axis_a_tvalid s_axis_tvalid
+    s_axis_b_tvalid s_axis_tvalid
   }
 
   cell xilinx.com:ip:xlslice:1.0 slice_compare {
@@ -32,26 +34,21 @@ proc add_peak_detector {module_name wfm_width} {
     Din comparator/m_axis_result_tdata
   }
 
-  # Address starting counting at tvalid
+  # Address starting counting at s_axis_tvalid
   cell xilinx.com:ip:c_counter_binary:12.0 address_counter {
     CE true
     Output_Width $wfm_width
   } {
     CLK clk
-    CE tvalid
+    CE s_axis_tvalid
   }
-
-  cell xilinx.com:ip:xlconstant:1.1 reset_cycle_constant {
-    CONST_WIDTH $wfm_width
-    CONST_VAL [expr 2**$wfm_width-1]
-  } {}
 
   cell koheron:user:comparator:1.0 reset_cycle {
     DATA_WIDTH $wfm_width
     OPERATION "EQ"
   } {
     a address_counter/Q
-    b reset_cycle_constant/dout
+    b address_reset
   }
 
   # OR
@@ -142,6 +139,16 @@ proc add_peak_detector {module_name wfm_width} {
     Op1 address_in_range/Res
     Op2 slice_compare/dout
     Res logic_or/Op1
+  }
+
+  # Register storing the current maximum
+  cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
+    Width 32
+    Depth 1
+  } {
+    CLK clk
+    D reset_cycle/dout
+    Q m_axis_tvalid
   }
 
   current_bd_instance $bd
