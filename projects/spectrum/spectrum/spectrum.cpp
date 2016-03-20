@@ -196,7 +196,7 @@ uint32_t Spectrum::get_peak_fifo_length()
     return Klib::ReadReg32(dev_mem.GetBaseAddr(peak_fifo_map)+PEAK_RLR_OFF);
 }
 
-uint32_t Spectrum::reset_peak_fifo()
+void Spectrum::reset_peak_fifo()
 {
     return Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PEAK_RDFR_OFF, 0x000000A5);
 }
