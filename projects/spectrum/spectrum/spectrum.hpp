@@ -16,8 +16,10 @@
 // http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
 #define PEAK_FIFO_ADDR 0x43C10000
 #define PEAK_FIFO_RANGE 64*1024
+#define PEAK_RDFR_OFF 0x18
 #define PEAK_RDFO_OFF 0x1C
 #define PEAK_RDFD_OFF 0x20
+#define PEAK_RLR_OFF 0x24
 
 class Spectrum
 {
@@ -48,7 +50,8 @@ class Spectrum
     void set_address_range(uint32_t address_low, uint32_t address_high);
 
     uint32_t get_peak_fifo_occupancy();
-
+    uint32_t get_peak_fifo_length();
+    void reset_peak_fifo();
     std::vector<uint32_t>& get_peak_fifo_data(uint32_t n_pts);
 
     enum Status {
