@@ -83,7 +83,7 @@ add_peak_detector $peak_detector_name $bram_addr_width
 
 connect_pins $peak_detector_name/clk $adc_clk
 connect_pins $peak_detector_name/din $subtract_name/m_axis_result_tdata
-connect_pins $peak_detector_name/tvalid $subtract_name/m_axis_result_tvalid
+connect_pins $peak_detector_name/s_axis_tvalid $subtract_name/m_axis_result_tvalid
 
 connect_pins $peak_detector_name/address_low $config_name/Out$peak_address_low_offset
 connect_pins $peak_detector_name/address_high $config_name/Out$peak_address_high_offset
