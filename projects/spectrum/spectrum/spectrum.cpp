@@ -121,10 +121,13 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     uint32_t n_pts = (index_high - index_low)/decim_factor;
-    _wait_for_acquisition();   
+    spectrum_decim.resize(n_pts);
+    _wait_for_acquisition();
     uint32_t n_avg = get_num_average();
-    for(unsigned int i=0; i<n_pts; i++)
+
+    for(unsigned int i=0; i<spectrum_decim.size(); i++)
         spectrum_decim[i] = raw_data[index_low + decim_factor * i] / float(n_avg);
+
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return spectrum_decim;
 }
