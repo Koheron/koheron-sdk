@@ -109,10 +109,15 @@ void Spectrum::_wait_for_acquisition()
 std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);    
-    _wait_for_acquisition();    
-    uint32_t n_avg = get_num_average();
-    for(unsigned int i=0; i<WFM_SIZE; i++)
-        spectrum_data[i] = raw_data[i] / float(n_avg);
+    _wait_for_acquisition();
+    if (avg_on) {
+        float num_avg = float(get_num_average());
+        for(unsigned int i=0; i<WFM_SIZE; i++)
+            spectrum_data[i] = raw_data[i] / num_avg;
+    } else{
+        for(unsigned int i=0; i<WFM_SIZE; i++)
+            spectrum_data[i] = raw_data[i];
+    }
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return spectrum_data;
 }
@@ -123,13 +128,29 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
     uint32_t n_pts = (index_high - index_low)/decim_factor;
     spectrum_decim.resize(n_pts);
     _wait_for_acquisition();
-    uint32_t n_avg = get_num_average();
-
-    for(unsigned int i=0; i<spectrum_decim.size(); i++)
-        spectrum_decim[i] = raw_data[index_low + decim_factor * i] / float(n_avg);
+    
+    if (avg_on) {
+        float num_avg = float(get_num_average());
+        for(unsigned int i=0; i<n_pts; i++)
+            spectrum_decim[i] = raw_data[index_low + decim_factor * i] / num_avg;
+    } else {
+        for(unsigned int i=0; i<n_pts; i++)
+            spectrum_decim[i] = raw_data[index_low + decim_factor * i];
+    }
 
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return spectrum_decim;
+}
+
+void Spectrum::set_averaging(bool avg_status)
+{
+    avg_on = avg_status;
+    
+    if(avg_on) {
+        Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+AVG_OFF_OFF, 0);
+    } else {
+        Klib::SetBit(dev_mem.GetBaseAddr(config_map)+AVG_OFF_OFF, 0);
+    }
 }
 
 uint32_t Spectrum::get_num_average()
@@ -149,7 +170,8 @@ uint32_t Spectrum::get_peak_maximum()
 
 void Spectrum::set_address_range(uint32_t address_low, uint32_t address_high)
 {
-    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + ADDRESS_LOW_OFF, address_low);
-    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + ADDRESS_HIGH_OFF, address_high);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_LOW_OFF, address_low);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_HIGH_OFF, address_high);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_RESET_OFF, (address_low+WFM_SIZE-1) % WFM_SIZE);
 }
 
