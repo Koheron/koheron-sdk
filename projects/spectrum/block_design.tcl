@@ -92,6 +92,28 @@ connect_pins $peak_detector_name/address_reset $config_name/Out$peak_address_res
 connect_pins $peak_detector_name/address_out $status_name/In$peak_address_offset
 connect_pins $peak_detector_name/maximum_out $status_name/In$peak_maximum_offset
 
+set intercon_idx 0
+set idx [add_master_interface $intercon_idx]
+cell xilinx.com:ip:axis_clock_converter:1.1 peak_clock_converter {} {
+  s_axis_tdata $peak_detector_name/address_out
+  s_axis_tvalid $peak_detector_name/m_axis_tvalid
+  s_axis_aresetn $rst_adc_clk_name/peripheral_aresetn
+  m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
+  s_axis_aclk $adc_clk
+  m_axis_aclk [set ps_clk$intercon_idx]
+}
+
+cell xilinx.com:ip:axi_fifo_mm_s:4.1 peak_axis_fifo {
+  C_USE_TX_DATA 0
+  C_USE_TX_CTRL 0
+} {
+  s_axi_aclk [set ps_clk$intercon_idx]
+  s_axi_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
+  S_AXI [set interconnect_${intercon_idx}_name]/M${idx}_AXI
+  AXI_STR_RXD peak_clock_converter/M_AXIS
+}
+
+assign_bd_address [get_bd_addr_segs peak_axis_fifo/S_AXI/Mem0]
 
 ##########################################################
 # Add EEPROM
