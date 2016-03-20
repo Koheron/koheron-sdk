@@ -64,7 +64,9 @@ int Spectrum::Open()
         }
         
         raw_data = reinterpret_cast<float*>(dev_mem.GetBaseAddr(spectrum_map));
-        Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+AVG_OFF_OFF, 0);
+        
+        set_averaging(true);
+        set_address_range(0, WFM_SIZE);
         status = OPENED;
     }
     
