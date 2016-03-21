@@ -169,6 +169,10 @@ uint32_t Spectrum::get_num_average()
     return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG_OFF);
 }
 
+/////////////////////
+// Peak detection
+/////////////////////
+
 uint32_t Spectrum::get_peak_address()
 {
     return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+PEAK_ADDRESS_OFF);
@@ -179,12 +183,16 @@ uint32_t Spectrum::get_peak_maximum()
     return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+PEAK_MAXIMUM_OFF);
 }
 
+// Peak detection happens only between address_low and address_high
 void Spectrum::set_address_range(uint32_t address_low, uint32_t address_high)
 {
     Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_LOW_OFF, address_low);
     Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_HIGH_OFF, address_high);
     Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_RESET_OFF, (address_low+WFM_SIZE-1) % WFM_SIZE);
 }
+
+// Read the data stream
+// http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
 
 uint32_t Spectrum::get_peak_fifo_occupancy()
 {

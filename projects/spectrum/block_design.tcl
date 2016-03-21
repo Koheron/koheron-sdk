@@ -106,6 +106,7 @@ cell xilinx.com:ip:axis_clock_converter:1.1 peak_clock_converter {} {
 cell xilinx.com:ip:axi_fifo_mm_s:4.1 peak_axis_fifo {
   C_USE_TX_DATA 0
   C_USE_TX_CTRL 0
+  C_USE_RX_CUT_THROUGH true
 } {
   s_axi_aclk [set ps_clk$intercon_idx]
   s_axi_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
