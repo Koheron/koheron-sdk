@@ -124,17 +124,23 @@ std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
 
 std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high)
 {
+    // Sanity checks
+    if (index_high <= index_low || index_high >= WFM_SIZE) {
+        spectrum_decim.resize(0);
+        return spectrum_decim;
+    }
+
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     uint32_t n_pts = (index_high - index_low)/decim_factor;
     spectrum_decim.resize(n_pts);
     _wait_for_acquisition();
-    
+
     if (avg_on) {
         float num_avg = float(get_num_average());
-        for(unsigned int i=0; i<n_pts; i++)
+        for(unsigned int i=0; i<spectrum_decim.size(); i++)
             spectrum_decim[i] = raw_data[index_low + decim_factor * i] / num_avg;
     } else {
-        for(unsigned int i=0; i<n_pts; i++)
+        for(unsigned int i=0; i<spectrum_decim.size(); i++)
             spectrum_decim[i] = raw_data[index_low + decim_factor * i];
     }
 
