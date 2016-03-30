@@ -13,6 +13,14 @@
 #define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
 #define ACQ_TIME_US uint32_t(2*(WFM_SIZE*1E6)/SAMPLING_RATE)
 
+// http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
+#define PEAK_FIFO_ADDR 0x43C10000
+#define PEAK_FIFO_RANGE 64*1024
+#define PEAK_RDFR_OFF 0x18
+#define PEAK_RDFO_OFF 0x1C
+#define PEAK_RDFD_OFF 0x20
+#define PEAK_RLR_OFF 0x24
+
 class Spectrum
 {
   public:
@@ -41,6 +49,11 @@ class Spectrum
 
     void set_address_range(uint32_t address_low, uint32_t address_high);
 
+    uint32_t get_peak_fifo_occupancy();
+    uint32_t get_peak_fifo_length();
+    void reset_peak_fifo();
+    std::vector<uint32_t>& get_peak_fifo_data(uint32_t n_pts);
+
     enum Status {
         CLOSED,
         OPENED,
@@ -64,11 +77,13 @@ class Spectrum
     Klib::MemMapID spectrum_map;
     Klib::MemMapID demod_map;
     Klib::MemMapID noise_floor_map;
+    Klib::MemMapID peak_fifo_map;
 
     // Acquired data buffers
     float *raw_data;
     std::array<float, WFM_SIZE> spectrum_data;
     std::vector<float> spectrum_decim;
+    std::vector<uint32_t> peak_fifo_data;
     
     // Internal functions
     void _wait_for_acquisition();

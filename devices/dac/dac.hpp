@@ -25,7 +25,6 @@ class Dac
     #pragma tcp-server write_array arg{data} arg{len}
     void set_dac_buffer(const uint32_t *data, uint32_t len);
 
-    // XXX (TV) Is it for oscillo ??
     void reset_acquisition();
 
     enum Status {
