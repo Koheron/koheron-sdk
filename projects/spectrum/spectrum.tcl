@@ -110,3 +110,9 @@ cell xilinx.com:ip:axi_fifo_mm_s:4.1 peak_axis_fifo {
 }
 
 assign_bd_address [get_bd_addr_segs peak_axis_fifo/S_AXI/Mem0]
+set memory_segment [get_bd_addr_segs /${::ps_name}/Data/SEG_peak_axis_fifo_Mem0]
+set_property offset $axi_peak_fifo_offset $memory_segment
+set_property range $axi_peak_fifo_range $memory_segment
+
+
+

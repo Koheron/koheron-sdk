@@ -14,8 +14,6 @@
 #define ACQ_TIME_US uint32_t(2*(WFM_SIZE*1E6)/SAMPLING_RATE)
 
 // http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
-#define PEAK_FIFO_ADDR 0x43C10000
-#define PEAK_FIFO_RANGE 64*1024
 #define PEAK_RDFR_OFF 0x18
 #define PEAK_RDFO_OFF 0x1C
 #define PEAK_RDFD_OFF 0x20
