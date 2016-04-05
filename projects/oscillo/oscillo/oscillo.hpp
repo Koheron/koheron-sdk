@@ -27,7 +27,7 @@ class Oscillo
 
     std::array<float, 2*WFM_SIZE>& read_all_channels();
 
-    std::vector<float>& read_all_channels_decim(uint32_t decim_factor);
+    std::vector<float>& read_all_channels_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high);
 
     void set_averaging(bool avg_status);
     

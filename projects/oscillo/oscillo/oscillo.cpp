@@ -144,23 +144,29 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
 
 
 // Read the two channels but take only one point every decim_factor points
-std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor)
+std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high)
 {
+    // Sanity checks
+    if (index_high <= index_low || index_high >= WFM_SIZE) {
+        data_decim.resize(0);
+        return data_decim;
+    }
+
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
-    uint32_t n_pts = WFM_SIZE/decim_factor;
+    uint32_t n_pts = (index_high - index_low)/decim_factor;
     data_decim.resize(2*n_pts);
     _wait_for_acquisition();
 
     if(avg_on) {
-        float num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF)); 
+        float num_avg = float(get_num_average()); 
         for(unsigned int i=0; i<n_pts; i++) {
-            data_decim[i] = _raw_to_float(raw_data_1[decim_factor * i])/num_avg;
-            data_decim[i + n_pts] = _raw_to_float(raw_data_2[decim_factor * i])/num_avg;
+            data_decim[i] = _raw_to_float(raw_data_1[index_low + decim_factor * i]) / num_avg;
+            data_decim[i + n_pts] = _raw_to_float(raw_data_2[index_low + decim_factor * i]) / num_avg;
         }
     } else {
         for(unsigned int i=0; i<n_pts; i++) {
-            data_decim[i] = _raw_to_float(raw_data_1[decim_factor * i]);
-            data_decim[i + n_pts] = _raw_to_float(raw_data_2[decim_factor * i]);
+            data_decim[i] = _raw_to_float(raw_data_1[index_low + decim_factor * i]);
+            data_decim[i + n_pts] = _raw_to_float(raw_data_2[index_low + decim_factor * i]);
         }
     }
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
