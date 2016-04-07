@@ -192,9 +192,9 @@ if __name__ == "__main__":
     elif cmd == '--board':
         with open(os.path.join('tmp', project + '.board'), 'w') as f:
             f.write(config['board'])
-    elif cmd=='--drivers':
+    elif cmd == '--drivers':
         with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
-            f.write('devices/common '+' '.join(config['devices']))
+            f.write('devices/common '+((' '.join(config['devices'])) if ('devices' in config) else ''))
     elif cmd == '--middleware':
         tcp_server_dir = os.path.join('tmp', config['project'] + '.tcp-server')
         build_server_config(project, tcp_server_dir)
