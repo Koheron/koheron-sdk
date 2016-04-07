@@ -24,21 +24,16 @@ Common::~Common()
 
 int Common::Open()
 {
-    if (status == CLOSED) {    
-        // Initializes memory maps
-        config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
+    if (status == CLOSED) {
+        std::array<Klib::MemMapID, 2> ids = dev_mem.RequestMemoryMaps(mem_regions);
 
-        if (static_cast<int>(config_map) < 0) {
+        if (dev_mem.CheckMapIDs(ids)) {
             status = FAILED;
             return -1;
         }
 
-        status_map = dev_mem.AddMemoryMap(STATUS_ADDR, STATUS_RANGE);
-        
-        if (static_cast<int>(status_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
+        config_map = ids[0];
+        status_map = ids[1];
 
         status = OPENED;
     }
