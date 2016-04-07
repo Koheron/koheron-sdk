@@ -19,7 +19,6 @@ class Oscillo
 {
   public:
     Oscillo(Klib::DevMem& dev_mem_);
-    ~Oscillo();
 
     int Open();
 
@@ -44,8 +43,6 @@ class Oscillo
 
   private:
     Klib::DevMem& dev_mem;
-
-    void Close();
 
     int status;
     bool avg_on; // True if averaging is enabled

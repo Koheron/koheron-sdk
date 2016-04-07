@@ -17,11 +17,6 @@ Common::Common(Klib::DevMem& dev_mem_)
     status = CLOSED;
 }
 
-Common::~Common()
-{
-    Close();
-}
-
 int Common::Open()
 {
     if (status == CLOSED) {
@@ -39,15 +34,6 @@ int Common::Open()
     }
 
     return 0;
-}
-
-void Common::Close()
-{
-    if (status == OPENED) {
-    //     dev_mem.RmMemoryMap(config_map);
-    //     dev_mem.RmMemoryMap(status_map);
-        status = CLOSED;
-    }
 }
 
 std::array<uint32_t, BITSTREAM_ID_SIZE> Common::get_bitstream_id()

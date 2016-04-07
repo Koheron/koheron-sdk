@@ -12,19 +12,9 @@ Oscillo::Oscillo(Klib::DevMem& dev_mem_)
     avg_on = false;
     status = CLOSED;
 }
- 
-Oscillo::~Oscillo()
-{
-    Close();
-}
 
 int Oscillo::Open()
 {
-    // Reopening
-    if(status == OPENED) {
-        Close();
-    }
-
     if(status == CLOSED) {
         std::array<Klib::MemMapID, 4> ids = dev_mem.RequestMemoryMaps(mem_regions);
 
@@ -48,17 +38,6 @@ int Oscillo::Open()
     }
     
     return 0;
-}
-
-void Oscillo::Close()
-{
-    if(status == OPENED) {
-    //     dev_mem.RmMemoryMap(config_map);
-    //     dev_mem.RmMemoryMap(status_map);
-    //     dev_mem.RmMemoryMap(adc_1_map);
-    //     dev_mem.RmMemoryMap(adc_2_map);
-        status = CLOSED;
-    }
 }
 
 void Oscillo::_wait_for_acquisition()
