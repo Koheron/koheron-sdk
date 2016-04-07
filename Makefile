@@ -224,12 +224,12 @@ $(TCP_SERVER_DIR):
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
 $(DRIVERS_DIR)/%: %
-	mkdir -p $(DRIVERS_DIR)
-	cp $*/*.*pp $(DRIVERS_DIR)
+	mkdir -p $@
+	cp $*/*.*pp $@/
 
 $(TCP_SERVER): $(TCP_SERVER_DIR) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
 	python make.py --middleware $(NAME)
-	cp tmp/$(NAME)/drivers/* $(TCP_SERVER_DIR)/middleware/drivers
+	cp `find $(DRIVERS_DIR) -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers
 	cd $(TCP_SERVER_DIR) && make CONFIG=config.yaml
 
 tcp-server_cli: $(TCP_SERVER_DIR)
