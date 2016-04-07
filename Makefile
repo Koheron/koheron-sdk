@@ -65,6 +65,7 @@ SHA = $(shell cat $(SHA_FILE))
 
 # Zip
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
+DRIVERS_DIR = $(TMP)/$(NAME)/drivers
 MIDDLEWARE = $(TCP_SERVER_DIR)/middleware
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/server/kserverd
 TCP_SERVER_SHA = master
@@ -223,12 +224,15 @@ $(TCP_SERVER_DIR):
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
-$(MIDDLEWARE): $(MAIN_YML) $(TCP_SERVER_DIR) $(DRIVERS)
-	$(foreach driver, $(DRIVERS), cp $(driver)/*.hpp $(MIDDLEWARE)/drivers;)
-	$(foreach driver, $(DRIVERS), cp $(driver)/*.cpp $(MIDDLEWARE)/drivers;)
+$(DRIVERS_DIR)/%: 
+	mkdir -p $(DRIVERS_DIR)
+	cp $*/* $(DRIVERS_DIR)
+
+$(MIDDLEWARE): $(MAIN_YML) $(TCP_SERVER_DIR) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
 	python make.py --middleware $(NAME)
 
-$(TCP_SERVER): $(TCP_SERVER_DIR) $(MIDDLEWARE)	
+$(TCP_SERVER): $(MIDDLEWARE) $(addprefix tmp/$(NAME)/drivers/, $(DRIVERS))
+	cp tmp/$(NAME)/drivers/* $(MIDDLEWARE)/drivers
 	cd $(TCP_SERVER_DIR) && make CONFIG=config.yaml
 
 tcp-server_cli: $(TCP_SERVER_DIR)
