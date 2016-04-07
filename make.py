@@ -116,12 +116,15 @@ def build_middleware(project, tcp_server_dir):
 
     if 'devices' in config:
         for device in config['devices']:
+            # Copy hpp
             hpp_filename = os.path.join(device, os.path.basename(device) + '.hpp')
-            cpp_filename = os.path.join(device, os.path.basename(device) + '.cpp')
-            if not (os.path.exists(hpp_filename) or os.path.exists(cpp_filename)):
+            if not os.path.exists(hpp_filename):
                 raise ValueError('Missing source file for device ' + device)
             shutil.copy(hpp_filename, drivers_path)
-            shutil.copy(cpp_filename, drivers_path)
+            # Copy cpp
+            cpp_filename = os.path.join(device, os.path.basename(device) + '.cpp')
+            if os.path.exists(cpp_filename):
+                shutil.copy(cpp_filename, drivers_path)
             
 def build_server_config(project, tcp_server_dir):
     config = get_config(project)

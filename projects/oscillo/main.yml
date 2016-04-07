@@ -50,5 +50,6 @@ devices:
   - devices/xadc
   - devices/dac
   - devices/laser
+  - devices/init
   - projects/oscillo/oscillo
   - projects/oscillo/speed_test

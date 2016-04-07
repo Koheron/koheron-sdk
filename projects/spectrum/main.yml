@@ -61,4 +61,5 @@ devices:
   - devices/xadc
   - devices/dac
   - devices/laser
+  - devices/init
   - projects/spectrum/spectrum
