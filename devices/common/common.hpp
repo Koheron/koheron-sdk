@@ -29,8 +29,9 @@ class Common
     void set_led(uint32_t value);
     uint32_t get_led();
     void ip_on_leds();
-    
-    void load_settings() {
+
+    void init() {
+        ip_on_leds();
         Init init(dev_mem);
         init.load_settings();
     };
