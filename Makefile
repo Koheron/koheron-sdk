@@ -66,7 +66,6 @@ SHA = $(shell cat $(SHA_FILE))
 # Zip
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 DRIVERS_DIR = $(TMP)/$(NAME)/drivers
-MIDDLEWARE = $(TCP_SERVER_DIR)/middleware
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/server/kserverd
 TCP_SERVER_SHA = master
 
@@ -228,11 +227,9 @@ $(DRIVERS_DIR)/%: %
 	mkdir -p $(DRIVERS_DIR)
 	cp $*/*.*pp $(DRIVERS_DIR)
 
-$(MIDDLEWARE): $(MAIN_YML) $(TCP_SERVER_DIR)
+$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
 	python make.py --middleware $(NAME)
-
-$(TCP_SERVER): $(MIDDLEWARE) $(addprefix tmp/$(NAME)/drivers/, $(DRIVERS))
-	cp tmp/$(NAME)/drivers/* $(MIDDLEWARE)/drivers
+	cp tmp/$(NAME)/drivers/* $(TCP_SERVER_DIR)/middleware/drivers
 	cd $(TCP_SERVER_DIR) && make CONFIG=config.yaml
 
 tcp-server_cli: $(TCP_SERVER_DIR)
