@@ -22,7 +22,7 @@ int Common::Open()
     if (status == CLOSED) {
         std::array<Klib::MemMapID, 2> ids = dev_mem.RequestMemoryMaps(mem_regions);
 
-        if (dev_mem.CheckMapIDs(ids)) {
+        if (dev_mem.CheckMapIDs(ids) < 0) {
             status = FAILED;
             return -1;
         }
@@ -47,7 +47,7 @@ std::array<uint32_t, BITSTREAM_ID_SIZE> Common::get_bitstream_id()
 
 uint64_t Common::get_dna()
 {
-    uint64_t dna_low = static_cast<uint64_t>(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map) + DNA_OFF));
+    uint64_t dna_low  = static_cast<uint64_t>(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map) + DNA_OFF));
     uint64_t dna_high = static_cast<uint64_t>(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map) + DNA_OFF + 4));
 
     return dna_low + (dna_high << 32);

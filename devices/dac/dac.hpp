@@ -46,6 +46,11 @@ class Dac
     // Memory maps IDs:
     Klib::MemMapID config_map;
     Klib::MemMapID dac_map;
+
+    const std::array<Klib::MemoryRegion, 2> mem_regions = {{
+        { CONFIG_ADDR, CONFIG_RANGE },
+        { DAC_ADDR   , DAC_RANGE }
+    }};
 };
 
 #endif // __DRIVERS_DAC_HPP__

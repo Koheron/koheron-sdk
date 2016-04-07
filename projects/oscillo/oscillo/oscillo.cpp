@@ -18,7 +18,7 @@ int Oscillo::Open()
     if(status == CLOSED) {
         std::array<Klib::MemMapID, 4> ids = dev_mem.RequestMemoryMaps(mem_regions);
 
-        if (dev_mem.CheckMapIDs(ids)) {
+        if (dev_mem.CheckMapIDs(ids) < 0) {
             status = FAILED;
             return -1;
         }
