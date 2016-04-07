@@ -48,7 +48,7 @@ class Common
     Klib::MemMapID status_map;
 
     const std::array<Klib::MemoryRegion, 2> mem_regions = {{
-        { CONFIG_ADDR, CONFIG_ADDR  },
+        { CONFIG_ADDR, CONFIG_RANGE },
         { STATUS_ADDR, STATUS_RANGE }
     }};
 };

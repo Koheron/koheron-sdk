@@ -44,8 +44,8 @@ int Common::Open()
 void Common::Close()
 {
     if (status == OPENED) {
-        dev_mem.RmMemoryMap(config_map);
-        dev_mem.RmMemoryMap(status_map);
+    //     dev_mem.RmMemoryMap(config_map);
+    //     dev_mem.RmMemoryMap(status_map);
         status = CLOSED;
     }
 }

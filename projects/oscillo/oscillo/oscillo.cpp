@@ -25,36 +25,19 @@ int Oscillo::Open()
         Close();
     }
 
-    if(status == CLOSED) {       
-   
-        config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-        
-        if (static_cast<int>(config_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-        
-        status_map = dev_mem.AddMemoryMap(STATUS_ADDR, STATUS_RANGE);
-        
-        if (static_cast<int>(status_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-        
-        adc_1_map = dev_mem.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
-        
-        if (static_cast<int>(adc_1_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-        
-        adc_2_map = dev_mem.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
-        
-        if (static_cast<int>(adc_2_map) < 0) {
+    if(status == CLOSED) {
+        std::array<Klib::MemMapID, 4> ids = dev_mem.RequestMemoryMaps(mem_regions);
+
+        if (dev_mem.CheckMapIDs(ids)) {
             status = FAILED;
             return -1;
         }
 
+        config_map = ids[0];
+        status_map = ids[1];
+        adc_1_map  = ids[2];
+        adc_2_map  = ids[3];
+   
         raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
         raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
 
@@ -70,10 +53,10 @@ int Oscillo::Open()
 void Oscillo::Close()
 {
     if(status == OPENED) {
-        dev_mem.RmMemoryMap(config_map);
-        dev_mem.RmMemoryMap(status_map);
-        dev_mem.RmMemoryMap(adc_1_map);
-        dev_mem.RmMemoryMap(adc_2_map);
+    //     dev_mem.RmMemoryMap(config_map);
+    //     dev_mem.RmMemoryMap(status_map);
+    //     dev_mem.RmMemoryMap(adc_1_map);
+    //     dev_mem.RmMemoryMap(adc_2_map);
         status = CLOSED;
     }
 }
