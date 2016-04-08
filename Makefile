@@ -223,7 +223,7 @@ $(TCP_SERVER_DIR):
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
-$(DRIVERS_DIR)/%: %
+$(DRIVERS_DIR)/%: %/*.hpp %/*.cpp
 	mkdir -p $@
 	cp $*/*.*pp $@/
 
