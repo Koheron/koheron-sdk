@@ -19,14 +19,18 @@ Laser::~Laser()
 
 int Laser::Open()
 {
-    if (status == CLOSED) {    
+    if (status == CLOSED) {
         // Config is required for the PWMs
-        config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-        
-        if (static_cast<int>(config_map) < 0) {
+        std::array<Klib::MemMapID, 1> ids = dev_mem.RequestMemoryMaps<1>({{
+            { CONFIG_ADDR, CONFIG_RANGE }
+        }});
+
+        if (dev_mem.CheckMapIDs(ids) < 0) {
             status = FAILED;
             return -1;
         }
+
+        config_map = ids[0];
         
         // Open core drivers
         xadc.Open();
@@ -43,8 +47,6 @@ void Laser::Close()
 {
     if (status == OPENED) {
         reset();
-        dev_mem.RmMemoryMap(config_map);        
-        xadc.Close();
         gpio.Close();
         status = CLOSED;
     }

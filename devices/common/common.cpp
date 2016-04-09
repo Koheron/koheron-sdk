@@ -20,7 +20,10 @@ Common::Common(Klib::DevMem& dev_mem_)
 int Common::Open()
 {
     if (status == CLOSED) {
-        std::array<Klib::MemMapID, 2> ids = dev_mem.RequestMemoryMaps(mem_regions);
+        auto ids = dev_mem.RequestMemoryMaps<2>({{
+            { CONFIG_ADDR, CONFIG_RANGE },
+            { STATUS_ADDR, STATUS_RANGE }
+        }});
 
         if (dev_mem.CheckMapIDs(ids) < 0) {
             status = FAILED;

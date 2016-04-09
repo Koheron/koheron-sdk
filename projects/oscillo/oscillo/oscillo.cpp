@@ -16,7 +16,12 @@ Oscillo::Oscillo(Klib::DevMem& dev_mem_)
 int Oscillo::Open()
 {
     if(status == CLOSED) {
-        std::array<Klib::MemMapID, 4> ids = dev_mem.RequestMemoryMaps(mem_regions);
+        auto ids = dev_mem.RequestMemoryMaps<4>({{
+            { CONFIG_ADDR, CONFIG_RANGE },
+            { STATUS_ADDR, STATUS_RANGE },
+            { ADC1_ADDR  , ADC1_RANGE   },
+            { ADC2_ADDR  , ADC2_RANGE   }
+        }});
 
         if (dev_mem.CheckMapIDs(ids) < 0) {
             status = FAILED;

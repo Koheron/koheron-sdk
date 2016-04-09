@@ -23,7 +23,10 @@ int Dac::Open(uint32_t dac_wfm_size_)
     if (status == CLOSED) {
         dac_wfm_size = dac_wfm_size_;
 
-        std::array<Klib::MemMapID, 2> ids = dev_mem.RequestMemoryMaps(mem_regions);
+        auto ids = dev_mem.RequestMemoryMaps<2>({{
+            { CONFIG_ADDR, CONFIG_RANGE },
+            { DAC_ADDR   , DAC_RANGE    }
+        }});
 
         if (dev_mem.CheckMapIDs(ids) < 0) {
             status = FAILED;
@@ -32,21 +35,6 @@ int Dac::Open(uint32_t dac_wfm_size_)
 
         config_map = ids[0];
         dac_map    = ids[1];
-
-        // // Initializes memory maps
-        // config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-
-        // if (static_cast<int>(config_map) < 0) {
-        //     status = FAILED;
-        //     return -1;
-        // }
-
-        // dac_map = dev_mem.AddMemoryMap(DAC_ADDR, DAC_RANGE);
-
-        // if (static_cast<int>(dac_map) < 0) {
-        //     status = FAILED;
-        //     return -1;
-        // }
 
         status = OPENED;
         reset();

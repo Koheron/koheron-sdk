@@ -55,13 +55,6 @@ class Oscillo
     Klib::MemMapID status_map;
     Klib::MemMapID adc_1_map;
     Klib::MemMapID adc_2_map;
-
-    const std::array<Klib::MemoryRegion, 4> mem_regions = {{
-        { CONFIG_ADDR, CONFIG_RANGE },
-        { STATUS_ADDR, STATUS_RANGE },
-        { ADC1_ADDR  , ADC1_RANGE   },
-        { ADC2_ADDR  , ADC2_RANGE   }
-    }};
     
     // Acquired data buffers
     std::array<float, WFM_SIZE> data;

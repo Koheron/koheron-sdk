@@ -11,33 +11,23 @@ Xadc::Xadc(Klib::DevMem& dev_mem_)
     status = CLOSED;
 }
 
-Xadc::~Xadc()
-{
-    Close();
-}
-
-int Xadc::Open(uint32_t map_size)
+int Xadc::Open()
 {
     if (status == CLOSED) {
-        dev_num = dev_mem.AddMemoryMap(XADC_ADDR, map_size);
-        
-        if (static_cast<int>(dev_num) < 0) {
+        std::array<Klib::MemMapID, 1> ids = dev_mem.RequestMemoryMaps<1>({{
+            { XADC_ADDR, XADC_RANGE }
+        }});
+
+        if (dev_mem.CheckMapIDs(ids) < 0) {
             status = FAILED;
             return -1;
         }
-        
+
+        dev_num = ids[0];        
         status = OPENED;
     }
     
     return 0;
-}
-
-void Xadc::Close()
-{
-    if (status == OPENED) {
-        dev_mem.RmMemoryMap(dev_num);
-        status = CLOSED;
-    }
 }
 
 bool is_valid_channel(uint32_t channel)

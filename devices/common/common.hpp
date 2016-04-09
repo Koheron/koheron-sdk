@@ -42,11 +42,6 @@ class Common
     // Memory maps IDs
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
-
-    const std::array<Klib::MemoryRegion, 2> mem_regions = {{
-        { CONFIG_ADDR, CONFIG_RANGE },
-        { STATUS_ADDR, STATUS_RANGE }
-    }};
 };
 
 #endif // __DRIVERS_COMMON_HPP__
