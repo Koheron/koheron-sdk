@@ -47,7 +47,6 @@ void Laser::Close()
 {
     if (status == OPENED) {
         reset();
-        gpio.Close();
         status = CLOSED;
     }
 }

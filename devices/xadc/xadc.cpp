@@ -23,7 +23,7 @@ int Xadc::Open()
             return -1;
         }
 
-        dev_num = ids[0];        
+        dev_num = ids[0];
         status = OPENED;
     }
     
