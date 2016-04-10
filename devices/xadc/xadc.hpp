@@ -12,6 +12,7 @@
 #include <drivers/wr_register.hpp>
 
 #define XADC_ADDR          0x43C00000
+#define XADC_RANGE         65536
 
 // Offsets
 // Set by Xilinx IP
@@ -25,13 +26,7 @@ class Xadc
   public:
     Xadc(Klib::DevMem& dev_mem_);
 
-    ~Xadc();
-
-    int Open(uint32_t map_size = 16*4096);
-
-    #pragma tcp-server exclude
-    void Close();
-
+    int Open();
     int set_channel(uint32_t channel_0_, uint32_t channel_1_);
     void enable_averaging();
     int set_averaging(uint32_t n_avg);

@@ -12,49 +12,27 @@ Oscillo::Oscillo(Klib::DevMem& dev_mem_)
     avg_on = false;
     status = CLOSED;
 }
- 
-Oscillo::~Oscillo()
-{
-    Close();
-}
 
 int Oscillo::Open()
 {
-    // Reopening
-    if(status == OPENED) {
-        Close();
-    }
+    if(status == CLOSED) {
+        auto ids = dev_mem.RequestMemoryMaps<4>({{
+            { CONFIG_ADDR, CONFIG_RANGE },
+            { STATUS_ADDR, STATUS_RANGE },
+            { ADC1_ADDR  , ADC1_RANGE   },
+            { ADC2_ADDR  , ADC2_RANGE   }
+        }});
 
-    if(status == CLOSED) {       
+        if (dev_mem.CheckMapIDs(ids) < 0) {
+            status = FAILED;
+            return -1;
+        }
+
+        config_map = ids[0];
+        status_map = ids[1];
+        adc_1_map  = ids[2];
+        adc_2_map  = ids[3];
    
-        config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-        
-        if (static_cast<int>(config_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-        
-        status_map = dev_mem.AddMemoryMap(STATUS_ADDR, STATUS_RANGE);
-        
-        if (static_cast<int>(status_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-        
-        adc_1_map = dev_mem.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
-        
-        if (static_cast<int>(adc_1_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-        
-        adc_2_map = dev_mem.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
-        
-        if (static_cast<int>(adc_2_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-
         raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
         raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
 
@@ -65,17 +43,6 @@ int Oscillo::Open()
     }
     
     return 0;
-}
-
-void Oscillo::Close()
-{
-    if(status == OPENED) {
-        dev_mem.RmMemoryMap(config_map);
-        dev_mem.RmMemoryMap(status_map);
-        dev_mem.RmMemoryMap(adc_1_map);
-        dev_mem.RmMemoryMap(adc_2_map);
-        status = CLOSED;
-    }
 }
 
 void Oscillo::_wait_for_acquisition()
