@@ -23,7 +23,6 @@ class Spectrum
 {
   public:
     Spectrum(Klib::DevMem& dev_mem_);
-    ~Spectrum();
 
     int Open();
     void set_scale_sch(uint32_t scale_sch);
@@ -66,8 +65,6 @@ class Spectrum
     int status;
 
     bool avg_on; // True if averaging is enabled
-
-    void Close();
 
     // Memory maps IDs:
     Klib::MemMapID config_map;

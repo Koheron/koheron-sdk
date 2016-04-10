@@ -21,7 +21,7 @@ int Laser::Open()
 {
     if (status == CLOSED) {
         // Config is required for the PWMs
-        std::array<Klib::MemMapID, 1> ids = dev_mem.RequestMemoryMaps<1>({{
+        auto ids = dev_mem.RequestMemoryMaps<1>({{
             { CONFIG_ADDR, CONFIG_RANGE }
         }});
 

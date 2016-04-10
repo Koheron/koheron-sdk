@@ -14,7 +14,7 @@ Xadc::Xadc(Klib::DevMem& dev_mem_)
 int Xadc::Open()
 {
     if (status == CLOSED) {
-        std::array<Klib::MemMapID, 1> ids = dev_mem.RequestMemoryMaps<1>({{
+        auto ids = dev_mem.RequestMemoryMaps<1>({{
             { XADC_ADDR, XADC_RANGE }
         }});
 

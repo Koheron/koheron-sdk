@@ -11,7 +11,7 @@ Gpio::Gpio(Klib::DevMem& dev_mem_)
 int Gpio::Open()
 {
     if (status == CLOSED) {
-        std::array<Klib::MemMapID, 1> ids = dev_mem.RequestMemoryMaps<1>({{
+        auto ids = dev_mem.RequestMemoryMaps<1>({{
             { GPIO_ADDR, GPIO_RANGE }
         }});
 
