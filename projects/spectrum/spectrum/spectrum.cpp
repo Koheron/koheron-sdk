@@ -185,6 +185,8 @@ std::vector<uint32_t>& Spectrum::get_peak_fifo_data(uint32_t n_pts)
     return peak_fifo_data;
 }
 
+// FIFORead
+
 void Spectrum::fifo_start_acquisition(uint32_t acq_period)
 {
     fifo.start_acquisition(acq_period);
@@ -195,7 +197,22 @@ void Spectrum::fifo_stop_acquisition()
     fifo.stop_acquisition();
 }
 
+uint32_t Spectrum::fifo_get_acq_count()
+{
+    return fifo.get_acq_count();
+}
+
+bool Spectrum::fifo_get_acquire_status()
+{
+    return fifo.get_acquire_status();
+}
+
 std::array<uint32_t, FIFO_BUFF_SIZE>& Spectrum::fifo_get_data()
 {
     return fifo.get_data();
+}
+
+uint32_t Spectrum::fifo_get_fifo_length()
+{
+    return fifo.get_fifo_length();
 }

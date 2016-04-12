@@ -28,20 +28,25 @@ class FIFOReader
     void set_address(uintptr_t fifo_addr_);
     void start_acquisition(uint32_t acq_period_);
     void stop_acquisition();
+    uint32_t get_acq_count() const {return acq_num;}
+    bool get_acquire_status() const {return acquire.load();}
+    uint32_t get_fifo_length() const {return fifo_length.load();}
     std::array<uint32_t, N>& get_data();
 
   private:
     uintptr_t fifo_addr;
-    uint32_t acq_period; // Time between two acquisitions (us)
 
-    uint32_t index; // Current index of the ring_buffer
-    uint32_t acq_cnt;
+    std::atomic<uint32_t> index; // Current index of the ring_buffer
+    std::atomic<uint32_t> acq_cnt;
+    uint32_t acq_num;
+    std::atomic<uint32_t> fifo_length;
     std::array<uint32_t, N> ring_buffer;
     std::array<uint32_t, N> results_buffer;
     std::mutex buff_access_mtx;
+    std::thread acq_thread;
 
     std::atomic<bool> acquire;
-    void acquisition_thread_call();
+    void acquisition_thread_call(uint32_t acq_period);
 };
 
 // cpp file
@@ -49,11 +54,11 @@ class FIFOReader
 template<size_t N>
 FIFOReader<N>::FIFOReader()
 : fifo_addr(0)
-, acq_period(0)
-, index(0)
-, acq_cnt(0)
 {
     acquire.store(false);
+    index.store(0);
+    acq_cnt.store(0);
+    fifo_length.store(0);
 }
 
 template<size_t N>
@@ -63,29 +68,34 @@ void FIFOReader<N>::set_address(uintptr_t fifo_addr_)
 }
 
 template<size_t N>
-void FIFOReader<N>::acquisition_thread_call()
+void FIFOReader<N>::acquisition_thread_call(uint32_t acq_period)
 {
+    // Reset FIFO
+    Klib::WriteReg32(fifo_addr + PEAK_RDFR_OFF, 0x000000A5);
+
+    acquire.store(true);
+
     while (acquire.load()) {
-        uint32_t fifo_length = Klib::ReadReg32(fifo_addr + PEAK_RLR_OFF);
+        // The length is stored in the last 22 bits of the RLR register.
+        // The length is given in bytes so we divide by 4 to get the number of u32.
+        fifo_length.store((Klib::ReadReg32(fifo_addr + PEAK_RLR_OFF) & 0x3FFFFF) >> 2);
 
-        buff_access_mtx.lock();
-        for (unsigned int i=0; i<fifo_length; i++) {
-            acq_cnt++;
-            index = (index + 1) % N;
-            ring_buffer[index] = Klib::ReadReg32(fifo_addr);
+        // buff_access_mtx.lock();
+        for (unsigned int i=0; i<fifo_length.load(); i++) {
+            acq_cnt.store(acq_cnt.load() + 1);
+            ring_buffer[index.load()] = Klib::ReadReg32(fifo_addr + PEAK_RDFD_OFF);
+            index.store((index.load() + 1) % N);
         }
-        buff_access_mtx.unlock();
+        // buff_access_mtx.unlock();
 
-        std::this_thread::sleep_for(std::chrono::microseconds(acq_period));
+        std::this_thread::sleep_for(std::chrono::milliseconds(acq_period));
     }
 }
 
 template<size_t N>
-void FIFOReader<N>::start_acquisition(uint32_t acq_period_)
+void FIFOReader<N>::start_acquisition(uint32_t acq_period)
 {
-    acq_period = acq_period_;
-    acquire.store(true);
-    std::thread acq_thread(&FIFOReader<N>::acquisition_thread_call, this);
+    acq_thread = std::thread{&FIFOReader<N>::acquisition_thread_call, this, acq_period};
     acq_thread.detach();
 }
 
@@ -93,17 +103,24 @@ template<size_t N>
 void FIFOReader<N>::stop_acquisition()
 {
     acquire.store(false);
+    index.store(0);
+    acq_cnt.store(0);
 }
 
 template<size_t N>
 std::array<uint32_t, N>& FIFOReader<N>::get_data()
 {
-    buff_access_mtx.lock();
-    for (unsigned int i=0; i<N-index-1; i++)
-        results_buffer[i] = ring_buffer[index + 1 + i];
-    for (unsigned int i=N-index; i<N; i++)
-        results_buffer[i] = ring_buffer[i-N+index];
-    buff_access_mtx.unlock();
+    uint32_t idx = index.load();
+    // buff_access_mtx.lock();
+    for (unsigned int i=0; i<N-idx; i++)
+        results_buffer[i] = ring_buffer[idx + i];
+    for (unsigned int i=N-idx-1; i<N; i++)
+        results_buffer[i] = ring_buffer[i - N + idx + 1];
+
+    acq_num = acq_cnt.load();
+    index.store(0);
+    acq_cnt.store(0);
+    // buff_access_mtx.unlock();
     return results_buffer;
 }
 
