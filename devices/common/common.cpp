@@ -17,42 +17,26 @@ Common::Common(Klib::DevMem& dev_mem_)
     status = CLOSED;
 }
 
-Common::~Common()
-{
-    Close();
-}
-
 int Common::Open()
 {
-    if (status == CLOSED) {    
-        // Initializes memory maps
-        config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
+    if (status == CLOSED) {
+        auto ids = dev_mem.RequestMemoryMaps<2>({{
+            { CONFIG_ADDR, CONFIG_RANGE },
+            { STATUS_ADDR, STATUS_RANGE }
+        }});
 
-        if (static_cast<int>(config_map) < 0) {
+        if (dev_mem.CheckMapIDs(ids) < 0) {
             status = FAILED;
             return -1;
         }
 
-        status_map = dev_mem.AddMemoryMap(STATUS_ADDR, STATUS_RANGE);
-        
-        if (static_cast<int>(status_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
+        config_map = ids[0];
+        status_map = ids[1];
 
         status = OPENED;
     }
 
     return 0;
-}
-
-void Common::Close()
-{
-    if (status == OPENED) {
-        dev_mem.RmMemoryMap(config_map);
-        dev_mem.RmMemoryMap(status_map);
-        status = CLOSED;
-    }
 }
 
 std::array<uint32_t, BITSTREAM_ID_SIZE> Common::get_bitstream_id()
@@ -66,7 +50,7 @@ std::array<uint32_t, BITSTREAM_ID_SIZE> Common::get_bitstream_id()
 
 uint64_t Common::get_dna()
 {
-    uint64_t dna_low = static_cast<uint64_t>(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map) + DNA_OFF));
+    uint64_t dna_low  = static_cast<uint64_t>(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map) + DNA_OFF));
     uint64_t dna_high = static_cast<uint64_t>(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map) + DNA_OFF + 4));
 
     return dna_low + (dna_high << 32);

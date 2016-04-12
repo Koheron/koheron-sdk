@@ -16,12 +16,8 @@ class Common
 {
   public:
     Common(Klib::DevMem& dev_mem_);
-    ~Common();
 
     int Open();
-
-    #pragma tcp-server exclude
-    void Close();
 
     std::array<uint32_t, BITSTREAM_ID_SIZE> get_bitstream_id();
 
