@@ -10,7 +10,8 @@
 #include <drivers/dev_mem.hpp>
 #include <drivers/wr_register.hpp>
 
-#define GPIO_ADDR 0x41200000
+#define GPIO_ADDR          0x41200000
+#define GPIO_RANGE         65536
 
 // Offsets
 // Set by Xilinx IP
@@ -29,13 +30,8 @@ class Gpio
 {
   public:
     Gpio(Klib::DevMem& dev_mem_);
-    ~Gpio();
 
-    int Open(uint32_t map_size = 16*4096);
-    
-    #pragma tcp-server exclude
-    void Close();
-
+    int Open();
     int set_bit(uint32_t index, uint32_t channel);
     int clear_bit(uint32_t index, uint32_t channel);
     int toggle_bit(uint32_t index, uint32_t channel);

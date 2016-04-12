@@ -13,55 +13,29 @@ Spectrum::Spectrum(Klib::DevMem& dev_mem_)
     status = CLOSED;
 }
 
-Spectrum::~Spectrum()
-{
-    Close();
-}
-
 int Spectrum::Open()
 {
     if(status == CLOSED) {
-        config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-        
-        if(static_cast<int>(config_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-        
-        status_map = dev_mem.AddMemoryMap(STATUS_ADDR, STATUS_RANGE);
-        
-        if(static_cast<int>(status_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-        
-        spectrum_map = dev_mem.AddMemoryMap(SPECTRUM_ADDR, SPECTRUM_RANGE);
-        
-        if(static_cast<int>(spectrum_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-        
-        demod_map = dev_mem.AddMemoryMap(DEMOD_ADDR, DEMOD_RANGE);
-        
-        if(static_cast<int>(demod_map) < 0) {
+        auto ids = dev_mem.RequestMemoryMaps<6>({{
+            { CONFIG_ADDR      , CONFIG_RANGE      },
+            { STATUS_ADDR      , STATUS_RANGE      },
+            { SPECTRUM_ADDR    , SPECTRUM_RANGE    },
+            { DEMOD_ADDR       , DEMOD_RANGE       },
+            { NOISE_FLOOR_ADDR , NOISE_FLOOR_RANGE },
+            { PEAK_FIFO_ADDR   , PEAK_FIFO_RANGE   }
+        }});
+
+        if (dev_mem.CheckMapIDs(ids) < 0) {
             status = FAILED;
             return -1;
         }
 
-        noise_floor_map = dev_mem.AddMemoryMap(NOISE_FLOOR_ADDR, NOISE_FLOOR_RANGE);
-        
-        if(static_cast<int>(noise_floor_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-
-        peak_fifo_map = dev_mem.AddMemoryMap(PEAK_FIFO_ADDR, PEAK_FIFO_RANGE);
-        
-        if(static_cast<int>(peak_fifo_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
+        config_map      = ids[0];
+        status_map      = ids[1];
+        spectrum_map    = ids[2];
+        demod_map       = ids[3];
+        noise_floor_map = ids[4];
+        peak_fifo_map   = ids[5];
         
         raw_data = reinterpret_cast<float*>(dev_mem.GetBaseAddr(spectrum_map));
         
@@ -71,19 +45,6 @@ int Spectrum::Open()
     }
     
     return 0;
-}
-
-void Spectrum::Close()
-{
-    if(status == OPENED) {
-        dev_mem.RmMemoryMap(config_map);
-        dev_mem.RmMemoryMap(status_map);
-        dev_mem.RmMemoryMap(spectrum_map);
-        dev_mem.RmMemoryMap(demod_map);
-        dev_mem.RmMemoryMap(noise_floor_map);
-        dev_mem.RmMemoryMap(peak_fifo_map);
-        status = CLOSED;
-    }
 }
 
 void Spectrum::set_scale_sch(uint32_t scale_sch)
