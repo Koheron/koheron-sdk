@@ -4,8 +4,7 @@ current_bd_instance $status_name
 # SHA
 
 for {set i 0} {$i < 8} {incr i} {
-  set sha sha${i}
-  connect_constant sha_constant_$i [expr $$sha] 32 concat_0/In$i
+  connect_constant sha_constant_$i [set config::sha$i] 32 concat_0/In$i
 }
 
 # DNA

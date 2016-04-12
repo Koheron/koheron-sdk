@@ -14,11 +14,11 @@ set pwm_clk adc_dac/pwm_clk
 # Add config and status registers
 source lib/config_register.tcl
 set config_name cfg
-add_config_register $config_name $adc_clk $config_size $axi_config_range $axi_config_offset 00
+add_config_register $config_name $adc_clk $config::config_size $config::axi_config_range $config::axi_config_offset 00
 
 source lib/status_register.tcl
 set status_name sts
-add_status_register $status_name $adc_clk $status_size $axi_status_range $axi_status_offset
+add_status_register $status_name $adc_clk $config::status_size $config::axi_status_range $config::axi_status_offset
 source lib/sha_dna.tcl
 
 # Connect LEDs
@@ -27,7 +27,7 @@ cell xilinx.com:ip:xlslice:1.0 led_slice {
   DIN_FROM  7
   DIN_TO    0
 } {
-  Din $config_name/Out[expr $led_offset]
+  Din $config_name/Out[expr $config::led_offset]
 }
 connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 

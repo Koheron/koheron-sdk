@@ -1,4 +1,4 @@
 from config import *
 
-dvm.write(CONFIG, DDS_OFF, 10000000)
+dvm.write(CONFIG, DDS_OFF, 100000000)
 
