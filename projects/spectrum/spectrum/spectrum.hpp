@@ -61,7 +61,9 @@ class Spectrum
     uint32_t fifo_get_acq_count();
     bool fifo_get_acquire_status();
     uint32_t fifo_get_fifo_length();
-    std::array<uint32_t, FIFO_BUFF_SIZE>& fifo_get_data();
+
+    uint32_t fifo_store_data();
+    std::vector<uint32_t>& fifo_get_data();
 
     enum Status {
         CLOSED,

@@ -207,7 +207,12 @@ bool Spectrum::fifo_get_acquire_status()
     return fifo.get_acquire_status();
 }
 
-std::array<uint32_t, FIFO_BUFF_SIZE>& Spectrum::fifo_get_data()
+uint32_t Spectrum::fifo_store_data()
+{
+    return fifo.store_data();
+}
+
+std::vector<uint32_t>& Spectrum::fifo_get_data()
 {
     return fifo.get_data();
 }
