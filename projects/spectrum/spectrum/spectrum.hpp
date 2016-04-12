@@ -9,9 +9,13 @@
 #include <drivers/wr_register.hpp>
 #include <drivers/addresses.hpp>
 
+#include "fifo_reader.hpp"
+
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
 #define ACQ_TIME_US uint32_t(2*(WFM_SIZE*1E6)/SAMPLING_RATE)
+
+#define FIFO_BUFF_SIZE 4096
 
 // http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
 #define PEAK_RDFR_OFF 0x18
@@ -51,6 +55,10 @@ class Spectrum
     void reset_peak_fifo();
     std::vector<uint32_t>& get_peak_fifo_data(uint32_t n_pts);
 
+    /// @acq_period Sleeping time between two acquisitions (us)
+    void fifo_start_acquisition(uint32_t acq_period);
+    void fifo_stop_acquisition();
+
     enum Status {
         CLOSED,
         OPENED,
@@ -79,6 +87,8 @@ class Spectrum
     std::array<float, WFM_SIZE> spectrum_data;
     std::vector<float> spectrum_decim;
     std::vector<uint32_t> peak_fifo_data;
+
+    FIFOReader<FIFO_BUFF_SIZE> fifo;
     
     // Internal functions
     void _wait_for_acquisition();
