@@ -15,7 +15,7 @@ Spectrum::Spectrum(Klib::DevMem& dev_mem_)
 
 int Spectrum::Open()
 {
-    if(status == CLOSED) {
+    if (status == CLOSED) {
         auto ids = dev_mem.RequestMemoryMaps<6>({{
             { CONFIG_ADDR      , CONFIG_RANGE      },
             { STATUS_ADDR      , STATUS_RANGE      },
@@ -38,6 +38,7 @@ int Spectrum::Open()
         peak_fifo_map   = ids[5];
         
         raw_data = reinterpret_cast<float*>(dev_mem.GetBaseAddr(spectrum_map));
+        fifo.set_address(dev_mem.GetBaseAddr(peak_fifo_map));
         
         set_averaging(true);
         set_address_range(0, WFM_SIZE);
@@ -50,8 +51,7 @@ int Spectrum::Open()
 void Spectrum::set_scale_sch(uint32_t scale_sch)
 {
     // LSB at 1 for forward FFT
-    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + CFG_FFT_OFF, 
-                     1 + 2 * scale_sch);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + CFG_FFT_OFF, 1 + 2 * scale_sch);
 }
 
 void Spectrum::set_offset(uint32_t offset_real, uint32_t offset_imag)
@@ -183,4 +183,19 @@ std::vector<uint32_t>& Spectrum::get_peak_fifo_data(uint32_t n_pts)
     for(unsigned int i=0; i < peak_fifo_data.size(); i++)
         peak_fifo_data[i] = Klib::ReadReg32(dev_mem.GetBaseAddr(peak_fifo_map)+PEAK_RDFD_OFF);
     return peak_fifo_data;
+}
+
+void Spectrum::fifo_start_acquisition(uint32_t acq_period)
+{
+    fifo.start_acquisition(acq_period);
+}
+
+void Spectrum::fifo_stop_acquisition()
+{
+    fifo.stop_acquisition();
+}
+
+std::array<uint32_t, FIFO_BUFF_SIZE>& Spectrum::fifo_get_data()
+{
+    return fifo.get_data();
 }
