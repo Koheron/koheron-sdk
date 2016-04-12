@@ -13,7 +13,7 @@ TMP = tmp
 # Project specific variables
 NAME = blink
 
-BOARD:=$(shell (python make.py --board $(NAME)) && (cat $(TMP)/$(NAME).board))
+BOARD:=$(shell python make.py --board $(NAME) && cat $(TMP)/$(NAME).board)
 CORES:=$(shell python make.py --cores $(NAME) && cat $(TMP)/$(NAME).cores)
 DRIVERS:=$(shell python make.py --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
 
@@ -223,11 +223,13 @@ $(TCP_SERVER_DIR):
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
-$(DRIVERS_DIR)/%: %/*.*pp
+FORCE:
+
+$(DRIVERS_DIR)/%: FORCE
 	mkdir -p $@
 	cp $*/*.*pp $@/
 
-$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
+$(TCP_SERVER): FORCE $(TCP_SERVER_DIR) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
 	python make.py --middleware $(NAME)
 	cp `find $(DRIVERS_DIR) -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers
 	cd $(TCP_SERVER_DIR) && make CONFIG=config.yaml
