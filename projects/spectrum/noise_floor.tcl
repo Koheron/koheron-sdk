@@ -23,7 +23,7 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
   }
 
   set bram_name noise_floor_bram
-  add_bram $bram_name $::axi_noise_floor_range $::axi_noise_floor_offset
+  add_bram $bram_name $::config::axi_noise_floor_range $::config::axi_noise_floor_offset
   connect_pins blk_mem_gen_$bram_name/clkb  clk
 
   # Connect remaining ports of BRAM
@@ -68,9 +68,6 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
     m_axis_result_tvalid m_axis_result_tvalid
 }
 
-
-
-
-  current_bd_instance $bd
+current_bd_instance $bd
 
 }

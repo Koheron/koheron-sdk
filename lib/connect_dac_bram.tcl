@@ -6,7 +6,7 @@ for {set i 0} {$i < 2} {incr i} {
   set channel [lindex {a b} $i]
   cell xilinx.com:ip:xlslice:1.0 dac_${channel}_slice {
     DIN_WIDTH 32
-    DIN_FROM [expr $dac_width-1+16*$i]
+    DIN_FROM [expr $config::dac_width-1+16*$i]
     DIN_TO [expr 16*$i]
   } {
     Din blk_mem_gen_$dac_bram_name/doutb

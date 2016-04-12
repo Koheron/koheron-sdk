@@ -2,6 +2,7 @@
 project: pid
 parent: default
 board: red-pitaya
+host: '192.168.1.11'
 
 cores:
   - redp_adc_v1_0
@@ -19,12 +20,12 @@ addresses:
 
 config_offsets:
   - led
-  - dac1
   - coef_p
   - coef_i
   - coef_d
   - set_point
   - integral_reset
+  - dds
 
 status_offsets:
   - adc1
@@ -45,3 +46,6 @@ xdc:
   - boards/red-pitaya/config/ports.xdc
   - boards/red-pitaya/config/clocks.xdc
   - boards/red-pitaya/config/clocks.xdc
+
+devices:
+  - devices/init

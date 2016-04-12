@@ -4,7 +4,9 @@ proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "aut
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  for {set i 0} {$i < $num_ports} {incr i} {
+  set n_hidden_ports 10
+
+  for {set i $n_hidden_ports} {$i < $num_ports} {incr i} {
     create_bd_pin -dir I -from 31 -to 0 In$i
   }
 
@@ -45,7 +47,7 @@ proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "aut
     dout axi_sts_register_0/sts_data
   }
 
-  for {set i 0} {$i < $num_ports} {incr i} {
+  for {set i $n_hidden_ports} {$i < $num_ports} {incr i} {
     set_property -dict \
      [list CONFIG.IN${i}_WIDTH 32] \
      [get_bd_cells concat_0]
