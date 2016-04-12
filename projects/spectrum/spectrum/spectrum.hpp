@@ -58,6 +58,7 @@ class Spectrum
     /// @acq_period Sleeping time between two acquisitions (us)
     void fifo_start_acquisition(uint32_t acq_period);
     void fifo_stop_acquisition();
+    std::array<uint32_t, FIFO_BUFF_SIZE>& fifo_get_data();
 
     enum Status {
         CLOSED,

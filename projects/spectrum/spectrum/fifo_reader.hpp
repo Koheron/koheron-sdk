@@ -9,6 +9,7 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <mutex>
 
 #include <drivers/wr_register.hpp>
 
@@ -27,13 +28,17 @@ class FIFOReader
     void set_address(uintptr_t fifo_addr_);
     void start_acquisition(uint32_t acq_period_);
     void stop_acquisition();
+    std::array<uint32_t, N>& get_data();
 
   private:
     uintptr_t fifo_addr;
     uint32_t acq_period; // Time between two acquisitions (us)
 
     uint32_t index; // Current index of the ring_buffer
+    uint32_t acq_cnt;
     std::array<uint32_t, N> ring_buffer;
+    std::array<uint32_t, N> results_buffer;
+    std::mutex buff_access_mtx;
 
     std::atomic<bool> acquire;
     void acquisition_thread_call();
@@ -46,6 +51,7 @@ FIFOReader<N>::FIFOReader()
 : fifo_addr(0)
 , acq_period(0)
 , index(0)
+, acq_cnt(0)
 {
     acquire.store(false);
 }
@@ -62,10 +68,13 @@ void FIFOReader<N>::acquisition_thread_call()
     while (acquire.load()) {
         uint32_t fifo_length = Klib::ReadReg32(fifo_addr + PEAK_RLR_OFF);
 
+        buff_access_mtx.lock();
         for (unsigned int i=0; i<fifo_length; i++) {
+            acq_cnt++;
             index = (index + 1) % N;
             ring_buffer[index] = Klib::ReadReg32(fifo_addr);
         }
+        buff_access_mtx.unlock();
 
         std::this_thread::sleep_for(std::chrono::microseconds(acq_period));
     }
@@ -84,6 +93,18 @@ template<size_t N>
 void FIFOReader<N>::stop_acquisition()
 {
     acquire.store(false);
+}
+
+template<size_t N>
+std::array<uint32_t, N>& FIFOReader<N>::get_data()
+{
+    buff_access_mtx.lock();
+    for (unsigned int i=0; i<N-index-1; i++)
+        results_buffer[i] = ring_buffer[index + 1 + i];
+    for (unsigned int i=N-index; i<N; i++)
+        results_buffer[i] = ring_buffer[i-N+index];
+    buff_access_mtx.unlock();
+    return results_buffer;
 }
 
 #endif // __DRIVERS_CORE_FIFO_READER_HPP__

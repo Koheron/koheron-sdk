@@ -194,3 +194,8 @@ void Spectrum::fifo_stop_acquisition()
 {
     fifo.stop_acquisition();
 }
+
+std::array<uint32_t, FIFO_BUFF_SIZE>& Spectrum::fifo_get_data()
+{
+    return fifo.get_data();
+}
