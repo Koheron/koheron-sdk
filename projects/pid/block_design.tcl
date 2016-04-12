@@ -1,7 +1,6 @@
 source boards/$board_name/base_system.tcl
 
 # Connect DAC1 to config and ADC1 to status
-connect_pins $config_name/Out[set dac1_offset] adc_dac/dac1
 connect_pins $status_name/In[set adc1_offset] adc_dac/adc1
 
 # Add PID controller
@@ -40,3 +39,39 @@ cell xilinx.com:ip:c_addsub:12.0 set_point_minus_signal {
 # Connect error_in and cmd_out to status
 connect_pins set_point_minus_signal/B $status_name/In$error_in_offset
 connect_pins pid_controller/cmd_out $status_name/In$cmd_out_offset
+
+
+# Add DDS
+set dds_name dds
+cell xilinx.com:ip:dds_compiler:6.0 $dds_name {
+ DDS_Clock_Rate 125
+ Parameter_Entry Hardware_Parameters
+ Phase_Width 32
+ Output_Width 14
+ Phase_Increment
+ Programmable
+ Has_Phase_Out false
+ Latency_Configuration Configurable
+ Latency 2
+ Noise_Shaping None
+ Output_Width 14
+ DATA_Has_TLAST Not_Required
+ S_PHASE_Has_TUSER Not_Required
+ M_DATA_Has_TUSER Not_Required
+ Output_Frequency1 0
+} {
+  aclk $adc_clk
+  s_axis_config_tdata $config_name/Out$dds_offset
+}
+
+cell xilinx.com:ip:xlslice:1.0 slice_dac {
+  DIN_FROM 13
+  DIN_TO 0
+} {
+  Din $dds_name/m_axis_data_tdata
+  Dout adc_dac/dac1
+}
+
+connect_constant ${dds_name}_valid 1 1 $dds_name/s_axis_config_tvalid
+
+

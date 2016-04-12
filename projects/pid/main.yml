@@ -19,12 +19,12 @@ addresses:
 
 config_offsets:
   - led
-  - dac1
   - coef_p
   - coef_i
   - coef_d
   - set_point
   - integral_reset
+  - dds
 
 status_offsets:
   - adc1
