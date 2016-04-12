@@ -15,7 +15,7 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
 
   cell xilinx.com:ip:c_counter_binary:12.0 address_counter {
     CE true
-    Output_Width [expr bram_addr_width + 2]
+    Output_Width [expr $bram_addr_width + 2]
     Increment_Value 4
   } {
     CLK clk
