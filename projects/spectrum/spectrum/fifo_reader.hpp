@@ -97,6 +97,9 @@ template<size_t N>
 void FIFOReader<N>::acquisition_thread_call(uint32_t acq_period)
 {
     acquire.store(true);
+    index.store(0);
+    acq_num.store(0);
+
     Klib::WriteReg32(fifo_addr + PEAK_RDFR_OFF, 0x000000A5); // Reset FIFO
 
     while (acquire.load()) {
@@ -131,8 +134,6 @@ template<size_t N>
 void FIFOReader<N>::stop_acquisition()
 {
     acquire.store(false);
-    index.store(0);
-    acq_num.store(0);
 }
 
 template<size_t N>
