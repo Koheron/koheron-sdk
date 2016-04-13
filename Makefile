@@ -223,13 +223,12 @@ $(TCP_SERVER_DIR):
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
-FORCE:
+$(DRIVERS_DIR)/%: drivers/%/*.hpp drivers/%/*.cpp
+	mkdir -p $(@D)
+	cp -f drivers/$*/$*.hpp $(@D)
+	cp -f drivers/$*/$*.cpp $(@D)
 
-$(DRIVERS_DIR)/%: FORCE
-	mkdir -p $@
-	cp $*/*.*pp $@/
-
-$(TCP_SERVER): FORCE $(TCP_SERVER_DIR) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
+$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
 	python make.py --middleware $(NAME)
 	cp `find $(DRIVERS_DIR) -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers
 	mkdir -p $(TCP_SERVER_DIR)/middleware/drivers/lib
