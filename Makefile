@@ -224,6 +224,7 @@ $(TCP_SERVER_DIR):
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
 $(DRIVERS_DIR)/%: drivers/%/*.hpp drivers/%/*.cpp
+	rm -rf $@
 	mkdir -p $@
 	cp -f $^ $@
 
