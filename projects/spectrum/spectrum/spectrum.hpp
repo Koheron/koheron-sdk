@@ -55,10 +55,9 @@ class Spectrum
     void reset_peak_fifo();
     std::vector<uint32_t>& get_peak_fifo_data(uint32_t n_pts);
 
-    /// @acq_period Sleeping time between two acquisitions (ms)
+    /// @acq_period Sleeping time between two acquisitions (us)
     void fifo_start_acquisition(uint32_t acq_period);
     void fifo_stop_acquisition();
-    uint32_t fifo_get_acq_count();
     bool fifo_get_acquire_status();
     uint32_t fifo_get_fifo_length();
 

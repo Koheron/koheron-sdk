@@ -197,11 +197,6 @@ void Spectrum::fifo_stop_acquisition()
     fifo.stop_acquisition();
 }
 
-uint32_t Spectrum::fifo_get_acq_count()
-{
-    return fifo.get_acq_count();
-}
-
 bool Spectrum::fifo_get_acquire_status()
 {
     return fifo.get_acquire_status();
