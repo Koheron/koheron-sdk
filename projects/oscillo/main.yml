@@ -46,10 +46,10 @@ parameters:
   status_size: 16
 
 drivers:
-  - gpio
-  - xadc
-  - dac
-  - laser
-  - init
-  - oscillo
-  - speed_test
+  - drivers/gpio
+  - drivers/xadc
+  - drivers/dac
+  - drivers/laser
+  - drivers/init
+  - drivers/oscillo
+  - drivers/speed_test

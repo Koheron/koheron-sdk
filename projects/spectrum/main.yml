@@ -57,9 +57,9 @@ parameters:
   status_size: 16
 
 drivers:
-  - gpio
-  - xadc
-  - dac
-  - laser
-  - init
-  - spectrum
+  - drivers/gpio
+  - drivers/xadc
+  - drivers/dac
+  - drivers/laser
+  - drivers/init
+  - drivers/spectrum

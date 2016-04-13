@@ -48,4 +48,4 @@ xdc:
   - boards/red-pitaya/config/clocks.xdc
 
 drivers:
-  - init
+  - drivers/init
