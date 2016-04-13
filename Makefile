@@ -224,9 +224,8 @@ $(TCP_SERVER_DIR):
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
 $(DRIVERS_DIR)/%: drivers/%/*.hpp drivers/%/*.cpp
-	mkdir -p $(@D)
-	cp -f drivers/$*/$*.hpp $(@D)
-	cp -f drivers/$*/$*.cpp $(@D)
+	mkdir -p $@
+	cp -f $^ $@
 
 $(TCP_SERVER): $(TCP_SERVER_DIR) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
 	python make.py --middleware $(NAME)
