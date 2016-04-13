@@ -112,8 +112,8 @@ def build_server_config(project, tcp_server_dir):
       '../devices/dev_mem.yaml',
       '../middleware/drivers/common.hpp'
     ]
-    if 'devices' in config:
-        for device in config['devices']:
+    if 'drivers' in config:
+        for device in config['drivers']:
             filename = os.path.basename(device) + ".hpp"
             dev_paths.append(os.path.join('../middleware/drivers/', filename))
     server_config = {
@@ -194,7 +194,7 @@ if __name__ == "__main__":
             f.write(config['board'])
     elif cmd == '--drivers':
         with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
-            f.write('devices/common ' + ((' '.join(config['devices'])) if ('devices' in config) else ''))
+            f.write('drivers/common ' + ((' '.join(config['drivers'])) if ('drivers' in config) else ''))
     elif cmd == '--middleware':
         tcp_server_dir = os.path.join('tmp', config['project'] + '.tcp-server')
         build_server_config(project, tcp_server_dir)

@@ -47,5 +47,5 @@ xdc:
   - boards/red-pitaya/config/clocks.xdc
   - boards/red-pitaya/config/clocks.xdc
 
-devices:
-  - devices/init
+drivers:
+  - drivers/init

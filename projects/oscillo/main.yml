@@ -45,11 +45,11 @@ parameters:
   config_size: 16
   status_size: 16
 
-devices:
-  - devices/gpio
-  - devices/xadc
-  - devices/dac
-  - devices/laser
-  - devices/init
-  - projects/oscillo/oscillo
+drivers:
+  - drivers/gpio
+  - drivers/xadc
+  - drivers/dac
+  - drivers/laser
+  - drivers/init
+  - drivers/oscillo
   - projects/oscillo/speed_test
