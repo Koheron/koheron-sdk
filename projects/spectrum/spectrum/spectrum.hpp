@@ -48,21 +48,14 @@ class Spectrum
     uint32_t get_peak_address();
     uint32_t get_peak_maximum();
 
-    void set_address_range(uint32_t address_low, uint32_t address_high);
-
-    uint32_t get_peak_fifo_occupancy();
-    uint32_t get_peak_fifo_length();
-    void reset_peak_fifo();
-    std::vector<uint32_t>& get_peak_fifo_data(uint32_t n_pts);
-
     /// @acq_period Sleeping time between two acquisitions (us)
     void fifo_start_acquisition(uint32_t acq_period);
     void fifo_stop_acquisition();
+    void set_address_range(uint32_t address_low, uint32_t address_high);
+    uint32_t get_peak_fifo_length();
+    uint32_t store_peak_fifo_data();
+    std::vector<uint32_t>& get_peak_fifo_data();
     bool fifo_get_acquire_status();
-    uint32_t fifo_get_fifo_length();
-
-    uint32_t fifo_store_data();
-    std::vector<uint32_t>& fifo_get_data();
 
     enum Status {
         CLOSED,
@@ -91,8 +84,6 @@ class Spectrum
     float *raw_data;
     std::array<float, WFM_SIZE> spectrum_data;
     std::vector<float> spectrum_decim;
-    std::vector<uint32_t> peak_fifo_data;
-
     FIFOReader<FIFO_BUFF_SIZE> fifo;
     
     // Internal functions

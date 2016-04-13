@@ -140,8 +140,9 @@ uint32_t FIFOReader<N>::store_data()
 {
     uint32_t idx = index.load();
 
-    if (!overflow()) { // Less than one turn of the ring buffer
+    if (!overflow()) {
         results_buffer.resize(idx);
+
         {
             std::lock_guard<std::mutex> guard(ring_buff_mtx);
             std::copy(ring_buffer.begin(), ring_buffer.begin() + idx, results_buffer.begin());
