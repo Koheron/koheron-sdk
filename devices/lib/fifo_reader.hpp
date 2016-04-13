@@ -74,8 +74,6 @@ class FIFOReader
     void acquisition_thread_call(uint32_t acq_period);
 };
 
-// cpp file
-
 template<size_t N>
 FIFOReader<N>::FIFOReader()
 : fifo_addr(0)

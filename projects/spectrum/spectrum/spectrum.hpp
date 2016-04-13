@@ -9,19 +9,13 @@
 #include <drivers/wr_register.hpp>
 #include <drivers/addresses.hpp>
 
-#include "fifo_reader.hpp"
+#include "lib/fifo_reader.hpp"
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
 #define ACQ_TIME_US uint32_t(2*(WFM_SIZE*1E6)/SAMPLING_RATE)
 
 #define FIFO_BUFF_SIZE 4096
-
-// http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
-#define PEAK_RDFR_OFF 0x18
-#define PEAK_RDFO_OFF 0x1C
-#define PEAK_RDFD_OFF 0x20
-#define PEAK_RLR_OFF 0x24
 
 class Spectrum
 {
