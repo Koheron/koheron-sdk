@@ -15,6 +15,7 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <mutex>
 
 #include <drivers/wr_register.hpp>
 
@@ -67,6 +68,7 @@ class FIFOReader
     std::atomic<uint32_t> fifo_length;
     std::array<uint32_t, N> ring_buffer;
     std::vector<uint32_t> results_buffer;
+    std::mutex ring_buff_mtx; // Protect share access to the ring buffer
 
     std::atomic<bool> acquire;
     void acquisition_thread_call(uint32_t acq_period);
@@ -102,9 +104,12 @@ void FIFOReader<N>::acquisition_thread_call(uint32_t acq_period)
         // The length is given in bytes so we divide by 4 to get the number of u32.
         fifo_length.store((Klib::ReadReg32(fifo_addr + PEAK_RLR_OFF) & 0x3FFFFF) >> 2);
 
-        for (uint32_t i=0; i<fifo_length.load(); i++) {
-            ring_buffer[index.load()] = Klib::ReadReg32(fifo_addr + PEAK_RDFD_OFF);
-            index.store((index.load() + 1) % N);
+        {
+            std::lock_guard<std::mutex> guard(ring_buff_mtx);
+            for (uint32_t i=0; i<fifo_length.load(); i++) {
+                ring_buffer[index.load()] = Klib::ReadReg32(fifo_addr + PEAK_RDFD_OFF);
+                index.store((index.load() + 1) % N);
+            }
         }
 
         acq_num.store(acq_num.load() + fifo_length.load());
@@ -137,14 +142,20 @@ uint32_t FIFOReader<N>::store_data()
 
     if (!overflow()) { // Less than one turn of the ring buffer
         results_buffer.resize(idx);
-        std::copy(ring_buffer.begin(), ring_buffer.begin() + idx, results_buffer.begin());
+        {
+            std::lock_guard<std::mutex> guard(ring_buff_mtx);
+            std::copy(ring_buffer.begin(), ring_buffer.begin() + idx, results_buffer.begin());
+        }
     } else {
         results_buffer.resize(N);
 
-        for (uint32_t i=0; i<N-idx; i++)
-            results_buffer[i] = ring_buffer[idx + i];
-        for (uint32_t i=N-idx-1; i<N; i++)
-            results_buffer[i] = ring_buffer[i - N + idx + 1];
+        {
+            std::lock_guard<std::mutex> guard(ring_buff_mtx);
+            for (uint32_t i=0; i<N-idx; i++)
+                results_buffer[i] = ring_buffer[idx + i];
+            for (uint32_t i=N-idx-1; i<N; i++)
+                results_buffer[i] = ring_buffer[i - N + idx + 1];
+        }
     }
 
     index.store(0);
