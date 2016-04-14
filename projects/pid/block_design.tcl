@@ -121,24 +121,15 @@ cell pavel-demin:user:axis_variable:1.0 rate_0 {
   aresetn $rst_adc_clk_name/peripheral_aresetn
 }
 
-# Create axis_variable
-cell pavel-demin:user:axis_variable:1.0 rate_1 {
-  AXIS_TDATA_WIDTH 16
-} {
-  cfg_data $config_name/Out$config::cic_rate_offset
-  aclk $adc_clk
-  aresetn $rst_adc_clk_name/peripheral_aresetn
-}
-
 # Create cic_compiler
 cell xilinx.com:ip:cic_compiler:4.0 cic_0 {
   INPUT_DATA_WIDTH.VALUE_SRC USER
   FILTER_TYPE Decimation
   NUMBER_OF_STAGES 6
   SAMPLE_RATE_CHANGES Programmable
-  MINIMUM_RATE 50
+  MINIMUM_RATE 64
   MAXIMUM_RATE 8192
-  FIXED_OR_INITIAL_RATE 625
+  FIXED_OR_INITIAL_RATE 512
   INPUT_SAMPLE_FREQUENCY 125
   CLOCK_FREQUENCY 125
   INPUT_DATA_WIDTH 24
@@ -154,74 +145,10 @@ cell xilinx.com:ip:cic_compiler:4.0 cic_0 {
   aresetn $rst_adc_clk_name/peripheral_aresetn
 }
 
-# Create cic_compiler
-cell xilinx.com:ip:cic_compiler:4.0 cic_1 {
-  INPUT_DATA_WIDTH.VALUE_SRC USER
-  FILTER_TYPE Decimation
-  NUMBER_OF_STAGES 6
-  SAMPLE_RATE_CHANGES Programmable
-  MINIMUM_RATE 50
-  MAXIMUM_RATE 8192
-  FIXED_OR_INITIAL_RATE 625
-  INPUT_SAMPLE_FREQUENCY 125
-  CLOCK_FREQUENCY 125
-  INPUT_DATA_WIDTH 24
-  QUANTIZATION Truncation
-  OUTPUT_DATA_WIDTH 24
-  USE_XTREME_DSP_SLICE false
-  HAS_DOUT_TREADY true
-  HAS_ARESETN true
-} {
-  S_AXIS_DATA bcast_0/M01_AXIS
-  S_AXIS_CONFIG rate_1/M_AXIS
-  aclk $adc_clk
-  aresetn $rst_adc_clk_name/peripheral_aresetn
-}
-
-# Create axis_combiner
-cell  xilinx.com:ip:axis_combiner:1.1 comb_0 {
-  TDATA_NUM_BYTES.VALUE_SRC USER
-  TDATA_NUM_BYTES 3
-} {
-  S00_AXIS cic_1/M_AXIS_DATA
-  S01_AXIS cic_0/M_AXIS_DATA
-  aclk $adc_clk
-  aresetn $rst_adc_clk_name/peripheral_aresetn
-}
-
-# Create axis_dwidth_converter
-cell xilinx.com:ip:axis_dwidth_converter:1.1 conv_0 {
-  S_TDATA_NUM_BYTES.VALUE_SRC USER
-  S_TDATA_NUM_BYTES 6
-  M_TDATA_NUM_BYTES 3
-} {
-  S_AXIS comb_0/M_AXIS
-  aclk $adc_clk
-  aresetn $rst_adc_clk_name/peripheral_aresetn
-}
-
-# Create floating_point
-cell xilinx.com:ip:floating_point:7.1 fp_0 {
-  OPERATION_TYPE Fixed_to_float
-  A_PRECISION_TYPE.VALUE_SRC USER
-  C_A_EXPONENT_WIDTH.VALUE_SRC USER
-  C_A_FRACTION_WIDTH.VALUE_SRC USER
-  A_PRECISION_TYPE Custom
-  C_A_EXPONENT_WIDTH 2
-  C_A_FRACTION_WIDTH 22
-  RESULT_PRECISION_TYPE Single
-  Flow_Control NonBlocking
-  MaximumLatency False
-  C_Latency 2
-} {
-  S_AXIS_A conv_0/M_AXIS
-  aclk $adc_clk
-}
-
 set intercon_idx 1
 set idx 00
 cell xilinx.com:ip:axis_clock_converter:1.1 clock_converter {} {
-  S_AXIS fp_0/M_AXIS_RESULT
+  S_AXIS cic_0/M_AXIS_DATA
   m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
   s_axis_aresetn $rst_adc_clk_name/peripheral_aresetn
   s_axis_aclk $adc_clk

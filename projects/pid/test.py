@@ -4,7 +4,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-dvm.write(CONFIG, DDS_OFF, 100000000)
+dvm.write(CONFIG, DDS_OFF, 0)
 
 # FIFO
 
@@ -43,7 +43,7 @@ class Pid(object):
 
     @command('PID')
     def get_fifo_data(self, n_pts):
-        return self.client.recv_buffer(n_pts, data_type='float32')
+        return self.client.recv_buffer(n_pts, data_type='uint32')
 
     @command('')
     def reset_peak_fifo(self):
@@ -55,15 +55,15 @@ class Pid(object):
 
 driver = Pid(client)
 
-set_cic_rate(1024)
+set_cic_rate(128)
 
-length = 16384 * 32
+length = 16384 * 16
 data = np.zeros(length)
 t_prev = 0
 idx = 0
 
 while idx < length - 8192:
-    data_rcv = driver.read_fifo()
+    data_rcv = (1.0 * driver.read_fifo() - 2**23) % 2**24 - 2**23
     n_pts = len(data_rcv)
     t_now = time.time()
     print n_pts, (t_now - t_prev)/n_pts, np.mean(data_rcv)
