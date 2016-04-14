@@ -4,7 +4,9 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-dvm.write(CONFIG, DDS_OFF, 0)
+freq = 1e6 # MHz
+fs = 125e6 # Sampling frequency
+dvm.write(CONFIG, DDS_OFF, np.floor(freq / fs * 2**32))
 
 # FIFO
 
@@ -55,12 +57,16 @@ class Pid(object):
 
 driver = Pid(client)
 
-set_cic_rate(128)
+dec_factor = 64 * 16 * 8
 
-length = 16384 * 16
+set_cic_rate(dec_factor)
+
+length = 16384
 data = np.zeros(length)
 t_prev = 0
 idx = 0
+
+driver.read_fifo()
 
 while idx < length - 8192:
     data_rcv = (1.0 * driver.read_fifo() - 2**23) % 2**24 - 2**23
@@ -71,5 +77,5 @@ while idx < length - 8192:
     t_prev = t_now
     idx += n_pts
 
-plt.plot(data)
+plt.plot(1e6 * np.arange(length) /fs * dec_factor, data)
 plt.show()

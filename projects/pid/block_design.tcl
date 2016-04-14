@@ -51,7 +51,6 @@ cell xilinx.com:ip:dds_compiler:6.0 $dds_name {
  Phase_Increment Streaming
  Has_Phase_Out false
  Noise_Shaping Taylor_Series_Corrected
- Has_TREADY true
 } {
   aclk $adc_clk
 }
@@ -65,15 +64,6 @@ cell pavel-demin:user:axis_constant:1.0 phase_inc {
   M_AXIS $dds_name/S_AXIS_PHASE
   cfg_data $config_name/Out$config::dds_offset
 }
-
-
-#cell xilinx.com:ip:xlslice:1.0 slice_dac {
-#  DIN_FROM 13
-#  DIN_TO 0
-#} {
-#  Din $dds_name/m_axis_data_tdata
-#  Dout adc_dac/dac1
-#}
 
 # Create axis_lfsr
 cell pavel-demin:user:axis_lfsr:1.0 lfsr_0 {} {
@@ -127,7 +117,7 @@ cell xilinx.com:ip:cic_compiler:4.0 cic_0 {
   FILTER_TYPE Decimation
   NUMBER_OF_STAGES 6
   SAMPLE_RATE_CHANGES Programmable
-  MINIMUM_RATE 64
+  MINIMUM_RATE 4
   MAXIMUM_RATE 8192
   FIXED_OR_INITIAL_RATE 512
   INPUT_SAMPLE_FREQUENCY 125
