@@ -7,6 +7,7 @@
 
 Pid::Pid(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)
+, fifo_data(0)
 {
     status = CLOSED;
 }
@@ -28,9 +29,6 @@ int Pid::Open()
         config_map = ids[0];
         status_map = ids[1];
         fifo_map = ids[2];
-        
-        fifo.set_address(dev_mem.GetBaseAddr(fifo_map));
-
         status = OPENED;
     }
     
@@ -39,32 +37,28 @@ int Pid::Open()
 
 // Read the peak data stream
 
-void Pid::fifo_start_acquisition(uint32_t acq_period)
-{
-    fifo.start_acquisition(acq_period);
-}
+// Read the data stream
+// http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
 
-void Pid::fifo_stop_acquisition()
+uint32_t Pid::get_fifo_occupancy()
 {
-    fifo.stop_acquisition();
-}
-
-bool Pid::fifo_get_acquire_status()
-{
-    return fifo.get_acquire_status();
-}
-
-uint32_t Pid::store_fifo_data()
-{
-    return fifo.store_data();
-}
-
-std::vector<uint32_t>& Pid::get_fifo_data()
-{
-    return fifo.get_data();
+    return Klib::ReadReg32(dev_mem.GetBaseAddr(fifo_map)+RDFO_OFF);
 }
 
 uint32_t Pid::get_fifo_length()
 {
-    return fifo.get_fifo_length();
+    return Klib::ReadReg32(dev_mem.GetBaseAddr(fifo_map)+RLR_OFF);
+}
+
+void Pid::reset_fifo()
+{
+    return Klib::WriteReg32(dev_mem.GetBaseAddr(fifo_map)+RDFR_OFF, 0x000000A5);
+}
+
+std::vector<uint32_t>& Pid::get_fifo_data(uint32_t n_pts) 
+{
+    fifo_data.resize(n_pts);
+    for(unsigned int i=0; i < fifo_data.size(); i++)
+        fifo_data[i] = Klib::ReadReg32(dev_mem.GetBaseAddr(fifo_map)+RDFD_OFF);
+    return fifo_data;
 }
