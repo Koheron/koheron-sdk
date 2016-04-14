@@ -2,7 +2,7 @@
 project: pid
 parent: default
 board: red-pitaya
-host: '192.168.1.11'
+host: '192.168.1.6'
 
 cores:
   - redp_adc_v1_0

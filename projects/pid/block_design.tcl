@@ -88,7 +88,7 @@ cell xilinx.com:ip:cmpy:6.0 mult_0 {
   ROUNDMODE Random_Rounding
   OUTPUTWIDTH 25
   LatencyConfig Manual
-  MinimumLatency 1
+  MinimumLatency 2
 } {
   s_axis_a_tdata adc_dac/adc1
   S_AXIS_B $dds_name/M_AXIS_DATA
@@ -219,10 +219,11 @@ cell xilinx.com:ip:floating_point:7.1 fp_0 {
 }
 
 set intercon_idx 1
-set idx 0
+set idx 00
 cell xilinx.com:ip:axis_clock_converter:1.1 clock_converter {} {
   S_AXIS fp_0/M_AXIS_RESULT
   m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
+  s_axis_aresetn $rst_adc_clk_name/peripheral_aresetn
   s_axis_aclk $adc_clk
   m_axis_aclk [set ps_clk$intercon_idx]
 }
