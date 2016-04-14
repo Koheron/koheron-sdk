@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from remote_control import ZynqHTTP #, ZynqSSH
 
-from koheron_tcp_client import KClient, DevMem
+from koheron_tcp_client import KClient, DevMem, command, write_buffer
 
 host = os.getenv('HOST','{{ dic['host'] }}')
 

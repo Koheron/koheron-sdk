@@ -56,3 +56,4 @@ xdc:
 
 drivers:
   - drivers/init
+  - drivers/pid
