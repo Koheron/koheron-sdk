@@ -67,13 +67,13 @@ cell pavel-demin:user:axis_constant:1.0 phase_inc {
 }
 
 
-cell xilinx.com:ip:xlslice:1.0 slice_dac {
-  DIN_FROM 13
-  DIN_TO 0
-} {
-  Din $dds_name/m_axis_data_tdata
-  Dout adc_dac/dac1
-}
+#cell xilinx.com:ip:xlslice:1.0 slice_dac {
+#  DIN_FROM 13
+#  DIN_TO 0
+#} {
+#  Din $dds_name/m_axis_data_tdata
+#  Dout adc_dac/dac1
+#}
 
 # Create axis_lfsr
 cell pavel-demin:user:axis_lfsr:1.0 lfsr_0 {} {

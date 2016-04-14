@@ -15,7 +15,7 @@ Pid::Pid(Klib::DevMem& dev_mem_)
 int Pid::Open()
 {
     if (status == CLOSED) {
-        auto ids = dev_mem.RequestMemoryMaps<6>({{
+        auto ids = dev_mem.RequestMemoryMaps<3>({{
             { CONFIG_ADDR, CONFIG_RANGE },
             { STATUS_ADDR, STATUS_RANGE },
             { FIFO_ADDR, FIFO_RANGE }
