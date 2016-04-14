@@ -48,8 +48,7 @@ cell xilinx.com:ip:dds_compiler:6.0 $dds_name {
  Parameter_Entry Hardware_Parameters
  Phase_Width 32
  Output_Width 14
- Phase_Increment
- Programmable
+ Phase_Increment Streaming
  Has_Phase_Out false
  Latency_Configuration Configurable
  Latency 2
@@ -61,8 +60,18 @@ cell xilinx.com:ip:dds_compiler:6.0 $dds_name {
  Output_Frequency1 0
 } {
   aclk $adc_clk
-  s_axis_config_tdata $config_name/Out$config::dds_offset
 }
+
+# Control phase increment
+
+cell pavel-demin:user:axis_constant:1.0 phase_inc {
+  AXIS_TDATA_WIDTH 32
+} {
+  aclk $adc_clk
+  M_AXIS $dds_name/S_AXIS_PHASE
+  cfg_data $config_name/Out$config::dds_offset
+}
+
 
 cell xilinx.com:ip:xlslice:1.0 slice_dac {
   DIN_FROM 13
@@ -71,7 +80,3 @@ cell xilinx.com:ip:xlslice:1.0 slice_dac {
   Din $dds_name/m_axis_data_tdata
   Dout adc_dac/dac1
 }
-
-connect_constant ${dds_name}_valid 1 1 $dds_name/s_axis_config_tvalid
-
-

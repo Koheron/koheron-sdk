@@ -9,6 +9,7 @@ cores:
   - redp_dac_v1_0
   - axi_cfg_register_v1_0
   - axi_sts_register_v1_0
+  - axis_constant_v1_0
 
 addresses:
   - name: config
