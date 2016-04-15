@@ -61,21 +61,29 @@ class Pid(object):
 
 driver = Pid(client)
 
-dec_factor = 1024
-set_cic_rate(dec_factor)
+n = 32768
+dec_factor_list = [64, 256, 1024,4096]
+n_avg = 1000
 
-n = 16384 * 8
+dsp = np.zeros((len(dec_factor_list), n))
+f_fft = 0 * dsp
 
-driver.reset_fifo()
+for j in range(n_avg):
+    for i, dec_factor in enumerate(dec_factor_list):
+        print i, j
+        set_cic_rate(dec_factor)
+        driver.reset_fifo()
+        time.sleep(0.001)
+        data = ((driver.read_npts_fifo(n) - 2**23) % 2**24 - 2**23)
+        dsp[i,:] += np.abs(np.fft.fft(data))**2 * dec_factor
+        f_fft[i,:] = np.fft.fftfreq(n) * fs / dec_factor
 
-data = (driver.read_npts_fifo(n) - 2**23) % 2**24 - 2**23
+dsp /= n_avg
 
-t = dec_factor * np.arange(n)/fs
-
-f_fft = np.fft.fftfreq(n) * fs / dec_factor
-
-#plt.plot(t, data)
-
-plt.semilogx(np.fft.fftshift(f_fft), np.fft.fftshift(10*np.log10(np.abs(np.fft.fft(data))**2)))
-
+plt.figure()
+plt.hold(True)
+for i, dec_factor in enumerate(dec_factor_list):
+    plt.semilogx(np.fft.fftshift(f_fft[i,:]), np.fft.fftshift(10*np.log10(dsp[i,:])), label=str(dec_factor))
+    
+plt.legend()
 plt.show()
