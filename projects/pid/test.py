@@ -4,7 +4,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-freq = 1e6 # MHz
+freq = 0 # MHz
 fs = 125e6 # Sampling frequency
 dvm.write(CONFIG, DDS_OFF, np.floor(freq / fs * 2**32))
 
@@ -17,12 +17,6 @@ RLR_OFF  = int('0x24',0)
 
 def set_cic_rate(rate):
     dvm.write(CONFIG, CIC_RATE_OFF, rate)
-
-def set_cic_rate(rate):
-    dvm.write(CONFIG, CIC_RATE_OFF, rate)
-
-def get_fifo_length():
-    return (dvm.read(FIFO, RLR_OFF) - 2**31) / 4
 
 class Pid(object):
 
@@ -47,35 +41,41 @@ class Pid(object):
     def get_fifo_data(self, n_pts):
         return self.client.recv_buffer(n_pts, data_type='uint32')
 
-    @command('')
-    def reset_peak_fifo(self):
+    @command('PID')
+    def reset_fifo(self):
         pass
  
-    def read_fifo(self):
+    def read_fifo(self, npts_max=2**24):
         fifo_length = self.get_fifo_length()
-        return self.get_fifo_data(fifo_length)        
+        return fifo_length, self.get_fifo_data(min(fifo_length, npts_max))
+
+    def read_npts_fifo(self, npts):
+        data = np.zeros(npts)
+        idx = 0
+        while idx < npts:
+            length, data_rcv = self.read_fifo(npts_max=npts-idx)
+            data[idx:idx+length] = data_rcv
+            idx += length
+        return data
+
 
 driver = Pid(client)
 
-dec_factor = 64 * 16 * 8
-
+dec_factor = 1024
 set_cic_rate(dec_factor)
 
-length = 16384
-data = np.zeros(length)
-t_prev = 0
-idx = 0
+n = 16384 * 8
 
-driver.read_fifo()
+driver.reset_fifo()
 
-while idx < length - 8192:
-    data_rcv = (1.0 * driver.read_fifo() - 2**23) % 2**24 - 2**23
-    n_pts = len(data_rcv)
-    t_now = time.time()
-    print n_pts, (t_now - t_prev)/n_pts, np.mean(data_rcv)
-    data[idx:idx+n_pts] = data_rcv
-    t_prev = t_now
-    idx += n_pts
+data = (driver.read_npts_fifo(n) - 2**23) % 2**24 - 2**23
 
-plt.plot(1e6 * np.arange(length) /fs * dec_factor, data)
+t = dec_factor * np.arange(n)/fs
+
+f_fft = np.fft.fftfreq(n) * fs / dec_factor
+
+#plt.plot(t, data)
+
+plt.semilogx(np.fft.fftshift(f_fft), np.fft.fftshift(10*np.log10(np.abs(np.fft.fft(data))**2)))
+
 plt.show()
