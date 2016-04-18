@@ -1,11 +1,10 @@
 /// Xilinx AXI FIFO reader
 ///
-/// Starts a thread for continous reading of
+/// Starts a thread for continuous reading of
 /// the AXI FIFO content. Read results are stored 
 /// into a ring buffer of size N.
 ///
 /// (c) Koheron
-
 
 #ifndef __DRIVERS_CORE_FIFO_READER_HPP__
 #define __DRIVERS_CORE_FIFO_READER_HPP__
@@ -125,6 +124,8 @@ void FIFOReader<N>::acquisition_thread_call(uint32_t acq_period)
                     ring_buffer[index.load()] = Klib::ReadReg32(fifo_addr.load() + RDFD_OFF);
                     index.store((index.load() + 1) % N);
                 }
+
+                printf("%u\n", ring_buffer[index.load() - 1]);
             }
 
             acq_num.store(acq_num.load() + fifo_length.load());

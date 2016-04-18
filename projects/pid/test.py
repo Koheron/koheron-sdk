@@ -6,16 +6,16 @@ dvm.write(CONFIG, DDS_OFF, 100000000)
 
 # FIFO
 
-RDFR_OFF = int('0x18',0)
-RDFO_OFF = int('0x1C',0)
-RDFD_OFF = int('0x20',0)
-RLR_OFF  = int('0x24',0)
+# RDFR_OFF = int('0x18',0)
+# RDFO_OFF = int('0x1C',0)
+# RDFD_OFF = int('0x20',0)
+# RLR_OFF  = int('0x24',0)
 
 def set_cic_rate(rate):
     dvm.write(CONFIG, CIC_RATE_OFF, rate)
 
-def get_fifo_length():
-    return (dvm.read(FIFO, RLR_OFF) - 2**31) / 4
+# def get_fifo_length():
+#     return (dvm.read(FIFO, RLR_OFF) - 2**31) / 4
 
 class Pid(object):
 
@@ -32,9 +32,22 @@ class Pid(object):
     def get_fifo_length(self):
         return self.client.recv_int(4)
 
-    @command('PID')
-    def store_fifo_data(self):
-        return self.client.recv_int(4)
+    def get_data(self):
+        @command('PID')
+        def store_fifo_data(self):
+            return self.client.recv_int(4)
+
+        self.fifo_stream_length = store_fifo_data(self)
+        print "stream_length = " + str(self.fifo_stream_length)
+
+        if self.fifo_stream_length > 0:
+            @command('PID')
+            def get_fifo_data(self):
+                return self.client.recv_buffer(self.fifo_stream_length, data_type='uint32')
+
+            return get_fifo_data(self)
+        else:
+            return []
 
     @command('PID')
     def fifo_get_acquire_status(self):
@@ -59,6 +72,7 @@ print driver.fifo_get_acquire_status()
 set_cic_rate(625)
 
 for i in range(100):
-    print driver.get_fifo_length()#, get_fifo_length()
+    print driver.get_fifo_length()
+    print driver.get_data()
 
 driver.fifo_stop_acquisition()
