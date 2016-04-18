@@ -1,21 +1,15 @@
 from config import *
 
 import time
+import numpy as np
+import matplotlib.pyplot as plt
 
-dvm.write(CONFIG, DDS_OFF, 100000000)
-
-# FIFO
-
-# RDFR_OFF = int('0x18',0)
-# RDFO_OFF = int('0x1C',0)
-# RDFD_OFF = int('0x20',0)
-# RLR_OFF  = int('0x24',0)
+freq = 10 # MHz
+fs = 125e6 # Sampling frequency
+dvm.write(CONFIG, DDS_OFF, np.floor(freq / fs * 2**32))
 
 def set_cic_rate(rate):
     dvm.write(CONFIG, CIC_RATE_OFF, rate)
-
-# def get_fifo_length():
-#     return (dvm.read(FIFO, RLR_OFF) - 2**31) / 4
 
 class Pid(object):
 
@@ -30,7 +24,7 @@ class Pid(object):
 
     @command('PID')
     def get_fifo_length(self):
-        return self.client.recv_int(4)
+        return (self.client.recv_int(4) - 2**31)/4
 
     def get_data(self):
         @command('PID')
@@ -48,14 +42,6 @@ class Pid(object):
             return get_fifo_data(self)
         else:
             return []
-
-    @command('PID')
-    def fifo_get_acquire_status(self):
-        return self.client.recv_int(4)
-
-    @command('PID')
-    def fifo_start_acquisition(self, acq_period):
-        pass
 
     @command('PID')
     def fifo_stop_acquisition(self):

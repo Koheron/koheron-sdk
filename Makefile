@@ -111,7 +111,7 @@ $(TMP)/cores/%: cores/%/core_config.tcl cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
 
-$(TMP)/%.xpr: $(CONFIG_TCL) $(XDC_DIR) projects/% $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/%.xpr: $(CONFIG_TCL) $(XDC_DIR) projects/%/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)
 
