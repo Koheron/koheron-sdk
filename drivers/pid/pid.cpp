@@ -14,11 +14,11 @@ Pid::Pid(Klib::DevMem& dev_mem_)
 int Pid::Open()
 {
     if (status == CLOSED) {
-        auto ids = dev_mem.RequestMemoryMaps<6>({{
-            { CONFIG_ADDR, CONFIG_RANGE },
-            { STATUS_ADDR, STATUS_RANGE },
-            { FIFO_ADDR, FIFO_RANGE }
-        }});
+        auto ids = dev_mem.RequestMemoryMaps(mem_regions(
+            Klib::MemoryRegion({ CONFIG_ADDR, CONFIG_RANGE }),
+            Klib::MemoryRegion({ STATUS_ADDR, STATUS_RANGE }),
+            Klib::MemoryRegion({ FIFO_ADDR  , FIFO_RANGE   })
+        ));
 
         if (dev_mem.CheckMapIDs(ids) < 0) {
             status = FAILED;

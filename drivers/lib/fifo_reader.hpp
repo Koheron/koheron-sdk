@@ -6,6 +6,7 @@
 ///
 /// (c) Koheron
 
+
 #ifndef __DRIVERS_CORE_FIFO_READER_HPP__
 #define __DRIVERS_CORE_FIFO_READER_HPP__
 
@@ -105,11 +106,13 @@ void FIFOReader<N>::acquisition_thread_call(uint32_t acq_period)
         // The length is given in bytes so we divide by 4 to get the number of u32.
         fifo_length.store((Klib::ReadReg32(fifo_addr + PEAK_RLR_OFF) & 0x3FFFFF) >> 2);
 
-        {
-            std::lock_guard<std::mutex> guard(ring_buff_mtx);
-            for (uint32_t i=0; i<fifo_length.load(); i++) {
-                ring_buffer[index.load()] = Klib::ReadReg32(fifo_addr + PEAK_RDFD_OFF);
-                index.store((index.load() + 1) % N);
+        if (fifo_length.load() > 0) {
+            {
+                std::lock_guard<std::mutex> guard(ring_buff_mtx);
+                for (uint32_t i=0; i<fifo_length.load(); i++) {
+                    ring_buffer[index.load()] = Klib::ReadReg32(fifo_addr + PEAK_RDFD_OFF);
+                    index.store((index.load() + 1) % N);
+                }
             }
         }
 
