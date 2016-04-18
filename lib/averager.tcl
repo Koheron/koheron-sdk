@@ -38,7 +38,7 @@ proc add_averager_module {module_name bram_addr_width args} {
   set fifo_rd_latency 1 
 
   # Create FIFO
-  cell xilinx.com:ip:fifo_generator:13.0 fifo {
+  cell xilinx.com:ip:fifo_generator:13.1 fifo {
     Input_Data_Width 32
     Input_Depth      [expr 2**$bram_addr_width]
     Data_Count       true
