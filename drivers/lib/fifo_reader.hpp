@@ -65,18 +65,18 @@ class FIFOReader
     bool overflow() {return acq_num.load() > N;}
 
   private:
-    std::atomic<uintptr_t> fifo_addr;
+    std::atomic<uintptr_t>  fifo_addr;
+    std::atomic<uint32_t>   num_thread;
+    std::atomic<uint32_t>   index; // Current index of the ring_buffer
+    std::atomic<uint32_t>   acq_num; // Number of points acquire since the last call to get_data()
+    std::atomic<uint32_t>   fifo_length;
+    std::atomic<bool>       is_acquiring;
 
-    std::atomic<uint32_t> num_thread;
+    std::mutex              ring_buff_mtx; // Protect share access to the ring buffer
 
-    std::atomic<uint32_t> index; // Current index of the ring_buffer
-    std::atomic<uint32_t> acq_num; // Number of points acquire since the last call to get_data()
-    std::atomic<uint32_t> fifo_length;
     std::array<uint32_t, N> ring_buffer;
-    std::vector<uint32_t> results_buffer;
-    std::mutex ring_buff_mtx; // Protect share access to the ring buffer
+    std::vector<uint32_t>   results_buffer;
 
-    std::atomic<bool> is_acquiring;
     void acquisition_thread_call(uint32_t acq_period);
 };
 
