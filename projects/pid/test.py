@@ -4,7 +4,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-freq = 0 # MHz
+freq = 10 # MHz
 fs = 125e6 # Sampling frequency
 dvm.write(CONFIG, DDS_OFF, np.floor(freq / fs * 2**32))
 
@@ -62,8 +62,8 @@ class Pid(object):
 driver = Pid(client)
 
 n = 32768
-dec_factor_list = [64, 256, 1024,4096]
-n_avg = 1000
+dec_factor_list = [64, 256, 1024, 4096]
+n_avg = 100
 
 dsp = np.zeros((len(dec_factor_list), n))
 f_fft = 0 * dsp
@@ -84,6 +84,8 @@ plt.figure()
 plt.hold(True)
 for i, dec_factor in enumerate(dec_factor_list):
     plt.semilogx(np.fft.fftshift(f_fft[i,:]), np.fft.fftshift(10*np.log10(dsp[i,:])), label=str(dec_factor))
-    
+
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Power spectral density (dB)')
 plt.legend()
 plt.show()
