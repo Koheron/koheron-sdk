@@ -53,15 +53,7 @@ driver = Pid(client)
 acq_period = 1000 # microseconds
 
 print driver.fifo_get_acquire_status()
-
-driver.fifo_stop_acquisition()
-time.sleep(0.1)
-
-print driver.fifo_get_acquire_status()
-
 driver.fifo_start_acquisition(acq_period)
-time.sleep(0.1)
-
 print driver.fifo_get_acquire_status()
 
 set_cic_rate(625)
@@ -69,3 +61,4 @@ set_cic_rate(625)
 for i in range(100):
     print driver.get_fifo_length()#, get_fifo_length()
 
+driver.fifo_stop_acquisition()

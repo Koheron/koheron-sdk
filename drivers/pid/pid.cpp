@@ -27,7 +27,7 @@ int Pid::Open()
 
         config_map = ids[0];
         status_map = ids[1];
-        fifo_map = ids[2];
+        fifo_map   = ids[2];
         
         fifo.set_address(dev_mem.GetBaseAddr(fifo_map));
 
