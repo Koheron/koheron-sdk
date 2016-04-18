@@ -97,10 +97,6 @@ template<size_t N>
 void FIFOReader<N>::acquisition_thread_call(uint32_t acq_period)
 {
     num_thread.store(num_thread.load() + 1);
-    printf("num_thread = %u\n", num_thread.load());
-
-    // uint32_t occupancy;
-
     is_acquiring.store(true);
     index.store(0);
     acq_num.store(0);
@@ -109,27 +105,19 @@ void FIFOReader<N>::acquisition_thread_call(uint32_t acq_period)
         if (fifo_addr.load() == 0x0)
             goto wait;
 
-        // occupancy = Klib::ReadReg32(fifo_addr.load() + RDFO_OFF);
-        // // printf("occupancy = %u\n", occupancy);
+        // The length is stored in the last 22 bits of the RLR register.
+        // The length is given in bytes so we divide by 4 to get the number of u32.
+        fifo_length.store((Klib::ReadReg32(fifo_addr.load() + RLR_OFF) & 0x3FFFFF) >> 2);
 
-        // if (occupancy > 0) {
-            // The length is stored in the last 22 bits of the RLR register.
-            // The length is given in bytes so we divide by 4 to get the number of u32.
-            fifo_length.store((Klib::ReadReg32(fifo_addr.load() + RLR_OFF) & 0x3FFFFF) >> 2);
-            // printf("fifo length = %u\n", fifo_length.load());
-
-            if (fifo_length.load() > 0) {
-                std::lock_guard<std::mutex> guard(ring_buff_mtx);
-                for (uint32_t i=0; i<fifo_length.load(); i++) {
-                    ring_buffer[index.load()] = Klib::ReadReg32(fifo_addr.load() + RDFD_OFF);
-                    index.store((index.load() + 1) % N);
-                }
-
-                printf("%u\n", ring_buffer[index.load() - 1]);
+        if (fifo_length.load() > 0) {
+            std::lock_guard<std::mutex> guard(ring_buff_mtx);
+            for (uint32_t i=0; i<fifo_length.load(); i++) {
+                ring_buffer[index.load()] = Klib::ReadReg32(fifo_addr.load() + RDFD_OFF);
+                index.store((index.load() + 1) % N);
             }
+        }
 
-            acq_num.store(acq_num.load() + fifo_length.load());
-        // }
+        acq_num.store(acq_num.load() + fifo_length.load());
 
 wait:
         // TODO It would be nicer to catch the interrupt
@@ -138,7 +126,6 @@ wait:
     }
 
     num_thread.store(num_thread.load() - 1);
-    printf("Exiting acquisition worker\n");
 }
 
 template<size_t N>
