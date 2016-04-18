@@ -47,10 +47,11 @@ proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "aut
     dout axi_sts_register_0/sts_data
   }
 
+  for {set i 0} {$i < $num_ports} {incr i} {
+    set_property -dict [list CONFIG.IN${i}_WIDTH 32] [get_bd_cells concat_0]
+  }
+
   for {set i $n_hidden_ports} {$i < $num_ports} {incr i} {
-    set_property -dict \
-     [list CONFIG.IN${i}_WIDTH 32] \
-     [get_bd_cells concat_0]
     connect_pins concat_0/In$i In$i
   }
 
