@@ -24,7 +24,7 @@ class Pid
     void fifo_start_acquisition(uint32_t acq_period);
     void fifo_stop_acquisition();
     uint32_t get_fifo_length();
-    uint32_t store_fifo_data();
+    uint32_t get_fifo_buffer_length();
     std::vector<uint32_t>& get_fifo_data();
     bool fifo_get_acquire_status();
 

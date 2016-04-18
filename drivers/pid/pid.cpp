@@ -53,9 +53,9 @@ bool Pid::fifo_get_acquire_status()
     return fifo.get_acquire_status();
 }
 
-uint32_t Pid::store_fifo_data()
+uint32_t Pid::get_fifo_buffer_length()
 {
-    return fifo.store_data();
+    return fifo.get_buffer_length();
 }
 
 std::vector<uint32_t>& Pid::get_fifo_data()

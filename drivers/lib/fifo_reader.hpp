@@ -55,7 +55,7 @@ class FIFOReader
 
     // Store the current of the ring buffer into the data buffer.
     // Return the size of the data buffer.
-    uint32_t store_data();
+    uint32_t get_buffer_length();
 
     // Return a reference to the data buffer.
     // You must call store_data first to update the buffer.
@@ -152,7 +152,7 @@ void FIFOReader<N>::stop_acquisition()
 }
 
 template<size_t N>
-uint32_t FIFOReader<N>::store_data()
+uint32_t FIFOReader<N>::get_buffer_length()
 {
     uint32_t idx = index.load();
 

@@ -26,10 +26,10 @@ class Pid(object):
 
     def get_data(self):
         @command('PID')
-        def store_fifo_data(self):
+        def get_fifo_buffer_length(self):
             return self.client.recv_int(4)
 
-        self.fifo_stream_length = store_fifo_data(self)
+        self.fifo_stream_length = get_fifo_buffer_length(self)
 
         if self.fifo_stream_length > 0:
             # print "stream_length = " + str(self.fifo_stream_length)
@@ -47,12 +47,10 @@ class Pid(object):
         return self.client.recv_int(4)
 
     @command('PID')
-    def fifo_start_acquisition(self, acq_period):
-        pass
+    def fifo_start_acquisition(self, acq_period): pass
 
     @command('PID')
-    def fifo_stop_acquisition(self):
-        pass
+    def fifo_stop_acquisition(self): pass
 
     def read_npts_fifo(self, npts):
         if len(self.data_remains) >= npts:
@@ -102,7 +100,6 @@ if __name__ == "__main__":
             set_cic_rate(dec_factor)
             time.sleep(0.001)
             data = ((driver.read_npts_fifo(n) - 2**23) % 2**24 - 2**23)
-            # print len(data)
             psd[i,:] += np.abs(np.fft.fft(data))**2 * dec_factor
             f_fft[i,:] = np.fft.fftfreq(n) * fs / dec_factor
 
