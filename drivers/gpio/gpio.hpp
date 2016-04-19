@@ -32,6 +32,12 @@ class Gpio
     Gpio(Klib::DevMem& dev_mem_);
 
     int Open();
+    
+
+    int set_data(uint32_t channel, uint32_t value);
+    uint32_t get_data(uint32_t channel);
+
+    // Bitwise operations
     int set_bit(uint32_t index, uint32_t channel);
     int clear_bit(uint32_t index, uint32_t channel);
     int toggle_bit(uint32_t index, uint32_t channel);

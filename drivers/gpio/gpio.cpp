@@ -29,18 +29,25 @@ int Gpio::Open()
 
 int get_value_offset(uint32_t channel)
 {
-    if (channel == 0 || channel > 2)
-        return -1;
-
     return (channel == 1 ? CHAN1_VALUE_OFF : CHAN2_VALUE_OFF);
 }
 
 int get_dir_offset(uint32_t channel)
 {
-    if (channel == 0 || channel > 2)
-        return -1;
-
     return (channel == 1 ? CHAN1_DIR_OFF : CHAN2_DIR_OFF);
+}
+
+int Gpio::set_data(uint32_t channel, uint32_t value)
+{
+    int offset = get_value_offset(channel);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(dev_num) + offset, value);
+    return 0;
+}
+
+uint32_t Gpio::get_data(uint32_t channel)
+{
+    int offset = get_value_offset(channel);
+    return Klib::ReadReg32(dev_mem.GetBaseAddr(dev_num) + offset);
 }
 
 
@@ -48,7 +55,7 @@ int Gpio::set_bit(uint32_t index, uint32_t channel)
 {
     int offset = get_value_offset(channel);
 
-    if (offset < 0 || index > MAX_BIT_IDX)
+    if (index > MAX_BIT_IDX)
         return -1;
 
     Klib::SetBit(dev_mem.GetBaseAddr(dev_num) + offset, index);
@@ -59,7 +66,7 @@ int Gpio::clear_bit(uint32_t index, uint32_t channel)
 {
     int offset = get_value_offset(channel);
 
-    if (offset < 0 || index > MAX_BIT_IDX)
+    if (index > MAX_BIT_IDX)
         return -1;
 
     Klib::ClearBit(dev_mem.GetBaseAddr(dev_num) + offset, index);
@@ -70,7 +77,7 @@ int Gpio::toggle_bit(uint32_t index, uint32_t channel)
 {
     int offset = get_value_offset(channel);
 
-    if(offset < 0 || index > MAX_BIT_IDX)
+    if(index > MAX_BIT_IDX)
         return -1;
 
     Klib::ToggleBit(dev_mem.GetBaseAddr(dev_num) + offset, index);
@@ -81,7 +88,7 @@ int Gpio::set_as_input(uint32_t index, uint32_t channel)
 {
     int offset = get_dir_offset(channel);
 
-    if(offset < 0 || index > MAX_BIT_IDX)
+    if(index > MAX_BIT_IDX)
         return -1;
 
     Klib::SetBit(dev_mem.GetBaseAddr(dev_num) + offset, index);
@@ -92,7 +99,7 @@ int Gpio::set_as_output(uint32_t index, uint32_t channel)
 {
     int offset = get_dir_offset(channel);
 
-    if(offset < 0 || index > MAX_BIT_IDX)
+    if(index > MAX_BIT_IDX)
         return -1;
 
     Klib::ClearBit(dev_mem.GetBaseAddr(dev_num) + offset, index);

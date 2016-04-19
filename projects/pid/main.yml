@@ -2,12 +2,16 @@
 project: pid
 parent: default
 board: red-pitaya
+host: '192.168.1.6'
 
 cores:
   - redp_adc_v1_0
   - redp_dac_v1_0
   - axi_cfg_register_v1_0
   - axi_sts_register_v1_0
+  - axis_constant_v1_0
+  - axis_lfsr_v1_0
+  - axis_variable_v1_0
 
 addresses:
   - name: config
@@ -16,15 +20,19 @@ addresses:
   - name: status
     offset: '0x50000000'
     range: 4K
+  - name: fifo
+    offset: '0x80000000'
+    range: 64K 
 
 config_offsets:
   - led
-  - dac1
   - coef_p
   - coef_i
   - coef_d
   - set_point
   - integral_reset
+  - dds
+  - cic_rate
 
 status_offsets:
   - adc1
@@ -45,3 +53,7 @@ xdc:
   - boards/red-pitaya/config/ports.xdc
   - boards/red-pitaya/config/clocks.xdc
   - boards/red-pitaya/config/clocks.xdc
+
+drivers:
+  - drivers/init
+  - drivers/pid

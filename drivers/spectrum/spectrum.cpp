@@ -8,14 +8,13 @@
 Spectrum::Spectrum(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)
 , spectrum_decim(0)
-, peak_fifo_data(0)
 {
     status = CLOSED;
 }
 
 int Spectrum::Open()
 {
-    if(status == CLOSED) {
+    if (status == CLOSED) {
         auto ids = dev_mem.RequestMemoryMaps<6>({{
             { CONFIG_ADDR      , CONFIG_RANGE      },
             { STATUS_ADDR      , STATUS_RANGE      },
@@ -38,6 +37,7 @@ int Spectrum::Open()
         peak_fifo_map   = ids[5];
         
         raw_data = reinterpret_cast<float*>(dev_mem.GetBaseAddr(spectrum_map));
+        fifo.set_address(dev_mem.GetBaseAddr(peak_fifo_map));
         
         set_averaging(true);
         set_address_range(0, WFM_SIZE);
@@ -50,8 +50,7 @@ int Spectrum::Open()
 void Spectrum::set_scale_sch(uint32_t scale_sch)
 {
     // LSB at 1 for forward FFT
-    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + CFG_FFT_OFF, 
-                     1 + 2 * scale_sch);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + CFG_FFT_OFF, 1 + 2 * scale_sch);
 }
 
 void Spectrum::set_offset(uint32_t offset_real, uint32_t offset_imag)
@@ -68,7 +67,7 @@ void Spectrum::set_demod_buffer(const uint32_t *data, uint32_t len)
 void Spectrum::set_noise_floor_buffer(const uint32_t *data, uint32_t len)
 {
     for (uint32_t i=0; i<len; i++)
-        Klib::WriteReg32(dev_mem.GetBaseAddr(noise_floor_map)+sizeof(uint32_t)*i, data[i]);
+        Klib::WriteReg32(dev_mem.GetBaseAddr(noise_floor_map) + sizeof(uint32_t) * i, data[i]);
 }
 
 void Spectrum::_wait_for_acquisition()
@@ -80,7 +79,7 @@ void Spectrum::_wait_for_acquisition()
 
 std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
 {
-    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);    
+    Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);    
     _wait_for_acquisition();
     if (avg_on) {
         float num_avg = float(get_num_average());
@@ -90,7 +89,7 @@ std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
         for(unsigned int i=0; i<WFM_SIZE; i++)
             spectrum_data[i] = raw_data[i];
     }
-    Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
     return spectrum_data;
 }
 
@@ -102,7 +101,7 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
         return spectrum_decim;
     }
 
-    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
     uint32_t n_pts = (index_high - index_low)/decim_factor;
     spectrum_decim.resize(n_pts);
     _wait_for_acquisition();
@@ -117,7 +116,7 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
             spectrum_decim[i] = raw_data[index_low + decim_factor * i];
     }
 
-    Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
     return spectrum_decim;
 }
 
@@ -126,15 +125,15 @@ void Spectrum::set_averaging(bool avg_status)
     avg_on = avg_status;
     
     if(avg_on) {
-        Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+AVG_OFF_OFF, 0);
+        Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + AVG_OFF_OFF, 0);
     } else {
-        Klib::SetBit(dev_mem.GetBaseAddr(config_map)+AVG_OFF_OFF, 0);
+        Klib::SetBit(dev_mem.GetBaseAddr(config_map) + AVG_OFF_OFF, 0);
     }
 }
 
 uint32_t Spectrum::get_num_average()
 {
-    return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG_OFF);
+    return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map) + N_AVG_OFF);
 }
 
 /////////////////////
@@ -143,12 +142,12 @@ uint32_t Spectrum::get_num_average()
 
 uint32_t Spectrum::get_peak_address()
 {
-    return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+PEAK_ADDRESS_OFF);
+    return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map) + PEAK_ADDRESS_OFF);
 }
 
 uint32_t Spectrum::get_peak_maximum()
 {
-    return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+PEAK_MAXIMUM_OFF);
+    return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map) + PEAK_MAXIMUM_OFF);
 }
 
 // Peak detection happens only between address_low and address_high
@@ -159,28 +158,34 @@ void Spectrum::set_address_range(uint32_t address_low, uint32_t address_high)
     Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PEAK_ADDRESS_RESET_OFF, (address_low+WFM_SIZE-1) % WFM_SIZE);
 }
 
-// Read the data stream
-// http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
+// Read the peak data stream
 
-uint32_t Spectrum::get_peak_fifo_occupancy()
+void Spectrum::fifo_start_acquisition(uint32_t acq_period)
 {
-    return Klib::ReadReg32(dev_mem.GetBaseAddr(peak_fifo_map)+PEAK_RDFO_OFF);
+    fifo.start_acquisition(acq_period);
+}
+
+void Spectrum::fifo_stop_acquisition()
+{
+    fifo.stop_acquisition();
+}
+
+bool Spectrum::fifo_get_acquire_status()
+{
+    return fifo.get_acquire_status();
+}
+
+uint32_t Spectrum::store_peak_fifo_data()
+{
+    return fifo.get_buffer_length();
+}
+
+std::vector<uint32_t>& Spectrum::get_peak_fifo_data()
+{
+    return fifo.get_data();
 }
 
 uint32_t Spectrum::get_peak_fifo_length()
 {
-    return Klib::ReadReg32(dev_mem.GetBaseAddr(peak_fifo_map)+PEAK_RLR_OFF);
-}
-
-void Spectrum::reset_peak_fifo()
-{
-    return Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PEAK_RDFR_OFF, 0x000000A5);
-}
-
-std::vector<uint32_t>& Spectrum::get_peak_fifo_data(uint32_t n_pts) 
-{
-    peak_fifo_data.resize(n_pts);
-    for(unsigned int i=0; i < peak_fifo_data.size(); i++)
-        peak_fifo_data[i] = Klib::ReadReg32(dev_mem.GetBaseAddr(peak_fifo_map)+PEAK_RDFD_OFF);
-    return peak_fifo_data;
+    return fifo.get_fifo_length();
 }

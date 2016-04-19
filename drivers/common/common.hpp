@@ -10,6 +10,7 @@
 #include <drivers/dev_mem.hpp>
 #include <drivers/wr_register.hpp>
 #include <drivers/addresses.hpp>
+#include <drivers/init.hpp>
 
 class Common
 {
@@ -24,6 +25,12 @@ class Common
     void set_led(uint32_t value);
     uint32_t get_led();
     void ip_on_leds();
+
+    void init() {
+        ip_on_leds();
+        Init init(dev_mem);
+        init.load_settings();
+    };
 
     enum Status {
         CLOSED,

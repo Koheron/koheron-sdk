@@ -12,8 +12,11 @@ TMP = tmp
 
 # Project specific variables
 NAME = blink
-BOARD:=$(shell (python make.py --board $(NAME)) && (cat $(TMP)/$(NAME).board))
+
+BOARD:=$(shell python make.py --board $(NAME) && cat $(TMP)/$(NAME).board)
 CORES:=$(shell python make.py --cores $(NAME) && cat $(TMP)/$(NAME).cores)
+DRIVERS:=$(shell python make.py --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
+
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
 PROC = ps7_cortexa9_0
@@ -62,7 +65,10 @@ SHA = $(shell cat $(SHA_FILE))
 
 # Zip
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
+DRIVERS_DIR = $(TMP)/$(NAME)/drivers
+TCP_SERVER = $(TCP_SERVER_DIR)/tmp/server/kserverd
 TCP_SERVER_SHA = master
+
 PYTHON_DIR = $(TMP)/$(NAME).python
 PYTHON_ZIP = $(PYTHON_DIR)/python.zip
 
@@ -71,6 +77,8 @@ S3_URL = http://zynq-sdk.s3-website-eu-west-1.amazonaws.com
 APP_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
 APP_URL = $(S3_URL)/app-$(APP_SHA).zip
 APP_ZIP = $(TMP)/app.zip
+
+XDC_DIR = $(TMP)/$(NAME).xdc
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
@@ -96,14 +104,14 @@ $(SHA_FILE): $(VERSION_FILE)
 $(CONFIG_TCL): $(MAIN_YML) $(SHA_FILE) templates/config.tcl
 	python make.py --config_tcl $(NAME)
 
-xdc: $(MAIN_YML)
+$(XDC_DIR): $(MAIN_YML)
 	python make.py --xdc $(NAME)
 
 $(TMP)/cores/%: cores/%/core_config.tcl cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
 
-$(TMP)/%.xpr: $(CONFIG_TCL) xdc projects/% $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/%.xpr: $(CONFIG_TCL) $(XDC_DIR) projects/%/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)
 
@@ -173,7 +181,7 @@ $(DTREE_DIR): $(DTREE_TAR)
 $(TMP)/%.tree/system.dts: $(TMP)/%.hwdef $(DTREE_DIR)
 	mkdir -p $(@D)
 	$(HSI) -source scripts/devicetree.tcl -tclargs $* $(PROC) $(DTREE_DIR)
-	patch $@ $(PATCHES)/devicetree.patch
+	#patch $@ $(PATCHES)/devicetree.patch
 
 ###############################################################################
 # Linux
@@ -215,8 +223,16 @@ $(TCP_SERVER_DIR):
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
-tcp-server: $(TCP_SERVER_DIR)
+$(DRIVERS_DIR)/%: %/*.hpp %/*.cpp
+	rm -rf $@
+	mkdir -p $@
+	cp -f $^ $@
+
+$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
 	python make.py --middleware $(NAME)
+	cp `find $(DRIVERS_DIR) -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers
+	mkdir -p $(TCP_SERVER_DIR)/middleware/drivers/lib
+	cp `find drivers/lib -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers/lib
 	cd $(TCP_SERVER_DIR) && make CONFIG=config.yaml
 
 tcp-server_cli: $(TCP_SERVER_DIR)
@@ -233,8 +249,8 @@ $(PYTHON_DIR): $(MAIN_YML)
 	mkdir -p $@
 	python make.py --python $(NAME)
 
-zip:  $(CONFIG_PY) tcp-server $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
-	zip --junk-paths $(TMP)/$(NAME)-$(VERSION).zip $(TMP)/$(NAME).bit $(TCP_SERVER_DIR)/tmp/server/kserverd
+zip:  $(CONFIG_PY) $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
+	zip --junk-paths $(TMP)/$(NAME)-$(VERSION).zip $(TMP)/$(NAME).bit $(TCP_SERVER)
 	mv $(PYTHON_DIR) $(TMP)/py_drivers
 	cd $(TMP) && zip $(NAME)-$(VERSION).zip py_drivers/*.py
 	rm -r $(TMP)/py_drivers

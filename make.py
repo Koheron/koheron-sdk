@@ -105,23 +105,6 @@ def get_renderer():
 ###################
 # Build directories
 ###################
-
-def build_middleware(project, tcp_server_dir):
-    config = load_config(project)
-    drivers_path = os.path.join(tcp_server_dir,'middleware','drivers')
-
-    # Include Common
-    shutil.copy('devices/common/common.hpp', drivers_path)
-    shutil.copy('devices/common/common.cpp', drivers_path)
-
-    if 'devices' in config:
-        for device in config['devices']:
-            hpp_filename = os.path.join(device, os.path.basename(device) + '.hpp')
-            cpp_filename = os.path.join(device, os.path.basename(device) + '.cpp')
-            if not (os.path.exists(hpp_filename) or os.path.exists(cpp_filename)):
-                raise ValueError('Missing source file for device ' + device)
-            shutil.copy(hpp_filename, drivers_path)
-            shutil.copy(cpp_filename, drivers_path)
             
 def build_server_config(project, tcp_server_dir):
     config = get_config(project)
@@ -129,8 +112,8 @@ def build_server_config(project, tcp_server_dir):
       '../devices/dev_mem.yaml',
       '../middleware/drivers/common.hpp'
     ]
-    if 'devices' in config:
-        for device in config['devices']:
+    if 'drivers' in config:
+        for device in config['drivers']:
             filename = os.path.basename(device) + ".hpp"
             dev_paths.append(os.path.join('../middleware/drivers/', filename))
     server_config = {
@@ -209,9 +192,11 @@ if __name__ == "__main__":
     elif cmd == '--board':
         with open(os.path.join('tmp', project + '.board'), 'w') as f:
             f.write(config['board'])
+    elif cmd == '--drivers':
+        with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
+            f.write('drivers/common ' + ((' '.join(config['drivers'])) if ('drivers' in config) else ''))
     elif cmd == '--middleware':
         tcp_server_dir = os.path.join('tmp', config['project'] + '.tcp-server')
-        build_middleware(project, tcp_server_dir)
         build_server_config(project, tcp_server_dir)
         fill_addresses(config, tcp_server_dir)
     elif cmd == '--xdc':
