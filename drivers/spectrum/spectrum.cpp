@@ -177,7 +177,7 @@ bool Spectrum::fifo_get_acquire_status()
 
 uint32_t Spectrum::store_peak_fifo_data()
 {
-    return fifo.store_data();
+    return fifo.get_buffer_length();
 }
 
 std::vector<uint32_t>& Spectrum::get_peak_fifo_data()
