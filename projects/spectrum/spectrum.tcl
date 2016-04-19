@@ -89,7 +89,9 @@ connect_pins $peak_detector_name/maximum_out $status_name/In$config::peak_maximu
 
 set intercon_idx 0
 set idx [add_master_interface $intercon_idx]
-cell xilinx.com:ip:axis_clock_converter:1.1 peak_clock_converter {} {
+cell xilinx.com:ip:axis_clock_converter:1.1 peak_clock_converter {
+  TDATA_NUM_BYTES 4
+} {
   s_axis_tdata $peak_detector_name/address_out
   s_axis_tvalid $peak_detector_name/m_axis_tvalid
   s_axis_aresetn $rst_adc_clk_name/peripheral_aresetn
