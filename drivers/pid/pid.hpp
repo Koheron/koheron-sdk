@@ -9,11 +9,9 @@
 #include <drivers/wr_register.hpp>
 #include <drivers/addresses.hpp>
 
-// http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
-#define RDFR_OFF 0x18
-#define RDFO_OFF 0x1C
-#define RDFD_OFF 0x20
-#define RLR_OFF 0x24
+#include "lib/fifo_reader.hpp"
+
+#define FIFO_BUFF_SIZE 65536
 
 class Pid
 {
@@ -22,10 +20,13 @@ class Pid
 
     int Open();
 
-    uint32_t get_fifo_occupancy();
+    /// @acq_period Sleeping time between two acquisitions (us)
+    void fifo_start_acquisition(uint32_t acq_period);
+    void fifo_stop_acquisition();
     uint32_t get_fifo_length();
-    void reset_fifo();
-    std::vector<uint32_t>& get_fifo_data(uint32_t n_pts);
+    uint32_t get_fifo_buffer_length();
+    std::vector<uint32_t>& get_fifo_data();
+    bool fifo_get_acquire_status();
 
     enum Status {
         CLOSED,
@@ -45,7 +46,7 @@ class Pid
     Klib::MemMapID status_map;
     Klib::MemMapID fifo_map;
 
-    std::vector<uint32_t> fifo_data;
+    FIFOReader<FIFO_BUFF_SIZE> fifo;
    
 }; // class Pid
 
