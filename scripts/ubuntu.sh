@@ -176,8 +176,8 @@ iface eth0 inet dhcp
 #  broadcast 192.168.1.255
   post-up /usr/local/tcp-server/kserver init
   post-up unzip -o /usr/local/flask/app.zip -d /usr/local/flask
-  post-up ntpdate -u ntp.u-psud.fr
   post-up bash /usr/local/flask/nginx.sh
+  post-up ntpdate -u ntp.u-psud.fr
 EOF_CAT
 
 cat <<- EOF_CAT > etc/network/interfaces.d/wlan0
@@ -190,8 +190,8 @@ iface wlan0 inet static
   post-up iptables-restore < /etc/iptables.ipv4.nat
   post-up /usr/local/tcp-server/kserver init
   post-up unzip -o /usr/local/flask/app.zip -d /usr/local/flask
-  post-up ntpdate -u ntp.u-psud.fr
   post-up bash /usr/local/flask/nginx.sh
+  post-up ntpdate -u ntp.u-psud.fr
   pre-down iptables-restore < /etc/iptables.ipv4.nonat
   pre-down service isc-dhcp-server stop
   pre-down service hostapd stop
