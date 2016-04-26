@@ -5,8 +5,8 @@ version=$3
 boot_dir=/tmp/BOOT
 root_dir=/tmp/ROOT
 
-root_tar=ubuntu-core-14.04.3-core-armhf.tar.gz
-root_url=http://cdimage.ubuntu.com/ubuntu-core/releases/14.04/release/$root_tar
+root_tar=ubuntu-core-16.04-core-armhf.tar.gz
+root_url=http://cdimage.ubuntu.com/ubuntu-core/releases/16.04/release/$root_tar
 
 hostapd_url=https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/hostapd-armhf
 
@@ -109,7 +109,7 @@ cat <<- EOF_CAT >> etc/securetty
 ttyPS0
 EOF_CAT
 
-sed 's/tty1/ttyPS0/g; s/38400/115200/' etc/init/tty1.conf > etc/init/ttyPS0.conf
+#sed 's/tty1/ttyPS0/g; s/38400/115200/' etc/init/tty1.conf > etc/init/ttyPS0.conf
 
 echo koheron > etc/hostname
 
@@ -137,8 +137,8 @@ apt-get -y install openssh-server ca-certificates ntp usbutils psmisc lsof \
 
 apt-get install -y nginx
 apt-get install -y build-essential python-dev
-apt-get install -y python python-numpy
-apt-get install -y python-pip
+apt-get install -y python-numpy
+apt-get install -y python-pip python-setuptools python-all-dev python-wheel
 
 pip install koheron-tcp-client
 pip install flask
