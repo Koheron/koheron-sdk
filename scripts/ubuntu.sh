@@ -137,19 +137,20 @@ apt-get -y install openssh-server ntp usbutils psmisc lsof \
 
 #apt-get install -y wpasupplicant linux-firmware usbutils ca-certificates
 
-apt-get install -y udev net-tools netbase ifupdown lsb-base
+apt-get install -y udev net-tools netbase ifupdown network-manager lsb-base
+apt-get install -y ntpdate sudo
 
-#apt-get install -y nginx
-#apt-get install -y build-essential python-dev
-#apt-get install -y python-numpy
-#apt-get install -y python-pip python-setuptools python-all-dev python-wheel
+apt-get install -y nginx
+apt-get install -y build-essential python-dev
+apt-get install -y python-numpy
+apt-get install -y python-pip python-setuptools python-all-dev python-wheel
 
-#pip install koheron-tcp-client
-#pip install flask
-#pip install jinja2
-#pip install urllib3
-#pip install pyyaml
-#pip install uwsgi
+pip install koheron-tcp-client
+pip install flask
+pip install jinja2
+pip install urllib3
+pip install pyyaml
+pip install uwsgi
 
 sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
 
@@ -157,12 +158,12 @@ apt-get -y install hostapd isc-dhcp-server iptables
 
 touch etc/udev/rules.d/75-persistent-net-generator.rules
 
-#cat <<- EOF_CAT > etc/rc.local
-##!/bin/sh -e
-## rc.local
-#/usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
-#exit 0
-#EOF_CAT
+cat <<- EOF_CAT > etc/rc.local
+#!/bin/sh -e
+# rc.local
+/usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
+exit 0
+EOF_CAT
 
 cat <<- EOF_CAT >> etc/network/interfaces
 allow-hotplug eth0
