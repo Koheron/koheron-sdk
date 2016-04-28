@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 ExecStart=/usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
-ExecStartPost=-/usr/local/tcp-server/kserver init
+Type=notify
 
 [Install]
 WantedBy=multi-user.target
