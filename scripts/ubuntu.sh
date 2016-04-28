@@ -57,6 +57,9 @@ cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 # Add Web app
 mkdir $root_dir/usr/local/flask
 cp tmp/app.zip $root_dir/usr/local/flask
+unzip -o /usr/local/flask/app.zip -d /usr/local/flask
+mkdir -p /var/www/ui
+cp -r /usr/local/flask/ui/ /var/www/
 
 # Add Koheron TCP Server
 mkdir $root_dir/usr/local/tcp-server
@@ -65,15 +68,15 @@ cp config/kserver.conf $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/VERSION $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
-cp config/tcp-server.service $root_dir/lib/systemd/system/tcp-server.service
-
-# nginx
-rm $root_dir/etc/nginx/sites-enabled/default
-cp config/nginx.conf $root_dir/usr/local/tcp-server
 
 # uwsgi
 mkdir $root_dir/etc/flask-uwsgi
+cp config/flask-uwsgi.ini $root_dir/etc/flask-uwsgi/flask-uwsgi.ini
+
+# systemd services
 cp config/uwsgi.service $root_dir/lib/systemd/system/uwsgi.service
+cp config/tcp-server.service $root_dir/lib/systemd/system/tcp-server.service
+cp config/nginx.service $root_dir/lib/systemd/system/nginx.service
 
 
 # Add zip
@@ -161,6 +164,10 @@ pip install urllib3
 pip install pyyaml
 pip install uwsgi
 
+systemctl enable uwsgi
+systemctl enable tcp-server
+systemctl enbale nginx
+
 sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
 
 apt-get -y install hostapd isc-dhcp-server iptables
@@ -170,7 +177,7 @@ touch etc/udev/rules.d/75-persistent-net-generator.rules
 cat <<- EOF_CAT > etc/rc.local
 #!/bin/sh -e
 # rc.local
-/usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
+#/usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
 exit 0
 EOF_CAT
 
@@ -187,9 +194,6 @@ iface eth0 inet dhcp
 #  netmask 255.255.255.0
 #  network 192.168.1.0
 #  broadcast 192.168.1.255
-  post-up /usr/local/tcp-server/kserver init
-  post-up unzip -o /usr/local/flask/app.zip -d /usr/local/flask
-  post-up bash /usr/local/flask/nginx.sh
   post-up ntpdate -u ntp.u-psud.fr
 
 allow-hotplug wlan0
@@ -314,6 +318,12 @@ service ntp stop
 
 history -c
 EOF_CHROOT
+
+# nginx
+rm $root_dir/etc/nginx/sites-enabled/default
+cp config/nginx.conf $root_dir/etc/nginx/nginx.conf
+cp config/flask-uwsgi $root_dir/etc/nginx/sites-enabled/flask-uwsgi
+
 
 rm $root_dir/etc/resolv.conf
 rm $root_dir/usr/bin/qemu-arm-static
