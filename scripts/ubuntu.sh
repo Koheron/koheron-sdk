@@ -68,16 +68,12 @@ cp config/kserver.conf $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/VERSION $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
+cp config/tcp-server.service $root_dir/lib/systemd/system/tcp-server.service
 
 # uwsgi
 mkdir $root_dir/etc/flask-uwsgi
 cp config/flask-uwsgi.ini $root_dir/etc/flask-uwsgi/flask-uwsgi.ini
-
-# systemd services
 cp config/uwsgi.service $root_dir/lib/systemd/system/uwsgi.service
-cp config/tcp-server.service $root_dir/lib/systemd/system/tcp-server.service
-cp config/nginx.service $root_dir/lib/systemd/system/nginx.service
-
 
 # Add zip
 mkdir $root_dir/usr/local/instruments
@@ -323,7 +319,7 @@ EOF_CHROOT
 rm $root_dir/etc/nginx/sites-enabled/default
 cp config/nginx.conf $root_dir/etc/nginx/nginx.conf
 cp config/flask-uwsgi $root_dir/etc/nginx/sites-enabled/flask-uwsgi
-
+cp config/nginx.service $root_dir/lib/systemd/system/nginx.service
 
 rm $root_dir/etc/resolv.conf
 rm $root_dir/usr/bin/qemu-arm-static
