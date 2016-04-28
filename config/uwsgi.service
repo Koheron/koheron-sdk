@@ -1,6 +1,7 @@
 [Unit]
 Description=uWSGI
-After=network.target
+Requires=tcp-server.service
+After=tcp-server.service
 
 [Service]
 ExecStartPre=/usr/bin/unzip -o /usr/local/flask/app.zip -d /usr/local/flask
@@ -8,6 +9,7 @@ ExecStartPre=/bin/mkdir -p /var/run/flask-uwsgi
 ExecStartPre=/bin/mkdir -p /var/log/flask-uwsgi
 ExecStart=/usr/local/bin/uwsgi --ini /etc/flask-uwsgi/flask-uwsgi.ini
 KillSignal=SIGKILL
+Type=notify
 
 [Install]
 WantedBy=multi-user.target

@@ -1,6 +1,8 @@
 [Unit]
 Description=A high performance web server and a reverse proxy server
-Wants=uwsgi.service
+Requires=uwsgi.service
+After=uwsgi.service
+
 
 [Service]
 Type=forking
