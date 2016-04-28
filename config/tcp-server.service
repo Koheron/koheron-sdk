@@ -1,0 +1,10 @@
+[Unit]
+Description=Koheron TCP server
+After=network.target
+
+[Service]
+ExecStart=/usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
+ExecStartPost=/usr/local/tcp-server/kserver init
+
+[Install]
+WantedBy=multi-user.target

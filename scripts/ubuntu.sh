@@ -65,6 +65,15 @@ cp config/kserver.conf $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/VERSION $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
+cp config/tcp-server.service $root_dir/lib/systemd/system/tcp-server.service
+
+# nginx
+rm $root_dir/etc/nginx/sites-enabled/default
+cp config/nginx.conf $root_dir/usr/local/tcp-server
+
+# uwsgi
+mkdir $root_dir/etc/flask-uwsgi
+cp config/uwsgi.service $root_dir/lib/systemd/system/uwsgi.service
 
 
 # Add zip
@@ -190,9 +199,6 @@ iface wlan0 inet static
   post-up service hostapd restart
   post-up service isc-dhcp-server restart
   post-up iptables-restore < /etc/iptables.ipv4.nat
-  post-up /usr/local/tcp-server/kserver init
-  post-up unzip -o /usr/local/flask/app.zip -d /usr/local/flask
-  post-up bash /usr/local/flask/nginx.sh
   post-up ntpdate -u ntp.u-psud.fr
   pre-down iptables-restore < /etc/iptables.ipv4.nonat
   pre-down service isc-dhcp-server stop
