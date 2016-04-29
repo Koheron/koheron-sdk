@@ -1,6 +1,6 @@
 [Unit]
 Description=uWSGI
-After=tcp-server.service
+After=network.target
 
 [Service]
 ExecStartPre=/bin/mkdir -p /var/run/flask-uwsgi
