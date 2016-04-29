@@ -1,5 +1,5 @@
 [Unit]
-Description=A high performAance web server and a reverse proxy server
+Description=A high performance web server and a reverse proxy server
 After=network-online.target
 
 [Service]
