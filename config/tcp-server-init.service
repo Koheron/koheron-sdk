@@ -1,7 +1,8 @@
 [Unit]
 Description=Display last digit of IP address on leds
-Requires=tcp-server.service NetworkManager-wait-online.service
-After=tcp-server.service NetworkManager-wait-online.service
+Requires=tcp-server.service 
+Wants=network-online.target
+After=tcp-server.service network-online.target
 
 [Service]
 ExecStart=/usr/local/tcp-server/kserver init

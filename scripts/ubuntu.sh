@@ -163,7 +163,6 @@ pip install uwsgi
 
 systemctl enable uwsgi
 systemctl enable tcp-server
-systemctl enable tcp-server-init
 systemctl enable nginx
 
 sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
@@ -193,6 +192,7 @@ iface eth0 inet dhcp
 #  network 192.168.1.0
 #  broadcast 192.168.1.255
   post-up ntpdate -u ntp.u-psud.fr
+  post-up systemctl start tcp-server-init
 
 allow-hotplug wlan0
 iface wlan0 inet static
@@ -202,6 +202,7 @@ iface wlan0 inet static
   post-up service isc-dhcp-server restart
   post-up iptables-restore < /etc/iptables.ipv4.nat
   post-up ntpdate -u ntp.u-psud.fr
+  post-up systemctl start tcp-server-init
   pre-down iptables-restore < /etc/iptables.ipv4.nonat
   pre-down service isc-dhcp-server stop
   pre-down service hostapd stop
