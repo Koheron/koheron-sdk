@@ -15,7 +15,7 @@ proc add_xadc {name {idx "auto"} {intercon_idx 0}} {
  
   connect_bd_intf_net -boundary_type upper [get_bd_intf_pins axi_mem_intercon_$intercon_idx/M${idx}_AXI] [get_bd_intf_pins axi_clk_conv_xadc/S_AXI]
 
-  cell xilinx.com:ip:xadc_wiz:3.3 $name {
+  cell xilinx.com:ip:xadc_wiz:3.2 $name {
     XADC_STARUP_SELECTION        independent_adc
     CHANNEL_ENABLE_VAUXP0_VAUXN0 true
     CHANNEL_ENABLE_VAUXP1_VAUXN1 true

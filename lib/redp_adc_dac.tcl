@@ -13,7 +13,7 @@ create_bd_pin -dir O -from 13 -to 0 adc1
 create_bd_pin -dir O -from 13 -to 0 adc2
 
 # Phase-locked Loop (PLL)
-cell xilinx.com:ip:clk_wiz:5.3 pll {
+cell xilinx.com:ip:clk_wiz:5.2 pll {
   PRIMITIVE              PLL
   PRIM_IN_FREQ.VALUE_SRC USER
   PRIM_IN_FREQ           125.0
