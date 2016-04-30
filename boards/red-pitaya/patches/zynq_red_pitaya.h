@@ -42,4 +42,6 @@
 #endif
 #define CONFIG_BOOTDELAY 0
 
+#define CONFIG_SYS_MALLOC_F_LEN 0x2000
+
 #endif /* __CONFIG_ZYNQ_RED_PITAYA_H */
