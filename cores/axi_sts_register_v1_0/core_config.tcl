@@ -13,10 +13,21 @@ core_parameter AXI_ADDR_WIDTH {AXI ADDR WIDTH} {Width of the AXI address bus.}
 core_parameter AXI_DATA_WIDTH {AXI DATA WIDTH} {Width of the AXI data bus.}
 core_parameter STS_DATA_WIDTH {STS DATA WIDTH} {Width of the status data.}
 
-set bus [ipx::get_bus_interfaces -of_objects $core s_axi]
-set_property NAME S_AXI $bus
-set_property INTERFACE_MODE slave $bus
+ipx::add_bus_interface S_AXI $core
+set bus [ipx::get_bus_interfaces S_AXI -of_objects $core]
+set_property bus_type_vlnv xilinx.com:interface:aximm:1.0 $bus
 
-set bus [ipx::get_bus_interfaces aclk]
-set parameter [ipx::get_bus_parameters -of_objects $bus ASSOCIATED_BUSIF]
-set_property VALUE S_AXI $parameter
+foreach {port} {
+  RREADY
+  ARREADY
+  ARVALID
+  RRESP
+  RVALID
+  RDATA
+  ARADDR
+} {
+  ipx::add_port_map $port $bus
+  set_property physical_name s_axi_[string tolower $port] [ipx::get_port_maps $port -of_objects $bus]
+}
+
+ipx::infer_bus_interfaces xilinx.com:interface:aximm_rtl:1.0 [ipx::current_core]

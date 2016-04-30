@@ -22,8 +22,7 @@ PATCHES = boards/$(BOARD)/patches
 PROC = ps7_cortexa9_0
 
 # Custom commands
-VIVADO_VERSION = 2015.4
-VIVADO_PATH = /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh
+VIVADO_VERSION = 2016.1
 VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
@@ -48,9 +47,6 @@ DTREE_URL = https://github.com/Xilinx/device-tree-xlnx/archive/$(DTREE_TAG).tar.
 LINUX_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=softfp"
 UBOOT_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=softfp"
 ARMHF_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=hard"
-
-RTL_TAR = $(TMP)/rtl8192cu.tgz
-RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
 
 # Project configuration
 MAIN_YML = projects/$(NAME)/main.yml
@@ -181,24 +177,19 @@ $(DTREE_DIR): $(DTREE_TAR)
 $(TMP)/%.tree/system.dts: $(TMP)/%.hwdef $(DTREE_DIR)
 	mkdir -p $(@D)
 	$(HSI) -source scripts/devicetree.tcl -tclargs $* $(PROC) $(DTREE_DIR)
-	#patch $@ $(PATCHES)/devicetree.patch
+	patch $@ $(PATCHES)/devicetree.patch
 
 ###############################################################################
 # Linux
 ###############################################################################
 
-$(RTL_TAR):
-	mkdir -p $(@D)
-	curl -L $(RTL_URL) -o $@
-
 $(LINUX_TAR):
 	mkdir -p $(@D)
 	curl -L $(LINUX_URL) -o $@
 
-$(LINUX_DIR): $(LINUX_TAR) $(RTL_TAR)
+$(LINUX_DIR): $(LINUX_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
-	tar -zxf $(RTL_TAR) --directory=$@/drivers/net/wireless
 	patch -d $(TMP) -p 0 < $(PATCHES)/linux-xlnx-$(LINUX_TAG).patch
 	bash $(PATCHES)/linux.sh $(PATCHES) $@
 
