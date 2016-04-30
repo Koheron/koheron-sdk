@@ -1,6 +1,6 @@
 --- system.dts.old
 +++ system.dts
-@@ -16,6 +16,13 @@
+@@ -17,6 +17,13 @@
  	chosen {
  		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait";
  	};
@@ -14,7 +14,7 @@
  	aliases {
  		ethernet0 = &gem0;
  		serial0 = &uart0;
-@@ -26,7 +33,7 @@
+@@ -27,7 +34,7 @@
  	};
  	memory {
  		device_type = "memory";
@@ -23,7 +23,7 @@
  	};
  };
  &gem0 {
-@@ -35,6 +42,14 @@
+@@ -36,14 +43,24 @@
  	status = "okay";
  	xlnx,ptp-enet-clock = <0x69f6bcb>;
  };
@@ -38,20 +38,19 @@
  &gpio0 {
  	emio-gpio-width = <64>;
  	gpio-mask-high = <0x0>;
-@@ -44,6 +59,12 @@
- 	clock-frequency = <400000>;
- 	status = "okay";
+ 	gpio-mask-low = <0x5600>;
  };
-+&i2c0 {
+ &i2c0 {
+-	clock-frequency = <400000>;
+-	status = "okay";
 +	eep@50 {
 +		compatible = "24c64";
 +		reg = <0x50>;
 +	};
-+};
+ };
  &intc {
  	num_cpus = <2>;
- 	num_interrupts = <96>;
-@@ -68,6 +89,11 @@
+@@ -69,6 +86,11 @@
  	is-decoded-cs = <0>;
  	num-cs = <1>;
  	status = "okay";
@@ -63,7 +62,7 @@
  };
  &uart0 {
  	current-speed = <115200>;
-@@ -83,9 +109,9 @@
+@@ -84,9 +106,9 @@
  };
  &usb0 {
  	dr_mode = "host";
@@ -74,4 +73,4 @@
 +	xlnx,phy-reset-gpio = <&gpio0 48 0>;
  };
  &clkc {
- 	fclk-enable = <0x1>;
+ 	fclk-enable = <0x3>;
