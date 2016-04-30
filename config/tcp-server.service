@@ -1,0 +1,13 @@
+[Unit]
+Description=Koheron TCP server
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
+ExecStop=/usr/bin/pkill -SIGINT kserverd
+KillSignal=SIGKILL
+
+[Install]
+WantedBy=multi-user.target
+
