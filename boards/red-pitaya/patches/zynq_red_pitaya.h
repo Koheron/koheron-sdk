@@ -37,6 +37,4 @@
 #define CONFIG_ENV_SIZE		1024 /* Total Size of Environment Sector */
 #define CONFIG_ENV_OFFSET	(2048*3) /* WP area starts at last 1/4 of 8k eeprom */
 
-#define CONFIG_SYS_MALLOC_F_LEN 0x2000
-
 #endif /* __CONFIG_ZYNQ_RED_PITAYA_H */
