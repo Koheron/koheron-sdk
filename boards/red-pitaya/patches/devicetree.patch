@@ -23,7 +23,7 @@
  	};
  };
  &gem0 {
-@@ -36,14 +43,24 @@
+@@ -36,6 +43,14 @@
  	status = "okay";
  	xlnx,ptp-enet-clock = <0x69f6bcb>;
  };
@@ -38,19 +38,20 @@
  &gpio0 {
  	emio-gpio-width = <64>;
  	gpio-mask-high = <0x0>;
- 	gpio-mask-low = <0x5600>;
+@@ -45,6 +60,12 @@
+ 	clock-frequency = <400000>;
+ 	status = "okay";
  };
- &i2c0 {
--	clock-frequency = <400000>;
--	status = "okay";
++&i2c0 {
 +	eep@50 {
 +		compatible = "24c64";
 +		reg = <0x50>;
 +	};
- };
++};
  &intc {
  	num_cpus = <2>;
-@@ -69,6 +86,11 @@
+ 	num_interrupts = <96>;
+@@ -69,6 +90,11 @@
  	is-decoded-cs = <0>;
  	num-cs = <1>;
  	status = "okay";
@@ -62,7 +63,7 @@
  };
  &uart0 {
  	current-speed = <115200>;
-@@ -84,9 +106,9 @@
+@@ -84,9 +110,9 @@
  };
  &usb0 {
  	dr_mode = "host";
