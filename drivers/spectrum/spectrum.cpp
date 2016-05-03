@@ -124,11 +124,10 @@ void Spectrum::set_averaging(bool avg_status)
 {
     avg_on = avg_status;
     
-    if(avg_on) {
+    if(avg_on)
         Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + AVG_OFF_OFF, 0);
-    } else {
+    else
         Klib::SetBit(dev_mem.GetBaseAddr(config_map) + AVG_OFF_OFF, 0);
-    }
 }
 
 uint32_t Spectrum::get_num_average()
