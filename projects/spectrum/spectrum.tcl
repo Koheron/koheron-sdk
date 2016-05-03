@@ -104,6 +104,8 @@ cell xilinx.com:ip:axi_fifo_mm_s:4.1 peak_axis_fifo {
   C_USE_TX_DATA 0
   C_USE_TX_CTRL 0
   C_USE_RX_CUT_THROUGH true
+  C_RX_FIFO_DEPTH 4096
+  C_RX_FIFO_PF_THRESHOLD 2048
 } {
   s_axi_aclk [set ps_clk$intercon_idx]
   s_axi_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
