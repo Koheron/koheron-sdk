@@ -85,7 +85,7 @@ std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
         float num_avg = float(get_num_average());
         for(unsigned int i=0; i<WFM_SIZE; i++)
             spectrum_data[i] = raw_data[i] / num_avg;
-    } else{
+    } else {
         for(unsigned int i=0; i<WFM_SIZE; i++)
             spectrum_data[i] = raw_data[i];
     }
