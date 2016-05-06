@@ -17,7 +17,7 @@
 #include <atomic>
 #include <mutex>
 
-#include <drivers/wr_register.hpp>
+#include "wr_register.hpp"
 
 // http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
 #define RDFR_OFF 0x18

@@ -5,11 +5,11 @@
 #ifndef __DRIVERS_CORE_SPECTRUM_HPP__
 #define __DRIVERS_CORE_SPECTRUM_HPP__
 
-#include <drivers/dev_mem.hpp>
-#include <drivers/wr_register.hpp>
-#include <drivers/addresses.hpp>
+#include <drivers/lib/dev_mem.hpp>
+#include <drivers/lib/wr_register.hpp>
+#include <drivers/lib/fifo_reader.hpp>
 
-#include "lib/fifo_reader.hpp"
+#include <drivers/addresses.hpp>
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE SPECTRUM_RANGE/sizeof(float)

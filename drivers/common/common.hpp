@@ -7,8 +7,8 @@
 
 #include <array>
 
-#include <drivers/dev_mem.hpp>
-#include <drivers/wr_register.hpp>
+#include <drivers/lib/dev_mem.hpp>
+#include <drivers/lib/wr_register.hpp>
 #include <drivers/addresses.hpp>
 #include <drivers/init.hpp>
 
