@@ -1,4 +1,4 @@
-/// DevMem driver
+/// DeviceMemory driver
 ///
 /// General purpose device memory interface for prototyping
 ///

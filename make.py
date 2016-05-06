@@ -197,8 +197,11 @@ if __name__ == "__main__":
     elif cmd == '--middleware':
         tcp_server_dir = os.path.join('tmp', config['project'] + '.tcp-server')
         tcp_server_middleware_dir = os.path.join(tcp_server_dir, 'middleware/drivers')
-        if not os.path.exists(tcp_server_middleware_dir):
-            os.makedirs(tcp_server_middleware_dir)
+
+        # Erase the content of middleware if it exists (Tests drivers for tcp-server)
+        if os.path.exists(tcp_server_middleware_dir):
+            shutil.rmtree(tcp_server_middleware_dir)
+        os.makedirs(tcp_server_middleware_dir)
 
         build_server_config(project, tcp_server_dir)
         fill_addresses(config, tcp_server_dir)
