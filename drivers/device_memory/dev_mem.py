@@ -2,7 +2,7 @@
 # Client API for the DEVICE_MEMORY device
 
 import numpy as np
-from kclient import command, write_buffer
+from .kclient import command, write_buffer
 
 class DevMem:
     def __init__(self, client):
