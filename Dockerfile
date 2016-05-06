@@ -14,12 +14,12 @@ RUN apt-get -y install gcc-5 g++-5             \
                        g++-arm-linux-gnueabi   \
                        make                    \
                        wget                    \
+                       curl                    \
                        git                     \
                        python-pip              \
                        python-dev              \
                        build-essential         \
-                       libyaml-dev             \
-                       mingw-w64
+                       libyaml-dev
 
 RUN pip install --upgrade pip
 
@@ -32,6 +32,6 @@ RUN pip install -r requirements.txt
 # Build project servers
 # ---------------------------------------
 
-RUN make NAME=oscillo tmp/oscillo.tcp-server/tmp/server/kserverd
-RUN make NAME=spectrum tmp/spectrum.tcp-server/tmp/server/kserverd
-RUN make NAME=pid tmp/pid.tcp-server/tmp/server/kserverd
+RUN make DOCKER=True NAME=oscillo tmp/oscillo.tcp-server/tmp/server/kserverd
+RUN make DOCKER=True NAME=spectrum tmp/spectrum.tcp-server/tmp/server/kserverd
+RUN make DOCKER=True NAME=pid tmp/pid.tcp-server/tmp/server/kserverd
