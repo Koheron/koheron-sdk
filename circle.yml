@@ -1,0 +1,3 @@
+test:
+  pre:
+    - bash ci_server.sh
