@@ -5,11 +5,10 @@
 #ifndef __DRIVERS_CORE_PID_HPP__
 #define __DRIVERS_CORE_PID_HPP__
 
-#include <drivers/dev_mem.hpp>
-#include <drivers/wr_register.hpp>
+#include <drivers/lib/dev_mem.hpp>
+#include <drivers/lib/wr_register.hpp>
+#include <drivers/lib/fifo_reader.hpp>
 #include <drivers/addresses.hpp>
-
-#include "lib/fifo_reader.hpp"
 
 #define FIFO_BUFF_SIZE 65536
 
