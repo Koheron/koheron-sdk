@@ -1,3 +1,11 @@
+machine:
+  services:
+    - docker
+
+dependencies:
+  override:
+    - docker info
+
 test:
   pre:
-    - bash ci_server.sh
+    - docker build -t koheron/zynq-sdk .
