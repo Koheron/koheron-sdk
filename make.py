@@ -109,7 +109,6 @@ def get_renderer():
 def build_server_config(project, tcp_server_dir):
     config = get_config(project)
     dev_paths = [
-      '../devices/dev_mem.yaml',
       '../middleware/drivers/common.hpp'
     ]
     if 'drivers' in config:
