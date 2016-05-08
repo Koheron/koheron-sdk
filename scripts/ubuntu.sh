@@ -5,8 +5,8 @@ version=$3
 boot_dir=/tmp/BOOT
 root_dir=/tmp/ROOT
 
-root_tar=ubuntu-core-14.04.3-core-armhf.tar.gz
-root_url=http://cdimage.ubuntu.com/ubuntu-core/releases/14.04/release/$root_tar
+root_tar=ubuntu-core-16.04-core-armhf.tar.gz
+root_url=http://cdimage.ubuntu.com/ubuntu-core/releases/16.04/release/$root_tar
 
 hostapd_url=https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/hostapd-armhf
 
@@ -57,6 +57,9 @@ cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 # Add Web app
 mkdir $root_dir/usr/local/flask
 cp tmp/app.zip $root_dir/usr/local/flask
+unzip -o $root_dir/usr/local/flask/app.zip -d $root_dir/usr/local/flask
+mkdir -p $root_dir/var/www/ui
+cp -r $root_dir/usr/local/flask/ui/ $root_dir/var/www/
 
 # Add Koheron TCP Server
 mkdir $root_dir/usr/local/tcp-server
@@ -65,7 +68,13 @@ cp config/kserver.conf $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/VERSION $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
+cp config/tcp-server.service $root_dir/etc/systemd/system/tcp-server.service
+cp config/tcp-server-init.service $root_dir/etc/systemd/system/tcp-server-init.service
 
+# uwsgi
+mkdir $root_dir/etc/flask-uwsgi
+cp config/flask-uwsgi.ini $root_dir/etc/flask-uwsgi/flask-uwsgi.ini
+cp config/uwsgi.service $root_dir/etc/systemd/system/uwsgi.service
 
 # Add zip
 mkdir $root_dir/usr/local/instruments
@@ -109,7 +118,7 @@ cat <<- EOF_CAT >> etc/securetty
 ttyPS0
 EOF_CAT
 
-sed 's/tty1/ttyPS0/g; s/38400/115200/' etc/init/tty1.conf > etc/init/ttyPS0.conf
+#sed 's/tty1/ttyPS0/g; s/38400/115200/' etc/init/tty1.conf > etc/init/ttyPS0.conf
 
 echo koheron > etc/hostname
 
@@ -131,14 +140,19 @@ apt-get -y upgrade
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 
-apt-get -y install openssh-server ca-certificates ntp usbutils psmisc lsof \
-  parted curl less vim man-db iw wpasupplicant linux-firmware ntfs-3g gdb  \
-  bash-completion unzip rsync
+apt-get -y install openssh-server ntp usbutils psmisc lsof \
+  parted curl less vim iw  ntfs-3g gdb  \
+  bash-completion unzip rsync 
+
+#apt-get install -y wpasupplicant linux-firmware usbutils ca-certificates
+
+apt-get install -y udev net-tools netbase ifupdown network-manager lsb-base
+apt-get install -y ntpdate sudo
 
 apt-get install -y nginx
 apt-get install -y build-essential python-dev
-apt-get install -y python python-numpy
-apt-get install -y python-pip
+apt-get install -y python-numpy
+apt-get install -y python-pip python-setuptools python-all-dev python-wheel
 
 pip install koheron-tcp-client
 pip install flask
@@ -146,7 +160,10 @@ pip install jinja2
 pip install urllib3
 pip install pyyaml
 pip install uwsgi
-#pip install jupyter
+
+systemctl enable uwsgi
+systemctl enable tcp-server
+systemctl enable nginx
 
 sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
 
@@ -157,11 +174,11 @@ touch etc/udev/rules.d/75-persistent-net-generator.rules
 cat <<- EOF_CAT > etc/rc.local
 #!/bin/sh -e
 # rc.local
-/usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
+#/usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
 exit 0
 EOF_CAT
 
-cat <<- EOF_CAT >> etc/network/interfaces.d/eth0
+cat <<- EOF_CAT >> etc/network/interfaces
 allow-hotplug eth0
 
 # DHCP configuration
@@ -174,13 +191,9 @@ iface eth0 inet dhcp
 #  netmask 255.255.255.0
 #  network 192.168.1.0
 #  broadcast 192.168.1.255
-  post-up /usr/local/tcp-server/kserver init
-  post-up unzip -o /usr/local/flask/app.zip -d /usr/local/flask
-  post-up bash /usr/local/flask/nginx.sh
   post-up ntpdate -u ntp.u-psud.fr
-EOF_CAT
+  post-up systemctl start tcp-server-init
 
-cat <<- EOF_CAT > etc/network/interfaces.d/wlan0
 allow-hotplug wlan0
 iface wlan0 inet static
   address 192.168.42.1
@@ -188,10 +201,8 @@ iface wlan0 inet static
   post-up service hostapd restart
   post-up service isc-dhcp-server restart
   post-up iptables-restore < /etc/iptables.ipv4.nat
-  post-up /usr/local/tcp-server/kserver init
-  post-up unzip -o /usr/local/flask/app.zip -d /usr/local/flask
-  post-up bash /usr/local/flask/nginx.sh
   post-up ntpdate -u ntp.u-psud.fr
+  post-up systemctl start tcp-server-init
   pre-down iptables-restore < /etc/iptables.ipv4.nonat
   pre-down service isc-dhcp-server stop
   pre-down service hostapd stop
@@ -306,6 +317,12 @@ service ntp stop
 
 history -c
 EOF_CHROOT
+
+# nginx
+rm $root_dir/etc/nginx/sites-enabled/default
+cp config/nginx.conf $root_dir/etc/nginx/nginx.conf
+cp config/flask-uwsgi $root_dir/etc/nginx/sites-enabled/flask-uwsgi
+cp config/nginx.service $root_dir/etc/systemd/system/nginx.service
 
 rm $root_dir/etc/resolv.conf
 rm $root_dir/usr/bin/qemu-arm-static
