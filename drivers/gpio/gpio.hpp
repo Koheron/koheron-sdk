@@ -7,8 +7,8 @@
 #ifndef __DRIVERS_CORE_GPIO_HPP__
 #define __DRIVERS_CORE_GPIO_HPP__
 
-#include <drivers/dev_mem.hpp>
-#include <drivers/wr_register.hpp>
+#include <drivers/lib/dev_mem.hpp>
+#include <drivers/lib/wr_register.hpp>
 
 #define GPIO_ADDR          0x41200000
 #define GPIO_RANGE         65536
@@ -32,8 +32,6 @@ class Gpio
     Gpio(Klib::DevMem& dev_mem_);
 
     int Open();
-    
-
     int set_data(uint32_t channel, uint32_t value);
     uint32_t get_data(uint32_t channel);
 

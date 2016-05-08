@@ -8,8 +8,8 @@
 #ifndef __DRIVERS_CORE_XADC_HPP__
 #define __DRIVERS_CORE_XADC_HPP__
 
-#include <drivers/dev_mem.hpp>
-#include <drivers/wr_register.hpp>
+#include <drivers/lib/dev_mem.hpp>
+#include <drivers/lib/wr_register.hpp>
 
 #define XADC_ADDR          0x43C00000
 #define XADC_RANGE         65536
