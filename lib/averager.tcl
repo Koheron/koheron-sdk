@@ -25,12 +25,14 @@ proc add_averager_module {module_name bram_addr_width args} {
   create_bd_pin -dir I                                       avg_off
   create_bd_pin -dir I                                       tvalid
   create_bd_pin -dir I                                       restart
+  create_bd_pin -dir I -from 31                        -to 0 period
   create_bd_pin -dir I -from [expr $width-1]           -to 0 din
   create_bd_pin -dir O -from 31                        -to 0 dout
   create_bd_pin -dir O -from 3                         -to 0 wen
   create_bd_pin -dir O -from 31                        -to 0 count
   create_bd_pin -dir O -from 31                        -to 0 n_avg
   create_bd_pin -dir O -from 31                        -to 0 addr
+
 
   set add_latency 3
   set sr_latency 1
@@ -147,21 +149,34 @@ proc add_averager_module {module_name bram_addr_width args} {
   # Enable reading FIFO once 
   # data_count == 2**$bram_addr_width - $add_latency - $sr_latency - $fifo_rd_latency)
 
-  set threshold_val [expr 2**$bram_addr_width-$add_latency-$sr_latency-$sr_avg_off_latency-$fifo_rd_latency]
+  set minus_threshold_val [expr $add_latency+$sr_latency+$sr_avg_off_latency+$fifo_rd_latency-1]
 
   cell koheron:user:comparator:1.0 comp {
     DATA_WIDTH $bram_addr_width
     OPERATION "GE"
   } {
-    a       fifo/data_count
+    a    fifo/data_count
     dout fifo/rd_en
   }
 
-  cell xilinx.com:ip:xlconstant:1.1 threshold {
-    CONST_WIDTH $bram_addr_width
-    CONST_VAL   $threshold_val
+  xilinx.com:ip:c_addsub:12.0 threshold {
+    A_Type Unsigned
+    B_Type Unsigned
+    A_Width $bram_addr_width
+    B_Width $bram_addr_width
+    Add_Mode Subtract
+    CE false
+    Out_Width $bram_addr_width
   } {
-    dout comp/b
+    A period
+    S comp/b
+  }
+
+  cell xilinx.com:ip:xlconstant:1.1 minus_threshold {
+    CONST_WIDTH $bram_addr_width
+    CONST_VAL   $minus_threshold_val
+  } {
+    dout threshold/B
   } 
 
   # Start counting once FIFO read enabled
@@ -215,6 +230,7 @@ proc add_averager_module {module_name bram_addr_width args} {
     restart restart
     address counter/Q
     init counter/SCLR
+    count_max period
   }
 
   connect_pins write_enable_0/init sr_avg_off_en/CE

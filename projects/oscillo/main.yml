@@ -30,6 +30,8 @@ config_offsets:
   - addr
   - avg0
   - avg1
+  - period0
+  - period1
 
 status_offsets:
   - spi_out

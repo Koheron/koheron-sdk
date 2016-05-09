@@ -7,6 +7,7 @@ module write_enable #
 (
   input  wire                  restart,
   input  wire [BRAM_WIDTH-1:0] address,
+  input  wire [BRAM_WIDTH-1:0] count_max,
   input  wire                  clk,
   output wire                  wen,
   output wire [BRAM_WIDTH-1:0] count,
@@ -22,11 +23,12 @@ module write_enable #
 
   always @(posedge clk) begin
     if (restart) begin
-      count1 <= {(BRAM_WIDTH){1'b0}};
+      count1 <= 0;
       count1_running <= 1'b1;
+      count_max_reg <= count_max;
     end
     else begin 
-      if (count1 != {(BRAM_WIDTH){1'b1}}) begin
+      if (count1 != count_max_reg) begin
         count1 <= count1 + 1;
       end else begin
         count1_running <= 1'b0;
@@ -35,7 +37,8 @@ module write_enable #
   end
 
   always @(posedge clk) begin
-    if (count1_running && (address == {{(BRAM_WIDTH-1){1'b1}},1'b1})) begin
+    if (count1_running && (address == count_max_reg)) begin
+      // end of period
       rst <= 1'b1;
     end else begin
       rst <= 1'b0;
@@ -44,14 +47,15 @@ module write_enable #
 
   always @(posedge clk) begin
     if (rst) begin
-      count2 <= {(BRAM_WIDTH){1'b0}};
+      // start period
+      count2 <= 0;
       count2_running <= 1'b1;
       init_reg <= 1'b0;
     end else begin 
-      if (count2 != {(BRAM_WIDTH){1'b1}}) begin
+      if (count2 != count_max_reg) begin
         count2 <= count2 + 1;
         init_reg <= 1'b0;
-        if (count2 == {{(BRAM_WIDTH-2){1'b1}},1'b0,1'b1}) begin
+        if (count2 == (count_max_reg-2)) begin
           init_reg <= 1'b1;
         end
       end else begin
