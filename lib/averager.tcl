@@ -26,6 +26,7 @@ proc add_averager_module {module_name bram_addr_width args} {
   create_bd_pin -dir I                                       tvalid
   create_bd_pin -dir I                                       restart
   create_bd_pin -dir I -from 31                        -to 0 period
+  create_bd_pin -dir I -from 31                        -to 0 threshold
   create_bd_pin -dir I -from [expr $width-1]           -to 0 din
   create_bd_pin -dir O -from 31                        -to 0 dout
   create_bd_pin -dir O -from 3                         -to 0 wen
@@ -153,10 +154,12 @@ proc add_averager_module {module_name bram_addr_width args} {
     DATA_WIDTH $bram_addr_width
     OPERATION "GE"
   } {
-    a    fifo/data_count
+    a fifo/data_count
+    b threshold
     dout fifo/rd_en
   }
 
+  if 0 {
   cell xilinx.com:ip:c_addsub:12.0 threshold {
     A_Type Unsigned
     B_Type Unsigned
@@ -176,6 +179,7 @@ proc add_averager_module {module_name bram_addr_width args} {
     CONST_VAL   $minus_threshold_val
   } {
     dout threshold/B
+  }
   }
 
   # Start counting once FIFO read enabled

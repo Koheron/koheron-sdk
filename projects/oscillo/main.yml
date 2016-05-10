@@ -32,6 +32,8 @@ config_offsets:
   - avg1
   - period0
   - period1
+  - threshold0
+  - threshold1
 
 status_offsets:
   - spi_out
