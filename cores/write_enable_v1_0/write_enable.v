@@ -12,7 +12,7 @@ module write_enable #
   output wire                  wen,
   output wire [BRAM_WIDTH-1:0] count,
   output wire                  init,
-  output reg                   ready
+  output wire                  ready
 );
 
   reg [BRAM_WIDTH-1:0] count1;
@@ -24,7 +24,6 @@ module write_enable #
 
   always @(posedge clk) begin
     if (restart) begin
-      ready <= 0;
       count1 <= 0;
       count1_running <= 1;
     end
@@ -54,7 +53,6 @@ module write_enable #
       init_reg <= 0;
     end else begin
       if (count2 == count_max) begin
-        ready <= 1;
         count2_running <= 0;
         init_reg <= 0;
       end else if (count2 == (count_max-2)) begin
@@ -69,7 +67,8 @@ module write_enable #
 
   assign wen = count2_running;
   assign count = count2;
-  assign init = init_reg;
+  assign init = init_reg;  
+  assign ready = ~count1_running && ~count2_running;
 
 endmodule
 

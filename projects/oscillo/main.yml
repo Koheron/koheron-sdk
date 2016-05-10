@@ -39,6 +39,8 @@ status_offsets:
   - spi_out
   - n_avg0
   - n_avg1
+  - avg_ready0
+  - avg_ready1
 
 parameters:
   bram_addr_width: 13

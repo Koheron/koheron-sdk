@@ -27,4 +27,5 @@ for {set i 0} {$i < 2} {incr i} {
   connect_pins $avg_name/dout        blk_mem_gen_$adc_bram_name/dinb
   connect_pins $avg_name/wen         blk_mem_gen_$adc_bram_name/web
   connect_pins $avg_name/n_avg       sts/In[set config::n_avg${i}_offset]
+  connect_pins $avg_name/ready       sts/In[set config::avg_ready${i}_offset]
 }

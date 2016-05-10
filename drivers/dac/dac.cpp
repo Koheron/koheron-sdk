@@ -71,4 +71,3 @@ void Dac::reset_acquisition()
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
     Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
 }
-
