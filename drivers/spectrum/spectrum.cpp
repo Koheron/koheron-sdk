@@ -41,6 +41,15 @@ int Spectrum::Open()
         
         set_averaging(true);
         set_address_range(0, WFM_SIZE);
+
+        uint32_t period = WFM_SIZE;
+
+        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD0_OFF, period - 1);
+        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD0_OFF, period - 6);
+
+        Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
+        Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
+
         status = OPENED;
     }
     

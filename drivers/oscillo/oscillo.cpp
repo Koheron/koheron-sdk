@@ -35,14 +35,12 @@ int Oscillo::Open()
    
         raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
         raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
-
-        status = OPENED;
-        
+      
         // Reset averaging
         set_averaging(false);
 
         uint32_t period0 = 8192;
-        uint32_t period1 = 1024;
+        uint32_t period1 = 8192;
 
         Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD0_OFF, period0 - 1);
         Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD1_OFF, period1 - 1);
@@ -52,6 +50,8 @@ int Oscillo::Open()
 
         Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
         Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
+
+        status = OPENED;
     }
     
     return 0;
