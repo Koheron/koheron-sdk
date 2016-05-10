@@ -26,4 +26,5 @@ set address_name address
 add_address_module $address_name $config::bram_addr_width $adc_clk
 connect_pins $address_name/clk  $adc_clk
 connect_pins $address_name/cfg  $config_name/Out$config::addr_offset
+connect_pins $address_name/period  $config_name/Out$config::period1_offset
 source lib/connect_dac_bram.tcl
