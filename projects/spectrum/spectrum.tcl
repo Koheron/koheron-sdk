@@ -71,6 +71,7 @@ connect_pins $avg_name/dout        blk_mem_gen_$spectrum_bram_name/dinb
 connect_pins $avg_name/wen         blk_mem_gen_$spectrum_bram_name/web
 
 connect_pins $avg_name/n_avg      $status_name/In$config::n_avg_offset
+connect_pins $avg_name/ready      $status_name/In$config::avg_ready_offset
 
 # Add peak detector
 

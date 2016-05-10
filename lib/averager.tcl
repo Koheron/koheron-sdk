@@ -32,6 +32,7 @@ proc add_averager_module {module_name bram_addr_width args} {
   create_bd_pin -dir O -from 3                         -to 0 wen
   create_bd_pin -dir O -from 31                        -to 0 n_avg
   create_bd_pin -dir O -from 31                        -to 0 addr
+  create_bd_pin -dir O                                       ready
 
   set add_latency 3
   set sr_latency 1
@@ -237,6 +238,7 @@ proc add_averager_module {module_name bram_addr_width args} {
     end_cycle counter/end_cycle
     init counter/sclr
     count_max period
+    ready ready
   }
 
   connect_pins write_enable_0/init sr_avg_off_en/CE

@@ -48,6 +48,7 @@ status_offsets:
   - n_avg
   - peak_address
   - peak_maximum
+  - avg_ready
 
 parameters:
   bram_addr_width: 12
