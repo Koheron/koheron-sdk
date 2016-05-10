@@ -5,19 +5,23 @@ module write_enable_tb();
   parameter BRAM_WIDTH = 5;
 
   reg                   restart;
-  reg  [BRAM_WIDTH-1:0] address;
+  reg                   end_cycle;
+  reg  [BRAM_WIDTH-1:0] count_max;
   reg                   clk;
   wire                  wen;
   wire [BRAM_WIDTH-1:0] count;
   wire                  init;
+  wire                  ready;
 
   write_enable #(.BRAM_WIDTH(BRAM_WIDTH)) DUT (
     .restart(restart),
-    .address(address),
+    .end_cycle(end_cycle),
+    .count_max(count_max),
     .clk(clk),
     .wen(wen),
     .count(count),
-    .init(init)    
+    .init(init),
+    .ready(ready)
   );
 
   parameter CLK_PERIOD = 8;
@@ -25,11 +29,12 @@ module write_enable_tb();
   initial begin
     clk = 1;
     restart = 0;
-    address = 5'b00110;
+    end_cycle = 0;
+    count_max = 31;
     #(10*CLK_PERIOD) restart = 1;
     #(1*CLK_PERIOD) restart = 0;
-    #(5*CLK_PERIOD) address = 5'b11111;
-    #(CLK_PERIOD) address = 5'b00000;
+    #(5*CLK_PERIOD) end_cycle = 1;
+    #(CLK_PERIOD) end_cycle = 0;
     #(100*CLK_PERIOD)
     $finish;
   end

@@ -60,6 +60,8 @@ add_averager_module $avg_name $config::bram_addr_width
 connect_pins $avg_name/clk         $adc_clk
 connect_pins $avg_name/restart     $address_name/restart
 connect_pins $avg_name/avg_off     $config_name/Out$config::avg_off_offset
+connect_pins $avg_name/period      $config_name/Out$config::period0_offset
+connect_pins $avg_name/threshold   $config_name/Out$config::threshold0_offset
 
 connect_pins $subtract_name/m_axis_result_tdata  $avg_name/din
 connect_pins $subtract_name/m_axis_result_tvalid $avg_name/tvalid
@@ -69,6 +71,7 @@ connect_pins $avg_name/dout        blk_mem_gen_$spectrum_bram_name/dinb
 connect_pins $avg_name/wen         blk_mem_gen_$spectrum_bram_name/web
 
 connect_pins $avg_name/n_avg      $status_name/In$config::n_avg_offset
+connect_pins $avg_name/ready      $status_name/In$config::avg_ready_offset
 
 # Add peak detector
 

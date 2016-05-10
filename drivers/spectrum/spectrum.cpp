@@ -41,6 +41,12 @@ int Spectrum::Open()
         
         set_averaging(true);
         set_address_range(0, WFM_SIZE);
+
+        uint32_t period = WFM_SIZE;
+
+        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD0_OFF, period - 1);
+        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD0_OFF, period - 6);
+
         status = OPENED;
     }
     
@@ -74,7 +80,12 @@ void Spectrum::_wait_for_acquisition()
 {
     // The overhead of sleep_for might be of the order of our waiting time:
     // http://stackoverflow.com/questions/18071664/stdthis-threadsleep-for-and-nanoseconds
-    std::this_thread::sleep_for(std::chrono::microseconds(ACQ_TIME_US));
+    // std::this_thread::sleep_for(std::chrono::microseconds(ACQ_TIME_US));
+
+    uint32_t ready;
+    do {
+        ready = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+AVG_READY_OFF);
+    } while (ready == 0);
 }
 
 std::array<float, WFM_SIZE>& Spectrum::get_spectrum()

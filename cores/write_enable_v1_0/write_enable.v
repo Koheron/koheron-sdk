@@ -6,11 +6,13 @@ module write_enable #
 )
 (
   input  wire                  restart,
-  input  wire [BRAM_WIDTH-1:0] address,
+  input  wire                  end_cycle,
+  input  wire [BRAM_WIDTH-1:0] count_max,
   input  wire                  clk,
   output wire                  wen,
   output wire [BRAM_WIDTH-1:0] count,
-  output wire                  init
+  output wire                  init,
+  output wire                  ready
 );
 
   reg [BRAM_WIDTH-1:0] count1;
@@ -22,48 +24,51 @@ module write_enable #
 
   always @(posedge clk) begin
     if (restart) begin
-      count1 <= {(BRAM_WIDTH){1'b0}};
-      count1_running <= 1'b1;
+      count1 <= 0;
+      count1_running <= 1;
     end
-    else begin 
-      if (count1 != {(BRAM_WIDTH){1'b1}}) begin
+    else begin
+      if (count1 != count_max) begin
         count1 <= count1 + 1;
       end else begin
-        count1_running <= 1'b0;
+        count1_running <= 0;
       end
     end
   end
 
   always @(posedge clk) begin
-    if (count1_running && (address == {{(BRAM_WIDTH-1){1'b1}},1'b1})) begin
-      rst <= 1'b1;
+    if (count1_running && end_cycle) begin
+      // end of period
+      rst <= 1;
     end else begin
-      rst <= 1'b0;
+      rst <= 0;
     end
   end
 
   always @(posedge clk) begin
     if (rst) begin
-      count2 <= {(BRAM_WIDTH){1'b0}};
-      count2_running <= 1'b1;
-      init_reg <= 1'b0;
-    end else begin 
-      if (count2 != {(BRAM_WIDTH){1'b1}}) begin
+      // start period
+      count2 <= 0;
+      count2_running <= 1;
+      init_reg <= 0;
+    end else begin
+      if (count2 == count_max) begin
+        count2_running <= 0;
+        init_reg <= 0;
+      end else if (count2 == (count_max-2)) begin
         count2 <= count2 + 1;
-        init_reg <= 1'b0;
-        if (count2 == {{(BRAM_WIDTH-2){1'b1}},1'b0,1'b1}) begin
-          init_reg <= 1'b1;
-        end
+        init_reg <= 1;
       end else begin
-        count2_running <= 1'b0;
-        init_reg <= 1'b0;
+        count2 <= count2 + 1;
+        init_reg <= 0;
       end
     end
   end
 
   assign wen = count2_running;
   assign count = count2;
-  assign init = init_reg;
+  assign init = init_reg;  
+  assign ready = ~count1_running && ~count2_running;
 
 endmodule
 

@@ -35,11 +35,20 @@ int Oscillo::Open()
    
         raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
         raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
-
-        status = OPENED;
-        
+      
         // Reset averaging
         set_averaging(false);
+
+        uint32_t period0 = 8192;
+        uint32_t period1 = 8192;
+
+        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD0_OFF, period0 - 1);
+        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD1_OFF, period1 - 1);
+
+        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD0_OFF, period0 - 6);
+        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD1_OFF, period1 - 6);
+
+        status = OPENED;
     }
     
     return 0;
@@ -49,7 +58,15 @@ void Oscillo::_wait_for_acquisition()
 {
     // The overhead of sleep_for might be of the order of our waiting time:
     // http://stackoverflow.com/questions/18071664/stdthis-threadsleep-for-and-nanoseconds
-    std::this_thread::sleep_for(std::chrono::microseconds(ACQ_TIME_US));
+    //std::this_thread::sleep_for(std::chrono::microseconds(int(0.1 * ACQ_TIME_US)));
+    
+    uint32_t ready0;
+    uint32_t ready1;
+    do {
+        ready0 = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+AVG_READY0_OFF);
+        ready1 = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+AVG_READY1_OFF);
+    } while (ready0 == 0 || ready1 == 0);
+    
 }
 
 // http://stackoverflow.com/questions/12276675/modulus-with-negative-numbers-in-c
@@ -74,9 +91,13 @@ std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     _wait_for_acquisition();
     uint32_t *raw_data = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_map));
-
-    if(avg_on) {
-        float num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF));  
+    float num_avg;
+    if (avg_on) {
+        if (channel) {
+        num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG0_OFF));  
+        } else {
+            num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF));  
+        }
         for(unsigned int i=0; i < WFM_SIZE; i++)
             data[i] = _raw_to_float(raw_data[i]) / num_avg;
     } else {
@@ -93,11 +114,12 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     _wait_for_acquisition();
 
-    if(avg_on) {
-        float num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF)); 
+    if (avg_on) {
+        float num_avg0 = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG0_OFF));
+        float num_avg1 = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF)); 
         for(unsigned int i=0; i<WFM_SIZE; i++) {
-            data_all[i] = _raw_to_float(raw_data_1[i]) / num_avg;
-            data_all[i + WFM_SIZE] = _raw_to_float(raw_data_2[i]) / num_avg;
+            data_all[i] = _raw_to_float(raw_data_1[i]) / num_avg0;
+            data_all[i + WFM_SIZE] = _raw_to_float(raw_data_2[i]) / num_avg1;
         }
     } else {
         for(unsigned int i=0; i<WFM_SIZE; i++) {
