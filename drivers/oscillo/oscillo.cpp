@@ -48,9 +48,6 @@ int Oscillo::Open()
         Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD0_OFF, period0 - 6);
         Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD1_OFF, period1 - 6);
 
-        Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
-        Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
-
         status = OPENED;
     }
     
@@ -61,7 +58,15 @@ void Oscillo::_wait_for_acquisition()
 {
     // The overhead of sleep_for might be of the order of our waiting time:
     // http://stackoverflow.com/questions/18071664/stdthis-threadsleep-for-and-nanoseconds
-    std::this_thread::sleep_for(std::chrono::microseconds(ACQ_TIME_US));
+    //std::this_thread::sleep_for(std::chrono::microseconds(int(0.1 * ACQ_TIME_US)));
+    
+    uint32_t ready0;
+    uint32_t ready1;
+    do {
+        ready0 = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+AVG_READY0_OFF);
+        ready1 = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+AVG_READY1_OFF);
+    } while (ready0 == 0 || ready1 == 0);
+    
 }
 
 // http://stackoverflow.com/questions/12276675/modulus-with-negative-numbers-in-c
