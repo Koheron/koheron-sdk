@@ -6,7 +6,7 @@ module write_enable #
 )
 (
   input  wire                  restart,
-  input  wire [BRAM_WIDTH-1:0] address,
+  input  wire                  end_cycle,
   input  wire [BRAM_WIDTH-1:0] count_max,
   input  wire                  clk,
   output wire                  wen,
@@ -25,10 +25,9 @@ module write_enable #
     if (restart) begin
       count1 <= 0;
       count1_running <= 1'b1;
-      count_max_reg <= count_max;
     end
-    else begin 
-      if (count1 != count_max_reg) begin
+    else begin
+      if (count1 != count_max) begin
         count1 <= count1 + 1;
       end else begin
         count1_running <= 1'b0;
@@ -37,7 +36,7 @@ module write_enable #
   end
 
   always @(posedge clk) begin
-    if (count1_running && (address == count_max_reg)) begin
+    if (count1_running && end_cycle) begin
       // end of period
       rst <= 1'b1;
     end else begin
@@ -52,10 +51,10 @@ module write_enable #
       count2_running <= 1'b1;
       init_reg <= 1'b0;
     end else begin 
-      if (count2 != count_max_reg) begin
+      if (count2 != count_max) begin
         count2 <= count2 + 1;
         init_reg <= 1'b0;
-        if (count2 == (count_max_reg-2)) begin
+        if (count2 == (count_max-2)) begin
           init_reg <= 1'b1;
         end
       end else begin

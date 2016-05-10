@@ -40,6 +40,12 @@ int Oscillo::Open()
         
         // Reset averaging
         set_averaging(false);
+
+        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD0_OFF, 8191);
+        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD1_OFF, 2047);
+
+        Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
+        Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
     }
     
     return 0;
