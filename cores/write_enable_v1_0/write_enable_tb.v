@@ -11,6 +11,7 @@ module write_enable_tb();
   wire                  wen;
   wire [BRAM_WIDTH-1:0] count;
   wire                  init;
+  wire                  ready;
 
   write_enable #(.BRAM_WIDTH(BRAM_WIDTH)) DUT (
     .restart(restart),
@@ -19,7 +20,8 @@ module write_enable_tb();
     .clk(clk),
     .wen(wen),
     .count(count),
-    .init(init)    
+    .init(init),
+    .ready(ready)
   );
 
   parameter CLK_PERIOD = 8;
