@@ -22,6 +22,7 @@ module address_generator_tb();
   initial begin
     clk = 1;
     count_max = 63;
+    sclr = 0;    
     #(10*CLK_PERIOD) sclr = 1;
     #(1*CLK_PERIOD) sclr = 0;
     #(100*CLK_PERIOD)

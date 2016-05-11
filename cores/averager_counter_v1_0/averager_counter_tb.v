@@ -30,7 +30,7 @@ module averager_counter_tb();
     .ready(ready),
     .wen(wen),
     .n_avg(n_avg),
-    .address(address),
+    .address(address)
   );
 
   parameter CLK_PERIOD = 8;

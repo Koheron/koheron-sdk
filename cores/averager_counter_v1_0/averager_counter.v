@@ -37,14 +37,14 @@ module averager_counter #
     if (restart) begin
       init_restart <= 1;
       ready <= 0;
-    end
-  end
-
-  // Wait for beginning of new cycle
-  always @(posedge clk) begin
-    if (init_restart && (fast_count == count_max_reg)) begin
-      wen <= 1;
-      init_restart <= 0;
+    end else if (fast_count == count_max_reg) begin
+      if (wen) begin 
+        ready <= 1;
+      end else begin
+        if (init_restart) begin
+          init_restart <= 0;
+        end
+      end    
     end
   end
 
@@ -65,9 +65,11 @@ module averager_counter #
           wen <= 0;
           slow_count <= 0;
           n_avg <= slow_count;
-          ready <= 1;
         end else begin
           slow_count <= slow_count + 1;
+          if (init_restart) begin
+            wen <= 1;
+          end
         end
       end else begin
         fast_count <= fast_count + 1;
