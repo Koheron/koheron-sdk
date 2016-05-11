@@ -13,8 +13,6 @@
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
-#define ACQ_TIME_US uint32_t(2*(WFM_SIZE*1E6)/SAMPLING_RATE)
-
 #define FIFO_BUFF_SIZE 4096
 
 class Spectrum

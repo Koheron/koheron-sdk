@@ -79,10 +79,6 @@ void Oscillo::reset_acquisition()
 
 void Oscillo::_wait_for_acquisition()
 {
-    // The overhead of sleep_for might be of the order of our waiting time:
-    // http://stackoverflow.com/questions/18071664/stdthis-threadsleep-for-and-nanoseconds
-    //std::this_thread::sleep_for(std::chrono::microseconds(int(0.1 * ACQ_TIME_US)));
-    
     uint32_t ready0;
     uint32_t ready1;
     do {

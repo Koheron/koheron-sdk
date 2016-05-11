@@ -100,10 +100,6 @@ void Spectrum::set_noise_floor_buffer(const uint32_t *data, uint32_t len)
 
 void Spectrum::_wait_for_acquisition()
 {
-    // The overhead of sleep_for might be of the order of our waiting time:
-    // http://stackoverflow.com/questions/18071664/stdthis-threadsleep-for-and-nanoseconds
-    // std::this_thread::sleep_for(std::chrono::microseconds(ACQ_TIME_US));
-
     uint32_t ready;
     do {
         ready = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+AVG_READY_OFF);

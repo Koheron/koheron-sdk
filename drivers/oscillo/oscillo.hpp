@@ -13,7 +13,6 @@
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE ADC1_RANGE/sizeof(float)
-#define ACQ_TIME_US uint32_t(2*(WFM_SIZE*1E6)/SAMPLING_RATE)
 
 class Oscillo
 {
