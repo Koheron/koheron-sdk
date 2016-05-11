@@ -149,8 +149,6 @@ proc add_averager_module {module_name bram_addr_width args} {
   # Enable reading FIFO once 
   # data_count == 2**$bram_addr_width - $add_latency - $sr_latency - $fifo_rd_latency)
 
-  set minus_threshold_val [expr $add_latency+$sr_latency+$sr_avg_off_latency+$fifo_rd_latency-1]
-
   cell koheron:user:comparator:1.0 comp {
     DATA_WIDTH $bram_addr_width
     OPERATION "GE"
@@ -160,123 +158,31 @@ proc add_averager_module {module_name bram_addr_width args} {
     dout fifo/rd_en
   }
 
-  if 0 {
-  cell xilinx.com:ip:c_addsub:12.0 threshold {
-    A_Type Unsigned
-    B_Type Unsigned
-    A_Width $bram_addr_width
-    B_Width $bram_addr_width
-    Add_Mode Subtract
-    CE false
-    Out_Width $bram_addr_width
-  } {
-    A period
-    S comp/b
-    CLK clk
-  }
-
-  cell xilinx.com:ip:xlconstant:1.1 minus_threshold {
-    CONST_WIDTH $bram_addr_width
-    CONST_VAL   $minus_threshold_val
-  } {
-    dout threshold/B
-  }
-  }
-
   # Start counting once FIFO read enabled
 
   set fast_count_width $bram_addr_width
   set slow_count_width [expr 32 - $bram_addr_width]
 
-  cell koheron:user:cycle_counter:1.0 counter {
+  cell koheron:user:averager_counter:1.0 averager_counter {
     FAST_COUNT_WIDTH $fast_count_width
     SLOW_COUNT_WIDTH $slow_count_width
   } {
     clk clk
     clken comp/dout
     count_max period
-  }
-
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_fast_count {
-    Width.VALUE_SRC USER
-    Width $fast_count_width
-    Depth 2
-  } {
-    CLK clk
-    D counter/fast_count
-  }
-
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_slow_count {
-    Width.VALUE_SRC USER
-    Width $slow_count_width
-    Depth 2
-  } {
-    CLK clk
-    D counter/slow_count
-  }
-
-  # Number of averages
-
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_n_avg {
-    Width.VALUE_SRC USER
-    Width $slow_count_width
-    CE    true
-    Depth 1
-  } {
-    CLK clk
-    D shift_slow_count/Q
-    Q n_avg
-  }
-
-  # Write enable
-
-  cell koheron:user:write_enable:1.0 write_enable_0 {
-    BRAM_WIDTH $bram_addr_width
-  } {
-    clk clk
     restart restart
-    end_cycle counter/end_cycle
-    init counter/sclr
-    count_max period
+    n_avg n_avg
+    init sr_avg_off_en/CE
     ready ready
+    wen shift_reg/SCLR
+    address addr
   }
-
-  connect_pins write_enable_0/init sr_avg_off_en/CE
-  connect_pins write_enable_0/wen  shift_reg_n_avg/CE
-  connect_pins write_enable_0/wen  shift_reg/SCLR
 
   cell xilinx.com:ip:xlconcat:2.1 concat_wen {NUM_PORTS 4} {dout wen}
 
   for {set i 0} {$i < 4} {incr i} {
-    connect_pins concat_wen/In$i write_enable_0/wen
+    connect_pins concat_wen/In$i averager_counter/wen
   }
-
-  # Connect address
-
-  cell xilinx.com:ip:xlconcat:2.1 concat_addr {
-    NUM_PORTS 3
-    IN0_WIDTH.VALUE_SRC USER IN0_WIDTH 2
-    IN1_WIDTH.VALUE_SRC USER IN1_WIDTH $bram_addr_width
-    IN2_WIDTH.VALUE_SRC USER IN2_WIDTH [expr 32-2-$bram_addr_width]
-  } {
-    In1 shift_fast_count/Q
-    dout addr
-  }
-
-  cell xilinx.com:ip:xlconstant:1.1 xlconstant_0 {
-    CONST_WIDTH 2
-    CONST_VAL   0
-  } {
-    dout concat_addr/In0
-  }
-
-  cell xilinx.com:ip:xlconstant:1.1 xlconstant_2 {
-    CONST_WIDTH [expr 32-2-$bram_addr_width]
-    CONST_VAL   0
-  } {
-    dout concat_addr/In2
-  }
-
 
   current_bd_instance $bd
 
