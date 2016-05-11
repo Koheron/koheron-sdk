@@ -23,6 +23,14 @@ class Spectrum
     Spectrum(Klib::DevMem& dev_mem_);
 
     int Open();
+
+    void reset();
+
+    #pragma tcp-server write_array arg{data} arg{len}
+    void set_dac_buffer(const uint32_t *data, uint32_t len);
+
+    void reset_acquisition();
+
     void set_scale_sch(uint32_t scale_sch);
     void set_offset(uint32_t offset_real, uint32_t offset_imag);
 
@@ -73,6 +81,7 @@ class Spectrum
     Klib::MemMapID demod_map;
     Klib::MemMapID noise_floor_map;
     Klib::MemMapID peak_fifo_map;
+    Klib::MemMapID dac_map;
 
     // Acquired data buffers
     float *raw_data;

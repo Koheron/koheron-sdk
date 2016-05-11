@@ -55,7 +55,6 @@ drivers:
   - drivers/device_memory
   - drivers/gpio
   - drivers/xadc
-  - drivers/dac
   - drivers/laser
   - drivers/init
   - drivers/oscillo

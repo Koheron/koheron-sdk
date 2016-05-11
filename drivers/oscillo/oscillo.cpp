@@ -16,11 +16,12 @@ Oscillo::Oscillo(Klib::DevMem& dev_mem_)
 int Oscillo::Open()
 {
     if(status == CLOSED) {
-        auto ids = dev_mem.RequestMemoryMaps<4>({{
+        auto ids = dev_mem.RequestMemoryMaps<5>({{
             { CONFIG_ADDR, CONFIG_RANGE },
             { STATUS_ADDR, STATUS_RANGE },
             { ADC1_ADDR  , ADC1_RANGE   },
-            { ADC2_ADDR  , ADC2_RANGE   }
+            { ADC2_ADDR  , ADC2_RANGE   },
+            { DAC_ADDR   , DAC_RANGE    }
         }});
 
         if (dev_mem.CheckMapIDs(ids) < 0) {
@@ -32,6 +33,7 @@ int Oscillo::Open()
         status_map = ids[1];
         adc_1_map  = ids[2];
         adc_2_map  = ids[3];
+        dac_map    = ids[4];
    
         raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
         raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
@@ -53,6 +55,27 @@ int Oscillo::Open()
     
     return 0;
 }
+
+void Oscillo::reset()
+{
+    assert(status == OPENED);
+    // Config
+    Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
+    Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 0);
+}
+
+void Oscillo::set_dac_buffer(const uint32_t *data, uint32_t len)
+{
+    for (uint32_t i=0; i<len; i++)
+        Klib::WriteReg32(dev_mem.GetBaseAddr(dac_map) + sizeof(uint32_t) * i, data[i]);
+}
+
+void Oscillo::reset_acquisition()
+{
+    Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
+    Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
+}
+
 
 void Oscillo::_wait_for_acquisition()
 {

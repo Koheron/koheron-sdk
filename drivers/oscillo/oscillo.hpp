@@ -22,6 +22,13 @@ class Oscillo
 
     int Open();
 
+    void reset();
+
+    #pragma tcp-server write_array arg{data} arg{len}
+    void set_dac_buffer(const uint32_t *data, uint32_t len);
+
+    void reset_acquisition();
+
     std::array<float, WFM_SIZE>& read_data(bool channel);
 
     std::array<float, 2*WFM_SIZE>& read_all_channels();
@@ -55,6 +62,7 @@ class Oscillo
     Klib::MemMapID status_map;
     Klib::MemMapID adc_1_map;
     Klib::MemMapID adc_2_map;
+    Klib::MemMapID dac_map;
     
     // Acquired data buffers
     std::array<float, WFM_SIZE> data;
