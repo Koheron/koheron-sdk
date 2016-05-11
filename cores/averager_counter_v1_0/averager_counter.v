@@ -64,7 +64,7 @@ module averager_counter #
         if (wen) begin
           wen <= 0;
           slow_count <= 0;
-          n_avg <= slow_count;
+          n_avg <= slow_count + 1;
         end else begin
           slow_count <= slow_count + 1;
           if (init_restart) begin
