@@ -26,7 +26,6 @@ PROC = ps7_cortexa9_0
 
 # Custom commands
 VIVADO_VERSION = 2015.4
-VIVADO_PATH = /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh
 VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
@@ -184,7 +183,7 @@ $(DTREE_DIR): $(DTREE_TAR)
 $(TMP)/%.tree/system.dts: $(TMP)/%.hwdef $(DTREE_DIR)
 	mkdir -p $(@D)
 	$(HSI) -source scripts/devicetree.tcl -tclargs $* $(PROC) $(DTREE_DIR)
-	#patch $@ $(PATCHES)/devicetree.patch
+	patch $@ $(PATCHES)/devicetree.patch
 
 ###############################################################################
 # Linux
