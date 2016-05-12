@@ -16,12 +16,13 @@ source lib/spectrum.tcl
 set spectrum_name spectrum_0
 set spectrum_bram_name spectrum_bram
 set n_pts_fft [expr 2**$config::bram_addr_width]
-add_spectrum $spectrum_name $n_pts_fft $config::adc_width $adc_clk
+add_spectrum $spectrum_name $n_pts_fft $config::adc_width
 
 for {set i 1} {$i < 3} {incr i} {
   connect_pins spectrum_0/adc$i adc_dac/adc$i
 }
 
+connect_pins $spectrum_name/clk        $adc_clk
 connect_pins $spectrum_name/tvalid     shift_tvalid/Q
 connect_pins $spectrum_name/cfg_sub    $config_name/Out$config::substract_mean_offset
 connect_pins $spectrum_name/cfg_fft    $config_name/Out$config::cfg_fft_offset

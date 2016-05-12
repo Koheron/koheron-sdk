@@ -1,0 +1,8 @@
+---
+project: averager_test
+parent: default
+board: red-pitaya
+
+parameters:
+  bram_addr_width: 12
+  adc_width: 14
