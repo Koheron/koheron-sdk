@@ -14,7 +14,7 @@ module averager_tb();
 
   wire [3:0]wen;
   wire [31:0]dout;
-  wire [32-WIDTH-1:0]n_avg;
+  wire [32-WIDTH-1:0] n_avg;
   wire ready;
   wire [WIDTH+1:0]addr;
 
@@ -37,14 +37,14 @@ module averager_tb();
   parameter CLK_PERIOD = 8;
 
   initial begin
-    clk = 1;
+    clk = 0;
     avg_off = 0;
     din = 0;
     restart = 0;
-    period = 255;
-    threshold = 250;
+    period = 2**WIDTH - 1;
+    threshold = 2**WIDTH - 6;
     tvalid = 0;    
-    #(128*CLK_PERIOD) tvalid = 1;
+    #(CLK_PERIOD * 2**(WIDTH-1)) tvalid = 1;
     #(50*CLK_PERIOD) restart = 1;
     #(CLK_PERIOD) restart = 0;    
     #(5000 * CLK_PERIOD) restart = 1;
@@ -57,8 +57,8 @@ module averager_tb();
   always #(CLK_PERIOD/2) clk = ~clk;
   
   always begin
-    #(CLK_PERIOD * 128) din = 1;
-    #(CLK_PERIOD * 128) din = 0;
+    #(CLK_PERIOD * 2**(WIDTH-1)) din = 1;
+    #(CLK_PERIOD * 2**(WIDTH-1)) din = 0;
   end   
 
 endmodule
