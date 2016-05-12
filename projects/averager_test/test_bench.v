@@ -7,9 +7,9 @@ module averager_tb();
   reg avg_off;
   reg clk;
   reg [13:0]din;
-  reg [31:0]period;
+  reg [WIDTH-1:0]period;
   reg restart;
-  reg [31:0]threshold;
+  reg [WIDTH-1:0]threshold;
   reg tvalid;
 
   wire [3:0]wen;

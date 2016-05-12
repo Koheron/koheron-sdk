@@ -18,22 +18,25 @@ proc add_averager_module {module_name bram_addr_width args} {
     puts "type == float"
   }
 
+  set fast_count_width $bram_addr_width
+  set slow_count_width [expr 32 - $bram_addr_width]
+
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir I -type clk                             clk
-  create_bd_pin -dir I                                       avg_off
-  create_bd_pin -dir I                                       tvalid
-  create_bd_pin -dir I                                       restart
-  create_bd_pin -dir I -from 31                        -to 0 period
-  create_bd_pin -dir I -from 31                        -to 0 threshold
-  create_bd_pin -dir I -from [expr $width-1]           -to 0 din
-  create_bd_pin -dir O -from 31                        -to 0 dout
-  create_bd_pin -dir O -from 3                         -to 0 wen
-  create_bd_pin -dir O -from 31                        -to 0 n_avg
-  create_bd_pin -dir O -from 31                        -to 0 addr
-  create_bd_pin -dir O                                       ready
-
+  create_bd_pin -dir I -type clk                              clk
+  create_bd_pin -dir I                                        avg_off
+  create_bd_pin -dir I                                        tvalid
+  create_bd_pin -dir I                                        restart
+  create_bd_pin -dir I -from [expr $fast_count_width-1] -to 0 period
+  create_bd_pin -dir I -from [expr $slow_count_width-1] -to 0 threshold
+  create_bd_pin -dir I -from [expr $width-1]            -to 0 din
+  create_bd_pin -dir O -from 31                         -to 0 dout
+  create_bd_pin -dir O -from 3                          -to 0 wen
+  create_bd_pin -dir O -from [expr $slow_count_width-1] -to 0 n_avg
+  create_bd_pin -dir O -from 31                         -to 0 addr
+  create_bd_pin -dir O                                        ready
+ 
   set add_latency 3
   set sr_latency 1
   set sr_avg_off_latency 1
@@ -61,7 +64,6 @@ proc add_averager_module {module_name bram_addr_width args} {
       Out_Width         32
       CE                false
       Latency           $add_latency
-      Reset_Pin         false
     } {
       CLK clk
       B   din
@@ -150,9 +152,6 @@ proc add_averager_module {module_name bram_addr_width args} {
   }
 
   # Start counting once FIFO read enabled
-
-  set fast_count_width $bram_addr_width
-  set slow_count_width [expr 32 - $bram_addr_width]
 
   cell koheron:user:averager_counter:1.0 averager_counter {
     FAST_COUNT_WIDTH $fast_count_width
