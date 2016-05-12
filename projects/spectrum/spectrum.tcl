@@ -16,12 +16,13 @@ source lib/spectrum.tcl
 set spectrum_name spectrum_0
 set spectrum_bram_name spectrum_bram
 set n_pts_fft [expr 2**$config::bram_addr_width]
-add_spectrum $spectrum_name $n_pts_fft $config::adc_width $adc_clk
+add_spectrum $spectrum_name $n_pts_fft $config::adc_width
 
 for {set i 1} {$i < 3} {incr i} {
   connect_pins spectrum_0/adc$i adc_dac/adc$i
 }
 
+connect_pins $spectrum_name/clk        $adc_clk
 connect_pins $spectrum_name/tvalid     shift_tvalid/Q
 connect_pins $spectrum_name/cfg_sub    $config_name/Out$config::substract_mean_offset
 connect_pins $spectrum_name/cfg_fft    $config_name/Out$config::cfg_fft_offset
@@ -60,6 +61,8 @@ add_averager_module $avg_name $config::bram_addr_width
 connect_pins $avg_name/clk         $adc_clk
 connect_pins $avg_name/restart     $address_name/restart
 connect_pins $avg_name/avg_off     $config_name/Out$config::avg_off_offset
+connect_pins $avg_name/period      $config_name/Out$config::period0_offset
+connect_pins $avg_name/threshold   $config_name/Out$config::threshold0_offset
 
 connect_pins $subtract_name/m_axis_result_tdata  $avg_name/din
 connect_pins $subtract_name/m_axis_result_tvalid $avg_name/tvalid
@@ -69,6 +72,7 @@ connect_pins $avg_name/dout        blk_mem_gen_$spectrum_bram_name/dinb
 connect_pins $avg_name/wen         blk_mem_gen_$spectrum_bram_name/web
 
 connect_pins $avg_name/n_avg      $status_name/In$config::n_avg_offset
+connect_pins $avg_name/ready      $status_name/In$config::avg_ready_offset
 
 # Add peak detector
 
