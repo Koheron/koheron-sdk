@@ -63,6 +63,7 @@ module averager_counter #
       if (fast_count == count_max_reg) begin
         fast_count <= 0;
         if (wen) begin
+          count_max_reg <= count_max;
           wen <= 0;
           slow_count <= 0;
           n_avg <= slow_count + 1;
