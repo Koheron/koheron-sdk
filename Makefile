@@ -10,6 +10,9 @@
 LD_LIBRARY_PATH =
 TMP = tmp
 
+# Set to True when running in a container
+DOCKER=False
+
 # Project specific variables
 NAME = blink
 
@@ -66,7 +69,7 @@ SHA = $(shell cat $(SHA_FILE))
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 DRIVERS_DIR = $(TMP)/$(NAME)/drivers
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/server/kserverd
-TCP_SERVER_SHA = master
+TCP_SERVER_SHA = binary_protocol
 
 PYTHON_DIR = $(TMP)/$(NAME).python
 PYTHON_ZIP = $(PYTHON_DIR)/python.zip
@@ -232,7 +235,7 @@ $(TCP_SERVER): $(TCP_SERVER_DIR) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIV
 	cp `find $(DRIVERS_DIR) -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers
 	mkdir -p $(TCP_SERVER_DIR)/middleware/drivers/lib
 	cp `find drivers/lib -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers/lib
-	cd $(TCP_SERVER_DIR) && make CONFIG=config.yaml
+	cd $(TCP_SERVER_DIR) && make DOCKER=$(DOCKER) CONFIG=config.yaml
 
 tcp-server_cli: $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
