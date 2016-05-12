@@ -1,5 +1,5 @@
 
-proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
+proc add_spectrum_module {module_name n_pts_fft adc_width} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
@@ -13,10 +13,6 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
   create_bd_pin -dir I                                   tvalid
   create_bd_pin -dir O -from 31                    -to 0 m_axis_result_tdata
   create_bd_pin -dir O                                   m_axis_result_tvalid
-
-  #create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 M_AXIS_RESULT
-
-  connect_pins clk /$clk
 
   for {set i 1} {$i < 3} {incr i} {
     cell xilinx.com:ip:c_addsub:12.0 subtract_$i {
@@ -32,13 +28,24 @@ proc add_spectrum_module {module_name n_pts_fft adc_width clk} {
     }
   }
 
-  cell xilinx.com:ip:xlconcat:2.1 concat_0 {
-    IN0_WIDTH $adc_width
-    IN1_WIDTH $adc_width
+  cell xilinx.com:ip:xlconstant:1.1 two_zeros {
+    CONST_WIDTH 2
+    CONST_VAL 0
   } {}
 
+  cell xilinx.com:ip:xlconcat:2.1 concat_0 {
+    NUM_PORTS 4
+    IN0_WIDTH $adc_width
+    IN1_WIDTH [expr 16 - $adc_width]
+    IN2_WIDTH $adc_width
+    IN3_WIDTH [expr 16 - $adc_width]
+  } {
+    In1 two_zeros/dout
+    In3 two_zeros/dout
+  }
+
   for {set i 1} {$i < 3} {incr i} {
-    connect_pins subtract_$i/S concat_0/In[expr $i-1]
+    connect_pins subtract_$i/S concat_0/In[expr 2*($i-1)]
   }
 
   cell xilinx.com:ip:cmpy:6.0 complex_mult {

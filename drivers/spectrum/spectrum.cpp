@@ -15,13 +15,14 @@ Spectrum::Spectrum(Klib::DevMem& dev_mem_)
 int Spectrum::Open()
 {
     if (status == CLOSED) {
-        auto ids = dev_mem.RequestMemoryMaps<6>({{
+        auto ids = dev_mem.RequestMemoryMaps<7>({{
             { CONFIG_ADDR      , CONFIG_RANGE      },
             { STATUS_ADDR      , STATUS_RANGE      },
             { SPECTRUM_ADDR    , SPECTRUM_RANGE    },
             { DEMOD_ADDR       , DEMOD_RANGE       },
             { NOISE_FLOOR_ADDR , NOISE_FLOOR_RANGE },
-            { PEAK_FIFO_ADDR   , PEAK_FIFO_RANGE   }
+            { PEAK_FIFO_ADDR   , PEAK_FIFO_RANGE   },
+            { DAC_ADDR         , DAC_RANGE         }
         }});
 
         if (dev_mem.CheckMapIDs(ids) < 0) {
@@ -35,16 +36,43 @@ int Spectrum::Open()
         demod_map       = ids[3];
         noise_floor_map = ids[4];
         peak_fifo_map   = ids[5];
+        dac_map         = ids[6];
         
         raw_data = reinterpret_cast<float*>(dev_mem.GetBaseAddr(spectrum_map));
         fifo.set_address(dev_mem.GetBaseAddr(peak_fifo_map));
         
         set_averaging(true);
         set_address_range(0, WFM_SIZE);
+
+        uint32_t period = WFM_SIZE;
+
+        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD0_OFF, period - 1);
+        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD0_OFF, period - 6);
+
         status = OPENED;
     }
     
     return 0;
+}
+
+void Spectrum::reset()
+{
+    assert(status == OPENED);
+    // Config
+    Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
+    Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 0);
+}
+
+void Spectrum::set_dac_buffer(const uint32_t *data, uint32_t len)
+{
+    for (uint32_t i=0; i<len; i++)
+        Klib::WriteReg32(dev_mem.GetBaseAddr(dac_map) + sizeof(uint32_t) * i, data[i]);
+}
+
+void Spectrum::reset_acquisition()
+{
+    Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
+    Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);
 }
 
 void Spectrum::set_scale_sch(uint32_t scale_sch)
@@ -72,9 +100,10 @@ void Spectrum::set_noise_floor_buffer(const uint32_t *data, uint32_t len)
 
 void Spectrum::_wait_for_acquisition()
 {
-    // The overhead of sleep_for might be of the order of our waiting time:
-    // http://stackoverflow.com/questions/18071664/stdthis-threadsleep-for-and-nanoseconds
-    std::this_thread::sleep_for(std::chrono::microseconds(ACQ_TIME_US));
+    uint32_t ready;
+    do {
+        ready = Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+AVG_READY_OFF);
+    } while (ready == 0);
 }
 
 std::array<float, WFM_SIZE>& Spectrum::get_spectrum()

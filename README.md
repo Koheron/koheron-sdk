@@ -1,5 +1,7 @@
 # zynq-sdk
 
+[![Circle CI](https://circleci.com/gh/Koheron/zynq-sdk.svg?style=shield)](https://circleci.com/gh/Koheron/zynq-sdk)
+
 #### `Software Development Kit for Zynq-based instruments`
 
 ### Goals
