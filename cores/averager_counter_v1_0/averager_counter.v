@@ -18,7 +18,7 @@ module averager_counter #
 );
 
   reg [FAST_COUNT_WIDTH-1:0] count_max_reg;
-  reg clken_reg;
+  reg clken_reg, clken_reg_;
   reg init_restart;
   reg [FAST_COUNT_WIDTH-1:0] fast_count;
   reg [SLOW_COUNT_WIDTH-1:0] slow_count;
@@ -58,7 +58,8 @@ module averager_counter #
   end
 
   always @(posedge clk) begin
-    clken_reg <= clken;
+    clken_reg_ <= clken;
+    clken_reg <= clken_reg_;
     if (clken_reg) begin
       if (fast_count == count_max_reg) begin
         fast_count <= 0;
