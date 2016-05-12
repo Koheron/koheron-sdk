@@ -157,7 +157,15 @@ proc add_averager_module {module_name bram_addr_width args} {
   } {
     a fifo/data_count
     b threshold
-    dout fifo/rd_en
+  }
+
+  cell xilinx.com:ip:util_vector_logic:2.0 wr_en_and_comp {
+    C_OPERATION and
+    C_SIZE 1
+  } {
+    Op1 comp/dout
+    Op2 wen_shift_reg/Q
+    Res fifo/rd_en
   }
 
   # Start counting once FIFO read enabled
@@ -167,7 +175,7 @@ proc add_averager_module {module_name bram_addr_width args} {
     SLOW_COUNT_WIDTH $slow_count_width
   } {
     clk clk
-    clken comp/dout
+    clken wr_en_and_comp/Res
     count_max period
     restart restart
     n_avg n_avg

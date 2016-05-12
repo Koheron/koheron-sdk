@@ -41,9 +41,12 @@ module averager_tb();
     avg_off = 0;
     din = 0;
     restart = 0;
+    tvalid = 0;
+    period = 0;
+    threshold = 0;
+    #(CLK_PERIOD * 2**(WIDTH-1))
     period = 2**WIDTH - 1;
     threshold = 2**WIDTH - 6;
-    tvalid = 0;    
     #(CLK_PERIOD * 2**(WIDTH-1)) tvalid = 1;
     #(50*CLK_PERIOD) restart = 1;
     #(CLK_PERIOD) restart = 0;    
