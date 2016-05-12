@@ -51,8 +51,17 @@ proc add_averager_module {module_name bram_addr_width args} {
     Reset_Pin        false
   } {
     clk clk
-    dout dout
   }
+
+  cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_dout {
+    Width.VALUE_SRC USER
+    Width 32
+    Depth 1
+  } {
+    CLK clk
+    D   fifo/dout
+    Q   dout
+   }
 
   # Create Adder (depends on input type)
   if { $type == "fix" } {	  
