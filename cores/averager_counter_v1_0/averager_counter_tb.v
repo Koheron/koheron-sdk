@@ -9,8 +9,6 @@ module averager_counter_tb();
   reg                          clken;
   reg [FAST_COUNT_WIDTH-1:0]   count_max;
   reg                          clk;
-  wire [FAST_COUNT_WIDTH-1:0]  fast_count;
-  wire [FAST_COUNT_WIDTH-1:0]  slow_count;
   wire                         init;
   wire                         ready;
   wire                         wen;
@@ -24,8 +22,6 @@ module averager_counter_tb();
     .clken(clken),
     .count_max(count_max),
     .clk(clk),
-    .fast_count(fast_count),
-    .slow_count(slow_count),
     .init(init),
     .ready(ready),
     .wen(wen),
