@@ -4,7 +4,7 @@ machine:
 dependencies:
   override:
     - docker info
-    - docker pull jeanminet/tcp-server
+    - docker build -t koheron/zynq-sdk .
 test:
   pre:
-    - docker run jeanminet/tcp-server bash docker_tests.sh
+    - docker run koheron/zynq-sdk bash docker_tests.sh
