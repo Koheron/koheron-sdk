@@ -26,6 +26,8 @@ RUN pip install --upgrade pip
 WORKDIR $work_dir/
 COPY . $work_dir/
 
+RUN pip install -r requirements.txt
+
 # ---------------------------------------
 # Build project servers
 # ---------------------------------------
