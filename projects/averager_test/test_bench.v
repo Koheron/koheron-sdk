@@ -48,10 +48,21 @@ module averager_tb();
     period = 2**WIDTH - 1;
     threshold = 2**WIDTH - 6;
     #(CLK_PERIOD * 2**(WIDTH-1)) tvalid = 1;
+
     #(50*CLK_PERIOD) restart = 1;
-    #(CLK_PERIOD) restart = 0;    
-    #(5000 * CLK_PERIOD) restart = 1;
     #(CLK_PERIOD) restart = 0;
+    #(10 * CLK_PERIOD) avg_off = 1;
+ 
+    #(2000 * CLK_PERIOD) restart = 1;
+    #(CLK_PERIOD) restart = 0;
+    #(10 * CLK_PERIOD) avg_off = 0;
+
+    #(2000 * CLK_PERIOD) restart = 1;
+    #(CLK_PERIOD) restart = 0;
+
+    #(2000 * CLK_PERIOD) restart = 1;
+    #(CLK_PERIOD) restart = 0;
+
     #(100000*CLK_PERIOD)
     
     $finish;
