@@ -1,11 +1,10 @@
 machine:
   services:
     - docker
-
 dependencies:
   override:
     - docker info
-
+    - docker pull jeanminet/tcp-server
 test:
   pre:
-    - docker build -t koheron/zynq-sdk .
+    - docker run jeanminet/tcp-server bash docker_tests.sh
