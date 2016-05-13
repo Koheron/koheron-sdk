@@ -1,9 +1,0 @@
-Jinja2==2.7.3
-MarkupSafe==0.23
-PyYAML==3.11
-argparse==1.2.1
-pyparsing==2.0.3
-tabulate==0.7.5
-wsgiref==0.1.2
-CppHeaderParser==2.7.2
-datetime
