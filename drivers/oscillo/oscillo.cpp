@@ -9,7 +9,6 @@ Oscillo::Oscillo(Klib::DevMem& dev_mem_)
 : dev_mem(dev_mem_)
 , data_decim(0)
 {
-    avg_on = false;
     status = CLOSED;
 }
 
@@ -111,6 +110,8 @@ std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
     _wait_for_acquisition();
     uint32_t *raw_data = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_map));
     float num_avg;
+    uint32_t avg_on = bool(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+AVG_ON_OUT0_OFF));
+
     if (avg_on) {
         if (channel) {
         num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG0_OFF));  
@@ -132,6 +133,7 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     _wait_for_acquisition();
+    uint32_t avg_on = bool(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+AVG_ON_OUT0_OFF));
 
     if (avg_on) {
         float num_avg0 = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG0_OFF));
@@ -165,6 +167,7 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor, uint
     data_decim.resize(2*n_pts);
     _wait_for_acquisition();
 
+    uint32_t avg_on = bool(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+AVG_ON_OUT0_OFF));
     if(avg_on) {
         float num_avg = float(get_num_average()); 
         for(unsigned int i=0; i<n_pts; i++) {
@@ -181,20 +184,18 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor, uint
     return data_decim;
 }
 
-void Oscillo::set_averaging(bool avg_status)
+void Oscillo::set_averaging(bool avg_on)
 {
-    avg_on = avg_status;
-    
     if(avg_on) {
-        Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+AVG0_OFF, 0);
-        Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+AVG1_OFF, 0);
-    } else {
         Klib::SetBit(dev_mem.GetBaseAddr(config_map)+AVG0_OFF, 0);
         Klib::SetBit(dev_mem.GetBaseAddr(config_map)+AVG1_OFF, 0);
+    } else {
+        Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+AVG0_OFF, 0);
+        Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+AVG1_OFF, 0);
     }
 }
 
 uint32_t Oscillo::get_num_average()
 {
-    return avg_on ? Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF) : 0;
+    return Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG0_OFF);
 }

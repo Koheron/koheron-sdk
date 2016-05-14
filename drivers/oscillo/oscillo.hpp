@@ -34,7 +34,7 @@ class Oscillo
 
     std::vector<float>& read_all_channels_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high);
 
-    void set_averaging(bool avg_status);
+    void set_averaging(bool avg_on);
     
     uint32_t get_num_average();
 
@@ -51,7 +51,6 @@ class Oscillo
     Klib::DevMem& dev_mem;
 
     int status;
-    bool avg_on; // True if averaging is enabled
 
     uint32_t *raw_data_1 = nullptr;
     uint32_t *raw_data_2 = nullptr;

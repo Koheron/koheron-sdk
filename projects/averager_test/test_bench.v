@@ -40,7 +40,7 @@ module averager_tb();
 
   initial begin
     clk = 0;
-    avg_on = 0;
+    avg_on = 1;
     din = 0;
     restart = 0;
     tvalid = 0;
@@ -53,16 +53,20 @@ module averager_tb();
 
     #(50*CLK_PERIOD) restart = 1;
     #(CLK_PERIOD) restart = 0;
-    #(10 * CLK_PERIOD) avg_on = 0;
+    #(10 * CLK_PERIOD) avg_on = 1;
  
     #(2000 * CLK_PERIOD) restart = 1;
     #(CLK_PERIOD) restart = 0;
+    #(10 * CLK_PERIOD) avg_on = 1;
+
+    #(2000 * CLK_PERIOD) restart = 1;
+    #(CLK_PERIOD) restart = 0;
     #(10 * CLK_PERIOD) avg_on = 0;
 
     #(2000 * CLK_PERIOD) restart = 1;
     #(CLK_PERIOD) restart = 0;
 
-    #(2000 * CLK_PERIOD) restart = 1;
+    #(1000 * CLK_PERIOD) restart = 1;
     #(CLK_PERIOD) restart = 0;
 
     #(100000*CLK_PERIOD)

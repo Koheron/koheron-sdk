@@ -25,7 +25,7 @@ module averager_counter #
   reg [FAST_COUNT_WIDTH-1:0] fast_count;
   reg [SLOW_COUNT_WIDTH-1:0] slow_count;
   reg [SLOW_COUNT_WIDTH-1:0] n_avg;
-  reg avg_on_out_reg;
+  reg avg_on_out_reg0, avg_on_out_reg1;
 
   initial begin
     init_restart <= 0;
@@ -55,7 +55,8 @@ module averager_counter #
   always @(posedge clk) begin
     if ((wen) && (fast_count == (count_max_reg - 2))) begin
       clr_fback <= ~avg_on;
-      avg_on_out_reg <= avg_on;
+      avg_on_out_reg0 <= avg_on;
+      avg_on_out_reg1 <= avg_on_out_reg0;
     end
   end
 
@@ -70,7 +71,7 @@ module averager_counter #
           wen <= 0;
           slow_count <= 0;
           n_avg <= slow_count + 1;
-          avg_on_out <= avg_on_out_reg;
+          avg_on_out <= avg_on_out_reg1;
         end else begin
           slow_count <= slow_count + 1;
           if (init_restart) begin
