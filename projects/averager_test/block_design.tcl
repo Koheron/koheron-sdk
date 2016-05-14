@@ -11,8 +11,8 @@ set slow_count_width [expr 32 - $config::bram_addr_width]
 create_bd_port -dir I -type clk clk
 connect_bd_net [get_bd_pins /$module/clk] [get_bd_ports clk]
 
-create_bd_port -dir I avg_off
-connect_bd_net [get_bd_pins /$module/avg_off] [get_bd_ports avg_off]
+create_bd_port -dir I avg_on
+connect_bd_net [get_bd_pins /$module/avg_on] [get_bd_ports avg_on]
 
 create_bd_port -dir I -from [expr $config::adc_width - 1] -to 0 din
 connect_bd_net [get_bd_pins /$module/din] [get_bd_ports din]
@@ -44,3 +44,5 @@ connect_bd_net [get_bd_pins /$module/dout] [get_bd_ports dout]
 create_bd_port -dir O ready
 connect_bd_net [get_bd_pins /$module/ready] [get_bd_ports ready]
 
+create_bd_port -dir O avg_on_out
+connect_bd_net [get_bd_pins /$module/avg_on_out] [get_bd_ports avg_on_out]

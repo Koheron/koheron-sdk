@@ -70,8 +70,6 @@ class Spectrum
     Klib::DevMem& dev_mem;
     int status;
 
-    bool avg_on; // True if averaging is enabled
-
     // Memory maps IDs:
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;

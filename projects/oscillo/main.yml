@@ -41,6 +41,9 @@ status_offsets:
   - n_avg1
   - avg_ready0
   - avg_ready1
+  - avg_on_out0
+  - avg_on_out1
+
 
 parameters:
   bram_addr_width: 13
@@ -49,7 +52,7 @@ parameters:
   pwm_width: 10
   n_pwm: 4
   config_size: 16
-  status_size: 16
+  status_size: 32
 
 drivers:
   - drivers/device_memory

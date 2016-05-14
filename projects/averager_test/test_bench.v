@@ -4,7 +4,7 @@ module averager_tb();
 
   parameter WIDTH = 8;
   
-  reg avg_off;
+  reg avg_on;
   reg clk;
   reg [13:0]din;
   reg [WIDTH-1:0]period;
@@ -16,12 +16,13 @@ module averager_tb();
   wire [31:0]dout;
   wire [32-WIDTH-1:0] n_avg;
   wire ready;
+  wire avg_on_out;
   wire [WIDTH+1:0]addr;
 
   system_wrapper
   DUT (
     .addr(addr),
-    .avg_off(avg_off),
+    .avg_on(avg_on),
     .clk(clk),
     .din(din),
     .dout(dout),
@@ -31,14 +32,15 @@ module averager_tb();
     .restart(restart),
     .threshold(threshold),
     .tvalid(tvalid),
-    .wen(wen)  
+    .wen(wen),
+    .avg_on_out(avg_on_out) 
   );
 
   parameter CLK_PERIOD = 8;
 
   initial begin
     clk = 0;
-    avg_off = 0;
+    avg_on = 1;
     din = 0;
     restart = 0;
     tvalid = 0;
@@ -51,16 +53,20 @@ module averager_tb();
 
     #(50*CLK_PERIOD) restart = 1;
     #(CLK_PERIOD) restart = 0;
-    #(10 * CLK_PERIOD) avg_off = 1;
+    #(10 * CLK_PERIOD) avg_on = 1;
  
     #(2000 * CLK_PERIOD) restart = 1;
     #(CLK_PERIOD) restart = 0;
-    #(10 * CLK_PERIOD) avg_off = 0;
+    #(10 * CLK_PERIOD) avg_on = 1;
+
+    #(2000 * CLK_PERIOD) restart = 1;
+    #(CLK_PERIOD) restart = 0;
+    #(10 * CLK_PERIOD) avg_on = 0;
 
     #(2000 * CLK_PERIOD) restart = 1;
     #(CLK_PERIOD) restart = 0;
 
-    #(2000 * CLK_PERIOD) restart = 1;
+    #(1000 * CLK_PERIOD) restart = 1;
     #(CLK_PERIOD) restart = 0;
 
     #(100000*CLK_PERIOD)
