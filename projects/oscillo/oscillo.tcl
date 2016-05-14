@@ -3,6 +3,7 @@ source lib/averager.tcl
 ###########################################################
 # Add ADC BRAMs
 ###########################################################
+
 for {set i 0} {$i < 2} {incr i} {
   set channel [lindex {a b} $i]
   set adc_bram_name adc${i}_bram
@@ -18,7 +19,7 @@ for {set i 0} {$i < 2} {incr i} {
 
   connect_pins $avg_name/clk         $adc_clk
   connect_pins $avg_name/restart     $address_name/restart
-  connect_pins $avg_name/avg_on     $config_name/Out[set config::avg${i}_offset]
+  connect_pins $avg_name/avg_on      $config_name/Out[set config::avg${i}_offset]
   connect_pins $avg_name/period      $config_name/Out[set config::period${i}_offset]
   connect_pins $avg_name/threshold   $config_name/Out[set config::threshold${i}_offset]
   connect_pins $avg_name/tvalid      $address_name/tvalid
