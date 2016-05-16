@@ -23,6 +23,8 @@ class Oscillo
 
     void reset();
 
+    void set_period(uint32_t period);
+
     #pragma tcp-server write_array arg{data} arg{len}
     void set_dac_buffer(const uint32_t *data, uint32_t len);
 

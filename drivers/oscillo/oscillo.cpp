@@ -40,20 +40,23 @@ int Oscillo::Open()
         // Reset averaging
         set_averaging(false);
 
-        uint32_t period0 = 8192;
-        uint32_t period1 = 8192;
-
-        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD0_OFF, period0 - 1);
-        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD1_OFF, period1 - 1);
-
-        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD0_OFF, period0 - 6);
-        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD1_OFF, period1 - 6);
+        set_period(8192);
 
         status = OPENED;
     }
     
     return 0;
 }
+
+void Oscillo::set_period(uint32_t period)
+{
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD0_OFF, period - 1);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD1_OFF, period - 1);
+
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD0_OFF, period - 6);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD1_OFF, period - 6);
+}
+
 
 void Oscillo::reset()
 {
