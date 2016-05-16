@@ -25,7 +25,7 @@ proc add_averager_module {module_name bram_addr_width args} {
   current_bd_instance [create_bd_cell -type hier $module_name]
 
   create_bd_pin -dir I -type clk                              clk
-  create_bd_pin -dir I                                        avg_off
+  create_bd_pin -dir I                                        avg_on
   create_bd_pin -dir I                                        tvalid
   create_bd_pin -dir I                                        restart
   create_bd_pin -dir I -from [expr $fast_count_width-1] -to 0 period
@@ -36,6 +36,7 @@ proc add_averager_module {module_name bram_addr_width args} {
   create_bd_pin -dir O -from [expr $slow_count_width-1] -to 0 n_avg
   create_bd_pin -dir O -from 31                         -to 0 addr
   create_bd_pin -dir O                                        ready
+  create_bd_pin -dir O                                        avg_on_out
  
   set add_latency 3
   set sr_latency 1
@@ -125,17 +126,6 @@ proc add_averager_module {module_name bram_addr_width args} {
     D fifo/dout
   }
 
-  cell xilinx.com:ip:c_shift_ram:12.0 sr_avg_off_en {
-    Width.VALUE_SRC USER
-    Width 1
-    Depth 1
-    CE true
-  } {
-    CLK clk
-    Q sr_avg_off/SCLR
-    D avg_off
-  }
-
   # Connect FIFO/dout to Adder (insert shift register)
   cell xilinx.com:ip:c_shift_ram:12.0 shift_reg {
     Width.VALUE_SRC USER
@@ -179,10 +169,12 @@ proc add_averager_module {module_name bram_addr_width args} {
     count_max period
     restart restart
     n_avg n_avg
-    init sr_avg_off_en/CE
+    avg_on avg_on
     ready ready
     wen shift_reg/SCLR
     address addr
+    clr_fback sr_avg_off/SCLR
+    avg_on_out avg_on_out
   }
 
   cell xilinx.com:ip:xlconcat:2.1 concat_wen {NUM_PORTS 4} {dout wen}

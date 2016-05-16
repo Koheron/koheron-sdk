@@ -10,10 +10,12 @@ module averager_counter #
   input  wire                         clken,
   input  wire [FAST_COUNT_WIDTH-1:0]  count_max,
   input  wire                         clk,
-  output reg                          init,
+  input  wire                         avg_on,
   output reg                          ready,
   output reg                          wen,
   output reg  [SLOW_COUNT_WIDTH-1:0]  n_avg,
+  output reg                          clr_fback,
+  output reg                          avg_on_out,
   output wire [FAST_COUNT_WIDTH+1:0]  address
 );
 
@@ -23,6 +25,7 @@ module averager_counter #
   reg [FAST_COUNT_WIDTH-1:0] fast_count;
   reg [SLOW_COUNT_WIDTH-1:0] slow_count;
   reg [SLOW_COUNT_WIDTH-1:0] n_avg;
+  reg avg_on_out_reg0, avg_on_out_reg1;
 
   initial begin
     init_restart <= 0;
@@ -45,15 +48,15 @@ module averager_counter #
         if (init_restart) begin
           init_restart <= 0;
         end
-      end    
+      end
     end
   end
 
   always @(posedge clk) begin
     if ((wen) && (fast_count == (count_max_reg - 2))) begin
-      init <= 1;
-    end else begin
-      init <= 0;
+      clr_fback <= ~avg_on;
+      avg_on_out_reg0 <= avg_on;
+      avg_on_out_reg1 <= avg_on_out_reg0;
     end
   end
 
@@ -68,6 +71,7 @@ module averager_counter #
           wen <= 0;
           slow_count <= 0;
           n_avg <= slow_count + 1;
+          avg_on_out <= avg_on_out_reg1;
         end else begin
           slow_count <= slow_count + 1;
           if (init_restart) begin

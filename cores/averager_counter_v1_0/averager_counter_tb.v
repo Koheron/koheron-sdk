@@ -9,9 +9,11 @@ module averager_counter_tb();
   reg                          clken;
   reg [FAST_COUNT_WIDTH-1:0]   count_max;
   reg                          clk;
-  wire                         init;
+  reg                          avg_on;
+  wire                         clr_fback;
   wire                         ready;
   wire                         wen;
+  wire                         avg_on_out;
   wire [SLOW_COUNT_WIDTH-1:0]  n_avg;
   wire [FAST_COUNT_WIDTH+1:0]  address;
 
@@ -22,10 +24,12 @@ module averager_counter_tb();
     .clken(clken),
     .count_max(count_max),
     .clk(clk),
-    .init(init),
+    .avg_on(avg_on),
+    .clr_fback(clr_fback),
     .ready(ready),
     .wen(wen),
     .n_avg(n_avg),
+    .avg_on_out(avg_on_out),
     .address(address)
   );
 
@@ -36,10 +40,14 @@ module averager_counter_tb();
     restart = 0;
     clken = 0;
     count_max = 15;
+    avg_on = 1;
     #(10*CLK_PERIOD) clken = 1;
     #(40 *CLK_PERIOD) restart = 1;
     #(1*CLK_PERIOD) restart = 0;
-    #(100*CLK_PERIOD)
+    #(100*CLK_PERIOD) avg_on = 0;
+    #(500*CLK_PERIOD) restart = 1;
+    #(1*CLK_PERIOD) restart = 0;
+    #(1000*CLK_PERIOD) 
     $finish;
   end
   

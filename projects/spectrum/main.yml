@@ -36,7 +36,7 @@ config_offsets:
   - addr
   - substract_mean
   - cfg_fft
-  - avg_off
+  - avg_on
   - peak_address_low
   - peak_address_high
   - peak_address_reset
@@ -49,6 +49,7 @@ status_offsets:
   - peak_address
   - peak_maximum
   - avg_ready
+  - avg_on_out
 
 parameters:
   bram_addr_width: 12

@@ -110,6 +110,8 @@ std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
 {
     Klib::SetBit(dev_mem.GetBaseAddr(config_map) + ADDR_OFF, 1);    
     _wait_for_acquisition();
+    uint32_t avg_on = bool(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+AVG_ON_OUT_OFF));
+
     if (avg_on) {
         float num_avg = float(get_num_average());
         for(unsigned int i=0; i<WFM_SIZE; i++)
@@ -134,6 +136,7 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
     uint32_t n_pts = (index_high - index_low)/decim_factor;
     spectrum_decim.resize(n_pts);
     _wait_for_acquisition();
+    uint32_t avg_on = bool(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+AVG_ON_OUT_OFF));
 
     if (avg_on) {
         float num_avg = float(get_num_average());
@@ -149,14 +152,12 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
     return spectrum_decim;
 }
 
-void Spectrum::set_averaging(bool avg_status)
+void Spectrum::set_averaging(bool avg_on)
 {
-    avg_on = avg_status;
-    
     if(avg_on)
-        Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + AVG_OFF_OFF, 0);
+        Klib::SetBit(dev_mem.GetBaseAddr(config_map) + AVG_ON_OFF, 0);
     else
-        Klib::SetBit(dev_mem.GetBaseAddr(config_map) + AVG_OFF_OFF, 0);
+        Klib::ClearBit(dev_mem.GetBaseAddr(config_map) + AVG_ON_OFF, 0);
 }
 
 uint32_t Spectrum::get_num_average()
