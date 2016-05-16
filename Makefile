@@ -69,7 +69,7 @@ SHA = $(shell cat $(SHA_FILE))
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 DRIVERS_DIR = $(TMP)/$(NAME)/drivers
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/server/kserverd
-TCP_SERVER_SHA = develop
+TCP_SERVER_SHA = v0.4
 
 PYTHON_DIR = $(TMP)/$(NAME).python
 PYTHON_ZIP = $(PYTHON_DIR)/python.zip
