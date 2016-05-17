@@ -1,5 +1,5 @@
 ---
-project: address_test
+project: address_module
 parent: default
 board: red-pitaya
 

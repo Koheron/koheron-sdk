@@ -1,5 +1,5 @@
 source projects/$project_name/config.tcl
-source lib/averager.tcl
+source projects/$project_name/averager.tcl
 
 set module averager
 

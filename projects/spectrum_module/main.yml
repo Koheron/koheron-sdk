@@ -1,5 +1,5 @@
 ---
-project: averager_test
+project: spectrum_module
 parent: default
 board: red-pitaya
 

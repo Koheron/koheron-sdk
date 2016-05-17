@@ -1,4 +1,4 @@
-source lib/averager.tcl
+source projects/averager_module/averager.tcl
 
 ###########################################################
 # Add ADC BRAMs

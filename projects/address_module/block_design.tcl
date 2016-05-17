@@ -1,5 +1,5 @@
 source projects/$project_name/config.tcl
-source lib/address.tcl
+source projects/$project_name/address.tcl
 
 set module address
 

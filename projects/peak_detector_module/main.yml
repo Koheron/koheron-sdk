@@ -1,5 +1,5 @@
 ---
-project: peak_detector_test
+project: peak_detector_module
 parent: default
 board: red-pitaya
 

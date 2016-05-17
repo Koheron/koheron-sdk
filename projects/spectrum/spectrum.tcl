@@ -11,7 +11,7 @@ cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
 }
 
 # Add spectrum IP
-source lib/spectrum.tcl
+source projects/spectrum_module/spectrum.tcl
 
 set spectrum_name spectrum_0
 set spectrum_bram_name spectrum_bram
@@ -54,7 +54,7 @@ connect_pins $subtract_name/s_axis_tdata $spectrum_name/m_axis_result_tdata
 connect_pins $subtract_name/s_axis_tvalid $spectrum_name/m_axis_result_tvalid
 
 # Add averaging module
-source lib/averager.tcl
+source projects/averager_module/averager.tcl
 set avg_name avg
 add_averager_module $avg_name $config::bram_addr_width
 
@@ -77,7 +77,7 @@ connect_pins $avg_name/avg_on_out sts/In$config::avg_on_out_offset
 
 # Add peak detector
 
-source lib/peak_detector.tcl
+source projects/peak_detector_module/peak_detector.tcl
 set peak_detector_name peak
 add_peak_detector $peak_detector_name $config::bram_addr_width
 
