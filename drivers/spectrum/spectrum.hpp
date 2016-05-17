@@ -22,6 +22,8 @@ class Spectrum
 
     int Open();
 
+    void set_period(uint32_t period);
+
     void reset();
 
     #pragma tcp-server write_array arg{data} arg{len}

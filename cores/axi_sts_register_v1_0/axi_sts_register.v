@@ -16,13 +16,22 @@ module axi_sts_register #
   input  wire [STS_DATA_WIDTH-1:0] sts_data,
 
   // Slave side
-  input  wire [AXI_ADDR_WIDTH-1:0]   s_axi_araddr,  // AXI4-Lite slave: Read address
-  input  wire                        s_axi_arvalid, // AXI4-Lite slave: Read address valid
-  output wire                        s_axi_arready, // AXI4-Lite slave: Read address ready
-  output wire [AXI_DATA_WIDTH-1:0]   s_axi_rdata,   // AXI4-Lite slave: Read data
-  output wire [1:0]                  s_axi_rresp,   // AXI4-Lite slave: Read data response
-  output wire                        s_axi_rvalid,  // AXI4-Lite slave: Read data valid
-  input  wire                        s_axi_rready   // AXI4-Lite slave: Read data ready
+  input  wire [AXI_ADDR_WIDTH-1:0] s_axi_awaddr,  // AXI4-Lite slave: Write address
+  input  wire                      s_axi_awvalid, // AXI4-Lite slave: Write address valid
+  output wire                      s_axi_awready, // AXI4-Lite slave: Write address ready
+  input  wire [AXI_DATA_WIDTH-1:0] s_axi_wdata,   // AXI4-Lite slave: Write data
+  input  wire                      s_axi_wvalid,  // AXI4-Lite slave: Write data valid
+  output wire                      s_axi_wready,  // AXI4-Lite slave: Write data ready
+  output wire [1:0]                s_axi_bresp,   // AXI4-Lite slave: Write response
+  output wire                      s_axi_bvalid,  // AXI4-Lite slave: Write response valid
+  input  wire                      s_axi_bready,  // AXI4-Lite slave: Write response ready
+  input  wire [AXI_ADDR_WIDTH-1:0] s_axi_araddr,  // AXI4-Lite slave: Read address
+  input  wire                      s_axi_arvalid, // AXI4-Lite slave: Read address valid
+  output wire                      s_axi_arready, // AXI4-Lite slave: Read address ready
+  output wire [AXI_DATA_WIDTH-1:0] s_axi_rdata,   // AXI4-Lite slave: Read data
+  output wire [1:0]                s_axi_rresp,   // AXI4-Lite slave: Read data response
+  output wire                      s_axi_rvalid,  // AXI4-Lite slave: Read data valid
+  input  wire                      s_axi_rready   // AXI4-Lite slave: Read data ready
 );
 
   function integer clogb2 (input integer value);
@@ -33,7 +42,6 @@ module axi_sts_register #
   localparam integer STS_SIZE = STS_DATA_WIDTH/AXI_DATA_WIDTH;
   localparam integer STS_WIDTH = STS_SIZE > 1 ? clogb2(STS_SIZE-1) : 1;
 
-  reg int_arready_reg, int_arready_next;
   reg int_rvalid_reg, int_rvalid_next;
   reg [AXI_DATA_WIDTH-1:0] int_rdata_reg, int_rdata_next;
 
@@ -52,13 +60,11 @@ module axi_sts_register #
   begin
     if(~aresetn)
     begin
-      int_arready_reg <= 1'b0;
       int_rvalid_reg <= 1'b0;
       int_rdata_reg <= {(AXI_DATA_WIDTH){1'b0}};
     end
     else
     begin
-      int_arready_reg <= int_arready_next;
       int_rvalid_reg <= int_rvalid_next;
       int_rdata_reg <= int_rdata_next;
     end
@@ -66,20 +72,13 @@ module axi_sts_register #
 
   always @*
   begin
-    int_arready_next = int_arready_reg;
     int_rvalid_next = int_rvalid_reg;
     int_rdata_next = int_rdata_reg;
 
     if(s_axi_arvalid)
     begin
-      int_arready_next = 1'b1;
       int_rvalid_next = 1'b1;
       int_rdata_next = int_data_mux[s_axi_araddr[ADDR_LSB+STS_WIDTH-1:ADDR_LSB]];
-    end
-
-    if(int_arready_reg)
-    begin
-      int_arready_next = 1'b0;
     end
 
     if(s_axi_rready & int_rvalid_reg)
@@ -90,7 +89,7 @@ module axi_sts_register #
 
   assign s_axi_rresp = 2'd0;
 
-  assign s_axi_arready = int_arready_reg;
+  assign s_axi_arready = 1'b1;
   assign s_axi_rdata = int_rdata_reg;
   assign s_axi_rvalid = int_rvalid_reg;
 

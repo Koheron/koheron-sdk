@@ -23,7 +23,7 @@ add_bram $dac_bram_name $config::axi_dac_range $config::axi_dac_offset 00
 # Add address module
 source lib/address.tcl
 set address_name address
-add_address_module $address_name $config::bram_addr_width $adc_clk
+add_address_module $address_name $config::bram_addr_width
 connect_pins $address_name/clk  $adc_clk
 connect_pins $address_name/cfg  $config_name/Out$config::addr_offset
 connect_pins $address_name/period  $config_name/Out$config::period0_offset
