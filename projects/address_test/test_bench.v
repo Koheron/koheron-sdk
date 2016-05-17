@@ -26,9 +26,11 @@ module address_tb();
 
   initial begin
     clk = 0;
+    cfg = 2'b00;
     #(10 * CLK_PERIOD) period = 2**WIDTH - 1; 
     #(10 * CLK_PERIOD) cfg = 2'b01;
     #(10 * CLK_PERIOD) cfg = 2'b11;
+    #(10000 * CLK_PERIOD)
     $finish;
   end
   
