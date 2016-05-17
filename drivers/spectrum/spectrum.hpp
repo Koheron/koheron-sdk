@@ -13,8 +13,6 @@
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
-#define ACQ_TIME_US uint32_t(2*(WFM_SIZE*1E6)/SAMPLING_RATE)
-
 #define FIFO_BUFF_SIZE 4096
 
 class Spectrum
@@ -23,6 +21,16 @@ class Spectrum
     Spectrum(Klib::DevMem& dev_mem_);
 
     int Open();
+
+    void set_period(uint32_t period);
+
+    void reset();
+
+    #pragma tcp-server write_array arg{data} arg{len}
+    void set_dac_buffer(const uint32_t *data, uint32_t len);
+
+    void reset_acquisition();
+
     void set_scale_sch(uint32_t scale_sch);
     void set_offset(uint32_t offset_real, uint32_t offset_imag);
 
@@ -64,8 +72,6 @@ class Spectrum
     Klib::DevMem& dev_mem;
     int status;
 
-    bool avg_on; // True if averaging is enabled
-
     // Memory maps IDs:
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
@@ -73,6 +79,7 @@ class Spectrum
     Klib::MemMapID demod_map;
     Klib::MemMapID noise_floor_map;
     Klib::MemMapID peak_fifo_map;
+    Klib::MemMapID dac_map;
 
     // Acquired data buffers
     float *raw_data;

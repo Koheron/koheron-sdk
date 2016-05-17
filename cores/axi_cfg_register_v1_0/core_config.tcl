@@ -9,8 +9,8 @@ set_property VENDOR {pavel-demin} $core
 set_property VENDOR_DISPLAY_NAME {Pavel Demin} $core
 set_property COMPANY_URL {https://github.com/pavel-demin/red-pitaya-notes} $core
 
-core_parameter AXI_ADDR_WIDTH {AXI ADDR WIDTH} {Width of the AXI address bus.}
 core_parameter AXI_DATA_WIDTH {AXI DATA WIDTH} {Width of the AXI data bus.}
+core_parameter AXI_ADDR_WIDTH {AXI ADDR WIDTH} {Width of the AXI address bus.}
 core_parameter CFG_DATA_WIDTH {CFG DATA WIDTH} {Width of the configuration data.}
 
 set bus [ipx::get_bus_interfaces -of_objects $core s_axi]

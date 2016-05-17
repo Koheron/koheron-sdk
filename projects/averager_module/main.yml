@@ -1,0 +1,12 @@
+---
+project: averager_module
+parent: default
+board: red-pitaya
+
+cores:
+  - comparator_v1_0
+  - averager_counter_v1_0
+
+parameters:
+  bram_addr_width: 8
+  adc_width: 14

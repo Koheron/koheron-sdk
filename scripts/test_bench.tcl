@@ -3,22 +3,16 @@ set project_name [lindex $argv 0]
 
 set part_name [lindex $argv 1]
 
-set board_name [lindex $argv 2]
-
-set cfg boards/$board_name/config
-
-
 file delete -force tmp/$project_name.cache tmp/$project_name.hw tmp/$project_name.srcs tmp/$project_name.runs tmp/$project_name.xpr tmp/$project_name.sim
 
 create_project -part $part_name $project_name tmp
 
 set_property IP_REPO_PATHS tmp/cores [current_project]
+update_ip_catalog
 
 set bd_path tmp/$project_name.srcs/sources_1/bd/system
 
 create_bd_design system
-
-source $cfg/ports.tcl
 
 source lib/utilities.tcl
 
@@ -33,19 +27,10 @@ make_wrapper -files [get_files $bd_path/system.bd] -top
 
 add_files -norecurse $bd_path/hdl/system_wrapper.v
 
-set files [glob -nocomplain projects/$project_name/*.v projects/$project_name/*.sv]
-if {[llength $files] > 0} {
-  add_files -norecurse $files
-}
+add_files -norecurse projects/$project_name/test_bench.v
 
-set files [glob -nocomplain tmp/$project_name.xdc/*.xdc]
-if {[llength $files] > 0} {
-  add_files -norecurse -fileset constrs_1 $files
-}
+set_property -name {xsim.simulate.runtime} -value {100000ns} -objects [current_fileset -simset]
 
-set_property VERILOG_DEFINE {TOOL_VIVADO} [current_fileset]
-
-set_property STRATEGY Flow_PerfOptimized_High [get_runs synth_1]
-set_property STRATEGY Performance_NetDelay_high [get_runs impl_1]
-
-close_project
+update_compile_order -fileset sources_1
+update_compile_order -fileset sim_1
+launch_simulation

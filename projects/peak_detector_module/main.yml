@@ -1,0 +1,10 @@
+---
+project: peak_detector_module
+parent: default
+board: red-pitaya
+
+cores:
+  - comparator_v1_0
+
+parameters:
+  wfm_width: 8

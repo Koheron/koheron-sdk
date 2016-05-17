@@ -10,6 +10,9 @@
 LD_LIBRARY_PATH =
 TMP = tmp
 
+# Set to True when running in a container
+DOCKER=False
+
 # Project specific variables
 NAME = blink
 
@@ -22,7 +25,7 @@ PATCHES = boards/$(BOARD)/patches
 PROC = ps7_cortexa9_0
 
 # Custom commands
-VIVADO_VERSION = 2015.4
+VIVADO_VERSION = 2016.1
 VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
@@ -85,6 +88,13 @@ all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli app
 
 $(TMP):
 	mkdir -p $(TMP)
+
+###############################################################################
+# test bench
+###############################################################################
+
+test: $(CONFIG_TCL) $(XDC_DIR) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+	vivado -source scripts/test_bench.tcl -tclargs $(NAME) $(PART)
 
 ###############################################################################
 # versioning
@@ -179,7 +189,7 @@ $(DTREE_DIR): $(DTREE_TAR)
 
 $(TMP)/%.tree/system.dts: $(TMP)/%.hwdef $(DTREE_DIR)
 	mkdir -p $(@D)
-	$(HSI) -source scripts/devicetree.tcl -tclargs $* $(PROC) $(DTREE_DIR)
+	$(HSI) -source scripts/devicetree.tcl -tclargs $* $(PROC) $(DTREE_DIR) $(VIVADO_VERSION)
 	patch $@ $(PATCHES)/devicetree.patch
 
 ###############################################################################
@@ -197,7 +207,7 @@ $(LINUX_TAR):
 $(LINUX_DIR): $(LINUX_TAR) $(RTL_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
-	tar -zxf $(RTL_TAR) --directory=$@/drivers/net/wireless
+	tar -zxf $(RTL_TAR) --directory=$@/drivers/net/wireless/realtek
 	patch -d $(TMP) -p 0 < $(PATCHES)/linux-xlnx-$(LINUX_TAG).patch
 	bash $(PATCHES)/linux.sh $(PATCHES) $@
 
@@ -232,7 +242,7 @@ $(TCP_SERVER): $(TCP_SERVER_DIR) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIV
 	cp `find $(DRIVERS_DIR) -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers
 	mkdir -p $(TCP_SERVER_DIR)/middleware/drivers/lib
 	cp `find drivers/lib -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers/lib
-	cd $(TCP_SERVER_DIR) && make CONFIG=config.yaml
+	cd $(TCP_SERVER_DIR) && make DOCKER=$(DOCKER) CONFIG=config.yaml
 
 tcp-server_cli: $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all

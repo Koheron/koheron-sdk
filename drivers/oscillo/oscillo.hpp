@@ -13,7 +13,6 @@
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE ADC1_RANGE/sizeof(float)
-#define ACQ_TIME_US uint32_t(2*(WFM_SIZE*1E6)/SAMPLING_RATE)
 
 class Oscillo
 {
@@ -22,13 +21,22 @@ class Oscillo
 
     int Open();
 
+    void reset();
+
+    void set_period(uint32_t period);
+
+    #pragma tcp-server write_array arg{data} arg{len}
+    void set_dac_buffer(const uint32_t *data, uint32_t len);
+
+    void reset_acquisition();
+
     std::array<float, WFM_SIZE>& read_data(bool channel);
 
     std::array<float, 2*WFM_SIZE>& read_all_channels();
 
     std::vector<float>& read_all_channels_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high);
 
-    void set_averaging(bool avg_status);
+    void set_averaging(bool avg_on);
     
     uint32_t get_num_average();
 
@@ -45,7 +53,6 @@ class Oscillo
     Klib::DevMem& dev_mem;
 
     int status;
-    bool avg_on; // True if averaging is enabled
 
     uint32_t *raw_data_1 = nullptr;
     uint32_t *raw_data_2 = nullptr;
@@ -55,6 +62,7 @@ class Oscillo
     Klib::MemMapID status_map;
     Klib::MemMapID adc_1_map;
     Klib::MemMapID adc_2_map;
+    Klib::MemMapID dac_map;
     
     // Acquired data buffers
     std::array<float, WFM_SIZE> data;

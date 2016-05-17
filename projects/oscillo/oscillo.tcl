@@ -1,8 +1,9 @@
-source lib/averager.tcl
+source projects/averager_module/averager.tcl
 
 ###########################################################
 # Add ADC BRAMs
 ###########################################################
+
 for {set i 0} {$i < 2} {incr i} {
   set channel [lindex {a b} $i]
   set adc_bram_name adc${i}_bram
@@ -18,11 +19,15 @@ for {set i 0} {$i < 2} {incr i} {
 
   connect_pins $avg_name/clk         $adc_clk
   connect_pins $avg_name/restart     $address_name/restart
-  connect_pins $avg_name/avg_off     $config_name/Out[set config::avg${i}_offset]
+  connect_pins $avg_name/avg_on      $config_name/Out[set config::avg${i}_offset]
+  connect_pins $avg_name/period      $config_name/Out[set config::period${i}_offset]
+  connect_pins $avg_name/threshold   $config_name/Out[set config::threshold${i}_offset]
   connect_pins $avg_name/tvalid      $address_name/tvalid
   connect_pins $avg_name/din         adc_dac/adc[expr $i + 1]
   connect_pins $avg_name/addr        blk_mem_gen_$adc_bram_name/addrb
   connect_pins $avg_name/dout        blk_mem_gen_$adc_bram_name/dinb
   connect_pins $avg_name/wen         blk_mem_gen_$adc_bram_name/web
   connect_pins $avg_name/n_avg       sts/In[set config::n_avg${i}_offset]
+  connect_pins $avg_name/ready       sts/In[set config::avg_ready${i}_offset]
+  connect_pins $avg_name/avg_on_out  sts/In[set config::avg_on_out${i}_offset]
 }

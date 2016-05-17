@@ -11,9 +11,10 @@ cores:
   - pwm_v1_0
   - comparator_v1_0
   - edge_detector_v1_0
-  - write_enable_v1_0
   - bus_multiplexer_v1_0
   - at93c46d_spi_v1_0
+  - averager_counter_v1_0
+  - address_generator_v1_0
 
 xdc:
   - boards/red-pitaya/config/ports.xdc

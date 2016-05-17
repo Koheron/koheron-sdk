@@ -1,28 +1,28 @@
-proc add_address_module {module_name bram_width clk} {
+proc add_address_module {module_name bram_width} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
   create_bd_pin -dir I                  clk
-  create_bd_pin -dir I -from 32   -to 0 cfg
+  create_bd_pin -dir I -from 31   -to 0 cfg
+  create_bd_pin -dir I -from 31   -to 0 period
   create_bd_pin -dir O -from [expr $bram_width+2]   -to 0 addr
   create_bd_pin -dir O                  restart
   create_bd_pin -dir O                  tvalid
 
   # Add address counter
-  cell xilinx.com:ip:c_counter_binary:12.0 base_counter {
-    Output_Width [expr $bram_width+2]
-    Increment_Value 4
-    SCLR true
+  cell koheron:user:address_generator:1.0 base_counter {
+    COUNT_WIDTH $bram_width
   } {
-    CLK clk
-    Q addr
+    clk clk
+    count_max period
+    address addr
   }
 
   cell koheron:user:edge_detector:1.0 reset_base_counter {
   } {
     clk clk
-    dout base_counter/SCLR
+    dout base_counter/sclr
   }
 
   cell koheron:user:edge_detector:1.0 edge_detector {
