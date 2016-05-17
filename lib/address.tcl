@@ -1,11 +1,11 @@
-proc add_address_module {module_name bram_width clk} {
+proc add_address_module {module_name bram_width} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
   create_bd_pin -dir I                  clk
-  create_bd_pin -dir I -from 32   -to 0 cfg
-  create_bd_pin -dir I -from 32   -to 0 period
+  create_bd_pin -dir I -from 31   -to 0 cfg
+  create_bd_pin -dir I -from 31   -to 0 period
   create_bd_pin -dir O -from [expr $bram_width+2]   -to 0 addr
   create_bd_pin -dir O                  restart
   create_bd_pin -dir O                  tvalid
