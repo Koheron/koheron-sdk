@@ -40,7 +40,7 @@ int Oscillo::Open()
         // Reset averaging
         set_averaging(false);
 
-        set_period(8192);
+        set_period(WFM_SIZE);
 
         status = OPENED;
     }

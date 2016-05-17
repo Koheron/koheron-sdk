@@ -43,16 +43,18 @@ int Spectrum::Open()
         
         set_averaging(true);
         set_address_range(0, WFM_SIZE);
-
-        uint32_t period = WFM_SIZE;
-
-        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD0_OFF, period - 1);
-        Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD0_OFF, period - 6);
+        set_period(WFM_SIZE);
 
         status = OPENED;
     }
     
     return 0;
+}
+
+void Spectrum::set_period(uint32_t period)
+{
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+PERIOD0_OFF, period - 1);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD0_OFF, period - 6);
 }
 
 void Spectrum::reset()
