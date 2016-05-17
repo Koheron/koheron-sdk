@@ -1,5 +1,5 @@
 ---
-project: averager_test
+project: address_test
 parent: default
 board: red-pitaya
 
