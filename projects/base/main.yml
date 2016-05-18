@@ -15,6 +15,7 @@ cores:
   - at93c46d_spi_v1_0
   - averager_counter_v1_0
   - address_generator_v1_0
+  - delay_trig_v1_0
 
 xdc:
   - boards/red-pitaya/config/ports.xdc
