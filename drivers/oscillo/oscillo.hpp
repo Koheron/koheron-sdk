@@ -23,6 +23,7 @@ class Oscillo
 
     void reset();
 
+    void set_n_avg_min(uint32_t n_avg_min);
     void set_period(uint32_t period);
 
     #pragma tcp-server write_array arg{data} arg{len}

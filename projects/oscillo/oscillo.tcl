@@ -22,6 +22,7 @@ for {set i 0} {$i < 2} {incr i} {
   connect_pins $avg_name/avg_on      $config_name/Out[set config::avg${i}_offset]
   connect_pins $avg_name/period      $config_name/Out[set config::period${i}_offset]
   connect_pins $avg_name/threshold   $config_name/Out[set config::threshold${i}_offset]
+  connect_pins $avg_name/n_avg_min   $config_name/Out[set config::n_avg_min${i}_offset]
   connect_pins $avg_name/tvalid      $address_name/tvalid
   connect_pins $avg_name/din         adc_dac/adc[expr $i + 1]
   connect_pins $avg_name/addr        blk_mem_gen_$adc_bram_name/addrb

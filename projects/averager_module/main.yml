@@ -6,6 +6,7 @@ board: red-pitaya
 cores:
   - comparator_v1_0
   - averager_counter_v1_0
+  - delay_trig_v1_0
 
 parameters:
   bram_addr_width: 8

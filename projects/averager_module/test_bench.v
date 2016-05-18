@@ -10,6 +10,7 @@ module averager_tb();
   reg [WIDTH-1:0]period;
   reg restart;
   reg [WIDTH-1:0]threshold;
+  reg [32-WIDTH-1:0]n_avg_min;
   reg tvalid;
 
   wire [3:0]wen;
@@ -25,6 +26,7 @@ module averager_tb();
     .avg_on(avg_on),
     .clk(clk),
     .din(din),
+    .n_avg_min(n_avg_min),
     .dout(dout),
     .n_avg(n_avg),
     .period(period),
@@ -45,13 +47,14 @@ module averager_tb();
     restart = 0;
     tvalid = 0;
     period = 0;
+    n_avg_min = 20;
     threshold = 0;
     #(CLK_PERIOD * 2**(WIDTH-1))
     period = 2**WIDTH - 1;
     threshold = 2**WIDTH - 6;
     #(CLK_PERIOD * 2**(WIDTH-1)) tvalid = 1;
 
-    #(50*CLK_PERIOD) restart = 1;
+    #(81*CLK_PERIOD) restart = 1;
     #(CLK_PERIOD) restart = 0;
     #(10 * CLK_PERIOD) avg_on = 1;
  

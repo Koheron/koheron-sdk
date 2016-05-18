@@ -41,6 +41,8 @@ int Oscillo::Open()
         set_averaging(false);
 
         set_period(WFM_SIZE);
+        set_n_avg_min(250);
+
 
         status = OPENED;
     }
@@ -55,6 +57,11 @@ void Oscillo::set_period(uint32_t period)
 
     Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD0_OFF, period - 6);
     Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+THRESHOLD1_OFF, period - 6);
+}
+
+void Oscillo::set_n_avg_min(uint32_t n_avg_min) {
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+N_AVG_MIN0_OFF, n_avg_min);
+    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map)+N_AVG_MIN1_OFF, n_avg_min);
 }
 
 

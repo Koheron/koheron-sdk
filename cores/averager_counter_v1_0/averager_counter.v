@@ -13,7 +13,8 @@ module averager_counter #
   input  wire                         avg_on,
   output reg                          ready,
   output reg                          wen,
-  output reg  [SLOW_COUNT_WIDTH-1:0]  n_avg,
+  output reg [SLOW_COUNT_WIDTH-1:0]   n_avg,
+  output reg [SLOW_COUNT_WIDTH-1:0]   slow_count,
   output reg                          clr_fback,
   output reg                          avg_on_out,
   output wire [FAST_COUNT_WIDTH+1:0]  address
@@ -23,8 +24,6 @@ module averager_counter #
   reg clken_reg, clken_reg_;
   reg init_restart;
   reg [FAST_COUNT_WIDTH-1:0] fast_count;
-  reg [SLOW_COUNT_WIDTH-1:0] slow_count;
-  reg [SLOW_COUNT_WIDTH-1:0] n_avg;
   reg avg_on_out_reg0, avg_on_out_reg1;
 
   initial begin
