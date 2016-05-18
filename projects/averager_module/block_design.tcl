@@ -29,8 +29,8 @@ connect_bd_net [get_bd_pins /$module/period] [get_bd_ports period]
 create_bd_port -dir I -from [expr $fast_count_width - 1] -to 0 threshold
 connect_bd_net [get_bd_pins /$module/threshold] [get_bd_ports threshold]
 
-create_bd_port -dir I -from [expr $slow_count_width - 1] -to 0 n_avg_max
-connect_bd_net [get_bd_pins /$module/n_avg_max] [get_bd_ports n_avg_max]
+create_bd_port -dir I -from [expr $slow_count_width - 1] -to 0 n_avg_min
+connect_bd_net [get_bd_pins /$module/n_avg_min] [get_bd_ports n_avg_min]
 
 create_bd_port -dir O -from 3 -to 0 wen
 connect_bd_net [get_bd_pins /$module/wen] [get_bd_ports wen]

@@ -63,6 +63,7 @@ connect_pins $avg_name/restart     $address_name/restart
 connect_pins $avg_name/avg_on     $config_name/Out$config::avg_on_offset
 connect_pins $avg_name/period      $config_name/Out$config::period0_offset
 connect_pins $avg_name/threshold   $config_name/Out$config::threshold0_offset
+connect_pins $avg_name/n_avg_min   $config_name/Out$config::n_avg_min0_offset
 
 connect_pins $subtract_name/m_axis_result_tdata  $avg_name/din
 connect_pins $subtract_name/m_axis_result_tvalid $avg_name/tvalid

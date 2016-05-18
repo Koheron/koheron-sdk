@@ -23,6 +23,7 @@ class Spectrum
     int Open();
 
     void set_period(uint32_t period);
+    void set_n_avg_min(uint32_t n_avg_min);
 
     void reset();
 
