@@ -42,6 +42,7 @@ config_offsets:
   - peak_address_reset
   - period0
   - threshold0
+  - n_avg_min0
 
 status_offsets:
   - spi_out

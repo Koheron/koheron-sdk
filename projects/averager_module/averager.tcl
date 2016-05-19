@@ -29,7 +29,8 @@ proc add_averager_module {module_name bram_addr_width args} {
   create_bd_pin -dir I                                        tvalid
   create_bd_pin -dir I                                        restart
   create_bd_pin -dir I -from [expr $fast_count_width-1] -to 0 period
-  create_bd_pin -dir I -from [expr $slow_count_width-1] -to 0 threshold
+  create_bd_pin -dir I -from [expr $fast_count_width-1] -to 0 threshold
+  create_bd_pin -dir I -from [expr $slow_count_width-1] -to 0 n_avg_min
   create_bd_pin -dir I -from [expr $width-1]            -to 0 din
   create_bd_pin -dir O -from 31                         -to 0 dout
   create_bd_pin -dir O -from 3                          -to 0 wen
@@ -167,10 +168,8 @@ proc add_averager_module {module_name bram_addr_width args} {
     clk clk
     clken wr_en_and_comp/Res
     count_max period
-    restart restart
     n_avg n_avg
     avg_on avg_on
-    ready ready
     wen shift_reg/SCLR
     address addr
     clr_fback sr_avg_off/SCLR
@@ -181,6 +180,32 @@ proc add_averager_module {module_name bram_addr_width args} {
 
   for {set i 0} {$i < 4} {incr i} {
     connect_pins concat_wen/In$i averager_counter/wen
+  }
+
+  # Delay restart until n_avg >= n_avg_max
+
+  cell koheron:user:comparator:1.0 n_avg_comp {
+    OPERATION GE
+    DATA_WIDTH $slow_count_width
+  } {
+    a averager_counter/slow_count
+    b n_avg_min
+  }
+
+  cell koheron:user:delay_trig:1.0 delay_trig {} {
+    clk clk
+    trig_in restart
+    valid n_avg_comp/dout
+    trig_out averager_counter/restart
+  }
+
+  cell xilinx.com:ip:util_vector_logic:2.0 ready_and_ready {
+    C_OPERATION and
+    C_SIZE 1
+  } {
+    Op1 delay_trig/ready
+    Op2 averager_counter/ready
+    Res ready
   }
 
   current_bd_instance $bd
