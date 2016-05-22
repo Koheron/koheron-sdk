@@ -4,29 +4,31 @@
 
 #### `Software Development Kit for Zynq-based instruments`
 
-### Goals
+* Ubuntu Core 16.04
+* Vivado 2016.1 toolchain (Linux Kernel version 4.4)
+* User-space control of hardware with [tcp-server](https://github.com/Koheron/tcp-server)
+* HTTP, Python and Javascript APIs
 
-* YAML-based instrument configuration
-* IP-centric workflow for Hardware / FPGA prototyping
-* [tcp-server](https://github.com/Koheron/tcp-server) for direct access of mapped memory
-* Python and Javascript APIs
-* Continuous Delivery pipeline
-
-###  Supported Base Boards
+### Supported Base Boards
 
 * [Red Pitaya](http://redpitaya.com)
 * [Ask for another board](https://github.com/Koheron/zynq-sdk/issues/new)
 
+## Available instruments
+
+* [`oscillo`](https://github.com/Koheron/zynq-sdk/tree/master/projects/oscillo) : simple oscilloscope with coherent averaging.
+* [`spectrum`](https://github.com/Koheron/zynq-sdk/tree/master/projects/spectrum) : spectrum analyzer with peak-detection and averaging.
+
 ## Quick start
 
-You can find the latest release of the SD card image `oscillo-<version>.img` on this [link](https://github.com/Koheron/zynq-sdk/releases). The image contains an Ubuntu distribution with the `oscillo` and `spectrum` projects preinstalled.
+You can find the latest release of the SD card image for the Red Pitaya `oscillo-<version>.img` on this [link](https://github.com/Koheron/zynq-sdk/releases). The `oscillo` and `spectrum` instruments are preinstalled.
 
-* [Connect the board](http://www.koheron.com/products/lase/getting-started/) to your computer (Windows and Linux).
+* [Connect the board](http://www.koheron.com/products/laser-development-kit/getting-started/) to your computer (Windows and Linux).
 
 ## Build your own image
 
-The build is tested on Ubuntu 14.04.
-[Install Vivado](https://github.com/Koheron/zynq-sdk/issues/37) and source it ([Full list of requirements](https://github.com/Koheron/zynq-sdk/issues/4)):
+The build is tested on Ubuntu 16.04.
+[Install Vivado 2016.1](https://github.com/Koheron/zynq-sdk/issues/101) and source it ([Full list of requirements](https://github.com/Koheron/zynq-sdk/issues/117)):
 ```
 $ source settings.sh
 ```
