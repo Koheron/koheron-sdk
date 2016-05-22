@@ -25,9 +25,8 @@ class SpeedTest
 {
   public:
     SpeedTest(Klib::DevMem& dev_mem_);
-    ~SpeedTest();
 
-    int Open(uint32_t waveform_size_);
+    int Open();
 
     std::array<float, 2*WFM_SIZE>& read_raw_all();
 
@@ -57,8 +56,6 @@ class SpeedTest
 
   private:
     Klib::DevMem& dev_mem;
-
-    void Close();
 
     int status;
 
