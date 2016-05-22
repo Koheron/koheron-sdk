@@ -29,54 +29,28 @@ SpeedTest::SpeedTest(Klib::DevMem& dev_mem_)
     status = CLOSED;
 }
  
-SpeedTest::~SpeedTest()
+int SpeedTest::Open()
 {
-    Close();
-}
-
-int SpeedTest::Open(uint32_t waveform_size_)
-{
-    // Reopening
-    if(status == OPENED) {
-        Close();
-    }
-
     if(status == CLOSED) {
  
-        config_map = dev_mem.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-        
-        if (static_cast<int>(config_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-        
-        status_map = dev_mem.AddMemoryMap(STATUS_ADDR, STATUS_RANGE);
-        
-        if (static_cast<int>(status_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-        
-        adc_1_map = dev_mem.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
-        
-        if (static_cast<int>(adc_1_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
-        
-        adc_2_map = dev_mem.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
-        
-        if (static_cast<int>(adc_2_map) < 0) {
+        auto ids = dev_mem.RequestMemoryMaps<5>({{
+            { CONFIG_ADDR, CONFIG_RANGE },
+            { STATUS_ADDR, STATUS_RANGE },
+            { ADC1_ADDR  , ADC1_RANGE   },
+            { ADC2_ADDR  , ADC2_RANGE   },
+            { RAMBUF_ADDR, RAMBUF_RANGE }
+        }});
+
+        if (dev_mem.CheckMapIDs(ids) < 0) {
             status = FAILED;
             return -1;
         }
 
-        rambuf_map = dev_mem.AddMemoryMap(RAMBUF_ADDR, RAMBUF_RANGE);
-        
-        if (static_cast<int>(rambuf_map) < 0) {
-            status = FAILED;
-            return -1;
-        }
+        config_map = ids[0];
+        status_map = ids[1];
+        adc_1_map  = ids[2];
+        adc_2_map  = ids[3];
+        rambuf_map = ids[4];
 
         raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
         raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
@@ -90,17 +64,6 @@ int SpeedTest::Open(uint32_t waveform_size_)
     }
     
     return 0;
-}
-
-void SpeedTest::Close()
-{
-    if(status == OPENED) {
-        dev_mem.RmMemoryMap(config_map);
-        dev_mem.RmMemoryMap(status_map);
-        dev_mem.RmMemoryMap(adc_1_map);
-        dev_mem.RmMemoryMap(adc_2_map);
-        status = CLOSED;
-    }
 }
 
 // http://stackoverflow.com/questions/12276675/modulus-with-negative-numbers-in-c
