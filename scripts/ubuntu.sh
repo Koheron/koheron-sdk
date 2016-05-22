@@ -56,10 +56,10 @@ cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 
 # Add Web app
 mkdir $root_dir/usr/local/flask
-cp tmp/app.zip $root_dir/usr/local/flask
-unzip -o $root_dir/usr/local/flask/app.zip -d $root_dir/usr/local/flask
-mkdir -p $root_dir/var/www/ui
-cp -r $root_dir/usr/local/flask/ui/ $root_dir/var/www/
+mkdir $root_dir/usr/local/flask/api_app
+cp -a api/. $root_dir/usr/local/flask/api_app
+cp config/wsgi.py $root_dir/usr/local/flask
+unzip -o tmp/app.zip -d $root_dir/var/www
 
 # Add Koheron TCP Server
 mkdir $root_dir/usr/local/tcp-server
