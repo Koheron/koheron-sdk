@@ -1,13 +1,11 @@
 from api_app import api_app
 
-from flask import Flask, jsonify, flash, redirect, render_template, request, url_for, make_response, stream_with_context, Response
+from flask import Flask, jsonify, request, url_for, make_response
 from werkzeug import secure_filename
 
-import time
 import urllib
 import os
 import subprocess
-import threading
 import uwsgi
 
 api_app.config['UPLOAD_FOLDER'] = '/tmp'
@@ -31,7 +29,7 @@ def upgrade_app():
        api_app.unzip_app()
        api_app.copy_ui_to_static()
        uwsgi.reload()
-       return make_response('Upgrading')   
+       return make_response('Upgrading')
 
 @api_app.route('/api/version', methods=['GET'])
 def api_version():

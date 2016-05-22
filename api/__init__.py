@@ -11,7 +11,7 @@ import yaml
 from distutils.dir_util import copy_tree
 
 from flask import Flask, render_template, request, url_for
-from koheron_tcp_client import KClient, DevMem, command
+from koheron_tcp_client import KClient, command
 
 def log(severity, message):
     print("[" + severity + "] " + message)
@@ -243,7 +243,7 @@ class KoheronAPIApp(Flask):
             log("error", "Corrupted instrument: ID mismatch" 
                   + "\n* Bitstream ID:\n" + id_ 
                   + "\n* Expected:\n" + hash_.hexdigest())
-            return False     
+            return False
         return True
 
     @command('COMMON')
