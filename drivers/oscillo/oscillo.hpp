@@ -55,8 +55,8 @@ class Oscillo
 
     int status;
 
-    uint32_t *raw_data_1 = nullptr;
-    uint32_t *raw_data_2 = nullptr;
+    int32_t *raw_data_1 = nullptr;
+    int32_t *raw_data_2 = nullptr;
 
     // Memory maps IDs:
     Klib::MemMapID config_map;

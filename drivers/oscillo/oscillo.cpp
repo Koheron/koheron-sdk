@@ -34,8 +34,8 @@ int Oscillo::Open()
         adc_2_map  = ids[3];
         dac_map    = ids[4];
    
-        raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
-        raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
+        raw_data_1 = reinterpret_cast<int32_t*>(dev_mem.GetBaseAddr(adc_1_map));
+        raw_data_2 = reinterpret_cast<int32_t*>(dev_mem.GetBaseAddr(adc_2_map));
       
         // Reset averaging
         set_averaging(false);
@@ -98,20 +98,6 @@ void Oscillo::_wait_for_acquisition()
     
 }
 
-// http://stackoverflow.com/questions/12276675/modulus-with-negative-numbers-in-c
-inline long long int mod(long long int k, long long int n) 
-{
-    return ((k %= n) < 0) ? k+n : k;
-}
-
-#define POW_2_31 2147483648 // 2^31
-#define POW_2_32 4294967296 // 2^32
-
-inline float _raw_to_float(uint32_t raw) 
-{
-    return float(mod(raw - POW_2_31, POW_2_32) - POW_2_31);
-}
-
 // Read only one channel
 std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
 {
@@ -130,10 +116,10 @@ std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
             num_avg = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF));  
         }
         for(unsigned int i=0; i < WFM_SIZE; i++)
-            data[i] = _raw_to_float(raw_data[i]) / num_avg;
+            data[i] = float(raw_data[i]) / num_avg;
     } else {
         for(unsigned int i=0; i < WFM_SIZE; i++)
-            data[i] = _raw_to_float(raw_data[i]);
+            data[i] = float(raw_data[i]);
     }
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
     return data;
@@ -150,13 +136,13 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
         float num_avg0 = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG0_OFF));
         float num_avg1 = float(Klib::ReadReg32(dev_mem.GetBaseAddr(status_map)+N_AVG1_OFF)); 
         for(unsigned int i=0; i<WFM_SIZE; i++) {
-            data_all[i] = _raw_to_float(raw_data_1[i]) / num_avg0;
-            data_all[i + WFM_SIZE] = _raw_to_float(raw_data_2[i]) / num_avg1;
+            data_all[i] = float(raw_data_1[i]) / num_avg0;
+            data_all[i + WFM_SIZE] = float(raw_data_2[i]) / num_avg1;
         }
     } else {
         for(unsigned int i=0; i<WFM_SIZE; i++) {
-            data_all[i] = _raw_to_float(raw_data_1[i]);
-            data_all[i + WFM_SIZE] = _raw_to_float(raw_data_2[i]);
+            data_all[i] = float(raw_data_1[i]);
+            data_all[i + WFM_SIZE] = float(raw_data_2[i]);
         }
     }
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
@@ -182,13 +168,13 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor, uint
     if(avg_on) {
         float num_avg = float(get_num_average()); 
         for(unsigned int i=0; i<n_pts; i++) {
-            data_decim[i] = _raw_to_float(raw_data_1[index_low + decim_factor * i]) / num_avg;
-            data_decim[i + n_pts] = _raw_to_float(raw_data_2[index_low + decim_factor * i]) / num_avg;
+            data_decim[i] = float(raw_data_1[index_low + decim_factor * i]) / num_avg;
+            data_decim[i + n_pts] = float(raw_data_2[index_low + decim_factor * i]) / num_avg;
         }
     } else {
         for(unsigned int i=0; i<n_pts; i++) {
-            data_decim[i] = _raw_to_float(raw_data_1[index_low + decim_factor * i]);
-            data_decim[i + n_pts] = _raw_to_float(raw_data_2[index_low + decim_factor * i]);
+            data_decim[i] = float(raw_data_1[index_low + decim_factor * i]);
+            data_decim[i + n_pts] = float(raw_data_2[index_low + decim_factor * i]);
         }
     }
     Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
