@@ -144,6 +144,9 @@ apt-get -y install openssh-server ntp usbutils psmisc lsof \
   parted curl less vim iw  ntfs-3g gdb  \
   bash-completion unzip rsync 
 
+# Packages needed for Docker
+apt-get install -y lxc cgroup-lite docker.io
+
 #apt-get install -y wpasupplicant linux-firmware usbutils ca-certificates
 
 apt-get install -y udev net-tools netbase ifupdown network-manager lsb-base
