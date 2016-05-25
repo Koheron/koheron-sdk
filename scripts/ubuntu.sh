@@ -146,8 +146,9 @@ apt-get -y install openssh-server ntp usbutils psmisc lsof \
 
 # Packages needed for Docker
 apt-get install -y lxc cgroup-lite docker.io
-
-sed -i 's/^USE_LXC_BRIDGE=.*/USE_LXC_BRIDGE="false"/' etc/default/lxc-net
+cat <<- EOF_CAT >> etc/default/lxc-net
+USE_LXC_BRIDGE="false"
+EOF_CAT
 
 #apt-get install -y wpasupplicant linux-firmware usbutils ca-certificates
 
