@@ -135,6 +135,11 @@ class DevMem
     {
         ClearBit(GetBaseAddr(id) + offset, index);
     }
+
+    inline void toggle_bit(MemMapID id, uint32_t offset, uint32_t index)
+    {
+        ToggleBit(GetBaseAddr(id) + offset, index);
+    }
     
     /// True if the /dev/mem device is open
     inline bool IsOpen() const {return is_open;}
