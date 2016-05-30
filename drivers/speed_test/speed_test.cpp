@@ -21,8 +21,8 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz)
 }
 
 
-SpeedTest::SpeedTest(Klib::DevMem& dev_mem_)
-: dev_mem(dev_mem_)
+SpeedTest::SpeedTest(Klib::DevMem& dvm_)
+: dvm(dvm_)
 , data_decim(0)
 , data_all_int(0)
 {
@@ -33,7 +33,7 @@ int SpeedTest::Open()
 {
     if(status == CLOSED) {
  
-        auto ids = dev_mem.RequestMemoryMaps<5>({{
+        auto ids = dvm.RequestMemoryMaps<5>({{
             { CONFIG_ADDR, CONFIG_RANGE },
             { STATUS_ADDR, STATUS_RANGE },
             { ADC1_ADDR  , ADC1_RANGE   },
@@ -41,7 +41,7 @@ int SpeedTest::Open()
             { RAMBUF_ADDR, RAMBUF_RANGE }
         }});
 
-        if (dev_mem.CheckMapIDs(ids) < 0) {
+        if (dvm.CheckMapIDs(ids) < 0) {
             status = FAILED;
             return -1;
         }
@@ -52,9 +52,9 @@ int SpeedTest::Open()
         adc_2_map  = ids[3];
         rambuf_map = ids[4];
 
-        raw_data_1 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_1_map));
-        raw_data_2 = reinterpret_cast<uint32_t*>(dev_mem.GetBaseAddr(adc_2_map));
-        rambuf_data = reinterpret_cast<float*>(dev_mem.GetBaseAddr(rambuf_map));
+        raw_data_1 = reinterpret_cast<uint32_t*>(dvm.GetBaseAddr(adc_1_map));
+        raw_data_2 = reinterpret_cast<uint32_t*>(dvm.GetBaseAddr(adc_2_map));
+        rambuf_data = reinterpret_cast<float*>(dvm.GetBaseAddr(rambuf_map));
 
         mmap_buf = mmap(NULL, 16384*4, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
 
@@ -75,13 +75,13 @@ inline long long int mod(long long int k, long long int n)
 // Read the two channels in raw format
 std::array<float, 2*WFM_SIZE>& SpeedTest::read_raw_all()
 {
-    Klib::SetBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    dvm.set_bit(config_map, ADDR_OFF, 1);
     //_wait_for_acquisition();
     for(unsigned int i=0; i<WFM_SIZE; i++) {
         data_all[i] = raw_data_1[i];
         data_all[i + WFM_SIZE] = raw_data_2[i];
     }
-    Klib::ClearBit(dev_mem.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    dvm.clear_bit(config_map, ADDR_OFF, 1);
     return data_all;
 }
 

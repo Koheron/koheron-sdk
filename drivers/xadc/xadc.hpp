@@ -24,7 +24,7 @@
 class Xadc
 {
   public:
-    Xadc(Klib::DevMem& dev_mem_);
+    Xadc(Klib::DevMem& dvm_);
 
     int Open();
     int set_channel(uint32_t channel_0_, uint32_t channel_1_);
@@ -42,7 +42,7 @@ class Xadc
     bool IsFailed() const {return status == FAILED;}
 
   private:
-    Klib::DevMem& dev_mem;
+    Klib::DevMem& dvm;
     int status;
 
     // Memory maps IDs
