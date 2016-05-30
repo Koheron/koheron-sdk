@@ -37,12 +37,9 @@ int Oscillo::Open()
         raw_data_1 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_1_map));
         raw_data_2 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_2_map));
       
-        // Reset averaging
-        set_averaging(false);
-
+        set_averaging(false); // Reset averaging
         set_period(WFM_SIZE);
         set_n_avg_min(0);
-
 
         status = OPENED;
     }
@@ -69,9 +66,8 @@ void Oscillo::set_n_avg_min(uint32_t n_avg_min)
 void Oscillo::reset()
 {
     assert(status == OPENED);
-    // Config
-    Klib::ClearBit(dvm.GetBaseAddr(config_map) + ADDR_OFF, 1);
-    Klib::SetBit(dvm.GetBaseAddr(config_map) + ADDR_OFF, 0);
+    dvm.clear_bit(config_map, ADDR_OFF, 1);
+    dvm.set_bit(config_map, ADDR_OFF, 0);
 }
 
 void Oscillo::set_dac_buffer(const uint32_t *data, uint32_t len)
@@ -89,13 +85,9 @@ void Oscillo::reset_acquisition()
 
 void Oscillo::_wait_for_acquisition()
 {
-    uint32_t ready0;
-    uint32_t ready1;
-    do {
-        ready0 = dvm.read32(status_map, AVG_READY0_OFF);
-        ready1 = dvm.read32(status_map, AVG_READY1_OFF);
-    } while (ready0 == 0 || ready1 == 0);
-    
+    do {}
+    while (dvm.read32(status_map, AVG_READY0_OFF) == 0 
+           || dvm.read32(status_map, AVG_READY1_OFF) == 0);
 }
 
 // Read only one channel
@@ -128,7 +120,7 @@ std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
 // Read the two channels
 std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
 {
-    Klib::SetBit(dvm.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    dvm.set_bit(config_map, ADDR_OFF, 1);
     _wait_for_acquisition();
     uint32_t avg_on = bool(Klib::ReadReg32(dvm.GetBaseAddr(status_map)+AVG_ON_OUT0_OFF));
 
@@ -145,7 +137,7 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
             data_all[i + WFM_SIZE] = float(raw_data_2[i]);
         }
     }
-    Klib::ClearBit(dvm.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    dvm.clear_bit(config_map, ADDR_OFF, 1);
     return data_all;
 }
 
