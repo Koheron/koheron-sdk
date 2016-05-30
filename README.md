@@ -8,6 +8,7 @@
 * Vivado 2016.1 toolchain (Linux Kernel version 4.4)
 * User-space control of hardware with [TCP / Websocket server](https://github.com/Koheron/tcp-server)
 * HTTP, Python and Javascript APIs
+* Compatible with Docker
 
 ### Supported Base Boards
 

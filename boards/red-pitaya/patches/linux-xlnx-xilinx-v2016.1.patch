@@ -9,7 +9,7 @@ diff -rupN old/linux-xlnx-xilinx-v2016.1/arch/arm/configs/xilinx_zynq_defconfig 
  CONFIG_VITESSE_PHY=y
  CONFIG_MDIO_BITBANG=y
  CONFIG_INPUT_SPARSEKMAP=y
-@@ -240,3 +241,71 @@ CONFIG_RCU_CPU_STALL_TIMEOUT=60
+@@ -240,3 +241,88 @@ CONFIG_RCU_CPU_STALL_TIMEOUT=60
  CONFIG_FONTS=y
  CONFIG_FONT_8x8=y
  CONFIG_FONT_8x16=y
@@ -81,6 +81,24 @@ diff -rupN old/linux-xlnx-xilinx-v2016.1/arch/arm/configs/xilinx_zynq_defconfig 
 +CONFIG_NET_NS=y
 +CONFIG_USB_ACM=y
 +CONFIG_IPV6=y
++CONFIG_DEVPTS_MULTIPLE_INSTANCES=y
++CONFIG_CGROUP_CPUACCT=y
++CONFIG_CGROUP_DEVICE=y
++CONFIG_CGROUP_FREEZER=y
++CONFIG_CGROUP_SCHED=y
++CONFIG_CPUSETS=y
++CONFIG_MEMCG=y
++CONFIG_MACVLAN=y
++CONFIG_VETH=y
++CONFIG_BRIDGE=y
++CONFIG_BRIDGE_NETFILTER=y
++CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y
++CONFIG_POSIX_MQUEUE=y
++CONFIG_OVERLAY_FS=y
++CONFIG_EXT4_FS_POSIX_ACL=y
++CONFIG_EXT4_FS_SECURITY=y
++CONFIG_KEYS=y
+
 diff -rupN old/linux-xlnx-xilinx-v2016.1/drivers/misc/eeprom/at24.c linux-xlnx-xilinx-v2016.1/drivers/misc/eeprom/at24.c
 --- old/linux-xlnx-xilinx-v2016.1/drivers/misc/eeprom/at24.c
 +++ linux-xlnx-xilinx-v2016.1/drivers/misc/eeprom/at24.c
