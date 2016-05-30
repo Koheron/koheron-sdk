@@ -126,19 +126,14 @@ class DevMem
         return ReadReg32(GetBaseAddr(id) + offset);
     }
 
-    inline uint32_t read32(MemMapID id, uint32_t offset)
+    inline void set_bit(MemMapID id, uint32_t offset, uint32_t index)
     {
-        return ReadReg32(GetBaseAddr(id) + offset);
+        SetBit(GetBaseAddr(id) + offset, index);
     }
 
-    inline uint32_t set_bit(MemMapID id, uint32_t offset, uint32_t index)
+    inline void clear_bit(MemMapID id, uint32_t offset, uint32_t index)
     {
-        return SetBit(GetBaseAddr(id) + offset, index);
-    }
-
-    inline uint32_t clear_bit(MemMapID id, uint32_t offset, uint32_t index)
-    {
-        return ClearBit(GetBaseAddr(id) + offset, index);
+        ClearBit(GetBaseAddr(id) + offset, index);
     }
     
     /// True if the /dev/mem device is open
