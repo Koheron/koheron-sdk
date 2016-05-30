@@ -10,6 +10,7 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <memory>
 #include <assert.h> 
 
 extern "C" {
@@ -163,7 +164,7 @@ class DevMem
     uintptr_t addr_limit_up;
     bool __is_forbidden_address(uintptr_t addr);
 
-    std::map<MemMapID, MemoryMap*> mem_maps;
+    std::map<MemMapID, std::unique_ptr<MemoryMap>> mem_maps;
     MemMapIdPool id_pool;
 };
 
