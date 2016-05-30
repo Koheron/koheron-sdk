@@ -18,7 +18,7 @@
 class Spectrum
 {
   public:
-    Spectrum(Klib::DevMem& dev_mem_);
+    Spectrum(Klib::DevMem& dvm_);
 
     int Open();
 
@@ -70,7 +70,7 @@ class Spectrum
     bool IsFailed() const {return status == FAILED;}
 
   private:
-    Klib::DevMem& dev_mem;
+    Klib::DevMem& dvm;
     int status;
 
     // Memory maps IDs:

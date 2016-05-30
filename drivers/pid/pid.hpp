@@ -15,7 +15,7 @@
 class Pid
 {
   public:
-    Pid(Klib::DevMem& dev_mem_);
+    Pid(Klib::DevMem& dvm_);
 
     int Open();
 
@@ -37,7 +37,7 @@ class Pid
     bool IsFailed() const {return status == FAILED;}
 
   private:
-    Klib::DevMem& dev_mem;
+    Klib::DevMem& dvm;
     int status;
 
     // Memory maps IDs:

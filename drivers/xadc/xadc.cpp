@@ -5,8 +5,8 @@
 #include <algorithm>
 #include <iterator>
 
-Xadc::Xadc(Klib::DevMem& dev_mem_)
-: dev_mem(dev_mem_)
+Xadc::Xadc(Klib::DevMem& dvm_)
+: dvm(dvm_)
 {
     status = CLOSED;
 }
@@ -14,11 +14,11 @@ Xadc::Xadc(Klib::DevMem& dev_mem_)
 int Xadc::Open()
 {
     if (status == CLOSED) {
-        auto ids = dev_mem.RequestMemoryMaps<1>({{
+        auto ids = dvm.RequestMemoryMaps<1>({{
             { XADC_ADDR, XADC_RANGE }
         }});
 
-        if (dev_mem.CheckMapIDs(ids) < 0) {
+        if (dvm.CheckMapIDs(ids) < 0) {
             status = FAILED;
             return -1;
         }
@@ -49,14 +49,14 @@ int Xadc::set_channel(uint32_t channel_0_, uint32_t channel_1_)
     channel_1 = channel_1_;
 
     uint32_t val = (1 << channel_0) + (1 << channel_1);
-    Klib::WriteReg32(dev_mem.GetBaseAddr(dev_num) + SET_CHAN_OFF, val);
+    dvm.write32(dev_num, SET_CHAN_OFF, val);
     return 0;
 }
 
 void Xadc::enable_averaging()
 {
     uint32_t val = (1 << channel_0) + (1 << channel_1);
-    Klib::WriteReg32(dev_mem.GetBaseAddr(dev_num) + AVG_EN_OFF, val);
+    dvm.write32(dev_num, AVG_EN_OFF, val);
 }
 
 int Xadc::set_averaging(uint32_t n_avg)
@@ -80,7 +80,7 @@ int Xadc::set_averaging(uint32_t n_avg)
         return -1;
     }
 
-    Klib::WriteReg32(dev_mem.GetBaseAddr(dev_num) + AVG_OFF, reg);
+    dvm.write32(dev_num, AVG_OFF, reg);
     return 0;
 }
 
@@ -89,6 +89,6 @@ int Xadc::read(uint32_t channel)
     if (channel != channel_0 && channel != channel_1)
         return -1;
 
-    return Klib::ReadReg32(dev_mem.GetBaseAddr(dev_num) + READ_OFF + 4*channel);
+    return dvm.read32(dev_num, READ_OFF + 4*channel);
 }
 

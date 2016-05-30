@@ -17,7 +17,7 @@
 class Oscillo
 {
   public:
-    Oscillo(Klib::DevMem& dev_mem_);
+    Oscillo(Klib::DevMem& dvm_);
 
     int Open();
 
@@ -51,7 +51,7 @@ class Oscillo
     bool IsFailed() const {return status == FAILED;}
 
   private:
-    Klib::DevMem& dev_mem;
+    Klib::DevMem& dvm;
 
     int status;
 

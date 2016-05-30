@@ -5,8 +5,8 @@
 #include <thread>
 #include <chrono>
 
-Pid::Pid(Klib::DevMem& dev_mem_)
-: dev_mem(dev_mem_)
+Pid::Pid(Klib::DevMem& dvm_)
+: dvm(dvm_)
 {
     status = CLOSED;
 }
@@ -14,13 +14,13 @@ Pid::Pid(Klib::DevMem& dev_mem_)
 int Pid::Open()
 {
     if (status == CLOSED) {
-        auto ids = dev_mem.RequestMemoryMaps(mem_regions(
+        auto ids = dvm.RequestMemoryMaps(mem_regions(
             Klib::MemoryRegion({ CONFIG_ADDR, CONFIG_RANGE }),
             Klib::MemoryRegion({ STATUS_ADDR, STATUS_RANGE }),
             Klib::MemoryRegion({ FIFO_ADDR  , FIFO_RANGE   })
         ));
 
-        if (dev_mem.CheckMapIDs(ids) < 0) {
+        if (dvm.CheckMapIDs(ids) < 0) {
             status = FAILED;
             return -1;
         }
@@ -29,7 +29,7 @@ int Pid::Open()
         status_map = ids[1];
         fifo_map   = ids[2];
         
-        fifo.set_address(dev_mem.GetBaseAddr(fifo_map));
+        fifo.set_address(dvm.GetBaseAddr(fifo_map));
         status = OPENED;
     }
     

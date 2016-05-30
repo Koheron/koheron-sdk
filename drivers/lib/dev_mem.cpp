@@ -54,7 +54,7 @@ int DevMem::Open()
         
         is_open = 1;
     }
-	
+
     RemoveAll(); // Reset memory maps
     return fd;
 }
@@ -83,31 +83,22 @@ MemMapID DevMem::AddMemoryMap(uintptr_t addr, uint32_t size)
         return static_cast<MemMapID>(-1);
     }
 
-    auto mem_map = new MemoryMap(&fd, addr, size);
+    auto mem_map = std::make_unique<MemoryMap>(&fd, addr, size);
     assert(mem_map != nullptr);
 
     if (mem_map->GetStatus() != MemoryMap::MEMMAP_OPENED) {
         fprintf(stderr,"Can't open memory map\n");
         return static_cast<MemMapID>(-1);
     }
-	
+
     MemMapID new_id = id_pool.get_id(num_maps);
-    mem_maps.insert(std::pair<MemMapID, MemoryMap*>(new_id, mem_map));
+    mem_maps.insert(std::pair<MemMapID, std::unique_ptr<MemoryMap>>(new_id, std::move(mem_map)));
     num_maps++;
     return new_id;
 }
 
-MemoryMap& DevMem::GetMemMap(MemMapID id)
-{
-    assert(mem_maps.at(id) != nullptr);
-    return *mem_maps.at(id);
-}
-
 void DevMem::RmMemoryMap(MemMapID id)
 {
-    if (mem_maps[id] != nullptr)
-        delete mem_maps[id];
-
     mem_maps.erase(id);
     id_pool.release_id(id);
     num_maps--;
@@ -125,26 +116,8 @@ void DevMem::RemoveAll()
         for (unsigned int id=0; id<mem_maps_size; id++)
             RmMemoryMap(id);
     }
-        
+
     assert(num_maps == 0);
-}
-
-int DevMem::Resize(MemMapID id, uint32_t length)
-{
-    assert(mem_maps.at(id) != nullptr);
-    return mem_maps.at(id)->Resize(length);
-}
-
-uintptr_t DevMem::GetBaseAddr(MemMapID id)
-{
-    assert(mem_maps.at(id) != nullptr);
-    return mem_maps.at(id)->GetBaseAddr();
-}
-
-int DevMem::GetStatus(MemMapID id)
-{
-    assert(mem_maps.at(id) != nullptr);   
-    return mem_maps.at(id)->GetStatus();
 }
 
 int DevMem::IsFailed()

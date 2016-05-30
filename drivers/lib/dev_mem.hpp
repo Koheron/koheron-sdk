@@ -10,6 +10,7 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <memory>
 #include <assert.h> 
 
 extern "C" {
@@ -17,6 +18,7 @@ extern "C" {
 }
 
 #include "memory_map.hpp"
+#include "wr_register.hpp"
 
 /// @namespace Klib
 /// @brief Namespace of the Koheron library
@@ -52,7 +54,7 @@ class DevMem
 
     /// Open the /dev/mem driver
     int Open();
-	
+    
     /// Close all the memory maps
     /// @return 0 if succeed, -1 else
     int Close();
@@ -68,7 +70,11 @@ class DevMem
     template<size_t N>
     int CheckMapIDs(std::array<MemMapID, N> ids);
 
-    int Resize(MemMapID id, uint32_t length);
+    inline int Resize(MemMapID id, uint32_t length)
+    {
+        assert(mem_maps.at(id) != nullptr);
+        return mem_maps.at(id)->Resize(length);
+    }
 
     /// Create a new memory map
     /// @addr Base address of the map
@@ -76,29 +82,76 @@ class DevMem
     /// @return An ID to the created map,
     ///         or -1 if an error occured
     MemMapID AddMemoryMap(uintptr_t addr, uint32_t size);
-    
+
     /// Remove a memory map
     /// @id ID of the memory map to be removed
     void RmMemoryMap(MemMapID id);
-    
+
     /// Remove all the memory maps
     void RemoveAll();
-    
+
     /// Get a memory map
     /// @id ID of the memory map
-    MemoryMap& GetMemMap(MemMapID id);
-    
+    inline MemoryMap& GetMemMap(MemMapID id)
+    {
+        assert(mem_maps.at(id) != nullptr);
+        return *mem_maps.at(id);
+    }
+
     /// Return the base address of a map
     /// @id ID of the map
-    uintptr_t GetBaseAddr(MemMapID id);
-    
+    inline uintptr_t GetBaseAddr(MemMapID id)
+    {
+        assert(mem_maps.at(id) != nullptr);
+        return mem_maps.at(id)->GetBaseAddr();
+    }
+
     /// Return the status of a map
     /// @id ID of the map
-    int GetStatus(MemMapID id);
-	
+    inline int GetStatus(MemMapID id)
+    {
+        assert(mem_maps.at(id) != nullptr);   
+        return mem_maps.at(id)->GetStatus();
+    }
+
     /// Return 1 if a memory map failed
     int IsFailed();
-    
+
+    inline void write32(MemMapID id, uint32_t offset, uint32_t value)
+    {
+        WriteReg32(GetBaseAddr(id) + offset, value);
+    }
+
+    inline uint32_t read32(MemMapID id, uint32_t offset)
+    {
+        return ReadReg32(GetBaseAddr(id) + offset);
+    }
+
+    inline void set_bit(MemMapID id, uint32_t offset, uint32_t index)
+    {
+        SetBit(GetBaseAddr(id) + offset, index);
+    }
+
+    inline void clear_bit(MemMapID id, uint32_t offset, uint32_t index)
+    {
+        ClearBit(GetBaseAddr(id) + offset, index);
+    }
+
+    inline void toggle_bit(MemMapID id, uint32_t offset, uint32_t index)
+    {
+        ToggleBit(GetBaseAddr(id) + offset, index);
+    }
+
+    inline void mask_and(MemMapID id, uint32_t offset, uint32_t mask)
+    {
+        MaskAnd(GetBaseAddr(id) + offset, mask);
+    }
+
+    inline void mask_or(MemMapID id, uint32_t offset, uint32_t mask)
+    {
+        MaskOr(GetBaseAddr(id) + offset, mask);
+    }
+
     /// True if the /dev/mem device is open
     inline bool IsOpen() const {return is_open;}
 
@@ -111,7 +164,7 @@ class DevMem
     uintptr_t addr_limit_up;
     bool __is_forbidden_address(uintptr_t addr);
 
-    std::map<MemMapID, MemoryMap*> mem_maps;
+    std::map<MemMapID, std::unique_ptr<MemoryMap>> mem_maps;
     MemMapIdPool id_pool;
 };
 
