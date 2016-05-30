@@ -98,9 +98,8 @@ std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
     _wait_for_acquisition();
     uint32_t *raw_data = reinterpret_cast<uint32_t*>(dvm.GetBaseAddr(adc_map));
     float num_avg;
-    uint32_t avg_on = bool(dvm.read32(status_map, AVG_ON_OUT0_OFF));
 
-    if (avg_on) {
+    if (dvm.read32(status_map, AVG_ON_OUT0_OFF)) {
         if (channel) {
         num_avg = float(dvm.read32(status_map, N_AVG0_OFF));  
         } else {
@@ -121,9 +120,8 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
 {
     dvm.set_bit(config_map, ADDR_OFF, 1);
     _wait_for_acquisition();
-    uint32_t avg_on = bool(dvm.read32(status_map, AVG_ON_OUT0_OFF));
 
-    if (avg_on) {
+    if (dvm.read32(status_map, AVG_ON_OUT0_OFF)) {
         float num_avg0 = float(dvm.read32(status_map, N_AVG0_OFF));
         float num_avg1 = float(dvm.read32(status_map, N_AVG1_OFF)); 
         for(unsigned int i=0; i<WFM_SIZE; i++) {
