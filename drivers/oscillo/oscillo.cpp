@@ -65,7 +65,6 @@ void Oscillo::set_n_avg_min(uint32_t n_avg_min)
 
 void Oscillo::reset()
 {
-    assert(status == OPENED);
     dvm.clear_bit(config_map, ADDR_OFF, 1);
     dvm.set_bit(config_map, ADDR_OFF, 0);
 }
