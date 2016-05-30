@@ -52,7 +52,7 @@ void DeviceMemory::clear_bit(uint32_t mmap_idx, uint32_t offset, uint32_t index)
 
 void DeviceMemory::toggle_bit(uint32_t mmap_idx, uint32_t offset, uint32_t index)
 {
-    Klib::ToggleBit(dvm.GetBaseAddr(mmap_idx) + offset, index);
+    dvm.toggle_bit(mmap_idx, offset, index);
 }
 
 void DeviceMemory::mask_and(uint32_t mmap_idx, uint32_t offset, uint32_t mask)
