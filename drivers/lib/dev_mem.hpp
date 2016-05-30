@@ -53,7 +53,7 @@ class DevMem
 
     /// Open the /dev/mem driver
     int Open();
-	
+    
     /// Close all the memory maps
     /// @return 0 if succeed, -1 else
     int Close();
@@ -81,14 +81,14 @@ class DevMem
     /// @return An ID to the created map,
     ///         or -1 if an error occured
     MemMapID AddMemoryMap(uintptr_t addr, uint32_t size);
-    
+
     /// Remove a memory map
     /// @id ID of the memory map to be removed
     void RmMemoryMap(MemMapID id);
-    
+
     /// Remove all the memory maps
     void RemoveAll();
-    
+
     /// Get a memory map
     /// @id ID of the memory map
     inline MemoryMap& GetMemMap(MemMapID id)
@@ -96,7 +96,7 @@ class DevMem
         assert(mem_maps.at(id) != nullptr);
         return *mem_maps.at(id);
     }
-    
+
     /// Return the base address of a map
     /// @id ID of the map
     inline uintptr_t GetBaseAddr(MemMapID id)
@@ -104,7 +104,7 @@ class DevMem
         assert(mem_maps.at(id) != nullptr);
         return mem_maps.at(id)->GetBaseAddr();
     }
-    
+
     /// Return the status of a map
     /// @id ID of the map
     inline int GetStatus(MemMapID id)
@@ -112,7 +112,7 @@ class DevMem
         assert(mem_maps.at(id) != nullptr);   
         return mem_maps.at(id)->GetStatus();
     }
-	
+
     /// Return 1 if a memory map failed
     int IsFailed();
 
@@ -140,7 +140,17 @@ class DevMem
     {
         ToggleBit(GetBaseAddr(id) + offset, index);
     }
-    
+
+    inline void mask_and(MemMapID id, uint32_t offset, uint32_t mask)
+    {
+        MaskAnd(GetBaseAddr(id) + offset, mask);
+    }
+
+    inline void mask_or(MemMapID id, uint32_t offset, uint32_t mask)
+    {
+        MaskOr(GetBaseAddr(id) + offset, mask);
+    }
+
     /// True if the /dev/mem device is open
     inline bool IsOpen() const {return is_open;}
 
