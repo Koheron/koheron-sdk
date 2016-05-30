@@ -17,6 +17,7 @@ extern "C" {
 }
 
 #include "memory_map.hpp"
+#include "wr_register.hpp"
 
 /// @namespace Klib
 /// @brief Namespace of the Koheron library
@@ -98,6 +99,16 @@ class DevMem
 	
     /// Return 1 if a memory map failed
     int IsFailed();
+
+    inline void write32(MemMapID id, uint32_t offset, uint32_t value)
+    {
+        WriteReg32(GetBaseAddr(id) + offset, value);
+    }
+
+    inline uint32_t read32(MemMapID id, uint32_t offset)
+    {
+        return ReadReg32(GetBaseAddr(id) + offset);
+    }
     
     /// True if the /dev/mem device is open
     inline bool IsOpen() const {return is_open;}
