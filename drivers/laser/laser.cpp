@@ -2,10 +2,10 @@
 
 #include "laser.hpp"
 
-Laser::Laser(Klib::DevMem& dev_mem_)
-: dev_mem(dev_mem_),
-  xadc(dev_mem_),
-  gpio(dev_mem_)
+Laser::Laser(Klib::DevMem& dvm_)
+: dvm(dvm_),
+  xadc(dvm_),
+  gpio(dvm_)
 {
     status = CLOSED;
 }
@@ -21,11 +21,11 @@ int Laser::Open()
 {
     if (status == CLOSED) {
         // Config is required for the PWMs
-        auto ids = dev_mem.RequestMemoryMaps<1>({{
+        auto ids = dvm.RequestMemoryMaps<1>({{
             { CONFIG_ADDR, CONFIG_RANGE }
         }});
 
-        if (dev_mem.CheckMapIDs(ids) < 0) {
+        if (dvm.CheckMapIDs(ids) < 0) {
             status = FAILED;
             return -1;
         }
@@ -99,6 +99,6 @@ void Laser::set_laser_current(float current)
     float current_;
     current > MAX_LASER_CURRENT ? current_ = MAX_LASER_CURRENT : current_ = current;    
     uint32_t voltage = (uint32_t) CURRENT_TO_VOLTAGE(current_);
-    Klib::WriteReg32(dev_mem.GetBaseAddr(config_map) + PWM3_OFF, voltage);
+    dvm.write32(config_map, PWM3_OFF, voltage);
 }
 

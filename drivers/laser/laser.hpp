@@ -22,7 +22,7 @@
 class Laser
 {
   public:
-    Laser(Klib::DevMem& dev_mem_);
+    Laser(Klib::DevMem& dvm_);
     ~Laser();
     
     int Open();
@@ -49,7 +49,7 @@ class Laser
     
   private:
     // Core drivers
-    Klib::DevMem& dev_mem;
+    Klib::DevMem& dvm;
     Xadc xadc;
     Gpio gpio;
         

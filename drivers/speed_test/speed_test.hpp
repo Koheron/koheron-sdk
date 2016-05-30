@@ -24,7 +24,7 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz);
 class SpeedTest
 {
   public:
-    SpeedTest(Klib::DevMem& dev_mem_);
+    SpeedTest(Klib::DevMem& dvm_);
 
     int Open();
 
@@ -55,7 +55,7 @@ class SpeedTest
     bool IsFailed() const {return status == FAILED;}
 
   private:
-    Klib::DevMem& dev_mem;
+    Klib::DevMem& dvm;
 
     int status;
 
