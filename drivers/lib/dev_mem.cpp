@@ -97,12 +97,6 @@ MemMapID DevMem::AddMemoryMap(uintptr_t addr, uint32_t size)
     return new_id;
 }
 
-MemoryMap& DevMem::GetMemMap(MemMapID id)
-{
-    assert(mem_maps.at(id) != nullptr);
-    return *mem_maps.at(id);
-}
-
 void DevMem::RmMemoryMap(MemMapID id)
 {
     if (mem_maps[id] != nullptr)
@@ -127,24 +121,6 @@ void DevMem::RemoveAll()
     }
         
     assert(num_maps == 0);
-}
-
-int DevMem::Resize(MemMapID id, uint32_t length)
-{
-    assert(mem_maps.at(id) != nullptr);
-    return mem_maps.at(id)->Resize(length);
-}
-
-uintptr_t DevMem::GetBaseAddr(MemMapID id)
-{
-    assert(mem_maps.at(id) != nullptr);
-    return mem_maps.at(id)->GetBaseAddr();
-}
-
-int DevMem::GetStatus(MemMapID id)
-{
-    assert(mem_maps.at(id) != nullptr);   
-    return mem_maps.at(id)->GetStatus();
 }
 
 int DevMem::IsFailed()

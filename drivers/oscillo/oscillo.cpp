@@ -103,7 +103,7 @@ std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
 {
     Klib::MemMapID adc_map;
     channel ? adc_map = adc_1_map : adc_map = adc_2_map;
-    Klib::SetBit(dvm.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    dvm.set_bit(config_map, ADDR_OFF, 1);
     _wait_for_acquisition();
     uint32_t *raw_data = reinterpret_cast<uint32_t*>(dvm.GetBaseAddr(adc_map));
     float num_avg;
@@ -121,7 +121,7 @@ std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
         for(unsigned int i=0; i < WFM_SIZE; i++)
             data[i] = float(raw_data[i]);
     }
-    Klib::ClearBit(dvm.GetBaseAddr(config_map)+ADDR_OFF, 1);
+    dvm.clear_bit(config_map, ADDR_OFF, 1);
     return data;
 }
 

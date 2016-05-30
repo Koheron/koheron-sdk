@@ -69,7 +69,11 @@ class DevMem
     template<size_t N>
     int CheckMapIDs(std::array<MemMapID, N> ids);
 
-    int Resize(MemMapID id, uint32_t length);
+    inline int Resize(MemMapID id, uint32_t length)
+    {
+        assert(mem_maps.at(id) != nullptr);
+        return mem_maps.at(id)->Resize(length);
+    }
 
     /// Create a new memory map
     /// @addr Base address of the map
@@ -87,15 +91,27 @@ class DevMem
     
     /// Get a memory map
     /// @id ID of the memory map
-    MemoryMap& GetMemMap(MemMapID id);
+    inline MemoryMap& GetMemMap(MemMapID id)
+    {
+        assert(mem_maps.at(id) != nullptr);
+        return *mem_maps.at(id);
+    }
     
     /// Return the base address of a map
     /// @id ID of the map
-    uintptr_t GetBaseAddr(MemMapID id);
+    inline uintptr_t GetBaseAddr(MemMapID id)
+    {
+        assert(mem_maps.at(id) != nullptr);
+        return mem_maps.at(id)->GetBaseAddr();
+    }
     
     /// Return the status of a map
     /// @id ID of the map
-    int GetStatus(MemMapID id);
+    inline int GetStatus(MemMapID id)
+    {
+        assert(mem_maps.at(id) != nullptr);   
+        return mem_maps.at(id)->GetStatus();
+    }
 	
     /// Return 1 if a memory map failed
     int IsFailed();
@@ -108,6 +124,16 @@ class DevMem
     inline uint32_t read32(MemMapID id, uint32_t offset)
     {
         return ReadReg32(GetBaseAddr(id) + offset);
+    }
+
+    inline void set_bit(MemMapID id, uint32_t offset, uint32_t index)
+    {
+        SetBit(GetBaseAddr(id) + offset, index);
+    }
+
+    inline void clear_bit(MemMapID id, uint32_t offset, uint32_t index)
+    {
+        ClearBit(GetBaseAddr(id) + offset, index);
     }
     
     /// True if the /dev/mem device is open
