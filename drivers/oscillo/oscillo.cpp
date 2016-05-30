@@ -99,13 +99,13 @@ std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
     _wait_for_acquisition();
     uint32_t *raw_data = reinterpret_cast<uint32_t*>(dvm.GetBaseAddr(adc_map));
     float num_avg;
-    uint32_t avg_on = bool(Klib::ReadReg32(dvm.GetBaseAddr(status_map)+AVG_ON_OUT0_OFF));
+    uint32_t avg_on = bool(dvm.read32(status_map, AVG_ON_OUT0_OFF));
 
     if (avg_on) {
         if (channel) {
-        num_avg = float(Klib::ReadReg32(dvm.GetBaseAddr(status_map)+N_AVG0_OFF));  
+        num_avg = float(dvm.read32(status_map, N_AVG0_OFF));  
         } else {
-            num_avg = float(Klib::ReadReg32(dvm.GetBaseAddr(status_map)+N_AVG1_OFF));  
+            num_avg = float(dvm.read32(status_map, N_AVG1_OFF));  
         }
         for(unsigned int i=0; i < WFM_SIZE; i++)
             data[i] = float(raw_data[i]) / num_avg;
@@ -122,11 +122,11 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
 {
     dvm.set_bit(config_map, ADDR_OFF, 1);
     _wait_for_acquisition();
-    uint32_t avg_on = bool(Klib::ReadReg32(dvm.GetBaseAddr(status_map)+AVG_ON_OUT0_OFF));
+    uint32_t avg_on = bool(dvm.read32(status_map, AVG_ON_OUT0_OFF));
 
     if (avg_on) {
-        float num_avg0 = float(Klib::ReadReg32(dvm.GetBaseAddr(status_map)+N_AVG0_OFF));
-        float num_avg1 = float(Klib::ReadReg32(dvm.GetBaseAddr(status_map)+N_AVG1_OFF)); 
+        float num_avg0 = float(dvm.read32(status_map, N_AVG0_OFF));
+        float num_avg1 = float(dvm.read32(status_map, N_AVG1_OFF)); 
         for(unsigned int i=0; i<WFM_SIZE; i++) {
             data_all[i] = float(raw_data_1[i]) / num_avg0;
             data_all[i + WFM_SIZE] = float(raw_data_2[i]) / num_avg1;
@@ -156,7 +156,7 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor, uint
     data_decim.resize(2*n_pts);
     _wait_for_acquisition();
 
-    uint32_t avg_on = bool(Klib::ReadReg32(dvm.GetBaseAddr(status_map)+AVG_ON_OUT0_OFF));
+    uint32_t avg_on = bool(dvm.read32(status_map, AVG_ON_OUT0_OFF));
     if(avg_on) {
         float num_avg = float(get_num_average()); 
         for(unsigned int i=0; i<n_pts; i++) {
@@ -186,5 +186,5 @@ void Oscillo::set_averaging(bool avg_on)
 
 uint32_t Oscillo::get_num_average()
 {
-    return Klib::ReadReg32(dvm.GetBaseAddr(status_map)+N_AVG0_OFF);
+    return dvm.read32(status_map, N_AVG0_OFF);
 }
