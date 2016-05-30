@@ -13,7 +13,7 @@
 class DeviceMemory
 {
   public:
-    DeviceMemory(Klib::DevMem& dev_mem_);
+    DeviceMemory(Klib::DevMem& dvm_);
 
     int add_memory_map(uint32_t device_addr, uint32_t map_size);
     uint32_t read(uint32_t mmap_idx, uint32_t offset);
@@ -34,7 +34,7 @@ class DeviceMemory
     void mask_or(uint32_t mmap_idx, uint32_t offset, uint32_t mask);
 
   private:
-    Klib::DevMem& dev_mem;
+    Klib::DevMem& dvm;
 };
 
 #endif // __DRIVERS_CORE_DEVICE_MEMORY_HPP__

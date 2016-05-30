@@ -67,8 +67,8 @@ void Spectrum::reset()
 {
     assert(status == OPENED);
     // Config
-    Klib::ClearBit(dvm.GetBaseAddr(config_map) + ADDR_OFF, 1);
-    Klib::SetBit(dvm.GetBaseAddr(config_map) + ADDR_OFF, 0);
+    dvm.clear_bit(config_map, ADDR_OFF, 1);
+    dvm.set_bit(config_map, ADDR_OFF, 0);
 }
 
 void Spectrum::set_dac_buffer(const uint32_t *data, uint32_t len)
@@ -79,8 +79,8 @@ void Spectrum::set_dac_buffer(const uint32_t *data, uint32_t len)
 
 void Spectrum::reset_acquisition()
 {
-    Klib::ClearBit(dvm.GetBaseAddr(config_map) + ADDR_OFF, 1);
-    Klib::SetBit(dvm.GetBaseAddr(config_map) + ADDR_OFF, 1);
+    dvm.clear_bit(config_map, ADDR_OFF, 1);
+    dvm.set_bit(config_map, ADDR_OFF, 1);
 }
 
 void Spectrum::set_scale_sch(uint32_t scale_sch)
@@ -116,7 +116,7 @@ void Spectrum::_wait_for_acquisition()
 
 std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
 {
-    Klib::SetBit(dvm.GetBaseAddr(config_map) + ADDR_OFF, 1);    
+    dvm.set_bit(config_map,ADDR_OFF, 1);    
     _wait_for_acquisition();
     uint32_t avg_on = bool(dvm.read32(status_map, AVG_ON_OUT_OFF));
 
@@ -128,7 +128,7 @@ std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
         for(unsigned int i=0; i<WFM_SIZE; i++)
             spectrum_data[i] = raw_data[i];
     }
-    Klib::ClearBit(dvm.GetBaseAddr(config_map) + ADDR_OFF, 1);
+    dvm.clear_bit(config_map, ADDR_OFF, 1);
     return spectrum_data;
 }
 
@@ -140,7 +140,7 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
         return spectrum_decim;
     }
 
-    Klib::SetBit(dvm.GetBaseAddr(config_map) + ADDR_OFF, 1);
+    dvm.set_bit(config_map, ADDR_OFF, 1);
     uint32_t n_pts = (index_high - index_low)/decim_factor;
     spectrum_decim.resize(n_pts);
     _wait_for_acquisition();
@@ -156,21 +156,21 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
             spectrum_decim[i] = raw_data[index_low + decim_factor * i];
     }
 
-    Klib::ClearBit(dvm.GetBaseAddr(config_map) + ADDR_OFF, 1);
+    dvm.clear_bit(config_map, ADDR_OFF, 1);
     return spectrum_decim;
 }
 
 void Spectrum::set_averaging(bool avg_on)
 {
     if(avg_on)
-        Klib::SetBit(dvm.GetBaseAddr(config_map) + AVG_ON_OFF, 0);
+        dvm.set_bit(config_map, AVG_ON_OFF, 0);
     else
-        Klib::ClearBit(dvm.GetBaseAddr(config_map) + AVG_ON_OFF, 0);
+        dvm.clear_bit(config_map, AVG_ON_OFF, 0);
 }
 
 uint32_t Spectrum::get_num_average()
 {
-    return Klib::ReadReg32(dvm.GetBaseAddr(status_map) + N_AVG_OFF);
+    return dvm.read32(status_map, N_AVG_OFF);
 }
 
 /////////////////////
