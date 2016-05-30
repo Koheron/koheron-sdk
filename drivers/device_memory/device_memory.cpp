@@ -57,10 +57,10 @@ void DeviceMemory::toggle_bit(uint32_t mmap_idx, uint32_t offset, uint32_t index
 
 void DeviceMemory::mask_and(uint32_t mmap_idx, uint32_t offset, uint32_t mask)
 {
-    Klib::MaskAnd(dvm.GetBaseAddr(mmap_idx) + offset, mask);
+    dvm.mask_and(mmap_idx, offset, mask);
 }
 
 void DeviceMemory::mask_or(uint32_t mmap_idx, uint32_t offset, uint32_t mask)
 {
-    Klib::MaskOr(dvm.GetBaseAddr(mmap_idx) + offset, mask);
+    dvm.mask_or(mmap_idx, offset, mask);
 }
