@@ -6,9 +6,20 @@ source lib/starting_point.tcl
 
 # Add ADCs and DACs
 source lib/redp_adc_dac.tcl
+set adc_dac_name adc_dac
+add_redp_adc_dac $adc_dac_name
+
+# Add processor system reset synchronous to adc clock
+set rst_adc_clk_name proc_sys_reset_adc_clk
+
 # Rename clocks
-set adc_clk adc_dac/adc_clk
-set pwm_clk adc_dac/pwm_clk
+set adc_clk $adc_dac_name/adc_clk
+set pwm_clk $adc_dac_name/pwm_clk
+
+cell xilinx.com:ip:proc_sys_reset:5.0 $rst_adc_clk_name {} {
+  ext_reset_in $ps_name/FCLK_RESET0_N
+  slowest_sync_clk $adc_clk
+}
 
 # Add config and status registers
 source lib/config_register.tcl
