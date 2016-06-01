@@ -4,6 +4,13 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
+import os
+from koheron_tcp_client import KClient, command, DevMem
+
+host = os.getenv('HOST','192.168.1.100')
+client = KClient(host)
+dvm = DevMem(client)
+
 def set_cic_rate(rate):
     dvm.write(CONFIG, CIC_RATE_OFF, rate)
 

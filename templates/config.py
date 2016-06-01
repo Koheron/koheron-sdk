@@ -1,9 +1,9 @@
+# This file is auto-generated : do no edit !
 
 {% for addr in dic['addresses'] -%}
 # {{ addr['name']| capitalize }}:
 {{ addr['name']|upper }}_ADDR  = int('{{ addr['offset'] }}', 0)
 {{ addr['name']|upper }}_RANGE = {{ addr['range']|replace('K','*1024') }}
-{{ addr['name']|upper }} = dvm.add_memory_map({{ addr['name']|upper }}_ADDR, {{ addr['name']|upper }}_RANGE)
 
 {% endfor %}
 

@@ -251,7 +251,7 @@ tcp-server_cli: $(TCP_SERVER_DIR)
 # zip (contains bitstream, tcp-server and python drivers)
 ###############################################################################
 
-$(CONFIG_PY): $(MAIN_YML) $(VERSION_FILE)
+$(CONFIG_PY): $(MAIN_YML) $(VERSION_FILE) templates/config.py
 	python make.py --config_py $(NAME) $(VERSION)
 
 $(PYTHON_DIR): $(MAIN_YML)
