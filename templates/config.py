@@ -1,4 +1,4 @@
-# This file is auto-generated : do no edit !
+# This file is auto-generated : do not edit !
 
 {% for addr in dic['addresses'] -%}
 # {{ addr['name']| capitalize }}:
