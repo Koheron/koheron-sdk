@@ -1,7 +1,5 @@
-from .zynq_ssh import ZynqSSH
-from .zynq_http import ZynqHTTP
+from .http_interface import HTTPInterface
 
 __all__ = [
-  'ZynqSSH',
-  'ZynqHTTP'
+  'HTTPInterface'
 ]
