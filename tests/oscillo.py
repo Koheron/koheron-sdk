@@ -2,7 +2,7 @@ import context
 import os
 from instrument_manager import InstrumentManager
 from koheron_tcp_client import KClient, command
-from config import Config
+from project_config import ProjectConfig
 
 from drivers.common import Common
 from drivers.oscillo import Oscillo
@@ -18,7 +18,7 @@ im = InstrumentManager(host)
 im.install_instrument(project)
 client = KClient(host)
 
-config = Config(project)
+pc = ProjectConfig(project)
 
 class Test:
 
@@ -30,7 +30,6 @@ class Test:
         self.xadc = Xadc(client)
         self.laser = Laser(client)
         self.gpio = Gpio(client)
-        self.dvm = DeviceMemory(client)
 
 driver = Test(client)
 
@@ -49,14 +48,14 @@ print driver.laser.get_monitoring()
 # Test device memory
 dvm = DeviceMemory(client)
 
-for mmap in config.mmaps:
+for mmap in pc.mmaps:
     dvm.add_mmap(mmap)
 
 value = 42
-dvm.write32('config', config.cfg['led'], value)
-assert(dvm.read32('config', config.cfg['led']) == value)
+dvm.write32('config', pc.cfg['led'], value)
+assert(dvm.read32('config', pc.cfg['led']) == value)
 
-dna = dvm.read32('status', config.sts['dna']) + dvm.read32('status', config.sts['dna']+4) << 32
+dna = dvm.read32('status', pc.sts['dna']) + dvm.read32('status', pc.sts['dna']+4) << 32
 assert(driver.common.get_dna() == dna)
 
 

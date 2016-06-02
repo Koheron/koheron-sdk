@@ -15,7 +15,7 @@ class MemMap(object):
         msg = 'map {} at offset {} and range {}'
         print(msg.format(self.name, self.offset, self.range))
 
-class Config(object):
+class ProjectConfig(object):
  
     def __init__(self, project):
         self.load(project)
@@ -26,7 +26,10 @@ class Config(object):
         with open(config_filename) as config_file:
             dic = yaml.load(config_file)
 
+        # List of memory maps
         self.mmaps = []
+
+        # Config and Status registers
         self.cfg = {}
         self.sts = {}
         
@@ -42,4 +45,3 @@ class Config(object):
         self.sts['bitstream_id'] = 0
         self.sts['dna'] = 4 * 8
 
-        
