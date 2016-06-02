@@ -2,7 +2,7 @@ device=$1
 name=$2
 version=$3
 
-config_dir=os/config
+config_dir=os
 api_dir=os/api
 
 boot_dir=/tmp/BOOT
