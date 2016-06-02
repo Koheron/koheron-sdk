@@ -2,6 +2,9 @@ device=$1
 name=$2
 version=$3
 
+config_dir=os
+api_dir=os/api
+
 boot_dir=/tmp/BOOT
 root_dir=/tmp/ROOT
 
@@ -36,7 +39,7 @@ mount $root_dev $root_dir
 
 # Copy files to the boot file system
 
-cp boot.bin devicetree.dtb uImage config/uEnv.txt $boot_dir
+cp boot.bin devicetree.dtb uImage $config_dir/uEnv.txt $boot_dir
 
 # Copy Ubuntu Core to the root file system
 
@@ -57,24 +60,24 @@ cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 # Add Web app
 mkdir $root_dir/usr/local/flask
 mkdir $root_dir/usr/local/flask/api_app
-cp -a api/. $root_dir/usr/local/flask/api_app
-cp config/wsgi.py $root_dir/usr/local/flask
+cp -a $api_dir/. $root_dir/usr/local/flask/api_app
+cp $config_dir/wsgi.py $root_dir/usr/local/flask
 unzip -o tmp/app.zip -d $root_dir/var/www
 
 # Add Koheron TCP Server
 mkdir $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/tmp/server/kserverd $root_dir/usr/local/tcp-server
-cp config/kserver.conf $root_dir/usr/local/tcp-server
+cp $config_dir/kserver.conf $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/VERSION $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
-cp config/tcp-server.service $root_dir/etc/systemd/system/tcp-server.service
-cp config/tcp-server-init.service $root_dir/etc/systemd/system/tcp-server-init.service
+cp $config_dir/tcp-server.service $root_dir/etc/systemd/system/tcp-server.service
+cp $config_dir/tcp-server-init.service $root_dir/etc/systemd/system/tcp-server-init.service
 
 # uwsgi
 mkdir $root_dir/etc/flask-uwsgi
-cp config/flask-uwsgi.ini $root_dir/etc/flask-uwsgi/flask-uwsgi.ini
-cp config/uwsgi.service $root_dir/etc/systemd/system/uwsgi.service
+cp $config_dir/flask-uwsgi.ini $root_dir/etc/flask-uwsgi/flask-uwsgi.ini
+cp $config_dir/uwsgi.service $root_dir/etc/systemd/system/uwsgi.service
 
 # Add zip
 mkdir $root_dir/usr/local/instruments
@@ -326,9 +329,9 @@ EOF_CHROOT
 
 # nginx
 rm $root_dir/etc/nginx/sites-enabled/default
-cp config/nginx.conf $root_dir/etc/nginx/nginx.conf
-cp config/flask-uwsgi $root_dir/etc/nginx/sites-enabled/flask-uwsgi
-cp config/nginx.service $root_dir/etc/systemd/system/nginx.service
+cp $config_dir/nginx.conf $root_dir/etc/nginx/nginx.conf
+cp $config_dir/flask-uwsgi $root_dir/etc/nginx/sites-enabled/flask-uwsgi
+cp $config_dir/nginx.service $root_dir/etc/systemd/system/nginx.service
 
 rm $root_dir/etc/resolv.conf
 rm $root_dir/usr/bin/qemu-arm-static

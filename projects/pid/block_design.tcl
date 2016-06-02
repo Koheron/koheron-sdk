@@ -4,7 +4,7 @@ source boards/$board_name/base_system.tcl
 #connect_pins $status_name/In$config::adc1_offset adc_dac/adc1
 
 # Add PID controller
-source lib/pid_controller.tcl
+source $lib/pid_controller.tcl
 set pid_out_width 32
 add_pid pid_controller [expr $config::adc_width + 1] $pid_out_width
 connect_pins pid_controller/clk $adc_clk

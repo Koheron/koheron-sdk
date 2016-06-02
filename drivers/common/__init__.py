@@ -4,11 +4,7 @@
 from koheron_tcp_client import command
 
 class Common(object):
-    """ Common commands for all bitstreams.
 
-    args:
-        client : instance of KClient connected to tcp-server.
-    """
     def __init__(self, client):
         self.client = client
         if self.open_common() < 0:
@@ -27,8 +23,9 @@ class Common(object):
         return ''.join('{:08x}'.format(i) for i in id_array)
 
     @command('COMMON')
-    def get_dna(self): 
-        return self.client.recv_int(8)
+    def get_dna(self):
+        buff = self.client.recv_buffer(2, data_type='uint32')
+        return buff[1] + buff[0] << 32
 
     @command('COMMON')
     def set_led(self, value): pass
@@ -39,3 +36,8 @@ class Common(object):
 
     @command('COMMON')
     def ip_on_leds(self): pass
+
+    def status(self):
+       print('bitstream id = {}'.format(self.get_bitstream_id()))
+       print('DNA = {}'.format(self.get_dna()))
+       print('LED = {}'.format(self.get_led() % 256))

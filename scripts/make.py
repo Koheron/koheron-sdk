@@ -67,19 +67,19 @@ def get_config(project):
 ###################
 
 def fill_config_tcl(config):
-    template = get_renderer().get_template(os.path.join('templates', 'config.tcl'))
+    template = get_renderer().get_template(os.path.join('scripts/templates', 'config.tcl'))
     output = file(os.path.join('projects', config['project'], 'config.tcl'),'w')
     output.write(template.render(dic=config))
     output.close()
 
 def fill_config_python(config, version):
-    template = get_renderer().get_template(os.path.join('templates', 'config.py'))
+    template = get_renderer().get_template(os.path.join('scripts/templates', 'config.py'))
     output = file(os.path.join('projects', config['project'], 'config.py'),'w')
     output.write(template.render(dic=config, version=version))
     output.close()
 
 def fill_addresses(config, tcp_server_dir):
-    template = get_renderer().get_template(os.path.join('templates', 'addresses.hpp'))
+    template = get_renderer().get_template(os.path.join('scripts/templates', 'addresses.hpp'))
     output = file(os.path.join(tcp_server_dir, 'middleware', 'drivers', 'addresses.hpp'),'w')
     output.write(template.render(dic=config))
     output.close()
@@ -144,7 +144,7 @@ def build_python(project, python_dir):
                 else:
                     raise ValueError("Unknown Python file: " + file_)
 
-    template = get_renderer().get_template(os.path.join('templates', '__init__.py'))
+    template = get_renderer().get_template(os.path.join('scripts/templates', '__init__.py'))
     config = load_config(project)
     output = file(os.path.join(python_dir, '__init__.py'), 'w')
     output.write(template.render(dic={'include': include_list}))

@@ -31,7 +31,7 @@ You can find the latest release of the SD card image for the Red Pitaya `oscillo
 The build is tested on Ubuntu 16.04.
 [Install Vivado 2016.1](https://github.com/Koheron/zynq-sdk/issues/101) and source it ([Full list of requirements](https://github.com/Koheron/zynq-sdk/issues/117)):
 ```
-$ source settings.sh
+$ source scripts/settings.sh
 ```
 
 Build zip file including bitstream, middleware and python drivers:
