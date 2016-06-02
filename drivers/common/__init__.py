@@ -4,11 +4,7 @@
 from koheron_tcp_client import command
 
 class Common(object):
-    """ Common commands for all bitstreams.
 
-    args:
-        client : instance of KClient connected to tcp-server.
-    """
     def __init__(self, client):
         self.client = client
         if self.open_common() < 0:

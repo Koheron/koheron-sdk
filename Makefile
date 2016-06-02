@@ -90,11 +90,14 @@ $(TMP):
 	mkdir -p $(TMP)
 
 ###############################################################################
-# test bench
+# tests
 ###############################################################################
 
-test: $(CONFIG_TCL) $(XDC_DIR) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+test_bench: $(CONFIG_TCL) $(XDC_DIR) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	vivado -source scripts/test_bench.tcl -tclargs $(NAME) $(PART)
+
+test: tests/$(NAME).py $(CONFIG_PY)
+	python $<
 
 ###############################################################################
 # versioning
