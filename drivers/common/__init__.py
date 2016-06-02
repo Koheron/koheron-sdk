@@ -37,7 +37,7 @@ class Common(object):
     @command('COMMON')
     def ip_on_leds(self): pass
 
-    def print_status(self):
+    def status(self):
        print('bitstream id = {}'.format(self.get_bitstream_id()))
        print('DNA = {}'.format(self.get_dna()))
        print('LED = {}'.format(self.get_led() % 256))
