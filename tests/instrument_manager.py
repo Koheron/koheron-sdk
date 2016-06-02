@@ -3,13 +3,13 @@
 import requests
 import time
 
-class HTTPInterface:
-    def __init__(self, IP, port=80):
+class InstrumentManager:
+    def __init__(self, ip, port=80):
         self.port = port
-        self.url = 'http://' + IP + ':' + str(port)
+        self.url = 'http://' + ip + ':' + str(port)
 
-    def set_ip(self, IP):
-        self.url = 'http://' + IP + ':' + str(self.port)
+    def set_ip(self, ip):
+        self.url = 'http://' + ip + ':' + str(self.port)
 
     def get_bistream_id(self):
         r = requests.get(self.url + '/api/bitstream_id')
@@ -19,21 +19,13 @@ class HTTPInterface:
         r = requests.get(self.url + '/api/ping')
         
     def deploy_remote_instrument(self, name, version):
-        """ Deploy a remotely available instrument
-            
-            Args:
-                - name: Instrument name
-                - version: Instrument version
-        """
+        """ Deploy a remotely available instrument. """
         zip_filename = name + '-' + version + '.zip'
         r = requests.get(self.url + '/api/deploy/remote/' + zip_filename)
 
     def deploy_local_instrument(self, name, version):
-        """ Deploy an instrument locally available
-            Args:
-                - name: Instrument name
-                - version: Instrument version
-            Return the deployement status: 0 on success, -1 else
+        """ Deploy a locally available instrument
+            Return 0 on success, -1 else
         """
         zip_filename = name + '-' + version + '.zip'
         print('Deploying ' + zip_filename)
@@ -65,11 +57,12 @@ class HTTPInterface:
             print("[error] " + str(e))
             return {}
 
-    def install_instrument(self, instrument_name):
-        # Don't restart the instrument if already lauched
-        current_instrument = self.get_current_instrument()
-        if current_instrument['name'] == instrument_name:
-            return
+    def install_instrument(self, instrument_name, always_restart=False):
+        if not always_restart:
+            # Don't restart the instrument if already launched
+            current_instrument = self.get_current_instrument()
+            if current_instrument['name'] == instrument_name:
+                return
 
         instruments = self.get_local_instruments()
         if instruments:
@@ -81,11 +74,6 @@ class HTTPInterface:
         raise ValueError("Instrument " + instrument_name + " not found")
 
 if __name__ == "__main__":
-    http = HTTPInterface('192.168.1.21')
-    print(http.get_bistream_id())
-#    http.ping()
-#    http.deploy_remote_instrument('spectrum', '06ee48f')
-#    http.deploy_local_instrument('oscillo', '06ee48f')
-#    print(http.remove_local_instrument('oscillo', '06ee48f'))
-    print(http.get_local_instruments())
-#    http.install_instrument("spectrum")
+    host = os.getenv(HOST, '192.168.1.100')
+    http = InstrumentManager(host)
+    print('bitstream id = {}'.format(http.get_bistream_id()))

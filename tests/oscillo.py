@@ -1,5 +1,6 @@
 import context
 import os
+from instrument_manager import InstrumentManager
 from koheron_tcp_client import KClient, command
 
 from drivers.common import Common
@@ -10,7 +11,8 @@ from drivers.gpio import Gpio
 from drivers.device_memory import DeviceMemory
 
 host = os.getenv('HOST','192.168.1.100')
-
+im = InstrumentManager(host)
+im.install_instrument('oscillo')
 client = KClient(host)
 
 class Test:
