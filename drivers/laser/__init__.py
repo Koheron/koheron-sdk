@@ -1,26 +1,17 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from koheron_tcp_client import command
 
 class Laser(object):
-    """ Basic control and monitoring for Koheron Laser Board."""
+
     def __init__(self, client):
-        """ client : instance of KClient connected to tcp-server."""
         self.client = client
-        if self.open_laser() < 0 :
+        if self.open() < 0 :
             print('Cannot open LASER device')
-        self.max_current = 40  # mA
 
-    def open_laser(self):
-        @command('LASER')
-        def open(self):
-            return self.client.recv_int(4)
-
-        return open(self)
-
-    def close(self):
-        self.reset()
+    @command('LASER')
+    def open(self):
+        return self.client.recv_int32()
 
     @command('LASER')
     def reset(self): pass
@@ -44,7 +35,12 @@ class Laser(object):
     def get_monitoring(self):
         return self.client.recv_tuple()
 
-    @command('LASER')
+    @command('LASER','I')
     def set_laser_current(self, current):
         """ current: The bias in mA """
         pass
+
+    def status(self):
+        print('laser current = {} mA'.format(self.get_laser_current()))
+        print('laser power = {} arb. units'.format(self.get_laser_power()))
+
