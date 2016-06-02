@@ -10,17 +10,16 @@ class DeviceMemory(object):
         self.client = client
         self.maps = {} 
 
-    def add_map(self, device_name, offset, range):
+    def add_mmap(self, mmap):
         @command('DEVICE_MEMORY','II')
         def add_memory_map(self, device_addr, map_size):
             return self.client.recv_int32()
-        if not device_name in self.maps:
-            device_addr = int(offset, 0)
-            map_size = 1024 * int(range.replace("K", ""))
-            print device_addr, map_size
+        if not mmap.name in self.maps:
+            device_addr = int(mmap.offset, 0)
+            map_size = 1024 * int(mmap.range.replace("K", ""))
             mmap_idx = add_memory_map(self, device_addr, map_size)
             if mmap_idx >= 0:
-                self.maps[device_name] = mmap_idx
+                self.maps[mmap.name] = mmap_idx
 
     def read32(self, device_name, offset):
         @command('DEVICE_MEMORY','II')
