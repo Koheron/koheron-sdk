@@ -10,4 +10,4 @@ source projects/spectrum/spectrum.tcl
 # Add EEPROM
 ##########################################################
 
-source lib/at93c46d.tcl
+source $lib/at93c46d.tcl

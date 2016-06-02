@@ -60,6 +60,7 @@ RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1h
 MAIN_YML = projects/$(NAME)/main.yml
 CONFIG_TCL = projects/$(NAME)/config.tcl
 CONFIG_PY  = projects/$(NAME)/config.py
+TEMPLATE_DIR = scripts/templates
 
 # Versioning
 VERSION_FILE = $(TMP)/$(NAME).version
@@ -115,13 +116,13 @@ $(SHA_FILE): $(VERSION_FILE)
 # FPGA
 ###############################################################################
 
-$(CONFIG_TCL): $(MAKE_PY) $(MAIN_YML) $(SHA_FILE) templates/config.tcl
+$(CONFIG_TCL): $(MAKE_PY) $(MAIN_YML) $(SHA_FILE) $(TEMPLATE_DIR)/config.tcl
 	python $(MAKE_PY) --config_tcl $(NAME)
 
 $(XDC_DIR): $(MAKE_PY) $(MAIN_YML)
 	python $(MAKE_PY) --xdc $(NAME)
 
-$(TMP)/cores/%: cores/%/core_config.tcl cores/%/*.v
+$(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
 
@@ -256,7 +257,7 @@ tcp-server_cli: $(TCP_SERVER_DIR)
 # zip (contains bitstream, tcp-server and python drivers)
 ###############################################################################
 
-$(CONFIG_PY): $(MAKE_PY) $(MAIN_YML) $(VERSION_FILE) templates/config.py
+$(CONFIG_PY): $(MAKE_PY) $(MAIN_YML) $(VERSION_FILE) $(TEMPLATE_DIR)/config.py
 	python $(MAKE_PY) --config_py $(NAME) $(VERSION)
 
 $(PYTHON_DIR): $(MAKE_PY) $(MAIN_YML)

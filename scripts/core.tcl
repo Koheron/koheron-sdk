@@ -7,14 +7,16 @@ set elements [split $core_name _]
 set project_name [join [lrange $elements 0 end-2] _]
 set version [string trimleft [join [lrange $elements end-1 end] .] v]
 
+set cores_dir fpga/cores
+
 file delete -force tmp/cores/$core_name tmp/cores/$project_name.cache tmp/cores/$project_name.hw tmp/cores/$project_name.xpr
 
 create_project -part $part_name $project_name tmp/cores
 
-add_files -norecurse [glob cores/$core_name/*.v]
+add_files -norecurse [glob $cores_dir/$core_name/*.v]
 
 # Remove testbench files
-set testbench_files [glob -nocomplain cores/$core_name/*_tb.v]
+set testbench_files [glob -nocomplain $cores_dir/$core_name/*_tb.v]
 if {[llength testbench_files] > 0} {
   remove_files $testbench_files
 }
@@ -41,7 +43,7 @@ proc core_parameter {name display_name description} {
   set_property TOOLTIP $description $parameter
 }
 
-source cores/$core_name/core_config.tcl
+source $cores_dir/$core_name/core_config.tcl
 
 rename core_parameter {}
 
