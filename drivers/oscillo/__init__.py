@@ -5,6 +5,7 @@ import numpy as np
 from koheron_tcp_client import command, write_buffer
 
 class Oscillo(object):
+
     def __init__(self, client, wfm_size=8192):
         self.client = client
         self.wfm_size = wfm_size
@@ -12,12 +13,6 @@ class Oscillo(object):
         if self.open() < 0:
             print('Cannot open device OSCILLO')
        
-    def open_oscillo(self):
-        @command('OSCILLO')
-        def open(self):
-            return self.client.recv_int32()
-        return open(self)
-
     @command('OSCILLO')
     def open(self):
         return self.client.recv_int32()
@@ -31,13 +26,13 @@ class Oscillo(object):
     @command('OSCILLO')
     def reset_acquisition(self): pass
 
-    @write_buffer('OSCILLO')
-    def set_dac_buffer(self, data): pass
-
     def set_dac(self, data):
+        @write_buffer('OSCILLO')
+        def set_dac_buffer(self, data): 
+            pass
         data1 = np.mod(np.floor(8192 * data[0, :]) + 8192,16384) + 8192
         data2 = np.mod(np.floor(8192 * data[1, :]) + 8192,16384) + 8192
-        self.set_dac_buffer(data1 + data2 << 16)
+        set_dac_buffer(self, data1 + data2 << 16)
 
     @command('OSCILLO', '?')
     def set_averaging(self, avg_status):

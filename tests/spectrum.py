@@ -3,11 +3,10 @@ import os
 from koheron_tcp_client import KClient, command
 
 from drivers.common import Common
-from drivers.oscillo import Oscillo
+from drivers.spectrum import Spectrum
 from drivers.laser import Laser
 from drivers.xadc import Xadc
 from drivers.gpio import Gpio
-from drivers.device_memory import DeviceMemory
 
 host = os.getenv('HOST','192.168.1.100')
 
@@ -19,11 +18,10 @@ class Test:
         self.client = client
 
         self.common = Common(client)
-        self.oscillo = Oscillo(client)
+        self.spectrum = Spectrum(client)
         self.xadc = Xadc(client)
         self.laser = Laser(client)
         self.gpio = Gpio(client)
-        self.dvm = DeviceMemory(client)
 
 driver = Test(client)
 
@@ -33,15 +31,9 @@ driver.xadc.status()
 driver.laser.set_laser_current(30)
 driver.laser.status()
 
-driver.oscillo.reset_acquisition()
+driver.spectrum.reset_acquisition()
 
-print driver.oscillo.get_adc()
+print driver.spectrum.get_spectrum()
+print driver.spectrum.get_num_average()
+
 print driver.laser.get_monitoring()
-
-
-# Test device memory
-
-driver.dvm.add_map('config', '0x60000000', '4K')
-value = 42
-driver.dvm.write32('config', 0, value)
-assert(driver.dvm.read32('config', 0) == value)
