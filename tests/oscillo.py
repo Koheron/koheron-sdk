@@ -16,4 +16,4 @@ class Test:
 
 driver = Test(client)
 
-print driver.common.get_bitstream_id()
+driver.common.print_status()
