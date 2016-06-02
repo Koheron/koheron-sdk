@@ -16,9 +16,11 @@ DOCKER=False
 # Project specific variables
 NAME = blink
 
-BOARD:=$(shell python make.py --board $(NAME) && cat $(TMP)/$(NAME).board)
-CORES:=$(shell python make.py --cores $(NAME) && cat $(TMP)/$(NAME).cores)
-DRIVERS:=$(shell python make.py --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
+MAKE_PY = scripts/make.py
+
+BOARD:=$(shell python $(MAKE_PY) --board $(NAME) && cat $(TMP)/$(NAME).board)
+CORES:=$(shell python $(MAKE_PY) --cores $(NAME) && cat $(TMP)/$(NAME).cores)
+DRIVERS:=$(shell python $(MAKE_PY) --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
@@ -113,11 +115,11 @@ $(SHA_FILE): $(VERSION_FILE)
 # FPGA
 ###############################################################################
 
-$(CONFIG_TCL): $(MAIN_YML) $(SHA_FILE) templates/config.tcl
-	python make.py --config_tcl $(NAME)
+$(CONFIG_TCL): $(MAKE_PY) $(MAIN_YML) $(SHA_FILE) templates/config.tcl
+	python $(MAKE_PY) --config_tcl $(NAME)
 
-$(XDC_DIR): $(MAIN_YML)
-	python make.py --xdc $(NAME)
+$(XDC_DIR): $(MAKE_PY) $(MAIN_YML)
+	python $(MAKE_PY) --xdc $(NAME)
 
 $(TMP)/cores/%: cores/%/core_config.tcl cores/%/*.v
 	mkdir -p $(@D)
@@ -240,8 +242,8 @@ $(DRIVERS_DIR)/%: %/*.hpp %/*.cpp
 	mkdir -p $@
 	cp -f $^ $@
 
-$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
-	python make.py --middleware $(NAME)
+$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAKE_PY) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
+	python $(MAKE_PY) --middleware $(NAME)
 	cp `find $(DRIVERS_DIR) -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers
 	mkdir -p $(TCP_SERVER_DIR)/middleware/drivers/lib
 	cp `find drivers/lib -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers/lib
@@ -254,12 +256,12 @@ tcp-server_cli: $(TCP_SERVER_DIR)
 # zip (contains bitstream, tcp-server and python drivers)
 ###############################################################################
 
-$(CONFIG_PY): $(MAIN_YML) $(VERSION_FILE) templates/config.py
-	python make.py --config_py $(NAME) $(VERSION)
+$(CONFIG_PY): $(MAKE_PY) $(MAIN_YML) $(VERSION_FILE) templates/config.py
+	python $(MAKE_PY) --config_py $(NAME) $(VERSION)
 
-$(PYTHON_DIR): $(MAIN_YML)
+$(PYTHON_DIR): $(MAKE_PY) $(MAIN_YML)
 	mkdir -p $@
-	python make.py --python $(NAME)
+	python $(MAKE_PY) --python $(NAME)
 
 zip:  $(CONFIG_PY) $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 	zip --junk-paths $(TMP)/$(NAME)-$(VERSION).zip $(TMP)/$(NAME).bit $(TCP_SERVER)

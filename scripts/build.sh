@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-source settings.sh
+source scripts/settings.sh
 export XILINXD_LICENSE_FILE=/opt/Xilinx/Xilinx.lic
 
 make NAME=oscillo
