@@ -16,6 +16,8 @@ DOCKER=False
 # Project specific variables
 NAME = blink
 
+HOST = 192.168.1.100
+
 MAKE_PY = scripts/make.py
 
 BOARD:=$(shell python $(MAKE_PY) --board $(NAME) && cat $(TMP)/$(NAME).board)
@@ -59,7 +61,6 @@ RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1h
 # Project configuration
 MAIN_YML = projects/$(NAME)/main.yml
 CONFIG_TCL = projects/$(NAME)/config.tcl
-CONFIG_PY  = projects/$(NAME)/config.py
 TEMPLATE_DIR = scripts/templates
 
 # Versioning
@@ -74,8 +75,7 @@ DRIVERS_DIR = $(TMP)/$(NAME)/drivers
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/server/kserverd
 TCP_SERVER_SHA = master
 
-PYTHON_DIR = $(TMP)/$(NAME).python
-PYTHON_ZIP = $(PYTHON_DIR)/python.zip
+ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
 # App
 S3_URL = http://zynq-sdk.s3-website-eu-west-1.amazonaws.com
@@ -99,8 +99,12 @@ $(TMP):
 test_bench: $(CONFIG_TCL) $(XDC_DIR) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	vivado -source scripts/test_bench.tcl -tclargs $(NAME) $(PART)
 
-test: tests/$(NAME).py $(CONFIG_PY)
+test: tests/$(NAME).py
 	python $<
+
+run: zip
+	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/upload/instrument_zip	
+	curl http://$(HOST)/api/deploy/local/$(NAME)-$(VERSION).zip
 
 ###############################################################################
 # versioning
@@ -254,21 +258,11 @@ tcp-server_cli: $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
 
 ###############################################################################
-# zip (contains bitstream, tcp-server and python drivers)
+# zip (contains bitstream, tcp-server)
 ###############################################################################
 
-$(CONFIG_PY): $(MAKE_PY) $(MAIN_YML) $(VERSION_FILE) $(TEMPLATE_DIR)/config.py
-	python $(MAKE_PY) --config_py $(NAME) $(VERSION)
-
-$(PYTHON_DIR): $(MAKE_PY) $(MAIN_YML)
-	mkdir -p $@
-	python $(MAKE_PY) --python $(NAME)
-
-zip:  $(CONFIG_PY) $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
-	zip --junk-paths $(TMP)/$(NAME)-$(VERSION).zip $(TMP)/$(NAME).bit $(TCP_SERVER)
-	mv $(PYTHON_DIR) $(TMP)/py_drivers
-	cd $(TMP) && zip $(NAME)-$(VERSION).zip py_drivers/*.py
-	rm -r $(TMP)/py_drivers
+zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
+	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TCP_SERVER)
 
 ###############################################################################
 # app

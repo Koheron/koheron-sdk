@@ -122,34 +122,6 @@ def build_server_config(project, tcp_server_dir):
     with open(os.path.join(tcp_server_dir,'config','config.yaml'), 'w') as f:
         yaml.dump(server_config, f, indent=2, default_flow_style=False)
 
-def build_python(project, python_dir):
-    if not os.path.exists(python_dir):
-        os.makedirs(python_dir)
-    include_list = []
-    parents = get_parents(project)
-    parents.append(project)
-    for parent in parents:
-        config = load_config(parent)
-        if 'devices' in config:
-            for device in config['devices']:
-                file_ = os.path.join(device, os.path.basename(device) + '.py')
-                if os.path.exists(file_):
-                    shutil.copy(file_, python_dir)
-                    include_list.append(os.path.basename(file_).split('.')[0])
-        if 'python' in config:
-            for file_ in config['python']:
-                if os.path.exists(file_):
-                    shutil.copy(file_, python_dir)
-                    include_list.append(os.path.basename(file_).split('.')[0])
-                else:
-                    raise ValueError("Unknown Python file: " + file_)
-
-    template = get_renderer().get_template(os.path.join('scripts/templates', '__init__.py'))
-    config = load_config(project)
-    output = file(os.path.join(python_dir, '__init__.py'), 'w')
-    output.write(template.render(dic={'include': include_list}))
-    output.close()
-
 def build_xdc(project, xdc_dir):
     config = get_config(project)
     if not os.path.exists(xdc_dir):
@@ -182,9 +154,6 @@ if __name__ == "__main__":
         fill_config_python(config, version)
     elif cmd == '--config_tcl':
         fill_config_tcl(config)
-    elif cmd == '--python':
-        python_dir = os.path.join('tmp', config['project'] + '.python')
-        build_python(project, python_dir)
     elif cmd == '--cores':
         with open(os.path.join('tmp', project + '.cores'), 'w') as f:
             f.write(' '.join(config['cores']))

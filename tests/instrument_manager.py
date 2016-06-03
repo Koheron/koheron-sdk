@@ -75,5 +75,7 @@ class InstrumentManager:
 
 if __name__ == "__main__":
     host = os.getenv(HOST, '192.168.1.100')
-    http = InstrumentManager(host)
+    name = os.getenv(NAME, '')
+    im = InstrumentManager(host)
+    im.install_instrument(name)
     print('bitstream id = {}'.format(http.get_bistream_id()))
