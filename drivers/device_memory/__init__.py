@@ -2,7 +2,7 @@
 
 import numpy as np
 import re
-from koheron_tcp_client import command
+from koheron_tcp_client import command, write_buffer
 
 class DeviceMemory(object):
 
