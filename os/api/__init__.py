@@ -38,7 +38,7 @@ class KoheronAPIApp(Flask):
         except:
             log('error', 'Cannot load metadata')
             
-        self.current_instrument = {"name": None, "sha": None}
+        self.current_instrument = {'name': None, 'sha': None}
         self.start_last_deployed_instrument()
         self.get_instruments()
         self.get_remote_apps()
@@ -46,24 +46,22 @@ class KoheronAPIApp(Flask):
     def get_release_description(self):
         try:
             testfile = urllib.URLopener()
-            testfile.retrieve(self.config['S3_URL'] + "releases.yml", 
-                              "/tmp/releases.yml")
+            testfile.retrieve(self.config['S3_URL'] + 'releases.yml', '/tmp/releases.yml')
             with open('/tmp/releases.yml') as f:
                 self.release = yaml.load(f)
         except:
-            log("warning", 'No remote connection. Cannot load release.')
+            log('warning', 'No remote connection. Cannot load release.')
             self.release = {}
 
     def get_remote_apps(self):
         if self.config['MODE'] == 'debug':
             try:
                 testfile = urllib.URLopener()
-                testfile.retrieve(self.config['S3_URL'] + "apps", 
-                                  "/tmp/apps")
+                testfile.retrieve(self.config['S3_URL'] + 'apps', '/tmp/apps')
                 with open('/tmp/apps') as f:
                     self.remote_apps = f.readline().split(' ')
             except:
-                log("warning", 'No remote connection.')
+                log('warning', 'No remote connection.')
                 self.remote_apps = []
         else: # release
             if 'app' in self.release:
@@ -75,16 +73,16 @@ class KoheronAPIApp(Flask):
         self.get_remote_apps()
 
         if len(self.remote_apps) == 0:
-            log("error", 'No remote apps found.')
+            log('error', 'No remote apps found.')
             return -1
 
         try:
             testfile = urllib.URLopener()
-            testfile.retrieve(self.config['S3_URL'] + "app-" + self.remote_apps[0] + ".zip", 
-                              "/usr/local/flask/app.zip")
+            url = self.config['S3_URL'] + 'app-' + self.remote_apps[0] + '.zip'
+            testfile.retrieve(url, '/usr/local/flask/app.zip')
             return 0
         except:
-            log("error", 'No remote connection. No app update performed.')
+            log('error', 'No remote connection. No app update performed.')
             return -1
 
     def unzip_app(self):
@@ -142,12 +140,12 @@ class KoheronAPIApp(Flask):
         if self.config['MODE'] == 'debug':
             try:
                 testfile = urllib.URLopener()
-                testfile.retrieve(self.config['S3_URL'] + "instruments.json", 
-                                  "/tmp/instruments.json")
+                url = self.config['S3_URL'] + 'instruments.json'
+                testfile.retrieve(url, '/tmp/instruments.json')
                 with open('/tmp/instruments.json') as data_file:
                     self.remote_instruments = json.load(data_file)
             except:
-                log("warning", 'No remote connection. Use only local instruments.')
+                log('warning', 'No remote connection. Use only local instruments.')
         else: # release
             if 'instruments' in self.release:
                 for instrument in self.release['instruments']:
@@ -199,17 +197,17 @@ class KoheronAPIApp(Flask):
 
     def install_instrument(self, zip_filename):
         if not os.path.exists(zip_filename):
-            log("error", 'Instrument zip file not found.\nNo installation done.')
+            log('error', 'Instrument zip file not found.\nNo installation done.')
             return
 
         name, sha = self._tokenize_zipfilename(zip_filename)
-        print("Installing instrument " + name + " with version " + sha)
+        print('Installing instrument ' + name + ' with version ' + sha)
         self.stop_client()
         # http://stackoverflow.com/questions/21936597/blocking-and-non-blocking-subprocess-calls
         subprocess.call(['/bin/bash', 'api_app/install_instrument.sh', zip_filename, name])   
         self.start_client()
         time.sleep(0.1)
-        self.current_instrument = {"name": name, "sha": sha}
+        self.current_instrument = {'name': name, 'sha': sha}
         
         if not self.is_bitstream_id_valid():
             # Check whether we are installing the last deployed instrument to avoid infinite recursion:
@@ -229,20 +227,20 @@ class KoheronAPIApp(Flask):
         try:
             id_ = self.get_bitstream_id()
         except:
-            log("error", "Cannot read bitstream ID. Retrying ...")
+            log('error', 'Cannot read bitstream ID. Retrying ...')
             try:
                 time.sleep(0.2)
                 id_ = self.get_bitstream_id()
             except:
-                log("error", "Failled to retrieve bitstream ID.")
+                log('error', 'Failed to retrieve bitstream ID.')
                 return False
 
         hash_ = hashlib.sha256(self.current_instrument["name"] + '-'
                              + self.current_instrument["sha"])
-        if not hash_.hexdigest() == id_:    
-            log("error", "Corrupted instrument: ID mismatch" 
-                  + "\n* Bitstream ID:\n" + id_ 
-                  + "\n* Expected:\n" + hash_.hexdigest())
+        if not hash_.hexdigest() == id_:
+            log('error', 'Corrupted instrument: ID mismatch' 
+                  + '\n* Bitstream ID:\n' + id_ 
+                  + '\n* Expected:\n' + hash_.hexdigest())
             return False
         return True
 
@@ -264,19 +262,19 @@ class KoheronAPIApp(Flask):
             with open(os.path.join(self.config['INSTRUMENTS_DIR'], '.instruments'), 'r') as f:
                 tokens = f.readline().split(':')
                 if tokens[0].strip() != 'last_deployed':
-                    log("error", 'Corrupted file .instruments')
+                    log('error', 'Corrupted file .instruments')
                     return {}
                 name, sha = self._tokenize_zipfilename(os.path.basename(tokens[1].strip()))
-                return {"name": name, "sha": sha}
+                return {'name': name, 'sha': sha}
         return {}
 
     def start_last_deployed_instrument(self):
-        log("notice", "Start last deployed instrument")
+        log('notice', 'Start last deployed instrument')
         if os.path.exists(os.path.join(self.config['INSTRUMENTS_DIR'], '.instruments')):
             with open(os.path.join(self.config['INSTRUMENTS_DIR'], '.instruments'), 'r') as f:
                 tokens = f.readline().split(':')
                 if tokens[0].strip() != 'last_deployed':
-                    log("error", 'Corrupted file .instruments')
+                    log('error', 'Corrupted file .instruments')
                     self._start_first_instrument_found()
                     return
                 zip_filename = os.path.join(self.config['INSTRUMENTS_DIR'], 
@@ -284,7 +282,7 @@ class KoheronAPIApp(Flask):
                 if os.path.exists(zip_filename):
                     self.install_instrument(zip_filename)
                 else:
-                    log("error", 'Last deployed instrument zip file not found')
+                    log('error', 'Last deployed instrument zip file not found')
                     self._start_first_instrument_found()
         else:
             self._start_first_instrument_found()

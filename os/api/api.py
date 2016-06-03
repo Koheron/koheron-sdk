@@ -60,27 +60,27 @@ def upload_remote_instrument(zip_filename):
     urllib.urlretrieve(app.config['S3_URL'] + filename, tmp_file)
     api_app.append_local_instrument(tmp_file)
     api_app.save_uploaded_instrument(tmp_file)
-    return make_response("Instrument " + filename + " uploaded.")
+    return make_response('Instrument ' + filename + ' uploaded.')
 
 @api_app.route('/api/deploy/remote/<zip_filename>', methods=['GET', 'POST'])
 def deploy_remote_instrument(zip_filename):
     filename = secure_filename(zip_filename)
     urllib.urlretrieve(api_app.config['S3_URL'] + filename, '/tmp/' + filename)
     status = api_app.install_instrument('/tmp/' + filename)
-    return make_response("Instrument " + zip_filename + " installed with status: " + str(status))
+    return make_response('Instrument ' + zip_filename + ' installed with status: ' + str(status))
 
 @api_app.route('/api/deploy/local/<zip_filename>', methods=['GET'])
 def deploy_local_instrument(zip_filename):
     filename = os.path.join(api_app.config['INSTRUMENTS_DIR'], secure_filename(zip_filename))
     status = api_app.install_instrument(filename)
-    return make_response("Instrument " + zip_filename + " installed with status: " + str(status))
+    return make_response('Instrument ' + zip_filename + ' installed with status: ' + str(status))
 
 @api_app.route('/api/remove/local/<zip_filename>', methods=['GET'])
 def remove_local_instrument(zip_filename):
     filename = secure_filename(zip_filename)
     api_app.delete_uploaded_instrument(filename)
     api_app.remove_local_instrument(filename)
-    return make_response("File " + zip_filename + " removed.")
+    return make_response('File ' + zip_filename + ' removed.')
 
 @api_app.route('/api/upload/instrument_zip', methods=['GET', 'POST'])
 def upload_instrument_zip():
@@ -88,13 +88,12 @@ def upload_instrument_zip():
         file_ = next((file_ for file_ in request.files if api_app.is_valid_instrument_file(file_)), None)
         if file_ is not None:
             filename = secure_filename(file_)
-            print "Upload instrument " + filename
             request.files[file_].save(os.path.join(api_app.config['UPLOAD_FOLDER'], filename))
             tmp_file = os.path.join('/tmp/', filename)
             api_app.append_local_instrument(tmp_file)
             api_app.save_uploaded_instrument(tmp_file)
-            return make_response("Instrument " + filename + " uploaded.")
-    return make_response("Instrument upload failed.")
+            return make_response('Instrument ' + filename + ' uploaded.')
+    return make_response('Instrument upload failed.')
 
 @api_app.route('/api/get_local_instruments', methods=['GET'])
 def get_local_instruments():

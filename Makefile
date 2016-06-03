@@ -16,6 +16,8 @@ DOCKER=False
 # Project specific variables
 NAME = blink
 
+HOST = 192.168.1.100
+
 MAKE_PY = scripts/make.py
 
 BOARD:=$(shell python $(MAKE_PY) --board $(NAME) && cat $(TMP)/$(NAME).board)
@@ -59,7 +61,6 @@ RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1h
 # Project configuration
 MAIN_YML = projects/$(NAME)/main.yml
 CONFIG_TCL = projects/$(NAME)/config.tcl
-CONFIG_PY  = projects/$(NAME)/config.py
 TEMPLATE_DIR = scripts/templates
 
 # Versioning
@@ -98,11 +99,12 @@ $(TMP):
 test_bench: $(CONFIG_TCL) $(XDC_DIR) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	vivado -source scripts/test_bench.tcl -tclargs $(NAME) $(PART)
 
-test: tests/$(NAME).py $(CONFIG_PY)
+test: tests/$(NAME).py
 	python $<
 
-upload: zip
-	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/upload/instrument_zip
+run: zip
+	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/upload/instrument_zip	
+	curl http://$(HOST)/api/deploy/local/$(NAME)-$(VERSION).zip
 
 ###############################################################################
 # versioning
@@ -259,10 +261,7 @@ tcp-server_cli: $(TCP_SERVER_DIR)
 # zip (contains bitstream, tcp-server)
 ###############################################################################
 
-$(CONFIG_PY): $(MAKE_PY) $(MAIN_YML) $(VERSION_FILE) $(TEMPLATE_DIR)/config.py
-	python $(MAKE_PY) --config_py $(NAME) $(VERSION)
-
-zip:  $(CONFIG_PY) $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
+zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TCP_SERVER)
 
 ###############################################################################
