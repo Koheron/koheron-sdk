@@ -102,8 +102,7 @@ test: tests/$(NAME).py $(CONFIG_PY)
 	python $<
 
 upload: zip
-	curl -X POST --data-binary "@$(ZIP)" http://$(HOST)/api/upload_instrument_zip
-
+	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/upload/instrument_zip
 
 ###############################################################################
 # versioning
