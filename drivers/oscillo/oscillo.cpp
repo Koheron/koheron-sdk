@@ -39,7 +39,6 @@ void Oscillo::set_period(uint32_t period)
 {
     dvm.write32(config_map, PERIOD0_OFF, period - 1);
     dvm.write32(config_map, PERIOD1_OFF, period - 1);
-
     dvm.write32(config_map, THRESHOLD0_OFF, period - 6);
     dvm.write32(config_map, THRESHOLD1_OFF, period - 6);
 }

@@ -8,47 +8,17 @@ Laser::Laser(Klib::DevMem& dvm_)
   gpio(dvm_)
 {
     status = CLOSED;
-}
 
-Laser::~Laser()
-{
-    Close();
-}
+    config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
 
-# define LASER_ENABLE_PIN 5
+    if (dvm.CheckMap(config_map) < 0)
+        status = FAILED;
 
-int Laser::Open()
-{
-    if (status == CLOSED) {
-        // Config is required for the PWMs
-        auto ids = dvm.RequestMemoryMaps<1>({{
-            { CONFIG_ADDR, CONFIG_RANGE }
-        }});
-
-        if (dvm.CheckMapIDs(ids) < 0) {
-            status = FAILED;
-            return -1;
-        }
-
-        config_map = ids[0];
-        
-        // Open core drivers
-        xadc.Open();
-        gpio.Open();
-        
-        status = OPENED;
-        reset();
-    }
+    xadc.Open();
+    gpio.Open();
     
-    return 0;
-}
-
-void Laser::Close()
-{
-    if (status == OPENED) {
-        reset();
-        status = CLOSED;
-    }
+    status = OPENED;
+    reset();
 }
 
 void Laser::reset()
@@ -60,31 +30,6 @@ void Laser::reset()
     gpio.set_as_output(LASER_ENABLE_PIN, 2);
     stop_laser();
     set_laser_current(0.0);
-}
-
-uint32_t Laser::get_laser_current()
-{
-    return xadc.read(LASER_CURRENT_CHANNEL);
-}
-
-uint32_t Laser::get_laser_power()
-{
-    return xadc.read(LASER_POWER_CHANNEL);
-}
-
-std::tuple<uint32_t, uint32_t> Laser::get_monitoring()
-{
-    return std::make_tuple(get_laser_current(), get_laser_power());
-}
-
-void Laser::start_laser()
-{
-    gpio.clear_bit(LASER_ENABLE_PIN, 2); // Laser enable on pin DIO7_P
-}
-
-void Laser::stop_laser()
-{
-    gpio.set_bit(LASER_ENABLE_PIN, 2); // Laser enable on pin DIO7_P
 }
 
 #define GAIN_LT1789 (1+200/10)

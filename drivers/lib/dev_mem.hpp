@@ -46,7 +46,7 @@ class MemMapIdPool
 
 #define CHECK_WRITABLE                                                      \
     if (mem_maps.at(id)->GetPermissions() == MemoryMap::READ_ONLY) {        \
-        fprintf(stderr,"Can't write to register. Map %u is read only\n",    \
+        fprintf(stderr, "Can't write to register. Map %u is read only\n",   \
                 static_cast<uint32_t>(id));                                 \
         return;                                                             \
     }
