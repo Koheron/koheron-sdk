@@ -2,28 +2,8 @@
 
 #include "laser.hpp"
 
-Laser::Laser(Klib::DevMem& dvm_)
-: dvm(dvm_),
-  xadc(dvm_),
-  gpio(dvm_),
-  eeprom(dvm_)
-{
-    status = CLOSED;
-
-    config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-
-    if (dvm.CheckMap(config_map) < 0 
-        || xadc.Open() < 0 
-        || gpio.Open() < 0)
-        status = FAILED;
-    
-    status = OPENED;
-    reset();
-}
-
 void Laser::reset()
 {
-    assert(status == OPENED);
     xadc.set_channel(LASER_POWER_CHANNEL, LASER_CURRENT_CHANNEL);
     xadc.enable_averaging();
     xadc.set_averaging(256);

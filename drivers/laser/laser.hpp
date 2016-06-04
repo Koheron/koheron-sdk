@@ -41,10 +41,19 @@ constexpr float pwm_to_current = 1 / current_to_pwm;
 class Laser
 {
   public:
-    Laser(Klib::DevMem& dvm_);
-    ~Laser() {if (status == OPENED) reset();}
+    Laser(Klib::DevMem& dvm_)
+    : dvm(dvm_)
+    , xadc(dvm_)
+    , gpio(dvm_)
+    , eeprom(dvm_)
+    {
+        config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
+        reset();
+    }
+
+    ~Laser() {if (dvm.is_ok()) reset();}
     
-    int Open() {return status == FAILED ? -1 : 0;}
+    int Open() {return dvm.is_ok() ? 0 : -1;}
        
     void reset();
 
@@ -61,13 +70,8 @@ class Laser
 
     void set_laser_current(float current);
 
-    uint32_t pwm_from_current(float current) {
-        return uint32_t(current * current_to_pwm);
-    }
-
-    float current_from_pwm(uint32_t pwm) {
-        return pwm * pwm_to_current;
-    }
+    uint32_t pwm_from_current(float current) {return uint32_t(current * current_to_pwm);}
+    float current_from_pwm(uint32_t pwm)     {return pwm * pwm_to_current;}
 
     bool is_laser_present() {
         eeprom.write_enable();
@@ -87,27 +91,17 @@ class Laser
         dvm.write32(config_map, PWM3_OFF, pwm);
         return MILLIAMPS_TO_AMPS * current_from_pwm(pwm);
     }
-    
-    enum Status {
-        CLOSED,
-        OPENED,
-        FAILED
-    };
 
     #pragma tcp-server is_failed
-    bool IsFailed() const {return status == FAILED;}
+    bool IsFailed() const {return dvm.IsFailed();}
     
   private:
-    // Core drivers
     Klib::DevMem& dvm;
+    Klib::MemMapID config_map; // Config is required for the PWMs
+
     Xadc xadc;
     Gpio gpio;
     At93c46d eeprom;
-        
-    int status;
-    
-    // Memory maps IDs
-    Klib::MemMapID config_map; // Config is required for the PWMs
 };
 
 #endif // __DRIVERS_LASER_HPP__
