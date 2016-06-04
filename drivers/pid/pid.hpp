@@ -17,15 +17,16 @@ class Pid
   public:
     Pid(Klib::DevMem& dvm_);
 
-    int Open();
+    int Open() {return status == FAILED ? -1 : 0;}
 
     /// @acq_period Sleeping time between two acquisitions (us)
-    void fifo_start_acquisition(uint32_t acq_period);
-    void fifo_stop_acquisition();
-    uint32_t get_fifo_length();
-    uint32_t get_fifo_buffer_length();
-    std::vector<uint32_t>& get_fifo_data();
-    bool fifo_get_acquire_status();
+    void fifo_start_acquisition(uint32_t acq_period) {fifo.start_acquisition(acq_period);}
+    void fifo_stop_acquisition()                     {fifo.stop_acquisition();}
+    uint32_t get_fifo_length()                       {return fifo.get_fifo_length();}
+    uint32_t get_fifo_buffer_length()                {return fifo.get_buffer_length();}
+    std::vector<uint32_t>& get_fifo_data()           {return fifo.get_data();}
+    bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
+
 
     enum Status {
         CLOSED,

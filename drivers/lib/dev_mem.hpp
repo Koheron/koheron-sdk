@@ -75,6 +75,8 @@ class DevMem
 
     int CheckMap(MemMapID id) {return static_cast<int>(id);}
 
+    template<typename... map_id> int CheckMaps(map_id... id);
+
     // Helper function to check the IDs returned by RequestMemoryMaps
     template<size_t N>
     int CheckMapIDs(std::array<MemMapID, N> ids);
@@ -225,6 +227,19 @@ int DevMem::CheckMapIDs(std::array<MemMapID, N> ids)
             return -1;
 
     return 0;
+}
+
+template<typename... map_id>
+constexpr auto ids_array(map_id&&... args) 
+    -> std::array<MemMapID, sizeof...(args)>
+{
+    return {{std::forward<map_id>(args)...}};
+}
+
+template<typename... map_id>
+int DevMem::CheckMaps(map_id... id)
+{
+    return CheckMapIDs(ids_array(id...));
 }
 
 }; // namespace Klib

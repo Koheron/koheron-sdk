@@ -9,61 +9,14 @@ Pid::Pid(Klib::DevMem& dvm_)
 : dvm(dvm_)
 {
     status = CLOSED;
-}
 
-int Pid::Open()
-{
-    if (status == CLOSED) {
-        auto ids = dvm.RequestMemoryMaps(mem_regions(
-            Klib::MemoryRegion({ CONFIG_ADDR, CONFIG_RANGE }),
-            Klib::MemoryRegion({ STATUS_ADDR, STATUS_RANGE }),
-            Klib::MemoryRegion({ FIFO_ADDR  , FIFO_RANGE   })
-        ));
+    config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
+    status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, Klib::MemoryMap::READ_ONLY);
+    fifo_map = dvm.AddMemoryMap(FIFO_ADDR, FIFO_RANGE);
 
-        if (dvm.CheckMapIDs(ids) < 0) {
-            status = FAILED;
-            return -1;
-        }
+    if (dvm.CheckMaps(config_map, status_map, fifo_map) < 0)
+        status = FAILED;
 
-        config_map = ids[0];
-        status_map = ids[1];
-        fifo_map   = ids[2];
-        
-        fifo.set_address(dvm.GetBaseAddr(fifo_map));
-        status = OPENED;
-    }
-    
-    return 0;
-}
-
-// Read the peak data stream
-
-void Pid::fifo_start_acquisition(uint32_t acq_period)
-{
-    fifo.start_acquisition(acq_period);
-}
-
-void Pid::fifo_stop_acquisition()
-{
-    fifo.stop_acquisition();
-}
-
-bool Pid::fifo_get_acquire_status()
-{
-    return fifo.get_acquire_status();
-}
-
-uint32_t Pid::get_fifo_buffer_length()
-{
-    return fifo.get_buffer_length();
-}
-
-std::vector<uint32_t>& Pid::get_fifo_data()
-{
-    return fifo.get_data();
-}
-
-uint32_t Pid::get_fifo_length()
-{
-    return fifo.get_fifo_length();
+    fifo.set_address(dvm.GetBaseAddr(fifo_map));
+    status = OPENED;
 }
