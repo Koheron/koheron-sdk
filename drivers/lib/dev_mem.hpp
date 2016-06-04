@@ -44,6 +44,13 @@ class MemMapIdPool
     std::vector<MemMapID> reusable_ids;
 };
 
+#define CHECK_WRITABLE                                                      \
+    if (mem_maps.at(id)->GetPermissions() == MemoryMap::READ_ONLY) {        \
+        fprintf(stderr,"Can't write to register. Map %u is read only\n",    \
+                static_cast<uint32_t>(id));                                 \
+        return;                                                             \
+    }
+
 /// Device memory manager
 /// A memory maps factory
 class DevMem
@@ -121,6 +128,7 @@ class DevMem
 
     void write32(MemMapID id, uint32_t offset, uint32_t value)
     {
+        CHECK_WRITABLE
         WriteReg32(GetBaseAddr(id) + offset, value);
     }
 
@@ -131,26 +139,31 @@ class DevMem
 
     void set_bit(MemMapID id, uint32_t offset, uint32_t index)
     {
+        CHECK_WRITABLE
         SetBit(GetBaseAddr(id) + offset, index);
     }
 
     void clear_bit(MemMapID id, uint32_t offset, uint32_t index)
     {
+        CHECK_WRITABLE
         ClearBit(GetBaseAddr(id) + offset, index);
     }
 
     void toggle_bit(MemMapID id, uint32_t offset, uint32_t index)
     {
+        CHECK_WRITABLE
         ToggleBit(GetBaseAddr(id) + offset, index);
     }
 
     void mask_and(MemMapID id, uint32_t offset, uint32_t mask)
     {
+        CHECK_WRITABLE
         MaskAnd(GetBaseAddr(id) + offset, mask);
     }
 
     void mask_or(MemMapID id, uint32_t offset, uint32_t mask)
     {
+        CHECK_WRITABLE
         MaskOr(GetBaseAddr(id) + offset, mask);
     }
 

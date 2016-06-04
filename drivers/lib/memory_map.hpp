@@ -39,11 +39,10 @@ class MemoryMap
     int Unmap();
 
     int Resize(uint32_t length);
+
+    int GetPermissions() const {return permissions;}
     int GetStatus() const {return status;}
-
-    /// Return the virtual memory base address of the device
     uintptr_t GetBaseAddr() const {return mapped_dev_base;}
-
     uint32_t MappedSize() const {return size;}
     uintptr_t PhysAddr() const {return phys_addr;}
 
@@ -64,7 +63,7 @@ class MemoryMap
   private:
     int *fd;                    ///< /dev/mem file ID (Why is this a pointer ?)
     void *mapped_base;          ///< Map base address
-    uintptr_t mapped_dev_base;  ///< Device base address
+    uintptr_t mapped_dev_base;  ///< Virtual memory base address of the device
     int status;                 ///< Status
     int permissions;
     uint32_t size;              ///< Map size in bytes
