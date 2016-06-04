@@ -6,7 +6,6 @@
 #define __DRIVERS_CORE_PID_HPP__
 
 #include <drivers/lib/dev_mem.hpp>
-#include <drivers/lib/wr_register.hpp>
 #include <drivers/lib/fifo_reader.hpp>
 #include <drivers/addresses.hpp>
 

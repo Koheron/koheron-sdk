@@ -8,7 +8,6 @@
 #define __DRIVERS_CORE_GPIO_HPP__
 
 #include <drivers/lib/dev_mem.hpp>
-#include <drivers/lib/wr_register.hpp>
 
 #define GPIO_ADDR          0x41200000
 #define GPIO_RANGE         65536
