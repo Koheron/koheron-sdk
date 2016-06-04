@@ -32,31 +32,6 @@ void Laser::reset()
     set_laser_current(0.0);
 }
 
-uint32_t Laser::get_laser_current()
-{
-    return xadc.read(LASER_CURRENT_CHANNEL);
-}
-
-uint32_t Laser::get_laser_power()
-{
-    return xadc.read(LASER_POWER_CHANNEL);
-}
-
-std::tuple<uint32_t, uint32_t> Laser::get_monitoring()
-{
-    return std::make_tuple(get_laser_current(), get_laser_power());
-}
-
-void Laser::start_laser()
-{
-    gpio.clear_bit(LASER_ENABLE_PIN, 2); // Laser enable on pin DIO7_P
-}
-
-void Laser::stop_laser()
-{
-    gpio.set_bit(LASER_ENABLE_PIN, 2); // Laser enable on pin DIO7_P
-}
-
 void Laser::set_laser_current(float current)
 {
     float current_;
