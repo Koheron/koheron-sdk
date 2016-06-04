@@ -15,20 +15,27 @@
 class Common
 {
   public:
-    Common(Klib::DevMem& dev_mem_);
+    Common(Klib::DevMem& dvm_);
 
     int Open();
 
     std::array<uint32_t, BITSTREAM_ID_SIZE> get_bitstream_id();
 
     uint64_t get_dna();
-    void set_led(uint32_t value);
-    uint32_t get_led();
+
+    void set_led(uint32_t value) {
+        dvm.write32(config_map, LED_OFF, value);
+    }
+
+    uint32_t get_led() {
+        return dvm.read32(config_map, LED_OFF);
+    }
+
     void ip_on_leds();
 
     void init() {
         ip_on_leds();
-        Init init(dev_mem);
+        Init init(dvm);
         init.load_settings();
     };
 
@@ -42,7 +49,7 @@ class Common
     bool IsFailed() const {return status == FAILED;}
 
   private:
-    Klib::DevMem& dev_mem;
+    Klib::DevMem& dvm;
     int status;
     std::array<uint32_t, BITSTREAM_ID_SIZE> bitstream_id;
 
