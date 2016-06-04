@@ -2,7 +2,7 @@
 
 import numpy as np
 import re
-from koheron_tcp_client import command
+from koheron_tcp_client import command, write_buffer
 
 class DeviceMemory(object):
 
@@ -24,7 +24,7 @@ class DeviceMemory(object):
     def read32(self, device_name, offset):
         @command('DEVICE_MEMORY','II')
         def read(self, mmap_idx, offset):
-            return self.client.recv_int32()
+            return self.client.recv_uint32()
         return read(self, self.maps[device_name], offset)
 
     def write32(self, device_name, offset, value):
