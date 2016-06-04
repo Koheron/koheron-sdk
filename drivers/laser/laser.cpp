@@ -11,11 +11,10 @@ Laser::Laser(Klib::DevMem& dvm_)
 
     config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
 
-    if (dvm.CheckMap(config_map) < 0)
+    if (dvm.CheckMap(config_map) < 0 
+        || xadc.Open() < 0 
+        || gpio.Open() < 0)
         status = FAILED;
-
-    xadc.Open();
-    gpio.Open();
     
     status = OPENED;
     reset();
