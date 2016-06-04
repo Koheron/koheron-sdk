@@ -18,7 +18,7 @@ host = os.getenv('HOST','192.168.1.100')
 project = os.getenv('NAME','')
 
 im = InstrumentManager(host)
-#im.install_instrument(project)
+im.install_instrument(project)
 client = KClient(host)
 
 pc = ProjectConfig(project)
@@ -41,7 +41,7 @@ class Test:
         laser.start_laser()
         if verbose:
             print('Loading laser configuration, current = {} mA'.format(laser.load_config()))
-        laser.set_laser_current(30)
+        #laser.set_laser_current(30)
         time.sleep(0.01)
         driver.laser.status()
         driver.laser.save_config()
@@ -55,7 +55,7 @@ class Test:
         mean = np.mean(adc)
         std = np.std(adc)
         if verbose:
-            print('Get adc, mean = {}, std = {}'.format(mean, std))
+            print('Get adc: mean = {}, std = {}'.format(mean, std))
         assert(std > 0)
 
     def test_eeprom(self):

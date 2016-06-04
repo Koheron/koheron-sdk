@@ -24,6 +24,7 @@
 #define MAX_LASER_CURRENT 50.0 // mA
 
 #define EEPROM_CURRENT_ADDR 0
+#define TEST_EEPROM_ADDR 63
 
 class Laser
 {
@@ -47,9 +48,9 @@ class Laser
     bool is_laser_present() {
         eeprom.write_enable();
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
-        eeprom.write(0, 42);
+        eeprom.write(TEST_EEPROM_ADDR, 42);
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
-        return eeprom.read(0) == 42;
+        return eeprom.read(TEST_EEPROM_ADDR) == 42;
     }
 
     void save_config() {
