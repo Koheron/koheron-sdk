@@ -10,41 +10,29 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
 , data_decim(0)
 {
     status = CLOSED;
+
+    config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
+    status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE);
+    adc_1_map = dvm.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
+    adc_2_map = dvm.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
+    dac_map = dvm.AddMemoryMap(DAC_ADDR, DAC_RANGE);
+
+    if (dvm.CheckMapIDs<5>({{config_map, status_map, adc_1_map, adc_2_map, dac_map}}) < 0)
+        status = FAILED;
+
+    raw_data_1 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_1_map));
+    raw_data_2 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_2_map));
+
+    set_averaging(false); // Reset averaging
+    set_period(WFM_SIZE);
+    set_n_avg_min(0);
+
+    status = OPENED;
 }
 
 int Oscillo::Open()
 {
-    if(status == CLOSED) {
-        auto ids = dvm.RequestMemoryMaps<5>({{
-            { CONFIG_ADDR, CONFIG_RANGE },
-            { STATUS_ADDR, STATUS_RANGE },
-            { ADC1_ADDR  , ADC1_RANGE   },
-            { ADC2_ADDR  , ADC2_RANGE   },
-            { DAC_ADDR   , DAC_RANGE    }
-        }});
-
-        if (dvm.CheckMapIDs(ids) < 0) {
-            status = FAILED;
-            return -1;
-        }
-
-        config_map = ids[0];
-        status_map = ids[1];
-        adc_1_map  = ids[2];
-        adc_2_map  = ids[3];
-        dac_map    = ids[4];
-   
-        raw_data_1 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_1_map));
-        raw_data_2 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_2_map));
-      
-        set_averaging(false); // Reset averaging
-        set_period(WFM_SIZE);
-        set_n_avg_min(0);
-
-        status = OPENED;
-    }
-    
-    return 0;
+    return status == FAILED ? -1 : 0;
 }
 
 void Oscillo::set_period(uint32_t period)

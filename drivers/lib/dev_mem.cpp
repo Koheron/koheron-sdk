@@ -68,7 +68,7 @@ int DevMem::Close()
 
 unsigned int DevMem::num_maps = 0;
 
-bool DevMem::__is_forbidden_address(uintptr_t addr)
+bool DevMem::is_forbidden_address(uintptr_t addr)
 {
     if (addr_limit_up == 0x0 && addr_limit_down == 0x0)
         return false; // No limit defined
@@ -76,9 +76,9 @@ bool DevMem::__is_forbidden_address(uintptr_t addr)
         return (addr > addr_limit_up) || (addr < addr_limit_down);
 }
 
-MemMapID DevMem::AddMemoryMap(uintptr_t addr, uint32_t size)
+MemMapID DevMem::create_memory_map(uintptr_t addr, uint32_t size)
 {
-    if (__is_forbidden_address(addr)) {
+    if (is_forbidden_address(addr)) {
         fprintf(stderr,"Forbidden memory region\n");
         return static_cast<MemMapID>(-1);
     }
@@ -95,6 +95,34 @@ MemMapID DevMem::AddMemoryMap(uintptr_t addr, uint32_t size)
     mem_maps.insert(std::pair<MemMapID, std::unique_ptr<MemoryMap>>(new_id, std::move(mem_map)));
     num_maps++;
     return new_id;
+}
+
+MemMapID DevMem::AddMemoryMap(uintptr_t addr, uint32_t size)
+{
+    bool region_is_mapped = false;
+    MemMapID map_id = static_cast<MemMapID>(-1);
+
+    for (auto& mem_map : mem_maps) {
+        if (addr == mem_map.second->PhysAddr()) {
+            // we resize the map if the new range is large
+            // than the previously allocated one.
+            if (size > mem_map.second->MappedSize())
+                if (Resize(mem_map.first, size) < 0) {
+                    fprintf(stderr, "Memory map resizing failed\n");
+                    region_is_mapped = true;
+                    break;
+                }
+
+            map_id = mem_map.first;
+            region_is_mapped = true;
+            break;
+        }
+    }
+
+    if (!region_is_mapped)
+        map_id = create_memory_map(addr, size);
+
+    return map_id;
 }
 
 void DevMem::RmMemoryMap(MemMapID id)
