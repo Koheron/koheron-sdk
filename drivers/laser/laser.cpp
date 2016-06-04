@@ -89,18 +89,11 @@ void Laser::stop_laser()
     gpio.set_bit(LASER_ENABLE_PIN, 2); // Laser enable on pin DIO7_P
 }
 
-#define GAIN_LT1789 (1+200/10)
-#define PWM_MAX_VOLTAGE 1.8
-#define PWM_MAX_VALUE 1024
-#define MILLIAMPS_TO_AMPS 0.001
-#define CURRENT_TO_VOLTAGE(current) \
-    (current * MILLIAMPS_TO_AMPS * PWM_MAX_VALUE * GAIN_LT1789 / PWM_MAX_VOLTAGE)
-
 void Laser::set_laser_current(float current)
 {
     float current_;
     current > MAX_LASER_CURRENT ? current_ = MAX_LASER_CURRENT : current_ = current;    
-    uint32_t voltage = (uint32_t) CURRENT_TO_VOLTAGE(current_);
-    dvm.write32(config_map, PWM3_OFF, voltage);
+    uint32_t pwm = pwm_from_current(current);
+    dvm.write32(config_map, PWM3_OFF, pwm);
 }
 
