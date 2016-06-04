@@ -64,3 +64,4 @@ drivers:
   - drivers/init
   - drivers/oscillo
   - drivers/speed_test
+  - drivers/at93c46d
