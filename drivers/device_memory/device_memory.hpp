@@ -51,7 +51,6 @@ class DeviceMemory
         dvm.toggle_bit(mmap_idx, offset, index);
     }
 
-
     void mask_and(uint32_t mmap_idx, uint32_t offset, uint32_t mask) {
         dvm.mask_and(mmap_idx, offset, mask);
     }

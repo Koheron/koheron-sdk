@@ -54,8 +54,6 @@ class Oscillo
   private:
     Klib::DevMem& dvm;
 
-    int status;
-
     int32_t *raw_data_1 = nullptr;
     int32_t *raw_data_2 = nullptr;
 

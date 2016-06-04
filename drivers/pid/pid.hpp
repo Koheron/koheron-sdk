@@ -14,9 +14,16 @@
 class Pid
 {
   public:
-    Pid(Klib::DevMem& dvm_);
+    Pid(Klib::DevMem& dvm_)
+    : dvm(dvm_)
+    {
+        config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
+        status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, Klib::MemoryMap::READ_ONLY);
+        fifo_map = dvm.AddMemoryMap(FIFO_ADDR, FIFO_RANGE);
+        fifo.set_address(dvm.GetBaseAddr(fifo_map));
+    }
 
-    int Open() {return status == FAILED ? -1 : 0;}
+    int Open() {return dvm.is_ok() ? 0 : 1;}
 
     /// @acq_period Sleeping time between two acquisitions (us)
     void fifo_start_acquisition(uint32_t acq_period) {fifo.start_acquisition(acq_period);}
@@ -26,27 +33,17 @@ class Pid
     std::vector<uint32_t>& get_fifo_data()           {return fifo.get_data();}
     bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
 
-
-    enum Status {
-        CLOSED,
-        OPENED,
-        FAILED
-    };
-
     #pragma tcp-server is_failed
-    bool IsFailed() const {return status == FAILED;}
+    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;
-    int status;
 
-    // Memory maps IDs:
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
     Klib::MemMapID fifo_map;
 
     FIFOReader<FIFO_BUFF_SIZE> fifo;
-   
 }; // class Pid
 
 #endif // __DRIVERS_CORE_PID_HPP__

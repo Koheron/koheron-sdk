@@ -88,9 +88,7 @@ class Spectrum
 
   private:
     Klib::DevMem& dvm;
-    int status;
 
-    // Memory maps IDs:
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
     Klib::MemMapID spectrum_map;

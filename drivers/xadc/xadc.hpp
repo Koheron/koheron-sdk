@@ -40,8 +40,6 @@ class Xadc
 
   private:
     Klib::DevMem& dvm;
-    int status;
-
     Klib::MemMapID xadc_map;
 
     uint32_t channel_0 = 1;
