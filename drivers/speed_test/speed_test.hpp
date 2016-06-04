@@ -6,6 +6,7 @@
 #define __DRIVERS_CORE_SpeedTest_HPP__
 
 #include <vector>
+#include <cstring>
 
 #include <drivers/lib/dev_mem.hpp>
 #include <drivers/lib/wr_register.hpp>
@@ -26,58 +27,64 @@ class SpeedTest
   public:
     SpeedTest(Klib::DevMem& dvm_);
 
-    int Open();
+    int Open() {return dvm.is_ok() ? 0 : -1;}
 
     std::array<float, 2*WFM_SIZE>& read_raw_all();
 
-    std::array<float, 2*WFM_SIZE>& read_zeros();
+    // Return zeros (does not perform FPGA memory access)
+    std::array<float, 2*WFM_SIZE>& read_zeros() {return data_zeros;}
 
+    // Read data in RAM buffer
     #pragma tcp-server read_array 2*WFM_SIZE
-    float* read_rambuf();
+    float* read_rambuf() {return rambuf_data;}
 
-    std::array<float, 2*WFM_SIZE>& read_rambuf_memcpy();
+    // Read data in RAM buffer (with copy)
+    std::array<float, 2*WFM_SIZE>& read_rambuf_memcpy() {
+        memcpy((unsigned char*)rambuf_copy.data(), (unsigned char*)rambuf_data, 2*WFM_SIZE*sizeof(float));
+        return rambuf_copy;
+    }
 
-    std::array<float, 2*WFM_SIZE>& read_rambuf_mycopy();
+    // Read data in RAM buffer (with optimized copy)
+    std::array<float, 2*WFM_SIZE>& read_rambuf_mycopy() {
+        mycopy((unsigned char*)rambuf_copy.data(), (unsigned char*)rambuf_data, 2*WFM_SIZE*sizeof(float));
+        return rambuf_copy;
+    }
 
+    // Read data in RAM buffer
     #pragma tcp-server read_array 2*WFM_SIZE
-    float* read_mmapbuf_nocopy();
+    float* read_mmapbuf_nocopy() {return (float*)mmap_buf;}
 
+    // Read data in RAM buffer
     #pragma tcp-server read_array 2*WFM_SIZE
-    float* read_rambuf_mmap_memcpy();
-
-    enum Status {
-        CLOSED,
-        OPENED,
-        FAILED
-    };
+    float* read_rambuf_mmap_memcpy()
+    {
+        memcpy(mmap_buf, rambuf_data, 2*WFM_SIZE*sizeof(float));
+        return (float*)mmap_buf;
+    }
 
     #pragma tcp-server is_failed
-    bool IsFailed() const {return status == FAILED;}
+    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;
 
-    int status;
-
-    uint32_t *raw_data_1 = nullptr;
-    uint32_t *raw_data_2 = nullptr;
-    float *rambuf_data = nullptr;
-    std::array<float, 2*WFM_SIZE> rambuf_copy;
-
-    // Memory maps IDs:
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
     Klib::MemMapID adc_1_map;
     Klib::MemMapID adc_2_map;
     Klib::MemMapID rambuf_map;
     void *mmap_buf;
-    
+
+    uint32_t *raw_data_1 = nullptr;
+    uint32_t *raw_data_2 = nullptr;
+    float *rambuf_data = nullptr;
+    std::array<float, 2*WFM_SIZE> rambuf_copy;
+
     // Acquired data buffers
     std::array<float, 2*WFM_SIZE> data_all;
     std::array<float, 2*WFM_SIZE> data_zeros;
     std::vector<float> data_decim;
     std::vector<uint32_t> data_all_int;
-    
 }; // class SpeedTest
 
 #endif // __DRIVERS_CORE_SpeedTest_HPP__

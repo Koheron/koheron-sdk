@@ -7,49 +7,24 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
 : dvm(dvm_)
 , data_decim(0)
 {
-    status = CLOSED;
-}
+    config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
+    status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, Klib::MemoryMap::READ_ONLY);
+    adc_1_map = dvm.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
+    adc_2_map = dvm.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
+    dac_map = dvm.AddMemoryMap(DAC_ADDR, DAC_RANGE);
 
-int Oscillo::Open()
-{
-    if(status == CLOSED) {
-        auto ids = dvm.RequestMemoryMaps<5>({{
-            { CONFIG_ADDR, CONFIG_RANGE },
-            { STATUS_ADDR, STATUS_RANGE },
-            { ADC1_ADDR  , ADC1_RANGE   },
-            { ADC2_ADDR  , ADC2_RANGE   },
-            { DAC_ADDR   , DAC_RANGE    }
-        }});
+    raw_data_1 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_1_map));
+    raw_data_2 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_2_map));
 
-        if (dvm.CheckMapIDs(ids) < 0) {
-            status = FAILED;
-            return -1;
-        }
-
-        config_map = ids[0];
-        status_map = ids[1];
-        adc_1_map  = ids[2];
-        adc_2_map  = ids[3];
-        dac_map    = ids[4];
-   
-        raw_data_1 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_1_map));
-        raw_data_2 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_2_map));
-      
-        set_averaging(false); // Reset averaging
-        set_period(WFM_SIZE);
-        set_n_avg_min(0);
-
-        status = OPENED;
-    }
-    
-    return 0;
+    set_averaging(false); // Reset averaging
+    set_period(WFM_SIZE);
+    set_n_avg_min(0);
 }
 
 void Oscillo::set_period(uint32_t period)
 {
     dvm.write32(config_map, PERIOD0_OFF, period - 1);
     dvm.write32(config_map, PERIOD1_OFF, period - 1);
-
     dvm.write32(config_map, THRESHOLD0_OFF, period - 6);
     dvm.write32(config_map, THRESHOLD1_OFF, period - 6);
 }
@@ -61,29 +36,10 @@ void Oscillo::set_n_avg_min(uint32_t n_avg_min)
     dvm.write32(config_map, N_AVG_MIN1_OFF, n_avg_min_);
 }
 
-void Oscillo::reset()
-{
-    dvm.clear_bit(config_map, ADDR_OFF, 1);
-    dvm.set_bit(config_map, ADDR_OFF, 0);
-}
-
-void Oscillo::set_dac_buffer(const uint32_t *data, uint32_t len)
-{
-    for (uint32_t i=0; i<len; i++)
-        dvm.write32(dac_map, sizeof(uint32_t) * i, data[i]);
-}
-
-void Oscillo::reset_acquisition()
-{
-    dvm.write32(config_map, ADDR_OFF, 1);
-    dvm.write32(config_map, ADDR_OFF, 1);
-}
-
 void Oscillo::_wait_for_acquisition()
 {
-    do {}
-    while (dvm.read32(status_map, AVG_READY0_OFF) == 0 
-           || dvm.read32(status_map, AVG_READY1_OFF) == 0);
+    do {} while (dvm.read32(status_map, AVG_READY0_OFF) == 0 
+                 || dvm.read32(status_map, AVG_READY1_OFF) == 0);
 }
 
 // Read only one channel
@@ -177,9 +133,4 @@ void Oscillo::set_averaging(bool avg_on)
         dvm.clear_bit(config_map, AVG0_OFF, 0);
         dvm.clear_bit(config_map, AVG1_OFF, 0);
     }
-}
-
-uint32_t Oscillo::get_num_average()
-{
-    return dvm.read32(status_map, N_AVG0_OFF);
 }

@@ -8,7 +8,6 @@
 #include <vector>
 
 #include <drivers/lib/dev_mem.hpp>
-#include <drivers/lib/wr_register.hpp>
 #include <drivers/addresses.hpp>
 
 #define SAMPLING_RATE 125E6
@@ -19,17 +18,25 @@ class Oscillo
   public:
     Oscillo(Klib::DevMem& dvm_);
 
-    int Open();
+    int Open() {return dvm.is_ok() ? 0 : -1;}
 
-    void reset();
+    void reset() {
+        dvm.clear_bit(config_map, ADDR_OFF, 1);
+        dvm.set_bit(config_map, ADDR_OFF, 0);
+    }
 
     void set_n_avg_min(uint32_t n_avg_min);
     void set_period(uint32_t period);
 
     #pragma tcp-server write_array arg{data} arg{len}
-    void set_dac_buffer(const uint32_t *data, uint32_t len);
+    void set_dac_buffer(const uint32_t *data, uint32_t len) {
+       dvm.write_buff32(dac_map, 0, data, len);
+    }
 
-    void reset_acquisition();
+    void reset_acquisition() {
+        dvm.write32(config_map, ADDR_OFF, 1);
+        dvm.write32(config_map, ADDR_OFF, 1);
+    }
 
     std::array<float, WFM_SIZE>& read_data(bool channel);
 
@@ -39,26 +46,17 @@ class Oscillo
 
     void set_averaging(bool avg_on);
     
-    uint32_t get_num_average();
-
-    enum Status {
-        CLOSED,
-        OPENED,
-        FAILED
-    };
+    uint32_t get_num_average() {return dvm.read32(status_map, N_AVG0_OFF);}
 
     #pragma tcp-server is_failed
-    bool IsFailed() const {return status == FAILED;}
+    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;
 
-    int status;
-
     int32_t *raw_data_1 = nullptr;
     int32_t *raw_data_2 = nullptr;
 
-    // Memory maps IDs:
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
     Klib::MemMapID adc_1_map;

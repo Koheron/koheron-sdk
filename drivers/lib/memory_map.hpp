@@ -23,11 +23,13 @@ namespace Klib {
 /// @brief Memory map a device
 class MemoryMap
 {
-public:
+  public:
     /// Build a memory map
     /// @phys_addr_ Physical base address of the device
     /// @size_ Map size in octets
-    MemoryMap(int *fd_, uintptr_t phys_addr_, uint32_t size_ = DEFAULT_MAP_SIZE);
+    MemoryMap(int *fd_, uintptr_t phys_addr_, 
+              uint32_t size_ = DEFAULT_MAP_SIZE, 
+              int permissions_ = READ_WRITE);
 
     ~MemoryMap();
 
@@ -38,16 +40,12 @@ public:
 
     int Resize(uint32_t length);
 
-    inline int GetStatus() const {return status;}
+    int GetPermissions() const {return permissions;}
+    int GetStatus() const {return status;}
+    uintptr_t GetBaseAddr() const {return mapped_dev_base;}
+    uint32_t MappedSize() const {return size;}
+    uintptr_t PhysAddr() const {return phys_addr;}
 
-    /// Return the virtual memory base address of the device
-    inline uintptr_t GetBaseAddr() const {return mapped_dev_base;}
-
-    /// Return the mapped size in octets
-    inline uint32_t MappedSize() const {return size;}
-
-    inline uintptr_t PhysAddr() const {return phys_addr;}
-	
     enum Status {
         MEMMAP_CLOSED,       ///< Memory map closed
         MEMMAP_OPENED,       ///< Memory map opened
@@ -55,12 +53,20 @@ public:
         MEMMAP_FAILURE       ///< Failure at memory mapping
     };
 
-private:
+    enum Permissions {
+        READ_WRITE,
+        READ_ONLY,
+        WRITE_ONLY,
+        permissions_num
+    };
+
+  private:
     int *fd;                    ///< /dev/mem file ID (Why is this a pointer ?)
     void *mapped_base;          ///< Map base address
-    uintptr_t mapped_dev_base;  ///< Device base address
+    uintptr_t mapped_dev_base;  ///< Virtual memory base address of the device
     int status;                 ///< Status
-    uint32_t size;              ///< Map size
+    int permissions;
+    uint32_t size;              ///< Map size in bytes
     uintptr_t phys_addr;        ///< Physical address
 };
 

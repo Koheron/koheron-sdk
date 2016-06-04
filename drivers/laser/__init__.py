@@ -58,11 +58,12 @@ class Laser(object):
         print('laser current = {} mA'.format(self.get_laser_current()))
         print('laser power = {} arb. units'.format(self.get_laser_power()))
 
-    def test(self, verbose=True):
-        if verbose:
-            print('Testing LASER driver')
+    def test(self):
+        print('Testing LASER driver')
         current_setpoint = 0.03
-        assert(self.is_laser_present())
+        if not self.is_laser_present():
+            print('Laser is not present')
+            return
         self.start_laser()
         self.set_laser_current(1000 * current_setpoint)
         self.save_config()
@@ -70,8 +71,7 @@ class Laser(object):
         self.set_laser_current(0)
         config_current = self.load_config()
         assert(np.abs(config_current - current_setpoint) < 0.01) # Check that current is set to 30 mA
-        if verbose:
-            print('Loading laser configuration, current = {:.2f} mA'.format(1000 * config_current))
+        print('Loading laser configuration, current = {:.2f} mA'.format(1000 * config_current))
         time.sleep(0.01)
         measured_current = self.get_laser_current()
         relative_error = measured_current / config_current - 1

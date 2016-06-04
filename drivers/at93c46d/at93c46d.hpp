@@ -13,7 +13,6 @@
 #include <thread>
 #include <chrono>
 
-
 // http://www.atmel.com/images/Atmel-5193-SEEPROM-AT93C46D-Datasheet.pdf
 #define WRITE_OPCODE 1
 #define READ_OPCODE 2
@@ -27,9 +26,14 @@
 class At93c46d
 {
   public:
-    At93c46d(Klib::DevMem& dvm_);
+    At93c46d(Klib::DevMem& dvm_)
+    : dvm(dvm_)
+    {
+        config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
+        status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, Klib::MemoryMap::READ_ONLY);
+    }
 
-    int Open();
+    int Open() {return dvm.is_ok() ? 0 : -1;}
 
     uint32_t read(uint32_t addr) {
         dvm.write32(config_map, SPI_IN_OFF, (READ_OPCODE << 7) + (addr << 1));
@@ -68,23 +72,14 @@ class At93c46d
         dvm.set_bit(config_map, SPI_IN_OFF, 0);
     }
 
-    enum Status {
-        CLOSED,
-        OPENED,
-        FAILED
-    };
-
     #pragma tcp-server is_failed
-    bool IsFailed() const {return status == FAILED;}
+    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;
-    int status;
 
-    // Memory maps IDs:
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
-    
 }; // class At93c46d
 
 #endif // __DRIVERS_CORE_AT93C46D_HPP__
