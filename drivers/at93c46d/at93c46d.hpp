@@ -44,10 +44,9 @@ class At93c46d
         dvm.write32(config_map, SPI_IN_OFF, (data_in << 16) + (WRAL << 5) + 1);
     };
 
-    uint32_t write(uint32_t addr, uint32_t data_in) {
+    void write(uint32_t addr, uint32_t data_in) {
         dvm.write32(config_map, SPI_IN_OFF, 0);
         dvm.write32(config_map, SPI_IN_OFF, (data_in << 16) + (WRITE_OPCODE << 7) + (addr << 1) + 1);
-        return dvm.read32(status_map, SPI_OUT_OFF);
     };
 
     void erase_all(uint32_t addr) {
@@ -55,10 +54,9 @@ class At93c46d
         dvm.write32(config_map, SPI_IN_OFF, (ERAL << 5) + 1);
     };
 
-    uint32_t write_all(uint32_t addr, uint32_t data_in) {
+    void write_all(uint32_t addr, uint32_t data_in) {
         dvm.write32(config_map, SPI_IN_OFF, 0);
         dvm.write32(config_map, SPI_IN_OFF, (data_in << 16) + (WRITE_OPCODE << 7) + (addr << 1) + 1);
-        return dvm.read32(status_map, SPI_OUT_OFF);
     };
 
     void erase_write_disable() {

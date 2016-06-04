@@ -10,12 +10,13 @@ from drivers.laser import Laser
 from drivers.xadc import Xadc
 from drivers.gpio import Gpio
 from drivers.device_memory import DeviceMemory
+from drivers.at93c46d import At93c46d
 
 host = os.getenv('HOST','192.168.1.100')
 project = os.getenv('NAME','')
 
 im = InstrumentManager(host)
-im.install_instrument(project)
+#im.install_instrument(project)
 client = KClient(host)
 
 pc = ProjectConfig(project)
@@ -30,6 +31,7 @@ class Test:
         self.xadc = Xadc(client)
         self.laser = Laser(client)
         self.gpio = Gpio(client)
+        self.eeprom = At93c46d(client)
 
 driver = Test(client)
 
@@ -44,19 +46,19 @@ driver.oscillo.reset_acquisition()
 print driver.oscillo.get_adc()
 print driver.laser.get_monitoring()
 
+#print driver.eeprom.read(0)
 
-# Test device memory
-dvm = DeviceMemory(client)
+driver.eeprom.write_enable()
 
-for mmap in pc.mmaps:
-    dvm.add_mmap(mmap)
+# # Test device memory
+# dvm = DeviceMemory(client)
 
-value = 42
-dvm.write32('config', pc.cfg['led'], value)
-assert(dvm.read32('config', pc.cfg['led']) == value)
+# for mmap in pc.mmaps:
+#     dvm.add_mmap(mmap)
 
-dna = dvm.read32('status', pc.sts['dna']) + dvm.read32('status', pc.sts['dna']+4) << 32
-assert(driver.common.get_dna() == dna)
+# value = 42
+# dvm.write32('config', pc.cfg['led'], value)
+# assert(dvm.read32('config', pc.cfg['led']) == value)
 
-
-
+# dna = dvm.read32('status', pc.sts['dna']) + dvm.read32('status', pc.sts['dna']+4) << 32
+# assert(driver.common.get_dna() == dna)

@@ -25,7 +25,7 @@ int At93c46d::Open()
             return -1;
         }
         config_map = ids[0];
-        config_map = ids[1];
+        status_map = ids[1];
         status = OPENED;
     }
 
