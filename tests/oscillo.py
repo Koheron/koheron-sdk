@@ -34,37 +34,7 @@ class Test:
         self.laser = Laser(client)
         self.gpio = Gpio(client)
         self.eeprom = At93c46d(client)
-
-    def test_laser(self, verbose=True):
-        current_setpoint = 0.03
-        laser = self.laser
-        assert(laser.is_laser_present())
-        laser.start_laser()
-        laser.set_laser_current(1000 * current_setpoint)
-        laser.save_config()
-        time.sleep(0.01)
-        laser.set_laser_current(0)
-        config_current = laser.load_config()
-        assert(np.abs(config_current - current_setpoint) < 0.01) # Check that current is set to 30 mA
-        if verbose:
-            print('Loading laser configuration, current = {:.2f} mA'.format(1000 * config_current))
-        time.sleep(0.01)
-        measured_current = laser.get_laser_current()
-        relative_error = measured_current / config_current - 1
-        assert(np.abs(relative_error) < 0.1)
-        
-    def test_oscillo(self, verbose=True):
-        oscillo = self.oscillo
-        oscillo.reset()
-        time.sleep(0.01)
-        adc = oscillo.get_adc()
-        assert(np.shape(adc) == (2, 8192))
-        mean = np.mean(adc)
-        std = np.std(adc)
-        if verbose:
-            print('Get adc: mean = {}, std = {}'.format(mean, std))
-        assert(std > 0)
-
+       
     def test_eeprom(self):
         eeprom = self.eeprom
         addr = 12
@@ -80,16 +50,9 @@ driver = Test(client)
 driver.common.status()
 driver.xadc.status()
 
-driver.test_laser()
-driver.test_oscillo()
-#driver.test_eeprom()
-
-
-# Test EEPROM
-
-#driver.eeprom.erase_write_disable()
-
-
+driver.laser.test()
+driver.oscillo.test()
+driver.eeprom.test()
 
 # # Test device memory
 # dvm = DeviceMemory(client)

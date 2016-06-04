@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import time
 import numpy as np
 
 from koheron_tcp_client import command, write_buffer
@@ -43,3 +43,14 @@ class At93c46d(object):
     @command('AT93C46D')
     def erase_write_disable(self):
         pass
+
+    def test(self, verbose=True):
+        if verbose:
+            print('Testing AT93C46D driver')
+        self.write_enable()
+        addr = 12
+        val = 42
+        for i in range(10):
+            self.write(addr, i)
+            time.sleep(0.002)
+            assert(self.read(addr) == i)

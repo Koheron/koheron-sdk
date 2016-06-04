@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import time
 import numpy as np
 
 from koheron_tcp_client import command, write_buffer
@@ -53,3 +54,17 @@ class Oscillo(object):
         data = self.read_all_channels()
         return np.reshape(data, (2, self.wfm_size))
 
+
+    def test(self, verbose=True):
+        if verbose:
+            print('Testing OSCILLO driver')
+        oscillo = self
+        oscillo.reset()
+        time.sleep(0.01)
+        adc = oscillo.get_adc()
+        assert(np.shape(adc) == (2, 8192))
+        mean = np.mean(adc)
+        std = np.std(adc)
+        if verbose:
+            print('Get adc: mean = {}, std = {}'.format(mean, std))
+        assert(std > 0)
