@@ -3,6 +3,7 @@ import os
 from instrument_manager import InstrumentManager
 from koheron_tcp_client import KClient, command
 from project_config import ProjectConfig
+import time
 
 from drivers.common import Common
 from drivers.oscillo import Oscillo
@@ -46,9 +47,20 @@ driver.oscillo.reset_acquisition()
 print driver.oscillo.get_adc()
 print driver.laser.get_monitoring()
 
-#print driver.eeprom.read(0)
+print 'laser present', driver.laser.is_laser_present()
 
-driver.eeprom.write_enable()
+# Test EEPROM
+
+#driver.eeprom.erase_write_disable()
+
+addr = 0
+val = 42
+
+for i in range(10):
+    driver.eeprom.write(addr, i)
+    time.sleep(0.002)
+    print driver.eeprom.read(addr)
+
 
 # # Test device memory
 # dvm = DeviceMemory(client)

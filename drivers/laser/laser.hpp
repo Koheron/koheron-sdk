@@ -12,6 +12,10 @@
 #include <drivers/addresses.hpp>
 #include <drivers/xadc.hpp>
 #include <drivers/gpio.hpp>
+#include <drivers/at93c46d.hpp>
+
+#include <thread>
+#include <chrono>
 
 // XADC channels
 #define LASER_POWER_CHANNEL   1
@@ -37,6 +41,14 @@ class Laser
     void start_laser();
     void stop_laser();
     void set_laser_current(float current);
+
+    uint32_t is_laser_present() {
+        eeprom.write_enable();
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        eeprom.write(0, 42);
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        return eeprom.read(0);
+    };
     
     enum Status {
         CLOSED,
@@ -52,6 +64,7 @@ class Laser
     Klib::DevMem& dvm;
     Xadc xadc;
     Gpio gpio;
+    At93c46d eeprom;
         
     int status;
     

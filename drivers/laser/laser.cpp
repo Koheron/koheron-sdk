@@ -5,7 +5,8 @@
 Laser::Laser(Klib::DevMem& dvm_)
 : dvm(dvm_),
   xadc(dvm_),
-  gpio(dvm_)
+  gpio(dvm_),
+  eeprom(dvm_)
 {
     status = CLOSED;
 }
@@ -35,6 +36,7 @@ int Laser::Open()
         // Open core drivers
         xadc.Open();
         gpio.Open();
+        eeprom.Open();
         
         status = OPENED;
         reset();

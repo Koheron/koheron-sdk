@@ -24,12 +24,12 @@ class Laser(object):
 
     @command('LASER')
     def get_laser_current(self):
-        current = self.client.recv_int(4)
+        current = self.client.recv_uint32()
         return (0.0001/21.) * current
 
     @command('LASER')
     def get_laser_power(self):
-        return self.client.recv_int(4)
+        return self.client.recv_uint32()
 
     @command('LASER')
     def get_monitoring(self):
@@ -39,6 +39,10 @@ class Laser(object):
     def set_laser_current(self, current):
         """ current: The bias in mA """
         pass
+
+    @command('LASER')
+    def is_laser_present(self):
+        return self.client.recv_uint32()
 
     def status(self):
         print('laser current = {} mA'.format(self.get_laser_current()))
