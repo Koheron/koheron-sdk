@@ -19,7 +19,7 @@ Common::Common(Klib::DevMem& dvm_)
     config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
     status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, Klib::MemoryMap::READ_ONLY);
 
-    if (dvm.CheckMapIDs<2>({{config_map, status_map}}) < 0)
+    if (dvm.CheckMaps(config_map, status_map) < 0)
         status = FAILED;
 
     status = OPENED;
