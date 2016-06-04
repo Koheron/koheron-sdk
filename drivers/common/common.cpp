@@ -11,25 +11,6 @@ extern "C" {
   #include <ifaddrs.h>
 }
 
-Common::Common(Klib::DevMem& dvm_)
-: dvm(dvm_)
-{
-    status = CLOSED;
-
-    config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-    status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, Klib::MemoryMap::READ_ONLY);
-
-    if (dvm.CheckMaps(config_map, status_map) < 0)
-        status = FAILED;
-
-    status = OPENED;
-}
-
-int Common::Open()
-{
-    return status == FAILED ? -1 : 0;
-}
-
 std::array<uint32_t, BITSTREAM_ID_SIZE> Common::get_bitstream_id()
 {
     for (uint32_t i=0; i<bitstream_id.size(); i++)

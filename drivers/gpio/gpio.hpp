@@ -32,16 +32,9 @@ class Gpio
     : dvm(dvm_)
     {
         gpio_map = dvm.AddMemoryMap(GPIO_ADDR, GPIO_RANGE);
-
-        if (dvm.CheckMap(gpio_map) < 0)
-            status = FAILED;
-
-        status = OPENED;
     }
 
-    int Open() {
-        return IsFailed() ? -1 : 0;
-    }
+    int Open() {return dvm.is_ok() ? 0 : 1;}
 
     void set_data(uint32_t channel, uint32_t value) {
         dvm.write32(gpio_map, get_value_offset(channel), value);
@@ -77,18 +70,11 @@ class Gpio
             dvm.clear_bit(gpio_map, get_dir_offset(channel), index);
     }
 
-    enum Status {
-        CLOSED,
-        OPENED,
-        FAILED
-    };
-
     #pragma tcp-server is_failed
-    bool IsFailed() const {return status == FAILED;}
+    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;
-    int status;
     Klib::MemMapID gpio_map;
 
     int get_value_offset(uint32_t channel) {
