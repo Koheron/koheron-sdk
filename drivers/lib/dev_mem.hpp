@@ -73,6 +73,8 @@ class DevMem
     std::array<MemMapID, N> 
     RequestMemoryMaps(std::array<MemoryRegion, N> regions);
 
+    int CheckMap(MemMapID id) {return static_cast<int>(id);}
+
     // Helper function to check the IDs returned by RequestMemoryMaps
     template<size_t N>
     int CheckMapIDs(std::array<MemMapID, N> ids);
@@ -219,7 +221,7 @@ template<size_t N>
 int DevMem::CheckMapIDs(std::array<MemMapID, N> ids)
 {
     for (auto& id : ids)
-        if (static_cast<int>(id) < 0)
+        if (CheckMap(id) < 0)
             return -1;
 
     return 0;

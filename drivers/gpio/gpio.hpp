@@ -29,18 +29,54 @@
 class Gpio
 {
   public:
-    Gpio(Klib::DevMem& dev_mem_);
+    Gpio(Klib::DevMem& dvm_)
+    : dvm(dvm_)
+    {
+        gpio_map = dvm.AddMemoryMap(GPIO_ADDR, GPIO_RANGE);
 
-    int Open();
-    void set_data(uint32_t channel, uint32_t value);
-    uint32_t get_data(uint32_t channel);
+        if (dvm.CheckMap(gpio_map) < 0)
+            status = FAILED;
+
+        status = OPENED;
+    }
+
+    int Open() {
+        return IsFailed() ? -1 : 0;
+    }
+
+    void set_data(uint32_t channel, uint32_t value) {
+        dvm.write32(gpio_map, get_value_offset(channel), value);
+    }
+
+    uint32_t get_data(uint32_t channel) {
+        return dvm.read32(gpio_map, get_value_offset(channel));
+    }
 
     // Bitwise operations
-    void set_bit(uint32_t index, uint32_t channel);
-    void clear_bit(uint32_t index, uint32_t channel);
-    void toggle_bit(uint32_t index, uint32_t channel);
-    void set_as_input(uint32_t index, uint32_t channel);
-    void set_as_output(uint32_t index, uint32_t channel);
+    void set_bit(uint32_t index, uint32_t channel) {
+        if (index <= MAX_BIT_IDX)
+            dvm.set_bit(gpio_map, get_value_offset(channel), index);
+    }
+
+    void clear_bit(uint32_t index, uint32_t channel) {
+        if (index <= MAX_BIT_IDX)
+            dvm.clear_bit(gpio_map, get_value_offset(channel), index);
+    }
+
+    void toggle_bit(uint32_t index, uint32_t channel) {
+        if (index <= MAX_BIT_IDX)
+            dvm.toggle_bit(gpio_map, get_value_offset(channel), index);
+    }
+
+    void set_as_input(uint32_t index, uint32_t channel) {
+        if (index <= MAX_BIT_IDX)
+            dvm.set_bit(gpio_map, get_dir_offset(channel), index);
+    }
+
+    void set_as_output(uint32_t index, uint32_t channel) {
+        if (index <= MAX_BIT_IDX)
+            dvm.clear_bit(gpio_map, get_dir_offset(channel), index);
+    }
 
     enum Status {
         CLOSED,
@@ -52,12 +88,17 @@ class Gpio
     bool IsFailed() const {return status == FAILED;}
 
   private:
-    Klib::DevMem& dev_mem;
-
+    Klib::DevMem& dvm;
     int status;
+    Klib::MemMapID gpio_map;
 
-    // Memory maps IDs:
-    Klib::MemMapID dev_num;
+    int get_value_offset(uint32_t channel) {
+        return (channel == 1 ? CHAN1_VALUE_OFF : CHAN2_VALUE_OFF);
+    }
+
+    int get_dir_offset(uint32_t channel) {
+        return (channel == 1 ? CHAN1_DIR_OFF : CHAN2_DIR_OFF);
+    }
 }; // class Gpio
 
 #endif // __DRIVERS_CORE_GPIO_HPP__
