@@ -8,7 +8,6 @@
 #include <vector>
 
 #include <drivers/lib/dev_mem.hpp>
-#include <drivers/lib/wr_register.hpp>
 #include <drivers/addresses.hpp>
 
 #define SAMPLING_RATE 125E6
@@ -19,7 +18,7 @@ class Oscillo
   public:
     Oscillo(Klib::DevMem& dvm_);
 
-    int Open() {return status == FAILED ? -1 : 0;}
+    int Open() {return dvm.is_ok() ? 0 : -1;}
 
     void reset() {
         dvm.clear_bit(config_map, ADDR_OFF, 1);
@@ -49,14 +48,8 @@ class Oscillo
     
     uint32_t get_num_average() {return dvm.read32(status_map, N_AVG0_OFF);}
 
-    enum Status {
-        CLOSED,
-        OPENED,
-        FAILED
-    };
-
     #pragma tcp-server is_failed
-    bool IsFailed() const {return status == FAILED;}
+    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;
@@ -66,7 +59,6 @@ class Oscillo
     int32_t *raw_data_1 = nullptr;
     int32_t *raw_data_2 = nullptr;
 
-    // Memory maps IDs:
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
     Klib::MemMapID adc_1_map;

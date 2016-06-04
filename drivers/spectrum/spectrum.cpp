@@ -9,8 +9,6 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
 : dvm(dvm_)
 , spectrum_decim(0)
 {
-    status = CLOSED;
-
     config_map      = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
     status_map      = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, Klib::MemoryMap::READ_ONLY);
     spectrum_map    = dvm.AddMemoryMap(SPECTRUM_ADDR, SPECTRUM_RANGE);
@@ -18,10 +16,6 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
     noise_floor_map = dvm.AddMemoryMap(NOISE_FLOOR_ADDR, NOISE_FLOOR_RANGE);
     peak_fifo_map   = dvm.AddMemoryMap(PEAK_FIFO_ADDR, PEAK_FIFO_RANGE);
     dac_map         = dvm.AddMemoryMap(DAC_ADDR, DAC_RANGE);
-
-    if (dvm.CheckMaps(config_map, status_map, spectrum_map, demod_map, 
-                      noise_floor_map, peak_fifo_map, dac_map) < 0)
-        status = FAILED;
     
     raw_data = reinterpret_cast<float*>(dvm.GetBaseAddr(spectrum_map));
     fifo.set_address(dvm.GetBaseAddr(peak_fifo_map));
@@ -30,8 +24,6 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
     set_address_range(0, WFM_SIZE);
     set_period(WFM_SIZE);
     set_n_avg_min(0);
-
-    status = OPENED;
 }
 
 std::array<float, WFM_SIZE>& Spectrum::get_spectrum()

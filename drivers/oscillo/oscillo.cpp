@@ -7,16 +7,11 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
 : dvm(dvm_)
 , data_decim(0)
 {
-    status = CLOSED;
-
     config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
     status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, Klib::MemoryMap::READ_ONLY);
     adc_1_map = dvm.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
     adc_2_map = dvm.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
     dac_map = dvm.AddMemoryMap(DAC_ADDR, DAC_RANGE);
-
-    if (dvm.CheckMaps(config_map, status_map, adc_1_map, adc_2_map, dac_map) < 0)
-        status = FAILED;
 
     raw_data_1 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_1_map));
     raw_data_2 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_2_map));
@@ -24,8 +19,6 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
     set_averaging(false); // Reset averaging
     set_period(WFM_SIZE);
     set_n_avg_min(0);
-
-    status = OPENED;
 }
 
 void Oscillo::set_period(uint32_t period)

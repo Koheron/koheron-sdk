@@ -130,6 +130,8 @@ class DevMem
     /// Return 1 if a memory map failed
     int IsFailed();
 
+    bool is_ok() {return !IsFailed();}
+
     void write32(MemMapID id, uint32_t offset, uint32_t value)
     {
         CHECK_WRITABLE

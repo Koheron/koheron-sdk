@@ -6,7 +6,6 @@
 #define __DRIVERS_CORE_SPECTRUM_HPP__
 
 #include <drivers/lib/dev_mem.hpp>
-#include <drivers/lib/wr_register.hpp>
 #include <drivers/lib/fifo_reader.hpp>
 
 #include <drivers/addresses.hpp>
@@ -20,7 +19,7 @@ class Spectrum
   public:
     Spectrum(Klib::DevMem& dvm_);
 
-    int Open() {return status == FAILED ? -1 : 0;}
+    int Open() {return dvm.is_ok() ? 0 : -1;}
 
     void set_period(uint32_t period) {
         dvm.write32(config_map, PERIOD0_OFF, period - 1);
@@ -84,14 +83,8 @@ class Spectrum
     std::vector<uint32_t>& get_peak_fifo_data()      {return fifo.get_data();}
     bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
 
-    enum Status {
-        CLOSED,
-        OPENED,
-        FAILED
-    };
-
     #pragma tcp-server is_failed
-    bool IsFailed() const {return status == FAILED;}
+    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;

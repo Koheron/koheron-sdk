@@ -8,14 +8,7 @@
 Xadc::Xadc(Klib::DevMem& dvm_)
 : dvm(dvm_)
 {
-    status = CLOSED;
-
     xadc_map = dvm.AddMemoryMap(XADC_ADDR, XADC_RANGE);
-
-    if (dvm.CheckMap(xadc_map) < 0)
-        status = FAILED;
-
-    status = OPENED;
 }
 
 bool is_valid_channel(uint32_t channel)
