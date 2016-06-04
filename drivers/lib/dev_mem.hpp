@@ -136,6 +136,14 @@ class DevMem
         WriteReg32(GetBaseAddr(id) + offset, value);
     }
 
+    void write_buff32(MemMapID id, uint32_t offset, 
+                      const uint32_t *data_ptr, uint32_t buff_size)
+    {
+        CHECK_WRITABLE
+        WriteBuff32(GetBaseAddr(id) + offset, data_ptr, buff_size);
+    }
+
+
     uint32_t read32(MemMapID id, uint32_t offset)
     {
         return ReadReg32(GetBaseAddr(id) + offset);
