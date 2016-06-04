@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import time
 import numpy as np
 from koheron_tcp_client import command, write_buffer
 
@@ -25,6 +25,9 @@ class Spectrum(object):
     @command('SPECTRUM')
     def open(self):
         return self.client.recv_int32()
+
+    @command('SPECTRUM')
+    def reset(self): pass
 
     @command('SPECTRUM')
     def reset_acquisition(self): pass
@@ -108,3 +111,9 @@ class Spectrum(object):
 
     @command('SPECTRUM')
     def fifo_stop_acquisition(self): pass
+
+    def test(self):
+        self.reset()
+        time.sleep(0.1)
+        assert(np.mean(self.get_spectrum()) > 0)
+        print self.get_num_average()
