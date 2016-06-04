@@ -1,5 +1,6 @@
 import context
 import os
+import time
 from instrument_manager import InstrumentManager
 from koheron_tcp_client import KClient, command
 
@@ -31,12 +32,6 @@ driver = Test(client)
 driver.common.status()
 driver.xadc.status()
 
-driver.laser.set_laser_current(30)
-driver.laser.status()
+driver.laser.test()
 
-driver.spectrum.reset_acquisition()
-
-print driver.spectrum.get_spectrum()
-print driver.spectrum.get_num_average()
-
-print driver.laser.get_monitoring()
+driver.spectrum.test()

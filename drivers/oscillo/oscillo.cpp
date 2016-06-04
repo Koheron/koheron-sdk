@@ -2,8 +2,6 @@
 
 #include "oscillo.hpp"
 #include <string.h>
-#include <thread>
-#include <chrono>
 
 Oscillo::Oscillo(Klib::DevMem& dvm_)
 : dvm(dvm_)

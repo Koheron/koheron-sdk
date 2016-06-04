@@ -1,0 +1,9 @@
+---
+drivers:
+  - drivers/device_memory
+  - drivers/gpio
+  - drivers/xadc
+  - drivers/laser
+  - drivers/init
+  - drivers/spectrum
+  - drivers/at93c46d
