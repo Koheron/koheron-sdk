@@ -29,9 +29,6 @@
 #define PWM_MAX_VALUE 1024
 #define MILLIAMPS_TO_AMPS 0.001
 
-#define CURRENT_TO_VOLTAGE(current) \
-    (current * MILLIAMPS_TO_AMPS * PWM_MAX_VALUE * GAIN_LT1789 / PWM_MAX_VOLTAGE)
-
 constexpr float current_to_pwm = MILLIAMPS_TO_AMPS * PWM_MAX_VALUE * GAIN_LT1789 / PWM_MAX_VOLTAGE;
 constexpr float pwm_to_current = 1 / current_to_pwm;
 

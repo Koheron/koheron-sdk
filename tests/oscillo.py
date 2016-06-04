@@ -35,16 +35,6 @@ class Test:
         self.gpio = Gpio(client)
         self.eeprom = At93c46d(client)
        
-    def test_eeprom(self):
-        eeprom = self.eeprom
-        addr = 12
-        val = 42
-        for i in range(10):
-            driver.eeprom.write(addr, i)
-            time.sleep(0.002)
-            assert(driver.eeprom.read(addr) == i)
-
-
 driver = Test(client)
 
 driver.common.status()
