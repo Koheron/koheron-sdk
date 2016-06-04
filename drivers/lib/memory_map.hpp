@@ -27,7 +27,9 @@ class MemoryMap
     /// Build a memory map
     /// @phys_addr_ Physical base address of the device
     /// @size_ Map size in octets
-    MemoryMap(int *fd_, uintptr_t phys_addr_, uint32_t size_ = DEFAULT_MAP_SIZE);
+    MemoryMap(int *fd_, uintptr_t phys_addr_, 
+              uint32_t size_ = DEFAULT_MAP_SIZE, 
+              int permissions_ = READ_WRITE);
 
     ~MemoryMap();
 
@@ -42,11 +44,9 @@ class MemoryMap
     /// Return the virtual memory base address of the device
     uintptr_t GetBaseAddr() const {return mapped_dev_base;}
 
-    /// Return the mapped size in octets
     uint32_t MappedSize() const {return size;}
-
     uintptr_t PhysAddr() const {return phys_addr;}
-	
+
     enum Status {
         MEMMAP_CLOSED,       ///< Memory map closed
         MEMMAP_OPENED,       ///< Memory map opened
@@ -55,7 +55,10 @@ class MemoryMap
     };
 
     enum Permissions {
-        
+        READ_WRITE,
+        READ_ONLY,
+        WRITE_ONLY,
+        permissions_num
     };
 
   private:
@@ -63,7 +66,8 @@ class MemoryMap
     void *mapped_base;          ///< Map base address
     uintptr_t mapped_dev_base;  ///< Device base address
     int status;                 ///< Status
-    uint32_t size;              ///< Map size
+    int permissions;
+    uint32_t size;              ///< Map size in bytes
     uintptr_t phys_addr;        ///< Physical address
 };
 

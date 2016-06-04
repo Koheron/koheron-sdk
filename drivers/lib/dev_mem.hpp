@@ -78,10 +78,12 @@ class DevMem
 
     /// Create a new memory map
     /// @addr Base address of the map
-    /// @size Size of the map 
+    /// @size Size of the map
+    /// @permissions Access permissions
     /// @return An ID to the created map,
     ///         or -1 if an error occured
-    MemMapID AddMemoryMap(uintptr_t addr, uint32_t size);
+    MemMapID AddMemoryMap(uintptr_t addr, uint32_t size, 
+                          int permissions = MemoryMap::READ_WRITE);
 
     /// Remove a memory map
     /// @id ID of the memory map to be removed
@@ -163,7 +165,7 @@ class DevMem
     uintptr_t addr_limit_down;
     uintptr_t addr_limit_up;
     bool is_forbidden_address(uintptr_t addr);
-    MemMapID create_memory_map(uintptr_t addr, uint32_t size);
+    MemMapID create_memory_map(uintptr_t addr, uint32_t size, int permissions);
 
     std::map<MemMapID, std::unique_ptr<MemoryMap>> mem_maps;
     MemMapIdPool id_pool;

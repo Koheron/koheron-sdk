@@ -12,7 +12,7 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
     status = CLOSED;
 
     config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-    status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE);
+    status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, Klib::MemoryMap::READ_ONLY);
     adc_1_map = dvm.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
     adc_2_map = dvm.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
     dac_map = dvm.AddMemoryMap(DAC_ADDR, DAC_RANGE);
