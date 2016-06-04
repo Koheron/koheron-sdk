@@ -8,7 +8,6 @@
 #define __DRIVERS_CORE_DEVICE_MEMORY_HPP__
 
 #include <drivers/lib/dev_mem.hpp>
-#include <drivers/lib/wr_register.hpp>
 
 class DeviceMemory
 {
@@ -32,7 +31,7 @@ class DeviceMemory
     #pragma tcp-server write_array arg{data} arg{len}
     void write_buffer(uint32_t mmap_idx, uint32_t offset,
                       const uint32_t *data, uint32_t len) {
-        Klib::WriteBuff32(dvm.GetBaseAddr(mmap_idx) + offset, data, len);
+        dvm.write_buff32(mmap_idx, offset, data, len);
     }
 
     #pragma tcp-server read_array arg{buff_size} 
