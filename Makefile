@@ -60,6 +60,7 @@ RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1h
 
 # Project configuration
 MAIN_YML = projects/$(NAME)/main.yml
+DRIVERS_YML = projects/$(NAME)/drivers.yml
 CONFIG_TCL = projects/$(NAME)/config.tcl
 TEMPLATE_DIR = scripts/templates
 
@@ -74,6 +75,8 @@ TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 DRIVERS_DIR = $(TMP)/$(NAME)/drivers
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/server/kserverd
 TCP_SERVER_SHA = master
+
+CROSS_COMPILE = /usr/bin/arm-linux-gnueabihf-
 
 ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
@@ -247,8 +250,8 @@ $(DRIVERS_DIR)/%: %/*.hpp %/*.cpp
 	mkdir -p $@
 	cp -f $^ $@
 
-$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAKE_PY) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
-	python $(MAKE_PY) --middleware $(NAME)
+$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAKE_PY) $(MAIN_YML) $(DRIVERS_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
+	CROSS_COMPILE=$(CROSS_COMPILE) python $(MAKE_PY) --middleware $(NAME)
 	cp `find $(DRIVERS_DIR) -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers
 	mkdir -p $(TCP_SERVER_DIR)/middleware/drivers/lib
 	cp `find drivers/lib -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers/lib
