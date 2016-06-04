@@ -5,7 +5,8 @@
 Laser::Laser(Klib::DevMem& dvm_)
 : dvm(dvm_),
   xadc(dvm_),
-  gpio(dvm_)
+  gpio(dvm_),
+  eeprom(dvm_)
 {
     status = CLOSED;
 
@@ -31,18 +32,36 @@ void Laser::reset()
     set_laser_current(0.0);
 }
 
-#define GAIN_LT1789 (1+200/10)
-#define PWM_MAX_VOLTAGE 1.8
-#define PWM_MAX_VALUE 1024
-#define MILLIAMPS_TO_AMPS 0.001
-#define CURRENT_TO_VOLTAGE(current) \
-    (current * MILLIAMPS_TO_AMPS * PWM_MAX_VALUE * GAIN_LT1789 / PWM_MAX_VOLTAGE)
+uint32_t Laser::get_laser_current()
+{
+    return xadc.read(LASER_CURRENT_CHANNEL);
+}
+
+uint32_t Laser::get_laser_power()
+{
+    return xadc.read(LASER_POWER_CHANNEL);
+}
+
+std::tuple<uint32_t, uint32_t> Laser::get_monitoring()
+{
+    return std::make_tuple(get_laser_current(), get_laser_power());
+}
+
+void Laser::start_laser()
+{
+    gpio.clear_bit(LASER_ENABLE_PIN, 2); // Laser enable on pin DIO7_P
+}
+
+void Laser::stop_laser()
+{
+    gpio.set_bit(LASER_ENABLE_PIN, 2); // Laser enable on pin DIO7_P
+}
 
 void Laser::set_laser_current(float current)
 {
     float current_;
     current > MAX_LASER_CURRENT ? current_ = MAX_LASER_CURRENT : current_ = current;    
-    uint32_t voltage = (uint32_t) CURRENT_TO_VOLTAGE(current_);
-    dvm.write32(config_map, PWM3_OFF, voltage);
+    uint32_t pwm = pwm_from_current(current);
+    dvm.write32(config_map, PWM3_OFF, pwm);
 }
 

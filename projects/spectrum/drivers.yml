@@ -6,3 +6,4 @@ drivers:
   - drivers/laser
   - drivers/init
   - drivers/spectrum
+  - drivers/at93c46d
