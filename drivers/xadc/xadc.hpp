@@ -26,9 +26,13 @@ class Xadc
   public:
     Xadc(Klib::DevMem& dvm_);
 
-    int Open();
+    int Open() {return status == FAILED ? -1: 0;}
     int set_channel(uint32_t channel_0_, uint32_t channel_1_);
-    void enable_averaging();
+    
+    void enable_averaging() {
+        dvm.write32(xadc_map, AVG_EN_OFF, (1 << channel_0) + (1 << channel_1));
+    }
+
     int set_averaging(uint32_t n_avg);
     int read(uint32_t channel);
 
@@ -46,7 +50,7 @@ class Xadc
     int status;
 
     // Memory maps IDs
-    Klib::MemMapID dev_num;
+    Klib::MemMapID xadc_map;
 
     uint32_t channel_0 = 1;
     uint32_t channel_1 = 8;
