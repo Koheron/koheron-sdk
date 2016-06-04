@@ -35,13 +35,21 @@ class Laser(object):
     def get_monitoring(self):
         return self.client.recv_tuple()
 
-    @command('LASER','I')
+    @command('LASER','f')
     def set_laser_current(self, current):
         """ current: The bias in mA """
         pass
 
     @command('LASER')
     def is_laser_present(self):
+        return self.client.recv_uint32()
+
+    @command('LASER')
+    def save_config(self):
+        pass
+
+    @command('LASER')
+    def load_config(self):
         return self.client.recv_uint32()
 
     def status(self):

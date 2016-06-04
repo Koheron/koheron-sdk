@@ -24,6 +24,9 @@ class Oscillo(object):
     def set_period(self, period): pass
 
     @command('OSCILLO')
+    def reset(self): pass
+
+    @command('OSCILLO')
     def reset_acquisition(self): pass
 
     def set_dac(self, data):

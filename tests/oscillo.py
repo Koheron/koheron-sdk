@@ -4,6 +4,7 @@ from instrument_manager import InstrumentManager
 from koheron_tcp_client import KClient, command
 from project_config import ProjectConfig
 import time
+import numpy as np
 
 from drivers.common import Common
 from drivers.oscillo import Oscillo
@@ -34,32 +35,53 @@ class Test:
         self.gpio = Gpio(client)
         self.eeprom = At93c46d(client)
 
+    def test_laser(self, verbose=True):
+        laser = self.laser
+        assert(laser.is_laser_present())
+        laser.start_laser()
+        if verbose:
+            print('Loading laser configuration, current = {} mA'.format(laser.load_config()))
+        laser.set_laser_current(30)
+        time.sleep(0.01)
+        driver.laser.status()
+        driver.laser.save_config()
+
+    def test_oscillo(self, verbose=True):
+        oscillo = self.oscillo
+        oscillo.reset()
+        time.sleep(0.01)
+        adc = oscillo.get_adc()
+        assert(np.shape(adc) == (2, 8192))
+        mean = np.mean(adc)
+        std = np.std(adc)
+        if verbose:
+            print('Get adc, mean = {}, std = {}'.format(mean, std))
+        assert(std > 0)
+
+    def test_eeprom(self):
+        eeprom = self.eeprom
+        addr = 12
+        val = 42
+        for i in range(10):
+            driver.eeprom.write(addr, i)
+            time.sleep(0.002)
+            assert(driver.eeprom.read(addr) == i)
+
+
 driver = Test(client)
 
 driver.common.status()
 driver.xadc.status()
 
-driver.laser.set_laser_current(30)
-driver.laser.status()
+driver.test_laser()
+driver.test_oscillo()
+driver.test_eeprom()
 
-driver.oscillo.reset_acquisition()
-
-print driver.oscillo.get_adc()
-print driver.laser.get_monitoring()
-
-print 'laser present', driver.laser.is_laser_present()
 
 # Test EEPROM
 
 #driver.eeprom.erase_write_disable()
 
-addr = 0
-val = 42
-
-for i in range(10):
-    driver.eeprom.write(addr, i)
-    time.sleep(0.002)
-    print driver.eeprom.read(addr)
 
 
 # # Test device memory

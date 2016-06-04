@@ -23,6 +23,8 @@
 
 #define MAX_LASER_CURRENT 50.0 // mA
 
+#define EEPROM_CURRENT_ADDR 0
+
 class Laser
 {
   public:
@@ -42,13 +44,24 @@ class Laser
     void stop_laser();
     void set_laser_current(float current);
 
-    uint32_t is_laser_present() {
+    bool is_laser_present() {
         eeprom.write_enable();
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
         eeprom.write(0, 42);
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
-        return eeprom.read(0);
-    };
+        return eeprom.read(0) == 42;
+    }
+
+    void save_config() {
+        uint32_t current = dvm.read32(config_map, PWM3_OFF);
+        eeprom.write(EEPROM_CURRENT_ADDR, current);
+    }
+
+    uint32_t load_config() {
+        uint32_t current = eeprom.read(EEPROM_CURRENT_ADDR);
+        dvm.write32(config_map, PWM3_OFF, current);
+        return current;
+    }
     
     enum Status {
         CLOSED,
