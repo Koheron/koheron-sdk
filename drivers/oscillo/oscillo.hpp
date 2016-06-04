@@ -19,17 +19,25 @@ class Oscillo
   public:
     Oscillo(Klib::DevMem& dvm_);
 
-    int Open();
+    int Open() {return status == FAILED ? -1 : 0;}
 
-    void reset();
+    void reset() {
+        dvm.clear_bit(config_map, ADDR_OFF, 1);
+        dvm.set_bit(config_map, ADDR_OFF, 0);
+    }
 
     void set_n_avg_min(uint32_t n_avg_min);
     void set_period(uint32_t period);
 
     #pragma tcp-server write_array arg{data} arg{len}
-    void set_dac_buffer(const uint32_t *data, uint32_t len);
+    void set_dac_buffer(const uint32_t *data, uint32_t len) {
+       dvm.write_buff32(dac_map, 0, data, len);
+    }
 
-    void reset_acquisition();
+    void reset_acquisition() {
+        dvm.write32(config_map, ADDR_OFF, 1);
+        dvm.write32(config_map, ADDR_OFF, 1);
+    }
 
     std::array<float, WFM_SIZE>& read_data(bool channel);
 
@@ -39,7 +47,7 @@ class Oscillo
 
     void set_averaging(bool avg_on);
     
-    uint32_t get_num_average();
+    uint32_t get_num_average() {return dvm.read32(status_map, N_AVG0_OFF);}
 
     enum Status {
         CLOSED,

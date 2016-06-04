@@ -20,26 +20,50 @@ class Spectrum
   public:
     Spectrum(Klib::DevMem& dvm_);
 
-    int Open();
+    int Open() {return status == FAILED ? -1 : 0;}
 
-    void set_period(uint32_t period);
-    void set_n_avg_min(uint32_t n_avg_min);
+    void set_period(uint32_t period) {
+        dvm.write32(config_map, PERIOD0_OFF, period - 1);
+        dvm.write32(config_map, THRESHOLD0_OFF, period - 6);
+    }
 
-    void reset();
+    void set_n_avg_min(uint32_t n_avg_min) {
+        dvm.write32(config_map, N_AVG_MIN0_OFF, (n_avg_min < 2) ? 0 : n_avg_min-2);
+    }
 
-    #pragma tcp-server write_array arg{data} arg{len}
-    void set_dac_buffer(const uint32_t *data, uint32_t len);
-
-    void reset_acquisition();
-
-    void set_scale_sch(uint32_t scale_sch);
-    void set_offset(uint32_t offset_real, uint32_t offset_imag);
-
-    #pragma tcp-server write_array arg{data} arg{len}
-    void set_demod_buffer(const uint32_t *data, uint32_t len);
+    void reset() {
+        dvm.clear_bit(config_map, ADDR_OFF, 1);
+        dvm.set_bit(config_map, ADDR_OFF, 0);
+    }
 
     #pragma tcp-server write_array arg{data} arg{len}
-    void set_noise_floor_buffer(const uint32_t *data, uint32_t len);
+    void set_dac_buffer(const uint32_t *data, uint32_t len) {
+        dvm.write_buff32(dac_map, 0, data, len);
+    }
+
+    void reset_acquisition() {
+        dvm.clear_bit(config_map, ADDR_OFF, 1);
+        dvm.set_bit(config_map, ADDR_OFF, 1);
+    }
+
+    void set_scale_sch(uint32_t scale_sch) {
+        // LSB at 1 for forward FFT
+        dvm.write32(config_map, CFG_FFT_OFF, 1 + 2 * scale_sch);
+    }
+    
+    void set_offset(uint32_t offset_real, uint32_t offset_imag) {
+        dvm.write32(config_map, SUBSTRACT_MEAN_OFF, offset_real + 16384 * offset_imag);
+    }
+
+    #pragma tcp-server write_array arg{data} arg{len}
+    void set_demod_buffer(const uint32_t *data, uint32_t len) {
+        dvm.write_buff32(demod_map, 0, data, len);
+    }
+
+    #pragma tcp-server write_array arg{data} arg{len}
+    void set_noise_floor_buffer(const uint32_t *data, uint32_t len) {
+        dvm.write_buff32(noise_floor_map, 0, data, len);
+    }
 
     std::array<float, WFM_SIZE>& get_spectrum();
 
@@ -47,18 +71,18 @@ class Spectrum
 
     void set_averaging(bool avg_status);
 
-    uint32_t get_num_average();
-    uint32_t get_peak_address();
-    uint32_t get_peak_maximum();
+    uint32_t get_num_average()  {return dvm.read32(status_map, N_AVG_OFF);}
+    uint32_t get_peak_address() {return dvm.read32(status_map, PEAK_ADDRESS_OFF);}
+    uint32_t get_peak_maximum() {return dvm.read32(status_map, PEAK_MAXIMUM_OFF);}
 
-    /// @acq_period Sleeping time between two acquisitions (us)
-    void fifo_start_acquisition(uint32_t acq_period);
-    void fifo_stop_acquisition();
     void set_address_range(uint32_t address_low, uint32_t address_high);
-    uint32_t get_peak_fifo_length();
-    uint32_t store_peak_fifo_data();
-    std::vector<uint32_t>& get_peak_fifo_data();
-    bool fifo_get_acquire_status();
+    /// @acq_period Sleeping time between two acquisitions (us)
+    void fifo_start_acquisition(uint32_t acq_period) {fifo.start_acquisition(acq_period);}
+    void fifo_stop_acquisition()                     {fifo.stop_acquisition();}
+    uint32_t get_peak_fifo_length()                  {return fifo.get_fifo_length();}
+    uint32_t store_peak_fifo_data()                  {return fifo.get_buffer_length();}
+    std::vector<uint32_t>& get_peak_fifo_data()      {return fifo.get_data();}
+    bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
 
     enum Status {
         CLOSED,
@@ -89,7 +113,9 @@ class Spectrum
     FIFOReader<FIFO_BUFF_SIZE> fifo;
     
     // Internal functions
-    void _wait_for_acquisition();
+    void wait_for_acquisition() {
+       do {} while (dvm.read32(status_map, AVG_READY_OFF) == 0);
+    }
 }; // class Spectrum
 
 #endif // __DRIVERS_CORE_SPECTRUM_HPP__

@@ -38,7 +38,7 @@ inline void WriteBuff32(uintptr_t addr, const uint32_t *data_ptr,
                         uint32_t buff_size)
 {
     for(uint32_t i=0; i < buff_size; i++) {
-        WriteReg32(addr + sizeof(uint32_t)*i, data_ptr[i]);
+        WriteReg32(addr + sizeof(uint32_t) * i, data_ptr[i]);
     }
 }
 
