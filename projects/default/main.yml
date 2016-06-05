@@ -6,4 +6,6 @@ cores:
   - axi_sts_register_v1_0
   - dna_reader_v1_0
 
+cross-compile: /usr/bin/arm-linux-gnueabihf-
+
 host: '192.168.1.100'
