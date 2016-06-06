@@ -82,3 +82,12 @@ proc connect_constant {name value width pin} {
     [list CONST_VAL $value CONST_WIDTH $width] \
     [list dout $pin]
 }
+
+proc cfg_pin {name} {
+  return $::config_name/Out[set config::${name}_offset]
+}
+
+proc sts_pin {name} {
+  return $::status_name/In[set config::${name}_offset]
+}
+

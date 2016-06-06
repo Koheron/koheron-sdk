@@ -10,9 +10,9 @@ add_pid pid_controller [expr $config::adc_width + 1] $pid_out_width
 connect_pins pid_controller/clk $adc_clk
 
 foreach {name} {p i d} {
-  connect_pins pid_controller/coef_$name $config_name/Out[set config::coef_${name}_offset]
+  connect_pins pid_controller/coef_$name [cfg_pin coef_$name]
 }
-connect_pins pid_controller/integral_reset $config_name/Out$config::integral_reset_offset
+connect_pins pid_controller/integral_reset [cfg_pin integral_reset]
 
 # Connect output of PID controller to DAC2
 cell xilinx.com:ip:xlslice:1.0 slice_pid_cmd_out {
@@ -31,14 +31,14 @@ cell xilinx.com:ip:c_addsub:12.0 set_point_minus_signal {
   Out_Width [expr $config::adc_width + 1]
 } {
   clk $adc_clk
-  A $config_name/Out$config::set_point_offset
+  A [cfg_pin set_point]
   B adc_dac/adc2
   S pid_controller/error_in
 }
 
 # Connect error_in and cmd_out to status
-connect_pins set_point_minus_signal/B $status_name/In$config::error_in_offset
-connect_pins pid_controller/cmd_out $status_name/In$config::cmd_out_offset
+connect_pins set_point_minus_signal/B [sts_pin error_in]
+connect_pins pid_controller/cmd_out [sts_pin cmd_out]
 
 
 # Add DDS
@@ -62,7 +62,7 @@ cell pavel-demin:user:axis_constant:1.0 phase_inc {
 } {
   aclk $adc_clk
   M_AXIS $dds_name/S_AXIS_PHASE
-  cfg_data $config_name/Out$config::dds_offset
+  cfg_data [cfg_pin dds]
 }
 
 # Create axis_lfsr
@@ -106,7 +106,7 @@ cell xilinx.com:ip:axis_broadcaster:1.1 bcast_0 {
 cell pavel-demin:user:axis_variable:1.0 rate_0 {
   AXIS_TDATA_WIDTH 16
 } {
-  cfg_data $config_name/Out$config::cic_rate_offset
+  cfg_data [cfg_pin cic_rate]
   aclk $adc_clk
   aresetn $rst_adc_clk_name/peripheral_aresetn
 }
