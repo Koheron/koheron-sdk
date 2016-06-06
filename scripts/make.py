@@ -116,7 +116,7 @@ def build_server_config(project, tcp_server_dir):
             filename = os.path.basename(device) + ".hpp"
             dev_paths.append(os.path.join('../middleware/drivers/', filename))
     server_config = {
-      'cross-compile': config['cross-compile'],
+      'cross-compile': os.getenv('CROSS_COMPILE'),
       'devices': dev_paths
     }
     with open(os.path.join(tcp_server_dir,'config','config.yaml'), 'w') as f:
