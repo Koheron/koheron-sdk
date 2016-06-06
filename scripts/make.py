@@ -62,12 +62,6 @@ def get_config(project):
                 config['parameters']['sha'+str(i)] = int('0x'+sha[8*i:8*i+8],0)
     return config
 
-def get_drivers(project):
-    drivers_filename = os.path.join('projects', project, 'drivers.yml')    
-    with open(drivers_filename) as drivers_file:
-        drivers = yaml.load(drivers_file)        
-    return drivers
-
 ###################
 # Jinja
 ###################
@@ -113,12 +107,12 @@ def get_renderer():
 ###################
             
 def build_server_config(project, tcp_server_dir):
-    drivers = get_drivers(project)
+    config = get_config(project)
     dev_paths = [
       '../middleware/drivers/common.hpp'
     ]
-    if 'drivers' in drivers:
-        for device in drivers['drivers']:
+    if 'drivers' in config:
+        for device in config['drivers']:
             filename = os.path.basename(device) + ".hpp"
             dev_paths.append(os.path.join('../middleware/drivers/', filename))
     server_config = {
@@ -153,29 +147,24 @@ if __name__ == "__main__":
     reload(sys)
     sys.setdefaultencoding('utf-8')
 
+    config = get_config(project)
+
     if cmd == '--config_py':
-        config = get_config(project)
         version = sys.argv[3]        
         fill_config_python(config, version)
     elif cmd == '--config_tcl':
-        config = get_config(project)
         fill_config_tcl(config)
     elif cmd == '--cores':
-        config = get_config(project)
         with open(os.path.join('tmp', project + '.cores'), 'w') as f:
             f.write(' '.join(config['cores']))
     elif cmd == '--board':
-        config = get_config(project)
         with open(os.path.join('tmp', project + '.board'), 'w') as f:
             f.write(config['board'])
     elif cmd == '--drivers':
-        drivers = get_drivers(project)
         with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
-            f.write('drivers/common ' + ((' '.join(drivers['drivers'])) if ('drivers' in drivers) else ''))
+            f.write('drivers/common ' + ((' '.join(config['drivers'])) if ('drivers' in config) else ''))
     elif cmd == '--middleware':
-        config = get_config(project)
-        drivers = get_drivers(project)
-        tcp_server_dir = os.path.join('tmp', project + '.tcp-server')
+        tcp_server_dir = os.path.join('tmp', config['project'] + '.tcp-server')
         tcp_server_middleware_dir = os.path.join(tcp_server_dir, 'middleware/drivers')
 
         # Erase the content of middleware if it exists (Tests drivers for tcp-server)
@@ -186,7 +175,6 @@ if __name__ == "__main__":
         build_server_config(project, tcp_server_dir)
         fill_addresses(config, tcp_server_dir)
     elif cmd == '--xdc':
-        config = get_config(project)
         xdc_dir = os.path.join('tmp', config['project'] + '.xdc')
         build_xdc(project, xdc_dir)
     else:
