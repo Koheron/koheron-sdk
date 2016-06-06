@@ -10,6 +10,10 @@
 #include <drivers/addresses.hpp>
 
 #define FIFO_BUFF_SIZE 65536
+#define SAMPLING_FREQ 125e6
+#define POW_32 4294967296
+
+constexpr float freq_factor = POW_32 / SAMPLING_FREQ;
 
 class Pid
 {
@@ -24,6 +28,10 @@ class Pid
     }
 
     int Open() {return dvm.is_ok() ? 0 : 1;}
+
+    void set_cic_rate(uint32_t rate) {dvm.write32(config_map, CIC_RATE_OFF, rate);}
+
+    void set_dds_freq(float freq) {dvm.write32(config_map, DDS_OFF, uint32_t(freq * freq_factor));}
 
     /// @acq_period Sleeping time between two acquisitions (us)
     void fifo_start_acquisition(uint32_t acq_period) {fifo.start_acquisition(acq_period);}

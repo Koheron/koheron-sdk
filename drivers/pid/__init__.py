@@ -1,40 +1,40 @@
-from config import *
+# -*- coding: utf-8 -*-
 
 import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-import os
-from koheron_tcp_client import KClient, command, DevMem
-
-host = os.getenv('HOST','192.168.1.100')
-client = KClient(host)
-dvm = DevMem(client)
-
-def set_cic_rate(rate):
-    dvm.write(CONFIG, CIC_RATE_OFF, rate)
+from koheron_tcp_client import command, write_buffer
 
 class Pid(object):
 
     def __init__(self, client, acq_period=100):
         self.client = client
         if self.open() < 0:
-            print "Cannot open driver"
+            print "Cannot open PID driver"
         self.fifo_start_acquisition(acq_period)
         self.data_remains = []
 
     @command('PID')
     def open(self):
-        return self.client.recv_int(4)
+        return self.client.recv_int32()
+
+    @command('PID','I')
+    def set_cic_rate(self, rate):
+        pass
+
+    @command('PID','f')
+    def set_dds_freq(self, freq):
+        pass
 
     @command('PID')
     def get_fifo_length(self):
-        return self.client.recv_int(4)
+        return self.client.recv_uint32()
 
     def get_data(self):
         @command('PID')
         def get_fifo_buffer_length(self):
-            return self.client.recv_int(4)
+            return self.client.recv_uint32()
 
         self.fifo_stream_length = get_fifo_buffer_length(self)
 
@@ -51,9 +51,9 @@ class Pid(object):
 
     @command('PID')
     def fifo_get_acquire_status(self):
-        return self.client.recv_int(4)
+        return self.client.recv_uint32()
 
-    @command('PID')
+    @command('PID','I')
     def fifo_start_acquisition(self, acq_period): pass
 
     @command('PID')
@@ -83,41 +83,3 @@ class Pid(object):
                 else:
                     data[idx:idx+self.fifo_stream_length] = data_rcv
                     idx += self.fifo_stream_length
-
-    def __del__(self):
-        self.fifo_stop_acquisition()
-
-if __name__ == "__main__":
-    freq = 10 # MHz
-    fs = 125e6 # Sampling frequency
-    dvm.write(CONFIG, DDS_OFF, np.floor(freq / fs * 2**32))
-
-    driver = Pid(client)
-
-    n = 32768
-    dec_factor_list = [64, 256, 1024, 4096]
-    n_avg = 10
-
-    psd = np.zeros((len(dec_factor_list), n))
-    f_fft = 0 * psd
-
-    for j in range(n_avg):
-        for i, dec_factor in enumerate(dec_factor_list):
-            print i, j
-            set_cic_rate(dec_factor)
-            time.sleep(0.001)
-            data = ((driver.read_npts_fifo(n) - 2**23) % 2**24 - 2**23)
-            psd[i,:] += np.abs(np.fft.fft(data))**2 * dec_factor
-            f_fft[i,:] = np.fft.fftfreq(n) * fs / dec_factor
-
-    psd /= n_avg
-
-    plt.figure()
-    plt.hold(True)
-    for i, dec_factor in enumerate(dec_factor_list):
-        plt.semilogx(np.fft.fftshift(f_fft[i,:]), np.fft.fftshift(10*np.log10(psd[i,:])), label=str(dec_factor))
-
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Power spectral density (dB)')
-    plt.legend()
-plt.show()
