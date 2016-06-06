@@ -24,8 +24,8 @@ for {set i 1} {$i < 3} {incr i} {
 
 connect_pins $spectrum_name/clk        $adc_clk
 connect_pins $spectrum_name/tvalid     shift_tvalid/Q
-connect_pins $spectrum_name/cfg_sub    $config_name/Out$config::substract_mean_offset
-connect_pins $spectrum_name/cfg_fft    $config_name/Out$config::cfg_fft_offset
+connect_pins $spectrum_name/cfg_sub    [cfg_pin substract_mean]
+connect_pins $spectrum_name/cfg_fft    [cfg_pin cfg_fft]
 
 # Add spectrum BRAM
 set spectrum_bram_name spectrum_bram
@@ -60,10 +60,10 @@ add_averager_module $avg_name $config::bram_addr_width
 
 connect_pins $avg_name/clk         $adc_clk
 connect_pins $avg_name/restart     $address_name/restart
-connect_pins $avg_name/avg_on     $config_name/Out$config::avg_on_offset
-connect_pins $avg_name/period      $config_name/Out$config::period0_offset
-connect_pins $avg_name/threshold   $config_name/Out$config::threshold0_offset
-connect_pins $avg_name/n_avg_min   $config_name/Out$config::n_avg_min0_offset
+connect_pins $avg_name/avg_on      [cfg_pin avg_on]
+connect_pins $avg_name/period      [cfg_pin period0]
+connect_pins $avg_name/threshold   [cfg_pin threshold0]
+connect_pins $avg_name/n_avg_min   [cfg_pin n_avg_min0]
 
 connect_pins $subtract_name/m_axis_result_tdata  $avg_name/din
 connect_pins $subtract_name/m_axis_result_tvalid $avg_name/tvalid
@@ -72,9 +72,9 @@ connect_pins $avg_name/addr        blk_mem_gen_$spectrum_bram_name/addrb
 connect_pins $avg_name/dout        blk_mem_gen_$spectrum_bram_name/dinb
 connect_pins $avg_name/wen         blk_mem_gen_$spectrum_bram_name/web
 
-connect_pins $avg_name/n_avg      $status_name/In$config::n_avg_offset
-connect_pins $avg_name/ready      $status_name/In$config::avg_ready_offset
-connect_pins $avg_name/avg_on_out sts/In$config::avg_on_out_offset
+connect_pins $avg_name/n_avg      [sts_pin n_avg]
+connect_pins $avg_name/ready      [sts_pin avg_ready]
+connect_pins $avg_name/avg_on_out [sts_pin avg_on_out]
 
 # Add peak detector
 
@@ -86,12 +86,12 @@ connect_pins $peak_detector_name/clk $adc_clk
 connect_pins $peak_detector_name/din $subtract_name/m_axis_result_tdata
 connect_pins $peak_detector_name/s_axis_tvalid $subtract_name/m_axis_result_tvalid
 
-connect_pins $peak_detector_name/address_low $config_name/Out$config::peak_address_low_offset
-connect_pins $peak_detector_name/address_high $config_name/Out$config::peak_address_high_offset
-connect_pins $peak_detector_name/address_reset $config_name/Out$config::peak_address_reset_offset
+connect_pins $peak_detector_name/address_low [cfg_pin peak_address_low]
+connect_pins $peak_detector_name/address_high [cfg_pin peak_address_high]
+connect_pins $peak_detector_name/address_reset [cfg_pin peak_address_reset]
 
-connect_pins $peak_detector_name/address_out $status_name/In$config::peak_address_offset
-connect_pins $peak_detector_name/maximum_out $status_name/In$config::peak_maximum_offset
+connect_pins $peak_detector_name/address_out [sts_pin peak_address]
+connect_pins $peak_detector_name/maximum_out [sts_pin peak_maximum]
 
 set intercon_idx 0
 set idx [add_master_interface $intercon_idx]

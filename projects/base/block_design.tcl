@@ -9,7 +9,7 @@ source $lib/pwm.tcl
 add_pwm pwm $pwm_clk $config::pwm0_offset $config::pwm_width $config::n_pwm
 
 for {set i 0} {$i < $config::n_pwm} {incr i} {
-  connect_pins pwm/pwm$i  $config_name/Out[set config::pwm${i}_offset]
+  connect_pins pwm/pwm$i  [cfg_pin pwm${i}]
 }
 
 connect_pins pwm/rst $rst_adc_clk_name/peripheral_reset
@@ -25,6 +25,6 @@ source projects/address_module/address.tcl
 set address_name address
 add_address_module $address_name $config::bram_addr_width
 connect_pins $address_name/clk  $adc_clk
-connect_pins $address_name/cfg  $config_name/Out$config::addr_offset
-connect_pins $address_name/period  $config_name/Out$config::period0_offset
+connect_pins $address_name/cfg  [cfg_pin addr]
+connect_pins $address_name/period  [cfg_pin period0]
 source $lib/connect_dac_bram.tcl

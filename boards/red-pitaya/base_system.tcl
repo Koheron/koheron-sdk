@@ -37,7 +37,7 @@ cell xilinx.com:ip:xlslice:1.0 led_slice {
   DIN_FROM  7
   DIN_TO    0
 } {
-  Din $config_name/Out[expr $config::led_offset]
+  Din [cfg_pin led]
 }
 connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
 
