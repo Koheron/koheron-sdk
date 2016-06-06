@@ -96,8 +96,11 @@ $(TMP):
 # tests
 ###############################################################################
 
-test_bench: $(CONFIG_TCL) $(XDC_DIR) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
-	vivado -source scripts/test_bench.tcl -tclargs $(NAME) $(PART)
+test_module: $(CONFIG_TCL) $(XDC_DIR) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+	vivado -source scripts/test_module.tcl -tclargs $(NAME) $(PART)
+
+test_core:
+	vivado -source scripts/test_core.tcl -tclargs $(CORE) $(PART)
 
 test: tests/$(NAME).py
 	python $<
