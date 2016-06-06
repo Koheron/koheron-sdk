@@ -44,15 +44,18 @@ driver.laser.test()
 driver.oscillo.test()
 driver.eeprom.test()
 
-# # Test device memory
-# dvm = DeviceMemory(client)
+# Test device memory
+dvm = DeviceMemory(client)
 
-# for mmap in pc.mmaps:
-#     dvm.add_mmap(mmap)
+for mmap in pc.mmaps:
+    dvm.add_mmap(mmap)
 
-# value = 42
-# dvm.write32('config', pc.cfg['led'], value)
-# assert(dvm.read32('config', pc.cfg['led']) == value)
+value = 42
+dvm.write32('config', pc.cfg['led'], value)
+assert(dvm.read32('config', pc.cfg['led']) == value)
 
-# dna = dvm.read32('status', pc.sts['dna']) + dvm.read32('status', pc.sts['dna']+4) << 32
-# assert(driver.common.get_dna() == dna)
+dna = dvm.read32('status', pc.sts['dna']) + dvm.read32('status', pc.sts['dna']+4) << 32
+assert(driver.common.get_dna() == dna)
+
+for i in range(10):
+    dvm.write_buffer('dac', 0, 1024 *  np.ones(8192))
