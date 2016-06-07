@@ -48,10 +48,10 @@ def load_config(project):
 def get_config(project):
     config = load_config(project)
     # Get missing elements from ancestors
-    lists = ['python','cores','xdc']
+    lists = ['cores','xdc']
     for list_ in lists:
         config[list_] = get_list(project, list_)
-    props = ['board','cross-compile','host']
+    props = ['board','host']
     for prop in props:
         config[prop] = get_prop(project, prop)
     sha_filename = os.path.join('tmp', project+'.sha')
@@ -66,23 +66,18 @@ def get_config(project):
 # Jinja
 ###################
 
-def fill_config_tcl(config):
-    template = get_renderer().get_template(os.path.join('scripts/templates', 'config.tcl'))
-    output = file(os.path.join('projects', config['project'], 'config.tcl'),'w')
-    output.write(template.render(dic=config))
-    output.close()
+def fill_template(config, template_filename, output_filename):
+	template = get_renderer().get_template(os.path.join('scripts/templates',template_filename))
+	with open(output_filename, 'w') as output:
+		output.write(template.render(dic=config))
 
-def fill_config_python(config, version):
-    template = get_renderer().get_template(os.path.join('scripts/templates', 'config.py'))
-    output = file(os.path.join('projects', config['project'], 'config.py'),'w')
-    output.write(template.render(dic=config, version=version))
-    output.close()
+def fill_config_tcl(config):
+    output_filename = os.path.join('projects', config['project'], 'config.tcl')
+    fill_template(config, 'config.tcl', output_filename)
 
 def fill_addresses(config, tcp_server_dir):
-    template = get_renderer().get_template(os.path.join('scripts/templates', 'addresses.hpp'))
-    output = file(os.path.join(tcp_server_dir, 'middleware', 'drivers', 'addresses.hpp'),'w')
-    output.write(template.render(dic=config))
-    output.close()
+    output_filename = os.path.join(tcp_server_dir, 'middleware', 'drivers', 'addresses.hpp')
+    fill_template(config, 'addresses.hpp', output_filename)
 
 def get_renderer():
     renderer = jinja2.Environment(
@@ -108,13 +103,12 @@ def get_renderer():
             
 def build_server_config(project, tcp_server_dir):
     config = get_config(project)
-    dev_paths = [
-      '../middleware/drivers/common.hpp'
-    ]
+    drivers_path = '../middleware/drivers'
+    dev_paths = [os.path.join(drivers_path, 'common.hpp')]
     if 'drivers' in config:
         for device in config['drivers']:
             filename = os.path.basename(device) + ".hpp"
-            dev_paths.append(os.path.join('../middleware/drivers/', filename))
+            dev_paths.append(os.path.join(drivers_path, filename))
     server_config = {
       'cross-compile': os.getenv('CROSS_COMPILE'),
       'devices': dev_paths
@@ -149,20 +143,21 @@ if __name__ == "__main__":
 
     config = get_config(project)
 
-    if cmd == '--config_py':
-        version = sys.argv[3]        
-        fill_config_python(config, version)
-    elif cmd == '--config_tcl':
+    if cmd == '--config_tcl':
         fill_config_tcl(config)
+
     elif cmd == '--cores':
         with open(os.path.join('tmp', project + '.cores'), 'w') as f:
             f.write(' '.join(config['cores']))
+
     elif cmd == '--board':
         with open(os.path.join('tmp', project + '.board'), 'w') as f:
             f.write(config['board'])
+
     elif cmd == '--drivers':
         with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
             f.write('drivers/common ' + ((' '.join(config['drivers'])) if ('drivers' in config) else ''))
+
     elif cmd == '--middleware':
         tcp_server_dir = os.path.join('tmp', config['project'] + '.tcp-server')
         tcp_server_middleware_dir = os.path.join(tcp_server_dir, 'middleware/drivers')
@@ -174,8 +169,10 @@ if __name__ == "__main__":
 
         build_server_config(project, tcp_server_dir)
         fill_addresses(config, tcp_server_dir)
+
     elif cmd == '--xdc':
-        xdc_dir = os.path.join('tmp', config['project'] + '.xdc')
-        build_xdc(project, xdc_dir)
+    	with open(os.path.join('tmp', project + '.xdc'), 'w') as f:
+            f.write(' '.join(config['xdc']))
+
     else:
         raise ValueError('Unknown command')
