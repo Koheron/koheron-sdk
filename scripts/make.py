@@ -171,7 +171,8 @@ if __name__ == "__main__":
         fill_addresses(config, tcp_server_dir)
 
     elif cmd == '--xdc':
-        xdc_dir = os.path.join('tmp', config['project'] + '.xdc')
-        build_xdc(project, xdc_dir)
+    	with open(os.path.join('tmp', project + '.xdc'), 'w') as f:
+            f.write(' '.join(config['xdc']))
+
     else:
         raise ValueError('Unknown command')
