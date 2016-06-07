@@ -125,9 +125,6 @@ $(SHA_FILE): $(VERSION_FILE)
 $(CONFIG_TCL): $(MAKE_PY) $(MAIN_YML) $(SHA_FILE) $(TEMPLATE_DIR)/config.tcl
 	python $(MAKE_PY) --config_tcl $(NAME)
 
-$(XDC_LIST): $(MAKE_PY) $(MAIN_YML)
-	python $(MAKE_PY) --xdc $(NAME)
-
 $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
