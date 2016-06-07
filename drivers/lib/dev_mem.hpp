@@ -134,14 +134,14 @@ class DevMem
 
     void write32(MemMapID id, uint32_t offset, uint32_t value)
     {
-        CHECK_WRITABLE
+        //CHECK_WRITABLE
         WriteReg32(GetBaseAddr(id) + offset, value);
     }
 
     void write_buff32(MemMapID id, uint32_t offset, 
                       const uint32_t *data_ptr, uint32_t buff_size)
     {
-        CHECK_WRITABLE
+        //CHECK_WRITABLE
         WriteBuff32(GetBaseAddr(id) + offset, data_ptr, buff_size);
     }
 
@@ -153,31 +153,31 @@ class DevMem
 
     void set_bit(MemMapID id, uint32_t offset, uint32_t index)
     {
-        CHECK_WRITABLE
+        //CHECK_WRITABLE
         SetBit(GetBaseAddr(id) + offset, index);
     }
 
     void clear_bit(MemMapID id, uint32_t offset, uint32_t index)
     {
-        CHECK_WRITABLE
+        //CHECK_WRITABLE
         ClearBit(GetBaseAddr(id) + offset, index);
     }
 
     void toggle_bit(MemMapID id, uint32_t offset, uint32_t index)
     {
-        CHECK_WRITABLE
+        //CHECK_WRITABLE
         ToggleBit(GetBaseAddr(id) + offset, index);
     }
 
     void mask_and(MemMapID id, uint32_t offset, uint32_t mask)
     {
-        CHECK_WRITABLE
+        //CHECK_WRITABLE
         MaskAnd(GetBaseAddr(id) + offset, mask);
     }
 
     void mask_or(MemMapID id, uint32_t offset, uint32_t mask)
     {
-        CHECK_WRITABLE
+        //CHECK_WRITABLE
         MaskOr(GetBaseAddr(id) + offset, mask);
     }
 
@@ -199,7 +199,7 @@ class DevMem
 };
 
 
-// Helper to build an std::array of memmory regions without
+// Helper to build an std::array of memory regions without
 // specifying the length. Called as:
 // mem_regions(
 //     Klib::MemoryRegion({ ADDR1, RANGE1 }),
