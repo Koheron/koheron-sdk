@@ -143,7 +143,7 @@ if __name__ == "__main__":
 
     config = get_config(project)
 
-    elif cmd == '--config_tcl':
+    if cmd == '--config_tcl':
         fill_config_tcl(config)
 
     elif cmd == '--cores':
@@ -169,7 +169,7 @@ if __name__ == "__main__":
 
         build_server_config(project, tcp_server_dir)
         fill_addresses(config, tcp_server_dir)
-        
+
     elif cmd == '--xdc':
         xdc_dir = os.path.join('tmp', config['project'] + '.xdc')
         build_xdc(project, xdc_dir)
