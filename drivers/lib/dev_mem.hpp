@@ -45,9 +45,7 @@ class MemMapIdPool
     std::vector<MemMapID> reusable_ids;
 };
 
-#define ASSERT_WRITABLE                                                     \
-    assert(   mem_maps.at(id)->GetProtection() == PROT_WRITE                \
-           || mem_maps.at(id)->GetProtection() == (PROT_READ|PROT_WRITE));
+#define ASSERT_WRITABLE assert((mem_maps.at(id)->GetProtection() & PROT_WRITE) == PROT_WRITE);
 
 /// Device memory manager
 /// A memory maps factory
