@@ -3,29 +3,26 @@
 #include "memory_map.hpp"
 
 Klib::MemoryMap::MemoryMap(int *fd_, uintptr_t phys_addr_,
-                           uint32_t size_, int permissions_)
+                           uint32_t size_, int protection_)
 : fd(fd_)
 , mapped_base(nullptr)
 , mapped_dev_base(0)
 , status(MEMMAP_CLOSED)
-, permissions(permissions_)
+, protection(protection_)
 , size(size_)
 , phys_addr(phys_addr_)
 {
-    if (phys_addr != 0x0) {
-        mapped_base = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 
-                           phys_addr & ~MAP_MASK(size) );
+    mapped_base = mmap(0, size, protection, MAP_SHARED, *fd, phys_addr & ~MAP_MASK(size) );
 
-        if (mapped_base == (void *) -1) {
-            fprintf(stderr, "Can't map the memory to user space.\n");
-            close(*fd);
-            status = MEMMAP_FAILURE;
-            return;
-        }
-
-        status = MEMMAP_OPENED;
-        mapped_dev_base = (uintptr_t)mapped_base + (phys_addr & MAP_MASK(size));
+    if (mapped_base == (void *) -1) {
+        fprintf(stderr, "Can't map the memory to user space.\n");
+        close(*fd);
+        status = MEMMAP_FAILURE;
+        return;
     }
+
+    status = MEMMAP_OPENED;
+    mapped_dev_base = (uintptr_t)mapped_base + (phys_addr & MAP_MASK(size));
 }
 
 Klib::MemoryMap::~MemoryMap()
@@ -46,9 +43,6 @@ int Klib::MemoryMap::Unmap()
 int Klib::MemoryMap::Resize(uint32_t length)
 {
     void *new_virt_addr = mremap((void *)mapped_dev_base, size, length, 0);
-
-    // printf("old virt addr = %lu\n", (uintptr_t)mapped_dev_base);
-    // printf("new virt addr = %lu\n", (uintptr_t)new_virt_addr);
 
     if (new_virt_addr == (void *) -1) {
         fprintf(stderr, "Can't resize memory map.\n");

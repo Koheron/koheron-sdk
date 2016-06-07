@@ -29,7 +29,7 @@ class MemoryMap
     /// @size_ Map size in octets
     MemoryMap(int *fd_, uintptr_t phys_addr_, 
               uint32_t size_ = DEFAULT_MAP_SIZE, 
-              int permissions_ = READ_WRITE);
+              int protection_ = READ_WRITE);
 
     ~MemoryMap();
 
@@ -40,7 +40,7 @@ class MemoryMap
 
     int Resize(uint32_t length);
 
-    int GetPermissions() const {return permissions;}
+    int GetProtection() const {return protection;}
     int GetStatus() const {return status;}
     uintptr_t GetBaseAddr() const {return mapped_dev_base;}
     uint32_t MappedSize() const {return size;}
@@ -65,7 +65,7 @@ class MemoryMap
     void *mapped_base;          ///< Map base address
     uintptr_t mapped_dev_base;  ///< Virtual memory base address of the device
     int status;                 ///< Status
-    int permissions;
+    int protection;
     uint32_t size;              ///< Map size in bytes
     uintptr_t phys_addr;        ///< Physical address
 };

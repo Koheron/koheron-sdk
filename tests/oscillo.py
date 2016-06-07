@@ -42,7 +42,7 @@ driver.xadc.status()
 
 driver.laser.test()
 driver.oscillo.test()
-driver.eeprom.test()
+#driver.eeprom.test()
 
 # Test device memory
 dvm = DeviceMemory(client)

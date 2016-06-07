@@ -246,7 +246,7 @@ $(DRIVERS_DIR)/%: %/*.hpp %/*.cpp
 	mkdir -p $@
 	cp -f $^ $@
 
-$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAKE_PY) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS))
+$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAKE_PY) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS)) drivers/lib
 	CROSS_COMPILE=$(CROSS_COMPILE) python $(MAKE_PY) --middleware $(NAME)
 	cp `find $(DRIVERS_DIR) -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers
 	mkdir -p $(TCP_SERVER_DIR)/middleware/drivers/lib

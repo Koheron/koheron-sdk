@@ -30,7 +30,7 @@ class At93c46d
     : dvm(dvm_)
     {
         config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-        status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, Klib::MemoryMap::READ_ONLY);
+        status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
     }
 
     int Open() {return dvm.is_ok() ? 0 : -1;}

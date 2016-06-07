@@ -15,6 +15,7 @@
 
 extern "C" {
     #include <fcntl.h>
+    #include <sys/mman.h>
 }
 
 #include "memory_map.hpp"
@@ -44,12 +45,7 @@ class MemMapIdPool
     std::vector<MemMapID> reusable_ids;
 };
 
-#define CHECK_WRITABLE                                                      \
-    if (mem_maps.at(id)->GetPermissions() == MemoryMap::READ_ONLY) {        \
-        fprintf(stderr, "Can't write to register. Map %u is read only\n",   \
-                static_cast<uint32_t>(id));                                 \
-        return;                                                             \
-    }
+#define ASSERT_WRITABLE assert((mem_maps.at(id)->GetProtection() & PROT_WRITE) == PROT_WRITE);
 
 /// Device memory manager
 /// A memory maps factory
@@ -61,7 +57,7 @@ class DevMem
 
     /// Open the /dev/mem driver
     int Open();
-    
+
     /// Close all the memory maps
     /// @return 0 if succeed, -1 else
     int Close();
@@ -94,7 +90,7 @@ class DevMem
     /// @return An ID to the created map,
     ///         or -1 if an error occured
     MemMapID AddMemoryMap(uintptr_t addr, uint32_t size, 
-                          int permissions = MemoryMap::READ_WRITE);
+                          int permissions = PROT_READ|PROT_WRITE);
 
     /// Remove a memory map
     /// @id ID of the memory map to be removed
@@ -134,14 +130,14 @@ class DevMem
 
     void write32(MemMapID id, uint32_t offset, uint32_t value)
     {
-        CHECK_WRITABLE
+        ASSERT_WRITABLE
         WriteReg32(GetBaseAddr(id) + offset, value);
     }
 
     void write_buff32(MemMapID id, uint32_t offset, 
                       const uint32_t *data_ptr, uint32_t buff_size)
     {
-        CHECK_WRITABLE
+        ASSERT_WRITABLE
         WriteBuff32(GetBaseAddr(id) + offset, data_ptr, buff_size);
     }
 
@@ -153,31 +149,31 @@ class DevMem
 
     void set_bit(MemMapID id, uint32_t offset, uint32_t index)
     {
-        CHECK_WRITABLE
+        ASSERT_WRITABLE
         SetBit(GetBaseAddr(id) + offset, index);
     }
 
     void clear_bit(MemMapID id, uint32_t offset, uint32_t index)
     {
-        CHECK_WRITABLE
+        ASSERT_WRITABLE
         ClearBit(GetBaseAddr(id) + offset, index);
     }
 
     void toggle_bit(MemMapID id, uint32_t offset, uint32_t index)
     {
-        CHECK_WRITABLE
+        ASSERT_WRITABLE
         ToggleBit(GetBaseAddr(id) + offset, index);
     }
 
     void mask_and(MemMapID id, uint32_t offset, uint32_t mask)
     {
-        CHECK_WRITABLE
+        ASSERT_WRITABLE
         MaskAnd(GetBaseAddr(id) + offset, mask);
     }
 
     void mask_or(MemMapID id, uint32_t offset, uint32_t mask)
     {
-        CHECK_WRITABLE
+        ASSERT_WRITABLE
         MaskOr(GetBaseAddr(id) + offset, mask);
     }
 
@@ -199,7 +195,7 @@ class DevMem
 };
 
 
-// Helper to build an std::array of memmory regions without
+// Helper to build an std::array of memory regions without
 // specifying the length. Called as:
 // mem_regions(
 //     Klib::MemoryRegion({ ADDR1, RANGE1 }),
