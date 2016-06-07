@@ -8,6 +8,7 @@
 Spectrum::Spectrum(Klib::DevMem& dvm_)
 : dvm(dvm_)
 , spectrum_decim(0)
+, fifo(dvm_)
 {
     config_map      = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
     status_map      = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
@@ -18,8 +19,9 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
     dac_map         = dvm.AddMemoryMap(DAC_ADDR, DAC_RANGE);
     
     raw_data = reinterpret_cast<float*>(dvm.GetBaseAddr(spectrum_map));
-    fifo.set_address(dvm.GetBaseAddr(peak_fifo_map));
-    
+
+    fifo.set_map(peak_fifo_map);
+
     set_averaging(true);
     set_address_range(0, WFM_SIZE);
     set_period(WFM_SIZE);
