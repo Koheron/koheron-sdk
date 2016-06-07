@@ -6,8 +6,6 @@ import jinja2
 import yaml
 import sys
 import shutil
-import time
-from subprocess import call
 
 def get_list(project, prop, prop_list=None):
     if prop_list is None: 
@@ -116,13 +114,6 @@ def build_server_config(project, tcp_server_dir):
     with open(os.path.join(tcp_server_dir,'config','config.yaml'), 'w') as f:
         yaml.dump(server_config, f, indent=2, default_flow_style=False)
 
-def build_xdc(project, xdc_dir):
-    config = get_config(project)
-    if not os.path.exists(xdc_dir):
-        os.makedirs(xdc_dir)
-    for file_ in config['xdc']:
-        shutil.copy(file_, xdc_dir)
-
 ###################
 # Main
 ###################
@@ -158,6 +149,10 @@ if __name__ == "__main__":
         with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
             f.write('drivers/common ' + ((' '.join(config['drivers'])) if ('drivers' in config) else ''))
 
+    elif cmd == '--xdc':
+    	with open(os.path.join('tmp', project + '.xdc'), 'w') as f:
+            f.write(' '.join(config['xdc']))
+
     elif cmd == '--middleware':
         tcp_server_dir = os.path.join('tmp', config['project'] + '.tcp-server')
         tcp_server_middleware_dir = os.path.join(tcp_server_dir, 'middleware/drivers')
@@ -169,10 +164,6 @@ if __name__ == "__main__":
 
         build_server_config(project, tcp_server_dir)
         fill_addresses(config, tcp_server_dir)
-
-    elif cmd == '--xdc':
-    	with open(os.path.join('tmp', project + '.xdc'), 'w') as f:
-            f.write(' '.join(config['xdc']))
 
     else:
         raise ValueError('Unknown command')
