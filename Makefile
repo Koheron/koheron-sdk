@@ -84,8 +84,6 @@ APP_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
 APP_URL = $(S3_URL)/app-$(APP_SHA).zip
 APP_ZIP = $(TMP)/app.zip
 
-XDC_DIR = $(TMP)/$(NAME).xdc
-
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
 all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli app
