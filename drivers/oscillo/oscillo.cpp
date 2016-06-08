@@ -13,8 +13,8 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
     adc_2_map = dvm.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
     dac_map = dvm.AddMemoryMap(DAC_ADDR, DAC_RANGE);
 
-    raw_data_1 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_1_map));
-    raw_data_2 = reinterpret_cast<int32_t*>(dvm.GetBaseAddr(adc_2_map));
+    raw_data_1 = dvm.read_buffer<int32_t>(adc_1_map);
+    raw_data_2 = dvm.read_buffer<int32_t>(adc_2_map);
 
     set_averaging(false); // Reset averaging
     set_period(WFM_SIZE);
@@ -49,7 +49,7 @@ std::array<float, WFM_SIZE>& Oscillo::read_data(bool channel)
     channel ? adc_map = adc_1_map : adc_map = adc_2_map;
     dvm.set_bit(config_map, ADDR_OFF, 1);
     _wait_for_acquisition();
-    uint32_t *raw_data = reinterpret_cast<uint32_t*>(dvm.GetBaseAddr(adc_map));
+    uint32_t *raw_data = dvm.read_buff32(adc_map);
     float num_avg;
 
     if (dvm.read32(status_map, AVG_ON_OUT0_OFF)) {
