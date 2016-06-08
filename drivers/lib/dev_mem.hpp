@@ -45,10 +45,7 @@ class MemMapIdPool
 };
 
 #define ASSERT_WRITABLE assert((mem_maps.at(id)->GetProtection() & PROT_WRITE) == PROT_WRITE);
-
-#define ASSERT_READABLE                                                     \
-    assert(   mem_maps.at(id)->GetProtection() == PROT_READ                 \
-           || mem_maps.at(id)->GetProtection() == (PROT_READ|PROT_WRITE));
+#define ASSERT_READABLE assert((mem_maps.at(id)->GetProtection() & PROT_READ) == PROT_READ);
 
 /// Device memory manager
 /// A memory maps factory
@@ -85,11 +82,11 @@ class DevMem
     /// Create a new memory map
     /// @addr Base address of the map
     /// @size Size of the map
-    /// @permissions Access permissions
+    /// @protection Access protection
     /// @return An ID to the created map,
     ///         or -1 if an error occured
     MemMapID AddMemoryMap(uintptr_t addr, uint32_t size, 
-                          int permissions = PROT_READ|PROT_WRITE);
+                          int protection = PROT_READ|PROT_WRITE);
 
     /// Remove a memory map
     /// @id ID of the memory map to be removed
@@ -170,7 +167,7 @@ class DevMem
     uintptr_t addr_limit_down;
     uintptr_t addr_limit_up;
     bool is_forbidden_address(uintptr_t addr);
-    MemMapID create_memory_map(uintptr_t addr, uint32_t size, int permissions);
+    MemMapID create_memory_map(uintptr_t addr, uint32_t size, int protection);
 
     std::map<MemMapID, std::unique_ptr<MemoryMap>> mem_maps;
     MemMapIdPool id_pool;
