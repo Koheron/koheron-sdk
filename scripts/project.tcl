@@ -24,8 +24,6 @@ source $lib/utilities.tcl
 source projects/$project_name/block_design.tcl
 
 rename cell {}
-rename module {}
-rename properties {}
 
 generate_target all [get_files $bd_path/system.bd]
 make_wrapper -files [get_files $bd_path/system.bd] -top
