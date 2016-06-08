@@ -13,7 +13,7 @@ proc add_dac_controller {module_name bram_name bram_size dac_width} {
     create_bd_pin -dir O -from [expr $dac_width - 1] -to 0 dac$i
   }
 
-  add_bram $bram_name [set config::axi_${bram_name}_range] [set config::axi_${bram_name}_offset] 00
+  add_bram $bram_name [set config::axi_${bram_name}_range] [set config::axi_${bram_name}_offset]
 
   connect_constant ${bram_name}_dinb 0 32 blk_mem_gen_$bram_name/dinb
   connect_constant ${bram_name}_enb  1 1  blk_mem_gen_$bram_name/enb
