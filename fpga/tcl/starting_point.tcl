@@ -38,10 +38,8 @@ for {set i 0} {$i < 2} {incr i} {
   } {
     ARESETN [set rst${i}_name]/interconnect_aresetn
     S00_ARESETN [set rst${i}_name]/peripheral_aresetn
-    M00_ARESETN [set rst${i}_name]/peripheral_aresetn
     ACLK [set ps_clk$i]
     S00_ACLK [set ps_clk$i]
-    M00_ACLK [set ps_clk$i]
   }
   connect_bd_intf_net -boundary_type upper [get_bd_intf_pins [set interconnect_${i}_name]/S00_AXI] [get_bd_intf_pins $ps_name/M_AXI_GP$i]
 }
