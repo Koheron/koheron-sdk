@@ -17,7 +17,7 @@
 #include <atomic>
 #include <mutex>
 
-#include "wr_register.hpp"
+#include "dev_mem.hpp"
 
 // http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
 #define RDFR_OFF 0x18
@@ -29,13 +29,12 @@ template<size_t N>
 class FIFOReader
 {
   public:
-    FIFOReader();
+    FIFOReader(Klib::DevMem& dvm_);
 
     // Set FIFO virtual base address
-    void set_address(uintptr_t fifo_addr_)
-    {
-        fifo_addr.store(fifo_addr_);
-        Klib::WriteReg32(fifo_addr.load() + RDFR_OFF, 0xA5); // Reset FIFO
+    void set_map(Klib::MemMapID fifo_map_){
+        fifo_map.store(fifo_map_);
+        dvm.write32(fifo_map.load(), RDFR_OFF, 0xA5); // Reset FIFO
     }
 
     // Start the acquisition thread.
@@ -65,7 +64,9 @@ class FIFOReader
     bool overflow() {return acq_num.load() > N;}
 
   private:
-    std::atomic<uintptr_t>  fifo_addr;
+    Klib::DevMem& dvm;
+
+    std::atomic<Klib::MemMapID>   fifo_map;
     std::atomic<uint32_t>   num_thread;
     std::atomic<uint32_t>   index; // Current index of the ring_buffer
     std::atomic<uint32_t>   acq_num; // Number of points acquire since the last call to get_data()
@@ -81,9 +82,10 @@ class FIFOReader
 };
 
 template<size_t N>
-FIFOReader<N>::FIFOReader()
+FIFOReader<N>::FIFOReader(Klib::DevMem& dvm_)
+: dvm(dvm_)
 {
-    fifo_addr.store(0x0);
+    fifo_map.store(0x0);
     is_acquiring.store(false);
     index.store(0);
     acq_num.store(0);
@@ -102,17 +104,17 @@ void FIFOReader<N>::acquisition_thread_call(uint32_t acq_period)
     acq_num.store(0);
 
     while (is_acquiring.load()) {
-        if (fifo_addr.load() == 0x0)
+        if (fifo_map.load() == 0x0)
             goto wait;
 
         // The length is stored in the last 22 bits of the RLR register.
         // The length is given in bytes so we divide by 4 to get the number of u32.
-        fifo_length.store((Klib::ReadReg32(fifo_addr.load() + RLR_OFF) & 0x3FFFFF) >> 2);
+        fifo_length.store((dvm.read32(fifo_map.load(), RLR_OFF) & 0x3FFFFF) >> 2);
 
         if (fifo_length.load() > 0) {
             std::lock_guard<std::mutex> guard(ring_buff_mtx);
             for (uint32_t i=0; i<fifo_length.load(); i++) {
-                ring_buffer[index.load()] = Klib::ReadReg32(fifo_addr.load() + RDFD_OFF);
+                ring_buffer[index.load()] = dvm.read32(fifo_map.load(), RDFD_OFF);
                 index.store((index.load() + 1) % N);
             }
         }

@@ -19,7 +19,6 @@ extern "C" {
 }
 
 #include "memory_map.hpp"
-#include "wr_register.hpp"
 
 /// @namespace Klib
 /// @brief Namespace of the Koheron library
@@ -46,6 +45,10 @@ class MemMapIdPool
 };
 
 #define ASSERT_WRITABLE assert((mem_maps.at(id)->GetProtection() & PROT_WRITE) == PROT_WRITE);
+
+#define ASSERT_READABLE                                                     \
+    assert(   mem_maps.at(id)->GetProtection() == PROT_READ                 \
+           || mem_maps.at(id)->GetProtection() == (PROT_READ|PROT_WRITE));
 
 /// Device memory manager
 /// A memory maps factory
@@ -77,11 +80,7 @@ class DevMem
     template<size_t N>
     int CheckMapIDs(std::array<MemMapID, N> ids);
 
-    int Resize(MemMapID id, uint32_t length)
-    {
-        assert(mem_maps.at(id) != nullptr);
-        return mem_maps.at(id)->Resize(length);
-    }
+    int Resize(MemMapID id, uint32_t length) {return mem_maps.at(id)->Resize(length);}
 
     /// Create a new memory map
     /// @addr Base address of the map
@@ -99,82 +98,65 @@ class DevMem
     /// Remove all the memory maps
     void RemoveAll();
 
-    /// Get a memory map
-    /// @id ID of the memory map
-    MemoryMap& GetMemMap(MemMapID id)
-    {
-        assert(mem_maps.at(id) != nullptr);
-        return *mem_maps.at(id);
-    }
-
-    /// Return the base address of a map
-    /// @id ID of the map
-    uintptr_t GetBaseAddr(MemMapID id)
-    {
-        assert(mem_maps.at(id) != nullptr);
-        return mem_maps.at(id)->GetBaseAddr();
-    }
-
-    /// Return the status of a map
-    /// @id ID of the map
-    int GetStatus(MemMapID id)
-    {
-        assert(mem_maps.at(id) != nullptr);   
-        return mem_maps.at(id)->GetStatus();
-    }
+    uintptr_t GetBaseAddr(MemMapID id) {return mem_maps.at(id)->GetBaseAddr();}
+    int GetStatus(MemMapID id)         {return mem_maps.at(id)->GetStatus();}
 
     /// Return 1 if a memory map failed
     int IsFailed();
 
     bool is_ok() {return !IsFailed();}
 
-    void write32(MemMapID id, uint32_t offset, uint32_t value)
-    {
+    void write32(MemMapID id, uint32_t offset, uint32_t value) {
         ASSERT_WRITABLE
-        WriteReg32(GetBaseAddr(id) + offset, value);
+        *(volatile uintptr_t *) (GetBaseAddr(id) + offset) = value;
     }
 
     void write_buff32(MemMapID id, uint32_t offset, 
-                      const uint32_t *data_ptr, uint32_t buff_size)
-    {
+                      const uint32_t *data_ptr, uint32_t buff_size) {
         ASSERT_WRITABLE
-        WriteBuff32(GetBaseAddr(id) + offset, data_ptr, buff_size);
+        uintptr_t addr = GetBaseAddr(id) + offset;
+        for(uint32_t i=0; i < buff_size; i++)
+            *(volatile uintptr_t *) (addr + sizeof(uint32_t) * i) = data_ptr[i];
     }
 
-
-    uint32_t read32(MemMapID id, uint32_t offset)
-    {
-        return ReadReg32(GetBaseAddr(id) + offset);
+    uint32_t read32(MemMapID id, uint32_t offset) {
+        ASSERT_READABLE
+        return *(volatile uintptr_t *) (GetBaseAddr(id) + offset);
     }
 
-    void set_bit(MemMapID id, uint32_t offset, uint32_t index)
-    {
+    void set_bit(MemMapID id, uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        SetBit(GetBaseAddr(id) + offset, index);
+        uintptr_t addr = GetBaseAddr(id) + offset;
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
     }
 
-    void clear_bit(MemMapID id, uint32_t offset, uint32_t index)
-    {
+    void clear_bit(MemMapID id, uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        ClearBit(GetBaseAddr(id) + offset, index);
+        uintptr_t addr = GetBaseAddr(id) + offset;
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
     }
 
-    void toggle_bit(MemMapID id, uint32_t offset, uint32_t index)
-    {
+    void toggle_bit(MemMapID id, uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        ToggleBit(GetBaseAddr(id) + offset, index);
+        uintptr_t addr = GetBaseAddr(id) + offset;
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
     }
 
-    void mask_and(MemMapID id, uint32_t offset, uint32_t mask)
-    {
-        ASSERT_WRITABLE
-        MaskAnd(GetBaseAddr(id) + offset, mask);
+    bool read_bit(MemMapID id, uint32_t offset, uint32_t index) {
+        ASSERT_READABLE
+        return *((volatile uintptr_t *) (GetBaseAddr(id) + offset)) & (1 << index);
     }
 
-    void mask_or(MemMapID id, uint32_t offset, uint32_t mask)
-    {
+    void mask_and(MemMapID id, uint32_t offset, uint32_t mask) {
         ASSERT_WRITABLE
-        MaskOr(GetBaseAddr(id) + offset, mask);
+        uintptr_t addr = GetBaseAddr(id) + offset;
+        *(volatile uintptr_t *) addr &= mask;
+    }
+
+    void mask_or(MemMapID id, uint32_t offset, uint32_t mask) {
+        ASSERT_WRITABLE
+        uintptr_t addr = GetBaseAddr(id) + offset;
+        *(volatile uintptr_t *) addr |= mask;
     }
 
     /// True if the /dev/mem device is open
