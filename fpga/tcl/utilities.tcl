@@ -63,7 +63,7 @@ proc add_master_interface {{intercon_idx 0}} {
   # Look for an empty interface
   for {set i [expr $num_mi]} {$i > 0} {incr i -1} {
     if { $i < 10 } { set idx 0[expr $i-1] } { set idx [expr $i-1] }
-    set net [get_bd_intf_nets -of_objects [get_bd_intf_pins axi_mem_intercon_${intercon_idx}/M${idx}_AXI]]
+    set net [get_bd_intf_nets -of_objects [get_bd_intf_pins /axi_mem_intercon_${intercon_idx}/M${idx}_AXI]]
     if {$net eq ""} {
       puts "Found empty interface M${idx}_AXI on interconnect $intercon_idx..."
       connect_pins /axi_mem_intercon_$intercon_idx/M${idx}_ACLK    /[set ::ps_clk$intercon_idx]
