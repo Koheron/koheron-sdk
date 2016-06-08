@@ -20,11 +20,12 @@ class Pid
   public:
     Pid(Klib::DevMem& dvm_)
     : dvm(dvm_)
+    , fifo(dvm_)
     {
         config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-        status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, Klib::MemoryMap::READ_ONLY);
+        status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
         fifo_map = dvm.AddMemoryMap(FIFO_ADDR, FIFO_RANGE);
-        fifo.set_address(dvm.GetBaseAddr(fifo_map));
+        fifo.set_map(fifo_map);
     }
 
     int Open() {return dvm.is_ok() ? 0 : 1;}

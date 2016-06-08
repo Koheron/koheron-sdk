@@ -36,7 +36,7 @@ class DeviceMemory
 
     #pragma tcp-server read_array arg{buff_size} 
     uint32_t* read_buffer(uint32_t mmap_idx, uint32_t offset, uint32_t buff_size) {
-        return reinterpret_cast<uint32_t*>(dvm.GetBaseAddr(mmap_idx) + offset);
+        return dvm.read_buff32(mmap_idx, offset);
     }
 
     void set_bit(uint32_t mmap_idx, uint32_t offset, uint32_t index) {

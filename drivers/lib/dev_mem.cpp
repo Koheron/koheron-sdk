@@ -76,14 +76,14 @@ bool DevMem::is_forbidden_address(uintptr_t addr)
         return (addr > addr_limit_up) || (addr < addr_limit_down);
 }
 
-MemMapID DevMem::create_memory_map(uintptr_t addr, uint32_t size, int permissions)
+MemMapID DevMem::create_memory_map(uintptr_t addr, uint32_t size, int protection)
 {
     if (is_forbidden_address(addr)) {
         fprintf(stderr,"Forbidden memory region\n");
         return static_cast<MemMapID>(-1);
     }
 
-    auto mem_map = std::make_unique<MemoryMap>(&fd, addr, size, permissions);
+    auto mem_map = std::make_unique<MemoryMap>(&fd, addr, size, protection);
     assert(mem_map != nullptr);
 
     if (mem_map->GetStatus() != MemoryMap::MEMMAP_OPENED) {
@@ -97,7 +97,7 @@ MemMapID DevMem::create_memory_map(uintptr_t addr, uint32_t size, int permission
     return new_id;
 }
 
-MemMapID DevMem::AddMemoryMap(uintptr_t addr, uint32_t size, int permissions)
+MemMapID DevMem::AddMemoryMap(uintptr_t addr, uint32_t size, int protection)
 {
     bool region_is_mapped = false;
     MemMapID map_id = static_cast<MemMapID>(-1);
@@ -120,7 +120,7 @@ MemMapID DevMem::AddMemoryMap(uintptr_t addr, uint32_t size, int permissions)
     }
 
     if (!region_is_mapped)
-        map_id = create_memory_map(addr, size, permissions);
+        map_id = create_memory_map(addr, size, protection);
 
     return map_id;
 }
