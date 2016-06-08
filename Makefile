@@ -74,7 +74,7 @@ SHA = $(shell cat $(SHA_FILE))
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 DRIVERS_DIR = $(TMP)/$(NAME)/drivers
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/server/kserverd
-TCP_SERVER_SHA = master
+TCP_SERVER_SHA = reorg_build
 CROSS_COMPILE = /usr/bin/arm-linux-gnueabihf-
 ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
