@@ -18,7 +18,7 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
     peak_fifo_map   = dvm.AddMemoryMap(PEAK_FIFO_ADDR, PEAK_FIFO_RANGE);
     dac_map         = dvm.AddMemoryMap(DAC_ADDR, DAC_RANGE);
     
-    raw_data = reinterpret_cast<float*>(dvm.GetBaseAddr(spectrum_map));
+    raw_data = dvm.read_buffer<float>(spectrum_map);
 
     fifo.set_map(peak_fifo_map);
 
@@ -46,7 +46,8 @@ std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
     return spectrum_data;
 }
 
-std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high)
+std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t index_low, 
+                                                 uint32_t index_high)
 {
     // Sanity checks
     if (index_high <= index_low || index_high >= WFM_SIZE) {

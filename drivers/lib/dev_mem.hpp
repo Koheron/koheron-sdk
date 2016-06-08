@@ -108,12 +108,22 @@ class DevMem
         *(volatile uintptr_t *) (GetBaseAddr(id) + offset) = value;
     }
 
-    void write_buff32(MemMapID id, uint32_t offset, 
+    void write_buff32(MemMapID id, uint32_t offset,
                       const uint32_t *data_ptr, uint32_t buff_size) {
         ASSERT_WRITABLE
         uintptr_t addr = GetBaseAddr(id) + offset;
         for(uint32_t i=0; i < buff_size; i++)
             *(volatile uintptr_t *) (addr + sizeof(uint32_t) * i) = data_ptr[i];
+    }
+
+    template<typename T>
+    T* read_buffer(MemMapID id, uint32_t offset = 0) {
+        ASSERT_READABLE
+        return reinterpret_cast<T*>(GetBaseAddr(id) + offset);
+    }
+
+    uint32_t* read_buff32(MemMapID id, uint32_t offset = 0) {
+        return read_buffer<uint32_t>(id, offset);
     }
 
     uint32_t read32(MemMapID id, uint32_t offset) {
