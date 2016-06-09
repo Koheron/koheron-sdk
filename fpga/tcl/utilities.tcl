@@ -13,14 +13,26 @@ proc sts_pin {name} {
   return $::status_name/In[set config::${name}_offset]
 }
 
+proc get_constant_pin {value width} {
+  set const_name const_${value}_${width}
+  cell xilinx.com:ip:xlconstant:1.1 $const_name {
+    CONST_VAL $value
+    CONST_WIDTH $width
+  } {}
+  return $const_name/dout
+}
+
 proc connect_pins {pin1 pin2} {
   connect_bd_net [get_bd_pins $pin1] [get_bd_pins $pin2]
 }
 
 proc connect_constant {name value width pin} {
-  cell xilinx.com:ip:xlconstant:1.1 $name \
-    [list CONST_VAL $value CONST_WIDTH $width] \
-    [list dout $pin]
+  cell xilinx.com:ip:xlconstant:1.1 $name {
+    CONST_VAL $value
+    CONST_WIDTH $width
+  } { 
+    dout $pin
+  }
 }
 
 # Configure an IP block and connect its pins 
