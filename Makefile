@@ -32,7 +32,14 @@ VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
 
+###############################################################################
 # Linux and U-boot
+###############################################################################
+
+# solves problem with awk while building linux kernel
+# solution taken from http://www.googoolia.com/wp/2015/04/21/awk-symbol-lookup-error-awk-undefined-symbol-mpfr_z_sub/
+LD_LIBRARY_PATH =
+
 UBOOT_TAG = xilinx-v$(VIVADO_VERSION)
 LINUX_TAG = xilinx-v$(VIVADO_VERSION)
 DTREE_TAG = xilinx-v$(VIVADO_VERSION)
