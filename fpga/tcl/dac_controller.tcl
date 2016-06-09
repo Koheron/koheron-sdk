@@ -64,8 +64,8 @@ proc add_single_dac_controller {module_name bram_name dac_width} {
   connect_pins rst  blk_mem_gen_$bram_name/rstb
 
   cell xilinx.com:ip:xlslice:1.0 addr_msb {
-    DIN_WIDTH 32
-    DIN_FROM 31
+    DIN_WIDTH [expr $config::bram_addr_width + 2]
+    DIN_FROM [expr $config::bram_addr_width + 1]
     DIN_TO 3
   } {
     Din addr
