@@ -36,7 +36,7 @@ class Spectrum(object):
     def set_n_avg_min(self, n_avg_min): pass
 
     def set_dac(self, data, channel):
-        @write_buffer('OSCILLO','I')
+        @write_buffer('SPECTRUM','I')
         def set_dac_buffer(self, data, channel): 
             pass
         data = np.uint32(np.mod(np.floor(8192 * data) + 8192,16384) + 8192)
