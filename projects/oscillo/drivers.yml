@@ -1,6 +1,7 @@
 includes: [projects/default/server.yml]
 
 devices:
+  - drivers/common/common.hpp
   - drivers/device_memory/device_memory.hpp
   - drivers/gpio/gpio.hpp
   - drivers/xadc/xadc.hpp
