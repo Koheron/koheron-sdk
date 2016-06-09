@@ -23,6 +23,7 @@ proc add_dual_dac_controller {module_name bram_name dac_width} {
   connect_constant ${bram_name}_web  0 4  blk_mem_gen_$bram_name/web
 
   connect_pins addr blk_mem_gen_$bram_name/addrb
+  connect_pins clk  blk_mem_gen_$bram_name/clkb
   connect_pins rst  blk_mem_gen_$bram_name/rstb
 
   # Connect BRAM output to DACs
@@ -61,6 +62,7 @@ proc add_single_dac_controller {module_name bram_name dac_width} {
   connect_constant ${bram_name}_enb  1 1  blk_mem_gen_$bram_name/enb
   connect_constant ${bram_name}_web  0 4  blk_mem_gen_$bram_name/web
 
+  connect_pins clk  blk_mem_gen_$bram_name/clkb
   connect_pins rst  blk_mem_gen_$bram_name/rstb
 
   cell xilinx.com:ip:xlslice:1.0 addr_msb {
