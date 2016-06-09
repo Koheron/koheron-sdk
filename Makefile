@@ -32,6 +32,14 @@ VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
 
+DOCKER=False
+
+ifeq ($(DOCKER),False)
+	PYTHON=$(TCP_SERVER_VENV)/bin/python
+else
+	PYTHON=/usr/bin/python
+endif
+
 # Linux and U-boot
 UBOOT_TAG = xilinx-v$(VIVADO_VERSION)
 LINUX_TAG = xilinx-v$(VIVADO_VERSION)
@@ -240,12 +248,16 @@ $(TCP_SERVER_DIR):
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
 $(TCP_SERVER_VENV): $(TCP_SERVER_DIR)
+ifeq ($(DOCKER),False)
 	virtualenv $(TCP_SERVER_VENV)
 	$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
+else
+	/usr/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
+endif
 
 $(TCP_SERVER): $(TCP_SERVER_VENV) $(MAKE_PY) $(SERVER_CONFIG) $(DRIVERS) drivers/lib
 	python $(MAKE_PY) --middleware $(NAME)
-	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(TCP_SERVER_VENV)/bin/python
+	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON)
 
 tcp-server_cli: $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
