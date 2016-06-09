@@ -1,21 +1,19 @@
-# 'make' builds everything
-# 'make clean' deletes everything except source files and Makefile
-#
-# You need to set NAME, PART and PROC for your project.
-# NAME is the base name for most of the generated files.
+###############################################################################
+# Build the zip file: $ make NAME=spectrum HOST=192.168.1.12 zip
+###############################################################################
 
-# solves problem with awk while building linux kernel
-# solution taken from http://www.googoolia.com/wp/2015/04/21/awk-symbol-lookup-error-awk-undefined-symbol-mpfr_z_sub/
-
-LD_LIBRARY_PATH =
-TMP = tmp
-
-# Project specific variables
-NAME = blink
-
+NAME = oscillo
 HOST = 192.168.1.100
 
+###############################################################################
+# Get the project configuration
+# MAKE_PY script parses the configuration file MAIN_YML
+###############################################################################
+
+MAIN_YML = projects/$(NAME)/main.yml
 MAKE_PY = scripts/make.py
+
+TMP = tmp
 
 BOARD:=$(shell python $(MAKE_PY) --board $(NAME) && cat $(TMP)/$(NAME).board)
 CORES:=$(shell python $(MAKE_PY) --cores $(NAME) && cat $(TMP)/$(NAME).cores)
@@ -57,7 +55,7 @@ RTL_TAR = $(TMP)/rtl8192cu.tgz
 RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
 
 # Project configuration
-MAIN_YML = projects/$(NAME)/main.yml
+
 CONFIG_TCL = projects/$(NAME)/config.tcl
 TEMPLATE_DIR = scripts/templates
 
