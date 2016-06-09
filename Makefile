@@ -88,6 +88,7 @@ TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
 SERVER_CONFIG = projects/$(NAME)/drivers.yml
 TCP_SERVER_SHA = reorg_build
 TCP_SERVER_VENV = $(TMP)/$(NAME).tcp_server_venv
+TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
 
 ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
@@ -262,7 +263,11 @@ else
 	/usr/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
 endif
 
-$(TCP_SERVER): $(TCP_SERVER_VENV) $(MAKE_PY) $(SERVER_CONFIG) $(DRIVERS) drivers/lib
+$(TCP_SERVER_MIDDLEWARE)/%: %
+	mkdir -p -- `dirname -- $@`
+	cp -f $^ $@
+
+$(TCP_SERVER): $(TCP_SERVER_VENV) $(MAKE_PY) $(SERVER_CONFIG)  $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) drivers/lib
 	python $(MAKE_PY) --middleware $(NAME)
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON)
 

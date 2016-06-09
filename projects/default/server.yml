@@ -26,6 +26,8 @@ debug:
 optimization_flags:
   - O3
 
+middleware-path: tmp/oscillo.tcp-server/tmp/middleware
+
 requirements:
   - type: folder
     from: ./
