@@ -35,7 +35,7 @@ class Oscillo(object):
         def set_dac_buffer(self, data, channel): 
             pass
         data = np.uint32(np.mod(np.floor(8192 * data) + 8192,16384) + 8192)
-        set_dac_buffer(self, data[::2] + data[1::2] << 16, channel)
+        set_dac_buffer(self, data[::2] + data[1::2] * 65536, channel)
 
     @command('OSCILLO', '?')
     def set_averaging(self, avg_status):

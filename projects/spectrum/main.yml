@@ -10,17 +10,20 @@ addresses:
   - name: status
     offset: '0x50000000'
     range: 4K
-  - name: dac
+  - name: dac1
     offset: '0x80000000'
     range: 16K
-  - name: spectrum
+  - name: dac2
     offset: '0x82000000'
     range: 16K
-  - name: demod
+  - name: spectrum
     offset: '0x84000000'
     range: 16K
-  - name: noise_floor
+  - name: demod
     offset: '0x86000000'
+    range: 16K
+  - name: noise_floor
+    offset: '0x88000000'
     range: 16K
   - name: peak_fifo
     offset: '0x43C10000'

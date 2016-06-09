@@ -16,7 +16,8 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
     demod_map       = dvm.AddMemoryMap(DEMOD_ADDR, DEMOD_RANGE);
     noise_floor_map = dvm.AddMemoryMap(NOISE_FLOOR_ADDR, NOISE_FLOOR_RANGE);
     peak_fifo_map   = dvm.AddMemoryMap(PEAK_FIFO_ADDR, PEAK_FIFO_RANGE);
-    dac_map         = dvm.AddMemoryMap(DAC_ADDR, DAC_RANGE);
+    dac_1_map       = dvm.AddMemoryMap(DAC1_ADDR, DAC1_RANGE);
+    dac_2_map       = dvm.AddMemoryMap(DAC2_ADDR, DAC2_RANGE);
     
     raw_data = dvm.read_buffer<float>(spectrum_map);
 
