@@ -11,7 +11,8 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
     status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
     adc_1_map = dvm.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
     adc_2_map = dvm.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
-    dac_map = dvm.AddMemoryMap(DAC_ADDR, DAC_RANGE);
+    dac_1_map = dvm.AddMemoryMap(DAC1_ADDR, DAC2_RANGE);
+    dac_2_map = dvm.AddMemoryMap(DAC2_ADDR, DAC2_RANGE);
 
     raw_data_1 = dvm.read_buffer<int32_t>(adc_1_map);
     raw_data_2 = dvm.read_buffer<int32_t>(adc_2_map);
