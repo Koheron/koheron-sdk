@@ -7,14 +7,16 @@ HOST = 192.168.1.100
 
 ###############################################################################
 # Get the project configuration
-# MAKE_PY script parses the configuration file MAIN_YML
+# MAKE_PY script parses the properties defined MAIN_YML
 ###############################################################################
 
 MAIN_YML = projects/$(NAME)/main.yml
 MAKE_PY = scripts/make.py
 
+# Store all build artifacts in TMP
 TMP = tmp
 
+# properties defined MAIN_YML :
 BOARD:=$(shell python $(MAKE_PY) --board $(NAME) && cat $(TMP)/$(NAME).board)
 CORES:=$(shell python $(MAKE_PY) --cores $(NAME) && cat $(TMP)/$(NAME).cores)
 DRIVERS:=$(shell python $(MAKE_PY) --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
