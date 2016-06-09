@@ -138,7 +138,7 @@ if __name__ == "__main__":
             f.write(' '.join(config['xdc']))
 
     elif cmd == '--middleware':
-        fill_addresses(config, 'drivers')
+        fill_addresses(config, 'tmp/' + project + '.middleware/drivers')
 
     else:
         raise ValueError('Unknown command')

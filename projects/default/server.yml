@@ -25,14 +25,3 @@ debug:
 # Optimization is desactivated when compiled in debug mode
 optimization_flags:
   - O3
-
-middleware-path: tmp/oscillo.tcp-server/tmp/middleware
-
-requirements:
-  - type: folder
-    from: ./
-    import: drivers/lib
-
-  - type: file
-    from: ./
-    import: drivers/addresses.hpp
