@@ -11,7 +11,7 @@ tmp
 
 # Jinja generated config files
 projects/*/config.tcl
-projects/*/config.py
+projects/*/addresses.hpp
 
 # Vivado :
 *.jou
