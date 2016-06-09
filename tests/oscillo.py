@@ -58,4 +58,4 @@ dna = dvm.read32('status', pc.sts['dna']) + dvm.read32('status', pc.sts['dna']+4
 assert(driver.common.get_dna() == dna)
 
 for i in range(10):
-    dvm.write_buffer('dac', 0, 1024 *  np.ones(8192))
+    dvm.write_buffer('dac1', 0, 1024 *  np.ones(4096))

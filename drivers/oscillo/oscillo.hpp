@@ -29,8 +29,12 @@ class Oscillo
     void set_period(uint32_t period);
 
     #pragma tcp-server write_array arg{data} arg{len}
-    void set_dac_buffer(const uint32_t *data, uint32_t len) {
-       dvm.write_buff32(dac_map, 0, data, len);
+    void set_dac_buffer(uint32_t channel, const uint32_t *data, uint32_t len) {
+        if (channel == 1) {
+            dvm.write_buff32(dac_1_map, 0, data, len);
+        } else if (channel == 2) {
+            dvm.write_buff32(dac_2_map, 0, data, len);
+        }
     }
 
     void reset_acquisition() {
@@ -61,7 +65,8 @@ class Oscillo
     Klib::MemMapID status_map;
     Klib::MemMapID adc_1_map;
     Klib::MemMapID adc_2_map;
-    Klib::MemMapID dac_map;
+    Klib::MemMapID dac_1_map;
+    Klib::MemMapID dac_2_map;
     
     // Acquired data buffers
     std::array<float, WFM_SIZE> data;
