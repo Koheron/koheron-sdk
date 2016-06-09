@@ -29,7 +29,7 @@ class Oscillo
     void set_period(uint32_t period);
 
     #pragma tcp-server write_array arg{data} arg{len}
-    void set_dac_buffer(const uint32_t *data, uint32_t len, uint32_t channel) {
+    void set_dac_buffer(uint32_t channel, const uint32_t *data, uint32_t len) {
         if (channel == 1) {
             dvm.write_buff32(dac_1_map, 0, data, len);
         } else if (channel == 2) {
