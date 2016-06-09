@@ -73,7 +73,8 @@ SHA = $(shell cat $(SHA_FILE))
 # Zip
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 DRIVERS_DIR = $(TMP)/$(NAME)/drivers
-TCP_SERVER = $(TCP_SERVER_DIR)/tmp/server/kserverd
+TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
+SERVER_CONFIG = projects/$(NAME)/server.yml
 TCP_SERVER_SHA = reorg_build
 CROSS_COMPILE = /usr/bin/arm-linux-gnueabihf-
 ZIP = $(TMP)/$(NAME)-$(VERSION).zip
@@ -241,17 +242,9 @@ $(TCP_SERVER_DIR):
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
-$(DRIVERS_DIR)/%: %/*.hpp %/*.cpp
-	rm -rf $@
-	mkdir -p $@
-	cp -f $^ $@
-
-$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAKE_PY) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS)) drivers/lib
-	CROSS_COMPILE=$(CROSS_COMPILE) python $(MAKE_PY) --middleware $(NAME)
-	cp `find $(DRIVERS_DIR) -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers
-	mkdir -p $(TCP_SERVER_DIR)/middleware/drivers/lib
-	cp `find drivers/lib -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers/lib
-	cd $(TCP_SERVER_DIR) && make DOCKER=$(DOCKER) CONFIG=config.yaml
+$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAKE_PY) $(SERVER_CONFIG) $(DRIVERS)
+	python $(MAKE_PY) --middleware $(NAME)
+	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../..
 
 tcp-server_cli: $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all

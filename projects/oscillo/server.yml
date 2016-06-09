@@ -1,0 +1,47 @@
+# (c) Koheron
+
+# Executable name
+server-name: kserverd
+
+cross-compile: /usr/bin/arm-linux-gnueabihf-
+
+arch_flags:
+  - march=armv7-a
+  - mtune=cortex-a9
+  - mfpu=vfpv3
+  #- mfpu=neon
+  - mfloat-abi=hard
+
+defines:
+  - DEBUG_KSERVER
+  # - RELEASE_KSERVER
+
+debug:
+  status: no # set to yes to compile in debug mode
+  flags:
+    - rdynamic
+    - g
+    - mapcs-frame
+
+# Optimization is disactivated when compiled in debug mode
+optimization_flags:
+  - O3
+
+requirements:
+  - type: folder
+    from: ./
+    import: drivers/lib
+
+  - type: file
+    from: ./
+    import: drivers/addresses.hpp
+
+devices:
+  - drivers/device_memory/device_memory.hpp
+  - drivers/gpio/gpio.hpp
+  - drivers/xadc/xadc.hpp
+  - drivers/laser/laser.hpp
+  - drivers/init/init.hpp
+  - drivers/oscillo/oscillo.hpp
+  - drivers/speed_test/speed_test.hpp
+  - drivers/at93c46d/at93c46d.hpp

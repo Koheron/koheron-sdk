@@ -73,8 +73,8 @@ def fill_config_tcl(config):
     output_filename = os.path.join('projects', config['project'], 'config.tcl')
     fill_template(config, 'config.tcl', output_filename)
 
-def fill_addresses(config, tcp_server_dir):
-    output_filename = os.path.join(tcp_server_dir, 'middleware', 'drivers', 'addresses.hpp')
+def fill_addresses(config, drivers_dir):
+    output_filename = os.path.join(drivers_dir, 'addresses.hpp')
     fill_template(config, 'addresses.hpp', output_filename)
 
 def get_renderer():
@@ -94,25 +94,6 @@ def get_renderer():
     renderer.filters['remove_extension'] = remove_extension
 
     return renderer
-
-###################
-# Build directories
-###################
-            
-def build_server_config(project, tcp_server_dir):
-    config = get_config(project)
-    drivers_path = '../middleware/drivers'
-    dev_paths = [os.path.join(drivers_path, 'common.hpp')]
-    if 'drivers' in config:
-        for device in config['drivers']:
-            filename = os.path.basename(device) + ".hpp"
-            dev_paths.append(os.path.join(drivers_path, filename))
-    server_config = {
-      'cross-compile': os.getenv('CROSS_COMPILE'),
-      'devices': dev_paths
-    }
-    with open(os.path.join(tcp_server_dir,'config','config.yaml'), 'w') as f:
-        yaml.dump(server_config, f, indent=2, default_flow_style=False)
 
 ###################
 # Main
@@ -154,16 +135,7 @@ if __name__ == "__main__":
             f.write(' '.join(config['xdc']))
 
     elif cmd == '--middleware':
-        tcp_server_dir = os.path.join('tmp', config['project'] + '.tcp-server')
-        tcp_server_middleware_dir = os.path.join(tcp_server_dir, 'middleware/drivers')
-
-        # Erase the content of middleware if it exists (Tests drivers for tcp-server)
-        if os.path.exists(tcp_server_middleware_dir):
-            shutil.rmtree(tcp_server_middleware_dir)
-        os.makedirs(tcp_server_middleware_dir)
-
-        build_server_config(project, tcp_server_dir)
-        fill_addresses(config, tcp_server_dir)
+        fill_addresses(config, 'drivers')
 
     else:
         raise ValueError('Unknown command')
