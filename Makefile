@@ -10,9 +10,6 @@
 LD_LIBRARY_PATH =
 TMP = tmp
 
-# Set to True when running in a container
-DOCKER=False
-
 # Project specific variables
 NAME = blink
 
