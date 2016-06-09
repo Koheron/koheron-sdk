@@ -72,6 +72,8 @@ TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
 SERVER_CONFIG = projects/$(NAME)/drivers.yml
 TCP_SERVER_SHA = reorg_build
+TCP_SERVER_VENV = $(TMP)/$(NAME).tcp_server_venv
+
 ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
 # App
@@ -232,14 +234,18 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 # tcp-server (compiled with project specific middleware)
 ###############################################################################
 
-$(TCP_SERVER_DIR):
+$(TCP_SERVER_DIR): 
 	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
-$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAKE_PY) $(SERVER_CONFIG) $(DRIVERS) drivers/lib
+$(TCP_SERVER_VENV): $(TCP_SERVER_DIR)
+	virtualenv $(TCP_SERVER_VENV)
+	$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
+
+$(TCP_SERVER): $(TCP_SERVER_VENV) $(MAKE_PY) $(SERVER_CONFIG) $(DRIVERS) drivers/lib
 	python $(MAKE_PY) --middleware $(NAME)
-	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../..
+	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(TCP_SERVER_VENV)/bin/python
 
 tcp-server_cli: $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
