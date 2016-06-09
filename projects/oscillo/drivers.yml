@@ -1,0 +1,11 @@
+includes: [projects/default/server.yml]
+
+devices:
+  - drivers/device_memory/device_memory.hpp
+  - drivers/gpio/gpio.hpp
+  - drivers/xadc/xadc.hpp
+  - drivers/laser/laser.hpp
+  - drivers/init/init.hpp
+  - drivers/oscillo/oscillo.hpp
+  - drivers/speed_test/speed_test.hpp
+  - drivers/at93c46d/at93c46d.hpp
