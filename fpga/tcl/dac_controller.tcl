@@ -1,11 +1,14 @@
 source $lib/bram.tcl
 
-proc add_dac_controller {module_name bram_name bram_size dac_width} {
+# Dual DAC controller
+# DAC1 and DAC2 values are extracted in paralell from the same 32 bits BRAM register
+
+proc add_dual_dac_controller {module_name bram_name dac_width} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir I -from 31 -to 0 addr
+  create_bd_pin -dir I -from [expr $config::bram_addr_width + 1] -to 0 addr
   create_bd_pin -dir I -type clk clk
   create_bd_pin -dir I rst
 
@@ -20,6 +23,7 @@ proc add_dac_controller {module_name bram_name bram_size dac_width} {
   connect_constant ${bram_name}_web  0 4  blk_mem_gen_$bram_name/web
 
   connect_pins addr blk_mem_gen_$bram_name/addrb
+  connect_pins clk  blk_mem_gen_$bram_name/clkb
   connect_pins rst  blk_mem_gen_$bram_name/rstb
 
   # Connect BRAM output to DACs
