@@ -52,12 +52,12 @@ def get_config(project):
     props = ['board','host']
     for prop in props:
         config[prop] = get_prop(project, prop)
-    sha_filename = os.path.join('tmp', project+'.sha')
+    sha_filename = os.path.join('tmp', project + '.sha')
     if os.path.isfile(sha_filename):
         with open(sha_filename) as sha_file:
             sha = sha_file.read()
             for i in range(8):
-                config['parameters']['sha'+str(i)] = int('0x'+sha[8*i:8*i+8],0)
+                config['parameters']['sha' + str(i)] = int('0x' + sha[8*i:8*i+8], 0)
     return config
 
 ###################
@@ -65,9 +65,9 @@ def get_config(project):
 ###################
 
 def fill_template(config, template_filename, output_filename):
-	template = get_renderer().get_template(os.path.join('scripts/templates',template_filename))
-	with open(output_filename, 'w') as output:
-		output.write(template.render(dic=config))
+    template = get_renderer().get_template(os.path.join('scripts/templates', template_filename))
+    with open(output_filename, 'w') as output:
+        output.write(template.render(dic=config))
 
 def fill_config_tcl(config):
     output_filename = os.path.join('projects', config['project'], 'config.tcl')
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     project = sys.argv[2]
 
     if project not in os.listdir('projects'):
-	    raise RuntimeError('Unknown project ' + project)
+        raise RuntimeError('Unknown project ' + project)
 
     tmp_dir = 'tmp'
     if not os.path.exists(tmp_dir):
@@ -134,7 +134,7 @@ if __name__ == "__main__":
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
 
     elif cmd == '--xdc':
-    	with open(os.path.join('tmp', project + '.xdc'), 'w') as f:
+        with open(os.path.join('tmp', project + '.xdc'), 'w') as f:
             f.write(' '.join(config['xdc']))
 
     elif cmd == '--middleware':

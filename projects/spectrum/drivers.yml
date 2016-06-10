@@ -1,6 +1,6 @@
 includes: [projects/default/server.yml]
 
-devices:
+drivers:
   - drivers/common/common.hpp
   - drivers/common/common.cpp
   - drivers/device_memory/device_memory.hpp
