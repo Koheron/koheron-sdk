@@ -27,11 +27,13 @@ connect_pins $address_name/period  [cfg_pin period0]
 source $lib/dac_controller.tcl
 set bram_size [expr 2**($config::bram_addr_width-8)]K
 
-set dac_controller_name dac_ctrl 
-add_dual_dac_controller $dac_controller_name dac $config::dac_width
+for {set i 1} {$i <= 2} {incr i} {
+  set dac_controller_name dac${i}_ctrl 
+  add_single_dac_controller $dac_controller_name dac$i $config::dac_width
 
-connect_pins $dac_controller_name/clk  $adc_clk
-connect_pins $dac_controller_name/addr $address_name/addr
-connect_pins $dac_controller_name/rst  $rst_adc_clk_name/peripheral_reset
-connect_pins $dac_controller_name/dac0 $adc_dac_name/dac1
-connect_pins $dac_controller_name/dac1 $adc_dac_name/dac2
+  connect_pins $dac_controller_name/clk  $adc_clk
+  connect_pins $dac_controller_name/addr $address_name/addr
+  connect_pins $dac_controller_name/rst  $rst_adc_clk_name/peripheral_reset
+  connect_pins $dac_controller_name/dac  $adc_dac_name/dac$i
+} 
+
