@@ -9,7 +9,7 @@ set version [string trimleft [join [lrange $elements end-1 end] .] v]
 
 set cores_dir fpga/cores
 
-file delete -force tmp/cores/$core_name tmp/cores/$project_name.cache tmp/cores/$project_name.hw tmp/cores/$project_name.xpr
+file delete -force tmp/cores/$core_name tmp/cores/$project_name.ip_user_files tmp/cores/$project_name.sim tmp/cores/$project_name.runs tmp/cores/$project_name.cache tmp/cores/$project_name.hw tmp/cores/$project_name.xpr
 
 create_project -part $part_name $project_name tmp/cores
 
