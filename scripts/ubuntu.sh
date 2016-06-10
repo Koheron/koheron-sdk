@@ -66,11 +66,11 @@ unzip -o tmp/app.zip -d $root_dir/var/www
 
 # Add Koheron TCP Server
 mkdir $root_dir/usr/local/tcp-server
-cp tmp/${name}.tcp-server/tmp/server/kserverd $root_dir/usr/local/tcp-server
+cp tmp/${name}.tcp-server/tmp/kserverd $root_dir/usr/local/tcp-server
 cp $config_dir/kserver.conf $root_dir/usr/local/tcp-server
 cp tmp/${name}.tcp-server/VERSION $root_dir/usr/local/tcp-server
-cp tmp/${name}.tcp-server/cli/kserver $root_dir/usr/local/tcp-server
-cp tmp/${name}.tcp-server/cli/kserver-completion $root_dir/etc/bash_completion.d
+cp tmp/${name}.tcp-server/APIs/cli/kserver $root_dir/usr/local/tcp-server
+cp tmp/${name}.tcp-server/APIs/cli/kserver-completion $root_dir/etc/bash_completion.d
 cp $config_dir/tcp-server.service $root_dir/etc/systemd/system/tcp-server.service
 cp $config_dir/tcp-server-init.service $root_dir/etc/systemd/system/tcp-server-init.service
 
