@@ -1,0 +1,5 @@
+includes: [projects/default/server.yml]
+
+drivers:
+  - drivers/init/init.hpp
+  - drivers/pid/pid.hpp
