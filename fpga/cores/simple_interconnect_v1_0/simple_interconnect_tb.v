@@ -7,6 +7,7 @@ module simple_interconnect_tb();
   parameter SEL_WIDTH = 2;
 
   reg                          clk;
+  reg                          clken;
   reg [(N_INPUTS * WIDTH)-1:0] in;
   reg [SEL_WIDTH-1 :0]         sel;
   wire[WIDTH-1:0]              out;
@@ -17,6 +18,7 @@ module simple_interconnect_tb();
     .SEL_WIDTH(SEL_WIDTH)) 
   DUT (
     .clk(clk),
+    .clken(clken),
     .in(in),
     .sel(sel),
     .out(out)
@@ -26,10 +28,13 @@ module simple_interconnect_tb();
 
   initial begin
     clk = 1;
+    clken = 0;
     in = {{(WIDTH){1'b0}},{(WIDTH){1'b1}},{(WIDTH){1'b0}}};
     sel = 0;
     #(100*CLK_PERIOD)
     sel = 1;
+    #(100*CLK_PERIOD)
+    clken = 1;
     #(100*CLK_PERIOD)
     sel = 2;
     #(100*CLK_PERIOD)
