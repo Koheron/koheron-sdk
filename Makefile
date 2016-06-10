@@ -1,25 +1,22 @@
-# 'make' builds everything
-# 'make clean' deletes everything except source files and Makefile
-#
-# You need to set NAME, PART and PROC for your project.
-# NAME is the base name for most of the generated files.
+###############################################################################
+# Build the zip file: $ make NAME=spectrum HOST=192.168.1.12 zip
+###############################################################################
 
-# solves problem with awk while building linux kernel
-# solution taken from http://www.googoolia.com/wp/2015/04/21/awk-symbol-lookup-error-awk-undefined-symbol-mpfr_z_sub/
-
-LD_LIBRARY_PATH =
-TMP = tmp
-
-# Set to True when running in a container
-DOCKER=False
-
-# Project specific variables
-NAME = blink
-
+NAME = oscillo
 HOST = 192.168.1.100
 
+###############################################################################
+# Get the project configuration
+# MAKE_PY script parses the properties defined MAIN_YML
+###############################################################################
+
+MAIN_YML = projects/$(NAME)/main.yml
 MAKE_PY = scripts/make.py
 
+# Store all build artifacts in TMP
+TMP = tmp
+
+# properties defined MAIN_YML :
 BOARD:=$(shell python $(MAKE_PY) --board $(NAME) && cat $(TMP)/$(NAME).board)
 CORES:=$(shell python $(MAKE_PY) --cores $(NAME) && cat $(TMP)/$(NAME).cores)
 DRIVERS:=$(shell python $(MAKE_PY) --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
@@ -35,7 +32,22 @@ VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
 
+DOCKER=False
+
+ifeq ($(DOCKER),False)
+	PYTHON=$(TCP_SERVER_VENV)/bin/python
+else
+	PYTHON=/usr/bin/python
+endif
+
+###############################################################################
 # Linux and U-boot
+###############################################################################
+
+# solves problem with awk while building linux kernel
+# solution taken from http://www.googoolia.com/wp/2015/04/21/awk-symbol-lookup-error-awk-undefined-symbol-mpfr_z_sub/
+LD_LIBRARY_PATH =
+
 UBOOT_TAG = xilinx-v$(VIVADO_VERSION)
 LINUX_TAG = xilinx-v$(VIVADO_VERSION)
 DTREE_TAG = xilinx-v$(VIVADO_VERSION)
@@ -60,7 +72,7 @@ RTL_TAR = $(TMP)/rtl8192cu.tgz
 RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
 
 # Project configuration
-MAIN_YML = projects/$(NAME)/main.yml
+
 CONFIG_TCL = projects/$(NAME)/config.tcl
 TEMPLATE_DIR = scripts/templates
 
@@ -72,10 +84,12 @@ SHA = $(shell cat $(SHA_FILE))
 
 # Zip
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
-DRIVERS_DIR = $(TMP)/$(NAME)/drivers
-TCP_SERVER = $(TCP_SERVER_DIR)/tmp/server/kserverd
+TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
+SERVER_CONFIG = projects/$(NAME)/drivers.yml
 TCP_SERVER_SHA = master
-CROSS_COMPILE = /usr/bin/arm-linux-gnueabihf-
+TCP_SERVER_VENV = $(TMP)/$(NAME).tcp_server_venv
+TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
+
 ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
 # App
@@ -236,25 +250,32 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 # tcp-server (compiled with project specific middleware)
 ###############################################################################
 
-$(TCP_SERVER_DIR):
+$(TCP_SERVER_DIR): 
 	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
-$(DRIVERS_DIR)/%: %/*.hpp %/*.cpp
-	rm -rf $@
-	mkdir -p $@
-	cp -f $^ $@
+$(TCP_SERVER_VENV): $(TCP_SERVER_DIR)
+ifeq ($(DOCKER),False)
+	virtualenv $(TCP_SERVER_VENV)
+	$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
+else
+	/usr/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
+endif
 
-$(TCP_SERVER): $(TCP_SERVER_DIR) $(MAKE_PY) $(MAIN_YML) $(addprefix $(DRIVERS_DIR)/, $(DRIVERS)) drivers/lib
-	CROSS_COMPILE=$(CROSS_COMPILE) python $(MAKE_PY) --middleware $(NAME)
-	cp `find $(DRIVERS_DIR) -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers
-	mkdir -p $(TCP_SERVER_DIR)/middleware/drivers/lib
-	cp `find drivers/lib -name "*.*pp"` $(TCP_SERVER_DIR)/middleware/drivers/lib
-	cd $(TCP_SERVER_DIR) && make DOCKER=$(DOCKER) CONFIG=config.yaml
+$(TCP_SERVER_MIDDLEWARE)/%: %
+	mkdir -p -- `dirname -- $@`
+	cp $^ $@
 
-tcp-server_cli: $(TCP_SERVER_DIR)
-	cd $(TCP_SERVER_DIR) && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
+$(TCP_SERVER_MIDDLEWARE): $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) drivers/lib
+	python $(MAKE_PY) --middleware $(NAME)
+	cp -r drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/lib
+
+$(TCP_SERVER): $(TCP_SERVER_VENV) $(MAKE_PY) $(SERVER_CONFIG) $(TCP_SERVER_MIDDLEWARE)
+	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE)
+
+tcp-server_cli: $(TCP_SERVER_DIR) $(TCP_SERVER_VENV)
+	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) cli
 
 ###############################################################################
 # zip (contains bitstream, tcp-server)

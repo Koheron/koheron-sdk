@@ -9,9 +9,9 @@
 
 #include <drivers/lib/dev_mem.hpp>
 #include <drivers/addresses.hpp>
-#include <drivers/xadc.hpp>
-#include <drivers/gpio.hpp>
-#include <drivers/at93c46d.hpp>
+#include <drivers/xadc/xadc.hpp>
+#include <drivers/gpio/gpio.hpp>
+#include <drivers/at93c46d/at93c46d.hpp>
 
 #include <thread>
 #include <chrono>

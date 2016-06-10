@@ -1,0 +1,27 @@
+
+# Executable name
+server-name: kserverd
+
+cross-compile: /usr/bin/arm-linux-gnueabihf-
+
+arch_flags:
+  - march=armv7-a
+  - mtune=cortex-a9
+  - mfpu=vfpv3
+  #- mfpu=neon
+  - mfloat-abi=hard
+
+defines:
+  - DEBUG_KSERVER
+  # - RELEASE_KSERVER
+
+debug:
+  status: no # set to yes to compile in debug mode
+  flags:
+    - rdynamic
+    - g
+    - mapcs-frame
+
+# Optimization is desactivated when compiled in debug mode
+optimization_flags:
+  - O3

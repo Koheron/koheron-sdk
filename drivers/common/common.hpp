@@ -9,7 +9,7 @@
 
 #include <drivers/lib/dev_mem.hpp>
 #include <drivers/addresses.hpp>
-#include <drivers/init.hpp>
+#include <drivers/init/init.hpp>
 
 class Common
 {
