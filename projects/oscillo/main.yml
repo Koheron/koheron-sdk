@@ -16,11 +16,14 @@ addresses:
   - name: dac2
     offset: '0x82000000'
     range: 16K
-  - name: adc1
+  - name: dac3
     offset: '0x84000000'
+    range: 16K
+  - name: adc1
+    offset: '0x86000000'
     range: 32K
   - name: adc2
-    offset: '0x86000000'
+    offset: '0x88000000'
     range: 32K
 
 config_offsets:
@@ -39,6 +42,7 @@ config_offsets:
   - threshold1
   - n_avg_min0
   - n_avg_min1
+  - dac_select
 
 status_offsets:
   - spi_out
