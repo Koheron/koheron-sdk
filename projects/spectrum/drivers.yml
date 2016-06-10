@@ -1,0 +1,15 @@
+includes: [projects/default/server.yml]
+
+devices:
+  - drivers/common/common.hpp
+  - drivers/common/common.cpp
+  - drivers/device_memory/device_memory.hpp
+  - drivers/gpio/gpio.hpp
+  - drivers/xadc/xadc.hpp
+  - drivers/xadc/xadc.cpp
+  - drivers/laser/laser.hpp
+  - drivers/laser/laser.cpp
+  - drivers/init/init.hpp
+  - drivers/spectrum/spectrum.hpp
+  - drivers/spectrum/spectrum.cpp
+  - drivers/at93c46d/at93c46d.hpp
