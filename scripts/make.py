@@ -52,12 +52,12 @@ def get_config(project):
     props = ['board','host']
     for prop in props:
         config[prop] = get_prop(project, prop)
-    sha_filename = os.path.join('tmp', project+'.sha')
+    sha_filename = os.path.join('tmp', project + '.sha')
     if os.path.isfile(sha_filename):
         with open(sha_filename) as sha_file:
             sha = sha_file.read()
             for i in range(8):
-                config['parameters']['sha'+str(i)] = int('0x'+sha[8*i:8*i+8],0)
+                config['parameters']['sha' + str(i)] = int('0x' + sha[8*i:8*i+8], 0)
     return config
 
 ###################
@@ -65,16 +65,16 @@ def get_config(project):
 ###################
 
 def fill_template(config, template_filename, output_filename):
-	template = get_renderer().get_template(os.path.join('scripts/templates',template_filename))
-	with open(output_filename, 'w') as output:
-		output.write(template.render(dic=config))
+    template = get_renderer().get_template(os.path.join('scripts/templates', template_filename))
+    with open(output_filename, 'w') as output:
+        output.write(template.render(dic=config))
 
 def fill_config_tcl(config):
     output_filename = os.path.join('projects', config['project'], 'config.tcl')
     fill_template(config, 'config.tcl', output_filename)
 
-def fill_addresses(config, tcp_server_dir):
-    output_filename = os.path.join(tcp_server_dir, 'middleware', 'drivers', 'addresses.hpp')
+def fill_addresses(config, drivers_dir):
+    output_filename = os.path.join(drivers_dir, 'addresses.hpp')
     fill_template(config, 'addresses.hpp', output_filename)
 
 def get_renderer():
@@ -96,25 +96,6 @@ def get_renderer():
     return renderer
 
 ###################
-# Build directories
-###################
-            
-def build_server_config(project, tcp_server_dir):
-    config = get_config(project)
-    drivers_path = '../middleware/drivers'
-    dev_paths = [os.path.join(drivers_path, 'common.hpp')]
-    if 'drivers' in config:
-        for device in config['drivers']:
-            filename = os.path.basename(device) + ".hpp"
-            dev_paths.append(os.path.join(drivers_path, filename))
-    server_config = {
-      'cross-compile': os.getenv('CROSS_COMPILE'),
-      'devices': dev_paths
-    }
-    with open(os.path.join(tcp_server_dir,'config','config.yaml'), 'w') as f:
-        yaml.dump(server_config, f, indent=2, default_flow_style=False)
-
-###################
 # Main
 ###################
 
@@ -123,7 +104,7 @@ if __name__ == "__main__":
     project = sys.argv[2]
 
     if project not in os.listdir('projects'):
-	    raise RuntimeError('Unknown project ' + project)
+        raise RuntimeError('Unknown project ' + project)
 
     tmp_dir = 'tmp'
     if not os.path.exists(tmp_dir):
@@ -146,24 +127,21 @@ if __name__ == "__main__":
             f.write(config['board'])
 
     elif cmd == '--drivers':
+        drivers_filename = os.path.join('projects', project, 'drivers.yml')    
+        with open(drivers_filename) as drivers_file:
+            drivers = yaml.load(drivers_file) 
         with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
-            f.write('drivers/common ' + ((' '.join(config['drivers'])) if ('drivers' in config) else ''))
+            f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
 
     elif cmd == '--xdc':
-    	with open(os.path.join('tmp', project + '.xdc'), 'w') as f:
+        with open(os.path.join('tmp', project + '.xdc'), 'w') as f:
             f.write(' '.join(config['xdc']))
 
     elif cmd == '--middleware':
-        tcp_server_dir = os.path.join('tmp', config['project'] + '.tcp-server')
-        tcp_server_middleware_dir = os.path.join(tcp_server_dir, 'middleware/drivers')
-
-        # Erase the content of middleware if it exists (Tests drivers for tcp-server)
-        if os.path.exists(tcp_server_middleware_dir):
-            shutil.rmtree(tcp_server_middleware_dir)
-        os.makedirs(tcp_server_middleware_dir)
-
-        build_server_config(project, tcp_server_dir)
-        fill_addresses(config, tcp_server_dir)
+        dest =  'tmp/' + project + '.middleware/drivers'
+        if not os.path.exists(dest):
+            os.makedirs(dest)
+        fill_addresses(config, dest)
 
     else:
         raise ValueError('Unknown command')
