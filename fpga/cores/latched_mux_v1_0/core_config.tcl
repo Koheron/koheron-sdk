@@ -1,4 +1,4 @@
-set display_name {Simple interconnect}
+set display_name {Latched multiplexer}
 
 set core [ipx::current_core]
 

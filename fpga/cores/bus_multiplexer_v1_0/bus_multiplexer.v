@@ -14,5 +14,3 @@ module bus_multiplexer #
   assign out = (sel) ? in1 : in0;
 
 endmodule
-
-

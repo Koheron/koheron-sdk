@@ -1,6 +1,6 @@
 `timescale 1 ns / 1 ps
 
-module simple_interconnect_tb();
+module latched_mux_tb();
   
   parameter WIDTH = 8;
   parameter N_INPUTS = 3;
@@ -12,7 +12,7 @@ module simple_interconnect_tb();
   reg [SEL_WIDTH-1 :0]         sel;
   wire[WIDTH-1:0]              out;
 
-  simple_interconnect #(
+  latched_mux #(
     .WIDTH(WIDTH),
     .N_INPUTS(N_INPUTS),
     .SEL_WIDTH(SEL_WIDTH)) 

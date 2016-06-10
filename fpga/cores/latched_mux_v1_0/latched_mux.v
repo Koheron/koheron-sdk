@@ -1,6 +1,6 @@
 `timescale 1 ns / 1 ps
 
-module simple_interconnect #
+module latched_mux #
 (
   parameter integer WIDTH = 32,
   parameter integer N_INPUTS = 3,
