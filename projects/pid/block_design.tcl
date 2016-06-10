@@ -136,7 +136,7 @@ cell xilinx.com:ip:cic_compiler:4.0 cic_0 {
 }
 
 set intercon_idx 1
-set idx 00
+set idx [add_master_interface $intercon_idx]
 cell xilinx.com:ip:axis_clock_converter:1.1 clock_converter {} {
   S_AXIS cic_0/M_AXIS_DATA
   m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn

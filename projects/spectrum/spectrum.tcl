@@ -32,18 +32,18 @@ set spectrum_bram_name spectrum_bram
 add_bram $spectrum_bram_name $config::axi_spectrum_range $config::axi_spectrum_offset
 connect_pins blk_mem_gen_$spectrum_bram_name/clkb $adc_clk
 connect_pins blk_mem_gen_$spectrum_bram_name/rstb $rst_adc_clk_name/peripheral_reset
-connect_pins blk_mem_gen_$spectrum_bram_name/enb ${dac_bram_name}_enb/dout
+connect_constant const_${spectrum_bram_name}_enb 1 1 blk_mem_gen_$spectrum_bram_name/enb
 
 # Add demod BRAM
 set demod_bram_name    demod_bram
 add_bram $demod_bram_name $config::axi_demod_range $config::axi_demod_offset
 connect_pins blk_mem_gen_$demod_bram_name/clkb  $adc_clk
 connect_pins blk_mem_gen_$demod_bram_name/rstb  $rst_adc_clk_name/peripheral_reset
-connect_pins blk_mem_gen_$demod_bram_name/web   ${dac_bram_name}_web/dout
-connect_pins blk_mem_gen_$demod_bram_name/dinb  ${dac_bram_name}_dinb/dout
-connect_pins blk_mem_gen_$demod_bram_name/enb   ${dac_bram_name}_enb/dout
 connect_pins blk_mem_gen_$demod_bram_name/doutb $spectrum_name/demod_data
 connect_pins blk_mem_gen_$demod_bram_name/addrb $address_name/addr
+connect_constant const_${demod_bram_name}_dinb 0 32 blk_mem_gen_$demod_bram_name/dinb
+connect_constant const_${demod_bram_name}_enb 1 1  blk_mem_gen_$demod_bram_name/enb
+connect_constant const_${demod_bram_name}_web 0 4  blk_mem_gen_$demod_bram_name/web
 
 # Substract noise floor
 source projects/spectrum/noise_floor.tcl
