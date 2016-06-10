@@ -13,10 +13,6 @@ module simple_interconnect #
   output reg  [WIDTH-1:0]              out
 );
 
-  function integer clogb2 (input integer value);
-    for(clogb2 = 0; value > 0; clogb2 = clogb2 + 1) value = value >> 1;
-  endfunction
-
   reg [SEL_WIDTH-1 :0] sel_reg;
 
   always @(posedge clk) begin
