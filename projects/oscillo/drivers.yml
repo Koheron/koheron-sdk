@@ -1,17 +1,6 @@
 includes: [projects/default/server.yml]
 
 drivers:
-  - drivers/common/
-  - drivers/device_memory/
-  - drivers/gpio/
-  - drivers/xadc/
-  - drivers/laser/
-  - drivers/init/
-  - drivers/oscillo/
-  - drivers/speed_test/
-  - drivers/at93c46d/
-
-devices:
   - drivers/common/common.hpp
   - drivers/common/common.cpp
   - drivers/device_memory/device_memory.hpp
