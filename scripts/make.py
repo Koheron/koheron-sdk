@@ -127,15 +127,18 @@ if __name__ == "__main__":
             f.write(config['board'])
 
     elif cmd == '--drivers':
+        drivers_filename = os.path.join('projects', project, 'drivers.yml')    
+        with open(drivers_filename) as drivers_file:
+            drivers = yaml.load(drivers_file) 
         with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
-            f.write('drivers/common ' + ((' '.join(config['drivers'])) if ('drivers' in config) else ''))
+            f.write((' '.join(drivers['devices'])) if ('devices' in drivers) else '')
 
     elif cmd == '--xdc':
     	with open(os.path.join('tmp', project + '.xdc'), 'w') as f:
             f.write(' '.join(config['xdc']))
 
     elif cmd == '--middleware':
-        fill_addresses(config, 'drivers')
+        fill_addresses(config, 'tmp/' + project + '.middleware/drivers')
 
     else:
         raise ValueError('Unknown command')
