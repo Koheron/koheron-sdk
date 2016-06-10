@@ -24,7 +24,7 @@ cell xilinx.com:ip:proc_sys_reset:5.0 $rst_adc_clk_name {} {
 # Add config and status registers
 source $lib/config_register.tcl
 set config_name cfg
-add_config_register $config_name $adc_clk $config::config_size $config::axi_config_range $config::axi_config_offset 00
+add_config_register $config_name $adc_clk $config::config_size $config::axi_config_range $config::axi_config_offset
 
 source $lib/status_register.tcl
 set status_name sts
