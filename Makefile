@@ -267,10 +267,12 @@ $(TCP_SERVER_MIDDLEWARE)/%: %
 	mkdir -p -- `dirname -- $@`
 	cp $^ $@
 
-$(TCP_SERVER): $(TCP_SERVER_VENV) $(MAKE_PY) $(SERVER_CONFIG)  $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) drivers/lib
+$(TCP_SERVER_MIDDLEWARE): $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) drivers/lib
 	python $(MAKE_PY) --middleware $(NAME)
 	cp -r drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/lib
-	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) MIDWARE_PATH=../../$(TCP_SERVER_MIDDLEWARE)
+
+$(TCP_SERVER): $(TCP_SERVER_VENV) $(MAKE_PY) $(SERVER_CONFIG) $(TCP_SERVER_MIDDLEWARE)
+	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE)
 
 tcp-server_cli: $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && make -C cli CROSS_COMPILE=arm-linux-gnueabihf- clean all
