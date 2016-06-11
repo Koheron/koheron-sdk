@@ -57,20 +57,24 @@ proc add_redp_adc_dac {module_name} {
   } {
     connect_bd_net [get_bd_ports /$port_name] [get_bd_pins dac/$port_name]
   }
-  connect_pins dac/dac_clk_1x pll/clk_out2
-  connect_pins dac/dac_clk_2x pll/clk_out3
-  connect_pins dac/dac_clk_2p pll/clk_out4
-  connect_pins dac/dac_locked pll/locked
+
+  connect_cell dac {
+    dac_clk_1x pll/clk_out2
+    dac_clk_2x pll/clk_out3
+    dac_clk_2p pll/clk_out4
+    dac_locked pll/locked
+  }
 
   # Connect reset
   create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 adc_rst
 
   connect_pins adc_rst/dout adc/adc_rst_i
 
-  connect_pins adc_clk pll/clk_out1
-  connect_pins ser_clk pll/clk_out5
-  connect_pins pwm_clk pll/clk_out6
+  connect_cell pll {
+    clk_out1 adc_clk
+    clk_out5 ser_clk
+    clk_out6 pwm_clk
+  }
 
   current_bd_instance $bd
-
 }

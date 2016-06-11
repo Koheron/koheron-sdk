@@ -21,10 +21,12 @@ for {set i 1} {$i < 3} {incr i} {
   connect_pins spectrum_0/adc$i adc_dac/adc$i
 }
 
-connect_pins $spectrum_name/clk        $adc_clk
-connect_pins $spectrum_name/tvalid     shift_tvalid/Q
-connect_pins $spectrum_name/cfg_sub    [cfg_pin substract_mean]
-connect_pins $spectrum_name/cfg_fft    [cfg_pin cfg_fft]
+connect_cell $spectrum_name {
+  clk        $adc_clk
+  tvalid     shift_tvalid/Q
+  cfg_sub    [cfg_pin substract_mean]
+  cfg_fft    [cfg_pin cfg_fft]
+}
 
 # Add spectrum recorder
 source $lib/bram_recorder.tcl
@@ -36,10 +38,13 @@ connect_pins $recorder_name/rst   $rst_adc_clk_name/peripheral_reset
 # Add demod BRAM
 set demod_bram_name    demod_bram
 add_bram $demod_bram_name $config::axi_demod_range $config::axi_demod_offset
-connect_pins blk_mem_gen_$demod_bram_name/clkb  $adc_clk
-connect_pins blk_mem_gen_$demod_bram_name/rstb  $rst_adc_clk_name/peripheral_reset
-connect_pins blk_mem_gen_$demod_bram_name/doutb $spectrum_name/demod_data
-connect_pins blk_mem_gen_$demod_bram_name/addrb $address_name/addr
+
+connect_cell blk_mem_gen_$demod_bram_name {
+  clkb  $adc_clk
+  rstb  $rst_adc_clk_name/peripheral_reset
+  doutb $spectrum_name/demod_data
+  addrb $address_name/addr 
+}
 connect_constant const_${demod_bram_name}_dinb 0 32 blk_mem_gen_$demod_bram_name/dinb
 connect_constant const_${demod_bram_name}_enb 1 1  blk_mem_gen_$demod_bram_name/enb
 connect_constant const_${demod_bram_name}_web 0 4  blk_mem_gen_$demod_bram_name/web
@@ -48,32 +53,38 @@ connect_constant const_${demod_bram_name}_web 0 4  blk_mem_gen_$demod_bram_name/
 source projects/spectrum/noise_floor.tcl
 set subtract_name noise_floor
 add_noise_floor $subtract_name $config::bram_addr_width $adc_clk
-connect_pins $subtract_name/clk $adc_clk
-connect_pins $subtract_name/s_axis_tdata $spectrum_name/m_axis_result_tdata
-connect_pins $subtract_name/s_axis_tvalid $spectrum_name/m_axis_result_tvalid
+
+connect_cell $subtract_name {
+  clk $adc_clk
+  s_axis_tdata $spectrum_name/m_axis_result_tdata
+  s_axis_tvalid $spectrum_name/m_axis_result_tvalid 
+}
 
 # Add averaging module
 source projects/averager_module/averager.tcl
 set avg_name avg
 add_averager_module $avg_name $config::bram_addr_width
 
-connect_pins $avg_name/clk         $adc_clk
-connect_pins $avg_name/restart     $address_name/restart
-connect_pins $avg_name/avg_on      [cfg_pin avg_on]
-connect_pins $avg_name/period      [cfg_pin period0]
-connect_pins $avg_name/threshold   [cfg_pin threshold0]
-connect_pins $avg_name/n_avg_min   [cfg_pin n_avg_min0]
+connect_cell $avg_name {
+  clk         $adc_clk
+  restart     $address_name/restart
+  avg_on      [cfg_pin avg_on]
+  period      [cfg_pin period0]
+  threshold   [cfg_pin threshold0]
+  n_avg_min   [cfg_pin n_avg_min0]
+  addr        $recorder_name/addr
+  dout        $recorder_name/adc
+  wen         $recorder_name/wen
+  n_avg       [sts_pin n_avg]
+  ready       [sts_pin avg_ready]
+  avg_on_out  [sts_pin avg_on_out]
+}
 
-connect_pins $subtract_name/m_axis_result_tdata  $avg_name/din
-connect_pins $subtract_name/m_axis_result_tvalid $avg_name/tvalid
+connect_cell $subtract_name {
+  m_axis_result_tdata  $avg_name/din
+  m_axis_result_tvalid $avg_name/tvalid 
+}
 
-connect_pins $avg_name/addr  $recorder_name/addr
-connect_pins $avg_name/dout  $recorder_name/adc
-connect_pins $avg_name/wen   $recorder_name/wen
-
-connect_pins $avg_name/n_avg      [sts_pin n_avg]
-connect_pins $avg_name/ready      [sts_pin avg_ready]
-connect_pins $avg_name/avg_on_out [sts_pin avg_on_out]
 
 # Add peak detector
 
@@ -81,16 +92,16 @@ source projects/peak_detector_module/peak_detector.tcl
 set peak_detector_name peak
 add_peak_detector $peak_detector_name $config::bram_addr_width
 
-connect_pins $peak_detector_name/clk $adc_clk
-connect_pins $peak_detector_name/din $subtract_name/m_axis_result_tdata
-connect_pins $peak_detector_name/s_axis_tvalid $subtract_name/m_axis_result_tvalid
-
-connect_pins $peak_detector_name/address_low [cfg_pin peak_address_low]
-connect_pins $peak_detector_name/address_high [cfg_pin peak_address_high]
-connect_pins $peak_detector_name/address_reset [cfg_pin peak_address_reset]
-
-connect_pins $peak_detector_name/address_out [sts_pin peak_address]
-connect_pins $peak_detector_name/maximum_out [sts_pin peak_maximum]
+connect_cell $peak_detector_name {
+  clk $adc_clk
+  din $subtract_name/m_axis_result_tdata
+  s_axis_tvalid $subtract_name/m_axis_result_tvalid
+  address_low [cfg_pin peak_address_low]
+  address_high [cfg_pin peak_address_high]
+  address_reset [cfg_pin peak_address_reset]
+  address_out [sts_pin peak_address]
+  maximum_out [sts_pin peak_maximum]
+}
 
 set intercon_idx 0
 set idx [add_master_interface $intercon_idx]

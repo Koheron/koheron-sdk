@@ -6,10 +6,11 @@ proc add_pid_module {module_name width acc_width} {
 
   create_bd_pin -dir I -type clk clk
   create_bd_pin -dir I -from $width -to 0 error_in
+  create_bd_pin -dir I integral_reset
   foreach {name} {p i d} {
     create_bd_pin -dir I -from $width -to 0 coef_$name
   }
-  create_bd_pin -dir I integral_reset
+
   create_bd_pin -dir O -from $width -to 0 cmd_out
 
   foreach {name} {p i d} {

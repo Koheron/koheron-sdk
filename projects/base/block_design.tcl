@@ -18,9 +18,12 @@ connect_pins pwm/rst $rst_adc_clk_name/peripheral_reset
 source projects/address_module/address.tcl
 set address_name address
 add_address_module $address_name $config::bram_addr_width
-connect_pins $address_name/clk  $adc_clk
-connect_pins $address_name/cfg  [cfg_pin addr]
-connect_pins $address_name/period  [cfg_pin period0]
+
+connect_cell $address_name {
+  clk  $adc_clk
+  cfg  [cfg_pin addr]
+  period  [cfg_pin period0]
+}
 
 # Add DAC controller
 
@@ -47,4 +50,3 @@ for {set i 1} {$i <= 3} {incr i} {
 for {set i 1} {$i <= 2} {incr i} {
   connect_pins $interconnect_name/out[expr $i-1] $adc_dac_name/dac$i
 }
-
