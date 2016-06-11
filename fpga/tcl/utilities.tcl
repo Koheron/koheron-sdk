@@ -44,16 +44,20 @@ proc connect_cell {cell_name cell_ports} {
   }
 }
 
-proc cell {cell_vlnv cell_name {cell_props {}} {cell_ports {}}} {
-  set cell [create_bd_cell -type ip -vlnv $cell_vlnv $cell_name]
+proc set_cell_props {cell_name cell_props} {
   set prop_list {}
   foreach {prop_name prop_value} [uplevel 1 [list subst $cell_props]] {
     lappend prop_list CONFIG.$prop_name $prop_value
   }
   if {[llength $prop_list] > 1} {
-    set_property -dict $prop_list $cell
+    set_property -dict $prop_list [get_bd_cell $cell_name]
   }
-  connect_cell $cell_name [uplevel 1 [list subst $cell_ports]]
+}
+
+proc cell {cell_vlnv cell_name {cell_props {}} {cell_ports {}}} {
+  create_bd_cell -type ip -vlnv $cell_vlnv $cell_name
+  set_cell_props $cell_name [uplevel 1 [list subst $cell_props]]
+  connect_cell   $cell_name [uplevel 1 [list subst $cell_ports]]
 }
 
 ########################################################
