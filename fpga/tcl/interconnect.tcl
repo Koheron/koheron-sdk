@@ -7,7 +7,7 @@ proc add_interconnect {module_name width n_inputs n_outputs} {
 
   create_bd_pin -dir I -type clk clk
   create_bd_pin -dir I clken
-  create_bd_pin -dir I -from [expr $sel_width - 1] -to 0 sel
+  create_bd_pin -dir I -from [expr $sel_width * $n_outputs - 1] -to 0 sel
 
   for {set i 0} {$i < $n_inputs} {incr i} {
     create_bd_pin -dir I -from [expr $width - 1] -to 0 in$i
@@ -15,6 +15,14 @@ proc add_interconnect {module_name width n_inputs n_outputs} {
 
   for {set j 0} {$j < $n_outputs} {incr j} {
     create_bd_pin -dir O -from [expr $width - 1] -to 0 out$j
+
+    cell xilinx.com:ip:xlslice:1.0 sel_slice$j {
+      DIN_WIDTH [expr $sel_width * $n_outputs]
+      DIN_FROM  [expr ($j + 1) * $sel_width - 1]
+      DIN_TO    [expr $j * $sel_width]
+    } {
+      Din sel
+    }
 
     cell koheron:user:latched_mux:1.0 mux$j {
       WIDTH $width
@@ -24,7 +32,7 @@ proc add_interconnect {module_name width n_inputs n_outputs} {
       clk clk
       clken clken
       out out$j
-      sel sel
+      sel sel_slice$j/Dout
     }
 
     cell xilinx.com:ip:xlconcat:2.1 concat_$j {
