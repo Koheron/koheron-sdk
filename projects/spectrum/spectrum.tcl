@@ -14,7 +14,6 @@ cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
 source projects/spectrum_module/spectrum.tcl
 
 set spectrum_name spectrum_0
-set spectrum_bram_name spectrum_bram
 set n_pts_fft [expr 2**$config::bram_addr_width]
 add_spectrum $spectrum_name $n_pts_fft $config::adc_width
 
@@ -27,12 +26,12 @@ connect_pins $spectrum_name/tvalid     shift_tvalid/Q
 connect_pins $spectrum_name/cfg_sub    [cfg_pin substract_mean]
 connect_pins $spectrum_name/cfg_fft    [cfg_pin cfg_fft]
 
-# Add spectrum BRAM
-set spectrum_bram_name spectrum_bram
-add_bram $spectrum_bram_name $config::axi_spectrum_range $config::axi_spectrum_offset
-connect_pins blk_mem_gen_$spectrum_bram_name/clkb $adc_clk
-connect_pins blk_mem_gen_$spectrum_bram_name/rstb $rst_adc_clk_name/peripheral_reset
-connect_constant const_${spectrum_bram_name}_enb 1 1 blk_mem_gen_$spectrum_bram_name/enb
+# Add spectrum recorder
+source $lib/bram_recorder.tcl
+set recorder_name spectrum_recorder
+add_bram_recorder $recorder_name spectrum
+connect_pins $recorder_name/clk   $adc_clk
+connect_pins $recorder_name/rst   $rst_adc_clk_name/peripheral_reset
 
 # Add demod BRAM
 set demod_bram_name    demod_bram
@@ -68,9 +67,9 @@ connect_pins $avg_name/n_avg_min   [cfg_pin n_avg_min0]
 connect_pins $subtract_name/m_axis_result_tdata  $avg_name/din
 connect_pins $subtract_name/m_axis_result_tvalid $avg_name/tvalid
 
-connect_pins $avg_name/addr        blk_mem_gen_$spectrum_bram_name/addrb
-connect_pins $avg_name/dout        blk_mem_gen_$spectrum_bram_name/dinb
-connect_pins $avg_name/wen         blk_mem_gen_$spectrum_bram_name/web
+connect_pins $avg_name/addr  $recorder_name/addr
+connect_pins $avg_name/dout  $recorder_name/adc
+connect_pins $avg_name/wen   $recorder_name/wen
 
 connect_pins $avg_name/n_avg      [sts_pin n_avg]
 connect_pins $avg_name/ready      [sts_pin avg_ready]
