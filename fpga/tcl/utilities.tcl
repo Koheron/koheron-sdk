@@ -26,15 +26,7 @@ proc connect_constant {name value width pin} {
 # Configure an IP block and connect its pins 
 # https://github.com/pavel-demin/red-pitaya-notes
 
-proc cell {cell_vlnv cell_name {cell_props {}} {cell_ports {}}} {
-  set cell [create_bd_cell -type ip -vlnv $cell_vlnv $cell_name]
-  set prop_list {}
-  foreach {prop_name prop_value} [uplevel 1 [list subst $cell_props]] {
-    lappend prop_list CONFIG.$prop_name $prop_value
-  }
-  if {[llength $prop_list] > 1} {
-    set_property -dict $prop_list $cell
-  }
+proc connect_cell {cell_name cell_ports} {
   foreach {local_name remote_name} [uplevel 1 [list subst $cell_ports]] {
     set local_port [get_bd_pins $cell_name/$local_name]
     set remote_port [get_bd_pins $remote_name]
@@ -50,6 +42,22 @@ proc cell {cell_vlnv cell_name {cell_props {}} {cell_ports {}}} {
     }
     error "** ERROR: can't connect $cell_name/$local_name and $remote_name"
   }
+}
+
+proc set_cell_props {cell_name cell_props} {
+  set prop_list {}
+  foreach {prop_name prop_value} [uplevel 1 [list subst $cell_props]] {
+    lappend prop_list CONFIG.$prop_name $prop_value
+  }
+  if {[llength $prop_list] > 1} {
+    set_property -dict $prop_list [get_bd_cell $cell_name]
+  }
+}
+
+proc cell {cell_vlnv cell_name {cell_props {}} {cell_ports {}}} {
+  create_bd_cell -type ip -vlnv $cell_vlnv $cell_name
+  set_cell_props $cell_name [uplevel 1 [list subst $cell_props]]
+  connect_cell   $cell_name [uplevel 1 [list subst $cell_ports]]
 }
 
 ########################################################

@@ -17,11 +17,12 @@ proc add_bram_recorder {module_name bram_name} {
 
   connect_constant ${bram_name}_enb  1 1  blk_mem_gen_$bram_name/enb
 
-  connect_pins blk_mem_gen_$bram_name/dinb adc
-  connect_pins addr blk_mem_gen_$bram_name/addrb
-  connect_pins clk  blk_mem_gen_$bram_name/clkb
-  connect_pins rst  blk_mem_gen_$bram_name/rstb
-  connect_pins wen  blk_mem_gen_$bram_name/web
+  connect_cell blk_mem_gen_$bram_name {
+    dinb adc
+    clkb clk
+    rstb rst
+    web wen
+  }
 
   current_bd_instance $bd
 

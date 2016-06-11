@@ -18,9 +18,12 @@ connect_pins pwm/rst $rst_adc_clk_name/peripheral_reset
 source projects/address_module/address.tcl
 set address_name address
 add_address_module $address_name $config::bram_addr_width
-connect_pins $address_name/clk  $adc_clk
-connect_pins $address_name/cfg  [cfg_pin addr]
-connect_pins $address_name/period  [cfg_pin period0]
+
+connect_cell $address_name {
+  clk  $adc_clk
+  cfg  [cfg_pin addr]
+  period  [cfg_pin period0]
+}
 
 # Add DAC controller
 
@@ -29,8 +32,10 @@ set bram_size [expr 2**($config::bram_addr_width-8)]K
 set dac_controller_name dac_ctrl 
 add_dual_dac_controller $dac_controller_name dac $config::dac_width
 
-connect_pins $dac_controller_name/clk  $adc_clk
-connect_pins $dac_controller_name/addr $address_name/addr
-connect_pins $dac_controller_name/rst  $rst_adc_clk_name/peripheral_reset
-connect_pins $dac_controller_name/dac0 $adc_dac_name/dac1
-connect_pins $dac_controller_name/dac1 $adc_dac_name/dac2
+connect_cell $dac_controller_name {
+  clk  $adc_clk
+  addr $address_name/addr
+  rst  $rst_adc_clk_name/peripheral_reset
+  dac0 $adc_dac_name/dac1
+  dac1 $adc_dac_name/dac2
+}
