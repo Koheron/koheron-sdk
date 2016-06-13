@@ -255,7 +255,7 @@ $(TCP_SERVER_DIR):
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
-$(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirement.txt
+$(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
 ifeq ($(DOCKER),False)
 	virtualenv $(TCP_SERVER_VENV)
 	$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
