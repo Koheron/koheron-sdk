@@ -255,7 +255,9 @@ $(TCP_SERVER_DIR):
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
-$(TCP_SERVER_VENV): $(TCP_SERVER_DIR)
+$(TCP_SERVER_DIR)/requirements.txt: $(TCP_SERVER_DIR)
+
+$(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
 ifeq ($(DOCKER),False)
 	virtualenv $(TCP_SERVER_VENV)
 	$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
@@ -269,7 +271,7 @@ $(TCP_SERVER_MIDDLEWARE)/%: %
 
 $(TCP_SERVER_MIDDLEWARE): $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) drivers/lib
 	python $(MAKE_PY) --middleware $(NAME)
-	cp -r drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/lib
+	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
 
 $(TCP_SERVER): $(TCP_SERVER_VENV) $(MAKE_PY) $(SERVER_CONFIG) $(TCP_SERVER_MIDDLEWARE)
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE)
