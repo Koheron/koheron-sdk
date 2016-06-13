@@ -23,6 +23,8 @@
 #define ERAL 2
 #define EWEN 3
 
+using namespace std::chrono_literals;
+
 class At93c46d
 {
   public:
@@ -38,7 +40,7 @@ class At93c46d
     uint32_t read(uint32_t addr) {
         dvm.write32(config_map, SPI_IN_OFF, (READ_OPCODE << 7) + (addr << 1));
         dvm.set_bit(config_map, SPI_IN_OFF, 0);
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
+        std::this_thread::sleep_for(100us);
         return dvm.read32(status_map, SPI_OUT_OFF);
     }
 
