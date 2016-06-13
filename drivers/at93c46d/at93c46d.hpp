@@ -23,6 +23,8 @@
 #define ERAL 2
 #define EWEN 3
 
+using namespace std::chrono_literals;
+
 class At93c46d
 {
   public:
