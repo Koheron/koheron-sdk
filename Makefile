@@ -296,12 +296,12 @@ zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 ###############################################################################
 
 $(METADATA): $(TMP) $(VERSION_FILE)
-	
+	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
 
 $(HTTP_API_DRIVERS): $(HTTP_API_REQUIREMENTS)
-	python $(MAKE_PY) ----http_api_requirements $(HTTP_API_REQUIREMENTS) $(HTTP_API_DRIVERS)
+	python $(MAKE_PY) --http_api_requirements $(HTTP_API_REQUIREMENTS) $(HTTP_API_DRIVERS)
 
-app: $(METADATA)
+app: $(METADATA) $(HTTP_API_DRIVERS)
 	mkdir -p $(TMP)/app/api_app
 	cp -R os/api/. $(TMP)/app/api_app
 	cp $(TMP)/metadata.json $(TMP)/app

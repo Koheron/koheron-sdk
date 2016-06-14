@@ -48,6 +48,9 @@ def load_config(project):
     return config
 
 def get_config(project):
+    if project not in os.listdir('projects'):
+        raise RuntimeError('Unknown project ' + project)
+
     config = load_config(project)
     # Get missing elements from ancestors
     lists = ['cores','xdc']
@@ -99,18 +102,12 @@ def get_renderer():
 
     return renderer
 
-
-
 ###################
 # Main
 ###################
 
 if __name__ == "__main__":
     cmd = sys.argv[1]
-    project = sys.argv[2]
-
-    if project not in os.listdir('projects'):
-        raise RuntimeError('Unknown project ' + project)
 
     tmp_dir = 'tmp'
     if not os.path.exists(tmp_dir):
@@ -119,22 +116,23 @@ if __name__ == "__main__":
     reload(sys)
     sys.setdefaultencoding('utf-8')
 
-    # TODO move above in get_config
-    config = get_config(project)
-
-
     if cmd == '--config_tcl':
-        fill_config_tcl(config)
+        fill_config_tcl(get_config(sys.argv[2]))
 
     elif cmd == '--cores':
+        project = sys.argv[2]
+        config = get_config(project)
         with open(os.path.join('tmp', project + '.cores'), 'w') as f:
             f.write(' '.join(config['cores']))
 
     elif cmd == '--board':
+        project = sys.argv[2]
+        config = get_config(project)
         with open(os.path.join('tmp', project + '.board'), 'w') as f:
             f.write(config['board'])
 
     elif cmd == '--drivers':
+        project = sys.argv[2]
         drivers_filename = os.path.join('projects', project, 'drivers.yml')    
         with open(drivers_filename) as drivers_file:
             drivers = yaml.load(drivers_file) 
@@ -142,10 +140,14 @@ if __name__ == "__main__":
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
 
     elif cmd == '--xdc':
+        project = sys.argv[2]
+        config = get_config(project)
         with open(os.path.join('tmp', project + '.xdc'), 'w') as f:
             f.write(' '.join(config['xdc']))
 
     elif cmd == '--middleware':
+        project = sys.argv[2]
+        config = get_config(project)
         dest =  'tmp/' + project + '.middleware/drivers'
         if not os.path.exists(dest):
             os.makedirs(dest)
@@ -162,13 +164,14 @@ if __name__ == "__main__":
           'user': getpass.getuser()
         }
 
-         with open('tmp/metadata.json', 'w') as f:
+        with open('tmp/metadata.json', 'w') as f:
             json.dump(metadata, f)
 
     elif cmd == '--http_api_requirements':
-        with open('os/api/requirements.yml', 'w') as f:
+        print sys.argv[2]
+        with open(sys.argv[2]) as f:
             reqs = yaml.load(f)
-        with open('tmp/http_api.drivers', 'w') as f:
+        with open(sys.argv[3], 'w') as f:
             f.write(' '.join(reqs['drivers']))
 
     else:
