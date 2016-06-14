@@ -119,8 +119,8 @@ test: tests/$(NAME).py
 	python $<
 
 run: zip
-	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/upload/instrument_zip	
-	curl http://$(HOST)/api/deploy/local/$(NAME)-$(VERSION).zip
+	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
+	curl http://$(HOST)/api/instruments/run/$(NAME)/$(VERSION)
 
 ###############################################################################
 # versioning
@@ -289,6 +289,9 @@ zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 ###############################################################################
 # app
 ###############################################################################
+
+app_sync: 
+	rsync -avz -e "ssh -i /ssh-private-key" os/api/. root@$(HOST):/usr/local/flask/api_app
 
 app: $(TMP)
 	echo $(APP_SHA)

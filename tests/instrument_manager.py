@@ -12,38 +12,31 @@ class InstrumentManager:
         self.url = 'http://' + ip + ':' + str(self.port)
 
     def get_bistream_id(self):
-        r = requests.get(self.url + '/api/bitstream_id')
+        r = requests.get(self.url + '/api/board/bitstream_id')
         return r.text
 
     def ping(self):
-        r = requests.get(self.url + '/api/ping')
+        r = requests.get(self.url + '/api/board/ping')
         
-    def deploy_remote_instrument(self, name, version):
-        """ Deploy a remotely available instrument. """
-        zip_filename = name + '-' + version + '.zip'
-        r = requests.get(self.url + '/api/deploy/remote/' + zip_filename)
-
     def deploy_local_instrument(self, name, version):
         """ Deploy a locally available instrument
             Return 0 on success, -1 else
         """
-        zip_filename = name + '-' + version + '.zip'
-        print('Deploying ' + zip_filename)
+        print('Deploying instrument {} with version {}'.format(name, version))
         try:
-            r = requests.get(self.url + '/api/deploy/local/' + zip_filename)
+            r = requests.get('{}/api/instruments/run/{}/{}'.format(self.url, name, version))
             return int(r.text.split('status:')[1].strip())
         except Exception as e: 
             print("[error] " + str(e))
             return -1
 
     def remove_local_instrument(self, name, version):
-        zip_filename = name + '-' + version + '.zip'
-        r = requests.get(self.url + '/api/remove/local/' + zip_filename)
+        r = requests.get('{}/api/instruments/delete/{}/{}'.format(self.url, name, version))
         return r.text
 
     def get_local_instruments(self):
         try:
-            r = requests.get(self.url + '/api/get_local_instruments')
+            r = requests.get(self.url + '/api/instruments/local')
             return r.json()
         except Exception as e: 
             print("[error] " + str(e))
@@ -51,7 +44,7 @@ class InstrumentManager:
 
     def get_current_instrument(self):
         try:
-            r = requests.get(self.url + '/api/get_current_instrument')
+            r = requests.get(self.url + '/api/instruments/current')
             return r.json()
         except Exception as e: 
             print("[error] " + str(e))
