@@ -290,6 +290,9 @@ zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 # app
 ###############################################################################
 
+app_sync: 
+	rsync -avz -e "ssh -i /ssh-private-key" os/api/. root@$(HOST):/usr/local/flask/api_app
+
 app: $(TMP)
 	echo $(APP_SHA)
 	curl -L $(APP_URL) -o $(APP_ZIP)
