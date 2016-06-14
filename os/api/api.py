@@ -75,14 +75,43 @@ def ping():
 def update_instruments():
 	return make_response("update instrument not implemented")
 
-@api_app.route('/api/instruments/run/<name>/<commit>', methods=['GET'])
-def update_instruments(name, commit):
+@api_app.route('/api/instruments/run/<name>/<sha>', methods=['GET'])
+def update_instruments(name, sha):
 	return make_response("update instrument not implemented")
 
-@api_app.route('/api/instruments/delete/<name>/<commit>', methods=['GET'])
-def delete_instruments(name, commit):
+@api_app.route('/api/instruments/delete/<name>/<sha>', methods=['GET'])
+def delete_instruments(name, sha):
 	return make_response("delete instrument not implemented")
 
+@api_app.route('/api/instruments/upload', methods=['POST'])
+def upload_instrument():
+    if request.method == 'POST':
+        file_ = next((file_ for file_ in request.files if api_app.is_valid_instrument_file(file_)), None)
+        if file_ is not None:
+            filename = secure_filename(file_)
+            request.files[file_].save(os.path.join(api_app.config['UPLOAD_FOLDER'], filename))
+            tmp_file = os.path.join('/tmp/', filename)
+            api_app.append_local_instrument(tmp_file)
+            api_app.save_uploaded_instrument(tmp_file)
+            return make_response('Instrument ' + filename + ' uploaded.')
+    return make_response('Instrument upload failed.')
+
+@api_app.route('/api/instruments/upload/<name>/<sha>', methods=['GET'])
+def upload_remote_instrument(name, sha):
+    filename = secure_filename(zip_filename)
+    tmp_file = os.path.join('/tmp/', filename)
+    urllib.urlretrieve(app.config['S3_URL'] + filename, tmp_file)
+    api_app.append_local_instrument(tmp_file)
+    api_app.save_uploaded_instrument(tmp_file)
+    return make_response('Instrument ' + filename + ' uploaded.')
+
+@api_app.route('/api/instruments/local', methods=['GET'])
+def get_local_instruments():
+    return jsonify(api_app.local_instruments)
+
+@api_app.route('/api/instruments/current', methods=['GET'])
+def get_current_instrument():
+    return jsonify(api_app.current_instrument)
 
 # ------------------------
 # Legacy
