@@ -43,8 +43,8 @@ def reboot():
 
 @api_app.route('/api/board/version', methods=['GET'])
 def version():
-	with open('/etc/zynq_sdk_version','r') as f:
-		zynq_sdk_version = f.read()
+    with open('/etc/zynq_sdk_version','r') as f:
+        zynq_sdk_version = f.read()
     return jsonify({'zynq-sdk': zynq_sdk_version})
 
 @api_app.route('/api/board/dna', methods=['GET'])
@@ -66,7 +66,7 @@ def ping():
 
 @api_app.route('/api/instruments/update', methods=['GET'])
 def update_instruments():
-	return make_response("update instrument not implemented")
+    return make_response("update instrument not implemented")
 
 @api_app.route('/api/instruments/run/<name>/<sha>', methods=['GET'])
 def run_instrument(name, sha):
@@ -77,9 +77,9 @@ def run_instrument(name, sha):
 
 @api_app.route('/api/instruments/delete/<name>/<sha>', methods=['GET'])
 def delete_instrument(name, sha):
-	zip_filename = '{}-{}.zip'.format(name, sha)
-	filename = secure_filename(zip_filename)
-	api_app.delete_uploaded_instrument(filename)
+    zip_filename = '{}-{}.zip'.format(name, sha)
+    filename = secure_filename(zip_filename)
+    api_app.delete_uploaded_instrument(filename)
     api_app.remove_local_instrument(filename)
     return make_response('File ' + zip_filename + ' removed.')
 
