@@ -100,6 +100,7 @@ STATIC_ZIP = $(TMP)/static.zip
 
 HTTP_API_REQUIREMENTS=os/api/requirements.yml
 HTTP_API_DRIVERS=$(TMP)/http_api.drivers
+APP_ZIP=app-$(VERSION).zip
 
 METADATA = $(TMP)/metadata.json
 
@@ -306,11 +307,13 @@ app: $(METADATA) $(HTTP_API_DRIVERS)
 	cp -R os/api/. $(TMP)/app/api_app
 	cp $(TMP)/metadata.json $(TMP)/app
 	cp os/wsgi.py $(TMP)/app
-	cd $(TMP)/app && zip -r app-$(VERSION).zip .
 
-app_sync: app
+$(APP_ZIP):
+	cd $(TMP)/app && zip -r $(APP_ZIP) .
+
+app_sync: app $(APP_ZIP)
 	# rsync -avz -e "ssh -i /ssh-private-key" $(TMP)/app/. root@$(HOST):/usr/local/flask/
-	curl -v -F app-$(VERSION).zip=@$(TMP)/app/app-$(VERSION).zip http://$(HOST)/api/app/update
+	curl -v -F app-$(VERSION).zip=@$(TMP)/app/$(APP_ZIP) http://$(HOST)/api/app/update
 
 static: $(TMP)
 	echo $(STATIC_SHA)
