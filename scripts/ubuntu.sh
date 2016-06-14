@@ -62,7 +62,7 @@ mkdir $root_dir/usr/local/flask
 mkdir $root_dir/usr/local/flask/api_app
 cp -a $api_dir/. $root_dir/usr/local/flask/api_app
 cp $config_dir/wsgi.py $root_dir/usr/local/flask
-unzip -o tmp/app.zip -d $root_dir/var/www
+unzip -o tmp/static.zip -d $root_dir/var/www
 
 # Add Koheron TCP Server
 mkdir $root_dir/usr/local/tcp-server

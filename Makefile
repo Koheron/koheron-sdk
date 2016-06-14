@@ -94,9 +94,9 @@ ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
 # App
 S3_URL = http://zynq-sdk.s3-website-eu-west-1.amazonaws.com
-APP_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
-APP_URL = $(S3_URL)/app-$(APP_SHA).zip
-APP_ZIP = $(TMP)/app.zip
+STATIC_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
+STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
+STATIC_ZIP = $(TMP)/static.zip
 
 METADATA = $(TMP)/metadata.json
 
@@ -305,9 +305,9 @@ app: $(METADATA)
 app_sync: app
 	rsync -avz -e "ssh -i /ssh-private-key" $(TMP)/app/. root@$(HOST):/usr/local/flask/
 
-# app: $(TMP)
-# 	echo $(APP_SHA)
-# 	curl -L $(APP_URL) -o $(APP_ZIP)
+static: $(TMP)
+	echo $(STATIC_SHA)
+	curl -L $(STATIC_URL) -o $(STATIC_ZIP)
 
 ###############################################################################
 # clean
