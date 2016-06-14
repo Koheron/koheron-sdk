@@ -112,14 +112,3 @@ def get_local_instruments():
 @api_app.route('/api/instruments/current', methods=['GET'])
 def get_current_instrument():
     return jsonify(api_app.current_instrument)
-
-# ------------------------
-# Legacy
-# ------------------------
-
-@api_app.route('/api/deploy/remote/<zip_filename>', methods=['GET', 'POST'])
-def deploy_remote_instrument(zip_filename):
-    filename = secure_filename(zip_filename)
-    urllib.urlretrieve(api_app.config['S3_URL'] + filename, '/tmp/' + filename)
-    status = api_app.install_instrument('/tmp/' + filename)
-    return make_response('Instrument ' + zip_filename + ' installed with status: ' + str(status))
