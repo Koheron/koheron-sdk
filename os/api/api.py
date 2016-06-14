@@ -14,17 +14,28 @@ api_app.config['UPLOAD_FOLDER'] = '/tmp'
 # API
 # ------------------------
 
-@api_app.route('/api/app/update', methods=['GET'])
-def upgrade_app():
-    if api_app.upload_latest_app() < 0:
-        return make_response('failure')
+@api_app.route('/api/static/update', methods=['GET'])
+def update_static():
+    if api_app.upload_latest_static() < 0:
+        return make_response('Upload failed')
     else:
-       api_app.unzip_app()
-       api_app.copy_ui_to_static()
-       uwsgi.reload()
+       api_app.unzip_static()
+       api_app.copy_static()
        return make_response('Updating app')
 
-@api_app.route('/api/infos', methods=['GET'])
+@api_app.route('/api/app/update', methods=['POST'])
+def upgrade_app():
+    if request.method == 'POST':
+        file_ = next((file_ for file_ in request.files if api_app.is_valid_app_file(file_)), None)
+        if file_ is not None:
+            filename = secure_filename(file_)
+            request.files[file_].save(os.path.join(api_app.config['UPLOAD_FOLDER'], filename))
+            tmp_file = os.path.join('/tmp/', filename)
+            subprocess.call(['/usr/bin/unzip', '-o', tmp_file, '-d', '/usr/local/flask'])
+            uwsgi.reload()
+            return make_response('Updating app')
+
+@api_app.route('/api/version', methods=['GET'])
 def api_version():
     return jsonify(api_app.metadata)
 

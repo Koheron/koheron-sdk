@@ -300,7 +300,7 @@ app: $(METADATA)
 	cp -R os/api/. $(TMP)/app/api_app
 	cp $(TMP)/metadata.json $(TMP)/app
 	cp os/wsgi.py $(TMP)/app
-	zip -r $(TMP)/app-$(VERSION).zip `ls $(TMP)/app`
+	cd $(TMP)/app && zip -r app-$(VERSION).zip .
  
 app_sync: app
 	rsync -avz -e "ssh -i /ssh-private-key" $(TMP)/app/. root@$(HOST):/usr/local/flask/

@@ -16,6 +16,5 @@ echo 'Load bitstream'
 echo 'Restart tcp-server'
 
 /bin/cp -f /tmp/instrument/kserverd /usr/local/tcp-server/kserverd
-# /bin/cp -f /usr/local/flask/tcp_server_local.conf /usr/local/tcp-server/kserver.conf
 /bin/systemctl start tcp-server.service
 
