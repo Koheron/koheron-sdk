@@ -94,9 +94,11 @@ ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
 # App
 S3_URL = http://zynq-sdk.s3-website-eu-west-1.amazonaws.com
-APP_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
-APP_URL = $(S3_URL)/app-$(APP_SHA).zip
-APP_ZIP = $(TMP)/app.zip
+STATIC_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
+STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
+STATIC_ZIP = $(TMP)/static.zip
+
+METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
@@ -290,12 +292,24 @@ zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 # app
 ###############################################################################
 
-app_sync: 
-	rsync -avz -e "ssh -i /ssh-private-key" os/api/. root@$(HOST):/usr/local/flask/api_app
+$(METADATA): $(TMP) $(VERSION_FILE)
+	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
 
-app: $(TMP)
-	echo $(APP_SHA)
-	curl -L $(APP_URL) -o $(APP_ZIP)
+app: $(METADATA)
+	mkdir -p $(TMP)/app/api_app
+	cp -R os/api/. $(TMP)/app/api_app
+	cp $(TMP)/metadata.json $(TMP)/app
+	cp os/wsgi.py $(TMP)/app
+	cd $(TMP)/app && zip -r app-$(VERSION).zip .
+
+app_sync: app
+	# rsync -avz -e "ssh -i /ssh-private-key" $(TMP)/app/. root@$(HOST):/usr/local/flask/
+	curl -v -F app-$(VERSION).zip=@$(TMP)/app/app-$(VERSION).zip http://$(HOST)/api/app/update
+
+static: $(TMP)
+	echo $(STATIC_SHA)
+	curl -L $(STATIC_URL) -o $(STATIC_ZIP)
+
 
 ###############################################################################
 # clean

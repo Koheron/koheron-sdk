@@ -33,7 +33,7 @@ class KoheronAPIApp(Flask):
             log('error', 'Cannot load config')
 
         try:
-            with open('../metadata.json', 'r') as f:
+            with open('metadata.json', 'r') as f:
                 self.metadata = json.load(f)
         except:
             log('error', 'Cannot load metadata')
@@ -42,7 +42,7 @@ class KoheronAPIApp(Flask):
         self.current_instrument = {'name': None, 'sha': None}
         self.start_last_deployed_instrument()
         self.get_instruments()
-        self.get_remote_apps()
+        self.get_remote_static()
         
     def get_release_description(self):
         try:
@@ -54,43 +54,45 @@ class KoheronAPIApp(Flask):
             log('warning', 'No remote connection. Cannot load release.')
             self.release = {}
 
-    def get_remote_apps(self):
+    def get_remote_static(self):
         if self.config['MODE'] == 'debug':
             try:
                 testfile = urllib.URLopener()
                 testfile.retrieve(self.config['S3_URL'] + 'apps', '/tmp/apps')
                 with open('/tmp/apps') as f:
-                    self.remote_apps = f.readline().split(' ')
+                    self.remote_static = f.readline().split(' ')
             except:
                 log('warning', 'No remote connection.')
-                self.remote_apps = []
+                self.remote_static = []
         else: # release
             if 'app' in self.release:
-                self.remote_apps = [self.release['app']]
+                self.remote_static = [self.release['app']]
             
         self.get_instrument_upgrades()
 
-    def upload_latest_app(self):
-        self.get_remote_apps()
+    def upload_latest_static(self):
+        self.get_remote_static()
 
-        if len(self.remote_apps) == 0:
-            log('error', 'No remote apps found.')
+        if len(self.remote_static) == 0:
+            log('error', 'No remote static found.')
             return -1
 
         try:
             testfile = urllib.URLopener()
-            url = self.config['S3_URL'] + 'app-' + self.remote_apps[0] + '.zip'
-            testfile.retrieve(url, '/usr/local/flask/app.zip')
+            url = self.config['S3_URL'] + 'app-' + self.remote_static[0] + '.zip'
+            testfile.retrieve(url, '/tmp/static.zip')
             return 0
         except:
             log('error', 'No remote connection. No app update performed.')
             return -1
 
-    def unzip_app(self):
-        subprocess.call(['/usr/bin/unzip', '-o', '/usr/local/flask/app.zip', '-d', '/usr/local/flask'])
+    def unzip_static(self):
+        if os.path.exists('/tmp/static'):
+            shutil.rmtree('/tmp/static')
+        subprocess.call(['/usr/bin/unzip', '-o', '/tmp/static.zip', '-d', '/tmp/static'])
 
-    def copy_ui_to_static(self):
-        copy_tree('/usr/local/flask/ui', '/var/www/ui')
+    def copy_static(self):
+        copy_tree('/tmp/static/ui', '/var/www/ui')
 
     # ------------------------
     # tcp-server client
@@ -316,6 +318,10 @@ class KoheronAPIApp(Flask):
         log('critical', 'No instrument found')
 
     def is_valid_instrument_file(self, filename):
+        filebase = os.path.basename(filename)
+        return '.' in filebase and filebase.rsplit('.', 1)[1] == 'zip'
+
+    def is_valid_app_file(self, filename):
         filebase = os.path.basename(filename)
         return '.' in filebase and filebase.rsplit('.', 1)[1] == 'zip'
         
