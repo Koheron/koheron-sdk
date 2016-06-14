@@ -39,10 +39,6 @@ def api_version():
 def remote_apps():
     return jsonify({'apps': api_app.remote_apps})
 
-
-
-
-
 # ------------------------
 # Board
 # ------------------------
@@ -71,7 +67,26 @@ def ping():
     api_app.ping()
     return make_response("Done !!")
 
+# ------------------------
+# Instruments
+# ------------------------
 
+@api_app.route('/api/instruments/update', methods=['GET'])
+def update_instruments():
+	return make_response("update instrument not implemented")
+
+@api_app.route('/api/instruments/run/<name>/<commit>', methods=['GET'])
+def update_instruments(name, commit):
+	return make_response("update instrument not implemented")
+
+@api_app.route('/api/instruments/delete/<name>/<commit>', methods=['GET'])
+def delete_instruments(name, commit):
+	return make_response("delete instrument not implemented")
+
+
+# ------------------------
+# Legacy
+# ------------------------
 
 @api_app.route('/api/upload/remote/<zip_filename>', methods=['GET', 'POST'])
 def upload_remote_instrument(zip_filename):
