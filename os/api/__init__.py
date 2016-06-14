@@ -33,7 +33,7 @@ class KoheronAPIApp(Flask):
             log('error', 'Cannot load config')
 
         try:
-            with open('../metadata.json', 'r') as f:
+            with open('metadata.json', 'r') as f:
                 self.metadata = json.load(f)
         except:
             log('error', 'Cannot load metadata')

@@ -6,6 +6,10 @@ import jinja2
 import yaml
 import sys
 import shutil
+import time
+import socket
+import getpass
+import json
 
 def get_list(project, prop, prop_list=None):
     if prop_list is None: 
@@ -142,6 +146,18 @@ if __name__ == "__main__":
         if not os.path.exists(dest):
             os.makedirs(dest)
         fill_addresses(config, dest)
+
+    elif cmd == '--metadata':
+        metadata = {
+          'version': sys.argv[3],
+          'date': time.strftime("%d/%m/%Y"),
+          'time': time.strftime("%H:%M:%S"),
+          'machine': socket.gethostname(),
+          'user': getpass.getuser()
+        }
+        
+        with open('tmp/metadata.json', 'w') as f:
+            json.dump(metadata, f)
 
     else:
         raise ValueError('Unknown command')
