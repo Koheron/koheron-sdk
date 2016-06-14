@@ -121,8 +121,8 @@ test: tests/$(NAME).py
 	python $<
 
 run: zip
-	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/upload/instrument_zip	
-	curl http://$(HOST)/api/deploy/local/$(NAME)-$(VERSION).zip
+	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
+	curl http://$(HOST)/api/instruments/run/$(NAME)/$(VERSION)
 
 ###############################################################################
 # versioning
@@ -308,6 +308,7 @@ app_sync: app
 static: $(TMP)
 	echo $(STATIC_SHA)
 	curl -L $(STATIC_URL) -o $(STATIC_ZIP)
+
 
 ###############################################################################
 # clean
