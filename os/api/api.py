@@ -76,12 +76,19 @@ def update_instruments():
 	return make_response("update instrument not implemented")
 
 @api_app.route('/api/instruments/run/<name>/<sha>', methods=['GET'])
-def update_instruments(name, sha):
-	return make_response("update instrument not implemented")
+def run_instrument(name, sha):
+    zip_filename = '{}-{}.zip'.format(name, sha)
+    filename = os.path.join(api_app.config['INSTRUMENTS_DIR'], secure_filename(zip_filename))
+    status = api_app.install_instrument(filename)
+    return make_response('Instrument ' + zip_filename + ' installed with status: ' + str(status))
 
 @api_app.route('/api/instruments/delete/<name>/<sha>', methods=['GET'])
-def delete_instruments(name, sha):
-	return make_response("delete instrument not implemented")
+def delete_instrument(name, sha):
+	zip_filename = '{}-{}.zip'.format(name, sha)
+	filename = secure_filename(zip_filename)
+	api_app.delete_uploaded_instrument(filename)
+    api_app.remove_local_instrument(filename)
+    return make_response('File ' + zip_filename + ' removed.')
 
 @api_app.route('/api/instruments/upload', methods=['POST'])
 def upload_instrument():
