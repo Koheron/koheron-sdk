@@ -1,0 +1,4 @@
+# Drivers required for the HTTP API
+
+- drivers:
+  - drivers/common/__init__.py
