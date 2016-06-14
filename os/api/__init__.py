@@ -37,6 +37,7 @@ class KoheronAPIApp(Flask):
                 self.metadata = json.load(f)
         except:
             log('error', 'Cannot load metadata')
+            self.metadata = {}
             
         self.current_instrument = {'name': None, 'sha': None}
         self.start_last_deployed_instrument()
