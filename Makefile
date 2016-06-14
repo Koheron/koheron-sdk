@@ -301,9 +301,10 @@ app: $(METADATA)
 	cp $(TMP)/metadata.json $(TMP)/app
 	cp os/wsgi.py $(TMP)/app
 	cd $(TMP)/app && zip -r app-$(VERSION).zip .
- 
+
 app_sync: app
-	rsync -avz -e "ssh -i /ssh-private-key" $(TMP)/app/. root@$(HOST):/usr/local/flask/
+	# rsync -avz -e "ssh -i /ssh-private-key" $(TMP)/app/. root@$(HOST):/usr/local/flask/
+	curl -v -F app-$(VERSION).zip=@$(TMP)/app/app-$(VERSION).zip http://$(HOST)/api/app/update
 
 static: $(TMP)
 	echo $(STATIC_SHA)
