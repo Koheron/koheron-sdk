@@ -99,6 +99,8 @@ def get_renderer():
 
     return renderer
 
+
+
 ###################
 # Main
 ###################
@@ -117,7 +119,9 @@ if __name__ == "__main__":
     reload(sys)
     sys.setdefaultencoding('utf-8')
 
+    # TODO move above in get_config
     config = get_config(project)
+
 
     if cmd == '--config_tcl':
         fill_config_tcl(config)
@@ -147,6 +151,8 @@ if __name__ == "__main__":
             os.makedirs(dest)
         fill_addresses(config, dest)
 
+    # -- HTTP API
+
     elif cmd == '--metadata':
         metadata = {
           'version': sys.argv[3],
@@ -155,9 +161,15 @@ if __name__ == "__main__":
           'machine': socket.gethostname(),
           'user': getpass.getuser()
         }
-        
-        with open('tmp/metadata.json', 'w') as f:
+
+         with open('tmp/metadata.json', 'w') as f:
             json.dump(metadata, f)
+
+    elif cmd == '--http_api_requirements':
+        with open('os/api/requirements.yml', 'w') as f:
+            reqs = yaml.load(f)
+        with open('tmp/http_api.drivers', 'w') as f:
+            f.write(' '.join(reqs['drivers']))
 
     else:
         raise ValueError('Unknown command')

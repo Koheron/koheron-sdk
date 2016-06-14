@@ -98,6 +98,9 @@ STATIC_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
 STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
 STATIC_ZIP = $(TMP)/static.zip
 
+HTTP_API_REQUIREMENTS=os/api/requirements.yml
+HTTP_API_DRIVERS=$(TMP)/http_api.drivers
+
 METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
@@ -293,7 +296,10 @@ zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 ###############################################################################
 
 $(METADATA): $(TMP) $(VERSION_FILE)
-	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
+	
+
+$(HTTP_API_DRIVERS): $(HTTP_API_REQUIREMENTS)
+	python $(MAKE_PY) ----http_api_requirements $(HTTP_API_REQUIREMENTS) $(HTTP_API_DRIVERS)
 
 app: $(METADATA)
 	mkdir -p $(TMP)/app/api_app
