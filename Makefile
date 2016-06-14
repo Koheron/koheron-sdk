@@ -120,7 +120,7 @@ test: tests/$(NAME).py
 
 run: zip
 	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
-	curl http://$(HOST)/api/deploy/local/$(NAME)-$(VERSION).zip
+	curl http://$(HOST)/api/instruments/run/$(NAME)/$(VERSION)
 
 ###############################################################################
 # versioning
