@@ -109,14 +109,8 @@ class KoheronAPIApp(Flask):
 
     def _init_tcp_server(self):
         @command('COMMON')
-        def open(self):
-            return self.client.recv_int32()
-
-        open(self)
-
-        @command('COMMON')
-        def init(self): pass
-
+        def init(self):
+            pass
         init(self)
 
     @command('COMMON')
@@ -145,6 +139,9 @@ class KoheronAPIApp(Flask):
             time.sleep(0.01)
             self.set_led(i)
         self.set_led(val)
+
+
+
 
     # ------------------------
     # Instruments
