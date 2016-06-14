@@ -39,19 +39,39 @@ def api_version():
 def remote_apps():
     return jsonify({'apps': api_app.remote_apps})
 
-@api_app.route('/api/reboot', methods=['GET'])
+
+
+
+
+# ------------------------
+# Board
+# ------------------------
+
+@api_app.route('/api/board/reboot', methods=['GET'])
 def reboot():
     subprocess.call(['/sbin/reboot'])
     return make_response('Rebooting system ...')
 
-@api_app.route('/api/ping', methods=['GET','POST'])
+@api_app.route('/api/board/version', methods=['GET'])
+def version():
+	with open('/etc/zynq_sdk_version','r') as f:
+		zynq_sdk_version = f.read()
+    return jsonify({'zynq-sdk': zynq_sdk_version})
+
+@api_app.route('/api/board/dna', methods=['GET'])
+def dna():
+    return make_response(api_app.get_dna())
+
+@api_app.route('/api/board/bitstream_id', methods=['GET'])
+def bitstream_id():
+    return make_response(api_app.get_bitstream_id())
+
+@api_app.route('/api/board/ping', methods=['GET'])
 def ping():
     api_app.ping()
     return make_response("Done !!")
 
-@api_app.route('/api/bitstream_id', methods=['GET'])
-def bitstream_id():
-    return make_response(api_app.get_bitstream_id())
+
 
 @api_app.route('/api/upload/remote/<zip_filename>', methods=['GET', 'POST'])
 def upload_remote_instrument(zip_filename):
