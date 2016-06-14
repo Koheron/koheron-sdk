@@ -99,8 +99,8 @@ STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
 STATIC_ZIP = $(TMP)/static.zip
 
 HTTP_API_REQUIREMENTS=os/api/requirements.yml
-HTTP_API_DRIVERS=$(TMP)/http_api.drivers
-APP_ZIP=app-$(VERSION).zip
+HTTP_API_DRIVERS_PACKAGE=$(TMP)/app/api_app/drivers
+HTTP_API_ZIP=app-$(VERSION).zip
 
 METADATA = $(TMP)/metadata.json
 
@@ -299,21 +299,27 @@ zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 $(METADATA): $(TMP) $(VERSION_FILE)
 	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
 
-$(HTTP_API_DRIVERS): $(HTTP_API_REQUIREMENTS)
-	python $(MAKE_PY) --http_api_requirements $(HTTP_API_REQUIREMENTS) $(HTTP_API_DRIVERS)
+$(HTTP_API_DRIVERS_PACKAGE):
+	mkdir -p $(HTTP_API_DRIVERS_PACKAGE)
+	python $(MAKE_PY) --http_api_requirements $(HTTP_API_REQUIREMENTS)
+	cp drivers/__init__.py $(HTTP_API_DRIVERS_PACKAGE)
 
-app: $(METADATA) $(HTTP_API_DRIVERS)
+app: $(METADATA) $(HTTP_API_DRIVERS_PACKAGE)
 	mkdir -p $(TMP)/app/api_app
 	cp -R os/api/. $(TMP)/app/api_app
 	cp $(TMP)/metadata.json $(TMP)/app
 	cp os/wsgi.py $(TMP)/app
 
-$(APP_ZIP):
-	cd $(TMP)/app && zip -r $(APP_ZIP) .
+$(HTTP_API_ZIP):
+	cd $(TMP)/app && zip -r $(HTTP_API_ZIP) .
 
-app_sync: app $(APP_ZIP)
+app_sync: app $(HTTP_API_ZIP)
 	# rsync -avz -e "ssh -i /ssh-private-key" $(TMP)/app/. root@$(HOST):/usr/local/flask/
-	curl -v -F app-$(VERSION).zip=@$(TMP)/app/$(APP_ZIP) http://$(HOST)/api/app/update
+	curl -v -F app-$(VERSION).zip=@$(TMP)/app/$(HTTP_API_ZIP) http://$(HOST)/api/app/update
+
+###############################################################################
+# static
+###############################################################################
 
 static: $(TMP)
 	echo $(STATIC_SHA)

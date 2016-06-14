@@ -1,2 +1,2 @@
 drivers:
-  - drivers/common/__init_.py
+  - drivers/common/__init__.py
