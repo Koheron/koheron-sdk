@@ -102,7 +102,7 @@ METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli static
+all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli static app
 
 $(TMP):
 	mkdir -p $(TMP)
