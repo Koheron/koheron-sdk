@@ -14,14 +14,7 @@ api_app.config['UPLOAD_FOLDER'] = '/tmp'
 # API
 # ------------------------
 
-@api_app.route('/api/upload_latest_app', methods=['GET'])
-def upload_latest_app():
-    if api_app.upload_latest_app() < 0:
-        return make_response('failure')
-    else:
-        return make_response('success')
-
-@api_app.route('/api/upgrade_app', methods=['GET'])
+@api_app.route('/api/app/update', methods=['GET'])
 def upgrade_app():
     if api_app.upload_latest_app() < 0:
         return make_response('failure')
@@ -29,13 +22,13 @@ def upgrade_app():
        api_app.unzip_app()
        api_app.copy_ui_to_static()
        uwsgi.reload()
-       return make_response('Upgrading')
+       return make_response('Updating app')
 
 @api_app.route('/api/version', methods=['GET'])
 def api_version():
     return jsonify(api_app.metadata)
 
-@api_app.route('/api/remote_apps', methods=['GET'])
+@api_app.route('/api/app/remote', methods=['GET'])
 def remote_apps():
     return jsonify({'apps': api_app.remote_apps})
 
