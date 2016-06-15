@@ -48,6 +48,9 @@ def load_config(project):
     return config
 
 def get_config(project):
+    if project not in os.listdir('projects'):
+        raise RuntimeError('Unknown project ' + project)
+
     config = load_config(project)
     # Get missing elements from ancestors
     lists = ['cores','xdc']
@@ -105,10 +108,6 @@ def get_renderer():
 
 if __name__ == "__main__":
     cmd = sys.argv[1]
-    project = sys.argv[2]
-
-    if project not in os.listdir('projects'):
-        raise RuntimeError('Unknown project ' + project)
 
     tmp_dir = 'tmp'
     if not os.path.exists(tmp_dir):
@@ -117,20 +116,23 @@ if __name__ == "__main__":
     reload(sys)
     sys.setdefaultencoding('utf-8')
 
-    config = get_config(project)
-
     if cmd == '--config_tcl':
-        fill_config_tcl(config)
+        fill_config_tcl(get_config(sys.argv[2]))
 
     elif cmd == '--cores':
+        project = sys.argv[2]
+        config = get_config(project)
         with open(os.path.join('tmp', project + '.cores'), 'w') as f:
             f.write(' '.join(config['cores']))
 
     elif cmd == '--board':
+        project = sys.argv[2]
+        config = get_config(project)
         with open(os.path.join('tmp', project + '.board'), 'w') as f:
             f.write(config['board'])
 
     elif cmd == '--drivers':
+        project = sys.argv[2]
         drivers_filename = os.path.join('projects', project, 'drivers.yml')    
         with open(drivers_filename) as drivers_file:
             drivers = yaml.load(drivers_file) 
@@ -138,14 +140,20 @@ if __name__ == "__main__":
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
 
     elif cmd == '--xdc':
+        project = sys.argv[2]
+        config = get_config(project)
         with open(os.path.join('tmp', project + '.xdc'), 'w') as f:
             f.write(' '.join(config['xdc']))
 
     elif cmd == '--middleware':
+        project = sys.argv[2]
+        config = get_config(project)
         dest =  'tmp/' + project + '.middleware/drivers'
         if not os.path.exists(dest):
             os.makedirs(dest)
         fill_addresses(config, dest)
+
+    # -- HTTP API
 
     elif cmd == '--metadata':
         metadata = {
@@ -155,9 +163,22 @@ if __name__ == "__main__":
           'machine': socket.gethostname(),
           'user': getpass.getuser()
         }
-        
+
         with open('tmp/metadata.json', 'w') as f:
             json.dump(metadata, f)
+
+    elif cmd == '--http_api_requirements':
+        with open(sys.argv[2]) as f:
+            reqs = yaml.load(f)
+
+        for driver in reqs['drivers']:
+            driver_dest = os.path.join('tmp/app/api_app/', driver)
+
+            if not os.path.exists(driver_dest):
+                print 'Create ' + os.path.dirname(driver_dest)
+                os.makedirs(os.path.dirname(driver_dest))
+
+            shutil.copyfile(driver, driver_dest)
 
     else:
         raise ValueError('Unknown command')
