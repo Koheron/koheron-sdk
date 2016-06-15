@@ -314,8 +314,11 @@ $(HTTP_API_ZIP):
 	cd $(TMP)/app && zip -r $(HTTP_API_ZIP) .
 
 app_sync: app $(HTTP_API_ZIP)
-	# rsync -avz -e "ssh -i /ssh-private-key" $(TMP)/app/. root@$(HOST):/usr/local/flask/
 	curl -v -F app-$(VERSION).zip=@$(TMP)/app/$(HTTP_API_ZIP) http://$(HOST)/api/app/update
+
+# To use if uwsgi is not running
+app_sync_ssh: app $(HTTP_API_ZIP)
+	rsync -avz -e "ssh -i /ssh-private-key" $(TMP)/app/. root@$(HOST):/usr/local/flask/
 
 ###############################################################################
 # static

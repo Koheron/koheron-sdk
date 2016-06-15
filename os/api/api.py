@@ -64,11 +64,11 @@ def version():
 
 @api_app.route('/api/board/dna', methods=['GET'])
 def dna():
-    return make_response(api_app.get_dna())
+    return make_response(api_app.common.get_dna())
 
 @api_app.route('/api/board/bitstream_id', methods=['GET'])
 def bitstream_id():
-    return make_response(api_app.get_bitstream_id())
+    return make_response(api_app.common.get_bitstream_id())
 
 @api_app.route('/api/board/ping', methods=['GET'])
 def ping():
