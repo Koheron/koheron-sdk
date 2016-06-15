@@ -11,17 +11,8 @@ import uwsgi
 api_app.config['UPLOAD_FOLDER'] = '/tmp'
 
 # ------------------------
-# API
+# HTTP API base functions
 # ------------------------
-
-@api_app.route('/api/static/update', methods=['GET'])
-def update_static():
-    if api_app.upload_latest_static() < 0:
-        return make_response('Upload failed')
-    else:
-       api_app.unzip_static()
-       api_app.copy_static()
-       return make_response('Updating app')
 
 @api_app.route('/api/app/update', methods=['POST'])
 def upgrade_app():
@@ -42,6 +33,19 @@ def api_version():
 @api_app.route('/api/app/remote', methods=['GET'])
 def remote_apps():
     return jsonify({'apps': api_app.remote_apps})
+
+# ------------------------
+# Static
+# ------------------------
+
+@api_app.route('/api/static/update', methods=['GET'])
+def update_static():
+    if api_app.upload_latest_static() < 0:
+        return make_response('Upload failed')
+    else:
+       api_app.unzip_static()
+       api_app.copy_static()
+       return make_response('Updating app')
 
 # ------------------------
 # Board
@@ -123,3 +127,9 @@ def get_local_instruments():
 @api_app.route('/api/instruments/current', methods=['GET'])
 def get_current_instrument():
     return jsonify(api_app.current_instrument)
+
+@api_app.route('/api/instruments/restore', methods=['GET'])
+def restore_backup_instruments():
+    api_app.restore_backup()
+    api_app.get_instruments()
+    return make_response('Backup instruments restored.')

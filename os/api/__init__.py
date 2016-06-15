@@ -308,14 +308,18 @@ class KoheronAPIApp(Flask):
                     return
                 
         log('error', 'No instrument found: Load backup')
-        backup_dir = os.path.join(self.config['INSTRUMENTS_DIR'], 'backup')
-        copy_tree(backup_dir, self.config['INSTRUMENTS_DIR'])
+        backup_dir = self.restore_backup()
         for filename in os.listdir(backup_dir):
             if self.is_valid_instrument_file(filename):
                 self.install_instrument(os.path.join(backup_dir, filename))
                 return
                 
         log('critical', 'No instrument found')
+
+    def restore_backup(self):
+        backup_dir = os.path.join(self.config['INSTRUMENTS_DIR'], 'backup')
+        copy_tree(backup_dir, self.config['INSTRUMENTS_DIR'])
+        return backup_dir
 
     def is_valid_instrument_file(self, filename):
         filebase = os.path.basename(filename)
