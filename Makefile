@@ -106,7 +106,7 @@ METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli app
+all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli static app
 
 $(TMP):
 	mkdir -p $(TMP)
@@ -298,6 +298,7 @@ zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 
 $(METADATA): $(TMP) $(VERSION_FILE)
 	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
+
 
 $(HTTP_API_DRIVERS_PACKAGE):
 	mkdir -p $(HTTP_API_DRIVERS_PACKAGE)
