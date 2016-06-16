@@ -17,6 +17,7 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
     raw_data_1 = dvm.read_buffer<int32_t>(adc_1_map);
     raw_data_2 = dvm.read_buffer<int32_t>(adc_2_map);
 
+    dvm.write32(config_map, DAC_SELECT_OFF, 0 + (1 << 2));
     set_averaging(false); // Reset averaging
     set_period(WFM_SIZE);
     set_n_avg_min(0);
