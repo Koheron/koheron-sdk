@@ -11,7 +11,8 @@ import yaml
 from distutils.dir_util import copy_tree
 
 from flask import Flask, render_template, request, url_for
-from koheron_tcp_client import KClient, command
+from koheron_tcp_client import KClient
+from drivers.common import Common
 
 def log(severity, message):
     print("[" + severity + "] " + message)
@@ -37,11 +38,12 @@ class KoheronAPIApp(Flask):
                 self.metadata = json.load(f)
         except:
             log('error', 'Cannot load metadata')
+            self.metadata = {}
             
         self.current_instrument = {'name': None, 'sha': None}
         self.start_last_deployed_instrument()
         self.get_instruments()
-        self.get_remote_apps()
+        self.get_remote_static()
         
     def get_release_description(self):
         try:
@@ -53,43 +55,45 @@ class KoheronAPIApp(Flask):
             log('warning', 'No remote connection. Cannot load release.')
             self.release = {}
 
-    def get_remote_apps(self):
+    def get_remote_static(self):
         if self.config['MODE'] == 'debug':
             try:
                 testfile = urllib.URLopener()
                 testfile.retrieve(self.config['S3_URL'] + 'apps', '/tmp/apps')
                 with open('/tmp/apps') as f:
-                    self.remote_apps = f.readline().split(' ')
+                    self.remote_static = f.readline().split(' ')
             except:
                 log('warning', 'No remote connection.')
-                self.remote_apps = []
+                self.remote_static = []
         else: # release
             if 'app' in self.release:
-                self.remote_apps = [self.release['app']]
+                self.remote_static = [self.release['app']]
             
         self.get_instrument_upgrades()
 
-    def upload_latest_app(self):
-        self.get_remote_apps()
+    def upload_latest_static(self):
+        self.get_remote_static()
 
-        if len(self.remote_apps) == 0:
-            log('error', 'No remote apps found.')
+        if len(self.remote_static) == 0:
+            log('error', 'No remote static found.')
             return -1
 
         try:
             testfile = urllib.URLopener()
-            url = self.config['S3_URL'] + 'app-' + self.remote_apps[0] + '.zip'
-            testfile.retrieve(url, '/usr/local/flask/app.zip')
+            url = self.config['S3_URL'] + 'app-' + self.remote_static[0] + '.zip'
+            testfile.retrieve(url, '/tmp/static.zip')
             return 0
         except:
             log('error', 'No remote connection. No app update performed.')
             return -1
 
-    def unzip_app(self):
-        subprocess.call(['/usr/bin/unzip', '-o', '/usr/local/flask/app.zip', '-d', '/usr/local/flask'])
+    def unzip_static(self):
+        if os.path.exists('/tmp/static'):
+            shutil.rmtree('/tmp/static')
+        subprocess.call(['/usr/bin/unzip', '-o', '/tmp/static.zip', '-d', '/tmp/static'])
 
-    def copy_ui_to_static(self):
-        copy_tree('/usr/local/flask/ui', '/var/www/ui')
+    def copy_static(self):
+        copy_tree('/tmp/static/ui', '/var/www/ui')
 
     # ------------------------
     # tcp-server client
@@ -98,37 +102,19 @@ class KoheronAPIApp(Flask):
     def start_client(self):
         self.stop_client()
         self.client = KClient('127.0.0.1', verbose=False)
-        self._init_tcp_server()
+        self.common = Common(self.client)
+        self.common.init()
 
     def stop_client(self):
         if hasattr(self, 'client'):
             self.client.__del__()
 
-    def _init_tcp_server(self):
-        @command('COMMON')
-        def open(self):
-            return self.client.recv_int32()
-
-        open(self)
-
-        @command('COMMON')
-        def init(self): pass
-
-        init(self)
-
     def ping(self):
-        @command('COMMON', 'I')
-        def set_led(self, value): pass
-
-        @command('COMMON')
-        def get_led(self): 
-            return self.client.recv_uint32()
-
-        val = get_led(self)
+        val = self.common.get_led()
         for i in range(255):
             time.sleep(0.01)
-            set_led(self, i)
-        set_led(self, val)
+            self.common.set_led(i)
+        self.common.set_led(val)
 
     # ------------------------
     # Instruments
@@ -225,12 +211,12 @@ class KoheronAPIApp(Flask):
 
     def is_bitstream_id_valid(self):
         try:
-            id_ = self.get_bitstream_id()
+            id_ = self.common.get_bitstream_id()
         except:
             log('error', 'Cannot read bitstream ID. Retrying ...')
             try:
                 time.sleep(0.2)
-                id_ = self.get_bitstream_id()
+                id_ = self.common.get_bitstream_id()
             except:
                 log('error', 'Failed to retrieve bitstream ID.')
                 return False
@@ -243,11 +229,6 @@ class KoheronAPIApp(Flask):
                   + '\n* Expected:\n' + hash_.hexdigest())
             return False
         return True
-
-    @command('COMMON')
-    def get_bitstream_id(self):
-        id_array = self.client.recv_buffer(8, data_type='uint32')
-        return ''.join('{:08x}'.format(i) for i in id_array)
 
     def store_last_deployed_zip(self, zip_filename):
         zip_store_filename = os.path.join(self.config['INSTRUMENTS_DIR'], 
@@ -297,8 +278,7 @@ class KoheronAPIApp(Flask):
                     return
                 
         log('error', 'No instrument found: Load backup')
-        backup_dir = os.path.join(self.config['INSTRUMENTS_DIR'], 'backup')
-        copy_tree(backup_dir, self.config['INSTRUMENTS_DIR'])
+        backup_dir = self.restore_backup()
         for filename in os.listdir(backup_dir):
             if self.is_valid_instrument_file(filename):
                 self.install_instrument(os.path.join(backup_dir, filename))
@@ -306,7 +286,16 @@ class KoheronAPIApp(Flask):
                 
         log('critical', 'No instrument found')
 
+    def restore_backup(self):
+        backup_dir = os.path.join(self.config['INSTRUMENTS_DIR'], 'backup')
+        copy_tree(backup_dir, self.config['INSTRUMENTS_DIR'])
+        return backup_dir
+
     def is_valid_instrument_file(self, filename):
+        filebase = os.path.basename(filename)
+        return '.' in filebase and filebase.rsplit('.', 1)[1] == 'zip'
+
+    def is_valid_app_file(self, filename):
         filebase = os.path.basename(filename)
         return '.' in filebase and filebase.rsplit('.', 1)[1] == 'zip'
         

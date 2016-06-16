@@ -3,7 +3,7 @@ name=$2
 version=$3
 
 config_dir=os
-api_dir=os/api
+http_app_dir=tmp/app
 
 boot_dir=/tmp/BOOT
 root_dir=/tmp/ROOT
@@ -59,10 +59,10 @@ cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 
 # Add Web app
 mkdir $root_dir/usr/local/flask
-mkdir $root_dir/usr/local/flask/api_app
-cp -a $api_dir/. $root_dir/usr/local/flask/api_app
+mkdir $root_dir/usr/local/flask
+cp -a $http_app_dir/. $root_dir/usr/local/flask
 cp $config_dir/wsgi.py $root_dir/usr/local/flask
-unzip -o tmp/app.zip -d $root_dir/var/www
+unzip -o tmp/static.zip -d $root_dir/var/www
 
 # Add Koheron TCP Server
 mkdir $root_dir/usr/local/tcp-server
