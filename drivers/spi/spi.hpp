@@ -10,7 +10,13 @@ class Spi
   public:
     Spi(Klib::DevMem& dvm_) {}
 
-    void dummy(uint32_t u) {}
+    int init(uint32_t mode) {
+        spi_dev = SpiDev(mode);
+        return spi_dev.init();
+    }
+
+  private:
+    SpiDev spi_dev;
 };
 
 #endif // __DRIVERS_SPI_SPI_HPP__
