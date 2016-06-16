@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_CORE_DEV_MEM_HPP__
-#define __DRIVERS_CORE_DEV_MEM_HPP__
+#ifndef __DRIVERS_LIB_DEV_MEM_HPP__
+#define __DRIVERS_LIB_DEV_MEM_HPP__
 
 #include <map>
 #include <vector>
@@ -238,4 +238,4 @@ int DevMem::CheckMaps(map_id... id)
 
 }; // namespace Klib
 
-#endif // __DRIVERS_CORE_DEV_MEM_HPP__
+#endif // __DRIVERS_LIB_DEV_MEM_HPP__
