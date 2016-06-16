@@ -4,49 +4,49 @@ import numpy as np
 
 from koheron_tcp_client import command, write_buffer
 
-class At93c46d(object):
+class Eeprom(object):
 
     def __init__(self, client):
         self.client = client
 
         if self.open() < 0:
-            print('Cannot open device AT93C46D')
+            print('Cannot open device Eeprom')
        
-    @command('AT93C46D')
+    @command('EEPROM')
     def open(self):
         return self.client.recv_int32()
 
-    @command('AT93C46D','I')
+    @command('EEPROM','I')
     def read(self, addr):
         return self.client.recv_uint32()
 
-    @command('AT93C46D')
+    @command('EEPROM')
     def write_enable(self):
         pass
 
-    @command('AT93C46D','I')
+    @command('EEPROM','I')
     def erase(self, addr):
         pass
 
-    @command('AT93C46D','II')
+    @command('EEPROM','II')
     def write(self, addr, data_in):
         pass
 
-    @command('AT93C46D')
+    @command('EEPROM')
     def erase_all(self):
         pass
 
-    @command('AT93C46D','I')
+    @command('EEPROM','I')
     def write_all(self, data_in):
         pass
 
-    @command('AT93C46D')
+    @command('EEPROM')
     def erase_write_disable(self):
         pass
 
     def test(self, verbose=True):
         if verbose:
-            print('Testing AT93C46D driver')
+            print('Testing EEPROM driver')
         self.write_enable()
         addr = 12
         val = 42
