@@ -175,7 +175,7 @@ if __name__ == "__main__":
             driver_dest = os.path.join('tmp/app/api_app/', driver)
 
             if not os.path.exists(driver_dest):
-                print 'Create ' + os.path.dirname(driver_dest)
+                print('Create ' + os.path.dirname(driver_dest))
                 os.makedirs(os.path.dirname(driver_dest))
 
             shutil.copyfile(driver, driver_dest)
