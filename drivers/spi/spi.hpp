@@ -1,3 +1,4 @@
+/// Interface for remote SPI control and prototyping
 
 #ifndef __DRIVERS_SPI_SPI_HPP__
 #define __DRIVERS_SPI_SPI_HPP__
