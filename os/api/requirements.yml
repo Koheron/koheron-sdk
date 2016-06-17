@@ -1,3 +1,4 @@
 drivers:
   - drivers/common/__init__.py
   - drivers/eeprom/__init__.py
+  - drivers/laser/__init__.py

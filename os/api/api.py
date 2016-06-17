@@ -75,17 +75,34 @@ def ping():
     api_app.ping()
     return make_response("Done !!")
 
-@api_app.route('/api/board/eeprom/write/<address>/<value>', methods=['GET'])
-def write_eeprom(address, value):
-    api_app.eeprom.write_enable()
-    api_app.eeprom.write(address, value)
-    return make_response("eeprom written...")
+# ------------------------
+# Laser 
+# ------------------------
 
-@api_app.route('/api/board/eeprom/read/<address>', methods=['GET'])
-def write_eeprom(address, value):
-    val = api_app.eeprom.read(address)
-    return make_response("eeprom value = {}".format(val))
+@api_app.route('/api/laser/current/<current>', methods=['GET'])
+def set_laser_current(current):
+    api_app.laser.set_laser_current(current)
+    return make_response('Laser current set to {} mA'.format(current))
 
+@api_app.route('/api/laser/save', methods=['GET'])
+def save_laser_config():
+    api_app.laser.save_config()
+    return make_response('Laser configuration saved')
+
+@api_app.route('/api/laser/load', methods=['GET'])
+def load_laser_config():
+    api_app.laser.load_config()
+    return make_response('Laser configuration loaded')
+
+@api_app.route('/api/laser/stop', methods=['GET'])
+def stop_laser():
+    api_app.laser.stop_laser()
+    return make_response('Laser stopped')
+
+@api_app.route('/api/laser/start', methods=['GET'])
+def start_laser():
+    api_app.laser.start_laser()
+    return make_response('Laser started')
 
 # ------------------------
 # Instruments
