@@ -11,18 +11,20 @@ import uwsgi
 api_app.config['UPLOAD_FOLDER'] = '/tmp'
 
 # ------------------------
-# API
+# HTTP API base functions
 # ------------------------
 
-@api_app.route('/api/app/update', methods=['GET'])
+@api_app.route('/api/app/update', methods=['POST'])
 def upgrade_app():
-    if api_app.upload_latest_app() < 0:
-        return make_response('failure')
-    else:
-       api_app.unzip_app()
-       api_app.copy_ui_to_static()
-       uwsgi.reload()
-       return make_response('Updating app')
+    if request.method == 'POST':
+        file_ = next((file_ for file_ in request.files if api_app.is_valid_app_file(file_)), None)
+        if file_ is not None:
+            filename = secure_filename(file_)
+            request.files[file_].save(os.path.join(api_app.config['UPLOAD_FOLDER'], filename))
+            tmp_file = os.path.join('/tmp/', filename)
+            subprocess.call(['/usr/bin/unzip', '-o', tmp_file, '-d', '/usr/local/flask'])
+            uwsgi.reload()
+            return make_response('Updating app')
 
 @api_app.route('/api/version', methods=['GET'])
 def api_version():
@@ -31,6 +33,19 @@ def api_version():
 @api_app.route('/api/app/remote', methods=['GET'])
 def remote_apps():
     return jsonify({'apps': api_app.remote_apps})
+
+# ------------------------
+# Static
+# ------------------------
+
+@api_app.route('/api/static/update', methods=['GET'])
+def update_static():
+    if api_app.upload_latest_static() < 0:
+        return make_response('Upload failed')
+    else:
+       api_app.unzip_static()
+       api_app.copy_static()
+       return make_response('Updating app')
 
 # ------------------------
 # Board
@@ -49,16 +64,28 @@ def version():
 
 @api_app.route('/api/board/dna', methods=['GET'])
 def dna():
-    return make_response(api_app.get_dna())
+    return make_response(api_app.common.get_dna())
 
 @api_app.route('/api/board/bitstream_id', methods=['GET'])
 def bitstream_id():
-    return make_response(api_app.get_bitstream_id())
+    return make_response(api_app.common.get_bitstream_id())
 
 @api_app.route('/api/board/ping', methods=['GET'])
 def ping():
     api_app.ping()
     return make_response("Done !!")
+
+@api_app.route('/api/board/eeprom/write/<address>/<value>', methods=['GET'])
+def write_eeprom(address, value):
+    api_app.eeprom.write_enable()
+    api_app.eeprom.write(address, value)
+    return make_response("eeprom written...")
+
+@api_app.route('/api/board/eeprom/read/<address>', methods=['GET'])
+def write_eeprom(address, value):
+    val = api_app.eeprom.read(address)
+    return make_response("eeprom value = {}".format(val))
+
 
 # ------------------------
 # Instruments
@@ -112,3 +139,9 @@ def get_local_instruments():
 @api_app.route('/api/instruments/current', methods=['GET'])
 def get_current_instrument():
     return jsonify(api_app.current_instrument)
+
+@api_app.route('/api/instruments/restore', methods=['GET'])
+def restore_backup_instruments():
+    api_app.restore_backup()
+    api_app.get_instruments()
+    return make_response('Backup instruments restored.')

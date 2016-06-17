@@ -11,7 +11,7 @@
 #include <drivers/addresses.hpp>
 #include <drivers/xadc/xadc.hpp>
 #include <drivers/gpio/gpio.hpp>
-#include <drivers/at93c46d/at93c46d.hpp>
+#include <drivers/eeprom/eeprom.hpp>
 
 #include <thread>
 #include <chrono>
@@ -98,7 +98,7 @@ class Laser
 
     Xadc xadc;
     Gpio gpio;
-    At93c46d eeprom;
+    Eeprom eeprom;
 };
 
 #endif // __DRIVERS_LASER_HPP__

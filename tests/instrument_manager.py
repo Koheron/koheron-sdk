@@ -2,6 +2,7 @@
 
 import requests
 import time
+import hashlib
 
 class InstrumentManager:
     def __init__(self, ip, port=80):
@@ -17,6 +18,10 @@ class InstrumentManager:
 
     def ping(self):
         r = requests.get(self.url + '/api/board/ping')
+
+    def get_board_version(self):
+        r = requests.get(self.url + '/api/board/version')
+        return r
         
     def deploy_local_instrument(self, name, version):
         """ Deploy a locally available instrument
@@ -66,9 +71,20 @@ class InstrumentManager:
                     return
         raise ValueError("Instrument " + instrument_name + " not found")
 
+
+# Unit tests
+
+@pytest.mark.parametrize('im', [im])
+def test_bitstream_id(im):
+    assert True
+
+
 if __name__ == "__main__":
     host = os.getenv(HOST, '192.168.1.100')
     name = os.getenv(NAME, '')
     im = InstrumentManager(host)
     im.install_instrument(name)
+
+
+
     print('bitstream id = {}'.format(http.get_bistream_id()))
