@@ -81,7 +81,7 @@ def ping():
 
 @api_app.route('/api/laser/current/<current>', methods=['GET'])
 def set_laser_current(current):
-    api_app.laser.set_laser_current(current)
+    api_app.laser.set_laser_current(float(current))
     return make_response('Laser current set to {} mA'.format(current))
 
 @api_app.route('/api/laser/save', methods=['GET'])

@@ -297,7 +297,6 @@ zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 $(METADATA): $(TMP) $(VERSION_FILE)
 	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
 
-
 $(HTTP_API_DRIVERS_PACKAGE):
 	mkdir -p $(HTTP_API_DRIVERS_PACKAGE)
 	python $(MAKE_PY) --http_api_requirements $(HTTP_API_REQUIREMENTS)
@@ -326,7 +325,6 @@ app_sync_ssh: app $(HTTP_API_ZIP)
 static: $(TMP)
 	echo $(STATIC_SHA)
 	curl -L $(STATIC_URL) -o $(STATIC_ZIP)
-
 
 ###############################################################################
 # clean
