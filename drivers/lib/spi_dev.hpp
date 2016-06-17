@@ -21,7 +21,10 @@ class SpiDev
 
     int init();
 
-    int write_buffer(const uint32_t *buffer, uint32_t len) {return write(fd, buffer, len * sizeof(uint32_t));}
+    template<typename T>
+    int write_buffer(const T *buffer, uint32_t len) {
+        return write(fd, buffer, len * sizeof(T));
+    }
 
   private:
     uint32_t mode;
