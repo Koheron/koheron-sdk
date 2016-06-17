@@ -75,6 +75,18 @@ def ping():
     api_app.ping()
     return make_response("Done !!")
 
+@api_app.route('/api/board/eeprom/write/<address>/<value>', methods=['GET'])
+def write_eeprom(address, value):
+    api_app.eeprom.write_enable()
+    api_app.eeprom.write(address, value)
+    return make_response("eeprom written...")
+
+@api_app.route('/api/board/eeprom/read/<address>', methods=['GET'])
+def write_eeprom(address, value):
+    val = api_app.eeprom.read(address)
+    return make_response("eeprom value = {}".format(val))
+
+
 # ------------------------
 # Instruments
 # ------------------------

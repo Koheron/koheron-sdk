@@ -2,6 +2,7 @@
 
 import requests
 import time
+import hashlib
 
 class InstrumentManager:
     def __init__(self, ip, port=80):
