@@ -2,7 +2,6 @@
 from koheron_tcp_client import command, write_buffer
 
 class Spi(object):
-
     def __init__(self, client):
         self.client = client
 
@@ -11,5 +10,8 @@ class Spi(object):
             return self.client.recv_int32()
 
         if init(self, 0) < 0:
-            print('Cannot open SPI device')
+            raise RuntimeError('Cannot open SPI device')
 
+    @write_buffer('SPI')
+    def write(self, data):
+        return self.client.recv_int32()
