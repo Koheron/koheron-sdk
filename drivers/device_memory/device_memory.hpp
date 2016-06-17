@@ -4,8 +4,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_CORE_DEVICE_MEMORY_HPP__
-#define __DRIVERS_CORE_DEVICE_MEMORY_HPP__
+#ifndef __DRIVERS_DEVICE_MEMORY_DEVICE_MEMORY_HPP__
+#define __DRIVERS_DEVICE_MEMORY_DEVICE_MEMORY_HPP__
 
 #include <drivers/lib/dev_mem.hpp>
 
@@ -63,4 +63,4 @@ class DeviceMemory
     Klib::DevMem& dvm;
 };
 
-#endif // __DRIVERS_CORE_DEVICE_MEMORY_HPP__
+#endif // __DRIVERS_DEVICE_MEMORY_DEVICE_MEMORY_HPP__

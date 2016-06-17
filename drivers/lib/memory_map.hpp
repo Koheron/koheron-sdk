@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_CORE_MEMORY_MAP_HPP__
-#define __DRIVERS_CORE_MEMORY_MAP_HPP__
+#ifndef __DRIVERS_LIB_MEMORY_MAP_HPP__
+#define __DRIVERS_LIB_MEMORY_MAP_HPP__
 
 #include <cstdio>
 #include <cstdint>

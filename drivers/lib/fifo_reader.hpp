@@ -6,8 +6,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_CORE_FIFO_READER_HPP__
-#define __DRIVERS_CORE_FIFO_READER_HPP__
+#ifndef __DRIVERS_LIB_FIFO_READER_HPP__
+#define __DRIVERS_LIB_FIFO_READER_HPP__
 
 #include <array>
 #include <vector>
@@ -182,4 +182,4 @@ uint32_t FIFOReader<N>::get_buffer_length()
     return results_buffer.size();
 }
 
-#endif // __DRIVERS_CORE_FIFO_READER_HPP__
+#endif // __DRIVERS_LIB_FIFO_READER_HPP__
