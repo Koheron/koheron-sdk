@@ -22,8 +22,6 @@ CORES:=$(shell python $(MAKE_PY) --cores $(NAME) && cat $(TMP)/$(NAME).cores)
 DRIVERS:=$(shell python $(MAKE_PY) --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell python $(MAKE_PY) --xdc $(NAME) && cat $(TMP)/$(NAME).xdc)
 
-HTTP_API_DRIVERS = common eeprom laser
-
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
 PROC = ps7_cortexa9_0
@@ -100,7 +98,7 @@ STATIC_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
 STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
 STATIC_ZIP = $(TMP)/static.zip
 
-HTTP_API_REQUIREMENTS=os/api/requirements.yml
+HTTP_API_DRIVERS = common eeprom laser
 HTTP_API_DRIVERS_DIR=$(TMP)/app/api_app/drivers
 HTTP_API_ZIP=app-$(VERSION).zip
 
