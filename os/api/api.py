@@ -104,6 +104,11 @@ def start_laser():
     api_app.laser.start_laser()
     return make_response('Laser started')
 
+@api_app.route('/api/laser/status', methods=['GET'])
+def get_laser_status():
+    (laser_on, current, power) = api_app.laser.get_status()
+    return jsonify({'laser_on': laser_on, 'current': current, 'power': power})
+
 # ------------------------
 # Instruments
 # ------------------------

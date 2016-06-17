@@ -46,6 +46,7 @@ class Laser
     {
         config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
         reset();
+        
     }
 
     ~Laser() {if (dvm.is_ok()) reset();}
@@ -61,9 +62,15 @@ class Laser
         return std::make_tuple(get_laser_current(), get_laser_power());
     }
 
+    std::tuple<bool, float, float> get_status() {
+        float current = (0.0001/21.) * float(get_laser_current());
+        float power = float(get_laser_power());
+        return std::make_tuple(laser_on, current, power);
+    }
+
     // Laser enable on pin DIO7_P
-    void start_laser() {gpio.clear_bit(LASER_ENABLE_PIN, 2);}
-    void stop_laser()  {gpio.set_bit(LASER_ENABLE_PIN, 2);}
+    void start_laser() {gpio.clear_bit(LASER_ENABLE_PIN, 2); laser_on = true;}
+    void stop_laser()  {gpio.set_bit(LASER_ENABLE_PIN, 2); laser_on = false;}
 
     void set_laser_current(float current);
 
@@ -99,6 +106,8 @@ class Laser
     Xadc xadc;
     Gpio gpio;
     Eeprom eeprom;
+
+    bool laser_on;
 };
 
 #endif // __DRIVERS_LASER_HPP__
