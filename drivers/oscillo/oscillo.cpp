@@ -91,7 +91,6 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
     return data_all;
 }
 
-
 // Read the two channels but take only one point every decim_factor points
 std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor, 
                                                      uint32_t index_low, uint32_t index_high)
