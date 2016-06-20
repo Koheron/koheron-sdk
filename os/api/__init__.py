@@ -306,10 +306,12 @@ class KoheronAPIApp(Flask):
         return backup_dir
 
     def is_valid_instrument_file(self, filename):
-        filebase = os.path.basename(filename)
-        return '.' in filebase and filebase.rsplit('.', 1)[1] == 'zip'
+        return self.is_zip_file(filename)
 
     def is_valid_app_file(self, filename):
+        return self.is_zip_file(filename)
+
+    def is_zip_file(self, filename):
         filebase = os.path.basename(filename)
         return '.' in filebase and filebase.rsplit('.', 1)[1] == 'zip'
         
