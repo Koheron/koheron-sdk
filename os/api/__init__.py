@@ -22,6 +22,14 @@ class KoheronAPIApp(Flask):
     def __init__(self, *args, **kwargs):
         super(KoheronAPIApp, self).__init__(*args, **kwargs)
 
+        self.load_config()
+        self.load_metadata()
+        self.current_instrument = {'name': None, 'sha': None}
+        self.start_last_deployed_instrument()
+        self.get_instruments()
+        self.get_remote_static()
+
+    def load_config(self):
         try:
             with open('api_app/config.yml', 'r') as config_file:
                 self.config.update(yaml.load(config_file))
@@ -34,17 +42,14 @@ class KoheronAPIApp(Flask):
         except:
             log('error', 'Cannot load config')
 
+    def load_metadata(self):
         try:
             with open('metadata.json', 'r') as f:
                 self.metadata = json.load(f)
         except:
             log('error', 'Cannot load metadata')
             self.metadata = {}
-            
-        self.current_instrument = {'name': None, 'sha': None}
-        self.start_last_deployed_instrument()
-        self.get_instruments()
-        self.get_remote_static()
+
         
     def get_release_description(self):
         try:
@@ -123,7 +128,11 @@ class KoheronAPIApp(Flask):
     # ------------------------
 
     def get_instruments(self):
-        # Load remote instruments
+        self.get_remote_instruments()
+        self.get_local_instruments()
+        self.get_instrument_upgrades()
+
+    def get_remote_instruments(self):
         self.remote_instruments = {}
         if self.config['MODE'] == 'debug':
             try:
@@ -139,14 +148,12 @@ class KoheronAPIApp(Flask):
                 for instrument in self.release['instruments']:
                     self.remote_instruments[instrument['name']] = [instrument['version']]
 
-        # Load local instruments
+    def get_local_instruments(self):
         self.local_instruments = {}
         if os.path.exists(self.config['INSTRUMENTS_DIR']):
             for file_ in os.listdir(self.config['INSTRUMENTS_DIR']):
                 if self.is_valid_instrument_file(file_):
                     self.append_local_instrument(file_)
-                    
-        self.get_instrument_upgrades()
 
     def get_instrument_upgrades(self):
         self.instrument_upgrades = []
@@ -198,18 +205,21 @@ class KoheronAPIApp(Flask):
         self.current_instrument = {'name': name, 'sha': sha}
         
         if not self.is_bitstream_id_valid():
-            # Check whether we are installing the last deployed instrument to avoid infinite recursion:
-            last_deployed_instrument = self.get_last_deployed_instrument()
-            if ((not 'name' in last_deployed_instrument) 
-                or (last_deployed_instrument['name'] == self.current_instrument['name'] 
-                    and last_deployed_instrument['sha'] == self.current_instrument['sha'])):
-                    self._start_first_instrument_found(exclude=self.current_instrument)
-            else:
-                self.start_last_deployed_instrument()
+            self.handle_invalid_bitstream()
             return -1
 
         self.store_last_deployed_zip(zip_filename)
         return 0
+
+    def handle_invalid_bitstream(self):
+        # Check whether we are installing the last deployed instrument to avoid infinite recursion:
+        last_deployed_instrument = self.get_last_deployed_instrument()
+        if ((not 'name' in last_deployed_instrument)
+            or (last_deployed_instrument['name'] == self.current_instrument['name']
+                and last_deployed_instrument['sha'] == self.current_instrument['sha'])):
+                self._start_first_instrument_found(exclude=self.current_instrument)
+        else:
+            self.start_last_deployed_instrument()
 
     def is_bitstream_id_valid(self):
         try:
@@ -280,12 +290,14 @@ class KoheronAPIApp(Flask):
                     return
                 
         log('error', 'No instrument found: Load backup')
+        self.start_from_backup()
+
+    def start_from_backup(self):
         backup_dir = self.restore_backup()
         for filename in os.listdir(backup_dir):
             if self.is_valid_instrument_file(filename):
                 self.install_instrument(os.path.join(backup_dir, filename))
                 return
-                
         log('critical', 'No instrument found')
 
     def restore_backup(self):
@@ -294,10 +306,12 @@ class KoheronAPIApp(Flask):
         return backup_dir
 
     def is_valid_instrument_file(self, filename):
-        filebase = os.path.basename(filename)
-        return '.' in filebase and filebase.rsplit('.', 1)[1] == 'zip'
+        return self.is_zip_file(filename)
 
     def is_valid_app_file(self, filename):
+        return self.is_zip_file(filename)
+
+    def is_zip_file(self, filename):
         filebase = os.path.basename(filename)
         return '.' in filebase and filebase.rsplit('.', 1)[1] == 'zip'
         
