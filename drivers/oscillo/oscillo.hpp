@@ -34,8 +34,8 @@ class Oscillo
     }
 
     void reset_acquisition() {
-        dvm.write32(config_map, ADDR_OFF, 1);
-        dvm.write32(config_map, ADDR_OFF, 1);
+        dvm.clear_bit(config_map, ADDR_OFF, 1);
+        dvm.set_bit(config_map, ADDR_OFF, 1);
     }
 
     std::array<float, 2*WFM_SIZE>& read_all_channels();
