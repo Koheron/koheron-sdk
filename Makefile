@@ -98,8 +98,8 @@ STATIC_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
 STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
 STATIC_ZIP = $(TMP)/static.zip
 
-HTTP_API_REQUIREMENTS=os/api/requirements.yml
-HTTP_API_DRIVERS_PACKAGE=$(TMP)/app/api_app/drivers
+HTTP_API_DRIVERS = common eeprom laser
+HTTP_API_DRIVERS_DIR=$(TMP)/app/api_app/drivers
 HTTP_API_ZIP=app-$(VERSION).zip
 
 METADATA = $(TMP)/metadata.json
@@ -275,12 +275,10 @@ $(TCP_SERVER_MIDDLEWARE)/%: %
 	mkdir -p -- `dirname -- $@`
 	cp $^ $@
 
-$(TCP_SERVER_MIDDLEWARE): $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) drivers/lib
+$(TCP_SERVER): $(TCP_SERVER_VENV) $(SERVER_CONFIG) $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) drivers/lib $(MAKE_PY)
 	python $(MAKE_PY) --middleware $(NAME)
 	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
-
-$(TCP_SERVER): $(TCP_SERVER_VENV) $(MAKE_PY) $(SERVER_CONFIG) $(TCP_SERVER_MIDDLEWARE)
-	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE)
+	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all
 
 tcp-server_cli: $(TCP_SERVER_DIR) $(TCP_SERVER_VENV)
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) cli
@@ -299,13 +297,12 @@ zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 $(METADATA): $(TMP) $(VERSION_FILE)
 	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
 
+$(HTTP_API_DRIVERS_DIR)/%: drivers/%/__init__.py
+	mkdir -p $@
+	cp $< $@/__init__.py
 
-$(HTTP_API_DRIVERS_PACKAGE):
-	mkdir -p $(HTTP_API_DRIVERS_PACKAGE)
-	python $(MAKE_PY) --http_api_requirements $(HTTP_API_REQUIREMENTS)
-	cp drivers/__init__.py $(HTTP_API_DRIVERS_PACKAGE)
-
-app: $(METADATA) $(HTTP_API_DRIVERS_PACKAGE)
+app: $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DRIVERS))
+	touch $(HTTP_API_DRIVERS_DIR)/__init__.py 
 	mkdir -p $(TMP)/app/api_app
 	cp -R os/api/. $(TMP)/app/api_app
 	cp $(TMP)/metadata.json $(TMP)/app
@@ -328,7 +325,6 @@ app_sync_ssh: app $(HTTP_API_ZIP)
 static: $(TMP)
 	echo $(STATIC_SHA)
 	curl -L $(STATIC_URL) -o $(STATIC_ZIP)
-
 
 ###############################################################################
 # clean

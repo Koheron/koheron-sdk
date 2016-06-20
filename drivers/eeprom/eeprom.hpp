@@ -1,9 +1,9 @@
-/// At93c46dscope driver
+/// Eepromscope driver
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_CORE_AT93C46D_HPP__
-#define __DRIVERS_CORE_AT93C46D_HPP__
+#ifndef __DRIVERS_CORE_EEPROM_HPP__
+#define __DRIVERS_CORE_EEPROM_HPP__
 
 #include <vector>
 
@@ -25,10 +25,10 @@
 
 using namespace std::chrono_literals;
 
-class At93c46d
+class Eeprom
 {
   public:
-    At93c46d(Klib::DevMem& dvm_)
+    Eeprom(Klib::DevMem& dvm_)
     : dvm(dvm_)
     {
         config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
@@ -82,6 +82,6 @@ class At93c46d
 
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
-}; // class At93c46d
+}; // class Eeprom
 
-#endif // __DRIVERS_CORE_AT93C46D_HPP__
+#endif // __DRIVERS_CORE_EEPROM_HPP__
