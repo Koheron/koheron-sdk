@@ -20,7 +20,7 @@
 #define LASER_POWER_CHANNEL   1
 #define LASER_CURRENT_CHANNEL 8
 
-# define LASER_ENABLE_PIN 5
+# define LASER_ENABLE_PIN 5 // Laser enable on pin DIO7_P
 
 #define MAX_LASER_CURRENT 50.0 // mA
 
@@ -46,7 +46,6 @@ class Laser
     {
         config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
         reset();
-        
     }
 
     ~Laser() {if (dvm.is_ok()) reset();}
@@ -58,6 +57,7 @@ class Laser
     uint32_t get_laser_current() {return xadc.read(LASER_CURRENT_CHANNEL);}
     uint32_t get_laser_power()   {return xadc.read(LASER_POWER_CHANNEL);}
 
+    // TODO replace get_monitoring() with get_status()
     std::tuple<uint32_t, uint32_t> get_monitoring() {
         return std::make_tuple(get_laser_current(), get_laser_power());
     }
@@ -68,7 +68,6 @@ class Laser
         return std::make_tuple(laser_on, current, power);
     }
 
-    // Laser enable on pin DIO7_P
     void start_laser() {gpio.clear_bit(LASER_ENABLE_PIN, 2); laser_on = true;}
     void stop_laser()  {gpio.set_bit(LASER_ENABLE_PIN, 2); laser_on = false;}
 
@@ -101,7 +100,7 @@ class Laser
     
   private:
     Klib::DevMem& dvm;
-    Klib::MemMapID config_map; // Config is required for the PWMs
+    Klib::MemMapID config_map; // required for pwm
 
     Xadc xadc;
     Gpio gpio;
