@@ -14,7 +14,12 @@ proc sts_pin {name} {
 }
 
 proc get_constant_pin {value width} {
-  set const_name const_${value}_${width}
+  set i 0
+  while 1 {
+    set const_name const${i}_v${value}_w${width}
+    if {[get_bd_cells $const_name] eq ""} {break}
+    incr i
+  }
   cell xilinx.com:ip:xlconstant:1.1 $const_name {
     CONST_VAL $value
     CONST_WIDTH $width
