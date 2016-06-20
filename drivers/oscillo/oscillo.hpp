@@ -38,8 +38,6 @@ class Oscillo
         dvm.write32(config_map, ADDR_OFF, 1);
     }
 
-    std::array<float, WFM_SIZE>& read_data(bool channel);
-
     std::array<float, 2*WFM_SIZE>& read_all_channels();
 
     std::vector<float>& read_all_channels_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high);
@@ -54,13 +52,12 @@ class Oscillo
   private:
     Klib::DevMem& dvm;
 
-    int32_t *raw_data_1 = nullptr;
-    int32_t *raw_data_2 = nullptr;
+    int32_t *raw_data[2] = {nullptr, nullptr};
 
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
-    Klib::MemMapID adc_1_map;
-    Klib::MemMapID adc_2_map;
+    Klib::MemMapID adc_map[2];
+
     Klib::MemMapID dac_map;
     
     // Acquired data buffers
