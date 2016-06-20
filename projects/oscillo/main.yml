@@ -53,7 +53,6 @@ status_offsets:
   - avg_on_out0
   - avg_on_out1
 
-
 parameters:
   bram_addr_width: 13
   dac_width: 14
@@ -62,3 +61,6 @@ parameters:
   n_pwm: 4
   config_size: 16
   status_size: 32
+
+xdc:
+  - projects/base/expansion_connector.xdc

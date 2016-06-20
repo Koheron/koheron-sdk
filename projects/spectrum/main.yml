@@ -67,3 +67,6 @@ parameters:
   n_pwm: 4
   config_size: 32
   status_size: 16
+
+xdc:
+  - projects/base/expansion_connector.xdc

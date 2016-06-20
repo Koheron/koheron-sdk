@@ -12,7 +12,7 @@ from drivers.laser import Laser
 from drivers.xadc import Xadc
 from drivers.gpio import Gpio
 from drivers.device_memory import DeviceMemory
-from drivers.at93c46d import At93c46d
+from drivers.eeprom import Eeprom
 
 host = os.getenv('HOST','192.168.1.100')
 project = os.getenv('NAME','')
@@ -33,7 +33,7 @@ class Test:
         self.xadc = Xadc(client)
         self.laser = Laser(client)
         self.gpio = Gpio(client)
-        self.eeprom = At93c46d(client)
+        self.eeprom = Eeprom(client)
        
 driver = Test(client)
 
@@ -53,9 +53,6 @@ for mmap in pc.mmaps:
 value = 42
 dvm.write32('config', pc.cfg['led'], value)
 assert(dvm.read32('config', pc.cfg['led']) == value)
-
-dna = dvm.read32('status', pc.sts['dna']) + dvm.read32('status', pc.sts['dna']+4) << 32
-assert(driver.common.get_dna() == dna)
 
 for i in range(10):
     dvm.write_buffer('dac1', 0, 1024 *  np.ones(4096))

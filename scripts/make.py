@@ -167,18 +167,5 @@ if __name__ == "__main__":
         with open('tmp/metadata.json', 'w') as f:
             json.dump(metadata, f)
 
-    elif cmd == '--http_api_requirements':
-        with open(sys.argv[2]) as f:
-            reqs = yaml.load(f)
-
-        for driver in reqs['drivers']:
-            driver_dest = os.path.join('tmp/app/api_app/', driver)
-
-            if not os.path.exists(driver_dest):
-                print 'Create ' + os.path.dirname(driver_dest)
-                os.makedirs(os.path.dirname(driver_dest))
-
-            shutil.copyfile(driver, driver_dest)
-
     else:
         raise ValueError('Unknown command')

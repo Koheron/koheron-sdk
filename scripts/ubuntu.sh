@@ -163,6 +163,7 @@ apt-get install -y build-essential python-dev
 apt-get install -y python-numpy
 apt-get install -y python-pip python-setuptools python-all-dev python-wheel
 
+pip install --upgrade pip
 pip install koheron-tcp-client
 pip install flask
 pip install jinja2

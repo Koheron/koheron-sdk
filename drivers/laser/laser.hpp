@@ -11,7 +11,7 @@
 #include <drivers/addresses.hpp>
 #include <drivers/xadc/xadc.hpp>
 #include <drivers/gpio/gpio.hpp>
-#include <drivers/at93c46d/at93c46d.hpp>
+#include <drivers/eeprom/eeprom.hpp>
 
 #include <thread>
 #include <chrono>
@@ -20,7 +20,7 @@
 #define LASER_POWER_CHANNEL   1
 #define LASER_CURRENT_CHANNEL 8
 
-# define LASER_ENABLE_PIN 5
+# define LASER_ENABLE_PIN 5 // Laser enable on pin DIO7_P
 
 #define MAX_LASER_CURRENT 50.0 // mA
 
@@ -57,13 +57,19 @@ class Laser
     uint32_t get_laser_current() {return xadc.read(LASER_CURRENT_CHANNEL);}
     uint32_t get_laser_power()   {return xadc.read(LASER_POWER_CHANNEL);}
 
+    // TODO replace get_monitoring() with get_status()
     std::tuple<uint32_t, uint32_t> get_monitoring() {
         return std::make_tuple(get_laser_current(), get_laser_power());
     }
 
-    // Laser enable on pin DIO7_P
-    void start_laser() {gpio.clear_bit(LASER_ENABLE_PIN, 2);}
-    void stop_laser()  {gpio.set_bit(LASER_ENABLE_PIN, 2);}
+    std::tuple<bool, float, float> get_status() {
+        float current = (0.0001/21.) * float(get_laser_current());
+        float power = float(get_laser_power());
+        return std::make_tuple(laser_on, current, power);
+    }
+
+    void start_laser() {gpio.clear_bit(LASER_ENABLE_PIN, 2); laser_on = true;}
+    void stop_laser()  {gpio.set_bit(LASER_ENABLE_PIN, 2); laser_on = false;}
 
     void set_laser_current(float current);
 
@@ -94,11 +100,13 @@ class Laser
     
   private:
     Klib::DevMem& dvm;
-    Klib::MemMapID config_map; // Config is required for the PWMs
+    Klib::MemMapID config_map; // required for pwm
 
     Xadc xadc;
     Gpio gpio;
-    At93c46d eeprom;
+    Eeprom eeprom;
+
+    bool laser_on;
 };
 
 #endif // __DRIVERS_LASER_HPP__

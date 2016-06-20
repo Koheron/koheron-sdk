@@ -12,4 +12,4 @@ drivers:
   - drivers/init/init.hpp
   - drivers/spectrum/spectrum.hpp
   - drivers/spectrum/spectrum.cpp
-  - drivers/at93c46d/at93c46d.hpp
+  - drivers/eeprom/eeprom.hpp

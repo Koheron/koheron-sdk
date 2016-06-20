@@ -13,6 +13,7 @@ from distutils.dir_util import copy_tree
 from flask import Flask, render_template, request, url_for
 from koheron_tcp_client import KClient
 from drivers.common import Common
+from drivers.laser import Laser
 
 def log(severity, message):
     print("[" + severity + "] " + message)
@@ -103,6 +104,7 @@ class KoheronAPIApp(Flask):
         self.stop_client()
         self.client = KClient('127.0.0.1', verbose=False)
         self.common = Common(self.client)
+        self.laser = Laser(self.client)
         self.common.init()
 
     def stop_client(self):
