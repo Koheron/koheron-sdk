@@ -94,13 +94,19 @@ ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
 # App
 S3_URL = http://zynq-sdk.s3-website-eu-west-1.amazonaws.com
-APP_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
-APP_URL = $(S3_URL)/app-$(APP_SHA).zip
-APP_ZIP = $(TMP)/app.zip
+STATIC_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
+STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
+STATIC_ZIP = $(TMP)/static.zip
+
+HTTP_API_REQUIREMENTS=os/api/requirements.yml
+HTTP_API_DRIVERS_PACKAGE=$(TMP)/app/api_app/drivers
+HTTP_API_ZIP=app-$(VERSION).zip
+
+METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli app
+all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli static app
 
 $(TMP):
 	mkdir -p $(TMP)
@@ -119,8 +125,8 @@ test: tests/$(NAME).py
 	python $<
 
 run: zip
-	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/upload/instrument_zip	
-	curl http://$(HOST)/api/deploy/local/$(NAME)-$(VERSION).zip
+	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
+	curl http://$(HOST)/api/instruments/run/$(NAME)/$(VERSION)
 
 ###############################################################################
 # versioning
@@ -255,7 +261,9 @@ $(TCP_SERVER_DIR):
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
-$(TCP_SERVER_VENV): $(TCP_SERVER_DIR)
+$(TCP_SERVER_DIR)/requirements.txt: $(TCP_SERVER_DIR)
+
+$(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
 ifeq ($(DOCKER),False)
 	virtualenv $(TCP_SERVER_VENV)
 	$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
@@ -269,7 +277,7 @@ $(TCP_SERVER_MIDDLEWARE)/%: %
 
 $(TCP_SERVER_MIDDLEWARE): $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) drivers/lib
 	python $(MAKE_PY) --middleware $(NAME)
-	cp -r drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/lib
+	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
 
 $(TCP_SERVER): $(TCP_SERVER_VENV) $(MAKE_PY) $(SERVER_CONFIG) $(TCP_SERVER_MIDDLEWARE)
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE)
@@ -288,9 +296,39 @@ zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 # app
 ###############################################################################
 
-app: $(TMP)
-	echo $(APP_SHA)
-	curl -L $(APP_URL) -o $(APP_ZIP)
+$(METADATA): $(TMP) $(VERSION_FILE)
+	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
+
+
+$(HTTP_API_DRIVERS_PACKAGE):
+	mkdir -p $(HTTP_API_DRIVERS_PACKAGE)
+	python $(MAKE_PY) --http_api_requirements $(HTTP_API_REQUIREMENTS)
+	cp drivers/__init__.py $(HTTP_API_DRIVERS_PACKAGE)
+
+app: $(METADATA) $(HTTP_API_DRIVERS_PACKAGE)
+	mkdir -p $(TMP)/app/api_app
+	cp -R os/api/. $(TMP)/app/api_app
+	cp $(TMP)/metadata.json $(TMP)/app
+	cp os/wsgi.py $(TMP)/app
+
+$(HTTP_API_ZIP):
+	cd $(TMP)/app && zip -r $(HTTP_API_ZIP) .
+
+app_sync: app $(HTTP_API_ZIP)
+	curl -v -F app-$(VERSION).zip=@$(TMP)/app/$(HTTP_API_ZIP) http://$(HOST)/api/app/update
+
+# To use if uwsgi is not running
+app_sync_ssh: app $(HTTP_API_ZIP)
+	rsync -avz -e "ssh -i /ssh-private-key" $(TMP)/app/. root@$(HOST):/usr/local/flask/
+
+###############################################################################
+# static
+###############################################################################
+
+static: $(TMP)
+	echo $(STATIC_SHA)
+	curl -L $(STATIC_URL) -o $(STATIC_ZIP)
+
 
 ###############################################################################
 # clean

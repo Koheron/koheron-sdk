@@ -13,7 +13,7 @@ class Common(object):
     def open_common(self):
         @command('COMMON')
         def open(self):
-            return self.client.recv_int(4)
+            return self.client.recv_int32()
 
         return open(self)
 
@@ -24,15 +24,18 @@ class Common(object):
 
     @command('COMMON')
     def get_dna(self):
-        buff = self.client.recv_buffer(2, data_type='uint32')
-        return buff[1] + buff[0] << 32
+        id_array = self.client.recv_buffer(2, data_type='uint32')
+        return ''.join('{:02x}'.format(i) for i in id_array)
 
-    @command('COMMON')
+    @command('COMMON', 'I')
     def set_led(self, value): pass
 
     @command('COMMON')
     def get_led(self): 
-        return self.client.recv_int(4)
+        return self.client.recv_uint32()
+
+    @command('COMMON')
+    def init(self): pass
 
     @command('COMMON')
     def ip_on_leds(self): pass

@@ -15,3 +15,4 @@ drivers:
   - drivers/speed_test/speed_test.hpp
   - drivers/speed_test/speed_test.cpp
   - drivers/at93c46d/at93c46d.hpp
+  - drivers/spi/spi.hpp

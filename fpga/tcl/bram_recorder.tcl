@@ -18,6 +18,7 @@ proc add_bram_recorder {module_name bram_name} {
   connect_constant ${bram_name}_enb  1 1  blk_mem_gen_$bram_name/enb
 
   connect_cell blk_mem_gen_$bram_name {
+    addrb addr
     dinb adc
     clkb clk
     rstb rst
