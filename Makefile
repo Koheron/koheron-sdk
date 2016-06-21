@@ -27,7 +27,7 @@ PATCHES = boards/$(BOARD)/patches
 PROC = ps7_cortexa9_0
 
 # Custom commands
-VIVADO_VERSION = 2016.1
+VIVADO_VERSION = 2016.2
 VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
