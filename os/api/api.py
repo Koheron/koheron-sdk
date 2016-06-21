@@ -129,7 +129,7 @@ def delete_instrument(name, sha):
     zip_filename = '{}-{}.zip'.format(name, sha)
     filename = secure_filename(zip_filename)
     api_app.delete_uploaded_instrument(filename)
-    api_app.remove_local_instrument(filename)
+    api_app.remove_instrument_from_list(filename)
     return make_response('File ' + zip_filename + ' removed.')
 
 @api_app.route('/api/instruments/upload', methods=['POST'])
@@ -140,7 +140,7 @@ def upload_instrument():
             filename = secure_filename(file_)
             request.files[file_].save(os.path.join(api_app.config['UPLOAD_FOLDER'], filename))
             tmp_file = os.path.join('/tmp/', filename)
-            api_app.append_local_instrument(tmp_file)
+            api_app.append_instrument_to_list(tmp_file)
             api_app.save_uploaded_instrument(tmp_file)
             return make_response('Instrument ' + filename + ' uploaded.')
     return make_response('Instrument upload failed.')
@@ -150,7 +150,7 @@ def upload_remote_instrument(name, sha):
     filename = secure_filename(zip_filename)
     tmp_file = os.path.join('/tmp/', filename)
     urllib.urlretrieve(app.config['S3_URL'] + filename, tmp_file)
-    api_app.append_local_instrument(tmp_file)
+    api_app.append_instrument_to_list(tmp_file)
     api_app.save_uploaded_instrument(tmp_file)
     return make_response('Instrument ' + filename + ' uploaded.')
 

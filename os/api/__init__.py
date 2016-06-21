@@ -153,7 +153,7 @@ class KoheronAPIApp(Flask):
         if os.path.exists(self.config['INSTRUMENTS_DIR']):
             for file_ in os.listdir(self.config['INSTRUMENTS_DIR']):
                 if self.is_valid_instrument_file(file_):
-                    self.append_local_instrument(file_)
+                    self.append_instrument_to_list(file_)
 
     def get_instrument_upgrades(self):
         self.instrument_upgrades = []
@@ -165,7 +165,7 @@ class KoheronAPIApp(Flask):
                       'sha_upgrade': shas_remote[0]
                     })
 
-    def append_local_instrument(self, zip_filename):
+    def append_instrument_to_list(self, zip_filename):
         name_, sha_ = self._tokenize_zipfilename(zip_filename)
         for name, shas in self.local_instruments.iteritems():
             if name == name_ and (sha_ not in shas):
@@ -173,7 +173,7 @@ class KoheronAPIApp(Flask):
                 return
         self.local_instruments[name_] = [sha_] # New instrument
 
-    def remove_local_instrument(self, zip_filename):
+    def remove_instrument_from_list(self, zip_filename):
         name_, sha_ = self._tokenize_zipfilename(zip_filename)
         for name, shas in self.local_instruments.iteritems():
             if name == name_ and sha_ in shas:
@@ -187,8 +187,7 @@ class KoheronAPIApp(Flask):
 
     def delete_uploaded_instrument(self, zip_filename):
         if os.path.exists(self.config['INSTRUMENTS_DIR']):
-            os.remove(os.path.join(self.config['INSTRUMENTS_DIR'],
-                      zip_filename))
+            os.remove(os.path.join(self.config['INSTRUMENTS_DIR'], zip_filename))
 
     def install_instrument(self, zip_filename):
         if not os.path.exists(zip_filename):
@@ -199,9 +198,8 @@ class KoheronAPIApp(Flask):
         print('Installing instrument ' + name + ' with version ' + sha)
         self.stop_client()
         # http://stackoverflow.com/questions/21936597/blocking-and-non-blocking-subprocess-calls
-        subprocess.call(['/bin/bash', 'api_app/install_instrument.sh', zip_filename, name])   
+        subprocess.call(['/bin/bash', 'api_app/install_instrument.sh', zip_filename, name])
         self.start_client()
-        time.sleep(0.1)
         self.current_instrument = {'name': name, 'sha': sha}
         
         if not self.is_bitstream_id_valid():
@@ -222,17 +220,7 @@ class KoheronAPIApp(Flask):
             self.start_last_deployed_instrument()
 
     def is_bitstream_id_valid(self):
-        try:
-            id_ = self.common.get_bitstream_id()
-        except:
-            log('error', 'Cannot read bitstream ID. Retrying ...')
-            try:
-                time.sleep(0.2)
-                id_ = self.common.get_bitstream_id()
-            except:
-                log('error', 'Failed to retrieve bitstream ID.')
-                return False
-
+        id_ = self.common.get_bitstream_id()
         hash_ = hashlib.sha256(self.current_instrument["name"] + '-'
                              + self.current_instrument["sha"])
         if not hash_.hexdigest() == id_:
