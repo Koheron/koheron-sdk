@@ -17,7 +17,7 @@ connect_pins pwm/rst $rst_adc_clk_name/peripheral_reset
 # Add address module
 source projects/address_module/address.tcl
 set address_name address
-add_address_module $address_name $config::bram_addr_width
+address::create $address_name $config::bram_addr_width
 
 connect_cell $address_name {
   clk  $adc_clk

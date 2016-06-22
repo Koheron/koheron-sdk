@@ -15,7 +15,7 @@ source projects/spectrum_module/spectrum.tcl
 
 set spectrum_name spectrum_0
 set n_pts_fft [expr 2**$config::bram_addr_width]
-add_spectrum $spectrum_name $n_pts_fft $config::adc_width
+spectrum::create $spectrum_name $n_pts_fft $config::adc_width
 
 for {set i 1} {$i < 3} {incr i} {
   connect_pins spectrum_0/adc$i adc_dac/adc$i
@@ -43,11 +43,11 @@ connect_cell blk_mem_gen_$demod_bram_name {
   clkb  $adc_clk
   rstb  $rst_adc_clk_name/peripheral_reset
   doutb $spectrum_name/demod_data
-  addrb $address_name/addr 
+  addrb $address_name/addr
+  dinb  [get_constant_pin 0 32]
+  enb   [get_constant_pin 1 1]
+  web   [get_constant_pin 0 4]
 }
-connect_constant const_${demod_bram_name}_dinb 0 32 blk_mem_gen_$demod_bram_name/dinb
-connect_constant const_${demod_bram_name}_enb 1 1  blk_mem_gen_$demod_bram_name/enb
-connect_constant const_${demod_bram_name}_web 0 4  blk_mem_gen_$demod_bram_name/web
 
 # Substract noise floor
 source projects/spectrum/noise_floor.tcl
@@ -63,7 +63,7 @@ connect_cell $subtract_name {
 # Add averaging module
 source projects/averager_module/averager.tcl
 set avg_name avg
-add_averager_module $avg_name $config::bram_addr_width
+averager::create $avg_name $config::bram_addr_width
 
 connect_cell $avg_name {
   clk         $adc_clk
@@ -78,6 +78,7 @@ connect_cell $avg_name {
   n_avg       [sts_pin n_avg]
   ready       [sts_pin avg_ready]
   avg_on_out  [sts_pin avg_on_out]
+  srst        [get_constant_pin 0 1]
 }
 
 connect_cell $subtract_name {
@@ -85,12 +86,11 @@ connect_cell $subtract_name {
   m_axis_result_tvalid $avg_name/tvalid 
 }
 
-
 # Add peak detector
 
 source projects/peak_detector_module/peak_detector.tcl
 set peak_detector_name peak
-add_peak_detector $peak_detector_name $config::bram_addr_width
+peak_detector::create $peak_detector_name $config::bram_addr_width
 
 connect_cell $peak_detector_name {
   clk $adc_clk
