@@ -43,7 +43,7 @@ connect_cell blk_mem_gen_$demod_bram_name {
   clkb  $adc_clk
   rstb  $rst_adc_clk_name/peripheral_reset
   doutb $spectrum_name/demod_data
-  addrb $address_name/addr
+  addrb $address_name/addr0
   dinb  [get_constant_pin 0 32]
   enb   [get_constant_pin 1 1]
   web   [get_constant_pin 0 4]

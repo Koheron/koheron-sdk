@@ -1,34 +1,35 @@
 namespace eval address {
 
-proc pins {cmd bram_width} {
+proc pins {cmd bram_width {n_periods 1}} {
   $cmd -dir I -from 31   -to 0 cfg
-  $cmd -dir I -from 31   -to 0 period
-  $cmd -dir O -from [expr $bram_width+2]   -to 0 addr
+  for {set i 0} {$i < $n_periods} {incr i} {
+    $cmd -dir I -from 31   -to 0 period$i
+    $cmd -dir O -from [expr $bram_width+2] -to 0 addr$i
+  }
   $cmd -dir O                  restart
   $cmd -dir O                  tvalid
   $cmd -dir I -type clk        clk
 }
 
-proc create {module_name bram_width} {
-
+proc create {module_name bram_width {n_periods 1}} {
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  pins create_bd_pin $bram_width
+  pins create_bd_pin $bram_width $n_periods
+
+  cell koheron:user:edge_detector:1.0 reset_base_counter {} {clk clk}
 
   # Add address counter
-  cell koheron:user:address_generator:1.0 base_counter {
-    COUNT_WIDTH $bram_width
-  } {
-    clk clk
-    count_max period
-    address addr
-  }
 
-  cell koheron:user:edge_detector:1.0 reset_base_counter {
-  } {
-    clk clk
-    dout base_counter/sclr
+  for {set i 0} {$i < $n_periods} {incr i} {
+    cell koheron:user:address_generator:1.0 base_counter$i {
+      COUNT_WIDTH $bram_width
+    } {
+      clk clk
+      count_max period$i
+      address addr$i
+      sclr reset_base_counter/dout
+    }
   }
 
   cell koheron:user:edge_detector:1.0 edge_detector {
