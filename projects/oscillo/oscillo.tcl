@@ -17,7 +17,7 @@ for {set i 0} {$i < 2} {incr i} {
   connect_pins $adc_recorder_name/rst   $rst_adc_clk_name/peripheral_reset
 
   # Add averaging module
-  add_averager_module $avg_name $config::bram_addr_width -input_type fix_$config::adc_width
+  averager::create $avg_name $config::bram_addr_width -input_type fix_$config::adc_width
 
   connect_cell $avg_name {
     clk         $adc_clk
