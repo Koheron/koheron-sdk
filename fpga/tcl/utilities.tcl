@@ -23,6 +23,25 @@ proc connect_constant {name value width pin} {
     [list dout $pin]
 }
 
+# http://wiki.tcl.tk/13920
+proc lmap {_var list body} {
+    upvar 1 $_var var
+    set res {}
+    foreach var $list {lappend res [uplevel 1 $body]}
+    set res
+}
+
+# Connect all the pins of a cell that have a port with an identical name
+proc connect_ports {cell_name} {
+  set cell_pins [lmap pin [get_bd_pins $cell_name/*] {set pin [lindex [split $pin /] end]}]
+  set ports     [lmap pin [get_bd_ports /*]          {set pin [lindex [split $pin /] end]}]
+  package require struct::set
+  set common_ports [::struct::set intersect $cell_pins $ports]
+  foreach port $common_ports {
+    connect_bd_net [get_bd_ports /$port] [get_bd_pins $cell_name/$port]
+  }
+}
+
 # Configure an IP block and connect its pins 
 # https://github.com/pavel-demin/red-pitaya-notes
 
@@ -79,7 +98,7 @@ proc add_master_interface {{intercon_idx 0}} {
       puts "Found empty interface M${idx}_AXI on interconnect $intercon_idx..."
       set found 1
       break
-    }   
+    }
   }
   if {$found == 0} {
     puts "No empty interface found on interconnect $intercon_idx..."

@@ -39,15 +39,7 @@ proc add_redp_adc_dac {module_name} {
     adc_dat_b_o adc2
   }
   
-  # TODO use function here ...
-  foreach {port_name} {
-    adc_dat_a_i
-    adc_dat_b_i
-    adc_clk_source
-    adc_cdcs_o
-  } {
-    connect_bd_net [get_bd_ports /$port_name] [get_bd_pins adc/$port_name]
-  }
+  connect_ports adc
 
   # Add DAC IP block
   cell pavel-demin:user:redp_dac:1.0 dac {} {
@@ -59,16 +51,7 @@ proc add_redp_adc_dac {module_name} {
     dac_locked pll/locked
   }
   
-  # TODO ... and here
-  foreach {port_name} {
-    dac_clk_o
-    dac_dat_o
-    dac_rst_o
-    dac_sel_o
-    dac_wrt_o
-  } {
-    connect_bd_net [get_bd_ports /$port_name] [get_bd_pins dac/$port_name]
-  }
+  connect_ports dac
 
   # Connect reset
   cell xilinx.com:ip:xlconstant:1.1 adc_rst {} {
