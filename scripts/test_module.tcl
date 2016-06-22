@@ -14,13 +14,12 @@ set bd_path tmp/$project_name.srcs/sources_1/bd/system
 
 create_bd_design system
 
-source lib/utilities.tcl
+set lib fpga/tcl
+source $lib/utilities.tcl
 
 source projects/$project_name/block_design.tcl
 
 rename cell {}
-rename module {}
-rename properties {}
 
 generate_target all [get_files $bd_path/system.bd]
 make_wrapper -files [get_files $bd_path/system.bd] -top
