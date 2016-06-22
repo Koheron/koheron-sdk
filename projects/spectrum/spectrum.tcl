@@ -43,11 +43,11 @@ connect_cell blk_mem_gen_$demod_bram_name {
   clkb  $adc_clk
   rstb  $rst_adc_clk_name/peripheral_reset
   doutb $spectrum_name/demod_data
-  addrb $address_name/addr 
+  addrb $address_name/addr
+  dinb  [get_constant_pin 0 32]
+  enb   [get_constant_pin 1 1]
+  web   [get_constant_pin 0 4]
 }
-connect_constant const_${demod_bram_name}_dinb 0 32 blk_mem_gen_$demod_bram_name/dinb
-connect_constant const_${demod_bram_name}_enb 1 1  blk_mem_gen_$demod_bram_name/enb
-connect_constant const_${demod_bram_name}_web 0 4  blk_mem_gen_$demod_bram_name/web
 
 # Substract noise floor
 source projects/spectrum/noise_floor.tcl
@@ -78,6 +78,7 @@ connect_cell $avg_name {
   n_avg       [sts_pin n_avg]
   ready       [sts_pin avg_ready]
   avg_on_out  [sts_pin avg_on_out]
+  srst        [get_constant_pin 0 1]
 }
 
 connect_cell $subtract_name {

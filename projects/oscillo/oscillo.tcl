@@ -13,8 +13,10 @@ for {set i 0} {$i < 2} {incr i} {
   set adc_recorder_name adc_recorder$i 
   add_bram_recorder $adc_recorder_name adc[expr {$i + 1}]
 
-  connect_pins $adc_recorder_name/clk   $adc_clk
-  connect_pins $adc_recorder_name/rst   $rst_adc_clk_name/peripheral_reset
+  connect_cell $adc_recorder_name {
+    clk   $adc_clk
+    rst   $rst_adc_clk_name/peripheral_reset
+  }
 
   # Add averaging module
   averager::create $avg_name $config::bram_addr_width -input_type fix_$config::adc_width
@@ -34,5 +36,6 @@ for {set i 0} {$i < 2} {incr i} {
     n_avg       [sts_pin n_avg$i]
     ready       [sts_pin avg_ready$i]
     avg_on_out  [sts_pin avg_on_out$i]
+    srst        [get_constant_pin 0 1]
   }
 }

@@ -13,6 +13,20 @@ proc sts_pin {name} {
   return $::status_name/In[set config::${name}_offset]
 }
 
+proc get_constant_pin {value width} {
+  set i 0
+  while 1 {
+    set const_name const${i}_v${value}_w${width}
+    if {[get_bd_cells $const_name] eq ""} {break}
+    incr i
+  }
+  cell xilinx.com:ip:xlconstant:1.1 $const_name {
+    CONST_VAL $value
+    CONST_WIDTH $width
+  } {}
+  return $const_name/dout
+}
+
 proc connect_pins {pin1 pin2} {
   connect_bd_net [get_bd_pins $pin1] [get_bd_pins $pin2]
 }
