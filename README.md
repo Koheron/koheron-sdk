@@ -9,7 +9,6 @@
 * Vivado 2016.1 toolchain (Linux Kernel version 4.4)
 * User-space control of hardware with [TCP / Websocket server](https://github.com/Koheron/tcp-server)
 * HTTP, Python and Javascript APIs
-* Compatible with Docker
 
 ### Supported Base Boards
 
@@ -25,27 +24,28 @@
 
 You can find the latest release of the SD card image for the Red Pitaya `oscillo-<version>.img` on this [link](https://github.com/Koheron/zynq-sdk/releases). The `oscillo` and `spectrum` instruments are preinstalled.
 
-* [Connect the board](http://www.koheron.com/products/laser-development-kit/getting-started/) to your computer (Windows and Linux).
+1. [Connect the board](http://www.koheron.com/products/laser-development-kit/getting-started/) to your computer.
+2. Navigate to your board ip address (e.g. `192.168.1.100`) with your browser.
 
-## Build your own image
+## Build your own instrument
 
 The build is tested on Ubuntu 16.04.
-[Install Vivado 2016.1](https://github.com/Koheron/zynq-sdk/issues/101) and source it ([Full list of requirements](https://github.com/Koheron/zynq-sdk/issues/117)):
-```
-$ source scripts/settings.sh
-```
+[Install Vivado 2016.1](https://github.com/Koheron/zynq-sdk/issues/101) and source it (`source scripts/settings.sh`):
 
-Build zip file including bitstream, middleware and python drivers:
+Build zip file including the FPGA bitstream and its corresponding server:
 ```
 $ make NAME=<project> zip
 ```
 
-Build zip, boot-loader and Linux kernel:
+Run the project on your Zynq board and test it:
 ```
-$ make NAME=<project>
+$ make NAME=<project> HOST=192.168.1.100 run test
 ```
 
-Build Ubuntu SD card image:
+## Build SD card image
+
+Build zip, boot-loader and Linux kernel, then Ubuntu root file system:
 ```
+$ make NAME=<project>
 $ sudo bash scripts/image.sh <project>
 ```

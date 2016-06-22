@@ -1,18 +1,23 @@
+namespace eval spectrum {
 
-proc add_spectrum_module {module_name n_pts_fft adc_width} {
+proc pins {cmd adc_width} {
+  $cmd -dir I -from [expr $adc_width - 1] -to 0 adc1
+  $cmd -dir I -from [expr $adc_width - 1] -to 0 adc2
+  $cmd -dir I -from 31                    -to 0 cfg_sub
+  $cmd -dir I -from 31                    -to 0 cfg_fft
+  $cmd -dir I -from 31                    -to 0 demod_data
+  $cmd -dir I                                   tvalid
+  $cmd -dir O -from 31                    -to 0 m_axis_result_tdata
+  $cmd -dir O                                   m_axis_result_tvalid
+  $cmd -dir I -type clk                         clk
+}
+
+proc create {module_name n_pts_fft adc_width} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir I -type clk                         clk
-  create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc1
-  create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc2
-  create_bd_pin -dir I -from 31                    -to 0 cfg_sub
-  create_bd_pin -dir I -from 31                    -to 0 cfg_fft
-  create_bd_pin -dir I -from 31                    -to 0 demod_data
-  create_bd_pin -dir I                                   tvalid
-  create_bd_pin -dir O -from 31                    -to 0 m_axis_result_tdata
-  create_bd_pin -dir O                                   m_axis_result_tvalid
+  pins create_bd_pin $adc_width
 
   for {set i 1} {$i < 3} {incr i} {
     cell xilinx.com:ip:c_addsub:12.0 subtract_$i {
@@ -184,5 +189,6 @@ proc add_spectrum_module {module_name n_pts_fft adc_width} {
   }
 
   current_bd_instance $bd
-
 }
+
+} ;# end spectrum namespace

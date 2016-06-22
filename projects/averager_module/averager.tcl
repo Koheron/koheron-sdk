@@ -1,5 +1,24 @@
+namespace eval averager {
 
-proc add_averager_module {module_name bram_addr_width args} {
+proc pins {cmd fast_count_width slow_count_width width} {
+   $cmd -dir I                                        avg_on
+   $cmd -dir I                                        tvalid
+   $cmd -dir I                                        restart
+   $cmd -dir I                                        srst
+   $cmd -dir I -from [expr $fast_count_width-1] -to 0 period
+   $cmd -dir I -from [expr $fast_count_width-1] -to 0 threshold
+   $cmd -dir I -from [expr $slow_count_width-1] -to 0 n_avg_min
+   $cmd -dir I -from [expr $width-1]            -to 0 din
+   $cmd -dir O -from 31                         -to 0 dout
+   $cmd -dir O -from 3                          -to 0 wen
+   $cmd -dir O -from [expr $slow_count_width-1] -to 0 n_avg
+   $cmd -dir O -from 31                         -to 0 addr
+   $cmd -dir O                                        ready
+   $cmd -dir O                                        avg_on_out
+   $cmd -dir I -type clk                              clk
+}
+
+proc create {module_name bram_addr_width args} {
 
   # Input type
   # examples: float, fix_14
@@ -24,21 +43,8 @@ proc add_averager_module {module_name bram_addr_width args} {
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir I -type clk                              clk
-  create_bd_pin -dir I                                        avg_on
-  create_bd_pin -dir I                                        tvalid
-  create_bd_pin -dir I                                        restart
-  create_bd_pin -dir I -from [expr $fast_count_width-1] -to 0 period
-  create_bd_pin -dir I -from [expr $fast_count_width-1] -to 0 threshold
-  create_bd_pin -dir I -from [expr $slow_count_width-1] -to 0 n_avg_min
-  create_bd_pin -dir I -from [expr $width-1]            -to 0 din
-  create_bd_pin -dir O -from 31                         -to 0 dout
-  create_bd_pin -dir O -from 3                          -to 0 wen
-  create_bd_pin -dir O -from [expr $slow_count_width-1] -to 0 n_avg
-  create_bd_pin -dir O -from 31                         -to 0 addr
-  create_bd_pin -dir O                                        ready
-  create_bd_pin -dir O                                        avg_on_out
- 
+  pins create_bd_pin $fast_count_width $slow_count_width $width
+
   set add_latency 3
   set sr_latency 1
   set sr_avg_off_latency 1
@@ -50,9 +56,10 @@ proc add_averager_module {module_name bram_addr_width args} {
     Input_Depth      [expr 2**$bram_addr_width]
     Data_Count       true
     Data_Count_Width $bram_addr_width
-    Reset_Pin        false
+    Reset_Pin        true
   } {
     clk clk
+    srst srst
   }
 
   cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_dout {
@@ -211,3 +218,5 @@ proc add_averager_module {module_name bram_addr_width args} {
   current_bd_instance $bd
 
 }
+
+} ;# end namespace averager

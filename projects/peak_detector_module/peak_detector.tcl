@@ -1,18 +1,23 @@
+namespace eval peak_detector {
 
-proc add_peak_detector {module_name wfm_width} {
+proc pins {cmd wfm_width} {
+  $cmd -dir I -from 31 -to 0                   din
+  $cmd -dir I -from [expr $wfm_width -1] -to 0 address_low
+  $cmd -dir I -from [expr $wfm_width -1] -to 0 address_high
+  $cmd -dir I -from [expr $wfm_width -1] -to 0 address_reset
+  $cmd -dir I                                  s_axis_tvalid
+  $cmd -dir O -from [expr $wfm_width -1] -to 0 address_out
+  $cmd -dir O -from 31 -to 0                   maximum_out
+  $cmd -dir O                                  m_axis_tvalid
+  $cmd -dir I -type clk                        clk
+}
+
+proc create {module_name wfm_width} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir I -type clk                        clk
-  create_bd_pin -dir I -from 31 -to 0                   din
-  create_bd_pin -dir I -from [expr $wfm_width -1] -to 0 address_low
-  create_bd_pin -dir I -from [expr $wfm_width -1] -to 0 address_high
-  create_bd_pin -dir I -from [expr $wfm_width -1] -to 0 address_reset
-  create_bd_pin -dir I                                  s_axis_tvalid
-  create_bd_pin -dir O -from [expr $wfm_width -1] -to 0 address_out
-  create_bd_pin -dir O -from 31 -to 0                   maximum_out
-  create_bd_pin -dir O                                  m_axis_tvalid
+  pins create_bd_pin $wfm_width
 
   set compare_latency 0
 
@@ -153,5 +158,6 @@ proc add_peak_detector {module_name wfm_width} {
   }
 
   current_bd_instance $bd
-
 }
+
+} ;# end peak detector namespace
