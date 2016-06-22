@@ -64,9 +64,9 @@ UBOOT_URL = https://github.com/Xilinx/u-boot-xlnx/archive/$(UBOOT_TAG).tar.gz
 LINUX_URL = https://github.com/Xilinx/linux-xlnx/archive/$(LINUX_TAG).tar.gz
 DTREE_URL = https://github.com/Xilinx/device-tree-xlnx/archive/$(DTREE_TAG).tar.gz
 
-LINUX_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=hard"
-UBOOT_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=hard"
-ARMHF_CFLAGS = "-O2 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=hard"
+LINUX_CFLAGS = "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
+UBOOT_CFLAGS = "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
+ARMHF_CFLAGS = "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 
 RTL_TAR = $(TMP)/rtl8192cu.tgz
 RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
@@ -275,7 +275,7 @@ $(TCP_SERVER_MIDDLEWARE)/%: %
 	mkdir -p -- `dirname -- $@`
 	cp $^ $@
 
-$(TCP_SERVER): $(TCP_SERVER_VENV) $(SERVER_CONFIG) $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) drivers/lib $(MAKE_PY)
+$(TCP_SERVER): $(TCP_SERVER_VENV) $(SERVER_CONFIG) $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) drivers/lib $(MAKE_PY) projects/default/server.yml
 	python $(MAKE_PY) --middleware $(NAME)
 	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all

@@ -78,36 +78,37 @@ def ping():
 # ------------------------
 # Laser 
 # ------------------------
+# These routes should be optional depending on the configuration
 
-@api_app.route('/api/laser/current/<current>', methods=['GET'])
-def set_laser_current(current):
-    api_app.laser.set_laser_current(float(current))
-    return make_response('Laser current set to {} mA'.format(current))
+# @api_app.route('/api/laser/current/<current>', methods=['GET'])
+# def set_laser_current(current):
+#     api_app.laser.set_laser_current(float(current))
+#     return make_response('Laser current set to {} mA'.format(current))
 
-@api_app.route('/api/laser/save', methods=['GET'])
-def save_laser_config():
-    api_app.laser.save_config()
-    return make_response('Laser configuration saved')
+# @api_app.route('/api/laser/save', methods=['GET'])
+# def save_laser_config():
+#     api_app.laser.save_config()
+#     return make_response('Laser configuration saved')
 
-@api_app.route('/api/laser/load', methods=['GET'])
-def load_laser_config():
-    api_app.laser.load_config()
-    return make_response('Laser configuration loaded')
+# @api_app.route('/api/laser/load', methods=['GET'])
+# def load_laser_config():
+#     api_app.laser.load_config()
+#     return make_response('Laser configuration loaded')
 
-@api_app.route('/api/laser/stop', methods=['GET'])
-def stop_laser():
-    api_app.laser.stop_laser()
-    return make_response('Laser stopped')
+# @api_app.route('/api/laser/stop', methods=['GET'])
+# def stop_laser():
+#     api_app.laser.stop_laser()
+#     return make_response('Laser stopped')
 
-@api_app.route('/api/laser/start', methods=['GET'])
-def start_laser():
-    api_app.laser.start_laser()
-    return make_response('Laser started')
+# @api_app.route('/api/laser/start', methods=['GET'])
+# def start_laser():
+#     api_app.laser.start_laser()
+#     return make_response('Laser started')
 
-@api_app.route('/api/laser/status', methods=['GET'])
-def get_laser_status():
-    (laser_on, current, power) = api_app.laser.get_status()
-    return jsonify({'laser_on': laser_on, 'current': current, 'power': power})
+# @api_app.route('/api/laser/status', methods=['GET'])
+# def get_laser_status():
+#     (laser_on, current, power) = api_app.laser.get_status()
+#     return jsonify({'laser_on': laser_on, 'current': current, 'power': power})
 
 # ------------------------
 # Instruments
@@ -129,7 +130,7 @@ def delete_instrument(name, sha):
     zip_filename = '{}-{}.zip'.format(name, sha)
     filename = secure_filename(zip_filename)
     api_app.delete_uploaded_instrument(filename)
-    api_app.remove_local_instrument(filename)
+    api_app.remove_instrument_from_list(filename)
     return make_response('File ' + zip_filename + ' removed.')
 
 @api_app.route('/api/instruments/upload', methods=['POST'])
@@ -140,7 +141,7 @@ def upload_instrument():
             filename = secure_filename(file_)
             request.files[file_].save(os.path.join(api_app.config['UPLOAD_FOLDER'], filename))
             tmp_file = os.path.join('/tmp/', filename)
-            api_app.append_local_instrument(tmp_file)
+            api_app.append_instrument_to_list(tmp_file)
             api_app.save_uploaded_instrument(tmp_file)
             return make_response('Instrument ' + filename + ' uploaded.')
     return make_response('Instrument upload failed.')
@@ -150,7 +151,7 @@ def upload_remote_instrument(name, sha):
     filename = secure_filename(zip_filename)
     tmp_file = os.path.join('/tmp/', filename)
     urllib.urlretrieve(app.config['S3_URL'] + filename, tmp_file)
-    api_app.append_local_instrument(tmp_file)
+    api_app.append_instrument_to_list(tmp_file)
     api_app.save_uploaded_instrument(tmp_file)
     return make_response('Instrument ' + filename + ' uploaded.')
 

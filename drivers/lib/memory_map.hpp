@@ -29,7 +29,7 @@ class MemoryMap
     /// @size_ Map size in octets
     MemoryMap(int *fd_, uintptr_t phys_addr_, 
               uint32_t size_ = DEFAULT_MAP_SIZE, 
-              int protection_ = READ_WRITE);
+              int protection_ = PROT_READ|PROT_WRITE);
 
     ~MemoryMap();
 
@@ -51,13 +51,6 @@ class MemoryMap
         MEMMAP_OPENED,       ///< Memory map opened
         MEMMAP_CANNOT_UMMAP, ///< Memory map cannot be unmapped
         MEMMAP_FAILURE       ///< Failure at memory mapping
-    };
-
-    enum Permissions {
-        READ_WRITE,
-        READ_ONLY,
-        WRITE_ONLY,
-        permissions_num
     };
 
   private:
