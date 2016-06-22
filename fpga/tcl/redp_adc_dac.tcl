@@ -2,7 +2,7 @@ proc add_redp_adc_dac {module_name} {
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  for {set i 0} {$i < 2} {incr i} {
+  for {set i 1} {$i <= 2} {incr i} {
     create_bd_pin -dir I -from 13 -to 0 dac$i
     create_bd_pin -dir O -from 13 -to 0 adc$i
   }
