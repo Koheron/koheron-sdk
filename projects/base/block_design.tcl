@@ -20,9 +20,9 @@ set address_name address
 address::create $address_name $config::bram_addr_width
 
 connect_cell $address_name {
-  clk  $adc_clk
-  cfg  [cfg_pin addr]
-  period  [cfg_pin period0]
+  clk      $adc_clk
+  cfg      [cfg_pin addr]
+  period0  [cfg_pin period0]
 }
 
 # Add DAC controller
@@ -34,7 +34,7 @@ add_dual_dac_controller $dac_controller_name dac $config::dac_width
 
 connect_cell $dac_controller_name {
   clk  $adc_clk
-  addr $address_name/addr
+  addr $address_name/addr0
   rst  $rst_adc_clk_name/peripheral_reset
   dac0 $adc_dac_name/dac1
   dac1 $adc_dac_name/dac2
