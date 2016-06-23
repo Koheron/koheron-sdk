@@ -4,7 +4,6 @@ proc pins {cmd fast_count_width slow_count_width width} {
    $cmd -dir I                                        avg_on
    $cmd -dir I                                        tvalid
    $cmd -dir I                                        restart
-   $cmd -dir I                                        srst
    $cmd -dir I -from [expr $fast_count_width-1] -to 0 period
    $cmd -dir I -from [expr $fast_count_width-1] -to 0 threshold
    $cmd -dir I -from [expr $slow_count_width-1] -to 0 n_avg_min
@@ -59,18 +58,10 @@ proc create {module_name bram_addr_width args} {
     Reset_Pin        true
   } {
     clk clk
-    srst srst
+    srst [get_not_pin tvalid]
   }
 
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_dout {
-    Width.VALUE_SRC USER
-    Width 32
-    Depth 1
-  } {
-    CLK clk
-    D   fifo/dout
-    Q   dout
-   }
+  connect_pins dout [get_Q_pin fifo/dout 32 1]
 
   # Create Adder (depends on input type)
   if { $type == "fix" } {	  
@@ -154,7 +145,7 @@ proc create {module_name bram_addr_width args} {
     OPERATION "GE"
   } {
     a fifo/data_count
-    b threshold
+    b [get_Q_pin threshold $fast_count_width 1 [get_not_pin tvalid]]
   }
 
   cell xilinx.com:ip:util_vector_logic:2.0 wr_en_and_comp {
@@ -174,13 +165,14 @@ proc create {module_name bram_addr_width args} {
   } {
     clk clk
     clken wr_en_and_comp/Res
-    count_max period
+    count_max [get_Q_pin period $fast_count_width 1 [get_not_pin tvalid]]
     n_avg n_avg
     avg_on avg_on
     wen shift_reg/SCLR
     address addr
     clr_fback sr_avg_off/SCLR
     avg_on_out avg_on_out
+    srst [get_not_pin tvalid]
   }
 
   cell xilinx.com:ip:xlconcat:2.1 concat_wen {NUM_PORTS 4} {dout wen}
