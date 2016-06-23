@@ -12,7 +12,7 @@ host = os.getenv('HOST','192.168.1.2')
 project = os.getenv('NAME','')
 
 im = InstrumentManager(host)
-im.install_instrument(project)
+im.install_instrument(project, always_restart=True)
 pc = ProjectConfig(project)
 
 client = KClient(host)
@@ -23,9 +23,9 @@ for mmap in pc.mmaps:
 
 class TestsDeviceMemory:
     def test_write_read(self):
-        value = np.random.randint(16384, size=1)
+        value = np.random.randint(16384, size=1)[0]
         dvm.write32('config', pc.cfg['led'], value)
-        assert(dvm.read32('config', pc.cfg['led']) == value)
+        assert dvm.read32('config', pc.cfg['led']) == value
 
     def test_write_read_buffer(self):
         buff = np.random.randint(16384, size=2048)
