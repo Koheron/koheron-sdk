@@ -59,6 +59,7 @@ parameters:
   adc_width: 14
   pwm_width: 10
   n_pwm: 4
+  n_dac_bram: 3
 
 xdc:
   - projects/base/expansion_connector.xdc
