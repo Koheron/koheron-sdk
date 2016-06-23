@@ -13,7 +13,90 @@ proc sts_pin {name} {
   return $::status_name/In[set config::${name}_offset]
 }
 
+proc get_not_pin {pin_name} {
+  # TODO use function here ...
+  set i 0
+  while 1 {
+    set not_name not_[lindex [split $pin_name /] end]_${i}
+    if {[get_bd_cells $not_name] eq ""} {break}
+    incr i
+  }
+  cell xilinx.com:ip:util_vector_logic:2.0 $not_name {
+    C_SIZE 1
+    C_OPERATION not
+  } {
+    Op1 $pin_name
+  }
+  return $not_name/Res
+}
+
+proc get_slice_pin {pin_name width from to} {
+  # TODO ... and here
+  set i 0
+  while 1 {
+    set slice_name slice_from${from}_to${to}_[lindex [split $pin_name /] end]_${i}
+    if {[get_bd_cells $slice_name] eq ""} {break}
+    incr i
+  }
+  cell xilinx.com:ip:xlslice:1.0 $slice_name {
+    DIN_WIDTH $width
+    DIN_FROM $from
+    DIN_TO $to
+  } {
+    Din $pin_name
+  }
+  return $slice_name/Dout
+}
+
+proc get_edge_detector_pin {pin_name {clk clk}} {
+  # TODO ... and here
+  set i 0
+  while 1 {
+    set edge_det_name edge_detector_[lindex [split $pin_name /] end]_${i}
+    if {[get_bd_cells $edge_det_name] eq ""} {break}
+    incr i
+  }
+  cell koheron:user:edge_detector:1.0 $edge_det_name {} {
+    clk $clk
+    din $pin_name
+  }
+  return $edge_det_name/dout
+}
+
+proc get_Q_pin {in_pin_name {width 1} {depth 1} {ce_pin_name "ce_false"} {clk clk}} {
+  # TODO ... and here
+  set i 0
+  while 1 {
+    set shift_reg_name Q_d${depth}_[lindex [split $in_pin_name /] end]_${i}
+    if {[get_bd_cells $shift_reg_name] eq ""} {break}
+    incr i
+  }
+  if { [string match "ce_false" $ce_pin_name] } {
+    cell xilinx.com:ip:c_shift_ram:12.0 $shift_reg_name {
+      Width.VALUE_SRC USER
+      Width $width
+      Depth $depth
+    } {
+      CLK $clk
+      D   $in_pin_name
+    }
+  } else {
+    cell xilinx.com:ip:c_shift_ram:12.0 $shift_reg_name {
+      Width.VALUE_SRC USER
+      Width $width
+      Depth $depth
+      CE true
+    } {
+      CLK clk
+      D   $in_pin_name
+      CE  $ce_pin_name
+    }
+  }
+  return $shift_reg_name/Q
+}
+
 proc get_constant_pin {value width} {
+  # TODO ... and here
   set i 0
   while 1 {
     set const_name const${i}_v${value}_w${width}
@@ -32,9 +115,12 @@ proc connect_pins {pin1 pin2} {
 }
 
 proc connect_constant {name value width pin} {
-  cell xilinx.com:ip:xlconstant:1.1 $name \
-    [list CONST_VAL $value CONST_WIDTH $width] \
-    [list dout $pin]
+  cell xilinx.com:ip:xlconstant:1.1 $name {
+    CONST_VAL $value
+    CONST_WIDTH $width
+  } { 
+    dout $pin
+  }
 }
 
 # http://wiki.tcl.tk/13920
