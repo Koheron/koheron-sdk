@@ -25,6 +25,20 @@ class TestsInstrumentManager:
                     new_instruments = im.get_local_instruments()
                     assert version not in new_instruments[instrum]
 
+        im.restore_backup()
+        assert len(im.get_local_instruments()) > 0
 
-tests = TestsInstrumentManager()
-tests.test_remove_and_restore()
+    def test_install_instrument(self):
+        local_instruments = im.get_local_instruments()
+
+        for instrum in local_instruments:
+            if len(local_instruments[instrum]) > 0:
+                for version in local_instruments[instrum]:
+                    im.deploy_local_instrument(instrum, version)
+                    curr_instrum = im.get_current_instrument()
+                    assert curr_instrum['name'] == instrum
+                    assert curr_instrum['sha'] == version
+
+# tests = TestsInstrumentManager()
+# tests.test_remove_and_restore()
+# tests.test_install_instrument()

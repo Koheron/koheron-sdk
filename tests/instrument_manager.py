@@ -71,3 +71,7 @@ class InstrumentManager:
                     return
         raise ValueError("Instrument " + instrument_name + " not found")
 
+    def restore_backup(self):
+        r = requests.get(self.url + '/api/instruments/restore')
+        return r.text
+
