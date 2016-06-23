@@ -5,8 +5,7 @@ import pytest
 
 from instrument_manager import InstrumentManager
 
-host = os.getenv('HOST', '192.168.1.2')
-name = os.getenv('PYTEST_INST_NAME', '')
+host = os.getenv('HOST', '192.168.1.100')
 im = InstrumentManager(host)
 
 class TestsInstrumentManager:

@@ -121,6 +121,9 @@ test_module: $(CONFIG_TCL) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(C
 test_core:
 	vivado -source scripts/test_core.tcl -tclargs $(CORE) $(PART)
 
+test_instrument_manager: app_sync
+	py.test -v tests/tests_instrument_manager.py
+
 test: tests/$(NAME).py
 	python $<
 
