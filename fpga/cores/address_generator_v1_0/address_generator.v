@@ -19,7 +19,7 @@ module address_generator #
       count <= 0;
       count_max_reg <= count_max;
     end else begin
-      if (count != count_max) begin
+      if (count != count_max_reg) begin
         count <= count + 1;
       end else begin
         count <= 0;
