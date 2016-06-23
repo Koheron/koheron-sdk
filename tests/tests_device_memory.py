@@ -23,16 +23,16 @@ for mmap in pc.mmaps:
 
 class TestsDeviceMemory:
     def test_write_read(self):
-        value = 42
+        value = np.random.randint(16384, size=1)
         dvm.write32('config', pc.cfg['led'], value)
         assert(dvm.read32('config', pc.cfg['led']) == value)
 
     def test_write_read_buffer(self):
-        buff = np.arange(10)
+        buff = np.random.randint(16384, size=2048)
         dvm.write_buffer('dac', 0, buff)
         buff_ret = dvm.read_buffer('dac', 0, len(buff))
         assert np.array_equal(buff, buff_ret)
 
-tests = TestsDeviceMemory()
+# tests = TestsDeviceMemory()
 # tests.test_write_read()
 # tests.test_write_read_buffer()
