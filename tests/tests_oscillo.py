@@ -12,7 +12,7 @@ host = os.getenv('HOST','192.168.1.2')
 project = os.getenv('NAME','')
 
 im = InstrumentManager(host)
-im.install_instrument(project)
+im.install_instrument(project, always_restart=True)
 pc = ProjectConfig(project)
 
 client = KClient(host)
