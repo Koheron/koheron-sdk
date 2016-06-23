@@ -126,7 +126,7 @@ test_%: tests/tests_%.py
 
 test_app: | app_sync test_instrument_manager
 
-test_instrum: test_device_memory test_$(NAME)
+test_instrum: test_device_memory test_common test_$(NAME)
 
 test_all: | test_app test_instrum
 
