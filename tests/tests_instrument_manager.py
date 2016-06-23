@@ -9,6 +9,14 @@ host = os.getenv('HOST', '192.168.1.100')
 im = InstrumentManager(host)
 
 class TestsInstrumentManager:
+    def test_get_app_version(self):
+        version = im.get_app_version()
+        assert 'date' in version
+        assert 'machine' in version
+        assert 'time' in version
+        assert 'user' in version
+        assert 'version' in version
+
     def test_get_bistream_id(self):
         assert len(im.get_bistream_id()) == 64
 
@@ -38,6 +46,7 @@ class TestsInstrumentManager:
                     assert curr_instrum['name'] == instrum
                     assert curr_instrum['sha'] == version
 
-# tests = TestsInstrumentManager()
+tests = TestsInstrumentManager()
+tests.test_get_app_version()
 # tests.test_remove_and_restore()
 # tests.test_install_instruments()

@@ -124,9 +124,11 @@ test_core:
 test_%: tests/tests_%.py
 	py.test -v $<
 
-test_app: app_sync test_instrument_manager
+test_app: | app_sync test_instrument_manager
 
-test: test_device_memory test_$(NAME)
+test_instrum: test_device_memory test_$(NAME)
+
+test_all: | test_app test_instrum
 
 run: zip
 	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
