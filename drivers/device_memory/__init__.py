@@ -39,6 +39,12 @@ class DeviceMemory(object):
             pass
         write_buffer(self, data, self.maps[device_name], offset)
 
+    def read_buffer(self, device_name, offset, buff_size):
+        @kc.command('DEVICE_MEMORY', 'III')
+        def read_buffer(self, mmap_idx, offset, buff_size):
+            return self.client.recv_buffer(buff_size)
+        return read_buffer(self, self.maps[device_name], offset, buff_size)
+
     def set_bit(self, device_name, offset, index):
         @kc.command('DEVICE_MEMORY', 'III')
         def set_bit(self, mmap_idx, offset, index):
