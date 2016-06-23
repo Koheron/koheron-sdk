@@ -15,14 +15,13 @@ proc add_bram_recorder {module_name bram_name} {
 
   add_bram $bram_name [set config::axi_${bram_name}_range] [set config::axi_${bram_name}_offset]
 
-  connect_constant ${bram_name}_enb  1 1  blk_mem_gen_$bram_name/enb
-
   connect_cell blk_mem_gen_$bram_name {
     addrb addr
     dinb adc
     clkb clk
     rstb rst
     web wen
+    enb [get_constant_pin 1 1]
   }
 
   current_bd_instance $bd

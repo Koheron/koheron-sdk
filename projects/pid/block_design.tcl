@@ -84,9 +84,8 @@ cell xilinx.com:ip:cmpy:6.0 mult_0 {
   S_AXIS_B $dds_name/M_AXIS_DATA
   S_AXIS_CTRL lfsr_0/M_AXIS
   aclk $adc_clk
+  s_axis_a_tvalid [get_constant_pin 1 1]
 }
-
-connect_constant mult_valid 1 1 mult_0/s_axis_a_tvalid
 
 # Create axis_broadcaster
 cell xilinx.com:ip:axis_broadcaster:1.1 bcast_0 {

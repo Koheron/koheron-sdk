@@ -29,7 +29,6 @@ add_config_register $config_name $adc_clk $config::config_size $config::axi_conf
 source $lib/status_register.tcl
 set status_name sts
 add_status_register $status_name $adc_clk $config::status_size $config::axi_status_range $config::axi_status_offset
-source $lib/sha_dna.tcl
 
 # Connect LEDs
 cell xilinx.com:ip:xlslice:1.0 led_slice {
