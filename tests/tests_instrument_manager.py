@@ -27,7 +27,7 @@ class TestsInstrumentManager:
         im.restore_backup()
         assert len(im.get_local_instruments()) > 0
 
-    def test_install_instrument(self):
+    def test_install_instruments(self):
         local_instruments = im.get_local_instruments()
 
         for instrum in local_instruments:
@@ -40,4 +40,4 @@ class TestsInstrumentManager:
 
 # tests = TestsInstrumentManager()
 # tests.test_remove_and_restore()
-# tests.test_install_instrument()
+# tests.test_install_instruments()
