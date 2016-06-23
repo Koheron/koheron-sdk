@@ -1,0 +1,30 @@
+# Unit tests for InstrumentManager
+
+import os
+import pytest
+
+from instrument_manager import InstrumentManager
+
+host = os.getenv('HOST', '192.168.1.2')
+name = os.getenv('PYTEST_INST_NAME', '')
+im = InstrumentManager(host)
+
+class TestsInstrumentManager:
+    def test_get_bistream_id(self):
+        assert len(im.get_bistream_id()) == 64
+
+    def test_remove_and_restore(self):
+        """ Removes all local instruments and restore backup"""
+        local_instruments = im.get_local_instruments()
+
+        for instrum in local_instruments:
+            if len(local_instruments[instrum]) > 0:
+                for version in local_instruments[instrum]:
+                    im.remove_local_instrument(instrum, version)
+                    # Check the instrument has been deleted
+                    new_instruments = im.get_local_instruments()
+                    assert version not in new_instruments[instrum]
+
+
+tests = TestsInstrumentManager()
+tests.test_remove_and_restore()

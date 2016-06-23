@@ -3,7 +3,6 @@
 import requests
 import time
 import hashlib
-import pytest
 
 class InstrumentManager:
     def __init__(self, ip, port=80):
@@ -72,18 +71,3 @@ class InstrumentManager:
                     return
         raise ValueError("Instrument " + instrument_name + " not found")
 
-
-if __name__ == "__main__":
-    host = os.getenv(HOST, '192.168.1.100')
-    name = os.getenv(NAME, '')
-    im = InstrumentManager(host)
-    im.install_instrument(name)
-
-    # Unit tests
-    @pytest.mark.parametrize('im', [im])
-    def test_bitstream_id(im):
-        assert True
-
-
-
-    print('bitstream id = {}'.format(http.get_bistream_id()))
