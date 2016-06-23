@@ -165,7 +165,7 @@ proc create {module_name bram_addr_width args} {
   } {
     clk clk
     clken wr_en_and_comp/Res
-    count_max [get_Q_pin period $fast_count_width 1 [get_not_pin tvalid]]
+    count_max period
     n_avg n_avg
     avg_on avg_on
     wen shift_reg/SCLR

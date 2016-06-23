@@ -23,7 +23,6 @@ module address_generator #
         count <= count + 1;
       end else begin
         count <= 0;
-        count_max_reg <= count_max;
       end
     end
   end

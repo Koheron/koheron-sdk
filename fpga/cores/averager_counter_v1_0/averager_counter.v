@@ -40,7 +40,7 @@ module averager_counter #
   always @(posedge clk) begin
     if (srst) begin
       init_restart <= 0;
-      ready <= 1;      
+      ready <= 1;
     end else begin
       if (restart && clken_reg) begin
         init_restart <= 1;
@@ -67,6 +67,7 @@ module averager_counter #
 
   always @(posedge clk) begin
     if (srst) begin
+      count_max_reg <= count_max;
       fast_count <= 0;
       slow_count <= 0;
       n_avg <= 0;
@@ -77,7 +78,6 @@ module averager_counter #
         if (fast_count == count_max_reg) begin
           fast_count <= 0;
           if (wen) begin
-            count_max_reg <= count_max;
             wen <= 0;
             slow_count <= 0;
             n_avg <= slow_count + 1;
