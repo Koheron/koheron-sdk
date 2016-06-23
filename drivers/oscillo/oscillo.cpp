@@ -19,6 +19,10 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
     raw_data[1] = dvm.read_buffer<int32_t>(adc_map[1]);
 
     set_averaging(false); // Reset averaging
+
+    // set tvalid delay to 19 * 8 ns
+    dvm.write32(config_map, ADDR_OFF, 19 << 2);
+    
     set_period(WFM_SIZE);
     set_n_avg_min(0);
 }

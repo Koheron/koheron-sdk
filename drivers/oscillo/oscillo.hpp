@@ -21,7 +21,7 @@ class Oscillo
     int Open() {return dvm.is_ok() ? 0 : -1;}
 
     void reset() {
-        dvm.clear_bit(config_map, ADDR_OFF, 1);
+        dvm.clear_bit(config_map, ADDR_OFF, 0);
         dvm.set_bit(config_map, ADDR_OFF, 0);
     }
 

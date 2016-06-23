@@ -23,6 +23,10 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
     fifo.set_map(peak_fifo_map);
 
     set_averaging(true);
+
+    // set tvalid delay to 19 * 8 ns
+    dvm.write32(config_map, ADDR_OFF, 19 << 2);
+
     set_address_range(0, WFM_SIZE);
     set_period(WFM_SIZE);
     set_n_avg_min(0);

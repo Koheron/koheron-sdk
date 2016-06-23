@@ -78,7 +78,6 @@ connect_cell $avg_name {
   n_avg       [sts_pin n_avg]
   ready       [sts_pin avg_ready]
   avg_on_out  [sts_pin avg_on_out]
-  srst        [get_constant_pin 0 1]
 }
 
 connect_cell $subtract_name {
