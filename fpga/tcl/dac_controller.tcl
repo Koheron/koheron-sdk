@@ -29,14 +29,9 @@ proc add_dual_dac_controller {module_name bram_name dac_width} {
 
   # Connect BRAM output to DACs
   for {set i 0} {$i < 2} {incr i} {
-    cell xilinx.com:ip:xlslice:1.0 dac${i}_slice {
-      DIN_WIDTH 32
-      DIN_FROM [expr $dac_width-1+16*$i]
-      DIN_TO [expr 16*$i]
-    } {
-      Din blk_mem_gen_$bram_name/doutb
-      Dout dac$i
-    }
+    set from [expr $dac_width-1+16*$i]
+    set to   [expr 16*$i]
+    connect_pins dac$i [get_slice_pin blk_mem_gen_$bram_name/doutb 32 $from $to]
   }
 
   current_bd_instance $bd
