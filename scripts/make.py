@@ -57,7 +57,10 @@ def get_config(project):
     props = ['board','host']
     for prop in props:
         config[prop] = get_prop(project, prop)
+    
+    # SHA
     sha_filename = os.path.join('tmp', project + '.sha')
+    assert os.path.isfile(sha_filename)
     with open(sha_filename) as sha_file:
         sha = sha_file.read()
         for i in range(8):
