@@ -17,10 +17,10 @@ MAKE_PY = scripts/make.py
 TMP = tmp
 
 # properties defined MAIN_YML :
-BOARD:=$(shell python $(MAKE_PY) --board $(NAME) && cat $(TMP)/$(NAME).board)
-CORES:=$(shell python $(MAKE_PY) --cores $(NAME) && cat $(TMP)/$(NAME).cores)
-DRIVERS:=$(shell python $(MAKE_PY) --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
-XDC:=$(shell python $(MAKE_PY) --xdc $(NAME) && cat $(TMP)/$(NAME).xdc)
+BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) && cat $(TMP)/$(NAME).board)
+CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) && cat $(TMP)/$(NAME).cores)
+DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
+XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) && cat $(TMP)/$(NAME).xdc)
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
