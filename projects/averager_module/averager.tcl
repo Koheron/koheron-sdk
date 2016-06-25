@@ -148,23 +148,17 @@ proc create {module_name bram_addr_width args} {
     b [get_Q_pin threshold $fast_count_width 1 [get_not_pin tvalid]]
   }
 
-  cell xilinx.com:ip:util_vector_logic:2.0 wr_en_and_comp {
-    C_OPERATION and
-    C_SIZE 1
-  } {
-    Op1 comp/dout
-    Op2 wen_shift_reg/Q
-    Res fifo/rd_en
-  }
-
   # Start counting once FIFO read enabled
+
+  set wr_en_and_comp [get_and_pin comp/dout wen_shift_reg/Q]
+  connect_pins $wr_en_and_comp fifo/rd_en
 
   cell koheron:user:averager_counter:1.0 averager_counter {
     FAST_COUNT_WIDTH $fast_count_width
     SLOW_COUNT_WIDTH $slow_count_width
   } {
     clk clk
-    clken wr_en_and_comp/Res
+    clken $wr_en_and_comp
     count_max period
     n_avg n_avg
     avg_on avg_on
@@ -198,17 +192,9 @@ proc create {module_name bram_addr_width args} {
     trig_out averager_counter/restart
   }
 
-  cell xilinx.com:ip:util_vector_logic:2.0 ready_and_ready {
-    C_OPERATION and
-    C_SIZE 1
-  } {
-    Op1 delay_trig/ready
-    Op2 averager_counter/ready
-    Res ready
-  }
+  connect_pins ready [get_and_pin delay_trig/ready averager_counter/ready]
 
   current_bd_instance $bd
-
 }
 
 } ;# end namespace averager
