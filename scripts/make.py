@@ -48,7 +48,7 @@ def load_config(project):
     return config
 
 def get_config(project):
-    assert project in os.listdir('projects')
+    assert project in os.listdir('projects'), str()
     config = load_config(project)
     # Get missing elements from ancestors
     lists = ['cores','xdc']
@@ -60,11 +60,11 @@ def get_config(project):
     
     # SHA
     sha_filename = os.path.join('tmp', project + '.sha')
-    assert os.path.isfile(sha_filename)
-    with open(sha_filename) as sha_file:
-        sha = sha_file.read()
-        for i in range(8):
-            config['parameters']['sha' + str(i)] = int('0x' + sha[8*i:8*i+8], 0)
+    if os.path.isfile(sha_filename):
+        with open(sha_filename) as sha_file:
+            sha = sha_file.read()
+            for i in range(8):
+                config['parameters']['sha' + str(i)] = int('0x' + sha[8*i:8*i+8], 0)
     return config
 
 ###################

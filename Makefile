@@ -78,9 +78,9 @@ TEMPLATE_DIR = scripts/templates
 
 # Versioning
 VERSION_FILE = $(TMP)/$(NAME).version
-VERSION = $(shell cat $(VERSION_FILE))
+VERSION := $(shell cat $(VERSION_FILE))
 SHA_FILE = $(TMP)/$(NAME).sha
-SHA = $(shell cat $(SHA_FILE))
+SHA := $(shell cat $(SHA_FILE))
 
 # Zip
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
@@ -141,7 +141,9 @@ run: zip
 $(VERSION_FILE): | $(TMP)
 	echo $(shell (git rev-parse --short HEAD || echo "default")) > $@
 
-$(SHA_FILE): $(VERSION_FILE)
+$(VERSION): $(VERSION_FILE)
+
+$(SHA_FILE): $(VERSION)
 	echo $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g')) > $@
 
 $(MAKE_PY): $(SHA_FILE)
@@ -157,7 +159,7 @@ $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
 
-$(TMP)/%.xpr: $(CONFIG_TCL) $(XDC) projects/%/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/%.xpr: $(MAKE_PY) $(CONFIG_TCL) $(XDC) projects/%/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)
 
@@ -264,7 +266,7 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 # tcp-server (compiled with project specific middleware)
 ###############################################################################
 
-$(TCP_SERVER_DIR): 
+$(TCP_SERVER_DIR):
 	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
