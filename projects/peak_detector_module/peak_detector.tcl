@@ -30,7 +30,6 @@ proc create {module_name wfm_width} {
     C_Latency $compare_latency
   } {
     s_axis_a_tdata din
-    s_axis_b_tdata [get_Q_pin din 32 1 logic_or/Res]
     s_axis_a_tvalid s_axis_tvalid
     s_axis_b_tvalid s_axis_tvalid
   }
@@ -118,7 +117,7 @@ proc create {module_name wfm_width} {
     C_SIZE 1
     C_OPERATION and
   } {
-    Op1 [get_and_pin address_ge_low address_le_high]
+    Op1 [get_and_pin address_ge_low/dout address_le_high/dout]
     Op2 [get_slice_pin comparator/m_axis_result_tdata 8 0 0]
     Res logic_or/Op1
   }

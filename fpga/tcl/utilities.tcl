@@ -13,8 +13,13 @@ proc sts_pin {name} {
   return $::status_name/In[set config::${name}_offset]
 }
 
+proc underscore {pin_name} {
+  return [join [split $pin_name /] _]
+}
+
+# define get_and_pin, get_or_pin, get_nor_pin procedures
 proc get_op_pin {op pin_name1 pin_name2} {
-  set cell_name [lindex [split $pin_name1 /] end]_${op}_[lindex [split $pin_name2 /] end]
+  set cell_name [underscore $pin_name1]_${op}_[underscore $pin_name2]
   if {[get_bd_cells $cell_name] eq ""} {
     cell xilinx.com:ip:util_vector_logic:2.0 $cell_name {
       C_SIZE 1
@@ -27,10 +32,11 @@ proc get_op_pin {op pin_name1 pin_name2} {
   return $cell_name/Res
 }
 
-# Not sure ...
 foreach op {and or nor} {
-  proc get_${op}_pin {$op pin_name1 pin_name2} {
-    return [get_op_pin $op pin_name1 pin_name2]
+  proc get_${op}_pin {pin_name1 pin_name2} {
+    set proc_name [lindex [info level 0] 0]
+    set op [lindex [split $proc_name _] 1]
+    return [get_op_pin $op $pin_name1 $pin_name2]
   }
 }
 
