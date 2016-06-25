@@ -304,7 +304,7 @@ zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 # app
 ###############################################################################
 
-$(METADATA): $(MAKE_PY)
+$(METADATA): $(MAKE_PY) $(VERSION)
 	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
 
 $(HTTP_API_DRIVERS_DIR)/%: drivers/%/__init__.py

@@ -42,13 +42,13 @@ def get_parents(project, parents=[]):
     return parents
 
 def load_config(project):
+    assert project in os.listdir('projects')
     config_filename = os.path.join('projects', project, 'main.yml')    
     with open(config_filename) as config_file:
         config = yaml.load(config_file)        
     return config
 
 def get_config(project):
-    assert project in os.listdir('projects'), str()
     config = load_config(project)
     # Get missing elements from ancestors
     lists = ['cores','xdc']
