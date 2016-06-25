@@ -114,19 +114,11 @@ proc create {module_name wfm_width} {
     b address_high
   }
 
-  cell xilinx.com:ip:util_vector_logic:2.0 address_in_range {
-    C_SIZE 1
-    C_OPERATION and
-  } {
-    Op1 address_ge_low/dout
-    Op2 address_le_high/dout
-  }
-
   cell xilinx.com:ip:util_vector_logic:2.0 maximum_detected_in_range {
     C_SIZE 1
     C_OPERATION and
   } {
-    Op1 address_in_range/Res
+    Op1 [get_and_pin address_ge_low address_le_high]
     Op2 [get_slice_pin comparator/m_axis_result_tdata 8 0 0]
     Res logic_or/Op1
   }
