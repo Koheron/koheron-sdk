@@ -13,19 +13,84 @@ proc sts_pin {name} {
   return $::status_name/In[set config::${name}_offset]
 }
 
-proc get_constant_pin {value width} {
-  set i 0
-  while 1 {
-    set const_name const${i}_v${value}_w${width}
-    if {[get_bd_cells $const_name] eq ""} {break}
-    incr i
+proc get_not_pin {pin_name} {
+  set cell_name not_[lindex [split $pin_name /] end]
+  if {[get_bd_cells $cell_name] eq ""} {
+    cell xilinx.com:ip:util_vector_logic:2.0 $cell_name {
+      C_SIZE 1
+      C_OPERATION not
+    } {
+      Op1 $pin_name
+    }
   }
-  cell xilinx.com:ip:xlconstant:1.1 $const_name {
-    CONST_VAL $value
-    CONST_WIDTH $width
-  } {}
-  return $const_name/dout
+  return $cell_name/Res
 }
+
+proc get_slice_pin {pin_name width from to} {
+  set cell_name slice_from${from}_to${to}_[lindex [split $pin_name /] end]
+  if {[get_bd_cells $cell_name] eq ""} {
+    cell xilinx.com:ip:xlslice:1.0 $cell_name {
+      DIN_WIDTH $width
+      DIN_FROM $from
+      DIN_TO $to
+    } {
+      Din $pin_name
+    }
+  }
+  return $cell_name/Dout
+}
+
+proc get_Q_pin {in_pin_name {width 1} {depth 1} {ce_pin_name "noce"} {clk clk}} {
+  set cell_name Q_d${depth}_[lindex [split $ce_pin_name /] end]_[lindex [split $in_pin_name /] end]
+  if {[get_bd_cells $cell_name] eq ""} {
+    if { [string match "noce" $ce_pin_name] } {
+      cell xilinx.com:ip:c_shift_ram:12.0 $cell_name {
+        Width.VALUE_SRC USER
+        Width $width
+        Depth $depth
+      } {
+        CLK $clk
+        D   $in_pin_name
+      }
+    } else {
+      cell xilinx.com:ip:c_shift_ram:12.0 $cell_name {
+        Width.VALUE_SRC USER
+        Width $width
+        Depth $depth
+        CE true
+      } {
+        CLK clk
+        D   $in_pin_name
+        CE  $ce_pin_name
+      }
+    }
+  }
+  return $cell_name/Q
+}
+
+proc get_constant_pin {value width} {
+  set cell_name const_v${value}_w${width}
+  if {[get_bd_cells $cell_name] eq ""} {
+    cell xilinx.com:ip:xlconstant:1.1 $cell_name {
+      CONST_VAL $value
+      CONST_WIDTH $width
+    } {}
+  }
+  return $cell_name/dout
+}
+
+# see fpga/cores/edge_detector_v1_0
+proc get_edge_detector_pin {pin_name {clk clk}} {
+  set cell_name edge_detector_[lindex [split $pin_name /] end]
+  if {[get_bd_cells $cell_name] eq ""} {
+    cell koheron:user:edge_detector:1.0 $cell_name {} {
+      clk $clk
+      din $pin_name
+    }
+  }
+  return $cell_name/dout
+}
+
 
 proc connect_pins {pin1 pin2} {
   connect_bd_net [get_bd_pins $pin1] [get_bd_pins $pin2]

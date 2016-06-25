@@ -31,7 +31,7 @@ class Spectrum
     }
 
     void reset() {
-        dvm.clear_bit(config_map, ADDR_OFF, 1);
+        dvm.clear_bit(config_map, ADDR_OFF, 0);
         dvm.set_bit(config_map, ADDR_OFF, 0);
     }
 

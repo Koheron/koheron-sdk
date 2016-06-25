@@ -18,13 +18,14 @@ proc add_dual_dac_controller {module_name bram_name dac_width} {
 
   add_bram $bram_name [set config::axi_${bram_name}_range] [set config::axi_${bram_name}_offset]
 
-  connect_constant ${bram_name}_dinb 0 32 blk_mem_gen_$bram_name/dinb
-  connect_constant ${bram_name}_enb  1 1  blk_mem_gen_$bram_name/enb
-  connect_constant ${bram_name}_web  0 4  blk_mem_gen_$bram_name/web
-
-  connect_pins addr blk_mem_gen_$bram_name/addrb
-  connect_pins clk  blk_mem_gen_$bram_name/clkb
-  connect_pins rst  blk_mem_gen_$bram_name/rstb
+  connect_cell blk_mem_gen_$bram_name {
+    clkb clk
+    addrb addr
+    rstb rst
+    dinb [get_constant_pin 0 32]
+    enb  [get_constant_pin 1 1]
+    web  [get_constant_pin 0 4]
+  }
 
   # Connect BRAM output to DACs
   for {set i 0} {$i < 2} {incr i} {

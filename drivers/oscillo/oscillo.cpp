@@ -21,6 +21,10 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
 
     dvm.write32(config_map, DAC_SELECT_OFF, 0 + (1 << 2));
     set_averaging(false); // Reset averaging
+
+    // set tvalid delay to 19 * 8 ns
+    dvm.write32(config_map, ADDR_OFF, 19 << 2);
+    
     set_period(WFM_SIZE);
     set_n_avg_min(0);
 }

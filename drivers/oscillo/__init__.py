@@ -46,6 +46,14 @@ class Oscillo(object):
         return self.client.recv_uint32()
 
     @command('OSCILLO')
+    def get_num_average_0(self):
+        return self.client.recv_uint32()
+
+    @command('OSCILLO')
+    def get_num_average_1(self):
+        return self.client.recv_uint32()
+
+    @command('OSCILLO')
     def read_all_channels(self):
         return self.client.recv_buffer(2 * self.wfm_size, data_type='float32')
 

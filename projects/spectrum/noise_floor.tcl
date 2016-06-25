@@ -24,15 +24,16 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
 
   set bram_name noise_floor_bram
   add_bram $bram_name $::config::axi_noise_floor_range $::config::axi_noise_floor_offset
-  connect_pins blk_mem_gen_$bram_name/clkb  clk
 
-  # Connect remaining ports of BRAM
-  connect_constant ${bram_name}_dinb 0 32 blk_mem_gen_$bram_name/dinb
-  connect_constant ${bram_name}_enb  1 1  blk_mem_gen_$bram_name/enb
-  connect_constant ${bram_name}_web  0 4  blk_mem_gen_$bram_name/web
-  connect_pins blk_mem_gen_$bram_name/rstb   /$::rst_adc_clk_name/peripheral_reset
-
-  connect_pins blk_mem_gen_$bram_name/addrb address_counter/Q
+  # TODO add rst port
+  connect_cell blk_mem_gen_$bram_name {
+    clkb clk
+    addrb address_counter/Q
+    rstb /$::rst_adc_clk_name/peripheral_reset
+    dinb [get_constant_pin 0 32]
+    enb  [get_constant_pin 1 1]
+    web  [get_constant_pin 0 4]
+  }
 
   cell xilinx.com:ip:c_shift_ram:12.0 tdata_reg {
     Width 32
