@@ -30,14 +30,9 @@ proc create {module_name wfm_width} {
     C_Latency $compare_latency
   } {
     s_axis_a_tdata din
+    s_axis_b_tdata [get_Q_pin din 32 1 logic_or/Res]
     s_axis_a_tvalid s_axis_tvalid
     s_axis_b_tvalid s_axis_tvalid
-  }
-
-  cell xilinx.com:ip:xlslice:1.0 slice_compare {
-    DIN_WIDTH 8
-  } {
-    Din comparator/m_axis_result_tdata
   }
 
   # Address starting counting at s_axis_tvalid
@@ -77,17 +72,6 @@ proc create {module_name wfm_width} {
     Q comparator/s_axis_b_tdata
   }
 
-  # Register storing the address of current maximum
-  cell xilinx.com:ip:c_shift_ram:12.0 address_reg {
-    CE true
-    Width $wfm_width
-    Depth 1
-  } {
-    CLK clk
-    D address_counter/Q
-    CE logic_or/Res
-  }
-
   # Register storing the maximum of one cycle
   cell xilinx.com:ip:c_shift_ram:12.0 maximum_out {
     CE true
@@ -96,7 +80,7 @@ proc create {module_name wfm_width} {
   } {
     CLK clk
     CE reset_cycle/dout
-    D maximum_reg/Q
+    D [get_Q_pin din 32 1 logic_or/Res]
     Q maximum_out
   }
 
@@ -108,7 +92,7 @@ proc create {module_name wfm_width} {
   } {
     CLK clk
     CE reset_cycle/Dout
-    D address_reg/Q
+    D [get_Q_pin address_counter/Q $wfm_width 1 logic_or/Res]
     Q address_out
   }
 
@@ -143,19 +127,11 @@ proc create {module_name wfm_width} {
     C_OPERATION and
   } {
     Op1 address_in_range/Res
-    Op2 slice_compare/dout
+    Op2 [get_slice_pin comparator/m_axis_result_tdata 8 0 0]
     Res logic_or/Op1
   }
-
-  # Register storing the current maximum
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
-    Width 32
-    Depth 1
-  } {
-    CLK clk
-    D reset_cycle/dout
-    Q m_axis_tvalid
-  }
+  
+  connect_pins m_axis_tvalid [get_Q_pin reset_cycle/dout 32 1]
 
   current_bd_instance $bd
 }
