@@ -13,6 +13,27 @@ proc sts_pin {name} {
   return $::status_name/In[set config::${name}_offset]
 }
 
+proc get_op_pin {op pin_name1 pin_name2} {
+  set cell_name [lindex [split $pin_name1 /] end]_${op}_[lindex [split $pin_name2 /] end]
+  if {[get_bd_cells $cell_name] eq ""} {
+    cell xilinx.com:ip:util_vector_logic:2.0 $cell_name {
+      C_SIZE 1
+      C_OPERATION $op
+    } {
+      Op1 $pin_name1
+      Op2 $pin_name2
+    }
+  }
+  return $cell_name/Res
+}
+
+# Not sure ...
+foreach op {and or nor} {
+  proc get_${op}_pin {$op pin_name1 pin_name2} {
+    return [get_op_pin $op pin_name1 pin_name2]
+  }
+}
+
 proc get_not_pin {pin_name} {
   set cell_name not_[lindex [split $pin_name /] end]
   if {[get_bd_cells $cell_name] eq ""} {
