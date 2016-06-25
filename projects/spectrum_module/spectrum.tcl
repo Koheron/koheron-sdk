@@ -28,25 +28,22 @@ proc create {module_name n_pts_fft adc_width} {
       Out_Width $adc_width
       Latency 2
     } {
-      A   adc$i
       clk clk
+      A   adc$i
+      B   [get_slice_pin cfg_sub 32 [expr $adc_width*$i-1] [expr $adc_width*($i-1)]]
     }
   }
 
-  cell xilinx.com:ip:xlconstant:1.1 two_zeros {
-    CONST_WIDTH 2
-    CONST_VAL 0
-  } {}
-
+  set left_width [expr 16 - $adc_width]
   cell xilinx.com:ip:xlconcat:2.1 concat_0 {
     NUM_PORTS 4
     IN0_WIDTH $adc_width
-    IN1_WIDTH [expr 16 - $adc_width]
+    IN1_WIDTH $left_width
     IN2_WIDTH $adc_width
-    IN3_WIDTH [expr 16 - $adc_width]
+    IN3_WIDTH $left_width
   } {
-    In1 two_zeros/dout
-    In3 two_zeros/dout
+    In1 [get_constant_pin 0 $left_width]
+    In3 [get_constant_pin 0 $left_width]
   }
 
   for {set i 1} {$i < 3} {incr i} {
@@ -66,13 +63,6 @@ proc create {module_name n_pts_fft adc_width} {
   }
   
   for {set i 0} {$i < 2} {incr i} {
-    cell xilinx.com:ip:xlslice:1.0 mult_slice_$i {
-      DIN_WIDTH 64
-      DIN_FROM  [expr 31+32*$i]
-      DIN_TO    [expr 32*$i]
-    } {
-      Din complex_mult/m_axis_dout_tdata
-    }
     cell xilinx.com:ip:floating_point:7.1 float_$i {
       Operation_Type Fixed_to_float
       A_Precision_Type Custom
@@ -82,7 +72,7 @@ proc create {module_name n_pts_fft adc_width} {
       C_Latency 2
     } {
       aclk clk
-      s_axis_a_tdata mult_slice_$i/dout
+      s_axis_a_tdata [get_slice_pin complex_mult/m_axis_dout_tdata 64 [expr 31+32*$i] [expr 32*$i]]
       s_axis_a_tvalid complex_mult/m_axis_dout_tvalid
     }
   }
@@ -95,14 +85,6 @@ proc create {module_name n_pts_fft adc_width} {
     In1 float_1/m_axis_result_tdata
   }
 
-  cell xilinx.com:ip:util_vector_logic:2.0 tvalid_and {
-    C_SIZE 1
-    C_OPERATION and
-  } {
-    Op1 float_0/m_axis_result_tvalid
-    Op2 float_1/m_axis_result_tvalid
-  }
-
   cell xilinx.com:ip:xfft:9.0 fft_0 {
     transform_length $n_pts_fft
     target_clock_frequency 125
@@ -113,22 +95,16 @@ proc create {module_name n_pts_fft adc_width} {
     output_ordering natural_order
   } {
     aclk clk
-    s_axis_data_tdata concat_float/dout
-    s_axis_data_tvalid tvalid_and/Res
+    s_axis_data_tdata    concat_float/dout
+    s_axis_data_tvalid   [get_and_pin float_0/m_axis_result_tvalid float_1/m_axis_result_tvalid]
+    s_axis_data_tlast    [get_constant_pin 0 1]
+    s_axis_config_tdata  [get_slice_pin cfg_fft 32 15 0]
+    s_axis_config_tvalid [get_constant_pin 1 1]
   }
 
-  cell xilinx.com:ip:xlconstant:1.1 config_tlast_const {CONST_VAL 0} {dout fft_0/s_axis_data_tlast}
-  cell xilinx.com:ip:xlconstant:1.1 config_tvalid_const {} {dout fft_0/s_axis_config_tvalid}
-
   for {set i 0} {$i < 2} {incr i} {
-    cell xilinx.com:ip:xlslice:1.0 fft_slice_$i {
-      DIN_WIDTH 64
-      DIN_FROM  [expr 31+32*$i]
-      DIN_TO    [expr 32*$i]
-    } {
-      Din fft_0/m_axis_data_tdata
-    }
-
+  
+    set slice_tdata [get_slice_pin fft_0/m_axis_data_tdata 64 [expr 31+32*$i] [expr 32*$i]]
     cell xilinx.com:ip:floating_point:7.1 mult_$i {
       Operation_Type Multiply
       Flow_Control NonBlocking
@@ -136,8 +112,8 @@ proc create {module_name n_pts_fft adc_width} {
       C_Latency 3
     } {
       aclk clk
-      s_axis_a_tdata fft_slice_$i/Dout
-      s_axis_b_tdata fft_slice_$i/Dout
+      s_axis_a_tdata  $slice_tdata
+      s_axis_b_tdata  $slice_tdata
       s_axis_a_tvalid fft_0/m_axis_data_tvalid
       s_axis_b_tvalid fft_0/m_axis_data_tvalid
     }
@@ -155,28 +131,6 @@ proc create {module_name n_pts_fft adc_width} {
     S_AXIS_B mult_1/M_AXIS_RESULT
     m_axis_result_tdata m_axis_result_tdata
     m_axis_result_tvalid m_axis_result_tvalid
-  }
-
-  # Configuration registers
-
-  for {set i 1} {$i < 3} {incr i} {
-    cell xilinx.com:ip:xlslice:1.0 subtract_slice_$i {
-      DIN_WIDTH 32
-      DIN_FROM  [expr $adc_width*$i-1]
-      DIN_TO    [expr $adc_width*($i-1)]
-    } {
-      Din cfg_sub
-      Dout subtract_$i/B
-    }
-  }
-
-  cell xilinx.com:ip:xlslice:1.0 cfg_fft_slice {
-    DIN_WIDTH 32
-    DIN_FROM 15
-    DIN_TO 0
-  } {
-    Din cfg_fft
-    Dout fft_0/s_axis_config_tdata
   }
 
   current_bd_instance $bd
