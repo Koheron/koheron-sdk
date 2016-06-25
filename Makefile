@@ -78,9 +78,9 @@ TEMPLATE_DIR = scripts/templates
 
 # Versioning
 VERSION_FILE = $(TMP)/$(NAME).version
-VERSION := $(shell cat $(VERSION_FILE))
+VERSION = $(shell cat $(VERSION_FILE))
 SHA_FILE = $(TMP)/$(NAME).sha
-SHA := $(shell cat $(SHA_FILE))
+SHA = $(shell cat $(SHA_FILE))
 
 # Zip
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
