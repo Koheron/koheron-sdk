@@ -48,9 +48,7 @@ def load_config(project):
     return config
 
 def get_config(project):
-    if project not in os.listdir('projects'):
-        raise RuntimeError('Unknown project ' + project)
-
+    assert project in os.listdir('projects')
     config = load_config(project)
     # Get missing elements from ancestors
     lists = ['cores','xdc']
@@ -60,11 +58,10 @@ def get_config(project):
     for prop in props:
         config[prop] = get_prop(project, prop)
     sha_filename = os.path.join('tmp', project + '.sha')
-    if os.path.isfile(sha_filename):
-        with open(sha_filename) as sha_file:
-            sha = sha_file.read()
-            for i in range(8):
-                config['parameters']['sha' + str(i)] = int('0x' + sha[8*i:8*i+8], 0)
+    with open(sha_filename) as sha_file:
+        sha = sha_file.read()
+        for i in range(8):
+            config['parameters']['sha' + str(i)] = int('0x' + sha[8*i:8*i+8], 0)
     return config
 
 ###################
