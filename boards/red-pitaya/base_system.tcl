@@ -31,14 +31,7 @@ set status_name sts
 add_status_register $status_name $adc_clk $config::status_size $config::axi_status_range $config::axi_status_offset
 
 # Connect LEDs
-cell xilinx.com:ip:xlslice:1.0 led_slice {
-  DIN_WIDTH 32
-  DIN_FROM  7
-  DIN_TO    0
-} {
-  Din [cfg_pin led]
-}
-connect_bd_net [get_bd_ports led_o] [get_bd_pins led_slice/Dout]
+connect_bd_net [get_bd_ports led_o] [get_bd_pins [get_slice_pin [cfg_pin led] 32 7 0]]
 
 # Add XADC
 source $lib/xadc.tcl
