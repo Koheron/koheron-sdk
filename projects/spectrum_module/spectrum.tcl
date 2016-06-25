@@ -61,8 +61,10 @@ proc create {module_name n_pts_fft adc_width} {
     aclk clk
     s_axis_a_tdata concat_0/dout
     s_axis_b_tdata demod_data
+    s_axis_a_tvalid [get_Q_pin tvalid 1 2]
+    s_axis_b_tvalid [get_Q_pin tvalid 1 2]
   }
-
+  
   for {set i 0} {$i < 2} {incr i} {
     cell xilinx.com:ip:xlslice:1.0 mult_slice_$i {
       DIN_WIDTH 64
@@ -100,17 +102,6 @@ proc create {module_name n_pts_fft adc_width} {
     Op1 float_0/m_axis_result_tvalid
     Op2 float_1/m_axis_result_tvalid
   }
-
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
-    Width 1
-    Depth 2
-  } {
-    CLK clk
-    D tvalid
-  }
-
-  connect_pins shift_tvalid/Q complex_mult/s_axis_a_tvalid
-  connect_pins shift_tvalid/Q complex_mult/s_axis_b_tvalid
 
   cell xilinx.com:ip:xfft:9.0 fft_0 {
     transform_length $n_pts_fft
