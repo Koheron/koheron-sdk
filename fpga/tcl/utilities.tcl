@@ -45,7 +45,7 @@ foreach op {and or nor not} {
 }
 
 foreach op {GE GT LE LT EQ NE} {
-  proc get_${op}_pin {data_width pin_name1 pin_name2}} {
+  proc get_${op}_pin {data_width pin_name1 pin_name2} {
     set proc_name [lindex [info level 0] 0]
     set op [lindex [split $proc_name _] 1]
     set cell_name [get_cell_name $op $pin_name1 $pin_name2]
