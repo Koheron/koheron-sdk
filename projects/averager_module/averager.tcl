@@ -176,19 +176,10 @@ proc create {module_name bram_addr_width args} {
   }
 
   # Delay restart until n_avg >= n_avg_max
-
-  cell koheron:user:comparator:1.0 n_avg_comp {
-    OPERATION GE
-    DATA_WIDTH $slow_count_width
-  } {
-    a averager_counter/slow_count
-    b n_avg_min
-  }
-
   cell koheron:user:delay_trig:1.0 delay_trig {} {
     clk clk
     trig_in restart
-    valid n_avg_comp/dout
+    valid [get_GE_pin $slow_count_width averager_counter/slow_count n_avg_min]
     trig_out averager_counter/restart
   }
 
