@@ -149,8 +149,12 @@ proc create {module_name bram_addr_width args} {
   }
 
   # Start counting once FIFO read enabled
-
-  set wr_en_and_comp [get_and_pin comp/dout wen_shift_reg/Q]
+  set wr_en_and_comp [get_and_pin \
+                       [get_GE_pin $bram_addr_width \
+                          fifo/data_count \
+                          [get_Q_pin threshold $fast_count_width 1 \
+                            [get_not_pin tvalid]]] \
+                       wen_shift_reg/Q]
   connect_pins $wr_en_and_comp fifo/rd_en
 
   cell koheron:user:averager_counter:1.0 averager_counter {
