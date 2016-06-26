@@ -57,7 +57,7 @@ proc create {module_name wfm_width} {
   # Register storing the current maximum
   connect_pins \
     maximum_out \
-    [get_Q_pin 32 1 din $clken]
+    [get_Q_pin din 32 1 $clken]
 
   # Register storing the maximum of one cycle
   connect_pins \
@@ -67,7 +67,7 @@ proc create {module_name wfm_width} {
   # Register storing the address of the maximum of one cycle
   connect_pins \
     address_out \
-    [get_Q_pin $wfm_width 1 [get_Q_pin address_counter/Q $wfm_width 1 $clken] $reset_cycle]
+    [get_Q_pin [get_Q_pin address_counter/Q $wfm_width 1 $clken] $wfm_width 1 $reset_cycle]
   
   # Restrict peak detection between address_low and address_high
   cell xilinx.com:ip:util_vector_logic:2.0 maximum_detected_in_range {
