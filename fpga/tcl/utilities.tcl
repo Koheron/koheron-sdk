@@ -51,7 +51,7 @@ foreach op {GE GT LE LT EQ NE} {
     set cell_name [get_cell_name $op $pin_name1 $pin_name2]
     if {[get_bd_cells $cell_name] eq ""} {
       cell koheron:user:comparator:1.0 $cell_name {
-        DATA_WITDH $data_width
+        DATA_WIDTH $data_width
         OPERATION $op
       } {
         a $pin_name1
