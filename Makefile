@@ -141,12 +141,8 @@ run: zip
 $(VERSION_FILE): | $(TMP)
 	echo $(shell (git rev-parse --short HEAD || echo "default")) > $@
 
-$(VERSION): $(VERSION_FILE)
-
-$(SHA_FILE): $(VERSION)
+$(SHA_FILE): $(VERSION_FILE)
 	echo $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g')) > $@
-
-$(MAKE_PY): $(SHA_FILE)
 
 ###############################################################################
 # FPGA
@@ -159,7 +155,7 @@ $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
 
-$(TMP)/%.xpr: $(MAKE_PY) $(CONFIG_TCL) $(XDC) projects/%/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/%.xpr: $(CONFIG_TCL) $(XDC) projects/%/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)
 
@@ -304,7 +300,7 @@ zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 # app
 ###############################################################################
 
-$(METADATA): $(MAKE_PY) $(VERSION)
+$(METADATA): $(MAKE_PY) $(VERSION_FILE)
 	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
 
 $(HTTP_API_DRIVERS_DIR)/%: drivers/%/__init__.py
