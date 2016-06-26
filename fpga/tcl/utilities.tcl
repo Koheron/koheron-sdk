@@ -17,12 +17,20 @@ proc underscore {pin_name} {
   return [join [split $pin_name /] _]
 }
 
+proc get_cell_name {op pin_name1 {pin_name2 ""}} {
+  if {pin_name2 eq ""} {
+    return ${op}_[underscore $pin_name1]
+  } else {
+    return [underscore $pin_name1]_${op}_[underscore $pin_name2]
+  }
+}
+
 # define get_and_pin, get_or_pin, get_nor_pin and get_not_pin procedures
 foreach op {and or nor not} {
   proc get_${op}_pin {pin_name1 {pin_name2 ""}} {
     set proc_name [lindex [info level 0] 0]
     set op [lindex [split $proc_name _] 1]
-    set cell_name [underscore $pin_name1]_${op}_[underscore $pin_name2]
+    set cell_name [get_cell_name $op $pin_name1 $pin_name2]
     if {[get_bd_cells $cell_name] eq ""} {
       cell xilinx.com:ip:util_vector_logic:2.0 $cell_name {
         C_SIZE 1
