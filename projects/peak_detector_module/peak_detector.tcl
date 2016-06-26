@@ -42,13 +42,15 @@ proc create {module_name wfm_width} {
     CLK clk
     CE s_axis_tvalid
   }
-
+  
+  set reset_cycle [get_EQ_pin $wfm_width address_counter/Q address_reset]
+  
   # OR
   cell xilinx.com:ip:util_vector_logic:2.0 logic_or {
     C_SIZE 1
     C_OPERATION or
   } {
-    Op2 [get_EQ_pin $wfm_width address_counter/Q address_reset]
+    Op2 $reset_cycle
   }
 
   # Register storing the current maximum
@@ -70,7 +72,7 @@ proc create {module_name wfm_width} {
     Depth 1
   } {
     CLK clk
-    CE reset_cycle/dout
+    CE $reset_cycle
     D [get_Q_pin din 32 1 logic_or/Res]
     Q maximum_out
   }
@@ -100,7 +102,7 @@ proc create {module_name wfm_width} {
     Res logic_or/Op1
   }
   
-  connect_pins m_axis_tvalid [get_Q_pin reset_cycle/dout 32 1]
+  connect_pins m_axis_tvalid [get_Q_pin $reset_cycle 32 1]
 
   current_bd_instance $bd
 }
