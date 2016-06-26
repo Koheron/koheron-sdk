@@ -18,7 +18,7 @@ proc underscore {pin_name} {
 }
 
 proc get_cell_name {op pin_name1 {pin_name2 ""}} {
-  if {pin_name2 eq ""} {
+  if {$pin_name2 eq ""} {
     return ${op}_[underscore $pin_name1]
   } else {
     return [underscore $pin_name1]_${op}_[underscore $pin_name2]
@@ -38,9 +38,7 @@ foreach op {and or nor not} {
       } {
         Op1 $pin_name1
       }
-      if {pin_name2 ne ""} {
-        connect_pins $cell_name/Op2 $pin_name2
-      }
+      if {$pin_name2 ne ""} {connect_pins $cell_name/Op2 $pin_name2}
     }
     return $cell_name/Res
   }
