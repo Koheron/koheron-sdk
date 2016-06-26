@@ -43,20 +43,12 @@ proc create {module_name wfm_width} {
     CE s_axis_tvalid
   }
 
-  cell koheron:user:comparator:1.0 reset_cycle {
-    DATA_WIDTH $wfm_width
-    OPERATION "EQ"
-  } {
-    a address_counter/Q
-    b address_reset
-  }
-
   # OR
   cell xilinx.com:ip:util_vector_logic:2.0 logic_or {
     C_SIZE 1
     C_OPERATION or
   } {
-    Op2 reset_cycle/dout
+    Op2 [get_EQ_pin $wfm_width address_counter/Q address_reset]
   }
 
   # Register storing the current maximum
@@ -96,28 +88,14 @@ proc create {module_name wfm_width} {
   }
 
   # Restrict peak detection between address_low and address_high
-
-  cell koheron:user:comparator:1.0 address_ge_low {
-    DATA_WIDTH $wfm_width
-    OPERATION "GE"  
-  } {
-    a address_counter/Q
-    b address_low
-  }
-
-  cell koheron:user:comparator:1.0 address_le_high {
-    DATA_WIDTH $wfm_width
-    OPERATION "LE"  
-  } {
-    a address_counter/Q
-    b address_high
-  }
-
   cell xilinx.com:ip:util_vector_logic:2.0 maximum_detected_in_range {
     C_SIZE 1
     C_OPERATION and
   } {
-    Op1 [get_and_pin address_ge_low/dout address_le_high/dout]
+    Op1 [get_and_pin \
+          [get_GE_pin $wfm_width address_counter/Q address_low] \
+          [get_LE_pin $wfm_width address_counter/Q address_high] \
+        ]
     Op2 [get_slice_pin comparator/m_axis_result_tdata 8 0 0]
     Res logic_or/Op1
   }
