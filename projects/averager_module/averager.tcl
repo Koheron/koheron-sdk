@@ -112,6 +112,7 @@ proc create {module_name bram_addr_width args} {
     D   tvalid
     Q   fifo/wr_en
   }
+  connect_pins fifo/wr_en [get_Q_pin tvalid 1 $add_latency]
 
   # Avg_off 
 
@@ -141,20 +142,20 @@ proc create {module_name bram_addr_width args} {
   # data_count == 2**$bram_addr_width - $add_latency - $sr_latency - $fifo_rd_latency)
 
   # Start counting once FIFO read enabled
-  set wr_en_and_comp [get_and_pin \
+  set clken [get_and_pin \
                        [get_GE_pin $bram_addr_width \
                           fifo/data_count \
                           [get_Q_pin threshold $fast_count_width 1 \
                             [get_not_pin tvalid]]] \
-                       wen_shift_reg/Q]
-  connect_pins $wr_en_and_comp fifo/rd_en
+                       [get_Q_pin tvalid 1 $add_latency]]
+  connect_pins $clken fifo/rd_en
 
   cell koheron:user:averager_counter:1.0 averager_counter {
     FAST_COUNT_WIDTH $fast_count_width
     SLOW_COUNT_WIDTH $slow_count_width
   } {
     clk clk
-    clken $wr_en_and_comp
+    clken $clken
     count_max period
     n_avg n_avg
     avg_on avg_on
