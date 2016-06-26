@@ -62,7 +62,7 @@ proc create {module_name wfm_width} {
   # Register storing the maximum of one cycle
   connect_pins \
     comparator/s_axis_b_tdata \
-    [get_Q_pin 32 1 [get_Q_pin din 32 1 $clken] $reset_cycle]
+    [get_Q_pin [get_Q_pin din 32 1 $clken] 32 1 $reset_cycle]
 
   # Register storing the address of the maximum of one cycle
   connect_pins \
