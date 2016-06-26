@@ -44,6 +44,24 @@ foreach op {and or nor not} {
   }
 }
 
+foreach op {GE GT LE LT EQ NE} {
+  proc get_${op}_pin {data_width pin_name1 pin_name2}} {
+    set proc_name [lindex [info level 0] 0]
+    set op [lindex [split $proc_name _] 1]
+    set cell_name [get_cell_name $op $pin_name1 $pin_name2]
+    if {[get_bd_cells $cell_name] eq ""} {
+      cell koheron:user:comparator:1.0 $cell_name {
+        DATA_WITDH $data_width
+        OPERATION $op
+      } {
+        a $pin_name1
+        b $pin_name2
+      }
+    }
+    return $cell_name/dout
+  }
+}
+
 proc get_slice_pin {pin_name width from to} {
   set cell_name slice_from${from}_to${to}_[lindex [split $pin_name /] end]
   if {[get_bd_cells $cell_name] eq ""} {
