@@ -140,14 +140,6 @@ proc create {module_name bram_addr_width args} {
   # Enable reading FIFO once 
   # data_count == 2**$bram_addr_width - $add_latency - $sr_latency - $fifo_rd_latency)
 
-  cell koheron:user:comparator:1.0 comp {
-    DATA_WIDTH $bram_addr_width
-    OPERATION "GE"
-  } {
-    a fifo/data_count
-    b [get_Q_pin threshold $fast_count_width 1 [get_not_pin tvalid]]
-  }
-
   # Start counting once FIFO read enabled
   set wr_en_and_comp [get_and_pin \
                        [get_GE_pin $bram_addr_width \
