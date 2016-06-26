@@ -52,43 +52,23 @@ proc create {module_name wfm_width} {
   } {
     Op2 $reset_cycle
   }
-
+  set clken logic_or/Res
+  
   # Register storing the current maximum
-  cell xilinx.com:ip:c_shift_ram:12.0 maximum_reg {
-    CE true
-    Width 32
-    Depth 1
-  } {
-    CLK clk
-    D din
-    CE logic_or/Res
-    Q comparator/s_axis_b_tdata
-  }
+  connect_pins \
+    maximum_out \
+    [get_Q_pin 32 1 din $clken]
 
   # Register storing the maximum of one cycle
-  cell xilinx.com:ip:c_shift_ram:12.0 maximum_out {
-    CE true
-    Width 32
-    Depth 1
-  } {
-    CLK clk
-    CE $reset_cycle
-    D [get_Q_pin din 32 1 logic_or/Res]
-    Q maximum_out
-  }
+  connect_pins \
+    comparator/s_axis_b_tdata \
+    [get_Q_pin 32 1 [get_Q_pin din 32 1 $clken] $reset_cycle]
 
   # Register storing the address of the maximum of one cycle
-  cell xilinx.com:ip:c_shift_ram:12.0 address_out {
-    CE true
-    Width $wfm_width
-    Depth 1
-  } {
-    CLK clk
-    CE reset_cycle/Dout
-    D [get_Q_pin address_counter/Q $wfm_width 1 logic_or/Res]
-    Q address_out
-  }
-
+  connect_pins \
+    address_out \
+    [get_Q_pin $wfm_width 1 [get_Q_pin address_counter/Q $wfm_width 1 $clken] $reset_cycle]
+  
   # Restrict peak detection between address_low and address_high
   cell xilinx.com:ip:util_vector_logic:2.0 maximum_detected_in_range {
     C_SIZE 1
