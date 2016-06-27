@@ -43,14 +43,10 @@ proc add_config_register {module_name clk {num_ports 32} {range 4K} {offset "aut
   }
 
   for {set i 0} {$i < $num_ports} {incr i} {
-    cell xilinx.com:ip:xlslice:1.0 slice_$i {
-      DIN_WIDTH [expr $num_ports*32]
-      DIN_FROM  [expr 31+$i*32]
-      DIN_TO    [expr $i*32]
-    } {
-      Din axi_cfg_register_0/cfg_data
-      Dout Out$i
-    }
+    set wid  [expr $num_ports*32]
+    set from [expr 31+$i*32]
+    set to   [expr $i*32]
+    connect_pins Out$i [get_slice_pin axi_cfg_register_0/cfg_data $from $to]
   }
 
   current_bd_instance $bd

@@ -1,15 +1,6 @@
 # Improve timing on BRAM interconnect
 set_property -dict [list CONFIG.S00_HAS_REGSLICE {1}] [get_bd_cells axi_mem_intercon_1]
 
-# shift address/tvalid to take into account demod_data bram read latency
-cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
-  Width 1
-  Depth 1
-} {
-  CLK $adc_clk
-  D $address_name/tvalid
-}
-
 # Add spectrum IP
 source projects/spectrum_module/spectrum.tcl
 
@@ -21,9 +12,10 @@ for {set i 1} {$i < 3} {incr i} {
   connect_pins spectrum_0/adc$i adc_dac/adc$i
 }
 
+# shift address/tvalid to take into account demod_data bram read latency
 connect_cell $spectrum_name {
   clk        $adc_clk
-  tvalid     shift_tvalid/Q
+  tvalid     [get_Q_pin $address_name/tvalid 1 noce $adc_clk]
   cfg_sub    [cfg_pin substract_mean]
   cfg_fft    [cfg_pin cfg_fft]
 }

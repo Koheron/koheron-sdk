@@ -1,9 +1,9 @@
 namespace eval averager {
 
 proc pins {cmd fast_count_width slow_count_width width} {
-   $cmd -dir I                                        avg_on
-   $cmd -dir I                                        tvalid
-   $cmd -dir I                                        restart
+   $cmd -dir I -from 0                          -to 0 avg_on
+   $cmd -dir I -from 0                          -to 0 tvalid
+   $cmd -dir I -from 0                          -to 0 restart
    $cmd -dir I -from [expr $fast_count_width-1] -to 0 period
    $cmd -dir I -from [expr $fast_count_width-1] -to 0 threshold
    $cmd -dir I -from [expr $slow_count_width-1] -to 0 n_avg_min
@@ -12,8 +12,8 @@ proc pins {cmd fast_count_width slow_count_width width} {
    $cmd -dir O -from 3                          -to 0 wen
    $cmd -dir O -from [expr $slow_count_width-1] -to 0 n_avg
    $cmd -dir O -from 31                         -to 0 addr
-   $cmd -dir O                                        ready
-   $cmd -dir O                                        avg_on_out
+   $cmd -dir O -from 0                          -to 0 ready
+   $cmd -dir O -from 0                          -to 0 avg_on_out
    $cmd -dir I -type clk                              clk
 }
 
@@ -61,7 +61,7 @@ proc create {module_name bram_addr_width args} {
     srst [get_not_pin tvalid]
   }
 
-  connect_pins dout [get_Q_pin fifo/dout 32 1]
+  connect_pins dout [get_Q_pin fifo/dout 1]
 
   # Create Adder (depends on input type)
   if { $type == "fix" } {	  
@@ -103,15 +103,7 @@ proc create {module_name bram_addr_width args} {
   }
 
   # Connect tvalid to FIFO write enable
-  cell xilinx.com:ip:c_shift_ram:12.0 wen_shift_reg {
-    Width.VALUE_SRC USER
-    Width 1
-    Depth $add_latency
-  } {
-    CLK clk
-    D   tvalid
-    Q   fifo/wr_en
-  }
+  connect_pins fifo/wr_en [get_Q_pin tvalid $add_latency]
 
   # Avg_off 
 
@@ -140,31 +132,20 @@ proc create {module_name bram_addr_width args} {
   # Enable reading FIFO once 
   # data_count == 2**$bram_addr_width - $add_latency - $sr_latency - $fifo_rd_latency)
 
-  cell koheron:user:comparator:1.0 comp {
-    DATA_WIDTH $bram_addr_width
-    OPERATION "GE"
-  } {
-    a fifo/data_count
-    b [get_Q_pin threshold $fast_count_width 1 [get_not_pin tvalid]]
-  }
-
-  cell xilinx.com:ip:util_vector_logic:2.0 wr_en_and_comp {
-    C_OPERATION and
-    C_SIZE 1
-  } {
-    Op1 comp/dout
-    Op2 wen_shift_reg/Q
-    Res fifo/rd_en
-  }
-
   # Start counting once FIFO read enabled
+  set clken [get_and_pin \
+              [get_GE_pin \
+                fifo/data_count \
+                [get_Q_pin threshold 1 [get_not_pin tvalid]]] \
+              [get_Q_pin tvalid $add_latency]]
+  connect_pins $clken fifo/rd_en
 
   cell koheron:user:averager_counter:1.0 averager_counter {
     FAST_COUNT_WIDTH $fast_count_width
     SLOW_COUNT_WIDTH $slow_count_width
   } {
     clk clk
-    clken wr_en_and_comp/Res
+    clken $clken
     count_max period
     n_avg n_avg
     avg_on avg_on
@@ -175,40 +156,19 @@ proc create {module_name bram_addr_width args} {
     srst [get_not_pin tvalid]
   }
 
-  cell xilinx.com:ip:xlconcat:2.1 concat_wen {NUM_PORTS 4} {dout wen}
-
-  for {set i 0} {$i < 4} {incr i} {
-    connect_pins concat_wen/In$i averager_counter/wen
-  }
+  connect_pins wen [get_concat_pin [lrepeat 4 averager_counter/wen]]
 
   # Delay restart until n_avg >= n_avg_max
-
-  cell koheron:user:comparator:1.0 n_avg_comp {
-    OPERATION GE
-    DATA_WIDTH $slow_count_width
-  } {
-    a averager_counter/slow_count
-    b n_avg_min
-  }
-
   cell koheron:user:delay_trig:1.0 delay_trig {} {
     clk clk
     trig_in restart
-    valid n_avg_comp/dout
+    valid [get_GE_pin averager_counter/slow_count n_avg_min]
     trig_out averager_counter/restart
   }
 
-  cell xilinx.com:ip:util_vector_logic:2.0 ready_and_ready {
-    C_OPERATION and
-    C_SIZE 1
-  } {
-    Op1 delay_trig/ready
-    Op2 averager_counter/ready
-    Res ready
-  }
+  connect_pins ready [get_and_pin delay_trig/ready averager_counter/ready]
 
   current_bd_instance $bd
-
 }
 
 } ;# end namespace averager
