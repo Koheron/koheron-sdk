@@ -6,9 +6,9 @@ proc pins {cmd adc_width} {
   $cmd -dir I -from 31                    -to 0 cfg_sub
   $cmd -dir I -from 31                    -to 0 cfg_fft
   $cmd -dir I -from 31                    -to 0 demod_data
-  $cmd -dir I                                   tvalid
+  $cmd -dir I -from 0                     -to 0 tvalid
   $cmd -dir O -from 31                    -to 0 m_axis_result_tdata
-  $cmd -dir O                                   m_axis_result_tvalid
+  $cmd -dir O -from 0                     -to 0 m_axis_result_tvalid
   $cmd -dir I -type clk                         clk
 }
 
@@ -30,7 +30,7 @@ proc create {module_name n_pts_fft adc_width} {
     } {
       clk clk
       A   adc$i
-      B   [get_slice_pin cfg_sub 32 [expr $adc_width*$i-1] [expr $adc_width*($i-1)]]
+      B   [get_slice_pin cfg_sub [expr $adc_width*$i-1] [expr $adc_width*($i-1)]]
     }
   }
 
@@ -50,6 +50,8 @@ proc create {module_name n_pts_fft adc_width} {
     connect_pins subtract_$i/S concat_0/In[expr 2*($i-1)]
   }
 
+  set shifted_tvalid [get_Q_pin tvalid 2]
+
   cell xilinx.com:ip:cmpy:6.0 complex_mult {
     APortWidth $adc_width
     BPortWidth $adc_width
@@ -58,8 +60,8 @@ proc create {module_name n_pts_fft adc_width} {
     aclk clk
     s_axis_a_tdata concat_0/dout
     s_axis_b_tdata demod_data
-    s_axis_a_tvalid [get_Q_pin tvalid 1 2]
-    s_axis_b_tvalid [get_Q_pin tvalid 1 2]
+    s_axis_a_tvalid $shifted_tvalid
+    s_axis_b_tvalid $shifted_tvalid
   }
   
   for {set i 0} {$i < 2} {incr i} {
@@ -72,7 +74,7 @@ proc create {module_name n_pts_fft adc_width} {
       C_Latency 2
     } {
       aclk clk
-      s_axis_a_tdata [get_slice_pin complex_mult/m_axis_dout_tdata 64 [expr 31+32*$i] [expr 32*$i]]
+      s_axis_a_tdata [get_slice_pin complex_mult/m_axis_dout_tdata [expr 31+32*$i] [expr 32*$i]]
       s_axis_a_tvalid complex_mult/m_axis_dout_tvalid
     }
   }
@@ -98,13 +100,13 @@ proc create {module_name n_pts_fft adc_width} {
     s_axis_data_tdata    concat_float/dout
     s_axis_data_tvalid   [get_and_pin float_0/m_axis_result_tvalid float_1/m_axis_result_tvalid]
     s_axis_data_tlast    [get_constant_pin 0 1]
-    s_axis_config_tdata  [get_slice_pin cfg_fft 32 15 0]
+    s_axis_config_tdata  [get_slice_pin cfg_fft 15 0]
     s_axis_config_tvalid [get_constant_pin 1 1]
   }
 
   for {set i 0} {$i < 2} {incr i} {
   
-    set slice_tdata [get_slice_pin fft_0/m_axis_data_tdata 64 [expr 31+32*$i] [expr 32*$i]]
+    set slice_tdata [get_slice_pin fft_0/m_axis_data_tdata [expr 31+32*$i] [expr 32*$i]]
     cell xilinx.com:ip:floating_point:7.1 mult_$i {
       Operation_Type Multiply
       Flow_Control NonBlocking

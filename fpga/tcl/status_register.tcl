@@ -53,8 +53,8 @@ proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "aut
     NUM_PORTS $num_ports
   } {
     dout axi_sts_register_0/sts_data
-    In[expr $sha_size+0] [get_slice_pin dna/dna_data 57 31 0]
-    In[expr $sha_size+1] [get_slice_pin dna/dna_data 57 56 32]
+    In[expr $sha_size+0] [get_slice_pin dna/dna_data 31 0]
+    In[expr $sha_size+1] [get_slice_pin dna/dna_data 56 32]
   }
 
   for {set i 0} {$i < $num_ports} {incr i} {

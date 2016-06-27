@@ -1,9 +1,9 @@
 namespace eval averager {
 
 proc pins {cmd fast_count_width slow_count_width width} {
-   $cmd -dir I                                        avg_on
-   $cmd -dir I                                        tvalid
-   $cmd -dir I                                        restart
+   $cmd -dir I -from 0                          -to 0 avg_on
+   $cmd -dir I -from 0                          -to 0 tvalid
+   $cmd -dir I -from 0                          -to 0 restart
    $cmd -dir I -from [expr $fast_count_width-1] -to 0 period
    $cmd -dir I -from [expr $fast_count_width-1] -to 0 threshold
    $cmd -dir I -from [expr $slow_count_width-1] -to 0 n_avg_min
@@ -12,8 +12,8 @@ proc pins {cmd fast_count_width slow_count_width width} {
    $cmd -dir O -from 3                          -to 0 wen
    $cmd -dir O -from [expr $slow_count_width-1] -to 0 n_avg
    $cmd -dir O -from 31                         -to 0 addr
-   $cmd -dir O                                        ready
-   $cmd -dir O                                        avg_on_out
+   $cmd -dir O -from 0                          -to 0 ready
+   $cmd -dir O -from 0                          -to 0 avg_on_out
    $cmd -dir I -type clk                              clk
 }
 
@@ -61,7 +61,7 @@ proc create {module_name bram_addr_width args} {
     srst [get_not_pin tvalid]
   }
 
-  connect_pins dout [get_Q_pin fifo/dout 32 1]
+  connect_pins dout [get_Q_pin fifo/dout 1]
 
   # Create Adder (depends on input type)
   if { $type == "fix" } {	  
@@ -103,7 +103,7 @@ proc create {module_name bram_addr_width args} {
   }
 
   # Connect tvalid to FIFO write enable
-  connect_pins fifo/wr_en [get_Q_pin tvalid 1 $add_latency]
+  connect_pins fifo/wr_en [get_Q_pin tvalid $add_latency]
 
   # Avg_off 
 
@@ -134,11 +134,10 @@ proc create {module_name bram_addr_width args} {
 
   # Start counting once FIFO read enabled
   set clken [get_and_pin \
-                       [get_GE_pin $bram_addr_width \
-                          fifo/data_count \
-                          [get_Q_pin threshold $fast_count_width 1 \
-                            [get_not_pin tvalid]]] \
-                       [get_Q_pin tvalid 1 $add_latency]]
+              [get_GE_pin \
+                fifo/data_count \
+                [get_Q_pin threshold 1 [get_not_pin tvalid]]] \
+              [get_Q_pin tvalid $add_latency]]
   connect_pins $clken fifo/rd_en
 
   cell koheron:user:averager_counter:1.0 averager_counter {
@@ -167,7 +166,7 @@ proc create {module_name bram_addr_width args} {
   cell koheron:user:delay_trig:1.0 delay_trig {} {
     clk clk
     trig_in restart
-    valid [get_GE_pin $slow_count_width averager_counter/slow_count n_avg_min]
+    valid [get_GE_pin averager_counter/slow_count n_avg_min]
     trig_out averager_counter/restart
   }
 

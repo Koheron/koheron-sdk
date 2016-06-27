@@ -25,6 +25,13 @@ proc get_cell_name {op pin_name1 {pin_name2 ""}} {
   }
 }
 
+proc get_pin_width {pin_name} {
+  set left  [get_property LEFT  [get_bd_pins $pin_name]]
+  set right [get_property RIGHT [get_bd_pins $pin_name]]
+  set width [expr $left - $right + 1]
+  if {$width < 1} {return 1} else {return $width}
+}
+
 # define get_and_pin, get_or_pin, get_nor_pin and get_not_pin procedures
 foreach op {and or nor not} {
   proc get_${op}_pin {pin_name1 {pin_name2 ""}} {
@@ -33,7 +40,7 @@ foreach op {and or nor not} {
     set cell_name [get_cell_name $op $pin_name1 $pin_name2]
     if {[get_bd_cells $cell_name] eq ""} {
       cell xilinx.com:ip:util_vector_logic:2.0 $cell_name {
-        C_SIZE 1
+        C_SIZE [get_pin_width $pin_name1]
         C_OPERATION $op
       } {
         Op1 $pin_name1
@@ -43,15 +50,15 @@ foreach op {and or nor not} {
     return $cell_name/Res
   }
 }
-
+-1
 foreach op {GE GT LE LT EQ NE} {
-  proc get_${op}_pin {data_width pin_name1 pin_name2} {
+  proc get_${op}_pin {pin_name1 pin_name2} {
     set proc_name [lindex [info level 0] 0]
     set op [lindex [split $proc_name _] 1]
     set cell_name [get_cell_name $op $pin_name1 $pin_name2]
     if {[get_bd_cells $cell_name] eq ""} {
       cell koheron:user:comparator:1.0 $cell_name {
-        DATA_WIDTH $data_width
+        DATA_WIDTH [get_pin_width $pin_name1]
         OPERATION $op
       } {
         a $pin_name1
@@ -62,11 +69,11 @@ foreach op {GE GT LE LT EQ NE} {
   }
 }
 
-proc get_slice_pin {pin_name width from to} {
+proc get_slice_pin {pin_name from to} {
   set cell_name slice_from${from}_to${to}_[lindex [split $pin_name /] end]
   if {[get_bd_cells $cell_name] eq ""} {
     cell xilinx.com:ip:xlslice:1.0 $cell_name {
-      DIN_WIDTH $width
+      DIN_WIDTH [get_pin_width $pin_name]
       DIN_FROM $from
       DIN_TO $to
     } {
@@ -76,27 +83,26 @@ proc get_slice_pin {pin_name width from to} {
   return $cell_name/Dout
 }
 
-proc get_Q_pin {in_pin_name {width 1} {depth 1} {ce_pin_name "noce"} {clk clk}} {
-  set cell_name Q_d${depth}_[lindex [split $ce_pin_name /] end]_[lindex [split $in_pin_name /] end]
+proc get_Q_pin {pin_name {depth 1} {ce_pin_name "noce"} {clk clk}} {
+  set cell_name Q_d${depth}_[lindex [split $ce_pin_name /] end]_[lindex [split $pin_name /] end]
+  set width [get_pin_width $pin_name]
   if {[get_bd_cells $cell_name] eq ""} {
     if { [string match "noce" $ce_pin_name] } {
       cell xilinx.com:ip:c_shift_ram:12.0 $cell_name {
-        Width.VALUE_SRC USER
         Width $width
         Depth $depth
       } {
         CLK $clk
-        D   $in_pin_name
+        D   $pin_name
       }
     } else {
       cell xilinx.com:ip:c_shift_ram:12.0 $cell_name {
-        Width.VALUE_SRC USER
         Width $width
         Depth $depth
         CE true
       } {
         CLK clk
-        D   $in_pin_name
+        D   $pin_name
         CE  $ce_pin_name
       }
     }

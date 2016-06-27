@@ -31,7 +31,7 @@ set status_name sts
 add_status_register $status_name $adc_clk $config::status_size $config::axi_status_range $config::axi_status_offset
 
 # Connect LEDs
-connect_bd_net [get_bd_ports led_o] [get_bd_pins [get_slice_pin [cfg_pin led] 32 7 0]]
+connect_bd_net [get_bd_ports led_o] [get_bd_pins [get_slice_pin [cfg_pin led] 7 0]]
 
 # Add XADC
 source $lib/xadc.tcl

@@ -31,7 +31,7 @@ proc add_dual_dac_controller {module_name bram_name dac_width} {
   for {set i 0} {$i < 2} {incr i} {
     set from [expr $dac_width-1+16*$i]
     set to   [expr 16*$i]
-    connect_pins dac$i [get_slice_pin blk_mem_gen_$bram_name/doutb 32 $from $to]
+    connect_pins dac$i [get_slice_pin blk_mem_gen_$bram_name/doutb $from $to]
   }
 
   current_bd_instance $bd

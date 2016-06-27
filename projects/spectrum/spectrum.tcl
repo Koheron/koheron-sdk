@@ -15,7 +15,7 @@ for {set i 1} {$i < 3} {incr i} {
 # shift address/tvalid to take into account demod_data bram read latency
 connect_cell $spectrum_name {
   clk        $adc_clk
-  tvalid     [get_Q_pin $address_name/tvalid 1 1 noce $adc_clk]
+  tvalid     [get_Q_pin $address_name/tvalid 1 noce $adc_clk]
   cfg_sub    [cfg_pin substract_mean]
   cfg_fft    [cfg_pin cfg_fft]
 }

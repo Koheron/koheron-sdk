@@ -1,14 +1,14 @@
 namespace eval peak_detector {
 
 proc pins {cmd wfm_width} {
-  $cmd -dir I -from 31 -to 0                   din
+  $cmd -dir I -from 31                   -to 0 din
   $cmd -dir I -from [expr $wfm_width -1] -to 0 address_low
   $cmd -dir I -from [expr $wfm_width -1] -to 0 address_high
   $cmd -dir I -from [expr $wfm_width -1] -to 0 address_reset
-  $cmd -dir I                                  s_axis_tvalid
+  $cmd -dir I -from 0                    -to 0 s_axis_tvalid
   $cmd -dir O -from [expr $wfm_width -1] -to 0 address_out
-  $cmd -dir O -from 31 -to 0                   maximum_out
-  $cmd -dir O                                  m_axis_tvalid
+  $cmd -dir O -from 31                   -to 0 maximum_out
+  $cmd -dir O -from 0                    -to 0 m_axis_tvalid
   $cmd -dir I -type clk                        clk
 }
 
@@ -43,7 +43,7 @@ proc create {module_name wfm_width} {
     CE s_axis_tvalid
   }
   
-  set reset_cycle [get_EQ_pin $wfm_width address_counter/Q address_reset]
+  set reset_cycle [get_EQ_pin address_counter/Q address_reset]
   
   # OR
   cell xilinx.com:ip:util_vector_logic:2.0 logic_or {
@@ -52,22 +52,22 @@ proc create {module_name wfm_width} {
   } {
     Op2 $reset_cycle
   }
+  
   set clken logic_or/Res
   
   # Register storing the current maximum
-  connect_pins \
-    maximum_out \
-    [get_Q_pin din 32 1 $clken]
+  set maximum [get_Q_pin din 1 $clken]
+  connect_pins maximum_out $maximum
 
   # Register storing the maximum of one cycle
   connect_pins \
     comparator/s_axis_b_tdata \
-    [get_Q_pin [get_Q_pin din 32 1 $clken] 32 1 $reset_cycle]
+    [get_Q_pin $maximum 1 $reset_cycle]
 
   # Register storing the address of the maximum of one cycle
   connect_pins \
     address_out \
-    [get_Q_pin [get_Q_pin address_counter/Q $wfm_width 1 $clken] $wfm_width 1 $reset_cycle]
+    [get_Q_pin [get_Q_pin address_counter/Q 1 $clken] 1 $reset_cycle]
   
   # Restrict peak detection between address_low and address_high
   cell xilinx.com:ip:util_vector_logic:2.0 maximum_detected_in_range {
@@ -75,14 +75,14 @@ proc create {module_name wfm_width} {
     C_OPERATION and
   } {
     Op1 [get_and_pin \
-          [get_GE_pin $wfm_width address_counter/Q address_low] \
-          [get_LE_pin $wfm_width address_counter/Q address_high] \
+          [get_GE_pin address_counter/Q address_low] \
+          [get_LE_pin address_counter/Q address_high] \
         ]
-    Op2 [get_slice_pin comparator/m_axis_result_tdata 8 0 0]
+    Op2 [get_slice_pin comparator/m_axis_result_tdata 0 0]
     Res logic_or/Op1
   }
   
-  connect_pins m_axis_tvalid [get_Q_pin $reset_cycle 32 1]
+  connect_pins m_axis_tvalid [get_Q_pin $reset_cycle 1]
 
   current_bd_instance $bd
 }
