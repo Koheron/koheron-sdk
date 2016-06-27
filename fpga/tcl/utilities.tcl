@@ -126,7 +126,7 @@ proc get_Q_pin {pin_name {depth 1} {ce_pin_name "noce"} {clk clk}} {
         Depth $depth
         CE true
       } {
-        CLK clk
+        CLK $clk
         D   $pin_name
         CE  $ce_pin_name
       }
