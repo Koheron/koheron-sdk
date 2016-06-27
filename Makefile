@@ -124,6 +124,9 @@ test_core:
 test_%: tests/tests_%.py
 	py.test -v $<
 
+test: tests/$(NAME).py
+	python $<
+
 test_app: | app_sync test_instrument_manager
 
 test_instrum: test_device_memory test_common test_$(NAME)
