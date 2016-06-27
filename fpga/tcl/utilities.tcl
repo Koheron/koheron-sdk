@@ -2,6 +2,14 @@
 # Helper functions
 ########################################################
 
+# http://wiki.tcl.tk/13920
+proc lmap {_var list body} {
+    upvar 1 $_var var
+    set res {}
+    foreach var $list {lappend res [uplevel 1 $body]}
+    set res
+}
+
 # Get a configuration pin
 # name : name of the register defined in the project YAML
 proc cfg_pin {name} {
@@ -30,6 +38,23 @@ proc get_pin_width {pin_name} {
   set right [get_property RIGHT [get_bd_pins $pin_name]]
   set width [expr $left - $right + 1]
   if {$width < 1} {return 1} else {return $width}
+}
+
+proc get_concat_pin {pins} {
+  set pin_names [uplevel 1 [list subst $pins]]
+  set cell_name concat_[join [lmap pin $pin_names {set pin [lindex [split $pin /] end]}] _]
+  if {[get_bd_cells $cell_name] eq ""} { 
+    cell xilinx.com:ip:xlconcat:2.1 $cell_name {
+      NUM_PORTS [llength $pin_names]
+    } {}
+  }
+  set i 0
+  foreach {pin_name} [uplevel 1 [list subst $pins]] {
+    connect_pins $cell_name/In$i $pin_name
+    set_cell_props $cell_name {IN${i}_WIDTH [get_pin_width $pin_name]}
+    incr i
+  }
+  return $cell_name/dout
 }
 
 # define get_and_pin, get_or_pin, get_nor_pin and get_not_pin procedures
@@ -145,14 +170,6 @@ proc connect_constant {name value width pin} {
   } { 
     dout $pin
   }
-}
-
-# http://wiki.tcl.tk/13920
-proc lmap {_var list body} {
-    upvar 1 $_var var
-    set res {}
-    foreach var $list {lappend res [uplevel 1 $body]}
-    set res
 }
 
 # Connect all the pins of a cell that have a port with an identical name

@@ -34,22 +34,7 @@ proc create {module_name n_pts_fft adc_width} {
     }
   }
 
-  set left_width [expr 16 - $adc_width]
-  cell xilinx.com:ip:xlconcat:2.1 concat_0 {
-    NUM_PORTS 4
-    IN0_WIDTH $adc_width
-    IN1_WIDTH $left_width
-    IN2_WIDTH $adc_width
-    IN3_WIDTH $left_width
-  } {
-    In1 [get_constant_pin 0 $left_width]
-    In3 [get_constant_pin 0 $left_width]
-  }
-
-  for {set i 1} {$i < 3} {incr i} {
-    connect_pins subtract_$i/S concat_0/In[expr 2*($i-1)]
-  }
-
+  set left_zeros [get_constant_pin 0 [expr 16 - $adc_width]]
   set shifted_tvalid [get_Q_pin tvalid 2]
 
   cell xilinx.com:ip:cmpy:6.0 complex_mult {
@@ -58,7 +43,10 @@ proc create {module_name n_pts_fft adc_width} {
     OutputWidth [expr 2*$adc_width + 1]
   } {
     aclk clk
-    s_axis_a_tdata concat_0/dout
+    s_axis_a_tdata [get_concat_pin {
+                     subtract_1/S $left_zeros
+                     subtract_2/S $left_zeros
+                    }]
     s_axis_b_tdata demod_data
     s_axis_a_tvalid $shifted_tvalid
     s_axis_b_tvalid $shifted_tvalid
@@ -79,14 +67,6 @@ proc create {module_name n_pts_fft adc_width} {
     }
   }
 
-  cell xilinx.com:ip:xlconcat:2.1 concat_float {
-    IN0_WIDTH 32
-    IN1_WIDTH 32
-  } {
-    In0 float_0/m_axis_result_tdata
-    In1 float_1/m_axis_result_tdata
-  }
-
   cell xilinx.com:ip:xfft:9.0 fft_0 {
     transform_length $n_pts_fft
     target_clock_frequency 125
@@ -97,7 +77,10 @@ proc create {module_name n_pts_fft adc_width} {
     output_ordering natural_order
   } {
     aclk clk
-    s_axis_data_tdata    concat_float/dout
+    s_axis_data_tdata    [get_concat_pin {
+                           float_0/m_axis_result_tdata
+                           float_1/m_axis_result_tdata
+                         }]
     s_axis_data_tvalid   [get_and_pin float_0/m_axis_result_tvalid float_1/m_axis_result_tvalid]
     s_axis_data_tlast    [get_constant_pin 0 1]
     s_axis_config_tdata  [get_slice_pin cfg_fft 15 0]

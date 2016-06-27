@@ -156,11 +156,7 @@ proc create {module_name bram_addr_width args} {
     srst [get_not_pin tvalid]
   }
 
-  cell xilinx.com:ip:xlconcat:2.1 concat_wen {NUM_PORTS 4} {dout wen}
-
-  for {set i 0} {$i < 4} {incr i} {
-    connect_pins concat_wen/In$i averager_counter/wen
-  }
+  connect_pins wen [get_concat_pin [lrepeat 4 averager_counter/wen]]
 
   # Delay restart until n_avg >= n_avg_max
   cell koheron:user:delay_trig:1.0 delay_trig {} {
