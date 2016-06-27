@@ -103,15 +103,6 @@ proc create {module_name bram_addr_width args} {
   }
 
   # Connect tvalid to FIFO write enable
-  cell xilinx.com:ip:c_shift_ram:12.0 wen_shift_reg {
-    Width.VALUE_SRC USER
-    Width 1
-    Depth $add_latency
-  } {
-    CLK clk
-    D   tvalid
-    Q   fifo/wr_en
-  }
   connect_pins fifo/wr_en [get_Q_pin tvalid 1 $add_latency]
 
   # Avg_off 
