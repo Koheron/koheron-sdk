@@ -25,6 +25,16 @@ class Oscillo(object):
     def set_period(self, period): pass
 
     @command('OSCILLO')
+    def get_counter(self):
+        return self.client.recv_int(8, fmt='Q')
+
+    @command('OSCILLO','II')
+    def set_dac_period(self, dac_period0, dac_period1): pass
+
+    @command('OSCILLO','II')
+    def set_avg_period(self, avg_period0, avg_period1): pass
+
+    @command('OSCILLO')
     def reset(self): pass
 
     @command('OSCILLO')
@@ -69,6 +79,11 @@ class Oscillo(object):
         oscillo.reset()
 
         dac_data = np.arange(8192) / 8192.
+        oscillo.set_dac(dac_data, 1)
+
+        oscillo.set_dac(dac_data, 0)
+
+
         oscillo.set_dac(dac_data, 1)
 
         time.sleep(0.01)

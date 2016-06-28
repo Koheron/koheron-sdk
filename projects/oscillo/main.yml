@@ -46,6 +46,7 @@ config_offsets:
   - n_avg_min1
   - dac_select
   - addr_select
+  - clken_mask
 
 status_offsets:
   - spi_out
@@ -55,6 +56,8 @@ status_offsets:
   - avg_ready1
   - avg_on_out0
   - avg_on_out1
+  - counter0
+  - counter1
 
 parameters:
   bram_addr_width: 13
@@ -63,6 +66,7 @@ parameters:
   pwm_width: 10
   n_pwm: 4
   n_dac_bram: 3
+  n_dac: 2
 
 xdc:
   - projects/base/expansion_connector.xdc

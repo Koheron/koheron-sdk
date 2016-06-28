@@ -36,7 +36,6 @@ add_interconnect $addr_intercon_name [expr $config::bram_addr_width + 2] $n_peri
 connect_cell $addr_intercon_name {
   clk   $adc_clk
   sel   [cfg_pin addr_select]
-  clken [get_constant_pin 1 1]
 }
 
 for {set i 0} {$i < $n_periods} {incr i} {
@@ -55,7 +54,6 @@ add_interconnect $interconnect_name $config::dac_width $config::n_dac_bram 2
 connect_cell $interconnect_name {
   clk $adc_clk
   sel [cfg_pin dac_select]
-  clken [get_constant_pin 1 1]
 }
 
 for {set i 1} {$i <= $config::n_dac_bram} {incr i} {

@@ -15,11 +15,13 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
 
     dac_map[0] = dvm.AddMemoryMap(DAC1_ADDR, DAC2_RANGE);
     dac_map[1] = dvm.AddMemoryMap(DAC2_ADDR, DAC2_RANGE);
+    dac_map[2] = dvm.AddMemoryMap(DAC3_ADDR, DAC3_RANGE);
+
+    init_dac_brams();
     
     raw_data[0] = dvm.read_buffer<int32_t>(adc_map[0]);
     raw_data[1] = dvm.read_buffer<int32_t>(adc_map[1]);
 
-    dvm.write32(config_map, DAC_SELECT_OFF, 0 + (1 << 2));
     set_averaging(false); // Reset averaging
 
     // set tvalid delay to 19 * 8 ns
@@ -27,14 +29,7 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
     
     set_period(WFM_SIZE);
     set_n_avg_min(0);
-}
-
-void Oscillo::set_period(uint32_t period)
-{
-    dvm.write32(config_map, PERIOD0_OFF, period - 1);
-    dvm.write32(config_map, PERIOD1_OFF, period - 1);
-    dvm.write32(config_map, THRESHOLD0_OFF, period - 6);
-    dvm.write32(config_map, THRESHOLD1_OFF, period - 6);
+    reset();
 }
 
 void Oscillo::set_n_avg_min(uint32_t n_avg_min) 
