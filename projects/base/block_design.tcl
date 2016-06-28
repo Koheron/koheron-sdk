@@ -34,8 +34,8 @@ set addr_intercon_name addr_intercon
 add_interconnect $addr_intercon_name [expr $config::bram_addr_width + 2] $n_periods $config::n_dac_bram
 
 connect_cell $addr_intercon_name {
-  clk $adc_clk
-  sel [cfg_pin addr_select]
+  clk   $adc_clk
+  sel   [cfg_pin addr_select]
   clken [get_constant_pin 1 1]
 }
 

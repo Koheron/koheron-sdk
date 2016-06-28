@@ -36,13 +36,16 @@ config_offsets:
   - addr
   - avg0
   - avg1
-  - period0
-  - period1
-  - threshold0
-  - threshold1
+  - dac_period0
+  - dac_period1
+  - avg_period0
+  - avg_period1
+  - avg_threshold0
+  - avg_threshold1
   - n_avg_min0
   - n_avg_min1
   - dac_select
+  - addr_select
 
 status_offsets:
   - spi_out
