@@ -121,8 +121,14 @@ test_module: $(CONFIG_TCL) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(C
 test_core:
 	vivado -source scripts/test_core.tcl -tclargs $(CORE) $(PART)
 
-test: tests/$(NAME).py
-	python $<
+test_%: tests/tests_%.py
+	py.test -v $<
+
+test_app: | app_sync test_instrument_manager
+
+test_instrum: test_device_memory test_common test_$(NAME)
+
+test_all: | test_app test_instrum
 
 run: zip
 	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload

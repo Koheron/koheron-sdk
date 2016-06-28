@@ -21,7 +21,7 @@ class Oscillo
     int Open() {return dvm.is_ok() ? 0 : -1;}
 
     void reset() {
-        dvm.clear_bit(config_map, ADDR_OFF, 1);
+        dvm.clear_bit(config_map, ADDR_OFF, 0);
         dvm.set_bit(config_map, ADDR_OFF, 0);
     }
 
@@ -44,7 +44,9 @@ class Oscillo
 
     void set_averaging(bool avg_on);
     
-    uint32_t get_num_average() {return dvm.read32(status_map, N_AVG0_OFF);}
+    uint32_t get_num_average()   {return dvm.read32(status_map, N_AVG0_OFF);}
+    uint32_t get_num_average_0() {return dvm.read32(status_map, N_AVG0_OFF);}
+    uint32_t get_num_average_1() {return dvm.read32(status_map, N_AVG1_OFF);}
 
     #pragma tcp-server is_failed
     bool IsFailed() const {return dvm.IsFailed();}

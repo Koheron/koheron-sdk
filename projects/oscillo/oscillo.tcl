@@ -36,6 +36,5 @@ for {set i 0} {$i < 2} {incr i} {
     n_avg       [sts_pin n_avg$i]
     ready       [sts_pin avg_ready$i]
     avg_on_out  [sts_pin avg_on_out$i]
-    srst        [get_constant_pin 0 1]
   }
 }
