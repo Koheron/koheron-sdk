@@ -6,7 +6,7 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
 
   create_bd_pin -dir I -type clk      clk
   create_bd_pin -dir I -from 31 -to 0 s_axis_tdata
-  create_bd_pin -dir I                s_axis_tvalid
+  create_bd_pin -dir I -from 0  -to 0 s_axis_tvalid
 
   #create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 S_AXIS
 
@@ -35,22 +35,6 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
     web  [get_constant_pin 0 4]
   }
 
-  cell xilinx.com:ip:c_shift_ram:12.0 tdata_reg {
-    Width 32
-    Depth 1
-  } {
-    CLK clk
-    D s_axis_tdata
-  }
-
-  cell xilinx.com:ip:c_shift_ram:12.0 tvalid_reg {
-    Width 1
-    Depth 1
-  } {
-    CLK clk
-    D s_axis_tvalid
-  }
-
   set subtract_name subtract_noise_floor
   cell xilinx.com:ip:floating_point:7.1 $subtract_name {
     Add_Sub_Value Subtract
@@ -61,9 +45,9 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
     C_Latency 4
   } {
     aclk clk
-    s_axis_a_tvalid tvalid_reg/Q
-    s_axis_b_tvalid tvalid_reg/Q
-    s_axis_a_tdata tdata_reg/Q
+    s_axis_a_tvalid [get_Q_pin s_axis_tvalid 1]
+    s_axis_b_tvalid [get_Q_pin s_axis_tvalid 1]
+    s_axis_a_tdata [get_Q_pin s_axis_tdata 1]
     s_axis_b_tdata blk_mem_gen_$bram_name/doutb
     m_axis_result_tdata m_axis_result_tdata
     m_axis_result_tvalid m_axis_result_tvalid

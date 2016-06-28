@@ -15,7 +15,7 @@ proc add_pid_module {module_name width acc_width} {
 
   foreach {name} {p i d} {
     cell xilinx.com:ip:mult_gen:12.0 mult_$name {
-      PipeStages 2
+      PipeStages 2 
       Use_Custom_Output_Width true
       PortAWidth $width
       PortBWidth $width
@@ -26,8 +26,7 @@ proc add_pid_module {module_name width acc_width} {
       B coef_$name
     }
   }
-
-  set_property -dict [list CONFIG.PipeStages 3] [get_bd_cells mult_p]
+  set_cell_props mult_p {PipeStages 3}
 
   # Integral part
   cell xilinx.com:ip:c_accum:12.0 accumulator {
@@ -41,20 +40,13 @@ proc add_pid_module {module_name width acc_width} {
   }
 
   # Derivative part
-  cell xilinx.com:ip:c_shift_ram:12.0 deriv_shift_reg {
-    Depth 1
-  } {
-    clk clk
-    D mult_d/P
-  }
-
   cell xilinx.com:ip:c_addsub:12.0 deriv_substract {
     CE false
     Add_Mode Subtract
   } {
     clk clk
     A mult_d/P
-    B deriv_shift_reg/Q
+    B [get_Q_pin mult_d/P]
   }
 
   # Add proportional with integral part
