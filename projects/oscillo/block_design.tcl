@@ -6,9 +6,7 @@ source projects/base/block_design.tcl
 
 source projects/oscillo/oscillo.tcl
 
-set clken [get_and_pin avg0/new_cycle [get_slice_pin [cfg_pin clken_mask] 0 0]]
-connect_pins $addr_intercon_name/clken $clken
-connect_pins $interconnect_name/clken $clken
+source projects/base/counter.tcl
 
 ##########################################################
 # Add EEPROM

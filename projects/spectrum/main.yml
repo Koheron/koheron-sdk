@@ -42,14 +42,18 @@ config_offsets:
   - addr
   - substract_mean
   - cfg_fft
-  - avg_on
+  - avg0
+  - dac_period0
+  - dac_period1
   - peak_address_low
   - peak_address_high
   - peak_address_reset
-  - period0
-  - threshold0
+  - avg_period0
+  - avg_threshold0
   - n_avg_min0
   - dac_select
+  - addr_select
+  - clken_mask
 
 status_offsets:
   - spi_out
@@ -57,7 +61,9 @@ status_offsets:
   - peak_address
   - peak_maximum
   - avg_ready
-  - avg_on_out
+  - avg_on_out0
+  - counter0
+  - counter1
 
 parameters:
   bram_addr_width: 12
@@ -66,6 +72,7 @@ parameters:
   pwm_width: 10
   n_pwm: 4
   n_dac_bram: 3
+  n_dac: 2
 
 xdc:
   - projects/base/expansion_connector.xdc
