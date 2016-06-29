@@ -31,7 +31,7 @@ connect_cell $address_name {
 
 source $lib/interconnect.tcl
 set addr_intercon_name addr_intercon
-add_interconnect $addr_intercon_name [expr $config::bram_addr_width + 2] $n_periods $config::n_dac_bram
+interconnect::create $addr_intercon_name [expr $config::bram_addr_width + 2] $n_periods $config::n_dac_bram
 
 connect_cell $addr_intercon_name {
   clk   $adc_clk
@@ -49,7 +49,7 @@ source $lib/dac_controller.tcl
 set bram_size [expr 2**($config::bram_addr_width-8)]K
 
 set interconnect_name dac_interconnect
-add_interconnect $interconnect_name $config::dac_width $config::n_dac_bram 2
+interconnect::create $interconnect_name $config::dac_width $config::n_dac_bram 2
 
 connect_cell $interconnect_name {
   clk $adc_clk
