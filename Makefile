@@ -17,10 +17,10 @@ MAKE_PY = scripts/make.py
 TMP = tmp
 
 # properties defined MAIN_YML :
-BOARD:=$(shell python $(MAKE_PY) --board $(NAME) && cat $(TMP)/$(NAME).board)
-CORES:=$(shell python $(MAKE_PY) --cores $(NAME) && cat $(TMP)/$(NAME).cores)
-DRIVERS:=$(shell python $(MAKE_PY) --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
-XDC:=$(shell python $(MAKE_PY) --xdc $(NAME) && cat $(TMP)/$(NAME).xdc)
+BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) && cat $(TMP)/$(NAME).board)
+CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) && cat $(TMP)/$(NAME).cores)
+DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
+XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) && cat $(TMP)/$(NAME).xdc)
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
@@ -123,6 +123,9 @@ test_core:
 
 test_%: tests/tests_%.py
 	py.test -v $<
+
+test: tests/$(NAME).py
+	python $<
 
 test_app: | app_sync test_instrument_manager
 
@@ -262,7 +265,7 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 # tcp-server (compiled with project specific middleware)
 ###############################################################################
 
-$(TCP_SERVER_DIR): 
+$(TCP_SERVER_DIR):
 	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
@@ -281,7 +284,7 @@ $(TCP_SERVER_MIDDLEWARE)/%: %
 	mkdir -p -- `dirname -- $@`
 	cp $^ $@
 
-$(TCP_SERVER): $(TCP_SERVER_VENV) $(SERVER_CONFIG) $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) drivers/lib $(MAKE_PY) projects/default/server.yml
+$(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) drivers/lib projects/default/server.yml
 	python $(MAKE_PY) --middleware $(NAME)
 	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all
@@ -300,7 +303,7 @@ zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 # app
 ###############################################################################
 
-$(METADATA): $(TMP) $(VERSION_FILE)
+$(METADATA): $(MAKE_PY) $(VERSION_FILE)
 	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
 
 $(HTTP_API_DRIVERS_DIR)/%: drivers/%/__init__.py

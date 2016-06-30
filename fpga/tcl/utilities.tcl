@@ -2,6 +2,14 @@
 # Helper functions
 ########################################################
 
+# http://wiki.tcl.tk/13920
+proc lmap {_var list body} {
+    upvar 1 $_var var
+    set res {}
+    foreach var $list {lappend res [uplevel 1 $body]}
+    set res
+}
+
 # Get a configuration pin
 # name : name of the register defined in the project YAML
 proc cfg_pin {name} {
@@ -13,102 +21,143 @@ proc sts_pin {name} {
   return $::status_name/In[set config::${name}_offset]
 }
 
-proc get_not_pin {pin_name} {
-  # TODO use function here ...
-  set i 0
-  while 1 {
-    set not_name not_[lindex [split $pin_name /] end]_${i}
-    if {[get_bd_cells $not_name] eq ""} {break}
-    incr i
-  }
-  cell xilinx.com:ip:util_vector_logic:2.0 $not_name {
-    C_SIZE 1
-    C_OPERATION not
-  } {
-    Op1 $pin_name
-  }
-  return $not_name/Res
+proc underscore {pin_name} {
+  return [join [split $pin_name /] _]
 }
 
-proc get_slice_pin {pin_name width from to} {
-  # TODO ... and here
-  set i 0
-  while 1 {
-    set slice_name slice_from${from}_to${to}_[lindex [split $pin_name /] end]_${i}
-    if {[get_bd_cells $slice_name] eq ""} {break}
-    incr i
-  }
-  cell xilinx.com:ip:xlslice:1.0 $slice_name {
-    DIN_WIDTH $width
-    DIN_FROM $from
-    DIN_TO $to
-  } {
-    Din $pin_name
-  }
-  return $slice_name/Dout
-}
-
-proc get_edge_detector_pin {pin_name {clk clk}} {
-  # TODO ... and here
-  set i 0
-  while 1 {
-    set edge_det_name edge_detector_[lindex [split $pin_name /] end]_${i}
-    if {[get_bd_cells $edge_det_name] eq ""} {break}
-    incr i
-  }
-  cell koheron:user:edge_detector:1.0 $edge_det_name {} {
-    clk $clk
-    din $pin_name
-  }
-  return $edge_det_name/dout
-}
-
-proc get_Q_pin {in_pin_name {width 1} {depth 1} {ce_pin_name "ce_false"} {clk clk}} {
-  # TODO ... and here
-  set i 0
-  while 1 {
-    set shift_reg_name Q_d${depth}_[lindex [split $in_pin_name /] end]_${i}
-    if {[get_bd_cells $shift_reg_name] eq ""} {break}
-    incr i
-  }
-  if { [string match "ce_false" $ce_pin_name] } {
-    cell xilinx.com:ip:c_shift_ram:12.0 $shift_reg_name {
-      Width.VALUE_SRC USER
-      Width $width
-      Depth $depth
-    } {
-      CLK $clk
-      D   $in_pin_name
-    }
+proc get_cell_name {op pin_name1 {pin_name2 ""}} {
+  if {$pin_name2 eq ""} {
+    return ${op}_[underscore $pin_name1]
   } else {
-    cell xilinx.com:ip:c_shift_ram:12.0 $shift_reg_name {
-      Width.VALUE_SRC USER
-      Width $width
-      Depth $depth
-      CE true
+    return [underscore $pin_name1]_${op}_[underscore $pin_name2]
+  }
+}
+
+proc get_pin_width {pin_name} {
+  set left  [get_property LEFT  [get_bd_pins $pin_name]]
+  set right [get_property RIGHT [get_bd_pins $pin_name]]
+  set width [expr $left - $right + 1]
+  if {$width < 1} {return 1} else {return $width}
+}
+
+proc get_concat_pin {pins} {
+  set pin_names [uplevel 1 [list subst $pins]]
+  set cell_name concat_[join [lmap pin $pin_names {set pin [lindex [split $pin /] end]}] _]
+  if {[get_bd_cells $cell_name] eq ""} { 
+    cell xilinx.com:ip:xlconcat:2.1 $cell_name {
+      NUM_PORTS [llength $pin_names]
+    } {}
+  }
+  set i 0
+  foreach {pin_name} [uplevel 1 [list subst $pins]] {
+    connect_pins $cell_name/In$i $pin_name
+    set_cell_props $cell_name {IN${i}_WIDTH [get_pin_width $pin_name]}
+    incr i
+  }
+  return $cell_name/dout
+}
+
+# define get_and_pin, get_or_pin, get_nor_pin and get_not_pin procedures
+foreach op {and or nor not} {
+  proc get_${op}_pin {pin_name1 {pin_name2 ""}} {
+    set proc_name [lindex [info level 0] 0]
+    set op [lindex [split $proc_name _] 1]
+    set cell_name [get_cell_name $op $pin_name1 $pin_name2]
+    if {[get_bd_cells $cell_name] eq ""} {
+      cell xilinx.com:ip:util_vector_logic:2.0 $cell_name {
+        C_SIZE [get_pin_width $pin_name1]
+        C_OPERATION $op
+      } {
+        Op1 $pin_name1
+      }
+      if {$pin_name2 ne ""} {connect_pins $cell_name/Op2 $pin_name2}
+    }
+    return $cell_name/Res
+  }
+}
+-1
+foreach op {GE GT LE LT EQ NE} {
+  proc get_${op}_pin {pin_name1 pin_name2} {
+    set proc_name [lindex [info level 0] 0]
+    set op [lindex [split $proc_name _] 1]
+    set cell_name [get_cell_name $op $pin_name1 $pin_name2]
+    if {[get_bd_cells $cell_name] eq ""} {
+      cell koheron:user:comparator:1.0 $cell_name {
+        DATA_WIDTH [get_pin_width $pin_name1]
+        OPERATION $op
+      } {
+        a $pin_name1
+        b $pin_name2
+      }
+    }
+    return $cell_name/dout
+  }
+}
+
+proc get_slice_pin {pin_name from to} {
+  set cell_name slice_from${from}_to${to}_[lindex [split $pin_name /] end]
+  if {[get_bd_cells $cell_name] eq ""} {
+    cell xilinx.com:ip:xlslice:1.0 $cell_name {
+      DIN_WIDTH [get_pin_width $pin_name]
+      DIN_FROM $from
+      DIN_TO $to
     } {
-      CLK clk
-      D   $in_pin_name
-      CE  $ce_pin_name
+      Din $pin_name
     }
   }
-  return $shift_reg_name/Q
+  return $cell_name/Dout
+}
+
+proc get_Q_pin {pin_name {depth 1} {ce_pin_name "noce"} {clk clk}} {
+  set cell_name Q_d${depth}_[lindex [split $ce_pin_name /] end]_[lindex [split $pin_name /] end]
+  set width [get_pin_width $pin_name]
+  if {[get_bd_cells $cell_name] eq ""} {
+    if { [string match "noce" $ce_pin_name] } {
+      cell xilinx.com:ip:c_shift_ram:12.0 $cell_name {
+        Width $width
+        Depth $depth
+      } {
+        CLK $clk
+        D   $pin_name
+      }
+    } else {
+      cell xilinx.com:ip:c_shift_ram:12.0 $cell_name {
+        Width $width
+        Depth $depth
+        CE true
+      } {
+        CLK $clk
+        D   $pin_name
+        CE  $ce_pin_name
+      }
+    }
+  }
+  return $cell_name/Q
 }
 
 proc get_constant_pin {value width} {
-  # TODO ... and here
-  set i 0
-  while 1 {
-    set const_name const${i}_v${value}_w${width}
-    if {[get_bd_cells $const_name] eq ""} {break}
-    incr i
+  set cell_name const_v${value}_w${width}
+  if {[get_bd_cells $cell_name] eq ""} {
+    cell xilinx.com:ip:xlconstant:1.1 $cell_name {
+      CONST_VAL $value
+      CONST_WIDTH $width
+    } {}
   }
-  cell xilinx.com:ip:xlconstant:1.1 $const_name {
-    CONST_VAL $value
-    CONST_WIDTH $width
-  } {}
-  return $const_name/dout
+  return $cell_name/dout
 }
+
+# see fpga/cores/edge_detector_v1_0
+proc get_edge_detector_pin {pin_name {clk clk}} {
+  set cell_name edge_detector_[lindex [split $pin_name /] end]
+  if {[get_bd_cells $cell_name] eq ""} {
+    cell koheron:user:edge_detector:1.0 $cell_name {} {
+      clk $clk
+      din $pin_name
+    }
+  }
+  return $cell_name/dout
+}
+
 
 proc connect_pins {pin1 pin2} {
   connect_bd_net [get_bd_pins $pin1] [get_bd_pins $pin2]
@@ -121,14 +170,6 @@ proc connect_constant {name value width pin} {
   } { 
     dout $pin
   }
-}
-
-# http://wiki.tcl.tk/13920
-proc lmap {_var list body} {
-    upvar 1 $_var var
-    set res {}
-    foreach var $list {lappend res [uplevel 1 $body]}
-    set res
 }
 
 # Connect all the pins of a cell that have a port with an identical name

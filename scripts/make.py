@@ -42,15 +42,13 @@ def get_parents(project, parents=[]):
     return parents
 
 def load_config(project):
+    assert project in os.listdir('projects')
     config_filename = os.path.join('projects', project, 'main.yml')    
     with open(config_filename) as config_file:
         config = yaml.load(config_file)        
     return config
 
 def get_config(project):
-    if project not in os.listdir('projects'):
-        raise RuntimeError('Unknown project ' + project)
-
     config = load_config(project)
     # Get missing elements from ancestors
     lists = ['cores','xdc']
@@ -59,6 +57,8 @@ def get_config(project):
     props = ['board','host']
     for prop in props:
         config[prop] = get_prop(project, prop)
+    
+    # SHA
     sha_filename = os.path.join('tmp', project + '.sha')
     if os.path.isfile(sha_filename):
         with open(sha_filename) as sha_file:

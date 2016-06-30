@@ -6,8 +6,8 @@ proc pins {cmd bram_width {n_periods 1}} {
     $cmd -dir I -from 31   -to 0 period$i
     $cmd -dir O -from [expr $bram_width+2] -to 0 addr$i
   }
-  $cmd -dir O                  restart
-  $cmd -dir O                  tvalid
+  $cmd -dir O -from 31   -to 0 restart
+  $cmd -dir O -from 0    -to 0 tvalid
   $cmd -dir I -type clk        clk
 }
 
@@ -18,8 +18,8 @@ proc create {module_name bram_width {n_periods 1}} {
   pins create_bd_pin $bram_width $n_periods
   
   # Configuration registers
-  set reset_pin [get_slice_pin cfg 32 0 0]
-  set reset_acq_pin [get_slice_pin cfg 32 1 1]
+  set reset_pin [get_slice_pin cfg 0 0]
+  set reset_acq_pin [get_slice_pin cfg 1 1]
 
   connect_pin restart [get_edge_detector_pin $reset_acq_pin]
 
@@ -38,7 +38,7 @@ proc create {module_name bram_width {n_periods 1}} {
 
   set clogb2_depth 5
   set depth [expr 2**$clogb2_depth]
-  set delay_pin [get_slice_pin cfg 32 [expr 2 + $clogb2_depth -1] 2]
+  set delay_pin [get_slice_pin cfg [expr 2 + $clogb2_depth -1] 2]
 
   cell xilinx.com:ip:c_shift_ram:12.0 delay_tvalid {
     ShiftRegType Variable_Length_Lossless
