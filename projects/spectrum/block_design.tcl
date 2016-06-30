@@ -6,7 +6,7 @@ source projects/base/block_design.tcl
 
 source projects/spectrum/spectrum.tcl
 
-source projects/base/counter.tcl
+source projects/base/timer.tcl
 
 ##########################################################
 # Add EEPROM
