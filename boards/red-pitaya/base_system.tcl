@@ -35,5 +35,7 @@ connect_bd_net [get_bd_ports led_o] [get_bd_pins [get_slice_pin [cfg_pin led] 7 
 
 # Add XADC
 source $lib/xadc.tcl
-set xadc_name xadc_wiz_0
-add_xadc $xadc_name
+set xadc_name xadc
+xadc::create $xadc_name
+
+

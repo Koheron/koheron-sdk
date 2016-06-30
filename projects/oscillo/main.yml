@@ -25,6 +25,9 @@ addresses:
   - name: adc2
     offset: '0x88000000'
     range: 32K
+  - name: xadc_fifo
+    offset: '0x43C10000'
+    range: 64K 
 
 config_offsets:
   - spi_in
