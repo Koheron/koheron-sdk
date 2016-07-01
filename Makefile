@@ -112,8 +112,12 @@ $(TMP):
 	mkdir -p $(TMP)
 
 ###############################################################################
-# tests
+# utilities
 ###############################################################################
+
+# Run Vivado interactively and build block design
+bd: $(CONFIG_TCL) $(XDC) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+	vivado -nolog -nojournal -source scripts/block_design.tcl -tclargs $(NAME) $(PART) $(BOARD)
 
 test_module: $(CONFIG_TCL) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	vivado -source scripts/test_module.tcl -tclargs $(NAME) $(PART)
