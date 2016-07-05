@@ -315,8 +315,8 @@ $(HTTP_API_DIR): $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DR
 	touch $(HTTP_API_DRIVERS_DIR)/__init__.py 
 	mkdir -p $(HTTP_API_DIR)/api_app
 	cp -R os/api/. $(HTTP_API_DIR)/api_app
-	cp $(TMP)/metadata.json $(APP_DIR)
-	cp os/wsgi.py $(APP_DIR)
+	cp $(TMP)/metadata.json $(HTTP_API_DIR)
+	cp os/wsgi.py $(HTTP_API_DIR)
 
 $(HTTP_API_ZIP): $(HTTP_API_DIR)
 	cd $(HTTP_API_DIR) && zip -r $(HTTP_API_ZIP) .
