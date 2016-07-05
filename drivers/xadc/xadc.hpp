@@ -18,7 +18,9 @@
 #define SET_CHAN_OFF       0x324
 #define AVG_EN_OFF         0x32C
 #define READ_OFF           0x240
-#define AVG_OFF            0x300
+#define XADC_CFG0_OFF      0x300
+#define XADC_CFG1_OFF      0x304
+#define XADC_CFG2_OFF      0x308
 
 class Xadc
 {

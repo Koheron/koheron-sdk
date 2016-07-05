@@ -36,26 +36,26 @@ int Xadc::set_channel(uint32_t channel_0_, uint32_t channel_1_)
 
 int Xadc::set_averaging(uint32_t n_avg)
 {
-    uint32_t reg;
+    uint32_t avg;
+    uint32_t mask = (1 << 12) + (1 << 13);
 
     switch (n_avg) {
       case 1:
-        reg = 0x0000;
+        avg = 0;
         break;
       case 4:
-        reg = 0x1000;
+        avg = 1;
         break;
       case 64:
-        reg = 0x2000;
+        avg = 2;
         break;
       case 256:
-        reg = 0x3000;
+        avg = 3;
         break;
       default:
         return -1;
     }
-
-    dvm.write32(xadc_map, AVG_OFF, reg);
+    dvm.write32_mask(xadc_map, XADC_CFG0_OFF, (avg << 12), mask);
     return 0;
 }
 
@@ -63,7 +63,6 @@ int Xadc::read(uint32_t channel)
 {
     if (channel != channel_0 && channel != channel_1)
         return -1;
-
     return dvm.read32(xadc_map, READ_OFF + 4*channel);
 }
 
