@@ -28,6 +28,10 @@ class DeviceMemory
         dvm.write32(mmap_idx, offset, reg_val);
     }
 
+    void write_mask(uint32_t mmap_idx, uint32_t offset, uint32_t reg_val, uint32_t mask) {
+        dvm.write32_mask(mmap_idx, offset, reg_val, mask);
+    }
+
     #pragma tcp-server write_array arg{data} arg{len}
     void write_buffer(uint32_t mmap_idx, uint32_t offset,
                       const uint32_t *data, uint32_t len) {
@@ -49,14 +53,6 @@ class DeviceMemory
     
     void toggle_bit(uint32_t mmap_idx, uint32_t offset, uint32_t index) {
         dvm.toggle_bit(mmap_idx, offset, index);
-    }
-
-    void mask_and(uint32_t mmap_idx, uint32_t offset, uint32_t mask) {
-        dvm.mask_and(mmap_idx, offset, mask);
-    }
-
-    void mask_or(uint32_t mmap_idx, uint32_t offset, uint32_t mask) {
-        dvm.mask_or(mmap_idx, offset, mask);
     }
 
   private:

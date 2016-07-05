@@ -153,16 +153,10 @@ class DevMem
         return *((volatile uintptr_t *) (GetBaseAddr(id) + offset)) & (1 << index);
     }
 
-    void mask_and(MemMapID id, uint32_t offset, uint32_t mask) {
+    void write32_mask(MemMapID id, uint32_t offset, uint32_t value, uint32_t mask) {
         ASSERT_WRITABLE
         uintptr_t addr = GetBaseAddr(id) + offset;
-        *(volatile uintptr_t *) addr &= mask;
-    }
-
-    void mask_or(MemMapID id, uint32_t offset, uint32_t mask) {
-        ASSERT_WRITABLE
-        uintptr_t addr = GetBaseAddr(id) + offset;
-        *(volatile uintptr_t *) addr |= mask;
+        *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
     }
 
     /// True if the /dev/mem device is open
@@ -182,20 +176,6 @@ class DevMem
     MemMapIdPool id_pool;
 };
 
-
-// Helper to build an std::array of memory regions without
-// specifying the length. Called as:
-// mem_regions(
-//     Klib::MemoryRegion({ ADDR1, RANGE1 }),
-//     ...
-//     Klib::MemoryRegion({ ADDRn, RANGEn })
-// )
-template<typename... region>
-constexpr auto mem_regions(region&&... args) 
-    -> std::array<Klib::MemoryRegion, sizeof...(args)>
-{
-    return {{std::forward<region>(args)...}};
-}
 
 template<size_t N>
 std::array<MemMapID, N> 
