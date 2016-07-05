@@ -14,17 +14,19 @@
 
 The [Red Pitaya](http://redpitaya.com) is used as a reference board for this project. Please contact us at `hello@koheron.com` if you need another board to be supported.
 
-### Available instruments
+#### Available instruments
 
 * [`oscillo`](https://github.com/Koheron/zynq-sdk/tree/master/projects/oscillo) : simple signal acquisition / generation with coherent averaging mode.
 * [`spectrum`](https://github.com/Koheron/zynq-sdk/tree/master/projects/spectrum) : spectrum analyzer with peak-detection and averaging.
 
 ## Quick start
 
-You can find the latest release of the SD card image for the Red Pitaya `oscillo-<version>.img` on this [link](https://github.com/Koheron/zynq-sdk/releases). The [`oscillo`](https://github.com/Koheron/zynq-sdk/tree/master/projects/oscillo) and * [`spectrum`](https://github.com/Koheron/zynq-sdk/tree/master/projects/spectrum) instruments are preinstalled.
+You can find the latest release of the SD card image for the Red Pitaya `oscillo-<version>.img` on this [link](https://github.com/Koheron/zynq-sdk/releases). The [`oscillo`](https://github.com/Koheron/zynq-sdk/tree/master/projects/oscillo) and [`spectrum`](https://github.com/Koheron/zynq-sdk/tree/master/projects/spectrum) instruments are preinstalled.
 
 1. [Connect the board](http://www.koheron.com/products/laser-development-kit/getting-started/) to your computer.
 2. Navigate to your board ip address (e.g. `192.168.1.100`) with your browser.
+
+![Web interface](https://cloud.githubusercontent.com/assets/1735094/16599901/d9a205ea-4304-11e6-9303-4f02c1aedb4d.png)
 
 ## Build your own instrument
 
