@@ -178,6 +178,8 @@ class KoheronAPIApp(Flask):
         for name, shas in self.local_instruments.iteritems():
             if name == name_ and sha_ in shas:
                 shas.remove(sha_)
+                if len(shas) == 0:
+                    del self.local_instruments[name]
                 return
 
     def save_uploaded_instrument(self, zip_filename):
