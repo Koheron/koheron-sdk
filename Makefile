@@ -107,13 +107,18 @@ METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
+.PHONY: clean all \
+        test_module test_core test_% test test_app test_instrum test_all \
+        server xpr zip app \
+        run app_sync app_sync_ssh tcp-server_cli
+
 all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli
 
 $(TMP):
 	mkdir -p $(TMP)
 
 ###############################################################################
-# tests
+# Tests
 ###############################################################################
 
 test_module: $(CONFIG_TCL) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
@@ -133,6 +138,12 @@ test_app: | app_sync test_instrument_manager
 test_instrum: test_device_memory test_common test_$(NAME)
 
 test_all: | test_app test_instrum
+
+server: $(TCP_SERVER)
+xpr: $(TMP)/$(NAME).xpr
+bit: $(TMP)/$(NAME).bit
+zip: $(ZIP)
+app: $(HTTP_API_ZIP)
 
 run: $(ZIP)
 	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
