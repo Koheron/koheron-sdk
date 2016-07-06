@@ -143,7 +143,7 @@ server: $(TCP_SERVER)
 xpr: $(TMP)/$(NAME).xpr
 bit: $(TMP)/$(NAME).bit
 zip: $(ZIP)
-app: $(HTTP_API_ZIP)
+http: $(HTTP_API_ZIP)
 
 run: $(ZIP)
 	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
