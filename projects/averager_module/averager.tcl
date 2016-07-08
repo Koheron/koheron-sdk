@@ -14,6 +14,7 @@ proc pins {cmd fast_count_width slow_count_width width} {
    $cmd -dir O -from 31                         -to 0 addr
    $cmd -dir O -from 0                          -to 0 ready
    $cmd -dir O -from 0                          -to 0 avg_on_out
+   $cmd -dir O -from 0                          -to 0 new_cycle
    $cmd -dir I -type clk                              clk
 }
 
@@ -167,6 +168,8 @@ proc create {module_name bram_addr_width args} {
   }
 
   connect_pins ready [get_and_pin delay_trig/ready averager_counter/ready]
+
+  connect_pins new_cycle [get_edge_detector averager_counter/wen]
 
   current_bd_instance $bd
 }

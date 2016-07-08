@@ -25,8 +25,8 @@ for {set i 0} {$i < 2} {incr i} {
     clk         $adc_clk
     restart     $address_name/restart
     avg_on      [cfg_pin avg$i]
-    period      [cfg_pin period$i]
-    threshold   [cfg_pin threshold$i]
+    period      [cfg_pin avg_period$i]
+    threshold   [cfg_pin avg_threshold$i]
     n_avg_min   [cfg_pin n_avg_min$i]
     tvalid      $address_name/tvalid
     din         adc_dac/adc[expr $i + 1]

@@ -6,6 +6,8 @@ source projects/base/block_design.tcl
 
 source projects/oscillo/oscillo.tcl
 
+source projects/base/timer.tcl
+
 ##########################################################
 # Add EEPROM
 ##########################################################

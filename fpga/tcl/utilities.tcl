@@ -10,6 +10,11 @@ proc lmap {_var list body} {
     set res
 }
 
+proc range {from to} {
+    if {$to>$from} {concat [range $from [incr to -1]] $to}
+ }
+
+
 # Get a configuration pin
 # name : name of the register defined in the project YAML
 proc cfg_pin {name} {
