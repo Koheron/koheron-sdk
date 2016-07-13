@@ -12,13 +12,19 @@
 {% endfor %}
 
 // -- Config offsets
-{% for offset in dic['config_offsets'] -%}
+{% for offset in dic['config_registers'] -%}
 #define {{ offset|upper }}_OFF {{ 4 * loop.index0 }}
 {% endfor %}
 // -- Status offsets
-{% for offset in dic['status_offsets'] -%}
+{% for offset in dic['status_registers'] -%}
 #define {{ offset|upper }}_OFF {{ 4 * (10 + loop.index0) }}
 {% endfor %}
+
+// -- Parameters
+{% for key in dic['parameters'] -%}
+#define {{ key|upper }}_PARAM {{ dic['parameters'][key] }}
+{% endfor -%}
+
 
 #define BITSTREAM_ID_OFF 0
 #define BITSTREAM_ID_SIZE 8

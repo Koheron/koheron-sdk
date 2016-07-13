@@ -1,5 +1,5 @@
 
-proc add_pwm {module_name clk offset pwm_width num_ports {output_port dac_pwm_o}} {
+proc add_pwm {module_name clk pwm_width num_ports {output_port dac_pwm_o}} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]

@@ -9,7 +9,7 @@ proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "aut
   set n_hidden_ports [expr $sha_size + $dna_size]
 
   for {set i $n_hidden_ports} {$i < $num_ports} {incr i} {
-    create_bd_pin -dir I -from 31 -to 0 In$i
+    create_bd_pin -dir I -from 31 -to 0 $config::sts_register($i)
   }
 
   if { $idx eq "auto"} {
@@ -68,7 +68,7 @@ proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "aut
 
   # Other ports
   for {set i $n_hidden_ports} {$i < $num_ports} {incr i} {
-    connect_pins concat_0/In$i In$i
+    connect_pins concat_0/In$i $config::sts_register($i)
   }
 
   current_bd_instance $bd

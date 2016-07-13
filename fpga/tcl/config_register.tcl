@@ -6,7 +6,7 @@ proc add_config_register {module_name clk {num_ports 32} {range 4K} {offset "aut
   create_bd_pin -dir O -from [expr $num_ports*32] -to 0 cfg
 
   for {set i 0} {$i < $num_ports} {incr i} {
-    create_bd_pin -dir O -from 31 -to 0 Out$i
+    create_bd_pin -dir O -from 31 -to 0 $config::cfg_register($i)
   }
 
   if { $idx eq "auto"} {
@@ -46,7 +46,7 @@ proc add_config_register {module_name clk {num_ports 32} {range 4K} {offset "aut
     set wid  [expr $num_ports*32]
     set from [expr 31+$i*32]
     set to   [expr $i*32]
-    connect_pins Out$i [get_slice_pin axi_cfg_register_0/cfg_data $from $to]
+    connect_pins $config::cfg_register($i) [get_slice_pin axi_cfg_register_0/cfg_data $from $to]
   }
 
   current_bd_instance $bd
