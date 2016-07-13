@@ -77,7 +77,7 @@ def fill_template(config, template_filename, output_filename):
         output.write(template.render(dic=config))
 
 def fill_config_tcl(config):
-    output_filename = os.path.join('projects', config['project'], 'config.tcl')
+    output_filename = os.path.join('tmp', config['project']+'.config.tcl')
     fill_template(config, 'config.tcl', output_filename)
 
 def fill_addresses(config, drivers_dir):
