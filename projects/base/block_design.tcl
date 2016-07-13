@@ -6,7 +6,7 @@ add_gpio
 
 # Add PWM
 source $lib/pwm.tcl
-add_pwm pwm $pwm_clk $config::pwm0_offset $config::pwm_width $config::n_pwm
+add_pwm pwm $pwm_clk $config::pwm_width $config::n_pwm
 
 for {set i 0} {$i < $config::n_pwm} {incr i} {
   connect_pins pwm/pwm$i  [cfg_pin pwm${i}]

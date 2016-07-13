@@ -20,7 +20,7 @@ addresses:
     offset: '0x84000000'
     range: 32K
 
-config_offsets:
+config_registers:
   - spi_in
   - led
   - pwm0
@@ -37,7 +37,7 @@ config_offsets:
   - n_avg_min0
   - n_avg_min1
 
-status_offsets:
+status_registers:
   - spi_out
   - n_avg0
   - n_avg1

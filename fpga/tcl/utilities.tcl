@@ -10,15 +10,20 @@ proc lmap {_var list body} {
     set res
 }
 
+proc range {from to} {
+    if {$to>$from} {concat [range $from [incr to -1]] $to}
+ }
+
+
 # Get a configuration pin
 # name : name of the register defined in the project YAML
-proc cfg_pin {name} {
-  return $::config_name/Out[set config::${name}_offset]
+proc cfg_pin {pin_name} {
+  return $::config_name/$pin_name
 }
 
 # Get a status pin
-proc sts_pin {name} {
-  return $::status_name/In[set config::${name}_offset]
+proc sts_pin {pin_name} {
+  return $::status_name/$pin_name
 }
 
 proc underscore {pin_name} {
