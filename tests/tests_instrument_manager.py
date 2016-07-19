@@ -28,6 +28,9 @@ class TestsInstrumentManager:
     def test_get_dna(self):
         assert im.get_dna() == common.get_dna()
 
+    def test_get_board_version(self):
+        assert 'zynq-sdk' in im.get_board_version()
+
     def test_remove_and_restore(self):
         """ Removes all local instruments and restore backup"""
         local_instruments = im.get_local_instruments()

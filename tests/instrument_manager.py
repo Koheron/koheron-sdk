@@ -27,13 +27,17 @@ class InstrumentManager:
         try:
             r = requests.get(self.url + '/api/version')
             return r.json()
-        except Exception as e: 
+        except Exception as e:
             print("[error] " + str(e))
             return {}
 
     def get_board_version(self):
-        r = requests.get(self.url + '/api/board/version')
-        return r
+        try:
+            r = requests.get(self.url + '/api/board/version')
+            return r.json()
+        except Exception as e:
+            print("[error] " + str(e))
+            return {}
         
     def deploy_local_instrument(self, name, version):
         """ Deploy a locally available instrument
