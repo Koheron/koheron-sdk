@@ -25,6 +25,7 @@ class TestsLaser:
         laser.start_laser()
         curr_setpt = 26.3 # mA
         laser.set_laser_current(curr_setpt)
+        time.sleep(0.1)
         rel_err = abs(curr_setpt * 1E-3 / laser.get_laser_current() - 1)
         assert rel_err < 0.1
 
