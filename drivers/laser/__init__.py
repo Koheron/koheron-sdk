@@ -16,6 +16,10 @@ class Laser(object):
         return self.client.recv_int32()
 
     @command('LASER')
+    def is_laser_present(self):
+        return self.client.recv_bool()
+
+    @command('LASER')
     def reset(self): pass
 
     @command('LASER')
@@ -35,11 +39,11 @@ class Laser(object):
 
     @command('LASER')
     def get_monitoring(self):
-        return self.client.recv_tuple()
+        return self.client.recv_tuple('II')
 
     @command('LASER')
     def get_status(self):
-        return self.client.recv_tuple()
+        return self.client.recv_tuple('?ff')
 
     @command('LASER','f')
     def set_laser_current(self, current):
@@ -47,12 +51,7 @@ class Laser(object):
         pass
 
     @command('LASER')
-    def is_laser_present(self):
-        return self.client.recv_uint32()
-
-    @command('LASER')
-    def save_config(self):
-        pass
+    def save_config(self): pass
 
     @command('LASER')
     def load_config(self):
