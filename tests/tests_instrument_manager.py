@@ -30,7 +30,7 @@ class TestsInstrumentManager:
                     im.remove_local_instrument(instrum, version)
                     # Check the instrument has been deleted
                     new_instruments = im.get_local_instruments()
-                    assert version not in new_instruments[instrum]
+                    assert instrum not in new_instruments or version not in new_instruments[instrum]
 
         im.restore_backup()
         assert len(im.get_local_instruments()) > 0
