@@ -22,7 +22,17 @@ TEST_EEPROM_ADDR = 63
 class TestsEeprom:
     def test_write_read(self):
         eeprom.write_enable()
-        time.sleep(0.1)
+        time.sleep(0.01)
         eeprom.write(TEST_EEPROM_ADDR, 68)
-        time.sleep(0.1)
+        time.sleep(0.01)
         assert eeprom.read(TEST_EEPROM_ADDR) == 68
+
+    def test_erase(self):
+        eeprom.write_enable()
+        time.sleep(0.01)
+        eeprom.write(TEST_EEPROM_ADDR, 74)
+        time.sleep(0.01)
+        assert eeprom.read(TEST_EEPROM_ADDR) == 74
+        eeprom.erase(TEST_EEPROM_ADDR)
+        time.sleep(0.01)
+        assert eeprom.read(TEST_EEPROM_ADDR) == 65535
