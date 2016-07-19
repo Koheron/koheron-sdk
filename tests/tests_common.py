@@ -37,5 +37,8 @@ class TestsCommon:
         common.ip_on_leds()
         assert common.get_led() == ip2long(host)
 
+    def test_get_dna(self):
+        assert len(common.get_dna()) == 14
+
 # tests = TestsCommon()
 # tests.test_ip_on_leds()
