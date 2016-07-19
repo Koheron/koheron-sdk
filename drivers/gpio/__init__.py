@@ -30,6 +30,10 @@ class Gpio(object):
     def toggle_bit(self, index, channel): pass
 
     @command('GPIO', 'II')
+    def read_bit(self, index, channel):
+        return self.client.recv_bool()
+
+    @command('GPIO', 'II')
     def set_as_input(self, index, channel): pass
 
     @command('GPIO', 'II')
