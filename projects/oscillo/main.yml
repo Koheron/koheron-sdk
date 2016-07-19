@@ -10,14 +10,20 @@ addresses:
   - name: status
     offset: '0x50000000'
     range: 4K
-  - name: dac
+  - name: dac1
     offset: '0x80000000'
-    range: 32K
-  - name: adc1
+    range: 16K
+  - name: dac2
     offset: '0x82000000'
+    range: 16K
+  - name: dac3
+    offset: '0x84000000'
+    range: 16K
+  - name: adc1
+    offset: '0x86000000'
     range: 32K
   - name: adc2
-    offset: '0x84000000'
+    offset: '0x88000000'
     range: 32K
 
 config_registers:
@@ -30,12 +36,17 @@ config_registers:
   - addr
   - avg0
   - avg1
-  - period0
-  - period1
-  - threshold0
-  - threshold1
+  - dac_period0
+  - dac_period1
+  - avg_period0
+  - avg_period1
+  - avg_threshold0
+  - avg_threshold1
   - n_avg_min0
   - n_avg_min1
+  - dac_select
+  - addr_select
+  - clken_mask
 
 status_registers:
   - spi_out
@@ -45,6 +56,8 @@ status_registers:
   - avg_ready1
   - avg_on_out0
   - avg_on_out1
+  - counter0
+  - counter1
 
 parameters:
   bram_addr_width: 13
@@ -52,6 +65,8 @@ parameters:
   adc_width: 14
   pwm_width: 10
   n_pwm: 4
+  n_dac_bram: 3
+  n_dac: 2
 
 xdc:
   - projects/base/expansion_connector.xdc

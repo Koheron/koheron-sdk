@@ -21,6 +21,5 @@ create_bd_design system
 
 source $cfg/ports.tcl
 source $lib/utilities.tcl
-
 source tmp/$project_name.config.tcl
 source projects/$project_name/block_design.tcl

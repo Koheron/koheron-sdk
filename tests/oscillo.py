@@ -55,4 +55,4 @@ dvm.write32('config', pc.cfg['led'], value)
 assert(dvm.read32('config', pc.cfg['led']) == value)
 
 for i in range(10):
-    dvm.write_buffer('dac', 0, 1024 *  np.ones(8192))
+    dvm.write_buffer('dac1', 0, 1024 *  np.ones(4096))
