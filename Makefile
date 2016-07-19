@@ -73,7 +73,7 @@ RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1h
 
 # Project configuration
 
-CONFIG_TCL = projects/$(NAME)/config.tcl
+CONFIG_TCL = $(TMP)/$(NAME).config.tcl
 TEMPLATE_DIR = scripts/templates
 
 # Versioning
@@ -109,7 +109,7 @@ METADATA = $(TMP)/metadata.json
 
 .PHONY: clean all \
         test_module test_core test_% test test_app test_instrum test_all \
-        server xpr zip app \
+        server xpr zip app bd \
         run app_sync app_sync_ssh tcp-server_cli
 
 all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli
@@ -139,7 +139,7 @@ test: tests/$(NAME).py
 
 test_app: | app_sync test_instrument_manager
 
-test_instrum: test_device_memory test_common test_$(NAME)
+test_instrum: test_device_memory test_common test_gpio test_$(NAME)
 
 test_all: | test_app test_instrum
 

@@ -1,4 +1,3 @@
-source projects/$project_name/config.tcl
 
 # Add PS and AXI Interconnect
 set board_preset boards/$board_name/config/board_preset.tcl

@@ -26,7 +26,7 @@ addresses:
     offset: '0x88000000'
     range: 32K
 
-config_offsets:
+config_registers:
   - spi_in
   - led
   - pwm0
@@ -48,7 +48,7 @@ config_offsets:
   - addr_select
   - clken_mask
 
-status_offsets:
+status_registers:
   - spi_out
   - n_avg0
   - n_avg1

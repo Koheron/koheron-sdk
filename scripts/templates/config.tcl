@@ -3,22 +3,23 @@ namespace eval config {
 ##########################################################
 # Define config offsets
 ##########################################################
-{% for offset in dic['config_offsets'] -%}
-variable {{ offset }}_offset {{ loop.index0 }}
+variable cfg_register
+{% for name in dic['config_registers'] -%}
+set cfg_register({{ loop.index0 }}) {{name}}
 {% endfor -%}
 
-variable config_size {{ dic['config_offsets'] | length }}
+variable config_size {{ dic['config_registers'] | length }}
 
 ##########################################################
 # Define status offsets
 ##########################################################
 set sts_start 10
-
-{% for offset in dic['status_offsets'] -%}
-variable {{ offset }}_offset [expr {{ loop.index0 }} + $sts_start]
+variable sts_register
+{% for name in dic['status_registers'] -%}
+set sts_register([expr {{ loop.index0 }} + $sts_start]) {{name}}
 {% endfor -%}
 
-variable status_size [expr {{ dic['status_offsets'] | length }} + $sts_start]
+variable status_size [expr {{ dic['status_registers'] | length }} + $sts_start]
 
 ##########################################################
 # Define parameters

@@ -17,12 +17,12 @@ addresses:
     offset: '0x50000000'
     range: 4K
 
-config_offsets:
+config_registers:
   - led
   - dac1
   - dac2
 
-status_offsets:
+status_registers:
   - adc1
   - adc2
 

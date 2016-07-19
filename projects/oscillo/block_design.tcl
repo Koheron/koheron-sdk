@@ -1,4 +1,3 @@
-source projects/oscillo/config.tcl
 
 set bram_size [expr 2**($config::bram_addr_width-8)]K
 

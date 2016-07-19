@@ -6,7 +6,7 @@ create_bd_port -dir O spi_sclk
 create_bd_port -dir O spi_cs
 
 cell koheron:user:at93c46d_spi:1.0 at93c46d_spi_0 {} {
-  clk $adc_clk
+  clk      $adc_clk
   data_out [sts_pin spi_out]
   start    [get_slice_pin [cfg_pin spi_in] 0 0]
   cmd      [get_slice_pin [cfg_pin spi_in] 8 1]

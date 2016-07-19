@@ -32,7 +32,7 @@ addresses:
     offset: '0x43C10000'
     range: 64K 
 
-config_offsets:
+config_registers:
   - spi_in
   - led
   - pwm0
@@ -55,7 +55,7 @@ config_offsets:
   - addr_select
   - clken_mask
 
-status_offsets:
+status_registers:
   - spi_out
   - n_avg
   - peak_address
