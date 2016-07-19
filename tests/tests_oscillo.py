@@ -4,16 +4,16 @@ import numpy as np
 
 from instrument_manager import InstrumentManager
 from koheron_tcp_client import KClient
-from project_config import ProjectConfig
+# from project_config import ProjectConfig
 
 from drivers.oscillo import Oscillo
 
 host = os.getenv('HOST','192.168.1.2')
-project = os.getenv('NAME','')
+project = os.getenv('NAME','oscillo')
 
 im = InstrumentManager(host)
 im.install_instrument(project, always_restart=True)
-pc = ProjectConfig(project)
+# pc = ProjectConfig(project)
 
 client = KClient(host)
 oscillo = Oscillo(client)
@@ -39,5 +39,5 @@ class TestsOscillo:
         assert num_avg_0 >= 1000
 
 tests = TestsOscillo()
-# tests.test_get_adc()
+tests.test_get_adc()
 tests.test_averaging()

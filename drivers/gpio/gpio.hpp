@@ -60,6 +60,10 @@ class Gpio
             dvm.toggle_bit(gpio_map, get_value_offset(channel), index);
     }
 
+    bool read_bit(uint32_t index, uint32_t channel) {
+        return dvm.read_bit(gpio_map, get_value_offset(channel), index);
+    }
+
     void set_as_input(uint32_t index, uint32_t channel) {
         if (index <= MAX_BIT_IDX)
             dvm.set_bit(gpio_map, get_dir_offset(channel), index);
