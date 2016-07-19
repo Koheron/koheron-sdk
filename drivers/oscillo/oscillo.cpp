@@ -102,6 +102,7 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor,
 
 void Oscillo::set_averaging(bool avg_on)
 {
+    avg_on = avg_on;
     if (avg_on) {
         dvm.set_bit(config_map, AVG0_OFF, 0);
         dvm.set_bit(config_map, AVG1_OFF, 0);
