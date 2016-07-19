@@ -51,12 +51,7 @@ class Laser(object):
         pass
 
     @command('LASER')
-    def is_laser_present(self):
-        return self.client.recv_uint32()
-
-    @command('LASER')
-    def save_config(self):
-        pass
+    def save_config(self): pass
 
     @command('LASER')
     def load_config(self):

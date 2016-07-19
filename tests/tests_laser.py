@@ -38,3 +38,11 @@ class TestsLaser:
         time.sleep(0.1)
         power_on = laser.get_laser_power()
         assert power_off < power_on
+
+    def test_config(self):
+        curr_setpt = 10.32 # mA
+        laser.set_laser_current(curr_setpt)
+        laser.save_config()
+        time.sleep(0.1)
+        rel_err = abs(curr_setpt * 1E-3 / laser.load_config() - 1)
+        assert rel_err < 5E-3
