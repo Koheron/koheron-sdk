@@ -27,6 +27,13 @@ class TestsEeprom:
         time.sleep(0.01)
         assert eeprom.read(TEST_EEPROM_ADDR) == 68
 
+    def test_write_read_many(self):
+        eeprom.write_enable()
+        for i in range(10):
+            eeprom.write(i, i + 4)
+            time.sleep(0.01)
+            assert eeprom.read(i) == i + 4
+
     def test_erase(self):
         eeprom.write_enable()
         time.sleep(0.01)
