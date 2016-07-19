@@ -16,6 +16,10 @@ class Laser(object):
         return self.client.recv_int32()
 
     @command('LASER')
+    def is_laser_present(self):
+        return self.client.recv_bool()
+
+    @command('LASER')
     def reset(self): pass
 
     @command('LASER')
