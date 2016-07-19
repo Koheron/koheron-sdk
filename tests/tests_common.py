@@ -6,8 +6,6 @@ import numpy as np
 
 from instrument_manager import InstrumentManager
 from koheron_tcp_client import KClient
-from project_config import ProjectConfig
-
 from drivers.common import Common
 
 host = os.getenv('HOST','192.168.1.2')
@@ -15,7 +13,6 @@ project = os.getenv('NAME','')
 
 im = InstrumentManager(host)
 im.install_instrument(project)
-pc = ProjectConfig(project)
 
 client = KClient(host)
 common = Common(client)

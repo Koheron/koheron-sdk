@@ -1,12 +1,17 @@
 # Unit tests for InstrumentManager
-
+import context
 import os
 import pytest
 
 from instrument_manager import InstrumentManager
+from koheron_tcp_client import KClient
+from drivers.common import Common
 
 host = os.getenv('HOST', '192.168.1.100')
 im = InstrumentManager(host)
+
+client = KClient(host)
+common = Common(client)
 
 class TestsInstrumentManager:
     def test_get_app_version(self):
@@ -18,7 +23,7 @@ class TestsInstrumentManager:
         assert 'version' in version
 
     def test_get_bistream_id(self):
-        assert len(im.get_bistream_id()) == 64
+        assert im.get_bistream_id() == common.get_bitstream_id()
 
     def test_remove_and_restore(self):
         """ Removes all local instruments and restore backup"""
