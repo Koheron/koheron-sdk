@@ -26,10 +26,10 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
 
     // set tvalid delay to 19 * 8 ns
     dvm.write32(config_map, ADDR_OFF, 19 << 2);
-    
-    set_period(WFM_SIZE);
     set_n_avg_min(0);
-    reset();
+    set_clken_mask(true);
+    set_dac_periods(WFM_SIZE, WFM_SIZE);
+    set_avg_period(WFM_SIZE);
 }
 
 void Oscillo::set_n_avg_min(uint32_t n_avg_min) 
