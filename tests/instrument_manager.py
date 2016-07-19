@@ -16,6 +16,10 @@ class InstrumentManager:
         r = requests.get(self.url + '/api/board/bitstream_id')
         return r.text
 
+    def get_dna(self):
+        r = requests.get(self.url + '/api/board/dna')
+        return r.text
+
     def ping(self):
         r = requests.get(self.url + '/api/board/ping')
 
