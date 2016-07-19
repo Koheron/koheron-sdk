@@ -46,3 +46,12 @@ class TestsLaser:
         time.sleep(0.1)
         rel_err = abs(curr_setpt * 1E-3 / laser.load_config() - 1)
         assert rel_err < 5E-3
+
+    def test_status(self):
+        laser.stop_laser()
+        assert not laser.get_status()[0]
+        laser.start_laser()
+        assert laser.get_status()[0]
+
+tests = TestsLaser()
+tests.test_status()

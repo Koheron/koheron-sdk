@@ -39,11 +39,11 @@ class Laser(object):
 
     @command('LASER')
     def get_monitoring(self):
-        return self.client.recv_tuple()
+        return self.client.recv_tuple('II')
 
     @command('LASER')
     def get_status(self):
-        return self.client.recv_tuple()
+        return self.client.recv_tuple('?ff')
 
     @command('LASER','f')
     def set_laser_current(self, current):
