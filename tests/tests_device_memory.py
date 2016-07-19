@@ -29,8 +29,8 @@ class TestsDeviceMemory:
 
     def test_write_read_buffer(self):
         buff = np.random.randint(16384, size=2048)
-        dvm.write_buffer('dac', 0, buff)
-        buff_ret = dvm.read_buffer('dac', 0, len(buff))
+        dvm.write_buffer('dac1', 0, buff)
+        buff_ret = dvm.read_buffer('dac1', 0, len(buff))
         assert np.array_equal(buff, buff_ret)
 
 # tests = TestsDeviceMemory()
