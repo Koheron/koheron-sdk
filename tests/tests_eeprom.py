@@ -46,3 +46,9 @@ class TestsEeprom:
         eeprom.erase_all()
         time.sleep(0.01)
         assert eeprom.read(TEST_EEPROM_ADDR) == 65535
+
+    def test_write_all(self):
+        eeprom.write_enable()
+        eeprom.write_all(42)
+        time.sleep(0.01)
+        assert eeprom.read(TEST_EEPROM_ADDR) == 42
