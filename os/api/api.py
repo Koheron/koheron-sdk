@@ -47,6 +47,17 @@ def update_static():
        api_app.copy_static()
        return make_response('Updating app')
 
+@api_app.route('/api/static/upload', methods=['POST'])
+def upload_static():
+    if request.method == 'POST':
+        file_ = next((file_ for file_ in request.files if api_app.is_zip_file(file_)), None)
+        if file_ is not None:
+            request.files[file_].save('/tmp/static.zip')
+            api_app.unzip_static()
+            api_app.copy_static()
+            return make_response('Static upload success')
+    return make_response('Static upload failed.')
+
 # ------------------------
 # Board
 # ------------------------

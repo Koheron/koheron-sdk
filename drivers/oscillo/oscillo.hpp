@@ -50,6 +50,8 @@ class Oscillo
     }
 
     uint32_t get_num_average()   {return dvm.read32(status_map, N_AVG0_OFF);}
+    uint32_t get_num_average_0() {return dvm.read32(status_map, N_AVG0_OFF);}
+    uint32_t get_num_average_1() {return dvm.read32(status_map, N_AVG1_OFF);}
 
     // TODO should be a one-liner
     void set_clken_mask(bool clken_mask) {
