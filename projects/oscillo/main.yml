@@ -39,9 +39,7 @@ config_registers:
   - dac_period0
   - dac_period1
   - avg_period0
-  - avg_period1
   - avg_threshold0
-  - avg_threshold1
   - n_avg_min0
   - n_avg_min1
   - dac_select

@@ -18,9 +18,7 @@ connect_pins pwm/rst $rst_adc_clk_name/peripheral_reset
 source projects/address_module/address.tcl
 set address_name address
 
-set n_periods 2
-
-address::create $address_name $config::bram_addr_width $n_periods
+address::create $address_name $config::bram_addr_width $config::n_dac
 
 connect_cell $address_name {
   clk  $adc_clk
@@ -31,14 +29,14 @@ connect_cell $address_name {
 
 source $lib/interconnect.tcl
 set addr_intercon_name addr_intercon
-interconnect::create $addr_intercon_name [expr $config::bram_addr_width + 2] $n_periods $config::n_dac_bram
+interconnect::create $addr_intercon_name [expr $config::bram_addr_width + 2] $config::n_dac $config::n_dac_bram
 
 connect_cell $addr_intercon_name {
   clk   $adc_clk
   sel   [cfg_pin addr_select]
 }
 
-for {set i 0} {$i < $n_periods} {incr i} {
+for {set i 0} {$i < $config::n_dac} {incr i} {
   connect_pins $address_name/period$i  [cfg_pin dac_period$i]
   connect_pins $address_name/addr$i $addr_intercon_name/in$i
 }
