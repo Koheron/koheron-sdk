@@ -1,4 +1,4 @@
-/// Eepromscope driver
+/// Eeprom driver
 ///
 /// (c) Koheron
 
