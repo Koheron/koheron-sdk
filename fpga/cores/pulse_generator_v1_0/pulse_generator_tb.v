@@ -36,6 +36,9 @@ module pulse_generator_tb();
     rst = 1;
     #(CLK_PERIOD)
     rst = 0;
+    #(1000*CLK_PERIOD)
+    pulse_period = 50;
+    pulse_width = 25;
     #(100000*CLK_PERIOD)
     $finish;
   end
