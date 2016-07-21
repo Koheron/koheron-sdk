@@ -31,7 +31,7 @@ class Common(object):
     def set_led(self, value): pass
 
     @command('COMMON')
-    def get_led(self): 
+    def get_led(self):
         return self.client.recv_uint32()
 
     @command('COMMON')
@@ -39,6 +39,13 @@ class Common(object):
 
     @command('COMMON')
     def ip_on_leds(self): pass
+
+    def get_server_version(self):
+        @command('KSERVER')
+        def get_version(self):
+            return self.client.recv_string()
+
+        return get_version(self)
 
     def status(self):
        print('bitstream id = {}'.format(self.get_bitstream_id()))

@@ -37,5 +37,9 @@ class TestsCommon:
     def test_get_dna(self):
         assert len(common.get_dna()) == 14
 
+    def test_get_server_version(self):
+        assert len(common.get_server_version()) == 7
+
 # tests = TestsCommon()
 # tests.test_ip_on_leds()
+# tests.test_get_server_version()
