@@ -22,6 +22,9 @@ class TestsInstrumentManager:
         assert 'user' in version
         assert 'version' in version
 
+    def test_get_server_version(self):
+        assert im.get_server_version() == common.get_server_version()
+
     def test_get_bistream_id(self):
         assert im.get_bistream_id() == common.get_bitstream_id()
 
