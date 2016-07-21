@@ -109,7 +109,7 @@ METADATA = $(TMP)/metadata.json
 
 .PHONY: clean all \
         test_module test_core test_% test test_app test_instrum test_all \
-        server xpr zip app bd \
+        server xpr zip app bd http_api \
         run app_sync app_sync_ssh tcp-server_cli
 
 all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli
@@ -330,7 +330,7 @@ $(HTTP_API_DRIVERS_DIR)/%: drivers/%/__init__.py
 	cp $< $@/__init__.py
 
 $(HTTP_API_DIR): $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DRIVERS))
-	touch $(HTTP_API_DRIVERS_DIR)/__init__.py 
+	touch $(HTTP_API_DRIVERS_DIR)/__init__.py
 	mkdir -p $(HTTP_API_DIR)/api_app
 	cp -R os/api/. $(HTTP_API_DIR)/api_app
 	cp $(TMP)/metadata.json $(HTTP_API_DIR)
@@ -338,6 +338,8 @@ $(HTTP_API_DIR): $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DR
 
 $(HTTP_API_ZIP): $(HTTP_API_DIR)
 	cd $(HTTP_API_DIR) && zip -r $(HTTP_API_ZIP) .
+
+http_api: $(HTTP_API_ZIP)
 
 app_sync: $(HTTP_API_ZIP)
 	curl -v -F app-$(VERSION).zip=@$(HTTP_API_DIR)/$(HTTP_API_ZIP) http://$(HOST)/api/app/update
