@@ -10,14 +10,14 @@ cores:
   - edge_detector_v1_0
 
 config_registers:
-  - avg
-  - avg_period
-  - avg_threshold
-  - n_avg_min
+  - avg # set to 1 to perform averaging
+  - avg_period # defines the period on which waveforms are averaged
+  - avg_threshold # must be set to (avg_period - 5)
+  - n_avg_min # minimum number of averaged waveforms
 
 status_registers:
-  - n_avg
-  - avg_ready
+  - n_avg # number of averaged waveforms
+  - avg_ready # equals 1 when the data is ready
 
 parameters:
   bram_addr_width: 8

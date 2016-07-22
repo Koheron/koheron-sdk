@@ -9,7 +9,7 @@ cores:
 
 config_registers:
   - addr  # reset[0:0], trig_acq[1:1], delay_tvalid[6:2]
-  - dac_period
+  - dac_period # period on which the dac is played
 
 status_registers:
   - avg_ready
