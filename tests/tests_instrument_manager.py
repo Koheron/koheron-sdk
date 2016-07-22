@@ -39,26 +39,28 @@ class TestsInstrumentManager:
         local_instruments = im.get_local_instruments()
 
         for instrum in local_instruments:
-            if len(local_instruments[instrum]) > 0:
-                for version in local_instruments[instrum]:
-                    im.remove_local_instrument(instrum, version)
-                    # Check the instrument has been deleted
-                    new_instruments = im.get_local_instruments()
-                    assert instrum not in new_instruments or version not in new_instruments[instrum]
+            for version in local_instruments[instrum]:
+                im.remove_local_instrument(instrum, version)
+                # Check the instrument has been deleted
+                new_instruments = im.get_local_instruments()
+                assert instrum not in new_instruments or version not in new_instruments[instrum]
 
         im.restore_backup()
         assert len(im.get_local_instruments()) > 0
 
     def test_install_instruments(self):
         local_instruments = im.get_local_instruments()
+        dnas = []
 
         for instrum in local_instruments:
-            if len(local_instruments[instrum]) > 0:
-                for version in local_instruments[instrum]:
-                    im.deploy_local_instrument(instrum, version)
-                    curr_instrum = im.get_current_instrument()
-                    assert curr_instrum['name'] == instrum
-                    assert curr_instrum['sha'] == version
+            for version in local_instruments[instrum]:
+                im.deploy_local_instrument(instrum, version)
+                curr_instrum = im.get_current_instrument()
+                dnas.append(im.get_dna())
+                assert dnas[0] == dnas[-1]
+                assert curr_instrum['name'] == instrum
+                assert curr_instrum['sha'] == version
+
 
 tests = TestsInstrumentManager()
 tests.test_get_app_version()
