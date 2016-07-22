@@ -7,6 +7,15 @@ cores:
   - comparator_v1_0
   - averager_counter_v1_0
 
+config_registers:
+  - addr  # reset[0:0], trig_acq[1:1], delay_tvalid[6:2]
+  - dac_period
+
+status_registers:
+  - avg_ready
+  - avg_on_out
+
 parameters:
   bram_addr_width: 8
   adc_width: 14
+  n_dac: 2

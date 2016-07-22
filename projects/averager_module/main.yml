@@ -7,6 +7,17 @@ cores:
   - comparator_v1_0
   - averager_counter_v1_0
   - delay_trig_v1_0
+  - edge_detector_v1_0
+
+config_registers:
+  - avg
+  - avg_period
+  - avg_threshold
+  - n_avg_min
+
+status_registers:
+  - n_avg
+  - avg_ready
 
 parameters:
   bram_addr_width: 8
