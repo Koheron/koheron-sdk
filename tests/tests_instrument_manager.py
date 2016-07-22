@@ -57,7 +57,7 @@ class TestsInstrumentManager:
                 im.deploy_local_instrument(instrum, version)
                 curr_instrum = im.get_current_instrument()
                 dnas.append(im.get_dna())
-                assert dnas[0] == dnas[-1]
+                assert dnas[0] == dnas[-1] # DNA is independent of the instrument
                 assert curr_instrum['name'] == instrum
                 assert curr_instrum['sha'] == version
 
