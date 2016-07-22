@@ -26,6 +26,10 @@ addresses:
     offset: '0x88000000'
     range: 32K
 
+modules:
+  - address_module
+  - averager_module
+
 config_registers:
   - spi_in
   - led

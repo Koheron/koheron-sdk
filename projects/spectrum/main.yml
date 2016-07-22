@@ -32,6 +32,12 @@ addresses:
     offset: '0x43C10000'
     range: 64K 
 
+modules:
+  - address_module
+  - averager_module
+  - spectrum_module
+  - peak_detector_module
+
 config_registers:
   - spi_in
   - led
