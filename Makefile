@@ -117,6 +117,15 @@ all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_prin
 $(TMP):
 	mkdir -p $(TMP)
 
+help:
+	@echo - server: Build the server
+	@echo - bd: Build the block design interactively
+	@echo - xpr: Build the .xpr Vivado project
+	@echo - bit: Build the bitstream
+	@echo - http: Build the HTTP API
+	@echo - run: Run the instrument (e.g. make HOST=192.168.1.10 run)
+	@echo - test: Test the instrument
+
 ###############################################################################
 # Tests
 ###############################################################################
