@@ -202,7 +202,8 @@ class KoheronAPIApp(Flask):
         # http://stackoverflow.com/questions/21936597/blocking-and-non-blocking-subprocess-calls
         subprocess.call(['/bin/bash', 'api_app/install_instrument.sh', zip_filename, name])
         self.start_client()
-        self.current_instrument = {'name': name, 'sha': sha}
+        self.current_instrument = {'name': name, 'sha': sha,
+                                   'server_version': self.common.get_server_version()}
         
         if not self.is_bitstream_id_valid():
             self.handle_invalid_bitstream()

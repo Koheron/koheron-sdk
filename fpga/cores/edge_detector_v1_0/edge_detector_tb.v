@@ -18,6 +18,8 @@ module edge_detector_tb();
   parameter CLK_PERIOD = 8;
 
   initial begin
+    $dumpfile("test.vcd");
+    $dumpvars(0);
     clk = 1;
     din = 0;
     #(10*CLK_PERIOD) din = 1;

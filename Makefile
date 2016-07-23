@@ -5,6 +5,17 @@
 NAME = oscillo
 HOST = 192.168.1.100
 
+all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli
+
+help:
+	@echo - server: Build the server
+	@echo - bd: Build the block design interactively
+	@echo - xpr: Build the Vivado project
+	@echo - bit: Build the bitstream
+	@echo - http: Build the HTTP API
+	@echo - run: Run the instrument
+	@echo - test: Test the instrument
+
 ###############################################################################
 # Get the project configuration
 # MAKE_PY script parses the properties defined MAIN_YML
@@ -78,7 +89,7 @@ TEMPLATE_DIR = scripts/templates
 
 # Versioning
 VERSION_FILE = $(TMP)/$(NAME).version
-VERSION = $(shell cat $(VERSION_FILE))
+VERSION := $(shell cat $(VERSION_FILE))
 SHA_FILE = $(TMP)/$(NAME).sha
 SHA = $(shell cat $(SHA_FILE))
 
@@ -86,7 +97,7 @@ SHA = $(shell cat $(SHA_FILE))
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
 SERVER_CONFIG = projects/$(NAME)/drivers.yml
-TCP_SERVER_SHA := master
+TCP_SERVER_SHA = master
 TCP_SERVER_VENV = $(TMP)/$(NAME).tcp_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
 
@@ -107,19 +118,17 @@ METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-.PHONY: clean all \
-        test_module test_core test_% test test_app test_instrum test_all \
-        server xpr zip app bd \
-        run app_sync app_sync_ssh tcp-server_cli
-
-all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli
-
 $(TMP):
 	mkdir -p $(TMP)
 
 ###############################################################################
-# Tests
+# API
 ###############################################################################
+
+.PHONY: clean all \
+        test_module test_core test_% test test_app test_instrum test_all \
+        server xpr zip app bd http_api \
+        run app_sync app_sync_ssh tcp-server_cli
 
 # Run Vivado interactively and build block design
 bd: $(CONFIG_TCL) $(XDC) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
@@ -177,10 +186,12 @@ $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
 $(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/project.tcl -tclargs $(NAME) $(PART) $(BOARD)
+	@echo [$@] OK
 
 $(TMP)/$(NAME).bit: $(TMP)/$(NAME).xpr
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/bitstream.tcl -tclargs $(NAME)
+	@echo [$@] OK
 
 ###############################################################################
 # first-stage boot loader
@@ -307,6 +318,7 @@ $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
 	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. \
 	  PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all
+	@echo [$@] OK
 
 tcp-server_cli: $(TCP_SERVER_DIR) $(TCP_SERVER_VENV)
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) cli
@@ -330,7 +342,7 @@ $(HTTP_API_DRIVERS_DIR)/%: drivers/%/__init__.py
 	cp $< $@/__init__.py
 
 $(HTTP_API_DIR): $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DRIVERS))
-	touch $(HTTP_API_DRIVERS_DIR)/__init__.py 
+	touch $(HTTP_API_DRIVERS_DIR)/__init__.py
 	mkdir -p $(HTTP_API_DIR)/api_app
 	cp -R os/api/. $(HTTP_API_DIR)/api_app
 	cp $(TMP)/metadata.json $(HTTP_API_DIR)
@@ -338,6 +350,8 @@ $(HTTP_API_DIR): $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DR
 
 $(HTTP_API_ZIP): $(HTTP_API_DIR)
 	cd $(HTTP_API_DIR) && zip -r $(HTTP_API_ZIP) .
+
+http_api: $(HTTP_API_ZIP)
 
 app_sync: $(HTTP_API_ZIP)
 	curl -v -F app-$(VERSION).zip=@$(HTTP_API_DIR)/$(HTTP_API_ZIP) http://$(HOST)/api/app/update

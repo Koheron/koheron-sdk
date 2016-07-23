@@ -71,6 +71,10 @@ class InstrumentManager:
             print("[error] " + str(e))
             return {}
 
+    def get_server_version(self):
+        live_instrum = self.get_current_instrument()
+        return live_instrum['server_version']
+
     def install_instrument(self, instrument_name, always_restart=False):
         if not always_restart:
             # Don't restart the instrument if already launched
