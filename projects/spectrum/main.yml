@@ -10,23 +10,29 @@ addresses:
   - name: status
     offset: '0x50000000'
     range: 4K
-  - name: dac
+  - name: dac1
     offset: '0x80000000'
     range: 16K
-  - name: spectrum
+  - name: dac2
     offset: '0x82000000'
     range: 16K
-  - name: demod
+  - name: dac3
     offset: '0x84000000'
     range: 16K
-  - name: noise_floor
+  - name: spectrum
     offset: '0x86000000'
+    range: 16K
+  - name: demod
+    offset: '0x88000000'
+    range: 16K
+  - name: noise_floor
+    offset: '0x8A000000'
     range: 16K
   - name: peak_fifo
     offset: '0x43C10000'
     range: 64K 
 
-config_offsets:
+config_registers:
   - spi_in
   - led
   - pwm0
@@ -36,21 +42,28 @@ config_offsets:
   - addr
   - substract_mean
   - cfg_fft
-  - avg_on
+  - avg0
+  - dac_period0
+  - dac_period1
   - peak_address_low
   - peak_address_high
   - peak_address_reset
-  - period0
-  - threshold0
+  - avg_period0
+  - avg_threshold0
   - n_avg_min0
+  - dac_select
+  - addr_select
+  - clken_mask
 
-status_offsets:
+status_registers:
   - spi_out
   - n_avg
   - peak_address
   - peak_maximum
   - avg_ready
-  - avg_on_out
+  - avg_on_out0
+  - counter0
+  - counter1
 
 parameters:
   bram_addr_width: 12
@@ -58,8 +71,8 @@ parameters:
   adc_width: 14
   pwm_width: 10
   n_pwm: 4
-  config_size: 16
-  status_size: 16
+  n_dac_bram: 3
+  n_dac: 2
 
 xdc:
   - projects/base/expansion_connector.xdc

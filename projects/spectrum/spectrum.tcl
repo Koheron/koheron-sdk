@@ -1,29 +1,21 @@
 # Improve timing on BRAM interconnect
 set_property -dict [list CONFIG.S00_HAS_REGSLICE {1}] [get_bd_cells axi_mem_intercon_1]
 
-# shift address/tvalid to take into account demod_data bram read latency
-cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
-  Width 1
-  Depth 1
-} {
-  CLK $adc_clk
-  D $address_name/tvalid
-}
-
 # Add spectrum IP
 source projects/spectrum_module/spectrum.tcl
 
 set spectrum_name spectrum_0
 set n_pts_fft [expr 2**$config::bram_addr_width]
-add_spectrum $spectrum_name $n_pts_fft $config::adc_width
+spectrum::create $spectrum_name $n_pts_fft $config::adc_width
 
 for {set i 1} {$i < 3} {incr i} {
   connect_pins spectrum_0/adc$i adc_dac/adc$i
 }
 
+# shift address/tvalid to take into account demod_data bram read latency
 connect_cell $spectrum_name {
   clk        $adc_clk
-  tvalid     shift_tvalid/Q
+  tvalid     [get_Q_pin $address_name/tvalid 1 noce $adc_clk]
   cfg_sub    [cfg_pin substract_mean]
   cfg_fft    [cfg_pin cfg_fft]
 }
@@ -43,11 +35,11 @@ connect_cell blk_mem_gen_$demod_bram_name {
   clkb  $adc_clk
   rstb  $rst_adc_clk_name/peripheral_reset
   doutb $spectrum_name/demod_data
-  addrb $address_name/addr 
+  addrb $address_name/addr0
+  dinb  [get_constant_pin 0 32]
+  enb   [get_constant_pin 1 1]
+  web   [get_constant_pin 0 4]
 }
-connect_constant const_${demod_bram_name}_dinb 0 32 blk_mem_gen_$demod_bram_name/dinb
-connect_constant const_${demod_bram_name}_enb 1 1  blk_mem_gen_$demod_bram_name/enb
-connect_constant const_${demod_bram_name}_web 0 4  blk_mem_gen_$demod_bram_name/web
 
 # Substract noise floor
 source projects/spectrum/noise_floor.tcl
@@ -62,22 +54,22 @@ connect_cell $subtract_name {
 
 # Add averaging module
 source projects/averager_module/averager.tcl
-set avg_name avg
-add_averager_module $avg_name $config::bram_addr_width
+set avg_name avg0
+averager::create $avg_name $config::bram_addr_width
 
 connect_cell $avg_name {
   clk         $adc_clk
   restart     $address_name/restart
-  avg_on      [cfg_pin avg_on]
-  period      [cfg_pin period0]
-  threshold   [cfg_pin threshold0]
+  avg_on      [cfg_pin avg0]
+  period      [cfg_pin avg_period0]
+  threshold   [cfg_pin avg_threshold0]
   n_avg_min   [cfg_pin n_avg_min0]
   addr        $recorder_name/addr
   dout        $recorder_name/adc
   wen         $recorder_name/wen
   n_avg       [sts_pin n_avg]
   ready       [sts_pin avg_ready]
-  avg_on_out  [sts_pin avg_on_out]
+  avg_on_out  [sts_pin avg_on_out0]
 }
 
 connect_cell $subtract_name {
@@ -85,12 +77,11 @@ connect_cell $subtract_name {
   m_axis_result_tvalid $avg_name/tvalid 
 }
 
-
 # Add peak detector
 
 source projects/peak_detector_module/peak_detector.tcl
 set peak_detector_name peak
-add_peak_detector $peak_detector_name $config::bram_addr_width
+peak_detector::create $peak_detector_name $config::bram_addr_width
 
 connect_cell $peak_detector_name {
   clk $adc_clk

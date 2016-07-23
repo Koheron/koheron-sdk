@@ -1,9 +1,9 @@
 set ps_name ps_0
-#set rst_name proc_sys_reset_0
-set interconnect_0_name axi_mem_intercon_0
-set interconnect_1_name axi_mem_intercon_1
-set ps_clk0 $ps_name/FCLK_CLK0
-set ps_clk1 $ps_name/FCLK_CLK1
+
+for {set i 0} {$i < 2} {incr i} {
+  set interconnect_${i}_name axi_mem_intercon_$i
+  set ps_clk$i $ps_name/FCLK_CLK$i
+}
 
 # Create processing_system7
 cell xilinx.com:ip:processing_system7:5.5 $ps_name {

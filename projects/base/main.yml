@@ -16,6 +16,7 @@ cores:
   - averager_counter_v1_0
   - address_generator_v1_0
   - delay_trig_v1_0
+  - latched_mux_v1_0
 
 xdc:
   - boards/red-pitaya/config/ports.xdc

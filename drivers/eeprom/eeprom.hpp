@@ -1,4 +1,4 @@
-/// Eepromscope driver
+/// Eeprom driver
 ///
 /// (c) Koheron
 
@@ -6,12 +6,11 @@
 #define __DRIVERS_CORE_EEPROM_HPP__
 
 #include <vector>
+#include <thread>
+#include <chrono>
 
 #include <drivers/lib/dev_mem.hpp>
 #include <drivers/addresses.hpp>
-
-#include <thread>
-#include <chrono>
 
 // http://www.atmel.com/images/Atmel-5193-SEEPROM-AT93C46D-Datasheet.pdf
 #define WRITE_OPCODE 1

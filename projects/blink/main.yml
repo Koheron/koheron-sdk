@@ -17,12 +17,12 @@ addresses:
     offset: '0x50000000'
     range: 4K
 
-config_offsets:
+config_registers:
   - led
   - dac1
   - dac2
 
-status_offsets:
+status_registers:
   - adc1
   - adc2
 
@@ -32,8 +32,6 @@ parameters:
   adc_width: 14
   pwm_width: 10
   n_pwm: 4
-  config_size: 16
-  status_size: 16
 
 xdc:
   - boards/red-pitaya/config/ports.xdc

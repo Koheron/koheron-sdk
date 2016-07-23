@@ -1,5 +1,24 @@
+namespace eval averager {
 
-proc add_averager_module {module_name bram_addr_width args} {
+proc pins {cmd fast_count_width slow_count_width width} {
+   $cmd -dir I -from 0                          -to 0 avg_on
+   $cmd -dir I -from 0                          -to 0 tvalid
+   $cmd -dir I -from 0                          -to 0 restart
+   $cmd -dir I -from [expr $fast_count_width-1] -to 0 period
+   $cmd -dir I -from [expr $fast_count_width-1] -to 0 threshold
+   $cmd -dir I -from [expr $slow_count_width-1] -to 0 n_avg_min
+   $cmd -dir I -from [expr $width-1]            -to 0 din
+   $cmd -dir O -from 31                         -to 0 dout
+   $cmd -dir O -from 3                          -to 0 wen
+   $cmd -dir O -from [expr $slow_count_width-1] -to 0 n_avg
+   $cmd -dir O -from 31                         -to 0 addr
+   $cmd -dir O -from 0                          -to 0 ready
+   $cmd -dir O -from 0                          -to 0 avg_on_out
+   $cmd -dir O -from 0                          -to 0 new_cycle
+   $cmd -dir I -type clk                              clk
+}
+
+proc create {module_name bram_addr_width args} {
 
   # Input type
   # examples: float, fix_14
@@ -24,21 +43,8 @@ proc add_averager_module {module_name bram_addr_width args} {
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir I -type clk                              clk
-  create_bd_pin -dir I                                        avg_on
-  create_bd_pin -dir I                                        tvalid
-  create_bd_pin -dir I                                        restart
-  create_bd_pin -dir I -from [expr $fast_count_width-1] -to 0 period
-  create_bd_pin -dir I -from [expr $fast_count_width-1] -to 0 threshold
-  create_bd_pin -dir I -from [expr $slow_count_width-1] -to 0 n_avg_min
-  create_bd_pin -dir I -from [expr $width-1]            -to 0 din
-  create_bd_pin -dir O -from 31                         -to 0 dout
-  create_bd_pin -dir O -from 3                          -to 0 wen
-  create_bd_pin -dir O -from [expr $slow_count_width-1] -to 0 n_avg
-  create_bd_pin -dir O -from 31                         -to 0 addr
-  create_bd_pin -dir O                                        ready
-  create_bd_pin -dir O                                        avg_on_out
- 
+  pins create_bd_pin $fast_count_width $slow_count_width $width
+
   set add_latency 3
   set sr_latency 1
   set sr_avg_off_latency 1
@@ -50,20 +56,13 @@ proc add_averager_module {module_name bram_addr_width args} {
     Input_Depth      [expr 2**$bram_addr_width]
     Data_Count       true
     Data_Count_Width $bram_addr_width
-    Reset_Pin        false
+    Reset_Pin        true
   } {
     clk clk
+    srst [get_not_pin tvalid]
   }
 
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_reg_dout {
-    Width.VALUE_SRC USER
-    Width 32
-    Depth 1
-  } {
-    CLK clk
-    D   fifo/dout
-    Q   dout
-   }
+  connect_pins dout [get_Q_pin fifo/dout 1]
 
   # Create Adder (depends on input type)
   if { $type == "fix" } {	  
@@ -105,15 +104,7 @@ proc add_averager_module {module_name bram_addr_width args} {
   }
 
   # Connect tvalid to FIFO write enable
-  cell xilinx.com:ip:c_shift_ram:12.0 wen_shift_reg {
-    Width.VALUE_SRC USER
-    Width 1
-    Depth $add_latency
-  } {
-    CLK clk
-    D   tvalid
-    Q   fifo/wr_en
-  }
+  connect_pins fifo/wr_en [get_Q_pin tvalid $add_latency]
 
   # Avg_off 
 
@@ -142,31 +133,20 @@ proc add_averager_module {module_name bram_addr_width args} {
   # Enable reading FIFO once 
   # data_count == 2**$bram_addr_width - $add_latency - $sr_latency - $fifo_rd_latency)
 
-  cell koheron:user:comparator:1.0 comp {
-    DATA_WIDTH $bram_addr_width
-    OPERATION "GE"
-  } {
-    a fifo/data_count
-    b threshold
-  }
-
-  cell xilinx.com:ip:util_vector_logic:2.0 wr_en_and_comp {
-    C_OPERATION and
-    C_SIZE 1
-  } {
-    Op1 comp/dout
-    Op2 wen_shift_reg/Q
-    Res fifo/rd_en
-  }
-
   # Start counting once FIFO read enabled
+  set clken [get_and_pin \
+              [get_GE_pin \
+                fifo/data_count \
+                [get_Q_pin threshold 1 [get_not_pin tvalid]]] \
+              [get_Q_pin tvalid $add_latency]]
+  connect_pins $clken fifo/rd_en
 
   cell koheron:user:averager_counter:1.0 averager_counter {
     FAST_COUNT_WIDTH $fast_count_width
     SLOW_COUNT_WIDTH $slow_count_width
   } {
     clk clk
-    clken wr_en_and_comp/Res
+    clken $clken
     count_max period
     n_avg n_avg
     avg_on avg_on
@@ -174,40 +154,24 @@ proc add_averager_module {module_name bram_addr_width args} {
     address addr
     clr_fback sr_avg_off/SCLR
     avg_on_out avg_on_out
+    srst [get_not_pin tvalid]
   }
 
-  cell xilinx.com:ip:xlconcat:2.1 concat_wen {NUM_PORTS 4} {dout wen}
-
-  for {set i 0} {$i < 4} {incr i} {
-    connect_pins concat_wen/In$i averager_counter/wen
-  }
+  connect_pins wen [get_concat_pin [lrepeat 4 averager_counter/wen]]
 
   # Delay restart until n_avg >= n_avg_max
-
-  cell koheron:user:comparator:1.0 n_avg_comp {
-    OPERATION GE
-    DATA_WIDTH $slow_count_width
-  } {
-    a averager_counter/slow_count
-    b n_avg_min
-  }
-
   cell koheron:user:delay_trig:1.0 delay_trig {} {
     clk clk
     trig_in restart
-    valid n_avg_comp/dout
+    valid [get_GE_pin averager_counter/slow_count n_avg_min]
     trig_out averager_counter/restart
   }
 
-  cell xilinx.com:ip:util_vector_logic:2.0 ready_and_ready {
-    C_OPERATION and
-    C_SIZE 1
-  } {
-    Op1 delay_trig/ready
-    Op2 averager_counter/ready
-    Res ready
-  }
+  connect_pins ready [get_and_pin delay_trig/ready averager_counter/ready]
+
+  connect_pins new_cycle [get_edge_detector averager_counter/wen]
 
   current_bd_instance $bd
-
 }
+
+} ;# end namespace averager

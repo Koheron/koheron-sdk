@@ -35,16 +35,12 @@ class Spectrum(object):
     @command('SPECTRUM','I')
     def set_n_avg_min(self, n_avg_min): pass
 
-    @write_buffer('SPECTRUM')
-    def set_dac_buffer(self, data): pass
-
-    def set_dac(self, data):
-        @write_buffer('SPECTRUM')
-        def set_dac_buffer(self, data): 
+    def set_dac(self, data, channel):
+        @write_buffer('SPECTRUM','I')
+        def set_dac_buffer(self, data, channel): 
             pass
-        data1 = np.mod(np.floor(8192 * data[0, :]) + 8192,16384) + 8192
-        data2 = np.mod(np.floor(8192 * data[1, :]) + 8192,16384) + 8192
-        set_dac_buffer(self, data1 + data2 << 16)
+        data = np.uint32(np.mod(np.floor(8192 * data) + 8192,16384) + 8192)
+        set_dac_buffer(self, data[::2] + data[1::2] * 65536, channel)
 
     @command('SPECTRUM', 'I')
     def set_scale_sch(self, scale_sch):
