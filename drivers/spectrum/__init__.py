@@ -8,8 +8,6 @@ class Spectrum(object):
     def __init__(self, client, wfm_size=4096):
         self.client = client
         self.wfm_size = wfm_size
-        if self.open() < 0:
-            print('Cannot open device SPECTRUM')
 
         demod = np.zeros((2, self.wfm_size))
         demod[0, :] = 0.49 * (1 - np.cos(2 * np.pi * np.arange(self.wfm_size) / self.wfm_size))
@@ -20,11 +18,6 @@ class Spectrum(object):
         self.set_scale_sch(0)
         self.set_n_avg_min(0)
         self.reset_acquisition()
-
-
-    @command('SPECTRUM')
-    def open(self):
-        return self.client.recv_int32()
 
     @command('SPECTRUM')
     def reset(self): pass

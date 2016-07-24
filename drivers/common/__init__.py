@@ -7,15 +7,6 @@ class Common(object):
 
     def __init__(self, client):
         self.client = client
-        if self.open_common() < 0:
-            print('Cannot open COMMON device')
-
-    def open_common(self):
-        @command('COMMON')
-        def open(self):
-            return self.client.recv_int32()
-
-        return open(self)
 
     @command('COMMON')
     def get_bitstream_id(self):

@@ -11,13 +11,6 @@ class Oscillo(object):
         self.client = client
         self.wfm_size = wfm_size
 
-        if self.open() < 0:
-            print('Cannot open device OSCILLO')
-       
-    @command('OSCILLO')
-    def open(self):
-        return self.client.recv_int32()
-
     @command('OSCILLO','I')
     def set_n_avg_min(self, n_avg_min): pass
 
