@@ -1,12 +1,13 @@
 #!/bin/bash
-
 set -e
 
-# Lase board
-# 192.168.1.5
-make HOST=192.168.1.5 app_sync
+# Laser board
+host=192.168.1.5
+name=oscillo
+
+make HOST=$host app_sync
 sleep 3
-make NAME=oscillo HOST=192.168.1.5 test_instrument_manager
-make NAME=oscillo HOST=192.168.1.5 test_instrum
-make NAME=oscillo HOST=192.168.1.5 test_laser
-make NAME=oscillo HOST=192.168.1.5 test_eeprom
+make NAME=$name HOST=$host test_instrument_manager
+make NAME=$name HOST=$host test_instrum
+make NAME=$name HOST=$host test_laser
+make NAME=$name HOST=$host test_eeprom
