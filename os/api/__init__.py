@@ -24,7 +24,7 @@ class KoheronAPIApp(Flask):
 
         self.load_config()
         self.load_metadata()
-        self.current_instrument = {'name': None, 'sha': None}
+        self.live_instrument = {'name': None, 'sha': None}
         self.start_last_deployed_instrument()
         self.get_instruments()
         self.get_remote_static()
@@ -202,7 +202,7 @@ class KoheronAPIApp(Flask):
         # http://stackoverflow.com/questions/21936597/blocking-and-non-blocking-subprocess-calls
         subprocess.call(['/bin/bash', 'api_app/install_instrument.sh', zip_filename, name])
         self.start_client()
-        self.current_instrument = {'name': name, 'sha': sha,
+        self.live_instrument = {'name': name, 'sha': sha,
                                    'server_version': self.common.get_server_version()}
         
         if not self.is_bitstream_id_valid():
@@ -216,16 +216,16 @@ class KoheronAPIApp(Flask):
         # Check whether we are installing the last deployed instrument to avoid infinite recursion:
         last_deployed_instrument = self.get_last_deployed_instrument()
         if ((not 'name' in last_deployed_instrument)
-            or (last_deployed_instrument['name'] == self.current_instrument['name']
-                and last_deployed_instrument['sha'] == self.current_instrument['sha'])):
-                self._start_first_instrument_found(exclude=self.current_instrument)
+            or (last_deployed_instrument['name'] == self.live_instrument['name']
+                and last_deployed_instrument['sha'] == self.live_instrument['sha'])):
+                self._start_first_instrument_found(exclude=self.live_instrument)
         else:
             self.start_last_deployed_instrument()
 
     def is_bitstream_id_valid(self):
         id_ = self.common.get_bitstream_id()
-        hash_ = hashlib.sha256(self.current_instrument["name"] + '-'
-                             + self.current_instrument["sha"])
+        hash_ = hashlib.sha256(self.live_instrument["name"] + '-'
+                             + self.live_instrument["sha"])
         if not hash_.hexdigest() == id_:
             log('error', 'Corrupted instrument: ID mismatch' 
                   + '\n* Bitstream ID:\n' + id_ 

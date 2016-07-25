@@ -170,9 +170,9 @@ def upload_remote_instrument(name, sha):
 def get_local_instruments():
     return jsonify(api_app.local_instruments)
 
-@api_app.route('/api/instruments/current', methods=['GET'])
-def get_current_instrument():
-    return jsonify(api_app.current_instrument)
+@api_app.route('/api/instruments/live', methods=['GET'])
+def get_live_instrument():
+    return jsonify(api_app.live_instrument)
 
 @api_app.route('/api/instruments/restore', methods=['GET'])
 def restore_backup_instruments():
