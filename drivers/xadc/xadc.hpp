@@ -27,7 +27,6 @@ class Xadc
   public:
     Xadc(Klib::DevMem& dvm_);
 
-    int Open() {return dvm.is_ok() ? 0 : -1;}
     int set_channel(uint32_t channel_0_, uint32_t channel_1_);
     
     void enable_averaging() {
@@ -36,9 +35,6 @@ class Xadc
 
     int set_averaging(uint32_t n_avg);
     int read(uint32_t channel);
-
-    #pragma tcp-server is_failed
-    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;

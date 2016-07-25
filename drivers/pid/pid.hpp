@@ -28,8 +28,6 @@ class Pid
         fifo.set_map(fifo_map);
     }
 
-    int Open() {return dvm.is_ok() ? 0 : 1;}
-
     void set_cic_rate(uint32_t rate) {dvm.write32(config_map, CIC_RATE_OFF, rate);}
 
     void set_dds_freq(float freq) {dvm.write32(config_map, DDS_OFF, uint32_t(freq * freq_factor));}
@@ -41,9 +39,6 @@ class Pid
     uint32_t get_fifo_buffer_length()                {return fifo.get_buffer_length();}
     std::vector<uint32_t>& get_fifo_data()           {return fifo.get_data();}
     bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
-
-    #pragma tcp-server is_failed
-    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;

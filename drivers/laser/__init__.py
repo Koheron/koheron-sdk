@@ -8,12 +8,6 @@ class Laser(object):
 
     def __init__(self, client):
         self.client = client
-        if self.open() < 0 :
-            print('Cannot open LASER device')
-
-    @command('LASER')
-    def open(self):
-        return self.client.recv_int32()
 
     @command('LASER')
     def is_laser_present(self):

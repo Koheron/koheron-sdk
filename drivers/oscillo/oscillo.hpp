@@ -25,8 +25,6 @@ class Oscillo
   public:
     Oscillo(Klib::DevMem& dvm_);
 
-    int Open() {return dvm.is_ok() ? 0 : -1;}
-
     // Reset ...
 
     void reset() {
@@ -145,9 +143,6 @@ class Oscillo
             addr_select += j << (bram_sel_width * bram_index[j]);
         dvm.write32(config_map, ADDR_SELECT_OFF, addr_select);
     }
-
-    #pragma tcp-server is_failed
-    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;
