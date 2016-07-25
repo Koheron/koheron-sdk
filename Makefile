@@ -109,6 +109,7 @@ STATIC_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
 STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
 STATIC_ZIP = $(TMP)/static.zip
 
+HTTP_API_SRC = $(wildcard os/api/*)
 HTTP_API_DIR = $(TMP)/app
 HTTP_API_DRIVERS = common eeprom laser
 HTTP_API_DRIVERS_DIR=$(HTTP_API_DIR)/api_app/drivers
@@ -161,6 +162,9 @@ http: $(HTTP_API_ZIP)
 run: $(ZIP)
 	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
 	curl http://$(HOST)/api/instruments/run/$(NAME)/$(VERSION)
+
+debug:
+	@echo HTTP_API_SRC = $(HTTP_API_SRC)
 
 ###############################################################################
 # versioning
@@ -341,7 +345,7 @@ $(HTTP_API_DRIVERS_DIR)/%: drivers/%/__init__.py
 	mkdir -p $@
 	cp $< $@/__init__.py
 
-$(HTTP_API_DIR): $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DRIVERS))
+$(HTTP_API_DIR): $(HTTP_API_SRC) $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DRIVERS))
 	touch $(HTTP_API_DRIVERS_DIR)/__init__.py
 	mkdir -p $(HTTP_API_DIR)/api_app
 	cp -R os/api/. $(HTTP_API_DIR)/api_app
