@@ -27,10 +27,8 @@ class TestsDeviceMemory:
             dvm.add_mmap(mmap)
             mmap_params = dvm.get_map_params(mmap.name)
             assert len(mmap_params) == 5
-            phys_addr = hex(mmap_params[2])
-            assert phys_addr == mmap.offset
-            size = mmap_params[3]
-            assert size == 1024 * int(mmap.range.replace("K", ""))
+            assert hex(mmap_params['phys_addr']) == mmap.offset
+            assert mmap_params['size'] == 1024 * int(mmap.range.replace("K", ""))
 
     def test_write_read(self):
         value = np.random.randint(16384, size=1)[0]

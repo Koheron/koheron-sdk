@@ -67,4 +67,11 @@ class DeviceMemory(object):
         @kc.command('DEVICE_MEMORY', 'I')
         def get_map_params(self, mmap_idx):
             return self.client.recv_tuple('IiIIi')
-        return get_map_params(self, self.maps[device_name])
+        params = get_map_params(self, self.maps[device_name])
+        return {
+            'virt_addr': params[0],
+            'status': params[1],
+            'phys_addr': params[2],
+            'size': params[3],
+            'protection': params[4]
+        }
