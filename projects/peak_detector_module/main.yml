@@ -3,6 +3,15 @@ project: peak_detector_module
 parent: default
 board: red-pitaya
 
+config_registers:
+  - peak_address_low
+  - peak_address_high
+  - peak_address_reset
+
+status_registers:
+  - peak_address
+  - peak_maximum
+
 cores:
   - comparator_v1_0
 

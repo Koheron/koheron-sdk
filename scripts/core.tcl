@@ -21,7 +21,6 @@ if {[llength testbench_files] > 0} {
   remove_files $testbench_files
 }
 
-
 ipx::package_project -import_files -root_dir tmp/cores/$core_name
 
 set core [ipx::current_core]

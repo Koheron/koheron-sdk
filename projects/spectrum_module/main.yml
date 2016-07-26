@@ -3,6 +3,10 @@ project: spectrum_module
 parent: default
 board: red-pitaya
 
+config_registers:
+  - substract_mean
+  - cfg_fft
+
 parameters:
   bram_addr_width: 12
   adc_width: 14

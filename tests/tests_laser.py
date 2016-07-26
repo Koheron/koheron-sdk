@@ -34,6 +34,7 @@ class TestsLaser:
         laser.set_laser_current(0.0)
         time.sleep(0.1)
         power_off = laser.get_laser_power()
+        assert power_off < 1000
         laser.set_laser_current(30.0)
         time.sleep(0.1)
         power_on = laser.get_laser_power()
