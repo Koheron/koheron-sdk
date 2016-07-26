@@ -63,7 +63,7 @@ def get_config(project):
     """
     config = load_config(project)
     # Get missing elements from ancestors
-    lists = ['cores','xdc']
+    lists = ['cores','xdc','modules']
     for list_ in lists:
         config[list_] = get_list(project, list_)
     props = ['board','host']
@@ -128,7 +128,25 @@ if __name__ == "__main__":
     reload(sys)
     sys.setdefaultencoding('utf-8')
 
-    if cmd == '--config_tcl':
+    if cmd == '--test':
+        strip_num = lambda string:''.join([char for char in string if char not in "0123456789"])
+        projects = ['oscillo', 'spectrum', 'pid']
+        props = ['config_registers', 'status_registers']
+
+        for project in projects:
+            cfg = get_config(project)
+            for module in cfg['modules']:
+                module_cfg = get_config(module)
+                for prop in props:
+                    print 'project = ', project, ' module = ', module, ' prop = ', prop
+                    a = module_cfg[prop]
+                    a = a if a is not None else []
+                    b = map(strip_num, set(cfg[prop]))
+                    print a
+                    print b
+                    assert set(a).issubset(b)
+
+    elif cmd == '--config_tcl':
         config = get_config(sys.argv[2])
         assert('sha0' in config['parameters'])
         fill_config_tcl(config)
