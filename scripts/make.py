@@ -130,7 +130,7 @@ if __name__ == "__main__":
 
     if cmd == '--config_tcl':
         config = get_config(sys.argv[2])
-        assert(config['parameters']['sha0'] is not None)
+        assert('sha0' in config['parameters'])
         fill_config_tcl(config)
 
     elif cmd == '--cores':
