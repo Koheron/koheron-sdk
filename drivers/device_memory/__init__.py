@@ -75,3 +75,9 @@ class DeviceMemory(object):
             'size': params[3],
             'protection': params[4]
         }
+
+    @kc.command('DEVICE_MEMORY')
+    def get_instrument_config(self):
+        return self.client.recv_json()
+
+

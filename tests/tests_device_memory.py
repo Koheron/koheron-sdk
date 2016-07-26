@@ -1,6 +1,7 @@
 import context
 import os
 import numpy as np
+import pprint
 
 from instrument_manager import InstrumentManager
 from koheron_tcp_client import KClient
@@ -22,6 +23,18 @@ for mmap in pc.mmaps:
     dvm.add_mmap(mmap)
 
 class TestsDeviceMemory:
+    def test_get_instrument_config(self):
+        config = dvm.get_instrument_config()
+        # pprint.pprint(config)
+        assert 'addresses' in config
+        assert 'board' in config
+        assert 'config_registers' in config
+        assert 'status_registers' in config
+        assert 'project' in config
+        assert 'xdc' in config
+        assert 'parameters' in config
+        assert 'cores' in config
+
     def test_add_mmap(self):
         for mmap in pc.mmaps:
             dvm.add_mmap(mmap)
@@ -43,6 +56,7 @@ class TestsDeviceMemory:
         assert np.array_equal(buff, buff_ret)
 
 # tests = TestsDeviceMemory()
+# tests.test_get_instrument_config()
 # tests.test_add_mmap()
 # tests.test_write_read()
 # tests.test_write_read_buffer()
