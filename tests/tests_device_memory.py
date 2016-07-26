@@ -27,6 +27,7 @@ class TestsDeviceMemory:
             dvm.add_mmap(mmap)
             mmap_params = dvm.get_map_params(mmap.name)
             assert len(mmap_params) == 5
+            assert mmap_params['status'] == 1 # open
             assert hex(mmap_params['phys_addr']) == mmap.offset
             assert mmap_params['size'] == 1024 * int(mmap.range.replace("K", ""))
 
