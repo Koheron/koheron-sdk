@@ -34,8 +34,6 @@ class Eeprom
         status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
     }
 
-    int Open() {return dvm.is_ok() ? 0 : -1;}
-
     uint32_t read(uint32_t addr) {
         dvm.write32(config_map, SPI_IN_OFF, (READ_OPCODE << 7) + (addr << 1));
         dvm.set_bit(config_map, SPI_IN_OFF, 0);
@@ -72,9 +70,6 @@ class Eeprom
         dvm.write32(config_map, SPI_IN_OFF, (EWDS << 5));
         dvm.set_bit(config_map, SPI_IN_OFF, 0);
     }
-
-    #pragma tcp-server is_failed
-    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;

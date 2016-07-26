@@ -10,12 +10,12 @@ module pulse_generator #
   input wire [PULSE_WIDTH_WIDTH-1:0] pulse_width,
   input wire [PULSE_PERIOD_WIDTH-1:0] pulse_period,
   input wire rst,
-  output reg dout
+  output reg dout,
+  output reg [PULSE_PERIOD_WIDTH-1:0] cnt
 );
 
 reg [PULSE_WIDTH_WIDTH-1:0] pulse_width_reg;
 reg [PULSE_PERIOD_WIDTH-1:0] pulse_period_reg;
-reg [PULSE_PERIOD_WIDTH-1:0] cnt;
 initial cnt = 0;
 
 always @(posedge clk) begin

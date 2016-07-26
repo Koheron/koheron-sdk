@@ -26,8 +26,6 @@ class SpeedTest
   public:
     SpeedTest(Klib::DevMem& dvm_);
 
-    int Open() {return dvm.is_ok() ? 0 : -1;}
-
     std::array<float, 2*WFM_SIZE>& read_raw_all();
 
     // Return zeros (does not perform FPGA memory access)
@@ -60,9 +58,6 @@ class SpeedTest
         memcpy(mmap_buf, rambuf_data, 2*WFM_SIZE*sizeof(float));
         return (float*)mmap_buf;
     }
-
-    #pragma tcp-server is_failed
-    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;

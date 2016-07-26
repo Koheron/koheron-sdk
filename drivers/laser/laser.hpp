@@ -47,10 +47,6 @@ class Laser
         config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
         reset();
     }
-
-    ~Laser() {if (dvm.is_ok()) reset();}
-    
-    int Open() {return dvm.is_ok() ? 0 : -1;}
        
     void reset();
 
@@ -94,9 +90,6 @@ class Laser
         dvm.write32(config_map, PWM3_OFF, pwm);
         return MILLIAMPS_TO_AMPS * current_from_pwm(pwm);
     }
-
-    #pragma tcp-server is_failed
-    bool IsFailed() const {return dvm.IsFailed();}
     
   private:
     Klib::DevMem& dvm;

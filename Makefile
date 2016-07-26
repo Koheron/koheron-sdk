@@ -86,7 +86,7 @@ SHA = $(shell cat $(SHA_FILE))
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
 SERVER_CONFIG = projects/$(NAME)/drivers.yml
-TCP_SERVER_SHA := master
+TCP_SERVER_SHA = master
 TCP_SERVER_VENV = $(TMP)/$(NAME).tcp_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
 
@@ -98,28 +98,38 @@ STATIC_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
 STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
 STATIC_ZIP = $(TMP)/static.zip
 
+HTTP_API_SRC = $(wildcard os/api/*)
 HTTP_API_DIR = $(TMP)/app
 HTTP_API_DRIVERS = common eeprom laser
-HTTP_API_DRIVERS_DIR=$(HTTP_API_DIR)/api_app/drivers
-HTTP_API_ZIP=app-$(VERSION).zip
+HTTP_API_DRIVERS_DIR = $(HTTP_API_DIR)/api_app/drivers
+HTTP_API_ZIP = app-$(VERSION).zip
 
 METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-.PHONY: clean all \
+.PHONY: clean all help \
         test_module test_core test_% test test_app test_instrum test_all \
-        server xpr zip app bd \
+        server xpr zip app bd http_api \
         run app_sync app_sync_ssh tcp-server_cli
 
 all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli
 
+###############################################################################
+# API
+###############################################################################
+
+help:
+	@echo - server: Build the server
+	@echo - bd: Build the block design interactively
+	@echo - xpr: Build the Vivado project
+	@echo - bit: Build the bitstream
+	@echo - http: Build the HTTP API
+	@echo - run: Run the instrument
+	@echo - test: Test the instrument
+
 $(TMP):
 	mkdir -p $(TMP)
-
-###############################################################################
-# Tests
-###############################################################################
 
 # Run Vivado interactively and build block design
 bd: $(CONFIG_TCL) $(XDC) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
@@ -177,10 +187,12 @@ $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
 $(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/project.tcl -tclargs $(NAME) $(PART) $(BOARD)
+	@echo [$@] OK
 
 $(TMP)/$(NAME).bit: $(TMP)/$(NAME).xpr
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/bitstream.tcl -tclargs $(NAME)
+	@echo [$@] OK
 
 ###############################################################################
 # first-stage boot loader
@@ -307,6 +319,7 @@ $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
 	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. \
 	  PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all
+	@echo [$@] OK
 
 tcp-server_cli: $(TCP_SERVER_DIR) $(TCP_SERVER_VENV)
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) cli
@@ -329,8 +342,8 @@ $(HTTP_API_DRIVERS_DIR)/%: drivers/%/__init__.py
 	mkdir -p $@
 	cp $< $@/__init__.py
 
-$(HTTP_API_DIR): $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DRIVERS))
-	touch $(HTTP_API_DRIVERS_DIR)/__init__.py 
+$(HTTP_API_DIR): $(HTTP_API_SRC) $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DRIVERS))
+	touch $(HTTP_API_DRIVERS_DIR)/__init__.py
 	mkdir -p $(HTTP_API_DIR)/api_app
 	cp -R os/api/. $(HTTP_API_DIR)/api_app
 	cp $(TMP)/metadata.json $(HTTP_API_DIR)

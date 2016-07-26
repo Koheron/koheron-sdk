@@ -25,7 +25,7 @@ class InstrumentManager:
 
     def get_app_version(self):
         try:
-            r = requests.get(self.url + '/api/version')
+            r = requests.get(self.url + '/api/app/version')
             return r.json()
         except Exception as e:
             print("[error] " + str(e))
@@ -70,6 +70,10 @@ class InstrumentManager:
         except Exception as e: 
             print("[error] " + str(e))
             return {}
+
+    def get_server_version(self):
+        live_instrum = self.get_current_instrument()
+        return live_instrum['server_version']
 
     def install_instrument(self, instrument_name, always_restart=False):
         if not always_restart:

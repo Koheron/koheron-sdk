@@ -6,16 +6,8 @@ class Xadc(object):
 
     def __init__(self, client):
         self.client = client
-        if self.open() < 0:
-            print('Cannot open XADC device')
-
-        print self.set_channel(1,8)
         self.enable_averaging()
         self.set_averaging(256)
-
-    @command('XADC')
-    def open(self):
-        return self.client.recv_int32()
 
     @command('XADC','II')
     def set_channel(self, channel_0, channel_1):
