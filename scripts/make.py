@@ -65,7 +65,12 @@ def get_config(project):
             sha = sha_file.read()
             for i in range(8):
                 config['parameters']['sha' + str(i)] = int('0x' + sha[8*i:8*i+8], 0)
+
+    config['json'] = jsonify(config)
     return config
+
+def jsonify(config):
+    return json.dumps(config, separators=(',', ':')).replace('"', '\\"')
 
 ###################
 # Jinja
