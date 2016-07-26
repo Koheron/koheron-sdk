@@ -21,8 +21,6 @@ class Spectrum
   public:
     Spectrum(Klib::DevMem& dvm_);
 
-    int Open() {return dvm.is_ok() ? 0 : -1;}
-
     void reset() {
         dvm.clear_bit(config_map, ADDR_OFF, 0);
         dvm.set_bit(config_map, ADDR_OFF, 0);
@@ -140,9 +138,6 @@ class Spectrum
     uint32_t store_peak_fifo_data()                  {return fifo.get_buffer_length();}
     std::vector<uint32_t>& get_peak_fifo_data()      {return fifo.get_data();}
     bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
-
-    #pragma tcp-server is_failed
-    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;

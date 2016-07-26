@@ -10,14 +10,8 @@ class Pid(object):
 
     def __init__(self, client, acq_period=100):
         self.client = client
-        if self.open() < 0:
-            print "Cannot open PID driver"
         self.fifo_start_acquisition(acq_period)
         self.data_remains = []
-
-    @command('PID')
-    def open(self):
-        return self.client.recv_int32()
 
     @command('PID','I')
     def set_cic_rate(self, rate):
