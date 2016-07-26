@@ -12,6 +12,9 @@ import getpass
 import json
 
 def get_list(project, prop, prop_list=None):
+    """ Ex: Get the list of cores needed by the 'oscillo' instrument.
+    list = get_list('oscillo', 'cores')
+    """
     if prop_list is None: 
        prop_list = []
     config = load_config(project)
@@ -25,6 +28,9 @@ def get_list(project, prop, prop_list=None):
     return prop_list
 
 def get_prop(project, prop):
+    """ Ex: Get the board needed by the 'oscillo' instrument.
+    board = get_prop('oscillo', 'board')
+    """
     config = load_config(project)
     if not prop in config:
         if 'parent' in config:
@@ -35,6 +41,7 @@ def get_prop(project, prop):
     return config[prop]
 
 def get_parents(project, parents=[]):
+    """ Get the list of parents (recursively). """
     config = load_config(project)
     if 'parent' in config and config['parent'] != None:
         parents.append(config['parent'])
@@ -42,13 +49,18 @@ def get_parents(project, parents=[]):
     return parents
 
 def load_config(project):
+    """ Get the config dictionary from the file 'main.yml'. """
     assert project in os.listdir('projects')
-    config_filename = os.path.join('projects', project, 'main.yml')    
+    config_filename = os.path.join('projects', project, 'main.yml')
+    assert(os.path.isfile(config_filename))
     with open(config_filename) as config_file:
         config = yaml.load(config_file)        
     return config
 
 def get_config(project):
+    """ Get the config dictionary recursively. 
+    ex: config = get_config('oscillo')
+    """
     config = load_config(project)
     # Get missing elements from ancestors
     lists = ['cores','xdc']
@@ -117,32 +129,38 @@ if __name__ == "__main__":
     sys.setdefaultencoding('utf-8')
 
     if cmd == '--config_tcl':
-        fill_config_tcl(get_config(sys.argv[2]))
+        config = get_config(sys.argv[2])
+        assert('sha0' in config['parameters'])
+        fill_config_tcl(config)
 
     elif cmd == '--cores':
         project = sys.argv[2]
         config = get_config(project)
-        with open(os.path.join('tmp', project + '.cores'), 'w') as f:
+        cores_filename = os.path.join('tmp', project + '.cores')
+        with open(cores_filename, 'w') as f:
             f.write(' '.join(config['cores']))
 
     elif cmd == '--board':
         project = sys.argv[2]
         config = get_config(project)
-        with open(os.path.join('tmp', project + '.board'), 'w') as f:
+        board_filename = os.path.join('tmp', project + '.board')
+        with open(board_filename, 'w') as f:
             f.write(config['board'])
 
     elif cmd == '--drivers':
         project = sys.argv[2]
-        drivers_filename = os.path.join('projects', project, 'drivers.yml')    
+        drivers_filename = os.path.join('projects', project, 'drivers.yml')
+        assert(os.path.isfile(drivers_filename))
         with open(drivers_filename) as drivers_file:
-            drivers = yaml.load(drivers_file) 
+            drivers = yaml.load(drivers_file)
         with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
 
     elif cmd == '--xdc':
         project = sys.argv[2]
         config = get_config(project)
-        with open(os.path.join('tmp', project + '.xdc'), 'w') as f:
+        xdc_filename = os.path.join('tmp', project + '.xdc')
+        with open(xdc_filename, 'w') as f:
             f.write(' '.join(config['xdc']))
 
     elif cmd == '--middleware':

@@ -32,12 +32,11 @@ VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
 
-DOCKER=False
-
-ifeq ($(DOCKER),False)
-	PYTHON=$(TCP_SERVER_VENV)/bin/python
-else
+DOCKER ?= False
+ifeq ($(DOCKER),True)
 	PYTHON=/usr/bin/python
+else
+	PYTHON=$(TCP_SERVER_VENV)/bin/python
 endif
 
 ###############################################################################
@@ -301,11 +300,11 @@ $(TCP_SERVER_DIR):
 $(TCP_SERVER_DIR)/requirements.txt: $(TCP_SERVER_DIR)
 
 $(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
-ifeq ($(DOCKER),False)
+ifeq ($(DOCKER),True)
+	/usr/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
+else
 	virtualenv $(TCP_SERVER_VENV)
 	$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
-else
-	/usr/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
 endif
 
 $(TCP_SERVER_MIDDLEWARE)/%: %
