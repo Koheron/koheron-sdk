@@ -25,7 +25,7 @@ class InstrumentManager:
 
     def get_app_version(self):
         try:
-            r = requests.get(self.url + '/api/version')
+            r = requests.get(self.url + '/api/app/version')
             return r.json()
         except Exception as e:
             print("[error] " + str(e))

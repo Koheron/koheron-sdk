@@ -26,7 +26,7 @@ def upgrade_app():
             uwsgi.reload()
             return make_response('Updating app')
 
-@api_app.route('/api/version', methods=['GET'])
+@api_app.route('/api/app/version', methods=['GET'])
 def api_version():
     return jsonify(api_app.metadata)
 
