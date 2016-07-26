@@ -61,14 +61,19 @@ def get_config(project):
     """ Get the config dictionary recursively. 
     ex: config = get_config('oscillo')
     """
-    config = load_config(project)
+    cfg = load_config(project)
     # Get missing elements from ancestors
     lists = ['cores','xdc','modules']
     for list_ in lists:
-        config[list_] = get_list(project, list_)
+        cfg[list_] = get_list(project, list_)
     props = ['board','host']
     for prop in props:
-        config[prop] = get_prop(project, prop)
+        cfg[prop] = get_prop(project, prop)
+
+    # Modules
+    for module in cfg['modules']:
+        module_cfg = get_config(module)
+        cfg['cores'].extend(module_cfg['cores'])
     
     # SHA
     sha_filename = os.path.join('tmp', project + '.sha')
@@ -76,8 +81,8 @@ def get_config(project):
         with open(sha_filename) as sha_file:
             sha = sha_file.read()
             for i in range(8):
-                config['parameters']['sha' + str(i)] = int('0x' + sha[8*i:8*i+8], 0)
-    return config
+                cfg['parameters']['sha' + str(i)] = int('0x' + sha[8*i:8*i+8], 0)
+    return cfg
 
 ###################
 # Jinja
@@ -122,6 +127,7 @@ def get_renderer():
 strip_num = lambda string:''.join([char for char in string if char not in "0123456789"])
 
 def test_module_consistency(project):
+    """ Check that the modules registers are defined in the project main.yml."""
     cfg = get_config(project)
     props = ['config_registers', 'status_registers']
     for module in cfg['modules']:
@@ -131,6 +137,18 @@ def test_module_consistency(project):
             a = a if a is not None else []
             b = map(strip_num, set(cfg[prop]))
             assert set(a).issubset(b)
+
+def test_core_consistency(project):
+    """ Check that the modules cores are defined in the project main.yml."""
+    cfg = get_config(project)
+    for module in cfg['modules']:
+        module_cfg = get_config(module)
+        assert set(module_cfg['cores']).issubset(cfg['cores'])
+
+def print_config(project):
+    cfg = get_config(project)
+    print('PROJECT = {}'.format(cfg['project']))
+    print yaml.dump(cfg, default_flow_style=False)
 
 ###################
 # Main
@@ -149,7 +167,9 @@ if __name__ == "__main__":
     if cmd == '--test':
         projects = ['oscillo', 'spectrum', 'pid']
         for project in projects:
+            print_config(project)
             test_module_consistency(project)
+            test_core_consistency(project)
 
     elif cmd == '--config_tcl':
         config = get_config(sys.argv[2])
