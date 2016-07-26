@@ -72,11 +72,11 @@ def get_config(project):
     
     # SHA
     sha_filename = os.path.join('tmp', project + '.sha')
-    assert(os.path.isfile(sha_filename))
-    with open(sha_filename) as sha_file:
-        sha = sha_file.read()
-        for i in range(8):
-            config['parameters']['sha' + str(i)] = int('0x' + sha[8*i:8*i+8], 0)
+    if os.path.isfile(sha_filename):
+        with open(sha_filename) as sha_file:
+            sha = sha_file.read()
+            for i in range(8):
+                config['parameters']['sha' + str(i)] = int('0x' + sha[8*i:8*i+8], 0)
     return config
 
 ###################
@@ -129,13 +129,14 @@ if __name__ == "__main__":
     sys.setdefaultencoding('utf-8')
 
     if cmd == '--config_tcl':
-        fill_config_tcl(get_config(sys.argv[2]))
+        config = get_config(sys.argv[2])
+        assert(config['parameters']['sha0'] is not None)
+        fill_config_tcl(config)
 
     elif cmd == '--cores':
         project = sys.argv[2]
         config = get_config(project)
         cores_filename = os.path.join('tmp', project + '.cores')
-        assert(os.path.isfile(cores_filename))
         with open(cores_filename, 'w') as f:
             f.write(' '.join(config['cores']))
 
@@ -143,7 +144,6 @@ if __name__ == "__main__":
         project = sys.argv[2]
         config = get_config(project)
         board_filename = os.path.join('tmp', project + '.board')
-        assert(os.path.isfile(board_filename))
         with open(board_filename, 'w') as f:
             f.write(config['board'])
 
@@ -152,7 +152,7 @@ if __name__ == "__main__":
         drivers_filename = os.path.join('projects', project, 'drivers.yml')
         assert(os.path.isfile(drivers_filename))
         with open(drivers_filename) as drivers_file:
-            drivers = yaml.load(drivers_file) 
+            drivers = yaml.load(drivers_file)
         with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
 
@@ -160,7 +160,6 @@ if __name__ == "__main__":
         project = sys.argv[2]
         config = get_config(project)
         xdc_filename = os.path.join('tmp', project + '.xdc')
-        assert(os.path.isfile(xdc_filename))
         with open(xdc_filename, 'w') as f:
             f.write(' '.join(config['xdc']))
 
