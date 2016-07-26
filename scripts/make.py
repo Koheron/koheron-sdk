@@ -115,6 +115,24 @@ def get_renderer():
     return renderer
 
 ###################
+# Test
+###################
+
+# Remove numbers from string
+strip_num = lambda string:''.join([char for char in string if char not in "0123456789"])
+
+def test_module_consistency(project):
+    cfg = get_config(project)
+    props = ['config_registers', 'status_registers']
+    for module in cfg['modules']:
+        module_cfg = get_config(module)
+        for prop in props:
+            a = module_cfg[prop]
+            a = a if a is not None else []
+            b = map(strip_num, set(cfg[prop]))
+            assert set(a).issubset(b)
+
+###################
 # Main
 ###################
 
@@ -129,22 +147,9 @@ if __name__ == "__main__":
     sys.setdefaultencoding('utf-8')
 
     if cmd == '--test':
-        strip_num = lambda string:''.join([char for char in string if char not in "0123456789"])
         projects = ['oscillo', 'spectrum', 'pid']
-        props = ['config_registers', 'status_registers']
-
         for project in projects:
-            cfg = get_config(project)
-            for module in cfg['modules']:
-                module_cfg = get_config(module)
-                for prop in props:
-                    print 'project = ', project, ' module = ', module, ' prop = ', prop
-                    a = module_cfg[prop]
-                    a = a if a is not None else []
-                    b = map(strip_num, set(cfg[prop]))
-                    print a
-                    print b
-                    assert set(a).issubset(b)
+            test_module_consistency(project)
 
     elif cmd == '--config_tcl':
         config = get_config(sys.argv[2])
