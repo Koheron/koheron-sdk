@@ -74,6 +74,7 @@ def get_config(project):
     for module in cfg['modules']:
         module_cfg = get_config(module)
         cfg['cores'].extend(module_cfg['cores'])
+        cfg['cores'] = list(set(cfg['cores']))
     
     # SHA
     sha_filename = os.path.join('tmp', project + '.sha')
