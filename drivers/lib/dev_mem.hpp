@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <string>
 #include <memory>
+#include <tuple>
 #include <assert.h> 
 
 extern "C" {
@@ -96,6 +97,17 @@ class DevMem
 
     uintptr_t GetBaseAddr(MemMapID id) {return mem_maps.at(id)->GetBaseAddr();}
     int GetStatus(MemMapID id)         {return mem_maps.at(id)->GetStatus();}
+
+    std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>
+    get_map_params(MemMapID id) {
+        return std::make_tuple(
+            mem_maps.at(id)->GetBaseAddr(),
+            mem_maps.at(id)->GetStatus(),
+            mem_maps.at(id)->PhysAddr(),
+            mem_maps.at(id)->MappedSize(),
+            mem_maps.at(id)->GetProtection()
+        );
+    }
 
     /// Return 1 if a memory map failed
     int IsFailed();

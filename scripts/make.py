@@ -83,6 +83,8 @@ def get_config(project):
             sha = sha_file.read()
             for i in range(8):
                 cfg['parameters']['sha' + str(i)] = int('0x' + sha[8*i:8*i+8], 0)
+
+    cfg['json'] = json.dumps(cfg, separators=(',', ':')).replace('"', '\\"')
     return cfg
 
 ###################

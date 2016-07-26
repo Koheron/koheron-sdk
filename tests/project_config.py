@@ -9,7 +9,7 @@ class MemMap(object):
         self.name = name_
         self.offset = offset_
         self.range = range_
-        self.display()
+        # self.display()
 
     def display(self):
         msg = 'map {} at offset {} and range {}'

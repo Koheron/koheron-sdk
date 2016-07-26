@@ -23,8 +23,10 @@
 // -- Parameters
 {% for key in dic['parameters'] -%}
 #define {{ key|upper }}_PARAM {{ dic['parameters'][key] }}
-{% endfor -%}
+{% endfor %}
 
+// -- JSONify config
+#define CFG_JSON "{{ dic['json'] }}"
 
 #define BITSTREAM_ID_OFF 0
 #define BITSTREAM_ID_SIZE 8
