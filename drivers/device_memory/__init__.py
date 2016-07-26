@@ -62,3 +62,9 @@ class DeviceMemory(object):
         def toggle_bit(self, mmap_idx, offset, index):
             pass
         toggle_bit(self, self.maps[device_name], offset, index)
+
+    def get_map_params(self, device_name):
+        @kc.command('DEVICE_MEMORY', 'I')
+        def get_map_params(self, mmap_idx):
+            return self.client.recv_tuple('IiIIi')
+        return get_map_params(self, self.maps[device_name])

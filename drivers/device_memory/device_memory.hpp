@@ -55,6 +55,11 @@ class DeviceMemory
         dvm.toggle_bit(mmap_idx, offset, index);
     }
 
+    std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>
+    get_map_params(uint32_t mmap_idx) {
+        return dvm.get_map_params(mmap_idx);
+    }
+
   private:
     Klib::DevMem& dvm;
 };

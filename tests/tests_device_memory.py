@@ -22,6 +22,16 @@ for mmap in pc.mmaps:
     dvm.add_mmap(mmap)
 
 class TestsDeviceMemory:
+    def test_add_mmap(self):
+        for mmap in pc.mmaps:
+            dvm.add_mmap(mmap)
+            mmap_params = dvm.get_map_params(mmap.name)
+            assert len(mmap_params) == 5
+            phys_addr = hex(mmap_params[2])
+            assert phys_addr == mmap.offset
+            size = mmap_params[3]
+            assert size == 1024 * int(mmap.range.replace("K", ""))
+
     def test_write_read(self):
         value = np.random.randint(16384, size=1)[0]
         dvm.write32('config', pc.cfg['led'], value)
@@ -34,5 +44,6 @@ class TestsDeviceMemory:
         assert np.array_equal(buff, buff_ret)
 
 # tests = TestsDeviceMemory()
+# tests.test_add_mmap()
 # tests.test_write_read()
 # tests.test_write_read_buffer()
