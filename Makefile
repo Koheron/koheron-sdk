@@ -5,17 +5,6 @@
 NAME = oscillo
 HOST = 192.168.1.100
 
-all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli
-
-help:
-	@echo - server: Build the server
-	@echo - bd: Build the block design interactively
-	@echo - xpr: Build the Vivado project
-	@echo - bit: Build the bitstream
-	@echo - http: Build the HTTP API
-	@echo - run: Run the instrument
-	@echo - test: Test the instrument
-
 ###############################################################################
 # Get the project configuration
 # MAKE_PY script parses the properties defined MAIN_YML
@@ -109,26 +98,38 @@ STATIC_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
 STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
 STATIC_ZIP = $(TMP)/static.zip
 
+HTTP_API_SRC = $(wildcard os/api/*)
 HTTP_API_DIR = $(TMP)/app
 HTTP_API_DRIVERS = common eeprom laser
-HTTP_API_DRIVERS_DIR=$(HTTP_API_DIR)/api_app/drivers
-HTTP_API_ZIP=app-$(VERSION).zip
+HTTP_API_DRIVERS_DIR = $(HTTP_API_DIR)/api_app/drivers
+HTTP_API_ZIP = app-$(VERSION).zip
 
 METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-$(TMP):
-	mkdir -p $(TMP)
+.PHONY: clean all help \
+        test_module test_core test_% test test_app test_instrum test_all \
+        server xpr zip app bd http_api \
+        run app_sync app_sync_ssh tcp-server_cli
+
+all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli
 
 ###############################################################################
 # API
 ###############################################################################
 
-.PHONY: clean all \
-        test_module test_core test_% test test_app test_instrum test_all \
-        server xpr zip app bd http_api \
-        run app_sync app_sync_ssh tcp-server_cli
+help:
+	@echo - server: Build the server
+	@echo - bd: Build the block design interactively
+	@echo - xpr: Build the Vivado project
+	@echo - bit: Build the bitstream
+	@echo - http: Build the HTTP API
+	@echo - run: Run the instrument
+	@echo - test: Test the instrument
+
+$(TMP):
+	mkdir -p $(TMP)
 
 # Run Vivado interactively and build block design
 bd: $(CONFIG_TCL) $(XDC) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
@@ -341,7 +342,7 @@ $(HTTP_API_DRIVERS_DIR)/%: drivers/%/__init__.py
 	mkdir -p $@
 	cp $< $@/__init__.py
 
-$(HTTP_API_DIR): $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DRIVERS))
+$(HTTP_API_DIR): $(HTTP_API_SRC) $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DRIVERS))
 	touch $(HTTP_API_DRIVERS_DIR)/__init__.py
 	mkdir -p $(HTTP_API_DIR)/api_app
 	cp -R os/api/. $(HTTP_API_DIR)/api_app
@@ -350,8 +351,6 @@ $(HTTP_API_DIR): $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DR
 
 $(HTTP_API_ZIP): $(HTTP_API_DIR)
 	cd $(HTTP_API_DIR) && zip -r $(HTTP_API_ZIP) .
-
-http_api: $(HTTP_API_ZIP)
 
 app_sync: $(HTTP_API_ZIP)
 	curl -v -F app-$(VERSION).zip=@$(HTTP_API_DIR)/$(HTTP_API_ZIP) http://$(HOST)/api/app/update

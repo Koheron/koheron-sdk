@@ -9,13 +9,6 @@ class Eeprom(object):
     def __init__(self, client):
         self.client = client
 
-        if self.open() < 0:
-            print('Cannot open device Eeprom')
-       
-    @command('EEPROM')
-    def open(self):
-        return self.client.recv_int32()
-
     @command('EEPROM','I')
     def read(self, addr):
         return self.client.recv_uint32()
