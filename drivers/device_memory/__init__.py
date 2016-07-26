@@ -4,11 +4,42 @@ import numpy as np
 import re
 import koheron_tcp_client as kc
 
-class DeviceMemory(object):
+class MemMap(object):
+    def __init__(self, name_, offset_, range_):
+        self.name = name_
+        self.offset = offset_
+        self.range = range_
+        # self.display()
 
+    def display(self):
+        msg = 'map {} at offset {} and range {}'
+        print(msg.format(self.name, self.offset, self.range))
+
+class MemoryConfig(object):
+     def __init__(self, dic):
+        # List of memory maps
+        self.mmaps = []
+        # Config and Status registers
+        self.cfg = {}
+        self.sts = {}
+
+        for addr in dic['addresses']:
+            self.mmaps.append(MemMap(addr['name'], addr['offset'], addr['range']))
+
+        for i, name in enumerate(dic['config_registers']):
+            self.cfg[name] = 4 * i
+
+        for i, name in enumerate(dic['status_registers']):
+            self.sts[name] = 4 * (10 + i)
+
+        self.sts['bitstream_id'] = 0
+        self.sts['dna'] = 4 * 8
+
+class DeviceMemory(object):
     def __init__(self, client):
         self.client = client
-        self.maps = {} 
+        self.memory_cfg = MemoryConfig(self.get_instrument_config())
+        self.maps = {}
 
     def add_mmap(self, mmap):
         @kc.command('DEVICE_MEMORY','II')
@@ -62,3 +93,22 @@ class DeviceMemory(object):
         def toggle_bit(self, mmap_idx, offset, index):
             pass
         toggle_bit(self, self.maps[device_name], offset, index)
+
+    def get_map_params(self, device_name):
+        @kc.command('DEVICE_MEMORY', 'I')
+        def get_map_params(self, mmap_idx):
+            return self.client.recv_tuple('IiIIi')
+        params = get_map_params(self, self.maps[device_name])
+        return {
+            'virt_addr': params[0],
+            'status': params[1],
+            'phys_addr': params[2],
+            'size': params[3],
+            'protection': params[4]
+        }
+
+    @kc.command('DEVICE_MEMORY')
+    def get_instrument_config(self):
+        return self.client.recv_json()
+
+
