@@ -22,6 +22,5 @@ debug:
     - g
     - mapcs-frame
 
-# Optimization is desactivated when compiled in debug mode
 optimization_flags:
   - O3
