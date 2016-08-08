@@ -32,17 +32,25 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
     set_avg_period(WFM_SIZE);
 }
 
-void Oscillo::set_n_avg_min(uint32_t n_avg_min) 
+void Oscillo::set_dac_buffer(uint32_t channel, const std::array<uint32_t, WFM_SIZE/2>& arr)
 {
-    uint32_t n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
-    dvm.write32(config_map, N_AVG_MIN0_OFF, n_avg_min_);
-    dvm.write32(config_map, N_AVG_MIN1_OFF, n_avg_min_);
+    uint32_t old_idx = bram_index[channel];
+    uint32_t new_idx = get_first_empty_bram_index();
+    // Write data in empty BRAM
+    dvm.write_buff32(dac_map[new_idx], 0, arr.data(), arr.size());
+    // Switch DAC interconnect
+    bram_index[channel] = new_idx;
+    connected_bram[new_idx] = true;
+    update_dac_routing();
+    connected_bram[old_idx] = false;
 }
 
-void Oscillo::_wait_for_acquisition()
+std::array<uint32_t, WFM_SIZE/2>& Oscillo::get_dac_buffer(uint32_t channel)
 {
-    do {} while (dvm.read32(status_map, AVG_READY0_OFF) == 0 
-                 || dvm.read32(status_map, AVG_READY1_OFF) == 0);
+    uint32_t *buff = dvm.read_buff32(dac_map[bram_index[channel]]);
+    auto p = reinterpret_cast<std::array<uint32_t, WFM_SIZE/2>*>(buff);
+    assert(p->data() == (const uint32_t*)buff);
+    return *p;
 }
 
 // Read the two channels
@@ -86,12 +94,12 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor,
     uint32_t avg_on = bool(dvm.read32(status_map, AVG_ON_OUT0_OFF));
     if (avg_on) {
         float num_avg = float(get_num_average()); 
-        for(unsigned int i=0; i<n_pts; i++) {
+        for (unsigned int i=0; i<n_pts; i++) {
             data_decim[i] = float(raw_data[0][index_low + decim_factor * i]) / num_avg;
             data_decim[i + n_pts] = float(raw_data[1][index_low + decim_factor * i]) / num_avg;
         }
     } else {
-        for(unsigned int i=0; i<n_pts; i++) {
+        for (unsigned int i=0; i<n_pts; i++) {
             data_decim[i] = float(raw_data[0][index_low + decim_factor * i]);
             data_decim[i + n_pts] = float(raw_data[1][index_low + decim_factor * i]);
         }
@@ -110,4 +118,44 @@ void Oscillo::set_averaging(bool avg_on)
         dvm.clear_bit(config_map, AVG0_OFF, 0);
         dvm.clear_bit(config_map, AVG1_OFF, 0);
     }
+}
+
+void Oscillo::_wait_for_acquisition()
+{
+    do {} while (dvm.read32(status_map, AVG_READY0_OFF) == 0 
+                 || dvm.read32(status_map, AVG_READY1_OFF) == 0);
+}
+
+void Oscillo::init_dac_brams() {
+    // Use BRAM0 for DAC0, BRAM1 for DAC1 ...
+    for (uint32_t i=0; i < N_DAC_PARAM; i++) {
+        bram_index[i] = i;
+        connected_bram[i] = true;
+    }
+
+    for (uint32_t i=N_DAC_PARAM; i < N_DAC_BRAM_PARAM; i++)
+        connected_bram[i] = false;
+
+    update_dac_routing();
+}
+
+int Oscillo::get_first_empty_bram_index() {
+    for (uint32_t i=0; i < N_DAC_BRAM_PARAM; i++)
+        if ((bram_index[0] != i) && (bram_index[1] != i))
+            return i;
+    return -1;
+}
+
+void Oscillo::update_dac_routing() {
+    // dac_select defines the connection between BRAMs and DACs
+    uint32_t dac_select = 0;
+    for (uint32_t i=0; i < N_DAC_PARAM; i++)
+        dac_select += bram_index[i] << (dac_sel_width * i);
+    dvm.write32(config_map, DAC_SELECT_OFF, dac_select);
+
+    // addr_select defines the connection between address generators and BRAMs
+    uint32_t addr_select = 0;
+    for (uint32_t j=0; j < N_DAC_PARAM; j++)
+        addr_select += j << (bram_sel_width * bram_index[j]);
+    dvm.write32(config_map, ADDR_SELECT_OFF, addr_select);
 }
