@@ -34,11 +34,15 @@ class Oscillo(object):
     def reset_acquisition(self): pass
 
     def set_dac(self, data, channel):
-        @write_buffer('OSCILLO','I')
-        def set_dac_buffer(self, data, channel): 
+        @command('OSCILLO','IA')
+        def set_dac_buffer(self, channel, array):
             pass
-        data = np.uint32(np.mod(np.floor(8192 * data) + 8192,16384) + 8192)
-        set_dac_buffer(self, data[::2] + data[1::2] * 65536, channel)
+        data = np.uint32(np.mod(np.floor(8192 * data) + 8192, 16384) + 8192)
+        set_dac_buffer(self, channel, data[::2] + data[1::2] * 65536)
+
+    @command('OSCILLO', 'I')
+    def get_dac_buffer(self, channel):
+        return self.client.recv_buffer(self.wfm_size/2, data_type='uint32')
 
     @command('OSCILLO', '?')
     def set_averaging(self, avg_status):

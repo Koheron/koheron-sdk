@@ -101,6 +101,14 @@ class Oscillo
         connected_bram[old_idx] = false;
     }
 
+    std::array<uint32_t, WFM_SIZE/2>& get_dac_buffer(uint32_t channel)
+    {
+        uint32_t *buff = dvm.read_buff32(dac_map[bram_index[channel]]);
+        auto p = reinterpret_cast<std::array<uint32_t, WFM_SIZE/2>*>(buff);
+        assert(p->data() == (const uint32_t*)buff);
+        return *p;
+    }
+
     // Read ADC
     std::array<float, 2*WFM_SIZE>& read_all_channels();
     std::vector<float>& read_all_channels_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high);
