@@ -48,16 +48,8 @@ class Oscillo(object):
     def set_averaging(self, avg_status):
         pass
 
-    @command('OSCILLO')
-    def get_num_average(self):
-        return self.client.recv_uint32()
-
-    @command('OSCILLO')
-    def get_num_average_0(self):
-        return self.client.recv_uint32()
-
-    @command('OSCILLO')
-    def get_num_average_1(self):
+    @command('OSCILLO','I')
+    def get_num_average(self, channel):
         return self.client.recv_uint32()
 
     @command('OSCILLO')

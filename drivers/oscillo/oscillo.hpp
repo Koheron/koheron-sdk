@@ -21,6 +21,8 @@ constexpr uint32_t bram_sel_width = ceil(log(float(N_DAC_PARAM)) / log(2.));
 
 constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
 
+constexpr std::array<uint32_t, 2> n_avg_offset = {N_AVG0_OFF, N_AVG1_OFF};
+
 class Oscillo
 {
   public:
@@ -48,9 +50,7 @@ class Oscillo
         return lsb + (msb << 32);
     }
 
-    uint32_t get_num_average()   {return dvm.read32(status_map, N_AVG0_OFF);}
-    uint32_t get_num_average_0() {return dvm.read32(status_map, N_AVG0_OFF);}
-    uint32_t get_num_average_1() {return dvm.read32(status_map, N_AVG1_OFF);}
+    uint32_t get_num_average(uint32_t channel)  {return dvm.read32(status_map, n_avg_offset[channel]);}
 
     // TODO should be a one-liner
     void set_clken_mask(bool clken_mask) {

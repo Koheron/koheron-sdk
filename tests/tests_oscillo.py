@@ -34,8 +34,8 @@ class TestsOscillo:
         oscillo.set_averaging(True)
         oscillo.set_n_avg_min(1000)
         oscillo.get_adc()
-        num_avg_0 = oscillo.get_num_average_0()
-        assert num_avg_0 == oscillo.get_num_average_1()
+        num_avg_0 = oscillo.get_num_average(0)
+        assert num_avg_0 == oscillo.get_num_average(1)
         assert num_avg_0 >= 1000
 
     def test_set_dac(self):

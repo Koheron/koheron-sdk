@@ -63,8 +63,8 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
     _wait_for_acquisition();
 
     if (dvm.read32(status_map, AVG_ON_OUT0_OFF)) {
-        float num_avg0 = float(dvm.read32(status_map, N_AVG0_OFF));
-        float num_avg1 = float(dvm.read32(status_map, N_AVG1_OFF)); 
+        float num_avg0 = float(get_num_average(0));
+        float num_avg1 = float(get_num_average(1));
         for(unsigned int i=0; i<WFM_SIZE; i++) {
             data_all[i] = float(raw_data[0][i]) / num_avg0;
             data_all[i + WFM_SIZE] = float(raw_data[1][i]) / num_avg1;
@@ -96,7 +96,7 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor,
 
     uint32_t avg_on = bool(dvm.read32(status_map, AVG_ON_OUT0_OFF));
     if (avg_on) {
-        float num_avg = float(get_num_average()); 
+        float num_avg = float(get_num_average(0)); 
         for (unsigned int i=0; i<n_pts; i++) {
             data_decim[i] = float(raw_data[0][index_low + decim_factor * i]) / num_avg;
             data_decim[i + n_pts] = float(raw_data[1][index_low + decim_factor * i]) / num_avg;
