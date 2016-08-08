@@ -150,7 +150,7 @@ class Spectrum
     Klib::MemMapID noise_floor_map;
     Klib::MemMapID peak_fifo_map;
 
-    Klib::MemMapID dac_map[2];
+    Klib::MemMapID dac_map[3];
 
     // Acquired data buffers
     float *raw_data;
