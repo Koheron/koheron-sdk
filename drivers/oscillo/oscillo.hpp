@@ -93,7 +93,7 @@ class Oscillo
         uint32_t old_idx = bram_index[channel];
         uint32_t new_idx = get_first_empty_bram_index();
         // Write data in empty BRAM
-        dvm.write_buff32(dac_map[new_idx], 0, arr.data(), WFM_SIZE/2);
+        dvm.write_buff32(dac_map[new_idx], 0, arr.data(), arr.size());
         // Switch DAC interconnect
         bram_index[channel] = new_idx;
         connected_bram[new_idx] = true;
@@ -154,7 +154,6 @@ class Oscillo
     Klib::MemMapID dac_map[N_DAC_BRAM_PARAM];
     
     // Acquired data buffers
-    std::array<float, WFM_SIZE> data;
     std::array<float, 2*WFM_SIZE> data_all;
     std::vector<float> data_decim;
 
