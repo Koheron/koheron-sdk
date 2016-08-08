@@ -43,7 +43,7 @@ class TestsOscillo:
         oscillo.set_dac(data_send, 1)
         data_read = oscillo.get_dac_buffer(1)
         data_tmp = np.uint32(np.mod(np.floor(8192 * data_send) + 8192, 16384) + 8192)
-        data_read_expect = data_tmp[::2] + data_tmp[1::2] * 65536
+        data_read_expect = data_tmp[::2] + (data_tmp[1::2] << 16)
         assert np.array_equal(data_read, data_read_expect)
 
 # tests = TestsOscillo()
