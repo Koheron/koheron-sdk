@@ -8,8 +8,9 @@ http_app_dir=tmp/app
 boot_dir=/tmp/BOOT
 root_dir=/tmp/ROOT
 
-root_tar=ubuntu-base-16.04-core-armhf.tar.gz
-root_url=http://cdimage.ubuntu.com/ubuntu-base/releases/16.04/release/$root_tar
+ubuntu_version=16.04.1
+root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
+root_url=http://cdimage.ubuntu.com/ubuntu-base/releases/${ubuntu_version}/release/$root_tar
 
 hostapd_url=https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/hostapd-armhf
 
