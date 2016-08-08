@@ -30,7 +30,7 @@ class TestsOscillo:
 
     def test_averaging(self):
         oscillo.set_averaging(False)
-        assert oscillo.get_num_average_0() == oscillo.get_num_average_1()
+        assert oscillo.get_num_average(0) == oscillo.get_num_average(1)
         oscillo.set_averaging(True)
         oscillo.set_n_avg_min(1000)
         oscillo.get_adc()
