@@ -1,7 +1,10 @@
 /// (c) Koheron
 
 #include "oscillo.hpp"
+
 #include <string.h>
+#include <thread>
+#include <chrono>
 
 Oscillo::Oscillo(Klib::DevMem& dvm_)
 : dvm(dvm_)
@@ -110,7 +113,6 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor,
 
 void Oscillo::set_averaging(bool avg_on)
 {
-    avg_on = avg_on;
     if (avg_on) {
         dvm.set_bit(config_map, AVG0_OFF, 0);
         dvm.set_bit(config_map, AVG1_OFF, 0);
@@ -122,8 +124,23 @@ void Oscillo::set_averaging(bool avg_on)
 
 void Oscillo::_wait_for_acquisition()
 {
-    do {} while (dvm.read32(status_map, AVG_READY0_OFF) == 0 
-                 || dvm.read32(status_map, AVG_READY1_OFF) == 0);
+    auto begin = std::chrono::high_resolution_clock::now();
+
+    do {
+        if (n_avg_min_ > 0) {
+            auto now = std::chrono::high_resolution_clock::now();
+            uint32_t n_avg_min = dvm.read32(config_map, N_AVG_MIN0_OFF);
+            uint64_t acq_time_ns = n_avg_min * wfm_time_ns;
+            auto remain_wait = acq_time_ns - std::chrono::duration_cast<std::chrono::nanoseconds>(now-begin).count();
+
+            // If acquisition time is larger than 1 ms, we sleep for the
+            // typical overhead time to put the thread in sleep (~ 100 us).
+
+            if (remain_wait > 1000000)
+                std::this_thread::sleep_for(std::chrono::nanoseconds(static_cast<uint32_t>(remain_wait / 10)));
+        }
+    } while (dvm.read32(status_map, AVG_READY0_OFF) == 0
+             || dvm.read32(status_map, AVG_READY1_OFF) == 0);
 }
 
 void Oscillo::init_dac_brams() {

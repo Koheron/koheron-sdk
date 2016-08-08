@@ -7,8 +7,6 @@
 
 #include <vector>
 #include <algorithm>
-#include <thread>
-#include <chrono>
 
 #include <drivers/lib/dev_mem.hpp>
 #include <math.h>
@@ -16,9 +14,12 @@
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE ADC1_RANGE/sizeof(float)
+#define ACQ_PERIOD_NS 8 // Duration between two acquisitions (ns)
 
 constexpr uint32_t dac_sel_width  = ceil(log(float(N_DAC_BRAM_PARAM)) / log(2.));
 constexpr uint32_t bram_sel_width = ceil(log(float(N_DAC_PARAM)) / log(2.));
+
+constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
 
 class Oscillo
 {
@@ -70,7 +71,7 @@ class Oscillo
     }
     
     void set_n_avg_min(uint32_t n_avg_min) {
-        uint32_t n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
+        n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
         dvm.write32(config_map, N_AVG_MIN0_OFF, n_avg_min_);
         dvm.write32(config_map, N_AVG_MIN1_OFF, n_avg_min_);
     }
@@ -116,6 +117,8 @@ class Oscillo
     // Store the BRAM corresponding to each DAC
     std::array<uint32_t, N_DAC_PARAM> bram_index;
     std::array<bool, N_DAC_BRAM_PARAM> connected_bram;
+
+    uint32_t n_avg_min_;
 
     // Internal functions
     void _wait_for_acquisition();
