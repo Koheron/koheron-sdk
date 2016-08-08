@@ -38,7 +38,7 @@ class Oscillo(object):
         def set_dac_buffer(self, channel, array):
             pass
         data = np.uint32(np.mod(np.floor(8192 * data) + 8192, 16384) + 8192)
-        set_dac_buffer(self, channel, data[::2] + data[1::2] * 65536)
+        set_dac_buffer(self, channel, data[::2] + (data[1::2] << 16))
 
     @command('OSCILLO', 'I')
     def get_dac_buffer(self, channel):
