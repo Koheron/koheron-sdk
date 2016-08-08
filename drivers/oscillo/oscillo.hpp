@@ -5,10 +5,8 @@
 #ifndef __DRIVERS_CORE_OSCILLO_HPP__
 #define __DRIVERS_CORE_OSCILLO_HPP__
 
-#include <vector>    
+#include <vector>
 #include <algorithm>
-#include <thread>
-#include <chrono>
 
 #include <drivers/lib/dev_mem.hpp>
 #include <math.h>
@@ -16,9 +14,14 @@
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE ADC1_RANGE/sizeof(float)
+#define ACQ_PERIOD_NS 8 // Duration between two acquisitions (ns)
 
 constexpr uint32_t dac_sel_width  = ceil(log(float(N_DAC_BRAM_PARAM)) / log(2.));
 constexpr uint32_t bram_sel_width = ceil(log(float(N_DAC_PARAM)) / log(2.));
+
+constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
+
+constexpr std::array<uint32_t, 2> n_avg_offset = {N_AVG0_OFF, N_AVG1_OFF};
 
 class Oscillo
 {
@@ -47,9 +50,7 @@ class Oscillo
         return lsb + (msb << 32);
     }
 
-    uint32_t get_num_average()   {return dvm.read32(status_map, N_AVG0_OFF);}
-    uint32_t get_num_average_0() {return dvm.read32(status_map, N_AVG0_OFF);}
-    uint32_t get_num_average_1() {return dvm.read32(status_map, N_AVG1_OFF);}
+    uint32_t get_num_average(uint32_t channel)  {return dvm.read32(status_map, n_avg_offset[channel]);}
 
     // TODO should be a one-liner
     void set_clken_mask(bool clken_mask) {
@@ -69,7 +70,11 @@ class Oscillo
         dvm.set_bit(config_map, CLKEN_MASK_OFF, 1);
     }
     
-    void set_n_avg_min(uint32_t n_avg_min);
+    void set_n_avg_min(uint32_t n_avg_min) {
+        n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
+        dvm.write32(config_map, N_AVG_MIN0_OFF, n_avg_min_);
+        dvm.write32(config_map, N_AVG_MIN1_OFF, n_avg_min_);
+    }
 
     void set_addr_select(uint32_t addr_select) {
         dvm.write32(config_map, ADDR_SELECT_OFF, addr_select);
@@ -87,62 +92,13 @@ class Oscillo
         reset();
     }
 
-    // Write DACs
-
-    #pragma tcp-server write_array arg{data} arg{len}
-    void set_dac_buffer(uint32_t channel, const uint32_t *data, uint32_t len) {
-        uint32_t old_idx = bram_index[channel];
-        uint32_t new_idx = get_first_empty_bram_index();
-        // Write data in empty BRAM
-        dvm.write_buff32(dac_map[new_idx], 0, data, len);
-        // Switch DAC interconnect
-        bram_index[channel] = new_idx;
-        connected_bram[new_idx] = true;
-        update_dac_routing();
-        connected_bram[old_idx] = false;
-    }
+    // DACs
+    void set_dac_buffer(uint32_t channel, const std::array<uint32_t, WFM_SIZE/2>& arr);
+    std::array<uint32_t, WFM_SIZE/2>& get_dac_buffer(uint32_t channel);
 
     // Read ADC
     std::array<float, 2*WFM_SIZE>& read_all_channels();
     std::vector<float>& read_all_channels_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high);
-
-    // Internal functions
-    void _wait_for_acquisition();
-
-    void init_dac_brams() {
-        // Use BRAM0 for DAC0, BRAM1 for DAC1 ...
-        for (int i=0; i < N_DAC_PARAM; i++) {
-            bram_index[i] = i;
-            connected_bram[i] = true;
-        }
-        for (int i=N_DAC_PARAM; i < N_DAC_BRAM_PARAM; i++) {
-            connected_bram[i] = false;
-        }
-        update_dac_routing();
-    }
-
-    uint32_t get_first_empty_bram_index() {
-        uint32_t i;
-        for (i=0; i < N_DAC_BRAM_PARAM; i++) {
-            if ((bram_index[0] != i) && (bram_index[1] != i))
-                break;
-        }
-        return i;
-    }
-
-    void update_dac_routing() {
-        // dac_select defines the connection between BRAMs and DACs
-        uint32_t dac_select = 0;
-        for (uint32_t i=0; i < N_DAC_PARAM; i++)
-            dac_select += bram_index[i] << (dac_sel_width * i);
-        dvm.write32(config_map, DAC_SELECT_OFF, dac_select);
-
-        // addr_select defines the connection between address generators and BRAMs
-        uint32_t addr_select = 0;
-        for (uint32_t j=0; j < N_DAC_PARAM; j++)
-            addr_select += j << (bram_sel_width * bram_index[j]);
-        dvm.write32(config_map, ADDR_SELECT_OFF, addr_select);
-    }
 
   private:
     Klib::DevMem& dvm;
@@ -155,13 +111,20 @@ class Oscillo
     Klib::MemMapID dac_map[N_DAC_BRAM_PARAM];
     
     // Acquired data buffers
-    std::array<float, WFM_SIZE> data;
     std::array<float, 2*WFM_SIZE> data_all;
     std::vector<float> data_decim;
 
     // Store the BRAM corresponding to each DAC
     std::array<uint32_t, N_DAC_PARAM> bram_index;
     std::array<bool, N_DAC_BRAM_PARAM> connected_bram;
+
+    uint32_t n_avg_min_;
+
+    // Internal functions
+    void _wait_for_acquisition();
+    void init_dac_brams();
+    int get_first_empty_bram_index();
+    void update_dac_routing();
 
 }; // class Oscillo
 

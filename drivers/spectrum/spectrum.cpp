@@ -103,5 +103,5 @@ void Spectrum::set_address_range(uint32_t address_low, uint32_t address_high)
 {
     dvm.write32(config_map, PEAK_ADDRESS_LOW_OFF, address_low);
     dvm.write32(config_map, PEAK_ADDRESS_HIGH_OFF, address_high);
-    dvm.write32(config_map, + PEAK_ADDRESS_RESET_OFF, (address_low+WFM_SIZE-1) % WFM_SIZE);
+    dvm.write32(config_map, PEAK_ADDRESS_RESET_OFF, (address_low+WFM_SIZE-1) % WFM_SIZE);
 }
