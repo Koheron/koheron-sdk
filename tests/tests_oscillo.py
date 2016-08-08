@@ -23,9 +23,9 @@ class TestsOscillo:
     def test_get_adc(self):
         adc = oscillo.get_adc()
         assert np.shape(adc) == (2, 8192)
-        assert np.amax(adc[0,:]) <= 8192
+        assert np.amax(adc[0,:]) <= 8191
         assert np.amin(adc[0,:]) >= -8192
-        assert np.amax(adc[1,:]) <= 8192
+        assert np.amax(adc[1,:]) <= 8191
         assert np.amin(adc[1,:]) >= -8192
 
     def test_averaging(self):
