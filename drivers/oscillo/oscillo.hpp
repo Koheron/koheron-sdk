@@ -5,7 +5,7 @@
 #ifndef __DRIVERS_CORE_OSCILLO_HPP__
 #define __DRIVERS_CORE_OSCILLO_HPP__
 
-#include <vector>    
+#include <vector>
 #include <algorithm>
 #include <thread>
 #include <chrono>
