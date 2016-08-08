@@ -19,6 +19,8 @@
 constexpr uint32_t dac_sel_width  = ceil(log(float(N_DAC_BRAM_PARAM)) / log(2.));
 constexpr uint32_t bram_sel_width = ceil(log(float(N_DAC_PARAM)) / log(2.));
 
+constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
+
 class Oscillo
 {
   public:
@@ -117,7 +119,6 @@ class Oscillo
     std::array<bool, N_DAC_BRAM_PARAM> connected_bram;
 
     uint32_t n_avg_min_;
-    bool avg_on_;
 
     // Internal functions
     void _wait_for_acquisition();
