@@ -89,12 +89,11 @@ class Oscillo
 
     // Write DACs
 
-    #pragma tcp-server write_array arg{data} arg{len}
-    void set_dac_buffer(uint32_t channel, const uint32_t *data, uint32_t len) {
+    void set_dac_buffer(uint32_t channel, const std::array<uint32_t, WFM_SIZE/2>& arr) {
         uint32_t old_idx = bram_index[channel];
         uint32_t new_idx = get_first_empty_bram_index();
         // Write data in empty BRAM
-        dvm.write_buff32(dac_map[new_idx], 0, data, len);
+        dvm.write_buff32(dac_map[new_idx], 0, arr.data(), WFM_SIZE/2);
         // Switch DAC interconnect
         bram_index[channel] = new_idx;
         connected_bram[new_idx] = true;
