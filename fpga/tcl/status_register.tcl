@@ -4,10 +4,12 @@ proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "aut
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  set n_hidden_ports 10
+  set sha_size 8
+  set dna_size 2
+  set n_hidden_ports [expr $sha_size + $dna_size]
 
   for {set i $n_hidden_ports} {$i < $num_ports} {incr i} {
-    create_bd_pin -dir I -from 31 -to 0 In$i
+    create_bd_pin -dir I -from 31 -to 0 $config::sts_register($i)
   }
 
   if { $idx eq "auto"} {
@@ -41,18 +43,32 @@ proc add_status_register {module_name clk {num_ports 32} {range 4K} {offset "aut
     set_property offset $offset $memory_segment
   }
 
+  # DNA (hidden ports)
+  cell pavel-demin:user:dna_reader:1.0 dna {} {
+    aclk /$clk
+    aresetn /${::rst_adc_clk_name}/peripheral_aresetn
+  }
+
   cell xilinx.com:ip:xlconcat:2.1 concat_0 {
     NUM_PORTS $num_ports
   } {
     dout axi_sts_register_0/sts_data
+    In[expr $sha_size+0] [get_slice_pin dna/dna_data 31 0]
+    In[expr $sha_size+1] [get_slice_pin dna/dna_data 56 32]
   }
 
   for {set i 0} {$i < $num_ports} {incr i} {
     set_property -dict [list CONFIG.IN${i}_WIDTH 32] [get_bd_cells concat_0]
   }
 
+  # SHA (hidden_ports)
+  for {set i 0} {$i < $sha_size} {incr i} {
+    connect_constant sha_constant_$i [set config::sha$i] 32 concat_0/In$i
+  }
+
+  # Other ports
   for {set i $n_hidden_ports} {$i < $num_ports} {incr i} {
-    connect_pins concat_0/In$i In$i
+    connect_pins concat_0/In$i $config::sts_register($i)
   }
 
   current_bd_instance $bd

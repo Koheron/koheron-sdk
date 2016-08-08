@@ -1,5 +1,5 @@
 ###############################################################################
-# Build the zip file: $ make NAME=spectrum HOST=192.168.1.12 zip
+# Build and run the instrument: $ make NAME=spectrum HOST=192.168.1.12 run
 ###############################################################################
 
 NAME = oscillo
@@ -17,10 +17,10 @@ MAKE_PY = scripts/make.py
 TMP = tmp
 
 # properties defined MAIN_YML :
-BOARD:=$(shell python $(MAKE_PY) --board $(NAME) && cat $(TMP)/$(NAME).board)
-CORES:=$(shell python $(MAKE_PY) --cores $(NAME) && cat $(TMP)/$(NAME).cores)
-DRIVERS:=$(shell python $(MAKE_PY) --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
-XDC:=$(shell python $(MAKE_PY) --xdc $(NAME) && cat $(TMP)/$(NAME).xdc)
+BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) && cat $(TMP)/$(NAME).board)
+CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) && cat $(TMP)/$(NAME).cores)
+DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
+XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) && cat $(TMP)/$(NAME).xdc)
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
@@ -32,12 +32,11 @@ VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
 
-DOCKER=False
-
-ifeq ($(DOCKER),False)
-	PYTHON=$(TCP_SERVER_VENV)/bin/python
-else
+DOCKER ?= False
+ifeq ($(DOCKER),True)
 	PYTHON=/usr/bin/python
+else
+	PYTHON=$(TCP_SERVER_VENV)/bin/python
 endif
 
 ###############################################################################
@@ -73,7 +72,7 @@ RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1h
 
 # Project configuration
 
-CONFIG_TCL = projects/$(NAME)/config.tcl
+CONFIG_TCL = $(TMP)/$(NAME).config.tcl
 TEMPLATE_DIR = scripts/templates
 
 # Versioning
@@ -98,22 +97,42 @@ STATIC_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
 STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
 STATIC_ZIP = $(TMP)/static.zip
 
+HTTP_API_SRC = $(wildcard os/api/*)
+HTTP_API_DIR = $(TMP)/app
 HTTP_API_DRIVERS = common eeprom laser
-HTTP_API_DRIVERS_DIR=$(TMP)/app/api_app/drivers
-HTTP_API_ZIP=app-$(VERSION).zip
+HTTP_API_DRIVERS_DIR = $(HTTP_API_DIR)/api_app/drivers
+HTTP_API_ZIP = app-$(VERSION).zip
 
 METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-all: zip boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli static app
+.PHONY: clean all help \
+        test_module test_core test_% test test_app test_instrum test_all \
+        server xpr zip app bd http_api \
+        run app_sync app_sync_ssh tcp-server_cli
+
+all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli
+
+###############################################################################
+# API
+###############################################################################
+
+help:
+	@echo - server: Build the server
+	@echo - bd: Build the block design interactively
+	@echo - xpr: Build the Vivado project
+	@echo - bit: Build the bitstream
+	@echo - http: Build the HTTP API
+	@echo - run: Run the instrument
+	@echo - test: Test the instrument
 
 $(TMP):
 	mkdir -p $(TMP)
 
-###############################################################################
-# tests
-###############################################################################
+# Run Vivado interactively and build block design
+bd: $(CONFIG_TCL) $(XDC) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+	vivado -nolog -nojournal -source scripts/block_design.tcl -tclargs $(NAME) $(PART) $(BOARD)
 
 test_module: $(CONFIG_TCL) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	vivado -source scripts/test_module.tcl -tclargs $(NAME) $(PART)
@@ -121,10 +140,25 @@ test_module: $(CONFIG_TCL) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(C
 test_core:
 	vivado -source scripts/test_core.tcl -tclargs $(CORE) $(PART)
 
+test_%: tests/tests_%.py
+	py.test -v $<
+
 test: tests/$(NAME).py
 	python $<
 
-run: zip
+test_app: | app_sync test_instrument_manager
+
+test_instrum: test_device_memory test_common test_gpio test_$(NAME)
+
+test_all: | test_app test_instrum
+
+server: $(TCP_SERVER)
+xpr: $(TMP)/$(NAME).xpr
+bit: $(TMP)/$(NAME).bit
+zip: $(ZIP)
+http: $(HTTP_API_ZIP)
+
+run: $(ZIP)
 	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
 	curl http://$(HOST)/api/instruments/run/$(NAME)/$(VERSION)
 
@@ -149,21 +183,23 @@ $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
 
-$(TMP)/%.xpr: $(CONFIG_TCL) $(XDC) projects/%/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
-	$(VIVADO) -source scripts/project.tcl -tclargs $* $(PART) $(BOARD)
+	$(VIVADO) -source scripts/project.tcl -tclargs $(NAME) $(PART) $(BOARD)
+	@echo [$@] OK
 
-$(TMP)/%.bit: $(TMP)/%.xpr
+$(TMP)/$(NAME).bit: $(TMP)/$(NAME).xpr
 	mkdir -p $(@D)
-	$(VIVADO) -source scripts/bitstream.tcl -tclargs $*
+	$(VIVADO) -source scripts/bitstream.tcl -tclargs $(NAME)
+	@echo [$@] OK
 
 ###############################################################################
 # first-stage boot loader
 ###############################################################################
 
-$(TMP)/%.fsbl/executable.elf: $(TMP)/%.hwdef
+$(TMP)/$(NAME).fsbl/executable.elf: $(TMP)/$(NAME).hwdef
 	mkdir -p $(@D)
-	$(HSI) -source scripts/fsbl.tcl -tclargs $* $(PROC)
+	$(HSI) -source scripts/fsbl.tcl -tclargs $(NAME) $(PROC)
 
 ###############################################################################
 # U-Boot
@@ -204,9 +240,9 @@ boot.bin: $(TMP)/$(NAME).fsbl/executable.elf $(TMP)/$(NAME).bit $(TMP)/u-boot.el
 # device tree
 ###############################################################################
 
-$(TMP)/%.hwdef: $(TMP)/%.xpr
+$(TMP)/$(NAME).hwdef: $(TMP)/$(NAME).xpr
 	mkdir -p $(@D)
-	$(VIVADO) -source scripts/hwdef.tcl -tclargs $*
+	$(VIVADO) -source scripts/hwdef.tcl -tclargs $(NAME)
 
 $(DTREE_TAR):
 	mkdir -p $(@D)
@@ -216,9 +252,9 @@ $(DTREE_DIR): $(DTREE_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
 
-$(TMP)/%.tree/system.dts: $(TMP)/%.hwdef $(DTREE_DIR)
+$(TMP)/$(NAME).tree/system.dts: $(TMP)/$(NAME).hwdef $(DTREE_DIR)
 	mkdir -p $(@D)
-	$(HSI) -source scripts/devicetree.tcl -tclargs $* $(PROC) $(DTREE_DIR) $(VIVADO_VERSION)
+	$(HSI) -source scripts/devicetree.tcl -tclargs $(NAME) $(PROC) $(DTREE_DIR) $(VIVADO_VERSION)
 	patch $@ $(PATCHES)/devicetree.patch
 
 ###############################################################################
@@ -256,7 +292,7 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 # tcp-server (compiled with project specific middleware)
 ###############################################################################
 
-$(TCP_SERVER_DIR): 
+$(TCP_SERVER_DIR):
 	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
@@ -264,65 +300,69 @@ $(TCP_SERVER_DIR):
 $(TCP_SERVER_DIR)/requirements.txt: $(TCP_SERVER_DIR)
 
 $(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
-ifeq ($(DOCKER),False)
+ifeq ($(DOCKER),True)
+	/usr/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
+else
 	virtualenv $(TCP_SERVER_VENV)
 	$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
-else
-	/usr/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
 endif
 
 $(TCP_SERVER_MIDDLEWARE)/%: %
 	mkdir -p -- `dirname -- $@`
 	cp $^ $@
 
-$(TCP_SERVER): $(TCP_SERVER_VENV) $(SERVER_CONFIG) $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) drivers/lib $(MAKE_PY) projects/default/server.yml
+$(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
+               $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) \
+               drivers/lib projects/default/server.yml
 	python $(MAKE_PY) --middleware $(NAME)
 	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
-	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all
+	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. \
+	  PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all
+	@echo [$@] OK
 
 tcp-server_cli: $(TCP_SERVER_DIR) $(TCP_SERVER_VENV)
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) cli
 
 ###############################################################################
-# zip (contains bitstream, tcp-server)
+# Instrument ZIP file (contains bitstream, tcp-server)
 ###############################################################################
 
-zip: $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
+$(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
 	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TCP_SERVER)
 
 ###############################################################################
-# app
+# HTTP API
 ###############################################################################
 
-$(METADATA): $(TMP) $(VERSION_FILE)
+$(METADATA): $(MAKE_PY) $(VERSION_FILE)
 	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
 
 $(HTTP_API_DRIVERS_DIR)/%: drivers/%/__init__.py
 	mkdir -p $@
 	cp $< $@/__init__.py
 
-app: $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DRIVERS))
-	touch $(HTTP_API_DRIVERS_DIR)/__init__.py 
-	mkdir -p $(TMP)/app/api_app
-	cp -R os/api/. $(TMP)/app/api_app
-	cp $(TMP)/metadata.json $(TMP)/app
-	cp os/wsgi.py $(TMP)/app
+$(HTTP_API_DIR): $(HTTP_API_SRC) $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DRIVERS))
+	touch $(HTTP_API_DRIVERS_DIR)/__init__.py
+	mkdir -p $(HTTP_API_DIR)/api_app
+	cp -R os/api/. $(HTTP_API_DIR)/api_app
+	cp $(TMP)/metadata.json $(HTTP_API_DIR)
+	cp os/wsgi.py $(HTTP_API_DIR)
 
-$(HTTP_API_ZIP):
-	cd $(TMP)/app && zip -r $(HTTP_API_ZIP) .
+$(HTTP_API_ZIP): $(HTTP_API_DIR)
+	cd $(HTTP_API_DIR) && zip -r $(HTTP_API_ZIP) .
 
-app_sync: app $(HTTP_API_ZIP)
-	curl -v -F app-$(VERSION).zip=@$(TMP)/app/$(HTTP_API_ZIP) http://$(HOST)/api/app/update
+app_sync: $(HTTP_API_ZIP)
+	curl -v -F app-$(VERSION).zip=@$(HTTP_API_DIR)/$(HTTP_API_ZIP) http://$(HOST)/api/app/update
 
 # To use if uwsgi is not running
-app_sync_ssh: app $(HTTP_API_ZIP)
-	rsync -avz -e "ssh -i /ssh-private-key" $(TMP)/app/. root@$(HOST):/usr/local/flask/
+app_sync_ssh: $(HTTP_API_ZIP)
+	rsync -avz -e "ssh -i /ssh-private-key" $(HTTP_API_DIR)/. root@$(HOST):/usr/local/flask/
 
 ###############################################################################
-# static
+# Static content served by NGINX
 ###############################################################################
 
-static: $(TMP)
+$(STATIC_ZIP): $(TMP)
 	echo $(STATIC_SHA)
 	curl -L $(STATIC_URL) -o $(STATIC_ZIP)
 

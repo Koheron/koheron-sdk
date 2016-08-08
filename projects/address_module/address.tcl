@@ -1,65 +1,57 @@
-proc add_address_module {module_name bram_width} {
+namespace eval address {
 
+proc pins {cmd bram_width {n_periods 1}} {
+  $cmd -dir I -from 31   -to 0 cfg
+  for {set i 0} {$i < $n_periods} {incr i} {
+    $cmd -dir I -from 31   -to 0 period$i
+    $cmd -dir O -from [expr $bram_width+2] -to 0 addr$i
+  }
+  $cmd -dir O -from 31   -to 0 restart
+  $cmd -dir O -from 0    -to 0 tvalid
+  $cmd -dir I -type clk        clk
+}
+
+proc create {module_name bram_width {n_periods 1}} {
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir I                  clk
-  create_bd_pin -dir I -from 31   -to 0 cfg
-  create_bd_pin -dir I -from 31   -to 0 period
-  create_bd_pin -dir O -from [expr $bram_width+2]   -to 0 addr
-  create_bd_pin -dir O                  restart
-  create_bd_pin -dir O                  tvalid
+  pins create_bd_pin $bram_width $n_periods
+  
+  # Configuration registers
+  set reset_pin [get_slice_pin cfg 0 0]
+  set reset_acq_pin [get_slice_pin cfg 1 1]
+
+  connect_pin restart [get_edge_detector_pin $reset_acq_pin]
 
   # Add address counter
-  cell koheron:user:address_generator:1.0 base_counter {
-    COUNT_WIDTH $bram_width
-  } {
-    clk clk
-    count_max period
-    address addr
+
+  for {set i 0} {$i < $n_periods} {incr i} {
+    cell koheron:user:address_generator:1.0 base_counter$i {
+      COUNT_WIDTH $bram_width
+    } {
+      clk clk
+      count_max period$i
+      address addr$i
+      sclr [get_not_pin $reset_pin]
+    }
   }
 
-  cell koheron:user:edge_detector:1.0 reset_base_counter {
-  } {
-    clk clk
-    dout base_counter/sclr
-  }
-
-  cell koheron:user:edge_detector:1.0 edge_detector {
-  } { 
-    clk clk
-    dout restart
-  }
-
-  # Configuration registers
-
-  cell xilinx.com:ip:xlslice:1.0 reset_base_counter_slice {
-    DIN_WIDTH 32
-    DIN_FROM 0
-    DIN_TO 0
-  } {
-    Din cfg
-    Dout reset_base_counter/din
-  }
-
-  cell xilinx.com:ip:xlslice:1.0 start_slice {
-    DIN_WIDTH 32
-    DIN_FROM 1
-    DIN_TO 1
-  } {
-    Din cfg
-    Dout edge_detector/Din
-  }
+  set clogb2_depth 5
+  set depth [expr 2**$clogb2_depth]
+  set delay_pin [get_slice_pin cfg [expr 2 + $clogb2_depth -1] 2]
 
   cell xilinx.com:ip:c_shift_ram:12.0 delay_tvalid {
-    Depth 1
+    ShiftRegType Variable_Length_Lossless
+    Depth [expr 2**$clogb2_depth]
     Width 1
   } {
-    D reset_base_counter_slice/Dout
+    D $reset_pin
     CLK clk
     Q tvalid
+    A $delay_pin
   }
 
   current_bd_instance $bd
-
 }
+
+} ;# end address namespace

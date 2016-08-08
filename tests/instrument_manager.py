@@ -3,7 +3,6 @@
 import requests
 import time
 import hashlib
-import pytest
 
 class InstrumentManager:
     def __init__(self, ip, port=80):
@@ -17,12 +16,28 @@ class InstrumentManager:
         r = requests.get(self.url + '/api/board/bitstream_id')
         return r.text
 
+    def get_dna(self):
+        r = requests.get(self.url + '/api/board/dna')
+        return r.text
+
     def ping(self):
         r = requests.get(self.url + '/api/board/ping')
 
+    def get_app_version(self):
+        try:
+            r = requests.get(self.url + '/api/app/version')
+            return r.json()
+        except Exception as e:
+            print("[error] " + str(e))
+            return {}
+
     def get_board_version(self):
-        r = requests.get(self.url + '/api/board/version')
-        return r
+        try:
+            r = requests.get(self.url + '/api/board/version')
+            return r.json()
+        except Exception as e:
+            print("[error] " + str(e))
+            return {}
         
     def deploy_local_instrument(self, name, version):
         """ Deploy a locally available instrument
@@ -48,19 +63,23 @@ class InstrumentManager:
             print("[error] " + str(e))
             return {}
 
-    def get_current_instrument(self):
+    def get_live_instrument(self):
         try:
-            r = requests.get(self.url + '/api/instruments/current')
+            r = requests.get(self.url + '/api/instruments/live')
             return r.json()
         except Exception as e: 
             print("[error] " + str(e))
             return {}
 
+    def get_server_version(self):
+        live_instrum = self.get_live_instrument()
+        return live_instrum['server_version']
+
     def install_instrument(self, instrument_name, always_restart=False):
         if not always_restart:
             # Don't restart the instrument if already launched
-            current_instrument = self.get_current_instrument()
-            if current_instrument['name'] == instrument_name:
+            live_instrument = self.get_live_instrument()
+            if live_instrument['name'] == instrument_name:
                 return
 
         instruments = self.get_local_instruments()
@@ -72,18 +91,7 @@ class InstrumentManager:
                     return
         raise ValueError("Instrument " + instrument_name + " not found")
 
+    def restore_backup(self):
+        r = requests.get(self.url + '/api/instruments/restore')
+        return r.text
 
-if __name__ == "__main__":
-    host = os.getenv(HOST, '192.168.1.100')
-    name = os.getenv(NAME, '')
-    im = InstrumentManager(host)
-    im.install_instrument(name)
-
-    # Unit tests
-    @pytest.mark.parametrize('im', [im])
-    def test_bitstream_id(im):
-        assert True
-
-
-
-    print('bitstream id = {}'.format(http.get_bistream_id()))

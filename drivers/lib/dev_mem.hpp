@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <string>
 #include <memory>
+#include <tuple>
 #include <assert.h> 
 
 extern "C" {
@@ -97,6 +98,17 @@ class DevMem
     uintptr_t GetBaseAddr(MemMapID id) {return mem_maps.at(id)->GetBaseAddr();}
     int GetStatus(MemMapID id)         {return mem_maps.at(id)->GetStatus();}
 
+    std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>
+    get_map_params(MemMapID id) {
+        return std::make_tuple(
+            mem_maps.at(id)->GetBaseAddr(),
+            mem_maps.at(id)->GetStatus(),
+            mem_maps.at(id)->PhysAddr(),
+            mem_maps.at(id)->MappedSize(),
+            mem_maps.at(id)->GetProtection()
+        );
+    }
+
     /// Return 1 if a memory map failed
     int IsFailed();
 
@@ -153,16 +165,10 @@ class DevMem
         return *((volatile uintptr_t *) (GetBaseAddr(id) + offset)) & (1 << index);
     }
 
-    void mask_and(MemMapID id, uint32_t offset, uint32_t mask) {
+    void write32_mask(MemMapID id, uint32_t offset, uint32_t value, uint32_t mask) {
         ASSERT_WRITABLE
         uintptr_t addr = GetBaseAddr(id) + offset;
-        *(volatile uintptr_t *) addr &= mask;
-    }
-
-    void mask_or(MemMapID id, uint32_t offset, uint32_t mask) {
-        ASSERT_WRITABLE
-        uintptr_t addr = GetBaseAddr(id) + offset;
-        *(volatile uintptr_t *) addr |= mask;
+        *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
     }
 
     /// True if the /dev/mem device is open
@@ -182,20 +188,6 @@ class DevMem
     MemMapIdPool id_pool;
 };
 
-
-// Helper to build an std::array of memory regions without
-// specifying the length. Called as:
-// mem_regions(
-//     Klib::MemoryRegion({ ADDR1, RANGE1 }),
-//     ...
-//     Klib::MemoryRegion({ ADDRn, RANGEn })
-// )
-template<typename... region>
-constexpr auto mem_regions(region&&... args) 
-    -> std::array<Klib::MemoryRegion, sizeof...(args)>
-{
-    return {{std::forward<region>(args)...}};
-}
 
 template<size_t N>
 std::array<MemMapID, N> 

@@ -13,18 +13,20 @@ for {set i 0} {$i < 2} {incr i} {
   set adc_recorder_name adc_recorder$i 
   add_bram_recorder $adc_recorder_name adc[expr {$i + 1}]
 
-  connect_pins $adc_recorder_name/clk   $adc_clk
-  connect_pins $adc_recorder_name/rst   $rst_adc_clk_name/peripheral_reset
+  connect_cell $adc_recorder_name {
+    clk   $adc_clk
+    rst   $rst_adc_clk_name/peripheral_reset
+  }
 
   # Add averaging module
-  add_averager_module $avg_name $config::bram_addr_width -input_type fix_$config::adc_width
+  averager::create $avg_name $config::bram_addr_width -input_type fix_$config::adc_width
 
   connect_cell $avg_name {
     clk         $adc_clk
     restart     $address_name/restart
     avg_on      [cfg_pin avg$i]
-    period      [cfg_pin period$i]
-    threshold   [cfg_pin threshold$i]
+    period      [cfg_pin avg_period0]
+    threshold   [cfg_pin avg_threshold0]
     n_avg_min   [cfg_pin n_avg_min$i]
     tvalid      $address_name/tvalid
     din         adc_dac/adc[expr $i + 1]

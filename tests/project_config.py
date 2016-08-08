@@ -9,7 +9,7 @@ class MemMap(object):
         self.name = name_
         self.offset = offset_
         self.range = range_
-        self.display()
+        # self.display()
 
     def display(self):
         msg = 'map {} at offset {} and range {}'
@@ -36,11 +36,11 @@ class ProjectConfig(object):
         for addr in dic['addresses']:
             self.mmaps.append(MemMap(addr['name'], addr['offset'], addr['range']))
 
-        for i, offset in enumerate(dic['config_offsets']):
-            self.cfg[offset] = 4 * i
+        for i, name in enumerate(dic['config_registers']):
+            self.cfg[name] = 4 * i
 
-        for i, offset in enumerate(dic['status_offsets']):
-            self.sts[offset] = 4 * (10 + i)
+        for i, name in enumerate(dic['status_registers']):
+            self.sts[name] = 4 * (10 + i)
 
         self.sts['bitstream_id'] = 0
         self.sts['dna'] = 4 * 8

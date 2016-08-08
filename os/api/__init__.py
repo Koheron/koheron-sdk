@@ -13,7 +13,7 @@ from distutils.dir_util import copy_tree
 from flask import Flask, render_template, request, url_for
 from koheron_tcp_client import KClient
 from drivers.common import Common
-from drivers.laser import Laser
+# from drivers.laser import Laser
 
 def log(severity, message):
     print("[" + severity + "] " + message)
@@ -24,7 +24,7 @@ class KoheronAPIApp(Flask):
 
         self.load_config()
         self.load_metadata()
-        self.current_instrument = {'name': None, 'sha': None}
+        self.live_instrument = {'name': None, 'sha': None}
         self.start_last_deployed_instrument()
         self.get_instruments()
         self.get_remote_static()
@@ -109,7 +109,7 @@ class KoheronAPIApp(Flask):
         self.stop_client()
         self.client = KClient('127.0.0.1', verbose=False)
         self.common = Common(self.client)
-        self.laser = Laser(self.client)
+        # self.laser = Laser(self.client)
         self.common.init()
 
     def stop_client(self):
@@ -178,6 +178,8 @@ class KoheronAPIApp(Flask):
         for name, shas in self.local_instruments.iteritems():
             if name == name_ and sha_ in shas:
                 shas.remove(sha_)
+                if len(shas) == 0:
+                    del self.local_instruments[name]
                 return
 
     def save_uploaded_instrument(self, zip_filename):
@@ -200,7 +202,8 @@ class KoheronAPIApp(Flask):
         # http://stackoverflow.com/questions/21936597/blocking-and-non-blocking-subprocess-calls
         subprocess.call(['/bin/bash', 'api_app/install_instrument.sh', zip_filename, name])
         self.start_client()
-        self.current_instrument = {'name': name, 'sha': sha}
+        self.live_instrument = {'name': name, 'sha': sha,
+                                   'server_version': self.common.get_server_version()}
         
         if not self.is_bitstream_id_valid():
             self.handle_invalid_bitstream()
@@ -213,16 +216,16 @@ class KoheronAPIApp(Flask):
         # Check whether we are installing the last deployed instrument to avoid infinite recursion:
         last_deployed_instrument = self.get_last_deployed_instrument()
         if ((not 'name' in last_deployed_instrument)
-            or (last_deployed_instrument['name'] == self.current_instrument['name']
-                and last_deployed_instrument['sha'] == self.current_instrument['sha'])):
-                self._start_first_instrument_found(exclude=self.current_instrument)
+            or (last_deployed_instrument['name'] == self.live_instrument['name']
+                and last_deployed_instrument['sha'] == self.live_instrument['sha'])):
+                self._start_first_instrument_found(exclude=self.live_instrument)
         else:
             self.start_last_deployed_instrument()
 
     def is_bitstream_id_valid(self):
         id_ = self.common.get_bitstream_id()
-        hash_ = hashlib.sha256(self.current_instrument["name"] + '-'
-                             + self.current_instrument["sha"])
+        hash_ = hashlib.sha256(self.live_instrument["name"] + '-'
+                             + self.live_instrument["sha"])
         if not hash_.hexdigest() == id_:
             log('error', 'Corrupted instrument: ID mismatch' 
                   + '\n* Bitstream ID:\n' + id_ 

@@ -11,13 +11,6 @@ class Oscillo(object):
         self.client = client
         self.wfm_size = wfm_size
 
-        if self.open() < 0:
-            print('Cannot open device OSCILLO')
-       
-    @command('OSCILLO')
-    def open(self):
-        return self.client.recv_int32()
-
     @command('OSCILLO','I')
     def set_n_avg_min(self, n_avg_min): pass
 
@@ -25,18 +18,27 @@ class Oscillo(object):
     def set_period(self, period): pass
 
     @command('OSCILLO')
+    def get_counter(self):
+        return self.client.recv_int(8, fmt='Q')
+
+    @command('OSCILLO','II')
+    def set_dac_period(self, dac_period0, dac_period1): pass
+
+    @command('OSCILLO','II')
+    def set_avg_period(self, avg_period0, avg_period1): pass
+
+    @command('OSCILLO')
     def reset(self): pass
 
     @command('OSCILLO')
     def reset_acquisition(self): pass
 
-    def set_dac(self, data):
-        @write_buffer('OSCILLO')
-        def set_dac_buffer(self, data): 
+    def set_dac(self, data, channel):
+        @write_buffer('OSCILLO','I')
+        def set_dac_buffer(self, data, channel): 
             pass
-        data1 = np.mod(np.floor(8192 * data[0, :]) + 8192,16384) + 8192
-        data2 = np.mod(np.floor(8192 * data[1, :]) + 8192,16384) + 8192
-        set_dac_buffer(self, data1 + data2 << 16)
+        data = np.uint32(np.mod(np.floor(8192 * data) + 8192,16384) + 8192)
+        set_dac_buffer(self, data[::2] + data[1::2] * 65536, channel)
 
     @command('OSCILLO', '?')
     def set_averaging(self, avg_status):
@@ -44,6 +46,14 @@ class Oscillo(object):
 
     @command('OSCILLO')
     def get_num_average(self):
+        return self.client.recv_uint32()
+
+    @command('OSCILLO')
+    def get_num_average_0(self):
+        return self.client.recv_uint32()
+
+    @command('OSCILLO')
+    def get_num_average_1(self):
         return self.client.recv_uint32()
 
     @command('OSCILLO')
@@ -60,6 +70,15 @@ class Oscillo(object):
             print('Testing OSCILLO driver')
         oscillo = self
         oscillo.reset()
+
+        dac_data = np.arange(8192) / 8192.
+        oscillo.set_dac(dac_data, 1)
+
+        oscillo.set_dac(dac_data, 0)
+
+
+        oscillo.set_dac(dac_data, 1)
+
         time.sleep(0.01)
         adc = oscillo.get_adc()
         assert(np.shape(adc) == (2, 8192))

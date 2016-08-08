@@ -1,18 +1,23 @@
+namespace eval spectrum {
 
-proc add_spectrum_module {module_name n_pts_fft adc_width} {
+proc pins {cmd adc_width} {
+  $cmd -dir I -from [expr $adc_width - 1] -to 0 adc1
+  $cmd -dir I -from [expr $adc_width - 1] -to 0 adc2
+  $cmd -dir I -from 31                    -to 0 cfg_sub
+  $cmd -dir I -from 31                    -to 0 cfg_fft
+  $cmd -dir I -from 31                    -to 0 demod_data
+  $cmd -dir I -from 0                     -to 0 tvalid
+  $cmd -dir O -from 31                    -to 0 m_axis_result_tdata
+  $cmd -dir O -from 0                     -to 0 m_axis_result_tvalid
+  $cmd -dir I -type clk                         clk
+}
+
+proc create {module_name n_pts_fft adc_width} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir I -type clk                         clk
-  create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc1
-  create_bd_pin -dir I -from [expr $adc_width - 1] -to 0 adc2
-  create_bd_pin -dir I -from 31                    -to 0 cfg_sub
-  create_bd_pin -dir I -from 31                    -to 0 cfg_fft
-  create_bd_pin -dir I -from 31                    -to 0 demod_data
-  create_bd_pin -dir I                                   tvalid
-  create_bd_pin -dir O -from 31                    -to 0 m_axis_result_tdata
-  create_bd_pin -dir O                                   m_axis_result_tvalid
+  pins create_bd_pin $adc_width
 
   for {set i 1} {$i < 3} {incr i} {
     cell xilinx.com:ip:c_addsub:12.0 subtract_$i {
@@ -23,30 +28,14 @@ proc add_spectrum_module {module_name n_pts_fft adc_width} {
       Out_Width $adc_width
       Latency 2
     } {
-      A   adc$i
       clk clk
+      A   adc$i
+      B   [get_slice_pin cfg_sub [expr $adc_width*$i-1] [expr $adc_width*($i-1)]]
     }
   }
 
-  cell xilinx.com:ip:xlconstant:1.1 two_zeros {
-    CONST_WIDTH 2
-    CONST_VAL 0
-  } {}
-
-  cell xilinx.com:ip:xlconcat:2.1 concat_0 {
-    NUM_PORTS 4
-    IN0_WIDTH $adc_width
-    IN1_WIDTH [expr 16 - $adc_width]
-    IN2_WIDTH $adc_width
-    IN3_WIDTH [expr 16 - $adc_width]
-  } {
-    In1 two_zeros/dout
-    In3 two_zeros/dout
-  }
-
-  for {set i 1} {$i < 3} {incr i} {
-    connect_pins subtract_$i/S concat_0/In[expr 2*($i-1)]
-  }
+  set left_zeros [get_constant_pin 0 [expr 16 - $adc_width]]
+  set shifted_tvalid [get_Q_pin tvalid 2]
 
   cell xilinx.com:ip:cmpy:6.0 complex_mult {
     APortWidth $adc_width
@@ -54,18 +43,16 @@ proc add_spectrum_module {module_name n_pts_fft adc_width} {
     OutputWidth [expr 2*$adc_width + 1]
   } {
     aclk clk
-    s_axis_a_tdata concat_0/dout
+    s_axis_a_tdata [get_concat_pin {
+                     subtract_1/S $left_zeros
+                     subtract_2/S $left_zeros
+                    }]
     s_axis_b_tdata demod_data
+    s_axis_a_tvalid $shifted_tvalid
+    s_axis_b_tvalid $shifted_tvalid
   }
-
+  
   for {set i 0} {$i < 2} {incr i} {
-    cell xilinx.com:ip:xlslice:1.0 mult_slice_$i {
-      DIN_WIDTH 64
-      DIN_FROM  [expr 31+32*$i]
-      DIN_TO    [expr 32*$i]
-    } {
-      Din complex_mult/m_axis_dout_tdata
-    }
     cell xilinx.com:ip:floating_point:7.1 float_$i {
       Operation_Type Fixed_to_float
       A_Precision_Type Custom
@@ -75,37 +62,10 @@ proc add_spectrum_module {module_name n_pts_fft adc_width} {
       C_Latency 2
     } {
       aclk clk
-      s_axis_a_tdata mult_slice_$i/dout
+      s_axis_a_tdata [get_slice_pin complex_mult/m_axis_dout_tdata [expr 31+32*$i] [expr 32*$i]]
       s_axis_a_tvalid complex_mult/m_axis_dout_tvalid
     }
   }
-
-  cell xilinx.com:ip:xlconcat:2.1 concat_float {
-    IN0_WIDTH 32
-    IN1_WIDTH 32
-  } {
-    In0 float_0/m_axis_result_tdata
-    In1 float_1/m_axis_result_tdata
-  }
-
-  cell xilinx.com:ip:util_vector_logic:2.0 tvalid_and {
-    C_SIZE 1
-    C_OPERATION and
-  } {
-    Op1 float_0/m_axis_result_tvalid
-    Op2 float_1/m_axis_result_tvalid
-  }
-
-  cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
-    Width 1
-    Depth 2
-  } {
-    CLK clk
-    D tvalid
-  }
-
-  connect_pins shift_tvalid/Q complex_mult/s_axis_a_tvalid
-  connect_pins shift_tvalid/Q complex_mult/s_axis_b_tvalid
 
   cell xilinx.com:ip:xfft:9.0 fft_0 {
     transform_length $n_pts_fft
@@ -117,22 +77,19 @@ proc add_spectrum_module {module_name n_pts_fft adc_width} {
     output_ordering natural_order
   } {
     aclk clk
-    s_axis_data_tdata concat_float/dout
-    s_axis_data_tvalid tvalid_and/Res
+    s_axis_data_tdata    [get_concat_pin {
+                           float_0/m_axis_result_tdata
+                           float_1/m_axis_result_tdata
+                         }]
+    s_axis_data_tvalid   [get_and_pin float_0/m_axis_result_tvalid float_1/m_axis_result_tvalid]
+    s_axis_data_tlast    [get_constant_pin 0 1]
+    s_axis_config_tdata  [get_slice_pin cfg_fft 15 0]
+    s_axis_config_tvalid [get_constant_pin 1 1]
   }
 
-  cell xilinx.com:ip:xlconstant:1.1 config_tlast_const {CONST_VAL 0} {dout fft_0/s_axis_data_tlast}
-  cell xilinx.com:ip:xlconstant:1.1 config_tvalid_const {} {dout fft_0/s_axis_config_tvalid}
-
   for {set i 0} {$i < 2} {incr i} {
-    cell xilinx.com:ip:xlslice:1.0 fft_slice_$i {
-      DIN_WIDTH 64
-      DIN_FROM  [expr 31+32*$i]
-      DIN_TO    [expr 32*$i]
-    } {
-      Din fft_0/m_axis_data_tdata
-    }
-
+  
+    set slice_tdata [get_slice_pin fft_0/m_axis_data_tdata [expr 31+32*$i] [expr 32*$i]]
     cell xilinx.com:ip:floating_point:7.1 mult_$i {
       Operation_Type Multiply
       Flow_Control NonBlocking
@@ -140,8 +97,8 @@ proc add_spectrum_module {module_name n_pts_fft adc_width} {
       C_Latency 3
     } {
       aclk clk
-      s_axis_a_tdata fft_slice_$i/Dout
-      s_axis_b_tdata fft_slice_$i/Dout
+      s_axis_a_tdata  $slice_tdata
+      s_axis_b_tdata  $slice_tdata
       s_axis_a_tvalid fft_0/m_axis_data_tvalid
       s_axis_b_tvalid fft_0/m_axis_data_tvalid
     }
@@ -161,28 +118,7 @@ proc add_spectrum_module {module_name n_pts_fft adc_width} {
     m_axis_result_tvalid m_axis_result_tvalid
   }
 
-  # Configuration registers
-
-  for {set i 1} {$i < 3} {incr i} {
-    cell xilinx.com:ip:xlslice:1.0 subtract_slice_$i {
-      DIN_WIDTH 32
-      DIN_FROM  [expr $adc_width*$i-1]
-      DIN_TO    [expr $adc_width*($i-1)]
-    } {
-      Din cfg_sub
-      Dout subtract_$i/B
-    }
-  }
-
-  cell xilinx.com:ip:xlslice:1.0 cfg_fft_slice {
-    DIN_WIDTH 32
-    DIN_FROM 15
-    DIN_TO 0
-  } {
-    Din cfg_fft
-    Dout fft_0/s_axis_config_tdata
-  }
-
   current_bd_instance $bd
-
 }
+
+} ;# end spectrum namespace

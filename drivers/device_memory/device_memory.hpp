@@ -7,7 +7,11 @@
 #ifndef __DRIVERS_DEVICE_MEMORY_DEVICE_MEMORY_HPP__
 #define __DRIVERS_DEVICE_MEMORY_DEVICE_MEMORY_HPP__
 
+#include <tuple>
+#include <string>
+
 #include <drivers/lib/dev_mem.hpp>
+#include <drivers/addresses.hpp>
 
 class DeviceMemory
 {
@@ -26,6 +30,10 @@ class DeviceMemory
 
     void write(uint32_t mmap_idx, uint32_t offset, uint32_t reg_val) {
         dvm.write32(mmap_idx, offset, reg_val);
+    }
+
+    void write_mask(uint32_t mmap_idx, uint32_t offset, uint32_t reg_val, uint32_t mask) {
+        dvm.write32_mask(mmap_idx, offset, reg_val, mask);
     }
 
     #pragma tcp-server write_array arg{data} arg{len}
@@ -51,12 +59,13 @@ class DeviceMemory
         dvm.toggle_bit(mmap_idx, offset, index);
     }
 
-    void mask_and(uint32_t mmap_idx, uint32_t offset, uint32_t mask) {
-        dvm.mask_and(mmap_idx, offset, mask);
+    std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>
+    get_map_params(uint32_t mmap_idx) {
+        return dvm.get_map_params(mmap_idx);
     }
 
-    void mask_or(uint32_t mmap_idx, uint32_t offset, uint32_t mask) {
-        dvm.mask_or(mmap_idx, offset, mask);
+    std::string get_instrument_config() {
+        return CFG_JSON;
     }
 
   private:

@@ -2,15 +2,14 @@ proc add_redp_adc_dac {module_name} {
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir I -from 13 -to 0 dac1
-  create_bd_pin -dir I -from 13 -to 0 dac2
+  for {set i 1} {$i <= 2} {incr i} {
+    create_bd_pin -dir I -from 13 -to 0 dac$i
+    create_bd_pin -dir O -from 13 -to 0 adc$i
+  }
 
   create_bd_pin -dir O adc_clk
   create_bd_pin -dir O ser_clk
   create_bd_pin -dir O pwm_clk
-
-  create_bd_pin -dir O -from 13 -to 0 adc1
-  create_bd_pin -dir O -from 13 -to 0 adc2
 
   # Phase-locked Loop (PLL)
   cell xilinx.com:ip:clk_wiz:5.3 pll {
@@ -25,55 +24,38 @@ proc add_redp_adc_dac {module_name} {
     CLKOUT5_USED true CLKOUT5_REQUESTED_OUT_FREQ 250.0
     CLKOUT6_USED true CLKOUT6_REQUESTED_OUT_FREQ 250.0
     USE_RESET false
-  } {}
-  connect_bd_net [get_bd_ports /adc_clk_p_i] [get_bd_pins pll/clk_in1_p]
-  connect_bd_net [get_bd_ports /adc_clk_n_i] [get_bd_pins pll/clk_in1_n]
+  } {
+    clk_out1 adc_clk
+    clk_out5 ser_clk
+    clk_out6 pwm_clk
+  }
+  
+  foreach {pol} {p n} {connect_bd_net [get_bd_ports /adc_clk_${pol}_i] [get_bd_pins pll/clk_in1_${pol}]}
 
   # Add ADC IP block
-  create_bd_cell -type ip -vlnv pavel-demin:user:redp_adc:1.0 adc
-  foreach {port_name} {
-    adc_dat_a_i
-    adc_dat_b_i
-    adc_clk_source
-    adc_cdcs_o
-  } {
-    connect_bd_net [get_bd_ports /$port_name] [get_bd_pins adc/$port_name]
+  cell pavel-demin:user:redp_adc:1.0 adc {} {
+    adc_clk     pll/clk_out1
+    adc_dat_a_o adc1
+    adc_dat_b_o adc2
   }
-  connect_pins adc/adc_clk     pll/clk_out1
-  connect_pins adc/adc_dat_a_o adc1
-  connect_pins adc/adc_dat_b_o adc2
+  
+  connect_ports adc
 
   # Add DAC IP block
   cell pavel-demin:user:redp_dac:1.0 dac {} {
     dac_dat_a_i dac1
     dac_dat_b_i dac2
-  }
-  foreach {port_name} {
-    dac_clk_o
-    dac_dat_o
-    dac_rst_o
-    dac_sel_o
-    dac_wrt_o
-  } {
-    connect_bd_net [get_bd_ports /$port_name] [get_bd_pins dac/$port_name]
-  }
-
-  connect_cell dac {
     dac_clk_1x pll/clk_out2
     dac_clk_2x pll/clk_out3
     dac_clk_2p pll/clk_out4
     dac_locked pll/locked
   }
+  
+  connect_ports dac
 
   # Connect reset
-  create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 adc_rst
-
-  connect_pins adc_rst/dout adc/adc_rst_i
-
-  connect_cell pll {
-    clk_out1 adc_clk
-    clk_out5 ser_clk
-    clk_out6 pwm_clk
+  cell xilinx.com:ip:xlconstant:1.1 adc_rst {} {
+    dout adc/adc_rst_i
   }
 
   current_bd_instance $bd

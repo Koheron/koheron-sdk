@@ -8,12 +8,10 @@ class Laser(object):
 
     def __init__(self, client):
         self.client = client
-        if self.open() < 0 :
-            print('Cannot open LASER device')
 
     @command('LASER')
-    def open(self):
-        return self.client.recv_int32()
+    def is_laser_present(self):
+        return self.client.recv_bool()
 
     @command('LASER')
     def reset(self): pass
@@ -35,11 +33,11 @@ class Laser(object):
 
     @command('LASER')
     def get_monitoring(self):
-        return self.client.recv_tuple()
+        return self.client.recv_tuple('II')
 
     @command('LASER')
     def get_status(self):
-        return self.client.recv_tuple()
+        return self.client.recv_tuple('?ff')
 
     @command('LASER','f')
     def set_laser_current(self, current):
@@ -47,12 +45,7 @@ class Laser(object):
         pass
 
     @command('LASER')
-    def is_laser_present(self):
-        return self.client.recv_uint32()
-
-    @command('LASER')
-    def save_config(self):
-        pass
+    def save_config(self): pass
 
     @command('LASER')
     def load_config(self):

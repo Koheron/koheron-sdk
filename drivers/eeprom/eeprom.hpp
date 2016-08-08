@@ -1,4 +1,4 @@
-/// Eepromscope driver
+/// Eeprom driver
 ///
 /// (c) Koheron
 
@@ -6,12 +6,11 @@
 #define __DRIVERS_CORE_EEPROM_HPP__
 
 #include <vector>
+#include <thread>
+#include <chrono>
 
 #include <drivers/lib/dev_mem.hpp>
 #include <drivers/addresses.hpp>
-
-#include <thread>
-#include <chrono>
 
 // http://www.atmel.com/images/Atmel-5193-SEEPROM-AT93C46D-Datasheet.pdf
 #define WRITE_OPCODE 1
@@ -34,8 +33,6 @@ class Eeprom
         config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
         status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
     }
-
-    int Open() {return dvm.is_ok() ? 0 : -1;}
 
     uint32_t read(uint32_t addr) {
         dvm.write32(config_map, SPI_IN_OFF, (READ_OPCODE << 7) + (addr << 1));
@@ -73,9 +70,6 @@ class Eeprom
         dvm.write32(config_map, SPI_IN_OFF, (EWDS << 5));
         dvm.set_bit(config_map, SPI_IN_OFF, 0);
     }
-
-    #pragma tcp-server is_failed
-    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;

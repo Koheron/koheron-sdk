@@ -18,14 +18,15 @@
 #define SET_CHAN_OFF       0x324
 #define AVG_EN_OFF         0x32C
 #define READ_OFF           0x240
-#define AVG_OFF            0x300
+#define XADC_CFG0_OFF      0x300
+#define XADC_CFG1_OFF      0x304
+#define XADC_CFG2_OFF      0x308
 
 class Xadc
 {
   public:
     Xadc(Klib::DevMem& dvm_);
 
-    int Open() {return dvm.is_ok() ? 0 : -1;}
     int set_channel(uint32_t channel_0_, uint32_t channel_1_);
     
     void enable_averaging() {
@@ -34,9 +35,6 @@ class Xadc
 
     int set_averaging(uint32_t n_avg);
     int read(uint32_t channel);
-
-    #pragma tcp-server is_failed
-    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;

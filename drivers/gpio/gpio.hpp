@@ -34,8 +34,6 @@ class Gpio
         gpio_map = dvm.AddMemoryMap(GPIO_ADDR, GPIO_RANGE);
     }
 
-    int Open() {return dvm.is_ok() ? 0 : 1;}
-
     void set_data(uint32_t channel, uint32_t value) {
         dvm.write32(gpio_map, get_value_offset(channel), value);
     }
@@ -60,6 +58,10 @@ class Gpio
             dvm.toggle_bit(gpio_map, get_value_offset(channel), index);
     }
 
+    bool read_bit(uint32_t index, uint32_t channel) {
+        return dvm.read_bit(gpio_map, get_value_offset(channel), index);
+    }
+
     void set_as_input(uint32_t index, uint32_t channel) {
         if (index <= MAX_BIT_IDX)
             dvm.set_bit(gpio_map, get_dir_offset(channel), index);
@@ -69,9 +71,6 @@ class Gpio
         if (index <= MAX_BIT_IDX)
             dvm.clear_bit(gpio_map, get_dir_offset(channel), index);
     }
-
-    #pragma tcp-server is_failed
-    bool IsFailed() const {return dvm.IsFailed();}
 
   private:
     Klib::DevMem& dvm;
