@@ -6,7 +6,7 @@
 #### `Software Development Kit for Zynq-based instruments`
 
 * Ubuntu Core 16.04 LTS
-* Vivado 2016.1 toolchain (Linux Kernel version 4.4)
+* Vivado 2016.2 toolchain (Linux Kernel version 4.4)
 * User-space control of hardware with [TCP / Websocket server](https://github.com/Koheron/tcp-server)
 * HTTP, Python and Javascript APIs
 
@@ -31,7 +31,7 @@ You can find the latest release of the SD card image for the Red Pitaya `oscillo
 ## Build your own instrument
 
 The build is tested on Ubuntu 16.04.
-[Install Vivado 2016.1](https://github.com/Koheron/zynq-sdk/issues/101) and source it (`source scripts/settings.sh`):
+[Install Vivado 2016.2](https://github.com/Koheron/zynq-sdk/issues/101) and source it (`source scripts/settings.sh`):
 
 An instrument consist of a file `<instrument>-<version>.zip` that contains the bitstream and its corresponding server.
 Run the instrument on your Zynq board and test it:
