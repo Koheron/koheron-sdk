@@ -14,7 +14,8 @@
 #define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
 #define FIFO_BUFF_SIZE 4096
 
-constexpr uint32_t sel_width = ceil(log(float(N_DAC_BRAM_PARAM)) / log(2.));
+constexpr uint32_t dac_sel_width  = ceil(log(float(N_DAC_BRAM_PARAM)) / log(2.));
+constexpr uint32_t bram_sel_width = ceil(log(float(N_DAC_PARAM)) / log(2.));
 
 class Spectrum
 {
@@ -52,44 +53,44 @@ class Spectrum
         for (int i=N_DAC_PARAM; i < N_DAC_BRAM_PARAM; i++) {
             connected_bram[i] = false;
         }
-        set_dac_select();
+        update_dac_routing();
     }
 
-    void set_dac_select() {
+    void update_dac_routing() {
+        // dac_select defines the connection between BRAMs and DACs
         uint32_t dac_select = 0;
-        for (uint32_t i=0; i < N_DAC_PARAM; i++) {
-            dac_select += bram_index[i] << (sel_width * i);
-        }
+        for (uint32_t i=0; i < N_DAC_PARAM; i++)
+            dac_select += bram_index[i] << (dac_sel_width * i);
         dvm.write32(config_map, DAC_SELECT_OFF, dac_select);
+
+        // addr_select defines the connection between address generators and BRAMs
+        uint32_t addr_select = 0;
+        for (uint32_t j=0; j < N_DAC_PARAM; j++)
+            addr_select += j << (bram_sel_width * bram_index[j]);
+        dvm.write32(config_map, ADDR_SELECT_OFF, addr_select);
     }
 
     uint32_t get_first_empty_bram_index() {
-        for (uint32_t i=0; i < N_DAC_BRAM_PARAM; i++) {
-            if (connected_bram[i] == false)
-                return i;
+        uint32_t i;
+        for (i=0; i < N_DAC_BRAM_PARAM; i++) {
+            if ((bram_index[0] != i) && (bram_index[1] != i))
+                break;
         }
-        return N_DAC_BRAM_PARAM;
+        return i;
     }
 
-    #pragma tcp-server write_array arg{data} arg{len}
-    void set_dac_buffer(uint32_t channel, const uint32_t *data, uint32_t len) {
+    void set_dac_buffer(uint32_t channel, const std::array<uint32_t, WFM_SIZE/2>& arr) {
         uint32_t old_idx = bram_index[channel];
         uint32_t new_idx = get_first_empty_bram_index();
         // Write data in empty BRAM
-        dvm.write_buff32(dac_map[new_idx], 0, data, len);
-        // Switch interconnect
+        dvm.write_buff32(dac_map[new_idx], 0, arr.data(), arr.size());
+        // Switch DAC interconnect
         bram_index[channel] = new_idx;
         connected_bram[new_idx] = true;
-        set_dac_select();
+        update_dac_routing();
         connected_bram[old_idx] = false;
     }
-
-    #pragma tcp-server write_array arg{data} arg{len}
-    void set_dac_buffer_no_switch(uint32_t channel, const uint32_t *data, uint32_t len) {
-        uint32_t idx = bram_index[channel];
-        dvm.write_buff32(dac_map[idx], 0, data, len);
-    }
-
+    
     void reset_acquisition() {
         dvm.clear_bit(config_map, ADDR_OFF, 1);
         dvm.set_bit(config_map, ADDR_OFF, 1);
