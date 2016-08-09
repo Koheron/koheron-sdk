@@ -52,12 +52,8 @@ class Spectrum
         dac.set_data(channel, arr);
     }
 
-    std::array<uint32_t, WFM_SIZE/2>& get_dac_buffer(uint32_t channel)
-    {
-        uint32_t *buff = dac.get_data(channel);
-        auto p = reinterpret_cast<std::array<uint32_t, WFM_SIZE/2>*>(buff);
-        assert(p->data() == (const uint32_t*)buff);
-        return *p;
+    std::array<uint32_t, WFM_SIZE/2>& get_dac_buffer(uint32_t channel) {
+        return dac.get_data<WFM_SIZE/2>(channel);
     }
 
     void reset_acquisition() {

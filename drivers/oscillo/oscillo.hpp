@@ -96,8 +96,13 @@ class Oscillo
     }
 
     // DACs
-    void set_dac_buffer(uint32_t channel, const std::array<uint32_t, WFM_SIZE/2>& arr);
-    std::array<uint32_t, WFM_SIZE/2>& get_dac_buffer(uint32_t channel);
+    void set_dac_buffer(uint32_t channel, const std::array<uint32_t, WFM_SIZE/2>& arr) {
+        dac.set_data(channel, arr);
+    }
+
+    std::array<uint32_t, WFM_SIZE/2>& get_dac_buffer(uint32_t channel) {
+        return dac.get_data<WFM_SIZE/2>(channel);
+    }
 
     // Read ADC
     std::array<float, 2*WFM_SIZE>& read_all_channels();

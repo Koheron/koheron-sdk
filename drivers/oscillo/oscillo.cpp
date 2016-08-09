@@ -32,19 +32,6 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
     dac.set_config_reg(config_map, DAC_SELECT_OFF, ADDR_SELECT_OFF);
 }
 
-void Oscillo::set_dac_buffer(uint32_t channel, const std::array<uint32_t, WFM_SIZE/2>& arr)
-{
-    dac.set_data(channel, arr);
-}
-
-std::array<uint32_t, WFM_SIZE/2>& Oscillo::get_dac_buffer(uint32_t channel)
-{
-    uint32_t *buff = dac.get_data(channel);
-    auto p = reinterpret_cast<std::array<uint32_t, WFM_SIZE/2>*>(buff);
-    assert(p->data() == (const uint32_t*)buff);
-    return *p;
-}
-
 // Read the two channels
 std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
 {
