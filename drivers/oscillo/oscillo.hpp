@@ -20,6 +20,12 @@
 constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
 constexpr std::array<uint32_t, 2> n_avg_offset = {N_AVG0_OFF, N_AVG1_OFF};
 
+constexpr std::array<std::array<uint32_t, 2>, N_DAC_BRAM_PARAM> dac_brams  = {{
+    {DAC1_ADDR, DAC1_RANGE},
+    {DAC2_ADDR, DAC2_RANGE},
+    {DAC3_ADDR, DAC3_RANGE}
+}};
+
 class Oscillo
 {
   public:
@@ -105,7 +111,6 @@ class Oscillo
     Klib::MemMapID config_map;
     Klib::MemMapID status_map;
     Klib::MemMapID adc_map[2];
-    Klib::MemMapID dac_map[N_DAC_BRAM_PARAM];
     
     // Acquired data buffers
     std::array<float, 2*WFM_SIZE> data_all;

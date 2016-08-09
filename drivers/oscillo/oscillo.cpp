@@ -9,7 +9,7 @@
 Oscillo::Oscillo(Klib::DevMem& dvm_)
 : dvm(dvm_)
 , data_decim(0)
-, dac_router(dvm_)
+, dac_router(dvm_, dac_brams)
 {
     config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
     status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
@@ -17,10 +17,6 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
     adc_map[0] = dvm.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
     adc_map[1] = dvm.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
 
-    dac_map[0] = dvm.AddMemoryMap(DAC1_ADDR, DAC2_RANGE);
-    dac_map[1] = dvm.AddMemoryMap(DAC2_ADDR, DAC2_RANGE);
-    dac_map[2] = dvm.AddMemoryMap(DAC3_ADDR, DAC3_RANGE);
-    
     raw_data[0] = dvm.read_buffer<int32_t>(adc_map[0]);
     raw_data[1] = dvm.read_buffer<int32_t>(adc_map[1]);
 
@@ -38,16 +34,12 @@ Oscillo::Oscillo(Klib::DevMem& dvm_)
 
 void Oscillo::set_dac_buffer(uint32_t channel, const std::array<uint32_t, WFM_SIZE/2>& arr)
 {
-    uint32_t old_idx = dac_router.get_idx(channel);
-    uint32_t new_idx = dac_router.get_first_empty_bram_index();
-    // Write data in empty BRAM
-    dvm.write_buff32(dac_map[new_idx], 0, arr.data(), arr.size());
-    dac_router.switch_interconnect(channel, old_idx, new_idx);
+    dac_router.set_data(channel, arr);
 }
 
 std::array<uint32_t, WFM_SIZE/2>& Oscillo::get_dac_buffer(uint32_t channel)
 {
-    uint32_t *buff = dvm.read_buff32(dac_map[dac_router.get_idx(channel)]);
+    uint32_t *buff = dac_router.get_data(channel);
     auto p = reinterpret_cast<std::array<uint32_t, WFM_SIZE/2>*>(buff);
     assert(p->data() == (const uint32_t*)buff);
     return *p;

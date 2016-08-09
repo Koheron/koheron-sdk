@@ -5,6 +5,8 @@
 #ifndef __DRIVERS_LIB_DAC_ROUTER_HPP__
 #define __DRIVERS_LIB_DAC_ROUTER_HPP__
 
+#include "dev_mem.hpp"
+
 namespace Klib {
 
 constexpr uint32_t dac_sel_width(uint32_t n_dac_bram) {
@@ -18,9 +20,12 @@ constexpr uint32_t bram_sel_width(uint32_t n_dac) {
 template<uint32_t n_dac, uint32_t n_dac_bram>
 struct DacRouter
 {
-    DacRouter(Klib::DevMem& dvm_)
+    DacRouter(DevMem& dvm_, std::array<std::array<uint32_t, 2>, n_dac_bram> dac_brams)
     : dvm(dvm_)
-    {}
+    {
+        for (uint32_t i=0; i<n_dac_bram; i++)
+            dac_map[i] = dvm.AddMemoryMap(dac_brams[i][0], dac_brams[i][1]);
+    }
 
     uint32_t get_idx(uint32_t channel) const {return bram_index[channel];}
 
@@ -33,15 +38,24 @@ struct DacRouter
         init_dac_brams();
     }
 
+    uint32_t* get_data(uint32_t channel) {return dvm.read_buff32(dac_map[bram_index[channel]]);}
+    void set_data(uint32_t channel, const uint32_t *buffer, uint32_t len);
+
+    template<size_t N>
+    void set_data(uint32_t channel, const std::array<uint32_t, N> arr) {
+        set_data(channel, arr.data(), arr.size());
+    }
+
     void init_dac_brams();
     void update_dac_routing();
     int get_first_empty_bram_index();
     void switch_interconnect(uint32_t channel, uint32_t old_idx, uint32_t new_idx);
 
-    Klib::DevMem& dvm;
-    Klib::MemMapID config_map;
+    DevMem& dvm;
+    MemMapID config_map;
     uint32_t dac_select_off;
     uint32_t addr_select_off;
+    std::array<MemMapID, n_dac_bram> dac_map;
 
     std::array<uint32_t, n_dac> bram_index;
     std::array<bool, n_dac_bram> connected_bram;
@@ -95,6 +109,16 @@ inline void DacRouter<n_dac, n_dac_bram>::switch_interconnect(
     connected_bram[new_idx] = true;
     update_dac_routing();
     connected_bram[old_idx] = false;
+}
+
+template<uint32_t n_dac, uint32_t n_dac_bram>
+inline void DacRouter<n_dac, n_dac_bram>::set_data(
+            uint32_t channel, const uint32_t *buffer, uint32_t len)
+{
+    uint32_t old_idx = bram_index[channel];
+    uint32_t new_idx = get_first_empty_bram_index();
+    dvm.write_buff32(dac_map[new_idx], 0, buffer, len);
+    switch_interconnect(channel, old_idx, new_idx);
 }
 
 }; // namespace Klib
