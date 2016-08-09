@@ -9,6 +9,7 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
 : dvm(dvm_)
 , spectrum_decim(0)
 , fifo(dvm_)
+, dac(dvm_, dac_brams)
 {
     config_map      = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
     status_map      = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
@@ -16,10 +17,6 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
     demod_map       = dvm.AddMemoryMap(DEMOD_ADDR, DEMOD_RANGE);
     noise_floor_map = dvm.AddMemoryMap(NOISE_FLOOR_ADDR, NOISE_FLOOR_RANGE);
     peak_fifo_map   = dvm.AddMemoryMap(PEAK_FIFO_ADDR, PEAK_FIFO_RANGE);
-
-    dac_map[0]      = dvm.AddMemoryMap(DAC1_ADDR, DAC1_RANGE);
-    dac_map[1]      = dvm.AddMemoryMap(DAC2_ADDR, DAC2_RANGE);
-    dac_map[2]      = dvm.AddMemoryMap(DAC3_ADDR, DAC3_RANGE);
 
     raw_data = dvm.read_buffer<float>(spectrum_map);
 
@@ -33,6 +30,8 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
     set_address_range(0, WFM_SIZE);
     set_period(WFM_SIZE);
     set_n_avg_min(0);
+
+    dac.set_config_reg(config_map, DAC_SELECT_OFF, ADDR_SELECT_OFF);
 }
 
 void Spectrum::set_n_avg_min(uint32_t n_avg_min)
