@@ -90,6 +90,7 @@ def get_config(project):
                 if num.isdigit():
                     num = int(num)
                 else:
+                    assert(num in params)
                     num = params[num]
                 if num == 1:
                     new_list.append(s)
