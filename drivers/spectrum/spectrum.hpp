@@ -39,7 +39,7 @@ class Spectrum
         dvm.write32(config_map, DAC_PERIOD0_OFF, dac_period0 - 1);
         dvm.write32(config_map, DAC_PERIOD1_OFF, dac_period1 - 1);
     }
-    
+
     void set_avg_period(uint32_t avg_period) {
         dvm.write32(config_map, AVG_PERIOD0_OFF, avg_period - 1);
         dvm.write32(config_map, AVG_THRESHOLD0_OFF, avg_period - 6);
@@ -90,7 +90,7 @@ class Spectrum
         update_dac_routing();
         connected_bram[old_idx] = false;
     }
-    
+
     void reset_acquisition() {
         dvm.clear_bit(config_map, ADDR_OFF, 1);
         dvm.set_bit(config_map, ADDR_OFF, 1);
@@ -100,7 +100,7 @@ class Spectrum
         // LSB at 1 for forward FFT
         dvm.write32(config_map, CFG_FFT_OFF, 1 + 2 * scale_sch);
     }
-    
+
     void set_offset(uint32_t offset_real, uint32_t offset_imag) {
         dvm.write32(config_map, SUBSTRACT_MEAN_OFF, offset_real + 16384 * offset_imag);
     }
@@ -161,7 +161,7 @@ class Spectrum
     // Store the BRAM corresponding to each DAC
     std::array<uint32_t, N_DAC_PARAM> bram_index;
     std::array<bool, N_DAC_BRAM_PARAM> connected_bram;
-    
+
     // Internal functions
     void wait_for_acquisition() {
        do {} while (dvm.read32(status_map, AVG_READY_OFF) == 0);

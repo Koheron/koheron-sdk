@@ -7,20 +7,17 @@
 
 #include <vector>
 #include <algorithm>
+#include <math.h>
 
 #include <drivers/lib/dev_mem.hpp>
-#include <math.h>
+#include <drivers/lib/dac_router.hpp>
 #include <drivers/addresses.hpp>
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE ADC1_RANGE/sizeof(float)
 #define ACQ_PERIOD_NS 8 // Duration between two acquisitions (ns)
 
-constexpr uint32_t dac_sel_width  = ceil(log(float(N_DAC_BRAM_PARAM)) / log(2.));
-constexpr uint32_t bram_sel_width = ceil(log(float(N_DAC_PARAM)) / log(2.));
-
 constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
-
 constexpr std::array<uint32_t, 2> n_avg_offset = {N_AVG0_OFF, N_AVG1_OFF};
 
 class Oscillo
@@ -115,8 +112,7 @@ class Oscillo
     std::vector<float> data_decim;
 
     // Store the BRAM corresponding to each DAC
-    std::array<uint32_t, N_DAC_PARAM> bram_index;
-    std::array<bool, N_DAC_BRAM_PARAM> connected_bram;
+    Klib::DacRouter<N_DAC_PARAM, N_DAC_BRAM_PARAM> dac_router;
 
     uint32_t n_avg_min_;
 
