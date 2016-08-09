@@ -102,9 +102,14 @@ def get_config(project):
     # Modules
     for module in cfg['modules']:
         module_cfg = get_config(module)
+        # Add cores
         cfg['cores'].extend(module_cfg['cores'])
         cfg['cores'] = list(set(cfg['cores']))
-    
+        # Add registers
+        for list_ in lists:
+            cfg[list_].extend(module_cfg[list_])
+            cfg[list_] = list(set(cfg[list_]))
+
     # SHA
     sha_filename = os.path.join('tmp', project + '.sha')
     if os.path.isfile(sha_filename):
