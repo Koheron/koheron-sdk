@@ -42,7 +42,7 @@ class DacRouter
 
     template<size_t N>
     void set_data(uint32_t channel, const std::array<uint32_t, N> arr) {
-        set_data(channel, arr.data(), arr.size());
+        set_data(channel, arr.data(), N);
     }
 
   private:

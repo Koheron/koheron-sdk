@@ -35,6 +35,9 @@ class Spectrum(object):
         data = np.uint32(np.mod(np.floor(8192 * data) + 8192, 16384) + 8192)
         set_dac_buffer(self, channel, data[::2] + (data[1::2] << 16))
 
+    @command('SPECTRUM', 'I')
+    def get_dac_buffer(self, channel):
+        return self.client.recv_buffer(self.wfm_size/2, data_type='uint32')
 
     @command('SPECTRUM', 'I')
     def set_scale_sch(self, scale_sch):

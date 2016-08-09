@@ -4,7 +4,6 @@ import numpy as np
 
 from instrument_manager import InstrumentManager
 from koheron_tcp_client import KClient
-# from project_config import ProjectConfig
 
 from drivers.oscillo import Oscillo
 
@@ -13,7 +12,6 @@ project = os.getenv('NAME','oscillo')
 
 im = InstrumentManager(host)
 im.install_instrument(project, always_restart=False)
-# pc = ProjectConfig(project)
 
 client = KClient(host)
 oscillo = Oscillo(client)

@@ -116,8 +116,7 @@ class Oscillo
     std::array<float, 2*WFM_SIZE> data_all;
     std::vector<float> data_decim;
 
-    // Store the BRAM corresponding to each DAC
-    Klib::DacRouter<N_DAC_PARAM, N_DAC_BRAM_PARAM> dac_router;
+    Klib::DacRouter<N_DAC_PARAM, N_DAC_BRAM_PARAM> dac;
 
     uint32_t n_avg_min_;
 

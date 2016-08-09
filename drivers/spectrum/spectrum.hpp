@@ -17,6 +17,12 @@
 constexpr uint32_t dac_sel_width  = ceil(log(float(N_DAC_BRAM_PARAM)) / log(2.));
 constexpr uint32_t bram_sel_width = ceil(log(float(N_DAC_PARAM)) / log(2.));
 
+// constexpr std::array<std::array<uint32_t, 2>, N_DAC_BRAM_PARAM> dac_brams  = {{
+//     {DAC1_ADDR, DAC1_RANGE},
+//     {DAC2_ADDR, DAC2_RANGE},
+//     {DAC3_ADDR, DAC3_RANGE}
+// }};
+
 class Spectrum
 {
   public:
@@ -91,6 +97,14 @@ class Spectrum
         connected_bram[old_idx] = false;
     }
 
+    std::array<uint32_t, WFM_SIZE/2>& get_dac_buffer(uint32_t channel)
+    {
+        uint32_t *buff = dvm.read_buff32(dac_map[bram_index[channel]]);
+        auto p = reinterpret_cast<std::array<uint32_t, WFM_SIZE/2>*>(buff);
+        assert(p->data() == (const uint32_t*)buff);
+        return *p;
+    }
+
     void reset_acquisition() {
         dvm.clear_bit(config_map, ADDR_OFF, 1);
         dvm.set_bit(config_map, ADDR_OFF, 1);
@@ -161,6 +175,8 @@ class Spectrum
     // Store the BRAM corresponding to each DAC
     std::array<uint32_t, N_DAC_PARAM> bram_index;
     std::array<bool, N_DAC_BRAM_PARAM> connected_bram;
+
+    // Klib::DacRouter<N_DAC_PARAM, N_DAC_BRAM_PARAM> dac_router;
 
     // Internal functions
     void wait_for_acquisition() {
