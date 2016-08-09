@@ -59,8 +59,7 @@ def load_config(project):
 
 def parse_brackets(string):
     """ ex: 'pwm', 4 = parse_brackets('pwm[4]') """
-    start = string.find('[')
-    end = string.find(']')
+    start, end = map(lambda char : string.find(char), ('[',']'))
     if start >= 0 and end >= 0:
         return string[0:start], int(string[start+1:end])
     else:
@@ -84,6 +83,7 @@ def get_config(project):
     ex: config = get_config('oscillo')
     """
     cfg = load_config(project)
+
     # Get missing elements from ancestors
     lists = ['cores','xdc','modules']
     for list_ in lists:
@@ -92,6 +92,7 @@ def get_config(project):
     for prop in props:
         cfg[prop] = get_prop(project, prop)
 
+    # Config and status registers
     lists = ['config_registers','status_registers']
     for list_ in lists:
         cfg[list_] = parse_brackets_list(cfg[list_])
