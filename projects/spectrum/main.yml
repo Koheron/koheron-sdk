@@ -46,7 +46,7 @@ config_registers:
   - substract_mean
   - cfg_fft
   - avg
-  - dac_period[2]
+  - dac_period[n_dac]
   - peak_address_low
   - peak_address_high
   - peak_address_reset

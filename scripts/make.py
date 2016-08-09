@@ -58,25 +58,12 @@ def load_config(project):
     return config
 
 def parse_brackets(string):
-    """ ex: 'pwm', 4 = parse_brackets('pwm[4]') """
+    """ ex: 'pwm', '4' = parse_brackets('pwm[4]') """
     start, end = map(lambda char : string.find(char), ('[',']'))
     if start >= 0 and end >= 0:
-        return string[0:start], int(string[start+1:end])
+        return string[0:start], string[start+1:end]
     else:
-        return string, 1
-
-def parse_brackets_list(list_):
-    new_list = []
-    if list_ is None:
-        return None
-    for string in list_:
-        s, num = parse_brackets(string)
-        if num == 1:
-            new_list.append(s)
-        else:
-            for i in range(num):
-                new_list.append(s+str(i))
-    return new_list
+        return string, '1'
 
 def get_config(project):
     """ Get the config dictionary recursively. 
@@ -94,8 +81,22 @@ def get_config(project):
 
     # Config and status registers
     lists = ['config_registers','status_registers']
+    params = cfg['parameters']
     for list_ in lists:
-        cfg[list_] = parse_brackets_list(cfg[list_])
+        new_list = []
+        if cfg[list_] is not None:
+            for string in cfg[list_]:
+                s, num = parse_brackets(string)
+                if num.isdigit():
+                    num = int(num)
+                else:
+                    num = params[num]
+                if num == 1:
+                    new_list.append(s)
+                else:
+                    for i in range(num):
+                        new_list.append(s+str(i))
+        cfg[list_] = new_list
 
     # Modules
     for module in cfg['modules']:
