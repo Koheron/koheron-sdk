@@ -33,33 +33,23 @@ modules:
 config_registers:
   - spi_in
   - led
-  - pwm0
-  - pwm1
-  - pwm2
-  - pwm3
+  - pwm[n_pwm]
   - addr
-  - avg0
-  - avg1
-  - dac_period0
-  - dac_period1
-  - avg_period0
-  - avg_threshold0
-  - n_avg_min0
-  - n_avg_min1
+  - avg[n_adc]
+  - dac_period[n_dac]
+  - avg_period
+  - avg_threshold
+  - n_avg_min[n_adc]
   - dac_select
   - addr_select
   - clken_mask
 
 status_registers:
   - spi_out
-  - n_avg0
-  - n_avg1
-  - avg_ready0
-  - avg_ready1
-  - avg_on_out0
-  - avg_on_out1
-  - counter0
-  - counter1
+  - n_avg[n_adc]
+  - avg_ready[n_adc]
+  - avg_on_out[n_adc]
+  - counter[2]
 
 parameters:
   bram_addr_width: 13
@@ -69,6 +59,7 @@ parameters:
   n_pwm: 4
   n_dac_bram: 3
   n_dac: 2
+  n_adc: 2
 
 xdc:
   - projects/base/expansion_connector.xdc
