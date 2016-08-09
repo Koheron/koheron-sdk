@@ -7,8 +7,6 @@
 
 #include "dev_mem.hpp"
 
-namespace Klib {
-
 constexpr uint32_t dac_sel_width(uint32_t n_dac_bram) {
     return ceil(log(float(n_dac_bram)) / log(2.));
 }
@@ -21,7 +19,7 @@ template<uint32_t n_dac, uint32_t n_dac_bram>
 class DacRouter
 {
   public:
-    DacRouter(DevMem& dvm_, std::array<std::array<uint32_t, 2>, n_dac_bram> dac_brams)
+    DacRouter(Klib::DevMem& dvm_, std::array<std::array<uint32_t, 2>, n_dac_bram> dac_brams)
     : dvm(dvm_)
     {
         for (uint32_t i=0; i<n_dac_bram; i++)
@@ -46,11 +44,11 @@ class DacRouter
     }
 
   private:
-    DevMem& dvm;
-    MemMapID config_map;
+    Klib::DevMem& dvm;
+    Klib::MemMapID config_map;
     uint32_t dac_select_off;
     uint32_t addr_select_off;
-    std::array<MemMapID, n_dac_bram> dac_map;
+    std::array<Klib::MemMapID, n_dac_bram> dac_map;
 
     std::array<uint32_t, n_dac> bram_index;
     std::array<bool, n_dac_bram> connected_bram;
@@ -120,7 +118,5 @@ inline void DacRouter<n_dac, n_dac_bram>::set_data(
     dvm.write_buff32(dac_map[new_idx], 0, buffer, len);
     switch_interconnect(channel, old_idx, new_idx);
 }
-
-}; // namespace Klib
 
 #endif // __DRIVERS_LIB_DAC_ROUTER_HPP__
