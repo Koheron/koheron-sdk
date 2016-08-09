@@ -34,12 +34,6 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
     dac.set_config_reg(config_map, DAC_SELECT_OFF, ADDR_SELECT_OFF);
 }
 
-void Spectrum::set_n_avg_min(uint32_t n_avg_min)
-{
-    uint32_t n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
-    dvm.write32(config_map, N_AVG_MIN_OFF, n_avg_min_);
-}
-
 std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
 {
     dvm.set_bit(config_map,ADDR_OFF, 1);

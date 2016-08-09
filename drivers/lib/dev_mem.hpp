@@ -127,6 +127,11 @@ class DevMem
             *(volatile uintptr_t *) (addr + sizeof(uint32_t) * i) = data_ptr[i];
     }
 
+    template<size_t N>
+    void write_buff32(MemMapID id, uint32_t offset, const std::array<uint32_t, N> arr) {
+        write_buff32(id, offset, arr.data(), N);
+    }
+
     template<typename T>
     T* read_buffer(MemMapID id, uint32_t offset = 0) {
         ASSERT_READABLE

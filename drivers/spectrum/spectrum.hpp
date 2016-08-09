@@ -30,7 +30,10 @@ class Spectrum
         dvm.set_bit(config_map, ADDR_OFF, 0);
     }
 
-    void set_n_avg_min(uint32_t n_avg_min);
+    void set_n_avg_min(uint32_t n_avg_min) {
+        uint32_t n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
+        dvm.write32(config_map, N_AVG_MIN_OFF, n_avg_min_);
+    }
 
     void set_period(uint32_t period) {
         set_dac_period(period, period);
@@ -70,14 +73,22 @@ class Spectrum
         dvm.write32(config_map, SUBSTRACT_MEAN_OFF, offset_real + 16384 * offset_imag);
     }
 
-    #pragma tcp-server write_array arg{data} arg{len}
-    void set_demod_buffer(const uint32_t *data, uint32_t len) {
-        dvm.write_buff32(demod_map, 0, data, len);
+    // #pragma tcp-server write_array arg{data} arg{len}
+    // void set_demod_buffer(const uint32_t *data, uint32_t len) {
+    //     dvm.write_buff32(demod_map, 0, data, len);
+    // }
+
+    void set_demod_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
+        dvm.write_buff32(demod_map, 0, arr);
     }
 
-    #pragma tcp-server write_array arg{data} arg{len}
-    void set_noise_floor_buffer(const uint32_t *data, uint32_t len) {
-        dvm.write_buff32(noise_floor_map, 0, data, len);
+    // #pragma tcp-server write_array arg{data} arg{len}
+    // void set_noise_floor_buffer(const uint32_t *data, uint32_t len) {
+    //     dvm.write_buff32(noise_floor_map, 0, data, len);
+    // }
+
+    void set_noise_floor_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
+        dvm.write_buff32(noise_floor_map, 0, arr);
     }
 
     std::array<float, WFM_SIZE>& get_spectrum();
