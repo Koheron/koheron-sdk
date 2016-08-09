@@ -57,6 +57,28 @@ def load_config(project):
         config = yaml.load(config_file)        
     return config
 
+def parse_brackets(string):
+    """ ex: 'pwm', 4 = parse_brackets('pwm[4]') """
+    start = string.find('[')
+    end = string.find(']')
+    if start >= 0 and end >= 0:
+        return string[0:start], int(string[start+1:end])
+    else:
+        return string, 1
+
+def parse_brackets_list(list_):
+    new_list = []
+    if list_ is None:
+        return None
+    for string in list_:
+        s, num = parse_brackets(string)
+        if num == 1:
+            new_list.append(s)
+        else:
+            for i in range(num):
+                new_list.append(s+str(i))
+    return new_list
+
 def get_config(project):
     """ Get the config dictionary recursively. 
     ex: config = get_config('oscillo')
@@ -69,6 +91,10 @@ def get_config(project):
     props = ['board','host']
     for prop in props:
         cfg[prop] = get_prop(project, prop)
+
+    lists = ['config_registers','status_registers']
+    for list_ in lists:
+        cfg[list_] = parse_brackets_list(cfg[list_])
 
     # Modules
     for module in cfg['modules']:

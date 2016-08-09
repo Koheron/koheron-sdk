@@ -60,16 +60,16 @@ averager::create $avg_name $config::bram_addr_width
 connect_cell $avg_name {
   clk         $adc_clk
   restart     $address_name/restart
-  avg_on      [cfg_pin avg0]
-  period      [cfg_pin avg_period0]
-  threshold   [cfg_pin avg_threshold0]
-  n_avg_min   [cfg_pin n_avg_min0]
+  avg_on      [cfg_pin avg]
+  period      [cfg_pin avg_period]
+  threshold   [cfg_pin avg_threshold]
+  n_avg_min   [cfg_pin n_avg_min]
   addr        $recorder_name/addr
   dout        $recorder_name/adc
   wen         $recorder_name/wen
   n_avg       [sts_pin n_avg]
   ready       [sts_pin avg_ready]
-  avg_on_out  [sts_pin avg_on_out0]
+  avg_on_out  [sts_pin avg_on_out]
 }
 
 connect_cell $subtract_name {
