@@ -123,10 +123,6 @@ class Oscillo
 
     // Internal functions
     void _wait_for_acquisition();
-    void init_dac_brams();
-    int get_first_empty_bram_index();
-    void update_dac_routing();
-
 }; // class Oscillo
 
 #endif // __DRIVERS_CORE_OSCILLO_HPP__

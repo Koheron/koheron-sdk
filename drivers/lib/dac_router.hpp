@@ -18,16 +18,15 @@ constexpr uint32_t bram_sel_width(uint32_t n_dac) {
 }
 
 template<uint32_t n_dac, uint32_t n_dac_bram>
-struct DacRouter
+class DacRouter
 {
+  public:
     DacRouter(DevMem& dvm_, std::array<std::array<uint32_t, 2>, n_dac_bram> dac_brams)
     : dvm(dvm_)
     {
         for (uint32_t i=0; i<n_dac_bram; i++)
             dac_map[i] = dvm.AddMemoryMap(dac_brams[i][0], dac_brams[i][1]);
     }
-
-    uint32_t get_idx(uint32_t channel) const {return bram_index[channel];}
 
     void set_config_reg(Klib::MemMapID config_map_, uint32_t dac_select_off_,
                         uint32_t addr_select_off_) {
@@ -46,11 +45,7 @@ struct DacRouter
         set_data(channel, arr.data(), arr.size());
     }
 
-    void init_dac_brams();
-    void update_dac_routing();
-    int get_first_empty_bram_index();
-    void switch_interconnect(uint32_t channel, uint32_t old_idx, uint32_t new_idx);
-
+  private:
     DevMem& dvm;
     MemMapID config_map;
     uint32_t dac_select_off;
@@ -59,6 +54,11 @@ struct DacRouter
 
     std::array<uint32_t, n_dac> bram_index;
     std::array<bool, n_dac_bram> connected_bram;
+
+    void init_dac_brams();
+    void update_dac_routing();
+    int get_first_empty_bram_index();
+    void switch_interconnect(uint32_t channel, uint32_t old_idx, uint32_t new_idx);
 };
 
 template<uint32_t n_dac, uint32_t n_dac_bram>
