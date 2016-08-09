@@ -19,12 +19,10 @@ addresses:
 
 config_registers:
   - led
-  - dac1
-  - dac2
+  - dac[2]
 
 status_registers:
-  - adc1
-  - adc2
+  - adc[2]
 
 parameters:
   bram_addr_width: 13

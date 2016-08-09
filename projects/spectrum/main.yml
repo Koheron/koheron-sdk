@@ -41,22 +41,18 @@ modules:
 config_registers:
   - spi_in
   - led
-  - pwm0
-  - pwm1
-  - pwm2
-  - pwm3
+  - pwm[4]
   - addr
   - substract_mean
   - cfg_fft
-  - avg0
-  - dac_period0
-  - dac_period1
+  - avg
+  - dac_period[n_dac]
   - peak_address_low
   - peak_address_high
   - peak_address_reset
-  - avg_period0
-  - avg_threshold0
-  - n_avg_min0
+  - avg_period
+  - avg_threshold
+  - n_avg_min
   - dac_select
   - addr_select
   - clken_mask
@@ -67,9 +63,8 @@ status_registers:
   - peak_address
   - peak_maximum
   - avg_ready
-  - avg_on_out0
-  - counter0
-  - counter1
+  - avg_on_out
+  - counter[2]
 
 parameters:
   bram_addr_width: 12

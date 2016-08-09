@@ -87,8 +87,8 @@ class Oscillo
     }
     
     void set_avg_period(uint32_t avg_period) {
-        dvm.write32(config_map, AVG_PERIOD0_OFF, avg_period - 1);
-        dvm.write32(config_map, AVG_THRESHOLD0_OFF, avg_period - 6);
+        dvm.write32(config_map, AVG_PERIOD_OFF, avg_period - 1);
+        dvm.write32(config_map, AVG_THRESHOLD_OFF, avg_period - 6);
         reset();
     }
 
