@@ -1,8 +1,6 @@
 #!/bin/bash
 
 echo 'Clock initialization...'
-/bin/bash /tmp/instrument/start.sh
-
 devcfg=/sys/devices/soc0/amba/f8007000.devcfg
 
 set_fclk () {
