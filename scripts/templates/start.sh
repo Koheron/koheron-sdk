@@ -5,19 +5,19 @@ echo 'Clock initialization...'
 
 devcfg=/sys/devices/soc0/amba/f8007000.devcfg
 
-clk0 = {{ dic['parameters']['clk0'] }}
-clk1 = {{ dic['parameters']['clk1'] }}
-
-function set_fclk () {
-    fclk_name = $1
-    fclk_val = $2
+set_fclk () {
+    local fclk_name = $1
+    local fclk_val = $2
     test -d $devcfg/fclk/$fclk_name || echo $fclk_name > $devcfg/fclk_export
     echo 1 > $devcfg/fclk/$fclk_name/enable
     echo $fclk_val > $devcfg/fclk/$fclk_name/set_rate
 }
 
-set_fclk fclk0 $clk0
-set_fclk fclk1 $clk1
+{% for clk in ['fclk0','fclk1','fclk2','fclk3'] -%}
+{% if clk in dic['parameters'] -%}
+set_fclk {{ clk }} {{ dic['parameters'][clk] }}
+{% endif -%}
+{% endfor %}
 
 echo 'Load bitstream'
 /bin/cat /tmp/instrument/${CURRENT_INSTRUMENT}.bit > /dev/xdevcfg

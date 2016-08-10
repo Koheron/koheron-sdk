@@ -52,8 +52,8 @@ status_registers:
   - counter[2]
 
 parameters:
-  clk0: 200000000
-  clk1: 200000000
+  fclk0: 200000000
+  fclk1: 200000000
   bram_addr_width: 13
   dac_width: 14
   adc_width: 14
