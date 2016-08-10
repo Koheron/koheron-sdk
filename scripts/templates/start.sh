@@ -11,9 +11,9 @@ clk1 = {{ dic['parameters']['clk1'] }}
 function set_fclk () {
     fclk_name = $1
     fclk_val = $2
-    test -d $devcfg/fclk/$fclk || echo $fclk > $devcfg/fclk_export
-    echo 1 > $devcfg/fclk/$fclk/enable
-    echo $fclk_val > $devcfg/fclk/$fclk/set_rate
+    test -d $devcfg/fclk/$fclk_name || echo $fclk_name > $devcfg/fclk_export
+    echo 1 > $devcfg/fclk/$fclk_name/enable
+    echo $fclk_val > $devcfg/fclk/$fclk_name/set_rate
 }
 
 set_fclk fclk0 $clk0
