@@ -29,7 +29,7 @@ constexpr std::array<std::array<uint32_t, 2>, N_DAC_BRAM_PARAM> dac_brams  = {{
 class Oscillo
 {
   public:
-    Oscillo(Klib::DevMem& dvm_);
+    Oscillo(DevMem& dvm_);
 
     // Reset ...
 
@@ -109,13 +109,13 @@ class Oscillo
     std::vector<float>& read_all_channels_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high);
 
   private:
-    Klib::DevMem& dvm;
+    DevMem& dvm;
 
     int32_t *raw_data[2] = {nullptr, nullptr};
 
-    Klib::MemMapID config_map;
-    Klib::MemMapID status_map;
-    Klib::MemMapID adc_map[2];
+    MemMapID config_map;
+    MemMapID status_map;
+    MemMapID adc_map[2];
     
     // Acquired data buffers
     std::array<float, 2*WFM_SIZE> data_all;

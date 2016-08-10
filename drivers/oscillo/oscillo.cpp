@@ -6,7 +6,7 @@
 #include <thread>
 #include <chrono>
 
-Oscillo::Oscillo(Klib::DevMem& dvm_)
+Oscillo::Oscillo(DevMem& dvm_)
 : dvm(dvm_)
 , data_decim(0)
 , dac(dvm_, dac_brams)

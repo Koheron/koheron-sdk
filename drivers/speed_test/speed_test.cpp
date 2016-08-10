@@ -18,7 +18,7 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz)
 }
 
 
-SpeedTest::SpeedTest(Klib::DevMem& dvm_)
+SpeedTest::SpeedTest(DevMem& dvm_)
 : dvm(dvm_)
 , data_decim(0)
 , data_all_int(0)
