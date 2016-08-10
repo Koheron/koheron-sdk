@@ -40,10 +40,7 @@ class DacRouter
     template<size_t N>
     std::array<uint32_t, N>& get_data(uint32_t channel)
     {
-        uint32_t *buff = get_data(channel);
-        auto p = reinterpret_cast<std::array<uint32_t, N>*>(buff);
-        assert(p->data() == (const uint32_t*)buff);
-        return *p;
+        return dvm.read_buffer<uint32_t, N, 0>(dac_map[bram_index[channel]]);
     }
 
     void set_data(uint32_t channel, const uint32_t *buffer, uint32_t len);
