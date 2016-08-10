@@ -23,7 +23,7 @@ constexpr std::array<std::array<uint32_t, 2>, N_DAC_BRAM_PARAM> dac_brams  = {{
 class Spectrum
 {
   public:
-    Spectrum(Klib::DevMem& dvm_);
+    Spectrum(DevMem& dvm_);
 
     void reset() {
         dvm.clear_bit(config_map, ADDR_OFF, 0);
@@ -107,14 +107,14 @@ class Spectrum
     bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
 
   private:
-    Klib::DevMem& dvm;
+    DevMem& dvm;
 
-    Klib::MemMapID config_map;
-    Klib::MemMapID status_map;
-    Klib::MemMapID spectrum_map;
-    Klib::MemMapID demod_map;
-    Klib::MemMapID noise_floor_map;
-    Klib::MemMapID peak_fifo_map;
+    MemMapID config_map;
+    MemMapID status_map;
+    MemMapID spectrum_map;
+    MemMapID demod_map;
+    MemMapID noise_floor_map;
+    MemMapID peak_fifo_map;
 
     // Acquired data buffers
     float *raw_data;

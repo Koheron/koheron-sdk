@@ -10,7 +10,7 @@
 class Init
 {
   public:
-    Init(Klib::DevMem& dev_mem_) {};
+    Init(DevMem& dev_mem_) {};
 
     void load_settings() {};
 };

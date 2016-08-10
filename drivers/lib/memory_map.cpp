@@ -2,7 +2,7 @@
 
 #include "memory_map.hpp"
 
-Klib::MemoryMap::MemoryMap(int *fd_, uintptr_t phys_addr_,
+MemoryMap::MemoryMap(int *fd_, uintptr_t phys_addr_,
                            uint32_t size_, int protection_)
 : fd(fd_)
 , mapped_base(nullptr)
@@ -25,12 +25,12 @@ Klib::MemoryMap::MemoryMap(int *fd_, uintptr_t phys_addr_,
     mapped_dev_base = (uintptr_t)mapped_base + (phys_addr & MAP_MASK(size));
 }
 
-Klib::MemoryMap::~MemoryMap()
+MemoryMap::~MemoryMap()
 {
     unmap();
 }
 
-int Klib::MemoryMap::unmap()
+int MemoryMap::unmap()
 {
     if (status == MEMMAP_OPENED) {
         munmap(mapped_base, size);
@@ -40,7 +40,7 @@ int Klib::MemoryMap::unmap()
     return 0;
 }
 
-int Klib::MemoryMap::resize(uint32_t length)
+int MemoryMap::resize(uint32_t length)
 {
     void *new_virt_addr = mremap((void *)mapped_dev_base, size, length, 0);
 

@@ -16,7 +16,7 @@
 class DeviceMemory
 {
   public:
-    DeviceMemory(Klib::DevMem& dvm_)
+    DeviceMemory(DevMem& dvm_)
     : dvm(dvm_)
     {}
 
@@ -69,7 +69,7 @@ class DeviceMemory
     }
 
   private:
-    Klib::DevMem& dvm;
+    DevMem& dvm;
 };
 
 #endif // __DRIVERS_DEVICE_MEMORY_DEVICE_MEMORY_HPP__

@@ -14,10 +14,6 @@ extern "C" {
     #include <sys/mman.h>
 }
 
-/// @namespace Klib
-/// @brief Namespace of the Koheron library
-namespace Klib {
-
 #define DEFAULT_MAP_SIZE 4096UL // = PAGE_SIZE
 #define MAP_MASK(size) ((size) - 1)
 
@@ -73,7 +69,5 @@ class MemoryMap
     uint32_t size;              ///< Map size in bytes
     uintptr_t phys_addr;        ///< Physical address
 };
-
-}; // namespace Klib
 
 #endif // __DRIVERS_CORE_MEMORY_MAP_HPP__

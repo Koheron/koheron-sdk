@@ -14,7 +14,7 @@
 class Common
 {
   public:
-    Common(Klib::DevMem& dvm_)
+    Common(DevMem& dvm_)
     : dvm(dvm_)
     {
         config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
@@ -37,10 +37,10 @@ class Common
     };
 
   private:
-    Klib::DevMem& dvm;
+    DevMem& dvm;
 
-    Klib::MemMapID config_map;
-    Klib::MemMapID status_map;
+    MemMapID config_map;
+    MemMapID status_map;
 
     std::array<uint32_t, BITSTREAM_ID_SIZE> bitstream_id;
 };

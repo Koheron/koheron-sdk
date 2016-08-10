@@ -38,7 +38,7 @@ constexpr float pwm_to_current = 1 / current_to_pwm;
 class Laser
 {
   public:
-    Laser(Klib::DevMem& dvm_)
+    Laser(DevMem& dvm_)
     : dvm(dvm_)
     , xadc(dvm_)
     , gpio(dvm_)
@@ -92,8 +92,8 @@ class Laser
     }
     
   private:
-    Klib::DevMem& dvm;
-    Klib::MemMapID config_map; // required for pwm
+    DevMem& dvm;
+    MemMapID config_map; // required for pwm
 
     Xadc xadc;
     Gpio gpio;

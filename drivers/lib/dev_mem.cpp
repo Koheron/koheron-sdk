@@ -2,9 +2,7 @@
 
 #include "dev_mem.hpp"
 
-/// @namespace Klib
-/// @brief Namespace of the Koheron library
-namespace Klib {
+#include <core/kserver.hpp>
 
 MemMapID MemMapIdPool::get_id(unsigned int num_maps)
 {
@@ -27,8 +25,9 @@ void MemMapIdPool::release_id(MemMapID id)
     reusable_ids.push_back(id);
 }
 
-DevMem::DevMem(uintptr_t addr_limit_down_, uintptr_t addr_limit_up_)
-: addr_limit_down(addr_limit_down_),
+DevMem::DevMem(kserver::KServer *kserver_, uintptr_t addr_limit_down_, uintptr_t addr_limit_up_)
+: kserver(kserver_),
+  addr_limit_down(addr_limit_down_),
   addr_limit_up(addr_limit_up_),
   mem_maps()
 {
@@ -38,14 +37,14 @@ DevMem::DevMem(uintptr_t addr_limit_down_, uintptr_t addr_limit_up_)
 
 DevMem::~DevMem()
 {
-    Close();
+    close();
 }
 
-int DevMem::Open()
+int DevMem::open()
 {
     // Open /dev/mem if not already open
     if (fd == -1) {
-        fd = open("/dev/mem", O_RDWR | O_SYNC);
+        fd = ::open("/dev/mem", O_RDWR | O_SYNC);
 
          if (fd == -1) {
             fprintf(stderr, "Can't open /dev/mem\n");
@@ -55,14 +54,14 @@ int DevMem::Open()
         is_open = 1;
     }
 
-    RemoveAll(); // Reset memory maps
+    remove_all(); // Reset memory maps
     return fd;
 }
 
-int DevMem::Close()
+int DevMem::close()
 {
-    RemoveAll();
-    close(fd);
+    remove_all();
+    ::close(fd);
     return 0;
 }
 
@@ -125,14 +124,14 @@ MemMapID DevMem::AddMemoryMap(uintptr_t addr, uint32_t size, int protection)
     return map_id;
 }
 
-void DevMem::RmMemoryMap(MemMapID id)
+void DevMem::rm_memory_map(MemMapID id)
 {
     mem_maps.erase(id);
     id_pool.release_id(id);
     num_maps--;
 }
 
-void DevMem::RemoveAll()
+void DevMem::remove_all()
 {
     assert(num_maps == mem_maps.size());
 
@@ -142,7 +141,7 @@ void DevMem::RemoveAll()
         uint32_t mem_maps_size = mem_maps.size();
     
         for (unsigned int id=0; id<mem_maps_size; id++)
-            RmMemoryMap(id);
+            rm_memory_map(id);
     }
 
     assert(num_maps == 0);
@@ -155,6 +154,3 @@ int DevMem::IsFailed()
             return 1;
     return 0;
 }
-
-}; // namespace Klib
-

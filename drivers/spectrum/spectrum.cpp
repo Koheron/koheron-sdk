@@ -5,7 +5,7 @@
 #include <thread>
 #include <chrono>
 
-Spectrum::Spectrum(Klib::DevMem& dvm_)
+Spectrum::Spectrum(DevMem& dvm_)
 : dvm(dvm_)
 , spectrum_decim(0)
 , fifo(dvm_)

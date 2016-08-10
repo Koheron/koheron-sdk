@@ -12,16 +12,16 @@
 #include <string>
 #include <memory>
 #include <tuple>
-#include <assert.h> 
+#include <assert.h>
 
 extern "C" {
     #include <fcntl.h>
     #include <sys/mman.h>
 }
 
-#include "memory_map.hpp"
+namespace kserver {class KServer;}
 
-namespace Klib {
+#include "memory_map.hpp"
 
 /// ID of a memory map
 typedef uint32_t MemMapID;
@@ -45,15 +45,15 @@ class MemMapIdPool
 class DevMem
 {
   public:
-    DevMem(uintptr_t addr_limit_down_=0x0, uintptr_t addr_limit_up_=0x0);
+    DevMem(kserver::KServer *kserver_, uintptr_t addr_limit_down_=0x0, uintptr_t addr_limit_up_=0x0);
     ~DevMem();
 
     /// Open the /dev/mem driver
-    int Open();
+    int open();
 
     /// Close all the memory maps
     /// @return 0 if succeed, -1 else
-    int Close();
+    int close();
 
     /// Current number of memory maps
     static unsigned int num_maps;
@@ -69,10 +69,10 @@ class DevMem
 
     /// Remove a memory map
     /// @id ID of the memory map to be removed
-    void RmMemoryMap(MemMapID id);
+    void rm_memory_map(MemMapID id);
 
     /// Remove all the memory maps
-    void RemoveAll();
+    void remove_all();
 
     uintptr_t get_base_addr(MemMapID id) {return mem_maps.at(id)->get_base_addr();}
     int get_status(MemMapID id)         {return mem_maps.at(id)->get_status();}
@@ -178,6 +178,7 @@ class DevMem
     bool IsOpen() const {return is_open;}
 
   private:
+    kserver::KServer *kserver;
     int fd;         ///< /dev/mem file ID
     bool is_open;   ///< True if /dev/mem open
     
@@ -190,7 +191,5 @@ class DevMem
     std::map<MemMapID, std::unique_ptr<MemoryMap>> mem_maps;
     MemMapIdPool id_pool;
 };
-
-}; // namespace Klib
 
 #endif // __DRIVERS_LIB_DEV_MEM_HPP__

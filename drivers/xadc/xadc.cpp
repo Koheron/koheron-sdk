@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <iterator>
 
-Xadc::Xadc(Klib::DevMem& dvm_)
+Xadc::Xadc(DevMem& dvm_)
 : dvm(dvm_)
 {
     xadc_map = dvm.AddMemoryMap(XADC_ADDR, XADC_RANGE);

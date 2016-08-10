@@ -27,7 +27,7 @@ using namespace std::chrono_literals;
 class Eeprom
 {
   public:
-    Eeprom(Klib::DevMem& dvm_)
+    Eeprom(DevMem& dvm_)
     : dvm(dvm_)
     {
         config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
@@ -72,10 +72,10 @@ class Eeprom
     }
 
   private:
-    Klib::DevMem& dvm;
+    DevMem& dvm;
 
-    Klib::MemMapID config_map;
-    Klib::MemMapID status_map;
+    MemMapID config_map;
+    MemMapID status_map;
 }; // class Eeprom
 
 #endif // __DRIVERS_CORE_EEPROM_HPP__
