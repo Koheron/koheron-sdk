@@ -89,6 +89,8 @@ TCP_SERVER_SHA = master
 TCP_SERVER_VENV = $(TMP)/$(NAME).tcp_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
 
+START_SH = $(TMP)/$(NAME).start.sh
+
 ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
 # App
@@ -327,8 +329,11 @@ tcp-server_cli: $(TCP_SERVER_DIR) $(TCP_SERVER_VENV)
 # Instrument ZIP file (contains bitstream, tcp-server)
 ###############################################################################
 
-$(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit
-	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TCP_SERVER)
+$(START_SH): $(MAKE_PY) $(MAIN_YML) $(TEMPLATE_DIR)/start.sh
+	python $(MAKE_PY) --start_sh $(NAME)
+
+$(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH)
+	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TCP_SERVER) $(START_SH)
 
 ###############################################################################
 # HTTP API
