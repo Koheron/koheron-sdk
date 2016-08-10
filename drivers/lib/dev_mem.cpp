@@ -86,7 +86,7 @@ MemMapID DevMem::create_memory_map(uintptr_t addr, uint32_t size, int protection
     auto mem_map = std::make_unique<MemoryMap>(&fd, addr, size, protection);
     assert(mem_map != nullptr);
 
-    if (mem_map->GetStatus() != MemoryMap::MEMMAP_OPENED) {
+    if (mem_map->get_status() != MemoryMap::MEMMAP_OPENED) {
         fprintf(stderr,"Can't open memory map\n");
         return static_cast<MemMapID>(-1);
     }
@@ -103,11 +103,11 @@ MemMapID DevMem::AddMemoryMap(uintptr_t addr, uint32_t size, int protection)
     MemMapID map_id = static_cast<MemMapID>(-1);
 
     for (auto& mem_map : mem_maps) {
-        if (addr == mem_map.second->PhysAddr()) {
+        if (addr == mem_map.second->get_phys_addr()) {
             // we resize the map if the new range is large
             // than the previously allocated one.
-            if (size > mem_map.second->MappedSize())
-                if (Resize(mem_map.first, size) < 0) {
+            if (size > mem_map.second->mapped_size())
+                if (resize(mem_map.first, size) < 0) {
                     fprintf(stderr, "Memory map resizing failed\n");
                     region_is_mapped = true;
                     break;
@@ -151,7 +151,7 @@ void DevMem::RemoveAll()
 int DevMem::IsFailed()
 {
     for (unsigned int i=0; i<mem_maps.size(); i++)
-        if (mem_maps[i]->GetStatus() == MemoryMap::MEMMAP_FAILURE)
+        if (mem_maps[i]->get_status() == MemoryMap::MEMMAP_FAILURE)
             return 1;
     return 0;
 }

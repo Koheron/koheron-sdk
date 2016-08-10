@@ -27,10 +27,10 @@ Klib::MemoryMap::MemoryMap(int *fd_, uintptr_t phys_addr_,
 
 Klib::MemoryMap::~MemoryMap()
 {
-    Unmap();
+    unmap();
 }
 
-int Klib::MemoryMap::Unmap()
+int Klib::MemoryMap::unmap()
 {
     if (status == MEMMAP_OPENED) {
         munmap(mapped_base, size);
@@ -40,7 +40,7 @@ int Klib::MemoryMap::Unmap()
     return 0;
 }
 
-int Klib::MemoryMap::Resize(uint32_t length)
+int Klib::MemoryMap::resize(uint32_t length)
 {
     void *new_virt_addr = mremap((void *)mapped_dev_base, size, length, 0);
 
