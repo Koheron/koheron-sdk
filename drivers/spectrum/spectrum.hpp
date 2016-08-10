@@ -14,7 +14,8 @@
 #define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
 #define FIFO_BUFF_SIZE 4096
 
-constexpr std::array<std::array<uint32_t, 2>, N_DAC_BRAM_PARAM> dac_brams  = {{
+constexpr std::array<std::array<uint32_t, 2>, N_DAC_BRAM_PARAM>
+dac_brams  = {{
     {DAC1_ADDR, DAC1_RANGE},
     {DAC2_ADDR, DAC2_RANGE},
     {DAC3_ADDR, DAC3_RANGE}

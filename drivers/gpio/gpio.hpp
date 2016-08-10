@@ -31,7 +31,7 @@ class Gpio
     Gpio(DevMem& dvm_)
     : dvm(dvm_)
     {
-        gpio_map = dvm.AddMemoryMap(GPIO_ADDR, GPIO_RANGE);
+        gpio_map = dvm.add_memory_map(GPIO_ADDR, GPIO_RANGE);
     }
 
     void set_data(uint32_t channel, uint32_t value) {

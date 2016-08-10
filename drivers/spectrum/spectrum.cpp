@@ -11,12 +11,12 @@ Spectrum::Spectrum(DevMem& dvm_)
 , fifo(dvm_)
 , dac(dvm_, dac_brams)
 {
-    config_map      = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-    status_map      = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
-    spectrum_map    = dvm.AddMemoryMap(SPECTRUM_ADDR, SPECTRUM_RANGE);
-    demod_map       = dvm.AddMemoryMap(DEMOD_ADDR, DEMOD_RANGE);
-    noise_floor_map = dvm.AddMemoryMap(NOISE_FLOOR_ADDR, NOISE_FLOOR_RANGE);
-    peak_fifo_map   = dvm.AddMemoryMap(PEAK_FIFO_ADDR, PEAK_FIFO_RANGE);
+    config_map      = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
+    status_map      = dvm.add_memory_map(STATUS_ADDR, STATUS_RANGE, PROT_READ);
+    spectrum_map    = dvm.add_memory_map(SPECTRUM_ADDR, SPECTRUM_RANGE);
+    demod_map       = dvm.add_memory_map(DEMOD_ADDR, DEMOD_RANGE);
+    noise_floor_map = dvm.add_memory_map(NOISE_FLOOR_ADDR, NOISE_FLOOR_RANGE);
+    peak_fifo_map   = dvm.add_memory_map(PEAK_FIFO_ADDR, PEAK_FIFO_RANGE);
 
     raw_data = dvm.read_buffer<float>(spectrum_map);
 

@@ -30,8 +30,8 @@ class Eeprom
     Eeprom(DevMem& dvm_)
     : dvm(dvm_)
     {
-        config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-        status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
+        config_map = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
+        status_map = dvm.add_memory_map(STATUS_ADDR, STATUS_RANGE, PROT_READ);
     }
 
     uint32_t read(uint32_t addr) {

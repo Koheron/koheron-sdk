@@ -8,7 +8,7 @@
 Xadc::Xadc(DevMem& dvm_)
 : dvm(dvm_)
 {
-    xadc_map = dvm.AddMemoryMap(XADC_ADDR, XADC_RANGE);
+    xadc_map = dvm.add_memory_map(XADC_ADDR, XADC_RANGE);
 }
 
 bool is_valid_channel(uint32_t channel)

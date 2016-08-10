@@ -20,7 +20,8 @@
 constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
 constexpr std::array<uint32_t, 2> n_avg_offset = {N_AVG0_OFF, N_AVG1_OFF};
 
-constexpr std::array<std::array<uint32_t, 2>, N_DAC_BRAM_PARAM> dac_brams  = {{
+constexpr std::array<std::array<uint32_t, 2>, N_DAC_BRAM_PARAM>
+dac_brams  = {{
     {DAC1_ADDR, DAC1_RANGE},
     {DAC2_ADDR, DAC2_RANGE},
     {DAC3_ADDR, DAC3_RANGE}
@@ -63,7 +64,7 @@ class Oscillo
             dvm.clear_bit(config_map, CLKEN_MASK_OFF, 0);
         }
     }
-    
+
     void update_now() {
         dvm.set_bit(config_map, CLKEN_MASK_OFF, 1);
         dvm.clear_bit(config_map, CLKEN_MASK_OFF, 1);
@@ -72,7 +73,7 @@ class Oscillo
     void always_update() {
         dvm.set_bit(config_map, CLKEN_MASK_OFF, 1);
     }
-    
+
     void set_n_avg_min(uint32_t n_avg_min) {
         n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
         dvm.write32(config_map, N_AVG_MIN0_OFF, n_avg_min_);
@@ -88,7 +89,7 @@ class Oscillo
         dvm.write32(config_map, DAC_PERIOD1_OFF, dac_period1 - 1);
         reset();
     }
-    
+
     void set_avg_period(uint32_t avg_period) {
         dvm.write32(config_map, AVG_PERIOD_OFF, avg_period - 1);
         dvm.write32(config_map, AVG_THRESHOLD_OFF, avg_period - 6);
@@ -116,7 +117,7 @@ class Oscillo
     MemMapID config_map;
     MemMapID status_map;
     MemMapID adc_map[2];
-    
+
     // Acquired data buffers
     std::array<float, 2*WFM_SIZE> data_all;
     std::vector<float> data_decim;

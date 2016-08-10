@@ -65,7 +65,7 @@ class DevMem
     /// @size Size of the map
     /// @protection Access protection
     /// @return An ID to the created map, or -1 if an error occured
-    MemMapID AddMemoryMap(uintptr_t addr, uint32_t size, int protection = PROT_READ|PROT_WRITE);
+    MemMapID add_memory_map(uintptr_t addr, uint32_t size, int protection = PROT_READ|PROT_WRITE);
 
     /// Remove a memory map
     /// @id ID of the memory map to be removed

@@ -23,7 +23,7 @@ class DacRouter
     : dvm(dvm_)
     {
         for (uint32_t i=0; i<n_dac_bram; i++)
-            dac_map[i] = dvm.AddMemoryMap(dac_brams[i][0], dac_brams[i][1]);
+            dac_map[i] = dvm.add_memory_map(dac_brams[i][0], dac_brams[i][1]);
     }
 
     void set_config_reg(MemMapID config_map_, uint32_t dac_select_off_,

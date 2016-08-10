@@ -44,7 +44,7 @@ class Laser
     , gpio(dvm_)
     , eeprom(dvm_)
     {
-        config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
+        config_map = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
         reset();
     }
        
