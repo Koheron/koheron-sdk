@@ -9,6 +9,7 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
 : dvm(dvm_)
 , spectrum_decim(0)
 , fifo(dvm_)
+, dac(dvm_, dac_brams)
 {
     config_map      = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
     status_map      = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
@@ -17,9 +18,6 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
     noise_floor_map = dvm.AddMemoryMap(NOISE_FLOOR_ADDR, NOISE_FLOOR_RANGE);
     peak_fifo_map   = dvm.AddMemoryMap(PEAK_FIFO_ADDR, PEAK_FIFO_RANGE);
 
-    dac_map[0]      = dvm.AddMemoryMap(DAC1_ADDR, DAC1_RANGE);
-    dac_map[1]      = dvm.AddMemoryMap(DAC2_ADDR, DAC2_RANGE);
-    
     raw_data = dvm.read_buffer<float>(spectrum_map);
 
     fifo.set_map(peak_fifo_map);
@@ -32,20 +30,22 @@ Spectrum::Spectrum(Klib::DevMem& dvm_)
     set_address_range(0, WFM_SIZE);
     set_period(WFM_SIZE);
     set_n_avg_min(0);
+
+    dac.set_config_reg(config_map, DAC_SELECT_OFF, ADDR_SELECT_OFF);
 }
 
-void Spectrum::set_n_avg_min(uint32_t n_avg_min) 
+void Spectrum::set_n_avg_min(uint32_t n_avg_min)
 {
     uint32_t n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
-    dvm.write32(config_map, N_AVG_MIN0_OFF, n_avg_min_);
+    dvm.write32(config_map, N_AVG_MIN_OFF, n_avg_min_);
 }
 
 std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
 {
-    dvm.set_bit(config_map,ADDR_OFF, 1);    
+    dvm.set_bit(config_map,ADDR_OFF, 1);
     wait_for_acquisition();
 
-    if (dvm.read32(status_map, AVG_ON_OUT0_OFF)) {
+    if (dvm.read32(status_map, AVG_ON_OUT_OFF)) {
         float num_avg = float(get_num_average());
         for (unsigned int i=0; i<WFM_SIZE; i++)
             spectrum_data[i] = raw_data[i] / num_avg;
@@ -72,7 +72,7 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
     spectrum_decim.resize(n_pts);
     wait_for_acquisition();
 
-    if (dvm.read32(status_map, AVG_ON_OUT0_OFF)) {
+    if (dvm.read32(status_map, AVG_ON_OUT_OFF)) {
         float num_avg = float(get_num_average());
 
         for (unsigned int i=0; i<spectrum_decim.size(); i++)
@@ -89,9 +89,9 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
 void Spectrum::set_averaging(bool avg_on)
 {
     if (avg_on)
-        dvm.set_bit(config_map, AVG0_OFF, 0);
+        dvm.set_bit(config_map, AVG_OFF, 0);
     else
-        dvm.clear_bit(config_map, AVG0_OFF, 0);
+        dvm.clear_bit(config_map, AVG_OFF, 0);
 }
 
 /////////////////////
