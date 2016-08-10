@@ -28,10 +28,10 @@
 class Gpio
 {
   public:
-    Gpio(Klib::DevMem& dvm_)
+    Gpio(DevMem& dvm_)
     : dvm(dvm_)
     {
-        gpio_map = dvm.AddMemoryMap(GPIO_ADDR, GPIO_RANGE);
+        gpio_map = dvm.add_memory_map(GPIO_ADDR, GPIO_RANGE);
     }
 
     void set_data(uint32_t channel, uint32_t value) {
@@ -73,8 +73,8 @@ class Gpio
     }
 
   private:
-    Klib::DevMem& dvm;
-    Klib::MemMapID gpio_map;
+    DevMem& dvm;
+    MemMapID gpio_map;
 
     int get_value_offset(uint32_t channel) {
         return (channel == 1 ? CHAN1_VALUE_OFF : CHAN2_VALUE_OFF);

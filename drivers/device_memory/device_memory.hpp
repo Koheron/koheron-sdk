@@ -16,12 +16,12 @@
 class DeviceMemory
 {
   public:
-    DeviceMemory(Klib::DevMem& dvm_)
+    DeviceMemory(DevMem& dvm_)
     : dvm(dvm_)
     {}
 
     int add_memory_map(uint32_t device_addr, uint32_t map_size) {
-        return static_cast<int>(dvm.AddMemoryMap(device_addr, map_size));
+        return static_cast<int>(dvm.add_memory_map(device_addr, map_size));
     }
 
     uint32_t read(uint32_t mmap_idx, uint32_t offset) {
@@ -69,7 +69,7 @@ class DeviceMemory
     }
 
   private:
-    Klib::DevMem& dvm;
+    DevMem& dvm;
 };
 
 #endif // __DRIVERS_DEVICE_MEMORY_DEVICE_MEMORY_HPP__

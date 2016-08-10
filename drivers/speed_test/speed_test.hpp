@@ -24,7 +24,7 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz);
 class SpeedTest
 {
   public:
-    SpeedTest(Klib::DevMem& dvm_);
+    SpeedTest(DevMem& dvm_);
 
     std::array<float, 2*WFM_SIZE>& read_raw_all();
 
@@ -60,13 +60,13 @@ class SpeedTest
     }
 
   private:
-    Klib::DevMem& dvm;
+    DevMem& dvm;
 
-    Klib::MemMapID config_map;
-    Klib::MemMapID status_map;
-    Klib::MemMapID adc_1_map;
-    Klib::MemMapID adc_2_map;
-    Klib::MemMapID rambuf_map;
+    MemMapID config_map;
+    MemMapID status_map;
+    MemMapID adc_1_map;
+    MemMapID adc_2_map;
+    MemMapID rambuf_map;
     void *mmap_buf;
 
     uint32_t *raw_data_1 = nullptr;

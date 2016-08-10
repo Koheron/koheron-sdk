@@ -19,14 +19,14 @@ template<uint32_t n_dac, uint32_t n_dac_bram>
 class DacRouter
 {
   public:
-    DacRouter(Klib::DevMem& dvm_, std::array<std::array<uint32_t, 2>, n_dac_bram> dac_brams)
+    DacRouter(DevMem& dvm_, std::array<std::array<uint32_t, 2>, n_dac_bram> dac_brams)
     : dvm(dvm_)
     {
         for (uint32_t i=0; i<n_dac_bram; i++)
-            dac_map[i] = dvm.AddMemoryMap(dac_brams[i][0], dac_brams[i][1]);
+            dac_map[i] = dvm.add_memory_map(dac_brams[i][0], dac_brams[i][1]);
     }
 
-    void set_config_reg(Klib::MemMapID config_map_, uint32_t dac_select_off_,
+    void set_config_reg(MemMapID config_map_, uint32_t dac_select_off_,
                         uint32_t addr_select_off_) {
         config_map = config_map_;
         dac_select_off = dac_select_off_;
@@ -40,10 +40,7 @@ class DacRouter
     template<size_t N>
     std::array<uint32_t, N>& get_data(uint32_t channel)
     {
-        uint32_t *buff = get_data(channel);
-        auto p = reinterpret_cast<std::array<uint32_t, N>*>(buff);
-        assert(p->data() == (const uint32_t*)buff);
-        return *p;
+        return dvm.read_buffer<uint32_t, N, 0>(dac_map[bram_index[channel]]);
     }
 
     void set_data(uint32_t channel, const uint32_t *buffer, uint32_t len);
@@ -54,11 +51,11 @@ class DacRouter
     }
 
   private:
-    Klib::DevMem& dvm;
-    Klib::MemMapID config_map;
+    DevMem& dvm;
+    MemMapID config_map;
     uint32_t dac_select_off;
     uint32_t addr_select_off;
-    std::array<Klib::MemMapID, n_dac_bram> dac_map;
+    std::array<MemMapID, n_dac_bram> dac_map;
 
     std::array<uint32_t, n_dac> bram_index;
     std::array<bool, n_dac_bram> connected_bram;

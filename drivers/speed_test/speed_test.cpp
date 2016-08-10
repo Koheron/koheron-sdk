@@ -18,20 +18,20 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz)
 }
 
 
-SpeedTest::SpeedTest(Klib::DevMem& dvm_)
+SpeedTest::SpeedTest(DevMem& dvm_)
 : dvm(dvm_)
 , data_decim(0)
 , data_all_int(0)
 {
-    config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-    status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
-    adc_1_map  = dvm.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
-    adc_2_map  = dvm.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
-    rambuf_map = dvm.AddMemoryMap(RAMBUF_ADDR, RAMBUF_RANGE);
+    config_map = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
+    status_map = dvm.add_memory_map(STATUS_ADDR, STATUS_RANGE, PROT_READ);
+    adc_1_map  = dvm.add_memory_map(ADC1_ADDR, ADC1_RANGE);
+    adc_2_map  = dvm.add_memory_map(ADC2_ADDR, ADC2_RANGE);
+    rambuf_map = dvm.add_memory_map(RAMBUF_ADDR, RAMBUF_RANGE);
 
-    raw_data_1 = reinterpret_cast<uint32_t*>(dvm.GetBaseAddr(adc_1_map));
-    raw_data_2 = reinterpret_cast<uint32_t*>(dvm.GetBaseAddr(adc_2_map));
-    rambuf_data = reinterpret_cast<float*>(dvm.GetBaseAddr(rambuf_map));
+    raw_data_1 = reinterpret_cast<uint32_t*>(dvm.get_base_addr(adc_1_map));
+    raw_data_2 = reinterpret_cast<uint32_t*>(dvm.get_base_addr(adc_2_map));
+    rambuf_data = reinterpret_cast<float*>(dvm.get_base_addr(rambuf_map));
 
     mmap_buf = mmap(NULL, 16384*4, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
 
