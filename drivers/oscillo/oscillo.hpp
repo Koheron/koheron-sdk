@@ -21,7 +21,7 @@
 constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
 constexpr std::array<uint32_t, 2> n_avg_offset = {N_AVG0_OFF, N_AVG1_OFF};
 
-constexpr std::array<std::array<uint32_t, 2>, N_DAC_BRAM_PARAM>
+constexpr memory_blocks<N_DAC_BRAM_PARAM>
 dac_brams  = {{
     {DAC1_ADDR, DAC1_RANGE},
     {DAC2_ADDR, DAC2_RANGE},

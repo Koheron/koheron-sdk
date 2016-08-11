@@ -28,11 +28,10 @@ template<uint32_t n_dac, uint32_t n_dac_bram>
 class DacRouter
 {
   public:
-    DacRouter(DevMem& dvm_, std::array<std::array<uint32_t, 2>, n_dac_bram> dac_brams)
+    DacRouter(DevMem& dvm_, memory_blocks<n_dac_bram> dac_brams)
     : dvm(dvm_)
     {
-        for (uint32_t i=0; i<n_dac_bram; i++)
-            dac_map[i] = dvm.add_memory_map(dac_brams[i][0], dac_brams[i][1]);
+        dac_map = dvm.add_memory_blocks(dac_brams);
     }
 
     void set_config_reg(MemMapID config_map_, uint32_t dac_select_off_,

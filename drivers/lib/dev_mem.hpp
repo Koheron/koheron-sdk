@@ -26,6 +26,10 @@ namespace kserver {class KServer;}
 /// ID of a memory map
 typedef uint32_t MemMapID;
 
+/// Memory blocks array
+template<size_t n_blocks>
+using memory_blocks = std::array<std::array<uint32_t, 2>, n_blocks>;
+
 class MemMapIdPool
 {
   public:
@@ -66,6 +70,18 @@ class DevMem
     /// @protection Access protection
     /// @return An ID to the created map, or -1 if an error occured
     MemMapID add_memory_map(uintptr_t addr, uint32_t size, int protection = PROT_READ|PROT_WRITE);
+
+    template<size_t n_blocks>
+    std::array<MemMapID, n_blocks> add_memory_blocks(memory_blocks<n_blocks> mem_blocks,
+                                                     int protection = PROT_READ|PROT_WRITE)
+    {
+        std::array<MemMapID, n_blocks> maps;
+
+        for (uint32_t i=0; i<n_blocks; i++)
+            maps[i] = add_memory_map(mem_blocks[i][0], mem_blocks[i][1], protection);
+
+        return maps;
+    }
 
     /// Remove a memory map
     /// @id ID of the memory map to be removed
