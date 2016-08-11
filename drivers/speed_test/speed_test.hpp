@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_CORE_SpeedTest_HPP__
-#define __DRIVERS_CORE_SpeedTest_HPP__
+#ifndef __DRIVERS_SPEED_TEST_HPP__
+#define __DRIVERS_SPEED_TEST_HPP__
 
 #include <vector>
 #include <cstring>
@@ -80,4 +80,4 @@ class SpeedTest
     std::vector<uint32_t> data_all_int;
 }; // class SpeedTest
 
-#endif // __DRIVERS_CORE_SpeedTest_HPP__
+#endif // __DRIVERS_SPEED_TEST_HPP__
