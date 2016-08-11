@@ -101,6 +101,10 @@ class Oscillo
         dac.set_data(channel, arr);
     }
 
+    void set_dac_float(uint32_t channel, const std::array<float, WFM_SIZE>& arr) {
+        dac.set_data(channel, arr);
+    }
+
     std::array<uint32_t, WFM_SIZE/2>& get_dac_buffer(uint32_t channel) {
         return dac.get_data<WFM_SIZE/2>(channel);
     }
