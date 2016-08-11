@@ -145,7 +145,7 @@ template<size_t N>
 inline void DacRouter<n_dac, n_dac_bram>::set_data(
             uint32_t channel, const std::array<float, N> arr)
 {
-    static_assert(N % 2 == 0, "N must be an even number");
+    static_assert(N % 2 == 0, "Waveform must have an even number of samples");
     std::array<uint32_t, N/2> data;
 
     for (uint32_t i=0, j=0; i<N; i+=2, j++)
