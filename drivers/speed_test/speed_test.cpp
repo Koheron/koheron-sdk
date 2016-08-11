@@ -39,7 +39,7 @@ SpeedTest::SpeedTest(DevMem& dvm_)
 }
 
 // http://stackoverflow.com/questions/12276675/modulus-with-negative-numbers-in-c
-inline long long int mod(long long int k, long long int n) 
+inline long long int mod(long long int k, long long int n)
 {
     return ((k %= n) < 0) ? k+n : k;
 }
@@ -49,7 +49,7 @@ std::array<float, 2*WFM_SIZE>& SpeedTest::read_raw_all()
 {
     dvm.set_bit(config_map, ADDR_OFF, 1);
 
-    for(unsigned int i=0; i<WFM_SIZE; i++) {
+    for (unsigned int i=0; i<WFM_SIZE; i++) {
         data_all[i] = raw_data_1[i];
         data_all[i + WFM_SIZE] = raw_data_2[i];
     }

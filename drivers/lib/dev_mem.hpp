@@ -91,15 +91,21 @@ class DevMem
 
     void write32(MemMapID id, uint32_t offset, uint32_t value) {
         ASSERT_WRITABLE
-        *(volatile uintptr_t *) (get_base_addr(id) + offset) = value;
+        *(volatile uint32_t *) (get_base_addr(id) + offset) = value;
     }
 
     void write_buff32(MemMapID id, uint32_t offset,
                       const uint32_t *data_ptr, uint32_t buff_size) {
+        write_buff(id, offset, data_ptr, buff_size);
+    }
+
+    template<typename T>
+    void write_buff(MemMapID id, uint32_t offset,
+                    const T *data_ptr, uint32_t buff_size) {
         ASSERT_WRITABLE
         uintptr_t addr = get_base_addr(id) + offset;
         for (uint32_t i=0; i < buff_size; i++)
-            *(volatile uintptr_t *) (addr + sizeof(uint32_t) * i) = data_ptr[i];
+            *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
     }
 
     template<size_t N>
