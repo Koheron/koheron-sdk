@@ -6,19 +6,19 @@
 #include <thread>
 #include <chrono>
 
-Oscillo::Oscillo(Klib::DevMem& dvm_)
+Oscillo::Oscillo(DevMem& dvm_)
 : dvm(dvm_)
 , data_decim(0)
 , dac(dvm_, dac_brams)
 {
-    config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-    status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
+    config_map = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
+    status_map = dvm.add_memory_map(STATUS_ADDR, STATUS_RANGE, PROT_READ);
 
-    adc_map[0] = dvm.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
-    adc_map[1] = dvm.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
+    adc_map[0] = dvm.add_memory_map(ADC1_ADDR, ADC1_RANGE);
+    adc_map[1] = dvm.add_memory_map(ADC2_ADDR, ADC2_RANGE);
 
-    raw_data[0] = dvm.read_buffer<int32_t>(adc_map[0]);
-    raw_data[1] = dvm.read_buffer<int32_t>(adc_map[1]);
+    raw_data[0] = dvm.get_buffer_ptr<int32_t>(adc_map[0]);
+    raw_data[1] = dvm.get_buffer_ptr<int32_t>(adc_map[1]);
 
     set_averaging(false); // Reset averaging
 

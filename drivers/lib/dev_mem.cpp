@@ -2,9 +2,7 @@
 
 #include "dev_mem.hpp"
 
-/// @namespace Klib
-/// @brief Namespace of the Koheron library
-namespace Klib {
+#include <core/kserver.hpp>
 
 MemMapID MemMapIdPool::get_id(unsigned int num_maps)
 {
@@ -22,13 +20,9 @@ MemMapID MemMapIdPool::get_id(unsigned int num_maps)
     return new_id;
 }
 
-void MemMapIdPool::release_id(MemMapID id)
-{
-    reusable_ids.push_back(id);
-}
-
-DevMem::DevMem(uintptr_t addr_limit_down_, uintptr_t addr_limit_up_)
-: addr_limit_down(addr_limit_down_),
+DevMem::DevMem(kserver::KServer *kserver_, uintptr_t addr_limit_down_, uintptr_t addr_limit_up_)
+: kserver(kserver_),
+  addr_limit_down(addr_limit_down_),
   addr_limit_up(addr_limit_up_),
   mem_maps()
 {
@@ -38,14 +32,14 @@ DevMem::DevMem(uintptr_t addr_limit_down_, uintptr_t addr_limit_up_)
 
 DevMem::~DevMem()
 {
-    Close();
+    remove_all();
+    close(fd);
 }
 
-int DevMem::Open()
+int DevMem::open()
 {
-    // Open /dev/mem if not already open
     if (fd == -1) {
-        fd = open("/dev/mem", O_RDWR | O_SYNC);
+        fd = ::open("/dev/mem", O_RDWR | O_SYNC);
 
          if (fd == -1) {
             fprintf(stderr, "Can't open /dev/mem\n");
@@ -55,15 +49,8 @@ int DevMem::Open()
         is_open = 1;
     }
 
-    RemoveAll(); // Reset memory maps
+    remove_all(); // Reset memory maps
     return fd;
-}
-
-int DevMem::Close()
-{
-    RemoveAll();
-    close(fd);
-    return 0;
 }
 
 unsigned int DevMem::num_maps = 0;
@@ -86,7 +73,7 @@ MemMapID DevMem::create_memory_map(uintptr_t addr, uint32_t size, int protection
     auto mem_map = std::make_unique<MemoryMap>(&fd, addr, size, protection);
     assert(mem_map != nullptr);
 
-    if (mem_map->GetStatus() != MemoryMap::MEMMAP_OPENED) {
+    if (mem_map->get_status() != MemoryMap::MEMMAP_OPENED) {
         fprintf(stderr,"Can't open memory map\n");
         return static_cast<MemMapID>(-1);
     }
@@ -97,17 +84,17 @@ MemMapID DevMem::create_memory_map(uintptr_t addr, uint32_t size, int protection
     return new_id;
 }
 
-MemMapID DevMem::AddMemoryMap(uintptr_t addr, uint32_t size, int protection)
+MemMapID DevMem::add_memory_map(uintptr_t addr, uint32_t size, int protection)
 {
     bool region_is_mapped = false;
     MemMapID map_id = static_cast<MemMapID>(-1);
 
     for (auto& mem_map : mem_maps) {
-        if (addr == mem_map.second->PhysAddr()) {
+        if (addr == mem_map.second->get_phys_addr()) {
             // we resize the map if the new range is large
             // than the previously allocated one.
-            if (size > mem_map.second->MappedSize())
-                if (Resize(mem_map.first, size) < 0) {
+            if (size > mem_map.second->mapped_size())
+                if (resize(mem_map.first, size) < 0) {
                     fprintf(stderr, "Memory map resizing failed\n");
                     region_is_mapped = true;
                     break;
@@ -125,14 +112,14 @@ MemMapID DevMem::AddMemoryMap(uintptr_t addr, uint32_t size, int protection)
     return map_id;
 }
 
-void DevMem::RmMemoryMap(MemMapID id)
+void DevMem::rm_memory_map(MemMapID id)
 {
     mem_maps.erase(id);
     id_pool.release_id(id);
     num_maps--;
 }
 
-void DevMem::RemoveAll()
+void DevMem::remove_all()
 {
     assert(num_maps == mem_maps.size());
 
@@ -142,7 +129,7 @@ void DevMem::RemoveAll()
         uint32_t mem_maps_size = mem_maps.size();
     
         for (unsigned int id=0; id<mem_maps_size; id++)
-            RmMemoryMap(id);
+            rm_memory_map(id);
     }
 
     assert(num_maps == 0);
@@ -151,10 +138,7 @@ void DevMem::RemoveAll()
 int DevMem::IsFailed()
 {
     for (unsigned int i=0; i<mem_maps.size(); i++)
-        if (mem_maps[i]->GetStatus() == MemoryMap::MEMMAP_FAILURE)
+        if (mem_maps[i]->get_status() == MemoryMap::MEMMAP_FAILURE)
             return 1;
     return 0;
 }
-
-}; // namespace Klib
-

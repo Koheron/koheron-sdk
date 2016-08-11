@@ -8,7 +8,7 @@
 // -- Base addresses
 {% for addr in dic['addresses'] -%}
 #define {{ addr['name']|upper }}_ADDR {{ addr['offset'] }}
-#define {{ addr['name']|upper }}_RANGE {{ addr['range']|replace('K','*1024') }}
+#define {{ addr['name']|upper }}_RANGE {{ addr['range']|replace('K','*1024')|replace('M','*1024*1024')|replace('G','*1024*1024*1024') }}
 {% endfor %}
 
 // -- Config offsets

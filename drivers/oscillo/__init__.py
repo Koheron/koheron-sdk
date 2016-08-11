@@ -40,6 +40,10 @@ class Oscillo(object):
         data = np.uint32(np.mod(np.floor(8192 * data) + 8192, 16384) + 8192)
         set_dac_buffer(self, channel, data[::2] + (data[1::2] << 16))
 
+    @command('OSCILLO','IA')
+    def set_dac_float(self, channel, array):
+        assert len(array) == self.wfm_size
+
     @command('OSCILLO', 'I')
     def get_dac_buffer(self, channel):
         return self.client.recv_buffer(self.wfm_size/2, data_type='uint32')

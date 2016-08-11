@@ -14,7 +14,8 @@
 #define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
 #define FIFO_BUFF_SIZE 4096
 
-constexpr std::array<std::array<uint32_t, 2>, N_DAC_BRAM_PARAM> dac_brams  = {{
+constexpr memory_blocks<N_DAC_BRAM_PARAM>
+dac_brams  = {{
     {DAC1_ADDR, DAC1_RANGE},
     {DAC2_ADDR, DAC2_RANGE},
     {DAC3_ADDR, DAC3_RANGE}
@@ -23,14 +24,17 @@ constexpr std::array<std::array<uint32_t, 2>, N_DAC_BRAM_PARAM> dac_brams  = {{
 class Spectrum
 {
   public:
-    Spectrum(Klib::DevMem& dvm_);
+    Spectrum(DevMem& dvm_);
 
     void reset() {
         dvm.clear_bit(config_map, ADDR_OFF, 0);
         dvm.set_bit(config_map, ADDR_OFF, 0);
     }
 
-    void set_n_avg_min(uint32_t n_avg_min);
+    void set_n_avg_min(uint32_t n_avg_min) {
+        uint32_t n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
+        dvm.write32(config_map, N_AVG_MIN_OFF, n_avg_min_);
+    }
 
     void set_period(uint32_t period) {
         set_dac_period(period, period);
@@ -70,14 +74,12 @@ class Spectrum
         dvm.write32(config_map, SUBSTRACT_MEAN_OFF, offset_real + 16384 * offset_imag);
     }
 
-    #pragma tcp-server write_array arg{data} arg{len}
-    void set_demod_buffer(const uint32_t *data, uint32_t len) {
-        dvm.write_buff32(demod_map, 0, data, len);
+    void set_demod_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
+        dvm.write_buff(demod_map, 0, arr);
     }
 
-    #pragma tcp-server write_array arg{data} arg{len}
-    void set_noise_floor_buffer(const uint32_t *data, uint32_t len) {
-        dvm.write_buff32(noise_floor_map, 0, data, len);
+    void set_noise_floor_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
+        dvm.write_buff(noise_floor_map, 0, arr);
     }
 
     std::array<float, WFM_SIZE>& get_spectrum();
@@ -106,14 +108,14 @@ class Spectrum
     bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
 
   private:
-    Klib::DevMem& dvm;
+    DevMem& dvm;
 
-    Klib::MemMapID config_map;
-    Klib::MemMapID status_map;
-    Klib::MemMapID spectrum_map;
-    Klib::MemMapID demod_map;
-    Klib::MemMapID noise_floor_map;
-    Klib::MemMapID peak_fifo_map;
+    MemMapID config_map;
+    MemMapID status_map;
+    MemMapID spectrum_map;
+    MemMapID demod_map;
+    MemMapID noise_floor_map;
+    MemMapID peak_fifo_map;
 
     // Acquired data buffers
     float *raw_data;

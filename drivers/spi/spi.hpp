@@ -9,7 +9,7 @@
 class Spi
 {
   public:
-    Spi(Klib::DevMem& dvm_) {}
+    Spi(DevMem& dvm_) {}
 
     int init(uint32_t mode) {
         spi_dev = SpiDev(mode);
