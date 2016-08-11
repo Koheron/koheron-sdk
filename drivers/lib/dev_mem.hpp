@@ -124,9 +124,9 @@ class DevMem
             *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
     }
 
-    template<size_t N>
-    void write_buff32(MemMapID id, uint32_t offset, const std::array<uint32_t, N> arr) {
-        write_buff32(id, offset, arr.data(), N);
+    template<typename T, size_t N>
+    void write_buff(MemMapID id, uint32_t offset, const std::array<T, N> arr) {
+        write_buff(id, offset, arr.data(), N);
     }
 
     // Read

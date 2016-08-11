@@ -75,11 +75,11 @@ class Spectrum
     }
 
     void set_demod_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
-        dvm.write_buff32(demod_map, 0, arr);
+        dvm.write_buff(demod_map, 0, arr);
     }
 
     void set_noise_floor_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
-        dvm.write_buff32(noise_floor_map, 0, arr);
+        dvm.write_buff(noise_floor_map, 0, arr);
     }
 
     std::array<float, WFM_SIZE>& get_spectrum();
