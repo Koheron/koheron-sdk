@@ -14,7 +14,7 @@
 #define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
 #define FIFO_BUFF_SIZE 4096
 
-constexpr std::array<std::array<uint32_t, 2>, N_DAC_BRAM_PARAM>
+constexpr memory_blocks<N_DAC_BRAM_PARAM>
 dac_brams  = {{
     {DAC1_ADDR, DAC1_RANGE},
     {DAC2_ADDR, DAC2_RANGE},
@@ -75,11 +75,11 @@ class Spectrum
     }
 
     void set_demod_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
-        dvm.write_buff32(demod_map, 0, arr);
+        dvm.write_buff(demod_map, 0, arr);
     }
 
     void set_noise_floor_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
-        dvm.write_buff32(noise_floor_map, 0, arr);
+        dvm.write_buff(noise_floor_map, 0, arr);
     }
 
     std::array<float, WFM_SIZE>& get_spectrum();

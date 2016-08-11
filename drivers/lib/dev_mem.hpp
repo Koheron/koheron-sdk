@@ -23,8 +23,11 @@ namespace kserver {class KServer;}
 
 #include "memory_map.hpp"
 
-/// ID of a memory map
-typedef uint32_t MemMapID;
+typedef uint32_t MemMapID; /// ID of a memory map
+
+/// Memory blocks array
+template<size_t n_blocks>
+using memory_blocks = std::array<std::array<uint32_t, 2>, n_blocks>;
 
 class MemMapIdPool
 {
@@ -32,7 +35,11 @@ class MemMapIdPool
     MemMapIdPool() : reusable_ids(0) {};
 
     MemMapID get_id(unsigned int num_maps);
-    void release_id(MemMapID id);
+
+    void release_id(MemMapID id) {
+        reusable_ids.push_back(id);
+    }
+
   private:
     std::vector<MemMapID> reusable_ids;
 };
@@ -40,23 +47,15 @@ class MemMapIdPool
 #define ASSERT_WRITABLE assert((mem_maps.at(id)->get_protection() & PROT_WRITE) == PROT_WRITE);
 #define ASSERT_READABLE assert((mem_maps.at(id)->get_protection() & PROT_READ) == PROT_READ);
 
-/// Device memory manager
-/// A memory maps factory
 class DevMem
 {
   public:
     DevMem(kserver::KServer *kserver_, uintptr_t addr_limit_down_=0x0, uintptr_t addr_limit_up_=0x0);
     ~DevMem();
 
-    /// Open the /dev/mem driver
     int open();
 
-    /// Close all the memory maps
-    /// @return 0 if succeed, -1 else
-    int close();
-
-    /// Current number of memory maps
-    static unsigned int num_maps;
+    static unsigned int num_maps; /// Current number of memory maps
 
     int resize(MemMapID id, uint32_t length) {return mem_maps.at(id)->resize(length);}
 
@@ -66,6 +65,18 @@ class DevMem
     /// @protection Access protection
     /// @return An ID to the created map, or -1 if an error occured
     MemMapID add_memory_map(uintptr_t addr, uint32_t size, int protection = PROT_READ|PROT_WRITE);
+
+    template<size_t n_blocks>
+    std::array<MemMapID, n_blocks> add_memory_blocks(memory_blocks<n_blocks> mem_blocks,
+                                                     int protection = PROT_READ|PROT_WRITE)
+    {
+        std::array<MemMapID, n_blocks> maps;
+
+        for (uint32_t i=0; i<n_blocks; i++)
+            maps[i] = add_memory_map(mem_blocks[i][0], mem_blocks[i][1], protection);
+
+        return maps;
+    }
 
     /// Remove a memory map
     /// @id ID of the memory map to be removed
@@ -108,9 +119,9 @@ class DevMem
             *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
     }
 
-    template<size_t N>
-    void write_buff32(MemMapID id, uint32_t offset, const std::array<uint32_t, N> arr) {
-        write_buff32(id, offset, arr.data(), N);
+    template<typename T, size_t N>
+    void write_buff(MemMapID id, uint32_t offset, const std::array<T, N> arr) {
+        write_buff(id, offset, arr.data(), N);
     }
 
     // Read
@@ -179,9 +190,6 @@ class DevMem
         uintptr_t addr = get_base_addr(id) + offset;
         *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
     }
-
-    /// True if the /dev/mem device is open
-    bool IsOpen() const {return is_open;}
 
   private:
     kserver::KServer *kserver;
