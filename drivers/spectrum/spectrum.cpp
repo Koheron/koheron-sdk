@@ -18,7 +18,7 @@ Spectrum::Spectrum(DevMem& dvm_)
     noise_floor_map = dvm.add_memory_map(NOISE_FLOOR_ADDR, NOISE_FLOOR_RANGE);
     peak_fifo_map   = dvm.add_memory_map(PEAK_FIFO_ADDR, PEAK_FIFO_RANGE);
 
-    raw_data = dvm.read_buffer<float>(spectrum_map);
+    raw_data = dvm.get_buffer_ptr<float>(spectrum_map);
 
     fifo.set_map(peak_fifo_map);
 
@@ -52,7 +52,7 @@ std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
     return spectrum_data;
 }
 
-std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t index_low, 
+std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t index_low,
                                                  uint32_t index_high)
 {
     // Sanity checks

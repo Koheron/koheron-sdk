@@ -53,8 +53,7 @@ class SpeedTest
 
     // Read data in RAM buffer
     #pragma tcp-server read_array 2*WFM_SIZE
-    float* read_rambuf_mmap_memcpy()
-    {
+    float* read_rambuf_mmap_memcpy() {
         memcpy(mmap_buf, rambuf_data, 2*WFM_SIZE*sizeof(float));
         return (float*)mmap_buf;
     }
