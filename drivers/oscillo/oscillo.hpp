@@ -16,6 +16,7 @@
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE ADC1_RANGE/sizeof(float)
 #define ACQ_PERIOD_NS 8 // Duration between two acquisitions (ns)
+#define N_BITS_DAC 14
 
 constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
 constexpr std::array<uint32_t, 2> n_avg_offset = {N_AVG0_OFF, N_AVG1_OFF};
@@ -104,7 +105,7 @@ class Oscillo
     }
 
     void set_dac_float(uint32_t channel, const std::array<float, WFM_SIZE>& arr) {
-        dac.set_data(channel, arr);
+        dac.set_data<N_BITS_DAC>(channel, arr);
     }
 
     std::array<uint32_t, WFM_SIZE/2>& get_dac_buffer(uint32_t channel) {

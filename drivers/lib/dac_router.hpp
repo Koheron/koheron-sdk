@@ -20,6 +20,10 @@ constexpr long mod(long a, long b) {
     return (a % b + b) % b;
 }
 
+constexpr uint32_t half_dynamic_range(uint32_t n_bits) {
+    return 1 << (n_bits - 1);
+}
+
 template<uint32_t n_dac, uint32_t n_dac_bram>
 class DacRouter
 {
@@ -40,7 +44,9 @@ class DacRouter
         init_dac_brams();
     }
 
-    uint32_t* get_data(uint32_t channel) {return dvm.read_buff32(dac_map[bram_index[channel]]);}
+    uint32_t* get_data(uint32_t channel) {
+        return dvm.read_buff32(dac_map[bram_index[channel]]);
+    }
 
     template<size_t N>
     std::array<uint32_t, N>& get_data(uint32_t channel) {
@@ -57,7 +63,7 @@ class DacRouter
 
     /// The waveform is an array of floats between -1 and 1.
     /// Array is of size the number of samples in the waveform.
-    template<size_t N>
+    template<uint32_t n_bits, size_t N>
     void set_data(uint32_t channel, const std::array<float, N> arr);
 
   private:
@@ -75,8 +81,10 @@ class DacRouter
     int get_first_empty_bram_index();
     void switch_interconnect(uint32_t channel, uint32_t old_idx, uint32_t new_idx);
 
+    template<uint32_t n_bits>
     uint32_t convert_data(float val) {
-        return mod(static_cast<uint32_t>(floor(8192 * val) + 8192), 16384) + 8192;
+        uint32_t half_dyn_range = half_dynamic_range(n_bits);
+        return mod(static_cast<uint32_t>(floor(half_dyn_range * val) + half_dyn_range), 2 * half_dyn_range) + half_dyn_range;
     }
 };
 
@@ -141,7 +149,7 @@ inline void DacRouter<n_dac, n_dac_bram>::set_data(
 }
 
 template<uint32_t n_dac, uint32_t n_dac_bram>
-template<size_t N>
+template<uint32_t n_bits, size_t N>
 inline void DacRouter<n_dac, n_dac_bram>::set_data(
             uint32_t channel, const std::array<float, N> arr)
 {
@@ -149,7 +157,7 @@ inline void DacRouter<n_dac, n_dac_bram>::set_data(
     std::array<uint32_t, N/2> data;
 
     for (uint32_t i=0, j=0; i<N; i+=2, j++)
-        data[j] = convert_data(arr[i]) + (convert_data(arr[i + 1]) << 16);
+        data[j] = convert_data<n_bits>(arr[i]) + (convert_data<n_bits>(arr[i + 1]) << 16);
 
     set_data(channel, data);
 }
