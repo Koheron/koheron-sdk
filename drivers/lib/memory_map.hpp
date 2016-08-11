@@ -7,15 +7,12 @@
 
 #include <cstdio>
 #include <cstdint>
+#include <tuple>
 
 extern "C" {
     #include <unistd.h>
     #include <sys/mman.h>
 }
-
-/// @namespace Klib
-/// @brief Namespace of the Koheron library
-namespace Klib {
 
 #define DEFAULT_MAP_SIZE 4096UL // = PAGE_SIZE
 #define MAP_MASK(size) ((size) - 1)
@@ -35,16 +32,26 @@ class MemoryMap
 
     /// Close the memory map
     /// @return 0 if succeed, -1 else
-    /// @bug Unmapping doesn't work sometimes
-    int Unmap();
+    int unmap();
 
-    int Resize(uint32_t length);
+    int resize(uint32_t length);
 
-    int GetProtection() const {return protection;}
-    int GetStatus() const {return status;}
-    uintptr_t GetBaseAddr() const {return mapped_dev_base;}
-    uint32_t MappedSize() const {return size;}
-    uintptr_t PhysAddr() const {return phys_addr;}
+    int get_protection() const {return protection;}
+    int get_status() const {return status;}
+    uintptr_t get_base_addr() const {return mapped_dev_base;}
+    uint32_t mapped_size() const {return size;}
+    uintptr_t get_phys_addr() const {return phys_addr;}
+
+    std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>
+    get_params() {
+        return std::make_tuple(
+            mapped_dev_base,
+            status,
+            phys_addr,
+            size,
+            protection
+        );
+    }
 
     enum Status {
         MEMMAP_CLOSED,       ///< Memory map closed
@@ -62,7 +69,5 @@ class MemoryMap
     uint32_t size;              ///< Map size in bytes
     uintptr_t phys_addr;        ///< Physical address
 };
-
-}; // namespace Klib
 
 #endif // __DRIVERS_CORE_MEMORY_MAP_HPP__

@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_CORE_SpeedTest_HPP__
-#define __DRIVERS_CORE_SpeedTest_HPP__
+#ifndef __DRIVERS_SPEED_TEST_HPP__
+#define __DRIVERS_SPEED_TEST_HPP__
 
 #include <vector>
 #include <cstring>
@@ -24,7 +24,7 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz);
 class SpeedTest
 {
   public:
-    SpeedTest(Klib::DevMem& dvm_);
+    SpeedTest(DevMem& dvm_);
 
     std::array<float, 2*WFM_SIZE>& read_raw_all();
 
@@ -53,20 +53,19 @@ class SpeedTest
 
     // Read data in RAM buffer
     #pragma tcp-server read_array 2*WFM_SIZE
-    float* read_rambuf_mmap_memcpy()
-    {
+    float* read_rambuf_mmap_memcpy() {
         memcpy(mmap_buf, rambuf_data, 2*WFM_SIZE*sizeof(float));
         return (float*)mmap_buf;
     }
 
   private:
-    Klib::DevMem& dvm;
+    DevMem& dvm;
 
-    Klib::MemMapID config_map;
-    Klib::MemMapID status_map;
-    Klib::MemMapID adc_1_map;
-    Klib::MemMapID adc_2_map;
-    Klib::MemMapID rambuf_map;
+    MemMapID config_map;
+    MemMapID status_map;
+    MemMapID adc_1_map;
+    MemMapID adc_2_map;
+    MemMapID rambuf_map;
     void *mmap_buf;
 
     uint32_t *raw_data_1 = nullptr;
@@ -81,4 +80,4 @@ class SpeedTest
     std::vector<uint32_t> data_all_int;
 }; // class SpeedTest
 
-#endif // __DRIVERS_CORE_SpeedTest_HPP__
+#endif // __DRIVERS_SPEED_TEST_HPP__

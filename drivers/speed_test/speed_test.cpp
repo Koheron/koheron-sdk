@@ -18,20 +18,20 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz)
 }
 
 
-SpeedTest::SpeedTest(Klib::DevMem& dvm_)
+SpeedTest::SpeedTest(DevMem& dvm_)
 : dvm(dvm_)
 , data_decim(0)
 , data_all_int(0)
 {
-    config_map = dvm.AddMemoryMap(CONFIG_ADDR, CONFIG_RANGE);
-    status_map = dvm.AddMemoryMap(STATUS_ADDR, STATUS_RANGE, PROT_READ);
-    adc_1_map  = dvm.AddMemoryMap(ADC1_ADDR, ADC1_RANGE);
-    adc_2_map  = dvm.AddMemoryMap(ADC2_ADDR, ADC2_RANGE);
-    rambuf_map = dvm.AddMemoryMap(RAMBUF_ADDR, RAMBUF_RANGE);
+    config_map = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
+    status_map = dvm.add_memory_map(STATUS_ADDR, STATUS_RANGE, PROT_READ);
+    adc_1_map  = dvm.add_memory_map(ADC1_ADDR, ADC1_RANGE);
+    adc_2_map  = dvm.add_memory_map(ADC2_ADDR, ADC2_RANGE);
+    rambuf_map = dvm.add_memory_map(RAMBUF_ADDR, RAMBUF_RANGE);
 
-    raw_data_1 = reinterpret_cast<uint32_t*>(dvm.GetBaseAddr(adc_1_map));
-    raw_data_2 = reinterpret_cast<uint32_t*>(dvm.GetBaseAddr(adc_2_map));
-    rambuf_data = reinterpret_cast<float*>(dvm.GetBaseAddr(rambuf_map));
+    raw_data_1 = dvm.get_buffer_ptr<uint32_t>(adc_1_map);
+    raw_data_2 = dvm.get_buffer_ptr<uint32_t>(adc_2_map);
+    rambuf_data = dvm.get_buffer_ptr<float>(rambuf_map);
 
     mmap_buf = mmap(NULL, 16384*4, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
 
@@ -39,7 +39,7 @@ SpeedTest::SpeedTest(Klib::DevMem& dvm_)
 }
 
 // http://stackoverflow.com/questions/12276675/modulus-with-negative-numbers-in-c
-inline long long int mod(long long int k, long long int n) 
+inline long long int mod(long long int k, long long int n)
 {
     return ((k %= n) < 0) ? k+n : k;
 }
@@ -49,7 +49,7 @@ std::array<float, 2*WFM_SIZE>& SpeedTest::read_raw_all()
 {
     dvm.set_bit(config_map, ADDR_OFF, 1);
 
-    for(unsigned int i=0; i<WFM_SIZE; i++) {
+    for (unsigned int i=0; i<WFM_SIZE; i++) {
         data_all[i] = raw_data_1[i];
         data_all[i + WFM_SIZE] = raw_data_2[i];
     }

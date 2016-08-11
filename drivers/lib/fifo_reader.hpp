@@ -29,10 +29,10 @@ template<size_t N>
 class FIFOReader
 {
   public:
-    FIFOReader(Klib::DevMem& dvm_);
+    FIFOReader(DevMem& dvm_);
 
     // Set FIFO virtual base address
-    void set_map(Klib::MemMapID fifo_map_){
+    void set_map(MemMapID fifo_map_){
         fifo_map.store(fifo_map_);
         dvm.write32(fifo_map.load(), RDFR_OFF, 0xA5); // Reset FIFO
     }
@@ -64,9 +64,9 @@ class FIFOReader
     bool overflow() {return acq_num.load() > N;}
 
   private:
-    Klib::DevMem& dvm;
+    DevMem& dvm;
 
-    std::atomic<Klib::MemMapID>   fifo_map;
+    std::atomic<::MemMapID>   fifo_map;
     std::atomic<uint32_t>   num_thread;
     std::atomic<uint32_t>   index; // Current index of the ring_buffer
     std::atomic<uint32_t>   acq_num; // Number of points acquire since the last call to get_data()
@@ -82,7 +82,7 @@ class FIFOReader
 };
 
 template<size_t N>
-FIFOReader<N>::FIFOReader(Klib::DevMem& dvm_)
+FIFOReader<N>::FIFOReader(::DevMem& dvm_)
 : dvm(dvm_)
 {
     fifo_map.store(0x0);

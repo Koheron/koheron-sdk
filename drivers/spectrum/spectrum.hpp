@@ -7,27 +7,34 @@
 
 #include <drivers/lib/dev_mem.hpp>
 #include <drivers/lib/fifo_reader.hpp>
-
+#include <drivers/lib/dac_router.hpp>
 #include <drivers/addresses.hpp>
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
 #define FIFO_BUFF_SIZE 4096
 
-constexpr uint32_t dac_sel_width  = ceil(log(float(N_DAC_BRAM_PARAM)) / log(2.));
-constexpr uint32_t bram_sel_width = ceil(log(float(N_DAC_PARAM)) / log(2.));
+constexpr memory_blocks<N_DAC_BRAM_PARAM>
+dac_brams  = {{
+    {DAC1_ADDR, DAC1_RANGE},
+    {DAC2_ADDR, DAC2_RANGE},
+    {DAC3_ADDR, DAC3_RANGE}
+}};
 
 class Spectrum
 {
   public:
-    Spectrum(Klib::DevMem& dvm_);
+    Spectrum(DevMem& dvm_);
 
     void reset() {
         dvm.clear_bit(config_map, ADDR_OFF, 0);
         dvm.set_bit(config_map, ADDR_OFF, 0);
     }
 
-    void set_n_avg_min(uint32_t n_avg_min);
+    void set_n_avg_min(uint32_t n_avg_min) {
+        uint32_t n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
+        dvm.write32(config_map, N_AVG_MIN_OFF, n_avg_min_);
+    }
 
     void set_period(uint32_t period) {
         set_dac_period(period, period);
@@ -39,58 +46,20 @@ class Spectrum
         dvm.write32(config_map, DAC_PERIOD0_OFF, dac_period0 - 1);
         dvm.write32(config_map, DAC_PERIOD1_OFF, dac_period1 - 1);
     }
-    
+
     void set_avg_period(uint32_t avg_period) {
         dvm.write32(config_map, AVG_PERIOD_OFF, avg_period - 1);
         dvm.write32(config_map, AVG_THRESHOLD_OFF, avg_period - 6);
     }
 
-    void init_dac_brams() {
-        for (int i=0; i < N_DAC_PARAM; i++) {
-            bram_index[i] = i;
-            connected_bram[i] = true;
-        }
-        for (int i=N_DAC_PARAM; i < N_DAC_BRAM_PARAM; i++) {
-            connected_bram[i] = false;
-        }
-        update_dac_routing();
-    }
-
-    void update_dac_routing() {
-        // dac_select defines the connection between BRAMs and DACs
-        uint32_t dac_select = 0;
-        for (uint32_t i=0; i < N_DAC_PARAM; i++)
-            dac_select += bram_index[i] << (dac_sel_width * i);
-        dvm.write32(config_map, DAC_SELECT_OFF, dac_select);
-
-        // addr_select defines the connection between address generators and BRAMs
-        uint32_t addr_select = 0;
-        for (uint32_t j=0; j < N_DAC_PARAM; j++)
-            addr_select += j << (bram_sel_width * bram_index[j]);
-        dvm.write32(config_map, ADDR_SELECT_OFF, addr_select);
-    }
-
-    uint32_t get_first_empty_bram_index() {
-        uint32_t i;
-        for (i=0; i < N_DAC_BRAM_PARAM; i++) {
-            if ((bram_index[0] != i) && (bram_index[1] != i))
-                break;
-        }
-        return i;
-    }
-
     void set_dac_buffer(uint32_t channel, const std::array<uint32_t, WFM_SIZE/2>& arr) {
-        uint32_t old_idx = bram_index[channel];
-        uint32_t new_idx = get_first_empty_bram_index();
-        // Write data in empty BRAM
-        dvm.write_buff32(dac_map[new_idx], 0, arr.data(), arr.size());
-        // Switch DAC interconnect
-        bram_index[channel] = new_idx;
-        connected_bram[new_idx] = true;
-        update_dac_routing();
-        connected_bram[old_idx] = false;
+        dac.set_data(channel, arr);
     }
-    
+
+    std::array<uint32_t, WFM_SIZE/2>& get_dac_buffer(uint32_t channel) {
+        return dac.get_data<WFM_SIZE/2>(channel);
+    }
+
     void reset_acquisition() {
         dvm.clear_bit(config_map, ADDR_OFF, 1);
         dvm.set_bit(config_map, ADDR_OFF, 1);
@@ -100,19 +69,17 @@ class Spectrum
         // LSB at 1 for forward FFT
         dvm.write32(config_map, CFG_FFT_OFF, 1 + 2 * scale_sch);
     }
-    
+
     void set_offset(uint32_t offset_real, uint32_t offset_imag) {
         dvm.write32(config_map, SUBSTRACT_MEAN_OFF, offset_real + 16384 * offset_imag);
     }
 
-    #pragma tcp-server write_array arg{data} arg{len}
-    void set_demod_buffer(const uint32_t *data, uint32_t len) {
-        dvm.write_buff32(demod_map, 0, data, len);
+    void set_demod_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
+        dvm.write_buff(demod_map, 0, arr);
     }
 
-    #pragma tcp-server write_array arg{data} arg{len}
-    void set_noise_floor_buffer(const uint32_t *data, uint32_t len) {
-        dvm.write_buff32(noise_floor_map, 0, data, len);
+    void set_noise_floor_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
+        dvm.write_buff(noise_floor_map, 0, arr);
     }
 
     std::array<float, WFM_SIZE>& get_spectrum();
@@ -141,27 +108,22 @@ class Spectrum
     bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
 
   private:
-    Klib::DevMem& dvm;
+    DevMem& dvm;
 
-    Klib::MemMapID config_map;
-    Klib::MemMapID status_map;
-    Klib::MemMapID spectrum_map;
-    Klib::MemMapID demod_map;
-    Klib::MemMapID noise_floor_map;
-    Klib::MemMapID peak_fifo_map;
-
-    Klib::MemMapID dac_map[3];
+    MemMapID config_map;
+    MemMapID status_map;
+    MemMapID spectrum_map;
+    MemMapID demod_map;
+    MemMapID noise_floor_map;
+    MemMapID peak_fifo_map;
 
     // Acquired data buffers
     float *raw_data;
     std::array<float, WFM_SIZE> spectrum_data;
     std::vector<float> spectrum_decim;
     FIFOReader<FIFO_BUFF_SIZE> fifo;
+    DacRouter<N_DAC_PARAM, N_DAC_BRAM_PARAM> dac;
 
-    // Store the BRAM corresponding to each DAC
-    std::array<uint32_t, N_DAC_PARAM> bram_index;
-    std::array<bool, N_DAC_BRAM_PARAM> connected_bram;
-    
     // Internal functions
     void wait_for_acquisition() {
        do {} while (dvm.read32(status_map, AVG_READY_OFF) == 0);

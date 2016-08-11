@@ -25,7 +25,7 @@
 class Xadc
 {
   public:
-    Xadc(Klib::DevMem& dvm_);
+    Xadc(DevMem& dvm_);
 
     int set_channel(uint32_t channel_0_, uint32_t channel_1_);
     
@@ -37,8 +37,8 @@ class Xadc
     int read(uint32_t channel);
 
   private:
-    Klib::DevMem& dvm;
-    Klib::MemMapID xadc_map;
+    DevMem& dvm;
+    MemMapID xadc_map;
 
     uint32_t channel_0 = 1;
     uint32_t channel_1 = 8;

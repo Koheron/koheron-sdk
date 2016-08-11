@@ -12,27 +12,22 @@
 #include <string>
 #include <memory>
 #include <tuple>
-#include <assert.h> 
+#include <assert.h>
 
 extern "C" {
     #include <fcntl.h>
     #include <sys/mman.h>
 }
 
+namespace kserver {class KServer;}
+
 #include "memory_map.hpp"
 
-/// @namespace Klib
-/// @brief Namespace of the Koheron library
-namespace Klib {
+typedef uint32_t MemMapID; /// ID of a memory map
 
-struct MemoryRegion
-{
-    uintptr_t phys_addr;
-    uint32_t range;
-};
-
-/// ID of a memory map
-typedef uint32_t MemMapID;
+/// Memory blocks array
+template<size_t n_blocks>
+using memory_blocks = std::array<std::array<uint32_t, 2>, n_blocks>;
 
 class MemMapIdPool
 {
@@ -40,73 +35,62 @@ class MemMapIdPool
     MemMapIdPool() : reusable_ids(0) {};
 
     MemMapID get_id(unsigned int num_maps);
-    void release_id(MemMapID id);
+
+    void release_id(MemMapID id) {
+        reusable_ids.push_back(id);
+    }
+
   private:
     std::vector<MemMapID> reusable_ids;
 };
 
-#define ASSERT_WRITABLE assert((mem_maps.at(id)->GetProtection() & PROT_WRITE) == PROT_WRITE);
-#define ASSERT_READABLE assert((mem_maps.at(id)->GetProtection() & PROT_READ) == PROT_READ);
+#define ASSERT_WRITABLE assert((mem_maps.at(id)->get_protection() & PROT_WRITE) == PROT_WRITE);
+#define ASSERT_READABLE assert((mem_maps.at(id)->get_protection() & PROT_READ) == PROT_READ);
 
-/// Device memory manager
-/// A memory maps factory
 class DevMem
 {
   public:
-    DevMem(uintptr_t addr_limit_down_=0x0, uintptr_t addr_limit_up_=0x0);
+    DevMem(kserver::KServer *kserver_, uintptr_t addr_limit_down_=0x0, uintptr_t addr_limit_up_=0x0);
     ~DevMem();
 
-    /// Open the /dev/mem driver
-    int Open();
+    int open();
 
-    /// Close all the memory maps
-    /// @return 0 if succeed, -1 else
-    int Close();
+    static unsigned int num_maps; /// Current number of memory maps
 
-    /// Current number of memory maps
-    static unsigned int num_maps;
-
-    template<size_t N>
-    std::array<MemMapID, N> 
-    RequestMemoryMaps(std::array<MemoryRegion, N> regions);
-
-    int CheckMap(MemMapID id) {return static_cast<int>(id);}
-
-    template<typename... map_id> int CheckMaps(map_id... id);
-
-    // Helper function to check the IDs returned by RequestMemoryMaps
-    template<size_t N>
-    int CheckMapIDs(std::array<MemMapID, N> ids);
-
-    int Resize(MemMapID id, uint32_t length) {return mem_maps.at(id)->Resize(length);}
+    int resize(MemMapID id, uint32_t length) {return mem_maps.at(id)->resize(length);}
 
     /// Create a new memory map
     /// @addr Base address of the map
     /// @size Size of the map
     /// @protection Access protection
-    /// @return An ID to the created map,
-    ///         or -1 if an error occured
-    MemMapID AddMemoryMap(uintptr_t addr, uint32_t size, int protection = PROT_READ|PROT_WRITE);
+    /// @return An ID to the created map, or -1 if an error occured
+    MemMapID add_memory_map(uintptr_t addr, uint32_t size, int protection = PROT_READ|PROT_WRITE);
+
+    template<size_t n_blocks>
+    std::array<MemMapID, n_blocks> add_memory_blocks(memory_blocks<n_blocks> mem_blocks,
+                                                     int protection = PROT_READ|PROT_WRITE)
+    {
+        std::array<MemMapID, n_blocks> maps;
+
+        for (uint32_t i=0; i<n_blocks; i++)
+            maps[i] = add_memory_map(mem_blocks[i][0], mem_blocks[i][1], protection);
+
+        return maps;
+    }
 
     /// Remove a memory map
     /// @id ID of the memory map to be removed
-    void RmMemoryMap(MemMapID id);
+    void rm_memory_map(MemMapID id);
 
     /// Remove all the memory maps
-    void RemoveAll();
+    void remove_all();
 
-    uintptr_t GetBaseAddr(MemMapID id) {return mem_maps.at(id)->GetBaseAddr();}
-    int GetStatus(MemMapID id)         {return mem_maps.at(id)->GetStatus();}
+    uintptr_t get_base_addr(MemMapID id) {return mem_maps.at(id)->get_base_addr();}
+    int get_status(MemMapID id)         {return mem_maps.at(id)->get_status();}
 
     std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>
     get_map_params(MemMapID id) {
-        return std::make_tuple(
-            mem_maps.at(id)->GetBaseAddr(),
-            mem_maps.at(id)->GetStatus(),
-            mem_maps.at(id)->PhysAddr(),
-            mem_maps.at(id)->MappedSize(),
-            mem_maps.at(id)->GetProtection()
-        );
+        return mem_maps.at(id)->get_params();
     }
 
     /// Return 1 if a memory map failed
@@ -114,67 +98,101 @@ class DevMem
 
     bool is_ok() {return !IsFailed();}
 
+    // Write
+
     void write32(MemMapID id, uint32_t offset, uint32_t value) {
         ASSERT_WRITABLE
-        *(volatile uintptr_t *) (GetBaseAddr(id) + offset) = value;
+        *(volatile uint32_t *) (get_base_addr(id) + offset) = value;
     }
 
     void write_buff32(MemMapID id, uint32_t offset,
                       const uint32_t *data_ptr, uint32_t buff_size) {
-        ASSERT_WRITABLE
-        uintptr_t addr = GetBaseAddr(id) + offset;
-        for(uint32_t i=0; i < buff_size; i++)
-            *(volatile uintptr_t *) (addr + sizeof(uint32_t) * i) = data_ptr[i];
+        write_buff(id, offset, data_ptr, buff_size);
     }
 
     template<typename T>
-    T* read_buffer(MemMapID id, uint32_t offset = 0) {
-        ASSERT_READABLE
-        return reinterpret_cast<T*>(GetBaseAddr(id) + offset);
+    void write_buff(MemMapID id, uint32_t offset,
+                    const T *data_ptr, uint32_t buff_size) {
+        ASSERT_WRITABLE
+        uintptr_t addr = get_base_addr(id) + offset;
+        for (uint32_t i=0; i < buff_size; i++)
+            *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
     }
 
-    uint32_t* read_buff32(MemMapID id, uint32_t offset = 0) {
+    template<typename T, size_t N>
+    void write_buff(MemMapID id, uint32_t offset, const std::array<T, N> arr) {
+        write_buff(id, offset, arr.data(), N);
+    }
+
+    // Read
+
+    template<typename T>
+    T* read_buffer(MemMapID id, uint32_t offset) {
+        ASSERT_READABLE
+        return reinterpret_cast<T*>(get_base_addr(id) + offset);
+    }
+
+    uint32_t* read_buff32(MemMapID id, uint32_t offset) {
         return read_buffer<uint32_t>(id, offset);
+    }
+
+    template<typename T, uint32_t offset = 0>
+    T* get_buffer_ptr(MemMapID id) {
+        ASSERT_READABLE
+        return reinterpret_cast<T*>(get_base_addr(id) + offset);
+    }
+
+    template<typename T, size_t N, uint32_t offset = 0>
+    std::array<T, N>& read_buffer(MemMapID id) {
+        uintptr_t ptr = get_base_addr(id) + offset;
+        auto p = reinterpret_cast<std::array<T, N>*>(ptr);
+        assert(p->data() == (const T*)ptr);
+        return *p;
+    }
+
+    template<uint32_t offset = 0>
+    uint32_t* read_buff32(MemMapID id) {
+        return get_buffer_ptr<uint32_t, offset>(id);
     }
 
     uint32_t read32(MemMapID id, uint32_t offset) {
         ASSERT_READABLE
-        return *(volatile uintptr_t *) (GetBaseAddr(id) + offset);
+        return *(volatile uintptr_t *) (get_base_addr(id) + offset);
     }
+
+    // Bits
 
     void set_bit(MemMapID id, uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        uintptr_t addr = GetBaseAddr(id) + offset;
+        uintptr_t addr = get_base_addr(id) + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
     }
 
     void clear_bit(MemMapID id, uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        uintptr_t addr = GetBaseAddr(id) + offset;
+        uintptr_t addr = get_base_addr(id) + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
     }
 
     void toggle_bit(MemMapID id, uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        uintptr_t addr = GetBaseAddr(id) + offset;
+        uintptr_t addr = get_base_addr(id) + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
     }
 
     bool read_bit(MemMapID id, uint32_t offset, uint32_t index) {
         ASSERT_READABLE
-        return *((volatile uintptr_t *) (GetBaseAddr(id) + offset)) & (1 << index);
+        return *((volatile uintptr_t *) (get_base_addr(id) + offset)) & (1 << index);
     }
 
     void write32_mask(MemMapID id, uint32_t offset, uint32_t value, uint32_t mask) {
         ASSERT_WRITABLE
-        uintptr_t addr = GetBaseAddr(id) + offset;
+        uintptr_t addr = get_base_addr(id) + offset;
         *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
     }
 
-    /// True if the /dev/mem device is open
-    bool IsOpen() const {return is_open;}
-
   private:
+    kserver::KServer *kserver;
     int fd;         ///< /dev/mem file ID
     bool is_open;   ///< True if /dev/mem open
     
@@ -187,47 +205,5 @@ class DevMem
     std::map<MemMapID, std::unique_ptr<MemoryMap>> mem_maps;
     MemMapIdPool id_pool;
 };
-
-
-template<size_t N>
-std::array<MemMapID, N> 
-DevMem::RequestMemoryMaps(std::array<MemoryRegion, N> regions)
-{
-    auto map_ids = std::array<MemMapID, N>();
-    map_ids.fill(static_cast<MemMapID>(-1));
-    uint32_t i = 0;
-
-    for (auto& region : regions) {
-        map_ids[i] = AddMemoryMap(region.phys_addr, region.range);
-        i++;
-    }
-
-    return map_ids;
-}
-
-template<size_t N>
-int DevMem::CheckMapIDs(std::array<MemMapID, N> ids)
-{
-    for (auto& id : ids)
-        if (CheckMap(id) < 0)
-            return -1;
-
-    return 0;
-}
-
-template<typename... map_id>
-constexpr auto ids_array(map_id&&... args) 
-    -> std::array<MemMapID, sizeof...(args)>
-{
-    return {{std::forward<map_id>(args)...}};
-}
-
-template<typename... map_id>
-int DevMem::CheckMaps(map_id... id)
-{
-    return CheckMapIDs(ids_array(id...));
-}
-
-}; // namespace Klib
 
 #endif // __DRIVERS_LIB_DEV_MEM_HPP__

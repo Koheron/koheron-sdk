@@ -4,16 +4,13 @@ import numpy as np
 
 from instrument_manager import InstrumentManager
 from koheron_tcp_client import KClient
-# from project_config import ProjectConfig
 
 from drivers.oscillo import Oscillo
 
 host = os.getenv('HOST','192.168.1.2')
-project = os.getenv('NAME','oscillo')
 
 im = InstrumentManager(host)
-im.install_instrument(project, always_restart=False)
-# pc = ProjectConfig(project)
+im.install_instrument('oscillo', always_restart=False)
 
 client = KClient(host)
 oscillo = Oscillo(client)
@@ -30,7 +27,7 @@ class TestsOscillo:
 
     def test_averaging(self):
         oscillo.set_averaging(False)
-        assert oscillo.get_num_average_0() == oscillo.get_num_average_1()
+        assert oscillo.get_num_average(0) == oscillo.get_num_average(1)
         oscillo.set_averaging(True)
         oscillo.set_n_avg_min(1000)
         oscillo.get_adc()
@@ -45,6 +42,15 @@ class TestsOscillo:
         data_tmp = np.uint32(np.mod(np.floor(8192 * data_send) + 8192, 16384) + 8192)
         data_read_expect = data_tmp[::2] + (data_tmp[1::2] << 16)
         assert np.array_equal(data_read, data_read_expect)
+
+    def test_set_dac_float(self):
+        data_send = np.float32(np.sin(np.arange(oscillo.wfm_size)))
+        oscillo.set_dac_float(1, data_send)
+        data_read = oscillo.get_dac_buffer(1)
+        data_tmp = np.uint32(np.mod(np.floor(8192 * data_send) + 8192, 16384) + 8192)
+        data_read_expect = data_tmp[::2] + (data_tmp[1::2] << 16)
+        assert np.array_equal(data_read, data_read_expect)
+
 
 # tests = TestsOscillo()
 # tests.test_get_adc()

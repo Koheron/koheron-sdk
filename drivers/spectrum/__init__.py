@@ -35,6 +35,9 @@ class Spectrum(object):
         data = np.uint32(np.mod(np.floor(8192 * data) + 8192, 16384) + 8192)
         set_dac_buffer(self, channel, data[::2] + (data[1::2] << 16))
 
+    @command('SPECTRUM', 'I')
+    def get_dac_buffer(self, channel):
+        return self.client.recv_buffer(self.wfm_size/2, data_type='uint32')
 
     @command('SPECTRUM', 'I')
     def set_scale_sch(self, scale_sch):
@@ -45,16 +48,18 @@ class Spectrum(object):
         pass
 
     def set_demod(self, data):
-        @write_buffer('SPECTRUM')
+        @command('SPECTRUM', 'A')
         def set_demod_buffer(self, data): 
             pass
-        data1 = np.mod(np.floor(8192 * data[0, :]) + 8192,16384) + 8192
-        data2 = np.mod(np.floor(8192 * data[1, :]) + 8192,16384) + 8192
+        data1 = np.uint32(np.mod(np.floor(8192 * data[0, :]) + 8192,16384) + 8192)
+        data2 = np.uint32(np.mod(np.floor(8192 * data[1, :]) + 8192,16384) + 8192)
         set_demod_buffer(self, data1 + data2 * 2**16)
 
-    @write_buffer('SPECTRUM', format_char='f', dtype=np.float32)
     def set_noise_floor_buffer(self, data):
-        pass
+        @command('SPECTRUM', 'A')
+        def set_noise_floor_buffer(self, data):
+            pass
+        set_noise_floor_buffer(self, np.float32(data))
         
     @command('SPECTRUM')
     def get_spectrum(self):

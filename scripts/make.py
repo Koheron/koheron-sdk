@@ -138,6 +138,10 @@ def fill_addresses(config, drivers_dir):
     output_filename = os.path.join(drivers_dir, 'addresses.hpp')
     fill_template(config, 'addresses.hpp', output_filename)
 
+def fill_start_sh(config):
+    output_filename = os.path.join('tmp', config['project']+'.start.sh')
+    fill_template(config, 'start.sh', output_filename)
+
 def get_renderer():
     renderer = jinja2.Environment(
       block_start_string = '{%',
@@ -212,6 +216,10 @@ if __name__ == "__main__":
         config = get_config(sys.argv[2])
         assert('sha0' in config['parameters'])
         fill_config_tcl(config)
+
+    elif cmd == '--start_sh':
+        config = get_config(sys.argv[2])
+        fill_start_sh(config)
 
     elif cmd == '--cores':
         project = sys.argv[2]
