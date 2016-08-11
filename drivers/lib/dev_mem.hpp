@@ -187,9 +187,6 @@ class DevMem
         *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
     }
 
-    /// True if the /dev/mem device is open
-    bool IsOpen() const {return is_open;}
-
   private:
     kserver::KServer *kserver;
     int fd;         ///< /dev/mem file ID
