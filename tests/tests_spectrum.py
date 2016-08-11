@@ -8,10 +8,9 @@ from koheron_tcp_client import KClient
 from drivers.spectrum import Spectrum
 
 host = os.getenv('HOST', '192.168.1.2')
-project = os.getenv('NAME', 'spectrum')
 
 im = InstrumentManager(host)
-im.install_instrument(project, always_restart=False)
+im.install_instrument('spectrum', always_restart=False)
 
 client = KClient(host)
 spectrum = Spectrum(client)
