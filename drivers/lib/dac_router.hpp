@@ -83,7 +83,7 @@ class DacRouter
 
     template<uint32_t n_bits>
     uint32_t convert_data(float val) {
-        uint32_t half_dyn_range = half_dynamic_range(n_bits);
+        constexpr uint32_t half_dyn_range = half_dynamic_range(n_bits);
         return mod(static_cast<uint32_t>(floor(half_dyn_range * val) + half_dyn_range), 2 * half_dyn_range) + half_dyn_range;
     }
 };
