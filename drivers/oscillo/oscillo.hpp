@@ -54,7 +54,9 @@ class Oscillo
         return lsb + (msb << 32);
     }
 
-    uint32_t get_num_average(uint32_t channel)  {return dvm.read32(status_map, n_avg_offset[channel]);}
+    uint32_t get_num_average(uint32_t channel) {
+        return dvm.read32(status_map, n_avg_offset[channel]);
+    }
 
     // TODO should be a one-liner
     void set_clken_mask(bool clken_mask) {
@@ -98,6 +100,10 @@ class Oscillo
 
     // DACs
     void set_dac_buffer(uint32_t channel, const std::array<uint32_t, WFM_SIZE/2>& arr) {
+        dac.set_data(channel, arr);
+    }
+
+    void set_dac_float(uint32_t channel, const std::array<float, WFM_SIZE>& arr) {
         dac.set_data(channel, arr);
     }
 

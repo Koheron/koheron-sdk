@@ -91,15 +91,21 @@ class DevMem
 
     void write32(MemMapID id, uint32_t offset, uint32_t value) {
         ASSERT_WRITABLE
-        *(volatile uintptr_t *) (get_base_addr(id) + offset) = value;
+        *(volatile uint32_t *) (get_base_addr(id) + offset) = value;
     }
 
     void write_buff32(MemMapID id, uint32_t offset,
                       const uint32_t *data_ptr, uint32_t buff_size) {
+        write_buff(id, offset, data_ptr, buff_size);
+    }
+
+    template<typename T>
+    void write_buff(MemMapID id, uint32_t offset,
+                    const T *data_ptr, uint32_t buff_size) {
         ASSERT_WRITABLE
         uintptr_t addr = get_base_addr(id) + offset;
         for (uint32_t i=0; i < buff_size; i++)
-            *(volatile uintptr_t *) (addr + sizeof(uint32_t) * i) = data_ptr[i];
+            *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
     }
 
     template<size_t N>
@@ -120,22 +126,22 @@ class DevMem
     }
 
     template<typename T, uint32_t offset = 0>
-    T* read_buffer(MemMapID id) {
+    T* get_buffer_ptr(MemMapID id) {
         ASSERT_READABLE
         return reinterpret_cast<T*>(get_base_addr(id) + offset);
     }
 
-    template<typename T, size_t N, uint32_t offset>
+    template<typename T, size_t N, uint32_t offset = 0>
     std::array<T, N>& read_buffer(MemMapID id) {
-        T *buff = read_buffer<T>(id);
-        auto p = reinterpret_cast<std::array<T, N>*>(buff);
-        assert(p->data() == (const T*)buff);
+        uintptr_t ptr = get_base_addr(id) + offset;
+        auto p = reinterpret_cast<std::array<T, N>*>(ptr);
+        assert(p->data() == (const T*)ptr);
         return *p;
     }
 
     template<uint32_t offset = 0>
     uint32_t* read_buff32(MemMapID id) {
-        return read_buffer<uint32_t, offset>(id);
+        return get_buffer_ptr<uint32_t, offset>(id);
     }
 
     uint32_t read32(MemMapID id, uint32_t offset) {

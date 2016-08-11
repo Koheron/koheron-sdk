@@ -43,6 +43,15 @@ class TestsOscillo:
         data_read_expect = data_tmp[::2] + (data_tmp[1::2] << 16)
         assert np.array_equal(data_read, data_read_expect)
 
+    def test_set_dac_float(self):
+        data_send = np.float32(np.sin(np.arange(oscillo.wfm_size)))
+        oscillo.set_dac_float(1, data_send)
+        data_read = oscillo.get_dac_buffer(1)
+        data_tmp = np.uint32(np.mod(np.floor(8192 * data_send) + 8192, 16384) + 8192)
+        data_read_expect = data_tmp[::2] + (data_tmp[1::2] << 16)
+        assert np.array_equal(data_read, data_read_expect)
+
+
 # tests = TestsOscillo()
 # tests.test_get_adc()
 # tests.test_averaging()

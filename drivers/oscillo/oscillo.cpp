@@ -17,8 +17,8 @@ Oscillo::Oscillo(DevMem& dvm_)
     adc_map[0] = dvm.add_memory_map(ADC1_ADDR, ADC1_RANGE);
     adc_map[1] = dvm.add_memory_map(ADC2_ADDR, ADC2_RANGE);
 
-    raw_data[0] = dvm.read_buffer<int32_t>(adc_map[0]);
-    raw_data[1] = dvm.read_buffer<int32_t>(adc_map[1]);
+    raw_data[0] = dvm.get_buffer_ptr<int32_t>(adc_map[0]);
+    raw_data[1] = dvm.get_buffer_ptr<int32_t>(adc_map[1]);
 
     set_averaging(false); // Reset averaging
 
