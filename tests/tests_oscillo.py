@@ -8,10 +8,9 @@ from koheron_tcp_client import KClient
 from drivers.oscillo import Oscillo
 
 host = os.getenv('HOST','192.168.1.2')
-project = os.getenv('NAME','oscillo')
 
 im = InstrumentManager(host)
-im.install_instrument(project, always_restart=False)
+im.install_instrument('oscillo', always_restart=False)
 
 client = KClient(host)
 oscillo = Oscillo(client)
