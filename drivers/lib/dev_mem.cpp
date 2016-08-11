@@ -20,11 +20,6 @@ MemMapID MemMapIdPool::get_id(unsigned int num_maps)
     return new_id;
 }
 
-void MemMapIdPool::release_id(MemMapID id)
-{
-    reusable_ids.push_back(id);
-}
-
 DevMem::DevMem(kserver::KServer *kserver_, uintptr_t addr_limit_down_, uintptr_t addr_limit_up_)
 : kserver(kserver_),
   addr_limit_down(addr_limit_down_),
@@ -43,7 +38,6 @@ DevMem::~DevMem()
 
 int DevMem::open()
 {
-    // Open /dev/mem if not already open
     if (fd == -1) {
         fd = ::open("/dev/mem", O_RDWR | O_SYNC);
 

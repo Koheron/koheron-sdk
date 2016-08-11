@@ -35,7 +35,11 @@ class MemMapIdPool
     MemMapIdPool() : reusable_ids(0) {};
 
     MemMapID get_id(unsigned int num_maps);
-    void release_id(MemMapID id);
+
+    void release_id(MemMapID id) {
+        reusable_ids.push_back(id);
+    }
+
   private:
     std::vector<MemMapID> reusable_ids;
 };
