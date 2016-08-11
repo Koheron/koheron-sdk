@@ -43,8 +43,7 @@ class DacRouter
     uint32_t* get_data(uint32_t channel) {return dvm.read_buff32(dac_map[bram_index[channel]]);}
 
     template<size_t N>
-    std::array<uint32_t, N>& get_data(uint32_t channel)
-    {
+    std::array<uint32_t, N>& get_data(uint32_t channel) {
         return dvm.read_buffer<uint32_t, N>(dac_map[bram_index[channel]]);
     }
 
@@ -59,15 +58,7 @@ class DacRouter
     /// The waveform is an array of floats between -1 and 1.
     /// Array is of size the number of samples in the waveform.
     template<size_t N>
-    void set_data(uint32_t channel, const std::array<float, N> arr) {
-        static_assert(N % 2 == 0, "N must be an even number");
-        std::array<uint32_t, N/2> data;
-
-        for (uint32_t i=0, j=0; i<N; i+=2, j++)
-            data[j] = convert_data(arr[i]) + (convert_data(arr[i + 1]) << 16);
-
-        set_data(channel, data);
-    }
+    void set_data(uint32_t channel, const std::array<float, N> arr);
 
   private:
     DevMem& dvm;
@@ -147,6 +138,20 @@ inline void DacRouter<n_dac, n_dac_bram>::set_data(
     uint32_t new_idx = get_first_empty_bram_index();
     dvm.write_buff32(dac_map[new_idx], 0, buffer, len);
     switch_interconnect(channel, old_idx, new_idx);
+}
+
+template<uint32_t n_dac, uint32_t n_dac_bram>
+template<size_t N>
+inline void DacRouter<n_dac, n_dac_bram>::set_data(
+            uint32_t channel, const std::array<float, N> arr)
+{
+    static_assert(N % 2 == 0, "N must be an even number");
+    std::array<uint32_t, N/2> data;
+
+    for (uint32_t i=0, j=0; i<N; i+=2, j++)
+        data[j] = convert_data(arr[i]) + (convert_data(arr[i + 1]) << 16);
+
+    set_data(channel, data);
 }
 
 #endif // __DRIVERS_LIB_DAC_ROUTER_HPP__
