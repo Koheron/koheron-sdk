@@ -127,9 +127,9 @@ class DevMem
 
     template<typename T, size_t N, uint32_t offset = 0>
     std::array<T, N>& read_buffer(MemMapID id) {
-        T *buff = get_buffer_ptr<T, offset>(id);
-        auto p = reinterpret_cast<std::array<T, N>*>(buff);
-        assert(p->data() == (const T*)buff);
+        uintptr_t ptr = get_base_addr(id) + offset;
+        auto p = reinterpret_cast<std::array<T, N>*>(ptr);
+        assert(p->data() == (const T*)ptr);
         return *p;
     }
 

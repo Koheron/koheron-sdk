@@ -52,7 +52,7 @@ std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
     return spectrum_data;
 }
 
-std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t index_low, 
+std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t index_low,
                                                  uint32_t index_high)
 {
     // Sanity checks
