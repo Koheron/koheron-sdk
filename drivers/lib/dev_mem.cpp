@@ -37,7 +37,8 @@ DevMem::DevMem(kserver::KServer *kserver_, uintptr_t addr_limit_down_, uintptr_t
 
 DevMem::~DevMem()
 {
-    close();
+    remove_all();
+    close(fd);
 }
 
 int DevMem::open()
@@ -56,13 +57,6 @@ int DevMem::open()
 
     remove_all(); // Reset memory maps
     return fd;
-}
-
-int DevMem::close()
-{
-    remove_all();
-    ::close(fd);
-    return 0;
 }
 
 unsigned int DevMem::num_maps = 0;

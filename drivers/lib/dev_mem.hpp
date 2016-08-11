@@ -23,8 +23,7 @@ namespace kserver {class KServer;}
 
 #include "memory_map.hpp"
 
-/// ID of a memory map
-typedef uint32_t MemMapID;
+typedef uint32_t MemMapID; /// ID of a memory map
 
 /// Memory blocks array
 template<size_t n_blocks>
@@ -44,23 +43,15 @@ class MemMapIdPool
 #define ASSERT_WRITABLE assert((mem_maps.at(id)->get_protection() & PROT_WRITE) == PROT_WRITE);
 #define ASSERT_READABLE assert((mem_maps.at(id)->get_protection() & PROT_READ) == PROT_READ);
 
-/// Device memory manager
-/// A memory maps factory
 class DevMem
 {
   public:
     DevMem(kserver::KServer *kserver_, uintptr_t addr_limit_down_=0x0, uintptr_t addr_limit_up_=0x0);
     ~DevMem();
 
-    /// Open the /dev/mem driver
     int open();
 
-    /// Close all the memory maps
-    /// @return 0 if succeed, -1 else
-    int close();
-
-    /// Current number of memory maps
-    static unsigned int num_maps;
+    static unsigned int num_maps; /// Current number of memory maps
 
     int resize(MemMapID id, uint32_t length) {return mem_maps.at(id)->resize(length);}
 
