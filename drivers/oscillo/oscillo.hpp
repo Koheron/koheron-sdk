@@ -54,7 +54,9 @@ class Oscillo
         return lsb + (msb << 32);
     }
 
-    uint32_t get_num_average(uint32_t channel)  {return dvm.read32(status_map, n_avg_offset[channel]);}
+    uint32_t get_num_average(uint32_t channel) {
+        return dvm.read32(status_map, n_avg_offset[channel]);
+    }
 
     // TODO should be a one-liner
     void set_clken_mask(bool clken_mask) {
