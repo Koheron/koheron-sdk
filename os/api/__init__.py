@@ -38,7 +38,6 @@ class KoheronAPIApp(Flask):
                 self.get_release_description()
             else: # debug
                 self.release = {}
-                
         except:
             log('error', 'Cannot load config')
 
@@ -50,7 +49,6 @@ class KoheronAPIApp(Flask):
             log('error', 'Cannot load metadata')
             self.metadata = {}
 
-        
     def get_release_description(self):
         try:
             testfile = urllib.URLopener()
@@ -74,7 +72,7 @@ class KoheronAPIApp(Flask):
         else: # release
             if 'app' in self.release:
                 self.remote_static = [self.release['app']]
-            
+
         self.get_instrument_upgrades()
 
     def upload_latest_static(self):
@@ -106,11 +104,16 @@ class KoheronAPIApp(Flask):
     # ------------------------
 
     def start_client(self):
+        time.sleep(0.1) # To be sure server is up
         self.stop_client()
         self.client = KClient('127.0.0.1', verbose=False)
-        self.common = Common(self.client)
-        # self.laser = Laser(self.client)
-        self.common.init()
+
+        if self.client.is_connected:
+            self.common = Common(self.client)
+            # self.laser = Laser(self.client)
+            self.common.init()
+        else:
+            log('error', 'Failed to connect to server')
 
     def stop_client(self):
         if hasattr(self, 'client'):
@@ -202,17 +205,22 @@ class KoheronAPIApp(Flask):
         # http://stackoverflow.com/questions/21936597/blocking-and-non-blocking-subprocess-calls
         subprocess.call(['/bin/bash', 'api_app/install_instrument.sh', zip_filename, name])
         self.start_client()
+
+        if not self.client.is_connected:
+            self.handle_instrument_install_failure()
+            return -1
+
         self.live_instrument = {'name': name, 'sha': sha,
                                    'server_version': self.common.get_server_version()}
-        
+
         if not self.is_bitstream_id_valid():
-            self.handle_invalid_bitstream()
+            self.handle_instrument_install_failure()
             return -1
 
         self.store_last_deployed_zip(zip_filename)
         return 0
 
-    def handle_invalid_bitstream(self):
+    def handle_instrument_install_failure(self):
         # Check whether we are installing the last deployed instrument to avoid infinite recursion:
         last_deployed_instrument = self.get_last_deployed_instrument()
         if ((not 'name' in last_deployed_instrument)
@@ -274,8 +282,8 @@ class KoheronAPIApp(Flask):
     def _start_first_instrument_found(self, exclude=None):
         for filename in os.listdir(self.config['INSTRUMENTS_DIR']):
             if self.is_valid_instrument_file(filename):
-                instr = self._tokenize_zipfilename(filename)
-                if exclude == None or (instr['name'] != exclude['name'] and instr['sha'] != exclude['sha']):
+                name, sha = self._tokenize_zipfilename(filename)
+                if exclude == None or (name != exclude['name'] and sha != exclude['sha']):
                     self.install_instrument(
                             os.path.join(self.config['INSTRUMENTS_DIR'], filename))
                     return
