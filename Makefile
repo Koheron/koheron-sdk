@@ -109,7 +109,7 @@ METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-.PHONY: clean all help \
+.PHONY: all help \
         test_module test_core test_% test test_app test_instrum test_all \
         server xpr zip app bd http_api \
         run app_sync app_sync_ssh tcp-server_cli
@@ -375,10 +375,10 @@ $(STATIC_ZIP): $(TMP)
 # clean
 ###############################################################################
 
+.PHONY: clean clean_server clean_cores clean_all
+
 clean:
-	$(RM) uImage fw_printenv boot.bin devicetree.dtb $(TMP)
-	$(RM) .Xil usage_statistics_webtalk.html usage_statistics_webtalk.xml
-	$(RM) webtalk*.log webtalk*.jou
+	$(RM) $(TMP)/$(NAME).* $(TMP)/$(NAME)-*.zip
 
 clean_server:
 	$(RM) $(TCP_SERVER_DIR) $(TCP_SERVER_MIDDLEWARE)
@@ -386,6 +386,7 @@ clean_server:
 clean_cores:
 	$(RM) $(TMP)/cores
 
-
-
-
+clean_all:
+	$(RM) uImage fw_printenv boot.bin devicetree.dtb $(TMP)
+	$(RM) .Xil usage_statistics_webtalk.html usage_statistics_webtalk.xml
+	$(RM) webtalk*.log webtalk*.jou
