@@ -4,8 +4,8 @@ echo 'Clock initialization...'
 devcfg=/sys/devices/soc0/amba/f8007000.devcfg
 
 set_fclk () {
-    local fclk_name = $1
-    local fclk_val = $2
+    local fclk_name=$1
+    local fclk_val=$2
     test -d $devcfg/fclk/$fclk_name || echo $fclk_name > $devcfg/fclk_export
     echo 1 > $devcfg/fclk/$fclk_name/enable
     echo $fclk_val > $devcfg/fclk/$fclk_name/set_rate
