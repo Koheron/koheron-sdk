@@ -375,7 +375,7 @@ $(STATIC_ZIP): $(TMP)
 # clean
 ###############################################################################
 
-.PHONY: clean clean_server clean_cores clean_all
+.PHONY: clean clean_server clean_cores clean_xpr clean_all
 
 clean:
 	$(RM) $(TMP)/$(NAME).* $(TMP)/$(NAME)-*.zip
@@ -390,3 +390,14 @@ clean_all:
 	$(RM) uImage fw_printenv boot.bin devicetree.dtb $(TMP)
 	$(RM) .Xil usage_statistics_webtalk.html usage_statistics_webtalk.xml
 	$(RM) webtalk*.log webtalk*.jou
+
+clean_server:
+	$(RM) $(TCP_SERVER_DIR) $(TCP_SERVER_MIDDLEWARE)
+
+clean_xpr:
+	$(RM) $(TMP)/$(NAME).xpr
+
+clean_cores:
+	$(RM) $(TMP)/cores
+
+
