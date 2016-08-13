@@ -1,21 +1,27 @@
 set ps_name ps_0
 
-for {set i 0} {$i < 2} {incr i} {
+# Find the number of interconnects
+set i 0
+while {[info exists config::fclk$i] == 1} {
   set interconnect_${i}_name axi_mem_intercon_$i
   set ps_clk$i $ps_name/FCLK_CLK$i
+  incr i
 }
+set n_interconnects $i
 
 # Create processing_system7
 cell xilinx.com:ip:processing_system7:5.5 $ps_name {
   PCW_USE_S_AXI_HP0 0
-  PCW_USE_M_AXI_GP1 1
   PCW_EN_CLK1_PORT 1
-} {
-  M_AXI_GP0_ACLK $ps_clk0
-  M_AXI_GP1_ACLK $ps_clk1
-}
+} {}
 
 source $board_preset
+
+for {set i 0} {$i < $n_interconnects} {incr i} {
+    set_property -dict [list CONFIG.PCW_USE_M_AXI_GP${i} 1] [get_bd_cells $ps_name]
+    set_property -dict [list CONFIG.PCW_FPGA${i}_PERIPHERAL_FREQMHZ [expr [set config::fclk$i] / 1000000]] [get_bd_cells $ps_name]
+    connect_pins $ps_name/M_AXI_GP${i}_ACLK [set ps_clk$i]
+}
 
 # Create all required interconnections
 apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 -config {
@@ -24,7 +30,7 @@ apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 -config {
   Slave Disable
 } [get_bd_cells $ps_name]
 
-for {set i 0} {$i < 2} {incr i} {
+for {set i 0} {$i < $n_interconnects} {incr i} {
   # Add processor system reset
   set rst${i}_name proc_sys_reset_$i
 
