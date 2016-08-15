@@ -16,11 +16,11 @@ defines:
  # - RELEASE_KSERVER
 
 debug:
-  status: yes # set to yes to compile in debug mode
+  status: no # set to yes to compile in debug mode
   flags:
     - rdynamic
     - g
     - mapcs-frame
 
 optimization_flags:
-  - O0
+  - O3
