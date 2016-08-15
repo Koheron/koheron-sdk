@@ -87,7 +87,7 @@ class Laser
 
     float load_config() {
         uint32_t pwm = eeprom.read(EEPROM_CURRENT_ADDR);
-        dvm.write<PWM3_OFF>(config_map, pwm);
+        cfg.write<PWM3_OFF>(pwm);
         return MILLIAMPS_TO_AMPS * current_from_pwm(pwm);
     }
     
