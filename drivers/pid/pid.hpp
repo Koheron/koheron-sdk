@@ -43,9 +43,9 @@ class Pid
   private:
     DevMem& dvm;
 
-    MemoryMap& cfg;
-    MemoryMap& sts;
-    MemoryMap& fifo_map;
+    MemoryMap *cfg;
+    MemoryMap *sts;
+    MemoryMap *fifo_map;
 
     FIFOReader<FIFO_BUFF_SIZE> fifo;
 }; // class Pid
