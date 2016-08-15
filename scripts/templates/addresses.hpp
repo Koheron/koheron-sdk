@@ -31,6 +31,6 @@
 #define BITSTREAM_ID_OFF 0
 #define BITSTREAM_ID_SIZE 8
 
-#define DNA_OFF 8*4
+#define DNA_OFF 4 * 8
 
 #endif // __DRIVERS_CORE_ADDRESSES_HPP__

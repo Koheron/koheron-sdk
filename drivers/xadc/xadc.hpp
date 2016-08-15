@@ -30,7 +30,7 @@ class Xadc
     int set_channel(uint32_t channel_0_, uint32_t channel_1_);
     
     void enable_averaging() {
-        dvm.write32(xadc_map, AVG_EN_OFF, (1 << channel_0) + (1 << channel_1));
+        dvm.write<AVG_EN_OFF>(xadc_map, (1 << channel_0) + (1 << channel_1));
     }
 
     int set_averaging(uint32_t n_avg);
