@@ -30,52 +30,53 @@ class Eeprom
     Eeprom(DevMem& dvm_)
     : dvm(dvm_)
     {
-        config_map = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
-        status_map = dvm.add_memory_map(STATUS_ADDR, STATUS_RANGE, PROT_READ);
+        cfg = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
+        sts = dvm.add_memory_map(STATUS_ADDR, STATUS_RANGE, PROT_READ);
     }
 
     uint32_t read(uint32_t addr) {
-        dvm.write<SPI_IN_OFF>(config_map, (READ_OPCODE << 7) + (addr << 1));
-        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
+        cfg.write<SPI_IN_OFF>((READ_OPCODE << 7) + (addr << 1));
+        cfg.set_bit<SPI_IN_OFF, 0>();
         std::this_thread::sleep_for(100us);
-        return dvm.read<SPI_OUT_OFF>(status_map);
+        return sts.read<SPI_OUT_OFF>();
     }
 
     void write_enable() {
-        dvm.write<SPI_IN_OFF>(config_map, (EWEN << 5));
-        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
+        cfg.write<SPI_IN_OFF>(EWEN << 5);
+        cfg.set_bit<SPI_IN_OFF, 0>();
     }
 
     void erase(uint32_t addr) {
-        dvm.write<SPI_IN_OFF>(config_map, (ERASE_OPCODE << 7) + (addr << 1));
-        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
+        cfg.write<SPI_IN_OFF>((ERASE_OPCODE << 7) + (addr << 1));
+        cfg.set_bit<SPI_IN_OFF, 0>();
     }
 
     void write(uint32_t addr, uint32_t data_in) {
-        dvm.write<SPI_IN_OFF>(config_map, (data_in << 16) + (WRITE_OPCODE << 7) + (addr << 1));
-        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
+        cfg.write<SPI_IN_OFF>((data_in << 16) + (WRITE_OPCODE << 7) + (addr << 1));
+        cfg.set_bit<SPI_IN_OFF, 0>();
     }
 
     void erase_all() {
-        dvm.write<SPI_IN_OFF>(config_map, (ERAL << 5));
-        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
+        cfg.write<SPI_IN_OFF>(ERAL << 5);
+        cfg.set_bit<SPI_IN_OFF, 0>();
     }
 
     void write_all(uint32_t data_in) {
-        dvm.write<SPI_IN_OFF>(config_map, (data_in << 16) + (WRAL << 5));
-        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
+        cfg.write<SPI_IN_OFF>((data_in << 16) + (WRAL << 5));
+        cfg.set_bit<SPI_IN_OFF, 0>();
     }
 
     void erase_write_disable() {
-        dvm.write<SPI_IN_OFF>(config_map, (EWDS << 5));
-        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
+        cfg.write<SPI_IN_OFF>(EWDS << 5);
+        cfg.set_bit<SPI_IN_OFF, 0>();
     }
 
   private:
     DevMem& dvm;
 
-    MemMapID config_map;
-    MemMapID status_map;
+    MemoryMap& cfg;
+    MemoryMap& sts;
+
 }; // class Eeprom
 
 #endif // __DRIVERS_CORE_EEPROM_HPP__
