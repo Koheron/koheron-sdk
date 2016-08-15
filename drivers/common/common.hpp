@@ -39,8 +39,8 @@ class Common
   private:
     DevMem& dvm;
 
-    MemMapID config_map;
-    MemMapID status_map;
+    MemoryMap *config_map;
+    MemoryMap *status_map;
 
     std::array<uint32_t, BITSTREAM_ID_SIZE> bitstream_id;
 };
