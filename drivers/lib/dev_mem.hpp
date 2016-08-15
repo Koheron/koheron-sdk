@@ -55,11 +55,11 @@ class DevMem
 
     int open();
 
-    static unsigned int num_maps; /// Current number of memory maps
+    static unsigned int num_maps; // Current number of memory maps
 
     int resize(MemMapID id, uint32_t length) {return mem_maps.at(id)->resize(length);}
 
-    /// Create a new memory map
+    // Create a new memory map
     MemMapID add_memory_map(uintptr_t addr, uint32_t size, int protection = PROT_READ|PROT_WRITE);
 
     template<size_t n_blocks>
@@ -74,10 +74,10 @@ class DevMem
         return maps;
     }
 
-    /// Remove a memory map
+    // Remove a memory map
     void rm_memory_map(MemMapID id);
 
-    /// Remove all the memory maps
+    // Remove all the memory maps
     void remove_all();
 
     uintptr_t get_base_addr(MemMapID id) {return mem_maps.at(id)->get_base_addr();}
@@ -88,8 +88,11 @@ class DevMem
         return mem_maps.at(id)->get_params();
     }
 
-    // Write
+    ////////////////////////////////////////
+    // Write functions
+    ////////////////////////////////////////
 
+    // Write a register
     template<typename T = uint32_t>
     void write(MemMapID id, uint32_t offset, T value) {
         ASSERT_WRITABLE
@@ -112,20 +115,23 @@ class DevMem
             *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
     }
 
-    // write std::array with offset defined at compile-time
+    // Write a std::array (offset defined at compile-time)
     template<typename T, size_t N, uint32_t offset = 0>
     void write_array(MemMapID id, const std::array<T, N> arr) {
         set_ptr<T, offset>(id, arr.data(), N);
     }
 
-    // write std::array with offset defined at run-time
+    // Write a std::array (offset defined at run-time)
     template<typename T, size_t N>
     void write_array_offset(MemMapID id, uint32_t offset, const std::array<T, N> arr) {
         set_ptr_offset<T>(id, offset, arr.data(), N);
     }
 
-    // Read
+    ////////////////////////////////////////
+    // Read functions
+    ////////////////////////////////////////
 
+    // Read a register
     template<typename T = uint32_t>
     T read(MemMapID id, uint32_t offset) {
         ASSERT_READABLE
@@ -144,23 +150,23 @@ class DevMem
         return reinterpret_cast<T*>(get_base_addr(id) + offset);
     }
 
-    // read std::array with offset defined at compile-time
+    // Read a std::array (offset defined at compile-time)
     template<typename T, size_t N, uint32_t offset = 0>
     std::array<T, N>& read_array(MemMapID id) {
         auto p = get_ptr<std::array<T, N>, offset>(id);
         return *p;
     }
 
-    // read std::array with offset defined at run-time
+    // Read a std::array (offset defined at run-time)
     template<typename T, size_t N>
     std::array<T, N>& read_array_offset(MemMapID id, uint32_t offset) {
         auto p = get_ptr_offset<std::array<T, N>>(id, offset);
         return *p;
     }
 
-
-
+    ////////////////////////////////////////
     // Bit manipulation
+    ////////////////////////////////////////
 
     void set_bit(MemMapID id, uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
@@ -196,7 +202,7 @@ class DevMem
     int fd;         // /dev/mem file ID
     bool is_open;   // True if /dev/mem open
     
-    /// Limit addresses
+    // Limit addresses
     uintptr_t addr_limit_down;
     uintptr_t addr_limit_up;
     bool is_forbidden_address(uintptr_t addr);
