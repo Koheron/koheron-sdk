@@ -8,7 +8,7 @@
 Xadc::Xadc(DevMem& dvm_)
 : dvm(dvm_)
 {
-    xadc_map = dvm.add_memory_map(XADC_ADDR, XADC_RANGE);
+    xadc = dvm.add_memory_map(XADC_ADDR, XADC_RANGE);
 }
 
 bool is_valid_channel(uint32_t channel)
@@ -30,7 +30,7 @@ int Xadc::set_channel(uint32_t channel_0_, uint32_t channel_1_)
     channel_1 = channel_1_;
 
     uint32_t val = (1 << channel_0) + (1 << channel_1);
-    dvm.write<SET_CHAN_OFF>(xadc_map, val);
+    xadc.write<SET_CHAN_OFF>(val);
     return 0;
 }
 
@@ -55,7 +55,7 @@ int Xadc::set_averaging(uint32_t n_avg)
       default:
         return -1;
     }
-    dvm.write32_mask(xadc_map, XADC_CFG0_OFF, (avg << 12), mask);
+    xadc.write32_mask(XADC_CFG0_OFF, (avg << 12), mask);
     return 0;
 }
 
@@ -63,6 +63,6 @@ int Xadc::read(uint32_t channel)
 {
     if (channel != channel_0 && channel != channel_1)
         return -1;
-    return dvm.read_offset(xadc_map, READ_OFF + 4*channel);
+    return xadc.read_offset(READ_OFF + 4*channel);
 }
 

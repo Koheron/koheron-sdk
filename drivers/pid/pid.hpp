@@ -22,15 +22,15 @@ class Pid
     : dvm(dvm_)
     , fifo(dvm_)
     {
-        config_map = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
-        status_map = dvm.add_memory_map(STATUS_ADDR, STATUS_RANGE, PROT_READ);
+        cfg = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
+        sts = dvm.add_memory_map(STATUS_ADDR, STATUS_RANGE, PROT_READ);
         fifo_map = dvm.add_memory_map(FIFO_ADDR, FIFO_RANGE);
         fifo.set_map(fifo_map);
     }
 
-    void set_cic_rate(uint32_t rate) {dvm.write<CIC_RATE_OFF>(config_map, rate);}
+    void set_cic_rate(uint32_t rate) {cfg.write<CIC_RATE_OFF>(rate);}
 
-    void set_dds_freq(float freq) {dvm.write<DDS_OFF>(config_map, uint32_t(freq * freq_factor));}
+    void set_dds_freq(float freq) {cfg.write<DDS_OFF>(uint32_t(freq * freq_factor));}
 
     /// @acq_period Sleeping time between two acquisitions (us)
     void fifo_start_acquisition(uint32_t acq_period) {fifo.start_acquisition(acq_period);}
@@ -43,9 +43,9 @@ class Pid
   private:
     DevMem& dvm;
 
-    MemMapID config_map;
-    MemMapID status_map;
-    MemMapID fifo_map;
+    MemoryMap& cfg;
+    MemoryMap& sts;
+    MemoryMap& fifo_map;
 
     FIFOReader<FIFO_BUFF_SIZE> fifo;
 }; // class Pid

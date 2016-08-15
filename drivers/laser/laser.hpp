@@ -44,7 +44,7 @@ class Laser
     , gpio(dvm_)
     , eeprom(dvm_)
     {
-        config_map = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
+        cfg = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
         reset();
     }
        
@@ -93,7 +93,7 @@ class Laser
     
   private:
     DevMem& dvm;
-    MemMapID config_map; // required for pwm
+    MemoryMap& cfg; // required for pwm
 
     Xadc xadc;
     Gpio gpio;

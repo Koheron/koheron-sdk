@@ -27,13 +27,13 @@ class Spectrum
     Spectrum(DevMem& dvm_);
 
     void reset() {
-        dvm.clear_bit<ADDR_OFF, 0>(config_map);
-        dvm.set_bit<ADDR_OFF, 0>(config_map);
+        cfg.clear_bit<ADDR_OFF, 0>();
+        cfg.set_bit<ADDR_OFF, 0>();
     }
 
     void set_n_avg_min(uint32_t n_avg_min) {
         uint32_t n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
-        dvm.write<N_AVG_MIN_OFF>(config_map, n_avg_min_);
+        cfg.write<N_AVG_MIN_OFF>(n_avg_min_);
     }
 
     void set_period(uint32_t period) {
@@ -43,13 +43,13 @@ class Spectrum
     }
 
     void set_dac_period(uint32_t dac_period0, uint32_t dac_period1) {
-        dvm.write<DAC_PERIOD0_OFF>(config_map, dac_period0 - 1);
-        dvm.write<DAC_PERIOD1_OFF>(config_map, dac_period1 - 1);
+        cfg.write<DAC_PERIOD0_OFF>(dac_period0 - 1);
+        cfg.write<DAC_PERIOD1_OFF>(dac_period1 - 1);
     }
 
     void set_avg_period(uint32_t avg_period) {
-        dvm.write<AVG_PERIOD_OFF>(config_map, avg_period - 1);
-        dvm.write<AVG_THRESHOLD_OFF>(config_map, avg_period - 6);
+        cfg.write<AVG_PERIOD_OFF>(avg_period - 1);
+        cfg.write<AVG_THRESHOLD_OFF>(avg_period - 6);
     }
 
     void set_dac_buffer(uint32_t channel, const std::array<uint32_t, WFM_SIZE/2>& arr) {
@@ -61,25 +61,25 @@ class Spectrum
     }
 
     void reset_acquisition() {
-        dvm.clear_bit<ADDR_OFF, 1>(config_map);
-        dvm.set_bit<ADDR_OFF, 1>(config_map);
+        cfg.clear_bit<ADDR_OFF, 1>();
+        cfg.set_bit<ADDR_OFF, 1>();
     }
 
     void set_scale_sch(uint32_t scale_sch) {
         // LSB at 1 for forward FFT
-        dvm.write<CFG_FFT_OFF>(config_map, 1 + 2 * scale_sch);
+        cfg.write<CFG_FFT_OFF>(1 + 2 * scale_sch);
     }
 
     void set_offset(uint32_t offset_real, uint32_t offset_imag) {
-        dvm.write<SUBSTRACT_MEAN_OFF>(config_map, offset_real + 16384 * offset_imag);
+        cfg.write<SUBSTRACT_MEAN_OFF>(offset_real + 16384 * offset_imag);
     }
 
     void set_demod_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
-        dvm.write_array(demod_map, arr);
+        demod_map.write_array(arr);
     }
 
     void set_noise_floor_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
-        dvm.write_array(noise_floor_map, arr);
+        noise_floor_map.write_array(arr);
     }
 
     std::array<float, WFM_SIZE>& get_spectrum();
@@ -88,13 +88,13 @@ class Spectrum
 
     void set_averaging(bool avg_status);
 
-    uint32_t get_num_average()  {return dvm.read<N_AVG_OFF>(status_map);}
-    uint32_t get_peak_address() {return dvm.read<PEAK_ADDRESS_OFF>(status_map);}
-    uint32_t get_peak_maximum() {return dvm.read<PEAK_MAXIMUM_OFF>(status_map);}
+    uint32_t get_num_average()  {return sts.read<N_AVG_OFF>();}
+    uint32_t get_peak_address() {return sts.read<PEAK_ADDRESS_OFF>();}
+    uint32_t get_peak_maximum() {return sts.read<PEAK_MAXIMUM_OFF>();}
 
     uint64_t get_counter() {
-        uint64_t lsb = dvm.read<COUNTER0_OFF>(status_map);
-        uint64_t msb = dvm.read<COUNTER1_OFF>(status_map);
+        uint64_t lsb = sts.read<COUNTER0_OFF>();
+        uint64_t msb = sts.read<COUNTER1_OFF>();
         return lsb + (msb << 32);
     }
 
@@ -110,12 +110,12 @@ class Spectrum
   private:
     DevMem& dvm;
 
-    MemMapID config_map;
-    MemMapID status_map;
-    MemMapID spectrum_map;
-    MemMapID demod_map;
-    MemMapID noise_floor_map;
-    MemMapID peak_fifo_map;
+    MemoryMap& cfg;
+    MemoryMap& sts;
+    MemoryMap& spectrum_map;
+    MemoryMap& demod_map;
+    MemoryMap& noise_floor_map;
+    MemoryMap& peak_fifo_map;
 
     // Acquired data buffers
     float *raw_data;
@@ -126,7 +126,7 @@ class Spectrum
 
     // Internal functions
     void wait_for_acquisition() {
-       do {} while (dvm.read<AVG_READY_OFF>(status_map) == 0);
+       do {} while (sts.read<AVG_READY_OFF>() == 0);
     }
 }; // class Spectrum
 
