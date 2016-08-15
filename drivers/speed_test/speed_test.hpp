@@ -61,11 +61,11 @@ class SpeedTest
   private:
     DevMem& dvm;
 
-    MemMapID config_map;
-    MemMapID status_map;
-    MemMapID adc_1_map;
-    MemMapID adc_2_map;
-    MemMapID rambuf_map;
+    MemoryMap *cfg;
+    MemoryMap *sts;
+    MemoryMap *adc_1_map;
+    MemoryMap *adc_2_map;
+    MemoryMap *rambuf_map;
     void *mmap_buf;
 
     uint32_t *raw_data_1 = nullptr;

@@ -44,10 +44,10 @@ class Laser
     , gpio(dvm_)
     , eeprom(dvm_)
     {
-        config_map = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
+        cfg = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
         reset();
     }
-       
+
     void reset();
 
     uint32_t get_laser_current() {return xadc.read(LASER_CURRENT_CHANNEL);}
@@ -81,19 +81,19 @@ class Laser
     }
 
     void save_config() {
-        uint32_t current = dvm.read<PWM3_OFF>(config_map);
+        uint32_t current = cfg->read<PWM3_OFF>();
         eeprom.write(EEPROM_CURRENT_ADDR, current);
     }
 
     float load_config() {
         uint32_t pwm = eeprom.read(EEPROM_CURRENT_ADDR);
-        dvm.write<PWM3_OFF>(config_map, pwm);
+        cfg->write<PWM3_OFF>(pwm);
         return MILLIAMPS_TO_AMPS * current_from_pwm(pwm);
     }
-    
+
   private:
     DevMem& dvm;
-    MemMapID config_map; // required for pwm
+    MemoryMap* cfg; // required for pwm
 
     Xadc xadc;
     Gpio gpio;
