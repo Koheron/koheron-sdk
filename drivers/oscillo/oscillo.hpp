@@ -35,13 +35,13 @@ class Oscillo
     // Reset ...
 
     void reset() {
-        dvm.clear_bit<ADDR_OFF, 0>(config_map);
-        dvm.set_bit<ADDR_OFF, 0>(config_map);
+        config_map.clear_bit<ADDR_OFF, 0>();
+        config_map.set_bit<ADDR_OFF, 0>();
     }
 
     void reset_acquisition() {
-        dvm.clear_bit<ADDR_OFF, 1>(config_map);
-        dvm.set_bit<ADDR_OFF, 1>(config_map);
+        config_map.clear_bit<ADDR_OFF, 1>();
+        config_map.set_bit<ADDR_OFF, 1>();
     }
 
     void set_averaging(bool avg_on);
@@ -49,8 +49,8 @@ class Oscillo
     // Monitoring
 
     uint64_t get_counter() {
-        uint64_t lsb = dvm.read<COUNTER0_OFF>(status_map);
-        uint64_t msb = dvm.read<COUNTER1_OFF>(status_map);
+        uint64_t lsb = status_map.read<COUNTER0_OFF>();
+        uint64_t msb = status_map.read<COUNTER1_OFF>();
         return lsb + (msb << 32);
     }
 
