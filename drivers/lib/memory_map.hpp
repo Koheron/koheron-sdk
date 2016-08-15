@@ -17,15 +17,17 @@ extern "C" {
 #define DEFAULT_MAP_SIZE 4096UL // = PAGE_SIZE
 #define MAP_MASK(size) ((size) - 1)
 
-/// @brief Memory map a device
+#define ASSERT_WRITABLE assert((protection & PROT_WRITE) == PROT_WRITE);
+#define ASSERT_READABLE assert((protection & PROT_READ) == PROT_READ);
+
 class MemoryMap
 {
   public:
     /// Build a memory map
     /// @phys_addr_ Physical base address of the device
     /// @size_ Map size in octets
-    MemoryMap(int *fd_, uintptr_t phys_addr_, 
-              uint32_t size_ = DEFAULT_MAP_SIZE, 
+    MemoryMap(int *fd_, uintptr_t phys_addr_,
+              uint32_t size_ = DEFAULT_MAP_SIZE,
               int protection_ = PROT_READ|PROT_WRITE);
 
     ~MemoryMap();
@@ -51,6 +53,96 @@ class MemoryMap
             size,
             protection
         );
+    }
+
+    ////////////////////////////////////////
+    // Write functions
+    ////////////////////////////////////////
+
+    // Write a register (offset defined at compile-time)
+    template<uint32_t offset, typename T = uint32_t>
+    void write(T value) {
+        ASSERT_WRITABLE
+        *(volatile T *) (mapped_dev_base + offset) = value;
+    }
+
+    // Write a register (offset defined at run-time)
+    template<typename T = uint32_t>
+    void write_offset(uint32_t offset, T value) {
+        ASSERT_WRITABLE
+        *(volatile T *) (mapped_dev_base + offset) = value;
+    }
+
+    template<typename T = uint32_t, uint32_t offset = 0>
+    void set_ptr(const T *data_ptr, uint32_t buff_size) {
+        ASSERT_WRITABLE
+        uintptr_t addr = mapped_dev_base + offset;
+        for (uint32_t i=0; i < buff_size; i++)
+            *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
+    }
+
+    template<typename T = uint32_t>
+    void set_ptr_offset(uint32_t offset, const T *data_ptr, uint32_t buff_size) {
+        ASSERT_WRITABLE
+        uintptr_t addr = mapped_dev_base + offset;
+        for (uint32_t i=0; i < buff_size; i++)
+            *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
+    }
+
+    // Write a std::array (offset defined at compile-time)
+    template<typename T, size_t N, uint32_t offset = 0>
+    void write_array(const std::array<T, N> arr) {
+        set_ptr<T, offset>(id, arr.data(), N);
+    }
+
+    // Write a std::array (offset defined at run-time)
+    template<typename T, size_t N>
+    void write_array_offset(uint32_t offset, const std::array<T, N> arr) {
+        set_ptr_offset<T>(id, offset, arr.data(), N);
+    }
+
+    ////////////////////////////////////////
+    // Read functions
+    ////////////////////////////////////////
+
+    // Read a register (offset defined at compile-time)
+    template<uint32_t offset, typename T = uint32_t>
+    T read() {
+        ASSERT_READABLE
+        return *(volatile T *) (mapped_dev_base + offset);
+    }
+
+    // Read a register (offset defined at run-time)
+    template<typename T = uint32_t>
+    T read_offset(uint32_t offset) {
+        ASSERT_READABLE
+        return *(volatile T *) (mapped_dev_base + offset);
+    }
+
+    template<typename T = uint32_t, uint32_t offset = 0>
+    T* get_ptr() {
+        ASSERT_READABLE
+        return reinterpret_cast<T*>(mapped_dev_base + offset);
+    }
+
+    template<typename T = uint32_t>
+    T* get_ptr_offset(uint32_t offset = 0) {
+        ASSERT_READABLE
+        return reinterpret_cast<T*>(mapped_dev_base + offset);
+    }
+
+    // Read a std::array (offset defined at compile-time)
+    template<typename T, size_t N, uint32_t offset = 0>
+    std::array<T, N>& read_array() {
+        auto p = get_ptr<std::array<T, N>, offset>(id);
+        return *p;
+    }
+
+    // Read a std::array (offset defined at run-time)
+    template<typename T, size_t N>
+    std::array<T, N>& read_array_offset(uint32_t offset) {
+        auto p = get_ptr_offset<std::array<T, N>>(id, offset);
+        return *p;
     }
 
     enum Status {
