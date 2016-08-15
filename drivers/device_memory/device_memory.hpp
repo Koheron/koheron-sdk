@@ -39,12 +39,12 @@ class DeviceMemory
     #pragma tcp-server write_array arg{data} arg{len}
     void write_buffer(uint32_t mmap_idx, uint32_t offset,
                       const uint32_t *data, uint32_t len) {
-        dvm.set_ptr(mmap_idx, offset, data, len);
+        dvm.set_ptr_offset(mmap_idx, offset, data, len);
     }
 
-    #pragma tcp-server read_array arg{buff_size} 
+    #pragma tcp-server read_array arg{buff_size}
     uint32_t* read_buffer(uint32_t mmap_idx, uint32_t offset, uint32_t buff_size) {
-        return dvm.get_ptr(mmap_idx, offset);
+        return dvm.get_ptr_offset(mmap_idx, offset);
     }
 
     void set_bit(uint32_t mmap_idx, uint32_t offset, uint32_t index) {

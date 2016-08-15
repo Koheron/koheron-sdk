@@ -96,17 +96,32 @@ class DevMem
         *(volatile T *) (get_base_addr(id) + offset) = value;
     }
 
-    template<typename T = uint32_t>
-    void set_ptr(MemMapID id, uint32_t offset, const T *data_ptr, uint32_t buff_size) {
+    template<typename T = uint32_t, uint32_t offset = 0>
+    void set_ptr(MemMapID id, const T *data_ptr, uint32_t buff_size) {
         ASSERT_WRITABLE
         uintptr_t addr = get_base_addr(id) + offset;
         for (uint32_t i=0; i < buff_size; i++)
             *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
     }
 
+    template<typename T = uint32_t>
+    void set_ptr_offset(MemMapID id, uint32_t offset, const T *data_ptr, uint32_t buff_size) {
+        ASSERT_WRITABLE
+        uintptr_t addr = get_base_addr(id) + offset;
+        for (uint32_t i=0; i < buff_size; i++)
+            *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
+    }
+
+    // write std::array with offset defined at compile-time
+    template<typename T, size_t N, uint32_t offset = 0>
+    void write_array(MemMapID id, const std::array<T, N> arr) {
+        set_ptr<T, offset>(id, arr.data(), N);
+    }
+
+    // write std::array with offset defined at run-time
     template<typename T, size_t N>
-    void write_array(MemMapID id, uint32_t offset, const std::array<T, N> arr) {
-        set_ptr(id, offset, arr.data(), N);
+    void write_array_offset(MemMapID id, uint32_t offset, const std::array<T, N> arr) {
+        set_ptr_offset<T>(id, offset, arr.data(), N);
     }
 
     // Read
@@ -117,19 +132,33 @@ class DevMem
         return *(volatile T *) (get_base_addr(id) + offset);
     }
 
-    template<typename T = uint32_t>
-    T* get_ptr(MemMapID id, uint32_t offset = 0) {
+    template<typename T = uint32_t, uint32_t offset = 0>
+    T* get_ptr(MemMapID id) {
         ASSERT_READABLE
         return reinterpret_cast<T*>(get_base_addr(id) + offset);
     }
 
-    template<typename T, size_t N>
-    std::array<T, N>& read_array(MemMapID id, uint32_t offset) {
-        uintptr_t ptr = get_base_addr(id) + offset;
-        auto p = reinterpret_cast<std::array<T, N>*>(ptr);
-        assert(p->data() == (const T*)ptr);
+    template<typename T = uint32_t>
+    T* get_ptr_offset(MemMapID id, uint32_t offset = 0) {
+        ASSERT_READABLE
+        return reinterpret_cast<T*>(get_base_addr(id) + offset);
+    }
+
+    // read std::array with offset defined at compile-time
+    template<typename T, size_t N, uint32_t offset = 0>
+    std::array<T, N>& read_array(MemMapID id) {
+        auto p = get_ptr<std::array<T, N>, offset>(id);
         return *p;
     }
+
+    // read std::array with offset defined at run-time
+    template<typename T, size_t N>
+    std::array<T, N>& read_array_offset(MemMapID id, uint32_t offset) {
+        auto p = get_ptr_offset<std::array<T, N>>(id, offset);
+        return *p;
+    }
+
+
 
     // Bit manipulation
 
