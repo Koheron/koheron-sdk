@@ -50,12 +50,12 @@ class DacRouter
     }
 
     uint32_t* get_data(uint32_t channel) {
-        return dvm.read_buff32(dac_map[bram_index[channel]]);
+        return dvm.get_ptr(dac_map[bram_index[channel]]);
     }
 
     template<size_t N>
     std::array<uint32_t, N>& get_data(uint32_t channel) {
-        return dvm.read_buffer<uint32_t, N>(dac_map[bram_index[channel]]);
+        return dvm.read_array<uint32_t, N>(dac_map[bram_index[channel]]);
     }
 
     void set_data(uint32_t channel, const uint32_t *buffer, uint32_t len);

@@ -17,13 +17,13 @@ Oscillo::Oscillo(DevMem& dvm_)
     adc_map[0] = dvm.add_memory_map(ADC1_ADDR, ADC1_RANGE);
     adc_map[1] = dvm.add_memory_map(ADC2_ADDR, ADC2_RANGE);
 
-    raw_data[0] = dvm.get_buffer_ptr<int32_t>(adc_map[0]);
-    raw_data[1] = dvm.get_buffer_ptr<int32_t>(adc_map[1]);
+    raw_data[0] = dvm.get_ptr<int32_t>(adc_map[0]);
+    raw_data[1] = dvm.get_ptr<int32_t>(adc_map[1]);
 
     set_averaging(false); // Reset averaging
 
     // set tvalid delay to 19 * 8 ns
-    dvm.write32(config_map, ADDR_OFF, 19 << 2);
+    dvm.write(config_map, ADDR_OFF, 19 << 2);
     set_n_avg_min(0);
     set_clken_mask(true);
     set_dac_periods(WFM_SIZE, WFM_SIZE);
@@ -38,7 +38,7 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
     dvm.set_bit(config_map, ADDR_OFF, 1);
     _wait_for_acquisition();
 
-    if (dvm.read32(status_map, AVG_ON_OUT0_OFF)) {
+    if (dvm.read(status_map, AVG_ON_OUT0_OFF)) {
         float num_avg0 = float(get_num_average(0));
         float num_avg1 = float(get_num_average(1));
         for (unsigned int i=0; i<WFM_SIZE; i++) {
@@ -70,7 +70,7 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor,
     data_decim.resize(2*n_pts);
     _wait_for_acquisition();
 
-    uint32_t avg_on = bool(dvm.read32(status_map, AVG_ON_OUT0_OFF));
+    uint32_t avg_on = bool(dvm.read(status_map, AVG_ON_OUT0_OFF));
     if (avg_on) {
         float num_avg = float(get_num_average(0)); 
         for (unsigned int i=0; i<n_pts; i++) {
@@ -105,7 +105,7 @@ void Oscillo::_wait_for_acquisition()
     do {
         if (n_avg_min_ > 0) {
             auto now = std::chrono::high_resolution_clock::now();
-            uint32_t n_avg_min = dvm.read32(config_map, N_AVG_MIN0_OFF);
+            uint32_t n_avg_min = dvm.read(config_map, N_AVG_MIN0_OFF);
             uint64_t acq_time_ns = n_avg_min * wfm_time_ns;
             auto remain_wait = acq_time_ns - std::chrono::duration_cast<std::chrono::nanoseconds>(now-begin).count();
 
@@ -115,6 +115,6 @@ void Oscillo::_wait_for_acquisition()
             if (remain_wait > 1000000)
                 std::this_thread::sleep_for(std::chrono::nanoseconds(static_cast<uint32_t>(remain_wait / 10)));
         }
-    } while (dvm.read32(status_map, AVG_READY0_OFF) == 0
-             || dvm.read32(status_map, AVG_READY1_OFF) == 0);
+    } while (dvm.read(status_map, AVG_READY0_OFF) == 0
+             || dvm.read(status_map, AVG_READY1_OFF) == 0);
 }

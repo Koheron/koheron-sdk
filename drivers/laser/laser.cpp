@@ -17,5 +17,5 @@ void Laser::set_laser_current(float current)
     float current_;
     current > MAX_LASER_CURRENT ? current_ = MAX_LASER_CURRENT : current_ = current;    
     uint32_t pwm = pwm_from_current(current_);
-    dvm.write32(config_map, PWM3_OFF, pwm);
+    dvm.write(config_map, PWM3_OFF, pwm);
 }

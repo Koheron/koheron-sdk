@@ -25,7 +25,7 @@ Spectrum::Spectrum(DevMem& dvm_)
     set_averaging(true);
 
     // set tvalid delay to 19 * 8 ns
-    dvm.write32(config_map, ADDR_OFF, 19 << 2);
+    dvm.write(config_map, ADDR_OFF, 19 << 2);
 
     set_address_range(0, WFM_SIZE);
     set_period(WFM_SIZE);
@@ -39,7 +39,7 @@ std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
     dvm.set_bit(config_map,ADDR_OFF, 1);
     wait_for_acquisition();
 
-    if (dvm.read32(status_map, AVG_ON_OUT_OFF)) {
+    if (dvm.read(status_map, AVG_ON_OUT_OFF)) {
         float num_avg = float(get_num_average());
         for (unsigned int i=0; i<WFM_SIZE; i++)
             spectrum_data[i] = raw_data[i] / num_avg;
@@ -66,7 +66,7 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
     spectrum_decim.resize(n_pts);
     wait_for_acquisition();
 
-    if (dvm.read32(status_map, AVG_ON_OUT_OFF)) {
+    if (dvm.read(status_map, AVG_ON_OUT_OFF)) {
         float num_avg = float(get_num_average());
 
         for (unsigned int i=0; i<spectrum_decim.size(); i++)
@@ -95,7 +95,7 @@ void Spectrum::set_averaging(bool avg_on)
 // Peak detection happens only between address_low and address_high
 void Spectrum::set_address_range(uint32_t address_low, uint32_t address_high)
 {
-    dvm.write32(config_map, PEAK_ADDRESS_LOW_OFF, address_low);
-    dvm.write32(config_map, PEAK_ADDRESS_HIGH_OFF, address_high);
-    dvm.write32(config_map, PEAK_ADDRESS_RESET_OFF, (address_low+WFM_SIZE-1) % WFM_SIZE);
+    dvm.write(config_map, PEAK_ADDRESS_LOW_OFF, address_low);
+    dvm.write(config_map, PEAK_ADDRESS_HIGH_OFF, address_high);
+    dvm.write(config_map, PEAK_ADDRESS_RESET_OFF, (address_low+WFM_SIZE-1) % WFM_SIZE);
 }
