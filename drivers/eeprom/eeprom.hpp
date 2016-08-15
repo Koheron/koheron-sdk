@@ -36,39 +36,39 @@ class Eeprom
 
     uint32_t read(uint32_t addr) {
         dvm.write<SPI_IN_OFF>(config_map, (READ_OPCODE << 7) + (addr << 1));
-        dvm.set_bit(config_map, SPI_IN_OFF, 0);
+        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
         std::this_thread::sleep_for(100us);
         return dvm.read<SPI_OUT_OFF>(status_map);
     }
 
     void write_enable() {
         dvm.write<SPI_IN_OFF>(config_map, (EWEN << 5));
-        dvm.set_bit(config_map, SPI_IN_OFF, 0);
+        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
     }
 
     void erase(uint32_t addr) {
         dvm.write<SPI_IN_OFF>(config_map, (ERASE_OPCODE << 7) + (addr << 1));
-        dvm.set_bit(config_map, SPI_IN_OFF, 0);
+        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
     }
 
     void write(uint32_t addr, uint32_t data_in) {
         dvm.write<SPI_IN_OFF>(config_map, (data_in << 16) + (WRITE_OPCODE << 7) + (addr << 1));
-        dvm.set_bit(config_map, SPI_IN_OFF, 0);
+        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
     }
 
     void erase_all() {
         dvm.write<SPI_IN_OFF>(config_map, (ERAL << 5));
-        dvm.set_bit(config_map, SPI_IN_OFF, 0);
+        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
     }
 
     void write_all(uint32_t data_in) {
         dvm.write<SPI_IN_OFF>(config_map, (data_in << 16) + (WRAL << 5));
-        dvm.set_bit(config_map, SPI_IN_OFF, 0);
+        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
     }
 
     void erase_write_disable() {
         dvm.write<SPI_IN_OFF>(config_map, (EWDS << 5));
-        dvm.set_bit(config_map, SPI_IN_OFF, 0);
+        dvm.set_bit<SPI_IN_OFF, 0>(config_map);
     }
 
   private:

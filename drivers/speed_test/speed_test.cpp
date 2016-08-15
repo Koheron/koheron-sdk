@@ -47,13 +47,13 @@ inline long long int mod(long long int k, long long int n)
 // Read the two channels in raw format
 std::array<float, 2*WFM_SIZE>& SpeedTest::read_raw_all()
 {
-    dvm.set_bit(config_map, ADDR_OFF, 1);
+    dvm.set_bit<ADDR_OFF, 1>(config_map);
 
     for (unsigned int i=0; i<WFM_SIZE; i++) {
         data_all[i] = raw_data_1[i];
         data_all[i + WFM_SIZE] = raw_data_2[i];
     }
 
-    dvm.clear_bit(config_map, ADDR_OFF, 1);
+    dvm.clear_bit<ADDR_OFF, 1>(config_map);
     return data_all;
 }

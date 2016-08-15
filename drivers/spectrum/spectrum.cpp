@@ -36,7 +36,7 @@ Spectrum::Spectrum(DevMem& dvm_)
 
 std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
 {
-    dvm.set_bit(config_map,ADDR_OFF, 1);
+    dvm.set_bit<ADDR_OFF, 1>(config_map);
     wait_for_acquisition();
 
     if (dvm.read<AVG_ON_OUT_OFF>(status_map)) {
@@ -48,7 +48,7 @@ std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
             spectrum_data[i] = raw_data[i];
     }
 
-    dvm.clear_bit(config_map, ADDR_OFF, 1);
+    dvm.clear_bit<ADDR_OFF, 1>(config_map);
     return spectrum_data;
 }
 
@@ -61,7 +61,7 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
         return spectrum_decim;
     }
 
-    dvm.set_bit(config_map, ADDR_OFF, 1);
+    dvm.set_bit<ADDR_OFF, 1>(config_map);
     uint32_t n_pts = (index_high - index_low)/decim_factor;
     spectrum_decim.resize(n_pts);
     wait_for_acquisition();
@@ -76,16 +76,16 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
             spectrum_decim[i] = raw_data[index_low + decim_factor * i];
     }
 
-    dvm.clear_bit(config_map, ADDR_OFF, 1);
+    dvm.clear_bit<ADDR_OFF, 1>(config_map);
     return spectrum_decim;
 }
 
 void Spectrum::set_averaging(bool avg_on)
 {
     if (avg_on)
-        dvm.set_bit(config_map, AVG_OFF, 0);
+        dvm.set_bit<AVG_OFF, 0>(config_map);
     else
-        dvm.clear_bit(config_map, AVG_OFF, 0);
+        dvm.clear_bit<AVG_OFF, 0>(config_map);
 }
 
 /////////////////////

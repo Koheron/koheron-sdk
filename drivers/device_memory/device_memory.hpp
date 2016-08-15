@@ -48,15 +48,19 @@ class DeviceMemory
     }
 
     void set_bit(uint32_t mmap_idx, uint32_t offset, uint32_t index) {
-        dvm.set_bit(mmap_idx, offset, index);
+        dvm.set_bit_offset(mmap_idx, offset, index);
     }
 
     void clear_bit(uint32_t mmap_idx, uint32_t offset, uint32_t index) {
-        dvm.clear_bit(mmap_idx, offset, index);
+        dvm.clear_bit_offset(mmap_idx, offset, index);
     }
     
     void toggle_bit(uint32_t mmap_idx, uint32_t offset, uint32_t index) {
-        dvm.toggle_bit(mmap_idx, offset, index);
+        dvm.toggle_bit_offset(mmap_idx, offset, index);
+    }
+
+    bool read_bit(uint32_t mmap_idx, uint32_t offset, uint32_t index) {
+        return dvm.read_bit_offset(mmap_idx, offset, index);
     }
 
     std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>

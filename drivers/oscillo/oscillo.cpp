@@ -35,7 +35,7 @@ Oscillo::Oscillo(DevMem& dvm_)
 // Read the two channels
 std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
 {
-    dvm.set_bit(config_map, ADDR_OFF, 1);
+    dvm.set_bit<ADDR_OFF, 1>(config_map);
     _wait_for_acquisition();
 
     if (dvm.read<AVG_ON_OUT0_OFF>(status_map)) {
@@ -51,7 +51,7 @@ std::array<float, 2*WFM_SIZE>& Oscillo::read_all_channels()
             data_all[i + WFM_SIZE] = float(raw_data[1][i]);
         }
     }
-    dvm.clear_bit(config_map, ADDR_OFF, 1);
+    dvm.clear_bit<ADDR_OFF, 1>(config_map);
     return data_all;
 }
 
@@ -65,7 +65,7 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor,
         return data_decim;
     }
 
-    dvm.set_bit(config_map, ADDR_OFF, 1);
+    dvm.set_bit<ADDR_OFF, 1>(config_map);
     uint32_t n_pts = (index_high - index_low)/decim_factor;
     data_decim.resize(2*n_pts);
     _wait_for_acquisition();
@@ -83,18 +83,18 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor,
             data_decim[i + n_pts] = float(raw_data[1][index_low + decim_factor * i]);
         }
     }
-    dvm.clear_bit(config_map, ADDR_OFF, 1);
+    dvm.clear_bit<ADDR_OFF, 1>(config_map);
     return data_decim;
 }
 
 void Oscillo::set_averaging(bool avg_on)
 {
     if (avg_on) {
-        dvm.set_bit(config_map, AVG0_OFF, 0);
-        dvm.set_bit(config_map, AVG1_OFF, 0);
+        dvm.set_bit<AVG0_OFF, 0>(config_map);
+        dvm.set_bit<AVG1_OFF, 0>(config_map);
     } else {
-        dvm.clear_bit(config_map, AVG0_OFF, 0);
-        dvm.clear_bit(config_map, AVG1_OFF, 0);
+        dvm.clear_bit<AVG0_OFF, 0>(config_map);
+        dvm.clear_bit<AVG1_OFF, 0>(config_map);
     }
 }
 

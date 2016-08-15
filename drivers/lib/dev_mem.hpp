@@ -182,28 +182,64 @@ class DevMem
     // Bit manipulation
     ////////////////////////////////////////
 
-    void set_bit(MemMapID id, uint32_t offset, uint32_t index) {
+    // Set a bit (offset and index defined at compile-time)
+    template<uint32_t offset, uint32_t index>
+    void set_bit(MemMapID id) {
         ASSERT_WRITABLE
         uintptr_t addr = get_base_addr(id) + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
     }
 
-    void clear_bit(MemMapID id, uint32_t offset, uint32_t index) {
+    // Set a bit (offset and index defined at run-time)
+    void set_bit_offset(MemMapID id, uint32_t offset, uint32_t index) {
+        ASSERT_WRITABLE
+        uintptr_t addr = get_base_addr(id) + offset;
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
+    }
+
+    // Clear a bit (offset and index defined at compile-time)
+    template<uint32_t offset, uint32_t index>
+    void clear_bit(MemMapID id) {
         ASSERT_WRITABLE
         uintptr_t addr = get_base_addr(id) + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
     }
 
-    void toggle_bit(MemMapID id, uint32_t offset, uint32_t index) {
+    // Clear a bit (offset and index defined at run-time)
+    void clear_bit_offset(MemMapID id, uint32_t offset, uint32_t index) {
+        ASSERT_WRITABLE
+        uintptr_t addr = get_base_addr(id) + offset;
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
+    }
+
+    // Toggle a bit (offset and index defined at compile-time)
+    template<uint32_t offset, uint32_t index>
+    void toggle_bit(MemMapID id) {
         ASSERT_WRITABLE
         uintptr_t addr = get_base_addr(id) + sizeof(uint32_t) * offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
     }
 
-    bool read_bit(MemMapID id, uint32_t offset, uint32_t index) {
+    // Toggle a bit (offset and index defined at run-time)
+    void toggle_bit_offset(MemMapID id, uint32_t offset, uint32_t index) {
+        ASSERT_WRITABLE
+        uintptr_t addr = get_base_addr(id) + sizeof(uint32_t) * offset;
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
+    }
+
+    // Read a bit (offset and index defined at compile-time)
+    template<uint32_t offset, uint32_t index>
+    bool read_bit(MemMapID id) {
         ASSERT_READABLE
         return *((volatile uint32_t *) (get_base_addr(id) + offset)) & (1 << index);
     }
+
+    // Read a bit (offset and index defined at run-time)
+    bool read_bit_offset(MemMapID id, uint32_t offset, uint32_t index) {
+        ASSERT_READABLE
+        return *((volatile uint32_t *) (get_base_addr(id) + offset)) & (1 << index);
+    }
+
 
     void write32_mask(MemMapID id, uint32_t offset, uint32_t value, uint32_t mask) {
         ASSERT_WRITABLE

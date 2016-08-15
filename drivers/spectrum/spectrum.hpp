@@ -27,8 +27,8 @@ class Spectrum
     Spectrum(DevMem& dvm_);
 
     void reset() {
-        dvm.clear_bit(config_map, ADDR_OFF, 0);
-        dvm.set_bit(config_map, ADDR_OFF, 0);
+        dvm.clear_bit<ADDR_OFF, 0>(config_map);
+        dvm.set_bit<ADDR_OFF, 0>(config_map);
     }
 
     void set_n_avg_min(uint32_t n_avg_min) {
@@ -61,8 +61,8 @@ class Spectrum
     }
 
     void reset_acquisition() {
-        dvm.clear_bit(config_map, ADDR_OFF, 1);
-        dvm.set_bit(config_map, ADDR_OFF, 1);
+        dvm.clear_bit<ADDR_OFF, 1>(config_map);
+        dvm.set_bit<ADDR_OFF, 1>(config_map);
     }
 
     void set_scale_sch(uint32_t scale_sch) {

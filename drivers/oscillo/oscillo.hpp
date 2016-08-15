@@ -35,13 +35,13 @@ class Oscillo
     // Reset ...
 
     void reset() {
-        dvm.clear_bit(config_map, ADDR_OFF, 0);
-        dvm.set_bit(config_map, ADDR_OFF, 0);
+        dvm.clear_bit<ADDR_OFF, 0>(config_map);
+        dvm.set_bit<ADDR_OFF, 0>(config_map);
     }
 
     void reset_acquisition() {
-        dvm.clear_bit(config_map, ADDR_OFF, 1);
-        dvm.set_bit(config_map, ADDR_OFF, 1);
+        dvm.clear_bit<ADDR_OFF, 1>(config_map);
+        dvm.set_bit<ADDR_OFF, 1>(config_map);
     }
 
     void set_averaging(bool avg_on);
@@ -61,19 +61,19 @@ class Oscillo
     // TODO should be a one-liner
     void set_clken_mask(bool clken_mask) {
         if (clken_mask) {
-            dvm.set_bit(config_map, CLKEN_MASK_OFF, 0);
+            dvm.set_bit<CLKEN_MASK_OFF, 0>(config_map);
         } else {
-            dvm.clear_bit(config_map, CLKEN_MASK_OFF, 0);
+            dvm.clear_bit<CLKEN_MASK_OFF, 0>(config_map);
         }
     }
 
     void update_now() {
-        dvm.set_bit(config_map, CLKEN_MASK_OFF, 1);
-        dvm.clear_bit(config_map, CLKEN_MASK_OFF, 1);
+        dvm.set_bit<CLKEN_MASK_OFF, 1>(config_map);
+        dvm.clear_bit<CLKEN_MASK_OFF, 1>(config_map);
     }
 
     void always_update() {
-        dvm.set_bit(config_map, CLKEN_MASK_OFF, 1);
+        dvm.set_bit<CLKEN_MASK_OFF, 1>(config_map);
     }
 
     void set_n_avg_min(uint32_t n_avg_min) {
