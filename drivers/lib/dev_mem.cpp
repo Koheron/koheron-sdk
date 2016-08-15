@@ -84,7 +84,7 @@ MemMapID DevMem::create_memory_map(uintptr_t addr, uint32_t size, int protection
     return new_id;
 }
 
-MemMapID DevMem::add_memory_map(uintptr_t addr, uint32_t size, int protection)
+const MemoryMap& DevMem::add_memory_map(uintptr_t addr, uint32_t size, int protection)
 {
     bool region_is_mapped = false;
     MemMapID map_id = static_cast<MemMapID>(-1);
@@ -109,7 +109,7 @@ MemMapID DevMem::add_memory_map(uintptr_t addr, uint32_t size, int protection)
     if (!region_is_mapped)
         map_id = create_memory_map(addr, size, protection);
 
-    return map_id;
+    return mem_maps.at(map_id);
 }
 
 void DevMem::rm_memory_map(MemMapID id)
