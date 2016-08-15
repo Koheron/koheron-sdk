@@ -386,18 +386,13 @@ clean_server:
 clean_cores:
 	$(RM) $(TMP)/cores
 
+clean_xpr:
+	$(RM) $(TMP)/$(NAME).xpr
+	
 clean_all:
 	$(RM) uImage fw_printenv boot.bin devicetree.dtb $(TMP)
 	$(RM) .Xil usage_statistics_webtalk.html usage_statistics_webtalk.xml
 	$(RM) webtalk*.log webtalk*.jou
 
-clean_server:
-	$(RM) $(TCP_SERVER_DIR) $(TCP_SERVER_MIDDLEWARE)
-
-clean_xpr:
-	$(RM) $(TMP)/$(NAME).xpr
-
-clean_cores:
-	$(RM) $(TMP)/cores
 
 
