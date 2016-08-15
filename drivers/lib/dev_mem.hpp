@@ -93,101 +93,78 @@ class DevMem
         return mem_maps.at(id)->get_params();
     }
 
-    /// Return 1 if a memory map failed
-    int IsFailed();
-
-    bool is_ok() {return !IsFailed();}
-
     // Write
 
-    void write32(MemMapID id, uint32_t offset, uint32_t value) {
+    template<typename T = uint32_t>
+    void write(MemMapID id, uint32_t offset, T value) {
         ASSERT_WRITABLE
-        *(volatile uint32_t *) (get_base_addr(id) + offset) = value;
-    }
-
-    void write_buff32(MemMapID id, uint32_t offset,
-                      const uint32_t *data_ptr, uint32_t buff_size) {
-        write_buff(id, offset, data_ptr, buff_size);
+        *(volatile T *) (get_base_addr(id) + sizeof(T) * offset) = value;
     }
 
     template<typename T>
-    void write_buff(MemMapID id, uint32_t offset,
+    void set_ptr(MemMapID id, uint32_t offset,
                     const T *data_ptr, uint32_t buff_size) {
         ASSERT_WRITABLE
-        uintptr_t addr = get_base_addr(id) + offset;
+        uintptr_t addr = get_base_addr(id) + sizeof(T) * offset;
         for (uint32_t i=0; i < buff_size; i++)
             *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
     }
 
     template<typename T, size_t N>
-    void write_buff(MemMapID id, uint32_t offset, const std::array<T, N> arr) {
-        write_buff(id, offset, arr.data(), N);
+    void write_array(MemMapID id, uint32_t offset, const std::array<T, N> arr) {
+        set_ptr(id, offset, arr.data(), N);
     }
 
     // Read
 
-    template<typename T>
-    T* read_buffer(MemMapID id, uint32_t offset) {
+    template<typename T = uint32_t>
+    T read(MemMapID id, uint32_t offset) {
         ASSERT_READABLE
-        return reinterpret_cast<T*>(get_base_addr(id) + offset);
-    }
-
-    uint32_t* read_buff32(MemMapID id, uint32_t offset) {
-        return read_buffer<uint32_t>(id, offset);
+        return *(volatile T *) (get_base_addr(id) + sizeof(T) * offset);
     }
 
     template<typename T, uint32_t offset = 0>
-    T* get_buffer_ptr(MemMapID id) {
+    T* get_ptr(MemMapID id) {
         ASSERT_READABLE
-        return reinterpret_cast<T*>(get_base_addr(id) + offset);
+        return reinterpret_cast<T*>(get_base_addr(id) + sizeof(T) * offset);
     }
 
-    template<typename T, size_t N, uint32_t offset = 0>
-    std::array<T, N>& read_buffer(MemMapID id) {
-        uintptr_t ptr = get_base_addr(id) + offset;
+    template<typename T, size_t N>
+    std::array<T, N>& read_array(MemMapID id, uint32_t offset) {
+        uintptr_t ptr = get_base_addr(id) + offset * sizeof(T);
         auto p = reinterpret_cast<std::array<T, N>*>(ptr);
         assert(p->data() == (const T*)ptr);
         return *p;
-    }
-
-    template<uint32_t offset = 0>
-    uint32_t* read_buff32(MemMapID id) {
-        return get_buffer_ptr<uint32_t, offset>(id);
-    }
-
-    uint32_t read32(MemMapID id, uint32_t offset) {
-        ASSERT_READABLE
-        return *(volatile uintptr_t *) (get_base_addr(id) + offset);
     }
 
     // Bits
 
     void set_bit(MemMapID id, uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        uintptr_t addr = get_base_addr(id) + offset;
+        uintptr_t addr = get_base_addr(id) + sizeof(uint32_t) * offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
     }
 
     void clear_bit(MemMapID id, uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        uintptr_t addr = get_base_addr(id) + offset;
+        uintptr_t addr = get_base_addr(id) + sizeof(uint32_t) * offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
     }
 
     void toggle_bit(MemMapID id, uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        uintptr_t addr = get_base_addr(id) + offset;
+        uintptr_t addr = get_base_addr(id) + sizeof(uint32_t) * offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
     }
 
     bool read_bit(MemMapID id, uint32_t offset, uint32_t index) {
         ASSERT_READABLE
-        return *((volatile uintptr_t *) (get_base_addr(id) + offset)) & (1 << index);
+        return *((volatile uint32_t *) (get_base_addr(id) + sizeof(uint32_t) * offset)) & (1 << index);
     }
 
     void write32_mask(MemMapID id, uint32_t offset, uint32_t value, uint32_t mask) {
         ASSERT_WRITABLE
-        uintptr_t addr = get_base_addr(id) + offset;
+        uintptr_t addr = get_base_addr(id) + sizeof(uint32_t) * offset;
         *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
     }
 
