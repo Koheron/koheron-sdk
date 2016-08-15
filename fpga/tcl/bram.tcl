@@ -1,10 +1,8 @@
 
-proc add_bram {bram_name bram_range {bram_offset "auto"} {idx "auto"} {intercon_idx 1}} {
+proc add_bram {bram_name bram_range {bram_offset "auto"} {intercon_idx 1}} {
 
-  if { $idx eq "auto"} {
-    # Add a new Master Interface to AXI Interconnect
-    set idx [add_master_interface $intercon_idx]
-  }
+  # Add a new Master Interface to AXI Interconnect
+  set idx [add_master_interface $intercon_idx]
 
   # Add BRAM Controller
   cell xilinx.com:ip:axi_bram_ctrl:4.0 axi_bram_ctrl_$bram_name {

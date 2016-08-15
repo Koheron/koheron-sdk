@@ -11,9 +11,13 @@ constexpr uint32_t dac_sel_width(uint32_t n_dac_bram) {
     return ceil(log(float(n_dac_bram)) / log(2.));
 }
 
+static_assert(dac_sel_width(3) == 2, "dac_sel_width test failed");
+
 constexpr uint32_t bram_sel_width(uint32_t n_dac) {
     return ceil(log(float(n_dac)) / log(2.));
 }
+
+static_assert(bram_sel_width(2) == 1, "bram_sel_width test failed");
 
 // http://stackoverflow.com/questions/12276675/modulus-with-negative-numbers-in-c
 constexpr long mod(long a, long b) {
@@ -23,6 +27,8 @@ constexpr long mod(long a, long b) {
 constexpr uint32_t half_dynamic_range(uint32_t n_bits) {
     return 1 << (n_bits - 1);
 }
+
+static_assert(half_dynamic_range(14) == 8192, "half_dynamic_range test failed");
 
 template<uint32_t n_dac, uint32_t n_dac_bram>
 class DacRouter

@@ -109,10 +109,11 @@ class KoheronAPIApp(Flask):
         self.client = KClient('127.0.0.1', verbose=False)
 
         if self.client.is_connected:
-            log('error', 'Failed to connect to server')
             self.common = Common(self.client)
             # self.laser = Laser(self.client)
             self.common.init()
+        else:
+            log('error', 'Failed to connect to server')
 
     def stop_client(self):
         if hasattr(self, 'client'):
