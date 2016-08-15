@@ -101,9 +101,8 @@ class DevMem
         *(volatile T *) (get_base_addr(id) + sizeof(T) * offset) = value;
     }
 
-    template<typename T>
-    void set_ptr(MemMapID id, uint32_t offset,
-                    const T *data_ptr, uint32_t buff_size) {
+    template<typename T = uint32_t>
+    void set_ptr(MemMapID id, uint32_t offset, const T *data_ptr, uint32_t buff_size) {
         ASSERT_WRITABLE
         uintptr_t addr = get_base_addr(id) + sizeof(T) * offset;
         for (uint32_t i=0; i < buff_size; i++)
@@ -123,8 +122,8 @@ class DevMem
         return *(volatile T *) (get_base_addr(id) + sizeof(T) * offset);
     }
 
-    template<typename T, uint32_t offset = 0>
-    T* get_ptr(MemMapID id) {
+    template<typename T = uint32_t>
+    T* get_ptr(MemMapID id, uint32_t offset = 0) {
         ASSERT_READABLE
         return reinterpret_cast<T*>(get_base_addr(id) + sizeof(T) * offset);
     }

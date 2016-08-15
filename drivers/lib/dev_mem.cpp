@@ -134,11 +134,3 @@ void DevMem::remove_all()
 
     assert(num_maps == 0);
 }
-
-int DevMem::IsFailed()
-{
-    for (unsigned int i=0; i<mem_maps.size(); i++)
-        if (mem_maps[i]->get_status() == MemoryMap::MEMMAP_FAILURE)
-            return 1;
-    return 0;
-}

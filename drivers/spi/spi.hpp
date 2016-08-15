@@ -18,7 +18,7 @@ class Spi
 
     #pragma tcp-server write_array arg{buffer} arg{len}
     int write(const uint32_t *buffer, uint32_t len) {
-        return spi_dev.set_ptr(buffer, len);
+        return spi_dev.write_buffer(buffer, len);
     }
 
   private:

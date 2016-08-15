@@ -55,7 +55,7 @@ class DacRouter
 
     template<size_t N>
     std::array<uint32_t, N>& get_data(uint32_t channel) {
-        return dvm.read_array<uint32_t, N>(dac_map[bram_index[channel]]);
+        return dvm.read_array<uint32_t, N>(dac_map[bram_index[channel]], 0);
     }
 
     void set_data(uint32_t channel, const uint32_t *buffer, uint32_t len);
@@ -115,13 +115,13 @@ inline void DacRouter<n_dac, n_dac_bram>::update_dac_routing()
     uint32_t dac_select = 0;
     for (uint32_t i=0; i < n_dac_bram; i++)
         dac_select += bram_index[i] << (dac_sel_width(n_dac_bram) * i);
-    dvm.write32(config_map, dac_select_off, dac_select);
+    dvm.write(config_map, dac_select_off, dac_select);
 
     // addr_select defines the connection between address generators and BRAMs
     uint32_t addr_select = 0;
     for (uint32_t j=0; j < n_dac_bram; j++)
         addr_select += j << (bram_sel_width(n_dac) * bram_index[j]);
-    dvm.write32(config_map, addr_select_off, addr_select);
+    dvm.write(config_map, addr_select_off, addr_select);
 }
 
 template<uint32_t n_dac, uint32_t n_dac_bram>
@@ -149,7 +149,7 @@ inline void DacRouter<n_dac, n_dac_bram>::set_data(
 {
     uint32_t old_idx = bram_index[channel];
     uint32_t new_idx = get_first_empty_bram_index();
-    dvm.write_buff32(dac_map[new_idx], 0, buffer, len);
+    dvm.set_ptr(dac_map[new_idx], 0, buffer, len);
     switch_interconnect(channel, old_idx, new_idx);
 }
 

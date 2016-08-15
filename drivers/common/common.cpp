@@ -14,7 +14,7 @@ extern "C" {
 std::array<uint32_t, BITSTREAM_ID_SIZE> Common::get_bitstream_id()
 {
     for (uint32_t i=0; i<bitstream_id.size(); i++)
-        bitstream_id[i] = dvm.read32(status_map, BITSTREAM_ID_OFF + 4 * i);
+        bitstream_id[i] = dvm.read(status_map, BITSTREAM_ID_OFF + 4 * i);
 
     return bitstream_id;
 }

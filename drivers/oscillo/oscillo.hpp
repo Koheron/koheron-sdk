@@ -49,8 +49,8 @@ class Oscillo
     // Monitoring
 
     uint64_t get_counter() {
-        uint64_t lsb = dvm.read32(status_map, COUNTER0_OFF);
-        uint64_t msb = dvm.read32(status_map, COUNTER1_OFF);
+        uint64_t lsb = dvm.read(status_map, COUNTER0_OFF);
+        uint64_t msb = dvm.read(status_map, COUNTER1_OFF);
         return lsb + (msb << 32);
     }
 
