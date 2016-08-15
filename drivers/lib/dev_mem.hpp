@@ -57,6 +57,7 @@ class DevMem
     int resize(MemMapID id, uint32_t length) {return mem_maps.at(id)->resize(length);}
 
     // Create a new memory map
+    MemMapID add_memory_map_id(uintptr_t addr, uint32_t size, int protection = PROT_READ|PROT_WRITE);
     MemoryMap* add_memory_map(uintptr_t addr, uint32_t size, int protection = PROT_READ|PROT_WRITE);
 
     template<size_t n_blocks>
@@ -85,97 +86,9 @@ class DevMem
         return mem_maps.at(id)->get_params();
     }
 
-    // ////////////////////////////////////////
-    // // Write functions
-    // ////////////////////////////////////////
-
-    // // Write a register (offset defined at compile-time)
-    // template<uint32_t offset, typename T = uint32_t>
-    // void write(MemMapID id, T value) {
-    //     ASSERT_WRITABLE
-    //     *(volatile T *) (get_base_addr(id) + offset) = value;
-    // }
-
-    // // Write a register (offset defined at run-time)
-    // template<typename T = uint32_t>
-    // void write_offset(MemMapID id, uint32_t offset, T value) {
-    //     ASSERT_WRITABLE
-    //     *(volatile T *) (get_base_addr(id) + offset) = value;
-    // }
-
-    // template<typename T = uint32_t, uint32_t offset = 0>
-    // void set_ptr(MemMapID id, const T *data_ptr, uint32_t buff_size) {
-    //     ASSERT_WRITABLE
-    //     uintptr_t addr = get_base_addr(id) + offset;
-    //     for (uint32_t i=0; i < buff_size; i++)
-    //         *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
-    // }
-
-    // template<typename T = uint32_t>
-    // void set_ptr_offset(MemMapID id, uint32_t offset, const T *data_ptr, uint32_t buff_size) {
-    //     ASSERT_WRITABLE
-    //     uintptr_t addr = get_base_addr(id) + offset;
-    //     for (uint32_t i=0; i < buff_size; i++)
-    //         *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
-    // }
-
-    // // Write a std::array (offset defined at compile-time)
-    // template<typename T, size_t N, uint32_t offset = 0>
-    // void write_array(MemMapID id, const std::array<T, N> arr) {
-    //     set_ptr<T, offset>(id, arr.data(), N);
-    // }
-
-    // // Write a std::array (offset defined at run-time)
-    // template<typename T, size_t N>
-    // void write_array_offset(MemMapID id, uint32_t offset, const std::array<T, N> arr) {
-    //     set_ptr_offset<T>(id, offset, arr.data(), N);
-    // }
-
-    // ////////////////////////////////////////
-    // // Read functions
-    // ////////////////////////////////////////
-
-    // // Read a register (offset defined at compile-time)
-    // template<uint32_t offset, typename T = uint32_t>
-    // T read(MemMapID id) {
-    //     ASSERT_READABLE
-    //     return *(volatile T *) (get_base_addr(id) + offset);
-    // }
-
-    // // Read a register (offset defined at run-time)
-    // template<typename T = uint32_t>
-    // T read_offset(MemMapID id, uint32_t offset) {
-    //     ASSERT_READABLE
-    //     return *(volatile T *) (get_base_addr(id) + offset);
-    // }
-
-    // template<typename T = uint32_t, uint32_t offset = 0>
-    // T* get_ptr(MemMapID id) {
-    //     ASSERT_READABLE
-    //     return reinterpret_cast<T*>(get_base_addr(id) + offset);
-    // }
-
-    // template<typename T = uint32_t>
-    // T* get_ptr_offset(MemMapID id, uint32_t offset = 0) {
-    //     ASSERT_READABLE
-    //     return reinterpret_cast<T*>(get_base_addr(id) + offset);
-    // }
-
-    // // Read a std::array (offset defined at compile-time)
-    // template<typename T, size_t N, uint32_t offset = 0>
-    // std::array<T, N>& read_array(MemMapID id) {
-    //     auto p = get_ptr<std::array<T, N>, offset>(id);
-    //     return *p;
-    // }
-
-    // // Read a std::array (offset defined at run-time)
-    // template<typename T, size_t N>
-    // std::array<T, N>& read_array_offset(MemMapID id, uint32_t offset) {
-    //     auto p = get_ptr_offset<std::array<T, N>>(id, offset);
-    //     return *p;
-    // }
-
-    
+    MemoryMap* get_map_ptr(MemMapID id) {
+        return mem_maps.at(id).get();
+    }
 
   private:
     kserver::KServer *kserver;

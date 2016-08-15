@@ -3,7 +3,7 @@ includes: [projects/default/server.yml]
 drivers:
   - drivers/common/common.hpp
   - drivers/common/common.cpp
-  # - drivers/device_memory/device_memory.hpp
+  - drivers/device_memory/device_memory.hpp
   - drivers/gpio/gpio.hpp
   - drivers/xadc/xadc.hpp
   - drivers/xadc/xadc.cpp
