@@ -18,7 +18,7 @@ Spectrum::Spectrum(DevMem& dvm_)
     noise_floor_map = dvm.add_memory_map(NOISE_FLOOR_ADDR, NOISE_FLOOR_RANGE);
     peak_fifo_map = dvm.add_memory_map(PEAK_FIFO_ADDR, PEAK_FIFO_RANGE);
 
-    raw_data = dvm.get_ptr<float>(spectrum_map);
+    raw_data = spectrum_map->get_ptr<float>();
 
     fifo.set_map(peak_fifo_map);
 
@@ -31,7 +31,7 @@ Spectrum::Spectrum(DevMem& dvm_)
     set_period(WFM_SIZE);
     set_n_avg_min(0);
 
-    dac.set_config_reg(config_map, DAC_SELECT_OFF, ADDR_SELECT_OFF);
+    dac.set_config_reg(cfg, DAC_SELECT_OFF, ADDR_SELECT_OFF);
 }
 
 std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
@@ -39,7 +39,7 @@ std::array<float, WFM_SIZE>& Spectrum::get_spectrum()
     cfg->set_bit<ADDR_OFF, 1>();
     wait_for_acquisition();
 
-    if (sts.read<AVG_ON_OUT_OFF>()) {
+    if (sts->read<AVG_ON_OUT_OFF>()) {
         float num_avg = float(get_num_average());
         for (unsigned int i=0; i<WFM_SIZE; i++)
             spectrum_data[i] = raw_data[i] / num_avg;
@@ -66,7 +66,7 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
     spectrum_decim.resize(n_pts);
     wait_for_acquisition();
 
-    if (status_map->read<AVG_ON_OUT_OFF>()) {
+    if (sts->read<AVG_ON_OUT_OFF>()) {
         float num_avg = float(get_num_average());
 
         for (unsigned int i=0; i<spectrum_decim.size(); i++)

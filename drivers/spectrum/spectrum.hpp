@@ -88,13 +88,13 @@ class Spectrum
 
     void set_averaging(bool avg_status);
 
-    uint32_t get_num_average()  {return sts.read<N_AVG_OFF>();}
-    uint32_t get_peak_address() {return sts.read<PEAK_ADDRESS_OFF>();}
-    uint32_t get_peak_maximum() {return sts.read<PEAK_MAXIMUM_OFF>();}
+    uint32_t get_num_average()  {return sts->read<N_AVG_OFF>();}
+    uint32_t get_peak_address() {return sts->read<PEAK_ADDRESS_OFF>();}
+    uint32_t get_peak_maximum() {return sts->read<PEAK_MAXIMUM_OFF>();}
 
     uint64_t get_counter() {
-        uint64_t lsb = sts.read<COUNTER0_OFF>();
-        uint64_t msb = sts.read<COUNTER1_OFF>();
+        uint64_t lsb = sts->read<COUNTER0_OFF>();
+        uint64_t msb = sts->read<COUNTER1_OFF>();
         return lsb + (msb << 32);
     }
 
