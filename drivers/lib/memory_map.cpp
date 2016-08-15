@@ -6,7 +6,7 @@ MemoryMap::MemoryMap(int *fd_, uintptr_t phys_addr_,
                            uint32_t size_, int protection_)
 : fd(fd_)
 , mapped_base(nullptr)
-, mapped_dev_base(0)
+, base_address(0)
 , status(MEMMAP_CLOSED)
 , protection(protection_)
 , size(size_)
@@ -22,7 +22,7 @@ MemoryMap::MemoryMap(int *fd_, uintptr_t phys_addr_,
     }
 
     status = MEMMAP_OPENED;
-    mapped_dev_base = (uintptr_t)mapped_base + (phys_addr & MAP_MASK(size));
+    base_address = (uintptr_t)mapped_base + (phys_addr & MAP_MASK(size));
 }
 
 MemoryMap::~MemoryMap()
@@ -42,14 +42,14 @@ int MemoryMap::unmap()
 
 int MemoryMap::resize(uint32_t length)
 {
-    void *new_virt_addr = mremap((void *)mapped_dev_base, size, length, 0);
+    void *new_virt_addr = mremap((void *)base_address, size, length, 0);
 
     if (new_virt_addr == (void *) -1) {
         fprintf(stderr, "Can't resize memory map.\n");
         return -1;
     }
 
-    if ((uintptr_t)new_virt_addr != mapped_dev_base) {
+    if ((uintptr_t)new_virt_addr != base_address) {
         fprintf(stderr, "New address shifted during resizing.\n");
         return -1;
     }

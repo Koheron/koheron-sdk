@@ -42,14 +42,14 @@ class MemoryMap
 
     int get_protection() const {return protection;}
     int get_status() const {return status;}
-    uintptr_t get_base_addr() const {return mapped_dev_base;}
+    uintptr_t get_base_addr() const {return base_address;}
     uint32_t mapped_size() const {return size;}
     uintptr_t get_phys_addr() const {return phys_addr;}
 
     std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>
     get_params() {
         return std::make_tuple(
-            mapped_dev_base,
+            base_address,
             status,
             phys_addr,
             size,
@@ -65,20 +65,20 @@ class MemoryMap
     template<uint32_t offset, typename T = uint32_t>
     void write(T value) {
         ASSERT_WRITABLE
-        *(volatile T *) (mapped_dev_base + offset) = value;
+        *(volatile T *) (base_address + offset) = value;
     }
 
     // Write a register (offset defined at run-time)
     template<typename T = uint32_t>
     void write_offset(uint32_t offset, T value) {
         ASSERT_WRITABLE
-        *(volatile T *) (mapped_dev_base + offset) = value;
+        *(volatile T *) (base_address + offset) = value;
     }
 
     template<typename T = uint32_t, uint32_t offset = 0>
     void set_ptr(const T *data_ptr, uint32_t buff_size) {
         ASSERT_WRITABLE
-        uintptr_t addr = mapped_dev_base + offset;
+        uintptr_t addr = base_address + offset;
         for (uint32_t i=0; i < buff_size; i++)
             *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
     }
@@ -86,7 +86,7 @@ class MemoryMap
     template<typename T = uint32_t>
     void set_ptr_offset(uint32_t offset, const T *data_ptr, uint32_t buff_size) {
         ASSERT_WRITABLE
-        uintptr_t addr = mapped_dev_base + offset;
+        uintptr_t addr = base_address + offset;
         for (uint32_t i=0; i < buff_size; i++)
             *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
     }
@@ -111,26 +111,26 @@ class MemoryMap
     template<uint32_t offset, typename T = uint32_t>
     T read() {
         ASSERT_READABLE
-        return *(volatile T *) (mapped_dev_base + offset);
+        return *(volatile T *) (base_address + offset);
     }
 
     // Read a register (offset defined at run-time)
     template<typename T = uint32_t>
     T read_offset(uint32_t offset) {
         ASSERT_READABLE
-        return *(volatile T *) (mapped_dev_base + offset);
+        return *(volatile T *) (base_address + offset);
     }
 
     template<typename T = uint32_t, uint32_t offset = 0>
     T* get_ptr() {
         ASSERT_READABLE
-        return reinterpret_cast<T*>(mapped_dev_base + offset);
+        return reinterpret_cast<T*>(base_address + offset);
     }
 
     template<typename T = uint32_t>
     T* get_ptr_offset(uint32_t offset = 0) {
         ASSERT_READABLE
-        return reinterpret_cast<T*>(mapped_dev_base + offset);
+        return reinterpret_cast<T*>(base_address + offset);
     }
 
     // Read a std::array (offset defined at compile-time)
@@ -155,14 +155,14 @@ class MemoryMap
     template<uint32_t offset, uint32_t index>
     void set_bit() {
         ASSERT_WRITABLE
-        uintptr_t addr = mapped_dev_base + offset;
+        uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
     }
 
     // Set a bit (offset and index defined at run-time)
     void set_bit_offset(uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        uintptr_t addr = mapped_dev_base + offset;
+        uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
     }
 
@@ -170,14 +170,14 @@ class MemoryMap
     template<uint32_t offset, uint32_t index>
     void clear_bit() {
         ASSERT_WRITABLE
-        uintptr_t addr = mapped_dev_base + offset;
+        uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
     }
 
     // Clear a bit (offset and index defined at run-time)
     void clear_bit_offset(uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        uintptr_t addr = mapped_dev_base + offset;
+        uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
     }
 
@@ -185,14 +185,14 @@ class MemoryMap
     template<uint32_t offset, uint32_t index>
     void toggle_bit() {
         ASSERT_WRITABLE
-        uintptr_t addr = mapped_dev_base + sizeof(uint32_t) * offset;
+        uintptr_t addr = base_address + sizeof(uint32_t) * offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
     }
 
     // Toggle a bit (offset and index defined at run-time)
     void toggle_bit_offset(uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        uintptr_t addr = mapped_dev_base + sizeof(uint32_t) * offset;
+        uintptr_t addr = base_address + sizeof(uint32_t) * offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
     }
 
@@ -200,18 +200,18 @@ class MemoryMap
     template<uint32_t offset, uint32_t index>
     bool read_bit() {
         ASSERT_READABLE
-        return *((volatile uint32_t *) (mapped_dev_base + offset)) & (1 << index);
+        return *((volatile uint32_t *) (base_address + offset)) & (1 << index);
     }
 
     // Read a bit (offset and index defined at run-time)
     bool read_bit_offset(uint32_t offset, uint32_t index) {
         ASSERT_READABLE
-        return *((volatile uint32_t *) (mapped_dev_base + offset)) & (1 << index);
+        return *((volatile uint32_t *) (base_address + offset)) & (1 << index);
     }
 
     void write32_mask(uint32_t offset, uint32_t value, uint32_t mask) {
         ASSERT_WRITABLE
-        uintptr_t addr = mapped_dev_base + offset;
+        uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
     }
 
@@ -225,7 +225,7 @@ class MemoryMap
   private:
     int *fd;                    ///< /dev/mem file ID (Why is this a pointer ?)
     void *mapped_base;          ///< Map base address
-    uintptr_t mapped_dev_base;  ///< Virtual memory base address of the device
+    uintptr_t base_address;  ///< Virtual memory base address of the device
     int status;                 ///< Status
     int protection;
     uint32_t size;              ///< Map size in bytes
