@@ -13,11 +13,11 @@
 
 // -- Config offsets
 {% for offset in dic['config_registers'] -%}
-#define {{ offset|upper }}_OFF {{ loop.index0 }}
+#define {{ offset|upper }}_OFF {{ 4 * loop.index0 }}
 {% endfor %}
 // -- Status offsets
 {% for offset in dic['status_registers'] -%}
-#define {{ offset|upper }}_OFF {{ 10 + loop.index0 }}
+#define {{ offset|upper }}_OFF {{ 4 * (10 + loop.index0) }}
 {% endfor %}
 
 // -- Parameters
@@ -31,6 +31,6 @@
 #define BITSTREAM_ID_OFF 0
 #define BITSTREAM_ID_SIZE 8
 
-#define DNA_OFF 8
+#define DNA_OFF 4 * 8
 
 #endif // __DRIVERS_CORE_ADDRESSES_HPP__
