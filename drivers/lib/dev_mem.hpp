@@ -60,10 +60,6 @@ class DevMem
     int resize(MemMapID id, uint32_t length) {return mem_maps.at(id)->resize(length);}
 
     /// Create a new memory map
-    /// @addr Base address of the map
-    /// @size Size of the map
-    /// @protection Access protection
-    /// @return An ID to the created map, or -1 if an error occured
     MemMapID add_memory_map(uintptr_t addr, uint32_t size, int protection = PROT_READ|PROT_WRITE);
 
     template<size_t n_blocks>
@@ -79,14 +75,13 @@ class DevMem
     }
 
     /// Remove a memory map
-    /// @id ID of the memory map to be removed
     void rm_memory_map(MemMapID id);
 
     /// Remove all the memory maps
     void remove_all();
 
     uintptr_t get_base_addr(MemMapID id) {return mem_maps.at(id)->get_base_addr();}
-    int get_status(MemMapID id)         {return mem_maps.at(id)->get_status();}
+    int get_status(MemMapID id)          {return mem_maps.at(id)->get_status();}
 
     std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>
     get_map_params(MemMapID id) {
@@ -136,7 +131,7 @@ class DevMem
         return *p;
     }
 
-    // Bits
+    // Bit manipulation
 
     void set_bit(MemMapID id, uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
@@ -169,8 +164,8 @@ class DevMem
 
   private:
     kserver::KServer *kserver;
-    int fd;         ///< /dev/mem file ID
-    bool is_open;   ///< True if /dev/mem open
+    int fd;         // /dev/mem file ID
+    bool is_open;   // True if /dev/mem open
     
     /// Limit addresses
     uintptr_t addr_limit_down;

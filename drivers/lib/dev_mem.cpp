@@ -125,7 +125,7 @@ void DevMem::remove_all()
 
     if (!mem_maps.empty()) {
         // This is necessary because both mem_maps.size() and num_maps
-        // are decremented at each call of RmMemoryMap
+        // are decremented at each call of rm_memory_map()
         uint32_t mem_maps_size = mem_maps.size();
     
         for (unsigned int id=0; id<mem_maps_size; id++)
