@@ -34,7 +34,7 @@ class FIFOReader
     // Set FIFO virtual base address
     void set_map(MemMapID fifo_map_){
         fifo_map.store(fifo_map_);
-        dvm.write32(fifo_map.load(), RDFR_OFF, 0xA5); // Reset FIFO
+        dvm.write<RDFR_OFF>(fifo_map.load(), 0xA5); // Reset FIFO
     }
 
     // Start the acquisition thread.
@@ -109,12 +109,12 @@ void FIFOReader<N>::acquisition_thread_call(uint32_t acq_period)
 
         // The length is stored in the last 22 bits of the RLR register.
         // The length is given in bytes so we divide by 4 to get the number of u32.
-        fifo_length.store((dvm.read32(fifo_map.load(), RLR_OFF) & 0x3FFFFF) >> 2);
+        fifo_length.store((dvm.read<RLR_OFF>(fifo_map.load()) & 0x3FFFFF) >> 2);
 
         if (fifo_length.load() > 0) {
             std::lock_guard<std::mutex> guard(ring_buff_mtx);
             for (uint32_t i=0; i<fifo_length.load(); i++) {
-                ring_buffer[index.load()] = dvm.read32(fifo_map.load(), RDFD_OFF);
+                ring_buffer[index.load()] = dvm.read<RDFD_OFF>(fifo_map.load());
                 index.store((index.load() + 1) % N);
             }
         }

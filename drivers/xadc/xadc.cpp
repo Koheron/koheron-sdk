@@ -30,7 +30,7 @@ int Xadc::set_channel(uint32_t channel_0_, uint32_t channel_1_)
     channel_1 = channel_1_;
 
     uint32_t val = (1 << channel_0) + (1 << channel_1);
-    dvm.write32(xadc_map, SET_CHAN_OFF, val);
+    dvm.write<SET_CHAN_OFF>(xadc_map, val);
     return 0;
 }
 
@@ -63,6 +63,6 @@ int Xadc::read(uint32_t channel)
 {
     if (channel != channel_0 && channel != channel_1)
         return -1;
-    return dvm.read32(xadc_map, READ_OFF + 4*channel);
+    return dvm.read_offset(xadc_map, READ_OFF + 4*channel);
 }
 

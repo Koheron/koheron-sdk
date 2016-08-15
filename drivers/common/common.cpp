@@ -14,15 +14,15 @@ extern "C" {
 std::array<uint32_t, BITSTREAM_ID_SIZE> Common::get_bitstream_id()
 {
     for (uint32_t i=0; i<bitstream_id.size(); i++)
-        bitstream_id[i] = dvm.read32(status_map, BITSTREAM_ID_OFF + 4 * i);
+        bitstream_id[i] = dvm.read_offset(status_map, BITSTREAM_ID_OFF + 4 * i);
 
     return bitstream_id;
 }
 
 uint64_t Common::get_dna()
 {
-    uint64_t dna_low  = static_cast<uint64_t>(dvm.read32(status_map, DNA_OFF));
-    uint64_t dna_high = static_cast<uint64_t>(dvm.read32(status_map, DNA_OFF + 4));
+    uint64_t dna_low  = static_cast<uint64_t>(dvm.read<DNA_OFF>(status_map));
+    uint64_t dna_high = static_cast<uint64_t>(dvm.read<DNA_OFF + 4>(status_map));
     return dna_low + (dna_high << 32);
 }
 
@@ -34,7 +34,7 @@ void Common::ip_on_leds()
     ifaddrs *tmp = addrs;
 
     // Turn all the leds ON
-    dvm.write32(config_map, LED_OFF, 255);
+    dvm.write<LED_OFF>(config_map, 255);
 
     char interface[] = "eth0";
 
@@ -55,7 +55,7 @@ void Common::ip_on_leds()
 
             // Write IP address in FPGA memory
             // The 8 Least Significant Bits should be connected to the FPGA LEDs
-            dvm.write32(config_map, LED_OFF, ip);
+            dvm.write<LED_OFF>(config_map, ip);
             break;
         }
         

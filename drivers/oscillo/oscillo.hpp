@@ -35,13 +35,13 @@ class Oscillo
     // Reset ...
 
     void reset() {
-        dvm.clear_bit(config_map, ADDR_OFF, 0);
-        dvm.set_bit(config_map, ADDR_OFF, 0);
+        dvm.clear_bit<ADDR_OFF, 0>(config_map);
+        dvm.set_bit<ADDR_OFF, 0>(config_map);
     }
 
     void reset_acquisition() {
-        dvm.clear_bit(config_map, ADDR_OFF, 1);
-        dvm.set_bit(config_map, ADDR_OFF, 1);
+        dvm.clear_bit<ADDR_OFF, 1>(config_map);
+        dvm.set_bit<ADDR_OFF, 1>(config_map);
     }
 
     void set_averaging(bool avg_on);
@@ -49,52 +49,52 @@ class Oscillo
     // Monitoring
 
     uint64_t get_counter() {
-        uint64_t lsb = dvm.read32(status_map, COUNTER0_OFF);
-        uint64_t msb = dvm.read32(status_map, COUNTER1_OFF);
+        uint64_t lsb = dvm.read<COUNTER0_OFF>(status_map);
+        uint64_t msb = dvm.read<COUNTER1_OFF>(status_map);
         return lsb + (msb << 32);
     }
 
     uint32_t get_num_average(uint32_t channel) {
-        return dvm.read32(status_map, n_avg_offset[channel]);
+        return dvm.read_offset(status_map, n_avg_offset[channel]);
     }
 
     // TODO should be a one-liner
     void set_clken_mask(bool clken_mask) {
         if (clken_mask) {
-            dvm.set_bit(config_map, CLKEN_MASK_OFF, 0);
+            dvm.set_bit<CLKEN_MASK_OFF, 0>(config_map);
         } else {
-            dvm.clear_bit(config_map, CLKEN_MASK_OFF, 0);
+            dvm.clear_bit<CLKEN_MASK_OFF, 0>(config_map);
         }
     }
 
     void update_now() {
-        dvm.set_bit(config_map, CLKEN_MASK_OFF, 1);
-        dvm.clear_bit(config_map, CLKEN_MASK_OFF, 1);
+        dvm.set_bit<CLKEN_MASK_OFF, 1>(config_map);
+        dvm.clear_bit<CLKEN_MASK_OFF, 1>(config_map);
     }
 
     void always_update() {
-        dvm.set_bit(config_map, CLKEN_MASK_OFF, 1);
+        dvm.set_bit<CLKEN_MASK_OFF, 1>(config_map);
     }
 
     void set_n_avg_min(uint32_t n_avg_min) {
         n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
-        dvm.write32(config_map, N_AVG_MIN0_OFF, n_avg_min_);
-        dvm.write32(config_map, N_AVG_MIN1_OFF, n_avg_min_);
+        dvm.write<N_AVG_MIN0_OFF>(config_map, n_avg_min_);
+        dvm.write<N_AVG_MIN1_OFF>(config_map, n_avg_min_);
     }
 
     void set_addr_select(uint32_t addr_select) {
-        dvm.write32(config_map, ADDR_SELECT_OFF, addr_select);
+        dvm.write<ADDR_SELECT_OFF>(config_map, addr_select);
     }
 
     void set_dac_periods(uint32_t dac_period0, uint32_t dac_period1) {
-        dvm.write32(config_map, DAC_PERIOD0_OFF, dac_period0 - 1);
-        dvm.write32(config_map, DAC_PERIOD1_OFF, dac_period1 - 1);
+        dvm.write<DAC_PERIOD0_OFF>(config_map, dac_period0 - 1);
+        dvm.write<DAC_PERIOD1_OFF>(config_map, dac_period1 - 1);
         reset();
     }
 
     void set_avg_period(uint32_t avg_period) {
-        dvm.write32(config_map, AVG_PERIOD_OFF, avg_period - 1);
-        dvm.write32(config_map, AVG_THRESHOLD_OFF, avg_period - 6);
+        dvm.write<AVG_PERIOD_OFF>(config_map, avg_period - 1);
+        dvm.write<AVG_THRESHOLD_OFF>(config_map, avg_period - 6);
         reset();
     }
 

@@ -35,41 +35,41 @@ class Gpio
     }
 
     void set_data(uint32_t channel, uint32_t value) {
-        dvm.write32(gpio_map, get_value_offset(channel), value);
+        dvm.write_offset(gpio_map, get_value_offset(channel), value);
     }
 
     uint32_t get_data(uint32_t channel) {
-        return dvm.read32(gpio_map, get_value_offset(channel));
+        return dvm.read_offset(gpio_map, get_value_offset(channel));
     }
 
     // Bitwise operations
     void set_bit(uint32_t index, uint32_t channel) {
         if (index <= MAX_BIT_IDX)
-            dvm.set_bit(gpio_map, get_value_offset(channel), index);
+            dvm.set_bit_offset(gpio_map, get_value_offset(channel), index);
     }
 
     void clear_bit(uint32_t index, uint32_t channel) {
         if (index <= MAX_BIT_IDX)
-            dvm.clear_bit(gpio_map, get_value_offset(channel), index);
+            dvm.clear_bit_offset(gpio_map, get_value_offset(channel), index);
     }
 
     void toggle_bit(uint32_t index, uint32_t channel) {
         if (index <= MAX_BIT_IDX)
-            dvm.toggle_bit(gpio_map, get_value_offset(channel), index);
+            dvm.toggle_bit_offset(gpio_map, get_value_offset(channel), index);
     }
 
     bool read_bit(uint32_t index, uint32_t channel) {
-        return dvm.read_bit(gpio_map, get_value_offset(channel), index);
+        return dvm.read_bit_offset(gpio_map, get_value_offset(channel), index);
     }
 
     void set_as_input(uint32_t index, uint32_t channel) {
         if (index <= MAX_BIT_IDX)
-            dvm.set_bit(gpio_map, get_dir_offset(channel), index);
+            dvm.set_bit_offset(gpio_map, get_dir_offset(channel), index);
     }
 
     void set_as_output(uint32_t index, uint32_t channel) {
         if (index <= MAX_BIT_IDX)
-            dvm.clear_bit(gpio_map, get_dir_offset(channel), index);
+            dvm.clear_bit_offset(gpio_map, get_dir_offset(channel), index);
     }
 
   private:
