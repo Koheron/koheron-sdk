@@ -17,8 +17,10 @@ extern "C" {
 #define DEFAULT_MAP_SIZE 4096UL // = PAGE_SIZE
 #define MAP_MASK(size) ((size) - 1)
 
-#define ASSERT_WRITABLE assert((protection & PROT_WRITE) == PROT_WRITE);
-#define ASSERT_READABLE assert((protection & PROT_READ) == PROT_READ);
+// #define ASSERT_WRITABLE assert((protection & PROT_WRITE) == PROT_WRITE);
+// #define ASSERT_READABLE assert((protection & PROT_READ) == PROT_READ);
+#define ASSERT_WRITABLE
+#define ASSERT_READABLE
 
 class MemoryMap
 {
@@ -92,13 +94,13 @@ class MemoryMap
     // Write a std::array (offset defined at compile-time)
     template<typename T, size_t N, uint32_t offset = 0>
     void write_array(const std::array<T, N> arr) {
-        set_ptr<T, offset>(id, arr.data(), N);
+        set_ptr<T, offset>(arr.data(), N);
     }
 
     // Write a std::array (offset defined at run-time)
     template<typename T, size_t N>
     void write_array_offset(uint32_t offset, const std::array<T, N> arr) {
-        set_ptr_offset<T>(id, offset, arr.data(), N);
+        set_ptr_offset<T>(offset, arr.data(), N);
     }
 
     ////////////////////////////////////////
@@ -134,15 +136,83 @@ class MemoryMap
     // Read a std::array (offset defined at compile-time)
     template<typename T, size_t N, uint32_t offset = 0>
     std::array<T, N>& read_array() {
-        auto p = get_ptr<std::array<T, N>, offset>(id);
+        auto p = get_ptr<std::array<T, N>, offset>();
         return *p;
     }
 
     // Read a std::array (offset defined at run-time)
     template<typename T, size_t N>
     std::array<T, N>& read_array_offset(uint32_t offset) {
-        auto p = get_ptr_offset<std::array<T, N>>(id, offset);
+        auto p = get_ptr_offset<std::array<T, N>>(offset);
         return *p;
+    }
+
+    ////////////////////////////////////////
+    // Bit manipulation
+    ////////////////////////////////////////
+
+    // Set a bit (offset and index defined at compile-time)
+    template<uint32_t offset, uint32_t index>
+    void set_bit() {
+        ASSERT_WRITABLE
+        uintptr_t addr = mapped_dev_base + offset;
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
+    }
+
+    // Set a bit (offset and index defined at run-time)
+    void set_bit_offset(uint32_t offset, uint32_t index) {
+        ASSERT_WRITABLE
+        uintptr_t addr = mapped_dev_base + offset;
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
+    }
+
+    // Clear a bit (offset and index defined at compile-time)
+    template<uint32_t offset, uint32_t index>
+    void clear_bit() {
+        ASSERT_WRITABLE
+        uintptr_t addr = mapped_dev_base + offset;
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
+    }
+
+    // Clear a bit (offset and index defined at run-time)
+    void clear_bit_offset(uint32_t offset, uint32_t index) {
+        ASSERT_WRITABLE
+        uintptr_t addr = mapped_dev_base + offset;
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
+    }
+
+    // Toggle a bit (offset and index defined at compile-time)
+    template<uint32_t offset, uint32_t index>
+    void toggle_bit() {
+        ASSERT_WRITABLE
+        uintptr_t addr = mapped_dev_base + sizeof(uint32_t) * offset;
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
+    }
+
+    // Toggle a bit (offset and index defined at run-time)
+    void toggle_bit_offset(uint32_t offset, uint32_t index) {
+        ASSERT_WRITABLE
+        uintptr_t addr = mapped_dev_base + sizeof(uint32_t) * offset;
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
+    }
+
+    // Read a bit (offset and index defined at compile-time)
+    template<uint32_t offset, uint32_t index>
+    bool read_bit() {
+        ASSERT_READABLE
+        return *((volatile uint32_t *) (mapped_dev_base + offset)) & (1 << index);
+    }
+
+    // Read a bit (offset and index defined at run-time)
+    bool read_bit_offset(uint32_t offset, uint32_t index) {
+        ASSERT_READABLE
+        return *((volatile uint32_t *) (mapped_dev_base + offset)) & (1 << index);
+    }
+
+    void write32_mask(uint32_t offset, uint32_t value, uint32_t mask) {
+        ASSERT_WRITABLE
+        uintptr_t addr = mapped_dev_base + offset;
+        *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
     }
 
     enum Status {

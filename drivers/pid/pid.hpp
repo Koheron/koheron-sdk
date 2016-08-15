@@ -28,9 +28,9 @@ class Pid
         fifo.set_map(fifo_map);
     }
 
-    void set_cic_rate(uint32_t rate) {cfg.write<CIC_RATE_OFF>(rate);}
+    void set_cic_rate(uint32_t rate) {cfg->write<CIC_RATE_OFF>(rate);}
 
-    void set_dds_freq(float freq) {cfg.write<DDS_OFF>(uint32_t(freq * freq_factor));}
+    void set_dds_freq(float freq) {cfg->write<DDS_OFF>(uint32_t(freq * freq_factor));}
 
     /// @acq_period Sleeping time between two acquisitions (us)
     void fifo_start_acquisition(uint32_t acq_period) {fifo.start_acquisition(acq_period);}

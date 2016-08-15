@@ -44,9 +44,6 @@ class MemMapIdPool
     std::vector<MemMapID> reusable_ids;
 };
 
-#define ASSERT_WRITABLE assert((mem_maps.at(id)->get_protection() & PROT_WRITE) == PROT_WRITE);
-#define ASSERT_READABLE assert((mem_maps.at(id)->get_protection() & PROT_READ) == PROT_READ);
-
 class DevMem
 {
   public:
@@ -60,13 +57,13 @@ class DevMem
     int resize(MemMapID id, uint32_t length) {return mem_maps.at(id)->resize(length);}
 
     // Create a new memory map
-    const MemoryMap& add_memory_map(uintptr_t addr, uint32_t size, int protection = PROT_READ|PROT_WRITE);
+    MemoryMap* add_memory_map(uintptr_t addr, uint32_t size, int protection = PROT_READ|PROT_WRITE);
 
     template<size_t n_blocks>
-    std::array<MemMapID, n_blocks> add_memory_blocks(memory_blocks<n_blocks> mem_blocks,
+    std::array<MemoryMap*, n_blocks> add_memory_blocks(memory_blocks<n_blocks> mem_blocks,
                                                      int protection = PROT_READ|PROT_WRITE)
     {
-        std::array<MemMapID, n_blocks> maps;
+        std::array<MemoryMap*, n_blocks> maps;
 
         for (uint32_t i=0; i<n_blocks; i++)
             maps[i] = add_memory_map(mem_blocks[i][0], mem_blocks[i][1], protection);
@@ -178,74 +175,7 @@ class DevMem
     //     return *p;
     // }
 
-    ////////////////////////////////////////
-    // Bit manipulation
-    ////////////////////////////////////////
-
-    // Set a bit (offset and index defined at compile-time)
-    template<uint32_t offset, uint32_t index>
-    void set_bit(MemMapID id) {
-        ASSERT_WRITABLE
-        uintptr_t addr = get_base_addr(id) + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
-    }
-
-    // Set a bit (offset and index defined at run-time)
-    void set_bit_offset(MemMapID id, uint32_t offset, uint32_t index) {
-        ASSERT_WRITABLE
-        uintptr_t addr = get_base_addr(id) + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
-    }
-
-    // Clear a bit (offset and index defined at compile-time)
-    template<uint32_t offset, uint32_t index>
-    void clear_bit(MemMapID id) {
-        ASSERT_WRITABLE
-        uintptr_t addr = get_base_addr(id) + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
-    }
-
-    // Clear a bit (offset and index defined at run-time)
-    void clear_bit_offset(MemMapID id, uint32_t offset, uint32_t index) {
-        ASSERT_WRITABLE
-        uintptr_t addr = get_base_addr(id) + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
-    }
-
-    // Toggle a bit (offset and index defined at compile-time)
-    template<uint32_t offset, uint32_t index>
-    void toggle_bit(MemMapID id) {
-        ASSERT_WRITABLE
-        uintptr_t addr = get_base_addr(id) + sizeof(uint32_t) * offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
-    }
-
-    // Toggle a bit (offset and index defined at run-time)
-    void toggle_bit_offset(MemMapID id, uint32_t offset, uint32_t index) {
-        ASSERT_WRITABLE
-        uintptr_t addr = get_base_addr(id) + sizeof(uint32_t) * offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
-    }
-
-    // Read a bit (offset and index defined at compile-time)
-    template<uint32_t offset, uint32_t index>
-    bool read_bit(MemMapID id) {
-        ASSERT_READABLE
-        return *((volatile uint32_t *) (get_base_addr(id) + offset)) & (1 << index);
-    }
-
-    // Read a bit (offset and index defined at run-time)
-    bool read_bit_offset(MemMapID id, uint32_t offset, uint32_t index) {
-        ASSERT_READABLE
-        return *((volatile uint32_t *) (get_base_addr(id) + offset)) & (1 << index);
-    }
-
-
-    void write32_mask(MemMapID id, uint32_t offset, uint32_t value, uint32_t mask) {
-        ASSERT_WRITABLE
-        uintptr_t addr = get_base_addr(id) + offset;
-        *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
-    }
+    
 
   private:
     kserver::KServer *kserver;

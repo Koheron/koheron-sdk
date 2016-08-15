@@ -64,8 +64,8 @@ class Laser
         return std::make_tuple(laser_on, current, power);
     }
 
-    void start_laser() {gpio.clear_bit(LASER_ENABLE_PIN, 2); laser_on = true;}
-    void stop_laser()  {gpio.set_bit(LASER_ENABLE_PIN, 2); laser_on = false;}
+    void start_laser() {gpio->clear_bit(LASER_ENABLE_PIN, 2); laser_on = true;}
+    void stop_laser()  {gpio->set_bit(LASER_ENABLE_PIN, 2); laser_on = false;}
 
     void set_laser_current(float current);
 
@@ -81,19 +81,19 @@ class Laser
     }
 
     void save_config() {
-        uint32_t current = dvm.read<PWM3_OFF>(config_map);
+        uint32_t current = dvm->read<PWM3_OFF>(config_map);
         eeprom.write(EEPROM_CURRENT_ADDR, current);
     }
 
     float load_config() {
-        uint32_t pwm = eeprom.read(EEPROM_CURRENT_ADDR);
-        cfg.write<PWM3_OFF>(pwm);
+        uint32_t pwm = eeprom->read(EEPROM_CURRENT_ADDR);
+        cfg->write<PWM3_OFF>(pwm);
         return MILLIAMPS_TO_AMPS * current_from_pwm(pwm);
     }
     
   private:
     DevMem& dvm;
-    MemoryMap& cfg; // required for pwm
+    MemoryMap* cfg; // required for pwm
 
     Xadc xadc;
     Gpio gpio;

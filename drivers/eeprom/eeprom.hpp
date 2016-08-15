@@ -35,47 +35,47 @@ class Eeprom
     }
 
     uint32_t read(uint32_t addr) {
-        cfg.write<SPI_IN_OFF>((READ_OPCODE << 7) + (addr << 1));
-        cfg.set_bit<SPI_IN_OFF, 0>();
+        cfg->write<SPI_IN_OFF>((READ_OPCODE << 7) + (addr << 1));
+        cfg->set_bit<SPI_IN_OFF, 0>();
         std::this_thread::sleep_for(100us);
         return sts.read<SPI_OUT_OFF>();
     }
 
     void write_enable() {
-        cfg.write<SPI_IN_OFF>(EWEN << 5);
-        cfg.set_bit<SPI_IN_OFF, 0>();
+        cfg->write<SPI_IN_OFF>(EWEN << 5);
+        cfg->set_bit<SPI_IN_OFF, 0>();
     }
 
     void erase(uint32_t addr) {
-        cfg.write<SPI_IN_OFF>((ERASE_OPCODE << 7) + (addr << 1));
-        cfg.set_bit<SPI_IN_OFF, 0>();
+        cfg->write<SPI_IN_OFF>((ERASE_OPCODE << 7) + (addr << 1));
+        cfg->set_bit<SPI_IN_OFF, 0>();
     }
 
     void write(uint32_t addr, uint32_t data_in) {
-        cfg.write<SPI_IN_OFF>((data_in << 16) + (WRITE_OPCODE << 7) + (addr << 1));
-        cfg.set_bit<SPI_IN_OFF, 0>();
+        cfg->write<SPI_IN_OFF>((data_in << 16) + (WRITE_OPCODE << 7) + (addr << 1));
+        cfg->set_bit<SPI_IN_OFF, 0>();
     }
 
     void erase_all() {
-        cfg.write<SPI_IN_OFF>(ERAL << 5);
-        cfg.set_bit<SPI_IN_OFF, 0>();
+        cfg->write<SPI_IN_OFF>(ERAL << 5);
+        cfg->set_bit<SPI_IN_OFF, 0>();
     }
 
     void write_all(uint32_t data_in) {
-        cfg.write<SPI_IN_OFF>((data_in << 16) + (WRAL << 5));
-        cfg.set_bit<SPI_IN_OFF, 0>();
+        cfg->write<SPI_IN_OFF>((data_in << 16) + (WRAL << 5));
+        cfg->set_bit<SPI_IN_OFF, 0>();
     }
 
     void erase_write_disable() {
-        cfg.write<SPI_IN_OFF>(EWDS << 5);
-        cfg.set_bit<SPI_IN_OFF, 0>();
+        cfg->write<SPI_IN_OFF>(EWDS << 5);
+        cfg->set_bit<SPI_IN_OFF, 0>();
     }
 
   private:
     DevMem& dvm;
 
-    MemoryMap& cfg;
-    MemoryMap& sts;
+    MemoryMap* cfg;
+    MemoryMap* sts;
 
 }; // class Eeprom
 
