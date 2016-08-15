@@ -25,11 +25,11 @@ class DeviceMemory
     }
 
     uint32_t read(uint32_t mmap_idx, uint32_t offset) {
-        return dvm.read(mmap_idx, offset);
+        return dvm.read_offset(mmap_idx, offset);
     }
 
     void write(uint32_t mmap_idx, uint32_t offset, uint32_t reg_val) {
-        dvm.write(mmap_idx, offset, reg_val);
+        dvm.write_offset(mmap_idx, offset, reg_val);
     }
 
     void write_mask(uint32_t mmap_idx, uint32_t offset, uint32_t reg_val, uint32_t mask) {

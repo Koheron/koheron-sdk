@@ -49,13 +49,13 @@ class Oscillo
     // Monitoring
 
     uint64_t get_counter() {
-        uint64_t lsb = dvm.read(status_map, COUNTER0_OFF);
-        uint64_t msb = dvm.read(status_map, COUNTER1_OFF);
+        uint64_t lsb = dvm.read<COUNTER0_OFF>(status_map);
+        uint64_t msb = dvm.read<COUNTER1_OFF>(status_map);
         return lsb + (msb << 32);
     }
 
     uint32_t get_num_average(uint32_t channel) {
-        return dvm.read(status_map, n_avg_offset[channel]);
+        return dvm.read_offset(status_map, n_avg_offset[channel]);
     }
 
     // TODO should be a one-liner
@@ -78,23 +78,23 @@ class Oscillo
 
     void set_n_avg_min(uint32_t n_avg_min) {
         n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
-        dvm.write(config_map, N_AVG_MIN0_OFF, n_avg_min_);
-        dvm.write(config_map, N_AVG_MIN1_OFF, n_avg_min_);
+        dvm.write<N_AVG_MIN0_OFF>(config_map, n_avg_min_);
+        dvm.write<N_AVG_MIN1_OFF>(config_map, n_avg_min_);
     }
 
     void set_addr_select(uint32_t addr_select) {
-        dvm.write(config_map, ADDR_SELECT_OFF, addr_select);
+        dvm.write<ADDR_SELECT_OFF>(config_map, addr_select);
     }
 
     void set_dac_periods(uint32_t dac_period0, uint32_t dac_period1) {
-        dvm.write(config_map, DAC_PERIOD0_OFF, dac_period0 - 1);
-        dvm.write(config_map, DAC_PERIOD1_OFF, dac_period1 - 1);
+        dvm.write<DAC_PERIOD0_OFF>(config_map, dac_period0 - 1);
+        dvm.write<DAC_PERIOD1_OFF>(config_map, dac_period1 - 1);
         reset();
     }
 
     void set_avg_period(uint32_t avg_period) {
-        dvm.write(config_map, AVG_PERIOD_OFF, avg_period - 1);
-        dvm.write(config_map, AVG_THRESHOLD_OFF, avg_period - 6);
+        dvm.write<AVG_PERIOD_OFF>(config_map, avg_period - 1);
+        dvm.write<AVG_THRESHOLD_OFF>(config_map, avg_period - 6);
         reset();
     }
 

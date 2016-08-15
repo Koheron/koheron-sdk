@@ -92,9 +92,16 @@ class DevMem
     // Write functions
     ////////////////////////////////////////
 
-    // Write a register
+    // Write a register (offset defined at compile-time)
+    template<uint32_t offset, typename T = uint32_t>
+    void write(MemMapID id, T value) {
+        ASSERT_WRITABLE
+        *(volatile T *) (get_base_addr(id) + offset) = value;
+    }
+
+    // Write a register (offset defined at run-time)
     template<typename T = uint32_t>
-    void write(MemMapID id, uint32_t offset, T value) {
+    void write_offset(MemMapID id, uint32_t offset, T value) {
         ASSERT_WRITABLE
         *(volatile T *) (get_base_addr(id) + offset) = value;
     }
@@ -131,9 +138,16 @@ class DevMem
     // Read functions
     ////////////////////////////////////////
 
-    // Read a register
+    // Read a register (offset defined at compile-time)
+    template<uint32_t offset, typename T = uint32_t>
+    T read(MemMapID id) {
+        ASSERT_READABLE
+        return *(volatile T *) (get_base_addr(id) + offset);
+    }
+
+    // Read a register (offset defined at run-time)
     template<typename T = uint32_t>
-    T read(MemMapID id, uint32_t offset) {
+    T read_offset(MemMapID id, uint32_t offset) {
         ASSERT_READABLE
         return *(volatile T *) (get_base_addr(id) + offset);
     }

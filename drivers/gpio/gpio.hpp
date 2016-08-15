@@ -35,11 +35,11 @@ class Gpio
     }
 
     void set_data(uint32_t channel, uint32_t value) {
-        dvm.write(gpio_map, get_value_offset(channel), value);
+        dvm.write_offset(gpio_map, get_value_offset(channel), value);
     }
 
     uint32_t get_data(uint32_t channel) {
-        return dvm.read(gpio_map, get_value_offset(channel));
+        return dvm.read_offset(gpio_map, get_value_offset(channel));
     }
 
     // Bitwise operations

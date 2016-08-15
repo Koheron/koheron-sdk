@@ -81,13 +81,13 @@ class Laser
     }
 
     void save_config() {
-        uint32_t current = dvm.read(config_map, PWM3_OFF);
+        uint32_t current = dvm.read<PWM3_OFF>(config_map);
         eeprom.write(EEPROM_CURRENT_ADDR, current);
     }
 
     float load_config() {
         uint32_t pwm = eeprom.read(EEPROM_CURRENT_ADDR);
-        dvm.write(config_map, PWM3_OFF, pwm);
+        dvm.write<PWM3_OFF>(config_map, pwm);
         return MILLIAMPS_TO_AMPS * current_from_pwm(pwm);
     }
     

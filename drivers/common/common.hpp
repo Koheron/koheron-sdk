@@ -25,8 +25,8 @@ class Common
 
     uint64_t get_dna();
 
-    void set_led(uint32_t value) {dvm.write(config_map, LED_OFF, value);}
-    uint32_t get_led()           {return dvm.read(config_map, LED_OFF);}
+    void set_led(uint32_t value) {dvm.write<LED_OFF>(config_map, value);}
+    uint32_t get_led()           {return dvm.read<LED_OFF>(config_map);}
 
     void ip_on_leds();
 

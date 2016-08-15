@@ -115,13 +115,13 @@ inline void DacRouter<n_dac, n_dac_bram>::update_dac_routing()
     uint32_t dac_select = 0;
     for (uint32_t i=0; i < n_dac_bram; i++)
         dac_select += bram_index[i] << (dac_sel_width(n_dac_bram) * i);
-    dvm.write(config_map, dac_select_off, dac_select);
+    dvm.write_offset(config_map, dac_select_off, dac_select);
 
     // addr_select defines the connection between address generators and BRAMs
     uint32_t addr_select = 0;
     for (uint32_t j=0; j < n_dac_bram; j++)
         addr_select += j << (bram_sel_width(n_dac) * bram_index[j]);
-    dvm.write(config_map, addr_select_off, addr_select);
+    dvm.write_offset(config_map, addr_select_off, addr_select);
 }
 
 template<uint32_t n_dac, uint32_t n_dac_bram>
