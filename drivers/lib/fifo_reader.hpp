@@ -32,9 +32,9 @@ class FIFOReader
     FIFOReader(DevMem& dvm_);
 
     // Set FIFO virtual base address
-    void set_map(MemMapID fifo_map_){
+    void set_map(MemoryMap *fifo_map_){
         fifo_map.store(fifo_map_);
-        dvm.write<RDFR_OFF>(fifo_map.load(), 0xA5); // Reset FIFO
+        fifo_map.load()->write<RDFR_OFF>(0xA5); // Reset FIFO
     }
 
     // Start the acquisition thread.
@@ -66,7 +66,7 @@ class FIFOReader
   private:
     DevMem& dvm;
 
-    std::atomic<::MemMapID>   fifo_map;
+    std::atomic<::MemoryMap*>   fifo_map;
     std::atomic<uint32_t>   num_thread;
     std::atomic<uint32_t>   index; // Current index of the ring_buffer
     std::atomic<uint32_t>   acq_num; // Number of points acquire since the last call to get_data()
@@ -109,12 +109,12 @@ void FIFOReader<N>::acquisition_thread_call(uint32_t acq_period)
 
         // The length is stored in the last 22 bits of the RLR register.
         // The length is given in bytes so we divide by 4 to get the number of u32.
-        fifo_length.store((dvm.read<RLR_OFF>(fifo_map.load()) & 0x3FFFFF) >> 2);
+        fifo_length.store((fifo_map.load()->read<RLR_OFF>() & 0x3FFFFF) >> 2);
 
         if (fifo_length.load() > 0) {
             std::lock_guard<std::mutex> guard(ring_buff_mtx);
             for (uint32_t i=0; i<fifo_length.load(); i++) {
-                ring_buffer[index.load()] = dvm.read<RDFD_OFF>(fifo_map.load());
+                ring_buffer[index.load()] = fifo_map.load()->read<RDFD_OFF>();
                 index.store((index.load() + 1) % N);
             }
         }
