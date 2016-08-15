@@ -34,7 +34,7 @@ void Common::ip_on_leds()
     ifaddrs *tmp = addrs;
 
     // Turn all the leds ON
-    cfg.write<LED_OFF>(255);
+    cfg->write<LED_OFF>(255);
 
     char interface[] = "eth0";
 

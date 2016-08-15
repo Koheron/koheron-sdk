@@ -59,7 +59,7 @@ class Gpio
     }
 
     bool read_bit(uint32_t index, uint32_t channel) {
-        return gpio.read_bit_offset(get_value_offset(channel), index);
+        return gpio->read_bit_offset(get_value_offset(channel), index);
     }
 
     void set_as_input(uint32_t index, uint32_t channel) {
@@ -74,7 +74,7 @@ class Gpio
 
   private:
     DevMem& dvm;
-    MemoryMap* gpio;
+    MemoryMap *gpio;
 
     int get_value_offset(uint32_t channel) {
         return (channel == 1 ? CHAN1_VALUE_OFF : CHAN2_VALUE_OFF);

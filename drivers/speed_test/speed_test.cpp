@@ -30,8 +30,8 @@ SpeedTest::SpeedTest(DevMem& dvm_)
     rambuf_map = dvm.add_memory_map(RAMBUF_ADDR, RAMBUF_RANGE);
 
     raw_data_1 = adc_1_map->get_ptr<uint32_t>();
-    raw_data_2 = adc_2_map->get_ptr<uint32_t>(adc_2_map);
-    rambuf_data = rambuf_map->get_ptr<float>(rambuf_map);
+    raw_data_2 = adc_2_map->get_ptr<uint32_t>();
+    rambuf_data = rambuf_map->get_ptr<float>();
 
     mmap_buf = mmap(NULL, 16384*4, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
 

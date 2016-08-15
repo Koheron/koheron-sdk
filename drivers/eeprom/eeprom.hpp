@@ -38,7 +38,7 @@ class Eeprom
         cfg->write<SPI_IN_OFF>((READ_OPCODE << 7) + (addr << 1));
         cfg->set_bit<SPI_IN_OFF, 0>();
         std::this_thread::sleep_for(100us);
-        return sts.read<SPI_OUT_OFF>();
+        return sts->read<SPI_OUT_OFF>();
     }
 
     void write_enable() {
