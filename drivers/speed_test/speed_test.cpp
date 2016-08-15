@@ -29,9 +29,9 @@ SpeedTest::SpeedTest(DevMem& dvm_)
     adc_2_map  = dvm.add_memory_map(ADC2_ADDR, ADC2_RANGE);
     rambuf_map = dvm.add_memory_map(RAMBUF_ADDR, RAMBUF_RANGE);
 
-    raw_data_1 = adc_1_map.get_ptr<uint32_t>();
-    raw_data_2 = adc_2_map.get_ptr<uint32_t>(adc_2_map);
-    rambuf_data = rambuf_map.get_ptr<float>(rambuf_map);
+    raw_data_1 = adc_1_map->get_ptr<uint32_t>();
+    raw_data_2 = adc_2_map->get_ptr<uint32_t>(adc_2_map);
+    rambuf_data = rambuf_map->get_ptr<float>(rambuf_map);
 
     mmap_buf = mmap(NULL, 16384*4, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
 
@@ -47,13 +47,13 @@ inline long long int mod(long long int k, long long int n)
 // Read the two channels in raw format
 std::array<float, 2*WFM_SIZE>& SpeedTest::read_raw_all()
 {
-    cfg.set_bit<ADDR_OFF, 1>();
+    cfg->set_bit<ADDR_OFF, 1>();
 
     for (unsigned int i=0; i<WFM_SIZE; i++) {
         data_all[i] = raw_data_1[i];
         data_all[i + WFM_SIZE] = raw_data_2[i];
     }
 
-    cfg.clear_bit<ADDR_OFF, 1>();
+    cfg->clear_bit<ADDR_OFF, 1>();
     return data_all;
 }

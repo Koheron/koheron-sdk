@@ -43,7 +43,6 @@ class Common
 
   private:
     DevMem& dvm;
-
     MemoryMap *cfg;
     MemoryMap *sts;
 

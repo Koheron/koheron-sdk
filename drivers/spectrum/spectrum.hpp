@@ -27,13 +27,13 @@ class Spectrum
     Spectrum(DevMem& dvm_);
 
     void reset() {
-        cfg.clear_bit<ADDR_OFF, 0>();
-        cfg.set_bit<ADDR_OFF, 0>();
+        cfg->clear_bit<ADDR_OFF, 0>();
+        cfg->set_bit<ADDR_OFF, 0>();
     }
 
     void set_n_avg_min(uint32_t n_avg_min) {
         uint32_t n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
-        cfg.write<N_AVG_MIN_OFF>(n_avg_min_);
+        cfg->write<N_AVG_MIN_OFF>(n_avg_min_);
     }
 
     void set_period(uint32_t period) {
@@ -43,13 +43,13 @@ class Spectrum
     }
 
     void set_dac_period(uint32_t dac_period0, uint32_t dac_period1) {
-        cfg.write<DAC_PERIOD0_OFF>(dac_period0 - 1);
-        cfg.write<DAC_PERIOD1_OFF>(dac_period1 - 1);
+        cfg->write<DAC_PERIOD0_OFF>(dac_period0 - 1);
+        cfg->write<DAC_PERIOD1_OFF>(dac_period1 - 1);
     }
 
     void set_avg_period(uint32_t avg_period) {
-        cfg.write<AVG_PERIOD_OFF>(avg_period - 1);
-        cfg.write<AVG_THRESHOLD_OFF>(avg_period - 6);
+        cfg->write<AVG_PERIOD_OFF>(avg_period - 1);
+        cfg->write<AVG_THRESHOLD_OFF>(avg_period - 6);
     }
 
     void set_dac_buffer(uint32_t channel, const std::array<uint32_t, WFM_SIZE/2>& arr) {
@@ -61,25 +61,25 @@ class Spectrum
     }
 
     void reset_acquisition() {
-        cfg.clear_bit<ADDR_OFF, 1>();
-        cfg.set_bit<ADDR_OFF, 1>();
+        cfg->clear_bit<ADDR_OFF, 1>();
+        cfg->set_bit<ADDR_OFF, 1>();
     }
 
     void set_scale_sch(uint32_t scale_sch) {
         // LSB at 1 for forward FFT
-        cfg.write<CFG_FFT_OFF>(1 + 2 * scale_sch);
+        cfg->write<CFG_FFT_OFF>(1 + 2 * scale_sch);
     }
 
     void set_offset(uint32_t offset_real, uint32_t offset_imag) {
-        cfg.write<SUBSTRACT_MEAN_OFF>(offset_real + 16384 * offset_imag);
+        cfg->write<SUBSTRACT_MEAN_OFF>(offset_real + 16384 * offset_imag);
     }
 
     void set_demod_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
-        demod_map.write_array(arr);
+        demod_map->write_array(arr);
     }
 
     void set_noise_floor_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
-        noise_floor_map.write_array(arr);
+        noise_floor_map->write_array(arr);
     }
 
     std::array<float, WFM_SIZE>& get_spectrum();
@@ -110,12 +110,12 @@ class Spectrum
   private:
     DevMem& dvm;
 
-    MemoryMap& cfg;
-    MemoryMap& sts;
-    MemoryMap& spectrum_map;
-    MemoryMap& demod_map;
-    MemoryMap& noise_floor_map;
-    MemoryMap& peak_fifo_map;
+    MemoryMap *cfg;
+    MemoryMap *sts;
+    MemoryMap *spectrum_map;
+    MemoryMap *demod_map;
+    MemoryMap *noise_floor_map;
+    MemoryMap *peak_fifo_map;
 
     // Acquired data buffers
     float *raw_data;
@@ -126,7 +126,7 @@ class Spectrum
 
     // Internal functions
     void wait_for_acquisition() {
-       do {} while (sts.read<AVG_READY_OFF>() == 0);
+       do {} while (sts->read<AVG_READY_OFF>() == 0);
     }
 }; // class Spectrum
 

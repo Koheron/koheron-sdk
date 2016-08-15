@@ -30,7 +30,7 @@ class Xadc
     int set_channel(uint32_t channel_0_, uint32_t channel_1_);
     
     void enable_averaging() {
-        xadc.write<AVG_EN_OFF>((1 << channel_0) + (1 << channel_1));
+        xadc->write<AVG_EN_OFF>((1 << channel_0) + (1 << channel_1));
     }
 
     int set_averaging(uint32_t n_avg);
@@ -38,7 +38,7 @@ class Xadc
 
   private:
     DevMem& dvm;
-    MemoryMap& xadc;
+    MemoryMap *xadc;
 
     uint32_t channel_0 = 1;
     uint32_t channel_1 = 8;
