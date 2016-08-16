@@ -9,9 +9,6 @@
 
 #include <drivers/lib/dev_mem.hpp>
 
-#define GPIO_ADDR          0x41200000
-#define GPIO_RANGE         65536
-
 // Offsets
 // Set by Xilinx IP
 #define CHAN1_VALUE_OFF    0

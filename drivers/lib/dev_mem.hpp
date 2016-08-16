@@ -58,6 +58,10 @@ class DevMem
         return std::ref(*mem_maps[id].get());
     }
 
+    MemoryMap& operator[](MemMapID id) {
+        return get_mmap(id);
+    }
+
     template<MemMapID first_id, size_t N>
     MemMapArray<first_id, N> get_mmaps() {
         return MemMapArray<first_id, N>(this);
