@@ -50,7 +50,7 @@ modules:
 config_registers:
   - spi_in
   - led
-  - pwm[4]
+  - pwm[n_pwm]
   - addr
   - substract_mean
   - cfg_fft
