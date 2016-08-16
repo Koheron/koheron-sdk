@@ -36,14 +36,11 @@ class DacRouter
   public:
     DacRouter(DevMem& dvm_)
     : dvm(dvm_)
-    {
-        for (uint32_t i=0; i<n_dac_bram; i++)
-            dac_map[i] = dvm.get_mmap(DAC1_ID + i);
-    }
+    , cfg(dvm.get_mmap(CONFIG_ID))
+    , dac_map(dvm.get_mmaps<DAC1_ID, n_dac_bram>())
+    {}
 
-    void set_config_reg(MemoryMap* config_map_, uint32_t dac_select_off_,
-                        uint32_t addr_select_off_) {
-        config_map = config_map_;
+    void set_config_reg(uint32_t dac_select_off_, uint32_t addr_select_off_) {
         dac_select_off = dac_select_off_;
         addr_select_off = addr_select_off_;
 
@@ -51,12 +48,12 @@ class DacRouter
     }
 
     uint32_t* get_data(uint32_t channel) {
-        return dac_map[bram_index[channel]]->get_ptr();
+        return dac_map[bram_index[channel]].get_ptr();
     }
 
     template<size_t N>
     std::array<uint32_t, N>& get_data(uint32_t channel) {
-        return dac_map[bram_index[channel]]->template read_array<uint32_t, N>();
+        return dac_map[bram_index[channel]].get().template read_array<uint32_t, N>();
     }
 
     void set_data(uint32_t channel, const uint32_t *buffer, uint32_t len);
@@ -74,10 +71,10 @@ class DacRouter
 
   private:
     DevMem& dvm;
-    MemoryMap* config_map;
+    MemoryMap& cfg;
     uint32_t dac_select_off;
     uint32_t addr_select_off;
-    std::array<MemoryMap*, n_dac_bram> dac_map;
+    std::vector<std::reference_wrapper<MemoryMap>> dac_map;
 
     std::array<uint32_t, n_dac> bram_index;
     std::array<bool, n_dac_bram> connected_bram;
@@ -116,13 +113,13 @@ inline void DacRouter<n_dac, n_dac_bram>::update_dac_routing()
     uint32_t dac_select = 0;
     for (uint32_t i=0; i < n_dac_bram; i++)
         dac_select += bram_index[i] << (dac_sel_width(n_dac_bram) * i);
-    config_map->write_offset(dac_select_off, dac_select);
+    cfg.write_offset(dac_select_off, dac_select);
 
     // addr_select defines the connection between address generators and BRAMs
     uint32_t addr_select = 0;
     for (uint32_t j=0; j < n_dac_bram; j++)
         addr_select += j << (bram_sel_width(n_dac) * bram_index[j]);
-    config_map->write_offset(addr_select_off, addr_select);
+    cfg.write_offset(addr_select_off, addr_select);
 }
 
 template<uint32_t n_dac, uint32_t n_dac_bram>
@@ -150,7 +147,7 @@ inline void DacRouter<n_dac, n_dac_bram>::set_data(
 {
     uint32_t old_idx = bram_index[channel];
     uint32_t new_idx = get_first_empty_bram_index();
-    dac_map[new_idx]->set_ptr(buffer, len);
+    dac_map[new_idx].get().set_ptr(buffer, len);
     switch_interconnect(channel, old_idx, new_idx);
 }
 

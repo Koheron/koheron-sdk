@@ -13,6 +13,7 @@
 #include <memory>
 #include <tuple>
 #include <assert.h>
+#include <functional>
 
 extern "C" {
     #include <fcntl.h>
@@ -37,8 +38,17 @@ class DevMem
 
     int add_memory_maps(const std::array<std::tuple<uintptr_t, uint32_t, int>, NUM_ADDRESSES>& addresses);
 
-    MemoryMap* get_mmap(MemMapID id) {
-        return mem_maps[id].get();
+    MemoryMap& get_mmap(MemMapID id) {
+        return std::ref(*mem_maps[id].get());
+    }
+
+    template<MemMapID first_id, size_t N>
+    std::vector<std::reference_wrapper<MemoryMap>>
+    get_mmaps() {
+        std::vector<std::reference_wrapper<MemoryMap>> maps;
+        for (MemMapID i=0; i<N; i++)
+            maps.push_back(get_mmap(first_id + i));
+        return maps;
     }
 
     uintptr_t get_base_addr(MemMapID id) {return mem_maps.at(id)->get_base_addr();}
