@@ -35,10 +35,12 @@ constexpr std::array<std::tuple<uintptr_t, uint32_t, int>, NUM_ADDRESSES> addres
 // -- Config offsets
 {% for offset in dic['config_registers'] -%}
 constexpr uint32_t {{ offset|upper }}_OFF = {{ 4 * loop.index0 }};
+static_assert({{ offset|upper }}_OFF < CONFIG_RANGE, "Invalid config register offset {{ offset }}");
 {% endfor %}
 // -- Status offsets
 {% for offset in dic['status_registers'] -%}
 constexpr uint32_t {{ offset|upper }}_OFF = {{ 4 * (10 + loop.index0) }};
+static_assert({{ offset|upper }}_OFF < STATUS_RANGE, "Invalid status register offset {{ offset }}");
 {% endfor %}
 
 // -- Parameters
