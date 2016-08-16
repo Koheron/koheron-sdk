@@ -53,12 +53,6 @@ constexpr uint32_t get_total_size(const MemMapID id) {
 
 } // namespace addresses
 
-// #define ASSERT_WRITABLE assert((protection & PROT_WRITE) == PROT_WRITE);
-// #define ASSERT_READABLE assert((protection & PROT_READ) == PROT_READ);
-#define STATIC_ASSERT_OFFSET_OK static_assert(offset < addresses::get_range(id), "Invalid offset");
-// #define ASSERT_WRITABLE
-#define ASSERT_READABLE
-
 struct MemoryMapBase {
     MemoryMapBase(MemMapID id_)
     : _id(id_) {}
