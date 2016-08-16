@@ -15,8 +15,8 @@
 
 #define WFM_SIZE ADC1_RANGE/sizeof(float)
 
-#define RAMBUF_ADDR 0x1E000000
-#define RAMBUF_RANGE 2048*4096
+// #define RAMBUF_ADDR 0x1E000000
+// #define RAMBUF_RANGE 2048*4096
 
 //http://es.codeover.org/questions/34888683/arm-neon-memcpy-optimized-for-uncached-memory
 void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz);
@@ -61,11 +61,11 @@ class SpeedTest
   private:
     DevMem& dvm;
 
-    MemoryMap *cfg;
-    MemoryMap *sts;
-    MemoryMap *adc_1_map;
-    MemoryMap *adc_2_map;
-    MemoryMap *rambuf_map;
+    MemoryMap& cfg;
+    MemoryMap& sts;
+    MemoryMap& adc_1_map;
+    MemoryMap& adc_2_map;
+    MemoryMap& rambuf_map;
     void *mmap_buf;
 
     uint32_t *raw_data_1 = nullptr;
