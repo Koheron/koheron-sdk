@@ -30,6 +30,26 @@ typedef uint32_t MemMapID;
 
 class DevMem;
 
+namespace addresses {
+
+constexpr uint32_t count = address_array.size();
+
+// Access elements in address_array
+
+constexpr uintptr_t get_base_addr(MemMapID id) {
+    return std::get<0>(address_array[id]);
+}
+
+constexpr uint32_t get_range(MemMapID id) {
+    return std::get<1>(address_array[id]);
+}
+
+constexpr uint32_t get_protection(MemMapID id) {
+    return std::get<2>(address_array[id]);
+}
+
+} // namespace addresses
+
 template<MemMapID first_id, size_t N>
 class MemMapArray
 {
@@ -51,8 +71,6 @@ class DevMem
     ~DevMem();
 
     int open();
-
-    int add_memory_maps(const std::array<std::tuple<uintptr_t, uint32_t, int>, NUM_ADDRESSES>& addresses);
 
     MemoryMap& get_mmap(MemMapID id) {
         return std::ref(*mem_maps[id].get());
@@ -80,9 +98,10 @@ class DevMem
     int fd;         // /dev/mem file ID
     bool is_open;   // True if /dev/mem open
 
-    int add_memory_map(MemMapID id, const std::tuple<uintptr_t, uint32_t, int>& addr);
+    int add_memory_maps();
+    int add_memory_map(MemMapID id);
 
-    std::array<std::unique_ptr<MemoryMap>, NUM_ADDRESSES> mem_maps;
+    std::array<std::unique_ptr<MemoryMap>, addresses::count> mem_maps;
 };
 
 template<MemMapID first_id, size_t N>
