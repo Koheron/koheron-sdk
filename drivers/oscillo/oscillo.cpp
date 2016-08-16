@@ -14,12 +14,6 @@ Oscillo::Oscillo(DevMem& dvm_)
 , data_decim(0)
 , dac(dvm_)
 {
-    // cfg = dvm.get_mmap(CONFIG_ID);
-    // sts = dvm.get_mmap(STATUS_ID);
-
-    // adc_map[0] = dvm.get_mmap(ADC1_ID);
-    // adc_map[1] = dvm.get_mmap(ADC2_ID);
-
     raw_data[0] = adc_map[0].get().get_ptr<int32_t>();
     raw_data[1] = adc_map[1].get().get_ptr<int32_t>();
 

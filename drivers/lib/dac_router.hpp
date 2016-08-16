@@ -53,7 +53,7 @@ class DacRouter
 
     template<size_t N>
     std::array<uint32_t, N>& get_data(uint32_t channel) {
-        return dac_map[bram_index[channel]].get().template read_array<uint32_t, N>();
+        return dac_map[bram_index[channel]].template read_array<uint32_t, N>();
     }
 
     void set_data(uint32_t channel, const uint32_t *buffer, uint32_t len);
@@ -74,7 +74,7 @@ class DacRouter
     MemoryMap& cfg;
     uint32_t dac_select_off;
     uint32_t addr_select_off;
-    std::vector<std::reference_wrapper<MemoryMap>> dac_map;
+    MemMapArray<DAC1_ID, n_dac_bram> dac_map;
 
     std::array<uint32_t, n_dac> bram_index;
     std::array<bool, n_dac_bram> connected_bram;
@@ -147,7 +147,7 @@ inline void DacRouter<n_dac, n_dac_bram>::set_data(
 {
     uint32_t old_idx = bram_index[channel];
     uint32_t new_idx = get_first_empty_bram_index();
-    dac_map[new_idx].get().set_ptr(buffer, len);
+    dac_map[new_idx].set_ptr(buffer, len);
     switch_interconnect(channel, old_idx, new_idx);
 }
 

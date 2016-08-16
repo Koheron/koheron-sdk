@@ -28,6 +28,22 @@ namespace kserver {class KServer;}
 
 typedef uint32_t MemMapID;
 
+class DevMem;
+
+template<MemMapID first_id, size_t N>
+class MemMapArray
+{
+  public:
+    MemMapArray(DevMem *dvm);
+
+    MemoryMap& operator[](MemMapID id) {
+        return maps[id].get();
+    }
+
+  private:
+    std::vector<std::reference_wrapper<MemoryMap>> maps;
+};
+
 class DevMem
 {
   public:
@@ -43,12 +59,8 @@ class DevMem
     }
 
     template<MemMapID first_id, size_t N>
-    std::vector<std::reference_wrapper<MemoryMap>>
-    get_mmaps() {
-        std::vector<std::reference_wrapper<MemoryMap>> maps;
-        for (MemMapID i=0; i<N; i++)
-            maps.push_back(get_mmap(first_id + i));
-        return maps;
+    MemMapArray<first_id, N> get_mmaps() {
+        return MemMapArray<first_id, N>(this);
     }
 
     uintptr_t get_base_addr(MemMapID id) {return mem_maps.at(id)->get_base_addr();}
@@ -68,5 +80,12 @@ class DevMem
 
     std::array<std::unique_ptr<MemoryMap>, NUM_ADDRESSES> mem_maps;
 };
+
+template<MemMapID first_id, size_t N>
+MemMapArray<first_id, N>::MemMapArray(DevMem *dvm)
+{
+    for (MemMapID i=0; i<N; i++)
+        maps.push_back(dvm->get_mmap(first_id + i));
+}
 
 #endif // __DRIVERS_LIB_DEV_MEM_HPP__
