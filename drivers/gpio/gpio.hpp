@@ -30,51 +30,50 @@ class Gpio
   public:
     Gpio(DevMem& dvm_)
     : dvm(dvm_)
-    {
-        gpio = dvm.add_memory_map(GPIO_ADDR, GPIO_RANGE);
-    }
+    , gpio(dvm.get_mmap(GPIO_ID)) 
+    {}
 
     void set_data(uint32_t channel, uint32_t value) {
-        gpio->write_offset(get_value_offset(channel), value);
+        gpio.write_offset(get_value_offset(channel), value);
     }
 
     uint32_t get_data(uint32_t channel) {
-        return gpio->read_offset(get_value_offset(channel));
+        return gpio.read_offset(get_value_offset(channel));
     }
 
     // Bitwise operations
     void set_bit(uint32_t index, uint32_t channel) {
         if (index <= MAX_BIT_IDX)
-            gpio->set_bit_offset(get_value_offset(channel), index);
+            gpio.set_bit_offset(get_value_offset(channel), index);
     }
 
     void clear_bit(uint32_t index, uint32_t channel) {
         if (index <= MAX_BIT_IDX)
-            gpio->clear_bit_offset(get_value_offset(channel), index);
+            gpio.clear_bit_offset(get_value_offset(channel), index);
     }
 
     void toggle_bit(uint32_t index, uint32_t channel) {
         if (index <= MAX_BIT_IDX)
-            gpio->toggle_bit_offset(get_value_offset(channel), index);
+            gpio.toggle_bit_offset(get_value_offset(channel), index);
     }
 
     bool read_bit(uint32_t index, uint32_t channel) {
-        return gpio->read_bit_offset(get_value_offset(channel), index);
+        return gpio.read_bit_offset(get_value_offset(channel), index);
     }
 
     void set_as_input(uint32_t index, uint32_t channel) {
         if (index <= MAX_BIT_IDX)
-            gpio->set_bit_offset(get_dir_offset(channel), index);
+            gpio.set_bit_offset(get_dir_offset(channel), index);
     }
 
     void set_as_output(uint32_t index, uint32_t channel) {
         if (index <= MAX_BIT_IDX)
-            gpio->clear_bit_offset(get_dir_offset(channel), index);
+            gpio.clear_bit_offset(get_dir_offset(channel), index);
     }
 
   private:
     DevMem& dvm;
-    MemoryMap *gpio;
+    MemoryMap& gpio;
 
     int get_value_offset(uint32_t channel) {
         return (channel == 1 ? CHAN1_VALUE_OFF : CHAN2_VALUE_OFF);
