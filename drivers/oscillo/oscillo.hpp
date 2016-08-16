@@ -14,7 +14,7 @@
 #include <drivers/addresses.hpp>
 
 #define SAMPLING_RATE 125E6
-#define WFM_SIZE ADC1_RANGE/sizeof(float)
+#define WFM_SIZE ADC_RANGE/sizeof(float)
 #define ACQ_PERIOD_NS 8 // Duration between two acquisitions (ns)
 
 constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
@@ -113,9 +113,9 @@ class Oscillo
 
     int32_t *raw_data[2] = {nullptr, nullptr};
 
-    MemoryMap& cfg;
-    MemoryMap& sts;
-    MemMapArray<ADC1_ID, N_ADC_PARAM> adc_map;
+    MemoryMap<CONFIG_ID>& cfg;
+    MemoryMap<STATUS_ID>& sts;
+    MemoryMap<ADC_ID> adc_map;
 
     // Acquired data buffers
     std::array<float, 2*WFM_SIZE> data_all;

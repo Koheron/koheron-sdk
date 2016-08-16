@@ -79,9 +79,21 @@ def get_config(project):
     for prop in props:
         cfg[prop] = get_prop(project, prop)
 
+    params = cfg['parameters']
+
     # Addresses
     if 'addresses' in cfg:
         for addr in cfg['addresses']:
+            name, num = parse_brackets(addr['name'])
+            if num.isdigit():
+                num = int(num)
+            else:
+                assert(num in params)
+                num = params[num]
+            addr['name'] = name
+            addr['n_blocks'] = num
+
+            # Protection
             if not 'prot' in addr:
                 addr['prot_flag'] = 'PROT_READ|PROT_WRITE'
             elif addr['prot'] == 'read':
@@ -91,7 +103,6 @@ def get_config(project):
 
     # Config and status registers
     lists = ['config_registers','status_registers']
-    params = cfg['parameters']
     for list_ in lists:
         new_list = []
         if cfg[list_] is not None:

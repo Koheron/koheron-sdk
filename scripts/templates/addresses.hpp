@@ -17,17 +17,18 @@ extern "C" {
 {% for addr in dic['addresses'] -%}
 constexpr uintptr_t {{ addr['name']|upper }}_ADDR = {{ addr['offset'] }};
 constexpr uint32_t {{ addr['name']|upper }}_RANGE = {{ addr['range']|replace('K','*1024')|replace('M','*1024*1024')|replace('G','*1024*1024*1024') }};
+constexpr uint32_t {{ addr['name']|upper }}_NBLOCKS = {{ addr['n_blocks'] }};
 constexpr uint32_t {{ addr['name']|upper }}_ID = {{ loop.index0 }};
 {% endfor %}
 
 constexpr uint32_t NUM_ADDRESSES = {{ dic['addresses']|length }};
 
-constexpr std::array<std::tuple<uintptr_t, uint32_t, int>, NUM_ADDRESSES> address_array = {{ '{{' }}
+constexpr std::array<std::tuple<uintptr_t, uint32_t, int, uint32_t>, NUM_ADDRESSES> address_array = {{ '{{' }}
     {% for addr in dic['addresses'] -%}
         {% if not loop.last -%}
-            std::make_tuple({{ addr['name']|upper }}_ADDR, {{ addr['name']|upper }}_RANGE, {{ addr['prot_flag']|upper }}),
+            std::make_tuple({{ addr['name']|upper }}_ADDR, {{ addr['name']|upper }}_RANGE, {{ addr['prot_flag']|upper }}, {{ addr['name']|upper }}_NBLOCKS),
         {% else -%}
-            std::make_tuple({{ addr['name']|upper }}_ADDR, {{ addr['name']|upper }}_RANGE, {{ addr['prot_flag']|upper }})
+            std::make_tuple({{ addr['name']|upper }}_ADDR, {{ addr['name']|upper }}_RANGE, {{ addr['prot_flag']|upper }}, {{ addr['name']|upper }}_NBLOCKS)
         {% endif -%}
     {% endfor -%}
 {{ '}};' }}

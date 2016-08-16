@@ -8,11 +8,14 @@
 #include <cstdio>
 #include <cstdint>
 #include <tuple>
+#include <memory>
 
 extern "C" {
     #include <unistd.h>
     #include <sys/mman.h>
 }
+
+#include <drivers/addresses.hpp>
 
 #define DEFAULT_MAP_SIZE 4096UL // = PAGE_SIZE
 #define MAP_MASK(size) ((size) - 1)
@@ -22,23 +25,52 @@ extern "C" {
 #define ASSERT_WRITABLE
 #define ASSERT_READABLE
 
-class MemoryMap
+typedef size_t MemMapID;
+
+namespace addresses {
+
+constexpr uint32_t count = address_array.size();
+
+// Access elements in address_array
+
+constexpr uintptr_t get_base_addr(MemMapID id) {
+    return std::get<0>(address_array[id]);
+}
+
+// Makes sure it gets evaluated at compile time
+static_assert(get_base_addr(CONFIG_ID) == std::get<0>(address_array[CONFIG_ID]), "get_base_address test failed");
+
+constexpr uint32_t get_range(MemMapID id) {
+    return std::get<1>(address_array[id]);
+}
+
+constexpr uint32_t get_protection(MemMapID id) {
+    return std::get<2>(address_array[id]);
+}
+
+constexpr uint32_t get_n_blocks(MemMapID id) {
+    return std::get<3>(address_array[id]);
+}
+
+constexpr uint32_t get_total_size(MemMapID id) {
+    return get_range(id) * get_n_blocks(id);
+}
+
+} // namespace addresses
+
+struct MemoryMapBase {
+    MemoryMapBase(MemMapID id_)
+    : id(id_) {}
+
+    MemMapID id;
+};
+
+template<MemMapID id>
+class MemoryMap : public MemoryMapBase
 {
   public:
-    /// Build a memory map
-    /// @phys_addr_ Physical base address of the device
-    /// @size_ Map size in octets
-    MemoryMap(int *fd_, uintptr_t phys_addr_,
-              uint32_t size_ = DEFAULT_MAP_SIZE,
-              int protection_ = PROT_READ|PROT_WRITE);
-
+    MemoryMap(int *fd_);
     ~MemoryMap();
-
-    /// Close the memory map
-    /// @return 0 if succeed, -1 else
-    int unmap();
-
-    int resize(uint32_t length);
 
     int get_protection() const {return protection;}
     int get_status() const {return status;}
@@ -76,9 +108,9 @@ class MemoryMap
     }
 
     template<typename T = uint32_t, uint32_t offset = 0>
-    void set_ptr(const T *data_ptr, uint32_t buff_size) {
+    void set_ptr(const T *data_ptr, uint32_t buff_size, uint32_t block_idx = 0) {
         ASSERT_WRITABLE
-        uintptr_t addr = base_address + offset;
+        uintptr_t addr = base_address + block_size * block_idx + offset;
         for (uint32_t i=0; i < buff_size; i++)
             *(volatile T *) (addr + sizeof(T) * i) = data_ptr[i];
     }
@@ -135,9 +167,9 @@ class MemoryMap
     }
 
     template<typename T = uint32_t, uint32_t offset = 0>
-    T* get_ptr() {
+    T* get_ptr(uint32_t block_idx = 0) {
         ASSERT_READABLE
-        return reinterpret_cast<T*>(base_address + offset);
+        return reinterpret_cast<T*>(base_address + block_size * block_idx + offset);
     }
 
     template<typename T = uint32_t>
@@ -148,8 +180,8 @@ class MemoryMap
 
     // Read a std::array (offset defined at compile-time)
     template<typename T, size_t N, uint32_t offset = 0>
-    std::array<T, N>& read_array() {
-        auto p = get_ptr<std::array<T, N>, offset>();
+    std::array<T, N>& read_array(uint32_t block_idx = 0) {
+        auto p = get_ptr<std::array<T, N>, offset>(block_idx);
         return *p;
     }
 
@@ -230,13 +262,49 @@ class MemoryMap
     };
 
   private:
-    int *fd;                    ///< /dev/mem file ID (Why is this a pointer ?)
-    void *mapped_base;          ///< Map base address
+    int *fd;                 ///< /dev/mem file ID (Why is this a pointer ?)
+    void *mapped_base;       ///< Map base address
     uintptr_t base_address;  ///< Virtual memory base address of the device
-    int status;                 ///< Status
-    int protection;
-    uint32_t size;              ///< Map size in bytes
-    uintptr_t phys_addr;        ///< Physical address
+    int status;              ///< Status
+    uintptr_t phys_addr = addresses::get_base_addr(id);
+    uint32_t n_blocks = addresses::get_n_blocks(id);
+    uint32_t block_size = addresses::get_range(id);
+    uint32_t size = addresses::get_total_size(id);
+    int protection = addresses::get_protection(id);
 };
+
+template<MemMapID id>
+MemoryMap<id>*
+cast_to_memory_map(const std::unique_ptr<MemoryMapBase>& memmap_base)
+{
+    return static_cast<MemoryMap<id>*>(memmap_base.get());
+}
+
+template<MemMapID id>
+MemoryMap<id>::MemoryMap(int *fd_)
+: MemoryMapBase(id)
+, fd(fd_)
+, mapped_base(nullptr)
+, base_address(0)
+, status(MEMMAP_CLOSED)
+{
+    mapped_base = mmap(0, size, protection, MAP_SHARED, *fd, phys_addr & ~MAP_MASK(size));
+
+    if (mapped_base == (void *) -1) {
+        fprintf(stderr, "Can't map the memory to user space.\n");
+        status = MEMMAP_FAILURE;
+        return;
+    }
+
+    status = MEMMAP_OPENED;
+    base_address = (uintptr_t)mapped_base + (phys_addr & MAP_MASK(size));
+}
+
+template<MemMapID id>
+MemoryMap<id>::~MemoryMap()
+{
+    if (status == MEMMAP_OPENED)
+        munmap(mapped_base, size);
+}
 
 #endif // __DRIVERS_CORE_MEMORY_MAP_HPP__

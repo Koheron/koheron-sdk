@@ -1,18 +1,18 @@
 includes: [projects/default/server.yml]
 
 drivers:
-  - drivers/common/common.hpp
-  - drivers/common/common.cpp
-  - drivers/device_memory/device_memory.hpp
-  - drivers/gpio/gpio.hpp
-  - drivers/xadc/xadc.hpp
-  - drivers/xadc/xadc.cpp
-  - drivers/laser/laser.hpp
-  - drivers/laser/laser.cpp
-  - drivers/init/init.hpp
+  # - drivers/common/common.hpp
+  # - drivers/common/common.cpp
+  # - drivers/device_memory/device_memory.hpp
+  # - drivers/gpio/gpio.hpp
+  # - drivers/xadc/xadc.hpp
+  # - drivers/xadc/xadc.cpp
+  # - drivers/laser/laser.hpp
+  # - drivers/laser/laser.cpp
+  # - drivers/init/init.hpp
   - drivers/oscillo/oscillo.hpp
   - drivers/oscillo/oscillo.cpp
-  - drivers/speed_test/speed_test.hpp
-  - drivers/speed_test/speed_test.cpp
-  - drivers/eeprom/eeprom.hpp
-  - drivers/spi/spi.hpp
+  # - drivers/speed_test/speed_test.hpp
+  # - drivers/speed_test/speed_test.cpp
+  # - drivers/eeprom/eeprom.hpp
+  # - drivers/spi/spi.hpp
