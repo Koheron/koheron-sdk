@@ -40,6 +40,9 @@ constexpr uintptr_t get_base_addr(MemMapID id) {
     return std::get<0>(address_array[id]);
 }
 
+// Makes sure it gets evaluated at compile time
+static_assert(get_base_addr(CONFIG_ID) == std::get<0>(address_array[CONFIG_ID]), "get_base_address test failed");
+
 constexpr uint32_t get_range(MemMapID id) {
     return std::get<1>(address_array[id]);
 }
@@ -85,8 +88,13 @@ class DevMem
         return MemMapArray<first_id, N>(this);
     }
 
-    uintptr_t get_base_addr(MemMapID id) {return mem_maps.at(id)->get_base_addr();}
-    int get_status(MemMapID id)          {return mem_maps.at(id)->get_status();}
+    uintptr_t get_base_addr(MemMapID id) {
+        return addresses::get_base_addr(id);
+    }
+
+    int get_status(MemMapID id) {
+        return mem_maps.at(id)->get_status();
+    }
 
     std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>
     get_map_params(MemMapID id) {
