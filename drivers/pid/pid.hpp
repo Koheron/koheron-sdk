@@ -20,10 +20,10 @@ class Pid
   public:
     Pid(DevMem& dvm_)
     : dvm(dvm_)
-    , fifo(dvm_)
     , cfg(dvm[CONFIG_ID])
     , sts(dvm[STATUS_ID])
     , fifo_map(dvm[FIFO_ID])
+    , fifo(dvm_)
     {
         fifo.set_map(fifo_map);
     }
