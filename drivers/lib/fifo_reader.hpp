@@ -32,8 +32,8 @@ class FIFOReader
     FIFOReader(DevMem& dvm_);
 
     // Set FIFO virtual base address
-    void set_map(MemoryMap *fifo_map_){
-        fifo_map.store(fifo_map_);
+    void set_map(MemoryMap& fifo_map_){
+        fifo_map.store(&fifo_map_);
         fifo_map.load()->write<RDFR_OFF>(0xA5); // Reset FIFO
     }
 

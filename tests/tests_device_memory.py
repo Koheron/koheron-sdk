@@ -29,14 +29,14 @@ class TestsDeviceMemory:
         assert 'parameters' in config
         assert 'cores' in config
 
-    def test_add_mmap(self):
-        for mmap in dvm.memory_cfg.mmaps:
-            dvm.add_mmap(mmap)
-            mmap_params = dvm.get_map_params(mmap.name)
-            assert len(mmap_params) == 5
-            assert mmap_params['status'] == 1 # open
-            assert hex(mmap_params['phys_addr']).upper() == mmap.offset.upper()
-            assert mmap_params['size'] == 1024 * int(mmap.range.replace("K", ""))
+    # def test_add_mmap(self):
+    #     for mmap in dvm.memory_cfg.mmaps:
+    #         dvm.add_mmap(mmap)
+    #         mmap_params = dvm.get_map_params(mmap.name)
+    #         assert len(mmap_params) == 5
+    #         assert mmap_params['status'] == 1 # open
+    #         assert hex(mmap_params['phys_addr']).upper() == mmap.offset.upper()
+    #         assert mmap_params['size'] == 1024 * int(mmap.range.replace("K", ""))
 
     def test_write_read(self):
         value = np.random.randint(16384, size=1)[0]

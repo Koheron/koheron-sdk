@@ -54,7 +54,7 @@ def load_config(project):
     config_filename = os.path.join('projects', project, 'main.yml')
     assert(os.path.isfile(config_filename))
     with open(config_filename) as config_file:
-        config = yaml.load(config_file)        
+        config = yaml.load(config_file)    
     return config
 
 def parse_brackets(string):
@@ -78,6 +78,16 @@ def get_config(project):
     props = ['board','host']
     for prop in props:
         cfg[prop] = get_prop(project, prop)
+
+    # Addresses
+    if 'addresses' in cfg:
+        for addr in cfg['addresses']:
+            if not 'prot' in addr:
+                addr['prot_flag'] = 'PROT_READ|PROT_WRITE'
+            elif addr['prot'] == 'read':
+                addr['prot_flag'] = 'PROT_READ'
+            elif addr['prot'] == 'write':
+                addr['prot_flag'] = 'PROT_WRITE'
 
     # Config and status registers
     lists = ['config_registers','status_registers']

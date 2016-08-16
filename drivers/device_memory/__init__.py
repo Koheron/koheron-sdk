@@ -5,7 +5,8 @@ import re
 import koheron_tcp_client as kc
 
 class MemMap(object):
-    def __init__(self, name_, offset_, range_):
+    def __init__(self, id_, name_, offset_, range_):
+        self.id = id_
         self.name = name_
         self.offset = offset_
         self.range = range_
@@ -18,13 +19,13 @@ class MemMap(object):
 class MemoryConfig(object):
      def __init__(self, dic):
         # List of memory maps
-        self.mmaps = []
+        self.mmaps = {}
         # Config and Status registers
         self.cfg = {}
         self.sts = {}
 
-        for addr in dic['addresses']:
-            self.mmaps.append(MemMap(addr['name'], addr['offset'], addr['range']))
+        for idx, addr in enumerate(dic['addresses']):
+            self.mmaps[addr['name']] = MemMap(idx, addr['name'], addr['offset'], addr['range'])
 
         for i, name in enumerate(dic['config_registers']):
             self.cfg[name] = 4 * i
@@ -39,66 +40,57 @@ class DeviceMemory(object):
     def __init__(self, client):
         self.client = client
         self.memory_cfg = MemoryConfig(self.get_instrument_config())
-        self.maps = {}
 
-    def add_mmap(self, mmap):
-        @kc.command('DEVICE_MEMORY','II')
-        def add_memory_map(self, device_addr, map_size):
-            return self.client.recv_int32()
-        if not mmap.name in self.maps:
-            device_addr = int(mmap.offset, 0)
-            map_size = 1024 * int(mmap.range.replace("K", ""))
-            mmap_idx = add_memory_map(self, device_addr, map_size)
-            if mmap_idx >= 0:
-                self.maps[mmap.name] = mmap_idx
+    def get_id(self, map_name):
+        return self.memory_cfg.mmaps[map_name].id
 
-    def read32(self, device_name, offset):
+    def read32(self, map_name, offset):
         @kc.command('DEVICE_MEMORY','II')
         def read(self, mmap_idx, offset):
             return self.client.recv_uint32()
-        return read(self, self.maps[device_name], offset)
+        return read(self, self.get_id(map_name), offset)
 
-    def write32(self, device_name, offset, value):
+    def write32(self, map_name, offset, value):
         @kc.command('DEVICE_MEMORY','III')
         def write(self, mmap_idx, offset, value):
             pass
-        write(self, self.maps[device_name], offset, value)
+        write(self, self.get_id(map_name), offset, value)
 
-    def write_buffer(self, device_name, offset, data, format_char='I', dtype=np.uint32):
+    def write_buffer(self, map_name, offset, data, format_char='I', dtype=np.uint32):
         @kc.write_buffer('DEVICE_MEMORY', 'II', format_char=format_char, dtype=dtype)
         def write_buffer(self, data, mmap_idx, offset): 
             pass
-        write_buffer(self, data, self.maps[device_name], offset)
+        write_buffer(self, data, self.get_id(map_name), offset)
 
-    def read_buffer(self, device_name, offset, buff_size):
+    def read_buffer(self, map_name, offset, buff_size):
         @kc.command('DEVICE_MEMORY', 'III')
         def read_buffer(self, mmap_idx, offset, buff_size):
             return self.client.recv_buffer(buff_size)
-        return read_buffer(self, self.maps[device_name], offset, buff_size)
+        return read_buffer(self, self.get_id(map_name), offset, buff_size)
 
-    def set_bit(self, device_name, offset, index):
+    def set_bit(self, map_name, offset, index):
         @kc.command('DEVICE_MEMORY', 'III')
         def set_bit(self, mmap_idx, offset, index):
             pass
-        set_bit(self, self.maps[device_name], offset, index)
+        set_bit(self, self.get_id(map_name), offset, index)
 
-    def clear_bit(self, device_name, offset, index):
+    def clear_bit(self, map_name, offset, index):
         @kc.command('DEVICE_MEMORY', 'III')
         def clear_bit(self, mmap_idx, offset, index):
             pass
-        clear_bit(self, self.maps[device_name], offset, index)
+        clear_bit(self, self.get_id(map_name), offset, index)
 
-    def toggle_bit(self, device_name, offset, index):
+    def toggle_bit(self, map_name, offset, index):
         @kc.command('DEVICE_MEMORY', 'III')
         def toggle_bit(self, mmap_idx, offset, index):
             pass
-        toggle_bit(self, self.maps[device_name], offset, index)
+        toggle_bit(self, self.get_id(map_name), offset, index)
 
-    def get_map_params(self, device_name):
+    def get_map_params(self, map_name):
         @kc.command('DEVICE_MEMORY', 'I')
         def get_map_params(self, mmap_idx):
             return self.client.recv_tuple('IiIIi')
-        params = get_map_params(self, self.maps[device_name])
+        params = get_map_params(self, self.get_id(map_name))
         return {
             'virt_addr': params[0],
             'status': params[1],
