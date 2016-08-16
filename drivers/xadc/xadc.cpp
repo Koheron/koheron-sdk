@@ -7,7 +7,7 @@
 
 Xadc::Xadc(DevMem& dvm_)
 : dvm(dvm_)
-, xadc(dvm.get_mmap(XADC_ID))
+, xadc(dvm[XADC_ID])
 {}
 
 bool is_valid_channel(uint32_t channel)

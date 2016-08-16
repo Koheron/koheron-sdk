@@ -21,9 +21,9 @@ class Pid
     Pid(DevMem& dvm_)
     : dvm(dvm_)
     , fifo(dvm_)
-    , cfg(dvm.get_mmap(CONFIG_ID))
-    , sts(dvm.get_mmap(STATUS_ID))
-    , fifo_map(dvm.get_mmap(FIFO_ID))
+    , cfg(dvm[CONFIG_ID])
+    , sts(dvm[STATUS_ID])
+    , fifo_map(dvm[FIFO_ID])
     {
         fifo.set_map(fifo_map);
     }
