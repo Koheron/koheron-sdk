@@ -198,14 +198,14 @@ class MemoryMap
     template<uint32_t offset, uint32_t index>
     void toggle_bit() {
         ASSERT_WRITABLE
-        uintptr_t addr = base_address + sizeof(uint32_t) * offset;
+        uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
     }
 
     // Toggle a bit (offset and index defined at run-time)
     void toggle_bit_offset(uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        uintptr_t addr = base_address + sizeof(uint32_t) * offset;
+        uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
     }
 
