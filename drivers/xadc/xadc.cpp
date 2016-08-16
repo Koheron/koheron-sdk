@@ -36,7 +36,7 @@ int Xadc::set_channel(uint32_t channel_0_, uint32_t channel_1_)
 int Xadc::set_averaging(uint32_t n_avg)
 {
     uint32_t avg;
-    uint32_t mask = (1 << 12) + (1 << 13);
+    constexpr uint32_t mask = (1 << 12) + (1 << 13);
 
     switch (n_avg) {
       case 1:
@@ -54,7 +54,7 @@ int Xadc::set_averaging(uint32_t n_avg)
       default:
         return -1;
     }
-    xadc.write32_mask(XADC_CFG0_OFF, (avg << 12), mask);
+    xadc.write_mask<XADC_CFG0_OFF, mask>(avg << 12);
     return 0;
 }
 

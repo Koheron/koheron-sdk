@@ -28,8 +28,8 @@ class DeviceMemory
         dvm[mmap_idx].write_offset(offset, reg_val);
     }
 
-    void write_mask(uint32_t mmap_idx, uint32_t offset, uint32_t reg_val, uint32_t mask) {
-        dvm[mmap_idx].write32_mask(offset, reg_val, mask);
+    void write_mask(uint32_t mmap_idx, uint32_t offset, uint32_t mask, uint32_t reg_val) {
+        dvm[mmap_idx].write_mask_offset(offset, mask, reg_val);
     }
 
     #pragma tcp-server write_array arg{data} arg{len}
