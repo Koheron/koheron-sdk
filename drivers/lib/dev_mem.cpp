@@ -35,7 +35,8 @@ int DevMem::open()
     return fd;
 }
 
-int DevMem::add_memory_maps(const std::array<std::tuple<uintptr_t, uint32_t, int>, NUM_ADDRESSES>& addresses)
+int DevMem::add_memory_maps(
+    const std::array<std::tuple<uintptr_t, uint32_t, int>, NUM_ADDRESSES>& addresses)
 {
     int err = 0;
     for (MemMapID id=0; id<addresses.size(); id++)
@@ -46,7 +47,8 @@ int DevMem::add_memory_maps(const std::array<std::tuple<uintptr_t, uint32_t, int
 
 int DevMem::add_memory_map(MemMapID id, const std::tuple<uintptr_t, uint32_t, int>& addr)
 {
-    auto mem_map = std::make_unique<MemoryMap>(&fd, std::get<0>(addr), std::get<1>(addr), std::get<2>(addr));
+    auto mem_map = std::make_unique<MemoryMap>(&fd, std::get<0>(addr),
+                                               std::get<1>(addr), std::get<2>(addr));
 
     if (mem_map->get_status() != MemoryMap::MEMMAP_OPENED) {
         fprintf(stderr, "Can't open memory map id = %u\n", id);

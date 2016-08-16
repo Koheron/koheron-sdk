@@ -30,7 +30,16 @@ addresses:
     range: 16K
   - name: peak_fifo
     offset: '0x43C10000'
-    range: 64K 
+    range: 64K
+  - name: gpio
+    offset: '0x41200000'
+    range: 64K
+  - name: xadc
+    offset: '0x43C00000'
+    range: 64K
+  - name: rambuf
+    offset: '0x1E000000'
+    range: 8M
 
 modules:
   - address_module
