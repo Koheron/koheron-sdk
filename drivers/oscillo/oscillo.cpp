@@ -9,13 +9,13 @@
 Oscillo::Oscillo(DevMem& dvm_)
 : dvm(dvm_)
 , data_decim(0)
-, dac(dvm_, dac_brams)
+, dac(dvm_)
 {
-    config_map = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
-    status_map = dvm.add_memory_map(STATUS_ADDR, STATUS_RANGE, PROT_READ);
+    config_map = dvm.get_mmap(CONFIG_ID);
+    status_map = dvm.get_mmap(STATUS_ID);
 
-    adc_map[0] = dvm.add_memory_map(ADC1_ADDR, ADC1_RANGE);
-    adc_map[1] = dvm.add_memory_map(ADC2_ADDR, ADC2_RANGE);
+    adc_map[0] = dvm.get_mmap(ADC1_ID);
+    adc_map[1] = dvm.get_mmap(ADC2_ID);
 
     raw_data[0] = adc_map[0]->get_ptr<int32_t>();
     raw_data[1] = adc_map[1]->get_ptr<int32_t>();

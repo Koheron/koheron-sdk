@@ -34,10 +34,11 @@ template<uint32_t n_dac, uint32_t n_dac_bram>
 class DacRouter
 {
   public:
-    DacRouter(DevMem& dvm_, memory_blocks<n_dac_bram> dac_brams)
+    DacRouter(DevMem& dvm_)
     : dvm(dvm_)
     {
-        dac_map = dvm.add_memory_blocks(dac_brams);
+        for (uint32_t i=0; i<n_dac_bram; i++)
+            dac_map[i] = dvm.get_mmap(DAC1_ID + i);
     }
 
     void set_config_reg(MemoryMap* config_map_, uint32_t dac_select_off_,
