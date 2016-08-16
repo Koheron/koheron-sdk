@@ -10,12 +10,12 @@ Oscillo::Oscillo(DevMem& dvm_)
 : dvm(dvm_)
 , cfg(dvm[CONFIG_ID])
 , sts(dvm[STATUS_ID])
-, adc_map({{dvm[ADC1_ID], dvm[ADC2_ID]}})
+, adc_map(dvm.get_mmaps<ADC1_ID, N_ADC_PARAM>())
 , data_decim(0)
 , dac(dvm_)
 {
-    raw_data[0] = adc_map[0].get().get_ptr<int32_t>();
-    raw_data[1] = adc_map[1].get().get_ptr<int32_t>();
+    raw_data[0] = adc_map[0].get_ptr<int32_t>();
+    raw_data[1] = adc_map[1].get_ptr<int32_t>();
 
     set_averaging(false); // Reset averaging
 
