@@ -5,7 +5,13 @@
 #ifndef __DRIVERS_CORE_ADDRESSES_HPP__
 #define __DRIVERS_CORE_ADDRESSES_HPP__
 
+#include <array>
 #include <tuple>
+#include <cstdint>
+
+extern "C" {
+  #include <sys/mman.h> // PROT_READ, PROT_WRITE
+}
 
 // -- Base addresses
 {% for addr in dic['addresses'] -%}
@@ -14,7 +20,7 @@ constexpr uint32_t {{ addr['name']|upper }}_RANGE = {{ addr['range']|replace('K'
 constexpr uint32_t {{ addr['name']|upper }}_ID = {{ loop.index0 }};
 {% endfor %}
 
-#define NUM_ADDRESSES {{ dic['addresses']|length }}
+constexpr uint32_t NUM_ADDRESSES = {{ dic['addresses']|length }};
 
 constexpr std::array<std::tuple<uintptr_t, uint32_t, int>, NUM_ADDRESSES> address_array = {{ '{{' }}
     {% for addr in dic['addresses'] -%}
@@ -28,22 +34,22 @@ constexpr std::array<std::tuple<uintptr_t, uint32_t, int>, NUM_ADDRESSES> addres
 
 // -- Config offsets
 {% for offset in dic['config_registers'] -%}
-#define {{ offset|upper }}_OFF {{ 4 * loop.index0 }}
+constexpr uint32_t {{ offset|upper }}_OFF = {{ 4 * loop.index0 }};
 {% endfor %}
 // -- Status offsets
 {% for offset in dic['status_registers'] -%}
-#define {{ offset|upper }}_OFF {{ 4 * (10 + loop.index0) }}
+constexpr uint32_t {{ offset|upper }}_OFF = {{ 4 * (10 + loop.index0) }};
 {% endfor %}
 
 // -- Parameters
 {% for key in dic['parameters'] -%}
-#define {{ key|upper }}_PARAM {{ dic['parameters'][key] }}
+constexpr uint32_t {{ key|upper }}_PARAM = {{ dic['parameters'][key] }};
 {% endfor %}
 
-#define BITSTREAM_ID_OFF 0
-#define BITSTREAM_ID_SIZE 8
+constexpr uint32_t BITSTREAM_ID_OFF = 0;
+constexpr uint32_t BITSTREAM_ID_SIZE = 8;
 
-#define DNA_OFF 4 * 8
+constexpr uint32_t DNA_OFF = 4 * 8;
 
 // -- JSONify config
 #define CFG_JSON "{{ dic['json'] }}"
