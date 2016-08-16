@@ -43,8 +43,8 @@ class Laser
     , xadc(dvm_)
     , gpio(dvm_)
     , eeprom(dvm_)
+    , cfg(dvm.get_mmap(CONFIG_ID))
     {
-        cfg = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
         reset();
     }
 
@@ -81,7 +81,7 @@ class Laser
     }
 
     void save_config() {
-        uint32_t current = cfg->read<PWM3_OFF>();
+        uint32_t current = cfg.read<PWM3_OFF>();
         eeprom.write(EEPROM_CURRENT_ADDR, current);
     }
 
@@ -93,7 +93,7 @@ class Laser
 
   private:
     DevMem& dvm;
-    MemoryMap* cfg; // required for pwm
+    MemoryMap& cfg; // required for pwm
 
     Xadc xadc;
     Gpio gpio;
