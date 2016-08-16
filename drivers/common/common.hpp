@@ -16,8 +16,8 @@ class Common
   public:
     Common(DevMem& dvm_)
     : dvm(dvm_)
-    , cfg(dvm.get_mmap(CONFIG_ID))
-    , sts(dvm.get_mmap(STATUS_ID))
+    , cfg(dvm[CONFIG_ID])
+    , sts(dvm[STATUS_ID])
     {}
 
     std::array<uint32_t, BITSTREAM_ID_SIZE> get_bitstream_id();

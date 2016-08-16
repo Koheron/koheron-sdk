@@ -27,7 +27,7 @@ class Gpio
   public:
     Gpio(DevMem& dvm_)
     : dvm(dvm_)
-    , gpio(dvm.get_mmap(GPIO_ID)) 
+    , gpio(dvm[GPIO_ID]) 
     {}
 
     void set_data(uint32_t channel, uint32_t value) {

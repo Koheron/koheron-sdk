@@ -8,9 +8,9 @@
 
 Oscillo::Oscillo(DevMem& dvm_)
 : dvm(dvm_)
-, cfg(dvm.get_mmap(CONFIG_ID))
-, sts(dvm.get_mmap(STATUS_ID))
-, adc_map({{dvm.get_mmap(ADC1_ID), dvm.get_mmap(ADC2_ID)}})
+, cfg(dvm[CONFIG_ID])
+, sts(dvm[STATUS_ID])
+, adc_map({{dvm[ADC1_ID], dvm[ADC2_ID]}})
 , data_decim(0)
 , dac(dvm_)
 {
