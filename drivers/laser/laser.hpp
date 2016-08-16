@@ -40,11 +40,11 @@ class Laser
   public:
     Laser(DevMem& dvm_)
     : dvm(dvm_)
+    , cfg(dvm[CONFIG_ID])
     , xadc(dvm_)
     , gpio(dvm_)
     , eeprom(dvm_)
     {
-        cfg = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
         reset();
     }
 
@@ -81,19 +81,19 @@ class Laser
     }
 
     void save_config() {
-        uint32_t current = cfg->read<PWM3_OFF>();
+        uint32_t current = cfg.read<PWM3_OFF>();
         eeprom.write(EEPROM_CURRENT_ADDR, current);
     }
 
     float load_config() {
         uint32_t pwm = eeprom.read(EEPROM_CURRENT_ADDR);
-        cfg->write<PWM3_OFF>(pwm);
+        cfg.write<PWM3_OFF>(pwm);
         return MILLIAMPS_TO_AMPS * current_from_pwm(pwm);
     }
 
   private:
     DevMem& dvm;
-    MemoryMap* cfg; // required for pwm
+    MemoryMap& cfg; // required for pwm
 
     Xadc xadc;
     Gpio gpio;

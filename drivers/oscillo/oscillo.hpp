@@ -20,13 +20,6 @@
 constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
 constexpr std::array<uint32_t, 2> n_avg_offset = {N_AVG0_OFF, N_AVG1_OFF};
 
-constexpr memory_blocks<N_DAC_BRAM_PARAM>
-dac_brams  = {{
-    {DAC1_ADDR, DAC1_RANGE},
-    {DAC2_ADDR, DAC2_RANGE},
-    {DAC3_ADDR, DAC3_RANGE}
-}};
-
 class Oscillo
 {
   public:
@@ -35,13 +28,13 @@ class Oscillo
     // Reset ...
 
     void reset() {
-        config_map->clear_bit<ADDR_OFF, 0>();
-        config_map->set_bit<ADDR_OFF, 0>();
+        cfg.clear_bit<ADDR_OFF, 0>();
+        cfg.set_bit<ADDR_OFF, 0>();
     }
 
     void reset_acquisition() {
-        config_map->clear_bit<ADDR_OFF, 1>();
-        config_map->set_bit<ADDR_OFF, 1>();
+        cfg.clear_bit<ADDR_OFF, 1>();
+        cfg.set_bit<ADDR_OFF, 1>();
     }
 
     void set_averaging(bool avg_on);
@@ -49,52 +42,52 @@ class Oscillo
     // Monitoring
 
     uint64_t get_counter() {
-        uint64_t lsb = status_map->read<COUNTER0_OFF>();
-        uint64_t msb = status_map->read<COUNTER1_OFF>();
+        uint64_t lsb = sts.read<COUNTER0_OFF>();
+        uint64_t msb = sts.read<COUNTER1_OFF>();
         return lsb + (msb << 32);
     }
 
     uint32_t get_num_average(uint32_t channel) {
-        return status_map->read_offset(n_avg_offset[channel]);
+        return sts.read_offset(n_avg_offset[channel]);
     }
 
     // TODO should be a one-liner
     void set_clken_mask(bool clken_mask) {
         if (clken_mask) {
-            config_map->set_bit<CLKEN_MASK_OFF, 0>();
+            cfg.set_bit<CLKEN_MASK_OFF, 0>();
         } else {
-            config_map->clear_bit<CLKEN_MASK_OFF, 0>();
+            cfg.clear_bit<CLKEN_MASK_OFF, 0>();
         }
     }
 
     void update_now() {
-        config_map->set_bit<CLKEN_MASK_OFF, 1>();
-        config_map->clear_bit<CLKEN_MASK_OFF, 1>();
+        cfg.set_bit<CLKEN_MASK_OFF, 1>();
+        cfg.clear_bit<CLKEN_MASK_OFF, 1>();
     }
 
     void always_update() {
-        config_map->set_bit<CLKEN_MASK_OFF, 1>();
+        cfg.set_bit<CLKEN_MASK_OFF, 1>();
     }
 
     void set_n_avg_min(uint32_t n_avg_min) {
         n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
-        config_map->write<N_AVG_MIN0_OFF>(n_avg_min_);
-        config_map->write<N_AVG_MIN1_OFF>(n_avg_min_);
+        cfg.write<N_AVG_MIN0_OFF>(n_avg_min_);
+        cfg.write<N_AVG_MIN1_OFF>(n_avg_min_);
     }
 
     void set_addr_select(uint32_t addr_select) {
-        config_map->write<ADDR_SELECT_OFF>(addr_select);
+        cfg.write<ADDR_SELECT_OFF>(addr_select);
     }
 
     void set_dac_periods(uint32_t dac_period0, uint32_t dac_period1) {
-        config_map->write<DAC_PERIOD0_OFF>(dac_period0 - 1);
-        config_map->write<DAC_PERIOD1_OFF>(dac_period1 - 1);
+        cfg.write<DAC_PERIOD0_OFF>(dac_period0 - 1);
+        cfg.write<DAC_PERIOD1_OFF>(dac_period1 - 1);
         reset();
     }
 
     void set_avg_period(uint32_t avg_period) {
-        config_map->write<AVG_PERIOD_OFF>(avg_period - 1);
-        config_map->write<AVG_THRESHOLD_OFF>(avg_period - 6);
+        cfg.write<AVG_PERIOD_OFF>(avg_period - 1);
+        cfg.write<AVG_THRESHOLD_OFF>(avg_period - 6);
         reset();
     }
 
@@ -120,9 +113,9 @@ class Oscillo
 
     int32_t *raw_data[2] = {nullptr, nullptr};
 
-    MemoryMap *config_map;
-    MemoryMap *status_map;
-    std::array<MemoryMap*, 2> adc_map;
+    MemoryMap& cfg;
+    MemoryMap& sts;
+    MemMapArray<ADC1_ID, N_ADC_PARAM> adc_map;
 
     // Acquired data buffers
     std::array<float, 2*WFM_SIZE> data_all;

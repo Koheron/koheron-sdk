@@ -103,6 +103,19 @@ class MemoryMap
         set_ptr_offset<T>(offset, arr.data(), N);
     }
 
+    template<uint32_t offset, uint32_t mask, typename T = uint32_t>
+    void write_mask(uint32_t value) {
+        ASSERT_WRITABLE
+        uintptr_t addr = base_address + offset;
+        *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
+    }
+
+    void write_mask_offset(uint32_t offset, uint32_t mask, uint32_t value) {
+        ASSERT_WRITABLE
+        uintptr_t addr = base_address + offset;
+        *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
+    }
+
     ////////////////////////////////////////
     // Read functions
     ////////////////////////////////////////
@@ -185,14 +198,14 @@ class MemoryMap
     template<uint32_t offset, uint32_t index>
     void toggle_bit() {
         ASSERT_WRITABLE
-        uintptr_t addr = base_address + sizeof(uint32_t) * offset;
+        uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
     }
 
     // Toggle a bit (offset and index defined at run-time)
     void toggle_bit_offset(uint32_t offset, uint32_t index) {
         ASSERT_WRITABLE
-        uintptr_t addr = base_address + sizeof(uint32_t) * offset;
+        uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
     }
 
@@ -207,12 +220,6 @@ class MemoryMap
     bool read_bit_offset(uint32_t offset, uint32_t index) {
         ASSERT_READABLE
         return *((volatile uint32_t *) (base_address + offset)) & (1 << index);
-    }
-
-    void write32_mask(uint32_t offset, uint32_t value, uint32_t mask) {
-        ASSERT_WRITABLE
-        uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
     }
 
     enum Status {

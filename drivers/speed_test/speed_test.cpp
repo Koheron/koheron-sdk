@@ -20,18 +20,17 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz)
 
 SpeedTest::SpeedTest(DevMem& dvm_)
 : dvm(dvm_)
+, cfg(dvm[CONFIG_ID])
+, sts(dvm[STATUS_ID])
+, adc_1_map(dvm[ADC1_ID])
+, adc_2_map(dvm[ADC2_ID])
+, rambuf_map(dvm[RAMBUF_ID])
 , data_decim(0)
 , data_all_int(0)
 {
-    cfg = dvm.add_memory_map(CONFIG_ADDR, CONFIG_RANGE);
-    sts = dvm.add_memory_map(STATUS_ADDR, STATUS_RANGE, PROT_READ);
-    adc_1_map  = dvm.add_memory_map(ADC1_ADDR, ADC1_RANGE);
-    adc_2_map  = dvm.add_memory_map(ADC2_ADDR, ADC2_RANGE);
-    rambuf_map = dvm.add_memory_map(RAMBUF_ADDR, RAMBUF_RANGE);
-
-    raw_data_1 = adc_1_map->get_ptr<uint32_t>();
-    raw_data_2 = adc_2_map->get_ptr<uint32_t>();
-    rambuf_data = rambuf_map->get_ptr<float>();
+    raw_data_1 = adc_1_map.get_ptr<uint32_t>();
+    raw_data_2 = adc_2_map.get_ptr<uint32_t>();
+    rambuf_data = rambuf_map.get_ptr<float>();
 
     mmap_buf = mmap(NULL, 16384*4, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
 
@@ -47,13 +46,13 @@ inline long long int mod(long long int k, long long int n)
 // Read the two channels in raw format
 std::array<float, 2*WFM_SIZE>& SpeedTest::read_raw_all()
 {
-    cfg->set_bit<ADDR_OFF, 1>();
+    cfg.set_bit<ADDR_OFF, 1>();
 
     for (unsigned int i=0; i<WFM_SIZE; i++) {
         data_all[i] = raw_data_1[i];
         data_all[i + WFM_SIZE] = raw_data_2[i];
     }
 
-    cfg->clear_bit<ADDR_OFF, 1>();
+    cfg.clear_bit<ADDR_OFF, 1>();
     return data_all;
 }

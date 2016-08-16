@@ -25,3 +25,5 @@ fw_printenv
 uImage
 *.tar.gz
 *.bin
+
+tests/.cache
