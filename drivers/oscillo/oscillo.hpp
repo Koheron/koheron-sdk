@@ -113,9 +113,9 @@ class Oscillo
 
     int32_t *raw_data[2] = {nullptr, nullptr};
 
-    MemoryMap<CONFIG_ID>& cfg;
-    MemoryMap<STATUS_ID>& sts;
-    MemoryMap<ADC_ID> adc_map;
+    MemoryMap<CONFIG>& cfg;
+    MemoryMap<STATUS>& sts;
+    MemoryMap<ADC> adc_map;
 
     // Acquired data buffers
     std::array<float, 2*WFM_SIZE> data_all;

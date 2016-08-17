@@ -33,7 +33,7 @@ constexpr uintptr_t get_base_addr(const MemMapID id) {
 }
 
 // Makes sure it gets evaluated at compile time
-static_assert(get_base_addr(CONFIG_ID) == std::get<0>(address_array[CONFIG_ID]), "get_base_address test failed");
+static_assert(get_base_addr(CONFIG) == std::get<0>(address_array[CONFIG]), "get_base_address test failed");
 
 constexpr uint32_t get_range(const MemMapID id) {
     return std::get<1>(address_array[id]);
