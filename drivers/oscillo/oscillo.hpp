@@ -115,7 +115,7 @@ class Oscillo
 
     MemoryMap<CONFIG>& cfg;
     MemoryMap<STATUS>& sts;
-    MemoryMap<ADC> adc_map;
+    MemoryMap<ADC>& adc_map;
 
     // Acquired data buffers
     std::array<float, 2*WFM_SIZE> data_all;
