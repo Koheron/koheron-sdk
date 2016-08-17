@@ -38,7 +38,7 @@ int DevMem::open()
 template<MemMapID id>
 int DevMem::add_memory_map()
 {
-    auto mem_map = std::make_unique<MemoryMap<id>>(&fd);
+    auto mem_map = std::make_unique<MemoryMap<id>>(fd);
 
     if (mem_map->get_status() != MemoryMap<id>::MEMMAP_OPENED) {
         kserver->syslog.print(kserver::SysLog::CRITICAL,

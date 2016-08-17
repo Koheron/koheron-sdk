@@ -74,7 +74,7 @@ class MemoryMap : public MemoryMapBase
   public:
     static_assert(id < addresses::count, "Invalid ID");
 
-    MemoryMap(int *fd_);
+    MemoryMap(const int& fd);
     ~MemoryMap();
 
     int get_protection() const {return protection;}
@@ -298,7 +298,6 @@ class MemoryMap : public MemoryMapBase
     };
 
   private:
-    int *fd;                 ///< /dev/mem file ID (Why is this a pointer ?)
     void *mapped_base;       ///< Map base address
     uintptr_t base_address;  ///< Virtual memory base address of the device
     int status;              ///< Status
@@ -317,14 +316,13 @@ cast_to_memory_map(const std::unique_ptr<MemoryMapBase>& memmap_base)
 }
 
 template<MemMapID id>
-MemoryMap<id>::MemoryMap(int *fd_)
+MemoryMap<id>::MemoryMap(const int& fd)
 : MemoryMapBase(id)
-, fd(fd_)
 , mapped_base(nullptr)
 , base_address(0)
 , status(MEMMAP_CLOSED)
 {
-    mapped_base = mmap(0, size, protection, MAP_SHARED, *fd, phys_addr & ~MAP_MASK(size));
+    mapped_base = mmap(0, size, protection, MAP_SHARED, fd, phys_addr & ~MAP_MASK(size));
 
     if (mapped_base == (void *) -1) {
         status = MEMMAP_FAILURE;
