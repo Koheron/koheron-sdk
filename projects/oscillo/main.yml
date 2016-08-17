@@ -10,7 +10,7 @@ addresses:
   - name: status
     offset: '0x50000000'
     range: 4K
-    prot: read
+    protection: read
   - name: dac[n_dac_bram]
     offset: '0x80000000'
     range: 16K

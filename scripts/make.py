@@ -94,11 +94,11 @@ def get_config(project):
             addr['n_blocks'] = num
 
             # Protection
-            if not 'prot' in addr:
+            if not 'protection' in addr:
                 addr['prot_flag'] = 'PROT_READ|PROT_WRITE'
-            elif addr['prot'] == 'read':
+            elif addr['protection'] == 'read':
                 addr['prot_flag'] = 'PROT_READ'
-            elif addr['prot'] == 'write':
+            elif addr['protection'] == 'write':
                 addr['prot_flag'] = 'PROT_WRITE'
 
     # Config and status registers

@@ -25,17 +25,11 @@
 #define RDFD_OFF 0x20
 #define RLR_OFF  0x24
 
-template<size_t N>
+template<MemMapID fifo_mem_id, size_t N>
 class FIFOReader
 {
   public:
     FIFOReader(DevMem& dvm_);
-
-    // Set FIFO virtual base address
-    void set_map(MemoryMap& fifo_map_){
-        fifo_map.store(&fifo_map_);
-        fifo_map.load()->write<RDFR_OFF>(0xA5); // Reset FIFO
-    }
 
     // Start the acquisition thread.
     // @acq_period_ Duration in microseconds between
@@ -65,8 +59,9 @@ class FIFOReader
 
   private:
     DevMem& dvm;
+    MemoryMap<fifo_mem_id>& fifo_mem;
 
-    std::atomic<::MemoryMap*>   fifo_map;
+    std::atomic<::MemoryMap<fifo_mem_id>*>   fifo_map;
     std::atomic<uint32_t>   num_thread;
     std::atomic<uint32_t>   index; // Current index of the ring_buffer
     std::atomic<uint32_t>   acq_num; // Number of points acquire since the last call to get_data()
@@ -81,10 +76,15 @@ class FIFOReader
     void acquisition_thread_call(uint32_t acq_period);
 };
 
-template<size_t N>
-FIFOReader<N>::FIFOReader(::DevMem& dvm_)
+template<MemMapID fifo_mem_id, size_t N>
+FIFOReader<fifo_mem_id, N>::FIFOReader(::DevMem& dvm_)
 : dvm(dvm_)
+, fifo_mem(dvm.get<fifo_mem_id>())
 {
+    // Set map
+    fifo_map.store(&fifo_mem);
+    fifo_map.load()->template write<RDFR_OFF>(0xA5); // Reset FIFO
+
     fifo_map.store(0x0);
     is_acquiring.store(false);
     index.store(0);
@@ -95,8 +95,8 @@ FIFOReader<N>::FIFOReader(::DevMem& dvm_)
     num_thread.store(0);
 }
 
-template<size_t N>
-void FIFOReader<N>::acquisition_thread_call(uint32_t acq_period)
+template<MemMapID fifo_mem_id, size_t N>
+void FIFOReader<fifo_mem_id, N>::acquisition_thread_call(uint32_t acq_period)
 {
     num_thread.store(num_thread.load() + 1);
     is_acquiring.store(true);
@@ -109,12 +109,12 @@ void FIFOReader<N>::acquisition_thread_call(uint32_t acq_period)
 
         // The length is stored in the last 22 bits of the RLR register.
         // The length is given in bytes so we divide by 4 to get the number of u32.
-        fifo_length.store((fifo_map.load()->read<RLR_OFF>() & 0x3FFFFF) >> 2);
+        fifo_length.store((fifo_map.load()->template read<RLR_OFF>() & 0x3FFFFF) >> 2);
 
         if (fifo_length.load() > 0) {
             std::lock_guard<std::mutex> guard(ring_buff_mtx);
             for (uint32_t i=0; i<fifo_length.load(); i++) {
-                ring_buffer[index.load()] = fifo_map.load()->read<RDFD_OFF>();
+                ring_buffer[index.load()] = fifo_map.load()->template read<RDFD_OFF>();
                 index.store((index.load() + 1) % N);
             }
         }
@@ -130,8 +130,8 @@ wait:
     num_thread.store(num_thread.load() - 1);
 }
 
-template<size_t N>
-void FIFOReader<N>::start_acquisition(uint32_t acq_period)
+template<MemMapID fifo_mem_id, size_t N>
+void FIFOReader<fifo_mem_id, N>::start_acquisition(uint32_t acq_period)
 {
     // If the is_acquiring flag is toogled during a the sleeping 
     // time of the thread, a new worker can be started while the
@@ -139,7 +139,7 @@ void FIFOReader<N>::start_acquisition(uint32_t acq_period)
     // is true. So we count the number of acquisition threads to
     // be sure only one worker at the time is running.
     if (!is_acquiring.load() && num_thread.load() == 0) {
-        std::thread acq_thread(&FIFOReader<N>::acquisition_thread_call, this, acq_period);
+        std::thread acq_thread(&FIFOReader<fifo_mem_id, N>::acquisition_thread_call, this, acq_period);
         acq_thread.detach();
 
         // Wait for the acquisition to start
@@ -147,14 +147,14 @@ void FIFOReader<N>::start_acquisition(uint32_t acq_period)
     }
 }
 
-template<size_t N>
-void FIFOReader<N>::stop_acquisition()
+template<MemMapID fifo_mem_id, size_t N>
+void FIFOReader<fifo_mem_id, N>::stop_acquisition()
 {
     is_acquiring.store(false);
 }
 
-template<size_t N>
-uint32_t FIFOReader<N>::get_buffer_length()
+template<MemMapID fifo_mem_id, size_t N>
+uint32_t FIFOReader<fifo_mem_id, N>::get_buffer_length()
 {
     uint32_t idx = index.load();
 
