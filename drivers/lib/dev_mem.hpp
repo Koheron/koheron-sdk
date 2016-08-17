@@ -57,7 +57,6 @@ class DevMem
   private:
     kserver::KServer *kserver;
     int fd;         // /dev/mem file ID
-    bool is_open;   // True if /dev/mem open
 
     int add_memory_maps();
     template<MemMapID id> int add_memory_map();

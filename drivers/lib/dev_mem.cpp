@@ -10,7 +10,6 @@ DevMem::DevMem(kserver::KServer *kserver_)
 , failed_maps(0)
 {
     fd = -1;
-    is_open = 0;
 }
 
 DevMem::~DevMem()
@@ -20,16 +19,12 @@ DevMem::~DevMem()
 
 int DevMem::open()
 {
-    if (fd == -1) {
-        fd = ::open("/dev/mem", O_RDWR | O_SYNC);
+    fd = ::open("/dev/mem", O_RDWR | O_SYNC);
 
-         if (fd == -1) {
-            kserver->syslog.print(kserver::SysLog::PANIC,
-                                  "Can't open /dev/mem\n");
-            return -1;
-        }
-        
-        is_open = 1;
+     if (fd == -1) {
+        kserver->syslog.print(kserver::SysLog::PANIC,
+                              "Can't open /dev/mem\n");
+        return -1;
     }
 
     create_maps<addresses::count>();
