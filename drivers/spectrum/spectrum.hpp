@@ -103,18 +103,17 @@ class Spectrum
   private:
     DevMem& dvm;
 
-    MemoryMap& cfg;
-    MemoryMap& sts;
-    MemoryMap& spectrum_map;
-    MemoryMap& demod_map;
-    MemoryMap& noise_floor_map;
-    MemoryMap& peak_fifo_map;
+    MemoryMap<CONFIG_MEM>& cfg;
+    MemoryMap<STATUS_MEM>& sts;
+    MemoryMap<SPECTRUM_MEM>& spectrum_map;
+    MemoryMap<DEMOD_MEM>& demod_map;
+    MemoryMap<NOISE_FLOOR_MEM>& noise_floor_map;
 
     // Acquired data buffers
     float *raw_data;
     std::array<float, WFM_SIZE> spectrum_data;
     std::vector<float> spectrum_decim;
-    FIFOReader<FIFO_BUFF_SIZE> fifo;
+    FIFOReader<PEAK_FIFO_MEM, FIFO_BUFF_SIZE> fifo;
     DacRouter<N_DAC_PARAM, N_DAC_BRAM_PARAM> dac;
 
     // Internal functions

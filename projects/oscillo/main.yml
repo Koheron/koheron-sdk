@@ -10,21 +10,12 @@ addresses:
   - name: status
     offset: '0x50000000'
     range: 4K
-    prot: read
-  - name: dac1
+    protection: read
+  - name: dac[n_dac_bram]
     offset: '0x80000000'
     range: 16K
-  - name: dac2
-    offset: '0x82000000'
-    range: 16K
-  - name: dac3
-    offset: '0x84000000'
-    range: 16K
-  - name: adc1
+  - name: adc[n_adc]
     offset: '0x86000000'
-    range: 32K
-  - name: adc2
-    offset: '0x88000000'
     range: 32K
   - name: gpio
     offset: '0x41200000'

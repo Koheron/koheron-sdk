@@ -36,8 +36,8 @@ class DacRouter
   public:
     DacRouter(DevMem& dvm_)
     : dvm(dvm_)
-    , cfg(dvm.get_mmap(CONFIG_ID))
-    , dac_map(dvm.get_mmaps<DAC1_ID, n_dac_bram>())
+    , cfg(dvm.get<CONFIG_MEM>())
+    , dac_map(dvm.get<DAC_MEM>())
     {}
 
     void set_config_reg(uint32_t dac_select_off_, uint32_t addr_select_off_) {
@@ -53,7 +53,7 @@ class DacRouter
 
     template<size_t N>
     std::array<uint32_t, N>& get_data(uint32_t channel) {
-        return dac_map[bram_index[channel]].template read_array<uint32_t, N>();
+        return dac_map.read_array<uint32_t, N>(bram_index[channel]);
     }
 
     void set_data(uint32_t channel, const uint32_t *buffer, uint32_t len);
@@ -71,10 +71,12 @@ class DacRouter
 
   private:
     DevMem& dvm;
-    MemoryMap& cfg;
-    uint32_t dac_select_off;
-    uint32_t addr_select_off;
-    MemMapArray<DAC1_ID, n_dac_bram> dac_map;
+    MemoryMap<CONFIG_MEM>& cfg;
+    uint32_t dac_select_off;  // TODO Known at compile time
+    uint32_t addr_select_off; // TODO Known at compile time
+    MemoryMap<DAC_MEM>& dac_map;
+
+    static_assert(n_dac_bram == addresses::get_n_blocks(DAC_MEM), "Invalid n_dac_bram");
 
     std::array<uint32_t, n_dac> bram_index;
     std::array<bool, n_dac_bram> connected_bram;
@@ -147,7 +149,7 @@ inline void DacRouter<n_dac, n_dac_bram>::set_data(
 {
     uint32_t old_idx = bram_index[channel];
     uint32_t new_idx = get_first_empty_bram_index();
-    dac_map[new_idx].set_ptr(buffer, len);
+    dac_map.set_ptr(buffer, len, new_idx);
     switch_interconnect(channel, old_idx, new_idx);
 }
 

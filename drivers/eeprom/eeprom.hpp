@@ -29,8 +29,8 @@ class Eeprom
   public:
     Eeprom(DevMem& dvm_)
     : dvm(dvm_)
-    , cfg(dvm[CONFIG_ID])
-    , sts(dvm[STATUS_ID])
+    , cfg(dvm.get<CONFIG_MEM>())
+    , sts(dvm.get<STATUS_MEM>())
     {}
 
     uint32_t read(uint32_t addr) {
@@ -72,8 +72,8 @@ class Eeprom
 
   private:
     DevMem& dvm;
-    MemoryMap& cfg;
-    MemoryMap& sts;
+    MemoryMap<CONFIG_MEM>& cfg;
+    MemoryMap<STATUS_MEM>& sts;
 }; // class Eeprom
 
 #endif // __DRIVERS_CORE_EEPROM_HPP__
