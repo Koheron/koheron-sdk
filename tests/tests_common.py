@@ -40,6 +40,18 @@ class TestsCommon:
     def test_get_server_version(self):
         assert len(common.get_server_version()) == 7
 
+    def test_get_instrument_config(self):
+        config = common.get_instrument_config()
+        # pprint.pprint(config)
+        assert 'addresses' in config
+        assert 'board' in config
+        assert 'config_registers' in config
+        assert 'status_registers' in config
+        assert 'project' in config
+        assert 'xdc' in config
+        assert 'parameters' in config
+        assert 'cores' in config
+
 # tests = TestsCommon()
 # tests.test_ip_on_leds()
 # tests.test_get_server_version()

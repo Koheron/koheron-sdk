@@ -40,6 +40,22 @@ class Common
         init.load_settings();
     };
 
+    void cfg_write(uint32_t offset, uint32_t value) {
+        cfg.write_offset(offset, value);
+    }
+
+    uint32_t cfg_read(uint32_t offset) {
+        return cfg.read_offset(offset);
+    }
+
+    uint32_t sts_read(uint32_t offset) {
+        return sts.read_offset(offset);
+    }
+
+    std::string get_instrument_config() {
+        return CFG_JSON;
+    }
+
   private:
     DevMem& dvm;
     MemoryMap<CONFIG_MEM>& cfg;

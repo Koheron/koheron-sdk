@@ -38,6 +38,22 @@ class Common(object):
 
         return get_version(self)
 
+    @command('COMMON', 'II')
+    def cfg_write(self, offset, value):
+        pass
+
+    @command('COMMON', 'I')
+    def cfg_read(self, offset):
+        return self.client.recv_uint32()
+
+    @command('COMMON', 'I')
+    def sts_read(self, offset):
+        return self.client.recv_uint32()
+
+    @command('COMMON')
+    def get_instrument_config(self):
+        return self.client.recv_json()
+
     def status(self):
        print('bitstream id = {}'.format(self.get_bitstream_id()))
        print('DNA = {}'.format(self.get_dna()))
