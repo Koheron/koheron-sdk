@@ -63,17 +63,19 @@ class DevMem
     template<MemMapID id> int add_memory_map();
 
     std::array<std::unique_ptr<MemoryMapBase>, addresses::count> mem_maps;
+    std::vector<MemMapID> failed_maps;
 
-    // TODO Return int for error status
-    template<size_t cnt>
+    template<MemMapID cnt>
     std::enable_if_t<cnt == 0, void>
-    append_maps() {}
+    create_maps() {}
 
-    template<size_t cnt>
+    template<MemMapID cnt>
     std::enable_if_t<(cnt > 0), void>
-    append_maps() {
-        add_memory_map<cnt-1>();
-        append_maps<cnt-1>();
+    create_maps() {
+        if (add_memory_map<cnt - 1>() < 0)
+            failed_maps.push_back(cnt - 1);
+
+        create_maps<cnt - 1>();
     }
 
 };

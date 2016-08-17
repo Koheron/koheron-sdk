@@ -294,7 +294,6 @@ class MemoryMap : public MemoryMapBase
     enum Status {
         MEMMAP_CLOSED,       ///< Memory map closed
         MEMMAP_OPENED,       ///< Memory map opened
-        MEMMAP_CANNOT_UMMAP, ///< Memory map cannot be unmapped
         MEMMAP_FAILURE       ///< Failure at memory mapping
     };
 

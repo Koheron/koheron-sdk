@@ -6,6 +6,7 @@
 
 DevMem::DevMem(kserver::KServer *kserver_)
 : kserver(kserver_)
+, failed_maps(0)
 {
     fd = -1;
     is_open = 0;
@@ -29,7 +30,11 @@ int DevMem::open()
         is_open = 1;
     }
 
-    append_maps<addresses::count>();
+    create_maps<addresses::count>();
+
+    if (! failed_maps.empty())
+        return -1;
+
     return fd;
 }
 
