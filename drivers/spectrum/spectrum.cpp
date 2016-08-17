@@ -7,18 +7,16 @@
 
 Spectrum::Spectrum(DevMem& dvm_)
 : dvm(dvm_)
-, cfg(dvm[CONFIG_ID])
-, sts(dvm[STATUS_ID])
-, spectrum_map(dvm[SPECTRUM_ID])
-, demod_map(dvm[DEMOD_ID])
-, noise_floor_map(dvm[NOISE_FLOOR_ID])
-, peak_fifo_map(dvm[PEAK_FIFO_ID])
+, cfg(dvm.get<CONFIG_MEM>())
+, sts(dvm.get<STATUS_MEM>())
+, spectrum_map(dvm.get<SPECTRUM_MEM>())
+, demod_map(dvm.get<DEMOD_MEM>())
+, noise_floor_map(dvm.get<NOISE_FLOOR_MEM>())
 , spectrum_decim(0)
 , fifo(dvm_)
 , dac(dvm_)
 {
     raw_data = spectrum_map.get_ptr<float>();
-    fifo.set_map(peak_fifo_map);
     set_averaging(true);
     cfg.write<ADDR_OFF>(19 << 2); // set tvalid delay to 19 * 8 ns
     set_address_range(0, WFM_SIZE);
