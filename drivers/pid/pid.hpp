@@ -22,11 +22,8 @@ class Pid
     : dvm(dvm_)
     , cfg(dvm.get<CONFIG_MEM>())
     , sts(dvm.get<STATUS_MEM>())
-    , fifo_map(dvm.get<FIFO_MEM>())
     , fifo(dvm_)
-    {
-        fifo.set_map(fifo_map);
-    }
+    {}
 
     void set_cic_rate(uint32_t rate) {
         cfg.write<CIC_RATE_OFF>(rate);
@@ -46,12 +43,9 @@ class Pid
 
   private:
     DevMem& dvm;
-
     MemoryMap<CONFIG_MEM>& cfg;
     MemoryMap<STATUS_MEM>& sts;
-    MemoryMap<FIFO_MEM>& fifo_map;
-
-    FIFOReader<FIFO_BUFF_SIZE> fifo;
+    FIFOReader<FIFO_MEM, FIFO_BUFF_SIZE> fifo;
 }; // class Pid
 
 #endif // __DRIVERS_CORE_PID_HPP__
