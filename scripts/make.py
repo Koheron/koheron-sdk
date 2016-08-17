@@ -171,8 +171,11 @@ def get_renderer():
     def remove_extension(filename):
         toks = filename.split('.')
         return toks[0]
+    def replace_KMG(string):
+        return string.replace('K','*1024').replace('M','*1024*1024').replace('G','*1024*1024*1024')
     renderer.filters['quote'] = quote
     renderer.filters['remove_extension'] = remove_extension
+    renderer.filters['replace_KMG'] = replace_KMG
 
     return renderer
 

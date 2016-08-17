@@ -16,7 +16,7 @@ extern "C" {
 // -- Base addresses
 {% for addr in dic['addresses'] -%}
 constexpr uintptr_t {{ addr['name']|upper }}_ADDR = {{ addr['offset'] }};
-constexpr uint32_t {{ addr['name']|upper }}_RANGE = {{ addr['range']|replace('K','*1024')|replace('M','*1024*1024')|replace('G','*1024*1024*1024') }};
+constexpr uint32_t {{ addr['name']|upper }}_RANGE = {{ addr['range'] | replace_KMG }};
 constexpr uint32_t {{ addr['name']|upper }}_NBLOCKS = {{ addr['n_blocks'] }};
 constexpr uint32_t {{ addr['name']|upper }}_ID = {{ loop.index0 }};
 {% endfor %}
