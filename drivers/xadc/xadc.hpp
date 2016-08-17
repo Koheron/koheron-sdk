@@ -35,7 +35,7 @@ class Xadc
 
   private:
     DevMem& dvm;
-    MemoryMap& xadc;
+    MemoryMap<XADC_MEM>& xadc;
 
     uint32_t channel_0 = 1;
     uint32_t channel_1 = 8;

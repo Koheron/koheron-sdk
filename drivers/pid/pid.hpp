@@ -20,17 +20,21 @@ class Pid
   public:
     Pid(DevMem& dvm_)
     : dvm(dvm_)
-    , cfg(dvm[CONFIG_ID])
-    , sts(dvm[STATUS_ID])
-    , fifo_map(dvm[FIFO_ID])
+    , cfg(dvm.get<CONFIG_MEM>())
+    , sts(dvm.get<STATUS_MEM>())
+    , fifo_map(dvm.get<FIFO_MEM>())
     , fifo(dvm_)
     {
         fifo.set_map(fifo_map);
     }
 
-    void set_cic_rate(uint32_t rate) {cfg.write<CIC_RATE_OFF>(rate);}
+    void set_cic_rate(uint32_t rate) {
+        cfg.write<CIC_RATE_OFF>(rate);
+    }
 
-    void set_dds_freq(float freq) {cfg.write<DDS_OFF>(uint32_t(freq * freq_factor));}
+    void set_dds_freq(float freq) {
+        cfg.write<DDS_OFF>(uint32_t(freq * freq_factor));
+    }
 
     /// @acq_period Sleeping time between two acquisitions (us)
     void fifo_start_acquisition(uint32_t acq_period) {fifo.start_acquisition(acq_period);}
@@ -43,9 +47,9 @@ class Pid
   private:
     DevMem& dvm;
 
-    MemoryMap& cfg;
-    MemoryMap& sts;
-    MemoryMap& fifo_map;
+    MemoryMap<CONFIG_MEM>& cfg;
+    MemoryMap<STATUS_MEM>& sts;
+    MemoryMap<FIFO_MEM>& fifo_map;
 
     FIFOReader<FIFO_BUFF_SIZE> fifo;
 }; // class Pid

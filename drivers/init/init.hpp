@@ -10,7 +10,7 @@
 class Init
 {
   public:
-    Init(DevMem& dev_mem_) {};
+    Init(DevMem& dvm_) {};
 
     void load_settings() {};
 };
