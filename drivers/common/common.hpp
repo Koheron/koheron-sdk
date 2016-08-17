@@ -16,8 +16,8 @@ class Common
   public:
     Common(DevMem& dvm_)
     : dvm(dvm_)
-    , cfg(dvm[CONFIG_ID])
-    , sts(dvm[STATUS_ID])
+    , cfg(dvm.get<CONFIG_MEM>())
+    , sts(dvm.get<STATUS_MEM>())
     {}
 
     std::array<uint32_t, BITSTREAM_ID_SIZE> get_bitstream_id();
@@ -42,8 +42,8 @@ class Common
 
   private:
     DevMem& dvm;
-    MemoryMap& cfg;
-    MemoryMap& sts;
+    MemoryMap<CONFIG_MEM>& cfg;
+    MemoryMap<STATUS_MEM>& sts;
 
     std::array<uint32_t, BITSTREAM_ID_SIZE> bitstream_id;
 };

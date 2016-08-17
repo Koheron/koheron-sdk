@@ -13,7 +13,7 @@
 
 #define SAMPLING_RATE 125E6
 
-#define WFM_SIZE ADC1_RANGE/sizeof(float)
+#define WFM_SIZE ADC_RANGE/sizeof(float)
 
 // #define RAMBUF_ADDR 0x1E000000
 // #define RAMBUF_RANGE 2048*4096
@@ -61,11 +61,10 @@ class SpeedTest
   private:
     DevMem& dvm;
 
-    MemoryMap& cfg;
-    MemoryMap& sts;
-    MemoryMap& adc_1_map;
-    MemoryMap& adc_2_map;
-    MemoryMap& rambuf_map;
+    MemoryMap<CONFIG_MEM>& cfg;
+    MemoryMap<STATUS_MEM>& sts;
+    MemoryMap<ADC_MEM>& adc_map;
+    MemoryMap<RAMBUF_MEM>& rambuf_map;
     void *mmap_buf;
 
     uint32_t *raw_data_1 = nullptr;

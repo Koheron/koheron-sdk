@@ -36,8 +36,8 @@ class DacRouter
   public:
     DacRouter(DevMem& dvm_)
     : dvm(dvm_)
-    , cfg(dvm.get<CONFIG>())
-    , dac_map(dvm.get<DAC>())
+    , cfg(dvm.get<CONFIG_MEM>())
+    , dac_map(dvm.get<DAC_MEM>())
     {}
 
     void set_config_reg(uint32_t dac_select_off_, uint32_t addr_select_off_) {
@@ -71,10 +71,12 @@ class DacRouter
 
   private:
     DevMem& dvm;
-    MemoryMap<CONFIG>& cfg;
-    uint32_t dac_select_off;
-    uint32_t addr_select_off;
-    MemoryMap<DAC>& dac_map;
+    MemoryMap<CONFIG_MEM>& cfg;
+    uint32_t dac_select_off;  // TODO Known at compile time
+    uint32_t addr_select_off; // TODO Known at compile time
+    MemoryMap<DAC_MEM>& dac_map;
+
+    static_assert(n_dac_bram == addresses::get_n_blocks(DAC_MEM), "Invalid n_dac_bram");
 
     std::array<uint32_t, n_dac> bram_index;
     std::array<bool, n_dac_bram> connected_bram;

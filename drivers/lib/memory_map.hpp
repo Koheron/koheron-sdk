@@ -33,7 +33,7 @@ constexpr uintptr_t get_base_addr(const MemMapID id) {
 }
 
 // Makes sure it gets evaluated at compile time
-static_assert(get_base_addr(CONFIG) == std::get<0>(address_array[CONFIG]), "get_base_address test failed");
+static_assert(get_base_addr(CONFIG_MEM) == std::get<0>(address_array[CONFIG_MEM]), "get_base_address test failed");
 
 constexpr uint32_t get_range(const MemMapID id) {
     return std::get<1>(address_array[id]);
@@ -43,16 +43,16 @@ constexpr uint32_t get_protection(const MemMapID id) {
     return std::get<2>(address_array[id]);
 }
 
+constexpr uint32_t get_n_blocks(const MemMapID id) {
+    return std::get<3>(address_array[id]);
+}
+
 constexpr bool is_writable(const MemMapID id) {
     return (get_protection(id) & PROT_WRITE) == PROT_WRITE;
 }
 
 constexpr bool is_readable(const MemMapID id) {
     return (get_protection(id) & PROT_READ) == PROT_READ;
-}
-
-constexpr uint32_t get_n_blocks(const MemMapID id) {
-    return std::get<3>(address_array[id]);
 }
 
 constexpr uint32_t get_total_size(const MemMapID id) {

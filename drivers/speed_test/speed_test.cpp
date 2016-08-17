@@ -20,16 +20,15 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz)
 
 SpeedTest::SpeedTest(DevMem& dvm_)
 : dvm(dvm_)
-, cfg(dvm[CONFIG_ID])
-, sts(dvm[STATUS_ID])
-, adc_1_map(dvm[ADC1_ID])
-, adc_2_map(dvm[ADC2_ID])
-, rambuf_map(dvm[RAMBUF_ID])
+, cfg(dvm.get<CONFIG_MEM>())
+, sts(dvm.get<STATUS_MEM>())
+, adc_map(dvm.get<ADC_MEM>())
+, rambuf_map(dvm.get<RAMBUF_MEM>())
 , data_decim(0)
 , data_all_int(0)
 {
-    raw_data_1 = adc_1_map.get_ptr<uint32_t>();
-    raw_data_2 = adc_2_map.get_ptr<uint32_t>();
+    raw_data_1 = adc_map.get_ptr<uint32_t>(0);
+    raw_data_2 = adc_map.get_ptr<uint32_t>(1);
     rambuf_data = rambuf_map.get_ptr<float>();
 
     mmap_buf = mmap(NULL, 16384*4, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
