@@ -3,6 +3,7 @@
 #include "dev_mem.hpp"
 
 #include <core/kserver.hpp>
+#include <core/kserver_syslog.hpp>
 
 DevMem::DevMem(kserver::KServer *kserver_)
 : kserver(kserver_)
@@ -23,7 +24,8 @@ int DevMem::open()
         fd = ::open("/dev/mem", O_RDWR | O_SYNC);
 
          if (fd == -1) {
-            fprintf(stderr, "Can't open /dev/mem\n");
+            kserver->syslog.print(kserver::SysLog::PANIC,
+                                  "Can't open /dev/mem\n");
             return -1;
         }
         
@@ -44,7 +46,8 @@ int DevMem::add_memory_map()
     auto mem_map = std::make_unique<MemoryMap<id>>(&fd);
 
     if (mem_map->get_status() != MemoryMap<id>::MEMMAP_OPENED) {
-        fprintf(stderr, "Can't open memory map id = %u\n", id);
+        kserver->syslog.print(kserver::SysLog::CRITICAL,
+                              "Can't open memory map id = %u\n", id);
         return -1;
     }
 

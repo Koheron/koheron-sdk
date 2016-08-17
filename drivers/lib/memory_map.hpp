@@ -327,7 +327,6 @@ MemoryMap<id>::MemoryMap(int *fd_)
     mapped_base = mmap(0, size, protection, MAP_SHARED, *fd, phys_addr & ~MAP_MASK(size));
 
     if (mapped_base == (void *) -1) {
-        fprintf(stderr, "Can't map the memory to user space.\n");
         status = MEMMAP_FAILURE;
         return;
     }
