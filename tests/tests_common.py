@@ -52,6 +52,12 @@ class TestsCommon:
         assert 'parameters' in config
         assert 'cores' in config
 
+    def test_cfg_write_read(self):
+        config = common.get_instrument_config()
+        value = np.random.randint(16384, size=1)[0]
+        common.cfg_write(common.mem_cfg.cfg['led'], value)
+        assert common.cfg_read(common.mem_cfg.cfg['led']) == value
+
 # tests = TestsCommon()
 # tests.test_ip_on_leds()
 # tests.test_get_server_version()
