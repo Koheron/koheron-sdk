@@ -32,9 +32,15 @@ variable {{ key }} {{ dic['parameters'][key] }}
 # Define offsets and ranges of AXI Slaves
 ##########################################################
 {% for address in dic['addresses'] -%}
-# {{ address['name'] | upper}}
+{% if address['n_blocks'] == 1 %}
 variable axi_{{ address['name'] }}_offset {{ address['offset'] }}
 variable axi_{{ address['name'] }}_range {{ address['range'] }}
+{% else %}
+{% for i in range(address['n_blocks']) -%}
+variable axi_{{ address['name'] }}{{ i + 1 }}_offset 0x[format %x [expr {{ address['offset'] }} + {{ i }} * {{ address['range']|replace_KMG }}]]
+variable axi_{{ address['name'] }}{{ i + 1  }}_range {{ address['range'] }}
+{% endfor %}
+{% endif %}
 {% endfor -%}
 
 } ;# end config namespace

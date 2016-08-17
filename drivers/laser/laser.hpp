@@ -40,7 +40,7 @@ class Laser
   public:
     Laser(DevMem& dvm_)
     : dvm(dvm_)
-    , cfg(dvm[CONFIG_ID])
+    , cfg(dvm.get<CONFIG_MEM>())
     , xadc(dvm_)
     , gpio(dvm_)
     , eeprom(dvm_)
@@ -93,7 +93,7 @@ class Laser
 
   private:
     DevMem& dvm;
-    MemoryMap& cfg; // required for pwm
+    MemoryMap<CONFIG_MEM>& cfg; // required for pwm
 
     Xadc xadc;
     Gpio gpio;

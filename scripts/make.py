@@ -79,19 +79,30 @@ def get_config(project):
     for prop in props:
         cfg[prop] = get_prop(project, prop)
 
+    params = cfg['parameters']
+
     # Addresses
     if 'addresses' in cfg:
         for addr in cfg['addresses']:
-            if not 'prot' in addr:
+            name, num = parse_brackets(addr['name'])
+            if num.isdigit():
+                num = int(num)
+            else:
+                assert(num in params)
+                num = params[num]
+            addr['name'] = name
+            addr['n_blocks'] = num
+
+            # Protection
+            if not 'protection' in addr:
                 addr['prot_flag'] = 'PROT_READ|PROT_WRITE'
-            elif addr['prot'] == 'read':
+            elif addr['protection'] == 'read':
                 addr['prot_flag'] = 'PROT_READ'
-            elif addr['prot'] == 'write':
+            elif addr['protection'] == 'write':
                 addr['prot_flag'] = 'PROT_WRITE'
 
     # Config and status registers
     lists = ['config_registers','status_registers']
-    params = cfg['parameters']
     for list_ in lists:
         new_list = []
         if cfg[list_] is not None:
@@ -160,8 +171,11 @@ def get_renderer():
     def remove_extension(filename):
         toks = filename.split('.')
         return toks[0]
+    def replace_KMG(string):
+        return string.replace('K','*1024').replace('M','*1024*1024').replace('G','*1024*1024*1024')
     renderer.filters['quote'] = quote
     renderer.filters['remove_extension'] = remove_extension
+    renderer.filters['replace_KMG'] = replace_KMG
 
     return renderer
 
