@@ -44,13 +44,12 @@ class DevMem
     }
 
     template<MemMapID id>
-    int get_status() {
+    auto get_status() {
         return cast_to_memory_map<id>(mem_maps[id])->get_status();
     }
 
     template<MemMapID id>
-    std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>
-    get_map_params() {
+    auto get_map_params() {
         return cast_to_memory_map<id>(mem_maps[id])->get_params();
     }
 

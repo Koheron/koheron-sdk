@@ -17,7 +17,7 @@ extern "C" {
 
 #include <drivers/addresses.hpp>
 
-#define DEFAULT_MAP_SIZE 4096UL // = PAGE_SIZE
+//#define DEFAULT_MAP_SIZE 4096UL // = PAGE_SIZE
 #define MAP_MASK(size) ((size) - 1)
 
 typedef size_t MemMapID;
@@ -78,8 +78,8 @@ class MemoryMap : public MemoryMapBase
     uint32_t mapped_size() const {return size;}
     uintptr_t get_phys_addr() const {return phys_addr;}
 
-    std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>
-    get_params() {
+   
+    auto get_params() {
         return std::make_tuple(
             base_address,
             status,
