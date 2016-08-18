@@ -82,9 +82,8 @@ class MemoryMap : public MemoryMapBase
     uintptr_t get_base_addr() const {return base_address;}
     uint32_t mapped_size() const {return size;}
     uintptr_t get_phys_addr() const {return phys_addr;}
-
-    std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>
-    get_params() {
+   
+    auto get_params() {
         return std::make_tuple(
             base_address,
             status,
