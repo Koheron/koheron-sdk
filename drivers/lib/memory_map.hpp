@@ -61,12 +61,7 @@ constexpr uint32_t get_total_size(const MemMapID id) {
 
 } // namespace addresses
 
-struct MemoryMapBase {
-    MemoryMapBase(MemMapID id_)
-    : _id(id_) {}
-
-    MemMapID _id;
-};
+struct MemoryMapBase {};
 
 template<MemMapID id>
 class MemoryMap : public MemoryMapBase
@@ -317,8 +312,7 @@ cast_to_memory_map(const std::unique_ptr<MemoryMapBase>& memmap_base)
 
 template<MemMapID id>
 MemoryMap<id>::MemoryMap(const int& fd)
-: MemoryMapBase(id)
-, mapped_base(nullptr)
+: mapped_base(nullptr)
 , base_address(0)
 , status(MEMMAP_CLOSED)
 {
