@@ -58,7 +58,7 @@ constexpr uint32_t get_total_size(const MemMapID id) {
 
 } // namespace addresses
 
-constexpr off_t get_mmap_offset(uintptr_t phys_addr, size_t size) {
+constexpr off_t get_mmap_offset(uintptr_t phys_addr, uint32_t size) {
     return phys_addr & ~(size - 1);
 }
 
@@ -75,11 +75,18 @@ class MemoryMap : public MemoryMapBase
   public:
     static_assert(id < addresses::count, "Invalid ID");
 
-    MemoryMap(const int& fd)
+    MemoryMap()
     : mapped_base(nullptr)
     , base_address(0)
     , status(MEMMAP_CLOSED)
-    {
+    {}
+
+    ~MemoryMap() {
+        if (status == MEMMAP_OPENED)
+            munmap(mapped_base, size);
+    }
+
+    void open(const int& fd) {
         mapped_base = mmap(0, size, protection, MAP_SHARED, fd, get_mmap_offset(phys_addr, size));
 
         if (mapped_base == (void *) -1) {
@@ -89,11 +96,7 @@ class MemoryMap : public MemoryMapBase
 
         status = MEMMAP_OPENED;
         base_address = reinterpret_cast<uintptr_t>(mapped_base) + (phys_addr & (size - 1));
-    }
-
-    ~MemoryMap() {
-        if (status == MEMMAP_OPENED)
-            munmap(mapped_base, size);
+        // printf("base_address = %u\n", base_address);
     }
 
     int get_protection() const {return protection;}
@@ -320,12 +323,5 @@ class MemoryMap : public MemoryMapBase
     uintptr_t base_address;  ///< Virtual memory base address of the device
     int status;              ///< Status
 };
-
-template<MemMapID id>
-MemoryMap<id>*
-cast_to_memory_map(const std::unique_ptr<MemoryMapBase>& memmap_base)
-{
-    return static_cast<MemoryMap<id>*>(memmap_base.get());
-}
 
 #endif // __DRIVERS_CORE_MEMORY_MAP_HPP__
