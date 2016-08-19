@@ -19,17 +19,17 @@ addresses:
 
 config_registers:
   - led
-  - dac[2]
+  - dac[n_dac]
 
 status_registers:
-  - adc[2]
+  - adc[n_adc]
 
 parameters:
-  bram_addr_width: 13
+  fclk0: 200000000
   dac_width: 14
   adc_width: 14
-  pwm_width: 10
-  n_pwm: 4
+  n_dac: 2
+  n_adc: 2
 
 xdc:
   - boards/red-pitaya/config/ports.xdc

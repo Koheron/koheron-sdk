@@ -1,0 +1,6 @@
+includes: [projects/default/server.yml]
+
+drivers:
+  - drivers/common/common.hpp
+  - drivers/common/common.cpp
+  - drivers/init/init.hpp
