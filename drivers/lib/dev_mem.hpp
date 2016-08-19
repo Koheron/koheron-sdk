@@ -22,8 +22,8 @@ extern "C" {
 
 #include "memory_map.hpp"
 
-template<size_t N, class = std::make_index_sequence<N>>
-class DevMemImpl;
+// http://stackoverflow.com/questions/39041236/tuple-of-sequence
+template<size_t N, class = std::make_index_sequence<N>> class DevMemImpl;
 
 template<size_t N, MemMapID... ids>
 class DevMemImpl<N, std::index_sequence<ids...>>
@@ -44,11 +44,11 @@ class DevMemImpl<N, std::index_sequence<ids...>>
     }
 
   private:
-    int fd; // /dev/mem file ID
+    int fd;
     std::vector<MemMapID> failed_maps;
     std::tuple<MemoryMap<ids>...> mem_maps;
 
-    template<MemMapID id> void add_memory_map();
+    template<MemMapID id> void open_memory_map();
 
     template<MemMapID cnt>
     std::enable_if_t<cnt == 0, void>
@@ -57,7 +57,7 @@ class DevMemImpl<N, std::index_sequence<ids...>>
     template<MemMapID cnt>
     std::enable_if_t<(cnt > 0), void>
     create_maps() {
-        add_memory_map<cnt-1>();
+        open_memory_map<cnt-1>();
         create_maps<cnt-1>();
     }
 };
@@ -82,7 +82,7 @@ int DevMemImpl<N, std::index_sequence<ids...>>::open()
 
 template<size_t N, MemMapID... ids>
 template<MemMapID id>
-void DevMemImpl<N, std::index_sequence<ids...>>::add_memory_map()
+void DevMemImpl<N, std::index_sequence<ids...>>::open_memory_map()
 {
     std::get<id>(mem_maps).open(fd);
 
