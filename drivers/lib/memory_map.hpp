@@ -17,9 +17,6 @@ extern "C" {
 
 #include <drivers/addresses.hpp>
 
-//#define DEFAULT_MAP_SIZE 4096UL // = PAGE_SIZE
-#define MAP_MASK(size) ((size) - 1)
-
 typedef size_t MemMapID;
 
 namespace addresses {
@@ -61,6 +58,10 @@ constexpr uint32_t get_total_size(const MemMapID id) {
 
 } // namespace addresses
 
+constexpr off_t get_mmap_offset(uintptr_t phys_addr, size_t size) {
+    return phys_addr & ~(size - 1);
+}
+
 struct MemoryMapBase {};
 
 template<MemMapID id,
@@ -68,8 +69,7 @@ template<MemMapID id,
          uint32_t n_blocks = addresses::get_n_blocks(id),
          uint32_t block_size = addresses::get_range(id),
          uint32_t size = addresses::get_total_size(id),
-         int protection = addresses::get_protection(id)
->
+         int protection = addresses::get_protection(id)>
 class MemoryMap : public MemoryMapBase
 {
   public:
@@ -80,7 +80,7 @@ class MemoryMap : public MemoryMapBase
     , base_address(0)
     , status(MEMMAP_CLOSED)
     {
-        mapped_base = mmap(0, size, protection, MAP_SHARED, fd, phys_addr & ~MAP_MASK(size));
+        mapped_base = mmap(0, size, protection, MAP_SHARED, fd, get_mmap_offset(phys_addr, size));
 
         if (mapped_base == (void *) -1) {
             status = MEMMAP_FAILURE;
@@ -88,7 +88,7 @@ class MemoryMap : public MemoryMapBase
         }
 
         status = MEMMAP_OPENED;
-        base_address = (uintptr_t)mapped_base + (phys_addr & MAP_MASK(size));
+        base_address = reinterpret_cast<uintptr_t>(mapped_base) + (phys_addr & (size - 1));
     }
 
     ~MemoryMap() {
@@ -102,7 +102,6 @@ class MemoryMap : public MemoryMapBase
     uint32_t mapped_size() const {return size;}
     uintptr_t get_phys_addr() const {return phys_addr;}
 
-   
     auto get_params() {
         return std::make_tuple(
             base_address,
