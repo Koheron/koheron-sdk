@@ -1,6 +1,6 @@
-includes: [projects/default/server.yml]
+includes:
+  - projects/default/server.yml
+  - projects/default/drivers.yml
 
 drivers:
-  - drivers/common/common.hpp
-  - drivers/common/common.cpp
-  - drivers/init/init.hpp
+  - projects/blink/blink.hpp
