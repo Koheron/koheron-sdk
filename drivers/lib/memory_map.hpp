@@ -63,14 +63,38 @@ constexpr uint32_t get_total_size(const MemMapID id) {
 
 struct MemoryMapBase {};
 
-template<MemMapID id>
+template<MemMapID id,
+         uintptr_t phys_addr = addresses::get_base_addr(id),
+         uint32_t n_blocks = addresses::get_n_blocks(id),
+         uint32_t block_size = addresses::get_range(id),
+         uint32_t size = addresses::get_total_size(id),
+         int protection = addresses::get_protection(id)
+>
 class MemoryMap : public MemoryMapBase
 {
   public:
     static_assert(id < addresses::count, "Invalid ID");
 
-    MemoryMap(const int& fd);
-    ~MemoryMap();
+    MemoryMap(const int& fd)
+    : mapped_base(nullptr)
+    , base_address(0)
+    , status(MEMMAP_CLOSED)
+    {
+        mapped_base = mmap(0, size, protection, MAP_SHARED, fd, phys_addr & ~MAP_MASK(size));
+
+        if (mapped_base == (void *) -1) {
+            status = MEMMAP_FAILURE;
+            return;
+        }
+
+        status = MEMMAP_OPENED;
+        base_address = (uintptr_t)mapped_base + (phys_addr & MAP_MASK(size));
+    }
+
+    ~MemoryMap() {
+        if (status == MEMMAP_OPENED)
+            munmap(mapped_base, size);
+    }
 
     int get_protection() const {return protection;}
     int get_status() const {return status;}
@@ -296,11 +320,6 @@ class MemoryMap : public MemoryMapBase
     void *mapped_base;       ///< Map base address
     uintptr_t base_address;  ///< Virtual memory base address of the device
     int status;              ///< Status
-    uintptr_t phys_addr = addresses::get_base_addr(id);
-    uint32_t n_blocks = addresses::get_n_blocks(id);
-    uint32_t block_size = addresses::get_range(id);
-    uint32_t size = addresses::get_total_size(id);
-    int protection = addresses::get_protection(id);
 };
 
 template<MemMapID id>
@@ -308,30 +327,6 @@ MemoryMap<id>*
 cast_to_memory_map(const std::unique_ptr<MemoryMapBase>& memmap_base)
 {
     return static_cast<MemoryMap<id>*>(memmap_base.get());
-}
-
-template<MemMapID id>
-MemoryMap<id>::MemoryMap(const int& fd)
-: mapped_base(nullptr)
-, base_address(0)
-, status(MEMMAP_CLOSED)
-{
-    mapped_base = mmap(0, size, protection, MAP_SHARED, fd, phys_addr & ~MAP_MASK(size));
-
-    if (mapped_base == (void *) -1) {
-        status = MEMMAP_FAILURE;
-        return;
-    }
-
-    status = MEMMAP_OPENED;
-    base_address = (uintptr_t)mapped_base + (phys_addr & MAP_MASK(size));
-}
-
-template<MemMapID id>
-MemoryMap<id>::~MemoryMap()
-{
-    if (status == MEMMAP_OPENED)
-        munmap(mapped_base, size);
 }
 
 #endif // __DRIVERS_CORE_MEMORY_MAP_HPP__
