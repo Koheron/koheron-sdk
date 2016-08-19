@@ -72,7 +72,7 @@ int DevMemImpl<N, std::index_sequence<ids...>>::open()
         return -1;
     }
 
-    create_maps<addresses::count>();
+    create_maps<N>();
 
     if (! failed_maps.empty())
         return -1;
