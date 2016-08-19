@@ -17,7 +17,7 @@ extern "C" {
 
 #include <drivers/addresses.hpp>
 
-#define DEFAULT_MAP_SIZE 4096UL // = PAGE_SIZE
+//#define DEFAULT_MAP_SIZE 4096UL // = PAGE_SIZE
 #define MAP_MASK(size) ((size) - 1)
 
 typedef size_t MemMapID;
@@ -61,12 +61,7 @@ constexpr uint32_t get_total_size(const MemMapID id) {
 
 } // namespace addresses
 
-struct MemoryMapBase {
-    MemoryMapBase(MemMapID id_)
-    : _id(id_) {}
-
-    MemMapID _id;
-};
+struct MemoryMapBase {};
 
 template<MemMapID id>
 class MemoryMap : public MemoryMapBase
@@ -74,7 +69,7 @@ class MemoryMap : public MemoryMapBase
   public:
     static_assert(id < addresses::count, "Invalid ID");
 
-    MemoryMap(int *fd_);
+    MemoryMap(const int& fd);
     ~MemoryMap();
 
     int get_protection() const {return protection;}
@@ -83,8 +78,8 @@ class MemoryMap : public MemoryMapBase
     uint32_t mapped_size() const {return size;}
     uintptr_t get_phys_addr() const {return phys_addr;}
 
-    std::tuple<uintptr_t, int, uintptr_t, uint32_t, int>
-    get_params() {
+   
+    auto get_params() {
         return std::make_tuple(
             base_address,
             status,
@@ -294,12 +289,10 @@ class MemoryMap : public MemoryMapBase
     enum Status {
         MEMMAP_CLOSED,       ///< Memory map closed
         MEMMAP_OPENED,       ///< Memory map opened
-        MEMMAP_CANNOT_UMMAP, ///< Memory map cannot be unmapped
         MEMMAP_FAILURE       ///< Failure at memory mapping
     };
 
   private:
-    int *fd;                 ///< /dev/mem file ID (Why is this a pointer ?)
     void *mapped_base;       ///< Map base address
     uintptr_t base_address;  ///< Virtual memory base address of the device
     int status;              ///< Status
@@ -318,17 +311,14 @@ cast_to_memory_map(const std::unique_ptr<MemoryMapBase>& memmap_base)
 }
 
 template<MemMapID id>
-MemoryMap<id>::MemoryMap(int *fd_)
-: MemoryMapBase(id)
-, fd(fd_)
-, mapped_base(nullptr)
+MemoryMap<id>::MemoryMap(const int& fd)
+: mapped_base(nullptr)
 , base_address(0)
 , status(MEMMAP_CLOSED)
 {
-    mapped_base = mmap(0, size, protection, MAP_SHARED, *fd, phys_addr & ~MAP_MASK(size));
+    mapped_base = mmap(0, size, protection, MAP_SHARED, fd, phys_addr & ~MAP_MASK(size));
 
     if (mapped_base == (void *) -1) {
-        fprintf(stderr, "Can't map the memory to user space.\n");
         status = MEMMAP_FAILURE;
         return;
     }
