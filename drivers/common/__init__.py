@@ -24,7 +24,10 @@ class MemoryConfig(object):
         self.sts = {}
 
         for idx, addr in enumerate(dic['addresses']):
-            self.mmaps[addr['name']] = MemMap(idx, addr['name'], addr['offset'], addr['range'])
+            self.mmaps[addr['name']] = MemMap(idx, addr['name'], addr['offset'],
+                                            eval(addr['range'].replace('K','*1024')
+                                                              .replace('M','*1024*1024')
+                                                              .replace('G','*1024*1024*1024')))
 
         for i, name in enumerate(dic['config_registers']):
             self.cfg[name] = 4 * i
@@ -82,6 +85,14 @@ class Common(object):
     @command('COMMON', 'I')
     def sts_read(self, offset):
         return self.client.recv_uint32()
+
+    @command('COMMON')
+    def cfg_read_all(self):
+        return self.client.recv_buffer(self.mem_cfg.mmaps['config'].range/4, data_type='uint32')
+
+    @command('COMMON')
+    def sts_read_all(self):
+        return self.client.recv_buffer(self.mem_cfg.mmaps['status'].range/4, data_type='uint32')
 
     @command('COMMON')
     def get_instrument_config(self):
