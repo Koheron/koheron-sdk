@@ -57,7 +57,7 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor,
                                                      uint32_t index_low, uint32_t index_high)
 {
     // Sanity checks
-    if (index_high <= index_low || index_high >= WFM_SIZE) {
+    if (index_high <= index_low || index_high > WFM_SIZE) {
         data_decim.resize(0);
         return data_decim;
     }
