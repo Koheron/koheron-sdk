@@ -55,6 +55,6 @@ constexpr uint32_t BITSTREAM_ID_SIZE = 8;
 constexpr uint32_t DNA_OFF = 4 * 8;
 
 // -- JSONified config
-#define CFG_JSON "{{ dic['json'] }}"
+constexpr auto CFG_JSON = "{{ dic['json'] }}";
 
 #endif // __DRIVERS_CORE_ADDRESSES_HPP__
