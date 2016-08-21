@@ -154,7 +154,7 @@ class MemoryMap
 
     // Write a std::array (offset defined at compile-time)
     template<typename T, size_t N, uint32_t offset = 0>
-    void write_array(const std::array<T, N> arr) {
+    void write_array(const std::array<T, N>& arr) {
         static_assert(offset + sizeof(T) * (N - 1) < addresses::get_range(id), "Invalid offset");
         static_assert(addresses::is_writable(id), "Not writable");
 
@@ -163,7 +163,7 @@ class MemoryMap
 
     // Write a std::array (offset defined at run-time)
     template<typename T, size_t N>
-    void write_array_offset(uint32_t offset, const std::array<T, N> arr) {
+    void write_array_offset(uint32_t offset, const std::array<T, N>& arr) {
         static_assert(addresses::is_writable(id), "Not writable");
         set_ptr_offset<T>(offset, arr.data(), N);
     }
