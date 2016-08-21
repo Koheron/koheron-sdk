@@ -46,12 +46,12 @@ class Common(object):
 
     @command('COMMON')
     def get_bitstream_id(self):
-        id_array = self.client.recv_buffer(8, data_type='uint32')
+        id_array = self.client.recv_array(8, dtype='uint32')
         return ''.join('{:08x}'.format(i) for i in id_array)
 
     @command('COMMON')
     def get_dna(self):
-        id_array = self.client.recv_buffer(2, data_type='uint32')
+        id_array = self.client.recv_array(2, dtype='uint32')
         return ''.join('{:02x}'.format(i) for i in id_array)
 
     @command('COMMON', 'I')
@@ -88,11 +88,11 @@ class Common(object):
 
     @command('COMMON')
     def cfg_read_all(self):
-        return self.client.recv_buffer(self.mem_cfg.mmaps['config'].range/4, data_type='uint32')
+        return self.client.recv_array(self.mem_cfg.mmaps['config'].range/4, dtype='uint32')
 
     @command('COMMON')
     def sts_read_all(self):
-        return self.client.recv_buffer(self.mem_cfg.mmaps['status'].range/4, data_type='uint32')
+        return self.client.recv_array(self.mem_cfg.mmaps['status'].range/4, dtype='uint32')
 
     @command('COMMON')
     def get_instrument_config(self):

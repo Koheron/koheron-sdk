@@ -37,7 +37,7 @@ class Spectrum(object):
 
     @command('SPECTRUM', 'I')
     def get_dac_buffer(self, channel):
-        return self.client.recv_buffer(self.wfm_size/2, data_type='uint32')
+        return self.client.recv_array(self.wfm_size/2, dtype='uint32')
 
     @command('SPECTRUM', 'I')
     def set_scale_sch(self, scale_sch):
@@ -63,7 +63,7 @@ class Spectrum(object):
         
     @command('SPECTRUM')
     def get_spectrum(self):
-        return self.client.recv_buffer(self.wfm_size, data_type='float32')
+        return self.client.recv_array(self.wfm_size, dtype='float32')
 
     @command('SPECTRUM')
     def get_num_average(self):
@@ -75,7 +75,7 @@ class Spectrum(object):
 
     @command('SPECTRUM')
     def get_peak_maximum(self):
-        return self.client.recv_int(4, fmt='f')
+        return self.client.recv_float()
 
     @command('SPECTRUM', 'II')
     def set_address_range(self, address_low, address_high):
@@ -93,7 +93,7 @@ class Spectrum(object):
 
         @command('SPECTRUM')
         def get_peak_fifo_data(self):
-            return self.client.recv_buffer(self.peak_stream_length, data_type='uint32')
+            return self.client.recv_array(self.peak_stream_length, dtype='uint32')
 
         return get_peak_fifo_data(self)
 
@@ -106,9 +106,3 @@ class Spectrum(object):
 
     @command('SPECTRUM')
     def fifo_stop_acquisition(self): pass
-
-    def test(self):
-        self.reset()
-        time.sleep(0.1)
-        assert(np.mean(self.get_spectrum()) > 0)
-        print(self.get_num_average())
