@@ -84,9 +84,9 @@ template<size_t N, MemMapID... ids>
 template<MemMapID id>
 void DevMemImpl<N, std::index_sequence<ids...>>::open_memory_map()
 {
-    std::get<id>(mem_maps).open(fd);
+    get<id>().open(fd);
 
-    if (std::get<id>(mem_maps).get_status() != MemoryMap<id>::MEMMAP_OPENED) {
+    if (! get<id>().opened()) {
         fprintf(stderr, "Can't open memory map id = %u\n", id);
         failed_maps.push_back(id);
     }
