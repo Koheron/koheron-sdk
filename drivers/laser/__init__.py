@@ -49,7 +49,7 @@ class Laser(object):
 
     @command('LASER')
     def load_config(self):
-        return self.client.recv_int(4, fmt='f')
+        return self.client.recv_float()
 
     def status(self):
         print('laser current = {} mA'.format(self.get_laser_current()))
