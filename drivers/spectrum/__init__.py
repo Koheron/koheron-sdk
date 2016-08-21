@@ -106,9 +106,3 @@ class Spectrum(object):
 
     @command('SPECTRUM')
     def fifo_stop_acquisition(self): pass
-
-    def test(self):
-        self.reset()
-        time.sleep(0.1)
-        assert(np.mean(self.get_spectrum()) > 0)
-        print(self.get_num_average())
