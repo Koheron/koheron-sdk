@@ -25,9 +25,8 @@
 class Gpio
 {
   public:
-    Gpio(DevMem& dvm_)
-    : dvm(dvm_)
-    , gpio(dvm.get<GPIO_MEM>())
+    Gpio(DevMem& dvm)
+    : gpio(dvm.get<GPIO_MEM>())
     {}
 
     void set_data(uint32_t channel, uint32_t value) {
@@ -69,7 +68,6 @@ class Gpio
     }
 
   private:
-    DevMem& dvm;
     MemoryMap<GPIO_MEM>& gpio;
 
     int get_value_offset(uint32_t channel) {

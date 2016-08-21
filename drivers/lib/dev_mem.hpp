@@ -52,13 +52,13 @@ class DevMemImpl<N, std::index_sequence<ids...>>
 
     template<MemMapID cnt>
     std::enable_if_t<cnt == 0, void>
-    create_maps() {}
+    open_maps() {}
 
     template<MemMapID cnt>
     std::enable_if_t<(cnt > 0), void>
-    create_maps() {
+    open_maps() {
         open_memory_map<cnt-1>();
-        create_maps<cnt-1>();
+        open_maps<cnt-1>();
     }
 };
 
@@ -72,7 +72,7 @@ int DevMemImpl<N, std::index_sequence<ids...>>::open()
         return -1;
     }
 
-    create_maps<addresses::count>();
+    open_maps<N>();
 
     if (! failed_maps.empty())
         return -1;
@@ -84,9 +84,9 @@ template<size_t N, MemMapID... ids>
 template<MemMapID id>
 void DevMemImpl<N, std::index_sequence<ids...>>::open_memory_map()
 {
-    std::get<id>(mem_maps).open(fd);
+    get<id>().open(fd);
 
-    if (std::get<id>(mem_maps).get_status() != MemoryMap<id>::MEMMAP_OPENED) {
+    if (! get<id>().opened()) {
         fprintf(stderr, "Can't open memory map id = %u\n", id);
         failed_maps.push_back(id);
     }

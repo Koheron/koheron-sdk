@@ -27,9 +27,8 @@ using namespace std::chrono_literals;
 class Eeprom
 {
   public:
-    Eeprom(DevMem& dvm_)
-    : dvm(dvm_)
-    , cfg(dvm.get<CONFIG_MEM>())
+    Eeprom(DevMem& dvm)
+    : cfg(dvm.get<CONFIG_MEM>())
     , sts(dvm.get<STATUS_MEM>())
     {}
 
@@ -71,7 +70,6 @@ class Eeprom
     }
 
   private:
-    DevMem& dvm;
     MemoryMap<CONFIG_MEM>& cfg;
     MemoryMap<STATUS_MEM>& sts;
 }; // class Eeprom

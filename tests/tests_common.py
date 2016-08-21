@@ -18,7 +18,7 @@ client = KClient(host)
 common = Common(client)
 
 def ip2long(ip):
-    """Convert an IP string to long"""
+    '''Convert an IP string to long'''
     packedIP = socket.inet_aton(ip)
     return struct.unpack("!L", packedIP)[0]
 
@@ -57,6 +57,15 @@ class TestsCommon:
         value = np.random.randint(16384, size=1)[0]
         common.cfg_write(common.mem_cfg.cfg['led'], value)
         assert common.cfg_read(common.mem_cfg.cfg['led']) == value
+
+    def test_cfg_read_all(self):
+        value = np.random.randint(16384, size=1)[0]
+        common.cfg_write(0, value)
+        assert common.cfg_read(0) == value
+        assert common.cfg_read_all()[0] == value
+
+    def test_sts_read_all(self):
+        assert common.sts_read(0) == common.sts_read_all()[0]
 
 # tests = TestsCommon()
 # tests.test_ip_on_leds()

@@ -48,6 +48,14 @@ class Common
         return cfg.read_offset(offset);
     }
 
+    std::array<uint32_t, CONFIG_RANGE/4>& cfg_read_all() {
+        return cfg.read_array<uint32_t, CONFIG_RANGE/4>();
+    }
+
+    std::array<uint32_t, STATUS_RANGE/4>& sts_read_all() {
+        return sts.read_array<uint32_t, STATUS_RANGE/4>();
+    }
+
     uint32_t sts_read(uint32_t offset) {
         return sts.read_offset(offset);
     }
