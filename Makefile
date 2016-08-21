@@ -150,7 +150,7 @@ test: tests/$(NAME).py
 
 test_app: | app_sync test_instrument_manager
 
-test_instrum: test_device_memory test_common test_gpio test_$(NAME)
+test_instrum: test_common test_gpio test_$(NAME)
 
 test_all: | test_app test_instrum
 

@@ -5,16 +5,15 @@
 #include <thread>
 #include <chrono>
 
-Spectrum::Spectrum(DevMem& dvm_)
-: dvm(dvm_)
-, cfg(dvm.get<CONFIG_MEM>())
+Spectrum::Spectrum(DevMem& dvm)
+: cfg(dvm.get<CONFIG_MEM>())
 , sts(dvm.get<STATUS_MEM>())
 , spectrum_map(dvm.get<SPECTRUM_MEM>())
 , demod_map(dvm.get<DEMOD_MEM>())
 , noise_floor_map(dvm.get<NOISE_FLOOR_MEM>())
 , spectrum_decim(0)
-, fifo(dvm_)
-, dac(dvm_)
+, fifo(dvm)
+, dac(dvm)
 {
     raw_data = spectrum_map.get_ptr<float>();
     set_averaging(true);

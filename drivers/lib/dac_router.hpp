@@ -34,9 +34,8 @@ template<uint32_t n_dac, uint32_t n_dac_bram>
 class DacRouter
 {
   public:
-    DacRouter(DevMem& dvm_)
-    : dvm(dvm_)
-    , cfg(dvm.get<CONFIG_MEM>())
+    DacRouter(DevMem& dvm)
+    : cfg(dvm.get<CONFIG_MEM>())
     , dac_map(dvm.get<DAC_MEM>())
     {}
 
@@ -70,7 +69,6 @@ class DacRouter
     void set_data(uint32_t channel, const std::array<float, N> arr);
 
   private:
-    DevMem& dvm;
     MemoryMap<CONFIG_MEM>& cfg;
     uint32_t dac_select_off;  // TODO Known at compile time
     uint32_t addr_select_off; // TODO Known at compile time

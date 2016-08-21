@@ -17,7 +17,7 @@
 class Spectrum
 {
   public:
-    Spectrum(DevMem& dvm_);
+    Spectrum(DevMem& dvm);
 
     void reset() {
         cfg.clear_bit<ADDR_OFF, 0>();
@@ -101,8 +101,6 @@ class Spectrum
     bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
 
   private:
-    DevMem& dvm;
-
     MemoryMap<CONFIG_MEM>& cfg;
     MemoryMap<STATUS_MEM>& sts;
     MemoryMap<SPECTRUM_MEM>& spectrum_map;
