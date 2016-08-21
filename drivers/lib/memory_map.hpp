@@ -58,11 +58,9 @@ constexpr uint32_t get_total_size(const MemMapID id) {
 
 } // namespace addresses
 
-constexpr off_t get_mmap_offset(uintptr_t phys_addr, uint32_t size) {
+static constexpr off_t get_mmap_offset(uintptr_t phys_addr, uint32_t size) {
     return phys_addr & ~(size - 1);
 }
-
-struct MemoryMapBase {};
 
 template<MemMapID id,
          uintptr_t phys_addr = addresses::get_base_addr(id),
@@ -70,7 +68,7 @@ template<MemMapID id,
          uint32_t block_size = addresses::get_range(id),
          uint32_t size = addresses::get_total_size(id),
          int protection = addresses::get_protection(id)>
-class MemoryMap : public MemoryMapBase
+class MemoryMap
 {
   public:
     static_assert(id < addresses::count, "Invalid ID");

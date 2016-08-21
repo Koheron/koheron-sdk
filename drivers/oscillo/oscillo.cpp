@@ -6,21 +6,18 @@
 #include <thread>
 #include <chrono>
 
-Oscillo::Oscillo(DevMem& dvm_)
-: dvm(dvm_)
-, cfg(dvm.get<CONFIG_MEM>())
+Oscillo::Oscillo(DevMem& dvm)
+: cfg(dvm.get<CONFIG_MEM>())
 , sts(dvm.get<STATUS_MEM>())
 , adc_map(dvm.get<ADC_MEM>())
 , data_decim(0)
-, dac(dvm_)
+, dac(dvm)
 {
     raw_data[0] = adc_map.get_ptr<int32_t>(0);
     raw_data[1] = adc_map.get_ptr<int32_t>(1);
 
     set_averaging(false); // Reset averaging
-
-    // set tvalid delay to 19 * 8 ns
-    cfg.write<ADDR_OFF>(19 << 2);
+    cfg.write<ADDR_OFF>(19 << 2); // set tvalid delay to 19 * 8 ns
     set_n_avg_min(0);
     set_clken_mask(true);
     set_dac_periods(WFM_SIZE, WFM_SIZE);

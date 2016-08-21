@@ -18,9 +18,8 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz)
 }
 
 
-SpeedTest::SpeedTest(DevMem& dvm_)
-: dvm(dvm_)
-, cfg(dvm.get<CONFIG_MEM>())
+SpeedTest::SpeedTest(DevMem& dvm)
+: cfg(dvm.get<CONFIG_MEM>())
 , sts(dvm.get<STATUS_MEM>())
 , adc_map(dvm.get<ADC_MEM>())
 , rambuf_map(dvm.get<RAMBUF_MEM>())

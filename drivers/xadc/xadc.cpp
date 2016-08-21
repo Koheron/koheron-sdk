@@ -5,12 +5,7 @@
 #include <algorithm>
 #include <iterator>
 
-Xadc::Xadc(DevMem& dvm_)
-: dvm(dvm_)
-, xadc(dvm.get<XADC_MEM>())
-{}
-
-bool is_valid_channel(uint32_t channel)
+static bool is_valid_channel(uint32_t channel)
 {
     constexpr uint32_t valid_channels[] = {0, 1, 8, 9};
 
