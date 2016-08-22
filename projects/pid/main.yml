@@ -13,7 +13,7 @@ cores:
   - axis_lfsr_v1_0
   - axis_variable_v1_0
 
-addresses:
+memory:
   - name: config
     offset: '0x60000000'
     range: 4K

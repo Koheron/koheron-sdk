@@ -18,11 +18,11 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz)
 }
 
 
-SpeedTest::SpeedTest(DevMem& dvm)
-: cfg(dvm.get<CONFIG_MEM>())
-, sts(dvm.get<STATUS_MEM>())
-, adc_map(dvm.get<ADC_MEM>())
-, rambuf_map(dvm.get<RAMBUF_MEM>())
+SpeedTest::SpeedTest(MemoryManager& mm)
+: cfg(mm.get<mem::config>())
+, sts(mm.get<mem::status>())
+, adc_map(mm.get<mem::adc>())
+, rambuf_map(mm.get<mem::rambuf>())
 , data_decim(0)
 , data_all_int(0)
 {
@@ -44,13 +44,13 @@ inline long long int mod(long long int k, long long int n)
 // Read the two channels in raw format
 std::array<float, 2*WFM_SIZE>& SpeedTest::read_raw_all()
 {
-    cfg.set_bit<ADDR_OFF, 1>();
+    cfg.set_bit<reg::addr, 1>();
 
     for (unsigned int i=0; i<WFM_SIZE; i++) {
         data_all[i] = raw_data_1[i];
         data_all[i + WFM_SIZE] = raw_data_2[i];
     }
 
-    cfg.clear_bit<ADDR_OFF, 1>();
+    cfg.clear_bit<reg::addr, 1>();
     return data_all;
 }

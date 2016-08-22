@@ -17,7 +17,7 @@
 #include <atomic>
 #include <mutex>
 
-#include "dev_mem.hpp"
+#include "memory_manager.hpp"
 
 // http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
 #define RDFR_OFF 0x18
@@ -29,7 +29,7 @@ template<MemMapID fifo_mem_id, size_t N>
 class FIFOReader
 {
   public:
-    FIFOReader(DevMem& dvm_);
+    FIFOReader(MemoryManager& mm);
 
     // Start the acquisition thread.
     // @acq_period_ Duration in microseconds between
@@ -58,7 +58,6 @@ class FIFOReader
     bool overflow() {return acq_num.load() > N;}
 
   private:
-    DevMem& dvm;
     MemoryMap<fifo_mem_id>& fifo_mem;
 
     std::atomic<::MemoryMap<fifo_mem_id>*>   fifo_map;
@@ -77,9 +76,8 @@ class FIFOReader
 };
 
 template<MemMapID fifo_mem_id, size_t N>
-FIFOReader<fifo_mem_id, N>::FIFOReader(::DevMem& dvm_)
-: dvm(dvm_)
-, fifo_mem(dvm.get<fifo_mem_id>())
+FIFOReader<fifo_mem_id, N>::FIFOReader(MemoryManager& mm)
+: fifo_mem(mm.get<fifo_mem_id>())
 {
     // Set map
     fifo_map.store(&fifo_mem);

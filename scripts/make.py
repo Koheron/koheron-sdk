@@ -81,9 +81,9 @@ def get_config(project):
 
     params = cfg['parameters']
 
-    # Addresses
-    if 'addresses' in cfg:
-        for addr in cfg['addresses']:
+    # memory
+    if 'memory' in cfg:
+        for addr in cfg['memory']:
             name, num = parse_brackets(addr['name'])
             if num.isdigit():
                 num = int(num)
@@ -150,9 +150,9 @@ def fill_config_tcl(config):
     output_filename = os.path.join('tmp', config['project']+'.config.tcl')
     fill_template(config, 'config.tcl', output_filename)
 
-def fill_addresses(config, drivers_dir):
-    output_filename = os.path.join(drivers_dir, 'addresses.hpp')
-    fill_template(config, 'addresses.hpp', output_filename)
+def fill_memory(config, drivers_dir):
+    output_filename = os.path.join(drivers_dir, 'memory.hpp')
+    fill_template(config, 'memory.hpp', output_filename)
 
 def fill_start_sh(config):
     output_filename = os.path.join('tmp', config['project']+'.start.sh')
@@ -285,7 +285,7 @@ if __name__ == "__main__":
         dest =  'tmp/' + project + '.middleware/drivers'
         if not os.path.exists(dest):
             os.makedirs(dest)
-        fill_addresses(config, dest)
+        fill_memory(config, dest)
 
     # -- HTTP API
 

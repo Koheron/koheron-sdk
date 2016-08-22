@@ -1,13 +1,11 @@
-/// Spectrum analyzer driver
-///
 /// (c) Koheron
 
-#ifndef __DRIVERS_CORE_PID_HPP__
-#define __DRIVERS_CORE_PID_HPP__
+#ifndef __DRIVERS_PID_HPP__
+#define __DRIVERS_PID_HPP__
 
-#include <drivers/lib/dev_mem.hpp>
+#include <drivers/lib/memory_manager.hpp>
 #include <drivers/lib/fifo_reader.hpp>
-#include <drivers/addresses.hpp>
+#include <drivers/memory.hpp>
 
 #define FIFO_BUFF_SIZE 65536
 #define SAMPLING_FREQ 125e6
@@ -18,19 +16,18 @@ constexpr float freq_factor = POW_32 / SAMPLING_FREQ;
 class Pid
 {
   public:
-    Pid(DevMem& dvm_)
-    : dvm(dvm_)
-    , cfg(dvm.get<CONFIG_MEM>())
-    , sts(dvm.get<STATUS_MEM>())
-    , fifo(dvm_)
+    Pid(MemoryManager& mm)
+    : cfg(mm.get<mem::config>())
+    , sts(mm.get<mem::status>())
+    , fifo(mm)
     {}
 
     void set_cic_rate(uint32_t rate) {
-        cfg.write<CIC_RATE_OFF>(rate);
+        cfg.write<reg::cic_rate>(rate);
     }
 
     void set_dds_freq(float freq) {
-        cfg.write<DDS_OFF>(uint32_t(freq * freq_factor));
+        cfg.write<reg::dds>(uint32_t(freq * freq_factor));
     }
 
     /// @acq_period Sleeping time between two acquisitions (us)
@@ -42,10 +39,9 @@ class Pid
     bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
 
   private:
-    DevMem& dvm;
-    MemoryMap<CONFIG_MEM>& cfg;
-    MemoryMap<STATUS_MEM>& sts;
-    FIFOReader<FIFO_MEM, FIFO_BUFF_SIZE> fifo;
-}; // class Pid
+    MemoryMap<mem::config>& cfg;
+    MemoryMap<mem::status>& sts;
+    FIFOReader<mem::fifo, FIFO_BUFF_SIZE> fifo;
+};
 
-#endif // __DRIVERS_CORE_PID_HPP__
+#endif // __DRIVERS_PID_HPP__

@@ -42,7 +42,7 @@ class TestsCommon:
 
     def test_get_instrument_config(self):
         config = common.get_instrument_config()
-        assert 'addresses' in config
+        assert 'memory' in config
         assert 'board' in config
         assert 'config_registers' in config
         assert 'status_registers' in config

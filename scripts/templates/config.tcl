@@ -31,7 +31,7 @@ variable {{ key }} {{ dic['parameters'][key] }}
 ##########################################################
 # Define offsets and ranges of AXI Slaves
 ##########################################################
-{% for address in dic['addresses'] -%}
+{% for address in dic['memory'] -%}
 {% if address['n_blocks'] == 1 %}
 variable axi_{{ address['name'] }}_offset {{ address['offset'] }}
 variable axi_{{ address['name'] }}_range {{ address['range'] }}

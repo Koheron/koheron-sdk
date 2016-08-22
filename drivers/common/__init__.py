@@ -23,7 +23,7 @@ class MemoryConfig(object):
         self.cfg = {}
         self.sts = {}
 
-        for idx, addr in enumerate(dic['addresses']):
+        for idx, addr in enumerate(dic['memory']):
             self.mmaps[addr['name']] = MemMap(idx, addr['name'], addr['offset'],
                                             eval(addr['range'].replace('K','*1024')
                                                               .replace('M','*1024*1024')

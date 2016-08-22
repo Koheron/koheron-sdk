@@ -7,11 +7,11 @@
 
 #include <tuple>
 
-#include <drivers/lib/dev_mem.hpp>
-#include <drivers/addresses.hpp>
+#include <drivers/lib/memory_manager.hpp>
 #include <drivers/xadc/xadc.hpp>
 #include <drivers/gpio/gpio.hpp>
 #include <drivers/eeprom/eeprom.hpp>
+#include <drivers/memory.hpp>
 
 #include <thread>
 #include <chrono>
@@ -38,11 +38,11 @@ constexpr float pwm_to_current = 1 / current_to_pwm;
 class Laser
 {
   public:
-    Laser(DevMem& dvm)
-    : cfg(dvm.get<CONFIG_MEM>())
-    , xadc(dvm)
-    , gpio(dvm)
-    , eeprom(dvm)
+    Laser(MemoryManager& mm)
+    : cfg(mm.get<mem::config>())
+    , xadc(mm)
+    , gpio(mm)
+    , eeprom(mm)
     {
         reset();
     }
@@ -80,18 +80,18 @@ class Laser
     }
 
     void save_config() {
-        uint32_t current = cfg.read<PWM3_OFF>();
+        uint32_t current = cfg.read<reg::pwm3>();
         eeprom.write(EEPROM_CURRENT_ADDR, current);
     }
 
     float load_config() {
         uint32_t pwm = eeprom.read(EEPROM_CURRENT_ADDR);
-        cfg.write<PWM3_OFF>(pwm);
+        cfg.write<reg::pwm3>(pwm);
         return MILLIAMPS_TO_AMPS * current_from_pwm(pwm);
     }
 
   private:
-    MemoryMap<CONFIG_MEM>& cfg; // required for pwm
+    MemoryMap<mem::config>& cfg; // required for pwm
 
     Xadc xadc;
     Gpio gpio;
