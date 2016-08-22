@@ -11,9 +11,8 @@
 class Blink
 {
   public:
-    Blink(DevMem& dvm_)
-    : dvm(dvm_)
-    , cfg(dvm.get<CONFIG_MEM>())
+    Blink(DevMem& dvm)
+    : cfg(dvm.get<CONFIG_MEM>())
     , sts(dvm.get<STATUS_MEM>())
     {}
 
@@ -28,10 +27,9 @@ class Blink
     }
 
   private:
-    DevMem& dvm;
     MemoryMap<CONFIG_MEM>& cfg;
     MemoryMap<STATUS_MEM>& sts;
 
-}; // class Blink
+};
 
 #endif // __DRIVERS_BLINK_HPP__
