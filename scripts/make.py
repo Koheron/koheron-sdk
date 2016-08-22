@@ -266,6 +266,8 @@ if __name__ == "__main__":
                 for key, value in yaml.load(include_file).iteritems():
                     if key in drivers:
                         drivers[key].extend(value)
+                    else:
+                        drivers[key] = value
 
         with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
