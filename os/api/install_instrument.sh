@@ -6,7 +6,7 @@ CURRENT_INSTRUMENT=$2
 /bin/rm -rf /tmp/instrument
 /bin/mkdir -p /tmp/instrument
 
-/bin/systemctl stop tcp-server.service
+/bin/systemctl stop koheron-server.service
 /usr/bin/unzip -o ${ZIP_FILENAME} -d /tmp/instrument
 
 source /tmp/instrument/${CURRENT_INSTRUMENT}.start.sh

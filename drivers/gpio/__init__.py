@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from koheron_tcp_client import command
+from koheron import command
 
 class Gpio(object):
 

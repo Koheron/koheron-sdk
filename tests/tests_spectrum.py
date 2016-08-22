@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 from instrument_manager import InstrumentManager
-from koheron_tcp_client import KClient
+from koheron import KoheronClient
 
 from drivers.spectrum import Spectrum
 
@@ -12,7 +12,7 @@ host = os.getenv('HOST', '192.168.1.2')
 im = InstrumentManager(host)
 im.install_instrument('spectrum', always_restart=False)
 
-client = KClient(host)
+client = KoheronClient(host)
 spectrum = Spectrum(client)
 spectrum.reset_acquisition()
 

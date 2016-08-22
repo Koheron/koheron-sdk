@@ -1,13 +1,13 @@
 import context
 import os
 import numpy as np
-from koheron_tcp_client import KClient
+from koheron import KoheronClient
 
 from drivers.spi import Spi
 
 host = os.getenv('HOST','192.168.1.2')
 
-client = KClient(host)
+client = KoheronClient(host)
 spi = Spi(client)
 
 # data = np.arange(50)

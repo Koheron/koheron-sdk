@@ -4,13 +4,13 @@ import os
 import pytest
 
 from instrument_manager import InstrumentManager
-from koheron_tcp_client import KClient
+from koheron import KoheronClient
 from drivers.common import Common
 
 host = os.getenv('HOST', '192.168.1.100')
 im = InstrumentManager(host)
 
-client = KClient(host)
+client = KoheronClient(host)
 common = Common(client)
 
 class TestsInstrumentManager:
@@ -64,5 +64,3 @@ class TestsInstrumentManager:
 
 tests = TestsInstrumentManager()
 tests.test_get_app_version()
-# tests.test_remove_and_restore()
-# tests.test_install_instruments()

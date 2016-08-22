@@ -1,7 +1,7 @@
 import context
 import os
 from instrument_manager import InstrumentManager
-from koheron_tcp_client import KClient, command
+from koheron import KoheronClient, command
 from project_config import ProjectConfig
 import time
 import numpy as np
@@ -15,7 +15,7 @@ project = os.getenv('NAME','')
 
 im = InstrumentManager(host)
 im.install_instrument(project)
-client = KClient(host)
+client = KoheronClient(host)
 
 pc = ProjectConfig(project)
 

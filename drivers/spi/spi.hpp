@@ -17,7 +17,7 @@ class Spi
         return spi_dev.init();
     }
 
-    #pragma tcp-server write_array arg{buffer} arg{len}
+    #pragma koheron-server write_array arg{buffer} arg{len}
     int write(const uint32_t *buffer, uint32_t len) {
         return spi_dev.write_buffer(buffer, len);
     }

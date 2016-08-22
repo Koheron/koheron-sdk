@@ -82,11 +82,12 @@ SHA_FILE = $(TMP)/$(NAME).sha
 SHA = $(shell cat $(SHA_FILE))
 
 # Zip
-TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
+TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
+TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
 SERVER_CONFIG = projects/$(NAME)/drivers.yml
 TCP_SERVER_SHA = master
-TCP_SERVER_VENV = $(TMP)/$(NAME).tcp_server_venv
+TCP_SERVER_VENV = $(TMP)/$(NAME).koheron_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
 
 START_SH = $(TMP)/$(NAME).start.sh
@@ -112,9 +113,9 @@ METADATA = $(TMP)/metadata.json
 .PHONY: all help \
         test_module test_core test_% test test_app test_instrum test_all \
         server xpr zip app bd http_api \
-        run app_sync app_sync_ssh tcp-server_cli
+        run app_sync app_sync_ssh koheron-server-cli
 
-all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv tcp-server_cli
+all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv koheron-server-cli
 
 ###############################################################################
 # API
@@ -295,7 +296,7 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 ###############################################################################
 
 $(TCP_SERVER_DIR):
-	git clone https://github.com/Koheron/tcp-server.git $(TCP_SERVER_DIR)
+	git clone $(TCP_SERVER_URL) $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 
@@ -322,11 +323,11 @@ $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
 	  PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all
 	@echo [$@] OK
 
-tcp-server_cli: $(TCP_SERVER_DIR) $(TCP_SERVER_VENV)
+koheron-server-cli: $(TCP_SERVER_DIR) $(TCP_SERVER_VENV)
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) cli
 
 ###############################################################################
-# Instrument ZIP file (contains bitstream, tcp-server)
+# Instrument ZIP file (contains bitstream,  TCP server)
 ###############################################################################
 
 $(START_SH): $(MAKE_PY) $(MAIN_YML) $(TEMPLATE_DIR)/start.sh

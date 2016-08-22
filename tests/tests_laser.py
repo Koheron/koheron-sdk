@@ -4,7 +4,7 @@ import time
 import numpy as np
 
 from instrument_manager import InstrumentManager
-from koheron_tcp_client import KClient
+from koheron import KoheronClient
 
 from drivers.laser import Laser
 
@@ -14,7 +14,7 @@ project = os.getenv('NAME', '')
 im = InstrumentManager(host)
 im.install_instrument(project, always_restart=False)
 
-client = KClient(host)
+client = KoheronClient(host)
 laser = Laser(client)
 
 class TestsLaser:

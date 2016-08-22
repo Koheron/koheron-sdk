@@ -1,4 +1,4 @@
-/// SpeedTestscope driver
+/// SpeedTest driver
 ///
 /// (c) Koheron
 
@@ -15,9 +15,6 @@
 
 #define WFM_SIZE mem::adc_range/sizeof(float)
 
-// #define RAMBUF_ADDR 0x1E000000
-// #define RAMBUF_RANGE 2048*4096
-
 //http://es.codeover.org/questions/34888683/arm-neon-memcpy-optimized-for-uncached-memory
 void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz);
 
@@ -32,7 +29,7 @@ class SpeedTest
     std::array<float, 2*WFM_SIZE>& read_zeros() {return data_zeros;}
 
     // Read data in RAM buffer
-    #pragma tcp-server read_array 2*WFM_SIZE
+    #pragma koheron-server read_array 2*WFM_SIZE
     float* read_rambuf() {return rambuf_data;}
 
     // Read data in RAM buffer (with copy)
@@ -48,11 +45,11 @@ class SpeedTest
     }
 
     // Read data in RAM buffer
-    #pragma tcp-server read_array 2*WFM_SIZE
+    #pragma koheron-server read_array 2*WFM_SIZE
     float* read_mmapbuf_nocopy() {return (float*)mmap_buf;}
 
     // Read data in RAM buffer
-    #pragma tcp-server read_array 2*WFM_SIZE
+    #pragma koheron-server read_array 2*WFM_SIZE
     float* read_rambuf_mmap_memcpy() {
         memcpy(mmap_buf, rambuf_data, 2*WFM_SIZE*sizeof(float));
         return (float*)mmap_buf;
@@ -75,6 +72,6 @@ class SpeedTest
     std::array<float, 2*WFM_SIZE> data_zeros;
     std::vector<float> data_decim;
     std::vector<uint32_t> data_all_int;
-}; // class SpeedTest
+};
 
 #endif // __DRIVERS_SPEED_TEST_HPP__
