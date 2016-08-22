@@ -1,4 +1,8 @@
-tar -xvzf Xilinx_Vivado_SDK_2016.1_0409_1.tar.gz
+#!/usr/bin/env bash
+
+vivado_version=2016.2_0605_1
+
+tar -xvzf Xilinx_Vivado_SDK_${vivado_version}.tar.gz
 
 cat <<- EOF_CAT > install_config.txt
 #### Vivado HL WebPACK Install Configuration ####
@@ -30,7 +34,7 @@ CreateDesktopShortcuts=0
 CreateFileAssociation=0
 EOF_CAT
 
-bash Xilinx_Vivado_SDK_2016.1_0409_1/xsetup --agree 3rdPartyEULA,WebTalkTerms,XilinxEULA --batch Install --config install_config.txt
+bash Xilinx_Vivado_SDK_${vivado_version}/xsetup --agree 3rdPartyEULA,WebTalkTerms,XilinxEULA --batch Install --config install_config.txt
 rm install_config.txt
-rm -r Xilinx_Vivado_SDK_2016.1_0409_1
+rm -r Xilinx_Vivado_SDK_${vivado_version}
 cp Xilinx.lic /opt/Xilinx

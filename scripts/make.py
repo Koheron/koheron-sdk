@@ -260,6 +260,9 @@ if __name__ == "__main__":
         assert(os.path.isfile(drivers_filename))
         with open(drivers_filename) as drivers_file:
             drivers = yaml.load(drivers_file)
+        for include_filename in drivers.get('includes', []):
+            with open(include_filename) as include_file:
+                drivers.update(yaml.load(include_file))
         with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
 
