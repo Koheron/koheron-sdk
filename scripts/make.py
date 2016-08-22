@@ -81,9 +81,9 @@ def get_config(project):
 
     params = cfg['parameters']
 
-    # Addresses
-    if 'addresses' in cfg:
-        for addr in cfg['addresses']:
+    # memory
+    if 'memory' in cfg:
+        for addr in cfg['memory']:
             name, num = parse_brackets(addr['name'])
             if num.isdigit():
                 num = int(num)
@@ -150,9 +150,9 @@ def fill_config_tcl(config):
     output_filename = os.path.join('tmp', config['project']+'.config.tcl')
     fill_template(config, 'config.tcl', output_filename)
 
-def fill_addresses(config, drivers_dir):
-    output_filename = os.path.join(drivers_dir, 'addresses.hpp')
-    fill_template(config, 'addresses.hpp', output_filename)
+def fill_memory(config, drivers_dir):
+    output_filename = os.path.join(drivers_dir, 'memory.hpp')
+    fill_template(config, 'memory.hpp', output_filename)
 
 def fill_start_sh(config):
     output_filename = os.path.join('tmp', config['project']+'.start.sh')
@@ -258,11 +258,17 @@ if __name__ == "__main__":
         project = sys.argv[2]
         drivers_filename = os.path.join('projects', project, 'drivers.yml')
         assert(os.path.isfile(drivers_filename))
+
         with open(drivers_filename) as drivers_file:
             drivers = yaml.load(drivers_file)
         for include_filename in drivers.get('includes', []):
             with open(include_filename) as include_file:
-                drivers.update(yaml.load(include_file))
+                for key, value in yaml.load(include_file).iteritems():
+                    if key in drivers:
+                        drivers[key].extend(value)
+                    else:
+                        drivers[key] = value
+
         with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
 
@@ -279,7 +285,7 @@ if __name__ == "__main__":
         dest =  'tmp/' + project + '.middleware/drivers'
         if not os.path.exists(dest):
             os.makedirs(dest)
-        fill_addresses(config, dest)
+        fill_memory(config, dest)
 
     # -- HTTP API
 

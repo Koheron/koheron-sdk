@@ -2,39 +2,39 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_CORE_OSCILLO_HPP__
-#define __DRIVERS_CORE_OSCILLO_HPP__
+#ifndef __DRIVERS_OSCILLO_HPP__
+#define __DRIVERS_OSCILLO_HPP__
 
 #include <vector>
 #include <algorithm>
-#include <math.h>
+#include <cmath>
 
-#include <drivers/lib/dev_mem.hpp>
+#include <drivers/lib/memory_manager.hpp>
 #include <drivers/lib/dac_router.hpp>
-#include <drivers/addresses.hpp>
+#include <drivers/memory.hpp>
 
 #define SAMPLING_RATE 125E6
-#define WFM_SIZE ADC_RANGE/sizeof(float)
+#define WFM_SIZE mem::adc_range/sizeof(float)
 #define ACQ_PERIOD_NS 8 // Duration between two acquisitions (ns)
 
 constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
-constexpr std::array<uint32_t, 2> n_avg_offset = {N_AVG0_OFF, N_AVG1_OFF};
+constexpr std::array<uint32_t, 2> n_avg_offset = {reg::n_avg0, reg::n_avg1};
 
 class Oscillo
 {
   public:
-    Oscillo(DevMem& dvm_);
+    Oscillo(MemoryManager& mm);
 
     // Reset ...
 
     void reset() {
-        cfg.clear_bit<ADDR_OFF, 0>();
-        cfg.set_bit<ADDR_OFF, 0>();
+        cfg.clear_bit<reg::addr, 0>();
+        cfg.set_bit<reg::addr, 0>();
     }
 
     void reset_acquisition() {
-        cfg.clear_bit<ADDR_OFF, 1>();
-        cfg.set_bit<ADDR_OFF, 1>();
+        cfg.clear_bit<reg::addr, 1>();
+        cfg.set_bit<reg::addr, 1>();
     }
 
     void set_averaging(bool avg_on);
@@ -42,8 +42,8 @@ class Oscillo
     // Monitoring
 
     uint64_t get_counter() {
-        uint64_t lsb = sts.read<COUNTER0_OFF>();
-        uint64_t msb = sts.read<COUNTER1_OFF>();
+        uint64_t lsb = sts.read<reg::counter0>();
+        uint64_t msb = sts.read<reg::counter1>();
         return lsb + (msb << 32);
     }
 
@@ -54,40 +54,40 @@ class Oscillo
     // TODO should be a one-liner
     void set_clken_mask(bool clken_mask) {
         if (clken_mask) {
-            cfg.set_bit<CLKEN_MASK_OFF, 0>();
+            cfg.set_bit<reg::clken_mask, 0>();
         } else {
-            cfg.clear_bit<CLKEN_MASK_OFF, 0>();
+            cfg.clear_bit<reg::clken_mask, 0>();
         }
     }
 
     void update_now() {
-        cfg.set_bit<CLKEN_MASK_OFF, 1>();
-        cfg.clear_bit<CLKEN_MASK_OFF, 1>();
+        cfg.set_bit<reg::clken_mask, 1>();
+        cfg.clear_bit<reg::clken_mask, 1>();
     }
 
     void always_update() {
-        cfg.set_bit<CLKEN_MASK_OFF, 1>();
+        cfg.set_bit<reg::clken_mask, 1>();
     }
 
     void set_n_avg_min(uint32_t n_avg_min) {
         n_avg_min_ = (n_avg_min < 2) ? 0 : n_avg_min-2;
-        cfg.write<N_AVG_MIN0_OFF>(n_avg_min_);
-        cfg.write<N_AVG_MIN1_OFF>(n_avg_min_);
+        cfg.write<reg::n_avg_min0>(n_avg_min_);
+        cfg.write<reg::n_avg_min1>(n_avg_min_);
     }
 
     void set_addr_select(uint32_t addr_select) {
-        cfg.write<ADDR_SELECT_OFF>(addr_select);
+        cfg.write<reg::addr_select>(addr_select);
     }
 
     void set_dac_periods(uint32_t dac_period0, uint32_t dac_period1) {
-        cfg.write<DAC_PERIOD0_OFF>(dac_period0 - 1);
-        cfg.write<DAC_PERIOD1_OFF>(dac_period1 - 1);
+        cfg.write<reg::dac_period0>(dac_period0 - 1);
+        cfg.write<reg::dac_period1>(dac_period1 - 1);
         reset();
     }
 
     void set_avg_period(uint32_t avg_period) {
-        cfg.write<AVG_PERIOD_OFF>(avg_period - 1);
-        cfg.write<AVG_THRESHOLD_OFF>(avg_period - 6);
+        cfg.write<reg::avg_period>(avg_period - 1);
+        cfg.write<reg::avg_threshold>(avg_period - 6);
         reset();
     }
 
@@ -97,7 +97,7 @@ class Oscillo
     }
 
     void set_dac_float(uint32_t channel, const std::array<float, WFM_SIZE>& arr) {
-        dac.set_data<DAC_WIDTH_PARAM>(channel, arr);
+        dac.set_data<prm::dac_width>(channel, arr);
     }
 
     std::array<uint32_t, WFM_SIZE/2>& get_dac_buffer(uint32_t channel) {
@@ -111,15 +111,15 @@ class Oscillo
   private:
     int32_t *raw_data[2] = {nullptr, nullptr};
 
-    MemoryMap<CONFIG_MEM>& cfg;
-    MemoryMap<STATUS_MEM>& sts;
-    MemoryMap<ADC_MEM>& adc_map;
+    MemoryMap<mem::config>& cfg;
+    MemoryMap<mem::status>& sts;
+    MemoryMap<mem::adc>& adc_map;
 
     // Acquired data buffers
     std::array<float, 2*WFM_SIZE> data_all;
     std::vector<float> data_decim;
 
-    DacRouter<N_DAC_PARAM, N_DAC_BRAM_PARAM> dac;
+    DacRouter<prm::n_dac, prm::n_dac_bram> dac;
 
     uint32_t n_avg_min_;
 
@@ -127,4 +127,4 @@ class Oscillo
     void _wait_for_acquisition();
 }; // class Oscillo
 
-#endif // __DRIVERS_CORE_OSCILLO_HPP__
+#endif // __DRIVERS_OSCILLO_HPP__

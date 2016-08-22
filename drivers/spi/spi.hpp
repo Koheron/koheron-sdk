@@ -3,13 +3,14 @@
 #ifndef __DRIVERS_SPI_SPI_HPP__
 #define __DRIVERS_SPI_SPI_HPP__
 
-#include <drivers/lib/dev_mem.hpp>
+#include <drivers/lib/memory_manager.hpp>
 #include <drivers/lib/spi_dev.hpp>
+#include <drivers/memory.hpp>
 
 class Spi
 {
   public:
-    Spi(DevMem& dvm_) {}
+    Spi(MemoryManager& mm) {}
 
     int init(uint32_t mode) {
         spi_dev = SpiDev(mode);

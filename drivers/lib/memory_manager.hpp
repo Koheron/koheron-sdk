@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_LIB_DEV_MEM_HPP__
-#define __DRIVERS_LIB_DEV_MEM_HPP__
+#ifndef __DRIVERS_LIB_MEMORY_MANAGER_HPP__
+#define __DRIVERS_LIB_MEMORY_MANAGER_HPP__
 
 #include <map>
 #include <vector>
@@ -23,18 +23,18 @@ extern "C" {
 #include "memory_map.hpp"
 
 // http://stackoverflow.com/questions/39041236/tuple-of-sequence
-template<size_t N, class = std::make_index_sequence<N>> class DevMemImpl;
+template<size_t N, class = std::make_index_sequence<N>> class MemoryManagerImpl;
 
 template<size_t N, MemMapID... ids>
-class DevMemImpl<N, std::index_sequence<ids...>>
+class MemoryManagerImpl<N, std::index_sequence<ids...>>
 {
   public:
-    DevMemImpl()
+    MemoryManagerImpl()
     : fd(-1)
     , failed_maps(0)
     {}
 
-    ~DevMemImpl() {close(fd);}
+    ~MemoryManagerImpl() {close(fd);}
 
     int open();
 
@@ -63,7 +63,7 @@ class DevMemImpl<N, std::index_sequence<ids...>>
 };
 
 template<size_t N, MemMapID... ids>
-int DevMemImpl<N, std::index_sequence<ids...>>::open()
+int MemoryManagerImpl<N, std::index_sequence<ids...>>::open()
 {
     fd = ::open("/dev/mem", O_RDWR | O_SYNC);
 
@@ -82,7 +82,7 @@ int DevMemImpl<N, std::index_sequence<ids...>>::open()
 
 template<size_t N, MemMapID... ids>
 template<MemMapID id>
-void DevMemImpl<N, std::index_sequence<ids...>>::open_memory_map()
+void MemoryManagerImpl<N, std::index_sequence<ids...>>::open_memory_map()
 {
     get<id>().open(fd);
 
@@ -92,6 +92,6 @@ void DevMemImpl<N, std::index_sequence<ids...>>::open_memory_map()
     }
 }
 
-using DevMem = DevMemImpl<addresses::count>;
+using MemoryManager = MemoryManagerImpl<mem::count>;
 
-#endif // __DRIVERS_LIB_DEV_MEM_HPP__
+#endif // __DRIVERS_LIB_MEMORY_MANAGER_HPP__
