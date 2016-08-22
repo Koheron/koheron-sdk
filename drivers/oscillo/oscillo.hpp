@@ -109,8 +109,6 @@ class Oscillo
     std::vector<float>& read_all_channels_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high);
 
   private:
-    DevMem& dvm;
-
     int32_t *raw_data[2] = {nullptr, nullptr};
 
     MemoryMap<CONFIG_MEM>& cfg;

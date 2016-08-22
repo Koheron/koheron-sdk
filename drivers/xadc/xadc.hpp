@@ -5,8 +5,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_CORE_XADC_HPP__
-#define __DRIVERS_CORE_XADC_HPP__
+#ifndef __DRIVERS_XADC_HPP__
+#define __DRIVERS_XADC_HPP__
 
 #include <drivers/lib/dev_mem.hpp>
 
@@ -22,7 +22,9 @@
 class Xadc
 {
   public:
-    Xadc(DevMem& dvm_);
+    Xadc(DevMem& dvm)
+    : xadc(dvm.get<XADC_MEM>())
+    {}
 
     int set_channel(uint32_t channel_0_, uint32_t channel_1_);
     
@@ -34,11 +36,10 @@ class Xadc
     int read(uint32_t channel);
 
   private:
-    DevMem& dvm;
     MemoryMap<XADC_MEM>& xadc;
 
     uint32_t channel_0 = 1;
     uint32_t channel_1 = 8;
-}; // class Xadc
+};
 
-#endif //__DRIVERS_CORE_XADC_HPP__
+#endif //__DRIVERS_XADC_HPP__

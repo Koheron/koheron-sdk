@@ -3,6 +3,11 @@ includes:
   - projects/default/drivers.yml
 
 drivers:
+<<<<<<< HEAD
+=======
+  - drivers/common/common.hpp
+  - drivers/common/common.cpp
+>>>>>>> d46c8531095fead509cb2e9ebbf01267883af3fc
   - drivers/gpio/gpio.hpp
   - drivers/xadc/xadc.hpp
   - drivers/xadc/xadc.cpp

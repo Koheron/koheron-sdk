@@ -17,9 +17,6 @@ extern "C" {
 
 #include <drivers/addresses.hpp>
 
-//#define DEFAULT_MAP_SIZE 4096UL // = PAGE_SIZE
-#define MAP_MASK(size) ((size) - 1)
-
 typedef size_t MemMapID;
 
 namespace addresses {
@@ -61,28 +58,54 @@ constexpr uint32_t get_total_size(const MemMapID id) {
 
 } // namespace addresses
 
-struct MemoryMapBase {};
+static constexpr off_t get_mmap_offset(uintptr_t phys_addr, uint32_t size) {
+    return phys_addr & ~(size - 1);
+}
 
-template<MemMapID id>
-class MemoryMap : public MemoryMapBase
+template<MemMapID id,
+         uintptr_t phys_addr = addresses::get_base_addr(id),
+         uint32_t n_blocks = addresses::get_n_blocks(id),
+         uint32_t block_size = addresses::get_range(id),
+         uint32_t size = addresses::get_total_size(id),
+         int protection = addresses::get_protection(id)>
+class MemoryMap
 {
   public:
     static_assert(id < addresses::count, "Invalid ID");
 
-    MemoryMap(const int& fd);
-    ~MemoryMap();
+    MemoryMap()
+    : mapped_base(nullptr)
+    , base_address(0)
+    , is_opened(false)
+    {}
+
+    ~MemoryMap() {
+        if (is_opened)
+            munmap(mapped_base, size);
+    }
+
+    void open(const int& fd) {
+        mapped_base = mmap(0, size, protection, MAP_SHARED, fd, get_mmap_offset(phys_addr, size));
+
+        if (mapped_base == (void *) -1) {
+            is_opened = false;
+            return;
+        }
+
+        is_opened = true;
+        base_address = reinterpret_cast<uintptr_t>(mapped_base) + (phys_addr & (size - 1));
+    }
 
     int get_protection() const {return protection;}
-    int get_status() const {return status;}
+    int opened() const {return is_opened;}
     uintptr_t get_base_addr() const {return base_address;}
     uint32_t mapped_size() const {return size;}
     uintptr_t get_phys_addr() const {return phys_addr;}
 
-   
     auto get_params() {
         return std::make_tuple(
             base_address,
-            status,
+            is_opened,
             phys_addr,
             size,
             protection
@@ -130,7 +153,7 @@ class MemoryMap : public MemoryMapBase
 
     // Write a std::array (offset defined at compile-time)
     template<typename T, size_t N, uint32_t offset = 0>
-    void write_array(const std::array<T, N> arr) {
+    void write_array(const std::array<T, N>& arr) {
         static_assert(offset + sizeof(T) * (N - 1) < addresses::get_range(id), "Invalid offset");
         static_assert(addresses::is_writable(id), "Not writable");
 
@@ -139,7 +162,7 @@ class MemoryMap : public MemoryMapBase
 
     // Write a std::array (offset defined at run-time)
     template<typename T, size_t N>
-    void write_array_offset(uint32_t offset, const std::array<T, N> arr) {
+    void write_array_offset(uint32_t offset, const std::array<T, N>& arr) {
         static_assert(addresses::is_writable(id), "Not writable");
         set_ptr_offset<T>(offset, arr.data(), N);
     }
@@ -286,52 +309,10 @@ class MemoryMap : public MemoryMapBase
         return *((volatile uint32_t *) (base_address + offset)) & (1 << index);
     }
 
-    enum Status {
-        MEMMAP_CLOSED,       ///< Memory map closed
-        MEMMAP_OPENED,       ///< Memory map opened
-        MEMMAP_FAILURE       ///< Failure at memory mapping
-    };
-
   private:
     void *mapped_base;       ///< Map base address
     uintptr_t base_address;  ///< Virtual memory base address of the device
-    int status;              ///< Status
-    uintptr_t phys_addr = addresses::get_base_addr(id);
-    uint32_t n_blocks = addresses::get_n_blocks(id);
-    uint32_t block_size = addresses::get_range(id);
-    uint32_t size = addresses::get_total_size(id);
-    int protection = addresses::get_protection(id);
+    bool is_opened;
 };
-
-template<MemMapID id>
-MemoryMap<id>*
-cast_to_memory_map(const std::unique_ptr<MemoryMapBase>& memmap_base)
-{
-    return static_cast<MemoryMap<id>*>(memmap_base.get());
-}
-
-template<MemMapID id>
-MemoryMap<id>::MemoryMap(const int& fd)
-: mapped_base(nullptr)
-, base_address(0)
-, status(MEMMAP_CLOSED)
-{
-    mapped_base = mmap(0, size, protection, MAP_SHARED, fd, phys_addr & ~MAP_MASK(size));
-
-    if (mapped_base == (void *) -1) {
-        status = MEMMAP_FAILURE;
-        return;
-    }
-
-    status = MEMMAP_OPENED;
-    base_address = (uintptr_t)mapped_base + (phys_addr & MAP_MASK(size));
-}
-
-template<MemMapID id>
-MemoryMap<id>::~MemoryMap()
-{
-    if (status == MEMMAP_OPENED)
-        munmap(mapped_base, size);
-}
 
 #endif // __DRIVERS_CORE_MEMORY_MAP_HPP__

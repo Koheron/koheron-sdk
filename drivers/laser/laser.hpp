@@ -38,12 +38,11 @@ constexpr float pwm_to_current = 1 / current_to_pwm;
 class Laser
 {
   public:
-    Laser(DevMem& dvm_)
-    : dvm(dvm_)
-    , cfg(dvm.get<CONFIG_MEM>())
-    , xadc(dvm_)
-    , gpio(dvm_)
-    , eeprom(dvm_)
+    Laser(DevMem& dvm)
+    : cfg(dvm.get<CONFIG_MEM>())
+    , xadc(dvm)
+    , gpio(dvm)
+    , eeprom(dvm)
     {
         reset();
     }
@@ -92,7 +91,6 @@ class Laser
     }
 
   private:
-    DevMem& dvm;
     MemoryMap<CONFIG_MEM>& cfg; // required for pwm
 
     Xadc xadc;

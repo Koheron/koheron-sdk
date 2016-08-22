@@ -20,62 +20,78 @@ extern "C" {
     #include <sys/mman.h>
 }
 
-namespace kserver {class KServer;}
-
 #include "memory_map.hpp"
 
-class DevMem;
+// http://stackoverflow.com/questions/39041236/tuple-of-sequence
+template<size_t N, class = std::make_index_sequence<N>> class DevMemImpl;
 
-class DevMem
+template<size_t N, MemMapID... ids>
+class DevMemImpl<N, std::index_sequence<ids...>>
 {
   public:
-    DevMem(kserver::KServer *kserver_);
-    ~DevMem();
+    DevMemImpl()
+    : fd(-1)
+    , failed_maps(0)
+    {}
+
+    ~DevMemImpl() {close(fd);}
 
     int open();
 
     template<MemMapID id>
     MemoryMap<id>& get() {
-        return std::ref(*cast_to_memory_map<id>(mem_maps[id]));
-    }
-
-    uintptr_t get_base_addr(MemMapID id) {
-        return addresses::get_base_addr(id);
-    }
-
-    template<MemMapID id>
-    auto get_status() {
-        return cast_to_memory_map<id>(mem_maps[id])->get_status();
-    }
-
-    template<MemMapID id>
-    auto get_map_params() {
-        return cast_to_memory_map<id>(mem_maps[id])->get_params();
+        return std::get<id>(mem_maps);
     }
 
   private:
-    kserver::KServer *kserver;
-    int fd;         // /dev/mem file ID
-
-    int add_memory_maps();
-    template<MemMapID id> int add_memory_map();
-
-    std::array<std::unique_ptr<MemoryMapBase>, addresses::count> mem_maps;
+    int fd;
     std::vector<MemMapID> failed_maps;
+    std::tuple<MemoryMap<ids>...> mem_maps;
+
+    template<MemMapID id> void open_memory_map();
 
     template<MemMapID cnt>
     std::enable_if_t<cnt == 0, void>
-    create_maps() {}
+    open_maps() {}
 
     template<MemMapID cnt>
     std::enable_if_t<(cnt > 0), void>
-    create_maps() {
-        if (add_memory_map<cnt - 1>() < 0)
-            failed_maps.push_back(cnt - 1);
+    open_maps() {
+        open_memory_map<cnt-1>();
+        open_maps<cnt-1>();
+    }
+};
 
-        create_maps<cnt - 1>();
+template<size_t N, MemMapID... ids>
+int DevMemImpl<N, std::index_sequence<ids...>>::open()
+{
+    fd = ::open("/dev/mem", O_RDWR | O_SYNC);
+
+     if (fd == -1) {
+        fprintf(stderr, "Can't open /dev/mem\n");
+        return -1;
     }
 
-};
+    open_maps<N>();
+
+    if (! failed_maps.empty())
+        return -1;
+
+    return fd;
+}
+
+template<size_t N, MemMapID... ids>
+template<MemMapID id>
+void DevMemImpl<N, std::index_sequence<ids...>>::open_memory_map()
+{
+    get<id>().open(fd);
+
+    if (! get<id>().opened()) {
+        fprintf(stderr, "Can't open memory map id = %u\n", id);
+        failed_maps.push_back(id);
+    }
+}
+
+using DevMem = DevMemImpl<addresses::count>;
 
 #endif // __DRIVERS_LIB_DEV_MEM_HPP__
