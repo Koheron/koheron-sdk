@@ -5,7 +5,7 @@
 #ifndef __DRIVERS_LIB_DAC_ROUTER_HPP__
 #define __DRIVERS_LIB_DAC_ROUTER_HPP__
 
-#include "dev_mem.hpp"
+#include "memory_manager.hpp"
 
 constexpr uint32_t dac_sel_width(uint32_t n_dac_bram) {
     return ceil(log(float(n_dac_bram)) / log(2.));
@@ -35,8 +35,8 @@ class DacRouter
 {
   public:
     DacRouter(DevMem& dvm)
-    : cfg(dvm.get<CONFIG_MEM>())
-    , dac_map(dvm.get<DAC_MEM>())
+    : cfg(dvm.get<mem::config>())
+    , dac_map(dvm.get<mem::dac>())
     {}
 
     void set_config_reg(uint32_t dac_select_off_, uint32_t addr_select_off_) {
@@ -69,12 +69,12 @@ class DacRouter
     void set_data(uint32_t channel, const std::array<float, N> arr);
 
   private:
-    MemoryMap<CONFIG_MEM>& cfg;
+    MemoryMap<mem::config>& cfg;
     uint32_t dac_select_off;  // TODO Known at compile time
     uint32_t addr_select_off; // TODO Known at compile time
-    MemoryMap<DAC_MEM>& dac_map;
+    MemoryMap<mem::dac>& dac_map;
 
-    static_assert(n_dac_bram == addresses::get_n_blocks(DAC_MEM), "Invalid n_dac_bram");
+    static_assert(n_dac_bram == mem::get_n_blocks(mem::dac), "Invalid n_dac_bram");
 
     std::array<uint32_t, n_dac> bram_index;
     std::array<bool, n_dac_bram> connected_bram;

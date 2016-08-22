@@ -15,63 +15,58 @@ extern "C" {
     #include <sys/mman.h>
 }
 
-#include <drivers/addresses.hpp>
+#include <drivers/memory.hpp>
 
 typedef size_t MemMapID;
 
-namespace addresses {
+namespace mem {
+    constexpr uintptr_t get_base_addr(const MemMapID id) {
+        return std::get<0>(memory_array[id]);
+    }
 
-constexpr uint32_t count = address_array.size();
+    // Makes sure it gets evaluated at compile time
+    static_assert(get_base_addr(config) == std::get<0>(memory_array[config]),
+                  "get_base_address test failed");
 
-// Access elements in address_array
+    constexpr uint32_t get_range(const MemMapID id) {
+        return std::get<1>(memory_array[id]);
+    }
 
-constexpr uintptr_t get_base_addr(const MemMapID id) {
-    return std::get<0>(address_array[id]);
-}
+    constexpr uint32_t get_protection(const MemMapID id) {
+        return std::get<2>(memory_array[id]);
+    }
 
-// Makes sure it gets evaluated at compile time
-static_assert(get_base_addr(CONFIG_MEM) == std::get<0>(address_array[CONFIG_MEM]), "get_base_address test failed");
+    constexpr uint32_t get_n_blocks(const MemMapID id) {
+        return std::get<3>(memory_array[id]);
+    }
 
-constexpr uint32_t get_range(const MemMapID id) {
-    return std::get<1>(address_array[id]);
-}
+    constexpr bool is_writable(const MemMapID id) {
+        return (get_protection(id) & PROT_WRITE) == PROT_WRITE;
+    }
 
-constexpr uint32_t get_protection(const MemMapID id) {
-    return std::get<2>(address_array[id]);
-}
+    constexpr bool is_readable(const MemMapID id) {
+        return (get_protection(id) & PROT_READ) == PROT_READ;
+    }
 
-constexpr uint32_t get_n_blocks(const MemMapID id) {
-    return std::get<3>(address_array[id]);
-}
-
-constexpr bool is_writable(const MemMapID id) {
-    return (get_protection(id) & PROT_WRITE) == PROT_WRITE;
-}
-
-constexpr bool is_readable(const MemMapID id) {
-    return (get_protection(id) & PROT_READ) == PROT_READ;
-}
-
-constexpr uint32_t get_total_size(const MemMapID id) {
-    return get_range(id) * get_n_blocks(id);
-}
-
-} // namespace addresses
+    constexpr uint32_t get_total_size(const MemMapID id) {
+        return get_range(id) * get_n_blocks(id);
+    }
+} // namespace mem
 
 static constexpr off_t get_mmap_offset(uintptr_t phys_addr, uint32_t size) {
     return phys_addr & ~(size - 1);
 }
 
 template<MemMapID id,
-         uintptr_t phys_addr = addresses::get_base_addr(id),
-         uint32_t n_blocks = addresses::get_n_blocks(id),
-         uint32_t block_size = addresses::get_range(id),
-         uint32_t size = addresses::get_total_size(id),
-         int protection = addresses::get_protection(id)>
+         uintptr_t phys_addr = mem::get_base_addr(id),
+         uint32_t n_blocks = mem::get_n_blocks(id),
+         uint32_t block_size = mem::get_range(id),
+         uint32_t size = mem::get_total_size(id),
+         int protection = mem::get_protection(id)>
 class MemoryMap
 {
   public:
-    static_assert(id < addresses::count, "Invalid ID");
+    static_assert(id < mem::count, "Invalid ID");
 
     MemoryMap()
     : mapped_base(nullptr)
@@ -119,8 +114,8 @@ class MemoryMap
     // Write a register (offset defined at compile-time)
     template<uint32_t offset, typename T = uint32_t>
     void write(T value) {
-        static_assert(offset < addresses::get_range(id), "Invalid offset");
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(offset < mem::get_range(id), "Invalid offset");
+        static_assert(mem::is_writable(id), "Not writable");
 
         *(volatile T *) (base_address + offset) = value;
     }
@@ -128,14 +123,14 @@ class MemoryMap
     // Write a register (offset defined at run-time)
     template<typename T = uint32_t>
     void write_offset(uint32_t offset, T value) {
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(mem::is_writable(id), "Not writable");
         *(volatile T *) (base_address + offset) = value;
     }
 
     template<typename T = uint32_t, uint32_t offset = 0>
     void set_ptr(const T *data_ptr, uint32_t buff_size, uint32_t block_idx = 0) {
-        static_assert(offset < addresses::get_range(id), "Invalid offset");
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(offset < mem::get_range(id), "Invalid offset");
+        static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + block_size * block_idx + offset;
         for (uint32_t i=0; i < buff_size; i++)
@@ -144,7 +139,7 @@ class MemoryMap
 
     template<typename T = uint32_t>
     void set_ptr_offset(uint32_t offset, const T *data_ptr, uint32_t buff_size) {
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
         for (uint32_t i=0; i < buff_size; i++)
@@ -154,8 +149,8 @@ class MemoryMap
     // Write a std::array (offset defined at compile-time)
     template<typename T, size_t N, uint32_t offset = 0>
     void write_array(const std::array<T, N>& arr) {
-        static_assert(offset + sizeof(T) * (N - 1) < addresses::get_range(id), "Invalid offset");
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(offset + sizeof(T) * (N - 1) < mem::get_range(id), "Invalid offset");
+        static_assert(mem::is_writable(id), "Not writable");
 
         set_ptr<T, offset>(arr.data(), N);
     }
@@ -163,21 +158,21 @@ class MemoryMap
     // Write a std::array (offset defined at run-time)
     template<typename T, size_t N>
     void write_array_offset(uint32_t offset, const std::array<T, N>& arr) {
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(mem::is_writable(id), "Not writable");
         set_ptr_offset<T>(offset, arr.data(), N);
     }
 
     template<uint32_t offset, uint32_t mask, typename T = uint32_t>
     void write_mask(uint32_t value) {
-        static_assert(offset < addresses::get_range(id), "Invalid offset");
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(offset < mem::get_range(id), "Invalid offset");
+        static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
     }
 
     void write_mask_offset(uint32_t offset, uint32_t mask, uint32_t value) {
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
@@ -190,8 +185,8 @@ class MemoryMap
     // Read a register (offset defined at compile-time)
     template<uint32_t offset, typename T = uint32_t>
     T read() {
-        static_assert(offset < addresses::get_range(id), "Invalid offset");
-        static_assert(addresses::is_readable(id), "Not readable");
+        static_assert(offset < mem::get_range(id), "Invalid offset");
+        static_assert(mem::is_readable(id), "Not readable");
 
         return *(volatile T *) (base_address + offset);
     }
@@ -199,29 +194,29 @@ class MemoryMap
     // Read a register (offset defined at run-time)
     template<typename T = uint32_t>
     T read_offset(uint32_t offset) {
-        static_assert(addresses::is_readable(id), "Not readable");
+        static_assert(mem::is_readable(id), "Not readable");
         return *(volatile T *) (base_address + offset);
     }
 
     template<typename T = uint32_t, uint32_t offset = 0>
     T* get_ptr(uint32_t block_idx = 0) {
-        static_assert(offset < addresses::get_range(id), "Invalid offset");
-        static_assert(addresses::is_readable(id), "Not readable");
+        static_assert(offset < mem::get_range(id), "Invalid offset");
+        static_assert(mem::is_readable(id), "Not readable");
 
         return reinterpret_cast<T*>(base_address + block_size * block_idx + offset);
     }
 
     template<typename T = uint32_t>
     T* get_ptr_offset(uint32_t offset = 0) {
-        static_assert(addresses::is_readable(id), "Not readable");
+        static_assert(mem::is_readable(id), "Not readable");
         return reinterpret_cast<T*>(base_address + offset);
     }
 
     // Read a std::array (offset defined at compile-time)
     template<typename T, size_t N, uint32_t offset = 0>
     std::array<T, N>& read_array(uint32_t block_idx = 0) {
-        static_assert(offset + sizeof(T) * (N - 1) < addresses::get_range(id), "Invalid offset");
-        static_assert(addresses::is_readable(id), "Not readable");
+        static_assert(offset + sizeof(T) * (N - 1) < mem::get_range(id), "Invalid offset");
+        static_assert(mem::is_readable(id), "Not readable");
 
         auto p = get_ptr<std::array<T, N>, offset>(block_idx);
         return *p;
@@ -230,7 +225,7 @@ class MemoryMap
     // Read a std::array (offset defined at run-time)
     template<typename T, size_t N>
     std::array<T, N>& read_array_offset(uint32_t offset) {
-        static_assert(addresses::is_readable(id), "Not readable");
+        static_assert(mem::is_readable(id), "Not readable");
 
         auto p = get_ptr_offset<std::array<T, N>>(offset);
         return *p;
@@ -243,8 +238,8 @@ class MemoryMap
     // Set a bit (offset and index defined at compile-time)
     template<uint32_t offset, uint32_t index>
     void set_bit() {
-        static_assert(offset < addresses::get_range(id), "Invalid offset");
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(offset < mem::get_range(id), "Invalid offset");
+        static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
@@ -252,7 +247,7 @@ class MemoryMap
 
     // Set a bit (offset and index defined at run-time)
     void set_bit_offset(uint32_t offset, uint32_t index) {
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
@@ -261,8 +256,8 @@ class MemoryMap
     // Clear a bit (offset and index defined at compile-time)
     template<uint32_t offset, uint32_t index>
     void clear_bit() {
-        static_assert(offset < addresses::get_range(id), "Invalid offset");
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(offset < mem::get_range(id), "Invalid offset");
+        static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
@@ -270,7 +265,7 @@ class MemoryMap
 
     // Clear a bit (offset and index defined at run-time)
     void clear_bit_offset(uint32_t offset, uint32_t index) {
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
@@ -279,8 +274,8 @@ class MemoryMap
     // Toggle a bit (offset and index defined at compile-time)
     template<uint32_t offset, uint32_t index>
     void toggle_bit() {
-        static_assert(offset < addresses::get_range(id), "Invalid offset");
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(offset < mem::get_range(id), "Invalid offset");
+        static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
@@ -288,7 +283,7 @@ class MemoryMap
 
     // Toggle a bit (offset and index defined at run-time)
     void toggle_bit_offset(uint32_t offset, uint32_t index) {
-        static_assert(addresses::is_writable(id), "Not writable");
+        static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
@@ -297,15 +292,15 @@ class MemoryMap
     // Read a bit (offset and index defined at compile-time)
     template<uint32_t offset, uint32_t index>
     bool read_bit() {
-        static_assert(offset < addresses::get_range(id), "Invalid offset");
-        static_assert(addresses::is_readable(id), "Not readable");
+        static_assert(offset < mem::get_range(id), "Invalid offset");
+        static_assert(mem::is_readable(id), "Not readable");
 
         return *((volatile uint32_t *) (base_address + offset)) & (1 << index);
     }
 
     // Read a bit (offset and index defined at run-time)
     bool read_bit_offset(uint32_t offset, uint32_t index) {
-        static_assert(addresses::is_readable(id), "Not readable");
+        static_assert(mem::is_readable(id), "Not readable");
         return *((volatile uint32_t *) (base_address + offset)) & (1 << index);
     }
 

@@ -7,8 +7,7 @@
 
 #include <array>
 
-#include <drivers/lib/dev_mem.hpp>
-#include <drivers/addresses.hpp>
+#include <drivers/memory.hpp>
 #include <drivers/init/init.hpp>
 
 class Common
@@ -16,20 +15,20 @@ class Common
   public:
     Common(DevMem& dvm_)
     : dvm(dvm_)
-    , cfg(dvm.get<CONFIG_MEM>())
-    , sts(dvm.get<STATUS_MEM>())
+    , cfg(dvm.get<mem::config>())
+    , sts(dvm.get<mem::status>())
     {}
 
-    std::array<uint32_t, BITSTREAM_ID_SIZE> get_bitstream_id();
+    std::array<uint32_t, prm::bitstream_id_size> get_bitstream_id();
 
     uint64_t get_dna();
 
     void set_led(uint32_t value) {
-    	cfg.write<LED_OFF>(value);
+        cfg.write<reg::led>(value);
     }
 
     uint32_t get_led() {
-    	return cfg.read<LED_OFF>();
+        return cfg.read<reg::led>();
     }
 
     void ip_on_leds();
@@ -48,12 +47,12 @@ class Common
         return cfg.read_offset(offset);
     }
 
-    std::array<uint32_t, CONFIG_RANGE/4>& cfg_read_all() {
-        return cfg.read_array<uint32_t, CONFIG_RANGE/4>();
+    auto& cfg_read_all() {
+        return cfg.read_array<uint32_t, mem::config_range/4>();
     }
 
-    std::array<uint32_t, STATUS_RANGE/4>& sts_read_all() {
-        return sts.read_array<uint32_t, STATUS_RANGE/4>();
+    auto& sts_read_all() {
+        return sts.read_array<uint32_t, mem::status_range/4>();
     }
 
     uint32_t sts_read(uint32_t offset) {
@@ -66,10 +65,10 @@ class Common
 
   private:
     DevMem& dvm;
-    MemoryMap<CONFIG_MEM>& cfg;
-    MemoryMap<STATUS_MEM>& sts;
+    MemoryMap<mem::config>& cfg;
+    MemoryMap<mem::status>& sts;
 
-    std::array<uint32_t, BITSTREAM_ID_SIZE> bitstream_id;
+    std::array<uint32_t, prm::bitstream_id_size> bitstream_id;
 };
 
 #endif // __DRIVERS_COMMON_HPP__

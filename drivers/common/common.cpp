@@ -11,18 +11,18 @@ extern "C" {
   #include <ifaddrs.h>
 }
 
-std::array<uint32_t, BITSTREAM_ID_SIZE> Common::get_bitstream_id()
+std::array<uint32_t, prm::bitstream_id_size> Common::get_bitstream_id()
 {
     for (uint32_t i=0; i<bitstream_id.size(); i++)
-        bitstream_id[i] = sts.read_offset(BITSTREAM_ID_OFF + 4 * i);
+        bitstream_id[i] = sts.read_offset(reg::bitstream_id + 4 * i);
 
     return bitstream_id;
 }
 
 uint64_t Common::get_dna()
 {
-    uint64_t dna_low  = static_cast<uint64_t>(sts.read<DNA_OFF>());
-    uint64_t dna_high = static_cast<uint64_t>(sts.read<DNA_OFF + 4>());
+    uint64_t dna_low  = static_cast<uint64_t>(sts.read<reg::dna>());
+    uint64_t dna_high = static_cast<uint64_t>(sts.read<reg::dna + 4>());
     return dna_low + (dna_high << 32);
 }
 

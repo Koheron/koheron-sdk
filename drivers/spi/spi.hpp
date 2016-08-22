@@ -3,7 +3,7 @@
 #ifndef __DRIVERS_SPI_SPI_HPP__
 #define __DRIVERS_SPI_SPI_HPP__
 
-#include <drivers/lib/dev_mem.hpp>
+#include <drivers/memory.hpp>
 #include <drivers/lib/spi_dev.hpp>
 
 class Spi

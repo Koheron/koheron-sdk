@@ -5,9 +5,8 @@
 #ifndef __DRIVERS_CORE_PID_HPP__
 #define __DRIVERS_CORE_PID_HPP__
 
-#include <drivers/lib/dev_mem.hpp>
 #include <drivers/lib/fifo_reader.hpp>
-#include <drivers/addresses.hpp>
+#include <drivers/memory.hpp>
 
 #define FIFO_BUFF_SIZE 65536
 #define SAMPLING_FREQ 125e6

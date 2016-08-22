@@ -4,10 +4,10 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_CORE_GPIO_HPP__
-#define __DRIVERS_CORE_GPIO_HPP__
+#ifndef __DRIVERS_GPIO_HPP__
+#define __DRIVERS_GPIO_HPP__
 
-#include <drivers/lib/dev_mem.hpp>
+#include <drivers/memory.hpp>
 
 // Offsets
 // Set by Xilinx IP
@@ -26,7 +26,7 @@ class Gpio
 {
   public:
     Gpio(DevMem& dvm)
-    : gpio(dvm.get<GPIO_MEM>())
+    : gpio(dvm.get<mem::gpio>())
     {}
 
     void set_data(uint32_t channel, uint32_t value) {
@@ -68,7 +68,7 @@ class Gpio
     }
 
   private:
-    MemoryMap<GPIO_MEM>& gpio;
+    MemoryMap<mem::gpio>& gpio;
 
     int get_value_offset(uint32_t channel) {
         return (channel == 1 ? CHAN1_VALUE_OFF : CHAN2_VALUE_OFF);
@@ -79,4 +79,4 @@ class Gpio
     }
 }; // class Gpio
 
-#endif // __DRIVERS_CORE_GPIO_HPP__
+#endif // __DRIVERS_GPIO_HPP__

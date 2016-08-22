@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_LIB_DEV_MEM_HPP__
-#define __DRIVERS_LIB_DEV_MEM_HPP__
+#ifndef __DRIVERS_LIB_MEMORY_MANAGER_HPP__
+#define __DRIVERS_LIB_MEMORY_MANAGER_HPP__
 
 #include <map>
 #include <vector>
@@ -92,6 +92,6 @@ void DevMemImpl<N, std::index_sequence<ids...>>::open_memory_map()
     }
 }
 
-using DevMem = DevMemImpl<addresses::count>;
+using DevMem = DevMemImpl<mem::count>;
 
-#endif // __DRIVERS_LIB_DEV_MEM_HPP__
+#endif // __DRIVERS_LIB_MEMORY_MANAGER_HPP__

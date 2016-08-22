@@ -7,8 +7,7 @@
 
 #include <tuple>
 
-#include <drivers/lib/dev_mem.hpp>
-#include <drivers/addresses.hpp>
+#include <drivers/memory.hpp>
 #include <drivers/xadc/xadc.hpp>
 #include <drivers/gpio/gpio.hpp>
 #include <drivers/eeprom/eeprom.hpp>
@@ -39,7 +38,7 @@ class Laser
 {
   public:
     Laser(DevMem& dvm)
-    : cfg(dvm.get<CONFIG_MEM>())
+    : cfg(dvm.get<mem::config>())
     , xadc(dvm)
     , gpio(dvm)
     , eeprom(dvm)
@@ -80,18 +79,18 @@ class Laser
     }
 
     void save_config() {
-        uint32_t current = cfg.read<PWM3_OFF>();
+        uint32_t current = cfg.read<reg::pwm3>();
         eeprom.write(EEPROM_CURRENT_ADDR, current);
     }
 
     float load_config() {
         uint32_t pwm = eeprom.read(EEPROM_CURRENT_ADDR);
-        cfg.write<PWM3_OFF>(pwm);
+        cfg.write<reg::pwm3>(pwm);
         return MILLIAMPS_TO_AMPS * current_from_pwm(pwm);
     }
 
   private:
-    MemoryMap<CONFIG_MEM>& cfg; // required for pwm
+    MemoryMap<mem::config>& cfg; // required for pwm
 
     Xadc xadc;
     Gpio gpio;

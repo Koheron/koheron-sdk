@@ -85,7 +85,7 @@ SHA = $(shell cat $(SHA_FILE))
 TCP_SERVER_DIR = $(TMP)/$(NAME).tcp-server
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
 SERVER_CONFIG = projects/$(NAME)/drivers.yml
-TCP_SERVER_SHA = master
+TCP_SERVER_SHA = auto_ref
 TCP_SERVER_VENV = $(TMP)/$(NAME).tcp_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
 
