@@ -9,41 +9,30 @@ class Eeprom(object):
     def __init__(self, client):
         self.client = client
 
-    @command('EEPROM','I')
+    @command('Eeprom','I')
     def read(self, addr):
         return self.client.recv_uint32()
 
-    @command('EEPROM')
+    @command('Eeprom')
     def write_enable(self):
         pass
 
-    @command('EEPROM','I')
+    @command('Eeprom','I')
     def erase(self, addr):
         pass
 
-    @command('EEPROM','II')
+    @command('Eeprom','II')
     def write(self, addr, data_in):
         pass
 
-    @command('EEPROM')
+    @command('Eeprom')
     def erase_all(self):
         pass
 
-    @command('EEPROM','I')
+    @command('Eeprom','I')
     def write_all(self, data_in):
         pass
 
-    @command('EEPROM')
+    @command('Eeprom')
     def erase_write_disable(self):
         pass
-
-    def test(self, verbose=True):
-        if verbose:
-            print('Testing EEPROM driver')
-        self.write_enable()
-        addr = 12
-        val = 42
-        for i in range(10):
-            self.write(addr, i)
-            time.sleep(0.002)
-            assert(self.read(addr) == i)

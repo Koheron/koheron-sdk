@@ -44,57 +44,57 @@ class Common(object):
         self.client = client
         self.mem_cfg = MemoryConfig(self.get_instrument_config())
 
-    @command('COMMON')
+    @command('Common')
     def get_bitstream_id(self):
         id_array = self.client.recv_array(8, dtype='uint32')
         return ''.join('{:08x}'.format(i) for i in id_array)
 
-    @command('COMMON')
+    @command('Common')
     def get_dna(self):
         id_array = self.client.recv_array(2, dtype='uint32')
         return ''.join('{:02x}'.format(i) for i in id_array)
 
-    @command('COMMON', 'I')
+    @command('Common', 'I')
     def set_led(self, value): pass
 
-    @command('COMMON')
+    @command('Common')
     def get_led(self):
         return self.client.recv_uint32()
 
-    @command('COMMON')
+    @command('Common')
     def init(self): pass
 
-    @command('COMMON')
+    @command('Common')
     def ip_on_leds(self): pass
 
     def get_server_version(self):
-        @command('KSERVER')
+        @command('KServer')
         def get_version(self):
             return self.client.recv_string()
 
         return get_version(self)
 
-    @command('COMMON', 'II')
+    @command('Common', 'II')
     def cfg_write(self, offset, value):
         pass
 
-    @command('COMMON', 'I')
+    @command('Common', 'I')
     def cfg_read(self, offset):
         return self.client.recv_uint32()
 
-    @command('COMMON', 'I')
+    @command('Common', 'I')
     def sts_read(self, offset):
         return self.client.recv_uint32()
 
-    @command('COMMON')
+    @command('Common')
     def cfg_read_all(self):
         return self.client.recv_array(self.mem_cfg.mmaps['config'].range/4, dtype='uint32')
 
-    @command('COMMON')
+    @command('Common')
     def sts_read_all(self):
         return self.client.recv_array(self.mem_cfg.mmaps['status'].range/4, dtype='uint32')
 
-    @command('COMMON')
+    @command('Common')
     def get_instrument_config(self):
         return self.client.recv_json()
 

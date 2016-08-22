@@ -11,52 +11,52 @@ class Oscillo(object):
         self.client = client
         self.wfm_size = wfm_size
 
-    @command('OSCILLO','I')
+    @command('Oscillo','I')
     def set_n_avg_min(self, n_avg_min): pass
 
-    @command('OSCILLO','I')
+    @command('Oscillo','I')
     def set_period(self, period): pass
 
-    @command('OSCILLO')
+    @command('Oscillo')
     def get_counter(self):
         return self.client.recv_int(8, fmt='Q')
 
-    @command('OSCILLO','II')
+    @command('Oscillo','II')
     def set_dac_period(self, dac_period0, dac_period1): pass
 
-    @command('OSCILLO','II')
+    @command('Oscillo','II')
     def set_avg_period(self, avg_period0, avg_period1): pass
 
-    @command('OSCILLO')
+    @command('Oscillo')
     def reset(self): pass
 
-    @command('OSCILLO')
+    @command('Oscillo')
     def reset_acquisition(self): pass
 
     def set_dac(self, data, channel):
-        @command('OSCILLO','IA')
+        @command('Oscillo','IA')
         def set_dac_buffer(self, channel, array):
             pass
         data = np.uint32(np.mod(np.floor(8192 * data) + 8192, 16384) + 8192)
         set_dac_buffer(self, channel, data[::2] + (data[1::2] << 16))
 
-    @command('OSCILLO','IA')
+    @command('Oscillo','IA')
     def set_dac_float(self, channel, array):
         assert len(array) == self.wfm_size
 
-    @command('OSCILLO', 'I')
+    @command('Oscillo', 'I')
     def get_dac_buffer(self, channel):
         return self.client.recv_array(self.wfm_size/2, dtype='uint32')
 
-    @command('OSCILLO', '?')
+    @command('Oscillo', '?')
     def set_averaging(self, avg_status):
         pass
 
-    @command('OSCILLO','I')
+    @command('Oscillo','I')
     def get_num_average(self, channel):
         return self.client.recv_uint32()
 
-    @command('OSCILLO')
+    @command('Oscillo')
     def read_all_channels(self):
         return self.client.recv_array(2 * self.wfm_size, dtype='float32')
 
