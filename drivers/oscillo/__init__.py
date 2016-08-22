@@ -46,7 +46,7 @@ class Oscillo(object):
 
     @command('OSCILLO', 'I')
     def get_dac_buffer(self, channel):
-        return self.client.recv_buffer(self.wfm_size/2, data_type='uint32')
+        return self.client.recv_array(self.wfm_size/2, dtype='uint32')
 
     @command('OSCILLO', '?')
     def set_averaging(self, avg_status):
@@ -58,32 +58,8 @@ class Oscillo(object):
 
     @command('OSCILLO')
     def read_all_channels(self):
-        return self.client.recv_buffer(2 * self.wfm_size, data_type='float32')
+        return self.client.recv_array(2 * self.wfm_size, dtype='float32')
 
     def get_adc(self):
         data = self.read_all_channels()
         return np.reshape(data, (2, self.wfm_size))
-
-
-    def test(self, verbose=True):
-        if verbose:
-            print('Testing OSCILLO driver')
-        oscillo = self
-        oscillo.reset()
-
-        dac_data = np.arange(8192) / 8192.
-        oscillo.set_dac(dac_data, 1)
-
-        oscillo.set_dac(dac_data, 0)
-
-
-        oscillo.set_dac(dac_data, 1)
-
-        time.sleep(0.01)
-        adc = oscillo.get_adc()
-        assert(np.shape(adc) == (2, 8192))
-        mean = np.mean(adc)
-        std = np.std(adc)
-        if verbose:
-            print('Get adc: mean = {}, std = {}'.format(mean, std))
-        assert(std > 0)
