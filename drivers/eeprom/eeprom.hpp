@@ -27,9 +27,9 @@ using namespace std::chrono_literals;
 class Eeprom
 {
   public:
-    Eeprom(DevMem& dvm)
-    : cfg(dvm.get<mem::config>())
-    , sts(dvm.get<mem::status>())
+    Eeprom(MemoryManager& mm)
+    : cfg(mm.get<mem::config>())
+    , sts(mm.get<mem::status>())
     {}
 
     uint32_t read(uint32_t addr) {

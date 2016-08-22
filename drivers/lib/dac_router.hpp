@@ -34,9 +34,9 @@ template<uint32_t n_dac, uint32_t n_dac_bram>
 class DacRouter
 {
   public:
-    DacRouter(DevMem& dvm)
-    : cfg(dvm.get<mem::config>())
-    , dac_map(dvm.get<mem::dac>())
+    DacRouter(MemoryManager& mm)
+    : cfg(mm.get<mem::config>())
+    , dac_map(mm.get<mem::dac>())
     {}
 
     void set_config_reg(uint32_t dac_select_off_, uint32_t addr_select_off_) {

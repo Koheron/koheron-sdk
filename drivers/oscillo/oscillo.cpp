@@ -6,12 +6,12 @@
 #include <thread>
 #include <chrono>
 
-Oscillo::Oscillo(DevMem& dvm)
-: cfg(dvm.get<mem::config>())
-, sts(dvm.get<mem::status>())
-, adc_map(dvm.get<mem::adc>())
+Oscillo::Oscillo(MemoryManager& mm)
+: cfg(mm.get<mem::config>())
+, sts(mm.get<mem::status>())
+, adc_map(mm.get<mem::adc>())
 , data_decim(0)
-, dac(dvm)
+, dac(mm)
 {
     raw_data[0] = adc_map.get_ptr<int32_t>(0);
     raw_data[1] = adc_map.get_ptr<int32_t>(1);

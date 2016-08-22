@@ -38,11 +38,11 @@ constexpr float pwm_to_current = 1 / current_to_pwm;
 class Laser
 {
   public:
-    Laser(DevMem& dvm)
-    : cfg(dvm.get<mem::config>())
-    , xadc(dvm)
-    , gpio(dvm)
-    , eeprom(dvm)
+    Laser(MemoryManager& mm)
+    : cfg(mm.get<mem::config>())
+    , xadc(mm)
+    , gpio(mm)
+    , eeprom(mm)
     {
         reset();
     }

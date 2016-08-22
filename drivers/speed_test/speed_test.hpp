@@ -24,7 +24,7 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz);
 class SpeedTest
 {
   public:
-    SpeedTest(DevMem& dvm);
+    SpeedTest(MemoryManager& mm);
 
     std::array<float, 2*WFM_SIZE>& read_raw_all();
 

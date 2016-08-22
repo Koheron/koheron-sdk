@@ -14,10 +14,10 @@
 class Common
 {
   public:
-    Common(DevMem& dvm_)
-    : dvm(dvm_)
-    , cfg(dvm.get<mem::config>())
-    , sts(dvm.get<mem::status>())
+    Common(MemoryManager& mm_)
+    : mm(mm_)
+    , cfg(mm.get<mem::config>())
+    , sts(mm.get<mem::status>())
     {}
 
     std::array<uint32_t, prm::bitstream_id_size> get_bitstream_id();
@@ -36,7 +36,7 @@ class Common
 
     void init() {
         ip_on_leds();
-        Init init(dvm);
+        Init init(mm);
         init.load_settings();
     };
 
@@ -65,7 +65,7 @@ class Common
     }
 
   private:
-    DevMem& dvm;
+    MemoryManager& mm;
     MemoryMap<mem::config>& cfg;
     MemoryMap<mem::status>& sts;
 
