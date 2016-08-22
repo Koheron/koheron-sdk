@@ -5,18 +5,19 @@
 #ifndef __DRIVERS_SPECTRUM_HPP__
 #define __DRIVERS_SPECTRUM_HPP__
 
+#include <drivers/lib/memory_manager.hpp>
 #include <drivers/lib/fifo_reader.hpp>
 #include <drivers/lib/dac_router.hpp>
 #include <drivers/memory.hpp>
 
 #define SAMPLING_RATE 125E6
-#define WFM_SIZE SPECTRUM_RANGE/sizeof(float)
+#define WFM_SIZE mem::spectrum_range/sizeof(float)
 #define FIFO_BUFF_SIZE 4096
 
 class Spectrum
 {
   public:
-    Spectrum(DevMem& dvm);
+    Spectrum(MemoryManager& mm);
 
     void reset() {
         cfg.clear_bit<reg::addr, 0>();
