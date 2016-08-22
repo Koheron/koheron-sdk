@@ -32,7 +32,7 @@ class SpeedTest
     std::array<float, 2*WFM_SIZE>& read_zeros() {return data_zeros;}
 
     // Read data in RAM buffer
-    #pragma tcp-server read_array 2*WFM_SIZE
+    #pragma koheron-server read_array 2*WFM_SIZE
     float* read_rambuf() {return rambuf_data;}
 
     // Read data in RAM buffer (with copy)
