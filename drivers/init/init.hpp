@@ -8,11 +8,9 @@
 #include <drivers/lib/memory_manager.hpp>
 #include <drivers/memory.hpp>
 
-class Init
+struct Init
 {
-  public:
-    Init(DevMem& dvm_) {};
-
+    Init(MemoryManager& mm) {};
     void load_settings() {};
 };
 

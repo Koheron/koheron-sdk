@@ -5,6 +5,7 @@
 #ifndef __DRIVERS_CORE_PID_HPP__
 #define __DRIVERS_CORE_PID_HPP__
 
+#include <drivers/lib/memory_manager.hpp>
 #include <drivers/lib/fifo_reader.hpp>
 #include <drivers/memory.hpp>
 
@@ -17,11 +18,10 @@ constexpr float freq_factor = POW_32 / SAMPLING_FREQ;
 class Pid
 {
   public:
-    Pid(DevMem& dvm_)
-    : dvm(dvm_)
-    , cfg(dvm.get<CONFIG_MEM>())
-    , sts(dvm.get<STATUS_MEM>())
-    , fifo(dvm_)
+    Pid(MemoryManager& mm)
+    : cfg(mm.get<CONFIG_MEM>())
+    , sts(mm.get<STATUS_MEM>())
+    , fifo(mm)
     {}
 
     void set_cic_rate(uint32_t rate) {
@@ -41,10 +41,9 @@ class Pid
     bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
 
   private:
-    DevMem& dvm;
     MemoryMap<CONFIG_MEM>& cfg;
     MemoryMap<STATUS_MEM>& sts;
     FIFOReader<FIFO_MEM, FIFO_BUFF_SIZE> fifo;
-}; // class Pid
+};
 
 #endif // __DRIVERS_CORE_PID_HPP__

@@ -26,8 +26,8 @@
 class Gpio
 {
   public:
-    Gpio(DevMem& dvm)
-    : gpio(dvm.get<mem::gpio>())
+    Gpio(MemoryManager& mm)
+    : gpio(mm.get<mem::gpio>())
     {}
 
     void set_data(uint32_t channel, uint32_t value) {

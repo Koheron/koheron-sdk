@@ -23,7 +23,7 @@ constexpr std::array<uint32_t, 2> n_avg_offset = {reg::n_avg0, reg::n_avg1};
 class Oscillo
 {
   public:
-    Oscillo(DevMem& dvm_);
+    Oscillo(MemoryManager& mm);
 
     // Reset ...
 

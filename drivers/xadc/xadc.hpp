@@ -23,8 +23,8 @@
 class Xadc
 {
   public:
-    Xadc(DevMem& dvm)
-    : xadc(dvm.get<mem::xadc>())
+    Xadc(MemoryManager& mm)
+    : xadc(mm.get<mem::xadc>())
     {}
 
     int set_channel(uint32_t channel_0_, uint32_t channel_1_);

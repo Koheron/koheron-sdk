@@ -10,7 +10,7 @@
 class Spi
 {
   public:
-    Spi(DevMem& dvm_) {}
+    Spi(MemoryManager& mm) {}
 
     int init(uint32_t mode) {
         spi_dev = SpiDev(mode);
