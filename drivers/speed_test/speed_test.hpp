@@ -1,4 +1,4 @@
-/// SpeedTestscope driver
+/// SpeedTest driver
 ///
 /// (c) Koheron
 
@@ -14,9 +14,6 @@
 #define SAMPLING_RATE 125E6
 
 #define WFM_SIZE mem::adc_range/sizeof(float)
-
-// #define RAMBUF_ADDR 0x1E000000
-// #define RAMBUF_RANGE 2048*4096
 
 //http://es.codeover.org/questions/34888683/arm-neon-memcpy-optimized-for-uncached-memory
 void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz);
@@ -75,6 +72,6 @@ class SpeedTest
     std::array<float, 2*WFM_SIZE> data_zeros;
     std::vector<float> data_decim;
     std::vector<uint32_t> data_all_int;
-}; // class SpeedTest
+};
 
 #endif // __DRIVERS_SPEED_TEST_HPP__
