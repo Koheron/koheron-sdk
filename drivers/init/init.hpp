@@ -5,6 +5,7 @@
 #ifndef __DRIVERS_INIT_HPP__
 #define __DRIVERS_INIT_HPP__
 
+#include <drivers/lib/memory_manager.hpp>
 #include <drivers/memory.hpp>
 
 class Init

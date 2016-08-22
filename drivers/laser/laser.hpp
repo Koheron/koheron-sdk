@@ -7,10 +7,11 @@
 
 #include <tuple>
 
-#include <drivers/memory.hpp>
+#include <drivers/lib/memory_manager.hpp>
 #include <drivers/xadc/xadc.hpp>
 #include <drivers/gpio/gpio.hpp>
 #include <drivers/eeprom/eeprom.hpp>
+#include <drivers/memory.hpp>
 
 #include <thread>
 #include <chrono>

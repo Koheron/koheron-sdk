@@ -7,6 +7,7 @@
 #ifndef __DRIVERS_GPIO_HPP__
 #define __DRIVERS_GPIO_HPP__
 
+#include <drivers/lib/memory_manager.hpp>
 #include <drivers/memory.hpp>
 
 // Offsets

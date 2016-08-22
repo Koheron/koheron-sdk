@@ -7,8 +7,9 @@
 
 #include <array>
 
-#include <drivers/memory.hpp>
+#include <drivers/lib/memory_manager.hpp>
 #include <drivers/init/init.hpp>
+#include <drivers/memory.hpp>
 
 class Common
 {
