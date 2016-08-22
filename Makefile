@@ -86,7 +86,7 @@ TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
 TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
 SERVER_CONFIG = projects/$(NAME)/drivers.yml
-TCP_SERVER_SHA = master
+TCP_SERVER_SHA = koheron
 TCP_SERVER_VENV = $(TMP)/$(NAME).koheron_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
 
