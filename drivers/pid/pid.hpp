@@ -1,9 +1,7 @@
-/// Spectrum analyzer driver
-///
 /// (c) Koheron
 
-#ifndef __DRIVERS_CORE_PID_HPP__
-#define __DRIVERS_CORE_PID_HPP__
+#ifndef __DRIVERS_PID_HPP__
+#define __DRIVERS_PID_HPP__
 
 #include <drivers/lib/memory_manager.hpp>
 #include <drivers/lib/fifo_reader.hpp>
@@ -19,17 +17,17 @@ class Pid
 {
   public:
     Pid(MemoryManager& mm)
-    : cfg(mm.get<CONFIG_MEM>())
-    , sts(mm.get<STATUS_MEM>())
+    : cfg(mm.get<mem::config>())
+    , sts(mm.get<mem::status>())
     , fifo(mm)
     {}
 
     void set_cic_rate(uint32_t rate) {
-        cfg.write<CIC_RATE_OFF>(rate);
+        cfg.write<reg::cic_rate>(rate);
     }
 
     void set_dds_freq(float freq) {
-        cfg.write<DDS_OFF>(uint32_t(freq * freq_factor));
+        cfg.write<reg::dds>(uint32_t(freq * freq_factor));
     }
 
     /// @acq_period Sleeping time between two acquisitions (us)
@@ -41,9 +39,9 @@ class Pid
     bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
 
   private:
-    MemoryMap<CONFIG_MEM>& cfg;
-    MemoryMap<STATUS_MEM>& sts;
-    FIFOReader<FIFO_MEM, FIFO_BUFF_SIZE> fifo;
+    MemoryMap<mem::config>& cfg;
+    MemoryMap<mem::status>& sts;
+    FIFOReader<mem::fifo, FIFO_BUFF_SIZE> fifo;
 };
 
-#endif // __DRIVERS_CORE_PID_HPP__
+#endif // __DRIVERS_PID_HPP__
