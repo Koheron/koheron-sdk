@@ -14,7 +14,6 @@ proc range {from to} {
     if {$to>$from} {concat [range $from [incr to -1]] $to}
  }
 
-
 # Get a configuration pin
 # name : name of the register defined in the project YAML
 proc cfg_pin {pin_name} {
@@ -24,6 +23,11 @@ proc cfg_pin {pin_name} {
 # Get a status pin
 proc sts_pin {pin_name} {
   return $::status_name/$pin_name
+}
+
+# Get a parameter defined in main.yml
+proc get_parameter {param_name} {
+  return [set ::config::$param_name]
 }
 
 proc underscore {pin_name} {
@@ -80,7 +84,7 @@ foreach op {and or nor not} {
     return $cell_name/Res
   }
 }
--1
+
 foreach op {GE GT LE LT EQ NE} {
   proc get_${op}_pin {pin_name1 pin_name2} {
     set proc_name [lindex [info level 0] 0]
