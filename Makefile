@@ -393,6 +393,3 @@ clean_all:
 	$(RM) uImage fw_printenv boot.bin devicetree.dtb $(TMP)
 	$(RM) .Xil usage_statistics_webtalk.html usage_statistics_webtalk.xml
 	$(RM) webtalk*.log webtalk*.jou
-
-
-

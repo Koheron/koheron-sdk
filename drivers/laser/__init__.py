@@ -9,45 +9,45 @@ class Laser(object):
     def __init__(self, client):
         self.client = client
 
-    @command('LASER')
+    @command('Laser')
     def is_laser_present(self):
         return self.client.recv_bool()
 
-    @command('LASER')
+    @command('Laser')
     def reset(self): pass
 
-    @command('LASER')
+    @command('Laser')
     def start_laser(self): pass
 
-    @command('LASER')
+    @command('Laser')
     def stop_laser(self): pass
 
-    @command('LASER')
+    @command('Laser')
     def get_laser_current(self):
         current = self.client.recv_uint32()
         return (0.0001/21.) * current
 
-    @command('LASER')
+    @command('Laser')
     def get_laser_power(self):
         return self.client.recv_uint32()
 
-    @command('LASER')
+    @command('Laser')
     def get_monitoring(self):
         return self.client.recv_tuple('II')
 
-    @command('LASER')
+    @command('Laser')
     def get_status(self):
         return self.client.recv_tuple('?ff')
 
-    @command('LASER','f')
+    @command('Laser','f')
     def set_laser_current(self, current):
         """ current: The bias in mA """
         pass
 
-    @command('LASER')
+    @command('Laser')
     def save_config(self): pass
 
-    @command('LASER')
+    @command('Laser')
     def load_config(self):
         return self.client.recv_float()
 
