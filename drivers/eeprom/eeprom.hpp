@@ -9,6 +9,7 @@
 #include <thread>
 #include <chrono>
 
+#include <drivers/lib/memory_manager.hpp>
 #include <drivers/memory.hpp>
 
 // http://www.atmel.com/images/Atmel-5193-SEEPROM-AT93C46D-Datasheet.pdf

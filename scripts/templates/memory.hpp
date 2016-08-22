@@ -46,6 +46,7 @@ static_assert({{ offset }} < mem::status_range, "Invalid status register offset 
 {% endfor %}
 
 constexpr uint32_t bitstream_id = 0;
+constexpr uint32_t dna = 4 * 8;
 } // namespace reg
 
 namespace prm {
@@ -54,8 +55,6 @@ constexpr uint32_t {{ key }} = {{ dic['parameters'][key] }};
 {% endfor %}
 
 constexpr uint32_t bitstream_id_size = 8;
-
-constexpr uint32_t dna = 4 * 8;
 } // namespace prm
 
 // -- JSONified config
