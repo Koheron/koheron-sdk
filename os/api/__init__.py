@@ -106,7 +106,7 @@ class KoheronAPIApp(Flask):
     def start_client(self):
         time.sleep(0.1) # To be sure server is up
         self.stop_client()
-        self.client = KClient('127.0.0.1', verbose=False)
+        self.client = KClient('127.0.0.1')
 
         if self.client.is_connected:
             self.common = Common(self.client)
