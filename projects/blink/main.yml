@@ -9,7 +9,7 @@ cores:
   - axi_cfg_register_v1_0
   - axi_sts_register_v1_0
 
-addresses:
+memory:
   - name: config
     offset: '0x60000000'
     range: 4K

@@ -3,7 +3,7 @@ project: oscillo
 
 parent: base 
 
-addresses:
+memory:
   - name: config
     offset: '0x60000000'
     range: 4K

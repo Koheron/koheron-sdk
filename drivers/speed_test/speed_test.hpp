@@ -8,12 +8,12 @@
 #include <vector>
 #include <cstring>
 
-#include <drivers/lib/dev_mem.hpp>
-#include <drivers/addresses.hpp>
+#include <drivers/lib/memory_manager.hpp>
+#include <drivers/memory.hpp>
 
 #define SAMPLING_RATE 125E6
 
-#define WFM_SIZE ADC_RANGE/sizeof(float)
+#define WFM_SIZE mem::adc_range/sizeof(float)
 
 // #define RAMBUF_ADDR 0x1E000000
 // #define RAMBUF_RANGE 2048*4096
@@ -24,7 +24,7 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz);
 class SpeedTest
 {
   public:
-    SpeedTest(DevMem& dvm);
+    SpeedTest(MemoryManager& mm);
 
     std::array<float, 2*WFM_SIZE>& read_raw_all();
 
@@ -59,10 +59,10 @@ class SpeedTest
     }
 
   private:
-    MemoryMap<CONFIG_MEM>& cfg;
-    MemoryMap<STATUS_MEM>& sts;
-    MemoryMap<ADC_MEM>& adc_map;
-    MemoryMap<RAMBUF_MEM>& rambuf_map;
+    MemoryMap<mem::config>& cfg;
+    MemoryMap<mem::status>& sts;
+    MemoryMap<mem::adc>& adc_map;
+    MemoryMap<mem::rambuf>& rambuf_map;
 
     void *mmap_buf;
     uint32_t *raw_data_1 = nullptr;
