@@ -5,7 +5,7 @@ import struct
 import numpy as np
 
 from instrument_manager import InstrumentManager
-from koheron_tcp_client import KClient
+from koheron import KoheronClient
 from drivers.common import Common
 
 host = os.getenv('HOST','192.168.1.2')
@@ -14,7 +14,7 @@ project = os.getenv('NAME','')
 im = InstrumentManager(host)
 im.install_instrument(project)
 
-client = KClient(host)
+client = KoheronClient(host)
 common = Common(client)
 
 def ip2long(ip):
@@ -42,7 +42,6 @@ class TestsCommon:
 
     def test_get_instrument_config(self):
         config = common.get_instrument_config()
-        # pprint.pprint(config)
         assert 'addresses' in config
         assert 'board' in config
         assert 'config_registers' in config
@@ -67,6 +66,3 @@ class TestsCommon:
     def test_sts_read_all(self):
         assert common.sts_read(0) == common.sts_read_all()[0]
 
-# tests = TestsCommon()
-# tests.test_ip_on_leds()
-# tests.test_get_server_version()

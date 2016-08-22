@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from koheron_tcp_client import command
+from koheron import command
 
 class MemMap(object):
     def __init__(self, id_, name_, offset_, range_):

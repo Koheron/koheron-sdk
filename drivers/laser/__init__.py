@@ -2,7 +2,7 @@
 
 import time
 import numpy as np
-from koheron_tcp_client import command
+from koheron import command
 
 class Laser(object):
 

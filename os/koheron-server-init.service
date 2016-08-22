@@ -1,11 +1,11 @@
 [Unit]
 Description=Display last digit of IP address on leds
-Requires=tcp-server.service 
+Requires=koheron-server.service 
 Wants=network-online.target
-After=tcp-server.service network-online.target
+After=koheron-server.service network-online.target
 
 [Service]
-ExecStart=/usr/local/tcp-server/kserver init
+ExecStart=/usr/local/koheron-server/kserver init
 
 [Install]
 WantedBy=multi-user.target

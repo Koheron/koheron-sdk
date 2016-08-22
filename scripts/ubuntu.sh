@@ -65,15 +65,15 @@ cp -a $http_app_dir/. $root_dir/usr/local/flask
 cp $config_dir/wsgi.py $root_dir/usr/local/flask
 unzip -o tmp/static.zip -d $root_dir/var/www
 
-# Add Koheron TCP Server
-mkdir $root_dir/usr/local/tcp-server
-cp tmp/${name}.tcp-server/tmp/kserverd $root_dir/usr/local/tcp-server
-cp $config_dir/kserver.conf $root_dir/usr/local/tcp-server
-cp tmp/${name}.tcp-server/VERSION $root_dir/usr/local/tcp-server
-cp tmp/${name}.tcp-server/apis/cli/kserver $root_dir/usr/local/tcp-server
-cp tmp/${name}.tcp-server/apis/cli/kserver-completion $root_dir/etc/bash_completion.d
-cp $config_dir/tcp-server.service $root_dir/etc/systemd/system/tcp-server.service
-cp $config_dir/tcp-server-init.service $root_dir/etc/systemd/system/tcp-server-init.service
+# Add Koheron TCP/Websocket Server
+mkdir $root_dir/usr/local/koheron-server
+cp tmp/${name}.koheron-server/tmp/kserverd $root_dir/usr/local/koheron-server
+cp $config_dir/kserver.conf $root_dir/usr/local/koheron-server
+cp tmp/${name}.koheron-server/VERSION $root_dir/usr/local/koheron-server
+cp tmp/${name}.koheron-server/apis/cli/kserver $root_dir/usr/local/koheron-server
+cp tmp/${name}.koheron-server/apis/cli/kserver-completion $root_dir/etc/bash_completion.d
+cp $config_dir/koheron-server.service $root_dir/etc/systemd/system/koheron-server.service
+cp $config_dir/koheron-server-init.service $root_dir/etc/systemd/system/koheron-server-init.service
 
 # uwsgi
 mkdir $root_dir/etc/flask-uwsgi
@@ -95,9 +95,9 @@ chroot $root_dir <<- EOF_CHROOT
 export LANG=C
 export LC_ALL=C
 
-# Add /usr/local/tcp-server to the environment PATH
+# Add /usr/local/koheron-server to the environment PATH
 cat <<- EOF_CAT > etc/environment
-PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/tcp-server"
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/koheron-server"
 EOF_CAT
 
 cat <<- EOF_CAT > etc/zynq_sdk_version
@@ -165,7 +165,7 @@ apt-get install -y python-numpy
 apt-get install -y python-pip python-setuptools python-all-dev python-wheel
 
 pip install --upgrade pip
-pip install koheron-tcp-client
+pip install koheron
 pip install flask
 pip install jinja2
 pip install urllib3
@@ -173,7 +173,7 @@ pip install pyyaml
 pip install uwsgi
 
 systemctl enable uwsgi
-systemctl enable tcp-server
+systemctl enable koheron-server
 systemctl enable nginx
 
 sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
@@ -185,7 +185,7 @@ touch etc/udev/rules.d/75-persistent-net-generator.rules
 cat <<- EOF_CAT > etc/rc.local
 #!/bin/sh -e
 # rc.local
-#/usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
+#/usr/local/koheron-server/kserverd -c /usr/local/koheron-server/koheron-server.conf
 exit 0
 EOF_CAT
 
@@ -203,7 +203,7 @@ iface eth0 inet dhcp
 #  network 192.168.1.0
 #  broadcast 192.168.1.255
   post-up ntpdate -u ntp.u-psud.fr
-  post-up systemctl start tcp-server-init
+  post-up systemctl start koheron-server-init
 
 allow-hotplug wlan0
 iface wlan0 inet static
@@ -213,7 +213,7 @@ iface wlan0 inet static
   post-up service isc-dhcp-server restart
   post-up iptables-restore < /etc/iptables.ipv4.nat
   post-up ntpdate -u ntp.u-psud.fr
-  post-up systemctl start tcp-server-init
+  post-up systemctl start koheron-server-init
   pre-down iptables-restore < /etc/iptables.ipv4.nonat
   pre-down service isc-dhcp-server stop
   pre-down service hostapd stop

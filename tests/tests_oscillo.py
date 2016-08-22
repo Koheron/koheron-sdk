@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 from instrument_manager import InstrumentManager
-from koheron_tcp_client import KClient
+from koheron import KoheronClient
 
 from drivers.oscillo import Oscillo
 
@@ -12,7 +12,7 @@ host = os.getenv('HOST','192.168.1.2')
 im = InstrumentManager(host)
 im.install_instrument('oscillo', always_restart=False)
 
-client = KClient(host)
+client = KoheronClient(host)
 oscillo = Oscillo(client)
 oscillo.reset()
 
@@ -50,9 +50,3 @@ class TestsOscillo:
         data_tmp = np.uint32(np.mod(np.floor(8192 * data_send) + 8192, 16384) + 8192)
         data_read_expect = data_tmp[::2] + (data_tmp[1::2] << 16)
         assert np.array_equal(data_read, data_read_expect)
-
-
-# tests = TestsOscillo()
-# tests.test_get_adc()
-# tests.test_averaging()
-# tests.test_set_dac()

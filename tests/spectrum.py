@@ -2,7 +2,7 @@ import context
 import os
 import time
 from instrument_manager import InstrumentManager
-from koheron_tcp_client import KClient, command
+from koheron import KoheronClient, command
 
 from drivers.common import Common
 from drivers.spectrum import Spectrum
@@ -14,7 +14,7 @@ host = os.getenv('HOST','192.168.1.100')
 im = InstrumentManager(host)
 im.install_instrument('spectrum')
 
-client = KClient(host)
+client = KoheronClient(host)
 
 class Test:
 

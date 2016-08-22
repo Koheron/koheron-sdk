@@ -1,5 +1,5 @@
 
-from koheron_tcp_client import command, write_buffer
+from koheron import command, write_buffer
 
 class Spi(object):
     def __init__(self, client):
