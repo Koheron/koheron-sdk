@@ -6,7 +6,7 @@ source boards/$board_name/base_system.tcl
 # Add PID controller
 source $lib/pid_controller.tcl
 set pid_out_width 32
-add_pid pid_controller [expr $config::adc_width + 1] $pid_out_width
+add_pid pid_controller [expr [get_parameter adc_width] + 1] $pid_out_width
 connect_pins pid_controller/clk $adc_clk
 
 foreach {name} {p i d} {
@@ -17,7 +17,7 @@ connect_pins pid_controller/integral_reset [cfg_pin integral_reset]
 # Connect output of PID controller to DAC2
 cell xilinx.com:ip:xlslice:1.0 slice_pid_cmd_out {
   DIN_FROM [expr $pid_out_width - 1]
-  DIN_TO [expr $pid_out_width - $config::dac_width]
+  DIN_TO [expr $pid_out_width - [get_parameter dac_width]]
 } {
   Din pid_controller/cmd_out
   Dout adc_dac/dac2
