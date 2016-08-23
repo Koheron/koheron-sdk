@@ -33,11 +33,10 @@ class Pid(object):
         self.fifo_stream_length = get_fifo_buffer_length(self)
 
         if self.fifo_stream_length > 0:
-            # print "stream_length = " + str(self.fifo_stream_length)
 
             @command('Pid')
             def get_fifo_data(self):
-                return self.client.recv_buffer(self.fifo_stream_length, data_type='uint32')
+                return self.client.recv_array(self.fifo_stream_length, dtype='uint32')
 
             return get_fifo_data(self)
         else:
