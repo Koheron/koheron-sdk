@@ -1,8 +1,6 @@
 import context
 import os
-import time
-from instrument_manager import InstrumentManager
-from koheron import KoheronClient, command
+from koheron import load_instrument
 
 from drivers.common import Common
 from drivers.spectrum import Spectrum
@@ -11,10 +9,8 @@ from drivers.xadc import Xadc
 from drivers.gpio import Gpio
 
 host = os.getenv('HOST','192.168.1.100')
-im = InstrumentManager(host)
-im.install_instrument('spectrum')
-
-client = KoheronClient(host)
+project = os.getenv('NAME','')
+client = load_instrument(host, project)
 
 class Test:
 
@@ -31,7 +27,3 @@ driver = Test(client)
 
 driver.common.status()
 driver.xadc.status()
-
-driver.laser.test()
-
-driver.spectrum.test()

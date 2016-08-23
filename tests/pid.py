@@ -1,8 +1,6 @@
 import context
 import os
-from instrument_manager import InstrumentManager
-from koheron import KoheronClient, command
-from project_config import ProjectConfig
+from koheron import load_instrument
 import time
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,12 +10,7 @@ from drivers.pid import Pid
 
 host = os.getenv('HOST','192.168.1.100')
 project = os.getenv('NAME','')
-
-im = InstrumentManager(host)
-im.install_instrument(project)
-client = KoheronClient(host)
-
-pc = ProjectConfig(project)
+client = load_instrument(host, project)
 
 class Test:
 

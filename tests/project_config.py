@@ -33,7 +33,7 @@ class ProjectConfig(object):
         self.cfg = {}
         self.sts = {}
         
-        for addr in dic['addresses']:
+        for addr in dic['memory']:
             self.mmaps.append(MemMap(addr['name'], addr['offset'], addr['range']))
 
         for i, name in enumerate(dic['config_registers']):
