@@ -2,17 +2,13 @@ import context
 import os
 import numpy as np
 
-from instrument_manager import InstrumentManager
-from koheron import KoheronClient
-
+from koheron import load_instrument
 from drivers.spectrum import Spectrum
 
-host = os.getenv('HOST', '192.168.1.2')
+host = os.getenv('HOST','192.168.1.100')
+project = os.getenv('NAME','')
+client = load_instrument(host, project)
 
-im = InstrumentManager(host)
-im.install_instrument('spectrum', always_restart=False)
-
-client = KoheronClient(host)
 spectrum = Spectrum(client)
 spectrum.reset_acquisition()
 

@@ -1,20 +1,14 @@
 import context
 import os
 import time
-import numpy as np
 
-from instrument_manager import InstrumentManager
-from koheron import KoheronClient
-
+from koheron import load_instrument
 from drivers.eeprom import Eeprom
 
-host = os.getenv('HOST','192.168.1.2')
-project = os.getenv('NAME', '')
+host = os.getenv('HOST','192.168.1.100')
+project = os.getenv('NAME','')
+client = load_instrument(host, project)
 
-im = InstrumentManager(host)
-im.install_instrument(project, always_restart=False)
-
-client = KoheronClient(host)
 eeprom = Eeprom(client)
 
 TEST_EEPROM_ADDR = 63
