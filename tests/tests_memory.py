@@ -15,3 +15,6 @@ def test_write_read_u32():
 
 def test_write_read_i16():
     assert(test_memory.write_read_i16())
+
+def test_write_read_float():
+    assert(test_memory.write_read_float())

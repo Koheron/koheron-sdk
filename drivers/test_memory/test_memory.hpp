@@ -5,6 +5,8 @@
 #ifndef __DRIVERS_TEST_MEMORY_HPP__
 #define __DRIVERS_TEST_MEMORY_HPP__
 
+#include <cmath>
+
 #include <drivers/lib/memory_manager.hpp>
 #include <drivers/memory.hpp>
 
@@ -38,6 +40,13 @@ class TestMemory
 
         ram.write<0, int16_t>(32767);
         ASSERT(ram.read<0, int16_t>() == 32767)
+
+        return true;
+    }
+
+    bool write_read_float() {
+        ram.write<0, float>(3.1415926535897);
+        ASSERT(fabs(ram.read<0, float>() - 3.1415926535897) < 1E-6)
 
         return true;
     }
