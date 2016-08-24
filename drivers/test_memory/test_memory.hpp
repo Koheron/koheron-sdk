@@ -20,6 +20,8 @@ class TestMemory
     : ram(mm.get<mem::rambuf>())
     {}
 
+    // Write/read single registers
+
     bool write_read_u32() {
         ram.write<0>(42);
         ASSERT(ram.read<0>() == 42)
@@ -47,6 +49,24 @@ class TestMemory
     bool write_read_float() {
         ram.write<0, float>(3.1415926535897);
         ASSERT(fabs(ram.read<0, float>() - 3.1415926535897) < 1E-6)
+
+        return true;
+    }
+
+    // Write/read consecutive registers
+
+    bool write_read_float_array() {
+        std::array<float, 2048> arr;
+
+        for (size_t i=0; i<arr.size(); i++)
+            arr[i] = log(static_cast<float>(i + 1));
+
+        ram.write_array<float, 2048, 0>(arr);
+
+        auto& arr_read = ram.read_array<float, 2048, 0>();
+
+        for (size_t i=0; i<arr_read.size(); i++)
+            ASSERT(fabs(arr_read[i] - log(static_cast<float>(i + 1))) < 1E-6)
 
         return true;
     }
