@@ -138,7 +138,7 @@ class Memory
     }
 
     template<typename T = uint32_t>
-    void set_ptr_reg(uint32_t offset, const T *data_ptr, uint32_t buff_size) {
+    void set_reg_ptr(uint32_t offset, const T *data_ptr, uint32_t buff_size) {
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
@@ -159,7 +159,7 @@ class Memory
     template<typename T, size_t N>
     void write_reg_array(uint32_t offset, const std::array<T, N>& arr) {
         static_assert(mem::is_writable(id), "Not writable");
-        set_ptr_reg<T>(offset, arr.data(), N);
+        set_reg_ptr<T>(offset, arr.data(), N);
     }
 
     template<uint32_t offset, uint32_t mask, typename T = uint32_t>
@@ -207,7 +207,7 @@ class Memory
     }
 
     template<typename T = uint32_t>
-    T* get_ptr_reg(uint32_t offset = 0) {
+    T* get_reg_ptr(uint32_t offset = 0) {
         static_assert(mem::is_readable(id), "Not readable");
         return reinterpret_cast<T*>(base_address + offset);
     }
@@ -227,7 +227,7 @@ class Memory
     std::array<T, N>& read_reg_array(uint32_t offset) {
         static_assert(mem::is_readable(id), "Not readable");
 
-        auto p = get_ptr_reg<std::array<T, N>>(offset);
+        auto p = get_reg_ptr<std::array<T, N>>(offset);
         return *p;
     }
 

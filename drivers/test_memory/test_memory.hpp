@@ -164,7 +164,24 @@ class TestMemory
         uint32_t *ram_ptr = ram.get_ptr<uint32_t, 0>();
 
         for (size_t i=0; i<len; i++)
-            ASSERT(fabs(ram_ptr[i] - i * i) < 1E-6)
+            ASSERT(ram_ptr[i] == i * i)
+
+        return true;
+    }
+
+    bool set_get_reg_ptr_u32(uint32_t offset) {
+        constexpr size_t len = 2048;
+        uint32_t buffer[len];
+
+        for (size_t i=0; i<len; i++)
+            buffer[i] = i * i;
+
+        ram.set_reg_ptr<uint32_t>(offset, buffer, len);
+
+        uint32_t *ram_ptr = ram.get_reg_ptr<uint32_t>(offset);
+
+        for (size_t i=0; i<len; i++)
+            ASSERT(ram_ptr[i] == i * i)
 
         return true;
     }
@@ -179,6 +196,23 @@ class TestMemory
         ram.set_ptr<float, 0>(buffer, len);
 
         float *ram_ptr = ram.get_ptr<float, 0>();
+
+        for (size_t i=0; i<len; i++)
+            ASSERT(fabs(ram_ptr[i] - sin(static_cast<float>(i))) < 1E-6)
+
+        return true;
+    }
+
+    bool set_get_reg_ptr_float(uint32_t offset) {
+        constexpr size_t len = 2048;
+        float buffer[len];
+
+        for (size_t i=0; i<len; i++)
+            buffer[i] = sin(static_cast<float>(i));
+
+        ram.set_reg_ptr<float>(offset, buffer, len);
+
+        float *ram_ptr = ram.get_reg_ptr<float>(offset);
 
         for (size_t i=0; i<len; i++)
             ASSERT(fabs(ram_ptr[i] - sin(static_cast<float>(i))) < 1E-6)
