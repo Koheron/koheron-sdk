@@ -20,5 +20,9 @@ class TestMemory(object):
         return self.client.recv_bool()
 
     @command('TestMemory')
+    def write_read_u32_array(self):
+        return self.client.recv_bool()
+
+    @command('TestMemory')
     def write_read_float_array(self):
         return self.client.recv_bool()

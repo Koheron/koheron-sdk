@@ -55,6 +55,22 @@ class TestMemory
 
     // Write/read consecutive registers
 
+    bool write_read_u32_array() {
+        std::array<uint32_t, 2048> arr;
+
+        for (size_t i=0; i<arr.size(); i++)
+            arr[i] = i * i;
+
+        ram.write_array<uint32_t, 2048, 0>(arr);
+
+        auto& arr_read = ram.read_array<uint32_t, 2048, 0>();
+
+        for (size_t i=0; i<arr_read.size(); i++)
+            ASSERT(arr_read[i] == i * i)
+
+        return true;
+    }
+
     bool write_read_float_array() {
         std::array<float, 2048> arr;
 
