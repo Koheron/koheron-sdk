@@ -70,8 +70,8 @@ class Eeprom
     }
 
   private:
-    MemoryMap<mem::config>& cfg;
-    MemoryMap<mem::status>& sts;
+    Memory<mem::config>& cfg;
+    Memory<mem::status>& sts;
 }; // class Eeprom
 
 #endif // __DRIVERS_EEPROM_HPP__

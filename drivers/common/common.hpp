@@ -66,8 +66,8 @@ class Common
 
   private:
     MemoryManager& mm;
-    MemoryMap<mem::config>& cfg;
-    MemoryMap<mem::status>& sts;
+    Memory<mem::config>& cfg;
+    Memory<mem::status>& sts;
 
     std::array<uint32_t, prm::bitstream_id_size> bitstream_id;
 };

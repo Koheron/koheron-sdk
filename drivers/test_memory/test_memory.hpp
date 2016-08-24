@@ -150,8 +150,12 @@ class TestMemory
         return true;
     }
 
+    // Low-level interfaces
+
+    // Bit manipulations
+
   private:
-    MemoryMap<mem::rambuf>& ram;
+    Memory<mem::rambuf>& ram;
 };
 
 #endif // __DRIVERS_TEST_MEMORY_HPP__

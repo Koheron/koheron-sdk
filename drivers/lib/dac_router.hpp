@@ -69,10 +69,10 @@ class DacRouter
     void set_data(uint32_t channel, const std::array<float, N> arr);
 
   private:
-    MemoryMap<mem::config>& cfg;
+    Memory<mem::config>& cfg;
     uint32_t dac_select_off;  // TODO Known at compile time
     uint32_t addr_select_off; // TODO Known at compile time
-    MemoryMap<mem::dac>& dac_map;
+    Memory<mem::dac>& dac_map;
 
     static_assert(n_dac_bram == mem::get_n_blocks(mem::dac), "Invalid n_dac_bram");
 

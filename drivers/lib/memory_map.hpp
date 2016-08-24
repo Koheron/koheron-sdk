@@ -17,10 +17,10 @@ extern "C" {
 
 #include <drivers/memory.hpp>
 
-typedef size_t MemMapID;
+typedef size_t MemID;
 
 namespace mem {
-    constexpr uintptr_t get_base_addr(const MemMapID id) {
+    constexpr uintptr_t get_base_addr(const MemID id) {
         return std::get<0>(memory_array[id]);
     }
 
@@ -28,27 +28,27 @@ namespace mem {
     static_assert(get_base_addr(config) == std::get<0>(memory_array[config]),
                   "get_base_address test failed");
 
-    constexpr uint32_t get_range(const MemMapID id) {
+    constexpr uint32_t get_range(const MemID id) {
         return std::get<1>(memory_array[id]);
     }
 
-    constexpr uint32_t get_protection(const MemMapID id) {
+    constexpr uint32_t get_protection(const MemID id) {
         return std::get<2>(memory_array[id]);
     }
 
-    constexpr uint32_t get_n_blocks(const MemMapID id) {
+    constexpr uint32_t get_n_blocks(const MemID id) {
         return std::get<3>(memory_array[id]);
     }
 
-    constexpr bool is_writable(const MemMapID id) {
+    constexpr bool is_writable(const MemID id) {
         return (get_protection(id) & PROT_WRITE) == PROT_WRITE;
     }
 
-    constexpr bool is_readable(const MemMapID id) {
+    constexpr bool is_readable(const MemID id) {
         return (get_protection(id) & PROT_READ) == PROT_READ;
     }
 
-    constexpr uint32_t get_total_size(const MemMapID id) {
+    constexpr uint32_t get_total_size(const MemID id) {
         return get_range(id) * get_n_blocks(id);
     }
 } // namespace mem
@@ -57,24 +57,24 @@ static constexpr off_t get_mmap_offset(uintptr_t phys_addr, uint32_t size) {
     return phys_addr & ~(size - 1);
 }
 
-template<MemMapID id,
+template<MemID id,
          uintptr_t phys_addr = mem::get_base_addr(id),
          uint32_t n_blocks = mem::get_n_blocks(id),
          uint32_t block_size = mem::get_range(id),
          uint32_t size = mem::get_total_size(id),
          int protection = mem::get_protection(id)>
-class MemoryMap
+class Memory
 {
   public:
     static_assert(id < mem::count, "Invalid ID");
 
-    MemoryMap()
+    Memory()
     : mapped_base(nullptr)
     , base_address(0)
     , is_opened(false)
     {}
 
-    ~MemoryMap() {
+    ~Memory() {
         if (is_opened)
             munmap(mapped_base, size);
     }

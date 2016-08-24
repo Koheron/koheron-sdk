@@ -60,7 +60,7 @@ class FIFOReader
   private:
     MemoryMap<fifo_mem_id>& fifo_mem;
 
-    std::atomic<::MemoryMap<fifo_mem_id>*>   fifo_map;
+    std::atomic<::Memory<fifo_mem_id>*>   fifo_map;
     std::atomic<uint32_t>   num_thread;
     std::atomic<uint32_t>   index; // Current index of the ring_buffer
     std::atomic<uint32_t>   acq_num; // Number of points acquire since the last call to get_data()

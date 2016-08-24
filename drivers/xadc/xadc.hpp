@@ -37,7 +37,7 @@ class Xadc
     int read(uint32_t channel);
 
   private:
-    MemoryMap<mem::xadc>& xadc;
+    Memory<mem::xadc>& xadc;
 
     uint32_t channel_0 = 1;
     uint32_t channel_1 = 8;

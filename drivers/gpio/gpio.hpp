@@ -69,7 +69,7 @@ class Gpio
     }
 
   private:
-    MemoryMap<mem::gpio>& gpio;
+    Memory<mem::gpio>& gpio;
 
     int get_value_offset(uint32_t channel) {
         return (channel == 1 ? CHAN1_VALUE_OFF : CHAN2_VALUE_OFF);
