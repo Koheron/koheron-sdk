@@ -8,8 +8,8 @@
 #include <drivers/lib/memory_manager.hpp>
 #include <drivers/memory.hpp>
 
-#define ASSERT(cond) \
-    if (!(cond)) return false;
+#define ASSERT(...) \
+    if (!(__VA_ARGS__)) return false;
 
 class TestMemory
 {
@@ -24,6 +24,20 @@ class TestMemory
 
         ram.write<0>(4294967295);
         ASSERT(ram.read<0>() == 4294967295)
+
+        return true;
+    }
+
+    bool write_read_i16() {
+        ram.write<0, int16_t>(-42);
+        ASSERT(ram.read<0, int16_t>() == -42)
+        ASSERT(ram.read<0, uint16_t>() != -42)
+
+        ram.write<0, int16_t>(-32767);
+        ASSERT(ram.read<0, int16_t>() == -32767)
+
+        ram.write<0, int16_t>(32767);
+        ASSERT(ram.read<0, int16_t>() == 32767)
 
         return true;
     }

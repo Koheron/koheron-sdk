@@ -12,3 +12,6 @@ test_memory = TestMemory(client)
 
 def test_write_read_u32():
     assert(test_memory.write_read_u32())
+
+def test_write_read_i16():
+    assert(test_memory.write_read_i16())
