@@ -13,14 +13,29 @@ test_memory = TestMemory(client)
 def test_write_read_u32():
     assert(test_memory.write_read_u32())
 
+def test_write_read_reg_u32():
+    assert(test_memory.write_read_reg_u32(offset=0))
+
 def test_write_read_i16():
     assert(test_memory.write_read_i16())
+
+def test_write_read_reg_i16():
+    assert(test_memory.write_read_reg_i16(offset=0))
 
 def test_write_read_float():
     assert(test_memory.write_read_float())
 
+def test_write_read_reg_float():
+    assert(test_memory.write_read_reg_float(offset=0))
+
 def test_write_read_u32_array():
     assert(test_memory.write_read_u32_array())
 
+def test_write_read_reg_u32_array():
+    assert(test_memory.write_read_reg_u32_array(offset=0))
+
 def test_write_read_float_array():
     assert(test_memory.write_read_float_array())
+
+def test_write_read_reg_float_array():
+    assert(test_memory.write_read_reg_float_array(offset=0))
