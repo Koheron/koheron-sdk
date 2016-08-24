@@ -27,9 +27,8 @@ class Blink
     }
 
   private:
-    MemoryMap<mem::config>& cfg;
-    MemoryMap<mem::status>& sts;
-
+    Memory<mem::config>& cfg;
+    Memory<mem::status>& sts;
 };
 
 #endif // __DRIVERS_BLINK_HPP__
