@@ -152,6 +152,23 @@ class TestMemory
 
     // Low-level interfaces
 
+    bool set_get_ptr_u32() {
+        constexpr size_t len = 2048;
+        uint32_t buffer[len];
+
+        for (size_t i=0; i<len; i++)
+            buffer[i] = i * i;
+
+        ram.set_ptr<uint32_t, 0>(buffer, len);
+
+        uint32_t *ram_ptr = ram.get_ptr<uint32_t, 0>();
+
+        for (size_t i=0; i<len; i++)
+            ASSERT(fabs(ram_ptr[i] - i * i) < 1E-6)
+
+        return true;
+    }
+
     bool set_get_ptr_float() {
         constexpr size_t len = 2048;
         float buffer[len];

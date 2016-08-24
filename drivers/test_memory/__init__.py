@@ -48,5 +48,9 @@ class TestMemory(object):
         return self.client.recv_bool()
 
     @command('TestMemory')
+    def set_get_ptr_u32(self):
+        return self.client.recv_bool()
+
+    @command('TestMemory')
     def set_get_ptr_float(self):
         return self.client.recv_bool()
