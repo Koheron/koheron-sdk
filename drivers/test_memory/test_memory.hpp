@@ -152,6 +152,23 @@ class TestMemory
 
     // Low-level interfaces
 
+    bool set_get_ptr_float() {
+        constexpr size_t len = 2048;
+        float buffer[len];
+
+        for (size_t i=0; i<len; i++)
+            buffer[i] = sin(static_cast<float>(i));
+
+        ram.set_ptr<float, 0>(buffer, len);
+
+        float *ram_ptr = ram.get_ptr<float, 0>();
+
+        for (size_t i=0; i<len; i++)
+            ASSERT(fabs(ram_ptr[i] - sin(static_cast<float>(i))) < 1E-6)
+
+        return true;
+    }
+
     // Bit manipulations
 
   private:

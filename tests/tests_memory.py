@@ -39,3 +39,6 @@ def test_write_read_float_array():
 
 def test_write_read_reg_float_array():
     assert(test_memory.write_read_reg_float_array(offset=0))
+
+def test_set_get_ptr_float():
+    assert(test_memory.set_get_ptr_float())

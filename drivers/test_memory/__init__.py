@@ -46,3 +46,7 @@ class TestMemory(object):
     @command('TestMemory', 'I')
     def write_read_reg_float_array(self, offset):
         return self.client.recv_bool()
+
+    @command('TestMemory')
+    def set_get_ptr_float(self):
+        return self.client.recv_bool()
