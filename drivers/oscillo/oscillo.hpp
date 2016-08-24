@@ -48,7 +48,7 @@ class Oscillo
     }
 
     uint32_t get_num_average(uint32_t channel) {
-        return sts.read_offset(n_avg_offset[channel]);
+        return sts.read_reg(n_avg_offset[channel]);
     }
 
     // TODO should be a one-liner

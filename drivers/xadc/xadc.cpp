@@ -57,6 +57,6 @@ int Xadc::read(uint32_t channel)
 {
     if (channel != channel_0 && channel != channel_1)
         return -1;
-    return xadc.read_offset(XADC_READ_OFF + 4*channel);
+    return xadc.read_reg(XADC_READ_OFF + 4 * channel);
 }
 

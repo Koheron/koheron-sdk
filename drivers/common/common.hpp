@@ -41,11 +41,11 @@ class Common
     };
 
     void cfg_write(uint32_t offset, uint32_t value) {
-        cfg.write_offset(offset, value);
+        cfg.write_reg(offset, value);
     }
 
     uint32_t cfg_read(uint32_t offset) {
-        return cfg.read_offset(offset);
+        return cfg.read_reg(offset);
     }
 
     auto& cfg_read_all() {
@@ -57,7 +57,7 @@ class Common
     }
 
     uint32_t sts_read(uint32_t offset) {
-        return sts.read_offset(offset);
+        return sts.read_reg(offset);
     }
 
     std::string get_instrument_config() {
