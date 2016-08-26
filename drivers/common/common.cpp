@@ -12,7 +12,7 @@ extern "C" {
 }
 
 std::array<uint32_t, prm::bitstream_id_size> Common::get_bitstream_id() {
-    return sts.read_array<uint32_t, prm::bitstream_id_size>();
+    return sts.read_array<uint32_t, prm::bitstream_id_size, reg::bitstream_id>();
 }
 
 uint64_t Common::get_dna()

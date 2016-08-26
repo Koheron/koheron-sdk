@@ -48,7 +48,7 @@ class Oscillo
     }
 
     uint32_t get_num_average(uint32_t channel) {
-        return sts.read_offset(n_avg_offset[channel]);
+        return sts.read_reg(n_avg_offset[channel]);
     }
 
     // TODO should be a one-liner
@@ -111,9 +111,9 @@ class Oscillo
   private:
     int32_t *raw_data[2] = {nullptr, nullptr};
 
-    MemoryMap<mem::config>& cfg;
-    MemoryMap<mem::status>& sts;
-    MemoryMap<mem::adc>& adc_map;
+    Memory<mem::config>& cfg;
+    Memory<mem::status>& sts;
+    Memory<mem::adc>& adc_map;
 
     // Acquired data buffers
     std::array<float, 2*WFM_SIZE> data_all;

@@ -39,8 +39,8 @@ class Pid
     bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
 
   private:
-    MemoryMap<mem::config>& cfg;
-    MemoryMap<mem::status>& sts;
+    Memory<mem::config>& cfg;
+    Memory<mem::status>& sts;
     FIFOReader<mem::fifo, FIFO_BUFF_SIZE> fifo;
 };
 

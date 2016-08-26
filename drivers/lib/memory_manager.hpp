@@ -5,15 +5,8 @@
 #ifndef __DRIVERS_LIB_MEMORY_MANAGER_HPP__
 #define __DRIVERS_LIB_MEMORY_MANAGER_HPP__
 
-#include <map>
 #include <vector>
-#include <array>
-#include <cstdint>
-#include <string>
-#include <memory>
 #include <tuple>
-#include <cassert>
-#include <functional>
 
 extern "C" {
     #include <fcntl.h>
@@ -25,7 +18,7 @@ extern "C" {
 // http://stackoverflow.com/questions/39041236/tuple-of-sequence
 template<size_t N, class = std::make_index_sequence<N>> class MemoryManagerImpl;
 
-template<size_t N, MemMapID... ids>
+template<size_t N, MemID... ids>
 class MemoryManagerImpl<N, std::index_sequence<ids...>>
 {
   public:
@@ -38,23 +31,23 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
 
     int open();
 
-    template<MemMapID id>
-    MemoryMap<id>& get() {
+    template<MemID id>
+    Memory<id>& get() {
         return std::get<id>(mem_maps);
     }
 
   private:
     int fd;
-    std::vector<MemMapID> failed_maps;
-    std::tuple<MemoryMap<ids>...> mem_maps;
+    std::vector<MemID> failed_maps;
+    std::tuple<Memory<ids>...> mem_maps;
 
-    template<MemMapID id> void open_memory_map();
+    template<MemID id> void open_memory_map();
 
-    template<MemMapID cnt>
+    template<MemID cnt>
     std::enable_if_t<cnt == 0, void>
     open_maps() {}
 
-    template<MemMapID cnt>
+    template<MemID cnt>
     std::enable_if_t<(cnt > 0), void>
     open_maps() {
         open_memory_map<cnt-1>();
@@ -62,7 +55,7 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
     }
 };
 
-template<size_t N, MemMapID... ids>
+template<size_t N, MemID... ids>
 int MemoryManagerImpl<N, std::index_sequence<ids...>>::open()
 {
     fd = ::open("/dev/mem", O_RDWR | O_SYNC);
@@ -80,8 +73,8 @@ int MemoryManagerImpl<N, std::index_sequence<ids...>>::open()
     return fd;
 }
 
-template<size_t N, MemMapID... ids>
-template<MemMapID id>
+template<size_t N, MemID... ids>
+template<MemID id>
 void MemoryManagerImpl<N, std::index_sequence<ids...>>::open_memory_map()
 {
     get<id>().open(fd);
