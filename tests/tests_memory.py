@@ -50,3 +50,6 @@ def test_set_get_ptr_float():
 
 def test_set_get_reg_ptr_float():
     assert(test_memory.set_get_reg_ptr_float(offset=0))
+
+def test_set_clear_bit():
+    assert(test_memory.set_clear_bit())

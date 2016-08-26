@@ -222,6 +222,14 @@ class TestMemory
 
     // Bit manipulations
 
+    bool set_clear_bit() {
+        ram.set_bit<0, 14>();
+        ASSERT(ram.read_bit<0, 14>())
+        ram.clear_bit<0, 14>();
+        ASSERT(!ram.read_bit<0, 14>())
+        return true;
+    }
+
   private:
     Memory<mem::rambuf>& ram;
 };

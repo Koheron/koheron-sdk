@@ -62,3 +62,7 @@ class TestMemory(object):
     @command('TestMemory', 'I')
     def set_get_reg_ptr_float(self, offset):
         return self.client.recv_bool()
+
+    @command('TestMemory')
+    def set_clear_bit(self):
+        return self.client.recv_bool()
