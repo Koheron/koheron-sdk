@@ -25,7 +25,7 @@
 #define RDFD_OFF 0x20
 #define RLR_OFF  0x24
 
-template<MemMapID fifo_mem_id, size_t N>
+template<MemID fifo_mem_id, size_t N>
 class FIFOReader
 {
   public:
@@ -58,9 +58,9 @@ class FIFOReader
     bool overflow() {return acq_num.load() > N;}
 
   private:
-    MemoryMap<fifo_mem_id>& fifo_mem;
+    Memory<fifo_mem_id>& fifo_mem;
 
-    std::atomic<::MemoryMap<fifo_mem_id>*>   fifo_map;
+    std::atomic<Memory<fifo_mem_id>*>   fifo_map;
     std::atomic<uint32_t>   num_thread;
     std::atomic<uint32_t>   index; // Current index of the ring_buffer
     std::atomic<uint32_t>   acq_num; // Number of points acquire since the last call to get_data()
@@ -75,7 +75,7 @@ class FIFOReader
     void acquisition_thread_call(uint32_t acq_period);
 };
 
-template<MemMapID fifo_mem_id, size_t N>
+template<MemID fifo_mem_id, size_t N>
 FIFOReader<fifo_mem_id, N>::FIFOReader(MemoryManager& mm)
 : fifo_mem(mm.get<fifo_mem_id>())
 {
@@ -93,7 +93,7 @@ FIFOReader<fifo_mem_id, N>::FIFOReader(MemoryManager& mm)
     num_thread.store(0);
 }
 
-template<MemMapID fifo_mem_id, size_t N>
+template<MemID fifo_mem_id, size_t N>
 void FIFOReader<fifo_mem_id, N>::acquisition_thread_call(uint32_t acq_period)
 {
     num_thread.store(num_thread.load() + 1);
@@ -128,7 +128,7 @@ wait:
     num_thread.store(num_thread.load() - 1);
 }
 
-template<MemMapID fifo_mem_id, size_t N>
+template<MemID fifo_mem_id, size_t N>
 void FIFOReader<fifo_mem_id, N>::start_acquisition(uint32_t acq_period)
 {
     // If the is_acquiring flag is toogled during a the sleeping 
@@ -145,13 +145,13 @@ void FIFOReader<fifo_mem_id, N>::start_acquisition(uint32_t acq_period)
     }
 }
 
-template<MemMapID fifo_mem_id, size_t N>
+template<MemID fifo_mem_id, size_t N>
 void FIFOReader<fifo_mem_id, N>::stop_acquisition()
 {
     is_acquiring.store(false);
 }
 
-template<MemMapID fifo_mem_id, size_t N>
+template<MemID fifo_mem_id, size_t N>
 uint32_t FIFOReader<fifo_mem_id, N>::get_buffer_length()
 {
     uint32_t idx = index.load();

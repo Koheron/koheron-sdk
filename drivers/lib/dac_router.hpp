@@ -69,10 +69,10 @@ class DacRouter
     void set_data(uint32_t channel, const std::array<float, N> arr);
 
   private:
-    MemoryMap<mem::config>& cfg;
+    Memory<mem::config>& cfg;
     uint32_t dac_select_off;  // TODO Known at compile time
     uint32_t addr_select_off; // TODO Known at compile time
-    MemoryMap<mem::dac>& dac_map;
+    Memory<mem::dac>& dac_map;
 
     static_assert(n_dac_bram == mem::get_n_blocks(mem::dac), "Invalid n_dac_bram");
 
@@ -113,13 +113,13 @@ inline void DacRouter<n_dac, n_dac_bram>::update_dac_routing()
     uint32_t dac_select = 0;
     for (uint32_t i=0; i < n_dac_bram; i++)
         dac_select += bram_index[i] << (dac_sel_width(n_dac_bram) * i);
-    cfg.write_offset(dac_select_off, dac_select);
+    cfg.write_reg(dac_select_off, dac_select);
 
     // addr_select defines the connection between address generators and BRAMs
     uint32_t addr_select = 0;
     for (uint32_t j=0; j < n_dac_bram; j++)
         addr_select += j << (bram_sel_width(n_dac) * bram_index[j]);
-    cfg.write_offset(addr_select_off, addr_select);
+    cfg.write_reg(addr_select_off, addr_select);
 }
 
 template<uint32_t n_dac, uint32_t n_dac_bram>

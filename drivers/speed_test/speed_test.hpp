@@ -56,10 +56,10 @@ class SpeedTest
     }
 
   private:
-    MemoryMap<mem::config>& cfg;
-    MemoryMap<mem::status>& sts;
-    MemoryMap<mem::adc>& adc_map;
-    MemoryMap<mem::rambuf>& rambuf_map;
+    Memory<mem::config>& cfg;
+    Memory<mem::status>& sts;
+    Memory<mem::adc>& adc_map;
+    Memory<mem::rambuf>& rambuf_map;
 
     void *mmap_buf;
     uint32_t *raw_data_1 = nullptr;

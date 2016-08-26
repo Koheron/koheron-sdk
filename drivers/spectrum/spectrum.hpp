@@ -101,11 +101,11 @@ class Spectrum
     bool fifo_get_acquire_status()                   {return fifo.get_acquire_status();}
 
   private:
-    MemoryMap<mem::config>& cfg;
-    MemoryMap<mem::status>& sts;
-    MemoryMap<mem::spectrum>& spectrum_map;
-    MemoryMap<mem::demod>& demod_map;
-    MemoryMap<mem::noise_floor>& noise_floor_map;
+    Memory<mem::config>& cfg;
+    Memory<mem::status>& sts;
+    Memory<mem::spectrum>& spectrum_map;
+    Memory<mem::demod>& demod_map;
+    Memory<mem::noise_floor>& noise_floor_map;
 
     // Acquired data buffers
     float *raw_data;

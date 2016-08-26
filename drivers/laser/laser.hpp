@@ -91,7 +91,7 @@ class Laser
     }
 
   private:
-    MemoryMap<mem::config>& cfg; // required for pwm
+    Memory<mem::config>& cfg; // required for pwm
 
     Xadc xadc;
     Gpio gpio;

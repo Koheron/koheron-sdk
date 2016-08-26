@@ -11,3 +11,4 @@ drivers:
   - drivers/spectrum/spectrum.hpp
   - drivers/spectrum/spectrum.cpp
   - drivers/eeprom/eeprom.hpp
+  - drivers/test_memory/test_memory.hpp

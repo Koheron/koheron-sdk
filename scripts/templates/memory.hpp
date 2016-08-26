@@ -13,7 +13,7 @@ extern "C" {
 
 namespace mem {
 {% for addr in dic['memory'] -%}
-constexpr uint32_t {{ addr['name'] }} = {{ loop.index0 }};
+constexpr size_t {{ addr['name'] }} = {{ loop.index0 }};
 constexpr uintptr_t {{ addr['name'] }}_addr = {{ addr['offset'] }};
 constexpr uint32_t {{ addr['name'] }}_range = {{ addr['range'] | replace_KMG }};
 constexpr uint32_t {{ addr['name'] }}_nblocks = {{ addr['n_blocks'] }};
