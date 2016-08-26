@@ -292,11 +292,16 @@ class Memory
     // Write a bit (offset and index defined at compile-time)
     template<uint32_t offset, uint32_t index>
     void write_bit(bool value) {
+        static_assert(offset < mem::get_range(id), "Invalid offset");
+        static_assert(mem::is_writable(id), "Not writable");
+        
         value ? set_bit<offset, index>() : clear_bit<offset, index>();
     }
 
     // Write a bit (offset and index defined at run-time)
     void write_bit_reg(uint32_t offset, uint32_t index, bool value) {
+        static_assert(mem::is_writable(id), "Not writable");
+        
         value ? set_bit_reg(offset, index) : clear_bit_reg(offset, index);
     }
 
