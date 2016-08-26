@@ -11,12 +11,8 @@ extern "C" {
   #include <ifaddrs.h>
 }
 
-std::array<uint32_t, prm::bitstream_id_size> Common::get_bitstream_id()
-{
-    for (uint32_t i=0; i<bitstream_id.size(); i++)
-        bitstream_id[i] = sts.read_offset(reg::bitstream_id + 4 * i);
-
-    return bitstream_id;
+std::array<uint32_t, prm::bitstream_id_size> Common::get_bitstream_id() {
+    return sts.read_array<uint32_t, prm::bitstream_id_size>();
 }
 
 uint64_t Common::get_dna()
