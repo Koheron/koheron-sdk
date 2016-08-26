@@ -5,6 +5,15 @@
 #ifndef __DRIVERS_COMMON_HPP__
 #define __DRIVERS_COMMON_HPP__
 
+#include <cstring>
+
+extern "C" {
+  #include <sys/socket.h>
+  #include <sys/types.h>
+  #include <arpa/inet.h>
+  #include <ifaddrs.h>
+}
+
 #include <array>
 
 #include <drivers/lib/memory_manager.hpp>
@@ -20,9 +29,15 @@ class Common
     , sts(mm.get<mem::status>())
     {}
 
-    std::array<uint32_t, prm::bitstream_id_size> get_bitstream_id();
+    std::array<uint32_t, prm::bitstream_id_size> get_bitstream_id() {
+        return sts.read_array<uint32_t, prm::bitstream_id_size, reg::bitstream_id>();
+    }
 
-    uint64_t get_dna();
+    uint64_t get_dna() {
+        uint64_t dna_low  = static_cast<uint64_t>(sts.read<reg::dna>());
+        uint64_t dna_high = static_cast<uint64_t>(sts.read<reg::dna + 4>());
+        return dna_low + (dna_high << 32);
+    }
 
     void set_led(uint32_t value) {
         cfg.write<reg::led>(value);
@@ -31,8 +46,6 @@ class Common
     uint32_t get_led() {
         return cfg.read<reg::led>();
     }
-
-    void ip_on_leds();
 
     void init() {
         ip_on_leds();
@@ -64,12 +77,48 @@ class Common
         return CFG_JSON;
     }
 
+    void ip_on_leds() {
+        struct ifaddrs *addrs;
+        getifaddrs(&addrs);
+        ifaddrs *tmp = addrs;
+
+        // Turn all the leds ON
+        cfg.write<reg::led>(255);
+
+        char interface[] = "eth0";
+
+        while (tmp) {
+            // Works only for IPv4 address
+            if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET) {
+                struct sockaddr_in *pAddr = (struct sockaddr_in *)tmp->ifa_addr;
+                int val = strcmp(tmp->ifa_name,interface);
+
+                if (val != 0) {
+                    tmp = tmp->ifa_next;
+                    continue;
+                }
+
+                printf("Interface %s found: %s\n",
+                       tmp->ifa_name, inet_ntoa(pAddr->sin_addr));
+                uint32_t ip = htonl(pAddr->sin_addr.s_addr);
+
+                // Write IP address in FPGA memory
+                // The 8 Least Significant Bits should be connected to the FPGA LEDs
+                cfg.write<reg::led>(ip);
+                break;
+            }
+
+            tmp = tmp->ifa_next;
+        }
+
+        freeifaddrs(addrs);
+    }
+
   private:
     MemoryManager& mm;
     Memory<mem::config>& cfg;
     Memory<mem::status>& sts;
 
-    std::array<uint32_t, prm::bitstream_id_size> bitstream_id;
 };
 
 #endif // __DRIVERS_COMMON_HPP__

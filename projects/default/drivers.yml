@@ -1,6 +1,4 @@
 # Default drivers
 drivers:
-# - drivers/device_memory/device_memory.hpp
   - drivers/common/common.hpp
-  - drivers/common/common.cpp
   - drivers/init/init.hpp
