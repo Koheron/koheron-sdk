@@ -70,3 +70,11 @@ class TestMemory(object):
     @command('TestMemory', 'II')
     def set_clear_reg_bit(self, offset, index):
         return self.client.recv_bool()
+
+    @command('TestMemory')
+    def toggle_bit(self):
+        return self.client.recv_bool()
+
+    @command('TestMemory', 'II')
+    def toggle_reg_bit(self, offset, index):
+        return self.client.recv_bool()

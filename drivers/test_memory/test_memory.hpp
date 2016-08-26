@@ -238,6 +238,20 @@ class TestMemory
         return true;
     }
 
+    bool toggle_bit() {
+        bool v0 = ram.read_bit<0, 14>();
+        ram.toggle_bit<0, 14>();
+        ASSERT(ram.read_bit<0, 14>() == !v0)
+        return true;
+    }
+
+    bool toggle_reg_bit(uint32_t offset, uint32_t index) {
+        bool v0 = ram.read_bit_reg(offset, index);
+        ram.toggle_bit_reg(offset, index);
+        ASSERT(ram.read_bit_reg(offset, index) == !v0)
+        return true;
+    }
+
   private:
     Memory<mem::rambuf>& ram;
 };

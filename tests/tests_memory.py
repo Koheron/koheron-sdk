@@ -54,6 +54,11 @@ def test_set_get_reg_ptr_float():
 def test_set_clear_bit():
     assert(test_memory.set_clear_bit())
 
-
 def test_set_clear_reg_bit():
     assert(test_memory.set_clear_reg_bit(offset=0, index=15))
+
+def test_toggle_bit():
+    assert(test_memory.toggle_bit())
+
+def test_toggle_reg_bit():
+    assert(test_memory.toggle_reg_bit(offset=0, index=15))
