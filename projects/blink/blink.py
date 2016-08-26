@@ -5,7 +5,7 @@ import time
 import math
 import numpy as np
 
-from koheron_tcp_client import command
+from koheron import command
 
 class Blink(object):
     def __init__(self, client):
