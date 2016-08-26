@@ -289,6 +289,17 @@ class Memory
         *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
     }
 
+    // Write a bit (offset and index defined at compile-time)
+    template<uint32_t offset, uint32_t index>
+    void write_bit(bool value) {
+        value ? set_bit<offset, index>() : clear_bit<offset, index>();
+    }
+
+    // Write a bit (offset and index defined at run-time)
+    void write_bit_reg(uint32_t offset, uint32_t index, bool value) {
+        value ? set_bit_reg(offset, index) : clear_bit_reg(offset, index);
+    }
+
     // Read a bit (offset and index defined at compile-time)
     template<uint32_t offset, uint32_t index>
     bool read_bit() {

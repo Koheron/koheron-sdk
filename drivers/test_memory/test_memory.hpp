@@ -252,6 +252,22 @@ class TestMemory
         return true;
     }
 
+    bool read_write_bit() {
+        ram.write_bit<0, 10>(true);
+        ASSERT(ram.read_bit<0, 10>())
+        ram.write_bit<0, 12>(false);
+        ASSERT(!ram.read_bit<0, 12>())
+        return true;
+    }
+
+    bool read_write_reg_bit(uint32_t offset, uint32_t index) {
+        ram.write_bit_reg(offset, index, true);
+        ASSERT(ram.read_bit_reg(offset, index))
+        ram.write_bit_reg(offset, index, false);
+        ASSERT(!ram.read_bit_reg(offset, index))
+        return true;
+    }
+
   private:
     Memory<mem::rambuf>& ram;
 };

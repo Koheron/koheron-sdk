@@ -62,3 +62,9 @@ def test_toggle_bit():
 
 def test_toggle_reg_bit():
     assert(test_memory.toggle_reg_bit(offset=0, index=15))
+
+def read_write_bit():
+    assert(test_memory.read_write_bit())
+
+def test_read_write_reg_bit():
+    assert(test_memory.read_write_reg_bit(offset=0, index=15))
