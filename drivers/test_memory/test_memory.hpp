@@ -230,6 +230,14 @@ class TestMemory
         return true;
     }
 
+    bool set_clear_reg_bit(uint32_t offset, uint32_t index) {
+        ram.set_bit_reg(offset, index);
+        ASSERT(ram.read_bit_reg(offset, index))
+        ram.clear_bit_reg(offset, index);
+        ASSERT(!ram.read_bit_reg(offset, index))
+        return true;
+    }
+
   private:
     Memory<mem::rambuf>& ram;
 };

@@ -66,3 +66,7 @@ class TestMemory(object):
     @command('TestMemory')
     def set_clear_bit(self):
         return self.client.recv_bool()
+
+    @command('TestMemory', 'II')
+    def set_clear_reg_bit(self, offset, index):
+        return self.client.recv_bool()
