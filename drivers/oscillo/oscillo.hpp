@@ -51,7 +51,6 @@ class Oscillo
         return sts.read_reg(n_avg_offset[channel]);
     }
 
-    // TODO should be a one-liner
     void set_clken_mask(bool clken_mask) {
         cfg.write_bit<reg::clken_mask, 0>(clken_mask);
     }
@@ -96,7 +95,7 @@ class Oscillo
         dac.set_data<prm::dac_width>(channel, arr);
     }
 
-    std::array<uint32_t, WFM_SIZE/2>& get_dac_buffer(uint32_t channel) {
+    auto& get_dac_buffer(uint32_t channel) {
         return dac.get_data<WFM_SIZE/2>(channel);
     }
 
@@ -121,6 +120,6 @@ class Oscillo
 
     // Internal functions
     void _wait_for_acquisition();
-}; // class Oscillo
+};
 
 #endif // __DRIVERS_OSCILLO_HPP__
