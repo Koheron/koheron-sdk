@@ -53,11 +53,7 @@ class Oscillo
 
     // TODO should be a one-liner
     void set_clken_mask(bool clken_mask) {
-        if (clken_mask) {
-            cfg.set_bit<reg::clken_mask, 0>();
-        } else {
-            cfg.clear_bit<reg::clken_mask, 0>();
-        }
+        cfg.write_bit<reg::clken_mask, 0>(clken_mask);
     }
 
     void update_now() {
