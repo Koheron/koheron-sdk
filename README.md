@@ -33,7 +33,7 @@ You can find the latest release of the SD card image for the Red Pitaya `oscillo
 The build is tested on Ubuntu 16.04.
 [Install Vivado 2016.2](https://github.com/Koheron/koheron-sdk/issues/101) and source it (`source scripts/settings.sh`):
 
-An instrument consist of a file `<instrument>-<version>.zip` that contains the bitstream and its corresponding server.
+An instrument consists of a file `<instrument>-<version>.zip` that contains the bitstream and its corresponding server.
 Run the instrument on your Zynq board and test it:
 ```
 $ make NAME=<instrument> HOST=192.168.1.100 run test

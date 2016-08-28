@@ -86,7 +86,7 @@ TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
 TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
 SERVER_CONFIG = projects/$(NAME)/drivers.yml
-TCP_SERVER_SHA = master
+TCP_SERVER_SHA = cli
 TCP_SERVER_VENV = $(TMP)/$(NAME).koheron_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
 
@@ -113,9 +113,9 @@ METADATA = $(TMP)/metadata.json
 .PHONY: all help \
         test_module test_core test_% test test_app test_instrum test_all \
         server xpr zip app bd http_api \
-        run app_sync app_sync_ssh koheron-server-cli
+        run app_sync app_sync_ssh
 
-all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv koheron-server-cli
+all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv
 
 ###############################################################################
 # API
@@ -322,9 +322,6 @@ $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. \
 	  PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all
 	@echo [$@] OK
-
-koheron-server-cli: $(TCP_SERVER_DIR) $(TCP_SERVER_VENV)
-	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. PYTHON=$(PYTHON) cli
 
 ###############################################################################
 # Instrument ZIP file (contains bitstream,  TCP server)
