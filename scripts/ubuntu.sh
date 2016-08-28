@@ -73,8 +73,6 @@ cp tmp/${name}.koheron-server/VERSION $root_dir/usr/local/koheron-server
 cp $config_dir/koheron-server.service $root_dir/etc/systemd/system/koheron-server.service
 cp $config_dir/koheron-server-init.service $root_dir/etc/systemd/system/koheron-server-init.service
 
-cp scripts/install_koheron-python.sh $root_dir/usr/local/koheron-server
-
 # uwsgi
 mkdir $root_dir/etc/flask-uwsgi
 cp $config_dir/flask-uwsgi.ini $root_dir/etc/flask-uwsgi/flask-uwsgi.ini
@@ -167,7 +165,7 @@ apt-get install -y python-pip python-setuptools python-all-dev python-wheel
 pip install --upgrade pip
 
 # pip install koheron
-bash /usr/local/koheron-server/install_koheron-python.sh cli
+curl https://raw.githubusercontent.com/Koheron/koheron-python/master/install.sh | sudo /bin/bash /dev/stdin python cli
 
 pip install flask
 pip install jinja2
