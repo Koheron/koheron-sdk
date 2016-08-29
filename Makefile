@@ -110,12 +110,14 @@ METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-.PHONY: all help \
+.PHONY: all linux help \
         test_module test_core test_% test test_app test_instrum test_all \
-        server xpr zip app bd http_api \
+        server xpr app bd http_api \
         run app_sync app_sync_ssh
 
-all: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv
+all: $(ZIP)
+
+linux: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv
 
 ###############################################################################
 # API
@@ -158,7 +160,6 @@ test_all: | test_app test_instrum
 server: $(TCP_SERVER)
 xpr: $(TMP)/$(NAME).xpr
 bit: $(TMP)/$(NAME).bit
-zip: $(ZIP)
 http: $(HTTP_API_ZIP)
 
 run: $(ZIP)
