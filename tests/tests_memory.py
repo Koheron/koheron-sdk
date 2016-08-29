@@ -18,6 +18,9 @@ def test_write_read_reg_u32():
 def test_write_read_u64():
     assert(test_memory.write_read_u64())
 
+def test_write_read_reg_u64():
+    assert(test_memory.write_read_reg_u64(0))
+
 def test_write_read_i16():
     assert(test_memory.write_read_i16())
 

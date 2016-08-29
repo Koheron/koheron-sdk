@@ -51,6 +51,14 @@ class TestMemory
         return true;
     }
 
+    bool write_read_reg_u64(uint32_t offset) {
+        constexpr uint64_t u64_max = 18446744073709551615ULL;
+        ram.write_reg<uint64_t>(offset, u64_max);
+        ASSERT(ram.read_reg<uint64_t>(offset) == u64_max)
+
+        return true;
+    }
+
     bool write_read_i16() {
         ram.write<0, int16_t>(-42);
         ASSERT(ram.read<0, int16_t>() == -42)
@@ -81,14 +89,16 @@ class TestMemory
 
     bool write_read_float() {
         ram.write<0, float>(3.1415926535897);
-        ASSERT(fabs(ram.read<0, float>() - 3.1415926535897) <= std::numeric_limits<float>::epsilon())
+        ASSERT(fabs(ram.read<0, float>() - 3.1415926535897)
+                    <= std::numeric_limits<float>::epsilon())
 
         return true;
     }
 
     bool write_read_reg_float(uint32_t offset) {
         ram.write_reg<float>(offset, 3.1415926535897);
-        ASSERT(fabs(ram.read_reg<float>(offset) - 3.1415926535897) <= std::numeric_limits<float>::epsilon())
+        ASSERT(fabs(ram.read_reg<float>(offset) - 3.1415926535897)
+                    <= std::numeric_limits<float>::epsilon())
 
         return true;
     }
@@ -138,7 +148,8 @@ class TestMemory
         auto& arr_read = ram.read_array<float, 2048, 0>();
 
         for (size_t i=0; i<arr_read.size(); i++)
-            ASSERT(fabs(arr_read[i] - log(static_cast<float>(i + 1))) <= std::numeric_limits<float>::round_error())
+            ASSERT(fabs(arr_read[i] - log(static_cast<float>(i + 1)))
+                        <= std::numeric_limits<float>::round_error())
 
         return true;
     }
@@ -154,7 +165,8 @@ class TestMemory
         auto& arr_read = ram.read_reg_array<float, 2048>(offset);
 
         for (size_t i=0; i<arr_read.size(); i++)
-            ASSERT(fabs(arr_read[i] - log(static_cast<float>(i + 1))) <= std::numeric_limits<float>::round_error())
+            ASSERT(fabs(arr_read[i] - log(static_cast<float>(i + 1)))
+                        <= std::numeric_limits<float>::round_error())
 
         return true;
     }
@@ -207,7 +219,8 @@ class TestMemory
         float *ram_ptr = ram.get_ptr<float, 0>();
 
         for (size_t i=0; i<len; i++)
-            ASSERT(fabs(ram_ptr[i] - sin(static_cast<float>(i))) <= std::numeric_limits<float>::epsilon())
+            ASSERT(fabs(ram_ptr[i] - sin(static_cast<float>(i)))
+                        <= std::numeric_limits<float>::epsilon())
 
         return true;
     }
@@ -224,7 +237,8 @@ class TestMemory
         float *ram_ptr = ram.get_reg_ptr<float>(offset);
 
         for (size_t i=0; i<len; i++)
-            ASSERT(fabs(ram_ptr[i] - sin(static_cast<float>(i))) <= std::numeric_limits<float>::epsilon())
+            ASSERT(fabs(ram_ptr[i] - sin(static_cast<float>(i)))
+                        <= std::numeric_limits<float>::epsilon())
 
         return true;
     }
