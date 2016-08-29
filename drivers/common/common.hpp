@@ -29,7 +29,7 @@ class Common
     , sts(mm.get<mem::status>())
     {}
 
-    std::array<uint32_t, prm::bitstream_id_size> get_bitstream_id() {
+    auto& get_bitstream_id() {
         return sts.read_array<uint32_t, prm::bitstream_id_size, reg::bitstream_id>();
     }
 
@@ -116,7 +116,6 @@ class Common
     MemoryManager& mm;
     Memory<mem::config>& cfg;
     Memory<mem::status>& sts;
-
 };
 
 #endif // __DRIVERS_COMMON_HPP__

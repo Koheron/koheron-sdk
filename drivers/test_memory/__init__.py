@@ -62,3 +62,27 @@ class TestMemory(object):
     @command('TestMemory', 'I')
     def set_get_reg_ptr_float(self, offset):
         return self.client.recv_bool()
+
+    @command('TestMemory')
+    def set_clear_bit(self):
+        return self.client.recv_bool()
+
+    @command('TestMemory', 'II')
+    def set_clear_reg_bit(self, offset, index):
+        return self.client.recv_bool()
+
+    @command('TestMemory')
+    def toggle_bit(self):
+        return self.client.recv_bool()
+
+    @command('TestMemory', 'II')
+    def toggle_reg_bit(self, offset, index):
+        return self.client.recv_bool()
+
+    @command('TestMemory')
+    def read_write_bit(self):
+        return self.client.recv_bool()
+
+    @command('TestMemory', 'II')
+    def read_write_reg_bit(self, offset, index):
+        return self.client.recv_bool()
