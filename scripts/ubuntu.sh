@@ -163,17 +163,12 @@ apt-get install -y python-numpy
 apt-get install -y python-pip python-setuptools python-all-dev python-wheel
 
 pip install --upgrade pip
-
-# pip install koheron
-curl https://raw.githubusercontent.com/Koheron/koheron-python/master/install.sh | sudo /bin/bash /dev/stdin python cli
-
+pip install https://github.com/Koheron/koheron-python/zipball/cli
 pip install flask
 pip install jinja2
 pip install urllib3
 pip install pyyaml
 pip install uwsgi
-
-
 
 systemctl enable uwsgi
 systemctl enable koheron-server
