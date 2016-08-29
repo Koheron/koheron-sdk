@@ -34,9 +34,7 @@ class Common
     }
 
     uint64_t get_dna() {
-        uint64_t dna_low  = static_cast<uint64_t>(sts.read<reg::dna>());
-        uint64_t dna_high = static_cast<uint64_t>(sts.read<reg::dna + 4>());
-        return dna_low + (dna_high << 32);
+        return sts.read<reg::dna, uint64_t>();
     }
 
     void set_led(uint32_t value) {
