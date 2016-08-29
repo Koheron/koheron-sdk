@@ -16,6 +16,14 @@ class TestMemory(object):
         return self.client.recv_bool()
 
     @command('TestMemory')
+    def write_read_u64(self):
+        return self.client.recv_bool()
+
+    @command('TestMemory', 'I')
+    def write_read_reg_u64(self, offset):
+        return self.client.recv_bool()
+
+    @command('TestMemory')
     def write_read_i16(self):
         return self.client.recv_bool()
 
@@ -29,6 +37,14 @@ class TestMemory(object):
 
     @command('TestMemory', 'I')
     def write_read_reg_float(self, offset):
+        return self.client.recv_bool()
+
+    @command('TestMemory')
+    def write_read_double(self):
+        return self.client.recv_bool()
+
+    @command('TestMemory', 'I')
+    def write_read_reg_double(self, offset):
         return self.client.recv_bool()
 
     @command('TestMemory')

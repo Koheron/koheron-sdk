@@ -15,6 +15,12 @@ def test_write_read_u32():
 def test_write_read_reg_u32():
     assert(test_memory.write_read_reg_u32(0))
 
+def test_write_read_u64():
+    assert(test_memory.write_read_u64())
+
+def test_write_read_reg_u64():
+    assert(test_memory.write_read_reg_u64(0))
+
 def test_write_read_i16():
     assert(test_memory.write_read_i16())
 
@@ -26,6 +32,12 @@ def test_write_read_float():
 
 def test_write_read_reg_float():
     assert(test_memory.write_read_reg_float(0))
+
+def test_write_read_double():
+    assert(test_memory.write_read_double())
+
+def test_write_read_reg_double():
+    assert(test_memory.write_read_reg_double(0))
 
 def test_write_read_u32_array():
     assert(test_memory.write_read_u32_array())
