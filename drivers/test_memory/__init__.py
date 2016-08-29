@@ -40,6 +40,14 @@ class TestMemory(object):
         return self.client.recv_bool()
 
     @command('TestMemory')
+    def write_read_double(self):
+        return self.client.recv_bool()
+
+    @command('TestMemory', 'I')
+    def write_read_reg_double(self, offset):
+        return self.client.recv_bool()
+
+    @command('TestMemory')
     def write_read_u32_array(self):
         return self.client.recv_bool()
 

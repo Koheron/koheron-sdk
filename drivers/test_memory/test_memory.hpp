@@ -103,6 +103,24 @@ class TestMemory
         return true;
     }
 
+    bool write_read_double() {
+        ram.write<0, double>(1.79769313486231576535897);
+        ASSERT(fabs(ram.read<0, double>() - 1.79769313486231576535897)
+                    <= std::numeric_limits<double>::epsilon())
+
+        return true;
+    }
+
+    bool write_read_reg_double(uint32_t offset) {
+        ram.write_reg<double>(offset, 1.79769313486231576535897);
+        ASSERT(fabs(ram.read_reg<double>(offset) - 1.79769313486231576535897)
+                    <= std::numeric_limits<double>::epsilon())
+        ASSERT(!(fabs(ram.read_reg<double>(offset) - 1.79769313486231576535897 + 1E-15)
+                    <= std::numeric_limits<double>::epsilon()))
+
+        return true;
+    }
+
     // Write/read consecutive registers
 
     bool write_read_u32_array() {
