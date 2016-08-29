@@ -16,6 +16,10 @@ class TestMemory(object):
         return self.client.recv_bool()
 
     @command('TestMemory')
+    def write_read_u64(self):
+        return self.client.recv_bool()
+
+    @command('TestMemory')
     def write_read_i16(self):
         return self.client.recv_bool()
 

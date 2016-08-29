@@ -43,6 +43,14 @@ class TestMemory
         return true;
     }
 
+    bool write_read_u64() {
+        constexpr uint64_t u64_max = 18446744073709551615ULL;
+        ram.write<0, uint64_t>(u64_max);
+        ASSERT(ram.read<0, uint64_t>() == u64_max)
+
+        return true;
+    }
+
     bool write_read_i16() {
         ram.write<0, int16_t>(-42);
         ASSERT(ram.read<0, int16_t>() == -42)
