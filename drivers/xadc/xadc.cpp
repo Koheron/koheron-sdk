@@ -15,7 +15,7 @@ static bool is_valid_channel(uint32_t channel)
         });
 }
 
-int Xadc::set_channel(uint32_t channel_0_, uint32_t channel_1_)
+uint32_t Xadc::set_channel(uint32_t channel_0_, uint32_t channel_1_)
 {
     if (!is_valid_channel(channel_0_) || !is_valid_channel(channel_1_))
         return -1;
@@ -28,7 +28,7 @@ int Xadc::set_channel(uint32_t channel_0_, uint32_t channel_1_)
     return 0;
 }
 
-int Xadc::set_averaging(uint32_t n_avg)
+uint32_t Xadc::set_averaging(uint32_t n_avg)
 {
     uint32_t avg;
     constexpr uint32_t mask = (1 << 12) + (1 << 13);
@@ -53,7 +53,7 @@ int Xadc::set_averaging(uint32_t n_avg)
     return 0;
 }
 
-int Xadc::read(uint32_t channel)
+uint32_t Xadc::read(uint32_t channel)
 {
     if (channel != channel_0 && channel != channel_1)
         return -1;
