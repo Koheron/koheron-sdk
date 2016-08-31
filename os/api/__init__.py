@@ -11,8 +11,7 @@ import yaml
 from distutils.dir_util import copy_tree
 
 from flask import Flask, render_template, request, url_for
-from koheron import KoheronClient
-from drivers.common import Common
+from koheron import KoheronClient, Common
 
 def log(severity, message):
     print("[" + severity + "] " + message)
