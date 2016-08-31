@@ -9,30 +9,30 @@ class Eeprom(object):
     def __init__(self, client):
         self.client = client
 
-    @command('Eeprom','I')
+    @command()
     def read(self, addr):
         return self.client.recv_uint32()
 
-    @command('Eeprom')
+    @command()
     def write_enable(self):
         pass
 
-    @command('Eeprom','I')
+    @command()
     def erase(self, addr):
         pass
 
-    @command('Eeprom','II')
+    @command()
     def write(self, addr, data_in):
         pass
 
-    @command('Eeprom')
+    @command()
     def erase_all(self):
         pass
 
-    @command('Eeprom','I')
+    @command()
     def write_all(self, data_in):
         pass
 
-    @command('Eeprom')
+    @command()
     def erase_write_disable(self):
         pass

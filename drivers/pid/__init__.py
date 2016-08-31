@@ -13,20 +13,20 @@ class Pid(object):
         self.fifo_start_acquisition(acq_period)
         self.data_remains = []
 
-    @command('Pid','I')
+    @command()
     def set_cic_rate(self, rate):
         pass
 
-    @command('Pid','f')
+    @command()
     def set_dds_freq(self, freq):
         pass
 
-    @command('Pid')
+    @command()
     def get_fifo_length(self):
         return self.client.recv_uint32()
 
     def get_data(self):
-        @command('Pid')
+        @command(classname='Pid')
         def get_fifo_buffer_length(self):
             return self.client.recv_uint32()
 
@@ -34,7 +34,7 @@ class Pid(object):
 
         if self.fifo_stream_length > 0:
 
-            @command('Pid')
+            @command(classname='Pid')
             def get_fifo_data(self):
                 return self.client.recv_array(self.fifo_stream_length, dtype='uint32')
 
@@ -42,14 +42,14 @@ class Pid(object):
         else:
             return []
 
-    @command('Pid')
+    @command()
     def fifo_get_acquire_status(self):
         return self.client.recv_uint32()
 
-    @command('Pid','I')
+    @command()
     def fifo_start_acquisition(self, acq_period): pass
 
-    @command('Pid')
+    @command()
     def fifo_stop_acquisition(self): pass
 
     def read_npts_fifo(self, npts):
