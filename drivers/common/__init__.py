@@ -67,12 +67,9 @@ class Common(object):
     @command()
     def ip_on_leds(self): pass
 
+    @command(classname='KServer', funcname='get_version')
     def get_server_version(self):
-        @command(classname='KServer')
-        def get_version(self):
-            return self.client.recv_string()
-
-        return get_version(self)
+        return self.client.recv_string()
 
     @command()
     def cfg_write(self, offset, value):
