@@ -6,6 +6,7 @@
 #define __DRIVERS_COMMON_HPP__
 
 #include <cstring>
+#include <array>
 
 extern "C" {
   #include <sys/socket.h>
@@ -13,8 +14,6 @@ extern "C" {
   #include <arpa/inet.h>
   #include <ifaddrs.h>
 }
-
-#include <array>
 
 #include <drivers/lib/memory_manager.hpp>
 #include <drivers/init/init.hpp>
@@ -29,14 +28,12 @@ class Common
     , sts(mm.get<mem::status>())
     {}
 
-    std::array<uint32_t, prm::bitstream_id_size> get_bitstream_id() {
+    auto& get_bitstream_id() {
         return sts.read_array<uint32_t, prm::bitstream_id_size, reg::bitstream_id>();
     }
 
     uint64_t get_dna() {
-        uint64_t dna_low  = static_cast<uint64_t>(sts.read<reg::dna>());
-        uint64_t dna_high = static_cast<uint64_t>(sts.read<reg::dna + 4>());
-        return dna_low + (dna_high << 32);
+        return sts.read<reg::dna, uint64_t>();
     }
 
     void set_led(uint32_t value) {
@@ -118,7 +115,6 @@ class Common
     MemoryManager& mm;
     Memory<mem::config>& cfg;
     Memory<mem::status>& sts;
-
 };
 
 #endif // __DRIVERS_COMMON_HPP__
