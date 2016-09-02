@@ -14,4 +14,3 @@ drivers:
   - drivers/speed_test/speed_test.cpp
   - drivers/eeprom/eeprom.hpp
   - drivers/spi/spi.hpp
-  - drivers/test_memory/test_memory.hpp
