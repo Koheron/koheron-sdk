@@ -12,6 +12,6 @@ class Spi(object):
         if init(self, 0) < 0:
             raise RuntimeError('Cannot open SPI device')
 
-    @write_buffer('SPI')
+    @command()
     def write(self, data):
         return self.client.recv_int32()

@@ -27,14 +27,14 @@ class Xadc
     : xadc(mm.get<mem::xadc>())
     {}
 
-    int set_channel(uint32_t channel_0_, uint32_t channel_1_);
+    uint32_t set_channel(uint32_t channel_0_, uint32_t channel_1_);
     
     void enable_averaging() {
         xadc.write<XADC_AVG_EN_OFF>((1 << channel_0) + (1 << channel_1));
     }
 
-    int set_averaging(uint32_t n_avg);
-    int read(uint32_t channel);
+    uint32_t set_averaging(uint32_t n_avg);
+    uint32_t read(uint32_t channel);
 
   private:
     Memory<mem::xadc>& xadc;

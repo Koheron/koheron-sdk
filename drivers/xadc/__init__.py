@@ -9,18 +9,18 @@ class Xadc(object):
         self.enable_averaging()
         self.set_averaging(256)
 
-    @command('Xadc','II')
+    @command()
     def set_channel(self, channel_0, channel_1):
         return self.client.recv_int32()
 
-    @command('Xadc')
+    @command()
     def enable_averaging(self): pass
 
-    @command('Xadc','I')
+    @command()
     def set_averaging(self, n_avg):
         return self.client.recv_int32()
 
-    @command('Xadc','I')
+    @command()
     def read(self, channel):
         return self.client.recv_int32()
 

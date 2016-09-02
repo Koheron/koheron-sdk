@@ -6,6 +6,7 @@
 #define __DRIVERS_COMMON_HPP__
 
 #include <cstring>
+#include <array>
 
 extern "C" {
   #include <sys/socket.h>
@@ -13,8 +14,6 @@ extern "C" {
   #include <arpa/inet.h>
   #include <ifaddrs.h>
 }
-
-#include <array>
 
 #include <drivers/lib/memory_manager.hpp>
 #include <drivers/init/init.hpp>

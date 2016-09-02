@@ -26,11 +26,15 @@ class SpeedTest
     std::array<float, 2*WFM_SIZE>& read_raw_all();
 
     // Return zeros (does not perform FPGA memory access)
-    std::array<float, 2*WFM_SIZE>& read_zeros() {return data_zeros;}
+    std::array<float, 2*WFM_SIZE>& read_zeros() {
+        return data_zeros;
+    }
 
     // Read data in RAM buffer
-    #pragma koheron-server read_array 2*WFM_SIZE
-    float* read_rambuf() {return rambuf_data;}
+    const std::array<float, 2*WFM_SIZE>& read_rambuf() {
+        auto p = reinterpret_cast<const std::array<float, 2*WFM_SIZE>*>(rambuf_data);
+        return *p;
+    }
 
     // Read data in RAM buffer (with copy)
     std::array<float, 2*WFM_SIZE>& read_rambuf_memcpy() {
@@ -45,14 +49,16 @@ class SpeedTest
     }
 
     // Read data in RAM buffer
-    #pragma koheron-server read_array 2*WFM_SIZE
-    float* read_mmapbuf_nocopy() {return (float*)mmap_buf;}
+    const std::array<float, 2*WFM_SIZE>& read_mmapbuf_nocopy() {
+        auto p = reinterpret_cast<const std::array<float, 2*WFM_SIZE>*>(mmap_buf);
+        return *p;
+    }
 
     // Read data in RAM buffer
-    #pragma koheron-server read_array 2*WFM_SIZE
-    float* read_rambuf_mmap_memcpy() {
+    const std::array<float, 2*WFM_SIZE>& read_rambuf_mmap_memcpy() {
         memcpy(mmap_buf, rambuf_data, 2*WFM_SIZE*sizeof(float));
-        return (float*)mmap_buf;
+        auto p = reinterpret_cast<const std::array<float, 2*WFM_SIZE>*>(mmap_buf);
+        return *p;
     }
 
   private:

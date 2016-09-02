@@ -12,14 +12,13 @@ class Spi
   public:
     Spi(MemoryManager& mm) {}
 
-    int init(uint32_t mode) {
+    uint32_t init(uint32_t mode) {
         spi_dev = SpiDev(mode);
         return spi_dev.init();
     }
 
-    #pragma koheron-server write_array arg{buffer} arg{len}
-    int write(const uint32_t *buffer, uint32_t len) {
-        return spi_dev.write_buffer(buffer, len);
+    uint32_t write(const std::vector<uint32_t>& buffer) {
+        return spi_dev.write_buffer(buffer.data(), buffer.size());
     }
 
   private:

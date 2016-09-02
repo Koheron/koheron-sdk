@@ -70,8 +70,6 @@ mkdir $root_dir/usr/local/koheron-server
 cp tmp/${name}.koheron-server/tmp/kserverd $root_dir/usr/local/koheron-server
 cp $config_dir/koheron-server.conf $root_dir/usr/local/koheron-server
 cp tmp/${name}.koheron-server/VERSION $root_dir/usr/local/koheron-server
-cp tmp/${name}.koheron-server/apis/cli/kserver $root_dir/usr/local/koheron-server
-cp tmp/${name}.koheron-server/apis/cli/kserver-completion $root_dir/etc/bash_completion.d
 cp $config_dir/koheron-server.service $root_dir/etc/systemd/system/koheron-server.service
 cp $config_dir/koheron-server-init.service $root_dir/etc/systemd/system/koheron-server-init.service
 
@@ -165,7 +163,7 @@ apt-get install -y python-numpy
 apt-get install -y python-pip python-setuptools python-all-dev python-wheel
 
 pip install --upgrade pip
-pip install koheron
+pip install https://github.com/Koheron/koheron-python/zipball/master
 pip install flask
 pip install jinja2
 pip install urllib3
