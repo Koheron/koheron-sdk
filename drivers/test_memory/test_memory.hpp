@@ -6,6 +6,7 @@
 #define __DRIVERS_TEST_MEMORY_HPP__
 
 #include <cmath>
+#include <limits>
 
 #include <drivers/lib/memory_manager.hpp>
 #include <drivers/memory.hpp>
@@ -42,6 +43,22 @@ class TestMemory
         return true;
     }
 
+    bool write_read_u64() {
+        constexpr uint64_t u64_max = 18446744073709551615ULL;
+        ram.write<0, uint64_t>(u64_max);
+        ASSERT(ram.read<0, uint64_t>() == u64_max)
+
+        return true;
+    }
+
+    bool write_read_reg_u64(uint32_t offset) {
+        constexpr uint64_t u64_max = 18446744073709551615ULL;
+        ram.write_reg<uint64_t>(offset, u64_max);
+        ASSERT(ram.read_reg<uint64_t>(offset) == u64_max)
+
+        return true;
+    }
+
     bool write_read_i16() {
         ram.write<0, int16_t>(-42);
         ASSERT(ram.read<0, int16_t>() == -42)
@@ -72,14 +89,34 @@ class TestMemory
 
     bool write_read_float() {
         ram.write<0, float>(3.1415926535897);
-        ASSERT(fabs(ram.read<0, float>() - 3.1415926535897) < 1E-6)
+        ASSERT(fabs(ram.read<0, float>() - 3.1415926535897)
+                    <= std::numeric_limits<float>::epsilon())
 
         return true;
     }
 
     bool write_read_reg_float(uint32_t offset) {
         ram.write_reg<float>(offset, 3.1415926535897);
-        ASSERT(fabs(ram.read_reg<float>(offset) - 3.1415926535897) < 1E-6)
+        ASSERT(fabs(ram.read_reg<float>(offset) - 3.1415926535897)
+                    <= std::numeric_limits<float>::epsilon())
+
+        return true;
+    }
+
+    bool write_read_double() {
+        ram.write<0, double>(1.79769313486231576535897);
+        ASSERT(fabs(ram.read<0, double>() - 1.79769313486231576535897)
+                    <= std::numeric_limits<double>::epsilon())
+
+        return true;
+    }
+
+    bool write_read_reg_double(uint32_t offset) {
+        ram.write_reg<double>(offset, 1.79769313486231576535897);
+        ASSERT(fabs(ram.read_reg<double>(offset) - 1.79769313486231576535897)
+                    <= std::numeric_limits<double>::epsilon())
+        ASSERT(!(fabs(ram.read_reg<double>(offset) - 1.79769313486231576535897 + 1E-15)
+                    <= std::numeric_limits<double>::epsilon()))
 
         return true;
     }
@@ -129,7 +166,8 @@ class TestMemory
         auto& arr_read = ram.read_array<float, 2048, 0>();
 
         for (size_t i=0; i<arr_read.size(); i++)
-            ASSERT(fabs(arr_read[i] - log(static_cast<float>(i + 1))) < 1E-6)
+            ASSERT(fabs(arr_read[i] - log(static_cast<float>(i + 1)))
+                        <= std::numeric_limits<float>::round_error())
 
         return true;
     }
@@ -145,7 +183,8 @@ class TestMemory
         auto& arr_read = ram.read_reg_array<float, 2048>(offset);
 
         for (size_t i=0; i<arr_read.size(); i++)
-            ASSERT(fabs(arr_read[i] - log(static_cast<float>(i + 1))) < 1E-6)
+            ASSERT(fabs(arr_read[i] - log(static_cast<float>(i + 1)))
+                        <= std::numeric_limits<float>::round_error())
 
         return true;
     }
@@ -198,7 +237,8 @@ class TestMemory
         float *ram_ptr = ram.get_ptr<float, 0>();
 
         for (size_t i=0; i<len; i++)
-            ASSERT(fabs(ram_ptr[i] - sin(static_cast<float>(i))) < 1E-6)
+            ASSERT(fabs(ram_ptr[i] - sin(static_cast<float>(i)))
+                        <= std::numeric_limits<float>::epsilon())
 
         return true;
     }
@@ -215,12 +255,59 @@ class TestMemory
         float *ram_ptr = ram.get_reg_ptr<float>(offset);
 
         for (size_t i=0; i<len; i++)
-            ASSERT(fabs(ram_ptr[i] - sin(static_cast<float>(i))) < 1E-6)
+            ASSERT(fabs(ram_ptr[i] - sin(static_cast<float>(i)))
+                        <= std::numeric_limits<float>::epsilon())
 
         return true;
     }
 
     // Bit manipulations
+
+    bool set_clear_bit() {
+        ram.set_bit<0, 14>();
+        ASSERT(ram.read_bit<0, 14>())
+        ram.clear_bit<0, 14>();
+        ASSERT(!ram.read_bit<0, 14>())
+        return true;
+    }
+
+    bool set_clear_reg_bit(uint32_t offset, uint32_t index) {
+        ram.set_bit_reg(offset, index);
+        ASSERT(ram.read_bit_reg(offset, index))
+        ram.clear_bit_reg(offset, index);
+        ASSERT(!ram.read_bit_reg(offset, index))
+        return true;
+    }
+
+    bool toggle_bit() {
+        bool v0 = ram.read_bit<0, 14>();
+        ram.toggle_bit<0, 14>();
+        ASSERT(ram.read_bit<0, 14>() == !v0)
+        return true;
+    }
+
+    bool toggle_reg_bit(uint32_t offset, uint32_t index) {
+        bool v0 = ram.read_bit_reg(offset, index);
+        ram.toggle_bit_reg(offset, index);
+        ASSERT(ram.read_bit_reg(offset, index) == !v0)
+        return true;
+    }
+
+    bool read_write_bit() {
+        ram.write_bit<0, 10>(true);
+        ASSERT(ram.read_bit<0, 10>())
+        ram.write_bit<0, 12>(false);
+        ASSERT(!ram.read_bit<0, 12>())
+        return true;
+    }
+
+    bool read_write_reg_bit(uint32_t offset, uint32_t index) {
+        ram.write_bit_reg(offset, index, true);
+        ASSERT(ram.read_bit_reg(offset, index))
+        ram.write_bit_reg(offset, index, false);
+        ASSERT(!ram.read_bit_reg(offset, index))
+        return true;
+    }
 
   private:
     Memory<mem::rambuf>& ram;

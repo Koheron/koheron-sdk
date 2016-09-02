@@ -16,6 +16,14 @@ class TestMemory(object):
         return self.client.recv_bool()
 
     @command()
+    def write_read_u64(self):
+        return self.client.recv_bool()
+
+    @command()
+    def write_read_reg_u64(self, offset):
+        return self.client.recv_bool()
+
+    @command()
     def write_read_i16(self):
         return self.client.recv_bool()
 
@@ -29,6 +37,14 @@ class TestMemory(object):
 
     @command()
     def write_read_reg_float(self, offset):
+        return self.client.recv_bool()
+
+    @command()
+    def write_read_double(self):
+        return self.client.recv_bool()
+
+    @command()
+    def write_read_reg_double(self, offset):
         return self.client.recv_bool()
 
     @command()
@@ -61,4 +77,28 @@ class TestMemory(object):
 
     @command()
     def set_get_reg_ptr_float(self, offset):
+        return self.client.recv_bool()
+
+    @command('TestMemory')
+    def set_clear_bit(self):
+        return self.client.recv_bool()
+
+    @command()
+    def set_clear_reg_bit(self, offset, index):
+        return self.client.recv_bool()
+
+    @command('TestMemory')
+    def toggle_bit(self):
+        return self.client.recv_bool()
+
+    @command()
+    def toggle_reg_bit(self, offset, index):
+        return self.client.recv_bool()
+
+    @command()
+    def read_write_bit(self):
+        return self.client.recv_bool()
+
+    @command()
+    def read_write_reg_bit(self, offset, index):
         return self.client.recv_bool()
