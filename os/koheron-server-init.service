@@ -5,7 +5,7 @@ Wants=network-online.target
 After=koheron-server.service network-online.target
 
 [Service]
-ExecStart=/usr/local/bin/koheron --unixsock=/var/run/koheron-server.sock init
+ExecStart=/usr/local/bin/koheron --unixsock=/var/run/koheron-server.sock common init
 
 [Install]
 WantedBy=multi-user.target
