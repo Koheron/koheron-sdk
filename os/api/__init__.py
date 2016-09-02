@@ -126,6 +126,9 @@ class KoheronAPIApp(Flask):
             self.common.set_led(i)
         self.common.set_led(val)
 
+    def init(self):
+        self.common.init()
+
     # ------------------------
     # Instruments
     # ------------------------

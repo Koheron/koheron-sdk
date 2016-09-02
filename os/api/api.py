@@ -86,6 +86,11 @@ def ping():
     api_app.ping()
     return make_response("Done !!")
 
+@api_app.route('/api/board/init', methods=['GET'])
+def init():
+    api_app.init()
+    return make_response("Initialisation done")
+
 # ------------------------
 # Instruments
 # ------------------------
