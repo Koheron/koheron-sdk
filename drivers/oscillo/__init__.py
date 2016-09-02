@@ -3,7 +3,7 @@
 import time
 import numpy as np
 
-from koheron import command, write_buffer
+from koheron import command
 
 class Oscillo(object):
 
