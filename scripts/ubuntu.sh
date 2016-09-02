@@ -163,7 +163,7 @@ apt-get install -y python-numpy
 apt-get install -y python-pip python-setuptools python-all-dev python-wheel
 
 pip install --upgrade pip
-pip install https://github.com/Koheron/koheron-python/zipball/cli
+pip install https://github.com/Koheron/koheron-python/zipball/master
 pip install flask
 pip install jinja2
 pip install urllib3
