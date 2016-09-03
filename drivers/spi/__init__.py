@@ -1,11 +1,11 @@
 
-from koheron import command, write_buffer
+from koheron import command
 
 class Spi(object):
     def __init__(self, client):
         self.client = client
 
-        @command('SPI', 'I')
+        @command()
         def init(self, mode):
             return self.client.recv_int32()
 
