@@ -14,14 +14,16 @@ class Blink(object):
 
     @command()
     def get_adc(self):
-        return self.recv_tuple('II')
+        return self.client.recv_tuple('II')
 
 if __name__=="__main__":
     host = os.getenv('HOST','192.168.1.100')
     client = load_instrument(host, 'blink')
     driver = Blink(client)
 
-    print driver.get_adc()
+    driver.set_dac(0,1000)
+    adc1, adc2 = driver.get_adc()
+    print('adc1 = {}, adc2 = {}'.format(adc1, adc2))
 
 
    
