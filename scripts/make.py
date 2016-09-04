@@ -186,7 +186,7 @@ def test_module_consistency(project):
     cfg = get_config(project)
     props = ['config_registers', 'status_registers']
     for module in cfg['modules']:
-        module_cfg = get_config(module)
+        module_cfg = get_config(module, 'fpga/modules')
         for prop in props:
             a = module_cfg[prop]
             a = a if a is not None else []
@@ -197,7 +197,7 @@ def test_core_consistency(project):
     """ Check that the modules cores are defined in the project main.yml."""
     cfg = get_config(project)
     for module in cfg['modules']:
-        module_cfg = get_config(module)
+        module_cfg = get_config(module, 'fpga/modules')
         assert set(module_cfg['cores']).issubset(cfg['cores'])
 
 def print_config(project):
