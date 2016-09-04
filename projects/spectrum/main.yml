@@ -37,10 +37,10 @@ memory:
     range: 8M
 
 modules:
-  - address_module
-  - averager_module
-  - spectrum_module
-  - peak_detector_module
+  - address
+  - averager
+  - spectrum
+  - peak_detector
 
 config_registers:
   - spi_in
