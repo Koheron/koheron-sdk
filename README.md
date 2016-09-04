@@ -41,7 +41,7 @@ $ export HOST=192.168.1.100 # your Red Pitaya IP address
 $ make NAME=blink run
 ```
 
-### 4. Ping the board
+### 4. Ping the board and watch the LEDs blink
 ```bash
 $ curl http://$(HOST)/api/board/ping
 ```
@@ -52,10 +52,32 @@ $ curl http://$(HOST)/api/board/ping
 * [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/projects/oscillo) : signal acquisition / generation with coherent averaging mode.
 * [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/projects/spectrum) : spectrum analyzer with peak-detection and averaging.
 
-## How to build the SD card image ?
+## How to
 
-Build zip, boot-loader and Linux kernel, then Ubuntu root file system:
+Open Vivado and build the instrument block design:
+```
+$ make NAME=oscillo bd
+```
+
+Build the SD card image:
 ```
 $ make NAME=blink linux
 $ sudo bash scripts/image.sh blink
 ```
+
+Build the instrument (without running it):
+```
+$ make NAME=oscillo
+```
+
+Test a verilog core:
+```
+$ make CORE=comparator_v1_0 test_core
+```
+
+Test a Tcl module:
+```
+$ make NAME=averager test_module
+```
+
+
