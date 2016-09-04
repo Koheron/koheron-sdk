@@ -1,22 +1,17 @@
 # koheron-sdk
 
 [![Circle CI](https://circleci.com/gh/Koheron/koheron-sdk.svg?style=shield)](https://circleci.com/gh/Koheron/koheron-sdk)
-[![Code Climate](https://codeclimate.com/github/Koheron/koheron-sdk/badges/gpa.svg)](https://codeclimate.com/github/Koheron/koheron-sdk)
 
 #### `Software Development Kit for Zynq-based instruments`
 
-* Ubuntu Core 16.04 LTS
-* Vivado 2016.2 toolchain (Linux Kernel version 4.4)
-* User-space control of hardware with [TCP / Websocket server](https://github.com/Koheron/koheron-server)
-* HTTP, Python and Javascript APIs
-
 #### Supported Base Boards
 
-The [Red Pitaya](http://redpitaya.com) is used as a reference board for this project. Please contact us at `hello@koheron.com` if you need another board to be supported.
+The [Red Pitaya](http://redpitaya.com) is used as the reference board. Please contact us at `hello@koheron.com` if you need another board to be supported.
 
-#### Available instruments
+#### Examples of instruments
 
-* [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/projects/oscillo) : simple signal acquisition / generation with coherent averaging mode.
+* [`blink`](https://github.com/Koheron/koheron-sdk/tree/master/projects/blink) : minimal instrument with access to LEDs and Red Pitaya ADCs and DACs.
+* [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/projects/oscillo) : signal acquisition / generation with coherent averaging mode.
 * [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/projects/spectrum) : spectrum analyzer with peak-detection and averaging.
 
 ## Quick start
@@ -25,8 +20,6 @@ You can find the latest release of the SD card image for the Red Pitaya `oscillo
 
 1. [Connect the board](http://www.koheron.com/products/laser-development-kit/getting-started/) to your computer.
 2. Navigate to your board ip address (e.g. `192.168.1.18`) with your browser.
-
-![Web interface](https://cloud.githubusercontent.com/assets/1735094/16599901/d9a205ea-4304-11e6-9303-4f02c1aedb4d.png)
 
 ## Build your own instrument
 
