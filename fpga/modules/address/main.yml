@@ -1,6 +1,6 @@
 ---
-project: address_module
-parent: default
+project: address
+#parent: default
 board: red-pitaya
 
 cores:

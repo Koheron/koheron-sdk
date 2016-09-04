@@ -11,48 +11,43 @@ import socket
 import getpass
 import json
 
-def get_list(project, prop, prop_list=None):
+def get_list(project, prop, project_path='projects', prop_list=None):
     """ Ex: Get the list of cores needed by the 'oscillo' instrument.
     list = get_list('oscillo', 'cores')
     """
     if prop_list is None: 
        prop_list = []
-    config = load_config(project)
+    config = load_config(os.path.join(project_path, project))
     if 'parent' in config and config['parent'] != None:
-        prop_list.extend(get_list(config['parent'], prop, prop_list))
+        prop_list.extend(get_list(config['parent'], prop, project_path, prop_list))
     if prop in config:
         prop_list.extend(config[prop])
-    config_default = load_config('default')
+    config_default = load_config('projects/default')
     # Ensure each item is only included once:
     prop_list = list(set(prop_list))
     return prop_list
 
-def get_prop(project, prop):
-    """ Ex: Get the board needed by the 'oscillo' instrument.
-    board = get_prop('oscillo', 'board')
-    """
-    config = load_config(project)
+def get_prop(project, prop, project_path='projects'):
+    config = load_config(os.path.join(project_path, project))
     if not prop in config:
         if 'parent' in config:
-            config[prop] = get_prop(config['parent'], prop)
+            config[prop] = get_prop(config['parent'], prop, project_path)
         else:
             print('Property %s not found', prop)
             return None
     return config[prop]
 
-def get_parents(project, parents=[]):
-    """ Get the list of parents (recursively). """
-    config = load_config(project)
-    if 'parent' in config and config['parent'] != None:
-        parents.append(config['parent'])
-        get_parents(config['parent'], parents)
-    return parents
+# def get_parents(project, parents=[]):
+#     """ Get the list of parents (recursively). """
+#     config = load_config(project)
+#     if 'parent' in config and config['parent'] != None:
+#         parents.append(config['parent'])
+#         get_parents(config['parent'], parents)
+#     return parents
 
-def load_config(project):
+def load_config(project_dir):
     """ Get the config dictionary from the file 'main.yml'. """
-    assert project in os.listdir('projects')
-    config_filename = os.path.join('projects', project, 'main.yml')
-    assert(os.path.isfile(config_filename))
+    config_filename = os.path.join(project_dir, 'main.yml')
     with open(config_filename) as config_file:
         config = yaml.load(config_file)    
     return config
@@ -65,19 +60,19 @@ def parse_brackets(string):
     else:
         return string, '1'
 
-def get_config(project):
+def get_config(project, project_path='projects'):
     """ Get the config dictionary recursively. 
     ex: config = get_config('oscillo')
     """
-    cfg = load_config(project)
+    cfg = load_config(os.path.join(project_path, project))
 
     # Get missing elements from ancestors
     lists = ['cores','xdc','modules']
     for list_ in lists:
-        cfg[list_] = get_list(project, list_)
-    props = ['board','host']
+        cfg[list_] = get_list(project, list_, project_path=project_path)
+    props = ['board']
     for prop in props:
-        cfg[prop] = get_prop(project, prop)
+        cfg[prop] = get_prop(project, prop, project_path=project_path)
 
     params = cfg['parameters']
 
@@ -122,7 +117,7 @@ def get_config(project):
 
     # Modules
     for module in cfg['modules']:
-        module_cfg = get_config(module)
+        module_cfg = get_config(module, 'fpga/modules')
         cfg['cores'].extend(module_cfg['cores'])
         cfg['cores'] = list(set(cfg['cores']))
     
@@ -232,35 +227,39 @@ if __name__ == "__main__":
             test_core_consistency(project)
 
     elif cmd == '--config_tcl':
-        config = get_config(sys.argv[2])
+        config = get_config(sys.argv[2], sys.argv[3])
         assert('sha0' in config['parameters'])
         fill_config_tcl(config)
 
     elif cmd == '--start_sh':
-        config = get_config(sys.argv[2])
+        config = get_config(sys.argv[2], sys.argv[3])
         fill_start_sh(config)
 
     elif cmd == '--cores':
         project = sys.argv[2]
-        config = get_config(project)
+        config = get_config(project, project_path=sys.argv[3])
         cores_filename = os.path.join('tmp', project + '.cores')
         with open(cores_filename, 'w') as f:
             f.write(' '.join(config['cores']))
 
     elif cmd == '--board':
         project = sys.argv[2]
-        config = get_config(project)
+        config = get_config(project, project_path=sys.argv[3])
         board_filename = os.path.join('tmp', project + '.board')
         with open(board_filename, 'w') as f:
             f.write(config['board'])
 
     elif cmd == '--drivers':
         project = sys.argv[2]
-        drivers_filename = os.path.join('projects', project, 'drivers.yml')
-        assert(os.path.isfile(drivers_filename))
+        project_path = sys.argv[3]
+        drivers_filename = os.path.join(project_path, project, 'drivers.yml')
 
-        with open(drivers_filename) as drivers_file:
-            drivers = yaml.load(drivers_file)
+        if os.path.isfile(drivers_filename):
+            with open(drivers_filename) as drivers_file:
+                drivers = yaml.load(drivers_file)
+        else:
+            drivers = {}
+
         for include_filename in drivers.get('includes', []):
             with open(include_filename) as include_file:
                 for key, value in yaml.load(include_file).iteritems():
@@ -274,14 +273,14 @@ if __name__ == "__main__":
 
     elif cmd == '--xdc':
         project = sys.argv[2]
-        config = get_config(project)
+        config = get_config(project, project_path=sys.argv[3])
         xdc_filename = os.path.join('tmp', project + '.xdc')
         with open(xdc_filename, 'w') as f:
             f.write(' '.join(config['xdc']))
 
     elif cmd == '--middleware':
         project = sys.argv[2]
-        config = get_config(project)
+        config = get_config(project, project_path=sys.argv[3])
         dest =  'tmp/' + project + '.middleware/drivers'
         if not os.path.exists(dest):
             os.makedirs(dest)

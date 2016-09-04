@@ -7,7 +7,7 @@ make_wrapper -files [get_files $bd_path/system.bd] -top
 add_files -norecurse $bd_path/hdl/system_wrapper.v
 
 # Add verilog source files
-set files [glob -nocomplain projects/$project_name/*.v projects/$project_name/*.sv]
+set files [glob -nocomplain $project_path/$project_name/*.v $project_path/$project_name/*.sv]
 if {[llength $files] > 0} {
   add_files -norecurse $files
 }
@@ -15,6 +15,7 @@ if {[llength $files] > 0} {
 # Add constraint files
 set fp [open tmp/$project_name.xdc r]
 set files [split [read $fp]]
+
 close $fp
 if {[llength $files] > 0} {
   add_files -norecurse -fileset constrs_1 $files

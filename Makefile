@@ -2,6 +2,7 @@
 # Build and run the instrument: $ make NAME=spectrum HOST=192.168.1.12 run
 ###############################################################################
 
+PROJECT_PATH = projects
 NAME = oscillo
 HOST = 192.168.1.100
 
@@ -10,17 +11,17 @@ HOST = 192.168.1.100
 # MAKE_PY script parses the properties defined MAIN_YML
 ###############################################################################
 
-MAIN_YML = projects/$(NAME)/main.yml
+MAIN_YML = $(PROJECT_PATH)/$(NAME)/main.yml
 MAKE_PY = scripts/make.py
 
 # Store all build artifacts in TMP
 TMP = tmp
 
 # properties defined MAIN_YML :
-BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) && cat $(TMP)/$(NAME).board)
-CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) && cat $(TMP)/$(NAME).cores)
-DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) && cat $(TMP)/$(NAME).drivers)
-XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) && cat $(TMP)/$(NAME).xdc)
+BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).board)
+CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).cores)
+DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).drivers)
+XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).xdc)
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
@@ -85,7 +86,7 @@ SHA = $(shell cat $(SHA_FILE))
 TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
 TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
-SERVER_CONFIG = projects/$(NAME)/drivers.yml
+SERVER_CONFIG = $(PROJECT_PATH)/$(NAME)/drivers.yml
 TCP_SERVER_SHA = master
 TCP_SERVER_VENV = $(TMP)/$(NAME).koheron_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
@@ -132,15 +133,18 @@ help:
 	@echo - run: Run the instrument
 	@echo - test: Test the instrument
 
+debug:
+	@echo CORES = $(CORES)
+
 $(TMP):
 	mkdir -p $(TMP)
 
 # Run Vivado interactively and build block design
-bd: $(CONFIG_TCL) $(XDC) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+bd: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	vivado -nolog -nojournal -source scripts/block_design.tcl -tclargs $(NAME) $(PART) $(BOARD)
 
-test_module: $(CONFIG_TCL) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
-	vivado -source scripts/test_module.tcl -tclargs $(NAME) $(PART)
+test_module: $(CONFIG_TCL) fpga/modules/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+	vivado -source scripts/test_module.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART)
 
 test_core:
 	vivado -source scripts/test_core.tcl -tclargs $(CORE) $(PART)
@@ -181,13 +185,13 @@ $(SHA_FILE): $(VERSION_FILE)
 ###############################################################################
 
 $(CONFIG_TCL): $(MAKE_PY) $(MAIN_YML) $(SHA_FILE) $(TEMPLATE_DIR)/config.tcl
-	python $(MAKE_PY) --config_tcl $(NAME)
+	python $(MAKE_PY) --config_tcl $(NAME) $(PROJECT_PATH)
 
 $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
 
-$(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) projects/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
 	$(VIVADO) -source scripts/project.tcl -tclargs $(NAME) $(PART) $(BOARD)
 	@echo [$@] OK
@@ -318,7 +322,7 @@ $(TCP_SERVER_MIDDLEWARE)/%: %
 $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
                $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) \
                drivers/lib projects/default/server.yml
-	python $(MAKE_PY) --middleware $(NAME)
+	python $(MAKE_PY) --middleware $(NAME) $(PROJECT_PATH)
 	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. \
 	  PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all
@@ -329,7 +333,7 @@ $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
 ###############################################################################
 
 $(START_SH): $(MAKE_PY) $(MAIN_YML) $(TEMPLATE_DIR)/start.sh
-	python $(MAKE_PY) --start_sh $(NAME)
+	python $(MAKE_PY) --start_sh $(NAME) $(PROJECT_PATH)
 
 $(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH)
 	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TCP_SERVER) $(START_SH)
