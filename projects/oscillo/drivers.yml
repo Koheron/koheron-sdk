@@ -8,8 +8,8 @@ drivers:
   - drivers/xadc/xadc.cpp
   - drivers/laser/laser.hpp
   - drivers/laser/laser.cpp
-  - drivers/oscillo/oscillo.hpp
-  - drivers/oscillo/oscillo.cpp
+  - projects/oscillo/drivers/oscillo.hpp
+  - projects/oscillo/drivers/oscillo.cpp
   - drivers/speed_test/speed_test.hpp
   - drivers/speed_test/speed_test.cpp
   - drivers/eeprom/eeprom.hpp

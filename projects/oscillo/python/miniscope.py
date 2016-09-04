@@ -3,14 +3,13 @@
 
 # Function generator with live acquisition plot for RedPitaya
 
-import context
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
 
 from koheron import load_instrument
-from drivers.oscillo import Oscillo
+from oscillo import Oscillo
 
 host = os.getenv('HOST','192.168.1.100')
 client = load_instrument(host, instrument='oscillo')
