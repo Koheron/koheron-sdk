@@ -15,7 +15,7 @@ for {set i 0} {$i < $config::n_pwm} {incr i} {
 connect_pins pwm/rst $rst_adc_clk_name/peripheral_reset
 
 # Add address module
-source projects/address_module/address.tcl
+source fpga/modules/address/address.tcl
 set address_name address
 
 address::create $address_name $config::bram_addr_width $config::n_dac

@@ -1,4 +1,4 @@
-source projects/averager_module/averager.tcl
+source fpga/modules/averager/averager.tcl
 source $lib/bram_recorder.tcl
 
 ###########################################################

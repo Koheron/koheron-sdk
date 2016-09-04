@@ -2,7 +2,7 @@
 set_property -dict [list CONFIG.S00_HAS_REGSLICE {1}] [get_bd_cells axi_mem_intercon_1]
 
 # Add spectrum IP
-source projects/spectrum_module/spectrum.tcl
+source fpga/modules/spectrum/spectrum.tcl
 
 set spectrum_name spectrum_0
 set n_pts_fft [expr 2**$config::bram_addr_width]
@@ -53,7 +53,7 @@ connect_cell $subtract_name {
 }
 
 # Add averaging module
-source projects/averager_module/averager.tcl
+source fpga/modules/averager/averager.tcl
 set avg_name avg0
 averager::create $avg_name $config::bram_addr_width
 
@@ -79,7 +79,7 @@ connect_cell $subtract_name {
 
 # Add peak detector
 
-source projects/peak_detector_module/peak_detector.tcl
+source fpga/modules/peak_detector/peak_detector.tcl
 set peak_detector_name peak
 peak_detector::create $peak_detector_name $config::bram_addr_width
 
