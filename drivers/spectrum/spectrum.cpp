@@ -70,12 +70,8 @@ std::vector<float>& Spectrum::get_spectrum_decim(uint32_t decim_factor, uint32_t
     return spectrum_decim;
 }
 
-void Spectrum::set_averaging(bool avg_on)
-{
-    if (avg_on)
-        cfg.set_bit<reg::avg, 0>();
-    else
-        cfg.clear_bit<reg::avg, 0>();
+void Spectrum::set_averaging(bool avg_on) {
+    cfg.write_bit<reg::avg, 0>(avg_on);
 }
 
 /////////////////////
