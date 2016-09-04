@@ -10,7 +10,7 @@ Koheron SDK is a build system for quick prototyping of custom instruments on Zyn
 
 ### 1. Requirements for Ubuntu 16.04
 
-Download `Vivado HLx 2016.2: All OS Installer Single-File Download` on the [Xilinx website](http://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2016-2.html).
+Download [`Vivado HLx 2016.2: All OS Installer Single-File Download`](http://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2016-2.html).
 
 ```bash
 $ sudo apt-get install curl
@@ -19,7 +19,7 @@ $ sudo curl https://raw.githubusercontent.com/Koheron/koheron-sdk/master/scripts
 $ sudo ln -s make /usr/bin/gmake # tells Vivado to use make instead of gmake
 ```
 
-Install git and clone Koheron SDK repository:
+Install requirements:
 
 ```bash
 $sudo apt-get install git curl zip python-virtualenv python-pip \
@@ -56,6 +56,6 @@ $ curl http://$(HOST)/api/board/ping
 
 Build zip, boot-loader and Linux kernel, then Ubuntu root file system:
 ```
-$ make NAME=<instrument> linux
-$ sudo bash scripts/image.sh <instrument>
+$ make NAME=blink linux
+$ sudo bash scripts/image.sh blink
 ```
