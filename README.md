@@ -2,13 +2,13 @@
 
 [![Circle CI](https://circleci.com/gh/Koheron/koheron-sdk.svg?style=shield)](https://circleci.com/gh/Koheron/koheron-sdk)
 
-### What is Koheron SDK ?
+## What is Koheron SDK ?
 
 Koheron SDK is a build system for quick prototyping of custom instruments on Zynq SoCs.
 
-### Quickstart with the [Red Pitaya](http://redpitaya.com)
+## Quickstart with the [Red Pitaya](http://redpitaya.com)
 
-#### 1. Requirements for Ubuntu 16.04
+### 1. Requirements for Ubuntu 16.04
 
 Download `Vivado HLx 2016.2: All OS Installer Single-File Download` on the [Xilinx website](http://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2016-2.html).
 
@@ -31,9 +31,9 @@ $ cd koheron-sdk
 $ sudo pip install -r requirements.txt
 ```
 
-#### 2. Install Koheron Linux for Red Pitaya ([Download SD card image](https://github.com/Koheron/koheron-sdk/releases))
+### 2. Install Koheron Linux for Red Pitaya ([Download SD card image](https://github.com/Koheron/koheron-sdk/releases))
 
-#### 3. Build and run the minimal instrument
+### 3. Build and run the minimal instrument
 
 ```bash
 $ source scripts/settings.sh
@@ -41,18 +41,18 @@ $ export HOST=192.168.1.100 # your Red Pitaya IP address
 $ make NAME=blink run
 ```
 
-#### 4. Ping the board
+### 4. Ping the board
 ```bash
 $ curl http://$(HOST)/api/board/ping
 ```
 
-### Examples of instruments
+## Examples of instruments
 
 * [`blink`](https://github.com/Koheron/koheron-sdk/tree/master/projects/blink) : minimal instrument with access to LEDs and Red Pitaya ADCs and DACs.
 * [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/projects/oscillo) : signal acquisition / generation with coherent averaging mode.
 * [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/projects/spectrum) : spectrum analyzer with peak-detection and averaging.
 
-### How to build the SD card image ?
+## How to build the SD card image ?
 
 Build zip, boot-loader and Linux kernel, then Ubuntu root file system:
 ```
