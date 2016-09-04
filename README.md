@@ -1,48 +1,61 @@
 # koheron-sdk
 
 [![Circle CI](https://circleci.com/gh/Koheron/koheron-sdk.svg?style=shield)](https://circleci.com/gh/Koheron/koheron-sdk)
-[![Code Climate](https://codeclimate.com/github/Koheron/koheron-sdk/badges/gpa.svg)](https://codeclimate.com/github/Koheron/koheron-sdk)
 
-#### `Software Development Kit for Zynq-based instruments`
+## What is Koheron SDK ?
 
-* Ubuntu Core 16.04 LTS
-* Vivado 2016.2 toolchain (Linux Kernel version 4.4)
-* User-space control of hardware with [TCP / Websocket server](https://github.com/Koheron/koheron-server)
-* HTTP, Python and Javascript APIs
+Koheron SDK is a build system for quick prototyping of custom instruments on Zynq SoCs.
 
-#### Supported Base Boards
+## Quickstart with the [Red Pitaya](http://redpitaya.com)
 
-The [Red Pitaya](http://redpitaya.com) is used as a reference board for this project. Please contact us at `hello@koheron.com` if you need another board to be supported.
+### 1. Requirements for Ubuntu 16.04
 
-#### Available instruments
+Download [`Vivado HLx 2016.2: All OS Installer Single-File Download`](http://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2016-2.html).
 
-* [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/projects/oscillo) : simple signal acquisition / generation with coherent averaging mode.
+```bash
+$ sudo apt-get install curl
+$ cd ~/Downloads
+$ sudo curl https://raw.githubusercontent.com/Koheron/koheron-sdk/master/scripts/install_vivado.sh | /bin/bash /dev/stdin
+$ sudo ln -s make /usr/bin/gmake # tells Vivado to use make instead of gmake
+```
+
+Install requirements:
+
+```bash
+$sudo apt-get install git curl zip python-virtualenv python-pip \
+    g++-arm-linux-gnueabihf lib32stdc++6 lib32z1 u-boot-tools\
+    libssl-dev bc device-tree-compiler qemu-user-static
+$ sudo apt-get install git
+$ git clone https://github.com/Koheron/koheron-sdk
+$ cd koheron-sdk
+$ sudo pip install -r requirements.txt
+```
+
+### 2. Install Koheron Linux for Red Pitaya ([Download SD card image](https://github.com/Koheron/koheron-sdk/releases))
+
+### 3. Build and run the minimal instrument
+
+```bash
+$ source scripts/settings.sh
+$ export HOST=192.168.1.100 # your Red Pitaya IP address
+$ make NAME=blink run
+```
+
+### 4. Ping the board
+```bash
+$ curl http://$(HOST)/api/board/ping
+```
+
+## Examples of instruments
+
+* [`blink`](https://github.com/Koheron/koheron-sdk/tree/master/projects/blink) : minimal instrument with access to LEDs and Red Pitaya ADCs and DACs.
+* [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/projects/oscillo) : signal acquisition / generation with coherent averaging mode.
 * [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/projects/spectrum) : spectrum analyzer with peak-detection and averaging.
 
-## Quick start
-
-You can find the latest release of the SD card image for the Red Pitaya `oscillo-<version>.img` on this [link](https://github.com/Koheron/koheron-sdk/releases). The [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/projects/oscillo) and [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/projects/spectrum) instruments are preinstalled.
-
-1. [Connect the board](http://www.koheron.com/products/laser-development-kit/getting-started/) to your computer.
-2. Navigate to your board ip address (e.g. `192.168.1.18`) with your browser.
-
-![Web interface](https://cloud.githubusercontent.com/assets/1735094/16599901/d9a205ea-4304-11e6-9303-4f02c1aedb4d.png)
-
-## Build your own instrument
-
-The build is tested on Ubuntu 16.04.
-[Install Vivado 2016.2](https://github.com/Koheron/koheron-sdk/issues/101) and source it (`source scripts/settings.sh`):
-
-An instrument consists of a file `<instrument>-<version>.zip` that contains the bitstream and its corresponding server.
-Run the instrument on your Zynq board and test it:
-```
-$ make NAME=<instrument> HOST=192.168.1.100 run test
-```
-
-## Build SD card image
+## How to build the SD card image ?
 
 Build zip, boot-loader and Linux kernel, then Ubuntu root file system:
 ```
-$ make NAME=<instrument>
-$ sudo bash scripts/image.sh <instrument>
+$ make NAME=blink linux
+$ sudo bash scripts/image.sh blink
 ```
