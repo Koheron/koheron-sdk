@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Function generator with live acquisition plot
+# Function generator with live acquisition plot for RedPitaya
 
 import context
 import os
@@ -24,7 +24,7 @@ n_bits = 14         # ADC bits
 # Waveform generation
 # -----------------------------------------------------------------------------------------------------
 
-waveform = 'triangle'
+waveform = 'sine'
 freq = 1E5 # Hz
 amp = 0.2  # V
 dac_channel = 0
@@ -65,6 +65,5 @@ while True:
         ax.relim()
         ax.autoscale_view(True, True, True)
         fig.canvas.draw()
-
     except KeyboardInterrupt:
         break
