@@ -17,24 +17,26 @@ client = load_instrument(host, instrument='oscillo')
 driver = Oscillo(client)
 
 n = driver.wfm_size # Number of samples
-fs = 125E6          # Sampling rate
-n_bits = 14
+fs = 125E6          # Sampling rate (Hz)
+n_bits = 14         # ADC bits
 
 # -----------------------------------------------------------------------------------------------------
 # Waveform generation
 # -----------------------------------------------------------------------------------------------------
 
-freq = 10
-mod_amp = 0.2
-waveform = 'sine'
+waveform = 'triangle'
+freq = 1E5 # Hz
+amp = 0.2  # V
 dac_channel = 0
 
+phi = 2 * np.pi * np.floor(n * freq / fs) / n * np.arange(n)
+
 if waveform == 'triangle':
-    driver.dac[dac_channel,:] = mod_amp * signal.sawtooth(2 * np.pi * freq / n * np.arange(n), width=0.5)
+    driver.dac[dac_channel,:] = amp * signal.sawtooth(phi, width=0.5)
 elif waveform == 'sine':
-    driver.dac[dac_channel,:] = mod_amp * np.sin(2 * np.pi * freq / n * np.arange(n))
+    driver.dac[dac_channel,:] = amp * np.sin(phi)
 elif waveform == 'square':
-    driver.dac[dac_channel,:] = mod_amp * signal.square(2 * np.pi * freq / n * np.arange(n))
+    driver.dac[dac_channel,:] = amp * signal.square(phi)
 
 driver.set_dac()
 
