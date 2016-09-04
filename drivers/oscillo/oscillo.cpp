@@ -81,15 +81,9 @@ std::vector<float>& Oscillo::read_all_channels_decim(uint32_t decim_factor,
     return data_decim;
 }
 
-void Oscillo::set_averaging(bool avg_on)
-{
-    if (avg_on) {
-        cfg.set_bit<reg::avg0, 0>();
-        cfg.set_bit<reg::avg1, 0>();
-    } else {
-        cfg.clear_bit<reg::avg0, 0>();
-        cfg.clear_bit<reg::avg1, 0>();
-    }
+void Oscillo::set_averaging(bool avg_on) {
+    cfg.write_bit<reg::avg0, 0>();
+    cfg.write_bit<reg::avg1, 0>();
 }
 
 void Oscillo::_wait_for_acquisition()
