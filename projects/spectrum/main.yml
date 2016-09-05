@@ -83,3 +83,5 @@ parameters:
 
 xdc:
   - projects/base/expansion_connector.xdc
+
+live_zip: http://zynq-sdk.s3-website-eu-west-1.amazonaws.com/live-spectrum.zip

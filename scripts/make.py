@@ -10,6 +10,9 @@ import time
 import socket
 import getpass
 import json
+import requests
+import zipfile
+import StringIO
 
 def get_list(project, prop, project_path='projects', prop_list=None):
     """ Ex: Get the list of cores needed by the 'oscillo' instrument.
@@ -277,6 +280,16 @@ if __name__ == "__main__":
         xdc_filename = os.path.join('tmp', project + '.xdc')
         with open(xdc_filename, 'w') as f:
             f.write(' '.join(config['xdc']))
+
+    elif cmd == '--live_zip':
+        project = sys.argv[2]
+        config = get_config(project, project_path=sys.argv[3])
+        zip_url = config['live_zip']
+        print(zip_url)
+        r = requests.get(zip_url, stream=True)
+        z = zipfile.ZipFile(StringIO.StringIO(r.content))
+        z.extractall('tmp/%s.live' % project)
+
 
     elif cmd == '--middleware':
         project = sys.argv[2]
