@@ -15,7 +15,7 @@ Download [`Vivado HLx 2016.2: All OS Installer Single-File Download`](http://www
 ```bash
 $ sudo apt-get install curl
 $ cd ~/Downloads
-$ sudo curl https://raw.githubusercontent.com/Koheron/koheron-sdk/master/fpga/scripts/install_vivado.sh | /bin/bash /dev/stdin
+$ curl https://raw.githubusercontent.com/Koheron/koheron-sdk/master/fpga/scripts/install_vivado.sh | sudo /bin/bash /dev/stdin
 $ sudo ln -s make /usr/bin/gmake # tells Vivado to use make instead of gmake
 ```
 
