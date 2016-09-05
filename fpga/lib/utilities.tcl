@@ -230,6 +230,18 @@ proc cell {cell_vlnv cell_name {cell_props {}} {cell_ports {}}} {
 }
 
 ########################################################
+# Addresses
+########################################################
+
+proc get_address_range {name} {
+  return [set config::axi_${name}_range]
+}
+
+proc get_address_offset {name} {
+  return [set config::axi_${name}_offset]
+}
+
+########################################################
 # Add AXI Master Interface to memory interconnect
 ########################################################
 
