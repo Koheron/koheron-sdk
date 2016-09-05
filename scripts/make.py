@@ -36,7 +36,7 @@ def get_prop(project, prop, project_path='projects'):
         if 'parent' in config:
             config[prop] = get_prop(config['parent'], prop, project_path)
         else:
-            print('Property %s not found', prop)
+            #print('Property %s not found', prop)
             return None
     return config[prop]
 
