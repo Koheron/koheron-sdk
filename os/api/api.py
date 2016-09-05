@@ -104,7 +104,11 @@ def run_instrument(name, sha):
     zip_filename = '{}-{}.zip'.format(name, sha)
     filename = os.path.join(api_app.config['INSTRUMENTS_DIR'], secure_filename(zip_filename))
     status = api_app.install_instrument(filename)
-    return make_response('Instrument ' + zip_filename + ' installed with status: ' + str(status))
+    if status == 0:
+        response = 'Instrument %s successfully installed' % zip_filename
+    else:
+        response = 'Failed to install instrument %s' % zip_filename
+    return make_response(response)
 
 @api_app.route('/api/instruments/delete/<name>/<sha>', methods=['GET'])
 def delete_instrument(name, sha):
