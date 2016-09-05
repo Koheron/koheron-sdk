@@ -27,7 +27,7 @@ server {
     }
 
     location /live {
-        alias                 /var/www/ui/live;
+        alias                 /tmp/instrument;
     }
 
     location /koheron-server {

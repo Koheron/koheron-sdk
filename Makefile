@@ -100,6 +100,10 @@ STATIC_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
 STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
 STATIC_ZIP = $(TMP)/static.zip
 
+LIVE_URL = $(S3_URL)/live-$(NAME).zip
+LIVE_ZIP = $(TMP)/live-$(NAME).zip
+LIVE_DIR = $(TMP)/$(NAME).live
+
 HTTP_API_SRC = $(wildcard os/api/*)
 HTTP_API_DIR = $(TMP)/app
 HTTP_API_ZIP = app-$(VERSION).zip
@@ -355,8 +359,14 @@ $(START_SH): $(MAKE_PY) $(MAIN_YML) $(TEMPLATE_DIR)/start.sh
 	python $(MAKE_PY) --start_sh $(NAME) $(PROJECT_PATH)
 	@echo [$@] OK
 
-$(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH)
-	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TCP_SERVER) $(START_SH)
+$(LIVE_ZIP): $(TMP)
+	curl -L $(LIVE_URL) -o $(LIVE_ZIP)
+
+$(LIVE_DIR): $(LIVE_ZIP)
+	unzip $(LIVE_ZIP) -d $(LIVE_DIR)
+
+$(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
+	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TMP)/$(NAME).live $(TCP_SERVER) $(START_SH) $(LIVE_DIR)
 	@echo [$@] OK
 
 ###############################################################################
