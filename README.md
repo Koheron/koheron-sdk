@@ -15,15 +15,15 @@ Download [`Vivado HLx 2016.2: All OS Installer Single-File Download`](http://www
 ```bash
 $ sudo apt-get install curl
 $ cd ~/Downloads
-$ sudo curl https://raw.githubusercontent.com/Koheron/koheron-sdk/master/scripts/install_vivado.sh | /bin/bash /dev/stdin
+$ sudo curl https://raw.githubusercontent.com/Koheron/koheron-sdk/master/scripts/fpga/install_vivado.sh | /bin/bash /dev/stdin
 $ sudo ln -s make /usr/bin/gmake # tells Vivado to use make instead of gmake
 ```
 
 Install requirements:
 
 ```bash
-$sudo apt-get install git curl zip python-virtualenv python-pip \
-    g++-arm-linux-gnueabihf lib32stdc++6 lib32z1 u-boot-tools\
+$ sudo apt-get install git curl zip python-virtualenv python-pip \
+    g++-arm-linux-gnueabihf lib32stdc++6 lib32z1 u-boot-tools \
     libssl-dev bc device-tree-compiler qemu-user-static
 $ sudo apt-get install git
 $ git clone https://github.com/Koheron/koheron-sdk
@@ -36,12 +36,13 @@ $ sudo pip install -r requirements.txt
 ### 3. Build and run the minimal instrument
 
 ```bash
-$ source scripts/settings.sh
-$ export HOST=192.168.1.100 # your Red Pitaya IP address
-$ make NAME=blink run
+$ source settings.sh
+$ make NAME=blink HOST=192.168.1.100 run
 ```
+where `HOST` is your Red Pitaya IP address.
 
 ### 4. Ping the board and watch the LEDs blink
+
 ```bash
 $ curl http://$(HOST)/api/board/ping
 ```
@@ -62,7 +63,7 @@ $ make NAME=oscillo bd
 Build the SD card image:
 ```
 $ make NAME=blink linux
-$ sudo bash scripts/image.sh blink
+$ sudo bash os/scripts/image.sh blink
 ```
 
 Build the instrument (without running it):

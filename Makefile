@@ -3,7 +3,7 @@
 ###############################################################################
 
 PROJECT_PATH = projects
-NAME = oscillo
+NAME = blink
 HOST = 192.168.1.100
 
 ###############################################################################
@@ -72,7 +72,6 @@ RTL_TAR = $(TMP)/rtl8192cu.tgz
 RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
 
 # Project configuration
-
 CONFIG_TCL = $(TMP)/$(NAME).config.tcl
 TEMPLATE_DIR = scripts/templates
 
@@ -103,8 +102,6 @@ STATIC_ZIP = $(TMP)/static.zip
 
 HTTP_API_SRC = $(wildcard os/api/*)
 HTTP_API_DIR = $(TMP)/app
-HTTP_API_DRIVERS = common eeprom laser
-HTTP_API_DRIVERS_DIR = $(HTTP_API_DIR)/api_app/drivers
 HTTP_API_ZIP = app-$(VERSION).zip
 
 METADATA = $(TMP)/metadata.json
@@ -141,13 +138,13 @@ $(TMP):
 
 # Run Vivado interactively and build block design
 bd: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
-	vivado -nolog -nojournal -source scripts/block_design.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART) $(BOARD)
+	vivado -nolog -nojournal -source fpga/scripts/block_design.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART) $(BOARD)
 
 test_module: $(CONFIG_TCL) fpga/modules/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
-	vivado -source scripts/test_module.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART)
+	vivado -source fpga/scripts/test_module.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART)
 
 test_core:
-	vivado -source scripts/test_core.tcl -tclargs $(CORE) $(PART)
+	vivado -source fpga/scripts/test_core.tcl -tclargs $(CORE) $(PART)
 
 test_%: tests/tests_%.py
 	py.test -v $<
@@ -189,16 +186,16 @@ $(CONFIG_TCL): $(MAKE_PY) $(MAIN_YML) $(SHA_FILE) $(TEMPLATE_DIR)/config.tcl
 
 $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
 	mkdir -p $(@D)
-	$(VIVADO) -source scripts/core.tcl -tclargs $* $(PART)
+	$(VIVADO) -source fpga/scripts/core.tcl -tclargs $* $(PART)
 
 $(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
-	$(VIVADO) -source scripts/project.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART) $(BOARD)
+	$(VIVADO) -source fpga/scripts/project.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART) $(BOARD)
 	@echo [$@] OK
 
 $(TMP)/$(NAME).bit: $(TMP)/$(NAME).xpr
 	mkdir -p $(@D)
-	$(VIVADO) -source scripts/bitstream.tcl -tclargs $(NAME)
+	$(VIVADO) -source fpga/scripts/bitstream.tcl -tclargs $(NAME)
 	@echo [$@] OK
 
 ###############################################################################
@@ -207,7 +204,7 @@ $(TMP)/$(NAME).bit: $(TMP)/$(NAME).xpr
 
 $(TMP)/$(NAME).fsbl/executable.elf: $(TMP)/$(NAME).hwdef
 	mkdir -p $(@D)
-	$(HSI) -source scripts/fsbl.tcl -tclargs $(NAME) $(PROC)
+	$(HSI) -source fpga/scripts/fsbl.tcl -tclargs $(NAME) $(PROC)
 
 ###############################################################################
 # U-Boot
@@ -250,7 +247,7 @@ boot.bin: $(TMP)/$(NAME).fsbl/executable.elf $(TMP)/$(NAME).bit $(TMP)/u-boot.el
 
 $(TMP)/$(NAME).hwdef: $(TMP)/$(NAME).xpr
 	mkdir -p $(@D)
-	$(VIVADO) -source scripts/hwdef.tcl -tclargs $(NAME)
+	$(VIVADO) -source fpga/scripts/hwdef.tcl -tclargs $(NAME)
 
 $(DTREE_TAR):
 	mkdir -p $(@D)
@@ -262,7 +259,7 @@ $(DTREE_DIR): $(DTREE_TAR)
 
 $(TMP)/$(NAME).tree/system.dts: $(TMP)/$(NAME).hwdef $(DTREE_DIR)
 	mkdir -p $(@D)
-	$(HSI) -source scripts/devicetree.tcl -tclargs $(NAME) $(PROC) $(DTREE_DIR) $(VIVADO_VERSION)
+	$(HSI) -source fpga/scripts/devicetree.tcl -tclargs $(NAME) $(PROC) $(DTREE_DIR) $(VIVADO_VERSION)
 	patch $@ $(PATCHES)/devicetree.patch
 
 ###############################################################################
@@ -345,12 +342,7 @@ $(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_S
 $(METADATA): $(MAKE_PY) $(VERSION_FILE)
 	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
 
-$(HTTP_API_DRIVERS_DIR)/%: drivers/%/__init__.py
-	mkdir -p $@
-	cp $< $@/__init__.py
-
-$(HTTP_API_DIR): $(HTTP_API_SRC) $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DRIVERS))
-	touch $(HTTP_API_DRIVERS_DIR)/__init__.py
+$(HTTP_API_DIR): $(HTTP_API_SRC) $(METADATA)
 	mkdir -p $(HTTP_API_DIR)/api_app
 	cp -R os/api/. $(HTTP_API_DIR)/api_app
 	cp $(TMP)/metadata.json $(HTTP_API_DIR)
@@ -388,6 +380,9 @@ clean_server:
 
 clean_cores:
 	$(RM) $(TMP)/cores
+
+clean_core:
+	$(RM) $(TMP)/cores/$(CORE)*
 
 clean_xpr:
 	$(RM) $(TMP)/$(NAME).xpr

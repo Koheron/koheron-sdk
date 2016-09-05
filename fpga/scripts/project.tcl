@@ -1,5 +1,5 @@
 
-source scripts/block_design.tcl
+source fpga/scripts/block_design.tcl
 
 generate_target all [get_files $bd_path/system.bd]
 make_wrapper -files [get_files $bd_path/system.bd] -top

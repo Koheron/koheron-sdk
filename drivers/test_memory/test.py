@@ -1,4 +1,3 @@
-import context
 import os
 
 from koheron import KoheronClient, load_instrument
