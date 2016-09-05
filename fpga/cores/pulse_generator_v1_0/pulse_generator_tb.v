@@ -9,8 +9,9 @@ module pulse_generator_tb();
   reg [PULSE_WIDTH_WIDTH-1:0] pulse_width;
   reg [PULSE_PERIOD_WIDTH-1:0] pulse_period;
   reg rst;
-  wire dout;
+  wire valid;
   wire [PULSE_PERIOD_WIDTH-1:0] cnt;
+  wire start;
 
   pulse_generator #(
     .PULSE_WIDTH_WIDTH(PULSE_WIDTH_WIDTH),
@@ -21,8 +22,9 @@ module pulse_generator_tb();
     .pulse_width(pulse_width),
     .pulse_period(pulse_period),
     .rst(rst),
-    .dout(dout),
-    .cnt(cnt)
+    .valid(valid),
+    .cnt(cnt),
+    .start(start)
   );
 
   parameter CLK_PERIOD = 8;
@@ -36,7 +38,7 @@ module pulse_generator_tb();
     rst = 0;
     #(166*CLK_PERIOD)
     rst = 1;
-    #(CLK_PERIOD)
+    #(10*CLK_PERIOD)
     rst = 0;
     #(1000*CLK_PERIOD)
     pulse_period = 50;
