@@ -36,12 +36,13 @@ $ sudo pip install -r requirements.txt
 ### 3. Build and run the minimal instrument
 
 ```bash
-$ source scripts/settings.sh
-$ export HOST=192.168.1.100 # your Red Pitaya IP address
-$ make NAME=blink run
+$ source settings.sh
+$ make NAME=blink HOST=192.168.1.100 run
 ```
+where `HOST` is your Red Pitaya IP address.
 
 ### 4. Ping the board and watch the LEDs blink
+
 ```bash
 $ curl http://$(HOST)/api/board/ping
 ```
