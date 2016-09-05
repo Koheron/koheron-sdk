@@ -28,8 +28,8 @@ memory:
     range: 8M
 
 modules:
-  - address_module
-  - averager_module
+  - address
+  - averager
 
 config_registers:
   - spi_in

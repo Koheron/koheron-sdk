@@ -8,10 +8,10 @@ drivers:
   - drivers/xadc/xadc.cpp
   - drivers/laser/laser.hpp
   - drivers/laser/laser.cpp
-  - drivers/oscillo/oscillo.hpp
-  - drivers/oscillo/oscillo.cpp
-  - drivers/speed_test/speed_test.hpp
-  - drivers/speed_test/speed_test.cpp
+  - projects/oscillo/drivers/oscillo.hpp
+  - projects/oscillo/drivers/oscillo.cpp
+  - projects/oscillo/drivers/speed_test.hpp
+  - projects/oscillo/drivers/speed_test.cpp
   - drivers/eeprom/eeprom.hpp
   - drivers/spi/spi.hpp
   - drivers/test_memory/test_memory.hpp

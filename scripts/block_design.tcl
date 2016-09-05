@@ -1,9 +1,11 @@
 
 set project_name [lindex $argv 0]
 
-set part_name [lindex $argv 1]
+set project_path [lindex $argv 1]
 
-set board_name [lindex $argv 2]
+set part_name [lindex $argv 2]
+
+set board_name [lindex $argv 3]
 
 set cfg boards/$board_name/config
 set lib fpga/tcl
@@ -22,4 +24,4 @@ create_bd_design system
 source $cfg/ports.tcl
 source $lib/utilities.tcl
 source tmp/$project_name.config.tcl
-source projects/$project_name/block_design.tcl
+source $project_path/$project_name/block_design.tcl

@@ -1,7 +1,9 @@
 
 set project_name [lindex $argv 0]
 
-set part_name [lindex $argv 1]
+set project_path [lindex $argv 1]
+
+set part_name [lindex $argv 2]
 
 file delete -force tmp/$project_name.cache tmp/$project_name.hw tmp/$project_name.srcs tmp/$project_name.runs tmp/$project_name.xpr tmp/$project_name.sim
 
@@ -17,7 +19,7 @@ create_bd_design system
 set lib fpga/tcl
 source $lib/utilities.tcl
 
-source projects/$project_name/block_design.tcl
+source $project_path/$project_name/block_design.tcl
 
 rename cell {}
 
@@ -26,7 +28,7 @@ make_wrapper -files [get_files $bd_path/system.bd] -top
 
 add_files -norecurse $bd_path/hdl/system_wrapper.v
 
-add_files -norecurse projects/$project_name/test_bench.v
+add_files -norecurse $project_path/$project_name/test_bench.v
 
 set_property -name {xsim.simulate.runtime} -value {100000ns} -objects [current_fileset -simset]
 

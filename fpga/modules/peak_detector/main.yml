@@ -1,6 +1,6 @@
 ---
-project: peak_detector_module
-parent: default
+project: peak_detector
+#parent: default
 board: red-pitaya
 
 config_registers:

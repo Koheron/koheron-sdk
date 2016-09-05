@@ -8,7 +8,7 @@ drivers:
   - drivers/xadc/xadc.cpp
   - drivers/laser/laser.hpp
   - drivers/laser/laser.cpp
-  - drivers/spectrum/spectrum.hpp
-  - drivers/spectrum/spectrum.cpp
+  - projects/spectrum/drivers/spectrum.hpp
+  - projects/spectrum/drivers/spectrum.cpp
   - drivers/eeprom/eeprom.hpp
   - drivers/test_memory/test_memory.hpp

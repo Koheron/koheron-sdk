@@ -1,5 +1,5 @@
-source projects/$project_name/config.tcl
-source projects/$project_name/averager.tcl
+source tmp/$project_name.config.tcl
+source $project_path/$project_name/averager.tcl
 
 set module averager
 set fast_count_width $config::bram_addr_width
