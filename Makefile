@@ -138,7 +138,7 @@ $(TMP):
 
 # Run Vivado interactively and build block design
 bd: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
-	vivado -nolog -nojournal -source fpga/scripts/block_design.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART) $(BOARD)
+	vivado -nolog -nojournal -source fpga/scripts/block_design.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART) $(BOARD) block_design_
 
 test_module: $(CONFIG_TCL) fpga/modules/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	vivado -source fpga/scripts/test_module.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART)
@@ -173,9 +173,11 @@ run: $(ZIP)
 
 $(VERSION_FILE): | $(TMP)
 	echo $(shell (git rev-parse --short HEAD || echo "default")) > $@
+	@echo [$@] OK
 
 $(SHA_FILE): $(VERSION_FILE)
 	echo $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g')) > $@
+	@echo [$@] OK
 
 ###############################################################################
 # FPGA
@@ -183,10 +185,12 @@ $(SHA_FILE): $(VERSION_FILE)
 
 $(CONFIG_TCL): $(MAKE_PY) $(MAIN_YML) $(SHA_FILE) $(TEMPLATE_DIR)/config.tcl
 	python $(MAKE_PY) --config_tcl $(NAME) $(PROJECT_PATH)
+	@echo [$@] OK
 
 $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
 	mkdir -p $(@D)
 	$(VIVADO) -source fpga/scripts/core.tcl -tclargs $* $(PART)
+	@echo [$@] OK
 
 $(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
@@ -205,6 +209,7 @@ $(TMP)/$(NAME).bit: $(TMP)/$(NAME).xpr
 $(TMP)/$(NAME).fsbl/executable.elf: $(TMP)/$(NAME).hwdef
 	mkdir -p $(@D)
 	$(HSI) -source fpga/scripts/fsbl.tcl -tclargs $(NAME) $(PROC)
+	@echo [$@] OK
 
 ###############################################################################
 # U-Boot
@@ -213,12 +218,14 @@ $(TMP)/$(NAME).fsbl/executable.elf: $(TMP)/$(NAME).hwdef
 $(UBOOT_TAR):
 	mkdir -p $(@D)
 	curl -L $(UBOOT_URL) -o $@
+	@echo [$@] OK
 
 $(UBOOT_DIR): $(UBOOT_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
 	patch -d $(TMP) -p 0 < $(PATCHES)/u-boot-xlnx-$(UBOOT_TAG).patch
 	bash $(PATCHES)/uboot.sh $(PATCHES) $@
+	@echo [$@] OK
 
 $(TMP)/u-boot.elf: $(UBOOT_DIR)
 	mkdir -p $(@D)
@@ -227,11 +234,13 @@ $(TMP)/u-boot.elf: $(UBOOT_DIR)
 	make -C $< arch=arm CFLAGS=$(UBOOT_CFLAGS) \
 	  CROSS_COMPILE=arm-linux-gnueabihf- all
 	cp $</u-boot $@
+	@echo [$@] OK
 
 fw_printenv: $(UBOOT_DIR) $(TMP)/u-boot.elf
 	make -C $< arch=ARM CFLAGS=$(ARMHF_CFLAGS) \
 	  CROSS_COMPILE=arm-linux-gnueabihf- env
 	cp $</tools/env/fw_printenv $@
+	@echo [$@] OK
 
 ###############################################################################
 # boot.bin
@@ -240,6 +249,7 @@ fw_printenv: $(UBOOT_DIR) $(TMP)/u-boot.elf
 boot.bin: $(TMP)/$(NAME).fsbl/executable.elf $(TMP)/$(NAME).bit $(TMP)/u-boot.elf
 	echo "img:{[bootloader] $^}" > $(TMP)/boot.bif
 	bootgen -image $(TMP)/boot.bif -w -o i $@
+	@echo [$@] OK
 
 ###############################################################################
 # device tree
@@ -248,19 +258,23 @@ boot.bin: $(TMP)/$(NAME).fsbl/executable.elf $(TMP)/$(NAME).bit $(TMP)/u-boot.el
 $(TMP)/$(NAME).hwdef: $(TMP)/$(NAME).xpr
 	mkdir -p $(@D)
 	$(VIVADO) -source fpga/scripts/hwdef.tcl -tclargs $(NAME)
+	@echo [$@] OK
 
 $(DTREE_TAR):
 	mkdir -p $(@D)
 	curl -L $(DTREE_URL) -o $@
+	@echo [$@] OK
 
 $(DTREE_DIR): $(DTREE_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
+	@echo [$@] OK
 
 $(TMP)/$(NAME).tree/system.dts: $(TMP)/$(NAME).hwdef $(DTREE_DIR)
 	mkdir -p $(@D)
 	$(HSI) -source fpga/scripts/devicetree.tcl -tclargs $(NAME) $(PROC) $(DTREE_DIR) $(VIVADO_VERSION)
 	patch $@ $(PATCHES)/devicetree.patch
+	@echo [$@] OK
 
 ###############################################################################
 # Linux
@@ -269,10 +283,12 @@ $(TMP)/$(NAME).tree/system.dts: $(TMP)/$(NAME).hwdef $(DTREE_DIR)
 $(RTL_TAR):
 	mkdir -p $(@D)
 	curl -L $(RTL_URL) -o $@
+	@echo [$@] OK
 
 $(LINUX_TAR):
 	mkdir -p $(@D)
 	curl -L $(LINUX_URL) -o $@
+	@echo [$@] OK
 
 $(LINUX_DIR): $(LINUX_TAR) $(RTL_TAR)
 	mkdir -p $@
@@ -280,6 +296,7 @@ $(LINUX_DIR): $(LINUX_TAR) $(RTL_TAR)
 	tar -zxf $(RTL_TAR) --directory=$@/drivers/net/wireless/realtek
 	patch -d $(TMP) -p 0 < $(PATCHES)/linux-xlnx-$(LINUX_TAG).patch
 	bash $(PATCHES)/linux.sh $(PATCHES) $@
+	@echo [$@] OK
 
 uImage: $(LINUX_DIR)
 	make -C $< mrproper
@@ -288,10 +305,12 @@ uImage: $(LINUX_DIR)
 	  -j $(shell nproc 2> /dev/null || echo 1) \
 	  CROSS_COMPILE=arm-linux-gnueabihf- UIMAGE_LOADADDR=0x8000 uImage
 	cp $</arch/arm/boot/uImage $@
+	@echo [$@] OK
 
 devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 	$(LINUX_DIR)/scripts/dtc/dtc -I dts -O dtb -o devicetree.dtb \
 	  -i $(TMP)/$(NAME).tree $(TMP)/$(NAME).tree/system.dts
+	@echo [$@] OK
 
 ###############################################################################
 # tcp-server (compiled with project specific middleware)
@@ -301,6 +320,7 @@ $(TCP_SERVER_DIR):
 	git clone $(TCP_SERVER_URL) $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
+	@echo [$@] OK
 
 $(TCP_SERVER_DIR)/requirements.txt: $(TCP_SERVER_DIR)
 
@@ -315,6 +335,7 @@ endif
 $(TCP_SERVER_MIDDLEWARE)/%: %
 	mkdir -p -- `dirname -- $@`
 	cp $^ $@
+	@echo [$@] OK
 
 $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
                $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) \
@@ -331,9 +352,11 @@ $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
 
 $(START_SH): $(MAKE_PY) $(MAIN_YML) $(TEMPLATE_DIR)/start.sh
 	python $(MAKE_PY) --start_sh $(NAME) $(PROJECT_PATH)
+	@echo [$@] OK
 
 $(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH)
 	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TCP_SERVER) $(START_SH)
+	@echo [$@] OK
 
 ###############################################################################
 # HTTP API
@@ -341,15 +364,18 @@ $(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_S
 
 $(METADATA): $(MAKE_PY) $(VERSION_FILE)
 	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
+	@echo [$@] OK
 
 $(HTTP_API_DIR): $(HTTP_API_SRC) $(METADATA)
 	mkdir -p $(HTTP_API_DIR)/api_app
 	cp -R os/api/. $(HTTP_API_DIR)/api_app
 	cp $(TMP)/metadata.json $(HTTP_API_DIR)
 	cp os/wsgi.py $(HTTP_API_DIR)
+	@echo [$@] OK
 
 $(HTTP_API_ZIP): $(HTTP_API_DIR)
 	cd $(HTTP_API_DIR) && zip -r $(HTTP_API_ZIP) .
+	@echo [$@] OK
 
 app_sync: $(HTTP_API_ZIP)
 	curl -v -F app-$(VERSION).zip=@$(HTTP_API_DIR)/$(HTTP_API_ZIP) http://$(HOST)/api/app/update
