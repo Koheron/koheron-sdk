@@ -1,11 +1,9 @@
-import context
 import os
 import time
 import numpy as np
 
 from koheron import load_instrument
-
-from drivers.laser import Laser
+from laser import Laser
 
 host = os.getenv('HOST','192.168.1.100')
 project = os.getenv('NAME','')

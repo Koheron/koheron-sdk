@@ -1,9 +1,8 @@
-import context
 import os
 import time
 
 from koheron import load_instrument
-from drivers.eeprom import Eeprom
+from eeprom import Eeprom
 
 host = os.getenv('HOST','192.168.1.100')
 project = os.getenv('NAME','')

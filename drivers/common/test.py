@@ -1,11 +1,10 @@
-import context
 import os
 import socket
 import struct
 import numpy as np
 
 from koheron import KoheronClient, load_instrument
-from drivers.common import Common
+from common import Common
 
 host = os.getenv('HOST','192.168.1.100')
 project = os.getenv('NAME','')

@@ -15,15 +15,15 @@ Download [`Vivado HLx 2016.2: All OS Installer Single-File Download`](http://www
 ```bash
 $ sudo apt-get install curl
 $ cd ~/Downloads
-$ sudo curl https://raw.githubusercontent.com/Koheron/koheron-sdk/master/scripts/install_vivado.sh | /bin/bash /dev/stdin
+$ sudo curl https://raw.githubusercontent.com/Koheron/koheron-sdk/master/scripts/fpga/install_vivado.sh | /bin/bash /dev/stdin
 $ sudo ln -s make /usr/bin/gmake # tells Vivado to use make instead of gmake
 ```
 
 Install requirements:
 
 ```bash
-$sudo apt-get install git curl zip python-virtualenv python-pip \
-    g++-arm-linux-gnueabihf lib32stdc++6 lib32z1 u-boot-tools\
+$ sudo apt-get install git curl zip python-virtualenv python-pip \
+    g++-arm-linux-gnueabihf lib32stdc++6 lib32z1 u-boot-tools \
     libssl-dev bc device-tree-compiler qemu-user-static
 $ sudo apt-get install git
 $ git clone https://github.com/Koheron/koheron-sdk
@@ -62,7 +62,7 @@ $ make NAME=oscillo bd
 Build the SD card image:
 ```
 $ make NAME=blink linux
-$ sudo bash scripts/image.sh blink
+$ sudo bash os/scripts/image.sh blink
 ```
 
 Build the instrument (without running it):

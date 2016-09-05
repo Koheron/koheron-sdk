@@ -70,13 +70,13 @@ mkdir $root_dir/usr/local/koheron-server
 cp tmp/${name}.koheron-server/tmp/kserverd $root_dir/usr/local/koheron-server
 cp $config_dir/koheron-server.conf $root_dir/usr/local/koheron-server
 cp tmp/${name}.koheron-server/VERSION $root_dir/usr/local/koheron-server
-cp $config_dir/koheron-server.service $root_dir/etc/systemd/system/koheron-server.service
-cp $config_dir/koheron-server-init.service $root_dir/etc/systemd/system/koheron-server-init.service
+cp $config_dir/systemd/koheron-server.service $root_dir/etc/systemd/system/koheron-server.service
+cp $config_dir/systemd/koheron-server-init.service $root_dir/etc/systemd/system/koheron-server-init.service
 
 # uwsgi
 mkdir $root_dir/etc/flask-uwsgi
 cp $config_dir/flask-uwsgi.ini $root_dir/etc/flask-uwsgi/flask-uwsgi.ini
-cp $config_dir/uwsgi.service $root_dir/etc/systemd/system/uwsgi.service
+cp $config_dir/systemd/uwsgi.service $root_dir/etc/systemd/system/uwsgi.service
 
 # Add zip
 mkdir $root_dir/usr/local/instruments
@@ -331,7 +331,7 @@ EOF_CHROOT
 rm $root_dir/etc/nginx/sites-enabled/default
 cp $config_dir/nginx.conf $root_dir/etc/nginx/nginx.conf
 cp $config_dir/flask-uwsgi $root_dir/etc/nginx/sites-enabled/flask-uwsgi
-cp $config_dir/nginx.service $root_dir/etc/systemd/system/nginx.service
+cp $config_dir/systemd/nginx.service $root_dir/etc/systemd/system/nginx.service
 
 rm $root_dir/etc/resolv.conf
 rm $root_dir/usr/bin/qemu-arm-static

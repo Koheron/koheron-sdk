@@ -1,9 +1,8 @@
-import context
 import os
 import numpy as np
 
 from koheron import load_instrument
-from drivers.gpio import Gpio
+from gpio import Gpio
 
 host = os.getenv('HOST','192.168.1.100')
 project = os.getenv('NAME','')
