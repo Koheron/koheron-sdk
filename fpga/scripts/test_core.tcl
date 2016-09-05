@@ -1,5 +1,5 @@
 
-set core_name [lindex $argv 0]
+set core_name test_[lindex $argv 0]
 
 set part_name [lindex $argv 1]
 
