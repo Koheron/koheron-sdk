@@ -149,7 +149,7 @@ test_core:
 test_%: tests/tests_%.py
 	py.test -v $<
 
-test: tests/$(NAME).py
+test: tests/projects/$(NAME)/python/test.py
 	python $<
 
 test_app: | app_sync test_instrument_manager
