@@ -73,7 +73,7 @@ def get_config(project, project_path='projects'):
     lists = ['cores','xdc','modules']
     for list_ in lists:
         cfg[list_] = get_list(project, list_, project_path=project_path)
-    props = ['board']
+    props = ['board', 'live_zip']
     for prop in props:
         cfg[prop] = get_prop(project, prop, project_path=project_path)
 
