@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
-from koheron import command, load_instrument
+from koheron import command
 
 class Blink(object):
     def __init__(self, client):
@@ -15,17 +14,6 @@ class Blink(object):
     @command()
     def get_adc(self):
         return self.client.recv_tuple('II')
-
-if __name__=="__main__":
-    host = os.getenv('HOST','192.168.1.100')
-    client = load_instrument(host, 'blink')
-    driver = Blink(client)
-
-    driver.set_dac(0,1000)
-    adc1, adc2 = driver.get_adc()
-    print('adc1 = {}, adc2 = {}'.format(adc1, adc2))
-
-
    
 
 
