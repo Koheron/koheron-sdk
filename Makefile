@@ -77,9 +77,9 @@ TEMPLATE_DIR = scripts/templates
 
 # Versioning
 VERSION_FILE = $(TMP)/$(NAME).version
-VERSION = $(shell cat $(VERSION_FILE))
+VERSION = $(shell (git rev-parse --short HEAD))
 SHA_FILE = $(TMP)/$(NAME).sha
-SHA = $(shell cat $(SHA_FILE))
+SHA = $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g'))
 
 # Zip
 TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
@@ -166,17 +166,18 @@ http: $(HTTP_API_ZIP)
 run: $(ZIP)
 	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
 	curl http://$(HOST)/api/instruments/run/$(NAME)/$(VERSION)
+	@echo
 
 ###############################################################################
 # versioning
 ###############################################################################
 
 $(VERSION_FILE): | $(TMP)
-	echo $(shell (git rev-parse --short HEAD || echo "default")) > $@
+	echo $(VERSION) > $@
 	@echo [$@] OK
 
-$(SHA_FILE): $(VERSION_FILE)
-	echo $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g')) > $@
+$(SHA_FILE):
+	echo $(SHA) > $@
 	@echo [$@] OK
 
 ###############################################################################
@@ -379,6 +380,7 @@ $(HTTP_API_ZIP): $(HTTP_API_DIR)
 
 app_sync: $(HTTP_API_ZIP)
 	curl -v -F app-$(VERSION).zip=@$(HTTP_API_DIR)/$(HTTP_API_ZIP) http://$(HOST)/api/app/update
+	@echo
 
 # To use if uwsgi is not running
 app_sync_ssh: $(HTTP_API_ZIP)
