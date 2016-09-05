@@ -102,8 +102,6 @@ STATIC_ZIP = $(TMP)/static.zip
 
 HTTP_API_SRC = $(wildcard os/api/*)
 HTTP_API_DIR = $(TMP)/app
-HTTP_API_DRIVERS = common eeprom laser
-HTTP_API_DRIVERS_DIR = $(HTTP_API_DIR)/api_app/drivers
 HTTP_API_ZIP = app-$(VERSION).zip
 
 METADATA = $(TMP)/metadata.json
@@ -344,12 +342,7 @@ $(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_S
 $(METADATA): $(MAKE_PY) $(VERSION_FILE)
 	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
 
-$(HTTP_API_DRIVERS_DIR)/%: drivers/%/__init__.py
-	mkdir -p $@
-	cp $< $@/__init__.py
-
-$(HTTP_API_DIR): $(HTTP_API_SRC) $(METADATA) $(addprefix $(HTTP_API_DRIVERS_DIR)/, $(HTTP_API_DRIVERS))
-	touch $(HTTP_API_DRIVERS_DIR)/__init__.py
+$(HTTP_API_DIR): $(HTTP_API_SRC) $(METADATA)
 	mkdir -p $(HTTP_API_DIR)/api_app
 	cp -R os/api/. $(HTTP_API_DIR)/api_app
 	cp $(TMP)/metadata.json $(HTTP_API_DIR)
