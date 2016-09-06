@@ -23,6 +23,8 @@ CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(PROJECT_PATH) && cat 
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).xdc)
 
+DRIVERS_TESTS=$(foreach file, $(DRIVERS), $(dir $(file))/test.py)
+
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
 PROC = ps7_cortexa9_0
@@ -134,6 +136,8 @@ help:
 
 debug:
 	@echo CORES = $(CORES)
+	@echo DRIVERS = $(DRIVERS)
+	@echo DRIVERS_TESTS = $(DRIVERS_TESTS)
 
 $(TMP):
 	mkdir -p $(TMP)
