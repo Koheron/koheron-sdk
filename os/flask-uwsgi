@@ -26,6 +26,11 @@ server {
         alias                 /var/www/ui/static;
     }
 
+    location /live {
+        alias                 /tmp/instrument;
+        index                  index.html;
+    }
+
     location /koheron-server {
         proxy_pass            http://127.0.0.1:8080;
         proxy_http_version    1.1;

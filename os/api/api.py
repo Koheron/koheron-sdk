@@ -104,8 +104,10 @@ def run_instrument(name, sha):
     zip_filename = '{}-{}.zip'.format(name, sha)
     filename = os.path.join(api_app.config['INSTRUMENTS_DIR'], secure_filename(zip_filename))
     status = api_app.install_instrument(filename)
-    if status == 0:
+    if status == 'success':
         response = 'Instrument %s successfully installed' % zip_filename
+    elif status == 'invalid_bitstream':
+        response = 'Instrument %s installed (warning: invalid bitstream ID)' % zip_filename
     else:
         response = 'Failed to install instrument %s' % zip_filename
     return make_response(response)

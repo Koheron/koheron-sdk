@@ -10,6 +10,9 @@ import time
 import socket
 import getpass
 import json
+import requests
+import zipfile
+import StringIO
 
 def get_list(project, prop, project_path='projects', prop_list=None):
     """ Ex: Get the list of cores needed by the 'oscillo' instrument.
@@ -33,17 +36,9 @@ def get_prop(project, prop, project_path='projects'):
         if 'parent' in config:
             config[prop] = get_prop(config['parent'], prop, project_path)
         else:
-            print('Property %s not found', prop)
+            #print('Property %s not found', prop)
             return None
     return config[prop]
-
-# def get_parents(project, parents=[]):
-#     """ Get the list of parents (recursively). """
-#     config = load_config(project)
-#     if 'parent' in config and config['parent'] != None:
-#         parents.append(config['parent'])
-#         get_parents(config['parent'], parents)
-#     return parents
 
 def load_config(project_dir):
     """ Get the config dictionary from the file 'main.yml'. """
@@ -70,7 +65,7 @@ def get_config(project, project_path='projects'):
     lists = ['cores','xdc','modules']
     for list_ in lists:
         cfg[list_] = get_list(project, list_, project_path=project_path)
-    props = ['board']
+    props = ['board', 'live_zip']
     for prop in props:
         cfg[prop] = get_prop(project, prop, project_path=project_path)
 
@@ -277,6 +272,16 @@ if __name__ == "__main__":
         xdc_filename = os.path.join('tmp', project + '.xdc')
         with open(xdc_filename, 'w') as f:
             f.write(' '.join(config['xdc']))
+
+    elif cmd == '--live_zip':
+        project = sys.argv[2]
+        config = get_config(project, project_path=sys.argv[3])
+        zip_url = config['live_zip']
+        print(zip_url)
+        r = requests.get(zip_url, stream=True)
+        z = zipfile.ZipFile(StringIO.StringIO(r.content))
+        z.extractall('tmp/%s.live' % project)
+
 
     elif cmd == '--middleware':
         project = sys.argv[2]
