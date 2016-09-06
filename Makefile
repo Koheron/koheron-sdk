@@ -23,7 +23,8 @@ CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(PROJECT_PATH) && cat 
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).xdc)
 
-DRIVERS_TESTS=$(foreach file, $(DRIVERS), $(dir $(file))/test.py)
+DRIVERS_PATHS=$(filter-out $(PROJECT_PATH)/$(NAME)/ $(PROJECT_PATH)/$(NAME)/drivers/ drivers/common/ drivers/init/, $(foreach file, $(DRIVERS), $(dir $(file))))
+DRIVERS_TESTS=$(foreach file, $(DRIVERS_PATHS), $(file)/test.py)
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
@@ -135,8 +136,10 @@ help:
 	@echo - test: Test the instrument
 
 debug:
+	@echo PROJECT DIRECTORY=$(PROJECT_PATH)/$(NAME)
 	@echo CORES = $(CORES)
 	@echo DRIVERS = $(DRIVERS)
+	@echo DRIVERS_PATHS = $(DRIVERS_PATHS)
 	@echo DRIVERS_TESTS = $(DRIVERS_TESTS)
 
 $(TMP):
@@ -152,17 +155,14 @@ test_module: $(CONFIG_TCL) fpga/modules/$(NAME)/*.tcl $(addprefix $(TMP)/cores/,
 test_core:
 	vivado -source fpga/scripts/test_core.tcl -tclargs $(CORE) $(PART)
 
-test_%: tests/tests_%.py
+test_driver_%: drivers/%/test.py
 	py.test -v $<
 
 test: tests/projects/$(NAME)/python/test.py
 	python $<
 
-test_app: | app_sync test_instrument_manager
-
-test_instrum: test_common test_gpio test_$(NAME)
-
-test_all: | test_app test_instrum
+test_app: os/tests/tests_instrument_manager.py
+	py.test -v $<
 
 server: $(TCP_SERVER)
 xpr: $(TMP)/$(NAME).xpr
