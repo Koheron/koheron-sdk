@@ -1,11 +1,8 @@
 # Unit tests for InstrumentManager
-import context
 import os
-import pytest
 
 from instrument_manager import InstrumentManager
-from koheron import KoheronClient
-from drivers.common import Common
+from koheron import KoheronClient, Common
 
 host = os.getenv('HOST', '192.168.1.100')
 im = InstrumentManager(host)

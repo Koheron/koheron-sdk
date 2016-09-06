@@ -21,30 +21,29 @@ class Oscillo(object):
 
     @command()
     def set_dac_periods(self, period0, period1):
-        """ Select the periods played on each address generator
+        ''' Select the periods played on each address generator
         ex: self.set_dac_periods(8192, 4096)
-        """
+        '''
         pass
 
     @command()
     def set_n_avg_min(self, n_avg_min): 
-        """ Set the minimum of averages that will be computed on the FPGA
+        ''' Set the minimum of averages that will be computed on the FPGA
         The effective number of averages is >= n_avg_min.
-        """
+        '''
         pass
 
     @command()
     def set_avg_period(self, avg_period):
-        """ Set the period of the averaging module and reset the module.
-        """
+        ''' Set the period of the averaging module and reset the module.
+        '''
         self.period = avg_period
-        pass
 
     def set_dac(self, channels=[0,1]):
-        """ Write the BRAM corresponding on the selected channels 
+        ''' Write the BRAM corresponding on the selected channels
         (dac0 or dac1) with the array stored in self.dac[channel,:].
         ex: self.set_dac(channel=[0])
-        """
+        '''
         @command()
         def set_dac_buffer(self, channel, arr):
             pass
@@ -53,13 +52,21 @@ class Oscillo(object):
             set_dac_buffer(self, channel, data[::2] + data[1::2] * 65536)
 
     @command()
+    def set_dac_float(self, channel, arr):
+        pass
+
+    @command()
+    def get_dac_buffer(self, channel):
+        return self.client.recv_array(self.wfm_size / 2, dtype='uint32')
+
+    @command()
     def set_averaging(self, avg_status):
-        """ self.set_averaging(True) enables averaging. """
+        ''' avg_status = True enables averaging. '''
         pass
 
     @command()
     def get_num_average(self, channel):
-        """ Get the number of averages corresponding to the last acquisition. """
+        ''' Get the number of averages corresponding to the last acquisition. '''
         n_avg = self.client.recv_uint32()
         return n_avg
 
@@ -68,7 +75,7 @@ class Oscillo(object):
         return self.client.recv_array(2 * self.wfm_size, dtype='float32')
 
     def get_adc(self):
-        """ Read adc data and store it in self.adc. """
+        ''' Read adc data and store it in self.adc. '''
         data = self.read_all_channels()
         self.adc = np.reshape(data, (2, self.wfm_size))
 
@@ -88,32 +95,32 @@ class Oscillo(object):
     # Trigger related functions
 
     @command()
-    def update_now(self): 
-        """ This function sends a trigger to update immediately all
+    def update_now(self):
+        ''' This function sends a trigger to update immediately all
         the variables in the FPGA.
-        """
+        '''
         pass
 
     @command()
-    def always_update(self): 
-        """ When this function is called, the FPGA variables do not
+    def always_update(self):
+        ''' When this function is called, the FPGA variables do not
         wait for the trigger to be updated.
-        """
+        '''
         pass
 
     @command()
     def get_counter(self):
-        """ Return a 64 bits integer that counts the number of clock 
+        ''' Return a 64 bits integer that counts the number of clock 
         cycles (8 ns) between the startup of the FPGA and the last trigger
         (beginning of the last acquisition).
-        """
+        '''
         return self.client.recv_int(8, fmt='Q')
 
     @command()
-    def reset_acquisition(self): 
-        """ This function has the same effect as get_adc()
+    def reset_acquisition(self):
+        ''' This function has the same effect as get_adc()
         except it does not return any data
-        """
+        '''
         pass
 
     @command(funcname='reset')

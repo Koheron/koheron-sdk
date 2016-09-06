@@ -1,7 +1,7 @@
 import os
 
 from koheron import KoheronClient, load_instrument
-from drivers.test_memory import TestMemory
+from test_memory import TestMemory
 
 host = os.getenv('HOST','192.168.1.100')
 project = os.getenv('NAME','')
