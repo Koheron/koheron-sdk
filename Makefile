@@ -23,9 +23,6 @@ CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(PROJECT_PATH) && cat 
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).xdc)
 
-DRIVERS_PATHS=$(filter-out $(PROJECT_PATH)/$(NAME)/ $(PROJECT_PATH)/$(NAME)/drivers/ drivers/common/ drivers/init/, $(foreach file, $(DRIVERS), $(dir $(file))))
-DRIVERS_TESTS=$(foreach file, $(DRIVERS_PATHS), $(file)/test.py)
-
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
 PROC = ps7_cortexa9_0
@@ -139,8 +136,6 @@ debug:
 	@echo PROJECT DIRECTORY=$(PROJECT_PATH)/$(NAME)
 	@echo CORES = $(CORES)
 	@echo DRIVERS = $(DRIVERS)
-	@echo DRIVERS_PATHS = $(DRIVERS_PATHS)
-	@echo DRIVERS_TESTS = $(DRIVERS_TESTS)
 
 $(TMP):
 	mkdir -p $(TMP)
@@ -366,7 +361,7 @@ $(LIVE_DIR): $(TMP) $(MAIN_YML)
 	@echo [$@] OK
 
 $(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
-	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TMP)/$(NAME).live $(TCP_SERVER) $(START_SH) $(LIVE_DIR)
+	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TMP)/$(NAME).live $(TCP_SERVER) $(START_SH) $(LIVE_DIR)/*
 	@echo [$@] OK
 
 ###############################################################################

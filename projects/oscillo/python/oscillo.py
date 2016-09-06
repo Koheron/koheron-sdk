@@ -95,14 +95,14 @@ class Oscillo(object):
     # Trigger related functions
 
     @command()
-    def update_now(self): 
+    def update_now(self):
         ''' This function sends a trigger to update immediately all
         the variables in the FPGA.
         '''
         pass
 
     @command()
-    def always_update(self): 
+    def always_update(self):
         ''' When this function is called, the FPGA variables do not
         wait for the trigger to be updated.
         '''
@@ -117,7 +117,7 @@ class Oscillo(object):
         return self.client.recv_int(8, fmt='Q')
 
     @command()
-    def reset_acquisition(self): 
+    def reset_acquisition(self):
         ''' This function has the same effect as get_adc()
         except it does not return any data
         '''
