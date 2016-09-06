@@ -366,7 +366,7 @@ $(LIVE_DIR): $(TMP) $(MAIN_YML)
 	@echo [$@] OK
 
 $(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
-	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TMP)/$(NAME).live $(TCP_SERVER) $(START_SH) $(LIVE_DIR)
+	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TMP)/$(NAME).live $(TCP_SERVER) $(START_SH) $(LIVE_DIR)/*
 	@echo [$@] OK
 
 ###############################################################################

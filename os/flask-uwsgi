@@ -28,7 +28,7 @@ server {
 
     location /live {
         alias                 /tmp/instrument;
-        index                  index.html;
+        index                 index.html;
     }
 
     location /koheron-server {
