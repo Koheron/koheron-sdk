@@ -40,14 +40,6 @@ def get_prop(project, prop, project_path='projects'):
             return None
     return config[prop]
 
-# def get_parents(project, parents=[]):
-#     """ Get the list of parents (recursively). """
-#     config = load_config(project)
-#     if 'parent' in config and config['parent'] != None:
-#         parents.append(config['parent'])
-#         get_parents(config['parent'], parents)
-#     return parents
-
 def load_config(project_dir):
     """ Get the config dictionary from the file 'main.yml'. """
     config_filename = os.path.join(project_dir, 'main.yml')
