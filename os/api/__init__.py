@@ -213,15 +213,12 @@ class KoheronAPIApp(Flask):
             self.handle_instrument_install_failure()
             return 'client_not_connected'
 
-        self.live_instrument = {'name': name, 'sha': sha,
-                                   'server_version': self.common.get_server_version()}
-
-        if not self.is_bitstream_id_valid():
-            # self.handle_instrument_install_failure()
-            return 'invalid_bitstream_id'
-
+        self.live_instrument = {'name': name,
+                                'sha': sha,
+                                'server_version': self.common.get_server_version()}
+                                
         self.store_last_deployed_zip(zip_filename)
-        return 'success'
+        return 'success' if self.is_bitstream_id_valid() else 'invalid_bitstream_id'
 
     def handle_instrument_install_failure(self):
         # Check whether we are installing the last deployed instrument to avoid infinite recursion:
