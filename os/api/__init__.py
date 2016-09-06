@@ -218,11 +218,10 @@ class KoheronAPIApp(Flask):
 
         if not self.is_bitstream_id_valid():
             # self.handle_instrument_install_failure()
-            return_code = 'invalid_bitstream_id'
-        else:
-            return_code = 'success'
-            self.store_last_deployed_zip(zip_filename)
-        return return_code
+            return 'invalid_bitstream_id'
+
+        self.store_last_deployed_zip(zip_filename)
+        return 'success'
 
     def handle_instrument_install_failure(self):
         # Check whether we are installing the last deployed instrument to avoid infinite recursion:

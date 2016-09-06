@@ -106,7 +106,7 @@ def run_instrument(name, sha):
     status = api_app.install_instrument(filename)
     if status == 'success':
         response = 'Instrument %s successfully installed' % zip_filename
-    elif status == 'invalid_bitstream':
+    elif status == 'invalid_bitstream_id':
         response = 'Instrument %s installed (warning: invalid bitstream ID)' % zip_filename
     else:
         response = 'Failed to install instrument %s' % zip_filename
