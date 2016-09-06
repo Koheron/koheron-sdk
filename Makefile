@@ -158,8 +158,8 @@ test_core:
 test_driver_%: drivers/%/test.py
 	py.test -v $<
 
-test: tests/projects/$(NAME)/python/test.py
-	python $<
+test: $(PROJECT_PATH)/$(NAME)/python/test.py
+	py.test -v $<
 
 test_app: os/tests/tests_instrument_manager.py
 	py.test -v $<
