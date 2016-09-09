@@ -22,6 +22,7 @@ BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) $(PROJECT_PATH) && cat 
 CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).cores)
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).xdc)
+DRIVERS_LIB=$(wildcard drivers/lib/*hpp) $(wildcard drivers/lib/*cpp)
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
@@ -136,6 +137,7 @@ debug:
 	@echo PROJECT DIRECTORY=$(PROJECT_PATH)/$(NAME)
 	@echo CORES = $(CORES)
 	@echo DRIVERS = $(DRIVERS)
+	@echo DRIVERS_LIB = $(DRIVERS_LIB)
 
 $(TMP):
 	mkdir -p $(TMP)
@@ -341,7 +343,7 @@ $(TCP_SERVER_MIDDLEWARE)/%: %
 
 $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
                $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) \
-               drivers/lib projects/default/server.yml
+               $(DRIVERS_LIB) projects/default/server.yml
 	python $(MAKE_PY) --middleware $(NAME) $(PROJECT_PATH)
 	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. \
