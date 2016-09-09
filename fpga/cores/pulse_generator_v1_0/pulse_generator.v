@@ -15,17 +15,19 @@ module pulse_generator #
   output reg start
 );
 
+reg rst_reg;
 reg [PULSE_PERIOD_WIDTH-1:0] cnt_reg;
 initial cnt_reg = 0;
 
 always @(posedge clk) begin
   start <= (cnt_reg == 0);
-  cnt <= cnt_reg;
   valid <= (cnt_reg < pulse_width);
+  rst_reg <= rst;
+  cnt <= cnt_reg;
 end
 
 always @(posedge clk) begin
-  if (rst) begin
+  if (!rst_reg & rst) begin
     cnt_reg <= 0;
   end else begin
     if (cnt_reg < pulse_period - 1) begin
