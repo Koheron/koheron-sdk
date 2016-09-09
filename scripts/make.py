@@ -41,8 +41,8 @@ def get_prop(project, prop, project_path='projects'):
     return config[prop]
 
 def load_config(project_dir):
-    """ Get the config dictionary from the file 'main.yml'. """
-    config_filename = os.path.join(project_dir, 'main.yml')
+    """ Get the config dictionary from the file 'config.yml'. """
+    config_filename = os.path.join(project_dir, 'config.yml')
     with open(config_filename) as config_file:
         config = yaml.load(config_file)    
     return config
@@ -220,6 +220,18 @@ if __name__ == "__main__":
             print_config(project)
             test_module_consistency(project)
             test_core_consistency(project)
+
+    elif cmd == '--split_config_yml':
+        project = sys.argv[2]
+        cfg = load_config(os.path.join(sys.argv[3], project))
+        with open(os.path.join('tmp', project + '.drivers.yml'), 'w') as outfile:
+            print os.path.join('tmp', project + '.drivers.yml')
+            yaml.dump({'includes': cfg['includes'], 'drivers': cfg['drivers']}, outfile)
+        del cfg['includes']
+        del cfg['drivers']
+        with open(os.path.join('tmp', project + '.main.yml'), 'w') as outfile:
+            print os.path.join('tmp', project + '.main.yml')
+            yaml.dump(cfg, outfile)
 
     elif cmd == '--config_tcl':
         config = get_config(sys.argv[2], sys.argv[3])
