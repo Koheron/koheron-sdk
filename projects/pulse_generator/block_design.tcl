@@ -66,19 +66,22 @@ connect_pins \
   $dac_bram_name/addrb \
   [get_concat_pin [list [get_constant_pin 0 2] pulse_generator/cnt]]
 
-# Clock conversion from adc clock domain to PS clock domain
+# pulse_data = { start_pulse, 0, adc2[13:0], start_pulse, 0, adc1[13:0] }
+set pulse_data [get_concat_pin [list \
+  adc_dac/adc1 \
+  [get_constant_pin 0 1] \
+  pulse_generator/start \
+  adc_dac/adc2 \
+  [get_constant_pin 0 1] \
+  pulse_generator/start]]
+
+# Use AXI Stream clock converter (ADC clock -> FPGA clock)
 set intercon_idx 0
 set idx [add_master_interface $intercon_idx]
 cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
   TDATA_NUM_BYTES 4
 } {
-  s_axis_tdata [get_concat_pin [list \
-    adc_dac/adc1 \
-    [get_constant_pin 0 1] \
-    pulse_generator/start \
-    adc_dac/adc2 \
-    [get_constant_pin 0 1] \
-    pulse_generator/start]]
+  s_axis_tdata $pulse_data
   s_axis_tvalid pulse_generator/valid
   s_axis_aresetn $rst_adc_clk_name/peripheral_aresetn
   m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
@@ -86,7 +89,7 @@ cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
   m_axis_aclk [set ps_clk$intercon_idx]
 }
 
-# Add ADC FIFO (PS clock domain)
+# Add AXI stream FIFO to read pulse data from the PS
 cell xilinx.com:ip:axi_fifo_mm_s:4.1 adc_axis_fifo {
   C_USE_TX_DATA 0
   C_USE_TX_CTRL 0

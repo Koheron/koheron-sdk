@@ -22,10 +22,6 @@ class Pulse(object):
         pass
 
     @command()
-    def trig_pulse(self):
-        pass
-
-    @command()
     def get_count(self):
         return self.client.recv_uint32()
 
