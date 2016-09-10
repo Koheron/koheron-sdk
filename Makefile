@@ -323,17 +323,15 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 # koheron-server (compiled with project specific middleware)
 ###############################################################################
 
-.PHONY: tcp_server_venv
-
-$(TCP_SERVER_DIR)/requirements.txt:
+$(TCP_SERVER_DIR):
 	test -d $(TCP_SERVER_DIR) || git clone $(TCP_SERVER_URL) $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 	@echo [$@] OK
 
-tcp_server_venv: $(TCP_SERVER_VENV)/bin/activate
+$(TCP_SERVER_DIR)/requirements.txt: $(TCP_SERVER_DIR)
 
-$(TCP_SERVER_VENV)/bin/activate: $(TCP_SERVER_DIR)/requirements.txt
+$(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
 ifeq ($(DOCKER),True)
 	/usr/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
 else
@@ -346,13 +344,13 @@ $(TCP_SERVER_MIDDLEWARE)/%: %
 	cp $^ $@
 	@echo [$@] OK
 
-$(TCP_SERVER): $(MAKE_PY) tcp_server_venv $(SERVER_CONFIG) \
+$(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
                $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) \
                drivers/lib projects/default/server.yml
 	python $(MAKE_PY) --middleware $(NAME) $(PROJECT_PATH)
 	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. \
-	  PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE)
+	  PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all
 	@echo [$@] OK
 
 ###############################################################################
