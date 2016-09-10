@@ -1,0 +1,28 @@
+---
+project: led_blinker
+parent: default
+board: red-pitaya
+
+cores:
+  - axi_cfg_register_v1_0
+  - axi_sts_register_v1_0
+
+memory:
+  - name: config
+    offset: '0x60000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+
+config_registers:
+  - led
+
+status_registers:
+  - forty_two
+
+parameters:
+  fclk0: 50000000 # FPGA clock speed in Hz
+
+xdc:
+  - projects/led_blinker/constraints.xdc
