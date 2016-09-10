@@ -37,7 +37,7 @@ $ sudo pip install -r requirements.txt
 
 ```bash
 $ source settings.sh
-$ make NAME=blink HOST=192.168.1.100 run
+$ make NAME=led_blinker HOST=192.168.1.100 run
 ```
 where `HOST` is your Red Pitaya IP address.
 
@@ -49,7 +49,9 @@ $ curl http://$(HOST)/api/board/ping
 
 ## Examples of instruments
 
-* [`blink`](https://github.com/Koheron/koheron-sdk/tree/master/projects/blink) : minimal instrument with access to LEDs and Red Pitaya ADCs and DACs.
+* [`led_blinker`](https://github.com/Koheron/koheron-sdk/tree/master/projects/led_blinker) : minimal instrument with LED control from Python.
+* [`adc_dac`](https://github.com/Koheron/koheron-sdk/tree/master/projects/adc_dac) : instrument with minimal read/write capability on Red Pitaya ADCs and DACs.
+* [`pulse_generator`](https://github.com/Koheron/koheron-sdk/tree/master/projects/pulse_generator) : pulse generation with synchronous acquisition.
 * [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/projects/oscillo) : signal acquisition / generation with coherent averaging mode.
 * [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/projects/spectrum) : spectrum analyzer with peak-detection and averaging.
 
@@ -62,8 +64,8 @@ $ make NAME=oscillo bd
 
 Build the SD card image:
 ```
-$ make NAME=blink linux
-$ sudo bash os/scripts/image.sh blink
+$ make NAME=led_blinker linux
+$ sudo bash os/scripts/image.sh led_blinker
 ```
 
 Build the instrument (without running it):

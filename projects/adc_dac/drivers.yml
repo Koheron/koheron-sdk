@@ -1,0 +1,6 @@
+includes:
+  - projects/default/server.yml
+  - projects/default/drivers.yml
+
+drivers:
+  - projects/adc_dac/adc_dac.hpp

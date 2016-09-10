@@ -215,7 +215,7 @@ if __name__ == "__main__":
     sys.setdefaultencoding('utf-8')
 
     if cmd == '--test':
-        projects = ['blink','oscillo', 'spectrum']
+        projects = ['led_blinker', 'adc_dac', 'oscillo', 'spectrum']
         for project in projects:
             print_config(project)
             test_module_consistency(project)
@@ -230,7 +230,6 @@ if __name__ == "__main__":
         del cfg['drivers']
 
         has_changed = False
-
         if os.path.isfile(main_yml_file):
             with open(main_yml_file, 'r') as main_yml:
                 main_cfg = yaml.load(main_yml)

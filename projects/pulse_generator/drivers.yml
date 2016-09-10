@@ -1,6 +1,6 @@
-includes:
+includes: 
   - projects/default/server.yml
   - projects/default/drivers.yml
 
 drivers:
-  - projects/blink/blink.hpp
+  - projects/pulse_generator/pulse.hpp

@@ -3,7 +3,7 @@
 ###############################################################################
 
 PROJECT_PATH = projects
-NAME = blink
+NAME = led_blinker
 HOST = 192.168.1.100
 
 ###############################################################################
@@ -20,11 +20,12 @@ TMP = tmp
 
 DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(NAME) $(PROJECT_PATH))
 
-# properties defined MAIN_YML :
+# properties defined in MAIN_YML :
 BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).board)
 CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).cores)
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).xdc)
+DRIVERS_LIB=$(wildcard drivers/lib/*hpp) $(wildcard drivers/lib/*cpp)
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
@@ -90,7 +91,7 @@ TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
 SERVER_CONFIG = $(PROJECT_PATH)/$(NAME)/drivers.yml
 TCP_SERVER_SHA = master
-TCP_SERVER_VENV = $(TMP)/$(NAME).koheron_server_venv
+TCP_SERVER_VENV = $(TMP)/koheron_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
 
 START_SH = $(TMP)/$(NAME).start.sh
@@ -113,18 +114,11 @@ METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-.PHONY: all linux help \
-        test_module test_core test_% test test_app test_instrum test_all \
-        server xpr app bd http_api \
-        run app_sync app_sync_ssh
+.PHONY: all linux help debug
 
 all: $(ZIP)
 
 linux: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv
-
-###############################################################################
-# API
-###############################################################################
 
 help:
 	@echo - server: Build the server
@@ -136,16 +130,39 @@ help:
 	@echo - test: Test the instrument
 
 debug:
-	@echo PROJECT DIRECTORY=$(PROJECT_PATH)/$(NAME)
+	@echo PROJECT DIRECTORY = $(PROJECT_PATH)/$(NAME)
 	@echo CORES = $(CORES)
 	@echo DRIVERS = $(DRIVERS)
+	@echo DRIVERS_LIB = $(DRIVERS_LIB)
 
 $(TMP):
 	mkdir -p $(TMP)
 
+###############################################################################
+# API
+###############################################################################
+
+.PHONY: bd server xpr bit http run
+
 # Run Vivado interactively and build block design
 bd: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	vivado -nolog -nojournal -source fpga/scripts/block_design.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART) $(BOARD) block_design_
+
+server: $(TCP_SERVER)
+xpr: $(TMP)/$(NAME).xpr
+bit: $(TMP)/$(NAME).bit
+http: $(HTTP_API_ZIP)
+
+run: $(ZIP)
+	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
+	curl http://$(HOST)/api/instruments/run/$(NAME)/$(VERSION)
+	@echo
+
+###############################################################################
+# Tests
+###############################################################################
+
+.PHONY: test_module test_core test_driver_% test test_app
 
 test_module: $(CONFIG_TCL) fpga/modules/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	vivado -source fpga/scripts/test_module.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART)
@@ -162,18 +179,8 @@ test: $(PROJECT_PATH)/$(NAME)/python/test.py
 test_app: os/tests/tests_instrument_manager.py
 	py.test -v $<
 
-server: $(TCP_SERVER)
-xpr: $(TMP)/$(NAME).xpr
-bit: $(TMP)/$(NAME).bit
-http: $(HTTP_API_ZIP)
-
-run: $(ZIP)
-	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
-	curl http://$(HOST)/api/instruments/run/$(NAME)/$(VERSION)
-	@echo
-
 ###############################################################################
-# versioning
+# Versioning
 ###############################################################################
 
 $(VERSION_FILE): | $(TMP)
@@ -208,7 +215,7 @@ $(TMP)/$(NAME).bit: $(TMP)/$(NAME).xpr
 	@echo [$@] OK
 
 ###############################################################################
-# first-stage boot loader
+# First-stage boot loader
 ###############################################################################
 
 $(TMP)/$(NAME).fsbl/executable.elf: $(TMP)/$(NAME).hwdef
@@ -257,7 +264,7 @@ boot.bin: $(TMP)/$(NAME).fsbl/executable.elf $(TMP)/$(NAME).bit $(TMP)/u-boot.el
 	@echo [$@] OK
 
 ###############################################################################
-# device tree
+# Device tree
 ###############################################################################
 
 $(TMP)/$(NAME).hwdef: $(TMP)/$(NAME).xpr
@@ -318,11 +325,11 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 	@echo [$@] OK
 
 ###############################################################################
-# tcp-server (compiled with project specific middleware)
+# koheron-server (compiled with project specific middleware)
 ###############################################################################
 
 $(TCP_SERVER_DIR):
-	git clone $(TCP_SERVER_URL) $(TCP_SERVER_DIR)
+	test -d $(TCP_SERVER_DIR) || git clone $(TCP_SERVER_URL) $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
 	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 	@echo [$@] OK
@@ -333,7 +340,7 @@ $(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
 ifeq ($(DOCKER),True)
 	/usr/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
 else
-	virtualenv $(TCP_SERVER_VENV)
+	test -d $(TCP_SERVER_VENV) || virtualenv $(TCP_SERVER_VENV)
 	$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
 endif
 
@@ -344,7 +351,7 @@ $(TCP_SERVER_MIDDLEWARE)/%: %
 
 $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
                $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) \
-               drivers/lib projects/default/server.yml
+               $(DRIVERS_LIB) projects/default/server.yml
 	python $(MAKE_PY) --middleware $(NAME) $(PROJECT_PATH)
 	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. \
@@ -352,7 +359,7 @@ $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
 	@echo [$@] OK
 
 ###############################################################################
-# Instrument ZIP file (contains bitstream,  TCP server)
+# Instrument ZIP file (contains bitstream and server)
 ###############################################################################
 
 $(START_SH): $(MAKE_PY) $(MAIN_YML) $(TEMPLATE_DIR)/start.sh
@@ -370,6 +377,8 @@ $(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_S
 ###############################################################################
 # HTTP API
 ###############################################################################
+
+.PHONY: app_sync app_sync_ssh
 
 $(METADATA): $(MAKE_PY) $(VERSION_FILE)
 	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
@@ -403,7 +412,7 @@ $(STATIC_ZIP): $(TMP)
 	curl -L $(STATIC_URL) -o $(STATIC_ZIP)
 
 ###############################################################################
-# clean
+# Clean target
 ###############################################################################
 
 .PHONY: clean clean_project clean_server clean_cores clean_xpr
