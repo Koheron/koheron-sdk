@@ -9,7 +9,6 @@ set board_name [lindex $argv 3]
 
 set prefix [lindex $argv 4]
 
-set cfg boards/$board_name/config
 set lib fpga/lib
 
 set prefixed_project_name $prefix$project_name
@@ -25,7 +24,6 @@ set bd_path tmp/$prefixed_project_name.srcs/sources_1/bd/system
 
 create_bd_design system
 
-source $cfg/ports.tcl
 source $lib/utilities.tcl
 source tmp/$project_name.config.tcl
 source $project_path/$project_name/block_design.tcl
