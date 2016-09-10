@@ -1,17 +1,17 @@
-/// Blink driver
+/// AdcDac driver
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_BLINK_HPP__
-#define __DRIVERS_BLINK_HPP__
+#ifndef __DRIVERS_ADC_DAC_HPP__
+#define __DRIVERS_ADC_DAC_HPP__
 
 #include <drivers/lib/memory_manager.hpp>
 #include <drivers/memory.hpp>
 
-class Blink
+class AdcDac
 {
   public:
-    Blink(MemoryManager& mm)
+    AdcDac(MemoryManager& mm)
     : cfg(mm.get<mem::config>())
     , sts(mm.get<mem::status>())
     {}
@@ -31,4 +31,4 @@ class Blink
     Memory<mem::status>& sts;
 };
 
-#endif // __DRIVERS_BLINK_HPP__
+#endif // __DRIVERS_ADC_DAC_HPP__

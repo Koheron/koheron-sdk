@@ -3,4 +3,4 @@ includes:
   - projects/default/drivers.yml
 
 drivers:
-  - projects/blink/blink.hpp
+  - projects/adc_dac/adc_dac.hpp
