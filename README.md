@@ -37,7 +37,7 @@ $ sudo pip install -r requirements.txt
 
 ```bash
 $ source settings.sh
-$ make NAME=blink HOST=192.168.1.100 run
+$ make NAME=led_blinker HOST=192.168.1.100 run
 ```
 where `HOST` is your Red Pitaya IP address.
 
@@ -62,8 +62,8 @@ $ make NAME=oscillo bd
 
 Build the SD card image:
 ```
-$ make NAME=blink linux
-$ sudo bash os/scripts/image.sh blink
+$ make NAME=led_blinker linux
+$ sudo bash os/scripts/image.sh led_blinker
 ```
 
 Build the instrument (without running it):
