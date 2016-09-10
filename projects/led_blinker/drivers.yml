@@ -1,0 +1,6 @@
+includes:
+  - projects/default/server.yml
+  - projects/default/drivers.yml
+
+drivers:
+  - projects/led_blinker/led_blinker.hpp

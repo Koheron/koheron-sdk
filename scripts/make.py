@@ -215,7 +215,7 @@ if __name__ == "__main__":
     sys.setdefaultencoding('utf-8')
 
     if cmd == '--test':
-        projects = ['blink','oscillo', 'spectrum']
+        projects = ['led_blinker', 'adc_dac', 'oscillo', 'spectrum']
         for project in projects:
             print_config(project)
             test_module_consistency(project)

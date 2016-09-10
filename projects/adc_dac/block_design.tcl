@@ -1,3 +1,5 @@
+source boards/$board_name/config/ports.tcl
+
 # Add PS and AXI Interconnect
 set board_preset boards/$board_name/config/board_preset.tcl
 source $lib/starting_point.tcl

@@ -1,3 +1,4 @@
+source boards/$board_name/config/ports.tcl
 source boards/$board_name/base_system.tcl
 
 # Add GPIO

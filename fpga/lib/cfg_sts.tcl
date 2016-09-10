@@ -1,4 +1,4 @@
-proc add_cfg_sts {mclk mrstn} {
+proc add_cfg_sts {{mclk "None"}  {mrstn "None"}} {
   variable config_name
   set config_name cfg
   add_config_register $config_name $mclk $mrstn $config::config_size $config::axi_config_range $config::axi_config_offset
@@ -12,7 +12,6 @@ proc add_config_register {module_name mclk mrstn {num_ports 32} {range 4K} {offs
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
-  create_bd_pin -dir O -from [expr $num_ports*32] -to 0 cfg
 
   for {set i 0} {$i < $num_ports} {incr i} {
     create_bd_pin -dir O -from 31 -to 0 $config::cfg_register($i)
@@ -23,6 +22,11 @@ proc add_config_register {module_name mclk mrstn {num_ports 32} {range 4K} {offs
 
   set sclk [set ::ps_clk$intercon_idx]
   set srstn [set ::rst${intercon_idx}_name]/peripheral_aresetn
+
+  if {$mclk eq "None"} {
+    set mclk $sclk
+    set mrstn $srstn
+  }
 
   if {$sclk != $mclk} {
     # Add AXI clock converter
@@ -46,7 +50,6 @@ proc add_config_register {module_name mclk mrstn {num_ports 32} {range 4K} {offs
   } {
     aclk $m_axi_aclk
     aresetn /$mrstn
-    cfg_data cfg
   }
 
   connect_bd_intf_net [get_bd_intf_pins axi_cfg_register_0/S_AXI] [get_bd_intf_pins $M_AXI]
@@ -87,6 +90,11 @@ proc add_status_register {module_name mclk mrstn {num_ports 32} {range 4K} {offs
 
   set sclk [set ::ps_clk$intercon_idx]
   set srstn [set ::rst${intercon_idx}_name]/peripheral_aresetn
+
+  if {$mclk eq "None"} {
+    set mclk $sclk
+    set mrstn $srstn
+  }
 
   if {$sclk != $mclk} {
     # Add AXI clock converter
