@@ -127,6 +127,18 @@ def get_config(project, project_path='projects'):
     cfg['json'] = json.dumps(cfg, separators=(',', ':')).replace('"', '\\"')
     return cfg
 
+def dump_if_has_changed(filename, new_dict):
+    has_changed = False
+    if os.path.isfile(filename):
+        with open(filename, 'r') as yml_file:
+            old_dict = yaml.load(yml_file)
+            if old_dict != new_dict:
+               has_changed = True
+
+    if not os.path.isfile(filename) or has_changed:
+        with open(filename, 'w') as yml_file:
+            yaml.dump(new_dict, yml_file)
+
 ###################
 # Jinja
 ###################
@@ -224,21 +236,14 @@ if __name__ == "__main__":
     elif cmd == '--split_config_yml':
         project = sys.argv[2]
         cfg = load_config(os.path.join(sys.argv[3], project))
-        main_yml_file = os.path.join('tmp', project + '.main.yml')
+
+        dump_if_has_changed(os.path.join('tmp', project + '.drivers.yml'),
+                            {'includes': cfg['includes'], 'drivers': cfg['drivers']})
+
         # We remove components related to the drivers
         del cfg['includes']
         del cfg['drivers']
-
-        has_changed = False
-        if os.path.isfile(main_yml_file):
-            with open(main_yml_file, 'r') as main_yml:
-                main_cfg = yaml.load(main_yml)
-                if main_cfg != cfg:
-                    has_changed = True
-
-        if not os.path.isfile(main_yml_file) or has_changed:
-            with open(main_yml_file, 'w') as main_yml:
-                yaml.dump(cfg, main_yml)
+        dump_if_has_changed(os.path.join('tmp', project + '.main.yml'), cfg)
 
     elif cmd == '--config_tcl':
         config = get_config(sys.argv[2], sys.argv[3])
@@ -266,7 +271,7 @@ if __name__ == "__main__":
     elif cmd == '--drivers':
         project = sys.argv[2]
         project_path = sys.argv[3]
-        drivers_filename = os.path.join(project_path, project, 'drivers.yml')
+        drivers_filename = os.path.join(project_path, project, 'config.yml')
 
         if os.path.isfile(drivers_filename):
             with open(drivers_filename) as drivers_file:
