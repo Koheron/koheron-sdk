@@ -21,9 +21,11 @@ class AdcDac
         cfg.write<reg::dac1>(dac1);
     }
 
-    std::tuple<uint32_t, uint32_t>
-    get_adc() {
-        return std::make_tuple(sts.read<reg::adc0>(), sts.read<reg::adc1>());
+    auto get_adc() {
+        // Convert from two-complement to int32
+        int32_t adc0 = ((sts.read<reg::adc0>() - 8192) % 16384) - 8192;
+        int32_t adc1 = ((sts.read<reg::adc1>() - 8192) % 16384) - 8192;
+        return std::make_tuple(adc0, adc1);
     }
 
   private:
