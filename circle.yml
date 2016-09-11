@@ -4,7 +4,7 @@ machine:
 dependencies:
   override:
     - docker info
-    - docker build -t koheron/zynq-sdk .
+    - docker build -t koheron/koheron-sdk .
 test:
   pre:
-    - docker run --env "DOCKER=True" koheron/zynq-sdk  bash scripts/tests/ci_tests.sh
+    - docker run --env "DOCKER=True" koheron/koheron-sdk  bash scripts/tests/ci_tests.sh
