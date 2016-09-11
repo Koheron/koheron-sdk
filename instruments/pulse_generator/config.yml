@@ -1,5 +1,5 @@
 ---
-project: pulse_generator
+instrument: pulse_generator
 parent: default
 board: red-pitaya
 
@@ -48,8 +48,8 @@ xdc:
 # Drivers
 
 includes: 
-  - projects/default/server.yml
-  - projects/default/drivers.yml
+  - instruments/default/server.yml
+  - instruments/default/drivers.yml
 
 drivers:
-  - projects/pulse_generator/pulse.hpp
+  - instruments/pulse_generator/pulse.hpp
