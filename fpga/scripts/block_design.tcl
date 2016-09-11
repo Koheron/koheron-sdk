@@ -21,7 +21,7 @@ file delete -force \
 
 create_project -part $part_name $prefixed_instrument_name tmp
 
-set_property IP_REPO_PATHS tmp/cores [current_instrument]
+set_property IP_REPO_PATHS tmp/cores [current_project]
 update_ip_catalog -rebuild -scan_changes
 
 set bd_path tmp/$prefixed_instrument_name.srcs/sources_1/bd/system

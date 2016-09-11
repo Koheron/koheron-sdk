@@ -50,4 +50,4 @@ ipx::create_xgui_files $core
 ipx::update_checksums $core
 ipx::save_core $core
 
-close_instrument
+close_project

@@ -10,4 +10,4 @@ if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
 
 write_hwdef -force -file tmp/$instrument_name.hwdef
 
-close_instrument
+close_project

@@ -1,7 +1,7 @@
 
 set instrument_name [lindex $argv 0]
 
-open_instrument tmp/$instrument_name.xpr
+open_project tmp/$instrument_name.xpr
 
 if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
   launch_runs impl_1 -to_step route_design
@@ -15,4 +15,4 @@ set_property BITSTREAM.GENERAL.XADCENHANCEDLINEARITY On [current_design]
 
 write_bitstream -force -file tmp/$instrument_name.bit
 
-close_instrument
+close_project
