@@ -1,11 +1,11 @@
 
 set bram_size [expr 2**($config::bram_addr_width-8)]K
 
-source projects/base/block_design.tcl
+source instruments/base/block_design.tcl
 
-source projects/oscillo/oscillo.tcl
+source instruments/oscillo/oscillo.tcl
 
-source projects/base/timer.tcl
+source instruments/base/timer.tcl
 
 ##########################################################
 # Add EEPROM
