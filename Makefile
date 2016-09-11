@@ -26,6 +26,7 @@ CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(INSTRUMENT_PATH) && c
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).xdc)
 DRIVERS_LIB=$(wildcard drivers/lib/*hpp) $(wildcard drivers/lib/*cpp)
+MEMORY_HPP=$(TMP)/$(NAME).server.build/drivers/memory.hpp
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
@@ -89,7 +90,7 @@ SHA = $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g'))
 TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
 TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
-SERVER_CONFIG = $(TMP)/$(NAME).drivers.yml
+DRIVERS_YML = $(TMP)/$(NAME).drivers.yml
 TCP_SERVER_SHA = build
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
@@ -344,16 +345,12 @@ else
 	$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
 endif
 
-# $(TCP_SERVER_MIDDLEWARE)/%: %
-# 	mkdir -p -- `dirname -- $@`
-# 	cp $^ $@
-# 	@echo [$@] OK
-
-$(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
-               $(DRIVERS_LIB) instruments/default/server.yml
+$(MEMORY_HPP): $(CONFIG_YML)
 	python $(MAKE_PY) --middleware $(NAME) $(INSTRUMENT_PATH)
-	# cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
-	make -C $(TCP_SERVER_DIR) CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. \
+
+$(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(DRIVERS_YML) \
+               $(DRIVERS_LIB) $(MEMORY_HPP) instruments/default/server.yml
+	make -C $(TCP_SERVER_DIR) CONFIG=$(DRIVERS_YML) BASE_DIR=../.. \
 	  PYTHON=$(PYTHON) TMP=../../$(TMP)/$(NAME).server.build
 	@echo [$@] OK
 
