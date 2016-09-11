@@ -306,11 +306,10 @@ if __name__ == "__main__":
         z = zipfile.ZipFile(StringIO.StringIO(r.content))
         z.extractall('tmp/%s.live' % instrument)
 
-
     elif cmd == '--middleware':
         instrument = sys.argv[2]
         config = get_config(instrument, instrument_path=sys.argv[3])
-        dest =  'tmp/' + instrument + '.middleware/drivers'
+        dest =  'tmp/' + instrument + '.server.build/drivers'
         if not os.path.exists(dest):
             os.makedirs(dest)
         fill_memory(config, dest)

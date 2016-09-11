@@ -90,7 +90,7 @@ TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
 TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
 SERVER_CONFIG = $(TMP)/$(NAME).drivers.yml
-TCP_SERVER_SHA = master
+TCP_SERVER_SHA = build
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
 
@@ -344,18 +344,17 @@ else
 	$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
 endif
 
-$(TCP_SERVER_MIDDLEWARE)/%: %
-	mkdir -p -- `dirname -- $@`
-	cp $^ $@
-	@echo [$@] OK
+# $(TCP_SERVER_MIDDLEWARE)/%: %
+# 	mkdir -p -- `dirname -- $@`
+# 	cp $^ $@
+# 	@echo [$@] OK
 
 $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
-               $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) \
                $(DRIVERS_LIB) instruments/default/server.yml
 	python $(MAKE_PY) --middleware $(NAME) $(INSTRUMENT_PATH)
-	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
-	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. \
-	  PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all
+	# cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
+	make -C $(TCP_SERVER_DIR) CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. \
+	  PYTHON=$(PYTHON) TMP=../../$(TMP)/$(NAME).server.build
 	@echo [$@] OK
 
 ###############################################################################
