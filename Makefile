@@ -11,11 +11,14 @@ HOST = 192.168.1.100
 # MAKE_PY script parses the properties defined MAIN_YML
 ###############################################################################
 
-MAIN_YML = $(PROJECT_PATH)/$(NAME)/main.yml
+MAIN_YML = $(TMP)/$(NAME).main.yml
+
 MAKE_PY = scripts/make.py
 
 # Store all build artifacts in TMP
 TMP = tmp
+
+DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(NAME) $(PROJECT_PATH))
 
 # properties defined in MAIN_YML :
 BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).board)
@@ -86,7 +89,7 @@ SHA = $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g'))
 TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
 TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
-SERVER_CONFIG = $(PROJECT_PATH)/$(NAME)/drivers.yml
+SERVER_CONFIG = $(TMP)/$(NAME).drivers.yml
 TCP_SERVER_SHA = master
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware

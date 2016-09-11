@@ -41,10 +41,10 @@ def get_prop(project, prop, project_path='projects'):
     return config[prop]
 
 def load_config(project_dir):
-    """ Get the config dictionary from the file 'main.yml'. """
-    config_filename = os.path.join(project_dir, 'main.yml')
+    """ Get the config dictionary from the file 'config.yml'. """
+    config_filename = os.path.join(project_dir, 'config.yml')
     with open(config_filename) as config_file:
-        config = yaml.load(config_file)    
+        config = yaml.load(config_file)
     return config
 
 def parse_brackets(string):
@@ -126,6 +126,18 @@ def get_config(project, project_path='projects'):
 
     cfg['json'] = json.dumps(cfg, separators=(',', ':')).replace('"', '\\"')
     return cfg
+
+def dump_if_has_changed(filename, new_dict):
+    has_changed = False
+    if os.path.isfile(filename):
+        with open(filename, 'r') as yml_file:
+            old_dict = yaml.load(yml_file)
+            if old_dict != new_dict:
+               has_changed = True
+
+    if not os.path.isfile(filename) or has_changed:
+        with open(filename, 'w') as yml_file:
+            yaml.dump(new_dict, yml_file)
 
 ###################
 # Jinja
@@ -221,6 +233,18 @@ if __name__ == "__main__":
             test_module_consistency(project)
             test_core_consistency(project)
 
+    elif cmd == '--split_config_yml':
+        project = sys.argv[2]
+        cfg = load_config(os.path.join(sys.argv[3], project))
+
+        dump_if_has_changed(os.path.join('tmp', project + '.drivers.yml'),
+                            {'includes': cfg['includes'], 'drivers': cfg['drivers']})
+
+        # We remove components related to the drivers
+        del cfg['includes']
+        del cfg['drivers']
+        dump_if_has_changed(os.path.join('tmp', project + '.main.yml'), cfg)
+
     elif cmd == '--config_tcl':
         config = get_config(sys.argv[2], sys.argv[3])
         assert('sha0' in config['parameters'])
@@ -247,7 +271,7 @@ if __name__ == "__main__":
     elif cmd == '--drivers':
         project = sys.argv[2]
         project_path = sys.argv[3]
-        drivers_filename = os.path.join(project_path, project, 'drivers.yml')
+        drivers_filename = os.path.join(project_path, project, 'config.yml')
 
         if os.path.isfile(drivers_filename):
             with open(drivers_filename) as drivers_file:

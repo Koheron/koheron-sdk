@@ -1,7 +1,10 @@
 ---
 project: spectrum
-
 parent: base
+
+# ------------------------------------------------------------
+# Memory
+# ------------------------------------------------------------
 
 memory:
   - name: config
@@ -35,12 +38,6 @@ memory:
   - name: rambuf
     offset: '0x1E000000'
     range: 8M
-
-modules:
-  - address
-  - averager
-  - spectrum
-  - peak_detector
 
 config_registers:
   - spi_in
@@ -81,7 +78,40 @@ parameters:
   n_dac_bram: 3
   n_dac: 2
 
+# ------------------------------------------------------------
+# FPGA
+# ------------------------------------------------------------
+
+modules:
+  - address
+  - averager
+  - spectrum
+  - peak_detector
+
 xdc:
   - projects/base/expansion_connector.xdc
+
+# ------------------------------------------------------------
+# Drivers
+# ------------------------------------------------------------
+
+includes:
+  - projects/default/server.yml
+  - projects/default/drivers.yml
+
+drivers:
+  - drivers/gpio/gpio.hpp
+  - drivers/xadc/xadc.hpp
+  - drivers/xadc/xadc.cpp
+  - drivers/laser/laser.hpp
+  - drivers/laser/laser.cpp
+  - projects/spectrum/drivers/spectrum.hpp
+  - projects/spectrum/drivers/spectrum.cpp
+  - drivers/eeprom/eeprom.hpp
+  - drivers/test_memory/test_memory.hpp
+
+# ------------------------------------------------------------
+# Misc
+# ------------------------------------------------------------
 
 live_zip: http://zynq-sdk.s3-website-eu-west-1.amazonaws.com/live-spectrum.zip
