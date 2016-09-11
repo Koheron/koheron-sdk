@@ -1,5 +1,5 @@
 ---
-project: led_blinker
+instrument: led_blinker
 parent: default
 board: red-pitaya
 
