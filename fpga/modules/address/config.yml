@@ -1,5 +1,5 @@
 ---
-project: address
+instrument: address
 #parent: default
 board: red-pitaya
 

@@ -1,5 +1,5 @@
 ---
-project: averager
+instrument: averager
 #parent: default
 board: red-pitaya
 
