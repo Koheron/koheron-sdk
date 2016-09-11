@@ -115,20 +115,11 @@ METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-.PHONY: all linux help debug
+.PHONY: all linux debug
 
 all: $(ZIP)
 
 linux: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv
-
-help:
-	@echo - server: Build the server
-	@echo - bd: Build the block design interactively
-	@echo - xpr: Build the Vivado project
-	@echo - bit: Build the bitstream
-	@echo - http: Build the HTTP API
-	@echo - run: Run the instrument
-	@echo - test: Test the instrument
 
 debug:
 	@echo INSTRUMENT DIRECTORY = $(INSTRUMENT_PATH)/$(NAME)
@@ -140,10 +131,19 @@ $(TMP):
 	mkdir -p $(TMP)
 
 ###############################################################################
-# API
+# Commands
 ###############################################################################
 
-.PHONY: bd server xpr bit http run
+.PHONY: help bd server xpr bit http run
+
+help:
+	@echo ' - run    Run the instrument'
+	@echo ' - bd     Build the block design interactively'
+	@echo ' - xpr    Build the Vivado project'
+	@echo ' - bit    Build the bitstream'
+	@echo ' - server Build the server'
+	@echo ' - http   Build the HTTP API'
+	@echo ' - test   Test the instrument'
 
 # Run Vivado interactively and build block design
 bd: $(CONFIG_TCL) $(XDC) $(INSTRUMENT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
