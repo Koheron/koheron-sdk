@@ -1,5 +1,5 @@
 ---
-project: adc_dac
+instrument: adc_dac
 parent: default
 board: red-pitaya
 
@@ -38,8 +38,8 @@ xdc:
 # Drivers
 
 includes:
-  - projects/default/server.yml
-  - projects/default/drivers.yml
+  - instruments/default/server.yml
+  - instruments/default/drivers.yml
 
 drivers:
-  - projects/adc_dac/adc_dac.hpp
+  - instruments/adc_dac/adc_dac.hpp
