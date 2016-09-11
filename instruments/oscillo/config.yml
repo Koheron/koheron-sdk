@@ -1,5 +1,5 @@
 ---
-project: oscillo
+instrument: oscillo
 parent: base 
 
 # ------------------------------------------------------------
@@ -72,15 +72,15 @@ modules:
   - averager
 
 xdc:
-  - projects/base/expansion_connector.xdc
+  - instruments/base/expansion_connector.xdc
 
 # ------------------------------------------------------------
 # Drivers
 # ------------------------------------------------------------
 
 includes:
-  - projects/default/server.yml
-  - projects/default/drivers.yml
+  - instruments/default/server.yml
+  - instruments/default/drivers.yml
 
 drivers:
   - drivers/gpio/gpio.hpp
@@ -88,10 +88,10 @@ drivers:
   - drivers/xadc/xadc.cpp
   - drivers/laser/laser.hpp
   - drivers/laser/laser.cpp
-  - projects/oscillo/drivers/oscillo.hpp
-  - projects/oscillo/drivers/oscillo.cpp
-  - projects/oscillo/drivers/speed_test.hpp
-  - projects/oscillo/drivers/speed_test.cpp
+  - instruments/oscillo/drivers/oscillo.hpp
+  - instruments/oscillo/drivers/oscillo.cpp
+  - instruments/oscillo/drivers/speed_test.hpp
+  - instruments/oscillo/drivers/speed_test.cpp
   - drivers/eeprom/eeprom.hpp
   - drivers/spi/spi.hpp
   - drivers/test_memory/test_memory.hpp
