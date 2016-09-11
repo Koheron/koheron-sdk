@@ -4,14 +4,14 @@ set core_name [lindex $argv 0]
 set part_name [lindex $argv 1]
 
 set elements [split $core_name _]
-set instrument_name [join [lrange $elements 0 end-2] _]
+set project_name [join [lrange $elements 0 end-2] _]
 set version [string trimleft [join [lrange $elements end-1 end] .] v]
 
 set cores_dir fpga/cores
 
-file delete -force tmp/cores/$core_name tmp/cores/$instrument_name.cache tmp/cores/$instrument_name.hw tmp/cores/$instrument_name.xpr
+file delete -force tmp/cores/$core_name tmp/cores/$project_name.cache tmp/cores/$project_name.hw tmp/cores/$project_name.xpr
 
-create_instrument -part $part_name $instrument_name tmp/cores
+create_project -part $part_name $project_name tmp/cores
 
 add_files -norecurse [glob $cores_dir/$core_name/*.v]
 
@@ -21,12 +21,12 @@ if {[llength testbench_files] > 0} {
   remove_files $testbench_files
 }
 
-ipx::package_instrument -import_files -root_dir tmp/cores/$core_name
+ipx::package_project -import_files -root_dir tmp/cores/$core_name
 
 set core [ipx::current_core]
 
 set_property VERSION $version $core
-set_property NAME $instrument_name $core
+set_property NAME $project_name $core
 set_property LIBRARY {user} $core
 set_property SUPPORTED_FAMILIES {zynq Production} $core
 
