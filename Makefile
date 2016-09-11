@@ -89,7 +89,7 @@ SHA = $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g'))
 # Zip
 TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
 TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
-TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
+TCP_SERVER = $(TMP)/$(NAME).server.build/kserverd
 DRIVERS_YML = $(TMP)/$(NAME).drivers.yml
 TCP_SERVER_SHA = build
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv

@@ -67,7 +67,7 @@ unzip -o tmp/static.zip -d $root_dir/var/www
 
 # Add Koheron TCP/Websocket Server
 mkdir $root_dir/usr/local/koheron-server
-cp tmp/${name}.koheron-server/tmp/kserverd $root_dir/usr/local/koheron-server
+cp tmp/${name}.server.build/kserverd $root_dir/usr/local/koheron-server
 cp $config_dir/koheron-server.conf $root_dir/usr/local/koheron-server
 cp tmp/${name}.koheron-server/VERSION $root_dir/usr/local/koheron-server
 cp $config_dir/systemd/koheron-server.service $root_dir/etc/systemd/system/koheron-server.service
