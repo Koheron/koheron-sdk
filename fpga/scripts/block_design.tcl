@@ -19,7 +19,7 @@ file delete -force \
   tmp/$prefixed_instrument_name.xpr \
   tmp/$prefixed_instrument_name.sim
 
-create_instrument -part $part_name $prefixed_instrument_name tmp
+create_project -part $part_name $prefixed_instrument_name tmp
 
 set_property IP_REPO_PATHS tmp/cores [current_instrument]
 update_ip_catalog -rebuild -scan_changes
