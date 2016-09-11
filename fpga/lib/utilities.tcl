@@ -15,7 +15,7 @@ proc range {from to} {
  }
 
 # Get a configuration pin
-# name : name of the register defined in the project YAML
+# name : name of the register defined in the instrument YAML
 proc cfg_pin {pin_name} {
   return $::config_name/$pin_name
 }
