@@ -1,5 +1,5 @@
 ---
-project: spectrum
+instrument: spectrum
 parent: base
 
 # ------------------------------------------------------------
@@ -89,15 +89,15 @@ modules:
   - peak_detector
 
 xdc:
-  - projects/base/expansion_connector.xdc
+  - instruments/base/expansion_connector.xdc
 
 # ------------------------------------------------------------
 # Drivers
 # ------------------------------------------------------------
 
 includes:
-  - projects/default/server.yml
-  - projects/default/drivers.yml
+  - instruments/default/server.yml
+  - instruments/default/drivers.yml
 
 drivers:
   - drivers/gpio/gpio.hpp
@@ -105,8 +105,8 @@ drivers:
   - drivers/xadc/xadc.cpp
   - drivers/laser/laser.hpp
   - drivers/laser/laser.cpp
-  - projects/spectrum/drivers/spectrum.hpp
-  - projects/spectrum/drivers/spectrum.cpp
+  - instruments/spectrum/drivers/spectrum.hpp
+  - instruments/spectrum/drivers/spectrum.cpp
   - drivers/eeprom/eeprom.hpp
   - drivers/test_memory/test_memory.hpp
 

@@ -6,8 +6,8 @@ from koheron import load_instrument
 from drivers.spectrum import Spectrum
 
 host = os.getenv('HOST','192.168.1.100')
-project = os.getenv('NAME','')
-client = load_instrument(host, project)
+instrument = os.getenv('NAME','')
+client = load_instrument(host, instrument)
 
 spectrum = Spectrum(client)
 spectrum.reset_acquisition()
