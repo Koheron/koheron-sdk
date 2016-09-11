@@ -10,8 +10,8 @@ tmp
 .Xil
 
 # Jinja generated config files
-projects/*/config.tcl
-projects/*/addresses.hpp
+instruments/*/config.tcl
+instruments/*/addresses.hpp
 
 # Vivado :
 *.jou

@@ -5,8 +5,8 @@ from koheron import load_instrument
 from oscillo import Oscillo
 
 host = os.getenv('HOST','192.168.1.100')
-project = os.getenv('NAME','')
-client = load_instrument(host, project)
+instrument = os.getenv('NAME','')
+client = load_instrument(host, instrument)
 
 oscillo = Oscillo(client)
 oscillo.reset()

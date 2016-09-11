@@ -49,11 +49,11 @@ $ curl http://$(HOST)/api/board/ping
 
 ## Examples of instruments
 
-* [`led_blinker`](https://github.com/Koheron/koheron-sdk/tree/master/projects/led_blinker) : minimal instrument with LED control from Python.
-* [`adc_dac`](https://github.com/Koheron/koheron-sdk/tree/master/projects/adc_dac) : instrument with minimal read/write capability on Red Pitaya ADCs and DACs.
-* [`pulse_generator`](https://github.com/Koheron/koheron-sdk/tree/master/projects/pulse_generator) : pulse generation with synchronous acquisition.
-* [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/projects/oscillo) : signal acquisition / generation with coherent averaging mode.
-* [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/projects/spectrum) : spectrum analyzer with peak-detection and averaging.
+* [`led_blinker`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/led_blinker) : minimal instrument with LED control from Python.
+* [`adc_dac`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/adc_dac) : instrument with minimal read/write capability on Red Pitaya ADCs and DACs.
+* [`pulse_generator`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/pulse_generator) : pulse generation with synchronous acquisition.
+* [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/oscillo) : signal acquisition / generation with coherent averaging mode.
+* [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/spectrum) : spectrum analyzer with peak-detection and averaging.
 
 ## How to
 
@@ -80,7 +80,7 @@ $ make CORE=comparator_v1_0 test_core
 
 Test a Tcl module:
 ```
-$ make NAME=averager PROJECT_PATH=fpga/modules test_module
+$ make NAME=averager INSTRUMENT_PATH=fpga/modules test_module
 ```
 
 

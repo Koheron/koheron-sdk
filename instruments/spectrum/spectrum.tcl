@@ -42,7 +42,7 @@ connect_cell blk_mem_gen_$demod_bram_name {
 }
 
 # Substract noise floor
-source projects/spectrum/noise_floor.tcl
+source instruments/spectrum/noise_floor.tcl
 set subtract_name noise_floor
 add_noise_floor $subtract_name $config::bram_addr_width $adc_clk
 

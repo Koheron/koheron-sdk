@@ -1,15 +1,15 @@
 
-set project_name [lindex $argv 0]
+set instrument_name [lindex $argv 0]
 
 set proc_name [lindex $argv 1]
 
-set hard_path tmp/$project_name.hard
-set fsbl_path tmp/$project_name.fsbl
+set hard_path tmp/$instrument_name.hard
+set fsbl_path tmp/$instrument_name.fsbl
 
 file mkdir $hard_path
-file copy -force tmp/$project_name.hwdef $hard_path/$project_name.hdf
+file copy -force tmp/$instrument_name.hwdef $hard_path/$instrument_name.hdf
 
-open_hw_design $hard_path/$project_name.hdf
+open_hw_design $hard_path/$instrument_name.hdf
 create_sw_design -proc $proc_name -os standalone fsbl
 
 add_library xilffs

@@ -1,6 +1,6 @@
 ---
-project: spectrum
-parent: base
+instrument: oscillo
+parent: base 
 
 # ------------------------------------------------------------
 # Memory
@@ -17,18 +17,9 @@ memory:
   - name: dac[n_dac_bram]
     offset: '0x80000000'
     range: 16K
-  - name: spectrum
+  - name: adc[n_adc]
     offset: '0x86000000'
-    range: 16K
-  - name: demod
-    offset: '0x88000000'
-    range: 16K
-  - name: noise_floor
-    offset: '0x8A000000'
-    range: 16K
-  - name: peak_fifo
-    offset: '0x43C10000'
-    range: 64K
+    range: 32K
   - name: gpio
     offset: '0x41200000'
     range: 64K
@@ -44,39 +35,33 @@ config_registers:
   - led
   - pwm[n_pwm]
   - addr
-  - substract_mean
-  - cfg_fft
-  - avg
+  - avg[n_adc]
   - dac_period[n_dac]
-  - peak_address_low
-  - peak_address_high
-  - peak_address_reset
   - avg_period
   - avg_threshold
-  - n_avg_min
+  - n_avg_min[n_adc]
   - dac_select
   - addr_select
   - clken_mask
 
 status_registers:
   - spi_out
-  - n_avg
-  - peak_address
-  - peak_maximum
-  - avg_ready
-  - avg_on_out
+  - n_avg[n_adc]
+  - avg_ready[n_adc]
+  - avg_on_out[n_adc]
   - counter[2]
 
 parameters:
   fclk0: 200000000
   fclk1: 200000000
-  bram_addr_width: 12
+  bram_addr_width: 13
   dac_width: 14
   adc_width: 14
   pwm_width: 10
   n_pwm: 4
   n_dac_bram: 3
   n_dac: 2
+  n_adc: 2
 
 # ------------------------------------------------------------
 # FPGA
@@ -85,19 +70,17 @@ parameters:
 modules:
   - address
   - averager
-  - spectrum
-  - peak_detector
 
 xdc:
-  - projects/base/expansion_connector.xdc
+  - instruments/base/expansion_connector.xdc
 
 # ------------------------------------------------------------
 # Drivers
 # ------------------------------------------------------------
 
 includes:
-  - projects/default/server.yml
-  - projects/default/drivers.yml
+  - instruments/default/server.yml
+  - instruments/default/drivers.yml
 
 drivers:
   - drivers/gpio/gpio.hpp
@@ -105,13 +88,16 @@ drivers:
   - drivers/xadc/xadc.cpp
   - drivers/laser/laser.hpp
   - drivers/laser/laser.cpp
-  - projects/spectrum/drivers/spectrum.hpp
-  - projects/spectrum/drivers/spectrum.cpp
+  - instruments/oscillo/drivers/oscillo.hpp
+  - instruments/oscillo/drivers/oscillo.cpp
+  - instruments/oscillo/drivers/speed_test.hpp
+  - instruments/oscillo/drivers/speed_test.cpp
   - drivers/eeprom/eeprom.hpp
+  - drivers/spi/spi.hpp
   - drivers/test_memory/test_memory.hpp
 
 # ------------------------------------------------------------
 # Misc
 # ------------------------------------------------------------
 
-live_zip: http://zynq-sdk.s3-website-eu-west-1.amazonaws.com/live-spectrum.zip
+live_zip: http://zynq-sdk.s3-website-eu-west-1.amazonaws.com/live-oscillo.zip
