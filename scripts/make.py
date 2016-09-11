@@ -14,35 +14,35 @@ import requests
 import zipfile
 import StringIO
 
-def get_list(project, prop, project_path='projects', prop_list=None):
+def get_list(instrument, prop, instrument_path='instruments', prop_list=None):
     """ Ex: Get the list of cores needed by the 'oscillo' instrument.
     list = get_list('oscillo', 'cores')
     """
     if prop_list is None: 
        prop_list = []
-    config = load_config(os.path.join(project_path, project))
+    config = load_config(os.path.join(instrument_path, instrument))
     if 'parent' in config and config['parent'] != None:
-        prop_list.extend(get_list(config['parent'], prop, project_path, prop_list))
+        prop_list.extend(get_list(config['parent'], prop, instrument_path, prop_list))
     if prop in config:
         prop_list.extend(config[prop])
-    config_default = load_config('projects/default')
+    config_default = load_config('instruments/default')
     # Ensure each item is only included once:
     prop_list = list(set(prop_list))
     return prop_list
 
-def get_prop(project, prop, project_path='projects'):
-    config = load_config(os.path.join(project_path, project))
+def get_prop(instrument, prop, instrument_path='instruments'):
+    config = load_config(os.path.join(instrument_path, instrument))
     if not prop in config:
         if 'parent' in config:
-            config[prop] = get_prop(config['parent'], prop, project_path)
+            config[prop] = get_prop(config['parent'], prop, instrument_path)
         else:
             #print('Property %s not found', prop)
             return None
     return config[prop]
 
-def load_config(project_dir):
+def load_config(instrument_dir):
     """ Get the config dictionary from the file 'config.yml'. """
-    config_filename = os.path.join(project_dir, 'config.yml')
+    config_filename = os.path.join(instrument_dir, 'config.yml')
     with open(config_filename) as config_file:
         config = yaml.load(config_file)
     return config
@@ -55,19 +55,19 @@ def parse_brackets(string):
     else:
         return string, '1'
 
-def get_config(project, project_path='projects'):
+def get_config(instrument, instrument_path='instruments'):
     """ Get the config dictionary recursively. 
     ex: config = get_config('oscillo')
     """
-    cfg = load_config(os.path.join(project_path, project))
+    cfg = load_config(os.path.join(instrument_path, instrument))
 
     # Get missing elements from ancestors
     lists = ['cores','xdc','modules']
     for list_ in lists:
-        cfg[list_] = get_list(project, list_, project_path=project_path)
+        cfg[list_] = get_list(instrument, list_, instrument_path=instrument_path)
     props = ['board', 'live_zip']
     for prop in props:
-        cfg[prop] = get_prop(project, prop, project_path=project_path)
+        cfg[prop] = get_prop(instrument, prop, instrument_path=instrument_path)
 
     params = cfg['parameters']
 
@@ -117,7 +117,7 @@ def get_config(project, project_path='projects'):
         cfg['cores'] = list(set(cfg['cores']))
     
     # SHA
-    sha_filename = os.path.join('tmp', project + '.sha')
+    sha_filename = os.path.join('tmp', instrument + '.sha')
     if os.path.isfile(sha_filename):
         with open(sha_filename) as sha_file:
             sha = sha_file.read()
@@ -149,7 +149,7 @@ def fill_template(config, template_filename, output_filename):
         output.write(template.render(dic=config))
 
 def fill_config_tcl(config):
-    output_filename = os.path.join('tmp', config['project']+'.config.tcl')
+    output_filename = os.path.join('tmp', config['instrument']+'.config.tcl')
     fill_template(config, 'config.tcl', output_filename)
 
 def fill_memory(config, drivers_dir):
@@ -157,7 +157,7 @@ def fill_memory(config, drivers_dir):
     fill_template(config, 'memory.hpp', output_filename)
 
 def fill_start_sh(config):
-    output_filename = os.path.join('tmp', config['project']+'.start.sh')
+    output_filename = os.path.join('tmp', config['instrument']+'.start.sh')
     fill_template(config, 'start.sh', output_filename)
 
 def get_renderer():
@@ -188,9 +188,9 @@ def get_renderer():
 # Remove numbers from string
 strip_num = lambda string:''.join([char for char in string if char not in "0123456789"])
 
-def test_module_consistency(project):
-    """ Check that the modules registers are defined in the project main.yml."""
-    cfg = get_config(project)
+def test_module_consistency(instrument):
+    """ Check that the modules registers are defined in the instrument config.yml."""
+    cfg = get_config(instrument)
     props = ['config_registers', 'status_registers']
     for module in cfg['modules']:
         module_cfg = get_config(module, 'fpga/modules')
@@ -200,16 +200,16 @@ def test_module_consistency(project):
             b = map(strip_num, set(cfg[prop]))
             assert set(a).issubset(b)
 
-def test_core_consistency(project):
-    """ Check that the modules cores are defined in the project main.yml."""
-    cfg = get_config(project)
+def test_core_consistency(instrument):
+    """ Check that the modules cores are defined in the instrument config.yml."""
+    cfg = get_config(instrument)
     for module in cfg['modules']:
         module_cfg = get_config(module, 'fpga/modules')
         assert set(module_cfg['cores']).issubset(cfg['cores'])
 
-def print_config(project):
-    cfg = get_config(project)
-    print('PROJECT = {}'.format(cfg['project']))
+def print_config(instrument):
+    cfg = get_config(instrument)
+    print('INSTRUMENT = {}'.format(cfg['instrument']))
     print yaml.dump(cfg, default_flow_style=False)
 
 ###################
@@ -227,23 +227,23 @@ if __name__ == "__main__":
     sys.setdefaultencoding('utf-8')
 
     if cmd == '--test':
-        projects = ['led_blinker', 'adc_dac', 'oscillo', 'spectrum']
-        for project in projects:
-            print_config(project)
-            test_module_consistency(project)
-            test_core_consistency(project)
+        instruments = ['led_blinker', 'adc_dac', 'oscillo', 'spectrum']
+        for instrument in instruments:
+            print_config(instrument)
+            test_module_consistency(instrument)
+            test_core_consistency(instrument)
 
     elif cmd == '--split_config_yml':
-        project = sys.argv[2]
-        cfg = load_config(os.path.join(sys.argv[3], project))
+        instrument = sys.argv[2]
+        cfg = load_config(os.path.join(sys.argv[3], instrument))
 
-        dump_if_has_changed(os.path.join('tmp', project + '.drivers.yml'),
+        dump_if_has_changed(os.path.join('tmp', instrument + '.drivers.yml'),
                             {'includes': cfg['includes'], 'drivers': cfg['drivers']})
 
         # We remove components related to the drivers
         del cfg['includes']
         del cfg['drivers']
-        dump_if_has_changed(os.path.join('tmp', project + '.main.yml'), cfg)
+        dump_if_has_changed(os.path.join('tmp', instrument + '.config.yml'), cfg)
 
     elif cmd == '--config_tcl':
         config = get_config(sys.argv[2], sys.argv[3])
@@ -255,23 +255,23 @@ if __name__ == "__main__":
         fill_start_sh(config)
 
     elif cmd == '--cores':
-        project = sys.argv[2]
-        config = get_config(project, project_path=sys.argv[3])
-        cores_filename = os.path.join('tmp', project + '.cores')
+        instrument = sys.argv[2]
+        config = get_config(instrument, instrument_path=sys.argv[3])
+        cores_filename = os.path.join('tmp', instrument + '.cores')
         with open(cores_filename, 'w') as f:
             f.write(' '.join(config['cores']))
 
     elif cmd == '--board':
-        project = sys.argv[2]
-        config = get_config(project, project_path=sys.argv[3])
-        board_filename = os.path.join('tmp', project + '.board')
+        instrument = sys.argv[2]
+        config = get_config(instrument, instrument_path=sys.argv[3])
+        board_filename = os.path.join('tmp', instrument + '.board')
         with open(board_filename, 'w') as f:
             f.write(config['board'])
 
     elif cmd == '--drivers':
-        project = sys.argv[2]
-        project_path = sys.argv[3]
-        drivers_filename = os.path.join(project_path, project, 'config.yml')
+        instrument = sys.argv[2]
+        instrument_path = sys.argv[3]
+        drivers_filename = os.path.join(instrument_path, instrument, 'config.yml')
 
         if os.path.isfile(drivers_filename):
             with open(drivers_filename) as drivers_file:
@@ -287,30 +287,30 @@ if __name__ == "__main__":
                     else:
                         drivers[key] = value
 
-        with open(os.path.join('tmp', project + '.drivers'), 'w') as f:
+        with open(os.path.join('tmp', instrument + '.drivers'), 'w') as f:
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
 
     elif cmd == '--xdc':
-        project = sys.argv[2]
-        config = get_config(project, project_path=sys.argv[3])
-        xdc_filename = os.path.join('tmp', project + '.xdc')
+        instrument = sys.argv[2]
+        config = get_config(instrument, instrument_path=sys.argv[3])
+        xdc_filename = os.path.join('tmp', instrument + '.xdc')
         with open(xdc_filename, 'w') as f:
             f.write(' '.join(config['xdc']))
 
     elif cmd == '--live_zip':
-        project = sys.argv[2]
-        config = get_config(project, project_path=sys.argv[3])
+        instrument = sys.argv[2]
+        config = get_config(instrument, instrument_path=sys.argv[3])
         zip_url = config['live_zip']
         print(zip_url)
         r = requests.get(zip_url, stream=True)
         z = zipfile.ZipFile(StringIO.StringIO(r.content))
-        z.extractall('tmp/%s.live' % project)
+        z.extractall('tmp/%s.live' % instrument)
 
 
     elif cmd == '--middleware':
-        project = sys.argv[2]
-        config = get_config(project, project_path=sys.argv[3])
-        dest =  'tmp/' + project + '.middleware/drivers'
+        instrument = sys.argv[2]
+        config = get_config(instrument, instrument_path=sys.argv[3])
+        dest =  'tmp/' + instrument + '.middleware/drivers'
         if not os.path.exists(dest):
             os.makedirs(dest)
         fill_memory(config, dest)
