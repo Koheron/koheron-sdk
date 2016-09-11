@@ -5,8 +5,8 @@ from koheron import load_instrument
 from eeprom import Eeprom
 
 host = os.getenv('HOST','192.168.1.100')
-project = os.getenv('NAME','')
-client = load_instrument(host, project)
+instrument = os.getenv('NAME','')
+client = load_instrument(host, instrument)
 
 eeprom = Eeprom(client)
 
