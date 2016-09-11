@@ -1,25 +1,25 @@
 
-set project_name [lindex $argv 0]
+set instrument_name [lindex $argv 0]
 
-set project_path [lindex $argv 1]
+set instrument_path [lindex $argv 1]
 
 set part_name [lindex $argv 2]
 
-file delete -force tmp/$project_name.cache tmp/$project_name.hw tmp/$project_name.srcs tmp/$project_name.runs tmp/$project_name.xpr tmp/$project_name.sim
+file delete -force tmp/$instrument_name.cache tmp/$instrument_name.hw tmp/$instrument_name.srcs tmp/$instrument_name.runs tmp/$instrument_name.xpr tmp/$instrument_name.sim
 
-create_project -part $part_name $project_name tmp
+create_instrument -part $part_name $instrument_name tmp
 
-set_property IP_REPO_PATHS tmp/cores [current_project]
+set_property IP_REPO_PATHS tmp/cores [current_instrument]
 update_ip_catalog
 
-set bd_path tmp/$project_name.srcs/sources_1/bd/system
+set bd_path tmp/$instrument_name.srcs/sources_1/bd/system
 
 create_bd_design system
 
 set lib fpga/lib
 source $lib/utilities.tcl
 
-source $project_path/$project_name/block_design.tcl
+source $instrument_path/$instrument_name/block_design.tcl
 
 rename cell {}
 
@@ -28,7 +28,7 @@ make_wrapper -files [get_files $bd_path/system.bd] -top
 
 add_files -norecurse $bd_path/hdl/system_wrapper.v
 
-add_files -norecurse $project_path/$project_name/test_bench.v
+add_files -norecurse $instrument_path/$instrument_name/test_bench.v
 
 set_property -name {xsim.simulate.runtime} -value {100000ns} -objects [current_fileset -simset]
 
