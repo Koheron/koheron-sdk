@@ -102,11 +102,8 @@ includes:
 drivers:
   - drivers/gpio/gpio.hpp
   - drivers/xadc/xadc.hpp
-  - drivers/xadc/xadc.cpp
   - drivers/laser/laser.hpp
-  - drivers/laser/laser.cpp
   - instruments/spectrum/drivers/spectrum.hpp
-  - instruments/spectrum/drivers/spectrum.cpp
   - drivers/eeprom/eeprom.hpp
   - drivers/test_memory/test_memory.hpp
 
