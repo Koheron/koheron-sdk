@@ -3,7 +3,7 @@ source $lib/bram.tcl
 # Dual DAC controller
 # DAC1 and DAC2 values are extracted in paralell from the same 32 bits BRAM register
 
-proc add_dual_dac_controller {module_name bram_name dac_width} {
+proc add_dual_dac_controller {module_name bram_name dac_width {intercon_idx 1} {default_hexval 0}} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
@@ -16,7 +16,7 @@ proc add_dual_dac_controller {module_name bram_name dac_width} {
     create_bd_pin -dir O -from [expr $dac_width - 1] -to 0 dac$i
   }
 
-  add_bram $bram_name [set config::axi_${bram_name}_range] [set config::axi_${bram_name}_offset]
+  add_bram $bram_name [set config::axi_${bram_name}_range] [set config::axi_${bram_name}_offset]  $intercon_idx $default_hexval
 
   connect_cell blk_mem_gen_$bram_name {
     clkb clk
@@ -41,7 +41,7 @@ proc add_dual_dac_controller {module_name bram_name dac_width} {
 # Single DAC controller
 # 2 consecutive DAC values are extracted from the same 32 bits BRAM register
 
-proc add_single_dac_controller {module_name bram_name dac_width} {
+proc add_single_dac_controller {module_name bram_name dac_width {intercon_idx 1} {default_hexval 0}} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
@@ -52,7 +52,7 @@ proc add_single_dac_controller {module_name bram_name dac_width} {
 
   create_bd_pin -dir O -from [expr $dac_width - 1] -to 0 dac
 
-  add_bram $bram_name [set config::axi_${bram_name}_range] [set config::axi_${bram_name}_offset]
+  add_bram $bram_name [set config::axi_${bram_name}_range] [set config::axi_${bram_name}_offset] $intercon_idx $default_hexval
 
   connect_cell blk_mem_gen_$bram_name {
     clkb clk
