@@ -236,13 +236,9 @@ if __name__ == "__main__":
     elif cmd == '--split_config_yml':
         instrument = sys.argv[2]
         cfg = load_config(os.path.join(sys.argv[3], instrument))
+        dump_if_has_changed(os.path.join('tmp', instrument + '.drivers.yml'), cfg['server'])
 
-        dump_if_has_changed(os.path.join('tmp', instrument + '.drivers.yml'),
-                            {'includes': cfg['includes'], 'drivers': cfg['drivers']})
-
-        # We remove components related to the drivers
-        del cfg['includes']
-        del cfg['drivers']
+        del cfg['server']
         dump_if_has_changed(os.path.join('tmp', instrument + '.config.yml'), cfg)
 
     elif cmd == '--config_tcl':
@@ -306,11 +302,10 @@ if __name__ == "__main__":
         z = zipfile.ZipFile(StringIO.StringIO(r.content))
         z.extractall('tmp/%s.live' % instrument)
 
-
     elif cmd == '--middleware':
         instrument = sys.argv[2]
         config = get_config(instrument, instrument_path=sys.argv[3])
-        dest =  'tmp/' + instrument + '.middleware/drivers'
+        dest =  'tmp/' + instrument + '.server.build/drivers'
         if not os.path.exists(dest):
             os.makedirs(dest)
         fill_memory(config, dest)

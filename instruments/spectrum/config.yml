@@ -95,20 +95,18 @@ xdc:
 # Drivers
 # ------------------------------------------------------------
 
-includes:
-  - instruments/default/server.yml
-  - instruments/default/drivers.yml
+server:
+  includes:
+    - instruments/default/server.yml
+    - instruments/default/drivers.yml
 
-drivers:
-  - drivers/gpio/gpio.hpp
-  - drivers/xadc/xadc.hpp
-  - drivers/xadc/xadc.cpp
-  - drivers/laser/laser.hpp
-  - drivers/laser/laser.cpp
-  - instruments/spectrum/drivers/spectrum.hpp
-  - instruments/spectrum/drivers/spectrum.cpp
-  - drivers/eeprom/eeprom.hpp
-  - drivers/test_memory/test_memory.hpp
+  drivers:
+    - drivers/gpio/gpio.hpp
+    - drivers/xadc/xadc.hpp
+    - drivers/laser/laser.hpp
+    - instruments/spectrum/drivers/spectrum.hpp
+    - drivers/eeprom/eeprom.hpp
+    - drivers/test_memory/test_memory.hpp
 
 # ------------------------------------------------------------
 # Misc

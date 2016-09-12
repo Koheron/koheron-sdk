@@ -26,6 +26,7 @@ CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(INSTRUMENT_PATH) && c
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).xdc)
 DRIVERS_LIB=$(wildcard drivers/lib/*hpp) $(wildcard drivers/lib/*cpp)
+MEMORY_HPP=$(TMP)/$(NAME).server.build/drivers/memory.hpp
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
@@ -88,9 +89,9 @@ SHA = $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g'))
 # Zip
 TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
 TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
-TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
-SERVER_CONFIG = $(TMP)/$(NAME).drivers.yml
-TCP_SERVER_SHA = master
+TCP_SERVER = $(TMP)/$(NAME).server.build/kserverd
+DRIVERS_YML = $(TMP)/$(NAME).drivers.yml
+TCP_SERVER_SHA = build
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
 
@@ -114,20 +115,11 @@ METADATA = $(TMP)/metadata.json
 
 .PRECIOUS: $(TMP)/cores/% $(TMP)/%.xpr $(TMP)/%.hwdef $(TMP)/%.bit $(TMP)/%.fsbl/executable.elf $(TMP)/%.tree/system.dts
 
-.PHONY: all linux help debug
+.PHONY: all linux debug
 
 all: $(ZIP)
 
 linux: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv
-
-help:
-	@echo - server: Build the server
-	@echo - bd: Build the block design interactively
-	@echo - xpr: Build the Vivado project
-	@echo - bit: Build the bitstream
-	@echo - http: Build the HTTP API
-	@echo - run: Run the instrument
-	@echo - test: Test the instrument
 
 debug:
 	@echo INSTRUMENT DIRECTORY = $(INSTRUMENT_PATH)/$(NAME)
@@ -139,10 +131,19 @@ $(TMP):
 	mkdir -p $(TMP)
 
 ###############################################################################
-# API
+# Commands
 ###############################################################################
 
-.PHONY: bd server xpr bit http run
+.PHONY: help bd server xpr bit http run
+
+help:
+	@echo ' - run    Run the instrument'
+	@echo ' - bd     Build the block design interactively'
+	@echo ' - xpr    Build the Vivado project'
+	@echo ' - bit    Build the bitstream'
+	@echo ' - server Build the server'
+	@echo ' - http   Build the HTTP API'
+	@echo ' - test   Test the instrument'
 
 # Run Vivado interactively and build block design
 bd: $(CONFIG_TCL) $(XDC) $(INSTRUMENT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
@@ -331,7 +332,6 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 $(TCP_SERVER_DIR):
 	test -d $(TCP_SERVER_DIR) || git clone $(TCP_SERVER_URL) $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
-	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR)/VERSION
 	@echo [$@] OK
 
 $(TCP_SERVER_DIR)/requirements.txt: $(TCP_SERVER_DIR)
@@ -340,22 +340,16 @@ $(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
 ifeq ($(DOCKER),True)
 	/usr/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
 else
-	test -d $(TCP_SERVER_VENV) || virtualenv $(TCP_SERVER_VENV)
-	$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
+	test -d $(TCP_SERVER_VENV) || (virtualenv $(TCP_SERVER_VENV) && $(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt)
 endif
 
-$(TCP_SERVER_MIDDLEWARE)/%: %
-	mkdir -p -- `dirname -- $@`
-	cp $^ $@
-	@echo [$@] OK
-
-$(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
-               $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) \
-               $(DRIVERS_LIB) instruments/default/server.yml
+$(MEMORY_HPP): $(CONFIG_YML)
 	python $(MAKE_PY) --middleware $(NAME) $(INSTRUMENT_PATH)
-	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
-	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. \
-	  PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all
+
+$(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(DRIVERS_YML) $(DRIVERS) \
+               $(DRIVERS_LIB) $(MEMORY_HPP) instruments/default/server.yml
+	make -C $(TCP_SERVER_DIR) CONFIG=$(DRIVERS_YML) BASE_DIR=../.. \
+	  PYTHON=$(PYTHON) TMP=../../$(TMP)/$(NAME).server.build
 	@echo [$@] OK
 
 ###############################################################################
