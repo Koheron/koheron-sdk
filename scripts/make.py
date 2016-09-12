@@ -271,7 +271,7 @@ if __name__ == "__main__":
 
         if os.path.isfile(drivers_filename):
             with open(drivers_filename) as drivers_file:
-                drivers = yaml.load(drivers_file)
+                drivers = yaml.load(drivers_file)['server']
         else:
             drivers = {}
 
