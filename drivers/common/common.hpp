@@ -101,7 +101,7 @@ class Common
 
                 // Write IP address in FPGA memory
                 // The 8 Least Significant Bits should be connected to the FPGA LEDs
-                cfg.write<reg::led>(ip);
+                cfg.write_mask<reg::led, 0xFF>(ip);
                 break;
             }
 
