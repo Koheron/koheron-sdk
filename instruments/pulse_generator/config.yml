@@ -47,9 +47,10 @@ xdc:
 
 # Drivers
 
-includes: 
-  - instruments/default/server.yml
-  - instruments/default/drivers.yml
+server:
+  includes:
+    - instruments/default/server.yml
+    - instruments/default/drivers.yml
 
-drivers:
-  - instruments/pulse_generator/pulse.hpp
+  drivers:
+    - instruments/pulse_generator/pulse.hpp

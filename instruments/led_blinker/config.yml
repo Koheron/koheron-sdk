@@ -29,9 +29,10 @@ xdc:
 
 # Drivers
 
-includes:
-  - instruments/default/server.yml
-  - instruments/default/drivers.yml
+server:
+  includes:
+    - instruments/default/server.yml
+    - instruments/default/drivers.yml
 
-drivers:
-  - instruments/led_blinker/led_blinker.hpp
+  drivers:
+    - instruments/led_blinker/led_blinker.hpp
