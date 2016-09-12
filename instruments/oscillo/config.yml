@@ -85,16 +85,15 @@ includes:
 drivers:
   - drivers/gpio/gpio.hpp
   - drivers/xadc/xadc.hpp
-  - drivers/xadc/xadc.cpp
   - drivers/laser/laser.hpp
-  - drivers/laser/laser.cpp
   - instruments/oscillo/drivers/oscillo.hpp
-  - instruments/oscillo/drivers/oscillo.cpp
   - instruments/oscillo/drivers/speed_test.hpp
-  - instruments/oscillo/drivers/speed_test.cpp
   - drivers/eeprom/eeprom.hpp
   - drivers/spi/spi.hpp
   - drivers/test_memory/test_memory.hpp
+
+dependencies:
+  - drivers/lib/spi_dev.cpp
 
 # ------------------------------------------------------------
 # Misc
