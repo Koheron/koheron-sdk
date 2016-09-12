@@ -237,13 +237,17 @@ if __name__ == "__main__":
         instrument = sys.argv[2]
         cfg = load_config(os.path.join(sys.argv[3], instrument))
 
-        dump_if_has_changed(os.path.join('tmp', instrument + '.drivers.yml'),
-                            {'includes': cfg['includes'], 'drivers': cfg['drivers'], 'dependencies': cfg['dependencies']})
+        if 'dependencies' in cfg:
+            drivers_dict = {'includes': cfg['includes'], 'drivers': cfg['drivers'], 'dependencies': cfg['dependencies']}
+        else:
+            drivers_dict = {'includes': cfg['includes'], 'drivers': cfg['drivers']}
+        dump_if_has_changed(os.path.join('tmp', instrument + '.drivers.yml'), drivers_dict)
 
         # We remove components related to the drivers
         del cfg['includes']
         del cfg['drivers']
-        del cfg['dependencies']
+        if 'dependencies' in cfg:
+            del cfg['dependencies']
         dump_if_has_changed(os.path.join('tmp', instrument + '.config.yml'), cfg)
 
     elif cmd == '--config_tcl':

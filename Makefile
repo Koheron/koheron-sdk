@@ -332,7 +332,6 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 $(TCP_SERVER_DIR):
 	test -d $(TCP_SERVER_DIR) || git clone $(TCP_SERVER_URL) $(TCP_SERVER_DIR)
 	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
-	echo `cd $(TCP_SERVER_DIR) && git rev-parse HEAD` > $(TCP_SERVER_DIR).VERSION
 	@echo [$@] OK
 
 $(TCP_SERVER_DIR)/requirements.txt: $(TCP_SERVER_DIR)
@@ -341,14 +340,13 @@ $(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
 ifeq ($(DOCKER),True)
 	/usr/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
 else
-	test -d $(TCP_SERVER_VENV) || virtualenv $(TCP_SERVER_VENV)
-	$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
+	test -d $(TCP_SERVER_VENV) || (virtualenv $(TCP_SERVER_VENV) && $(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt)
 endif
 
 $(MEMORY_HPP): $(CONFIG_YML)
 	python $(MAKE_PY) --middleware $(NAME) $(INSTRUMENT_PATH)
 
-$(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(DRIVERS_YML) \
+$(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(DRIVERS_YML) $(DRIVERS) \
                $(DRIVERS_LIB) $(MEMORY_HPP) instruments/default/server.yml
 	make -C $(TCP_SERVER_DIR) CONFIG=$(DRIVERS_YML) BASE_DIR=../.. \
 	  PYTHON=$(PYTHON) TMP=../../$(TMP)/$(NAME).server.build
