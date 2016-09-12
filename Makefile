@@ -18,9 +18,8 @@ MAKE_PY = scripts/make.py
 # Store all build artifacts in TMP
 TMP = tmp
 
-DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(NAME) $(INSTRUMENT_PATH))
-
 # properties defined in MAIN_YML :
+DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(NAME) $(INSTRUMENT_PATH))
 BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).board)
 CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).cores)
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).drivers)
@@ -174,8 +173,8 @@ test_core:
 test_driver_%: drivers/%/test.py
 	py.test -v $<
 
-test: $(INSTRUMENT_PATH)/$(NAME)/python/test.py
-	py.test -v $<
+test: $(INSTRUMENT_PATH)/$(NAME)/test.py
+	HOST=$(HOST) python $<
 
 test_app: os/tests/tests_instrument_manager.py
 	py.test -v $<
