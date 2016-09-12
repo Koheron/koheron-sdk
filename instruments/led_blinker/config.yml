@@ -1,5 +1,5 @@
 ---
-project: led_blinker
+instrument: led_blinker
 parent: default
 board: red-pitaya
 
@@ -25,13 +25,13 @@ parameters:
   fclk0: 50000000 # FPGA clock speed in Hz
 
 xdc:
-  - projects/led_blinker/constraints.xdc
+  - instruments/led_blinker/constraints.xdc
 
 # Drivers
 
 includes:
-  - projects/default/server.yml
-  - projects/default/drivers.yml
+  - instruments/default/server.yml
+  - instruments/default/drivers.yml
 
 drivers:
-  - projects/led_blinker/led_blinker.hpp
+  - instruments/led_blinker/led_blinker.hpp

@@ -1,5 +1,5 @@
 ---
-project: spectrum
+instrument: spectrum
 #parent: default
 board: red-pitaya
 

@@ -2,29 +2,29 @@
 # Build and run the instrument: $ make NAME=spectrum HOST=192.168.1.12 run
 ###############################################################################
 
-PROJECT_PATH = projects
+INSTRUMENT_PATH = instruments
 NAME = led_blinker
 HOST = 192.168.1.100
 
 ###############################################################################
-# Get the project configuration
-# MAKE_PY script parses the properties defined MAIN_YML
+# Get the instrument configuration
+# MAKE_PY script parses the properties defined CONFIG_YML
 ###############################################################################
 
-MAIN_YML = $(TMP)/$(NAME).main.yml
+CONFIG_YML = $(TMP)/$(NAME).config.yml
 
 MAKE_PY = scripts/make.py
 
 # Store all build artifacts in TMP
 TMP = tmp
 
-DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(NAME) $(PROJECT_PATH))
+DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(NAME) $(INSTRUMENT_PATH))
 
 # properties defined in MAIN_YML :
-BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).board)
-CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).cores)
-DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).drivers)
-XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(PROJECT_PATH) && cat $(TMP)/$(NAME).xdc)
+BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).board)
+CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).cores)
+DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).drivers)
+XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).xdc)
 DRIVERS_LIB=$(wildcard drivers/lib/*hpp) $(wildcard drivers/lib/*cpp)
 
 PART:=`cat boards/$(BOARD)/PART`
@@ -130,7 +130,7 @@ help:
 	@echo - test: Test the instrument
 
 debug:
-	@echo PROJECT DIRECTORY = $(PROJECT_PATH)/$(NAME)
+	@echo INSTRUMENT DIRECTORY = $(INSTRUMENT_PATH)/$(NAME)
 	@echo CORES = $(CORES)
 	@echo DRIVERS = $(DRIVERS)
 	@echo DRIVERS_LIB = $(DRIVERS_LIB)
@@ -145,8 +145,8 @@ $(TMP):
 .PHONY: bd server xpr bit http run
 
 # Run Vivado interactively and build block design
-bd: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
-	vivado -nolog -nojournal -source fpga/scripts/block_design.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART) $(BOARD) block_design_
+bd: $(CONFIG_TCL) $(XDC) $(INSTRUMENT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+	vivado -nolog -nojournal -source fpga/scripts/block_design.tcl -tclargs $(NAME) $(INSTRUMENT_PATH) $(PART) $(BOARD) block_design_
 
 server: $(TCP_SERVER)
 xpr: $(TMP)/$(NAME).xpr
@@ -165,7 +165,7 @@ run: $(ZIP)
 .PHONY: test_module test_core test_driver_% test test_app
 
 test_module: $(CONFIG_TCL) fpga/modules/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
-	vivado -source fpga/scripts/test_module.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART)
+	vivado -source fpga/scripts/test_module.tcl -tclargs $(NAME) $(INSTRUMENT_PATH) $(PART)
 
 test_core:
 	vivado -source fpga/scripts/test_core.tcl -tclargs $(CORE) $(PART)
@@ -173,7 +173,7 @@ test_core:
 test_driver_%: drivers/%/test.py
 	py.test -v $<
 
-test: $(PROJECT_PATH)/$(NAME)/python/test.py
+test: $(INSTRUMENT_PATH)/$(NAME)/python/test.py
 	py.test -v $<
 
 test_app: os/tests/tests_instrument_manager.py
@@ -196,7 +196,7 @@ $(SHA_FILE):
 ###############################################################################
 
 $(CONFIG_TCL): $(MAKE_PY) $(MAIN_YML) $(SHA_FILE) $(TEMPLATE_DIR)/config.tcl
-	python $(MAKE_PY) --config_tcl $(NAME) $(PROJECT_PATH)
+	python $(MAKE_PY) --config_tcl $(NAME) $(INSTRUMENT_PATH)
 	@echo [$@] OK
 
 $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
@@ -204,9 +204,9 @@ $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
 	$(VIVADO) -source fpga/scripts/core.tcl -tclargs $* $(PART)
 	@echo [$@] OK
 
-$(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(INSTRUMENT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
-	$(VIVADO) -source fpga/scripts/project.tcl -tclargs $(NAME) $(PROJECT_PATH) $(PART) $(BOARD)
+	$(VIVADO) -source fpga/scripts/project.tcl -tclargs $(NAME) $(INSTRUMENT_PATH) $(PART) $(BOARD)
 	@echo [$@] OK
 
 $(TMP)/$(NAME).bit: $(TMP)/$(NAME).xpr
@@ -325,7 +325,7 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 	@echo [$@] OK
 
 ###############################################################################
-# koheron-server (compiled with project specific middleware)
+# koheron-server (compiled with instrument specific middleware)
 ###############################################################################
 
 $(TCP_SERVER_DIR):
@@ -351,8 +351,8 @@ $(TCP_SERVER_MIDDLEWARE)/%: %
 
 $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
                $(addprefix $(TCP_SERVER_MIDDLEWARE)/, $(DRIVERS)) \
-               $(DRIVERS_LIB) projects/default/server.yml
-	python $(MAKE_PY) --middleware $(NAME) $(PROJECT_PATH)
+               $(DRIVERS_LIB) instruments/default/server.yml
+	python $(MAKE_PY) --middleware $(NAME) $(INSTRUMENT_PATH)
 	cp -R drivers/lib $(TCP_SERVER_MIDDLEWARE)/drivers/
 	cd $(TCP_SERVER_DIR) && make CONFIG=$(SERVER_CONFIG) BASE_DIR=../.. \
 	  PYTHON=$(PYTHON) MIDWARE_PATH=$(TCP_SERVER_MIDDLEWARE) clean all
@@ -363,11 +363,11 @@ $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(SERVER_CONFIG) \
 ###############################################################################
 
 $(START_SH): $(MAKE_PY) $(MAIN_YML) $(TEMPLATE_DIR)/start.sh
-	python $(MAKE_PY) --start_sh $(NAME) $(PROJECT_PATH)
+	python $(MAKE_PY) --start_sh $(NAME) $(INSTRUMENT_PATH)
 	@echo [$@] OK
 
 $(LIVE_DIR): $(TMP) $(MAIN_YML)
-	python $(MAKE_PY) --live_zip $(NAME) $(PROJECT_PATH)
+	python $(MAKE_PY) --live_zip $(NAME) $(INSTRUMENT_PATH)
 	@echo [$@] OK
 
 $(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
@@ -415,14 +415,14 @@ $(STATIC_ZIP): $(TMP)
 # Clean target
 ###############################################################################
 
-.PHONY: clean clean_project clean_server clean_cores clean_xpr
+.PHONY: clean clean_instrument clean_server clean_cores clean_xpr
 
 clean:
 	$(RM) uImage fw_printenv boot.bin devicetree.dtb $(TMP)
 	$(RM) .Xil usage_statistics_webtalk.html usage_statistics_webtalk.xml
 	$(RM) webtalk*.log webtalk*.jou
 
-clean_project:
+clean_instrument:
 	$(RM) $(TMP)/$(NAME).* $(TMP)/$(NAME)-*.zip
 
 clean_server:
