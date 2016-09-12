@@ -241,6 +241,10 @@ proc get_address_offset {name} {
   return [set config::axi_${name}_offset]
 }
 
+proc get_address_depth {name {width 32}} {
+  return [expr [string map {K *1024 M *1024*1024} [get_address_range $name]] * 8 / $width]
+}
+
 ########################################################
 # Add AXI Master Interface to memory interconnect
 ########################################################
