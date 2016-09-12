@@ -173,8 +173,8 @@ test_core:
 test_driver_%: drivers/%/test.py
 	py.test -v $<
 
-test: $(INSTRUMENT_PATH)/$(NAME)/python/test.py
-	py.test -v $<
+test: $(INSTRUMENT_PATH)/$(NAME)/test.py
+	HOST=$(HOST) python $<
 
 test_app: os/tests/tests_instrument_manager.py
 	py.test -v $<
