@@ -18,7 +18,7 @@ MAKE_PY = scripts/make.py
 # Store all build artifacts in TMP
 TMP = tmp
 
-# properties defined in MAIN_YML :
+# properties defined in CONFIG_YML :
 DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(NAME) $(INSTRUMENT_PATH))
 BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).board)
 CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).cores)
@@ -195,7 +195,7 @@ $(SHA_FILE):
 # FPGA
 ###############################################################################
 
-$(CONFIG_TCL): $(MAKE_PY) $(MAIN_YML) $(SHA_FILE) $(TEMPLATE_DIR)/config.tcl
+$(CONFIG_TCL): $(MAKE_PY) $(CONFIG_YML) $(SHA_FILE) $(TEMPLATE_DIR)/config.tcl
 	python $(MAKE_PY) --config_tcl $(NAME) $(INSTRUMENT_PATH)
 	@echo [$@] OK
 
@@ -355,11 +355,11 @@ $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(DRIVERS_YML) $(DRIVERS) \
 # Instrument ZIP file (contains bitstream and server)
 ###############################################################################
 
-$(START_SH): $(MAKE_PY) $(MAIN_YML) $(TEMPLATE_DIR)/start.sh
+$(START_SH): $(MAKE_PY) $(CONFIG_YML) $(TEMPLATE_DIR)/start.sh
 	python $(MAKE_PY) --start_sh $(NAME) $(INSTRUMENT_PATH)
 	@echo [$@] OK
 
-$(LIVE_DIR): $(TMP) $(MAIN_YML)
+$(LIVE_DIR): $(TMP) $(CONFIG_YML)
 	python $(MAKE_PY) --live_zip $(NAME) $(INSTRUMENT_PATH)
 	@echo [$@] OK
 
