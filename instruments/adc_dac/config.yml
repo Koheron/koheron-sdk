@@ -1,6 +1,6 @@
 ---
 instrument: adc_dac
-parent: default
+parent: instruments/default
 board: red-pitaya
 
 cores:

@@ -1,8 +1,6 @@
 ---
 instrument: base
-
-parent: default
-
+parent: instruments/default
 board: red-pitaya
 
 cores:

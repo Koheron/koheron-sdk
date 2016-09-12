@@ -1,6 +1,6 @@
 ---
 instrument: spectrum
-parent: base
+parent: instruments/base
 
 # ------------------------------------------------------------
 # Memory
