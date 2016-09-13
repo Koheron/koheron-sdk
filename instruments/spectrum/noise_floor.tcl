@@ -6,9 +6,7 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
 
   create_bd_pin -dir I -type clk      clk
   create_bd_pin -dir I -from 31 -to 0 s_axis_tdata
-  create_bd_pin -dir I -from 0  -to 0 s_axis_tvalid
-
-  #create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 S_AXIS
+  create_bd_pin -dir I                s_axis_tvalid
 
   create_bd_pin -dir O -from 31 -to 0 m_axis_result_tdata
   create_bd_pin -dir O                m_axis_result_tvalid
@@ -22,11 +20,9 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
     CE s_axis_tvalid
   }
 
-  set bram_name noise_floor_bram
-  add_bram $bram_name $::config::axi_noise_floor_range $::config::axi_noise_floor_offset
+  set bram_name [add_bram noise_floor 1]
 
-  # TODO add rst port
-  connect_cell blk_mem_gen_$bram_name {
+  connect_cell $bram_name {
     clkb clk
     addrb address_counter/Q
     rstb /$::rst_adc_clk_name/peripheral_reset
@@ -48,7 +44,7 @@ proc add_noise_floor_module {module_name bram_addr_width clk} {
     s_axis_a_tvalid [get_Q_pin s_axis_tvalid 1]
     s_axis_b_tvalid [get_Q_pin s_axis_tvalid 1]
     s_axis_a_tdata [get_Q_pin s_axis_tdata 1]
-    s_axis_b_tdata blk_mem_gen_$bram_name/doutb
+    s_axis_b_tdata $bram_name/doutb
     m_axis_result_tdata m_axis_result_tdata
     m_axis_result_tvalid m_axis_result_tvalid
 }
