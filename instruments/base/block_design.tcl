@@ -57,7 +57,7 @@ connect_cell $interconnect_name {
 
 for {set i 1} {$i <= $config::n_dac_bram} {incr i} {
   set dac_controller_name dac${i}_ctrl 
-  add_single_dac_controller $dac_controller_name dac$i $config::dac_width
+  add_single_dac_controller $dac_controller_name dac$i $config::dac_width 1
   connect_cell $dac_controller_name {
     clk  $adc_clk
     addr $addr_intercon_name/out[expr $i-1]

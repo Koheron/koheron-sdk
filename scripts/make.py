@@ -32,7 +32,6 @@ def get_list(instrument, prop, instrument_path='instruments', prop_list=None):
         prop_list.extend(get_list(instrum_name, prop, instrum_path, prop_list))
     if prop in config:
         prop_list.extend(config[prop])
-    config_default = load_config('instruments/default')
     # Ensure each item is only included once:
     prop_list = list(set(prop_list))
     return prop_list
@@ -44,7 +43,6 @@ def get_prop(instrument, prop, instrument_path='instruments'):
             instrum_path, instrum_name = split_parent(config['parent'])
             config[prop] = get_prop(instrum_name, prop, instrum_path)
         else:
-            #print('Property %s not found', prop)
             return None
     return config[prop]
 
