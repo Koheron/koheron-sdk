@@ -20,74 +20,20 @@ class KoheronAPIApp(Flask):
     def __init__(self, *args, **kwargs):
         super(KoheronAPIApp, self).__init__(*args, **kwargs)
 
-        self.load_config()
+        self.config['INSTRUMENTS_DIR'] = '/usr/local/instruments/'
+        self.instruments = {}
+
         self.load_metadata()
         self.live_instrument = {'name': None, 'sha': None}
         self.start_last_deployed_instrument()
         self.get_instruments()
-        self.get_remote_static()
 
-    def load_config(self):
-        try:
-            with open('api_app/config.yml', 'r') as config_file:
-                self.config.update(yaml.load(config_file))
-                
-            if self.config['MODE'] == 'release':
-                self.get_release_description()
-            else: # debug
-                self.release = {}
-        except:
-            log('error', 'Cannot load config')
+
 
     def load_metadata(self):
-        try:
-            with open('metadata.json', 'r') as f:
-                self.metadata = json.load(f)
-        except:
-            log('error', 'Cannot load metadata')
-            self.metadata = {}
-
-    def get_release_description(self):
-        try:
-            testfile = urllib.URLopener()
-            testfile.retrieve(self.config['S3_URL'] + 'releases.yml', '/tmp/releases.yml')
-            with open('/tmp/releases.yml') as f:
-                self.release = yaml.load(f)
-        except:
-            log('warning', 'No remote connection. Cannot load release.')
-            self.release = {}
-
-    def get_remote_static(self):
-        if self.config['MODE'] == 'debug':
-            try:
-                testfile = urllib.URLopener()
-                testfile.retrieve(self.config['S3_URL'] + 'apps', '/tmp/apps')
-                with open('/tmp/apps') as f:
-                    self.remote_static = f.readline().split(' ')
-            except:
-                log('warning', 'No remote connection.')
-                self.remote_static = []
-        else: # release
-            if 'app' in self.release:
-                self.remote_static = [self.release['app']]
-
-        self.get_instrument_upgrades()
-
-    def upload_latest_static(self):
-        self.get_remote_static()
-
-        if len(self.remote_static) == 0:
-            log('error', 'No remote static found.')
-            return -1
-
-        try:
-            testfile = urllib.URLopener()
-            url = self.config['S3_URL'] + 'app-' + self.remote_static[0] + '.zip'
-            testfile.retrieve(url, '/tmp/static.zip')
-            return 0
-        except:
-            log('error', 'No remote connection. No app update performed.')
-            return -1
+        self.metadata = {}
+        with open('metadata.json', 'r') as f:
+            self.metadata = json.load(f)
 
     def unzip_static(self):
         if os.path.exists('/tmp/static'):
@@ -98,7 +44,7 @@ class KoheronAPIApp(Flask):
         copy_tree('/tmp/static/ui', '/var/www/ui')
 
     # ------------------------
-    # tcp-server client
+    # koheron-server client
     # ------------------------
 
     def start_client(self):
@@ -134,58 +80,26 @@ class KoheronAPIApp(Flask):
     # ------------------------
 
     def get_instruments(self):
-        self.get_remote_instruments()
-        self.get_local_instruments()
-        self.get_instrument_upgrades()
-
-    def get_remote_instruments(self):
-        self.remote_instruments = {}
-        if self.config['MODE'] == 'debug':
-            try:
-                testfile = urllib.URLopener()
-                url = self.config['S3_URL'] + 'instruments.json'
-                testfile.retrieve(url, '/tmp/instruments.json')
-                with open('/tmp/instruments.json') as data_file:
-                    self.remote_instruments = json.load(data_file)
-            except:
-                log('warning', 'No remote connection. Use only local instruments.')
-        else: # release
-            if 'instruments' in self.release:
-                for instrument in self.release['instruments']:
-                    self.remote_instruments[instrument['name']] = [instrument['version']]
-
-    def get_local_instruments(self):
-        self.local_instruments = {}
         if os.path.exists(self.config['INSTRUMENTS_DIR']):
             for file_ in os.listdir(self.config['INSTRUMENTS_DIR']):
                 if self.is_valid_instrument_file(file_):
                     self.append_instrument_to_list(file_)
 
-    def get_instrument_upgrades(self):
-        self.instrument_upgrades = []
-        for name_local, shas_local in self.local_instruments.iteritems():
-            for name_remote, shas_remote in self.remote_instruments.iteritems():
-                if name_local == name_remote and shas_remote[0] not in shas_local:
-                    self.instrument_upgrades.append({
-                      'name': name_local,
-                      'sha_upgrade': shas_remote[0]
-                    })
-
     def append_instrument_to_list(self, zip_filename):
         name_, sha_ = self._tokenize_zipfilename(zip_filename)
-        for name, shas in self.local_instruments.iteritems():
+        for name, shas in self.instruments.iteritems():
             if name == name_ and (sha_ not in shas):
                 shas.append(sha_)
                 return
-        self.local_instruments[name_] = [sha_] # New instrument
+        self.instruments[name_] = [sha_] # New instrument
 
     def remove_instrument_from_list(self, zip_filename):
         name_, sha_ = self._tokenize_zipfilename(zip_filename)
-        for name, shas in self.local_instruments.iteritems():
+        for name, shas in self.instruments.iteritems():
             if name == name_ and sha_ in shas:
                 shas.remove(sha_)
                 if len(shas) == 0:
-                    del self.local_instruments[name]
+                    del self.instruments[name]
                 return
 
     def save_uploaded_instrument(self, zip_filename):
@@ -232,8 +146,7 @@ class KoheronAPIApp(Flask):
 
     def is_bitstream_id_valid(self):
         id_ = self.common.get_bitstream_id()
-        hash_ = hashlib.sha256(self.live_instrument["name"] + '-'
-                             + self.live_instrument["sha"])
+        hash_ = hashlib.sha256(self.live_instrument["name"] + '-' + self.live_instrument["sha"])
         if not hash_.hexdigest() == id_:
             log('error', 'Corrupted instrument: ID mismatch' 
                   + '\n* Bitstream ID:\n' + id_ 
@@ -242,28 +155,27 @@ class KoheronAPIApp(Flask):
         return True
 
     def store_last_deployed_zip(self, zip_filename):
-        zip_store_filename = os.path.join(self.config['INSTRUMENTS_DIR'], 
-                                          os.path.basename(zip_filename))
+        zip_store_filename = os.path.join(self.config['INSTRUMENTS_DIR'], os.path.basename(zip_filename))
         if not os.path.exists(zip_store_filename):
             shutil.copy(zip_filename, self.config['INSTRUMENTS_DIR'])
         with open(os.path.join(self.config['INSTRUMENTS_DIR'], '.instruments'), 'w') as f:
             f.write('last_deployed: ' + zip_store_filename)
 
     def get_last_deployed_instrument(self):
-        if os.path.exists(os.path.join(self.config['INSTRUMENTS_DIR'], '.instruments')):
-            with open(os.path.join(self.config['INSTRUMENTS_DIR'], '.instruments'), 'r') as f:
-                tokens = f.readline().split(':')
-                if tokens[0].strip() != 'last_deployed':
-                    log('error', 'Corrupted file .instruments')
-                    return {}
-                name, sha = self._tokenize_zipfilename(os.path.basename(tokens[1].strip()))
-                return {'name': name, 'sha': sha}
+        with open(os.path.join(self.config['INSTRUMENTS_DIR'], '.instruments'), 'r') as f:
+            tokens = f.readline().split(':')
+            if tokens[0].strip() != 'last_deployed':
+                log('error', 'Corrupted file .instruments')
+                return {}
+            name, sha = self._tokenize_zipfilename(os.path.basename(tokens[1].strip()))
+            return {'name': name, 'sha': sha}
         return {}
 
     def start_last_deployed_instrument(self):
         log('notice', 'Start last deployed instrument')
-        if os.path.exists(os.path.join(self.config['INSTRUMENTS_DIR'], '.instruments')):
-            with open(os.path.join(self.config['INSTRUMENTS_DIR'], '.instruments'), 'r') as f:
+        instrument_path = os.path.join(self.config['INSTRUMENTS_DIR'], '.instruments')
+        if os.path.exists(instrument_path):
+            with open(instrument_path, 'r') as f:
                 tokens = f.readline().split(':')
                 if tokens[0].strip() != 'last_deployed':
                     log('error', 'Corrupted file .instruments')

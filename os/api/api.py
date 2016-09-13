@@ -1,6 +1,6 @@
 from api_app import api_app
 
-from flask import Flask, jsonify, request, url_for, make_response
+from flask import Flask, jsonify, request, make_response
 from werkzeug import secure_filename
 
 import urllib
@@ -30,22 +30,9 @@ def upgrade_app():
 def api_version():
     return jsonify(api_app.metadata)
 
-@api_app.route('/api/app/remote', methods=['GET'])
-def remote_apps():
-    return jsonify({'apps': api_app.remote_apps})
-
 # ------------------------
 # Static
 # ------------------------
-
-@api_app.route('/api/static/update', methods=['GET'])
-def update_static():
-    if api_app.upload_latest_static() < 0:
-        return make_response('Upload failed')
-    else:
-       api_app.unzip_static()
-       api_app.copy_static()
-       return make_response('Updating app')
 
 @api_app.route('/api/static/upload', methods=['POST'])
 def upload_static():
@@ -95,10 +82,6 @@ def init():
 # Instruments
 # ------------------------
 
-@api_app.route('/api/instruments/update', methods=['GET'])
-def update_instruments():
-    return make_response("update instrument not implemented")
-
 @api_app.route('/api/instruments/run/<name>/<sha>', methods=['GET'])
 def run_instrument(name, sha):
     zip_filename = '{}-{}.zip'.format(name, sha)
@@ -133,18 +116,9 @@ def upload_instrument():
             return make_response('Instrument ' + filename + ' uploaded.')
     return make_response('Instrument upload failed.')
 
-@api_app.route('/api/instruments/upload/<name>/<sha>', methods=['GET'])
-def upload_remote_instrument(name, sha):
-    filename = secure_filename(zip_filename)
-    tmp_file = os.path.join('/tmp/', filename)
-    urllib.urlretrieve(app.config['S3_URL'] + filename, tmp_file)
-    api_app.append_instrument_to_list(tmp_file)
-    api_app.save_uploaded_instrument(tmp_file)
-    return make_response('Instrument ' + filename + ' uploaded.')
-
 @api_app.route('/api/instruments/local', methods=['GET'])
 def get_local_instruments():
-    return jsonify(api_app.local_instruments)
+    return jsonify(api_app.instruments)
 
 @api_app.route('/api/instruments/live', methods=['GET'])
 def get_live_instrument():
