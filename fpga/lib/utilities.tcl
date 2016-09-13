@@ -233,16 +233,21 @@ proc cell {cell_vlnv cell_name {cell_props {}} {cell_ports {}}} {
 # Addresses
 ########################################################
 
-proc get_address_range {name} {
-  return [set config::axi_${name}_range]
+proc get_memory_range {memory_name} {
+  return [set config::axi_${memory_name}_range]
 }
 
-proc get_address_offset {name} {
-  return [set config::axi_${name}_offset]
+proc get_memory_offset {memory_name} {
+  return [set config::axi_${memory_name}_offset]
 }
 
-proc get_address_depth {name {width 32}} {
-  return [expr [string map {K *1024 M *1024*1024} [get_address_range $name]] * 8 / $width]
+proc get_memory_depth {memory_name {width 32}} {
+  return [expr [string map {K *1024 M *1024*1024} [get_memory_range $memory_name]] * 8 / $width]
+}
+
+proc get_memory_addr_width {memory_name} {
+  set depth [get_memory_depth $memory_name]
+  return [expr int(ceil(log($depth)/log(2)))]
 }
 
 ########################################################

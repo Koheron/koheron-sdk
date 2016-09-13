@@ -33,10 +33,7 @@ for {set i 0} {$i < [get_parameter n_adc]} {incr i} {
 
 # Add DAC controller
 source $lib/bram.tcl
-set bram_name dac
-add_bram $bram_name [get_address_range $bram_name] [get_address_offset $bram_name] 0
-
-set dac_bram_name blk_mem_gen_${bram_name}
+set dac_bram_name [add_bram dac 0]
 
 connect_pins adc_dac/dac1 [get_slice_pin $dac_bram_name/doutb 13 0]
 connect_pins adc_dac/dac2 [get_slice_pin $dac_bram_name/doutb 29 16]
@@ -104,7 +101,7 @@ cell xilinx.com:ip:axi_fifo_mm_s:4.1 adc_axis_fifo {
 }
 
 assign_bd_address [get_bd_addr_segs adc_axis_fifo/S_AXI/Mem0]
-set memory_segment [get_bd_addr_segs /${::ps_name}/Data/SEG_adc_axis_fifo_Mem0]
-set_property offset [get_address_offset adc_fifo] $memory_segment
-set_property range [get_address_range adc_fifo] $memory_segment
+set memory_segment  [get_bd_addr_segs /${::ps_name}/Data/SEG_adc_axis_fifo_Mem0]
+set_property offset [get_memory_offset adc_fifo] $memory_segment
+set_property range  [get_memory_range adc_fifo]  $memory_segment
 

@@ -13,9 +13,9 @@ proc add_bram_recorder {module_name memory_name} {
   create_bd_pin -dir I -type clk clk
   create_bd_pin -dir I rst
 
-  add_bram $memory_name
+  set bram_name [add_bram $memory_name]
 
-  connect_cell blk_mem_gen_$memory_name {
+  connect_cell $bram_name {
     addrb addr
     dinb adc
     clkb clk

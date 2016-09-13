@@ -8,7 +8,7 @@ proc add_dual_dac_controller {module_name memory_name dac_width {intercon_idx 1}
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir I -from [expr $config::bram_addr_width + 1] -to 0 addr
+  create_bd_pin -dir I -from [expr [get_memory_addr_width $memory_name] + 1] -to 0 addr
   create_bd_pin -dir I -type clk clk
   create_bd_pin -dir I rst
 
@@ -16,9 +16,9 @@ proc add_dual_dac_controller {module_name memory_name dac_width {intercon_idx 1}
     create_bd_pin -dir O -from [expr $dac_width - 1] -to 0 dac$i
   }
 
-  add_bram $memory_name $intercon_idx $default_hexval
+  set bram_name [add_bram $memory_name $intercon_idx $default_hexval]
 
-  connect_cell blk_mem_gen_$memory_name {
+  connect_cell $bram_name {
     clkb clk
     addrb addr
     rstb rst
@@ -31,7 +31,7 @@ proc add_dual_dac_controller {module_name memory_name dac_width {intercon_idx 1}
   for {set i 0} {$i < 2} {incr i} {
     set from [expr $dac_width-1+16*$i]
     set to   [expr 16*$i]
-    connect_pins dac$i [get_slice_pin blk_mem_gen_$memory_name/doutb $from $to]
+    connect_pins dac$i [get_slice_pin $bram_name/doutb $from $to]
   }
 
   current_bd_instance $bd
@@ -46,15 +46,15 @@ proc add_single_dac_controller {module_name memory_name dac_width {intercon_idx 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir I -from [expr $config::bram_addr_width + 1] -to 0 addr
+  create_bd_pin -dir I -from [expr [get_memory_addr_width $memory_name] + 2] -to 0 addr
   create_bd_pin -dir I -type clk clk
   create_bd_pin -dir I rst
 
   create_bd_pin -dir O -from [expr $dac_width - 1] -to 0 dac
 
-  add_bram $memory_name $intercon_idx $default_hexval
+  set bram_name [add_bram $memory_name $intercon_idx $default_hexval]
 
-  connect_cell blk_mem_gen_$memory_name {
+  connect_cell $bram_name {
     clkb clk
     rstb rst
     dinb [get_constant_pin 0 32]
@@ -69,8 +69,8 @@ proc add_single_dac_controller {module_name memory_name dac_width {intercon_idx 
     WIDTH $dac_width
   } {
     sel [get_slice_pin addr 2 2]
-    in0 [get_slice_pin blk_mem_gen_$memory_name/doutb [expr $dac_width-1] 0]
-    in1 [get_slice_pin blk_mem_gen_$memory_name/doutb [expr $dac_width-1 + 16] 16]
+    in0 [get_slice_pin $bram_name/doutb [expr $dac_width-1] 0]
+    in1 [get_slice_pin $bram_name/doutb [expr $dac_width-1 + 16] 16]
     out dac
   }
 
