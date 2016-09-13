@@ -21,11 +21,14 @@ class KoheronAPIApp(Flask):
         super(KoheronAPIApp, self).__init__(*args, **kwargs)
 
         self.config['INSTRUMENTS_DIR'] = '/usr/local/instruments/'
+        self.instruments = {}
 
         self.load_metadata()
         self.live_instrument = {'name': None, 'sha': None}
         self.start_last_deployed_instrument()
         self.get_instruments()
+
+
 
     def load_metadata(self):
         self.metadata = {}
@@ -41,7 +44,7 @@ class KoheronAPIApp(Flask):
         copy_tree('/tmp/static/ui', '/var/www/ui')
 
     # ------------------------
-    # tcp-server client
+    # koheron-server client
     # ------------------------
 
     def start_client(self):
@@ -77,10 +80,6 @@ class KoheronAPIApp(Flask):
     # ------------------------
 
     def get_instruments(self):
-        self.get_local_instruments()
-
-    def get_local_instruments(self):
-        self.local_instruments = {}
         if os.path.exists(self.config['INSTRUMENTS_DIR']):
             for file_ in os.listdir(self.config['INSTRUMENTS_DIR']):
                 if self.is_valid_instrument_file(file_):
@@ -88,19 +87,19 @@ class KoheronAPIApp(Flask):
 
     def append_instrument_to_list(self, zip_filename):
         name_, sha_ = self._tokenize_zipfilename(zip_filename)
-        for name, shas in self.local_instruments.iteritems():
+        for name, shas in self.instruments.iteritems():
             if name == name_ and (sha_ not in shas):
                 shas.append(sha_)
                 return
-        self.local_instruments[name_] = [sha_] # New instrument
+        self.instruments[name_] = [sha_] # New instrument
 
     def remove_instrument_from_list(self, zip_filename):
         name_, sha_ = self._tokenize_zipfilename(zip_filename)
-        for name, shas in self.local_instruments.iteritems():
+        for name, shas in self.instruments.iteritems():
             if name == name_ and sha_ in shas:
                 shas.remove(sha_)
                 if len(shas) == 0:
-                    del self.local_instruments[name]
+                    del self.instruments[name]
                 return
 
     def save_uploaded_instrument(self, zip_filename):

@@ -1,6 +1,6 @@
 from api_app import api_app
 
-from flask import Flask, jsonify, request, url_for, make_response
+from flask import Flask, jsonify, request, make_response
 from werkzeug import secure_filename
 
 import urllib
@@ -127,7 +127,7 @@ def upload_instrument():
 
 @api_app.route('/api/instruments/local', methods=['GET'])
 def get_local_instruments():
-    return jsonify(api_app.local_instruments)
+    return jsonify(api_app.instruments)
 
 @api_app.route('/api/instruments/live', methods=['GET'])
 def get_live_instrument():
