@@ -28,10 +28,9 @@ connect_pins $recorder_name/clk   $adc_clk
 connect_pins $recorder_name/rst   $rst_adc_clk_name/peripheral_reset
 
 # Add demod BRAM
-set demod_bram_name    demod_bram
-add_bram $demod_bram_name $config::axi_demod_range $config::axi_demod_offset
+set demod_bram_name [add_bram demod 1]
 
-connect_cell blk_mem_gen_$demod_bram_name {
+connect_cell $demod_bram_name {
   clkb  $adc_clk
   rstb  $rst_adc_clk_name/peripheral_reset
   doutb $spectrum_name/demod_data
