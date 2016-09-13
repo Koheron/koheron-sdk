@@ -1,5 +1,5 @@
 
-proc add_bram {memory_name {intercon_idx 1} {default_hexval 0}} {
+proc add_bram {memory_name {intercon_idx 0} {default_hexval 0}} {
 
   # Add a new Master Interface to AXI Interconnect
   set idx [add_master_interface $intercon_idx]
@@ -11,8 +11,8 @@ proc add_bram {memory_name {intercon_idx 1} {default_hexval 0}} {
   } {
     s_axi_aclk /[set ::ps_clk$intercon_idx]
     s_axi_aresetn /[set ::rst${intercon_idx}_name]/peripheral_aresetn
+    S_AXI /axi_mem_intercon_$intercon_idx/M${idx}_AXI
   }
-  connect_bd_intf_net [get_bd_intf_pins axi_bram_ctrl_$memory_name/S_AXI] [get_bd_intf_pins /axi_mem_intercon_$intercon_idx/M${idx}_AXI]
 
   set bram_name blk_mem_gen_$memory_name
 

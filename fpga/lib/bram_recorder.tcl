@@ -2,7 +2,7 @@ source $lib/bram.tcl
 
 # Single BRAM recorder (32 bit width)
 
-proc add_bram_recorder {module_name memory_name} {
+proc add_bram_recorder {module_name memory_name {intercon_idx 0}} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
@@ -13,7 +13,7 @@ proc add_bram_recorder {module_name memory_name} {
   create_bd_pin -dir I -type clk clk
   create_bd_pin -dir I rst
 
-  set bram_name [add_bram $memory_name]
+  set bram_name [add_bram $memory_name $intercon_idx]
 
   connect_cell $bram_name {
     addrb addr

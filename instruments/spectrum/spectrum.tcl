@@ -23,7 +23,7 @@ connect_cell $spectrum_name {
 # Add spectrum recorder
 source $lib/bram_recorder.tcl
 set recorder_name spectrum_recorder
-add_bram_recorder $recorder_name spectrum
+add_bram_recorder $recorder_name spectrum 1
 connect_pins $recorder_name/clk   $adc_clk
 connect_pins $recorder_name/rst   $rst_adc_clk_name/peripheral_reset
 

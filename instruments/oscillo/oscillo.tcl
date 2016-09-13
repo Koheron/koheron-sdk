@@ -10,8 +10,8 @@ for {set i 0} {$i < 2} {incr i} {
   set adc_bram_name adc${i}_bram
   set avg_name      avg$i
 
-  set adc_recorder_name adc_recorder$i 
-  add_bram_recorder $adc_recorder_name adc[expr {$i + 1}]
+  set adc_recorder_name adc_recorder$i
+  add_bram_recorder $adc_recorder_name adc[expr {$i + 1}]  1
 
   connect_cell $adc_recorder_name {
     clk   $adc_clk

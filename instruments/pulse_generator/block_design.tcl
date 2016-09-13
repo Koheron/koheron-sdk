@@ -33,7 +33,7 @@ for {set i 0} {$i < [get_parameter n_adc]} {incr i} {
 
 # Add DAC controller
 source $lib/bram.tcl
-set dac_bram_name [add_bram dac 0]
+set dac_bram_name [add_bram dac]
 
 connect_pins adc_dac/dac1 [get_slice_pin $dac_bram_name/doutb 13 0]
 connect_pins adc_dac/dac2 [get_slice_pin $dac_bram_name/doutb 29 16]
