@@ -34,15 +34,6 @@ def api_version():
 # Static
 # ------------------------
 
-@api_app.route('/api/static/update', methods=['GET'])
-def update_static():
-    if api_app.upload_latest_static() < 0:
-        return make_response('Upload failed')
-    else:
-       api_app.unzip_static()
-       api_app.copy_static()
-       return make_response('Updating app')
-
 @api_app.route('/api/static/upload', methods=['POST'])
 def upload_static():
     if request.method == 'POST':
