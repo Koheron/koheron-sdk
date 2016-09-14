@@ -1,6 +1,6 @@
 machine:
   python:
-    version: 2.7.6
+    version: 2.7.11
 
 # https://discuss.circleci.com/t/caching-apt-get-install-results/563/3
 dependencies:
@@ -20,10 +20,9 @@ dependencies:
       if [[ ! -d "$HOME/.local/debs" ]]; then \
         mkdir -p "$HOME/.local/debs"; cd "$HOME/.local/debs" \
         && sudo apt-get download -o=dir::cache="$HOME/.local/debs" gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf \
-      ; fi 
+      ; fi
   post:
-    - sudo dpkg -i $HOME/.local/debs/*.deb
-    - sudo apt-get install -f
+    - sudo dpkg -i $HOME/.local/debs/*.deb && apt-get install -f
     - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
     - sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
