@@ -4,6 +4,7 @@ machine:
 
 # https://discuss.circleci.com/t/caching-apt-get-install-results/563/3
 dependencies:
+  cache_directories:
     - "tmp/koheron_server_venv"
   pre:
     - pip install Jinja2==2.7.3
