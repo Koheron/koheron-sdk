@@ -22,6 +22,7 @@ dependencies:
         && sudo apt-get download -o=dir::cache="$HOME/.local/debs" gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf \
       ; fi
   post:
+    - sudo apt-get build-dep $HOME/.local/debs/*.deb
     - sudo dpkg -i $HOME/.local/debs/*.deb
     - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
