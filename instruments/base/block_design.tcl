@@ -6,7 +6,7 @@ source boards/$board_name/gpio.tcl
 add_gpio
 
 # Add PWM
-source $lib/pwm.tcl
+source fpga/lib/pwm.tcl
 add_pwm pwm $pwm_clk $config::pwm_width $config::n_pwm
 
 for {set i 0} {$i < $config::n_pwm} {incr i} {
@@ -28,7 +28,7 @@ connect_cell $address_name {
 
 # Add address interconnect
 
-source $lib/interconnect.tcl
+source fpga/lib/interconnect.tcl
 set addr_intercon_name addr_intercon
 interconnect::create $addr_intercon_name [expr [get_memory_addr_width dac0] + 3] [get_parameter n_dac] [get_parameter n_dac_bram]
 
@@ -44,7 +44,7 @@ for {set i 0} {$i <  [get_parameter n_dac]} {incr i} {
 
 # Add DAC controller
 
-source $lib/dac_controller.tcl
+source fpga/lib/dac_controller.tcl
 
 set interconnect_name dac_interconnect
 interconnect::create $interconnect_name [get_parameter dac_width] [get_parameter n_dac_bram] 2

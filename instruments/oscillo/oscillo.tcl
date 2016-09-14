@@ -1,5 +1,5 @@
 source fpga/modules/averager/averager.tcl
-source $lib/bram_recorder.tcl
+source fpga/lib/bram_recorder.tcl
 
 ###########################################################
 # Add ADC BRAM recorders
