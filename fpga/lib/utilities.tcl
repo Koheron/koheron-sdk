@@ -17,12 +17,12 @@ proc range {from to} {
 # Get a configuration pin
 # name : name of the register defined in the instrument YAML
 proc cfg_pin {pin_name} {
-  return $::config_name/$pin_name
+  return cfg/$pin_name
 }
 
 # Get a status pin
 proc sts_pin {pin_name} {
-  return $::status_name/$pin_name
+  return sts/$pin_name
 }
 
 # Get a parameter defined in main.yml
@@ -234,11 +234,11 @@ proc cell {cell_vlnv cell_name {cell_props {}} {cell_ports {}}} {
 ########################################################
 
 proc get_memory_range {memory_name} {
-  return [set config::axi_${memory_name}_range]
+  return [set config::memory_${memory_name}_range]
 }
 
 proc get_memory_offset {memory_name} {
-  return [set config::axi_${memory_name}_offset]
+  return [set config::memory_${memory_name}_offset]
 }
 
 proc get_memory_depth {memory_name {width 32}} {
