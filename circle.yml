@@ -12,6 +12,7 @@ dependencies:
   pre:
     - pip install Jinja2==2.7.3
     - pip install PyYAML==3.11
+    - pip install requests==2.11.1
     - make tmp/koheron_server_venv
     - sudo bash -c "echo deb http://fr.archive.ubuntu.com/ubuntu/ wily main >> /etc/apt/sources.list"
     - sudo bash -c "echo deb-src http://fr.archive.ubuntu.com/ubuntu/ wily main >> /etc/apt/sources.list"
