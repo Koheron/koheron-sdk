@@ -5,8 +5,8 @@ set_property -dict [list CONFIG.S00_HAS_REGSLICE {1}] [get_bd_cells axi_mem_inte
 source fpga/modules/spectrum/spectrum.tcl
 
 set spectrum_name spectrum_0
-set n_pts_fft [expr 2**$config::bram_addr_width]
-spectrum::create $spectrum_name $n_pts_fft $config::adc_width
+set n_pts_fft [get_memory_depth spectrum]
+spectrum::create $spectrum_name $n_pts_fft [get_parameter adc_width]
 
 for {set i 1} {$i < 3} {incr i} {
   connect_pins spectrum_0/adc$i adc_dac/adc$i
@@ -21,7 +21,7 @@ connect_cell $spectrum_name {
 }
 
 # Add spectrum recorder
-source $lib/bram_recorder.tcl
+source fpga/lib/bram_recorder.tcl
 set recorder_name spectrum_recorder
 add_bram_recorder $recorder_name spectrum 1
 connect_pins $recorder_name/clk   $adc_clk
@@ -43,7 +43,7 @@ connect_cell $demod_bram_name {
 # Substract noise floor
 source instruments/spectrum/noise_floor.tcl
 set subtract_name noise_floor
-add_noise_floor $subtract_name $config::bram_addr_width $adc_clk
+add_noise_floor $subtract_name [get_memory_addr_width spectrum] $adc_clk
 
 connect_cell $subtract_name {
   clk $adc_clk
@@ -54,7 +54,7 @@ connect_cell $subtract_name {
 # Add averaging module
 source fpga/modules/averager/averager.tcl
 set avg_name avg0
-averager::create $avg_name $config::bram_addr_width
+averager::create $avg_name [get_memory_addr_width spectrum]
 
 connect_cell $avg_name {
   clk         $adc_clk
@@ -80,7 +80,7 @@ connect_cell $subtract_name {
 
 source fpga/modules/peak_detector/peak_detector.tcl
 set peak_detector_name peak
-peak_detector::create $peak_detector_name $config::bram_addr_width
+peak_detector::create $peak_detector_name [get_memory_addr_width spectrum]
 
 connect_cell $peak_detector_name {
   clk $adc_clk
@@ -121,8 +121,8 @@ cell xilinx.com:ip:axi_fifo_mm_s:4.1 peak_axis_fifo {
 
 assign_bd_address [get_bd_addr_segs peak_axis_fifo/S_AXI/Mem0]
 set memory_segment [get_bd_addr_segs /${::ps_name}/Data/SEG_peak_axis_fifo_Mem0]
-set_property offset $config::axi_peak_fifo_offset $memory_segment
-set_property range $config::axi_peak_fifo_range $memory_segment
+set_property offset [get_memory_offset peak_fifo] $memory_segment
+set_property range  [get_memory_range peak_fifo]  $memory_segment
 
 
 

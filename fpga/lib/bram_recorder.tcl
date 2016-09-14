@@ -7,7 +7,7 @@ proc add_bram_recorder {module_name memory_name {intercon_idx 0}} {
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  create_bd_pin -dir I -from [expr $config::bram_addr_width + 1] -to 0 addr
+  create_bd_pin -dir I -from [expr [get_memory_addr_width $memory_name] + 1] -to 0 addr
   create_bd_pin -dir I -from 31 -to 0 adc
   create_bd_pin -dir I -from 3  -to 0 wen
   create_bd_pin -dir I -type clk clk
