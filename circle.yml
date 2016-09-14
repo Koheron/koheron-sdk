@@ -20,7 +20,7 @@ dependencies:
       if [[ ! -d "$HOME/.local/debs" ]]; then \
         mkdir -p "$HOME/.local/debs"; cd "$HOME/.local/debs" \
         && sudo apt-get download -o=dir::cache="$HOME/.local/debs" gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf \
-      ; fi
+      ; fi 
   post:
     - sudo dpkg -i $HOME/.local/debs/*.deb
     - sudo apt-get install -f
