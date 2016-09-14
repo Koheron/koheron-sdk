@@ -1,5 +1,5 @@
 # Timer
-source $lib/timer.tcl
+source fpga/lib/timer.tcl
 set timer_name timer
 timer::create $timer_name
 
