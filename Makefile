@@ -37,13 +37,6 @@ VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
 
-DOCKER ?= False
-ifeq ($(DOCKER),True)
-	PYTHON=/usr/bin/python
-else
-	PYTHON=$(TCP_SERVER_VENV)/bin/python
-endif
-
 ###############################################################################
 # Linux and U-boot
 ###############################################################################
@@ -93,9 +86,9 @@ DRIVERS_YML = $(TMP)/$(NAME).drivers.yml
 TCP_SERVER_SHA = master
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
 TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
+PYTHON=$(TCP_SERVER_VENV)/bin/python
 
 START_SH = $(TMP)/$(NAME).start.sh
-
 ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
 # App
@@ -336,11 +329,7 @@ $(TCP_SERVER_DIR):
 $(TCP_SERVER_DIR)/requirements.txt: $(TCP_SERVER_DIR)
 
 $(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
-ifeq ($(DOCKER),True)
-	/usr/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
-else
 	test -d $(TCP_SERVER_VENV) || (virtualenv $(TCP_SERVER_VENV) && $(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt)
-endif
 
 $(MEMORY_HPP): $(CONFIG_YML)
 	python $(MAKE_PY) --middleware $(NAME) $(INSTRUMENT_PATH)
