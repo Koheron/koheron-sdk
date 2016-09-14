@@ -2,10 +2,10 @@ source boards/$board_name/config/ports.tcl
 
 # Add PS and AXI Interconnect
 set board_preset boards/$board_name/config/board_preset.tcl
-source $lib/starting_point.tcl
+source fpga/lib/starting_point.tcl
 
 # Add ADCs and DACs
-source $lib/redp_adc_dac.tcl
+source fpga/lib/redp_adc_dac.tcl
 set adc_dac_name adc_dac
 add_redp_adc_dac $adc_dac_name
 
@@ -20,7 +20,7 @@ cell xilinx.com:ip:proc_sys_reset:5.0 $rst_adc_clk_name {} {
 }
 
 # Add config and status registers
-source $lib/cfg_sts.tcl
+source fpga/lib/cfg_sts.tcl
 add_cfg_sts $adc_clk $rst_adc_clk_name/peripheral_aresetn
 
 # Connect LEDs
@@ -32,7 +32,7 @@ for {set i 0} {$i < [get_parameter n_adc]} {incr i} {
 }
 
 # Add DAC controller
-source $lib/bram.tcl
+source fpga/lib/bram.tcl
 set dac_bram_name [add_bram dac]
 
 connect_pins adc_dac/dac1 [get_slice_pin $dac_bram_name/doutb 13 0]

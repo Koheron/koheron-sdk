@@ -16,7 +16,7 @@ memory:
     protection: read
   - name: dac[n_dac_bram]
     offset: '0x80000000'
-    range: 16K
+    range: 8K
   - name: spectrum
     offset: '0x86000000'
     range: 16K
@@ -70,7 +70,6 @@ status_registers:
 parameters:
   fclk0: 200000000
   fclk1: 200000000
-  bram_addr_width: 12
   dac_width: 14
   adc_width: 14
   pwm_width: 10

@@ -28,8 +28,7 @@ set bd_path tmp/$prefixed_instrument_name.srcs/sources_1/bd/system
 
 create_bd_design system
 
-set lib fpga/lib
-source $lib/utilities.tcl
+source fpga/lib/utilities.tcl
 
 # Source configuration file generated from the template scripts/templates/config.tcl
 source tmp/$instrument_name.config.tcl
