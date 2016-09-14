@@ -3,21 +3,23 @@ machine:
     version: 2.7.6
 
 dependencies:
-  cache_directories:
-    - "tmp/koheron_server_venv"
   pre:
     - pip install Jinja2==2.7.3
     - pip install PyYAML==3.11
-    - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-    - sudo apt-get update; sudo apt-get install gcc-5 g++-5
-    - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100
-    - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
+    # - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+    # - sudo apt-get update; sudo apt-get install gcc-5 g++-5
+    # - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100
+    # - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
     - sudo bash -c "echo deb http://fr.archive.ubuntu.com/ubuntu/ wily main >> /etc/apt/sources.list"
     - sudo bash -c "echo deb-src http://fr.archive.ubuntu.com/ubuntu/ wily main >> /etc/apt/sources.list"
-    - sudo apt-get update; sudo apt-get install gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf
+    - sudo apt-get update; sudo apt-get install gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf
+    - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100
+    - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
     - sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
     - sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-5 /usr/bin/arm-linux-gnueabihf-g++
 
 test:
+  cache_directories:
+    - "tmp/koheron_server_venv"
   pre:
     - bash scripts/tests/ci_tests.sh
