@@ -3,6 +3,8 @@ machine:
     version: 2.7.6
 
 dependencies:
+  cache_directories:
+    - "tmp/koheron_server_venv"
   pre:
     - pip install Jinja2==2.7.3
     - pip install PyYAML==3.11
@@ -17,9 +19,8 @@ dependencies:
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
     - sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
     - sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-5 /usr/bin/arm-linux-gnueabihf-g++
+    - make tmp/koheron_server_venv
 
 test:
-  cache_directories:
-    - "tmp/koheron_server_venv"
   pre:
     - bash scripts/tests/ci_tests.sh
