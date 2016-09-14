@@ -4,11 +4,7 @@ machine:
 
 # https://discuss.circleci.com/t/caching-apt-get-install-results/563/3
 dependencies:
-  override:
-    - /bin/true
-  cache_directories:
     - "tmp/koheron_server_venv"
-    - "~/.local"
   pre:
     - pip install Jinja2==2.7.3
     - pip install PyYAML==3.11
@@ -16,15 +12,7 @@ dependencies:
     - make tmp/koheron_server_venv
     - sudo bash -c "echo deb http://fr.archive.ubuntu.com/ubuntu/ wily main >> /etc/apt/sources.list"
     - sudo bash -c "echo deb-src http://fr.archive.ubuntu.com/ubuntu/ wily main >> /etc/apt/sources.list"
-    - sudo apt-get update
-    - >-
-      if [[ ! -d "$HOME/.local/debs" ]]; then \
-        mkdir -p "$HOME/.local/debs"; cd "$HOME/.local/debs" \
-        && sudo apt-get download -o=dir::cache="$HOME/.local/debs" gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf \
-      ; fi
-  post:
-    - sudo dpkg -i --force-depends $HOME/.local/debs/*.deb
-    - sudo apt-get install -f
+    - sudo apt-get update; sudo apt-get install gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf
     - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
     - sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
