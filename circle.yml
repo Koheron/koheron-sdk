@@ -10,8 +10,8 @@ dependencies:
     - ls -l /usr/bin
     - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
-    - echo "deb http://fr.archive.ubuntu.com/ubuntu/ wily main" >> /etc/apt/sources.list
-    - echo "deb-src http://fr.archive.ubuntu.com/ubuntu/ wily main" >> /etc/apt/sources.list
+    - sudo sed -i "deb http://fr.archive.ubuntu.com/ubuntu/ wily main" /etc/apt/sources.list
+    - sudo sed -i "deb-src http://fr.archive.ubuntu.com/ubuntu/ wily main" /etc/apt/sources.list
     - sudo apt-get update; sudo apt-get install gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf
     - sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
     - sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-5 /usr/bin/arm-linux-gnueabihf-g++
