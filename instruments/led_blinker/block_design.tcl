@@ -1,9 +1,9 @@
 # Add PS and AXI Interconnect
 set board_preset boards/$board_name/config/board_preset.tcl
-source $lib/starting_point.tcl
+source fpga/lib/starting_point.tcl
 
 # Add config and status registers
-source $lib/cfg_sts.tcl
+source fpga/lib/cfg_sts.tcl
 add_cfg_sts
 
 # Connect LEDs to config register

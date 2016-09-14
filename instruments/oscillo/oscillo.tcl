@@ -1,5 +1,5 @@
 source fpga/modules/averager/averager.tcl
-source $lib/bram_recorder.tcl
+source fpga/lib/bram_recorder.tcl
 
 ###########################################################
 # Add ADC BRAM recorders
@@ -11,7 +11,7 @@ for {set i 0} {$i < 2} {incr i} {
   set avg_name      avg$i
 
   set adc_recorder_name adc_recorder$i
-  add_bram_recorder $adc_recorder_name adc[expr {$i + 1}]  1
+  add_bram_recorder $adc_recorder_name adc$i  1
 
   connect_cell $adc_recorder_name {
     clk   $adc_clk
@@ -19,7 +19,7 @@ for {set i 0} {$i < 2} {incr i} {
   }
 
   # Add averaging module
-  averager::create $avg_name $config::bram_addr_width -input_type fix_$config::adc_width
+  averager::create $avg_name [get_memory_addr_width adc0] -input_type fix_[get_parameter adc_width]
 
   connect_cell $avg_name {
     clk         $adc_clk

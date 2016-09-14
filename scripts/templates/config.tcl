@@ -33,12 +33,12 @@ variable {{ key }} {{ dic['parameters'][key] }}
 ##########################################################
 {% for address in dic['memory'] -%}
 {% if address['n_blocks'] == 1 %}
-variable axi_{{ address['name'] }}_offset {{ address['offset'] }}
-variable axi_{{ address['name'] }}_range {{ address['range'] }}
+variable memory_{{ address['name'] }}_offset {{ address['offset'] }}
+variable memory_{{ address['name'] }}_range {{ address['range'] }}
 {% else %}
 {% for i in range(address['n_blocks']) -%}
-variable axi_{{ address['name'] }}{{ i + 1 }}_offset 0x[format %x [expr {{ address['offset'] }} + {{ i }} * {{ address['range']|replace_KMG }}]]
-variable axi_{{ address['name'] }}{{ i + 1  }}_range {{ address['range'] }}
+variable memory_{{ address['name'] }}{{ i }}_offset 0x[format %x [expr {{ address['offset'] }} + {{ i }} * {{ address['range']|replace_KMG }}]]
+variable memory_{{ address['name'] }}{{ i }}_range {{ address['range'] }}
 {% endfor %}
 {% endif %}
 {% endfor -%}
