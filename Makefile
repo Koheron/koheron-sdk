@@ -86,7 +86,6 @@ TCP_SERVER = $(TCP_SERVER_BUILD)/kserverd
 DRIVERS_YML = $(TMP)/$(NAME).drivers.yml
 TCP_SERVER_SHA = master
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
-TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
 PYTHON=$(TCP_SERVER_VENV)/bin/python
 
 START_SH = $(TMP)/$(NAME).start.sh
