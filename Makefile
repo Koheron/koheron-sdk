@@ -17,6 +17,7 @@ MAKE_PY = scripts/make.py
 
 # Store all build artifacts in TMP
 TMP = tmp
+TCP_SERVER_BUILD=$(TMP)/$(NAME).server.build
 
 # properties defined in CONFIG_YML :
 DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(NAME) $(INSTRUMENT_PATH))
@@ -25,7 +26,7 @@ CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(INSTRUMENT_PATH) && c
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).xdc)
 DRIVERS_LIB=$(wildcard drivers/lib/*hpp) $(wildcard drivers/lib/*cpp)
-MEMORY_HPP=$(TMP)/$(NAME).server.build/drivers/memory.hpp
+MEMORY_HPP=$(TCP_SERVER_BUILD)/drivers/memory.hpp
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
@@ -81,7 +82,7 @@ SHA = $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g'))
 # Zip
 TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
 TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
-TCP_SERVER = $(TMP)/$(NAME).server.build/kserverd
+TCP_SERVER = $(TCP_SERVER_BUILD)/kserverd
 DRIVERS_YML = $(TMP)/$(NAME).drivers.yml
 TCP_SERVER_SHA = master
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
@@ -337,7 +338,7 @@ $(MEMORY_HPP): $(CONFIG_YML)
 $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(DRIVERS_YML) $(DRIVERS) \
                $(DRIVERS_LIB) $(MEMORY_HPP) instruments/default/server.yml
 	make -C $(TCP_SERVER_DIR) CONFIG=$(DRIVERS_YML) BASE_DIR=../.. \
-	  PYTHON=$(PYTHON) TMP=../../$(TMP)/$(NAME).server.build
+	  PYTHON=$(PYTHON) TMP=../../$(TCP_SERVER_BUILD)
 	@echo [$@] OK
 
 ###############################################################################
@@ -408,7 +409,7 @@ clean_instrument:
 	$(RM) $(TMP)/$(NAME).* $(TMP)/$(NAME)-*.zip
 
 clean_server:
-	$(RM) $(TCP_SERVER_DIR) $(TCP_SERVER_MIDDLEWARE)
+	$(RM) $(TCP_SERVER_DIR) $(TCP_SERVER_BUILD)
 
 clean_cores:
 	$(RM) $(TMP)/cores
