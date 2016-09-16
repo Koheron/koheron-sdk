@@ -40,7 +40,7 @@ proc add_dac_router {module_name memory_name {intercon_idx 0}} {
   source fpga/lib/dac_controller.tcl
 
   set interconnect_name dac_interconnect
-  interconnect::create $interconnect_name [get_parameter dac_width] [get_parameter n_dac_bram] 2
+  interconnect::create $interconnect_name [get_parameter dac_width] [get_parameter n_dac_bram] [get_parameter n_dac]
 
   connect_cell $interconnect_name {
     clk clk
