@@ -1,6 +1,15 @@
 ---
 instrument: oscillo
-parent: base 
+parent: default
+board: red-pitaya
+
+cores:
+  - redp_adc_v1_0
+  - redp_dac_v1_0
+  - pwm_v1_0
+  - bus_multiplexer_v1_0
+  - at93c46d_spi_v1_0
+  - latched_mux_v1_0
 
 # ------------------------------------------------------------
 # Memory
@@ -71,7 +80,9 @@ modules:
   - averager
 
 xdc:
-  - instruments/base/expansion_connector.xdc
+  - boards/red-pitaya/config/ports.xdc
+  - boards/red-pitaya/config/clocks.xdc
+  - instruments/oscillo/expansion_connector.xdc
 
 # ------------------------------------------------------------
 # Drivers

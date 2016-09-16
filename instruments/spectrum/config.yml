@@ -1,6 +1,7 @@
 ---
 instrument: spectrum
-parent: base
+board: red-pitaya
+parent: oscillo
 
 # ------------------------------------------------------------
 # Memory
@@ -86,9 +87,6 @@ modules:
   - averager
   - spectrum
   - peak_detector
-
-xdc:
-  - instruments/base/expansion_connector.xdc
 
 # ------------------------------------------------------------
 # Drivers

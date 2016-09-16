@@ -12,5 +12,4 @@ connect_cell $timer_name {
 }
 set clken $timer_name/clken_out
 
-connect_pins $addr_intercon_name/clken $clken
-connect_pins $interconnect_name/clken $clken
+connect_pins dac_router/clken $clken

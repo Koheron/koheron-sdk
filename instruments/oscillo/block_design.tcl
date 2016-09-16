@@ -1,4 +1,11 @@
-source instruments/base/block_design.tcl
+
+source instruments/oscillo/init.tcl
+
+# Source Oscillo.tcl
 source instruments/oscillo/oscillo.tcl
-source instruments/base/timer.tcl
+
+# Timer
+source instruments/oscillo/timer.tcl
+
+
 source fpga/lib/at93c46d.tcl
