@@ -234,9 +234,9 @@ if __name__ == "__main__":
     elif cmd == '--split_config_yml':
         instrument = sys.argv[2]
         cfg = load_config(os.path.join(sys.argv[3], instrument))
-        dump_if_has_changed(os.path.join('tmp', instrument + '.drivers.yml'), cfg['server'])
+        dump_if_has_changed(os.path.join('tmp', instrument + '.drivers.yml'), cfg.get('server'))
 
-        del cfg['server']
+        cfg.pop('server', None)
         dump_if_has_changed(os.path.join('tmp', instrument + '.config.yml'), cfg)
 
     elif cmd == '--config_tcl':
@@ -267,19 +267,14 @@ if __name__ == "__main__":
         instrument_path = sys.argv[3]
         drivers_filename = os.path.join(instrument_path, instrument, 'config.yml')
 
-        if os.path.isfile(drivers_filename):
-            with open(drivers_filename) as drivers_file:
-                drivers = yaml.load(drivers_file)['server']
-        else:
-            drivers = {}
+        with open(drivers_filename) as drivers_file:
+            drivers_dict = yaml.load(drivers_file) or {}
+            drivers = drivers_dict.get('server', {})
 
         for include_filename in drivers.get('includes', []):
             with open(include_filename) as include_file:
                 for key, value in yaml.load(include_file).iteritems():
-                    if key in drivers:
-                        drivers[key].extend(value)
-                    else:
-                        drivers[key] = value
+                    drivers.get(key, []).extend(value)
 
         with open(os.path.join('tmp', instrument + '.drivers'), 'w') as f:
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
