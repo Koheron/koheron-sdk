@@ -8,11 +8,11 @@ add_gpio
 # Add pulse density modulator for Red Pitaya slow DACs
 set n_pwm [get_parameter n_pwm]
 cell xilinx.com:ip:xlconcat:2.1 concat_pwm {NUM_PORTS $n_pwm} {}
-connect_bd_net [get_bd_ports /$output_port] [get_bd_pins concat_pwm/dout]
+connect_bd_net [get_bd_ports dac_pwm_o] [get_bd_pins concat_pwm/dout]
 
 for {set i 0} {$i < $n_pwm} {incr i} {
   cell koheron:user:pdm:1.0 pwm_$i {
-    NBITS $pwm_width
+    NBITS [get_parameter pwm_width]
   } {
     clk adc_dac/pwm_clk
     rst $rst_adc_clk_name/peripheral_reset
