@@ -18,11 +18,11 @@ class Laser(object):
 
     @command()
     def get_power(self):
-        return self.recv_uint32()
+        return self.client.recv_uint32()
 
     @command()
     def get_current(self):
-        return self.recv_uint32()
+        return self.client.recv_uint32()
 
     @command()
     def set_current(self, current):
@@ -31,9 +31,10 @@ class Laser(object):
 
 if __name__=="__main__":
     host = os.getenv('HOST','192.168.1.100')
-    client = connect(host, 'led_blinker')
-    driver = Laser(client)
+    client = connect(host, 'laser_controller')
+    laser = Laser(client)
 
     laser.start()
-    laser.set_current(30)
-    print(laser.get_power())
+    for i in range(40):
+        laser.set_current(i)
+        print(laser.get_current, laser.get_power())
