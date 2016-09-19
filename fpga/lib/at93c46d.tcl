@@ -19,5 +19,5 @@ foreach {name} {
   sclk
   cs
 } {
-  connect_bd_net [get_bd_ports spi_$name] [get_bd_pins at93c46d_spi_0/$name]
+  connect_port_pin spi_$name at93c46d_spi_0/$name
 }

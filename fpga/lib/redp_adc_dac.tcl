@@ -30,7 +30,7 @@ proc add_redp_adc_dac {module_name} {
     clk_out6 pwm_clk
   }
   
-  foreach {pol} {p n} {connect_bd_net [get_bd_ports /adc_clk_${pol}_i] [get_bd_pins pll/clk_in1_${pol}]}
+  foreach {pol} {p n} {connect_port_pin /adc_clk_${pol}_i pll/clk_in1_${pol}}
 
   # Add ADC IP block
   cell pavel-demin:user:redp_adc:1.0 adc {} {
