@@ -5,15 +5,21 @@ source boards/$board_name/base_system.tcl
 source boards/$board_name/gpio.tcl
 add_gpio
 
-# Add PWM
-source fpga/lib/pwm.tcl
-add_pwm pwm $pwm_clk $config::pwm_width $config::n_pwm
+# Add pulse density modulator for Red Pitaya slow DACs
+set n_pwm [get_parameter n_pwm]
+cell xilinx.com:ip:xlconcat:2.1 concat_pwm {NUM_PORTS $n_pwm} {}
+connect_bd_net [get_bd_ports /$output_port] [get_bd_pins concat_pwm/dout]
 
-for {set i 0} {$i < $config::n_pwm} {incr i} {
-  connect_pins pwm/pwm$i  [cfg_pin pwm${i}]
+for {set i 0} {$i < $n_pwm} {incr i} {
+  cell koheron:user:pdm:1.0 pwm_$i {
+    NBITS $pwm_width
+  } {
+    clk adc_dac/pwm_clk
+    rst $rst_adc_clk_name/peripheral_reset
+    data_in [cfg_pin pwm$i]
+    pdm_out concat_pwm/In$i
+  }
 }
-
-connect_pins pwm/rst $rst_adc_clk_name/peripheral_reset
 
 # Add address module
 source fpga/modules/address/address.tcl
