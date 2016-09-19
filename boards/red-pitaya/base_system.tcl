@@ -13,7 +13,6 @@ set rst_adc_clk_name proc_sys_reset_adc_clk
 
 # Rename clocks
 set adc_clk $adc_dac_name/adc_clk
-set pwm_clk $adc_dac_name/pwm_clk
 
 cell xilinx.com:ip:proc_sys_reset:5.0 $rst_adc_clk_name {} {
   ext_reset_in $ps_name/FCLK_RESET0_N
