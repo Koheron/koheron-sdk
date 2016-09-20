@@ -8,7 +8,7 @@ add_cfg_sts
 
 # Connect LEDs to config register
 create_bd_port -dir O -from 7 -to 0 led_o
-connect_bd_net [get_bd_ports led_o] [get_bd_pins [get_slice_pin [cfg_pin led] 7 0]]
+connect_port_pin led_o [get_slice_pin [cfg_pin led] 7 0]
 
 # Connect 42 to status register
 connect_pins [get_constant_pin 42 32] [sts_pin forty_two]

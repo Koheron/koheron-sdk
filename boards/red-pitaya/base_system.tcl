@@ -24,7 +24,7 @@ source fpga/lib/cfg_sts.tcl
 add_cfg_sts $adc_clk $rst_adc_clk_name/peripheral_aresetn
 
 # Connect LEDs
-connect_bd_net [get_bd_ports led_o] [get_bd_pins [get_slice_pin [cfg_pin led] 7 0]]
+connect_port_pin led_o [get_slice_pin [cfg_pin led] 7 0]
 
 # Add XADC
 source fpga/lib/xadc.tcl
