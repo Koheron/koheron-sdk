@@ -1,5 +1,5 @@
 
-proc add_bram {memory_name {intercon_idx 0} {default_hexval 0}} {
+proc add_bram {memory_name {intercon_idx 0}} {
 
   # Add a new Master Interface to AXI Interconnect
   set idx [add_master_interface $intercon_idx]
@@ -18,14 +18,7 @@ proc add_bram {memory_name {intercon_idx 0} {default_hexval 0}} {
 
   # Add Block Memory Generator
   cell xilinx.com:ip:blk_mem_gen:8.3 $bram_name {
-    use_bram_block Stand_Alone
-    Enable_32bit_Address true
-    use_RSTB_Pin true
-    Output_Reset_Value_B $default_hexval
     Memory_Type True_Dual_Port_RAM
-    Fill_Remaining_Memory_Locations true
-    Remaining_Memory_Locations $default_hexval
-    Write_Depth_A [get_memory_depth $memory_name]
   } {
     BRAM_PORTA axi_bram_ctrl_$memory_name/BRAM_PORTA
   }
