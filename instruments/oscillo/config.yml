@@ -65,7 +65,7 @@ parameters:
   fclk1: 200000000
   dac_width: 14
   adc_width: 14
-  pwm_width: 10
+  pwm_width: 12
   n_pwm: 4
   n_dac_bram: 3
   n_dac: 2

@@ -5,9 +5,9 @@ module pdm_tb();
  
   reg                       clk;
   reg                       rst;
-  reg [NBITS-1:0]           data_in;
-  wire                      pdm_out;
-  wire [NBITS-1:0]          pdm_error;
+  reg [NBITS-1:0]           din;
+  wire                      dout;
+  wire [NBITS-1:0]          error;
 
   pdm # (
     .NBITS(NBITS)
@@ -15,9 +15,9 @@ module pdm_tb();
   DUT (
     .clk(clk),
     .rst(rst),
-    .data_in(data_in),
-    .pdm_out(pdm_out),
-    .pdm_error(pdm_error)
+    .din(din),
+    .dout(dout),
+    .error(error)
   );
 
   parameter CLK_PERIOD = 8;
@@ -25,13 +25,13 @@ module pdm_tb();
   initial begin
     clk = 1;
     rst = 1;
-    data_in = 120;
+    din = 120;
     #(10*CLK_PERIOD)
     rst = 0;
     #(1000*CLK_PERIOD)
-    data_in = 500;
+    din = 500;
     #(1000*CLK_PERIOD)
-    data_in = 900;    
+    din = 900;    
     #(100000*CLK_PERIOD)
     $finish;
   end

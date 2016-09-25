@@ -32,7 +32,7 @@ proc add_dac_router {module_name memory_name {intercon_idx 0}} {
   }
 
   for {set i 0} {$i <  [get_parameter n_dac]} {incr i} {
-    connect_pins $addr_intercon_name/in$i addr$i
+    connect_pins $addr_intercon_name/din$i addr$i
   }
 
   # Add DAC controller
@@ -49,7 +49,7 @@ proc add_dac_router {module_name memory_name {intercon_idx 0}} {
   }
 
   for {set i 0} {$i <  [get_parameter n_dac]} {incr i} {
-    connect_pins $interconnect_name/out$i dout$i
+    connect_pins $interconnect_name/dout$i dout$i
   }
 
   for {set i 0} {$i < [get_parameter n_dac_bram]} {incr i} {
@@ -57,9 +57,9 @@ proc add_dac_router {module_name memory_name {intercon_idx 0}} {
     add_single_dac_controller $dac_controller_name dac$i [get_parameter dac_width] 1
     connect_cell $dac_controller_name {
       clk  clk
-      addr $addr_intercon_name/out$i
+      addr $addr_intercon_name/dout$i
       rst  rst
-      dac  $interconnect_name/in$i
+      dac  $interconnect_name/din$i
     }
   }
 
