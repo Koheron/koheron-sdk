@@ -16,8 +16,8 @@ for {set i 0} {$i < $n_pwm} {incr i} {
   } {
     clk adc_dac/pwm_clk
     rst $rst_adc_clk_name/peripheral_reset
-    data_in [cfg_pin pwm$i]
-    pdm_out concat_pwm/In$i
+    din [cfg_pin pwm$i]
+    dout concat_pwm/In$i
   }
 }
 

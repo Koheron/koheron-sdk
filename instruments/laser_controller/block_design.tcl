@@ -42,9 +42,9 @@ cell koheron:user:pdm:1.0 laser_current_pdm {
 } {
   clk adc_dac/pwm_clk
   rst $rst_adc_clk_name/peripheral_reset
-  data_in [cfg_pin laser_current]
+  din [cfg_pin laser_current]
 }
-connect_port_pin dac_pwm_o [get_concat_pin [list [get_constant_pin 0 3] laser_current_pdm/pdm_out]]
+connect_port_pin dac_pwm_o [get_concat_pin [list [get_constant_pin 0 3] laser_current_pdm/dout]]
 
 # Connect laser shutdown pin and reset overvoltage protection
 create_bd_port -dir O laser_shutdown

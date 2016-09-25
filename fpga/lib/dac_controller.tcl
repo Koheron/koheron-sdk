@@ -69,9 +69,9 @@ proc add_single_dac_controller {module_name memory_name dac_width {intercon_idx 
     WIDTH $dac_width
   } {
     sel [get_slice_pin addr 2 2]
-    in0 [get_slice_pin $bram_name/doutb [expr $dac_width-1] 0]
-    in1 [get_slice_pin $bram_name/doutb [expr $dac_width-1 + 16] 16]
-    out dac
+    din0 [get_slice_pin $bram_name/doutb [expr $dac_width-1] 0]
+    din1 [get_slice_pin $bram_name/doutb [expr $dac_width-1 + 16] 16]
+    dout dac
   }
 
   current_bd_instance $bd

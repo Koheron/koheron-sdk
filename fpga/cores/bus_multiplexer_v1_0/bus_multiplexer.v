@@ -5,12 +5,12 @@ module bus_multiplexer #
   parameter integer WIDTH = 32
 )
 (
-  input  wire [WIDTH-1:0] in0,
-  input  wire [WIDTH-1:0] in1,
+  input  wire [WIDTH-1:0] din0,
+  input  wire [WIDTH-1:0] din1,
   input  wire             sel,
-  output wire [WIDTH-1:0] out
+  output wire [WIDTH-1:0] dout
 );
 
-  assign out = (sel) ? in1 : in0;
+  assign dout = (sel) ? din1 : din0;
 
 endmodule
