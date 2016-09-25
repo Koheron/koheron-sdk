@@ -29,7 +29,7 @@ module pdm #
   end
 
   always @(posedge clk) begin
-    if (rst_reg == 1'b1) begin
+    if (rst_reg) begin
       dout <= 0;
     end else begin
       dout <= (din_reg >= error);
@@ -37,7 +37,7 @@ module pdm #
   end
 
   always @(posedge clk) begin
-    if (rst_reg == 1'b1) begin
+    if (rst_reg) begin
       error <= 0;
     end else if (dout) begin
       error <= error_1;
@@ -45,6 +45,5 @@ module pdm #
       error <= error_0;
     end
   end
-
 
 endmodule

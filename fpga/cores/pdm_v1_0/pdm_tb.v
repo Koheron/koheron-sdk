@@ -15,7 +15,7 @@ module pdm_tb();
   DUT (
     .clk(clk),
     .rst(rst),
-    .din(data_in),
+    .din(din),
     .dout(dout),
     .error(error)
   );
