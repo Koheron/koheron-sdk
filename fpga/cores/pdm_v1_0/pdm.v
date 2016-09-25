@@ -39,7 +39,7 @@ module pdm #
   always @(posedge clk) begin
     if (rst_reg == 1'b1) begin
       error <= 0;
-    end else if (pdm_out) begin
+    end else if (dout) begin
       error <= error_1;
     end else begin
       error <= error_0;
