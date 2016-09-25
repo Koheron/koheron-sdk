@@ -26,7 +26,7 @@
 
 #define GAIN_LT1789 (1+200/10)
 #define PWM_MAX_VOLTAGE 1.8
-#define PWM_MAX_VALUE 1024
+#define PWM_MAX_VALUE (1 << prm::pwm_width)
 #define MILLIAMPS_TO_AMPS 0.001
 
 constexpr float current_to_pwm = MILLIAMPS_TO_AMPS * PWM_MAX_VALUE * GAIN_LT1789 / PWM_MAX_VOLTAGE;
