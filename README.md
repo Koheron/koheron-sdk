@@ -52,6 +52,8 @@ $ curl http://$(HOST)/api/board/ping
 * [`led_blinker`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/led_blinker) : minimal instrument with LED control from Python.
 * [`adc_dac`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/adc_dac) : instrument with minimal read/write capability on Red Pitaya ADCs and DACs.
 * [`pulse_generator`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/pulse_generator) : pulse generation with synchronous acquisition.
+* [`laser_controller`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/decimator) : laser current control using pulse-density modulation.
+* [`decimator`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/decimator) : decimation using a compensated CIC filter.
 * [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/oscillo) : signal acquisition / generation with coherent averaging mode.
 * [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/spectrum) : spectrum analyzer with peak-detection and averaging.
 
