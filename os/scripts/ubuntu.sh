@@ -2,6 +2,8 @@ device=$1
 name=$2
 version=$3
 
+koheron_python_branch=protocol
+
 config_dir=os
 http_app_dir=tmp/app
 
@@ -163,7 +165,7 @@ apt-get install -y python-numpy
 apt-get install -y python-pip python-setuptools python-all-dev python-wheel
 
 pip install --upgrade pip
-pip install https://github.com/Koheron/koheron-python/zipball/master
+pip install https://github.com/Koheron/koheron-python/zipball/$koheron_python_branch
 pip install flask
 pip install jinja2
 pip install urllib3
