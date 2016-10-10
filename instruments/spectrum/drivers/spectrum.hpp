@@ -71,7 +71,7 @@ class Spectrum
         demod_map.write_array(arr);
     }
 
-    void set_noise_floor_buffer(const std::array<uint32_t, WFM_SIZE>& arr) {
+    void set_noise_floor_buffer(const std::array<float, WFM_SIZE>& arr) {
         noise_floor_map.write_array(arr);
     }
 
