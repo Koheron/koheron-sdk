@@ -66,9 +66,6 @@ LINUX_CFLAGS = "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 UBOOT_CFLAGS = "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 ARMHF_CFLAGS = "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 
-RTL_TAR = $(TMP)/rtl8192cu.tgz
-RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
-
 # Project configuration
 CONFIG_TCL = $(TMP)/$(NAME).config.tcl
 TEMPLATE_DIR = scripts/templates
@@ -285,20 +282,14 @@ $(TMP)/$(NAME).tree/system.dts: $(TMP)/$(NAME).hwdef $(DTREE_DIR)
 # Linux
 ###############################################################################
 
-$(RTL_TAR):
-	mkdir -p $(@D)
-	curl -L $(RTL_URL) -o $@
-	@echo [$@] OK
-
 $(LINUX_TAR):
 	mkdir -p $(@D)
 	curl -L $(LINUX_URL) -o $@
 	@echo [$@] OK
 
-$(LINUX_DIR): $(LINUX_TAR) $(RTL_TAR)
+$(LINUX_DIR): $(LINUX_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
-	tar -zxf $(RTL_TAR) --directory=$@/drivers/net/wireless/realtek
 	patch -d $(TMP) -p 0 < $(PATCHES)/linux-xlnx-$(LINUX_TAG).patch
 	bash $(PATCHES)/linux.sh $(PATCHES) $@
 	@echo [$@] OK

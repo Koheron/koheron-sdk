@@ -1,4 +1,4 @@
-name=$1 
+name=$1
 
 version=$(cat tmp/${name}.version)
 
