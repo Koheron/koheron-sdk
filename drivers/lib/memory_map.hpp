@@ -127,6 +127,7 @@ class Memory
         *(volatile T *) (base_address + offset) = value;
     }
 
+    // TODO Invert the template arguments to be compatible with write
     template<typename T = uint32_t, uint32_t offset = 0>
     void set_ptr(const T *data_ptr, uint32_t buff_size, uint32_t block_idx = 0) {
         static_assert(offset < mem::get_range(id), "Invalid offset");
