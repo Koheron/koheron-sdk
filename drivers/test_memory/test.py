@@ -1,11 +1,11 @@
 import os
 
-from koheron import KoheronClient, load_instrument
+from koheron import connect
 from test_memory import TestMemory
 
 host = os.getenv('HOST','192.168.1.100')
 instrument = os.getenv('NAME','')
-client = load_instrument(host, instrument)
+client = connect(host, name=instrument)
 test_memory = TestMemory(client)
 
 def test_write_read_u32():

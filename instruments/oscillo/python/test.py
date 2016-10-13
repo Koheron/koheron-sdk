@@ -1,12 +1,11 @@
 import os
 import numpy as np
 
-from koheron import load_instrument
+from koheron import connect
 from oscillo import Oscillo
 
 host = os.getenv('HOST','192.168.1.100')
-instrument = os.getenv('NAME','')
-client = load_instrument(host, instrument)
+client = connect(host, name='oscillo')
 
 oscillo = Oscillo(client)
 oscillo.reset()

@@ -1,12 +1,12 @@
 import os
 import time
 
-from koheron import load_instrument
+from koheron import connect
 from eeprom import Eeprom
 
 host = os.getenv('HOST','192.168.1.100')
 instrument = os.getenv('NAME','')
-client = load_instrument(host, instrument)
+client = connect(host, name=instrument)
 
 eeprom = Eeprom(client)
 
