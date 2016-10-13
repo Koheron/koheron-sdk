@@ -9,10 +9,10 @@ import os
 import time
 
 from pulse import Pulse
-from koheron import load_instrument
+from koheron import connect
 
 host = os.getenv('HOST', '192.168.1.7')
-client = load_instrument(host, 'pulse_generator')
+client = connect(host, name='pulse_generator')
 driver = Pulse(client)
 
 pulse_width = 128

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-from koheron import command, load_instrument
+from koheron import command, connect
 
 class AdcDac(object):
     def __init__(self, client):
@@ -18,7 +18,7 @@ class AdcDac(object):
 
 if __name__=="__main__":
     host = os.getenv('HOST','192.168.1.100')
-    client = load_instrument(host, 'adc_dac')
+    client = connect(host, name='adc_dac')
     driver = AdcDac(client)
 
     driver.set_dac(0, 1000)

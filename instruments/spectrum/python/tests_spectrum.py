@@ -2,12 +2,11 @@ import context
 import os
 import numpy as np
 
-from koheron import load_instrument
+from koheron import connect
 from drivers.spectrum import Spectrum
 
 host = os.getenv('HOST','192.168.1.100')
-instrument = os.getenv('NAME','')
-client = load_instrument(host, instrument)
+client = connect(host, name='spectrum')
 
 spectrum = Spectrum(client)
 spectrum.reset_acquisition()
