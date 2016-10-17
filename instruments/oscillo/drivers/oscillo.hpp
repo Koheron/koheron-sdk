@@ -8,6 +8,7 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <chrono>
 
 #include <drivers/lib/memory_manager.hpp>
 #include <drivers/lib/dac_router.hpp>
@@ -17,7 +18,7 @@
 #define WFM_SIZE mem::adc_range/sizeof(float)
 #define ACQ_PERIOD_NS 8 // Duration between two acquisitions (ns)
 
-constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
+constexpr auto wfm_time = std::chrono::nanoseconds(WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE));
 constexpr std::array<uint32_t, 2> n_avg_offset = {reg::n_avg0, reg::n_avg1};
 
 class Oscillo

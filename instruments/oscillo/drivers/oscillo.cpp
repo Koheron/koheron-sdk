@@ -4,7 +4,6 @@
 
 #include <string.h>
 #include <thread>
-#include <chrono>
 
 Oscillo::Oscillo(MemoryManager& mm)
 : cfg(mm.get<mem::config>())
@@ -94,8 +93,7 @@ void Oscillo::_wait_for_acquisition()
     do {
         if (n_avg_min_ > 0) {
             auto now = std::chrono::high_resolution_clock::now();
-            auto acq_time = std::chrono::nanoseconds(cfg.read<reg::n_avg_min0>() * wfm_time_ns);
-            auto remain_wait = acq_time - (now - begin);
+            auto remain_wait = cfg.read<reg::n_avg_min0>() * wfm_time - (now - begin);
 
             // If acquisition time is larger than 1 ms, we sleep for the
             // typical overhead time to put the thread in sleep (~ 100 us).
