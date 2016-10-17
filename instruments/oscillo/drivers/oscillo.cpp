@@ -88,20 +88,20 @@ void Oscillo::set_averaging(bool avg_on) {
 
 void Oscillo::_wait_for_acquisition()
 {
+    using namespace std::chrono_literals;
     auto begin = std::chrono::high_resolution_clock::now();
 
     do {
         if (n_avg_min_ > 0) {
             auto now = std::chrono::high_resolution_clock::now();
-            uint32_t n_avg_min = cfg.read<reg::n_avg_min0>();
-            uint64_t acq_time_ns = n_avg_min * wfm_time_ns;
-            auto remain_wait = acq_time_ns - std::chrono::duration_cast<std::chrono::nanoseconds>(now-begin).count();
+            auto acq_time = std::chrono::nanoseconds(cfg.read<reg::n_avg_min0>() * wfm_time_ns);
+            auto remain_wait = acq_time - (now - begin);
 
             // If acquisition time is larger than 1 ms, we sleep for the
             // typical overhead time to put the thread in sleep (~ 100 us).
 
-            if (remain_wait > 1000000)
-                std::this_thread::sleep_for(std::chrono::nanoseconds(static_cast<uint32_t>(remain_wait / 10)));
+            if (remain_wait > 1000000ns)
+                std::this_thread::sleep_for(remain_wait / 10);
         }
     } while (sts.read<reg::avg_ready0>() == 0
              || sts.read<reg::avg_ready1>() == 0);
