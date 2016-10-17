@@ -98,7 +98,7 @@ void Oscillo::_wait_for_acquisition()
             // If acquisition time is larger than 1 ms, we sleep for the
             // typical overhead time to put the thread in sleep (~ 100 us).
 
-            if (remain_wait > 100us)
+            if (remain_wait > 1ms)
                 std::this_thread::sleep_for(remain_wait / 10);
         }
     } while (sts.read<reg::avg_ready0>() == 0
