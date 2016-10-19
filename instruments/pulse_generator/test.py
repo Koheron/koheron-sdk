@@ -37,9 +37,10 @@ ax = fig.add_subplot(111)
 x = np.arange(n)
 y = np.zeros(n)
 li, = ax.plot(x, y)
-ax.set_ylim((-8192, 8191))
+ax.set_ylim((-200, 5200))
+ax.set_xlabel('FIFO sample number')
+ax.set_ylabel('ADC raw value')
 fig.canvas.draw()
-
 
 while True:
     try:
