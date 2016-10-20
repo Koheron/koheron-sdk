@@ -198,7 +198,7 @@ iface eth0 inet dhcp
 # Static IP
 #iface eth0 inet static
 #  address 192.168.1.100
-#  gateway 192.168.1.0
+#  gateway 192.168.1.1
 #  netmask 255.255.255.0
 #  network 192.168.1.0
 #  broadcast 192.168.1.255
