@@ -35,6 +35,10 @@ server {
     location /live {
         alias                 /tmp/instrument;
         index                 index.html;
+
+        # http://serverfault.com/questions/269420/disable-caching-when-serving-static-files-with-nginx-for-development
+        expires           0;
+        add_header        Cache-Control private;
     }
 
     location /koheron-server {
