@@ -31,8 +31,8 @@ class SpeedTest
     }
 
     // Read data in RAM buffer
-    const std::array<float, 2*WFM_SIZE>& read_rambuf() {
-        auto p = reinterpret_cast<const std::array<float, 2*WFM_SIZE>*>(rambuf_data);
+    std::array<float, 2*WFM_SIZE>& read_rambuf() {
+        auto p = reinterpret_cast<std::array<float, 2*WFM_SIZE>*>(rambuf_data);
         return *p;
     }
 
@@ -49,15 +49,15 @@ class SpeedTest
     }
 
     // Read data in RAM buffer
-    const std::array<float, 2*WFM_SIZE>& read_mmapbuf_nocopy() {
-        auto p = reinterpret_cast<const std::array<float, 2*WFM_SIZE>*>(mmap_buf);
+    std::array<float, 2*WFM_SIZE>& read_mmapbuf_nocopy() {
+        auto p = reinterpret_cast<std::array<float, 2*WFM_SIZE>*>(mmap_buf);
         return *p;
     }
 
     // Read data in RAM buffer
-    const std::array<float, 2*WFM_SIZE>& read_rambuf_mmap_memcpy() {
+    std::array<float, 2*WFM_SIZE>& read_rambuf_mmap_memcpy() {
         memcpy(mmap_buf, rambuf_data, 2*WFM_SIZE*sizeof(float));
-        auto p = reinterpret_cast<const std::array<float, 2*WFM_SIZE>*>(mmap_buf);
+        auto p = reinterpret_cast<std::array<float, 2*WFM_SIZE>*>(mmap_buf);
         return *p;
     }
 
