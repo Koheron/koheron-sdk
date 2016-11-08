@@ -114,6 +114,7 @@ cat <<- EOF_CAT > etc/fstab
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
 /dev/mmcblk0p2  /               ext4    errors=remount-ro   0       1
 /dev/mmcblk0p1  /boot           vfat    defaults            0       2
+tmpfs           /tmp            tmpfs   defaults            0       0
 EOF_CAT
 
 cat <<- EOF_CAT >> etc/securetty
