@@ -101,7 +101,7 @@ server:
     - drivers/gpio/gpio.hpp
     - drivers/xadc/xadc.hpp
     - drivers/laser/laser.hpp
-    - instruments/spectrum/drivers/spectrum.hpp
+    - instruments/spectrum/spectrum.hpp
     - drivers/eeprom/eeprom.hpp
     - drivers/test_memory/test_memory.hpp
 
