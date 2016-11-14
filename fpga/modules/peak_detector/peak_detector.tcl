@@ -21,7 +21,7 @@ proc create {module_name wfm_width} {
 
   set compare_latency 0
 
-  # Add comparator
+# Add comparator
   cell xilinx.com:ip:floating_point:7.1 comparator {
     Operation_Type Compare
     C_Compare_Operation Greater_Than
@@ -34,6 +34,12 @@ proc create {module_name wfm_width} {
     s_axis_b_tvalid s_axis_tvalid
   }
 
+  cell xilinx.com:ip:xlslice:1.0 slice_compare {
+    DIN_WIDTH 8
+  } {
+    Din comparator/m_axis_result_tdata
+  }
+
   # Address starting counting at s_axis_tvalid
   cell xilinx.com:ip:c_counter_binary:12.0 address_counter {
     CE true
@@ -42,49 +48,117 @@ proc create {module_name wfm_width} {
     CLK clk
     CE s_axis_tvalid
   }
-  
-  set reset_cycle [get_EQ_pin address_counter/Q address_reset]
-  
+
+  cell koheron:user:comparator:1.0 reset_cycle {
+    DATA_WIDTH $wfm_width
+    OPERATION "EQ"
+  } {
+    a address_counter/Q
+    b address_reset
+  }
+
   # OR
   cell xilinx.com:ip:util_vector_logic:2.0 logic_or {
     C_SIZE 1
     C_OPERATION or
   } {
-    Op2 $reset_cycle
+    Op2 reset_cycle/dout
   }
-  
-  set clken logic_or/Res
-  
+
   # Register storing the current maximum
-  set maximum [get_Q_pin din 1 $clken]
-  connect_pins maximum_out $maximum
+  cell xilinx.com:ip:c_shift_ram:12.0 maximum_reg {
+    CE true
+    Width 32
+    Depth 1
+  } {
+    CLK clk
+    D din
+    CE logic_or/Res
+    Q comparator/s_axis_b_tdata
+  }
+
+  # Register storing the address of current maximum
+  cell xilinx.com:ip:c_shift_ram:12.0 address_reg {
+    CE true
+    Width $wfm_width
+    Depth 1
+  } {
+    CLK clk
+    D address_counter/Q
+    CE logic_or/Res
+  }
 
   # Register storing the maximum of one cycle
-  connect_pins \
-    comparator/s_axis_b_tdata \
-    [get_Q_pin $maximum 1 $reset_cycle]
+  cell xilinx.com:ip:c_shift_ram:12.0 maximum_out {
+    CE true
+    Width 32
+    Depth 1
+  } {
+    CLK clk
+    CE reset_cycle/dout
+    D maximum_reg/Q
+    Q maximum_out
+  }
 
   # Register storing the address of the maximum of one cycle
-  connect_pins \
-    address_out \
-    [get_Q_pin [get_Q_pin address_counter/Q 1 $clken] 1 $reset_cycle]
-  
+  cell xilinx.com:ip:c_shift_ram:12.0 address_out {
+    CE true
+    Width $wfm_width
+    Depth 1
+  } {
+    CLK clk
+    CE reset_cycle/Dout
+    D address_reg/Q
+    Q address_out
+  }
+
   # Restrict peak detection between address_low and address_high
+
+  cell koheron:user:comparator:1.0 address_ge_low {
+    DATA_WIDTH $wfm_width
+    OPERATION "GE"  
+  } {
+    a address_counter/Q
+    b address_low
+  }
+
+  cell koheron:user:comparator:1.0 address_le_high {
+    DATA_WIDTH $wfm_width
+    OPERATION "LE"  
+  } {
+    a address_counter/Q
+    b address_high
+  }
+
+  cell xilinx.com:ip:util_vector_logic:2.0 address_in_range {
+    C_SIZE 1
+    C_OPERATION and
+  } {
+    Op1 address_ge_low/dout
+    Op2 address_le_high/dout
+  }
+
   cell xilinx.com:ip:util_vector_logic:2.0 maximum_detected_in_range {
     C_SIZE 1
     C_OPERATION and
   } {
-    Op1 [get_and_pin \
-          [get_GE_pin address_counter/Q address_low] \
-          [get_LE_pin address_counter/Q address_high] \
-        ]
-    Op2 [get_slice_pin comparator/m_axis_result_tdata 0 0]
+    Op1 address_in_range/Res
+    Op2 slice_compare/dout
     Res logic_or/Op1
   }
-  
-  connect_pins m_axis_tvalid [get_Q_pin $reset_cycle 1]
+
+  # Register storing the current maximum
+  cell xilinx.com:ip:c_shift_ram:12.0 shift_tvalid {
+    Width 32
+    Depth 1
+  } {
+    CLK clk
+    D reset_cycle/dout
+    Q m_axis_tvalid
+  }
 
   current_bd_instance $bd
+
 }
 
 } ;# end peak detector namespace
