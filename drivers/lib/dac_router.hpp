@@ -5,6 +5,7 @@
 #ifndef __DRIVERS_LIB_DAC_ROUTER_HPP__
 #define __DRIVERS_LIB_DAC_ROUTER_HPP__
 
+#include <math.h>
 #include "memory_manager.hpp"
 
 constexpr uint32_t get_width(uint32_t n_dac_bram) {
