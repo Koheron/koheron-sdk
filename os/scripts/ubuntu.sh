@@ -100,7 +100,7 @@ cat <<- EOF_CAT > etc/environment
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/koheron-server"
 EOF_CAT
 
-cat <<- EOF_CAT > etc/zynq_sdk_version
+cat <<- EOF_CAT > etc/koheron_sdk_version
 $version
 EOF_CAT
 
@@ -147,7 +147,7 @@ dpkg-reconfigure --frontend=noninteractive tzdata
 
 apt-get -y install openssh-server ntp usbutils psmisc lsof \
   parted curl less vim iw  ntfs-3g gdb  \
-  bash-completion unzip rsync 
+  bash-completion unzip rsync
 
 ## Packages needed for Docker
 #apt-get install -y lxc cgroup-lite docker.io

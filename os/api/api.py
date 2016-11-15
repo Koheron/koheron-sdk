@@ -66,9 +66,9 @@ def reboot():
 
 @api_app.route('/api/board/version', methods=['GET'])
 def version():
-    with open('/etc/zynq_sdk_version','r') as f:
-        zynq_sdk_version = f.read()
-    return jsonify({'zynq-sdk': zynq_sdk_version})
+    with open('/etc/koheron_sdk_version','r') as f:
+        koheron_sdk_version = f.read()
+    return jsonify({'koheron-sdk': koheron_sdk_version.strip('\n')})
 
 @api_app.route('/api/board/dna', methods=['GET'])
 def dna():
