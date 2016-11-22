@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import os
 import time
-from koheron import command, load_instrument
+from koheron import command, connect
 
 class LedBlinker(object):
     def __init__(self, client):
@@ -18,7 +18,7 @@ class LedBlinker(object):
 
 if __name__=="__main__":
     host = os.getenv('HOST','192.168.1.100')
-    client = load_instrument(host, 'led_blinker')
+    client = connect(host, 'led_blinker')
     driver = LedBlinker(client)
 
     print(driver.get_forty_two())
