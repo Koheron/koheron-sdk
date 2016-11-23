@@ -5,12 +5,12 @@
 #ifndef __DRIVERS_INIT_HPP__
 #define __DRIVERS_INIT_HPP__
 
-#include <drivers/lib/memory_manager.hpp>
+#include <context.hpp>
 #include <drivers/memory.hpp>
 
 struct Init
 {
-    Init(MemoryManager& mm) {};
+    Init(Context& ct) {};
     void load_settings() {};
 };
 

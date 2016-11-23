@@ -15,17 +15,17 @@ extern "C" {
   #include <ifaddrs.h>
 }
 
-#include <drivers/lib/memory_manager.hpp>
+#include <context.hpp>
 #include <drivers/init/init.hpp>
 #include <drivers/memory.hpp>
 
 class Common
 {
   public:
-    Common(MemoryManager& mm_)
-    : mm(mm_)
-    , cfg(mm.get<mem::config>())
-    , sts(mm.get<mem::status>())
+    Common(Context& ct_)
+    : ct(ct_)
+    , cfg(ct.mm.get<mem::config>())
+    , sts(ct.mm.get<mem::status>())
     {}
 
     auto& get_bitstream_id() {
@@ -46,7 +46,7 @@ class Common
 
     void init() {
         ip_on_leds();
-        Init init(mm);
+        Init init(ct);
         init.load_settings();
     };
 
@@ -112,7 +112,7 @@ class Common
     }
 
   private:
-    MemoryManager& mm;
+    Context& ct;
     Memory<mem::config>& cfg;
     Memory<mem::status>& sts;
 };
