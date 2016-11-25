@@ -109,4 +109,4 @@ server:
 # Misc
 # ------------------------------------------------------------
 
-# live_zip: http://zynq-sdk.s3-website-eu-west-1.amazonaws.com/live-spectrum.zip
+live_zip: live-spectrum.zip
