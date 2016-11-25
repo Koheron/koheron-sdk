@@ -5,8 +5,7 @@
 #ifndef __DRIVERS_PULSE_HPP__
 #define __DRIVERS_PULSE_HPP__
 
-#include <drivers/lib/memory_manager.hpp>
-#include <drivers/memory.hpp>
+#include <context.hpp>
 
 // http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
 #define FIFO_RDFR_OFF 0x18
@@ -19,11 +18,11 @@
 class Pulse
 {
   public:
-    Pulse(MemoryManager& mm)
-    : cfg(mm.get<mem::config>())
-    , sts(mm.get<mem::status>())
-    , adc_fifo_map(mm.get<mem::adc_fifo>())
-    , dac_map(mm.get<mem::dac>())
+    Pulse(Context& ctx)
+    : cfg(ctx.mm.get<mem::config>())
+    , sts(ctx.mm.get<mem::status>())
+    , adc_fifo_map(ctx.mm.get<mem::adc_fifo>())
+    , dac_map(ctx.mm.get<mem::dac>())
     {}
 
     // Trigger

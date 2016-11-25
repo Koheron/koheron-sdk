@@ -7,8 +7,7 @@
 #ifndef __DRIVERS_GPIO_HPP__
 #define __DRIVERS_GPIO_HPP__
 
-#include <drivers/lib/memory_manager.hpp>
-#include <drivers/memory.hpp>
+#include <context.hpp>
 
 // Offsets
 // Set by Xilinx IP
@@ -26,8 +25,8 @@
 class Gpio
 {
   public:
-    Gpio(MemoryManager& mm)
-    : gpio(mm.get<mem::gpio>())
+    Gpio(Context& ctx)
+    : gpio(ctx.mm.get<mem::gpio>())
     {}
 
     void set_data(uint32_t channel, uint32_t value) {
