@@ -70,7 +70,7 @@ status_registers:
 
 parameters:
   fclk0: 200000000
-  fclk1: 200000000
+  fclk1: 187500000
   dac_width: 14
   adc_width: 14
   pwm_width: 12

@@ -1,6 +1,10 @@
 
 source fpga/scripts/block_design.tcl
 
+if {[version -short] >= 2016.3} {
+  set_property synth_checkpoint_mode None [get_files $bd_path/system.bd]
+}
+
 generate_target all [get_files $bd_path/system.bd]
 make_wrapper -files [get_files $bd_path/system.bd] -top
 
