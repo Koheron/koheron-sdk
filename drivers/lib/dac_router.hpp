@@ -6,7 +6,7 @@
 #define __DRIVERS_LIB_DAC_ROUTER_HPP__
 
 #include <math.h>
-#include "memory_manager.hpp"
+#include <context.hpp>
 
 constexpr uint32_t get_width(uint32_t n_dac_bram) {
     return ceil(log(float(n_dac_bram)) / log(2.));
@@ -18,9 +18,9 @@ template<uint32_t n_dac, uint32_t n_dac_bram>
 class DacRouter
 {
   public:
-    DacRouter(MemoryManager& mm)
-    : cfg(mm.get<mem::config>())
-    , dac_map(mm.get<mem::dac>())
+    DacRouter(Context& ctx)
+    : cfg(ctx.mm.get<mem::config>())
+    , dac_map(ctx.mm.get<mem::dac>())
     {}
 
     void set_config_reg(uint32_t dac_select_off_, uint32_t addr_select_off_) {

@@ -5,12 +5,12 @@
 #include <string.h>
 #include <thread>
 
-Oscillo::Oscillo(MemoryManager& mm)
-: cfg(mm.get<mem::config>())
-, sts(mm.get<mem::status>())
-, adc_map(mm.get<mem::adc>())
+Oscillo::Oscillo(Context& ctx)
+: cfg(ctx.mm.get<mem::config>())
+, sts(ctx.mm.get<mem::status>())
+, adc_map(ctx.mm.get<mem::adc>())
 , data_decim(0)
-, dac(mm)
+, dac(ctx)
 {
     raw_data[0] = adc_map.get_ptr<int32_t>(0);
     raw_data[1] = adc_map.get_ptr<int32_t>(1);
