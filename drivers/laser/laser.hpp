@@ -39,9 +39,9 @@ class Laser
   public:
     Laser(Context& ctx)
     : cfg(ctx.mm.get<mem::config>())
-    , xadc(ctx)
-    , gpio(ctx)
-    , eeprom(ctx)
+    , xadc(ctx.get<Xadc>())
+    , gpio(ctx.get<Gpio>())
+    , eeprom(ctx.get<Eeprom>())
     {
         reset();
     }
@@ -92,9 +92,9 @@ class Laser
   private:
     Memory<mem::config>& cfg; // required for pwm
 
-    Xadc xadc;
-    Gpio gpio;
-    Eeprom eeprom;
+    Xadc& xadc;
+    Gpio& gpio;
+    Eeprom& eeprom;
 
     bool laser_on;
 };
