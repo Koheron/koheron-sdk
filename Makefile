@@ -92,8 +92,7 @@ ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
 # App
 S3_URL = https://s3.eu-central-1.amazonaws.com/koheron-sdk
-STATIC_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
-STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
+STATIC_URL = $(S3_URL)/$(CURRENT_VERSION)-app.zip
 STATIC_ZIP = $(TMP)/static.zip
 
 LIVE_DIR = $(TMP)/$(NAME).live
@@ -349,11 +348,6 @@ $(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_S
 	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TMP)/$(NAME).live $(TCP_SERVER) $(START_SH) $(LIVE_DIR)/*
 	@echo [$@] OK
 
-.PHONY: live_dir
-
-live_dir: $(LIVE_DIR)
-
-
 ###############################################################################
 # HTTP API
 ###############################################################################
@@ -388,7 +382,7 @@ app_sync_ssh: $(HTTP_API_ZIP)
 ###############################################################################
 
 $(STATIC_ZIP): $(TMP)
-	echo $(STATIC_SHA)
+	echo $(STATIC_URL)
 	curl -L $(STATIC_URL) -o $(STATIC_ZIP)
 
 ###############################################################################
