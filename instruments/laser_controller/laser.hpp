@@ -27,7 +27,7 @@ class Laser
     Laser(Context& ctx)
     : cfg(ctx.mm.get<mem::config>())
     , sts(ctx.mm.get<mem::status>())
-    , xadc(ctx)
+    , xadc(ctx.get<Xadc>())
     {}
 
     void start() {
@@ -56,7 +56,7 @@ class Laser
   private:
     Memory<mem::config>& cfg;
     Memory<mem::status>& sts;
-    Xadc xadc;
+    Xadc& xadc;
 
 };
 
