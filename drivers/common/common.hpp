@@ -17,15 +17,14 @@ extern "C" {
 
 #include <context.hpp>
 #include <drivers/init/init.hpp>
-#include <drivers/memory.hpp>
 
 class Common
 {
   public:
-    Common(Context& ct_)
-    : ct(ct_)
-    , cfg(ct.mm.get<mem::config>())
-    , sts(ct.mm.get<mem::status>())
+    Common(Context& ctx_)
+    : ctx(ctx_)
+    , cfg(ctx.mm.get<mem::config>())
+    , sts(ctx.mm.get<mem::status>())
     {}
 
     auto& get_bitstream_id() {
@@ -46,8 +45,7 @@ class Common
 
     void init() {
         ip_on_leds();
-        Init init(ct);
-        init.load_settings();
+        ctx.get<Init>().load_settings();
     };
 
     void cfg_write(uint32_t offset, uint32_t value) {
@@ -112,7 +110,7 @@ class Common
     }
 
   private:
-    Context& ct;
+    Context& ctx;
     Memory<mem::config>& cfg;
     Memory<mem::status>& sts;
 };

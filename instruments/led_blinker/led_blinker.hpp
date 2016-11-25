@@ -6,14 +6,13 @@
 #define __DRIVERS_LED_BLINKER_HPP__
 
 #include <context.hpp>
-#include <drivers/memory.hpp>
 
 class LedBlinker
 {
   public:
-    LedBlinker(Context& ct)
-    : cfg(ct.mm.get<mem::config>())
-    , sts(ct.mm.get<mem::status>())
+    LedBlinker(Context& ctx)
+    : cfg(ctx.mm.get<mem::config>())
+    , sts(ctx.mm.get<mem::status>())
     {}
 
     void set_led(uint32_t led_value) {

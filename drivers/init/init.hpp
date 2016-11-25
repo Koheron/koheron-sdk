@@ -6,11 +6,10 @@
 #define __DRIVERS_INIT_HPP__
 
 #include <context.hpp>
-#include <drivers/memory.hpp>
 
 struct Init
 {
-    Init(Context& ct) {};
+    Init(Context& ctx) {};
     void load_settings() {};
 };
 
