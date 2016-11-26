@@ -11,7 +11,7 @@ HOST = 192.168.1.100
 # MAKE_PY script parses the properties defined CONFIG_YML
 ###############################################################################
 
-CURRENT_VERSION = 0.11.0
+CLIENT_VERSION = $(shell curl https://s3.eu-central-1.amazonaws.com/koheron-sdk/version.txt)
 
 CONFIG_YML = $(TMP)/$(NAME).config.yml
 
@@ -92,7 +92,7 @@ ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
 # App
 S3_URL = https://s3.eu-central-1.amazonaws.com/koheron-sdk
-STATIC_URL = $(S3_URL)/$(CURRENT_VERSION)-app.zip
+STATIC_URL = $(S3_URL)/$(CLIENT_VERSION)-app.zip
 STATIC_ZIP = $(TMP)/static.zip
 
 LIVE_DIR = $(TMP)/$(NAME).live
@@ -341,7 +341,7 @@ $(START_SH): $(MAKE_PY) $(CONFIG_YML) $(TEMPLATE_DIR)/start.sh
 	@echo [$@] OK
 
 $(LIVE_DIR): $(TMP) $(CONFIG_YML)
-	python $(MAKE_PY) --live_zip $(NAME) $(INSTRUMENT_PATH) $(CURRENT_VERSION) $(S3_URL)
+	python $(MAKE_PY) --live_zip $(NAME) $(INSTRUMENT_PATH) $(CLIENT_VERSION) $(S3_URL)
 	@echo [$@] OK
 
 $(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
