@@ -5,29 +5,16 @@
 #ifndef __DRIVERS_CLUSTER_HPP__
 #define __DRIVERS_CLUSTER_HPP__
 
-#include <drivers/lib/memory_manager.hpp>
-#include <drivers/memory.hpp>
+#include <context.hpp>
 
 class Cluster
 {
   public:
-    Cluster(MemoryManager& mm)
-    : cfg(mm.get<mem::config>())
-    , sts(mm.get<mem::status>())
-    , cfg_clk(mm.get<mem::cfg_clk>())
-    , mmcm(mm.get<mem::mmcm>())
+    Cluster(Context& ctx)
+    : cfg(ctx.mm.get<mem::config>())
+    , sts(ctx.mm.get<mem::status>())
+    , cfg_clk(ctx.mm.get<mem::cfg_clk>())
     {}
-
-    /*
-    // http://www.xilinx.com/support/documentation/ip_documentation/clk_wiz/v5_1/pg065-clk-wiz.pdf
-    void set_mmcm_phase(int32_t phase) {
-        mmcm.write<0x20C, int32_t>(phase);
-        while (mmcm.read<0x04>() == 0) {
-        }
-        mmcm.write<0x25C>(0x7);
-        mmcm.write<0x25C>(0x2);
-    }
-    */
 
     void phase_shift(uint32_t incdec) {
         cfg_clk.write_mask<0, (1 << 2) + (1 << 3)>((1 << 2) + (incdec << 3));
@@ -82,7 +69,6 @@ class Cluster
     Memory<mem::config>& cfg;
     Memory<mem::status>& sts;
     Memory<mem::cfg_clk>& cfg_clk;
-    Memory<mem::mmcm>& mmcm;
 };
 
 #endif // __DRIVERS_CLUSTER_HPP__

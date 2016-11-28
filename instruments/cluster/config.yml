@@ -23,9 +23,6 @@ memory:
   - name: cfg_clk
     offset: '0x70000000'
     range: 4K
-  - name: mmcm
-    offset: '0x43C00000'
-    range: 64K
 
 config_registers:
   - led
