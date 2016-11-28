@@ -70,14 +70,6 @@ ARMHF_CFLAGS = "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 CONFIG_TCL = $(TMP)/$(NAME).config.tcl
 TEMPLATE_DIR = scripts/templates
 
-# Versioning
-VERSION_FILE = $(TMP)/$(NAME).version
-VERSION = $(shell (git rev-parse --short HEAD))
-
-# Bitstream ID
-BITSTREAM_ID_FILE = $(TMP)/$(NAME).sha
-BITSTREAM_ID = $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g'))
-
 # TCP server
 TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
 TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
@@ -88,8 +80,16 @@ TCP_SERVER_VENV = $(TMP)/koheron_server_venv
 PYTHON=$(TCP_SERVER_VENV)/bin/python
 
 # Instrument
+
+INSTRUMENT_SHA_FILE = $(TMP)/$(NAME).version
+INSTRUMENT_SHA = $(shell (git rev-parse --short HEAD))
+
 START_SH = $(TMP)/$(NAME).start.sh
-INSTRUMENT_ZIP = $(TMP)/$(NAME)-$(VERSION).zip
+INSTRUMENT_ZIP = $(TMP)/$(NAME)-$(INSTRUMENT_SHA).zip
+
+# Bitstream ID
+BITSTREAM_ID_FILE = $(TMP)/$(NAME).sha
+BITSTREAM_ID = $(shell (printf $(NAME)-$(INSTRUMENT_SHA) | sha256sum | sed 's/\W//g'))
 
 # App
 
@@ -103,7 +103,7 @@ LIVE_DIR = $(TMP)/$(NAME).live
 
 HTTP_API_SRC = $(wildcard os/api/*)
 HTTP_API_DIR = $(TMP)/app
-HTTP_API_ZIP = app-$(VERSION).zip
+HTTP_API_ZIP = app-$(INSTRUMENT_SHA).zip
 
 METADATA = $(TMP)/metadata.json
 
@@ -149,8 +149,8 @@ bit: $(TMP)/$(NAME).bit
 http: $(HTTP_API_ZIP)
 
 run: $(INSTRUMENT_ZIP)
-	curl -v -F $(NAME)-$(VERSION).zip=@$(INSTRUMENT_ZIP) http://$(HOST)/api/instruments/upload
-	curl http://$(HOST)/api/instruments/run/$(NAME)/$(VERSION)
+	curl -v -F $(NAME)-$(INSTRUMENT_SHA).zip=@$(INSTRUMENT_ZIP) http://$(HOST)/api/instruments/upload
+	curl http://$(HOST)/api/instruments/run/$(NAME)/$(INSTRUMENT_SHA)
 	@echo
 
 ###############################################################################
@@ -178,8 +178,8 @@ test_app: os/tests/tests_instrument_manager.py
 # Versioning
 ###############################################################################
 
-$(VERSION_FILE): | $(TMP)
-	echo $(VERSION) > $@
+$(INSTRUMENT_SHA_FILE): | $(TMP)
+	echo $(INSTRUMENT_SHA) > $@
 	@echo [$@] OK
 
 $(BITSTREAM_ID_FILE):
@@ -348,7 +348,7 @@ $(LIVE_DIR): $(TMP) $(CONFIG_YML)
 	python $(MAKE_PY) --live_zip $(NAME) $(INSTRUMENT_PATH) $(APP_VERSION) $(APP_URL)
 	@echo [$@] OK
 
-$(INSTRUMENT_ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
+$(INSTRUMENT_ZIP): $(TCP_SERVER) $(INSTRUMENT_SHA_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
 	zip --junk-paths $(INSTRUMENT_ZIP) $(TMP)/$(NAME).bit $(TMP)/$(NAME).live $(TCP_SERVER) $(START_SH) $(LIVE_DIR)/*
 	@echo [$@] OK
 
@@ -358,8 +358,8 @@ $(INSTRUMENT_ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bi
 
 .PHONY: app_sync app_sync_ssh
 
-$(METADATA): $(MAKE_PY) $(VERSION_FILE)
-	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
+$(METADATA): $(MAKE_PY) $(INSTRUMENT_SHA_FILE)
+	python $(MAKE_PY) --metadata $(NAME) $(INSTRUMENT_SHA)
 	@echo [$@] OK
 
 $(HTTP_API_DIR): $(HTTP_API_SRC) $(METADATA)
@@ -374,7 +374,7 @@ $(HTTP_API_ZIP): $(HTTP_API_DIR)
 	@echo [$@] OK
 
 app_sync: $(HTTP_API_ZIP)
-	curl -v -F app-$(VERSION).zip=@$(HTTP_API_DIR)/$(HTTP_API_ZIP) http://$(HOST)/api/app/update
+	curl -v -F app-$(INSTRUMENT_SHA).zip=@$(HTTP_API_DIR)/$(HTTP_API_ZIP) http://$(HOST)/api/app/update
 	@echo
 
 # To use if uwsgi is not running
