@@ -83,7 +83,7 @@ TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
 TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_BUILD)/kserverd
 DRIVERS_YML = $(TMP)/$(NAME).drivers.yml
-TCP_SERVER_SHA = v0.11
+TCP_SERVER_VERSION = v0.11
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
 PYTHON=$(TCP_SERVER_VENV)/bin/python
 
@@ -316,7 +316,7 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 
 $(TCP_SERVER_DIR):
 	test -d $(TCP_SERVER_DIR) || git clone $(TCP_SERVER_URL) $(TCP_SERVER_DIR)
-	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
+	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_VERSION)
 	@echo [$@] OK
 
 $(TCP_SERVER_DIR)/requirements.txt: $(TCP_SERVER_DIR)
