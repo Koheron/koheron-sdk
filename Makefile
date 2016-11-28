@@ -78,7 +78,7 @@ VERSION = $(shell (git rev-parse --short HEAD))
 SHA_FILE = $(TMP)/$(NAME).sha
 SHA = $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g'))
 
-# Zip
+# TCP server
 TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
 TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_BUILD)/kserverd
@@ -87,8 +87,9 @@ TCP_SERVER_SHA = v0.11
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
 PYTHON=$(TCP_SERVER_VENV)/bin/python
 
+# Instrument
 START_SH = $(TMP)/$(NAME).start.sh
-ZIP = $(TMP)/$(NAME)-$(VERSION).zip
+INSTRUMENT_ZIP = $(TMP)/$(NAME)-$(VERSION).zip
 
 # App
 S3_URL = https://s3.eu-central-1.amazonaws.com/koheron-sdk
@@ -107,9 +108,9 @@ METADATA = $(TMP)/metadata.json
 
 .PHONY: all linux debug
 
-all: $(ZIP)
+all: $(INSTRUMENT_ZIP)
 
-linux: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv
+linux: $(INSTRUMENT_ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv
 
 debug:
 	@echo INSTRUMENT DIRECTORY = $(INSTRUMENT_PATH)/$(NAME)
@@ -144,8 +145,8 @@ xpr: $(TMP)/$(NAME).xpr
 bit: $(TMP)/$(NAME).bit
 http: $(HTTP_API_ZIP)
 
-run: $(ZIP)
-	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
+run: $(INSTRUMENT_ZIP)
+	curl -v -F $(NAME)-$(VERSION).zip=@$(INSTRUMENT_ZIP) http://$(HOST)/api/instruments/upload
 	curl http://$(HOST)/api/instruments/run/$(NAME)/$(VERSION)
 	@echo
 
@@ -344,8 +345,8 @@ $(LIVE_DIR): $(TMP) $(CONFIG_YML)
 	python $(MAKE_PY) --live_zip $(NAME) $(INSTRUMENT_PATH) $(CLIENT_VERSION) $(S3_URL)
 	@echo [$@] OK
 
-$(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
-	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TMP)/$(NAME).live $(TCP_SERVER) $(START_SH) $(LIVE_DIR)/*
+$(INSTRUMENT_ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
+	zip --junk-paths $(INSTRUMENT_ZIP) $(TMP)/$(NAME).bit $(TMP)/$(NAME).live $(TCP_SERVER) $(START_SH) $(LIVE_DIR)/*
 	@echo [$@] OK
 
 ###############################################################################
