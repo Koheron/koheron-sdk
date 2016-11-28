@@ -73,8 +73,10 @@ TEMPLATE_DIR = scripts/templates
 # Versioning
 VERSION_FILE = $(TMP)/$(NAME).version
 VERSION = $(shell (git rev-parse --short HEAD))
-SHA_FILE = $(TMP)/$(NAME).sha
-SHA = $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g'))
+
+# Bitstream ID
+BITSTREAM_ID_FILE = $(TMP)/$(NAME).sha
+BITSTREAM_ID = $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g'))
 
 # TCP server
 TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
@@ -180,15 +182,15 @@ $(VERSION_FILE): | $(TMP)
 	echo $(VERSION) > $@
 	@echo [$@] OK
 
-$(SHA_FILE):
-	echo $(SHA) > $@
+$(BITSTREAM_ID_FILE):
+	echo $(BITSTREAM_ID) > $@
 	@echo [$@] OK
 
 ###############################################################################
 # FPGA
 ###############################################################################
 
-$(CONFIG_TCL): $(MAKE_PY) $(CONFIG_YML) $(SHA_FILE) $(TEMPLATE_DIR)/config.tcl
+$(CONFIG_TCL): $(MAKE_PY) $(CONFIG_YML) $(BITSTREAM_ID_FILE) $(TEMPLATE_DIR)/config.tcl
 	python $(MAKE_PY) --config_tcl $(NAME) $(INSTRUMENT_PATH)
 	@echo [$@] OK
 
