@@ -142,7 +142,7 @@ apt-get -y install openssh-server ntp usbutils psmisc lsof \
   parted curl less vim iw ntfs-3g \
   bash-completion unzip
 
-apt-get install -y udev net-tools netbase ifupdown lsb-base
+apt-get install -y udev net-tools netbase ifupdown network-manager lsb-base
 apt-get install -y ntpdate sudo
 
 apt-get install -y nginx
