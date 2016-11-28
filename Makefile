@@ -91,15 +91,17 @@ INSTRUMENT_ZIP = $(TMP)/$(NAME)-$(INSTRUMENT_SHA).zip
 BITSTREAM_ID_FILE = $(TMP)/$(NAME).sha
 BITSTREAM_ID = $(shell (printf $(NAME)-$(INSTRUMENT_SHA) | sha256sum | sed 's/\W//g'))
 
-# App
+# Web App
 
-APP_VERSION = $(shell curl https://s3.eu-central-1.amazonaws.com/koheron-sdk/version.txt)
-APP_URL = https://s3.eu-central-1.amazonaws.com/koheron-sdk
+WEB_APP_VERSION = $(shell curl https://s3.eu-central-1.amazonaws.com/koheron-sdk/version.txt)
+WEB_APP_URL = https://s3.eu-central-1.amazonaws.com/koheron-sdk
 
-STATIC_URL = $(APP_URL)/$(APP_VERSION)-app.zip
+STATIC_URL = $(WEB_APP_URL)/$(WEB_APP_VERSION)-app.zip
 STATIC_ZIP = $(TMP)/static.zip
 
 LIVE_DIR = $(TMP)/$(NAME).live
+
+# HTTP App
 
 HTTP_API_SRC = $(wildcard os/api/*)
 HTTP_API_DIR = $(TMP)/app
@@ -345,7 +347,7 @@ $(START_SH): $(MAKE_PY) $(CONFIG_YML) $(TEMPLATE_DIR)/start.sh
 	@echo [$@] OK
 
 $(LIVE_DIR): $(TMP) $(CONFIG_YML)
-	python $(MAKE_PY) --live_zip $(NAME) $(INSTRUMENT_PATH) $(APP_VERSION) $(APP_URL)
+	python $(MAKE_PY) --live_zip $(NAME) $(INSTRUMENT_PATH) $(WEB_APP_VERSION) $(WEB_APP_URL)
 	@echo [$@] OK
 
 $(INSTRUMENT_ZIP): $(TCP_SERVER) $(INSTRUMENT_SHA_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
@@ -356,7 +358,7 @@ $(INSTRUMENT_ZIP): $(TCP_SERVER) $(INSTRUMENT_SHA_FILE) $(PYTHON_DIR) $(TMP)/$(N
 # HTTP API
 ###############################################################################
 
-.PHONY: app_sync app_sync_ssh
+.PHONY: http_api_sync http_api_sync_ssh
 
 $(METADATA): $(MAKE_PY) $(INSTRUMENT_SHA_FILE)
 	python $(MAKE_PY) --metadata $(NAME) $(INSTRUMENT_SHA)
@@ -373,12 +375,12 @@ $(HTTP_API_ZIP): $(HTTP_API_DIR)
 	cd $(HTTP_API_DIR) && zip -r $(HTTP_API_ZIP) .
 	@echo [$@] OK
 
-app_sync: $(HTTP_API_ZIP)
+http_api_sync: $(HTTP_API_ZIP)
 	curl -v -F app-$(INSTRUMENT_SHA).zip=@$(HTTP_API_DIR)/$(HTTP_API_ZIP) http://$(HOST)/api/app/update
 	@echo
 
 # To use if uwsgi is not running
-app_sync_ssh: $(HTTP_API_ZIP)
+http_api_sync_ssh: $(HTTP_API_ZIP)
 	rsync -avz -e "ssh -i /ssh-private-key" $(HTTP_API_DIR)/. root@$(HOST):/usr/local/flask/
 
 ###############################################################################
