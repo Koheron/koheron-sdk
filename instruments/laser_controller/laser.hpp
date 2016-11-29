@@ -5,9 +5,7 @@
 #ifndef __DRIVERS_LASER_CONTROLLER_HPP__
 #define __DRIVERS_LASER_CONTROLLER_HPP__
 
-#include <drivers/lib/memory_manager.hpp>
-#include <drivers/memory.hpp>
-
+#include <context.hpp>
 #include <drivers/xadc/xadc.hpp>
 
 // XADC channels
@@ -26,10 +24,10 @@ constexpr float current_to_pwm = MILLIAMPS_TO_AMPS * PWM_MAX_VALUE * GAIN_LT1789
 class Laser
 {
   public:
-    Laser(MemoryManager& mm)
-    : cfg(mm.get<mem::config>())
-    , sts(mm.get<mem::status>())
-    , xadc(mm)
+    Laser(Context& ctx)
+    : cfg(ctx.mm.get<mem::config>())
+    , sts(ctx.mm.get<mem::status>())
+    , xadc(ctx.get<Xadc>())
     {}
 
     void start() {
@@ -58,7 +56,7 @@ class Laser
   private:
     Memory<mem::config>& cfg;
     Memory<mem::status>& sts;
-    Xadc xadc;
+    Xadc& xadc;
 
 };
 

@@ -5,16 +5,15 @@
 #ifndef __DRIVERS_CLUSTER_HPP__
 #define __DRIVERS_CLUSTER_HPP__
 
-#include <drivers/lib/memory_manager.hpp>
-#include <drivers/memory.hpp>
+#include <context.hpp>
 
 class Cluster
 {
   public:
-    Cluster(MemoryManager& mm)
-    : cfg(mm.get<mem::config>())
-    , sts(mm.get<mem::status>())
-    , cfg_clk(mm.get<mem::cfg_clk>())
+    Cluster(Context& ctx)
+    : cfg(ctx.mm.get<mem::config>())
+    , sts(ctx.mm.get<mem::status>())
+    , cfg_clk(ctx.mm.get<mem::cfg_clk>())
     {}
 
     void phase_shift(uint32_t incdec) {

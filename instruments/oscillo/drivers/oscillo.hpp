@@ -10,9 +10,8 @@
 #include <cmath>
 #include <chrono>
 
-#include <drivers/lib/memory_manager.hpp>
+#include <context.hpp>
 #include <drivers/lib/dac_router.hpp>
-#include <drivers/memory.hpp>
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE mem::adc_range/sizeof(float)
@@ -24,7 +23,7 @@ constexpr std::array<uint32_t, 2> n_avg_offset = {reg::n_avg0, reg::n_avg1};
 class Oscillo
 {
   public:
-    Oscillo(MemoryManager& mm);
+    Oscillo(Context& ctx);
 
     // Reset ...
 

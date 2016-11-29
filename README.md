@@ -10,7 +10,7 @@ Koheron SDK is a build system for quick prototyping of custom instruments on Zyn
 
 ### 1. Requirements for Ubuntu 16.04
 
-#### 1.1. Download [`Vivado HLx 2016.2: All OS Installer Single-File Download`](http://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2016-2.html).
+#### 1.1. Download [`Vivado HLx 2016.3: All OS Installer Single-File Download`](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2016-3.html).
 
 #### 1.2 Run
 

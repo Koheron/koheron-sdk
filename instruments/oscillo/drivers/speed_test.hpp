@@ -8,8 +8,7 @@
 #include <vector>
 #include <cstring>
 
-#include <drivers/lib/memory_manager.hpp>
-#include <drivers/memory.hpp>
+#include <context.hpp>
 
 #define SAMPLING_RATE 125E6
 
@@ -21,7 +20,7 @@ void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz);
 class SpeedTest
 {
   public:
-    SpeedTest(MemoryManager& mm);
+    SpeedTest(Context& ctx);
 
     std::array<float, 2*WFM_SIZE>& read_raw_all();
 

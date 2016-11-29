@@ -288,9 +288,10 @@ if __name__ == "__main__":
 
     elif cmd == '--live_zip':
         instrument = sys.argv[2]
+        version = sys.argv[4]
+        s3_url = sys.argv[5]
         config = get_config(instrument, instrument_path=sys.argv[3])
-        zip_url = config['live_zip']
-        print(zip_url)
+        zip_url = s3_url + '/' + version + '-' + config['live_zip']
         r = requests.get(zip_url, stream=True)
         z = zipfile.ZipFile(StringIO.StringIO(r.content))
         z.extractall('tmp/%s.live' % instrument)
