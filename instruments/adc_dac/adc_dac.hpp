@@ -5,15 +5,14 @@
 #ifndef __DRIVERS_ADC_DAC_HPP__
 #define __DRIVERS_ADC_DAC_HPP__
 
-#include <drivers/lib/memory_manager.hpp>
-#include <drivers/memory.hpp>
+#include <context.hpp>
 
 class AdcDac
 {
   public:
-    AdcDac(MemoryManager& mm)
-    : cfg(mm.get<mem::config>())
-    , sts(mm.get<mem::status>())
+    AdcDac(Context& ctx)
+    : cfg(ctx.mm.get<mem::config>())
+    , sts(ctx.mm.get<mem::status>())
     {}
 
     void set_dac(uint32_t dac0, uint32_t dac1) {

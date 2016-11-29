@@ -10,5 +10,4 @@ make NAME=decimator
 make NAME=laser_controller
 make NAME=pulse_generator
 make NAME=adc_dac
-
-/bin/bash os/scripts/image.sh led_blinker
+make NAME=cluster

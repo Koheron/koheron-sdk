@@ -28,8 +28,6 @@ class KoheronAPIApp(Flask):
         self.start_last_deployed_instrument()
         self.get_instruments()
 
-
-
     def load_metadata(self):
         self.metadata = {}
         with open('metadata.json', 'r') as f:
@@ -39,6 +37,11 @@ class KoheronAPIApp(Flask):
         if os.path.exists('/tmp/static'):
             shutil.rmtree('/tmp/static')
         subprocess.call(['/usr/bin/unzip', '-o', '/tmp/static.zip', '-d', '/tmp/static'])
+
+    def update_live(self):
+        if os.path.exists('/tmp/instrument'):
+            shutil.rmtree('/tmp/instrument')
+        subprocess.call(['/usr/bin/unzip', '-o', '/tmp/live.zip', '-d', '/tmp/instrument'])
 
     def copy_static(self):
         copy_tree('/tmp/static/ui', '/var/www/ui')

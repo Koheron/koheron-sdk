@@ -5,9 +5,8 @@
 #ifndef __DRIVERS_SPECTRUM_HPP__
 #define __DRIVERS_SPECTRUM_HPP__
 
-#include <drivers/lib/memory_manager.hpp>
+#include <context.hpp>
 #include <drivers/lib/dac_router.hpp>
-#include <drivers/memory.hpp>
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE mem::spectrum_range/sizeof(float)
@@ -22,15 +21,15 @@
 class Spectrum
 {
   public:
-    Spectrum(MemoryManager& mm)
-    : cfg(mm.get<mem::config>())
-    , sts(mm.get<mem::status>())
-    , spectrum_map(mm.get<mem::spectrum>())
-    , demod_map(mm.get<mem::demod>())
-    , peak_fifo_map(mm.get<mem::peak_fifo>())
-    , noise_floor_map(mm.get<mem::noise_floor>())
+    Spectrum(Context& ctx)
+    : cfg(ctx.mm.get<mem::config>())
+    , sts(ctx.mm.get<mem::status>())
+    , spectrum_map(ctx.mm.get<mem::spectrum>())
+    , demod_map(ctx.mm.get<mem::demod>())
+    , peak_fifo_map(ctx.mm.get<mem::peak_fifo>())
+    , noise_floor_map(ctx.mm.get<mem::noise_floor>())
     , spectrum_decim(0)
-    , dac(mm)
+    , dac(ctx)
     {
         raw_data = spectrum_map.get_ptr<float>();
         set_averaging(true);

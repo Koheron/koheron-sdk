@@ -8,8 +8,7 @@
 #ifndef __DRIVERS_XADC_HPP__
 #define __DRIVERS_XADC_HPP__
 
-#include <drivers/lib/memory_manager.hpp>
-#include <drivers/memory.hpp>
+#include <context.hpp>
 
 // Offsets
 // Set by Xilinx IP
@@ -23,8 +22,8 @@
 class Xadc
 {
   public:
-    Xadc(MemoryManager& mm)
-    : xadc(mm.get<mem::xadc>())
+    Xadc(Context& ctx)
+    : xadc(ctx.mm.get<mem::xadc>())
     {}
 
     uint32_t set_channel(uint32_t channel_0_, uint32_t channel_1_);

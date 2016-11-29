@@ -9,8 +9,7 @@
 #include <thread>
 #include <chrono>
 
-#include <drivers/lib/memory_manager.hpp>
-#include <drivers/memory.hpp>
+#include <context.hpp>
 
 // http://www.atmel.com/images/Atmel-5193-SEEPROM-AT93C46D-Datasheet.pdf
 #define WRITE_OPCODE 1
@@ -27,9 +26,9 @@ using namespace std::chrono_literals;
 class Eeprom
 {
   public:
-    Eeprom(MemoryManager& mm)
-    : cfg(mm.get<mem::config>())
-    , sts(mm.get<mem::status>())
+    Eeprom(Context& ctx)
+    : cfg(ctx.mm.get<mem::config>())
+    , sts(ctx.mm.get<mem::status>())
     {}
 
     uint32_t read(uint32_t addr) {
