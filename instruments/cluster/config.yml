@@ -26,7 +26,6 @@ memory:
 
 config_registers:
   - led
-  - dac[n_dac]
   - phase_incr[2]
   - cfg_sata
   - pulse_width

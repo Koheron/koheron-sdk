@@ -8,15 +8,11 @@ proc add_redp_adc_dac {module_name} {
   }
 
   create_bd_pin -dir I -from 31 -to 0 cfg
-
   create_bd_pin -dir I -type clk psclk
-
   create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 crystal_clk
   create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 sata_clk
-
   create_bd_pin -dir O adc_clk
-  create_bd_pin -dir O ser_clk
-  create_bd_pin -dir O pwm_clk
+
 
   # Mixed-mode clock manager
   cell xilinx.com:ip:clk_wiz:5.3 mmcm {
@@ -29,8 +25,6 @@ proc add_redp_adc_dac {module_name} {
     CLKOUT2_USED true CLKOUT2_REQUESTED_OUT_FREQ 125.0
     CLKOUT3_USED true CLKOUT3_REQUESTED_OUT_FREQ 250.0
     CLKOUT4_USED true CLKOUT4_REQUESTED_OUT_FREQ 250.0 CLKOUT4_REQUESTED_PHASE -45
-    CLKOUT5_USED true CLKOUT5_REQUESTED_OUT_FREQ 10.0
-    CLKOUT6_USED true CLKOUT6_REQUESTED_OUT_FREQ 375.0
     USE_INCLK_SWITCHOVER true
     SECONDARY_IN_FREQ.VALUE_SRC USER
     SECONDARY_IN_FREQ 125
@@ -39,8 +33,6 @@ proc add_redp_adc_dac {module_name} {
     clk_in_sel [get_slice_pin cfg 0 0]
     reset [get_slice_pin cfg 1 1]
     clk_out1  adc_clk
-    clk_out5  ser_clk
-    clk_out6  pwm_clk
     CLK_IN2_D   crystal_clk
     CLK_IN1_D   sata_clk
     psclk psclk
