@@ -2,7 +2,7 @@ device=$1
 name=$2
 version=$3
 
-koheron_python_branch=v0.12
+koheron_python_branch=v0.12.0
 
 config_dir=os
 http_app_dir=tmp/app
