@@ -165,8 +165,10 @@ run: $(INSTRUMENT_ZIP)
 test_module: $(CONFIG_TCL) fpga/modules/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	vivado -source fpga/scripts/test_module.tcl -tclargs $(NAME) $(INSTRUMENT_PATH) $(PART)
 
-test_core:
+test_core: fpga/cores/$(CORE)/core_config.tcl fpga/cores/$(CORE)/*.v
 	vivado -source fpga/scripts/test_core.tcl -tclargs $(CORE) $(PART)
+
+build_core: $(TMP)/cores/$(CORE)
 
 test_driver_%: drivers/%/test.py
 	py.test -v $<
