@@ -107,7 +107,7 @@ EOF_CAT
 cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
-/dev/mmcblk0p2  /               ext4    ro,noatime          0       1
+/dev/mmcblk0p2  /               ext4    defaults,noatime    0       1
 /dev/mmcblk0p1  /boot           vfat    ro,noatime          0       2
 tmpfs           /tmp            tmpfs   defaults,noatime    0       0
 tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
@@ -143,7 +143,7 @@ apt-get -y install openssh-server ntp usbutils psmisc lsof \
   parted curl less vim iw ntfs-3g \
   bash-completion unzip
 
-apt-get install -y udev net-tools netbase ifupdown lsb-base
+apt-get install -y udev net-tools netbase ifupdown network-manager lsb-base
 apt-get install -y ntpdate sudo
 
 apt-get install -y nginx
