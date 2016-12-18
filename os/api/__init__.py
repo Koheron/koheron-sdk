@@ -20,7 +20,8 @@ class KoheronAPIApp(Flask):
     def __init__(self, *args, **kwargs):
         super(KoheronAPIApp, self).__init__(*args, **kwargs)
 
-        self.config['INSTRUMENTS_DIR'] = '/usr/local/instruments/'
+        #self.config['INSTRUMENTS_DIR'] = '/usr/local/instruments/'
+        self.config['INSTRUMENTS_DIR'] = '/tmp/instruments/'
         self.instruments = {}
 
         self.load_metadata()
