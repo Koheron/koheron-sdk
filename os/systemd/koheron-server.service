@@ -4,6 +4,7 @@ After=network.target
 
 [Service]
 Type=forking
+ExecStartPre=mkdir -p /tmp/instruments && /bin/cp -n /usr/local/koheron-server/kserverd /tmp/instrument/kserverd
 ExecStart=/tmp/instruments/kserverd -c /usr/local/koheron-server/koheron-server.conf
 ExecStop=/usr/bin/pkill -SIGINT kserverd
 KillSignal=SIGKILL
