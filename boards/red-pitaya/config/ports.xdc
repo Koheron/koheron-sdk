@@ -6,7 +6,6 @@ set_property CONFIG_VOLTAGE 3.3 [current_design]
 # data
 
 set_property IOSTANDARD LVCMOS18 [get_ports {adc_dat_a_i[*]}]
-set_property IOB TRUE [get_ports {adc_dat_a_i[*]}]
 
 set_property PACKAGE_PIN Y17 [get_ports {adc_dat_a_i[0]}]
 set_property PACKAGE_PIN W16 [get_ports {adc_dat_a_i[1]}]
@@ -24,7 +23,6 @@ set_property PACKAGE_PIN T16 [get_ports {adc_dat_a_i[12]}]
 set_property PACKAGE_PIN V16 [get_ports {adc_dat_a_i[13]}]
 
 set_property IOSTANDARD LVCMOS18 [get_ports {adc_dat_b_i[*]}]
-set_property IOB TRUE [get_ports {adc_dat_b_i[*]}]
 
 set_property PACKAGE_PIN R18 [get_ports {adc_dat_b_i[0]}]
 set_property PACKAGE_PIN P16 [get_ports {adc_dat_b_i[1]}]
@@ -53,7 +51,6 @@ set_property PACKAGE_PIN U19 [get_ports adc_clk_n_i]
 set_property IOSTANDARD LVCMOS18 [get_ports {adc_clk_source[*]}]
 set_property SLEW FAST [get_ports {adc_clk_source[*]}]
 set_property DRIVE 8 [get_ports {adc_clk_source[*]}]
-#set_property IOB TRUE [get_ports {adc_clk_source[*]}]
 
 set_property PACKAGE_PIN N20 [get_ports {adc_clk_source[0]}]
 set_property PACKAGE_PIN P20 [get_ports {adc_clk_source[1]}]
@@ -72,7 +69,6 @@ set_property DRIVE 8 [get_ports adc_cdcs_o]
 set_property IOSTANDARD LVCMOS33 [get_ports {dac_dat_o[*]}]
 set_property SLEW SLOW [get_ports {dac_dat_o[*]}]
 set_property DRIVE 4 [get_ports {dac_dat_o[*]}]
-# set_property IOB TRUE [get_ports {dac_dat_o[*]}]
 
 set_property PACKAGE_PIN M19 [get_ports {dac_dat_o[0]}]
 set_property PACKAGE_PIN M20 [get_ports {dac_dat_o[1]}]
@@ -94,7 +90,6 @@ set_property PACKAGE_PIN D19 [get_ports {dac_dat_o[13]}]
 set_property IOSTANDARD LVCMOS33 [get_ports dac_*_o]
 set_property SLEW FAST [get_ports dac_*_o]
 set_property DRIVE 8 [get_ports dac_*_o]
-# set_property IOB TRUE [get_ports {dac_*_o}]
 
 set_property PACKAGE_PIN M17 [get_ports dac_wrt_o]
 set_property PACKAGE_PIN N16 [get_ports dac_sel_o]
@@ -106,7 +101,6 @@ set_property PACKAGE_PIN N15 [get_ports dac_rst_o]
 set_property IOSTANDARD LVCMOS18 [get_ports {dac_pwm_o[*]}]
 set_property SLEW FAST [get_ports {dac_pwm_o[*]}]
 set_property DRIVE 12 [get_ports {dac_pwm_o[*]}]
-# set_property IOB TRUE [get_ports {dac_pwm_o[*]}]
 
 set_property PACKAGE_PIN T10 [get_ports {dac_pwm_o[0]}]
 set_property PACKAGE_PIN T11 [get_ports {dac_pwm_o[1]}]
