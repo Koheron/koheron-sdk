@@ -51,13 +51,11 @@ class KoheronAPIApp(Flask):
     # ------------------------
 
     def start_client(self):
-        time.sleep(0.2) # To be sure server is up
         log('info', 'Connecting to server...')
         self.client = KoheronClient('127.0.0.1')
 
         if self.client.is_connected:
             log('info', 'Connected to server')
-            time.sleep(0.2)
             self.common = Common(self.client)
             log('info', 'Common driver initialized')
             self.common.init()
