@@ -52,7 +52,11 @@ class KoheronAPIApp(Flask):
 
     def start_client(self):
         log('info', 'Connecting to server...')
-        self.client = KoheronClient(unixsock='/var/run/koheron-server.sock')
+
+        try:
+            self.client = KoheronClient(unixsock='/var/run/koheron-server.sock')
+        except:
+            self.client.is_connected = False
 
         if self.client.is_connected:
             log('info', 'Connected to server')

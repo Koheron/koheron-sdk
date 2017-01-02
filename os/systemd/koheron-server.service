@@ -9,5 +9,8 @@ ExecStart=/usr/local/koheron-server/kserverd -c /usr/local/koheron-server/kohero
 ExecStop=/usr/bin/pkill -SIGINT kserverd
 KillSignal=SIGKILL
 
+# No limitation in the number of restarts per time interval
+StartLimitInterval=0
+
 [Install]
 WantedBy=multi-user.target
