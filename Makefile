@@ -76,7 +76,7 @@ TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_BUILD)/kserverd
 DRIVERS_YML = $(TMP)/$(NAME).drivers.yml
 
-TCP_SERVER_VERSION = sd_notify
+TCP_SERVER_VERSION = develop
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
 PYTHON=$(TCP_SERVER_VENV)/bin/python
 
