@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-vivado_release=2016.3
-vivado_version=${vivado_release}_1011_1
+vivado_release=2016.4
+vivado_version=${vivado_release}_1215_1
 
 tar -xvzf Xilinx_Vivado_SDK_${vivado_version}.tar.gz
 

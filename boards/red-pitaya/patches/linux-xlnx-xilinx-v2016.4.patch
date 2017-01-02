@@ -1,6 +1,14 @@
-diff -rupN old/linux-xlnx-xilinx-v2016.3/arch/arm/configs/xilinx_zynq_defconfig linux-xlnx-xilinx-v2016.3/arch/arm/configs/xilinx_zynq_defconfig
---- old/linux-xlnx-xilinx-v2016.3/arch/arm/configs/xilinx_zynq_defconfig
-+++ linux-xlnx-xilinx-v2016.3/arch/arm/configs/xilinx_zynq_defconfig
+diff -rupN old/linux-xlnx-xilinx-v2016.4/arch/arm/configs/xilinx_zynq_defconfig linux-xlnx-xilinx-v2016.4/arch/arm/configs/xilinx_zynq_defconfig
+--- old/linux-xlnx-xilinx-v2016.4/arch/arm/configs/xilinx_zynq_defconfig
++++ linux-xlnx-xilinx-v2016.4/arch/arm/configs/xilinx_zynq_defconfig
+@@ -114,6 +114,7 @@ CONFIG_XILINX_PS_EMAC=y
+ CONFIG_MARVELL_PHY=y
+ CONFIG_VITESSE_PHY=y
+ CONFIG_REALTEK_PHY=y
++CONFIG_LANTIQ_PHY=y
+ CONFIG_MDIO_BITBANG=y
+ CONFIG_INPUT_SPARSEKMAP=y
+ CONFIG_INPUT_EVDEV=y
 @@ -239,3 +240,88 @@ CONFIG_RCU_CPU_STALL_TIMEOUT=60
  CONFIG_FONTS=y
  CONFIG_FONT_8x8=y
@@ -91,3 +99,42 @@ diff -rupN old/linux-xlnx-xilinx-v2016.3/arch/arm/configs/xilinx_zynq_defconfig 
 +CONFIG_EXT4_FS_SECURITY=y
 +CONFIG_KEYS=y
 
+diff -rupN old/linux-xlnx-xilinx-v2016.4/drivers/misc/eeprom/at24.c linux-xlnx-xilinx-v2016.4/drivers/misc/eeprom/at24.c
+--- old/linux-xlnx-xilinx-v2016.4/drivers/misc/eeprom/at24.c
++++ linux-xlnx-xilinx-v2016.4/drivers/misc/eeprom/at24.c
+@@ -508,6 +508,9 @@ static int at24_probe(struct i2c_client
+ 		 * is recommended anyhow.
+ 		 */
+ 		chip.page_size = 1;
++ 		if(!strncmp(id->name,"24c64",5)){
++			chip.page_size = 32;
++		}
+ 
+ 		/* update chipdata if OF is present */
+ 		at24_get_ofdata(client, &chip);
+diff -rupN old/linux-xlnx-xilinx-v2016.4/drivers/net/phy/Kconfig linux-xlnx-xilinx-v2016.4/drivers/net/phy/Kconfig
+--- old/linux-xlnx-xilinx-v2016.4/drivers/net/phy/Kconfig
++++ linux-xlnx-xilinx-v2016.4/drivers/net/phy/Kconfig
+@@ -156,6 +156,11 @@ config MICROCHIP_PHY
+ 	help
+ 	  Supports the LAN88XX PHYs.
+ 
++config LANTIQ_PHY
++	tristate "Driver for Lantiq PHYs"
++	---help---
++	  Supports the 11G and 22E PHYs.
++
+ config FIXED_PHY
+ 	tristate "Driver for MDIO Bus/PHY emulation with fixed speed/link PHYs"
+ 	depends on PHYLIB
+diff -rupN old/linux-xlnx-xilinx-v2016.4/drivers/net/phy/Makefile linux-xlnx-xilinx-v2016.4/drivers/net/phy/Makefile
+--- old/linux-xlnx-xilinx-v2016.4/drivers/net/phy/Makefile
++++ linux-xlnx-xilinx-v2016.4/drivers/net/phy/Makefile
+@@ -30,6 +30,7 @@ obj-$(CONFIG_DP83848_PHY)	+= dp83848.o
+ obj-$(CONFIG_DP83867_PHY)	+= dp83867.o
+ obj-$(CONFIG_STE10XP)		+= ste10Xp.o
+ obj-$(CONFIG_MICREL_PHY)	+= micrel.o
++obj-$(CONFIG_LANTIQ_PHY)	+= lantiq.o
+ obj-$(CONFIG_MDIO_OCTEON)	+= mdio-octeon.o
+ obj-$(CONFIG_MICREL_KS8995MA)	+= spi_ks8995.o
+ obj-$(CONFIG_AT803X_PHY)	+= at803x.o
