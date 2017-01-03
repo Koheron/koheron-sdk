@@ -46,3 +46,9 @@ do
   mv $path/libstdc++.so.6 $path/libstdc++.so.6.orig
   ln -s /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.21 $path/libstdc++.so.6
 done
+
+# Solve problem wih awk
+# http://perso.utinam.cnrs.fr/~emeyer/doku.php?id=wiki:linux_pour_zynq_de_xilinx:installation_petalinux#utilisattion
+path=/opt/Xilinx/Vivado/${vivado_release}/lib/lnx64.o
+mv $path/libmpfr.so.4 $path/libmpfr.so.4.orig
+ln -s /usr/lib/x86_64-linux-gnu/libmpfr.so.4 $path/libmpfr.so.4
