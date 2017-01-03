@@ -3,13 +3,16 @@ Description=Koheron TCP/Websocket server
 After=network.target
 
 [Service]
-Type=forking
+Type=notify
+NotifyAccess=all
 ExecStartPre=/bin/mkdir -p /tmp/instrument
 ExecStartPre=/bin/cp -n /usr/local/koheron-server/kserverd /tmp/instrument/kserverd
 ExecStart=/tmp/instrument/kserverd -c /usr/local/koheron-server/koheron-server.conf
 ExecStop=/usr/bin/pkill -SIGINT kserverd
 KillSignal=SIGKILL
 
+# No limitation in the number of restarts per time interval
+StartLimitInterval=0
+
 [Install]
 WantedBy=multi-user.target
-
