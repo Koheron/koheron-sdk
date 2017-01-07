@@ -299,7 +299,7 @@ if __name__ == "__main__":
     elif cmd == '--middleware':
         instrument = sys.argv[2]
         config = get_config(instrument, instrument_path=sys.argv[3])
-        dest =  'tmp/' + instrument + '.server.build/drivers'
+        dest =  'tmp/' + instrument + '.server.build'
         if not os.path.exists(dest):
             os.makedirs(dest)
         fill_memory(config, dest)
