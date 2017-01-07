@@ -8,8 +8,7 @@
 #include <cmath>
 #include <limits>
 
-#include <drivers/lib/memory_manager.hpp>
-#include <drivers/memory.hpp>
+#include <context.hpp>
 
 #define ASSERT(...) \
     if (!(__VA_ARGS__)) return false;
@@ -17,8 +16,8 @@
 class TestMemory
 {
   public:
-    TestMemory(MemoryManager& mm)
-    : ram(mm.get<mem::rambuf>())
+    TestMemory(Context& ctx)
+    : ram(ctx.mm.get<mem::rambuf>())
     {}
 
     // Write/read single registers

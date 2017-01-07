@@ -1,6 +1,11 @@
 ---
 instrument: spectrum
+<<<<<<< HEAD
 parent: instruments/base
+=======
+board: red-pitaya
+parent: oscillo
+>>>>>>> bab325e5434efd0a8a683f02142a0ba35883e84f
 
 # ------------------------------------------------------------
 # Memory
@@ -69,10 +74,10 @@ status_registers:
 
 parameters:
   fclk0: 200000000
-  fclk1: 200000000
+  fclk1: 187500000
   dac_width: 14
   adc_width: 14
-  pwm_width: 10
+  pwm_width: 12
   n_pwm: 4
   n_dac_bram: 3
   n_dac: 2
@@ -87,9 +92,6 @@ modules:
   - spectrum
   - peak_detector
 
-xdc:
-  - instruments/base/expansion_connector.xdc
-
 # ------------------------------------------------------------
 # Drivers
 # ------------------------------------------------------------
@@ -103,7 +105,7 @@ server:
     - drivers/gpio/gpio.hpp
     - drivers/xadc/xadc.hpp
     - drivers/laser/laser.hpp
-    - instruments/spectrum/drivers/spectrum.hpp
+    - instruments/spectrum/spectrum.hpp
     - drivers/eeprom/eeprom.hpp
     - drivers/test_memory/test_memory.hpp
 
@@ -111,4 +113,4 @@ server:
 # Misc
 # ------------------------------------------------------------
 
-live_zip: http://zynq-sdk.s3-website-eu-west-1.amazonaws.com/live-spectrum.zip
+live_zip: live-spectrum.zip

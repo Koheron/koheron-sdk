@@ -9,10 +9,10 @@ import os
 import time
 
 from pulse import Pulse
-from koheron import load_instrument
+from koheron import connect
 
 host = os.getenv('HOST', '192.168.1.7')
-client = load_instrument(host, 'pulse_generator')
+client = connect(host, name='pulse_generator')
 driver = Pulse(client)
 
 pulse_width = 128
@@ -37,9 +37,10 @@ ax = fig.add_subplot(111)
 x = np.arange(n)
 y = np.zeros(n)
 li, = ax.plot(x, y)
-ax.set_ylim((-8192, 8191))
+ax.set_ylim((-200, 5200))
+ax.set_xlabel('FIFO sample number')
+ax.set_ylabel('ADC raw value')
 fig.canvas.draw()
-
 
 while True:
     try:

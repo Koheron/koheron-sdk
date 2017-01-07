@@ -8,22 +8,22 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <chrono>
 
-#include <drivers/lib/memory_manager.hpp>
+#include <context.hpp>
 #include <drivers/lib/dac_router.hpp>
-#include <drivers/memory.hpp>
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE mem::adc_range/sizeof(float)
 #define ACQ_PERIOD_NS 8 // Duration between two acquisitions (ns)
 
-constexpr uint32_t wfm_time_ns = WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE);
+constexpr auto wfm_time = std::chrono::nanoseconds(WFM_SIZE * static_cast<uint32_t>(1E9 / SAMPLING_RATE));
 constexpr std::array<uint32_t, 2> n_avg_offset = {reg::n_avg0, reg::n_avg1};
 
 class Oscillo
 {
   public:
-    Oscillo(MemoryManager& mm);
+    Oscillo(Context& ctx);
 
     // Reset ...
 
@@ -89,10 +89,6 @@ class Oscillo
     // DACs
     void set_dac_buffer(uint32_t channel, const std::array<uint32_t, WFM_SIZE/2>& arr) {
         dac.set_data(channel, arr);
-    }
-
-    void set_dac_float(uint32_t channel, const std::array<float, WFM_SIZE>& arr) {
-        dac.set_data<prm::dac_width>(channel, arr);
     }
 
     auto& get_dac_buffer(uint32_t channel) {

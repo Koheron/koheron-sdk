@@ -10,7 +10,9 @@ Koheron SDK is a build system for quick prototyping of custom instruments on Zyn
 
 ### 1. Requirements for Ubuntu 16.04
 
-Download [`Vivado HLx 2016.2: All OS Installer Single-File Download`](http://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2016-2.html).
+#### 1.1. Download [`Vivado HLx 2016.4: All OS Installer Single-File Download`](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2016-4.html).
+
+#### 1.2 Run
 
 ```bash
 $ sudo apt-get install curl
@@ -19,12 +21,12 @@ $ curl https://raw.githubusercontent.com/Koheron/koheron-sdk/master/fpga/scripts
 $ sudo ln -s make /usr/bin/gmake # tells Vivado to use make instead of gmake
 ```
 
-Install requirements:
+#### 1.3. Install requirements
 
 ```bash
 $ sudo apt-get install git curl zip python-virtualenv python-pip \
     g++-arm-linux-gnueabihf lib32stdc++6 lib32z1 u-boot-tools \
-    libssl-dev bc device-tree-compiler qemu-user-static
+    libssl-dev bc device-tree-compiler qemu-user-static zerofree
 $ sudo apt-get install git
 $ git clone https://github.com/Koheron/koheron-sdk
 $ cd koheron-sdk
@@ -52,6 +54,8 @@ $ curl http://$(HOST)/api/board/ping
 * [`led_blinker`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/led_blinker) : minimal instrument with LED control from Python.
 * [`adc_dac`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/adc_dac) : instrument with minimal read/write capability on Red Pitaya ADCs and DACs.
 * [`pulse_generator`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/pulse_generator) : pulse generation with synchronous acquisition.
+* [`laser_controller`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/decimator) : laser current control using pulse-density modulation.
+* [`decimator`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/decimator) : decimation using a compensated CIC filter.
 * [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/oscillo) : signal acquisition / generation with coherent averaging mode.
 * [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/spectrum) : spectrum analyzer with peak-detection and averaging.
 

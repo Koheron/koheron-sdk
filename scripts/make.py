@@ -242,9 +242,9 @@ if __name__ == "__main__":
     elif cmd == '--split_config_yml':
         instrument = sys.argv[2]
         cfg = load_config(os.path.join(sys.argv[3], instrument))
-        dump_if_has_changed(os.path.join('tmp', instrument + '.drivers.yml'), cfg['server'])
+        dump_if_has_changed(os.path.join('tmp', instrument + '.drivers.yml'), cfg.get('server'))
 
-        del cfg['server']
+        cfg.pop('server', None)
         dump_if_has_changed(os.path.join('tmp', instrument + '.config.yml'), cfg)
 
     elif cmd == '--config_tcl':
@@ -275,19 +275,14 @@ if __name__ == "__main__":
         instrument_path = sys.argv[3]
         drivers_filename = os.path.join(instrument_path, instrument, 'config.yml')
 
-        if os.path.isfile(drivers_filename):
-            with open(drivers_filename) as drivers_file:
-                drivers = yaml.load(drivers_file)['server']
-        else:
-            drivers = {}
+        with open(drivers_filename) as drivers_file:
+            drivers_dict = yaml.load(drivers_file) or {}
+            drivers = drivers_dict.get('server', {})
 
         for include_filename in drivers.get('includes', []):
             with open(include_filename) as include_file:
                 for key, value in yaml.load(include_file).iteritems():
-                    if key in drivers:
-                        drivers[key].extend(value)
-                    else:
-                        drivers[key] = value
+                    drivers.get(key, []).extend(value)
 
         with open(os.path.join('tmp', instrument + '.drivers'), 'w') as f:
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
@@ -301,9 +296,10 @@ if __name__ == "__main__":
 
     elif cmd == '--live_zip':
         instrument = sys.argv[2]
+        version = sys.argv[4]
+        s3_url = sys.argv[5]
         config = get_config(instrument, instrument_path=sys.argv[3])
-        zip_url = config['live_zip']
-        print(zip_url)
+        zip_url = s3_url + '/' + version + '-' + config['live_zip']
         r = requests.get(zip_url, stream=True)
         z = zipfile.ZipFile(StringIO.StringIO(r.content))
         z.extractall('tmp/%s.live' % instrument)
@@ -311,7 +307,7 @@ if __name__ == "__main__":
     elif cmd == '--middleware':
         instrument = sys.argv[2]
         config = get_config(instrument, instrument_path=sys.argv[3])
-        dest =  'tmp/' + instrument + '.server.build/drivers'
+        dest =  'tmp/' + instrument + '.server.build'
         if not os.path.exists(dest):
             os.makedirs(dest)
         fill_memory(config, dest)

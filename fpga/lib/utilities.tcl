@@ -172,6 +172,10 @@ proc connect_pins {pin1 pin2} {
   connect_bd_net [get_bd_pins $pin1] [get_bd_pins $pin2]
 }
 
+proc connect_port_pin {port pin} {
+  connect_bd_net [get_bd_ports $port] [get_bd_pins $pin]
+}
+
 proc connect_constant {name value width pin} {
   cell xilinx.com:ip:xlconstant:1.1 $name {
     CONST_VAL $value

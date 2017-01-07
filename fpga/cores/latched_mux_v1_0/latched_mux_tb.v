@@ -8,9 +8,9 @@ module latched_mux_tb();
 
   reg                          clk;
   reg                          clken;
-  reg [(N_INPUTS * WIDTH)-1:0] in;
+  reg [(N_INPUTS * WIDTH)-1:0] din;
   reg [SEL_WIDTH-1 :0]         sel;
-  wire[WIDTH-1:0]              out;
+  wire[WIDTH-1:0]              dout;
 
   latched_mux #(
     .WIDTH(WIDTH),
@@ -19,9 +19,9 @@ module latched_mux_tb();
   DUT (
     .clk(clk),
     .clken(clken),
-    .in(in),
+    .din(din),
     .sel(sel),
-    .out(out)
+    .dout(dout)
   );
 
   parameter CLK_PERIOD = 8;
@@ -29,7 +29,7 @@ module latched_mux_tb();
   initial begin
     clk = 1;
     clken = 0;
-    in = {{(WIDTH){1'b0}},{(WIDTH){1'b1}},{(WIDTH){1'b0}}};
+    din = {{(WIDTH){1'b0}},{(WIDTH){1'b1}},{(WIDTH){1'b0}}};
     sel = 0;
     #(100*CLK_PERIOD)
     sel = 1;

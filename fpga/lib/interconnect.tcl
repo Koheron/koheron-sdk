@@ -6,11 +6,11 @@ proc pins {cmd width n_inputs n_outputs} {
   $cmd -dir I -from [expr [get_sel_width $n_inputs] * $n_outputs - 1] -to 0 sel
 
   for {set i 0} {$i < $n_inputs} {incr i} {
-    $cmd -dir I -from [expr $width - 1] -to 0 in$i
+    $cmd -dir I -from [expr $width - 1] -to 0 din$i
   }
 
   for {set j 0} {$j < $n_outputs} {incr j} {
-    $cmd -dir O -from [expr $width - 1] -to 0 out$j
+    $cmd -dir O -from [expr $width - 1] -to 0 dout$j
   }
 }
 
@@ -26,7 +26,7 @@ proc create {module_name width n_inputs n_outputs} {
   pins create_bd_pin $width $n_inputs $n_outputs
 
   set sel_width [get_sel_width $n_inputs]
-  set concat_input [get_concat_pin [lmap pin [range 0 $n_inputs] {set pin in$pin}]]
+  set concat_input [get_concat_pin [lmap pin [range 0 $n_inputs] {set pin din$pin}]]
 
   for {set j 0} {$j < $n_outputs} {incr j} {
 
@@ -40,9 +40,9 @@ proc create {module_name width n_inputs n_outputs} {
     } {
       clk   clk
       clken clken
-      out   out$j
+      dout  dout$j
       sel   [get_slice_pin sel $from $to]
-      in    $concat_input
+      din   $concat_input
     }
 
   }

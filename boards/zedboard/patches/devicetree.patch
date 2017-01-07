@@ -1,0 +1,11 @@
+--- system.dts.old
++++ system.dts
+@@ -24,7 +24,7 @@
+ 	};
+ 	memory {
+ 		device_type = "memory";
+-		reg = <0x0 0x20000000>;
++		reg = <0x0 0x1E000000>;
+ 	};
+ };
+ &gem0 {

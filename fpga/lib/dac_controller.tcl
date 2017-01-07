@@ -3,7 +3,7 @@ source fpga/lib/bram.tcl
 # Dual DAC controller
 # DAC1 and DAC2 values are extracted in paralell from the same 32 bits BRAM register
 
-proc add_dual_dac_controller {module_name memory_name dac_width {intercon_idx 1} {default_hexval 0}} {
+proc add_dual_dac_controller {module_name memory_name dac_width {intercon_idx 1}} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
@@ -16,7 +16,7 @@ proc add_dual_dac_controller {module_name memory_name dac_width {intercon_idx 1}
     create_bd_pin -dir O -from [expr $dac_width - 1] -to 0 dac$i
   }
 
-  set bram_name [add_bram $memory_name $intercon_idx $default_hexval]
+  set bram_name [add_bram $memory_name $intercon_idx]
 
   connect_cell $bram_name {
     clkb clk
@@ -41,7 +41,7 @@ proc add_dual_dac_controller {module_name memory_name dac_width {intercon_idx 1}
 # Single DAC controller
 # 2 consecutive DAC values are extracted from the same 32 bits BRAM register
 
-proc add_single_dac_controller {module_name memory_name dac_width {intercon_idx 1} {default_hexval 0}} {
+proc add_single_dac_controller {module_name memory_name dac_width {intercon_idx 1}} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
@@ -52,7 +52,7 @@ proc add_single_dac_controller {module_name memory_name dac_width {intercon_idx 
 
   create_bd_pin -dir O -from [expr $dac_width - 1] -to 0 dac
 
-  set bram_name [add_bram $memory_name $intercon_idx $default_hexval]
+  set bram_name [add_bram $memory_name $intercon_idx]
 
   connect_cell $bram_name {
     clkb clk
@@ -69,9 +69,9 @@ proc add_single_dac_controller {module_name memory_name dac_width {intercon_idx 
     WIDTH $dac_width
   } {
     sel [get_slice_pin addr 2 2]
-    in0 [get_slice_pin $bram_name/doutb [expr $dac_width-1] 0]
-    in1 [get_slice_pin $bram_name/doutb [expr $dac_width-1 + 16] 16]
-    out dac
+    din0 [get_slice_pin $bram_name/doutb [expr $dac_width-1] 0]
+    din1 [get_slice_pin $bram_name/doutb [expr $dac_width-1 + 16] 16]
+    dout dac
   }
 
   current_bd_instance $bd

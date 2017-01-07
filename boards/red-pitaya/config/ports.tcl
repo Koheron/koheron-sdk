@@ -26,16 +26,3 @@ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_analog_io_rtl:1.
 create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_analog_io_rtl:1.0 Vaux1
 create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_analog_io_rtl:1.0 Vaux9
 create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_analog_io_rtl:1.0 Vaux8
-
-### Expansion connector
-#create_bd_port -dir O -from 7 -to 0 exp_p_io
-#create_bd_port -dir O -from 7 -to 0 exp_n_io
-
-### SATA connector
-#create_bd_port -dir O -from 1 -to 0 daisy_p_o
-#create_bd_port -dir O -from 1 -to 0 daisy_n_o
-#create_bd_port -dir I -from 1 -to 0 daisy_p_i
-#create_bd_port -dir I -from 1 -to 0 daisy_n_i
-
-
-

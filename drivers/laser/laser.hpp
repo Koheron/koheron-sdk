@@ -7,11 +7,10 @@
 
 #include <tuple>
 
-#include <drivers/lib/memory_manager.hpp>
+#include <context.hpp>
 #include <drivers/xadc/xadc.hpp>
 #include <drivers/gpio/gpio.hpp>
 #include <drivers/eeprom/eeprom.hpp>
-#include <drivers/memory.hpp>
 
 #include <thread>
 #include <chrono>
@@ -26,7 +25,7 @@
 
 #define GAIN_LT1789 (1+200/10)
 #define PWM_MAX_VOLTAGE 1.8
-#define PWM_MAX_VALUE 1024
+#define PWM_MAX_VALUE (1 << prm::pwm_width)
 #define MILLIAMPS_TO_AMPS 0.001
 
 constexpr float current_to_pwm = MILLIAMPS_TO_AMPS * PWM_MAX_VALUE * GAIN_LT1789 / PWM_MAX_VOLTAGE;
@@ -38,11 +37,11 @@ constexpr float pwm_to_current = 1 / current_to_pwm;
 class Laser
 {
   public:
-    Laser(MemoryManager& mm)
-    : cfg(mm.get<mem::config>())
-    , xadc(mm)
-    , gpio(mm)
-    , eeprom(mm)
+    Laser(Context& ctx)
+    : cfg(ctx.mm.get<mem::config>())
+    , xadc(ctx.get<Xadc>())
+    , gpio(ctx.get<Gpio>())
+    , eeprom(ctx.get<Eeprom>())
     {
         reset();
     }
@@ -93,9 +92,9 @@ class Laser
   private:
     Memory<mem::config>& cfg; // required for pwm
 
-    Xadc xadc;
-    Gpio gpio;
-    Eeprom eeprom;
+    Xadc& xadc;
+    Gpio& gpio;
+    Eeprom& eeprom;
 
     bool laser_on;
 };

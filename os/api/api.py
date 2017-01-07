@@ -45,6 +45,16 @@ def upload_static():
             return make_response('Static upload success')
     return make_response('Static upload failed.')
 
+@api_app.route('/api/static/live/upload', methods=['POST'])
+def upload_live_static():
+    if request.method == 'POST':
+        file_ = next((file_ for file_ in request.files if api_app.is_zip_file(file_)), None)
+        if file_ is not None:
+            request.files[file_].save('/tmp/live.zip')
+            api_app.update_live()
+            return make_response('Live instrument static upload success')
+    return make_response('Live instrument static upload failed.')
+
 # ------------------------
 # Board
 # ------------------------
@@ -56,9 +66,9 @@ def reboot():
 
 @api_app.route('/api/board/version', methods=['GET'])
 def version():
-    with open('/etc/zynq_sdk_version','r') as f:
-        zynq_sdk_version = f.read()
-    return jsonify({'zynq-sdk': zynq_sdk_version})
+    with open('/etc/koheron_sdk_version','r') as f:
+        koheron_sdk_version = f.read()
+    return jsonify({'koheron-sdk': koheron_sdk_version.strip('\n')})
 
 @api_app.route('/api/board/dna', methods=['GET'])
 def dna():

@@ -17,6 +17,7 @@ MAKE_PY = scripts/make.py
 
 # Store all build artifacts in TMP
 TMP = tmp
+TCP_SERVER_BUILD=$(TMP)/$(NAME).server.build
 
 # properties defined in CONFIG_YML :
 DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(NAME) $(INSTRUMENT_PATH))
@@ -25,32 +26,23 @@ CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(INSTRUMENT_PATH) && c
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).xdc)
 DRIVERS_LIB=$(wildcard drivers/lib/*hpp) $(wildcard drivers/lib/*cpp)
-MEMORY_HPP=$(TMP)/$(NAME).server.build/drivers/memory.hpp
+MEMORY_HPP=$(TCP_SERVER_BUILD)/memory.hpp
+CONTEXT_HPP_SRC=drivers/lib/context.hpp
+CONTEXT_HPP_DEST=$(TCP_SERVER_BUILD)/context.hpp
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
 PROC = ps7_cortexa9_0
 
 # Custom commands
-VIVADO_VERSION = 2016.2
+VIVADO_VERSION = 2016.4
 VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
 
-DOCKER ?= False
-ifeq ($(DOCKER),True)
-	PYTHON=/usr/bin/python
-else
-	PYTHON=$(TCP_SERVER_VENV)/bin/python
-endif
-
 ###############################################################################
 # Linux and U-boot
 ###############################################################################
-
-# solves problem with awk while building linux kernel
-# solution taken from http://www.googoolia.com/wp/2015/04/21/awk-symbol-lookup-error-awk-undefined-symbol-mpfr_z_sub/
-LD_LIBRARY_PATH =
 
 UBOOT_TAG = xilinx-v$(VIVADO_VERSION)
 LINUX_TAG = xilinx-v$(VIVADO_VERSION)
@@ -72,43 +64,47 @@ LINUX_CFLAGS = "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 UBOOT_CFLAGS = "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 ARMHF_CFLAGS = "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 
-RTL_TAR = $(TMP)/rtl8192cu.tgz
-RTL_URL = https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/rtl8192cu.tgz
-
 # Project configuration
 CONFIG_TCL = $(TMP)/$(NAME).config.tcl
 TEMPLATE_DIR = scripts/templates
 
-# Versioning
-VERSION_FILE = $(TMP)/$(NAME).version
-VERSION = $(shell (git rev-parse --short HEAD))
-SHA_FILE = $(TMP)/$(NAME).sha
-SHA = $(shell (printf $(NAME)-$(VERSION) | sha256sum | sed 's/\W//g'))
-
-# Zip
+# TCP server
 TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
 TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
-TCP_SERVER = $(TMP)/$(NAME).server.build/kserverd
+TCP_SERVER = $(TCP_SERVER_BUILD)/kserverd
 DRIVERS_YML = $(TMP)/$(NAME).drivers.yml
-TCP_SERVER_SHA = master
+
+TCP_SERVER_VERSION = develop
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
-TCP_SERVER_MIDDLEWARE = $(TMP)/$(NAME).middleware
+PYTHON=$(TCP_SERVER_VENV)/bin/python
+
+# Instrument
+
+INSTRUMENT_SHA_FILE = $(TMP)/$(NAME).version
+INSTRUMENT_SHA = $(shell (git rev-parse --short HEAD))
 
 START_SH = $(TMP)/$(NAME).start.sh
+INSTRUMENT_ZIP = $(TMP)/$(NAME)-$(INSTRUMENT_SHA).zip
 
-ZIP = $(TMP)/$(NAME)-$(VERSION).zip
+# Bitstream ID
+BITSTREAM_ID_FILE = $(TMP)/$(NAME).sha
+BITSTREAM_ID = $(shell (printf $(NAME)-$(INSTRUMENT_SHA) | sha256sum | sed 's/\W//g'))
 
-# App
-S3_URL = http://zynq-sdk.s3-website-eu-west-1.amazonaws.com
-STATIC_SHA := $(shell curl -s $(S3_URL)/apps | cut -d" " -f1)
-STATIC_URL = $(S3_URL)/app-$(STATIC_SHA).zip
+# Web App
+
+WEB_APP_VERSION = 0.12.0
+WEB_APP_URL = https://s3.eu-central-1.amazonaws.com/koheron-sdk
+
+STATIC_URL = $(WEB_APP_URL)/$(WEB_APP_VERSION)-app.zip
 STATIC_ZIP = $(TMP)/static.zip
 
 LIVE_DIR = $(TMP)/$(NAME).live
 
+# HTTP App
+
 HTTP_API_SRC = $(wildcard os/api/*)
 HTTP_API_DIR = $(TMP)/app
-HTTP_API_ZIP = app-$(VERSION).zip
+HTTP_API_ZIP = app-$(INSTRUMENT_SHA).zip
 
 METADATA = $(TMP)/metadata.json
 
@@ -116,9 +112,9 @@ METADATA = $(TMP)/metadata.json
 
 .PHONY: all linux debug
 
-all: $(ZIP)
+all: $(INSTRUMENT_ZIP)
 
-linux: $(ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv
+linux: $(INSTRUMENT_ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv
 
 debug:
 	@echo INSTRUMENT DIRECTORY = $(INSTRUMENT_PATH)/$(NAME)
@@ -153,9 +149,9 @@ xpr: $(TMP)/$(NAME).xpr
 bit: $(TMP)/$(NAME).bit
 http: $(HTTP_API_ZIP)
 
-run: $(ZIP)
-	curl -v -F $(NAME)-$(VERSION).zip=@$(ZIP) http://$(HOST)/api/instruments/upload
-	curl http://$(HOST)/api/instruments/run/$(NAME)/$(VERSION)
+run: $(INSTRUMENT_ZIP)
+	curl -v -F $(NAME)-$(INSTRUMENT_SHA).zip=@$(INSTRUMENT_ZIP) http://$(HOST)/api/instruments/upload
+	curl http://$(HOST)/api/instruments/run/$(NAME)/$(INSTRUMENT_SHA)
 	@echo
 
 ###############################################################################
@@ -167,8 +163,10 @@ run: $(ZIP)
 test_module: $(CONFIG_TCL) fpga/modules/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	vivado -source fpga/scripts/test_module.tcl -tclargs $(NAME) $(INSTRUMENT_PATH) $(PART)
 
-test_core:
+test_core: fpga/cores/$(CORE)/core_config.tcl fpga/cores/$(CORE)/*.v
 	vivado -source fpga/scripts/test_core.tcl -tclargs $(CORE) $(PART)
+
+build_core: $(TMP)/cores/$(CORE)
 
 test_driver_%: drivers/%/test.py
 	py.test -v $<
@@ -183,19 +181,19 @@ test_app: os/tests/tests_instrument_manager.py
 # Versioning
 ###############################################################################
 
-$(VERSION_FILE): | $(TMP)
-	echo $(VERSION) > $@
+$(INSTRUMENT_SHA_FILE): | $(TMP)
+	echo $(INSTRUMENT_SHA) > $@
 	@echo [$@] OK
 
-$(SHA_FILE):
-	echo $(SHA) > $@
+$(BITSTREAM_ID_FILE):
+	echo $(BITSTREAM_ID) > $@
 	@echo [$@] OK
 
 ###############################################################################
 # FPGA
 ###############################################################################
 
-$(CONFIG_TCL): $(MAKE_PY) $(CONFIG_YML) $(SHA_FILE) $(TEMPLATE_DIR)/config.tcl
+$(CONFIG_TCL): $(MAKE_PY) $(CONFIG_YML) $(BITSTREAM_ID_FILE) $(TEMPLATE_DIR)/config.tcl
 	python $(MAKE_PY) --config_tcl $(NAME) $(INSTRUMENT_PATH)
 	@echo [$@] OK
 
@@ -292,20 +290,14 @@ $(TMP)/$(NAME).tree/system.dts: $(TMP)/$(NAME).hwdef $(DTREE_DIR)
 # Linux
 ###############################################################################
 
-$(RTL_TAR):
-	mkdir -p $(@D)
-	curl -L $(RTL_URL) -o $@
-	@echo [$@] OK
-
 $(LINUX_TAR):
 	mkdir -p $(@D)
 	curl -L $(LINUX_URL) -o $@
 	@echo [$@] OK
 
-$(LINUX_DIR): $(LINUX_TAR) $(RTL_TAR)
+$(LINUX_DIR): $(LINUX_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
-	tar -zxf $(RTL_TAR) --directory=$@/drivers/net/wireless/realtek
 	patch -d $(TMP) -p 0 < $(PATCHES)/linux-xlnx-$(LINUX_TAG).patch
 	bash $(PATCHES)/linux.sh $(PATCHES) $@
 	@echo [$@] OK
@@ -330,25 +322,24 @@ devicetree.dtb: uImage $(TMP)/$(NAME).tree/system.dts
 
 $(TCP_SERVER_DIR):
 	test -d $(TCP_SERVER_DIR) || git clone $(TCP_SERVER_URL) $(TCP_SERVER_DIR)
-	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
+	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_VERSION)
 	@echo [$@] OK
 
 $(TCP_SERVER_DIR)/requirements.txt: $(TCP_SERVER_DIR)
 
 $(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
-ifeq ($(DOCKER),True)
-	/usr/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt
-else
 	test -d $(TCP_SERVER_VENV) || (virtualenv $(TCP_SERVER_VENV) && $(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt)
-endif
 
 $(MEMORY_HPP): $(CONFIG_YML)
 	python $(MAKE_PY) --middleware $(NAME) $(INSTRUMENT_PATH)
 
+$(CONTEXT_HPP_DEST): $(CONTEXT_HPP_SRC)
+	cp $< $@
+
 $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(DRIVERS_YML) $(DRIVERS) \
-               $(DRIVERS_LIB) $(MEMORY_HPP) instruments/default/server.yml
+               $(DRIVERS_LIB) $(MEMORY_HPP) $(CONTEXT_HPP_DEST) instruments/default/server.yml
 	make -C $(TCP_SERVER_DIR) CONFIG=$(DRIVERS_YML) BASE_DIR=../.. \
-	  PYTHON=$(PYTHON) TMP=../../$(TMP)/$(NAME).server.build
+	  PYTHON=$(PYTHON) TMP=../../$(TCP_SERVER_BUILD)
 	@echo [$@] OK
 
 ###############################################################################
@@ -360,21 +351,21 @@ $(START_SH): $(MAKE_PY) $(CONFIG_YML) $(TEMPLATE_DIR)/start.sh
 	@echo [$@] OK
 
 $(LIVE_DIR): $(TMP) $(CONFIG_YML)
-	python $(MAKE_PY) --live_zip $(NAME) $(INSTRUMENT_PATH)
+	python $(MAKE_PY) --live_zip $(NAME) $(INSTRUMENT_PATH) $(WEB_APP_VERSION) $(WEB_APP_URL)
 	@echo [$@] OK
 
-$(ZIP): $(TCP_SERVER) $(VERSION_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
-	zip --junk-paths $(ZIP) $(TMP)/$(NAME).bit $(TMP)/$(NAME).live $(TCP_SERVER) $(START_SH) $(LIVE_DIR)/*
+$(INSTRUMENT_ZIP): $(TCP_SERVER) $(INSTRUMENT_SHA_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
+	zip --junk-paths $(INSTRUMENT_ZIP) $(TMP)/$(NAME).bit $(TMP)/$(NAME).live $(TCP_SERVER) $(START_SH) $(LIVE_DIR)/*
 	@echo [$@] OK
 
 ###############################################################################
 # HTTP API
 ###############################################################################
 
-.PHONY: app_sync app_sync_ssh
+.PHONY: http_api_sync http_api_sync_ssh
 
-$(METADATA): $(MAKE_PY) $(VERSION_FILE)
-	python $(MAKE_PY) --metadata $(NAME) $(VERSION)
+$(METADATA): $(MAKE_PY) $(INSTRUMENT_SHA_FILE)
+	python $(MAKE_PY) --metadata $(NAME) $(INSTRUMENT_SHA)
 	@echo [$@] OK
 
 $(HTTP_API_DIR): $(HTTP_API_SRC) $(METADATA)
@@ -388,12 +379,12 @@ $(HTTP_API_ZIP): $(HTTP_API_DIR)
 	cd $(HTTP_API_DIR) && zip -r $(HTTP_API_ZIP) .
 	@echo [$@] OK
 
-app_sync: $(HTTP_API_ZIP)
-	curl -v -F app-$(VERSION).zip=@$(HTTP_API_DIR)/$(HTTP_API_ZIP) http://$(HOST)/api/app/update
+http_api_sync: $(HTTP_API_ZIP)
+	curl -v -F app-$(INSTRUMENT_SHA).zip=@$(HTTP_API_DIR)/$(HTTP_API_ZIP) http://$(HOST)/api/app/update
 	@echo
 
 # To use if uwsgi is not running
-app_sync_ssh: $(HTTP_API_ZIP)
+http_api_sync_ssh: $(HTTP_API_ZIP)
 	rsync -avz -e "ssh -i /ssh-private-key" $(HTTP_API_DIR)/. root@$(HOST):/usr/local/flask/
 
 ###############################################################################
@@ -401,7 +392,7 @@ app_sync_ssh: $(HTTP_API_ZIP)
 ###############################################################################
 
 $(STATIC_ZIP): $(TMP)
-	echo $(STATIC_SHA)
+	echo $(STATIC_URL)
 	curl -L $(STATIC_URL) -o $(STATIC_ZIP)
 
 ###############################################################################
@@ -419,7 +410,7 @@ clean_instrument:
 	$(RM) $(TMP)/$(NAME).* $(TMP)/$(NAME)-*.zip
 
 clean_server:
-	$(RM) $(TCP_SERVER_DIR) $(TCP_SERVER_MIDDLEWARE)
+	$(RM) $(TCP_SERVER_DIR) $(TCP_SERVER_BUILD)
 
 clean_cores:
 	$(RM) $(TMP)/cores

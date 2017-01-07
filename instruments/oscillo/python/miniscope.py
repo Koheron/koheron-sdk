@@ -8,11 +8,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
 
-from koheron import load_instrument
+from koheron import connect
 from oscillo import Oscillo
 
 host = os.getenv('HOST','192.168.1.100')
-client = load_instrument(host, instrument='oscillo')
+client = connect(host, name='oscillo')
 driver = Oscillo(client)
 
 n = driver.wfm_size # Number of samples

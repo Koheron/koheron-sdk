@@ -20,15 +20,14 @@ class KoheronAPIApp(Flask):
     def __init__(self, *args, **kwargs):
         super(KoheronAPIApp, self).__init__(*args, **kwargs)
 
-        self.config['INSTRUMENTS_DIR'] = '/usr/local/instruments/'
+        #self.config['INSTRUMENTS_DIR'] = '/usr/local/instruments/'
+        self.config['INSTRUMENTS_DIR'] = '/tmp/instruments/'
         self.instruments = {}
 
         self.load_metadata()
         self.live_instrument = {'name': None, 'sha': None}
         self.start_last_deployed_instrument()
         self.get_instruments()
-
-
 
     def load_metadata(self):
         self.metadata = {}
@@ -40,6 +39,11 @@ class KoheronAPIApp(Flask):
             shutil.rmtree('/tmp/static')
         subprocess.call(['/usr/bin/unzip', '-o', '/tmp/static.zip', '-d', '/tmp/static'])
 
+    def update_live(self):
+        if os.path.exists('/tmp/instrument'):
+            shutil.rmtree('/tmp/instrument')
+        subprocess.call(['/usr/bin/unzip', '-o', '/tmp/live.zip', '-d', '/tmp/instrument'])
+
     def copy_static(self):
         copy_tree('/tmp/static/ui', '/var/www/ui')
 
@@ -48,13 +52,15 @@ class KoheronAPIApp(Flask):
     # ------------------------
 
     def start_client(self):
-        time.sleep(0.2) # To be sure server is up
         log('info', 'Connecting to server...')
-        self.client = KoheronClient('127.0.0.1')
+
+        try:
+            self.client = KoheronClient(unixsock='/var/run/koheron-server.sock')
+        except:
+            self.client.is_connected = False
 
         if self.client.is_connected:
             log('info', 'Connected to server')
-            time.sleep(0.2)
             self.common = Common(self.client)
             log('info', 'Common driver initialized')
             self.common.init()
