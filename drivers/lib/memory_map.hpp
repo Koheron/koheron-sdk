@@ -15,7 +15,7 @@ extern "C" {
     #include <sys/mman.h>
 }
 
-#include <drivers/memory.hpp>
+#include <memory.hpp>
 
 typedef size_t MemID;
 

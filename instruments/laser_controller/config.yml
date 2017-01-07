@@ -1,6 +1,6 @@
 ---
 instrument: laser_controller
-parent: default
+parent: instruments/default
 board: red-pitaya
 
 cores:

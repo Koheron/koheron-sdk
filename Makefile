@@ -26,14 +26,16 @@ CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(INSTRUMENT_PATH) && c
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).xdc)
 DRIVERS_LIB=$(wildcard drivers/lib/*hpp) $(wildcard drivers/lib/*cpp)
-MEMORY_HPP=$(TCP_SERVER_BUILD)/drivers/memory.hpp
+MEMORY_HPP=$(TCP_SERVER_BUILD)/memory.hpp
+CONTEXT_HPP_SRC=drivers/lib/context.hpp
+CONTEXT_HPP_DEST=$(TCP_SERVER_BUILD)/context.hpp
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
 PROC = ps7_cortexa9_0
 
 # Custom commands
-VIVADO_VERSION = 2016.3
+VIVADO_VERSION = 2016.4
 VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
@@ -41,10 +43,6 @@ RM = rm -rf
 ###############################################################################
 # Linux and U-boot
 ###############################################################################
-
-# solves problem with awk while building linux kernel
-# solution taken from http://www.googoolia.com/wp/2015/04/21/awk-symbol-lookup-error-awk-undefined-symbol-mpfr_z_sub/
-LD_LIBRARY_PATH =
 
 UBOOT_TAG = xilinx-v$(VIVADO_VERSION)
 LINUX_TAG = xilinx-v$(VIVADO_VERSION)
@@ -76,7 +74,7 @@ TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_BUILD)/kserverd
 DRIVERS_YML = $(TMP)/$(NAME).drivers.yml
 
-TCP_SERVER_VERSION = v0.12.0
+TCP_SERVER_VERSION = develop
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
 PYTHON=$(TCP_SERVER_VENV)/bin/python
 
@@ -335,8 +333,11 @@ $(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
 $(MEMORY_HPP): $(CONFIG_YML)
 	python $(MAKE_PY) --middleware $(NAME) $(INSTRUMENT_PATH)
 
+$(CONTEXT_HPP_DEST): $(CONTEXT_HPP_SRC)
+	cp $< $@
+
 $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(DRIVERS_YML) $(DRIVERS) \
-               $(DRIVERS_LIB) $(MEMORY_HPP) instruments/default/server.yml
+               $(DRIVERS_LIB) $(MEMORY_HPP) $(CONTEXT_HPP_DEST) instruments/default/server.yml
 	make -C $(TCP_SERVER_DIR) CONFIG=$(DRIVERS_YML) BASE_DIR=../.. \
 	  PYTHON=$(PYTHON) TMP=../../$(TCP_SERVER_BUILD)
 	@echo [$@] OK
