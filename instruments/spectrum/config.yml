@@ -1,11 +1,7 @@
 ---
 instrument: spectrum
-<<<<<<< HEAD
-parent: instruments/base
-=======
 board: red-pitaya
-parent: oscillo
->>>>>>> bab325e5434efd0a8a683f02142a0ba35883e84f
+parent: instruments/oscillo
 
 # ------------------------------------------------------------
 # Memory
