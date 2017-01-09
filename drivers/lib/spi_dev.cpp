@@ -15,7 +15,7 @@ int SpiDev::init() {
         fd = open("/dev/spidev2.0", O_RDWR | O_NOCTTY);
 
         if (fd < 0) {
-            ctx.log<ERROR>("Cannot open /dev/spidev2.0\n");
+            ctx.log<ERROR>("SpiDev: Cannot open /dev/spidev2.0\n");
             return -1;
         }
     }
@@ -23,7 +23,7 @@ int SpiDev::init() {
     if (set_mode(mode) < 0 || set_speed(speed) < 0)
         return -1;
 
-    ctx.log<INFO>("/dev/spidev2.0 opened\n");
+    ctx.log<INFO>("SpiDev: /dev/spidev2.0 opened\n");
     return 0;
 }
 
@@ -31,7 +31,7 @@ int SpiDev::set_mode(uint32_t mode_) {
     mode = mode_;
 
     if (ioctl(fd, SPI_IOC_WR_MODE, &mode) < 0) {
-        ctx.log<ERROR>("Cannot set ioctl SPI_IOC_WR_MODE\n");
+        ctx.log<ERROR>("SpiDev: Cannot set ioctl SPI_IOC_WR_MODE\n");
         return -1;
     }
 
@@ -42,7 +42,7 @@ int SpiDev::set_speed(uint32_t speed_) {
     speed = speed_;
 
     if (ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) < 0) {
-        ctx.log<ERROR>("Cannot set ioctl SPI_IOC_WR_MAX_SPEED_HZ\n");
+        ctx.log<ERROR>("SpiDev: Cannot set ioctl SPI_IOC_WR_MAX_SPEED_HZ\n");
         return -1;
     }
 
