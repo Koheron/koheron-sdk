@@ -3,6 +3,7 @@
 #include "spi_dev.hpp"
 
 #include <context.hpp>
+#include <core/syslog.tpp> // FIXME Not very nice ...
 
 SpiDev::SpiDev(Context& ctx_, uint32_t mode_, uint32_t speed_)
 : ctx(ctx_)

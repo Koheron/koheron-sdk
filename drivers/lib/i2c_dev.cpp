@@ -3,6 +3,7 @@
 #include "i2c_dev.hpp"
 
 #include <context.hpp>
+#include <core/syslog.tpp> // FIXME Not very nice ...
 
 I2cDev::I2cDev(Context& ctx_)
 : ctx(ctx_)
