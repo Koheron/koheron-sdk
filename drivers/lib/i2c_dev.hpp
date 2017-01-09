@@ -28,14 +28,14 @@ class I2cDev
 
     int init();
 
-    int set_address(uint32_t addr);
+    int set_address(int32_t addr);
 
     /// Write to I2C device
     /// addr: Addresse of the device to write to
     /// buffer: Pointer to the data to send
     /// len: Number of elements on the buffer array
     template<typename T>
-    int write(uint32_t addr, const T *buffer, uint32_t len) {
+    int write(int32_t addr, const T *buffer, uint32_t len) {
         int err = set_address(addr);
 
         if (err < 0)
