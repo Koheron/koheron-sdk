@@ -1,3 +1,4 @@
+// (c) Koheron
 
 #include "spi_dev.hpp"
 
