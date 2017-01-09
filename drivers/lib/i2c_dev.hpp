@@ -41,7 +41,7 @@ class I2cDev
         if (err < 0)
             return err;
 
-        return write(fd, buffer, len * sizeof(T));
+        return ::write(fd, buffer, len * sizeof(T));
     }
 
   private:

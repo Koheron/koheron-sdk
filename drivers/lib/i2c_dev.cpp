@@ -30,5 +30,5 @@ int I2cDev::set_address(uint32_t addr) {
         return -1;
     }
 
-    return -1;
+    return 0;
 }
