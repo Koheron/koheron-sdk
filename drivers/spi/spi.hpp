@@ -9,19 +9,16 @@
 class Spi
 {
   public:
-    Spi(Context& ctx) {}
-
-    uint32_t init(uint32_t mode) {
-        spi_dev = SpiDev(mode);
-        return spi_dev.init();
-    }
+    Spi(Context& ctx_)
+    : ctx(ctx_)
+    {}
 
     uint32_t write(const std::vector<uint32_t>& buffer) {
-        return spi_dev.write_buffer(buffer.data(), buffer.size());
+        return ctx.spi.write_buffer(buffer.data(), buffer.size());
     }
 
   private:
-    SpiDev spi_dev;
+    Context& ctx;
 };
 
 #endif // __DRIVERS_SPI_SPI_HPP__
