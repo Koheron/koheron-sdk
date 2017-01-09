@@ -26,3 +26,4 @@ optimization_flags:
 
 dependencies:
     - drivers/lib/spi_dev.cpp
+    - drivers/lib/i2c_dev.cpp
