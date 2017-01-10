@@ -44,8 +44,8 @@ RM = rm -rf
 # Linux and U-boot
 ###############################################################################
 
-UBOOT_TAG = xilinx-v$(VIVADO_VERSION)
-LINUX_TAG = xilinx-v$(VIVADO_VERSION)
+UBOOT_TAG = koheron-$(BOARD)-v$(VIVADO_VERSION)
+LINUX_TAG = koheron-$(BOARD)-v$(VIVADO_VERSION)
 DTREE_TAG = xilinx-v$(VIVADO_VERSION)
 
 UBOOT_DIR = $(TMP)/u-boot-xlnx-$(UBOOT_TAG)
@@ -56,8 +56,8 @@ UBOOT_TAR = $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 LINUX_TAR = $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 DTREE_TAR = $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
-UBOOT_URL = https://github.com/Xilinx/u-boot-xlnx/archive/$(UBOOT_TAG).tar.gz
-LINUX_URL = https://github.com/Xilinx/linux-xlnx/archive/$(LINUX_TAG).tar.gz
+UBOOT_URL = https://github.com/Koheron/u-boot-xlnx/archive/$(UBOOT_TAG).tar.gz
+LINUX_URL = https://github.com/Koheron/linux-xlnx/archive/$(LINUX_TAG).tar.gz
 DTREE_URL = https://github.com/Xilinx/device-tree-xlnx/archive/$(DTREE_TAG).tar.gz
 
 LINUX_CFLAGS = "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
@@ -233,8 +233,6 @@ $(UBOOT_TAR):
 $(UBOOT_DIR): $(UBOOT_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
-	patch -d $(TMP) -p 0 < $(PATCHES)/u-boot-xlnx-$(UBOOT_TAG).patch
-	bash $(PATCHES)/uboot.sh $(PATCHES) $@
 	@echo [$@] OK
 
 $(TMP)/u-boot.elf: $(UBOOT_DIR)
@@ -298,8 +296,6 @@ $(LINUX_TAR):
 $(LINUX_DIR): $(LINUX_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
-	patch -d $(TMP) -p 0 < $(PATCHES)/linux-xlnx-$(LINUX_TAG).patch
-	bash $(PATCHES)/linux.sh $(PATCHES) $@
 	@echo [$@] OK
 
 uImage: $(LINUX_DIR)
