@@ -16,6 +16,8 @@ set_property PACKAGE_PIN W22 [get_ports {led_o[5]}];  # "LD5"
 set_property PACKAGE_PIN U19 [get_ports {led_o[6]}];  # "LD6"
 set_property PACKAGE_PIN U14 [get_ports {led_o[7]}];  # "LD7"
 
+# http://blog.idv-tech.com/2014/03/22/howto-export-zynq-peripheralsi2c-spi-uart-and-etc-to-pmod-connectors-of-zedboard-using-vivado-2013-4/
+
 # SPI routed to PMOD connector using EMIO
 
 set_property IOSTANDARD LVCMOS33 [get_ports {spi_0_*}]
@@ -26,3 +28,12 @@ set_property PACKAGE_PIN Y10 [get_ports spi_0_sck_io];  # "JA3"
 set_property PACKAGE_PIN AA9 [get_ports spi_0_ss1_o];  # "JA4"
 set_property PACKAGE_PIN AB11 [get_ports spi_0_ss2_o];  # "JA7"
 set_property PACKAGE_PIN AB10 [get_ports spi_0_ss_io];  # "JA8"
+
+
+# IIC routed to PMOD connector using EMIO
+
+set_property IOSTANDARD LVCMOS33 [get_ports {iic_0_*}]
+set_property PULLUP true [get_ports {iic_0_*}]
+
+set_property PACKAGE_PIN W7 [get_ports iic_0_scl_io];  # "JD1_N"
+set_property PACKAGE_PIN V7 [get_ports iic_0_sda_io];  # "JD1_P"
