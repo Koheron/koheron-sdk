@@ -107,9 +107,10 @@ EOF_CAT
 cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
-/dev/mmcblk0p2  /               ext4    errors=remount-ro   0       1
-/dev/mmcblk0p1  /boot           vfat    defaults            0       2
-tmpfs           /tmp            tmpfs   defaults            0       0
+/dev/mmcblk0p2  /               ext4    rw,noatime          0       1
+/dev/mmcblk0p1  /boot           vfat    ro,noatime          0       2
+tmpfs           /tmp            tmpfs   defaults,noatime    0       0
+tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 EOF_CAT
 
 cat <<- EOF_CAT >> etc/securetty
@@ -204,3 +205,5 @@ rm $root_dir/usr/bin/qemu-arm-static
 umount $boot_dir $root_dir
 
 rmdir $boot_dir $root_dir
+
+zerofree $root_dev

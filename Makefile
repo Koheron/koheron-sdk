@@ -26,14 +26,16 @@ CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(INSTRUMENT_PATH) && c
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).xdc)
 DRIVERS_LIB=$(wildcard drivers/lib/*hpp) $(wildcard drivers/lib/*cpp)
-MEMORY_HPP=$(TCP_SERVER_BUILD)/drivers/memory.hpp
+MEMORY_HPP=$(TCP_SERVER_BUILD)/memory.hpp
+CONTEXT_HPP_SRC=drivers/lib/context.hpp
+CONTEXT_HPP_DEST=$(TCP_SERVER_BUILD)/context.hpp
 
 PART:=`cat boards/$(BOARD)/PART`
 PATCHES = boards/$(BOARD)/patches
 PROC = ps7_cortexa9_0
 
 # Custom commands
-VIVADO_VERSION = 2016.3
+VIVADO_VERSION = 2016.4
 VIVADO = vivado -nolog -nojournal -mode batch
 HSI = hsi -nolog -nojournal -mode batch
 RM = rm -rf
@@ -42,12 +44,8 @@ RM = rm -rf
 # Linux and U-boot
 ###############################################################################
 
-# solves problem with awk while building linux kernel
-# solution taken from http://www.googoolia.com/wp/2015/04/21/awk-symbol-lookup-error-awk-undefined-symbol-mpfr_z_sub/
-LD_LIBRARY_PATH =
-
-UBOOT_TAG = xilinx-v$(VIVADO_VERSION)
-LINUX_TAG = xilinx-v$(VIVADO_VERSION)
+UBOOT_TAG = koheron-$(BOARD)-v$(VIVADO_VERSION)
+LINUX_TAG = koheron-$(BOARD)-v$(VIVADO_VERSION)
 DTREE_TAG = xilinx-v$(VIVADO_VERSION)
 
 UBOOT_DIR = $(TMP)/u-boot-xlnx-$(UBOOT_TAG)
@@ -58,8 +56,8 @@ UBOOT_TAR = $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 LINUX_TAR = $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 DTREE_TAR = $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
-UBOOT_URL = https://github.com/Xilinx/u-boot-xlnx/archive/$(UBOOT_TAG).tar.gz
-LINUX_URL = https://github.com/Xilinx/linux-xlnx/archive/$(LINUX_TAG).tar.gz
+UBOOT_URL = https://github.com/Koheron/u-boot-xlnx/archive/$(UBOOT_TAG).tar.gz
+LINUX_URL = https://github.com/Koheron/linux-xlnx/archive/$(LINUX_TAG).tar.gz
 DTREE_URL = https://github.com/Xilinx/device-tree-xlnx/archive/$(DTREE_TAG).tar.gz
 
 LINUX_CFLAGS = "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
@@ -76,7 +74,7 @@ TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_BUILD)/kserverd
 DRIVERS_YML = $(TMP)/$(NAME).drivers.yml
 
-TCP_SERVER_VERSION = v0.12.0
+TCP_SERVER_VERSION = develop
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
 PYTHON=$(TCP_SERVER_VENV)/bin/python
 
@@ -235,8 +233,6 @@ $(UBOOT_TAR):
 $(UBOOT_DIR): $(UBOOT_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
-	patch -d $(TMP) -p 0 < $(PATCHES)/u-boot-xlnx-$(UBOOT_TAG).patch
-	bash $(PATCHES)/uboot.sh $(PATCHES) $@
 	@echo [$@] OK
 
 $(TMP)/u-boot.elf: $(UBOOT_DIR)
@@ -300,8 +296,6 @@ $(LINUX_TAR):
 $(LINUX_DIR): $(LINUX_TAR)
 	mkdir -p $@
 	tar -zxf $< --strip-components=1 --directory=$@
-	patch -d $(TMP) -p 0 < $(PATCHES)/linux-xlnx-$(LINUX_TAG).patch
-	bash $(PATCHES)/linux.sh $(PATCHES) $@
 	@echo [$@] OK
 
 uImage: $(LINUX_DIR)
@@ -335,8 +329,11 @@ $(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
 $(MEMORY_HPP): $(CONFIG_YML)
 	python $(MAKE_PY) --middleware $(NAME) $(INSTRUMENT_PATH)
 
+$(CONTEXT_HPP_DEST): $(CONTEXT_HPP_SRC)
+	cp $< $@
+
 $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(DRIVERS_YML) $(DRIVERS) \
-               $(DRIVERS_LIB) $(MEMORY_HPP) instruments/default/server.yml
+               $(DRIVERS_LIB) $(MEMORY_HPP) $(CONTEXT_HPP_DEST) instruments/default/server.yml
 	make -C $(TCP_SERVER_DIR) CONFIG=$(DRIVERS_YML) BASE_DIR=../.. \
 	  PYTHON=$(PYTHON) TMP=../../$(TCP_SERVER_BUILD)
 	@echo [$@] OK

@@ -1,4 +1,4 @@
 
 # Source Vivado
-source /opt/Xilinx/Vivado/2016.3/settings64.sh
+source /opt/Xilinx/Vivado/2016.4/settings64.sh
 
