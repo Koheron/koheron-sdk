@@ -6,8 +6,13 @@
 #include <core/context_base.hpp>
 
 #include <drivers/lib/memory_manager.hpp>
-#include <drivers/lib/spi_dev.hpp>
-#include <drivers/lib/i2c_dev.hpp>
+
+#ifdef CTX_HAS_SPI
+#  include <drivers/lib/spi_dev.hpp>
+#endif
+#ifdef CTX_HAS_I2C
+#  include <drivers/lib/i2c_dev.hpp>
+#endif
 
 #include "memory.hpp"
 
