@@ -15,3 +15,14 @@ set_property PACKAGE_PIN V22 [get_ports {led_o[4]}];  # "LD4"
 set_property PACKAGE_PIN W22 [get_ports {led_o[5]}];  # "LD5"
 set_property PACKAGE_PIN U19 [get_ports {led_o[6]}];  # "LD6"
 set_property PACKAGE_PIN U14 [get_ports {led_o[7]}];  # "LD7"
+
+# SPI routed to PMOD connector using EMIO
+
+set_property IOSTANDARD LVCMOS33 [get_ports {spi_0_*}]
+
+set_property PACKAGE_PIN Y11 [get_ports spi_0_io0_io];  # "JA1"
+set_property PACKAGE_PIN AA11 [get_ports spi_0_io1_io];  # "JA2"
+set_property PACKAGE_PIN Y10 [get_ports spi_0_sck_io];  # "JA3"
+set_property PACKAGE_PIN AA9 [get_ports spi_0_ss1_o];  # "JA4"
+set_property PACKAGE_PIN AB11 [get_ports spi_0_ss2_o];  # "JA7"
+set_property PACKAGE_PIN AB10 [get_ports spi_0_ss_io];  # "JA8"
