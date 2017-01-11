@@ -18,10 +18,10 @@ SpiDev::SpiDev(Context& ctx_, std::string devname_)
 
 int SpiDev::init(uint32_t mode_, uint32_t speed_)
 {
-    const char * devpath = ("/dev/" + devname).c_str();
+    const char *devpath = ("/dev/" + devname).c_str();
 
     if (fd < 0) {
-        fd = open(devpath, O_RDWR | O_NOCTTY); // TODO use devname
+        fd = open(devpath, O_RDWR | O_NOCTTY);
 
         if (fd < 0) {
             ctx.log<ERROR>("SpiDev: Cannot open %s\n", devpath);
@@ -41,7 +41,7 @@ int SpiDev::set_mode(uint32_t mode_)
     mode = mode_;
 
     if (ioctl(fd, SPI_IOC_WR_MODE, &mode) < 0) {
-        ctx.log<ERROR>("SpiDev: Cannot set ioctl SPI_IOC_WR_MODE\n");
+        ctx.log<ERROR>("SpiDev [%s] Cannot set ioctl SPI_IOC_WR_MODE\n", devname);
         return -1;
     }
 
@@ -53,7 +53,7 @@ int SpiDev::set_speed(uint32_t speed_)
     speed = speed_;
 
     if (ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) < 0) {
-        ctx.log<ERROR>("SpiDev: Cannot set ioctl SPI_IOC_WR_MAX_SPEED_HZ\n");
+        ctx.log<ERROR>("SpiDev [%s] Cannot set ioctl SPI_IOC_WR_MAX_SPEED_HZ\n", devname);
         return -1;
     }
 
@@ -75,7 +75,7 @@ int SpiManager::init()
     DIR *dir = opendir("/sys/class/spidev");
 
     if (dir == nullptr) {
-        ctx.log<INFO>("SpiManager: Cannot open /sys/class/spidev.\n");
+        ctx.log<INFO>("Spi Manager: Cannot open /sys/class/spidev.\n");
         return 0;
     }
 
@@ -84,13 +84,13 @@ int SpiManager::init()
 
         // Exclude '.' and '..' repositories
         if (devname[0] != '.') {
-            ctx.log<INFO>("SpiManager: Found device '%s'\n", devname);
+            ctx.log<INFO>("Spi Manager: Found device '%s'\n", devname);
             spi_devices.insert(std::make_pair(devname, std::make_unique<SpiDev>(ctx, devname)));
         }
     }
 
     if (spi_devices.empty())
-        ctx.log<INFO>("SpiManager: No SPI device available.\n");
+        ctx.log<INFO>("Spi Manager: No SPI device available.\n");
 
     closedir(dir);
     return 0;
@@ -104,7 +104,7 @@ bool SpiManager::has_device(const std::string& devname)
 SpiDev& SpiManager::get(const std::string& devname, uint32_t mode, uint32_t speed)
 {
     if (! has_device(devname)) {
-        ctx.log<ERROR>("SpiManager: Spi device %s not found\n", devname.c_str());
+        ctx.log<ERROR>("Spi Manager: Spi device %s not found\n", devname.c_str());
         return empty_spidev;
     }
 

@@ -46,11 +46,13 @@ class SpiDev
         return -1;
     }
 
+    // TODO read
+
   private:
     Context& ctx;
     std::string devname;
 
-    uint32_t mode = 0;
+    uint32_t mode = SPI_MODE_0;
     uint32_t speed = 1000000; // SPI bus speed
 
     int fd = -1;
@@ -66,7 +68,7 @@ class SpiManager
     bool has_device(const std::string& devname);
 
     SpiDev& get(const std::string& devname,
-                uint32_t mode = 0,
+                uint32_t mode = SPI_MODE_0,
                 uint32_t speed = 1000000);
 
   private:

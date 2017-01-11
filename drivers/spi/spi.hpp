@@ -17,13 +17,16 @@ class Spi
             return;
         }
 
-
-        spi.set_mode(0);
+        spi.set_mode(SPI_MODE_0);
         spi.set_speed(1000000);
     }
 
     int32_t write(const std::vector<uint32_t>& buffer) {
         return spi.write(buffer.data(), buffer.size());
+    }
+
+    void set_speed(uint32_t speed) {
+        spi.set_speed(speed);
     }
 
   private:
