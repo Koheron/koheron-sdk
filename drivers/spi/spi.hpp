@@ -9,16 +9,19 @@
 class Spi
 {
   public:
-    Spi(Context& ctx_)
-    : ctx(ctx_)
-    {}
+    Spi(Context& ctx)
+    : spi(ctx.spi.get("spidev2.0"))
+    {
+        if (! spi.is_ok())
+            ctx.log<ERROR>("Cannot access spidev2.0");
+    }
 
     uint32_t write(const std::vector<uint32_t>& buffer) {
-        return ctx.spi.write_buffer(buffer.data(), buffer.size());
+        return spi.write(buffer.data(), buffer.size());
     }
 
   private:
-    Context& ctx;
+    SpiDev& spi;
 };
 
 #endif // __DRIVERS_SPI_SPI_HPP__

@@ -103,9 +103,6 @@ server:
     - drivers/spi/spi.hpp
     - drivers/test_memory/test_memory.hpp
 
-  defines:
-    - CTX_HAS_SPI
-
 # ------------------------------------------------------------
 # Misc
 # ------------------------------------------------------------

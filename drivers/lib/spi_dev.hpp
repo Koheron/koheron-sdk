@@ -15,34 +15,60 @@
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
 
+#include <unordered_map>
+#include <string>
+#include <memory>
+
 class Context;
 
 class SpiDev
 {
   public:
-    SpiDev(Context& ctx_, uint32_t mode_ = 0, uint32_t speed_ = 1000000);
+    SpiDev(Context& ctx_, std::string devname_);
 
     ~SpiDev() {
         if (fd >= 0)
             close(fd);
     }
 
-    int init();
+    bool is_ok() {return fd >= 0;}
+
+    int init(uint32_t mode_, uint32_t speed_);
     int set_mode(uint32_t mode_);
     int set_speed(uint32_t speed_);
 
     template<typename T>
-    int write_buffer(const T *buffer, uint32_t len) {
-        return write(fd, buffer, len * sizeof(T));
+    int write(const T *buffer, uint32_t len) {
+        return ::write(fd, buffer, len * sizeof(T));
     }
 
   private:
     Context& ctx;
+    std::string devname;
 
-    uint32_t mode;
-    uint32_t speed; // SPI bus speed
+    uint32_t mode = 0;
+    uint32_t speed = 1000000; // SPI bus speed
 
     int fd = -1;
+};
+
+class SpiManager
+{
+  public:
+    SpiManager(Context& ctx_);
+
+    int init();
+
+    bool has_device(const std::string& devname);
+
+    SpiDev& get(const std::string& devname,
+                uint32_t mode = 0,
+                uint32_t speed = 1000000);
+
+  private:
+    Context& ctx;
+    std::unordered_map<std::string, std::unique_ptr<SpiDev>> spi_devices;
+    SpiDev empty_spidev;
 };
 
 #endif // __DRIVERS_LIB_SPI_DEV_HPP__
