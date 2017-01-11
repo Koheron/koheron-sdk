@@ -14,6 +14,10 @@ class Spi
     {
         if (! spi.is_ok())
             ctx.log<ERROR>("Cannot access spidev2.0");
+
+
+        spi.set_mode(0);
+        spi.set_speed(1000000);
     }
 
     uint32_t write(const std::vector<uint32_t>& buffer) {

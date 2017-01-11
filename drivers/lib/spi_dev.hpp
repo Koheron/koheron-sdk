@@ -38,8 +38,12 @@ class SpiDev
     int set_speed(uint32_t speed_);
 
     template<typename T>
-    int write(const T *buffer, uint32_t len) {
-        return ::write(fd, buffer, len * sizeof(T));
+    int write(const T *buffer, uint32_t len)
+    {
+        if (fd >= 0)
+            return ::write(fd, buffer, len * sizeof(T));
+
+        return -1;
     }
 
   private:

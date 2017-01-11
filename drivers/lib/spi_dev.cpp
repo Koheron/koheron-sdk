@@ -73,16 +73,22 @@ int SpiManager::init()
     DIR *dir = opendir("/sys/class/spidev");
 
     if (dir == nullptr) {
-        ctx.log<INFO>("Spi: Cannot open /sys/class/spidev.\n"
-                      "No SPI device available.\n");
+        ctx.log<INFO>("SpiManager: Cannot open /sys/class/spidev.\n");
         return 0;
     }
 
     while ((ent = readdir(dir)) != nullptr) {
         const char *devname = ent->d_name;
-        ctx.log<INFO>("Spi: Found device %s\n", devname);
-        spi_devices.insert(std::make_pair(devname, std::make_unique<SpiDev>(ctx, devname)));
+
+        // Exclude '.' and '..' repositories
+        if (devname[0] != '.') {
+            ctx.log<INFO>("SpiManager: Found device '%s'\n", devname);
+            spi_devices.insert(std::make_pair(devname, std::make_unique<SpiDev>(ctx, devname)));
+        }
     }
+
+    if (spi_devices.empty())
+        ctx.log<INFO>("SpiManager: No SPI device available.\n");
 
     closedir(dir);
     return 0;
@@ -96,7 +102,7 @@ bool SpiManager::has_device(const std::string& devname)
 SpiDev& SpiManager::get(const std::string& devname, uint32_t mode, uint32_t speed)
 {
     if (! has_device(devname)) {
-        ctx.log<ERROR>("Spi device %s not found\n", devname.c_str());
+        ctx.log<ERROR>("SpiManager: Spi device %s not found\n", devname.c_str());
         return empty_spidev;
     }
 
