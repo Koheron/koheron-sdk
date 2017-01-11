@@ -58,7 +58,6 @@ cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 
 # Add Web app
 mkdir $root_dir/usr/local/flask
-mkdir $root_dir/usr/local/flask
 cp -a $http_app_dir/. $root_dir/usr/local/flask
 cp $config_dir/wsgi.py $root_dir/usr/local/flask
 unzip -o tmp/static.zip -d $root_dir/var/www
@@ -67,7 +66,6 @@ unzip -o tmp/static.zip -d $root_dir/var/www
 mkdir $root_dir/usr/local/koheron-server
 cp tmp/${name}.server.build/kserverd $root_dir/usr/local/koheron-server
 cp $config_dir/koheron-server.conf $root_dir/usr/local/koheron-server
-cp tmp/${name}.koheron-server/VERSION $root_dir/usr/local/koheron-server
 cp $config_dir/systemd/koheron-server.service $root_dir/etc/systemd/system/koheron-server.service
 cp $config_dir/systemd/koheron-server-init.service $root_dir/etc/systemd/system/koheron-server-init.service
 
