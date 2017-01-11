@@ -7,8 +7,8 @@ koheron_python_branch=v0.12.0
 config_dir=os
 http_app_dir=tmp/app
 
-boot_dir=/tmp/BOOT
-root_dir=/tmp/ROOT
+boot_dir=`mktemp -d /tmp/BOOT.XXXXXXXXXX`
+root_dir=`mktemp -d /tmp/ROOT.XXXXXXXXXX`
 
 ubuntu_version=16.04.1
 root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
@@ -32,8 +32,6 @@ mkfs.vfat -v $boot_dev
 mkfs.ext4 -F -j $root_dev
 
 # Mount file systems
-
-mkdir -p $boot_dir $root_dir
 
 mount $boot_dev $boot_dir
 mount $root_dev $root_dir
