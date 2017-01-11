@@ -18,6 +18,9 @@ I2cDev::I2cDev(Context& ctx_, std::string devname_)
 
 int I2cDev::init()
 {
+    if (fd >=0)
+        return 0;
+
     const char *devpath = ("/dev/" + devname).c_str();
 
     if (fd < 0) {
@@ -48,7 +51,7 @@ int I2cDev::set_address(int32_t addr)
 }
 
 // ---------------------------------------------------------------------
-// SpiManager
+// I2cManager
 // ---------------------------------------------------------------------
 
 I2cManager::I2cManager(Context& ctx_)

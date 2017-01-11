@@ -18,6 +18,9 @@ SpiDev::SpiDev(Context& ctx_, std::string devname_)
 
 int SpiDev::init(uint32_t mode_, uint32_t speed_)
 {
+    if (fd >=0)
+        return 0;
+
     const char *devpath = ("/dev/" + devname).c_str();
 
     if (fd < 0) {

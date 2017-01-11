@@ -29,3 +29,6 @@ if __name__ == "__main__":
     spi = Spi(client)
     spi.set_speed(1000000)
     spi.write(np.array([2, 4, 8, 16, 32, 64, 128, 255], dtype='uint8'))
+
+    i2c = I2c(client)
+    i2c.write(10, np.array([2, 4, 8, 16, 32, 64, 128, 255], dtype='uint8'))

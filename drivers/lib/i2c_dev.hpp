@@ -54,6 +54,8 @@ class I2cDev
         return ::write(fd, buffer, len * sizeof(T));
     }
 
+    // TODO read
+
   private:
     Context& ctx;
     std::string devname;
