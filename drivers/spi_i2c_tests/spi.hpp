@@ -1,10 +1,9 @@
 /// Interface for remote SPI control and prototyping
 
-#ifndef __DRIVERS_SPI_SPI_HPP__
-#define __DRIVERS_SPI_SPI_HPP__
+#ifndef __DRIVERS_SPI_I2C_TESTS_SPI_HPP__
+#define __DRIVERS_SPI_I2C_TESTS_SPI_HPP__
 
 #include <context.hpp>
-#include <drivers/lib/spi_dev.hpp>
 
 class Spi
 {
@@ -21,7 +20,7 @@ class Spi
         spi.set_speed(1000000);
     }
 
-    int32_t write(const std::vector<uint32_t>& buffer) {
+    int32_t write(const std::vector<uint8_t>& buffer) {
         return spi.write(buffer.data(), buffer.size());
     }
 
@@ -33,4 +32,4 @@ class Spi
     SpiDev& spi;
 };
 
-#endif // __DRIVERS_SPI_SPI_HPP__
+#endif // __DRIVERS_SPI_I2C_TESTS_SPI_HPP__

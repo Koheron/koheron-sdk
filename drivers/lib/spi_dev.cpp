@@ -38,6 +38,9 @@ int SpiDev::init(uint32_t mode_, uint32_t speed_)
 
 int SpiDev::set_mode(uint32_t mode_)
 {
+    if (! is_ok())
+        return -1;
+
     mode = mode_;
 
     if (ioctl(fd, SPI_IOC_WR_MODE, &mode) < 0) {
@@ -50,6 +53,9 @@ int SpiDev::set_mode(uint32_t mode_)
 
 int SpiDev::set_speed(uint32_t speed_)
 {
+    if (! is_ok())
+        return -1;
+
     speed = speed_;
 
     if (ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) < 0) {
@@ -61,7 +67,7 @@ int SpiDev::set_speed(uint32_t speed_)
 }
 
 // ---------------------------------------------------------------------
-// Spi
+// SpiManager
 // ---------------------------------------------------------------------
 
 SpiManager::SpiManager(Context& ctx_)
@@ -69,13 +75,16 @@ SpiManager::SpiManager(Context& ctx_)
 , empty_spidev(ctx, "")
 {}
 
+// Never return a negative number on failure.
+// SPI missing is not considered critical as it might not
+// be used by any driver.
 int SpiManager::init()
 {
     struct dirent *ent;
     DIR *dir = opendir("/sys/class/spidev");
 
     if (dir == nullptr) {
-        ctx.log<INFO>("Spi Manager: Cannot open /sys/class/spidev.\n");
+        ctx.log<INFO>("SPI Manager: Cannot open /sys/class/spidev.\n");
         return 0;
     }
 
@@ -84,13 +93,13 @@ int SpiManager::init()
 
         // Exclude '.' and '..' repositories
         if (devname[0] != '.') {
-            ctx.log<INFO>("Spi Manager: Found device '%s'\n", devname);
+            ctx.log<INFO>("SPI Manager: Found device '%s'\n", devname);
             spi_devices.insert(std::make_pair(devname, std::make_unique<SpiDev>(ctx, devname)));
         }
     }
 
     if (spi_devices.empty())
-        ctx.log<INFO>("Spi Manager: No SPI device available.\n");
+        ctx.log<INFO>("SPI Manager: No SPI device available.\n");
 
     closedir(dir);
     return 0;
@@ -104,7 +113,8 @@ bool SpiManager::has_device(const std::string& devname)
 SpiDev& SpiManager::get(const std::string& devname, uint32_t mode, uint32_t speed)
 {
     if (! has_device(devname)) {
-        ctx.log<ERROR>("Spi Manager: Spi device %s not found\n", devname.c_str());
+        // This is critical since explicit driver request cannot be honored
+        ctx.log<CRITICAL>("SPI Manager: SPI device %s not found\n", devname.c_str());
         return empty_spidev;
     }
 

@@ -31,7 +31,7 @@ class Context : public ContextBase
 
     MemoryManager mm;
     SpiManager spi;
-    I2cDev i2c;
+    I2cManager i2c;
 };
 
 #endif // __CONTEXT_HPP__
