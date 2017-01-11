@@ -18,6 +18,8 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
+#include <vector>
+#include <array>
 
 class Context;
 
@@ -48,7 +50,17 @@ class SpiDev
 
     int recv(uint8_t *buffer, size_t n_bytes);
 
-    // TODO read
+    template<typename T>
+    int recv(std::vector<T>& vec) {
+        return recv(reinterpret_cast<uint8_t*>(vec.data()),
+                    vec.size() * sizeof(T));
+    }
+
+    template<typename T, size_t N>
+    int recv(std::array<T, N>& arr) {
+        return recv(reinterpret_cast<uint8_t*>(arr.data()),
+                    N * sizeof(T));
+    }
 
   private:
     Context& ctx;

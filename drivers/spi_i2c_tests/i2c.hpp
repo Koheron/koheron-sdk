@@ -19,7 +19,6 @@ class I2c
     }
 
     int32_t write(int32_t addr, const std::vector<uint8_t>& buffer) {
-        ctx.log<INFO>("addr = %i\n", addr);
         return i2c.write(addr, buffer.data(), buffer.size());
     }
 

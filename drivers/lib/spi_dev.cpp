@@ -81,7 +81,7 @@ int SpiDev::recv(uint8_t *buffer, size_t n_bytes)
         bytes_rcv = read(fd, buffer + bytes_read, n_bytes - bytes_read);
 
         if (bytes_rcv == 0) {
-            ctx.log<INFO>("SpiDev [%s]: Connection closed by client\n", devname);
+            ctx.log<INFO>("SpiDev [%s]: Connection to device closed\n", devname);
             return 0;
         }
 

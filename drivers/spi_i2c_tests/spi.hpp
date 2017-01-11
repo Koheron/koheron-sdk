@@ -24,10 +24,15 @@ class Spi
         return spi.write(buffer.data(), buffer.size());
     }
 
-    const std::vector<uint8_t>& read(uint32_t n_bytes) {
-        buffer.resize(n_bytes);
-        spi.recv(buffer.data(), n_bytes);
+    const std::vector<uint32_t>& read(uint32_t n_pts) {
+        buffer.resize(n_pts);
+        spi.recv(buffer);
         return buffer;
+    }
+
+    const std::array<uint8_t, 64>& read_array() {
+        spi.recv(buffer2);
+        return buffer2;
     }
 
     void set_speed(uint32_t speed) {
@@ -37,7 +42,8 @@ class Spi
   private:
     SpiDev& spi;
 
-    std::vector<uint8_t> buffer;
+    std::vector<uint32_t> buffer;
+    std::array<uint8_t, 64> buffer2;
 };
 
 #endif // __DRIVERS_SPI_I2C_TESTS_SPI_HPP__
