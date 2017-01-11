@@ -23,6 +23,7 @@
 
 class Context;
 
+// https://www.kernel.org/doc/Documentation/spi/spidev
 class SpiDev
 {
   public:
@@ -35,9 +36,13 @@ class SpiDev
 
     bool is_ok() {return fd >= 0;}
 
-    int init(uint32_t mode_, uint32_t speed_);
-    int set_mode(uint32_t mode_);
+    int init(uint8_t mode_, uint32_t speed_, uint8_t word_length_);
+    int set_mode(uint8_t mode_);
+    int set_full_mode(uint32_t mode32_);
     int set_speed(uint32_t speed_);
+
+    /// Set the number of bits in each SPI transfer word.
+    int set_word_length(uint8_t word_length_);
 
     template<typename T>
     int write(const T *buffer, uint32_t len)
@@ -66,8 +71,10 @@ class SpiDev
     Context& ctx;
     std::string devname;
 
-    uint32_t mode = SPI_MODE_0;
+    uint8_t mode = SPI_MODE_0;
+    uint32_t mode32 = SPI_MODE_0;
     uint32_t speed = 1000000; // SPI bus speed
+    uint8_t word_length = 8;
 
     int fd = -1;
 };
@@ -82,8 +89,9 @@ class SpiManager
     bool has_device(const std::string& devname);
 
     SpiDev& get(const std::string& devname,
-                uint32_t mode = SPI_MODE_0,
-                uint32_t speed = 1000000);
+                uint8_t mode = SPI_MODE_0,
+                uint32_t speed = 1000000,
+                uint8_t word_length = 8);
 
   private:
     Context& ctx;

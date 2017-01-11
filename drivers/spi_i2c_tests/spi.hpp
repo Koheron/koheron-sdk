@@ -16,7 +16,9 @@ class Spi
             return;
         }
 
-        spi.set_mode(SPI_MODE_0);
+        // spi.set_mode(SPI_MODE_0);
+        // spi.set_full_mode(SPI_3WIRE);
+        spi.set_word_length(16);
         spi.set_speed(1000000);
     }
 
@@ -24,7 +26,7 @@ class Spi
         return spi.write(buffer.data(), buffer.size());
     }
 
-    const std::vector<uint32_t>& read(uint32_t n_pts) {
+    const std::vector<uint16_t>& read(uint32_t n_pts) {
         buffer.resize(n_pts);
         spi.recv(buffer);
         return buffer;
@@ -42,7 +44,7 @@ class Spi
   private:
     SpiDev& spi;
 
-    std::vector<uint32_t> buffer;
+    std::vector<uint16_t> buffer;
     std::array<uint8_t, 64> buffer2;
 };
 

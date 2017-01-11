@@ -16,7 +16,7 @@ SpiDev::SpiDev(Context& ctx_, std::string devname_)
 , devname(devname_)
 {}
 
-int SpiDev::init(uint32_t mode_, uint32_t speed_)
+int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_)
 {
     if (fd >=0)
         return 0;
@@ -32,14 +32,16 @@ int SpiDev::init(uint32_t mode_, uint32_t speed_)
         }
     }
 
-    if (set_mode(mode_) < 0 || set_speed(speed_) < 0)
+    if (set_mode(mode_) < 0              ||
+        set_speed(speed_) < 0            ||
+        set_word_length(word_length_) < 0)
         return -1;
 
     ctx.log<INFO>("SpiDev: %s opened\n", devpath);
     return 0;
 }
 
-int SpiDev::set_mode(uint32_t mode_)
+int SpiDev::set_mode(uint8_t mode_)
 {
     if (! is_ok())
         return -1;
@@ -47,12 +49,28 @@ int SpiDev::set_mode(uint32_t mode_)
     mode = mode_;
 
     if (ioctl(fd, SPI_IOC_WR_MODE, &mode) < 0) {
-        ctx.log<ERROR>("SpiDev [%s] Cannot set ioctl SPI_IOC_WR_MODE\n", devname);
+        ctx.log<ERROR>("SpiDev [%s] Cannot set mode\n", devname);
         return -1;
     }
 
     return 0;
 }
+
+int SpiDev::set_full_mode(uint32_t mode32_)
+{
+    if (! is_ok())
+        return -1;
+
+    mode32 = mode32_;
+
+    if (ioctl(fd, SPI_IOC_WR_MODE32, &mode32) < 0) {
+        ctx.log<ERROR>("SpiDev [%s] Cannot set full mode\n", devname);
+        return -1;
+    }
+
+    return 0;
+}
+
 
 int SpiDev::set_speed(uint32_t speed_)
 {
@@ -62,7 +80,22 @@ int SpiDev::set_speed(uint32_t speed_)
     speed = speed_;
 
     if (ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) < 0) {
-        ctx.log<ERROR>("SpiDev [%s] Cannot set ioctl SPI_IOC_WR_MAX_SPEED_HZ\n", devname);
+        ctx.log<ERROR>("SpiDev [%s] Cannot set speed\n", devname);
+        return -1;
+    }
+
+    return 0;
+}
+
+int SpiDev::set_word_length(uint8_t word_length_)
+{
+    if (! is_ok())
+        return -1;
+
+    word_length = word_length_;
+
+    if (ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &word_length) < 0) {
+        ctx.log<ERROR>("SpiDev [%s] Cannot set word length\n", devname);
         return -1;
     }
 
@@ -144,7 +177,8 @@ bool SpiManager::has_device(const std::string& devname)
     return spi_devices.find(devname) != spi_devices.end();
 }
 
-SpiDev& SpiManager::get(const std::string& devname, uint32_t mode, uint32_t speed)
+SpiDev& SpiManager::get(const std::string& devname, 
+                        uint8_t mode, uint32_t speed, uint8_t word_length)
 {
     if (! has_device(devname)) {
         // This is critical since explicit driver request cannot be honored
@@ -152,6 +186,6 @@ SpiDev& SpiManager::get(const std::string& devname, uint32_t mode, uint32_t spee
         return empty_spidev;
     }
 
-    spi_devices[devname]->init(mode, speed);
+    spi_devices[devname]->init(mode, speed, word_length);
     return *spi_devices[devname];
 }

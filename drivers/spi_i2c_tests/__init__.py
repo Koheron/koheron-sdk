@@ -11,7 +11,7 @@ class Spi(object):
 
     @command()
     def read(self, n_pts):
-        return self.client.recv_vector(check_type=False)
+        return self.client.recv_vector(dtype='uint16', check_type=False)
 
     @command()
     def read_array(self):
@@ -31,14 +31,19 @@ class I2c(object):
 if __name__ == "__main__":
     import os
     import numpy as np
+    import time
 
     host = os.getenv('HOST','192.168.1.100')
     client = connect(host, name='oscillo')
     spi = Spi(client)
-    spi.set_speed(1000000)
-    spi.write(np.array([2, 4, 8, 16, 32, 64, 128, 255], dtype='uint8'))
-    print spi.read(4)
+    # spi.set_speed(1000000)
+    # spi.write(np.array([2, 4, 8, 16, 32, 64, 128, 255], dtype='uint8'))
+    # print spi.read(4)
     print spi.read_array()
 
-    i2c = I2c(client)
-    i2c.write(4, np.array([2, 4, 8, 16, 32, 64, 128, 255], dtype='uint8'))
+    while True:
+        print str(bin(spi.read(1))[2:]).zfill(16)
+        time.sleep(0.5)
+
+    # i2c = I2c(client)
+    # i2c.write(4, np.array([2, 4, 8, 16, 32, 64, 128, 255], dtype='uint8'))
