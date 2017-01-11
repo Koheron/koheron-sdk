@@ -8,8 +8,9 @@
 class I2c
 {
   public:
-    I2c(Context& ctx)
-    : i2c(ctx.i2c.get("i2c-0"))
+    I2c(Context& ctx_)
+    : ctx(ctx_)
+    , i2c(ctx.i2c.get("i2c-0"))
     {
         if (! i2c.is_ok()) {
             ctx.log<ERROR>("Cannot access i2c-0\n");
@@ -18,10 +19,12 @@ class I2c
     }
 
     int32_t write(int32_t addr, const std::vector<uint8_t>& buffer) {
+        ctx.log<INFO>("addr = %i\n", addr);
         return i2c.write(addr, buffer.data(), buffer.size());
     }
 
   private:
+    Context& ctx;
     I2cDev& i2c;
 };
 

@@ -10,6 +10,10 @@ class Spi(object):
         return self.client.recv_int32()
 
     @command()
+    def read(self, n_bytes):
+        return self.client.recv_vector(dtype='uint8', check_type=False)
+
+    @command()
     def set_speed(self, speed): pass
 
 class I2c(object):
@@ -29,6 +33,7 @@ if __name__ == "__main__":
     spi = Spi(client)
     spi.set_speed(1000000)
     spi.write(np.array([2, 4, 8, 16, 32, 64, 128, 255], dtype='uint8'))
+    print spi.read(4)
 
     i2c = I2c(client)
-    i2c.write(10, np.array([2, 4, 8, 16, 32, 64, 128, 255], dtype='uint8'))
+    i2c.write(4, np.array([2, 4, 8, 16, 32, 64, 128, 255], dtype='uint8'))

@@ -78,7 +78,10 @@ int I2cManager::init()
         // Exclude '.' and '..' repositories
         if (devname[0] != '.') {
             ctx.log<INFO>("I2C Manager: Found device '%s'\n", devname);
-            i2c_devices.insert(std::make_pair(devname, std::make_unique<I2cDev>(ctx, devname)));
+
+            i2c_devices.insert(
+                std::make_pair(devname, std::make_unique<I2cDev>(ctx, devname))
+            );
         }
     }
 

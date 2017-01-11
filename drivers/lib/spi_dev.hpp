@@ -46,6 +46,8 @@ class SpiDev
         return -1;
     }
 
+    int recv(uint8_t *buffer, size_t n_bytes);
+
     // TODO read
 
   private:

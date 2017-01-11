@@ -69,6 +69,34 @@ int SpiDev::set_speed(uint32_t speed_)
     return 0;
 }
 
+int SpiDev::recv(uint8_t *buffer, size_t n_bytes)
+{
+    if (! is_ok())
+        return -1;
+
+    int bytes_rcv = 0;
+    uint64_t bytes_read = 0;
+
+    while (bytes_read < n_bytes) {
+        bytes_rcv = read(fd, buffer + bytes_read, n_bytes - bytes_read);
+
+        if (bytes_rcv == 0) {
+            ctx.log<INFO>("SpiDev [%s]: Connection closed by client\n", devname);
+            return 0;
+        }
+
+        if (bytes_rcv < 0) {
+            ctx.log<INFO>("SpiDev [%s]: Data reception failed\n", devname);
+            return -1;
+        }
+
+        bytes_read += bytes_rcv;
+    }
+
+    assert(bytes_read == n_bytes);
+    return bytes_read;
+}
+
 // ---------------------------------------------------------------------
 // SpiManager
 // ---------------------------------------------------------------------
@@ -97,7 +125,10 @@ int SpiManager::init()
         // Exclude '.' and '..' repositories
         if (devname[0] != '.') {
             ctx.log<INFO>("SPI Manager: Found device '%s'\n", devname);
-            spi_devices.insert(std::make_pair(devname, std::make_unique<SpiDev>(ctx, devname)));
+
+            spi_devices.insert(
+                std::make_pair(devname, std::make_unique<SpiDev>(ctx, devname))
+            );
         }
     }
 

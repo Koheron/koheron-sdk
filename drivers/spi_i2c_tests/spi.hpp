@@ -24,12 +24,20 @@ class Spi
         return spi.write(buffer.data(), buffer.size());
     }
 
+    const std::vector<uint8_t>& read(uint32_t n_bytes) {
+        buffer.resize(n_bytes);
+        spi.recv(buffer.data(), n_bytes);
+        return buffer;
+    }
+
     void set_speed(uint32_t speed) {
         spi.set_speed(speed);
     }
 
   private:
     SpiDev& spi;
+
+    std::vector<uint8_t> buffer;
 };
 
 #endif // __DRIVERS_SPI_I2C_TESTS_SPI_HPP__
