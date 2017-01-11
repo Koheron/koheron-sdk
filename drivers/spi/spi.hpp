@@ -12,15 +12,17 @@ class Spi
     Spi(Context& ctx)
     : spi(ctx.spi.get("spidev2.0"))
     {
-        if (! spi.is_ok())
-            ctx.log<ERROR>("Cannot access spidev2.0");
+        if (! spi.is_ok()) {
+            ctx.log<ERROR>("Cannot access spidev2.0\n");
+            return;
+        }
 
 
         spi.set_mode(0);
         spi.set_speed(1000000);
     }
 
-    uint32_t write(const std::vector<uint32_t>& buffer) {
+    int32_t write(const std::vector<uint32_t>& buffer) {
         return spi.write(buffer.data(), buffer.size());
     }
 

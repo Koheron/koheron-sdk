@@ -96,7 +96,7 @@ int SpiManager::init()
 
 bool SpiManager::has_device(const std::string& devname)
 {
-    return spi_devices.find(devname) == spi_devices.end();
+    return spi_devices.find(devname) != spi_devices.end();
 }
 
 SpiDev& SpiManager::get(const std::string& devname, uint32_t mode, uint32_t speed)
