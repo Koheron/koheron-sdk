@@ -18,11 +18,13 @@ SpiDev::SpiDev(Context& ctx_, std::string devname_)
 
 int SpiDev::init(uint32_t mode_, uint32_t speed_)
 {
+    const char * devpath = ("/dev/" + devname).c_str();
+
     if (fd < 0) {
-        fd = open("/dev/spidev2.0", O_RDWR | O_NOCTTY); // TODO use devname
+        fd = open(devpath, O_RDWR | O_NOCTTY); // TODO use devname
 
         if (fd < 0) {
-            ctx.log<ERROR>("SpiDev: Cannot open /dev/spidev2.0\n");
+            ctx.log<ERROR>("SpiDev: Cannot open %s\n", devpath);
             return -1;
         }
     }
@@ -30,7 +32,7 @@ int SpiDev::init(uint32_t mode_, uint32_t speed_)
     if (set_mode(mode_) < 0 || set_speed(speed_) < 0)
         return -1;
 
-    ctx.log<INFO>("SpiDev: /dev/spidev2.0 opened\n");
+    ctx.log<INFO>("SpiDev: %s opened\n", devpath);
     return 0;
 }
 
