@@ -7,8 +7,8 @@ koheron_python_branch=v0.12.0
 config_dir=os
 http_app_dir=tmp/app
 
-boot_dir=/tmp/BOOT
-root_dir=/tmp/ROOT
+boot_dir=`mktemp -d /tmp/BOOT.XXXXXXXXXX`
+root_dir=`mktemp -d /tmp/ROOT.XXXXXXXXXX`
 
 ubuntu_version=16.04.1
 root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
@@ -32,8 +32,6 @@ mkfs.vfat -v $boot_dev
 mkfs.ext4 -F -j $root_dev
 
 # Mount file systems
-
-mkdir -p $boot_dir $root_dir
 
 mount $boot_dev $boot_dir
 mount $root_dev $root_dir
@@ -60,7 +58,6 @@ cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 
 # Add Web app
 mkdir $root_dir/usr/local/flask
-mkdir $root_dir/usr/local/flask
 cp -a $http_app_dir/. $root_dir/usr/local/flask
 cp $config_dir/wsgi.py $root_dir/usr/local/flask
 unzip -o tmp/static.zip -d $root_dir/var/www
@@ -69,7 +66,6 @@ unzip -o tmp/static.zip -d $root_dir/var/www
 mkdir $root_dir/usr/local/koheron-server
 cp tmp/${name}.server.build/kserverd $root_dir/usr/local/koheron-server
 cp $config_dir/koheron-server.conf $root_dir/usr/local/koheron-server
-cp tmp/${name}.koheron-server/VERSION $root_dir/usr/local/koheron-server
 cp $config_dir/systemd/koheron-server.service $root_dir/etc/systemd/system/koheron-server.service
 cp $config_dir/systemd/koheron-server-init.service $root_dir/etc/systemd/system/koheron-server-init.service
 
@@ -107,9 +103,10 @@ EOF_CAT
 cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
-/dev/mmcblk0p2  /               ext4    errors=remount-ro   0       1
-/dev/mmcblk0p1  /boot           vfat    defaults            0       2
-tmpfs           /tmp            tmpfs   defaults            0       0
+/dev/mmcblk0p2  /               ext4    rw,noatime          0       1
+/dev/mmcblk0p1  /boot           vfat    ro,noatime          0       2
+tmpfs           /tmp            tmpfs   defaults,noatime    0       0
+tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 EOF_CAT
 
 cat <<- EOF_CAT >> etc/securetty
@@ -204,3 +201,5 @@ rm $root_dir/usr/bin/qemu-arm-static
 umount $boot_dir $root_dir
 
 rmdir $boot_dir $root_dir
+
+zerofree $root_dev
