@@ -71,7 +71,6 @@ int SpiDev::set_full_mode(uint32_t mode32_)
     return 0;
 }
 
-
 int SpiDev::set_speed(uint32_t speed_)
 {
     if (! is_ok())
