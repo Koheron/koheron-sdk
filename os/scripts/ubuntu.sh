@@ -86,6 +86,8 @@ echo "last_deployed: /usr/local/instruments/${name}-${version}.zip" > $root_dir/
 mkdir $root_dir/usr/local/instruments/backup
 cp tmp/*-${version}.zip $root_dir/usr/local/instruments/backup
 
+cp $config_dir/scripts/mount_unionfs $root_dir/usr/local/bin/mount_unionfs
+
 chroot $root_dir <<- EOF_CHROOT
 export LANG=C
 export LC_ALL=C
@@ -104,12 +106,17 @@ APT::Install-Recommends "0";
 APT::Install-Suggests "0";
 EOF_CAT
 
+chmod +x /usr/local/bin/mount_unionfs
+
 cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
-/dev/mmcblk0p2  /               ext4    errors=remount-ro   0       1
-/dev/mmcblk0p1  /boot           vfat    defaults            0       2
-tmpfs           /tmp            tmpfs   defaults            0       0
+/dev/mmcblk0p2  /               ext4    ro,noatime          0       1
+/dev/mmcblk0p1  /boot           vfat    ro,noatime          0       2
+tmpfs           /tmp            tmpfs   defaults,noatime    0       0
+tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
+mount_unionfs   /etc            fuse    defaults,noatime    0       0
+mount_unionfs   /var            fuse    defaults,noatime    0       0
 EOF_CAT
 
 cat <<- EOF_CAT >> etc/securetty
@@ -144,6 +151,7 @@ apt-get -y install openssh-server ntp usbutils psmisc lsof \
 
 apt-get install -y udev net-tools netbase ifupdown network-manager lsb-base
 apt-get install -y ntpdate sudo
+apt-get install -y unionfs-fuse
 
 apt-get install -y nginx
 apt-get install -y build-essential python-dev
@@ -198,6 +206,11 @@ cp $config_dir/systemd/nginx.service $root_dir/etc/systemd/system/nginx.service
 
 rm $root_dir/etc/resolv.conf
 rm $root_dir/usr/bin/qemu-arm-static
+
+cp -al $root_dir/etc $root_dir/etc_org
+mv $root_dir/var $root_dir/var_org
+mkdir $root_dir/etc_rw
+mkdir $root_dir/var $root_dir/var_rw
 
 # Unmount file systems
 
