@@ -43,7 +43,7 @@ int I2cDev::set_address(int32_t addr)
 
     if (ioctl(fd, I2C_SLAVE, addr) < 0) {
         ctx.log<ERROR>("I2cDev [%s] Failed to acquire bus access and/or "
-                       "talk to slave with address %u.\n", devname, addr);
+                       "talk to slave with address %u.\n", devname.c_str(), addr);
         return -1;
     }
 

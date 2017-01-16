@@ -49,7 +49,7 @@ int SpiDev::set_mode(uint8_t mode_)
     mode = mode_;
 
     if (ioctl(fd, SPI_IOC_WR_MODE, &mode) < 0) {
-        ctx.log<ERROR>("SpiDev [%s] Cannot set mode\n", devname);
+        ctx.log<ERROR>("SpiDev [%s] Cannot set mode\n", devname.c_str());
         return -1;
     }
 
@@ -64,7 +64,7 @@ int SpiDev::set_full_mode(uint32_t mode32_)
     mode32 = mode32_;
 
     if (ioctl(fd, SPI_IOC_WR_MODE32, &mode32) < 0) {
-        ctx.log<ERROR>("SpiDev [%s] Cannot set full mode\n", devname);
+        ctx.log<ERROR>("SpiDev [%s] Cannot set full mode\n", devname.c_str());
         return -1;
     }
 
@@ -79,7 +79,8 @@ int SpiDev::set_speed(uint32_t speed_)
     speed = speed_;
 
     if (ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) < 0) {
-        ctx.log<ERROR>("SpiDev [%s] Cannot set speed\n", devname);
+        ctx.log<ERROR>("SpiDev [%s] Cannot set speed to %u Hz\n",
+                       devname.c_str(), speed_);
         return -1;
     }
 
@@ -94,7 +95,8 @@ int SpiDev::set_word_length(uint8_t word_length_)
     word_length = word_length_;
 
     if (ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &word_length) < 0) {
-        ctx.log<ERROR>("SpiDev [%s] Cannot set word length\n", devname);
+        ctx.log<ERROR>("SpiDev [%s] Cannot set word length to %u bits\n",
+                       devname.c_str(), word_length_);
         return -1;
     }
 
@@ -113,12 +115,12 @@ int SpiDev::recv(uint8_t *buffer, size_t n_bytes)
         bytes_rcv = read(fd, buffer + bytes_read, n_bytes - bytes_read);
 
         if (bytes_rcv == 0) {
-            ctx.log<INFO>("SpiDev [%s]: Connection to device closed\n", devname);
+            ctx.log<INFO>("SpiDev [%s]: Connection to device closed\n", devname.c_str());
             return 0;
         }
 
         if (bytes_rcv < 0) {
-            ctx.log<INFO>("SpiDev [%s]: Data reception failed\n", devname);
+            ctx.log<INFO>("SpiDev [%s]: Data reception failed\n", devname.c_str());
             return -1;
         }
 
@@ -176,7 +178,7 @@ bool SpiManager::has_device(const std::string& devname)
     return spi_devices.find(devname) != spi_devices.end();
 }
 
-SpiDev& SpiManager::get(const std::string& devname, 
+SpiDev& SpiManager::get(const std::string& devname,
                         uint8_t mode, uint32_t speed, uint8_t word_length)
 {
     if (! has_device(devname)) {
