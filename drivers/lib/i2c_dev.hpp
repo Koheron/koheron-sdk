@@ -46,20 +46,19 @@ class I2cDev
         if (! is_ok())
             return -1;
 
-        int err = set_address(addr);
-
-        if (err < 0)
-            return err;
+        if (set_address(addr) < 0)
+            return -1;
 
         return ::write(fd, buffer, len * sizeof(T));
     }
 
-    // TODO read
+    int recv(int32_t addr, uint8_t *buffer, size_t n_bytes);
 
   private:
     Context& ctx;
     std::string devname;
     int fd = -1;
+    int32_t last_addr = -1;
 };
 
 class I2cManager

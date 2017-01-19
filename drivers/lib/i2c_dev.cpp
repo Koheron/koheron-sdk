@@ -41,13 +41,48 @@ int I2cDev::set_address(int32_t addr)
     if (! is_ok())
         return -1;
 
-    if (ioctl(fd, I2C_SLAVE, addr) < 0) {
-        ctx.log<ERROR>("I2cDev [%s] Failed to acquire bus access and/or "
-                       "talk to slave with address %u.\n", devname.c_str(), addr);
-        return -1;
+    if (addr != last_addr) {
+        if (ioctl(fd, I2C_SLAVE_FORCE, addr) < 0) {
+            ctx.log<ERROR>("I2cDev [%s] Failed to acquire bus access and/or "
+                           "talk to slave with address %u.\n", devname.c_str(), addr);
+            return -1;
+        }
+
+        last_addr = addr;
     }
 
     return 0;
+}
+
+int I2cDev::recv(int32_t addr, uint8_t *buffer, size_t n_bytes)
+{
+    if (! is_ok())
+        return -1;
+
+    if (set_address(addr) < 0)
+        return -1;
+
+    int bytes_rcv = 0;
+    uint64_t bytes_read = 0;
+
+    while (bytes_read < n_bytes) {
+        bytes_rcv = read(fd, buffer + bytes_read, n_bytes - bytes_read);
+
+        if (bytes_rcv == 0) {
+            ctx.log<INFO>("I2cDev [%s]: Connection to device closed\n", devname.c_str());
+            return 0;
+        }
+
+        if (bytes_rcv < 0) {
+            ctx.log<INFO>("I2cDevv [%s]: Data reception failed\n", devname.c_str());
+            return -1;
+        }
+
+        bytes_read += bytes_rcv;
+    }
+
+    assert(bytes_read == n_bytes);
+    return bytes_read;
 }
 
 // ---------------------------------------------------------------------
