@@ -35,9 +35,6 @@ memory:
   - name: xadc
     offset: '0x43C00000'
     range: 64K
-  - name: rambuf
-    offset: '0x1E000000'
-    range: 8M
 
 config_registers:
   - spi_in
@@ -98,7 +95,6 @@ server:
     - drivers/xadc.hpp
     - instruments/oscillo/drivers/laser/laser.hpp
     - instruments/oscillo/drivers/oscillo.hpp
-    - instruments/oscillo/drivers/speed_test.hpp
     - instruments/oscillo/drivers/eeprom/eeprom.hpp
 
 # ------------------------------------------------------------

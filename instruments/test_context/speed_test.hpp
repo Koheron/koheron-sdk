@@ -10,19 +10,32 @@
 
 #include <context.hpp>
 
-#define SAMPLING_RATE 125E6
-
-#define WFM_SIZE mem::adc_range/sizeof(float)
+#define WFM_SIZE 32 * 1024 / sizeof(float)
 
 //http://es.codeover.org/questions/34888683/arm-neon-memcpy-optimized-for-uncached-memory
-void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz);
+static void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz) {
+    if (sz & 63) {
+        sz = (sz & -64) + 64;
+    }
+    asm volatile (
+        "NEONCopyPLD:                          \n"
+        "    VLDM %[src]!,{d0-d7}                 \n"
+        "    VSTM %[dst]!,{d0-d7}                 \n"
+        "    SUBS %[sz],%[sz],#0x40                 \n"
+        "    BGT NEONCopyPLD                  \n"
+        : [dst]"+r"(dst), [src]"+r"(src), [sz]"+r"(sz) : : "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "cc", "memory");
+}
 
 class SpeedTest
 {
   public:
-    SpeedTest(Context& ctx);
-
-    std::array<float, 2*WFM_SIZE>& read_raw_all();
+    SpeedTest(Context& ctx)
+    : rambuf_map(ctx.mm.get<mem::rambuf>())
+    {
+        rambuf_data = rambuf_map.get_ptr<float>();
+        mmap_buf = mmap(NULL, 16384*4, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+        data_zeros.fill(0);
+    }
 
     // Return zeros (does not perform FPGA memory access)
     std::array<float, 2*WFM_SIZE>& read_zeros() {
@@ -61,22 +74,15 @@ class SpeedTest
     }
 
   private:
-    Memory<mem::config>& cfg;
-    Memory<mem::status>& sts;
-    Memory<mem::adc>& adc_map;
     Memory<mem::rambuf>& rambuf_map;
 
     void *mmap_buf;
     uint32_t *raw_data_1 = nullptr;
     uint32_t *raw_data_2 = nullptr;
     float *rambuf_data = nullptr;
-    std::array<float, 2*WFM_SIZE> rambuf_copy;
 
-    // Acquired data buffers
-    std::array<float, 2*WFM_SIZE> data_all;
+    std::array<float, 2*WFM_SIZE> rambuf_copy;
     std::array<float, 2*WFM_SIZE> data_zeros;
-    std::vector<float> data_decim;
-    std::vector<uint32_t> data_all_int;
 };
 
 #endif // __DRIVERS_SPEED_TEST_HPP__
