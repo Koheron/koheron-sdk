@@ -1,6 +1,6 @@
 ---
 instrument: cluster
-parent: default
+parent: instruments/default
 board: red-pitaya
 
 cores:

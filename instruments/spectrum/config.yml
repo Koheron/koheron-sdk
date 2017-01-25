@@ -1,7 +1,7 @@
 ---
 instrument: spectrum
 board: red-pitaya
-parent: oscillo
+parent: instruments/oscillo
 
 # ------------------------------------------------------------
 # Memory

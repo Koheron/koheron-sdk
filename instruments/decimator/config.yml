@@ -1,6 +1,6 @@
 ---
 instrument: decimator
-parent: default
+parent: instruments/default
 board: red-pitaya
 
 cores:
