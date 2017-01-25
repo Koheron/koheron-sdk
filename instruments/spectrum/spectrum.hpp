@@ -186,7 +186,6 @@ class Spectrum
         return peak_fifo_data;
     }
 
-
   private:
     Memory<mem::config>& cfg;
     Memory<mem::status>& sts;

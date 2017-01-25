@@ -25,5 +25,5 @@ optimization_flags:
   - O3
 
 dependencies:
-  - drivers/lib/spi_dev.cpp
-  - drivers/lib/i2c_dev.cpp
+  - drivers/context/spi_dev.cpp
+  - drivers/context/i2c_dev.cpp

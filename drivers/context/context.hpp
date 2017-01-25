@@ -5,9 +5,9 @@
 
 #include <core/context_base.hpp>
 
-#include <drivers/lib/memory_manager.hpp>
-#include <drivers/lib/spi_dev.hpp>
-#include <drivers/lib/i2c_dev.hpp>
+#include <drivers/context/memory_manager.hpp>
+#include <drivers/context/spi_dev.hpp>
+#include <drivers/context/i2c_dev.hpp>
 
 #include "memory.hpp"
 
