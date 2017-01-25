@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_TEST_MEMORY_HPP__
-#define __DRIVERS_TEST_MEMORY_HPP__
+#ifndef __TEST_CONTEST_MEMORY_HPP__
+#define __TEST_CONTEST_MEMORY_HPP__
 
 #include <cmath>
 #include <limits>
@@ -312,4 +312,4 @@ class TestMemory
     Memory<mem::rambuf>& ram;
 };
 
-#endif // __DRIVERS_TEST_MEMORY_HPP__
+#endif // __TEST_CONTEST_MEMORY_HPP__

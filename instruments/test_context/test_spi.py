@@ -1,7 +1,7 @@
 
 from koheron import command, connect
 
-class Spi(object):
+class TestSpi(object):
     def __init__(self, client):
         self.client = client
 
@@ -20,30 +20,19 @@ class Spi(object):
     @command()
     def set_speed(self, speed): pass
 
-class I2c(object):
-    def __init__(self, client):
-        self.client = client
-
-    @command()
-    def write(self, addr, data):
-        return self.client.recv_int32()
-
 if __name__ == "__main__":
     import os
     import numpy as np
     import time
 
     host = os.getenv('HOST','192.168.1.100')
-    client = connect(host, name='oscillo')
-    spi = Spi(client)
-    # spi.set_speed(1000000)
-    # spi.write(np.array([2, 4, 8, 16, 32, 64, 128, 255], dtype='uint8'))
-    # print spi.read(4)
+    client = connect(host, name='test_context')
+    spi = TestSpi(client)
+    spi.set_speed(1000000)
+    spi.write(np.array([2, 4, 8, 16, 32, 64, 128, 255], dtype='uint8'))
+    print spi.read(4)
     print spi.read_array()
 
     while True:
         print str(bin(spi.read(1))[2:]).zfill(16)
         time.sleep(0.5)
-
-    # i2c = I2c(client)
-    # i2c.write(4, np.array([2, 4, 8, 16, 32, 64, 128, 255], dtype='uint8'))

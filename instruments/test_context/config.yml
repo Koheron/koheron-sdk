@@ -39,3 +39,4 @@ server:
 
   drivers:
     - instruments/test_context/test_memory.hpp
+    - instruments/test_context/test_spi.hpp
