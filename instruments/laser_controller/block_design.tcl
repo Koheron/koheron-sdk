@@ -15,7 +15,7 @@ set adc_clk $adc_dac_name/adc_clk
 # Add processor system reset synchronous to adc clock
 set rst_adc_clk_name proc_sys_reset_adc_clk
 cell xilinx.com:ip:proc_sys_reset:5.0 $rst_adc_clk_name {} {
-  ext_reset_in $ps_name/FCLK_RESET0_N
+  ext_reset_in ps_0/FCLK_RESET0_N
   slowest_sync_clk $adc_clk
 }
 
@@ -25,6 +25,18 @@ add_cfg_sts $adc_clk $rst_adc_clk_name/peripheral_aresetn
 
 # Connect LEDs
 connect_port_pin led_o [get_slice_pin [cfg_pin led] 7 0]
+
+# Connect EEPROM to SPI_0
+create_bd_port -dir O spi_cs
+create_bd_port -dir O spi_sclk
+create_bd_port -dir O spi_din
+create_bd_port -dir I spi_dout
+
+connect_port_pin spi_cs ps_0/SPI0_SS_O
+connect_port_pin spi_sclk ps_0/SPI0_SCLK_O
+connect_port_pin spi_din ps_0/SPI0_MOSI_O
+connect_port_pin spi_dout ps_0/SPI0_MISO_I
+
 
 # Connect ADC to status register
 for {set i 0} {$i < [get_parameter n_adc]} {incr i} {
