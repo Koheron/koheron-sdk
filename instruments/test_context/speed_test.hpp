@@ -10,8 +10,6 @@
 
 #include <context.hpp>
 
-#define WFM_SIZE 32 * 1024 / sizeof(float)
-
 //http://es.codeover.org/questions/34888683/arm-neon-memcpy-optimized-for-uncached-memory
 static void mycopy(volatile unsigned char *dst, volatile unsigned char *src, int sz) {
     if (sz & 63) {
@@ -34,46 +32,54 @@ class SpeedTest
     {
         rambuf_data = rambuf_map.get_ptr<float>();
         mmap_buf = mmap(NULL, 16384*4, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+        memset(mmap_buf, 0, 16384*4);
         data_zeros.fill(0);
     }
 
-    // Return zeros (does not perform FPGA memory access)
-    std::array<float, 2*WFM_SIZE>& read_zeros() {
+    // Return zeros
+    const auto& read_zeros() {
         return data_zeros;
     }
 
     // Read data in RAM buffer
-    std::array<float, 2*WFM_SIZE>& read_rambuf() {
-        auto p = reinterpret_cast<std::array<float, 2*WFM_SIZE>*>(rambuf_data);
-        return *p;
+    const auto& read_rambuf() {
+        return rambuf_map.read_array<float, buff_size>();
     }
 
     // Read data in RAM buffer (with copy)
-    std::array<float, 2*WFM_SIZE>& read_rambuf_memcpy() {
-        memcpy((unsigned char*)rambuf_copy.data(), (unsigned char*)rambuf_data, 2*WFM_SIZE*sizeof(float));
+    const auto& read_rambuf_memcpy() {
+        memcpy((unsigned char*)rambuf_copy.data(), (unsigned char*)rambuf_data, buff_size * sizeof(float));
+        return rambuf_copy;
+    }
+
+    // Read data in RAM buffer (with copy)
+    const auto& read_rambuf_std_copy() {
+        std::copy(rambuf_data, rambuf_data + buff_size, rambuf_copy.begin());
         return rambuf_copy;
     }
 
     // Read data in RAM buffer (with optimized copy)
-    std::array<float, 2*WFM_SIZE>& read_rambuf_mycopy() {
-        mycopy((unsigned char*)rambuf_copy.data(), (unsigned char*)rambuf_data, 2*WFM_SIZE*sizeof(float));
+    const auto& read_rambuf_mycopy() {
+        mycopy((unsigned char*)rambuf_copy.data(), (unsigned char*)rambuf_data, buff_size * sizeof(float));
         return rambuf_copy;
     }
 
     // Read data in RAM buffer
-    std::array<float, 2*WFM_SIZE>& read_mmapbuf_nocopy() {
-        auto p = reinterpret_cast<std::array<float, 2*WFM_SIZE>*>(mmap_buf);
+    const auto& read_mmapbuf_nocopy() {
+        const auto p = reinterpret_cast<const std::array<float, buff_size>*>(mmap_buf);
         return *p;
     }
 
     // Read data in RAM buffer
-    std::array<float, 2*WFM_SIZE>& read_rambuf_mmap_memcpy() {
-        memcpy(mmap_buf, rambuf_data, 2*WFM_SIZE*sizeof(float));
-        auto p = reinterpret_cast<std::array<float, 2*WFM_SIZE>*>(mmap_buf);
+    const auto& read_rambuf_mmap_memcpy() {
+        memcpy(mmap_buf, rambuf_data, buff_size * sizeof(float));
+        const auto p = reinterpret_cast<const std::array<float, buff_size>*>(mmap_buf);
         return *p;
     }
 
   private:
+    static constexpr size_t buff_size = 64 * 1024 / sizeof(float);
+
     Memory<mem::rambuf>& rambuf_map;
 
     void *mmap_buf;
@@ -81,8 +87,8 @@ class SpeedTest
     uint32_t *raw_data_2 = nullptr;
     float *rambuf_data = nullptr;
 
-    std::array<float, 2*WFM_SIZE> rambuf_copy;
-    std::array<float, 2*WFM_SIZE> data_zeros;
+    std::array<float, buff_size> rambuf_copy;
+    std::array<float, buff_size> data_zeros;
 };
 
 #endif // __DRIVERS_SPEED_TEST_HPP__
