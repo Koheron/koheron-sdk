@@ -14,12 +14,6 @@ import requests
 import zipfile
 import StringIO
 
-def split_parent(parent_filename):
-    if parent_filename == '<default>':
-        return 'instruments', 'default'
-    else:
-        return os.path.split(parent_filename)
-
 def get_list(instrument, prop, instrument_path='instruments', prop_list=None):
     """ Ex: Get the list of cores needed by the 'oscillo' instrument.
     list = get_list('oscillo', 'cores')
@@ -28,7 +22,7 @@ def get_list(instrument, prop, instrument_path='instruments', prop_list=None):
        prop_list = []
     config = load_config(os.path.join(instrument_path, instrument))
     if 'parent' in config and config['parent'] != None:
-        instrum_path, instrum_name = split_parent(config['parent'])
+        instrum_path, instrum_name = os.path.split(config['parent'])
         prop_list.extend(get_list(instrum_name, prop, instrum_path, prop_list))
     if prop in config:
         prop_list.extend(config[prop])
@@ -40,7 +34,7 @@ def get_prop(instrument, prop, instrument_path='instruments'):
     config = load_config(os.path.join(instrument_path, instrument))
     if not prop in config:
         if 'parent' in config:
-            instrum_path, instrum_name = split_parent(config['parent'])
+            instrum_path, instrum_name = os.path.split(config['parent'])
             config[prop] = get_prop(instrum_name, prop, instrum_path)
         else:
             return None

@@ -1,6 +1,6 @@
 ---
 instrument: test_context
-parent: default
+parent: instruments/default
 board: red-pitaya
 
 cores:
