@@ -1,6 +1,6 @@
 ---
 instrument: laser_controller
-parent: default
+parent: instruments/default
 board: red-pitaya
 
 cores:
@@ -51,5 +51,5 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - drivers/xadc/xadc.hpp
+    - drivers/xadc.hpp
     - instruments/laser_controller/laser.hpp

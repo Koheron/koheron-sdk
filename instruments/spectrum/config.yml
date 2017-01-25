@@ -1,7 +1,7 @@
 ---
 instrument: spectrum
 board: red-pitaya
-parent: oscillo
+parent: instruments/oscillo
 
 # ------------------------------------------------------------
 # Memory
@@ -98,12 +98,11 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - drivers/gpio/gpio.hpp
-    - drivers/xadc/xadc.hpp
-    - drivers/laser/laser.hpp
+    - drivers/gpio.hpp
+    - drivers/xadc.hpp
+    - instruments/oscillo/drivers/laser/laser.hpp
     - instruments/spectrum/spectrum.hpp
-    - drivers/eeprom/eeprom.hpp
-    - drivers/test_memory/test_memory.hpp
+    - instruments/oscillo/drivers/eeprom/eeprom.hpp
 
 # ------------------------------------------------------------
 # Misc

@@ -1,6 +1,6 @@
 ---
 instrument: led_blinker
-parent: default
+parent: instruments/default
 board: red-pitaya
 
 cores:

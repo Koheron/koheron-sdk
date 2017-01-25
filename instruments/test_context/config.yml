@@ -1,13 +1,11 @@
 ---
-instrument: adc_dac
+instrument: test_context
 parent: instruments/default
 board: red-pitaya
 
 cores:
   - axi_cfg_register_v1_0
   - axi_sts_register_v1_0
-  - redp_adc_v1_0
-  - redp_dac_v1_0
 
 memory:
   - name: config
@@ -16,24 +14,21 @@ memory:
   - name: status
     offset: '0x50000000'
     range: 4K
+  - name: rambuf
+    offset: '0x1E000000'
+    range: 8M
 
 config_registers:
   - led
-  - dac[n_dac]
 
 status_registers:
-  - adc[n_adc]
+  - forty_two
 
 parameters:
-  fclk0: 200000000
-  dac_width: 14
-  adc_width: 14
-  n_dac: 2
-  n_adc: 2
+  fclk0: 50000000 # FPGA clock speed in Hz
 
 xdc:
-  - boards/red-pitaya/config/ports.xdc
-  - boards/red-pitaya/config/clocks.xdc
+  - instruments/led_blinker/constraints.xdc
 
 # Drivers
 
@@ -43,4 +38,6 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - instruments/adc_dac/adc_dac.hpp
+    - instruments/test_context/test_memory.hpp
+    - instruments/test_context/test_spi.hpp
+    - instruments/test_context/speed_test.hpp

@@ -1,14 +1,14 @@
 /// Interface for remote SPI control and prototyping
 
-#ifndef __DRIVERS_SPI_I2C_TESTS_SPI_HPP__
-#define __DRIVERS_SPI_I2C_TESTS_SPI_HPP__
+#ifndef __TEST_CONTEST_SPI_HPP__
+#define __TEST_CONTEST_SPI_HPP__
 
 #include <context.hpp>
 
-class Spi
+class TestSpi
 {
   public:
-    Spi(Context& ctx)
+    TestSpi(Context& ctx)
     : spi(ctx.spi.get("spidev2.0"))
     {
         if (! spi.is_ok()) {
@@ -48,4 +48,4 @@ class Spi
     std::array<uint8_t, 64> buffer2;
 };
 
-#endif // __DRIVERS_SPI_I2C_TESTS_SPI_HPP__
+#endif // __TEST_CONTEST_SPI_HPP__

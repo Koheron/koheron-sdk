@@ -25,9 +25,9 @@ BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) $(INSTRUMENT_PATH) && c
 CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).cores)
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).xdc)
-DRIVERS_LIB=$(wildcard drivers/lib/*hpp) $(wildcard drivers/lib/*cpp)
+DRIVERS_LIB=$(wildcard drivers/context/*hpp) $(wildcard drivers/context/*cpp)
 MEMORY_HPP=$(TCP_SERVER_BUILD)/memory.hpp
-CONTEXT_HPP_SRC=drivers/lib/context.hpp
+CONTEXT_HPP_SRC=drivers/context/context.hpp
 CONTEXT_HPP_DEST=$(TCP_SERVER_BUILD)/context.hpp
 
 PART:=`cat boards/$(BOARD)/PART`
@@ -81,7 +81,7 @@ PYTHON=$(TCP_SERVER_VENV)/bin/python
 # Instrument
 
 INSTRUMENT_SHA_FILE = $(TMP)/$(NAME).version
-INSTRUMENT_SHA = $(shell (git rev-parse --short HEAD))
+INSTRUMENT_SHA = $(shell cd $(INSTRUMENT_PATH)/$(NAME) && (git rev-parse --short HEAD))
 
 START_SH = $(TMP)/$(NAME).start.sh
 INSTRUMENT_ZIP = $(TMP)/$(NAME)-$(INSTRUMENT_SHA).zip
@@ -158,18 +158,7 @@ run: $(INSTRUMENT_ZIP)
 # Tests
 ###############################################################################
 
-.PHONY: test_module test_core test_driver_% test test_app
-
-test_module: $(CONFIG_TCL) fpga/modules/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
-	vivado -source fpga/scripts/test_module.tcl -tclargs $(NAME) $(INSTRUMENT_PATH) $(PART)
-
-test_core: fpga/cores/$(CORE)/core_config.tcl fpga/cores/$(CORE)/*.v
-	vivado -source fpga/scripts/test_core.tcl -tclargs $(CORE) $(PART)
-
-build_core: $(TMP)/cores/$(CORE)
-
-test_driver_%: drivers/%/test.py
-	py.test -v $<
+.PHONY: test test_app
 
 test: $(INSTRUMENT_PATH)/$(NAME)/test.py
 	HOST=$(HOST) python $<
@@ -193,6 +182,8 @@ $(BITSTREAM_ID_FILE):
 # FPGA
 ###############################################################################
 
+.PHONY: build_core test_module test_core
+
 $(CONFIG_TCL): $(MAKE_PY) $(CONFIG_YML) $(BITSTREAM_ID_FILE) $(TEMPLATE_DIR)/config.tcl
 	python $(MAKE_PY) --config_tcl $(NAME) $(INSTRUMENT_PATH)
 	@echo [$@] OK
@@ -211,6 +202,14 @@ $(TMP)/$(NAME).bit: $(TMP)/$(NAME).xpr
 	mkdir -p $(@D)
 	$(VIVADO) -source fpga/scripts/bitstream.tcl -tclargs $(NAME)
 	@echo [$@] OK
+
+build_core: $(TMP)/cores/$(CORE)
+
+test_module: $(CONFIG_TCL) fpga/modules/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+	vivado -source fpga/scripts/test_module.tcl -tclargs $(NAME) $(INSTRUMENT_PATH) $(PART)
+
+test_core: fpga/cores/$(CORE)/core_config.tcl fpga/cores/$(CORE)/*.v
+	vivado -source fpga/scripts/test_core.tcl -tclargs $(CORE) $(PART)
 
 ###############################################################################
 # First-stage boot loader

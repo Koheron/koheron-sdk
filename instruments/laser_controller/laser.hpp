@@ -6,7 +6,7 @@
 #define __DRIVERS_LASER_CONTROLLER_HPP__
 
 #include <context.hpp>
-#include <drivers/xadc/xadc.hpp>
+#include <drivers/xadc.hpp>
 
 // XADC channels
 #define LASER_POWER_CHANNEL   1
