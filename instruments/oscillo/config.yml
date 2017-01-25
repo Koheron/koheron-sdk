@@ -100,7 +100,6 @@ server:
     - instruments/oscillo/drivers/oscillo.hpp
     - instruments/oscillo/drivers/speed_test.hpp
     - instruments/oscillo/drivers/eeprom/eeprom.hpp
-    - drivers/spi_i2c_tests/spi.hpp
 
 # ------------------------------------------------------------
 # Misc
