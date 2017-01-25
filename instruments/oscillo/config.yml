@@ -95,11 +95,11 @@ server:
 
   drivers:
     - drivers/gpio/gpio.hpp
-    - drivers/xadc/xadc.hpp
-    - drivers/laser/laser.hpp
+    - drivers/xadc.hpp
+    - instruments/oscillo/drivers/laser/laser.hpp
     - instruments/oscillo/drivers/oscillo.hpp
     - instruments/oscillo/drivers/speed_test.hpp
-    - drivers/eeprom/eeprom.hpp
+    - instruments/oscillo/drivers/eeprom/eeprom.hpp
     - drivers/spi_i2c_tests/spi.hpp
     - drivers/test_memory/test_memory.hpp
 

@@ -16,7 +16,7 @@ extern "C" {
 }
 
 #include <context.hpp>
-#include <drivers/init/init.hpp>
+#include <drivers/init.hpp>
 
 class Common
 {

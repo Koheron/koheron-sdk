@@ -8,9 +8,9 @@
 #include <tuple>
 
 #include <context.hpp>
-#include <drivers/xadc/xadc.hpp>
+#include <drivers/xadc.hpp>
 #include <drivers/gpio/gpio.hpp>
-#include <drivers/eeprom/eeprom.hpp>
+#include "../eeprom/eeprom.hpp"
 
 #include <thread>
 #include <chrono>
@@ -46,7 +46,14 @@ class Laser
         reset();
     }
 
-    void reset();
+    void reset() {
+        xadc.set_channel(LASER_POWER_CHANNEL, LASER_CURRENT_CHANNEL);
+        xadc.enable_averaging();
+        xadc.set_averaging(256);
+        gpio.set_as_output(LASER_ENABLE_PIN, 2);
+        stop_laser();
+        set_laser_current(0.0);
+    }
 
     uint32_t get_laser_current() {return xadc.read(LASER_CURRENT_CHANNEL);}
     uint32_t get_laser_power()   {return xadc.read(LASER_POWER_CHANNEL);}
@@ -65,9 +72,13 @@ class Laser
     void start_laser() {gpio.clear_bit(LASER_ENABLE_PIN, 2); laser_on = true;}
     void stop_laser()  {gpio.set_bit(LASER_ENABLE_PIN, 2); laser_on = false;}
 
-    void set_laser_current(float current);
+    void set_laser_current(float current) {
+        // Current in mA
+        float current_;
+        current > MAX_LASER_CURRENT ? current_ = MAX_LASER_CURRENT : current_ = current;
+        cfg.write<reg::pwm3>(uint32_t(current_ * current_to_pwm));
+    }
 
-    uint32_t pwm_from_current(float current) {return uint32_t(current * current_to_pwm);}
     float current_from_pwm(uint32_t pwm)     {return pwm * pwm_to_current;}
 
     bool is_laser_present() {
