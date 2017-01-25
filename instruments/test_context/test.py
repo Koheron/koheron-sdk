@@ -3,8 +3,8 @@ import os
 from koheron import connect
 from test_memory import TestMemory
 
-host = os.getenv('HOST','192.168.1.100')
-instrument = os.getenv('NAME','')
+host = os.getenv('HOST', '192.168.1.100')
+instrument = os.getenv('NAME', 'test_context')
 client = connect(host, name=instrument)
 test_memory = TestMemory(client)
 

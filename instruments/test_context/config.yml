@@ -1,0 +1,41 @@
+---
+instrument: test_context
+parent: default
+board: red-pitaya
+
+cores:
+  - axi_cfg_register_v1_0
+  - axi_sts_register_v1_0
+
+memory:
+  - name: config
+    offset: '0x60000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+  - name: rambuf
+    offset: '0x1E000000'
+    range: 8M
+
+config_registers:
+  - led
+
+status_registers:
+  - forty_two
+
+parameters:
+  fclk0: 50000000 # FPGA clock speed in Hz
+
+xdc:
+  - instruments/led_blinker/constraints.xdc
+
+# Drivers
+
+server:
+  includes:
+    - instruments/default/server.yml
+    - instruments/default/drivers.yml
+
+  drivers:
+    - instruments/test_context/test_memory.hpp
