@@ -98,7 +98,7 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - drivers/gpio/gpio.hpp
+    - drivers/gpio.hpp
     - drivers/xadc.hpp
     - instruments/oscillo/drivers/laser/laser.hpp
     - instruments/spectrum/spectrum.hpp

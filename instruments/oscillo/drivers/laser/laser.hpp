@@ -9,7 +9,7 @@
 
 #include <context.hpp>
 #include <drivers/xadc.hpp>
-#include <drivers/gpio/gpio.hpp>
+#include <drivers/gpio.hpp>
 #include "../eeprom/eeprom.hpp"
 
 #include <thread>
