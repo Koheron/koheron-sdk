@@ -4,14 +4,13 @@
 
 #include <dirent.h>
 
-#include <context.hpp>
 #include <core/syslog.tpp> // FIXME Not very nice ...
 
 // ---------------------------------------------------------------------
 // SpiDev
 // ---------------------------------------------------------------------
 
-SpiDev::SpiDev(Context& ctx_, std::string devname_)
+SpiDev::SpiDev(ContextBase& ctx_, std::string devname_)
 : ctx(ctx_)
 , devname(devname_)
 {}
@@ -135,7 +134,7 @@ int SpiDev::recv(uint8_t *buffer, size_t n_bytes)
 // SpiManager
 // ---------------------------------------------------------------------
 
-SpiManager::SpiManager(Context& ctx_)
+SpiManager::SpiManager(ContextBase& ctx_)
 : ctx(ctx_)
 , empty_spidev(ctx, "")
 {}

@@ -21,13 +21,13 @@
 #include <vector>
 #include <array>
 
-class Context;
+#include <core/context_base.hpp>
 
 // https://www.kernel.org/doc/Documentation/spi/spidev
 class SpiDev
 {
   public:
-    SpiDev(Context& ctx_, std::string devname_);
+    SpiDev(ContextBase& ctx_, std::string devname_);
 
     ~SpiDev() {
         if (fd >= 0)
@@ -68,7 +68,7 @@ class SpiDev
     }
 
   private:
-    Context& ctx;
+    ContextBase& ctx;
     std::string devname;
 
     uint8_t mode = SPI_MODE_0;
@@ -82,7 +82,7 @@ class SpiDev
 class SpiManager
 {
   public:
-    SpiManager(Context& ctx_);
+    SpiManager(ContextBase& ctx_);
 
     int init();
 
@@ -94,7 +94,7 @@ class SpiManager
                 uint8_t word_length = 8);
 
   private:
-    Context& ctx;
+    ContextBase& ctx;
     std::unordered_map<std::string, std::unique_ptr<SpiDev>> spi_devices;
     SpiDev empty_spidev;
 };
