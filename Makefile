@@ -81,7 +81,7 @@ PYTHON=$(TCP_SERVER_VENV)/bin/python
 # Instrument
 
 INSTRUMENT_SHA_FILE = $(TMP)/$(NAME).version
-INSTRUMENT_SHA = $(shell (git rev-parse --short HEAD))
+INSTRUMENT_SHA = $(shell cd $(INSTRUMENT_PATH) && (git rev-parse --short HEAD))
 
 START_SH = $(TMP)/$(NAME).start.sh
 INSTRUMENT_ZIP = $(TMP)/$(NAME)-$(INSTRUMENT_SHA).zip
