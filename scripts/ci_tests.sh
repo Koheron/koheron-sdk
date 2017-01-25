@@ -13,7 +13,7 @@ done
 
 # Test instrument drivers
 
-for instrument in led_blinker adc_dac laser_controller pulse_generator oscillo spectrum
+for instrument in led_blinker adc_dac laser_controller pulse_generator oscillo spectrum test_context
 do
     make NAME=$instrument server
 done
