@@ -73,7 +73,7 @@ cores:
   - fpga/cores/redp_dac_v1_0
   - fpga/cores/pdm_v1_0
   - fpga/cores/bus_multiplexer_v1_0
-  - fpga/cores/at93c46d_spi_v1_0
+  - instruments/oscillo/at93c46d_spi_v1_0
   - fpga/cores/latched_mux_v1_0
 
 xdc:
