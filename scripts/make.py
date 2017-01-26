@@ -5,7 +5,6 @@ import os
 import jinja2
 import yaml
 import sys
-import shutil
 import time
 import socket
 import getpass
@@ -22,7 +21,7 @@ def get_parent_path(parent_filename):
 
 def get_list(prop, instrument_path, prop_list=None):
     ''' Ex: Get the list of cores needed by the 'oscillo' instrument.
-    list = get_list('oscillo', 'cores')
+    list = get_list('cores', 'instruments/oscillo')
     '''
     if prop_list is None: 
        prop_list = []
@@ -290,7 +289,7 @@ if __name__ == "__main__":
         version = sys.argv[3]
         s3_url = sys.argv[4]
         config = get_config(sys.argv[2])
-        zip_url = s3_url + '/' + version + '-' + config['live_zip']
+        zip_url = '{}/{}-{}'.format(s3_url, version, config['live_zip'])
         r = requests.get(zip_url, stream=True)
         z = zipfile.ZipFile(StringIO.StringIO(r.content))
         z.extractall('tmp/%s.live' % config['instrument'])

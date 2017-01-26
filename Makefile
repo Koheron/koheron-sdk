@@ -2,9 +2,14 @@
 # Build and run the instrument: $ make NAME=spectrum HOST=192.168.1.12 run
 ###############################################################################
 
-NAME = led_blinker
+# NAME = led_blinker
 HOST = 192.168.1.100
-INSTRUMENT_PATH = instruments/$(NAME)
+
+# Instrument path
+IPATH = instruments/$(NAME)
+
+# Instrument name is the last folder of IPATH
+NAME = $(shell echo $(IPATH) | sed 's,^\(.*/\)\?\([^/]*\),\2,')
 
 ###############################################################################
 # Get the instrument configuration
@@ -20,11 +25,11 @@ TMP = tmp
 TCP_SERVER_BUILD=$(TMP)/$(NAME).server.build
 
 # properties defined in CONFIG_YML :
-DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(INSTRUMENT_PATH))
-BOARD:=$(shell set -e; python $(MAKE_PY) --board $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).board)
-CORES:=$(shell set -e; python $(MAKE_PY) --cores $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).cores)
-DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).drivers)
-XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).xdc)
+DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(IPATH))
+BOARD:=$(shell set -e; python $(MAKE_PY) --board $(IPATH) && cat $(TMP)/$(NAME).board)
+CORES:=$(shell set -e; python $(MAKE_PY) --cores $(IPATH) && cat $(TMP)/$(NAME).cores)
+DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(IPATH) && cat $(TMP)/$(NAME).drivers)
+XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(IPATH) && cat $(TMP)/$(NAME).xdc)
 DRIVERS_LIB=$(wildcard drivers/context/*hpp) $(wildcard drivers/context/*cpp)
 MEMORY_HPP=$(TCP_SERVER_BUILD)/memory.hpp
 CONTEXT_HPP_SRC=drivers/context/context.hpp
@@ -81,7 +86,7 @@ PYTHON=$(TCP_SERVER_VENV)/bin/python
 # Instrument
 
 INSTRUMENT_SHA_FILE = $(TMP)/$(NAME).version
-INSTRUMENT_SHA = $(shell cd $(INSTRUMENT_PATH) && (git rev-parse --short HEAD))
+INSTRUMENT_SHA = $(shell cd $(IPATH) && (git rev-parse --short HEAD))
 
 START_SH = $(TMP)/$(NAME).start.sh
 INSTRUMENT_ZIP = $(TMP)/$(NAME)-$(INSTRUMENT_SHA).zip
@@ -117,7 +122,8 @@ all: $(INSTRUMENT_ZIP)
 linux: $(INSTRUMENT_ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv
 
 debug:
-	@echo INSTRUMENT DIRECTORY = $(INSTRUMENT_PATH)
+	@echo NAME = $(NAME)
+	@echo INSTRUMENT DIRECTORY = $(IPATH)
 	@echo CORES = $(CORES)
 	@echo DRIVERS = $(DRIVERS)
 	@echo DRIVERS_LIB = $(DRIVERS_LIB)
@@ -143,8 +149,8 @@ help:
 	@echo ' - test   Test the instrument'
 
 # Run Vivado interactively and build block design
-bd: $(CONFIG_TCL) $(XDC) $(INSTRUMENT_PATH)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
-	vivado -nolog -nojournal -source fpga/scripts/block_design.tcl -tclargs $(NAME) $(INSTRUMENT_PATH) $(PART) $(BOARD) block_design_
+bd: $(CONFIG_TCL) $(XDC) $(IPATH)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+	vivado -nolog -nojournal -source fpga/scripts/block_design.tcl -tclargs $(NAME) $(IPATH) $(PART) $(BOARD) block_design_
 
 server: $(TCP_SERVER)
 xpr: $(TMP)/$(NAME).xpr
@@ -175,7 +181,7 @@ $(BITSTREAM_ID_FILE):
 .PHONY: build_core test_module test_core
 
 $(CONFIG_TCL): $(MAKE_PY) $(CONFIG_YML) $(BITSTREAM_ID_FILE) $(TEMPLATE_DIR)/config.tcl
-	python $(MAKE_PY) --config_tcl $(INSTRUMENT_PATH)
+	python $(MAKE_PY) --config_tcl $(IPATH)
 	@echo [$@] OK
 
 $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
@@ -183,9 +189,9 @@ $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
 	$(VIVADO) -source fpga/scripts/core.tcl -tclargs $* $(PART)
 	@echo [$@] OK
 
-$(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(INSTRUMENT_PATH)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(IPATH)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
-	$(VIVADO) -source fpga/scripts/project.tcl -tclargs $(NAME) $(INSTRUMENT_PATH) $(PART) $(BOARD)
+	$(VIVADO) -source fpga/scripts/project.tcl -tclargs $(NAME) $(IPATH) $(PART) $(BOARD)
 	@echo [$@] OK
 
 $(TMP)/$(NAME).bit: $(TMP)/$(NAME).xpr
@@ -195,8 +201,8 @@ $(TMP)/$(NAME).bit: $(TMP)/$(NAME).xpr
 
 build_core: $(TMP)/cores/$(CORE)
 
-test_module: $(CONFIG_TCL) fpga/modules/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
-	vivado -source fpga/scripts/test_module.tcl -tclargs $(NAME) $(INSTRUMENT_PATH) $(PART)
+test_module: $(CONFIG_TCL) $(IPATH)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+	vivado -source fpga/scripts/test_module.tcl -tclargs $(NAME) $(IPATH) $(PART)
 
 test_core: fpga/cores/$(CORE)/core_config.tcl fpga/cores/$(CORE)/*.v
 	vivado -source fpga/scripts/test_core.tcl -tclargs $(CORE) $(PART)
@@ -316,7 +322,7 @@ $(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
 	test -d $(TCP_SERVER_VENV) || (virtualenv $(TCP_SERVER_VENV) && $(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt)
 
 $(MEMORY_HPP): $(CONFIG_YML)
-	python $(MAKE_PY) --middleware $(INSTRUMENT_PATH)
+	python $(MAKE_PY) --middleware $(IPATH)
 
 $(CONTEXT_HPP_DEST): $(CONTEXT_HPP_SRC)
 	cp $< $@
@@ -332,11 +338,11 @@ $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(DRIVERS_YML) $(DRIVERS) \
 ###############################################################################
 
 $(START_SH): $(MAKE_PY) $(CONFIG_YML) $(TEMPLATE_DIR)/start.sh
-	python $(MAKE_PY) --start_sh $(INSTRUMENT_PATH)
+	python $(MAKE_PY) --start_sh $(IPATH)
 	@echo [$@] OK
 
 $(LIVE_DIR): $(TMP) $(CONFIG_YML)
-	python $(MAKE_PY) --live_zip $(INSTRUMENT_PATH) $(WEB_APP_VERSION) $(WEB_APP_URL)
+	python $(MAKE_PY) --live_zip $(IPATH) $(WEB_APP_VERSION) $(WEB_APP_URL)
 	@echo [$@] OK
 
 $(INSTRUMENT_ZIP): $(TCP_SERVER) $(INSTRUMENT_SHA_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
