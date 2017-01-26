@@ -238,35 +238,35 @@ if __name__ == "__main__":
             test_core_consistency(instrument)
 
     elif cmd == '--split_config_yml':
-        cfg = load_config(sys.argv[3])
+        cfg = load_config(sys.argv[2])
         dump_if_has_changed(os.path.join('tmp', cfg['instrument'] + '.drivers.yml'), cfg.get('server'))
 
         cfg.pop('server', None)
         dump_if_has_changed(os.path.join('tmp', cfg['instrument'] + '.config.yml'), cfg)
 
     elif cmd == '--config_tcl':
-        config = get_config(sys.argv[3])
+        config = get_config(sys.argv[2])
         assert('sha0' in config['parameters'])
         fill_config_tcl(config)
 
     elif cmd == '--start_sh':
-        fill_start_sh(get_config(sys.argv[3]))
+        fill_start_sh(get_config(sys.argv[2]))
 
     elif cmd == '--cores':
-        config = get_config(sys.argv[3])
+        config = get_config(sys.argv[2])
         cores_filename = os.path.join('tmp', config['instrument'] + '.cores')
         with open(cores_filename, 'w') as f:
             f.write(' '.join(config['cores']))
 
     elif cmd == '--board':
-        config = get_config(sys.argv[3])
+        config = get_config(sys.argv[2])
         board_filename = os.path.join('tmp', config['instrument'] + '.board')
         with open(board_filename, 'w') as f:
             f.write(config['board'])
 
     elif cmd == '--drivers':
-        instrument = sys.argv[2]
-        drivers_filename = os.path.join(sys.argv[3], 'config.yml')
+        cfg = load_config(sys.argv[2])
+        drivers_filename = os.path.join(sys.argv[2], 'config.yml')
 
         with open(drivers_filename) as drivers_file:
             drivers_dict = yaml.load(drivers_file) or {}
@@ -277,26 +277,26 @@ if __name__ == "__main__":
                 for key, value in yaml.load(include_file).iteritems():
                     drivers.get(key, []).extend(value)
 
-        with open(os.path.join('tmp', instrument + '.drivers'), 'w') as f:
+        with open(os.path.join('tmp', cfg['instrument'] + '.drivers'), 'w') as f:
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
 
     elif cmd == '--xdc':
-        config = get_config(sys.argv[3])
+        config = get_config(sys.argv[2])
         xdc_filename = os.path.join('tmp', config['instrument'] + '.xdc')
         with open(xdc_filename, 'w') as f:
             f.write(' '.join(config['xdc']))
 
     elif cmd == '--live_zip':
-        version = sys.argv[4]
-        s3_url = sys.argv[5]
-        config = get_config(sys.argv[3])
+        version = sys.argv[3]
+        s3_url = sys.argv[4]
+        config = get_config(sys.argv[2])
         zip_url = s3_url + '/' + version + '-' + config['live_zip']
         r = requests.get(zip_url, stream=True)
         z = zipfile.ZipFile(StringIO.StringIO(r.content))
         z.extractall('tmp/%s.live' % config['instrument'])
 
     elif cmd == '--middleware':
-        config = get_config(sys.argv[3])
+        config = get_config(sys.argv[2])
         dest =  'tmp/' + config['instrument'] + '.server.build'
         if not os.path.exists(dest):
             os.makedirs(dest)
@@ -306,7 +306,7 @@ if __name__ == "__main__":
 
     elif cmd == '--metadata':
         metadata = {
-          'version': sys.argv[3],
+          'version': sys.argv[2],
           'date': time.strftime("%d/%m/%Y"),
           'time': time.strftime("%H:%M:%S"),
           'machine': socket.gethostname(),

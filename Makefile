@@ -20,11 +20,11 @@ TMP = tmp
 TCP_SERVER_BUILD=$(TMP)/$(NAME).server.build
 
 # properties defined in CONFIG_YML :
-DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(NAME) $(INSTRUMENT_PATH))
-BOARD:=$(shell set -e; python $(MAKE_PY) --board $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).board)
-CORES:=$(shell set -e; python $(MAKE_PY) --cores $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).cores)
-DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).drivers)
-XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(NAME) $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).xdc)
+DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(INSTRUMENT_PATH))
+BOARD:=$(shell set -e; python $(MAKE_PY) --board $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).board)
+CORES:=$(shell set -e; python $(MAKE_PY) --cores $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).cores)
+DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).drivers)
+XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(INSTRUMENT_PATH) && cat $(TMP)/$(NAME).xdc)
 DRIVERS_LIB=$(wildcard drivers/context/*hpp) $(wildcard drivers/context/*cpp)
 MEMORY_HPP=$(TCP_SERVER_BUILD)/memory.hpp
 CONTEXT_HPP_SRC=drivers/context/context.hpp
@@ -187,7 +187,7 @@ $(BITSTREAM_ID_FILE):
 .PHONY: build_core test_module test_core
 
 $(CONFIG_TCL): $(MAKE_PY) $(CONFIG_YML) $(BITSTREAM_ID_FILE) $(TEMPLATE_DIR)/config.tcl
-	python $(MAKE_PY) --config_tcl $(NAME) $(INSTRUMENT_PATH)
+	python $(MAKE_PY) --config_tcl $(INSTRUMENT_PATH)
 	@echo [$@] OK
 
 $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
@@ -328,7 +328,7 @@ $(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
 	test -d $(TCP_SERVER_VENV) || (virtualenv $(TCP_SERVER_VENV) && $(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt)
 
 $(MEMORY_HPP): $(CONFIG_YML)
-	python $(MAKE_PY) --middleware $(NAME) $(INSTRUMENT_PATH)
+	python $(MAKE_PY) --middleware $(INSTRUMENT_PATH)
 
 $(CONTEXT_HPP_DEST): $(CONTEXT_HPP_SRC)
 	cp $< $@
@@ -344,11 +344,11 @@ $(TCP_SERVER): $(MAKE_PY) $(TCP_SERVER_VENV) $(DRIVERS_YML) $(DRIVERS) \
 ###############################################################################
 
 $(START_SH): $(MAKE_PY) $(CONFIG_YML) $(TEMPLATE_DIR)/start.sh
-	python $(MAKE_PY) --start_sh $(NAME) $(INSTRUMENT_PATH)
+	python $(MAKE_PY) --start_sh $(INSTRUMENT_PATH)
 	@echo [$@] OK
 
 $(LIVE_DIR): $(TMP) $(CONFIG_YML)
-	python $(MAKE_PY) --live_zip $(NAME) $(INSTRUMENT_PATH) $(WEB_APP_VERSION) $(WEB_APP_URL)
+	python $(MAKE_PY) --live_zip $(INSTRUMENT_PATH) $(WEB_APP_VERSION) $(WEB_APP_URL)
 	@echo [$@] OK
 
 $(INSTRUMENT_ZIP): $(TCP_SERVER) $(INSTRUMENT_SHA_FILE) $(PYTHON_DIR) $(TMP)/$(NAME).bit $(START_SH) $(LIVE_DIR)
@@ -362,7 +362,7 @@ $(INSTRUMENT_ZIP): $(TCP_SERVER) $(INSTRUMENT_SHA_FILE) $(PYTHON_DIR) $(TMP)/$(N
 .PHONY: http_api_sync http_api_sync_ssh
 
 $(METADATA): $(MAKE_PY) $(INSTRUMENT_SHA_FILE)
-	python $(MAKE_PY) --metadata $(NAME) $(INSTRUMENT_SHA)
+	python $(MAKE_PY) --metadata $(INSTRUMENT_SHA)
 	@echo [$@] OK
 
 $(HTTP_API_DIR): $(HTTP_API_SRC) $(METADATA)
