@@ -2,14 +2,18 @@
 # Build and run the instrument: $ make NAME=spectrum HOST=192.168.1.12 run
 ###############################################################################
 
-# NAME = led_blinker
 HOST = 192.168.1.100
 
-# Instrument path
-IPATH = instruments/$(NAME)
+ifeq ($(NAME),)
+NAME = led_blinker
+endif
 
+ifeq ($(IPATH),)
+IPATH = instruments/$(NAME)
+else
 # Instrument name is the last folder of IPATH
 NAME = $(shell echo $(patsubst %/,%,$(IPATH)) | sed 's,^\(.*/\)\?\([^/]*\),\2,')
+endif
 
 ###############################################################################
 # Get the instrument configuration
