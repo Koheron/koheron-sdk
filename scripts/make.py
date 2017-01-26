@@ -116,7 +116,7 @@ def get_config(instrument_path):
 
     # Modules
     for module in cfg['modules']:
-        module_cfg = get_config(module, 'fpga/modules')
+        module_cfg = get_config(os.path.join('fpga/modules', module))
         cfg['cores'].extend(module_cfg['cores'])
         cfg['cores'] = list(set(cfg['cores']))
     
@@ -153,7 +153,7 @@ def fill_template(config, template_filename, output_filename):
         output.write(template.render(dic=config))
 
 def fill_config_tcl(config):
-    output_filename = os.path.join('tmp', config['instrument']+'.config.tcl')
+    output_filename = os.path.join('tmp', config['instrument'] + '.config.tcl')
     fill_template(config, 'config.tcl', output_filename)
 
 def fill_memory(config, drivers_dir):
@@ -161,7 +161,7 @@ def fill_memory(config, drivers_dir):
     fill_template(config, 'memory.hpp', output_filename)
 
 def fill_start_sh(config):
-    output_filename = os.path.join('tmp', config['instrument']+'.start.sh')
+    output_filename = os.path.join('tmp', config['instrument'] + '.start.sh')
     fill_template(config, 'start.sh', output_filename)
 
 def get_renderer():
@@ -178,7 +178,7 @@ def get_renderer():
         toks = filename.split('.')
         return toks[0]
     def replace_KMG(string):
-        return string.replace('K','*1024').replace('M','*1024*1024').replace('G','*1024*1024*1024')
+        return string.replace('K', '*1024').replace('M', '*1024*1024').replace('G', '*1024*1024*1024')
     renderer.filters['quote'] = quote
     renderer.filters['remove_extension'] = remove_extension
     renderer.filters['replace_KMG'] = replace_KMG
@@ -193,11 +193,11 @@ def get_renderer():
 strip_num = lambda string:''.join([char for char in string if char not in "0123456789"])
 
 def test_module_consistency(instrument):
-    """ Check that the modules registers are defined in the instrument config.yml."""
+    ''' Check that the modules registers are defined in the instrument config.yml '''
     cfg = get_config(instrument)
     props = ['config_registers', 'status_registers']
     for module in cfg['modules']:
-        module_cfg = get_config(module, 'fpga/modules')
+        module_cfg = get_config(os.path.join('fpga/modules', module))
         for prop in props:
             a = module_cfg[prop]
             a = a if a is not None else []
@@ -205,10 +205,10 @@ def test_module_consistency(instrument):
             assert set(a).issubset(b)
 
 def test_core_consistency(instrument):
-    """ Check that the modules cores are defined in the instrument config.yml."""
+    ''' Check that the modules cores are defined in the instrument config.yml '''
     cfg = get_config(instrument)
     for module in cfg['modules']:
-        module_cfg = get_config(module, 'fpga/modules')
+        module_cfg = get_config(os.path.join('fpga/modules', module))
         assert set(module_cfg['cores']).issubset(cfg['cores'])
 
 def print_config(instrument):
@@ -231,7 +231,7 @@ if __name__ == "__main__":
     sys.setdefaultencoding('utf-8')
 
     if cmd == '--test':
-        instruments = ['led_blinker', 'adc_dac', 'oscillo', 'spectrum']
+        instruments = ['instruments/led_blinker', 'instruments/adc_dac', 'instruments/oscillo', 'instruments/spectrum']
         for instrument in instruments:
             print_config(instrument)
             test_module_consistency(instrument)
