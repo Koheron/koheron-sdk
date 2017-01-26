@@ -9,7 +9,7 @@ HOST = 192.168.1.100
 IPATH = instruments/$(NAME)
 
 # Instrument name is the last folder of IPATH
-NAME = $(shell echo $(IPATH) | sed 's,^\(.*/\)\?\([^/]*\),\2,')
+NAME = $(shell echo $(patsubst %/,%,$(IPATH)) | sed 's,^\(.*/\)\?\([^/]*\),\2,')
 
 ###############################################################################
 # Get the instrument configuration
@@ -122,6 +122,7 @@ all: $(INSTRUMENT_ZIP)
 linux: $(INSTRUMENT_ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv
 
 debug:
+	@echo IPATH = $(patsubst %/,%,$(IPATH))
 	@echo NAME = $(NAME)
 	@echo INSTRUMENT DIRECTORY = $(IPATH)
 	@echo CORES = $(CORES)
