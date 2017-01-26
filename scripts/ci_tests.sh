@@ -8,7 +8,7 @@ python scripts/make.py --test
 for module in address averager peak_detector spectrum
 do
 	echo 'Test config.yml for module' $module
-	python scripts/make.py --split_config_yml $module fpga/modules/
+	python scripts/make.py --split_config_yml fpga/modules/$module
 done
 
 # Test instrument drivers

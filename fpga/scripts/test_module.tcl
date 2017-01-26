@@ -25,7 +25,7 @@ create_bd_design system
 set lib fpga/lib
 source $lib/utilities.tcl
 
-source $project_path/$project_name/block_design.tcl
+source $project_path/block_design.tcl
 
 rename cell {}
 
@@ -34,7 +34,7 @@ make_wrapper -files [get_files $bd_path/system.bd] -top
 
 add_files -norecurse $bd_path/hdl/system_wrapper.v
 
-add_files -norecurse $project_path/$project_name/test_bench.v
+add_files -norecurse $project_path/test_bench.v
 
 set_property -name {xsim.simulate.runtime} -value {100000ns} -objects [current_fileset -simset]
 

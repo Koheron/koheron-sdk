@@ -1,6 +1,5 @@
 ---
 instrument: peak_detector
-#parent: default
 board: red-pitaya
 
 config_registers:
