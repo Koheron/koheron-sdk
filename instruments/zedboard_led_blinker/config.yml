@@ -4,8 +4,8 @@ parent: default
 board: zedboard
 
 cores:
-  - axi_cfg_register_v1_0
-  - axi_sts_register_v1_0
+  - fpga/cores/axi_cfg_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
 
 memory:
   - name: config
