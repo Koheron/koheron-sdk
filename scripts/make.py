@@ -21,9 +21,9 @@ def get_parent_path(parent_filename):
         return parent_filename
 
 def get_list(prop, instrument_path, prop_list=None):
-    """ Ex: Get the list of cores needed by the 'oscillo' instrument.
+    ''' Ex: Get the list of cores needed by the 'oscillo' instrument.
     list = get_list('oscillo', 'cores')
-    """
+    '''
     if prop_list is None: 
        prop_list = []
     config = load_config(instrument_path)
@@ -45,14 +45,14 @@ def get_prop(prop, instrument_path):
     return config[prop]
 
 def load_config(instrument_dir):
-    """ Get the config dictionary from the file 'config.yml'. """
+    ''' Get the config dictionary from the file 'config.yml' '''
     config_filename = os.path.join(instrument_dir, 'config.yml')
     with open(config_filename) as config_file:
         config = yaml.load(config_file)
     return config
 
 def parse_brackets(string):
-    """ ex: 'pwm', '4' = parse_brackets('pwm[4]') """
+    ''' ex: 'pwm', '4' = parse_brackets('pwm[4]') '''
     start, end = map(lambda char : string.find(char), ('[',']'))
     if start >= 0 and end >= 0:
         return string[0:start], string[start+1:end]
@@ -60,9 +60,9 @@ def parse_brackets(string):
         return string, '1'
 
 def get_config(instrument_path):
-    """ Get the config dictionary recursively. 
-    ex: config = get_config('oscillo')
-    """
+    ''' Build the config dictionary recursively.
+    ex: config = get_config('instruments/oscillo')
+    '''
     cfg = load_config(instrument_path)
 
     # Get missing elements from ancestors
@@ -116,7 +116,7 @@ def get_config(instrument_path):
 
     # Modules
     for module in cfg['modules']:
-        module_cfg = get_config(os.path.join('fpga/modules', module))
+        module_cfg = get_config(module)
         cfg['cores'].extend(module_cfg['cores'])
         cfg['cores'] = list(set(cfg['cores']))
     
@@ -190,14 +190,14 @@ def get_renderer():
 ###################
 
 # Remove numbers from string
-strip_num = lambda string:''.join([char for char in string if char not in "0123456789"])
+strip_num = lambda string: ''.join([char for char in string if char not in '0123456789'])
 
 def test_module_consistency(instrument):
     ''' Check that the modules registers are defined in the instrument config.yml '''
     cfg = get_config(instrument)
     props = ['config_registers', 'status_registers']
     for module in cfg['modules']:
-        module_cfg = get_config(os.path.join('fpga/modules', module))
+        module_cfg = get_config(module)
         for prop in props:
             a = module_cfg[prop]
             a = a if a is not None else []
@@ -208,7 +208,7 @@ def test_core_consistency(instrument):
     ''' Check that the modules cores are defined in the instrument config.yml '''
     cfg = get_config(instrument)
     for module in cfg['modules']:
-        module_cfg = get_config(os.path.join('fpga/modules', module))
+        module_cfg = get_config(module)
         assert set(module_cfg['cores']).issubset(cfg['cores'])
 
 def print_config(instrument):

@@ -83,10 +83,10 @@ parameters:
 # ------------------------------------------------------------
 
 modules:
-  - address
-  - averager
-  - spectrum
-  - peak_detector
+  - fpga/modules/address
+  - fpga/modules/averager
+  - fpga/modules/spectrum
+  - fpga/modules/peak_detector
 
 # ------------------------------------------------------------
 # Drivers

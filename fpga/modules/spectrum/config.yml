@@ -1,6 +1,5 @@
 ---
 instrument: spectrum
-#parent: default
 board: red-pitaya
 
 config_registers:

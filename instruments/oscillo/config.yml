@@ -65,8 +65,8 @@ status_registers:
 # ------------------------------------------------------------
 
 modules:
-  - address
-  - averager
+  - fpga/modules/address
+  - fpga/modules/averager
 
 cores:
   - redp_adc_v1_0
