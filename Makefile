@@ -2,9 +2,9 @@
 # Build and run the instrument: $ make NAME=spectrum HOST=192.168.1.12 run
 ###############################################################################
 
-INSTRUMENT_PATH = instruments
 NAME = led_blinker
 HOST = 192.168.1.100
+INSTRUMENT_PATH = instruments/$(NAME)
 
 ###############################################################################
 # Get the instrument configuration
@@ -81,7 +81,7 @@ PYTHON=$(TCP_SERVER_VENV)/bin/python
 # Instrument
 
 INSTRUMENT_SHA_FILE = $(TMP)/$(NAME).version
-INSTRUMENT_SHA = $(shell cd $(INSTRUMENT_PATH)/$(NAME) && (git rev-parse --short HEAD))
+INSTRUMENT_SHA = $(shell cd $(INSTRUMENT_PATH) && (git rev-parse --short HEAD))
 
 START_SH = $(TMP)/$(NAME).start.sh
 INSTRUMENT_ZIP = $(TMP)/$(NAME)-$(INSTRUMENT_SHA).zip
@@ -117,10 +117,12 @@ all: $(INSTRUMENT_ZIP)
 linux: $(INSTRUMENT_ZIP) $(STATIC_ZIP) $(HTTP_API_ZIP) boot.bin uImage devicetree.dtb fw_printenv
 
 debug:
-	@echo INSTRUMENT DIRECTORY = $(INSTRUMENT_PATH)/$(NAME)
+	@echo INSTRUMENT DIRECTORY = $(INSTRUMENT_PATH)
 	@echo CORES = $(CORES)
 	@echo DRIVERS = $(DRIVERS)
 	@echo DRIVERS_LIB = $(DRIVERS_LIB)
+	@echo UBOOT_TAG = $(UBOOT_TAG)
+	@echo BOARD = $(BOARD)
 
 $(TMP):
 	mkdir -p $(TMP)
@@ -141,7 +143,7 @@ help:
 	@echo ' - test   Test the instrument'
 
 # Run Vivado interactively and build block design
-bd: $(CONFIG_TCL) $(XDC) $(INSTRUMENT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+bd: $(CONFIG_TCL) $(XDC) $(INSTRUMENT_PATH)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	vivado -nolog -nojournal -source fpga/scripts/block_design.tcl -tclargs $(NAME) $(INSTRUMENT_PATH) $(PART) $(BOARD) block_design_
 
 server: $(TCP_SERVER)
@@ -160,7 +162,7 @@ run: $(INSTRUMENT_ZIP)
 
 .PHONY: test test_app
 
-test: $(INSTRUMENT_PATH)/$(NAME)/test.py
+test: $(INSTRUMENT_PATH)/test.py
 	HOST=$(HOST) python $<
 
 test_app: os/tests/tests_instrument_manager.py
@@ -193,7 +195,7 @@ $(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
 	$(VIVADO) -source fpga/scripts/core.tcl -tclargs $* $(PART)
 	@echo [$@] OK
 
-$(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(INSTRUMENT_PATH)/$(NAME)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+$(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(INSTRUMENT_PATH)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
 	mkdir -p $(@D)
 	$(VIVADO) -source fpga/scripts/project.tcl -tclargs $(NAME) $(INSTRUMENT_PATH) $(PART) $(BOARD)
 	@echo [$@] OK

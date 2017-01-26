@@ -14,34 +14,32 @@ import requests
 import zipfile
 import StringIO
 
-def split_parent(parent_filename):
+def get_parent_path(parent_filename):
     if parent_filename == '<default>':
-        return 'instruments', 'default'
+        return 'instruments/default'
     else:
-        return os.path.split(parent_filename)
+        return parent_filename
 
-def get_list(instrument, prop, instrument_path='instruments', prop_list=None):
+def get_list(prop, instrument_path, prop_list=None):
     """ Ex: Get the list of cores needed by the 'oscillo' instrument.
     list = get_list('oscillo', 'cores')
     """
     if prop_list is None: 
        prop_list = []
-    config = load_config(os.path.join(instrument_path, instrument))
+    config = load_config(instrument_path)
     if 'parent' in config and config['parent'] != None:
-        instrum_path, instrum_name = split_parent(config['parent'])
-        prop_list.extend(get_list(instrum_name, prop, instrum_path, prop_list))
+        prop_list.extend(get_list(prop, get_parent_path(config['parent']), prop_list))
     if prop in config:
         prop_list.extend(config[prop])
     # Ensure each item is only included once:
     prop_list = list(set(prop_list))
     return prop_list
 
-def get_prop(instrument, prop, instrument_path='instruments'):
-    config = load_config(os.path.join(instrument_path, instrument))
+def get_prop(prop, instrument_path):
+    config = load_config(instrument_path)
     if not prop in config:
         if 'parent' in config:
-            instrum_path, instrum_name = split_parent(config['parent'])
-            config[prop] = get_prop(instrum_name, prop, instrum_path)
+            config[prop] = get_prop(prop, get_parent_path(config['parent']))
         else:
             return None
     return config[prop]
@@ -61,19 +59,19 @@ def parse_brackets(string):
     else:
         return string, '1'
 
-def get_config(instrument, instrument_path='instruments'):
+def get_config(instrument_path):
     """ Get the config dictionary recursively. 
     ex: config = get_config('oscillo')
     """
-    cfg = load_config(os.path.join(instrument_path, instrument))
+    cfg = load_config(instrument_path)
 
     # Get missing elements from ancestors
-    lists = ['cores','xdc','modules']
+    lists = ['cores', 'xdc', 'modules']
     for list_ in lists:
-        cfg[list_] = get_list(instrument, list_, instrument_path=instrument_path)
+        cfg[list_] = get_list(list_, instrument_path)
     props = ['board', 'live_zip']
     for prop in props:
-        cfg[prop] = get_prop(instrument, prop, instrument_path=instrument_path)
+        cfg[prop] = get_prop(prop, instrument_path)
 
     params = cfg['parameters']
 
@@ -123,7 +121,7 @@ def get_config(instrument, instrument_path='instruments'):
         cfg['cores'] = list(set(cfg['cores']))
     
     # SHA
-    sha_filename = os.path.join('tmp', instrument + '.sha')
+    sha_filename = os.path.join('tmp', cfg['instrument'] + '.sha')
     if os.path.isfile(sha_filename):
         with open(sha_filename) as sha_file:
             sha = sha_file.read()
@@ -240,40 +238,35 @@ if __name__ == "__main__":
             test_core_consistency(instrument)
 
     elif cmd == '--split_config_yml':
-        instrument = sys.argv[2]
-        cfg = load_config(os.path.join(sys.argv[3], instrument))
-        dump_if_has_changed(os.path.join('tmp', instrument + '.drivers.yml'), cfg.get('server'))
+        cfg = load_config(sys.argv[3])
+        dump_if_has_changed(os.path.join('tmp', cfg['instrument'] + '.drivers.yml'), cfg.get('server'))
 
         cfg.pop('server', None)
-        dump_if_has_changed(os.path.join('tmp', instrument + '.config.yml'), cfg)
+        dump_if_has_changed(os.path.join('tmp', cfg['instrument'] + '.config.yml'), cfg)
 
     elif cmd == '--config_tcl':
-        config = get_config(sys.argv[2], sys.argv[3])
+        config = get_config(sys.argv[3])
         assert('sha0' in config['parameters'])
         fill_config_tcl(config)
 
     elif cmd == '--start_sh':
-        config = get_config(sys.argv[2], sys.argv[3])
-        fill_start_sh(config)
+        fill_start_sh(get_config(sys.argv[3]))
 
     elif cmd == '--cores':
-        instrument = sys.argv[2]
-        config = get_config(instrument, instrument_path=sys.argv[3])
-        cores_filename = os.path.join('tmp', instrument + '.cores')
+        config = get_config(sys.argv[3])
+        cores_filename = os.path.join('tmp', config['instrument'] + '.cores')
         with open(cores_filename, 'w') as f:
             f.write(' '.join(config['cores']))
 
     elif cmd == '--board':
-        instrument = sys.argv[2]
-        config = get_config(instrument, instrument_path=sys.argv[3])
-        board_filename = os.path.join('tmp', instrument + '.board')
+        config = get_config(sys.argv[3])
+        board_filename = os.path.join('tmp', config['instrument'] + '.board')
         with open(board_filename, 'w') as f:
             f.write(config['board'])
 
     elif cmd == '--drivers':
         instrument = sys.argv[2]
-        instrument_path = sys.argv[3]
-        drivers_filename = os.path.join(instrument_path, instrument, 'config.yml')
+        drivers_filename = os.path.join(sys.argv[3], 'config.yml')
 
         with open(drivers_filename) as drivers_file:
             drivers_dict = yaml.load(drivers_file) or {}
@@ -288,26 +281,23 @@ if __name__ == "__main__":
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
 
     elif cmd == '--xdc':
-        instrument = sys.argv[2]
-        config = get_config(instrument, instrument_path=sys.argv[3])
-        xdc_filename = os.path.join('tmp', instrument + '.xdc')
+        config = get_config(sys.argv[3])
+        xdc_filename = os.path.join('tmp', config['instrument'] + '.xdc')
         with open(xdc_filename, 'w') as f:
             f.write(' '.join(config['xdc']))
 
     elif cmd == '--live_zip':
-        instrument = sys.argv[2]
         version = sys.argv[4]
         s3_url = sys.argv[5]
-        config = get_config(instrument, instrument_path=sys.argv[3])
+        config = get_config(sys.argv[3])
         zip_url = s3_url + '/' + version + '-' + config['live_zip']
         r = requests.get(zip_url, stream=True)
         z = zipfile.ZipFile(StringIO.StringIO(r.content))
-        z.extractall('tmp/%s.live' % instrument)
+        z.extractall('tmp/%s.live' % config['instrument'])
 
     elif cmd == '--middleware':
-        instrument = sys.argv[2]
-        config = get_config(instrument, instrument_path=sys.argv[3])
-        dest =  'tmp/' + instrument + '.server.build'
+        config = get_config(sys.argv[3])
+        dest =  'tmp/' + config['instrument'] + '.server.build'
         if not os.path.exists(dest):
             os.makedirs(dest)
         fill_memory(config, dest)
