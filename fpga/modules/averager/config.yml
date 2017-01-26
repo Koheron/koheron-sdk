@@ -3,10 +3,10 @@ instrument: averager
 board: red-pitaya
 
 cores:
-  - comparator_v1_0
-  - averager_counter_v1_0
-  - delay_trig_v1_0
-  - edge_detector_v1_0
+  - fpga/cores/comparator_v1_0
+  - fpga/cores/averager_counter_v1_0
+  - fpga/cores/delay_trig_v1_0
+  - fpga/cores/edge_detector_v1_0
 
 config_registers:
   - avg           # set to 1 to perform averaging

@@ -31,7 +31,15 @@ TCP_SERVER_BUILD=$(TMP)/$(NAME).server.build
 # properties defined in CONFIG_YML :
 DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(IPATH))
 BOARD:=$(shell set -e; python $(MAKE_PY) --board $(IPATH) && cat $(TMP)/$(NAME).board)
+
+define path_to_core_name
+$(shell echo $(patsubst %/,%,$1) | sed 's,^\(.*/\)\?\([^/]*\),\2,')
+endef
+
 CORES:=$(shell set -e; python $(MAKE_PY) --cores $(IPATH) && cat $(TMP)/$(NAME).cores)
+CORES_NAMES=$(foreach core,$(CORES),$(call path_to_core_name,$(core)))
+CORES_DEST=$(addprefix $(TMP)/cores/, $(CORES_NAMES))
+
 DRIVERS:=$(shell set -e; python $(MAKE_PY) --drivers $(IPATH) && cat $(TMP)/$(NAME).drivers)
 XDC:=$(shell set -e; python $(MAKE_PY) --xdc $(IPATH) && cat $(TMP)/$(NAME).xdc)
 DRIVERS_LIB=$(wildcard drivers/context/*hpp) $(wildcard drivers/context/*cpp)
@@ -130,10 +138,7 @@ debug:
 	@echo NAME = $(NAME)
 	@echo INSTRUMENT DIRECTORY = $(IPATH)
 	@echo CORES = $(CORES)
-	@echo DRIVERS = $(DRIVERS)
-	@echo DRIVERS_LIB = $(DRIVERS_LIB)
-	@echo UBOOT_TAG = $(UBOOT_TAG)
-	@echo BOARD = $(BOARD)
+	@echo CORES_NAMES = $(CORES_NAMES)
 
 $(TMP):
 	mkdir -p $(TMP)
@@ -154,7 +159,7 @@ help:
 	@echo ' - test   Test the instrument'
 
 # Run Vivado interactively and build block design
-bd: $(CONFIG_TCL) $(XDC) $(IPATH)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+bd: $(CONFIG_TCL) $(XDC) $(IPATH)/*.tcl $(CORES_DEST)
 	vivado -nolog -nojournal -source fpga/scripts/block_design.tcl -tclargs $(NAME) $(IPATH) $(PART) $(BOARD) block_design_
 
 server: $(TCP_SERVER)
@@ -189,12 +194,16 @@ $(CONFIG_TCL): $(MAKE_PY) $(CONFIG_YML) $(BITSTREAM_ID_FILE) $(TEMPLATE_DIR)/con
 	python $(MAKE_PY) --config_tcl $(IPATH)
 	@echo [$@] OK
 
-$(TMP)/cores/%: fpga/cores/%/core_config.tcl fpga/cores/%/*.v
-	mkdir -p $(@D)
-	$(VIVADO) -source fpga/scripts/core.tcl -tclargs $* $(PART)
-	@echo [$@] OK
+define make_core_target
+$(TMP)/cores/$(call path_to_core_name,$1): $(patsubst %/,%,$1)/core_config.tcl $(patsubst %/,%,$1)/*.v
+	mkdir -p $(TMP)/cores/$(call path_to_core_name,$1)
+	$(VIVADO) -source fpga/scripts/core.tcl -tclargs $(patsubst %/,%,$1) $(PART)
+	@echo [$(call path_to_core_name,$1)] OK
+endef
 
-$(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(IPATH)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+$(foreach core,$(CORES),$(eval $(call make_core_target,$(core))))
+
+$(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(IPATH)/*.tcl $(CORES_DEST)
 	mkdir -p $(@D)
 	$(VIVADO) -source fpga/scripts/project.tcl -tclargs $(NAME) $(IPATH) $(PART) $(BOARD)
 	@echo [$@] OK
@@ -204,12 +213,12 @@ $(TMP)/$(NAME).bit: $(TMP)/$(NAME).xpr
 	$(VIVADO) -source fpga/scripts/bitstream.tcl -tclargs $(NAME)
 	@echo [$@] OK
 
-build_core: $(TMP)/cores/$(CORE)
+build_core: $(TMP)/cores/$(call path_to_core_name,$(CORES)))
 
-test_module: $(CONFIG_TCL) $(IPATH)/*.tcl $(addprefix $(TMP)/cores/, $(CORES))
+test_module: $(CONFIG_TCL) $(IPATH)/*.tcl $(CORES_DEST)
 	vivado -source fpga/scripts/test_module.tcl -tclargs $(NAME) $(IPATH) $(PART)
 
-test_core: fpga/cores/$(CORE)/core_config.tcl fpga/cores/$(CORE)/*.v
+test_core: $(CORE)/core_config.tcl $(CORE)/*.v
 	vivado -source fpga/scripts/test_core.tcl -tclargs $(CORE) $(PART)
 
 ###############################################################################
@@ -324,7 +333,8 @@ $(TCP_SERVER_DIR):
 $(TCP_SERVER_DIR)/requirements.txt: $(TCP_SERVER_DIR)
 
 $(TCP_SERVER_VENV): $(TCP_SERVER_DIR)/requirements.txt
-	test -d $(TCP_SERVER_VENV) || (virtualenv $(TCP_SERVER_VENV) && $(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt)
+	test -d $(TCP_SERVER_VENV) || (virtualenv $(TCP_SERVER_VENV) && \
+				$(TCP_SERVER_VENV)/bin/pip install -r $(TCP_SERVER_DIR)/requirements.txt)
 
 $(MEMORY_HPP): $(CONFIG_YML)
 	python $(MAKE_PY) --middleware $(IPATH)
