@@ -12,7 +12,7 @@ ifeq ($(IPATH),)
 IPATH = instruments/$(NAME)
 else
 # Instrument name is the last folder of IPATH
-NAME = $(shell echo $(patsubst %/,%,$(IPATH)) | sed 's,^\(.*/\)\?\([^/]*\),\2,')
+NAME = $(shell basename $(patsubst %/,%,$(IPATH)))
 endif
 
 ###############################################################################
@@ -33,7 +33,7 @@ DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(IPATH))
 BOARD:=$(shell set -e; python $(MAKE_PY) --board $(IPATH) && cat $(TMP)/$(NAME).board)
 
 define path_to_core_name
-$(shell echo $(patsubst %/,%,$1) | sed 's,^\(.*/\)\?\([^/]*\),\2,')
+$(shell basename $(patsubst %/,%,$1))
 endef
 
 CORES:=$(shell set -e; python $(MAKE_PY) --cores $(IPATH) && cat $(TMP)/$(NAME).cores)
@@ -201,6 +201,7 @@ $(TMP)/cores/$(call path_to_core_name,$1): $(patsubst %/,%,$1)/core_config.tcl $
 	@echo [$(call path_to_core_name,$1)] OK
 endef
 
+# NB: Replace 'eval' by 'info' to see the generated target
 $(foreach core,$(CORES),$(eval $(call make_core_target,$(core))))
 
 $(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(IPATH)/*.tcl $(CORES_DEST)
