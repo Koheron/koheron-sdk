@@ -3,9 +3,9 @@ instrument: peak_detector
 board: red-pitaya
 
 config_registers:
-  - fpga/cores/peak_address_low
-  - fpga/cores/peak_address_high
-  - fpga/cores/peak_address_reset
+  - peak_address_low
+  - peak_address_high
+  - peak_address_reset
 
 status_registers:
   - peak_address
