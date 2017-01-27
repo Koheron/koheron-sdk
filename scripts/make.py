@@ -98,7 +98,7 @@ def get_config(instrument_path):
     for prop in props:
         cfg[prop] = get_prop(prop, instrument_path)
 
-    params = cfg['parameters']
+    params = cfg.get('parameters', {})
 
     # memory
     if 'memory' in cfg:
