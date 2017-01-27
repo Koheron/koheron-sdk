@@ -1,6 +1,6 @@
 ---
 instrument: zedboard_led_blinker
-parent: default
+parent: instruments/default
 board: zedboard
 
 cores:
@@ -25,7 +25,7 @@ parameters:
   fclk0: 50000000 # FPGA clock speed in Hz
 
 xdc:
-  - instruments/zedboard_led_blinker/constraints.xdc
+  - ./constraints.xdc
 
 # Drivers
 
@@ -35,4 +35,4 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - instruments/led_blinker/led_blinker.hpp
+    - ./../led_blinker/led_blinker.hpp

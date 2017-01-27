@@ -43,7 +43,7 @@ parameters:
 xdc:
   - boards/red-pitaya/config/ports.xdc
   - boards/red-pitaya/config/clocks.xdc
-  - instruments/laser_controller/expansion_connector.xdc
+  - ./expansion_connector.xdc
 
 server:
   includes:
@@ -52,4 +52,4 @@ server:
 
   drivers:
     - drivers/xadc.hpp
-    - instruments/laser_controller/laser.hpp
+    - ./laser.hpp

@@ -43,4 +43,4 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - instruments/adc_dac/adc_dac.hpp
+    - ./adc_dac.hpp

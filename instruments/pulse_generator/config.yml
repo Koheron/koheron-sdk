@@ -53,4 +53,4 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - instruments/pulse_generator/pulse.hpp
+    - ./pulse.hpp

@@ -13,6 +13,18 @@ import requests
 import zipfile
 import StringIO
 
+def format_paths(paths, instrument_path):
+    ''' If a path starts with './' then it is relative to the instrument path,
+        that is the folder containing the ins instrument 'config.yml'
+    '''
+    fmt_paths = []
+    for path in paths:
+        if path.startswith('./'):
+            fmt_paths.append(os.path.join(instrument_path, path))
+        else:
+            fmt_paths.append(path)
+    return fmt_paths
+
 def get_parent_path(parent_filename):
     if parent_filename == '<default>':
         return 'instruments/default'
@@ -21,7 +33,7 @@ def get_parent_path(parent_filename):
 
 def get_list(prop, instrument_path, prop_list=None):
     ''' Ex: Get the list of cores needed by the 'oscillo' instrument.
-    list = get_list('cores', 'instruments/oscillo')
+        list = get_list('cores', 'instruments/oscillo')
     '''
     if prop_list is None: 
        prop_list = []
@@ -43,12 +55,26 @@ def get_prop(prop, instrument_path):
             return None
     return config[prop]
 
-def load_config(instrument_dir):
+def load_config(instrument_path):
     ''' Get the config dictionary from the file 'config.yml' '''
-    config_filename = os.path.join(instrument_dir, 'config.yml')
-    with open(config_filename) as config_file:
-        config = yaml.load(config_file)
-    return config
+    config_filename = os.path.join(instrument_path, 'config.yml')
+    with open(config_filename) as f:
+        cfg = yaml.load(f)
+
+    if 'parent' in cfg:
+        cfg['parent'] = format_paths([cfg['parent']], instrument_path)[0]
+
+    for field in ['modules', 'cores', 'xdc']:
+        if field in cfg:
+            cfg[field] = format_paths(cfg[field], instrument_path)
+
+    if 'server' in cfg:
+        if 'includes' in cfg['server']:
+            cfg['server']['includes'] = format_paths(cfg['server']['includes'], instrument_path)
+        if 'drivers' in cfg['server']:
+            cfg['server']['drivers'] = format_paths(cfg['server']['drivers'], instrument_path)
+
+    return cfg
 
 def parse_brackets(string):
     ''' ex: 'pwm', '4' = parse_brackets('pwm[4]') '''
@@ -60,7 +86,7 @@ def parse_brackets(string):
 
 def get_config(instrument_path):
     ''' Build the config dictionary recursively.
-    ex: config = get_config('instruments/oscillo')
+        ex: config = get_config('instruments/oscillo')
     '''
     cfg = load_config(instrument_path)
 
@@ -95,7 +121,7 @@ def get_config(instrument_path):
                 addr['prot_flag'] = 'PROT_WRITE'
 
     # Config and status registers
-    lists = ['config_registers','status_registers']
+    lists = ['config_registers', 'status_registers']
     for list_ in lists:
         new_list = []
         if cfg[list_] is not None:
@@ -265,15 +291,15 @@ if __name__ == "__main__":
 
     elif cmd == '--drivers':
         cfg = load_config(sys.argv[2])
-        drivers_filename = os.path.join(sys.argv[2], 'config.yml')
-
-        with open(drivers_filename) as drivers_file:
-            drivers_dict = yaml.load(drivers_file) or {}
-            drivers = drivers_dict.get('server', {})
+        drivers = cfg.get('server', {})
 
         for include_filename in drivers.get('includes', []):
             with open(include_filename) as include_file:
-                for key, value in yaml.load(include_file).iteritems():
+                inc_dict = yaml.load(include_file)
+                if 'drivers' in inc_dict:
+                    inc_dict['drivers'] = format_paths(inc_dict['drivers'],
+                                            os.path.dirname(include_filename))
+                for key, value in inc_dict.iteritems():
                     drivers.get(key, []).extend(value)
 
         with open(os.path.join('tmp', cfg['instrument'] + '.drivers'), 'w') as f:
