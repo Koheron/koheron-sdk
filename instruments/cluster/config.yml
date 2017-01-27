@@ -45,10 +45,10 @@ parameters:
   n_adc: 2
 
 xdc:
-  - instruments/cluster/ports.xdc
+  - ./ports.xdc
   - boards/red-pitaya/config/clocks.xdc
-  - instruments/cluster/sata.xdc
-  - instruments/cluster/expansion_connector.xdc
+  - ./sata.xdc
+  - ./expansion_connector.xdc
 
 # Drivers
 
@@ -58,4 +58,4 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - instruments/cluster/cluster.hpp
+    - ./cluster.hpp

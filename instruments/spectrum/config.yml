@@ -100,9 +100,9 @@ server:
   drivers:
     - drivers/gpio.hpp
     - drivers/xadc.hpp
-    - instruments/oscillo/drivers/laser/laser.hpp
-    - instruments/spectrum/spectrum.hpp
-    - instruments/oscillo/drivers/eeprom/eeprom.hpp
+    - ./../oscillo/drivers/laser/laser.hpp
+    - ./spectrum.hpp
+    - ./../oscillo/drivers/eeprom/eeprom.hpp
 
 # ------------------------------------------------------------
 # Misc

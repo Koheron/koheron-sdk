@@ -50,4 +50,4 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - instruments/decimator/decimator.hpp
+    - ./decimator.hpp
