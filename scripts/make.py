@@ -256,8 +256,7 @@ if __name__ == "__main__":
     sys.setdefaultencoding('utf-8')
 
     if cmd == '--test':
-        instruments = ['instruments/led_blinker', 'instruments/adc_dac', 'instruments/oscillo', 'instruments/spectrum']
-        for instrument in instruments:
+        for instrument in sys.argv[2:]:
             print_config(instrument)
             test_module_consistency(instrument)
             test_core_consistency(instrument)

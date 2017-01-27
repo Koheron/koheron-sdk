@@ -1,7 +1,7 @@
 set -e
 
 echo 'Test config.yml'
-python scripts/make.py --test
+python scripts/make.py --test instruments/led_blinker instruments/adc_dac instruments/oscillo instruments/spectrum
 
 # Test modules
 
