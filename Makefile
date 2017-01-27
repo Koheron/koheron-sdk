@@ -12,7 +12,7 @@ ifeq ($(IPATH),)
 IPATH = instruments/$(NAME)
 else
 # Instrument name is the last folder of IPATH
-NAME = $(shell basename $(patsubst %/,%,$(IPATH)))
+NAME = $(shell basename "$(patsubst %/,%,$(IPATH))")
 endif
 
 ###############################################################################
@@ -33,7 +33,7 @@ DUMMY:=$(shell set -e; python $(MAKE_PY) --split_config_yml $(IPATH))
 BOARD:=$(shell set -e; python $(MAKE_PY) --board $(IPATH) && cat $(TMP)/$(NAME).board)
 
 define path_to_core_name
-$(shell basename $(patsubst %/,%,$1))
+$(shell basename "$(patsubst %/,%,$1)")
 endef
 
 CORES:=$(shell set -e; python $(MAKE_PY) --cores $(IPATH) && cat $(TMP)/$(NAME).cores)
