@@ -4,8 +4,8 @@ parent: instruments/default
 board: red-pitaya
 
 cores:
-  - axi_cfg_register_v1_0
-  - axi_sts_register_v1_0
+  - fpga/cores/axi_cfg_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
 
 memory:
   - name: config
@@ -28,7 +28,7 @@ parameters:
   fclk0: 50000000 # FPGA clock speed in Hz
 
 xdc:
-  - instruments/led_blinker/constraints.xdc
+  - ./../led_blinker/constraints.xdc
 
 # Drivers
 
@@ -38,6 +38,6 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - instruments/test_context/test_memory.hpp
-    - instruments/test_context/test_spi.hpp
-    - instruments/test_context/speed_test.hpp
+    - ./test_memory.hpp
+    - ./test_spi.hpp
+    - ./speed_test.hpp

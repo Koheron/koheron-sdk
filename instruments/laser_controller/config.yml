@@ -4,10 +4,10 @@ parent: instruments/default
 board: red-pitaya
 
 cores:
-  - redp_adc_v1_0
-  - redp_dac_v1_0
-  - pdm_v1_0
-  - pulse_generator_v1_0
+  - fpga/cores/redp_adc_v1_0
+  - fpga/cores/redp_dac_v1_0
+  - fpga/cores/pdm_v1_0
+  - fpga/cores/pulse_generator_v1_0
 
 memory:
   - name: config
@@ -43,7 +43,7 @@ parameters:
 xdc:
   - boards/red-pitaya/config/ports.xdc
   - boards/red-pitaya/config/clocks.xdc
-  - instruments/laser_controller/expansion_connector.xdc
+  - ./expansion_connector.xdc
 
 server:
   includes:
@@ -52,4 +52,4 @@ server:
 
   drivers:
     - drivers/xadc.hpp
-    - instruments/laser_controller/laser.hpp
+    - ./laser.hpp
