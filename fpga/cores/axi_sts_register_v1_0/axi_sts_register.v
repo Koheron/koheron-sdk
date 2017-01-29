@@ -5,7 +5,7 @@ module axi_sts_register #
 (
   parameter integer STS_DATA_WIDTH = 1024,
   parameter integer AXI_DATA_WIDTH = 32,
-  parameter integer AXI_ADDR_WIDTH = 32
+  parameter integer AXI_ADDR_WIDTH = 16
 )
 (
   // System signals
@@ -92,5 +92,10 @@ module axi_sts_register #
   assign s_axi_arready = 1'b1;
   assign s_axi_rdata = int_rdata_reg;
   assign s_axi_rvalid = int_rvalid_reg;
+
+  assign s_axi_awready = 1'b0;
+  assign s_axi_wready = 1'b0;
+  assign s_axi_bresp = 2'd0;
+  assign s_axi_bvalid = 1'b0;
 
 endmodule
