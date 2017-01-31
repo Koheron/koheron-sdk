@@ -11,7 +11,7 @@
 #include <chrono>
 
 #include <context.hpp>
-#include <drivers/lib/dac_router.hpp>
+#include <drivers/dac_router.hpp>
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE mem::adc_range/sizeof(float)

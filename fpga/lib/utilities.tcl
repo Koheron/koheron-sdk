@@ -49,9 +49,11 @@ proc get_pin_width {pin_name} {
   if {$width < 1} {return 1} else {return $width}
 }
 
-proc get_concat_pin {pins} {
+proc get_concat_pin {pins {cell_name ""}} {
   set pin_names [uplevel 1 [list subst $pins]]
-  set cell_name concat_[join [lmap pin $pin_names {set pin [lindex [split $pin /] end]}] _]
+  if {$cell_name eq ""} {
+    set cell_name concat_[join [lmap pin $pin_names {set pin [lindex [split $pin /] end]}] _]
+  }
   if {[get_bd_cells $cell_name] eq ""} { 
     cell xilinx.com:ip:xlconcat:2.1 $cell_name {
       NUM_PORTS [llength $pin_names]
@@ -68,10 +70,12 @@ proc get_concat_pin {pins} {
 
 # define get_and_pin, get_or_pin, get_nor_pin and get_not_pin procedures
 foreach op {and or nor not} {
-  proc get_${op}_pin {pin_name1 {pin_name2 ""}} {
+  proc get_${op}_pin {pin_name1 {pin_name2 ""} {cell_name ""}} {
     set proc_name [lindex [info level 0] 0]
     set op [lindex [split $proc_name _] 1]
-    set cell_name [get_cell_name $op $pin_name1 $pin_name2]
+    if {$cell_name eq ""} {
+      set cell_name [get_cell_name $op $pin_name1 $pin_name2] 
+    }
     if {[get_bd_cells $cell_name] eq ""} {
       cell xilinx.com:ip:util_vector_logic:2.0 $cell_name {
         C_SIZE [get_pin_width $pin_name1]
@@ -86,10 +90,12 @@ foreach op {and or nor not} {
 }
 
 foreach op {GE GT LE LT EQ NE} {
-  proc get_${op}_pin {pin_name1 pin_name2} {
+  proc get_${op}_pin {pin_name1 pin_name2 {cell_name ""}} {
     set proc_name [lindex [info level 0] 0]
     set op [lindex [split $proc_name _] 1]
-    set cell_name [get_cell_name $op $pin_name1 $pin_name2]
+    if {$cell_name eq ""} {
+      set cell_name [get_cell_name $op $pin_name1 $pin_name2]
+    }
     if {[get_bd_cells $cell_name] eq ""} {
       cell koheron:user:comparator:1.0 $cell_name {
         DATA_WIDTH [get_pin_width $pin_name1]
@@ -103,8 +109,10 @@ foreach op {GE GT LE LT EQ NE} {
   }
 }
 
-proc get_slice_pin {pin_name from to} {
-  set cell_name slice_from${from}_to${to}_[lindex [split $pin_name /] end]
+proc get_slice_pin {pin_name from to {cell_name ""}} {
+  if {$cell_name eq ""} {
+    set cell_name slice_${from}_${to}_[underscore $pin_name]
+  }
   if {[get_bd_cells $cell_name] eq ""} {
     cell xilinx.com:ip:xlslice:1.0 $cell_name {
       DIN_WIDTH [get_pin_width $pin_name]
@@ -117,8 +125,10 @@ proc get_slice_pin {pin_name from to} {
   return $cell_name/Dout
 }
 
-proc get_Q_pin {pin_name {depth 1} {ce_pin_name "noce"} {clk clk}} {
-  set cell_name Q_d${depth}_[lindex [split $ce_pin_name /] end]_[lindex [split $pin_name /] end]
+proc get_Q_pin {pin_name {depth 1} {ce_pin_name "noce"} {clk clk} {cell_name ""}} {
+  if {$cell_name eq ""} {
+    set cell_name Q_d${depth}_[underscore $ce_pin_name]_[underscore $pin_name]
+  }
   set width [get_pin_width $pin_name]
   if {[get_bd_cells $cell_name] eq ""} {
     if { [string match "noce" $ce_pin_name] } {
@@ -286,6 +296,3 @@ proc add_master_interface {{intercon_idx 0}} {
   puts "Connect your AXI Slave to axi_mem_intercon_$intercon_idx/M${idx}_AXI"
   return $idx
 }
-
-
-

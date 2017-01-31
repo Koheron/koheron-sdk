@@ -20,7 +20,8 @@ class KoheronAPIApp(Flask):
     def __init__(self, *args, **kwargs):
         super(KoheronAPIApp, self).__init__(*args, **kwargs)
 
-        self.config['INSTRUMENTS_DIR'] = '/usr/local/instruments/'
+        #self.config['INSTRUMENTS_DIR'] = '/usr/local/instruments/'
+        self.config['INSTRUMENTS_DIR'] = '/tmp/instruments/'
         self.instruments = {}
 
         self.load_metadata()
@@ -51,13 +52,15 @@ class KoheronAPIApp(Flask):
     # ------------------------
 
     def start_client(self):
-        time.sleep(0.2) # To be sure server is up
         log('info', 'Connecting to server...')
-        self.client = KoheronClient('127.0.0.1')
+
+        try:
+            self.client = KoheronClient(unixsock='/var/run/koheron-server.sock')
+        except:
+            self.client.is_connected = False
 
         if self.client.is_connected:
             log('info', 'Connected to server')
-            time.sleep(0.2)
             self.common = Common(self.client)
             log('info', 'Common driver initialized')
             self.common.init()

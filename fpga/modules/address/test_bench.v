@@ -6,19 +6,19 @@ module address_tb();
   
   reg clk;
   reg [31:0] cfg;
-  reg [31:0] period;
+  reg [31:0] period0;
 
   wire restart;
   wire tvalid;
-  wire [WIDTH+1:0]addr;
+  wire [WIDTH+1:0]addr0;
 
   system_wrapper
   DUT (
     .clk(clk),
     .cfg(cfg),
-    .period(period),
+    .period0(period0),
     .restart(restart),
-    .addr(addr),
+    .addr0(addr0),
     .tvalid(tvalid)
   );
 
@@ -27,7 +27,7 @@ module address_tb();
   initial begin
     clk = 0;
     cfg = 2'b00;
-    #(10 * CLK_PERIOD) period = 2**WIDTH - 1; 
+    #(10 * CLK_PERIOD) period0 = 2**WIDTH - 1;
     #(10 * CLK_PERIOD) cfg = 2'b01;
     #(10 * CLK_PERIOD) cfg = 2'b11;
     #(10000 * CLK_PERIOD)

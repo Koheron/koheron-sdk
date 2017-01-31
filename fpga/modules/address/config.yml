@@ -1,15 +1,14 @@
 ---
 instrument: address
-#parent: default
 board: red-pitaya
 
 cores:
-  - comparator_v1_0
-  - averager_counter_v1_0
-  - address_generator_v1_0
+  - fpga/cores/comparator_v1_0
+  - fpga/cores/averager_counter_v1_0
+  - fpga/cores/address_generator_v1_0
 
 config_registers:
-  - addr  # reset[0:0], trig_acq[1:1], delay_tvalid[6:2]
+  - addr       # reset[0:0], trig_acq[1:1], delay_tvalid[6:2]
   - dac_period # period on which the dac is played
 
 status_registers:

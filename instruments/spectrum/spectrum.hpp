@@ -6,7 +6,7 @@
 #define __DRIVERS_SPECTRUM_HPP__
 
 #include <context.hpp>
-#include <drivers/lib/dac_router.hpp>
+#include <drivers/dac_router.hpp>
 
 #define SAMPLING_RATE 125E6
 #define WFM_SIZE mem::spectrum_range/sizeof(float)
@@ -185,7 +185,6 @@ class Spectrum
         }
         return peak_fifo_data;
     }
-
 
   private:
     Memory<mem::config>& cfg;

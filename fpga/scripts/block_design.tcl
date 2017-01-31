@@ -33,4 +33,4 @@ source fpga/lib/utilities.tcl
 # Source configuration file generated from the template scripts/templates/config.tcl
 source tmp/$project_name.config.tcl
 
-source $project_path/$project_name/block_design.tcl
+source $project_path/block_design.tcl

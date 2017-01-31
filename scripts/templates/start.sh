@@ -22,5 +22,4 @@ echo 'Load bitstream'
 /bin/cat /sys/bus/platform/drivers/xdevcfg/f8007000.devcfg/prog_done
 
 echo 'Restart koheron-server'
-/bin/cp -f /tmp/instrument/kserverd /usr/local/koheron-server/kserverd
 /bin/systemctl start koheron-server.service
