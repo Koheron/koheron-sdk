@@ -16,12 +16,28 @@ from koheron import KoheronClient, Common
 def log(severity, message):
     print("[" + severity + "] " + message)
 
+# http://stackoverflow.com/questions/28456349/python-check-if-linux-partition-is-read-only-or-read-write
+def is_mount_read_only(mnt):
+    with open('/proc/mounts') as f:
+        for line in f:
+            device, mount_point, filesystem, flags, __, __ = line.split()
+            flags = flags.split(',')
+            if mount_point == mnt:
+                return 'ro' in flags
+        # If it fails we run in release mode
+        return True
+
 class KoheronAPIApp(Flask):
     def __init__(self, *args, **kwargs):
         super(KoheronAPIApp, self).__init__(*args, **kwargs)
 
-        #self.config['INSTRUMENTS_DIR'] = '/usr/local/instruments/'
-        self.config['INSTRUMENTS_DIR'] = '/tmp/instruments/'
+        if is_mount_read_only('/'):
+            log('info', 'Release mode')
+            self.config['INSTRUMENTS_DIR'] = '/tmp/instruments/'
+        else:
+            log('info', 'Dev mode')
+            self.config['INSTRUMENTS_DIR'] = '/usr/local/instruments/'
+
         self.instruments = {}
 
         self.load_metadata()

@@ -1,6 +1,7 @@
 device=$1
 name=$2
 version=$3
+release=false
 
 koheron_python_branch=v0.12.0
 
@@ -100,6 +101,7 @@ APT::Install-Recommends "0";
 APT::Install-Suggests "0";
 EOF_CAT
 
+if [ "$release" = false ]; then
 cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
@@ -108,9 +110,18 @@ cat <<- EOF_CAT > etc/fstab
 tmpfs           /tmp            tmpfs   defaults,noatime    0       0
 tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 EOF_CAT
+else
+cat <<- EOF_CAT > etc/fstab
+# /etc/fstab: static file system information.
+# <file system> <mount point>   <type>  <options>           <dump>  <pass>
+/dev/mmcblk0p2  /               ext4    ro,noatime          0       1
+/dev/mmcblk0p1  /boot           vfat    ro,noatime          0       2
+tmpfs           /tmp            tmpfs   defaults,noatime    0       0
+tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
+EOF_CAT
+fi
 
 cat <<- EOF_CAT >> etc/securetty
-
 # Serial Console for Xilinx Zynq-7000
 ttyPS0
 EOF_CAT
@@ -190,7 +201,7 @@ EOF_CHROOT
 # nginx
 rm $root_dir/etc/nginx/sites-enabled/default
 cp $config_dir/nginx.conf $root_dir/etc/nginx/nginx.conf
-cp $config_dir/flask-uwsgi $root_dir/etc/nginx/sites-enabled/flask-uwsgi
+cp $config_dir/nginx-server.conf $root_dir/etc/nginx/sites-enabled/nginx-server.conf
 cp $config_dir/systemd/nginx.service $root_dir/etc/systemd/system/nginx.service
 
 rm $root_dir/etc/resolv.conf
