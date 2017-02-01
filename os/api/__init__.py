@@ -33,10 +33,13 @@ class KoheronAPIApp(Flask):
 
         if is_mount_read_only('/'):
             log('info', 'Release mode')
-            self.config['INSTRUMENTS_DIR'] = '/tmp/instruments/'
+            self.config['IS_RELEASE'] = True
         else:
             log('info', 'Dev mode')
-            self.config['INSTRUMENTS_DIR'] = '/usr/local/instruments/'
+            self.config['IS_RELEASE'] = False
+
+        self.config['INSTRUMENTS_DIR'] = '/tmp/instruments/'
+        self.config['INSTRUMENTS_STORAGE'] = '/usr/local/instruments/'
 
         self.instruments = {}
 
@@ -153,7 +156,12 @@ class KoheronAPIApp(Flask):
                                 'sha': sha,
                                 'server_version': self.common.get_server_version()}
                                 
-        self.store_last_deployed_zip(zip_filename)
+        self.store_last_deployed_zip(zip_filename, self.config['INSTRUMENTS_DIR'])
+
+        if not self.config['IS_RELEASE']:
+            # We also store the instrument onto the SD card
+            self.store_last_deployed_zip(zip_filename, self.config['INSTRUMENTS_STORAGE'])
+
         return 'success' if self.is_bitstream_id_valid() else 'invalid_bitstream_id'
 
     def handle_instrument_install_failure(self):
@@ -176,11 +184,11 @@ class KoheronAPIApp(Flask):
             return False
         return True
 
-    def store_last_deployed_zip(self, zip_filename):
-        zip_store_filename = os.path.join(self.config['INSTRUMENTS_DIR'], os.path.basename(zip_filename))
+    def store_last_deployed_zip(self, zip_filename, dest):
+        zip_store_filename = os.path.join(dest, os.path.basename(zip_filename))
         if not os.path.exists(zip_store_filename):
-            shutil.copy(zip_filename, self.config['INSTRUMENTS_DIR'])
-        with open(os.path.join(self.config['INSTRUMENTS_DIR'], '.instruments'), 'w') as f:
+            shutil.copy(zip_filename, dest)
+        with open(os.path.join(dest, '.instruments'), 'w') as f:
             f.write('last_deployed: ' + zip_store_filename)
 
     def get_last_deployed_instrument(self):

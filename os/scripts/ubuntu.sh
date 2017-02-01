@@ -1,7 +1,7 @@
 device=$1
 name=$2
 version=$3
-release=false
+release=$4
 
 koheron_python_branch=v0.12.0
 
