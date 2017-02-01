@@ -133,8 +133,13 @@ class KoheronAPIApp(Flask):
         shutil.copy(zip_filename, self.config['INSTRUMENTS_DIR'])
 
     def delete_uploaded_instrument(self, zip_filename):
-        if os.path.exists(self.config['INSTRUMENTS_DIR']):
-            os.remove(os.path.join(self.config['INSTRUMENTS_DIR'], zip_filename))
+        instrum_tmp = os.path.join(self.config['INSTRUMENTS_DIR'], zip_filename)
+        if os.path.exists(instrum_tmp):
+            os.remove(instrum_tmp)
+
+        instrum_store = os.path.join(self.config['INSTRUMENTS_STORAGE'], zip_filename)
+        if os.path.exists(instrum_store):
+            os.remove(instrum_store)
 
     def install_instrument(self, zip_filename):
         if not os.path.exists(zip_filename):
@@ -242,8 +247,9 @@ class KoheronAPIApp(Flask):
         log('critical', 'No instrument found')
 
     def restore_backup(self):
-        backup_dir = os.path.join(self.config['INSTRUMENTS_DIR'], 'backup')
-        copy_tree(backup_dir, self.config['INSTRUMENTS_DIR'])
+        backup_dir = os.path.join(self.config['INSTRUMENTS_STORAGE'], 'backup')
+        copy_tree(backup_dir, self.config['INSTRUMENTS_STORAGE'])
+        copy_tree(self.config['INSTRUMENTS_STORAGE'], self.config['INSTRUMENTS_DIR'])
         return backup_dir
 
     def is_valid_instrument_file(self, filename):

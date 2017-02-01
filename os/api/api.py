@@ -33,6 +33,13 @@ def upgrade_app():
 def api_version():
     return jsonify(api_app.metadata)
 
+@api_app.route('/api/app/mode', methods=['GET'])
+def api_mode():
+    if api_app.config['IS_RELEASE']:
+        return make_response('release')
+    else:
+        return make_response('devel')
+
 # ------------------------
 # Static
 # ------------------------
@@ -118,11 +125,12 @@ def run_instrument(name, sha):
 
 @api_app.route('/api/instruments/delete/<name>/<sha>', methods=['GET'])
 def delete_instrument(name, sha):
-    zip_filename = '{}-{}.zip'.format(name, sha)
-    filename = secure_filename(zip_filename)
-    api_app.delete_uploaded_instrument(filename)
-    api_app.remove_instrument_from_list(filename)
-    return make_response('File ' + zip_filename + ' removed.')
+    if not api_app.config['IS_RELEASE']:
+        zip_filename = '{}-{}.zip'.format(name, sha)
+        filename = secure_filename(zip_filename)
+        api_app.delete_uploaded_instrument(filename)
+        api_app.remove_instrument_from_list(filename)
+        return make_response('File ' + zip_filename + ' removed.')
 
 @api_app.route('/api/instruments/upload', methods=['POST'])
 def upload_instrument():
@@ -147,6 +155,7 @@ def get_live_instrument():
 
 @api_app.route('/api/instruments/restore', methods=['GET'])
 def restore_backup_instruments():
-    api_app.restore_backup()
-    api_app.get_instruments()
-    return make_response('Backup instruments restored.')
+    if not api_app.config['IS_RELEASE']:
+        api_app.restore_backup()
+        api_app.get_instruments()
+        return make_response('Backup instruments restored.')
