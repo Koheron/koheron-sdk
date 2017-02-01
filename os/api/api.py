@@ -16,6 +16,9 @@ api_app.config['UPLOAD_FOLDER'] = '/tmp'
 
 @api_app.route('/api/app/update', methods=['POST'])
 def upgrade_app():
+    if api_app.config['IS_RELEASE']:
+        return make_response('Release system. HTTP app upgrade not available.')
+
     if request.method == 'POST':
         file_ = next((file_ for file_ in request.files if api_app.is_valid_app_file(file_)), None)
         if file_ is not None:
@@ -36,6 +39,9 @@ def api_version():
 
 @api_app.route('/api/static/upload', methods=['POST'])
 def upload_static():
+    if api_app.config['IS_RELEASE']:
+        return make_response('Release system. Static upload not available.')
+
     if request.method == 'POST':
         file_ = next((file_ for file_ in request.files if api_app.is_zip_file(file_)), None)
         if file_ is not None:
@@ -47,6 +53,9 @@ def upload_static():
 
 @api_app.route('/api/static/live/upload', methods=['POST'])
 def upload_live_static():
+    if api_app.config['IS_RELEASE']:
+        return make_response('Release system. Live instrument static upload not available.')
+
     if request.method == 'POST':
         file_ = next((file_ for file_ in request.files if api_app.is_zip_file(file_)), None)
         if file_ is not None:
@@ -59,6 +68,7 @@ def upload_live_static():
 # Board
 # ------------------------
 
+# XXX Do we still need this route ?
 @api_app.route('/api/board/reboot', methods=['GET'])
 def reboot():
     subprocess.call(['/sbin/reboot'])
@@ -83,6 +93,7 @@ def ping():
     api_app.ping()
     return make_response("Done !!")
 
+# XXX Do we still need this route ?
 @api_app.route('/api/board/init', methods=['GET'])
 def init():
     api_app.init()

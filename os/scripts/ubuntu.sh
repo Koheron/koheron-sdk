@@ -83,6 +83,10 @@ echo "last_deployed: /usr/local/instruments/${name}-${version}.zip" > $root_dir/
 mkdir $root_dir/usr/local/instruments/backup
 cp tmp/*-${version}.zip $root_dir/usr/local/instruments/backup
 
+if [ "$release" = true ]; then
+    cp $config_dir/scripts/mount_unionfs $root_dir/usr/local/bin/mount_unionfs
+fi
+
 chroot $root_dir <<- EOF_CHROOT
 export LANG=C
 export LC_ALL=C
@@ -111,6 +115,9 @@ tmpfs           /tmp            tmpfs   defaults,noatime    0       0
 tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 EOF_CAT
 else
+# Release
+chmod +x /usr/local/bin/mount_unionfs
+
 cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
@@ -118,6 +125,8 @@ cat <<- EOF_CAT > etc/fstab
 /dev/mmcblk0p1  /boot           vfat    ro,noatime          0       2
 tmpfs           /tmp            tmpfs   defaults,noatime    0       0
 tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
+mount_unionfs   /etc            fuse    defaults,noatime    0       0
+mount_unionfs   /var            fuse    defaults,noatime    0       0
 EOF_CAT
 fi
 
@@ -157,6 +166,10 @@ apt-get install -y nginx
 apt-get install -y build-essential python-dev
 apt-get install -y python-numpy
 apt-get install -y python-pip python-setuptools python-all-dev python-wheel
+
+if [ "$release" = true ]; then
+    apt-get install -y unionfs-fuse
+fi
 
 pip install --upgrade pip
 pip install https://github.com/Koheron/koheron-python/zipball/$koheron_python_branch
@@ -206,6 +219,13 @@ cp $config_dir/systemd/nginx.service $root_dir/etc/systemd/system/nginx.service
 
 rm $root_dir/etc/resolv.conf
 rm $root_dir/usr/bin/qemu-arm-static
+
+if [ "$release" = true ]; then
+    cp -al $root_dir/etc $root_dir/etc_org
+    mv $root_dir/var $root_dir/var_org
+    mkdir $root_dir/etc_rw
+    mkdir $root_dir/var $root_dir/var_rw
+fi
 
 # Unmount file systems
 
