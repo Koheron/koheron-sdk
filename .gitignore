@@ -8,6 +8,7 @@
 venv
 tmp
 .Xil
+.vscode
 
 # Jinja generated config files
 instruments/*/config.tcl
