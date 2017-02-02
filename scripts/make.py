@@ -164,6 +164,30 @@ def dump_if_has_changed(filename, new_dict):
 # Jinja
 ###################
 
+def get_renderer():
+    renderer = jinja2.Environment(
+      block_start_string = '{%',
+      block_end_string = '%}',
+      variable_start_string = '{{',
+      variable_end_string = '}}',
+      loader = jinja2.FileSystemLoader(os.path.abspath('.'))
+    )
+
+    def quote(list_):
+        return ['"%s"' % element for element in list_]
+
+    def remove_extension(filename):
+        toks = filename.split('.')
+        return toks[0]
+
+    def replace_KMG(string):
+        return string.replace('K', '*1024').replace('M', '*1024*1024').replace('G', '*1024*1024*1024')
+
+    renderer.filters['quote'] = quote
+    renderer.filters['remove_extension'] = remove_extension
+    renderer.filters['replace_KMG'] = replace_KMG
+    return renderer
+
 def fill_template(config, template_filename, output_filename):
     template = get_renderer().get_template(os.path.join('scripts/templates', template_filename))
     with open(output_filename, 'w') as output:
@@ -180,27 +204,6 @@ def fill_memory(config, drivers_dir):
 def fill_start_sh(config):
     output_filename = os.path.join('tmp', config['instrument'] + '.start.sh')
     fill_template(config, 'start.sh', output_filename)
-
-def get_renderer():
-    renderer = jinja2.Environment(
-      block_start_string = '{%',
-      block_end_string = '%}',
-      variable_start_string = '{{',
-      variable_end_string = '}}',
-      loader = jinja2.FileSystemLoader(os.path.abspath('.'))
-    )
-    def quote(list_):
-        return ['"%s"' % element for element in list_]
-    def remove_extension(filename):
-        toks = filename.split('.')
-        return toks[0]
-    def replace_KMG(string):
-        return string.replace('K', '*1024').replace('M', '*1024*1024').replace('G', '*1024*1024*1024')
-    renderer.filters['quote'] = quote
-    renderer.filters['remove_extension'] = remove_extension
-    renderer.filters['replace_KMG'] = replace_KMG
-
-    return renderer
 
 ###################
 # Test
