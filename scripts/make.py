@@ -25,12 +25,6 @@ def format_paths(paths, instrument_path):
             fmt_paths.append(path)
     return fmt_paths
 
-def get_parent_path(parent_filename):
-    if parent_filename == '<default>':
-        return 'instruments/default'
-    else:
-        return parent_filename
-
 def get_list(prop, instrument_path, prop_list=None):
     ''' Ex: Get the list of cores needed by the 'oscillo' instrument.
         list = get_list('cores', 'instruments/oscillo')
@@ -39,7 +33,7 @@ def get_list(prop, instrument_path, prop_list=None):
        prop_list = []
     config = load_config(instrument_path)
     if 'parent' in config and config['parent'] != None:
-        prop_list.extend(get_list(prop, get_parent_path(config['parent']), prop_list))
+        prop_list.extend(get_list(prop, config['parent'], prop_list))
     if prop in config:
         prop_list.extend(config[prop])
     # Ensure each item is only included once:
@@ -50,7 +44,7 @@ def get_prop(prop, instrument_path):
     config = load_config(instrument_path)
     if not prop in config:
         if 'parent' in config:
-            config[prop] = get_prop(prop, get_parent_path(config['parent']))
+            config[prop] = get_prop(prop, config['parent'])
         else:
             return None
     return config[prop]
@@ -78,9 +72,9 @@ def load_config(instrument_path):
 
 def parse_brackets(string):
     ''' ex: 'pwm', '4' = parse_brackets('pwm[4]') '''
-    start, end = map(lambda char : string.find(char), ('[',']'))
+    start, end = map(lambda char : string.find(char), ('[', ']'))
     if start >= 0 and end >= 0:
-        return string[0:start], string[start+1:end]
+        return string[0 : start], string[start + 1 : end]
     else:
         return string, '1'
 
@@ -91,11 +85,10 @@ def get_config(instrument_path):
     cfg = load_config(instrument_path)
 
     # Get missing elements from ancestors
-    lists = ['cores', 'xdc', 'modules']
-    for list_ in lists:
+    for list_ in ['cores', 'xdc', 'modules']:
         cfg[list_] = get_list(list_, instrument_path)
-    props = ['board', 'live_zip']
-    for prop in props:
+
+    for prop in ['board', 'live_zip']:
         cfg[prop] = get_prop(prop, instrument_path)
 
     params = cfg.get('parameters', {})
@@ -121,8 +114,7 @@ def get_config(instrument_path):
                 addr['prot_flag'] = 'PROT_WRITE'
 
     # Config and status registers
-    lists = ['config_registers', 'status_registers']
-    for list_ in lists:
+    for list_ in ['config_registers', 'status_registers']:
         new_list = []
         if cfg[list_] is not None:
             for string in cfg[list_]:
