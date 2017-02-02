@@ -33,13 +33,6 @@ def upgrade_app():
 def api_version():
     return jsonify(api_app.metadata)
 
-@api_app.route('/api/app/mode', methods=['GET'])
-def api_mode():
-    if api_app.config['IS_RELEASE']:
-        return make_response('release')
-    else:
-        return make_response('devel')
-
 # ------------------------
 # Static
 # ------------------------

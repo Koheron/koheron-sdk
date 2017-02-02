@@ -52,6 +52,7 @@ class KoheronAPIApp(Flask):
         self.metadata = {}
         with open('metadata.json', 'r') as f:
             self.metadata = json.load(f)
+        self.metadata['release'] = 'yes' if self.config['IS_RELEASE'] else 'no'
 
     def unzip_static(self):
         if os.path.exists('/tmp/static'):
