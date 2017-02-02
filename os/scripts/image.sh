@@ -11,11 +11,12 @@
 name=$1
 
 version=$(cat tmp/${name}.version)
-image=${name}-${version}.img
 
 if [ "$2" == "--release" ]; then
+  image=${name}-${version}-readonly.img
   release=true
 else
+  image=${name}-${version}.img
   release=false
 fi
 
