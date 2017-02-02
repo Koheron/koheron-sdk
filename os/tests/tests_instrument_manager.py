@@ -26,7 +26,7 @@ class TestsInstrumentManager:
         assert im.get_bitstream_id() == common.get_bitstream_id()
 
     def test_get_dna(self):
-        assert im.get_dna() == common.get_dna()
+        assert im.get_dna() == str(common.get_dna())
 
     def test_get_board_version(self):
         assert 'koheron-sdk' in im.get_board_version()

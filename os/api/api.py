@@ -82,7 +82,7 @@ def version():
 
 @api_app.route('/api/board/dna', methods=['GET'])
 def dna():
-    return make_response(api_app.common.get_dna())
+    return make_response(str(api_app.common.get_dna()))
 
 @api_app.route('/api/board/bitstream_id', methods=['GET'])
 def bitstream_id():
