@@ -3,7 +3,7 @@ name=$2
 version=$3
 release=$4
 
-koheron_python_branch=v0.12.0
+koheron_python_branch=v0.13.0-rc
 
 config_dir=os
 http_app_dir=tmp/app

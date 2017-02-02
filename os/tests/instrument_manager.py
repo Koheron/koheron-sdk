@@ -12,7 +12,7 @@ class InstrumentManager:
     def set_ip(self, ip):
         self.url = 'http://' + ip + ':' + str(self.port)
 
-    def get_bistream_id(self):
+    def get_bitstream_id(self):
         r = requests.get(self.url + '/api/board/bitstream_id')
         return r.text
 
