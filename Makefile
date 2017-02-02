@@ -109,7 +109,7 @@ BITSTREAM_ID = $(shell (printf $(NAME)-$(INSTRUMENT_SHA) | sha256sum | sed 's/\W
 
 # Web App
 
-WEB_APP_VERSION = 0.12.0
+WEB_APP_VERSION = 0.13.0
 WEB_APP_URL = https://s3.eu-central-1.amazonaws.com/koheron-sdk
 
 STATIC_URL = $(WEB_APP_URL)/$(WEB_APP_VERSION)-app.zip
