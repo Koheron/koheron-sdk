@@ -91,7 +91,7 @@ TCP_SERVER_DIR = $(TMP)/$(NAME).koheron-server
 TCP_SERVER = $(TCP_SERVER_BUILD)/kserverd
 DRIVERS_YML = $(TMP)/$(NAME).drivers.yml
 
-TCP_SERVER_VERSION = v0.13.0-rc
+TCP_SERVER_VERSION = v0.13.0
 TCP_SERVER_VENV = $(TMP)/koheron_server_venv
 PYTHON=$(TCP_SERVER_VENV)/bin/python
 
@@ -109,7 +109,7 @@ BITSTREAM_ID = $(shell (printf $(NAME)-$(INSTRUMENT_SHA) | sha256sum | sed 's/\W
 
 # Web App
 
-WEB_APP_VERSION = 0.13.0
+WEB_APP_VERSION = 0.13.1
 WEB_APP_URL = https://s3.eu-central-1.amazonaws.com/koheron-sdk
 
 STATIC_URL = $(WEB_APP_URL)/$(WEB_APP_VERSION)-app.zip
