@@ -28,12 +28,13 @@ class Spectrum(object):
     @command()
     def set_n_avg_min(self, n_avg_min): pass
 
-    def set_dac(self, data, channel):
-        @command()
-        def set_dac_buffer(self, channel, array):
+    def set_dac(self, channels=[0,1]):
+        @command(classname='Spectrum')
+        def set_dac_buffer(self, channel, data):
             pass
-        data = np.uint32(np.mod(np.floor(8192 * data) + 8192, 16384) + 8192)
-        set_dac_buffer(self, channel, data[::2] + (data[1::2] << 16))
+        for channel in channels:
+            data = np.int16(16384 * (self.dac[channel,:]))
+            set_dac_buffer(self, channel, np.uint32(data[1::2] + data[::2] * 65536))
 
     @command()
     def get_dac_buffer(self, channel):
