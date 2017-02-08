@@ -7,8 +7,6 @@ set elements [split $core_name _]
 set project_name test_[join [lrange $elements 0 end-2] _]
 set version [string trimleft [join [lrange $elements end-1 end] .] v]
 
-set cores_dir fpga/cores
-
 file delete -force \
   tmp/cores/$project_name \
   tmp/cores/$project_name.ip_user_files \
@@ -20,7 +18,7 @@ file delete -force \
 
 create_project -part $part_name $project_name tmp/cores
 
-add_files -norecurse [glob $cores_dir/$core_name/*.v]
+add_files -norecurse [glob $core_name/*.v]
 
 set_property -name {xsim.simulate.runtime} -value {100000ns} -objects [current_fileset -simset]
 

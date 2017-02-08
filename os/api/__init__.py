@@ -16,11 +16,31 @@ from koheron import KoheronClient, Common
 def log(severity, message):
     print("[" + severity + "] " + message)
 
+# http://stackoverflow.com/questions/28456349/python-check-if-linux-partition-is-read-only-or-read-write
+def is_mount_read_only(mnt):
+    with open('/proc/mounts') as f:
+        for line in f:
+            device, mount_point, filesystem, flags, __, __ = line.split()
+            flags = flags.split(',')
+            if mount_point == mnt:
+                return 'ro' in flags
+        # If it fails we run in release mode
+        return True
+
 class KoheronAPIApp(Flask):
     def __init__(self, *args, **kwargs):
         super(KoheronAPIApp, self).__init__(*args, **kwargs)
 
-        self.config['INSTRUMENTS_DIR'] = '/usr/local/instruments/'
+        if is_mount_read_only('/'):
+            log('info', 'Release mode')
+            self.config['IS_RELEASE'] = True
+        else:
+            log('info', 'Dev mode')
+            self.config['IS_RELEASE'] = False
+
+        self.config['INSTRUMENTS_DIR'] = '/tmp/instruments/'
+        self.config['INSTRUMENTS_STORAGE'] = '/usr/local/instruments/'
+
         self.instruments = {}
 
         self.load_metadata()
@@ -32,6 +52,7 @@ class KoheronAPIApp(Flask):
         self.metadata = {}
         with open('metadata.json', 'r') as f:
             self.metadata = json.load(f)
+        self.metadata['release'] = 'yes' if self.config['IS_RELEASE'] else 'no'
 
     def unzip_static(self):
         if os.path.exists('/tmp/static'):
@@ -51,13 +72,15 @@ class KoheronAPIApp(Flask):
     # ------------------------
 
     def start_client(self):
-        time.sleep(0.2) # To be sure server is up
         log('info', 'Connecting to server...')
-        self.client = KoheronClient('127.0.0.1')
+
+        try:
+            self.client = KoheronClient(unixsock='/var/run/koheron-server.sock')
+        except:
+            self.client.is_connected = False
 
         if self.client.is_connected:
             log('info', 'Connected to server')
-            time.sleep(0.2)
             self.common = Common(self.client)
             log('info', 'Common driver initialized')
             self.common.init()
@@ -111,8 +134,13 @@ class KoheronAPIApp(Flask):
         shutil.copy(zip_filename, self.config['INSTRUMENTS_DIR'])
 
     def delete_uploaded_instrument(self, zip_filename):
-        if os.path.exists(self.config['INSTRUMENTS_DIR']):
-            os.remove(os.path.join(self.config['INSTRUMENTS_DIR'], zip_filename))
+        instrum_tmp = os.path.join(self.config['INSTRUMENTS_DIR'], zip_filename)
+        if os.path.exists(instrum_tmp):
+            os.remove(instrum_tmp)
+
+        instrum_store = os.path.join(self.config['INSTRUMENTS_STORAGE'], zip_filename)
+        if os.path.exists(instrum_store):
+            os.remove(instrum_store)
 
     def install_instrument(self, zip_filename):
         if not os.path.exists(zip_filename):
@@ -134,7 +162,12 @@ class KoheronAPIApp(Flask):
                                 'sha': sha,
                                 'server_version': self.common.get_server_version()}
                                 
-        self.store_last_deployed_zip(zip_filename)
+        self.store_last_deployed_zip(zip_filename, self.config['INSTRUMENTS_DIR'])
+
+        if not self.config['IS_RELEASE']:
+            # We also store the instrument onto the SD card
+            self.store_last_deployed_zip(zip_filename, self.config['INSTRUMENTS_STORAGE'])
+
         return 'success' if self.is_bitstream_id_valid() else 'invalid_bitstream_id'
 
     def handle_instrument_install_failure(self):
@@ -157,11 +190,11 @@ class KoheronAPIApp(Flask):
             return False
         return True
 
-    def store_last_deployed_zip(self, zip_filename):
-        zip_store_filename = os.path.join(self.config['INSTRUMENTS_DIR'], os.path.basename(zip_filename))
+    def store_last_deployed_zip(self, zip_filename, dest):
+        zip_store_filename = os.path.join(dest, os.path.basename(zip_filename))
         if not os.path.exists(zip_store_filename):
-            shutil.copy(zip_filename, self.config['INSTRUMENTS_DIR'])
-        with open(os.path.join(self.config['INSTRUMENTS_DIR'], '.instruments'), 'w') as f:
+            shutil.copy(zip_filename, dest)
+        with open(os.path.join(dest, '.instruments'), 'w') as f:
             f.write('last_deployed: ' + zip_store_filename)
 
     def get_last_deployed_instrument(self):
@@ -215,8 +248,9 @@ class KoheronAPIApp(Flask):
         log('critical', 'No instrument found')
 
     def restore_backup(self):
-        backup_dir = os.path.join(self.config['INSTRUMENTS_DIR'], 'backup')
-        copy_tree(backup_dir, self.config['INSTRUMENTS_DIR'])
+        backup_dir = os.path.join(self.config['INSTRUMENTS_STORAGE'], 'backup')
+        copy_tree(backup_dir, self.config['INSTRUMENTS_STORAGE'])
+        copy_tree(self.config['INSTRUMENTS_STORAGE'], self.config['INSTRUMENTS_DIR'])
         return backup_dir
 
     def is_valid_instrument_file(self, filename):

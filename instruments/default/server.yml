@@ -23,3 +23,7 @@ debug:
 
 optimization_flags:
   - O3
+
+dependencies:
+  - drivers/context/spi_dev.cpp
+  - drivers/context/i2c_dev.cpp

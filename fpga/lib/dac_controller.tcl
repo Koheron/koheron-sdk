@@ -62,7 +62,8 @@ proc add_single_dac_controller {module_name memory_name dac_width {intercon_idx 
     web  [get_constant_pin 0 4]
     addrb [get_concat_pin [list \
             [get_constant_pin 0 2] \
-            [get_slice_pin addr [expr [get_memory_addr_width $memory_name] + 2] 3]]]
+            [get_slice_pin addr [expr [get_memory_addr_width $memory_name] + 2] 3] \
+            [get_constant_pin 0 [expr 32 - [get_pin_width addr] + 1]]]]
   }
 
   cell koheron:user:bus_multiplexer:1.0 mux {

@@ -1,11 +1,11 @@
 ---
 instrument: led_blinker
-parent: default
+parent: instruments/default
 board: red-pitaya
 
 cores:
-  - axi_cfg_register_v1_0
-  - axi_sts_register_v1_0
+  - fpga/cores/axi_cfg_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
 
 memory:
   - name: config
@@ -25,7 +25,7 @@ parameters:
   fclk0: 50000000 # FPGA clock speed in Hz
 
 xdc:
-  - instruments/led_blinker/constraints.xdc
+  - ./constraints.xdc
 
 # Drivers
 
@@ -35,4 +35,4 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - instruments/led_blinker/led_blinker.hpp
+    - ./led_blinker.hpp

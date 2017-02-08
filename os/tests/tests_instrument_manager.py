@@ -22,17 +22,17 @@ class TestsInstrumentManager:
     def test_get_server_version(self):
         assert im.get_server_version() == common.get_server_version()
 
-    def test_get_bistream_id(self):
-        assert im.get_bistream_id() == common.get_bitstream_id()
+    def test_get_bitstream_id(self):
+        assert im.get_bitstream_id() == common.get_bitstream_id()
 
     def test_get_dna(self):
-        assert im.get_dna() == common.get_dna()
+        assert im.get_dna() == str(common.get_dna())
 
     def test_get_board_version(self):
-        assert 'zynq-sdk' in im.get_board_version()
+        assert 'koheron-sdk' in im.get_board_version()
 
     def test_remove_and_restore(self):
-        """ Removes all local instruments and restore backup"""
+        ''' Removes all local instruments and restore backup '''
         local_instruments = im.get_local_instruments()
 
         for instrum in local_instruments:

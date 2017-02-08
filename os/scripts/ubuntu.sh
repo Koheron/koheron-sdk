@@ -1,14 +1,15 @@
 device=$1
 name=$2
 version=$3
+release=$4
 
-koheron_python_branch=v0.12.0
+koheron_python_branch=v0.13.0
 
 config_dir=os
 http_app_dir=tmp/app
 
-boot_dir=/tmp/BOOT
-root_dir=/tmp/ROOT
+boot_dir=`mktemp -d /tmp/BOOT.XXXXXXXXXX`
+root_dir=`mktemp -d /tmp/ROOT.XXXXXXXXXX`
 
 ubuntu_version=16.04.1
 root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
@@ -32,8 +33,6 @@ mkfs.vfat -v $boot_dev
 mkfs.ext4 -F -j $root_dev
 
 # Mount file systems
-
-mkdir -p $boot_dir $root_dir
 
 mount $boot_dev $boot_dir
 mount $root_dev $root_dir
@@ -60,7 +59,6 @@ cp fw_printenv $root_dir/usr/local/bin/fw_setenv
 
 # Add Web app
 mkdir $root_dir/usr/local/flask
-mkdir $root_dir/usr/local/flask
 cp -a $http_app_dir/. $root_dir/usr/local/flask
 cp $config_dir/wsgi.py $root_dir/usr/local/flask
 unzip -o tmp/static.zip -d $root_dir/var/www
@@ -69,7 +67,6 @@ unzip -o tmp/static.zip -d $root_dir/var/www
 mkdir $root_dir/usr/local/koheron-server
 cp tmp/${name}.server.build/kserverd $root_dir/usr/local/koheron-server
 cp $config_dir/koheron-server.conf $root_dir/usr/local/koheron-server
-cp tmp/${name}.koheron-server/VERSION $root_dir/usr/local/koheron-server
 cp $config_dir/systemd/koheron-server.service $root_dir/etc/systemd/system/koheron-server.service
 cp $config_dir/systemd/koheron-server-init.service $root_dir/etc/systemd/system/koheron-server-init.service
 
@@ -85,6 +82,10 @@ echo "last_deployed: /usr/local/instruments/${name}-${version}.zip" > $root_dir/
 # Copy all available instruments in backup directory
 mkdir $root_dir/usr/local/instruments/backup
 cp tmp/*-${version}.zip $root_dir/usr/local/instruments/backup
+
+if [ "$release" = true ]; then
+    cp $config_dir/scripts/mount_unionfs $root_dir/usr/local/bin/mount_unionfs
+fi
 
 chroot $root_dir <<- EOF_CHROOT
 export LANG=C
@@ -104,16 +105,32 @@ APT::Install-Recommends "0";
 APT::Install-Suggests "0";
 EOF_CAT
 
+if [ "$release" = false ]; then
 cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
-/dev/mmcblk0p2  /               ext4    errors=remount-ro   0       1
-/dev/mmcblk0p1  /boot           vfat    defaults            0       2
-tmpfs           /tmp            tmpfs   defaults            0       0
+/dev/mmcblk0p2  /               ext4    rw,noatime          0       1
+/dev/mmcblk0p1  /boot           vfat    ro,noatime          0       2
+tmpfs           /tmp            tmpfs   defaults,noatime    0       0
+tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 EOF_CAT
+else
+# Release
+chmod +x /usr/local/bin/mount_unionfs
+
+cat <<- EOF_CAT > etc/fstab
+# /etc/fstab: static file system information.
+# <file system> <mount point>   <type>  <options>           <dump>  <pass>
+/dev/mmcblk0p2  /               ext4    ro,noatime          0       1
+/dev/mmcblk0p1  /boot           vfat    ro,noatime          0       2
+tmpfs           /tmp            tmpfs   defaults,noatime    0       0
+tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
+mount_unionfs   /etc            fuse    defaults,noatime    0       0
+mount_unionfs   /var            fuse    defaults,noatime    0       0
+EOF_CAT
+fi
 
 cat <<- EOF_CAT >> etc/securetty
-
 # Serial Console for Xilinx Zynq-7000
 ttyPS0
 EOF_CAT
@@ -149,6 +166,10 @@ apt-get install -y nginx
 apt-get install -y build-essential python-dev
 apt-get install -y python-numpy
 apt-get install -y python-pip python-setuptools python-all-dev python-wheel
+
+if [ "$release" = true ]; then
+    apt-get install -y unionfs-fuse
+fi
 
 pip install --upgrade pip
 pip install https://github.com/Koheron/koheron-python/zipball/$koheron_python_branch
@@ -193,14 +214,23 @@ EOF_CHROOT
 # nginx
 rm $root_dir/etc/nginx/sites-enabled/default
 cp $config_dir/nginx.conf $root_dir/etc/nginx/nginx.conf
-cp $config_dir/flask-uwsgi $root_dir/etc/nginx/sites-enabled/flask-uwsgi
+cp $config_dir/nginx-server.conf $root_dir/etc/nginx/sites-enabled/nginx-server.conf
 cp $config_dir/systemd/nginx.service $root_dir/etc/systemd/system/nginx.service
 
 rm $root_dir/etc/resolv.conf
 rm $root_dir/usr/bin/qemu-arm-static
+
+if [ "$release" = true ]; then
+    cp -al $root_dir/etc $root_dir/etc_org
+    mv $root_dir/var $root_dir/var_org
+    mkdir $root_dir/etc_rw
+    mkdir $root_dir/var $root_dir/var_rw
+fi
 
 # Unmount file systems
 
 umount $boot_dir $root_dir
 
 rmdir $boot_dir $root_dir
+
+zerofree $root_dev

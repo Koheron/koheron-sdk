@@ -1,7 +1,7 @@
 ---
 instrument: spectrum
 board: red-pitaya
-parent: oscillo
+parent: instruments/oscillo
 
 # ------------------------------------------------------------
 # Memory
@@ -83,10 +83,10 @@ parameters:
 # ------------------------------------------------------------
 
 modules:
-  - address
-  - averager
-  - spectrum
-  - peak_detector
+  - fpga/modules/address
+  - fpga/modules/averager
+  - fpga/modules/spectrum
+  - fpga/modules/peak_detector
 
 # ------------------------------------------------------------
 # Drivers
@@ -98,12 +98,11 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - drivers/gpio/gpio.hpp
-    - drivers/xadc/xadc.hpp
-    - drivers/laser/laser.hpp
-    - instruments/spectrum/spectrum.hpp
-    - drivers/eeprom/eeprom.hpp
-    - drivers/test_memory/test_memory.hpp
+    - drivers/gpio.hpp
+    - drivers/xadc.hpp
+    - ./../oscillo/drivers/laser/laser.hpp
+    - ./spectrum.hpp
+    - ./../oscillo/drivers/eeprom/eeprom.hpp
 
 # ------------------------------------------------------------
 # Misc

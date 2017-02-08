@@ -1,13 +1,13 @@
 ---
 instrument: decimator
-parent: default
+parent: instruments/default
 board: red-pitaya
 
 cores:
-  - redp_adc_v1_0
-  - redp_dac_v1_0
-  - axi_cfg_register_v1_0
-  - axi_sts_register_v1_0
+  - fpga/cores/redp_adc_v1_0
+  - fpga/cores/redp_dac_v1_0
+  - fpga/cores/axi_cfg_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
 
 memory:
   - name: config
@@ -50,4 +50,4 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - instruments/decimator/decimator.hpp
+    - ./decimator.hpp

@@ -16,6 +16,9 @@ api_app.config['UPLOAD_FOLDER'] = '/tmp'
 
 @api_app.route('/api/app/update', methods=['POST'])
 def upgrade_app():
+    if api_app.config['IS_RELEASE']:
+        return make_response('Release system. HTTP app upgrade not available.')
+
     if request.method == 'POST':
         file_ = next((file_ for file_ in request.files if api_app.is_valid_app_file(file_)), None)
         if file_ is not None:
@@ -36,6 +39,9 @@ def api_version():
 
 @api_app.route('/api/static/upload', methods=['POST'])
 def upload_static():
+    if api_app.config['IS_RELEASE']:
+        return make_response('Release system. Static upload not available.')
+
     if request.method == 'POST':
         file_ = next((file_ for file_ in request.files if api_app.is_zip_file(file_)), None)
         if file_ is not None:
@@ -47,6 +53,9 @@ def upload_static():
 
 @api_app.route('/api/static/live/upload', methods=['POST'])
 def upload_live_static():
+    if api_app.config['IS_RELEASE']:
+        return make_response('Release system. Live instrument static upload not available.')
+
     if request.method == 'POST':
         file_ = next((file_ for file_ in request.files if api_app.is_zip_file(file_)), None)
         if file_ is not None:
@@ -59,6 +68,7 @@ def upload_live_static():
 # Board
 # ------------------------
 
+# XXX Do we still need this route ?
 @api_app.route('/api/board/reboot', methods=['GET'])
 def reboot():
     subprocess.call(['/sbin/reboot'])
@@ -72,7 +82,7 @@ def version():
 
 @api_app.route('/api/board/dna', methods=['GET'])
 def dna():
-    return make_response(api_app.common.get_dna())
+    return make_response(str(api_app.common.get_dna()))
 
 @api_app.route('/api/board/bitstream_id', methods=['GET'])
 def bitstream_id():
@@ -83,6 +93,7 @@ def ping():
     api_app.ping()
     return make_response("Done !!")
 
+# XXX Do we still need this route ?
 @api_app.route('/api/board/init', methods=['GET'])
 def init():
     api_app.init()
@@ -107,11 +118,12 @@ def run_instrument(name, sha):
 
 @api_app.route('/api/instruments/delete/<name>/<sha>', methods=['GET'])
 def delete_instrument(name, sha):
-    zip_filename = '{}-{}.zip'.format(name, sha)
-    filename = secure_filename(zip_filename)
-    api_app.delete_uploaded_instrument(filename)
-    api_app.remove_instrument_from_list(filename)
-    return make_response('File ' + zip_filename + ' removed.')
+    if not api_app.config['IS_RELEASE']:
+        zip_filename = '{}-{}.zip'.format(name, sha)
+        filename = secure_filename(zip_filename)
+        api_app.delete_uploaded_instrument(filename)
+        api_app.remove_instrument_from_list(filename)
+        return make_response('File ' + zip_filename + ' removed.')
 
 @api_app.route('/api/instruments/upload', methods=['POST'])
 def upload_instrument():
@@ -136,6 +148,7 @@ def get_live_instrument():
 
 @api_app.route('/api/instruments/restore', methods=['GET'])
 def restore_backup_instruments():
-    api_app.restore_backup()
-    api_app.get_instruments()
-    return make_response('Backup instruments restored.')
+    if not api_app.config['IS_RELEASE']:
+        api_app.restore_backup()
+        api_app.get_instruments()
+        return make_response('Backup instruments restored.')

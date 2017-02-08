@@ -1,19 +1,22 @@
 ---
 instrument: oscillo
-parent: default
+parent: instruments/default
 board: red-pitaya
-
-cores:
-  - redp_adc_v1_0
-  - redp_dac_v1_0
-  - pdm_v1_0
-  - bus_multiplexer_v1_0
-  - at93c46d_spi_v1_0
-  - latched_mux_v1_0
 
 # ------------------------------------------------------------
 # Memory
 # ------------------------------------------------------------
+
+parameters:
+  fclk0: 200000000
+  fclk1: 200000000
+  dac_width: 14
+  adc_width: 14
+  pwm_width: 12
+  n_pwm: 4
+  n_dac_bram: 3
+  n_dac: 2
+  n_adc: 2
 
 memory:
   - name: config
@@ -35,9 +38,6 @@ memory:
   - name: xadc
     offset: '0x43C00000'
     range: 64K
-  - name: rambuf
-    offset: '0x1E000000'
-    range: 8M
 
 config_registers:
   - spi_in
@@ -60,29 +60,26 @@ status_registers:
   - avg_on_out[n_adc]
   - counter[2]
 
-parameters:
-  fclk0: 200000000
-  fclk1: 200000000
-  dac_width: 14
-  adc_width: 14
-  pwm_width: 12
-  n_pwm: 4
-  n_dac_bram: 3
-  n_dac: 2
-  n_adc: 2
-
 # ------------------------------------------------------------
 # FPGA
 # ------------------------------------------------------------
 
 modules:
-  - address
-  - averager
+  - fpga/modules/address
+  - fpga/modules/averager
+
+cores:
+  - fpga/cores/redp_adc_v1_0
+  - fpga/cores/redp_dac_v1_0
+  - fpga/cores/pdm_v1_0
+  - fpga/cores/bus_multiplexer_v1_0
+  - ./at93c46d_spi_v1_0
+  - fpga/cores/latched_mux_v1_0
 
 xdc:
   - boards/red-pitaya/config/ports.xdc
   - boards/red-pitaya/config/clocks.xdc
-  - instruments/oscillo/expansion_connector.xdc
+  - ./expansion_connector.xdc
 
 # ------------------------------------------------------------
 # Drivers
@@ -94,17 +91,11 @@ server:
     - instruments/default/drivers.yml
 
   drivers:
-    - drivers/gpio/gpio.hpp
-    - drivers/xadc/xadc.hpp
-    - drivers/laser/laser.hpp
-    - instruments/oscillo/drivers/oscillo.hpp
-    - instruments/oscillo/drivers/speed_test.hpp
-    - drivers/eeprom/eeprom.hpp
-    - drivers/spi/spi.hpp
-    - drivers/test_memory/test_memory.hpp
-
-  dependencies:
-    - drivers/lib/spi_dev.cpp
+    - drivers/gpio.hpp
+    - drivers/xadc.hpp
+    - ./drivers/laser/laser.hpp
+    - ./drivers/oscillo.hpp
+    - ./drivers/eeprom/eeprom.hpp
 
 # ------------------------------------------------------------
 # Misc

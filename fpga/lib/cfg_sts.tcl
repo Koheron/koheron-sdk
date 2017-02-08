@@ -124,17 +124,36 @@ proc add_status_register {module_name memory_name mclk mrstn {num_ports 32} {int
     aresetn /$mrstn
   }
 
-  cell xilinx.com:ip:xlconcat:2.1 concat_0 {
-    NUM_PORTS $num_ports
+  set left_ports $num_ports
+  set concat_idx 0
+  
+  # Use multiple concats because Xilinx IP does not allow num_ports > 32
+  set concat_num [expr $num_ports / 32 + 1]
+  # Concat the multiple concat blocks
+  cell xilinx.com:ip:xlconcat:2.1 concat_concat {
+    NUM_PORTS $concat_num
   } {
     dout axi_sts_register_0/sts_data
-    In[expr $sha_size+0] [get_slice_pin dna/dna_data 31 0]
-    In[expr $sha_size+1] [get_slice_pin dna/dna_data 56 32]
+  }
+  
+  while {$left_ports > 0} {
+    set concat_num_ports [expr min($left_ports, 32)]
+
+    cell xilinx.com:ip:xlconcat:2.1 concat_$concat_idx {
+      NUM_PORTS $concat_num_ports
+    } {
+      dout concat_concat/In$concat_idx
+    }
+    set_property -dict [list CONFIG.IN${concat_idx}_WIDTH [expr $concat_num_ports * 32]] [get_bd_cells concat_concat]
+    for {set i 0} {$i < $num_ports} {incr i} {
+      set_property -dict [list CONFIG.IN${i}_WIDTH 32] [get_bd_cells concat_$concat_idx]
+    }
+    set left_ports [expr $left_ports - $concat_num_ports]
+    incr concat_idx
   }
 
-  for {set i 0} {$i < $num_ports} {incr i} {
-    set_property -dict [list CONFIG.IN${i}_WIDTH 32] [get_bd_cells concat_0]
-  }
+  connect_pins concat_0/In[expr $sha_size+0] [get_slice_pin dna/dna_data 31 0]
+  connect_pins concat_0/In[expr $sha_size+1] [get_slice_pin dna/dna_data 56 32]
 
   # SHA (hidden_ports)
   for {set i 0} {$i < $sha_size} {incr i} {
@@ -143,7 +162,9 @@ proc add_status_register {module_name memory_name mclk mrstn {num_ports 32} {int
 
   # Other ports
   for {set i $n_hidden_ports} {$i < $num_ports} {incr i} {
-    connect_pins concat_0/In$i $config::sts_register($i)
+    set iidx [expr $i % 32]
+    set cidx [expr $i / 32]
+    connect_pins concat_$cidx/In$iidx $config::sts_register($i)
   }
 
   current_bd_instance $bd

@@ -5,7 +5,6 @@ import os
 import jinja2
 import yaml
 import sys
-import shutil
 import time
 import socket
 import getpass
@@ -14,60 +13,85 @@ import requests
 import zipfile
 import StringIO
 
-def get_list(instrument, prop, instrument_path='instruments', prop_list=None):
-    """ Ex: Get the list of cores needed by the 'oscillo' instrument.
-    list = get_list('oscillo', 'cores')
-    """
+def format_paths(paths, instrument_path):
+    ''' If a path starts with './' then it is relative to the instrument path,
+        that is the folder containing the ins instrument 'config.yml'
+    '''
+    fmt_paths = []
+    for path in paths:
+        if path.startswith('./'):
+            fmt_paths.append(os.path.join(instrument_path, path))
+        else:
+            fmt_paths.append(path)
+    return fmt_paths
+
+def get_list(prop, instrument_path, prop_list=None):
+    ''' Ex: Get the list of cores needed by the 'oscillo' instrument.
+        list = get_list('cores', 'instruments/oscillo')
+    '''
     if prop_list is None: 
        prop_list = []
-    config = load_config(os.path.join(instrument_path, instrument))
+    config = load_config(instrument_path)
     if 'parent' in config and config['parent'] != None:
-        prop_list.extend(get_list(config['parent'], prop, instrument_path, prop_list))
+        prop_list.extend(get_list(prop, config['parent'], prop_list))
     if prop in config:
         prop_list.extend(config[prop])
     # Ensure each item is only included once:
     prop_list = list(set(prop_list))
     return prop_list
 
-def get_prop(instrument, prop, instrument_path='instruments'):
-    config = load_config(os.path.join(instrument_path, instrument))
+def get_prop(prop, instrument_path):
+    config = load_config(instrument_path)
     if not prop in config:
         if 'parent' in config:
-            config[prop] = get_prop(config['parent'], prop, instrument_path)
+            config[prop] = get_prop(prop, config['parent'])
         else:
             return None
     return config[prop]
 
-def load_config(instrument_dir):
-    """ Get the config dictionary from the file 'config.yml'. """
-    config_filename = os.path.join(instrument_dir, 'config.yml')
-    with open(config_filename) as config_file:
-        config = yaml.load(config_file)
-    return config
+def load_config(instrument_path):
+    ''' Get the config dictionary from the file 'config.yml' '''
+    config_filename = os.path.join(instrument_path, 'config.yml')
+    with open(config_filename) as f:
+        cfg = yaml.load(f)
+
+    if 'parent' in cfg:
+        cfg['parent'] = format_paths([cfg['parent']], instrument_path)[0]
+
+    for field in ['modules', 'cores', 'xdc']:
+        if field in cfg:
+            cfg[field] = format_paths(cfg[field], instrument_path)
+
+    if 'server' in cfg:
+        if 'includes' in cfg['server']:
+            cfg['server']['includes'] = format_paths(cfg['server']['includes'], instrument_path)
+        if 'drivers' in cfg['server']:
+            cfg['server']['drivers'] = format_paths(cfg['server']['drivers'], instrument_path)
+
+    return cfg
 
 def parse_brackets(string):
-    """ ex: 'pwm', '4' = parse_brackets('pwm[4]') """
-    start, end = map(lambda char : string.find(char), ('[',']'))
+    ''' ex: 'pwm', '4' = parse_brackets('pwm[4]') '''
+    start, end = map(lambda char : string.find(char), ('[', ']'))
     if start >= 0 and end >= 0:
-        return string[0:start], string[start+1:end]
+        return string[0 : start], string[start + 1 : end]
     else:
         return string, '1'
 
-def get_config(instrument, instrument_path='instruments'):
-    """ Get the config dictionary recursively. 
-    ex: config = get_config('oscillo')
-    """
-    cfg = load_config(os.path.join(instrument_path, instrument))
+def get_config(instrument_path):
+    ''' Build the config dictionary recursively.
+        ex: config = get_config('instruments/oscillo')
+    '''
+    cfg = load_config(instrument_path)
 
     # Get missing elements from ancestors
-    lists = ['cores','xdc','modules']
-    for list_ in lists:
-        cfg[list_] = get_list(instrument, list_, instrument_path=instrument_path)
-    props = ['board', 'live_zip']
-    for prop in props:
-        cfg[prop] = get_prop(instrument, prop, instrument_path=instrument_path)
+    for list_ in ['cores', 'xdc', 'modules']:
+        cfg[list_] = get_list(list_, instrument_path)
 
-    params = cfg['parameters']
+    for prop in ['board', 'live_zip']:
+        cfg[prop] = get_prop(prop, instrument_path)
+
+    params = cfg.get('parameters', {})
 
     # memory
     if 'memory' in cfg:
@@ -90,8 +114,7 @@ def get_config(instrument, instrument_path='instruments'):
                 addr['prot_flag'] = 'PROT_WRITE'
 
     # Config and status registers
-    lists = ['config_registers','status_registers']
-    for list_ in lists:
+    for list_ in ['config_registers', 'status_registers']:
         new_list = []
         if cfg[list_] is not None:
             for string in cfg[list_]:
@@ -110,12 +133,12 @@ def get_config(instrument, instrument_path='instruments'):
 
     # Modules
     for module in cfg['modules']:
-        module_cfg = get_config(module, 'fpga/modules')
+        module_cfg = get_config(module)
         cfg['cores'].extend(module_cfg['cores'])
         cfg['cores'] = list(set(cfg['cores']))
     
     # SHA
-    sha_filename = os.path.join('tmp', instrument + '.sha')
+    sha_filename = os.path.join('tmp', cfg['instrument'] + '.sha')
     if os.path.isfile(sha_filename):
         with open(sha_filename) as sha_file:
             sha = sha_file.read()
@@ -141,23 +164,6 @@ def dump_if_has_changed(filename, new_dict):
 # Jinja
 ###################
 
-def fill_template(config, template_filename, output_filename):
-    template = get_renderer().get_template(os.path.join('scripts/templates', template_filename))
-    with open(output_filename, 'w') as output:
-        output.write(template.render(dic=config))
-
-def fill_config_tcl(config):
-    output_filename = os.path.join('tmp', config['instrument']+'.config.tcl')
-    fill_template(config, 'config.tcl', output_filename)
-
-def fill_memory(config, drivers_dir):
-    output_filename = os.path.join(drivers_dir, 'memory.hpp')
-    fill_template(config, 'memory.hpp', output_filename)
-
-def fill_start_sh(config):
-    output_filename = os.path.join('tmp', config['instrument']+'.start.sh')
-    fill_template(config, 'start.sh', output_filename)
-
 def get_renderer():
     renderer = jinja2.Environment(
       block_start_string = '{%',
@@ -166,32 +172,52 @@ def get_renderer():
       variable_end_string = '}}',
       loader = jinja2.FileSystemLoader(os.path.abspath('.'))
     )
+
     def quote(list_):
         return ['"%s"' % element for element in list_]
+
     def remove_extension(filename):
         toks = filename.split('.')
         return toks[0]
+
     def replace_KMG(string):
-        return string.replace('K','*1024').replace('M','*1024*1024').replace('G','*1024*1024*1024')
+        return string.replace('K', '*1024').replace('M', '*1024*1024').replace('G', '*1024*1024*1024')
+
     renderer.filters['quote'] = quote
     renderer.filters['remove_extension'] = remove_extension
     renderer.filters['replace_KMG'] = replace_KMG
-
     return renderer
+
+def fill_template(config, template_filename, output_filename):
+    template = get_renderer().get_template(os.path.join('scripts/templates', template_filename))
+    with open(output_filename, 'w') as output:
+        output.write(template.render(dic=config))
+
+def fill_config_tcl(config):
+    output_filename = os.path.join('tmp', config['instrument'] + '.config.tcl')
+    fill_template(config, 'config.tcl', output_filename)
+
+def fill_memory(config, drivers_dir):
+    output_filename = os.path.join(drivers_dir, 'memory.hpp')
+    fill_template(config, 'memory.hpp', output_filename)
+
+def fill_start_sh(config):
+    output_filename = os.path.join('tmp', config['instrument'] + '.start.sh')
+    fill_template(config, 'start.sh', output_filename)
 
 ###################
 # Test
 ###################
 
 # Remove numbers from string
-strip_num = lambda string:''.join([char for char in string if char not in "0123456789"])
+strip_num = lambda string: ''.join([char for char in string if char not in '0123456789'])
 
 def test_module_consistency(instrument):
-    """ Check that the modules registers are defined in the instrument config.yml."""
+    ''' Check that the modules registers are defined in the instrument config.yml '''
     cfg = get_config(instrument)
     props = ['config_registers', 'status_registers']
     for module in cfg['modules']:
-        module_cfg = get_config(module, 'fpga/modules')
+        module_cfg = get_config(module)
         for prop in props:
             a = module_cfg[prop]
             a = a if a is not None else []
@@ -199,10 +225,10 @@ def test_module_consistency(instrument):
             assert set(a).issubset(b)
 
 def test_core_consistency(instrument):
-    """ Check that the modules cores are defined in the instrument config.yml."""
+    ''' Check that the modules cores are defined in the instrument config.yml '''
     cfg = get_config(instrument)
     for module in cfg['modules']:
-        module_cfg = get_config(module, 'fpga/modules')
+        module_cfg = get_config(module)
         assert set(module_cfg['cores']).issubset(cfg['cores'])
 
 def print_config(instrument):
@@ -225,81 +251,72 @@ if __name__ == "__main__":
     sys.setdefaultencoding('utf-8')
 
     if cmd == '--test':
-        instruments = ['led_blinker', 'adc_dac', 'oscillo', 'spectrum']
-        for instrument in instruments:
+        for instrument in sys.argv[2:]:
             print_config(instrument)
             test_module_consistency(instrument)
             test_core_consistency(instrument)
 
     elif cmd == '--split_config_yml':
-        instrument = sys.argv[2]
-        cfg = load_config(os.path.join(sys.argv[3], instrument))
-        dump_if_has_changed(os.path.join('tmp', instrument + '.drivers.yml'), cfg.get('server'))
+        cfg = load_config(sys.argv[2])
+        dump_if_has_changed(os.path.join('tmp', cfg['instrument'] + '.drivers.yml'), cfg.get('server'))
 
         cfg.pop('server', None)
-        dump_if_has_changed(os.path.join('tmp', instrument + '.config.yml'), cfg)
+        dump_if_has_changed(os.path.join('tmp', cfg['instrument'] + '.config.yml'), cfg)
 
     elif cmd == '--config_tcl':
-        config = get_config(sys.argv[2], sys.argv[3])
+        config = get_config(sys.argv[2])
         assert('sha0' in config['parameters'])
         fill_config_tcl(config)
 
     elif cmd == '--start_sh':
-        config = get_config(sys.argv[2], sys.argv[3])
-        fill_start_sh(config)
+        fill_start_sh(get_config(sys.argv[2]))
 
     elif cmd == '--cores':
-        instrument = sys.argv[2]
-        config = get_config(instrument, instrument_path=sys.argv[3])
-        cores_filename = os.path.join('tmp', instrument + '.cores')
+        config = get_config(sys.argv[2])
+        cores_filename = os.path.join('tmp', config['instrument'] + '.cores')
         with open(cores_filename, 'w') as f:
             f.write(' '.join(config['cores']))
 
     elif cmd == '--board':
-        instrument = sys.argv[2]
-        config = get_config(instrument, instrument_path=sys.argv[3])
-        board_filename = os.path.join('tmp', instrument + '.board')
+        config = get_config(sys.argv[2])
+        board_filename = os.path.join('tmp', config['instrument'] + '.board')
         with open(board_filename, 'w') as f:
             f.write(config['board'])
 
     elif cmd == '--drivers':
-        instrument = sys.argv[2]
-        instrument_path = sys.argv[3]
-        drivers_filename = os.path.join(instrument_path, instrument, 'config.yml')
-
-        with open(drivers_filename) as drivers_file:
-            drivers_dict = yaml.load(drivers_file) or {}
-            drivers = drivers_dict.get('server', {})
+        cfg = load_config(sys.argv[2])
+        drivers = cfg.get('server', {})
 
         for include_filename in drivers.get('includes', []):
             with open(include_filename) as include_file:
-                for key, value in yaml.load(include_file).iteritems():
+                inc_dict = yaml.load(include_file)
+                if 'drivers' in inc_dict:
+                    inc_dict['drivers'] = format_paths(inc_dict['drivers'],
+                                            os.path.dirname(include_filename))
+                for key, value in inc_dict.iteritems():
                     drivers.get(key, []).extend(value)
 
-        with open(os.path.join('tmp', instrument + '.drivers'), 'w') as f:
+        with open(os.path.join('tmp', cfg['instrument'] + '.drivers'), 'w') as f:
             f.write((' '.join(drivers['drivers'])) if ('drivers' in drivers) else '')
 
     elif cmd == '--xdc':
-        instrument = sys.argv[2]
-        config = get_config(instrument, instrument_path=sys.argv[3])
-        xdc_filename = os.path.join('tmp', instrument + '.xdc')
+        config = get_config(sys.argv[2])
+        xdc_filename = os.path.join('tmp', config['instrument'] + '.xdc')
         with open(xdc_filename, 'w') as f:
             f.write(' '.join(config['xdc']))
 
     elif cmd == '--live_zip':
-        instrument = sys.argv[2]
-        version = sys.argv[4]
-        s3_url = sys.argv[5]
-        config = get_config(instrument, instrument_path=sys.argv[3])
-        zip_url = s3_url + '/' + version + '-' + config['live_zip']
+        version = sys.argv[3]
+        s3_url = sys.argv[4]
+        config = get_config(sys.argv[2])
+        zip_url = '{}/{}-{}'.format(s3_url, version, config['live_zip'])
         r = requests.get(zip_url, stream=True)
         z = zipfile.ZipFile(StringIO.StringIO(r.content))
-        z.extractall('tmp/%s.live' % instrument)
+        z.extractall('tmp/%s.live' % config['instrument'])
 
     elif cmd == '--middleware':
-        instrument = sys.argv[2]
-        config = get_config(instrument, instrument_path=sys.argv[3])
-        dest =  'tmp/' + instrument + '.server.build/drivers'
+        config = get_config(sys.argv[2])
+        dest =  'tmp/' + config['instrument'] + '.server.build'
         if not os.path.exists(dest):
             os.makedirs(dest)
         fill_memory(config, dest)
@@ -308,7 +325,7 @@ if __name__ == "__main__":
 
     elif cmd == '--metadata':
         metadata = {
-          'version': sys.argv[3],
+          'version': sys.argv[2],
           'date': time.strftime("%d/%m/%Y"),
           'time': time.strftime("%H:%M:%S"),
           'machine': socket.gethostname(),

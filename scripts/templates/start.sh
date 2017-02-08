@@ -16,11 +16,3 @@ set_fclk () {
 set_fclk {{ clk }} {{ dic['parameters'][clk] }}
 {% endif -%}
 {% endfor %}
-
-echo 'Load bitstream'
-/bin/cat /tmp/instrument/${CURRENT_INSTRUMENT}.bit > /dev/xdevcfg
-/bin/cat /sys/bus/platform/drivers/xdevcfg/f8007000.devcfg/prog_done
-
-echo 'Restart koheron-server'
-/bin/cp -f /tmp/instrument/kserverd /usr/local/koheron-server/kserverd
-/bin/systemctl start koheron-server.service
