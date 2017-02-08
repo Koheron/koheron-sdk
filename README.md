@@ -79,12 +79,12 @@ $ make NAME=oscillo
 
 Test a verilog core:
 ```
-$ make CORE=comparator_v1_0 test_core
+$ make CORE=fpga/cores/comparator_v1_0 test_core
 ```
 
 Test a Tcl module:
 ```
-$ make NAME=averager INSTRUMENT_PATH=fpga/modules test_module
+$ make IPATH=fpga/modules/averager test_module
 ```
 
 
