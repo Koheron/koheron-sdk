@@ -1,4 +1,3 @@
-Jinja2==2.7.3
-PyYAML==3.11
-requests==2.11.1
-koheron==0.12.0
+Jinja2==2.9.5
+PyYAML==3.12
+koheron==0.13.0
