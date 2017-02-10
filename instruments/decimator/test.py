@@ -3,7 +3,7 @@
 
 import numpy as np
 import matplotlib
-matplotlib.use('GTKAgg')
+matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
 import os
 import time
@@ -30,7 +30,7 @@ fig.canvas.draw()
 while True:
     try:
         data = driver.read_adc()
-        print driver.get_fifo_length()
+        print(driver.get_fifo_length())
         li.set_ydata(data)
         fig.canvas.draw()
         plt.pause(0.001)
