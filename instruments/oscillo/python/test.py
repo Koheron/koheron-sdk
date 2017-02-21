@@ -31,14 +31,14 @@ class TestsOscillo:
 
     def test_set_dac(self):
         data_send = np.arange(oscillo.wfm_size, dtype='uint32')
-	oscillo.dac[0, :] = data_send
-	oscillo.dac[1, :] = data_send
+        oscillo.dac[0, :] = data_send
+        oscillo.dac[1, :] = data_send
         oscillo.set_dac([0,1])
         data_read = oscillo.get_dac_buffer(1)
         data_tmp = np.uint32(np.mod(np.floor(8192 * data_send) + 8192, 16384) + 8192)
         data_read_expect = data_tmp[::2] + (data_tmp[1::2] << 16)
         assert np.array_equal(data_read, data_read_expect)
-	assert np.array_equal(oscillo.get_dac_buffer(0), oscillo.get_dac_buffer(1))
+        assert np.array_equal(oscillo.get_dac_buffer(0), oscillo.get_dac_buffer(1))
 
     def test_set_dac_float(self):
         data_send = np.float32(np.sin(np.arange(oscillo.wfm_size)))
