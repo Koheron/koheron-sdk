@@ -15,6 +15,8 @@ else
 NAME = $(shell basename "$(patsubst %/,%,$(IPATH))")
 endif
 
+MODE = production
+
 ###############################################################################
 # Get the instrument configuration
 # MAKE_PY script parses the properties defined CONFIG_YML
@@ -161,7 +163,7 @@ help:
 
 # Run Vivado interactively and build block design
 bd: $(CONFIG_TCL) $(XDC) $(IPATH)/*.tcl $(CORES_COMPONENT_XML)
-	vivado -nolog -nojournal -source fpga/scripts/block_design.tcl -tclargs $(NAME) $(IPATH) $(PART) $(BOARD) block_design_
+	vivado -nolog -nojournal -source fpga/scripts/block_design.tcl -tclargs $(NAME) $(IPATH) $(PART) $(BOARD) $(MODE) block_design_
 
 server: $(TCP_SERVER)
 xpr: $(TMP)/$(NAME).xpr
@@ -207,7 +209,7 @@ $(foreach core,$(CORES),$(eval $(call make_core_target,$(core))))
 
 $(TMP)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(IPATH)/*.tcl $(CORES_COMPONENT_XML)
 	mkdir -p $(@D)
-	$(VIVADO) -source fpga/scripts/project.tcl -tclargs $(NAME) $(IPATH) $(PART) $(BOARD)
+	$(VIVADO) -source fpga/scripts/project.tcl -tclargs $(NAME) $(IPATH) $(PART) $(BOARD) $(MODE)
 	@echo [$@] OK
 
 $(TMP)/$(NAME).bit: $(TMP)/$(NAME).xpr
