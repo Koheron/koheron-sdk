@@ -28,18 +28,11 @@ if {[llength $files] > 0} {
 set_property VERILOG_DEFINE {TOOL_VIVADO} [current_fileset]
 
 switch $mode {
-  "development" {
-    puts "Running Vivado project in development mode"
-    set_property STRATEGY Flow_RuntimeOptimized [get_runs synth_1]
-    set_property STRATEGY Flow_RuntimeOptimized [get_runs impl_1]
-  }
   "production" {
-    puts "Running Vivado project in production mode"
     set_property STRATEGY Flow_PerfOptimized_High [get_runs synth_1]
     set_property STRATEGY Performance_NetDelay_high [get_runs impl_1]
   }
   default {
-    puts "Warning : Unknown mode"
   }
 }
 

@@ -15,9 +15,7 @@ else
 NAME = $(shell basename "$(patsubst %/,%,$(IPATH))")
 endif
 
-# Select between production and development modes
-MODE = development
-# MODE = production
+MODE = default
 
 ###############################################################################
 # Get the instrument configuration
