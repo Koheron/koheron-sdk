@@ -18,6 +18,7 @@
 #include <string>
 #include <memory>
 #include <array>
+#include <vector>
 #include <atomic>
 #include <thread>
 #include <mutex>
@@ -36,9 +37,8 @@ class I2cDev
 
     bool is_ok() {return fd >= 0;}
 
-    int init();
+    /// Write data to I2C device
 
-    /// Write to I2C device
     /// addr: Addresse of the device to write to
     /// buffer: Pointer to the data to send
     /// len: Number of elements on the buffer array
@@ -62,6 +62,13 @@ class I2cDev
     int write(const std::array<T, N>& buff) {
         return write<addr>(buff.data(), buff.size());
     }
+
+    template<int32_t addr, typename T>
+    int write(const std::vector<T>& buff) {
+        return write<addr>(buff.data(), buff.size());
+    }
+
+    // Receive data from I2C device
 
     template<int32_t addr>
     int recv(uint8_t *buffer, size_t n_bytes)
@@ -99,6 +106,16 @@ class I2cDev
         return bytes_read;
     }
 
+    template<int32_t addr, typename T, size_t N>
+    int recv(std::array<T, N>& data) {
+        return recv<addr>(reinterpret_cast<uint8_t*>(data.data()), N * sizeof(T));
+    }
+
+    template<int32_t addr, typename T>
+    int recv(std::vector<T>& data) {
+        return recv<addr>(reinterpret_cast<uint8_t*>(data.data()), data.size() * sizeof(T));
+    }
+
   private:
     ContextBase& ctx;
     std::string devname;
@@ -106,13 +123,12 @@ class I2cDev
     std::atomic<int32_t> last_addr{-1};
     std::mutex mutex;
 
+    int init();
+
     template<int32_t addr>
     int set_address() {
         constexpr int32_t largest_i2c_addr = 127; // 7 bits long address
         static_assert(addr <= largest_i2c_addr, "Invalid I2C address");
-
-        if (! is_ok())
-            return -1;
 
         if (addr != last_addr) {
             if (ioctl(fd, I2C_SLAVE_FORCE, addr) < 0) {
@@ -127,6 +143,8 @@ class I2cDev
 
         return 0;
     }
+
+friend class I2cManager;
 };
 
 class I2cManager
