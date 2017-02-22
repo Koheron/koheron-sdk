@@ -7,8 +7,10 @@ set part_name [lindex $argv 2]
 
 set board_name [lindex $argv 3]
 
+set mode [lindex $argv 4]
+
 # Add optional prefix to the project name
-set prefix [lindex $argv 4]
+set prefix [lindex $argv 5]
 set prefixed_project_name $prefix$project_name
 
 file delete -force \
