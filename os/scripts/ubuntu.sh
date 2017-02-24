@@ -11,7 +11,7 @@ http_app_dir=tmp/app
 boot_dir=`mktemp -d /tmp/BOOT.XXXXXXXXXX`
 root_dir=`mktemp -d /tmp/ROOT.XXXXXXXXXX`
 
-ubuntu_version=16.04.1
+ubuntu_version=16.04.2
 root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
 root_url=http://cdimage.ubuntu.com/ubuntu-base/releases/${ubuntu_version}/release/$root_tar
 
