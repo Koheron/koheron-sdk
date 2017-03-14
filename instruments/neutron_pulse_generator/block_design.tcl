@@ -120,6 +120,8311 @@ if { $nRet != 0 } {
 ##################################################################
 
 
+# Hierarchical cell: ADD_Halve1
+proc create_hier_cell_ADD_Halve1_7 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve1_7() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve
+proc create_hier_cell_ADD_Halve_7 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve_7() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve1
+proc create_hier_cell_ADD_Halve1_6 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve1_6() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve
+proc create_hier_cell_ADD_Halve_6 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve_6() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve1
+proc create_hier_cell_ADD_Halve1_5 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve1_5() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve
+proc create_hier_cell_ADD_Halve_5 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve_5() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve1
+proc create_hier_cell_ADD_Halve1_4 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve1_4() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve
+proc create_hier_cell_ADD_Halve_4 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve_4() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve1
+proc create_hier_cell_ADD_Halve1_3 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve1_3() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve
+proc create_hier_cell_ADD_Halve_3 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve_3() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve1
+proc create_hier_cell_ADD_Halve1_2 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve1_2() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve
+proc create_hier_cell_ADD_Halve_2 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve_2() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve1
+proc create_hier_cell_ADD_Halve1_1 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve1_1() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve
+proc create_hier_cell_ADD_Halve_1 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve_1() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve1
+proc create_hier_cell_ADD_Halve1 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve1() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve
+proc create_hier_cell_ADD_Halve { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_15 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_15() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_14 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_14() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_13 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_13() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_12 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_12() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_11 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_11() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create instance: xlslice_2, and set properties
+  set xlslice_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_2 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_2
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_1/Din] [get_bd_pins xlslice_2/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+  connect_bd_net -net xlslice_2_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_2/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_10 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_10() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_9 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_9() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_8 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_8() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_7 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_7() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_6 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_6() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_5 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_5() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_4 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_4() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_3 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_3() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_2 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_2() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter_1 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter_1() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: TriggeredCounter
+proc create_hier_cell_TriggeredCounter { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 9 -to 0 Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Output_Width {11} \
+CONFIG.SCLR {true} \
+ ] $c_counter_binary_0
+
+  # Create instance: latch_0, and set properties
+  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {10} \
+CONFIG.DIN_TO {10} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {9} \
+CONFIG.DIN_TO {0} \
+CONFIG.DIN_WIDTH {11} \
+CONFIG.DOUT_WIDTH {10} \
+ ] $xlslice_1
+
+  # Create port connections
+  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
+  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser15
+proc create_hier_cell_RoundRobinPulser15 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser15() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {15} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser14
+proc create_hier_cell_RoundRobinPulser14 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser14() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {14} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser13
+proc create_hier_cell_RoundRobinPulser13 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser13() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -type clk clk
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {13} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser12
+proc create_hier_cell_RoundRobinPulser12 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser12() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {12} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser11
+proc create_hier_cell_RoundRobinPulser11 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser11() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {11} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser10
+proc create_hier_cell_RoundRobinPulser10 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser10() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {10} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser9
+proc create_hier_cell_RoundRobinPulser9 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser9() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {9} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser8
+proc create_hier_cell_RoundRobinPulser8 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser8() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {8} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser7
+proc create_hier_cell_RoundRobinPulser7 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser7() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {7} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser6
+proc create_hier_cell_RoundRobinPulser6 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser6() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {6} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser5
+proc create_hier_cell_RoundRobinPulser5 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser5() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {5} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser4
+proc create_hier_cell_RoundRobinPulser4 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser4() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {4} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser3
+proc create_hier_cell_RoundRobinPulser3 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser3() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {3} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser2
+proc create_hier_cell_RoundRobinPulser2 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser2() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {2} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser1
+proc create_hier_cell_RoundRobinPulser1 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser1() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RoundRobinPulser
+proc create_hier_cell_RoundRobinPulser { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RoundRobinPulser() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 3 -to 0 a
+  create_bd_pin -dir I -from 0 -to 0 din
+  create_bd_pin -dir O -from 0 -to 0 dout
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {4} \
+ ] $comparator_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+CONFIG.C_SIZE {1} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlconstant_0, and set properties
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $xlconstant_0
+
+  # Create port connections
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins a] [get_bd_pins comparator_0/a]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net din_1 [get_bd_pins din] [get_bd_pins util_vector_logic_0/Op2]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins dout] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlconstant_0_dout [get_bd_pins comparator_0/b] [get_bd_pins xlconstant_0/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: Pulser1
+proc create_hier_cell_Pulser1 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_Pulser1() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 31 -to 0 -type data A
+  create_bd_pin -dir I -from 31 -to 0 b
+  create_bd_pin -dir I -type clk clk
+  create_bd_pin -dir O pulse
+
+  # Create instance: comparator_0, and set properties
+  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
+  set_property -dict [ list \
+CONFIG.DATA_WIDTH {32} \
+CONFIG.OPERATION {LT} \
+ ] $comparator_0
+
+  # Create instance: one_clock_pulse_0, and set properties
+  set one_clock_pulse_0 [ create_bd_cell -type ip -vlnv CCFE:user:one_clock_pulse:1.0 one_clock_pulse_0 ]
+
+  # Create port connections
+  connect_bd_net -net A_1 [get_bd_pins A] [get_bd_pins comparator_0/a]
+  connect_bd_net -net b_1 [get_bd_pins b] [get_bd_pins comparator_0/b]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins one_clock_pulse_0/clk]
+  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins one_clock_pulse_0/trig]
+  connect_bd_net -net one_clock_pulse_0_pulse [get_bd_pins pulse] [get_bd_pins one_clock_pulse_0/pulse]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: Twox2ChannelAdder7
+proc create_hier_cell_Twox2ChannelAdder7 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_Twox2ChannelAdder7() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Ch1
+  create_bd_pin -dir O -from 13 -to 0 Ch2
+  create_bd_pin -dir I -from 31 -to 0 Din
+  create_bd_pin -dir I -from 31 -to 0 Din1
+
+  # Create instance: ADD_Halve
+  create_hier_cell_ADD_Halve_7 $hier_obj ADD_Halve
+
+  # Create instance: ADD_Halve1
+  create_hier_cell_ADD_Halve1_7 $hier_obj ADD_Halve1
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_1
+
+  # Create instance: xlslice_2, and set properties
+  set xlslice_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_2 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_2
+
+  # Create instance: xlslice_3, and set properties
+  set xlslice_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_3 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_3
+
+  # Create port connections
+  connect_bd_net -net ADD_Halve1_Dout [get_bd_pins Ch1] [get_bd_pins ADD_Halve1/Dout]
+  connect_bd_net -net ADD_Halve_Dout [get_bd_pins Ch2] [get_bd_pins ADD_Halve/Dout]
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins ADD_Halve/CLK] [get_bd_pins ADD_Halve1/CLK]
+  connect_bd_net -net PulseFormer10_ShapedPulse [get_bd_pins Din] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net PulseFormer11_ShapedPulse [get_bd_pins Din1] [get_bd_pins xlslice_2/Din] [get_bd_pins xlslice_3/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins ADD_Halve/A] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins ADD_Halve1/A] [get_bd_pins xlslice_1/Dout]
+  connect_bd_net -net xlslice_2_Dout [get_bd_pins ADD_Halve/B] [get_bd_pins xlslice_2/Dout]
+  connect_bd_net -net xlslice_3_Dout [get_bd_pins ADD_Halve1/B] [get_bd_pins xlslice_3/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: Twox2ChannelAdder6
+proc create_hier_cell_Twox2ChannelAdder6 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_Twox2ChannelAdder6() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Ch1
+  create_bd_pin -dir O -from 13 -to 0 Ch2
+  create_bd_pin -dir I -from 31 -to 0 Din
+  create_bd_pin -dir I -from 31 -to 0 Din1
+
+  # Create instance: ADD_Halve
+  create_hier_cell_ADD_Halve_6 $hier_obj ADD_Halve
+
+  # Create instance: ADD_Halve1
+  create_hier_cell_ADD_Halve1_6 $hier_obj ADD_Halve1
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_1
+
+  # Create instance: xlslice_2, and set properties
+  set xlslice_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_2 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_2
+
+  # Create instance: xlslice_3, and set properties
+  set xlslice_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_3 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_3
+
+  # Create port connections
+  connect_bd_net -net ADD_Halve1_Dout [get_bd_pins Ch1] [get_bd_pins ADD_Halve1/Dout]
+  connect_bd_net -net ADD_Halve_Dout [get_bd_pins Ch2] [get_bd_pins ADD_Halve/Dout]
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins ADD_Halve/CLK] [get_bd_pins ADD_Halve1/CLK]
+  connect_bd_net -net PulseFormer10_ShapedPulse [get_bd_pins Din] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net PulseFormer11_ShapedPulse [get_bd_pins Din1] [get_bd_pins xlslice_2/Din] [get_bd_pins xlslice_3/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins ADD_Halve/A] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins ADD_Halve1/A] [get_bd_pins xlslice_1/Dout]
+  connect_bd_net -net xlslice_2_Dout [get_bd_pins ADD_Halve/B] [get_bd_pins xlslice_2/Dout]
+  connect_bd_net -net xlslice_3_Dout [get_bd_pins ADD_Halve1/B] [get_bd_pins xlslice_3/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: Twox2ChannelAdder5
+proc create_hier_cell_Twox2ChannelAdder5 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_Twox2ChannelAdder5() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Ch1
+  create_bd_pin -dir O -from 13 -to 0 Ch2
+  create_bd_pin -dir I -from 31 -to 0 Din
+  create_bd_pin -dir I -from 31 -to 0 Din1
+
+  # Create instance: ADD_Halve
+  create_hier_cell_ADD_Halve_5 $hier_obj ADD_Halve
+
+  # Create instance: ADD_Halve1
+  create_hier_cell_ADD_Halve1_5 $hier_obj ADD_Halve1
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_1
+
+  # Create instance: xlslice_2, and set properties
+  set xlslice_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_2 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_2
+
+  # Create instance: xlslice_3, and set properties
+  set xlslice_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_3 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_3
+
+  # Create port connections
+  connect_bd_net -net ADD_Halve1_Dout [get_bd_pins Ch1] [get_bd_pins ADD_Halve1/Dout]
+  connect_bd_net -net ADD_Halve_Dout [get_bd_pins Ch2] [get_bd_pins ADD_Halve/Dout]
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins ADD_Halve/CLK] [get_bd_pins ADD_Halve1/CLK]
+  connect_bd_net -net PulseFormer10_ShapedPulse [get_bd_pins Din] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net PulseFormer11_ShapedPulse [get_bd_pins Din1] [get_bd_pins xlslice_2/Din] [get_bd_pins xlslice_3/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins ADD_Halve/A] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins ADD_Halve1/A] [get_bd_pins xlslice_1/Dout]
+  connect_bd_net -net xlslice_2_Dout [get_bd_pins ADD_Halve/B] [get_bd_pins xlslice_2/Dout]
+  connect_bd_net -net xlslice_3_Dout [get_bd_pins ADD_Halve1/B] [get_bd_pins xlslice_3/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: Twox2ChannelAdder4
+proc create_hier_cell_Twox2ChannelAdder4 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_Twox2ChannelAdder4() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Ch1
+  create_bd_pin -dir O -from 13 -to 0 Ch2
+  create_bd_pin -dir I -from 31 -to 0 Din
+  create_bd_pin -dir I -from 31 -to 0 Din1
+
+  # Create instance: ADD_Halve
+  create_hier_cell_ADD_Halve_4 $hier_obj ADD_Halve
+
+  # Create instance: ADD_Halve1
+  create_hier_cell_ADD_Halve1_4 $hier_obj ADD_Halve1
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_1
+
+  # Create instance: xlslice_2, and set properties
+  set xlslice_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_2 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_2
+
+  # Create instance: xlslice_3, and set properties
+  set xlslice_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_3 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_3
+
+  # Create port connections
+  connect_bd_net -net ADD_Halve1_Dout [get_bd_pins Ch1] [get_bd_pins ADD_Halve1/Dout]
+  connect_bd_net -net ADD_Halve_Dout [get_bd_pins Ch2] [get_bd_pins ADD_Halve/Dout]
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins ADD_Halve/CLK] [get_bd_pins ADD_Halve1/CLK]
+  connect_bd_net -net PulseFormer10_ShapedPulse [get_bd_pins Din] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net PulseFormer11_ShapedPulse [get_bd_pins Din1] [get_bd_pins xlslice_2/Din] [get_bd_pins xlslice_3/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins ADD_Halve/A] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins ADD_Halve1/A] [get_bd_pins xlslice_1/Dout]
+  connect_bd_net -net xlslice_2_Dout [get_bd_pins ADD_Halve/B] [get_bd_pins xlslice_2/Dout]
+  connect_bd_net -net xlslice_3_Dout [get_bd_pins ADD_Halve1/B] [get_bd_pins xlslice_3/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: Twox2ChannelAdder3
+proc create_hier_cell_Twox2ChannelAdder3 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_Twox2ChannelAdder3() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Ch1
+  create_bd_pin -dir O -from 13 -to 0 Ch2
+  create_bd_pin -dir I -from 31 -to 0 Din
+  create_bd_pin -dir I -from 31 -to 0 Din1
+
+  # Create instance: ADD_Halve
+  create_hier_cell_ADD_Halve_3 $hier_obj ADD_Halve
+
+  # Create instance: ADD_Halve1
+  create_hier_cell_ADD_Halve1_3 $hier_obj ADD_Halve1
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_1
+
+  # Create instance: xlslice_2, and set properties
+  set xlslice_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_2 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_2
+
+  # Create instance: xlslice_3, and set properties
+  set xlslice_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_3 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_3
+
+  # Create port connections
+  connect_bd_net -net ADD_Halve1_Dout [get_bd_pins Ch1] [get_bd_pins ADD_Halve1/Dout]
+  connect_bd_net -net ADD_Halve_Dout [get_bd_pins Ch2] [get_bd_pins ADD_Halve/Dout]
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins ADD_Halve/CLK] [get_bd_pins ADD_Halve1/CLK]
+  connect_bd_net -net PulseFormer10_ShapedPulse [get_bd_pins Din] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net PulseFormer11_ShapedPulse [get_bd_pins Din1] [get_bd_pins xlslice_2/Din] [get_bd_pins xlslice_3/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins ADD_Halve/A] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins ADD_Halve1/A] [get_bd_pins xlslice_1/Dout]
+  connect_bd_net -net xlslice_2_Dout [get_bd_pins ADD_Halve/B] [get_bd_pins xlslice_2/Dout]
+  connect_bd_net -net xlslice_3_Dout [get_bd_pins ADD_Halve1/B] [get_bd_pins xlslice_3/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: Twox2ChannelAdder2
+proc create_hier_cell_Twox2ChannelAdder2 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_Twox2ChannelAdder2() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Ch1
+  create_bd_pin -dir O -from 13 -to 0 Ch2
+  create_bd_pin -dir I -from 31 -to 0 Din
+  create_bd_pin -dir I -from 31 -to 0 Din1
+
+  # Create instance: ADD_Halve
+  create_hier_cell_ADD_Halve_2 $hier_obj ADD_Halve
+
+  # Create instance: ADD_Halve1
+  create_hier_cell_ADD_Halve1_2 $hier_obj ADD_Halve1
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_1
+
+  # Create instance: xlslice_2, and set properties
+  set xlslice_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_2 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_2
+
+  # Create instance: xlslice_3, and set properties
+  set xlslice_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_3 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_3
+
+  # Create port connections
+  connect_bd_net -net ADD_Halve1_Dout [get_bd_pins Ch1] [get_bd_pins ADD_Halve1/Dout]
+  connect_bd_net -net ADD_Halve_Dout [get_bd_pins Ch2] [get_bd_pins ADD_Halve/Dout]
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins ADD_Halve/CLK] [get_bd_pins ADD_Halve1/CLK]
+  connect_bd_net -net PulseFormer10_ShapedPulse [get_bd_pins Din] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net PulseFormer11_ShapedPulse [get_bd_pins Din1] [get_bd_pins xlslice_2/Din] [get_bd_pins xlslice_3/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins ADD_Halve/A] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins ADD_Halve1/A] [get_bd_pins xlslice_1/Dout]
+  connect_bd_net -net xlslice_2_Dout [get_bd_pins ADD_Halve/B] [get_bd_pins xlslice_2/Dout]
+  connect_bd_net -net xlslice_3_Dout [get_bd_pins ADD_Halve1/B] [get_bd_pins xlslice_3/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: Twox2ChannelAdder1
+proc create_hier_cell_Twox2ChannelAdder1 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_Twox2ChannelAdder1() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Ch1
+  create_bd_pin -dir O -from 13 -to 0 Ch2
+  create_bd_pin -dir I -from 31 -to 0 Din
+  create_bd_pin -dir I -from 31 -to 0 Din1
+
+  # Create instance: ADD_Halve
+  create_hier_cell_ADD_Halve_1 $hier_obj ADD_Halve
+
+  # Create instance: ADD_Halve1
+  create_hier_cell_ADD_Halve1_1 $hier_obj ADD_Halve1
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_1
+
+  # Create instance: xlslice_2, and set properties
+  set xlslice_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_2 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_2
+
+  # Create instance: xlslice_3, and set properties
+  set xlslice_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_3 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_3
+
+  # Create port connections
+  connect_bd_net -net ADD_Halve1_Dout [get_bd_pins Ch1] [get_bd_pins ADD_Halve1/Dout]
+  connect_bd_net -net ADD_Halve_Dout [get_bd_pins Ch2] [get_bd_pins ADD_Halve/Dout]
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins ADD_Halve/CLK] [get_bd_pins ADD_Halve1/CLK]
+  connect_bd_net -net PulseFormer10_ShapedPulse [get_bd_pins Din] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net PulseFormer11_ShapedPulse [get_bd_pins Din1] [get_bd_pins xlslice_2/Din] [get_bd_pins xlslice_3/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins ADD_Halve/A] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins ADD_Halve1/A] [get_bd_pins xlslice_1/Dout]
+  connect_bd_net -net xlslice_2_Dout [get_bd_pins ADD_Halve/B] [get_bd_pins xlslice_2/Dout]
+  connect_bd_net -net xlslice_3_Dout [get_bd_pins ADD_Halve1/B] [get_bd_pins xlslice_3/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: Twox2ChannelAdder
+proc create_hier_cell_Twox2ChannelAdder { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_Twox2ChannelAdder() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Ch1
+  create_bd_pin -dir O -from 13 -to 0 Ch2
+  create_bd_pin -dir I -from 31 -to 0 Din
+  create_bd_pin -dir I -from 31 -to 0 Din1
+
+  # Create instance: ADD_Halve
+  create_hier_cell_ADD_Halve $hier_obj ADD_Halve
+
+  # Create instance: ADD_Halve1
+  create_hier_cell_ADD_Halve1 $hier_obj ADD_Halve1
+
+  # Create instance: xlslice_0, and set properties
+  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_0
+
+  # Create instance: xlslice_1, and set properties
+  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_1
+
+  # Create instance: xlslice_2, and set properties
+  set xlslice_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_2 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {29} \
+CONFIG.DIN_TO {16} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_2
+
+  # Create instance: xlslice_3, and set properties
+  set xlslice_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_3 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {13} \
+CONFIG.DIN_TO {0} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_3
+
+  # Create port connections
+  connect_bd_net -net ADD_Halve1_Dout [get_bd_pins Ch1] [get_bd_pins ADD_Halve1/Dout]
+  connect_bd_net -net ADD_Halve_Dout [get_bd_pins Ch2] [get_bd_pins ADD_Halve/Dout]
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins ADD_Halve/CLK] [get_bd_pins ADD_Halve1/CLK]
+  connect_bd_net -net PulseFormer10_ShapedPulse [get_bd_pins Din] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
+  connect_bd_net -net PulseFormer11_ShapedPulse [get_bd_pins Din1] [get_bd_pins xlslice_2/Din] [get_bd_pins xlslice_3/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins ADD_Halve/A] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins ADD_Halve1/A] [get_bd_pins xlslice_1/Dout]
+  connect_bd_net -net xlslice_2_Dout [get_bd_pins ADD_Halve/B] [get_bd_pins xlslice_2/Dout]
+  connect_bd_net -net xlslice_3_Dout [get_bd_pins ADD_Halve1/B] [get_bd_pins xlslice_3/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/Twox2ChannelAdder] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus Ch1 -pg 1 -y 210 -defaultsOSRD
+preplace portBus Ch2 -pg 1 -y 50 -defaultsOSRD
+preplace portBus Din -pg 1 -y 40 -defaultsOSRD
+preplace portBus Din1 -pg 1 -y 120 -defaultsOSRD
+preplace inst ADD_Halve1 -pg 1 -lvl 2 -y 220 -defaultsOSRD
+preplace inst xlslice_0 -pg 1 -lvl 1 -y 10 -defaultsOSRD
+preplace inst ADD_Halve -pg 1 -lvl 2 -y 70 -defaultsOSRD
+preplace inst xlslice_1 -pg 1 -lvl 1 -y 200 -defaultsOSRD
+preplace inst xlslice_2 -pg 1 -lvl 1 -y 110 -defaultsOSRD
+preplace inst xlslice_3 -pg 1 -lvl 1 -y 290 -defaultsOSRD
+preplace netloc CLK_1 1 0 2 NJ 60 230
+preplace netloc xlslice_3_Dout 1 1 1 NJ
+preplace netloc xlslice_1_Dout 1 1 1 NJ
+preplace netloc PulseFormer10_ShapedPulse 1 0 1 20
+preplace netloc ADD_Halve_Dout 1 2 1 420
+preplace netloc xlslice_2_Dout 1 1 1 NJ
+preplace netloc ADD_Halve1_Dout 1 2 1 420
+preplace netloc PulseFormer11_ShapedPulse 1 0 1 30
+preplace netloc xlslice_0_Dout 1 1 1 NJ
+levelinfo -pg 1 -10 130 330 440 -top -40 -bot 340
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer15
+proc create_hier_cell_PulseFormer15 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer15() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_15 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer14
+proc create_hier_cell_PulseFormer14 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer14() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_14 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer13
+proc create_hier_cell_PulseFormer13 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer13() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_13 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer12
+proc create_hier_cell_PulseFormer12 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer12() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_12 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer11
+proc create_hier_cell_PulseFormer11 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer11() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_11 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer10
+proc create_hier_cell_PulseFormer10 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer10() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_10 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer9
+proc create_hier_cell_PulseFormer9 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer9() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_9 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer8
+proc create_hier_cell_PulseFormer8 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer8() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_8 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer7
+proc create_hier_cell_PulseFormer7 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer7() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_7 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer6
+proc create_hier_cell_PulseFormer6 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer6() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_6 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer5
+proc create_hier_cell_PulseFormer5 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer5() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_5 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer4
+proc create_hier_cell_PulseFormer4 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer4() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_4 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer3
+proc create_hier_cell_PulseFormer3 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer3() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_3 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer2
+proc create_hier_cell_PulseFormer2 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer2() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_2 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer1
+proc create_hier_cell_PulseFormer1 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer1() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter_1 $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: PulseFormer
+proc create_hier_cell_PulseFormer { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_PulseFormer() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:bram_rtl:1.0 BRAM_PORTA
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 31 -to 0 ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: TriggeredCounter
+  create_hier_cell_TriggeredCounter $hier_obj TriggeredCounter
+
+  # Create instance: blk_mem_gen_dac, and set properties
+  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
+  set_property -dict [ list \
+CONFIG.Byte_Size {8} \
+CONFIG.Enable_32bit_Address {true} \
+CONFIG.Memory_Type {True_Dual_Port_RAM} \
+CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+CONFIG.Use_Byte_Write_Enable {true} \
+CONFIG.Use_RSTA_Pin {true} \
+CONFIG.Use_RSTB_Pin {true} \
+CONFIG.Write_Depth_A {1024} \
+CONFIG.use_bram_block {BRAM_Controller} \
+ ] $blk_mem_gen_dac
+
+  # Create instance: const_v0_w4, and set properties
+  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {4} \
+ ] $const_v0_w4
+
+  # Create instance: const_v0_w5, and set properties
+  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {1} \
+CONFIG.CONST_WIDTH {1} \
+ ] $const_v0_w5
+
+  # Create instance: const_v0_w32, and set properties
+  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {32} \
+ ] $const_v0_w32
+
+  # Create instance: xlconcat_1, and set properties
+  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
+
+  # Create instance: xlconstant_1, and set properties
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set_property -dict [ list \
+CONFIG.CONST_VAL {0} \
+CONFIG.CONST_WIDTH {2} \
+ ] $xlconstant_1
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
+
+  # Create port connections
+  connect_bd_net -net BRAM_PORTA_addr_2 [get_bd_pins BRAM_PORTA_addr] [get_bd_pins blk_mem_gen_dac/addra]
+  connect_bd_net -net BRAM_PORTA_clk_2 [get_bd_pins BRAM_PORTA_clk] [get_bd_pins blk_mem_gen_dac/clka]
+  connect_bd_net -net BRAM_PORTA_din_2 [get_bd_pins BRAM_PORTA_din] [get_bd_pins blk_mem_gen_dac/dina]
+  connect_bd_net -net BRAM_PORTA_en_2 [get_bd_pins BRAM_PORTA_en] [get_bd_pins blk_mem_gen_dac/ena]
+  connect_bd_net -net BRAM_PORTA_rst_2 [get_bd_pins BRAM_PORTA_rst] [get_bd_pins blk_mem_gen_dac/rsta]
+  connect_bd_net -net BRAM_PORTA_we_2 [get_bd_pins BRAM_PORTA_we] [get_bd_pins blk_mem_gen_dac/wea]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins TriggeredCounter/Trig_Count]
+  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins blk_mem_gen_dac/clkb]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins ShapedPulse] [get_bd_pins blk_mem_gen_dac/doutb]
+  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
+  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
+  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins blk_mem_gen_dac/rstb]
+  connect_bd_net -net xlconcat_1_dout [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
+  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve15
+proc create_hier_cell_ADD_Halve15 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve15() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve15] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve14
+proc create_hier_cell_ADD_Halve14 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve14() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve14] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve13
+proc create_hier_cell_ADD_Halve13 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve13() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve13] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve12
+proc create_hier_cell_ADD_Halve12 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve12() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve12] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve11
+proc create_hier_cell_ADD_Halve11 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve11() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve11] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve10
+proc create_hier_cell_ADD_Halve10 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve10() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve10] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve9
+proc create_hier_cell_ADD_Halve9 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve9() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve9] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve8
+proc create_hier_cell_ADD_Halve8 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve8() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve8] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve7
+proc create_hier_cell_ADD_Halve7 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve7() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve7] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve6
+proc create_hier_cell_ADD_Halve6 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve6() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve6] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve5
+proc create_hier_cell_ADD_Halve5 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve5() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve5] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve4
+proc create_hier_cell_ADD_Halve4 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve4() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve4] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve3
+proc create_hier_cell_ADD_Halve3 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve3() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve3] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: ADD_Halve2
+proc create_hier_cell_ADD_Halve2 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_ADD_Halve2() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 13 -to 0 -type data A
+  create_bd_pin -dir I -from 13 -to 0 -type data B
+  create_bd_pin -dir I CLK
+  create_bd_pin -dir O -from 13 -to 0 Dout
+
+  # Create instance: c_addsub_0, and set properties
+  set c_addsub_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_addsub:12.0 c_addsub_0 ]
+  set_property -dict [ list \
+CONFIG.CE {false} \
+CONFIG.Out_Width {15} \
+ ] $c_addsub_0
+
+  # Need to retain value_src of defaults
+  set_property -dict [ list \
+CONFIG.Out_Width.VALUE_SRC {DEFAULT} \
+ ] $c_addsub_0
+
+  # Create instance: xlslice_4, and set properties
+  set xlslice_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_4 ]
+  set_property -dict [ list \
+CONFIG.DIN_FROM {14} \
+CONFIG.DIN_TO {1} \
+CONFIG.DIN_WIDTH {15} \
+CONFIG.DOUT_WIDTH {14} \
+ ] $xlslice_4
+
+  # Create port connections
+  connect_bd_net -net CLK_1 [get_bd_pins CLK] [get_bd_pins c_addsub_0/CLK]
+  connect_bd_net -net c_addsub_0_S [get_bd_pins c_addsub_0/S] [get_bd_pins xlslice_4/Din]
+  connect_bd_net -net xlslice_0_Dout [get_bd_pins A] [get_bd_pins c_addsub_0/A]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins B] [get_bd_pins c_addsub_0/B]
+  connect_bd_net -net xlslice_4_Dout [get_bd_pins Dout] [get_bd_pins xlslice_4/Dout]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers/ADD_Halve2] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port CLK -pg 1 -y 80 -defaultsOSRD
+preplace portBus A -pg 1 -y 40 -defaultsOSRD
+preplace portBus B -pg 1 -y 60 -defaultsOSRD
+preplace portBus Dout -pg 1 -y 60 -defaultsOSRD
+preplace inst xlslice_4 -pg 1 -lvl 2 -y 60 -defaultsOSRD
+preplace inst c_addsub_0 -pg 1 -lvl 1 -y 60 -defaultsOSRD
+preplace netloc xlslice_4_Dout 1 2 1 NJ
+preplace netloc xlslice_1_Dout 1 0 1 NJ
+preplace netloc CLK_1 1 0 1 NJ
+preplace netloc xlslice_0_Dout 1 0 1 NJ
+preplace netloc c_addsub_0_S 1 1 1 NJ
+levelinfo -pg 1 -10 100 290 410 -top -10 -bot 130
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: RandomPulser
+proc create_hier_cell_RandomPulser { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RandomPulser() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir O -from 0 -to 0 Pulse1
+  create_bd_pin -dir O -from 0 -to 0 Pulse2
+  create_bd_pin -dir O -from 0 -to 0 Pulse3
+  create_bd_pin -dir O -from 0 -to 0 Pulse4
+  create_bd_pin -dir O -from 0 -to 0 Pulse5
+  create_bd_pin -dir O -from 0 -to 0 Pulse6
+  create_bd_pin -dir O -from 0 -to 0 Pulse7
+  create_bd_pin -dir O -from 0 -to 0 Pulse8
+  create_bd_pin -dir O -from 0 -to 0 Pulse9
+  create_bd_pin -dir O -from 0 -to 0 Pulse10
+  create_bd_pin -dir O -from 0 -to 0 Pulse11
+  create_bd_pin -dir O -from 0 -to 0 Pulse12
+  create_bd_pin -dir O -from 0 -to 0 Pulse13
+  create_bd_pin -dir O -from 0 -to 0 Pulse14
+  create_bd_pin -dir O -from 0 -to 0 Pulse15
+  create_bd_pin -dir O -from 0 -to 0 Pulse16
+  create_bd_pin -dir O -from 31 -to 0 RandValue
+  create_bd_pin -dir I -from 0 -to 0 Reset_In
+  create_bd_pin -dir I -from 31 -to 0 b
+  create_bd_pin -dir I clk
+
+  # Create instance: Pulser1
+  create_hier_cell_Pulser1 $hier_obj Pulser1
+
+  # Create instance: RoundRobinPulser
+  create_hier_cell_RoundRobinPulser $hier_obj RoundRobinPulser
+
+  # Create instance: RoundRobinPulser1
+  create_hier_cell_RoundRobinPulser1 $hier_obj RoundRobinPulser1
+
+  # Create instance: RoundRobinPulser2
+  create_hier_cell_RoundRobinPulser2 $hier_obj RoundRobinPulser2
+
+  # Create instance: RoundRobinPulser3
+  create_hier_cell_RoundRobinPulser3 $hier_obj RoundRobinPulser3
+
+  # Create instance: RoundRobinPulser4
+  create_hier_cell_RoundRobinPulser4 $hier_obj RoundRobinPulser4
+
+  # Create instance: RoundRobinPulser5
+  create_hier_cell_RoundRobinPulser5 $hier_obj RoundRobinPulser5
+
+  # Create instance: RoundRobinPulser6
+  create_hier_cell_RoundRobinPulser6 $hier_obj RoundRobinPulser6
+
+  # Create instance: RoundRobinPulser7
+  create_hier_cell_RoundRobinPulser7 $hier_obj RoundRobinPulser7
+
+  # Create instance: RoundRobinPulser8
+  create_hier_cell_RoundRobinPulser8 $hier_obj RoundRobinPulser8
+
+  # Create instance: RoundRobinPulser9
+  create_hier_cell_RoundRobinPulser9 $hier_obj RoundRobinPulser9
+
+  # Create instance: RoundRobinPulser10
+  create_hier_cell_RoundRobinPulser10 $hier_obj RoundRobinPulser10
+
+  # Create instance: RoundRobinPulser11
+  create_hier_cell_RoundRobinPulser11 $hier_obj RoundRobinPulser11
+
+  # Create instance: RoundRobinPulser12
+  create_hier_cell_RoundRobinPulser12 $hier_obj RoundRobinPulser12
+
+  # Create instance: RoundRobinPulser13
+  create_hier_cell_RoundRobinPulser13 $hier_obj RoundRobinPulser13
+
+  # Create instance: RoundRobinPulser14
+  create_hier_cell_RoundRobinPulser14 $hier_obj RoundRobinPulser14
+
+  # Create instance: RoundRobinPulser15
+  create_hier_cell_RoundRobinPulser15 $hier_obj RoundRobinPulser15
+
+  # Create instance: c_counter_binary_0, and set properties
+  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
+  set_property -dict [ list \
+CONFIG.CE {true} \
+CONFIG.Output_Width {4} \
+ ] $c_counter_binary_0
+
+  # Create instance: lfsr32_0, and set properties
+  set lfsr32_0 [ create_bd_cell -type ip -vlnv CCFE:user:lfsr32:1.0 lfsr32_0 ]
+
+  # Create port connections
+  connect_bd_net -net Pulser1_pulse [get_bd_pins Pulser1/pulse] [get_bd_pins RoundRobinPulser/din] [get_bd_pins RoundRobinPulser1/din] [get_bd_pins RoundRobinPulser10/din] [get_bd_pins RoundRobinPulser11/din] [get_bd_pins RoundRobinPulser12/din] [get_bd_pins RoundRobinPulser13/din] [get_bd_pins RoundRobinPulser14/din] [get_bd_pins RoundRobinPulser15/din] [get_bd_pins RoundRobinPulser2/din] [get_bd_pins RoundRobinPulser3/din] [get_bd_pins RoundRobinPulser4/din] [get_bd_pins RoundRobinPulser5/din] [get_bd_pins RoundRobinPulser6/din] [get_bd_pins RoundRobinPulser7/din] [get_bd_pins RoundRobinPulser8/din] [get_bd_pins RoundRobinPulser9/din] [get_bd_pins c_counter_binary_0/CE]
+  connect_bd_net -net Reset_In_1 [get_bd_pins Reset_In] [get_bd_pins lfsr32_0/reset]
+  connect_bd_net -net RoundRobinPulser10_dout [get_bd_pins Pulse11] [get_bd_pins RoundRobinPulser10/dout]
+  connect_bd_net -net RoundRobinPulser11_dout [get_bd_pins Pulse12] [get_bd_pins RoundRobinPulser11/dout]
+  connect_bd_net -net RoundRobinPulser12_dout [get_bd_pins Pulse13] [get_bd_pins RoundRobinPulser12/dout]
+  connect_bd_net -net RoundRobinPulser13_dout [get_bd_pins Pulse14] [get_bd_pins RoundRobinPulser13/dout]
+  connect_bd_net -net RoundRobinPulser14_dout [get_bd_pins Pulse15] [get_bd_pins RoundRobinPulser14/dout]
+  connect_bd_net -net RoundRobinPulser15_dout [get_bd_pins Pulse16] [get_bd_pins RoundRobinPulser15/dout]
+  connect_bd_net -net RoundRobinPulser1_dout [get_bd_pins Pulse2] [get_bd_pins RoundRobinPulser1/dout]
+  connect_bd_net -net RoundRobinPulser2_dout [get_bd_pins Pulse3] [get_bd_pins RoundRobinPulser2/dout]
+  connect_bd_net -net RoundRobinPulser3_dout [get_bd_pins Pulse4] [get_bd_pins RoundRobinPulser3/dout]
+  connect_bd_net -net RoundRobinPulser4_dout [get_bd_pins Pulse5] [get_bd_pins RoundRobinPulser4/dout]
+  connect_bd_net -net RoundRobinPulser5_dout [get_bd_pins Pulse6] [get_bd_pins RoundRobinPulser5/dout]
+  connect_bd_net -net RoundRobinPulser6_dout [get_bd_pins Pulse7] [get_bd_pins RoundRobinPulser6/dout]
+  connect_bd_net -net RoundRobinPulser7_dout [get_bd_pins Pulse8] [get_bd_pins RoundRobinPulser7/dout]
+  connect_bd_net -net RoundRobinPulser8_dout [get_bd_pins Pulse9] [get_bd_pins RoundRobinPulser8/dout]
+  connect_bd_net -net RoundRobinPulser9_dout [get_bd_pins Pulse10] [get_bd_pins RoundRobinPulser9/dout]
+  connect_bd_net -net b_1 [get_bd_pins b] [get_bd_pins Pulser1/b]
+  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins RoundRobinPulser/a] [get_bd_pins RoundRobinPulser1/a] [get_bd_pins RoundRobinPulser10/a] [get_bd_pins RoundRobinPulser11/a] [get_bd_pins RoundRobinPulser12/a] [get_bd_pins RoundRobinPulser13/a] [get_bd_pins RoundRobinPulser14/a] [get_bd_pins RoundRobinPulser15/a] [get_bd_pins RoundRobinPulser2/a] [get_bd_pins RoundRobinPulser3/a] [get_bd_pins RoundRobinPulser4/a] [get_bd_pins RoundRobinPulser5/a] [get_bd_pins RoundRobinPulser6/a] [get_bd_pins RoundRobinPulser7/a] [get_bd_pins RoundRobinPulser8/a] [get_bd_pins RoundRobinPulser9/a] [get_bd_pins c_counter_binary_0/Q]
+  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins Pulser1/clk] [get_bd_pins RoundRobinPulser13/clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins lfsr32_0/clock]
+  connect_bd_net -net lfsr32_0_rnd [get_bd_pins RandValue] [get_bd_pins Pulser1/A] [get_bd_pins lfsr32_0/rnd]
+  connect_bd_net -net register_0_dout [get_bd_pins Pulse1] [get_bd_pins RoundRobinPulser/dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: MultiplePulseShapers
+proc create_hier_cell_MultiplePulseShapers { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_MultiplePulseShapers() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+
+  # Create pins
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 13 -to 0 Ch1ShapedPulse
+  create_bd_pin -dir O -from 13 -to 0 Ch2ShapedPulse
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count1
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count2
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count3
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count4
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count5
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count6
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count7
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count8
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count9
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count10
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count11
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count12
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count13
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count14
+  create_bd_pin -dir I -from 0 -to 0 Trig_Count15
+  create_bd_pin -dir I clk
+  create_bd_pin -dir I -from 0 -to 0 rstb
+
+  # Create instance: ADD_Halve2
+  create_hier_cell_ADD_Halve2 $hier_obj ADD_Halve2
+
+  # Create instance: ADD_Halve3
+  create_hier_cell_ADD_Halve3 $hier_obj ADD_Halve3
+
+  # Create instance: ADD_Halve4
+  create_hier_cell_ADD_Halve4 $hier_obj ADD_Halve4
+
+  # Create instance: ADD_Halve5
+  create_hier_cell_ADD_Halve5 $hier_obj ADD_Halve5
+
+  # Create instance: ADD_Halve6
+  create_hier_cell_ADD_Halve6 $hier_obj ADD_Halve6
+
+  # Create instance: ADD_Halve7
+  create_hier_cell_ADD_Halve7 $hier_obj ADD_Halve7
+
+  # Create instance: ADD_Halve8
+  create_hier_cell_ADD_Halve8 $hier_obj ADD_Halve8
+
+  # Create instance: ADD_Halve9
+  create_hier_cell_ADD_Halve9 $hier_obj ADD_Halve9
+
+  # Create instance: ADD_Halve10
+  create_hier_cell_ADD_Halve10 $hier_obj ADD_Halve10
+
+  # Create instance: ADD_Halve11
+  create_hier_cell_ADD_Halve11 $hier_obj ADD_Halve11
+
+  # Create instance: ADD_Halve12
+  create_hier_cell_ADD_Halve12 $hier_obj ADD_Halve12
+
+  # Create instance: ADD_Halve13
+  create_hier_cell_ADD_Halve13 $hier_obj ADD_Halve13
+
+  # Create instance: ADD_Halve14
+  create_hier_cell_ADD_Halve14 $hier_obj ADD_Halve14
+
+  # Create instance: ADD_Halve15
+  create_hier_cell_ADD_Halve15 $hier_obj ADD_Halve15
+
+  # Create instance: PulseFormer
+  create_hier_cell_PulseFormer $hier_obj PulseFormer
+
+  # Create instance: PulseFormer1
+  create_hier_cell_PulseFormer1 $hier_obj PulseFormer1
+
+  # Create instance: PulseFormer2
+  create_hier_cell_PulseFormer2 $hier_obj PulseFormer2
+
+  # Create instance: PulseFormer3
+  create_hier_cell_PulseFormer3 $hier_obj PulseFormer3
+
+  # Create instance: PulseFormer4
+  create_hier_cell_PulseFormer4 $hier_obj PulseFormer4
+
+  # Create instance: PulseFormer5
+  create_hier_cell_PulseFormer5 $hier_obj PulseFormer5
+
+  # Create instance: PulseFormer6
+  create_hier_cell_PulseFormer6 $hier_obj PulseFormer6
+
+  # Create instance: PulseFormer7
+  create_hier_cell_PulseFormer7 $hier_obj PulseFormer7
+
+  # Create instance: PulseFormer8
+  create_hier_cell_PulseFormer8 $hier_obj PulseFormer8
+
+  # Create instance: PulseFormer9
+  create_hier_cell_PulseFormer9 $hier_obj PulseFormer9
+
+  # Create instance: PulseFormer10
+  create_hier_cell_PulseFormer10 $hier_obj PulseFormer10
+
+  # Create instance: PulseFormer11
+  create_hier_cell_PulseFormer11 $hier_obj PulseFormer11
+
+  # Create instance: PulseFormer12
+  create_hier_cell_PulseFormer12 $hier_obj PulseFormer12
+
+  # Create instance: PulseFormer13
+  create_hier_cell_PulseFormer13 $hier_obj PulseFormer13
+
+  # Create instance: PulseFormer14
+  create_hier_cell_PulseFormer14 $hier_obj PulseFormer14
+
+  # Create instance: PulseFormer15
+  create_hier_cell_PulseFormer15 $hier_obj PulseFormer15
+
+  # Create instance: Twox2ChannelAdder
+  create_hier_cell_Twox2ChannelAdder $hier_obj Twox2ChannelAdder
+
+  # Create instance: Twox2ChannelAdder1
+  create_hier_cell_Twox2ChannelAdder1 $hier_obj Twox2ChannelAdder1
+
+  # Create instance: Twox2ChannelAdder2
+  create_hier_cell_Twox2ChannelAdder2 $hier_obj Twox2ChannelAdder2
+
+  # Create instance: Twox2ChannelAdder3
+  create_hier_cell_Twox2ChannelAdder3 $hier_obj Twox2ChannelAdder3
+
+  # Create instance: Twox2ChannelAdder4
+  create_hier_cell_Twox2ChannelAdder4 $hier_obj Twox2ChannelAdder4
+
+  # Create instance: Twox2ChannelAdder5
+  create_hier_cell_Twox2ChannelAdder5 $hier_obj Twox2ChannelAdder5
+
+  # Create instance: Twox2ChannelAdder6
+  create_hier_cell_Twox2ChannelAdder6 $hier_obj Twox2ChannelAdder6
+
+  # Create instance: Twox2ChannelAdder7
+  create_hier_cell_Twox2ChannelAdder7 $hier_obj Twox2ChannelAdder7
+
+  # Create port connections
+  connect_bd_net -net ADD_Halve11_Dout [get_bd_pins ADD_Halve11/Dout] [get_bd_pins ADD_Halve14/A]
+  connect_bd_net -net ADD_Halve13_Dout [get_bd_pins ADD_Halve13/Dout] [get_bd_pins ADD_Halve15/B]
+  connect_bd_net -net ADD_Halve14_Dout [get_bd_pins Ch2ShapedPulse] [get_bd_pins ADD_Halve14/Dout]
+  connect_bd_net -net ADD_Halve15_Dout [get_bd_pins Ch1ShapedPulse] [get_bd_pins ADD_Halve15/Dout]
+  connect_bd_net -net ADD_Halve2_Dout [get_bd_pins ADD_Halve11/A] [get_bd_pins ADD_Halve2/Dout]
+  connect_bd_net -net ADD_Halve3_Dout [get_bd_pins ADD_Halve10/A] [get_bd_pins ADD_Halve3/Dout]
+  connect_bd_net -net ADD_Halve4_Dout [get_bd_pins ADD_Halve11/B] [get_bd_pins ADD_Halve4/Dout]
+  connect_bd_net -net ADD_Halve5_Dout [get_bd_pins ADD_Halve10/B] [get_bd_pins ADD_Halve5/Dout]
+  connect_bd_net -net ADD_Halve6_Dout [get_bd_pins ADD_Halve12/A] [get_bd_pins ADD_Halve6/Dout]
+  connect_bd_net -net ADD_Halve8_Dout [get_bd_pins ADD_Halve12/B] [get_bd_pins ADD_Halve8/Dout]
+  connect_bd_net -net ADD_Halve9_Dout [get_bd_pins ADD_Halve13/B] [get_bd_pins ADD_Halve9/Dout]
+  connect_bd_net -net A_1 [get_bd_pins ADD_Halve13/A] [get_bd_pins ADD_Halve7/Dout]
+  connect_bd_net -net A_2 [get_bd_pins ADD_Halve10/Dout] [get_bd_pins ADD_Halve15/A]
+  connect_bd_net -net B_1 [get_bd_pins ADD_Halve12/Dout] [get_bd_pins ADD_Halve14/B]
+  connect_bd_net -net Din1_1 [get_bd_pins PulseFormer13/ShapedPulse] [get_bd_pins Twox2ChannelAdder1/Din1]
+  connect_bd_net -net Din1_2 [get_bd_pins PulseFormer15/ShapedPulse] [get_bd_pins Twox2ChannelAdder2/Din1]
+  connect_bd_net -net Din1_3 [get_bd_pins PulseFormer9/ShapedPulse] [get_bd_pins Twox2ChannelAdder5/Din1]
+  connect_bd_net -net PulseFormer10_ShapedPulse [get_bd_pins PulseFormer10/ShapedPulse] [get_bd_pins Twox2ChannelAdder/Din]
+  connect_bd_net -net PulseFormer11_ShapedPulse [get_bd_pins PulseFormer11/ShapedPulse] [get_bd_pins Twox2ChannelAdder/Din1]
+  connect_bd_net -net PulseFormer12_ShapedPulse [get_bd_pins PulseFormer12/ShapedPulse] [get_bd_pins Twox2ChannelAdder1/Din]
+  connect_bd_net -net PulseFormer14_ShapedPulse [get_bd_pins PulseFormer14/ShapedPulse] [get_bd_pins Twox2ChannelAdder2/Din]
+  connect_bd_net -net PulseFormer1_ShapedPulse [get_bd_pins PulseFormer1/ShapedPulse] [get_bd_pins Twox2ChannelAdder3/Din1]
+  connect_bd_net -net PulseFormer2_ShapedPulse [get_bd_pins PulseFormer2/ShapedPulse] [get_bd_pins Twox2ChannelAdder6/Din]
+  connect_bd_net -net PulseFormer3_ShapedPulse [get_bd_pins PulseFormer3/ShapedPulse] [get_bd_pins Twox2ChannelAdder6/Din1]
+  connect_bd_net -net PulseFormer4_ShapedPulse [get_bd_pins PulseFormer4/ShapedPulse] [get_bd_pins Twox2ChannelAdder7/Din]
+  connect_bd_net -net PulseFormer5_ShapedPulse [get_bd_pins PulseFormer5/ShapedPulse] [get_bd_pins Twox2ChannelAdder7/Din1]
+  connect_bd_net -net PulseFormer6_ShapedPulse [get_bd_pins PulseFormer6/ShapedPulse] [get_bd_pins Twox2ChannelAdder4/Din]
+  connect_bd_net -net PulseFormer7_ShapedPulse [get_bd_pins PulseFormer7/ShapedPulse] [get_bd_pins Twox2ChannelAdder4/Din1]
+  connect_bd_net -net PulseFormer8_ShapedPulse [get_bd_pins PulseFormer8/ShapedPulse] [get_bd_pins Twox2ChannelAdder5/Din]
+  connect_bd_net -net PulseFormer_ShapedPulse [get_bd_pins PulseFormer/ShapedPulse] [get_bd_pins Twox2ChannelAdder3/Din]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Trig_Count] [get_bd_pins PulseFormer/Trig_Count]
+  connect_bd_net -net Trig_Count1_1 [get_bd_pins Trig_Count1] [get_bd_pins PulseFormer1/Trig_Count]
+  connect_bd_net -net Trig_Count1_2 [get_bd_pins Trig_Count2] [get_bd_pins PulseFormer2/Trig_Count]
+  connect_bd_net -net Trig_Count1_3 [get_bd_pins Trig_Count3] [get_bd_pins PulseFormer3/Trig_Count]
+  connect_bd_net -net Trig_Count1_4 [get_bd_pins Trig_Count4] [get_bd_pins PulseFormer4/Trig_Count]
+  connect_bd_net -net Trig_Count1_5 [get_bd_pins Trig_Count5] [get_bd_pins PulseFormer5/Trig_Count]
+  connect_bd_net -net Trig_Count1_6 [get_bd_pins Trig_Count6] [get_bd_pins PulseFormer6/Trig_Count]
+  connect_bd_net -net Trig_Count1_7 [get_bd_pins Trig_Count7] [get_bd_pins PulseFormer7/Trig_Count]
+  connect_bd_net -net Trig_Count1_8 [get_bd_pins Trig_Count8] [get_bd_pins PulseFormer8/Trig_Count]
+  connect_bd_net -net Trig_Count1_9 [get_bd_pins Trig_Count9] [get_bd_pins PulseFormer9/Trig_Count]
+  connect_bd_net -net Trig_Count1_10 [get_bd_pins Trig_Count10] [get_bd_pins PulseFormer10/Trig_Count]
+  connect_bd_net -net Trig_Count1_11 [get_bd_pins Trig_Count11] [get_bd_pins PulseFormer11/Trig_Count]
+  connect_bd_net -net Trig_Count1_12 [get_bd_pins Trig_Count12] [get_bd_pins PulseFormer12/Trig_Count]
+  connect_bd_net -net Trig_Count1_13 [get_bd_pins Trig_Count13] [get_bd_pins PulseFormer13/Trig_Count]
+  connect_bd_net -net Trig_Count1_14 [get_bd_pins Trig_Count14] [get_bd_pins PulseFormer14/Trig_Count]
+  connect_bd_net -net Trig_Count1_15 [get_bd_pins Trig_Count15] [get_bd_pins PulseFormer15/Trig_Count]
+  connect_bd_net -net Twox2ChannelAdder1_Ch1 [get_bd_pins ADD_Halve3/B] [get_bd_pins Twox2ChannelAdder1/Ch1]
+  connect_bd_net -net Twox2ChannelAdder1_Ch2 [get_bd_pins ADD_Halve2/B] [get_bd_pins Twox2ChannelAdder1/Ch2]
+  connect_bd_net -net Twox2ChannelAdder2_Ch1 [get_bd_pins ADD_Halve5/A] [get_bd_pins Twox2ChannelAdder2/Ch1]
+  connect_bd_net -net Twox2ChannelAdder2_Ch2 [get_bd_pins ADD_Halve4/A] [get_bd_pins Twox2ChannelAdder2/Ch2]
+  connect_bd_net -net Twox2ChannelAdder3_Ch1 [get_bd_pins ADD_Halve5/B] [get_bd_pins Twox2ChannelAdder3/Ch1]
+  connect_bd_net -net Twox2ChannelAdder3_Ch2 [get_bd_pins ADD_Halve4/B] [get_bd_pins Twox2ChannelAdder3/Ch2]
+  connect_bd_net -net Twox2ChannelAdder4_Ch1 [get_bd_pins ADD_Halve9/A] [get_bd_pins Twox2ChannelAdder4/Ch1]
+  connect_bd_net -net Twox2ChannelAdder4_Ch2 [get_bd_pins ADD_Halve8/A] [get_bd_pins Twox2ChannelAdder4/Ch2]
+  connect_bd_net -net Twox2ChannelAdder5_Ch1 [get_bd_pins ADD_Halve9/B] [get_bd_pins Twox2ChannelAdder5/Ch1]
+  connect_bd_net -net Twox2ChannelAdder5_Ch2 [get_bd_pins ADD_Halve8/B] [get_bd_pins Twox2ChannelAdder5/Ch2]
+  connect_bd_net -net Twox2ChannelAdder6_Ch1 [get_bd_pins ADD_Halve7/A] [get_bd_pins Twox2ChannelAdder6/Ch1]
+  connect_bd_net -net Twox2ChannelAdder6_Ch2 [get_bd_pins ADD_Halve6/A] [get_bd_pins Twox2ChannelAdder6/Ch2]
+  connect_bd_net -net Twox2ChannelAdder7_Ch1 [get_bd_pins ADD_Halve7/B] [get_bd_pins Twox2ChannelAdder7/Ch1]
+  connect_bd_net -net Twox2ChannelAdder7_Ch2 [get_bd_pins ADD_Halve6/B] [get_bd_pins Twox2ChannelAdder7/Ch2]
+  connect_bd_net -net Twox2ChannelAdder_Ch1 [get_bd_pins ADD_Halve3/A] [get_bd_pins Twox2ChannelAdder/Ch1]
+  connect_bd_net -net Twox2ChannelAdder_Ch2 [get_bd_pins ADD_Halve2/A] [get_bd_pins Twox2ChannelAdder/Ch2]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins ADD_Halve10/CLK] [get_bd_pins ADD_Halve11/CLK] [get_bd_pins ADD_Halve12/CLK] [get_bd_pins ADD_Halve13/CLK] [get_bd_pins ADD_Halve14/CLK] [get_bd_pins ADD_Halve15/CLK] [get_bd_pins ADD_Halve2/CLK] [get_bd_pins ADD_Halve3/CLK] [get_bd_pins ADD_Halve4/CLK] [get_bd_pins ADD_Halve5/CLK] [get_bd_pins ADD_Halve6/CLK] [get_bd_pins ADD_Halve7/CLK] [get_bd_pins ADD_Halve8/CLK] [get_bd_pins ADD_Halve9/CLK] [get_bd_pins PulseFormer/clk] [get_bd_pins PulseFormer1/clk] [get_bd_pins PulseFormer10/clk] [get_bd_pins PulseFormer11/clk] [get_bd_pins PulseFormer12/clk] [get_bd_pins PulseFormer13/clk] [get_bd_pins PulseFormer14/clk] [get_bd_pins PulseFormer15/clk] [get_bd_pins PulseFormer2/clk] [get_bd_pins PulseFormer3/clk] [get_bd_pins PulseFormer4/clk] [get_bd_pins PulseFormer5/clk] [get_bd_pins PulseFormer6/clk] [get_bd_pins PulseFormer7/clk] [get_bd_pins PulseFormer8/clk] [get_bd_pins PulseFormer9/clk] [get_bd_pins Twox2ChannelAdder/CLK] [get_bd_pins Twox2ChannelAdder1/CLK] [get_bd_pins Twox2ChannelAdder2/CLK] [get_bd_pins Twox2ChannelAdder3/CLK] [get_bd_pins Twox2ChannelAdder4/CLK] [get_bd_pins Twox2ChannelAdder5/CLK] [get_bd_pins Twox2ChannelAdder6/CLK] [get_bd_pins Twox2ChannelAdder7/CLK]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_addr_a [get_bd_pins BRAM_PORTA_addr] [get_bd_pins PulseFormer/BRAM_PORTA_addr] [get_bd_pins PulseFormer1/BRAM_PORTA_addr] [get_bd_pins PulseFormer10/BRAM_PORTA_addr] [get_bd_pins PulseFormer11/BRAM_PORTA_addr] [get_bd_pins PulseFormer12/BRAM_PORTA_addr] [get_bd_pins PulseFormer13/BRAM_PORTA_addr] [get_bd_pins PulseFormer14/BRAM_PORTA_addr] [get_bd_pins PulseFormer15/BRAM_PORTA_addr] [get_bd_pins PulseFormer2/BRAM_PORTA_addr] [get_bd_pins PulseFormer3/BRAM_PORTA_addr] [get_bd_pins PulseFormer4/BRAM_PORTA_addr] [get_bd_pins PulseFormer5/BRAM_PORTA_addr] [get_bd_pins PulseFormer6/BRAM_PORTA_addr] [get_bd_pins PulseFormer7/BRAM_PORTA_addr] [get_bd_pins PulseFormer8/BRAM_PORTA_addr] [get_bd_pins PulseFormer9/BRAM_PORTA_addr]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_clk_a [get_bd_pins BRAM_PORTA_clk] [get_bd_pins PulseFormer/BRAM_PORTA_clk] [get_bd_pins PulseFormer1/BRAM_PORTA_clk] [get_bd_pins PulseFormer10/BRAM_PORTA_clk] [get_bd_pins PulseFormer11/BRAM_PORTA_clk] [get_bd_pins PulseFormer12/BRAM_PORTA_clk] [get_bd_pins PulseFormer13/BRAM_PORTA_clk] [get_bd_pins PulseFormer14/BRAM_PORTA_clk] [get_bd_pins PulseFormer15/BRAM_PORTA_clk] [get_bd_pins PulseFormer2/BRAM_PORTA_clk] [get_bd_pins PulseFormer3/BRAM_PORTA_clk] [get_bd_pins PulseFormer4/BRAM_PORTA_clk] [get_bd_pins PulseFormer5/BRAM_PORTA_clk] [get_bd_pins PulseFormer6/BRAM_PORTA_clk] [get_bd_pins PulseFormer7/BRAM_PORTA_clk] [get_bd_pins PulseFormer8/BRAM_PORTA_clk] [get_bd_pins PulseFormer9/BRAM_PORTA_clk]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_en_a [get_bd_pins BRAM_PORTA_en] [get_bd_pins PulseFormer/BRAM_PORTA_en] [get_bd_pins PulseFormer1/BRAM_PORTA_en] [get_bd_pins PulseFormer10/BRAM_PORTA_en] [get_bd_pins PulseFormer11/BRAM_PORTA_en] [get_bd_pins PulseFormer12/BRAM_PORTA_en] [get_bd_pins PulseFormer13/BRAM_PORTA_en] [get_bd_pins PulseFormer14/BRAM_PORTA_en] [get_bd_pins PulseFormer15/BRAM_PORTA_en] [get_bd_pins PulseFormer2/BRAM_PORTA_en] [get_bd_pins PulseFormer3/BRAM_PORTA_en] [get_bd_pins PulseFormer4/BRAM_PORTA_en] [get_bd_pins PulseFormer5/BRAM_PORTA_en] [get_bd_pins PulseFormer6/BRAM_PORTA_en] [get_bd_pins PulseFormer7/BRAM_PORTA_en] [get_bd_pins PulseFormer8/BRAM_PORTA_en] [get_bd_pins PulseFormer9/BRAM_PORTA_en]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_rst_a [get_bd_pins BRAM_PORTA_rst] [get_bd_pins PulseFormer/BRAM_PORTA_rst] [get_bd_pins PulseFormer1/BRAM_PORTA_rst] [get_bd_pins PulseFormer10/BRAM_PORTA_rst] [get_bd_pins PulseFormer11/BRAM_PORTA_rst] [get_bd_pins PulseFormer12/BRAM_PORTA_rst] [get_bd_pins PulseFormer13/BRAM_PORTA_rst] [get_bd_pins PulseFormer14/BRAM_PORTA_rst] [get_bd_pins PulseFormer15/BRAM_PORTA_rst] [get_bd_pins PulseFormer2/BRAM_PORTA_rst] [get_bd_pins PulseFormer3/BRAM_PORTA_rst] [get_bd_pins PulseFormer4/BRAM_PORTA_rst] [get_bd_pins PulseFormer5/BRAM_PORTA_rst] [get_bd_pins PulseFormer6/BRAM_PORTA_rst] [get_bd_pins PulseFormer7/BRAM_PORTA_rst] [get_bd_pins PulseFormer8/BRAM_PORTA_rst] [get_bd_pins PulseFormer9/BRAM_PORTA_rst]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_we_a [get_bd_pins BRAM_PORTA_we] [get_bd_pins PulseFormer/BRAM_PORTA_we] [get_bd_pins PulseFormer1/BRAM_PORTA_we] [get_bd_pins PulseFormer10/BRAM_PORTA_we] [get_bd_pins PulseFormer11/BRAM_PORTA_we] [get_bd_pins PulseFormer12/BRAM_PORTA_we] [get_bd_pins PulseFormer13/BRAM_PORTA_we] [get_bd_pins PulseFormer14/BRAM_PORTA_we] [get_bd_pins PulseFormer15/BRAM_PORTA_we] [get_bd_pins PulseFormer2/BRAM_PORTA_we] [get_bd_pins PulseFormer3/BRAM_PORTA_we] [get_bd_pins PulseFormer4/BRAM_PORTA_we] [get_bd_pins PulseFormer5/BRAM_PORTA_we] [get_bd_pins PulseFormer6/BRAM_PORTA_we] [get_bd_pins PulseFormer7/BRAM_PORTA_we] [get_bd_pins PulseFormer8/BRAM_PORTA_we] [get_bd_pins PulseFormer9/BRAM_PORTA_we]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_wrdata_a [get_bd_pins BRAM_PORTA_din] [get_bd_pins PulseFormer/BRAM_PORTA_din] [get_bd_pins PulseFormer1/BRAM_PORTA_din] [get_bd_pins PulseFormer10/BRAM_PORTA_din] [get_bd_pins PulseFormer11/BRAM_PORTA_din] [get_bd_pins PulseFormer12/BRAM_PORTA_din] [get_bd_pins PulseFormer13/BRAM_PORTA_din] [get_bd_pins PulseFormer14/BRAM_PORTA_din] [get_bd_pins PulseFormer15/BRAM_PORTA_din] [get_bd_pins PulseFormer2/BRAM_PORTA_din] [get_bd_pins PulseFormer3/BRAM_PORTA_din] [get_bd_pins PulseFormer4/BRAM_PORTA_din] [get_bd_pins PulseFormer5/BRAM_PORTA_din] [get_bd_pins PulseFormer6/BRAM_PORTA_din] [get_bd_pins PulseFormer7/BRAM_PORTA_din] [get_bd_pins PulseFormer8/BRAM_PORTA_din] [get_bd_pins PulseFormer9/BRAM_PORTA_din]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins rstb] [get_bd_pins PulseFormer/rstb] [get_bd_pins PulseFormer1/rstb] [get_bd_pins PulseFormer10/rstb] [get_bd_pins PulseFormer11/rstb] [get_bd_pins PulseFormer12/rstb] [get_bd_pins PulseFormer13/rstb] [get_bd_pins PulseFormer14/rstb] [get_bd_pins PulseFormer15/rstb] [get_bd_pins PulseFormer2/rstb] [get_bd_pins PulseFormer3/rstb] [get_bd_pins PulseFormer4/rstb] [get_bd_pins PulseFormer5/rstb] [get_bd_pins PulseFormer6/rstb] [get_bd_pins PulseFormer7/rstb] [get_bd_pins PulseFormer8/rstb] [get_bd_pins PulseFormer9/rstb]
+
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer/MultiplePulseShapers] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port BRAM_PORTA_rst -pg 1 -y 1770 -defaultsOSRD
+preplace port BRAM_PORTA_en -pg 1 -y 1750 -defaultsOSRD
+preplace port BRAM_PORTA_clk -pg 1 -y 1710 -defaultsOSRD
+preplace port clk -pg 1 -y 1830 -defaultsOSRD
+preplace portBus Trig_Count9 -pg 1 -y 4240 -defaultsOSRD
+preplace portBus rstb -pg 1 -y 1850 -defaultsOSRD
+preplace portBus Trig_Count -pg 1 -y 1810 -defaultsOSRD
+preplace portBus Trig_Count10 -pg 1 -y 120 -defaultsOSRD
+preplace portBus Trig_Count1 -pg 1 -y 2080 -defaultsOSRD
+preplace portBus Ch2ShapedPulse -pg 1 -y 1780 -defaultsOSRD
+preplace portBus Trig_Count11 -pg 1 -y 390 -defaultsOSRD
+preplace portBus Trig_Count2 -pg 1 -y 2350 -defaultsOSRD
+preplace portBus BRAM_PORTA_din -pg 1 -y 1730 -defaultsOSRD
+preplace portBus Trig_Count12 -pg 1 -y 730 -defaultsOSRD
+preplace portBus Trig_Count3 -pg 1 -y 2620 -defaultsOSRD
+preplace portBus Ch1ShapedPulse -pg 1 -y 1820 -defaultsOSRD
+preplace portBus BRAM_PORTA_we -pg 1 -y 1790 -defaultsOSRD
+preplace portBus BRAM_PORTA_addr -pg 1 -y 1690 -defaultsOSRD
+preplace portBus Trig_Count13 -pg 1 -y 1000 -defaultsOSRD
+preplace portBus Trig_Count4 -pg 1 -y 2890 -defaultsOSRD
+preplace portBus Trig_Count14 -pg 1 -y 1270 -defaultsOSRD
+preplace portBus Trig_Count5 -pg 1 -y 3160 -defaultsOSRD
+preplace portBus Trig_Count15 -pg 1 -y 1540 -defaultsOSRD
+preplace portBus Trig_Count6 -pg 1 -y 3430 -defaultsOSRD
+preplace portBus Trig_Count7 -pg 1 -y 3700 -defaultsOSRD
+preplace portBus Trig_Count8 -pg 1 -y 3970 -defaultsOSRD
+preplace inst Twox2ChannelAdder4 -pg 1 -lvl 2 -y 3520 -defaultsOSRD
+preplace inst PulseFormer11 -pg 1 -lvl 1 -y 340 -defaultsOSRD
+preplace inst ADD_Halve12 -pg 1 -lvl 4 -y 3250 -defaultsOSRD
+preplace inst Twox2ChannelAdder5 -pg 1 -lvl 2 -y 4040 -defaultsOSRD
+preplace inst PulseFormer12 -pg 1 -lvl 1 -y 680 -defaultsOSRD
+preplace inst ADD_Halve13 -pg 1 -lvl 4 -y 3380 -defaultsOSRD
+preplace inst Twox2ChannelAdder6 -pg 1 -lvl 2 -y 2430 -defaultsOSRD
+preplace inst PulseFormer13 -pg 1 -lvl 1 -y 950 -defaultsOSRD
+preplace inst PulseFormer1 -pg 1 -lvl 1 -y 2030 -defaultsOSRD
+preplace inst ADD_Halve14 -pg 1 -lvl 5 -y 1740 -defaultsOSRD
+preplace inst ADD_Halve2 -pg 1 -lvl 3 -y 440 -defaultsOSRD
+preplace inst Twox2ChannelAdder7 -pg 1 -lvl 2 -y 2980 -defaultsOSRD
+preplace inst PulseFormer14 -pg 1 -lvl 1 -y 1220 -defaultsOSRD
+preplace inst PulseFormer2 -pg 1 -lvl 1 -y 2300 -defaultsOSRD
+preplace inst ADD_Halve15 -pg 1 -lvl 5 -y 1870 -defaultsOSRD
+preplace inst ADD_Halve3 -pg 1 -lvl 3 -y 580 -defaultsOSRD
+preplace inst PulseFormer15 -pg 1 -lvl 1 -y 1490 -defaultsOSRD
+preplace inst PulseFormer3 -pg 1 -lvl 1 -y 2570 -defaultsOSRD
+preplace inst ADD_Halve4 -pg 1 -lvl 3 -y 1570 -defaultsOSRD
+preplace inst PulseFormer4 -pg 1 -lvl 1 -y 2840 -defaultsOSRD
+preplace inst ADD_Halve5 -pg 1 -lvl 3 -y 1700 -defaultsOSRD
+preplace inst PulseFormer5 -pg 1 -lvl 1 -y 3110 -defaultsOSRD
+preplace inst ADD_Halve6 -pg 1 -lvl 3 -y 2620 -defaultsOSRD
+preplace inst PulseFormer6 -pg 1 -lvl 1 -y 3380 -defaultsOSRD
+preplace inst ADD_Halve7 -pg 1 -lvl 3 -y 2750 -defaultsOSRD
+preplace inst PulseFormer7 -pg 1 -lvl 1 -y 3650 -defaultsOSRD
+preplace inst PulseFormer -pg 1 -lvl 1 -y 1760 -defaultsOSRD
+preplace inst ADD_Halve8 -pg 1 -lvl 3 -y 3740 -defaultsOSRD
+preplace inst Twox2ChannelAdder -pg 1 -lvl 2 -y 280 -defaultsOSRD
+preplace inst PulseFormer8 -pg 1 -lvl 1 -y 3920 -defaultsOSRD
+preplace inst ADD_Halve9 -pg 1 -lvl 3 -y 3870 -defaultsOSRD
+preplace inst Twox2ChannelAdder1 -pg 1 -lvl 2 -y 840 -defaultsOSRD
+preplace inst PulseFormer9 -pg 1 -lvl 1 -y 4190 -defaultsOSRD
+preplace inst Twox2ChannelAdder2 -pg 1 -lvl 2 -y 1360 -defaultsOSRD
+preplace inst ADD_Halve10 -pg 1 -lvl 4 -y 1050 -defaultsOSRD
+preplace inst Twox2ChannelAdder3 -pg 1 -lvl 2 -y 1920 -defaultsOSRD
+preplace inst PulseFormer10 -pg 1 -lvl 1 -y 70 -defaultsOSRD
+preplace inst ADD_Halve11 -pg 1 -lvl 4 -y 900 -defaultsOSRD
+preplace netloc axi_bram_ctrl_dac_bram_rst_a 1 0 1 40
+preplace netloc Trig_Count1_5 1 0 1 NJ
+preplace netloc proc_sys_reset_adc_clk_peripheral_reset 1 0 1 70
+preplace netloc Twox2ChannelAdder7_Ch1 1 2 1 690
+preplace netloc Trig_Count1_6 1 0 1 NJ
+preplace netloc Twox2ChannelAdder7_Ch2 1 2 1 680
+preplace netloc Trig_Count1_7 1 0 1 NJ
+preplace netloc ADD_Halve13_Dout 1 4 1 1120
+preplace netloc Trig_Count1_8 1 0 1 NJ
+preplace netloc Trig_Count1_9 1 0 1 NJ
+preplace netloc ADD_Halve14_Dout 1 5 1 1300
+preplace netloc PulseFormer1_ShapedPulse 1 1 1 430
+preplace netloc ADD_Halve15_Dout 1 5 1 1300
+preplace netloc Trig_Count1_10 1 0 1 NJ
+preplace netloc Twox2ChannelAdder1_Ch1 1 2 1 660
+preplace netloc Twox2ChannelAdder1_Ch2 1 2 1 650
+preplace netloc Trig_Count1_11 1 0 1 NJ
+preplace netloc axi_bram_ctrl_dac_bram_we_a 1 0 1 50
+preplace netloc Twox2ChannelAdder_Ch1 1 2 1 690
+preplace netloc Trig_Count1_12 1 0 1 NJ
+preplace netloc axi_bram_ctrl_dac_bram_wrdata_a 1 0 1 20
+preplace netloc Twox2ChannelAdder_Ch2 1 2 1 650
+preplace netloc PulseFormer3_ShapedPulse 1 1 1 450
+preplace netloc Trig_Count1_13 1 0 1 NJ
+preplace netloc Trig_Count1_14 1 0 1 NJ
+preplace netloc PulseFormer10_ShapedPulse 1 1 1 450
+preplace netloc Twox2ChannelAdder6_Ch1 1 2 1 660
+preplace netloc Trig_Count1_15 1 0 1 NJ
+preplace netloc Twox2ChannelAdder6_Ch2 1 2 1 650
+preplace netloc Twox2ChannelAdder3_Ch1 1 2 1 660
+preplace netloc ADD_Halve11_Dout 1 4 1 1100
+preplace netloc ADD_Halve8_Dout 1 3 1 900
+preplace netloc Twox2ChannelAdder3_Ch2 1 2 1 650
+preplace netloc ADD_Halve2_Dout 1 3 1 910
+preplace netloc PulseFormer11_ShapedPulse 1 1 1 430
+preplace netloc A_1 1 3 1 870
+preplace netloc ADD_Halve9_Dout 1 3 1 910
+preplace netloc A_2 1 4 1 1090
+preplace netloc PulseFormer2_ShapedPulse 1 1 1 430
+preplace netloc PulseFormer8_ShapedPulse 1 1 1 430
+preplace netloc PulseFormer6_ShapedPulse 1 1 1 430
+preplace netloc PulseFormer5_ShapedPulse 1 1 1 450
+preplace netloc ADD_Halve5_Dout 1 3 1 880
+preplace netloc B_1 1 4 1 1100
+preplace netloc Twox2ChannelAdder2_Ch1 1 2 1 690
+preplace netloc ADD_Halve6_Dout 1 3 1 880
+preplace netloc Din1_1 1 1 1 430
+preplace netloc Twox2ChannelAdder4_Ch1 1 2 1 660
+preplace netloc PulseFormer12_ShapedPulse 1 1 1 450
+preplace netloc Twox2ChannelAdder2_Ch2 1 2 1 680
+preplace netloc Din1_2 1 1 1 430
+preplace netloc axi_bram_ctrl_dac_bram_clk_a 1 0 1 10
+preplace netloc Twox2ChannelAdder4_Ch2 1 2 1 650
+preplace netloc Din1_3 1 1 1 440
+preplace netloc RandomPulser_Pulse 1 0 1 NJ
+preplace netloc axi_bram_ctrl_dac_bram_en_a 1 0 1 30
+preplace netloc Twox2ChannelAdder5_Ch1 1 2 1 690
+preplace netloc Twox2ChannelAdder5_Ch2 1 2 1 680
+preplace netloc axi_bram_ctrl_dac_bram_addr_a 1 0 1 0
+preplace netloc PulseFormer4_ShapedPulse 1 1 1 430
+preplace netloc PulseFormer14_ShapedPulse 1 1 1 450
+preplace netloc PulseFormer7_ShapedPulse 1 1 1 450
+preplace netloc adc_dac_adc_clk 1 0 5 60 480 440 460 670 920 890 1760 1110
+preplace netloc PulseFormer_ShapedPulse 1 1 1 430
+preplace netloc Trig_Count1_1 1 0 1 NJ
+preplace netloc ADD_Halve3_Dout 1 3 1 900
+preplace netloc Trig_Count1_2 1 0 1 NJ
+preplace netloc Trig_Count1_3 1 0 1 NJ
+preplace netloc ADD_Halve4_Dout 1 3 1 870
+preplace netloc Trig_Count1_4 1 0 1 NJ
+levelinfo -pg 1 -20 260 550 780 1000 1210 1320 -top -70 -bot 4330
+",
+}
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
 # Hierarchical cell: sts
 proc create_hier_cell_sts { parentCell nameHier } {
 
@@ -164,7 +8469,7 @@ proc create_hier_cell_sts { parentCell nameHier } {
   create_bd_pin -dir I -type clk s_axi_aclk
   create_bd_pin -dir I -from 0 -to 0 -type rst s_axi_aresetn
   create_bd_pin -dir I -from 31 -to 0 state
-  create_bd_pin -dir I -from 30 -to 0 status
+  create_bd_pin -dir I -from 31 -to 0 status
 
   # Create instance: axi_clock_converter_0, and set properties
   set axi_clock_converter_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_clock_converter:2.1 axi_clock_converter_0 ]
@@ -643,88 +8948,6 @@ CONFIG.NUM_OUT_CLKS.VALUE_SRC {DEFAULT} \
   current_bd_instance $oldCurInst
 }
 
-# Hierarchical cell: TriggeredCounter
-proc create_hier_cell_TriggeredCounter { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_TriggeredCounter() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-
-  # Create pins
-  create_bd_pin -dir O -from 12 -to 0 Count
-  create_bd_pin -dir I Trig_Count
-  create_bd_pin -dir I clk
-
-  # Create instance: c_counter_binary_0, and set properties
-  set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
-  set_property -dict [ list \
-CONFIG.CE {false} \
-CONFIG.Output_Width {14} \
-CONFIG.SCLR {true} \
- ] $c_counter_binary_0
-
-  # Create instance: latch_0, and set properties
-  set latch_0 [ create_bd_cell -type ip -vlnv CCFE:user:latch:1.0 latch_0 ]
-
-  # Create instance: xlslice_0, and set properties
-  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
-  set_property -dict [ list \
-CONFIG.DIN_FROM {13} \
-CONFIG.DIN_TO {13} \
-CONFIG.DIN_WIDTH {14} \
-CONFIG.DOUT_WIDTH {1} \
- ] $xlslice_0
-
-  # Create instance: xlslice_1, and set properties
-  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
-  set_property -dict [ list \
-CONFIG.DIN_FROM {12} \
-CONFIG.DIN_TO {0} \
-CONFIG.DIN_WIDTH {14} \
-CONFIG.DOUT_WIDTH {13} \
- ] $xlslice_1
-
-  # Create port connections
-  connect_bd_net -net Trig_Count_1 [get_bd_pins Trig_Count] [get_bd_pins latch_0/reset]
-  connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din]
-  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins latch_0/clk]
-  connect_bd_net -net latch_0_q [get_bd_pins c_counter_binary_0/SCLR] [get_bd_pins latch_0/q]
-  connect_bd_net -net xlslice_0_Dout [get_bd_pins latch_0/set] [get_bd_pins xlslice_0/Dout]
-  connect_bd_net -net xlslice_1_Dout [get_bd_pins Count] [get_bd_pins xlslice_1/Dout]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
-
 # Hierarchical cell: Set_Reset_State
 proc create_hier_cell_Set_Reset_State { parentCell nameHier } {
 
@@ -788,13 +9011,13 @@ proc create_hier_cell_Set_Reset_State { parentCell nameHier } {
   current_bd_instance $oldCurInst
 }
 
-# Hierarchical cell: RandomPulser
-proc create_hier_cell_RandomPulser { parentCell nameHier } {
+# Hierarchical cell: RandomPulseSynthesizer
+proc create_hier_cell_RandomPulseSynthesizer { parentCell nameHier } {
 
   variable script_folder
 
   if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RandomPulser() - Empty argument(s)!"}
+     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_RandomPulseSynthesizer() - Empty argument(s)!"}
      return
   }
 
@@ -825,91 +9048,102 @@ proc create_hier_cell_RandomPulser { parentCell nameHier } {
   # Create interface pins
 
   # Create pins
-  create_bd_pin -dir O Pulse
-  create_bd_pin -dir O -from 31 -to 0 RandValue
+  create_bd_pin -dir I -from 14 -to 0 BRAM_PORTA_addr
+  create_bd_pin -dir I BRAM_PORTA_clk
+  create_bd_pin -dir I -from 31 -to 0 BRAM_PORTA_din
+  create_bd_pin -dir I BRAM_PORTA_en
+  create_bd_pin -dir I BRAM_PORTA_rst
+  create_bd_pin -dir I -from 3 -to 0 BRAM_PORTA_we
+  create_bd_pin -dir O -from 13 -to 0 DACAShapedPulse
+  create_bd_pin -dir O -from 13 -to 0 DACBShapedPulse
+  create_bd_pin -dir O -from 0 -to 0 Pulse1
   create_bd_pin -dir I -from 0 -to 0 Reset_In
   create_bd_pin -dir I -from 31 -to 0 b
   create_bd_pin -dir I clk
 
-  # Create instance: comparator_0, and set properties
-  set comparator_0 [ create_bd_cell -type ip -vlnv koheron:user:comparator:1.0 comparator_0 ]
-  set_property -dict [ list \
-CONFIG.DATA_WIDTH {32} \
-CONFIG.OPERATION {LT} \
- ] $comparator_0
+  # Create instance: MultiplePulseShapers
+  create_hier_cell_MultiplePulseShapers $hier_obj MultiplePulseShapers
 
-  # Create instance: lfsr32_0, and set properties
-  set lfsr32_0 [ create_bd_cell -type ip -vlnv CCFE:user:lfsr32:1.0 lfsr32_0 ]
-
-  # Create instance: one_clock_pulse_0, and set properties
-  set one_clock_pulse_0 [ create_bd_cell -type ip -vlnv CCFE:user:one_clock_pulse:1.0 one_clock_pulse_0 ]
+  # Create instance: RandomPulser
+  create_hier_cell_RandomPulser $hier_obj RandomPulser
 
   # Create port connections
-  connect_bd_net -net Reset_In_1 [get_bd_pins Reset_In] [get_bd_pins lfsr32_0/reset]
-  connect_bd_net -net cfg_simulationpulsefreq [get_bd_pins b] [get_bd_pins comparator_0/b]
-  connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins lfsr32_0/clock] [get_bd_pins one_clock_pulse_0/clk]
-  connect_bd_net -net comparator_0_dout [get_bd_pins comparator_0/dout] [get_bd_pins one_clock_pulse_0/trig]
-  connect_bd_net -net lfsr16_0_rnd [get_bd_pins RandValue] [get_bd_pins comparator_0/a] [get_bd_pins lfsr32_0/rnd]
-  connect_bd_net -net one_clock_pulse_0_pulse [get_bd_pins Pulse] [get_bd_pins one_clock_pulse_0/pulse]
+  connect_bd_net -net MultiplePulseShapers_Ch1ShapedPulse [get_bd_pins DACAShapedPulse] [get_bd_pins MultiplePulseShapers/Ch1ShapedPulse]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins Pulse1] [get_bd_pins MultiplePulseShapers/Trig_Count] [get_bd_pins RandomPulser/Pulse1]
+  connect_bd_net -net RandomPulser_Pulse2 [get_bd_pins MultiplePulseShapers/Trig_Count1] [get_bd_pins RandomPulser/Pulse2]
+  connect_bd_net -net RandomPulser_Pulse3 [get_bd_pins MultiplePulseShapers/Trig_Count2] [get_bd_pins RandomPulser/Pulse3]
+  connect_bd_net -net RandomPulser_Pulse4 [get_bd_pins MultiplePulseShapers/Trig_Count3] [get_bd_pins RandomPulser/Pulse4]
+  connect_bd_net -net RandomPulser_Pulse5 [get_bd_pins MultiplePulseShapers/Trig_Count4] [get_bd_pins RandomPulser/Pulse5]
+  connect_bd_net -net RandomPulser_Pulse6 [get_bd_pins MultiplePulseShapers/Trig_Count5] [get_bd_pins RandomPulser/Pulse6]
+  connect_bd_net -net RandomPulser_Pulse7 [get_bd_pins MultiplePulseShapers/Trig_Count6] [get_bd_pins RandomPulser/Pulse7]
+  connect_bd_net -net RandomPulser_Pulse8 [get_bd_pins MultiplePulseShapers/Trig_Count7] [get_bd_pins RandomPulser/Pulse8]
+  connect_bd_net -net RandomPulser_Pulse9 [get_bd_pins MultiplePulseShapers/Trig_Count8] [get_bd_pins RandomPulser/Pulse9]
+  connect_bd_net -net RandomPulser_Pulse10 [get_bd_pins MultiplePulseShapers/Trig_Count9] [get_bd_pins RandomPulser/Pulse10]
+  connect_bd_net -net RandomPulser_Pulse11 [get_bd_pins MultiplePulseShapers/Trig_Count10] [get_bd_pins RandomPulser/Pulse11]
+  connect_bd_net -net RandomPulser_Pulse12 [get_bd_pins MultiplePulseShapers/Trig_Count11] [get_bd_pins RandomPulser/Pulse12]
+  connect_bd_net -net RandomPulser_Pulse13 [get_bd_pins MultiplePulseShapers/Trig_Count12] [get_bd_pins RandomPulser/Pulse13]
+  connect_bd_net -net RandomPulser_Pulse14 [get_bd_pins MultiplePulseShapers/Trig_Count13] [get_bd_pins RandomPulser/Pulse14]
+  connect_bd_net -net RandomPulser_Pulse15 [get_bd_pins MultiplePulseShapers/Trig_Count14] [get_bd_pins RandomPulser/Pulse15]
+  connect_bd_net -net RandomPulser_Pulse16 [get_bd_pins MultiplePulseShapers/Trig_Count15] [get_bd_pins RandomPulser/Pulse16]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins clk] [get_bd_pins MultiplePulseShapers/clk] [get_bd_pins RandomPulser/clk]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_addr_a [get_bd_pins BRAM_PORTA_addr] [get_bd_pins MultiplePulseShapers/BRAM_PORTA_addr]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_clk_a [get_bd_pins BRAM_PORTA_clk] [get_bd_pins MultiplePulseShapers/BRAM_PORTA_clk]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_en_a [get_bd_pins BRAM_PORTA_en] [get_bd_pins MultiplePulseShapers/BRAM_PORTA_en]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_rst_a [get_bd_pins BRAM_PORTA_rst] [get_bd_pins MultiplePulseShapers/BRAM_PORTA_rst]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_we_a [get_bd_pins BRAM_PORTA_we] [get_bd_pins MultiplePulseShapers/BRAM_PORTA_we]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_wrdata_a [get_bd_pins BRAM_PORTA_din] [get_bd_pins MultiplePulseShapers/BRAM_PORTA_din]
+  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins DACBShapedPulse] [get_bd_pins MultiplePulseShapers/Ch2ShapedPulse]
+  connect_bd_net -net cfg_simulationpulsefreq [get_bd_pins b] [get_bd_pins RandomPulser/b]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins Reset_In] [get_bd_pins MultiplePulseShapers/rstb] [get_bd_pins RandomPulser/Reset_In]
 
-  # Restore current instance
-  current_bd_instance $oldCurInst
+  # Perform GUI Layout
+  regenerate_bd_layout -hierarchy [get_bd_cells /RandomPulseSynthesizer] -layout_string {
+   guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port BRAM_PORTA_rst -pg 1 -y 500 -defaultsOSRD
+preplace port BRAM_PORTA_en -pg 1 -y 480 -defaultsOSRD
+preplace port BRAM_PORTA_clk -pg 1 -y 440 -defaultsOSRD
+preplace port clk -pg 1 -y 230 -defaultsOSRD
+preplace portBus DACBShapedPulse -pg 1 -y 270 -defaultsOSRD
+preplace portBus DACAShapedPulse -pg 1 -y 330 -defaultsOSRD
+preplace portBus Pulse1 -pg 1 -y 10 -defaultsOSRD
+preplace portBus BRAM_PORTA_din -pg 1 -y 460 -defaultsOSRD
+preplace portBus b -pg 1 -y 210 -defaultsOSRD
+preplace portBus BRAM_PORTA_we -pg 1 -y 520 -defaultsOSRD
+preplace portBus BRAM_PORTA_addr -pg 1 -y 420 -defaultsOSRD
+preplace portBus Reset_In -pg 1 -y 190 -defaultsOSRD
+preplace inst RandomPulser -pg 1 -lvl 1 -y 210 -defaultsOSRD
+preplace inst MultiplePulseShapers -pg 1 -lvl 2 -y 300 -defaultsOSRD
+preplace netloc axi_bram_ctrl_dac_bram_rst_a 1 0 2 NJ 500 NJ
+preplace netloc RandomPulser_Pulse16 1 1 1 280
+preplace netloc RandomPulser_Pulse6 1 1 1 340
+preplace netloc RandomPulser_Pulse7 1 1 1 450
+preplace netloc axi_bram_ctrl_dac_bram_wrdata_a 1 0 2 NJ 460 NJ
+preplace netloc RandomPulser_Pulse8 1 1 1 430
+preplace netloc RandomPulser_Pulse 1 1 2 480 10 NJ
+preplace netloc proc_sys_reset_adc_clk_peripheral_reset 1 0 2 -20 530 NJ
+preplace netloc RandomPulser_Pulse9 1 1 1 300
+preplace netloc MultiplePulseShapers_Ch1ShapedPulse 1 2 1 980
+preplace netloc axi_bram_ctrl_dac_bram_clk_a 1 0 2 NJ 440 NJ
+preplace netloc blk_mem_gen_dac_doutb 1 2 1 990
+preplace netloc axi_bram_ctrl_dac_bram_we_a 1 0 2 NJ 520 NJ
+preplace netloc adc_dac_adc_clk 1 0 2 -30 510 NJ
+preplace netloc axi_bram_ctrl_dac_bram_addr_a 1 0 2 NJ 420 NJ
+preplace netloc RandomPulser_Pulse10 1 1 1 390
+preplace netloc RandomPulser_Pulse11 1 1 1 350
+preplace netloc cfg_simulationpulsefreq 1 0 1 NJ
+preplace netloc RandomPulser_Pulse12 1 1 1 330
+preplace netloc RandomPulser_Pulse2 1 1 1 350
+preplace netloc RandomPulser_Pulse13 1 1 1 320
+preplace netloc RandomPulser_Pulse3 1 1 1 400
+preplace netloc axi_bram_ctrl_dac_bram_en_a 1 0 2 NJ 480 NJ
+preplace netloc RandomPulser_Pulse14 1 1 1 310
+preplace netloc RandomPulser_Pulse4 1 1 1 380
+preplace netloc RandomPulser_Pulse15 1 1 1 290
+preplace netloc RandomPulser_Pulse5 1 1 1 360
+levelinfo -pg 1 -50 150 800 1010 -top -10 -bot 580
+",
 }
-
-# Hierarchical cell: Counter_Monitor
-proc create_hier_cell_Counter_Monitor { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_msg_id "BD_TCL-102" "ERROR" create_hier_cell_Counter_Monitor() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_msg_id "BD_TCL-100" "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_msg_id "BD_TCL-101" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-
-  # Create pins
-  create_bd_pin -dir I -from 14 -to 0 In0
-  create_bd_pin -dir O -from 30 -to 0 dout
-
-  # Create instance: xlconcat_4, and set properties
-  set xlconcat_4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_4 ]
-
-  # Create instance: xlconstant_2, and set properties
-  set xlconstant_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_2 ]
-  set_property -dict [ list \
-CONFIG.CONST_VAL {0} \
-CONFIG.CONST_WIDTH {16} \
- ] $xlconstant_2
-
-  # Create port connections
-  connect_bd_net -net TriggeredCounter_Count [get_bd_pins In0] [get_bd_pins xlconcat_4/In0]
-  connect_bd_net -net xlconcat_4_dout [get_bd_pins dout] [get_bd_pins xlconcat_4/dout]
-  connect_bd_net -net xlconstant_2_dout1 [get_bd_pins xlconcat_4/In1] [get_bd_pins xlconstant_2/dout]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -1257,11 +9491,8 @@ CONFIG.DOUT_WIDTH {1} \
   # Create instance: Averager_1
   create_hier_cell_Averager_1 [current_bd_instance .] Averager_1
 
-  # Create instance: Counter_Monitor
-  create_hier_cell_Counter_Monitor [current_bd_instance .] Counter_Monitor
-
-  # Create instance: RandomPulser
-  create_hier_cell_RandomPulser [current_bd_instance .] RandomPulser
+  # Create instance: RandomPulseSynthesizer
+  create_hier_cell_RandomPulseSynthesizer [current_bd_instance .] RandomPulseSynthesizer
 
   # Create instance: Set_Reset_State
   create_hier_cell_Set_Reset_State [current_bd_instance .] Set_Reset_State
@@ -1273,9 +9504,6 @@ CONFIG.DIN_FROM {1} \
 CONFIG.DIN_TO {1} \
 CONFIG.DOUT_WIDTH {1} \
  ] $TrigState
-
-  # Create instance: TriggeredCounter
-  create_hier_cell_TriggeredCounter [current_bd_instance .] TriggeredCounter
 
   # Create instance: WillBeInputTigger, and set properties
   set WillBeInputTigger [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 WillBeInputTigger ]
@@ -1324,18 +9552,6 @@ CONFIG.M02_HAS_REGSLICE {1} \
 CONFIG.NUM_MI {4} \
  ] $axi_mem_intercon_0
 
-  # Create instance: blk_mem_gen_dac, and set properties
-  set blk_mem_gen_dac [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_dac ]
-  set_property -dict [ list \
-CONFIG.Memory_Type {True_Dual_Port_RAM} \
-CONFIG.use_bram_block {BRAM_Controller} \
- ] $blk_mem_gen_dac
-
-  # Need to retain value_src of defaults
-  set_property -dict [ list \
-CONFIG.use_bram_block.VALUE_SRC {DEFAULT} \
- ] $blk_mem_gen_dac
-
   # Create instance: c_counter_binary_0, and set properties
   set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
   set_property -dict [ list \
@@ -1345,27 +9561,6 @@ CONFIG.Output_Width {16} \
 
   # Create instance: cfg
   create_hier_cell_cfg [current_bd_instance .] cfg
-
-  # Create instance: const_v0_w4, and set properties
-  set const_v0_w4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w4 ]
-  set_property -dict [ list \
-CONFIG.CONST_VAL {0} \
-CONFIG.CONST_WIDTH {4} \
- ] $const_v0_w4
-
-  # Create instance: const_v0_w5, and set properties
-  set const_v0_w5 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w5 ]
-  set_property -dict [ list \
-CONFIG.CONST_VAL {1} \
-CONFIG.CONST_WIDTH {1} \
- ] $const_v0_w5
-
-  # Create instance: const_v0_w32, and set properties
-  set const_v0_w32 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_v0_w32 ]
-  set_property -dict [ list \
-CONFIG.CONST_VAL {0} \
-CONFIG.CONST_WIDTH {32} \
- ] $const_v0_w32
 
   # Create instance: delay1_0, and set properties
   set delay1_0 [ create_bd_cell -type ip -vlnv CCFE:user:delay1:1.0 delay1_0 ]
@@ -2360,34 +10555,6 @@ CONFIG.PCW_WDT_PERIPHERAL_FREQMHZ.VALUE_SRC {DEFAULT} \
 CONFIG.PCW_WDT_WDT_IO.VALUE_SRC {DEFAULT} \
  ] $ps_0
 
-  # Create instance: slice_from13_to0_doutb, and set properties
-  set slice_from13_to0_doutb [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 slice_from13_to0_doutb ]
-  set_property -dict [ list \
-CONFIG.DIN_FROM {13} \
-CONFIG.DIN_TO {0} \
-CONFIG.DIN_WIDTH {32} \
-CONFIG.DOUT_WIDTH {14} \
- ] $slice_from13_to0_doutb
-
-  # Need to retain value_src of defaults
-  set_property -dict [ list \
-CONFIG.DOUT_WIDTH.VALUE_SRC {DEFAULT} \
- ] $slice_from13_to0_doutb
-
-  # Create instance: slice_from29_to16_doutb, and set properties
-  set slice_from29_to16_doutb [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 slice_from29_to16_doutb ]
-  set_property -dict [ list \
-CONFIG.DIN_FROM {29} \
-CONFIG.DIN_TO {16} \
-CONFIG.DIN_WIDTH {32} \
-CONFIG.DOUT_WIDTH {14} \
- ] $slice_from29_to16_doutb
-
-  # Need to retain value_src of defaults
-  set_property -dict [ list \
-CONFIG.DOUT_WIDTH.VALUE_SRC {DEFAULT} \
- ] $slice_from29_to16_doutb
-
   # Create instance: sts
   create_hier_cell_sts [current_bd_instance .] sts
 
@@ -2405,9 +10572,6 @@ CONFIG.LOGO_FILE {data/sym_orgate.png} \
   # Create instance: xlconcat_0, and set properties
   set xlconcat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_0 ]
 
-  # Create instance: xlconcat_1, and set properties
-  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
-
   # Create instance: xlconcat_3, and set properties
   set xlconcat_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_3 ]
   set_property -dict [ list \
@@ -2421,12 +10585,12 @@ CONFIG.CONST_VAL {0} \
 CONFIG.CONST_WIDTH {28} \
  ] $xlconstant_0
 
-  # Create instance: xlconstant_1, and set properties
-  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  # Create instance: xlconstant_2, and set properties
+  set xlconstant_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_2 ]
   set_property -dict [ list \
 CONFIG.CONST_VAL {0} \
-CONFIG.CONST_WIDTH {2} \
- ] $xlconstant_1
+CONFIG.CONST_WIDTH {32} \
+ ] $xlconstant_2
 
   # Create instance: xlslice_0, and set properties
   set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
@@ -2437,19 +10601,9 @@ CONFIG.DIN_WIDTH {16} \
 CONFIG.DOUT_WIDTH {8} \
  ] $xlslice_0
 
-  # Create instance: xlslice_2, and set properties
-  set xlslice_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_2 ]
-  set_property -dict [ list \
-CONFIG.DIN_FROM {0} \
-CONFIG.DIN_TO {0} \
-CONFIG.DIN_WIDTH {32} \
-CONFIG.DOUT_WIDTH {1} \
- ] $xlslice_2
-
   # Create interface connections
   connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins axi_mem_intercon_0/S00_AXI] [get_bd_intf_pins ps_0/M_AXI_GP0]
   connect_bd_intf_net -intf_net adc_clock_converter_M_AXIS [get_bd_intf_pins adc_axis_fifo/AXI_STR_RXD] [get_bd_intf_pins adc_clock_converter/M_AXIS]
-  connect_bd_intf_net -intf_net axi_bram_ctrl_dac_BRAM_PORTA [get_bd_intf_pins axi_bram_ctrl_dac/BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_dac/BRAM_PORTA]
   connect_bd_intf_net -intf_net axi_mem_intercon_0_M00_AXI [get_bd_intf_pins axi_mem_intercon_0/M00_AXI] [get_bd_intf_pins cfg/S_AXI]
   connect_bd_intf_net -intf_net axi_mem_intercon_0_M01_AXI [get_bd_intf_pins axi_mem_intercon_0/M01_AXI] [get_bd_intf_pins sts/S_AXI]
   connect_bd_intf_net -intf_net axi_mem_intercon_0_M02_AXI [get_bd_intf_pins axi_bram_ctrl_dac/S_AXI] [get_bd_intf_pins axi_mem_intercon_0/M02_AXI]
@@ -2464,18 +10618,17 @@ CONFIG.DOUT_WIDTH {1} \
   connect_bd_net -net ArmState_Dout [get_bd_pins ArmState/Dout] [get_bd_pins Set_Reset_State/ResetState] [get_bd_pins xlconcat_3/In0]
   connect_bd_net -net Averager_0_AverageVal [get_bd_pins Averager_0/AverageVal] [get_bd_pins xlconcat_0/In0]
   connect_bd_net -net Averager_1_AverageVal [get_bd_pins Averager_1/AverageVal] [get_bd_pins xlconcat_0/In1]
-  connect_bd_net -net RandomPulser_Pulse [get_bd_pins RandomPulser/Pulse] [get_bd_pins TriggeredCounter/Trig_Count] [get_bd_pins c_counter_binary_0/CE]
-  connect_bd_net -net RandomPulser_RandRst [get_bd_pins RandomPulser/RandValue] [get_bd_pins sts/device_version]
+  connect_bd_net -net RandomPulseSynthesizer_DACBShapedPulse [get_bd_pins RandomPulseSynthesizer/DACBShapedPulse] [get_bd_pins adc_dac/dac2]
+  connect_bd_net -net RandomPulser_Pulse [get_bd_pins RandomPulseSynthesizer/Pulse1] [get_bd_pins c_counter_binary_0/CE]
   connect_bd_net -net S00_ARESETN_1 [get_bd_pins adc_axis_fifo/s_axi_aresetn] [get_bd_pins adc_clock_converter/m_axis_aresetn] [get_bd_pins axi_bram_ctrl_dac/s_axi_aresetn] [get_bd_pins axi_mem_intercon_0/M00_ARESETN] [get_bd_pins axi_mem_intercon_0/M01_ARESETN] [get_bd_pins axi_mem_intercon_0/M02_ARESETN] [get_bd_pins axi_mem_intercon_0/M03_ARESETN] [get_bd_pins axi_mem_intercon_0/S00_ARESETN] [get_bd_pins cfg/s_axi_aresetn] [get_bd_pins proc_sys_reset_0/peripheral_aresetn] [get_bd_pins sts/s_axi_aresetn]
   connect_bd_net -net Set_Reset_State_State [get_bd_pins Set_Reset_State/State] [get_bd_pins xlconcat_3/In3]
   connect_bd_net -net TrigState_Dout [get_bd_pins TrigState/Dout] [get_bd_pins util_vector_logic_1/Op1]
-  connect_bd_net -net TriggeredCounter_Count [get_bd_pins TriggeredCounter/Count] [get_bd_pins xlconcat_1/In1]
   connect_bd_net -net adc_clk_n_i_1 [get_bd_ports adc_clk_n_i] [get_bd_pins adc_dac/clk_in1_n]
   connect_bd_net -net adc_clk_p_i_1 [get_bd_ports adc_clk_p_i] [get_bd_pins adc_dac/clk_in1_p]
   connect_bd_net -net adc_dac_adc1 [get_bd_pins Averager_0/B] [get_bd_pins adc_dac/adc1]
   connect_bd_net -net adc_dac_adc2 [get_bd_pins Averager_1/B] [get_bd_pins adc_dac/adc2]
   connect_bd_net -net adc_dac_adc_cdcs_o [get_bd_ports adc_cdcs_o] [get_bd_pins adc_dac/adc_cdcs_o]
-  connect_bd_net -net adc_dac_adc_clk [get_bd_pins Acquisition_Control/clk] [get_bd_pins Averager_0/clk] [get_bd_pins Averager_1/clk] [get_bd_pins RandomPulser/clk] [get_bd_pins Set_Reset_State/clk] [get_bd_pins TriggeredCounter/clk] [get_bd_pins adc_clock_converter/s_axis_aclk] [get_bd_pins adc_dac/adc_clk] [get_bd_pins blk_mem_gen_dac/clkb] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins cfg/m_axi_aclk] [get_bd_pins delay1_0/clk] [get_bd_pins proc_sys_reset_adc_clk/slowest_sync_clk] [get_bd_pins sts/m_axi_aclk]
+  connect_bd_net -net adc_dac_adc_clk [get_bd_pins Acquisition_Control/clk] [get_bd_pins Averager_0/clk] [get_bd_pins Averager_1/clk] [get_bd_pins RandomPulseSynthesizer/clk] [get_bd_pins Set_Reset_State/clk] [get_bd_pins adc_clock_converter/s_axis_aclk] [get_bd_pins adc_dac/adc_clk] [get_bd_pins c_counter_binary_0/CLK] [get_bd_pins cfg/m_axi_aclk] [get_bd_pins delay1_0/clk] [get_bd_pins proc_sys_reset_adc_clk/slowest_sync_clk] [get_bd_pins sts/m_axi_aclk]
   connect_bd_net -net adc_dac_adc_clk_source [get_bd_ports adc_clk_source] [get_bd_pins adc_dac/adc_clk_source]
   connect_bd_net -net adc_dac_dac_clk_o [get_bd_ports dac_clk_o] [get_bd_pins adc_dac/dac_clk_o]
   connect_bd_net -net adc_dac_dac_dat_o [get_bd_ports dac_dat_o] [get_bd_pins adc_dac/dac_dat_o]
@@ -2484,33 +10637,30 @@ CONFIG.DOUT_WIDTH {1} \
   connect_bd_net -net adc_dac_dac_wrt_o [get_bd_ports dac_wrt_o] [get_bd_pins adc_dac/dac_wrt_o]
   connect_bd_net -net adc_dat_a_i_1 [get_bd_ports adc_dat_a_i] [get_bd_pins adc_dac/adc_dat_a_i]
   connect_bd_net -net adc_dat_b_i_1 [get_bd_ports adc_dat_b_i] [get_bd_pins adc_dac/adc_dat_b_i]
-  connect_bd_net -net blk_mem_gen_dac_doutb [get_bd_pins blk_mem_gen_dac/doutb] [get_bd_pins slice_from13_to0_doutb/Din] [get_bd_pins slice_from29_to16_doutb/Din]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_addr_a [get_bd_pins RandomPulseSynthesizer/BRAM_PORTA_addr] [get_bd_pins axi_bram_ctrl_dac/bram_addr_a]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_clk_a [get_bd_pins RandomPulseSynthesizer/BRAM_PORTA_clk] [get_bd_pins axi_bram_ctrl_dac/bram_clk_a]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_en_a [get_bd_pins RandomPulseSynthesizer/BRAM_PORTA_en] [get_bd_pins axi_bram_ctrl_dac/bram_en_a]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_rst_a [get_bd_pins RandomPulseSynthesizer/BRAM_PORTA_rst] [get_bd_pins axi_bram_ctrl_dac/bram_rst_a]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_we_a [get_bd_pins RandomPulseSynthesizer/BRAM_PORTA_we] [get_bd_pins axi_bram_ctrl_dac/bram_we_a]
+  connect_bd_net -net axi_bram_ctrl_dac_bram_wrdata_a [get_bd_pins RandomPulseSynthesizer/BRAM_PORTA_din] [get_bd_pins axi_bram_ctrl_dac/bram_wrdata_a]
   connect_bd_net -net c_counter_binary_0_Q [get_bd_pins c_counter_binary_0/Q] [get_bd_pins xlslice_0/Din]
   connect_bd_net -net cfg_acquisitionlength [get_bd_pins Acquisition_Control/Acquistion_length_us] [get_bd_pins cfg/acquisitionlength]
   connect_bd_net -net cfg_arm_softtrig [get_bd_pins ArmState/Din] [get_bd_pins TrigState/Din] [get_bd_pins cfg/arm_softtrig]
-  connect_bd_net -net cfg_operationmode [get_bd_pins cfg/operationmode] [get_bd_pins xlslice_2/Din]
-  connect_bd_net -net cfg_simulationpulsefreq [get_bd_pins RandomPulser/b] [get_bd_pins cfg/simulationpulsefreq]
-  connect_bd_net -net const_v0_w32_dout [get_bd_pins blk_mem_gen_dac/dinb] [get_bd_pins const_v0_w32/dout]
-  connect_bd_net -net const_v0_w4_dout [get_bd_pins blk_mem_gen_dac/web] [get_bd_pins const_v0_w4/dout]
-  connect_bd_net -net const_v0_w5_dout [get_bd_pins blk_mem_gen_dac/enb] [get_bd_pins const_v0_w5/dout]
-  connect_bd_net -net dac1_1 [get_bd_pins adc_dac/dac1] [get_bd_pins slice_from13_to0_doutb/Dout]
-  connect_bd_net -net dac2_1 [get_bd_pins adc_dac/dac2] [get_bd_pins slice_from29_to16_doutb/Dout]
+  connect_bd_net -net cfg_simulationpulsefreq [get_bd_pins RandomPulseSynthesizer/b] [get_bd_pins cfg/simulationpulsefreq]
+  connect_bd_net -net dac1_1 [get_bd_pins RandomPulseSynthesizer/DACAShapedPulse] [get_bd_pins adc_dac/dac1]
   connect_bd_net -net delay1_0_dout [get_bd_pins delay1_0/dout] [get_bd_pins util_vector_logic_1/Op2]
   connect_bd_net -net proc_sys_reset_adc_clk_peripheral_aresetn [get_bd_pins adc_clock_converter/s_axis_aresetn] [get_bd_pins cfg/m_axi_aresetn] [get_bd_pins proc_sys_reset_adc_clk/peripheral_aresetn] [get_bd_pins sts/m_axi_aresetn]
-  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins RandomPulser/Reset_In] [get_bd_pins blk_mem_gen_dac/rstb] [get_bd_pins proc_sys_reset_adc_clk/peripheral_reset]
+  connect_bd_net -net proc_sys_reset_adc_clk_peripheral_reset [get_bd_pins RandomPulseSynthesizer/Reset_In] [get_bd_pins proc_sys_reset_adc_clk/peripheral_reset]
   connect_bd_net -net ps_0_FCLK_CLK0 [get_bd_pins adc_axis_fifo/s_axi_aclk] [get_bd_pins adc_clock_converter/m_axis_aclk] [get_bd_pins axi_bram_ctrl_dac/s_axi_aclk] [get_bd_pins axi_mem_intercon_0/ACLK] [get_bd_pins axi_mem_intercon_0/M00_ACLK] [get_bd_pins axi_mem_intercon_0/M01_ACLK] [get_bd_pins axi_mem_intercon_0/M02_ACLK] [get_bd_pins axi_mem_intercon_0/M03_ACLK] [get_bd_pins axi_mem_intercon_0/S00_ACLK] [get_bd_pins cfg/s_axi_aclk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins ps_0/FCLK_CLK0] [get_bd_pins ps_0/M_AXI_GP0_ACLK] [get_bd_pins sts/s_axi_aclk]
   connect_bd_net -net ps_0_FCLK_RESET0_N [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins proc_sys_reset_adc_clk/ext_reset_in] [get_bd_pins ps_0/FCLK_RESET0_N]
   connect_bd_net -net util_vector_logic_0_Res [get_bd_pins adc_clock_converter/s_axis_tvalid] [get_bd_pins util_vector_logic_0/Res]
   connect_bd_net -net util_vector_logic_1_Res [get_bd_pins Acquisition_Control/trig] [get_bd_pins Set_Reset_State/SetState] [get_bd_pins util_vector_logic_1/Res] [get_bd_pins xlconcat_3/In1]
   connect_bd_net -net xlconcat_0_dout [get_bd_pins adc_clock_converter/s_axis_tdata] [get_bd_pins xlconcat_0/dout]
-  connect_bd_net -net xlconcat_1_dout [get_bd_pins Counter_Monitor/In0] [get_bd_pins blk_mem_gen_dac/addrb] [get_bd_pins xlconcat_1/dout]
   connect_bd_net -net xlconcat_3_dout [get_bd_pins sts/state] [get_bd_pins xlconcat_3/dout]
-  connect_bd_net -net xlconcat_4_dout [get_bd_pins Counter_Monitor/dout] [get_bd_pins sts/status]
   connect_bd_net -net xlconstant_0_dout [get_bd_pins xlconcat_3/In4] [get_bd_pins xlconstant_0/dout]
-  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconcat_1/In0] [get_bd_pins xlconstant_1/dout]
   connect_bd_net -net xlconstant_2_dout [get_bd_pins WillBeInputTigger/dout] [get_bd_pins delay1_0/din]
+  connect_bd_net -net xlconstant_2_dout1 [get_bd_pins axi_bram_ctrl_dac/bram_rddata_a] [get_bd_pins sts/device_version] [get_bd_pins sts/status] [get_bd_pins xlconstant_2/dout]
   connect_bd_net -net xlslice_0_Dout [get_bd_ports led_o] [get_bd_pins xlslice_0/Dout]
-  connect_bd_net -net xlslice_2_Dout [get_bd_pins xlslice_2/Dout]
 
   # Create address segments
   create_bd_addr_seg -range 0x00010000 -offset 0x43C10000 [get_bd_addr_spaces ps_0/Data] [get_bd_addr_segs adc_axis_fifo/S_AXI/Mem0] SEG_adc_axis_fifo_Mem0
@@ -2522,126 +10672,111 @@ CONFIG.DOUT_WIDTH {1} \
   regenerate_bd_layout -layout_string {
    guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
 #  -string -flagsOSRD
-preplace port DDR -pg 1 -y 50 -defaultsOSRD
-preplace port Vp_Vn -pg 1 -y 100 -defaultsOSRD
-preplace port Vaux0 -pg 1 -y 20 -defaultsOSRD
-preplace port Vaux1 -pg 1 -y 40 -defaultsOSRD
-preplace port adc_clk_p_i -pg 1 -y 750 -defaultsOSRD
-preplace port dac_rst_o -pg 1 -y 650 -defaultsOSRD
-preplace port dac_clk_o -pg 1 -y 610 -defaultsOSRD
-preplace port FIXED_IO -pg 1 -y 70 -defaultsOSRD
-preplace port dac_sel_o -pg 1 -y 670 -defaultsOSRD
-preplace port adc_cdcs_o -pg 1 -y 550 -defaultsOSRD
-preplace port dac_wrt_o -pg 1 -y 690 -defaultsOSRD
-preplace port Vaux8 -pg 1 -y 60 -defaultsOSRD
-preplace port adc_clk_n_i -pg 1 -y 720 -defaultsOSRD
-preplace port Vaux9 -pg 1 -y 80 -defaultsOSRD
-preplace portBus adc_dat_b_i -pg 1 -y 1380 -defaultsOSRD
-preplace portBus adc_clk_source -pg 1 -y 590 -defaultsOSRD
-preplace portBus led_o -pg 1 -y 890 -defaultsOSRD
-preplace portBus dac_pwm_o -pg 1 -y 20 -defaultsOSRD
-preplace portBus adc_dat_a_i -pg 1 -y 410 -defaultsOSRD
-preplace portBus dac_dat_o -pg 1 -y 630 -defaultsOSRD
-preplace inst sts -pg 1 -lvl 8 -y 720 -defaultsOSRD
-preplace inst slice_from13_to0_doutb -pg 1 -lvl 11 -y 650 -defaultsOSRD
-preplace inst const_v0_w5 -pg 1 -lvl 8 -y 1230 -defaultsOSRD
-preplace inst xlslice_0 -pg 1 -lvl 12 -y 890 -defaultsOSRD
-preplace inst delay1_0 -pg 1 -lvl 2 -y 1150 -defaultsOSRD
-preplace inst axi_mem_intercon_0 -pg 1 -lvl 7 -y 310 -defaultsOSRD
-preplace inst xlconstant_0 -pg 1 -lvl 6 -y 1160 -defaultsOSRD
-preplace inst slice_from29_to16_doutb -pg 1 -lvl 11 -y 740 -defaultsOSRD
-preplace inst blk_mem_gen_dac -pg 1 -lvl 9 -y 1130 -defaultsOSRD
-preplace inst Averager_0 -pg 1 -lvl 5 -y 490 -defaultsOSRD
-preplace inst xlconstant_1 -pg 1 -lvl 10 -y 1300 -defaultsOSRD
-preplace inst xlslice_2 -pg 1 -lvl 12 -y 1040 -defaultsOSRD
-preplace inst Counter_Monitor -pg 1 -lvl 12 -y 1310 -defaultsOSRD
-preplace inst Averager_1 -pg 1 -lvl 5 -y 640 -defaultsOSRD
-preplace inst TrigState -pg 1 -lvl 2 -y 1040 -defaultsOSRD
-preplace inst xlconcat_0 -pg 1 -lvl 6 -y 570 -defaultsOSRD
-preplace inst util_vector_logic_0 -pg 1 -lvl 6 -y 690 -defaultsOSRD
-preplace inst proc_sys_reset_adc_clk -pg 1 -lvl 6 -y 850 -defaultsOSRD
-preplace inst proc_sys_reset_0 -pg 1 -lvl 6 -y 400 -defaultsOSRD
-preplace inst adc_clock_converter -pg 1 -lvl 7 -y 650 -defaultsOSRD
-preplace inst xlconcat_1 -pg 1 -lvl 11 -y 1310 -defaultsOSRD
-preplace inst util_vector_logic_1 -pg 1 -lvl 3 -y 1050 -defaultsOSRD
-preplace inst c_counter_binary_0 -pg 1 -lvl 11 -y 890 -defaultsOSRD
-preplace inst TriggeredCounter -pg 1 -lvl 10 -y 980 -defaultsOSRD
-preplace inst cfg -pg 1 -lvl 8 -y 990 -defaultsOSRD
-preplace inst adc_axis_fifo -pg 1 -lvl 8 -y 350 -defaultsOSRD
-preplace inst Set_Reset_State -pg 1 -lvl 6 -y 1020 -defaultsOSRD
-preplace inst xlconcat_3 -pg 1 -lvl 7 -y 1120 -defaultsOSRD
-preplace inst const_v0_w32 -pg 1 -lvl 8 -y 1140 -defaultsOSRD
-preplace inst axi_bram_ctrl_dac -pg 1 -lvl 8 -y 520 -defaultsOSRD
-preplace inst adc_dac -pg 1 -lvl 12 -y 620 -defaultsOSRD
-preplace inst WillBeInputTigger -pg 1 -lvl 1 -y 1160 -defaultsOSRD
-preplace inst RandomPulser -pg 1 -lvl 9 -y 910 -defaultsOSRD
-preplace inst ArmState -pg 1 -lvl 5 -y 1050 -defaultsOSRD
-preplace inst ps_0 -pg 1 -lvl 6 -y 150 -defaultsOSRD
-preplace inst const_v0_w4 -pg 1 -lvl 8 -y 1320 -defaultsOSRD
-preplace inst Acquisition_Control -pg 1 -lvl 4 -y 1030 -defaultsOSRD
-preplace netloc axi_bram_ctrl_dac_BRAM_PORTA 1 8 1 2540
-preplace netloc xlconstant_1_dout 1 10 1 NJ
-preplace netloc adc_dac_dac_wrt_o 1 12 1 NJ
-preplace netloc xlconstant_2_dout 1 1 1 NJ
-preplace netloc adc_dac_dac_clk_o 1 12 1 NJ
-preplace netloc adc_dac_adc_clk_source 1 12 1 NJ
-preplace netloc Averager_0_AverageVal 1 5 1 1240
-preplace netloc adc_dac_adc1 1 4 9 990 400 NJ 490 NJ 490 NJ 430 NJ 430 NJ 430 NJ 430 NJ 430 3620
-preplace netloc RandomPulser_Pulse 1 9 2 2860 900 NJ
-preplace netloc axi_mem_intercon_0_M02_AXI 1 7 1 2030
-preplace netloc axi_mem_intercon_0_M00_AXI 1 7 1 2080
-preplace netloc proc_sys_reset_adc_clk_peripheral_reset 1 6 3 NJ 850 NJ 850 2530
-preplace netloc dac2_1 1 11 1 NJ
-preplace netloc adc_dac_adc2 1 4 9 1010 560 NJ 510 NJ 510 NJ 450 NJ 450 NJ 450 NJ 450 NJ 450 3610
-preplace netloc ArmState_Dout 1 5 2 1280 1090 NJ
-preplace netloc xlconcat_1_dout 1 8 4 2570 1370 NJ 1370 NJ 1370 3290
-preplace netloc util_vector_logic_0_Res 1 6 1 1690
-preplace netloc cfg_arm_softtrig 1 1 8 210 1090 NJ 1110 NJ 1110 1000 1210 NJ 1210 NJ 1210 NJ 1090 2500
-preplace netloc Set_Reset_State_State 1 6 1 1690
-preplace netloc Averager_1_AverageVal 1 5 1 1230
-preplace netloc ARESETN_1 1 6 1 1690
-preplace netloc delay1_0_dout 1 2 1 420
-preplace netloc const_v0_w5_dout 1 8 1 NJ
-preplace netloc blk_mem_gen_dac_doutb 1 8 3 2550 980 NJ 910 3080
-preplace netloc adc_dat_a_i_1 1 0 12 NJ 410 NJ 410 NJ 410 NJ 410 NJ 410 NJ 500 NJ 500 NJ 440 NJ 440 NJ 440 NJ 440 NJ
-preplace netloc adc_dac_adc_clk 1 1 12 200 990 NJ 990 660 950 990 710 1230 760 1720 760 2120 870 2520 990 2850 880 3090 830 NJ 830 3610
-preplace netloc adc_dac_adc_cdcs_o 1 12 1 NJ
-preplace netloc adc_clk_n_i_1 1 0 12 NJ 720 NJ 720 NJ 720 NJ 720 NJ 720 NJ 630 NJ 540 NJ 590 NJ 590 NJ 590 NJ 590 NJ
-preplace netloc Acquisition_Control_MHz_clk 1 4 2 1000 740 NJ
-preplace netloc xlconcat_3_dout 1 7 1 2110
-preplace netloc dac1_1 1 11 1 NJ
-preplace netloc adc_dac_dac_dat_o 1 12 1 NJ
-preplace netloc xlconstant_0_dout 1 6 1 NJ
-preplace netloc xlconcat_0_dout 1 6 1 1700
-preplace netloc ps_0_FCLK_CLK0 1 5 3 1270 300 1710 520 2090
-preplace netloc c_counter_binary_0_Q 1 11 1 NJ
-preplace netloc S00_AXI_1 1 6 1 1710
-preplace netloc xlslice_2_Dout 1 12 1 N
-preplace netloc Acquisition_Control_Acq_Valid 1 4 3 1010 730 1260 1110 NJ
-preplace netloc ps_0_DDR 1 6 7 NJ 50 NJ 50 NJ 50 NJ 50 NJ 50 NJ 50 NJ
-preplace netloc adc_clock_converter_M_AXIS 1 7 1 2050
-preplace netloc TriggeredCounter_Count 1 10 1 3090
-preplace netloc cfg_simulationpulsefreq 1 8 1 2510
-preplace netloc adc_dac_dac_rst_o 1 12 1 NJ
-preplace netloc util_vector_logic_1_Res 1 3 4 670 1100 NJ 1100 1270 1100 NJ
-preplace netloc ps_0_FCLK_RESET0_N 1 5 2 1280 310 1680
-preplace netloc proc_sys_reset_adc_clk_peripheral_aresetn 1 6 2 1700 770 2060
-preplace netloc const_v0_w32_dout 1 8 1 NJ
-preplace netloc adc_dat_b_i_1 1 0 12 NJ 1380 NJ 1380 NJ 1380 NJ 1380 NJ 1380 NJ 1380 NJ 1380 NJ 1380 NJ 1380 NJ 1380 NJ 1380 NJ
-preplace netloc TrigState_Dout 1 2 1 NJ
-preplace netloc ps_0_FIXED_IO 1 6 7 NJ 70 NJ 70 NJ 70 NJ 70 NJ 70 NJ 70 NJ
-preplace netloc axi_mem_intercon_0_M03_AXI 1 7 1 2040
-preplace netloc xlconcat_4_dout 1 7 6 2140 1370 NJ 1260 NJ 1250 NJ 1250 NJ 1250 3610
-preplace netloc cfg_operationmode 1 8 4 NJ 1000 NJ 1040 NJ 1040 NJ
-preplace netloc axi_mem_intercon_0_M01_AXI 1 7 1 2130
-preplace netloc xlslice_0_Dout 1 12 1 NJ
-preplace netloc const_v0_w4_dout 1 8 1 NJ
-preplace netloc cfg_acquisitionlength 1 3 6 670 940 NJ 940 NJ 940 NJ 880 NJ 880 2500
-preplace netloc adc_dac_dac_sel_o 1 12 1 NJ
-preplace netloc adc_clk_p_i_1 1 0 12 NJ 750 NJ 750 NJ 750 NJ 750 NJ 750 NJ 750 NJ 780 NJ 840 NJ 820 NJ 820 NJ 820 NJ
-preplace netloc S00_ARESETN_1 1 6 2 1720 530 2100
-preplace netloc RandomPulser_RandRst 1 7 3 2130 860 NJ 830 2830
-levelinfo -pg 1 0 110 310 540 830 1120 1480 1870 2320 2700 2970 3190 3460 3640 -top 0 -bot 1400
+preplace port DDR -pg 1 -y -280 -defaultsOSRD
+preplace port Vp_Vn -pg 1 -y -220 -defaultsOSRD
+preplace port Vaux0 -pg 1 -y -300 -defaultsOSRD
+preplace port Vaux1 -pg 1 -y -280 -defaultsOSRD
+preplace port adc_clk_p_i -pg 1 -y 890 -defaultsOSRD
+preplace port dac_rst_o -pg 1 -y 910 -defaultsOSRD
+preplace port dac_clk_o -pg 1 -y 870 -defaultsOSRD
+preplace port FIXED_IO -pg 1 -y 510 -defaultsOSRD
+preplace port dac_sel_o -pg 1 -y 930 -defaultsOSRD
+preplace port adc_cdcs_o -pg 1 -y 810 -defaultsOSRD
+preplace port dac_wrt_o -pg 1 -y 950 -defaultsOSRD
+preplace port Vaux8 -pg 1 -y -260 -defaultsOSRD
+preplace port adc_clk_n_i -pg 1 -y 870 -defaultsOSRD
+preplace port Vaux9 -pg 1 -y -240 -defaultsOSRD
+preplace portBus adc_dat_b_i -pg 1 -y 850 -defaultsOSRD
+preplace portBus adc_clk_source -pg 1 -y 850 -defaultsOSRD
+preplace portBus led_o -pg 1 -y 530 -defaultsOSRD
+preplace portBus dac_pwm_o -pg 1 -y -300 -defaultsOSRD
+preplace portBus adc_dat_a_i -pg 1 -y 830 -defaultsOSRD
+preplace portBus dac_dat_o -pg 1 -y 890 -defaultsOSRD
+preplace inst sts -pg 1 -lvl 17 -y 80 -defaultsOSRD
+preplace inst xlslice_0 -pg 1 -lvl 11 -y 530 -defaultsOSRD
+preplace inst delay1_0 -pg 1 -lvl 11 -y -90 -defaultsOSRD
+preplace inst axi_mem_intercon_0 -pg 1 -lvl 7 -y 30 -defaultsOSRD
+preplace inst xlconstant_0 -pg 1 -lvl 15 -y -170 -defaultsOSRD
+preplace inst Averager_0 -pg 1 -lvl 16 -y 610 -defaultsOSRD
+preplace inst RandomPulseSynthesizer -pg 1 -lvl 9 -y 180 -defaultsOSRD
+preplace inst Averager_1 -pg 1 -lvl 16 -y 740 -defaultsOSRD
+preplace inst xlconstant_2 -pg 1 -lvl 16 -y 400 -defaultsOSRD
+preplace inst TrigState -pg 1 -lvl 13 -y -140 -defaultsOSRD
+preplace inst xlconcat_0 -pg 1 -lvl 17 -y 620 -defaultsOSRD
+preplace inst util_vector_logic_0 -pg 1 -lvl 16 -y 270 -defaultsOSRD
+preplace inst proc_sys_reset_adc_clk -pg 1 -lvl 11 -y 330 -defaultsOSRD
+preplace inst proc_sys_reset_0 -pg 1 -lvl 6 -y 0 -defaultsOSRD
+preplace inst adc_clock_converter -pg 1 -lvl 18 -y 400 -defaultsOSRD
+preplace inst util_vector_logic_1 -pg 1 -lvl 14 -y -130 -defaultsOSRD
+preplace inst c_counter_binary_0 -pg 1 -lvl 9 -y 530 -defaultsOSRD
+preplace inst cfg -pg 1 -lvl 12 -y 220 -defaultsOSRD
+preplace inst adc_axis_fifo -pg 1 -lvl 19 -y -20 -defaultsOSRD
+preplace inst Set_Reset_State -pg 1 -lvl 15 -y -60 -defaultsOSRD
+preplace inst xlconcat_3 -pg 1 -lvl 16 -y -190 -defaultsOSRD
+preplace inst axi_bram_ctrl_dac -pg 1 -lvl 8 -y 150 -defaultsOSRD
+preplace inst adc_dac -pg 1 -lvl 10 -y 880 -defaultsOSRD
+preplace inst WillBeInputTigger -pg 1 -lvl 10 -y -80 -defaultsOSRD
+preplace inst ArmState -pg 1 -lvl 13 -y -40 -defaultsOSRD
+preplace inst ps_0 -pg 1 -lvl 5 -y -180 -defaultsOSRD
+preplace inst Acquisition_Control -pg 1 -lvl 15 -y 190 -defaultsOSRD
+preplace netloc axi_bram_ctrl_dac_bram_rst_a 1 8 1 1660
+preplace netloc adc_dac_dac_wrt_o 1 10 10 NJ 950 NJ 950 NJ 950 NJ 950 NJ 950 NJ 950 NJ 950 NJ 950 NJ 950 NJ
+preplace netloc xlconstant_2_dout 1 10 1 NJ
+preplace netloc adc_dac_dac_clk_o 1 10 10 NJ 870 NJ 870 NJ 870 NJ 870 NJ 870 NJ 870 NJ 870 NJ 870 NJ 870 NJ
+preplace netloc adc_dac_adc_clk_source 1 10 10 NJ 850 NJ 850 NJ 850 NJ 850 NJ 850 NJ 850 NJ 850 NJ 850 NJ 850 NJ
+preplace netloc Averager_0_AverageVal 1 16 1 N
+preplace netloc axi_bram_ctrl_dac_bram_wrdata_a 1 8 1 N
+preplace netloc adc_dac_adc1 1 10 6 2450 590 NJ 590 NJ 590 NJ 590 NJ 590 NJ
+preplace netloc RandomPulser_Pulse 1 8 2 1710 350 2090
+preplace netloc axi_mem_intercon_0_M02_AXI 1 7 1 1310
+preplace netloc axi_mem_intercon_0_M00_AXI 1 7 5 NJ 0 NJ 0 NJ 0 NJ 0 2860
+preplace netloc proc_sys_reset_adc_clk_peripheral_reset 1 8 4 1680 310 NJ 230 NJ 230 2810
+preplace netloc adc_dac_adc2 1 10 6 2470 720 NJ 720 NJ 720 NJ 720 NJ 720 NJ
+preplace netloc ArmState_Dout 1 13 3 NJ -70 3680 -230 NJ
+preplace netloc util_vector_logic_0_Res 1 16 2 NJ 270 4590
+preplace netloc cfg_arm_softtrig 1 12 1 3240
+preplace netloc axi_bram_ctrl_dac_bram_clk_a 1 8 1 N
+preplace netloc Set_Reset_State_State 1 15 1 4030
+preplace netloc Averager_1_AverageVal 1 16 1 4320
+preplace netloc ARESETN_1 1 6 1 980
+preplace netloc delay1_0_dout 1 11 3 NJ -190 NJ -190 NJ
+preplace netloc axi_bram_ctrl_dac_bram_we_a 1 8 1 1670
+preplace netloc adc_dat_a_i_1 1 0 10 NJ 830 NJ 830 NJ 830 NJ 830 NJ 830 NJ 830 NJ 830 NJ 830 NJ 830 NJ
+preplace netloc adc_dac_adc_clk 1 8 10 1700 360 NJ 360 2460 200 2840 330 NJ 330 NJ 330 3700 330 4050 330 4330 330 NJ
+preplace netloc adc_dac_adc_cdcs_o 1 10 10 NJ 810 NJ 810 NJ 810 NJ 810 NJ 810 NJ 810 NJ 810 NJ 810 NJ 810 NJ
+preplace netloc adc_clk_n_i_1 1 0 10 NJ 870 NJ 870 NJ 870 NJ 870 NJ 870 NJ 870 NJ 870 NJ 870 NJ 870 NJ
+preplace netloc Acquisition_Control_MHz_clk 1 15 1 4030
+preplace netloc xlconcat_3_dout 1 16 1 4320
+preplace netloc dac1_1 1 9 1 2140
+preplace netloc adc_dac_dac_dat_o 1 10 10 NJ 890 NJ 890 NJ 890 NJ 890 NJ 890 NJ 890 NJ 890 NJ 890 NJ 890 NJ
+preplace netloc xlconstant_0_dout 1 15 1 NJ
+preplace netloc xlconcat_0_dout 1 17 1 4590
+preplace netloc ps_0_FCLK_CLK0 1 4 15 210 -30 610 -120 990 -150 1320 20 NJ 20 NJ 20 NJ 20 2850 30 NJ 30 NJ 30 NJ 30 NJ 30 4300 -50 4580 -10 NJ
+preplace netloc c_counter_binary_0_Q 1 9 2 NJ 530 NJ
+preplace netloc axi_bram_ctrl_dac_bram_addr_a 1 8 1 N
+preplace netloc S00_AXI_1 1 5 2 NJ -200 NJ
+preplace netloc RandomPulseSynthesizer_DACBShapedPulse 1 9 1 2100
+preplace netloc Acquisition_Control_Acq_Valid 1 15 1 4050
+preplace netloc ps_0_DDR 1 5 15 NJ -290 NJ -290 NJ -290 NJ -290 NJ -290 NJ -290 NJ -290 NJ -290 NJ -290 NJ -290 NJ -290 NJ -290 NJ -290 NJ -290 NJ
+preplace netloc adc_clock_converter_M_AXIS 1 18 1 4860
+preplace netloc cfg_simulationpulsefreq 1 8 5 1690 320 NJ 220 NJ 220 NJ 320 3230
+preplace netloc adc_dac_dac_rst_o 1 10 10 NJ 910 NJ 910 NJ 910 NJ 910 NJ 910 NJ 910 NJ 910 NJ 910 NJ 910 NJ
+preplace netloc util_vector_logic_1_Res 1 14 2 3690 -220 NJ
+preplace netloc ps_0_FCLK_RESET0_N 1 5 6 620 -170 NJ -170 NJ -170 NJ -170 NJ -170 2450
+preplace netloc proc_sys_reset_adc_clk_peripheral_aresetn 1 11 7 2860 340 NJ 340 NJ 340 NJ 340 NJ 340 4340 340 NJ
+preplace netloc adc_dat_b_i_1 1 0 10 NJ 850 NJ 850 NJ 850 NJ 850 NJ 850 NJ 850 NJ 850 NJ 850 NJ 850 NJ
+preplace netloc TrigState_Dout 1 13 1 NJ
+preplace netloc ps_0_FIXED_IO 1 5 15 NJ -280 NJ -280 NJ -280 NJ -280 NJ -280 NJ -280 NJ -280 NJ -280 NJ -280 NJ -280 NJ -280 NJ -280 NJ -280 NJ -280 NJ
+preplace netloc axi_mem_intercon_0_M03_AXI 1 7 12 NJ -20 NJ -20 NJ -20 NJ -20 NJ -20 NJ 20 NJ 20 NJ 20 NJ -80 NJ -80 NJ -80 NJ
+preplace netloc axi_bram_ctrl_dac_bram_en_a 1 8 1 1650
+preplace netloc axi_mem_intercon_0_M01_AXI 1 7 10 NJ 10 NJ 10 NJ 10 NJ 10 NJ 10 NJ 10 NJ 10 NJ 10 NJ 10 NJ
+preplace netloc xlslice_0_Dout 1 11 9 NJ 530 NJ 530 NJ 530 NJ 530 NJ 530 NJ 530 NJ 530 NJ 530 N
+preplace netloc xlconstant_2_dout1 1 8 9 1640 330 NJ 240 NJ 240 NJ 350 NJ 350 NJ 350 NJ 350 NJ 350 4310
+preplace netloc cfg_acquisitionlength 1 12 3 N 170 NJ 170 NJ
+preplace netloc adc_dac_dac_sel_o 1 10 10 NJ 930 NJ 930 NJ 930 NJ 930 NJ 930 NJ 930 NJ 930 NJ 930 NJ 930 NJ
+preplace netloc adc_clk_p_i_1 1 0 10 NJ 890 NJ 890 NJ 890 NJ 890 NJ 890 NJ 890 NJ 890 NJ 890 NJ 890 NJ
+preplace netloc S00_ARESETN_1 1 6 13 1000 210 1310 340 NJ 340 NJ 210 NJ 210 2870 110 NJ 110 NJ 110 NJ 110 NJ 110 4290 -60 4600 10 NJ
+levelinfo -pg 1 0 40 90 140 190 410 810 1150 1490 1900 2300 2640 3050 3340 3560 3860 4170 4450 4730 5020 5210 -top -330 -bot 1570
 ",
 }
 
@@ -2659,4 +10794,6 @@ levelinfo -pg 1 0 110 310 540 830 1120 1480 1870 2320 2700 2970 3190 3460 3640 -
 
 create_root_design ""
 
+
+common::send_msg_id "BD_TCL-1000" "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 

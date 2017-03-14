@@ -11,7 +11,7 @@ import time
 from neutronpulse import NeutronPulse
 from koheron import connect
 
-host = os.getenv('HOST', '10.210.1.44')
+host = os.getenv('HOST', '10.210.1.45')
 client = connect(host, name='neutron_pulse_generator')
 driver = NeutronPulse(client)
 
@@ -25,14 +25,14 @@ print('driver.n_pts is ' + str(driver.n_pts))
 
 # Send Gaussian pulses to DACs
 t = np.arange(driver.n_pts) / driver.fs # time grid (s)
-driver.dac[0,:] = 0.6 * np.exp(-(t - 10000e-9)**2/(2000e-9)**2)
-driver.dac[1,:] = 0.6 * np.exp(-(t - 10000e-9)**2/(2000e-9)**2)
+driver.dac[0,:] = np.append(0.6 * np.exp(-(np.arange(256)/125e6 - 1400e-9)**2/(800e-9)**2),0.315*np.exp(-np.arange(1024-256)/300))  #0.6 * np.exp(-(t - 3000e-9)**2/(1000e-9)**2)
+driver.dac[1,:] = np.append(0.6 * np.exp(-(np.arange(256)/125e6 - 1400e-9)**2/(800e-9)**2),0.315*np.exp(-np.arange(1024-256)/300)) #0.6 * np.exp(-(t - 3000e-9)**2/(1000e-9)**2)
 driver.set_dac()
 
 # driver.set_pulse_generator(pulse_width, pulse_period)
 
 # n = pulse_width * n_pulse
-n=1000000
+n=1000000	#Should be a multiple of 100
 
 # Dynamic plot
 #fig = plt.figure()
@@ -47,23 +47,26 @@ n=1000000
 
 adc0=np.int32([])
 adc1=np.int32([])
-adc0=np.empty(1000000,dtype=np.int32)
-adc1=np.empty(1000000,dtype=np.int32)
- 
-while driver.get_fifo_length()==0:
-    a=1
- 
-counter = 0
-while True:
+datablob=np.empty(n,dtype=np.int32)
+data_available=0
+
+while data_available==0:
     data_available=driver.get_fifo_length()
-    print(data_available)
-    if data_available == 0: break
-    data_rcv = driver.get_fifo_data(data_available)
-    adc0[counter:counter+data_available]=(np.int32(data_rcv % (2**16)) )
-    adc1[counter:counter+data_available]=(np.int32(data_rcv // (2**16)) )
-    counter += data_available
  
-print(counter)
+
+
+counter=0
+while data_available!=0:
+    datablob[counter:counter+data_available]=np.int32(driver.get_fifo_data(data_available))
+    counter+=data_available
+    data_available=driver.get_fifo_length()
+
+
+adc0=(np.int32(datablob % (2**16)) )
+adc1=(np.int32(datablob // (2**16)) )
+
+ 
+print(str(np.shape(adc0)))
  
 
 
