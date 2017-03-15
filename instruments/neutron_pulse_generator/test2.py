@@ -25,8 +25,8 @@ print('driver.n_pts is ' + str(driver.n_pts))
 
 # Send Gaussian pulses to DACs
 t = np.arange(driver.n_pts) / driver.fs # time grid (s)
-driver.dac[0,:] = np.append(0.6 * np.exp(-(np.arange(256)/125e6 - 1400e-9)**2/(800e-9)**2),0.315*np.exp(-np.arange(1024-256)/300))  #0.6 * np.exp(-(t - 3000e-9)**2/(1000e-9)**2)
-driver.dac[1,:] = np.append(0.6 * np.exp(-(np.arange(256)/125e6 - 1400e-9)**2/(800e-9)**2),0.315*np.exp(-np.arange(1024-256)/300)) #0.6 * np.exp(-(t - 3000e-9)**2/(1000e-9)**2)
+driver.dac[0,:] = np.append(0.9 * np.exp(-(np.arange(256)/125e6 - 1400e-9)**2/(800e-9)**2),0.315*np.exp(-np.arange(1024-256)/300))  #0.6 * np.exp(-(t - 3000e-9)**2/(1000e-9)**2)
+driver.dac[1,:] = np.append(0.9 * np.exp(-(np.arange(256)/125e6 - 1400e-9)**2/(800e-9)**2),0.315*np.exp(-np.arange(1024-256)/300)) #0.6 * np.exp(-(t - 3000e-9)**2/(1000e-9)**2)
 driver.set_dac()
 
 # driver.set_pulse_generator(pulse_width, pulse_period)
@@ -62,12 +62,12 @@ while data_available!=0:
     data_available=driver.get_fifo_length()
 
 
-adc0=(np.int32(datablob % (2**16)) )
-adc1=(np.int32(datablob // (2**16)) )
+adc0=(np.int32(datablob[0:counter] % (2**16)) )
+adc1=(np.int32(datablob[0:counter] // (2**16)) )
 
  
-print(str(np.shape(adc0)))
- 
+print(str(counter))
+np.savetxt('ADCdata',np.c_[adc0,adc1],fmt="%d",delimiter=",")
 
 
 plt.plot(adc1)
