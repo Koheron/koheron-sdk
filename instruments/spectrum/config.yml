@@ -103,9 +103,3 @@ server:
     - ./../oscillo/drivers/laser/laser.hpp
     - ./spectrum.hpp
     - ./../oscillo/drivers/eeprom/eeprom.hpp
-
-# ------------------------------------------------------------
-# Misc
-# ------------------------------------------------------------
-
-live_zip: live-spectrum.zip

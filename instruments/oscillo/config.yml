@@ -96,9 +96,3 @@ server:
     - ./drivers/laser/laser.hpp
     - ./drivers/oscillo.hpp
     - ./drivers/eeprom/eeprom.hpp
-
-# ------------------------------------------------------------
-# Misc
-# ------------------------------------------------------------
-
-live_zip: live-oscillo.zip
