@@ -1,13 +1,12 @@
 machine:
   python:
     version: 2.7.11
+  node:
+    version: 5.12.0
 
 # https://discuss.circleci.com/t/caching-apt-get-install-results/563/3
 dependencies:
-  cache_directories:
-    - "tmp/koheron_server_venv"
   pre:
-    - make tmp/koheron_server_venv
     - sudo bash -c "echo deb http://fr.archive.ubuntu.com/ubuntu/ wily main >> /etc/apt/sources.list"
     - sudo bash -c "echo deb-src http://fr.archive.ubuntu.com/ubuntu/ wily main >> /etc/apt/sources.list"
     - sudo apt-get update; sudo apt-get install gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf
@@ -15,7 +14,12 @@ dependencies:
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
     - sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
     - sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-5 /usr/bin/arm-linux-gnueabihf-g++
+    - pip install -r requirements.txt
+    - pip install .
+    - npm install -g typescript
+    - npm install @types/jquery @types/jquery-mousewheel websocket @types/node
 
 test:
   pre:
-    - bash scripts/ci_tests.sh
+    - bash build_examples.sh server
+    - bash build_examples.sh web
