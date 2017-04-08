@@ -7,7 +7,7 @@ proc add_redp_adc_dac {module_name} {
     create_bd_pin -dir O -from 13 -to 0 adc$i
   }
 
-  create_bd_pin -dir I -from 31 -to 0 cfg
+  create_bd_pin -dir I -from 31 -to 0 ctl
   create_bd_pin -dir I -type clk psclk
   create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 crystal_clk
   create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 sata_clk
@@ -30,14 +30,14 @@ proc add_redp_adc_dac {module_name} {
     SECONDARY_IN_FREQ 125
     USE_DYN_PHASE_SHIFT true
   } {
-    clk_in_sel [get_slice_pin cfg 0 0]
-    reset [get_slice_pin cfg 1 1]
+    clk_in_sel [get_slice_pin ctl 0 0]
+    reset [get_slice_pin ctl 1 1]
     clk_out1  adc_clk
     CLK_IN2_D   crystal_clk
     CLK_IN1_D   sata_clk
     psclk psclk
-    psen [get_edge_detector_pin [get_slice_pin cfg 2 2] psclk]
-    psincdec [get_slice_pin cfg 3 3]
+    psen [get_edge_detector_pin [get_slice_pin ctl 2 2] psclk]
+    psincdec [get_slice_pin ctl 3 3]
   }
 
   # Add ADC IP block
@@ -46,7 +46,7 @@ proc add_redp_adc_dac {module_name} {
     adc_dat_a_o adc1
     adc_dat_b_o adc2
   }
-  
+
   connect_ports adc
 
   # Add DAC IP block
@@ -58,7 +58,7 @@ proc add_redp_adc_dac {module_name} {
     dac_clk_2p mmcm/clk_out4
     dac_locked mmcm/locked
   }
-  
+
   connect_ports dac
 
   # Connect reset

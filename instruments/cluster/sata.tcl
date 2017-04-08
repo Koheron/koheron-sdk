@@ -6,14 +6,14 @@ proc add_sata {module_name} {
   create_bd_pin -dir I sata_data_in_p
   create_bd_pin -dir I sata_data_in_n
   create_bd_pin -dir I din
-  create_bd_pin -dir I -from 31 -to 0 cfg
+  create_bd_pin -dir I -from 31 -to 0 ctl
   create_bd_pin -dir O sata_data_out_p
   create_bd_pin -dir O sata_data_out_n
   create_bd_pin -dir O dout
   create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:diff_clock_rtl:1.0 sata_clk_out
 
   cell xilinx.com:ip:selectio_wiz:5.1 sata_in {
-    BUS_SIG_TYPE DIFF 
+    BUS_SIG_TYPE DIFF
     BUS_IO_STD DIFF_HSTL_I_18
     SELIO_ACTIVE_EDGE SDR
     SELIO_CLK_BUF MMCM
@@ -25,7 +25,7 @@ proc add_sata {module_name} {
 
   cell xilinx.com:ip:selectio_wiz:5.1 sata_out {
     BUS_DIR OUTPUTS
-    BUS_SIG_TYPE DIFF 
+    BUS_SIG_TYPE DIFF
     BUS_IO_STD DIFF_HSTL_I_18
     SELIO_ACTIVE_EDGE SDR
     SELIO_CLK_BUF MMCM
@@ -41,7 +41,7 @@ proc add_sata {module_name} {
   cell koheron:user:bus_multiplexer:1.0 sata_mux {
     WIDTH 1
   } {
-    sel [get_slice_pin cfg 0 0]
+    sel [get_slice_pin ctl 0 0]
     din0 sata_in/data_in_to_device
     din1 din
     dout sata_out/data_out_from_device
@@ -53,7 +53,7 @@ proc add_sata {module_name} {
   } {
     CLK clk
     D sata_in/data_in_to_device
-    A [get_slice_pin cfg 4 1]
+    A [get_slice_pin ctl 4 1]
     Q dout
   }
 

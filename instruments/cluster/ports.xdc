@@ -43,7 +43,7 @@ set_property PACKAGE_PIN Y18 [get_ports {adc_dat_b_i[13]}]
 
 # clock input
 
-set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports crystal_clk_*]
+set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports crystal_clk*]
 set_property PACKAGE_PIN U18 [get_ports crystal_clk_clk_p]
 set_property PACKAGE_PIN U19 [get_ports crystal_clk_clk_n]
 
@@ -99,8 +99,6 @@ set_property PACKAGE_PIN M17 [get_ports dac_wrt_o]
 set_property PACKAGE_PIN N16 [get_ports dac_sel_o]
 set_property PACKAGE_PIN M18 [get_ports dac_clk_o]
 set_property PACKAGE_PIN N15 [get_ports dac_rst_o]
-
-### LED
 
 set_property IOSTANDARD LVCMOS33 [get_ports {led_o[*]}]
 set_property SLEW SLOW [get_ports {led_o[*]}]

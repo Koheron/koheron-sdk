@@ -31,7 +31,7 @@ class Cluster(object):
         pass
 
     @command()
-    def cfg_sata(self, sata_out_sel, trig_delay):
+    def ctl_sata(self, sata_out_sel, trig_delay):
         pass
 
     @command()
@@ -59,16 +59,16 @@ if __name__=="__main__":
     for driver in drivers:
         driver.set_freq(10e6)
         driver.set_clk_source('crystal')
-        driver.cfg_sata(1, 0)
+        driver.ctl_sata(1, 0)
         driver.set_pulse_generator(100, 200)
 
     for i in [1,2,3]:
         drivers[i].set_clk_source('sata')
 
-    drivers[0].cfg_sata(1, 0)
-    drivers[1].cfg_sata(0, 7)
-    drivers[2].cfg_sata(0, 4)
-    drivers[3].cfg_sata(0, 2)
+    drivers[0].ctl_sata(1, 0)
+    drivers[1].ctl_sata(0, 7)
+    drivers[2].ctl_sata(0, 4)
+    drivers[3].ctl_sata(0, 2)
 
     for i in range(10000):
         drivers[1].phase_shift(1)

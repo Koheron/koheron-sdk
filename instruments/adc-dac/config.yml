@@ -1,0 +1,43 @@
+---
+name: adc-dac
+board: boards/red-pitaya
+
+cores:
+  - fpga/cores/axi_ctl_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
+  - fpga/cores/redp_adc_v1_0
+  - fpga/cores/redp_dac_v1_0
+
+memory:
+  - name: control
+    offset: '0x60000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+
+control_registers:
+  - led
+  - dac[n_dac]
+
+status_registers:
+  - adc[n_adc]
+
+parameters:
+  fclk0: 200000000
+  dac_width: 14
+  adc_width: 14
+  n_dac: 2
+  n_adc: 2
+
+xdc:
+  - boards/red-pitaya/config/ports.xdc
+  - boards/red-pitaya/config/clocks.xdc
+
+drivers:
+  - server/drivers/common.hpp
+  - ./adc_dac.hpp
+
+web:
+  - web/index.html

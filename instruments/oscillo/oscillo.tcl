@@ -1,5 +1,5 @@
-source fpga/modules/averager/averager.tcl
-source fpga/lib/bram_recorder.tcl
+source $module_path/averager/averager.tcl
+source $lib_path/bram_recorder.tcl
 
 ###########################################################
 # Add ADC BRAM recorders
@@ -24,10 +24,10 @@ for {set i 0} {$i < 2} {incr i} {
   connect_cell $avg_name {
     clk         $adc_clk
     restart     $address_name/restart
-    avg_on      [cfg_pin avg$i]
-    period      [cfg_pin avg_period]
-    threshold   [cfg_pin avg_threshold]
-    n_avg_min   [cfg_pin n_avg_min$i]
+    avg_on      [ctl_pin avg$i]
+    period      [ctl_pin avg_period]
+    threshold   [ctl_pin avg_threshold]
+    n_avg_min   [ctl_pin n_avg_min$i]
     tvalid      $address_name/tvalid
     din         adc_dac/adc[expr $i + 1]
     addr        $adc_recorder_name/addr

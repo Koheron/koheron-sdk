@@ -1,7 +1,6 @@
 ---
-instrument: oscillo
-parent: instruments/default
-board: red-pitaya
+name: oscillo
+board: boards/red-pitaya
 
 # ------------------------------------------------------------
 # Memory
@@ -10,23 +9,24 @@ board: red-pitaya
 parameters:
   fclk0: 200000000
   fclk1: 200000000
+  sampling_rate: 125000000
+  wfm_size: 8192
   dac_width: 14
   adc_width: 14
   pwm_width: 12
   n_pwm: 4
-  n_dac_bram: 3
   n_dac: 2
   n_adc: 2
 
 memory:
-  - name: config
+  - name: control
     offset: '0x60000000'
     range: 4K
   - name: status
     offset: '0x50000000'
     range: 4K
     protection: read
-  - name: dac[n_dac_bram]
+  - name: dac[n_dac]
     offset: '0x80000000'
     range: 16K
   - name: adc[n_adc]
@@ -39,41 +39,40 @@ memory:
     offset: '0x43C00000'
     range: 64K
 
-config_registers:
-  - spi_in
+control_registers:
   - led
-  - pwm[n_pwm]
+  - laser_current
+  - laser_shutdown
+  - laser_reset_overvoltage
   - addr
   - avg[n_adc]
   - dac_period[n_dac]
   - avg_period
   - avg_threshold
   - n_avg_min[n_adc]
-  - dac_select
-  - addr_select
-  - clken_mask
 
 status_registers:
   - spi_out
   - n_avg[n_adc]
   - avg_ready[n_adc]
   - avg_on_out[n_adc]
-  - counter[2]
 
 # ------------------------------------------------------------
 # FPGA
 # ------------------------------------------------------------
 
 modules:
-  - fpga/modules/address
-  - fpga/modules/averager
+  - fpga/modules/address/config.yml
+  - fpga/modules/averager/config.yml
 
 cores:
+  - fpga/cores/axi_ctl_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
   - fpga/cores/redp_adc_v1_0
   - fpga/cores/redp_dac_v1_0
   - fpga/cores/pdm_v1_0
   - fpga/cores/bus_multiplexer_v1_0
-  - ./at93c46d_spi_v1_0
   - fpga/cores/latched_mux_v1_0
 
 xdc:
@@ -85,14 +84,25 @@ xdc:
 # Drivers
 # ------------------------------------------------------------
 
-server:
-  includes:
-    - instruments/default/server.yml
-    - instruments/default/drivers.yml
+drivers:
+  - server/drivers/common.hpp
+  - server/drivers/xadc.hpp
+  - server/drivers/laser.hpp
+  - server/drivers/modulation.hpp
+  - ./drivers/oscillo.hpp
 
-  drivers:
-    - drivers/gpio.hpp
-    - drivers/xadc.hpp
-    - ./drivers/laser/laser.hpp
-    - ./drivers/oscillo.hpp
-    - ./drivers/eeprom/eeprom.hpp
+# ------------------------------------------------------------
+# Web
+# ------------------------------------------------------------
+
+web:
+
+  - web/koheron.ts
+  - web/jquery.flot.d.ts
+  - web/laser.ts
+  - ./web/oscillo.ts
+  - ./web/app.ts
+  - web/average.ts
+  - web/modulation.ts
+  - ./web/plot.ts
+  - ./web/index.html

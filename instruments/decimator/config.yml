@@ -1,16 +1,16 @@
 ---
-instrument: decimator
-parent: instruments/default
-board: red-pitaya
+name: decimator
+board: boards/red-pitaya
 
 cores:
   - fpga/cores/redp_adc_v1_0
   - fpga/cores/redp_dac_v1_0
-  - fpga/cores/axi_cfg_register_v1_0
+  - fpga/cores/axi_ctl_register_v1_0
   - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
 
 memory:
-  - name: config
+  - name: control
     offset: '0x60000000'
     range: 4K
   - name: status
@@ -20,7 +20,7 @@ memory:
     offset: '0x43C10000'
     range: 64K
 
-config_registers:
+control_registers:
   - led
   - dac[n_dac]
 
@@ -42,12 +42,9 @@ xdc:
   - boards/red-pitaya/config/ports.xdc
   - boards/red-pitaya/config/clocks.xdc
 
-# Drivers
+drivers:
+  - server/drivers/common.hpp
+  - ./decimator.hpp
 
-server:
-  includes:
-    - instruments/default/server.yml
-    - instruments/default/drivers.yml
-
-  drivers:
-    - ./decimator.hpp
+web:
+  - web/index.html

@@ -1,11 +1,11 @@
 ---
-instrument: cluster
-parent: instruments/default
-board: red-pitaya
+name: cluster
+board: boards/red-pitaya
 
 cores:
-  - fpga/cores/axi_cfg_register_v1_0
+  - fpga/cores/axi_ctl_register_v1_0
   - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
   - fpga/cores/redp_adc_v1_0
   - fpga/cores/redp_dac_v1_0
   - fpga/cores/axis_variable_v1_0
@@ -14,20 +14,20 @@ cores:
   - fpga/cores/edge_detector_v1_0
 
 memory:
-  - name: config
+  - name: control
     offset: '0x60000000'
     range: 4K
   - name: status
     offset: '0x50000000'
     range: 4K
-  - name: cfg_clk
+  - name: ctl_clk
     offset: '0x70000000'
     range: 4K
 
-config_registers:
+control_registers:
   - led
   - phase_incr[2]
-  - cfg_sata
+  - ctl_sata
   - pulse_width
   - pulse_period
   - trigger
@@ -50,12 +50,9 @@ xdc:
   - ./sata.xdc
   - ./expansion_connector.xdc
 
-# Drivers
+drivers:
+  - server/drivers/common.hpp
+  - ./cluster.hpp
 
-server:
-  includes:
-    - instruments/default/server.yml
-    - instruments/default/drivers.yml
-
-  drivers:
-    - ./cluster.hpp
+web:
+  - web/index.html

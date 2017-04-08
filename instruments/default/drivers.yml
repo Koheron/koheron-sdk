@@ -1,4 +1,0 @@
-# Default drivers
-drivers:
-  - drivers/common.hpp
-  - drivers/init.hpp

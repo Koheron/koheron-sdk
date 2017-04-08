@@ -1,21 +1,16 @@
 ---
-instrument: spectrum
-board: red-pitaya
-parent: instruments/oscillo
-
-# ------------------------------------------------------------
-# Memory
-# ------------------------------------------------------------
+name: spectrum
+board: boards/red-pitaya
 
 memory:
-  - name: config
+  - name: control
     offset: '0x60000000'
     range: 4K
   - name: status
     offset: '0x50000000'
     range: 4K
     protection: read
-  - name: dac[n_dac_bram]
+  - name: dac[n_dac]
     offset: '0x80000000'
     range: 8K
   - name: spectrum
@@ -40,13 +35,14 @@ memory:
     offset: '0x1E000000'
     range: 8M
 
-config_registers:
-  - spi_in
+control_registers:
   - led
-  - pwm[n_pwm]
+  - laser_current
+  - laser_shutdown
+  - laser_reset_overvoltage
   - addr
   - substract_mean
-  - cfg_fft
+  - ctl_fft
   - avg
   - dac_period[n_dac]
   - peak_address_low
@@ -55,9 +51,6 @@ config_registers:
   - avg_period
   - avg_threshold
   - n_avg_min
-  - dac_select
-  - addr_select
-  - clken_mask
 
 status_registers:
   - spi_out
@@ -66,16 +59,16 @@ status_registers:
   - peak_maximum
   - avg_ready
   - avg_on_out
-  - counter[2]
 
 parameters:
   fclk0: 200000000
   fclk1: 187500000
+  sampling_rate: 125000000
+  wfm_size: 4096
   dac_width: 14
   adc_width: 14
   pwm_width: 12
   n_pwm: 4
-  n_dac_bram: 3
   n_dac: 2
 
 # ------------------------------------------------------------
@@ -83,23 +76,48 @@ parameters:
 # ------------------------------------------------------------
 
 modules:
-  - fpga/modules/address
-  - fpga/modules/averager
-  - fpga/modules/spectrum
-  - fpga/modules/peak_detector
+  - fpga/modules/address/config.yml
+  - fpga/modules/averager/config.yml
+  - fpga/modules/spectrum/config.yml
+  - fpga/modules/peak_detector/config.yml
+
+cores:
+  - fpga/cores/axi_ctl_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
+  - fpga/cores/redp_adc_v1_0
+  - fpga/cores/redp_dac_v1_0
+  - fpga/cores/pdm_v1_0
+  - fpga/cores/bus_multiplexer_v1_0
+  - fpga/cores/latched_mux_v1_0
+
+xdc:
+  - boards/red-pitaya/config/ports.xdc
+  - boards/red-pitaya/config/clocks.xdc
+  - ./expansion_connector.xdc
 
 # ------------------------------------------------------------
 # Drivers
 # ------------------------------------------------------------
 
-server:
-  includes:
-    - instruments/default/server.yml
-    - instruments/default/drivers.yml
+drivers:
+  - server/drivers/common.hpp
+  - server/drivers/xadc.hpp
+  - server/drivers/laser.hpp
+  - server/drivers/modulation.hpp
+  - ./drivers/spectrum.hpp
 
-  drivers:
-    - drivers/gpio.hpp
-    - drivers/xadc.hpp
-    - ./../oscillo/drivers/laser/laser.hpp
-    - ./spectrum.hpp
-    - ./../oscillo/drivers/eeprom/eeprom.hpp
+# ------------------------------------------------------------
+# Web
+# ------------------------------------------------------------
+
+web:
+  - web/koheron.ts
+  - web/jquery.flot.d.ts
+  - web/laser.ts
+  - ./web/spectrum.ts
+  - ./web/app.ts
+  - web/average.ts
+  - web/modulation.ts
+  - ./web/plot.ts
+  - ./web/index.html

@@ -2,7 +2,7 @@
 set_property -dict [list CONFIG.S00_HAS_REGSLICE {1}] [get_bd_cells axi_mem_intercon_1]
 
 # Add spectrum IP
-source fpga/modules/spectrum/spectrum.tcl
+source $module_path/spectrum/spectrum.tcl
 
 set spectrum_name spectrum_0
 set n_pts_fft [get_memory_depth spectrum]
@@ -16,12 +16,12 @@ for {set i 1} {$i < 3} {incr i} {
 connect_cell $spectrum_name {
   clk        $adc_clk
   tvalid     [get_Q_pin $address_name/tvalid 1 noce $adc_clk]
-  cfg_sub    [cfg_pin substract_mean]
-  cfg_fft    [cfg_pin cfg_fft]
+  ctl_sub    [ctl_pin substract_mean]
+  ctl_fft    [ctl_pin ctl_fft]
 }
 
 # Add spectrum recorder
-source fpga/lib/bram_recorder.tcl
+source $lib_path/bram_recorder.tcl
 set recorder_name spectrum_recorder
 add_bram_recorder $recorder_name spectrum 1
 connect_pins $recorder_name/clk   $adc_clk
@@ -41,28 +41,28 @@ connect_cell $demod_bram_name {
 }
 
 # Substract noise floor
-source instruments/spectrum/noise_floor.tcl
+source $project_path/noise_floor.tcl
 set subtract_name noise_floor
 add_noise_floor $subtract_name [get_memory_addr_width spectrum] $adc_clk
 
 connect_cell $subtract_name {
   clk $adc_clk
   s_axis_tdata $spectrum_name/m_axis_result_tdata
-  s_axis_tvalid $spectrum_name/m_axis_result_tvalid 
+  s_axis_tvalid $spectrum_name/m_axis_result_tvalid
 }
 
 # Add averaging module
-source fpga/modules/averager/averager.tcl
+source $module_path/averager/averager.tcl
 set avg_name avg0
 averager::create $avg_name [get_memory_addr_width spectrum]
 
 connect_cell $avg_name {
   clk         $adc_clk
   restart     $address_name/restart
-  avg_on      [cfg_pin avg]
-  period      [cfg_pin avg_period]
-  threshold   [cfg_pin avg_threshold]
-  n_avg_min   [cfg_pin n_avg_min]
+  avg_on      [ctl_pin avg]
+  period      [ctl_pin avg_period]
+  threshold   [ctl_pin avg_threshold]
+  n_avg_min   [ctl_pin n_avg_min]
   addr        $recorder_name/addr
   dout        $recorder_name/adc
   wen         $recorder_name/wen
@@ -73,12 +73,12 @@ connect_cell $avg_name {
 
 connect_cell $subtract_name {
   m_axis_result_tdata  $avg_name/din
-  m_axis_result_tvalid $avg_name/tvalid 
+  m_axis_result_tvalid $avg_name/tvalid
 }
 
 # Add peak detector
 
-source fpga/modules/peak_detector/peak_detector.tcl
+source $module_path/peak_detector/peak_detector.tcl
 set peak_detector_name peak
 peak_detector::create $peak_detector_name [get_memory_addr_width spectrum]
 
@@ -86,9 +86,9 @@ connect_cell $peak_detector_name {
   clk $adc_clk
   din $subtract_name/m_axis_result_tdata
   s_axis_tvalid $subtract_name/m_axis_result_tvalid
-  address_low [cfg_pin peak_address_low]
-  address_high [cfg_pin peak_address_high]
-  address_reset [cfg_pin peak_address_reset]
+  address_low [ctl_pin peak_address_low]
+  address_high [ctl_pin peak_address_high]
+  address_reset [ctl_pin peak_address_reset]
   address_out [sts_pin peak_address]
   maximum_out [sts_pin peak_maximum]
 }
@@ -123,6 +123,3 @@ assign_bd_address [get_bd_addr_segs peak_axis_fifo/S_AXI/Mem0]
 set memory_segment [get_bd_addr_segs /${::ps_name}/Data/SEG_peak_axis_fifo_Mem0]
 set_property offset [get_memory_offset peak_fifo] $memory_segment
 set_property range  [get_memory_range peak_fifo]  $memory_segment
-
-
-

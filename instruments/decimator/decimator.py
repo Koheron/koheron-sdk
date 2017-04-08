@@ -29,3 +29,4 @@ class Decimator(object):
     @command()
     def read_adc(self):
         return self.client.recv_array(8192, dtype='int32', check_type=False)
+

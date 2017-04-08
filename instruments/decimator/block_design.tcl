@@ -1,11 +1,11 @@
-source boards/$board_name/config/ports.tcl
+source $board_path/config/ports.tcl
 
 # Add PS and AXI Interconnect
-set board_preset boards/$board_name/config/board_preset.tcl
-source fpga/lib/starting_point.tcl
+set board_preset $board_path/config/board_preset.tcl
+source $lib_path/starting_point.tcl
 
 # Add ADCs and DACs
-source fpga/lib/redp_adc_dac.tcl
+source $lib_path/redp_adc_dac.tcl
 set adc_dac_name adc_dac
 add_redp_adc_dac $adc_dac_name
 
@@ -20,15 +20,15 @@ cell xilinx.com:ip:proc_sys_reset:5.0 $rst_adc_clk_name {} {
 }
 
 # Add config and status registers
-source fpga/lib/cfg_sts.tcl
-add_cfg_sts $adc_clk $rst_adc_clk_name/peripheral_aresetn
+source $lib_path/ctl_sts.tcl
+add_ctl_sts $adc_clk $rst_adc_clk_name/peripheral_aresetn
 
 # Connect LEDs
-connect_port_pin led_o [get_slice_pin [cfg_pin led] 7 0]
+connect_port_pin led_o [get_slice_pin [ctl_pin led] 7 0]
 
 # Connect ADC to status register
 for {set i 0} {$i < [get_parameter n_adc]} {incr i} {
-  connect_pins [cfg_pin dac$i] adc_dac/dac[expr $i + 1]
+  connect_pins [ctl_pin dac$i] adc_dac/dac[expr $i + 1]
   connect_pins [sts_pin adc$i] adc_dac/adc[expr $i + 1]
 }
 
@@ -68,7 +68,7 @@ cell xilinx.com:ip:cic_compiler:4.0 cic {
   S_AXIS_DATA adc_clock_converter/M_AXIS
 }
 
-set fir_coeffs [exec python instruments/decimator/fir.py $n_stages $dec_rate $diff_delay print]
+set fir_coeffs [exec python $project_path/fir.py $n_stages $dec_rate $diff_delay print]
 
 cell xilinx.com:ip:fir_compiler:7.2 fir {
   Filter_Type Decimation
