@@ -21,15 +21,15 @@ $ sudo make setup
 ### 3. Build and run the minimal instrument
 
 ```bash
-$ make CONFIG=path/to/config.yml HOST=192.168.1.100 run
+$ make CONFIG=instruments/led-blinker/config.yml HOST=192.168.1.100 run
 ```
 where `HOST` is your Red Pitaya IP address.
 
 ## Examples of instruments
 
-* [`led_blinker`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/led_blinker) : minimal instrument with LED control from Python.
-* [`adc_dac`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/adc_dac) : instrument with minimal read/write capability on Red Pitaya ADCs and DACs.
-* [`pulse_generator`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/pulse_generator) : pulse generation with synchronous acquisition.
+* [`led_blinker`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/led-blinker) : minimal instrument with LED control from Python.
+* [`adc_dac`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/adc-dac) : instrument with minimal read/write capability on Red Pitaya ADCs and DACs.
+* [`pulse_generator`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/pulse-generator) : pulse generation with synchronous acquisition.
 * [`laser_controller`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/decimator) : laser current control using pulse-density modulation.
 * [`decimator`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/decimator) : decimation using a compensated CIC filter.
 * [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/oscillo) : signal acquisition / generation with coherent averaging mode.
