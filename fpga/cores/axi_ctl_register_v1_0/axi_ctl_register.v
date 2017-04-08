@@ -1,8 +1,8 @@
 `timescale 1 ns / 1 ps
 
-module axi_cfg_register #
+module axi_ctl_register #
 (
-  parameter integer CFG_DATA_WIDTH = 1024,
+  parameter integer CTL_DATA_WIDTH = 1024,
   parameter integer AXI_DATA_WIDTH = 32,
   parameter integer AXI_ADDR_WIDTH = 16
 )
@@ -12,7 +12,7 @@ module axi_cfg_register #
   input  wire                        aresetn,
 
   // Configuration bits
-  output wire [CFG_DATA_WIDTH-1:0]   cfg_data,
+  output wire [CTL_DATA_WIDTH-1:0]   ctl_data,
 
   // Slave side
   input  wire [AXI_ADDR_WIDTH-1:0]   s_axi_awaddr,  // AXI4-Lite slave: Write address
@@ -39,17 +39,17 @@ module axi_cfg_register #
   endfunction
 
   localparam integer ADDR_LSB = clogb2(AXI_DATA_WIDTH/8 - 1);
-  localparam integer CFG_SIZE = CFG_DATA_WIDTH/AXI_DATA_WIDTH;
-  localparam integer CFG_WIDTH = CFG_SIZE > 1 ? clogb2(CFG_SIZE-1) : 1;
+  localparam integer CTL_SIZE = CTL_DATA_WIDTH/AXI_DATA_WIDTH;
+  localparam integer CTL_WIDTH = CTL_SIZE > 1 ? clogb2(CTL_SIZE-1) : 1;
 
   reg int_bvalid_reg, int_bvalid_next;
 
   reg int_rvalid_reg, int_rvalid_next;
   reg [AXI_DATA_WIDTH-1:0] int_rdata_reg, int_rdata_next;
 
-  wire [AXI_DATA_WIDTH-1:0] int_data_mux [CFG_SIZE-1:0];
-  wire [CFG_DATA_WIDTH-1:0] int_data_wire;
-  wire [CFG_SIZE-1:0] int_ce_wire;
+  wire [AXI_DATA_WIDTH-1:0] int_data_mux [CTL_SIZE-1:0];
+  wire [CTL_DATA_WIDTH-1:0] int_data_wire;
+  wire [CTL_SIZE-1:0] int_ce_wire;
   wire int_wvalid_wire;
 
   genvar j, k;
@@ -57,10 +57,10 @@ module axi_cfg_register #
   assign int_wvalid_wire = s_axi_awvalid & s_axi_wvalid;
 
   generate
-    for(j = 0; j < CFG_SIZE; j = j + 1)
+    for(j = 0; j < CTL_SIZE; j = j + 1)
     begin : WORDS
       assign int_data_mux[j] = int_data_wire[j*AXI_DATA_WIDTH+AXI_DATA_WIDTH-1:j*AXI_DATA_WIDTH];
-      assign int_ce_wire[j] = int_wvalid_wire & (s_axi_awaddr[ADDR_LSB+CFG_WIDTH-1:ADDR_LSB] == j);
+      assign int_ce_wire[j] = int_wvalid_wire & (s_axi_awaddr[ADDR_LSB+CTL_WIDTH-1:ADDR_LSB] == j);
       for(k = 0; k < AXI_DATA_WIDTH; k = k + 1)
       begin : BITS
         FDRE #(
@@ -115,7 +115,7 @@ module axi_cfg_register #
     if(s_axi_arvalid)
     begin
       int_rvalid_next = 1'b1;
-      int_rdata_next = int_data_mux[s_axi_araddr[ADDR_LSB+CFG_WIDTH-1:ADDR_LSB]];
+      int_rdata_next = int_data_mux[s_axi_araddr[ADDR_LSB+CTL_WIDTH-1:ADDR_LSB]];
     end
 
     if(s_axi_rready & int_rvalid_reg)
@@ -124,7 +124,7 @@ module axi_cfg_register #
     end
   end
 
-  assign cfg_data = int_data_wire;
+  assign ctl_data = int_data_wire;
 
   assign s_axi_bresp = 2'd0;
   assign s_axi_rresp = 2'd0;

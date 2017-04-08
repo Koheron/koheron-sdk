@@ -16,8 +16,8 @@ proc range {from to} {
 
 # Get a configuration pin
 # name : name of the register defined in the instrument YAML
-proc cfg_pin {pin_name} {
-  return cfg/$pin_name
+proc ctl_pin {pin_name} {
+  return ctl/$pin_name
 }
 
 # Get a status pin
@@ -54,7 +54,7 @@ proc get_concat_pin {pins {cell_name ""}} {
   if {$cell_name eq ""} {
     set cell_name concat_[join [lmap pin $pin_names {set pin [lindex [split $pin /] end]}] _]
   }
-  if {[get_bd_cells $cell_name] eq ""} { 
+  if {[get_bd_cells $cell_name] eq ""} {
     cell xilinx.com:ip:xlconcat:2.1 $cell_name {
       NUM_PORTS [llength $pin_names]
     } {}
@@ -74,7 +74,7 @@ foreach op {and or nor not} {
     set proc_name [lindex [info level 0] 0]
     set op [lindex [split $proc_name _] 1]
     if {$cell_name eq ""} {
-      set cell_name [get_cell_name $op $pin_name1 $pin_name2] 
+      set cell_name [get_cell_name $op $pin_name1 $pin_name2]
     }
     if {[get_bd_cells $cell_name] eq ""} {
       cell xilinx.com:ip:util_vector_logic:2.0 $cell_name {
@@ -190,7 +190,7 @@ proc connect_constant {name value width pin} {
   cell xilinx.com:ip:xlconstant:1.1 $name {
     CONST_VAL $value
     CONST_WIDTH $width
-  } { 
+  } {
     dout $pin
   }
 }
@@ -206,7 +206,7 @@ proc connect_ports {cell_name} {
   }
 }
 
-# Configure an IP block and connect its pins 
+# Configure an IP block and connect its pins
 # https://github.com/pavel-demin/red-pitaya-notes
 
 proc connect_cell {cell_name cell_ports} {
@@ -292,7 +292,7 @@ proc add_master_interface {{intercon_idx 0}} {
     if { $num_mi <= 10 } { set idx 0[expr $num_mi-1] } { set idx [expr $num_mi-1] }
   }
   connect_pins /axi_mem_intercon_$intercon_idx/M${idx}_ACLK    /[set ::ps_clk$intercon_idx]
-  connect_pins /axi_mem_intercon_$intercon_idx/M${idx}_ARESETN /[set ::rst${intercon_idx}_name]/peripheral_aresetn 
+  connect_pins /axi_mem_intercon_$intercon_idx/M${idx}_ARESETN /[set ::rst${intercon_idx}_name]/peripheral_aresetn
   puts "Connect your AXI Slave to axi_mem_intercon_$intercon_idx/M${idx}_AXI"
   return $idx
 }

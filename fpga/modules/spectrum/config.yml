@@ -1,10 +1,10 @@
 ---
-instrument: spectrum
-board: red-pitaya
+name: spectrum
+board: boards/red-pitaya
 
-config_registers:
+control_registers:
   - substract_mean
-  - cfg_fft
+  - ctl_fft
 
 status_registers:
 

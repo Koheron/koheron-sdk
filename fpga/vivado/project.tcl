@@ -1,5 +1,4 @@
-
-source fpga/scripts/block_design.tcl
+source [file join [file dirname [info script]] "block_design.tcl"]
 
 if {[version -short] >= 2016.3} {
   set_property synth_checkpoint_mode None [get_files $bd_path/system.bd]
@@ -17,7 +16,7 @@ if {[llength $files] > 0} {
 }
 
 # Add constraint files
-set fp [open tmp/$project_name.xdc r]
+set fp [open $xdc_filename r]
 set files [split [read $fp]]
 
 close $fp
