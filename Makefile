@@ -5,7 +5,7 @@ SHELL := bash
 .DELETE_ON_ERROR:
 .SUFFIXES:
 
-CONFIG ?= examples/led_blinker/config.yml
+CONFIG ?= instruments/led-blinker/config.yml
 SDK_PATH ?= .
 MODE ?= production
 HOST ?= 192.168.1.100
