@@ -1,12 +1,17 @@
-device=$1
-name=$2
-version=$3
-release=$4
+set -e
 
-koheron_python_branch=v0.13.0
+tmp_project_path=$1
+os_path=$2
+tmp_os_path=$3
+name=$4
+image=$tmp_project_path/${name}-development.img
+size=1024
 
-config_dir=os
-http_app_dir=tmp/app
+dd if=/dev/zero of=$image bs=1M count=${size}
+
+device=`losetup -f`
+
+losetup ${device} ${image}
 
 boot_dir=`mktemp -d /tmp/BOOT.XXXXXXXXXX`
 root_dir=`mktemp -d /tmp/ROOT.XXXXXXXXXX`
@@ -39,53 +44,44 @@ mount $root_dev $root_dir
 
 # Copy files to the boot file system
 
-cp boot.bin devicetree.dtb uImage $config_dir/uEnv.txt $boot_dir
+cp $tmp_os_path/boot.bin $tmp_os_path/devicetree.dtb $tmp_os_path/uImage $os_path/uEnv.txt $boot_dir
 
 # Copy Ubuntu Core to the root file system
 
-test -f $root_tar || curl -L $root_url -o $root_tar
+test -f tmp/$root_tar || curl -L $root_url -o tmp/$root_tar
 
-tar -zxf $root_tar --directory=$root_dir
+tar -zxf tmp/$root_tar --directory=$root_dir
 
 # Add missing configuration files and packages
 
 cp /etc/resolv.conf $root_dir/etc/
 cp /usr/bin/qemu-arm-static $root_dir/usr/bin/
 
-cp boards/red-pitaya/patches/fw_env.config $root_dir/etc/
-
-cp fw_printenv $root_dir/usr/local/bin/fw_printenv
-cp fw_printenv $root_dir/usr/local/bin/fw_setenv
-
 # Add Web app
-mkdir $root_dir/usr/local/flask
-cp -a $http_app_dir/. $root_dir/usr/local/flask
-cp $config_dir/wsgi.py $root_dir/usr/local/flask
-unzip -o tmp/static.zip -d $root_dir/var/www
+mkdir $root_dir/usr/local/www
+cp -a tmp/www/. $root_dir/usr/local/www
+
+mkdir $root_dir/usr/local/api
+cp -a tmp/api/. $root_dir/usr/local/api
 
 # Add Koheron TCP/Websocket Server
 mkdir $root_dir/usr/local/koheron-server
-cp tmp/${name}.server.build/kserverd $root_dir/usr/local/koheron-server
-cp $config_dir/koheron-server.conf $root_dir/usr/local/koheron-server
-cp $config_dir/systemd/koheron-server.service $root_dir/etc/systemd/system/koheron-server.service
-cp $config_dir/systemd/koheron-server-init.service $root_dir/etc/systemd/system/koheron-server-init.service
+cp $os_path/scripts/koheron-server-init.py $root_dir/usr/local/koheron-server/koheron-server-init.py
+
+cp $os_path/systemd/unzip-default-instrument.service $root_dir/etc/systemd/system/unzip-default-instrument.service
+cp $os_path/systemd/koheron-server.service $root_dir/etc/systemd/system/koheron-server.service
+cp $os_path/systemd/koheron-server-init.service $root_dir/etc/systemd/system/koheron-server-init.service
 
 # uwsgi
-mkdir $root_dir/etc/flask-uwsgi
-cp $config_dir/flask-uwsgi.ini $root_dir/etc/flask-uwsgi/flask-uwsgi.ini
-cp $config_dir/systemd/uwsgi.service $root_dir/etc/systemd/system/uwsgi.service
+mkdir $root_dir/etc/uwsgi
+cp $os_path/config/uwsgi.ini $root_dir/etc/uwsgi/uwsgi.ini
+cp $os_path/systemd/uwsgi.service $root_dir/etc/systemd/system/uwsgi.service
 
-# Add zip
+# Add zips
 mkdir $root_dir/usr/local/instruments
-cp tmp/*-${version}.zip $root_dir/usr/local/instruments
-echo "last_deployed: /usr/local/instruments/${name}-${version}.zip" > $root_dir/usr/local/instruments/.instruments
-# Copy all available instruments in backup directory
-mkdir $root_dir/usr/local/instruments/backup
-cp tmp/*-${version}.zip $root_dir/usr/local/instruments/backup
-
-if [ "$release" = true ]; then
-    cp $config_dir/scripts/mount_unionfs $root_dir/usr/local/bin/mount_unionfs
-fi
+cp $os_path/scripts/unzip_default_instrument.sh $root_dir/usr/local/instruments/unzip_default_instrument.sh
+echo "${name}.zip" > $root_dir/usr/local/instruments/default
+cp $tmp_project_path/*.zip $root_dir/usr/local/instruments
 
 chroot $root_dir <<- EOF_CHROOT
 export LANG=C
@@ -96,16 +92,11 @@ cat <<- EOF_CAT > etc/environment
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/koheron-server"
 EOF_CAT
 
-cat <<- EOF_CAT > etc/koheron_sdk_version
-$version
-EOF_CAT
-
 cat <<- EOF_CAT > etc/apt/apt.conf.d/99norecommends
 APT::Install-Recommends "0";
 APT::Install-Suggests "0";
 EOF_CAT
 
-if [ "$release" = false ]; then
 cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
@@ -114,21 +105,6 @@ cat <<- EOF_CAT > etc/fstab
 tmpfs           /tmp            tmpfs   defaults,noatime    0       0
 tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 EOF_CAT
-else
-# Release
-chmod +x /usr/local/bin/mount_unionfs
-
-cat <<- EOF_CAT > etc/fstab
-# /etc/fstab: static file system information.
-# <file system> <mount point>   <type>  <options>           <dump>  <pass>
-/dev/mmcblk0p2  /               ext4    ro,noatime          0       1
-/dev/mmcblk0p1  /boot           vfat    ro,noatime          0       2
-tmpfs           /tmp            tmpfs   defaults,noatime    0       0
-tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
-mount_unionfs   /etc            fuse    defaults,noatime    0       0
-mount_unionfs   /var            fuse    defaults,noatime    0       0
-EOF_CAT
-fi
 
 cat <<- EOF_CAT >> etc/securetty
 # Serial Console for Xilinx Zynq-7000
@@ -160,26 +136,19 @@ apt-get -y install openssh-server ntp usbutils psmisc lsof \
   bash-completion unzip
 
 apt-get install -y udev net-tools netbase ifupdown network-manager lsb-base
-apt-get install -y ntpdate sudo
+apt-get install -y ntpdate sudo rsync
 
 apt-get install -y nginx
 apt-get install -y build-essential python-dev
 apt-get install -y python-numpy
 apt-get install -y python-pip python-setuptools python-all-dev python-wheel
 
-if [ "$release" = true ]; then
-    apt-get install -y unionfs-fuse
-fi
-
 pip install --upgrade pip
-pip install https://github.com/Koheron/koheron-python/zipball/$koheron_python_branch
 pip install flask
-pip install jinja2
-pip install urllib3
-pip install pyyaml
 pip install uwsgi
 
 systemctl enable uwsgi
+systemctl enable unzip-default-instrument
 systemctl enable koheron-server
 systemctl enable nginx
 
@@ -213,19 +182,12 @@ EOF_CHROOT
 
 # nginx
 rm $root_dir/etc/nginx/sites-enabled/default
-cp $config_dir/nginx.conf $root_dir/etc/nginx/nginx.conf
-cp $config_dir/nginx-server.conf $root_dir/etc/nginx/sites-enabled/nginx-server.conf
-cp $config_dir/systemd/nginx.service $root_dir/etc/systemd/system/nginx.service
+cp $os_path/config/nginx.conf $root_dir/etc/nginx/nginx.conf
+cp $os_path/config/nginx-server.conf $root_dir/etc/nginx/sites-enabled/nginx-server.conf
+cp $os_path/systemd/nginx.service $root_dir/etc/systemd/system/nginx.service
 
 rm $root_dir/etc/resolv.conf
 rm $root_dir/usr/bin/qemu-arm-static
-
-if [ "$release" = true ]; then
-    cp -al $root_dir/etc $root_dir/etc_org
-    mv $root_dir/var $root_dir/var_org
-    mkdir $root_dir/etc_rw
-    mkdir $root_dir/var $root_dir/var_rw
-fi
 
 # Unmount file systems
 
@@ -234,3 +196,5 @@ umount $boot_dir $root_dir
 rmdir $boot_dir $root_dir
 
 zerofree $root_dev
+
+losetup -d $device
