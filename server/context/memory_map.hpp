@@ -1,9 +1,9 @@
-/// Memory map devices
+/// Memory map drivers
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_LIB_MEMORY_MAP_HPP__
-#define __DRIVERS_LIB_MEMORY_MAP_HPP__
+#ifndef __MEMORY_MAP_HPP__
+#define __MEMORY_MAP_HPP__
 
 #include <cstdio>
 #include <cstdint>
@@ -25,7 +25,7 @@ namespace mem {
     }
 
     // Makes sure it gets evaluated at compile time
-    static_assert(get_base_addr(config) == std::get<0>(memory_array[config]),
+    static_assert(get_base_addr(control) == std::get<0>(memory_array[control]),
                   "get_base_address test failed");
 
     constexpr uint32_t get_range(const MemID id) {
@@ -54,7 +54,7 @@ namespace mem {
 } // namespace mem
 
 static constexpr off_t get_mmap_offset(uintptr_t phys_addr, uint32_t size) {
-    return phys_addr & ~(size - 1);
+    return static_cast<off_t>(phys_addr) & ~(static_cast<off_t>(size) - 1);
 }
 
 template<MemID id,
@@ -80,7 +80,7 @@ class Memory
     }
 
     void open(const int& fd) {
-        mapped_base = mmap(0, size, protection, MAP_SHARED, fd, get_mmap_offset(phys_addr, size));
+        mapped_base = mmap(nullptr, size, protection, MAP_SHARED, fd, get_mmap_offset(phys_addr, size));
 
         if (mapped_base == (void *) -1) {
             is_opened = false;
@@ -215,7 +215,7 @@ class Memory
     // Read a std::array (offset defined at compile-time)
     template<typename T, size_t N, uint32_t offset = 0>
     std::array<T, N>& read_array(uint32_t block_idx = 0) {
-        static_assert(offset + sizeof(T) * (N - 1) < mem::get_range(id), "Invalid offset");
+        static_assert(offset + sizeof(T) * (N - 1) < (mem::get_range(id) * mem::get_n_blocks(id)), "Invalid offset");
         static_assert(mem::is_readable(id), "Not readable");
 
         auto p = get_ptr<std::array<T, N>, offset>(block_idx);
@@ -242,7 +242,7 @@ class Memory
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1U << index);
     }
 
     // Set a bit (offset and index defined at run-time)
@@ -250,7 +250,7 @@ class Memory
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1 << index);
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1U << index);
     }
 
     // Clear a bit (offset and index defined at compile-time)
@@ -260,7 +260,7 @@ class Memory
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1U << index);
     }
 
     // Clear a bit (offset and index defined at run-time)
@@ -268,7 +268,7 @@ class Memory
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1 << index);
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1U << index);
     }
 
     // Toggle a bit (offset and index defined at compile-time)
@@ -278,7 +278,7 @@ class Memory
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1U << index);
     }
 
     // Toggle a bit (offset and index defined at run-time)
@@ -286,7 +286,7 @@ class Memory
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1 << index);
+        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1U << index);
     }
 
     // Write a bit (offset and index defined at compile-time)
@@ -294,14 +294,14 @@ class Memory
     void write_bit(bool value) {
         static_assert(offset < mem::get_range(id), "Invalid offset");
         static_assert(mem::is_writable(id), "Not writable");
-        
+
         value ? set_bit<offset, index>() : clear_bit<offset, index>();
     }
 
     // Write a bit (offset and index defined at run-time)
     void write_bit_reg(uint32_t offset, uint32_t index, bool value) {
         static_assert(mem::is_writable(id), "Not writable");
-        
+
         value ? set_bit_reg(offset, index) : clear_bit_reg(offset, index);
     }
 
@@ -311,19 +311,19 @@ class Memory
         static_assert(offset < mem::get_range(id), "Invalid offset");
         static_assert(mem::is_readable(id), "Not readable");
 
-        return *((volatile uint32_t *) (base_address + offset)) & (1 << index);
+        return *((volatile uint32_t *) (base_address + offset)) & (1U << index);
     }
 
     // Read a bit (offset and index defined at run-time)
     bool read_bit_reg(uint32_t offset, uint32_t index) {
         static_assert(mem::is_readable(id), "Not readable");
-        return *((volatile uint32_t *) (base_address + offset)) & (1 << index);
+        return *((volatile uint32_t *) (base_address + offset)) & (1U << index);
     }
 
   private:
     void *mapped_base;       ///< Map base address
-    uintptr_t base_address;  ///< Virtual memory base address of the device
+    uintptr_t base_address;  ///< Virtual memory base address of the driver
     bool is_opened;
 };
 
-#endif // __DRIVERS_CORE_MEMORY_MAP_HPP__
+#endif // __MEMORY_MAP_HPP__

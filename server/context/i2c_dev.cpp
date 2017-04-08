@@ -4,7 +4,6 @@
 
 #include <dirent.h>
 
-#include <core/syslog.tpp> // FIXME Not very nice ...
 
 // ---------------------------------------------------------------------
 // I2cDev
@@ -26,12 +25,10 @@ int I2cDev::init()
         fd = open(devpath, O_RDWR);
 
         if (fd < 0) {
-            ctx.log<ERROR>("I2cDev: Cannot open %s\n", devpath);
             return -1;
         }
     }
 
-    ctx.log<INFO>("I2cDev: %s opened\n", devpath);
     return 0;
 }
 
@@ -53,7 +50,6 @@ int I2cManager::init()
     DIR *dir = opendir("/sys/class/i2c-dev");
 
     if (dir == nullptr) {
-        ctx.log<INFO>("I2C Manager: Cannot open /sys/class/i2c-dev.\n");
         return 0;
     }
 
@@ -62,16 +58,12 @@ int I2cManager::init()
 
         // Exclude '.' and '..' repositories
         if (devname[0] != '.') {
-            ctx.log<INFO>("I2C Manager: Found device '%s'\n", devname);
 
-            i2c_devices.insert(
+            i2c_drivers.insert(
                 std::make_pair(devname, std::make_unique<I2cDev>(ctx, devname))
             );
         }
     }
-
-    if (i2c_devices.empty())
-        ctx.log<INFO>("I2C Manager: No I2C device available.\n");
 
     closedir(dir);
     return 0;
@@ -79,5 +71,5 @@ int I2cManager::init()
 
 bool I2cManager::has_device(const std::string& devname) const
 {
-    return i2c_devices.find(devname) != i2c_devices.end();
+    return i2c_drivers.find(devname) != i2c_drivers.end();
 }

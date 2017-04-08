@@ -3,11 +3,11 @@
 #ifndef __CONTEXT_HPP__
 #define __CONTEXT_HPP__
 
-#include <core/context_base.hpp>
+#include <context_base.hpp>
 
-#include <drivers/context/memory_manager.hpp>
-#include <drivers/context/spi_dev.hpp>
-#include <drivers/context/i2c_dev.hpp>
+#include <memory_manager.hpp>
+#include <spi_dev.hpp>
+#include <i2c_dev.hpp>
 
 #include "memory.hpp"
 

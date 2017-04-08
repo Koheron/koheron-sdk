@@ -4,7 +4,6 @@
 
 #include <dirent.h>
 
-#include <core/syslog.tpp> // FIXME Not very nice ...
 
 // ---------------------------------------------------------------------
 // SpiDev
@@ -26,7 +25,6 @@ int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_)
         fd = open(devpath, O_RDWR | O_NOCTTY);
 
         if (fd < 0) {
-            ctx.log<ERROR>("SpiDev: Cannot open %s\n", devpath);
             return -1;
         }
     }
@@ -36,7 +34,6 @@ int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_)
         set_word_length(word_length_) < 0)
         return -1;
 
-    ctx.log<INFO>("SpiDev: %s opened\n", devpath);
     return 0;
 }
 
@@ -48,7 +45,6 @@ int SpiDev::set_mode(uint8_t mode_)
     mode = mode_;
 
     if (ioctl(fd, SPI_IOC_WR_MODE, &mode) < 0) {
-        ctx.log<ERROR>("SpiDev [%s] Cannot set mode\n", devname.c_str());
         return -1;
     }
 
@@ -63,7 +59,6 @@ int SpiDev::set_full_mode(uint32_t mode32_)
     mode32 = mode32_;
 
     if (ioctl(fd, SPI_IOC_WR_MODE32, &mode32) < 0) {
-        ctx.log<ERROR>("SpiDev [%s] Cannot set full mode\n", devname.c_str());
         return -1;
     }
 
@@ -78,8 +73,6 @@ int SpiDev::set_speed(uint32_t speed_)
     speed = speed_;
 
     if (ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) < 0) {
-        ctx.log<ERROR>("SpiDev [%s] Cannot set speed to %u Hz\n",
-                       devname.c_str(), speed_);
         return -1;
     }
 
@@ -94,8 +87,6 @@ int SpiDev::set_word_length(uint8_t word_length_)
     word_length = word_length_;
 
     if (ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &word_length) < 0) {
-        ctx.log<ERROR>("SpiDev [%s] Cannot set word length to %u bits\n",
-                       devname.c_str(), word_length_);
         return -1;
     }
 
@@ -108,18 +99,16 @@ int SpiDev::recv(uint8_t *buffer, size_t n_bytes)
         return -1;
 
     int bytes_rcv = 0;
-    uint64_t bytes_read = 0;
+    int64_t bytes_read = 0;
 
     while (bytes_read < n_bytes) {
         bytes_rcv = read(fd, buffer + bytes_read, n_bytes - bytes_read);
 
         if (bytes_rcv == 0) {
-            ctx.log<INFO>("SpiDev [%s]: Connection to device closed\n", devname.c_str());
             return 0;
         }
 
         if (bytes_rcv < 0) {
-            ctx.log<INFO>("SpiDev [%s]: Data reception failed\n", devname.c_str());
             return -1;
         }
 
@@ -148,7 +137,6 @@ int SpiManager::init()
     DIR *dir = opendir("/sys/class/spidev");
 
     if (dir == nullptr) {
-        ctx.log<INFO>("SPI Manager: Cannot open /sys/class/spidev.\n");
         return 0;
     }
 
@@ -157,16 +145,12 @@ int SpiManager::init()
 
         // Exclude '.' and '..' repositories
         if (devname[0] != '.') {
-            ctx.log<INFO>("SPI Manager: Found device '%s'\n", devname);
 
-            spi_devices.insert(
+            spi_drivers.insert(
                 std::make_pair(devname, std::make_unique<SpiDev>(ctx, devname))
             );
         }
     }
-
-    if (spi_devices.empty())
-        ctx.log<INFO>("SPI Manager: No SPI device available.\n");
 
     closedir(dir);
     return 0;
@@ -174,7 +158,7 @@ int SpiManager::init()
 
 bool SpiManager::has_device(const std::string& devname)
 {
-    return spi_devices.find(devname) != spi_devices.end();
+    return spi_drivers.find(devname) != spi_drivers.end();
 }
 
 SpiDev& SpiManager::get(const std::string& devname,
@@ -182,10 +166,9 @@ SpiDev& SpiManager::get(const std::string& devname,
 {
     if (! has_device(devname)) {
         // This is critical since explicit driver request cannot be honored
-        ctx.log<CRITICAL>("SPI Manager: SPI device %s not found\n", devname.c_str());
         return empty_spidev;
     }
 
-    spi_devices[devname]->init(mode, speed, word_length);
-    return *spi_devices[devname];
+    spi_drivers[devname]->init(mode, speed, word_length);
+    return *spi_drivers[devname];
 }

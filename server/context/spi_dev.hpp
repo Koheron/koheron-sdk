@@ -9,6 +9,7 @@
 
 #include <cstdio>
 #include <cstdint>
+#include <cassert>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -21,7 +22,7 @@
 #include <vector>
 #include <array>
 
-#include <core/context_base.hpp>
+#include <context_base.hpp>
 
 // https://www.kernel.org/doc/Documentation/spi/spidev
 class SpiDev
@@ -95,7 +96,7 @@ class SpiManager
 
   private:
     ContextBase& ctx;
-    std::unordered_map<std::string, std::unique_ptr<SpiDev>> spi_devices;
+    std::unordered_map<std::string, std::unique_ptr<SpiDev>> spi_drivers;
     SpiDev empty_spidev;
 };
 

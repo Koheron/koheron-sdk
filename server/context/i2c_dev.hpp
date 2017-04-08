@@ -8,6 +8,7 @@
 
 #include <cstdio>
 #include <cstdint>
+#include <cassert>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -23,7 +24,7 @@
 #include <thread>
 #include <mutex>
 
-#include <core/context_base.hpp>
+#include <context_base.hpp>
 
 class I2cDev
 {
@@ -37,16 +38,16 @@ class I2cDev
 
     bool is_ok() {return fd >= 0;}
 
-    /// Write data to I2C device
+    /// Write data to I2C driver
 
-    /// addr: Addresse of the device to write to
+    /// addr: Addresse of the driver to write to
     /// buffer: Pointer to the data to send
     /// len: Number of elements on the buffer array
     template<int32_t addr, typename T>
-    int write(const T *buffer, uint32_t len)
+    int write(const T *buffer, int32_t len)
     {
         // Lock to avoid another process to change
-        // the device address while writing
+        // the driver address while writing
         std::lock_guard<std::mutex> lock(mutex);
 
         if (! is_ok())
@@ -55,7 +56,7 @@ class I2cDev
         if (set_address<addr>() < 0)
             return -1;
 
-        return ::write(fd, buffer, len * sizeof(T));
+        return ::write(fd, buffer, static_cast<uint32_t>(len) * sizeof(T));
     }
 
     template<int32_t addr, typename T, size_t N>
@@ -68,13 +69,13 @@ class I2cDev
         return write<addr>(buff.data(), buff.size());
     }
 
-    // Receive data from I2C device
+    // Receive data from I2C driver
 
     template<int32_t addr>
     int recv(uint8_t *buffer, size_t n_bytes)
     {
         // Lock to avoid another process to change
-        // the device address while reading
+        // the driver address while reading
         std::lock_guard<std::mutex> lock(mutex);
 
         if (! is_ok())
@@ -84,18 +85,16 @@ class I2cDev
             return -1;
 
         int bytes_rcv = 0;
-        uint64_t bytes_read = 0;
+        int64_t bytes_read = 0;
 
         while (bytes_read < n_bytes) {
             bytes_rcv = read(fd, buffer + bytes_read, n_bytes - bytes_read);
 
             if (bytes_rcv == 0) {
-                ctx.log<INFO>("I2cDev [%s]: Connection to device closed\n", devname.c_str());
                 return 0;
             }
 
             if (bytes_rcv < 0) {
-                ctx.log<INFO>("I2cDev [%s]: Data reception failed\n", devname.c_str());
                 return -1;
             }
 
@@ -132,12 +131,8 @@ class I2cDev
 
         if (addr != last_addr) {
             if (ioctl(fd, I2C_SLAVE_FORCE, addr) < 0) {
-                ctx.log<ERROR>("I2cDev [%s] Failed to acquire bus access and/or "
-                               "talk to slave with address %i\n", devname.c_str(), addr);
                 return -1;
             }
-
-            ctx.log<INFO>("I2cDev [%s] Address set to %i\n", devname.c_str(), addr);
             last_addr = addr;
         }
 
@@ -159,17 +154,16 @@ class I2cManager
     auto& get(const std::string& devname) {
         if (! has_device(devname)) {
             // This is critical since explicit driver request cannot be honored
-            ctx.log<CRITICAL>("I2C Manager: I2C device %s not found\n", devname.c_str());
             return *empty_i2cdev;
         }
 
-        i2c_devices[devname]->init();
-        return *i2c_devices[devname];
+        i2c_drivers[devname]->init();
+        return *i2c_drivers[devname];
     }
 
   private:
     ContextBase& ctx;
-    std::unordered_map<std::string, std::unique_ptr<I2cDev>> i2c_devices;
+    std::unordered_map<std::string, std::unique_ptr<I2cDev>> i2c_drivers;
     std::unique_ptr<I2cDev> empty_i2cdev;
 };
 

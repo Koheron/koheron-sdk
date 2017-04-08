@@ -1,4 +1,4 @@
-/// Device memory manager
+/// Driver memory manager
 ///
 /// (c) Koheron
 
