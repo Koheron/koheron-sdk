@@ -18,8 +18,15 @@ dependencies:
     - pip install .
     - npm install -g typescript
     - npm install @types/jquery @types/jquery-mousewheel websocket @types/node
+    - pip install twine
 
 test:
   pre:
     - bash build_examples.sh server
     - bash build_examples.sh web
+
+deployment:
+  hub:
+    branch: master
+    commands:
+      - make PYPI_USERNAME=$PYPI_USERNAME PYPI_PASSWORD=$PYPI_PASSWORD upload_pip

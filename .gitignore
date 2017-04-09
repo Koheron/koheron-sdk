@@ -3,9 +3,10 @@
 
 # Python:
 *.pyc
+*.egg-info
+dist/
 
 # Folders
-venv
 tmp
 .Xil
 .vscode
@@ -17,11 +18,5 @@ node_modules/
 vivado_*.str
 
 \.vscode/
-
 .cache/
-
-build_run.mk
-
-*.egg-info
-
 *.img
