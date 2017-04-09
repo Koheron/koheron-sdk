@@ -63,4 +63,6 @@ Test a Tcl module:
 $ make CONFIG=path/to/config.yml test_module
 ```
 
+# Acknowledgments
 
+This project started as a fork of [red-pitaya-notes](https://github.com/pavel-demin/red-pitaya-notes).

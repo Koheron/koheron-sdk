@@ -12,7 +12,6 @@ BOOTGEN := source $(FPGA_PATH)/settings.sh && bootgen
 BOARD := $(shell basename $(BOARD_PATH))
 
 # Linux and U-boot
-#TODO BOARD
 UBOOT_TAG := koheron-$(BOARD)-v$(VIVADO_VERSION)
 LINUX_TAG := koheron-$(BOARD)-v$(VIVADO_VERSION)
 DTREE_TAG := xilinx-v$(VIVADO_VERSION)
@@ -33,6 +32,9 @@ DTREE_URL := https://github.com/Xilinx/device-tree-xlnx/archive/$(DTREE_TAG).tar
 
 LINUX_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 UBOOT_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
+
+.PHONY: os
+os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/boot.bin $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree.dtb
 
 # Build image (run as root)
 .PHONY: image
@@ -131,9 +133,6 @@ $(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree/s
 	$(LINUX_PATH)/scripts/dtc/dtc -I dts -O dtb -o $@ \
 	  -i $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree/system.dts
 	@echo [$@] OK
-
-.PHONY: linux
-linux: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/boot.bin $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree.dtb
 
 ###############################################################################
 # HTTP API

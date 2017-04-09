@@ -5,7 +5,7 @@ SHELL := bash
 .DELETE_ON_ERROR:
 .SUFFIXES:
 
-CONFIG ?= instruments/led-blinker/config.yml
+CONFIG ?= examples/led-blinker/config.yml
 SDK_PATH ?= .
 MODE ?= production
 HOST ?= 192.168.1.100
@@ -13,6 +13,17 @@ TMP ?= tmp
 
 KOHERON_VERSION := 0.14.0
 VIVADO_VERSION := 2016.4
+
+.PHONY: help
+help:
+	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
+	@echo ' - run          : Run the instrument'
+	@echo ' - fpga         : Build the FPGA bitstream'
+	@echo ' - server       : Build the server'
+	@echo ' - web          : Build the web interface'
+	@echo ' - os           : Build the operating system'
+	@echo ' - image        : Build the root file system (run as root)'
+	@echo ' - block_design : Build the Vivado block design interactively'
 
 # Directory for storing the build artifacts
 PROJECT_PATH := $(dir $(CONFIG))

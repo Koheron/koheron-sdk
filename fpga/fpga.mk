@@ -41,16 +41,13 @@ $(CONFIG_TCL): $(MEMORY_YML) $(FPGA_PATH)/config.tcl
 	$(MAKE_PY) --config_tcl $(CONFIG) $@
 	@echo [$@] OK
 
-.PHONY: xpr
-xpr: $(TMP_FPGA_PATH)/$(NAME).xpr
-
 $(TMP_FPGA_PATH)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML) | $(TMP_FPGA_PATH)
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/project.tcl \
 	  -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(BOARD_PATH) $(MODE) $(TMP_FPGA_PATH) $(TMP_FPGA_PATH)/xdc
 	@echo [$@] OK
 
-.PHONY: bit
-bit: $(BITSTREAM)
+.PHONY: fpga
+fpga: $(BITSTREAM)
 
 $(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xpr | $(TMP_FPGA_PATH)
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $< $@
@@ -61,8 +58,8 @@ $(TMP_FPGA_PATH)/$(NAME).hwdef: $(TMP_FPGA_PATH)/$(NAME).xpr | $(TMP_FPGA_PATH)
 	@echo [$@] OK
 
 # Build the block design in Vivado GUI
-.PHONY: bd
-bd: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML)
+.PHONY: block_design
+block_design: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML)
 	$(VIVADO) -source $(FPGA_PATH)/vivado/block_design.tcl \
 	  -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(BOARD_PATH) $(MODE) $(TMP_FPGA_PATH) $(TMP_FPGA_PATH)/xdc block_design_
 
