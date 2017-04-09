@@ -18,22 +18,22 @@ $ sudo make setup
 
 ### 2. Install Koheron Linux for Red Pitaya ([Download SD card image](https://github.com/Koheron/koheron-sdk/releases))
 
-### 3. Build and run the minimal instrument
+### 3. Build and run the `led-blinker` instrument
 
 ```bash
-$ make CONFIG=instruments/led-blinker/config.yml HOST=192.168.1.100 run
+$ make CONFIG=examples/led-blinker/config.yml HOST=192.168.1.100 run
 ```
 where `HOST` is your Red Pitaya IP address.
 
 ## Examples of instruments
 
-* [`led_blinker`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/led-blinker) : minimal instrument with LED control from Python.
-* [`adc_dac`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/adc-dac) : instrument with minimal read/write capability on Red Pitaya ADCs and DACs.
-* [`pulse_generator`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/pulse-generator) : pulse generation with synchronous acquisition.
-* [`laser_controller`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/decimator) : laser current control using pulse-density modulation.
-* [`decimator`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/decimator) : decimation using a compensated CIC filter.
-* [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/oscillo) : signal acquisition / generation with coherent averaging mode.
-* [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/instruments/spectrum) : spectrum analyzer with peak-detection and averaging.
+* [`led_blinker`](https://github.com/Koheron/koheron-sdk/tree/master/examples/led-blinker) : minimal instrument with LED control from Python.
+* [`adc_dac`](https://github.com/Koheron/koheron-sdk/tree/master/examples/adc-dac) : instrument with minimal read/write capability on Red Pitaya ADCs and DACs.
+* [`pulse_generator`](https://github.com/Koheron/koheron-sdk/tree/master/examples/pulse-generator) : pulse generation with synchronous acquisition.
+* [`laser_controller`](https://github.com/Koheron/koheron-sdk/tree/master/examples/decimator) : laser current control using pulse-density modulation.
+* [`decimator`](https://github.com/Koheron/koheron-sdk/tree/master/examples/decimator) : decimation using a compensated CIC filter.
+* [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/examples/oscillo) : signal acquisition / generation with coherent averaging mode.
+* [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/examples/spectrum) : spectrum analyzer with peak-detection and averaging.
 
 ## How to
 
@@ -63,6 +63,6 @@ Test a Tcl module:
 $ make CONFIG=path/to/config.yml test_module
 ```
 
-# Acknowledgments
+## Acknowledgments
 
 This project started as a fork of [red-pitaya-notes](https://github.com/pavel-demin/red-pitaya-notes).
