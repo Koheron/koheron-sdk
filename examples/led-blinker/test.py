@@ -13,6 +13,14 @@ class LedBlinker(object):
         pass
 
     @command()
+    def get_leds(self, led_value):
+        return self.client.recv_uint32()
+
+    @command()
+    def set_led(self, index, status):
+        return self.client.recv_uint32()
+
+    @command()
     def get_forty_two(self):
         return self.client.recv_uint32()
 
