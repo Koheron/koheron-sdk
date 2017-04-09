@@ -8,9 +8,6 @@ set output_path [lindex $argv 6]
 set xdc_filename [lindex $argv 7]
 set prefix [lindex $argv 8]
 
-set lib_path $sdk_path/fpga/lib
-set module_path $sdk_path/fpga/modules
-
 # Add optional prefix to the project name
 if {$prefix == "block_design_"} {
   set project_name $prefix$project_name
@@ -37,7 +34,7 @@ set bd_path $output_path/$project_name.srcs/sources_1/bd/system
 
 create_bd_design system
 
-source $lib_path/utilities.tcl
+source $sdk_path/fpga/lib/utilities.tcl
 
 source $output_path/config.tcl
 

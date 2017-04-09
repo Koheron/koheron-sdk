@@ -19,7 +19,7 @@ connect_port_pin laser_shutdown [get_slice_pin [ctl_pin laser_shutdown] 0 0]
 connect_port_pin laser_reset_overvoltage [get_slice_pin [ctl_pin laser_reset_overvoltage] 0 0]
 
 # Add address module
-source $module_path/address/address.tcl
+source $sdk_path/fpga/modules/address/address.tcl
 set address_name address
 
 address::create $address_name [expr [get_memory_addr_width dac0] + 1] [get_parameter n_dac]
@@ -30,7 +30,7 @@ connect_cell $address_name {
 }
 
 # Add Dac controllers
-source $lib_path/dac_controller.tcl
+source $sdk_path/fpga/lib/dac_controller.tcl
 
 for {set i 0} {$i < [get_parameter n_dac]} {incr i} {
 

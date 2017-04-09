@@ -2,7 +2,7 @@ source $project_path/ports.tcl
 
 # Add PS and AXI Interconnect
 set board_preset $board_path/config/board_preset.tcl
-source $lib_path/starting_point.tcl
+source $sdk_path/fpga/lib/starting_point.tcl
 
 # Add ADCs and DACs
 source $project_path/redp_adc_dac_ext_clk.tcl
@@ -44,7 +44,7 @@ connect_pins adc_dac/psclk ps_0/FCLK_CLK0
 
 
 # Add config and status registers
-source $lib_path/ctl_sts.tcl
+source $sdk_path/fpga/lib/ctl_sts.tcl
 add_ctl_sts $adc_clk $rst_adc_clk_name/peripheral_aresetn
 
 # Connect LEDs

@@ -2,7 +2,7 @@
 set_property -dict [list CONFIG.S00_HAS_REGSLICE {1}] [get_bd_cells axi_mem_intercon_1]
 
 # Add spectrum IP
-source $module_path/spectrum/spectrum.tcl
+source $sdk_path/fpga/modules/spectrum/spectrum.tcl
 
 set spectrum_name spectrum_0
 set n_pts_fft [get_memory_depth spectrum]
@@ -21,7 +21,7 @@ connect_cell $spectrum_name {
 }
 
 # Add spectrum recorder
-source $lib_path/bram_recorder.tcl
+source $sdk_path/fpga/lib/bram_recorder.tcl
 set recorder_name spectrum_recorder
 add_bram_recorder $recorder_name spectrum 1
 connect_pins $recorder_name/clk   $adc_clk
@@ -52,7 +52,7 @@ connect_cell $subtract_name {
 }
 
 # Add averaging module
-source $module_path/averager/averager.tcl
+source $sdk_path/fpga/modules/averager/averager.tcl
 set avg_name avg0
 averager::create $avg_name [get_memory_addr_width spectrum]
 
@@ -78,7 +78,7 @@ connect_cell $subtract_name {
 
 # Add peak detector
 
-source $module_path/peak_detector/peak_detector.tcl
+source $sdk_path/fpga/modules/peak_detector/peak_detector.tcl
 set peak_detector_name peak
 peak_detector::create $peak_detector_name [get_memory_addr_width spectrum]
 

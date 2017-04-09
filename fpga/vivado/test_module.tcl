@@ -4,7 +4,7 @@ set project_path [lindex $argv 2]
 set part [lindex $argv 3]
 set output_path [lindex $argv 4]
 
-set lib_path $sdk_path/fpga/lib
+set $sdk_path/fpga/lib $sdk_path/fpga/lib
 set module_path $sdk_path/fpga/modules
 
 file delete -force \
@@ -24,7 +24,7 @@ set bd_path $output_path/$project_name.srcs/sources_1/bd/system
 
 create_bd_design system
 
-source $lib_path/utilities.tcl
+source $sdk_path/fpga/lib/utilities.tcl
 
 source $project_path/block_design.tcl
 

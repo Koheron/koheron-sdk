@@ -2,10 +2,10 @@ source $board_path/config/ports.tcl
 
 # Add PS and AXI Interconnect
 set board_preset $board_path/config/board_preset.tcl
-source $lib_path/starting_point.tcl
+source $sdk_path/fpga/lib/starting_point.tcl
 
 # Add ADCs and DACs
-source $lib_path/redp_adc_dac.tcl
+source $sdk_path/fpga/lib/redp_adc_dac.tcl
 set adc_dac_name adc_dac
 add_redp_adc_dac $adc_dac_name
 
@@ -20,7 +20,7 @@ cell xilinx.com:ip:proc_sys_reset:5.0 $rst_adc_clk_name {} {
 }
 
 # Add config and status registers
-source $lib_path/ctl_sts.tcl
+source $sdk_path/fpga/lib/ctl_sts.tcl
 add_ctl_sts $adc_clk $rst_adc_clk_name/peripheral_aresetn
 
 # Connect LEDs
@@ -44,7 +44,7 @@ for {set i 0} {$i < [get_parameter n_adc]} {incr i} {
 }
 
 # Add XADC for laser current and laser power monitoring
-source $lib_path/xadc.tcl
+source $sdk_path/fpga/lib/xadc.tcl
 add_xadc xadc
 
 # Add pulse density modulator for laser current control

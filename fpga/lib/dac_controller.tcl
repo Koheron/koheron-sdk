@@ -1,4 +1,4 @@
-source $::lib_path/bram.tcl
+source $::sdk_path/fpga/lib/bram.tcl
 
 # Dual DAC controller
 # DAC1 and DAC2 values are extracted in paralell from the same 32 bits BRAM register
