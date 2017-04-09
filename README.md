@@ -8,17 +8,17 @@ Koheron SDK is a build system for quick prototyping of custom instruments on Zyn
 
 ## Quickstart with the [Red Pitaya](http://redpitaya.com)
 
-#### 1.1. Install Vivado 2016.4
+#### 1. [Install Vivado 2016.4](https://koheron.com/software-development-kit/documentation/setup-development-machine)
 
-#### 1.2 Install required packages
+#### 2. Install required packages
 
 ```bash
 $ sudo make setup
 ```
 
-### 2. Install Koheron Linux for Red Pitaya ([Download SD card image](https://github.com/Koheron/koheron-sdk/releases))
+#### 3. Install Koheron Linux for Red Pitaya ([Download SD card image](https://github.com/Koheron/koheron-sdk/releases))
 
-### 3. Build and run the `led-blinker` instrument
+#### 4. Build and run the led-blinker instrument
 
 ```bash
 $ make CONFIG=examples/led-blinker/config.yml HOST=192.168.1.100 run
@@ -39,12 +39,12 @@ where `HOST` is your Red Pitaya IP address.
 
 Open Vivado and build the instrument block design:
 ```
-$ make CONFIG=path/to/config.yml bd
+$ make CONFIG=path/to/config.yml block_design
 ```
 
 Build the SD card image:
 ```
-$ make linux
+$ make os
 $ sudo make image
 ```
 
