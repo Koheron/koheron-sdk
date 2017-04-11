@@ -81,7 +81,9 @@ cp $os_path/systemd/uwsgi.service $root_dir/etc/systemd/system/uwsgi.service
 mkdir $root_dir/usr/local/instruments
 cp $os_path/scripts/unzip_default_instrument.sh $root_dir/usr/local/instruments/unzip_default_instrument.sh
 echo "${name}.zip" > $root_dir/usr/local/instruments/default
-cp $tmp_project_path/*.zip $root_dir/usr/local/instruments
+cp $tmp_project_path/../*/*.zip $root_dir/usr/local/instruments
+
+
 
 chroot $root_dir <<- EOF_CHROOT
 export LANG=C
