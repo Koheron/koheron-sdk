@@ -20,3 +20,5 @@ vivado_*.str
 \.vscode/
 .cache/
 *.img
+
+venv/

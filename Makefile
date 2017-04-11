@@ -7,7 +7,7 @@ SHELL := bash
 
 CONFIG ?= examples/led-blinker/config.yml
 SDK_PATH ?= .
-MODE ?= production
+MODE ?= development
 HOST ?= 192.168.1.100
 TMP ?= tmp
 
