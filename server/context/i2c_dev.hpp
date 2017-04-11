@@ -32,47 +32,47 @@ class I2cDev
     I2cDev(ContextBase& ctx_, std::string devname_);
 
     ~I2cDev() {
-        if (fd >= 0)
+        if (fd >= 0) {
             close(fd);
+        }
     }
 
     bool is_ok() {return fd >= 0;}
 
     /// Write data to I2C driver
 
-    /// addr: Addresse of the driver to write to
+    /// addr: Address of the driver to write to
     /// buffer: Pointer to the data to send
     /// len: Number of elements on the buffer array
-    template<int32_t addr, typename T>
-    int write(const T *buffer, int32_t len)
+    template<typename T>
+    int write(int32_t addr, const T *buffer, int32_t len)
     {
         // Lock to avoid another process to change
         // the driver address while writing
         std::lock_guard<std::mutex> lock(mutex);
 
-        if (! is_ok())
+        if (! is_ok()) {
             return -1;
-
-        if (set_address<addr>() < 0)
+        }
+        if (set_address(addr) < 0) {
             return -1;
+        }
 
         return ::write(fd, buffer, static_cast<uint32_t>(len) * sizeof(T));
     }
 
-    template<int32_t addr, typename T, size_t N>
-    int write(const std::array<T, N>& buff) {
-        return write<addr>(buff.data(), buff.size());
+    template<typename T, size_t N>
+    int write(int32_t addr, const std::array<T, N>& buff) {
+        return write(addr, buff.data(), buff.size());
     }
 
-    template<int32_t addr, typename T>
-    int write(const std::vector<T>& buff) {
-        return write<addr>(buff.data(), buff.size());
+    template<typename T>
+    int write(int32_t addr, const std::vector<T>& buff) {
+        return write(addr, buff.data(), buff.size());
     }
 
     // Receive data from I2C driver
-
-    template<int32_t addr>
-    int recv(uint8_t *buffer, size_t n_bytes)
+    int recv(int32_t addr, uint8_t *buffer, size_t n_bytes)
     {
         // Lock to avoid another process to change
         // the driver address while reading
@@ -81,7 +81,7 @@ class I2cDev
         if (! is_ok())
             return -1;
 
-        if (set_address<addr>() < 0)
+        if (set_address(addr) < 0)
             return -1;
 
         int bytes_rcv = 0;
@@ -105,14 +105,14 @@ class I2cDev
         return bytes_read;
     }
 
-    template<int32_t addr, typename T, size_t N>
-    int recv(std::array<T, N>& data) {
-        return recv<addr>(reinterpret_cast<uint8_t*>(data.data()), N * sizeof(T));
+    template<typename T, size_t N>
+    int recv(int32_t addr, std::array<T, N>& data) {
+        return recv(addr, reinterpret_cast<uint8_t*>(data.data()), N * sizeof(T));
     }
 
-    template<int32_t addr, typename T>
-    int recv(std::vector<T>& data) {
-        return recv<addr>(reinterpret_cast<uint8_t*>(data.data()), data.size() * sizeof(T));
+    template<typename T>
+    int recv(int32_t addr, std::vector<T>& data) {
+        return recv(addr, reinterpret_cast<uint8_t*>(data.data()), data.size() * sizeof(T));
     }
 
   private:
@@ -124,10 +124,11 @@ class I2cDev
 
     int init();
 
-    template<int32_t addr>
-    int set_address() {
+    int set_address(int32_t addr) {
         constexpr int32_t largest_i2c_addr = 127; // 7 bits long address
-        static_assert(addr <= largest_i2c_addr, "Invalid I2C address");
+        if (addr < 0 || addr > largest_i2c_addr) {
+            return -1;
+        }
 
         if (addr != last_addr) {
             if (ioctl(fd, I2C_SLAVE_FORCE, addr) < 0) {
