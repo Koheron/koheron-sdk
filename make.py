@@ -194,14 +194,14 @@ if __name__ == "__main__":
             f.write(config['board'])
 
     elif cmd == '--drivers':
-        for i in range(len(config['drivers'])):
-            config['drivers'][i] = append_path(config['drivers'][i], config_path)
+        for i, path in enumerate(config['drivers']):
+            config['drivers'][i] = append_path(path, config_path)
         with open(output_filename, 'w') as f:
             f.write(' '.join(config.get('drivers', [])))
 
     elif cmd == '--xdc':
-        for i in range(len(config['xdc'])):
-            config['xdc'][i] = append_path(config['xdc'][i], config_path)
+        for i, path in enumerate(config['xdc']):
+            config['xdc'][i] = append_path(path, config_path)
         with open(output_filename, 'w') as f:
             f.write(' '.join(config.get('xdc', [])))
 
@@ -224,8 +224,8 @@ if __name__ == "__main__":
         server.render_driver(server.get_driver(driver_filename_hpp), output_filename)
 
     elif cmd == '--web':
-        for i in range(len(config['web'])):
-            config['web'][i] = append_path(config['web'][i], config_path)
+        for i, path in enumerate(config.get('web', [])):
+            config['web'][i] = append_path(path, config_path)
         with open(output_filename, 'w') as f:
             f.write(' '.join(config.get('web', [])))
 
