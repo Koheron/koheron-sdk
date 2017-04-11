@@ -44,8 +44,7 @@ class I2cDev
     /// addr: Address of the driver to write to
     /// buffer: Pointer to the data to send
     /// len: Number of elements on the buffer array
-    template<typename T>
-    int write(int32_t addr, const T *buffer, int32_t len)
+    int write(int32_t addr, const uint8_t *buffer, size_t n_bytes)
     {
         // Lock to avoid another process to change
         // the driver address while writing
@@ -58,37 +57,44 @@ class I2cDev
             return -1;
         }
 
-        return ::write(fd, buffer, static_cast<uint32_t>(len) * sizeof(T));
+        return ::write(fd, buffer, n_bytes);
+    }
+
+    template<typename T>
+    int write(int32_t addr, const T scalar) {
+        return write(addr, &scalar, sizeof(T));
     }
 
     template<typename T, size_t N>
     int write(int32_t addr, const std::array<T, N>& buff) {
-        return write(addr, buff.data(), buff.size());
+        return write(addr, buff.data(), buff.size() * sizeof(T));
     }
 
     template<typename T>
     int write(int32_t addr, const std::vector<T>& buff) {
-        return write(addr, buff.data(), buff.size());
+        return write(addr, buff.data(), buff.size() * sizeof(T));
     }
 
     // Receive data from I2C driver
-    int recv(int32_t addr, uint8_t *buffer, size_t n_bytes)
+    int read(int32_t addr, uint8_t *buffer, size_t n_bytes)
     {
         // Lock to avoid another process to change
         // the driver address while reading
         std::lock_guard<std::mutex> lock(mutex);
 
-        if (! is_ok())
+        if (! is_ok()) {
             return -1;
+        }
 
-        if (set_address(addr) < 0)
+        if (set_address(addr) < 0) {
             return -1;
+        }
 
         int bytes_rcv = 0;
         int64_t bytes_read = 0;
 
         while (bytes_read < n_bytes) {
-            bytes_rcv = read(fd, buffer + bytes_read, n_bytes - bytes_read);
+            bytes_rcv = ::read(fd, buffer + bytes_read, n_bytes - bytes_read);
 
             if (bytes_rcv == 0) {
                 return 0;
@@ -101,18 +107,22 @@ class I2cDev
             bytes_read += bytes_rcv;
         }
 
-        assert(bytes_read == n_bytes);
         return bytes_read;
     }
 
+    template<typename T>
+    int read(int32_t addr, T scalar) {
+        return read(addr, reinterpret_cast<uint8_t*>(&scalar), sizeof(T));
+    }
+
     template<typename T, size_t N>
-    int recv(int32_t addr, std::array<T, N>& data) {
-        return recv(addr, reinterpret_cast<uint8_t*>(data.data()), N * sizeof(T));
+    int read(int32_t addr, std::array<T, N>& data) {
+        return read(addr, reinterpret_cast<uint8_t*>(data.data()), N * sizeof(T));
     }
 
     template<typename T>
-    int recv(int32_t addr, std::vector<T>& data) {
-        return recv(addr, reinterpret_cast<uint8_t*>(data.data()), data.size() * sizeof(T));
+    int read(int32_t addr, std::vector<T>& data) {
+        return read(addr, reinterpret_cast<uint8_t*>(data.data()), data.size() * sizeof(T));
     }
 
   private:
@@ -125,18 +135,16 @@ class I2cDev
     int init();
 
     int set_address(int32_t addr) {
-        constexpr int32_t largest_i2c_addr = 127; // 7 bits long address
-        if (addr < 0 || addr > largest_i2c_addr) {
+        // Check that address is 7 bits long
+        if (addr < 0 || addr > 127) {
             return -1;
         }
-
         if (addr != last_addr) {
             if (ioctl(fd, I2C_SLAVE_FORCE, addr) < 0) {
                 return -1;
             }
             last_addr = addr;
         }
-
         return 0;
     }
 
