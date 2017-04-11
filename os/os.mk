@@ -134,9 +134,6 @@ $(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree/s
 	  -i $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree/system.dts
 	@echo [$@] OK
 
-.PHONY: linux
-linux: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/boot.bin $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree.dtb
-
 ###############################################################################
 # HTTP API
 ###############################################################################
