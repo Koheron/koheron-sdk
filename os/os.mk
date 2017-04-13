@@ -41,6 +41,10 @@ os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/boot.bin $(TMP_OS_PATH)/uImage $(TM
 image:
 	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME)
 
+.PHONY: clean_os
+clean_os:
+	rm -rf $(TMP_OS_PATH)
+
 ###############################################################################
 # First-stage boot loader
 ###############################################################################
@@ -99,7 +103,7 @@ $(DTREE_PATH): $(DTREE_TAR)
 .PHONY: devicetree
 devicetree: $(TMP_OS_PATH)/devicetree/system.dts
 
-$(TMP_OS_PATH)/devicetree/system.dts: $(TMP_FPGA_PATH)/$(NAME).hwdef $(DTREE_PATH)
+$(TMP_OS_PATH)/devicetree/system.dts: $(TMP_FPGA_PATH)/$(NAME).hwdef $(DTREE_PATH) $(PATCHES)/devicetree.patch
 	mkdir -p $(@D)
 	$(HSI) -source $(FPGA_PATH)/hsi/devicetree.tcl -tclargs $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) \
 	  $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/devicetree $(TMP_FPGA_PATH)/$(NAME).hwdef

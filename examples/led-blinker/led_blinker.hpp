@@ -31,6 +31,8 @@ class LedBlinker
         return sts.read<reg::forty_two>();
     }
 
+
+
   private:
     Memory<mem::control>& ctl;
     Memory<mem::status>& sts;
