@@ -24,11 +24,6 @@ class PulseGenerator {
         this.client.send(Command(this.id, this.cmds['set_dac_data'], data));
     }
 
-    getCount(cb: (i: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['get_count']),
-                                 (i) => {cb(i)});
-    }
-
     getNextPulse(n_pts: number, cb: (adc_data: Uint32Array) => void): void {
         this.client.readUint32Vector(Command(this.id, this.cmds['get_next_pulse'], n_pts), (adc_data: Uint32Array) => {
             cb(adc_data);

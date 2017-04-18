@@ -42,21 +42,13 @@
   <br>
 
   <div class="border padding">
-    <select onchange="" id="select-dac">
-      <option value="0">DAC 0</option>
-      <option value="1">DAC 1</option>
-    </select>
-  </div>
 
-  <br>
-
-  <div class="border padding">
-
-    <div class="row">
-      <div class="col-sm-3">
-        <b>Pulses</b>
-      </div>
-      <div class="col-sm-3">
+    <table class="full-width">
+    <tr>
+      <td>
+        Pulses
+      </td>
+      <td>
         Width:
         <a id="width-edit" href="#" onclick="app.control.editWidth(); return false" class="btn-tip" data-toggle="tooltip"
           data-placement="right" title="Edit" style="vertical-align: middle">0
@@ -64,8 +56,8 @@
         <input id="width-input" type="number" value="0" min="0" step="0.01" max="62.5" style="display: none; width: 70px" onkeydown="app.control.saveWidthKey(event)">
         <a class="glyphicon glyphicon-ok blue btn-tip" id="width-save" href="#" onclick="app.control.saveWidth(); return false" style="display: none">
         </a>
-      </div>
-      <div class="col-sm-3">
+      </td>
+      <td>
         Period:
         <a id="period-edit" href="#" onclick="app.control.editPeriod(); return false" class="btn-tip" data-toggle="tooltip"
           data-placement="right" title="Edit" style="vertical-align: middle">0
@@ -73,12 +65,10 @@
         <input id="period-input" type="number" value="0" min="0" step="0.01" max="62.5" style="display: none; width: 70px" onkeydown="app.control.savePeriodKey(event)">
         <a class="glyphicon glyphicon-ok blue btn-tip" id="period-save" href="#" onclick="app.control.savePeriod(); return false" style="display: none">
         </a>
-      </div>
-      <div class="col-sm-3">
-        Count: <span id="count"></span>
-      </div>
-    </div>
+      </td>
 
+    </tr>
+    </table>
   </div>
 
   <br><br>
@@ -99,3 +89,9 @@
 
 </body>
 </html>
+
+<style>
+  td {
+    width: 100px;
+  }
+</style>

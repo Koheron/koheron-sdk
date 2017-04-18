@@ -3,9 +3,7 @@
 
 class Plot {
 
-    private n_points: number;
-
-    private n_pts : number = 512;
+    private nPoints: number;
 
     private minX: number = 0;
     private maxX: number = 62.5;
@@ -32,15 +30,15 @@ class Plot {
         this.yRange.from = this.minY;
         this.yRange.to = this.maxY;
 
-        this.n_points = 1024;
+        this.nPoints = 8192;
 
         this.updatePlot();
-        this.autoScale();
     }
 
     updatePlot() {
-        this.driver.getNextPulse(this.n_points, (adc_data: Uint32Array) => {
+        this.driver.getNextPulse(this.nPoints, (adc_data: Uint32Array) => {
             this.redraw(adc_data, () => {
+                this.autoScale();
                 requestAnimationFrame( () => { this.updatePlot(); } );
             });
         });
@@ -122,8 +120,8 @@ class Plot {
     redraw(adc_data: Uint32Array, callback: () => void) {
         let plot_data: Array<Array<number>> = [];
 
-        for (var i: number = 0; i <= this.n_pts; i++) {
-            plot_data[i] = [i * this.maxX / this.n_pts, ((adc_data[i] % 16384) - 8192) % 16384 + 8192];
+        for (var i: number = 0; i <= this.nPoints; i++) {
+            plot_data[i] = [i * this.maxX / this.nPoints, ((adc_data[i] % 16384) - 8192) % 16384 + 8192];
         }
 
         const plt_data: jquery.flot.dataSeries[]

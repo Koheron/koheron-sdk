@@ -14,7 +14,6 @@ class Control {
     private periodEdit: HTMLLinkElement;
     private periodInput: HTMLInputElement;
     private periodSave: HTMLLinkElement;
-    private countSpan: HTMLSpanElement;
 
     constructor(document: Document, private driver: PulseGenerator) {
 
@@ -25,11 +24,10 @@ class Control {
         this.widthEdit = <HTMLLinkElement>document.getElementById('width-edit');
         this.widthInput = <HTMLInputElement>document.getElementById('width-input');
         this.widthSave = <HTMLLinkElement>document.getElementById('width-save');
-        this.period = 8192;
+        this.period = 250000;
         this.periodEdit = <HTMLLinkElement>document.getElementById('period-edit');
         this.periodInput = <HTMLInputElement>document.getElementById('period-input');
         this.periodSave = <HTMLLinkElement>document.getElementById('period-save');
-        this.countSpan = <HTMLSpanElement>document.getElementById('count');
 
         this.driver.setPulseGenerator(this.width, this.period);
         this.generatePulses();
@@ -37,12 +35,9 @@ class Control {
     }
 
     update() {
-        this.driver.getCount( (i) => {
-            this.countSpan.innerHTML = i.toString();
-            this.widthEdit.innerHTML = (this.width).toString();
-            this.periodEdit.innerHTML = (this.period).toString();
-            requestAnimationFrame( () => { this.update(); } )
-        });
+        this.widthEdit.innerHTML = (this.width).toString();
+        this.periodEdit.innerHTML = (this.period).toString();
+        requestAnimationFrame( () => { this.update(); } )
     }
 
     generatePulses() {
