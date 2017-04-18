@@ -35,6 +35,7 @@ class Plot {
         this.n_points = 1024;
 
         this.updatePlot();
+        this.autoScale();
     }
 
     updatePlot() {
@@ -80,7 +81,6 @@ class Plot {
         }
 
         this.rangeSelect();
-        this.dblClick();
         this.isResetRange = true;
     }
 
@@ -106,15 +106,13 @@ class Plot {
         });
     }
 
-    // A double click on the plot resets to full span
-    dblClick() {
-        this.plot_placeholder.bind("dblclick", (evt: JQueryEventObject) => {
-            this.xRange.from = this.minX;
-            this.xRange.to = this.maxX;
+    autoScale() {
 
-            this.yRange = <jquery.flot.range>{};
-            this.resetRange();
-        });
+        this.xRange.from = this.minX;
+        this.xRange.to = this.maxX;
+
+        this.yRange = <jquery.flot.range>{};
+        this.resetRange();
     }
 
     resetRange() {
