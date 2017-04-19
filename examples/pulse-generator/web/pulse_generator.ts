@@ -15,7 +15,7 @@ class PulseGenerator {
     private adc0: number[][]; // Volts
     private adc1: number[][]; // Volts
 
-    private n_pts: number = 1000;
+    private n_pts: number = 1024;
 
     constructor (private client: Client) {
         this.driver = this.client.getDriver('Pulse');
@@ -54,12 +54,6 @@ class PulseGenerator {
 
     setDacData(data: Uint32Array): void {
         this.client.send(Command(this.id, this.cmds['set_dac_data'], data));
-    }
-
-    getNextPulse(n_pts: number, cb: (adc_data: Uint32Array) => void): void {
-        this.client.readUint32Vector(Command(this.id, this.cmds['get_next_pulse'], n_pts), (adc_data: Uint32Array) => {
-            cb(adc_data);
-        });
     }
 
     getFifoBuffer(cb: (adc0: Array<Array<number>>, adc1: Array<Array<number>>) => void): void {

@@ -2,8 +2,8 @@
 // (c) Koheron
 
 class Plot {
-    private plot_x_max: number = 2000;
-    private min_y: number = -0.1; // Volts
+    private plot_x_max: number = 1024;
+    private min_y: number = -1.0; // Volts
     private max_y: number = 1.0; // Volts
 
     private nPoints: number;
@@ -89,8 +89,7 @@ class Plot {
     }
 
     rangeSelect() {
-        this.plot_placeholder.bind('plotselected', (event: JQueryEventObject,
-                                                    ranges: jquery.flot.ranges) => {
+        this.plot_placeholder.bind('plotselected', (event: JQueryEventObject, ranges: jquery.flot.ranges) => {
             // Clamp the zooming to prevent external zoom
             if (ranges.xaxis.to - ranges.xaxis.from < 0.00001) {
                 ranges.xaxis.to = ranges.xaxis.from + 0.00001;
