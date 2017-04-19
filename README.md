@@ -1,6 +1,6 @@
 # koheron-sdk
 
-[![CircleCI](https://circleci.com/gh/Koheron/ZynqSDK.svg?style=shield&circle-token=8bad0d504d47f62082ff5d8b07dfb21aaf03ecde)](https://circleci.com/gh/Koheron/ZynqSDK)
+[![Circle CI](https://circleci.com/gh/Koheron/koheron-sdk.svg?style=shield)](https://circleci.com/gh/Koheron/koheron-sdk)
 
 ## What is Koheron Software Development Kit ?
 
