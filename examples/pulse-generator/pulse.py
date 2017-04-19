@@ -26,7 +26,11 @@ class Pulse(object):
         return self.client.recv_uint32()
 
     @command()
-    def set_pulse_generator(self, pulse_width, pulse_period):
+    def set_pulse_width(self, width):
+        pass
+
+    @command()
+    def set_pulse_period(self, period):
         pass
 
     def set_dac(self):

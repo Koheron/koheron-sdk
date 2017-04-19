@@ -15,9 +15,9 @@ host = os.getenv('HOST', '192.168.1.7')
 client = connect(host, name='pulse-generator')
 driver = Pulse(client)
 
-pulse_width = 128
+pulse_width = 256
 n_pulse = 64
-pulse_frequency = 1000
+pulse_frequency = 2000
 
 pulse_period = np.uint32(driver.fs / pulse_frequency)
 
@@ -27,9 +27,10 @@ driver.dac[0,:] = 0.6 * np.exp(-(t - 500e-9)**2/(150e-9)**2)
 driver.dac[1,:] = 0.6 * np.exp(-(t - 500e-9)**2/(150e-9)**2)
 driver.set_dac()
 
-driver.set_pulse_generator(pulse_width, pulse_period)
+driver.set_pulse_width(pulse_width)
+driver.set_pulse_period(pulse_period)
 
-n = pulse_width * n_pulse
+'''n = pulse_width * n_pulse
 
 # Dynamic plot
 fig = plt.figure()
@@ -53,3 +54,4 @@ while True:
         plt.pause(0.001)
     except KeyboardInterrupt:
         break
+'''

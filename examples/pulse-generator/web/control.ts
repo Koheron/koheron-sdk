@@ -29,15 +29,19 @@ class Control {
         this.periodInput = <HTMLInputElement>document.getElementById('period-input');
         this.periodSave = <HTMLLinkElement>document.getElementById('period-save');
 
-        this.driver.setPulseGenerator(this.width, this.period);
+        this.driver.setPulseWidth(this.width);
+        this.driver.setPulsePeriod(this.period);
+
         this.generatePulses();
         this.update();
     }
 
     update() {
-        this.widthEdit.innerHTML = (this.width).toString();
-        this.periodEdit.innerHTML = (this.period).toString();
-        requestAnimationFrame( () => { this.update(); } )
+        this.driver.getStatus( (status) => {
+            this.widthEdit.innerHTML = status.width.toString();
+            this.periodEdit.innerHTML = status.period.toString();
+            requestAnimationFrame( () => { this.update(); } )
+        });
     }
 
     generatePulses() {
@@ -84,8 +88,8 @@ class Control {
         this.widthEdit.style.display = 'inline';
         this.widthInput.style.display = 'none';
         this.widthSave.style.display = 'none';
-        this.width = parseInt(this.widthInput.value);
-        this.driver.setPulseGenerator(this.width, this.period);
+        let width = parseInt(this.widthInput.value);
+        this.driver.setPulseWidth(width);
     }
 
     saveWidthKey(event: KeyboardEvent) {
@@ -105,8 +109,8 @@ class Control {
         this.periodEdit.style.display = 'inline';
         this.periodInput.style.display = 'none';
         this.periodSave.style.display = 'none';
-        this.period = parseInt(this.periodInput.value);
-        this.driver.setPulseGenerator(this.width, this.period);
+        let period = parseInt(this.periodInput.value);
+        this.driver.setPulsePeriod(period);
     }
 
     savePeriodKey(event: KeyboardEvent) {
