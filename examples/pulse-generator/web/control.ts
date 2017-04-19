@@ -15,25 +15,19 @@ class Control {
 
     constructor(document: Document, private driver: PulseGenerator) {
 
-        this.width = 128;
         this.widthEdit = <HTMLLinkElement>document.getElementById('width-edit');
         this.widthInput = <HTMLInputElement>document.getElementById('width-input');
         this.widthSave = <HTMLLinkElement>document.getElementById('width-save');
-        this.period = 8192;
         this.periodEdit = <HTMLLinkElement>document.getElementById('period-edit');
         this.periodInput = <HTMLInputElement>document.getElementById('period-input');
         this.periodSave = <HTMLLinkElement>document.getElementById('period-save');
-        this.countSpan = <HTMLSpanElement>document.getElementById('count');
-
-        this.driver.setPulseGenerator(this.width, this.period);
         this.update();
     }
 
     update() {
-        this.driver.getCount( (i) => {
-            this.countSpan.innerHTML = i.toString();
-            this.widthEdit.innerHTML = (this.width).toString();
-            this.periodEdit.innerHTML = (this.period).toString();
+        this.driver.getStatus( (status) => {
+            this.widthEdit.innerHTML = status.width.toString();
+            this.periodEdit.innerHTML = status.period.toString();
             requestAnimationFrame( () => { this.update(); } )
         });
     }
@@ -49,8 +43,8 @@ class Control {
         this.widthEdit.style.display = 'inline';
         this.widthInput.style.display = 'none';
         this.widthSave.style.display = 'none';
-        this.width = parseInt(this.widthInput.value);
-        this.driver.setPulseGenerator(this.width, this.period);
+        let width = parseInt(this.widthInput.value);
+        this.driver.setPulseWidth(width);
     }
 
     saveWidthKey(event: KeyboardEvent) {
@@ -70,8 +64,8 @@ class Control {
         this.periodEdit.style.display = 'inline';
         this.periodInput.style.display = 'none';
         this.periodSave.style.display = 'none';
-        this.period = parseInt(this.periodInput.value);
-        this.driver.setPulseGenerator(this.width, this.period);
+        let period = parseInt(this.periodInput.value);
+        this.driver.setPulsePeriod(period);
     }
 
     savePeriodKey(event: KeyboardEvent) {

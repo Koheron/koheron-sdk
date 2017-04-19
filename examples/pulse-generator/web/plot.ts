@@ -2,64 +2,68 @@
 // (c) Koheron
 
 class Plot {
+    private plot_x_max: number = 2000;
+    private min_y: number = -0.1; // Volts
+    private max_y: number = 1.0; // Volts
 
-    private n_points: number;
+    private range_x: jquery.flot.range;
+    private range_y: jquery.flot.range;
 
-    private n_pts : number = 512;
+    private last_mux0: number = 0;
+    private last_mux1: number = 0;
 
-    private minX: number = 0;
-    private maxX: number = 62.5;
-    private xRange: jquery.flot.range;
-
-    private minY: number = -200;
-    private maxY: number = 170;
-    private yRange: jquery.flot.range;
-
-    private isResetRange: boolean;
+    private reset_range: boolean;
     private options: jquery.flot.plotOptions;
     private plot: jquery.flot.plot;
+    private zoom_x: boolean;
+    private zoom_y: boolean;
+    private zoom_x_btn: HTMLLinkElement;
+    private zoom_y_btn: HTMLLinkElement;
 
     constructor(document: Document,
                 private plot_placeholder: JQuery,
                 private driver: PulseGenerator) {
         this.setPlot();
 
-        this.xRange = <jquery.flot.range>{};
-        this.xRange.from = this.minX;
-        this.xRange.to = this.maxX;
+        this.range_x = <jquery.flot.range>{};
+        this.range_x.from = 0;
+        this.range_x.to = this.plot_x_max;
 
-        this.yRange = <jquery.flot.range>{};
-        this.yRange.from = this.minY;
-        this.yRange.to = this.maxY;
+        this.range_y = <jquery.flot.range>{};
+        this.range_y.from = this.min_y;
+        this.range_y.to = this.max_y;
 
-        this.n_points = 1024;
+        this.zoom_x = false;
+        this.zoom_y = false;
+        this.zoom_x_btn = <HTMLLinkElement>document.getElementById('zoom-x-btn');
+        this.zoom_y_btn = <HTMLLinkElement>document.getElementById('zoom-y-btn');
 
-        this.updatePlot();
-        this.autoScale();
+        this.update_plot();
     }
 
-    updatePlot() {
-        this.driver.getNextPulse(this.n_points, (adc_data: Uint32Array) => {
-            this.redraw(adc_data, () => {
-                requestAnimationFrame( () => { this.updatePlot(); } );
+    update_plot() {
+        this.driver.getFifoBuffer( (adc0: number[][], adc1: number[][]) => {
+            this.redraw(adc0, adc1, () => {
+                requestAnimationFrame( () => { this.update_plot(); } );
             });
         });
+
     }
 
     setPlot() {
-        this.isResetRange = false;
+        this.reset_range = false;
 
         this.options = {
             series: {
                 shadowSize: 0 // Drawing is faster without shadows
             },
             yaxis: {
-                min: this.minY,
-                max: this.maxY
+                min: this.min_y,
+                max: this.max_y
             },
             xaxis: {
-                min: this.minX,
-                max: this.maxX,
+                min: 0,
+                max: this.plot_x_max,
                 show: true
             },
             grid: {
@@ -68,24 +72,26 @@ class Plot {
                 }
             },
             selection: {
-                mode: "xy"
+                mode: 'xy'
             },
-            colors: ["#0022FF", "#006400"],
+            colors: ['#0022FF', '#006400'],
             legend: {
-                show: false,
+                show: true,
                 noColumns: 0,
                 labelFormatter: (label: string, series: any): string => {return '<b>' + label + '\t</b>'},
                 margin: 0,
-                position: "ne",
+                position: 'ne',
             }
         }
 
         this.rangeSelect();
-        this.isResetRange = true;
+        this.dblClick();
+        this.onWheel();
+        this.reset_range = true;
     }
 
     rangeSelect() {
-        this.plot_placeholder.bind("plotselected", (event: JQueryEventObject,
+        this.plot_placeholder.bind('plotselected', (event: JQueryEventObject,
                                                     ranges: jquery.flot.ranges) => {
             // Clamp the zooming to prevent external zoom
             if (ranges.xaxis.to - ranges.xaxis.from < 0.00001) {
@@ -96,48 +102,138 @@ class Plot {
                 ranges.yaxis.to = ranges.yaxis.from + 0.00001;
             }
 
-            this.xRange.from = ranges.xaxis.from;
-            this.xRange.to = ranges.xaxis.to;
+            this.range_x.from = ranges.xaxis.from;
+            this.range_x.to = ranges.xaxis.to;
 
-            this.yRange.from = ranges.yaxis.from;
-            this.yRange.to = ranges.yaxis.to;
+            this.range_y.from = ranges.yaxis.from;
+            this.range_y.to = ranges.yaxis.to;
 
             this.resetRange();
         });
     }
 
-    autoScale() {
+    // A double click on the plot resets to full span
+    dblClick() {
+        this.plot_placeholder.bind('dblclick', (evt: JQueryEventObject) => {
+            this.range_x.from = 0;
+            this.range_x.to = this.plot_x_max;
 
-        this.xRange.from = this.minX;
-        this.xRange.to = this.maxX;
+            this.range_y = <jquery.flot.range>{};
+            this.resetRange();
+        });
+    }
 
-        this.yRange = <jquery.flot.range>{};
+    onWheel() {
+        this.plot_placeholder.bind('wheel', (evt: JQueryEventObject) => {
+            let delta: number = (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaX
+                                + (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaY;
+            delta /= Math.abs(delta);
+
+            const zoom_ratio: number = 0.2;
+
+            if ((<JQueryInputEventObject>evt.originalEvent).shiftKey || this.zoom_y == true) { // Zoom Y
+                const position_y_px: number = (<JQueryMouseEventObject>evt.originalEvent).pageY - this.plot.offset().top;
+                const y0: any = this.plot.getAxes().yaxis.c2p(<any>position_y_px);
+
+                this.range_y.from = y0 - (1 + zoom_ratio * delta) * (y0 - this.plot.getAxes().yaxis.min);
+                this.range_y.to = y0 - (1 + zoom_ratio * delta) * (y0 - this.plot.getAxes().yaxis.max);
+
+                this.resetRange();
+            } else if ((<JQueryInputEventObject>evt.originalEvent).altKey || this.zoom_x == true) { // Zoom X
+                const position_x_px: number = (<JQueryMouseEventObject>evt.originalEvent).pageX - this.plot.offset().left;
+                const t0: any = this.plot.getAxes().xaxis.c2p(<any>position_x_px);
+
+                if (t0 < 0 || t0  > this.plot_x_max) {
+                    return;
+                }
+
+                this.range_x.from = Math.max(t0 - (1 + zoom_ratio * delta) * (t0 - this.plot.getAxes().xaxis.min), 0);
+                this.range_x.to = Math.min(t0 - (1 + zoom_ratio * delta) * (t0 - this.plot.getAxes().xaxis.max), this.plot_x_max);
+
+                this.resetRange();
+            }
+        });
+    }
+
+    disableWindowWheel() {
+        $(window).bind('wheel', (event: JQueryEventObject) => {
+            (<JQueryMousewheel.JQueryMousewheelEventObject>event).preventDefault();
+        })
+    }
+
+    enableWindowWheel() {
+        $(window).unbind('wheel');
+    }
+
+    zoomX() {
+        if (this.zoom_x == false) {
+            this.zoom_x = true;
+            this.disableWindowWheel();
+            if (this.zoom_y) {
+                this.zoom_y = false;
+                this.zoom_y_btn.className = 'btn btn-default-reversed';
+            }
+            this.zoom_x_btn.className = 'btn btn-default-reversed active';
+        }
+        else if (this.zoom_x) {
+            this.zoom_x = false;
+            this.enableWindowWheel();
+            this.zoom_x_btn.className = 'btn btn-default-reversed';
+
+        }
+    }
+
+    zoomY() {
+        if (this.zoom_y == false) {
+            this.zoom_y = true;
+            this.disableWindowWheel();
+            if (this.zoom_x == true){
+                this.zoom_x = false;
+                this.zoom_x_btn.className = 'btn btn-default-reversed';
+            }
+            this.zoom_y_btn.className = 'btn btn-default-reversed active';
+        }
+        else if (this.zoom_y) {
+            this.zoom_y = false;
+            this.enableWindowWheel();
+            this.zoom_y_btn.className = 'btn btn-default-reversed';
+        }
+    }
+
+    autoscale() {
+        this.range_x.from = 0;
+        this.range_x.to = this.plot_x_max;
+
+        this.range_y = <jquery.flot.range>{};
         this.resetRange();
     }
 
     resetRange() {
-        this.isResetRange = true;
+        this.reset_range = true;
     }
 
-    redraw(adc_data: Uint32Array, callback: () => void) {
-        let plot_data: Array<Array<number>> = [];
-
-        for (var i: number = 0; i <= this.n_pts; i++) {
-            plot_data[i] = [i * this.maxX / this.n_pts, ((adc_data[i] % 16384) - 8192) % 16384 + 8192];
+    redraw(channel0: number[][], channel1: number[][], callback: () => void) {
+        if (channel0.length === 0 || channel1.length === 0) {
+            callback();
+            return;
         }
 
         const plt_data: jquery.flot.dataSeries[]
-                = [{label: "Power spectral density (dB)", data: plot_data}];
+                = [{label: 'ADC 1', data: channel0},
+                   {label: 'ADC 2', data: channel1}];
 
-        if (this.resetRange) {
-            this.options.xaxis.min = this.xRange.from;
-            this.options.xaxis.max = this.xRange.to;
-            this.options.yaxis.min = this.yRange.from;
-            this.options.yaxis.max = this.yRange.to;
+        if (this.reset_range) {
+            this.plot_x_max = channel0.length;
+
+            this.options.xaxis.min = this.range_x.from;
+            this.options.xaxis.max = this.range_x.to;
+            this.options.yaxis.min = this.range_y.from;
+            this.options.yaxis.max = this.range_y.to;
 
             this.plot = $.plot(this.plot_placeholder, plt_data, this.options);
+
             this.plot.setupGrid();
-            this.isResetRange = false;
+            this.reset_range = false;
         } else {
             this.plot.setData(plt_data);
             this.plot.draw();
@@ -145,5 +241,4 @@ class Plot {
 
         callback();
     }
-
 }
