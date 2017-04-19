@@ -2,66 +2,53 @@
 
 [![CircleCI](https://circleci.com/gh/Koheron/ZynqSDK.svg?style=shield&circle-token=8bad0d504d47f62082ff5d8b07dfb21aaf03ecde)](https://circleci.com/gh/Koheron/ZynqSDK)
 
-## What is Koheron SDK ?
+## What is Koheron Software Development Kit ?
 
-Koheron SDK is a build system for quick prototyping of custom instruments on Zynq SoCs.
+[Koheron Software Development Kit](https://www.koheron.com/software-development-kit) is a tool to develop FPGA / Linux instruments for Zynq SoCs.
 
-## Quickstart with the [Red Pitaya](http://redpitaya.com)
+## Getting started with the Red Pitaya
 
-#### 1. [Install Vivado 2016.4](https://koheron.com/software-development-kit/documentation/setup-development-machine)
+1. [Install Vivado 2016.4](https://koheron.com/software-development-kit/documentation/setup-development-machine)
 
-#### 2. Install required packages
+2. Install required packages
 
-```bash
-$ sudo make setup
-```
+    ```bash
+    $ sudo make setup
+    ```
 
-#### 3. Install Koheron Linux for Red Pitaya ([Download SD card image](https://github.com/Koheron/koheron-sdk/releases))
+3. Install Koheron Linux for Red Pitaya ([Download SD card image](https://github.com/Koheron/koheron-sdk/releases))
 
-#### 4. Build and run the led-blinker instrument
+4. Build and run the led-blinker instrument
 
-```bash
-$ make CONFIG=examples/led-blinker/config.yml HOST=192.168.1.100 run
-```
-where `HOST` is your Red Pitaya IP address.
+    ```bash
+    $ make CONFIG=examples/led-blinker/config.yml HOST=192.168.1.100 run
+    ```
 
-## Examples of instruments
+Ready to develop your instrument? Read the [documentation](https://www.koheron.com/software-development-kit/documentation).
 
-* [`led_blinker`](https://github.com/Koheron/koheron-sdk/tree/master/examples/led-blinker) : minimal instrument with LED control from Python.
-* [`adc_dac`](https://github.com/Koheron/koheron-sdk/tree/master/examples/adc-dac) : instrument with minimal read/write capability on Red Pitaya ADCs and DACs.
-* [`pulse_generator`](https://github.com/Koheron/koheron-sdk/tree/master/examples/pulse-generator) : pulse generation with synchronous acquisition.
-* [`laser_controller`](https://github.com/Koheron/koheron-sdk/tree/master/examples/decimator) : laser current control using pulse-density modulation.
+## Examples
+
+* [`led-blinker`](https://github.com/Koheron/koheron-sdk/tree/master/examples/led-blinker) : minimal instrument with LED control.
+* [`adc-dac`](https://github.com/Koheron/koheron-sdk/tree/master/examples/adc-dac) : instrument with minimal read/write capability on Red Pitaya ADCs and DACs.
+* [`pulse-generator`](https://github.com/Koheron/koheron-sdk/tree/master/examples/pulse-generator) : pulse generation with synchronous acquisition.
+* [`laser-controller`](https://github.com/Koheron/koheron-sdk/tree/master/examples/decimator) : laser current control using pulse-density modulation.
 * [`decimator`](https://github.com/Koheron/koheron-sdk/tree/master/examples/decimator) : decimation using a compensated CIC filter.
 * [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/examples/oscillo) : signal acquisition / generation with coherent averaging mode.
 * [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/examples/spectrum) : spectrum analyzer with peak-detection and averaging.
 
 ## How to
 
-Open Vivado and build the instrument block design:
-```
-$ make CONFIG=path/to/config.yml block_design
-```
-
-Build the SD card image:
-```
-$ make os
-$ sudo make image
-```
-
-Build the instrument (without running it):
+Build an instrument:
 ```
 $ make CONFIG=path/to/config.yml
 ```
 
-Test a verilog core:
+Build an instrument block design:
 ```
-$ make CORE=fpga/cores/comparator_v1_0 test_core
+$ make CONFIG=path/to/config.yml block_design
 ```
 
-Test a Tcl module:
-```
-$ make CONFIG=path/to/config.yml test_module
-```
+More commands are listed in the [documentation](https://www.koheron.com/software-development-kit/documentation/build-run-makefile).
 
 ## Acknowledgments
 

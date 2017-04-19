@@ -6,11 +6,7 @@ class Plot {
     private min_y: number = -0.1; // Volts
     private max_y: number = 1.0; // Volts
 
-    private range_x: jquery.flot.range;
-    private range_y: jquery.flot.range;
-
-    private last_mux0: number = 0;
-    private last_mux1: number = 0;
+    private nPoints: number;
 
     private reset_range: boolean;
     private options: jquery.flot.plotOptions;
@@ -19,6 +15,9 @@ class Plot {
     private zoom_y: boolean;
     private zoom_x_btn: HTMLLinkElement;
     private zoom_y_btn: HTMLLinkElement;
+
+    private range_x: jquery.flot.range;
+    private range_y: jquery.flot.range;
 
     constructor(document: Document,
                 private plot_placeholder: JQuery,
@@ -47,7 +46,6 @@ class Plot {
                 requestAnimationFrame( () => { this.update_plot(); } );
             });
         });
-
     }
 
     setPlot() {
