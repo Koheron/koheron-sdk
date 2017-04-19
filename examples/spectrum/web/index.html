@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Koheron</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Koheron">
+    <meta charset="utf-8">
+
+    <!--http://stackoverflow.com/questions/49547/making-sure-a-web-page-is-not-cached-across-all-browsers-->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <link rel="shortcut icon" href="kbird.ico">
+    <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="_koheron.css">
+
+    <script type="text/javascript" src="jquery.min.js"></script>
+    <script type="text/javascript" src="bootstrap.min.js"></script>
+
+  </head>
+
+<body>
+
+<div class="container-fluid" style="padding: 10px; height: 75px">
+  <a href="/">
+    <img alt="Koheron" src="_koheron_logo.svg" style="height: 100%">
+  </a>
+</div>
+
+<div class="container-fluid">
+
+  <h1 class="padding">Spectrum</h1>
+
+  <div class="row">
+
+  <div class="col-sm-6" style="padding: 20px 10px">
+    <div class="border padding">
+      <div align="center">Power spectral density (dB)</div>
+      <div id="plot-placeholder" class="plot-placeholder"></div>
+      <div align="center">Frequency (MHz) &nbsp; </div>
+    </div>
+    <br>
+    <a class="btn btn-default" onclick="app.plot.autoScale(); return false" data-toggle="tooltip" data-placement="bottom" title="(Double-click on plot)" style="height: 35px">Auto scale</a>&nbsp; &nbsp;
+    <a id="zoom-x-btn" class="btn btn-primary-reversed" onclick="app.plot.zoomX(); return false" data-toggle="tooltip" data-placement="bottom" title="(ALT) + Scroll on plot" style="height: 35px">X-Zoom</a>&nbsp; &nbsp;
+    <a id="zoom-y-btn" class="btn btn-primary-reversed" onclick="app.plot.zoomY(); return false" data-toggle="tooltip" data-placement="bottom" title="(SHIFT) + Scroll on plot" style="height: 35px">Y-Zoom</a>&nbsp; &nbsp;
+    <span data-toggle="tooltip" data-placement="bottom" title="Draw rectangle on plot to zoom" class="tip">X and Y zoom?</span>
+
+  </div>
+
+  <div class="col-sm-6" style="padding: 20px 10px">
+
+    <!--LASER-->
+
+    <div class="border padding">
+      <div style="text-align: center">
+        <input type="button" id ="laser-switch" class="btn btn-success" onclick="app.laserControl.switchLaser(); return false" value="Start Laser" style="padding-right: 20px; padding-left: 20px; width: 115px; height: 35px">
+      </div>
+      Input Current (mA): <span id="input-current">0</span>
+      <input id="input-current-slider" type="range" onchange="app.laserControl.setCurrent(this.value); return false;" oninput="app.laserControl.setCurrent(this.value); return false;" value="0" min="0" step="0.1" max="40" >
+      Output Current (mA): &nbsp;<span id="output-current"></span><br>
+      Output Power (arb.units): &nbsp;<span id="output-power"></span>
+    </div>
+
+    <br>
+
+    <!--AVERAGE-->
+
+    <div class="border padding">
+
+    <a id="avg-btn" class="btn btn-primary-reversed" onclick="app.average.avg(); return false" style="width: 115px">Average</a>
+
+    &nbsp; &nbsp; Count:
+    <span id="avg" style="display: inline-block; width: 50px"></span>
+
+    &nbsp; &nbsp; Minimum:
+    <a id="avg-min-edit" href="#" onclick="app.average.editAvgMin(); return false" class="btn-tip" data-toggle="tooltip" data-placement="right" title="Edit">0</a>
+    <input id="avg-min-input" type="number" value="0" min="0" step="1" max="2000" style="display: none; width: 70px">
+    <a class="glyphicon glyphicon-ok blue btn-tip" id="avg-min-save" href="#" onclick="app.average.saveAvgMin(); return false" data-toggle="tooltip" data-placement="bottom" title="Save" style="display: none"></a>
+
+    </div>
+
+    <br>
+
+    <!--MODULATION-->
+
+    <ul class="nav nav-tabs">
+      <li class="active"><a data-toggle="tab" href="#channel-1" style="height: 35px; line-height: 22.85px; padding-top: 6px; padding-bottom: 6px">Channel 1</a></li>
+      <li><a data-toggle="tab" href="#channel-2" style="height: 35px; line-height: 22.85px; padding-top: 6px; padding-bottom: 6px">Channel 2</a></li>
+    </ul>
+
+    <div class="tab-content border padding">
+
+      <div id="channel-1" class="tab-pane fade in active" style="border-top: 0px !important">
+        <a class="btn btn-primary-reversed" id="sine-0" onclick="app.modulationControl.setWfmType(0,'sine'); return false" style="height: 35px; width: 90px">Sine</a>&nbsp; &nbsp;
+        <a class="btn btn-primary-reversed" id="triangle-0" onclick="app.modulationControl.setWfmType(0,'triangle'); return false" style="height: 35px; width: 90px">Triangle</a>&nbsp; &nbsp;
+        <a class="btn btn-primary-reversed" id="square-0" onclick="app.modulationControl.setWfmType(0,'square'); return false" style="height: 35px; width: 90px">Square</a><br><br>
+
+        Amplitude (arb. units): &nbsp;<span id="amplitude-0"></span>
+        <input id="amplitude-slider-0" type="range" value="0" min="0" step="0.001" max="0.995" oninput="app.modulationControl.setDacAmplitude(0); return false">
+        Frequency (MHz): &nbsp;<span id="frequency-0"></span>
+        <input id="frequency-slider-0" type="range" value="0" min="0" step="1" max="4096" oninput="app.modulationControl.setDacFrequency(0); return false">
+        Offset (arb. units): &nbsp;<span id="offset-0"></span>
+        <input id="offset-slider-0" type="range" value="0" min="-1" step="0.001" max="1" oninput="app.modulationControl.setDacOffset(0); return false">
+      </div>
+
+      <div id="channel-2" class="tab-pane fade" style="border-top: 0px !important">
+        <a class="btn btn-primary-reversed" id="sine-1" onclick="app.modulationControl.setWfmType(1,'sine'); return false" style="height: 35px; width: 90px">Sine</a>&nbsp; &nbsp;
+        <a class="btn btn-primary-reversed" id="triangle-1" onclick="app.modulationControl.setWfmType(1,'triangle'); return false" style="height: 35px; width: 90px">Triangle</a>&nbsp; &nbsp;
+        <a class="btn btn-primary-reversed" id="square-1" onclick="app.modulationControl.setWfmType(1,'square'); return false" style="height: 35px; width: 90px">Square</a><br><br>
+
+        Amplitude (arb. units): &nbsp;<span id="amplitude-1"></span>
+        <input id="amplitude-slider-1" type="range" value="0" min="0" step="0.001" max="0.995" oninput="app.modulationControl.setDacAmplitude(1); return false">
+        Frequency (MHz): &nbsp;<span id="frequency-1"></span>
+        <input id="frequency-slider-1" type="range" value="0" min="0" step="1" max="4096" oninput="app.modulationControl.setDacFrequency(1); return false">
+        Offset (arb. units): &nbsp;<span id="offset-1"></span>
+        <input id="offset-slider-1" type="range" value="0" min="-1" step="0.001" max="1" oninput="app.modulationControl.setDacOffset(1); return false">
+      </div>
+
+    </div>
+
+  </div>
+
+  </div>
+
+<br><br>
+
+<p>
+  See <a href="/koheron/">available instruments</a>.
+  <br><br>
+  This instrument was built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>.<br>
+  See instrument <a href="https://github.com/Koheron/koheron-sdk/tree/master/examples/spectrum">source code</a>.<br>
+</p>
+
+</div>
+
+
+<script src="app.js?random=<?php echo uniqid(); ?>"></script>
+
+<script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
+<script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
+<script language="javascript" type="text/javascript" src="jquery.flot.selection.js"></script>
+<script language="javascript" type="text/javascript" src="jquery.flot.time.js"></script>
+<script language="javascript" type="text/javascript" src="jquery.flot.axislabels.js"></script>
+
+</body>
+
+</html>

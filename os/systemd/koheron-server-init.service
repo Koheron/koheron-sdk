@@ -5,7 +5,7 @@ Wants=network-online.target
 After=koheron-server.service network-online.target
 
 [Service]
-ExecStart=/usr/bin/curl http://127.0.0.1/api/board/init
+ExecStart=/usr/bin/python /usr/local/koheron-server/koheron-server-init.py
 
 [Install]
 WantedBy=multi-user.target

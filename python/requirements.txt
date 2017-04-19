@@ -1,0 +1,6 @@
+requests==2.11.1
+click
+
+# For koheron-sdk
+pyyaml
+jinja2

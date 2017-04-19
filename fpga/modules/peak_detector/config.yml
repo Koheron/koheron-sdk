@@ -1,8 +1,8 @@
 ---
-instrument: peak_detector
-board: red-pitaya
+name: peak_detector
+board: boards/red-pitaya
 
-config_registers:
+control_registers:
   - peak_address_low
   - peak_address_high
   - peak_address_reset

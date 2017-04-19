@@ -3,8 +3,8 @@ namespace eval spectrum {
 proc pins {cmd adc_width} {
   $cmd -dir I -from [expr $adc_width - 1] -to 0 adc1
   $cmd -dir I -from [expr $adc_width - 1] -to 0 adc2
-  $cmd -dir I -from 31                    -to 0 cfg_sub
-  $cmd -dir I -from 31                    -to 0 cfg_fft
+  $cmd -dir I -from 31                    -to 0 ctl_sub
+  $cmd -dir I -from 31                    -to 0 ctl_fft
   $cmd -dir I -from 31                    -to 0 demod_data
   $cmd -dir I -from 0                     -to 0 tvalid
   $cmd -dir O -from 31                    -to 0 m_axis_result_tdata
@@ -30,7 +30,7 @@ proc create {module_name n_pts_fft adc_width} {
     } {
       clk clk
       A   adc$i
-      B   [get_slice_pin cfg_sub [expr $adc_width*$i-1] [expr $adc_width*($i-1)]]
+      B   [get_slice_pin ctl_sub [expr $adc_width*$i-1] [expr $adc_width*($i-1)]]
     }
   }
 
@@ -51,7 +51,7 @@ proc create {module_name n_pts_fft adc_width} {
     s_axis_a_tvalid $shifted_tvalid
     s_axis_b_tvalid $shifted_tvalid
   }
-  
+
   for {set i 0} {$i < 2} {incr i} {
     cell xilinx.com:ip:floating_point:7.1 float_$i {
       Operation_Type Fixed_to_float
@@ -83,12 +83,12 @@ proc create {module_name n_pts_fft adc_width} {
                          }]
     s_axis_data_tvalid   [get_and_pin float_0/m_axis_result_tvalid float_1/m_axis_result_tvalid]
     s_axis_data_tlast    [get_constant_pin 0 1]
-    s_axis_config_tdata  [get_slice_pin cfg_fft 15 0]
+    s_axis_config_tdata  [get_slice_pin ctl_fft 15 0]
     s_axis_config_tvalid [get_constant_pin 1 1]
   }
 
   for {set i 0} {$i < 2} {incr i} {
-  
+
     set slice_tdata [get_slice_pin fft_0/m_axis_data_tdata [expr 31+32*$i] [expr 32*$i]]
     cell xilinx.com:ip:floating_point:7.1 mult_$i {
       Operation_Type Multiply

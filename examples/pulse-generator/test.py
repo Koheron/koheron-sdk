@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import numpy as np
+import matplotlib
+matplotlib.use('TKAgg')
+from matplotlib import pyplot as plt
+import os
+import time
+
+from pulse import Pulse
+from koheron import connect
+
+host = os.getenv('HOST', '192.168.1.7')
+client = connect(host, name='pulse-generator')
+driver = Pulse(client)
+
+pulse_width = 256
+n_pulse = 64
+pulse_frequency = 2000
+
+pulse_period = np.uint32(driver.fs / pulse_frequency)
+
+# Send Gaussian pulses to DACs
+t = np.arange(driver.n_pts) / driver.fs # time grid (s)
+driver.dac[0,:] = 0.6 * np.exp(-(t - 500e-9)**2/(150e-9)**2)
+driver.dac[1,:] = 0.6 * np.exp(-(t - 500e-9)**2/(150e-9)**2)
+driver.set_dac()
+
+driver.set_pulse_width(pulse_width)
+driver.set_pulse_period(pulse_period)
+
+n = 1024
+
+# Dynamic plot
+fig = plt.figure()
+ax = fig.add_subplot(111)
+x = np.arange(n)
+y = np.zeros(n)
+li, = ax.plot(x, y)
+ax.set_ylim((-200, 5200))
+ax.set_xlabel('FIFO sample number')
+ax.set_ylabel('ADC raw value')
+fig.canvas.draw()
+
+while True:
+    try:
+        data_rcv = driver.get_fifo_buffer()
+        adc0 = (np.int32(data_rcv % 16384) - 8192) % 16384 - 8192
+        li.set_ydata(adc0)
+        fig.canvas.draw()
+        plt.pause(0.001)
+    except KeyboardInterrupt:
+        break

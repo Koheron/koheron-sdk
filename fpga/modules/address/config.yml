@@ -1,13 +1,14 @@
 ---
-instrument: address
-board: red-pitaya
+name: address
+board: boards/red-pitaya
 
 cores:
   - fpga/cores/comparator_v1_0
   - fpga/cores/averager_counter_v1_0
   - fpga/cores/address_generator_v1_0
+  - fpga/cores/edge_detector_v1_0
 
-config_registers:
+control_registers:
   - addr       # reset[0:0], trig_acq[1:1], delay_tvalid[6:2]
   - dac_period # period on which the dac is played
 
