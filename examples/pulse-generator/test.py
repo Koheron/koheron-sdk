@@ -30,7 +30,7 @@ driver.set_dac()
 driver.set_pulse_width(pulse_width)
 driver.set_pulse_period(pulse_period)
 
-'''n = pulse_width * n_pulse
+n = 1024
 
 # Dynamic plot
 fig = plt.figure()
@@ -45,13 +45,10 @@ fig.canvas.draw()
 
 while True:
     try:
-        data_rcv = driver.get_next_pulse(n)
+        data_rcv = driver.get_fifo_buffer()
         adc0 = (np.int32(data_rcv % 16384) - 8192) % 16384 - 8192
-        adc1 = (np.int32((data_rcv >> 16) % 16384) - 8192) % 16384 - 8192
-        print(driver.get_fifo_length(), np.mean(adc0), np.mean(adc1))
         li.set_ydata(adc0)
         fig.canvas.draw()
         plt.pause(0.001)
     except KeyboardInterrupt:
         break
-'''

@@ -42,20 +42,12 @@ class Pulse(object):
         set_dac_data(self, dac_data_1 + 65536 * dac_data_2)
 
     @command()
-    def get_fifo_occupancy(self):
-        return self.client.recv_uint32()
-
-    @command()
     def get_fifo_length(self):
         return self.client.recv_uint32()
 
     @command()
-    def get_next_pulse(self, n_pts):
-        assert n_pts > 0
-        assert n_pts <= 16386
-        data_rcv = self.client.recv_vector(dtype='uint32')
-        assert(data_rcv[0] & (1 << 15) == (1 << 15))
-        return data_rcv
+    def get_fifo_buffer(self):
+        return self.client.recv_array(1024, dtype='uint32')
 
     @command()
     def reset_fifo(self):
