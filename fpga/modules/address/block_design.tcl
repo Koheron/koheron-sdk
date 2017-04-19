@@ -1,4 +1,4 @@
-source tmp/$project_name.config.tcl
+source $output_path/config.tcl
 source $project_path/address.tcl
 
 set module address

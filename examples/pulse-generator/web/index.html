@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Koheron</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Koheron">
+  <meta charset="utf-8">
+
+  <!--http://stackoverflow.com/questions/49547/making-sure-a-web-page-is-not-cached-across-all-browsers-->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <link rel="shortcut icon" href="kbird.ico">
+  <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="_koheron.css">
+
+  <script type="text/javascript" src="jquery.min.js"></script>
+  <script type="text/javascript" src="bootstrap.min.js"></script>
+</head>
+
+<body>
+<div class="container-fluid" style="padding: 10px; height: 75px">
+  <a href="/">
+    <img alt="Koheron" src="_koheron_logo.svg" style="height: 100%">
+  </a>
+</div>
+
+<div class="container">
+
+  <h1>Pulse generator</h1>
+
+  <br><br>
+
+  <div class="plot-container border padding">
+    <div>ADC raw value</div>
+    <div id="plot-placeholder" class="plot-placeholder"></div>
+    <div style="text-align: right">FIFO sample number</div>
+  </div>
+
+  <br>
+
+  <div class="border padding">
+
+    <table class="full-width">
+    <tr>
+      <td>
+        Pulses
+      </td>
+      <td>
+        Width:
+        <a id="width-edit" href="#" onclick="app.control.editWidth(); return false" class="btn-tip" data-toggle="tooltip"
+          data-placement="right" title="Edit" style="vertical-align: middle">0
+        </a>
+        <input id="width-input" type="number" value="0" min="0" step="0.01" max="62.5" style="display: none; width: 70px" onkeydown="app.control.saveWidthKey(event)">
+        <a class="glyphicon glyphicon-ok blue btn-tip" id="width-save" href="#" onclick="app.control.saveWidth(); return false" style="display: none">
+        </a>
+      </td>
+      <td>
+        Period:
+        <a id="period-edit" href="#" onclick="app.control.editPeriod(); return false" class="btn-tip" data-toggle="tooltip"
+          data-placement="right" title="Edit" style="vertical-align: middle">0
+        </a>
+        <input id="period-input" type="number" value="0" min="0" step="0.01" max="62.5" style="display: none; width: 70px" onkeydown="app.control.savePeriodKey(event)">
+        <a class="glyphicon glyphicon-ok blue btn-tip" id="period-save" href="#" onclick="app.control.savePeriod(); return false" style="display: none">
+        </a>
+      </td>
+
+    </tr>
+    </table>
+  </div>
+
+  <br><br>
+
+  <p>
+    See <a href="/koheron/">available instruments</a>.
+    <br><br>
+    This instrument was built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>.<br>
+    See instrument <a href="https://github.com/Koheron/koheron-sdk/tree/master/examples/pulse-generator">source code</a>.<br>
+  </p>
+
+</div>
+
+  <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.selection.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.time.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.axislabels.js"></script>
+
+  <script src="app.js?random=<?php echo uniqid(); ?>"></script>
+
+</body>
+</html>
+
+<style>
+  td {
+    width: 100px;
+  }
+</style>

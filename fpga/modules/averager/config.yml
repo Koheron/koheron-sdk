@@ -1,6 +1,6 @@
 ---
-instrument: averager
-board: red-pitaya
+name: averager
+board: boards/red-pitaya
 
 cores:
   - fpga/cores/comparator_v1_0
@@ -8,7 +8,7 @@ cores:
   - fpga/cores/delay_trig_v1_0
   - fpga/cores/edge_detector_v1_0
 
-config_registers:
+control_registers:
   - avg           # set to 1 to perform averaging
   - avg_period    # defines the period on which waveforms are averaged
   - avg_threshold # must be set to (avg_period - 5)
