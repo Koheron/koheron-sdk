@@ -8,27 +8,6 @@ class Instruments {
     public liveInstrument: string;
     public isNewInstrument: boolean;
 
-    constructor () {
-        this.checkForNewInstrument();
-    }
-
-    checkForNewInstrument() {
-        this.getInstrumentsStatus( (status) => {
-            this.isNewInstrument = false;
-            if (JSON.stringify(this.instruments) !== JSON.stringify(status['instruments'])) {
-                this.instruments = status['instruments'];
-                this.isNewInstrument = true;
-            }
-            if (JSON.stringify(this.liveInstrument) !== JSON.stringify(status['live_instrument'])) {
-                this.liveInstrument = status['live_instrument'];
-                this.isNewInstrument = true;
-            }
-        });
-        setTimeout( () => {
-            this.checkForNewInstrument(), 500
-        });
-    }
-
     getInstrumentsStatus(cb: (status: any) => void) : void {
         let xhr = new XMLHttpRequest();
         xhr.open('GET', '/api/instruments', true);

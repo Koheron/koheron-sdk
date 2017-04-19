@@ -45,7 +45,7 @@ class InstrumentsWidget {
         };
 
         setTimeout( () => {
-            this.update(), 500
+            this.update(), 200
         });
     }
 
