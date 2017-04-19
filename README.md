@@ -1,6 +1,7 @@
 # koheron-sdk
 
 [![Circle CI](https://circleci.com/gh/Koheron/koheron-sdk.svg?style=shield)](https://circleci.com/gh/Koheron/koheron-sdk)
+[![PyPI version](https://img.shields.io/pypi/v/koheron.svg)](https://pypi.python.org/pypi/koheron)
 
 ## What is Koheron Software Development Kit ?
 
