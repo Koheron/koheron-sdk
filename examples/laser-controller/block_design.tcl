@@ -26,17 +26,6 @@ add_ctl_sts $adc_clk $rst_adc_clk_name/peripheral_aresetn
 # Connect LEDs
 connect_port_pin led_o [get_slice_pin [ctl_pin led] 7 0]
 
-# Connect EEPROM to SPI_0
-create_bd_port -dir O spi_cs
-create_bd_port -dir O spi_sclk
-create_bd_port -dir O spi_din
-create_bd_port -dir I spi_dout
-
-connect_port_pin spi_cs ps_0/SPI0_SS_O
-connect_port_pin spi_sclk ps_0/SPI0_SCLK_O
-connect_port_pin spi_din ps_0/SPI0_MOSI_O
-connect_port_pin spi_dout ps_0/SPI0_MISO_I
-
 # Connect ADC to status register
 for {set i 0} {$i < [get_parameter n_adc]} {incr i} {
   connect_pins [sts_pin adc$i] adc_dac/adc[expr $i + 1]
