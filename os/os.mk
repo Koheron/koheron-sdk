@@ -6,7 +6,7 @@
 
 PATCHES := $(BOARD_PATH)/patches
 PROC := ps7_cortexa9_0
-HSI := source $(FPGA_PATH)/settings.sh && hsi -nolog -nojournal -mode batch
+HSI := source /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh && hsi -nolog -nojournal -mode batch
 BOOTGEN := source $(FPGA_PATH)/settings.sh && bootgen
 
 BOARD := $(shell basename $(BOARD_PATH))
@@ -14,7 +14,9 @@ BOARD := $(shell basename $(BOARD_PATH))
 # Linux and U-boot
 UBOOT_TAG := koheron-$(BOARD)-v$(VIVADO_VERSION)
 LINUX_TAG := koheron-$(BOARD)-v$(VIVADO_VERSION)
-DTREE_TAG := xilinx-v$(VIVADO_VERSION)
+DTREE_TAG := master
+#xilinx-v2016.4
+ #$(VIVADO_VERSION)
 
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 
@@ -101,13 +103,13 @@ $(DTREE_PATH): $(DTREE_TAR)
 	@echo [$@] OK
 
 .PHONY: devicetree
-devicetree: $(TMP_OS_PATH)/devicetree/system.dts
+devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
 
-$(TMP_OS_PATH)/devicetree/system.dts: $(TMP_FPGA_PATH)/$(NAME).hwdef $(DTREE_PATH) $(PATCHES)/devicetree.patch
+$(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).hwdef $(DTREE_PATH) $(PATCHES)/devicetree.patch
 	mkdir -p $(@D)
 	$(HSI) -source $(FPGA_PATH)/hsi/devicetree.tcl -tclargs $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) \
 	  $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/devicetree $(TMP_FPGA_PATH)/$(NAME).hwdef
-	patch $@ $(PATCHES)/devicetree.patch
+	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/devicetree.patch
 	@echo [$@] OK
 
 ###############################################################################
@@ -133,9 +135,9 @@ $(TMP_OS_PATH)/uImage: $(LINUX_PATH)
 	cp $</arch/arm/boot/uImage $@
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree/system.dts
+$(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree/system-top.dts
 	$(LINUX_PATH)/scripts/dtc/dtc -I dts -O dtb -o $@ \
-	  -i $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree/system.dts
+	  -i $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree/system-top.dts
 	@echo [$@] OK
 
 ###############################################################################
