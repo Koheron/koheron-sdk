@@ -22,6 +22,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        koheron=python.cli:cli
+        koheron=koheron.cli:cli
     ''',
 )
