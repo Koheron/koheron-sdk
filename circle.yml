@@ -15,7 +15,7 @@ dependencies:
     - sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
     - sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-5 /usr/bin/arm-linux-gnueabihf-g++
     - pip install -r requirements.txt
-    - pip install .
+    - pip install python/.
     - npm install -g typescript
     - npm install @types/jquery @types/jquery-mousewheel websocket @types/node
     - pip install twine
