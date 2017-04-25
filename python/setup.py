@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 __version__ = None
-with open('python/version.py') as f:
+with open('koheron/version.py') as f:
     exec(f.read())
 
 setup(
