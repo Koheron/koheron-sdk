@@ -194,13 +194,13 @@ if __name__ == "__main__":
             f.write(config['board'])
 
     elif cmd == '--drivers':
-        for i, path in enumerate(config['drivers']):
+        for i, path in enumerate(config.get('drivers', [])):
             config['drivers'][i] = append_path(path, config_path)
         with open(output_filename, 'w') as f:
             f.write(' '.join(config.get('drivers', [])))
 
     elif cmd == '--xdc':
-        for i, path in enumerate(config['xdc']):
+        for i, path in enumerate(config.get('xdc', [])):
             config['xdc'][i] = append_path(path, config_path)
         with open(output_filename, 'w') as f:
             f.write(' '.join(config.get('xdc', [])))
