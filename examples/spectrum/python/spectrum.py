@@ -16,7 +16,7 @@ class Spectrum(object):
         self.set_demod(demod)
         self.set_noise_floor_buffer(np.zeros(self.wfm_size))
         self.set_scale_sch(0)
-        self.set_n_avg_min(0)
+        self.set_avg_n_min(0)
         self.reset_acquisition()
 
     @command()
@@ -26,10 +26,11 @@ class Spectrum(object):
     def reset_acquisition(self): pass
 
     @command()
-    def set_n_avg_min(self, n_avg_min): pass
+    def set_avg_n_min(self, n_avg_min): pass
 
-    def set_dac(self, channels=[0,1]):
-        @command(classname='Spectrum')
+    @command()
+    def set_dac(self, data, channels=[0,1]):
+        @command()
         def set_dac_buffer(self, channel, data):
             pass
         for channel in channels:
@@ -50,7 +51,7 @@ class Spectrum(object):
 
     def set_demod(self, data):
         @command()
-        def set_demod_buffer(self, data): 
+        def set_demod_buffer(self, data):
             pass
         data1 = np.uint32(np.mod(np.floor(8192 * data[0, :]) + 8192,16384) + 8192)
         data2 = np.uint32(np.mod(np.floor(8192 * data[1, :]) + 8192,16384) + 8192)
@@ -61,7 +62,7 @@ class Spectrum(object):
         def set_noise_floor_buffer(self, data):
             pass
         set_noise_floor_buffer(self, np.float32(data))
-        
+
     @command()
     def get_spectrum(self):
         return self.client.recv_array(self.wfm_size, dtype='float32')
