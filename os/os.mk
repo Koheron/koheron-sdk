@@ -6,7 +6,7 @@
 
 PATCHES := $(BOARD_PATH)/patches
 PROC := ps7_cortexa9_0
-HSI := source $(FPGA_PATH)/settings.sh && hsi -nolog -nojournal -mode batch
+HSI := source /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh && hsi -nolog -nojournal -mode batch
 BOOTGEN := source $(FPGA_PATH)/settings.sh && bootgen
 
 BOARD := $(shell basename $(BOARD_PATH))

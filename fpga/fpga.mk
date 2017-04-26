@@ -7,7 +7,7 @@ $(TMP_FPGA_PATH):
 BOARD_PATH := $(shell $(MAKE_PY) --board $(CONFIG) $(TMP_FPGA_PATH)/board && cat $(TMP_FPGA_PATH)/board)
 PART := $(shell cat $(BOARD_PATH)/PART)
 
-VIVADO := source $(FPGA_PATH)/settings.sh && vivado -nolog -nojournal
+VIVADO := source /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh && vivado -nolog -nojournal
 VIVADO_BATCH := $(VIVADO) -mode batch
 
 $(MEMORY_YML): $(CONFIG)

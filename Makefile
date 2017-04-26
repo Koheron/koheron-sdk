@@ -126,7 +126,7 @@ setup_base:
 	apt-get install -y g++-arm-linux-gnueabihf
 	apt-get install -y python-pip
 	pip install -r $(SDK_PATH)/requirements.txt
-	pip install $(SDK_PATH)
+	pip install $(SDK_PATH)/python
 
 .PHONY: setup_fpga
 setup_fpga: setup_base
