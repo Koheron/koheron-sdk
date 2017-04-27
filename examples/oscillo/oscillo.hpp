@@ -26,7 +26,7 @@ class Oscillo
     ,ctl(ctx.mm.get<mem::control>())
     , sts(ctx.mm.get<mem::status>())
     , adc_map(ctx.mm.get<mem::adc>())
-    , data_decim(0)
+    , decimated_data(0)
     {
         raw_data[0] = adc_map.get_ptr<int32_t>(0);
         raw_data[1] = adc_map.get_ptr<int32_t>(1);
@@ -76,33 +76,33 @@ class Oscillo
     }
 
     // Read channels and take one point every decim_factor points
-    std::vector<float>& get_data_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high) {
+    std::vector<float>& get_decimated_data(uint32_t decim_factor, uint32_t index_low, uint32_t index_high) {
         // Sanity checks
         if (index_high <= index_low || index_high > WFM_SIZE) {
-            data_decim.resize(0);
-            return data_decim;
+            decimated_data.resize(0);
+            return decimated_data;
         }
 
         ctl.set_bit<reg::addr, 1>();
         uint32_t n_pts = (index_high - index_low)/decim_factor;
-        data_decim.resize(2*n_pts);
+        decimated_data.resize(2*n_pts);
         _wait_for_acquisition();
 
         is_average = sts.read_bit<reg::avg_on_out0, 0>();
         if (is_average) {
             float num_average_ = float(get_num_average(0));
             for (unsigned int i=0; i<n_pts; i++) {
-                data_decim[i] = float(raw_data[0][index_low + decim_factor * i]) / num_average_;
-                data_decim[i + n_pts] = float(raw_data[1][index_low + decim_factor * i]) / num_average_;
+                decimated_data[i] = float(raw_data[0][index_low + decim_factor * i]) / num_average_;
+                decimated_data[i + n_pts] = float(raw_data[1][index_low + decim_factor * i]) / num_average_;
             }
         } else {
             for (unsigned int i=0; i<n_pts; i++) {
-                data_decim[i] = float(raw_data[0][index_low + decim_factor * i]);
-                data_decim[i + n_pts] = float(raw_data[1][index_low + decim_factor * i]);
+                decimated_data[i] = float(raw_data[0][index_low + decim_factor * i]);
+                decimated_data[i + n_pts] = float(raw_data[1][index_low + decim_factor * i]);
             }
         }
         ctl.clear_bit<reg::addr, 1>();
-        return data_decim;
+        return decimated_data;
     }
 
   private:
@@ -118,7 +118,7 @@ class Oscillo
     Memory<mem::adc>& adc_map;
 
     // Acquired data buffers
-    std::vector<float> data_decim;
+    std::vector<float> decimated_data;
 
     // Internal functions
     void _wait_for_acquisition()

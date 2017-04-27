@@ -33,9 +33,9 @@ class Spectrum {
         this.setFreqRange(this.rangeFreq);
     }
 
-    getData(callback: (data: number[][], range: jquery.flot.range) => void): void {
+    getDecimatedData(callback: (data: number[][], range: jquery.flot.range) => void): void {
         this.client.readFloat32Vector(
-            Command(this.id, this.cmds['get_data_decim'], 1, this.indexLow, this.indexHigh), (array) => {
+            Command(this.id, this.cmds['get_decimated_data'], 1, this.indexLow, this.indexHigh), (array) => {
 
                 const size: number = this.indexHigh - this.indexLow;
                 let data: number[][] = [];

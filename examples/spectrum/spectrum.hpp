@@ -31,7 +31,7 @@ class Spectrum
     , demod_map(ctx.mm.get<mem::demod>())
     , peak_fifo_map(ctx.mm.get<mem::peak_fifo>())
     , noise_floor_map(ctx.mm.get<mem::noise_floor>())
-    , data_decim(0)
+    , decimated_data(0)
     {
         raw_data = spectrum_map.get_ptr<float>();
         set_average(true);
@@ -96,30 +96,30 @@ class Spectrum
     }
 
     // Read channel and take one point every decim_factor points
-    std::vector<float>& get_data_decim(uint32_t decim_factor, uint32_t index_low, uint32_t index_high) {
+    std::vector<float>& get_decimated_data(uint32_t decim_factor, uint32_t index_low, uint32_t index_high) {
         // Sanity checks
         if (index_high <= index_low || index_high >= WFM_SIZE) {
-            data_decim.resize(0);
-            return data_decim;
+            decimated_data.resize(0);
+            return decimated_data;
         }
 
         ctl.set_bit<reg::addr, 1>();
         uint32_t n_pts = (index_high - index_low)/decim_factor;
-        data_decim.resize(n_pts);
+        decimated_data.resize(n_pts);
         wait_for_acquisition();
 
         if (sts.read<reg::avg_on_out>()) {
             float num_average_ = float(get_num_average());
 
-            for (unsigned int i=0; i<data_decim.size(); i++)
-                data_decim[i] = raw_data[index_low + decim_factor * i] / num_average_;
+            for (unsigned int i=0; i<decimated_data.size(); i++)
+                decimated_data[i] = raw_data[index_low + decim_factor * i] / num_average_;
         } else {
-            for (unsigned int i=0; i<data_decim.size(); i++)
-                data_decim[i] = raw_data[index_low + decim_factor * i];
+            for (unsigned int i=0; i<decimated_data.size(); i++)
+                decimated_data[i] = raw_data[index_low + decim_factor * i];
         }
 
         ctl.clear_bit<reg::addr, 1>();
-        return data_decim;
+        return decimated_data;
     }
 
     // Peak
@@ -168,7 +168,7 @@ class Spectrum
     // Acquired data buffers
     float *raw_data;
     std::array<float, WFM_SIZE> spectrum_data;
-    std::vector<float> data_decim;
+    std::vector<float> decimated_data;
     std::vector<uint32_t> peak_fifo_data;
 
     // Internal functions

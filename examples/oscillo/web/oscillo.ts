@@ -52,9 +52,9 @@ class Oscillo {
         return Math.floor(t * this.samplingRate / this.mhz);
     }
 
-    getData(callback: (ch0: number[][], ch1: number[][], range: jquery.flot.range) => void): void {
+    getDecimatedData(callback: (ch0: number[][], ch1: number[][], range: jquery.flot.range) => void): void {
         this.client.readFloat32Vector(
-            Command(this.id, this.cmds['get_data_decim'],
+            Command(this.id, this.cmds['get_decimated_data'],
             this.decimationFactor,
             this.indexLow,
             this.indexHigh), (array) => {

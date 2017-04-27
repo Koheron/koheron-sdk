@@ -34,7 +34,7 @@ class Plot {
     }
 
     updatePlot(): void {
-        this.driver.getData( (data: number[][], rangeX: jquery.flot.range) => {
+        this.driver.getDecimatedData( (data: number[][], rangeX: jquery.flot.range) => {
             this.redraw(data, rangeX, () => {
                 requestAnimationFrame( () => { this.updatePlot(); });
             });

@@ -20,9 +20,9 @@ class TestsOscillo:
         assert np.amin(oscillo.adc[1,:]) >= -8192
 
     def test_averaging(self):
-        oscillo.set_averaging(False)
+        oscillo.set_average(False)
         assert oscillo.get_num_average(0) == oscillo.get_num_average(1)
-        oscillo.set_averaging(True)
+        oscillo.set_average(True)
         oscillo.set_num_average_min(1000)
         oscillo.get_adc()
         num_avg_0 = oscillo.get_num_average(0)
