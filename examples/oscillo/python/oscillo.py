@@ -27,9 +27,9 @@ class Oscillo(object):
         pass
 
     @command()
-    def set_n_average_min(self, n_avg_min):
+    def set_num_average_min(self, num_average_min):
         ''' Set the minimum of averages that will be computed on the FPGA
-        The effective number of averages is >= n_avg_min.
+        The effective number of averages is >= num_average_min.
         '''
         pass
 
@@ -60,8 +60,8 @@ class Oscillo(object):
         return self.client.recv_array(self.wfm_size / 2, dtype='uint32')
 
     @command()
-    def set_averaging(self, avg_status):
-        ''' avg_status = True enables averaging. '''
+    def set_average(self, is_average):
+        ''' is_average = True enables averaging. '''
         pass
 
     @command()
@@ -78,18 +78,6 @@ class Oscillo(object):
         ''' Read adc data and store it in self.adc. '''
         data = self.read_all_channels()
         self.adc = np.reshape(data, (2, self.wfm_size))
-
-    def get_spectrum(self):
-        fft_adc = np.fft.fft(self.adc, axis=1)
-        self.spectrum = fft_adc[:, 0:self.wfm_size / 2]
-
-    def get_avg_spectrum(self, n_avg=1):
-        self.avg_spectrum = np.zeros((2, self.wfm_size / 2))
-        for i in range(n_avg):
-            self.get_adc()
-            fft_adc = np.abs(np.fft.fft(self.adc, axis=1))
-            self.avg_spectrum += fft_adc[:, 0:self.wfm_size / 2]
-        self.avg_spectrum /= n_avg
 
     # -------------------------------
     # Trigger related functions

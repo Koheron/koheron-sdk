@@ -104,7 +104,7 @@ class Oscillo {
     }
 
     setNAvgMin(n_min: number): void {
-        this.client.send(Command(this.id, this.cmds['set_n_average_min'], n_min));
+        this.client.send(Command(this.id, this.cmds['set_num_average_min'], n_min));
     }
 
 }

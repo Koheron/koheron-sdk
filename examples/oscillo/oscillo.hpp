@@ -33,9 +33,9 @@ class Oscillo
 
         set_average(false); // Reset averaging
         ctl.write<reg::addr>(19 << 2); // set tvalid delay to 19 * 8 ns
-        set_n_average_min(0);
+        set_num_average_min(0);
         set_dac_periods(WFM_SIZE, WFM_SIZE);
-        set_avg_period(WFM_SIZE);
+        set_average_period(WFM_SIZE);
     }
 
     void reset() {
@@ -52,16 +52,16 @@ class Oscillo
 
     auto get_average_status() {
         return std::make_tuple(
-            avg_on,
-            n_avg_min,
+            is_average,
+            num_average_min,
             num_average
         );
     }
 
-    void set_average(bool avg_on_) {
-        avg_on = avg_on_;
-        ctl.write_bit<reg::avg0, 0>(avg_on);
-        ctl.write_bit<reg::avg1, 0>(avg_on);
+    void set_average(bool is_average_) {
+        is_average = is_average_;
+        ctl.write_bit<reg::avg0, 0>(is_average);
+        ctl.write_bit<reg::avg1, 0>(is_average);
     }
 
     uint32_t get_num_average(uint32_t channel) {
@@ -69,10 +69,10 @@ class Oscillo
         return num_average;
     }
 
-    void set_n_average_min(uint32_t n_avg_min_) {
-        n_avg_min = (n_avg_min_ < 2) ? 0 : n_avg_min_-2;
-        ctl.write<reg::n_avg_min0>(n_avg_min);
-        ctl.write<reg::n_avg_min1>(n_avg_min);
+    void set_num_average_min(uint32_t num_average_min_) {
+        num_average_min = (num_average_min_ < 2) ? 0 : num_average_min_-2;
+        ctl.write<reg::n_avg_min0>(num_average_min);
+        ctl.write<reg::n_avg_min1>(num_average_min);
     }
 
     // Read channels and take one point every decim_factor points
@@ -88,12 +88,12 @@ class Oscillo
         data_decim.resize(2*n_pts);
         _wait_for_acquisition();
 
-        avg_on = sts.read_bit<reg::avg_on_out0, 0>();
-        if (avg_on) {
-            float num_avg = float(get_num_average(0));
+        is_average = sts.read_bit<reg::avg_on_out0, 0>();
+        if (is_average) {
+            float num_average_ = float(get_num_average(0));
             for (unsigned int i=0; i<n_pts; i++) {
-                data_decim[i] = float(raw_data[0][index_low + decim_factor * i]) / num_avg;
-                data_decim[i + n_pts] = float(raw_data[1][index_low + decim_factor * i]) / num_avg;
+                data_decim[i] = float(raw_data[0][index_low + decim_factor * i]) / num_average_;
+                data_decim[i + n_pts] = float(raw_data[1][index_low + decim_factor * i]) / num_average_;
             }
         } else {
             for (unsigned int i=0; i<n_pts; i++) {
@@ -108,8 +108,8 @@ class Oscillo
   private:
     int32_t *raw_data[2] = {nullptr, nullptr};
 
-    bool avg_on;
-    uint32_t n_avg_min;
+    bool is_average;
+    uint32_t num_average_min;
     uint32_t num_average;
 
     Context& ctx;
@@ -127,7 +127,7 @@ class Oscillo
         auto begin = std::chrono::high_resolution_clock::now();
 
         do {
-            if (n_avg_min > 0) {
+            if (num_average_min > 0) {
                 auto now = std::chrono::high_resolution_clock::now();
                 auto remain_wait = ctl.read<reg::n_avg_min0>() * wfm_time - (now - begin);
 
@@ -147,9 +147,9 @@ class Oscillo
         reset();
     }
 
-    void set_avg_period(uint32_t avg_period) {
-        ctl.write<reg::avg_period>(avg_period - 1);
-        ctl.write<reg::avg_threshold>(avg_period - 6);
+    void set_average_period(uint32_t average_period) {
+        ctl.write<reg::avg_period>(average_period - 1);
+        ctl.write<reg::avg_threshold>(average_period - 6);
         reset();
     }
 

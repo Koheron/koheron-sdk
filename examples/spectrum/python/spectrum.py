@@ -16,17 +16,20 @@ class Spectrum(object):
         self.set_demod(demod)
         self.set_noise_floor_buffer(np.zeros(self.wfm_size))
         self.set_scale_sch(0)
-        self.set_n_avg_min(0)
+        self.set_num_average_min(0)
         self.reset_acquisition()
 
     @command()
-    def reset(self): pass
+    def reset(self):
+        pass
 
     @command()
-    def reset_acquisition(self): pass
+    def reset_acquisition(self):
+        pass
 
     @command()
-    def set_n_avg_min(self, n_avg_min): pass
+    def set_num_average_min(self, n_avg_min):
+        pass
 
     @command()
     def set_dac(self, data, channels=[0,1]):
@@ -84,7 +87,8 @@ class Spectrum(object):
         pass
 
     @command()
-    def set_averaging(self, avg_status): pass
+    def set_average(self, is_average):
+        pass
 
     def get_peak_values(self):
         @command()

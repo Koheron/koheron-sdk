@@ -38,7 +38,7 @@ class Spectrum
         ctl.write<reg::addr>(19 << 2); // set tvalid delay to 19 * 8 ns
         set_address_range(0, WFM_SIZE);
         set_period(WFM_SIZE);
-        set_n_avg_min(0);
+        set_num_average_min(0);
 
         std::array<uint32_t,WFM_SIZE> demod_buffer;
         demod_buffer.fill(0x00003FFF);
@@ -50,15 +50,15 @@ class Spectrum
 
     auto get_average_status() {
         return std::make_tuple(
-            avg_on,
-            n_avg_min,
+            is_average,
+            num_average_min,
             num_average
         );
     }
 
-    void set_average(bool avg_on_) {
-        avg_on = avg_on_;
-        ctl.write_bit<reg::avg, 0>(avg_on);
+    void set_average(bool is_average_) {
+        is_average = is_average_;
+        ctl.write_bit<reg::avg, 0>(is_average);
     }
 
     uint32_t get_num_average()  {
@@ -66,9 +66,9 @@ class Spectrum
         return num_average;
     }
 
-    void set_n_avg_min(uint32_t n_avg_min_) {
-        n_avg_min = (n_avg_min_ < 2) ? 0 : n_avg_min_ - 2;
-        ctl.write<reg::n_avg_min>(n_avg_min);
+    void set_num_average_min(uint32_t num_average_min_) {
+        num_average_min = (num_average_min_ < 2) ? 0 : num_average_min_ - 2;
+        ctl.write<reg::n_avg_min>(num_average_min);
     }
 
     // Acquisition
@@ -109,10 +109,10 @@ class Spectrum
         wait_for_acquisition();
 
         if (sts.read<reg::avg_on_out>()) {
-            float num_avg = float(get_num_average());
+            float num_average_ = float(get_num_average());
 
             for (unsigned int i=0; i<data_decim.size(); i++)
-                data_decim[i] = raw_data[index_low + decim_factor * i] / num_avg;
+                data_decim[i] = raw_data[index_low + decim_factor * i] / num_average_;
         } else {
             for (unsigned int i=0; i<data_decim.size(); i++)
                 data_decim[i] = raw_data[index_low + decim_factor * i];
@@ -153,8 +153,8 @@ class Spectrum
 
   private:
 
-    bool avg_on;
-    uint32_t n_avg_min;
+    bool is_average;
+    uint32_t num_average_min;
     uint32_t num_average;
 
     Context& ctx;
@@ -178,7 +178,7 @@ class Spectrum
 
     void set_period(uint32_t period) {
         set_dac_period(period, period);
-        set_avg_period(period);
+        set_average_period(period);
         reset();
     }
 
@@ -192,9 +192,9 @@ class Spectrum
         ctl.write<reg::dac_period1>(dac_period1 - 1);
     }
 
-    void set_avg_period(uint32_t avg_period) {
-        ctl.write<reg::avg_period>(avg_period - 1);
-        ctl.write<reg::avg_threshold>(avg_period - 6);
+    void set_average_period(uint32_t average_period) {
+        ctl.write<reg::avg_period>(average_period - 1);
+        ctl.write<reg::avg_threshold>(average_period - 6);
     }
 
 };
