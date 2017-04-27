@@ -5,19 +5,8 @@ from koheron import command
 
 class Spectrum(object):
 
-    def __init__(self, client, wfm_size=4096):
+    def __init__(self, client):
         self.client = client
-        self.wfm_size = wfm_size
-
-        demod = np.zeros((2, self.wfm_size))
-        demod[0, :] = 0.49 * (1 - np.cos(2 * np.pi * np.arange(self.wfm_size) / self.wfm_size))
-        demod[1, :] = 0
-
-        self.set_demod(demod)
-        self.set_noise_floor_buffer(np.zeros(self.wfm_size))
-        self.set_scale_sch(0)
-        self.set_num_average_min(0)
-        self.reset_acquisition()
 
     @command()
     def reset(self):
@@ -30,19 +19,6 @@ class Spectrum(object):
     @command()
     def set_num_average_min(self, n_avg_min):
         pass
-
-    @command()
-    def set_dac(self, data, channels=[0,1]):
-        @command()
-        def set_dac_buffer(self, channel, data):
-            pass
-        for channel in channels:
-            data = np.int16(16384 * (self.dac[channel,:]))
-            set_dac_buffer(self, channel, np.uint32(data[1::2] + data[::2] * 65536))
-
-    @command()
-    def get_dac_buffer(self, channel):
-        return self.client.recv_array(self.wfm_size/2, dtype='uint32')
 
     @command()
     def set_scale_sch(self, scale_sch):
@@ -67,8 +43,9 @@ class Spectrum(object):
         set_noise_floor_buffer(self, np.float32(data))
 
     @command()
-    def get_spectrum(self):
-        return self.client.recv_array(self.wfm_size, dtype='float32')
+    def get_decimated_data(self, decim_factor, index_low, index_high):
+        decimated_data = self.client.recv_vector(dtype='float32')
+        return decimated_data
 
     @command()
     def get_num_average(self):
@@ -90,25 +67,6 @@ class Spectrum(object):
     def set_average(self, is_average):
         pass
 
-    def get_peak_values(self):
-        @command()
-        def store_peak_fifo_data(self):
-            return self.client.recv_uint32()
-
-        self.peak_stream_length = store_peak_fifo_data(self)
-
-        @command()
-        def get_peak_fifo_data(self):
-            return self.client.recv_array(self.peak_stream_length, dtype='uint32')
-
-        return get_peak_fifo_data(self)
-
     @command()
-    def get_peak_fifo_length(self):
-        return self.client.recv_uint32()
-
-    @command()
-    def fifo_start_acquisition(self, acq_period): pass
-
-    @command()
-    def fifo_stop_acquisition(self): pass
+    def get_peak_fifo_data(self):
+        return self.client.recv_vector(dtype='uint32')
