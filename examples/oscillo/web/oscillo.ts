@@ -103,8 +103,8 @@ class Oscillo {
         this.client.send(Command(this.id, this.cmds['set_average'], status));
     }
 
-    setAvgNMin(n_min: number): void {
-        this.client.send(Command(this.id, this.cmds['set_average_n_min'], n_min));
+    setNAvgMin(n_min: number): void {
+        this.client.send(Command(this.id, this.cmds['set_n_average_min'], n_min));
     }
 
 }

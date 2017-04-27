@@ -38,7 +38,7 @@ class Spectrum
         ctl.write<reg::addr>(19 << 2); // set tvalid delay to 19 * 8 ns
         set_address_range(0, WFM_SIZE);
         set_period(WFM_SIZE);
-        set_avg_n_min(0);
+        set_n_avg_min(0);
 
         std::array<uint32_t,WFM_SIZE> demod_buffer;
         demod_buffer.fill(0x00003FFF);
@@ -66,7 +66,7 @@ class Spectrum
         return num_average;
     }
 
-    void set_avg_n_min(uint32_t n_avg_min_) {
+    void set_n_avg_min(uint32_t n_avg_min_) {
         n_avg_min = (n_avg_min_ < 2) ? 0 : n_avg_min_ - 2;
         ctl.write<reg::n_avg_min>(n_avg_min);
     }

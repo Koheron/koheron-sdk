@@ -33,7 +33,7 @@ class Oscillo
 
         set_average(false); // Reset averaging
         ctl.write<reg::addr>(19 << 2); // set tvalid delay to 19 * 8 ns
-        set_average_n_min(0);
+        set_n_average_min(0);
         set_dac_periods(WFM_SIZE, WFM_SIZE);
         set_avg_period(WFM_SIZE);
     }
@@ -69,7 +69,7 @@ class Oscillo
         return num_average;
     }
 
-    void set_average_n_min(uint32_t n_avg_min_) {
+    void set_n_average_min(uint32_t n_avg_min_) {
         n_avg_min = (n_avg_min_ < 2) ? 0 : n_avg_min_-2;
         ctl.write<reg::n_avg_min0>(n_avg_min);
         ctl.write<reg::n_avg_min1>(n_avg_min);

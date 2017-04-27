@@ -57,7 +57,7 @@ class Average {
     saveAvgMin(): void {
         this.avgMinEdit.innerHTML = this.avgMinInput.value;
         if (this.avgOn) {
-            this.driver.setAvgNMin(Math.max(0, parseInt(this.avgMinInput.value)));
+            this.driver.setNAvgMin(Math.max(0, parseInt(this.avgMinInput.value)));
         }
         this.avgMinEdit.style.display = 'inline';
         this.avgMinInput.style.display = 'none';

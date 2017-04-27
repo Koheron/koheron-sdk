@@ -27,7 +27,7 @@ class Oscillo(object):
         pass
 
     @command()
-    def set_n_avg_min(self, n_avg_min):
+    def set_n_average_min(self, n_avg_min):
         ''' Set the minimum of averages that will be computed on the FPGA
         The effective number of averages is >= n_avg_min.
         '''
