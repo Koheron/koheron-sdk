@@ -2,66 +2,64 @@
 // (c) Koheron
 
 interface AverageStatus {
-    avgOn: boolean;
-    nMinAvg: number;
-    nAvg: number;
+    isAverage: boolean;
+    numAverageMin: number;
+    numAverage: number;
 }
 
 class Average {
 
-    private avgBtn: HTMLLinkElement;
-    private avgSpan: HTMLSpanElement;
-    private avgMinInput: HTMLInputElement;
-    private avgMinSave: HTMLLinkElement;
-    private avgMinEdit: HTMLLinkElement;
+    private averageBtn: HTMLLinkElement;
+    private averageSpan: HTMLSpanElement;
+    private numAverageMinInput: HTMLInputElement;
+    private numAverageMinSave: HTMLLinkElement;
+    private numAverageMinEdit: HTMLLinkElement;
 
-    private avgOn: boolean = false;
+    private isAverage: boolean = false;
 
     constructor(document: Document, private driver: any) {
 
-        this.avgBtn = <HTMLLinkElement>document.getElementById('avg-btn');
-        this.avgSpan = <HTMLSpanElement>document.getElementById('avg');
-        this.avgMinInput = <HTMLInputElement>document.getElementById('avg-min-input');
-        this.avgMinSave = <HTMLLinkElement>document.getElementById('avg-min-save');
-        this.avgMinEdit = <HTMLLinkElement>document.getElementById('avg-min-edit');
+        this.averageBtn = <HTMLLinkElement>document.getElementById('avg-btn');
+        this.averageSpan = <HTMLSpanElement>document.getElementById('avg');
+        this.numAverageMinInput = <HTMLInputElement>document.getElementById('avg-min-input');
+        this.numAverageMinSave = <HTMLLinkElement>document.getElementById('avg-min-save');
+        this.numAverageMinEdit = <HTMLLinkElement>document.getElementById('avg-min-edit');
 
         this.update();
     }
 
     update() {
         this.driver.getAverageStatus((status: AverageStatus) => {
-            this.avgOn = status.avgOn;
-            if (status.avgOn) {
-                this.avgSpan.innerHTML = status.nAvg.toString();
-                this.avgBtn.className = 'btn btn-primary-reversed active';
+            this.isAverage = status.isAverage;
+            if (status.isAverage) {
+                this.averageSpan.innerHTML = status.numAverage.toString();
+                this.averageBtn.className = 'btn btn-primary-reversed active';
             } else {
-                this.avgSpan.innerHTML = "";
-                this.avgBtn.className = 'btn btn-primary-reversed';
+                this.averageSpan.innerHTML = "";
+                this.averageBtn.className = 'btn btn-primary-reversed';
             }
             requestAnimationFrame( () => { this.update(); } )
         });
     }
 
-    // Averaging
-
-    avg(): void {
-        this.driver.setAvg(!this.avgOn);
+    average(): void {
+        this.driver.setAverage(!this.isAverage);
     }
 
-    editAvgMin(): void {
-        this.avgMinEdit.style.display = 'none';
-        this.avgMinInput.style.display = 'inline';
-        this.avgMinSave.style.display = 'inline';
+    editNumAverageMin(): void {
+        this.numAverageMinEdit.style.display = 'none';
+        this.numAverageMinInput.style.display = 'inline';
+        this.numAverageMinSave.style.display = 'inline';
     }
 
-    saveAvgMin(): void {
-        this.avgMinEdit.innerHTML = this.avgMinInput.value;
-        if (this.avgOn) {
-            this.driver.setNAvgMin(Math.max(0, parseInt(this.avgMinInput.value)));
+    saveNumAverageMin(): void {
+        this.numAverageMinEdit.innerHTML = this.numAverageMinInput.value;
+        if (this.isAverage) {
+            this.driver.setNumAverageMin(Math.max(0, parseInt(this.numAverageMinInput.value)));
         }
-        this.avgMinEdit.style.display = 'inline';
-        this.avgMinInput.style.display = 'none';
-        this.avgMinSave.style.display = 'none';
+        this.numAverageMinEdit.style.display = 'inline';
+        this.numAverageMinInput.style.display = 'none';
+        this.numAverageMinSave.style.display = 'none';
     }
 
 }

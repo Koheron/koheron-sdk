@@ -71,15 +71,15 @@
 
     <div class="border padding">
 
-    <a id="avg-btn" class="btn btn-primary-reversed" onclick="app.average.avg(); return false">Average</a>
+    <a id="avg-btn" class="btn btn-primary-reversed" onclick="app.average.average(); return false">Average</a>
 
     &nbsp; &nbsp; Count:
     <span id="avg" style="display: inline-block; width: 50px"></span>
 
     &nbsp; &nbsp; Minimum:
-    <a id="avg-min-edit" href="#" onclick="app.average.editAvgMin(); return false" class="btn-tip" data-toggle="tooltip" data-placement="right" title="Edit">0</a>
+    <a id="avg-min-edit" href="#" onclick="app.average.editNumAverageMin(); return false" class="btn-tip" data-toggle="tooltip" data-placement="right" title="Edit">0</a>
     <input id="avg-min-input" type="number" value="0" min="0" step="1" max="2000" style="display: none; width: 70px">
-    <a class="glyphicon glyphicon-ok blue btn-tip" id="avg-min-save" href="#" onclick="app.average.saveAvgMin(); return false" data-toggle="tooltip" data-placement="bottom" title="Save" style="display: none"></a>
+    <a class="glyphicon glyphicon-ok blue btn-tip" id="avg-min-save" href="#" onclick="app.average.saveNumAverageMin(); return false" data-toggle="tooltip" data-placement="bottom" title="Save" style="display: none"></a>
 
     </div>
 
