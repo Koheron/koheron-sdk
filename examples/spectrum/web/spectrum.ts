@@ -33,9 +33,9 @@ class Spectrum {
         this.setFreqRange(this.rangeFreq);
     }
 
-    getData(callback: (data: number[][], range: jquery.flot.range) => void): void {
+    getDecimatedData(callback: (data: number[][], range: jquery.flot.range) => void): void {
         this.client.readFloat32Vector(
-            Command(this.id, this.cmds['get_data_decim'], 1, this.indexLow, this.indexHigh), (array) => {
+            Command(this.id, this.cmds['get_decimated_data'], 1, this.indexLow, this.indexHigh), (array) => {
 
                 const size: number = this.indexHigh - this.indexLow;
                 let data: number[][] = [];
@@ -82,19 +82,19 @@ class Spectrum {
         this.client.readTuple(Command(this.id, this.cmds['get_average_status']), '?II',
                               (tup: [boolean, number, number]) => {
             let status: AverageStatus = <AverageStatus>{};
-            status.avgOn = tup[0];
-            status.nMinAvg = tup[1];
-            status.nAvg = tup[2];
+            status.isAverage = tup[0];
+            status.numAverageMin = tup[1];
+            status.numAverage = tup[2];
             cb(status);
         });
     }
 
-    setAvg(status: boolean): void {
+    setAverage(status: boolean): void {
         this.client.send(Command(this.id, this.cmds['set_average'], status));
     }
 
-    setAvgNMin(n_min: number): void {
-        this.client.send(Command(this.id, this.cmds['set_avg_n_min'], n_min));
+    setNumAverageMin(num_average_min: number): void {
+        this.client.send(Command(this.id, this.cmds['set_num_average_min'], num_average_min));
     }
 
 }

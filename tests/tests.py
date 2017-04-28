@@ -9,7 +9,7 @@ import numpy as np
 import re
 
 sys.path = [".."] + sys.path
-from koheron import KoheronClient, command, __version__
+from koheron import connect, command, __version__
 
 class Tests:
     def __init__(self, client):
@@ -51,7 +51,7 @@ class Tests:
 
 host = os.getenv('HOST', '192.168.1.100')
 
-client = KoheronClient(host)
+client = connect(host, name='test')
 tests = Tests(client)
 
 def test_get_server_version():

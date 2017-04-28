@@ -36,6 +36,7 @@ class Tests
         for (unsigned int j=0; j<8192; j++) {
             if (arr[j] != j) return false;
         }
+
         return true;
     }
 

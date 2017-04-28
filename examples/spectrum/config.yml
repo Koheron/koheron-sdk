@@ -105,7 +105,7 @@ drivers:
   - server/drivers/xadc.hpp
   - server/drivers/laser.hpp
   - server/drivers/modulation.hpp
-  - ./drivers/spectrum.hpp
+  - ./spectrum.hpp
 
 # ------------------------------------------------------------
 # Web
