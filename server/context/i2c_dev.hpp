@@ -111,7 +111,7 @@ class I2cDev
     }
 
     template<typename T>
-    int read(int32_t addr, T scalar) {
+    int read(int32_t addr, T& scalar) {
         return read(addr, reinterpret_cast<uint8_t*>(&scalar), sizeof(T));
     }
 
