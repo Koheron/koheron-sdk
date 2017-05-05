@@ -20,6 +20,18 @@ def get_driver(path, driver_id=0):
     driver.calls = cmd_calls(driver.raw, driver_id)
     return driver
 
+def get_driver_id(drivers_list, driver_path):
+    drivers_ids ={}
+    driver_id = 2
+    for path in drivers_list or []:
+        assert(path.endswith('.hpp') or path.endswith('.h'))
+        dir1, file1 = os.path.split(path)
+        dir2, file2 = os.path.split(driver_path)
+	if file1 == file2:
+            return driver_id
+        driver_id +=1
+    return None
+
 def get_drivers(drivers_list):
     drivers = [] # List of generated drivers
     obj_files = []  # Object file names

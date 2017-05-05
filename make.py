@@ -3,7 +3,6 @@
 
 import os
 import sys
-import time
 import json
 import jinja2
 import yaml
@@ -221,7 +220,8 @@ if __name__ == "__main__":
 
     elif cmd == '--render_interface':
         driver_filename_hpp = sys.argv[4]
-        server.render_driver(server.get_driver(driver_filename_hpp), output_filename)
+        id_ = server.get_driver_id(config['drivers'], driver_filename_hpp)
+        server.render_driver(server.get_driver(driver_filename_hpp, id_), output_filename)
 
     elif cmd == '--web':
         for i, path in enumerate(config.get('web', [])):
