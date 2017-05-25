@@ -20,7 +20,7 @@ file delete -force \
 
 create_project -part $part $project_name $output_path/cores
 
-add_files -norecurse [glob $core_name/*.v]
+add_files -norecurse [glob $core_name/*.v*]
 
 set_property -name {xsim.simulate.runtime} -value {100000ns} -objects [current_fileset -simset]
 
