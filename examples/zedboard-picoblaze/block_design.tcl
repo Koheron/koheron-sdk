@@ -28,6 +28,7 @@ cell xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_0 {
 
 cell xilinx.com:ip:axi_bram_ctrl:4.0 axi_bram_ctrl_0 {
     SINGLE_PORT_BRAM 1
+    PROTOCOL AXI4LITE
 } {
     S_AXI axi_mem_intercon_0/M[add_master_interface]_AXI
     s_axi_aclk ps_0/FCLK_CLK0
