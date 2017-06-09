@@ -50,9 +50,9 @@ cell xilinx:user:kcpsm6:1.0 picoblaze {
     in_port [ctl_pin in_port]
 }
 
-# Left shift picoblaze address by 2 bit and connect it to BRAM
+# Connect picoblaze address to BRAM
 
-connect_pins blk_mem_gen_0/addrb [get_concat_pin [list [get_constant_pin 0 2] picoblaze/address]]
+connect_pins blk_mem_gen_0/addrb picoblaze/address
 
 # Register picoblaze out_port
 
