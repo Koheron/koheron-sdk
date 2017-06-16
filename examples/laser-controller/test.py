@@ -17,12 +17,12 @@ class Laser(object):
         pass
 
     @command()
-    def get_power(self):
-        return self.client.recv_uint32()
+    def get_measured_power(self):
+        return self.client.recv_float()
 
     @command()
-    def get_current(self):
-        return self.client.recv_uint32()
+    def get_measured_current(self):
+        return self.client.recv_float()
 
     @command()
     def set_current(self, current):
@@ -31,10 +31,10 @@ class Laser(object):
 
 if __name__=="__main__":
     host = os.getenv('HOST','192.168.1.100')
-    client = connect(host, 'laser_controller')
+    client = connect(host, 'laser-controller')
     laser = Laser(client)
 
     laser.start()
     for i in range(40):
         laser.set_current(i)
-        print(laser.get_current, laser.get_power())
+        print(laser.get_measured_current(), laser.get_measured_power())
