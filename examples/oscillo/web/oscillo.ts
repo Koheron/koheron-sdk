@@ -52,9 +52,9 @@ class Oscillo {
         return Math.floor(t * this.samplingRate / this.mhz);
     }
 
-    getData(callback: (ch0: number[][], ch1: number[][], range: jquery.flot.range) => void): void {
+    getDecimatedData(callback: (ch0: number[][], ch1: number[][], range: jquery.flot.range) => void): void {
         this.client.readFloat32Vector(
-            Command(this.id, this.cmds['get_data_decim'],
+            Command(this.id, this.cmds['get_decimated_data'],
             this.decimationFactor,
             this.indexLow,
             this.indexHigh), (array) => {
@@ -92,19 +92,19 @@ class Oscillo {
         this.client.readTuple(Command(this.id, this.cmds['get_average_status']), '?II',
                               (tup: [boolean, number, number]) => {
             let status: AverageStatus = <AverageStatus>{};
-            status.avgOn = tup[0];
-            status.nMinAvg = tup[1];
-            status.nAvg = tup[2];
+            status.isAverage = tup[0];
+            status.numAverageMin = tup[1];
+            status.numAverage = tup[2];
             cb(status);
         });
     }
 
-    setAvg(status: boolean): void {
+    setAverage(status: boolean): void {
         this.client.send(Command(this.id, this.cmds['set_average'], status));
     }
 
-    setAvgNMin(n_min: number): void {
-        this.client.send(Command(this.id, this.cmds['set_average_n_min'], n_min));
+    setNumAverageMin(num_average_min: number): void {
+        this.client.send(Command(this.id, this.cmds['set_num_average_min'], num_average_min));
     }
 
 }

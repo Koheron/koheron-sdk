@@ -33,7 +33,7 @@ class Tests {
 
     setArray(cb) {
         let u = 4223453;
-        let f = 3.141592;
+        let f = 3.14159265359;
         let d = 2.654798454646;
         let i = -56789;
         let array = new Uint32Array(8192);

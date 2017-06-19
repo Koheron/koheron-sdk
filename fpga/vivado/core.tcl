@@ -13,7 +13,7 @@ file delete -force $output_path/$core_name $output_path/$project_name.cache $out
 
 create_project -part $part $project_name $output_path
 
-add_files -norecurse [glob $core_path/*.v]
+add_files -norecurse [glob $core_path/*.v*]
 
 # Remove testbench files
 set testbench_files [glob -nocomplain $core_path/*_tb.v]

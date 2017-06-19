@@ -46,14 +46,14 @@ class LaserDriver {
 }
 
 class LaserControl {
-    private laserSwitch: HTMLInputElement;
+    private laserSwitch: HTMLLinkElement;
     private inputCurrentSlider: HTMLInputElement;
     private inputCurrentSpan: HTMLSpanElement;
     private outputCurrentSpan: HTMLSpanElement;
     private outputPowerSpan: HTMLSpanElement;
 
     constructor(private document: Document, private driver: LaserDriver) {
-        this.laserSwitch = <HTMLInputElement>document.getElementById('laser-switch');
+        this.laserSwitch = <HTMLLinkElement>document.getElementById('laser-switch');
         this.inputCurrentSlider = <HTMLInputElement>document.getElementById('input-current-slider');
         this.inputCurrentSpan = <HTMLSpanElement>document.getElementById('input-current');
         this.outputCurrentSpan = <HTMLSpanElement>document.getElementById('output-current');
@@ -71,10 +71,10 @@ class LaserControl {
             this.inputCurrentSpan.innerHTML = status.current.toFixed(2).toString();
 
             if (status.laser_on) {
-                this.laserSwitch.value = 'Stop Laser';
+                this.laserSwitch.innerHTML = 'Stop Laser';
                 this.laserSwitch.className = 'btn btn-danger';
             } else {
-                this.laserSwitch.value = 'Start Laser';
+                this.laserSwitch.innerHTML = 'Start Laser';
                 this.laserSwitch.className = 'btn btn-success';
             }
             requestAnimationFrame( () => { this.update(); });
@@ -82,7 +82,7 @@ class LaserControl {
     }
 
     switchLaser(): void {
-        if (this.laserSwitch.value == 'Start Laser') {
+        if (this.laserSwitch.innerHTML == 'Start Laser') {
             this.driver.start();
         } else { // Turn off
             this.driver.stop();

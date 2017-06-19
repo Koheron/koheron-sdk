@@ -7,7 +7,7 @@
 
 [Koheron Software Development Kit](https://www.koheron.com/software-development-kit) is a tool to develop FPGA / Linux instruments for Zynq SoCs.
 
-## Getting started with the Red Pitaya
+## Getting started
 
 1. [Install Vivado 2016.4](https://koheron.com/software-development-kit/documentation/setup-development-machine)
 
@@ -17,17 +17,17 @@
     $ sudo make setup
     ```
 
-3. Install Koheron Linux for Red Pitaya ([Download SD card image](https://github.com/Koheron/koheron-sdk/releases))
+3. Install Ubuntu 16.04 for Zynq ([Download SD card image for Zedboard or Redpitaya](https://www.koheron.com/software-development-kit/documentation/ubuntu-zynq/))
 
 4. Build and run the led-blinker instrument
 
     ```bash
-    $ make CONFIG=examples/led-blinker/config.yml HOST=192.168.1.100 run
+    $ make CONFIG=examples/zedboard-led-blinker/config.yml HOST=192.168.1.100 run
     ```
 
 Ready to develop your instrument? Read the [documentation](https://www.koheron.com/software-development-kit/documentation).
 
-## Examples
+## Red Pitaya designs
 
 * [`led-blinker`](https://github.com/Koheron/koheron-sdk/tree/master/examples/led-blinker) : minimal instrument with LED control.
 * [`adc-dac`](https://github.com/Koheron/koheron-sdk/tree/master/examples/adc-dac) : instrument with minimal read/write capability on Red Pitaya ADCs and DACs.
@@ -36,6 +36,11 @@ Ready to develop your instrument? Read the [documentation](https://www.koheron.c
 * [`decimator`](https://github.com/Koheron/koheron-sdk/tree/master/examples/decimator) : decimation using a compensated CIC filter.
 * [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/examples/oscillo) : signal acquisition / generation with coherent averaging mode.
 * [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/examples/spectrum) : spectrum analyzer with peak-detection and averaging.
+
+## Zedboard designs
+
+* [`led-blinker`](https://github.com/Koheron/koheron-sdk/tree/master/examples/zedboard-led-blinker) : minimal instrument with LED control.
+* [`picoblaze`](https://github.com/Koheron/koheron-sdk/tree/master/examples/zedboard-picoblaze) : 8 bit picoblaze microcontroller controllable from the PS.
 
 ## How to
 

@@ -24,7 +24,7 @@ CORES := $(shell $(MAKE_PY) --cores $(CONFIG) $(TMP_CORES_PATH)/core_list && cat
 CORES_COMPONENT_XML := $(addsuffix /component.xml, $(addprefix $(TMP_CORES_PATH)/, $(notdir $(CORES))))
 
 define make_core_target
-$(TMP_CORES_PATH)/$(notdir $1)/component.xml: $1/core_config.tcl $1/*.v | $(TMP_CORES_PATH)
+$(TMP_CORES_PATH)/$(notdir $1)/component.xml: $1/core_config.tcl $1/*.v* | $(TMP_CORES_PATH)
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/core.tcl -tclargs $1 $(PART) $(TMP_CORES_PATH)
 	@echo [$1] OK
 endef
@@ -74,7 +74,7 @@ test_module: $(CONFIG_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML)
 # Build and test a core in Vivado GUI
 CORE ?= $(FPGA_PATH)/cores/pdm_v1_0
 .PHONY: test_core
-test_core: $(CORE)/core_config.tcl $(CORE)/*.v
+test_core: $(CORE)/core_config.tcl $(CORE)/*.v*
 	$(VIVADO) -source $(FPGA_PATH)/vivado/test_core.tcl -tclargs $(CORE) $(PART) $(TMP_FPGA_PATH)
 
 $(START_SH): $(MEMORY_YML) $(FPGA_PATH)/start.sh

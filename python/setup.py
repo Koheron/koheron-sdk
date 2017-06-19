@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 __version__ = None
-with open('python/version.py') as f:
+with open('koheron/version.py') as f:
     exec(f.read())
 
 setup(
@@ -10,7 +10,7 @@ setup(
     author='Koheron',
     author_email='hello@koheron.com',
     url='https://github.com/Koheron/koheron-sdk',
-    package_dir={'': 'python'},
+    packages=find_packages(),
     license='MIT',
     description='Koheron Python Library',
     long_description='Please see our GitHub README',
@@ -22,6 +22,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        koheron=python.cli:cli
+        koheron=koheron.cli:cli
     ''',
 )

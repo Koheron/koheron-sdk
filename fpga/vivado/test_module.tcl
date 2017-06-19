@@ -5,7 +5,6 @@ set part [lindex $argv 3]
 set output_path [lindex $argv 4]
 
 set $sdk_path/fpga/lib $sdk_path/fpga/lib
-set module_path $sdk_path/fpga/modules
 
 file delete -force \
   $output_path/$project_name.cache \
