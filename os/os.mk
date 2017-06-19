@@ -14,9 +14,7 @@ BOARD := $(shell basename $(BOARD_PATH))
 # Linux and U-boot
 UBOOT_TAG := koheron-$(BOARD)-v$(VIVADO_VERSION)
 LINUX_TAG := koheron-$(BOARD)-v$(VIVADO_VERSION)
-DTREE_TAG := master
-#xilinx-v2016.4
- #$(VIVADO_VERSION)
+DTREE_TAG := xilinx-v$(VIVADO_VERSION)
 
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 
