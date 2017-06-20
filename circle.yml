@@ -17,7 +17,7 @@ dependencies:
     - pip install -r requirements.txt
     - pip install python/.
     - npm install -g typescript
-    - npm install @types/jquery @types/jquery-mousewheel websocket @types/node
+    - npm install @types/jquery @types/jquery-mousewheel@3.1.5 websocket @types/node
     - pip install twine
 
 test:
