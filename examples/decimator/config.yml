@@ -28,7 +28,7 @@ status_registers:
   - adc[n_adc]
 
 parameters:
-  fclk0: 200000000
+  fclk0: 166666667
   adc_clk: 125000000
   adc_width: 14
   dac_width: 14

@@ -8,7 +8,7 @@ board: boards/red-pitaya
 
 parameters:
   fclk0: 200000000
-  fclk1: 200000000
+  fclk1: 166666667
   sampling_rate: 125000000
   wfm_size: 8192
   dac_width: 14
