@@ -36,3 +36,6 @@ xdc:
 drivers:
   - server/drivers/common.hpp
   - ./picoblaze.hpp
+
+web:
+  - web/index.html
