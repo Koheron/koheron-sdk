@@ -12,7 +12,7 @@ proc add_redp_adc_dac {module_name} {
   create_bd_pin -dir O pwm_clk
 
   # Phase-locked Loop (PLL)
-  cell xilinx.com:ip:clk_wiz:5.3 pll {
+  cell xilinx.com:ip:clk_wiz:5.4 pll {
     PRIMITIVE              PLL
     PRIM_IN_FREQ.VALUE_SRC USER
     PRIM_IN_FREQ           125.0

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-vivado_release=2016.4
-vivado_version=${vivado_release}_1215_1
+vivado_release=2017.1
+vivado_version=${vivado_release}_0415_1
 
 tar -xvzf Xilinx_Vivado_SDK_${vivado_version}.tar.gz
 
@@ -26,18 +26,3 @@ EOF_CAT
 bash Xilinx_Vivado_SDK_${vivado_version}/xsetup --agree 3rdPartyEULA,WebTalkTerms,XilinxEULA --batch Install --config install_config.txt
 rm install_config.txt
 rm -r Xilinx_Vivado_SDK_${vivado_version}
-
-## System version of glibc ##
-
-for folder in Vivado SDK
-do
-  path=/opt/Xilinx/${folder}/${vivado_release}/lib/lnx64.o
-  mv $path/libstdc++.so.6 $path/libstdc++.so.6.orig
-  ln -s /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.21 $path/libstdc++.so.6
-done
-
-## awk issue ##
-
-path=/opt/Xilinx/Vivado/${vivado_release}/lib/lnx64.o
-mv $path/libmpfr.so.4 $path/libmpfr.so.4.orig
-ln -s /usr/lib/x86_64-linux-gnu/libmpfr.so.4 $path/libmpfr.so.4

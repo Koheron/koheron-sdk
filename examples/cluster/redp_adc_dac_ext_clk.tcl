@@ -15,7 +15,7 @@ proc add_redp_adc_dac {module_name} {
 
 
   # Mixed-mode clock manager
-  cell xilinx.com:ip:clk_wiz:5.3 mmcm {
+  cell xilinx.com:ip:clk_wiz:5.4 mmcm {
     PRIMITIVE              MMCM
     PRIM_IN_FREQ.VALUE_SRC USER
     PRIM_IN_FREQ           125.0
