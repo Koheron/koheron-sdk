@@ -2,7 +2,7 @@
 set -e
 
 target=$1
-mode=production
+mode=development
 
 make CONFIG=examples/led-blinker/config.yml MODE=$mode $target
 make CONFIG=examples/oscillo/config.yml MODE=$mode $target
