@@ -140,7 +140,7 @@ setup_web: setup_base
 	apt-get install -y nodejs
 	rm -f /usr/bin/node && ln -s /usr/bin/nodejs /usr/bin/node
 	npm install -g typescript
-	npm install @types/jquery @types/jquery-mousewheel websocket @types/node
+	npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
 
 .PHONY: setup_os
 setup_os: setup_base
