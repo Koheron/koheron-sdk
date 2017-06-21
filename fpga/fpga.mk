@@ -66,6 +66,11 @@ block_design: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML)
 	$(VIVADO) -source $(FPGA_PATH)/vivado/block_design.tcl \
 	  -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(BOARD_PATH) $(MODE) $(TMP_FPGA_PATH) $(TMP_FPGA_PATH)/xdc block_design_
 
+# Open the Vivado project
+.PHONY: open_project
+open_project: $(TMP_FPGA_PATH)/$(NAME).xpr
+	$(VIVADO) -source $(FPGA_PATH)/vivado/open_project.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr
+
 # Build and test a module in Vivado GUI
 .PHONY: test_module
 test_module: $(CONFIG_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML)
