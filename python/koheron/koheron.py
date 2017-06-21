@@ -36,7 +36,7 @@ def run_instrument(host, name=None, restart=False):
     instruments = status['instruments']
     live_instrument = status['live_instrument']
 
-    if (name is None) or (live_instrument == name): # Instrument already running
+    if (name is None) or (live_instrument is name): # Instrument already running
         name = live_instrument
         instrument_running = True
 
@@ -44,7 +44,7 @@ def run_instrument(host, name=None, restart=False):
         if name in instruments:
             instrument_in_store = True
     else:
-            raise ValueError('Did not found instrument {}'.format(name))
+        raise ValueError('Did not found instrument {}'.format(name))
 
     if instrument_in_store or (instrument_running and restart):
         r = requests.get('http://{}/api/instruments/run/{}'.format(host, name))
