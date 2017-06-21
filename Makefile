@@ -24,6 +24,7 @@ help:
 	@echo ' - os           : Build the operating system'
 	@echo ' - image        : Build the root file system (run as root)'
 	@echo ' - block_design : Build the Vivado block design interactively'
+	@echo ' - open_project : Open the Vivado .xpr project'
 
 # Directory for storing the build artifacts
 PROJECT_PATH := $(dir $(CONFIG))
