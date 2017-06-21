@@ -10,8 +10,9 @@
 class Cluster
 {
   public:
-    Cluster(Context& ctx)
-    : ctl(ctx.mm.get<mem::control>())
+    Cluster(Context& ctx_)
+    : ctx(ctx_)
+    , ctl(ctx.mm.get<mem::control>())
     , sts(ctx.mm.get<mem::status>())
     , ctl_clk(ctx.mm.get<mem::ctl_clk>())
     {}
@@ -56,6 +57,7 @@ class Cluster
     void set_freq(double freq_hz) {
         constexpr double factor = (uint64_t(1) << 48) / double(prm::adc_clk);
         set_phase_increment(uint64_t(factor * freq_hz));
+        ctx.log<INFO>("Frequency set to %f Hz/n", freq_hz);
     }
 
     auto get_adc() {
@@ -66,6 +68,7 @@ class Cluster
     }
 
   private:
+    Context& ctx;
     Memory<mem::control>& ctl;
     Memory<mem::status>& sts;
     Memory<mem::ctl_clk>& ctl_clk;
