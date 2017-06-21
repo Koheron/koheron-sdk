@@ -43,7 +43,7 @@ def run_instrument(host, name=None, restart=False):
     if not instrument_running: # Find the instrument in the local store:
         if name in instruments:
             instrument_in_store = True
-	else:
+    else:
             raise ValueError('Did not found instrument {}'.format(name))
 
     if instrument_in_store or (instrument_running and restart):
