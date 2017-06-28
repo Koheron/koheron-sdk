@@ -25,7 +25,7 @@ file delete -force \
   $output_path/$project_name.xpr \
   $output_path/$project_name.sim
 
-create_project -part $part $project_name $output_path
+create_project -force -part $part $project_name $output_path
 
 set_property IP_REPO_PATHS $output_path/../cores [current_project]
 update_ip_catalog -rebuild -scan_changes
