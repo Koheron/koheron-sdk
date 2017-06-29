@@ -23,8 +23,9 @@ namespace Laser_params {
 class Laser
 {
   public:
-    Laser(Context& ctx)
-    : ctl(ctx.mm.get<mem::control>())
+    Laser(Context& ctx_)
+    : ctx(ctx_)
+    , ctl(ctx.mm.get<mem::control>())
     , sts(ctx.mm.get<mem::status>())
     , xadc(ctx.get<Xadc>())
     {
@@ -34,18 +35,33 @@ class Laser
     }
 
     void start() {
-        ctl.write<reg::laser_shutdown>(0);
+        ctl.clear_bit<reg::laser_control, 0>();
         laser_on = true;
     }
 
     void stop() {
-        ctl.write<reg::laser_shutdown>(1);
+        ctl.set_bit<reg::laser_control, 0>();
         laser_on = false;
     }
 
     void set_current(float current_value) {
+        if (constant_power_on == true) {
+            // Switch to constant current mode
+            ctl.clear_bit<reg::laser_control, 2>();
+            constant_power_on = false;
+        }
         current = std::min(current_value, Laser_params::max_laser_current);
         ctl.write<reg::laser_current>(uint32_t(current * Laser_params::current_to_pwm));
+    }
+
+    void set_power(float power_value) {
+        if (constant_power_on == false) {
+            // Switch to constant power_mode
+            ctl.set_bit<reg::laser_control, 2>();
+            constant_power_on = true;
+        }
+        power = power_value;
+        ctl.write<reg::power_setpoint>(uint32_t(power));
     }
 
     float get_measured_current() {
@@ -61,7 +77,9 @@ class Laser
         float measured_power = get_measured_power();
         return std::make_tuple(
             laser_on,
+            constant_power_on,
             current,
+            power,
             measured_current,
             measured_power
         );
@@ -69,7 +87,10 @@ class Laser
 
   private:
     float current;
+    float power;
     bool laser_on;
+    bool constant_power_on;
+    Context& ctx;
     Memory<mem::control>& ctl;
     Memory<mem::status>& sts;
     Xadc& xadc;

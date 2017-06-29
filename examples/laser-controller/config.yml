@@ -10,6 +10,9 @@ cores:
   - fpga/cores/dna_reader_v1_0
   - fpga/cores/pdm_v1_0
   - fpga/cores/pulse_generator_v1_0
+  - fpga/cores/comparator_v1_0
+  - fpga/cores/bus_multiplexer_v1_0
+  - ./saturation_v1_0
 
 memory:
   - name: control
@@ -26,12 +29,16 @@ memory:
 control_registers:
   - led
   - laser_current
-  - laser_shutdown
-  - laser_reset_overvoltage
+  - laser_control
   - dac[n_dac]
+  - power_setpoint
 
 status_registers:
   - adc[n_adc]
+  - power
+  - error
+  - accum
+  - control
 
 parameters:
   fclk0: 200000000
