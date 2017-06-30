@@ -36,14 +36,14 @@
 
   <div class="border padding">
     <a id="laser-switch" class="btn btn-success" onclick="app.laserControl.switchLaser(); return false">Start Laser</a>
+    <a id="mode-switch" class="btn btn-info" onclick="app.laserControl.switchMode(); return false">Constant current</a>
     <br><br>
-    Input Current (mA): <span id="input-current">0</span>
+    <span id="input-current">Input Current (mA): 0</span>
     <input id="input-current-slider" type="range" onchange="app.laserControl.setCurrent(this.value); return false;" oninput="app.laserControl.setCurrent(this.value); return false;" value="0" min="0" step="0.1" max="40" >
-    Input Power (arb. units): <span id="input-power">0</span>
+    <span id="input-power">Input Power (arb. units): 0</span>
     <input id="input-power-slider" type="range" onchange="app.laserControl.setPower(this.value); return false;" oninput="app.laserControl.setPower(this.value); return false;" value="0" min="0" step="0.1" max="6000" >
-
-    Output Current (mA): &nbsp;<span id="output-current"></span><br>
-    Output Power (arb.units): &nbsp;<span id="output-power"></span>
+    Output Power (arb.units): &nbsp;<span id="output-power"></span> &nbsp;
+    <canvas id="canvas" width="400" height="15"></canvas>
   </div>
 
   <br><br>

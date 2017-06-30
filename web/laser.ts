@@ -51,41 +51,50 @@ class LaserDriver {
         this.client.send(Command(this.id, this.cmds['set_power'], val));
     }
 
+    switchMode(): void {
+        this.client.send(Command(this.id, this.cmds['switch_mode']));
+    }
+
+
 }
 
 class LaserControl {
     private laserSwitch: HTMLLinkElement;
+    private modeSwitch: HTMLLinkElement;
     private inputCurrentSlider: HTMLInputElement;
     private inputCurrentSpan: HTMLSpanElement;
     private inputPowerSlider: HTMLInputElement;
     private inputPowerSpan: HTMLSpanElement;
-    private outputCurrentSpan: HTMLSpanElement;
     private outputPowerSpan: HTMLSpanElement;
+    private canvas: HTMLCanvasElement;
+    private ctx: any;
 
     constructor(private document: Document, private driver: LaserDriver) {
         this.laserSwitch = <HTMLLinkElement>document.getElementById('laser-switch');
+        this.modeSwitch = <HTMLLinkElement>document.getElementById('mode-switch');
         this.inputCurrentSlider = <HTMLInputElement>document.getElementById('input-current-slider');
         this.inputCurrentSpan = <HTMLSpanElement>document.getElementById('input-current');
         this.inputPowerSlider = <HTMLInputElement>document.getElementById('input-power-slider');
         this.inputPowerSpan = <HTMLSpanElement>document.getElementById('input-power');
-        this.outputCurrentSpan = <HTMLSpanElement>document.getElementById('output-current');
         this.outputPowerSpan = <HTMLSpanElement>document.getElementById('output-power');
+        this.canvas = <HTMLCanvasElement>document.getElementById('canvas');
 
+        this.ctx = this.canvas.getContext("2d");
+        this.ctx.fillStyle = 'rgb(100, 100, 100)';
         this.update();
     }
 
     update(): void {
         this.driver.getStatus ( (status) => {
             this.outputPowerSpan.innerHTML = status.measured_power.toString();
-            this.outputCurrentSpan.innerHTML = (status.measured_current * 1e3).toFixed(2).toString();
+            this.ctx.clearRect(0,0,400, 15);
+            this.ctx.fillRect(0, 0, (status.measured_power - 300) / 20, 15);
 
             this.inputCurrentSlider.value = status.current.toFixed(2).toString();
-            this.inputCurrentSpan.innerHTML = status.current.toFixed(2).toString();
+            this.inputCurrentSpan.innerHTML = 'Input Current (mA): ' + status.current.toFixed(2).toString();
 
             this.inputPowerSlider.value = status.power.toFixed(2).toString();
-            this.inputPowerSpan.innerHTML = status.power.toFixed(2).toString();
-
-
+            this.inputPowerSpan.innerHTML =  'Input Power (arb. units): ' + status.power.toFixed(2).toString();
 
             if (status.laser_on) {
                 this.laserSwitch.innerHTML = 'Stop Laser';
@@ -94,6 +103,21 @@ class LaserControl {
                 this.laserSwitch.innerHTML = 'Start Laser';
                 this.laserSwitch.className = 'btn btn-success';
             }
+
+            if (status.constant_power_on) {
+                this.modeSwitch.innerHTML = 'Constant power';
+                this.inputCurrentSlider.style.display = 'none';
+                this.inputCurrentSpan.style.display = 'none';
+                this.inputPowerSlider.style.display = 'block';
+                this.inputPowerSpan.style.display = 'block';
+            } else {
+                this.modeSwitch.innerHTML = 'Constant current';
+                this.inputCurrentSlider.style.display = 'block';
+                this.inputCurrentSpan.style.display = 'block';
+                this.inputPowerSlider.style.display = 'none';
+                this.inputPowerSpan.style.display = 'none';
+            }
+
             requestAnimationFrame( () => { this.update(); });
         });
     }
@@ -104,6 +128,10 @@ class LaserControl {
         } else { // Turn off
             this.driver.stop();
         }
+    }
+
+    switchMode(): void {
+        this.driver.switchMode();
     }
 
     setCurrent(value: string): void {

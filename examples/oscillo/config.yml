@@ -42,8 +42,8 @@ memory:
 control_registers:
   - led
   - laser_current
-  - laser_shutdown
-  - laser_reset_overvoltage
+  - laser_control
+  - power_setpoint
   - addr
   - avg[n_adc]
   - dac_period[n_dac]
@@ -53,6 +53,7 @@ control_registers:
 
 status_registers:
   - spi_out
+  - pid_control
   - n_avg[n_adc]
   - avg_ready[n_adc]
   - avg_on_out[n_adc]
@@ -74,6 +75,7 @@ cores:
   - fpga/cores/pdm_v1_0
   - fpga/cores/bus_multiplexer_v1_0
   - fpga/cores/latched_mux_v1_0
+  - fpga/cores/saturation_v1_0
 
 xdc:
   - boards/red-pitaya/config/ports.xdc

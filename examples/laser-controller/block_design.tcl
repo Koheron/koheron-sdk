@@ -57,16 +57,6 @@ set_property -dict [list CONFIG.ENABLE_AXI4STREAM {true}] [get_bd_cells xadc]
 connect_pins xadc/s_axis_aclk adc_dac/adc_clk
 connect_pins xadc/m_axis_tready [get_constant_pin 1 1]
 
-cell xilinx.com:ip:c_shift_ram:12.0 c_shift_ram_0 {
-  CE true
-  Depth 1
-} {
-  D xadc/m_axis_tdata
-  CLK adc_dac/adc_clk
-  CE [get_and_pin xadc/m_axis_tvalid [get_EQ_pin xadc/m_axis_tid [get_constant_pin 17 5]] "clock_enable"]
-  Q [sts_pin power]
-}
-
 # Start pid controller
 set bd [current_bd_instance .]
 current_bd_instance [create_bd_cell -type hier pid_controller]
@@ -77,7 +67,7 @@ create_bd_pin -dir I -from 15 -to 0 setpoint
 create_bd_pin -dir I -type clk clk
 create_bd_pin -dir I integral_reset
 
-create_bd_pin -dir O -from 12 -to 0 control
+create_bd_pin -dir O -from 12 -to 0 pid_control
 create_bd_pin -dir O -from 15 -to 0 error
 
 cell xilinx.com:ip:c_addsub:12.0 error {
@@ -106,24 +96,22 @@ cell xilinx.com:ip:c_accum:12.0 integrator {
   Input_Width 16
   Output_Width 32
   CE true
-  SCLR true
 } {
   B error/S
   CLK clk
   CE shift_reg/Q
-  SCLR [get_slice_pin integrator/Q 31 31 "sign_bit"]
   BYPASS integral_reset
 }
 
 cell koheron:user:saturation:1.0 saturation {
-  DATA_WIDTH 16
+  DATA_WIDTH 24
   MAX_VAL 4095
 } {
   clk clk
-  din [get_slice_pin integrator/Q 31 16]
+  din [get_slice_pin integrator/Q 31 8]
 }
 
-connect_pins control [get_slice_pin saturation/dout 11 0]
+connect_pins pid_control [get_slice_pin saturation/dout 11 0]
 
 current_bd_instance $bd
 # End pid controller
@@ -131,9 +119,8 @@ current_bd_instance $bd
 connect_cell pid_controller {
   clk adc_dac/adc_clk
   s_axis_tdata xadc/m_axis_tdata
-  s_axis_tvalid clock_enable/Res
+  s_axis_tvalid [get_and_pin xadc/m_axis_tvalid [get_EQ_pin xadc/m_axis_tid [get_constant_pin 17 5]] "clock_enable"]
   setpoint [ctl_pin power_setpoint]
-  error [sts_pin error]
   integral_reset [get_slice_pin [ctl_pin laser_control] 0 0]
 }
 
@@ -141,8 +128,8 @@ cell koheron:user:bus_multiplexer:1.0 mux {
   WIDTH 12
 } {
   din0 [ctl_pin laser_current]
-  din1 pid_controller/control
+  din1 pid_controller/pid_control
   sel [get_slice_pin [ctl_pin laser_control] 2 2]
   dout laser_current_pdm/din
-  dout [sts_pin control]
+  dout [sts_pin pid_control]
 }

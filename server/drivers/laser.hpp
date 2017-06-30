@@ -72,6 +72,11 @@ class Laser
         return xadc.read(Laser_params::power_channel);
     }
 
+    void switch_mode() {
+        constant_power_on = !constant_power_on;
+        ctl.write_bit<reg::laser_control, 2>(constant_power_on);
+    }
+
     auto get_status() {
         float measured_current = get_measured_current();
         float measured_power = get_measured_power();

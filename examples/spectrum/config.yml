@@ -38,8 +38,8 @@ memory:
 control_registers:
   - led
   - laser_current
-  - laser_shutdown
-  - laser_reset_overvoltage
+  - laser_control
+  - power_setpoint
   - addr
   - substract_mean
   - ctl_fft
@@ -54,6 +54,7 @@ control_registers:
 
 status_registers:
   - spi_out
+  - pid_control
   - n_avg
   - peak_address
   - peak_maximum
@@ -90,6 +91,7 @@ cores:
   - fpga/cores/pdm_v1_0
   - fpga/cores/bus_multiplexer_v1_0
   - fpga/cores/latched_mux_v1_0
+  - fpga/cores/saturation_v1_0
 
 xdc:
   - boards/red-pitaya/config/ports.xdc

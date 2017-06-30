@@ -28,5 +28,4 @@ connect_port_pin led_o [get_slice_pin [ctl_pin led] 7 0]
 
 # Add XADC
 source $sdk_path/fpga/lib/xadc.tcl
-set xadc_name xadc_wiz_0
-add_xadc $xadc_name
+add_xadc xadc
