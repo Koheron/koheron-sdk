@@ -4,6 +4,7 @@
 interface LaserStatus {
     laser_on: boolean;
     constant_power_on: boolean;
+    is_calibrated: boolean;
     current: number;
     power: number;
     measured_current: number;
@@ -22,15 +23,16 @@ class LaserDriver {
     }
 
     getStatus(cb: (status: LaserStatus) => void): void {
-        this.client.readTuple(Command(this.id, this.cmds['get_status']), '??ffff',
-                             (tup: [boolean, boolean, number, number, number, number]) => {
+        this.client.readTuple(Command(this.id, this.cmds['get_status']), '???ffff',
+                             (tup: [boolean, boolean, boolean, number, number, number, number]) => {
             let status: LaserStatus = <LaserStatus>{};
             status.laser_on = tup[0];
             status.constant_power_on = tup[1];
-            status.current = tup[2];
-            status.power = tup[3];
-            status.measured_current = tup[4];
-            status.measured_power = tup[5];
+            status.is_calibrated = tup[2];
+            status.current = tup[3];
+            status.power = tup[4];
+            status.measured_current = tup[5];
+            status.measured_power = tup[6];
             cb(status);
         });
     }
@@ -55,29 +57,44 @@ class LaserDriver {
         this.client.send(Command(this.id, this.cmds['switch_mode']));
     }
 
+    calibrate0mW(): void {
+        this.client.send(Command(this.id, this.cmds['calibrate_0mW']));
+    }
+
+    calibrate1mW(): void {
+        this.client.send(Command(this.id, this.cmds['calibrate_1mW']));
+    }
 
 }
 
 class LaserControl {
     private laserSwitch: HTMLLinkElement;
     private modeSwitch: HTMLLinkElement;
+    private calibrationSpan: HTMLSpanElement;
+    private currentControlDiv: any;
     private inputCurrentSlider: HTMLInputElement;
     private inputCurrentSpan: HTMLSpanElement;
+    private powerControlDiv: any;
     private inputPowerSlider: HTMLInputElement;
     private inputPowerSpan: HTMLSpanElement;
     private outputPowerSpan: HTMLSpanElement;
     private canvas: HTMLCanvasElement;
+    private calibrationInstructionsDiv: any;
     private ctx: any;
 
     constructor(private document: Document, private driver: LaserDriver) {
         this.laserSwitch = <HTMLLinkElement>document.getElementById('laser-switch');
         this.modeSwitch = <HTMLLinkElement>document.getElementById('mode-switch');
+        this.calibrationSpan = <HTMLLinkElement>document.getElementById('calibration');
+        this.currentControlDiv = document.getElementById('current-control');
         this.inputCurrentSlider = <HTMLInputElement>document.getElementById('input-current-slider');
         this.inputCurrentSpan = <HTMLSpanElement>document.getElementById('input-current');
+        this.powerControlDiv = document.getElementById('power-control');
         this.inputPowerSlider = <HTMLInputElement>document.getElementById('input-power-slider');
         this.inputPowerSpan = <HTMLSpanElement>document.getElementById('input-power');
         this.outputPowerSpan = <HTMLSpanElement>document.getElementById('output-power');
         this.canvas = <HTMLCanvasElement>document.getElementById('canvas');
+        this.calibrationInstructionsDiv = document.getElementById('calibration-instructions');
 
         this.ctx = this.canvas.getContext("2d");
         this.ctx.fillStyle = 'rgb(100, 100, 100)';
@@ -86,15 +103,21 @@ class LaserControl {
 
     update(): void {
         this.driver.getStatus ( (status) => {
-            this.outputPowerSpan.innerHTML = status.measured_power.toString();
+            this.outputPowerSpan.innerHTML = Math.max(0, status.measured_power).toFixed(1).toString();
             this.ctx.clearRect(0,0,400, 15);
-            this.ctx.fillRect(0, 0, (status.measured_power - 300) / 20, 15);
+            this.ctx.fillRect(0, 0, status.measured_power / 10, 15);
+
+            if (status.is_calibrated) {
+                this.calibrationSpan.innerHTML = 'System calibrated';
+            } else {
+                this.calibrationSpan.innerHTML = 'System not calibrated';
+            }
 
             this.inputCurrentSlider.value = status.current.toFixed(2).toString();
-            this.inputCurrentSpan.innerHTML = 'Input Current (mA): ' + status.current.toFixed(2).toString();
+            this.inputCurrentSpan.innerHTML = status.current.toFixed(2).toString();
 
             this.inputPowerSlider.value = status.power.toFixed(2).toString();
-            this.inputPowerSpan.innerHTML =  'Input Power (arb. units): ' + status.power.toFixed(2).toString();
+            this.inputPowerSpan.innerHTML =  status.power.toFixed(2).toString();
 
             if (status.laser_on) {
                 this.laserSwitch.innerHTML = 'Stop Laser';
@@ -106,16 +129,12 @@ class LaserControl {
 
             if (status.constant_power_on) {
                 this.modeSwitch.innerHTML = 'Constant power';
-                this.inputCurrentSlider.style.display = 'none';
-                this.inputCurrentSpan.style.display = 'none';
-                this.inputPowerSlider.style.display = 'block';
-                this.inputPowerSpan.style.display = 'block';
+                this.currentControlDiv.style.display = 'none';
+                this.powerControlDiv.style.display = 'block';
             } else {
                 this.modeSwitch.innerHTML = 'Constant current';
-                this.inputCurrentSlider.style.display = 'block';
-                this.inputCurrentSpan.style.display = 'block';
-                this.inputPowerSlider.style.display = 'none';
-                this.inputPowerSpan.style.display = 'none';
+                this.currentControlDiv.style.display = 'block';
+                this.powerControlDiv.style.display = 'none';
             }
 
             requestAnimationFrame( () => { this.update(); });
@@ -140,6 +159,16 @@ class LaserControl {
 
     setPower(value: string): void {
         this.driver.setPower(parseFloat(value));
+    }
+
+    startCalibration(): void {
+        this.driver.calibrate0mW();
+        this.calibrationInstructionsDiv.style.display = 'block';
+    }
+
+    calibrationDone(): void {
+        this.driver.calibrate1mW();
+        this.calibrationInstructionsDiv.style.display = 'none';
     }
 
 }

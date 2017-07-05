@@ -13,6 +13,7 @@ cores:
   - fpga/cores/comparator_v1_0
   - fpga/cores/bus_multiplexer_v1_0
   - fpga/cores/saturation_v1_0
+  - fpga/cores/at93c46d_spi_v1_0
 
 memory:
   - name: control
@@ -32,10 +33,12 @@ control_registers:
   - laser_control
   - power_setpoint
   - dac[n_dac]
+  - eeprom_ctl
 
 status_registers:
   - adc[n_adc]
   - pid_control
+  - eeprom_sts
 
 parameters:
   fclk0: 200000000
@@ -55,6 +58,7 @@ drivers:
   - server/drivers/common.hpp
   - server/drivers/xadc.hpp
   - server/drivers/laser.hpp
+  - server/drivers/eeprom.hpp
 
 web:
   - web/koheron.ts

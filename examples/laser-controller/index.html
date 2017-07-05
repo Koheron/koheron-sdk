@@ -32,21 +32,46 @@
 
   <h1>Laser Controller</h1>
 
-  <br><br>
+  <br>
+  <br>
 
-  <div class="border padding">
-    <a id="laser-switch" class="btn btn-success" onclick="app.laserControl.switchLaser(); return false">Start Laser</a>
-    <a id="mode-switch" class="btn btn-info" onclick="app.laserControl.switchMode(); return false">Constant current</a>
-    <br><br>
-    <span id="input-current">Input Current (mA): 0</span>
-    <input id="input-current-slider" type="range" onchange="app.laserControl.setCurrent(this.value); return false;" oninput="app.laserControl.setCurrent(this.value); return false;" value="0" min="0" step="0.1" max="40" >
-    <span id="input-power">Input Power (arb. units): 0</span>
-    <input id="input-power-slider" type="range" onchange="app.laserControl.setPower(this.value); return false;" oninput="app.laserControl.setPower(this.value); return false;" value="0" min="0" step="0.1" max="6000" >
-    Output Power (arb.units): &nbsp;<span id="output-power"></span> &nbsp;
-    <canvas id="canvas" width="400" height="15"></canvas>
-  </div>
+    <!--LASER-->
 
-  <br><br>
+    <div class="border padding">
+      <a id="laser-switch" class="btn btn-success" onclick="app.laserControl.switchLaser(); return false">Start Laser</a>
+      <a id="mode-switch" class="btn btn-info" onclick="app.laserControl.switchMode(); return false">Constant current</a>
+      <br><br>
+
+      <div id="current-control">
+        Current (mA): <span id="input-current" style="width:50px; text-align:right; display:inline-block"></span>
+        <input id="input-current-slider" type="range" onchange="app.laserControl.setCurrent(this.value); return false;" oninput="app.laserControl.setCurrent(this.value); return false;" value="0" min="0" step="0.01" max="40" >
+      </div>
+
+      <div id="power-control">
+        Power (µW): <span id="input-power" style="width:60px; text-align:right; display:inline-block"></span>
+        <input id="input-power-slider" type="range" onchange="app.laserControl.setPower(this.value); return false;" oninput="app.laserControl.setPower(this.value); return false;" value="0" min="0" step="0.1" max="4000" >
+      </div>
+
+      Measured Power (µW): &nbsp;<span id="output-power" style="width:60px; text-align:right; display:inline-block"></span> &nbsp;
+      <canvas id="canvas" width="400" height="15"></canvas>
+
+      <br>
+      <span id="calibration"></span> &nbsp;(<a id="start-calibration" class="btn-link blue" onclick="app.laserControl.startCalibration(); return false">start calibration</a>)
+      <div id="calibration-instructions" class="padding" style="display:none">
+        <ol>
+          <li>
+            Connect your laser to an external power meter
+          </li>
+          <li>
+            Tune the current/power until the power reads 1 mW on the power meter.
+          </li>
+          <li><a id="calibration-done" class="btn btn-primary" onclick="app.laserControl.calibrationDone(); return false">Done</a></li>
+        </ol>
+      </div>
+    </div>
+
+  <br>
+  <br>
 
   <p>
     See <a href="/koheron/">available instruments</a>.
@@ -54,7 +79,6 @@
     This instrument was built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>.<br>
     See instrument <a href="https://github.com/Koheron/koheron-sdk/tree/master/examples/laser-controller">source code</a>.<br>
   </p>
-
 
 </div>
 
