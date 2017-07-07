@@ -66,12 +66,50 @@ class Pulse
 
     // Adc FIFO
 
+    uint32_t get_fifo_occupancy() {
+        return adc_fifo_map.read<Fifo_regs::rdfo>();
+    }
+
+    void reset_fifo() {
+        adc_fifo_map.write<Fifo_regs::rdfr>(0x000000A5);
+    }
+
     uint32_t read_fifo() {
         return adc_fifo_map.read<Fifo_regs::rdfd>();
     }
 
     uint32_t get_fifo_length() {
         return (adc_fifo_map.read<Fifo_regs::rlr>() & 0x3FFFFF) >> 2;
+    }
+
+    void wait_for(uint32_t n_pts) {
+        do {} while (get_fifo_length() < n_pts);
+    }
+
+    std::vector<uint32_t>& get_next_pulse(uint32_t n_pts) {
+
+        fifo_acquisition_started = false;
+
+        adc_data.resize(n_pts);
+
+        if (n_pts == 0)
+            return adc_data;
+
+        wait_for(1);
+        uint32_t data = read_fifo();
+
+        // Wait for the beginning of a pulse
+        while ((data & (1 << 15)) != (1 << 15)) {
+            wait_for(1);
+            data = read_fifo();
+        }
+
+        adc_data[0] = data;
+        wait_for(n_pts -1);
+
+        for (unsigned int i=1; i < n_pts; i++)
+            adc_data[i] = read_fifo();
+        return adc_data;
     }
 
     const auto& get_fifo_buffer() {

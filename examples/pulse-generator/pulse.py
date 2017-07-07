@@ -52,3 +52,12 @@ class Pulse(object):
     @command()
     def reset_fifo(self):
         pass
+
+    @command()
+    def get_next_pulse(self, n_pts):
+        assert n_pts > 0
+        assert n_pts <= 16386
+        data_rcv = self.client.recv_vector(dtype='uint32')
+        assert(data_rcv[0] & (1 << 15) == (1 << 15))
+        return data_rcv
+

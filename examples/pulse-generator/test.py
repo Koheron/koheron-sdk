@@ -3,7 +3,7 @@
 
 import numpy as np
 import matplotlib
-matplotlib.use('TKAgg')
+matplotlib.use('GTKAgg')
 from matplotlib import pyplot as plt
 import os
 import time
@@ -12,12 +12,12 @@ from pulse import Pulse
 from koheron import connect
 
 host = os.getenv('HOST', '192.168.1.7')
-client = connect(host, name='pulse-generator')
+client = connect(host, name='pulse_generator')
 driver = Pulse(client)
 
-pulse_width = 256
+pulse_width = 128
 n_pulse = 64
-pulse_frequency = 2000
+pulse_frequency = 1000
 
 pulse_period = np.uint32(driver.fs / pulse_frequency)
 
@@ -30,7 +30,7 @@ driver.set_dac()
 driver.set_pulse_width(pulse_width)
 driver.set_pulse_period(pulse_period)
 
-n = 1024
+n = pulse_width * n_pulse
 
 # Dynamic plot
 fig = plt.figure()
@@ -45,8 +45,10 @@ fig.canvas.draw()
 
 while True:
     try:
-        data_rcv = driver.get_fifo_buffer()
+        data_rcv = driver.get_next_pulse(n)
         adc0 = (np.int32(data_rcv % 16384) - 8192) % 16384 - 8192
+        adc1 = (np.int32((data_rcv >> 16) % 16384) - 8192) % 16384 - 8192
+        print driver.get_fifo_length(), np.mean(adc0), np.mean(adc1)
         li.set_ydata(adc0)
         fig.canvas.draw()
         plt.pause(0.001)
