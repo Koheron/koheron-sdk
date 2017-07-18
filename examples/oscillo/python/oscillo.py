@@ -8,7 +8,7 @@ import numpy as np
 from koheron import command
 
 class Oscillo(object):
-    def __init__(self, client, verbose=False):
+    def __init__(self, client):
         self.client = client
 
     @command()
@@ -57,3 +57,25 @@ class Oscillo(object):
 
     def reset(self):
         self.reset_dac()
+
+    # Modulation
+
+    @command(classname='Modulation')
+    def get_modulation_status(self):
+        return self.client.recv_tuple('IIffffff')
+
+    @command(classname='Modulation')
+    def set_waveform_type(self, channel, wfm_type):
+        pass
+
+    @command(classname='Modulation')
+    def set_dac_amplitude(self, channel, amplitude_value):
+        pass
+
+    @command(classname='Modulation')
+    def set_dac_frequency(self, channel, frequency_value):
+        pass
+
+    @command(classname='Modulation')
+    def set_dac_offset(self, channel, frequency_value):
+        pass
