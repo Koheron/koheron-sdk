@@ -31,6 +31,9 @@ switch $mode {
     set_property STRATEGY Flow_PerfOptimized_High [get_runs synth_1]
     set_property STRATEGY Performance_NetDelay_high [get_runs impl_1]
   }
+  "custom" {
+    # Put your custom implementation strategy here (and run $ make MODE=custom ...)    
+  }  
   default {
   }
 }
