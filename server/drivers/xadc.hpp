@@ -23,6 +23,7 @@ class Xadc
     Xadc(Context& ctx)
     : xadc(ctx.mm.get<mem::xadc>())
     {
+      enable_averaging();
       set_averaging(256);
     }
 

@@ -38,8 +38,8 @@ memory:
 control_registers:
   - led
   - laser_current
-  - laser_shutdown
-  - laser_reset_overvoltage
+  - laser_control
+  - power_setpoint
   - addr
   - substract_mean
   - ctl_fft
@@ -51,14 +51,17 @@ control_registers:
   - avg_period
   - avg_threshold
   - n_avg_min
+  - eeprom_ctl
 
 status_registers:
   - spi_out
+  - pid_control
   - n_avg
   - peak_address
   - peak_maximum
   - avg_ready
   - avg_on_out
+  - eeprom_sts
 
 parameters:
   fclk0: 200000000
@@ -90,6 +93,8 @@ cores:
   - fpga/cores/pdm_v1_0
   - fpga/cores/bus_multiplexer_v1_0
   - fpga/cores/latched_mux_v1_0
+  - fpga/cores/saturation_v1_0
+  - fpga/cores/at93c46d_spi_v1_0
 
 xdc:
   - boards/red-pitaya/config/ports.xdc
@@ -105,6 +110,7 @@ drivers:
   - server/drivers/xadc.hpp
   - server/drivers/laser.hpp
   - server/drivers/modulation.hpp
+  - server/drivers/eeprom.hpp
   - ./spectrum.hpp
 
 # ------------------------------------------------------------
