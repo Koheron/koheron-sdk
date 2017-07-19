@@ -14,12 +14,11 @@ namespace Laser_params {
     constexpr uint32_t power_channel = 1; //xadc channel
     constexpr uint32_t current_channel = 8; //xadc channel
     constexpr float max_laser_current = 50.0; // mA
-    constexpr float gain_lt1789 = 1+200./10;
+    constexpr float current_gain = 47.7; // mA/V
     constexpr float pwm_max_voltage = 1.8; // V
     constexpr float pwm_max_value = (1 << prm::pwm_width);
-    constexpr float milliamps_to_amps = 0.001;
-    constexpr float current_to_pwm = milliamps_to_amps * pwm_max_value * gain_lt1789 / pwm_max_voltage;
-    constexpr float measured_current_gain = 0.1F * milliamps_to_amps / gain_lt1789;
+    constexpr float current_to_pwm = pwm_max_value / ( current_gain * pwm_max_voltage);
+    constexpr float measured_current_gain = current_gain * 1E-7F;
 }
 
 class Laser
