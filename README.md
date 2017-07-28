@@ -9,7 +9,7 @@
 
 ## Getting started
 
-1. [Install Vivado 2017.1](https://koheron.com/software-development-kit/documentation/setup-development-machine)
+1. [Install Vivado 2017.2](https://koheron.com/software-development-kit/documentation/setup-development-machine)
 
 2. Install required packages
 

@@ -1,26 +1,11 @@
 
-KOHERON_SERVER_TAG := v0.14
-KOHERON_SERVER_PATH := $(TMP)/koheron-server-$(KOHERON_SERVER_TAG)
-KOHERON_SERVER_TAR := $(TMP)/koheron-server-$(KOHERON_SERVER_TAG).tar.gz
-KOHERON_SERVER_URL := https://github.com/Koheron/koheron-server/archive/$(KOHERON_SERVER_TAG).tar.gz
-
-$(KOHERON_SERVER_TAR):
-	mkdir -p $(@D)
-	curl -L $(KOHERON_SERVER_URL) -o $@
-	@echo [$@] OK
-
-$(KOHERON_SERVER_PATH): $(KOHERON_SERVER_TAR)
-	mkdir -p $@
-	tar -zxf $< --strip-components=1 --directory=$@
-	@echo [$@] OK
-
 TMP_SERVER_PATH := $(TMP_PROJECT_PATH)/server
 
 $(TMP_SERVER_PATH):
 	@mkdir -p $@
 
 SERVER_TEMPLATES := $(wildcard $(SERVER_PATH)/templates/*.hpp $(SERVER_PATH)/templates/*.cpp)
-SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(KOHERON_SERVER_PATH)/*.cpp))))
+SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/core/*.cpp))))
 
 DRIVERS := $(shell $(MAKE_PY) --drivers $(CONFIG) $(TMP_SERVER_PATH)/drivers && cat $(TMP_SERVER_PATH)/drivers)
 DRIVERS_HPP := $(filter %.hpp,$(DRIVERS))
@@ -72,7 +57,7 @@ SERVER_CCXXFLAGS += -Wlogical-op -Wdouble-promotion -Wformat -Wmissing-include-d
 SERVER_CCXXFLAGS += -Wcast-align -Wpacked -Wredundant-decls -Wvarargs -Wvector-operation-performance -Wswitch-default
 SERVER_CCXXFLAGS += -Wuninitialized -Wshadow -Wzero-as-null-pointer-constant -Wmissing-declarations
 # SERVER_CCXXFLAGS += -Wconversion -Wsign-conversion
-SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(KOHERON_SERVER_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
+SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/core -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 SERVER_CCXXFLAGS += -DKOHERON_VERSION=$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)
 SERVER_CCXXFLAGS += -MMD -MP -O3 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard
 SERVER_CCXXFLAGS += -std=c++14 -pthread
@@ -80,7 +65,7 @@ SERVER_CCXXFLAGS += -std=c++14 -pthread
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp
 	$(CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-$(TMP_SERVER_PATH)/%.o: $(KOHERON_SERVER_PATH)/%.cpp
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/%.cpp
 	$(CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
 $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp
