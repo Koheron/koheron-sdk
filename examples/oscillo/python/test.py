@@ -26,27 +26,20 @@ decimation_factor = 1
 index_low = 0
 index_high = 8191
 
-decimated_data = oscillo.get_decimated_data(decimation_factor, index_low, index_high)
-
+size = int(math.floor((index_high - index_low) / decimation_factor))
 t_min = index_low * mhz / sampling_rate
 t_max = index_high * mhz / sampling_rate
-
-t_range = np.linspace(t_min, t_max, wfm_size)
-
-channel0 = np.zeros((wfm_size, 2))
-channel1 = np.zeros((wfm_size, 2))
-
-coeff = mhz * decimation_factor / sampling_rate
-size = int(math.floor((index_high - index_low) / decimation_factor))
-
-for i in range(0, wfm_size - 1):
-    channel0[i] = [t_min + coeff * i, decimated_data[i]]
-    channel1[i] = [t_min + coeff * i, decimated_data[i + size]]
+t = np.linspace(t_min, t_max, size)
 
 oscillo.set_num_average_min(2000)
 oscillo.set_average(True)
 
-plt.plot(t_range, channel0, 'b')
-plt.plot(t_range, channel1, 'g')
-plt.axis([50, 50.30, -1500, 1500])
+data = oscillo.get_decimated_data(decimation_factor, index_low, index_high)
+
+data = np.reshape(data, (2, size))
+
+plt.plot(t, data[0,:], 'b')
+plt.plot(t, data[1,:], 'g')
+plt.axis([t_min, t_max, -8192, 8192])
+plt.xlabel('Time (us)')
 plt.show()
