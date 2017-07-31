@@ -45,7 +45,7 @@ driver.set_dac()
 
 adc_channel = 0
 
-driver.set_averaging(True)
+driver.set_average(True)
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
@@ -63,6 +63,7 @@ while True:
         li.set_ydata(driver.adc[adc_channel,:] / 2**n_bits)
         ax.relim()
         ax.autoscale_view(True, True, True)
+        plt.pause(0.001)
         fig.canvas.draw()
     except KeyboardInterrupt:
         break
