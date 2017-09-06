@@ -1,0 +1,32 @@
+diff -rupN devicetree.old/pcw.dtsi devicetree/pcw.dtsi
+--- devicetree.old/pcw.dtsi
++++ devicetree/pcw.dtsi
+@@ -45,6 +45,11 @@
+ 	is-decoded-cs = <0>;
+ 	num-cs = <3>;
+ 	status = "okay";
++	spidev@0 {
++		compatible = "spidev";
++		reg = <0x0>;
++		spi-max-frequency = <10000000>;
++	};
+ };
+ &uart1 {
+ 	device_type = "serial";
+diff -rupN devicetree.old/system-top.dts devicetree/system-top.dts
+--- devicetree.old/system-top.dts
++++ devicetree/system-top.dts
+@@ -18,11 +18,11 @@
+ 		ethernet0 = &gem0;
+ 		serial0 = &uart1;
+ 		spi0 = &qspi;
+-		spi1 = &spi0;
++		spi2 = &spi0;
+ 	};
+ 	memory {
+ 		device_type = "memory";
+-		reg = <0x0 0x20000000>;
++		reg = <0x0 0x1E000000>;
+ 	};
+ 	cpus {
+ 	};
