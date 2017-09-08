@@ -1,6 +1,6 @@
-diff -rupN devicetree.old/pcw.dtsi devicetree/pcw.dtsi
---- devicetree.old/pcw.dtsi
-+++ devicetree/pcw.dtsi
+diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
+--- devicetree.orig/pcw.dtsi	2017-09-08 14:46:32.941448999 +0200
++++ devicetree/pcw.dtsi	2017-09-08 15:15:55.581398149 +0200
 @@ -45,6 +45,11 @@
  	is-decoded-cs = <0>;
  	num-cs = <3>;
@@ -13,10 +13,30 @@ diff -rupN devicetree.old/pcw.dtsi devicetree/pcw.dtsi
  };
  &uart1 {
  	device_type = "serial";
-diff -rupN devicetree.old/system-top.dts devicetree/system-top.dts
---- devicetree.old/system-top.dts
-+++ devicetree/system-top.dts
-@@ -18,11 +18,11 @@
+@@ -53,7 +58,7 @@
+ };
+ &usb0 {
+ 	dr_mode = "host";
+-	phy_type = "ulpi";
++	usb-phy = <&usb_phy0>;
+ 	status = "okay";
+ 	usb-reset = <&gpio0 7 0>;
+ };
+diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
+--- devicetree.orig/system-top.dts	2017-09-08 14:46:32.941448999 +0200
++++ devicetree/system-top.dts	2017-09-08 15:16:49.705396587 +0200
+@@ -14,15 +14,22 @@
+ 		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait earlycon";
+ 		stdout-path = "serial0:115200n8";
+ 	};
++	usb_phy0: phy0 {
++		#phy-cells = <0>;
++		compatible = "ulpi-phy";
++		reg = <0xe0002000 0x1000>;
++		view-port = <0x0170>;
++		drv-vbus;
++	};
+ 	aliases {
  		ethernet0 = &gem0;
  		serial0 = &uart1;
  		spi0 = &qspi;
