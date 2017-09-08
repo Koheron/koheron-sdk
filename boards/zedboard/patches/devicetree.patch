@@ -1,6 +1,6 @@
-diff -rupN devicetree.old/pcw.dtsi devicetree/pcw.dtsi
---- devicetree.old/pcw.dtsi
-+++ devicetree/pcw.dtsi
+diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
+--- devicetree.orig/pcw.dtsi	2017-09-08 14:36:27.853466456 +0200
++++ devicetree/pcw.dtsi	2017-09-08 14:36:27.853466456 +0200
 @@ -45,6 +45,11 @@
  	is-decoded-cs = <0>;
  	num-cs = <3>;
@@ -13,9 +13,9 @@ diff -rupN devicetree.old/pcw.dtsi devicetree/pcw.dtsi
  };
  &uart1 {
  	device_type = "serial";
-diff -rupN devicetree.old/system-top.dts devicetree/system-top.dts
---- devicetree.old/system-top.dts
-+++ devicetree/system-top.dts
+diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
+--- devicetree.orig/system-top.dts	2017-09-08 14:36:27.853466456 +0200
++++ devicetree/system-top.dts	2017-09-08 14:36:27.853466456 +0200
 @@ -18,11 +18,11 @@
  		ethernet0 = &gem0;
  		serial0 = &uart1;

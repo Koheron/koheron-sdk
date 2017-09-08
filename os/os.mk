@@ -107,8 +107,17 @@ $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).hwdef $(DTREE
 	mkdir -p $(@D)
 	$(HSI) -source $(FPGA_PATH)/hsi/devicetree.tcl -tclargs $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) \
 	  $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/devicetree $(TMP_FPGA_PATH)/$(NAME).hwdef
+	cp -R $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig
 	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/devicetree.patch
 	@echo [$@] OK
+
+.PHONY: clean_devicetree
+clean_devicetree:
+	rm -rf $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig
+
+.PHONY: patch_devicetree
+patch_devicetree:
+	bash os/scripts/patch_devicetree.sh $(TMP_OS_PATH) $(BOARD_PATH)
 
 ###############################################################################
 # LINUX
