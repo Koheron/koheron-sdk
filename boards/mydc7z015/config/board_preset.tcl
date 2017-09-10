@@ -111,7 +111,7 @@ set_property -dict [list \
     CONFIG.PCW_SMC_PERIPHERAL_FREQMHZ {100}  \
     CONFIG.PCW_USB0_PERIPHERAL_FREQMHZ {60}  \
     CONFIG.PCW_USB1_PERIPHERAL_FREQMHZ {60}  \
-    CONFIG.PCW_SDIO_PERIPHERAL_FREQMHZ {125}  \
+    CONFIG.PCW_SDIO_PERIPHERAL_FREQMHZ {50}  \
     CONFIG.PCW_UART_PERIPHERAL_FREQMHZ {100}  \
     CONFIG.PCW_SPI_PERIPHERAL_FREQMHZ {166.666666}  \
     CONFIG.PCW_CAN_PERIPHERAL_FREQMHZ {100}  \
@@ -141,7 +141,7 @@ set_property -dict [list \
     CONFIG.PCW_ACT_ENET1_PERIPHERAL_FREQMHZ {125.000000}  \
     CONFIG.PCW_ACT_USB0_PERIPHERAL_FREQMHZ {60}  \
     CONFIG.PCW_ACT_USB1_PERIPHERAL_FREQMHZ {60}  \
-    CONFIG.PCW_ACT_SDIO_PERIPHERAL_FREQMHZ {125.000000}  \
+    CONFIG.PCW_ACT_SDIO_PERIPHERAL_FREQMHZ {50.000000}  \
     CONFIG.PCW_ACT_UART_PERIPHERAL_FREQMHZ {100.000000}  \
     CONFIG.PCW_ACT_SPI_PERIPHERAL_FREQMHZ {10.000000}  \
     CONFIG.PCW_ACT_CAN_PERIPHERAL_FREQMHZ {100.000000}  \
@@ -171,7 +171,7 @@ set_property -dict [list \
     CONFIG.PCW_DDR_PERIPHERAL_DIVISOR0 {2}  \
     CONFIG.PCW_SMC_PERIPHERAL_DIVISOR0 {1}  \
     CONFIG.PCW_QSPI_PERIPHERAL_DIVISOR0 {5}  \
-    CONFIG.PCW_SDIO_PERIPHERAL_DIVISOR0 {8}  \
+    CONFIG.PCW_SDIO_PERIPHERAL_DIVISOR0 {20}  \
     CONFIG.PCW_UART_PERIPHERAL_DIVISOR0 {10}  \
     CONFIG.PCW_SPI_PERIPHERAL_DIVISOR0 {1}  \
     CONFIG.PCW_CAN_PERIPHERAL_DIVISOR0 {5}  \
@@ -222,7 +222,7 @@ set_property -dict [list \
     CONFIG.PCW_EN_EMIO_CD_SDIO0 {0}  \
     CONFIG.PCW_EN_EMIO_WP_SDIO0 {0}  \
     CONFIG.PCW_EN_EMIO_SDIO1 {0}  \
-    CONFIG.PCW_EN_EMIO_CD_SDIO1 {1}  \
+    CONFIG.PCW_EN_EMIO_CD_SDIO1 {0}  \
     CONFIG.PCW_EN_EMIO_WP_SDIO1 {0}  \
     CONFIG.PCW_EN_EMIO_SPI0 {0}  \
     CONFIG.PCW_EN_EMIO_SPI1 {0}  \
@@ -313,7 +313,7 @@ set_property -dict [list \
     CONFIG.PCW_EN_I2C1 {0}  \
     CONFIG.PCW_EN_PJTAG {0}  \
     CONFIG.PCW_EN_SDIO0 {1}  \
-    CONFIG.PCW_EN_SDIO1 {1}  \
+    CONFIG.PCW_EN_SDIO1 {0}  \
     CONFIG.PCW_EN_SPI0 {0}  \
     CONFIG.PCW_EN_SPI1 {0}  \
     CONFIG.PCW_EN_UART0 {0}  \
@@ -463,10 +463,10 @@ set_property -dict [list \
     CONFIG.PCW_SD0_GRP_WP_IO {MIO 47}  \
     CONFIG.PCW_SD0_GRP_POW_ENABLE {0}  \
     CONFIG.PCW_SD0_GRP_POW_IO {<Select>}  \
-    CONFIG.PCW_SD1_PERIPHERAL_ENABLE {1}  \
-    CONFIG.PCW_SD1_SD1_IO {MIO 10 .. 15}  \
-    CONFIG.PCW_SD1_GRP_CD_ENABLE {1}  \
-    CONFIG.PCW_SD1_GRP_CD_IO {EMIO}  \
+    CONFIG.PCW_SD1_PERIPHERAL_ENABLE {0}  \
+    CONFIG.PCW_SD1_SD1_IO {<Select>}  \
+    CONFIG.PCW_SD1_GRP_CD_ENABLE {0}  \
+    CONFIG.PCW_SD1_GRP_CD_IO {<Select>}  \
     CONFIG.PCW_SD1_GRP_WP_ENABLE {0}  \
     CONFIG.PCW_SD1_GRP_WP_IO {<Select>}  \
     CONFIG.PCW_SD1_GRP_POW_ENABLE {0}  \
@@ -802,8 +802,8 @@ set_property -dict [list \
     CONFIG.PCW_MIO_53_DIRECTION {inout}  \
     CONFIG.PCW_MIO_53_SLEW {slow}  \
     CONFIG.PCW_UIPARAM_GENERATE_SUMMARY {NA}  \
-    CONFIG.PCW_MIO_TREE_PERIPHERALS {GPIO#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#USB Reset#CAN 1#CAN 1#SD 1#SD 1#SD 1#SD 1#SD 1#SD 1#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#SD 0#SD 0#SD 0#SD 0#SD 0#SD 0#SD 0#SD 0#UART 1#UART 1#I2C 0#I2C 0#Enet 0#Enet 0}  \
-    CONFIG.PCW_MIO_TREE_SIGNALS {gpio[0]#qspi0_ss_b#qspi0_io[0]#qspi0_io[1]#qspi0_io[2]#qspi0_io[3]#qspi0_sclk#reset#tx#rx#data[0]#cmd#clk#data[1]#data[2]#data[3]#tx_clk#txd[0]#txd[1]#txd[2]#txd[3]#tx_ctl#rx_clk#rxd[0]#rxd[1]#rxd[2]#rxd[3]#rx_ctl#data[4]#dir#stp#nxt#data[0]#data[1]#data[2]#data[3]#clk#data[5]#data[6]#data[7]#clk#cmd#data[0]#data[1]#data[2]#data[3]#cd#wp#tx#rx#scl#sda#mdc#mdio}  \
+    CONFIG.PCW_MIO_TREE_PERIPHERALS {GPIO#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#USB Reset#CAN 1#CAN 1#GPIO#GPIO#GPIO#GPIO#GPIO#GPIO#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#SD 0#SD 0#SD 0#SD 0#SD 0#SD 0#SD 0#SD 0#UART 1#UART 1#I2C 0#I2C 0#Enet 0#Enet 0}  \
+    CONFIG.PCW_MIO_TREE_SIGNALS {gpio[0]#qspi0_ss_b#qspi0_io[0]#qspi0_io[1]#qspi0_io[2]#qspi0_io[3]#qspi0_sclk#reset#tx#rx#gpio[10]#gpio[11]#gpio[12]#gpio[13]#gpio[14]#gpio[15]#tx_clk#txd[0]#txd[1]#txd[2]#txd[3]#tx_ctl#rx_clk#rxd[0]#rxd[1]#rxd[2]#rxd[3]#rx_ctl#data[4]#dir#stp#nxt#data[0]#data[1]#data[2]#data[3]#clk#data[5]#data[6]#data[7]#clk#cmd#data[0]#data[1]#data[2]#data[3]#cd#wp#tx#rx#scl#sda#mdc#mdio}  \
     CONFIG.PCW_PS7_SI_REV {PRODUCTION}  \
     CONFIG.PCW_FPGA_FCLK0_ENABLE {1}  \
     CONFIG.PCW_FPGA_FCLK1_ENABLE {0}  \
@@ -851,7 +851,7 @@ set_property -dict [list \
     CONFIG.PCW_SMC_CYCLE_T4 {NA}  \
     CONFIG.PCW_SMC_CYCLE_T5 {NA}  \
     CONFIG.PCW_SMC_CYCLE_T6 {NA}  \
-    CONFIG.PCW_PACKAGE_NAME {clg485}  \
-  ] [get_bd_cells ${::ps_name}]
+    CONFIG.PCW_PACKAGE_NAME {clg485} \
+] [get_bd_cells ${::ps_name}]
 
 
