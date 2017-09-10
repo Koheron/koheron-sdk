@@ -6,17 +6,18 @@ source $sdk_path/fpga/lib/starting_point.tcl
 source $sdk_path/fpga/lib/ctl_sts.tcl
 add_ctl_sts
 
-# Connect LEDs to config register
-#create_bd_port -dir O -from 7 -to 0 led_o
-#connect_port_pin led_o [get_slice_pin [ctl_pin led] 7 0]
-
 # Connect 42 to status register
 connect_pins [get_constant_pin 42 32] [sts_pin forty_two]
 
-# Connect SPI_0
-#create_bd_intf_port -mode Master -vlnv xilinx.com:interface:spi_rtl:1.0 SPI_0
-#connect_bd_intf_net [get_bd_intf_pins ps_0/SPI_0] [get_bd_intf_ports SPI_0]
+# Add XADC for monitoring of Zynq temperature
 
-# Connect IIC_0
-#create_bd_intf_port -mode Master -vlnv xilinx.com:interface:iic_rtl:1.0 IIC_0
-#connect_bd_intf_net [get_bd_intf_pins ps_0/IIC_0] [get_bd_intf_ports IIC_0]
+create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_analog_io_rtl:1.0 Vp_Vn
+
+cell xilinx.com:ip:xadc_wiz:3.3 xadc_wiz_0 {
+} {
+  Vp_Vn Vp_Vn
+  s_axi_lite axi_mem_intercon_0/M[add_master_interface 0]_AXI
+  s_axi_aclk ps_0/FCLK_CLK0
+  s_axi_aresetn proc_sys_reset_0/peripheral_aresetn
+}
+assign_bd_address [get_bd_addr_segs xadc_wiz_0/s_axi_lite/Reg]

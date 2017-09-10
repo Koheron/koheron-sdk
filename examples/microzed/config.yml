@@ -14,6 +14,9 @@ memory:
   - name: status
     offset: '0x50000000'
     range: 4K
+  - name: xadc
+    offset: '0x43C00000'
+    range: 64K
 
 control_registers:
   - led
@@ -29,12 +32,11 @@ xdc:
 
 drivers:
   - server/drivers/common.hpp
-  - ./led_blinker.hpp
+  - ./monitor.hpp
 
 web:
   - ./web/index.html
   - web/koheron.ts
-  - ./web/led_blinker.ts
+  - ./web/monitor.ts
   - ./web/app.ts
-  - ./web/control.ts
   - ./web/main.css
