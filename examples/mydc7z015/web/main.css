@@ -1,0 +1,14 @@
+h1 {
+    margin-top: 40px;
+    margin-bottom: 40px;
+}
+
+td {
+    width: 100px;
+    padding: 0px 5px;
+}
+
+input {
+    width: 100%;
+    box-shadow: 0px 4px 6px 0px #e6e6e6;
+}
