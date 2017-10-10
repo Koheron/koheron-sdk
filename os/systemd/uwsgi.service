@@ -5,6 +5,7 @@ After=network.target
 [Service]
 ExecStartPre=/bin/mkdir -p /var/run/uwsgi
 ExecStartPre=/bin/mkdir -p /var/log/uwsgi
+ExecStartPre=/bin/bash /usr/local/api/app/install_instrument.sh `basename $(cat /usr/local/instruments/default) .zip`
 ExecStart=/usr/local/bin/uwsgi --ini /etc/uwsgi/uwsgi.ini
 Restart=always
 KillSignal=SIGKILL
