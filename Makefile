@@ -126,6 +126,7 @@ setup: setup_fpga setup_server setup_web setup_os
 setup_base:
 	apt-get install -y g++-arm-linux-gnueabihf
 	apt-get install -y python-pip
+	apt-get install -y curl
 	pip install -r $(SDK_PATH)/requirements.txt
 	pip install $(SDK_PATH)/python
 
