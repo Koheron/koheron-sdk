@@ -1,0 +1,111 @@
+/// Common commands for all Koheron Alpha bitstreams
+///
+/// (c) Koheron
+
+#ifndef __DRIVERS_COMMON_HPP__
+#define __DRIVERS_COMMON_HPP__
+
+#include <cstring>
+#include <array>
+
+extern "C" {
+  #include <sys/socket.h>
+  #include <sys/types.h>
+  #include <arpa/inet.h>
+  #include <ifaddrs.h>
+}
+
+#include <context.hpp>
+#include "gpio-expander.hpp"
+#include "clock-generator.hpp"
+#include "ltc2157.hpp"
+#include "ad9747.hpp"
+#include "temperature-sensor.hpp"
+#include "slow-dac.hpp"
+#include "slow-adc.hpp"
+
+class Common
+{
+  public:
+    Common(Context& ctx)
+    : ctl(ctx.mm.get<mem::control>())
+    , sts(ctx.mm.get<mem::status>())
+    , gpio(ctx.get<GpioExpander>())
+    , clkgen(ctx.get<ClockGenerator>())
+    , ltc2157(ctx.get<Ltc2157>())
+    , ad9747(ctx.get<Ad9747>())
+    , slowdac(ctx.get<SlowDac>())
+    , slowadc(ctx.get<SlowAdc>())
+    {}
+
+    uint64_t get_dna() {
+        return sts.read<reg::dna, uint64_t>();
+    }
+
+    void set_led(uint32_t value) {
+        gpio.set_led(value);
+    }
+
+    void init() {
+        clkgen.init();
+        ltc2157.init();
+        ad9747.init();
+        slowdac.init();
+        ip_on_leds();
+    };
+
+    std::string get_instrument_config() {
+        return CFG_JSON;
+    }
+
+    void ip_on_leds() {
+        struct ifaddrs *addrs;
+        getifaddrs(&addrs);
+        ifaddrs *tmp = addrs;
+
+        // Turn all the leds ON
+        gpio.set_led(255);
+
+        char interface[] = "eth0";
+
+        while (tmp) {
+            // Works only for IPv4 address
+            if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET) {
+                #pragma GCC diagnostic push
+                #pragma GCC diagnostic ignored "-Wcast-align"
+                struct sockaddr_in *pAddr = reinterpret_cast<struct sockaddr_in *>(tmp->ifa_addr);
+                #pragma GCC diagnostic pop
+                int val = strcmp(tmp->ifa_name,interface);
+
+                if (val != 0) {
+                    tmp = tmp->ifa_next;
+                    continue;
+                }
+
+                printf("Interface %s found: %s\n",
+                       tmp->ifa_name, inet_ntoa(pAddr->sin_addr));
+                uint32_t ip = htonl(pAddr->sin_addr.s_addr);
+
+                // Write IP address
+                set_led(ip);
+                break;
+            }
+
+            tmp = tmp->ifa_next;
+        }
+
+        freeifaddrs(addrs);
+    }
+
+  private:
+    Memory<mem::control>& ctl;
+    Memory<mem::status>& sts;
+    GpioExpander& gpio;
+    ClockGenerator& clkgen;
+    Ltc2157& ltc2157;
+    Ad9747& ad9747;
+    SlowDac& slowdac;
+    SlowAdc& slowadc;
+};
+
+#endif // __DRIVERS_COMMON_HPP__
