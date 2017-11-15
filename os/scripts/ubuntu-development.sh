@@ -171,8 +171,10 @@ iface eth0 inet dhcp
 #  netmask 255.255.255.0
 #  network 192.168.1.0
 #  broadcast 192.168.1.255
-  post-up ntpdate -u ntp.u-psud.fr
+  # /!\ koheron-server-init must be the first post-up called
+  # else it wont be called if a previous post-up fails.
   post-up systemctl start koheron-server-init
+  post-up ntpdate -u ntp.u-psud.fr
 EOF_CAT
 
 apt-get clean
