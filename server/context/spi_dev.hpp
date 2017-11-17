@@ -55,6 +55,7 @@ class SpiDev
     }
 
     int recv(uint8_t *buffer, size_t n_bytes);
+    int transfer(uint8_t *tx_buff, uint8_t *rx_buff, size_t len);
 
     template<typename T>
     int recv(std::vector<T>& vec) {
