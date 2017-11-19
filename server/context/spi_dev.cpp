@@ -119,6 +119,18 @@ int SpiDev::recv(uint8_t *buffer, size_t n_bytes)
     return bytes_read;
 }
 
+int SpiDev::transfer(uint8_t *tx_buff, uint8_t *rx_buff, size_t len)
+{
+    if (! is_ok())
+        return -1;
+
+    struct spi_ioc_transfer tr{};
+    tr.tx_buf = reinterpret_cast<unsigned long>(tx_buff);
+    tr.rx_buf = reinterpret_cast<unsigned long>(rx_buff);
+    tr.len = len;
+    return ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
+}
+
 // ---------------------------------------------------------------------
 // SpiManager
 // ---------------------------------------------------------------------
