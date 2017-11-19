@@ -1,6 +1,6 @@
 ---
-name: mydc7z015
-board: boards/mydc7z015
+name: default
+board: boards/te0745
 
 cores:
   - fpga/cores/axi_ctl_register_v1_0

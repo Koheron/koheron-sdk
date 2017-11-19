@@ -1,6 +1,6 @@
 ---
-name: microzed
-board: boards/microzed
+name: default
+board: boards/mydc7z015
 
 cores:
   - fpga/cores/axi_ctl_register_v1_0

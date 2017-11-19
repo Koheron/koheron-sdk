@@ -1,6 +1,6 @@
 ---
-name: te0745
-board: boards/te0745
+name: default
+board: boards/microzed
 
 cores:
   - fpga/cores/axi_ctl_register_v1_0
