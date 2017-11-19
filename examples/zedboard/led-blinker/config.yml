@@ -1,5 +1,5 @@
 ---
-name: zedboard-led-blinker
+name: led-blinker
 board: boards/zedboard
 
 cores:
