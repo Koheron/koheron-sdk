@@ -1,0 +1,156 @@
+diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
+--- devicetree.orig/pcw.dtsi	2017-11-17 16:36:20.384000000 +0000
++++ devicetree/pcw.dtsi	2017-11-20 10:55:04.692000000 +0000
+@@ -12,6 +12,11 @@
+ 		};
+ 	};
+ };
++
++&wlcore {
++        compatible = "wlcore", "ti,wl1831";
++};
++
+ &gpio0 {
+ 	emio-gpio-width = <64>;
+ 	gpio-mask-high = <0x0>;
+@@ -25,6 +30,44 @@
+ 	is-dual = <0>;
+ 	num-cs = <1>;
+ 	status = "okay";
++	is-dual = <0>;
++	xlnx,qspi-mode = <1>;
++
++	flash@0 {
++		compatible = "n25q128a11";
++		reg = <0x0>;
++		spi-tx-bus-width = <1>;
++		spi-rx-bus-width = <4>;
++		spi-max-frequency = <50000000>;
++		#address-cells = <1>;
++		#size-cells =<1>;
++		
++		partition@qspi-fsbl-uboot {
++			label = "qspi-fsbl-uboot";
++			reg = <0x0 0x80000>;
++		};
++
++		partition@qspi-linux {
++			label = "qspi-linux";
++			reg = <0x80000 0x400000>;
++		};
++
++		partition@qspi-device-tree {
++			label = "qspi-device-tree";
++			reg = <0x480000 0x10000>;
++		};
++
++		partition@qspi-rootfs {
++			label = "qspi-rootfs";
++			reg = <0x490000 0x8f0000>;
++		};
++
++		partition@qspi-bitstream {
++			label = "qspi-bitstream";
++			reg = <0xd80000 0x280000>;
++		};
++	};
++
+ };
+ &sdhci0 {
+ 	status = "okay";
+@@ -37,6 +80,20 @@
+ 	xlnx,has-cd = <0x0>;
+ 	xlnx,has-power = <0x0>;
+ 	xlnx,has-wp = <0x0>;
++	vmmc-supply = <&wlan_en_reg>;
++	bus-width = <4>;
++	cap-power-off-card;
++	keep-power-in-suspend;
++	#address-cells = <1>;
++	#size-cells = <0>;	
++
++        wlcore: wlcore@0 {
++                reg = <2>;
++                interrupt-parent = <&gpio0>;
++                interrupts = <0 4>;
++        };
++
++
+ };
+ &spi1 {
+ 	is-decoded-cs = <0>;
+@@ -52,3 +109,48 @@
+ 	fclk-enable = <0x1>;
+ 	ps-clk-frequency = <33333333>;
+ };
++
++/ {
++	__symbols__ {
++		regulator_vccpint = &regulator_vccpint;
++		wlan_en_reg = &wlan_en_reg;
++		amba = &amba;
++		adc = &adc;
++		can0 = &can0;
++		can1 = &can1;
++		gpio0 = &gpio0;
++		i2c0 = &i2c0;
++		i2c1 = &i2c1;
++		intc = &intc;
++		L2 = &L2;
++		mc = &mc;
++		ocmc = &ocmc;
++		uart0 = &uart0;
++		uart1 = &uart1;
++		spi0 = &spi0;
++		spi1 = &spi1;
++		qspi = &qspi;
++		smcc = &smcc;
++		nand0 = &nand0;
++		nor0 = &nor0;
++		gem0 = &gem0;
++		gem1 = &gem1;
++		sdhci0 = &sdhci0;
++		sdhci1 = &sdhci1;
++		wlcore = &wlcore;
++		slcr = &slcr;
++		clkc = &clkc;
++		rstc = &rstc;
++		pinctrl0 = &pinctrl0;
++		dmac_s = &dmac_s;
++		devcfg = &devcfg;
++		global_timer = &global_timer;
++		ttc0 = &ttc0;
++		ttc1 = &ttc1;
++		scutimer = &scutimer;
++		usb0 = &usb0;
++		usb1 = &usb1;
++		watchdog0 = &watchdog0;
++	};
++};
++
+diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
+--- devicetree.orig/system-top.dts	2017-11-17 16:36:20.384000000 +0000
++++ devicetree/system-top.dts	2017-11-20 10:58:36.404000000 +0000
+@@ -18,7 +18,22 @@
+ 		serial0 = &uart0;
+ 		spi0 = &qspi;
+ 		spi1 = &spi1;
++		mmc0 = &sdhci0;
++		mmc1 = &sdhci1;
++
+ 	};
++
++
++        wlan_en_reg: fixed-regulator-wlen {
++                compatible = "regulator-fixed";
++                regulator-name = "wlan-en-regulator";
++                regulator-min-microvolt = <1800000>;
++                regulator-max-microvolt = <1800000>;
++                gpio = <&gpio0 9 4>;
++                startup-delay-us = <70000>;
++                enable-active-high;
++        };
++
+ 	memory {
+ 		device_type = "memory";
+ 		reg = <0x0 0x40000000>;
