@@ -1,5 +1,5 @@
-source tmp/$project_name.config.tcl
-source $project_path/$project_name/spectrum.tcl
+source $output_path/config.tcl
+source $project_path/spectrum.tcl
 
 set module spectrum_module
 set n_pts_fft [expr 2**$config::bram_addr_width]

@@ -1,0 +1,8 @@
+[Unit]
+Description=Unzip default instrument to /tmp/live-instrument
+
+[Service]
+ExecStart=/bin/bash /usr/local/instruments/unzip_default_instrument.sh
+
+[Install]
+WantedBy=multi-user.target

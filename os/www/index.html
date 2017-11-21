@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Koheron">
+    <meta charset="utf-8">
+
+    <!--http://stackoverflow.com/questions/49547/making-sure-a-web-page-is-not-cached-across-all-browsers-->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <link rel="shortcut icon" href="/koheron/kbird.ico">
+    <link rel="stylesheet" type="text/css" href="/koheron/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/koheron/koheron.css">
+
+    <script type="text/javascript" src="/koheron/jquery.min.js"></script>
+    <script type="text/javascript" src="/koheron/bootstrap.min.js"></script>
+  </head>
+
+  <body>
+
+  <div class="container-fluid" style="padding: 10px; height: 75px">
+    <a href="/">
+      <img alt="Koheron" src="/koheron/koheron_logo.svg" style="height: 100%">
+    </a>
+  </div>
+
+  <div class="container">
+
+    <h1>Instruments</h1>
+
+    <br><br>
+
+    <div class="background-blue padding">
+      These instruments were built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>.
+    </div>
+
+    <br><br>
+
+    <table id="instruments-table" class="table">
+    </table>
+
+  </div>
+
+  <script src="/koheron/instruments.js"></script>
+
+  <script language="javascript" type="text/javascript">
+
+    window.addEventListener("load", function() {
+        driver = new Instruments();
+        instruments_widget = new InstrumentsWidget(document, driver);
+    }, false);
+
+  </script>
+
+  </body>
+
+</html>

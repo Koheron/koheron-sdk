@@ -1,13 +1,16 @@
 [Unit]
 Description=Koheron TCP/Websocket server
-After=network.target
+After=network.target unzip-default-instrument.service
 
 [Service]
-Type=forking
-ExecStart=/usr/local/koheron-server/kserverd -c /usr/local/koheron-server/koheron-server.conf
-ExecStop=/usr/bin/pkill -SIGINT kserverd
+Type=notify
+NotifyAccess=all
+ExecStart=/tmp/live-instrument/serverd
+ExecStop=/usr/bin/pkill -SIGINT serverd
 KillSignal=SIGKILL
+
+# No limitation in the number of restarts per time interval
+StartLimitInterval=0
 
 [Install]
 WantedBy=multi-user.target
-

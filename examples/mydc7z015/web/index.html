@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Koheron</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Koheron">
+  <meta charset="utf-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <link rel="shortcut icon" href="kbird.ico">
+  <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="_koheron.css">
+  <link rel="stylesheet" type="text/css" href="main.css">
+
+  <script type="text/javascript" src="jquery.min.js"></script>
+  <script type="text/javascript" src="bootstrap.min.js"></script>
+</head>
+
+<body>
+
+  <div class="container-fluid" style="padding: 10px; height: 75px">
+    <a href="/">
+      <img alt="Koheron" src="_koheron_logo.svg" style="height: 100%">
+    </a>
+  </div>
+
+  <div class="container">
+
+    <h1>MYIR MYD-C-7Z015 monitor</h1>
+
+    Temperature (°C): &nbsp;<span id="temperature" style="width:60px; text-align:right; display:inline-block"></span> &nbsp;
+
+    <br><br>
+
+    <p>
+      See <a href="/koheron/">available instruments</a>.
+      <br><br>
+      This instrument was built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>.<br>
+      See instrument <a href="https://github.com/Koheron/koheron-sdk/tree/master/examples/zedboard-led-blinker">source code</a>.<br>
+    </p>
+
+  </div>
+
+  <script src="app.js?random=<?php echo uniqid(); ?>"></script>
+
+</body>
+</html>

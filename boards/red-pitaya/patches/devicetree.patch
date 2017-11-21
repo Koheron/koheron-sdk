@@ -1,8 +1,57 @@
---- system.dts.old
-+++ system.dts
-@@ -17,6 +17,13 @@
- 	chosen {
- 		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait";
+diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
+--- devicetree.orig/pcw.dtsi	2017-09-08 14:26:30.749483681 +0200
++++ devicetree/pcw.dtsi	2017-09-08 14:26:30.753483681 +0200
+@@ -25,6 +25,10 @@
+ &i2c0 {
+ 	clock-frequency = <400000>;
+ 	status = "okay";
++	eep@50 {
++		compatible = "24c64";
++		reg = <0x50>;
++	};
+ };
+ &intc {
+ 	num_cpus = <2>;
+@@ -45,11 +49,21 @@
+ 	is-decoded-cs = <0>;
+ 	num-cs = <3>;
+ 	status = "okay";
++	spidev@0 {
++		compatible = "spidev";
++		reg = <0x0>;
++		spi-max-frequency = <10000000>;
++	};
+ };
+ &spi1 {
+ 	is-decoded-cs = <0>;
+ 	num-cs = <1>;
+ 	status = "okay";
++	spidev@0 {
++		compatible = "spidev";
++		reg = <0x0>;
++		spi-max-frequency = <10000000>;
++	};
+ };
+ &uart0 {
+ 	device_type = "serial";
+@@ -63,9 +77,9 @@
+ };
+ &usb0 {
+ 	dr_mode = "host";
+-	phy_type = "ulpi";
++	usb-phy = <&usb_phy0>;
+ 	status = "okay";
+-	usb-reset = <&gpio0 48 0>;
++	xlnx,phy-reset-gpio = <&gpio0 48 0>;
+ };
+ &clkc {
+ 	fclk-enable = <0x1>;
+diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
+--- devicetree.orig/system-top.dts	2017-09-08 14:26:30.749483681 +0200
++++ devicetree/system-top.dts	2017-09-08 14:26:30.753483681 +0200
+@@ -14,6 +14,13 @@
+ 		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait earlycon";
+ 		stdout-path = "serial0:115200n8";
  	};
 +	usb_phy0: phy0 {
 +		#phy-cells = <0>;
@@ -14,49 +63,12 @@
  	aliases {
  		ethernet0 = &gem0;
  		serial0 = &uart0;
-@@ -27,7 +34,7 @@
+@@ -24,7 +31,7 @@
  	};
  	memory {
  		device_type = "memory";
 -		reg = <0x0 0x20000000>;
 +		reg = <0x0 0x1E000000>;
  	};
- };
- &gem0 {
-@@ -45,6 +60,12 @@
- 	clock-frequency = <400000>;
- 	status = "okay";
- };
-+&i2c0 {
-+	eep@50 {
-+		compatible = "24c64";
-+		reg = <0x50>;
-+	};
-+};
- &intc {
- 	num_cpus = <2>;
- 	num_interrupts = <96>;
-@@ -69,6 +90,11 @@
- 	is-decoded-cs = <0>;
- 	num-cs = <1>;
- 	status = "okay";
-+	spidev@0 {
-+		compatible = "spidev";
-+		reg = <0x0>;
-+		spi-max-frequency = <10000000>;
-+	};
- };
- &uart0 {
- 	current-speed = <115200>;
-@@ -84,9 +110,9 @@
- };
- &usb0 {
- 	dr_mode = "host";
--	phy_type = "ulpi";
-+	usb-phy = <&usb_phy0>;
- 	status = "okay";
--	usb-reset = <&gpio0 48 0>;
-+	xlnx,phy-reset-gpio = <&gpio0 48 0>;
- };
- &clkc {
- 	fclk-enable = <0x3>;
+ 	cpus {
+ 	};

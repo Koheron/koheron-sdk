@@ -1,0 +1,113 @@
+---
+name: oscillo
+board: boards/red-pitaya
+
+# ------------------------------------------------------------
+# Memory
+# ------------------------------------------------------------
+
+parameters:
+  fclk0: 200000000
+  fclk1: 166666667
+  sampling_rate: 125000000
+  wfm_size: 8192
+  dac_width: 14
+  adc_width: 14
+  pwm_width: 12
+  n_pwm: 4
+  n_dac: 2
+  n_adc: 2
+
+memory:
+  - name: control
+    offset: '0x60000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+    protection: read
+  - name: dac[n_dac]
+    offset: '0x80000000'
+    range: 16K
+  - name: adc[n_adc]
+    offset: '0x86000000'
+    range: 32K
+  - name: gpio
+    offset: '0x41200000'
+    range: 64K
+  - name: xadc
+    offset: '0x43C00000'
+    range: 64K
+
+control_registers:
+  - led
+  - laser_current
+  - laser_control
+  - power_setpoint
+  - addr
+  - avg[n_adc]
+  - dac_period[n_dac]
+  - avg_period
+  - avg_threshold
+  - n_avg_min[n_adc]
+  - eeprom_ctl
+
+status_registers:
+  - pid_control
+  - n_avg[n_adc]
+  - avg_ready[n_adc]
+  - avg_on_out[n_adc]
+  - eeprom_sts
+
+# ------------------------------------------------------------
+# FPGA
+# ------------------------------------------------------------
+
+modules:
+  - fpga/modules/address/config.yml
+  - fpga/modules/averager/config.yml
+
+cores:
+  - fpga/cores/axi_ctl_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
+  - fpga/cores/redp_adc_v1_0
+  - fpga/cores/redp_dac_v1_0
+  - fpga/cores/pdm_v1_0
+  - fpga/cores/bus_multiplexer_v1_0
+  - fpga/cores/latched_mux_v1_0
+  - fpga/cores/saturation_v1_0
+  - fpga/cores/at93c46d_spi_v1_0
+
+xdc:
+  - boards/red-pitaya/config/ports.xdc
+  - boards/red-pitaya/config/clocks.xdc
+  - ./expansion_connector.xdc
+
+# ------------------------------------------------------------
+# Drivers
+# ------------------------------------------------------------
+
+drivers:
+  - server/drivers/common.hpp
+  - server/drivers/xadc.hpp
+  - server/drivers/laser.hpp
+  - server/drivers/modulation.hpp
+  - server/drivers/eeprom.hpp
+  - ./oscillo.hpp
+
+# ------------------------------------------------------------
+# Web
+# ------------------------------------------------------------
+
+web:
+
+  - web/koheron.ts
+  - web/jquery.flot.d.ts
+  - web/laser.ts
+  - ./web/oscillo.ts
+  - ./web/app.ts
+  - web/average.ts
+  - web/modulation.ts
+  - ./web/plot.ts
+  - ./web/index.html

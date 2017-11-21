@@ -1,4 +1,4 @@
-source fpga/lib/bram.tcl
+source $sdk_path/fpga/lib/bram.tcl
 
 # Single BRAM recorder (32 bit width)
 
@@ -16,7 +16,7 @@ proc add_bram_recorder {module_name memory_name {intercon_idx 0}} {
   set bram_name [add_bram $memory_name $intercon_idx]
 
   connect_cell $bram_name {
-    addrb addr
+    addrb [get_concat_pin [list addr [get_constant_pin 0 [expr 32 - [get_pin_width addr]]]]]
     dinb adc
     clkb clk
     rstb rst

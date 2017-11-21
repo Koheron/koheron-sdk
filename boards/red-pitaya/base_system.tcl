@@ -1,10 +1,10 @@
 
 # Add PS and AXI Interconnect
-set board_preset boards/$board_name/config/board_preset.tcl
-source fpga/lib/starting_point.tcl
+set board_preset $board_path/config/board_preset.tcl
+source $sdk_path/fpga/lib/starting_point.tcl
 
 # Add ADCs and DACs
-source fpga/lib/redp_adc_dac.tcl
+source $sdk_path/fpga/lib/redp_adc_dac.tcl
 set adc_dac_name adc_dac
 add_redp_adc_dac $adc_dac_name
 
@@ -19,14 +19,13 @@ cell xilinx.com:ip:proc_sys_reset:5.0 $rst_adc_clk_name {} {
   slowest_sync_clk $adc_clk
 }
 
-# Add config and status registers
-source fpga/lib/cfg_sts.tcl
-add_cfg_sts $adc_clk $rst_adc_clk_name/peripheral_aresetn
+# Add control and status registers
+source $sdk_path/fpga/lib/ctl_sts.tcl
+add_ctl_sts $adc_clk $rst_adc_clk_name/peripheral_aresetn
 
 # Connect LEDs
-connect_port_pin led_o [get_slice_pin [cfg_pin led] 7 0]
+connect_port_pin led_o [get_slice_pin [ctl_pin led] 7 0]
 
 # Add XADC
-source fpga/lib/xadc.tcl
-set xadc_name xadc_wiz_0
-add_xadc $xadc_name
+source $sdk_path/fpga/lib/xadc.tcl
+add_xadc xadc

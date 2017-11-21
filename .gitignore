@@ -1,29 +1,25 @@
-# Temporary files :
+# Temporary files
 *~
 
 # Python:
 *.pyc
+*.egg-info
+dist/
+build/
 
 # Folders
-venv
 tmp
 .Xil
+.vscode
+node_modules/
 
-# Jinja generated config files
-instruments/*/config.tcl
-instruments/*/addresses.hpp
-
-# Vivado :
+# Vivado
 *.jou
 *.log
 vivado_*.str
 
-# Binaries
-devicetree.dtb
-fw_printenv
+\.vscode/
+.cache/
 *.img
-uImage
-*.tar.gz
-*.bin
 
-tests/.cache
+venv/

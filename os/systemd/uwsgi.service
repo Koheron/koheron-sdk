@@ -3,9 +3,9 @@ Description=uWSGI
 After=network.target
 
 [Service]
-ExecStartPre=/bin/mkdir -p /var/run/flask-uwsgi
-ExecStartPre=/bin/mkdir -p /var/log/flask-uwsgi
-ExecStart=/usr/local/bin/uwsgi --ini /etc/flask-uwsgi/flask-uwsgi.ini
+ExecStartPre=/bin/mkdir -p /var/run/uwsgi
+ExecStartPre=/bin/mkdir -p /var/log/uwsgi
+ExecStart=/usr/local/bin/uwsgi --ini /etc/uwsgi/uwsgi.ini
 Restart=always
 KillSignal=SIGKILL
 Type=notify

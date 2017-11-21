@@ -1,0 +1,59 @@
+---
+name: pulse-generator
+board: boards/red-pitaya
+
+cores:
+  - fpga/cores/redp_adc_v1_0
+  - fpga/cores/redp_dac_v1_0
+  - fpga/cores/axi_ctl_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
+  - fpga/cores/pulse_generator_v1_0
+
+memory:
+  - name: control
+    offset: '0x60000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+  - name: dac
+    offset: '0x40000000'
+    range: 32K
+  - name: adc_fifo
+    offset: '0x43C10000'
+    range: 64K
+
+control_registers:
+  - led
+  - trigger
+  - pulse_width
+  - pulse_period
+
+status_registers:
+  - adc[n_adc]
+  - count
+
+parameters:
+  fclk0: 166666667
+  bram_addr_width: 13
+  dac_width: 14
+  adc_width: 14
+  n_adc: 2
+
+xdc:
+  - boards/red-pitaya/config/ports.xdc
+  - boards/red-pitaya/config/clocks.xdc
+
+drivers:
+  - ./pulse.hpp
+  - server/drivers/common.hpp
+
+web:
+  - web/koheron.ts
+  - web/jquery.flot.d.ts
+  - ./web/pulse_generator.ts
+  - ./web/app.ts
+  - ./web/control.ts
+  - ./web/plot.ts
+  - ./web/index.html

@@ -1,9 +1,0 @@
----
-project: default
-
-cores:
-  - axi_cfg_register_v1_0
-  - axi_sts_register_v1_0
-  - dna_reader_v1_0
-
-live_zip: live-default.zip

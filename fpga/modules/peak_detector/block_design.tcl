@@ -1,5 +1,5 @@
-source tmp/$project_name.config.tcl
-source $project_path/$project_name/peak_detector.tcl
+source $output_path/config.tcl
+source $project_path/peak_detector.tcl
 
 set module peak_detector
 peak_detector::create $module $config::wfm_width

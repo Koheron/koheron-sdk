@@ -39,6 +39,8 @@ module averager_tb();
     demod_data = 128;
     tvalid = 0;    
     #(CLK_PERIOD * 2**(FFT_WIDTH-1)) tvalid = 1;
+    #(CLK_PERIOD * 2**(FFT_WIDTH-1)) tvalid = 0;
+    #(CLK_PERIOD * 2**(FFT_WIDTH-1)) tvalid = 1;
     #(100000*CLK_PERIOD)
     
     $finish;

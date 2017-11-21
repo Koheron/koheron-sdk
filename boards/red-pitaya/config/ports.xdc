@@ -6,6 +6,7 @@ set_property CONFIG_VOLTAGE 3.3 [current_design]
 # data
 
 set_property IOSTANDARD LVCMOS18 [get_ports {adc_dat_a_i[*]}]
+set_property IOB TRUE [get_ports {adc_dat_a_i[*]}]
 
 set_property PACKAGE_PIN Y17 [get_ports {adc_dat_a_i[0]}]
 set_property PACKAGE_PIN W16 [get_ports {adc_dat_a_i[1]}]
@@ -23,6 +24,7 @@ set_property PACKAGE_PIN T16 [get_ports {adc_dat_a_i[12]}]
 set_property PACKAGE_PIN V16 [get_ports {adc_dat_a_i[13]}]
 
 set_property IOSTANDARD LVCMOS18 [get_ports {adc_dat_b_i[*]}]
+set_property IOB TRUE [get_ports {adc_dat_b_i[*]}]
 
 set_property PACKAGE_PIN R18 [get_ports {adc_dat_b_i[0]}]
 set_property PACKAGE_PIN P16 [get_ports {adc_dat_b_i[1]}]

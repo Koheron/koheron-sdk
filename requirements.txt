@@ -1,4 +1,5 @@
-Jinja2==2.7.3
-PyYAML==3.11
-requests==2.11.1
-koheron==0.12.0
+jinja2==2.9.6
+pytest==3.0.7
+pyyaml==3.12
+CppHeaderParser==2.7.4
+numpy==1.12.1
