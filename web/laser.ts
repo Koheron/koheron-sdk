@@ -71,10 +71,10 @@ class LaserControl {
     private laserSwitch: HTMLLinkElement;
     private modeSwitch: HTMLLinkElement;
     private calibrationSpan: HTMLSpanElement;
-    private currentControlDiv: any;
+    private currentControlTr: any;
     private inputCurrentSlider: HTMLInputElement;
     private inputCurrentSpan: HTMLSpanElement;
-    private powerControlDiv: any;
+    private powerControlTr: any;
     private inputPowerSlider: HTMLInputElement;
     private inputPowerSpan: HTMLSpanElement;
     private outputPowerSpan: HTMLSpanElement;
@@ -86,10 +86,10 @@ class LaserControl {
         this.laserSwitch = <HTMLLinkElement>document.getElementById('laser-switch');
         this.modeSwitch = <HTMLLinkElement>document.getElementById('mode-switch');
         this.calibrationSpan = <HTMLLinkElement>document.getElementById('calibration');
-        this.currentControlDiv = document.getElementById('current-control');
+        this.currentControlTr = <HTMLTableRowElement>document.getElementById('current-control');
         this.inputCurrentSlider = <HTMLInputElement>document.getElementById('input-current-slider');
         this.inputCurrentSpan = <HTMLSpanElement>document.getElementById('input-current');
-        this.powerControlDiv = document.getElementById('power-control');
+        this.powerControlTr = <HTMLTableRowElement>document.getElementById('power-control');
         this.inputPowerSlider = <HTMLInputElement>document.getElementById('input-power-slider');
         this.inputPowerSpan = <HTMLSpanElement>document.getElementById('input-power');
         this.outputPowerSpan = <HTMLSpanElement>document.getElementById('output-power');
@@ -129,12 +129,12 @@ class LaserControl {
 
             if (status.constant_power_on) {
                 this.modeSwitch.innerHTML = 'Constant power';
-                this.currentControlDiv.style.display = 'none';
-                this.powerControlDiv.style.display = 'block';
+                this.currentControlTr.style.display = 'none';
+                this.powerControlTr.style.display = 'table-row';
             } else {
                 this.modeSwitch.innerHTML = 'Constant current';
-                this.currentControlDiv.style.display = 'block';
-                this.powerControlDiv.style.display = 'none';
+                this.currentControlTr.style.display = 'table-row';
+                this.powerControlTr.style.display = 'none';
             }
 
             requestAnimationFrame( () => { this.update(); });
@@ -163,7 +163,7 @@ class LaserControl {
 
     startCalibration(): void {
         this.driver.calibrate0mW();
-        this.calibrationInstructionsDiv.style.display = 'block';
+        this.calibrationInstructionsDiv.style.display = 'table-row';
     }
 
     calibrationDone(): void {
