@@ -2,7 +2,6 @@
 // Project: http://www.flotcharts.org/
 // Definitions by: Matt Burland <https://github.com/burlandm>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
-
 declare namespace jquery.flot {
     interface plotOptions {
         colors?: any[];
@@ -16,6 +15,7 @@ declare namespace jquery.flot {
         interaction?: interaction;
         hooks?: hooks;
         selection?: selectionOptions;
+        canvas?: boolean;
     }
 
     interface selectionOptions {
@@ -101,18 +101,15 @@ declare namespace jquery.flot {
         position?: string;      // "bottom" or "top" or "left" or "right"
         mode?: string;          // "time"
         monthNames?: string[];  // array of month names
-
         color?: any;            // null or color spec
         tickColor?: any;        // null or color spec
         font?: any;             // null or font spec object
-
         min?: number;
         max?: number;
         autoscaleMargin?: number;
 
         transform?: (v: number) => number;              // null or fn: number -> number
         inverseTransform?: (v: number) => number;       // null or fn: number -> number
-
         ticks?: any;                                    // null or number or ticks array or (fn: axis -> ticks array)
         tickSize?: any;                                 // number or array
         minTickSize?: any;                              // number or array
@@ -215,9 +212,9 @@ declare namespace jquery.flot {
     }
 
     interface plot {
-        highlight(series: dataSeries, datapoint: item): void;
+        highlight(series: dataSeries, datapoint: number[]): void;
         unhighlight(): void;
-        unhighlight(series: dataSeries, datapoint: item): void;
+        unhighlight(series: dataSeries, datapoint: number[]): void;
         setData(data: any): void;
         setupGrid(): void;
         draw(): void;
@@ -260,5 +257,5 @@ interface JQueryStatic {
 }
 
 interface JQuery {
-    bind(method: string, handler: (eventObject: JQueryEventObject, ranges: jquery.flot.ranges) => any): JQuery
+    bind(method: string, handler: (eventObject: JQueryEventObject, ranges: jquery.flot.ranges, item: jquery.flot.item) => any): JQuery
 }
