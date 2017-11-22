@@ -5,10 +5,6 @@ class Plot {
 
     private plot: jquery.flot.plot;
     private options: jquery.flot.plotOptions;
-    private isZoomX: boolean = false;
-    private isZoomY: boolean = false;
-    private zoomXBtn: HTMLLinkElement;
-    private zoomYBtn: HTMLLinkElement;
     private isResetRange: boolean;
 
     private minY: number;
@@ -18,9 +14,6 @@ class Plot {
     private yLabel: string;
 
     constructor(document: Document, private placeholder: JQuery, private driver: Spectrum) {
-
-        this.zoomXBtn = <HTMLLinkElement>document.getElementById('zoom-x-btn');
-        this.zoomYBtn = <HTMLLinkElement>document.getElementById('zoom-y-btn');
 
         this.setPlot();
 
@@ -90,7 +83,7 @@ class Plot {
         }
 
         this.rangeSelect();
-        this.dblClick();
+        this.autoScale();
         this.onWheel();
         this.isResetRange = true;
     }
@@ -116,7 +109,7 @@ class Plot {
     }
 
     // A double click on the plot resets to full span
-    dblClick(): void {
+    autoScale(): void {
         this.placeholder.bind('dblclick', (evt: JQueryEventObject) => {
             const rangeX: jquery.flot.range = {
                 from : 0,
@@ -129,17 +122,6 @@ class Plot {
         });
     }
 
-    autoScale(): void {
-        const rangeX = {
-            from : 0,
-            to   : 62.5
-        };
-
-        this.rangeY = <jquery.flot.range>{};
-        this.driver.setFreqRange(rangeX);
-        this.resetRange();
-    }
-
     onWheel(): void {
         this.placeholder.bind('wheel', (evt: JQueryEventObject) => {
             let delta: number = (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaX
@@ -148,7 +130,7 @@ class Plot {
 
             const zoomRatio: number = 0.2;
 
-            if ((<JQueryInputEventObject>evt.originalEvent).shiftKey || this.isZoomY) { // Zoom Y
+            if ((<JQueryInputEventObject>evt.originalEvent).shiftKey) { // Zoom Y
                 const positionY: number = (<JQueryMouseEventObject>evt.originalEvent).pageY - this.plot.offset().top;
                 const y0: any = this.plot.getAxes().yaxis.c2p(<any>positionY);
 
@@ -159,7 +141,7 @@ class Plot {
 
                 this.resetRange();
                 return false;
-            } else if ((<JQueryInputEventObject>evt.originalEvent).altKey || this.isZoomX) { // Zoom X
+            } else if ((<JQueryInputEventObject>evt.originalEvent).altKey) { // Zoom X
                 const positionX: number = (<JQueryMouseEventObject>evt.originalEvent).pageX - this.plot.offset().left;
                 const freq0: any = this.plot.getAxes().xaxis.c2p(<any>positionX);
 
@@ -179,34 +161,6 @@ class Plot {
 
             return true
         });
-    }
-
-    zoomX(): void {
-        if (!this.isZoomX) {
-            this.isZoomX = true;
-            if (this.isZoomY) {
-                this.isZoomY = false;
-                this.zoomYBtn.className = 'btn btn-primary-reversed';
-            }
-            this.zoomXBtn.className = 'btn btn-primary-reversed active';
-        } else {
-            this.isZoomX = false;
-            this.zoomXBtn.className = 'btn btn-primary-reversed';
-        }
-    }
-
-    zoomY(): void {
-        if (!this.isZoomY) {
-            this.isZoomY = true;
-            if (this.isZoomX) {
-                this.isZoomX = false;
-                this.zoomXBtn.className = 'btn btn-primary-reversed';
-            }
-            this.zoomYBtn.className = 'btn btn-primary-reversed active';
-        } else {
-            this.isZoomY = false;
-            this.zoomYBtn.className = 'btn btn-primary-reversed';
-        }
     }
 
     resetRange(): void {
