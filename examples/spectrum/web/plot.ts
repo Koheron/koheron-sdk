@@ -15,6 +15,8 @@ class Plot {
     private maxY: number;
     private rangeY: jquery.flot.range;
 
+    private yLabel: string;
+
     constructor(document: Document, private placeholder: JQuery, private driver: Spectrum) {
 
         this.zoomXBtn = <HTMLLinkElement>document.getElementById('zoom-x-btn');
@@ -29,6 +31,8 @@ class Plot {
             from: this.minY,
             to: this.maxY
         };
+
+        this.yLabel = "Power Spectral Density";
 
         this.updatePlot();
     }
@@ -46,6 +50,9 @@ class Plot {
     setPlot(): void {
         this.isResetRange = false;
 
+        let labelAttribute: string =  "";
+        labelAttribute += " style='font-size: 16px; color: #333'";
+
         this.options = {
             series: {
                 shadowSize: 0 // Drawing is faster without shadows
@@ -61,13 +68,25 @@ class Plot {
             },
             grid: {
                 margin: {
-                    left: 15
-                }
+                    top: 0,
+                    left: 0,
+                },
+                borderColor: "#d5d5d5",
+                borderWidth: 1
             },
             selection: {
                 mode: 'xy'
             },
-            colors: ['#0022FF']
+            colors: ["#019cd5"],
+            legend: {
+                show: true,
+                noColumns: 0,
+                labelFormatter: (label: string, series: any): string => {
+                    return "<b" + labelAttribute + ">" + label + "\t</b>"
+                    },
+                margin: 0,
+                position: "ne",
+            }
         }
 
         this.rangeSelect();
@@ -196,6 +215,8 @@ class Plot {
 
     redraw(data: number[][], rangeX: jquery.flot.range, callback: () => void): void {
 
+        const plt_data: jquery.flot.dataSeries[] = [{label: this.yLabel, data: data}];
+
         if (data.length == 0) {
             callback();
             return;
@@ -206,11 +227,11 @@ class Plot {
             this.options.xaxis.max = rangeX.to;
             this.options.yaxis.min = this.rangeY.from;
             this.options.yaxis.max = this.rangeY.to;
-            this.plot = $.plot(this.placeholder, [data], this.options);
+            this.plot = $.plot(this.placeholder, plt_data, this.options);
             this.plot.setupGrid();
             this.isResetRange = false;
         } else {
-            this.plot.setData([data]);
+            this.plot.setData(plt_data);
             this.plot.draw();
         }
 

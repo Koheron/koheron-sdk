@@ -123,6 +123,7 @@ web:
   - web/laser.ts
   - ./web/spectrum.ts
   - ./web/app.ts
+  - ./web/main.css
   - web/average.ts
   - web/modulation.ts
   - ./web/plot.ts

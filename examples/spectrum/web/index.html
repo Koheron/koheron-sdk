@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Koheron</title>
+    <title>Koheron | Spectrum</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="author" content="Koheron">
     <meta charset="utf-8">
@@ -14,6 +14,7 @@
     <link rel="shortcut icon" href="kbird.ico">
     <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="_koheron.css">
+    <link rel="stylesheet" type="text/css" href="main.css">
 
     <script type="text/javascript" src="jquery.min.js"></script>
     <script type="text/javascript" src="bootstrap.min.js"></script>
@@ -22,37 +23,22 @@
 
 <body>
 
-<div class="container-fluid" style="padding: 10px; height: 75px">
-  <a href="/">
-    <img alt="Koheron" src="_koheron_logo.svg" style="height: 100%">
-  </a>
-</div>
+<img alt="Koheron" src="_koheron.png" style="height: 40px; top: 10px; right: 10px; position: absolute;" id="koheron-logo">
 
-<div class="container-fluid">
-
-  <h1 class="padding">Spectrum</h1>
+<div class="container-fluid" style="padding: 10px">
 
   <div class="row">
 
-  <div class="col-sm-6" style="padding: 20px 10px">
-    <div class="border padding">
-      <div align="center">Power spectral density (dB)</div>
-      <div id="plot-placeholder" class="plot-placeholder"></div>
-      <div align="center">Frequency (MHz) &nbsp; </div>
-    </div>
-    <br>
-    <a class="btn btn-default" onclick="app.plot.autoScale(); return false" data-toggle="tooltip" data-placement="bottom" title="(Double-click on plot)" style="height: 35px">Auto scale</a>&nbsp; &nbsp;
-    <a id="zoom-x-btn" class="btn btn-primary-reversed" onclick="app.plot.zoomX(); return false" data-toggle="tooltip" data-placement="bottom" title="(ALT) + Scroll on plot" style="height: 35px">X-Zoom</a>&nbsp; &nbsp;
-    <a id="zoom-y-btn" class="btn btn-primary-reversed" onclick="app.plot.zoomY(); return false" data-toggle="tooltip" data-placement="bottom" title="(SHIFT) + Scroll on plot" style="height: 35px">Y-Zoom</a>&nbsp; &nbsp;
-    <span data-toggle="tooltip" data-placement="bottom" title="Draw rectangle on plot to zoom" class="tip">X and Y zoom?</span>
-
+  <div class="col-md-8">
+    <div id="plot-placeholder" class="plot-placeholder"></div>
+    <div align="center">Frequency (MHz) &nbsp; </div>
   </div>
 
-  <div class="col-sm-6" style="padding: 20px 10px">
+  <div class="col-md-4">
 
     <!--LASER-->
+    <section>
 
-    <div class="border padding">
       <a id="laser-switch" class="btn btn-success" onclick="app.laserControl.switchLaser(); return false">Start Laser</a>
       <a id="mode-switch" class="btn btn-info" onclick="app.laserControl.switchMode(); return false">Constant current</a>
       <br><br>
@@ -83,9 +69,8 @@
           <li><a id="calibration-done" class="btn btn-primary" onclick="app.laserControl.calibrationDone(); return false">Done</a></li>
         </ol>
       </div>
-    </div>
 
-    <br>
+    </section>
 
     <!--AVERAGE-->
 
@@ -145,15 +130,6 @@
   </div>
 
   </div>
-
-<br><br>
-
-<p>
-  See <a href="/koheron/">available instruments</a>.
-  <br><br>
-  This instrument was built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>.<br>
-  See instrument <a href="https://github.com/Koheron/koheron-sdk/tree/master/examples/spectrum">source code</a>.<br>
-</p>
 
 </div>
 
