@@ -44,7 +44,6 @@ for {set i 0} {$i < 2} {incr i} {
     create_bd_pin -dir I -from 6 -to 0 adc_${i}_n
 
     create_bd_pin -dir O -from 15 -to 0 adc${i}
-    create_bd_pin -dir I -from 15 -to 0 offset_adc${i}
 }
 
 # Control pin
@@ -129,8 +128,10 @@ for {set i 0} {$i < 2} {incr i} {
     }
 
     cell xilinx.com:ip:xlconcat:2.1 concat_adc$i {
-        NUM_PORTS 14
+        NUM_PORTS 16
     } {
+        In0 [get_constant_pin 0 1]
+        In1 [get_constant_pin 0 1]
         dout adc$i
     }
 
@@ -140,7 +141,7 @@ for {set i 0} {$i < 2} {incr i} {
         set lsb [get_slice_pin selectio_adc$i/data_in_to_device 0 0]
 
         if {$j == 0} {
-            connect_pins $lsb concat_adc$i/In0
+            connect_pins $lsb concat_adc$i/In2
         } else {
             cell xilinx.com:ip:util_vector_logic:2.0 xor_${i}_${j}_0 {
                 C_SIZE 1
@@ -148,7 +149,7 @@ for {set i 0} {$i < 2} {incr i} {
             } {
                 Op1 [get_slice_pin selectio_adc$i/data_in_to_device [expr $j] [expr $j]]
                 Op2 $lsb
-                Res concat_adc$i/In[expr 2*$j]
+                Res concat_adc$i/In[expr 2*$j + 2]
             }
         }
 
@@ -158,7 +159,7 @@ for {set i 0} {$i < 2} {incr i} {
         } {
             Op1 [get_slice_pin selectio_adc$i/data_in_to_device [expr $j + 7] [expr $j + 7]]
             Op2 $lsb
-            Res concat_adc$i/In[expr 2*$j + 1]
+            Res concat_adc$i/In[expr 2*$j + 3]
         }
     }
 

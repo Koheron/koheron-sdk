@@ -1,81 +1,97 @@
 class App {
     public control: Control;
     public plot: Plot;
-    private driver: DDS;
+    private fft: FFT;
+    private precisionDac: PrecisionDac;
 
-    private tempSensor: TemperatureSensor;
-    private powMonitor: PowerMonitor;
+    private temperatureSensor: TemperatureSensor;
+    private powerMonitor: PowerMonitor;
+    private precisionAdc: PrecisionAdc;
+    private clkGenerator: ClockGenerator;
 
-    private temp0Span: HTMLSpanElement;
-    private temp1Span: HTMLSpanElement;
-    private temp2Span: HTMLSpanElement;
-    private supplyVoltage0Span: HTMLSpanElement;
-    private supplyCurrent0Span: HTMLSpanElement;
-    private supplyVoltage1Span: HTMLSpanElement;
-    private supplyCurrent1Span: HTMLSpanElement;
+    private temperatureVoltageReference: HTMLSpanElement;
+    private temperatureBoardSpan: HTMLSpanElement;
+    private temperatureZynqSpan: HTMLSpanElement;
+    private supplyMainVoltageSpan: HTMLSpanElement;
+    private supplyMainCurrentSpan: HTMLSpanElement;
+    private supplyClockVoltageSpan: HTMLSpanElement;
+    private supplyClockCurrentSpan: HTMLSpanElement;
+
+    private precisionAdcNum: number;
+    private precisionAdcSpans: HTMLSpanElement[];
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
-        let client = new Client(ip, 5);
+        let sockpoolSize: number = 10;
+        let client = new Client(ip, sockpoolSize);
 
-        this.temp0Span = <HTMLSpanElement>document.getElementById('temp0');
-        this.temp1Span = <HTMLSpanElement>document.getElementById('temp1');
-        this.temp2Span = <HTMLSpanElement>document.getElementById('temp2');
-        this.supplyVoltage0Span = <HTMLSpanElement>document.getElementById('supply_voltage0');
-        this.supplyCurrent0Span = <HTMLSpanElement>document.getElementById('supply_current0');
-        this.supplyVoltage1Span = <HTMLSpanElement>document.getElementById('supply_voltage1');
-        this.supplyCurrent1Span = <HTMLSpanElement>document.getElementById('supply_current1');
+        this.temperatureVoltageReference = <HTMLSpanElement>document.getElementById('temperature-voltage-reference');
+        this.temperatureBoardSpan = <HTMLSpanElement>document.getElementById('temperature-board');
+        this.temperatureZynqSpan = <HTMLSpanElement>document.getElementById('temperature-zynq');
+        this.supplyMainVoltageSpan = <HTMLSpanElement>document.getElementById('supply-main-voltage');
+        this.supplyMainCurrentSpan = <HTMLSpanElement>document.getElementById('supply-main-current');
+        this.supplyClockVoltageSpan = <HTMLSpanElement>document.getElementById('supply-clock-voltage');
+        this.supplyClockCurrentSpan = <HTMLSpanElement>document.getElementById('supply-clock-current');
+
+        this.precisionAdcNum = 4;
+        this.precisionAdcSpans = [];
+
+        for (let i:number = 0; i < this.precisionAdcNum; i++) {
+            this.precisionAdcSpans[i] = <HTMLInputElement>document.getElementById('precision-adc-' + i.toString());
+        }
 
         window.addEventListener('load', () => {
             client.init( () => {
-                this.driver = new DDS(client);
-                this.control = new Control(document, this.driver);
-                this.plot = new Plot(document, plot_placeholder, this.driver);
-                this.tempSensor = new TemperatureSensor(client);
-                this.powMonitor = new PowerMonitor(client);
-                this.acquireData();
+                this.fft = new FFT(client);
+                this.precisionDac = new PrecisionDac(client);
+                this.temperatureSensor = new TemperatureSensor(client);
+                this.powerMonitor = new PowerMonitor(client);
+                this.precisionAdc = new PrecisionAdc(client);
+                this.clkGenerator = new ClockGenerator(client);
+
+                this.fft.init( () => {
+                    this.control = new Control(document, this.fft, this.precisionDac, this.clkGenerator);
+                    this.plot = new Plot(document, plot_placeholder, this.fft, this.control);
+                    this.updateTemperatures();
+                    this.updateSupplies();
+                    this.updatePrecisionAdcValues();
+                });
             });
         }, false);
 
         window.onbeforeunload = () => { client.exit(); };
     }
 
-    acquireData() {
-        this.tempSensor.getTemperature(0, (temp: number) => {
-            this.temp0Span.innerHTML = temp.toFixed(3).toString();
+    private updateTemperatures() {
+        this.temperatureSensor.getTemperatures((temperatures: Float32Array) => {
+            this.temperatureVoltageReference.innerHTML = temperatures[0].toFixed(3).toString();
+            this.temperatureBoardSpan.innerHTML = temperatures[1].toFixed(3).toString();
+            this.temperatureZynqSpan.innerHTML = temperatures[2].toFixed(3).toString();
 
-            this.tempSensor.getTemperature(1, (temp: number) => {
-                this.temp1Span.innerHTML = temp.toFixed(3).toString();
-
-                this.tempSensor.getTemperature(2, (temp: number) => {
-                    this.temp2Span.innerHTML = temp.toFixed(3).toString();
-
-                    this.powMonitor.getSupplyCurrent(0, (curr: number) => {
-                        this.supplyCurrent0Span.innerHTML = (curr * 1E3).toFixed(1).toString();
-
-                        this.powMonitor.getBusVoltage(0, (volt: number) => {
-                            this.supplyVoltage0Span.innerHTML = volt.toFixed(3).toString();
-
-                            this.powMonitor.getSupplyCurrent(1, (curr: number) => {
-                                this.supplyCurrent1Span.innerHTML = (curr * 1E3).toFixed(1).toString();
-
-                                this.powMonitor.getBusVoltage(1, (volt: number) => {
-                                    this.supplyVoltage1Span.innerHTML = volt.toFixed(3).toString();
-
-                                    requestAnimationFrame( () => {
-                                        this.acquireData();
-                                    });
-                                });
-                            });
-                        });
-                    });
-                });
-            });
+            requestAnimationFrame( () => { this.updateTemperatures(); } );
         });
     }
 
+    private updateSupplies() {
+        this.powerMonitor.getSuppliesUI((supplyValues: Float32Array) => {
+            this.supplyMainCurrentSpan.innerHTML = (supplyValues[0] * 1E3).toFixed(1).toString();
+            this.supplyMainVoltageSpan.innerHTML = supplyValues[1].toFixed(3).toString();
+            this.supplyClockCurrentSpan.innerHTML = (supplyValues[2] * 1E3).toFixed(1).toString();
+            this.supplyClockVoltageSpan.innerHTML = supplyValues[3].toFixed(3).toString();
+
+            requestAnimationFrame( () => { this.updateSupplies(); });
+        });
+    }
+
+    private updatePrecisionAdcValues() {
+        this.precisionAdc.getAdcValues((adcValues: Float32Array) => {
+            for (let i: number = 0; i < this.precisionAdcNum; i++) {
+                this.precisionAdcSpans[i].innerHTML = (adcValues[i] * 1000).toFixed(4).toString();
+            }
+
+            requestAnimationFrame( () => { this.updatePrecisionAdcValues(); });
+        });
+    }
 }
-
-
 
 let app = new App(window, document, location.hostname, $('#plot-placeholder'));

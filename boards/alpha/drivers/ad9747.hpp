@@ -2,22 +2,17 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_AD9747_HPP__
-#define __DRIVERS_AD9747_HPP__
+#ifndef __ALPHA_DRIVERS_AD9747_HPP__
+#define __ALPHA_DRIVERS_AD9747_HPP__
 
 #include <context.hpp>
-
-#include <array>
-
-// http://cds.linear.com/docs/en/datasheet/21576514fb.pdf
+#include "spi-config.hpp"
 
 class Ad9747
 {
   public:
-    Ad9747(Context& ctx_)
-    : ctx(ctx_)
-    , ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
+    Ad9747(Context& ctx)
+    : spi_cfg(ctx.get<SpiConfig>())
     {}
 
     enum regs {
@@ -40,10 +35,8 @@ class Ad9747
         write_reg((POWER_DOWN << 8) + 0b10110000);
         write_reg((DATA_CONTROL << 8) + (0 << 7) + (0 << 3));
         write_reg((DAC_MODE_SELECT << 8) + 0x00); // Normal mode
-        set_dac_gain(0x01F9);
-        //set_dac_gain(0x0040);
-        //set_dac_gain(0x0100); 1Vpp
-        //set_dac_gain(0x03FF);
+        //set_dac_gain(0x01F9);
+        set_dac_gain(0x1B8); // 1 Vpp
     }
 
     void reset() {
@@ -58,20 +51,12 @@ class Ad9747
         write_reg((DAC2_GAIN_MSB << 8) + (gain >> 8));
     }
 
-    void write_reg(uint32_t data) {
-      do {} while (sts.read<reg::spi_cfg_sts>() == 0);
-      uint32_t cmd = (1 << TVALID_IDX) + (2 << 2) + 1;
-      ctl.write<reg::spi_cfg_data>(data << 16);
-      ctl.write<reg::spi_cfg_cmd>(cmd);
-      ctl.clear_bit<reg::spi_cfg_cmd, TVALID_IDX>();
-    }
-
   private:
-    static constexpr uint32_t TVALID_IDX = 8;
+    SpiConfig& spi_cfg;
 
-    Context& ctx;
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
+    void write_reg(uint32_t data) {
+        spi_cfg.write_reg<1, 2>(data << 16);
+    }
 };
 
-#endif // __DRIVERS_LTC2157_HPP__
+#endif // __ALPHA_DRIVERS_LTC2157_HPP__

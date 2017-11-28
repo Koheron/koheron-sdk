@@ -1,9 +1,11 @@
 /// (c) Koheron
 
-#ifndef __DRIVERS_GPIO_EXPANDER_HPP__
-#define __DRIVERS_GPIO_EXPANDER_HPP__
+#ifndef __ALPHA_DRIVERS_GPIO_EXPANDER_HPP__
+#define __ALPHA_DRIVERS_GPIO_EXPANDER_HPP__
 
 #include <context.hpp>
+
+#include <array>
 
 // http://www.nxp.com/documents/data_sheet/PCAL6416A.pdf
 // PORT 0:
@@ -32,15 +34,15 @@ class GpioExpander
     : ctx(ctx_)
     , i2c(ctx.i2c.get("i2c-0"))
     {
-        write_reg(0x4F, 3);
+        write_reg(0x4F, 2); // Port 0: push-pull, Port 1: open drain
         write_reg(0x42, 0);
         write_reg(0x43, 0);
-        write_reg(Configuration_port_0, 0b00001111);
+        write_reg(Configuration_port_0, 0b11110000);
         write_reg(Configuration_port_1, 0b00000000);
     }
 
-    void set_led(uint32_t value) {
-        write_reg(Output_port_1, uint8_t(~value));
+    void set_led(uint8_t value) {
+        write_reg(Output_port_1, ~value);
     }
 
     uint32_t get_inputs() {
@@ -49,8 +51,12 @@ class GpioExpander
         return data;
     }
 
+    void set_user_ios(uint8_t value) {
+        write_reg(Output_port_0, (value & 0xF));
+    }
+
   private:
-    static constexpr uint32_t i2c_address = 0b010'0000;
+    static constexpr uint32_t i2c_address = 0b0100000;
     Context& ctx;
     I2cDev& i2c;
 
@@ -79,4 +85,4 @@ class GpioExpander
 
 };
 
-#endif // __DRIVERS_GPIO_EXPANDER_HPP__
+#endif // __ALPHA_DRIVERS_GPIO_EXPANDER_HPP__

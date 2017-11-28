@@ -9,13 +9,8 @@ class PowerMonitor {
         this.cmds = this.driver.getCmds();
     }
 
-    getSupplyCurrent(idx: number, cb: (value: number) => void): void {
-        this.client.readFloat32(Command(this.id, this.cmds['get_shunt_voltage'], idx),
-                                 (value) => {cb(value/0.01)}); // 10 mOhm shunt
-    }
-
-    getBusVoltage(idx: number, cb: (value: number) => void): void {
-        this.client.readFloat32(Command(this.id, this.cmds['get_bus_voltage'], idx),
-                                 (value) => {cb(value)});
+    getSuppliesUI(cb: (values: Float32Array) => void): void {
+        this.client.readFloat32Array(Command(this.id, this.cmds['get_supplies_ui']),
+                                 (values: Float32Array) => {cb(values)});
     }
 }

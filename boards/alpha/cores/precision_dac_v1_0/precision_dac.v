@@ -2,7 +2,7 @@
 
 // LDAC is pulsed low after the 8 DAC registers are written
 
-module slow_dac #
+module precision_dac #
 (
   parameter CLK_DIV = 3
 )
@@ -14,7 +14,6 @@ module slow_dac #
 
   output reg                      sync,
   output reg                      sclk,
-  output reg [7-1:0]              cnt_sclk_out,
   output reg                      sdi,
   output reg                      ldac
 );
@@ -56,7 +55,6 @@ module slow_dac #
             sdi <= data_reg[16*cnt_sclk[7-1:5] + 23 - cnt_sclk[5-1:0]];
           end
         end
-        cnt_sclk_out <= cnt_sclk;
       end
       if (cnt_clk == {(CLK_DIV){1'b1}}) begin
         //cnt_clk <= 2'b00;

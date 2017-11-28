@@ -14,7 +14,7 @@ set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports adc_*]
 set_property PACKAGE_PIN P19 [get_ports adc_clk_in_clk_n] ;# MRCC
 set_property PACKAGE_PIN N18 [get_ports adc_clk_in_clk_p] ;# MRCC
 
-# Channel A
+# Channel 0
 set_property PACKAGE_PIN U17 [get_ports {adc_0_n[0]}]
 set_property PACKAGE_PIN T16 [get_ports {adc_0_p[0]}]
 set_property PACKAGE_PIN Y19 [get_ports {adc_0_n[1]}]
@@ -30,7 +30,7 @@ set_property PACKAGE_PIN V20 [get_ports {adc_0_p[5]}]
 set_property PACKAGE_PIN U20 [get_ports {adc_0_n[6]}]
 set_property PACKAGE_PIN T20 [get_ports {adc_0_p[6]}]
 
-# Channel B
+# Channel 1
 set_property PACKAGE_PIN W13 [get_ports {adc_1_n[0]}]
 set_property PACKAGE_PIN V12 [get_ports {adc_1_p[0]}]
 set_property PACKAGE_PIN Y14 [get_ports {adc_1_n[1]}]
@@ -74,26 +74,26 @@ set_property PACKAGE_PIN U12 [get_ports spi_cfg_cs_rf_dac]
 set_property PACKAGE_PIN T12 [get_ports spi_cfg_cs_clk_gen]
 
 # ----------------------------------------------------------------------------------
-# Slow DAC (Bank 34)
+# Precision DAC (Bank 34)
 # ----------------------------------------------------------------------------------
 
-set_property IOSTANDARD LVCMOS18 [get_ports spi_slow_dac_*]
+set_property IOSTANDARD LVCMOS18 [get_ports spi_precision_dac_*]
 
-set_property PACKAGE_PIN V17 [get_ports spi_slow_dac_cs]
-set_property PACKAGE_PIN V18 [get_ports spi_slow_dac_sck]
-set_property PACKAGE_PIN T17 [get_ports spi_slow_dac_sdi]
-set_property PACKAGE_PIN R18 [get_ports spi_slow_dac_ldac]
+set_property PACKAGE_PIN V17 [get_ports spi_precision_dac_cs]
+set_property PACKAGE_PIN V18 [get_ports spi_precision_dac_sck]
+set_property PACKAGE_PIN T17 [get_ports spi_precision_dac_sdi]
+set_property PACKAGE_PIN R18 [get_ports spi_precision_dac_ldac]
 
 # ----------------------------------------------------------------------------------
-# Slow ADC (Bank 34)
+# Precision ADC (Bank 34)
 # ----------------------------------------------------------------------------------
 
-set_property IOSTANDARD LVCMOS18 [get_ports spi_slow_adc_*]
+set_property IOSTANDARD LVCMOS18 [get_ports spi_precision_adc_*]
 
-set_property PACKAGE_PIN U13 [get_ports spi_slow_adc_cs]
-set_property PACKAGE_PIN V13 [get_ports spi_slow_adc_sck]
-set_property PACKAGE_PIN T11 [get_ports spi_slow_adc_sdi]
-set_property PACKAGE_PIN T10 [get_ports spi_slow_adc_sdo]
+set_property PACKAGE_PIN U13 [get_ports spi_precision_adc_cs]
+set_property PACKAGE_PIN V13 [get_ports spi_precision_adc_sck]
+set_property PACKAGE_PIN T11 [get_ports spi_precision_adc_sdi]
+set_property PACKAGE_PIN T10 [get_ports spi_precision_adc_sdo]
 
 
 # ----------------------------------------------------------------------------------
@@ -126,41 +126,41 @@ set_property PACKAGE_PIN N15 [get_ports exp_io_7_p] ;# AD14P
 set_property IOSTANDARD LVCMOS33 [get_ports dac_*]
 set_property DRIVE 8 [get_ports dac_*]
 
-# Channel 1
-set_property PACKAGE_PIN F20 [get_ports {dac_0[0]}] ;# AD12N
-set_property PACKAGE_PIN F19 [get_ports {dac_0[1]}] ;# AD12P
-set_property PACKAGE_PIN J16 [get_ports {dac_0[2]}] ;# AD15N
-set_property PACKAGE_PIN K16 [get_ports {dac_0[3]}] ;# AD15P
-set_property PACKAGE_PIN G20 [get_ports {dac_0[4]}] ;# AD13N
-set_property PACKAGE_PIN G19 [get_ports {dac_0[5]}] ;# AD13P
-set_property PACKAGE_PIN K18 [get_ports {dac_0[6]}] ;# MRCC
-set_property PACKAGE_PIN K17 [get_ports {dac_0[7]}] ;# MRCC
-set_property PACKAGE_PIN H20 [get_ports {dac_0[8]}] ;# AD5N
-set_property PACKAGE_PIN J20 [get_ports {dac_0[9]}] ;# AD5P
-set_property PACKAGE_PIN M18 [get_ports {dac_0[10]}] ;# AD10N
-set_property PACKAGE_PIN M17 [get_ports {dac_0[11]}] ;# AD10P
-set_property PACKAGE_PIN H18 [get_ports {dac_0[12]}] ;# SRCC, AD4N
-set_property PACKAGE_PIN J18 [get_ports {dac_0[13]}] ;# SRCC, AD4P
-set_property PACKAGE_PIN G15 [get_ports {dac_0[14]}]
-set_property PACKAGE_PIN H15 [get_ports {dac_0[15]}]
+# Channel 0
+set_property PACKAGE_PIN D18 [get_ports {dac_0[0]}] ;# AD1N
+set_property PACKAGE_PIN E17 [get_ports {dac_0[1]}] ;# AD1P
+set_property PACKAGE_PIN E19 [get_ports {dac_0[2]}] ;# AD9N
+set_property PACKAGE_PIN E18 [get_ports {dac_0[3]}] ;# AD9P
+set_property PACKAGE_PIN A20 [get_ports {dac_0[4]}] ;# AD8N
+set_property PACKAGE_PIN B19 [get_ports {dac_0[5]}] ;# AD8P
+set_property PACKAGE_PIN F17 [get_ports {dac_0[6]}]
+set_property PACKAGE_PIN F16 [get_ports {dac_0[7]}]
+set_property PACKAGE_PIN B20 [get_ports {dac_0[8]}]
+set_property PACKAGE_PIN C20 [get_ports {dac_0[9]}]
+set_property PACKAGE_PIN L17 [get_ports {dac_0[10]}] ;# SRCC
+set_property PACKAGE_PIN L16 [get_ports {dac_0[11]}] ;# SRCC
+set_property PACKAGE_PIN D20 [get_ports {dac_0[12]}]
+set_property PACKAGE_PIN D19 [get_ports {dac_0[13]}]
+set_property PACKAGE_PIN G18 [get_ports {dac_0[14]}]
+set_property PACKAGE_PIN G17 [get_ports {dac_0[15]}]
 
-# Channel 2
-set_property PACKAGE_PIN D18 [get_ports {dac_1[0]}] ;# AD1N
-set_property PACKAGE_PIN E17 [get_ports {dac_1[1]}] ;# AD1P
-set_property PACKAGE_PIN E19 [get_ports {dac_1[2]}] ;# AD9N
-set_property PACKAGE_PIN E18 [get_ports {dac_1[3]}] ;# AD9P
-set_property PACKAGE_PIN A20 [get_ports {dac_1[4]}] ;# AD8N
-set_property PACKAGE_PIN B19 [get_ports {dac_1[5]}] ;# AD8P
-set_property PACKAGE_PIN F17 [get_ports {dac_1[6]}]
-set_property PACKAGE_PIN F16 [get_ports {dac_1[7]}]
-set_property PACKAGE_PIN B20 [get_ports {dac_1[8]}]
-set_property PACKAGE_PIN C20 [get_ports {dac_1[9]}]
-set_property PACKAGE_PIN L17 [get_ports {dac_1[10]}] ;# SRCC
-set_property PACKAGE_PIN L16 [get_ports {dac_1[11]}] ;# SRCC
-set_property PACKAGE_PIN D20 [get_ports {dac_1[12]}]
-set_property PACKAGE_PIN D19 [get_ports {dac_1[13]}]
-set_property PACKAGE_PIN G18 [get_ports {dac_1[14]}]
-set_property PACKAGE_PIN G17 [get_ports {dac_1[15]}]
+# Channel 1
+set_property PACKAGE_PIN F20 [get_ports {dac_1[0]}] ;# AD12N
+set_property PACKAGE_PIN F19 [get_ports {dac_1[1]}] ;# AD12P
+set_property PACKAGE_PIN J16 [get_ports {dac_1[2]}] ;# AD15N
+set_property PACKAGE_PIN K16 [get_ports {dac_1[3]}] ;# AD15P
+set_property PACKAGE_PIN G20 [get_ports {dac_1[4]}] ;# AD13N
+set_property PACKAGE_PIN G19 [get_ports {dac_1[5]}] ;# AD13P
+set_property PACKAGE_PIN K18 [get_ports {dac_1[6]}] ;# MRCC
+set_property PACKAGE_PIN K17 [get_ports {dac_1[7]}] ;# MRCC
+set_property PACKAGE_PIN H20 [get_ports {dac_1[8]}] ;# AD5N
+set_property PACKAGE_PIN J20 [get_ports {dac_1[9]}] ;# AD5P
+set_property PACKAGE_PIN M18 [get_ports {dac_1[10]}] ;# AD10N
+set_property PACKAGE_PIN M17 [get_ports {dac_1[11]}] ;# AD10P
+set_property PACKAGE_PIN H18 [get_ports {dac_1[12]}] ;# SRCC, AD4N
+set_property PACKAGE_PIN J18 [get_ports {dac_1[13]}] ;# SRCC, AD4P
+set_property PACKAGE_PIN G15 [get_ports {dac_1[14]}]
+set_property PACKAGE_PIN H15 [get_ports {dac_1[15]}]
 
 # ----------------------------------------------------------------------------------
 # Bank 13 connected with MIO in parallel (set to high-Z if not used)

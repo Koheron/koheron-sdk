@@ -2,11 +2,10 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_COMMON_HPP__
-#define __DRIVERS_COMMON_HPP__
+#ifndef __ALPHA_DRIVERS_COMMON_HPP__
+#define __ALPHA_DRIVERS_COMMON_HPP__
 
 #include <cstring>
-#include <array>
 
 extern "C" {
   #include <sys/socket.h>
@@ -21,21 +20,21 @@ extern "C" {
 #include "ltc2157.hpp"
 #include "ad9747.hpp"
 #include "temperature-sensor.hpp"
-#include "slow-dac.hpp"
-#include "slow-adc.hpp"
+#include "precision-dac.hpp"
+#include "precision-adc.hpp"
 
 class Common
 {
   public:
-    Common(Context& ctx)
-    : ctl(ctx.mm.get<mem::control>())
+    Common(Context& ctx_)
+    : ctx(ctx_)
     , sts(ctx.mm.get<mem::status>())
     , gpio(ctx.get<GpioExpander>())
     , clkgen(ctx.get<ClockGenerator>())
     , ltc2157(ctx.get<Ltc2157>())
     , ad9747(ctx.get<Ad9747>())
-    , slowdac(ctx.get<SlowDac>())
-    , slowadc(ctx.get<SlowAdc>())
+    , precisiondac(ctx.get<PrecisionDac>())
+    , precisionadc(ctx.get<PrecisionAdc>())
     {}
 
     uint64_t get_dna() {
@@ -50,7 +49,7 @@ class Common
         clkgen.init();
         ltc2157.init();
         ad9747.init();
-        slowdac.init();
+        precisiondac.init();
         ip_on_leds();
     };
 
@@ -75,15 +74,14 @@ class Common
                 #pragma GCC diagnostic ignored "-Wcast-align"
                 struct sockaddr_in *pAddr = reinterpret_cast<struct sockaddr_in *>(tmp->ifa_addr);
                 #pragma GCC diagnostic pop
-                int val = strcmp(tmp->ifa_name,interface);
+                int val = strcmp(tmp->ifa_name, interface);
 
                 if (val != 0) {
                     tmp = tmp->ifa_next;
                     continue;
                 }
 
-                printf("Interface %s found: %s\n",
-                       tmp->ifa_name, inet_ntoa(pAddr->sin_addr));
+                ctx.log<INFO>("Interface %s found: %s\n", tmp->ifa_name, inet_ntoa(pAddr->sin_addr));
                 uint32_t ip = htonl(pAddr->sin_addr.s_addr);
 
                 // Write IP address
@@ -98,14 +96,14 @@ class Common
     }
 
   private:
-    Memory<mem::control>& ctl;
+    Context& ctx;
     Memory<mem::status>& sts;
     GpioExpander& gpio;
     ClockGenerator& clkgen;
     Ltc2157& ltc2157;
     Ad9747& ad9747;
-    SlowDac& slowdac;
-    SlowAdc& slowadc;
+    PrecisionDac& precisiondac;
+    PrecisionAdc& precisionadc;
 };
 
-#endif // __DRIVERS_COMMON_HPP__
+#endif // __ALPHA_DRIVERS_COMMON_HPP__

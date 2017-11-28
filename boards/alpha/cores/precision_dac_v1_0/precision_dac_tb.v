@@ -1,6 +1,6 @@
 `timescale 1 ns / 1 ps
 
-module slow_dac_tb();
+module precision_dac_tb();
 
   reg                       clk;
   reg [16*4-1:0]            data;
@@ -10,9 +10,8 @@ module slow_dac_tb();
   wire                      sync;
   wire                      sdi;
   wire                      ldac;
-  wire [8-1:0]              cnt_sclk_out;
 
-  slow_dac DUT (
+  precision_dac DUT (
     .clk(clk),
     .data(data),
     .valid(valid),
@@ -20,8 +19,7 @@ module slow_dac_tb();
     .sync(sync),
     .sdi(sdi),
     .ldac(ldac),
-    .sclk(sclk),
-    .cnt_sclk_out(cnt_sclk_out)
+    .sclk(sclk)
   );
 
   parameter CLK_PERIOD = 8;

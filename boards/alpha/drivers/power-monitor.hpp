@@ -1,11 +1,11 @@
 /// (c) Koheron
 
-#ifndef __DRIVERS_POWER_MONITOR_HPP__
-#define __DRIVERS_POWER_MONITOR_HPP__
+#ifndef __ALPHA_DRIVERS_POWER_MONITOR_HPP__
+#define __ALPHA_DRIVERS_POWER_MONITOR_HPP__
 
 #include <context.hpp>
 
-// http://www.ti.com/lit/ds/symlink/ina230.pdf
+#include <array>
 
 class PowerMonitor
 {
@@ -17,6 +17,15 @@ class PowerMonitor
         std::array<uint8_t, 3> buff {reg_configuration, 0x43, 0xFF};
         i2c.write(i2c_address[0], buff);
         i2c.write(i2c_address[1], buff);
+    }
+
+    std::array<float, 4> get_supplies_ui() {
+        return {
+            100 * get_shunt_voltage(0), // VCC main current (A)
+            get_bus_voltage(0),         // VCC main voltage (V)
+            100 * get_shunt_voltage(1), // Clock current (A)
+            get_bus_voltage(1)          // Clock voltage (V)
+        };
     }
 
     float get_shunt_voltage(uint32_t index) {
@@ -44,9 +53,12 @@ class PowerMonitor
     }
 
   private:
-    const std::array<uint8_t, 2> i2c_address = {{0b100'0001, 0b100'0101}};
+    // index = 0: VCC main supply
+    // index = 1: Clocking subsystem supply
+    const std::array<uint8_t, 2> i2c_address = {{0b1000001, 0b1000101}};
     I2cDev& i2c;
 
+    // http://www.ti.com/lit/ds/symlink/ina230.pdf
     static constexpr uint8_t reg_configuration = 0;
     static constexpr uint8_t reg_shunt_voltage = 1;
     static constexpr uint8_t reg_bus_voltage = 2;
@@ -57,4 +69,4 @@ class PowerMonitor
     static constexpr uint8_t reg_alert_limit = 7;
 };
 
-#endif // __DRIVERS_POWER_MONITOR_HPP__
+#endif // __ALPHA_DRIVERS_POWER_MONITOR_HPP__

@@ -38,14 +38,17 @@ module spi_cfg #
         if (end_sequence == 0) begin               
           if (cnt_sclk < 8) begin
             sdi <= data_reg[31 - cnt_sclk];
+            if (cnt_sclk == 7 && cmd_reg[3:2] == 2'b00) begin // Stop at 1 byte written
+              end_sequence <= 1'b1;
+            end
           end else if (cnt_sclk >=  8 && cnt_sclk < 16) begin
             sdi <= data_reg[31 - cnt_sclk];
-            if (cnt_sclk == 15 && cmd_reg[3:2] == 2'b10) begin // Stop at 2 byte written
+            if (cnt_sclk == 15 && cmd_reg[3:2] == 2'b01) begin // Stop at 2 bytes written
               end_sequence <= 1'b1;
             end
           end else if (cnt_sclk >=  16 && cnt_sclk < 24) begin
             sdi <= data_reg[31 - cnt_sclk];
-            if (cnt_sclk == 23 && cmd_reg[3:2] == 2'b11) begin // Stop at 3 bytes written
+            if (cnt_sclk == 23 && cmd_reg[3:2] == 2'b10) begin // Stop at 3 bytes written
               end_sequence <= 1'b1;
             end
           end else if (cnt_sclk >=  24 && cnt_sclk < 32) begin

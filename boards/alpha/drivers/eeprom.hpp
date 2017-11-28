@@ -1,15 +1,61 @@
 /// (c) Koheron
 
-#ifndef __DRIVERS_EEPROM_HPP__
-#define __DRIVERS_EEPROM_HPP__
+#ifndef __ALPHA_DRIVERS_EEPROM_HPP__
+#define __ALPHA_DRIVERS_EEPROM_HPP__
 
 #include <thread>
 #include <chrono>
 #include <cstring>
+#include <array>
 
 #include <context.hpp>
 
-// http://ww1.microchip.com/downloads/en/DeviceDoc/21189f.pdf
+// http://ww1.microchip.com/downloads/en/DeviceDoc/21189K.pdf
+
+namespace eeprom_map {
+    namespace identifications {
+        constexpr int32_t offset = 0x000;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace precision_dac_calib {
+        constexpr int32_t offset = 0x100;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace rf_adc_ch0_calib {
+        constexpr int32_t offset = 0x200;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace rf_adc_ch1_calib {
+        constexpr int32_t offset = 0x300;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace clock_generator_calib {
+        constexpr int32_t offset = 0x400;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace rf_dac_ch0_calib {
+        constexpr int32_t offset = 0x500;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace rf_dac_ch1_calib {
+        constexpr int32_t offset = 0x600;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace precision_adc_calib {
+        constexpr int32_t offset = 0x700;
+        constexpr int32_t range = 0x100;
+    }
+
+    // Addresses above 0x1000 are reserved to user
+    constexpr int32_t user_off = 0x1000;
+}
 
 class Eeprom
 {
@@ -59,7 +105,7 @@ class Eeprom
     }
 
   private:
-    static constexpr int32_t EEPROM_ADDR = 0b101'0100;
+    static constexpr int32_t EEPROM_ADDR = 0b1010100;
     static constexpr uint32_t PAGESIZE = 32;
     static constexpr uint32_t EEPROM_SIZE = 64 * 1024 / 8;
 
@@ -112,4 +158,4 @@ class Eeprom
     }
 };
 
-#endif // __DRIVERS_EEPROM_HPP__
+#endif // __ALPHA_DRIVERS_EEPROM_HPP__

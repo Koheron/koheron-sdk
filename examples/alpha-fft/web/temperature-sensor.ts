@@ -9,8 +9,8 @@ class TemperatureSensor {
         this.cmds = this.driver.getCmds();
     }
 
-    getTemperature(idx: number, cb: (value: number) => void): void {
-        this.client.readFloat32(Command(this.id, this.cmds['get_temperature'], idx),
-                                 (value) => {cb(value)});
+    getTemperatures(cb: (temperatures: Float32Array) => void): void {
+        this.client.readFloat32Array(Command(this.id, this.cmds['get_temperatures']),
+                                 (temperatures: Float32Array) => {cb(temperatures)});
     }
 }

@@ -1,4 +1,4 @@
-set display_name {Koheron Alpha Slow DAC}
+set display_name {Koheron Alpha Precision DAC}
 
 set core [ipx::current_core]
 

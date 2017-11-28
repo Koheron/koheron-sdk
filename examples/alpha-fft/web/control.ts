@@ -2,59 +2,201 @@
 // (c) Koheron
 
 class Control {
-    private frequency_value: HTMLLinkElement;
-    private frequency_input: HTMLInputElement;
-    private frequency_save: HTMLLinkElement;
-    private frequency_slider: HTMLInputElement;
+    private channelNum: number;
 
-    private frequency: number;
+    private precisionDacNum: number;
+    private precisionDacInputs: HTMLInputElement[];
+    private precisionDacSliders: HTMLInputElement[];
 
-    constructor(document: Document, private driver: FFT) {
-        this.frequency_value = <HTMLLinkElement>document.getElementById('frequency-value');
-        this.frequency_input = <HTMLInputElement>document.getElementById('frequency-input');
-        this.frequency_save = <HTMLLinkElement>document.getElementById('frequency-save');
-        this.frequency_slider = <HTMLInputElement>document.getElementById('frequency-slider');
-        this.update();
+    private frequencies: Array<number>;
+    private frequencyInputs: HTMLInputElement[];
+    private frequencySliders: HTMLInputElement[];
+
+    public referenceClock: string;
+    private referenceClockInternalInput: HTMLInputElement;
+    private referenceClockExternalInput: HTMLInputElement;
+
+    private samplingFrequency: string;
+    private samplingFrequency200Input: HTMLInputElement;
+    private samplingFrequency250Input: HTMLInputElement;
+
+    private inputCh0: HTMLInputElement;
+    private inputCh1: HTMLInputElement;
+
+    public fftWindowIndex: number;
+    private fftWindowSelect: HTMLSelectElement;
+
+    constructor(document: Document, private fft: FFT, private PrecisionDac: PrecisionDac, private clkGen: ClockGenerator) {
+        this.channelNum = 2;
+
+        this.frequencyInputs = [];
+        this.frequencySliders = [];
+
+        for (let i: number = 0; i < this.channelNum; i++) {
+            this.frequencyInputs[i] = <HTMLInputElement>document.getElementById('frequency-input-' + i.toString());
+            this.frequencySliders[i] = <HTMLInputElement>document.getElementById('frequency-slider-' + i.toString());
+        }
+
+        this.frequencies = new Array(this.channelNum);
+
+        this.precisionDacNum = 4;
+
+        this.precisionDacInputs = [];
+        this.precisionDacSliders = [];
+
+        for (let i: number = 0; i < this.precisionDacNum; i++) {
+            this.precisionDacInputs[i] = <HTMLInputElement>document.getElementById('precision-dac-input-' + i.toString());
+            this.precisionDacSliders[i] = <HTMLInputElement>document.getElementById('precision-dac-slider-' + i.toString());
+        }
+
+        this.referenceClock = 'internal';
+        this.referenceClockInternalInput = <HTMLInputElement>document.getElementById('reference-clock-internal');
+        this.referenceClockExternalInput = <HTMLInputElement>document.getElementById('reference-clock-external');
+
+        this.samplingFrequency = '250 MHz';
+        this.samplingFrequency200Input = <HTMLInputElement>document.getElementById('sampling-frequency-200');
+        this.samplingFrequency250Input = <HTMLInputElement>document.getElementById('sampling-frequency-250');
+
+        this.inputCh0 = <HTMLInputElement>document.getElementById('input-ch0');
+        this.inputCh1 = <HTMLInputElement>document.getElementById('input-ch1');
+
+        this.fftWindowIndex = 1;
+        this.fftWindowSelect = <HTMLSelectElement>document.getElementById("fft-window");
+
+        this.updateDacValues();
+        this.updateReferenceClock();
+        this.updateFFTWindowInputs();
+        this.updateControls();
     }
 
-    update() {
-        this.driver.getControlParameters( (sts: IFFTStatus) => {
-            this.frequency_value.innerHTML = (sts.dds_freq[0]/1e6).toFixed(6);
-            this.frequency_slider.value = (sts.dds_freq[0]/1e6).toFixed(4);
-            requestAnimationFrame( () => { this.update(); } )
+    // Updateters
+
+    private updateControls() {
+        this.fft.getControlParameters( (sts: IFFTStatus) => {
+            for (let i: number = 0; i < this.channelNum; i++) {
+                if (document.activeElement !== this.frequencyInputs[i]) {
+                    this.frequencyInputs[i].value = (sts.dds_freq[i] / 1e6).toFixed(6);
+                }
+
+                if (document.activeElement !== this.frequencySliders[i]) {
+                    this.frequencySliders[i].value = (sts.dds_freq[i] / 1e6).toFixed(6);
+                    this.frequencySliders[i].max = (sts.fs / 1e6 / 2).toFixed(1);
+                }
+
+                if (sts.fs === 200E6) {
+                    this.samplingFrequency = '200 MHz';
+                    this.samplingFrequency200Input.checked = true;
+                    this.samplingFrequency250Input.checked = false;
+                } else {
+                    this.samplingFrequency = '250 MHz';
+                    this.samplingFrequency200Input.checked = false;
+                    this.samplingFrequency250Input.checked = true;
+                }
+
+                if (sts.channel === 0) {
+                    this.inputCh0.checked = true;
+                    this.inputCh1.checked = false;
+                } else {
+                    this.inputCh0.checked = false;
+                    this.inputCh1.checked = true;
+                }
+            }
+
+            requestAnimationFrame( () => { this.updateControls(); } )
         });
     }
 
-    editFrequency() {
-        this.frequency_value.style.display = 'none';
-        this.frequency_input.style.display = 'inline';
-        this.frequency_save.style.display = 'inline';
-        this.frequency_input.value = this.frequency_value.innerHTML;
+    private updateDacValues() {
+        this.PrecisionDac.getDacValues( (dacValues: Float32Array) => {
+            for (let i: number = 0; i < this.precisionDacNum; i++) {
+                if (document.activeElement !== this.precisionDacInputs[i]) {
+                    this.precisionDacInputs[i].value = (dacValues[i] * 1000).toFixed(3).toString();
+                }
+
+                if (document.activeElement !== this.precisionDacSliders[i]) {
+                    this.precisionDacSliders[i].value = (dacValues[i] * 1000).toFixed(3).toString();
+                }
+            }
+
+            requestAnimationFrame( () => { this.updateDacValues(); } )
+        });
     }
 
-    saveFrequency() {
-        this.frequency_value.style.display = 'inline';
-        this.frequency_input.style.display = 'none';
-        this.frequency_save.style.display = 'none';
-        this.frequency = Math.min(parseFloat(this.frequency_input.value), 250);
-        this.driver.setDDSFreq(0, 1e6 * this.frequency);
+    private updateReferenceClock() {
+        this.clkGen.getReferenceClock( (clkin: number) => {
+            if (clkin === 0) {
+                this.referenceClock = 'external';
+                this.referenceClockInternalInput.checked = false;
+                this.referenceClockExternalInput.checked = true;
+            } else {
+                this.referenceClock = 'internal';
+                this.referenceClockInternalInput.checked = true;
+                this.referenceClockExternalInput.checked = false;
+            }
+
+            requestAnimationFrame( () => { this.updateReferenceClock(); } )
+        });
     }
 
-    saveFrequencyKey(event: KeyboardEvent) {
-        if (event.keyCode == 13) {
-            this.saveFrequency();
+    private updateFFTWindowInputs() {
+        this.fft.getFFTWindowIndex( (windowIndex: number) => {
+            this.fftWindowIndex = windowIndex;
+            this.fftWindowSelect.value = windowIndex.toString();
+            requestAnimationFrame( () => { this.updateFFTWindowInputs(); } )
+        });
+    }
+
+    // Setters
+
+    setFrequency(channel: number, input: HTMLInputElement) {
+        let frequencyValue = input.value;
+
+        if (input.type === 'number') {
+            this.frequencySliders[channel].value = frequencyValue;
+        } else if (input.type === 'range') {
+            this.frequencyInputs[channel].value = frequencyValue;
+        }
+
+        this.fft.setDDSFreq(channel, 1e6 * parseFloat(frequencyValue));
+    }
+
+    setPrecisionDac(channel: number, input: HTMLInputElement) {
+        let precisionDacValue = input.value;
+
+        if (input.type === 'number') {
+            this.precisionDacSliders[channel].value = precisionDacValue;
+        } else if (input.type === 'range') {
+            this.precisionDacInputs[channel].value = precisionDacValue;
+        }
+
+        this.PrecisionDac.setDac(channel, parseFloat(precisionDacValue) / 1000);
+    }
+
+    setReferenceClock(referenceClock: string) {
+        this.referenceClock = referenceClock;
+
+        if (this.referenceClock === 'external') {
+            this.clkGen.setReferenceClock(0);
+        } else {
+            this.clkGen.setReferenceClock(2);
         }
     }
 
-    slideFrequency() {
-        if (this.frequency_input.style.display == 'inline') {
-            this.frequency_value.style.display = 'inline';
-            this.frequency_input.style.display = 'none';
-            this.frequency_save.style.display = 'none';
-        }
+    setSamplingFrequency(samplingFrequency: string) {
+        this.samplingFrequency = samplingFrequency;
 
-        this.frequency = parseFloat(this.frequency_slider.value);
-        this.driver.setDDSFreq(0, 1e6 * this.frequency);
+        if (this.samplingFrequency === '200 MHz') {
+            this.clkGen.setSamplingFrequency(0);
+        } else { // 250 MHz
+            this.clkGen.setSamplingFrequency(1);
+        }
     }
 
+    setInputChannel(channel: number) {
+        this.fft.setInputChannel(channel);
+    }
+
+    setFFTWindow(windowIndex: number) {
+        this.fft.setFFTWindow(windowIndex);
+    }
 }
