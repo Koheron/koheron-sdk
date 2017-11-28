@@ -81,9 +81,7 @@ cp $os_path/systemd/uwsgi.service $root_dir/etc/systemd/system/uwsgi.service
 mkdir $root_dir/usr/local/instruments
 cp $os_path/scripts/unzip_default_instrument.sh $root_dir/usr/local/instruments/unzip_default_instrument.sh
 echo "${name}.zip" > $root_dir/usr/local/instruments/default
-cp $tmp_project_path/../*/*.zip $root_dir/usr/local/instruments
-
-
+cp ${tmp_project_path}/${name}.zip $root_dir/usr/local/instruments
 
 chroot $root_dir <<- EOF_CHROOT
 export LANG=C
@@ -171,8 +169,10 @@ iface eth0 inet dhcp
 #  netmask 255.255.255.0
 #  network 192.168.1.0
 #  broadcast 192.168.1.255
-  post-up ntpdate -u ntp.u-psud.fr
+  # /!\ koheron-server-init must be the first post-up called
+  # else it wont be called if a previous post-up fails.
   post-up systemctl start koheron-server-init
+  post-up ntpdate -u ntp.u-psud.fr
 EOF_CAT
 
 apt-get clean
