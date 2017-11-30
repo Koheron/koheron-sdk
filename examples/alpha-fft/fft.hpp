@@ -56,7 +56,7 @@ class FFT
         ctl.write<reg::ctl_fft>(1 + (scale_sch << 1));
     }
 
-    void set_fft_window(const uint32_t& window_index_) {
+    void set_fft_window(uint32_t window_index_) {
         if (window_index_ == 0) {
             window.fill(1.0); // Rectangular
         } else if (window_index_ == 1) {
