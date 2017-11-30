@@ -1,6 +1,6 @@
 ---
 name: loopback
-board: boards/alpha
+board: boards/alpha250
 
 cores:
   - fpga/cores/axi_ctl_register_v1_0
@@ -8,8 +8,8 @@ cores:
   - fpga/cores/dna_reader_v1_0
   - fpga/cores/edge_detector_v1_0
   - fpga/cores/comparator_v1_0
-  - boards/alpha/cores/precision_dac_v1_0
-  - boards/alpha/cores/spi_cfg_v1_0
+  - boards/alpha250/cores/precision_dac_v1_0
+  - boards/alpha250/cores/spi_cfg_v1_0
 
 memory:
   - name: control
@@ -43,20 +43,20 @@ parameters:
   adc_clk: 250000000
 
 xdc:
-  - boards/alpha/config/ports.xdc
+  - boards/alpha250/config/ports.xdc
 
 drivers:
-  - boards/alpha/drivers/common.hpp
-  - boards/alpha/drivers/eeprom.hpp
-  - boards/alpha/drivers/gpio-expander.hpp
-  - boards/alpha/drivers/temperature-sensor.hpp
-  - boards/alpha/drivers/power-monitor.hpp
-  - boards/alpha/drivers/clock-generator.hpp
-  - boards/alpha/drivers/ltc2157.hpp
-  - boards/alpha/drivers/ad9747.hpp
-  - boards/alpha/drivers/precision-adc.hpp
-  - boards/alpha/drivers/precision-dac.hpp
-  - boards/alpha/drivers/spi-config.hpp
+  - boards/alpha250/drivers/common.hpp
+  - boards/alpha250/drivers/eeprom.hpp
+  - boards/alpha250/drivers/gpio-expander.hpp
+  - boards/alpha250/drivers/temperature-sensor.hpp
+  - boards/alpha250/drivers/power-monitor.hpp
+  - boards/alpha250/drivers/clock-generator.hpp
+  - boards/alpha250/drivers/ltc2157.hpp
+  - boards/alpha250/drivers/ad9747.hpp
+  - boards/alpha250/drivers/precision-adc.hpp
+  - boards/alpha250/drivers/precision-dac.hpp
+  - boards/alpha250/drivers/spi-config.hpp
 
 web:
   - web/index.html
