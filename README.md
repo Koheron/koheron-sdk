@@ -27,6 +27,11 @@
 
 Ready to develop your instrument? Read the [documentation](https://www.koheron.com/software-development-kit/documentation).
 
+## Alpha250 designs
+
+* [`fft`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250-fft) : reference design with spectrum analyzer, DDS and demodulation.
+* [`loopback`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250-loopback) : minimal instrument.
+
 ## Red Pitaya designs
 
 * [`led-blinker`](https://github.com/Koheron/koheron-sdk/tree/master/examples/led-blinker) : minimal instrument with LED control.
