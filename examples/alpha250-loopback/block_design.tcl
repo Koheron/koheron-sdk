@@ -44,5 +44,5 @@ connect_pins ps_0/SDIO0_WP [get_constant_pin 0 1]
 
 # Loopback
 
-connect_pins adc_dac/adc0 adc_dac/dac0
-connect_pins adc_dac/adc1 adc_dac/dac1
+#connect_pins adc_dac/adc0 adc_dac/dac0
+#connect_pins adc_dac/adc1 adc_dac/dac1
