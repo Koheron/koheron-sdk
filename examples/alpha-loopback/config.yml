@@ -1,0 +1,62 @@
+---
+name: loopback
+board: boards/alpha
+
+cores:
+  - fpga/cores/axi_ctl_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
+  - fpga/cores/edge_detector_v1_0
+  - fpga/cores/comparator_v1_0
+  - boards/alpha/cores/precision_dac_v1_0
+  - boards/alpha/cores/spi_cfg_v1_0
+
+memory:
+  - name: control
+    offset: '0x60000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+  - name: adc
+    offset: '0x80000000'
+    range: 256K
+  - name: dac
+    offset: '0x80040000'
+    range: 256K
+  - name: xadc
+    offset: '0x43C00000'
+    range: 64K
+
+control_registers:
+  - mmcm
+  - precision_dac_ctl
+  - precision_dac_data[2]
+  - spi_cfg_data
+  - spi_cfg_cmd
+
+status_registers:
+  - spi_cfg_sts
+
+parameters:
+  fclk0: 50000000 # FPGA clock speed in Hz
+  adc_clk: 250000000
+
+xdc:
+  - boards/alpha/config/ports.xdc
+
+drivers:
+  - boards/alpha/drivers/common.hpp
+  - boards/alpha/drivers/eeprom.hpp
+  - boards/alpha/drivers/gpio-expander.hpp
+  - boards/alpha/drivers/temperature-sensor.hpp
+  - boards/alpha/drivers/power-monitor.hpp
+  - boards/alpha/drivers/clock-generator.hpp
+  - boards/alpha/drivers/ltc2157.hpp
+  - boards/alpha/drivers/ad9747.hpp
+  - boards/alpha/drivers/precision-adc.hpp
+  - boards/alpha/drivers/precision-dac.hpp
+  - boards/alpha/drivers/spi-config.hpp
+
+web:
+  - web/index.html
