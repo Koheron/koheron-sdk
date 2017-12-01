@@ -45,6 +45,14 @@ class Tests {
         this.client.readFloat32Vector(Command(this.id, this.cmds.get_vector), cb);
     }
 
+    getConstVector(cb) {
+        this.client.readUint32Vector(Command(this.id, this.cmds.get_const_vector), cb);
+    }
+
+    getConstAutoVector(cb) {
+        this.client.readUint32Vector(Command(this.id, this.cmds.get_const_auto_vector), cb);
+    }
+
     setString(cb) {
         this.client.readBool(Command(this.id, this.cmds.set_string, 'Hello World'), cb);
     }
@@ -101,7 +109,7 @@ export function getVector(assert) {
                 assert.equals(array.length, 10);
                 let is_ok = true;
                 for (let i = 0, end = array.length-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) {
-                    if (array[i] !== (i*i*i)) {
+                    if (array[i] !== (i * i * i)) {
                         is_ok = false;
                         break;
                     }
@@ -114,6 +122,49 @@ export function getVector(assert) {
     });
 }
 
+export function getConstVector(assert) {
+    let client = new Client(HOST, 1);
+    assert.doesNotThrow( () => {
+        client.init( () => {
+            let tests = new Tests(client);
+            tests.getConstVector( (array) => {
+                assert.equals(array.length, 42);
+                let is_ok = true;
+                for (let i = 0, end = array.length-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) {
+                    if (array[i] !== (i * i)) {
+                        is_ok = false;
+                        break;
+                    }
+                }
+                assert.ok(is_ok);
+                client.exit();
+                assert.done();
+            });
+        });
+    });
+}
+
+export function getConstAutoVector(assert) {
+    let client = new Client(HOST, 1);
+    assert.doesNotThrow( () => {
+        client.init( () => {
+            let tests = new Tests(client);
+            tests.getConstAutoVector( (array) => {
+                assert.equals(array.length, 100);
+                let is_ok = true;
+                for (let i = 0, end = array.length-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) {
+                    if (array[i] !== (42 * i)) {
+                        is_ok = false;
+                        break;
+                    }
+                }
+                assert.ok(is_ok);
+                client.exit();
+                assert.done();
+            });
+        });
+    });
+}
 
 export function setString(assert) {
     let client = new Client(HOST, 1);

@@ -169,13 +169,15 @@ def build_payload(cmd_args, args):
     return payload
 
 def is_std_array(_type):
-    return _type.split('<')[0].strip() == 'std::array'
+    base_type = _type.split('<')[0].strip()
+    return (base_type == 'std::array') or (base_type == 'const std::array')
 
 def is_std_vector(_type):
-    return _type.split('<')[0].strip() == 'std::vector'
+    base_type = _type.split('<')[0].strip()
+    return (base_type == 'std::vector') or (base_type == 'const std::vector')
 
 def is_std_string(_type):
-    return _type.strip() == 'std::string'
+    return (_type.strip() == 'std::string') or (_type.strip() == 'const std::string')
 
 def is_std_tuple(_type):
     return _type.split('<')[0].strip() == 'std::tuple'
@@ -188,7 +190,7 @@ def get_std_array_params(_type):
     }
 
 def get_std_vector_params(_type):
-    return {'T': _type.split('<')[1].split('>')[0].strip()}
+    return {'T': _type.split('<')[1].split('>')[0].split(',')[0].strip()}
 
 cpp_to_np_types = {
   'bool': 'bool',
