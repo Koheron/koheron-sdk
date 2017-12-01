@@ -78,6 +78,10 @@ class Tests
         return "Hello World";
     }
 
+    const std::string& get_const_string() {
+        return const_string;
+    }
+
     std::string get_json() {
         return "{\"date\":\"20/07/2016\",\"machine\":\"PC-3\",\"time\":\"18:16:13\",\"user\":\"thomas\",\"version\":\"0691eed\"}";
     }
@@ -91,6 +95,8 @@ class Tests
     std::vector<uint32_t> vector_u;
     std::array<uint32_t, 8192> array;
     std::string string;
+
+    std::string const_string = "Hello World const";
 };
 
 #endif // __TESTS_TESTS_HPP__

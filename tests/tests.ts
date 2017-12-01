@@ -61,6 +61,10 @@ class Tests {
         this.client.readString(Command(this.id, this.cmds.get_string), cb);
     }
 
+    getConstString(cb) {
+        this.client.readString(Command(this.id, this.cmds.get_const_string), cb);
+    }
+
     getJSON(cb) {
         this.client.readJSON(Command(this.id, this.cmds.get_json), cb);
     }
@@ -187,6 +191,20 @@ export function getString(assert) {
             let tests = new Tests(client);
             tests.getString( (str) => {
                 assert.equals(str, 'Hello World');
+                client.exit();
+                assert.done();
+            });
+        });
+    });
+}
+
+export function getConstString(assert) {
+    let client = new Client(HOST, 1);
+    assert.doesNotThrow( () => {
+        client.init( () => {
+            let tests = new Tests(client);
+            tests.getConstString( (str) => {
+                assert.equals(str, 'Hello World const');
                 client.exit();
                 assert.done();
             });

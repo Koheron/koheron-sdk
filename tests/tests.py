@@ -48,6 +48,10 @@ class Tests:
         return self.client.recv_string()
 
     @command()
+    def get_const_string(self):
+        return self.client.recv_string()
+
+    @command()
     def get_json(self):
         return self.client.recv_json()
 
@@ -98,6 +102,9 @@ def test_set_string():
 
 def test_get_string():
     assert tests.get_string() == 'Hello World'
+
+def test_get_const_string():
+    assert tests.get_const_string() == 'Hello World const'
 
 def test_get_json():
     data = tests.get_json()
