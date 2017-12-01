@@ -15,8 +15,8 @@
 #include <limits>
 #include <array>
 
-#include <boards/alpha/drivers/clock-generator.hpp>
-#include <boards/alpha/drivers/ltc2157.hpp>
+#include <boards/alpha250/drivers/clock-generator.hpp>
+#include <boards/alpha250/drivers/ltc2157.hpp>
 
 class FFT
 {
