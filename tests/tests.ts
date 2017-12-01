@@ -41,6 +41,10 @@ class Tests {
         this.client.readBool(Command(this.id, this.cmds.set_array, u, f, array, d, i), cb);
     }
 
+    getArray(cb) {
+        this.client.readUint32Array(Command(this.id, this.cmds.get_array), cb);
+    }
+
     getVector(cb) {
         this.client.readFloat32Vector(Command(this.id, this.cmds.get_vector), cb);
     }
@@ -96,6 +100,28 @@ export function setArray(assert) {
         client.init( () => {
             let tests = new Tests(client);
             tests.setArray( (is_ok) => {
+                assert.ok(is_ok);
+                client.exit();
+                assert.done();
+            });
+        });
+    });
+}
+
+export function getArray(assert) {
+    let client = new Client(HOST, 1);
+    assert.doesNotThrow( () => {
+        client.init( () => {
+            let tests = new Tests(client);
+            tests.getArray( (array) => {
+                assert.equals(array.length, 8192);
+                let is_ok = true;
+                for (let i = 0, end = array.length-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) {
+                    if (array[i] !== (10 * i + i)) {
+                        is_ok = false;
+                        break;
+                    }
+                }
                 assert.ok(is_ok);
                 client.exit();
                 assert.done();

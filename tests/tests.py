@@ -28,6 +28,10 @@ class Tests:
         return self.client.recv_bool()
 
     @command()
+    def get_array(self):
+        return self.client.recv_array(8192, dtype='uint32')
+
+    @command()
     def get_vector(self):
         return self.client.recv_vector(dtype='float32')
 
@@ -78,6 +82,12 @@ def test_set_scalars():
 def test_set_array():
     arr = np.arange(8192, dtype='uint32')
     assert tests.set_array(4223453, np.pi, arr, 2.654798454646, -56789)
+
+def test_get_array():
+    array = tests.get_array()
+    assert len(array) == 8192
+    for i in range(len(array)):
+        assert array[i] == 10 * i + i
 
 def test_get_vector():
     array = tests.get_vector()
