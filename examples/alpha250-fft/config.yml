@@ -65,7 +65,7 @@ parameters:
   cic_n_stages: 6
 
 xdc:
-  - boards/alpha/config/ports.xdc
+  - boards/alpha250/config/ports.xdc
 
 drivers:
   - boards/alpha250/drivers/common.hpp
