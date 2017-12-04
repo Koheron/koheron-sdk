@@ -68,73 +68,96 @@ class LaserDriver {
 }
 
 class LaserControl {
-    private laserSwitch: HTMLLinkElement;
-    private modeSwitch: HTMLLinkElement;
+    private laserSwitch: HTMLInputElement;
+    private laserOn: boolean;
+
+    private laserModeSelect: HTMLSelectElement;
     private calibrationSpan: HTMLSpanElement;
-    private currentControlTr: any;
-    private inputCurrentSlider: HTMLInputElement;
-    private inputCurrentSpan: HTMLSpanElement;
-    private powerControlTr: any;
-    private inputPowerSlider: HTMLInputElement;
-    private inputPowerSpan: HTMLSpanElement;
-    private outputPowerSpan: HTMLSpanElement;
+    private currentControl: any;
+    private inCurrentSlider: HTMLInputElement;
+    private inCurrentInput: HTMLInputElement;
+    private powerControl: any;
+    private inPowerInput: HTMLInputElement;
+    private inPowerSlider: HTMLInputElement;
+    private measuredPowerSpan: HTMLSpanElement;
     private canvas: HTMLCanvasElement;
     private calibrationInstructionsDiv: any;
     private ctx: any;
 
     constructor(private document: Document, private driver: LaserDriver) {
-        this.laserSwitch = <HTMLLinkElement>document.getElementById('laser-switch');
-        this.modeSwitch = <HTMLLinkElement>document.getElementById('mode-switch');
+        this.laserSwitch = <HTMLInputElement>document.getElementById('laser-switch');
+        this.laserModeSelect = <HTMLSelectElement>document.getElementById('laser-mode');
         this.calibrationSpan = <HTMLLinkElement>document.getElementById('calibration');
-        this.currentControlTr = <HTMLTableRowElement>document.getElementById('current-control');
-        this.inputCurrentSlider = <HTMLInputElement>document.getElementById('input-current-slider');
-        this.inputCurrentSpan = <HTMLSpanElement>document.getElementById('input-current');
-        this.powerControlTr = <HTMLTableRowElement>document.getElementById('power-control');
-        this.inputPowerSlider = <HTMLInputElement>document.getElementById('input-power-slider');
-        this.inputPowerSpan = <HTMLSpanElement>document.getElementById('input-power');
-        this.outputPowerSpan = <HTMLSpanElement>document.getElementById('output-power');
+        this.currentControl = document.getElementsByClassName('current-control');
+        this.inCurrentSlider = <HTMLInputElement>document.getElementById('in-current-slider');
+        this.inCurrentInput = <HTMLInputElement>document.getElementById('in-current-input');
+        this.powerControl = document.getElementsByClassName('power-control');
+        this.inPowerSlider = <HTMLInputElement>document.getElementById('in-power-slider');
+        this.inPowerInput = <HTMLInputElement>document.getElementById('in-power-input');
+        this.measuredPowerSpan = <HTMLSpanElement>document.getElementById('measured-power');
         this.canvas = <HTMLCanvasElement>document.getElementById('canvas');
         this.calibrationInstructionsDiv = document.getElementById('calibration-instructions');
 
+        let canvasWidth: number = this.inCurrentSlider.offsetWidth;
+        this.canvas.width = canvasWidth;
+
         this.ctx = this.canvas.getContext("2d");
         this.ctx.fillStyle = 'rgb(100, 100, 100)';
+
         this.update();
     }
 
     update(): void {
         this.driver.getStatus ( (status) => {
-            this.outputPowerSpan.innerHTML = Math.max(0, status.measured_power).toFixed(1).toString();
-            this.ctx.clearRect(0,0,400, 15);
-            this.ctx.fillRect(0, 0, status.measured_power / 10, 15);
+
+            this.measuredPowerSpan.innerHTML = Math.max(0, status.measured_power).toFixed(1).toString();
+            this.ctx.clearRect(0, 0, this.canvas.width, 15);
+            this.ctx.fillRect(0, 0, status.measured_power * this.canvas.width / 4000, 15);
 
             if (status.is_calibrated) {
-                this.calibrationSpan.innerHTML = 'System calibrated';
+                this.calibrationSpan.innerHTML = 'Status: Calibrated';
             } else {
-                this.calibrationSpan.innerHTML = 'System not calibrated';
+                this.calibrationSpan.innerHTML = 'Status: Not calibrated';
             }
 
-            this.inputCurrentSlider.value = status.current.toFixed(2).toString();
-            this.inputCurrentSpan.innerHTML = status.current.toFixed(2).toString();
+            if (document.activeElement !== this.inCurrentInput) {
+                this.inCurrentInput.value = status.current.toFixed(2).toString();
+            }
+            if (document.activeElement !== this.inCurrentSlider) {
+                this.inCurrentSlider.value = status.current.toFixed(2).toString();
+            }
 
-            this.inputPowerSlider.value = status.power.toFixed(2).toString();
-            this.inputPowerSpan.innerHTML =  status.power.toFixed(2).toString();
+            if (document.activeElement !== this.inPowerInput) {
+                this.inPowerInput.value = status.power.toFixed(1).toString();
+            }
+            if (document.activeElement !== this.inPowerSlider) {
+                this.inPowerSlider.value = status.power.toFixed(1).toString();
+            }
 
-            if (status.laser_on) {
-                this.laserSwitch.innerHTML = 'Stop Laser';
-                this.laserSwitch.className = 'btn btn-danger';
+            this.laserOn = status.laser_on;
+            if (this.laserOn) {
+                this.laserSwitch.checked = true;
             } else {
-                this.laserSwitch.innerHTML = 'Start Laser';
-                this.laserSwitch.className = 'btn btn-success';
+                this.laserSwitch.checked = false;
             }
 
             if (status.constant_power_on) {
-                this.modeSwitch.innerHTML = 'Constant power';
-                this.currentControlTr.style.display = 'none';
-                this.powerControlTr.style.display = 'table-row';
+                this.laserModeSelect.value = "power";
+                for (let i: number = 0; i < this.currentControl.length; i++) {
+                    this.currentControl[i].style.display = 'none';
+                }
+                for (let i: number = 0; i < this.powerControl.length; i++) {
+                    this.powerControl[i].style.display = 'table-cell';
+                }
             } else {
-                this.modeSwitch.innerHTML = 'Constant current';
-                this.currentControlTr.style.display = 'table-row';
-                this.powerControlTr.style.display = 'none';
+                this.laserModeSelect.value = 'current';
+                for (let i: number = 0; i < this.currentControl.length; i++) {
+                    this.currentControl[i].style.display = 'table-cell';
+                }
+                for (let i: number = 0; i < this.powerControl.length; i++) {
+                    this.powerControl[i].style.display = 'none';
+                }
+
             }
 
             requestAnimationFrame( () => { this.update(); });
@@ -142,10 +165,12 @@ class LaserControl {
     }
 
     switchLaser(): void {
-        if (this.laserSwitch.innerHTML == 'Start Laser') {
-            this.driver.start();
-        } else { // Turn off
+        if (this.laserOn) {
             this.driver.stop();
+            this.laserOn = false;
+        } else {
+            this.driver.start();
+            this.laserOn = true;
         }
     }
 
@@ -163,11 +188,13 @@ class LaserControl {
 
     startCalibration(): void {
         this.driver.calibrate0mW();
-        this.calibrationInstructionsDiv.style.display = 'table-row';
+        this.calibrationSpan.style.display = "none";
+        this.calibrationInstructionsDiv.style.display = 'block';
     }
 
     calibrationDone(): void {
         this.driver.calibrate1mW();
+        this.calibrationSpan.style.display = "inline";
         this.calibrationInstructionsDiv.style.display = 'none';
     }
 

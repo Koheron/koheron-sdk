@@ -12,12 +12,12 @@ td, th {
   padding: 0px 5px 5px;
 }
 
-.col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6, .col-md-7, .col-md-8, .col-md-9 {
+.col-md-2, .col-md-3, .col-md-4, .col-md-6, .col-md-8, .col-md-9 {
   padding-left: 5px;
   padding-right: 5px;
 }
 
-.crossed-title {
+.crossed {
   width: 100%;
   text-align: center;
   border-bottom: 1px solid #d5d5d5;
@@ -25,7 +25,7 @@ td, th {
   margin-bottom: 20px;
 }
 
-.crossed-title > span {
+.crossed > span {
   background: white;
   padding: 0px 10px;
   font-weight: bold;
