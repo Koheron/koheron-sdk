@@ -47,14 +47,14 @@
 
         <table>
           <tr>
-            <td>
+            <td style="width: 100px;">
               <label for="laser-switch">ON</label>
               <label class="switch" style="margin-top: 0px; margin-bottom: -7px; margin-left: 5px;">
                 <input type="checkbox" id="laser-switch" onchange="app.laserControl.switchLaser(); return false" checked>
                 <span class="slider round"></span>
               </label>
             </td>
-            <td>
+            <td style="width: 170px;">
               <span id="calibration"></span>
             </td>
             <td>
@@ -101,28 +101,35 @@
 
       </section>
 
+      <section>
 
-      <!--AVERAGE-->
+        <div class="crossed">
+          <span>Average</span>
+        </div>
 
-      <div class="border padding">
+        <table>
+          <tr>
+            <td style="width: 100px;">
+              <label for="average-switch">ON</label>
+              <label class="switch" style="margin-top: 0px; margin-bottom: -7px; margin-left: 5px;">
+                <input type="checkbox" id="average-switch" onchange="app.average.average(); return false" checked>
+                <span class="slider round"></span>
+              </label>
+            </td>
+            <td style="width: 50px;" class="average">Count:</td>
+            <td style="width: 70px;" class="average"><span id="avg"></span></td>
+            <td class="average">Minimum:</td>
+            <td style="width: 90px;" class="average">
+              <input id="avg-min-input" type="number" value="0" min="0" step="1" max="2000" onchange="app.average.setNumAverageMin(this.value); return false;" oninput="app.average.setNumAverageMin(this.value); return false;">
+            </td>
+          </tr>
+        </table>
 
-      <a id="avg-btn" class="btn btn-primary-reversed" onclick="app.average.average(); return false">Average</a>
-
-      &nbsp; &nbsp; Count:
-      <span id="avg" style="display: inline-block; width: 50px"></span>
-
-      &nbsp; &nbsp; Minimum:
-      <a id="avg-min-edit" href="#" onclick="app.average.editNumAverageMin(); return false" class="btn-tip" data-toggle="tooltip" data-placement="right" title="Edit">0</a>
-      <input id="avg-min-input" type="number" value="0" min="0" step="1" max="2000" style="display: none; width: 70px">
-      <a class="glyphicon glyphicon-ok blue btn-tip" id="avg-min-save" href="#" onclick="app.average.saveNumAverageMin(); return false" data-toggle="tooltip" data-placement="bottom" title="Save" style="display: none"></a>
-
-      </div>
+      </section>
 
     </div>
 
   </div>
-
-  <!--MODULATION-->
 
   <ul class="nav nav-tabs">
     <li class="active"><a data-toggle="tab" href="#channel-1" style="height: 35px; line-height: 22.85px; padding-top: 6px; padding-bottom: 6px">Channel 1</a></li>
