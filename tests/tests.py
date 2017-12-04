@@ -28,8 +28,20 @@ class Tests:
         return self.client.recv_bool()
 
     @command()
+    def get_array(self):
+        return self.client.recv_array(8192, dtype='uint32')
+
+    @command()
     def get_vector(self):
         return self.client.recv_vector(dtype='float32')
+
+    @command()
+    def get_const_vector(self):
+        return self.client.recv_vector(dtype='uint32')
+
+    @command()
+    def get_const_auto_vector(self):
+        return self.client.recv_vector(dtype='uint32')
 
     @command()
     def set_string(self, str):
@@ -37,6 +49,10 @@ class Tests:
 
     @command()
     def get_string(self):
+        return self.client.recv_string()
+
+    @command()
+    def get_const_string(self):
         return self.client.recv_string()
 
     @command()
@@ -48,7 +64,6 @@ class Tests:
         return self.client.recv_tuple('Idd?')
 
 # Unit Tests
-
 host = os.getenv('HOST', '192.168.1.100')
 
 client = connect(host, name='test')
@@ -68,17 +83,38 @@ def test_set_array():
     arr = np.arange(8192, dtype='uint32')
     assert tests.set_array(4223453, np.pi, arr, 2.654798454646, -56789)
 
+def test_get_array():
+    array = tests.get_array()
+    assert len(array) == 8192
+    for i in range(len(array)):
+        assert array[i] == 10 * i + i
+
 def test_get_vector():
     array = tests.get_vector()
     assert len(array) == 10
     for i in range(len(array)):
-        assert array[i] == i*i*i
+        assert array[i] == i * i * i
+
+def test_get_const_vector():
+    array = tests.get_const_vector()
+    assert len(array) == 42
+    for i in range(len(array)):
+        assert array[i] == i * i
+
+def test_get_const_auto_vector():
+    array = tests.get_const_auto_vector()
+    assert len(array) == 100
+    for i in range(len(array)):
+        assert array[i] == 42 * i
 
 def test_set_string():
     assert tests.set_string('Hello World')
 
 def test_get_string():
     assert tests.get_string() == 'Hello World'
+
+def test_get_const_string():
+    assert tests.get_const_string() == 'Hello World const'
 
 def test_get_json():
     data = tests.get_json()

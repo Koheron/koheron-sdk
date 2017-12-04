@@ -33,19 +33,49 @@ class Tests
         if (std::fabs(d - 2.654798454646) > std::numeric_limits<double>::epsilon()) return false;
         if (i != -56789) return false;
 
-        for (unsigned int j=0; j<8192; j++) {
+        for (size_t j=0; j<8192; j++) {
             if (arr[j] != j) return false;
         }
 
         return true;
     }
 
+    const auto& get_array() {
+        for (size_t i=0; i<array.size(); i++) {
+            array[i] = 10 * i + i;
+        }
+
+        return array;
+    }
+
     std::vector<float>& get_vector() {
         vector.resize(10);
-        for (unsigned int i=0; i<vector.size(); i++) {
-            vector[i] = float(i)*float(i)*float(i);
+
+        for (size_t i=0; i<vector.size(); i++) {
+            vector[i] = float(i) * float(i) * float(i);
         }
+
         return vector;
+    }
+
+    const std::vector<uint32_t>& get_const_vector() {
+        vector_u.resize(42);
+
+        for (size_t i=0; i<vector_u.size(); i++) {
+            vector_u[i] = i * i;
+        }
+
+        return vector_u;
+    }
+
+    const auto& get_const_auto_vector() {
+        vector_u.resize(100);
+
+        for (size_t i=0; i<vector_u.size(); i++) {
+            vector_u[i] = 42 * i;
+        }
+
+        return vector_u;
     }
 
     bool set_string(const std::string& str) {
@@ -54,6 +84,10 @@ class Tests
 
     std::string get_string() {
         return "Hello World";
+    }
+
+    const std::string& get_const_string() {
+        return const_string;
     }
 
     std::string get_json() {
@@ -66,9 +100,11 @@ class Tests
 
   private:
     std::vector<float> vector;
+    std::vector<uint32_t> vector_u;
     std::array<uint32_t, 8192> array;
     std::string string;
 
+    std::string const_string = "Hello World const";
 };
 
 #endif // __TESTS_TESTS_HPP__

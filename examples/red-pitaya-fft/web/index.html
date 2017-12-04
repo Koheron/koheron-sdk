@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Koheron</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Koheron">
+  <meta charset="utf-8">
+
+  <!--http://stackoverflow.com/questions/49547/making-sure-a-web-page-is-not-cached-across-all-browsers-->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <link rel="shortcut icon" href="kbird.ico">
+  <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="_koheron.css">
+
+  <script type="text/javascript" src="jquery.min.js"></script>
+  <script type="text/javascript" src="bootstrap.min.js"></script>
+</head>
+
+<body>
+
+<div class="container-fluid" style="padding: 10px; height: 75px">
+  <a href="https://www.koheron.com">
+    <img alt="Koheron" src="_koheron_logo.svg" style="height: 100%">
+  </a>
+</div>
+
+<div class="container">
+
+  <h1>DDS FFT</h1>
+
+  <br><br>
+
+  <div class="border padding">
+    <div id="plot-placeholder" class="plot-placeholder"></div>
+    <div align="center">Frequency (MHz)</div>
+  </div>
+
+  <br>
+
+  <div class="border padding">
+
+    <div style="line-height: 40px">
+      </select> &nbsp; &nbsp; &nbsp; DDS frequency (MHz)
+      <span data-toggle="tooltip" data-placement="top" title="Set DDS frequency between 0 and 62.5 MHz." class="tip">?</span> :
+      <a id="frequency-value" href="#" onclick="app.control.editFrequency(); return false" class="btn-tip" data-toggle="tooltip"
+        data-placement="right" title="Edit" style="vertical-align: middle">0
+      </a>
+      <input id="frequency-input" type="number" value="0" min="0" step="0.000001" max="62.5" style="display: none; width: 70px; height: 41px" onkeydown="app.control.saveFrequencyKey(event)">
+      <a class="glyphicon glyphicon-ok blue btn-tip" id="frequency-save" href="#" onclick="app.control.saveFrequency(); return false"
+        data-toggle="tooltip" data-placement="bottom" title="Save (Enter)" style="display: none">
+      </a>
+    </div>
+    <input id="frequency-slider" type="range" value="0" min="0" step="0.0001" max="62.5" onchange="app.control.slideFrequency(); return false"
+      oninput="app.control.slideFrequency(); return false" style="padding-left: 4px; padding-right: 4px">
+  </div>
+
+  <br><br>
+
+  <p>
+    This instrument was built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>.
+  </p>
+
+</div>
+
+
+  <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.selection.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.time.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.axislabels.js"></script>
+
+  <script src="app.js?random=<?php echo uniqid(); ?>"></script>
+
+</body>
+</html>
