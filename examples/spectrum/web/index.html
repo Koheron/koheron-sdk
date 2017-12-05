@@ -161,12 +161,29 @@
             </div>
           </div>
 
-          Amplitude (arb. units): &nbsp;<span id="amplitude-0"></span>
-          <input id="amplitude-slider-0" type="range" value="0" min="0" step="0.001" max="0.995" oninput="app.modulationControl.setDacAmplitude(0); return false">
-          Frequency (MHz): &nbsp;<span id="frequency-0"></span>
-          <input id="frequency-slider-0" type="range" value="0" min="0" step="1" max="4096" oninput="app.modulationControl.setDacFrequency(0); return false">
-          Offset (arb. units): &nbsp;<span id="offset-0"></span>
-          <input id="offset-slider-0" type="range" value="0" min="-1" step="0.001" max="1" oninput="app.modulationControl.setDacOffset(0); return false">
+          <table class="full-width">
+            <tr>
+              <td style="padding-left: 0;">Amplitude (arb. units)</td>
+              <td><span id="amplitude-0"></span></td>
+              <td><input id="amplitude-slider-0" type="range" value="0" min="0" step="0.001" max="0.995"
+                  oninput="app.modulationControl.setDacAmplitude(0, this.value); return false"
+                  onchange="app.modulationControl.setDacAmplitude(0, this.value); return false"></td>
+            </tr>
+            <tr>
+              <td style="padding-left: 0;">Frequency (MHz)</td>
+              <td><span id="frequency-0"></span></td>
+              <td><input id="frequency-slider-0" type="range" value="0" min="0" step="1" max="4096"
+                oninput="app.modulationControl.setDacFrequency(0, this.value); return false"
+                onchange="app.modulationControl.setDacFrequency(0, this.value); return false"></td>
+            </tr>
+            <tr>
+              <td style="padding-left: 0;">Offset (arb. units)</td>
+              <td><span id="offset-0"></span></td>
+              <td><input id="offset-slider-0" type="range" value="0" min="-1" step="0.001" max="1"
+                oninput="app.modulationControl.setDacOffset(0, this.value); return false"
+                onchange="app.modulationControl.setDacOffset(0, this.value); return false"></td>
+            </tr>
+          </table>
         </div>
 
         <div id="channel-1" style="display: none;">
@@ -185,12 +202,29 @@
             </div>
           </div>
 
-          Amplitude (arb. units): &nbsp;<span id="amplitude-1"></span>
-          <input id="amplitude-slider-1" type="range" value="0" min="0" step="0.001" max="0.995" oninput="app.modulationControl.setDacAmplitude(1); return false">
-          Frequency (MHz): &nbsp;<span id="frequency-1"></span>
-          <input id="frequency-slider-1" type="range" value="0" min="0" step="1" max="4096" oninput="app.modulationControl.setDacFrequency(1); return false">
-          Offset (arb. units): &nbsp;<span id="offset-1"></span>
-          <input id="offset-slider-1" type="range" value="0" min="-1" step="0.001" max="1" oninput="app.modulationControl.setDacOffset(1); return false">
+          <table class="full-width">
+            <tr>
+              <td style="padding-left: 0;">Amplitude (arb. units)</td>
+              <td><span id="amplitude-1"></span></td>
+              <td><input id="amplitude-slider-1" type="range" value="0" min="0" step="0.001" max="0.995"
+                oninput="app.modulationControl.setDacAmplitude(1, this.value); return false"
+                onchange="app.modulationControl.setDacAmplitude(1, this.value); return false"></td>
+            </tr>
+            <tr>
+              <td style="padding-left: 0;">Frequency (MHz)</td>
+              <td><span id="frequency-1"></span></td>
+              <td><input id="frequency-slider-1" type="range" value="0" min="0" step="1" max="4096"
+                oninput="app.modulationControl.setDacFrequency(1, this.value); return false"
+                onchange="app.modulationControl.setDacFrequency(1, this.value); return false"></td>
+            </tr>
+            <tr>
+              <td style="padding-left: 0;">Offset (arb. units)</td>
+              <td><span id="offset-1"></span></td>
+              <td><input id="offset-slider-1" type="range" value="0" min="-1" step="0.001" max="1"
+                oninput="app.modulationControl.setDacOffset(1, this.value); return false"
+                onchange="app.modulationControl.setDacOffset(1, this.value); return false"></td>
+            </tr>
+          </table>
         </div>
 
       </section>

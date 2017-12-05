@@ -148,19 +148,16 @@ class ModulationControl {
         this.driver.setWaveformType(channel, parseInt(wfmIndex));
     }
 
-    setDacAmplitude(channel: number): void {
-        let amplitude = parseFloat(this.amplitudeSlider[channel].value);
-        this.driver.setDacAmplitude(channel, amplitude);
+    setDacAmplitude(channel: number, amplitude: string): void {
+        this.driver.setDacAmplitude(channel, parseFloat(amplitude));
     }
 
-    setDacFrequency(channel: number): void {
-        let frequency = parseInt(this.frequencySlider[channel].value) * this.samplingRate / this.wfmSize;
-        this.driver.setDacFrequency(channel, frequency);
+    setDacFrequency(channel: number, frequency: string): void {
+        this.driver.setDacFrequency(channel, parseInt(frequency) * this.samplingRate / this.wfmSize);
     }
 
-    setDacOffset(channel: number): void {
-        let offset = parseFloat(this.offsetSlider[channel].value);
-        this.driver.setDacOffset(channel, offset);
+    setDacOffset(channel: number, offset: string): void {
+        this.driver.setDacOffset(channel, parseFloat(offset));
     }
 
 }
