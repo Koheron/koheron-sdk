@@ -1,0 +1,144 @@
+section {
+  margin: 15px 0px;
+  padding: 0px;
+}
+
+.dotted-underline {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+
+td, th {
+  padding: 0px 5px 5px;
+}
+
+.col-md-2, .col-md-3, .col-md-4, .col-md-6, .col-md-8, .col-md-9 {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.crossed {
+  width: 100%;
+  text-align: center;
+  border-bottom: 1px solid #d5d5d5;
+  line-height: 0.1px;
+  margin-bottom: 20px;
+}
+
+.crossed > span {
+  background: white;
+  padding: 0px 10px;
+  font-weight: bold;
+}
+
+.row {
+  margin-left: 0px;
+  margin-right: 0px;
+}
+
+label {
+  margin-top: 5px;
+  font-weight: bold;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+td > .switch {
+  margin-top: 0px;
+  margin-bottom: 0px;
+}
+
+.switch input {display:none;}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #d5d5d5;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #019cd5;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #019cd5;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(22px);
+  -ms-transform: translateX(20px);
+  transform: translateX(20px);
+}
+
+.slider.round {
+  border-radius: 30px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.default-btn {
+  background: #f3f3f3;
+  border-radius: 2px;
+  box-shadow: 4px 4px 4px #737373;
+  border: 1px solid #f3f3f3;
+  opacity: 0.8;
+  padding: 1px 5px;
+}
+
+.default-btn:hover, .default-btn:active, .default-btn.active {
+  background: #d5d5d5;
+  border-radius: 2px;
+  box-shadow: none;
+  border: 1px solid #d5d5d5;
+  opacity: 1;
+}
+
+button[disabled] {
+  cursor: not-allowed;
+}
+
+@media (max-width: 992px ) {
+  #koheron-logo {
+    display: none;
+  }
+}
+
+#collapse-btn {
+  border: none;
+  position: absolute;
+  bottom: 0px;
+  width: 100%;
+  font-size: 150%;
+  background-color: #4d4d4d;
+  color: white;
+}
+
+.radio-wrapper {
+  margin: 0px 3px;
+  display: inline-block;
+}

@@ -9,6 +9,7 @@ interface AverageStatus {
 
 class Average {
 
+    private averageSwitch: HTMLInputElement;
     private averageElements: any;
     private averageSpan: HTMLSpanElement;
     private numAverageMinInput: HTMLInputElement;
@@ -16,6 +17,7 @@ class Average {
 
     constructor(document: Document, private driver: any) {
 
+        this.averageSwitch = <HTMLInputElement>document.getElementById("average-switch");
         this.averageElements = document.getElementsByClassName("average");
         this.averageSpan = <HTMLSpanElement>document.getElementById('avg');
         this.numAverageMinInput = <HTMLInputElement>document.getElementById('avg-min-input');
@@ -27,11 +29,13 @@ class Average {
         this.driver.getAverageStatus((status: AverageStatus) => {
             this.isAverage = status.isAverage;
             if (status.isAverage) {
+                this.averageSwitch.checked = true;
                 for (let i: number = 0; i < this.averageElements.length; i++) {
                     this.averageElements[i].style.display = 'table-cell';
                 }
                 this.averageSpan.innerHTML = status.numAverage.toString();
             } else {
+                this.averageSwitch.checked = false;
                 for (let i: number = 0; i < this.averageElements.length; i++) {
                     this.averageElements[i].style.display = 'none';
                 }
