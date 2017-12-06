@@ -157,7 +157,7 @@ setup_os: setup_base
 # Use "clean_all" to remove everything
 .PHONY: clean
 clean:
-	rm -rf $(patsubst %/.,,$(TMP_PROJECT_PATH))
+	rm -rf $(patsubst %/.,%,$(TMP_PROJECT_PATH))
 
 .PHONY: clean_all
 clean_all:
