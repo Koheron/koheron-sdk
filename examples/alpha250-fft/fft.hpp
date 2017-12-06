@@ -56,22 +56,22 @@ class FFT
         ctl.write<reg::ctl_fft>(1 + (scale_sch << 1));
     }
 
-    void set_fft_window(uint32_t window_index_) {
-        if (window_index_ == 0) {
-            window.fill(1.0); // Rectangular
-        } else if (window_index_ == 1) {
-            set_cosine_sum_window({0.5, 0.5, 0, 0, 0}, 1.0); // Hanning
-        } else if (window_index_ == 2) {
-            set_cosine_sum_window({1.0, 1.93, 1.29, 0.388, 0.028}, 0.2); // Flat top
-        } else if (window_index_ == 3) {
-            set_cosine_sum_window({0.35875, 0.48829, 0.14128, 0.01168, 0}, 1.0); // Blackman Harris
-        } else {
+    void set_fft_window(uint32_t window_id) {
+        constexpr std::array<std::array<double, 6>, 4> window_coeffs = {{
+            {1.0, 0, 0, 0, 0, 1.0},                      // Rectangular
+            {0.5, 0.5, 0, 0, 0, 1.0},                    // Hann
+            {1.0, 1.93, 1.29, 0.388, 0.028, 0.2},        // Flat top
+            {0.35875, 0.48829, 0.14128, 0.01168, 0, 1.0} // Blackman-Harris
+        }};
+
+        if (window_id >= 4) {
             ctx.log<ERROR>("Invalid FFT window index \n");
             return;
         }
 
+        set_cosine_sum_window(window_coeffs[window_id]);
         set_window_buffer();
-        window_index = window_index_;
+        window_index = window_id;
     }
 
     // Read averaged spectrum data
@@ -179,15 +179,18 @@ class FFT
     void start_psd_acquisition();
 
     // https://en.wikipedia.org/wiki/Window_function
-    void set_cosine_sum_window(std::array<double, 5> a, double scaling) {
+    void set_cosine_sum_window(const std::array<double, 6>& a) {
         double sign;
+
         for (size_t i=0; i<prm::fft_size; i++) {
             window[i] = 0;
-            for (size_t j=0; j<a.size(); j++) {
+
+            for (size_t j=0; j<(a.size() - 1); j++) {
                 j % 2 == 0 ? sign = 1.0 : sign = -1.0;
                 window[i] += sign * a[j] * std::cos(2 * M_PI * i * j / double(prm::fft_size - 1));
             }
-            window[i] *= scaling;
+
+            window[i] *= a[a.size() - 1]; // Scaling
         }
     }
 
@@ -198,8 +201,8 @@ class FFT
         fs_adc = clk_gen.get_adc_sampling_freq();
 
         auto Hinv = koheron::make_array(
-            ltc2157.get_inverse_transfer_function<0, prm::fft_size/2>(fs_adc), // Inverse transfer function ADC channel 0
-            ltc2157.get_inverse_transfer_function<1, prm::fft_size/2>(fs_adc)  // Inverse transfer function ADC channel 1
+            ltc2157.get_inverse_transfer_function<0, prm::fft_size/2>(fs_adc),
+            ltc2157.get_inverse_transfer_function<1, prm::fft_size/2>(fs_adc)
         );
 
         std::array<double, 2> vin = { ltc2157.get_input_voltage_range(0),
@@ -255,7 +258,7 @@ inline void  FFT::psd_acquisition_thread() {
         uint32_t cycle_index = get_cycle_index();
         uint32_t previous_cycle_index = cycle_index;
 
-        // Wait for
+        // Wait for data
         while (cycle_index >= previous_cycle_index) {
             auto sleep_time = std::chrono::nanoseconds((prm::n_cycles - cycle_index) * 8192 * 4);
             if (sleep_time > 1ms) {
@@ -270,11 +273,8 @@ inline void  FFT::psd_acquisition_thread() {
             psd_buffer_raw = psd_map.read_array<float, prm::fft_size/2, 0>();
 
             if (std::abs(clk_gen.get_adc_sampling_freq() - fs_adc) > std::numeric_limits<double>::round_error()) {
-                // If the sampling frequency has changed
-                // we recompute the calibration vectors ...
+                // Sampling frequency has changed
                 set_conversion_vectors();
-
-                // ... and we reset the DDS frequencies accordingly
                 set_dds_freq(0, dds_freq[0]);
                 set_dds_freq(1, dds_freq[1]);
             }
