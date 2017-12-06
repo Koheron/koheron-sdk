@@ -48,8 +48,7 @@ class Plot {
             to: 0
         };
 
-        this.driver.getDecimatedData( (decimatedData: number[][], decimatedRangeX: jquery.flot.range) => {
-
+        if (this.isPlotVelocity) {
             this.driver.getPeakFifoData( (peakFifoData) => {
 
                 var time: number[] = [];
@@ -61,11 +60,11 @@ class Plot {
                 const n: number = Math.floor(samplingFrequency / fftSize);
                 let fifoLength: number = peakFifoData.length;
                 this.velocity = this.rollArray(this.velocity, fifoLength);
-                for (let i: number = (n - fifoLength); i < n ; i ++) {
-                    for (let j: number = 0; j < fifoLength; j ++) {
-                        this.velocity[i] = peakFifoData[j] * (samplingFrequency / fftSize) / dopplerShift;
-                    }
+
+                for (let i: number = 0; i < fifoLength; i ++) {
+                    this.velocity[n-i] = peakFifoData[i] * (samplingFrequency / fftSize) / dopplerShift;
                 }
+
                 for (let i : number = n; i > 0 ; i --) {
                     time[i] = (i / samplingFrequency) * fftSize;
                 }
@@ -73,17 +72,11 @@ class Plot {
                     velocityData[i] = [time[i], this.velocity[i]];
                 }
 
-                if (this.isPlotVelocity) {
-                    this.driver.setAddressRange(2, fftSize / 2);
-                    plotData = velocityData;
-                    plotRangeX = {
-                        from: 0,
-                        to: 1
-                    }
-                    this.isResetRange = true;
-                } else {
-                    plotData = decimatedData;
-                    plotRangeX = decimatedRangeX;
+                this.driver.setAddressRange(2, fftSize / 2);
+                plotData = velocityData;
+                plotRangeX = {
+                    from: 0,
+                    to: 1
                 }
 
                 this.redraw(plotData, plotRangeX, () => {
@@ -91,8 +84,17 @@ class Plot {
                 });
 
             });
+        } else {
+            this.driver.getDecimatedData( (decimatedData: number[][], decimatedRangeX: jquery.flot.range) => {
 
-        });
+                this.redraw(decimatedData, decimatedRangeX, () => {
+                    requestAnimationFrame( () => { this.updatePlot(); });
+                });
+
+            });
+        }
+
+
 
     }
 
