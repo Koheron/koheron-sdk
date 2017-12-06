@@ -201,8 +201,8 @@ class FFT
         fs_adc = clk_gen.get_adc_sampling_freq();
 
         auto Hinv = koheron::make_array(
-            ltc2157.get_inverse_transfer_function<0, prm::fft_size/2>(fs_adc), // Inverse transfer function ADC channel 0
-            ltc2157.get_inverse_transfer_function<1, prm::fft_size/2>(fs_adc)  // Inverse transfer function ADC channel 1
+            ltc2157.get_inverse_transfer_function<0, prm::fft_size/2>(fs_adc),
+            ltc2157.get_inverse_transfer_function<1, prm::fft_size/2>(fs_adc)
         );
 
         std::array<double, 2> vin = { ltc2157.get_input_voltage_range(0),
@@ -258,7 +258,7 @@ inline void  FFT::psd_acquisition_thread() {
         uint32_t cycle_index = get_cycle_index();
         uint32_t previous_cycle_index = cycle_index;
 
-        // Wait for
+        // Wait for data
         while (cycle_index >= previous_cycle_index) {
             auto sleep_time = std::chrono::nanoseconds((prm::n_cycles - cycle_index) * 8192 * 4);
             if (sleep_time > 1ms) {
@@ -273,11 +273,8 @@ inline void  FFT::psd_acquisition_thread() {
             psd_buffer_raw = psd_map.read_array<float, prm::fft_size/2, 0>();
 
             if (std::abs(clk_gen.get_adc_sampling_freq() - fs_adc) > std::numeric_limits<double>::round_error()) {
-                // If the sampling frequency has changed
-                // we recompute the calibration vectors ...
+                // Sampling frequency has changed
                 set_conversion_vectors();
-
-                // ... and we reset the DDS frequencies accordingly
                 set_dds_freq(0, dds_freq[0]);
                 set_dds_freq(1, dds_freq[1]);
             }
