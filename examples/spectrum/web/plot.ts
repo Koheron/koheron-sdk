@@ -258,7 +258,7 @@ class Plot {
             this.isResetRange = true;
         } else {
             this.yLabel = "Speed (m/s)";
-            this.xLabel = "Elapsed time (s)";
+            this.xLabel = "Time (s)";
             this.isPlotVelocity = true;
             this.isResetRange = true;
         }
