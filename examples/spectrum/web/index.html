@@ -31,7 +31,7 @@
 
     <div class="col-md-8">
       <div id="plot-placeholder" class="plot-placeholder"></div>
-      <div align="center">Frequency (MHz)</div>
+      <div style="text-align: center" id="x-label">Frequency (MHz)</div>
 
       <span id="hover-datapoint" style="position: absolute; background-color: white; opacity: 0.8; display: none; padding: 2px"></span>
       <span id="click-datapoint" style="position: absolute; background-color: white; opacity: 0.8; display: none; padding: 2px"></span>
@@ -45,7 +45,7 @@
           <span>Laser</span>
         </div>
 
-        <table>
+        <table class="full-width">
           <tr>
             <td style="width: 100px;">
               <label for="laser-switch">ON</label>
@@ -228,6 +228,21 @@
         </div>
 
       </section>
+
+      <section>
+
+        <div class="crossed">
+          <span>Velocity</span>
+        </div>
+
+        <label for="velocity-switch">ON</label>
+        <label class="switch" style="margin-top: 0px; margin-bottom: -7px; margin-left: 5px;">
+          <input type="checkbox" id="velocityr-switch" onchange="app.plot.switchVelocity(); return false">
+          <span class="slider round"></span>
+        </label>
+
+      </section>
+
 
   </div>
 

@@ -11,7 +11,12 @@ class Plot {
     private maxY: number;
     private rangeY: jquery.flot.range;
 
+    private xLabel: string;
     private yLabel: string;
+    private xLabelDiv: HTMLDivElement;
+
+    private isPlotVelocity: boolean;
+    private velocity: Array<number>;
 
     constructor(document: Document, private placeholder: JQuery, private driver: Spectrum) {
 
@@ -25,17 +30,70 @@ class Plot {
             to: this.maxY
         };
 
-        this.yLabel = "Power Spectral Density";
-
+        this.yLabel = "Power Spectral Density (dB)";
+        this.xLabelDiv = <HTMLDivElement>document.getElementById("x-label");
+        this.xLabel = "Frequency (MHz)";
+        this.isPlotVelocity = false;
+        this.velocity = [];
         this.updatePlot();
     }
 
     updatePlot(): void {
-        this.driver.getDecimatedData( (data: number[][], rangeX: jquery.flot.range) => {
-            this.redraw(data, rangeX, () => {
-                requestAnimationFrame( () => { this.updatePlot(); });
+
+        this.xLabelDiv.innerHTML = this.xLabel;
+
+        var plotData: number[][] = [];
+        var plotRangeX: jquery.flot.range = {
+            from: 0,
+            to: 0
+        };
+
+        this.driver.getDecimatedData( (decimatedData: number[][], decimatedRangeX: jquery.flot.range) => {
+
+            this.driver.getPeakFifoData( (peakFifoData) => {
+
+                var time: number[] = [];
+                var velocityData: number[][] = [];
+
+                const samplingFrequency: number = 125e6; //Hz
+                const fftSize: number = 4096;
+                const dopplerShift: number = 1.29e6;
+                const n: number = Math.floor(samplingFrequency / fftSize);
+                let fifoLength: number = peakFifoData.length;
+                this.velocity = this.rollArray(this.velocity, fifoLength);
+                for (let i: number = (n - fifoLength); i < n ; i ++) {
+                    for (let j: number = 0; j < fifoLength; j ++) {
+                        this.velocity[i] = peakFifoData[j] * (samplingFrequency / fftSize) / dopplerShift;
+                    }
+                }
+                for (let i : number = n; i > 0 ; i --) {
+                    time[i] = (i / samplingFrequency) * fftSize;
+                }
+                for (let i: number = 0; i < n; i ++) {
+                    velocityData[i] = [time[i], this.velocity[i]];
+                }
+
+                if (this.isPlotVelocity) {
+                    this.driver.setAddressRange(2, fftSize / 2);
+                    plotData = velocityData;
+                    plotRangeX = {
+                        from: 0,
+                        to: 1
+                    }
+                    this.isResetRange = true;
+                } else {
+                    plotData = decimatedData;
+                    plotRangeX = decimatedRangeX;
+                }
+
+                this.redraw(plotData, plotRangeX, () => {
+                    requestAnimationFrame( () => { this.updatePlot(); });
+                });
+
             });
+
         });
+
     }
 
     // == Plot
@@ -192,6 +250,25 @@ class Plot {
         callback();
     }
 
+    switchVelocity(): void {
+        if (this.isPlotVelocity) {
+            this.yLabel = "Power Spectral Density (dB)";
+            this.xLabel = "Frequency (MHz)";
+            this.isPlotVelocity = false;
+            this.isResetRange = true;
+        } else {
+            this.yLabel = "Speed (m/s)";
+            this.xLabel = "Elapsed time (s)";
+            this.isPlotVelocity = true;
+            this.isResetRange = true;
+        }
+    }
 
+    rollArray(array, count) {
+        // numpy roll
+        count -= array.length * Math.floor(count / array.length);
+        array.push.apply(array, array.splice(0, count))
+        return array
+    }
 
 }
