@@ -62,7 +62,7 @@ class Plot {
                 this.velocity = this.rollArray(this.velocity, fifoLength);
 
                 for (let i: number = 0; i < fifoLength; i ++) {
-                    this.velocity[n-i] = peakFifoData[i] * (samplingFrequency / fftSize) / dopplerShift;
+                    this.velocity[n-i] = peakFifoData[fifoLength - i] * (samplingFrequency / fftSize) / dopplerShift;
                 }
 
                 for (let i : number = n; i > 0 ; i --) {
