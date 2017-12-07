@@ -13,3 +13,4 @@ make CONFIG=examples/red-pitaya/pulse-generator/config.yml MODE=$mode $target
 make CONFIG=examples/red-pitaya/adc-dac/config.yml MODE=$mode $target
 make CONFIG=examples/red-pitaya/cluster/config.yml MODE=$mode $target
 make CONFIG=examples/red-pitaya/dual-dds/config.yml MODE=$mode $target
+make CONFIG=examples/red-pitaya/fft/config.yml MODE=$mode $target
