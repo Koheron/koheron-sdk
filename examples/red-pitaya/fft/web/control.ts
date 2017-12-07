@@ -2,59 +2,94 @@
 // (c) Koheron
 
 class Control {
-    private frequency_value: HTMLLinkElement;
-    private frequency_input: HTMLInputElement;
-    private frequency_save: HTMLLinkElement;
-    private frequency_slider: HTMLInputElement;
+    private channelNum: number;
 
-    private frequency: number;
+    private InChannelInputs: HTMLInputElement[];
 
-    constructor(document: Document, private driver: FFT) {
-        this.frequency_value = <HTMLLinkElement>document.getElementById('frequency-value');
-        this.frequency_input = <HTMLInputElement>document.getElementById('frequency-input');
-        this.frequency_save = <HTMLLinkElement>document.getElementById('frequency-save');
-        this.frequency_slider = <HTMLInputElement>document.getElementById('frequency-slider');
-        this.update();
+    public fftWindowIndex: number;
+    private fftWindowSelect: HTMLSelectElement;
+
+    private frequencies: Array<number>;
+    private frequencyInputs: HTMLInputElement[];
+    private frequencySliders: HTMLInputElement[];
+
+    constructor(document: Document, private fft: FFT) {
+        this.channelNum = 2;
+
+        this.InChannelInputs = [];
+        this.frequencyInputs = [];
+        this.frequencySliders = [];
+
+        for (let i: number = 0; i < this.channelNum; i++) {
+            this.InChannelInputs[i] = <HTMLInputElement>document.getElementById('in-channel-' + i.toString());
+            this.frequencyInputs[i] = <HTMLInputElement>document.getElementById('frequency-input-' + i.toString());
+            this.frequencySliders[i] = <HTMLInputElement>document.getElementById('frequency-slider-' + i.toString());
+        }
+
+        this.frequencies = new Array(this.channelNum);
+
+        this.fftWindowIndex = 1;
+        this.fftWindowSelect = <HTMLSelectElement>document.getElementById("fft-window");
+        this.init();
     }
 
-    update() {
-        this.driver.getControlParameters( (sts: IFFTStatus) => {
-            this.frequency_value.innerHTML = (sts.dds_freq[0]/1e6).toFixed(6);
-            this.frequency_slider.value = (sts.dds_freq[0]/1e6).toFixed(4);
-            requestAnimationFrame( () => { this.update(); } )
+    init() {
+        this.fft.getControlParameters( (sts: IFFTStatus) => {
+            for (let i: number = 0; i < this.channelNum; i++) {
+                this.frequencyInputs[i].value = (sts.dds_freq[0] / 1e6).toFixed(6);
+                this.frequencySliders[i].value = (sts.dds_freq[0] / 1e6).toFixed(4);
+            }
+
+            this.fft.getFFTWindowIndex( (windowIndex: number) => {
+                this.fftWindowIndex = windowIndex;
+                this.fftWindowSelect.value = windowIndex.toString();
+
+                requestAnimationFrame( () => {this.update();} )
+            });
         });
     }
 
-    editFrequency() {
-        this.frequency_value.style.display = 'none';
-        this.frequency_input.style.display = 'inline';
-        this.frequency_save.style.display = 'inline';
-        this.frequency_input.value = this.frequency_value.innerHTML;
+    private update() {
+        this.fft.getControlParameters( (sts: IFFTStatus) => {
+            for (let i: number = 0; i < this.channelNum; i++) {
+                if (document.activeElement !== this.frequencyInputs[i]) {
+                    this.frequencyInputs[i].value = (sts.dds_freq[i] / 1e6).toFixed(6);
+                }
+
+                if (document.activeElement !== this.frequencySliders[i]) {
+                    this.frequencySliders[i].value = (sts.dds_freq[i] / 1e6).toFixed(6);
+                    this.frequencySliders[i].max = (sts.fs / 1e6 / 2).toFixed(1);
+                }
+
+                this.InChannelInputs[sts.channel].checked = true;
+
+            }
+
+            this.fft.getFFTWindowIndex( (windowIndex: number) => {
+                this.fftWindowSelect.value = windowIndex.toString();
+                requestAnimationFrame( () => { this.update(); } )
+            });
+        });
     }
 
-    saveFrequency() {
-        this.frequency_value.style.display = 'inline';
-        this.frequency_input.style.display = 'none';
-        this.frequency_save.style.display = 'none';
-        this.frequency = Math.min(parseFloat(this.frequency_input.value), 250);
-        this.driver.setDDSFreq(0, 1e6 * this.frequency);
-    }
+    updateFrequency(channel: number, event) {
+        let frequencyValue = event.value;
 
-    saveFrequencyKey(event: KeyboardEvent) {
-        if (event.keyCode == 13) {
-            this.saveFrequency();
+        if (event.type === 'number') {
+            this.frequencySliders[channel].value = frequencyValue;
+        } else if (event.type === 'range') {
+            this.frequencyInputs[channel].value = frequencyValue;
         }
+
+        this.fft.setDDSFreq(channel, 1e6 * parseFloat(frequencyValue));
     }
 
-    slideFrequency() {
-        if (this.frequency_input.style.display == 'inline') {
-            this.frequency_value.style.display = 'inline';
-            this.frequency_input.style.display = 'none';
-            this.frequency_save.style.display = 'none';
-        }
+    setInChannel(channel: number) {
+        this.fft.setInChannel(channel);
+    }
 
-        this.frequency = parseFloat(this.frequency_slider.value);
-        this.driver.setDDSFreq(0, 1e6 * this.frequency);
+    setFFTWindow(windowIndex: number) {
+        this.fft.setFFTWindow(windowIndex);
     }
 
 }

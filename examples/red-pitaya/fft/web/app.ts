@@ -1,7 +1,9 @@
 class App {
     public control: Control;
     public plot: Plot;
-    private driver: FFT;
+    private fft: FFT;
+    public laserDriver: LaserDriver;
+    public laserControl: LaserControl;
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
@@ -9,9 +11,14 @@ class App {
 
         window.addEventListener('load', () => {
             client.init( () => {
-                this.driver = new FFT(client);
-                this.control = new Control(document, this.driver);
-                this.plot = new Plot(document, plot_placeholder, this.driver);
+                this.fft = new FFT(client);
+
+                this.fft.init( () => {
+                    this.control = new Control(document, this.fft);
+                    this.plot = new Plot(document, plot_placeholder, this.fft, this.control);
+                    this.laserDriver = new LaserDriver(client);
+                    this.laserControl = new LaserControl(document, this.laserDriver);
+                });
             });
         }, false);
 
@@ -19,7 +26,5 @@ class App {
     }
 
 }
-
-
 
 let app = new App(window, document, location.hostname, $('#plot-placeholder'));

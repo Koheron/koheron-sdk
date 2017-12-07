@@ -1,48 +1,13 @@
-source $project_path/tcl/ports.tcl
+source $board_path/config/ports.tcl
+source $board_path/base_system.tcl
 
-# Add PS and AXI Interconnect
-set board_preset $board_path/config/board_preset.tcl
-source $sdk_path/fpga/lib/starting_point.tcl
+source $sdk_path/fpga/lib/laser_controller.tcl
 
-# Add ADCs and DACs
-source $sdk_path/fpga/lib/redp_adc_dac.tcl
-set adc_dac_name adc_dac
-add_redp_adc_dac $adc_dac_name
-
-# Rename clocks
-set adc_clk $adc_dac_name/adc_clk
-
-# Add processor system reset synchronous to adc clock
-set rst_adc_clk_name proc_sys_reset_adc_clk
-cell xilinx.com:ip:proc_sys_reset:5.0 $rst_adc_clk_name {} {
-  ext_reset_in $ps_name/FCLK_RESET0_N
-  slowest_sync_clk $adc_clk
+# Connect raw ADC data to status register
+connect_cell adc_dac {
+  adc1 [sts_pin adc0]
+  adc2 [sts_pin adc1]
 }
-
-# Add config and status registers
-source $sdk_path/fpga/lib/ctl_sts.tcl
-add_ctl_sts $adc_clk $rst_adc_clk_name/peripheral_aresetn
-
-# Connect LEDs
-connect_port_pin led_o [get_slice_pin [ctl_pin led] 7 0]
-
-# Connect ADC to status register
-for {set i 0} {$i < [get_parameter n_adc]} {incr i} {
-  connect_pins [sts_pin adc$i] adc_dac/adc[expr $i + 1]
-}
-
-# Add XADC for monitoring of Zynq temperature
-
-create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_analog_io_rtl:1.0 Vp_Vn
-
-cell xilinx.com:ip:xadc_wiz:3.3 xadc_wiz_0 {
-} {
-  Vp_Vn Vp_Vn
-  s_axi_lite axi_mem_intercon_0/M[add_master_interface 0]_AXI
-  s_axi_aclk ps_0/FCLK_CLK0
-  s_axi_aresetn proc_sys_reset_0/peripheral_aresetn
-}
-assign_bd_address [get_bd_addr_segs xadc_wiz_0/s_axi_lite/Reg]
 
 ####################################
 # Direct Digital Synthesis
@@ -55,20 +20,21 @@ for {set i 0} {$i < 2} {incr i} {
     DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000]
     Parameter_Entry Hardware_Parameters
     Phase_Width 32
-    Output_Width 14
+    Output_Width 16
     Phase_Increment Programmable
+    Latency_Configuration Configurable
+    Latency 9
   } {
     aclk adc_dac/adc_clk
   }
 
-  connect_pins adc_dac/dac[expr $i+1] [get_slice_pin dds$i/m_axis_data_tdata 13 0]
+  connect_pins adc_dac/dac[expr $i+1] [get_slice_pin dds$i/m_axis_data_tdata 15 2]
 
-  cell pavel-demin:user:axis_variable:1.0 phase_increment$i {
+  cell pavel-demin:user:axis_constant:1.0 phase_increment$i {
     AXIS_TDATA_WIDTH 32
   } {
     cfg_data [ctl_pin phase_incr$i]
     aclk adc_dac/adc_clk
-    aresetn $rst_adc_clk_name/peripheral_aresetn
     M_AXIS dds$i/S_AXIS_CONFIG
   }
 
@@ -82,12 +48,12 @@ source $project_path/tcl/power_spectral_density.tcl
 source $sdk_path/fpga/modules/bram_accumulator/bram_accumulator.tcl
 source $sdk_path/fpga/lib/bram_recorder.tcl
 
-power_spectral_density::create psd [get_parameter fft_size] [get_parameter adc_width]
+power_spectral_density::create psd [get_parameter fft_size]
 
 cell koheron:user:latched_mux:1.0 mux_psd {
   N_INPUTS 2
   SEL_WIDTH 1
-  WIDTH 14
+  WIDTH [get_parameter adc_width]
 } {
   clk   adc_dac/adc_clk
   clken [get_constant_pin 1 1]
@@ -96,11 +62,9 @@ cell koheron:user:latched_mux:1.0 mux_psd {
 }
 
 connect_cell psd {
-  adc1       mux_psd/dout
-  adc2       [get_constant_pin 0 [expr [get_parameter adc_width] - 1]]
+  data       mux_psd/dout
   clk        adc_dac/adc_clk
   tvalid     [ctl_pin psd_valid]
-  ctl_sub    [ctl_pin substract_mean]
   ctl_fft    [ctl_pin ctl_fft]
 }
 
@@ -132,8 +96,57 @@ connect_cell bram_accum {
 add_bram_recorder psd_bram psd
 connect_cell psd_bram {
   clk adc_dac/adc_clk
-  rst $rst_adc_clk_name/peripheral_reset
+  rst proc_sys_reset_adc_clk/peripheral_reset
   addr bram_accum/addr_out
   wen bram_accum/wen
   adc bram_accum/m_axis_tdata
 }
+
+####################################
+# Demodulation
+####################################
+
+source $project_path/tcl/demodulator.tcl
+
+demodulator::create demodulator
+
+connect_cell demodulator {
+    s_axis_data_a [get_concat_pin [list [get_constant_pin 0 2] adc_dac/adc1 [get_constant_pin 0 16]]]
+    s_axis_data_b dds0/m_axis_data_tdata
+    s_axis_tvalid dds0/m_axis_data_tvalid
+    aclk adc_dac/adc_clk
+    aresetn proc_sys_reset_adc_clk/peripheral_aresetn
+}
+
+# Use AXI Stream clock converter (ADC clock -> FPGA clock)
+set idx [add_master_interface 0]
+
+cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
+  TDATA_NUM_BYTES 4
+} {
+  s_axis_tdata demodulator/m_axis_tdata
+  s_axis_tvalid demodulator/m_axis_tvalid
+  s_axis_aresetn proc_sys_reset_adc_clk/peripheral_aresetn
+  m_axis_aresetn proc_sys_reset_0/peripheral_aresetn
+  s_axis_aclk adc_dac/adc_clk
+  m_axis_aclk ps_0/FCLK_CLK0
+}
+
+# Add AXI stream FIFO
+cell xilinx.com:ip:axi_fifo_mm_s:4.1 adc_axis_fifo {
+  C_USE_TX_DATA 0
+  C_USE_TX_CTRL 0
+  C_USE_RX_CUT_THROUGH true
+  C_RX_FIFO_DEPTH 8192
+  C_RX_FIFO_PF_THRESHOLD 4096
+} {
+  s_axi_aclk ps_0/FCLK_CLK0
+  s_axi_aresetn proc_sys_reset_0/peripheral_aresetn
+  S_AXI axi_mem_intercon_0/M${idx}_AXI
+  AXI_STR_RXD adc_clock_converter/M_AXIS
+}
+
+assign_bd_address [get_bd_addr_segs adc_axis_fifo/S_AXI/Mem0]
+set memory_segment  [get_bd_addr_segs /ps_0/Data/SEG_adc_axis_fifo_Mem0]
+set_property offset [get_memory_offset adc_fifo] $memory_segment
+set_property range [get_memory_range adc_fifo] $memory_segment

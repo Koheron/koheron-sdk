@@ -9,14 +9,24 @@ import matplotlib.pyplot as plt
 from fft import FFT
 from koheron import connect
 
-host = os.getenv('HOST', '192.168.1.10')
+host = os.getenv('HOST', '192.168.1.11')
 client = connect(host, 'fft', restart=False)
 driver = FFT(client)
 
-n_pts = driver.n_pts
-fs = driver.fs
+print('Start test.py')
 
-freqs = np.linspace(0.1e6, 10e6,num=100)
+n_pts = driver.n_pts
+fs = 250e6
+
+psd = driver.read_psd()
+
+#plt.plot(10*np.log10(psd))
+plt.plot(psd)
+plt.show()
+
+#freqs = np.array([0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 25, 27, 30, 33, 35, 37, 40, 43, 45, 47, 50, 53, 55, 57, 60, 63, 65, 67, 70, 73, 75, 77, 80, 83, 85, 87, 90, 93, 95, 97, 100, 103, 105, 107, 110, 113, 115, 117, 120, 123, 124]) * 1e6
+
+freqs = np.linspace(0.01e6, 40e6,num=200)
 freqs = np.round(freqs / fs * n_pts) * fs / n_pts
 
 hd1 = 0.0 * freqs
