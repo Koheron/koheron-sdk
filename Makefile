@@ -28,8 +28,7 @@ help:
 
 # Directory for storing the build artifacts
 PROJECT_PATH := $(dir $(CONFIG))
-TMP_NAME := $(shell basename $(PROJECT_PATH))
-TMP_PROJECT_PATH := $(TMP)/$(TMP_NAME)
+TMP_PROJECT_PATH := $(TMP)/$(PROJECT_PATH)
 
 # Python script that manages the instrument configuration
 MAKE_PY := SDK_PATH=$(SDK_PATH) python $(SDK_PATH)/make.py

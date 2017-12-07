@@ -1,6 +1,6 @@
 ---
-name: test
-board: boards/red-pitaya
+name: default
+board: boards/te0745
 
 cores:
   - fpga/cores/axi_ctl_register_v1_0
@@ -14,6 +14,9 @@ memory:
   - name: status
     offset: '0x50000000'
     range: 4K
+  - name: xadc
+    offset: '0x43C00000'
+    range: 64K
 
 control_registers:
   - led
@@ -29,8 +32,11 @@ xdc:
 
 drivers:
   - server/drivers/common.hpp
-  - ./tests.hpp
+  - ./monitor.hpp
 
 web:
+  - ./web/index.html
   - web/koheron.ts
-  - web/index.html
+  - ./web/monitor.ts
+  - ./web/app.ts
+  - ./web/main.css

@@ -1,6 +1,6 @@
 ---
-name: mydc7z015
-board: boards/mydc7z015
+name: led-blinker
+board: boards/zedboard
 
 cores:
   - fpga/cores/axi_ctl_register_v1_0
@@ -14,9 +14,6 @@ memory:
   - name: status
     offset: '0x50000000'
     range: 4K
-  - name: xadc
-    offset: '0x43C00000'
-    range: 64K
 
 control_registers:
   - led
@@ -32,11 +29,12 @@ xdc:
 
 drivers:
   - server/drivers/common.hpp
-  - ./monitor.hpp
+  - ./led_blinker.hpp
 
 web:
   - ./web/index.html
   - web/koheron.ts
-  - ./web/monitor.ts
+  - ./web/led_blinker.ts
   - ./web/app.ts
+  - ./web/control.ts
   - ./web/main.css
