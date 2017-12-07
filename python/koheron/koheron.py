@@ -169,13 +169,16 @@ def build_payload(cmd_args, args):
     return payload
 
 def is_std_array(_type):
-    return _type.split('<')[0].strip() == 'std::array'
+    base_type = _type.split('<')[0].strip()
+    return (base_type == 'std::array') or (base_type == 'const std::array')
 
 def is_std_vector(_type):
-    return _type.split('<')[0].strip() == 'std::vector'
+    base_type = _type.split('<')[0].strip()
+    return (base_type == 'std::vector') or (base_type == 'const std::vector')
 
 def is_std_string(_type):
-    return _type.strip() == 'std::string'
+    base_type = _type.split('&')[0].strip()
+    return (base_type == 'std::string') or (base_type == 'const std::string')
 
 def is_std_tuple(_type):
     return _type.split('<')[0].strip() == 'std::tuple'
@@ -188,7 +191,7 @@ def get_std_array_params(_type):
     }
 
 def get_std_vector_params(_type):
-    return {'T': _type.split('<')[1].split('>')[0].strip()}
+    return {'T': _type.split('<')[1].split('>')[0].split(',')[0].strip()}
 
 cpp_to_np_types = {
   'bool': 'bool',
@@ -304,6 +307,7 @@ class KoheronClient:
     def check_ret_type(self, expected_types):
         device_id = self.devices_idx[self.last_device_called]
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
+        ret_type = ret_type.split('&')[0].strip()
         if ret_type not in expected_types:
             raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
 
@@ -311,7 +315,7 @@ class KoheronClient:
         device_id = self.devices_idx[self.last_device_called]
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
         if not is_std_array(ret_type):
-            raise TypeError('Expect call to rcv_array [{}::{} returns a {}].'.format(self.last_device_called, self.last_cmd_called, ret_type))
+            raise TypeError('Expect call to recv_array [{}::{} returns a {}].'.format(self.last_device_called, self.last_cmd_called, ret_type))
         params = get_std_array_params(ret_type)
         if dtype != cpp_to_np_types[params['T']]:
             raise TypeError('{}::{} expects elements of type {}.'.format(self.last_device_called, self.last_cmd_called, params['T']))
@@ -322,7 +326,7 @@ class KoheronClient:
         device_id = self.devices_idx[self.last_device_called]
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
         if not is_std_vector(ret_type):
-            raise TypeError('Expect call to rcv_vector [{}::{} returns a {}].'.format(self.last_device_called, self.last_cmd_called, ret_type))
+            raise TypeError('Expect call to recv_vector [{}::{} returns a {}].'.format(self.last_device_called, self.last_cmd_called, ret_type))
         vect_type = get_std_vector_params(ret_type)['T']
         if dtype != cpp_to_np_types[vect_type]:
             raise TypeError('{}::{} expects elements of type {}.'.format(self.last_device_called, self.last_cmd_called, vect_type))
@@ -397,12 +401,12 @@ class KoheronClient:
 
     def recv_string(self, check_type=True):
         if check_type:
-            self.check_ret_type(['std::string', 'const char *', 'const char*'])
+            self.check_ret_type(['const std::string', 'std::string', 'const char *', 'const char*'])
         return self.recv_dynamic_payload().decode('utf8')
 
     def recv_json(self, check_type=True):
         if check_type:
-            self.check_ret_type(['std::string', 'const char *', 'const char*'])
+            self.check_ret_type(['const std::string', 'std::string', 'const char *', 'const char*'])
         return json.loads(self.recv_string(check_type=False))
 
     def recv_vector(self, dtype='uint32', check_type=True):

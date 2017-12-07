@@ -5,20 +5,20 @@ class Plot {
 
     private plot: jquery.flot.plot;
     private options: jquery.flot.plotOptions;
-    private isZoomX: boolean = false;
-    private isZoomY: boolean = false;
-    private zoomXBtn: HTMLLinkElement;
-    private zoomYBtn: HTMLLinkElement;
     private isResetRange: boolean;
 
     private minY: number;
     private maxY: number;
     private rangeY: jquery.flot.range;
 
-    constructor(document: Document, private placeholder: JQuery, private driver: Spectrum) {
+    private xLabel: string;
+    private yLabel: string;
+    private xLabelDiv: HTMLDivElement;
 
-        this.zoomXBtn = <HTMLLinkElement>document.getElementById('zoom-x-btn');
-        this.zoomYBtn = <HTMLLinkElement>document.getElementById('zoom-y-btn');
+    private isPlotVelocity: boolean;
+    private velocity: Array<number>;
+
+    constructor(document: Document, private placeholder: JQuery, private driver: Spectrum) {
 
         this.setPlot();
 
@@ -30,21 +30,81 @@ class Plot {
             to: this.maxY
         };
 
+        this.yLabel = "Power Spectral Density (dB)";
+        this.xLabelDiv = <HTMLDivElement>document.getElementById("x-label");
+        this.xLabel = "Frequency (MHz)";
+        this.isPlotVelocity = false;
+        this.velocity = [];
         this.updatePlot();
     }
 
     updatePlot(): void {
-        this.driver.getDecimatedData( (data: number[][], rangeX: jquery.flot.range) => {
-            this.redraw(data, rangeX, () => {
-                requestAnimationFrame( () => { this.updatePlot(); });
+
+        this.xLabelDiv.innerHTML = this.xLabel;
+
+        var plotData: number[][] = [];
+        var plotRangeX: jquery.flot.range = {
+            from: 0,
+            to: 0
+        };
+
+        if (this.isPlotVelocity) {
+            this.driver.getPeakFifoData( (peakFifoData) => {
+
+                var time: number[] = [];
+                var velocityData: number[][] = [];
+
+                const samplingFrequency: number = 125e6; //Hz
+                const fftSize: number = 4096;
+                const dopplerShift: number = 1.29e6;
+                const n: number = Math.floor(samplingFrequency / fftSize);
+                let fifoLength: number = peakFifoData.length;
+                this.velocity = this.rollArray(this.velocity, fifoLength);
+
+                for (let i: number = 0; i < fifoLength; i ++) {
+                    this.velocity[n-i] = peakFifoData[fifoLength - i] * (samplingFrequency / fftSize) / dopplerShift;
+                }
+
+                for (let i : number = n; i > 0 ; i --) {
+                    time[i] = (i / samplingFrequency) * fftSize;
+                }
+                for (let i: number = 0; i < n; i ++) {
+                    velocityData[i] = [time[i], this.velocity[i]];
+                }
+
+                this.driver.setAddressRange(2, fftSize / 2);
+                plotData = velocityData;
+                plotRangeX = {
+                    from: 0,
+                    to: 1
+                }
+
+                this.redraw(plotData, plotRangeX, () => {
+                    requestAnimationFrame( () => { this.updatePlot(); });
+                });
+
             });
-        });
+        } else {
+            this.driver.getDecimatedData( (decimatedData: number[][], decimatedRangeX: jquery.flot.range) => {
+
+                this.redraw(decimatedData, decimatedRangeX, () => {
+                    requestAnimationFrame( () => { this.updatePlot(); });
+                });
+
+            });
+        }
+
+
+
     }
 
     // == Plot
 
     setPlot(): void {
         this.isResetRange = false;
+
+        let labelAttribute: string =  "";
+        labelAttribute += " style='font-size: 16px; color: #333'";
 
         this.options = {
             series: {
@@ -61,17 +121,29 @@ class Plot {
             },
             grid: {
                 margin: {
-                    left: 15
-                }
+                    top: 0,
+                    left: 0,
+                },
+                borderColor: "#d5d5d5",
+                borderWidth: 1
             },
             selection: {
                 mode: 'xy'
             },
-            colors: ['#0022FF']
+            colors: ["#019cd5"],
+            legend: {
+                show: true,
+                noColumns: 0,
+                labelFormatter: (label: string, series: any): string => {
+                    return "<b" + labelAttribute + ">" + label + "\t</b>"
+                    },
+                margin: 0,
+                position: "ne",
+            }
         }
 
         this.rangeSelect();
-        this.dblClick();
+        this.autoScale();
         this.onWheel();
         this.isResetRange = true;
     }
@@ -97,7 +169,7 @@ class Plot {
     }
 
     // A double click on the plot resets to full span
-    dblClick(): void {
+    autoScale(): void {
         this.placeholder.bind('dblclick', (evt: JQueryEventObject) => {
             const rangeX: jquery.flot.range = {
                 from : 0,
@@ -110,17 +182,6 @@ class Plot {
         });
     }
 
-    autoScale(): void {
-        const rangeX = {
-            from : 0,
-            to   : 62.5
-        };
-
-        this.rangeY = <jquery.flot.range>{};
-        this.driver.setFreqRange(rangeX);
-        this.resetRange();
-    }
-
     onWheel(): void {
         this.placeholder.bind('wheel', (evt: JQueryEventObject) => {
             let delta: number = (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaX
@@ -129,7 +190,7 @@ class Plot {
 
             const zoomRatio: number = 0.2;
 
-            if ((<JQueryInputEventObject>evt.originalEvent).shiftKey || this.isZoomY) { // Zoom Y
+            if ((<JQueryInputEventObject>evt.originalEvent).shiftKey) { // Zoom Y
                 const positionY: number = (<JQueryMouseEventObject>evt.originalEvent).pageY - this.plot.offset().top;
                 const y0: any = this.plot.getAxes().yaxis.c2p(<any>positionY);
 
@@ -140,7 +201,7 @@ class Plot {
 
                 this.resetRange();
                 return false;
-            } else if ((<JQueryInputEventObject>evt.originalEvent).altKey || this.isZoomX) { // Zoom X
+            } else if ((<JQueryInputEventObject>evt.originalEvent).altKey) { // Zoom X
                 const positionX: number = (<JQueryMouseEventObject>evt.originalEvent).pageX - this.plot.offset().left;
                 const freq0: any = this.plot.getAxes().xaxis.c2p(<any>positionX);
 
@@ -162,39 +223,13 @@ class Plot {
         });
     }
 
-    zoomX(): void {
-        if (!this.isZoomX) {
-            this.isZoomX = true;
-            if (this.isZoomY) {
-                this.isZoomY = false;
-                this.zoomYBtn.className = 'btn btn-primary-reversed';
-            }
-            this.zoomXBtn.className = 'btn btn-primary-reversed active';
-        } else {
-            this.isZoomX = false;
-            this.zoomXBtn.className = 'btn btn-primary-reversed';
-        }
-    }
-
-    zoomY(): void {
-        if (!this.isZoomY) {
-            this.isZoomY = true;
-            if (this.isZoomX) {
-                this.isZoomX = false;
-                this.zoomXBtn.className = 'btn btn-primary-reversed';
-            }
-            this.zoomYBtn.className = 'btn btn-primary-reversed active';
-        } else {
-            this.isZoomY = false;
-            this.zoomYBtn.className = 'btn btn-primary-reversed';
-        }
-    }
-
     resetRange(): void {
         this.isResetRange = true;
     }
 
     redraw(data: number[][], rangeX: jquery.flot.range, callback: () => void): void {
+
+        const plt_data: jquery.flot.dataSeries[] = [{label: this.yLabel, data: data}];
 
         if (data.length == 0) {
             callback();
@@ -206,17 +241,36 @@ class Plot {
             this.options.xaxis.max = rangeX.to;
             this.options.yaxis.min = this.rangeY.from;
             this.options.yaxis.max = this.rangeY.to;
-            this.plot = $.plot(this.placeholder, [data], this.options);
+            this.plot = $.plot(this.placeholder, plt_data, this.options);
             this.plot.setupGrid();
             this.isResetRange = false;
         } else {
-            this.plot.setData([data]);
+            this.plot.setData(plt_data);
             this.plot.draw();
         }
 
         callback();
     }
 
+    switchVelocity(): void {
+        if (this.isPlotVelocity) {
+            this.yLabel = "Power Spectral Density (dB)";
+            this.xLabel = "Frequency (MHz)";
+            this.isPlotVelocity = false;
+            this.isResetRange = true;
+        } else {
+            this.yLabel = "Speed (m/s)";
+            this.xLabel = "Time (s)";
+            this.isPlotVelocity = true;
+            this.isResetRange = true;
+        }
+    }
 
+    rollArray(array, count) {
+        // numpy roll
+        count -= array.length * Math.floor(count / array.length);
+        array.push.apply(array, array.splice(0, count))
+        return array
+    }
 
 }

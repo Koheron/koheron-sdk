@@ -41,8 +41,20 @@ class Tests {
         this.client.readBool(Command(this.id, this.cmds.set_array, u, f, array, d, i), cb);
     }
 
+    getArray(cb) {
+        this.client.readUint32Array(Command(this.id, this.cmds.get_array), cb);
+    }
+
     getVector(cb) {
         this.client.readFloat32Vector(Command(this.id, this.cmds.get_vector), cb);
+    }
+
+    getConstVector(cb) {
+        this.client.readUint32Vector(Command(this.id, this.cmds.get_const_vector), cb);
+    }
+
+    getConstAutoVector(cb) {
+        this.client.readUint32Vector(Command(this.id, this.cmds.get_const_auto_vector), cb);
     }
 
     setString(cb) {
@@ -51,6 +63,10 @@ class Tests {
 
     getString(cb) {
         this.client.readString(Command(this.id, this.cmds.get_string), cb);
+    }
+
+    getConstString(cb) {
+        this.client.readString(Command(this.id, this.cmds.get_const_string), cb);
     }
 
     getJSON(cb) {
@@ -92,16 +108,16 @@ export function setArray(assert) {
     });
 }
 
-export function getVector(assert) {
+export function getArray(assert) {
     let client = new Client(HOST, 1);
     assert.doesNotThrow( () => {
         client.init( () => {
             let tests = new Tests(client);
-            tests.getVector( (array) => {
-                assert.equals(array.length, 10);
+            tests.getArray( (array) => {
+                assert.equals(array.length, 8192);
                 let is_ok = true;
                 for (let i = 0, end = array.length-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) {
-                    if (array[i] !== (i*i*i)) {
+                    if (array[i] !== (10 * i + i)) {
                         is_ok = false;
                         break;
                     }
@@ -114,6 +130,71 @@ export function getVector(assert) {
     });
 }
 
+export function getVector(assert) {
+    let client = new Client(HOST, 1);
+    assert.doesNotThrow( () => {
+        client.init( () => {
+            let tests = new Tests(client);
+            tests.getVector( (array) => {
+                assert.equals(array.length, 10);
+                let is_ok = true;
+                for (let i = 0, end = array.length-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) {
+                    if (array[i] !== (i * i * i)) {
+                        is_ok = false;
+                        break;
+                    }
+                }
+                assert.ok(is_ok);
+                client.exit();
+                assert.done();
+            });
+        });
+    });
+}
+
+export function getConstVector(assert) {
+    let client = new Client(HOST, 1);
+    assert.doesNotThrow( () => {
+        client.init( () => {
+            let tests = new Tests(client);
+            tests.getConstVector( (array) => {
+                assert.equals(array.length, 42);
+                let is_ok = true;
+                for (let i = 0, end = array.length-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) {
+                    if (array[i] !== (i * i)) {
+                        is_ok = false;
+                        break;
+                    }
+                }
+                assert.ok(is_ok);
+                client.exit();
+                assert.done();
+            });
+        });
+    });
+}
+
+export function getConstAutoVector(assert) {
+    let client = new Client(HOST, 1);
+    assert.doesNotThrow( () => {
+        client.init( () => {
+            let tests = new Tests(client);
+            tests.getConstAutoVector( (array) => {
+                assert.equals(array.length, 100);
+                let is_ok = true;
+                for (let i = 0, end = array.length-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) {
+                    if (array[i] !== (42 * i)) {
+                        is_ok = false;
+                        break;
+                    }
+                }
+                assert.ok(is_ok);
+                client.exit();
+                assert.done();
+            });
+        });
+    });
+}
 
 export function setString(assert) {
     let client = new Client(HOST, 1);
@@ -136,6 +217,20 @@ export function getString(assert) {
             let tests = new Tests(client);
             tests.getString( (str) => {
                 assert.equals(str, 'Hello World');
+                client.exit();
+                assert.done();
+            });
+        });
+    });
+}
+
+export function getConstString(assert) {
+    let client = new Client(HOST, 1);
+    assert.doesNotThrow( () => {
+        client.init( () => {
+            let tests = new Tests(client);
+            tests.getConstString( (str) => {
+                assert.equals(str, 'Hello World const');
                 client.exit();
                 assert.done();
             });

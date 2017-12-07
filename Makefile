@@ -140,8 +140,8 @@ setup_server: setup_base
 setup_web: setup_base
 	apt-get install -y nodejs
 	rm -f /usr/bin/node && ln -s /usr/bin/nodejs /usr/bin/node
-	npm install --global typescript
-	npm install --global @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
+	npm install typescript
+	npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
 
 .PHONY: setup_os
 setup_os: setup_base
@@ -156,7 +156,7 @@ setup_os: setup_base
 # Use "clean_all" to remove everything
 .PHONY: clean
 clean:
-	rm -rf $(TMP_PROJECT_PATH)
+	rm -rf $(patsubst %/.,%,$(TMP_PROJECT_PATH))
 
 .PHONY: clean_all
 clean_all:

@@ -8,22 +8,21 @@ class Plot {
 
     private plot: jquery.flot.plot;
     private options: jquery.flot.plotOptions;
-    private isZoomX: boolean = false;
-    private isZoomY: boolean = false;
-    private zoomXBtn: HTMLLinkElement;
-    private zoomYBtn: HTMLLinkElement;
     private isResetRange: boolean;
 
     private minY: number;
     private maxY: number;
     private rangeY: jquery.flot.range;
 
-    constructor(document: Document, private placeholder: JQuery, private driver: Oscillo) {
+    private hoverDatapointSpan: HTMLSpanElement;
+    private hoverDatapoint: number[];
+
+    private clickDatapointSpan: HTMLSpanElement;
+    private clickDatapoint: number[];
+
+    constructor(document: Document, private plot_placeholder: JQuery, private driver: Oscillo) {
         this.ch1Checkbox = <HTMLInputElement>document.getElementById('ch1-checkbox');
         this.ch2Checkbox = <HTMLInputElement>document.getElementById('ch2-checkbox');
-
-        this.zoomXBtn = <HTMLLinkElement>document.getElementById('zoom-x-btn');
-        this.zoomYBtn = <HTMLLinkElement>document.getElementById('zoom-y-btn');
 
         this.setPlot();
 
@@ -39,6 +38,12 @@ class Plot {
             from : 0,
             to   : this.driver.maxT
         });
+
+        this.hoverDatapointSpan = <HTMLSpanElement>document.getElementById("hover-datapoint");
+        this.hoverDatapoint = [];
+
+        this.clickDatapointSpan = <HTMLSpanElement>document.getElementById("click-datapoint");
+        this.clickDatapoint = [];
 
         this.updatePlot();
 
@@ -74,13 +79,16 @@ class Plot {
             },
             grid: {
                 margin: {
-                    left: 15
-                }
+                    top: 0,
+                    left: 0,
+                },
+                borderColor: "#d5d5d5",
+                borderWidth: 1
             },
             selection: {
                 mode: 'xy'
             },
-            colors: ['#0022FF', '#006400']
+            colors: ['#019cd5', '#d53a01']
         }
 
         this.rangeSelect();
@@ -90,7 +98,7 @@ class Plot {
     }
 
     rangeSelect(): void {
-        this.placeholder.bind('plotselected', (event: JQueryEventObject,
+        this.plot_placeholder.bind('plotselected', (event: JQueryEventObject,
                                                ranges: jquery.flot.ranges) => {
             // Clamp the zooming to prevent external zoom
             if (ranges.xaxis.to - ranges.xaxis.from < 0.00001) {
@@ -113,7 +121,7 @@ class Plot {
 
     // A double click on the plot resets to full span
     dblClick(): void {
-        this.placeholder.bind('dblclick', (evt: JQueryEventObject) => {
+        this.plot_placeholder.bind('dblclick', (evt: JQueryEventObject) => {
             const rangeX: jquery.flot.range = {
                 from : 0,
                 to   : this.driver.maxT
@@ -137,14 +145,14 @@ class Plot {
     }
 
     onWheel(): void {
-        this.placeholder.bind('wheel', (evt: JQueryEventObject) => {
+        this.plot_placeholder.bind('wheel', (evt: JQueryEventObject) => {
             let delta: number = (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaX
                                 + (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaY;
             delta /= Math.abs(delta);
 
             const zoomRatio: number = 0.2;
 
-            if ((<JQueryInputEventObject>evt.originalEvent).shiftKey || this.isZoomY) { // Zoom Y
+            if ((<JQueryInputEventObject>evt.originalEvent).shiftKey) { // Zoom Y
                 const positionY: number = (<JQueryMouseEventObject>evt.originalEvent).pageY - this.plot.offset().top;
                 const y0: any = this.plot.getAxes().yaxis.c2p(<any>positionY);
 
@@ -155,7 +163,7 @@ class Plot {
 
                 this.resetRange();
                 return false;
-            } else if ((<JQueryInputEventObject>evt.originalEvent).altKey || this.isZoomX) { // Zoom X
+            } else if ((<JQueryInputEventObject>evt.originalEvent).altKey) { // Zoom X
                 const positionX: number = (<JQueryMouseEventObject>evt.originalEvent).pageX - this.plot.offset().left;
                 const t0: any = this.plot.getAxes().xaxis.c2p(<any>positionX);
 
@@ -182,36 +190,6 @@ class Plot {
         });
     }
 
-    zoomX(): void {
-        if (!this.isZoomX) {
-            this.isZoomX = true;
-            if (this.isZoomY) {
-                this.isZoomY = false;
-                this.zoomYBtn.className = 'btn btn-primary-reversed';
-            }
-            this.zoomXBtn.className = 'btn btn-primary-reversed active';
-        } else {
-            this.isZoomX = false;
-            this.zoomXBtn.className = 'btn btn-primary-reversed';
-        }
-    }
-
-    zoomY(): void {
-        if (!this.isZoomY) {
-            this.isZoomY = true;
-
-            if (this.isZoomX) {
-                this.isZoomX = false;
-                this.zoomXBtn.className = 'btn btn-primary-reversed';
-            }
-
-            this.zoomYBtn.className = 'btn btn-primary-reversed active';
-        } else {
-            this.isZoomY = false;
-            this.zoomYBtn.className = 'btn btn-primary-reversed';
-        }
-    }
-
     resetRange(): void {
         this.isResetRange = true;
     }
@@ -224,17 +202,25 @@ class Plot {
             return;
         }
 
-        let plotData: number[][][] = [];
+        let plotCh0: number[][] = [];
+        let plotCh1: number[][] = [];
 
         if (this.ch1Checkbox.checked && this.ch2Checkbox.checked) {
-            plotData = [ch0, ch1];
+            plotCh0 = ch0;
+            plotCh1 = ch1;
+            // plotData = [ch0, ch1];
         } else if (this.ch1Checkbox.checked && !this.ch2Checkbox.checked) {
-            plotData = [ch0, []];
+            plotCh0 = ch0;
+            plotCh1 = [];
         } else if (!this.ch1Checkbox.checked && this.ch2Checkbox.checked) {
-            plotData = [[], ch1];
+            plotCh0 = [];
+            plotCh1 = ch1;
         } else {
-            plotData = [];
+            plotCh0 = [];
+            plotCh1 = [];
         }
+
+        const plt_data: jquery.flot.dataSeries[] = [{label: "Channel 1 - Voltage", data: plotCh0}, {label: "Channel 2 - Voltage", data: plotCh1}];
 
         if (this.isResetRange) {
             this.options.xaxis.min = rangeX.from;
@@ -242,18 +228,16 @@ class Plot {
             this.options.yaxis.min = this.rangeY.from;
             this.options.yaxis.max = this.rangeY.to;
 
-            this.plot = $.plot(this.placeholder, plotData, this.options);
+            this.plot = $.plot(this.plot_placeholder, plt_data, this.options);
 
             this.plot.setupGrid();
             this.isResetRange = false;
         } else {
-            this.plot.setData(plotData);
+            this.plot.setData(plt_data);
             this.plot.draw();
         }
 
         callback();
     }
-
-
 
 }
