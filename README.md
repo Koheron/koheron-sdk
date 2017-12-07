@@ -17,7 +17,7 @@
     $ sudo make setup
     ```
 
-3. Install Ubuntu 16.04 for Zynq ([Download SD card image for Zedboard or Redpitaya](https://www.koheron.com/software-development-kit/documentation/ubuntu-zynq/))
+3. Install Ubuntu 16.04 for Zynq ([Download SD card image](https://www.koheron.com/software-development-kit/documentation/ubuntu-zynq/))
 
 4. Build and run the led-blinker instrument
 
