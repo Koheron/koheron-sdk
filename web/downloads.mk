@@ -10,6 +10,7 @@ WEB_DOWNLOADS += $(TMP_WEB_PATH)/bootstrap.min.css
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/jquery.min.js
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/_koheron.svg
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/_koheron_logo.svg
+WEB_DOWNLOADS += $(TMP_WEB_PATH)/_koheron.png
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/kbird.ico
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/lato-v11-latin-400.woff2
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/lato-v11-latin-700.woff2
@@ -55,6 +56,10 @@ $(TMP_WEB_PATH)/jquery.min.js:
 $(TMP_WEB_PATH)/_koheron.svg:
 	mkdir -p $(@D)
 	curl https://www.koheron.com/static/images/website/koheron.svg -o $@
+
+$(TMP_WEB_PATH)/_koheron.png:
+	mkdir -p $(@D)
+	curl https://www.koheron.com/static/images/website/koheron.png -o $@
 
 $(TMP_WEB_PATH)/_koheron_logo.svg:
 	mkdir -p $(@D)

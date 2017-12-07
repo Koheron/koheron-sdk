@@ -97,4 +97,13 @@ class Spectrum {
         this.client.send(Command(this.id, this.cmds['set_num_average_min'], num_average_min));
     }
 
+    getPeakFifoData(callback: (peakFifoData: Uint32Array) => void): void {
+        this.client.readUint32Vector(Command(this.id, this.cmds['get_peak_fifo_data']),
+            (peakFifoData) => {callback(peakFifoData)});
+    }
+
+    setAddressRange(addressLow: number, addressHigh: number): void {
+        this.client.send(Command(this.id, this.cmds['set_address_range'], addressLow, addressHigh));
+    }
+
 }

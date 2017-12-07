@@ -65,3 +65,4 @@ web:
   - web/laser.ts
   - ./app.ts
   - ./index.html
+  - web/main.css

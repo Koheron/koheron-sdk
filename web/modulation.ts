@@ -65,7 +65,8 @@ class ModulationDriver {
 
 class ModulationControl {
 
-    private waveformButtons: HTMLLinkElement[][];
+    private channelDivs: HTMLDivElement[];
+    private waveformInputs: HTMLInputElement[][];
     private amplitudeSlider: HTMLInputElement[];
     private frequencySlider: HTMLInputElement[];
     private offsetSlider: HTMLInputElement[];
@@ -73,11 +74,12 @@ class ModulationControl {
     private amplitudeSpan: HTMLSpanElement[];
     private offsetSpan: HTMLSpanElement[];
 
-    readonly waveformTypes = ['sine', 'triangle', 'square'];
+    // readonly waveformTypes = ['sine', 'triangle', 'square'];
 
     constructor(document: Document, private driver: ModulationDriver, private wfmSize: number, private samplingRate: number) {
 
-        this.waveformButtons = [];
+        this.channelDivs = [];
+        this.waveformInputs = [];
         this.amplitudeSlider = [];
         this.frequencySlider = [];
         this.offsetSlider = [];
@@ -85,17 +87,18 @@ class ModulationControl {
         this.amplitudeSpan = [];
         this.offsetSpan = [];
 
-        for (let channel: number = 0; channel < 2; channel++) {
-            this.waveformButtons[channel] = [];
-            this.waveformTypes.forEach((waveformType, index) => {
-                this.waveformButtons[channel][index] = <HTMLLinkElement>document.getElementById(waveformType + '-' + channel.toString());
-            });
-            this.amplitudeSlider[channel] =<HTMLInputElement> document.getElementById('amplitude-slider-' + channel.toString());
-            this.frequencySlider[channel] = <HTMLInputElement>document.getElementById('frequency-slider-' + channel.toString());
-            this.offsetSlider[channel] = <HTMLInputElement>document.getElementById('offset-slider-' + channel.toString());
-            this.frequencySpan[channel] = <HTMLSpanElement>document.getElementById('frequency-' + channel.toString());
-            this.amplitudeSpan[channel] = <HTMLSpanElement>document.getElementById('amplitude-' + channel.toString());
-            this.offsetSpan[channel] = <HTMLSpanElement>document.getElementById('offset-' + channel.toString());
+        for (let i: number = 0; i < 2; i++) {
+            this.channelDivs[i] = <HTMLDivElement>document.getElementById("channel-" + i.toString());
+            this.waveformInputs[i] = [];
+            for (let j: number = 0; j < 3; j ++) {
+                this.waveformInputs[i][j] = <HTMLInputElement>document.getElementById("waveform-" + i.toString() + "-" + j.toString());
+            }
+            this.amplitudeSlider[i] =<HTMLInputElement> document.getElementById('amplitude-slider-' + i.toString());
+            this.frequencySlider[i] = <HTMLInputElement>document.getElementById('frequency-slider-' + i.toString());
+            this.offsetSlider[i] = <HTMLInputElement>document.getElementById('offset-slider-' + i.toString());
+            this.frequencySpan[i] = <HTMLSpanElement>document.getElementById('frequency-' + i.toString());
+            this.amplitudeSpan[i] = <HTMLSpanElement>document.getElementById('amplitude-' + i.toString());
+            this.offsetSpan[i] = <HTMLSpanElement>document.getElementById('offset-' + i.toString());
         }
 
         this.update();
@@ -105,11 +108,11 @@ class ModulationControl {
         this.driver.getModulationStatus((status: ModulationStatus) => {
             for (let channel: number = 0; channel < 2; channel++) {
 
-                for (let i = 0; i < this.waveformTypes.length; i++) {
+                for (let i = 0; i < 3; i++) {
                     if (status.wfmType[channel] === i) {
-                        this.waveformButtons[channel][i].className = 'btn btn-primary-reversed active';
+                        this.waveformInputs[channel][i].checked = true;
                     } else {
-                        this.waveformButtons[channel][i].className = 'btn btn-primary-reversed';
+                        this.waveformInputs[channel][i].checked = false;
                     }
                 }
 
@@ -129,25 +132,32 @@ class ModulationControl {
         });
     }
 
+    switchChannel(channel: string) {
+        for (let i: number = 0; i < 2; i++) {
+            if (i === parseInt(channel)) {
+                this.channelDivs[i].style.display = "block";
+            } else {
+                this.channelDivs[i].style.display = "none";
+            }
+        }
+    }
+
     // Waveform
 
-    setWfmType(channel: number, wfmType: string): void {
-        this.driver.setWaveformType(channel, this.waveformTypes.findIndex(_ => _ === wfmType));
+    setWfmType(channel: number, wfmIndex: string): void {
+        this.driver.setWaveformType(channel, parseInt(wfmIndex));
     }
 
-    setDacAmplitude(channel: number): void {
-        let amplitude = parseFloat(this.amplitudeSlider[channel].value);
-        this.driver.setDacAmplitude(channel, amplitude);
+    setDacAmplitude(channel: number, amplitude: string): void {
+        this.driver.setDacAmplitude(channel, parseFloat(amplitude));
     }
 
-    setDacFrequency(channel: number): void {
-        let frequency = parseInt(this.frequencySlider[channel].value) * this.samplingRate / this.wfmSize;
-        this.driver.setDacFrequency(channel, frequency);
+    setDacFrequency(channel: number, frequency: string): void {
+        this.driver.setDacFrequency(channel, parseInt(frequency) * this.samplingRate / this.wfmSize);
     }
 
-    setDacOffset(channel: number): void {
-        let offset = parseFloat(this.offsetSlider[channel].value);
-        this.driver.setDacOffset(channel, offset);
+    setDacOffset(channel: number, offset: string): void {
+        this.driver.setDacOffset(channel, parseFloat(offset));
     }
 
 }
