@@ -5,10 +5,10 @@ WEB_DOWNLOADS += $(TMP_WEB_PATH)/jquery.flot.resize.js
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/jquery.flot.selection.js
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/jquery.flot.time.js
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/jquery.flot.axislabels.js
+WEB_DOWNLOADS += $(TMP_WEB_PATH)/jquery.flot.canvas.js
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/bootstrap.min.js
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/bootstrap.min.css
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/jquery.min.js
-WEB_DOWNLOADS += $(TMP_WEB_PATH)/_koheron.svg
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/_koheron_logo.svg
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/_koheron.png
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/kbird.ico
@@ -41,6 +41,10 @@ $(TMP_WEB_PATH)/jquery.flot.axislabels.js:
 	mkdir -p $(@D)
 	curl https://raw.githubusercontent.com/markrcote/flot-axislabels/master/jquery.flot.axislabels.js -o $@
 
+$(TMP_WEB_PATH)/jquery.flot.canvas.js:
+	mkdir -p $(@D)
+	curl https://cdnjs.cloudflare.com/ajax/libs/flot/0.8.3/jquery.flot.canvas.js -o $@
+
 $(TMP_WEB_PATH)/bootstrap.min.js:
 	mkdir -p $(@D)
 	curl http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js -o $@
@@ -52,10 +56,6 @@ $(TMP_WEB_PATH)/bootstrap.min.css:
 $(TMP_WEB_PATH)/jquery.min.js:
 	mkdir -p $(@D)
 	curl https://code.jquery.com/jquery-3.2.0.min.js -o $@
-
-$(TMP_WEB_PATH)/_koheron.svg:
-	mkdir -p $(@D)
-	curl https://www.koheron.com/static/images/website/koheron.svg -o $@
 
 $(TMP_WEB_PATH)/_koheron.png:
 	mkdir -p $(@D)

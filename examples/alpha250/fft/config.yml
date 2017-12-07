@@ -96,4 +96,3 @@ web:
   - ./web/clock-generator.ts
   - ./web/index.html
   - ./web/main.css
-  - web/jquery.flot.canvas.js

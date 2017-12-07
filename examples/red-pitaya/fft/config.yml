@@ -92,4 +92,3 @@ web:
   - ./web/plot.ts
   - ./web/index.html
   - web/main.css
-  - web/jquery.flot.canvas.js
