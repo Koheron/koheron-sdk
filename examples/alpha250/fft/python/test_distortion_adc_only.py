@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 '''
-Measure the harmonic distortion (HD2 and HD3) of the DAC and ADC combined.
-Connect DAC0 to ADC0 to perform the measurement.
+Measure the harmonic distortion (HD2 and HD3) of the ADC only
+A series of Minicircuits PLP low-pass filters are used to reject the DAC harmonics 
 '''
 
 import numpy as np
