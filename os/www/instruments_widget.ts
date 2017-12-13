@@ -3,10 +3,17 @@ class InstrumentsWidget {
     private instrumentsTable: HTMLTableElement;
     private isUpdate: boolean;
 
+    private uploadInput: HTMLInputElement;
+    private uploadForm: HTMLFormElement;
+
     constructor (document: Document, private driver: Instruments) {
         this.instrumentsTable = <HTMLTableElement>document.getElementById('instruments-table');
         this.isUpdate = true;
         this.update();
+
+        this.uploadInput = <HTMLInputElement>document.getElementById("upload-input");
+        this.uploadForm = <HTMLFormElement>document.getElementById("upload-form");
+
     }
 
     update() {
@@ -63,6 +70,12 @@ class InstrumentsWidget {
 
     setViewCell(cell: any, name: string): void {
         cell.innerHTML = '<a class="btn btn-primary" href="/">View</a>';
+    }
+
+    uploadInstrument(instrumentPath: string) {
+        let instrumentName = instrumentPath.replace(/^.*\\/, "");
+        this.uploadInput.name = instrumentName;
+        this.uploadForm.submit();
     }
 
 }
