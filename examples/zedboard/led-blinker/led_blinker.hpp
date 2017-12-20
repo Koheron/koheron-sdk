@@ -27,6 +27,10 @@ class LedBlinker
         ctl.write_bit_reg(reg::led, index, status);
     }
 
+    uint32_t get_forty_two() {
+        return sts.read<reg::forty_two>();
+    }
+
   private:
     Memory<mem::control>& ctl;
     Memory<mem::status>& sts;

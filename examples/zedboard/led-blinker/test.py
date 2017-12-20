@@ -9,7 +9,7 @@ class LedBlinker(object):
         self.client = client
 
     @command()
-    def set_led(self, led_value):
+    def set_leds(self, led_value):
         pass
 
     @command()
