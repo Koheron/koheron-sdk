@@ -21,26 +21,16 @@
 
   <body>
 
-  <div class="container-fluid" style="padding: 10px; height: 75px">
-    <a href="/">
-      <img alt="Koheron" src="/koheron/koheron_logo.svg" style="height: 100%">
-    </a>
-  </div>
+  <div class="container-fluid">
 
-  <div class="container">
-
-    <h1>Instruments</h1>
-
-    <br><br>
-
-    <div class="background-blue padding">
-      These instruments were built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>.
-    </div>
-
-    <br><br>
+    <h2 style="padding-bottom: 20px; font-size: 120%; margin-top: 10px;">Instruments</h2>
 
     <table id="instruments-table" class="table">
     </table>
+
+    <input type="button" id="upload-btn" class="btn btn-primary" value="Add instrument" onclick="document.getElementById('upload-input').click();" style="width: auto; border: 0; display: inline-block; height: auto;">
+    <input type="file" id="upload-input" name="file" onchange="instruments_widget.uploadInstrumentClick(); return false;" style="display: none;">
+    <span style="color: red; margin: 0px 10px;" id="upload-status"></span>
 
   </div>
 
@@ -49,8 +39,8 @@
   <script language="javascript" type="text/javascript">
 
     window.addEventListener("load", function() {
-        driver = new Instruments();
-        instruments_widget = new InstrumentsWidget(document, driver);
+      driver = new Instruments();
+      instruments_widget = new InstrumentsWidget(document, driver);
     }, false);
 
   </script>

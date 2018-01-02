@@ -52,7 +52,7 @@ app = KoheronApp(__name__)
 
 @app.route('/api/instruments', methods=['GET'])
 def get_instruments_status():
-    return jsonify({'instruments': app.instruments_list, 'live_instrument': app.live_instrument})
+    return jsonify({'instruments': app.instruments_list, 'live_instrument': app.live_instrument })
 
 @app.route('/api/instruments/run/<name>', methods=['GET'])
 def run_instrument(name):
