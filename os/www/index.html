@@ -28,11 +28,9 @@
     <table id="instruments-table" class="table">
     </table>
 
-    <form id="upload-form" action="/api/instruments/upload" method="POST" enctype="multipart/form-data">
-      <input type="button" id="upload-btn" class="btn btn-primary" value="Add instrument" onclick="document.getElementById('upload-input').click();" style="width: auto; border: 0; display: inline-block; height: auto;">
-      <input id="upload-input" name="" type="file" onchange="instruments_widget.uploadInstrument(this.value); return false" style="display: none;">
-      <input type="submit" value="Upload" style="display: none;">
-    </form>
+    <input type="button" id="upload-btn" class="btn btn-primary" value="Add instrument" onclick="document.getElementById('upload-input').click();" style="width: auto; border: 0; display: inline-block; height: auto;">
+    <input type="file" id="upload-input" name="file" onchange="instruments_widget.uploadInstrumentClick(); return false;" style="display: none;">
+    <span style="color: red; margin: 0px 10px;" id="upload-status"></span>
 
   </div>
 

@@ -4,7 +4,7 @@ class InstrumentsWidget {
     private isUpdate: boolean;
 
     private uploadInput: HTMLInputElement;
-    private uploadForm: HTMLFormElement;
+    private uploadStatus: HTMLSpanElement;
 
     constructor (document: Document, private driver: Instruments) {
         this.instrumentsTable = <HTMLTableElement>document.getElementById('instruments-table');
@@ -12,12 +12,12 @@ class InstrumentsWidget {
         this.update();
 
         this.uploadInput = <HTMLInputElement>document.getElementById("upload-input");
-        this.uploadForm = <HTMLFormElement>document.getElementById("upload-form");
+        this.uploadStatus = <HTMLSpanElement>document.getElementById("upload-status");
 
     }
 
     update() {
-        if (this.isUpdate || this.driver.isNewInstrument) {
+        if (this.isUpdate) {
 
             this.driver.getInstrumentsStatus( (status) => {
                 let instruments = status['instruments'];
@@ -47,7 +47,6 @@ class InstrumentsWidget {
                     nameCell.innerHTML = instrument;
                 }
                 this.isUpdate = false;
-                this.driver.isNewInstrument = false;
             });
         };
 
@@ -72,10 +71,17 @@ class InstrumentsWidget {
         cell.innerHTML = '<a class="btn btn-primary" href="/">View</a>';
     }
 
-    uploadInstrument(instrumentPath: string) {
-        let instrumentName = instrumentPath.replace(/^.*\\/, "");
-        this.uploadInput.name = instrumentName;
-        this.uploadForm.submit();
+    uploadInstrumentClick() {
+        this.uploadStatus.innerHTML = "";
+        let file = this.uploadInput.files[0];
+        if ((file.name).indexOf(".zip") !== -1) {
+            this.driver.uploadInstrument(file, (status) => {
+                this.isUpdate = status;
+            });
+        } else {
+            this.uploadStatus.innerHTML = "Select ZIP file";
+        }
+
     }
 
 }
