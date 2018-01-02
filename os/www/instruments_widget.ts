@@ -31,10 +31,11 @@ class InstrumentsWidget {
                     let nameCell = row.insertCell(0);
                     let statusCell = row.insertCell(1);
                     let runCell = row.insertCell(2);
+                    let deleteCell = row.insertCell(3);
 
                     let isLive: boolean = false;
 
-                    for (let cell of [nameCell, statusCell, runCell]) {
+                    for (let cell of [nameCell, statusCell, runCell, deleteCell]) {
                         cell.style.border = 'none';
                         cell.style.verticalAlign = 'middle';
                     }
@@ -45,10 +46,13 @@ class InstrumentsWidget {
 
                     this.setStatusCell(statusCell, instrument, isLive);
                     this.setRunCell(runCell, instrument, isLive);
+                    this.setDeleteCell(deleteCell, instrument, isLive)
                     nameCell.innerHTML = instrument;
 
                 }
                 this.isUpdate = false;
+                document.body.style.cursor = "default";
+
             });
         };
 
@@ -79,6 +83,20 @@ class InstrumentsWidget {
             document.body.style.cursor = "default";
             location.href = "/";
         })
+    }
+
+    setDeleteCell(cell: any, name: string, isLive: boolean): void {
+        if (isLive === true) {
+            cell.innerHTML = '';
+        } else {
+            cell.innerHTML = '<a onclick="instruments_widget.deleteClick(this.parentNode, \'' + name + '\'); return false;" href="#">Remove</a>';
+        }
+    }
+
+    deleteClick (cell: any, name: string): void {
+        document.body.style.cursor = "wait";
+        this.driver.deleteInstrument(name);
+        this.isUpdate = true;
     }
 
     uploadInstrumentClick() {
