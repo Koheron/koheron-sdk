@@ -18,8 +18,10 @@ class KoheronApp(Flask):
     def __init__(self, *args, **kwargs):
         super(KoheronApp, self).__init__(*args, **kwargs)
         self.live_instrument = ''
+        self.default_instrument = ''
         self.init_instruments_list()
         self.init_live_instrument()
+        self.get_default_instrument()
 
     def init_instruments_list(self):
         self.instruments_list = []
@@ -44,6 +46,10 @@ class KoheronApp(Flask):
         self.live_instrument = name
         return 'success'
 
+    def get_default_instrument(self):
+        with open('/usr/local/instruments/default', 'r') as f:
+            self.default_instrument = default_instrument = get_name_from_zipfilename(f.read().rstrip('\n'))
+
 app = KoheronApp(__name__)
 
 # ------------------------
@@ -52,7 +58,7 @@ app = KoheronApp(__name__)
 
 @app.route('/api/instruments', methods=['GET'])
 def get_instruments_status():
-    return jsonify({'instruments': app.instruments_list, 'live_instrument': app.live_instrument})
+    return jsonify({'instruments': app.instruments_list, 'live_instrument': app.live_instrument, 'default_instrument': app.default_instrument })
 
 @app.route('/api/instruments/run/<name>', methods=['GET'])
 def run_instrument(name):
