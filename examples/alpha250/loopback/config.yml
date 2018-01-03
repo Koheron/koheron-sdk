@@ -33,7 +33,7 @@ status_registers:
   - spi_cfg_sts
 
 parameters:
-  fclk0: 50000000 # FPGA clock speed in Hz
+  fclk0: 200000000 # FPGA clock speed in Hz
   adc_clk: 250000000
 
 xdc:

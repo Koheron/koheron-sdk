@@ -65,6 +65,17 @@ class Eeprom
     , i2c(ctx.i2c.get("i2c-0"))
     {}
 
+    int32_t set_serial_number(uint32_t sn) {
+        std::array<uint32_t, 1> data = {sn};
+        return write<eeprom_map::identifications::offset>(data);
+    }
+
+    uint32_t get_serial_number() {
+        std::array<uint32_t, 1> data;
+        read<eeprom_map::identifications::offset>(data);
+        return data[0];
+    }
+
     template<int32_t offset, typename T, uint32_t N>
     int32_t write(const std::array<T, N>& data)
     {

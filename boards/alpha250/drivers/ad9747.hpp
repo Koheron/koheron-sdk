@@ -35,8 +35,9 @@ class Ad9747
         write_reg((POWER_DOWN << 8) + 0b10110000);
         write_reg((DATA_CONTROL << 8) + (0 << 7) + (0 << 3));
         write_reg((DAC_MODE_SELECT << 8) + 0x00); // Normal mode
-        //set_dac_gain(0x01F9);
-        set_dac_gain(0x1B8); // 1 Vpp
+        set_dac_gain(0x01F9);
+        //set_dac_gain(0x1B8); // 1 Vpp
+        //set_dac_gain(0x100); // 1 Vpp
     }
 
     void reset() {

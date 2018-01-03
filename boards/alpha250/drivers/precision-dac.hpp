@@ -9,7 +9,6 @@
 #include "eeprom.hpp"
 
 static constexpr uint32_t n_dacs = 4;
-static constexpr uint32_t deg = 4; // Calibration polynomial degree
 
 class PrecisionDac
 {
@@ -65,11 +64,7 @@ class PrecisionDac
 
         values_volt[channel] = voltage;
 
-        uint32_t code = uint32_t(std::round(  cal_coeffs[(deg + 1) * channel] * voltage * voltage * voltage * voltage
-                                            + cal_coeffs[(deg + 1) * channel + 1] * voltage * voltage * voltage
-                                            + cal_coeffs[(deg + 1) * channel + 2] * voltage * voltage
-                                            + cal_coeffs[(deg + 1) * channel + 3] * voltage
-                                            + cal_coeffs[(deg + 1) * channel + 4]));
+        uint32_t code = uint32_t(std::round(cal_coeffs[2 * channel] * voltage + cal_coeffs[2 * channel + 1]));
         set_dac_value(channel, code);
     }
 
@@ -83,9 +78,9 @@ class PrecisionDac
         return values_volt;
     }
 
-    int32_t set_calibration_coeffs(const std::array<float, (deg + 1) * n_dacs>& new_coeffs) {
+    int32_t set_calibration_coeffs(const std::array<float, 2 * n_dacs>& new_coeffs) {
         cal_coeffs = new_coeffs;
-        static_assert((deg + 1) * n_dacs * sizeof(float) <= eeprom_map::precision_dac_calib::range, "");
+        static_assert(2 * n_dacs * sizeof(float) <= eeprom_map::precision_dac_calib::range, "");
         return eeprom.write<eeprom_map::precision_dac_calib::offset>(cal_coeffs);
     }
 
@@ -99,7 +94,7 @@ class PrecisionDac
     uint32_t enable = 1;
 
     // Calibration coefficients
-    std::array<float, (deg + 1) * n_dacs> cal_coeffs;
+    std::array<float, 2 * n_dacs> cal_coeffs;
 };
 
 #endif // __ALPHA_DRIVERS_PRECISION_DAC_HPP__

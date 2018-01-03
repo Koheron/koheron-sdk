@@ -54,6 +54,12 @@ class FFT {
                                  (size) => {cb(size)});
     }
 
+    read_psd_raw(cb: (psd: Float32Array) => void): void {
+        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd_raw']), (psd: Float32Array) => {
+            cb(psd);
+        });
+    }
+
     read_psd(cb: (psd: Float32Array) => void): void {
         this.client.readFloat32Array(Command(this.id, this.cmds['read_psd']), (psd: Float32Array) => {
             cb(psd);

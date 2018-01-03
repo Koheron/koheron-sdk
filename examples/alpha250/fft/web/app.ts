@@ -86,7 +86,7 @@ class App {
     private updatePrecisionAdcValues() {
         this.precisionAdc.getAdcValues((adcValues: Float32Array) => {
             for (let i: number = 0; i < this.precisionAdcNum; i++) {
-                this.precisionAdcSpans[i].innerHTML = (adcValues[i] * 1000).toFixed(4).toString();
+                this.precisionAdcSpans[i].innerHTML = (adcValues[i+4] * 1000).toFixed(4).toString();
             }
 
             requestAnimationFrame( () => { this.updatePrecisionAdcValues(); });
