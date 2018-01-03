@@ -3,44 +3,56 @@ class InstrumentsWidget {
     private instrumentsTable: HTMLTableElement;
     private isUpdate: boolean;
 
+    private uploadInput: HTMLInputElement;
+    private uploadStatus: HTMLSpanElement;
+
     constructor (document: Document, private driver: Instruments) {
         this.instrumentsTable = <HTMLTableElement>document.getElementById('instruments-table');
         this.isUpdate = true;
         this.update();
+
+        this.uploadInput = <HTMLInputElement>document.getElementById("upload-input");
+        this.uploadStatus = <HTMLSpanElement>document.getElementById("upload-status");
+
     }
 
     update() {
-        if (this.isUpdate || this.driver.isNewInstrument) {
+        if (this.isUpdate) {
 
             this.driver.getInstrumentsStatus( (status) => {
                 let instruments = status['instruments'];
                 let liveInstrument = status['live_instrument'];
 
-                this.instrumentsTable.innerHTML = '<thead><tr><th>Name</th><th>Action</th></tr></thead>';
+                this.instrumentsTable.innerHTML = '<thead><tr><th>Name</th><th>Status</th><th colspan="2">Action</th></tr></thead>';
 
                 for (let instrument of instruments) {
                     let row = this.instrumentsTable.insertRow(-1);
 
                     let nameCell = row.insertCell(0);
-                    let viewCell = row.insertCell(1);
-                    let runCell = row.insertCell(1);
+                    let statusCell = row.insertCell(1);
+                    let runCell = row.insertCell(2);
+                    let deleteCell = row.insertCell(3);
 
-                    for (let cell of [nameCell, viewCell, runCell]) {
+                    let isLive: boolean = false;
+
+                    for (let cell of [nameCell, statusCell, runCell, deleteCell]) {
                         cell.style.border = 'none';
                         cell.style.verticalAlign = 'middle';
                     }
 
                     if (instrument == liveInstrument) {
-                        this.setViewCell(runCell, instrument);
-                    }
-                    else {
-                        this.setRunCell(runCell, instrument);
-                    }
+                        isLive = true;
+                    };
 
+                    this.setStatusCell(statusCell, instrument, isLive);
+                    this.setRunCell(runCell, instrument, isLive);
+                    this.setDeleteCell(deleteCell, instrument, isLive)
                     nameCell.innerHTML = instrument;
+
                 }
                 this.isUpdate = false;
-                this.driver.isNewInstrument = false;
+                document.body.style.cursor = "default";
+
             });
         };
 
@@ -49,20 +61,55 @@ class InstrumentsWidget {
         });
     }
 
-    setRunCell(cell: any, name: string): void {
-        cell.innerHTML = '<a class="btn btn-default" onclick="instruments_widget.runClick(this.parentNode, \'' + name + '\'); return false;" href="#">Start</a>';
+    setStatusCell(cell: any, name: string, isLive: boolean): void {
+        if (isLive === true) {
+            cell.innerHTML = '<a href="/">Running</a>';
+        } else {
+            cell.innerHTML = '';
+        }
+    }
+
+    setRunCell(cell: any, name: string, isLive: boolean): void {
+        if (isLive === true) {
+            cell.innerHTML = '';
+        } else {
+            cell.innerHTML = '<a onclick="instruments_widget.runClick(this.parentNode, \'' + name + '\'); return false;" href="#">Run</a>';
+        }
     }
 
     runClick (cell: any, name: string): void {
-        this.isUpdate = false;
+        document.body.style.cursor = "wait";
         this.driver.runInstrument(name, (err) => {
-            this.setViewCell(cell, name);
-            this.isUpdate = true;
+            document.body.style.cursor = "default";
+            location.href = "/";
         })
     }
 
-    setViewCell(cell: any, name: string): void {
-        cell.innerHTML = '<a class="btn btn-primary" href="/">View</a>';
+    setDeleteCell(cell: any, name: string, isLive: boolean): void {
+        if (isLive === true) {
+            cell.innerHTML = '';
+        } else {
+            cell.innerHTML = '<a onclick="instruments_widget.deleteClick(this.parentNode, \'' + name + '\'); return false;" href="#">Remove</a>';
+        }
+    }
+
+    deleteClick (cell: any, name: string): void {
+        document.body.style.cursor = "wait";
+        this.driver.deleteInstrument(name);
+        this.isUpdate = true;
+    }
+
+    uploadInstrumentClick() {
+        this.uploadStatus.innerHTML = "";
+        let file = this.uploadInput.files[0];
+        if ((file.name).indexOf(".zip") !== -1) {
+            this.driver.uploadInstrument(file, (status) => {
+                this.isUpdate = status;
+            });
+        } else {
+            this.uploadStatus.innerHTML = "Select ZIP file";
+        }
+
     }
 
 }
