@@ -5,7 +5,7 @@ SHELL := bash
 .DELETE_ON_ERROR:
 .SUFFIXES:
 
-CONFIG ?= examples/led-blinker/config.yml
+CONFIG ?= examples/red-pitaya/led-blinker/config.yml
 SDK_PATH ?= .
 MODE ?= development
 HOST ?= 192.168.1.100
@@ -123,30 +123,31 @@ setup: setup_fpga setup_server setup_web setup_os
 
 .PHONY: setup_base
 setup_base:
-	apt-get install -y g++-arm-linux-gnueabihf
-	apt-get install -y python-pip
-	apt-get install -y curl
+	sudo apt-get install -y g++-arm-linux-gnueabihf
+	sudo apt-get install -y python-pip
+	sudo apt-get install -y curl
+	sudo apt-get install -y npm
 	pip install -r $(SDK_PATH)/requirements.txt
 	pip install $(SDK_PATH)/python
 
 .PHONY: setup_fpga
 setup_fpga: setup_base
-	rm -f /usr/bin/gmake && ln -s make /usr/bin/gmake
+	sudo rm -f /usr/bin/gmake && sudo ln -s make /usr/bin/gmake
 
 .PHONY: setup_server
 setup_server: setup_base
 
 .PHONY: setup_web
 setup_web: setup_base
-	apt-get install -y nodejs
-	rm -f /usr/bin/node && ln -s /usr/bin/nodejs /usr/bin/node
+	sudo apt-get install -y nodejs
+	sudo rm -f /usr/bin/node && sudo ln -s /usr/bin/nodejs /usr/bin/node
 	npm install typescript
 	npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
 
 .PHONY: setup_os
 setup_os: setup_base
-	apt-get install -y libssl-dev bc device-tree-compiler qemu-user-static zerofree
-	apt-get install -y lib32stdc++6 lib32z1 u-boot-tools
+	sudo apt-get install -y libssl-dev bc device-tree-compiler qemu-user-static zerofree
+	sudo apt-get install -y lib32stdc++6 lib32z1 u-boot-tools
 
 ###############################################################################
 # CLEAN TARGETS
@@ -161,4 +162,3 @@ clean:
 .PHONY: clean_all
 clean_all:
 	rm -rf $(TMP)
-

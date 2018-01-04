@@ -14,7 +14,7 @@
 2. Install required packages
 
     ```bash
-    $ sudo make setup
+    $ make setup
     ```
 
 3. Install Ubuntu 16.04 for Zynq ([Download SD card image](https://www.koheron.com/software-development-kit/documentation/ubuntu-zynq/))
@@ -22,7 +22,7 @@
 4. Build and run the led-blinker instrument
 
     ```bash
-    $ make CONFIG=examples/zedboard-led-blinker/config.yml HOST=192.168.1.100 run
+    $ make CONFIG=examples/zedboard/led-blinker/config.yml HOST=192.168.1.100 run
     ```
 
 Ready to develop your instrument? Read the [documentation](https://www.koheron.com/software-development-kit/documentation).
