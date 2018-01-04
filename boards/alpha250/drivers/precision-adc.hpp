@@ -104,7 +104,7 @@ class PrecisionAdc
         constexpr uint32_t CS_EN        = 0;
         constexpr uint32_t REF_EN       = 0;
         constexpr uint32_t POWER_MODE   = 2; // 0: low power, 1: mid power, 2: full power
-        constexpr uint32_t Mode         = 0; // 0: Continuous converion mode
+        constexpr uint32_t Mode         = 0; // 0: Continuous conversion mode
         constexpr uint32_t CLK_SEL      = 0; // Internal clock not available on CLK
 
         write(0x01, (DOUT_RDY_DEL << 12) + (CONT_READ << 11) + (DATA_STATUS << 10) + (CS_EN << 9)
