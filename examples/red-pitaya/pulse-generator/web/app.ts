@@ -2,6 +2,7 @@ class App {
     public control: Control;
     public plot: Plot;
     private driver: PulseGenerator;
+    private navigation: Navigation;
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
@@ -12,6 +13,7 @@ class App {
                 this.driver = new PulseGenerator(client);
                 this.control = new Control(document, this.driver);
                 this.plot = new Plot(document, plot_placeholder, this.driver);
+                this.navigation = new Navigation(document);
             });
         }, false);
 
