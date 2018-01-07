@@ -167,6 +167,7 @@ button[disabled] {
 
 #main {
   margin-left: 100px;
+  padding: 10px;
 }
 
 #collapse-btn {
