@@ -20,6 +20,8 @@ class App {
     private precisionAdcNum: number;
     private precisionAdcSpans: HTMLSpanElement[];
 
+    private navigation: Navigation;
+
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
         let sockpoolSize: number = 10;
@@ -48,6 +50,7 @@ class App {
                 this.powerMonitor = new PowerMonitor(client);
                 this.precisionAdc = new PrecisionAdc(client);
                 this.clkGenerator = new ClockGenerator(client);
+                this.navigation = new Navigation(document);
 
                 this.fft.init( () => {
                     this.control = new Control(document, this.fft, this.precisionDac, this.clkGenerator);
