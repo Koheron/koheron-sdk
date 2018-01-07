@@ -1,8 +1,8 @@
 
 class App {
     private monitor: Monitor;
-
     private temperatureSpan: HTMLSpanElement;
+    private navigation: Navigation;
 
     constructor(window: Window, document: Document, ip: string) {
         let client = new Client(ip, 5);
@@ -11,7 +11,7 @@ class App {
         window.addEventListener('load', () => {
             client.init( () => {
                 this.monitor = new Monitor(client);
-
+                this.navigation = new Navigation(document);
                 this.update();
             });
         }, false);
