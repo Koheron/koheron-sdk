@@ -122,12 +122,6 @@ button[disabled] {
   cursor: not-allowed;
 }
 
-@media (max-width: 992px ) {
-  #koheron-logo {
-    display: none;
-  }
-}
-
 #collapse-btn {
   border: none;
   position: absolute;
@@ -168,14 +162,4 @@ button[disabled] {
 #main {
   margin-left: 100px;
   padding: 10px;
-}
-
-#collapse-btn {
-  border: none;
-  position: absolute;
-  bottom: 0px;
-  width: 100%;
-  font-size: 150%;
-  background-color: #4d4d4d;
-  color: white;
 }
