@@ -37,4 +37,5 @@ web:
   - ./web/led_blinker.ts
   - ./web/app.ts
   - ./web/control.ts
-  - ./web/main.css
+  - web/main.css
+  - web/navigation.ts

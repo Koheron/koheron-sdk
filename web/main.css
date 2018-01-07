@@ -122,12 +122,6 @@ button[disabled] {
   cursor: not-allowed;
 }
 
-@media (max-width: 992px ) {
-  #koheron-logo {
-    display: none;
-  }
-}
-
 #collapse-btn {
   border: none;
   position: absolute;
@@ -141,4 +135,31 @@ button[disabled] {
 .radio-wrapper {
   margin: 0px 3px;
   display: inline-block;
+}
+
+#navigation {
+  height: 100%;
+  background-color: #f3f3f3;
+  overflow-x: hidden;
+  width: 100px;
+  position: fixed;
+}
+
+#navigation a {
+  display: block;
+  color: #333;
+  margin: 10px 0px;
+}
+
+#navigation a:hover {
+  color: #019cd5;
+}
+
+#navigation-links {
+  padding: 20px 10px;
+}
+
+#main {
+  margin-left: 100px;
+  padding: 10px;
 }

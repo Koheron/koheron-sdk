@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>Koheron</title>
+  <title>Koheron | LED Blinker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Koheron">
   <meta charset="utf-8">
@@ -21,15 +21,20 @@
 
 <body>
 
-  <div class="container-fluid" style="padding: 10px; height: 75px">
-    <a href="/">
-      <img alt="Koheron" src="_koheron_logo.svg" style="height: 100%">
-    </a>
+  <div id="navigation">
+
+    <div id="navigation-links">
+      <img src="_koheron_logo.svg" alt="home" style="max-width: 100%;">
+      <a href="/">Home</a>
+      <a href="/koheron">Settings</a>
+    </div>
+
+    <button value="close" id="collapse-btn" onclick="app.navigation.collapseBtnClick(this); return false;">&#60;</button>
+
   </div>
 
-  <div class="container">
-
-    <h1>Zedboard LED blinker</h1>
+  <div class="container-fluid" id="main">
+    <div class="container" style="margin-top: 10px;">
 
     <table>
       <thead>
@@ -58,17 +63,22 @@
       </tr>
     </table>
 
-    <br><br>
-
-    <p>
-      See <a href="/koheron/">available instruments</a>.
-      <br><br>
-      This instrument was built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>.<br>
-    </p>
-
+    </div>
   </div>
 
   <script src="app.js?random=<?php echo uniqid(); ?>"></script>
+
+  <style>
+    td {
+        width: 100px;
+        padding: 0px 5px;
+    }
+
+    input {
+        width: 100%;
+        box-shadow: 0px 4px 6px 0px #e6e6e6;
+    }
+  </style>
 
 </body>
 </html>

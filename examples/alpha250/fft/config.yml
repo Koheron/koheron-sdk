@@ -95,4 +95,5 @@ web:
   - ./web/precision-dac.ts
   - ./web/clock-generator.ts
   - ./web/index.html
-  - ./web/main.css
+  - web/main.css
+  - web/navigation.ts

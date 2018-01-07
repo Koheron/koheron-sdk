@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>Koheron</title>
+  <title>Koheron | Dual DDS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Koheron">
   <meta charset="utf-8">
@@ -15,6 +15,7 @@
   <link rel="shortcut icon" href="kbird.ico">
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
+  <link rel="stylesheet" type="text/css" href="main.css">
 
   <script type="text/javascript" src="jquery.min.js"></script>
   <script type="text/javascript" src="bootstrap.min.js"></script>
@@ -22,54 +23,55 @@
 
 <body>
 
-<div class="container-fluid" style="padding: 10px; height: 75px">
-  <a href="https://www.koheron.com">
-    <img alt="Koheron" src="_koheron_logo.svg" style="height: 100%">
-  </a>
+<div id="navigation">
+
+  <div id="navigation-links">
+    <img src="_koheron_logo.svg" alt="home" style="max-width: 100%;">
+    <a href="/">Home</a>
+    <a href="/koheron">Settings</a>
+  </div>
+
+  <button value="close" id="collapse-btn" onclick="app.navigation.collapseBtnClick(this); return false;">&#60;</button>
+
 </div>
 
-<div class="container">
+<div class="container-fluid" id="main">
 
-  <div class="border padding">
-    <div style="line-height: 40px">
-        Channel 0 frequency (MHz)
-        <span data-toggle="tooltip" data-placement="top" title="Set DDS frequency between 0 and 62.5 MHz." class="tip">?</span> :
-        <a id="frequency-value-0" href="#" onclick="app.control.editFrequency(0); return false" class="btn-tip" data-toggle="tooltip"
-          data-placement="right" title="Edit" style="vertical-align: middle">0
-        </a>
-        <input id="frequency-input-0" type="number" value="0" min="0" step="0.000001" max="62.5" style="display: none; width: 150px; height: 41px" onkeydown="app.control.saveFrequencyKey(event,0)">
-        <a class="glyphicon glyphicon-ok blue btn-tip" id="frequency-save-0" href="#" onclick="app.control.saveFrequency(0); return false"
-          data-toggle="tooltip" data-placement="bottom" title="Save (Enter)" style="display: none">
-        </a>
-      </div>
-      <input id="frequency-slider-0" type="range" value="0" min="0" step="0.001" max="62.5" onchange="app.control.slideFrequency(0); return false"
-        oninput="app.control.slideFrequency(0); return false" style="padding-left: 4px; padding-right: 4px">
-    </div>
+  <section>
 
-  <div class="border padding">
-    <div style="line-height: 40px">
-        Channel 1 frequency (MHz)
-        <span data-toggle="tooltip" data-placement="top" title="Set DDS frequency between 0 and 62.5 MHz." class="tip">?</span> :
-        <a id="frequency-value-1" href="#" onclick="app.control.editFrequency(1); return false" class="btn-tip" data-toggle="tooltip"
-          data-placement="right" title="Edit" style="vertical-align: middle">0
-        </a>
-        <input id="frequency-input-1" type="number" value="0" min="0" step="0.000001" max="62.5" style="display: none; width: 150px; height: 41px" onkeydown="app.control.saveFrequencyKey(event,1)">
-        <a class="glyphicon glyphicon-ok blue btn-tip" id="frequency-save-1" href="#" onclick="app.control.saveFrequency(1); return false"
-          data-toggle="tooltip" data-placement="bottom" title="Save (Enter)" style="display: none">
-        </a>
-      </div>
-      <input id="frequency-slider-1" type="range" value="0" min="0" step="0.001" max="62.5" onchange="app.control.slideFrequency(1); return false"
-        oninput="app.control.slideFrequency(1); return false" style="padding-left: 4px; padding-right: 4px">
-    </div>
+  <div class="crossed">
+    <span>
+      DDS Frequency (MHz)
+    </span>
+  </div>
 
+  <table class="full-width">
+    <tr>
+      <td style="width: 100px;">Channel 0</td>
+      <td style="width: 150px;">
+        <input id="frequency-input-0" type="number" value="0" min="0" step="0.000001" max="62.5"
+        onchange="app.control.setFrequency(0, this); return false" oninput="app.control.setFrequency(0, this); return false">
+      </td>
+      <td>
+        <input id="frequency-slider-0" type="range" value="0" min="0" step="0.001" max="62.5"
+        onchange="app.control.setFrequency(0, this); return false" oninput="app.control.setFrequency(0, this); return false">
+      </td>
+    </tr>
+    <tr>
+      <td style="width: 100px;">Channel 1</td>
+      <td style="width: 150px;">
+        <input id="frequency-input-1" type="number" value="0" min="0" step="0.000001" max="62.5"
+        onchange="app.control.setFrequency(1, this); return false" oninput="app.control.setFrequency(1, this); return false">
+      </td>
+      <td>
+        <input id="frequency-slider-1" type="range" value="0" min="0" step="0.001" max="62.5"
+        onchange="app.control.setFrequency(1, this); return false" oninput="app.control.setFrequency(1, this); return false">
+      </td>
+    </tr>
+  </table>
 
-  <br><br>
+  </section>
 
-  <p>
-    See <a href="/koheron/">available instruments</a>.
-    <br><br>
-    This instrument was built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>.
-  </p>
 </div>
 
   <script src="app.js?random=<?php echo uniqid(); ?>"></script>

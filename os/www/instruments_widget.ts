@@ -36,7 +36,10 @@ class InstrumentsWidget {
                     let isLive: boolean = false;
 
                     for (let cell of [nameCell, statusCell, runCell, deleteCell]) {
-                        cell.style.border = 'none';
+                        cell.style["border-left"] = 'none';
+                        cell.style["border-right"] = 'none';
+                        cell.style["border-top"] = "1px solid #ddd";
+                        cell.style["border-bottom"] = "none";
                         cell.style.verticalAlign = 'middle';
                     }
 

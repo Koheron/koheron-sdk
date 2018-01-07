@@ -1,6 +1,7 @@
 class App {
     private driver: LedBlinker;
     public control: Control;
+    private navigation: Navigation;
 
     constructor(window: Window, document: Document, ip: string) {
         let client = new Client(ip, 5);
@@ -9,6 +10,7 @@ class App {
             client.init( () => {
                 this.driver = new LedBlinker(client);
                 this.control = new Control(document, this.driver);
+                this.navigation = new Navigation(document);
             });
         }, false);
 

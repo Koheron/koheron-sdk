@@ -21,30 +21,44 @@
 
 <body>
 
-<div class="container-fluid" style="padding: 10px; height: 75px">
-  <img alt="Koheron" src="_koheron_logo.svg" style="height: 100%">
+<div id="navigation">
+
+  <div id="navigation-links">
+    <img src="_koheron_logo.svg" alt="home" style="max-width: 100%;">
+    <a href="/">Home</a>
+    <a href="/koheron">Settings</a>
+  </div>
+
+  <button value="close" id="collapse-btn" onclick="navigation.collapseBtnClick(this); return false;">&#60;</button>
+
 </div>
 
-<div class="container">
+<div class="container-fuild" id="main">
 
-  <h1>Bonjour!</h1>
+  <div class="container" style="margin-top: 10px;">
 
-  <br><br>
+    <h1>Bonjour!</h1>
 
-  <p>There is currently no web-based user interface for this instrument.
-    You can write your own interface using the <a href="https://www.koheron.com/software-development-kit/documentation/typescript-api/">TypeScript API</a>
-    or use the <a href="https://www.koheron.com/software-development-kit/documentation/python-api/">Python API</a> to control this instrument.</p>
-  </p>
-
-  <br><br>
-
-  <p>
-    See <a href="/koheron/">available instruments</a>.
     <br><br>
-    This instrument was built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>.
-  </p>
+
+    <p>There is no web interface for this instrument.
+      You can write your own interface using the <a href="https://www.koheron.com/software-development-kit/documentation/typescript-api/">TypeScript API</a>
+      or the <a href="https://www.koheron.com/software-development-kit/documentation/python-api/">Python API</a>.</p>
+    </p>
+
+  </div>
 
 </div>
+
+<script src="app.js?random=<?php echo uniqid(); ?>"></script>
+
+<script language="javascript" type="text/javascript">
+
+  window.addEventListener("load", function() {
+    navigation = new Navigation(document);
+  }, false);
+
+</script>
 
 </body>
 </html>
