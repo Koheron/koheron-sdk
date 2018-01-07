@@ -7,6 +7,7 @@ class App {
     public modulationControl: ModulationControl;
     public average: Average;
     public plot: Plot;
+    private navigation: Navigation;
 
     wfmSize = 8192;
     samplingRate = 125e6;
@@ -26,6 +27,7 @@ class App {
                 this.modulationControl = new ModulationControl(document, this.modulationDriver, this.wfmSize, this.samplingRate);
 
                 this.plot = new Plot(document, plot_placeholder, this.oscillo);
+                this.navigation = new Navigation(document);
             });
         }, false);
 
