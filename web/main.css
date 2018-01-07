@@ -142,3 +142,39 @@ button[disabled] {
   margin: 0px 3px;
   display: inline-block;
 }
+
+#navigation {
+  height: 100%;
+  background-color: #f3f3f3;
+  overflow-x: hidden;
+  width: 100px;
+  position: fixed;
+}
+
+#navigation a {
+  display: block;
+  color: #333;
+  margin: 10px 0px;
+}
+
+#navigation a:hover {
+  color: #019cd5;
+}
+
+#navigation-links {
+  padding: 20px 10px;
+}
+
+#main {
+  margin-left: 100px;
+}
+
+#collapse-btn {
+  border: none;
+  position: absolute;
+  bottom: 0px;
+  width: 100%;
+  font-size: 150%;
+  background-color: #4d4d4d;
+  color: white;
+}
