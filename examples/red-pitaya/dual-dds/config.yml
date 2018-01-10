@@ -46,3 +46,5 @@ web:
   - ./web/app.ts
   - ./web/control.ts
   - ./web/index.html
+  - web/main.css
+  - web/navigation.ts

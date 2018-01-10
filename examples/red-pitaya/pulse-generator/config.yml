@@ -57,3 +57,5 @@ web:
   - ./web/control.ts
   - ./web/plot.ts
   - ./web/index.html
+  - web/main.css
+  - web/navigation.ts

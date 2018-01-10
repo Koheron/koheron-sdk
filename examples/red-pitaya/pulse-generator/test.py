@@ -12,7 +12,7 @@ from pulse import Pulse
 from koheron import connect
 
 host = os.getenv('HOST', '192.168.1.7')
-client = connect(host, name='pulse_generator')
+client = connect(host, name='pulse-generator')
 driver = Pulse(client)
 
 pulse_width = 128

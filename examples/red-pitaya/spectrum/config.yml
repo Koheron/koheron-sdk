@@ -128,3 +128,4 @@ web:
   - web/modulation.ts
   - ./web/plot.ts
   - ./web/index.html
+  - web/navigation.ts

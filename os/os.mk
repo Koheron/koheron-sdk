@@ -186,6 +186,7 @@ TMP_WWW_PATH:= $(TMP)/www
 www : $(TMP_WWW_PATH)/koheron.css \
 		$(TMP_WWW_PATH)/instruments.js \
 		$(TMP_WWW_PATH)/index.html \
+		$(TMP_WWW_PATH)/main.css \
 		$(TMP_WWW_PATH)/bootstrap.min.js \
 		$(TMP_WWW_PATH)/bootstrap.min.css \
 		$(TMP_WWW_PATH)/jquery.min.js \
@@ -208,6 +209,7 @@ clean_www:
 WWW_TS_FILES := $(WEB_PATH)/koheron.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments_widget.ts
+WWW_TS_FILES += $(WEB_PATH)/navigation.ts
 
 $(TMP_WWW_PATH)/instruments.js: $(WWW_TS_FILES)
 	mkdir -p $(@D)
@@ -218,6 +220,10 @@ $(TMP_WWW_PATH)/koheron.css:
 	curl https://www.koheron.com/static/css/main.css -o $@
 
 $(TMP_WWW_PATH)/index.html: $(WWW_PATH)/index.html
+	mkdir -p $(@D)
+	cp $< $@
+
+$(TMP_WWW_PATH)/main.css: $(WEB_PATH)/main.css
 	mkdir -p $(@D)
 	cp $< $@
 

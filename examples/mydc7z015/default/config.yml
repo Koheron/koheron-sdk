@@ -39,4 +39,5 @@ web:
   - web/koheron.ts
   - ./web/monitor.ts
   - ./web/app.ts
-  - ./web/main.css
+  - web/main.css
+  - web/navigation.ts

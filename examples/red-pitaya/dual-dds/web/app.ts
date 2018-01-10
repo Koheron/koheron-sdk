@@ -1,6 +1,7 @@
 class App {
     public control: Control;
     private driver: DualDDS;
+    private navigation: Navigation;
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
@@ -10,6 +11,7 @@ class App {
             client.init( () => {
                 this.driver = new DualDDS(client);
                 this.control = new Control(document, this.driver);
+                this.navigation = new Navigation(document);
             });
         }, false);
 

@@ -23,9 +23,19 @@
 
 <body>
 
-<img alt="Koheron" src="_koheron.png" style="height: 40px; top: 10px; right: 10px; position: absolute; background-color: white; z-index: 1" id="koheron-logo">
+<div id="navigation">
 
-<div class="container-fluid" style="padding: 10px">
+  <div id="navigation-links">
+    <img src="_koheron_logo.svg" alt="home" style="max-width: 100%;">
+    <a href="/">Home</a>
+    <a href="/koheron">Settings</a>
+  </div>
+
+  <button value="close" id="collapse-btn" onclick="app.navigation.collapseBtnClick(this); return false;">&#60;</button>
+
+</div>
+
+<div id="main" class="container-fluid" style="padding: 10px">
 
   <section>
 
@@ -86,15 +96,6 @@
         <td><canvas id="canvas" width="100" height="15"></canvas></td>
       </tr>
     </table>
-
-  </section>
-
-  <section>
-
-    <p>
-      See <a href="/koheron/">available instruments</a>.<br>
-      This instrument was built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>.
-    </p>
 
   </section>
 
