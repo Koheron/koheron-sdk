@@ -21,6 +21,7 @@ print('ADC size = {}'.format(driver.adc_size))
 
 sampling_frequency = 250e6 # Hz
 t = np.arange(driver.dac_size) / sampling_frequency
+t_us = 1e6 * t
 
 # Set modulation on DAC
 amp_mod = 0.99
@@ -33,19 +34,28 @@ driver.set_dac()
 fig = plt.figure()
 ax = fig.add_subplot(111)
 y = np.zeros(driver.adc_size)
-line0 = Line2D([], [], color='blue')
-line1 = Line2D([], [], color='green')
+line0 = Line2D([], [], color='blue', label='ADC0')
+line1 = Line2D([], [], color='green', label='ADC1')
 ax.add_line(line0)
 ax.add_line(line1)
-ax.set_xlim((t[0], t[-1]))
+ax.set_xlabel('Time (us)')
+ax.set_ylabel('ADC Raw data')
+ax.set_xlim((t_us[0], t_us[-1]))
 ax.set_ylim((-2**15, 2**15))
+ax.legend()
 fig.canvas.draw()
+
+i = 0
+
+
 
 while True:
     try:
+        i = i+1
+        print i
         driver.get_adc()
-        line0.set_data(t, driver.adc[0,:])
-        line1.set_data(t, driver.adc[1,:])
+        line0.set_data(t_us, driver.adc[0,:])
+        line1.set_data(t_us, driver.adc[1,:])
         fig.canvas.draw()
         plt.pause(0.001)
     except KeyboardInterrupt:

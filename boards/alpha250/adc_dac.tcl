@@ -46,8 +46,6 @@ for {set i 0} {$i < 2} {incr i} {
 
 # Control pin
 create_bd_pin -dir I -from 31 -to 0 ctl
-
-create_bd_pin -dir I -type clk psclk
 create_bd_pin -dir O pll_locked
 
 # Config SPI
@@ -96,8 +94,8 @@ cell xilinx.com:ip:clk_wiz:5.4 mmcm {
     clk_out1 adc_clk
     clk_in_sel [get_slice_pin ctl 0 0]
     reset [get_slice_pin ctl 1 1]
-    psclk psclk
-    psen [get_edge_detector_pin [get_slice_pin ctl 2 2] psclk]
+    psclk mmcm/clk_out1
+    psen [get_edge_detector_pin [get_slice_pin ctl 2 2] mmcm/clk_out1]
     psincdec [get_slice_pin ctl 3 3]
 }
 

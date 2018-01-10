@@ -10,7 +10,6 @@ add_ctl_sts adc_dac/adc_clk rst_adc_clk/peripheral_aresetn
 
 connect_cell adc_dac {
     ctl [ctl_pin mmcm]
-    psclk adc_dac/adc_clk
     cfg_data [ctl_pin spi_cfg_data]
     cfg_cmd [ctl_pin spi_cfg_cmd]
     cfg_sts [sts_pin spi_cfg_sts]
@@ -50,7 +49,7 @@ add_bram dac
 
 # Add a counter for BRAM addressing
 cell koheron:user:address_counter:1.0 address_counter {
-  COUNT_WIDTH 15
+  COUNT_WIDTH [get_memory_addr_width adc]
 } {
   clken [get_constant_pin 1 1]
   clk adc_dac/adc_clk
@@ -60,7 +59,7 @@ cell koheron:user:address_counter:1.0 address_counter {
 connect_cell blk_mem_gen_adc {
   addrb address_counter/address
   clkb adc_dac/adc_clk
-  dinb [get_Q_pin [get_concat_pin [list adc_dac/adc0 adc_dac/adc1]] 1 noce adc_dac/adc_clk]
+  dinb [get_concat_pin [list adc_dac/adc0 adc_dac/adc1]]
   enb [get_constant_pin 1 1]
   rstb [get_constant_pin 0 1]
   web address_counter/wen
@@ -74,5 +73,5 @@ connect_cell blk_mem_gen_dac {
   web [get_constant_pin 0 4]
 }
 
-connect_pins adc_dac/dac0 [get_Q_pin [get_slice_pin blk_mem_gen_dac/doutb 15 0] 1 noce adc_dac/adc_clk]
-connect_pins adc_dac/dac1 [get_Q_pin [get_slice_pin blk_mem_gen_dac/doutb 31 16] 1 noce adc_dac/adc_clk]
+connect_pins adc_dac/dac0 [get_slice_pin blk_mem_gen_dac/doutb 15 0]
+connect_pins adc_dac/dac1 [get_slice_pin blk_mem_gen_dac/doutb 31 16]
