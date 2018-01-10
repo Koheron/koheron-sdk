@@ -2,6 +2,7 @@
 set board_preset $board_path/config/board_preset.tcl
 source $sdk_path/fpga/lib/starting_point.tcl
 
+set adc_dac_extra_delay 2
 source $board_path/adc_dac.tcl
 
 # Add config and status registers

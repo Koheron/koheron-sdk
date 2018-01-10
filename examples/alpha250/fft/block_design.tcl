@@ -12,7 +12,6 @@ connect_cell adc_dac {
     adc0 [sts_pin adc0]
     adc1 [sts_pin adc1]
     ctl [ctl_pin mmcm]
-    psclk adc_dac/adc_clk
     cfg_data [ctl_pin spi_cfg_data]
     cfg_cmd [ctl_pin spi_cfg_cmd]
     cfg_sts [sts_pin spi_cfg_sts]

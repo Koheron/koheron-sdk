@@ -130,8 +130,11 @@ for {set i 0} {$i < 2} {incr i} {
         In1 [get_constant_pin 0 1]
     }
 
-    connect_pins adc$i [get_Q_pin concat_adc$i/dout 2 noce mmcm/clk_out1]
-    #connect_pins adc$i concat_adc$i/dout
+    if {[info exists adc_dac_extra_delay]} {
+        connect_pins adc$i [get_Q_pin concat_adc$i/dout $adc_dac_extra_delay noce mmcm/clk_out1]
+    } else {
+        connect_pins adc$i concat_adc$i/dout
+    }
 
     for {set j 0} {$j < 7} {incr j} {
 
@@ -174,8 +177,11 @@ for {set i 0} {$i < 2} {incr i} {
         data_out_to_pins dac${i}_out
     }
 
-    connect_pins selectio_dac$i/data_out_from_device [get_Q_pin dac$i 2 noce mmcm/clk_out1]
-    #connect_pins selectio_dac$i/data_out_from_device dac$i
+    if {[info exists adc_dac_extra_delay]} {
+        connect_pins selectio_dac$i/data_out_from_device [get_Q_pin dac$i $adc_dac_extra_delay noce mmcm/clk_out1]
+    } else {
+        connect_pins selectio_dac$i/data_out_from_device dac$i
+    }
 }
 
 # Configuration SPI
