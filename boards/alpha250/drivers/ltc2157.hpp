@@ -21,6 +21,7 @@ class Ltc2157
   public:
     Ltc2157(Context& ctx_)
     : ctx(ctx_)
+    , ctl(ctx.mm.get<mem::control>())
     , eeprom(ctx.get<Eeprom>())
     , spi_cfg(ctx.get<SpiConfig>())
     {}
@@ -42,31 +43,35 @@ class Ltc2157
         write_reg((RESET << 8) + (1 << 7));
 
         // Power down
-        uint32_t SLEEP = 0;
-        uint32_t NAP = 0;
-        uint32_t PDB = 0;
-        write_reg((POWER_DOWN << 8) + (SLEEP << 3) + (NAP << 2) + (PDB << 1));
+        //uint32_t SLEEP = 0;
+        //uint32_t NAP = 0;
+        //uint32_t PDB = 0;
+        //write_reg((POWER_DOWN << 8) + (SLEEP << 3) + (NAP << 2) + (PDB << 1));
 
         // Output mode
-        uint32_t ILVDS = 0b111;
+        uint32_t ILVDS = 0b111; // 1.75 mA
         uint32_t TERMON = 1;
         uint32_t OUTOFF = 0;
         write_reg((OUTPUT_MODE << 8) + (ILVDS << 2) + (TERMON << 1) + (OUTOFF << 0));
 
         // Timing
-        uint32_t DELAY = 0;
-        uint32_t DCS = 0;
-        write_reg((TIMING << 8) + (DELAY << 1) + (DCS << 0));
+        //uint32_t DELAY = 0;
+        //uint32_t DCS = 0;
+        //write_reg((TIMING << 8) + (DELAY << 1) + (DCS << 0));
 
         // Data format
         uint32_t RAND = 1;
         uint32_t TWOSCOMP = 1;
         write_reg((DATA_FORMAT << 8) + (RAND << 1) + (TWOSCOMP << 0));
+
+        for (uint32_t i = 0; i < 47; i++) {
+            phase_shift(1);
+        }
     }
 
-    void set_timing(uint32_t delay) {
-        uint32_t DCS = 0;
-        write_reg((TIMING << 8) + (delay << 1) + (DCS << 0));
+    void phase_shift(uint32_t incdec) {
+        ctl.write_mask<reg::mmcm, (1 << 2) + (1 << 3)>((1 << 2) + (incdec << 3));
+        ctl.clear_bit<reg::mmcm, 2>();
     }
 
     const auto get_calibration(uint32_t channel) {
@@ -143,6 +148,7 @@ class Ltc2157
 
   private:
     Context& ctx;
+    Memory<mem::control>& ctl;
     Eeprom& eeprom;
     SpiConfig& spi_cfg;
 

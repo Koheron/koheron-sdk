@@ -27,8 +27,6 @@ create_bd_port -dir O spi_cfg_cs_clk_gen ;# Clock generator
 create_bd_port -dir O spi_cfg_cs_rf_dac
 create_bd_port -dir O spi_cfg_cs_rf_adc
 
-
-
 #---------------------------------------------------------------------------------------
 # Start adc_dac IP
 #---------------------------------------------------------------------------------------
@@ -48,8 +46,6 @@ for {set i 0} {$i < 2} {incr i} {
 
 # Control pin
 create_bd_pin -dir I -from 31 -to 0 ctl
-
-create_bd_pin -dir I -type clk psclk
 create_bd_pin -dir O pll_locked
 
 # Config SPI
@@ -98,8 +94,8 @@ cell xilinx.com:ip:clk_wiz:5.4 mmcm {
     clk_out1 adc_clk
     clk_in_sel [get_slice_pin ctl 0 0]
     reset [get_slice_pin ctl 1 1]
-    psclk psclk
-    psen [get_edge_detector_pin [get_slice_pin ctl 2 2] psclk]
+    psclk mmcm/clk_out1
+    psen [get_edge_detector_pin [get_slice_pin ctl 2 2] mmcm/clk_out1]
     psincdec [get_slice_pin ctl 3 3]
 }
 
@@ -132,7 +128,12 @@ for {set i 0} {$i < 2} {incr i} {
     } {
         In0 [get_constant_pin 0 1]
         In1 [get_constant_pin 0 1]
-        dout adc$i
+    }
+
+    if {[info exists adc_dac_extra_delay]} {
+        connect_pins adc$i [get_Q_pin concat_adc$i/dout $adc_dac_extra_delay noce mmcm/clk_out1]
+    } else {
+        connect_pins adc$i concat_adc$i/dout
     }
 
     for {set j 0} {$j < 7} {incr j} {
@@ -173,8 +174,13 @@ for {set i 0} {$i < 2} {incr i} {
         SYSTEM_DATA_WIDTH 16
     } {
         clk_in mmcm/clk_out2
-        data_out_from_device dac$i
         data_out_to_pins dac${i}_out
+    }
+
+    if {[info exists adc_dac_extra_delay]} {
+        connect_pins selectio_dac$i/data_out_from_device [get_Q_pin dac$i $adc_dac_extra_delay noce mmcm/clk_out1]
+    } else {
+        connect_pins selectio_dac$i/data_out_from_device dac$i
     }
 }
 
