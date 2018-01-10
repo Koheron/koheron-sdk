@@ -31,6 +31,7 @@ Ready to develop your instrument? Read the [documentation](https://www.koheron.c
 
 * [`fft`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250/fft) : reference design with spectrum analyzer, DDS and demodulation.
 * [`loopback`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250/loopback) : minimal instrument.
+* [`adc-dac-bram`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250/adc-dac-bram) : set DAC waveforms and get ADC using Block RAMs.
 
 ## Red Pitaya designs
 
