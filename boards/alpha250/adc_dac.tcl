@@ -27,8 +27,6 @@ create_bd_port -dir O spi_cfg_cs_clk_gen ;# Clock generator
 create_bd_port -dir O spi_cfg_cs_rf_dac
 create_bd_port -dir O spi_cfg_cs_rf_adc
 
-
-
 #---------------------------------------------------------------------------------------
 # Start adc_dac IP
 #---------------------------------------------------------------------------------------
@@ -132,8 +130,10 @@ for {set i 0} {$i < 2} {incr i} {
     } {
         In0 [get_constant_pin 0 1]
         In1 [get_constant_pin 0 1]
-        dout adc$i
     }
+
+    connect_pins adc$i [get_Q_pin concat_adc$i/dout 2 noce mmcm/clk_out1]
+    #connect_pins adc$i concat_adc$i/dout
 
     for {set j 0} {$j < 7} {incr j} {
 
@@ -173,9 +173,11 @@ for {set i 0} {$i < 2} {incr i} {
         SYSTEM_DATA_WIDTH 16
     } {
         clk_in mmcm/clk_out2
-        data_out_from_device dac$i
         data_out_to_pins dac${i}_out
     }
+
+    connect_pins selectio_dac$i/data_out_from_device [get_Q_pin dac$i 2 noce mmcm/clk_out1]
+    #connect_pins selectio_dac$i/data_out_from_device dac$i
 }
 
 # Configuration SPI
