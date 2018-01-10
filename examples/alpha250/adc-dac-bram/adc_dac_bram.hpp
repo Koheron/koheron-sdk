@@ -40,7 +40,7 @@ class AdcDacBram
         dac_map.write_array(data);
     }
 
-    std::array<uint32_t, adc_size> get_adc_data() {
+    std::array<uint32_t, adc_size> get_adc() {
         trigger_acquisition();
         return adc_map.read_array<uint32_t, adc_size>();
     }

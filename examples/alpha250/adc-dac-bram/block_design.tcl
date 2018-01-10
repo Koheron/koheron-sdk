@@ -60,7 +60,7 @@ cell koheron:user:address_counter:1.0 address_counter {
 connect_cell blk_mem_gen_adc {
   addrb address_counter/address
   clkb adc_dac/adc_clk
-  dinb [get_concat_pin adc_dac/adc0 adc_dac/adc1]
+  dinb [get_concat_pin [list adc_dac/adc0 adc_dac/adc1]]
   enb [get_constant_pin 1 1]
   rstb [get_constant_pin 0 1]
   web address_counter/wen

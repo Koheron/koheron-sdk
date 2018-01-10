@@ -23,6 +23,7 @@ class AdcDacBram(object):
     def get_adc_size(self):
         return self.client.recv_uint32()
 
+    @command()
     def trigger_acquisition(self):
         pass
 
@@ -30,11 +31,14 @@ class AdcDacBram(object):
         @command()
         def set_dac_data(self, data):
             pass
+        # Conversion to two's complement:
         data1 = np.uint32(np.mod(np.floor(32768 * self.dac[0, :]) + 32768, 65536) + 32768)
         data2 = np.uint32(np.mod(np.floor(32768 * self.dac[1, :]) + 32768, 65536) + 32768)
         set_dac_data(self, data1 + (data2 << 16))
 
+    @command()
     def get_adc(self):
-        data = self.recv_array(dtype='uint32')
-        adc[0,:] = data % 65536
-        adc[1,:] = data >> 16
+        data = self.client.recv_array(self.adc_size, dtype='uint32')
+        # Conversion to two's complement:
+        self.adc[0,:] = (np.int32(data % 65536) - 32768) % 65536 - 32768
+        self.adc[1,:] = (np.int32(data >> 16) - 32768) % 65536 - 32768
