@@ -64,14 +64,23 @@ class Ltc2157
         uint32_t TWOSCOMP = 1;
         write_reg((DATA_FORMAT << 8) + (RAND << 1) + (TWOSCOMP << 0));
 
-        for (uint32_t i = 0; i < 47; i++) {
-            phase_shift(1);
+        // Phase shift the MMCM
+        constexpr uint32_t n_shifts = 47;
+        constexpr uint32_t ps_done_bit = 4;
+        if (!ctl.read_bit<reg::mmcm, ps_done_bit>()){
+            for (uint32_t i = 0; i < n_shifts; i++) {
+                phase_shift(1);
+            }
+            ctl.set_bit<reg::mmcm, ps_done_bit>(); // Indicate that phase shift has been performed
         }
+
     }
 
     void phase_shift(uint32_t incdec) {
-        ctl.write_mask<reg::mmcm, (1 << 2) + (1 << 3)>((1 << 2) + (incdec << 3));
-        ctl.clear_bit<reg::mmcm, 2>();
+        constexpr uint32_t psen_bit = 2;
+        constexpr uint32_t psincdec_bit = 3;
+        ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));
+        ctl.clear_bit<reg::mmcm, psen_bit>();
     }
 
     const auto get_calibration(uint32_t channel) {
@@ -79,7 +88,6 @@ class Ltc2157
             ctx.log<ERROR>("Ltc2157::get_calibration: Invalid channel\n");
             return std::array<float, 8>{};
         }
-
         return cal_coeffs[channel];
     }
 
