@@ -48,6 +48,7 @@ class AdcDacDma
   public:
     AdcDacDma(Context& ctx_)
     : ctx(ctx_)
+    , ctl(ctx.mm.get<mem::control>())
     , dma(ctx.mm.get<mem::dma>())
     , ram_s2mm(ctx.mm.get<mem::ram_s2mm>())
     , ram_mm2s(ctx.mm.get<mem::ram_mm2s>())
@@ -74,6 +75,10 @@ class AdcDacDma
             ram_s2mm.write_reg(4*i, 0);
         }
 
+    }
+
+    void select_adc_channel(uint32_t channel) {
+        ctl.write<reg::channel_select>(channel % 2);
     }
 
     void set_dac_data(const std::vector<uint32_t>& dac_data) {
@@ -118,8 +123,8 @@ class AdcDacDma
         dma.write<Dma_regs::mm2s_taildesc>(mem::ocm_mm2s_addr + (n_desc-1) * 0x40);
         dma.write<Dma_regs::s2mm_taildesc>(mem::ocm_s2mm_addr + (n_desc-1) * 0x40);
 
-        log_dma();
-        log_hp0();
+        //log_dma();
+        //log_hp0();
     }
 
     void stop_dma() {
@@ -129,13 +134,14 @@ class AdcDacDma
         dma.write<Dma_regs::s2mm_taildesc>(mem::ocm_s2mm_addr + (n_desc-1) * 0x40);
     }
 
-    auto& get_data() {
+    auto& get_adc_data() {
         data = ram_s2mm.read_array<uint32_t, n_desc * n_pts>();
         return data;
     }
 
   private:
     Context& ctx;
+    Memory<mem::control>& ctl;
     Memory<mem::dma>& dma;
     Memory<mem::ram_s2mm>& ram_s2mm;
     Memory<mem::ram_mm2s>& ram_mm2s;
