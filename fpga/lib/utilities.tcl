@@ -238,9 +238,39 @@ proc set_cell_props {cell_name cell_props} {
 }
 
 proc cell {cell_vlnv cell_name {cell_props {}} {cell_ports {}}} {
-  create_bd_cell -type ip -vlnv $cell_vlnv $cell_name
+  create_bd_cell -type ip -vlnv [check_vlnv $cell_vlnv] $cell_name
   set_cell_props $cell_name [uplevel 1 [list subst $cell_props]]
   connect_cell   $cell_name [uplevel 1 [list subst $cell_ports]]
+}
+
+########################################################
+# IP managment
+########################################################
+
+proc check_vlnv {vlnv} {
+  set name [get_name_from_vlnv $vlnv]
+  if {$name == "axi_interconnect"} {
+    # Fix bug in Vivado IP list
+    return $vlnv
+  }
+  set version [get_version_from_vlnv $vlnv]
+  set vlnvs [get_ipdefs -filter "NAME == $name"]
+  foreach vlnv_ $vlnvs {
+    if [string equal [get_version_from_vlnv $vlnv_] $version] {
+      return $vlnv
+    }
+  }
+  set vlnv_ [lindex $vlnvs 0]
+  puts [concat "WARNING : using IP " $vlnv_ "instead of" $vlnv]
+  return $vlnv_
+}
+
+proc get_name_from_vlnv {vlnv} {
+  return [lindex [split $vlnv :] 2]
+}
+
+proc get_version_from_vlnv {vlnv} {
+  return [lindex [split $vlnv :] 3]
 }
 
 ########################################################
