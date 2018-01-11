@@ -10,7 +10,6 @@ add_ctl_sts adc_dac/adc_clk rst_adc_clk/peripheral_aresetn
 
 connect_cell adc_dac {
     ctl [ctl_pin mmcm]
-    psclk adc_dac/adc_clk
     cfg_data [ctl_pin spi_cfg_data]
     cfg_cmd [ctl_pin spi_cfg_cmd]
     cfg_sts [sts_pin spi_cfg_sts]

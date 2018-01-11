@@ -6,6 +6,7 @@ mode=development
 
 make CONFIG=examples/alpha250/fft/config.yml MODE=$mode $target
 make CONFIG=examples/alpha250/loopback/config.yml MODE=$mode $target
+make CONFIG=examples/alpha250/adc-dac-bram/config.yml MODE=$mode $target
 make CONFIG=examples/red-pitaya/led-blinker/config.yml MODE=$mode $target
 make CONFIG=examples/red-pitaya/oscillo/config.yml MODE=$mode $target
 make CONFIG=examples/red-pitaya/spectrum/config.yml MODE=$mode $target
