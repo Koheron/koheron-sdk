@@ -78,6 +78,7 @@ class WebSocketPool {
                     if (this.socketCounter === 0) { onOpenCallback(); }
                     websocket.ID = this.socketCounter;
                     websocket.onclose = evt => {
+                        setTimeout(function(){ location.reload(); }, 1000);
                     };
                     websocket.onerror = evt => {
                         console.error(`error: ${evt.data}\n`);
