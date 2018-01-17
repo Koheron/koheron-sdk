@@ -230,7 +230,7 @@ if __name__ == "__main__":
             f.write(' '.join(config.get('web', [])))
 
     elif cmd == '--version':
-        config['version'] = config.get('version', {})
+        config['version'] = config.get('version', "")
         with open(output_filename, 'w') as f:
             f.write(config['version'])
 
