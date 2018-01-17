@@ -57,7 +57,8 @@ class KoheronApp(Flask):
             return
         name = get_name_from_zipfilename(zip_filename)
         print('Installing instrument ' + name)
-        subprocess.call(['/bin/bash', 'app/install_instrument.sh', name])
+        live_instrument_dirname = "/tmp/live-instrument"
+        subprocess.call(['/bin/bash', 'app/install_instrument.sh', name, live_instrument_dirname])
         self.live_instrument = name
         return 'success'
 
