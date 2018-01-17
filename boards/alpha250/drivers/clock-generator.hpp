@@ -9,23 +9,18 @@
 #include <array>
 
 namespace clock_cfg {
-  constexpr size_t par_num = 9;
 
-  // Sampling frequency 250 MHz (f_vco = 2500 MHz)
-  constexpr std::array<uint32_t, par_num> fs_250MHz = {
-        5,   // PLL2_P
-        5,   // PLL2_N
-        2,   // PLL2_R
-        250, // CLKout0_DIV (CLKOUT)
-        10,  // CLKout1_DIV (ADC clock)
-        10,  // CLKout2_DIV (DAC clock)
-        10,  // CLKout3_DIV (FPGA clock)
-        250, // CLKout4_DIV (EXP_CLK0 clock)
-        250  // CLKout5_DIV (EXP_CLK1 clock)
-    };
+    // Input clock selection
+    constexpr uint32_t EXT_CLOCK = 0;
+    constexpr uint32_t FPGA_CLOCK = 1;
+    constexpr uint32_t TCXO_CLOCK = 2;
+    constexpr uint32_t AUTO_CLOCK = 4;
 
-  // Sampling frequency 200 MHz (f_vco = 2400 MHz)
-  constexpr std::array<uint32_t, par_num> fs_200MHz = {
+    constexpr size_t num_configs = 2;
+    constexpr size_t num_params = 10;
+
+    // Sampling frequency 200 MHz (f_vco = 2400 MHz)
+    constexpr std::array<uint32_t, num_params> fs_200MHz = {
         2,   // PLL2_P
         12,  // PLL2_N
         2,   // PLL2_R
@@ -34,8 +29,25 @@ namespace clock_cfg {
         12,  // CLKout2_DIV (DAC clock)
         12,  // CLKout3_DIV (FPGA clock)
         240, // CLKout4_DIV (EXP_CLK0 clock)
-        240  // CLKout5_DIV (EXP_CLK1 clock)
+        240, // CLKout5_DIV (EXP_CLK1 clock)
+        0    // MMCM phase shift
     };
+
+    // Sampling frequency 250 MHz (f_vco = 2500 MHz)
+    constexpr std::array<uint32_t, num_params> fs_250MHz = {
+        5,   // PLL2_P
+        5,   // PLL2_N
+        2,   // PLL2_R
+        250, // CLKout0_DIV (CLKOUT)
+        10,  // CLKout1_DIV (ADC clock)
+        10,  // CLKout2_DIV (DAC clock)
+        10,  // CLKout3_DIV (FPGA clock)
+        250, // CLKout4_DIV (EXP_CLK0 clock)
+        250, // CLKout5_DIV (EXP_CLK1 clock)
+        56   // MMCM phase shift
+    };
+
+    constexpr std::array<std::array<uint32_t, num_params>, num_configs> configs = {fs_200MHz, fs_250MHz};
 }
 
 class ClockGenerator
@@ -43,10 +55,25 @@ class ClockGenerator
   public:
     ClockGenerator(Context& ctx_)
     : ctx(ctx_)
+    , ctl(ctx.mm.get<mem::control>())
     , i2c(ctx.i2c.get("i2c-0"))
     , eeprom(ctx.get<Eeprom>())
     , spi_cfg(ctx.get<SpiConfig>())
     {}
+
+    void phase_shift(uint32_t n_shifts) {
+        // Phase shift the MMCM
+        for (uint32_t i = 0; i < n_shifts; i++) {
+            single_phase_shift(1);
+        }
+    }
+
+    void single_phase_shift(uint32_t incdec) {
+        constexpr uint32_t psen_bit = 2;
+        constexpr uint32_t psincdec_bit = 3;
+        ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));
+        ctl.clear_bit<reg::mmcm, psen_bit>();
+    }
 
     int32_t set_tcxo_calibration(uint8_t new_cal) {
         tcxo_calibration = new_cal;
@@ -66,8 +93,7 @@ class ClockGenerator
         eeprom.read<eeprom_map::clock_generator_calib::offset>(cal_array);
         tcxo_calibration = cal_array[0];
         set_tcxo_clock(tcxo_calibration);
-
-        configure(2, clock_cfg::fs_250MHz);
+        configure(clock_cfg::FPGA_CLOCK, clock_cfg::fs_250MHz);
     }
 
     // 0: Ext. clock, 1: FPGA clock, 2: TCXO, 4: Automatic
@@ -78,14 +104,50 @@ class ClockGenerator
     }
 
     void set_sampling_frequency(uint32_t fs_select) {
-        if (fs_select == 0) {
-            configure(clkin, clock_cfg::fs_200MHz);
-        } else {
-            configure(clkin, clock_cfg::fs_250MHz);
+        if (fs_select < clock_cfg::num_configs) {
+            configure(clkin, clock_cfg::configs[fs_select]);
         }
     }
 
-    void configure(uint32_t clkin_select, const std::array<uint32_t, clock_cfg::par_num>& clk_cfg_) {
+    double get_adc_sampling_freq() const {
+        return fs_adc;
+    }
+
+    double get_dac_sampling_freq() const {
+        return fs_dac;
+    }
+
+    uint32_t get_reference_clock() const {
+        return clkin;
+    }
+
+  private:
+    Context& ctx;
+    Memory<mem::control>& ctl;
+    I2cDev& i2c;
+    Eeprom& eeprom;
+    SpiConfig& spi_cfg;
+
+    uint8_t tcxo_calibration;
+    uint32_t clkin; // Current input clock
+    std::array<uint32_t, clock_cfg::num_params> clk_cfg;
+
+    static constexpr double f_vcxo = 1E8;   // VCXO frequency (Hz)
+    static constexpr double fs_max = 2.5E8; // Max. sampling frequency to avoid overclocking
+    double f_vco;  // VCO frequency (Hz)
+    double fs_adc; // ADC sampling frequency (Hz)
+    double fs_dac; // DAC sampling frequency (Hz)
+
+    // AD5141 non volatile digital potentiometer for TCXO frequency adjustment
+    static constexpr uint32_t i2c_address = 0b0101111;
+
+    void write_reg(uint32_t data) {
+        constexpr uint8_t cs_clk_gen = 0;
+        constexpr uint8_t pack_size = 4; // bytes
+        spi_cfg.write_reg<cs_clk_gen, pack_size>(data);
+    }
+
+    void configure(uint32_t clkin_select, const std::array<uint32_t, clock_cfg::num_params>& clk_cfg_) {
         if (clkin_select > 4) {
             ctx.log<ERROR>("Clock generator - Invalid reference clock source");
             return;
@@ -291,6 +353,7 @@ class ClockGenerator
         write_reg((CLKout1_TYPE << 24) + (CLKout0_TYPE << 20) + (CLKout1_ADLY << 11) + (CLKout0_ADLY << 5) + 6);
         write_reg((CLKout3_TYPE << 24) + (CLKout2_TYPE << 20) + (CLKout3_ADLY << 11) + (CLKout2_ADLY << 5) + 7);
         write_reg((CLKout5_TYPE << 24) + (CLKout4_TYPE << 16) + (CLKout5_ADLY << 11) + (CLKout4_ADLY << 5) + 8);
+        write_reg(0b01010101010101010101010101001001); // R9 required programming
         write_reg((1 << 28) + (OSCout0_Type << 24) + (EN_OSCout0 << 22) +  (OSCout0_MUX << 20)
                   + (PD_OSCin << 19) + (OSCout_DIV << 16) + (1 << 14) + (VCO_MUX << 12)
                   + (EN_FEEDBACK_MUX << 0) + (VCO_DIV << 8) + (FEEDBACK_MUX << 5) + 10);
@@ -316,43 +379,10 @@ class ClockGenerator
         write_reg( (PLL2_R << 20) + (PLL1_N << 6) + 28);
         write_reg((OSCin_FREQ << 24) + (PLL2_FAST_PDF << 23) + (PLL2_N_CAL << 5) + 29);
         write_reg((PLL2_P << 24) + (PLL2_N << 5) + 30);
-    }
 
-    double get_adc_sampling_freq() const {
-        return fs_adc;
-    }
+        // phase shift the MMCM
+        phase_shift(clk_cfg[9]);
 
-    double get_dac_sampling_freq() const {
-        return fs_dac;
-    }
-
-    uint32_t get_reference_clock() const {
-        return clkin;
-    }
-
-  private:
-    Context& ctx;
-    I2cDev& i2c;
-    Eeprom& eeprom;
-    SpiConfig& spi_cfg;
-
-    uint8_t tcxo_calibration;
-    uint32_t clkin; // Current input clock
-    std::array<uint32_t, clock_cfg::par_num> clk_cfg;
-
-    static constexpr double f_vcxo = 1E8;   // VCXO frequency (Hz)
-    static constexpr double fs_max = 2.5E8; // Max. sampling frequency to avoid overclocking
-    double f_vco;  // VCO frequency (Hz)
-    double fs_adc; // ADC sampling frequency (Hz)
-    double fs_dac; // DAC sampling frequency (Hz)
-
-    // AD5141 non volatile digital potentiometer for TCXO frequency adjustment
-    static constexpr uint32_t i2c_address = 0b0101111;
-
-    void write_reg(uint32_t data) {
-        constexpr uint8_t cs_clk_gen = 0;
-        constexpr uint8_t pack_size = 4; // bytes
-        spi_cfg.write_reg<cs_clk_gen, pack_size>(data);
     }
 };
 

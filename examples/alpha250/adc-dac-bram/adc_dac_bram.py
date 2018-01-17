@@ -43,6 +43,10 @@ class AdcDacBram(object):
         self.adc[0,:] = (np.int32(data % 65536) - 32768) % 65536 - 32768
         self.adc[1,:] = (np.int32(data >> 16) - 32768) % 65536 - 32768
 
-    @command(classname='Ltc2157')
+    @command(classname='ClockGenerator')
     def phase_shift(self, shift):
+        pass
+
+    @command(classname='ClockGenerator')
+    def set_sampling_frequency(self, val):
         pass

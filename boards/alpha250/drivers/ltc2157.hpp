@@ -21,7 +21,6 @@ class Ltc2157
   public:
     Ltc2157(Context& ctx_)
     : ctx(ctx_)
-    , ctl(ctx.mm.get<mem::control>())
     , eeprom(ctx.get<Eeprom>())
     , spi_cfg(ctx.get<SpiConfig>())
     {}
@@ -64,23 +63,6 @@ class Ltc2157
         uint32_t TWOSCOMP = 1;
         write_reg((DATA_FORMAT << 8) + (RAND << 1) + (TWOSCOMP << 0));
 
-        // Phase shift the MMCM
-        constexpr uint32_t n_shifts = 47;
-        constexpr uint32_t ps_done_bit = 4;
-        if (!ctl.read_bit<reg::mmcm, ps_done_bit>()){
-            for (uint32_t i = 0; i < n_shifts; i++) {
-                phase_shift(1);
-            }
-            ctl.set_bit<reg::mmcm, ps_done_bit>(); // Indicate that phase shift has been performed
-        }
-
-    }
-
-    void phase_shift(uint32_t incdec) {
-        constexpr uint32_t psen_bit = 2;
-        constexpr uint32_t psincdec_bit = 3;
-        ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));
-        ctl.clear_bit<reg::mmcm, psen_bit>();
     }
 
     const auto get_calibration(uint32_t channel) {
@@ -156,7 +138,6 @@ class Ltc2157
 
   private:
     Context& ctx;
-    Memory<mem::control>& ctl;
     Eeprom& eeprom;
     SpiConfig& spi_cfg;
 
