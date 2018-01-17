@@ -27,20 +27,22 @@ class InstrumentsWidget {
 
                 for (let instrument of instruments) {
 
-                    let instrumentName = "";
+                    let instrumentObj = {};
 
                     if (typeof(instrument) === "string") {
-                        instrumentName = instrument;
+                        instrumentObj["name"] = instrument;
+                        instrumentObj["version"] = "";
                     } else {
-                        instrumentName = instrument["name"];
+                        instrumentObj = instrument;
                     }
 
-                    let liveInstrumentName = "";
+                    let liveInstrumentObj = {};
 
-                    if (typeof(liveInstrument) === "string") {
-                        liveInstrumentName = liveInstrument;
+                    if (typeof(instrument) === "string") {
+                        liveInstrumentObj["name"] = liveInstrument;
+                        liveInstrumentObj["version"] = "";
                     } else {
-                        liveInstrumentName = liveInstrument["name"];
+                        liveInstrumentObj = liveInstrument;
                     }
 
                     let row = this.instrumentsTable.insertRow(-1);
@@ -60,14 +62,14 @@ class InstrumentsWidget {
                         cell.style.verticalAlign = 'middle';
                     }
 
-                    if (instrumentName == liveInstrumentName) {
+                    if (instrumentObj["name"] == liveInstrumentObj["name"]) {
                         isLive = true;
                     };
 
                     this.setStatusCell(statusCell, isLive);
-                    this.setRunCell(runCell, instrumentName, isLive);
-                    this.setDeleteCell(deleteCell, instrumentName, isLive)
-                    nameCell.innerHTML = instrumentName;
+                    this.setRunCell(runCell, instrumentObj["name"], isLive);
+                    this.setDeleteCell(deleteCell, instrumentObj["name"], isLive)
+                    nameCell.innerHTML = instrumentObj["name"];
 
                 }
                 this.isUpdate = false;
