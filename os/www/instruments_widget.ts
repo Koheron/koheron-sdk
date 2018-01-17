@@ -23,7 +23,7 @@ class InstrumentsWidget {
                 let instruments = status['instruments'];
                 let liveInstrument = status['live_instrument'];
 
-                this.instrumentsTable.innerHTML = '<thead><tr><th>Name</th><th>Status</th><th colspan="2">Action</th></tr></thead>';
+                this.instrumentsTable.innerHTML = '<thead><tr><th>Name</th><th>Status</th><th colspan="2">Action</th><th>Version</th></tr></thead>';
 
                 for (let instrument of instruments) {
 
@@ -51,10 +51,11 @@ class InstrumentsWidget {
                     let statusCell = row.insertCell(1);
                     let runCell = row.insertCell(2);
                     let deleteCell = row.insertCell(3);
+                    let versionCell = row.insertCell(4);
 
                     let isLive: boolean = false;
 
-                    for (let cell of [nameCell, statusCell, runCell, deleteCell]) {
+                    for (let cell of [nameCell, statusCell, runCell, deleteCell, versionCell]) {
                         cell.style["border-left"] = 'none';
                         cell.style["border-right"] = 'none';
                         cell.style["border-top"] = "1px solid #ddd";
@@ -70,6 +71,7 @@ class InstrumentsWidget {
                     this.setRunCell(runCell, instrumentObj["name"], isLive);
                     this.setDeleteCell(deleteCell, instrumentObj["name"], isLive)
                     nameCell.innerHTML = instrumentObj["name"];
+                    versionCell.innerHTML = instrumentObj["version"];
 
                 }
                 this.isUpdate = false;
