@@ -26,6 +26,15 @@ class InstrumentsWidget {
                 this.instrumentsTable.innerHTML = '<thead><tr><th>Name</th><th>Status</th><th colspan="2">Action</th></tr></thead>';
 
                 for (let instrument of instruments) {
+
+                    let instrumentName = "";
+
+                    if (typeof(instrument) === "string") {
+                        instrumentName = instrument;
+                    } else {
+                        instrumentName = instrument["name"];
+                    }
+
                     let row = this.instrumentsTable.insertRow(-1);
 
                     let nameCell = row.insertCell(0);
@@ -48,9 +57,9 @@ class InstrumentsWidget {
                     };
 
                     this.setStatusCell(statusCell, isLive);
-                    this.setRunCell(runCell, instrument, isLive);
-                    this.setDeleteCell(deleteCell, instrument, isLive)
-                    nameCell.innerHTML = instrument;
+                    this.setRunCell(runCell, instrumentName, isLive);
+                    this.setDeleteCell(deleteCell, instrumentName, isLive)
+                    nameCell.innerHTML = instrumentName;
 
                 }
                 this.isUpdate = false;
