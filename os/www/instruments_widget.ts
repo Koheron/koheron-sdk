@@ -47,7 +47,7 @@ class InstrumentsWidget {
                         isLive = true;
                     };
 
-                    this.setStatusCell(statusCell, instrument, isLive);
+                    this.setStatusCell(statusCell, isLive);
                     this.setRunCell(runCell, instrument, isLive);
                     this.setDeleteCell(deleteCell, instrument, isLive)
                     nameCell.innerHTML = instrument;
@@ -64,7 +64,7 @@ class InstrumentsWidget {
         });
     }
 
-    setStatusCell(cell: any, name: string, isLive: boolean): void {
+    setStatusCell(cell: any, isLive: boolean): void {
         if (isLive === true) {
             cell.innerHTML = '<a href="/">Running</a>';
         } else {
