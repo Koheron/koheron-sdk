@@ -23,10 +23,27 @@ class KoheronApp(Flask):
 
     def init_instruments_list(self):
         self.instruments_list = []
-        for filename in os.listdir('/usr/local/instruments/'):
+        for filename in os.listdir("/usr/local/instruments/"):
             name = get_name_from_zipfilename(filename)
             if name is not None:
-                self.instruments_list.append(name)
+
+                instrument_files_stdout = subprocess.Popen(["/usr/bin/unzip", "-l", "/usr/local/instruments/" + filename], stdout=subprocess.PIPE)
+                instrument_files = instrument_files_stdout.stdout.read()
+
+                instrument_dict = {}
+
+                if 'version' in instrument_files:
+
+                    instrument_dict['name'] = name
+                    version_stdout = subprocess.Popen(["/usr/bin/unzip", "-c", "/usr/local/instruments/" + filename, "version"], stdout=subprocess.PIPE)
+                    version = version_stdout.stdout.read().splitlines()[2]
+                    instrument_dict['version'] = version
+                    self.instruments_list.append(instrument_dict)
+
+                else:
+
+                    self.instruments_list.append(name)
+
 
     def init_live_instrument(self):
         # Run last started instrument
