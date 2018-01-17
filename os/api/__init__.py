@@ -17,7 +17,6 @@ def get_name_from_zipfilename(zip_filename):
 class KoheronApp(Flask):
     def __init__(self, *args, **kwargs):
         super(KoheronApp, self).__init__(*args, **kwargs)
-        self.live_instrument = ''
         self.init_instruments_list()
         self.init_live_instrument()
 
@@ -44,7 +43,6 @@ class KoheronApp(Flask):
 
                     self.instruments_list.append(name)
 
-
     def init_live_instrument(self):
         # Run last started instrument
         with open('/usr/local/instruments/default', 'r') as f:
@@ -52,6 +50,7 @@ class KoheronApp(Flask):
             self.run_instrument(default_inst_filename)
 
     def run_instrument(self, zip_filename):
+
         if not os.path.exists(zip_filename):
             print('Instrument zip file not found.\nNo installation done.')
             return
@@ -59,7 +58,16 @@ class KoheronApp(Flask):
         print('Installing instrument ' + name)
         live_instrument_dirname = "/tmp/live-instrument"
         subprocess.call(['/bin/bash', 'app/install_instrument.sh', name, live_instrument_dirname])
-        self.live_instrument = name
+
+        if os.path.isfile(os.path.join(live_instrument_dirname,"version")):
+            self.live_instrument = {}
+            with open(os.path.join(live_instrument_dirname,"version"), "r") as f:
+                self.live_instrument["version"] = f.read().rstrip('\n')
+                self.live_instrument["name"] = name
+        else:
+            self.live_instrument = ""
+            self.live_instrument = name
+
         return 'success'
 
 app = KoheronApp(__name__)
