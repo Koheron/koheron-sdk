@@ -229,5 +229,10 @@ if __name__ == "__main__":
         with open(output_filename, 'w') as f:
             f.write(' '.join(config.get('web', [])))
 
+    elif cmd == '--version':
+        config['version'] = config.get('version', {})
+        with open(output_filename, 'w') as f:
+            f.write(config['version'])
+
     else:
         raise ValueError('Unknown command')

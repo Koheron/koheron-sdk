@@ -1,4 +1,5 @@
 ---
+version: 0.16.1
 name: led-blinker
 board: boards/red-pitaya
 
