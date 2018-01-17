@@ -56,13 +56,12 @@ START_SH := $(TMP_PROJECT_PATH)/start.sh # Bash script that configures the Zynq 
 
 VERSION_FILE := $(TMP_PROJECT_PATH)/version
 
-.PHONY: version
-version:
-	$(MAKE_PY) --version $(CONFIG) $(VERSION_FILE)
+$(VERSION_FILE): $(CONFIG)
+	$(MAKE_PY) --version $(CONFIG) $@
 
 # Zip file that contains all the files needed to run the instrument:
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
-$(INSTRUMENT_ZIP): server $(BITSTREAM) $(START_SH) web version
+$(INSTRUMENT_ZIP): server $(BITSTREAM) $(START_SH) web $(VERSION_FILE)
 	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM) $(SERVER) $(START_SH) $(WEB_ASSETS) $(VERSION_FILE)
 	@echo [$@] OK
 
