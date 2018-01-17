@@ -35,6 +35,14 @@ class InstrumentsWidget {
                         instrumentName = instrument["name"];
                     }
 
+                    let liveInstrumentName = "";
+
+                    if (typeof(liveInstrument) === "string") {
+                        liveInstrumentName = liveInstrument;
+                    } else {
+                        liveInstrumentName = liveInstrument["name"];
+                    }
+
                     let row = this.instrumentsTable.insertRow(-1);
 
                     let nameCell = row.insertCell(0);
@@ -52,7 +60,7 @@ class InstrumentsWidget {
                         cell.style.verticalAlign = 'middle';
                     }
 
-                    if (instrument == liveInstrument) {
+                    if (instrumentName == liveInstrumentName) {
                         isLive = true;
                     };
 
