@@ -52,29 +52,34 @@ class KoheronApp(Flask):
         self.init_instruments_list(KoheronApp.instruments_dirname)
         self.init_live_instrument(KoheronApp.instruments_dirname, KoheronApp.live_instrument_dirname, KoheronApp.default_instrument_filename)
 
+    def get_instrument_dict(self, instrument_filename):
+
+        instrument = {}
+        instrument["name"] = get_name_from_zipfilename(instrument_filename)
+
+        version = "" # "0.0.0"
+        version_filename = "version"
+
+        if (is_file_in_zip(instrument_filename, version_filename)):
+            version = read_file_in_zip(instrument_filename, version_filename)
+        else:
+            version = "0.0.0"
+
+        instrument["version"] = version
+
+        return instrument
+
     def init_instruments_list(self, instruments_dirname):
+
         self.instruments_list = []
+
         for filename in os.listdir(instruments_dirname):
 
-            name = get_name_from_zipfilename(filename)
+            instrument = self.get_instrument_dict(os.path.join(instruments_dirname,filename))
 
-            if name is not None:
-
-                instrument = {}
-                instrument['name'] = name
-
-                version = "" # "0.0.0"
-                version_filename = "version"
-
-                if (is_file_in_zip(instruments_dirname + filename, version_filename)):
-                    version = read_file_in_zip(instruments_dirname + filename, version_filename)
-                else:
-                    version = "0.0.0"
-
-                instrument["version"] = version
+            if instrument["name"] is not None:
 
                 self.instruments_list.append(instrument)
-
 
     def init_live_instrument(self, instruments_dirname, live_instrument_dirname, default_instrument_filename):
         # Run last started instrument
@@ -148,20 +153,7 @@ def upload_instrument():
         if filename is not None:
             request.files[filename].save(os.path.join(app.instruments_dirname, secure_filename(filename)))
 
-            name = get_name_from_zipfilename(filename)
-
-            instrument = {}
-            instrument['name'] = name
-
-            version = "" # "0.0.0"
-            version_filename = "version"
-
-            if (is_file_in_zip(app.instruments_dirname + filename, version_filename)):
-                version = read_file_in_zip(app.instruments_dirname + filename, version_filename)
-            else:
-                version = "0.0.0"
-
-            instrument["version"] = version
+            instrument = app.get_instrument_dict(os.path.join(app.instruments_dirname, filename))
 
             is_instrument_in_list = False
 
