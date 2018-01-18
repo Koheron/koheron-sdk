@@ -5,7 +5,7 @@ from flask import Flask, jsonify, request, make_response
 from werkzeug import secure_filename
 import uwsgi
 
-def is_valid_instrument_file(filename):
+def is_zip(filename):
     base = os.path.basename(filename)
     return os.path.splitext(base)[1] == '.zip'
 
@@ -13,6 +13,33 @@ def get_name_from_zipfilename(zip_filename):
     base = os.path.basename(zip_filename)
     split = os.path.splitext(base)
     return split[0] if split[1] == '.zip' else None
+
+def is_file_in_zip(zip_filename, target_filename):
+
+    """
+    zip_filename = "/usr/local/instruments/led-blinker.zip"
+    target_filename = "version" # file in zip_filename
+    """
+
+    zip_files_stdout = subprocess.Popen(["/usr/bin/unzip", "-l", zip_filename], stdout=subprocess.PIPE)
+    zip_files = zip_files_stdout.stdout.read()
+
+    if target_filename in zip_files:
+        return True
+    else:
+        return False
+
+def read_file_in_zip(zip_filename, target_filename):
+
+    """
+    zip_filename = "/usr/local/instruments/led-blinker.zip"
+    target_filename = "version" # file to read in zip_filename
+    """
+
+    target_stdout = subprocess.Popen(["/usr/bin/unzip", "-c", zip_filename, target_filename], stdout=subprocess.PIPE)
+    target_file_content = target_stdout.stdout.read().splitlines()[2]
+
+    return target_file_content
 
 class KoheronApp(Flask):
     def __init__(self, *args, **kwargs):
@@ -28,21 +55,18 @@ class KoheronApp(Flask):
 
             if name is not None:
 
-                instrument_files_stdout = subprocess.Popen(["/usr/bin/unzip", "-l", "/usr/local/instruments/" + filename], stdout=subprocess.PIPE)
-                instrument_files = instrument_files_stdout.stdout.read()
-
                 instrument = {}
                 instrument['name'] = name
 
-                version = ""
+                version = "" # "0.0.0"
+                version_filename = "version"
 
-                if 'version' in instrument_files:
-                    version_stdout = subprocess.Popen(["/usr/bin/unzip", "-c", "/usr/local/instruments/" + filename, "version"], stdout=subprocess.PIPE)
-                    version = version_stdout.stdout.read().splitlines()[2]
+                if (is_file_in_zip("/usr/local/instruments/" + filename, version_filename)):
+                    version = read_file_in_zip("/usr/local/instruments/" + filename, version_filename)
                 else:
                     version = "0.0.0"
 
-                instrument['version'] = version
+                instrument["version"] = version
 
                 self.instruments_list.append(instrument)
 
@@ -116,28 +140,24 @@ def delete_instrument(name):
 @app.route('/api/instruments/upload', methods=['POST'])
 def upload_instrument():
     if request.method == 'POST':
-        filename = next((filename for filename in request.files if is_valid_instrument_file(filename)), None)
+        filename = next((filename for filename in request.files if is_zip(filename)), None)
         if filename is not None:
             request.files[filename].save(os.path.join('/usr/local/instruments/', secure_filename(filename)))
 
             name = get_name_from_zipfilename(filename)
 
-            instrument_files_stdout = subprocess.Popen(["/usr/bin/unzip", "-l", "/usr/local/instruments/" + filename], stdout=subprocess.PIPE)
-            instrument_files = instrument_files_stdout.stdout.read()
-
             instrument = {}
             instrument['name'] = name
 
-            version = ""
+            version = "" # "0.0.0"
+            version_filename = "version"
 
-            if 'version' in instrument_files:
-                version_stdout = subprocess.Popen(["/usr/bin/unzip", "-c", "/usr/local/instruments/" + filename, "version"], stdout=subprocess.PIPE)
-                version = version_stdout.stdout.read().splitlines()[2]
-
+            if (is_file_in_zip("/usr/local/instruments/" + filename, version_filename)):
+                version = read_file_in_zip("/usr/local/instruments/" + filename, version_filename)
             else:
                 version = "0.0.0"
 
-            instrument['version'] = version
+            instrument["version"] = version
 
             is_instrument_in_list = False
 
