@@ -36,6 +36,7 @@ class InstrumentsWidget {
                     let versionCell = row.insertCell(4);
 
                     let isLive: boolean = false;
+                    let isDefault: boolean = false;
 
                     for (let cell of [nameCell, statusCell, runCell, deleteCell, versionCell]) {
                         cell.style["border-left"] = 'none';
@@ -49,9 +50,13 @@ class InstrumentsWidget {
                         isLive = true;
                     };
 
+                    if (instrument["is_default"]) {
+                        isDefault = true;
+                    }
+
                     this.setStatusCell(statusCell, isLive);
                     this.setRunCell(runCell, instrument["name"], isLive);
-                    this.setDeleteCell(deleteCell, instrument["name"], isLive)
+                    this.setDeleteCell(deleteCell, instrument["name"], isLive, isDefault);
                     nameCell.innerHTML = instrument["name"];
                     versionCell.innerHTML = instrument["version"];
 
@@ -91,9 +96,14 @@ class InstrumentsWidget {
         })
     }
 
-    setDeleteCell(cell: any, name: string, isLive: boolean): void {
-        if (isLive === true) {
-            cell.innerHTML = '';
+    setDeleteCell(cell: any, name: string, isLive: boolean, isDefault: boolean): void {
+        if (isLive || isDefault) {
+            if (isLive) {
+                cell.innerHTML = '';
+            } else if ( !(isLive) && isDefault ) {
+                cell.innerHTML = "Cannot be removed";
+                cell.style.color = "#737373";
+            }
         } else {
             cell.innerHTML = '<a onclick="instruments_widget.deleteClick(this.parentNode, \'' + name + '\'); return false;" href="#">Remove</a>';
         }

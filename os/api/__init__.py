@@ -143,10 +143,17 @@ def delete_instrument(name):
         os.remove(instrument_filename)
 
     for instrument in app.instruments_list:
-        if instrument["name"] == name:
-            app.instruments_list.remove(instrument)
 
-    return make_response('File ' + zip_filename + ' removed.')
+        if instrument["name"] == name:
+
+            if instrument["is_default"]:
+
+                return make_response('Default instrument cannot be removed')
+
+            else:
+
+                app.instruments_list.remove(instrument)
+                return make_response('Instrument ' + zip_filename + ' removed.')
 
 @app.route('/api/instruments/upload', methods=['POST'])
 def upload_instrument():
