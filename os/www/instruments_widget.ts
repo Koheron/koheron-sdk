@@ -27,24 +27,6 @@ class InstrumentsWidget {
 
                 for (let instrument of instruments) {
 
-                    let instrumentObj = {};
-
-                    if (typeof(instrument) === "string") {
-                        instrumentObj["name"] = instrument;
-                        instrumentObj["version"] = "";
-                    } else {
-                        instrumentObj = instrument;
-                    }
-
-                    let liveInstrumentObj = {};
-
-                    if (typeof(instrument) === "string") {
-                        liveInstrumentObj["name"] = liveInstrument;
-                        liveInstrumentObj["version"] = "";
-                    } else {
-                        liveInstrumentObj = liveInstrument;
-                    }
-
                     let row = this.instrumentsTable.insertRow(-1);
 
                     let nameCell = row.insertCell(0);
@@ -63,15 +45,15 @@ class InstrumentsWidget {
                         cell.style.verticalAlign = 'middle';
                     }
 
-                    if (instrumentObj["name"] == liveInstrumentObj["name"]) {
+                    if (instrument["name"] == liveInstrument["name"]) {
                         isLive = true;
                     };
 
                     this.setStatusCell(statusCell, isLive);
-                    this.setRunCell(runCell, instrumentObj["name"], isLive);
-                    this.setDeleteCell(deleteCell, instrumentObj["name"], isLive)
-                    nameCell.innerHTML = instrumentObj["name"];
-                    versionCell.innerHTML = instrumentObj["version"];
+                    this.setRunCell(runCell, instrument["name"], isLive);
+                    this.setDeleteCell(deleteCell, instrument["name"], isLive)
+                    nameCell.innerHTML = instrument["name"];
+                    versionCell.innerHTML = instrument["version"];
 
                 }
                 this.isUpdate = false;
