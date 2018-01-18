@@ -230,8 +230,7 @@ if __name__ == "__main__":
             f.write(' '.join(config.get('web', [])))
 
     elif cmd == '--version':
-        sdk_version = sys.argv[4]
-        config['version'] = config.get('version', sdk_version)
+        config['version'] = config.get('version', '0.0.0')
         with open(output_filename, 'w') as f:
             f.write(config['version'])
 

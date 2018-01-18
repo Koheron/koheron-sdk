@@ -57,7 +57,7 @@ START_SH := $(TMP_PROJECT_PATH)/start.sh # Bash script that configures the Zynq 
 VERSION_FILE := $(TMP_PROJECT_PATH)/version
 
 $(VERSION_FILE): $(CONFIG)
-	$(MAKE_PY) --version $(CONFIG) $@ $(KOHERON_VERSION)
+	$(MAKE_PY) --version $(CONFIG) $@
 
 # Zip file that contains all the files needed to run the instrument:
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip

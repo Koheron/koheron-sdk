@@ -14,7 +14,6 @@ def get_name_from_zipfilename(zip_filename):
     split = os.path.splitext(base)
     return split[0] if split[1] == '.zip' else None
 
-
 class KoheronApp(Flask):
     def __init__(self, *args, **kwargs):
         super(KoheronApp, self).__init__(*args, **kwargs)
@@ -24,7 +23,9 @@ class KoheronApp(Flask):
     def init_instruments_list(self):
         self.instruments_list = []
         for filename in os.listdir("/usr/local/instruments/"):
+
             name = get_name_from_zipfilename(filename)
+
             if name is not None:
 
                 instrument_files_stdout = subprocess.Popen(["/usr/bin/unzip", "-l", "/usr/local/instruments/" + filename], stdout=subprocess.PIPE)
@@ -33,15 +34,15 @@ class KoheronApp(Flask):
                 instrument = {}
                 instrument['name'] = name
 
-                if 'version' in instrument_files:
+                version = ""
 
+                if 'version' in instrument_files:
                     version_stdout = subprocess.Popen(["/usr/bin/unzip", "-c", "/usr/local/instruments/" + filename, "version"], stdout=subprocess.PIPE)
                     version = version_stdout.stdout.read().splitlines()[2]
-                    instrument['version'] = version
-
                 else:
+                    version = "0.0.0"
 
-                    instrument['version'] = ""
+                instrument['version'] = version
 
                 self.instruments_list.append(instrument)
 
@@ -65,11 +66,15 @@ class KoheronApp(Flask):
         self.live_instrument = {}
         self.live_instrument["name"] = name
 
+        version = ""
+
         if os.path.isfile(os.path.join(live_instrument_dirname,"version")):
             with open(os.path.join(live_instrument_dirname,"version"), "r") as f:
-                self.live_instrument["version"] = f.read().rstrip('\n')
+                version = f.read().rstrip('\n')
         else:
-            self.live_instrument["version"] = ""
+            version = "0.0.0"
+
+        self.live_instrument["version"] = version
 
         return 'success'
 
@@ -123,15 +128,16 @@ def upload_instrument():
             instrument = {}
             instrument['name'] = name
 
-            if 'version' in instrument_files:
+            version = ""
 
+            if 'version' in instrument_files:
                 version_stdout = subprocess.Popen(["/usr/bin/unzip", "-c", "/usr/local/instruments/" + filename, "version"], stdout=subprocess.PIPE)
                 version = version_stdout.stdout.read().splitlines()[2]
-                instrument['version'] = version
 
             else:
+                version = "0.0.0"
 
-                instrument['version'] = ""
+            instrument['version'] = version
 
             is_instrument_in_list = False
 
