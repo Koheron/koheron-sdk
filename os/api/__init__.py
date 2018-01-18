@@ -44,11 +44,12 @@ def read_file_in_zip(zip_filename, target_filename):
 class KoheronApp(Flask):
 
     instruments_dirname = "/usr/local/instruments/"
+    live_instrument_dirname = "/tmp/live-instrument/"
 
     def __init__(self, *args, **kwargs):
         super(KoheronApp, self).__init__(*args, **kwargs)
         self.init_instruments_list(KoheronApp.instruments_dirname)
-        self.init_live_instrument(KoheronApp.instruments_dirname)
+        self.init_live_instrument(KoheronApp.instruments_dirname, KoheronApp.live_instrument_dirname)
 
     def init_instruments_list(self, instruments_dirname):
         self.instruments_list = []
@@ -74,20 +75,19 @@ class KoheronApp(Flask):
                 self.instruments_list.append(instrument)
 
 
-    def init_live_instrument(self, instruments_dirname):
+    def init_live_instrument(self, instruments_dirname, live_instrument_dirname):
         # Run last started instrument
         with open(os.path.join(instruments_dirname, "default"), 'r') as f:
             default_inst_filename = os.path.join(instruments_dirname, f.read().rstrip('\n'))
-            self.run_instrument(default_inst_filename)
+            self.run_instrument(default_inst_filename, live_instrument_dirname)
 
-    def run_instrument(self, zip_filename):
+    def run_instrument(self, zip_filename, live_instrument_dirname):
 
         if not os.path.exists(zip_filename):
             print('Instrument zip file not found.\nNo installation done.')
             return
         name = get_name_from_zipfilename(zip_filename)
         print('Installing instrument ' + name)
-        live_instrument_dirname = "/tmp/live-instrument"
         subprocess.call(['/bin/bash', 'app/install_instrument.sh', name, live_instrument_dirname])
 
         self.live_instrument = {}
@@ -119,7 +119,7 @@ def get_instruments_status():
 def run_instrument(name):
     zip_filename = '{}.zip'.format(name)
     filename = os.path.join(app.instruments_dirname, secure_filename(zip_filename))
-    status = app.run_instrument(filename)
+    status = app.run_instrument(filename, app.live_instrument_dirname)
     if status == 'success':
         response = 'Instrument %s successfully installed' % zip_filename
     else:
