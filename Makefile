@@ -55,10 +55,15 @@ BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit # FPGA bitstream
 SERVER := $(TMP_PROJECT_PATH)/serverd # TCP / Websocket server executable that communicates with the FPGA:
 START_SH := $(TMP_PROJECT_PATH)/start.sh # Bash script that configures the Zynq registers (clocks...)
 
+VERSION_FILE := $(TMP_PROJECT_PATH)/version
+
+$(VERSION_FILE): $(CONFIG)
+	$(MAKE_PY) --version $(CONFIG) $@
+
 # Zip file that contains all the files needed to run the instrument:
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
-$(INSTRUMENT_ZIP): server $(BITSTREAM) $(START_SH) web
-	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM) $(SERVER) $(START_SH) $(WEB_ASSETS)
+$(INSTRUMENT_ZIP): server $(BITSTREAM) $(START_SH) web $(VERSION_FILE)
+	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM) $(SERVER) $(START_SH) $(WEB_ASSETS) $(VERSION_FILE)
 	@echo [$@] OK
 
 # Make builds the instrument zip file by default
