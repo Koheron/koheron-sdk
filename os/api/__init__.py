@@ -45,14 +45,13 @@ class KoheronApp(Flask):
 
     instruments_dirname = "/usr/local/instruments/"
     live_instrument_dirname = "/tmp/live-instrument/"
-    default_instrument_filename = instruments_dirname + "default"
+    default_filename = "default"
 
     def __init__(self, *args, **kwargs):
         super(KoheronApp, self).__init__(*args, **kwargs)
-        self.init_instruments_list(KoheronApp.instruments_dirname)
-        self.init_live_instrument(KoheronApp.instruments_dirname, KoheronApp.live_instrument_dirname, KoheronApp.default_instrument_filename)
+        self.init_instruments(KoheronApp.instruments_dirname)
 
-    def get_instrument_dict(self, instrument_filename):
+    def get_instrument_dict(self, instrument_filename, is_default):
 
         instrument = {}
         instrument["name"] = get_name_from_zipfilename(instrument_filename)
@@ -66,26 +65,38 @@ class KoheronApp(Flask):
             version = "0.0.0"
 
         instrument["version"] = version
+        instrument["is_default"] = is_default
 
         return instrument
 
-    def init_instruments_list(self, instruments_dirname):
+    def is_default_instrument(self, instrument_filename, instruments_dirname, default_filename):
+
+        with open(os.path.join(instruments_dirname, default_filename), 'r') as f:
+            default_instrument_filename = os.path.join(instruments_dirname, f.read().rstrip('\n'))
+
+        if instrument_filename == default_instrument_filename:
+            return True
+        else:
+            return False
+
+    def init_instruments(self, instruments_dirname):
 
         self.instruments_list = []
 
         for filename in os.listdir(instruments_dirname):
 
-            instrument = self.get_instrument_dict(os.path.join(instruments_dirname,filename))
+            instrument_filename = os.path.join(instruments_dirname,filename)
+            is_default = self.is_default_instrument(instrument_filename, instruments_dirname, KoheronApp.default_filename)
+
+            instrument = self.get_instrument_dict(instrument_filename, is_default)
 
             if instrument["name"] is not None:
 
                 self.instruments_list.append(instrument)
 
-    def init_live_instrument(self, instruments_dirname, live_instrument_dirname, default_instrument_filename):
-        # Run last started instrument
-        with open(default_instrument_filename, 'r') as f:
-            default_inst_filename = os.path.join(instruments_dirname, f.read().rstrip('\n'))
-            self.run_instrument(default_inst_filename, live_instrument_dirname)
+            if is_default:
+
+                self.run_instrument(instrument_filename, KoheronApp.live_instrument_dirname)
 
     def run_instrument(self, zip_filename, live_instrument_dirname):
 
@@ -153,7 +164,8 @@ def upload_instrument():
         if filename is not None:
             request.files[filename].save(os.path.join(app.instruments_dirname, secure_filename(filename)))
 
-            instrument = app.get_instrument_dict(os.path.join(app.instruments_dirname, filename))
+            is_default = app.is_default_instrument(os.path.join(app.instruments_dirname, secure_filename(filename)), app.instruments_dirname, app.default_filename)
+            instrument = app.get_instrument_dict(os.path.join(app.instruments_dirname, secure_filename(filename)), is_default)
 
             is_instrument_in_list = False
 
