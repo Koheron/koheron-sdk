@@ -156,7 +156,7 @@ if __name__ == "__main__":
             f.write(config['name'])
 
     elif cmd == '--memory_yml':
-        for field in ['drivers', 'web', 'cores', 'modules', 'name', 'board']:
+        for field in ['drivers', 'web', 'cores', 'modules', 'name', 'board', 'version']:
             config.pop(field, None)
         dump_if_changed(output_filename, config)
 
