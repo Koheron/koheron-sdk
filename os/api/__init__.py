@@ -125,7 +125,9 @@ def get_instruments_status():
 def run_instrument(name):
     zip_filename = '{}.zip'.format(name)
     filename = os.path.join(app.instruments_dirname, secure_filename(zip_filename))
-    status = app.run_instrument(filename, app.live_instrument_dirname)
+    is_default = app.is_default_instrument(os.path.join(app.instruments_dirname, secure_filename(filename)), app.instruments_dirname, app.default_filename)
+    instrument_dict = app.get_instrument_dict(filename, is_default)
+    status = app.run_instrument(filename, app.live_instrument_dirname, instrument_dict)
     if status == 'success':
         response = 'Instrument %s successfully installed' % zip_filename
     else:
