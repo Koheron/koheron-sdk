@@ -101,7 +101,7 @@ class InstrumentsWidget {
             if (isLive) {
                 cell.innerHTML = '';
             } else if ( !(isLive) && isDefault ) {
-                cell.innerHTML = "Cannot be removed";
+                cell.innerHTML = "Default";
                 cell.style.color = "#737373";
             }
         } else {

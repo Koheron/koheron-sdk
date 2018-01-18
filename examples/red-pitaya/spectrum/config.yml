@@ -1,6 +1,7 @@
 ---
 name: spectrum
 board: boards/red-pitaya
+version: 0.1.0
 
 memory:
   - name: control
