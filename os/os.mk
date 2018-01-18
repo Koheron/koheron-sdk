@@ -49,8 +49,7 @@ clean_os:
 # First-stage boot loader
 ###############################################################################
 
-.PHONY: fsbl_src
-fsbl_src: $(TMP_OS_PATH)/fsbl/Makefile
+FSBL_FILES := $(wildcard $(BOARD_PATH)/fsbl/*.h $(BOARD_PATH)/fsbl/*.c)
 
 .PHONY: fsbl
 fsbl: $(TMP_OS_PATH)/fsbl/executable.elf
@@ -60,8 +59,8 @@ $(TMP_OS_PATH)/fsbl/Makefile: $(TMP_FPGA_PATH)/$(NAME).hwdef
 	$(HSI) -source $(FPGA_PATH)/hsi/fsbl.tcl -tclargs $(NAME) $(PROC) $(TMP_OS_PATH)/hard $(@D) $<
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(BOARD_PATH)/fsbl/fsbl_hooks.c
-	cp -a $(BOARD_PATH)/fsbl/. $(TMP_OS_PATH)/fsbl/
+$(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
+	cp -a $(BOARD_PATH)/fsbl/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
 	source /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh && make -C $(@D) all
 
 .PHONY: clean_fsbl
