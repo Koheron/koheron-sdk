@@ -14,6 +14,7 @@ def get_name_from_zipfilename(zip_filename):
     split = os.path.splitext(base)
     return split[0] if split[1] == '.zip' else None
 
+
 class KoheronApp(Flask):
     def __init__(self, *args, **kwargs):
         super(KoheronApp, self).__init__(*args, **kwargs)
@@ -29,20 +30,20 @@ class KoheronApp(Flask):
                 instrument_files_stdout = subprocess.Popen(["/usr/bin/unzip", "-l", "/usr/local/instruments/" + filename], stdout=subprocess.PIPE)
                 instrument_files = instrument_files_stdout.stdout.read()
 
-                instrument_dict = {}
-                instrument_dict['name'] = name
+                instrument = {}
+                instrument['name'] = name
 
                 if 'version' in instrument_files:
 
                     version_stdout = subprocess.Popen(["/usr/bin/unzip", "-c", "/usr/local/instruments/" + filename, "version"], stdout=subprocess.PIPE)
                     version = version_stdout.stdout.read().splitlines()[2]
-                    instrument_dict['version'] = version
+                    instrument['version'] = version
 
                 else:
 
-                    instrument_dict['version'] = ""
+                    instrument['version'] = ""
 
-                self.instruments_list.append(instrument_dict)
+                self.instruments_list.append(instrument)
 
 
     def init_live_instrument(self):
@@ -102,7 +103,6 @@ def delete_instrument(name):
         os.remove(instrument_filename)
 
     for instrument in app.instruments_list:
-        print(instrument["name"])
         if instrument["name"] == name:
             app.instruments_list.remove(instrument)
 
@@ -116,35 +116,40 @@ def upload_instrument():
             request.files[filename].save(os.path.join('/usr/local/instruments/', secure_filename(filename)))
 
             name = get_name_from_zipfilename(filename)
+
+            instrument_files_stdout = subprocess.Popen(["/usr/bin/unzip", "-l", "/usr/local/instruments/" + filename], stdout=subprocess.PIPE)
+            instrument_files = instrument_files_stdout.stdout.read()
+
+            instrument = {}
+            instrument['name'] = name
+
+            if 'version' in instrument_files:
+
+                version_stdout = subprocess.Popen(["/usr/bin/unzip", "-c", "/usr/local/instruments/" + filename, "version"], stdout=subprocess.PIPE)
+                version = version_stdout.stdout.read().splitlines()[2]
+                instrument['version'] = version
+
+            else:
+
+                instrument['version'] = ""
+
             is_instrument_in_list = False
 
-            for instrument in app.instruments_list:
-                if isinstance(instrument, basestring):
-                    if name == instrument:
-                        is_instrument_in_list = True
-                else:
-                    if name == instrument["name"]:
+            for listed_instrument in app.instruments_list:
+
+                if listed_instrument["name"] == instrument["name"]:
+
+                    if listed_instrument["version"] != instrument["name"]:
+
+                        app.instruments_list.remove(listed_instrument)
+
+                    else:
+
                         is_instrument_in_list = True
 
             if not (is_instrument_in_list):
 
-                instrument_files_stdout = subprocess.Popen(["/usr/bin/unzip", "-l", "/usr/local/instruments/" + filename], stdout=subprocess.PIPE)
-                instrument_files = instrument_files_stdout.stdout.read()
-
-                instrument_dict = {}
-                instrument_dict['name'] = name
-
-                if 'version' in instrument_files:
-
-                    version_stdout = subprocess.Popen(["/usr/bin/unzip", "-c", "/usr/local/instruments/" + filename, "version"], stdout=subprocess.PIPE)
-                    version = version_stdout.stdout.read().splitlines()[2]
-                    instrument_dict['version'] = version
-
-                else:
-
-                    instrument_dict['version'] = ""
-
-                app.instruments_list.append(instrument_dict)
+                app.instruments_list.append(instrument)
 
             return make_response('Instrument ' + filename + ' uploaded.')
     return make_response('Instrument upload failed.')
