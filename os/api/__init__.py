@@ -85,7 +85,7 @@ class KoheronApp(Flask):
 
         for filename in os.listdir(instruments_dirname):
 
-            instrument_filename = os.path.join(instruments_dirname,filename)
+            instrument_filename = os.path.join(instruments_dirname, filename)
             is_default = self.is_default_instrument(instrument_filename, instruments_dirname, KoheronApp.default_filename)
 
             instrument = self.get_instrument_dict(instrument_filename, is_default)
@@ -96,29 +96,18 @@ class KoheronApp(Flask):
 
             if is_default:
 
-                self.run_instrument(instrument_filename, KoheronApp.live_instrument_dirname)
+                self.run_instrument(instrument_filename, KoheronApp.live_instrument_dirname, instrument)
 
-    def run_instrument(self, zip_filename, live_instrument_dirname):
+    def run_instrument(self, instrument_filename, live_instrument_dirname, instrument_dict):
 
-        if not os.path.exists(zip_filename):
+        if not os.path.exists(instrument_filename):
             print('Instrument zip file not found.\nNo installation done.')
             return
-        name = get_name_from_zipfilename(zip_filename)
+        name = get_name_from_zipfilename(instrument_filename)
         print('Installing instrument ' + name)
         subprocess.call(['/bin/bash', 'app/install_instrument.sh', name, live_instrument_dirname])
 
-        self.live_instrument = {}
-        self.live_instrument["name"] = name
-
-        version = ""
-
-        if os.path.isfile(os.path.join(live_instrument_dirname,"version")):
-            with open(os.path.join(live_instrument_dirname,"version"), "r") as f:
-                version = f.read().rstrip('\n')
-        else:
-            version = "0.0.0"
-
-        self.live_instrument["version"] = version
+        self.live_instrument = instrument_dict
 
         return 'success'
 
