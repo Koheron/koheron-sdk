@@ -42,14 +42,17 @@ def read_file_in_zip(zip_filename, target_filename):
     return target_file_content
 
 class KoheronApp(Flask):
+
+    instruments_dirname = "/usr/local/instruments/"
+
     def __init__(self, *args, **kwargs):
         super(KoheronApp, self).__init__(*args, **kwargs)
-        self.init_instruments_list()
-        self.init_live_instrument()
+        self.init_instruments_list(KoheronApp.instruments_dirname)
+        self.init_live_instrument(KoheronApp.instruments_dirname)
 
-    def init_instruments_list(self):
+    def init_instruments_list(self, instruments_dirname):
         self.instruments_list = []
-        for filename in os.listdir("/usr/local/instruments/"):
+        for filename in os.listdir(instruments_dirname):
 
             name = get_name_from_zipfilename(filename)
 
@@ -61,8 +64,8 @@ class KoheronApp(Flask):
                 version = "" # "0.0.0"
                 version_filename = "version"
 
-                if (is_file_in_zip("/usr/local/instruments/" + filename, version_filename)):
-                    version = read_file_in_zip("/usr/local/instruments/" + filename, version_filename)
+                if (is_file_in_zip(instruments_dirname + filename, version_filename)):
+                    version = read_file_in_zip(instruments_dirname + filename, version_filename)
                 else:
                     version = "0.0.0"
 
@@ -71,10 +74,10 @@ class KoheronApp(Flask):
                 self.instruments_list.append(instrument)
 
 
-    def init_live_instrument(self):
+    def init_live_instrument(self, instruments_dirname):
         # Run last started instrument
-        with open('/usr/local/instruments/default', 'r') as f:
-            default_inst_filename = os.path.join('/usr/local/instruments/', f.read().rstrip('\n'))
+        with open(os.path.join(instruments_dirname, "default"), 'r') as f:
+            default_inst_filename = os.path.join(instruments_dirname, f.read().rstrip('\n'))
             self.run_instrument(default_inst_filename)
 
     def run_instrument(self, zip_filename):
@@ -115,7 +118,7 @@ def get_instruments_status():
 @app.route('/api/instruments/run/<name>', methods=['GET'])
 def run_instrument(name):
     zip_filename = '{}.zip'.format(name)
-    filename = os.path.join('/usr/local/instruments/', secure_filename(zip_filename))
+    filename = os.path.join(app.instruments_dirname, secure_filename(zip_filename))
     status = app.run_instrument(filename)
     if status == 'success':
         response = 'Instrument %s successfully installed' % zip_filename
@@ -127,7 +130,7 @@ def run_instrument(name):
 def delete_instrument(name):
     zip_filename = secure_filename('{}.zip'.format(name))
 
-    instrument_filename = os.path.join('/usr/local/instruments/', zip_filename)
+    instrument_filename = os.path.join(app.instruments_dirname, zip_filename)
     if os.path.exists(instrument_filename):
         os.remove(instrument_filename)
 
@@ -142,7 +145,7 @@ def upload_instrument():
     if request.method == 'POST':
         filename = next((filename for filename in request.files if is_zip(filename)), None)
         if filename is not None:
-            request.files[filename].save(os.path.join('/usr/local/instruments/', secure_filename(filename)))
+            request.files[filename].save(os.path.join(app.instruments_dirname, secure_filename(filename)))
 
             name = get_name_from_zipfilename(filename)
 
@@ -152,8 +155,8 @@ def upload_instrument():
             version = "" # "0.0.0"
             version_filename = "version"
 
-            if (is_file_in_zip("/usr/local/instruments/" + filename, version_filename)):
-                version = read_file_in_zip("/usr/local/instruments/" + filename, version_filename)
+            if (is_file_in_zip(app.instruments_dirname + filename, version_filename)):
+                version = read_file_in_zip(app.instruments_dirname + filename, version_filename)
             else:
                 version = "0.0.0"
 
