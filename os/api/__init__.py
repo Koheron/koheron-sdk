@@ -101,7 +101,11 @@ def delete_instrument(name):
     if os.path.exists(instrument_filename):
         os.remove(instrument_filename)
 
-    app.instruments_list.remove(name)
+    for instrument in app.instruments_list:
+        print(instrument["name"])
+        if instrument["name"] == name:
+            app.instruments_list.remove(instrument)
+
     return make_response('File ' + zip_filename + ' removed.')
 
 @app.route('/api/instruments/upload', methods=['POST'])
