@@ -46,23 +46,21 @@ class KoheronApp(Flask):
     instruments_dirname = "/usr/local/instruments/"
     live_instrument_dirname = "/tmp/live-instrument/"
     default_filename = "default"
+    version_filename = "version"
 
     def __init__(self, *args, **kwargs):
         super(KoheronApp, self).__init__(*args, **kwargs)
         self.init_instruments(KoheronApp.instruments_dirname)
 
-    def get_instrument_dict(self, instrument_filename, is_default):
+    def get_instrument_dict(self, instrument_filename, is_default, version_filename):
 
         instrument = {}
         instrument["name"] = get_name_from_zipfilename(instrument_filename)
 
-        version = "" # "0.0.0"
-        version_filename = "version"
+        version = "0.0.0"
 
         if (is_file_in_zip(instrument_filename, version_filename)):
             version = read_file_in_zip(instrument_filename, version_filename)
-        else:
-            version = "0.0.0"
 
         instrument["version"] = version
         instrument["is_default"] = is_default
@@ -88,7 +86,7 @@ class KoheronApp(Flask):
             instrument_filename = os.path.join(instruments_dirname, filename)
             is_default = self.is_default_instrument(instrument_filename, instruments_dirname, KoheronApp.default_filename)
 
-            instrument = self.get_instrument_dict(instrument_filename, is_default)
+            instrument = self.get_instrument_dict(instrument_filename, is_default, KoheronApp.version_filename)
 
             if instrument["name"] is not None:
 
@@ -126,7 +124,7 @@ def run_instrument(name):
     zip_filename = '{}.zip'.format(name)
     filename = os.path.join(app.instruments_dirname, secure_filename(zip_filename))
     is_default = app.is_default_instrument(os.path.join(app.instruments_dirname, secure_filename(filename)), app.instruments_dirname, app.default_filename)
-    instrument_dict = app.get_instrument_dict(filename, is_default)
+    instrument_dict = app.get_instrument_dict(filename, is_default, app.version_filename)
     status = app.run_instrument(filename, app.live_instrument_dirname, instrument_dict)
     if status == 'success':
         response = 'Instrument %s successfully installed' % zip_filename
@@ -163,7 +161,7 @@ def upload_instrument():
             request.files[filename].save(os.path.join(app.instruments_dirname, secure_filename(filename)))
 
             is_default = app.is_default_instrument(os.path.join(app.instruments_dirname, secure_filename(filename)), app.instruments_dirname, app.default_filename)
-            instrument = app.get_instrument_dict(os.path.join(app.instruments_dirname, secure_filename(filename)), is_default)
+            instrument = app.get_instrument_dict(os.path.join(app.instruments_dirname, secure_filename(filename)), is_default, app.version_filename)
 
             is_instrument_in_list = False
 
