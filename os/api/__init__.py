@@ -45,11 +45,12 @@ class KoheronApp(Flask):
 
     instruments_dirname = "/usr/local/instruments/"
     live_instrument_dirname = "/tmp/live-instrument/"
+    default_instrument_filename = instruments_dirname + "default"
 
     def __init__(self, *args, **kwargs):
         super(KoheronApp, self).__init__(*args, **kwargs)
         self.init_instruments_list(KoheronApp.instruments_dirname)
-        self.init_live_instrument(KoheronApp.instruments_dirname, KoheronApp.live_instrument_dirname)
+        self.init_live_instrument(KoheronApp.instruments_dirname, KoheronApp.live_instrument_dirname, KoheronApp.default_instrument_filename)
 
     def init_instruments_list(self, instruments_dirname):
         self.instruments_list = []
@@ -75,9 +76,9 @@ class KoheronApp(Flask):
                 self.instruments_list.append(instrument)
 
 
-    def init_live_instrument(self, instruments_dirname, live_instrument_dirname):
+    def init_live_instrument(self, instruments_dirname, live_instrument_dirname, default_instrument_filename):
         # Run last started instrument
-        with open(os.path.join(instruments_dirname, "default"), 'r') as f:
+        with open(default_instrument_filename, 'r') as f:
             default_inst_filename = os.path.join(instruments_dirname, f.read().rstrip('\n'))
             self.run_instrument(default_inst_filename, live_instrument_dirname)
 
