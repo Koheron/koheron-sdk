@@ -132,7 +132,6 @@ setup_base:
 	sudo apt-get install -y g++-arm-linux-gnueabihf
 	sudo apt-get install -y python-pip
 	sudo apt-get install -y curl
-	sudo apt-get install -y npm
 	pip install -r $(SDK_PATH)/requirements.txt
 	pip install $(SDK_PATH)/python
 
