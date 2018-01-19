@@ -1,5 +1,7 @@
 class InstrumentsWidget {
 
+    private imageVersionSpan: HTMLSpanElement;
+
     private instrumentsTable: HTMLTableElement;
     private isUpdate: boolean;
 
@@ -7,6 +9,9 @@ class InstrumentsWidget {
     private uploadStatus: HTMLSpanElement;
 
     constructor (document: Document, private driver: Instruments) {
+
+        this.writeImageVersion();
+
         this.instrumentsTable = <HTMLTableElement>document.getElementById('instruments-table');
         this.isUpdate = true;
         this.update();
@@ -70,6 +75,13 @@ class InstrumentsWidget {
         setTimeout( () => {
             this.update(), 200
         });
+    }
+
+    writeImageVersion(): void {
+        $.getJSON("version.json", function (data) {
+            this.imageVersionSpan = <HTMLSpanElement>document.getElementById("image-version");
+            this.imageVersionSpan.innerHTML = data["version"];
+        })
     }
 
     setStatusCell(cell: any, isLive: boolean): void {
