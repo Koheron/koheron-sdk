@@ -11,24 +11,13 @@ BOOTGEN := source /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh && bootgen
 
 BOARD := $(shell basename $(BOARD_PATH))
 
-# Linux and U-boot
-UBOOT_TAG := koheron-$(BOARD)-v$(VIVADO_VERSION)
-LINUX_TAG := koheron-$(BOARD)-v$(VIVADO_VERSION)
-DTREE_TAG := xilinx-v$(VIVADO_VERSION)
-
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 
-UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
-LINUX_PATH := $(TMP_OS_PATH)/linux-xlnx-$(LINUX_TAG)
-DTREE_PATH := $(TMP_OS_PATH)/device-tree-xlnx-$(DTREE_TAG)
-
-UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
-LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
-DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
-
-UBOOT_URL := https://github.com/Koheron/u-boot-xlnx/archive/$(UBOOT_TAG).tar.gz
-LINUX_URL := https://github.com/Koheron/linux-xlnx/archive/$(LINUX_TAG).tar.gz
-DTREE_URL := https://github.com/Xilinx/device-tree-xlnx/archive/$(DTREE_TAG).tar.gz
+ifneq ("$(wildcard $(BOARD_PATH)/board.mk)","")
+-include $(BOARD_PATH)/board.mk
+else
+-include $(OS_PATH)/board.mk
+endif
 
 LINUX_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 UBOOT_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
@@ -54,7 +43,8 @@ clean_os:
 # First-stage boot loader
 ###############################################################################
 
-FSBL_FILES := $(wildcard $(BOARD_PATH)/fsbl/*.h $(BOARD_PATH)/fsbl/*.c)
+# Additional files (including fsbl_hooks.c) can be added to the FSBL in $(BOARD_PATH)/patches/fsbl
+FSBL_FILES := $(wildcard $(BOARD_PATH)/patches/fsbl/*.h $(BOARD_PATH)/patches/fsbl/*.c)
 
 .PHONY: fsbl
 fsbl: $(TMP_OS_PATH)/fsbl/executable.elf
@@ -65,7 +55,7 @@ $(TMP_OS_PATH)/fsbl/Makefile: $(TMP_FPGA_PATH)/$(NAME).hwdef
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
-	cp -a $(BOARD_PATH)/fsbl/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
+	cp -a $(BOARD_PATH)/patches/fsbl/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
 	source /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh && make -C $(@D) all
 
 .PHONY: clean_fsbl
