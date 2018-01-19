@@ -73,7 +73,7 @@ class InstrumentsWidget {
     }
 
     setStatusCell(cell: any, isLive: boolean): void {
-        if (isLive === true) {
+        if (isLive) {
             cell.innerHTML = '<a href="/">Running</a>';
         } else {
             cell.innerHTML = '';
@@ -81,7 +81,7 @@ class InstrumentsWidget {
     }
 
     setRunCell(cell: any, name: string, isLive: boolean): void {
-        if (isLive === true) {
+        if (isLive) {
             cell.innerHTML = '';
         } else {
             cell.innerHTML = '<a onclick="instruments_widget.runClick(this.parentNode, \'' + name + '\'); return false;" href="#">Run</a>';
@@ -97,13 +97,12 @@ class InstrumentsWidget {
     }
 
     setDeleteCell(cell: any, name: string, isLive: boolean, isDefault: boolean): void {
-        if (isLive || isDefault) {
-            if (isLive) {
-                cell.innerHTML = '';
-            } else if ( !(isLive) && isDefault ) {
-                cell.innerHTML = "Default";
-                cell.style.color = "#737373";
-            }
+        if (isLive) {
+            cell.innerHTML = "Live";
+            cell.style.color = "#737373";
+        } else if (isDefault ) {
+            cell.innerHTML = "Default";
+            cell.style.color = "#737373";
         } else {
             cell.innerHTML = '<a onclick="instruments_widget.deleteClick(this.parentNode, \'' + name + '\'); return false;" href="#">Remove</a>';
         }
