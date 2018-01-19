@@ -117,6 +117,14 @@ app = KoheronApp(__name__)
 
 @app.route('/api/instruments', methods=['GET'])
 def get_instruments_status():
+    instruments_status_list = []
+    for instrument in app.instruments_list:
+        instruments_status_list.append(instrument['name'])
+    instrument_status_live = app.live_instrument['name']
+    return jsonify({'instruments': instruments_status_list, 'live_instrument': instrument_status_live })
+
+@app.route('/api/instruments/details', methods=['GET'])
+def get_instruments_details():
     return jsonify({'instruments': app.instruments_list, 'live_instrument': app.live_instrument })
 
 @app.route('/api/instruments/run/<name>', methods=['GET'])
