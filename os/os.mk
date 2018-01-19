@@ -13,6 +13,7 @@ BOARD := $(shell basename $(BOARD_PATH))
 
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 
+# Define U-boot and Linux repositories
 ifneq ("$(wildcard $(BOARD_PATH)/board.mk)","")
 -include $(BOARD_PATH)/board.mk
 else

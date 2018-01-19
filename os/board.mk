@@ -1,6 +1,6 @@
 # Linux and U-boot
-UBOOT_TAG := koheron-$(BOARD)-v$(VIVADO_VERSION)
-LINUX_TAG := koheron-$(BOARD)-v$(VIVADO_VERSION)
+UBOOT_TAG := koheron-v$(VIVADO_VERSION)
+LINUX_TAG := koheron-v$(VIVADO_VERSION)
 DTREE_TAG := xilinx-v$(VIVADO_VERSION)
 
 UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
