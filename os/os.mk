@@ -20,6 +20,14 @@ else
 -include $(OS_PATH)/board.mk
 endif
 
+UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
+LINUX_PATH := $(TMP_OS_PATH)/linux-xlnx-$(LINUX_TAG)
+DTREE_PATH := $(TMP_OS_PATH)/device-tree-xlnx-$(DTREE_TAG)
+
+UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
+LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
+DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
+
 LINUX_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 UBOOT_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 
