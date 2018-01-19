@@ -156,7 +156,7 @@ if __name__ == "__main__":
             f.write(config['name'])
 
     elif cmd == '--memory_yml':
-        for field in ['drivers', 'web', 'cores', 'modules', 'name', 'board']:
+        for field in ['drivers', 'web', 'cores', 'modules', 'name', 'board', 'version']:
             config.pop(field, None)
         dump_if_changed(output_filename, config)
 
@@ -228,6 +228,11 @@ if __name__ == "__main__":
             config['web'][i] = append_path(path, config_path)
         with open(output_filename, 'w') as f:
             f.write(' '.join(config.get('web', [])))
+
+    elif cmd == '--version':
+        config['version'] = config.get('version', '0.0.0')
+        with open(output_filename, 'w') as f:
+            f.write(config['version'])
 
     else:
         raise ValueError('Unknown command')

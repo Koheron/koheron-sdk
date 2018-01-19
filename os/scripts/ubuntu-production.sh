@@ -4,6 +4,7 @@ tmp_project_path=$1
 os_path=$2
 tmp_os_path=$3
 name=$4
+os_version_file=$5
 image=$tmp_project_path/${name}-production.img
 size=512
 
