@@ -1,6 +1,7 @@
 ---
 name: oscillo
 board: boards/red-pitaya
+version: 0.1.0
 
 # ------------------------------------------------------------
 # Memory

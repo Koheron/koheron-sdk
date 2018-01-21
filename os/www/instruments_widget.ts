@@ -1,5 +1,7 @@
 class InstrumentsWidget {
 
+    private imageVersionSpan: HTMLSpanElement;
+
     private instrumentsTable: HTMLTableElement;
     private isUpdate: boolean;
 
@@ -7,6 +9,9 @@ class InstrumentsWidget {
     private uploadStatus: HTMLSpanElement;
 
     constructor (document: Document, private driver: Instruments) {
+
+        this.writeImageVersion();
+
         this.instrumentsTable = <HTMLTableElement>document.getElementById('instruments-table');
         this.isUpdate = true;
         this.update();
@@ -23,19 +28,22 @@ class InstrumentsWidget {
                 let instruments = status['instruments'];
                 let liveInstrument = status['live_instrument'];
 
-                this.instrumentsTable.innerHTML = '<thead><tr><th>Name</th><th>Status</th><th colspan="2">Action</th></tr></thead>';
+                this.instrumentsTable.innerHTML = '<thead><tr><th>Name</th><th>Status</th><th colspan="2">Action</th><th>Version</th></tr></thead>';
 
                 for (let instrument of instruments) {
+
                     let row = this.instrumentsTable.insertRow(-1);
 
                     let nameCell = row.insertCell(0);
                     let statusCell = row.insertCell(1);
                     let runCell = row.insertCell(2);
                     let deleteCell = row.insertCell(3);
+                    let versionCell = row.insertCell(4);
 
                     let isLive: boolean = false;
+                    let isDefault: boolean = false;
 
-                    for (let cell of [nameCell, statusCell, runCell, deleteCell]) {
+                    for (let cell of [nameCell, statusCell, runCell, deleteCell, versionCell]) {
                         cell.style["border-left"] = 'none';
                         cell.style["border-right"] = 'none';
                         cell.style["border-top"] = "1px solid #ddd";
@@ -43,14 +51,19 @@ class InstrumentsWidget {
                         cell.style.verticalAlign = 'middle';
                     }
 
-                    if (instrument == liveInstrument) {
+                    if (instrument["name"] == liveInstrument["name"]) {
                         isLive = true;
                     };
 
-                    this.setStatusCell(statusCell, instrument, isLive);
-                    this.setRunCell(runCell, instrument, isLive);
-                    this.setDeleteCell(deleteCell, instrument, isLive)
-                    nameCell.innerHTML = instrument;
+                    if (instrument["is_default"]) {
+                        isDefault = true;
+                    }
+
+                    this.setStatusCell(statusCell, isLive);
+                    this.setRunCell(runCell, instrument["name"], isLive);
+                    this.setDeleteCell(deleteCell, instrument["name"], isLive, isDefault);
+                    nameCell.innerHTML = instrument["name"];
+                    versionCell.innerHTML = instrument["version"];
 
                 }
                 this.isUpdate = false;
@@ -64,8 +77,15 @@ class InstrumentsWidget {
         });
     }
 
-    setStatusCell(cell: any, name: string, isLive: boolean): void {
-        if (isLive === true) {
+    writeImageVersion(): void {
+        $.getJSON("version.json", function (data) {
+            this.imageVersionSpan = <HTMLSpanElement>document.getElementById("image-version");
+            this.imageVersionSpan.innerHTML = data["version"];
+        })
+    }
+
+    setStatusCell(cell: any, isLive: boolean): void {
+        if (isLive) {
             cell.innerHTML = '<a href="/">Running</a>';
         } else {
             cell.innerHTML = '';
@@ -73,7 +93,7 @@ class InstrumentsWidget {
     }
 
     setRunCell(cell: any, name: string, isLive: boolean): void {
-        if (isLive === true) {
+        if (isLive) {
             cell.innerHTML = '';
         } else {
             cell.innerHTML = '<a onclick="instruments_widget.runClick(this.parentNode, \'' + name + '\'); return false;" href="#">Run</a>';
@@ -88,9 +108,13 @@ class InstrumentsWidget {
         })
     }
 
-    setDeleteCell(cell: any, name: string, isLive: boolean): void {
-        if (isLive === true) {
-            cell.innerHTML = '';
+    setDeleteCell(cell: any, name: string, isLive: boolean, isDefault: boolean): void {
+        if (isLive) {
+            cell.innerHTML = "Live";
+            cell.style.color = "#737373";
+        } else if (isDefault ) {
+            cell.innerHTML = "Default";
+            cell.style.color = "#737373";
         } else {
             cell.innerHTML = '<a onclick="instruments_widget.deleteClick(this.parentNode, \'' + name + '\'); return false;" href="#">Remove</a>';
         }

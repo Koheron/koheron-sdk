@@ -10,7 +10,7 @@ class Instruments {
 
     getInstrumentsStatus(cb: (status: any) => void) : void {
         let xhr = new XMLHttpRequest();
-        xhr.open('GET', '/api/instruments', true);
+        xhr.open('GET', '/api/instruments/details', true);
         xhr.onload = () => {
             if (xhr.readyState == 4) {
                 if (xhr.status == 200) {

@@ -13,6 +13,6 @@ create_sw_design -proc $proc_name -os standalone fsbl
 add_library xilffs
 add_library xilrsa
 
-generate_app -proc $proc_name -app zynq_fsbl -dir $fsbl_path -compile
+generate_app -proc $proc_name -app zynq_fsbl -dir $fsbl_path
 
 close_hw_design [current_hw_design]

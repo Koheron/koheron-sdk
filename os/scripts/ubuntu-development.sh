@@ -4,6 +4,7 @@ tmp_project_path=$1
 os_path=$2
 tmp_os_path=$3
 name=$4
+os_version_file=$5
 image=$tmp_project_path/${name}-development.img
 size=1024
 
@@ -60,6 +61,8 @@ cp /usr/bin/qemu-arm-static $root_dir/usr/bin/
 # Add Web app
 mkdir $root_dir/usr/local/www
 cp -a tmp/www/. $root_dir/usr/local/www
+
+cp $os_version_file $root_dir/usr/local/www/
 
 mkdir $root_dir/usr/local/api
 cp -a tmp/api/. $root_dir/usr/local/api
