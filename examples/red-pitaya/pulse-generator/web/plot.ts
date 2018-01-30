@@ -32,11 +32,6 @@ class Plot {
         this.range_y.from = this.min_y;
         this.range_y.to = this.max_y;
 
-        this.zoom_x = false;
-        this.zoom_y = false;
-        this.zoom_x_btn = <HTMLLinkElement>document.getElementById('zoom-x-btn');
-        this.zoom_y_btn = <HTMLLinkElement>document.getElementById('zoom-y-btn');
-
         this.update_plot();
     }
 
@@ -128,7 +123,7 @@ class Plot {
 
             const zoom_ratio: number = 0.2;
 
-            if ((<JQueryInputEventObject>evt.originalEvent).shiftKey || this.zoom_y == true) { // Zoom Y
+            if ((<JQueryInputEventObject>evt.originalEvent).shiftKey) { // Zoom Y
                 const position_y_px: number = (<JQueryMouseEventObject>evt.originalEvent).pageY - this.plot.offset().top;
                 const y0: any = this.plot.getAxes().yaxis.c2p(<any>position_y_px);
 
@@ -136,7 +131,8 @@ class Plot {
                 this.range_y.to = y0 - (1 + zoom_ratio * delta) * (y0 - this.plot.getAxes().yaxis.max);
 
                 this.resetRange();
-            } else if ((<JQueryInputEventObject>evt.originalEvent).altKey || this.zoom_x == true) { // Zoom X
+                return false;
+            } else if ((<JQueryInputEventObject>evt.originalEvent).altKey) { // Zoom X
                 const position_x_px: number = (<JQueryMouseEventObject>evt.originalEvent).pageX - this.plot.offset().left;
                 const t0: any = this.plot.getAxes().xaxis.c2p(<any>position_x_px);
 
@@ -148,53 +144,9 @@ class Plot {
                 this.range_x.to = Math.min(t0 - (1 + zoom_ratio * delta) * (t0 - this.plot.getAxes().xaxis.max), this.plot_x_max);
 
                 this.resetRange();
+                return false;
             }
         });
-    }
-
-    disableWindowWheel() {
-        $(window).bind('wheel', (event: JQueryEventObject) => {
-            (<JQueryMousewheel.JQueryMousewheelEventObject>event).preventDefault();
-        })
-    }
-
-    enableWindowWheel() {
-        $(window).unbind('wheel');
-    }
-
-    zoomX() {
-        if (this.zoom_x == false) {
-            this.zoom_x = true;
-            this.disableWindowWheel();
-            if (this.zoom_y) {
-                this.zoom_y = false;
-                this.zoom_y_btn.className = 'btn btn-default-reversed';
-            }
-            this.zoom_x_btn.className = 'btn btn-default-reversed active';
-        }
-        else if (this.zoom_x) {
-            this.zoom_x = false;
-            this.enableWindowWheel();
-            this.zoom_x_btn.className = 'btn btn-default-reversed';
-
-        }
-    }
-
-    zoomY() {
-        if (this.zoom_y == false) {
-            this.zoom_y = true;
-            this.disableWindowWheel();
-            if (this.zoom_x == true){
-                this.zoom_x = false;
-                this.zoom_x_btn.className = 'btn btn-default-reversed';
-            }
-            this.zoom_y_btn.className = 'btn btn-default-reversed active';
-        }
-        else if (this.zoom_y) {
-            this.zoom_y = false;
-            this.enableWindowWheel();
-            this.zoom_y_btn.className = 'btn btn-default-reversed';
-        }
     }
 
     autoscale() {
