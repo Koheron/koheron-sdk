@@ -163,47 +163,6 @@ set_property PACKAGE_PIN G15 [get_ports {dac_1[14]}]
 set_property PACKAGE_PIN H15 [get_ports {dac_1[15]}]
 
 # ----------------------------------------------------------------------------------
-# Bank 13 connected with MIO in parallel (set to high-Z if not used)
-# ----------------------------------------------------------------------------------
-
-# set_property PACKAGE_PIN Y6 [get_ports I2C_INT#_R] ;# MIO9 // B13
-# set_property PACKAGE_PIN V8 [get_ports I2C_SCL] ;# MIO14 // B13
-# set_property PACKAGE_PIN W8 [get_ports I2C_SDA] ;# MIO15 // B13
-# set_property PACKAGE_PIN W9 [get_ports SDCMD] ;# MIO40 // B13
-# set_property PACKAGE_PIN W10 [get_ports SDCLK] ;# MIO41 // B13
-# set_property PACKAGE_PIN W11 [get_ports SDD0] ;# MIO42 // B13
-# set_property PACKAGE_PIN Y11 [get_ports SDD1] ;# MIO43 // B13
-# set_property PACKAGE_PIN Y9 [get_ports SDD2] ;# MIO44 // B13
-# set_property PACKAGE_PIN Y8 [get_ports SDD3] ;# MIO45 // B13
-# set_property PACKAGE_PIN T5 [get_ports UART_RX] ;# MIO46 // B13
-# set_property PACKAGE_PIN U5 [get_ports UART_TX] ;# MIO47 // B13
-# set_property PACKAGE_PIN U7 [get_ports I2C1_SCL_LS] ;# MIO48 // B13 SRCC
-# set_property PACKAGE_PIN V7 [get_ports I2C1_SDA_LS] ;# MIO49 // B13 SRCC
-# set_property PACKAGE_PIN T9 [get_ports SDCD#] ;# MIO50 // B13 MRCC
-# set_property PACKAGE_PIN U10 [get_ports I2C1_INT#R] ;# MIO51 // B13 MRCC
-
-# set_property PACKAGE_PIN V5 [get_ports ETH_LED]
-# set_property IOSTANDARD LVCMOS18 [get_ports ETH_LED]
-
-# 33.333 MHZ clock
-# set_property PACKAGE_PIN Y7 [get_ports CLK33] ;# MRCC
-# set_property IOSTANDARD LVCMOS18 [get_ports CLK33]
-
-# ----------------------------------------------------------------------------------
-# LEDs
-# ----------------------------------------------------------------------------------
-
-#set_property PACKAGE_PIN R19 [get_ports LED0#_PL] ;# IO_0_34
-#set_property PACKAGE_PIN T19 [get_ports LED1#_PL] ;# IO_25_34
-#set_property PACKAGE_PIN G14 [get_ports LED2#_PL] ;# IO_0_35
-#set_property PACKAGE_PIN J15 [get_ports LED3#_PL] ;# IO_25_35
-
-#set_property IOSTANDARD LVCMOS18 [get_ports LED0#_PL]
-#set_property IOSTANDARD LVCMOS18 [get_ports LED1#_PL]
-#set_property IOSTANDARD LVCMOS33 [get_ports LED2#_PL]
-#set_property IOSTANDARD LVCMOS33 [get_ports LED3#_PL]
-
-# ----------------------------------------------------------------------------------
 # XADC
 # ----------------------------------------------------------------------------------
 
