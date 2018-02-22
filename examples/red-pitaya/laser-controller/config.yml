@@ -9,7 +9,7 @@ cores:
   - fpga/cores/axi_ctl_register_v1_0
   - fpga/cores/axi_sts_register_v1_0
   - fpga/cores/dna_reader_v1_0
-  - fpga/cores/pdm_v1_0
+  - fpga/cores/pdm_v2_0
   - fpga/cores/pulse_generator_v1_0
   - fpga/cores/comparator_v1_0
   - fpga/cores/bus_multiplexer_v1_0

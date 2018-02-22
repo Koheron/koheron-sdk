@@ -34,7 +34,7 @@ connect_pins xadc/m_axis_tready [get_constant_pin 1 1]
     create_bd_pin -dir O laser_eeprom_cs
 
     # Add pulse density modulator for laser current control
-    cell koheron:user:pdm:1.0 laser_current_pdm {
+    cell koheron:user:pdm:2.0 laser_current_pdm {
         NBITS [get_parameter pwm_width]
     } {
         clk clk

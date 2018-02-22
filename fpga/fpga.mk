@@ -77,7 +77,7 @@ test_module: $(CONFIG_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML)
 	$(VIVADO) -source $(FPGA_PATH)/vivado/test_module.tcl -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(TMP_FPGA_PATH)
 
 # Build and test a core in Vivado GUI
-CORE ?= $(FPGA_PATH)/cores/pdm_v1_0
+CORE ?= $(FPGA_PATH)/cores/pdm_v2_0
 .PHONY: test_core
 test_core: $(CORE)/core_config.tcl $(CORE)/*.v*
 	$(VIVADO) -source $(FPGA_PATH)/vivado/test_core.tcl -tclargs $(CORE) $(PART) $(TMP_FPGA_PATH)

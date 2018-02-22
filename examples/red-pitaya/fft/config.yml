@@ -14,7 +14,7 @@ cores:
   - fpga/cores/psd_counter_v1_0
   - fpga/cores/comparator_v1_0
   - fpga/cores/saturation_v1_0
-  - fpga/cores/pdm_v1_0
+  - fpga/cores/pdm_v2_0
   - fpga/cores/at93c46d_spi_v1_0
   - fpga/cores/bus_multiplexer_v1_0
 
