@@ -16,7 +16,7 @@ create_project -part $part $project_name $output_path
 add_files -norecurse [glob $core_path/*.v*]
 
 # Remove testbench files
-set testbench_files [glob -nocomplain $core_path/*_tb.v]
+set testbench_files [glob -nocomplain $core_path/*_tb.v*]
 if {[llength testbench_files] > 0} {
   remove_files $testbench_files
 }
