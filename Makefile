@@ -132,8 +132,8 @@ setup_base:
 	sudo apt-get install -y g++-arm-linux-gnueabihf
 	sudo apt-get install -y python-pip
 	sudo apt-get install -y curl
-	pip install -r $(SDK_PATH)/requirements.txt
-	pip install $(SDK_PATH)/python
+	sudo pip2 install -r $(SDK_PATH)/requirements.txt
+	sudo pip2 install $(SDK_PATH)/python
 
 .PHONY: setup_fpga
 setup_fpga: setup_base
