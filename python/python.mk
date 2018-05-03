@@ -1,6 +1,6 @@
 
 KOHERON_PYTHON_VERSION := $(shell cd python && python -c "from koheron.version import __version__; print(__version__)")
-PYPI_VERSION := $(shell curl -s 'https://pypi.python.org/pypi/koheron/json'| PYTHONIOENCODING=utf8 python -c "import sys, json; print json.load(sys.stdin)['info']['version']")
+PYPI_VERSION := $(shell curl -s 'https://pypi.org/pypi/koheron/json'| PYTHONIOENCODING=utf8 python -c "import sys, json; print json.load(sys.stdin)['info']['version']")
 
 PHONY: upload_pip
 upload_pip:
