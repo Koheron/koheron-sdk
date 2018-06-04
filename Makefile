@@ -150,6 +150,7 @@ setup_web: setup_base
 	#sudo rm -f /usr/bin/node && sudo ln -s /usr/bin/nodejs /usr/bin/node
 	npm install typescript
 	npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
+	sudo npm install --global typescript@latest
 
 .PHONY: setup_os
 setup_os: setup_base
