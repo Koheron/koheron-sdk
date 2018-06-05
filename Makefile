@@ -14,6 +14,7 @@ TMP ?= tmp
 KOHERON_VERSION_FILE := $(SDK_PATH)/version
 KOHERON_VERSION := $(shell cat $(KOHERON_VERSION_FILE))
 VIVADO_VERSION := 2017.2
+VIVADO_PATH := /opt/Xilinx/Vivado
 
 .PHONY: help
 help:

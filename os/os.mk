@@ -6,8 +6,8 @@
 
 PATCHES := $(BOARD_PATH)/patches
 PROC := ps7_cortexa9_0
-HSI := source /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh && hsi -nolog -nojournal -mode batch
-BOOTGEN := source /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh && bootgen
+HSI := source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && hsi -nolog -nojournal -mode batch
+BOOTGEN := source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && bootgen
 
 BOARD := $(shell basename $(BOARD_PATH))
 
@@ -65,7 +65,7 @@ $(TMP_OS_PATH)/fsbl/Makefile: $(TMP_FPGA_PATH)/$(NAME).hwdef
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
 	cp -a $(BOARD_PATH)/patches/fsbl/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
-	source /opt/Xilinx/Vivado/$(VIVADO_VERSION)/settings64.sh && make -C $(@D) all
+	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && make -C $(@D) all
 
 .PHONY: clean_fsbl
 clean_fsbl:
