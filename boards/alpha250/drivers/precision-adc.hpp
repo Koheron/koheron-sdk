@@ -92,8 +92,13 @@ class PrecisionAdc
     }
 
     void set_channels(int32_t setup_idx) {
-        for (uint32_t i=0; i < channel_num; i++) {
-            write(0x09 + i, (1 << 15) + (setup_idx << 12) + (2 * i << 5) + (2 * i + 1), 2);
+        constexpr uint32_t CHANNEL_EN = 1;
+
+        for (uint32_t i = 0; i < channel_num; i++) {
+            // Acquisition pairs are (1,2), (3,4), ..., (2i, 2i+1)
+            uint32_t AINP = 2 * i;
+            uint32_t AINM = 2 * i + 1;
+            write(0x09 + i, (CHANNEL_EN << 15) + (setup_idx << 12) + (AINP << 5) + AINM, 2);
         }
     }
 
