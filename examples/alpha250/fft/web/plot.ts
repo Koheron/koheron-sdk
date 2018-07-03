@@ -65,6 +65,7 @@ class Plot {
         this.plot_data = [];
 
         this.updatePlot();
+        this.initUnitInputs();
     }
 
     updatePlot() {
@@ -327,9 +328,14 @@ class Plot {
         });
     }
 
-    changeYUnit(yUnit: string): void {
-        this.yUnit = yUnit;
-        this.resetRange();
+    initUnitInputs(): void {
+        let unitInputs: HTMLInputElement[] = <HTMLInputElement[]><any>document.getElementsByClassName("unit-input");
+        for (let i = 0; i < unitInputs.length; i ++) {
+            unitInputs[i].addEventListener( 'change', (event) => {
+                this.yUnit = (<HTMLInputElement>event.currentTarget).value;
+                this.resetRange();
+            })
+        }
     }
 
     detectPeak(): void {
