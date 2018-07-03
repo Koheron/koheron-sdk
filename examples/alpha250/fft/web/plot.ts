@@ -387,6 +387,7 @@ class Plot {
         csvContent += "Koheron Alpha \n";
 
         let dateTime = new Date();
+        let referenceClock = (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock']:checked")).dataset.valuestr;
         csvContent += dateTime.getDate() + "/" + (dateTime.getMonth()+1)  + "/"  + dateTime.getFullYear() + " " ;
         csvContent += dateTime.getHours() + ":" + dateTime.getMinutes() + ":" + dateTime.getSeconds() + "\n";
 
@@ -394,7 +395,7 @@ class Plot {
         csvContent += '"Window",' + (this.control.fftWindowIndex).toString() + "\n";
         csvContent += '"Input channel",' + (this.fft.status.channel).toString() + "\n";
         csvContent += '"Sampling frequency (MHz)",' + (this.fft.status.fs / 1e6).toString() + "\n";
-        csvContent += '"Reference clock (10 MHz)",' + this.control.referenceClock + "\n";
+        csvContent += '"Reference clock (10 MHz)",' + referenceClock + "\n";
         csvContent += '"Channel 0 DDS frequency (MHz)",' + (this.fft.status.dds_freq[0] / 1e6).toString() + "\n";
         csvContent += '"Channel 1 DDS frequency (MHz)",' + (this.fft.status.dds_freq[1] / 1e6).toString() + "\n";
 

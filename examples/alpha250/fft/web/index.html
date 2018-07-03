@@ -118,11 +118,13 @@
           </label>
 
           <div class="radio-wrapper">
-            <input type="radio" name="reference-clock" value="internal" id="reference-clock-internal" checked style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.control.setReferenceClock(this.value); return false;">Internal
+            <input type="radio" name="reference-clock" value="2" checked style="width: auto; vertical-align: -12px; margin: 0px 5px"
+            class="clkgen-input" data-valuestr="internal" data-command="setReferenceClock">Internal
           </div>
 
           <div class="radio-wrapper">
-            <input type="radio" name="reference-clock" value="external" id="reference-clock-external" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.control.setReferenceClock(this.value); return false;">External
+            <input type="radio" name="reference-clock" value="0" style="width: auto; vertical-align: -12px; margin: 0px 5px"
+            class="clkgen-input" data-valuestr="external" data-command="setReferenceClock">External
           </div>
 
         </div>

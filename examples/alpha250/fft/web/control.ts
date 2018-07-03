@@ -12,9 +12,7 @@ class Control {
     private frequencyInputs: HTMLInputElement[];
     private frequencySliders: HTMLInputElement[];
 
-    public referenceClock: string;
-    private referenceClockInternalInput: HTMLInputElement;
-    private referenceClockExternalInput: HTMLInputElement;
+    private clkgenInputs: HTMLInputElement[];
 
     private samplingFrequency: string;
     private samplingFrequency200Input: HTMLInputElement;
@@ -47,9 +45,8 @@ class Control {
             this.precisionDacSliders[i] = <HTMLInputElement>document.getElementById('precision-dac-slider-' + i.toString());
         }
 
-        this.referenceClock = 'internal';
-        this.referenceClockInternalInput = <HTMLInputElement>document.getElementById('reference-clock-internal');
-        this.referenceClockExternalInput = <HTMLInputElement>document.getElementById('reference-clock-external');
+        this.clkgenInputs = <HTMLInputElement[]><any>document.getElementsByClassName("clkgen-input");
+        this.initClkgenInputs();
 
         this.samplingFrequency = '250 MHz';
         this.samplingFrequency200Input = <HTMLInputElement>document.getElementById('sampling-frequency-200');
@@ -115,14 +112,13 @@ class Control {
 
     private updateReferenceClock() {
         this.clkGen.getReferenceClock( (clkin: number) => {
-            if (clkin === 0) {
-                this.referenceClock = 'external';
-                this.referenceClockExternalInput.checked = true;
-            } else {
-                this.referenceClock = 'internal';
-                this.referenceClockInternalInput.checked = true;
+
+            let clkIndex: string = "0";
+            if (clkin !== 0) {
+                clkIndex = "2";
             }
 
+            (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock'][value='" + clkIndex + "']")).checked = true;
             requestAnimationFrame( () => { this.updateReferenceClock(); } )
         });
     }
@@ -161,16 +157,6 @@ class Control {
         this.PrecisionDac.setDac(channel, parseFloat(precisionDacValue) / 1000);
     }
 
-    setReferenceClock(referenceClock: string) {
-        this.referenceClock = referenceClock;
-
-        if (this.referenceClock === 'external') {
-            this.clkGen.setReferenceClock(0);
-        } else {
-            this.clkGen.setReferenceClock(2);
-        }
-    }
-
     setSamplingFrequency(samplingFrequency: string) {
         this.samplingFrequency = samplingFrequency;
 
@@ -179,10 +165,6 @@ class Control {
         } else { // 250 MHz
             this.clkGen.setSamplingFrequency(1);
         }
-    }
-
-    setInputChannel(channel: number) {
-        this.fft.setInputChannel(channel);
     }
 
     initFFTSelects(): void {
@@ -197,6 +179,14 @@ class Control {
         for (let i = 0; i < this.fftInputs.length; i++) {
             this.fftInputs[i].addEventListener('change', (event) => {
                 this.fft[(<HTMLInputElement>event.currentTarget).dataset.command]((<HTMLInputElement>event.currentTarget).value);
+            })
+        }
+    }
+
+    initClkgenInputs(): void {
+        for (let i = 0; i < this.clkgenInputs.length; i ++) {
+            this.clkgenInputs[i].addEventListener('change', (event) => {
+                this.clkGen[(<HTMLInputElement>event.currentTarget).dataset.command](parseInt((<HTMLInputElement>event.currentTarget).value));
             })
         }
     }
