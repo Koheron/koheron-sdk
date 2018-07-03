@@ -82,7 +82,7 @@
 
           <label for="fft-window">FFT Window:</label>
 
-          <select id="fft-window" onchange="app.control.setFFTWindow(this.value); return false;" style="width: 250px; margin-left: 10px">
+          <select id="fft-window" style="width: 250px; margin-left: 10px" class="fft-select" data-command="setFFTWindow">
             <option value="0" selected>Rectangular</option>
             <option value="1">Hanning</option>
             <option value="2">Flat Top</option>

@@ -24,7 +24,8 @@ class Control {
     private inputCh1: HTMLInputElement;
 
     public fftWindowIndex: number;
-    private fftWindowSelect: HTMLSelectElement;
+    private fftSelects: HTMLSelectElement[];
+    // private fftWindowSelect: HTMLSelectElement;
 
     constructor(document: Document, private fft: FFT, private PrecisionDac: PrecisionDac, private clkGen: ClockGenerator) {
         this.channelNum = 2;
@@ -61,7 +62,8 @@ class Control {
         this.inputCh1 = <HTMLInputElement>document.getElementById('input-ch1');
 
         this.fftWindowIndex = 1;
-        this.fftWindowSelect = <HTMLSelectElement>document.getElementById("fft-window");
+        this.fftSelects = <HTMLSelectElement[]><any>document.getElementsByClassName("fft-select");
+        this.initFFTSelects();
 
         this.updateDacValues();
         this.updateReferenceClock();
@@ -141,7 +143,7 @@ class Control {
     private updateFFTWindowInputs() {
         this.fft.getFFTWindowIndex( (windowIndex: number) => {
             this.fftWindowIndex = windowIndex;
-            this.fftWindowSelect.value = windowIndex.toString();
+            (<HTMLSelectElement>document.querySelector("[data-command='setFFTWindow']")).value = windowIndex.toString();
             requestAnimationFrame( () => { this.updateFFTWindowInputs(); } )
         });
     }
@@ -196,7 +198,11 @@ class Control {
         this.fft.setInputChannel(channel);
     }
 
-    setFFTWindow(windowIndex: number) {
-        this.fft.setFFTWindow(windowIndex);
+    initFFTSelects(): void {
+        for (let i = 0; i < this.fftSelects.length; i++) {
+            this.fftSelects[i].addEventListener('change', (event) => {
+                this.fft[(<HTMLSelectElement>event.currentTarget).dataset.command]((<HTMLSelectElement>event.currentTarget).value);
+            })
+        }
     }
 }
