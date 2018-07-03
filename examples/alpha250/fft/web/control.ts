@@ -2,10 +2,10 @@
 // (c) Koheron
 
 class Control {
-    private channelNum: number;
+    private channelNum: number = 2;
     private fftChanelInputs: HTMLInputElement[];
 
-    private precisionDacNum: number;
+    private precisionDacNum: number = 4;
     private precisionDacInputs: HTMLInputElement[];
 
     private clkgenInputs: HTMLInputElement[];
@@ -13,11 +13,9 @@ class Control {
     private fftInputs: HTMLInputElement[];
 
     constructor(document: Document, private fft: FFT, private PrecisionDac: PrecisionDac, private clkGen: ClockGenerator) {
-        this.channelNum = 2;
         this.fftChanelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-channel-input");
         this.initFFTChannelInputs();
 
-        this.precisionDacNum = 4;
         this.precisionDacInputs = <HTMLInputElement[]><any>document.getElementsByClassName("precision-dac-input");
         this.initPrecisionDacInputs();
 
@@ -71,9 +69,6 @@ class Control {
 
     private updateDacValues() {
         this.PrecisionDac.getDacValues( (dacValues: Float32Array) => {
-
-            console.log(dacValues);
-
             for (let i = 0; i < this.precisionDacNum; i++) {
                 let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".precision-dac-input[data-command='setDac'][data-channel='" + i.toString() + "']");
                 let inputsArray = [];

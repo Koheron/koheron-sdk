@@ -17,8 +17,7 @@ class App {
     private supplyClockVoltageSpan: HTMLSpanElement;
     private supplyClockCurrentSpan: HTMLSpanElement;
 
-    private precisionAdcNum: number;
-    private precisionAdcSpans: HTMLSpanElement[];
+    private precisionAdcNum: number = 4;
 
     private navigation: Navigation;
 
@@ -34,13 +33,6 @@ class App {
         this.supplyMainCurrentSpan = <HTMLSpanElement>document.getElementById('supply-main-current');
         this.supplyClockVoltageSpan = <HTMLSpanElement>document.getElementById('supply-clock-voltage');
         this.supplyClockCurrentSpan = <HTMLSpanElement>document.getElementById('supply-clock-current');
-
-        this.precisionAdcNum = 4;
-        this.precisionAdcSpans = [];
-
-        for (let i:number = 0; i < this.precisionAdcNum; i++) {
-            this.precisionAdcSpans[i] = <HTMLInputElement>document.getElementById('precision-adc-' + i.toString());
-        }
 
         window.addEventListener('load', () => {
             client.init( () => {
@@ -89,9 +81,8 @@ class App {
     private updatePrecisionAdcValues() {
         this.precisionAdc.getAdcValues((adcValues: Float32Array) => {
             for (let i: number = 0; i < this.precisionAdcNum; i++) {
-                this.precisionAdcSpans[i].innerHTML = (adcValues[i] * 1000).toFixed(4).toString();
+                (<HTMLSpanElement>document.querySelector(".precision-adc-span[data-channel='" + i.toString() + "']")).textContent = (adcValues[i] * 1000).toFixed(4).toString();
             }
-
             requestAnimationFrame( () => { this.updatePrecisionAdcValues(); });
         });
     }
