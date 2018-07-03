@@ -100,11 +100,13 @@
           </label>
 
           <div class="radio-wrapper">
-            <input type="radio" name="input-channel" value="0" checked style="width: auto; vertical-align: -12px; margin: 0px 5px" class="fft-input" data-command="setInputChannel">0
+            <input type="radio" name="input-channel" value="0" checked style="width: auto; vertical-align: -12px; margin: 0px 5px"
+            class="fft-input" data-command="setInputChannel">0
           </div>
 
           <div class="radio-wrapper">
-            <input type="radio" name="input-channel" value="1" style="width: auto; vertical-align: -12px; margin: 0px 5px" class="fft-input" data-command="setInputChannel">1
+            <input type="radio" name="input-channel" value="1" style="width: auto; vertical-align: -12px; margin: 0px 5px"
+            class="fft-input" data-command="setInputChannel">1
           </div>
 
         </div>
@@ -139,13 +141,13 @@
           </label>
 
           <div class="radio-wrapper">
-            <input type="radio" name="sampling-frequency" value="200 MHz" id="sampling-frequency-200" checked style="width: auto; vertical-align: -12px; margin: 0px 5px"
-            onchange="app.control.setSamplingFrequency(this.value); return false;">200 MHz
+            <input type="radio" name="sampling-frequency" value="0" checked style="width: auto; vertical-align: -12px; margin: 0px 5px"
+            class="clkgen-input" data-command="setSamplingFrequency">200 MHz
           </div>
 
           <div class="radio-wrapper">
-            <input type="radio" name="sampling-frequency" value="250 MHz" id="sampling-frequency-250" style="width: auto; vertical-align: -12px; margin: 0px 5px"
-            onchange="app.control.setSamplingFrequency(this.value); return false;">250 MHz
+            <input type="radio" name="sampling-frequency" value="1" style="width: auto; vertical-align: -12px; margin: 0px 5px"
+            class="clkgen-input" data-command="setSamplingFrequency">250 MHz
           </div>
 
         </div>

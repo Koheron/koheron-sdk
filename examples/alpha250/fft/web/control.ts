@@ -13,11 +13,6 @@ class Control {
     private frequencySliders: HTMLInputElement[];
 
     private clkgenInputs: HTMLInputElement[];
-
-    private samplingFrequency: string;
-    private samplingFrequency200Input: HTMLInputElement;
-    private samplingFrequency250Input: HTMLInputElement;
-
     private fftSelects: HTMLSelectElement[];
     private fftInputs: HTMLInputElement[];
 
@@ -47,10 +42,6 @@ class Control {
         this.clkgenInputs = <HTMLInputElement[]><any>document.getElementsByClassName("clkgen-input");
         this.initClkgenInputs();
 
-        this.samplingFrequency = '250 MHz';
-        this.samplingFrequency200Input = <HTMLInputElement>document.getElementById('sampling-frequency-200');
-        this.samplingFrequency250Input = <HTMLInputElement>document.getElementById('sampling-frequency-250');
-
         this.fftSelects = <HTMLSelectElement[]><any>document.getElementsByClassName("fft-select");
         this.initFFTSelects();
         this.fftInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-input");
@@ -77,11 +68,9 @@ class Control {
                 }
 
                 if (sts.fs === 200E6) {
-                    this.samplingFrequency = '200 MHz';
-                    this.samplingFrequency200Input.checked = true;
+                    (<HTMLInputElement>document.querySelector("[data-command='setSamplingFrequency'][value='0']")).checked = true;
                 } else {
-                    this.samplingFrequency = '250 MHz';
-                    this.samplingFrequency250Input.checked = true;
+                    (<HTMLInputElement>document.querySelector("[data-command='setSamplingFrequency'][value='1']")).checked = true;
                 }
 
                 (<HTMLInputElement>document.querySelector("[data-command='setInputChannel'][value='" + sts.channel.toString() + "']")).checked = true;
@@ -152,16 +141,6 @@ class Control {
         }
 
         this.PrecisionDac.setDac(channel, parseFloat(precisionDacValue) / 1000);
-    }
-
-    setSamplingFrequency(samplingFrequency: string) {
-        this.samplingFrequency = samplingFrequency;
-
-        if (this.samplingFrequency === '200 MHz') {
-            this.clkGen.setSamplingFrequency(0);
-        } else { // 250 MHz
-            this.clkGen.setSamplingFrequency(1);
-        }
     }
 
     initFFTSelects(): void {
