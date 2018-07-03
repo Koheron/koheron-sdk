@@ -53,9 +53,9 @@ class App {
 
     private updateTemperatures() {
         this.temperatureSensor.getTemperatures((temperatures: Float32Array) => {
-            this.temperatureVoltageReference.innerHTML = temperatures[0].toFixed(3).toString();
-            this.temperatureBoardSpan.innerHTML = temperatures[1].toFixed(3).toString();
-            this.temperatureZynqSpan.innerHTML = temperatures[2].toFixed(3).toString();
+            this.temperatureVoltageReference.innerHTML = temperatures[0].toFixed(3);
+            this.temperatureBoardSpan.innerHTML = temperatures[1].toFixed(3);
+            this.temperatureZynqSpan.innerHTML = temperatures[2].toFixed(3);
 
             requestAnimationFrame( () => { this.updateTemperatures(); } );
         });
@@ -79,7 +79,7 @@ class App {
     private updatePrecisionAdcValues() {
         this.precisionAdc.getAdcValues((adcValues: Float32Array) => {
             for (let i: number = 0; i < this.precisionAdcNum; i++) {
-                (<HTMLSpanElement>document.querySelector(".precision-adc-span[data-channel='" + i.toString() + "']")).textContent = (adcValues[i] * 1000).toFixed(4).toString();
+                (<HTMLSpanElement>document.querySelector(".precision-adc-span[data-channel='" + i.toString() + "']")).textContent = (adcValues[i] * 1000).toFixed(4);
             }
             requestAnimationFrame( () => { this.updatePrecisionAdcValues(); });
         });

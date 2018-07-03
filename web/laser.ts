@@ -110,7 +110,7 @@ class LaserControl {
     update(): void {
         this.driver.getStatus ( (status) => {
 
-            this.measuredPowerSpan.innerHTML = Math.max(0, status.measured_power).toFixed(1).toString();
+            this.measuredPowerSpan.innerHTML = Math.max(0, status.measured_power).toFixed(1);
             this.ctx.clearRect(0, 0, this.canvas.width, 15);
             this.ctx.fillRect(0, 0, status.measured_power * this.canvas.width / 4000, 15);
 
@@ -121,17 +121,17 @@ class LaserControl {
             }
 
             if (document.activeElement !== this.inCurrentInput) {
-                this.inCurrentInput.value = status.current.toFixed(2).toString();
+                this.inCurrentInput.value = status.current.toFixed(2);
             }
             if (document.activeElement !== this.inCurrentSlider) {
-                this.inCurrentSlider.value = status.current.toFixed(2).toString();
+                this.inCurrentSlider.value = status.current.toFixed(2);
             }
 
             if (document.activeElement !== this.inPowerInput) {
-                this.inPowerInput.value = status.power.toFixed(1).toString();
+                this.inPowerInput.value = status.power.toFixed(1);
             }
             if (document.activeElement !== this.inPowerSlider) {
-                this.inPowerSlider.value = status.power.toFixed(1).toString();
+                this.inPowerSlider.value = status.power.toFixed(1);
             }
 
             this.laserOn = status.laser_on;
