@@ -34,7 +34,7 @@ class Plot {
     private exportDataFilename: HTMLLinkElement;
     private exportPlotFilename: HTMLLinkElement;
 
-    constructor(document: Document, private plot_placeholder: JQuery, private fft: FFT, private control: Control) {
+    constructor(document: Document, private plot_placeholder: JQuery, private fft: FFT) {
         this.setPlot();
 
         this.range_x = <jquery.flot.range>{};
@@ -387,12 +387,13 @@ class Plot {
         csvContent += "Koheron Alpha \n";
 
         let dateTime = new Date();
-        let referenceClock = (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock']:checked")).dataset.valuestr;
+        let referenceClock: string = (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock']:checked")).dataset.valuestr;
+        let fftWindowIndex: string = (<HTMLInputElement>document.querySelector("[data-command='setFFTWindow']")).value;
         csvContent += dateTime.getDate() + "/" + (dateTime.getMonth()+1)  + "/"  + dateTime.getFullYear() + " " ;
         csvContent += dateTime.getHours() + ":" + dateTime.getMinutes() + ":" + dateTime.getSeconds() + "\n";
 
         csvContent += "\n";
-        csvContent += '"Window",' + (this.control.fftWindowIndex).toString() + "\n";
+        csvContent += '"Window",' + fftWindowIndex + "\n";
         csvContent += '"Input channel",' + (this.fft.status.channel).toString() + "\n";
         csvContent += '"Sampling frequency (MHz)",' + (this.fft.status.fs / 1e6).toString() + "\n";
         csvContent += '"Reference clock (10 MHz)",' + referenceClock + "\n";

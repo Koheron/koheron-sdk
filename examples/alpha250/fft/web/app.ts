@@ -54,7 +54,7 @@ class App {
 
                 this.fft.init( () => {
                     this.control = new Control(document, this.fft, this.precisionDac, this.clkGenerator);
-                    this.plot = new Plot(document, plot_placeholder, this.fft, this.control);
+                    this.plot = new Plot(document, plot_placeholder, this.fft);
                     this.updateTemperatures();
                     this.updateSupplies();
                     this.updatePrecisionAdcValues();
