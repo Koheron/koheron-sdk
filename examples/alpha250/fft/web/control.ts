@@ -7,7 +7,6 @@ class Control {
 
     private precisionDacNum: number;
     private precisionDacInputs: HTMLInputElement[];
-    private precisionDacSliders: HTMLInputElement[];
 
     private clkgenInputs: HTMLInputElement[];
     private fftSelects: HTMLSelectElement[];
@@ -19,14 +18,8 @@ class Control {
         this.initFFTChannelInputs();
 
         this.precisionDacNum = 4;
-
-        this.precisionDacInputs = [];
-        this.precisionDacSliders = [];
-
-        for (let i: number = 0; i < this.precisionDacNum; i++) {
-            this.precisionDacInputs[i] = <HTMLInputElement>document.getElementById('precision-dac-input-' + i.toString());
-            this.precisionDacSliders[i] = <HTMLInputElement>document.getElementById('precision-dac-slider-' + i.toString());
-        }
+        this.precisionDacInputs = <HTMLInputElement[]><any>document.getElementsByClassName("precision-dac-input");
+        this.initPrecisionDacInputs();
 
         this.clkgenInputs = <HTMLInputElement[]><any>document.getElementsByClassName("clkgen-input");
         this.initClkgenInputs();
@@ -48,7 +41,7 @@ class Control {
         this.fft.getControlParameters( (sts: IFFTStatus) => {
 
             for (let i = 0; i < this.channelNum; i++) {
-                let inputs = <HTMLInputElement[]><any>document.querySelectorAll("[data-command='setDDSFreq'][data-channel='" + i.toString() + "']");
+                let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".fft-channel-input[data-command='setDDSFreq'][data-channel='" + i.toString() + "']");
                 let inputsArray = [];
                 for (let j = 0; j < inputs.length; j++) {
                     inputsArray.push(inputs[j]);
@@ -78,13 +71,20 @@ class Control {
 
     private updateDacValues() {
         this.PrecisionDac.getDacValues( (dacValues: Float32Array) => {
-            for (let i: number = 0; i < this.precisionDacNum; i++) {
-                if (document.activeElement !== this.precisionDacInputs[i]) {
-                    this.precisionDacInputs[i].value = (dacValues[i] * 1000).toFixed(3).toString();
+
+            console.log(dacValues);
+
+            for (let i = 0; i < this.precisionDacNum; i++) {
+                let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".precision-dac-input[data-command='setDac'][data-channel='" + i.toString() + "']");
+                let inputsArray = [];
+                for (let j = 0; j < inputs.length; j++) {
+                    inputsArray.push(inputs[j]);
                 }
 
-                if (document.activeElement !== this.precisionDacSliders[i]) {
-                    this.precisionDacSliders[i].value = (dacValues[i] * 1000).toFixed(3).toString();
+                if (inputsArray.indexOf(<HTMLInputElement>document.activeElement) == -1) {
+                    for (let j = 0; j < inputs.length; j++) {
+                      inputs[j].value = (dacValues[i] * 1000).toFixed(3).toString();
+                    }
                 }
             }
 
@@ -134,16 +134,23 @@ class Control {
 
     }
 
-    setPrecisionDac(channel: number, input: HTMLInputElement) {
-        let precisionDacValue = input.value;
-
-        if (input.type === 'number') {
-            this.precisionDacSliders[channel].value = precisionDacValue;
-        } else if (input.type === 'range') {
-            this.precisionDacInputs[channel].value = precisionDacValue;
+    initPrecisionDacInputs(): void {
+        let events = ['change', 'input'];
+        for (let j = 0; j < events.length; j++) {
+            for (let i = 0; i < this.precisionDacInputs.length; i++) {
+                this.precisionDacInputs[i].addEventListener(events[j], (event) => {
+                    let counterType: string = "number";
+                    if ((<HTMLInputElement>event.currentTarget).type == "number") {
+                        counterType = "range";
+                    }
+                    let command = (<HTMLInputElement>event.currentTarget).dataset.command;
+                    let channel = (<HTMLInputElement>event.currentTarget).dataset.channel;
+                    let value = (<HTMLInputElement>event.currentTarget).value;
+                    (<HTMLInputElement>document.querySelector("[data-command='" + command + "'][data-channel='" + channel +"'][type='" + counterType + "']")).value = value ;
+                    this.PrecisionDac[command](channel, parseFloat(value) / 1000);
+                })
+            }
         }
-
-        this.PrecisionDac.setDac(channel, parseFloat(precisionDacValue) / 1000);
     }
 
     initFFTSelects(): void {
