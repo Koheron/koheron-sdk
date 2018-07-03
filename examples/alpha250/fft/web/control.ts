@@ -20,12 +20,9 @@ class Control {
     private samplingFrequency200Input: HTMLInputElement;
     private samplingFrequency250Input: HTMLInputElement;
 
-    private inputCh0: HTMLInputElement;
-    private inputCh1: HTMLInputElement;
-
     public fftWindowIndex: number;
     private fftSelects: HTMLSelectElement[];
-    // private fftWindowSelect: HTMLSelectElement;
+    private fftInputs: HTMLInputElement[];
 
     constructor(document: Document, private fft: FFT, private PrecisionDac: PrecisionDac, private clkGen: ClockGenerator) {
         this.channelNum = 2;
@@ -58,12 +55,11 @@ class Control {
         this.samplingFrequency200Input = <HTMLInputElement>document.getElementById('sampling-frequency-200');
         this.samplingFrequency250Input = <HTMLInputElement>document.getElementById('sampling-frequency-250');
 
-        this.inputCh0 = <HTMLInputElement>document.getElementById('input-ch0');
-        this.inputCh1 = <HTMLInputElement>document.getElementById('input-ch1');
-
         this.fftWindowIndex = 1;
         this.fftSelects = <HTMLSelectElement[]><any>document.getElementsByClassName("fft-select");
         this.initFFTSelects();
+        this.fftInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-input");
+        this.initFFTInputs();
 
         this.updateDacValues();
         this.updateReferenceClock();
@@ -93,11 +89,8 @@ class Control {
                     this.samplingFrequency250Input.checked = true;
                 }
 
-                if (sts.channel === 0) {
-                    this.inputCh0.checked = true;
-                } else {
-                    this.inputCh1.checked = true;
-                }
+                (<HTMLInputElement>document.querySelector("[data-command='setInputChannel'][value='" + sts.channel.toString() + "']")).checked = true;
+
             }
 
             requestAnimationFrame( () => { this.updateControls(); } )
@@ -196,6 +189,14 @@ class Control {
         for (let i = 0; i < this.fftSelects.length; i++) {
             this.fftSelects[i].addEventListener('change', (event) => {
                 this.fft[(<HTMLSelectElement>event.currentTarget).dataset.command]((<HTMLSelectElement>event.currentTarget).value);
+            })
+        }
+    }
+
+    initFFTInputs(): void {
+        for (let i = 0; i < this.fftInputs.length; i++) {
+            this.fftInputs[i].addEventListener('change', (event) => {
+                this.fft[(<HTMLInputElement>event.currentTarget).dataset.command]((<HTMLInputElement>event.currentTarget).value);
             })
         }
     }
