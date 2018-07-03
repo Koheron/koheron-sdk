@@ -3,14 +3,11 @@
 
 class Control {
     private channelNum: number;
+    private fftChanelInputs: HTMLInputElement[];
 
     private precisionDacNum: number;
     private precisionDacInputs: HTMLInputElement[];
     private precisionDacSliders: HTMLInputElement[];
-
-    private frequencies: Array<number>;
-    private frequencyInputs: HTMLInputElement[];
-    private frequencySliders: HTMLInputElement[];
 
     private clkgenInputs: HTMLInputElement[];
     private fftSelects: HTMLSelectElement[];
@@ -18,16 +15,8 @@ class Control {
 
     constructor(document: Document, private fft: FFT, private PrecisionDac: PrecisionDac, private clkGen: ClockGenerator) {
         this.channelNum = 2;
-
-        this.frequencyInputs = [];
-        this.frequencySliders = [];
-
-        for (let i: number = 0; i < this.channelNum; i++) {
-            this.frequencyInputs[i] = <HTMLInputElement>document.getElementById('frequency-input-' + i.toString());
-            this.frequencySliders[i] = <HTMLInputElement>document.getElementById('frequency-slider-' + i.toString());
-        }
-
-        this.frequencies = new Array(this.channelNum);
+        this.fftChanelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-channel-input");
+        this.initFFTChannelInputs();
 
         this.precisionDacNum = 4;
 
@@ -57,25 +46,31 @@ class Control {
 
     private updateControls() {
         this.fft.getControlParameters( (sts: IFFTStatus) => {
-            for (let i: number = 0; i < this.channelNum; i++) {
-                if (document.activeElement !== this.frequencyInputs[i]) {
-                    this.frequencyInputs[i].value = (sts.dds_freq[i] / 1e6).toFixed(6);
+
+            for (let i = 0; i < this.channelNum; i++) {
+                let inputs = <HTMLInputElement[]><any>document.querySelectorAll("[data-command='setDDSFreq'][data-channel='" + i.toString() + "']");
+                let inputsArray = [];
+                for (let j = 0; j < inputs.length; j++) {
+                    inputsArray.push(inputs[j]);
                 }
 
-                if (document.activeElement !== this.frequencySliders[i]) {
-                    this.frequencySliders[i].value = (sts.dds_freq[i] / 1e6).toFixed(6);
-                    this.frequencySliders[i].max = (sts.fs / 1e6 / 2).toFixed(1);
+                if (inputsArray.indexOf(<HTMLInputElement>document.activeElement) == -1) {
+                    for (let j = 0; j < inputs.length; j++) {
+                      inputs[j].value = (sts.dds_freq[i] / 1e6).toFixed(6);
+                      if (inputs[j].type == "range") {
+                        inputs[j].max = (sts.fs / 1e6 / 2).toFixed(1);
+                      }
+                    }
                 }
-
-                if (sts.fs === 200E6) {
-                    (<HTMLInputElement>document.querySelector("[data-command='setSamplingFrequency'][value='0']")).checked = true;
-                } else {
-                    (<HTMLInputElement>document.querySelector("[data-command='setSamplingFrequency'][value='1']")).checked = true;
-                }
-
-                (<HTMLInputElement>document.querySelector("[data-command='setInputChannel'][value='" + sts.channel.toString() + "']")).checked = true;
-
             }
+
+            if (sts.fs === 200E6) {
+                (<HTMLInputElement>document.querySelector("[data-command='setSamplingFrequency'][value='0']")).checked = true;
+            } else {
+                (<HTMLInputElement>document.querySelector("[data-command='setSamplingFrequency'][value='1']")).checked = true;
+            }
+
+            (<HTMLInputElement>document.querySelector("[data-command='setInputChannel'][value='" + sts.channel.toString() + "']")).checked = true;
 
             requestAnimationFrame( () => { this.updateControls(); } )
         });
@@ -119,16 +114,24 @@ class Control {
 
     // Setters
 
-    setFrequency(channel: number, input: HTMLInputElement) {
-        let frequencyValue = input.value;
-
-        if (input.type === 'number') {
-            this.frequencySliders[channel].value = frequencyValue;
-        } else if (input.type === 'range') {
-            this.frequencyInputs[channel].value = frequencyValue;
+    initFFTChannelInputs(): void {
+        let events = ['change', 'input'];
+        for (let j = 0; j < events.length; j++) {
+            for (let i = 0; i < this.fftChanelInputs.length; i++) {
+                this.fftChanelInputs[i].addEventListener(events[j], (event) => {
+                    let counterType: string = "number";
+                    if ((<HTMLInputElement>event.currentTarget).type == "number") {
+                        counterType = "range";
+                    }
+                    let command = (<HTMLInputElement>event.currentTarget).dataset.command;
+                    let channel = (<HTMLInputElement>event.currentTarget).dataset.channel;
+                    let value = (<HTMLInputElement>event.currentTarget).value;
+                    (<HTMLInputElement>document.querySelector("[data-command='" + command + "'][data-channel='" + channel +"'][type='" + counterType + "']")).value = value ;
+                    this.fft[command](channel, 1e6 * parseFloat(value));
+                })
+            }
         }
 
-        this.fft.setDDSFreq(channel, 1e6 * parseFloat(frequencyValue));
     }
 
     setPrecisionDac(channel: number, input: HTMLInputElement) {
