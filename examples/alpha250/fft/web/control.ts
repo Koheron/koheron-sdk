@@ -18,7 +18,6 @@ class Control {
     private samplingFrequency200Input: HTMLInputElement;
     private samplingFrequency250Input: HTMLInputElement;
 
-    public fftWindowIndex: number;
     private fftSelects: HTMLSelectElement[];
     private fftInputs: HTMLInputElement[];
 
@@ -52,7 +51,6 @@ class Control {
         this.samplingFrequency200Input = <HTMLInputElement>document.getElementById('sampling-frequency-200');
         this.samplingFrequency250Input = <HTMLInputElement>document.getElementById('sampling-frequency-250');
 
-        this.fftWindowIndex = 1;
         this.fftSelects = <HTMLSelectElement[]><any>document.getElementsByClassName("fft-select");
         this.initFFTSelects();
         this.fftInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-input");
@@ -125,7 +123,6 @@ class Control {
 
     private updateFFTWindowInputs() {
         this.fft.getFFTWindowIndex( (windowIndex: number) => {
-            this.fftWindowIndex = windowIndex;
             (<HTMLSelectElement>document.querySelector("[data-command='setFFTWindow']")).value = windowIndex.toString();
             requestAnimationFrame( () => { this.updateFFTWindowInputs(); } )
         });
