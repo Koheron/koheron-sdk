@@ -88,18 +88,14 @@ class Control {
                 if (sts.fs === 200E6) {
                     this.samplingFrequency = '200 MHz';
                     this.samplingFrequency200Input.checked = true;
-                    this.samplingFrequency250Input.checked = false;
                 } else {
                     this.samplingFrequency = '250 MHz';
-                    this.samplingFrequency200Input.checked = false;
                     this.samplingFrequency250Input.checked = true;
                 }
 
                 if (sts.channel === 0) {
                     this.inputCh0.checked = true;
-                    this.inputCh1.checked = false;
                 } else {
-                    this.inputCh0.checked = false;
                     this.inputCh1.checked = true;
                 }
             }
@@ -128,12 +124,10 @@ class Control {
         this.clkGen.getReferenceClock( (clkin: number) => {
             if (clkin === 0) {
                 this.referenceClock = 'external';
-                this.referenceClockInternalInput.checked = false;
                 this.referenceClockExternalInput.checked = true;
             } else {
                 this.referenceClock = 'internal';
                 this.referenceClockInternalInput.checked = true;
-                this.referenceClockExternalInput.checked = false;
             }
 
             requestAnimationFrame( () => { this.updateReferenceClock(); } )
