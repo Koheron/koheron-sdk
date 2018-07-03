@@ -9,9 +9,7 @@ class App {
     private precisionAdc: PrecisionAdc;
     private clkGenerator: ClockGenerator;
 
-    private temperatureVoltageReference: HTMLSpanElement;
-    private temperatureBoardSpan: HTMLSpanElement;
-    private temperatureZynqSpan: HTMLSpanElement;
+    private temperatureSpans: HTMLSpanElement[];
     private supplySpans: HTMLSpanElement[];
 
     private precisionAdcNum: number = 4;
@@ -23,9 +21,7 @@ class App {
         let sockpoolSize: number = 10;
         let client = new Client(ip, sockpoolSize);
 
-        this.temperatureVoltageReference = <HTMLSpanElement>document.getElementById('temperature-voltage-reference');
-        this.temperatureBoardSpan = <HTMLSpanElement>document.getElementById('temperature-board');
-        this.temperatureZynqSpan = <HTMLSpanElement>document.getElementById('temperature-zynq');
+        this.temperatureSpans = <HTMLSpanElement[]><any>document.getElementsByClassName("temperature-span");
         this.supplySpans = <HTMLSpanElement[]><any>document.getElementsByClassName("supply-span");
 
         window.addEventListener('load', () => {
@@ -53,10 +49,9 @@ class App {
 
     private updateTemperatures() {
         this.temperatureSensor.getTemperatures((temperatures: Float32Array) => {
-            this.temperatureVoltageReference.innerHTML = temperatures[0].toFixed(3);
-            this.temperatureBoardSpan.innerHTML = temperatures[1].toFixed(3);
-            this.temperatureZynqSpan.innerHTML = temperatures[2].toFixed(3);
-
+            for (let i = 0; i < this.temperatureSpans.length; i ++) {
+                this.temperatureSpans[i].textContent = temperatures[parseInt(this.temperatureSpans[i].dataset.index)].toFixed(3);
+            }
             requestAnimationFrame( () => { this.updateTemperatures(); } );
         });
     }
