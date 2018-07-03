@@ -14,8 +14,7 @@ class Plot {
     private options: jquery.flot.plotOptions;
     private plot: jquery.flot.plot;
 
-    private yUnit: string;
-    private yLabel: string;
+    private yLabel: string = "Power Spectral Density";
 
     private plot_data: Array<Array<number>>;
 
@@ -46,9 +45,6 @@ class Plot {
         this.range_y.to = this.max_y;
 
         this.n_pts = this.fft.fft_size / 2;
-
-        this.yUnit = "dBm-Hz";
-        this.yLabel = "Power Spectral Density";
 
         this.hoverDatapointSpan = <HTMLSpanElement>document.getElementById("hover-datapoint");
         this.hoverDatapoint = [];
@@ -203,11 +199,12 @@ class Plot {
     }
 
     redraw(psd: Float32Array, callback: () => void) {
-        this.peakDatapoint = [ this.fft.status.fs / 1E6 / 2 / this.n_pts , this.convertValue(psd[0], this.yUnit)];
+        let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
+        this.peakDatapoint = [ this.fft.status.fs / 1E6 / 2 / this.n_pts , this.convertValue(psd[0], yUnit)];
 
         for (let i: number = 0; i <= this.n_pts; i++) {
             let freq: number = (i + 1) * this.fft.status.fs / 1E6 / 2 / this.n_pts; // MHz
-            let convertedPsd: number = this.convertValue(psd[i], this.yUnit);
+            let convertedPsd: number = this.convertValue(psd[i], yUnit);
             this.plot_data[i] = [freq, convertedPsd];
 
             if (this.peakDatapoint[1] < this.plot_data[i][1]) {
@@ -332,7 +329,6 @@ class Plot {
         let unitInputs: HTMLInputElement[] = <HTMLInputElement[]><any>document.getElementsByClassName("unit-input");
         for (let i = 0; i < unitInputs.length; i ++) {
             unitInputs[i].addEventListener( 'change', (event) => {
-                this.yUnit = (<HTMLInputElement>event.currentTarget).value;
                 this.resetRange();
             })
         }
@@ -402,7 +398,8 @@ class Plot {
 
         csvContent += "\n\n";
 
-        csvContent += '"Frequency (MHz)","Power spectral density (' + this.yUnit.replace("-", "/") + ')" \n';
+        let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
+        csvContent += '"Frequency (MHz)","Power spectral density (' + yUnit.replace("-", "/") + ')" \n';
 
         this.plot_data.forEach( (rowArray) => {
             let row = rowArray.join(",");
