@@ -12,10 +12,7 @@ class App {
     private temperatureVoltageReference: HTMLSpanElement;
     private temperatureBoardSpan: HTMLSpanElement;
     private temperatureZynqSpan: HTMLSpanElement;
-    private supplyMainVoltageSpan: HTMLSpanElement;
-    private supplyMainCurrentSpan: HTMLSpanElement;
-    private supplyClockVoltageSpan: HTMLSpanElement;
-    private supplyClockCurrentSpan: HTMLSpanElement;
+    private supplySpans: HTMLSpanElement[];
 
     private precisionAdcNum: number = 4;
 
@@ -29,10 +26,7 @@ class App {
         this.temperatureVoltageReference = <HTMLSpanElement>document.getElementById('temperature-voltage-reference');
         this.temperatureBoardSpan = <HTMLSpanElement>document.getElementById('temperature-board');
         this.temperatureZynqSpan = <HTMLSpanElement>document.getElementById('temperature-zynq');
-        this.supplyMainVoltageSpan = <HTMLSpanElement>document.getElementById('supply-main-voltage');
-        this.supplyMainCurrentSpan = <HTMLSpanElement>document.getElementById('supply-main-current');
-        this.supplyClockVoltageSpan = <HTMLSpanElement>document.getElementById('supply-clock-voltage');
-        this.supplyClockCurrentSpan = <HTMLSpanElement>document.getElementById('supply-clock-current');
+        this.supplySpans = <HTMLSpanElement[]><any>document.getElementsByClassName("supply-span");
 
         window.addEventListener('load', () => {
             client.init( () => {
@@ -69,11 +63,15 @@ class App {
 
     private updateSupplies() {
         this.powerMonitor.getSuppliesUI((supplyValues: Float32Array) => {
-            this.supplyMainCurrentSpan.innerHTML = (supplyValues[0] * 1E3).toFixed(1).toString();
-            this.supplyMainVoltageSpan.innerHTML = supplyValues[1].toFixed(3).toString();
-            this.supplyClockCurrentSpan.innerHTML = (supplyValues[2] * 1E3).toFixed(1).toString();
-            this.supplyClockVoltageSpan.innerHTML = supplyValues[3].toFixed(3).toString();
-
+            for (let i = 0; i < this.supplySpans.length; i ++) {
+                let value: string = "";
+                if (this.supplySpans[i].dataset.type === "voltage") {
+                    value = supplyValues[parseInt(this.supplySpans[i].dataset.index)].toFixed(3);
+                } else if (this.supplySpans[i].dataset.type === "current") {
+                    value = (supplyValues[parseInt(this.supplySpans[i].dataset.index)] * 1E3).toFixed(1);
+                }
+                this.supplySpans[i].textContent = value;
+            }
             requestAnimationFrame( () => { this.updateSupplies(); });
         });
     }
