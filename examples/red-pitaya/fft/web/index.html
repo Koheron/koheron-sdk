@@ -16,24 +16,24 @@
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
+  <link rel="stylesheet" type="text/css" href="fft.css">
 
   <script type="text/javascript" src="jquery.min.js"></script>
   <script type="text/javascript" src="bootstrap.min.js"></script>
+
+  <link rel="import" href="navigation.html" data-parent="navigation">
+  <link rel="import" href="yunit.html" data-parent="yunit">
+  <link rel="import" href="fft-window.html" data-parent="fft-window">
+  <link rel="import" href="input-channel.html" data-parent="input-channel">
+  <link rel="import" href="peak-detection.html" data-parent="peak-detection">
+  <link rel="import" href="dds-frequency.html" data-parent="dds-frequency">
+  <link rel="import" href="export-file.html" data-parent="export-file">
+
 </head>
 
 <body>
 
-<div id="navigation">
-
-  <div id="navigation-links">
-    <img src="_koheron_logo.svg" alt="home" style="max-width: 100%;">
-    <a href="/">Home</a>
-    <a href="/koheron">Settings</a>
-  </div>
-
- <button value="close" id="collapse-btn" onclick="app.navigation.collapseBtnClick(this); return false;">&#60;</button>
-
-</div>
+<div id="navigation"></div>
 
 <div id="main" class="container-fluid" style="padding: 10px">
 
@@ -52,134 +52,15 @@
 
     <div class="col-md-4">
 
-      <section>
-
-        <!-- Unit -->
-
-        <div>
-
-          <label id="unit-label" for="unit">
-            Unit:
-          </label>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="unit" value="dBm-Hz" checked style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.plot.changeYUnit(this.value); return false;">dBm / Hz
-          </div>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="unit" value="dBm" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.plot.changeYUnit(this.value); return false;">dBm
-          </div>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="unit" value="nv-rtHz" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.plot.changeYUnit(this.value); return false;">nV / rtHz
-          </div>
-
-        </div>
-
-        <!-- Window -->
-
-        <div>
-
-          <label for="fft-window">FFT Window:</label>
-
-          <select id="fft-window" onchange="app.control.setFFTWindow(this.value); return false;" style="width: 250px; margin-left: 10px">
-            <option value="0" selected>Rectangular</option>
-            <option value="1">Hanning</option>
-            <option value="2">Flat Top</option>
-            <option value="3">Blackman-Harris</option>
-          </select>
-
-        </div>
-
-        <!-- IN channel -->
-
-        <div>
-
-          <label for="in-channel">
-            IN Channel:
-          </label>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="in-channel" value="0" id="in-channel-0" checked style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.control.setInChannel(this.value); return false;">0
-          </div>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="in-channel" value="1" id="in-channel-1" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.control.setInChannel(this.value); return false;">1
-          </div>
-
-        </div>
-
-        <div style="padding-bottom: 10px;">
-          <label>Peak Detection:</label>
-          <label class="switch" style="margin-top: 0px; margin-bottom: -7px; margin-left: 5px;">
-            <input type="checkbox" id="peak-switch" onchange="app.plot.detectPeak(); return false" checked>
-            <span class="slider round"></span>
-          </label>
-        </div>
-
+      <section style="margin-bottom: 20px;">
+        <div id="yunit"></div>
+        <div id="fft-window"></div>
+        <div id="input-channel"></div>
+        <div id="peak-detection"></div>
       </section>
 
-      <!-- DDS frequency -->
-
-      <section>
-
-        <div class="crossed">
-          <span>
-            DDS Frequency (MHz)
-        </span>
-        </div>
-
-        <table class="full-width">
-          <tr>
-            <td style="width: 60px">
-              OUT 0
-            </td>
-            <td style="width: 120px">
-              <input id="frequency-input-0" type="number" value="0" min="0" step="0.000001" max="125.0"
-              onchange="app.control.updateFrequency(0, this); return false" oninput="app.control.updateFrequency(0, this); return false">
-            </td>
-            <td>
-              <input id="frequency-slider-0" type="range" value="0" min="0" step="0.000001" max="125.0"
-              onchange="app.control.updateFrequency(0, this); return false" oninput="app.control.updateFrequency(0, this); return false">
-            </td>
-          </tr>
-          <tr>
-            <td>
-              OUT 1
-            </td>
-            <td>
-              <input id="frequency-input-1" type="number" value="0" min="0" step="0.000001" max="125.0"
-              onchange="app.control.updateFrequency(1, this); return false" oninput="app.control.updateFrequency(1, this); return false">
-            </td>
-            <td>
-              <input id="frequency-slider-1" type="range" value="0" min="0" step="0.000001" max="125.0"
-              onchange="app.control.updateFrequency(1, this); return false" oninput="app.control.updateFrequency(1, this); return false">
-            </td>
-          </tr>
-        </table>
-
-      </section>
-
-      <section style="padding-bottom: 10px;">
-
-        <div class="crossed">
-          <span>File</span>
-        </div>
-
-        <div style="margin-right: -5px; margin-left: -5px;">
-
-          <span style="padding: 5px;">
-            <button onclick="app.plot.exportData(); return false" class="default-btn">Export Data</button>
-            <a id="export-data-filename" download="koheron_data.csv" style="display: none"></a>
-          </span>
-
-          <span style="padding: 5px;">
-            <button onclick="app.plot.exportPlot(); return false" class="default-btn">Export Plot</button>
-            <a id="export-plot-filename" download="koheron_plot.png" style="display: none"></a>
-          </span>
-        </div>
-
-      </section>
+      <section id="dds-frequency"></section>
+      <section id="export-file"></section>
 
       <section>
 

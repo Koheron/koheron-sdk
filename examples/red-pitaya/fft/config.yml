@@ -87,10 +87,20 @@ web:
   - web/koheron.ts
   - web/jquery.flot.d.ts
   - web/laser.ts
-  - ./web/fft.ts
+  - web/navigation.ts
+  - web/navigation.html
+  - web/imports.ts
   - ./web/app.ts
-  - ./web/control.ts
-  - ./web/plot.ts
+  - ./web/plot/plot.ts
+  - ./web/plot/yunit.html
+  - ./web/plot/peak-detection.html
+  - ./web/fft/fft.ts
+  - ./web/fft/fft-app.ts
+  - ./web/fft/fft-window.html
+  - ./web/fft/input-channel.html
+  - ./web/fft/dds-frequency.html
+  - ./web/export-file/export-file.html
+  - ./web/export-file/export-file.ts
   - ./web/index.html
   - web/main.css
-  - web/navigation.ts
+  - ./web/fft.css

@@ -28,7 +28,7 @@ class FFT
     , psd_map(ctx.mm.get<mem::psd>())
     , demod_map(ctx.mm.get<mem::demod>())
     {
-        set_in_channel(0);
+        set_input_channel(0);
         set_scale_sch(0);
         set_fft_window(0);
         ctl.set_bit<reg::psd_valid, 0>();
@@ -39,9 +39,9 @@ class FFT
     // Power Spectral Density
     //////////////////////////////////////
 
-    void set_in_channel(uint32_t channel) {
+    void set_input_channel(uint32_t channel) {
         if (channel >= 2) {
-            ctx.log<ERROR>("FFT::set_in_channel invalid channel\n");
+            ctx.log<ERROR>("FFT::set_input_channel invalid channel\n");
             return;
         }
 

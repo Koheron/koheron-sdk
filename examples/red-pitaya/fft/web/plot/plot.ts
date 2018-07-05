@@ -12,12 +12,10 @@ class Plot {
 
     private reset_range: boolean;
     private options: jquery.flot.plotOptions;
-    private plot: jquery.flot.plot;
+    public plot: jquery.flot.plot;
+    public plot_data: Array<Array<number>>;
 
-    private yUnit: string;
-    private yLabel: string;
-
-    private plot_data: Array<Array<number>>;
+    private yLabel: string = "Power Spectral Density";
 
     private isMeasure: boolean = true;
 
@@ -31,10 +29,7 @@ class Plot {
     private clickDatapointSpan: HTMLSpanElement;
     private clickDatapoint: number[];
 
-    private exportDataFilename: HTMLLinkElement;
-    private exportPlotFilename: HTMLLinkElement;
-
-    constructor(document: Document, private plot_placeholder: JQuery, private fft: FFT, private control: Control) {
+    constructor(document: Document, private plot_placeholder: JQuery, private fft: FFT) {
         this.setPlot();
 
         this.range_x = <jquery.flot.range>{};
@@ -47,9 +42,6 @@ class Plot {
 
         this.n_pts = this.fft.fft_size / 2;
 
-        this.yUnit = "dBm-Hz";
-        this.yLabel = "Power Spectral Density";
-
         this.hoverDatapointSpan = <HTMLSpanElement>document.getElementById("hover-datapoint");
         this.hoverDatapoint = [];
 
@@ -59,12 +51,11 @@ class Plot {
         this.peakDatapointSpan = <HTMLSpanElement>document.getElementById("peak-datapoint");
         this.peakDatapoint = [];
 
-        this.exportDataFilename = <HTMLLinkElement>document.getElementById("export-data-filename");
-        this.exportPlotFilename = <HTMLLinkElement>document.getElementById("export-plot-filename");
-
         this.plot_data = [];
 
         this.update_plot();
+        this.initUnitInputs();
+        this.initPeakDetection();
     }
 
     update_plot() {
@@ -202,14 +193,14 @@ class Plot {
     }
 
     redraw(psd: Float32Array, callback: () => void) {
-        // let plot_data: Array<Array<number>> = [];
+        let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
 
-        this.peakDatapoint = [ this.fft.status.fs / 1E6 / 2 / this.n_pts , this.convertValue(psd[0], this.yUnit)];
+        this.peakDatapoint = [ this.fft.status.fs / 1E6 / 2 / this.n_pts , this.convertValue(psd[0], yUnit)];
 
         for (let i: number = 0; i <= this.n_pts; i++) {
 
             let freq: number = (i + 1) * this.fft.status.fs / 1E6 / 2 / this.n_pts; // MHz
-            let convertedPsd: number = this.convertValue(psd[i], this.yUnit);
+            let convertedPsd: number = this.convertValue(psd[i], yUnit);
             this.plot_data[i] = [freq, convertedPsd];
 
             if (this.peakDatapoint[1] < this.plot_data[i][1]) {
@@ -337,16 +328,25 @@ class Plot {
         });
     }
 
-    changeYUnit(yUnit: string): void {
-        this.yUnit = yUnit;
-        this.resetRange();
+    initUnitInputs(): void {
+        let unitInputs: HTMLInputElement[] = <HTMLInputElement[]><any>document.getElementsByClassName("unit-input");
+        for (let i = 0; i < unitInputs.length; i ++) {
+            unitInputs[i].addEventListener( 'change', (event) => {
+                this.resetRange();
+            })
+        }
     }
 
-    detectPeak(): void {
-        if (this.isPeakDetection) {
-            this.isPeakDetection = false;
-        } else {
-            this.isPeakDetection = true;
+    initPeakDetection(): void {
+        let peakInputs: HTMLInputElement[] = <HTMLInputElement[]><any>document.getElementsByClassName("peak-input");
+        for (let i = 0; i < peakInputs.length; i ++) {
+            peakInputs[i].addEventListener( 'change', (event) => {
+                if (this.isPeakDetection) {
+                    this.isPeakDetection = false;
+                } else {
+                    this.isPeakDetection = true;
+                }
+            })
         }
     }
 
@@ -390,39 +390,4 @@ class Plot {
         });
     }
 
-    exportData() {
-        let csvContent = "data:text/csv;charset=utf-8,";
-
-        csvContent += "Koheron Alpha \n";
-
-        var dateTime = new Date();
-        csvContent += dateTime.getDate() + "/" + (dateTime.getMonth()+1)  + "/"  + dateTime.getFullYear() + " " ;
-        csvContent += dateTime.getHours() + ":" + dateTime.getMinutes() + ":" + dateTime.getSeconds() + "\n";
-
-        csvContent += "\n";
-        csvContent += '"Window",' + (this.control.fftWindowIndex).toString() + "\n";
-        csvContent += '"Input channel",' + (this.fft.status.channel).toString() + "\n";
-        csvContent += '"Channel 0 DDS frequency (MHz)",' + (this.fft.status.dds_freq[0] / 1e6).toString() + "\n";
-        csvContent += '"Channel 1 DDS frequency (MHz)",' + (this.fft.status.dds_freq[1] / 1e6).toString() + "\n";
-
-        csvContent += "\n\n";
-
-        csvContent += '"Frequency (MHz)","Power spectral density (' + this.yUnit.replace("-", "/") + ')" \n';
-
-        this.plot_data.forEach((rowArray) => {
-           let row = rowArray.join(",");
-           csvContent += row + "\n";
-        });
-
-        this.exportDataFilename.href = encodeURI(csvContent);
-        this.exportDataFilename.click();
-    }
-
-    exportPlot(): void {
-        var canvas = this.plot.getCanvas();
-        var imagePng = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
-
-        this.exportPlotFilename.href = imagePng;
-        this.exportPlotFilename.click();
-    }
 }

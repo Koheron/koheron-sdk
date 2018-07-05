@@ -1,0 +1,29 @@
+<template class="template">
+  <div class="crossed">
+    <span>DDS Frequency (MHz)</span>
+  </div>
+  <table class="full-width">
+    <tr>
+      <td style="width: 60px">
+        OUT 0
+      </td>
+      <td style="width: 120px">
+        <input type="number" value="0" min="0" step="0.000001" max="125.0" data-channel="0" data-command="setDDSFreq" class="fft-channel-input">
+      </td>
+      <td>
+        <input type="range" value="0" min="0" step="0.000001" max="125.0" data-channel="0" data-command="setDDSFreq" class="fft-channel-input">
+      </td>
+    </tr>
+    <tr>
+      <td>
+        OUT 1
+      </td>
+      <td>
+        <input type="number" value="0" min="0" step="0.000001" max="125.0" data-channel="1" data-command="setDDSFreq" class="fft-channel-input">
+      </td>
+      <td>
+        <input type="range" value="0" min="0" step="0.000001" max="125.0" data-channel="1" data-command="setDDSFreq" class="fft-channel-input">
+      </td>
+    </tr>
+  </table>
+</template>
