@@ -5,11 +5,12 @@ class App {
     private precisionDac: PrecisionDac;
 
     private temperatureSensor: TemperatureSensor;
+    private temperatureSensorApp: TemperatureSensorApp;
+
     private powerMonitor: PowerMonitor;
     private precisionAdc: PrecisionAdc;
     private clkGenerator: ClockGenerator;
 
-    private temperatureSpans: HTMLSpanElement[];
     private supplySpans: HTMLSpanElement[];
 
     private precisionAdcNum: number = 4;
@@ -21,7 +22,6 @@ class App {
         let sockpoolSize: number = 10;
         let client = new Client(ip, sockpoolSize);
 
-        this.temperatureSpans = <HTMLSpanElement[]><any>document.getElementsByClassName("temperature-span");
         this.supplySpans = <HTMLSpanElement[]><any>document.getElementsByClassName("supply-span");
 
         window.addEventListener('load', () => {
@@ -37,7 +37,7 @@ class App {
                 this.fft.init( () => {
                     this.control = new Control(document, this.fft, this.precisionDac, this.clkGenerator);
                     this.plot = new Plot(document, plot_placeholder, this.fft);
-                    this.updateTemperatures();
+                    this.temperatureSensorApp = new TemperatureSensorApp(document, this.temperatureSensor);
                     this.updateSupplies();
                     this.updatePrecisionAdcValues();
                 });
@@ -45,15 +45,6 @@ class App {
         }, false);
 
         window.onbeforeunload = () => { client.exit(); };
-    }
-
-    private updateTemperatures() {
-        this.temperatureSensor.getTemperatures((temperatures: Float32Array) => {
-            for (let i = 0; i < this.temperatureSpans.length; i ++) {
-                this.temperatureSpans[i].textContent = temperatures[parseInt(this.temperatureSpans[i].dataset.index)].toFixed(3);
-            }
-            requestAnimationFrame( () => { this.updateTemperatures(); } );
-        });
     }
 
     private updateSupplies() {
