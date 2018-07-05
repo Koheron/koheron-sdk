@@ -109,7 +109,8 @@ web:
   - ./web/clock-generator/reference-clock.html
   - ./web/yunit.html
 
-  - ./web/file.html
+  - ./web/export-file/export-file.html
+  - ./web/export-file/export-file.ts
   - ./web/temperature-sensor/temperature-sensor.html
   - ./web/temperature-sensor/temperature-sensor.ts
   - ./web/temperature-sensor/temperature-sensor-app.ts

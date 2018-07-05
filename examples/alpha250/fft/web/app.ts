@@ -17,6 +17,8 @@ class App {
     private precisionAdc: PrecisionAdc;
     private precisionChannelsApp: PrecisionChannelsApp;
 
+    private exportFile: ExportFile;
+
     private navigation: Navigation;
 
     constructor(window: Window, document: Document,
@@ -42,6 +44,7 @@ class App {
                     this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);
                     this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
                     this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionAdc, this.precisionDac);
+                    this.exportFile = new ExportFile(document, this.fft, this.plot);
 
                 });
             });

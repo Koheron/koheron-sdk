@@ -12,11 +12,10 @@ class Plot {
 
     private reset_range: boolean;
     private options: jquery.flot.plotOptions;
-    private plot: jquery.flot.plot;
+    public plot: jquery.flot.plot;
+    public plot_data: Array<Array<number>>;
 
     private yLabel: string = "Power Spectral Density";
-
-    private plot_data: Array<Array<number>>;
 
     private isMeasure: boolean = true;
 
@@ -29,9 +28,6 @@ class Plot {
 
     private clickDatapointSpan: HTMLSpanElement;
     private clickDatapoint: number[];
-
-    private exportDataFilename: HTMLLinkElement;
-    private exportPlotFilename: HTMLLinkElement;
 
     constructor(document: Document, private plot_placeholder: JQuery, private fft: FFT) {
         this.setPlot();
@@ -54,9 +50,6 @@ class Plot {
 
         this.peakDatapointSpan = <HTMLSpanElement>document.getElementById("peak-datapoint");
         this.peakDatapoint = [];
-
-        this.exportDataFilename = <HTMLLinkElement>document.getElementById("export-data-filename");
-        this.exportPlotFilename = <HTMLLinkElement>document.getElementById("export-plot-filename");
 
         this.plot_data = [];
 
@@ -377,44 +370,4 @@ class Plot {
         });
     }
 
-    exportData() {
-        let csvContent = "data:text/csv;charset=utf-8,";
-
-        csvContent += "Koheron Alpha \n";
-
-        let dateTime = new Date();
-        let referenceClock: string = (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock']:checked")).dataset.valuestr;
-        let fftWindowIndex: string = (<HTMLInputElement>document.querySelector("[data-command='setFFTWindow']")).value;
-        csvContent += dateTime.getDate() + "/" + (dateTime.getMonth()+1)  + "/"  + dateTime.getFullYear() + " " ;
-        csvContent += dateTime.getHours() + ":" + dateTime.getMinutes() + ":" + dateTime.getSeconds() + "\n";
-
-        csvContent += "\n";
-        csvContent += '"Window",' + fftWindowIndex + "\n";
-        csvContent += '"Input channel",' + (this.fft.status.channel).toString() + "\n";
-        csvContent += '"Sampling frequency (MHz)",' + (this.fft.status.fs / 1e6).toString() + "\n";
-        csvContent += '"Reference clock (10 MHz)",' + referenceClock + "\n";
-        csvContent += '"Channel 0 DDS frequency (MHz)",' + (this.fft.status.dds_freq[0] / 1e6).toString() + "\n";
-        csvContent += '"Channel 1 DDS frequency (MHz)",' + (this.fft.status.dds_freq[1] / 1e6).toString() + "\n";
-
-        csvContent += "\n\n";
-
-        let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
-        csvContent += '"Frequency (MHz)","Power spectral density (' + yUnit.replace("-", "/") + ')" \n';
-
-        this.plot_data.forEach( (rowArray) => {
-            let row = rowArray.join(",");
-            csvContent += row + "\n";
-        });
-
-        this.exportDataFilename.href = encodeURI(csvContent);
-        this.exportDataFilename.click();
-    }
-
-    exportPlot(): void {
-        let canvas = this.plot.getCanvas();
-        let imagePng = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
-
-        this.exportPlotFilename.href = imagePng;
-        this.exportPlotFilename.click();
-    }
 }
