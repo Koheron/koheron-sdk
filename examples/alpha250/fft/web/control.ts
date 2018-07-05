@@ -8,19 +8,19 @@ class Control {
     private precisionDacNum: number = 4;
     private precisionDacInputs: HTMLInputElement[];
 
-    private clkgenInputs: HTMLInputElement[];
+    // private clkgenInputs: HTMLInputElement[];
     private fftSelects: HTMLSelectElement[];
     private fftInputs: HTMLInputElement[];
 
-    constructor(document: Document, private fft: FFT, private PrecisionDac: PrecisionDac, private clkGen: ClockGenerator) {
+    constructor(document: Document, private fft: FFT, private PrecisionDac: PrecisionDac) {
         this.fftChanelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-channel-input");
         this.initFFTChannelInputs();
 
         this.precisionDacInputs = <HTMLInputElement[]><any>document.getElementsByClassName("precision-dac-input");
         this.initPrecisionDacInputs();
 
-        this.clkgenInputs = <HTMLInputElement[]><any>document.getElementsByClassName("clkgen-input");
-        this.initClkgenInputs();
+        // this.clkgenInputs = <HTMLInputElement[]><any>document.getElementsByClassName("clkgen-input");
+        // this.initClkgenInputs();
 
         this.fftSelects = <HTMLSelectElement[]><any>document.getElementsByClassName("fft-select");
         this.initFFTSelects();
@@ -28,7 +28,6 @@ class Control {
         this.initFFTInputs();
 
         this.updateDacValues();
-        this.updateReferenceClock();
         this.updateFFTWindowInputs();
         this.updateControls();
     }
@@ -87,18 +86,6 @@ class Control {
         });
     }
 
-    private updateReferenceClock() {
-        this.clkGen.getReferenceClock( (clkin: number) => {
-
-            let clkIndex: string = "0";
-            if (clkin !== 0) {
-                clkIndex = "2";
-            }
-
-            (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock'][value='" + clkIndex + "']")).checked = true;
-            requestAnimationFrame( () => { this.updateReferenceClock(); } )
-        });
-    }
 
     private updateFFTWindowInputs() {
         this.fft.getFFTWindowIndex( (windowIndex: number) => {
@@ -164,11 +151,4 @@ class Control {
         }
     }
 
-    initClkgenInputs(): void {
-        for (let i = 0; i < this.clkgenInputs.length; i ++) {
-            this.clkgenInputs[i].addEventListener('change', (event) => {
-                this.clkGen[(<HTMLInputElement>event.currentTarget).dataset.command](parseInt((<HTMLInputElement>event.currentTarget).value));
-            })
-        }
-    }
 }

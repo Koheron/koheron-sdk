@@ -10,8 +10,10 @@ class App {
     private powerMonitor: PowerMonitor;
     private powerMonitorApp: PowerMonitorApp;
 
+    private clockGenerator: ClockGenerator;
+    private clockGeneratorApp: ClockGeneratorApp;
+
     private precisionAdc: PrecisionAdc;
-    private clkGenerator: ClockGenerator;
 
     private precisionAdcNum: number = 4;
 
@@ -30,14 +32,15 @@ class App {
                 this.temperatureSensor = new TemperatureSensor(client);
                 this.powerMonitor = new PowerMonitor(client);
                 this.precisionAdc = new PrecisionAdc(client);
-                this.clkGenerator = new ClockGenerator(client);
+                this.clockGenerator = new ClockGenerator(client);
                 this.navigation = new Navigation(document);
 
                 this.fft.init( () => {
-                    this.control = new Control(document, this.fft, this.precisionDac, this.clkGenerator);
+                    this.control = new Control(document, this.fft, this.precisionDac);
                     this.plot = new Plot(document, plot_placeholder, this.fft);
                     this.temperatureSensorApp = new TemperatureSensorApp(document, this.temperatureSensor);
                     this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);
+                    this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
                     this.updatePrecisionAdcValues();
                 });
             });

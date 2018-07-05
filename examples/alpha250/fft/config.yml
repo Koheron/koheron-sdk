@@ -93,20 +93,23 @@ web:
   - ./web/plot.ts
   - ./web/precision-adc.ts
   - ./web/precision-dac.ts
-  - ./web/clock-generator.ts
+  - ./web/clock-generator/clock-generator.ts
+  - ./web/clock-generator/clock-generator-app.ts
+  - ./web/clock-generator/sampling-frequency.html
+  - ./web/clock-generator/reference-clock.html
   - ./web/index.html
   - ./web/yunit.html
   - ./web/fft-window.html
   - ./web/input-channel.html
-  - ./web/reference-clock.html
-  - ./web/sampling-frequency.html
   - ./web/dds-frequency.html
   - ./web/file.html
   - ./web/precision-channels.html
   - ./web/temperature-sensor/temperature-sensor.html
   - ./web/temperature-sensor/temperature-sensor.ts
+  - ./web/temperature-sensor/temperature-sensor-app.ts
   - ./web/power-monitor/power-monitor.html
   - ./web/power-monitor/power-monitor.ts
+  - ./web/power-monitor/power-monitor-app.ts
   - web/main.css
   - ./web/fft.css
   - web/navigation.ts
