@@ -91,8 +91,11 @@ web:
   - ./web/app.ts
   - ./web/control.ts
   - ./web/plot.ts
-  - ./web/precision-adc.ts
-  - ./web/precision-dac.ts
+
+  - ./web/precision-channels/precision-adc.ts
+  - ./web/precision-channels/precision-dac.ts
+  - ./web/precision-channels/precision-channels-app.ts
+  - ./web/precision-channels/precision-channels.html
   - ./web/clock-generator/clock-generator.ts
   - ./web/clock-generator/clock-generator-app.ts
   - ./web/clock-generator/sampling-frequency.html
@@ -103,7 +106,6 @@ web:
   - ./web/input-channel.html
   - ./web/dds-frequency.html
   - ./web/file.html
-  - ./web/precision-channels.html
   - ./web/temperature-sensor/temperature-sensor.html
   - ./web/temperature-sensor/temperature-sensor.ts
   - ./web/temperature-sensor/temperature-sensor-app.ts

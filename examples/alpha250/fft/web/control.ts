@@ -5,10 +5,6 @@ class Control {
     private channelNum: number = 2;
     private fftChanelInputs: HTMLInputElement[];
 
-    private precisionDacNum: number = 4;
-    private precisionDacInputs: HTMLInputElement[];
-
-    // private clkgenInputs: HTMLInputElement[];
     private fftSelects: HTMLSelectElement[];
     private fftInputs: HTMLInputElement[];
 
@@ -16,18 +12,12 @@ class Control {
         this.fftChanelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-channel-input");
         this.initFFTChannelInputs();
 
-        this.precisionDacInputs = <HTMLInputElement[]><any>document.getElementsByClassName("precision-dac-input");
-        this.initPrecisionDacInputs();
-
-        // this.clkgenInputs = <HTMLInputElement[]><any>document.getElementsByClassName("clkgen-input");
-        // this.initClkgenInputs();
 
         this.fftSelects = <HTMLSelectElement[]><any>document.getElementsByClassName("fft-select");
         this.initFFTSelects();
         this.fftInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-input");
         this.initFFTInputs();
 
-        this.updateDacValues();
         this.updateFFTWindowInputs();
         this.updateControls();
     }
@@ -66,27 +56,6 @@ class Control {
         });
     }
 
-    private updateDacValues() {
-        this.PrecisionDac.getDacValues( (dacValues: Float32Array) => {
-            for (let i = 0; i < this.precisionDacNum; i++) {
-                let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".precision-dac-input[data-command='setDac'][data-channel='" + i.toString() + "']");
-                let inputsArray = [];
-                for (let j = 0; j < inputs.length; j++) {
-                    inputsArray.push(inputs[j]);
-                }
-
-                if (inputsArray.indexOf(<HTMLInputElement>document.activeElement) == -1) {
-                    for (let j = 0; j < inputs.length; j++) {
-                      inputs[j].value = (dacValues[i] * 1000).toFixed(3).toString();
-                    }
-                }
-            }
-
-            requestAnimationFrame( () => { this.updateDacValues(); } )
-        });
-    }
-
-
     private updateFFTWindowInputs() {
         this.fft.getFFTWindowIndex( (windowIndex: number) => {
             (<HTMLSelectElement>document.querySelector("[data-command='setFFTWindow']")).value = windowIndex.toString();
@@ -114,25 +83,6 @@ class Control {
             }
         }
 
-    }
-
-    initPrecisionDacInputs(): void {
-        let events = ['change', 'input'];
-        for (let j = 0; j < events.length; j++) {
-            for (let i = 0; i < this.precisionDacInputs.length; i++) {
-                this.precisionDacInputs[i].addEventListener(events[j], (event) => {
-                    let counterType: string = "number";
-                    if ((<HTMLInputElement>event.currentTarget).type == "number") {
-                        counterType = "range";
-                    }
-                    let command = (<HTMLInputElement>event.currentTarget).dataset.command;
-                    let channel = (<HTMLInputElement>event.currentTarget).dataset.channel;
-                    let value = (<HTMLInputElement>event.currentTarget).value;
-                    (<HTMLInputElement>document.querySelector("[data-command='" + command + "'][data-channel='" + channel +"'][type='" + counterType + "']")).value = value ;
-                    this.PrecisionDac[command](channel, parseFloat(value) / 1000);
-                })
-            }
-        }
     }
 
     initFFTSelects(): void {
