@@ -4,14 +4,12 @@
 class Control {
     private channelNum: number = 2;
     private fftChanelInputs: HTMLInputElement[];
-
     private fftSelects: HTMLSelectElement[];
     private fftInputs: HTMLInputElement[];
 
     constructor(document: Document, private fft: FFT, private PrecisionDac: PrecisionDac) {
         this.fftChanelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-channel-input");
         this.initFFTChannelInputs();
-
 
         this.fftSelects = <HTMLSelectElement[]><any>document.getElementsByClassName("fft-select");
         this.initFFTSelects();
