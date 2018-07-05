@@ -120,3 +120,4 @@ web:
   - web/main.css
   - ./web/fft.css
   - web/navigation.ts
+  - ./web/navigation.html
