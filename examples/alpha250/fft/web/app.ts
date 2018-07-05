@@ -8,10 +8,10 @@ class App {
     private temperatureSensorApp: TemperatureSensorApp;
 
     private powerMonitor: PowerMonitor;
+    private powerMonitorApp: PowerMonitorApp;
+
     private precisionAdc: PrecisionAdc;
     private clkGenerator: ClockGenerator;
-
-    private supplySpans: HTMLSpanElement[];
 
     private precisionAdcNum: number = 4;
 
@@ -22,7 +22,6 @@ class App {
         let sockpoolSize: number = 10;
         let client = new Client(ip, sockpoolSize);
 
-        this.supplySpans = <HTMLSpanElement[]><any>document.getElementsByClassName("supply-span");
 
         window.addEventListener('load', () => {
             client.init( () => {
@@ -38,7 +37,7 @@ class App {
                     this.control = new Control(document, this.fft, this.precisionDac, this.clkGenerator);
                     this.plot = new Plot(document, plot_placeholder, this.fft);
                     this.temperatureSensorApp = new TemperatureSensorApp(document, this.temperatureSensor);
-                    this.updateSupplies();
+                    this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);
                     this.updatePrecisionAdcValues();
                 });
             });
@@ -47,20 +46,6 @@ class App {
         window.onbeforeunload = () => { client.exit(); };
     }
 
-    private updateSupplies() {
-        this.powerMonitor.getSuppliesUI((supplyValues: Float32Array) => {
-            for (let i = 0; i < this.supplySpans.length; i ++) {
-                let value: string = "";
-                if (this.supplySpans[i].dataset.type === "voltage") {
-                    value = supplyValues[parseInt(this.supplySpans[i].dataset.index)].toFixed(3);
-                } else if (this.supplySpans[i].dataset.type === "current") {
-                    value = (supplyValues[parseInt(this.supplySpans[i].dataset.index)] * 1E3).toFixed(1);
-                }
-                this.supplySpans[i].textContent = value;
-            }
-            requestAnimationFrame( () => { this.updateSupplies(); });
-        });
-    }
 
     private updatePrecisionAdcValues() {
         this.precisionAdc.getAdcValues((adcValues: Float32Array) => {
