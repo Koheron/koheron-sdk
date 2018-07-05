@@ -55,6 +55,7 @@ class Plot {
 
         this.updatePlot();
         this.initUnitInputs();
+        this.initPeakDetection();
     }
 
     updatePlot() {
@@ -327,11 +328,16 @@ class Plot {
         }
     }
 
-    detectPeak(): void {
-        if (this.isPeakDetection) {
-            this.isPeakDetection = false;
-        } else {
-            this.isPeakDetection = true;
+    initPeakDetection(): void {
+        let peakInputs: HTMLInputElement[] = <HTMLInputElement[]><any>document.getElementsByClassName("peak-input");
+        for (let i = 0; i < peakInputs.length; i ++) {
+            peakInputs[i].addEventListener( 'change', (event) => {
+                if (this.isPeakDetection) {
+                    this.isPeakDetection = false;
+                } else {
+                    this.isPeakDetection = true;
+                }
+            })
         }
     }
 

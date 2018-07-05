@@ -27,6 +27,7 @@
   <link rel="import" href="input-channel.html" data-parent="input-channel">
   <link rel="import" href="reference-clock.html" data-parent="reference-clock">
   <link rel="import" href="sampling-frequency.html" data-parent="sampling-frequency">
+  <link rel="import" href="peak-detection.html" data-parent="peak-detection">
   <link rel="import" href="dds-frequency.html" data-parent="dds-frequency">
   <link rel="import" href="export-file.html" data-parent="export-file">
   <link rel="import" href="precision-channels.html" data-parent="precision-channels">
@@ -56,22 +57,13 @@
 
     <div class="col-md-4">
 
-      <section>
-
+      <section style="margin-bottom: 20px;">
         <div id="yunit"></div>
         <div id="fft-window"></div>
         <div id="input-channel"></div>
         <div id="reference-clock"></div>
         <div id="sampling-frequency"></div>
-
-        <div style="padding-bottom: 10px;">
-          <label>Peak Detection:</label>
-          <label class="switch" style="margin-top: 0px; margin-bottom: -7px; margin-left: 5px;">
-            <input type="checkbox" id="peak-switch" onchange="app.plot.detectPeak(); return false" checked>
-            <span class="slider round"></span>
-          </label>
-        </div>
-
+        <div id="peak-detection"></div>
       </section>
 
       <section id="dds-frequency"></section>

@@ -18,7 +18,6 @@ class App {
     private precisionChannelsApp: PrecisionChannelsApp;
 
     private exportFile: ExportFile;
-
     private navigation: Navigation;
 
     constructor(window: Window, document: Document,

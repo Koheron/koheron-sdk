@@ -87,18 +87,16 @@ web:
   - ./web/imports.js
   - web/koheron.ts
   - web/jquery.flot.d.ts
-
   - ./web/index.html
   - ./web/app.ts
-
   - ./web/fft/fft.ts
   - ./web/fft/fft-window.html
   - ./web/fft/input-channel.html
   - ./web/fft/dds-frequency.html
   - ./web/fft/fft-app.ts
-
-  - ./web/plot.ts
-
+  - ./web/plot/plot.ts
+  - ./web/plot/yunit.html
+  - ./web/plot/peak-detection.html
   - ./web/precision-channels/precision-adc.ts
   - ./web/precision-channels/precision-dac.ts
   - ./web/precision-channels/precision-channels-app.ts
@@ -107,8 +105,6 @@ web:
   - ./web/clock-generator/clock-generator-app.ts
   - ./web/clock-generator/sampling-frequency.html
   - ./web/clock-generator/reference-clock.html
-  - ./web/yunit.html
-
   - ./web/export-file/export-file.html
   - ./web/export-file/export-file.ts
   - ./web/temperature-sensor/temperature-sensor.html
@@ -117,7 +113,7 @@ web:
   - ./web/power-monitor/power-monitor.html
   - ./web/power-monitor/power-monitor.ts
   - ./web/power-monitor/power-monitor-app.ts
-  - web/main.css
-  - ./web/fft.css
   - web/navigation.ts
   - ./web/navigation.html
+  - web/main.css
+  - ./web/fft.css
