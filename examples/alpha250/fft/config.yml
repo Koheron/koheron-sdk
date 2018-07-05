@@ -92,10 +92,10 @@ web:
   - ./web/app.ts
 
   - ./web/fft/fft.ts
-  - ./web/fft-window.html
+  - ./web/fft/fft-window.html
   - ./web/fft/input-channel.html
   - ./web/fft/dds-frequency.html
-  - ./web/fft/control.ts
+  - ./web/fft/fft-app.ts
 
   - ./web/plot.ts
 

@@ -1,7 +1,8 @@
 class App {
-    public control: Control;
     public plot: Plot;
+
     private fft: FFT;
+    public fftApp: FFTApp;
 
     private temperatureSensor: TemperatureSensor;
     private temperatureSensorApp: TemperatureSensorApp;
@@ -35,7 +36,7 @@ class App {
                 this.navigation = new Navigation(document);
 
                 this.fft.init( () => {
-                    this.control = new Control(document, this.fft, this.precisionDac);
+                    this.fftApp = new FFTApp(document, this.fft);
                     this.plot = new Plot(document, plot_placeholder, this.fft);
                     this.temperatureSensorApp = new TemperatureSensorApp(document, this.temperatureSensor);
                     this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);

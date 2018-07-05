@@ -1,13 +1,13 @@
 // Control widget
 // (c) Koheron
 
-class Control {
+class FFTApp {
     private channelNum: number = 2;
     private fftChanelInputs: HTMLInputElement[];
     private fftSelects: HTMLSelectElement[];
     private fftInputs: HTMLInputElement[];
 
-    constructor(document: Document, private fft: FFT, private PrecisionDac: PrecisionDac) {
+    constructor(document: Document, private fft: FFT) {
         this.fftChanelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-channel-input");
         this.initFFTChannelInputs();
 
