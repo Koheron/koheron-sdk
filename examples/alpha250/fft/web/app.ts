@@ -1,22 +1,18 @@
 class App {
-    public plot: Plot;
 
+    private imports: Imports;
+    public plot: Plot;
     private fft: FFT;
     public fftApp: FFTApp;
-
     private temperatureSensor: TemperatureSensor;
     private temperatureSensorApp: TemperatureSensorApp;
-
     private powerMonitor: PowerMonitor;
     private powerMonitorApp: PowerMonitorApp;
-
     private clockGenerator: ClockGenerator;
     private clockGeneratorApp: ClockGeneratorApp;
-
     private precisionDac: PrecisionDac;
     private precisionAdc: PrecisionAdc;
     private precisionChannelsApp: PrecisionChannelsApp;
-
     private exportFile: ExportFile;
     private navigation: Navigation;
 
@@ -25,9 +21,9 @@ class App {
         let sockpoolSize: number = 10;
         let client = new Client(ip, sockpoolSize);
 
-
         window.addEventListener('load', () => {
             client.init( () => {
+                this.imports = new Imports(document);
                 this.fft = new FFT(client);
                 this.precisionDac = new PrecisionDac(client);
                 this.precisionAdc = new PrecisionAdc(client);

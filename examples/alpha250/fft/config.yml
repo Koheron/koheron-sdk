@@ -84,7 +84,7 @@ drivers:
   - ./demodulator.hpp
 
 web:
-  - ./web/imports.js
+  - ./web/imports.ts
   - web/koheron.ts
   - web/jquery.flot.d.ts
   - ./web/index.html
