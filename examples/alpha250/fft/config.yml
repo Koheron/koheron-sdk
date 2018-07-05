@@ -98,5 +98,10 @@ web:
   - ./web/clock-generator.ts
   - ./web/index.html
   - ./web/yunit.html
+  - ./web/fft-window.html
+  - ./web/input-channel.html
+  - ./web/reference-clock.html
+  - ./web/sampling-frequency.html
   - web/main.css
+  - ./web/fft.css
   - web/navigation.ts

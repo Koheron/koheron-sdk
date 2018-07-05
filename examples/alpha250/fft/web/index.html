@@ -16,10 +16,16 @@
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
+  <link rel="stylesheet" type="text/css" href="fft.css">
 
   <script type="text/javascript" src="jquery.min.js"></script>
   <script type="text/javascript" src="bootstrap.min.js"></script>
+
   <link rel="import" href="yunit.html" data-parent="yunit">
+  <link rel="import" href="fft-window.html" data-parent="fft-window">
+  <link rel="import" href="input-channel.html" data-parent="input-channel">
+  <link rel="import" href="reference-clock.html" data-parent="reference-clock">
+  <link rel="import" href="sampling-frequency.html" data-parent="sampling-frequency">
 
 </head>
 
@@ -57,81 +63,10 @@
       <section>
 
         <div id="yunit"></div>
-
-        <div>
-
-          <label for="fft-window">FFT Window:</label>
-
-          <select id="fft-window" style="width: 250px; margin-left: 10px" class="fft-select" data-command="setFFTWindow">
-            <option value="0" selected>Rectangular</option>
-            <option value="1">Hanning</option>
-            <option value="2">Flat Top</option>
-            <option value="3">Blackman-Harris</option>
-          </select>
-
-        </div>
-
-        <!-- Input channel -->
-
-        <div>
-
-          <label for="input-channel">
-            Input Channel:
-          </label>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="input-channel" value="0" checked style="width: auto; vertical-align: -12px; margin: 0px 5px"
-            class="fft-input" data-command="setInputChannel">0
-          </div>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="input-channel" value="1" style="width: auto; vertical-align: -12px; margin: 0px 5px"
-            class="fft-input" data-command="setInputChannel">1
-          </div>
-
-        </div>
-
-        <!-- Reference clock -->
-
-        <div>
-
-          <label for="reference-clock">
-            Reference Clock (10 MHz):
-          </label>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="reference-clock" value="2" checked style="width: auto; vertical-align: -12px; margin: 0px 5px"
-            class="clkgen-input" data-valuestr="internal" data-command="setReferenceClock">Internal
-          </div>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="reference-clock" value="0" style="width: auto; vertical-align: -12px; margin: 0px 5px"
-            class="clkgen-input" data-valuestr="external" data-command="setReferenceClock">External
-          </div>
-
-        </div>
-
-
-        <!-- Sampling frequency -->
-
-        <div>
-
-          <label for="sampling-frequency">
-            Sampling Frequency:
-          </label>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="sampling-frequency" value="0" checked style="width: auto; vertical-align: -12px; margin: 0px 5px"
-            class="clkgen-input" data-command="setSamplingFrequency">200 MHz
-          </div>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="sampling-frequency" value="1" style="width: auto; vertical-align: -12px; margin: 0px 5px"
-            class="clkgen-input" data-command="setSamplingFrequency">250 MHz
-          </div>
-
-        </div>
-
+        <div id="fft-window"></div>
+        <div id="input-channel"></div>
+        <div id="reference-clock"></div>
+        <div id="sampling-frequency"></div>
 
         <div style="padding-bottom: 10px;">
           <label>Peak Detection:</label>
