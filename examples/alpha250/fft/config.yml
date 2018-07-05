@@ -84,9 +84,12 @@ drivers:
   - ./demodulator.hpp
 
 web:
-  - ./web/imports.ts
+  - web/imports.ts
   - web/koheron.ts
   - web/jquery.flot.d.ts
+  - web/navigation.ts
+  - web/navigation.html
+  - web/main.css
   - ./web/index.html
   - ./web/app.ts
   - ./web/fft/fft.ts
@@ -113,7 +116,4 @@ web:
   - ./web/power-monitor/power-monitor.html
   - ./web/power-monitor/power-monitor.ts
   - ./web/power-monitor/power-monitor-app.ts
-  - web/navigation.ts
-  - ./web/navigation.html
-  - web/main.css
   - ./web/fft.css
