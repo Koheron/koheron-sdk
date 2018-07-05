@@ -28,6 +28,7 @@
   <link rel="import" href="peak-detection.html" data-parent="peak-detection">
   <link rel="import" href="dds-frequency.html" data-parent="dds-frequency">
   <link rel="import" href="export-file.html" data-parent="export-file">
+  <!-- <link rel="import" href="laser.html" data-parent="laser"> -->
 
 </head>
 
@@ -72,17 +73,13 @@
           <tr>
             <td style="width: 100px;">
               <label for="laser-switch">ON</label>
-              <label class="switch" style="margin-top: 0px; margin-bottom: -7px; margin-left: 5px;">
-                <input type="checkbox" id="laser-switch" onchange="app.laserControl.switchLaser(); return false" checked>
+              <label class="switch">
+                <input type="checkbox" id="laser-switch" checked>
                 <span class="slider round"></span>
               </label>
             </td>
-            <td style="width: 170px;">
-              <span id="calibration"></span>
-            </td>
-            <td>
-              <button class="default-btn" onclick="app.laserControl.startCalibration(); return false">Start Calibration</button>
-            </td>
+            <td style="width: 170px;"><span id="calibration"></span></td>
+            <td><button class="default-btn" id="start-calibration-btn">Start Calibration</button></td>
           </tr>
         </table>
 
@@ -90,7 +87,7 @@
           1. Connect your laser to an external power meter.
           <br> 2. Tune the current/power until the power reads 1 mW on the power meter.
           <br> 3.
-          <button class="default-btn" onclick="app.laserControl.calibrationDone(); return false">Done</button>
+          <button class="default-btn" id="end-calibration-btn">Calibrate</button>
         </div>
 
         <table class="full-width" style="margin: 10px 0;">
@@ -102,33 +99,30 @@
               </select>
             </td>
             <td class="current-control" style="width: 90px;">
-              <input id="in-current-input" type="number" onchange="app.laserControl.setCurrent(this.value); return false;" oninput="app.laserControl.setCurrent(this.value); return false;"
-                value="0" min="0" step="0.01" max="40" style="text-align: right">
+              <input type="number" value="0" min="0" step="0.01" max="40" class="laser-control-input" data-command="setCurrent">
             </td>
             <td class="current-control">
-              <input id="in-current-slider" type="range" onchange="app.laserControl.setCurrent(this.value); return false;" oninput="app.laserControl.setCurrent(this.value); return false;"
-                value="0" min="0" step="0.01" max="40" style="padding-right: 0px; padding-left: 0px;">
+              <input type="range" value="0" min="0" step="0.01" max="40" class="laser-control-input" data-command="setCurrent">
             </td>
           </tr>
           <tr>
             <td class="power-control" style="width: 90px;">
-              <input id="in-power-input" type="number" onchange="app.laserControl.setPower(this.value); return false;" oninput="app.laserControl.setPower(this.value); return false;"
-                value="0" min="0" step="0.1" max="4000" style="text-align: right">
+              <input type="number" value="0" min="0" step="0.1" max="4000" class="laser-control-input" data-command="setPower">
             </td>
             <td class="power-control">
-              <input id="in-power-slider" type="range" onchange="app.laserControl.setPower(this.value); return false;" oninput="app.laserControl.setPower(this.value); return false;"
-                value="0" min="0" step="0.1" max="4000" style="padding-right: 0px; padding-left: 0px;">
+              <input type="range" value="0" min="0" step="0.1" max="4000" class="laser-control-input" data-command="setPower">
             </td>
             </td>
-            <tr>
-              <td style="padding-left: 10px;">Power (µW)</td>
-              <td style="text-align: right; padding-right: 24px;">
-                <span id="measured-power"></span>
-              </td>
-              <td>
-                <canvas id="canvas" width="100" height="15"></canvas>
-              </td>
-            </tr>
+          </tr>
+          <tr>
+            <td style="padding-left: 10px;">Power (µW)</td>
+            <td style="text-align: right; padding-right: 24px;">
+              <span id="measured-power"></span>
+            </td>
+            <td>
+              <canvas id="canvas" width="100" height="15"></canvas>
+            </td>
+          </tr>
         </table>
 
       </section>
