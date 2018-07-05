@@ -19,6 +19,8 @@
 
   <script type="text/javascript" src="jquery.min.js"></script>
   <script type="text/javascript" src="bootstrap.min.js"></script>
+  <link rel="import" href="yunit.html" data-parent="yunit">
+
 </head>
 
 <body>
@@ -54,29 +56,7 @@
 
       <section>
 
-        <!-- Unit -->
-
-        <div>
-
-          <label id="unit-label" for="unit">
-            Unit:
-          </label>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="unit" value="dBm-Hz" checked style="width: auto; vertical-align: -12px; margin: 0px 5px" class="unit-input">dBm / Hz
-          </div>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="unit" value="dBm" style="width: auto; vertical-align: -12px; margin: 0px 5px" class="unit-input">dBm
-          </div>
-
-          <div class="radio-wrapper">
-            <input type="radio" name="unit" value="nv-rtHz" style="width: auto; vertical-align: -12px; margin: 0px 5px" class="unit-input">nV / rtHz
-          </div>
-
-        </div>
-
-        <!-- Window -->
+        <div id="yunit"></div>
 
         <div>
 
@@ -368,6 +348,7 @@
 
 </div>
 
+  <script language="javascript" type="text/javascript" src="imports.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.selection.js"></script>

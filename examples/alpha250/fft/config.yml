@@ -84,6 +84,7 @@ drivers:
   - ./demodulator.hpp
 
 web:
+  - ./web/imports.js
   - web/koheron.ts
   - web/jquery.flot.d.ts
   - ./web/fft.ts
@@ -96,5 +97,6 @@ web:
   - ./web/precision-dac.ts
   - ./web/clock-generator.ts
   - ./web/index.html
+  - ./web/yunit.html
   - web/main.css
   - web/navigation.ts
