@@ -105,6 +105,8 @@ web:
   - ./web/dds-frequency.html
   - ./web/file.html
   - ./web/precision-channels.html
+  - ./web/temperature.html
+  - ./web/supply.html
   - web/main.css
   - ./web/fft.css
   - web/navigation.ts

@@ -29,6 +29,8 @@
   <link rel="import" href="dds-frequency.html" data-parent="dds-frequency">
   <link rel="import" href="file.html" data-parent="file">
   <link rel="import" href="precision-channels.html" data-parent="precision-channels">
+  <link rel="import" href="temperature.html" data-parent="temperature">
+  <link rel="import" href="supply.html" data-parent="supply">
 
 </head>
 
@@ -88,70 +90,15 @@
   </div>
 
   <div class="row">
-
     <div class="col-md-8">
       <section id="precision-channels"></section>
     </div>
-
     <div class="col-md-2">
-      <section>
-        <div style="padding: 0px 5px;">
-
-          <div class="crossed">
-            <span>
-            Temperature (°C)</span>
-          </div>
-
-          <table class="full-width">
-            <tr>
-              <td>Voltage Reference</td>
-              <td style="text-align: right"><span class="temperature-span" data-index="0"></span></td>
-            </tr>
-            <tr>
-              <td>Board</td>
-              <td style="text-align: right"><span class="temperature-span" data-index="1"></span></td>
-            </tr>
-            <tr>
-              <td>Zynq</td>
-              <td style="text-align: right"><span class="temperature-span" data-index="2"></span></td>
-            </tr>
-          </table>
-
-        </div>
-      </section>
+      <section id="temperature"></section>
     </div>
-
     <div class="col-md-2">
-      <section>
-        <div style="padding: 0px 5px;">
-
-          <div class="crossed">
-            <span>Supply</span>
-          </div>
-
-          <table class="full-width">
-            <tr>
-              <td></td>
-              <td style="text-align: right">Main</label></td>
-              <td style="text-align: right">Clock</td>
-            </tr>
-            <tr>
-              <td>Volt. (V)</td>
-              <td style="text-align: right"><span class="supply-span" data-type="voltage" data-index="1"></span></td>
-              <td style="text-align: right"><span class="supply-span"data-type="voltage" data-index="3"></span></td>
-            </tr>
-            <tr>
-              <td>Cur. (mA)</td>
-              <td style="text-align: right"><span class="supply-span" data-type="current" data-index="0"></span></td>
-              <td style="text-align: right"><span class="supply-span" data-type="current" data-index="2"></span></td>
-            </tr>
-          </table>
-
-        </div>
-      </section>
-
+      <section id="supply"></section>
     </div>
-
   </div>
 
 </div>
