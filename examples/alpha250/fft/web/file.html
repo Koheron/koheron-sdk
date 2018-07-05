@@ -1,0 +1,13 @@
+<template class="template">
+  <div class="crossed"><span>File</span></div>
+  <div style="margin-right: -5px; margin-left: -5px;">
+    <span style="padding: 5px;">
+      <button onclick="app.plot.exportData(); return false" class="default-btn">Export Data</button>
+      <a id="export-data-filename" download="koheron_alpha.csv" style="display: none"></a>
+    </span>
+    <span style="padding: 5px;">
+      <button onclick="app.plot.exportPlot(); return false" class="default-btn">Export Plot</button>
+      <a id="export-plot-filename" download="koheron_alpha_plot.png" style="display: none"></a>
+    </span>
+  </div>
+</template>

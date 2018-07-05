@@ -102,6 +102,9 @@ web:
   - ./web/input-channel.html
   - ./web/reference-clock.html
   - ./web/sampling-frequency.html
+  - ./web/dds-frequency.html
+  - ./web/file.html
+  - ./web/precision-channels.html
   - web/main.css
   - ./web/fft.css
   - web/navigation.ts

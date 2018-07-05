@@ -26,6 +26,9 @@
   <link rel="import" href="input-channel.html" data-parent="input-channel">
   <link rel="import" href="reference-clock.html" data-parent="reference-clock">
   <link rel="import" href="sampling-frequency.html" data-parent="sampling-frequency">
+  <link rel="import" href="dds-frequency.html" data-parent="dds-frequency">
+  <link rel="import" href="file.html" data-parent="file">
+  <link rel="import" href="precision-channels.html" data-parent="precision-channels">
 
 </head>
 
@@ -78,146 +81,16 @@
 
       </section>
 
-      <!--  -->
-
-      <!-- DDS frequency -->
-
-      <!-- -->
-
-      <section>
-
-        <div class="crossed">
-          <span>
-            DDS Frequency (MHz)
-        </span>
-        </div>
-
-        <table class="full-width">
-          <tr>
-            <td style="width: 60px">
-              OUT 0
-            </td>
-            <td style="width: 120px">
-              <input type="number" value="0" min="0" step="0.000001" max="125.0" data-channel="0" data-command="setDDSFreq" class="fft-channel-input">
-            </td>
-            <td>
-              <input type="range" value="0" min="0" step="0.000001" max="125.0" data-channel="0" data-command="setDDSFreq" class="fft-channel-input">
-            </td>
-          </tr>
-          <tr>
-            <td>
-              OUT 1
-            </td>
-            <td>
-              <input type="number" value="0" min="0" step="0.000001" max="125.0" data-channel="1" data-command="setDDSFreq" class="fft-channel-input">
-            </td>
-            <td>
-              <input type="range" value="0" min="0" step="0.000001" max="125.0" data-channel="1" data-command="setDDSFreq" class="fft-channel-input">
-            </td>
-          </tr>
-        </table>
-
-      </section>
-
-      <section style="padding-bottom: 10px;">
-
-        <div class="crossed">
-          <span>File</span>
-        </div>
-
-        <div style="margin-right: -5px; margin-left: -5px;">
-
-          <span style="padding: 5px;">
-            <button onclick="app.plot.exportData(); return false" class="default-btn">Export Data</button>
-            <a id="export-data-filename" download="koheron_alpha.csv" style="display: none"></a>
-          </span>
-
-          <span style="padding: 5px;">
-            <button onclick="app.plot.exportPlot(); return false" class="default-btn">Export Plot</button>
-            <a id="export-plot-filename" download="koheron_alpha_plot.png" style="display: none"></a>
-          </span>
-        </div>
-
-      </section>
-
+      <section id="dds-frequency"></section>
+      <section id="file"></section>
     </div>
 
   </div>
 
-  <!-- Precision DACs and ADCs -->
-
   <div class="row">
 
     <div class="col-md-8">
-
-      <section>
-
-        <div style="padding: 0px 5px;">
-
-          <div class="crossed">
-            <span>
-              Precision DACs &amp; ADCs (mV)
-            </span>
-          </div>
-
-          <table class="full-width">
-            <tr>
-              <td style="width: 60px;">
-                DAC 0
-              </td>
-              <td style="width: 140px;">
-                <input type="number" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="0" data-command="setDac">
-              </td>
-              <td>
-                <input type="range" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="0" data-command="setDac">
-              </td>
-              <td style="width: 70px; padding-left: 15px;">ADC 0</td>
-              <td style="text-align: right; width: 100px;"><span class="precision-adc-span" data-channel="0"></span></td>
-            </tr>
-            <tr>
-              <td>
-                DAC 1
-              </td>
-              <td>
-                <input type="number" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="1" data-command="setDac">
-              </td>
-              <td>
-                <input type="range" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="1" data-command="setDac">
-              </td>
-              <td style="width: 70px; padding-left: 15px;">ADC 1</td>
-              <td style="text-align: right; width: 100px;"><span class="precision-adc-span" data-channel="1"></span></td>
-            </tr>
-            <tr>
-              <td>
-                DAC 2
-              </td>
-              <td>
-                <input type="number" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="2" data-command="setDac">
-              </td>
-              <td>
-                <input type="range" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="2" data-command="setDac">
-              </td>
-              <td style="width: 70px; padding-left: 15px;">ADC 2</td>
-              <td style="text-align: right; width: 100px;"><span class="precision-adc-span" data-channel="2"></span></td>
-            </tr>
-            <tr>
-              <td>
-                DAC 3
-              </td>
-              <td>
-                <input type="number" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="3" data-command="setDac">
-              </td>
-              <td>
-                <input type="range" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="3" data-command="setDac">
-              </td>
-              <td style="width: 70px; padding-left: 15px;">ADC 3</td>
-              <td style="text-align: right; width: 100px;"><span class="precision-adc-span" data-channel="3"></span></td>
-            </tr>
-          </table>
-
-        </div>
-      </section>
-
+      <section id="precision-channels"></section>
     </div>
 
     <div class="col-md-2">
