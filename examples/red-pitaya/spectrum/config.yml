@@ -120,13 +120,18 @@ drivers:
 
 web:
   - web/koheron.ts
+  - web/imports.ts
   - web/jquery.flot.d.ts
   - web/laser.ts
+  - web/laser-control.html
   - ./web/spectrum.ts
   - ./web/app.ts
   - web/main.css
   - web/average.ts
+  - web/average.html
   - web/modulation.ts
+  - web/modulation.html
   - ./web/plot.ts
   - ./web/index.html
   - web/navigation.ts
+  - web/navigation.html

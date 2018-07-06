@@ -8,6 +8,7 @@ class App {
     public average: Average;
     public plot: Plot;
     private navigation: Navigation;
+    private imports: Imports;
 
     wfmSize = 8192;
     samplingRate = 125e6;
@@ -18,6 +19,7 @@ class App {
 
         window.addEventListener('load', () => {
             client.init( () => {
+                this.imports = new Imports(document);
                 this.laserDriver = new LaserDriver(client);
                 this.laserControl = new LaserControl(document, this.laserDriver);
                 this.spectrum = new Spectrum(client);
