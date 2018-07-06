@@ -18,6 +18,8 @@ class Average {
     constructor(document: Document, private driver: any) {
 
         this.averageSwitch = <HTMLInputElement>document.getElementById("average-switch");
+        this.initAverageSwitch();
+
         this.averageElements = document.getElementsByClassName("average");
         this.averageSpan = <HTMLSpanElement>document.getElementById('avg');
         this.numAverageMinInput = <HTMLInputElement>document.getElementById('avg-min-input');
@@ -45,8 +47,10 @@ class Average {
         });
     }
 
-    average(): void {
-        this.driver.setAverage(!this.isAverage);
+    initAverageSwitch(): void {
+        this.averageSwitch.addEventListener('change', (event) => {
+            this.driver.setAverage(!this.isAverage);
+        })
     }
 
     setNumAverageMin(numAverageMin) : void {
