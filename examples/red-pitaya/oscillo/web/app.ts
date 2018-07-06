@@ -1,12 +1,12 @@
 class App {
 
-    public laserDriver: LaserDriver;
-    public laserControl: LaserControl;
-    public oscillo: Oscillo;
-    public modulationDriver: ModulationDriver;
-    public modulationControl: ModulationControl;
-    public average: Average;
-    public plot: Plot;
+    private laserDriver: LaserDriver;
+    private laserControl: LaserControl;
+    private oscillo: Oscillo;
+    private modulationDriver: ModulationDriver;
+    private modulationControl: ModulationControl;
+    private average: Average;
+    private plot: Plot;
     private navigation: Navigation;
     private imports: Imports;
 

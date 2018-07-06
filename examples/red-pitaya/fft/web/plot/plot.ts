@@ -53,15 +53,15 @@ class Plot {
 
         this.plot_data = [];
 
-        this.update_plot();
+        this.updatePlot();
         this.initUnitInputs();
         this.initPeakDetection();
     }
 
-    update_plot() {
+    updatePlot() {
         this.fft.read_psd( (psd: Float32Array) => {
             this.redraw(psd, () => {
-                requestAnimationFrame( () => { this.update_plot(); } );
+                requestAnimationFrame( () => { this.updatePlot(); } );
             });
         });
     }
@@ -194,11 +194,9 @@ class Plot {
 
     redraw(psd: Float32Array, callback: () => void) {
         let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
-
         this.peakDatapoint = [ this.fft.status.fs / 1E6 / 2 / this.n_pts , this.convertValue(psd[0], yUnit)];
 
         for (let i: number = 0; i <= this.n_pts; i++) {
-
             let freq: number = (i + 1) * this.fft.status.fs / 1E6 / 2 / this.n_pts; // MHz
             let convertedPsd: number = this.convertValue(psd[i], yUnit);
             this.plot_data[i] = [freq, convertedPsd];
@@ -207,7 +205,6 @@ class Plot {
                 this.peakDatapoint[0] = this.plot_data[i][0];
                 this.peakDatapoint[1] = this.plot_data[i][1];
             }
-
         }
 
         const plt_data: jquery.flot.dataSeries[] = [{label: this.yLabel, data: this.plot_data}];
@@ -234,55 +231,49 @@ class Plot {
         setTimeout(this.plot.unhighlight(), 100);
 
         if (this.clickDatapoint.length > 0) {
-
-            for (var i: number = 0; i < this.n_pts; i++) {
-                if ( localData[0]['data'][i][0] > this.clickDatapoint[0] ) {
+            let i: number;
+            for (i = 0; i < this.n_pts; i++) {
+                if (localData[0]['data'][i][0] > this.clickDatapoint[0]) {
                     break;
                 }
             }
 
-            var p1 = localData[0]['data'][i-1];
-            var p2 = localData[0]['data'][i];
+            let p1 = localData[0]['data'][i-1];
+            let p2 = localData[0]['data'][i];
 
-            if (p1 == null) {
+            if (p1 === null) {
                 this.clickDatapoint[1] = p2[1];
-            } else if (p2 == null) {
+            } else if (p2 === null) {
                 this.clickDatapoint[1] = p1[1];
             } else {
                 this.clickDatapoint[1] = p1[1] + (p2[1] - p1[1]) * (this.clickDatapoint[0] - p1[0]) / (p2[0] - p1[0]);
             }
 
-            if ( this.range_x.from < this.clickDatapoint[0] && this.clickDatapoint[0] < this.range_x.to &&
-                 this.range_y.from < this.clickDatapoint[1] &&  this.clickDatapoint[1] < this.range_y.to ) {
+            if (this.range_x.from < this.clickDatapoint[0] && this.clickDatapoint[0] < this.range_x.to &&
+                 this.range_y.from < this.clickDatapoint[1] &&  this.clickDatapoint[1] < this.range_y.to) {
                 this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan);
                 this.clickDatapointSpan.style.display = "inline-block";
                 this.plot.highlight(localData[0], this.clickDatapoint);
             } else {
                 this.clickDatapointSpan.style.display = "none";
             }
-
         }
 
         if (this.isPeakDetection) {
-
             this.plot.unhighlight(localData[0], this.peakDatapoint);
 
             if (this.range_x.from < this.peakDatapoint[0] && this.peakDatapoint[0] < this.range_x.to &&
-            this.range_y.from < this.peakDatapoint[1] &&  this.peakDatapoint[1] < this.range_y.to ) {
+            this.range_y.from < this.peakDatapoint[1] &&  this.peakDatapoint[1] < this.range_y.to) {
                 this.updateDatapointSpan(this.peakDatapoint, this.peakDatapointSpan);
                 this.plot.highlight(localData[0], this.peakDatapoint);
                 this.peakDatapointSpan.style.display = "inline-block";
             } else {
-
                 this.plot.unhighlight(localData[0], this.peakDatapoint);
                 this.peakDatapointSpan.style.display = "none";
             }
-
         } else {
-
             this.plot.unhighlight(localData[0], this.peakDatapoint);
             this.peakDatapointSpan.style.display = "none";
-
         }
 
         callback();
@@ -324,7 +315,7 @@ class Plot {
                 return false;
             }
 
-            return true
+            return true;
         });
     }
 
@@ -353,24 +344,20 @@ class Plot {
     showHoverPoint(): void {
         this.plot_placeholder.bind("plothover", (event: JQueryEventObject, pos, item) => {
             if (item) {
-
                 this.hoverDatapoint[0] = item.datapoint[0];
                 this.hoverDatapoint[1] = item.datapoint[1];
 
                 this.hoverDatapointSpan.style.display = "inline-block";
                 this.updateDatapointSpan(this.hoverDatapoint, this.hoverDatapointSpan);
-
             } else {
                 this.hoverDatapointSpan.style.display = "none";
             }
-
         });
     }
 
     showClickPoint(): void {
         this.plot_placeholder.bind("plotclick", (event: JQueryEventObject, pos, item) => {
             if (item) {
-
                 this.clickDatapoint[0] = item.datapoint[0];
                 this.clickDatapoint[1] = item.datapoint[1];
 
@@ -379,7 +366,6 @@ class Plot {
 
                 this.plot.unhighlight();
                 this.plot.highlight(item.series, this.clickDatapoint);
-
             }
         });
     }

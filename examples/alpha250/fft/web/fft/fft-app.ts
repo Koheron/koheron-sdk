@@ -6,7 +6,7 @@ class FFTApp {
     private fftSelects: HTMLSelectElement[];
     private fftInputs: HTMLInputElement[];
 
-    constructor(document: Document, private fft: FFT) {
+    constructor(document: Document, private driver) {
         this.fftSelects = <HTMLSelectElement[]><any>document.getElementsByClassName("fft-select");
         this.initFFTSelects();
         this.fftInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-input");
@@ -19,7 +19,7 @@ class FFTApp {
     // Updaters
 
     private updateControls() {
-        this.fft.getControlParameters( (sts: IFFTStatus) => {
+        this.driver.getControlParameters( (sts: IFFTStatus) => {
 
             for (let i = 0; i < this.channelNum; i++) {
                 let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".dds-channel-input[data-command='setDDSFreq'][data-channel='" + i.toString() + "']");
@@ -51,7 +51,7 @@ class FFTApp {
     }
 
     private updateFFTWindowInputs() {
-        this.fft.getFFTWindowIndex( (windowIndex: number) => {
+        this.driver.getFFTWindowIndex( (windowIndex: number) => {
             (<HTMLSelectElement>document.querySelector("[data-command='setFFTWindow']")).value = windowIndex.toString();
             requestAnimationFrame( () => { this.updateFFTWindowInputs(); } )
         });
@@ -62,7 +62,7 @@ class FFTApp {
     initFFTSelects(): void {
         for (let i = 0; i < this.fftSelects.length; i++) {
             this.fftSelects[i].addEventListener('change', (event) => {
-                this.fft[(<HTMLSelectElement>event.currentTarget).dataset.command]((<HTMLSelectElement>event.currentTarget).value);
+                this.driver[(<HTMLSelectElement>event.currentTarget).dataset.command]((<HTMLSelectElement>event.currentTarget).value);
             })
         }
     }
@@ -70,7 +70,7 @@ class FFTApp {
     initFFTInputs(): void {
         for (let i = 0; i < this.fftInputs.length; i++) {
             this.fftInputs[i].addEventListener('change', (event) => {
-                this.fft[(<HTMLInputElement>event.currentTarget).dataset.command]((<HTMLInputElement>event.currentTarget).value);
+                this.driver[(<HTMLInputElement>event.currentTarget).dataset.command]((<HTMLInputElement>event.currentTarget).value);
             })
         }
     }

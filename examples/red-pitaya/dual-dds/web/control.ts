@@ -5,9 +5,8 @@ interface DualDDSStatus {
     dds_freq: number[];
 }
 
-
 class Control {
-    constructor(document: Document, private driver: DualDDS) {
+    constructor(document: Document, private driver) {
         this.update();
     }
 

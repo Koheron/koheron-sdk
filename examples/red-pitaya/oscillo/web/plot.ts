@@ -20,7 +20,7 @@ class Plot {
     private clickDatapointSpan: HTMLSpanElement;
     private clickDatapoint: number[];
 
-    constructor(document: Document, private plot_placeholder: JQuery, private driver: Oscillo) {
+    constructor(document: Document, private plot_placeholder: JQuery, private driver) {
         this.ch1Checkbox = <HTMLInputElement>document.getElementById('ch1-checkbox');
         this.ch2Checkbox = <HTMLInputElement>document.getElementById('ch2-checkbox');
 
