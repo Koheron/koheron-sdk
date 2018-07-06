@@ -104,4 +104,3 @@ web:
   - ./web/export-file/export-file.ts
   - ./web/index.html
   - web/main.css
-  - ./web/fft.css

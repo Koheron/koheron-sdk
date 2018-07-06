@@ -102,10 +102,13 @@ drivers:
 # ------------------------------------------------------------
 
 web:
-
   - web/koheron.ts
   - web/jquery.flot.d.ts
+  - web/navigation.ts
+  - web/navigation.html
   - web/laser.ts
+  - web/laser-control.html
+  - web/imports.ts
   - ./web/oscillo.ts
   - ./web/app.ts
   - web/average.ts
@@ -113,4 +116,3 @@ web:
   - ./web/plot.ts
   - ./web/index.html
   - web/main.css
-  - web/navigation.ts

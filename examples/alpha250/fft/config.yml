@@ -116,4 +116,3 @@ web:
   - ./web/power-monitor/power-monitor.html
   - ./web/power-monitor/power-monitor.ts
   - ./web/power-monitor/power-monitor-app.ts
-  - ./web/fft.css
