@@ -26,7 +26,7 @@ class App {
                     this.plot = new Plot(document, plot_placeholder, this.fft);
                     this.laserDriver = new LaserDriver(client);
                     this.laserControl = new LaserControl(document, this.laserDriver);
-                    this.exportFile = new ExportFile(document, this.fft, this.plot);
+                    this.exportFile = new ExportFile(document, this.plot);
                 });
             });
         }, false);

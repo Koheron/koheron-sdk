@@ -41,7 +41,7 @@ class App {
                     this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);
                     this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
                     this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionAdc, this.precisionDac);
-                    this.exportFile = new ExportFile(document, this.fft, this.plot);
+                    this.exportFile = new ExportFile(document, this.plot);
 
                 });
             });

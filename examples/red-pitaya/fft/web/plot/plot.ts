@@ -15,7 +15,7 @@ class Plot {
     public plot: jquery.flot.plot;
     public plot_data: Array<Array<number>>;
 
-    private yLabel: string = "Power Spectral Density";
+    public yLabel: string = "Power Spectral Density";
 
     private isMeasure: boolean = true;
 

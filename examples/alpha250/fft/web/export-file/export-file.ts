@@ -6,7 +6,7 @@ class ExportFile {
     private exportDataButtons: HTMLButtonElement[];
     private exportPlotButtons: HTMLButtonElement[];
 
-    constructor(document: Document, private fft: FFT, private plot_:Plot) {
+    constructor(document: Document, private plot_) {
         this.exportDataButtons = <HTMLButtonElement[]><any>document.getElementsByClassName("export-data");
         this.exportPlotButtons = <HTMLButtonElement[]><any>document.getElementsByClassName("export-plot");
         this.initExportData();
@@ -18,27 +18,30 @@ class ExportFile {
             this.exportDataButtons[i].addEventListener('click', (event) => {
 
                 let csvContent = "data:text/csv;charset=utf-8,";
-
-                csvContent += "Koheron Alpha \n";
-
                 let dateTime = new Date();
                 let referenceClock: string = (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock']:checked")).dataset.valuestr;
                 let fftWindowIndex: string = (<HTMLInputElement>document.querySelector("[data-command='setFFTWindow']")).value;
+                let inputChannel: string = (<HTMLInputElement>document.querySelector("[name='input-channel']:checked")).value;
+                let samplingFrequency: string = (<HTMLInputElement>document.querySelector("[name='sampling-frequency']:checked")).dataset.valuestr;
+                let ddsInputs = <HTMLInputElement[]><any>document.querySelectorAll(".dds-channel-input[type='range']");
+
+                csvContent += "Koheron Alpha \n";
                 csvContent += dateTime.getDate() + "/" + (dateTime.getMonth()+1)  + "/"  + dateTime.getFullYear() + " " ;
                 csvContent += dateTime.getHours() + ":" + dateTime.getMinutes() + ":" + dateTime.getSeconds() + "\n";
-
                 csvContent += "\n";
                 csvContent += '"Window",' + fftWindowIndex + "\n";
-                csvContent += '"Input channel",' + (this.fft.status.channel).toString() + "\n";
-                csvContent += '"Sampling frequency (MHz)",' + (this.fft.status.fs / 1e6).toString() + "\n";
+                csvContent += '"Input channel",' + inputChannel + "\n";
+                csvContent += '"Sampling frequency (MHz)",' + samplingFrequency + "\n";
                 csvContent += '"Reference clock (10 MHz)",' + referenceClock + "\n";
-                csvContent += '"Channel 0 DDS frequency (MHz)",' + (this.fft.status.dds_freq[0] / 1e6).toString() + "\n";
-                csvContent += '"Channel 1 DDS frequency (MHz)",' + (this.fft.status.dds_freq[1] / 1e6).toString() + "\n";
+                for (let i: number = 0; i < ddsInputs.length; i++) {
+                    let channel: string = ddsInputs[i].dataset.channel;
+                    csvContent += '"Channel ' + channel + ' DDS frequency (MHz)",' + ddsInputs[i].value + "\n";
+                }
 
                 csvContent += "\n\n";
 
                 let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
-                csvContent += '"Frequency (MHz)","Power spectral density (' + yUnit.replace("-", "/") + ')" \n';
+                csvContent += '"Frequency (MHz)","' + this.plot_.yLabel + ' (' + yUnit.replace("-", "/") + ')" \n';
 
                 this.plot_.plot_data.forEach( (rowArray) => {
                     let row = rowArray.join(",");
