@@ -63,8 +63,11 @@ drivers:
 
 web:
   - web/koheron.ts
+  - web/imports.ts
   - web/laser.ts
+  - web/laser-control.html
   - ./app.ts
   - ./index.html
   - web/main.css
   - web/navigation.ts
+  - web/navigation.html
