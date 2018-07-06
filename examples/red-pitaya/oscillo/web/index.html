@@ -56,122 +56,67 @@
           </div>
 
           <div>
-            <label id="channel" for="channel">
+            <label for="channel">
               Channel:
             </label>
             <div class="radio-wrapper">
-              <input type="radio" name="channel" value="0" checked style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.switchChannel(this.value); return false;">1
+              <input type="radio" name="channel" value="0" class="modulation-channel-input" checked>1
             </div>
             <div class="radio-wrapper">
-              <input type="radio" name="channel" value="1" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.switchChannel(this.value); return false;">2
+              <input type="radio" name="channel" value="1" class="modulation-channel-input">2
             </div>
           </div>
 
-          <div id="channel-0">
-            <div>
-              <label for="waveform-0">
-                Waveform:
-              </label>
-              <div class="radio-wrapper">
-                <input type="radio" name="waveform-0" value="0" checked style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.setWfmType(0,this.value); return false"
-                  id="waveform-0-0">Sine
-              </div>
-              <div class="radio-wrapper">
-                <input type="radio" name="waveform-0" value="1" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.setWfmType(0,this.value); return false"
-                  id="waveform-0-1">Triangle
-              </div>
-              <div class="radio-wrapper">
-                <input type="radio" name="waveform-0" value="2" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.setWfmType(0,this.value); return false"
-                  id="waveform-0-2">Square
-              </div>
+          <div>
+            <label for="modulation-waveform">
+              Waveform:
+            </label>
+            <div class="radio-wrapper">
+              <input type="radio" name="modulation-waveform" class="modulation-channel modulation-input" value="0"
+              data-channel="0" data-command="setWaveformType" data-status="wfmType" checked>Sine
             </div>
-
-            <table class="full-width">
-              <tr>
-                <td style="padding-left: 0; width: 160px;">Amplitude (arb. units)</td>
-                <td style="width: 50px;">
-                  <span id="amplitude-0"></span>
-                </td>
-                <td>
-                  <input id="amplitude-slider-0" type="range" value="0" min="0" step="0.001" max="0.995" oninput="app.modulationControl.setDacAmplitude(0, this.value); return false"
-                    onchange="app.modulationControl.setDacAmplitude(0, this.value); return false">
-                </td>
-              </tr>
-              <tr>
-                <td style="padding-left: 0; width: 160px;">Frequency (MHz)</td>
-                <td style="width: 50px;">
-                  <span id="frequency-0"></span>
-                </td>
-                <td>
-                  <input id="frequency-slider-0" type="range" value="0" min="0" step="1" max="4096" oninput="app.modulationControl.setDacFrequency(0, this.value); return false"
-                    onchange="app.modulationControl.setDacFrequency(0, this.value); return false">
-                </td>
-              </tr>
-              <tr>
-                <td style="padding-left: 0; width: 160px;">Offset (arb. units)</td>
-                <td style="width: 50px;">
-                  <span id="offset-0"></span>
-                </td>
-                <td>
-                  <input id="offset-slider-0" type="range" value="0" min="-1" step="0.001" max="1" oninput="app.modulationControl.setDacOffset(0, this.value); return false"
-                    onchange="app.modulationControl.setDacOffset(0, this.value); return false">
-                </td>
-              </tr>
-            </table>
+            <div class="radio-wrapper">
+              <input type="radio" name="modulation-waveform" class="modulation-channel modulation-input" value="1"
+              data-channel="0" data-command="setWaveformType" data-status="wfmType">Triangle
+            </div>
+            <div class="radio-wrapper">
+              <input type="radio" name="modulation-waveform" class="modulation-channel modulation-input" value="2"
+              data-channel="0" data-command="setWaveformType" data-status="wfmType">Square
+            </div>
           </div>
 
-          <div id="channel-1" style="display: none;">
-            <div>
-              <label for="waveform-1">
-                Waveform:
-              </label>
-              <div class="radio-wrapper">
-                <input type="radio" name="waveform-1" value="0" checked style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.setWfmType(1,this.value); return false"
-                  id="waveform-1-0">Sine
-              </div>
-              <div class="radio-wrapper">
-                <input type="radio" name="waveform-1" value="1" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.setWfmType(1,this.value); return false"
-                  id="waveform-1-1">Triangle
-              </div>
-              <div class="radio-wrapper">
-                <input type="radio" name="waveform-1" value="2" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.setWfmType(1,this.value); return false"
-                  id="waveform-1-2">Square
-              </div>
-            </div>
-
-            <table class="full-width">
-              <tr>
-                <td style="padding-left: 0; width: 160px;">Amplitude (arb. units)</td>
-                <td style="width: 50px;">
-                  <span id="amplitude-1"></span>
-                </td>
-                <td>
-                  <input id="amplitude-slider-1" type="range" value="0" min="0" step="0.001" max="0.995" oninput="app.modulationControl.setDacAmplitude(1, this.value); return false"
-                    onchange="app.modulationControl.setDacAmplitude(1, this.value); return false">
-                </td>
-              </tr>
-              <tr>
-                <td style="padding-left: 0; width: 160px;">Frequency (MHz)</td>
-                <td style="width: 50px;">
-                  <span id="frequency-1"></span>
-                </td>
-                <td>
-                  <input id="frequency-slider-1" type="range" value="0" min="0" step="1" max="4096" oninput="app.modulationControl.setDacFrequency(1, this.value); return false"
-                    onchange="app.modulationControl.setDacFrequency(1, this.value); return false">
-                </td>
-              </tr>
-              <tr>
-                <td style="padding-left: 0; width: 160px;">Offset (arb. units)</td>
-                <td style="width: 50px;">
-                  <span id="offset-1"></span>
-                </td>
-                <td>
-                  <input id="offset-slider-1" type="range" value="0" min="-1" step="0.001" max="1" oninput="app.modulationControl.setDacOffset(1, this.value); return false"
-                    onchange="app.modulationControl.setDacOffset(1, this.value); return false">
-                </td>
-              </tr>
-            </table>
-          </div>
+          <table class="full-width">
+            <tr>
+              <td style="padding-left: 0; width: 160px;">Amplitude (arb. units)</td>
+              <td style="width: 80px;">
+                <span class="modulation-channel" data-channel="0" data-status="dacAmplitude"></span>
+              </td>
+              <td>
+                <input type="range" value="0" min="0" step="0.001" max="0.995" class="modulation-channel modulation-input"
+                data-channel="0" data-command="setDacAmplitude" data-status="dacAmplitude">
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-left: 0; width: 160px;">Frequency (MHz)</td>
+              <td style="width: 80px;">
+                <span class="modulation-channel" data-channel="0" data-status="dacFrequency"></span>
+              </td>
+              <td>
+                <input type="range" value="0" min="0" step="1" max="4096" class="modulation-channel modulation-input"
+                data-channel="0" data-command="setDacFrequency" data-status="dacFrequency">
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-left: 0; width: 160px;">Offset (arb. units)</td>
+              <td style="width: 80px;">
+                <span class="modulation-channel" data-channel="0" data-status="dacOffset"></span>
+              </td>
+              <td>
+                <input type="range" value="0" min="-1" step="0.001" max="1" class="modulation-channel modulation-input"
+                data-channel="0" data-command="setDacOffset" data-status="dacOffset">
+              </td>
+            </tr>
+          </table>
 
         </section>
 
