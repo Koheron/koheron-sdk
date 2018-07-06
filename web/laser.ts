@@ -85,13 +85,12 @@ class LaserControl {
         this.laserModeSelect = <HTMLSelectElement>document.getElementById('laser-mode');
         this.calibrationSpan = <HTMLSpanElement>document.getElementById('calibration');
         this.measuredPowerSpan = <HTMLSpanElement>document.getElementById('measured-power');
-        this.canvas = <HTMLCanvasElement>document.getElementById('canvas');
         this.calibrationInstructionsDiv = document.getElementById('calibration-instructions');
 
         this.laserControlInputs = <HTMLInputElement[]><any>document.getElementsByClassName("laser-control-input");
 
-        let canvasWidth: number = (<HTMLInputElement>document.querySelector(".laser-control-input[type='range']")).offsetWidth;
-        this.canvas.width = canvasWidth;
+        this.canvas = <HTMLCanvasElement>document.getElementById('canvas');
+        this.canvas.width = (<HTMLInputElement>document.querySelector(".laser-control-input[type='range']")).offsetWidth;
 
         this.ctx = this.canvas.getContext("2d");
         this.ctx.fillStyle = 'rgb(100, 100, 100)';
@@ -142,12 +141,14 @@ class LaserControl {
             if (status.constant_power_on) {
                 this.laserModeSelect.value = "power";
                 for (let i: number = 0; i < this.laserControlInputs.length; i++) {
-                    this.laserControlInputs[i].dataset.command = "setPower"
+                    this.laserControlInputs[i].dataset.command = "setPower";
+                    this.laserControlInputs[i].max = "4000";
                 }
             } else {
                 this.laserModeSelect.value = 'current';
                 for (let i: number = 0; i < this.laserControlInputs.length; i++) {
-                    this.laserControlInputs[i].dataset.command = "setCurrent"
+                    this.laserControlInputs[i].dataset.command = "setCurrent";
+                    this.laserControlInputs[i].max = "40";
                 }
             }
 
