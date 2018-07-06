@@ -82,25 +82,26 @@ class LaserControl {
 
     constructor(private document: Document, private driver: LaserDriver) {
         this.laserSwitch = <HTMLInputElement>document.getElementById('laser-switch');
-        this.laserModeSelect = <HTMLSelectElement>document.getElementById('laser-mode');
+        this.initLaserSwitch();
+
         this.calibrationSpan = <HTMLSpanElement>document.getElementById('calibration');
-        this.measuredPowerSpan = <HTMLSpanElement>document.getElementById('measured-power');
         this.calibrationInstructionsDiv = document.getElementById('calibration-instructions');
+        this.initStartCalibration();
+        this.initEndCalibration();
+
+        this.laserModeSelect = <HTMLSelectElement>document.getElementById('laser-mode');
+        this.initLaserModeSelect();
 
         this.laserControlInputs = <HTMLInputElement[]><any>document.getElementsByClassName("laser-control-input");
+        this.initLaserControlInputs();
 
+        this.measuredPowerSpan = <HTMLSpanElement>document.getElementById('measured-power');
         this.canvas = <HTMLCanvasElement>document.getElementById('canvas');
         this.canvas.width = (<HTMLInputElement>document.querySelector(".laser-control-input[type='range']")).offsetWidth;
-
         this.ctx = this.canvas.getContext("2d");
         this.ctx.fillStyle = 'rgb(100, 100, 100)';
 
         this.update();
-        this.initLaserSwitch();
-        this.initLaserControlInputs();
-        this.initStartCalibration();
-        this.initEndCalibration();
-
     }
 
     update(): void {
@@ -132,11 +133,7 @@ class LaserControl {
             }
 
             this.laserOn = status.laser_on;
-            if (this.laserOn) {
-                this.laserSwitch.checked = true;
-            } else {
-                this.laserSwitch.checked = false;
-            }
+            this.laserSwitch.checked = this.laserOn;
 
             if (status.constant_power_on) {
                 this.laserModeSelect.value = "power";
@@ -168,8 +165,10 @@ class LaserControl {
         })
     }
 
-    switchMode(): void {
-        this.driver.switchMode();
+    initLaserModeSelect(): void {
+        this.laserModeSelect.addEventListener('change', (event) => {
+            this.driver.switchMode();
+        })
     }
 
     initLaserControlInputs(): void {
