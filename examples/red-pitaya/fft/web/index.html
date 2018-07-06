@@ -28,7 +28,7 @@
   <link rel="import" href="peak-detection.html" data-parent="peak-detection">
   <link rel="import" href="dds-frequency.html" data-parent="dds-frequency">
   <link rel="import" href="export-file.html" data-parent="export-file">
-  <!-- <link rel="import" href="laser.html" data-parent="laser"> -->
+  <link rel="import" href="laser-control.html" data-parent="laser-control">
 
 </head>
 
@@ -62,57 +62,7 @@
 
       <section id="dds-frequency"></section>
       <section id="export-file"></section>
-
-      <section>
-
-        <div class="crossed">
-          <span>Laser</span>
-        </div>
-
-        <table class="full-width">
-          <tr>
-            <td style="width: 100px;">
-              <label for="laser-switch">ON</label>
-              <label class="switch">
-                <input type="checkbox" id="laser-switch" checked>
-                <span class="slider round"></span>
-              </label>
-            </td>
-            <td style="width: 170px;"><span id="calibration"></span></td>
-            <td><button class="default-btn" id="start-calibration-btn">Start Calibration</button></td>
-          </tr>
-        </table>
-
-        <div id="calibration-instructions" class="padding border" style="display:none">
-          1. Connect your laser to an external power meter.
-          <br> 2. Tune the current/power until the power reads 1 mW on the power meter.
-          <br> 3.
-          <button class="default-btn" id="end-calibration-btn">Calibrate</button>
-        </div>
-
-        <table class="full-width" style="margin: 10px 0;">
-          <tr>
-            <td style="padding-left: 0; width: 130px;">
-              <select id="laser-mode">
-                <option value="current">Current (mA)</option>
-                <option value="power">Power (µW)</option>
-              </select>
-            </td>
-            <td style="width: 90px;">
-              <input type="number" value="0" min="0" step="0.01" max="40" class="laser-control-input" data-command="setCurrent">
-            </td>
-            <td>
-              <input type="range" value="0" min="0" step="0.01" max="40" class="laser-control-input" data-command="setCurrent">
-            </td>
-          </tr>
-          <tr>
-            <td style="padding-left: 10px;">Power (µW)</td>
-            <td style="padding-left: 11px;"><span id="measured-power"></span></td>
-            <td><canvas id="canvas" width="100" height="15"></canvas></td>
-          </tr>
-        </table>
-
-      </section>
+      <section id="laser-control"></section>
 
     </div>
 

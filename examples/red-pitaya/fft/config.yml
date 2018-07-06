@@ -86,9 +86,10 @@ drivers:
 web:
   - web/koheron.ts
   - web/jquery.flot.d.ts
-  - web/laser.ts
   - web/navigation.ts
   - web/navigation.html
+  - web/laser.ts
+  - web/laser-control.html
   - web/imports.ts
   - ./web/app.ts
   - ./web/plot/plot.ts
