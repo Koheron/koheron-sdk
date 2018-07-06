@@ -112,6 +112,7 @@ web:
   - ./web/oscillo.ts
   - ./web/app.ts
   - web/average.ts
+  - web/average.html
   - web/modulation.ts
   - ./web/plot.ts
   - ./web/index.html

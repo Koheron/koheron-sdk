@@ -10,9 +10,9 @@ interface AverageStatus {
 class Average {
 
     private averageSwitch: HTMLInputElement;
+    private averageMinInput: HTMLInputElement;
     private averageElements: any;
     private averageSpan: HTMLSpanElement;
-    private numAverageMinInput: HTMLInputElement;
     private isAverage: boolean = false;
 
     constructor(document: Document, private driver: any) {
@@ -20,9 +20,11 @@ class Average {
         this.averageSwitch = <HTMLInputElement>document.getElementById("average-switch");
         this.initAverageSwitch();
 
+        this.averageMinInput = <HTMLInputElement>document.getElementById("average-min-input");
+        this.initAverageMinInput();
+
         this.averageElements = document.getElementsByClassName("average");
-        this.averageSpan = <HTMLSpanElement>document.getElementById('avg');
-        this.numAverageMinInput = <HTMLInputElement>document.getElementById('avg-min-input');
+        this.averageSpan = <HTMLSpanElement>document.getElementById('average-value');
 
         this.update();
     }
@@ -53,17 +55,14 @@ class Average {
         })
     }
 
-    setNumAverageMin(numAverageMin) : void {
-        if (this.isAverage) {
-            this.driver.setNumAverageMin(Math.max(0, numAverageMin));
+    initAverageMinInput(): void {
+        let events = ['change', 'input'];
+        for (let event_ of events) {
+            this.averageMinInput.addEventListener(event_, (event) => {
+                if (this.isAverage) {
+                    this.driver.setNumAverageMin(Math.max(0, parseInt((<HTMLInputElement>event.currentTarget).value)));
+                }
+            })
         }
     }
-
-    saveNumAverageMin(): void {
-        if (this.isAverage) {
-            this.driver.setNumAverageMin(Math.max(0, parseInt(this.numAverageMinInput.value)));
-        }
-        this.numAverageMinInput.style.display = 'none';
-    }
-
 }
