@@ -4,6 +4,7 @@ class App {
     public plot: Plot;
     private fft: FFT;
     public fftApp: FFTApp;
+    public ddsFrequency: DDSFrequency;
     private temperatureSensor: TemperatureSensor;
     private temperatureSensorApp: TemperatureSensorApp;
     private powerMonitor: PowerMonitor;
@@ -34,6 +35,7 @@ class App {
 
                 this.fft.init( () => {
                     this.fftApp = new FFTApp(document, this.fft);
+                    this.ddsFrequency = new DDSFrequency(document, this.fft);
                     this.plot = new Plot(document, plot_placeholder, this.fft);
                     this.temperatureSensorApp = new TemperatureSensorApp(document, this.temperatureSensor);
                     this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);

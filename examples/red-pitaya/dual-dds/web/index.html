@@ -19,62 +19,21 @@
 
   <script type="text/javascript" src="jquery.min.js"></script>
   <script type="text/javascript" src="bootstrap.min.js"></script>
+
+  <link rel="import" href="navigation.html" data-parent="navigation">
+  <link rel="import" href="dds-frequency.html" data-parent="dds-frequency">
+
 </head>
 
 <body>
 
-<div id="navigation">
-
-  <div id="navigation-links">
-    <img src="_koheron_logo.svg" alt="home" style="max-width: 100%;">
-    <a href="/">Home</a>
-    <a href="/koheron">Settings</a>
-  </div>
-
-  <button value="close" id="collapse-btn" onclick="app.navigation.collapseBtnClick(this); return false;">&#60;</button>
-
-</div>
+<div id="navigation"></div>
 
 <div class="container-fluid" id="main">
-
-  <section>
-
-  <div class="crossed">
-    <span>
-      DDS Frequency (MHz)
-    </span>
-  </div>
-
-  <table class="full-width">
-    <tr>
-      <td style="width: 100px;">Channel 0</td>
-      <td style="width: 150px;">
-        <input id="frequency-input-0" type="number" value="0" min="0" step="0.000001" max="62.5"
-        onchange="app.control.setFrequency(0, this); return false" oninput="app.control.setFrequency(0, this); return false">
-      </td>
-      <td>
-        <input id="frequency-slider-0" type="range" value="0" min="0" step="0.001" max="62.5"
-        onchange="app.control.setFrequency(0, this); return false" oninput="app.control.setFrequency(0, this); return false">
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 100px;">Channel 1</td>
-      <td style="width: 150px;">
-        <input id="frequency-input-1" type="number" value="0" min="0" step="0.000001" max="62.5"
-        onchange="app.control.setFrequency(1, this); return false" oninput="app.control.setFrequency(1, this); return false">
-      </td>
-      <td>
-        <input id="frequency-slider-1" type="range" value="0" min="0" step="0.001" max="62.5"
-        onchange="app.control.setFrequency(1, this); return false" oninput="app.control.setFrequency(1, this); return false">
-      </td>
-    </tr>
-  </table>
-
-  </section>
-
+  <section id="dds-frequency"></section>
 </div>
 
-  <script src="app.js?random=<?php echo uniqid(); ?>"></script>
+<script src="app.js?random=<?php echo uniqid(); ?>"></script>
 
 </body>
 </html>

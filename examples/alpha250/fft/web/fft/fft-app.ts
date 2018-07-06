@@ -1,16 +1,12 @@
-// Control widget
+// FFT widget
 // (c) Koheron
 
 class FFTApp {
     private channelNum: number = 2;
-    private fftChanelInputs: HTMLInputElement[];
     private fftSelects: HTMLSelectElement[];
     private fftInputs: HTMLInputElement[];
 
     constructor(document: Document, private fft: FFT) {
-        this.fftChanelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-channel-input");
-        this.initFFTChannelInputs();
-
         this.fftSelects = <HTMLSelectElement[]><any>document.getElementsByClassName("fft-select");
         this.initFFTSelects();
         this.fftInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-input");
@@ -20,13 +16,13 @@ class FFTApp {
         this.updateControls();
     }
 
-    // Updateters
+    // Updaters
 
     private updateControls() {
         this.fft.getControlParameters( (sts: IFFTStatus) => {
 
             for (let i = 0; i < this.channelNum; i++) {
-                let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".fft-channel-input[data-command='setDDSFreq'][data-channel='" + i.toString() + "']");
+                let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".dds-channel-input[data-command='setDDSFreq'][data-channel='" + i.toString() + "']");
                 let inputsArray = [];
                 for (let j = 0; j < inputs.length; j++) {
                     inputsArray.push(inputs[j]);
@@ -62,26 +58,6 @@ class FFTApp {
     }
 
     // Setters
-
-    initFFTChannelInputs(): void {
-        let events = ['change', 'input'];
-        for (let j = 0; j < events.length; j++) {
-            for (let i = 0; i < this.fftChanelInputs.length; i++) {
-                this.fftChanelInputs[i].addEventListener(events[j], (event) => {
-                    let counterType: string = "number";
-                    if ((<HTMLInputElement>event.currentTarget).type == "number") {
-                        counterType = "range";
-                    }
-                    let command = (<HTMLInputElement>event.currentTarget).dataset.command;
-                    let channel = (<HTMLInputElement>event.currentTarget).dataset.channel;
-                    let value = (<HTMLInputElement>event.currentTarget).value;
-                    (<HTMLInputElement>document.querySelector("[data-command='" + command + "'][data-channel='" + channel +"'][type='" + counterType + "']")).value = value ;
-                    this.fft[command](channel, 1e6 * parseFloat(value));
-                })
-            }
-        }
-
-    }
 
     initFFTSelects(): void {
         for (let i = 0; i < this.fftSelects.length; i++) {

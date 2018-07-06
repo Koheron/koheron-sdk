@@ -90,12 +90,13 @@ web:
   - web/navigation.ts
   - web/navigation.html
   - web/main.css
+  - web/dds-frequency/dds-frequency.html
+  - web/dds-frequency/dds-frequency.ts
   - ./web/index.html
   - ./web/app.ts
-  - ./web/fft/fft.ts
+  - ./web/fft.ts
   - ./web/fft/fft-window.html
   - ./web/fft/input-channel.html
-  - ./web/fft/dds-frequency.html
   - ./web/fft/fft-app.ts
   - ./web/plot/plot.ts
   - ./web/plot/yunit.html

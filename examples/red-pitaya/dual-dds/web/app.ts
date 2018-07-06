@@ -2,6 +2,8 @@ class App {
     public control: Control;
     private driver: DualDDS;
     private navigation: Navigation;
+    private imports: Imports;
+    private ddsFrequency: DDSFrequency;
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
@@ -9,9 +11,11 @@ class App {
 
         window.addEventListener('load', () => {
             client.init( () => {
+                this.imports = new Imports(document);
                 this.driver = new DualDDS(client);
                 this.control = new Control(document, this.driver);
                 this.navigation = new Navigation(document);
+                this.ddsFrequency = new DDSFrequency(document, this.driver);
             });
         }, false);
 

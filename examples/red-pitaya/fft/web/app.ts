@@ -8,6 +8,7 @@ class App {
     private navigation: Navigation;
     private exportFile: ExportFile;
     private imports: Imports;
+    public ddsFrequency: DDSFrequency;
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
@@ -21,6 +22,7 @@ class App {
 
                 this.fft.init( () => {
                     this.fftApp = new FFTApp(document, this.fft);
+                    this.ddsFrequency = new DDSFrequency(document, this.fft);
                     this.plot = new Plot(document, plot_placeholder, this.fft);
                     this.laserDriver = new LaserDriver(client);
                     this.laserControl = new LaserControl(document, this.laserDriver);

@@ -91,15 +91,16 @@ web:
   - web/laser.ts
   - web/laser-control.html
   - web/imports.ts
+  - web/dds-frequency/dds-frequency.ts
+  - web/dds-frequency/dds-frequency.html
   - ./web/app.ts
+  - ./web/fft.ts
   - ./web/plot/plot.ts
   - ./web/plot/yunit.html
   - ./web/plot/peak-detection.html
-  - ./web/fft/fft.ts
   - ./web/fft/fft-app.ts
   - ./web/fft/fft-window.html
   - ./web/fft/input-channel.html
-  - ./web/fft/dds-frequency.html
   - ./web/export-file/export-file.html
   - ./web/export-file/export-file.ts
   - ./web/index.html
