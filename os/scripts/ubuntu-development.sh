@@ -140,6 +140,7 @@ apt-get -y install openssh-server ntp usbutils psmisc lsof \
 
 apt-get install -y udev net-tools netbase ifupdown network-manager lsb-base
 apt-get install -y ntpdate sudo rsync
+apt-get install -y kmod
 
 apt-get install -y nginx
 apt-get install -y build-essential python-dev
