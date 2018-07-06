@@ -15,6 +15,7 @@ class Plot {
     private yLabel: string;
     private xLabelDiv: HTMLDivElement;
 
+    private velocitySwitch: HTMLInputElement;
     private isPlotVelocity: boolean;
     private velocity: Array<number>;
 
@@ -35,6 +36,8 @@ class Plot {
         this.xLabel = "Frequency (MHz)";
         this.isPlotVelocity = false;
         this.velocity = [];
+        this.velocitySwitch = <HTMLInputElement>document.getElementById("velocity-switch");
+        this.initVelocitySwitch();
         this.updatePlot();
     }
 
@@ -252,18 +255,20 @@ class Plot {
         callback();
     }
 
-    switchVelocity(): void {
-        if (this.isPlotVelocity) {
-            this.yLabel = "Power Spectral Density (dB)";
-            this.xLabel = "Frequency (MHz)";
-            this.isPlotVelocity = false;
-            this.isResetRange = true;
-        } else {
-            this.yLabel = "Speed (m/s)";
-            this.xLabel = "Time (s)";
-            this.isPlotVelocity = true;
-            this.isResetRange = true;
-        }
+    initVelocitySwitch(): void {
+        this.velocitySwitch.addEventListener('change', (event) => {
+            if (this.isPlotVelocity) {
+                this.yLabel = "Power Spectral Density (dB)";
+                this.xLabel = "Frequency (MHz)";
+                this.isPlotVelocity = false;
+                this.isResetRange = true;
+            } else {
+                this.yLabel = "Speed (m/s)";
+                this.xLabel = "Time (s)";
+                this.isPlotVelocity = true;
+                this.isResetRange = true;
+            }
+        })
     }
 
     rollArray(array, count) {
