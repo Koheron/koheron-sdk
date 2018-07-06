@@ -73,8 +73,6 @@ class LaserControl {
 
     private laserModeSelect: HTMLSelectElement;
     private calibrationSpan: HTMLSpanElement;
-    private currentControl: any;
-    private powerControl: any;
     private measuredPowerSpan: HTMLSpanElement;
     private canvas: HTMLCanvasElement;
     private calibrationInstructionsDiv: any;
@@ -86,8 +84,6 @@ class LaserControl {
         this.laserSwitch = <HTMLInputElement>document.getElementById('laser-switch');
         this.laserModeSelect = <HTMLSelectElement>document.getElementById('laser-mode');
         this.calibrationSpan = <HTMLSpanElement>document.getElementById('calibration');
-        this.currentControl = document.getElementsByClassName('current-control');
-        this.powerControl = document.getElementsByClassName('power-control');
         this.measuredPowerSpan = <HTMLSpanElement>document.getElementById('measured-power');
         this.canvas = <HTMLCanvasElement>document.getElementById('canvas');
         this.calibrationInstructionsDiv = document.getElementById('calibration-instructions');
@@ -145,21 +141,14 @@ class LaserControl {
 
             if (status.constant_power_on) {
                 this.laserModeSelect.value = "power";
-                for (let i: number = 0; i < this.currentControl.length; i++) {
-                    this.currentControl[i].style.display = 'none';
-                }
-                for (let i: number = 0; i < this.powerControl.length; i++) {
-                    this.powerControl[i].style.display = 'table-cell';
+                for (let i: number = 0; i < this.laserControlInputs.length; i++) {
+                    this.laserControlInputs[i].dataset.command = "setPower"
                 }
             } else {
                 this.laserModeSelect.value = 'current';
-                for (let i: number = 0; i < this.currentControl.length; i++) {
-                    this.currentControl[i].style.display = 'table-cell';
+                for (let i: number = 0; i < this.laserControlInputs.length; i++) {
+                    this.laserControlInputs[i].dataset.command = "setCurrent"
                 }
-                for (let i: number = 0; i < this.powerControl.length; i++) {
-                    this.powerControl[i].style.display = 'none';
-                }
-
             }
 
             requestAnimationFrame( () => { this.update(); });
