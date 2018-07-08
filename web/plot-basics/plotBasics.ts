@@ -8,8 +8,8 @@ class PlotBasics {
 
     private reset_range: boolean;
     private options: jquery.flot.plotOptions;
-    public plot: jquery.flot.plot;
-    public plot_data: Array<Array<number>>;
+    private plot: jquery.flot.plot;
+    private plot_data: Array<Array<number>>;
 
     private isPeakDetection: boolean = true;
     private peakDatapointSpan: HTMLSpanElement;
@@ -23,8 +23,6 @@ class PlotBasics {
 
     constructor(document: Document, private plot_placeholder: JQuery, private plotDriver: Plot, private n_pts: number, private x_min, private x_max, private y_min, private y_max) {
 
-        // this.n_pts = this.plotDriver.n_pts;
-        // this.x_max = this.fft.status.fs / 1E6 / 2;
         this.range_x = <jquery.flot.range>{};
         this.range_x.from = this.x_min;
         this.range_x.to = this.x_max;
