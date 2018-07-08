@@ -136,55 +136,6 @@ connect_cell psd_bram {
   adc bram_accum/m_axis_tdata
 }
 
-####################################
-# Demodulation
-####################################
-
-source $project_path/tcl/demodulator.tcl
-
-demodulator::create demodulator
-
-connect_cell demodulator {
-    s_axis_data_a [get_concat_pin [list adc_dac/adc0 [get_constant_pin 0 16]]]
-    s_axis_data_b dds0/m_axis_data_tdata
-    s_axis_tvalid dds0/m_axis_data_tvalid
-    aclk adc_dac/adc_clk
-    aresetn rst_adc_clk/peripheral_aresetn
-}
-
-# Use AXI Stream clock converter (ADC clock -> FPGA clock)
-set idx [add_master_interface 0]
-
-cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
-  TDATA_NUM_BYTES 4
-} {
-  s_axis_tdata demodulator/m_axis_tdata
-  s_axis_tvalid demodulator/m_axis_tvalid
-  s_axis_aresetn rst_adc_clk/peripheral_aresetn
-  m_axis_aresetn proc_sys_reset_0/peripheral_aresetn
-  s_axis_aclk adc_dac/adc_clk
-  m_axis_aclk ps_0/FCLK_CLK0
-}
-
-# Add AXI stream FIFO
-cell xilinx.com:ip:axi_fifo_mm_s:4.1 adc_axis_fifo {
-  C_USE_TX_DATA 0
-  C_USE_TX_CTRL 0
-  C_USE_RX_CUT_THROUGH true
-  C_RX_FIFO_DEPTH 16384
-  C_RX_FIFO_PF_THRESHOLD 8192
-} {
-  s_axi_aclk ps_0/FCLK_CLK0
-  s_axi_aresetn proc_sys_reset_0/peripheral_aresetn
-  S_AXI axi_mem_intercon_0/M${idx}_AXI
-  AXI_STR_RXD adc_clock_converter/M_AXIS
-}
-
-assign_bd_address [get_bd_addr_segs adc_axis_fifo/S_AXI/Mem0]
-set memory_segment  [get_bd_addr_segs /ps_0/Data/SEG_adc_axis_fifo_Mem0]
-set_property offset [get_memory_offset adc_fifo] $memory_segment
-set_property range [get_memory_range adc_fifo] $memory_segment
-
 # Test IOs
 
 connect_pins [sts_pin digital_inputs] [get_concat_pin [list exp_io_0_p exp_io_1_p exp_io_2_p exp_io_3_p exp_io_4_p exp_io_5_p exp_io_6_p exp_io_7_p]]
