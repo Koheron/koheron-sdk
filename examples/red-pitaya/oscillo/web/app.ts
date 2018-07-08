@@ -9,9 +9,16 @@ class App {
     private plot: Plot;
     private navigation: Navigation;
     private imports: Imports;
+    private plotBasics: PlotBasics;
 
     wfmSize = 8192;
     samplingRate = 125e6;
+
+    private n_pts: number;
+    private x_min: number;
+    private x_max: number;
+    private y_min: number;
+    private y_max: number;
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
@@ -28,7 +35,15 @@ class App {
                 this.modulationDriver = new ModulationDriver(client);
                 this.modulationControl = new ModulationControl(document, this.modulationDriver, this.wfmSize, this.samplingRate);
 
-                this.plot = new Plot(document, plot_placeholder, this.oscillo);
+                this.n_pts = 16384;
+                this.x_min = 0;
+                this.x_max = this.oscillo.maxT;
+                this.y_min = -8192;
+                this.y_max = +8191;
+
+                this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.oscillo, "setTimeRange");
+                this.plot = new Plot(document, this.oscillo, this.plotBasics);
+
                 this.navigation = new Navigation(document);
             });
         }, false);
