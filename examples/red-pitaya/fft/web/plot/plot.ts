@@ -14,7 +14,7 @@ class Plot {
     public y_min: number;
     public y_max: number;
 
-    constructor(document: Document, private plot_placeholder: JQuery, private fft: FFT, private plotBasics: PlotBasics) {
+    constructor(document: Document, private fft: FFT, private plotBasics: PlotBasics) {
 
         this.n_pts = this.fft.fft_size / 2;
         this.x_min = 0;

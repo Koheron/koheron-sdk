@@ -38,8 +38,8 @@ class App {
                     this.y_min = -200;
                     this.y_max = 170;
 
-                    this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max);
-                    this.plot = new Plot(document, plot_placeholder, this.fft, this.plotBasics);
+                    this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.fft);
+                    this.plot = new Plot(document, this.fft, this.plotBasics);
 
                     this.laserDriver = new LaserDriver(client);
                     this.laserControl = new LaserControl(document, this.laserDriver);

@@ -21,7 +21,7 @@ class PlotBasics {
     private clickDatapointSpan: HTMLSpanElement;
     private clickDatapoint: number[];
 
-    constructor(document: Document, private plot_placeholder: JQuery, private plotDriver: Plot, private n_pts: number, private x_min, private x_max, private y_min, private y_max) {
+    constructor(document: Document, private plot_placeholder: JQuery, private plotDriver: Plot, private n_pts: number, private x_min, private x_max, private y_min, private y_max, private driver) {
 
         this.range_x = <jquery.flot.range>{};
         this.range_x.from = this.x_min;
