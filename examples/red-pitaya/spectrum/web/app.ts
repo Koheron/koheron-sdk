@@ -36,7 +36,7 @@ class App {
 
                 this.n_pts = 8192;
                 this.x_min = 0;
-                this.x_max = 8192;
+                this.x_max = 62.5;
                 this.y_min = 0;
                 this.y_max = 200;
 
