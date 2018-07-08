@@ -2,6 +2,7 @@ class App {
 
     private imports: Imports;
     public plot: Plot;
+    private plotBasics: PlotBasics;
     private fft: FFT;
     public fftApp: FFTApp;
     public ddsFrequency: DDSFrequency;
@@ -16,6 +17,12 @@ class App {
     private precisionChannelsApp: PrecisionChannelsApp;
     private exportFile: ExportFile;
     private navigation: Navigation;
+
+    private n_pts: number;
+    private x_min: number;
+    private x_max: number;
+    private y_min: number;
+    private y_max: number;
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
@@ -36,7 +43,16 @@ class App {
                 this.fft.init( () => {
                     this.fftApp = new FFTApp(document, this.fft);
                     this.ddsFrequency = new DDSFrequency(document, this.fft);
-                    this.plot = new Plot(document, plot_placeholder, this.fft);
+
+                    this.n_pts = this.fft.fft_size / 2;
+                    this.x_min = 0;
+                    this.x_max = this.fft.status.fs / 1E6 / 2;
+                    this.y_min = -200;
+                    this.y_max = 170;
+
+                    this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.fft, "");
+                    this.plot = new Plot(document, this.fft, this.plotBasics);
+
                     this.temperatureSensorApp = new TemperatureSensorApp(document, this.temperatureSensor);
                     this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);
                     this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);

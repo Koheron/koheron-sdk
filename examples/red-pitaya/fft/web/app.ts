@@ -17,7 +17,6 @@ class App {
     private y_min: number;
     private y_max: number;
 
-
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
         let client = new Client(ip, 5);

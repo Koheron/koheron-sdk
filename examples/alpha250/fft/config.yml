@@ -98,6 +98,7 @@ web:
   - ./web/fft/fft-window.html
   - ./web/fft/input-channel.html
   - ./web/fft/fft-app.ts
+  - web/plot-basics/plotBasics.ts
   - ./web/plot/plot.ts
   - ./web/plot/yunit.html
   - ./web/plot/peak-detection.html
