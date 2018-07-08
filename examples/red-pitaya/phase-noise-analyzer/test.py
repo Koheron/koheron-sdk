@@ -14,39 +14,21 @@ class PhaseNoiseAnalyzer(object):
     def set_dds_freq(self, channel, freq):
         pass
 
-    @command(classname="ClockGenerator")
-    def set_tcxo_clock(self, val):
-        pass
-
-    @command(classname="ClockGenerator")
-    def set_sampling_frequency(self, val):
-        pass
-
-    @command(classname="ClockGenerator")
-    def set_reference_clock(self, val):
-        pass
-
-    @command(classname="ClockGenerator")
-    def set_tcxo_clock(self, val):
-        pass
-
     @command(classname='Dma')
     def get_data(self):
         return self.client.recv_array(1000000, dtype='int32')
 
 
-host = '192.168.1.22'
+host = '192.168.1.24'
 freq = 10e6
 
 driver = PhaseNoiseAnalyzer(connect(host, 'phase-noise-analyzer'))
-driver.set_sampling_frequency(0)
-driver.set_reference_clock(2)
 driver.set_dds_freq(0,freq)
 
 n = 1000000
 
 n = 1000000
-fs = 200e6
+fs = 125e6
 cic_rate = 20
 n_avg = 100
 
@@ -95,7 +77,7 @@ while True:
         mean_psd = np.mean(psd, axis=0)
         li.set_ydata(np.fft.fftshift(10*np.log10(mean_psd[1:n/2+1]/2)))
         fig.canvas.draw()
-        np.save('phase-noise-alpha250.npy', [np.fft.fftshift(ffft[1:n/2+1]), np.fft.fftshift(10*np.log10(mean_psd[1:n/2+1]/2))])
+        np.save('phase-noise-red-pitaya.npy', [np.fft.fftshift(ffft[1:n/2+1]), np.fft.fftshift(10*np.log10(mean_psd[1:n/2+1]/2))])
         plt.pause(0.001)
     except KeyboardInterrupt:
         break
