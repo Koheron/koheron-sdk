@@ -175,3 +175,5 @@ set_property range [get_memory_range ram] [get_bd_addr_segs {axi_dma_0/Data_S2MM
 
 delete_bd_objs [get_bd_addr_segs -excluded axi_dma_0/Data_S2MM/SEG_axi_dma_0_Reg]
 delete_bd_objs [get_bd_addr_segs ps_0/Data/SEG_ps_0_HP0_DDR_LOWOCM]
+
+#set_property -dict [list CONFIG.JITTER_SEL {Max_I_Jitter}] [get_bd_cells adc_dac/pll]

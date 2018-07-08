@@ -19,8 +19,8 @@ class PhaseNoiseAnalyzer(object):
         return self.client.recv_array(1000000, dtype='int32')
 
 
-host = '192.168.1.24'
-freq = 10e6
+host = os.getenv('HOST','192.168.1.24')
+freq = 40e6
 
 driver = PhaseNoiseAnalyzer(connect(host, 'phase-noise-analyzer'))
 driver.set_dds_freq(0,freq)
@@ -59,7 +59,11 @@ ax.set_xticklabels(xlabels)
 
 fig.canvas.draw()
 
-window = 0.5 * (1 - np.cos(2*np.pi*np.arange(n)/(n-1)))
+#window = signal.blackmanharris(n)
+#window = 0.5 * (1 - np.cos(2*np.pi*np.arange(n)/(n-1)))
+#window = signal.nuttall(n)
+window = signal.chebwin(n, at=200)
+
 W = np.sum(window ** 2) # Correction factor for window
 
 psd = np.zeros((n_avg, n))

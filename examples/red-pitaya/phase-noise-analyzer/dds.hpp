@@ -35,22 +35,22 @@ class Dds
             return;
         }
 
-        if (freq_hz > prm::adc_clk / 2) {
-            freq_hz = prm::adc_clk / 2;
+        if (freq_hz > double(prm::adc_clk)/ 2) {
+            freq_hz = double(prm::adc_clk) / 2;
         }
 
         if (freq_hz < 0.0) {
             freq_hz = 0.0;
         }
 
-        double factor = (uint64_t(1) << 48) / prm::adc_clk;
+        double factor = (uint64_t(1) << 48) / double(prm::adc_clk);
 
         //ctl.write<reg::phase_incr0, uint64_t>(phase_incr);
 
         ctl.write_reg<uint64_t>(reg::phase_incr0 + 8 * channel, uint64_t(factor * freq_hz));
         dds_freq[channel] = freq_hz;
 
-        ctx.log<INFO>("fs %lf , channel %u, ref. frequency set to %lf \n", prm::adc_clk, channel, freq_hz);
+        ctx.log<INFO>("fs %lf , channel %u, ref. frequency set to %lf \n", double(prm::adc_clk), channel, freq_hz);
     }
 
   private:

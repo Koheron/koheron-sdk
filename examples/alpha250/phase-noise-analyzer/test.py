@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import signal
 import matplotlib
 matplotlib.use('GTKAgg')
 from matplotlib import pyplot as plt
@@ -35,8 +36,8 @@ class PhaseNoiseAnalyzer(object):
         return self.client.recv_array(1000000, dtype='int32')
 
 
-host = '192.168.1.22'
-freq = 10e6
+host = os.getenv('HOST','192.168.1.22')
+freq = 40e6
 
 driver = PhaseNoiseAnalyzer(connect(host, 'phase-noise-analyzer'))
 driver.set_sampling_frequency(0)
@@ -49,6 +50,8 @@ n = 1000000
 fs = 200e6
 cic_rate = 20
 n_avg = 100
+
+x = np.arange(n)/(n-1)
 
 ffft = np.fft.fftfreq(n) * fs / (cic_rate * 2)
 
@@ -78,6 +81,14 @@ ax.set_xticklabels(xlabels)
 fig.canvas.draw()
 
 window = 0.5 * (1 - np.cos(2*np.pi*np.arange(n)/(n-1)))
+
+window = np.ones(n)
+
+#window = signal.blackmanharris(n)
+#window = 0.5 * (1 - np.cos(2*np.pi*np.arange(n)/(n-1)))
+#window = signal.nuttall(n)
+window = signal.chebwin(n, at=200)
+
 W = np.sum(window ** 2) # Correction factor for window
 
 psd = np.zeros((n_avg, n))
@@ -89,6 +100,7 @@ while True:
         data = driver.get_data()
         print i, np.mean(data)
         data = data / 8192.0 * np.pi
+        #data = data - data[0] - x * (data[-1] - data[0])
         data -= np.mean(data)
         psd[i,:] = np.abs(np.fft.fft(window * data))**2
         psd[i,:] /= (fs / (cic_rate * 2) * W) # rad^2/Hz
