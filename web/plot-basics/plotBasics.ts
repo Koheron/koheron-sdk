@@ -21,7 +21,8 @@ class PlotBasics {
     private clickDatapointSpan: HTMLSpanElement;
     private clickDatapoint: number[];
 
-    constructor(document: Document, private plot_placeholder: JQuery, private plotDriver: Plot, private n_pts: number, private x_min, private x_max, private y_min, private y_max, private driver) {
+    constructor(document: Document, private plot_placeholder: JQuery, private plotDriver: Plot, private n_pts: number, private x_min, private x_max, private y_min, private y_max,
+        private driver, private rangeFunction) {
 
         this.range_x = <jquery.flot.range>{};
         this.range_x.from = this.x_min;
@@ -31,9 +32,9 @@ class PlotBasics {
         this.range_y.to = this.y_max;
 
         this.setPlot(this.range_x.from, this.range_x.to, this.range_y.from, this.range_y.to);
-        this.rangeSelect();
-        this.dblClick(this.x_max);
-        this.onWheel(this.x_max);
+        this.rangeSelect(this.rangeFunction);
+        this.dblClick(this.x_max, this.rangeFunction);
+        this.onWheel(this.x_max, this.rangeFunction);
         this.showHoverPoint();
         this.showClickPoint();
         this.plotLeave();
@@ -98,7 +99,7 @@ class PlotBasics {
 
     }
 
-    rangeSelect() {
+    rangeSelect(rangeFunction: string) {
         this.plot_placeholder.bind("plotselected", (event: JQueryEventObject,
                                                     ranges: jquery.flot.ranges) => {
             // Clamp the zooming to prevent external zoom
@@ -116,16 +117,23 @@ class PlotBasics {
             this.range_y.from = ranges.yaxis.from;
             this.range_y.to = ranges.yaxis.to;
 
+            if (rangeFunction.length > 0) {
+                this.driver[rangeFunction](ranges.xaxis);
+            }
+
             this.reset_range = true;
         });
     }
 
     // A double click on the plot resets to full span
-    dblClick(max_x: number) {
+    dblClick(max_x: number, rangeFunction: string) {
         this.plot_placeholder.bind("dblclick", (evt: JQueryEventObject) => {
             this.range_x.from = 0;
             this.range_x.to = max_x;
             this.range_y = <jquery.flot.range>{};
+            if (rangeFunction.length > 0) {
+                this.driver[rangeFunction](this.range_x);
+            }
             this.reset_range = true;
         });
     }
@@ -230,7 +238,54 @@ class PlotBasics {
         callback();
     }
 
-    onWheel(max_x: number): void {
+
+    redrawTwoChannels(ch0: number[][], ch1: number[][],
+        rangeX: jquery.flot.range, label1: string, label2: string, is_channel_1: boolean, is_channel_2: boolean, callback: () => void): void {
+
+     if (ch0.length === 0 || ch1.length === 0) {
+         callback();
+         return;
+     }
+
+     let plotCh0: number[][] = [];
+     let plotCh1: number[][] = [];
+
+     if (is_channel_1 && is_channel_2) {
+         plotCh0 = ch0;
+         plotCh1 = ch1;
+         // plotData = [ch0, ch1];
+     } else if (is_channel_1 && !is_channel_2) {
+         plotCh0 = ch0;
+         plotCh1 = [];
+     } else if (!is_channel_1 && is_channel_2) {
+         plotCh0 = [];
+         plotCh1 = ch1;
+     } else {
+         plotCh0 = [];
+         plotCh1 = [];
+     }
+
+     const plt_data: jquery.flot.dataSeries[] = [{label: label1, data: plotCh0}, {label: label2, data: plotCh1}];
+
+     if (this.reset_range) {
+         this.options.xaxis.min = rangeX.from;
+         this.options.xaxis.max = rangeX.to;
+         this.options.yaxis.min = this.range_y.from;
+         this.options.yaxis.max = this.range_y.to;
+
+         this.plot = $.plot(this.plot_placeholder, plt_data, this.options);
+
+         this.plot.setupGrid();
+         this.reset_range = false;
+     } else {
+         this.plot.setData(plt_data);
+         this.plot.draw();
+     }
+
+     callback();
+    }
+
+    onWheel(max_x: number, rangeFunction: string): void {
         this.plot_placeholder.bind("wheel", (evt: JQueryEventObject) => {
             let delta: number = (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaX
                                 + (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaY;
@@ -261,6 +316,10 @@ class PlotBasics {
                     from: Math.max(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.min), 0),
                     to: Math.min(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.max), max_x)
                 };
+
+                if (rangeFunction.length > 0) {
+                    this.driver[rangeFunction](this.range_x);
+                }
 
                 this.reset_range = true;
                 return false;

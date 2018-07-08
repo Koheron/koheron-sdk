@@ -8,11 +8,14 @@ class Plot {
 
     private plot: jquery.flot.plot;
     private options: jquery.flot.plotOptions;
-    private isResetRange: boolean;
+    private reset_range: boolean;
 
-    private minY: number;
-    private maxY: number;
-    private rangeY: jquery.flot.range;
+    private x_min: number;
+    private x_max: number;
+    private y_min: number;
+    private y_max: number;
+    private range_x: jquery.flot.range;
+    private range_y: jquery.flot.range;
 
     private hoverDatapointSpan: HTMLSpanElement;
     private hoverDatapoint: number[];
@@ -20,24 +23,38 @@ class Plot {
     private clickDatapointSpan: HTMLSpanElement;
     private clickDatapoint: number[];
 
+    private rangeFunction: string;
+
     constructor(document: Document, private plot_placeholder: JQuery, private driver) {
         this.ch1Checkbox = <HTMLInputElement>document.getElementById('ch1-checkbox');
         this.ch2Checkbox = <HTMLInputElement>document.getElementById('ch2-checkbox');
 
+
+        this.rangeFunction = "setTimeRange";
+
+        this.reset_range = false;
         this.setPlot();
+        this.rangeSelect(this.rangeFunction);
+        this.dblClick(this.rangeFunction);
+        this.onWheel();
+        this.reset_range = true;
 
-        this.minY = -8192;
-        this.maxY = +8191;
+        this.x_min = 0;
+        this.x_max = this.driver.maxT;
+        this.y_min = -8192;
+        this.y_max = +8191;
 
-        this.rangeY = {
-            from: this.minY,
-            to: this.maxY
+        this.range_y = {
+            from: this.y_min,
+            to: this.y_max
         };
 
-        this.driver.setTimeRange({
-            from : 0,
-            to   : this.driver.maxT
-        });
+        this.range_x = {
+            from: this.x_min,
+            to: this.x_max
+        }
+
+        this.driver[this.rangeFunction](this.range_x);
 
         this.hoverDatapointSpan = <HTMLSpanElement>document.getElementById("hover-datapoint");
         this.hoverDatapoint = [];
@@ -50,8 +67,11 @@ class Plot {
     }
 
     updatePlot() {
-        this.driver.getDecimatedData( (ch0: number[][], ch1: number[][], rangeX: jquery.flot.range) => {
-            this.redraw(ch0, ch1, rangeX, () => {
+
+        let is_channel_1: boolean = this.ch1Checkbox.checked;
+        let is_channel_2: boolean = this.ch2Checkbox.checked;
+        this.driver.getDecimatedData( (ch0: number[][], ch1: number[][], range_x: jquery.flot.range) => {
+            this.redraw(ch0, ch1, range_x, "Channel 1", "Channel 2", is_channel_1, is_channel_2, () => {
                 requestAnimationFrame( () => {
                     this.updatePlot();
                 });
@@ -62,19 +82,18 @@ class Plot {
     // == Plot
 
     setPlot(): void {
-        this.isResetRange = false;
 
         this.options = {
             series: {
                 shadowSize: 0 // Drawing is faster without shadows
             },
             yaxis: {
-                min: this.minY,
-                max: this.maxY
+                min: this.y_min,
+                max: this.y_max
             },
             xaxis: {
-                min: 0,
-                max: this.driver.maxT,
+                min: this.x_min,
+                max: this.x_max,
                 show: true
             },
             grid: {
@@ -91,13 +110,9 @@ class Plot {
             colors: ['#019cd5', '#d53a01']
         }
 
-        this.rangeSelect();
-        this.dblClick();
-        this.onWheel();
-        this.isResetRange = true;
     }
 
-    rangeSelect(): void {
+    rangeSelect(rangeFunction: string): void {
         this.plot_placeholder.bind('plotselected', (event: JQueryEventObject,
                                                ranges: jquery.flot.ranges) => {
             // Clamp the zooming to prevent external zoom
@@ -109,40 +124,38 @@ class Plot {
                 ranges.yaxis.to = ranges.yaxis.from + 0.00001;
             }
 
-            this.rangeY = {
+            this.range_y = {
                 from: ranges.yaxis.from,
                 to: ranges.yaxis.to
             };
 
-            this.driver.setTimeRange(ranges.xaxis);
+            if (rangeFunction.length > 0) {
+                this.driver[rangeFunction](ranges.xaxis);
+            }
+
+            // this.driver.setTimeRange(ranges.xaxis);
             this.resetRange();
         });
     }
 
     // A double click on the plot resets to full span
-    dblClick(): void {
+    dblClick(rangeFunction: string): void {
         this.plot_placeholder.bind('dblclick', (evt: JQueryEventObject) => {
-            const rangeX: jquery.flot.range = {
+            this.range_x = {
                 from : 0,
-                to   : this.driver.maxT
+                to   : this.x_max
             };
 
-            this.rangeY = <jquery.flot.range>{};
-            this.driver.setTimeRange(rangeX);
+            this.range_y = <jquery.flot.range>{};
+
+            if (rangeFunction.length > 0) {
+                this.driver[rangeFunction](this.range_x);
+            }
+
             this.resetRange();
         });
     }
 
-    autoScale(): void {
-        const rangeX = {
-            from : 0,
-            to   : this.driver.maxT
-        };
-
-        this.rangeY = <jquery.flot.range>{};
-        this.driver.setTimeRange(rangeX);
-        this.resetRange();
-    }
 
     onWheel(): void {
         this.plot_placeholder.bind('wheel', (evt: JQueryEventObject) => {
@@ -156,7 +169,7 @@ class Plot {
                 const positionY: number = (<JQueryMouseEventObject>evt.originalEvent).pageY - this.plot.offset().top;
                 const y0: any = this.plot.getAxes().yaxis.c2p(<any>positionY);
 
-                this.rangeY = {
+                this.range_y = {
                     from: y0 - (1 + zoomRatio * delta) * (y0 - this.plot.getAxes().yaxis.min),
                     to: y0 - (1 + zoomRatio * delta) * (y0 - this.plot.getAxes().yaxis.max)
                 };
@@ -167,7 +180,7 @@ class Plot {
                 const positionX: number = (<JQueryMouseEventObject>evt.originalEvent).pageX - this.plot.offset().left;
                 const t0: any = this.plot.getAxes().xaxis.c2p(<any>positionX);
 
-                if (t0 < 0 || t0  > this.driver.maxT) {
+                if (t0 < 0 || t0  > this.x_max) {
                     return;
                 }
 
@@ -176,12 +189,12 @@ class Plot {
                     delta = 4 * delta;
                 }
 
-                const rangeX: jquery.flot.range = {
+                this.range_x = {
                     from: Math.max(t0 - (1 + zoomRatio * delta) * (t0 - this.plot.getAxes().xaxis.min), 0),
-                    to: Math.min(t0 - (1 + zoomRatio * delta) * (t0 - this.plot.getAxes().xaxis.max), this.driver.maxT)
+                    to: Math.min(t0 - (1 + zoomRatio * delta) * (t0 - this.plot.getAxes().xaxis.max), this.x_max)
                 };
 
-                this.driver.setTimeRange(rangeX);
+                this.driver.setTimeRange(this.range_x);
                 this.resetRange();
                 return false;
             }
@@ -191,11 +204,11 @@ class Plot {
     }
 
     resetRange(): void {
-        this.isResetRange = true;
+        this.reset_range = true;
     }
 
     redraw(ch0: number[][], ch1: number[][],
-           rangeX: jquery.flot.range, callback: () => void): void {
+           rangeX: jquery.flot.range, label1: string, label2: string, is_channel_1: boolean, is_channel_2: boolean, callback: () => void): void {
 
         if (ch0.length === 0 || ch1.length === 0) {
             callback();
@@ -205,14 +218,14 @@ class Plot {
         let plotCh0: number[][] = [];
         let plotCh1: number[][] = [];
 
-        if (this.ch1Checkbox.checked && this.ch2Checkbox.checked) {
+        if (is_channel_1 && is_channel_2) {
             plotCh0 = ch0;
             plotCh1 = ch1;
             // plotData = [ch0, ch1];
-        } else if (this.ch1Checkbox.checked && !this.ch2Checkbox.checked) {
+        } else if (is_channel_1 && !is_channel_2) {
             plotCh0 = ch0;
             plotCh1 = [];
-        } else if (!this.ch1Checkbox.checked && this.ch2Checkbox.checked) {
+        } else if (!is_channel_1 && is_channel_2) {
             plotCh0 = [];
             plotCh1 = ch1;
         } else {
@@ -220,18 +233,18 @@ class Plot {
             plotCh1 = [];
         }
 
-        const plt_data: jquery.flot.dataSeries[] = [{label: "Channel 1 - Voltage", data: plotCh0}, {label: "Channel 2 - Voltage", data: plotCh1}];
+        const plt_data: jquery.flot.dataSeries[] = [{label: label1, data: plotCh0}, {label: label2, data: plotCh1}];
 
-        if (this.isResetRange) {
+        if (this.reset_range) {
             this.options.xaxis.min = rangeX.from;
             this.options.xaxis.max = rangeX.to;
-            this.options.yaxis.min = this.rangeY.from;
-            this.options.yaxis.max = this.rangeY.to;
+            this.options.yaxis.min = this.range_y.from;
+            this.options.yaxis.max = this.range_y.to;
 
             this.plot = $.plot(this.plot_placeholder, plt_data, this.options);
 
             this.plot.setupGrid();
-            this.isResetRange = false;
+            this.reset_range = false;
         } else {
             this.plot.setData(plt_data);
             this.plot.draw();
