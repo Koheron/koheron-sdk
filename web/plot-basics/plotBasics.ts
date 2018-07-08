@@ -239,8 +239,34 @@ class PlotBasics {
     }
 
 
+    redrawRange(data: number[][], range_x: jquery.flot.range, ylabel: string, callback: () => void): void {
+
+        const plt_data: jquery.flot.dataSeries[] = [{label: ylabel, data: data}];
+
+        if (data.length == 0) {
+            callback();
+            return;
+        }
+
+        if (this.reset_range) {
+            this.options.xaxis.min = range_x.from;
+            this.options.xaxis.max = range_x.to;
+            this.options.yaxis.min = this.range_y.from;
+            this.options.yaxis.max = this.range_y.to;
+            this.plot = $.plot(this.plot_placeholder, plt_data, this.options);
+            this.plot.setupGrid();
+            this.reset_range = false;
+        } else {
+            this.plot.setData(plt_data);
+            this.plot.draw();
+        }
+
+        callback();
+    }
+
+
     redrawTwoChannels(ch0: number[][], ch1: number[][],
-        rangeX: jquery.flot.range, label1: string, label2: string, is_channel_1: boolean, is_channel_2: boolean, callback: () => void): void {
+        range_x: jquery.flot.range, label1: string, label2: string, is_channel_1: boolean, is_channel_2: boolean, callback: () => void): void {
 
      if (ch0.length === 0 || ch1.length === 0) {
          callback();
@@ -268,8 +294,8 @@ class PlotBasics {
      const plt_data: jquery.flot.dataSeries[] = [{label: label1, data: plotCh0}, {label: label2, data: plotCh1}];
 
      if (this.reset_range) {
-         this.options.xaxis.min = rangeX.from;
-         this.options.xaxis.max = rangeX.to;
+         this.options.xaxis.min = range_x.from;
+         this.options.xaxis.max = range_x.to;
          this.options.yaxis.min = this.range_y.from;
          this.options.yaxis.max = this.range_y.to;
 
