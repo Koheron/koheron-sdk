@@ -138,7 +138,7 @@ class Plot {
             this.range_y.from = ranges.yaxis.from;
             this.range_y.to = ranges.yaxis.to;
 
-            this.resetRange();
+            this.reset_range = true;
         });
     }
 
@@ -148,12 +148,8 @@ class Plot {
             this.range_x.from = 0;
             this.range_x.to = this.max_x;
             this.range_y = <jquery.flot.range>{};
-            this.resetRange();
+            this.reset_range = true;
         });
-    }
-
-    resetRange() {
-        this.reset_range = true;
     }
 
     convertValue(inValue: number, outUnit: string): number {
@@ -294,7 +290,7 @@ class Plot {
                     to: y0 - (1 + zoomRatio * delta) * (y0 - this.plot.getAxes().yaxis.max)
                 };
 
-                this.resetRange();
+                this.reset_range = true;
                 return false;
             } else if ((<JQueryInputEventObject>evt.originalEvent).altKey) { // Zoom X
                 const positionX: number = (<JQueryMouseEventObject>evt.originalEvent).pageX - this.plot.offset().left;
@@ -309,7 +305,7 @@ class Plot {
                     to: Math.min(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.max), this.max_x)
                 };
 
-                this.resetRange();
+                this.reset_range = true;
                 return false;
             }
 
@@ -321,7 +317,7 @@ class Plot {
         let unitInputs: HTMLInputElement[] = <HTMLInputElement[]><any>document.getElementsByClassName("unit-input");
         for (let i = 0; i < unitInputs.length; i ++) {
             unitInputs[i].addEventListener( 'change', (event) => {
-                this.resetRange();
+                this.reset_range = true;
             })
         }
     }
