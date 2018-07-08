@@ -66,7 +66,16 @@ class Plot {
 
     updatePlot() {
         this.fft.read_psd( (psd: Float32Array) => {
-            this.redraw(psd, () => {
+            let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
+            this.peakDatapoint = [ this.max_x / this.n_pts , this.convertValue(psd[0], yUnit)];
+
+            for (let i: number = 0; i <= this.n_pts; i++) {
+                let freq: number = (i + 1) * this.max_x / this.n_pts; // MHz
+                let convertedPsd: number = this.convertValue(psd[i], yUnit);
+                this.plot_data[i] = [freq, convertedPsd];
+            };
+
+            this.redraw(this.plot_data, () => {
                 requestAnimationFrame( () => { this.updatePlot(); } );
             });
         });
@@ -186,22 +195,16 @@ class Plot {
         }
     }
 
-    redraw(psd: Float32Array, callback: () => void) {
-        let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
-        this.peakDatapoint = [ this.max_x / this.n_pts , this.convertValue(psd[0], yUnit)];
+    redraw(plot_data: number[][], callback: () => void) {
 
         for (let i: number = 0; i <= this.n_pts; i++) {
-            let freq: number = (i + 1) * this.max_x / this.n_pts; // MHz
-            let convertedPsd: number = this.convertValue(psd[i], yUnit);
-            this.plot_data[i] = [freq, convertedPsd];
-
-            if (this.peakDatapoint[1] < this.plot_data[i][1]) {
-                this.peakDatapoint[0] = this.plot_data[i][0];
-                this.peakDatapoint[1] = this.plot_data[i][1];
+            if (this.peakDatapoint[1] < plot_data[i][1]) {
+                this.peakDatapoint[0] = plot_data[i][0];
+                this.peakDatapoint[1] = plot_data[i][1];
             }
         }
 
-        const plt_data: jquery.flot.dataSeries[] = [{label: this.yLabel, data: this.plot_data}];
+        const plt_data: jquery.flot.dataSeries[] = [{label: this.yLabel, data: plot_data}];
 
         if (this.reset_range) {
             this.options.xaxis.min = this.range_x.from;
