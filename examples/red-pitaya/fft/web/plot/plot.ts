@@ -24,25 +24,23 @@ class Plot {
     private clickDatapointSpan: HTMLSpanElement;
     private clickDatapoint: number[];
 
-    private min_x: number;
     private max_x: number;
 
     constructor(document: Document, private plot_placeholder: JQuery, private fft: FFT) {
 
         this.n_pts = this.fft.fft_size / 2;
-        this.min_x = 0;
         this.max_x = this.fft.status.fs / 1E6 / 2;
         this.range_x = <jquery.flot.range>{};
-        this.range_x.from = this.min_x;
+        this.range_x.from = 0;
         this.range_x.to = this.max_x;
         this.range_y = <jquery.flot.range>{};
         this.range_y.from = -200;
         this.range_y.to = 170;
 
-        this.setPlot();
+        this.setPlot(this.range_x.from, this.range_x.to, this.range_y.from, this.range_y.to);
         this.rangeSelect();
-        this.dblClick();
-        this.onWheel();
+        this.dblClick(this.max_x);
+        this.onWheel(this.max_x);
         this.showHoverPoint();
         this.showClickPoint();
         this.plotLeave();
@@ -59,33 +57,30 @@ class Plot {
 
         this.plot_data = [];
 
-        this.updatePlot();
+        this.updatePlot(this.max_x);
         this.initUnitInputs();
         this.initPeakDetection();
     }
 
-    updatePlot() {
+    updatePlot(max_x: number) {
         this.fft.read_psd( (psd: Float32Array) => {
             let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
-            this.peakDatapoint = [ this.max_x / this.n_pts , this.convertValue(psd[0], yUnit)];
+            this.peakDatapoint = [ max_x / this.n_pts , this.convertValue(psd[0], yUnit)];
 
             for (let i: number = 0; i <= this.n_pts; i++) {
-                let freq: number = (i + 1) * this.max_x / this.n_pts; // MHz
+                let freq: number = (i + 1) * max_x / this.n_pts; // MHz
                 let convertedPsd: number = this.convertValue(psd[i], yUnit);
                 this.plot_data[i] = [freq, convertedPsd];
             };
 
             this.redraw(this.plot_data, () => {
-                requestAnimationFrame( () => { this.updatePlot(); } );
+                requestAnimationFrame( () => { this.updatePlot(max_x); } );
             });
         });
     }
 
-    setPlot() {
+    setPlot(x_min: number, x_max: number, y_min: number, y_max: number) {
         this.reset_range = false;
-
-        let labelAttribute: string =  "";
-        labelAttribute += " style='font-size: 16px; color: #333'";
 
         this.options = {
             canvas: true,
@@ -93,12 +88,12 @@ class Plot {
                 shadowSize: 0 // Drawing is faster without shadows
             },
             yaxis: {
-                min: this.range_y.from,
-                max: this.range_y.to
+                min: y_min,
+                max: y_max
             },
             xaxis: {
-                min: this.range_x.from,
-                max: this.range_x.to,
+                min: x_min,
+                max: x_max,
                 show: true
             },
             grid: {
@@ -120,7 +115,7 @@ class Plot {
                 show: true,
                 noColumns: 0,
                 labelFormatter: (label: string, series: any): string => {
-                    return "<b" + labelAttribute + ">" + label + "\t</b>"
+                    return "<b style='font-size: 16px; color: #333'>" + label + "\t</b>"
                     },
                 margin: 0,
                 position: "ne",
@@ -152,10 +147,10 @@ class Plot {
     }
 
     // A double click on the plot resets to full span
-    dblClick() {
+    dblClick(max_x: number) {
         this.plot_placeholder.bind("dblclick", (evt: JQueryEventObject) => {
             this.range_x.from = 0;
-            this.range_x.to = this.max_x;
+            this.range_x.to = max_x;
             this.range_y = <jquery.flot.range>{};
             this.reset_range = true;
         });
@@ -276,7 +271,7 @@ class Plot {
         callback();
     }
 
-    onWheel(): void {
+    onWheel(max_x: number): void {
         this.plot_placeholder.bind("wheel", (evt: JQueryEventObject) => {
             let delta: number = (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaX
                                 + (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaY;
@@ -299,13 +294,13 @@ class Plot {
                 const positionX: number = (<JQueryMouseEventObject>evt.originalEvent).pageX - this.plot.offset().left;
                 const x0: any = this.plot.getAxes().xaxis.c2p(<any>positionX);
 
-                if (x0 < 0 || x0  > this.max_x) {
+                if (x0 < 0 || x0  > max_x) {
                     return;
                 }
 
                 this.range_x = {
                     from: Math.max(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.min), 0),
-                    to: Math.min(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.max), this.max_x)
+                    to: Math.min(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.max), max_x)
                 };
 
                 this.reset_range = true;
