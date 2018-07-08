@@ -4,9 +4,6 @@
 class Plot {
     private n_pts: number;
 
-    private min_y: number = -200;
-    private max_y: number = 170;
-
     private range_x: jquery.flot.range;
     private range_y: jquery.flot.range;
 
@@ -16,8 +13,6 @@ class Plot {
     public plot_data: Array<Array<number>>;
 
     public yLabel: string = "Power Spectral Density";
-
-    private isMeasure: boolean = true;
 
     private isPeakDetection: boolean = true;
     private peakDatapointSpan: HTMLSpanElement;
@@ -29,18 +24,29 @@ class Plot {
     private clickDatapointSpan: HTMLSpanElement;
     private clickDatapoint: number[];
 
+    private min_x: number;
+    private max_x: number;
+
     constructor(document: Document, private plot_placeholder: JQuery, private fft: FFT) {
-        this.setPlot();
-
-        this.range_x = <jquery.flot.range>{};
-        this.range_x.from = 0;
-        this.range_x.to = this.fft.status.fs / 1E6 / 2;
-
-        this.range_y = <jquery.flot.range>{};
-        this.range_y.from = this.min_y;
-        this.range_y.to = this.max_y;
 
         this.n_pts = this.fft.fft_size / 2;
+        this.min_x = 0;
+        this.max_x = this.fft.status.fs / 1E6 / 2;
+        this.range_x = <jquery.flot.range>{};
+        this.range_x.from = this.min_x;
+        this.range_x.to = this.max_x;
+        this.range_y = <jquery.flot.range>{};
+        this.range_y.from = -200;
+        this.range_y.to = 170;
+
+        this.setPlot();
+        this.rangeSelect();
+        this.dblClick();
+        this.onWheel();
+        this.showHoverPoint();
+        this.showClickPoint();
+        this.plotLeave();
+        this.reset_range = true;
 
         this.hoverDatapointSpan = <HTMLSpanElement>document.getElementById("hover-datapoint");
         this.hoverDatapoint = [];
@@ -78,12 +84,12 @@ class Plot {
                 shadowSize: 0 // Drawing is faster without shadows
             },
             yaxis: {
-                min: this.min_y,
-                max: this.max_y
+                min: this.range_y.from,
+                max: this.range_y.to
             },
             xaxis: {
-                min: 0,
-                max: this.fft.status.fs / 1E6 / 2,
+                min: this.range_x.from,
+                max: this.range_x.to,
                 show: true
             },
             grid: {
@@ -93,8 +99,8 @@ class Plot {
                 },
                 borderColor: "#d5d5d5",
                 borderWidth: 1,
-                clickable: this.isMeasure,
-                hoverable: this.isMeasure,
+                clickable: true,
+                hoverable: true,
                 autoHighlight: true
             },
             selection: {
@@ -112,13 +118,6 @@ class Plot {
             }
         }
 
-        this.rangeSelect();
-        this.dblClick();
-        this.onWheel();
-        this.showHoverPoint();
-        this.showClickPoint();
-        this.plotLeave();
-        this.reset_range = true;
     }
 
     rangeSelect() {
@@ -147,8 +146,7 @@ class Plot {
     dblClick() {
         this.plot_placeholder.bind("dblclick", (evt: JQueryEventObject) => {
             this.range_x.from = 0;
-            this.range_x.to = this.fft.status.fs / 1E6 / 2;
-
+            this.range_x.to = this.max_x;
             this.range_y = <jquery.flot.range>{};
             this.resetRange();
         });
@@ -194,10 +192,10 @@ class Plot {
 
     redraw(psd: Float32Array, callback: () => void) {
         let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
-        this.peakDatapoint = [ this.fft.status.fs / 1E6 / 2 / this.n_pts , this.convertValue(psd[0], yUnit)];
+        this.peakDatapoint = [ this.max_x / this.n_pts , this.convertValue(psd[0], yUnit)];
 
         for (let i: number = 0; i <= this.n_pts; i++) {
-            let freq: number = (i + 1) * this.fft.status.fs / 1E6 / 2 / this.n_pts; // MHz
+            let freq: number = (i + 1) * this.max_x / this.n_pts; // MHz
             let convertedPsd: number = this.convertValue(psd[i], yUnit);
             this.plot_data[i] = [freq, convertedPsd];
 
@@ -302,13 +300,13 @@ class Plot {
                 const positionX: number = (<JQueryMouseEventObject>evt.originalEvent).pageX - this.plot.offset().left;
                 const x0: any = this.plot.getAxes().xaxis.c2p(<any>positionX);
 
-                if (x0 < 0 || x0  > this.fft.status.fs / 1E6 / 2) {
+                if (x0 < 0 || x0  > this.max_x) {
                     return;
                 }
 
                 this.range_x = {
                     from: Math.max(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.min), 0),
-                    to: Math.min(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.max), this.fft.status.fs / 1E6 / 2)
+                    to: Math.min(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.max), this.max_x)
                 };
 
                 this.resetRange();
