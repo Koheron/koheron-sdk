@@ -9,6 +9,14 @@ class App {
     private exportFile: ExportFile;
     private imports: Imports;
     public ddsFrequency: DDSFrequency;
+    private plotBasics: PlotBasics;
+
+    private n_pts: number;
+    private x_min: number;
+    private x_max: number;
+    private y_min: number;
+    private y_max: number;
+
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
@@ -23,7 +31,16 @@ class App {
                 this.fft.init( () => {
                     this.fftApp = new FFTApp(document, this.fft);
                     this.ddsFrequency = new DDSFrequency(document, this.fft);
-                    this.plot = new Plot(document, plot_placeholder, this.fft);
+
+                    this.n_pts = this.fft.fft_size / 2;
+                    this.x_min = 0;
+                    this.x_max = this.fft.status.fs / 1E6 / 2;
+                    this.y_min = -200;
+                    this.y_max = 170;
+
+                    this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max);
+                    this.plot = new Plot(document, plot_placeholder, this.fft, this.plotBasics);
+
                     this.laserDriver = new LaserDriver(client);
                     this.laserControl = new LaserControl(document, this.laserDriver);
                     this.exportFile = new ExportFile(document, this.plot);

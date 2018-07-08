@@ -96,6 +96,7 @@ web:
   - ./web/app.ts
   - ./web/fft.ts
   - ./web/plot/plot.ts
+  - ./web/plot/plotBasics.ts
   - ./web/plot/yunit.html
   - ./web/plot/peak-detection.html
   - ./web/fft/fft-app.ts
