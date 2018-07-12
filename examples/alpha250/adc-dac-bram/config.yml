@@ -9,6 +9,7 @@ cores:
   - fpga/cores/dna_reader_v1_0
   - fpga/cores/edge_detector_v1_0
   - fpga/cores/comparator_v1_0
+  - fpga/cores/unrandomizer_v1_0
   - boards/alpha250/cores/precision_dac_v1_0
   - boards/alpha250/cores/spi_cfg_v1_0
   - ./address_counter_v1_0

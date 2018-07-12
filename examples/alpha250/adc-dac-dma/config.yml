@@ -9,6 +9,7 @@ cores:
   - fpga/cores/dna_reader_v1_0
   - fpga/cores/latched_mux_v1_0
   - fpga/cores/edge_detector_v1_0
+  - fpga/cores/unrandomizer_v1_0
   - fpga/cores/comparator_v1_0
   - fpga/cores/tlast_gen_v1_0
   - fpga/cores/bus_multiplexer_v1_0
