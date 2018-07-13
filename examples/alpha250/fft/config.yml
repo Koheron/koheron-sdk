@@ -11,6 +11,7 @@ cores:
   - fpga/cores/latched_mux_v1_0
   - fpga/cores/edge_detector_v1_0
   - fpga/cores/comparator_v1_0
+  - fpga/cores/unrandomizer_v1_0
   - boards/alpha250/cores/precision_dac_v1_0
   - boards/alpha250/cores/spi_cfg_v1_0
   - fpga/cores/psd_counter_v1_0

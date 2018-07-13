@@ -123,45 +123,16 @@ for {set i 0} {$i < 2} {incr i} {
         data_in_from_pins_n adc_${i}_n
     }
 
-    cell xilinx.com:ip:xlconcat:2.1 concat_adc$i {
-        NUM_PORTS 16
+    cell koheron:user:unrandomizer:1.0 unrandomizer$i {
+        DATA_WIDTH 14
     } {
-        In0 [get_constant_pin 0 1]
-        In1 [get_constant_pin 0 1]
+        din selectio_adc$i/data_in_to_device
     }
 
     if {[info exists adc_dac_extra_delay]} {
-        connect_pins adc$i [get_Q_pin concat_adc$i/dout $adc_dac_extra_delay noce mmcm/clk_out1]
+        connect_pin adc$i [get_Q_pin [get_concat_pin [list [get_constant_pin 0 2] unrandomizer$i/dout] concat_adc$i] $adc_dac_extra_delay noce mmcm/clk_out1]
     } else {
-        connect_pins adc$i concat_adc$i/dout
-    }
-
-    for {set j 0} {$j < 7} {incr j} {
-
-        # Decode the digital output randomizer of the ADC
-        set lsb [get_slice_pin selectio_adc$i/data_in_to_device 0 0]
-
-        if {$j == 0} {
-            connect_pins $lsb concat_adc$i/In2
-        } else {
-            cell xilinx.com:ip:util_vector_logic:2.0 xor_${i}_${j}_0 {
-                C_SIZE 1
-                C_OPERATION xor
-            } {
-                Op1 [get_slice_pin selectio_adc$i/data_in_to_device [expr $j] [expr $j]]
-                Op2 $lsb
-                Res concat_adc$i/In[expr 2*$j + 2]
-            }
-        }
-
-        cell xilinx.com:ip:util_vector_logic:2.0 xor_${i}_${j}_1 {
-            C_SIZE 1
-            C_OPERATION xor
-        } {
-            Op1 [get_slice_pin selectio_adc$i/data_in_to_device [expr $j + 7] [expr $j + 7]]
-            Op2 $lsb
-            Res concat_adc$i/In[expr 2*$j + 3]
-        }
+        connect_pin adc$i [get_concat_pin [list [get_constant_pin 0 2] unrandomizer$i/dout] concat_adc$i]
     }
 
 }
