@@ -2,7 +2,6 @@ class App {
     public control: Control;
     public plot: Plot;
     private driver: PulseGenerator;
-    private navigation: Navigation;
     private imports: Imports;
 
     private plotBasics: PlotBasics;
@@ -30,8 +29,6 @@ class App {
 
                 this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.driver, "", "FIFO Sample Number");
                 this.plot = new Plot(document, this.driver, this.plotBasics);
-
-                this.navigation = new Navigation(document);
             });
         }, false);
 

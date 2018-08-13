@@ -50,4 +50,4 @@ drivers:
 web:
   - web/index.html
   - web/main.css
-  - web/navigation.ts
+  - web/koheron.ts

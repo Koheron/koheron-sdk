@@ -68,5 +68,3 @@ web:
   - ./app.ts
   - ./index.html
   - web/main.css
-  - web/navigation.ts
-  - web/navigation.html

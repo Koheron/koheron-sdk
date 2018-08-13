@@ -18,6 +18,7 @@ WEB_DOWNLOADS += $(TMP_WEB_PATH)/lato-v11-latin-900.woff2
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/glyphicons-halflings-regular.woff2
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/html-imports.min.js
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/html-imports.min.js.map
+WEB_DOWNLOADS += $(TMP_WEB_PATH)/navigation.html
 
 $(TMP_WEB_PATH)/_koheron.css:
 	mkdir -p $(@D)
@@ -94,3 +95,7 @@ $(TMP_WEB_PATH)/html-imports.min.js:
 $(TMP_WEB_PATH)/html-imports.min.js.map:
 	mkdir -p $(@D)
 	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js.map -o $@
+
+$(TMP_WEB_PATH)/navigation.html: $(WEB_PATH)/navigation.html
+	mkdir -p $(@D)
+	cp $< $@

@@ -16,23 +16,16 @@
     <link rel="stylesheet" type="text/css" href="/koheron/koheron.css">
     <link rel="stylesheet" type="text/css" href="main.css">
 
+    <script type="text/javascript" src="html-imports.min.js"></script>
+    <link rel="import" href="/koheron/navigation.html" data-parent="navigation">
+
     <script type="text/javascript" src="/koheron/jquery.min.js"></script>
     <script type="text/javascript" src="/koheron/bootstrap.min.js"></script>
   </head>
 
   <body>
 
-  <div id="navigation">
-
-    <div id="navigation-links">
-      <img src="koheron_logo.svg" alt="home" style="max-width: 100%;">
-      <a href="/">Home</a>
-      <a href="/koheron/">Settings</a>
-    </div>
-
-    <button value="close" id="collapse-btn" onclick="navigation.collapseBtnClick(this); return false;">&#60;</button>
-
-  </div>
+  <div id="navigation"></div>
 
   <div id="main" class="container-fluid" style="padding: 20px;">
 
@@ -56,13 +49,11 @@
   <script src="/koheron/instruments.js"></script>
 
   <script language="javascript" type="text/javascript">
-
-    window.addEventListener("load", function() {
+    window.addEventListener('HTMLImportsLoaded', function() {
+      imports = new Imports(document);
       driver = new Instruments();
       instruments_widget = new InstrumentsWidget(document, driver);
-      navigation = new Navigation(document);
     }, false);
-
   </script>
 
   </body>

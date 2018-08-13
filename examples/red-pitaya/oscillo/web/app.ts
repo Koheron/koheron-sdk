@@ -7,7 +7,6 @@ class App {
     private modulationControl: ModulationControl;
     private average: Average;
     private plot: Plot;
-    private navigation: Navigation;
     private imports: Imports;
     private plotBasics: PlotBasics;
 
@@ -43,8 +42,6 @@ class App {
 
                 this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.oscillo, "setTimeRange", "Time (µs)");
                 this.plot = new Plot(document, this.oscillo, this.plotBasics);
-
-                this.navigation = new Navigation(document);
             });
         }, false);
 

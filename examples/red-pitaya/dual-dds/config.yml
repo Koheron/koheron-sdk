@@ -47,7 +47,5 @@ web:
   - ./web/control.ts
   - ./web/index.html
   - web/main.css
-  - web/navigation.ts
-  - web/navigation.html
   - web/dds-frequency/dds-frequency.html
   - web/dds-frequency/dds-frequency.ts

@@ -7,7 +7,6 @@ class App {
     public modulationControl: ModulationControl;
     public average: Average;
     public plot: Plot;
-    private navigation: Navigation;
     private imports: Imports;
     private plotBasics: PlotBasics;
 
@@ -42,7 +41,6 @@ class App {
 
                 this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.spectrum, "setFreqRange", "Frequency (MHz)");
                 this.plot = new Plot(document, this.spectrum, this.plotBasics);
-                this.navigation = new Navigation(document);
             });
         }, false);
 

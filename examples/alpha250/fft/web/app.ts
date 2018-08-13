@@ -16,7 +16,6 @@ class App {
     private precisionAdc: PrecisionAdc;
     private precisionChannelsApp: PrecisionChannelsApp;
     private exportFile: ExportFile;
-    private navigation: Navigation;
 
     private n_pts: number;
     private x_min: number;
@@ -38,7 +37,6 @@ class App {
                 this.temperatureSensor = new TemperatureSensor(client);
                 this.powerMonitor = new PowerMonitor(client);
                 this.clockGenerator = new ClockGenerator(client);
-                this.navigation = new Navigation(document);
 
                 this.fft.init( () => {
                     this.fftApp = new FFTApp(document, this.fft);

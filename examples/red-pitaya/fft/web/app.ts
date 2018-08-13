@@ -5,7 +5,6 @@ class App {
     public fftApp: FFTApp;
     public laserDriver: LaserDriver;
     public laserControl: LaserControl;
-    private navigation: Navigation;
     private exportFile: ExportFile;
     private imports: Imports;
     public ddsFrequency: DDSFrequency;
@@ -25,7 +24,6 @@ class App {
             client.init( () => {
                 this.imports = new Imports(document);
                 this.fft = new FFT(client);
-                this.navigation = new Navigation(document);
 
                 this.fft.init( () => {
                     this.fftApp = new FFTApp(document, this.fft);

@@ -83,8 +83,6 @@ drivers:
 web:
   - web/koheron.ts
   - web/jquery.flot.d.ts
-  - web/navigation.ts
-  - web/navigation.html
   - web/main.css
   - web/dds-frequency/dds-frequency.html
   - web/dds-frequency/dds-frequency.ts

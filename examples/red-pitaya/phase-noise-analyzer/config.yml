@@ -67,4 +67,3 @@ web:
   - web/index.html
   - web/main.css
   - web/koheron.ts
-  - web/navigation.ts

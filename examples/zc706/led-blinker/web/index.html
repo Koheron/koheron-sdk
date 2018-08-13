@@ -21,10 +21,41 @@
 
 <body>
 
-  <div class="container-fluid" style="padding: 10px; height: 75px">
-    <a href="/">
-      <img alt="Koheron" src="_koheron_logo.svg" style="height: 100%">
-    </a>
+  <div id="navigation">
+    <div id="navigation-links">
+      <img src="/koheron/koheron_logo.svg" alt="home" style="max-width: 100%;">
+      <a href="/">Home</a>
+      <a href="/koheron">Settings</a>
+    </div>
+    <button value="close" id="collapse-btn" onclick="collapseBtnClick(this); return false;">&#60;</button>
+
+    <script type="text/javascript">
+
+    function openNavigation() {
+      document.getElementById("navigation").style.width = "100px";
+      document.getElementById("main").style.marginLeft = "100px";
+      document.getElementById("collapse-btn").innerHTML = "&#60;";
+      document.getElementById("collapse-btn").value = "close";
+      document.getElementById("navigation-links").style.display = "block";
+    }
+
+    function closeNavigation() {
+      document.getElementById("navigation").style.width = "30px";
+      document.getElementById("main").style.marginLeft = "30px";
+      document.getElementById("collapse-btn").innerHTML = "&#62;";
+      document.getElementById("collapse-btn").value = "open";
+      document.getElementById("navigation-links").style.display = "none";
+    }
+
+    function collapseBtnClick(event) {
+      if (event.value === 'close') {
+        closeNavigation();
+      } else if (event.value === 'open') {
+        openNavigation();
+      }
+    }
+
+    </script>
   </div>
 
   <div class="container">

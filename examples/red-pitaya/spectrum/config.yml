@@ -134,5 +134,3 @@ web:
   - web/plot-basics/plot-basics.ts
   - web/plot-basics/plot-basics.html
   - ./web/index.html
-  - web/navigation.ts
-  - web/navigation.html

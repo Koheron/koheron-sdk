@@ -39,5 +39,3 @@ web:
   - ./web/app.ts
   - ./web/control.ts
   - web/main.css
-  - web/navigation.ts
-  - web/navigation.html

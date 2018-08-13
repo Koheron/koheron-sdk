@@ -15,23 +15,16 @@
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
 
+  <script type="text/javascript" src="html-imports.min.js"></script>
+  <link rel="import" href="navigation.html" data-parent="navigation">
+
   <script type="text/javascript" src="jquery.min.js"></script>
   <script type="text/javascript" src="bootstrap.min.js"></script>
 </head>
 
 <body>
 
-  <div id="navigation">
-
-    <div id="navigation-links">
-      <img src="_koheron_logo.svg" alt="home" style="max-width: 100%;">
-      <a href="/">Home</a>
-      <a href="/koheron">Settings</a>
-    </div>
-
-    <button value="close" id="collapse-btn" onclick="app.navigation.collapseBtnClick(this); return false;">&#60;</button>
-
-  </div>
+  <div id="navigation"></div>
 
   <div class="container-fluid" id="main">
     <div class="container" style="margin-top: 10px;">

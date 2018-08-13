@@ -86,8 +86,6 @@ drivers:
 web:
   - web/koheron.ts
   - web/jquery.flot.d.ts
-  - web/navigation.ts
-  - web/navigation.html
   - web/laser.ts
   - web/laser-control.html
   - web/dds-frequency/dds-frequency.ts
