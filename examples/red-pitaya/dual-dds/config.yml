@@ -42,9 +42,6 @@ drivers:
 
 web:
   - web/koheron.ts
-  - web/html-imports.min.js
-  - web/html-imports.min.js.map
-  - web/imports.ts
   - ./web/dual_dds.ts
   - ./web/app.ts
   - ./web/control.ts

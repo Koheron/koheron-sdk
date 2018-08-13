@@ -103,14 +103,11 @@ drivers:
 
 web:
   - web/koheron.ts
-  - web/html-imports.min.js
-  - web/html-imports.min.js.map
   - web/jquery.flot.d.ts
   - web/navigation.ts
   - web/navigation.html
   - web/laser.ts
   - web/laser-control.html
-  - web/imports.ts
   - ./web/oscillo.ts
   - ./web/app.ts
   - web/average.ts

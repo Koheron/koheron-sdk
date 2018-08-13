@@ -52,9 +52,6 @@ drivers:
 
 web:
   - web/koheron.ts
-  - web/html-imports.min.js
-  - web/html-imports.min.js.map
-  - web/imports.ts
   - web/jquery.flot.d.ts
   - ./web/pulse_generator.ts
   - ./web/app.ts
