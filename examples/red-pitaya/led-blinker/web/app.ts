@@ -1,6 +1,6 @@
 class App {
     private driver: LedBlinker;
-    public control: Control;
+    public control: LedBlinkerControl;
     private imports: Imports;
 
     constructor(window: Window, document: Document, ip: string) {
@@ -10,7 +10,7 @@ class App {
             client.init( () => {
                 this.imports = new Imports(document);
                 this.driver = new LedBlinker(client);
-                this.control = new Control(document, this.driver);
+                this.control = new LedBlinkerControl(document, this.driver, 8);
             });
         }, false);
 

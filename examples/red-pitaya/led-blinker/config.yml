@@ -35,7 +35,6 @@ drivers:
 web:
   - ./web/index.html
   - web/koheron.ts
-  - ./web/led_blinker.ts
+  - web/led-blinker.ts
   - ./web/app.ts
-  - ./web/control.ts
   - web/main.css

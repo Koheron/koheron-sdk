@@ -27,51 +27,10 @@
   <div id="navigation"></div>
 
   <div class="container-fluid" id="main">
-    <div class="container" style="margin-top: 10px;">
-
-      <table>
-        <thead>
-        <tr>
-          <td class="center">LEDs</td>
-          <td class="center">0</td>
-          <td class="center">1</td>
-          <td class="center">2</td>
-          <td class="center">3</td>
-          <td class="center">4</td>
-          <td class="center">5</td>
-          <td class="center">6</td>
-          <td class="center">7</td>
-        </tr>
-        </thead>
-        <tr>
-          <td>ON/OFF</td>
-          <td><input type="button" id="led-0" onclick="app.control.switchLed(0)"></td>
-          <td><input type="button" id="led-1" onclick="app.control.switchLed(1)"></td>
-          <td><input type="button" id="led-2" onclick="app.control.switchLed(2)"></td>
-          <td><input type="button" id="led-3" onclick="app.control.switchLed(3)"></td>
-          <td><input type="button" id="led-4" onclick="app.control.switchLed(4)"></td>
-          <td><input type="button" id="led-5" onclick="app.control.switchLed(5)"></td>
-          <td><input type="button" id="led-6" onclick="app.control.switchLed(6)"></td>
-          <td><input type="button" id="led-7" onclick="app.control.switchLed(7)"></td>
-        </tr>
-      </table>
-
-    </div>
+    <table id="leds-table"></table>
   </div>
 
   <script src="app.js?random=<?php echo uniqid(); ?>"></script>
-
-  <style>
-    td {
-        width: 100px;
-        padding: 0px 5px;
-    }
-
-    input {
-        width: 100%;
-        box-shadow: 0px 4px 6px 0px #e6e6e6;
-    }
-  </style>
 
 </body>
 </html>
