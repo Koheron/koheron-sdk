@@ -81,6 +81,8 @@ drivers:
   - ./fft.hpp
 
 web:
+  - web/html-imports.min.js
+  - web/html-imports.min.js.map
   - web/imports.ts
   - web/koheron.ts
   - web/jquery.flot.d.ts

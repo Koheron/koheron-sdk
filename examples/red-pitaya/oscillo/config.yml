@@ -103,6 +103,8 @@ drivers:
 
 web:
   - web/koheron.ts
+  - web/html-imports.min.js
+  - web/html-imports.min.js.map
   - web/jquery.flot.d.ts
   - web/navigation.ts
   - web/navigation.html

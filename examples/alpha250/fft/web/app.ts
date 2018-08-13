@@ -29,7 +29,7 @@ class App {
         let sockpoolSize: number = 10;
         let client = new Client(ip, sockpoolSize);
 
-        window.addEventListener('load', () => {
+        window.addEventListener('HTMLImportsLoaded', () => {
             client.init( () => {
                 this.imports = new Imports(document);
                 this.fft = new FFT(client);

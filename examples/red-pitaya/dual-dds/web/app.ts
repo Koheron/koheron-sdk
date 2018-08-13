@@ -9,7 +9,7 @@ class App {
                 ip: string, plot_placeholder: JQuery) {
         let client = new Client(ip, 5);
 
-        window.addEventListener('load', () => {
+        window.addEventListener('HTMLImportsLoaded', () => {
             client.init( () => {
                 this.imports = new Imports(document);
                 this.driver = new DualDDS(client);
