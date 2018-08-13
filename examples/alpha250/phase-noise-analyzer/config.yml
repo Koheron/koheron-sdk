@@ -1,20 +1,22 @@
 ---
-name: adc-dac-dma
+name: phase-noise-analyzer
 board: boards/alpha250
-version: 0.1.0
 
 cores:
   - fpga/cores/axi_ctl_register_v1_0
   - fpga/cores/axi_sts_register_v1_0
   - fpga/cores/dna_reader_v1_0
+  - fpga/cores/axis_constant_v1_0
   - fpga/cores/latched_mux_v1_0
   - fpga/cores/edge_detector_v1_0
-  - fpga/cores/unrandomizer_v1_0
   - fpga/cores/comparator_v1_0
   - fpga/cores/tlast_gen_v1_0
-  - fpga/cores/bus_multiplexer_v1_0
+  - fpga/cores/unrandomizer_v1_0
   - boards/alpha250/cores/precision_dac_v1_0
   - boards/alpha250/cores/spi_cfg_v1_0
+  - fpga/cores/axis_lfsr_v1_0
+  - fpga/cores/phase_unwrapper_v1_0
+  - fpga/cores/boxcar_filter_v1_0
 
 memory:
   - name: control
@@ -26,30 +28,15 @@ memory:
   - name: xadc
     offset: '0x43C00000'
     range: 64K
-  - name: ram_mm2s
+  - name: ram
     offset: '0x1E000000'
-    range: 16M
-  - name: ram_s2mm
-    offset: '0x1F000000'
-    range: 16M
+    range: 32M
   - name: dma
-    offset: '0x40400000'
+    offset: '0x80000000'
     range: 64K
   - name: axi_hp0
     offset: '0xF8008000'
     range: 4K
-  - name: axi_hp2
-    offset: '0xF800A000'
-    range: 4K
-  - name: ocm_mm2s
-    offset: '0xFFFF0000'
-    range: 32K
-  - name: ocm_s2mm
-    offset: '0xFFFF8000'
-    range: 32K
-  - name: sclr
-    offset: '0xF8000000'
-    range: 64K
 
 control_registers:
   - mmcm
@@ -57,18 +44,23 @@ control_registers:
   - precision_dac_data[2]
   - spi_cfg_data
   - spi_cfg_cmd
-  - channel_select
+  - phase_incr[4]
+  - cordic
 
 status_registers:
   - spi_cfg_sts
   - adc[n_adc]
 
 parameters:
-  fclk0: 143000000
-  adc_clk: 250000000
+  fclk0: 200000000
+  fclk1: 143000000
+  adc_clk: 200000000
   dac_width: 16
   adc_width: 16
   n_adc: 2
+  cic_differential_delay: 1
+  cic_decimation_rate: 20
+  cic_n_stages: 6
 
 xdc:
   - boards/alpha250/config/ports.xdc
@@ -78,17 +70,18 @@ drivers:
   - boards/alpha250/drivers/eeprom.hpp
   - boards/alpha250/drivers/gpio-expander.hpp
   - boards/alpha250/drivers/temperature-sensor.hpp
-  - boards/alpha250/drivers/power-monitor.hpp
   - boards/alpha250/drivers/clock-generator.hpp
+  - boards/alpha250/drivers/power-monitor.hpp
   - boards/alpha250/drivers/ltc2157.hpp
   - boards/alpha250/drivers/ad9747.hpp
   - boards/alpha250/drivers/precision-adc.hpp
   - boards/alpha250/drivers/precision-dac.hpp
   - boards/alpha250/drivers/spi-config.hpp
-  - ./adc-dac-dma.hpp
+  - ./dds.hpp
+  - ./dma.hpp
 
 web:
   - web/index.html
   - web/main.css
+  - web/koheron.ts
   - web/navigation.ts
-

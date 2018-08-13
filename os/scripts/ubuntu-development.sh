@@ -140,13 +140,14 @@ apt-get -y install openssh-server ntp usbutils psmisc lsof \
 
 apt-get install -y udev net-tools netbase ifupdown network-manager lsb-base
 apt-get install -y ntpdate sudo rsync
+apt-get install -y kmod
 
 apt-get install -y nginx
 apt-get install -y build-essential python-dev
 apt-get install -y python-numpy
 apt-get install -y python-pip python-setuptools python-all-dev python-wheel
 
-pip install --upgrade pip
+pip install --upgrade pip==9.0.3
 pip install flask
 pip install uwsgi
 

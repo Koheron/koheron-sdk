@@ -11,6 +11,7 @@ cores:
   - fpga/cores/latched_mux_v1_0
   - fpga/cores/edge_detector_v1_0
   - fpga/cores/comparator_v1_0
+  - fpga/cores/unrandomizer_v1_0
   - boards/alpha250/cores/precision_dac_v1_0
   - boards/alpha250/cores/spi_cfg_v1_0
   - fpga/cores/psd_counter_v1_0
@@ -31,9 +32,6 @@ memory:
   - name: psd
     offset: '0x70000000'
     range: 32K
-  - name: adc_fifo
-    offset: '0x43C10000'
-    range: 64K
 
 control_registers:
   - mmcm
@@ -81,7 +79,6 @@ drivers:
   - boards/alpha250/drivers/precision-dac.hpp
   - boards/alpha250/drivers/spi-config.hpp
   - ./fft.hpp
-  - ./demodulator.hpp
 
 web:
   - web/imports.ts
