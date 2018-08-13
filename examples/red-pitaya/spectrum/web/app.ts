@@ -40,7 +40,7 @@ class App {
                 this.y_min = 0;
                 this.y_max = 200;
 
-                this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.spectrum, "setFreqRange");
+                this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.spectrum, "setFreqRange", "Frequency (MHz)");
                 this.plot = new Plot(document, this.spectrum, this.plotBasics);
                 this.navigation = new Navigation(document);
             });

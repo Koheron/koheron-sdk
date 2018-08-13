@@ -60,7 +60,8 @@ web:
   - ./web/app.ts
   - ./web/control.ts
   - ./web/plot.ts
-  - web/plot-basics/plotBasics.ts
+  - web/plot-basics/plot-basics.ts
+  - web/plot-basics/plot-basics.html
   - ./web/index.html
   - web/main.css
   - web/navigation.ts

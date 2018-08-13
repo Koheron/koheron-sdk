@@ -3,6 +3,8 @@
 
 class PlotBasics {
 
+    private plotTitleSpan: HTMLSpanElement;
+
     private range_x: jquery.flot.range;
     private range_y: jquery.flot.range;
 
@@ -22,7 +24,10 @@ class PlotBasics {
     private clickDatapoint: number[];
 
     constructor(document: Document, private plot_placeholder: JQuery, private plotDriver: Plot, private n_pts: number, private x_min, private x_max, private y_min, private y_max,
-        private driver, private rangeFunction) {
+        private driver, private rangeFunction, private plotTitle: string) {
+
+        this.plotTitleSpan = <HTMLSpanElement>document.getElementById("plot-title");
+        this.plotTitleSpan.textContent =  this.plotTitle;
 
         this.range_x = <jquery.flot.range>{};
         this.range_x.from = this.x_min;

@@ -117,7 +117,8 @@ web:
   - web/average.html
   - web/modulation.ts
   - web/modulation.html
-  - web/plot-basics/plotBasics.ts
+  - web/plot-basics/plot-basics.ts
+  - web/plot-basics/plot-basics.html
   - ./web/plot.ts
   - ./web/index.html
   - web/main.css

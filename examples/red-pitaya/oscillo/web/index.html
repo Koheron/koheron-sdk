@@ -23,6 +23,7 @@
   <script type="text/javascript" src="bootstrap.min.js"></script>
 
   <link rel="import" href="navigation.html" data-parent="navigation">
+  <link rel="import" href="plot-basics.html" data-parent="plot-basics">
   <link rel="import" href="laser-control.html" data-parent="laser-control">
   <link rel="import" href="average.html" data-parent="average">
   <link rel="import" href="modulation.html" data-parent="modulation">
@@ -39,10 +40,7 @@
 
       <div class="col-md-8">
         <div id="plot-placeholder" class="plot-placeholder"></div>
-        <div align="center">Time (µs)</div>
-        <span id="hover-datapoint" style="position: absolute; background-color: white; opacity: 0.8; display: none; padding: 2px"></span>
-        <span id="click-datapoint" style="position: absolute; background-color: white; opacity: 0.8; display: none; padding: 2px"></span>
-        <span id="peak-datapoint" style="position: absolute; background-color: white; opacity: 0.8; display: none; padding: 2px"></span>
+        <div id="plot-basics"></div>
       </div>
 
       <div class="col-md-4">

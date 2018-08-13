@@ -134,7 +134,8 @@ web:
   - web/modulation.ts
   - web/modulation.html
   - ./web/plot.ts
-  - web/plot-basics/plotBasics.ts
+  - web/plot-basics/plot-basics.ts
+  - web/plot-basics/plot-basics.html
   - ./web/index.html
   - web/navigation.ts
   - web/navigation.html

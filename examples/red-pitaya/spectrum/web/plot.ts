@@ -5,7 +5,7 @@ class Plot {
 
     private xlabel: string;
     private ylabel: string;
-    private xLabelDiv: HTMLDivElement;
+    private xLabelSpan: HTMLSpanElement;
 
     private velocitySwitch: HTMLInputElement;
     private isPlotVelocity: boolean;
@@ -15,7 +15,7 @@ class Plot {
 
     constructor(document: Document, private driver, private plotBasics: PlotBasics) {
         this.ylabel = "Power Spectral Density (dB)";
-        this.xLabelDiv = <HTMLDivElement>document.getElementById("x-label");
+        this.xLabelSpan = <HTMLSpanElement>document.getElementById("plot-title");
         this.xlabel = "Frequency (MHz)";
         this.isPlotVelocity = false;
         this.velocity = [];
@@ -26,7 +26,7 @@ class Plot {
 
     updatePlot(): void {
 
-        this.xLabelDiv.innerHTML = this.xlabel;
+        this.xLabelSpan.innerHTML = this.xlabel;
 
         if (this.isPlotVelocity) {
             this.driver.getPeakFifoData( (peakFifoData) => {

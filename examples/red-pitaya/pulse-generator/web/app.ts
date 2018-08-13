@@ -28,7 +28,7 @@ class App {
                 this.y_min = -1.0;
                 this.y_max = 1.0;
 
-                this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.driver, "");
+                this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.driver, "", "FIFO Sample Number");
                 this.plot = new Plot(document, this.driver, this.plotBasics);
 
                 this.navigation = new Navigation(document);
