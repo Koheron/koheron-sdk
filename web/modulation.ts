@@ -65,99 +65,103 @@ class ModulationDriver {
 
 class ModulationControl {
 
-    private channelDivs: HTMLDivElement[];
-    private waveformInputs: HTMLInputElement[][];
-    private amplitudeSlider: HTMLInputElement[];
-    private frequencySlider: HTMLInputElement[];
-    private offsetSlider: HTMLInputElement[];
-    private frequencySpan: HTMLSpanElement[];
-    private amplitudeSpan: HTMLSpanElement[];
-    private offsetSpan: HTMLSpanElement[];
-
-    // readonly waveformTypes = ['sine', 'triangle', 'square'];
+    private channelNum: number = 2;
+    private currentChannel: number;
+    private channelInputs: HTMLInputElement[];
+    private channelElements: any[];
+    private modulationInputs: HTMLInputElement[];
 
     constructor(document: Document, private driver: ModulationDriver, private wfmSize: number, private samplingRate: number) {
 
-        this.channelDivs = [];
-        this.waveformInputs = [];
-        this.amplitudeSlider = [];
-        this.frequencySlider = [];
-        this.offsetSlider = [];
-        this.frequencySpan = [];
-        this.amplitudeSpan = [];
-        this.offsetSpan = [];
+        this.channelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("modulation-channel-input");
+        this.initChannelInputs();
+        this.currentChannel = parseInt((<HTMLInputElement>document.querySelector(".modulation-channel-input:checked")).value);
 
-        for (let i: number = 0; i < 2; i++) {
-            this.channelDivs[i] = <HTMLDivElement>document.getElementById("channel-" + i.toString());
-            this.waveformInputs[i] = [];
-            for (let j: number = 0; j < 3; j ++) {
-                this.waveformInputs[i][j] = <HTMLInputElement>document.getElementById("waveform-" + i.toString() + "-" + j.toString());
-            }
-            this.amplitudeSlider[i] =<HTMLInputElement> document.getElementById('amplitude-slider-' + i.toString());
-            this.frequencySlider[i] = <HTMLInputElement>document.getElementById('frequency-slider-' + i.toString());
-            this.offsetSlider[i] = <HTMLInputElement>document.getElementById('offset-slider-' + i.toString());
-            this.frequencySpan[i] = <HTMLSpanElement>document.getElementById('frequency-' + i.toString());
-            this.amplitudeSpan[i] = <HTMLSpanElement>document.getElementById('amplitude-' + i.toString());
-            this.offsetSpan[i] = <HTMLSpanElement>document.getElementById('offset-' + i.toString());
-        }
-
+        this.channelElements = <any[]><any>document.getElementsByClassName("modulation-channel");
+        this.modulationInputs = <HTMLInputElement[]><any>document.getElementsByClassName("modulation-input");
+        this.initModulationInputs();
         this.update();
     }
 
     update() {
         this.driver.getModulationStatus((status: ModulationStatus) => {
-            for (let channel: number = 0; channel < 2; channel++) {
 
-                for (let i = 0; i < 3; i++) {
-                    if (status.wfmType[channel] === i) {
-                        this.waveformInputs[channel][i].checked = true;
-                    } else {
-                        this.waveformInputs[channel][i].checked = false;
+            for (let property in status) {
+                if (status.hasOwnProperty(property)) {
+                    if (["dacAmplitude", "dacFrequency", "dacOffset"].indexOf(property) > -1) {
+                        let input = document.querySelector("input.modulation-channel[data-status='" + property + "'][data-channel='" + this.currentChannel.toString() + "']");
+                        let span = document.querySelector("span.modulation-channel[data-status='" + property + "'][data-channel='" + this.currentChannel.toString() + "']");
+                        let inputValue: string;
+                        let spanValue: string;
+
+                        if (property === "dacAmplitude") {
+                            inputValue = status[property][this.currentChannel].toFixed(3);
+                            spanValue = inputValue;
+                        } else if (property === "dacFrequency") {
+                            inputValue = (status[property][this.currentChannel] * this.wfmSize / this.samplingRate).toFixed(3);
+                            spanValue = (status[property][this.currentChannel] * this.wfmSize / this.samplingRate).toFixed(3);
+                        } else if (property === "dacOffset") {
+                            inputValue = (status[property][this.currentChannel] / 1e6).toFixed(3);
+                            spanValue = inputValue;
+                        }
+
+                        if (document.activeElement !== input && document.body.contains(input)) {
+                            (<HTMLInputElement>input).value = inputValue;
+                        }
+
+                        if (document.body.contains(span)) {
+                            (<HTMLSpanElement>span).textContent = spanValue;
+                        }
+                    } else if (property === "wfmType") {
+                        let input = <HTMLInputElement>document.querySelector("input.modulation-channel[data-status='" + property + "'][data-channel='" + this.currentChannel.toString() + "'][value='" + status[property][this.currentChannel].toString() + "']");
+                        input.checked = true;
                     }
                 }
-
-                const amplitude = status.dacAmplitude[channel].toFixed(3).toString();
-                this.amplitudeSpan[channel].innerHTML = amplitude;
-                this.amplitudeSlider[channel].value = amplitude;
-
-                const frequency = status.dacFrequency[channel]
-                this.frequencySpan[channel].innerHTML = (frequency / 1e6).toFixed(3).toString();
-                this.frequencySlider[channel].value = (frequency * this.wfmSize / this.samplingRate).toString();
-
-                const offset = status.dacOffset[channel].toFixed(3).toString();
-                this.offsetSpan[channel].innerHTML = offset;
-                this.offsetSlider[channel].value = offset;
             }
+
             requestAnimationFrame( () => { this.update(); } )
         });
     }
 
-    switchChannel(channel: string) {
-        for (let i: number = 0; i < 2; i++) {
-            if (i === parseInt(channel)) {
-                this.channelDivs[i].style.display = "block";
-            } else {
-                this.channelDivs[i].style.display = "none";
-            }
+    initChannelInputs(): void {
+        for (let i = 0; i < this.channelInputs.length; i ++) {
+            this.channelInputs[i].addEventListener('change', (event) => {
+                for (let j = 0; j < this.channelElements.length; j++) {
+                    let channel: string = (<HTMLInputElement>event.currentTarget).value;
+                    (<any>this.channelElements[j]).dataset.channel = channel;
+                    this.currentChannel = parseInt(channel);
+                }
+            })
         }
     }
 
-    // Waveform
+    initModulationInputs(): void {
+        let events = ['change', 'input'];
+        for (let i = 0; i < events.length; i++) {
+            for (let j = 0; j < this.modulationInputs.length ; j++) {
+                this.modulationInputs[j].addEventListener(events[i], (event) => {
+                    let command: string = (<HTMLInputElement>event.currentTarget).dataset.command;
+                    let channel: string = (<HTMLInputElement>event.currentTarget).dataset.channel;
+                    let value: string = (<HTMLInputElement>event.currentTarget).value;
+                    let arg: any;
+                    let status: string;
 
-    setWfmType(channel: number, wfmIndex: string): void {
-        this.driver.setWaveformType(channel, parseInt(wfmIndex));
-    }
+                    if (command === "setWaveformType") {
+                        arg = parseInt(value);
+                    } else if (command === "setDacAmplitude") {
+                        arg = parseFloat(value);
+                    } else if (command === "setDacFrequency") {
+                        arg = parseInt(value) * this.samplingRate / this.wfmSize;
+                    } else if (command === "setDacOffset") {
+                        arg = parseFloat(value);
+                    }
 
-    setDacAmplitude(channel: number, amplitude: string): void {
-        this.driver.setDacAmplitude(channel, parseFloat(amplitude));
-    }
+                    this.driver[command](channel, arg);
+                })
+            }
+        }
 
-    setDacFrequency(channel: number, frequency: string): void {
-        this.driver.setDacFrequency(channel, parseInt(frequency) * this.samplingRate / this.wfmSize);
-    }
 
-    setDacOffset(channel: number, offset: string): void {
-        this.driver.setDacOffset(channel, parseFloat(offset));
     }
 
 }

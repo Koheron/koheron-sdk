@@ -1,11 +1,9 @@
 // Plot widget
 // (c) Koheron
 
-class Plot {
-    private n_pts: number;
+class PlotBasics {
 
-    private min_y: number = -200;
-    private max_y: number = 170;
+    private plotTitleSpan: HTMLSpanElement;
 
     private range_x: jquery.flot.range;
     private range_y: jquery.flot.range;
@@ -13,13 +11,7 @@ class Plot {
     private reset_range: boolean;
     private options: jquery.flot.plotOptions;
     private plot: jquery.flot.plot;
-
-    private yUnit: string;
-    private yLabel: string;
-
     private plot_data: Array<Array<number>>;
-
-    private isMeasure: boolean = true;
 
     private isPeakDetection: boolean = true;
     private peakDatapointSpan: HTMLSpanElement;
@@ -31,24 +23,27 @@ class Plot {
     private clickDatapointSpan: HTMLSpanElement;
     private clickDatapoint: number[];
 
-    private exportDataFilename: HTMLLinkElement;
-    private exportPlotFilename: HTMLLinkElement;
+    constructor(document: Document, private plot_placeholder: JQuery, private plotDriver: Plot, private n_pts: number, private x_min, private x_max, private y_min, private y_max,
+        private driver, private rangeFunction, private plotTitle: string) {
 
-    constructor(document: Document, private plot_placeholder: JQuery, private fft: FFT, private control: Control) {
-        this.setPlot();
+        this.plotTitleSpan = <HTMLSpanElement>document.getElementById("plot-title");
+        this.plotTitleSpan.textContent =  this.plotTitle;
 
         this.range_x = <jquery.flot.range>{};
-        this.range_x.from = 0;
-        this.range_x.to = this.fft.status.fs / 1E6 / 2;
-
+        this.range_x.from = this.x_min;
+        this.range_x.to = this.x_max;
         this.range_y = <jquery.flot.range>{};
-        this.range_y.from = this.min_y;
-        this.range_y.to = this.max_y;
+        this.range_y.from = this.y_min;
+        this.range_y.to = this.y_max;
 
-        this.n_pts = this.fft.fft_size / 2;
-
-        this.yUnit = "dBm-Hz";
-        this.yLabel = "Power Spectral Density";
+        this.setPlot(this.range_x.from, this.range_x.to, this.range_y.from, this.range_y.to);
+        this.rangeSelect(this.rangeFunction);
+        this.dblClick(this.x_max, this.rangeFunction);
+        this.onWheel(this.x_max, this.rangeFunction);
+        this.showHoverPoint();
+        this.showClickPoint();
+        this.plotLeave();
+        this.reset_range = true;
 
         this.hoverDatapointSpan = <HTMLSpanElement>document.getElementById("hover-datapoint");
         this.hoverDatapoint = [];
@@ -57,29 +52,15 @@ class Plot {
         this.clickDatapoint = [];
 
         this.peakDatapointSpan = <HTMLSpanElement>document.getElementById("peak-datapoint");
-        this.peakDatapoint = [];
-
-        this.exportDataFilename = <HTMLLinkElement>document.getElementById("export-data-filename");
-        this.exportPlotFilename = <HTMLLinkElement>document.getElementById("export-plot-filename");
 
         this.plot_data = [];
 
-        this.updatePlot();
+        this.initUnitInputs();
+        this.initPeakDetection();
     }
 
-    updatePlot() {
-        this.fft.read_psd( (psd: Float32Array) => {
-            this.redraw(psd, () => {
-                requestAnimationFrame( () => { this.updatePlot(); } );
-            });
-        });
-    }
-
-    setPlot() {
+    setPlot(x_min: number, x_max: number, y_min: number, y_max: number) {
         this.reset_range = false;
-
-        let labelAttribute: string =  "";
-        labelAttribute += " style='font-size: 16px; color: #333'";
 
         this.options = {
             canvas: true,
@@ -87,12 +68,12 @@ class Plot {
                 shadowSize: 0 // Drawing is faster without shadows
             },
             yaxis: {
-                min: this.min_y,
-                max: this.max_y
+                min: y_min,
+                max: y_max
             },
             xaxis: {
-                min: 0,
-                max: this.fft.status.fs / 1E6 / 2,
+                min: x_min,
+                max: x_max,
                 show: true
             },
             grid: {
@@ -102,8 +83,8 @@ class Plot {
                 },
                 borderColor: "#d5d5d5",
                 borderWidth: 1,
-                clickable: this.isMeasure,
-                hoverable: this.isMeasure,
+                clickable: true,
+                hoverable: true,
                 autoHighlight: true
             },
             selection: {
@@ -114,23 +95,16 @@ class Plot {
                 show: true,
                 noColumns: 0,
                 labelFormatter: (label: string, series: any): string => {
-                    return "<b" + labelAttribute + ">" + label + "\t</b>"
+                    return "<b style='font-size: 16px; color: #333'>" + label + "\t</b>"
                     },
                 margin: 0,
                 position: "ne",
             }
         }
 
-        this.rangeSelect();
-        this.dblClick();
-        this.onWheel();
-        this.showHoverPoint();
-        this.showClickPoint();
-        this.plotLeave();
-        this.reset_range = true;
     }
 
-    rangeSelect() {
+    rangeSelect(rangeFunction: string) {
         this.plot_placeholder.bind("plotselected", (event: JQueryEventObject,
                                                     ranges: jquery.flot.ranges) => {
             // Clamp the zooming to prevent external zoom
@@ -148,38 +122,25 @@ class Plot {
             this.range_y.from = ranges.yaxis.from;
             this.range_y.to = ranges.yaxis.to;
 
-            this.resetRange();
+            if (rangeFunction.length > 0) {
+                this.driver[rangeFunction](ranges.xaxis);
+            }
+
+            this.reset_range = true;
         });
     }
 
     // A double click on the plot resets to full span
-    dblClick() {
+    dblClick(max_x: number, rangeFunction: string) {
         this.plot_placeholder.bind("dblclick", (evt: JQueryEventObject) => {
             this.range_x.from = 0;
-            this.range_x.to = this.fft.status.fs / 1E6 / 2;
-
+            this.range_x.to = max_x;
             this.range_y = <jquery.flot.range>{};
-            this.resetRange();
+            if (rangeFunction.length > 0) {
+                this.driver[rangeFunction](this.range_x);
+            }
+            this.reset_range = true;
         });
-    }
-
-    resetRange() {
-        this.reset_range = true;
-    }
-
-    convertValue(inValue: number, outUnit: string): number {
-        // inValue in W / Hz
-        let outValue: number = 0;
-
-        if (outUnit === "dBm-Hz") {
-            outValue = 10 * Math.log(inValue / 1E-3) / Math.LN10;
-        } else if (outUnit === "dBm") {
-            outValue = 10 * Math.log(inValue * (this.fft.status.W2 / this.fft.status.W1) * this.fft.status.fs / this.fft.fft_size / 1E-3) / Math.LN10;
-        } else if (outUnit === "nv-rtHz") {
-            outValue = Math.sqrt(50 * inValue) * 1E9;
-        }
-
-        return outValue;
     }
 
     updateDatapointSpan(datapoint: number[], datapointSpan: HTMLSpanElement): void {
@@ -201,21 +162,16 @@ class Plot {
         }
     }
 
-    redraw(psd: Float32Array, callback: () => void) {
-        this.peakDatapoint = [ this.fft.status.fs / 1E6 / 2 / this.n_pts , this.convertValue(psd[0], this.yUnit)];
+    redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void) {
 
-        for (let i: number = 0; i <= this.n_pts; i++) {
-            let freq: number = (i + 1) * this.fft.status.fs / 1E6 / 2 / this.n_pts; // MHz
-            let convertedPsd: number = this.convertValue(psd[i], this.yUnit);
-            this.plot_data[i] = [freq, convertedPsd];
-
-            if (this.peakDatapoint[1] < this.plot_data[i][1]) {
-                this.peakDatapoint[0] = this.plot_data[i][0];
-                this.peakDatapoint[1] = this.plot_data[i][1];
+        for (let i: number = 0; i <= n_pts; i++) {
+            if (peakDatapoint[1] < plot_data[i][1]) {
+                peakDatapoint[0] = plot_data[i][0];
+                peakDatapoint[1] = plot_data[i][1];
             }
         }
 
-        const plt_data: jquery.flot.dataSeries[] = [{label: this.yLabel, data: this.plot_data}];
+        const plt_data: jquery.flot.dataSeries[] = [{label: ylabel, data: plot_data}];
 
         if (this.reset_range) {
             this.options.xaxis.min = this.range_x.from;
@@ -240,7 +196,7 @@ class Plot {
 
         if (this.clickDatapoint.length > 0) {
             let i: number;
-            for (i = 0; i < this.n_pts; i++) {
+            for (i = 0; i < n_pts; i++) {
                 if (localData[0]['data'][i][0] > this.clickDatapoint[0]) {
                     break;
                 }
@@ -258,7 +214,7 @@ class Plot {
             }
 
             if (this.range_x.from < this.clickDatapoint[0] && this.clickDatapoint[0] < this.range_x.to &&
-                  this.range_y.from < this.clickDatapoint[1] &&  this.clickDatapoint[1] < this.range_y.to) {
+                 this.range_y.from < this.clickDatapoint[1] &&  this.clickDatapoint[1] < this.range_y.to) {
                 this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan);
                 this.clickDatapointSpan.style.display = "inline-block";
                 this.plot.highlight(localData[0], this.clickDatapoint);
@@ -268,26 +224,99 @@ class Plot {
         }
 
         if (this.isPeakDetection) {
-            this.plot.unhighlight(localData[0], this.peakDatapoint);
+            this.plot.unhighlight(localData[0], peakDatapoint);
 
-            if (this.range_x.from < this.peakDatapoint[0] && this.peakDatapoint[0] < this.range_x.to &&
-                  this.range_y.from < this.peakDatapoint[1] &&  this.peakDatapoint[1] < this.range_y.to) {
-                this.updateDatapointSpan(this.peakDatapoint, this.peakDatapointSpan);
-                this.plot.highlight(localData[0], this.peakDatapoint);
+            if (this.range_x.from < peakDatapoint[0] && peakDatapoint[0] < this.range_x.to &&
+            this.range_y.from < peakDatapoint[1] &&  peakDatapoint[1] < this.range_y.to) {
+                this.updateDatapointSpan(peakDatapoint, this.peakDatapointSpan);
+                this.plot.highlight(localData[0], peakDatapoint);
                 this.peakDatapointSpan.style.display = "inline-block";
             } else {
-                this.plot.unhighlight(localData[0], this.peakDatapoint);
+                this.plot.unhighlight(localData[0], peakDatapoint);
                 this.peakDatapointSpan.style.display = "none";
             }
         } else {
-            this.plot.unhighlight(localData[0], this.peakDatapoint);
+            this.plot.unhighlight(localData[0], peakDatapoint);
             this.peakDatapointSpan.style.display = "none";
         }
 
         callback();
     }
 
-    onWheel(): void {
+
+    redrawRange(data: number[][], range_x: jquery.flot.range, ylabel: string, callback: () => void): void {
+
+        const plt_data: jquery.flot.dataSeries[] = [{label: ylabel, data: data}];
+
+        if (data.length == 0) {
+            callback();
+            return;
+        }
+
+        if (this.reset_range) {
+            this.options.xaxis.min = range_x.from;
+            this.options.xaxis.max = range_x.to;
+            this.options.yaxis.min = this.range_y.from;
+            this.options.yaxis.max = this.range_y.to;
+            this.plot = $.plot(this.plot_placeholder, plt_data, this.options);
+            this.plot.setupGrid();
+            this.reset_range = false;
+        } else {
+            this.plot.setData(plt_data);
+            this.plot.draw();
+        }
+
+        callback();
+    }
+
+
+    redrawTwoChannels(ch0: number[][], ch1: number[][],
+        range_x: jquery.flot.range, label1: string, label2: string, is_channel_1: boolean, is_channel_2: boolean, callback: () => void): void {
+
+     if (ch0.length === 0 || ch1.length === 0) {
+         callback();
+         return;
+     }
+
+     let plotCh0: number[][] = [];
+     let plotCh1: number[][] = [];
+
+     if (is_channel_1 && is_channel_2) {
+         plotCh0 = ch0;
+         plotCh1 = ch1;
+         // plotData = [ch0, ch1];
+     } else if (is_channel_1 && !is_channel_2) {
+         plotCh0 = ch0;
+         plotCh1 = [];
+     } else if (!is_channel_1 && is_channel_2) {
+         plotCh0 = [];
+         plotCh1 = ch1;
+     } else {
+         plotCh0 = [];
+         plotCh1 = [];
+     }
+
+     const plt_data: jquery.flot.dataSeries[] = [{label: label1, data: plotCh0}, {label: label2, data: plotCh1}];
+
+     if (this.reset_range) {
+         this.options.xaxis.min = range_x.from;
+         this.options.xaxis.max = range_x.to;
+         this.options.yaxis.min = this.range_y.from;
+         this.options.yaxis.max = this.range_y.to;
+
+         this.plot = $.plot(this.plot_placeholder, plt_data, this.options);
+
+         this.plot.setupGrid();
+         this.reset_range = false;
+     } else {
+         this.plot.setData(plt_data);
+         this.plot.draw();
+     }
+
+     callback();
+    }
+
+    onWheel(max_x: number, rangeFunction: string): void {
         this.plot_placeholder.bind("wheel", (evt: JQueryEventObject) => {
             let delta: number = (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaX
                                 + (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaY;
@@ -304,22 +333,26 @@ class Plot {
                     to: y0 - (1 + zoomRatio * delta) * (y0 - this.plot.getAxes().yaxis.max)
                 };
 
-                this.resetRange();
+                this.reset_range = true;
                 return false;
             } else if ((<JQueryInputEventObject>evt.originalEvent).altKey) { // Zoom X
                 const positionX: number = (<JQueryMouseEventObject>evt.originalEvent).pageX - this.plot.offset().left;
                 const x0: any = this.plot.getAxes().xaxis.c2p(<any>positionX);
 
-                if (x0 < 0 || x0  > this.fft.status.fs / 1E6 / 2) {
+                if (x0 < 0 || x0  > max_x) {
                     return;
                 }
 
                 this.range_x = {
                     from: Math.max(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.min), 0),
-                    to: Math.min(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.max), this.fft.status.fs / 1E6 / 2)
+                    to: Math.min(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.max), max_x)
                 };
 
-                this.resetRange();
+                if (rangeFunction.length > 0) {
+                    this.driver[rangeFunction](this.range_x);
+                }
+
+                this.reset_range = true;
                 return false;
             }
 
@@ -327,16 +360,25 @@ class Plot {
         });
     }
 
-    changeYUnit(yUnit: string): void {
-        this.yUnit = yUnit;
-        this.resetRange();
+    initUnitInputs(): void {
+        let unitInputs: HTMLInputElement[] = <HTMLInputElement[]><any>document.getElementsByClassName("unit-input");
+        for (let i = 0; i < unitInputs.length; i ++) {
+            unitInputs[i].addEventListener( 'change', (event) => {
+                this.reset_range = true;
+            })
+        }
     }
 
-    detectPeak(): void {
-        if (this.isPeakDetection) {
-            this.isPeakDetection = false;
-        } else {
-            this.isPeakDetection = true;
+    initPeakDetection(): void {
+        let peakInputs: HTMLInputElement[] = <HTMLInputElement[]><any>document.getElementsByClassName("peak-input");
+        for (let i = 0; i < peakInputs.length; i ++) {
+            peakInputs[i].addEventListener( 'change', (event) => {
+                if (this.isPeakDetection) {
+                    this.isPeakDetection = false;
+                } else {
+                    this.isPeakDetection = true;
+                }
+            })
         }
     }
 
@@ -375,41 +417,4 @@ class Plot {
         });
     }
 
-    exportData() {
-        let csvContent = "data:text/csv;charset=utf-8,";
-
-        csvContent += "Koheron Alpha \n";
-
-        let dateTime = new Date();
-        csvContent += dateTime.getDate() + "/" + (dateTime.getMonth()+1)  + "/"  + dateTime.getFullYear() + " " ;
-        csvContent += dateTime.getHours() + ":" + dateTime.getMinutes() + ":" + dateTime.getSeconds() + "\n";
-
-        csvContent += "\n";
-        csvContent += '"Window",' + (this.control.fftWindowIndex).toString() + "\n";
-        csvContent += '"Input channel",' + (this.fft.status.channel).toString() + "\n";
-        csvContent += '"Sampling frequency (MHz)",' + (this.fft.status.fs / 1e6).toString() + "\n";
-        csvContent += '"Reference clock (10 MHz)",' + this.control.referenceClock + "\n";
-        csvContent += '"Channel 0 DDS frequency (MHz)",' + (this.fft.status.dds_freq[0] / 1e6).toString() + "\n";
-        csvContent += '"Channel 1 DDS frequency (MHz)",' + (this.fft.status.dds_freq[1] / 1e6).toString() + "\n";
-
-        csvContent += "\n\n";
-
-        csvContent += '"Frequency (MHz)","Power spectral density (' + this.yUnit.replace("-", "/") + ')" \n';
-
-        this.plot_data.forEach( (rowArray) => {
-            let row = rowArray.join(",");
-            csvContent += row + "\n";
-        });
-
-        this.exportDataFilename.href = encodeURI(csvContent);
-        this.exportDataFilename.click();
-    }
-
-    exportPlot(): void {
-        let canvas = this.plot.getCanvas();
-        let imagePng = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
-
-        this.exportPlotFilename.href = imagePng;
-        this.exportPlotFilename.click();
-    }
 }

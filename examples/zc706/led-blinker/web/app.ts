@@ -1,6 +1,6 @@
 class App {
     private driver: LedBlinker;
-    public control: Control;
+    public control: LedBlinkerControl;
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
@@ -9,7 +9,7 @@ class App {
         window.addEventListener('load', () => {
             client.init( () => {
                 this.driver = new LedBlinker(client);
-                this.control = new Control(document, this.driver);
+                this.control = new LedBlinkerControl(document, this.driver, 4);
             });
         }, false);
 

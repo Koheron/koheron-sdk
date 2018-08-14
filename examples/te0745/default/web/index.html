@@ -21,22 +21,11 @@
 
 <body>
 
-  <div id="navigation">
-
-    <div id="navigation-links">
-      <img src="_koheron_logo.svg" alt="home" style="max-width: 100%;">
-      <a href="/">Home</a>
-      <a href="/koheron">Settings</a>
-    </div>
-
-    <button value="close" id="collapse-btn" onclick="app.navigation.collapseBtnClick(this); return false;">&#60;</button>
-
-  </div>
-
   <div class="container-fluid" id="main">
     <span style="margin-top: 10px;">
     Temperature (°C): <span id="temperature"></span>
     </span>
+    <br><br>This instrument was built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>. See <a href="/koheron/">settings</a>.
   </div>
 
   <script src="app.js?random=<?php echo uniqid(); ?>"></script>

@@ -1,0 +1,22 @@
+<template class="template">
+  <div class="crossed"><span>Average</span></div>
+  <table>
+    <tr>
+      <td style="width: 100px;">
+        <label for="average-switch">ON</label>
+        <label class="switch" style="margin-top: 0px; margin-bottom: -7px; margin-left: 5px;">
+          <input type="checkbox" id="average-switch" checked>
+          <span class="slider round"></span>
+        </label>
+      </td>
+      <td style="width: 50px;" class="average">Count:</td>
+      <td style="width: 70px;" class="average">
+        <span id="average-value"></span>
+      </td>
+      <td class="average">Minimum:</td>
+      <td style="width: 90px;" class="average">
+        <input id="average-min-input" type="number" value="0" min="0" step="1" max="2000">
+      </td>
+    </tr>
+  </table>
+  </template>

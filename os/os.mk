@@ -213,7 +213,10 @@ www : $(TMP_WWW_PATH)/koheron.css \
 		$(TMP_WWW_PATH)/lato-v11-latin-400.woff2 \
 		$(TMP_WWW_PATH)/lato-v11-latin-700.woff2 \
 		$(TMP_WWW_PATH)/lato-v11-latin-900.woff2 \
-		$(TMP_WWW_PATH)/glyphicons-halflings-regular.woff2
+		$(TMP_WWW_PATH)/glyphicons-halflings-regular.woff2 \
+		$(TMP_WWW_PATH)/navigation.html \
+		$(TMP_WWW_PATH)/html-imports.min.js \
+		$(TMP_WWW_PATH)/html-imports.min.js.map
 
 .PHONY: www_sync
 www_sync: www
@@ -226,7 +229,6 @@ clean_www:
 WWW_TS_FILES := $(WEB_PATH)/koheron.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments_widget.ts
-WWW_TS_FILES += $(WEB_PATH)/navigation.ts
 
 $(TMP_WWW_PATH)/instruments.js: $(WWW_TS_FILES)
 	mkdir -p $(@D)
@@ -237,6 +239,10 @@ $(TMP_WWW_PATH)/koheron.css:
 	curl https://www.koheron.com/static/css/main.css -o $@
 
 $(TMP_WWW_PATH)/index.html: $(WWW_PATH)/index.html
+	mkdir -p $(@D)
+	cp $< $@
+
+$(TMP_WWW_PATH)/navigation.html: $(WEB_PATH)/navigation.html
 	mkdir -p $(@D)
 	cp $< $@
 
@@ -283,3 +289,11 @@ $(TMP_WWW_PATH)/lato-v11-latin-900.woff2:
 $(TMP_WWW_PATH)/glyphicons-halflings-regular.woff2:
 	mkdir -p $(@D)
 	curl https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/fonts/glyphicons-halflings-regular.woff2 -o $@
+
+$(TMP_WWW_PATH)/html-imports.min.js:
+	mkdir -p $(@D)
+	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js -o $@
+
+$(TMP_WWW_PATH)/html-imports.min.js.map:
+	mkdir -p $(@D)
+	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js.map -o $@

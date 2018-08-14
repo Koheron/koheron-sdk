@@ -12,6 +12,8 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
 
+  <script type="text/javascript" src="html-imports.min.js"></script>
+
   <link rel="shortcut icon" href="kbird.ico">
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
@@ -20,21 +22,17 @@
   <script type="text/javascript" src="jquery.min.js"></script>
   <script type="text/javascript" src="bootstrap.min.js"></script>
 
+  <link rel="import" href="navigation.html" data-parent="navigation">
+  <link rel="import" href="plot-basics.html" data-parent="plot-basics">
+  <link rel="import" href="laser-control.html" data-parent="laser-control">
+  <link rel="import" href="average.html" data-parent="average">
+  <link rel="import" href="modulation.html" data-parent="modulation">
+
 </head>
 
 <body>
 
-  <div id="navigation">
-
-    <div id="navigation-links">
-      <img src="_koheron_logo.svg" alt="home" style="max-width: 100%;">
-      <a href="/">Home</a>
-      <a href="/koheron">Settings</a>
-    </div>
-
-    <button value="close" id="collapse-btn" onclick="app.navigation.collapseBtnClick(this); return false;">&#60;</button>
-
-  </div>
+  <div id="navigation"></div>
 
   <div class="container-fluid" id="main">
 
@@ -42,251 +40,24 @@
 
       <div class="col-md-8">
         <div id="plot-placeholder" class="plot-placeholder"></div>
-        <div style="text-align: center" id="x-label">Frequency (MHz)</div>
-        <span id="hover-datapoint" style="position: absolute; background-color: white; opacity: 0.8; display: none; padding: 2px"></span>
-        <span id="click-datapoint" style="position: absolute; background-color: white; opacity: 0.8; display: none; padding: 2px"></span>
+        <div id="plot-basics"></div>
       </div>
 
       <div class="col-md-4">
 
-        <section>
-
-          <div class="crossed">
-            <span>Laser</span>
-          </div>
-
-          <table class="full-width">
-            <tr>
-              <td style="width: 100px;">
-                <label for="laser-switch">ON</label>
-                <label class="switch" style="margin-top: 0px; margin-bottom: -7px; margin-left: 5px;">
-                  <input type="checkbox" id="laser-switch" onchange="app.laserControl.switchLaser(); return false" checked>
-                  <span class="slider round"></span>
-                </label>
-              </td>
-              <td style="width: 170px;">
-                <span id="calibration"></span>
-              </td>
-              <td>
-                <button class="default-btn" onclick="app.laserControl.startCalibration(); return false">Start Calibration</button>
-              </td>
-            </tr>
-          </table>
-
-          <div id="calibration-instructions" class="padding border" style="display:none">
-            1. Connect your laser to an external power meter.
-            <br> 2. Tune the current/power until the power reads 1 mW on the power meter.
-            <br> 3.
-            <button class="default-btn" onclick="app.laserControl.calibrationDone(); return false">Done</button>
-          </div>
-
-          <table class="full-width" style="margin: 10px 0;">
-            <tr>
-              <td style="padding-left: 0; width: 130px;" rowspan="2">
-                <select id="laser-mode" onchange="app.laserControl.switchMode(); return false">
-                  <option value="current">Current (mA)</option>
-                  <option value="power">Power (µW)</option>
-                </select>
-              </td>
-              <td class="current-control" style="width: 90px;">
-                <input id="in-current-input" type="number" onchange="app.laserControl.setCurrent(this.value); return false;" oninput="app.laserControl.setCurrent(this.value); return false;"
-                  value="0" min="0" step="0.01" max="40" style="text-align: right">
-              </td>
-              <td class="current-control">
-                <input id="in-current-slider" type="range" onchange="app.laserControl.setCurrent(this.value); return false;" oninput="app.laserControl.setCurrent(this.value); return false;"
-                  value="0" min="0" step="0.01" max="40" style="padding-right: 0px; padding-left: 0px;">
-              </td>
-            </tr>
-            <tr>
-              <td class="power-control" style="width: 90px;">
-                <input id="in-power-input" type="number" onchange="app.laserControl.setPower(this.value); return false;" oninput="app.laserControl.setPower(this.value); return false;"
-                  value="0" min="0" step="0.1" max="4000" style="text-align: right">
-              </td>
-              <td class="power-control">
-                <input id="in-power-slider" type="range" onchange="app.laserControl.setPower(this.value); return false;" oninput="app.laserControl.setPower(this.value); return false;"
-                  value="0" min="0" step="0.1" max="4000" style="padding-right: 0px; padding-left: 0px;">
-              </td>
-              </td>
-              <tr>
-                <td style="padding-left: 10px;">Power (µW)</td>
-                <td style="text-align: right; padding-right: 24px;">
-                  <span id="measured-power"></span>
-                </td>
-                <td>
-                  <canvas id="canvas" width="100" height="15"></canvas>
-                </td>
-              </tr>
-          </table>
-
-        </section>
+        <section id="laser-control"></section>
+        <section id="average"></section>
+        <section id="modulation"></section>
 
         <section>
-
-          <div class="crossed">
-            <span>Average</span>
-          </div>
-
-          <table>
-            <tr>
-              <td style="width: 100px;">
-                <label for="average-switch">ON</label>
-                <label class="switch" style="margin-top: 0px; margin-bottom: -7px; margin-left: 5px;">
-                  <input type="checkbox" id="average-switch" onchange="app.average.average(); return false" checked>
-                  <span class="slider round"></span>
-                </label>
-              </td>
-              <td style="width: 50px;" class="average">Count:</td>
-              <td style="width: 70px;" class="average">
-                <span id="avg"></span>
-              </td>
-              <td class="average">Minimum:</td>
-              <td style="width: 90px;" class="average">
-                <input id="avg-min-input" type="number" value="0" min="0" step="1" max="2000" onchange="app.average.setNumAverageMin(this.value); return false;"
-                  oninput="app.average.setNumAverageMin(this.value); return false;">
-              </td>
-            </tr>
-          </table>
-
-        </section>
-
-        <section>
-
-          <div class="crossed">
-            <span>Modulation</span>
-          </div>
-
-          <div>
-            <label id="channel" for="channel">
-              Channel:
-            </label>
-            <div class="radio-wrapper">
-              <input type="radio" name="channel" value="0" checked style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.switchChannel(this.value); return false;">1
-            </div>
-            <div class="radio-wrapper">
-              <input type="radio" name="channel" value="1" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.switchChannel(this.value); return false;">2
-            </div>
-          </div>
-
-          <div id="channel-0">
-            <div>
-              <label for="waveform-0">
-                Waveform:
-              </label>
-              <div class="radio-wrapper">
-                <input type="radio" name="waveform-0" value="0" checked style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.setWfmType(0,this.value); return false"
-                  id="waveform-0-0">Sine
-              </div>
-              <div class="radio-wrapper">
-                <input type="radio" name="waveform-0" value="1" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.setWfmType(0,this.value); return false"
-                  id="waveform-0-1">Triangle
-              </div>
-              <div class="radio-wrapper">
-                <input type="radio" name="waveform-0" value="2" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.setWfmType(0,this.value); return false"
-                  id="waveform-0-2">Square
-              </div>
-            </div>
-
-            <table class="full-width">
-              <tr>
-                <td style="padding-left: 0; width: 160px;">Amplitude (arb. units)</td>
-                <td style="width: 50px;">
-                  <span id="amplitude-0"></span>
-                </td>
-                <td>
-                  <input id="amplitude-slider-0" type="range" value="0" min="0" step="0.001" max="0.995" oninput="app.modulationControl.setDacAmplitude(0, this.value); return false"
-                    onchange="app.modulationControl.setDacAmplitude(0, this.value); return false">
-                </td>
-              </tr>
-              <tr>
-                <td style="padding-left: 0; width: 160px;">Frequency (MHz)</td>
-                <td style="width: 50px;">
-                  <span id="frequency-0"></span>
-                </td>
-                <td>
-                  <input id="frequency-slider-0" type="range" value="0" min="0" step="1" max="4096" oninput="app.modulationControl.setDacFrequency(0, this.value); return false"
-                    onchange="app.modulationControl.setDacFrequency(0, this.value); return false">
-                </td>
-              </tr>
-              <tr>
-                <td style="padding-left: 0; width: 160px;">Offset (arb. units)</td>
-                <td style="width: 50px;">
-                  <span id="offset-0"></span>
-                </td>
-                <td>
-                  <input id="offset-slider-0" type="range" value="0" min="-1" step="0.001" max="1" oninput="app.modulationControl.setDacOffset(0, this.value); return false"
-                    onchange="app.modulationControl.setDacOffset(0, this.value); return false">
-                </td>
-              </tr>
-            </table>
-          </div>
-
-          <div id="channel-1" style="display: none;">
-            <div>
-              <label for="waveform-1">
-                Waveform:
-              </label>
-              <div class="radio-wrapper">
-                <input type="radio" name="waveform-1" value="0" checked style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.setWfmType(1,this.value); return false"
-                  id="waveform-1-0">Sine
-              </div>
-              <div class="radio-wrapper">
-                <input type="radio" name="waveform-1" value="1" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.setWfmType(1,this.value); return false"
-                  id="waveform-1-1">Triangle
-              </div>
-              <div class="radio-wrapper">
-                <input type="radio" name="waveform-1" value="2" style="width: auto; vertical-align: -12px; margin: 0px 5px" onchange="app.modulationControl.setWfmType(1,this.value); return false"
-                  id="waveform-1-2">Square
-              </div>
-            </div>
-
-            <table class="full-width">
-              <tr>
-                <td style="padding-left: 0; width: 160px;">Amplitude (arb. units)</td>
-                <td style="width: 50px;">
-                  <span id="amplitude-1"></span>
-                </td>
-                <td>
-                  <input id="amplitude-slider-1" type="range" value="0" min="0" step="0.001" max="0.995" oninput="app.modulationControl.setDacAmplitude(1, this.value); return false"
-                    onchange="app.modulationControl.setDacAmplitude(1, this.value); return false">
-                </td>
-              </tr>
-              <tr>
-                <td style="padding-left: 0; width: 160px;">Frequency (MHz)</td>
-                <td style="width: 50px;">
-                  <span id="frequency-1"></span>
-                </td>
-                <td>
-                  <input id="frequency-slider-1" type="range" value="0" min="0" step="1" max="4096" oninput="app.modulationControl.setDacFrequency(1, this.value); return false"
-                    onchange="app.modulationControl.setDacFrequency(1, this.value); return false">
-                </td>
-              </tr>
-              <tr>
-                <td style="padding-left: 0; width: 160px;">Offset (arb. units)</td>
-                <td style="width: 50px;">
-                  <span id="offset-1"></span>
-                </td>
-                <td>
-                  <input id="offset-slider-1" type="range" value="0" min="-1" step="0.001" max="1" oninput="app.modulationControl.setDacOffset(1, this.value); return false"
-                    onchange="app.modulationControl.setDacOffset(1, this.value); return false">
-                </td>
-              </tr>
-            </table>
-          </div>
-
-        </section>
-
-        <section>
-
           <div class="crossed">
             <span>Velocity</span>
           </div>
-
           <label for="velocity-switch">ON</label>
-          <label class="switch" style="margin-top: 0px; margin-bottom: -7px; margin-left: 5px;">
-            <input type="checkbox" id="velocityr-switch" onchange="app.plot.switchVelocity(); return false">
+          <label class="switch">
+            <input type="checkbox" id="velocity-switch">
             <span class="slider round"></span>
           </label>
-
         </section>
 
       </div>

@@ -12,6 +12,8 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
 
+  <script type="text/javascript" src="html-imports.min.js"></script>
+
   <link rel="shortcut icon" href="kbird.ico">
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
@@ -19,28 +21,22 @@
 
   <script type="text/javascript" src="jquery.min.js"></script>
   <script type="text/javascript" src="bootstrap.min.js"></script>
+
+  <link rel="import" href="navigation.html" data-parent="navigation">
+  <link rel="import" href="plot-basics.html" data-parent="plot-basics">
+
 </head>
 
 <body>
 
-<div id="navigation">
-
-  <div id="navigation-links">
-    <img src="_koheron_logo.svg" alt="home" style="max-width: 100%;">
-    <a href="/">Home</a>
-    <a href="/koheron">Settings</a>
-  </div>
-
-  <button value="close" id="collapse-btn" onclick="app.navigation.collapseBtnClick(this); return false;">&#60;</button>
-
-</div>
+<div id="navigation"></div>
 
 <div class="container-fluid" id="main">
 
   <div class="row">
     <div class="col-md-8">
       <div id="plot-placeholder" class="plot-placeholder"></div>
-      <div style="text-align: right">FIFO sample number</div>
+      <div id="plot-basics"></div>
     </div>
     <div class="col-md-4">
       <section>

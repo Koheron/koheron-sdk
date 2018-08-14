@@ -46,6 +46,8 @@ label {
   display: inline-block;
   width: 44px;
   height: 24px;
+  margin-bottom: -7px !important;
+  margin-left: 5px;
 }
 
 td > .switch {
@@ -162,4 +164,10 @@ button[disabled] {
 #main {
   margin-left: 100px;
   padding: 10px;
+}
+
+input[type="radio"] {
+  width: auto;
+  vertical-align: -12px;
+  margin: 0px 5px !important;
 }
