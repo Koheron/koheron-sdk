@@ -1,7 +1,7 @@
 ---
 name: pulse-generator
 board: boards/red-pitaya
-version: 0.1.1
+version: 0.1.2
 
 cores:
   - fpga/cores/redp_adc_v1_0

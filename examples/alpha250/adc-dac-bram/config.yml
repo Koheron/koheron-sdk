@@ -1,7 +1,7 @@
 ---
 name: adc-dac-bram
 board: boards/alpha250
-version: 0.1.0
+version: 0.1.1
 
 cores:
   - fpga/cores/axi_ctl_register_v1_0
