@@ -53,7 +53,7 @@ class ExportFile {
     initExportPlot(): void {
         for (let i = 0; i < this.exportPlotButtons.length; i++) {
             this.exportPlotButtons[i].addEventListener('click', (event) => {
-                let canvas = this.plot_.plot.getCanvas();
+                let canvas = this.plot_.plotBasics.plot.getCanvas();
                 let imagePng = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
                 let exportGroup = this.exportPlotButtons[i].parentElement;
                 let exportLink = <HTMLAnchorElement>(exportGroup.getElementsByTagName("a")[0]);
