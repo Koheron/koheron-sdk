@@ -19,45 +19,6 @@
 //-------------------------------------------------------------------------------------------------
 
 /**
- * \brief Convert decimal to binary coded decimal.
- *
- * @param decimal	Decimal input
- * @return			Corresponding binary coded decimal value
- */
-static inline uint8_t ConvertDecimalToBinaryCodedDecimal(int decimal)
-{
-    return ((decimal / 10) << 4) + (decimal % 10);
-}
-
-
-/**
- * \brief Convert binary coded decimal to decimal.
- *
- * @param bcd		Binary coded decimal
- * @return			Corresponding decimal value
- */
-static int ConvertBinaryCodedDecimalToDecimal(uint8_t bcd)
-{
-    return ((bcd >> 4) * 10) + bcd % 16;
-}
-
-
-/**
- * Simple sleep function.
- *
- * @param value Cycles to sleep for.
- */
-static inline void Sleep(int value)
-{
-    volatile int i = 0;
-    while (value--)
-    {
-        i++;
-    }
-}
-
-
-/**
  * \brief Convert a little-endian byte array to a 32-bit unsigned int.
  *
  * @param pByteArray	Pointer to the byte array

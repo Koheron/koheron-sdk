@@ -10,7 +10,6 @@
 
 #include "InterruptController.h"
 #include "I2cInterfaceVariables.h"
-#include "TimerInterfaceVariables.h"
 
 #include <xil_exception.h>
 #include <xscugic.h>

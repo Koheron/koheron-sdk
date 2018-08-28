@@ -12,9 +12,9 @@
 #include "I2cInterfaceVariables.h"
 #include "SystemDefinitions.h"
 #include "UtilityFunctions.h"
-#include "TimerInterface.h"
 #include "InterruptController.h"
 #include "ErrorCodes.h"
+#include "sleep.h"
 
 //-------------------------------------------------------------------------------------------------
 // Constants
@@ -200,7 +200,7 @@ EN_RESULT I2cWrite_NoSubAddress(uint8_t deviceAddress, const uint8_t* pWriteBuff
     while ((g_i2cTransmissionInProgress && !g_i2cSlaveNack) || (XIicPs_BusIsBusy(&g_XIicPsInstance)))
 
     {
-        SleepMilliseconds(1);
+        usleep(1000);
         timeout++;
         if (timeout > 100)
         {
@@ -303,7 +303,7 @@ EN_RESULT I2cRead_NoSubAddress(uint8_t deviceAddress, uint8_t* pReadBuffer, uint
     unsigned int timeout = 0;
     while (g_i2cReceiveInProgress && !g_i2cSlaveNack)
     {
-        SleepMilliseconds(1);
+        usleep(1000);
         timeout++;
         if (timeout > 1000)
         {

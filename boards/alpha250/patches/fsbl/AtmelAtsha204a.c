@@ -14,7 +14,7 @@
 
 #include "AtmelAtsha204a.h"
 #include "I2cInterface.h"
-#include "TimerInterface.h"
+#include "sleep.h"
 #include "UtilityFunctions.h"
 
 
@@ -170,8 +170,8 @@ EN_RESULT AtmelAtsha204a_Wake(bool verifyDeviceIsAtmelAtsha204a)
 
     I2cWrite(0, 0, EI2cSubAddressMode_OneByte, (uint8_t*)&dummyWriteData, 0);
 
-    // Wait for the device to wake up. 
-    SleepMilliseconds(ATMEL_ATSHA204A_WAKE_TIME_MILLISECONDS);
+    // Wait for the device to wake up.
+    usleep(1000*ATMEL_ATSHA204A_WAKE_TIME_MILLISECONDS);
 
     if (verifyDeviceIsAtmelAtsha204a)
     {
@@ -588,7 +588,7 @@ EN_RESULT AtmelAtsha204a_Read(EReadSizeSelect_t sizeSelect,
 
 #ifndef _DEBUG
     // Wait for the read command to  be processed.
-    SleepMilliseconds(ATMEL_ATSHA204A_READ_EXECUTION_TIME_MILLISECONDS);
+    usleep(1000*ATMEL_ATSHA204A_READ_EXECUTION_TIME_MILLISECONDS);
 #endif
 
     // Read the response.

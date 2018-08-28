@@ -130,10 +130,6 @@ typedef enum EN_RESULT
     } while (0)
 
 
-#if SYSTEM == XILINX_MICROBLAZE
-/**
- * This macro is used to handle errors in calls to the Xilinx Microblaze driver functions.
- */
 #define RETURN_IF_XILINX_CALL_FAILED(x, returnCode)                                                                    \
     do                                                                                                                 \
     {                                                                                                                  \
@@ -143,19 +139,3 @@ typedef enum EN_RESULT
             return returnCode;                                                                                         \
         }                                                                                                              \
     } while (0)
-#endif
-
-#if SYSTEM == XILINX_ARM_SOC
-/**
- * This macro is used to handle errors in calls to the Xilinx Microblaze driver functions.
- */
-#define RETURN_IF_XILINX_CALL_FAILED(x, returnCode)                                                                    \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        int _status = x;                                                                                               \
-        if (_status != XST_SUCCESS)                                                                                    \
-        {                                                                                                              \
-            return returnCode;                                                                                         \
-        }                                                                                                              \
-    } while (0)
-#endif
