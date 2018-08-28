@@ -234,29 +234,26 @@ static int GetMacAddress(void)
     char EmacPsMAC[6];
     int MacAddrSet = 0;
 
-    // Initialise the EEPROM.
-	if (EN_SUCCEEDED(Eeprom_Initialise()))
-    {
-		// Read the EEPROM.
-		if (EN_SUCCEEDED(Eeprom_Read()))
-		{
-		    // After reading the EEPROM, the information is stored in its own translation unit - we can
-		    // query it using the EEPROM API functions.
-			if (EN_SUCCEEDED(Eeprom_GetModuleInfo(&serialNumber, &productNumberInfo, (uint64_t*)&macAddress))){
-				fsbl_printf(DEBUG_GENERAL,"MAC address configured successfully from EEPROM\n\r");
-				EmacPsMAC[0] = macAddress[5];
-				EmacPsMAC[1] = macAddress[4];
-				EmacPsMAC[2] = macAddress[3];
-				EmacPsMAC[3] = macAddress[2];
-				EmacPsMAC[4] = macAddress[1];
-				EmacPsMAC[5] = macAddress[0];
-				MacAddrSet = 1;
-			}
-
+	// Read the EEPROM.
+	if (EN_SUCCEEDED(Eeprom_Read()))
+	{
+		// After reading the EEPROM, the information is stored in its own translation unit - we can
+		// query it using the EEPROM API functions.
+		if (EN_SUCCEEDED(Eeprom_GetModuleInfo(&serialNumber, &productNumberInfo, (uint64_t*)&macAddress))){
+			fsbl_printf(DEBUG_GENERAL,"MAC address configured successfully from EEPROM\n\r");
+			EmacPsMAC[0] = macAddress[5];
+			EmacPsMAC[1] = macAddress[4];
+			EmacPsMAC[2] = macAddress[3];
+			EmacPsMAC[3] = macAddress[2];
+			EmacPsMAC[4] = macAddress[1];
+			EmacPsMAC[5] = macAddress[0];
+			MacAddrSet = 1;
 		}
-    }
+
+	}
+
 	if (MacAddrSet == 0){
-		EN_PRINTF("Error reading EEPROM, using default MAC address\r\n");
+		xil_printf("Error reading EEPROM, using default MAC address\r\n");
 		EmacPsMAC[0] = 0x00;
 		EmacPsMAC[1] = 0x0a;
 		EmacPsMAC[2] = 0x35;

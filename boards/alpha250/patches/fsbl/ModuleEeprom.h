@@ -21,16 +21,6 @@
 //-------------------------------------------------------------------------------------------------
 
 /**
- * brief Initialise the EEPROM.
- *
- * This function checks possible module EEPROM I2C device address to determine which kind of
- * EEPROM is present. Note that the I2C interface must be initialised before this function is called.
- * @return	Result code
- */
-EN_RESULT Eeprom_Initialise();
-
-
-/**
  * \brief Read the module EEPROM.
  *
  * This function reads module information from the EEPROM; serial number, product number, MAC

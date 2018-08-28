@@ -1,6 +1,5 @@
 #pragma once
 
-#include "SystemDefinitions.h"
 #include "ErrorCodes.h"
 
 #include <stdint.h>

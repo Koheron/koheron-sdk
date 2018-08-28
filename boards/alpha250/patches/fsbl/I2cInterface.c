@@ -10,7 +10,6 @@
 
 #include "I2cInterface.h"
 #include "I2cInterfaceVariables.h"
-#include "SystemDefinitions.h"
 #include "UtilityFunctions.h"
 #include "InterruptController.h"
 #include "ErrorCodes.h"
@@ -59,78 +58,24 @@ void StatusHandler(void* InstancePtr, int event)
     if (event & XIICPS_EVENT_COMPLETE_RECV)
     {
         g_i2cReceiveInProgress = false;
-
-#ifdef _DEBUG
-        EN_PRINTF("Event = receive complete\r\n");
-#endif
     }
 
     if (event & XIICPS_EVENT_COMPLETE_SEND)
     {
         g_i2cTransmissionInProgress = false;
-
-#ifdef _DEBUG
-        EN_PRINTF("Event = send complete\r\n");
-#endif
     }
 
 
     if ((event & XIICPS_EVENT_SLAVE_RDY) == 0)
     {
-
         g_transmissionErrorCount++;
-
-#ifdef _DEBUG
-        EN_PRINTF("Data received with error\n\r");
-#endif
     }
 
     if (event & XIICPS_EVENT_NACK)
     {
         g_i2cSlaveNack = true;
-
-#ifdef _DEBUG
-        EN_PRINTF("Event = NACK received\r\n");
-#endif
     }
 
-#ifdef _DEBUG
-    if (event & XIICPS_EVENT_TIME_OUT)
-    {
-        EN_PRINTF("Event = timeout\r\n");
-    }
-
-    if (event & XIICPS_EVENT_ERROR)
-    {
-        EN_PRINTF("Event = error\r\n");
-    }
-
-    if (event & XIICPS_EVENT_ARB_LOST)
-    {
-        EN_PRINTF("Event = arbitration lost\r\n");
-    }
-
-    if (event & XIICPS_EVENT_SLAVE_RDY)
-    {
-        EN_PRINTF("Event = slave ready\r\n");
-    }
-
-    if (event & XIICPS_EVENT_RX_OVR)
-    {
-        EN_PRINTF("Event = receive overflow\r\n");
-    }
-
-    if (event & XIICPS_EVENT_TX_OVR)
-    {
-        EN_PRINTF("Event = transmit overflow\r\n");
-    }
-
-    if (event & XIICPS_EVENT_RX_UNF)
-    {
-        EN_PRINTF("Event = receive underflow\r\n");
-    }
-
-#endif
 }
 
 EN_RESULT InitialiseI2cInterface()
@@ -178,10 +123,6 @@ EN_RESULT I2cWrite_NoSubAddress(uint8_t deviceAddress, const uint8_t* pWriteBuff
         return EN_ERROR_INVALID_ARGUMENT;
     }
 
-#ifdef _DEBUG
-    xil_printf("I2C: Writing %d bytes to device address 0x%x\r\n", numberOfBytesToWrite, deviceAddress);
-#endif
-
     // Wait for bus to become idle
     while (XIicPs_BusIsBusy(&g_XIicPsInstance))
     {
@@ -204,21 +145,12 @@ EN_RESULT I2cWrite_NoSubAddress(uint8_t deviceAddress, const uint8_t* pWriteBuff
         timeout++;
         if (timeout > 100)
         {
-#ifdef _DEBUG
-            xil_printf(
-                "Error: I2C timeout when writing %d bytes to device 0x%x\r\n", numberOfBytesToWrite, deviceAddress);
-#endif
-
             return EN_ERROR_I2C_WRITE_TIMEOUT;
         }
     }
 
     if (g_i2cSlaveNack)
     {
-#ifdef _DEBUG
-        xil_printf("NACK received from I2C slave at address 0x%x\n\r", deviceAddress);
-#endif
-
         return EN_ERROR_I2C_SLAVE_NACK;
     }
 
@@ -281,10 +213,6 @@ EN_RESULT I2cRead_NoSubAddress(uint8_t deviceAddress, uint8_t* pReadBuffer, uint
         return EN_ERROR_INVALID_ARGUMENT;
     }
 
-#ifdef _DEBUG
-    xil_printf("I2C: Reading %d bytes from device address 0x%x\r\n", numberOfBytesToRead, deviceAddress);
-#endif
-
     // Wait for bus to become idle
     while (XIicPs_BusIsBusy(&g_XIicPsInstance))
     {
@@ -307,20 +235,12 @@ EN_RESULT I2cRead_NoSubAddress(uint8_t deviceAddress, uint8_t* pReadBuffer, uint
         timeout++;
         if (timeout > 1000)
         {
-#ifdef _DEBUG
-            xil_printf(
-                "Error: I2C timeout when receiving %d bytes from device 0x%x\r\n", numberOfBytesToRead, deviceAddress);
-#endif
             return EN_ERROR_I2C_READ_TIMEOUT;
         }
     }
 
     if (g_i2cSlaveNack)
     {
-#ifdef _DEBUG
-        xil_printf("NACK received from I2C slave at address 0x%x\n\r", deviceAddress);
-#endif
-
         return EN_ERROR_I2C_SLAVE_NACK;
     }
 

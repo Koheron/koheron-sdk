@@ -9,14 +9,6 @@
 
 #pragma once
 
-
-//-------------------------------------------------------------------------------------------------
-// Includes
-//-------------------------------------------------------------------------------------------------
-
-#include "SystemDefinitions.h"
-
-
 //-------------------------------------------------------------------------------------------------
 // Error code definitions
 //-------------------------------------------------------------------------------------------------
@@ -92,7 +84,7 @@ typedef enum EN_RESULT
 #define EN_PRINT_ERROR(status, message)																					\
 	    do                                                                                                              \
 	    {                                                                                                               \
-	        EN_PRINTF("Error, status code 0x%x: %s\r\n", status, message);                                              \                                                                                                             \
+	        xil_printf("Error, status code 0x%x: %s\r\n", status, message);                                              \                                                                                                             \
 	    } while (0)
 
 
@@ -124,7 +116,7 @@ typedef enum EN_RESULT
         EN_RESULT _status = status;                                                                                    \
         if (EN_FAILED(_status))                                                                                        \
         {    																										   \
-        	EN_PRINTF("Error: %s (status code = 0x%x)\r\n", message, status);  										   \
+        	xil_printf("Error: %s (status code = 0x%x)\r\n", message, status);  										   \
             return _status;                                                                                            \
         }                                                                                                              \
     } while (0)

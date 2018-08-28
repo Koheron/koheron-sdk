@@ -19,34 +19,6 @@
 // Directives, typedefs and constants
 //-------------------------------------------------------------------------------------------------
 
-
-/**
- * \brief Enum for EEPROM device types, with I2C addresses assigned as values.
- */
-typedef enum
-{
-
-	/// Maxim DS28CN01
-	EEepromDevice_MaximDs28cn01_0 = 0x5C,
-
-	/// Maxim DS28CN01
-	EEepromDevice_MaximDs28cn01_1 = 0x50,
-
-	/// Atmel ATSHA204A
-	EEepromDevice_AtmelAtsha204a = 0x64,
-
-} EEepromDevice_t;
-
-
-
-
-
-/// Array of all possible EEPROM device addresses
-const uint8_t EEPROM_DEVICE_ADDRESSES[3] = { EEepromDevice_MaximDs28cn01_0, EEepromDevice_MaximDs28cn01_1, EEepromDevice_AtmelAtsha204a };
-
-/// EEPROM device type for the detected EEPROM
-EEepromDevice_t g_EepromDeviceType;
-
 /// Module serial number
 uint32_t g_moduleSerialNumber;
 
@@ -68,7 +40,6 @@ uint64_t g_macAddress;
  */
 EN_RESULT DetermineEepromType()
 {
-    g_EepromDeviceType = (EEepromDevice_t)EEepromDevice_AtmelAtsha204a;
 	return EN_SUCCESS;
 }
 
