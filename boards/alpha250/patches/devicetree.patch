@@ -1,5 +1,5 @@
-diff -rupN devicetree.old/pcw.dtsi devicetree/pcw.dtsi
---- devicetree.old/pcw.dtsi
+diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
+--- devicetree.orig/pcw.dtsi
 +++ devicetree/pcw.dtsi
 @@ -13,9 +13,11 @@
  	};
@@ -35,10 +35,33 @@ diff -rupN devicetree.old/pcw.dtsi devicetree/pcw.dtsi
  };
  &uart0 {
  	device_type = "serial";
-diff -rupN devicetree.old/system-top.dts devicetree/system-top.dts
---- devicetree.old/system-top.dts
+@@ -62,7 +74,7 @@
+ };
+ &usb0 {
+ 	dr_mode = "host";
+-	phy_type = "ulpi";
++	usb-phy = <&usb_phy0>;
+ 	status = "okay";
+ };
+ &clkc {
+diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
+--- devicetree.orig/system-top.dts
 +++ devicetree/system-top.dts
-@@ -23,8 +23,21 @@
+@@ -14,6 +14,13 @@
+ 		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait earlycon";
+ 		stdout-path = "serial0:115200n8";
+ 	};
++	usb_phy0: phy0 {
++		#phy-cells = <0>;
++		compatible = "ulpi-phy";
++		reg = <0xe0002000 0x1000>;
++		view-port = <0x0170>;
++		drv-vbus;
++	};
+ 	aliases {
+ 		ethernet0 = &gem0;
+ 		serial0 = &uart0;
+@@ -23,8 +30,21 @@
  	};
  	memory {
  		device_type = "memory";
