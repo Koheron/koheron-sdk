@@ -13,7 +13,6 @@
 #include "I2cInterface.h"
 #include "AtmelAtsha204a.h"
 #include "UtilityFunctions.h"
-#include "TargetModuleConfig.h"
 
 //-------------------------------------------------------------------------------------------------
 // Directives, typedefs and constants
@@ -32,24 +31,6 @@ uint64_t g_macAddress;
 //-------------------------------------------------------------------------------------------------
 // Function definitions
 //-------------------------------------------------------------------------------------------------
-
-/**
- * \brief Determine which type of EEPROM device is on the module.
- *
- * @return Result code
- */
-EN_RESULT DetermineEepromType()
-{
-	return EN_SUCCESS;
-}
-
-
-EN_RESULT Eeprom_Initialise()
-{
-	DetermineEepromType();
-	return EN_SUCCESS;
-}
-
 
 EN_RESULT Eeprom_ReadBasicModuleInfo()
 {
