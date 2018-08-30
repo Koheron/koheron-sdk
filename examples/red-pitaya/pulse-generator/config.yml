@@ -1,7 +1,7 @@
 ---
 name: pulse-generator
 board: boards/red-pitaya
-version: 0.1.1
+version: 0.1.2
 
 cores:
   - fpga/cores/redp_adc_v1_0
@@ -57,6 +57,7 @@ web:
   - ./web/app.ts
   - ./web/control.ts
   - ./web/plot.ts
+  - web/plot-basics/plot-basics.ts
+  - web/plot-basics/plot-basics.html
   - ./web/index.html
   - web/main.css
-  - web/navigation.ts

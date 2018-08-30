@@ -1,63 +1,62 @@
 class App {
-    public control: Control;
+
+    private imports: Imports;
     public plot: Plot;
+    private plotBasics: PlotBasics;
     private fft: FFT;
-    private precisionDac: PrecisionDac;
-
+    public fftApp: FFTApp;
+    public ddsFrequency: DDSFrequency;
     private temperatureSensor: TemperatureSensor;
+    private temperatureSensorApp: TemperatureSensorApp;
     private powerMonitor: PowerMonitor;
+    private powerMonitorApp: PowerMonitorApp;
+    private clockGenerator: ClockGenerator;
+    private clockGeneratorApp: ClockGeneratorApp;
+    private precisionDac: PrecisionDac;
     private precisionAdc: PrecisionAdc;
-    private clkGenerator: ClockGenerator;
+    private precisionChannelsApp: PrecisionChannelsApp;
+    private exportFile: ExportFile;
 
-    private temperatureVoltageReference: HTMLSpanElement;
-    private temperatureBoardSpan: HTMLSpanElement;
-    private temperatureZynqSpan: HTMLSpanElement;
-    private supplyMainVoltageSpan: HTMLSpanElement;
-    private supplyMainCurrentSpan: HTMLSpanElement;
-    private supplyClockVoltageSpan: HTMLSpanElement;
-    private supplyClockCurrentSpan: HTMLSpanElement;
-
-    private precisionAdcNum: number;
-    private precisionAdcSpans: HTMLSpanElement[];
-
-    private navigation: Navigation;
+    private n_pts: number;
+    private x_min: number;
+    private x_max: number;
+    private y_min: number;
+    private y_max: number;
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
         let sockpoolSize: number = 10;
         let client = new Client(ip, sockpoolSize);
 
-        this.temperatureVoltageReference = <HTMLSpanElement>document.getElementById('temperature-voltage-reference');
-        this.temperatureBoardSpan = <HTMLSpanElement>document.getElementById('temperature-board');
-        this.temperatureZynqSpan = <HTMLSpanElement>document.getElementById('temperature-zynq');
-        this.supplyMainVoltageSpan = <HTMLSpanElement>document.getElementById('supply-main-voltage');
-        this.supplyMainCurrentSpan = <HTMLSpanElement>document.getElementById('supply-main-current');
-        this.supplyClockVoltageSpan = <HTMLSpanElement>document.getElementById('supply-clock-voltage');
-        this.supplyClockCurrentSpan = <HTMLSpanElement>document.getElementById('supply-clock-current');
-
-        this.precisionAdcNum = 4;
-        this.precisionAdcSpans = [];
-
-        for (let i:number = 0; i < this.precisionAdcNum; i++) {
-            this.precisionAdcSpans[i] = <HTMLInputElement>document.getElementById('precision-adc-' + i.toString());
-        }
-
-        window.addEventListener('load', () => {
+        window.addEventListener('HTMLImportsLoaded', () => {
             client.init( () => {
+                this.imports = new Imports(document);
                 this.fft = new FFT(client);
                 this.precisionDac = new PrecisionDac(client);
+                this.precisionAdc = new PrecisionAdc(client);
                 this.temperatureSensor = new TemperatureSensor(client);
                 this.powerMonitor = new PowerMonitor(client);
-                this.precisionAdc = new PrecisionAdc(client);
-                this.clkGenerator = new ClockGenerator(client);
-                this.navigation = new Navigation(document);
+                this.clockGenerator = new ClockGenerator(client);
 
                 this.fft.init( () => {
-                    this.control = new Control(document, this.fft, this.precisionDac, this.clkGenerator);
-                    this.plot = new Plot(document, plot_placeholder, this.fft, this.control);
-                    this.updateTemperatures();
-                    this.updateSupplies();
-                    this.updatePrecisionAdcValues();
+                    this.fftApp = new FFTApp(document, this.fft);
+                    this.ddsFrequency = new DDSFrequency(document, this.fft);
+
+                    this.n_pts = this.fft.fft_size / 2;
+                    this.x_min = 0;
+                    this.x_max = this.fft.status.fs / 1E6 / 2;
+                    this.y_min = -200;
+                    this.y_max = 170;
+
+                    this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.fft, "", "Frequency (MHz)");
+                    this.plot = new Plot(document, this.fft, this.plotBasics);
+
+                    this.temperatureSensorApp = new TemperatureSensorApp(document, this.temperatureSensor);
+                    this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);
+                    this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
+                    this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionAdc, this.precisionDac);
+                    this.exportFile = new ExportFile(document, this.plot);
+
                 });
             });
         }, false);
@@ -65,36 +64,6 @@ class App {
         window.onbeforeunload = () => { client.exit(); };
     }
 
-    private updateTemperatures() {
-        this.temperatureSensor.getTemperatures((temperatures: Float32Array) => {
-            this.temperatureVoltageReference.innerHTML = temperatures[0].toFixed(3).toString();
-            this.temperatureBoardSpan.innerHTML = temperatures[1].toFixed(3).toString();
-            this.temperatureZynqSpan.innerHTML = temperatures[2].toFixed(3).toString();
-
-            requestAnimationFrame( () => { this.updateTemperatures(); } );
-        });
-    }
-
-    private updateSupplies() {
-        this.powerMonitor.getSuppliesUI((supplyValues: Float32Array) => {
-            this.supplyMainCurrentSpan.innerHTML = (supplyValues[0] * 1E3).toFixed(1).toString();
-            this.supplyMainVoltageSpan.innerHTML = supplyValues[1].toFixed(3).toString();
-            this.supplyClockCurrentSpan.innerHTML = (supplyValues[2] * 1E3).toFixed(1).toString();
-            this.supplyClockVoltageSpan.innerHTML = supplyValues[3].toFixed(3).toString();
-
-            requestAnimationFrame( () => { this.updateSupplies(); });
-        });
-    }
-
-    private updatePrecisionAdcValues() {
-        this.precisionAdc.getAdcValues((adcValues: Float32Array) => {
-            for (let i: number = 0; i < this.precisionAdcNum; i++) {
-                this.precisionAdcSpans[i].innerHTML = (adcValues[i] * 1000).toFixed(4).toString();
-            }
-
-            requestAnimationFrame( () => { this.updatePrecisionAdcValues(); });
-        });
-    }
 }
 
 let app = new App(window, document, location.hostname, $('#plot-placeholder'));

@@ -15,49 +15,31 @@
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
 
+  <script type="text/javascript" src="html-imports.min.js"></script>
+  <link rel="import" href="navigation.html" data-parent="navigation">
+
   <script type="text/javascript" src="jquery.min.js"></script>
   <script type="text/javascript" src="bootstrap.min.js"></script>
 </head>
 
 <body>
 
-<div id="navigation">
+<div id="navigation"></div>
 
-  <div id="navigation-links">
-    <img src="_koheron_logo.svg" alt="home" style="max-width: 100%;">
-    <a href="/">Home</a>
-    <a href="/koheron">Settings</a>
-  </div>
+<div class="container-fluid" id="main">
+  <h1>Bonjour!</h1>
 
-  <button value="close" id="collapse-btn" onclick="navigation.collapseBtnClick(this); return false;">&#60;</button>
-
-</div>
-
-<div class="container-fuild" id="main">
-
-  <div class="container" style="margin-top: 10px;">
-
-    <h1>Bonjour!</h1>
-
-    <br><br>
-
-    <p>There is no web interface for this instrument.
-      You can write your own interface using the <a href="https://www.koheron.com/software-development-kit/documentation/typescript-api/">TypeScript API</a>
-      or the <a href="https://www.koheron.com/software-development-kit/documentation/python-api/">Python API</a>.</p>
-    </p>
-
-  </div>
-
+  <p>There is no web interface for this instrument.
+    You can write your own interface using the <a href="https://www.koheron.com/software-development-kit/documentation/typescript-api/">TypeScript API</a>
+    or the <a href="https://www.koheron.com/software-development-kit/documentation/python-api/">Python API</a>.</p>
+  </p>
 </div>
 
 <script src="app.js?random=<?php echo uniqid(); ?>"></script>
-
 <script language="javascript" type="text/javascript">
-
-  window.addEventListener("load", function() {
-    navigation = new Navigation(document);
+  window.addEventListener('HTMLImportsLoaded', function() {
+    imports = new Imports(document);
   }, false);
-
 </script>
 
 </body>

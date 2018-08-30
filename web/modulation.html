@@ -1,0 +1,63 @@
+<template class="template">
+  <div class="crossed"><span>Modulation</span></div>
+  <div>
+    <label for="channel">
+      Channel:
+    </label>
+    <div class="radio-wrapper">
+      <input type="radio" name="channel" value="0" class="modulation-channel-input" checked>1
+    </div>
+    <div class="radio-wrapper">
+      <input type="radio" name="channel" value="1" class="modulation-channel-input">2
+    </div>
+  </div>
+  <div>
+    <label for="modulation-waveform">
+      Waveform:
+    </label>
+    <div class="radio-wrapper">
+      <input type="radio" name="modulation-waveform" class="modulation-channel modulation-input" value="0"
+      data-channel="0" data-command="setWaveformType" data-status="wfmType" checked>Sine
+    </div>
+    <div class="radio-wrapper">
+      <input type="radio" name="modulation-waveform" class="modulation-channel modulation-input" value="1"
+      data-channel="0" data-command="setWaveformType" data-status="wfmType">Triangle
+    </div>
+    <div class="radio-wrapper">
+      <input type="radio" name="modulation-waveform" class="modulation-channel modulation-input" value="2"
+      data-channel="0" data-command="setWaveformType" data-status="wfmType">Square
+    </div>
+  </div>
+  <table class="full-width">
+    <tr>
+      <td style="padding-left: 0; width: 160px;">Amplitude (arb. units)</td>
+      <td style="width: 80px;">
+        <span class="modulation-channel" data-channel="0" data-status="dacAmplitude"></span>
+      </td>
+      <td>
+        <input type="range" value="0" min="0" step="0.001" max="0.995" class="modulation-channel modulation-input"
+        data-channel="0" data-command="setDacAmplitude" data-status="dacAmplitude">
+      </td>
+    </tr>
+    <tr>
+      <td style="padding-left: 0; width: 160px;">Frequency (MHz)</td>
+      <td style="width: 80px;">
+        <span class="modulation-channel" data-channel="0" data-status="dacFrequency"></span>
+      </td>
+      <td>
+        <input type="range" value="0" min="0" step="1" max="4096" class="modulation-channel modulation-input"
+        data-channel="0" data-command="setDacFrequency" data-status="dacFrequency">
+      </td>
+    </tr>
+    <tr>
+      <td style="padding-left: 0; width: 160px;">Offset (arb. units)</td>
+      <td style="width: 80px;">
+        <span class="modulation-channel" data-channel="0" data-status="dacOffset"></span>
+      </td>
+      <td>
+        <input type="range" value="0" min="-1" step="0.001" max="1" class="modulation-channel modulation-input"
+        data-channel="0" data-command="setDacOffset" data-status="dacOffset">
+      </td>
+    </tr>
+  </table>
+  </template>

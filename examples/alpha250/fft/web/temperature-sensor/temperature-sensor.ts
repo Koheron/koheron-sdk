@@ -10,7 +10,6 @@ class TemperatureSensor {
     }
 
     getTemperatures(cb: (temperatures: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['get_temperatures']),
-                                 (temperatures: Float32Array) => {cb(temperatures)});
+        this.client.readFloat32Array(Command(this.id, this.cmds['get_temperatures']), (temperatures: Float32Array) => {cb(temperatures)});
     }
 }

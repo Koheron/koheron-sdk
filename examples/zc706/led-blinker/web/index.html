@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>Koheron</title>
+  <title>Koheron | LED Blinker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Koheron">
   <meta charset="utf-8">
@@ -21,42 +21,10 @@
 
 <body>
 
-  <div class="container-fluid" style="padding: 10px; height: 75px">
-    <a href="/">
-      <img alt="Koheron" src="_koheron_logo.svg" style="height: 100%">
-    </a>
-  </div>
-
   <div class="container">
 
-    <h1>ZC706 LED blinker</h1>
-
-    <table>
-      <thead>
-      <tr>
-        <td class="center">LEDs</td>
-        <td class="center">0</td>
-        <td class="center">1</td>
-        <td class="center">2</td>
-        <td class="center">3</td>
-      </tr>
-      </thead>
-      <tr>
-        <td>ON/OFF</td>
-        <td><input type="button" id="led-0" onclick="app.control.switchLed(0)"></td>
-        <td><input type="button" id="led-1" onclick="app.control.switchLed(1)"></td>
-        <td><input type="button" id="led-2" onclick="app.control.switchLed(2)"></td>
-        <td><input type="button" id="led-3" onclick="app.control.switchLed(3)"></td>
-      </tr>
-    </table>
-
-    <br><br>
-
-    <p>
-      See <a href="/koheron/">available instruments</a>.
-      <br><br>
-      This instrument was built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>.<br>
-    </p>
+    <table id="leds-table"></table>
+    <br><br>This instrument was built with <a href="https://www.koheron.com/software-development-kit">Koheron Software Development Kit</a>. See <a href="/koheron/">settings</a>.
 
   </div>
 

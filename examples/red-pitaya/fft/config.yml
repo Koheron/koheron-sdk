@@ -1,7 +1,7 @@
 ---
 name: fft
 board: boards/red-pitaya
-version: 0.1.0
+version: 0.1.1
 
 cores:
   - fpga/cores/axi_ctl_register_v1_0
@@ -87,10 +87,20 @@ web:
   - web/koheron.ts
   - web/jquery.flot.d.ts
   - web/laser.ts
-  - ./web/fft.ts
+  - web/laser-control.html
+  - web/dds-frequency/dds-frequency.ts
+  - web/dds-frequency/dds-frequency.html
   - ./web/app.ts
-  - ./web/control.ts
-  - ./web/plot.ts
+  - ./web/fft.ts
+  - ./web/plot/plot.ts
+  - web/plot-basics/plot-basics.ts
+  - web/plot-basics/plot-basics.html
+  - ./web/plot/yunit.html
+  - ./web/plot/peak-detection.html
+  - ./web/fft/fft-app.ts
+  - ./web/fft/fft-window.html
+  - ./web/fft/input-channel.html
+  - ./web/export-file/export-file.html
+  - ./web/export-file/export-file.ts
   - ./web/index.html
   - web/main.css
-  - web/navigation.ts

@@ -54,6 +54,12 @@ class FFT {
                                  (size) => {cb(size)});
     }
 
+    read_psd_raw(cb: (psd: Float32Array) => void): void {
+        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd_raw']), (psd: Float32Array) => {
+            cb(psd);
+        });
+    }
+
     read_psd(cb: (psd: Float32Array) => void): void {
         this.client.readFloat32Array(Command(this.id, this.cmds['read_psd']), (psd: Float32Array) => {
             cb(psd);
@@ -64,8 +70,8 @@ class FFT {
         this.client.send(Command(this.id, this.cmds['set_dds_freq'], channel, freq_hz));
     }
 
-    setInChannel(channel: number): void {
-        this.client.send(Command(this.id, this.cmds['set_in_channel'], channel));
+    setInputChannel(channel: number): void {
+        this.client.send(Command(this.id, this.cmds['set_input_channel'], channel));
     }
 
     setFFTWindow(windowIndex: number): void {
