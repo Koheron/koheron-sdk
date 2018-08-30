@@ -14,7 +14,7 @@
 
 #include "AtmelAtsha204a.h"
 #include "I2cInterface.h"
-#include "TimerInterface.h"
+#include "sleep.h"
 #include "UtilityFunctions.h"
 
 
@@ -164,14 +164,10 @@ EN_RESULT AtmelAtsha204a_Wake(bool verifyDeviceIsAtmelAtsha204a)
     // Required data bytes to fulfil tWLO: 1 (8 bits, 8 clocks @ 100kHz, 80us)
     uint8_t dummyWriteData = 0x00;
 
-#ifdef _DEBUG
-    EN_PRINTF("Attempting to wake Atmel ATSHA204A device...\r\n");
-#endif
-
     I2cWrite(0, 0, EI2cSubAddressMode_OneByte, (uint8_t*)&dummyWriteData, 0);
 
-    // Wait for the device to wake up. 
-    SleepMilliseconds(ATMEL_ATSHA204A_WAKE_TIME_MILLISECONDS);
+    // Wait for the device to wake up.
+    usleep(1000*ATMEL_ATSHA204A_WAKE_TIME_MILLISECONDS);
 
     if (verifyDeviceIsAtmelAtsha204a)
     {
@@ -195,7 +191,7 @@ EN_RESULT AtmelAtsha204a_Wake(bool verifyDeviceIsAtmelAtsha204a)
 
         if (expectedResponse != actualResponse)
         {
-            EN_PRINTF("Received response code %x %x %x %x when trying to wake Atmel ATSHA204A \r\n",
+            xil_printf("Received response code %x %x %x %x when trying to wake Atmel ATSHA204A \r\n",
                       readBuffer[0],
                       readBuffer[1],
                       readBuffer[2],
@@ -204,10 +200,6 @@ EN_RESULT AtmelAtsha204a_Wake(bool verifyDeviceIsAtmelAtsha204a)
             return EN_ERROR_FAILED_TO_WAKE_ATMEL_ATSHA204A;
         }
     }
-
-#ifdef _DEBUG
-    EN_PRINTF("Atmel ATSHA204A device woken.\r\n");
-#endif
 
     return EN_SUCCESS;
 }
@@ -393,7 +385,7 @@ EN_RESULT AtmelAtsha20a4_CheckResponseCrc(const uint8_t* pResponse)
 
     if (receivedCrc != expectedCrc)
     {
-        EN_PRINTF("Atmel ATSHA204 CRC error: expected 0x%x, received 0x%x\r\n", expectedCrc, receivedCrc);
+        xil_printf("Atmel ATSHA204 CRC error: expected 0x%x, received 0x%x\r\n", expectedCrc, receivedCrc);
 
         return EN_ERROR_ATSHA204A_INVALID_RESPONSE_CRC;
     }
@@ -428,27 +420,27 @@ EN_RESULT AtmelAtsha20a4_CheckCommandResponseBlock(const uint8_t* pResponseBlock
 
         case EStatusCode_InvalidMac:
         {
-            EN_PRINTF("Atmel ATSHA204A error - invalid MAC\r\n");
+            xil_printf("Atmel ATSHA204A error - invalid MAC\r\n");
             return EN_ERROR_ATSHA204A_INVALID_MAC;
         }
         case EStatusCode_ParseError:
         {
-            EN_PRINTF("Atmel ATSHA204A error - parse error\r\n");
+            xil_printf("Atmel ATSHA204A error - parse error\r\n");
             return EN_ERROR_ATSHA204A_PARSE_ERROR;
         }
         case EStatusCode_ExecutionError:
         {
-            EN_PRINTF("Atmel ATSHA204A error - execution error\r\n");
+            xil_printf("Atmel ATSHA204A error - execution error\r\n");
             return EN_ERROR_ATSHA204A_EXECUTION_ERROR;
         }
         case EStatusCode_AfterWake:
         {
-            EN_PRINTF("Atmel ATSHA204A error - first command after wake\r\n");
+            xil_printf("Atmel ATSHA204A error - first command after wake\r\n");
             return EN_ERROR_ATSHA204A_FIRST_COMMAND_AFTER_WAKE;
         }
         case EStatusCode_IoError:
         {
-            EN_PRINTF("Atmel ATSHA204A error - CRC or other IO error\r\n");
+            xil_printf("Atmel ATSHA204A error - CRC or other IO error\r\n");
             return EN_ERROR_ATSHA204A_IO_ERROR;
         }
         default:
@@ -574,13 +566,6 @@ EN_RESULT AtmelAtsha204a_Read(EReadSizeSelect_t sizeSelect,
         break;
     }
 
-#ifdef _DEBUG
-    EN_PRINTF("Atmel ATSHA204A: reading %d bytes from zone %d, encoded address %d\r\n",
-              sizeSelect,
-              zoneSelect,
-              encodedAddress);
-#endif
-
     uint8_t commandPacket[7];
     AtmelAtsha204a_ConstructCommandPacket(ECommand_Read, zone, encodedAddress, 0, NULL, (uint8_t*)&commandPacket);
 
@@ -588,7 +573,7 @@ EN_RESULT AtmelAtsha204a_Read(EReadSizeSelect_t sizeSelect,
 
 #ifndef _DEBUG
     // Wait for the read command to  be processed.
-    SleepMilliseconds(ATMEL_ATSHA204A_READ_EXECUTION_TIME_MILLISECONDS);
+    usleep(1000*ATMEL_ATSHA204A_READ_EXECUTION_TIME_MILLISECONDS);
 #endif
 
     // Read the response.

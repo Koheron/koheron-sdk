@@ -23,7 +23,7 @@
 //-------------------------------------------------------------------------------------------------
 
 /// The number of milliseconds it takes for the device to come out of sleep mode
-#define ATMEL_ATSHA204A_WAKE_TIME_MILLISECONDS (500)
+#define ATMEL_ATSHA204A_WAKE_TIME_MILLISECONDS (10)
 
 /// Average time for the read command to complete, after which polling should start
 #define ATMEL_ATSHA204A_READ_EXECUTION_TIME_MILLISECONDS (1)
