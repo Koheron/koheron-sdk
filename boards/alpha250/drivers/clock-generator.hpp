@@ -16,6 +16,13 @@ namespace clock_cfg {
     constexpr uint32_t TCXO_CLOCK = 2;
     constexpr uint32_t AUTO_CLOCK = 4;
 
+    constexpr auto clkin_names = koheron::make_array(
+        koheron::str_const("External"),
+        koheron::str_const("FPGA"),
+        koheron::str_const("TCXO"),
+        koheron::str_const("Auto")
+    );
+
     constexpr size_t num_configs = 2;
     constexpr size_t num_params = 10;
 
@@ -93,7 +100,7 @@ class ClockGenerator
         eeprom.read<eeprom_map::clock_generator_calib::offset>(cal_array);
         tcxo_calibration = cal_array[0];
         set_tcxo_clock(tcxo_calibration);
-        configure(clock_cfg::FPGA_CLOCK, clock_cfg::fs_250MHz);
+        configure(clock_cfg::TCXO_CLOCK, clock_cfg::fs_250MHz);
     }
 
     // 0: Ext. clock, 1: FPGA clock, 2: TCXO, 4: Automatic
@@ -339,8 +346,8 @@ class ClockGenerator
             return;
         }
 
-        ctx.log<INFO>("Clock generator - VCO: %f MHz, ADC: %f MHz, DAC: %f MHz\n",
-                      f_vco * 1E-6, fs_adc * 1E-6, fs_dac * 1E-6);
+        ctx.log<INFO>("Clock generator - Ref: %s, VCO: %f MHz, ADC: %f MHz, DAC: %f MHz\n",
+                      clock_cfg::clkin_names[clkin_select].data(), f_vco * 1E-6, fs_adc * 1E-6, fs_dac * 1E-6);
 
         // For each change the whole chip must be reprogram and the registers order must be respected
         write_reg(1 << 17); // Reset

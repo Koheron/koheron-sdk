@@ -9,32 +9,34 @@ class Plot {
     public yLabel: string = "Power Spectral Density";
     private peakDatapoint: number[];
 
-    public x_max: number;
-
     constructor(document: Document, private fft: FFT, private plotBasics: PlotBasics) {
-
         this.n_pts = this.fft.fft_size / 2;
-        this.x_max = this.fft.status.fs / 1E6 / 2;
-
         this.peakDatapoint = [];
         this.plot_data = [];
 
-        this.updatePlot(this.x_max);
+        this.updatePlot();
     }
 
-    updatePlot(max_x: number) {
+    updatePlot() {
         this.fft.read_psd( (psd: Float32Array) => {
+            let max_x: number = this.fft.status.fs / 1E6 / 2
+
+            if (max_x != this.plotBasics.x_max) { // Sampling frequency has changed
+                this.plotBasics.x_max = max_x;
+                this.plotBasics.setRangeX(0, this.plotBasics.x_max);
+            }
+
             let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
-            this.peakDatapoint = [ max_x / this.n_pts , this.convertValue(psd[0], yUnit)];
+            this.peakDatapoint = [this.plotBasics.x_max / this.n_pts , this.convertValue(psd[0], yUnit)];
 
             for (let i: number = 0; i <= this.n_pts; i++) {
-                let freq: number = (i + 1) * max_x / this.n_pts; // MHz
+                let freq: number = (i + 1) * this.plotBasics.x_max / this.n_pts; // MHz
                 let convertedPsd: number = this.convertValue(psd[i], yUnit);
                 this.plot_data[i] = [freq, convertedPsd];
             };
 
             this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, () => {
-                requestAnimationFrame( () => { this.updatePlot(max_x); } );
+                requestAnimationFrame( () => { this.updatePlot(); } );
             });
         });
     }
