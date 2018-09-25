@@ -17,7 +17,7 @@ losetup ${device} ${image}
 boot_dir=`mktemp -d /tmp/BOOT.XXXXXXXXXX`
 root_dir=`mktemp -d /tmp/ROOT.XXXXXXXXXX`
 
-ubuntu_version=16.04.3
+ubuntu_version=18.04.1
 root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
 root_url=http://cdimage.ubuntu.com/ubuntu-base/releases/${ubuntu_version}/release/$root_tar
 
@@ -121,31 +121,33 @@ cat <<- EOF_CAT >> etc/hosts
 127.0.1.1    koheron
 EOF_CAT
 
-apt-get -y install locales
+apt -y install locales
 
 locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
 
 sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
 
-apt-get update
-apt-get -y upgrade
+apt update
+apt -y upgrade
 
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 
-apt-get -y install openssh-server ntp usbutils psmisc lsof \
-  parted curl less vim iw ntfs-3g \
-  bash-completion unzip
+apt install -y install ntp
+apt install -y openssh-server
+apt install -y usbutils psmisc lsof
+apt install -y parted curl less vim iw ntfs-3g
+apt install -y bash-completion unzip
 
-apt-get install -y udev net-tools netbase ifupdown network-manager lsb-base
-apt-get install -y ntpdate sudo rsync
-apt-get install -y kmod
+apt install -y udev net-tools netbase ifupdown network-manager lsb-base
+apt install -y ntpdate sudo rsync
+apt install -y kmod
 
-apt-get install -y nginx
-apt-get install -y build-essential python-dev
-apt-get install -y python-numpy
-apt-get install -y python-pip python-setuptools python-all-dev python-wheel
+apt install -y nginx
+apt install -y build-essential python-dev
+apt install -y python-numpy
+apt install -y python-pip python-setuptools python-all-dev python-wheel
 
 pip install --upgrade pip==9.0.3
 pip install flask
@@ -156,7 +158,7 @@ systemctl enable unzip-default-instrument
 systemctl enable koheron-server
 systemctl enable nginx
 
-sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
+sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 touch etc/udev/rules.d/75-persistent-net-generator.rules
 

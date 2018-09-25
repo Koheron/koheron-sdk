@@ -13,7 +13,7 @@ TMP ?= tmp
 
 KOHERON_VERSION_FILE := $(SDK_PATH)/version
 KOHERON_VERSION := $(shell cat $(KOHERON_VERSION_FILE))
-VIVADO_VERSION := 2017.2
+VIVADO_VERSION := 2018.2
 VIVADO_PATH := /opt/Xilinx/Vivado
 
 .PHONY: help
@@ -130,7 +130,7 @@ setup: setup_fpga setup_server setup_web setup_os
 
 .PHONY: setup_base
 setup_base:
-	sudo apt-get install -y g++-5-arm-linux-gnueabihf
+	sudo apt-get install -y g++-7-arm-linux-gnueabihf
 	sudo apt-get install -y python-pip
 	sudo apt-get install -y curl
 	pip2 install -r $(SDK_PATH)/requirements.txt

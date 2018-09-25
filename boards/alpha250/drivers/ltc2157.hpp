@@ -151,6 +151,7 @@ class Ltc2157
     void write_reg(uint32_t data) {
         spi_cfg.write_reg<2, 2>(data << 16);
     }
+
 };
 
 #endif // __ALPHA_DRIVERS_LTC2157_HPP__
