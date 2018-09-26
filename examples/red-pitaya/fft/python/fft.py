@@ -35,7 +35,7 @@ class FFT(object):
         pass
 
     @command()
-    def set_in_channel(self, channel):
+    def set_input_channel(self, channel):
         pass
 
     @command()
