@@ -5,15 +5,15 @@ diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
  	};
  };
  &gem0 {
-+	local-mac-address = [00 0a 35 00 00 00];
++   local-mac-address = [00 0a 35 00 00 00];
  	phy-mode = "rgmii-id";
  	status = "okay";
  	xlnx,ptp-enet-clock = <0x69f6bcb>;
-+	phy-handle = <&phy0>;
++   phy-handle = <&phy0>;
  };
  &gpio0 {
  	emio-gpio-width = <64>;
-@@ -49,11 +51,21 @@
+@@ -51,11 +53,21 @@
  	is-decoded-cs = <0>;
  	num-cs = <3>;
  	status = "okay";
@@ -35,17 +35,17 @@ diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
  };
  &uart0 {
  	device_type = "serial";
-@@ -62,7 +74,7 @@
+@@ -63,7 +75,7 @@
+ 	status = "okay";
  };
  &usb0 {
- 	dr_mode = "host";
 -	phy_type = "ulpi";
 +	usb-phy = <&usb_phy0>;
  	status = "okay";
  };
  &clkc {
 diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
---- devicetree.orig/system-top.dts
+--- devicetree.orig/system-top.dtsi
 +++ devicetree/system-top.dts
 @@ -14,6 +14,10 @@
  		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait earlycon";
@@ -57,15 +57,13 @@ diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
 +	};
  	aliases {
  		ethernet0 = &gem0;
- 		serial0 = &uart0;
-@@ -23,8 +30,21 @@
+ 		i2c0 = &i2c0;
+@@ -25,6 +29,19 @@
  	};
  	memory {
  		device_type = "memory";
 -		reg = <0x0 0x20000000>;
 +		reg = <0x0 0x1E000000>;
- 	};
- 	cpus {
  	};
 +	mdio {
 +		#address-cells = <1>;
@@ -79,5 +77,5 @@ diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
 +			txen-skew-ps = <420>;
 +			reg = <3>;
 +		};
-+	};
++   };
  };

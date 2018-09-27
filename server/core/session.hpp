@@ -218,7 +218,7 @@ inline int Session<TCP>::recv(std::string& str, Command&)
     }
 
     str.resize(length);
-    const auto err = rcv_n_bytes(str.data(), length);
+    const auto err = rcv_n_bytes(const_cast<char *>(str.data()), length);
 
     if (err >= 0) {
        syslog.print<DEBUG>("TCPSocket: Received a string of %lu bytes\n", length);

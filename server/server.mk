@@ -61,7 +61,7 @@ SERVER_CCXXFLAGS += -Wshift-negative-value -Wduplicated-cond -Wduplicated-branch
 SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/core -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 SERVER_CCXXFLAGS += -DKOHERON_VERSION=$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)
 SERVER_CCXXFLAGS += -MMD -MP -O3 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard
-SERVER_CCXXFLAGS += -std=c++17 -pthread
+SERVER_CCXXFLAGS += -std=c++14 -pthread
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp
 	$(CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
