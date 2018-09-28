@@ -95,6 +95,18 @@ SERVER_MK ?= $(SERVER_PATH)/server.mk
 include $(SERVER_MK)
 
 ###############################################################################
+# C++ CLIENT
+###############################################################################
+CLIENT_PATH := $(PROJECT_PATH)/client
+ifneq ("$(wildcard $(CLIENT_PATH)/client.mk)","")
+-include $(CLIENT_PATH)/client.mk
+else
+PHONY: client
+client:
+	@echo 'No client available for this instrument'
+endif
+
+###############################################################################
 # WEB FILES
 ###############################################################################
 WEB_PATH := $(SDK_PATH)/web
