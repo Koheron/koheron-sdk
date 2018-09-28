@@ -148,8 +148,9 @@ if __name__ == "__main__":
     config = load_config(config_filename)
     config_path = os.path.dirname(config_filename)
 
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
+    if sys.version_info[0] < 3:
+        reload(sys)
+        sys.setdefaultencoding('utf-8')
 
     if cmd == '--name':
         with open(output_filename, 'w') as f:
