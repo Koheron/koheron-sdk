@@ -27,8 +27,8 @@ def get_driver_id(drivers_list, driver_path):
         assert(path.endswith('.hpp') or path.endswith('.h'))
         dir1, file1 = os.path.split(path)
         dir2, file2 = os.path.split(driver_path)
-	if file1 == file2:
-            return driver_id
+        if file1 == file2:
+                return driver_id
         driver_id +=1
     return None
 
