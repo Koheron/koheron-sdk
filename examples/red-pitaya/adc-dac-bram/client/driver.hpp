@@ -37,7 +37,7 @@ class Driver
 
     void get_adc() {
         client.call<op::AdcDacBram::get_adc>();
-        auto buffer = client.recv<std::array<uint32_t, N_PTS>>();
+        auto buffer = client.recv<op::AdcDacBram::get_adc, std::array<uint32_t, N_PTS>>();
 
         for (uint32_t i = 0; i < N_PTS; i++) {
             adc1[i] = double(((int32_t(buffer[i] & 0x3FFF) - 8192) & 0x3FFF) - 8192) / 8192.0;

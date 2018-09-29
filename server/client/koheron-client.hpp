@@ -783,13 +783,13 @@ class KoheronClient
     }
 
     // API that allocates dynamic containers and gives back ownership to caller
-    template<typename... Tp>
+    template<uint32_t id, typename... Tp>
     decltype(auto) recv() {
         return command_deserializer<Tp...>();
     }
 
     // API for preallocated dynamic containers (vector, string, ...)
-    template<typename Container>
+    template<uint32_t id, typename Container>
     void recv(Container& cont) {
         command_deserializer(cont);
     }
