@@ -31,6 +31,8 @@ extern "C" {
 }
 #endif
 
+#include <operations.hpp>
+
 #ifdef _WIN32
   using socket_t = unsigned long long;
   using sockaddr_in_t = sockaddr_in;

@@ -4,7 +4,6 @@
 #define __DRIVER_HPP__
 
 #include <koheron-client.hpp>
-#include <operations.hpp>
 
 static constexpr uint32_t N_PTS = 16384;
 
