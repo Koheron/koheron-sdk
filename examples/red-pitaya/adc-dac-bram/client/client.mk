@@ -7,7 +7,7 @@ CLIENT := $(TMP_CLIENT_PATH)/main
 
 OPERATIONS_HPP = $(TMP_SERVER_PATH)/operations.hpp
 
-CLIENT_CCXX := g++-5
+CLIENT_CCXX := g++-7
 #CLIENT_CCXX = x86_64-w64-mingw32-g++
 
 CLIENT_CCXXFLAGS := -march=native -O3

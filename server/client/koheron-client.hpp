@@ -53,10 +53,9 @@ inline T pseudo_cast(const U &x)
 // Definitions
 // ------------------------
 
-template<typename Tp, size_t N=0> constexpr size_t size_of;
-template<typename Tp, size_t N> constexpr size_t size_of = size_of<Tp> * N;
+template<typename Tp, size_t N = 1> constexpr size_t size_of = sizeof(Tp) * N;
 
-template<typename Tp> Tp extract(const unsigned char *buff);                // Deserialization
+template<typename Tp> Tp extract(const unsigned char *buff);       // Deserialization
 template<typename Tp> void append(unsigned char *buff, Tp value);  // Serialization
 
 // uint8_t
