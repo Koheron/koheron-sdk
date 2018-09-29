@@ -93,7 +93,7 @@ class I2cDev
         int bytes_rcv = 0;
         int64_t bytes_read = 0;
 
-        while (bytes_read < n_bytes) {
+        while (bytes_read < int64_t(n_bytes)) {
             bytes_rcv = ::read(fd, buffer + bytes_read, n_bytes - bytes_read);
 
             if (bytes_rcv == 0) {
