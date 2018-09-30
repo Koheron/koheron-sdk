@@ -3,8 +3,6 @@
 #ifndef __KOHERON_CLIENT_HPP__
 #define __KOHERON_CLIENT_HPP__
 
-#include <operations.hpp>
-
 #include <vector>
 #include <array>
 #include <tuple>
@@ -33,6 +31,8 @@ extern "C" {
   #include <unistd.h>
 }
 #endif
+
+#include <operations.hpp>
 
 #ifdef _WIN32
   using socket_t = unsigned long long;

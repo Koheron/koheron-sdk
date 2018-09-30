@@ -17,7 +17,7 @@ extern "C" {
 
 #include <memory.hpp>
 
-typedef uint32_t MemID;
+using  MemID = size_t;
 
 namespace mem {
     constexpr uintptr_t get_base_addr(const MemID id) {
