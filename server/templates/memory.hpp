@@ -21,7 +21,7 @@ constexpr uint32_t {{ addr['name'] }}_range = {{ addr['range'] | replace_KMG }};
 constexpr uint32_t {{ addr['name'] }}_nblocks = {{ addr['n_blocks'] }};
 {% endfor %}
 
-constexpr uint32_t count = {{ config['memory']|length }};
+constexpr size_t count = {{ config['memory']|length }};
 
 constexpr std::array<std::tuple<uintptr_t, uint32_t, uint32_t, uint32_t>, count> memory_array = {{ '{{' }}
     {% for addr in config['memory'] -%}

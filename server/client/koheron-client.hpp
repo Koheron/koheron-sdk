@@ -7,6 +7,7 @@
 #include <array>
 #include <tuple>
 #include <type_traits>
+#include <string>
 
 #include <cstdint>
 #include <cstdlib>
@@ -267,6 +268,96 @@ namespace test {
     static_assert(test_static_serdes<uint64_t>(18446744073709551615ULL), "");
 }
 
+// ---------------------------
+// Type traits
+// ---------------------------
+
+// Dynamic container
+// http://stackoverflow.com/questions/12042824/how-to-write-a-type-trait-is-container-or-is-vector
+template<typename T, typename _ = void>
+struct is_container : std::false_type {};
+
+template<typename... Ts>
+struct is_container_helper {};
+
+template<typename T>
+struct is_container<
+    T,
+    std::conditional_t<
+        false,
+        is_container_helper<
+            typename T::value_type,
+            typename T::size_type,
+            typename T::allocator_type,
+            typename T::iterator,
+            typename T::const_iterator,
+            decltype(std::declval<T>().size()),
+            decltype(std::declval<T>().data()),
+            decltype(std::declval<T>().begin()),
+            decltype(std::declval<T>().end()),
+            decltype(std::declval<T>().cbegin()),
+            decltype(std::declval<T>().cend())
+            >,
+        void
+        >
+    > : public std::true_type {};
+
+template<typename T>
+static constexpr bool is_container_v = is_container<T>::value;
+
+static_assert(is_container_v<std::vector<float>>, "");
+static_assert(is_container_v<std::string>, "");
+static_assert(!is_container_v<float>, "");
+
+// Scalar
+template<typename T>
+static constexpr bool is_scalar_v = std::is_scalar<std::remove_reference_t<T>>::value &&
+                                    !std::is_pointer<std::remove_reference_t<T>>::value;
+
+static_assert(is_scalar_v<float>, "");
+static_assert(!is_scalar_v<uint32_t*>, "");
+static_assert(!is_scalar_v<std::vector<float>>, "");
+
+// Tuple
+template <typename T>
+struct is_std_tuple : std::false_type {};
+template <typename... Args>
+struct is_std_tuple<std::tuple<Args...>> : std::true_type {};
+
+template<typename T>
+static constexpr bool is_std_tuple_v = is_std_tuple<T>::value;
+
+static_assert(is_std_tuple_v<std::tuple<uint32_t, float>>, "");
+static_assert(!is_std_tuple_v<uint32_t>, "");
+
+// Array
+template <typename T>
+struct is_std_array : std::false_type {};
+template <typename V, size_t N>
+struct is_std_array<std::array<V, N>> : std::true_type {};
+
+template <typename T>
+static constexpr bool is_std_array_v = is_std_array<T>::value;
+
+static_assert(is_std_array_v<std::array<uint32_t, 10>>, "");
+static_assert(!is_std_array_v<std::vector<uint32_t>>, "");
+
+// C string
+// http://stackoverflow.com/questions/8097534/type-trait-for-strings
+template <typename T>
+struct is_c_string : public
+std::integral_constant<bool,
+    std::is_same<char*, typename std::remove_reference<T>::type>::value ||
+    std::is_same<const char*, typename std::remove_reference<T>::type>::value
+>{};
+
+template<typename T>
+static constexpr bool is_c_string_v = is_c_string<T>::value;
+
+static_assert(is_c_string_v<char*>, "");
+static_assert(is_c_string_v<const char*>, "");
+static_assert(!is_c_string_v<std::string>, "");
+
 // ------------------------
 // Deserializer
 // ------------------------
@@ -399,93 +490,6 @@ namespace test {
 
 template<size_t SCALAR_PACK_LEN>
 class DynamicSerializer {
-  private:
-    // Dynamic container
-    // http://stackoverflow.com/questions/12042824/how-to-write-a-type-trait-is-container-or-is-vector
-    template<typename T, typename _ = void>
-    struct is_container : std::false_type {};
-
-    template<typename... Ts>
-    struct is_container_helper {};
-
-    template<typename T>
-    struct is_container<
-        T,
-        std::conditional_t<
-            false,
-            is_container_helper<
-                typename T::value_type,
-                typename T::size_type,
-                typename T::allocator_type,
-                typename T::iterator,
-                typename T::const_iterator,
-                decltype(std::declval<T>().size()),
-                decltype(std::declval<T>().data()),
-                decltype(std::declval<T>().begin()),
-                decltype(std::declval<T>().end()),
-                decltype(std::declval<T>().cbegin()),
-                decltype(std::declval<T>().cend())
-                >,
-            void
-            >
-        > : public std::true_type {};
-
-    template<typename T>
-    static constexpr bool is_container_v = is_container<T>::value;
-
-    static_assert(is_container_v<std::vector<float>>, "");
-    static_assert(is_container_v<std::string>, "");
-    static_assert(!is_container_v<float>, "");
-
-    // Scalar
-    template<typename T>
-    static constexpr bool is_scalar_v = std::is_scalar<std::remove_reference_t<T>>::value &&
-                                        !std::is_pointer<std::remove_reference_t<T>>::value;
-
-    static_assert(is_scalar_v<float>, "");
-    static_assert(!is_scalar_v<uint32_t*>, "");
-    static_assert(!is_scalar_v<std::vector<float>>, "");
-
-    // Tuple
-    template <typename T>
-    struct is_std_tuple : std::false_type {};
-    template <typename... Args>
-    struct is_std_tuple<std::tuple<Args...>> : std::true_type {};
-
-    template<typename T>
-    static constexpr bool is_std_tuple_v = is_std_tuple<T>::value;
-
-    static_assert(is_std_tuple_v<std::tuple<uint32_t, float>>, "");
-    static_assert(!is_std_tuple_v<uint32_t>, "");
-
-    // Array
-    template <typename T>
-    struct is_std_array : std::false_type {};
-    template <typename V, size_t N>
-    struct is_std_array<std::array<V, N>> : std::true_type {};
-
-    template <typename T>
-    static constexpr bool is_std_array_v = is_std_array<T>::value;
-
-    static_assert(is_std_array_v<std::array<uint32_t, 10>>, "");
-    static_assert(!is_std_array_v<std::vector<uint32_t>>, "");
-
-    // C string
-    // http://stackoverflow.com/questions/8097534/type-trait-for-strings
-    template <typename T>
-    struct is_c_string : public
-    std::integral_constant<bool,
-        std::is_same<char*, typename std::remove_reference<T>::type>::value ||
-        std::is_same<const char*, typename std::remove_reference<T>::type>::value
-    >{};
-
-    template<typename T>
-    static constexpr bool is_c_string_v = is_c_string<T>::value;
-
-    static_assert(is_c_string_v<char*>, "");
-    static_assert(is_c_string_v<const char*>, "");
-    static_assert(!is_c_string_v<std::string>, "");
-
   private:
     // Scalars
 
@@ -645,7 +649,8 @@ class DynamicSerializer {
 
 struct socket_error : std::system_error {
     socket_error(const char *err_msg_)
-    : err_msg(err_msg_) {}
+    : system_error(std::error_code())
+    , err_msg(err_msg_) {}
 
     virtual const char* what() const noexcept {
         return err_msg;
@@ -771,6 +776,8 @@ class KoheronClient
 
     template<uint32_t id, typename... Args>
     void call(Args&&... args) {
+        static_assert(std::is_same<arg_types_t<id>, std::tuple<std::decay_t<Args>...>>::value,
+                      "Invalid argument type for call");
         call<(id >> 16), id & 0xFFFF>(std::forward<Args>(args)...);
     }
 
@@ -787,12 +794,26 @@ class KoheronClient
     // API that allocates dynamic containers and gives back ownership to caller
     template<uint32_t id, typename... Tp>
     decltype(auto) recv() {
+        using Tup = std::tuple<Tp...>;
+        using Tp0 = typename std::tuple_element<0, Tup>::type; // get first type of variadic list
+        static_assert((sizeof...(Tp) == 1 && (
+                          (std::is_same<ret_type_t<id>, Tp0>::value) ||
+                          (serdes::is_c_string_v<ret_type_t<id>>
+                           && std::is_same<std::string, Tp0>::value))) ||
+                      (sizeof...(Tp) > 1 && std::is_same<ret_type_t<id>, Tup>::value),
+                      "Invalid receive type");
+
         return command_deserializer<Tp...>();
     }
 
     // API for preallocated dynamic containers (vector, string, ...)
     template<uint32_t id, typename Container>
     void recv(Container& cont) {
+        // C strings are received into std::string
+        static_assert(std::is_same<ret_type_t<id>, std::decay_t<Container>>::value
+                      || (serdes::is_c_string_v<ret_type_t<id>>
+                          && std::is_same<std::string, std::decay_t<Container>>::value),
+                      "Invalid container for receive");
         command_deserializer(cont);
     }
 
@@ -852,11 +873,15 @@ class KoheronClient
     // Commands deserializer
     // ---------------------------
 
+    // http://stackoverflow.com/questions/777261/avoiding-unused-variables-warnings-when-using-assert-in-a-release-build
+    #define _unused(x) ((void)(x))
+
     void check_returned_header() {
         const auto t = serdes::deserialize<0, uint32_t, uint16_t, uint16_t>(rcv_buffer.data());
         assert(std::get<0>(t) == 0); // RESERVED
         assert(std::get<1>(t) == last_class_id);
         assert(std::get<2>(t) == last_func_id);
+        _unused(t);
     }
 
     template<typename Tp>
