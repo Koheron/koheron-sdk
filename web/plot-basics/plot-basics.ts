@@ -197,7 +197,7 @@ class PlotBasics {
 
         let localData: jquery.flot.dataSeries[] = this.plot.getData();
 
-        setTimeout(this.plot.unhighlight(), 100);
+        setTimeout(() => {this.plot.unhighlight()}, 100);
 
         if (this.clickDatapoint.length > 0) {
             let i: number;
