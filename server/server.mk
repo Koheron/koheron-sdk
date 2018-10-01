@@ -49,7 +49,7 @@ OBJ := $(SERVER_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
-CCXX := /usr/bin/arm-linux-gnueabihf-g++ -flto
+SERVER_CCXX := /usr/bin/arm-linux-gnueabihf-g++ -flto
 
 SERVER_CCXXFLAGS := -Wall -Werror -Wextra
 SERVER_CCXXFLAGS += -Wpedantic -Wfloat-equal -Wunused-macros -Wcast-qual -Wuseless-cast
@@ -64,16 +64,16 @@ SERVER_CCXXFLAGS += -MMD -MP -O3 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mflo
 SERVER_CCXXFLAGS += -std=c++14 -pthread
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp
-	$(CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/%.cpp
-	$(CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
 $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp
-	$(CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
 $(SERVER): $(OBJ)
-	$(CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm
+	$(SERVER_CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm
 
 .PHONY: server
 server: $(SERVER_TEMPLATE_LIST) $(INTERFACE_DRIVERS_HPP) $(INTERFACE_DRIVERS_CPP) $(TMP_SERVER_PATH)/memory.hpp | $(KOHERON_SERVER_PATH)

@@ -15,6 +15,7 @@ KOHERON_VERSION_FILE := $(SDK_PATH)/version
 KOHERON_VERSION := $(shell cat $(KOHERON_VERSION_FILE))
 VIVADO_VERSION := 2018.2
 VIVADO_PATH := /opt/Xilinx/Vivado
+PYTHON := python
 
 .PHONY: help
 help:
@@ -33,7 +34,7 @@ PROJECT_PATH := $(dir $(CONFIG))
 TMP_PROJECT_PATH := $(TMP)/$(PROJECT_PATH)
 
 # Python script that manages the instrument configuration
-MAKE_PY := SDK_PATH=$(SDK_PATH) python $(SDK_PATH)/make.py
+MAKE_PY := SDK_PATH=$(SDK_PATH) $(PYTHON) $(SDK_PATH)/make.py
 
 MEMORY_YML := $(TMP_PROJECT_PATH)/memory.yml
 
@@ -94,6 +95,18 @@ SERVER_MK ?= $(SERVER_PATH)/server.mk
 include $(SERVER_MK)
 
 ###############################################################################
+# C++ CLIENT
+###############################################################################
+CLIENT_PATH := $(PROJECT_PATH)/client
+ifneq ("$(wildcard $(CLIENT_PATH)/client.mk)","")
+-include $(CLIENT_PATH)/client.mk
+else
+PHONY: client
+client:
+	@echo 'No client available for this instrument'
+endif
+
+###############################################################################
 # WEB FILES
 ###############################################################################
 WEB_PATH := $(SDK_PATH)/web
@@ -133,8 +146,8 @@ setup_base:
 	sudo apt-get install -y g++-7-arm-linux-gnueabihf
 	sudo apt-get install -y python-pip
 	sudo apt-get install -y curl
-	pip2 install -r $(SDK_PATH)/requirements.txt
-	pip2 install $(SDK_PATH)/python
+	$(PIP) install -r $(SDK_PATH)/requirements.txt
+	$(PIP) install $(SDK_PATH)/python
 
 .PHONY: setup_fpga
 setup_fpga: setup_base

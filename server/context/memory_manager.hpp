@@ -80,7 +80,7 @@ void MemoryManagerImpl<N, std::index_sequence<ids...>>::open_memory_map()
     get<id>().open(fd);
 
     if (! get<id>().opened()) {
-        fprintf(stderr, "Can't open memory map id = %u\n", id);
+        fprintf(stderr, "Can't open memory map id = %u\n", uint32_t(id));
         failed_maps.push_back(id);
     }
 }
