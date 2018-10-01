@@ -35,6 +35,7 @@ jobs:
     docker:
       - image: circleci/python:2.7-stretch-browsers
     steps:
+      - checkout
       - run:
           name: Install python requirements
           command: sudo pip install -r requirements.txt
@@ -43,7 +44,7 @@ jobs:
           command: sudo pip install twine
       - run:
           name: Upload Koheron python to pypi
-          command: make PYPI_USERNAME=$PYPI_USERNAME PYPI_PASSWORD=$PYPI_PASSWORD upload_pip
+          command: sudo make PYPI_USERNAME=$PYPI_USERNAME PYPI_PASSWORD=$PYPI_PASSWORD upload_pip
 
 workflows:
   version: 2
