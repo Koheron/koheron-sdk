@@ -38,6 +38,8 @@ jobs:
         name: Build web
         command: bash build_examples.sh web
   deploy:
+    machine:
+      enabled: true
     steps:
       - run:
         name: Upload Koheron python to pypi
