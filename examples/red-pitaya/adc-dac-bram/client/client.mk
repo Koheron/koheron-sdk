@@ -7,7 +7,7 @@ CLIENT := $(TMP_CLIENT_PATH)/main
 
 OPERATIONS_HPP = $(TMP_SERVER_PATH)/operations.hpp
 
-CLIENT_CCXX := g++-7 -flto
+CLIENT_CCXX := g++ -flto
 #CLIENT_CCXX = x86_64-w64-mingw32-g++
 
 # Install clang:
