@@ -27,7 +27,7 @@ jobs:
           command: sudo pip install twine
       - run:
           name: Setup web
-          command: sudo make setup_web
+          command: curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -; sudo make setup_web
       - run:
           name: Build server
           command: bash build_examples.sh server
