@@ -26,11 +26,8 @@ jobs:
           name: install twine
           command: sudo pip install twine
       - run:
-          name: Install typescript
-          command: npm install -g typescript
-      - run:
-          name: Install typescript type declarations
-          command: npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
+          name: Setup web
+          command: sudo make setup_web
       - run:
           name: Build server
           command: bash build_examples.sh server
