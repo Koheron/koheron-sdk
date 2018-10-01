@@ -10,13 +10,13 @@ jobs:
       - checkout
       - run:
           name: Install GCC
-          command: sudo apt-get install gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf
+          command: apt-get install gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf
       - run:
           name: Link GCC
-          command: sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
+          command: ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
       - run:
           name: Link G++
-          command: sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-g++
+          command: ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-g++
       - run:
           name: Install python requirements
           command: pip install -r requirements.txt
