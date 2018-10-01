@@ -3,20 +3,19 @@ version: 2
 jobs:
   build:
     docker:
-      - image: ubuntu:16.04
       - image: circleci/python:2.7-stretch-browsers
       - image: circleci/node:10.11.0-stretch-browsers
     steps:
       - checkout
       - run:
+          name: Append dev to source.list
+          command: sudo bash -c "echo deb http://archive.ubuntu.com/ubuntu/ xenial main >> /etc/apt/sources.list"; sudo bash -c "echo deb-src http://archive.ubuntu.com/ubuntu/ xenial main >> /etc/apt/sources.list"
+      - run:
           name: Install GCC
-          command: apt-get install gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf
+          command: sudo apt-get update; sudo apt-get install gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf; sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100; sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
       - run:
           name: Link GCC
-          command: ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
-      - run:
-          name: Link G++
-          command: ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-g++
+          command: sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc; sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-g++
       - run:
           name: Install python requirements
           command: pip install -r requirements.txt
