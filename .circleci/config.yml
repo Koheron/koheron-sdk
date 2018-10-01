@@ -3,6 +3,7 @@ version: 2
 jobs:
   build:
     docker:
+      - image: ubuntu:16.04
       - image: circleci/python:2.7-stretch-browsers
       - image: circleci/node:10.11.0-stretch-browsers
     steps:
