@@ -30,10 +30,10 @@ jobs:
           command: curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -; sudo make setup_web
       - run:
           name: Build server
-          command: bash build_examples.sh server
+          command: sudo bash build_examples.sh server
       - run:
           name: Build web
-          command: bash build_examples.sh web
+          command: sudo bash build_examples.sh web
   deploy:
     machine:
       enabled: true
