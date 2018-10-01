@@ -80,7 +80,7 @@ class FFT {
 
     getControlParameters(cb: (status: IFFTStatus) => void): void {
         this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'dddIdd',
-                               (tup: [number, number, number, number]) => {
+                               (tup: [number, number, number, number, number, number]) => {
             this.status.dds_freq[0] = tup[0];
             this.status.dds_freq[1] = tup[1];
             this.status.fs = tup[2];
