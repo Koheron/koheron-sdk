@@ -8,42 +8,42 @@ jobs:
     steps:
       - checkout
       - run:
-        name: Install GCC
-        command: sudo apt-get install gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf
+          name: Install GCC
+          command: sudo apt-get install gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf
       - run:
-        name: Link GCC
-        command: sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
+          name: Link GCC
+          command: sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
       - run:
-        name: Link G++
-        command: sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-g++
+          name: Link G++
+          command: sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-g++
       - run:
-        name: Install python requirements
-        command: pip install -r requirements.txt
+          name: Install python requirements
+          command: pip install -r requirements.txt
       - run:
-        name: Install Koheron python
-        command: pip install python/.
+          name: Install Koheron python
+          command: pip install python/.
       - run:
-        name: install twine
-        command: pip install twine
+          name: install twine
+          command: pip install twine
       - run:
-        name: Install typescript
-        command: npm install -g typescript
+          name: Install typescript
+          command: npm install -g typescript
       - run:
-        name: Install typescript type declarations
-        command: npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
+          name: Install typescript type declarations
+          command: npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
       - run:
-        name: Build server
-        command: bash build_examples.sh server
+          name: Build server
+          command: bash build_examples.sh server
       - run:
-        name: Build web
-        command: bash build_examples.sh web
+          name: Build web
+          command: bash build_examples.sh web
   deploy:
     machine:
       enabled: true
     steps:
       - run:
-        name: Upload Koheron python to pypi
-        command: make PYPI_USERNAME=$PYPI_USERNAME PYPI_PASSWORD=$PYPI_PASSWORD upload_pip
+          name: Upload Koheron python to pypi
+          command: make PYPI_USERNAME=$PYPI_USERNAME PYPI_PASSWORD=$PYPI_PASSWORD upload_pip
 
 workflows:
   version: 2
