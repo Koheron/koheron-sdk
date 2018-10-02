@@ -10,6 +10,8 @@
 #include <Eigen/FFT>
 #include <complex>
 #include <algorithm>
+#include <thread>
+#include <chrono>
 
 #include <boards/alpha250/drivers/clock-generator.hpp>
 
@@ -24,20 +26,28 @@ namespace Dma_regs {
 class Dma
 {
   public:
-    Dma(Context& ctx)
-    : dma(ctx.mm.get<mem::dma>())
+    Dma(Context& ctx_)
+    : ctx(ctx_)
+    , dma(ctx.mm.get<mem::dma>())
     , ram(ctx.mm.get<mem::ram>())
     , axi_hp0(ctx.mm.get<mem::axi_hp0>())
     , clk_gen(ctx.get<ClockGenerator>())
-    , data_vec(data_size)
-    , phase_noise(data_size)
+    , phase_noise(fft_size / 2)
     {
+        std::get<0>(data_vec) = std::vector<float>(fft_size);
+        std::get<1>(data_vec) = std::vector<float>(fft_size);
+        std::get<0>(fft_data) = std::vector<std::complex<float>>(0);
+        std::get<1>(fft_data) = std::vector<std::complex<float>>(0);
+
         // Set AXI_HP0 to 32 bits
         axi_hp0.set_bit<0x0, 0>();
         axi_hp0.set_bit<0x14, 0>();
 
         clk_gen.set_sampling_frequency(0); // 200 MHz
         clk_gen.set_reference_clock(2);
+
+        std::get<0>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
+        std::get<1>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
     }
 
     auto& get_data() {
@@ -45,32 +55,16 @@ class Dma
         return data;
     }
 
-    const auto& get_phase_noise() {
-        float W = float(data_size); // TODO Replace by window correction factor
-        float fs = clk_gen.get_adc_sampling_freq();
-
-        read_dma();
-
-        float data_mean = std::accumulate(data.begin(), data.end(), 0.0) / data_size;
-        
-        for (uint32_t i=0; i<data_size; i++) {
-            data_vec[i] = (data[i] - data_mean) * float(M_PI) * 1.0f  / 8192.0f; // TODO replace 1.0f by window
-        }
-
-        fft.fwd(fft_data, data_vec);
-
-        for (uint32_t i=0; i<data_size; i++) {
-            phase_noise[i] = std::norm(fft_data[i]) / (fs / (cic_rate * 2.0f) * W); // rad^2/Hz
-        }
-
-        return phase_noise;
-    }
+    const auto& get_phase_noise();
 
   private:
     static constexpr uint32_t n_pts = 1024 * 1024;
     static constexpr uint32_t data_size = 1000000;
+    static constexpr uint32_t fft_size = data_size / 2;
     static constexpr uint32_t read_offset = (n_pts - data_size) / 2;
     static constexpr uint32_t cic_rate = 20;
+
+    Context& ctx;
 
     Memory<mem::dma>& dma;
     Memory<mem::ram>& ram;
@@ -80,17 +74,27 @@ class Dma
 
     std::array<int32_t, data_size> data;
 
-    Eigen::FFT<float> fft;
-    std::vector<float> data_vec; // Could be used also for phase noise data return
-    std::vector<std::complex<float>> fft_data;
+    std::array<Eigen::FFT<float>, 2> fft;
+    std::array<std::vector<float>, 2> data_vec;
+    std::array<std::vector<std::complex<float>>, 2> fft_data;
     std::vector<float> phase_noise;
 
+    template<size_t idx>
+    void compute_phase_noise();
+
     void read_dma() {
-        // TODO LOCK MUTEX
         reset_dma();
         start_dma();
         set_destination_address(mem::ram_addr);
         set_length(4 * n_pts);
+
+        float fs = clk_gen.get_adc_sampling_freq();
+        auto dma_duration = std::chrono::milliseconds(uint32_t(1000 * n_pts * cic_rate / 2 / fs));
+
+        while (! dma.read_bit<Dma_regs::s2mm_dmasr, 1>()) {
+            std::this_thread::sleep_for(0.95 * dma_duration);
+        }
+
         data = ram.read_array<int32_t, data_size, read_offset>();
     }
 
@@ -109,6 +113,40 @@ class Dma
     void set_length(uint32_t length) {
         dma.write<Dma_regs::s2mm_length>(length);
     }
-} ;
+};
+
+inline const auto& Dma::get_phase_noise() {
+    float W = float(data_size); // TODO Replace by window correction factor
+    float fs = clk_gen.get_adc_sampling_freq();
+
+    read_dma();
+
+    auto t0 = std::thread{&Dma::compute_phase_noise<0>, this};
+    auto t1 = std::thread{&Dma::compute_phase_noise<1>, this};
+
+    t0.join();
+    t1.join();
+
+    for (uint32_t i=0; i<fft_size / 2; i++) {
+        phase_noise[i] = (std::norm(std::get<0>(fft_data)[i]) + std::norm(std::get<1>(fft_data)[i])) / 2;
+        phase_noise[i] /= (fs / (cic_rate * 2.0f) * W); // rad^2/Hz
+    }
+
+    return phase_noise;
+}
+
+template<size_t idx>
+inline void Dma::compute_phase_noise() {
+    constexpr size_t begin = idx * fft_size;
+    constexpr size_t end = (idx + 1) * fft_size -1;
+
+    float data_mean = std::accumulate(data.data() + begin, data.data() + end, 0.0) / fft_size;
+
+    for (uint32_t i=0; i<fft_size; i++) {
+        std::get<idx>(data_vec)[i] = (data[i + begin] - data_mean) * float(M_PI) * 1.0f  / 8192.0f; // TODO replace 1.0f by window
+    }
+
+    std::get<idx>(fft).fwd(std::get<idx>(fft_data), std::get<idx>(data_vec));
+}
 
 #endif // __DRIVERS_DMA_HPP__

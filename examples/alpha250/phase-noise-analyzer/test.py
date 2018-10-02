@@ -45,13 +45,9 @@ driver.set_reference_clock(2)
 driver.set_dds_freq(0,freq)
 
 n = 1000000
-
-n = 1000000
 fs = 200e6
 cic_rate = 20
-n_avg = 100
-
-x = np.arange(n)/(n-1)
+n_avg = 1
 
 ffft = np.fft.fftfreq(n) * fs / (cic_rate * 2)
 
@@ -107,7 +103,7 @@ while True:
         mean_psd = np.mean(psd, axis=0)
         li.set_ydata(np.fft.fftshift(10*np.log10(mean_psd[1:n/2+1]/2)))
         fig.canvas.draw()
-        np.save('phase-noise-alpha250.npy', [np.fft.fftshift(ffft[1:n/2+1]), np.fft.fftshift(10*np.log10(mean_psd[1:n/2+1]/2))])
+        # np.save('phase-noise-alpha250.npy', [np.fft.fftshift(ffft[1:n/2+1]), np.fft.fftshift(10*np.log10(mean_psd[1:n/2+1]/2))])
         plt.pause(0.001)
     except KeyboardInterrupt:
         break
