@@ -154,7 +154,8 @@ $(LINUX_PATH): $(LINUX_TAR)
 	tar -zxf $< --strip-components=1 --directory=$@
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/uImage: $(LINUX_PATH)
+$(TMP_OS_PATH)/uImage: $(LINUX_PATH) $(OS_PATH)/xilinx_zynq_defconfig
+	cp $(OS_PATH)/xilinx_zynq_defconfig $(LINUX_PATH)/arch/arm/configs/xilinx_zynq_defconfig
 	make -C $< mrproper
 	make -C $< ARCH=arm xilinx_zynq_defconfig
 	make -C $< ARCH=arm CFLAGS=$(LINUX_CFLAGS) \
