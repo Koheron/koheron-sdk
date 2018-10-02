@@ -1,7 +1,7 @@
 diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
---- devicetree.orig/pcw.dtsi	2017-09-08 14:46:32.941448999 +0200
-+++ devicetree/pcw.dtsi	2017-09-08 15:15:55.581398149 +0200
-@@ -45,6 +45,11 @@
+--- devicetree.orig/pcw.dtsi
++++ devicetree/pcw.dtsi
+@@ -47,6 +47,11 @@
  	is-decoded-cs = <0>;
  	num-cs = <3>;
  	status = "okay";
@@ -13,18 +13,18 @@ diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
  };
  &uart1 {
  	device_type = "serial";
-@@ -53,7 +58,7 @@
+@@ -54,7 +59,7 @@
+ 	status = "okay";
  };
  &usb0 {
- 	dr_mode = "host";
 -	phy_type = "ulpi";
 +	usb-phy = <&usb_phy0>;
  	status = "okay";
  	usb-reset = <&gpio0 7 0>;
  };
 diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
---- devicetree.orig/system-top.dts	2017-09-08 14:46:32.941448999 +0200
-+++ devicetree/system-top.dts	2017-09-08 15:16:49.705396587 +0200
+--- devicetree.orig/system-top.dts
++++ devicetree/system-top.dts
 @@ -14,15 +14,22 @@
  		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait earlycon";
  		stdout-path = "serial0:115200n8";
@@ -38,6 +38,7 @@ diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
 +	};
  	aliases {
  		ethernet0 = &gem0;
+ 		i2c0 = &i2c0;
  		serial0 = &uart1;
  		spi0 = &qspi;
 -		spi1 = &spi0;
@@ -48,5 +49,4 @@ diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
 -		reg = <0x0 0x20000000>;
 +		reg = <0x0 0x1E000000>;
  	};
- 	cpus {
- 	};
+ };
