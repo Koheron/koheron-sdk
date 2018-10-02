@@ -113,7 +113,7 @@ cat <<- EOF_CAT >> etc/hosts
 127.0.1.1    koheron
 EOF_CAT
 
-apt-get -y install locales
+apt -y install locales
 
 locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
@@ -137,6 +137,7 @@ apt install -y python
 systemctl enable unzip-default-instrument
 systemctl enable koheron-server
 systemctl enable nginx
+timedatectl set-ntp on
 
 sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
@@ -160,7 +161,7 @@ EOF_CAT
 
 systemd-machine-id-setup
 
-apt-get clean
+apt clean
 echo root:$passwd | chpasswd
 history -c
 

@@ -134,7 +134,7 @@ apt -y upgrade
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 
-apt install -y ntp
+DEBIAN_FRONTEND=noninteractive apt install -yq ntp
 apt install -y openssh-server
 apt install -y usbutils psmisc lsof
 apt install -y parted curl less vim iw ntfs-3g
@@ -181,9 +181,8 @@ iface eth0 inet dhcp
   post-up ntpdate -u ntp.u-psud.fr
 EOF_CAT
 
-apt-get clean
+apt clean
 echo root:$passwd | chpasswd
-service ntp stop
 history -c
 
 EOF_CHROOT
@@ -194,7 +193,7 @@ cp $os_path/config/nginx.conf $root_dir/etc/nginx/nginx.conf
 cp $os_path/config/nginx-server.conf $root_dir/etc/nginx/sites-enabled/nginx-server.conf
 cp $os_path/systemd/nginx.service $root_dir/etc/systemd/system/nginx.service
 
-rm $root_dir/etc/resolv.conf
+#rm $root_dir/etc/resolv.conf
 rm $root_dir/usr/bin/qemu-arm-static
 
 # Unmount file systems

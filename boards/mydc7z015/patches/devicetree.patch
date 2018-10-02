@@ -1,8 +1,8 @@
 diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
---- devicetree.orig/pcw.dtsi	2017-09-08 16:53:53.633228572 +0200
-+++ devicetree/pcw.dtsi	2017-09-08 16:55:00.273226649 +0200
-@@ -13,9 +13,11 @@
- 	};
+--- devicetree.orig/pcw.dtsi
++++ devicetree/pcw.dtsi
+@@ -16,9 +16,11 @@
+ 	status = "okay";
  };
  &gem0 {
 +	local-mac-address = [00 0a 35 00 00 00];
@@ -13,30 +13,19 @@ diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
  };
  &gpio0 {
  	emio-gpio-width = <64>;
-@@ -45,6 +47,11 @@
- 	is-decoded-cs = <0>;
- 	num-cs = <3>;
+@@ -52,7 +54,8 @@
  	status = "okay";
-+	spidev@0 {
-+		compatible = "spidev";
-+		reg = <0x0>;
-+		spi-max-frequency = <10000000>;
-+	};
- };
- &uart1 {
- 	device_type = "serial";
-@@ -53,7 +60,7 @@
  };
  &usb0 {
- 	dr_mode = "host";
 -	phy_type = "ulpi";
++	dr_mode = "host";
 +	usb-phy = <&usb_phy0>;
  	status = "okay";
+ 	usb-reset = <&gpio0 7 0>;
  };
- &clkc {
 diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
---- devicetree.orig/system-top.dts	2017-09-08 16:53:53.633228572 +0200
-+++ devicetree/system-top.dts	2017-09-08 16:55:47.889225276 +0200
+--- devicetree.orig/system-top.dtsi
++++ devicetree/system-top.dts
 @@ -14,6 +14,13 @@
  		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait earlycon";
  		stdout-path = "serial0:115200n8";
@@ -50,16 +39,14 @@ diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
 +	};
  	aliases {
  		ethernet0 = &gem0;
- 		serial0 = &uart1;
-@@ -22,8 +29,21 @@
+ 		i2c0 = &i2c0;
+@@ -22,6 +29,19 @@
  	};
  	memory {
  		device_type = "memory";
 -		reg = <0x0 0x40000000>;
 +		reg = <0x0 0x3E000000>;
- 	};
- 	cpus {
- 	};
++	};
 +	mdio {
 +		#address-cells = <1>;
 +		#size-cells = <0>;
@@ -72,5 +59,5 @@ diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
 +			txen-skew-ps = <0>;
 +			reg = <3>;
 +		};
-+	};
+ 	};
  };
