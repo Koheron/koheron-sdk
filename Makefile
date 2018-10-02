@@ -143,9 +143,9 @@ setup: setup_fpga setup_server setup_web setup_os
 
 .PHONY: setup_base
 setup_base:
-	sudo apt-get install -y g++-7-arm-linux-gnueabihf
-	sudo apt-get install -y python-pip
-	sudo apt-get install -y curl
+	sudo apt install -y g++-arm-linux-gnueabihf
+	sudo apt install -y python-pip
+	sudo apt install -y curl
 	$(PIP) install -r $(SDK_PATH)/requirements.txt
 	$(PIP) install $(SDK_PATH)/python
 
@@ -158,17 +158,17 @@ setup_server: setup_base
 
 .PHONY: setup_web
 setup_web: setup_base
-	sudo apt-get install -y nodejs
-	sudo apt-get install -y node-typescript
-	sudo apt-get install -y npm
+	sudo apt install -y nodejs
+	sudo apt install -y node-typescript
+	sudo apt install -y npm
 	#sudo rm -f /usr/bin/node && sudo ln -s /usr/bin/nodejs /usr/bin/node
 	npm install typescript
 	npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
 
 .PHONY: setup_os
 setup_os: setup_base
-	sudo apt-get install -y libssl-dev bc device-tree-compiler qemu-user-static zerofree
-	sudo apt-get install -y lib32stdc++6 lib32z1 u-boot-tools
+	sudo apt install -y libssl-dev bc device-tree-compiler qemu-user-static zerofree
+	sudo apt install -y lib32stdc++6 lib32z1 u-boot-tools
 
 ###############################################################################
 # CLEAN TARGETS

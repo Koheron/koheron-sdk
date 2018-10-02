@@ -17,7 +17,7 @@ losetup ${device} ${image}
 boot_dir=`mktemp -d /tmp/BOOT.XXXXXXXXXX`
 root_dir=`mktemp -d /tmp/ROOT.XXXXXXXXXX`
 
-ubuntu_version=16.04.3
+ubuntu_version=18.04.1
 root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
 root_url=http://cdimage.ubuntu.com/ubuntu-base/releases/${ubuntu_version}/release/$root_tar
 
@@ -120,25 +120,25 @@ update-locale LANG=en_US.UTF-8
 
 sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
 
-apt-get update
-apt-get -y upgrade
+apt update
+apt -y upgrade
 
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 
-apt-get install -y usbutils psmisc lsof unzip
-apt-get install -y udev net-tools netbase ifupdown network-manager lsb-base
-apt-get install -y nginx
+apt install -y usbutils psmisc lsof unzip
+apt install -y udev net-tools netbase ifupdown network-manager lsb-base
+apt install -y nginx
 
 # For release mode
-apt-get install -y unionfs-fuse
-apt-get install -y python
+apt install -y unionfs-fuse
+apt install -y python
 
 systemctl enable unzip-default-instrument
 systemctl enable koheron-server
 systemctl enable nginx
 
-# sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
+sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 touch etc/udev/rules.d/75-persistent-net-generator.rules
 
