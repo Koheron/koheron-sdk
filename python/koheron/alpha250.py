@@ -50,6 +50,10 @@ class Alpha250(object):
     def set_precision_dac_calibration_coeffs(self, new_coeffs):
         return self.client.recv_int32()
 
+    @command(classname='PrecisionDac', funcname='get_dac_values')
+    def get_precision_dac_values(self):
+        return self.client.recv_array(4, dtype='float32')
+
     # RF ADC
 
     @command(classname='Ltc2157')
