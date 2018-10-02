@@ -14,10 +14,9 @@ BOARD := $(shell basename $(BOARD_PATH))
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 
 # Define U-boot and Linux repositories
+-include $(OS_PATH)/board.mk
 ifneq ("$(wildcard $(BOARD_PATH)/board.mk)","")
 -include $(BOARD_PATH)/board.mk
-else
--include $(OS_PATH)/board.mk
 endif
 
 UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
@@ -85,10 +84,15 @@ $(UBOOT_PATH): $(UBOOT_TAR)
 	tar -zxf $< --strip-components=1 --directory=$@
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH)
+ifeq ("$(UBOOT_CONFIG)","")
+UBOOT_CONFIG = zynq_$(BOARD)_defconfig
+endif
+
+$(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES) -type f)
+	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	mkdir -p $(@D)
 	make -C $< mrproper
-	make -C $< arch=arm `find $(PATCHES) -name '*_defconfig' -exec basename {} \;`
+	make -C $< arch=arm $(UBOOT_CONFIG)
 	make -C $< arch=arm CFLAGS=$(UBOOT_CFLAGS) \
 	  CROSS_COMPILE=arm-linux-gnueabihf- all
 	cp $</u-boot $@
