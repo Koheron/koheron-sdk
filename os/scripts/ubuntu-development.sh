@@ -134,7 +134,7 @@ apt -y upgrade
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 
-apt install -y install ntp
+apt install -y ntp
 apt install -y openssh-server
 apt install -y usbutils psmisc lsof
 apt install -y parted curl less vim iw ntfs-3g
