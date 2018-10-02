@@ -44,7 +44,7 @@ host = os.getenv('HOST','192.168.1.29')
 freq = 40e6
 
 driver = PhaseNoiseAnalyzer(connect(host, 'phase-noise-analyzer'))
-# driver.set_reference_clock(0)
+driver.set_reference_clock(0)
 driver.set_dds_freq(0, freq)
 
 # data = driver.get_phase_noise()
@@ -62,7 +62,7 @@ n_avg = 100
 li, = ax.semilogx(np.arange(n), np.ones(n), label="{} MHz carrier".format(freq*1e-6), linewidth=2)
 
 # ax.set_xlim((10, 1e6))
-ax.set_ylim((-200, 30))
+ax.set_ylim((-170, 0))
 ax.set_xlabel('FREQUENCY OFFSET (Hz)')
 ax.set_ylabel('PHASE NOISE (dBc/Hz)')
 

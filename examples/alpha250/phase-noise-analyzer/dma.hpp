@@ -14,6 +14,7 @@
 #include <chrono>
 
 #include <boards/alpha250/drivers/clock-generator.hpp>
+#include <server/fft-windows.hpp>
 
 // https://www.xilinx.com/support/documentation/ip_documentation/axi_dma/v7_1/pg021_axi_dma.pdf
 namespace Dma_regs {
@@ -33,11 +34,10 @@ class Dma
     , axi_hp0(ctx.mm.get<mem::axi_hp0>())
     , clk_gen(ctx.get<ClockGenerator>())
     , phase_noise(fft_size / 2)
+    , window(FFTwindow::hann, fft_size)
     {
         std::get<0>(data_vec) = std::vector<float>(fft_size);
         std::get<1>(data_vec) = std::vector<float>(fft_size);
-        std::get<0>(fft_data) = std::vector<std::complex<float>>(0);
-        std::get<1>(fft_data) = std::vector<std::complex<float>>(0);
 
         // Set AXI_HP0 to 32 bits
         axi_hp0.set_bit<0x0, 0>();
@@ -79,10 +79,12 @@ class Dma
     std::array<std::vector<std::complex<float>>, 2> fft_data;
     std::vector<float> phase_noise;
 
+    FFTwindow window;
+
     template<size_t idx>
     void compute_phase_noise();
 
-    void read_dma() {
+    void dma_transfer() {
         reset_dma();
         start_dma();
         set_destination_address(mem::ram_addr);
@@ -116,11 +118,11 @@ class Dma
 };
 
 inline const auto& Dma::get_phase_noise() {
-    float W = float(data_size); // TODO Replace by window correction factor
     float fs = clk_gen.get_adc_sampling_freq();
 
-    read_dma();
+    dma_transfer();
 
+    // Two FFTs of half a DMA buffer are computed in parallel
     auto t0 = std::thread{&Dma::compute_phase_noise<0>, this};
     auto t1 = std::thread{&Dma::compute_phase_noise<1>, this};
 
@@ -129,7 +131,7 @@ inline const auto& Dma::get_phase_noise() {
 
     for (uint32_t i=0; i<fft_size / 2; i++) {
         phase_noise[i] = (std::norm(std::get<0>(fft_data)[i]) + std::norm(std::get<1>(fft_data)[i])) / 2;
-        phase_noise[i] /= (fs / (cic_rate * 2.0f) * W); // rad^2/Hz
+        phase_noise[i] /= (fs / (cic_rate * 2.0f) * window.W2()); // rad^2/Hz
     }
 
     return phase_noise;
@@ -143,7 +145,7 @@ inline void Dma::compute_phase_noise() {
     float data_mean = std::accumulate(data.data() + begin, data.data() + end, 0.0) / fft_size;
 
     for (uint32_t i=0; i<fft_size; i++) {
-        std::get<idx>(data_vec)[i] = (data[i + begin] - data_mean) * float(M_PI) * 1.0f  / 8192.0f; // TODO replace 1.0f by window
+        std::get<idx>(data_vec)[i] = (data[i + begin] - data_mean) * window.value(i) * float(M_PI) / 8192.0f;
     }
 
     std::get<idx>(fft).fwd(std::get<idx>(fft_data), std::get<idx>(data_vec));
