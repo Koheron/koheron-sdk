@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import signal
 import matplotlib
-matplotlib.use('GTKAgg')
+# matplotlib.use('GTKAgg')
 from matplotlib import pyplot as plt
 import os
 import time
@@ -36,7 +36,7 @@ class PhaseNoiseAnalyzer(object):
         return self.client.recv_array(1000000, dtype='int32')
 
 
-host = os.getenv('HOST','192.168.1.22')
+host = os.getenv('HOST','192.168.1.29')
 freq = 40e6
 
 driver = PhaseNoiseAnalyzer(connect(host, 'phase-noise-analyzer'))
@@ -65,8 +65,8 @@ li, = ax.semilogx(np.fft.fftshift(ffft[1:n/2+1]), y[1:n/2+1], label="{} MHz carr
 
 ax.set_xlim((10, 1e6))
 ax.set_ylim((-170, 0))
-ax.set_xlabel('Frequency Offset (Hz)')
-ax.set_ylabel('Phase Noise (dBc/Hz)')
+ax.set_xlabel('FREQUENCY OFFSET (Hz)')
+ax.set_ylabel('PHASE NOISE (dBc/Hz)')
 
 ax.legend(loc="upper right")
 
