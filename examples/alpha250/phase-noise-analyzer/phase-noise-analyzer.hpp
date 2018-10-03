@@ -40,35 +40,36 @@ class PhaseNoiseAnalyzer
         std::get<0>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
         std::get<1>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
 
-        fs = clk_gen.get_adc_sampling_freq();
-        dma_transfer_duration = 1000 * n_pts * prm::cic_decimation_rate / 2 / fs;
+        fs_adc = clk_gen.get_adc_sampling_freq();
+        fs = fs_adc / (2.0f * prm::cic_decimation_rate); // Sampling frequency (factor of 2 because of FIR)
+        dma_transfer_duration = prm::n_pts / fs;
+        ctx.log<INFO>("DMA transfer duration = %f s\n", double(dma_transfer_duration));
     }
 
     void start() {
-        dma.start_transfer(mem::ram_addr, 4 * n_pts);
+        dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
     }
 
-    auto get_parameters() {
+    const auto get_parameters() {
         return std::make_tuple(
             fft_size / 2, // data_size
-            fs / (2.0f * prm::cic_decimation_rate) // sampling frequency (factor of 2 because of FIR)
+            fs
         );
     }
 
-    auto& get_data() {
-        dma.start_transfer(mem::ram_addr, 4 * n_pts);
+    const auto& get_data() {
+        dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
         dma.wait_for_transfer(dma_transfer_duration);
         data = ram.read_array<int32_t, data_size, read_offset>();
         return data;
     }
 
-    const auto& get_phase_noise();
+    const auto& get_phase_noise(uint32_t n_avg);
 
   private:
-    static constexpr uint32_t n_pts = 1024 * 1024;
-    static constexpr uint32_t data_size = 1000000;
+    static constexpr uint32_t data_size = 200000;
     static constexpr uint32_t fft_size = data_size / 2;
-    static constexpr uint32_t read_offset = (n_pts - data_size) / 2;
+    static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2;
 
     Context& ctx;
     DmaS2MM& dma;
@@ -76,7 +77,7 @@ class PhaseNoiseAnalyzer
     Memory<mem::control>& ctl;
     Memory<mem::ram>& ram;
 
-    float fs;
+    float fs_adc, fs;
     float dma_transfer_duration;
 
     std::array<int32_t, data_size> data;
@@ -97,25 +98,32 @@ class PhaseNoiseAnalyzer
     }
 };
 
-inline const auto& PhaseNoiseAnalyzer::get_phase_noise() {
-    dma.wait_for_transfer(dma_transfer_duration);
-    data = ram.read_array<int32_t, data_size, read_offset>();
+inline const auto& PhaseNoiseAnalyzer::get_phase_noise(uint32_t n_avg) {
+    std::fill(phase_noise.begin(), phase_noise.end(), 0.0f);
 
-    // Two FFTs of half a DMA buffer are computed in parallel
-    auto t0 = std::thread{&PhaseNoiseAnalyzer::compute_fft<0>, this};
-    auto t1 = std::thread{&PhaseNoiseAnalyzer::compute_fft<1>, this};
+    for (uint32_t i=0; i<n_avg; i++) {
+        dma.wait_for_transfer(dma_transfer_duration);
+        data = ram.read_array<int32_t, data_size, read_offset>();
 
-    t0.join();
-    t1.join();
+        // Two FFTs of half a DMA buffer are computed in parallel
+        auto t0 = std::thread{&PhaseNoiseAnalyzer::compute_fft<0>, this};
+        auto t1 = std::thread{&PhaseNoiseAnalyzer::compute_fft<1>, this};
 
-    reset_phase_unwrapper();
-    dma.start_transfer(mem::ram_addr, 4 * n_pts);
+        t0.join();
+        t1.join();
+
+        reset_phase_unwrapper();
+        dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
+
+        for (uint32_t j=0; j<fft_size / 2; j++) {
+            // Kiss FFT amplitudes must be scaled by a factor 1/2
+            // https://stackoverflow.com/questions/5628056/kissfft-scaling
+            phase_noise[j] += (std::norm(0.5f *std::get<0>(fft_data)[j]) + std::norm(0.5f * std::get<1>(fft_data)[j])) / 2.0f;
+        }
+    }
 
     for (uint32_t i=0; i<fft_size / 2; i++) {
-        // Kiss FFT amplitudes must be scaled by a factor 1/2
-        // https://stackoverflow.com/questions/5628056/kissfft-scaling
-        phase_noise[i] = (std::norm(0.5f *std::get<0>(fft_data)[i]) + std::norm(0.5f * std::get<1>(fft_data)[i])) / 2.0f;
-        phase_noise[i] /= (fs / (prm::cic_decimation_rate * 2.0f) * window.W2()); // rad^2/Hz
+        phase_noise[i] /= (fs * window.W2() * n_avg); // rad^2/Hz
     }
 
     return phase_noise;

@@ -183,7 +183,7 @@ cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
 
 cell koheron:user:tlast_gen:1.0 tlast_gen_0 {
   TDATA_WIDTH 32
-  PKT_LENGTH [expr 1024*1024]
+  PKT_LENGTH [expr [get_parameter n_pts]]
 } {
   aclk ps_0/FCLK_CLK1
   resetn proc_sys_reset_1/peripheral_aresetn

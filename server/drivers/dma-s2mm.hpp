@@ -9,11 +9,14 @@
 
 #include <context.hpp>
 
+#include <chrono>
+
 class DmaS2MM
 {
   public:
-    DmaS2MM(Context& ctx)
-    : dma(ctx.mm.get<mem::dma>())
+    DmaS2MM(Context& ctx_)
+    : ctx(ctx_)
+    , dma(ctx.mm.get<mem::dma>())
     , axi_hp0(ctx.mm.get<mem::axi_hp0>())
     {
         // Set AXI_HP0 to 32 bits
@@ -22,36 +25,78 @@ class DmaS2MM
     }
 
     void start_transfer(uint32_t dest_addr, uint32_t length) {
-        reset_dma();
-        start_dma();
+        reset();
+        start();
         set_destination_address(dest_addr);
         set_length(length);
     }
 
     // Ideally would take a std::chrono::duration as an argument
     void wait_for_transfer(float dma_transfer_duration_seconds) {
+        constexpr uint32_t max_sleeps_cnt = 4;
+        
         auto dma_duration = std::chrono::milliseconds(uint32_t(1000 * dma_transfer_duration_seconds));
 
-        while (! is_transfer_done()) {
-            std::this_thread::sleep_for(0.25 * dma_duration);
+        uint32_t cnt = 0;
+
+        while (! idle()) {
+            std::this_thread::sleep_for(0.55 * dma_duration);
+            cnt++;
+
+            if (cnt > max_sleeps_cnt) {
+                ctx.log<ERROR>("DmaS2MM::wait_for_transfer: Max number of sleeps exeeded. [set duration %f s]\n",
+                               double(dma_transfer_duration_seconds));
+                break;
+            }
         }
     }
 
   private:
-    static constexpr uint32_t s2mm_dmacr = 0x30;  // S2MM DMA Control register
-    static constexpr uint32_t s2mm_dmasr = 0x34;  // S2MM DMA Status register
-    static constexpr uint32_t s2mm_da = 0x48;     // S2MM Destination Address
-    static constexpr uint32_t s2mm_length = 0x58; // S2MM Buffer Length (Bytes)
+    static constexpr uint32_t s2mm_dmacr  = 0x30;  // S2MM DMA Control register
+    static constexpr uint32_t s2mm_dmasr  = 0x34;  // S2MM DMA Status register
+    static constexpr uint32_t s2mm_da     = 0x48;  // S2MM Destination Address
+    static constexpr uint32_t s2mm_length = 0x58;  // S2MM Buffer Length (Bytes)
 
+    Context& ctx;
     Memory<mem::dma>& dma;
     Memory<mem::axi_hp0>& axi_hp0;
 
-    void reset_dma() {
+    void reset() {
+        constexpr uint32_t max_sleeps_cnt = 4;
+
         dma.set_bit<s2mm_dmacr, 2>();
+
+        // Wait for reset
+        uint32_t cnt = 0;
+
+        while (dma.read_bit<s2mm_dmacr, 2>()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            cnt++;
+
+            if (cnt > max_sleeps_cnt) {
+                ctx.log<ERROR>("DmaS2MM::reset: Max number of sleeps exeeded.\n");
+                break;
+            }
+        }
     }
 
-    void start_dma() {
+    void start() {
+        constexpr uint32_t max_sleeps_cnt = 4;
+
         dma.set_bit<s2mm_dmacr, 0>();
+
+        // Wait for start up
+        uint32_t cnt = 0;
+
+        while (halted()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            cnt++;
+
+            if (cnt > max_sleeps_cnt) {
+                ctx.log<ERROR>("DmaS2MM::start: Max number of sleeps exeeded.\n");
+                break;
+            }
+        }
     }
 
     void set_destination_address(uint32_t address) {
@@ -62,7 +107,13 @@ class DmaS2MM
         dma.write<s2mm_length>(length);
     }
 
-    bool is_transfer_done() {
+    // Status
+
+    bool halted() {
+        return dma.read_bit<s2mm_dmasr, 0>();
+    }
+
+    bool idle() {
         return dma.read_bit<s2mm_dmasr, 1>();
     }
 };
