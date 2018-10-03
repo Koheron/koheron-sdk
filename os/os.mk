@@ -12,7 +12,7 @@ BOARD := $(shell basename $(BOARD_PATH))
 
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 
-ZYNQ := zynq
+ZYNQ_TYPE := zynq
 
 # Define U-boot and Linux repositories
 -include $(OS_PATH)/board.mk
@@ -20,7 +20,7 @@ ifneq ("$(wildcard $(BOARD_PATH)/board.mk)","")
 -include $(BOARD_PATH)/board.mk
 endif
 
--include $(OS_PATH)/$(ZYNQ).mk
+-include $(OS_PATH)/$(ZYNQ_TYPE).mk
 
 UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
 LINUX_PATH := $(TMP_OS_PATH)/linux-xlnx-$(LINUX_TAG)
@@ -59,7 +59,7 @@ fsbl: $(TMP_OS_PATH)/fsbl/executable.elf
 
 $(TMP_OS_PATH)/fsbl/Makefile: $(TMP_FPGA_PATH)/$(NAME).hwdef
 	mkdir -p $(@D)
-	$(HSI) -source $(FPGA_PATH)/hsi/fsbl.tcl -tclargs $(NAME) $(PROC) $(TMP_OS_PATH)/hard $(@D) $< $(ZYNQ)
+	$(HSI) -source $(FPGA_PATH)/hsi/fsbl.tcl -tclargs $(NAME) $(PROC) $(TMP_OS_PATH)/hard $(@D) $< $(ZYNQ_TYPE)
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
@@ -104,7 +104,7 @@ $(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES) -type f)
 
 $(TMP_OS_PATH)/boot.bin: $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_OS_PATH)/u-boot.elf
 	echo "img:{[bootloader] $^}" > $(TMP_OS_PATH)/boot.bif
-	$(BOOTGEN) -image $(TMP_OS_PATH)/boot.bif -arch $(ZYNQ) -w -o i $@
+	$(BOOTGEN) -image $(TMP_OS_PATH)/boot.bif -arch $(ZYNQ_TYPE) -w -o i $@
 	@echo [$@] OK
 
 ###############################################################################
@@ -154,10 +154,10 @@ $(LINUX_PATH): $(LINUX_TAR)
 	tar -zxf $< --strip-components=1 --directory=$@
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/$(IMAGE_NAME): $(LINUX_PATH) $(OS_PATH)/xilinx_$(ZYNQ)_defconfig
-	cp $(OS_PATH)/xilinx_zynq_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs/xilinx_$(ZYNQ)_defconfig
+$(TMP_OS_PATH)/$(IMAGE_NAME): $(LINUX_PATH) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
+	cp $(OS_PATH)/xilinx_zynq_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs/xilinx_$(ZYNQ_TYPE)_defconfig
 	make -C $< mrproper
-	make -C $< ARCH=$(ARCH) xilinx_$(ZYNQ)_defconfig
+	make -C $< ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
 	make -C $< ARCH=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
 	  --jobs=$(N_CPUS) \
 	  CROSS_COMPILE=$(GCC_ARCH)- UIMAGE_LOADADDR=0x8000 $(IMAGE_NAME)
