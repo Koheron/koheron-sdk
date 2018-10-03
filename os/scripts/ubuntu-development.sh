@@ -5,6 +5,7 @@ os_path=$2
 tmp_os_path=$3
 name=$4
 os_version_file=$5
+zynq_type=$6
 image=$tmp_project_path/${name}-development.img
 size=1024
 
@@ -18,7 +19,17 @@ boot_dir=`mktemp -d /tmp/BOOT.XXXXXXXXXX`
 root_dir=`mktemp -d /tmp/ROOT.XXXXXXXXXX`
 
 ubuntu_version=18.04.1
-root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
+
+if [$zynq_type -eq "zynqmp"]; then
+    root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
+    linux_image=Image
+    qemu_path=/usr/bin/qemu-aarch64-static
+else
+    root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
+    linux_image=uImage
+    qemu_path=/usr/bin/qemu-arm-static
+fi
+
 root_url=http://cdimage.ubuntu.com/ubuntu-base/releases/${ubuntu_version}/release/$root_tar
 
 passwd=changeme
@@ -45,7 +56,7 @@ mount $root_dev $root_dir
 
 # Copy files to the boot file system
 
-cp $tmp_os_path/boot.bin $tmp_os_path/devicetree.dtb $tmp_os_path/uImage $os_path/uEnv.txt $boot_dir
+cp $tmp_os_path/boot.bin $tmp_os_path/devicetree.dtb $tmp_os_path/$linux_image $os_path/uEnv.txt $boot_dir
 
 # Copy Ubuntu Core to the root file system
 
@@ -56,7 +67,8 @@ tar -zxf tmp/$root_tar --directory=$root_dir
 # Add missing configuration files and packages
 
 cp /etc/resolv.conf $root_dir/etc/
-cp /usr/bin/qemu-arm-static $root_dir/usr/bin/
+#cp /usr/bin/qemu-arm-static $root_dir/usr/bin/
+cp $qemu_path $root_dir/usr/bin/
 
 # Add Web app
 mkdir $root_dir/usr/local/www
