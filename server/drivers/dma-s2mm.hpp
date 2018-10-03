@@ -12,9 +12,8 @@
 class DmaS2MM
 {
   public:
-    DmaS2MM(Context& ctx_)
-    : ctx(ctx_)
-    , dma(ctx.mm.get<mem::dma>())
+    DmaS2MM(Context& ctx)
+    : dma(ctx.mm.get<mem::dma>())
     , axi_hp0(ctx.mm.get<mem::axi_hp0>())
     {
         // Set AXI_HP0 to 32 bits
@@ -43,8 +42,6 @@ class DmaS2MM
     static constexpr uint32_t s2mm_dmasr = 0x34;  // S2MM DMA Status register
     static constexpr uint32_t s2mm_da = 0x48;     // S2MM Destination Address
     static constexpr uint32_t s2mm_length = 0x58; // S2MM Buffer Length (Bytes)
-
-    Context& ctx;
 
     Memory<mem::dma>& dma;
     Memory<mem::axi_hp0>& axi_hp0;

@@ -16,19 +16,7 @@ class PhaseNoiseAnalyzer(object):
         pass
 
     @command(classname="ClockGenerator")
-    def set_tcxo_clock(self, val):
-        pass
-
-    @command(classname="ClockGenerator")
-    def set_sampling_frequency(self, val):
-        pass
-
-    @command(classname="ClockGenerator")
     def set_reference_clock(self, val):
-        pass
-
-    @command(classname="ClockGenerator")
-    def set_tcxo_clock(self, val):
         pass
 
     @command()

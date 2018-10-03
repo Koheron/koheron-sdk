@@ -16,19 +16,7 @@ class PhaseNoiseAnalyzer(object):
         pass
 
     @command(classname="ClockGenerator")
-    def set_tcxo_clock(self, val):
-        pass
-
-    @command(classname="ClockGenerator")
-    def set_sampling_frequency(self, val):
-        pass
-
-    @command(classname="ClockGenerator")
     def set_reference_clock(self, val):
-        pass
-
-    @command(classname="ClockGenerator")
-    def set_tcxo_clock(self, val):
         pass
 
     @command()
@@ -40,9 +28,8 @@ host = os.getenv('HOST','192.168.1.29')
 freq = 40e6
 
 driver = PhaseNoiseAnalyzer(connect(host, 'phase-noise-analyzer'))
-driver.set_sampling_frequency(0)
-driver.set_reference_clock(2)
-driver.set_dds_freq(0,freq)
+driver.set_reference_clock(0)
+driver.set_dds_freq(0, freq)
 
 n = 1000000
 fs = 200e6
@@ -81,9 +68,9 @@ window = 0.5 * (1 - np.cos(2*np.pi*np.arange(n)/(n-1)))
 window = np.ones(n)
 
 #window = signal.blackmanharris(n)
-#window = 0.5 * (1 - np.cos(2*np.pi*np.arange(n)/(n-1)))
+window = 0.5 * (1 - np.cos(2*np.pi*np.arange(n)/(n-1)))
 #window = signal.nuttall(n)
-window = signal.chebwin(n, at=200)
+# window = signal.chebwin(n, at=200)
 
 W = np.sum(window ** 2) # Correction factor for window
 

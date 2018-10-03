@@ -32,7 +32,6 @@ class PhaseNoiseAnalyzer
         std::get<1>(data_vec) = std::vector<float>(fft_size);
 
         clk_gen.set_sampling_frequency(0); // 200 MHz
-        clk_gen.set_reference_clock(2);
 
         std::get<0>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
         std::get<1>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
@@ -45,6 +44,7 @@ class PhaseNoiseAnalyzer
     auto& get_data() {
         dma.start_transfer(mem::ram_addr, 4 * n_pts);
         dma.wait_for_transfer(dma_transfer_duration);
+        data = ram.read_array<int32_t, data_size, read_offset>();
         return data;
     }
 
@@ -92,7 +92,9 @@ inline const auto& PhaseNoiseAnalyzer::get_phase_noise() {
     dma.start_transfer(mem::ram_addr, 4 * n_pts);
 
     for (uint32_t i=0; i<fft_size / 2; i++) {
-        phase_noise[i] = (std::norm(std::get<0>(fft_data)[i]) + std::norm(std::get<1>(fft_data)[i])) / 2;
+        // Kiss FFT amplitudes must be scaled by a factor 1/2
+        // https://stackoverflow.com/questions/5628056/kissfft-scaling
+        phase_noise[i] = (std::norm(0.5f *std::get<0>(fft_data)[i]) + std::norm(0.5f * std::get<1>(fft_data)[i])) / 2.0f;
         phase_noise[i] /= (fs / (cic_rate * 2.0f) * window.W2()); // rad^2/Hz
     }
 

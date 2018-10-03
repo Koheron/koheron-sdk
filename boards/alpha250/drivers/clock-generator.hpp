@@ -111,8 +111,10 @@ class ClockGenerator
     }
 
     void set_sampling_frequency(uint32_t fs_select) {
-        if (fs_select < clock_cfg::num_configs) {
-            configure(clkin, clock_cfg::configs[fs_select]);
+        if (fs_select < clock_cfg::num_configs && fs_select != fs_selected) {
+            if (configure(clkin, clock_cfg::configs[fs_select]) == 0) {
+                fs_selected = fs_select;
+            }
         }
     }
 
@@ -137,6 +139,7 @@ class ClockGenerator
 
     uint8_t tcxo_calibration;
     uint32_t clkin; // Current input clock
+    uint32_t fs_selected = clock_cfg::configs.size(); // Current frequency configuration
     std::array<uint32_t, clock_cfg::num_params> clk_cfg;
 
     static constexpr double f_vcxo = 1E8;   // VCXO frequency (Hz)
@@ -154,10 +157,10 @@ class ClockGenerator
         spi_cfg.write_reg<cs_clk_gen, pack_size>(data);
     }
 
-    void configure(uint32_t clkin_select, const std::array<uint32_t, clock_cfg::num_params>& clk_cfg_) {
+    int configure(uint32_t clkin_select, const std::array<uint32_t, clock_cfg::num_params>& clk_cfg_) {
         if (clkin_select > 4) {
             ctx.log<ERROR>("Clock generator - Invalid reference clock source");
-            return;
+            return -1;
         }
 
         clkin = clkin_select;
@@ -332,7 +335,7 @@ class ClockGenerator
 
         if (f_vco < 2.37E9 || f_vco > 2.6E9) {
             ctx.log<ERROR>("Clock generator - VCO frequency at %f MHz is out of range (2370 to 2600 MHz)", f_vco * 1E-6);
-            return;
+            return -1;
         }
 
         fs_adc = f_vco / CLKout1_DIV;
@@ -343,7 +346,7 @@ class ClockGenerator
             // results in data converters overclocking
 
             ctx.log<ERROR>("Clock generator - Data converters overclocking\n");
-            return;
+            return -1;
         }
 
         ctx.log<INFO>("Clock generator - Ref: %s, VCO: %f MHz, ADC: %f MHz, DAC: %f MHz\n",
@@ -390,6 +393,7 @@ class ClockGenerator
         // phase shift the MMCM
         phase_shift(clk_cfg[9]);
 
+        return 0;
     }
 };
 
