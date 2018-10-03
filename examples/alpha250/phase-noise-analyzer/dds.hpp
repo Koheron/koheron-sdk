@@ -22,9 +22,6 @@ class Dds
     , clk_gen(ctx.get<ClockGenerator>())
     {
         clk_gen.set_sampling_frequency(0);
-
-        // Phase accumulator on
-        ctl.write_mask<reg::cordic, 0b11>(0b11);
     }
 
     void set_dds_freq(uint32_t channel, double freq_hz) {

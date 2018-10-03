@@ -7,6 +7,7 @@ module phase_unwrapper_tb();
 
   reg clk;
   reg acc_on;
+  reg rst;
   reg signed [DIN_WIDTH-1:0] phase_in;
   wire signed [DIN_WIDTH+1-1:0] freq_out;
   wire signed [DOUT_WIDTH-1:0] phase_out;
@@ -18,6 +19,7 @@ module phase_unwrapper_tb();
   DUT (
     .clk(clk),
     .acc_on(acc_on),
+    .rst(rst),
     .phase_in(phase_in),
     .freq_out(freq_out),
     .phase_out(phase_out)
@@ -28,6 +30,7 @@ module phase_unwrapper_tb();
   initial begin
     clk = 1;
     acc_on = 1;
+    rst = 0;
     phase_in = 0;
     #(CLK_PERIOD) phase_in = 0;
     #(CLK_PERIOD) phase_in = 5;
@@ -54,11 +57,27 @@ module phase_unwrapper_tb();
     #(CLK_PERIOD) phase_in = -18;
     #(CLK_PERIOD) phase_in = -13;
     #(CLK_PERIOD) phase_in = -8;
-    #(CLK_PERIOD) phase_in = -3;
+    #(CLK_PERIOD) phase_in = -3; acc_on = 1;
     #(CLK_PERIOD) phase_in = 2;
     #(CLK_PERIOD) phase_in = 7;
     #(CLK_PERIOD) phase_in = 12;
-    #(CLK_PERIOD) phase_in = 17;
+    #(CLK_PERIOD) phase_in = 17; rst = 1;
+    #(CLK_PERIOD) phase_in = -29;
+    #(CLK_PERIOD) phase_in = -24;
+    #(CLK_PERIOD) phase_in = -19;
+    #(CLK_PERIOD) phase_in = 0;
+    #(CLK_PERIOD) phase_in = 5; rst = 0;
+    #(CLK_PERIOD) phase_in = 10;
+    #(CLK_PERIOD) phase_in = 15;
+    #(CLK_PERIOD) phase_in = 20;
+    #(CLK_PERIOD) phase_in = 25;
+    #(CLK_PERIOD) phase_in = 30;
+    #(CLK_PERIOD) phase_in = -29;
+    #(CLK_PERIOD) phase_in = -24;
+    #(CLK_PERIOD) phase_in = -19;
+    #(CLK_PERIOD) phase_in = -14;
+    #(CLK_PERIOD) phase_in = -9;
+    #(CLK_PERIOD) phase_in = -4;
     $finish;
   end
 

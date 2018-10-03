@@ -1,7 +1,6 @@
 import numpy as np
 from scipy import signal
 import matplotlib
-# matplotlib.use('GTKAgg')
 from matplotlib import pyplot as plt
 import os
 import time
@@ -24,33 +23,33 @@ class PhaseNoiseAnalyzer(object):
         return self.client.recv_array(1000000, dtype='int32')
 
     @command()
+    def start(self):
+        pass
+
+    @command()
+    def get_parameters(self):
+        return self.client.recv_tuple('If')
+
+    @command()
     def get_phase_noise(self):
         return self.client.recv_vector(dtype='float32')
 
 
 host = os.getenv('HOST','192.168.1.29')
-freq = 40e6
+freq = 10e6 # Hz
 
 driver = PhaseNoiseAnalyzer(connect(host, 'phase-noise-analyzer'))
 driver.set_reference_clock(0)
 driver.set_dds_freq(0, freq)
-
-# data = driver.get_phase_noise()
-# plt.plot(data)
-# plt.show()
+(n, fs) = driver.get_parameters()
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
+f = np.linspace(fs / n, fs / 2, n)
+li, = ax.semilogx(f, np.ones(n), label="{} MHz carrier".format(freq*1e-6), linewidth=2)
 
-n = 1000000/4
-fs = 200e6
-cic_rate = 20
-n_avg = 100
-
-li, = ax.semilogx(np.arange(n), np.ones(n), label="{} MHz carrier".format(freq*1e-6), linewidth=2)
-
-# ax.set_xlim((10, 1e6))
-ax.set_ylim((-170, 0))
+ax.set_xlim((10, 1e6))
+ax.set_ylim((-200, 0))
 ax.set_xlabel('FREQUENCY OFFSET (Hz)')
 ax.set_ylabel('PHASE NOISE (dBc/Hz)')
 
@@ -62,17 +61,19 @@ ax.axhline(linewidth=2)
 ax.axvline(linewidth=2)
 ax.set_axisbelow(True)
 xlabels = ['', '10', '100', '1k', '10k', '100k', '1M']
-# ax.set_xticklabels(xlabels)
+ax.set_xticklabels(xlabels)
 fig.canvas.draw()
 
 time_prev = time.time()
+
+driver.start()
 
 while True:
     try:
         data = driver.get_phase_noise()
         time_next = time.time()
         print(time_next - time_prev)
-        li.set_ydata(10*np.log10(data))
+        li.set_ydata(10 * np.log10(data))
         fig.canvas.draw()
         time_prev = time_next
         plt.pause(0.001)

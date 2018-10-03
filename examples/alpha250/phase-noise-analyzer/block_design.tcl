@@ -91,6 +91,7 @@ for {set i 0} {$i < 2} {incr i} {
         aclk adc_dac/adc_clk
         aresetn rst_adc_clk/peripheral_aresetn
         acc_on [get_slice_pin [ctl_pin cordic] $i $i]
+        rst_phase [get_slice_pin [ctl_pin cordic] [expr $i+2] [expr $i+2]]
     }
 
 }
@@ -107,7 +108,7 @@ cell koheron:user:latched_mux:1.0 phase_mux {
     clk adc_dac/adc_clk
     clken [get_constant_pin 1 1]
     din [get_concat_pin [list cordic0/phase cordic1/phase]]
-    sel [get_slice_pin [ctl_pin cordic] 2 2]
+    sel [get_slice_pin [ctl_pin cordic] 4 4]
 }
 
 # Define CIC parameters

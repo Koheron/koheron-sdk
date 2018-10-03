@@ -9,6 +9,7 @@ proc pins {cmd} {
     $cmd -dir O -from 31 -to 0 m_axis_tdata
     $cmd -dir O -from 0  -to 0 m_axis_tvalid
     $cmd -dir I -from 0  -to 0 acc_on
+    $cmd -dir I -from 0  -to 0 rst_phase
     $cmd -dir O -from 16 -to 0 freq
     $cmd -dir O -from 31 -to 0 phase
 }
@@ -78,6 +79,7 @@ proc create {module_name} {
     } {
         clk aclk
         acc_on acc_on
+        rst rst_phase
         phase_in [get_slice_pin cordic/m_axis_dout_tdata 31 16]
         phase_out m_axis_tdata
         freq_out freq

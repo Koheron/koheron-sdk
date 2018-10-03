@@ -38,7 +38,7 @@ class FFTwindow {
         return window;
     }
 
-    auto value(size_t i) const {
+    auto& operator[](size_t i) const {
         return window[i];
     }
 

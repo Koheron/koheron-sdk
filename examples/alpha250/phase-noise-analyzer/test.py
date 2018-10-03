@@ -25,7 +25,7 @@ class PhaseNoiseAnalyzer(object):
 
 
 host = os.getenv('HOST','192.168.1.29')
-freq = 40e6
+freq = 10e6
 
 driver = PhaseNoiseAnalyzer(connect(host, 'phase-noise-analyzer'))
 driver.set_reference_clock(0)
