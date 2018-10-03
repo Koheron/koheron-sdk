@@ -43,11 +43,10 @@ static_assert({{ offset }} < mem::control_range, "Invalid control register offse
 {% endfor %}
 // -- Status offsets
 {% for offset in config['status_registers'] -%}
-constexpr uint32_t {{ offset }} = {{ 4 * (2 + loop.index0) }};
+constexpr uint32_t {{ offset }} = {{ 4 * loop.index0 }};
 static_assert({{ offset }} < mem::status_range, "Invalid status register offset {{ offset }}");
 {% endfor %}
 
-constexpr uint32_t dna = 0;
 } // namespace reg
 
 namespace prm {
