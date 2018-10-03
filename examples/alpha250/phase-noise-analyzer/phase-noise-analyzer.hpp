@@ -14,44 +14,37 @@
 #include <chrono>
 
 #include <boards/alpha250/drivers/clock-generator.hpp>
+#include <server/drivers/dma-s2mm.hpp>
 #include <server/fft-windows.hpp>
 
-// https://www.xilinx.com/support/documentation/ip_documentation/axi_dma/v7_1/pg021_axi_dma.pdf
-namespace Dma_regs {
-    constexpr uint32_t s2mm_dmacr = 0x30;  // S2MM DMA Control register
-    constexpr uint32_t s2mm_dmasr = 0x34;  // S2MM DMA Status register
-    constexpr uint32_t s2mm_da = 0x48;     // S2MM Destination Address
-    constexpr uint32_t s2mm_length = 0x58; // S2MM Buffer Length (Bytes)
-}
-
-class Dma
+class PhaseNoiseAnalyzer
 {
   public:
-    Dma(Context& ctx_)
+    PhaseNoiseAnalyzer(Context& ctx_)
     : ctx(ctx_)
-    , dma(ctx.mm.get<mem::dma>())
-    , ram(ctx.mm.get<mem::ram>())
-    , axi_hp0(ctx.mm.get<mem::axi_hp0>())
+    , dma(ctx.get<DmaS2MM>())
     , clk_gen(ctx.get<ClockGenerator>())
+    , ram(ctx.mm.get<mem::ram>())
     , phase_noise(fft_size / 2)
     , window(FFTwindow::hann, fft_size)
     {
         std::get<0>(data_vec) = std::vector<float>(fft_size);
         std::get<1>(data_vec) = std::vector<float>(fft_size);
 
-        // Set AXI_HP0 to 32 bits
-        axi_hp0.set_bit<0x0, 0>();
-        axi_hp0.set_bit<0x14, 0>();
-
         clk_gen.set_sampling_frequency(0); // 200 MHz
         clk_gen.set_reference_clock(2);
 
         std::get<0>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
         std::get<1>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
+
+        fs = clk_gen.get_adc_sampling_freq();
+        dma_transfer_duration = 1000 * n_pts * cic_rate / 2 / fs;
+        dma.start_transfer(mem::ram_addr, 4 * n_pts);
     }
 
     auto& get_data() {
-        read_dma();
+        dma.start_transfer(mem::ram_addr, 4 * n_pts);
+        dma.wait_for_transfer(dma_transfer_duration);
         return data;
     }
 
@@ -65,12 +58,12 @@ class Dma
     static constexpr uint32_t cic_rate = 20;
 
     Context& ctx;
-
-    Memory<mem::dma>& dma;
-    Memory<mem::ram>& ram;
-    Memory<mem::axi_hp0>& axi_hp0;
-
+    DmaS2MM& dma;
     ClockGenerator& clk_gen;
+    Memory<mem::ram>& ram;
+
+    float fs;
+    float dma_transfer_duration;
 
     std::array<int32_t, data_size> data;
 
@@ -83,51 +76,20 @@ class Dma
 
     template<size_t idx>
     void compute_phase_noise();
-
-    void dma_transfer() {
-        reset_dma();
-        start_dma();
-        set_destination_address(mem::ram_addr);
-        set_length(4 * n_pts);
-
-        float fs = clk_gen.get_adc_sampling_freq();
-        auto dma_duration = std::chrono::milliseconds(uint32_t(1000 * n_pts * cic_rate / 2 / fs));
-
-        while (! dma.read_bit<Dma_regs::s2mm_dmasr, 1>()) {
-            std::this_thread::sleep_for(0.95 * dma_duration);
-        }
-
-        data = ram.read_array<int32_t, data_size, read_offset>();
-    }
-
-    void reset_dma() {
-        dma.set_bit<Dma_regs::s2mm_dmacr, 2>();
-    }
-
-    void start_dma() {
-        dma.set_bit<Dma_regs::s2mm_dmacr, 0>();
-    }
-
-    void set_destination_address(uint32_t address) {
-        dma.write<Dma_regs::s2mm_da>(address);
-    }
-
-    void set_length(uint32_t length) {
-        dma.write<Dma_regs::s2mm_length>(length);
-    }
 };
 
-inline const auto& Dma::get_phase_noise() {
-    float fs = clk_gen.get_adc_sampling_freq();
-
-    dma_transfer();
+inline const auto& PhaseNoiseAnalyzer::get_phase_noise() {
+    dma.wait_for_transfer(dma_transfer_duration);
+    data = ram.read_array<int32_t, data_size, read_offset>();
 
     // Two FFTs of half a DMA buffer are computed in parallel
-    auto t0 = std::thread{&Dma::compute_phase_noise<0>, this};
-    auto t1 = std::thread{&Dma::compute_phase_noise<1>, this};
+    auto t0 = std::thread{&PhaseNoiseAnalyzer::compute_phase_noise<0>, this};
+    auto t1 = std::thread{&PhaseNoiseAnalyzer::compute_phase_noise<1>, this};
 
     t0.join();
     t1.join();
+
+    dma.start_transfer(mem::ram_addr, 4 * n_pts);
 
     for (uint32_t i=0; i<fft_size / 2; i++) {
         phase_noise[i] = (std::norm(std::get<0>(fft_data)[i]) + std::norm(std::get<1>(fft_data)[i])) / 2;
@@ -138,7 +100,7 @@ inline const auto& Dma::get_phase_noise() {
 }
 
 template<size_t idx>
-inline void Dma::compute_phase_noise() {
+inline void PhaseNoiseAnalyzer::compute_phase_noise() {
     constexpr size_t begin = idx * fft_size;
     constexpr size_t end = (idx + 1) * fft_size -1;
 

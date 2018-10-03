@@ -78,8 +78,9 @@ drivers:
   - boards/alpha250/drivers/precision-adc.hpp
   - boards/alpha250/drivers/precision-dac.hpp
   - boards/alpha250/drivers/spi-config.hpp
+  - server/drivers/dma-s2mm.hpp
   - ./dds.hpp
-  - ./dma.hpp
+  - ./phase-noise-analyzer.hpp
 
 web:
   - web/index.html

@@ -31,7 +31,7 @@ class PhaseNoiseAnalyzer(object):
     def set_tcxo_clock(self, val):
         pass
 
-    @command(classname='Dma')
+    @command()
     def get_data(self):
         return self.client.recv_array(1000000, dtype='int32')
 
