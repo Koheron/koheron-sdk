@@ -23,9 +23,6 @@ jobs:
           name: Install Koheron python
           command: sudo pip install python/.
       - run:
-          name: install twine
-          command: sudo pip install twine
-      - run:
           name: Setup web
           command: curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -; sudo make setup_web
       - run:
@@ -35,12 +32,19 @@ jobs:
           name: Build web
           command: sudo bash build_examples.sh web
   deploy:
-    machine:
-      enabled: true
+    docker:
+      - image: circleci/python:2.7-stretch-browsers
     steps:
+      - checkout
+      - run:
+          name: Install python requirements
+          command: sudo pip install -r requirements.txt
+      - run:
+          name: install twine
+          command: sudo pip install twine
       - run:
           name: Upload Koheron python to pypi
-          command: make PYPI_USERNAME=$PYPI_USERNAME PYPI_PASSWORD=$PYPI_PASSWORD upload_pip
+          command: sudo make PYPI_USERNAME=$PYPI_USERNAME PYPI_PASSWORD=$PYPI_PASSWORD upload_pip
 
 workflows:
   version: 2
