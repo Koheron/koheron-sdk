@@ -9,6 +9,20 @@ zynq_type=$6
 image=$tmp_project_path/${name}-production.img
 size=512
 
+ubuntu_version=18.04.1
+
+if [ "${zynq_type}" = "zynqmp" ]; then
+    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-MPSoC..."
+    root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
+    linux_image=Image
+    qemu_path=/usr/bin/qemu-aarch64-static
+else
+    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-7000..."
+    root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
+    linux_image=uImage
+    qemu_path=/usr/bin/qemu-arm-static
+fi
+
 dd if=/dev/zero of=$image bs=1M count=${size}
 
 device=`losetup -f`
@@ -17,18 +31,6 @@ losetup ${device} ${image}
 
 boot_dir=`mktemp -d /tmp/BOOT.XXXXXXXXXX`
 root_dir=`mktemp -d /tmp/ROOT.XXXXXXXXXX`
-
-ubuntu_version=18.04.1
-
-if [$zynq_type -eq "zynqmp"]; then
-    root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
-    linux_image=Image
-    qemu_path=/usr/bin/qemu-aarch64-static
-else
-    root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
-    linux_image=uImage
-    qemu_path=/usr/bin/qemu-arm-static
-fi
 
 root_url=http://cdimage.ubuntu.com/ubuntu-base/releases/${ubuntu_version}/release/$root_tar
 
