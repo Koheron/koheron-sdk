@@ -13,7 +13,49 @@ diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
  };
  &gpio0 {
  	emio-gpio-width = <64>;
-@@ -51,11 +53,21 @@
+@@ -35,11 +37,38 @@
+ 	num_interrupts = <96>;
+ };
+ &qspi {
++	status = "okay";
+ 	is-dual = <0>;
+ 	num-cs = <1>;
+-	spi-rx-bus-width = <4>;
+-	spi-tx-bus-width = <4>;
+-	status = "okay";
++	flash@0 {
++		compatible = "spansion,s25fl512s";
++		reg = <0x0>;
++		spi-tx-bus-width = <1>;
++		spi-rx-bus-width = <4>;
++		spi-max-frequency = <50000000>;
++		#address-cells = <1>;
++		#size-cells = <1>;
++		partition@qspi-fsbl-uboot {
++			label = "qspi-fsbl-uboot";
++			reg = <0x0 0x100000>;
++		};
++		partition@qspi-linux {
++			label = "qspi-linux";
++			reg = <0x100000 0x500000>;
++		};
++		partition@qspi-device-tree {
++			label = "qspi-device-tree";
++			reg = <0x600000 0x100000>;
++		};
++		partition@qspi-bitstream {
++			label = "qspi-bitstream";
++			reg = <0x700000 0x100000>;
++		};
++		partition@qspi-rootfs {
++			label = "qspi-rootfs";
++			reg = <0x800000 0x3800000>;
++		};
++	};
+ };
+ &sdhci0 {
+ 	status = "okay";
+@@ -51,11 +80,21 @@
  	is-decoded-cs = <0>;
  	num-cs = <3>;
  	status = "okay";
@@ -35,7 +77,7 @@ diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
  };
  &uart0 {
  	device_type = "serial";
-@@ -63,7 +75,8 @@
+@@ -63,7 +102,8 @@
  	status = "okay";
  };
  &usb0 {
