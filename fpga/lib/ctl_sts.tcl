@@ -69,9 +69,7 @@ proc add_status_register {module_name memory_name mclk mrstn {num_ports 32} {int
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
-  set n_hidden_ports 2
-
-  for {set i $n_hidden_ports} {$i < $num_ports} {incr i} {
+  for {set i 0} {$i < $num_ports} {incr i} {
     create_bd_pin -dir I -from 31 -to 0 $config::sts_register($i)
   }
 
@@ -116,12 +114,6 @@ proc add_status_register {module_name memory_name mclk mrstn {num_ports 32} {int
   set_property range  [get_memory_range $memory_name]  $memory_segment
   set_property offset [get_memory_offset $memory_name] $memory_segment
 
-  # DNA (hidden ports)
-  cell pavel-demin:user:dna_reader:1.0 dna {} {
-    aclk /$mclk
-    aresetn /$mrstn
-  }
-
   set left_ports $num_ports
   set concat_idx 0
 
@@ -150,11 +142,8 @@ proc add_status_register {module_name memory_name mclk mrstn {num_ports 32} {int
     incr concat_idx
   }
 
-  connect_pins concat_0/In0 [get_slice_pin dna/dna_data 31 0]
-  connect_pins concat_0/In1 [get_slice_pin dna/dna_data 56 32]
-
   # Other ports
-  for {set i $n_hidden_ports} {$i < $num_ports} {incr i} {
+  for {set i 0} {$i < $num_ports} {incr i} {
     set iidx [expr $i % 32]
     set cidx [expr $i / 32]
     connect_pins concat_$cidx/In$iidx $config::sts_register($i)

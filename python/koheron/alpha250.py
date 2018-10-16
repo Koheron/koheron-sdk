@@ -100,10 +100,6 @@ class Alpha250(object):
 
     # Misc
 
-    @command(classname='Common')
-    def get_dna(self):
-        return self.client.recv_uint64()
-
     @command(classname='Eeprom')
     def set_serial_number(self, sn):
         return self.client.recv_int32()

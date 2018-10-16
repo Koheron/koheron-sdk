@@ -49,9 +49,9 @@ OBJ := $(SERVER_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
-SERVER_CCXX := /usr/bin/arm-linux-gnueabihf-g++ -flto
+SERVER_CCXX = /usr/bin/$(GCC_ARCH)-g++ -flto
 
-SERVER_CCXXFLAGS := -Wall -Werror -Wextra
+SERVER_CCXXFLAGS = -Wall -Werror -Wextra
 SERVER_CCXXFLAGS += -Wpedantic -Wfloat-equal -Wunused-macros -Wcast-qual -Wuseless-cast
 SERVER_CCXXFLAGS += -Wlogical-op -Wdouble-promotion -Wformat -Wmissing-include-dirs -Wundef
 SERVER_CCXXFLAGS += -Wcast-align -Wpacked -Wredundant-decls -Wvarargs -Wvector-operation-performance -Wswitch-default
@@ -60,8 +60,12 @@ SERVER_CCXXFLAGS += -Wuninitialized -Wshadow -Wzero-as-null-pointer-constant -Wm
 #SERVER_CCXXFLAGS += -Wshift-negative-value -Wduplicated-cond -Wduplicated-branches -Waligned-new
 SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/core -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 SERVER_CCXXFLAGS += -DKOHERON_VERSION=$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)
-SERVER_CCXXFLAGS += -MMD -MP -O3 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard
+SERVER_CCXXFLAGS += -MMD -MP -O3 $(GCC_FLAGS)
 SERVER_CCXXFLAGS += -std=c++14 -pthread
+
+PHONY: gcc_flags
+gcc_flags:
+	@echo $(GCC_FLAGS)
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<

@@ -144,6 +144,7 @@ setup: setup_fpga setup_server setup_web setup_os
 .PHONY: setup_base
 setup_base:
 	sudo apt install -y g++-arm-linux-gnueabihf
+	sudo apt install -y g++-aarch64-linux-gnu
 	sudo apt install -y python-pip
 	sudo apt install -y curl
 	$(PIP) install -r $(SDK_PATH)/requirements.txt
