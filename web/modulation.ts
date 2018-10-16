@@ -39,12 +39,6 @@ class ModulationDriver {
         });
     }
 
-    getWfmSize(cb: (wfm_size: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['get_wfm_size']), (wfm_size) => {
-            cb(wfm_size)
-        });
-    }
-
     setWaveformType(channel: number, wfmType: number): void {
         this.client.send(Command(this.id, this.cmds['set_waveform_type'], channel, wfmType));
     }
@@ -98,10 +92,10 @@ class ModulationControl {
                             inputValue = status[property][this.currentChannel].toFixed(3);
                             spanValue = inputValue;
                         } else if (property === "dacFrequency") {
-                            inputValue = (status[property][this.currentChannel] * this.wfmSize / this.samplingRate).toFixed(3);
-                            spanValue = (status[property][this.currentChannel] * this.wfmSize / this.samplingRate).toFixed(3);
-                        } else if (property === "dacOffset") {
                             inputValue = (status[property][this.currentChannel] / 1e6).toFixed(3);
+                            spanValue = (status[property][this.currentChannel] / 1e6).toFixed(3);
+                        } else if (property === "dacOffset") {
+                            inputValue = (status[property][this.currentChannel]).toFixed(3);
                             spanValue = inputValue;
                         }
 
