@@ -5,6 +5,8 @@ class App {
     public ddsFrequency: DDSFrequency;
     private clockGenerator: ClockGenerator;
     private clockGeneratorApp: ClockGeneratorApp;
+    private phaseNoiseAnalyzer: PhaseNoiseAnalyzer;
+    private phaseNoiseAnalyzerApp: PhaseNoiseAnalyzerApp;
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
@@ -18,6 +20,8 @@ class App {
                 this.ddsFrequency = new DDSFrequency(document, this.dds);
                 this.clockGenerator = new ClockGenerator(client);
                 this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
+                this.phaseNoiseAnalyzer = new PhaseNoiseAnalyzer(client);
+                this.phaseNoiseAnalyzerApp = new PhaseNoiseAnalyzerApp(document, this.phaseNoiseAnalyzer);
             });
         }, false);
 

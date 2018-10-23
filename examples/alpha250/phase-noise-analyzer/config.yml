@@ -96,3 +96,5 @@ web:
   - ./web/clock-generator/clock-generator-app.ts
   - ./web/clock-generator/sampling-frequency.html
   - ./web/clock-generator/reference-clock.html
+  - ./web/phase-noise-analyzer.ts
+  - ./web/phase-noise-analyzer-app.ts
