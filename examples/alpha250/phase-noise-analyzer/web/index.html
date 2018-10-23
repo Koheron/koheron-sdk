@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Koheron</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Koheron">
+  <meta charset="utf-8">
+
+  <!--http://stackoverflow.com/questions/49547/making-sure-a-web-page-is-not-cached-across-all-browsers-->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <link rel="shortcut icon" href="kbird.ico">
+  <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="_koheron.css">
+  <link rel="stylesheet" type="text/css" href="main.css">
+
+  <script type="text/javascript" src="html-imports.min.js"></script>
+
+  <script type="text/javascript" src="jquery.min.js"></script>
+  <script type="text/javascript" src="bootstrap.min.js"></script>
+
+  <link rel="import" href="navigation.html" data-parent="navigation">
+  <link rel="import" href="dds-frequency.html" data-parent="dds-frequency">
+
+</head>
+
+<body>
+
+<div id="navigation"></div>
+
+<div id="main" class="container-fluid" style="padding: 10px">
+
+  <div class="row">
+
+    <div class="col-md-8">
+    </div>
+
+    <div class="col-md-4">
+
+      <section style="margin-bottom: 20px;">
+      </section>
+
+      <section id="dds-frequency"></section>
+    </div>
+
+  </div>
+
+</div>
+
+  <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.selection.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.time.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.axislabels.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.canvas.js"></script>
+
+  <script src="app.js?random=<?php echo uniqid(); ?>"></script>
+
+</div>
+
+</body>
+
+</html>

@@ -84,6 +84,11 @@ drivers:
   - ./phase-noise-analyzer.hpp
 
 web:
-  - web/index.html
-  - web/main.css
   - web/koheron.ts
+  - web/jquery.flot.d.ts
+  - web/main.css
+  - web/dds-frequency/dds-frequency.html
+  - web/dds-frequency/dds-frequency.ts
+  - ./web/index.html
+  - ./web/app.ts
+  - ./web/dds.ts
