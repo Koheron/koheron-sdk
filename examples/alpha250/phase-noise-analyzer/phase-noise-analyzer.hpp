@@ -8,6 +8,7 @@
 #include <context.hpp>
 
 #include <unsupported/Eigen/FFT>
+#include <numeric>
 #include <complex>
 #include <algorithm>
 #include <thread>
