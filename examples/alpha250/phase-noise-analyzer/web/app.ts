@@ -3,6 +3,8 @@ class App {
     private imports: Imports;
     private dds: DDS;
     public ddsFrequency: DDSFrequency;
+    private clockGenerator: ClockGenerator;
+    private clockGeneratorApp: ClockGeneratorApp;
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
@@ -14,7 +16,8 @@ class App {
                 this.imports = new Imports(document);
                 this.dds = new DDS(client);
                 this.ddsFrequency = new DDSFrequency(document, this.dds);
-
+                this.clockGenerator = new ClockGenerator(client);
+                this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
             });
         }, false);
 

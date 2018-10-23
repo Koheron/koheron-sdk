@@ -92,3 +92,7 @@ web:
   - ./web/index.html
   - ./web/app.ts
   - ./web/dds.ts
+  - ./web/clock-generator/clock-generator.ts
+  - ./web/clock-generator/clock-generator-app.ts
+  - ./web/clock-generator/sampling-frequency.html
+  - ./web/clock-generator/reference-clock.html
