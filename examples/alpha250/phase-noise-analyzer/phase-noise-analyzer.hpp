@@ -7,7 +7,7 @@
 
 #include <context.hpp>
 
-#include <Eigen/FFT>
+#include <unsupported/Eigen/FFT>
 #include <complex>
 #include <algorithm>
 #include <thread>
