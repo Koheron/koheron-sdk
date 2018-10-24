@@ -169,12 +169,6 @@ class PlotBasics {
     }
 
     redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void) {
-        for (let i: number = 0; i <= n_pts; i++) {
-            if (peakDatapoint[1] < plot_data[i][1]) {
-                peakDatapoint[0] = plot_data[i][0];
-                peakDatapoint[1] = plot_data[i][1];
-            }
-        }
 
         const plt_data: jquery.flot.dataSeries[] = [{label: ylabel, data: plot_data}];
 
@@ -228,7 +222,15 @@ class PlotBasics {
             }
         }
 
-        if (this.isPeakDetection) {
+        if (this.isPeakDetection && peakDatapoint.length > 0) {
+
+            for (let i: number = 0; i <= n_pts; i++) {
+                if (peakDatapoint[1] < plot_data[i][1]) {
+                    peakDatapoint[0] = plot_data[i][0];
+                    peakDatapoint[1] = plot_data[i][1];
+                }
+            }
+
             this.plot.unhighlight(localData[0], peakDatapoint);
 
             if (this.range_x.from < peakDatapoint[0] && peakDatapoint[0] < this.range_x.to &&
