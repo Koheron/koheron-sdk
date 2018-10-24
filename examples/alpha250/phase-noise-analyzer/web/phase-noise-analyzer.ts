@@ -26,10 +26,10 @@ class PhaseNoiseAnalyzer {
     });
   }
 
-  start(): void {
+  start(callback: () => void): void {
     this.client.send(Command(this.id, this.cmds['start']));
+    callback();
   }
-
 
   getParameters(callback: (parameters: IParameters) => void): void {
     this.client.readTuple(Command(this.id, this.cmds['get_parameters']), 'If',
@@ -40,5 +40,10 @@ class PhaseNoiseAnalyzer {
     });
   }
 
+  getPhaseNoise(nAverage: number, callback: (data: Float32Array) => void): void {
+    this.client.readFloat32Array(Command(this.id, this.cmds['get_phase_noise'], nAverage), (data: Float32Array) => {
+      callback(data);
+    });
+  }
 
 }

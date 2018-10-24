@@ -3,15 +3,15 @@
 
 class PhaseNoiseAnalyzerApp {
 
+  public nPoints: number;
+
   constructor(document: Document, private driver) {
-    this.driver.start();
-    this.updateParameters();
   }
 
-  private updateParameters() {
-    this.driver.getParameters( (parameters: IParameters) => {
-      console.log(parameters.data_size);
-      console.log(parameters.fs);
-    });
+  init(callback: () => void): void {
+    this.driver.getParameters((parameters) => {
+      this.nPoints = parameters.data_size;
+      callback();
+    })
   }
 }

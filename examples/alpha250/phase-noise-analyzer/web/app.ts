@@ -7,6 +7,14 @@ class App {
     private clockGeneratorApp: ClockGeneratorApp;
     private phaseNoiseAnalyzer: PhaseNoiseAnalyzer;
     private phaseNoiseAnalyzerApp: PhaseNoiseAnalyzerApp;
+    public plot: Plot;
+    private plotBasics: PlotBasics;
+
+    private n_pts: number;
+    private x_min: number;
+    private x_max: number;
+    private y_min: number;
+    private y_max: number;
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
@@ -22,6 +30,17 @@ class App {
                 this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
                 this.phaseNoiseAnalyzer = new PhaseNoiseAnalyzer(client);
                 this.phaseNoiseAnalyzerApp = new PhaseNoiseAnalyzerApp(document, this.phaseNoiseAnalyzer);
+
+                this.phaseNoiseAnalyzerApp.init( () => {
+                    this.n_pts = this.phaseNoiseAnalyzerApp.nPoints;
+                    this.x_min = 100;
+                    this.x_max = 2E6;
+                    this.y_min = -200;
+                    this.y_max = 0;
+
+                    this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.phaseNoiseAnalyzer, "", "FREQUENCY OFFSET (Hz)");
+                    this.plot = new Plot(document, this.phaseNoiseAnalyzer, this.plotBasics);
+                })
             });
         }, false);
 
