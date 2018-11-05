@@ -64,3 +64,5 @@ ax.set_xlim([fmin * 1e-6, fmax * 1e-6])
 ax.legend(loc=2)
 
 plt.show()
+
+np.save('alpha250_adc_crosstalk.npy', (freqs, crosstalk))
