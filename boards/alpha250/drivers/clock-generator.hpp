@@ -8,6 +8,11 @@
 
 #include <array>
 #include <mutex>
+#include <chrono>
+#include <thread>
+
+#include <fstream>
+#include <string>
 
 namespace clock_cfg {
 
@@ -67,7 +72,13 @@ class ClockGenerator
     , i2c(ctx.i2c.get("i2c-0"))
     , eeprom(ctx.get<Eeprom>())
     , spi_cfg(ctx.get<SpiConfig>())
-    {}
+    {
+        std::ifstream ifile(filename);
+        if (!ifile.good()) {
+            is_clock_generator_initialized = false;
+        }
+
+    }
 
     void phase_shift(uint32_t n_shifts) {
         // Phase shift the MMCM
@@ -139,6 +150,9 @@ class ClockGenerator
     SpiConfig& spi_cfg;
 
     std::mutex mtx;
+
+    const char* filename = "/tmp/clock-generator-initialized";
+    bool is_clock_generator_initialized = true;
 
     uint8_t tcxo_calibration;
     uint32_t clkin; // Current input clock
@@ -358,46 +372,58 @@ class ClockGenerator
         {
             std::lock_guard<std::mutex> lock(mtx);
 
-            // For each change the whole chip must be reprogram and the registers order must be respected
-            write_reg(1 << 17); // Reset
             write_reg((CLKout0_PD << 31) + (CLKout0_DDLY << 18) + (CLKout0_DIV << 5) + 0);
             write_reg((CLKout1_PD << 31) + (CLKout1_DDLY << 18) + (CLKout1_DIV << 5) + 1);
             write_reg((CLKout2_PD << 31) + (CLKout2_DDLY << 18) + (CLKout2_DIV << 5) + 2);
             write_reg((CLKout3_PD << 31) + (CLKout3_DDLY << 18) + (CLKout3_DIV << 5) + 3);
             write_reg((CLKout4_PD << 31) + (CLKout4_DDLY << 18) + (CLKout4_DIV << 5) + 4);
             write_reg((CLKout5_PD << 31) + (CLKout5_DDLY << 18) + (CLKout5_DIV << 5) + 5);
-            write_reg((CLKout1_TYPE << 24) + (CLKout0_TYPE << 20) + (CLKout1_ADLY << 11) + (CLKout0_ADLY << 5) + 6);
-            write_reg((CLKout3_TYPE << 24) + (CLKout2_TYPE << 20) + (CLKout3_ADLY << 11) + (CLKout2_ADLY << 5) + 7);
-            write_reg((CLKout5_TYPE << 24) + (CLKout4_TYPE << 16) + (CLKout5_ADLY << 11) + (CLKout4_ADLY << 5) + 8);
-            write_reg(0b01010101010101010101010101001001); // R9 required programming
-            write_reg((1 << 28) + (OSCout0_Type << 24) + (EN_OSCout0 << 22) +  (OSCout0_MUX << 20)
-                    + (PD_OSCin << 19) + (OSCout_DIV << 16) + (1 << 14) + (VCO_MUX << 12)
-                    + (EN_FEEDBACK_MUX << 0) + (VCO_DIV << 8) + (FEEDBACK_MUX << 5) + 10);
-            write_reg((Mode << 27) + (EN_SYNC << 26) + (NO_SYNC_CLKout5 << 25) + (NO_SYNC_CLKout4 << 24) + (NO_SYNC_CLKout3 << 23)
-                    + (NO_SYNC_CLKout2 << 22) + (NO_SYNC_CLKout1 << 21) + (NO_SYNC_CLKout0 << 20) + (SYNC_CLKin2_MUX << 18)
-                    + (SYNC_QUAL << 17) + (SYNC_POL_INV << 16) + (SYNC_EN_AUTO << 15) + (SYNC_TYPE << 12) + (EN_PLL2_XTAL << 5) + 11);
-            write_reg((LD_MUX << 27) + (LD_TYPE << 24) + (SYNC_PLL2_DLD << 23) + (SYNC_PLL1_DLD << 22)
-                    + (1 << 19) + (1 << 18) + (EN_TRACK << 8) + (HOLDOVER_MODE << 6) + 12);
+
+            if (!is_clock_generator_initialized) {
+                write_reg((CLKout1_TYPE << 24) + (CLKout0_TYPE << 20) + (CLKout1_ADLY << 11) + (CLKout0_ADLY << 5) + 6);
+                write_reg((CLKout3_TYPE << 24) + (CLKout2_TYPE << 20) + (CLKout3_ADLY << 11) + (CLKout2_ADLY << 5) + 7);
+                write_reg((CLKout5_TYPE << 24) + (CLKout4_TYPE << 16) + (CLKout5_ADLY << 11) + (CLKout4_ADLY << 5) + 8);
+                write_reg(0b01010101010101010101010101001001); // R9 required programming
+                write_reg((1 << 28) + (OSCout0_Type << 24) + (EN_OSCout0 << 22) +  (OSCout0_MUX << 20)
+                        + (PD_OSCin << 19) + (OSCout_DIV << 16) + (1 << 14) + (VCO_MUX << 12)
+                        + (EN_FEEDBACK_MUX << 0) + (VCO_DIV << 8) + (FEEDBACK_MUX << 5) + 10);
+                write_reg((Mode << 27) + (EN_SYNC << 26) + (NO_SYNC_CLKout5 << 25) + (NO_SYNC_CLKout4 << 24) + (NO_SYNC_CLKout3 << 23)
+                        + (NO_SYNC_CLKout2 << 22) + (NO_SYNC_CLKout1 << 21) + (NO_SYNC_CLKout0 << 20) + (SYNC_CLKin2_MUX << 18)
+                        + (SYNC_QUAL << 17) + (SYNC_POL_INV << 16) + (SYNC_EN_AUTO << 15) + (SYNC_TYPE << 12) + (EN_PLL2_XTAL << 5) + 11);
+                write_reg((LD_MUX << 27) + (LD_TYPE << 24) + (SYNC_PLL2_DLD << 23) + (SYNC_PLL1_DLD << 22)
+                        + (1 << 19) + (1 << 18) + (EN_TRACK << 8) + (HOLDOVER_MODE << 6) + 12);
+
+            }
+
             write_reg((HOLDOVER_MUX << 27) + (HOLDOVER_TYPE << 24) + (Status_CLKin1_MUX << 20) + (Status_CLKin0_TYPE << 16)
                     + (DISABLE_DLD1_DET << 15) + (Status_CLKin0_MUX << 12) + (CLKin_SELECT_MODE << 9 ) + (CLKin_Sel_INV << 8)
                     + (EN_CLKin2 << 7) + (EN_CLKin1 << 6) + (EN_CLKin0 << 5) + 13);
-            write_reg((LOS_TIMEOUT << 30) + (EN_LOS << 28) + (Status_CLKin1_TYPE << 24) + (CLKin2_BUF_TYPE << 22) + (CLKin1_BUF_TYPE << 21)
-                    + (CLKin0_BUF_TYPE << 20) + (DAC_HIGH_TRIP << 14) + (DAC_LOW_TRIP << 6) + (EN_VTUNE_RAIL_DET << 5) + 14);
-            write_reg((MAN_DAC << 22) + (EN_MAN_DAC << 20) + (HOLDOVER_DLD_CNT << 6) + (FORCE_HOLDOVER << 5) + 15);
-            write_reg((XTAL_LVL << 30) + (1 << 24) + (1 << 22) + (1 << 20) + (1 << 18) + (1 << 16) + (1 << 10) + 16);
-            write_reg((PLL2_C4_LF << 28) + (PLL2_C3_LF << 24) + (PLL2_R4_LF << 20) + (PLL2_R3_LF << 16)
-                    + (PLL1_N_DLY << 12) + (PLL1_R_DLY << 8) + (PLL1_WND_SIZE << 6) + 24);
-            write_reg((DAC_CLK_DIV << 22) + (PLL1_DLD_CNT << 6) + 25);
-            write_reg((PLL2_WND_SIZE << 30) + (EN_PLL2_REF_2X << 29) + (PLL2_CP_POL << 28) + (PLL2_CP_GAIN << 26)
-                    + (1 << 25) + (1 << 24) + (1 << 23) + (1 << 21) + (PLL2_DLD_CNT << 6) + (PLL2_CP_TRI << 5) + 26);
-            write_reg((PLL1_CP_POL << 28) + (PLL1_CP_GAIN << 26) + (CLKin2_PreR_DIV << 24) + (CLKin1_PreR_DIV << 22)
-                    + (CLKin0_PreR_DIV << 20) + (PLL1_R << 6) + (PLL1_CP_TRI << 5) + 27);
-            write_reg( (PLL2_R << 20) + (PLL1_N << 6) + 28);
+
+            if (!is_clock_generator_initialized) {
+                write_reg((LOS_TIMEOUT << 30) + (EN_LOS << 28) + (Status_CLKin1_TYPE << 24) + (CLKin2_BUF_TYPE << 22) + (CLKin1_BUF_TYPE << 21)
+                        + (CLKin0_BUF_TYPE << 20) + (DAC_HIGH_TRIP << 14) + (DAC_LOW_TRIP << 6) + (EN_VTUNE_RAIL_DET << 5) + 14);
+                write_reg((MAN_DAC << 22) + (EN_MAN_DAC << 20) + (HOLDOVER_DLD_CNT << 6) + (FORCE_HOLDOVER << 5) + 15);
+                write_reg((XTAL_LVL << 30) + (1 << 24) + (1 << 22) + (1 << 20) + (1 << 18) + (1 << 16) + (1 << 10) + 16);
+                write_reg((PLL2_C4_LF << 28) + (PLL2_C3_LF << 24) + (PLL2_R4_LF << 20) + (PLL2_R3_LF << 16)
+                        + (PLL1_N_DLY << 12) + (PLL1_R_DLY << 8) + (PLL1_WND_SIZE << 6) + 24);
+                write_reg((DAC_CLK_DIV << 22) + (PLL1_DLD_CNT << 6) + 25);
+                write_reg((PLL2_WND_SIZE << 30) + (EN_PLL2_REF_2X << 29) + (PLL2_CP_POL << 28) + (PLL2_CP_GAIN << 26)
+                        + (1 << 25) + (1 << 24) + (1 << 23) + (1 << 21) + (PLL2_DLD_CNT << 6) + (PLL2_CP_TRI << 5) + 26);
+                write_reg((PLL1_CP_POL << 28) + (PLL1_CP_GAIN << 26) + (CLKin2_PreR_DIV << 24) + (CLKin1_PreR_DIV << 22)
+                        + (CLKin0_PreR_DIV << 20) + (PLL1_R << 6) + (PLL1_CP_TRI << 5) + 27);
+                write_reg( (PLL2_R << 20) + (PLL1_N << 6) + 28);
+            }
+
             write_reg((OSCin_FREQ << 24) + (PLL2_FAST_PDF << 23) + (PLL2_N_CAL << 5) + 29);
             write_reg((PLL2_P << 24) + (PLL2_N << 5) + 30);
 
             // phase shift the MMCM
             phase_shift(clk_cfg[9]);
+
+            if (!is_clock_generator_initialized) {
+                std::ofstream ofile(filename);
+                is_clock_generator_initialized = true;
+            }
         }
 
         return 0;
