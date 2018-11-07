@@ -17,6 +17,9 @@ jobs:
           name: Link GCC
           command: sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc; sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-g++
       - run:
+          name: Install Eigen library
+          command: sudo bash ./install_eigen.sh
+      - run:
           name: Install python requirements
           command: sudo pip install -r requirements.txt
       - run:

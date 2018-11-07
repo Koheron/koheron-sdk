@@ -8,6 +8,7 @@ module phase_unwrapper #
 (
   input  wire clk,
   input  wire acc_on,
+  input  wire rst,
   input  wire signed [DIN_WIDTH-1:0] phase_in,
   output wire signed [DIN_WIDTH+1-1:0] freq_out,
   output reg signed [DOUT_WIDTH-1:0] phase_out
@@ -45,10 +46,14 @@ module phase_unwrapper #
 
   // Accumulate phase
   always @(posedge clk) begin
-    if (acc_on) begin
-      phase_out <= phase_out + unwrapped_diff;
+    if (rst) begin
+      phase_out <= 0;
     end else begin
-      phase_out <= phase_out;
+      if (acc_on) begin
+        phase_out <= phase_out + unwrapped_diff;
+      end else begin
+        phase_out <= phase_out;
+      end
     end
   end
 
