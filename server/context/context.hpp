@@ -21,7 +21,8 @@ class Context : public ContextBase
     , i2c(*this)
     , fclk(*this)
     {
-        fclk.set_fclk("fclk0", 200000000);
+        // We set all the Zynq clocks before starting the drivers
+        zynq_clocks::set_clocks(fclk);
     }
 
     int init() {
