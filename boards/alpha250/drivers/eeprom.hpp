@@ -86,7 +86,10 @@ class Eeprom
         const uint8_t *begin = reinterpret_cast<const uint8_t*>(data.data());
 
         while (bytes_written < n_bytes) {
-            auto size = std::min(PAGESIZE, n_bytes - bytes_written);
+            // PAGESIZE cast required to compile in -O0.
+            // Should not be required anymore in C++17.
+            // https://stackoverflow.com/questions/40690260/undefined-reference-error-for-static-constexpr-member
+            auto size = std::min(uint32_t(PAGESIZE), n_bytes - bytes_written);
             if (__write_packet(offset + bytes_written, begin + bytes_written, size) < 0) {
                     return -1;
             }
