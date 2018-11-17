@@ -5,6 +5,7 @@
 #define __SERVER_CONTEXT_ZYNQ_FCLK__
 
 #include <dirent.h>
+#include <unistd.h>
 
 #include <cstdio>
 #include <string>
