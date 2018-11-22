@@ -155,7 +155,8 @@ $(LINUX_PATH): $(LINUX_TAR)
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/$(LINUX_IMAGE): $(LINUX_PATH) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
-	cp $(OS_PATH)/xilinx_zynq_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs/xilinx_$(ZYNQ_TYPE)_defconfig
+	cp $(OS_PATH)/xilinx_devcfg.c $(LINUX_PATH)/drivers/char
+	cp $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs
 	make -C $< mrproper
 	make -C $< ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
 	make -C $< ARCH=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
