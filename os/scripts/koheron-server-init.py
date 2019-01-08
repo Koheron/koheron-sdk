@@ -78,5 +78,5 @@ class KoheronClient:
 
 if __name__ == "__main__":
     client = KoheronClient('/var/run/koheron-server.sock')
-    driver_id, cmd_id = client.get_ids('Common', 'init')
+    driver_id, cmd_id = client.get_ids('Common', 'ip_on_leds')
     client.send_command(driver_id, cmd_id)

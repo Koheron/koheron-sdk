@@ -39,7 +39,7 @@ class Common
     }
 
     void init() {
-        ip_on_leds();
+        //ip_on_leds();
     };
 
     std::string get_instrument_config() {

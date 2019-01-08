@@ -46,11 +46,12 @@ class Common
     }
 
     void init() {
+        ctx.log<INFO>("Common - Initializing ...");
         clkgen.init();
         ltc2157.init();
         ad9747.init();
         precisiondac.init();
-        ip_on_leds();
+        //ip_on_leds();
     };
 
     std::string get_instrument_config() {
