@@ -16,12 +16,14 @@ namespace clock_cfg {
     constexpr uint32_t EXT_CLOCK = 0;
     constexpr uint32_t FPGA_CLOCK = 1;
     constexpr uint32_t TCXO_CLOCK = 2;
+    constexpr uint32_t PIN_SELECT = 3;
     constexpr uint32_t AUTO_CLOCK = 4;
 
     constexpr auto clkin_names = koheron::make_array(
         koheron::str_const("External"),
         koheron::str_const("FPGA"),
         koheron::str_const("TCXO"),
+        koheron::str_const("Pin Select"),
         koheron::str_const("Auto")
     );
 
@@ -70,8 +72,12 @@ class ClockGenerator
     , spi_cfg(ctx.get<SpiConfig>())
     {
         std::ifstream ifile(filename);
+
         if (!ifile.good()) {
+            ctx.log<INFO>("Clock generator - Not initialized");
             is_clock_generator_initialized = false;
+        } else {
+            ctx.log<INFO>("Clock generator - Already initialized");
         }
 
     }
@@ -104,9 +110,11 @@ class ClockGenerator
     }
 
     void init() {
+        ctx.log<INFO>("Clock generator - Setting default configuration ...");
         std::array<uint8_t, 1> cal_array;
         eeprom.read<eeprom_map::clock_generator_calib::offset>(cal_array);
         tcxo_calibration = cal_array[0];
+        ctx.log<INFO>("Clock generator - TCXO calibration is %u", tcxo_calibration);
         set_tcxo_clock(tcxo_calibration);
         configure(clock_cfg::TCXO_CLOCK, clock_cfg::fs_250MHz);
     }
@@ -290,7 +298,7 @@ class ClockGenerator
         // R15
         uint32_t MAN_DAC = 100;
         uint32_t EN_MAN_DAC = 0;
-        uint32_t HOLDOVER_DLD_CNT = 512; //512
+        uint32_t HOLDOVER_DLD_CNT = 512;
         uint32_t FORCE_HOLDOVER = 0;
 
         // R16
@@ -407,9 +415,9 @@ class ClockGenerator
                         + (1 << 25) + (1 << 24) + (1 << 23) + (1 << 21) + (PLL2_DLD_CNT << 6) + (PLL2_CP_TRI << 5) + 26);
                 write_reg((PLL1_CP_POL << 28) + (PLL1_CP_GAIN << 26) + (CLKin2_PreR_DIV << 24) + (CLKin1_PreR_DIV << 22)
                         + (CLKin0_PreR_DIV << 20) + (PLL1_R << 6) + (PLL1_CP_TRI << 5) + 27);
-                write_reg( (PLL2_R << 20) + (PLL1_N << 6) + 28);
             }
 
+            write_reg( (PLL2_R << 20) + (PLL1_N << 6) + 28);
             write_reg((OSCin_FREQ << 24) + (PLL2_FAST_PDF << 23) + (PLL2_N_CAL << 5) + 29);
             write_reg((PLL2_P << 24) + (PLL2_N << 5) + 30);
 

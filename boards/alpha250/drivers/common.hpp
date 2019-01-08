@@ -29,8 +29,8 @@ class Common
     Common(Context& ctx_)
     : ctx(ctx_)
     , sts(ctx.mm.get<mem::status>())
-    , gpio(ctx.get<GpioExpander>())
     , clkgen(ctx.get<ClockGenerator>())
+    , gpio(ctx.get<GpioExpander>())
     , ltc2157(ctx.get<Ltc2157>())
     , ad9747(ctx.get<Ad9747>())
     , precisiondac(ctx.get<PrecisionDac>())
@@ -98,8 +98,8 @@ class Common
   private:
     Context& ctx;
     Memory<mem::status>& sts;
-    GpioExpander& gpio;
     ClockGenerator& clkgen;
+    GpioExpander& gpio;
     Ltc2157& ltc2157;
     Ad9747& ad9747;
     PrecisionDac& precisiondac;
