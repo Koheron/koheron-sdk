@@ -84,16 +84,9 @@ class ClockGenerator
 
     void phase_shift(uint32_t n_shifts) {
         // Phase shift the MMCM
-        for (uint32_t i = 0; i < n_shifts; i++) {
+        while (n_shifts--) {
             single_phase_shift(1);
         }
-    }
-
-    void single_phase_shift(uint32_t incdec) {
-        constexpr uint32_t psen_bit = 2;
-        constexpr uint32_t psincdec_bit = 3;
-        ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));
-        ctl.clear_bit<reg::mmcm, psen_bit>();
     }
 
     int32_t set_tcxo_calibration(uint8_t new_cal) {
@@ -158,8 +151,8 @@ class ClockGenerator
     const char* filename = "/tmp/clock-generator-initialized";
     bool is_clock_generator_initialized = true;
 
-    uint8_t tcxo_calibration;
-    uint32_t clkin; // Current input clock
+    uint8_t tcxo_calibration = 256 / 2; // AD5141 half range by default
+    uint32_t clkin = clock_cfg::TCXO_CLOCK; // Current input clock
     uint32_t fs_selected = clock_cfg::configs.size(); // Current frequency configuration
     std::array<uint32_t, clock_cfg::num_params> clk_cfg;
 
@@ -171,6 +164,13 @@ class ClockGenerator
 
     // AD5141 non volatile digital potentiometer for TCXO frequency adjustment
     static constexpr uint32_t i2c_address = 0b0101111;
+
+    void single_phase_shift(uint32_t incdec) {
+        constexpr uint32_t psen_bit = 2;
+        constexpr uint32_t psincdec_bit = 3;
+        ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));
+        ctl.clear_bit<reg::mmcm, psen_bit>();
+    }
 
     void write_reg(uint32_t data) {
         constexpr uint8_t cs_clk_gen = 0;
