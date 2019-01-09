@@ -79,7 +79,6 @@ class ClockGenerator
         } else {
             ctx.log<INFO>("Clock generator - Already initialized");
         }
-
     }
 
     void phase_shift(uint32_t n_shifts) {
@@ -376,6 +375,10 @@ class ClockGenerator
         {
             std::lock_guard<std::mutex> lock(mtx);
 
+            if (!is_clock_generator_initialized) {
+                write_reg(1 << 17); // Reset
+            }
+
             write_reg((CLKout0_PD << 31) + (CLKout0_DDLY << 18) + (CLKout0_DIV << 5) + 0);
             write_reg((CLKout1_PD << 31) + (CLKout1_DDLY << 18) + (CLKout1_DIV << 5) + 1);
             write_reg((CLKout2_PD << 31) + (CLKout2_DDLY << 18) + (CLKout2_DIV << 5) + 2);
@@ -396,7 +399,6 @@ class ClockGenerator
                         + (SYNC_QUAL << 17) + (SYNC_POL_INV << 16) + (SYNC_EN_AUTO << 15) + (SYNC_TYPE << 12) + (EN_PLL2_XTAL << 5) + 11);
                 write_reg((LD_MUX << 27) + (LD_TYPE << 24) + (SYNC_PLL2_DLD << 23) + (SYNC_PLL1_DLD << 22)
                         + (1 << 19) + (1 << 18) + (EN_TRACK << 8) + (HOLDOVER_MODE << 6) + 12);
-
             }
 
             write_reg((HOLDOVER_MUX << 27) + (HOLDOVER_TYPE << 24) + (Status_CLKin1_MUX << 20) + (Status_CLKin0_TYPE << 16)
