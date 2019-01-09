@@ -24,7 +24,7 @@ clk_250MHz = {'idx': 1, 'fs': 250E6}
 
 clock = clk_250MHz
 driver.set_sampling_frequency(clock['idx'])
-driver.phase_shift(100)
+# driver.phase_shift(100)
 
 t = np.arange(driver.dac_size) / clock['fs']
 t_us = 1e6 * t

@@ -90,7 +90,6 @@ class ClockGenerator
 
     int32_t set_tcxo_calibration(uint8_t new_cal) {
         set_tcxo_clock(new_cal);
-
         std::array<uint8_t, 1> cal_array {new_cal};
         return eeprom.write<eeprom_map::clock_generator_calib::offset>(cal_array);
     }
