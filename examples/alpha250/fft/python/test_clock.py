@@ -12,7 +12,7 @@ class ClockGenerator(object):
 
     @command()
     def set_sampling_frequency(self, val):
-        pass
+        return self.client.recv_int32()
 
     @command()
     def set_reference_clock(self, val):
@@ -38,4 +38,4 @@ driver = ClockGenerator(connect(host, 'fft', restart=False))
 for i in range(10000000):
     print(i)
     time.sleep(0.0001)
-    driver.set_sampling_frequency(i % 2)
+    print(driver.set_sampling_frequency(i % 2))

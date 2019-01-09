@@ -12,6 +12,14 @@ class SpiConfig {
     , sts(ctx.mm.get<mem::status>())
     {}
 
+    void lock() {
+        mtx.lock();
+    }
+
+    void unlock() {
+        mtx.unlock();
+    }
+
     // cs_id: Index of the slave on the bus
     // nbytes: Number of bytes send per packet 
     template<uint8_t cs_id, uint8_t nbytes>
@@ -19,10 +27,6 @@ class SpiConfig {
         static_assert(nbytes > 0, "Empty packet");
         static_assert(nbytes <= 4, "Max. 4 bytes per packet");
         static_assert(cs_id <= 2, "Exceeds maximum number of slaves on SPI config bus");
-
-        // Locking is required since a second thread could write to
-        // registers just after the poling loop exits from the first thread
-        std::lock_guard<std::mutex> lock(mtx);
 
         // Wait for previous write to finish
         while (sts.read<reg::spi_cfg_sts>() == 0);
