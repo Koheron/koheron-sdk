@@ -18,7 +18,7 @@ class LedBlinker(object):
 
 if __name__=="__main__":
     host = os.getenv('HOST','192.168.1.100')
-    client = connect(host, 'led_blinker')
+    client = connect(host, 'led-blinker')
     driver = LedBlinker(client)
 
     print(driver.get_forty_two())
