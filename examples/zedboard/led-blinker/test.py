@@ -25,5 +25,5 @@ if __name__=="__main__":
 
     print('Start blinking...')
     for i in range(255):
-        driver.set_led(i)
+        driver.set_leds(i)
         time.sleep(0.01)
