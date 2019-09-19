@@ -53,58 +53,61 @@ source $project_path/tcl/power_spectral_density.tcl
 source $sdk_path/fpga/modules/bram_accumulator/bram_accumulator.tcl
 source $sdk_path/fpga/lib/bram_recorder.tcl
 
-power_spectral_density::create psd [get_parameter fft_size]
+for {set j 0} {$j < 2} {incr j} { # ADC index
 
-cell koheron:user:latched_mux:1.0 mux_psd {
-  N_INPUTS 2
-  SEL_WIDTH 1
-  WIDTH 16
-} {
-  clk   adc/adc_clk
-  clken [get_constant_pin 1 1]
-  sel   [ctl_pin psd_input_sel]
-  din   [get_concat_pin [list adc/adc00 adc/adc01]]
-}
+  power_spectral_density::create psd$j [get_parameter fft_size] $j
 
-connect_cell psd {
-  data       mux_psd/dout
-  clk        adc/adc_clk
-  tvalid     [ctl_pin psd_valid]
-  ctl_fft    [ctl_pin ctl_fft]
-}
+  cell koheron:user:latched_mux:1.0 mux_psd$j {
+    N_INPUTS 2
+    SEL_WIDTH 1
+    WIDTH 16
+  } {
+    clk   adc/adc_clk
+    clken [get_constant_pin 1 1]
+    sel   [ctl_pin psd_input_sel$j]
+    din   [get_concat_pin [list adc/adc${j}0 adc/adc${j}1]]
+  }
 
-# Accumulator
-cell koheron:user:psd_counter:1.0 psd_counter {
-  PERIOD [get_parameter fft_size]
-  PERIOD_WIDTH [expr int(ceil(log([get_parameter fft_size]))/log(2))]
-  N_CYCLES [get_parameter n_cycles]
-  N_CYCLES_WIDTH [expr int(ceil(log([get_parameter n_cycles]))/log(2))]
-} {
-  clk           adc/adc_clk
-  s_axis_tvalid psd/m_axis_result_tvalid
-  s_axis_tdata  psd/m_axis_result_tdata
-  cycle_index   [sts_pin cycle_index]
-}
+  connect_cell psd$j {
+    data       mux_psd$j/dout
+    clk        adc/adc_clk
+    tvalid     [ctl_pin psd_valid$j]
+    ctl_fft    [ctl_pin ctl_fft$j]
+  }
 
-bram_accumulator::create bram_accum
-connect_cell bram_accum {
-  clk adc/adc_clk
-  s_axis_tdata psd_counter/m_axis_tdata
-  s_axis_tvalid psd_counter/m_axis_tvalid
-  addr_in psd_counter/addr
-  first_cycle psd_counter/first_cycle
-  last_cycle psd_counter/last_cycle
-}
+  # Accumulator
+  cell koheron:user:psd_counter:1.0 psd_counter$j {
+    PERIOD [get_parameter fft_size]
+    PERIOD_WIDTH [expr int(ceil(log([get_parameter fft_size]))/log(2))]
+    N_CYCLES [get_parameter n_cycles]
+    N_CYCLES_WIDTH [expr int(ceil(log([get_parameter n_cycles]))/log(2))]
+  } {
+    clk           adc/adc_clk
+    s_axis_tvalid psd$j/m_axis_result_tvalid
+    s_axis_tdata  psd$j/m_axis_result_tdata
+    cycle_index   [sts_pin cycle_index$j]
+  }
 
-# Record spectrum data in BRAM
+  bram_accumulator::create bram_accum$j
+  connect_cell bram_accum$j {
+    clk adc/adc_clk
+    s_axis_tdata psd_counter$j/m_axis_tdata
+    s_axis_tvalid psd_counter$j/m_axis_tvalid
+    addr_in psd_counter$j/addr
+    first_cycle psd_counter$j/first_cycle
+    last_cycle psd_counter$j/last_cycle
+  }
 
-add_bram_recorder psd_bram psd
-connect_cell psd_bram {
-  clk adc/adc_clk
-  rst rst_adc_clk/peripheral_reset
-  addr bram_accum/addr_out
-  wen bram_accum/wen
-  adc bram_accum/m_axis_tdata
+  # Record spectrum data in BRAM
+
+  add_bram_recorder psd_bram$j psd$j
+  connect_cell psd_bram$j {
+    clk adc/adc_clk
+    rst rst_adc_clk/peripheral_reset
+    addr bram_accum$j/addr_out
+    wen bram_accum$j/wen
+    adc bram_accum$j/m_axis_tdata
+  }
 }
 
 # Test IOs

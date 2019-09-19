@@ -9,14 +9,14 @@ proc pins {cmd} {
   $cmd -dir I -type clk       clk
 }
 
-proc create {module_name fft_size} {
+proc create {module_name fft_size demod_idx} {
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
   pins create_bd_pin
 
-  cell xilinx.com:ip:c_counter_binary:12.0 demod_address {
+  cell xilinx.com:ip:c_counter_binary:12.0 demod${demod_idx}_address {
     CE true
     Output_Width [expr int(log([get_parameter fft_size])/log(2)) + 2]
     Increment_Value 4
@@ -26,10 +26,10 @@ proc create {module_name fft_size} {
   }
 
   # Add demod BRAM
-  set demod_bram_name [add_bram demod 0]
+  set demod_bram_name [add_bram demod${demod_idx} 0]
   connect_cell $demod_bram_name {
     clkb  clk
-    addrb demod_address/Q
+    addrb demod${demod_idx}_address/Q
     dinb  [get_constant_pin 0 32]
     enb   [get_Q_pin tvalid 1]
     web   [get_constant_pin 0 4]

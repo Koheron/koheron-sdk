@@ -26,11 +26,17 @@ memory:
   - name: xadc
     offset: '0x43C00000'
     range: 64K
-  - name: demod
+  - name: demod0
     offset: '0x60000000'
     range: 32K
-  - name: psd
-    offset: '0x70000000'
+  - name: psd0
+    offset: '0x61000000'
+    range: 32K
+  - name: demod1
+    offset: '0x62000000'
+    range: 32K
+  - name: psd1
+    offset: '0x63000000'
     range: 32K
 
 control_registers:
@@ -39,17 +45,16 @@ control_registers:
   - precision_dac_data[2]
   - spi_cfg_data
   - spi_cfg_cmd
-  - ctl_fft
-  - psd_valid
-  - psd_input_sel
-  - phase_incr[2]
+  - ctl_fft[2]
+  - psd_valid[2]
+  - psd_input_sel[2]
   - digital_outputs
 
 status_registers:
   - spi_cfg_sts
   - adc0[n_adc]
   - adc1[n_adc]
-  - cycle_index
+  - cycle_index[2]
   - digital_inputs
 
 parameters:
