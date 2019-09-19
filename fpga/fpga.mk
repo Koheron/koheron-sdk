@@ -82,10 +82,6 @@ CORE ?= $(FPGA_PATH)/cores/pdm_v1_0
 test_core: $(CORE)/core_config.tcl $(CORE)/*.v*
 	$(VIVADO) -source $(FPGA_PATH)/vivado/test_core.tcl -tclargs $(CORE) $(PART) $(TMP_FPGA_PATH)
 
-$(START_SH): $(MEMORY_YML) $(FPGA_PATH)/start.sh
-	$(MAKE_PY) --start_sh $(CONFIG) $@
-	@echo [$@] OK
-
 # Clean targets
 ###############################################################################
 

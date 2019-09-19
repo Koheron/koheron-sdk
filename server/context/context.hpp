@@ -8,6 +8,7 @@
 #include <memory_manager.hpp>
 #include <spi_dev.hpp>
 #include <i2c_dev.hpp>
+#include <zynq_fclk.hpp>
 
 #include "memory.hpp"
 
@@ -18,7 +19,11 @@ class Context : public ContextBase
     : mm()
     , spi(*this)
     , i2c(*this)
-    {}
+    , fclk(*this)
+    {
+        // We set all the Zynq clocks before starting the drivers
+        zynq_clocks::set_clocks(fclk);
+    }
 
     int init() {
         if (mm.open() < 0  ||
@@ -32,6 +37,7 @@ class Context : public ContextBase
     MemoryManager mm;
     SpiManager spi;
     I2cManager i2c;
+    ZynqFclk fclk;
 };
 
 #endif // __CONTEXT_HPP__
