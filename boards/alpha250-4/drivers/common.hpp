@@ -16,10 +16,10 @@ extern "C" {
 
 #include <context.hpp>
 #include <boards/alpha250/drivers/gpio-expander.hpp>
-#include <boards/alpha250/drivers/clock-generator.hpp>
 #include <boards/alpha250/drivers/temperature-sensor.hpp>
 #include <boards/alpha250/drivers/precision-dac.hpp>
 #include <boards/alpha250/drivers/precision-adc.hpp>
+#include "clock-generator.hpp"
 #include "ltc2157.hpp"
 
 class Common

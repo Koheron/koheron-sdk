@@ -15,7 +15,7 @@
 #include <limits>
 #include <array>
 
-#include <boards/alpha250/drivers/clock-generator.hpp>
+#include <boards/alpha250-4/drivers/clock-generator.hpp>
 #include <boards/alpha250-4/drivers/ltc2157.hpp>
 
 class FFT
@@ -139,7 +139,7 @@ class FFT
     }
 
     auto get_control_parameters() {
-        return std::make_tuple(fs_adc, input_channel, W1, W2);
+        return std::make_tuple(fs_adc[0], fs_adc[1], input_channel, W1, W2);
     }
 
     auto get_window_index() const {
@@ -157,7 +157,7 @@ class FFT
     ClockGenerator& clk_gen;
     Ltc2157& ltc2157;
 
-    double fs_adc; // ADC sampling rate (Hz)
+    std::array<double, 2> fs_adc; // ADC sampling rates (Hz)
     std::array<std::array<float, prm::fft_size/2>, 4> freq_calibration; // Conversion to W/Hz
 
     std::array<double, prm::fft_size> window;
@@ -196,24 +196,32 @@ class FFT
     void set_conversion_vectors() {
         constexpr double load = 50.0; // Ohm
         fs_adc = clk_gen.get_adc_sampling_freq();
-        const auto conv_factor = prm::n_cycles * fs_adc * load * W2;
+
+        const std::array<double, 4> conv_factor = {
+            prm::n_cycles * fs_adc[0] * load * W2,
+            prm::n_cycles * fs_adc[0] * load * W2,
+            prm::n_cycles * fs_adc[1] * load * W2,
+            prm::n_cycles * fs_adc[1] * load * W2
+        };
 
         const auto Hinv = koheron::make_array(
-            ltc2157.get_inverse_transfer_function<0, 0, prm::fft_size/2>(fs_adc),
-            ltc2157.get_inverse_transfer_function<0, 1, prm::fft_size/2>(fs_adc),
-            ltc2157.get_inverse_transfer_function<1, 0, prm::fft_size/2>(fs_adc),
-            ltc2157.get_inverse_transfer_function<1, 1, prm::fft_size/2>(fs_adc)
+            ltc2157.get_inverse_transfer_function<0, 0, prm::fft_size/2>(fs_adc[0]),
+            ltc2157.get_inverse_transfer_function<0, 1, prm::fft_size/2>(fs_adc[0]),
+            ltc2157.get_inverse_transfer_function<1, 0, prm::fft_size/2>(fs_adc[1]),
+            ltc2157.get_inverse_transfer_function<1, 1, prm::fft_size/2>(fs_adc[1])
         );
 
-        const std::array<double, 4> vin = { ltc2157.get_input_voltage_range(0, 0),
-                                            ltc2157.get_input_voltage_range(0, 1),
-                                            ltc2157.get_input_voltage_range(1, 0),
-                                            ltc2157.get_input_voltage_range(1, 1) };
+        const std::array<double, 4> vin = {
+            ltc2157.get_input_voltage_range(0, 0),
+            ltc2157.get_input_voltage_range(0, 1),
+            ltc2157.get_input_voltage_range(1, 0),
+            ltc2157.get_input_voltage_range(1, 1)
+        };
 
         for (unsigned int i=0; i<prm::fft_size/2; ++i) {
             for (unsigned int j=0; j < freq_calibration.size(); ++j) {
                 const auto vin_scal = vin[j] / (2 << 20);
-                freq_calibration[j][i] = vin_scal * vin_scal * double(Hinv[j][i]) / conv_factor;
+                freq_calibration[j][i] = vin_scal * vin_scal * double(Hinv[j][i]) / conv_factor[j];
             }
         }
     }
@@ -286,7 +294,7 @@ inline void  FFT::psd_acquisition_thread() {
                 psd_buffer_raw[adc] = psd_map1.read_array<float, prm::fft_size/2, 0>();
             }
 
-            if (std::abs(clk_gen.get_adc_sampling_freq() - fs_adc) > std::numeric_limits<double>::round_error()) {
+            if (std::abs(clk_gen.get_adc_sampling_freq()[adc] - fs_adc[adc]) > std::numeric_limits<double>::round_error()) {
                 // Sampling frequency has changed
                 set_conversion_vectors();
             }

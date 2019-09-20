@@ -72,11 +72,11 @@ xdc:
 drivers:
   - boards/alpha250-4/drivers/common.hpp
   - boards/alpha250-4/drivers/ltc2157.hpp
+  - boards/alpha250-4/drivers/clock-generator.hpp
   - boards/alpha250/drivers/eeprom.hpp
   - boards/alpha250/drivers/gpio-expander.hpp
   - boards/alpha250/drivers/temperature-sensor.hpp
   - boards/alpha250/drivers/power-monitor.hpp
-  - boards/alpha250/drivers/clock-generator.hpp
   - boards/alpha250/drivers/precision-adc.hpp
   - boards/alpha250/drivers/precision-dac.hpp
   - boards/alpha250/drivers/spi-config.hpp
