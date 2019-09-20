@@ -123,7 +123,7 @@ for {set j 0} {$j < 2} {incr j} { # ADC index
             BUS_IO_STD DIFF_HSTL_I_18
             SELIO_CLK_BUF MMCM
         } {
-            clk_in mmcm/clk_out1
+            clk_in mmcm/clk_out[expr $j + 1]
             data_in_from_pins_p adc${j}_${i}_p
             data_in_from_pins_n adc${j}_${i}_n
         }

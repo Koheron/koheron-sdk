@@ -158,14 +158,13 @@ class FFT
     Ltc2157& ltc2157;
 
     double fs_adc; // ADC sampling rate (Hz)
-    std::array<std::array<float, prm::fft_size/2>, 2> freq_calibration; // Conversion to W/Hz
+    std::array<std::array<float, prm::fft_size/2>, 4> freq_calibration; // Conversion to W/Hz
 
     std::array<double, prm::fft_size> window;
     double W1, W2; // Window correction factors
     uint32_t window_index;
 
     uint32_t input_channel = 0;
-    std::array<double, 2> dds_freq = {{0.0, 0.0}};
 
     std::array<std::array<float, prm::fft_size/2>, 2> psd_buffer_raw;
     std::array<std::array<float, prm::fft_size/2>, 2> psd_buffer;
@@ -196,23 +195,26 @@ class FFT
     // Vectors to convert PSD raw data into W/Hz
     void set_conversion_vectors() {
         constexpr double load = 50.0; // Ohm
-
         fs_adc = clk_gen.get_adc_sampling_freq();
+        const auto conv_factor = prm::n_cycles * fs_adc * load * W2;
 
         const auto Hinv = koheron::make_array(
             ltc2157.get_inverse_transfer_function<0, 0, prm::fft_size/2>(fs_adc),
-            ltc2157.get_inverse_transfer_function<0, 1, prm::fft_size/2>(fs_adc)
+            ltc2157.get_inverse_transfer_function<0, 1, prm::fft_size/2>(fs_adc),
+            ltc2157.get_inverse_transfer_function<1, 0, prm::fft_size/2>(fs_adc),
+            ltc2157.get_inverse_transfer_function<1, 1, prm::fft_size/2>(fs_adc)
         );
 
-        const std::array<double, 2> vin = { ltc2157.get_input_voltage_range(0, 0),
-                                            ltc2157.get_input_voltage_range(0, 1) };
+        const std::array<double, 4> vin = { ltc2157.get_input_voltage_range(0, 0),
+                                            ltc2157.get_input_voltage_range(0, 1),
+                                            ltc2157.get_input_voltage_range(1, 0),
+                                            ltc2157.get_input_voltage_range(1, 1) };
 
-        const float C0 =  (vin[0] / (2 << 20)) * (vin[0] / (2 << 20)) / prm::n_cycles / fs_adc / load / W2;
-        const float C1 =  (vin[1] / (2 << 20)) * (vin[1] / (2 << 20)) / prm::n_cycles / fs_adc / load / W2;
-
-        for (unsigned int i=0; i<prm::fft_size/2; i++) {
-            freq_calibration[0][i] = C0 * Hinv[0][i];
-            freq_calibration[1][i] = C1 * Hinv[1][i];
+        for (unsigned int i=0; i<prm::fft_size/2; ++i) {
+            for (unsigned int j=0; j < freq_calibration.size(); ++j) {
+                const auto vin_scal = vin[j] / (2 << 20);
+                freq_calibration[j][i] = vin_scal * vin_scal * double(Hinv[j][i]) / conv_factor;
+            }
         }
     }
 
@@ -227,6 +229,7 @@ class FFT
             res2 += window[i] * window[i];
         }
 
+        // For now the same window is used on both ADCs
         demod_map0.write_array(window_buffer);
         demod_map1.write_array(window_buffer);
 
@@ -235,9 +238,9 @@ class FFT
         set_conversion_vectors();
     }
 
-    auto get_cycle_index(int32_t adc_idx) {
-        return adc_idx == 0 ? sts.read<reg::cycle_index0>()
-                            : sts.read<reg::cycle_index1>();
+    auto get_cycle_index(uint32_t adc) {
+        return adc == 0 ? sts.read<reg::cycle_index0>()
+                        : sts.read<reg::cycle_index1>();
     }
 
 }; // class FFT
@@ -246,7 +249,7 @@ template <uint32_t adc>
 inline void FFT::start_psd_acquisition() {
     if (! psd_acquisition_started[adc]) {
         psd_buffer[adc].fill(0.0);
-        psd_thread[adc] = std::thread{&FFT::psd_acquisition_thread<0>, this};
+        psd_thread[adc] = std::thread{&FFT::psd_acquisition_thread<adc>, this};
         psd_thread[adc].detach();
     }
 }
@@ -289,7 +292,7 @@ inline void  FFT::psd_acquisition_thread() {
             }
 
             for (unsigned int i=0; i<prm::fft_size/2; i++) {
-                psd_buffer[adc][i] = psd_buffer_raw[adc][i] * freq_calibration[input_channel][i];
+                psd_buffer[adc][i] = psd_buffer_raw[adc][i] * freq_calibration[(adc << 1) + input_channel][i];
             }
         }
 
