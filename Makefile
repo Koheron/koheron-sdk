@@ -163,7 +163,7 @@ setup_server: setup_base
 setup_web: setup_base
 	sudo apt-get install -y nodejs
 	sudo apt-get install -y node-typescript
-	sudo apt-get install -y npm
+	# sudo apt-get install -y npm # npm installed with nodejs
 	#sudo rm -f /usr/bin/node && sudo ln -s /usr/bin/nodejs /usr/bin/node
 	npm install typescript
 	npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
