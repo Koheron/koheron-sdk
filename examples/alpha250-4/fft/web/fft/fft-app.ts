@@ -20,32 +20,13 @@ class FFTApp {
 
     private updateControls() {
         this.driver.getControlParameters( (sts: IFFTStatus) => {
-
-            for (let i = 0; i < this.channelNum; i++) {
-                let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".dds-channel-input[data-command='setDDSFreq'][data-channel='" + i.toString() + "']");
-                let inputsArray = [];
-                for (let j = 0; j < inputs.length; j++) {
-                    inputsArray.push(inputs[j]);
-                }
-
-                if (inputsArray.indexOf(<HTMLInputElement>document.activeElement) == -1) {
-                    for (let j = 0; j < inputs.length; j++) {
-                      inputs[j].value = (sts.dds_freq[i] / 1e6).toFixed(6);
-                      if (inputs[j].type == "range") {
-                        inputs[j].max = (sts.fs / 1e6 / 2).toFixed(1);
-                      }
-                    }
-                }
-            }
-
-            if (sts.fs === 200E6) {
+            if (sts.fs[0] === 200E6) {
                 (<HTMLInputElement>document.querySelector("[data-command='setSamplingFrequency'][value='0']")).checked = true;
             } else {
                 (<HTMLInputElement>document.querySelector("[data-command='setSamplingFrequency'][value='1']")).checked = true;
             }
 
             (<HTMLInputElement>document.querySelector("[data-command='setInputChannel'][value='" + sts.channel.toString() + "']")).checked = true;
-
             requestAnimationFrame( () => { this.updateControls(); } )
         });
     }

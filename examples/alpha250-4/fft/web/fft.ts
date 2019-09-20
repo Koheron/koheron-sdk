@@ -2,8 +2,7 @@
 // (c) Koheron
 
 interface IFFTStatus {
-    dds_freq: number[];
-    fs: number; // Sampling frequency (Hz)
+    fs: number[]; // Sampling frequencies (Hz)
     channel: number; // Input channel
     W1: number; // FFT window correction (sum w)^2
     W2: number; // FFT window correction (sum w^2)
@@ -16,6 +15,7 @@ class FFT {
 
     public fft_size: number;
     public status: IFFTStatus;
+    public adc_input: number;
 
     constructor (private client: Client) {
         this.driver = this.client.getDriver('FFT');
@@ -24,7 +24,8 @@ class FFT {
         //this.monitor(1000);
 
         this.status = <IFFTStatus>{};
-        this.status.dds_freq = [];
+        this.status.fs = [];
+        this.adc_input = 0;
     }
 
     init(cb: () => void): void {
@@ -54,20 +55,16 @@ class FFT {
                                  (size) => {cb(size)});
     }
 
-    read_psd_raw(cb: (psd: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd_raw']), (psd: Float32Array) => {
+    read_psd_raw(adc: number, cb: (psd: Float32Array) => void): void {
+        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd_raw'], adc), (psd: Float32Array) => {
             cb(psd);
         });
     }
 
-    read_psd(cb: (psd: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd']), (psd: Float32Array) => {
+    read_psd(adc: number, cb: (psd: Float32Array) => void): void {
+        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd'], adc), (psd: Float32Array) => {
             cb(psd);
         });
-    }
-
-    setDDSFreq(channel: number, freq_hz: number): void {
-        this.client.send(Command(this.id, this.cmds['set_dds_freq'], channel, freq_hz));
     }
 
     setInputChannel(channel: number): void {
@@ -79,11 +76,10 @@ class FFT {
     }
 
     getControlParameters(cb: (status: IFFTStatus) => void): void {
-        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'dddIdd',
+        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'ddIdd',
                                (tup: [number, number, number, number, number, number]) => {
-            this.status.dds_freq[0] = tup[0];
-            this.status.dds_freq[1] = tup[1];
-            this.status.fs = tup[2];
+            this.status.fs[0] = tup[0];
+            this.status.fs[1] = tup[1];
             this.status.channel = tup[3];
             this.status.W1 = tup[4];
             this.status.W2 = tup[5];
@@ -96,5 +92,9 @@ class FFT {
                                (windowIndex: number) => {
             cb(windowIndex);
         });
+    }
+
+    setInputAdc(adc: number) {
+        this.adc_input = adc;
     }
 }

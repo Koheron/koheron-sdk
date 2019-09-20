@@ -17,6 +17,8 @@ host = os.getenv('HOST', '192.168.1.50')
 client = connect(host, 'fft', restart=False)
 driver = FFT(client)
 
+print(driver.get_fs())
+
 driver.set_fft_window(1)
 driver.set_input_channel(1)
 

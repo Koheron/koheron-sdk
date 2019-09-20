@@ -86,12 +86,11 @@ web:
   - web/koheron.ts
   - web/jquery.flot.d.ts
   - web/main.css
-  - web/dds-frequency/dds-frequency.html
-  - web/dds-frequency/dds-frequency.ts
   - ./web/index.html
   - ./web/app.ts
   - ./web/fft.ts
   - ./web/fft/fft-window.html
+  - ./web/fft/input-adc.html
   - ./web/fft/input-channel.html
   - ./web/fft/fft-app.ts
   - web/plot-basics/plot-basics.ts

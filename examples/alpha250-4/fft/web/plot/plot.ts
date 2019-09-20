@@ -18,8 +18,8 @@ class Plot {
     }
 
     updatePlot() {
-        this.fft.read_psd( (psd: Float32Array) => {
-            let max_x: number = this.fft.status.fs / 1E6 / 2
+        this.fft.read_psd_raw(this.fft.adc_input, (psd: Float32Array) => {
+            let max_x: number = this.fft.status.fs[this.fft.adc_input] / 1E6 / 2
 
             if (max_x != this.plotBasics.x_max) { // Sampling frequency has changed
                 this.plotBasics.x_max = max_x;
@@ -48,7 +48,7 @@ class Plot {
         if (outUnit === "dBm-Hz") {
             outValue = 10 * Math.log(inValue / 1E-3) / Math.LN10;
         } else if (outUnit === "dBm") {
-            outValue = 10 * Math.log(inValue * (this.fft.status.W2 / this.fft.status.W1) * this.fft.status.fs / this.fft.fft_size / 1E-3) / Math.LN10;
+            outValue = 10 * Math.log(inValue * (this.fft.status.W2 / this.fft.status.W1) * this.fft.status.fs[0] / this.fft.fft_size / 1E-3) / Math.LN10;
         } else if (outUnit === "nv-rtHz") {
             outValue = Math.sqrt(50 * inValue) * 1E9;
         }

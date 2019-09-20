@@ -5,7 +5,6 @@ class App {
     private plotBasics: PlotBasics;
     private fft: FFT;
     public fftApp: FFTApp;
-    public ddsFrequency: DDSFrequency;
     private temperatureSensor: TemperatureSensor;
     private temperatureSensorApp: TemperatureSensorApp;
     private powerMonitor: PowerMonitor;
@@ -40,11 +39,10 @@ class App {
 
                 this.fft.init( () => {
                     this.fftApp = new FFTApp(document, this.fft);
-                    this.ddsFrequency = new DDSFrequency(document, this.fft);
 
                     this.n_pts = this.fft.fft_size / 2;
                     this.x_min = 0;
-                    this.x_max = this.fft.status.fs / 1E6 / 2;
+                    this.x_max = this.fft.status.fs[0] / 1E6 / 2;
                     this.y_min = -200;
                     this.y_max = 170;
 
