@@ -157,9 +157,8 @@ set_property PACKAGE_PIN J16 [get_ports {adc0_1_n[4]}]
 set_property PACKAGE_PIN K16 [get_ports {adc0_1_p[4]}]
 set_property PACKAGE_PIN G18 [get_ports {adc0_1_n[5]}]
 set_property PACKAGE_PIN G17 [get_ports {adc0_1_p[5]}]
-
-set_property PACKAGE_PIN E19 [get_ports {adc0_1_n[6]}]
-set_property PACKAGE_PIN E18 [get_ports {adc0_1_p[6]}]
+set_property PACKAGE_PIN G20 [get_ports {adc0_1_n[6]}]
+set_property PACKAGE_PIN G19 [get_ports {adc0_1_p[6]}]
 
 # ----------------------------------------------------------------------------------
 # XADC

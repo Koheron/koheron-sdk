@@ -171,8 +171,12 @@ cell xilinx.com:ip:proc_sys_reset:5.0 rst_adc_clk {} {
   slowest_sync_clk adc/adc_clk
 }
 
+# clk_in1 connected to adc1_clk_in.
+# Since adc0_clk_in is not in the same clock region than clk_gen_in (and the MMCM),
+# an error "sub-optimal placement fir a clock-capable io pin and mmcm pair" is generated.
+
 connect_cell adc {
-    clk_in1 adc0_clk_in
+    clk_in1 adc1_clk_in
     clk_in2 clk_gen_in
     adc0_0_p adc0_0_p
     adc0_0_n adc0_0_n

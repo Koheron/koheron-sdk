@@ -63,24 +63,20 @@ parameters:
   dac_width: 16
   adc_width: 16
   n_adc: 2
-  fft_size: 8192
+  fft_size: 4096
   n_cycles: 1023
-  cic_differential_delay: 1
-  cic_decimation_rate: 500
-  cic_n_stages: 6
 
 xdc:
-  - boards/alpha250/config/ports.xdc
+  - boards/alpha250-4/config/ports.xdc
 
 drivers:
-  - boards/alpha250/drivers/common.hpp
+  - boards/alpha250-4/drivers/common.hpp
+  - boards/alpha250-4/drivers/ltc2157.hpp
   - boards/alpha250/drivers/eeprom.hpp
   - boards/alpha250/drivers/gpio-expander.hpp
   - boards/alpha250/drivers/temperature-sensor.hpp
   - boards/alpha250/drivers/power-monitor.hpp
   - boards/alpha250/drivers/clock-generator.hpp
-  - boards/alpha250/drivers/ltc2157.hpp
-  - boards/alpha250/drivers/ad9747.hpp
   - boards/alpha250/drivers/precision-adc.hpp
   - boards/alpha250/drivers/precision-dac.hpp
   - boards/alpha250/drivers/spi-config.hpp
