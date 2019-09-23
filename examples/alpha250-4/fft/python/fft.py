@@ -42,3 +42,7 @@ class FFT(object):
     @command()
     def set_fft_window(self, window_name):
         pass
+
+    @command()
+    def get_adc_raw_data(self, n_avg):
+        return self.client.recv_array(4, dtype='int32')

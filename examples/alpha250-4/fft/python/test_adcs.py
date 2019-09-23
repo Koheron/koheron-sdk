@@ -18,9 +18,10 @@ client = connect(host, 'fft', restart=False)
 driver = FFT(client)
 
 print(driver.get_fs())
+print(driver.get_adc_raw_data(100))
 
 driver.set_fft_window(1)
-driver.set_input_channel(1)
+driver.set_input_channel(0)
 
 freqs = np.arange(driver.n_pts / 2) * 250. / driver.n_pts
 plt.loglog(freqs, driver.read_psd_raw(0))

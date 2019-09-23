@@ -127,8 +127,8 @@ class FFT
             for (size_t i=0; i<n_avg; i++) {
                 adc00 += sts.read<reg::adc00, int16_t>();
                 adc01 += sts.read<reg::adc01, int16_t>();
-                adc10 += sts.read<reg::adc00, int16_t>();
-                adc11 += sts.read<reg::adc01, int16_t>();
+                adc10 += sts.read<reg::adc10, int16_t>();
+                adc11 += sts.read<reg::adc11, int16_t>();
             }
 
             return { int32_t(std::round(adc00 / double(n_avg))),
