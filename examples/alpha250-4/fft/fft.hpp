@@ -174,7 +174,7 @@ class FFT
     std::array<std::atomic<uint32_t>, 2> acq_cycle_index{};
 
     template <uint32_t adc> void psd_acquisition_thread();
-    template <uint32_t adc>void start_psd_acquisition();
+    template <uint32_t adc> void start_psd_acquisition();
 
     // https://en.wikipedia.org/wiki/Window_function
     void set_cosine_sum_window(const std::array<double, 6>& a) {
@@ -218,10 +218,12 @@ class FFT
             ltc2157.get_input_voltage_range(1, 1)
         };
 
-        for (unsigned int i=0; i<prm::fft_size/2; ++i) {
-            for (unsigned int j=0; j < freq_calibration.size(); ++j) {
-                const auto vin_scal = vin[j] / (2 << 20);
-                freq_calibration[j][i] = vin_scal * vin_scal * double(Hinv[j][i]) / conv_factor[j];
+        for (unsigned int j=0; j < freq_calibration.size(); ++j) {
+            const auto vin_scal = vin[j] / (2 << 20);
+            const auto factor = 2.0 * vin_scal * vin_scal / conv_factor[j];
+
+            for (unsigned int i=0; i < prm::fft_size/2; ++i) {
+                freq_calibration[j][i] = factor * double(Hinv[j][i]);
             }
         }
     }

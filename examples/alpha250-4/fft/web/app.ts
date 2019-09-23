@@ -54,7 +54,6 @@ class App {
                     this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
                     this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionAdc, this.precisionDac);
                     this.exportFile = new ExportFile(document, this.plot);
-
                 });
             });
         }, false);

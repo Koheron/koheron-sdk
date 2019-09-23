@@ -18,7 +18,7 @@ class Plot {
     }
 
     updatePlot() {
-        this.fft.read_psd_raw(this.fft.adc_input, (psd: Float32Array) => {
+        this.fft.read_psd(this.fft.adc_input, (psd: Float32Array) => {
             let max_x: number = this.fft.status.fs[this.fft.adc_input] / 1E6 / 2
 
             if (max_x != this.plotBasics.x_max) { // Sampling frequency has changed

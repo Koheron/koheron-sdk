@@ -74,7 +74,7 @@ class PrecisionDac
         ctl.write<reg::precision_dac_data1>((dac_values[3] << 16) + (dac_values[2] & 0xFFFF));
     }
 
-    const auto& get_dac_values() const {
+    auto get_dac_values() const {
         return values_volt;
     }
 

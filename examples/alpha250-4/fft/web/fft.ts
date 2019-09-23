@@ -80,9 +80,9 @@ class FFT {
                                (tup: [number, number, number, number, number, number]) => {
             this.status.fs[0] = tup[0];
             this.status.fs[1] = tup[1];
-            this.status.channel = tup[3];
-            this.status.W1 = tup[4];
-            this.status.W2 = tup[5];
+            this.status.channel = tup[2];
+            this.status.W1 = tup[3];
+            this.status.W2 = tup[4];
             cb(this.status);
         });
     }
