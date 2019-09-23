@@ -18,7 +18,14 @@ client = connect(host, 'fft', restart=False)
 driver = FFT(client)
 
 print(driver.get_fs())
-print(driver.get_adc_raw_data(100))
+
+for _ in range(20):
+    print(driver.get_adc_raw_data(100))
+
+time.sleep(0.5)
+
+for _ in range(20):
+    print(driver.get_adc_raw_data(100))
 
 driver.set_fft_window(1)
 driver.set_input_channel(0)
