@@ -41,7 +41,7 @@ namespace clock_cfg {
         12,  // CLKout3_DIV (FPGA clock)
         240, // CLKout4_DIV (EXP_CLK0 clock)
         240, // CLKout5_DIV (EXP_CLK1 clock)
-        0    // MMCM phase shift
+        210  // MMCM phase shift
     };
 
     // Sampling frequency 250 MHz (f_vco = 2500 MHz)
@@ -55,7 +55,7 @@ namespace clock_cfg {
         10,  // CLKout3_DIV (FPGA clock)
         250, // CLKout4_DIV (EXP_CLK0 clock)
         250, // CLKout5_DIV (EXP_CLK1 clock)
-        56   // MMCM phase shift
+        50   // MMCM phase shift
     };
 
     constexpr std::array<std::array<uint32_t, num_params>, num_configs> configs = {fs_200MHz, fs_250MHz};
