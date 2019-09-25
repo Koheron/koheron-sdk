@@ -46,3 +46,7 @@ class FFT(object):
     @command()
     def get_adc_raw_data(self, n_avg):
         return self.client.recv_array(4, dtype='int32')
+
+    @command()
+    def get_acq_cycle_index(self, adc):
+        return self.client.recv_uint32()

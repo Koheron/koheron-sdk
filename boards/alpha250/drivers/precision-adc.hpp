@@ -45,7 +45,7 @@ class PrecisionAdc
     SpiDev& spi;
 
     static constexpr uint8_t channel_num = 8;
-    std::array<float, channel_num> analog_inputs_data;
+    std::array<float, channel_num> analog_inputs_data{};
     std::atomic<bool> adc_acquisition_started{false};
 
     std::thread adc_read_thread;

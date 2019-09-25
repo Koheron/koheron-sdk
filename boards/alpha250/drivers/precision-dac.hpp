@@ -89,12 +89,12 @@ class PrecisionDac
     Memory<mem::control>& ctl;
     Eeprom& eeprom;
 
-    std::array<uint32_t, n_dacs> dac_values;
-    std::array<float, n_dacs> values_volt;
+    std::array<uint32_t, n_dacs> dac_values{};
+    std::array<float, n_dacs> values_volt{};
     uint32_t enable = 1;
 
     // Calibration coefficients
-    std::array<float, 2 * n_dacs> cal_coeffs;
+    std::array<float, 2 * n_dacs> cal_coeffs{};
 };
 
 #endif // __ALPHA_DRIVERS_PRECISION_DAC_HPP__

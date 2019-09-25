@@ -33,6 +33,7 @@ class FFT
     , ltc2157(ctx.get<Ltc2157>())
     {
         set_input_channel(0);
+        // Scaling schedule is ignored when FFT core configure for floating points
         set_scale_sch(0);
         set_fft_window(1);
         ctl.set_bit<reg::psd_valid0, 0>();
@@ -87,7 +88,7 @@ class FFT
             return std::array<float, prm::fft_size/2>{};
         }
 
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<std::mutex> lock(mutex[adc]);
         return psd_buffer_raw[adc];
     }
 
@@ -98,7 +99,7 @@ class FFT
             return std::array<float, prm::fft_size/2>{};
         }
 
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<std::mutex> lock(mutex[adc]);
         return psd_buffer[adc];
     }
 
@@ -108,6 +109,10 @@ class FFT
 
     uint32_t get_fft_size() const {
         return prm::fft_size;
+    }
+
+    auto get_acq_cycle_index(uint32_t adc) {
+        return acq_cycle_index[adc].load();
     }
 
     // Return the raw input value of each ADC channel
@@ -157,19 +162,19 @@ class FFT
     ClockGenerator& clk_gen;
     Ltc2157& ltc2157;
 
-    std::array<double, 2> fs_adc; // ADC sampling rates (Hz)
-    std::array<std::array<float, prm::fft_size/2>, 4> freq_calibration; // Conversion to W/Hz
+    std::array<double, 2> fs_adc{}; // ADC sampling rates (Hz)
+    std::array<std::array<float, prm::fft_size/2>, 4> freq_calibration{}; // Conversion to W/Hz
 
-    std::array<double, prm::fft_size> window;
+    std::array<double, prm::fft_size> window{};
     double W1, W2; // Window correction factors
     uint32_t window_index;
 
     uint32_t input_channel = 0;
 
-    std::array<std::array<float, prm::fft_size/2>, 2> psd_buffer_raw;
-    std::array<std::array<float, prm::fft_size/2>, 2> psd_buffer;
-    std::array<std::thread, 2> psd_thread;
-    std::mutex mutex;
+    std::array<std::array<float, prm::fft_size/2>, 2> psd_buffer_raw{};
+    std::array<std::array<float, prm::fft_size/2>, 2> psd_buffer{};
+    std::array<std::thread, 2> psd_thread{};
+    std::array<std::mutex, 2> mutex{};
     std::array<std::atomic<bool>, 2> psd_acquisition_started{};
     std::array<std::atomic<uint32_t>, 2> acq_cycle_index{};
 
@@ -265,7 +270,7 @@ inline void FFT::start_psd_acquisition() {
 }
 
 template <uint32_t adc>
-inline void  FFT::psd_acquisition_thread() {
+inline void FFT::psd_acquisition_thread() {
     static_assert(adc < 2, "");
     using namespace std::chrono_literals;
 
@@ -277,7 +282,8 @@ inline void  FFT::psd_acquisition_thread() {
 
         // Wait for data
         while (cycle_index >= previous_cycle_index) {
-            const auto sleep_time = std::chrono::nanoseconds((prm::n_cycles - cycle_index) * prm::fft_size * 4);
+            const auto sleep_time
+                = std::chrono::nanoseconds((prm::n_cycles - cycle_index) * prm::fft_size * 4);
     
             if (sleep_time > 1ms) {
                 std::this_thread::sleep_for(sleep_time);
@@ -288,7 +294,7 @@ inline void  FFT::psd_acquisition_thread() {
         }
 
         {
-            std::lock_guard<std::mutex> lock(mutex);
+            std::lock_guard<std::mutex> lock(mutex[adc]);
 
             if (adc == 0) {
                 psd_buffer_raw[adc] = psd_map0.read_array<float, prm::fft_size/2, 0>();
@@ -296,7 +302,8 @@ inline void  FFT::psd_acquisition_thread() {
                 psd_buffer_raw[adc] = psd_map1.read_array<float, prm::fft_size/2, 0>();
             }
 
-            if (std::abs(clk_gen.get_adc_sampling_freq()[adc] - fs_adc[adc]) > std::numeric_limits<double>::round_error()) {
+            if (std::abs(clk_gen.get_adc_sampling_freq()[adc] - fs_adc[adc])
+                    > std::numeric_limits<double>::round_error()) {
                 // Sampling frequency has changed
                 set_conversion_vectors();
             }

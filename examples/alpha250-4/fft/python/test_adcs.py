@@ -22,10 +22,18 @@ alpha = Alpha250(client)
 
 print(driver.get_fs())
 
-alpha.set_precision_dac(3, 16384)
-alpha.set_precision_dac(1, 49152)
-alpha.set_precision_dac(2, 32768)
-alpha.set_precision_dac(0, 65500)
+# clk_200MHz = {'idx': 0, 'fs': 200E6}
+# clk_250MHz = {'idx': 1, 'fs': 250E6}
+
+# clock = clk_250MHz
+# alpha.set_sampling_frequency(clock['idx'])
+
+# for _ in range(300):
+#     print("-----")
+#     driver.read_psd_raw(0)
+#     print (driver.get_acq_cycle_index(0))
+#     driver.read_psd_raw(1)
+#     print (driver.get_acq_cycle_index(1))
 
 driver.set_fft_window(1)
 driver.set_input_channel(0)
