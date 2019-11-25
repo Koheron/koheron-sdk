@@ -16,10 +16,10 @@ def get_taps(N, R, M, ntaps=256, cutoff=0.45):
     f = np.arange(2048) / 2047.
     cic_response = lambda f : abs( M/R * (np.sin((f*R)/2)) / (np.sin((f*M)/2.)) )**N if f !=0 else 1
 
-    H = np.array(map(cic_response, f*np.pi))
+    H = np.fromiter(map(cic_response, f*np.pi), dtype=np.float64)
 
     # Define frequency reponse of ideal compensation filter
-    H = np.array(map(cic_response, f*np.pi / R))
+    H = np.fromiter(map(cic_response, f*np.pi / R), dtype=np.float64)
     Hc = 1/H * (f < cutoff)
 
     beta = 8
@@ -41,7 +41,7 @@ if __name__=="__main__":
     if sys.argv[4] == 'plot':
         import matplotlib.pyplot as plt
         w, h = signal.freqz(taps, worN=16384)
-        hh = np.array(map(cic_response, w / R))
+        hh = np.fromiter(map(cic_response, w / R), dtype=np.float64)
         hh[0] = 1
         plt.plot(w / np.pi, 20 * np.log10(abs(h)), label='FIR filter')
         plt.plot(w / np.pi, 20 * np.log10(abs(h * hh)), label='Compensated filter')

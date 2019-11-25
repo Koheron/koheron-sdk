@@ -109,26 +109,18 @@ class ClockGenerator
     }
 
     // 0: Ext. clock, 1: FPGA clock, 2: TCXO, 4: Automatic
-    int32_t set_reference_clock(uint32_t clkin_) {
+    void set_reference_clock(uint32_t clkin_) {
         if (clkin_ != clkin) {
-            return configure(CLKIN_SELECT, clkin_, clk_cfg);
+            configure(CLKIN_SELECT, clkin_, clk_cfg);
         }
-
-        return 0;
     }
 
-    int32_t set_sampling_frequency(uint32_t fs_select) {
+    void set_sampling_frequency(uint32_t fs_select) {
         if (fs_select < clock_cfg::num_configs && fs_select != fs_selected) {
-            int err = configure(SAMPLING_FREQ_SET, clkin, clock_cfg::configs[fs_select]);
-
-            if (err == 0) {
+            if (configure(SAMPLING_FREQ_SET, clkin, clock_cfg::configs[fs_select]) == 0) {
                 fs_selected = fs_select;
             }
-
-            return err;
         }
-
-        return 0;
     }
 
     double get_adc_sampling_freq() const {

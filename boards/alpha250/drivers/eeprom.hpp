@@ -57,6 +57,51 @@ namespace eeprom_map {
     constexpr int32_t user_off = 0x1000;
 }
 
+namespace eeprom_map_alpha250_4 {
+    namespace identifications {
+        constexpr int32_t offset = 0x000;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace precision_dac_calib {
+        constexpr int32_t offset = 0x100;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace rf_adc0_ch0_calib {
+        constexpr int32_t offset = 0x200;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace rf_adc0_ch1_calib {
+        constexpr int32_t offset = 0x300;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace clock_generator_calib {
+        constexpr int32_t offset = 0x400;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace precision_adc_calib {
+        constexpr int32_t offset = 0x700;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace rf_adc1_ch0_calib {
+        constexpr int32_t offset = 0x800;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace rf_adc1_ch1_calib {
+        constexpr int32_t offset = 0x900;
+        constexpr int32_t range = 0x100;
+    }
+
+    // Addresses above 0x1000 are reserved to user
+    constexpr int32_t user_off = 0x1000;
+}
+
 class Eeprom
 {
   public:

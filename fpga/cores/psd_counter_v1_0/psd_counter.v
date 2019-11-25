@@ -1,6 +1,6 @@
 `timescale 1 ns / 1 ps
 
-module dsp_counter #
+module psd_counter #
 (
   parameter integer PERIOD = 256,
   parameter integer PERIOD_WIDTH = 8,

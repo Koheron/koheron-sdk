@@ -22,7 +22,7 @@ def load_config(config_filename):
     ''' Get the config dictionary from the file 'config.yml' '''
 
     with open(config_filename) as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
 
     return config
 
@@ -83,7 +83,7 @@ def dump_if_changed(filename, new_dict):
     changed = False
     if os.path.isfile(filename):
         with open(filename, 'r') as yml_file:
-            old_dict = yaml.load(yml_file)
+            old_dict = yaml.safe_load(yml_file)
             if old_dict != new_dict:
                changed = True
 
