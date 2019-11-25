@@ -54,8 +54,7 @@ NAME := $(shell $(MAKE_PY) --name $(CONFIG) $(TMP_PROJECT_PATH)/name && cat $(TM
 # - Web files (HTML, CSS, Javascript)
 
 BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit # FPGA bitstream
-SERVER := $(TMP_PROJECT_PATH)/serverd # TCP / Websocket server executable that communicates with the FPGA:
-START_SH := $(TMP_PROJECT_PATH)/start.sh # Bash script that configures the Zynq registers (clocks...)
+SERVER := $(TMP_PROJECT_PATH)/serverd # TCP / Websocket server executable that communicates with the FPGA
 
 VERSION_FILE := $(TMP_PROJECT_PATH)/version
 
@@ -64,8 +63,8 @@ $(VERSION_FILE): $(CONFIG)
 
 # Zip file that contains all the files needed to run the instrument:
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
-$(INSTRUMENT_ZIP): server $(BITSTREAM) $(START_SH) web $(VERSION_FILE)
-	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM) $(SERVER) $(START_SH) $(WEB_ASSETS) $(VERSION_FILE)
+$(INSTRUMENT_ZIP): server $(BITSTREAM) web $(VERSION_FILE)
+	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM) $(SERVER) $(WEB_ASSETS) $(VERSION_FILE)
 	@echo [$@] OK
 
 # Make builds the instrument zip file by default
