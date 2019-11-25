@@ -35,7 +35,7 @@ class PrecisionAdc
         return read(0x05, 1);
     }
 
-    const auto& get_adc_values() {
+    auto get_adc_values() {
         std::lock_guard<std::mutex> lock(acquisition_mtx);
         return analog_inputs_data;
     }
@@ -45,7 +45,7 @@ class PrecisionAdc
     SpiDev& spi;
 
     static constexpr uint8_t channel_num = 8;
-    std::array<float, channel_num> analog_inputs_data;
+    std::array<float, channel_num> analog_inputs_data{};
     std::atomic<bool> adc_acquisition_started{false};
 
     std::thread adc_read_thread;
