@@ -14,32 +14,14 @@ include $(OS_PATH)/$(ZYNQ_TYPE).mk
 
 
 PATCHES := $(BOARD_PATH)/patches
-<<<<<<< HEAD
-HSI := source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && hsi -nolog -nojournal -mode batch
-BOOTGEN := source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && bootgen
-=======
 PROC := ps7_cortexa9_0
 HSI := source $(VIVADO_PATH)/$(VIVADO_VER)/settings64.sh && hsi -nolog -nojournal -mode batch
 BOOTGEN := source $(VIVADO_PATH)/$(VIVADO_VER)/settings64.sh && bootgen
->>>>>>> a0624deb... added support ultrascale support for os building
 
 BOARD := $(shell basename $(BOARD_PATH))
 
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 
-<<<<<<< HEAD
-ZYNQ_TYPE := zynq
-
-# Define U-boot and Linux repositories
--include $(OS_PATH)/board.mk
-ifneq ("$(wildcard $(BOARD_PATH)/board.mk)","")
--include $(BOARD_PATH)/board.mk
-endif
-
--include $(OS_PATH)/$(ZYNQ_TYPE).mk
-
-=======
->>>>>>> a0624deb... added support ultrascale support for os building
 UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
 LINUX_PATH := $(TMP_OS_PATH)/linux-xlnx-$(LINUX_TAG)
 DTREE_PATH := $(TMP_OS_PATH)/device-tree-xlnx-$(DTREE_TAG)
@@ -59,11 +41,7 @@ DTREE_SWITCH = $(TMP_OS_PATH)/devicetree_$(DTREE_LOC)
 endif
 
 .PHONY: os
-<<<<<<< HEAD
-os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/boot.bin $(TMP_OS_PATH)/$(LINUX_IMAGE) $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_VERSION_FILE)
-=======
-os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/boot.bin $(TMP_OS_PATH)/$(LINUX_IMAGE) $(DTREE_SWITCH) $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_VERSION_FILE)
->>>>>>> a0624deb... added support ultrascale support for os building
+os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/boot.bin $(TMP_OS_PATH)/$(LINUX_IMAGE) $(DTREE_SWITCH) $(TMP_OS_VERSION_FILE)
 
 # Build image (run as root)
 .PHONY: image
