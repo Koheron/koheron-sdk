@@ -10,7 +10,6 @@ image=$tmp_project_path/${name}-development.img
 size=1024
 
 ubuntu_version=18.04.1
-
 if [ "${zynq_type}" = "zynqmp" ]; then
     echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-MPSoC..."
     root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
@@ -40,8 +39,8 @@ timezone=Europe/Paris
 # Create partitions
 
 parted -s $device mklabel msdos
-parted -s $device mkpart primary fat16 4MB 16MB
-parted -s $device mkpart primary ext4 16MB 100%
+parted -s $device mkpart primary fat16 4MB 512MB
+parted -s $device mkpart primary ext4 512MB 100%
 
 boot_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '2!d'`
 root_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '3!d'`
@@ -58,7 +57,7 @@ mount $root_dev $root_dir
 
 # Copy files to the boot file system
 
-cp $tmp_os_path/boot.bin $tmp_os_path/devicetree.dtb $tmp_os_path/$linux_image $os_path/uEnv.txt $boot_dir
+#cp $tmp_os_path/boot.bin $tmp_os_path/devicetree.dtb $tmp_os_path/$linux_image $os_path/uEnv.txt $boot_dir
 
 # Copy Ubuntu Core to the root file system
 
@@ -118,7 +117,7 @@ cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
 /dev/mmcblk0p2  /               ext4    rw,noatime          0       1
-/dev/mmcblk0p1  /boot           vfat    ro,noatime          0       2
+/dev/mmcblk0p1  /boot           vfat    rw,noatime          0       2
 tmpfs           /tmp            tmpfs   defaults,noatime    0       0
 tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 EOF_CAT
@@ -208,7 +207,7 @@ cp $os_path/config/nginx-server.conf $root_dir/etc/nginx/sites-enabled/nginx-ser
 cp $os_path/systemd/nginx.service $root_dir/etc/systemd/system/nginx.service
 
 #rm $root_dir/etc/resolv.conf
-rm $root_dir/usr/bin/qemu-arm-static
+rm $root_dir/usr/bin/qemu-a*
 
 # Unmount file systems
 
