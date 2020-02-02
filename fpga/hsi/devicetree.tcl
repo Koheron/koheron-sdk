@@ -6,6 +6,7 @@ set vivado_version [lindex $argv 3]
 set hard_path [lindex $argv 4]
 set tree_path [lindex $argv 5]
 set hwdef_filename [lindex $argv 6]
+set en_overlay [lindex $argv 7]
 
 set boot_args {console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait}
 
@@ -19,6 +20,8 @@ create_sw_design -proc $proc_name -os device_tree devicetree
 
 set_property CONFIG.kernel_version $vivado_version [get_os]
 set_property CONFIG.bootargs $boot_args [get_os]
+
+set_property CONFIG.dt_overlay ${en_overlay} [get_os]
 
 generate_bsp -dir $tree_path
 
