@@ -99,7 +99,7 @@ class PhaseNoiseAnalyzer
     }
 };
 
-inline const auto& PhaseNoiseAnalyzer::get_phase_noise(uint32_t n_avg) {
+auto PhaseNoiseAnalyzer::get_phase_noise(uint32_t n_avg) {
     std::fill(phase_noise.begin(), phase_noise.end(), 0.0f);
 
     for (uint32_t i=0; i<n_avg; i++) {
