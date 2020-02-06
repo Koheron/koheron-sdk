@@ -10,13 +10,13 @@ LIVE_DIRNAME=$2
 /usr/bin/unzip -o /usr/local/instruments/${NAME}.zip -d ${LIVE_DIRNAME}
 
 echo 'Load bitstream'
-XDEV=/dev/xdevcfg
+XDEV=/sys/bus/platform/drivers/xdevcfg/f8007000.devcfg/prog_done
 FMAN=/sys/class/fpga_manager/fpga0/firmware
 if [ -f "$XDEV" ]; then
     echo "$XDEV exist"
     /bin/cat ${LIVE_DIRNAME}/${NAME}.bit > /dev/xdevcfg
     /bin/cat /sys/bus/platform/drivers/xdevcfg/f8007000.devcfg/prog_done
-elif [ -f "$XDEV" ]; then
+elif [ -f "$FMAN" ]; then
     echo "$FMAN exist"
     mkdir -p /config
     mkdir -p /lib/firmware
