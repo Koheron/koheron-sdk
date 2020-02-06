@@ -52,4 +52,4 @@ if __name__ == "__main__":
     clk_250MHz = {'name': '250 MHz', 'idx': 1, 'fs': 250E6}
 
     test_phase_shift(clk_200MHz)
-    # test_phase_shift(clk_250MHz)
+    #test_phase_shift(clk_250MHz)

@@ -9,6 +9,7 @@
 #include <spi_dev.hpp>
 #include <i2c_dev.hpp>
 #include <zynq_fclk.hpp>
+#include <fpga_manager.hpp>
 
 #include "memory.hpp"
 
@@ -20,7 +21,12 @@ class Context : public ContextBase
     , spi(*this)
     , i2c(*this)
     , fclk(*this)
+    , fpga(*this)
     {
+        if (fpga.load_bitstream(instrument_name) < 0) {
+            // Exit server
+        }
+
         // We set all the Zynq clocks before starting the drivers
         zynq_clocks::set_clocks(fclk);
     }
@@ -38,6 +44,7 @@ class Context : public ContextBase
     SpiManager spi;
     I2cManager i2c;
     ZynqFclk fclk;
+    FpgaManager fpga;
 };
 
 #endif // __CONTEXT_HPP__

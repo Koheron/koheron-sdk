@@ -19,7 +19,7 @@ class ZynqFclk {
     {}
 
     void set(const std::string& fclk_name, uint32_t fclk_rate) {
-        auto fclk_dir_name = devcfg + std::string("/fclk/") + fclk_name;
+        const auto fclk_dir_name = devcfg + "/fclk/" + fclk_name;
 
         if (fclk_export(fclk_name, fclk_dir_name) < 0) {
             return;
@@ -38,7 +38,7 @@ class ZynqFclk {
 
   private:
     ContextBase& ctx;
-    std::string devcfg = "/sys/devices/soc0/amba/f8007000.devcfg";
+    const std::string devcfg = "/sys/devices/soc0/amba/f8007000.devcfg";
 
     int fclk_export(const std::string& fclk_name, const std::string& fclk_dir_name) {
         DIR *fclk_dir = opendir(fclk_dir_name.c_str());
@@ -47,7 +47,7 @@ class ZynqFclk {
             // Clock not exported yet.
             // Call devcfg/fcl_export ....
 
-            auto fclk_export_name = devcfg + std::string("/fclk_export");
+            const auto fclk_export_name = devcfg + "/fclk_export";
             FILE *fclk_export = fopen(fclk_export_name.c_str(), "w");
 
             if (fclk_export == nullptr) {
@@ -69,7 +69,7 @@ class ZynqFclk {
     }
 
     int fclk_enable(const std::string& fclk_name, const std::string& fclk_dir_name) {
-        auto fclk_enable_name = fclk_dir_name + std::string("/enable");
+        const auto fclk_enable_name = fclk_dir_name + "/enable";
         FILE *fclk_enable = fopen(fclk_enable_name.c_str(), "w");
 
         if (fclk_enable == nullptr) {
@@ -88,7 +88,7 @@ class ZynqFclk {
     }
 
     int fclk_set_rate(const std::string& fclk_name, const std::string& fclk_dir_name, uint32_t fclk_rate) {
-        auto fclk_set_rate_name = fclk_dir_name + std::string("/set_rate");
+        const auto fclk_set_rate_name = fclk_dir_name + "/set_rate";
         FILE *fclk_set_rate = fopen(fclk_set_rate_name.c_str(), "w");
 
         if (fclk_set_rate == nullptr) {
@@ -96,7 +96,7 @@ class ZynqFclk {
             return -1;
         }
 
-        auto fclk_rate_str = std::to_string(fclk_rate);
+        const auto fclk_rate_str = std::to_string(fclk_rate);
 
         if (write(fileno(fclk_set_rate), fclk_rate_str.c_str(), fclk_rate_str.length() + 1) < 0) {
             ctx.log<ERROR>("ZynqFclk: Failed to set clock %s rate\n", fclk_name.c_str());
