@@ -22,12 +22,12 @@ elif [ -f "$FMAN" ]; then
     mkdir -p /config
     mkdir -p /lib/firmware
     mount -t configfs configfs /configfs
-    mkdir -p /configfs/device-tree/overlays/full
-    echo 0 > /sys/class/fpga_manager/fpga0/flags
     if [ -d "$FFULL" ]; then
         echo "$FFULL exist"
         rmdir $FFULL
     fi
+    mkdir -p /configfs/device-tree/overlays/full
+    echo 0 > /sys/class/fpga_manager/fpga0/flags
     cp ${LIVE_DIRNAME}/overlay.dtb /lib/firmware/.
     cp ${LIVE_DIRNAME}/*.bit.bin /lib/firmware/.
     echo -n "overlay.dtb" > /configfs/device-tree/overlays/full/path
