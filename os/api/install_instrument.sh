@@ -12,6 +12,7 @@ LIVE_DIRNAME=$2
 echo 'Load bitstream'
 XDEV=/sys/bus/platform/drivers/xdevcfg/f8007000.devcfg/prog_done
 FMAN=/sys/class/fpga_manager/fpga0/firmware
+FFULL=/configfs/device-tree/overlays/full/
 if [ -f "$XDEV" ]; then
     echo "$XDEV exist"
     /bin/cat ${LIVE_DIRNAME}/${NAME}.bit > /dev/xdevcfg
@@ -23,6 +24,10 @@ elif [ -f "$FMAN" ]; then
     mount -t configfs configfs /configfs
     mkdir -p /configfs/device-tree/overlays/full
     echo 0 > /sys/class/fpga_manager/fpga0/flags
+    if [ -d "$FFULL" ]; then
+        echo "$FFULL exist"
+        rmdir $FFULL
+    fi
     cp ${LIVE_DIRNAME}/overlay.dtb /lib/firmware/.
     cp ${LIVE_DIRNAME}/*.bit.bin /lib/firmware/.
     echo -n "overlay.dtb" > /configfs/device-tree/overlays/full/path
