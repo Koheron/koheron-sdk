@@ -13,7 +13,7 @@ from scipy import signal
 from fir import get_taps
 
 
-class Agilent33220A:    
+class Agilent33220A:
     def __init__(self, ip):
         import visa
         rm = visa.ResourceManager('@py')
@@ -21,7 +21,7 @@ class Agilent33220A:
 
     def set_sinus(self, freq, v_pp, offset):
         self.inst.write('APPL:SIN ' + str(freq / 1E3) + ' KHZ, '
-        	            + str(v_pp / 2) + ' VPP, ' 
+        	            + str(v_pp / 2) + ' VPP, '
         	            + str(offset) + ' V\n')
 
 
@@ -60,9 +60,9 @@ M = 1.
 
 taps, cic_response = get_taps(N, R, M)
 w, h = signal.freqz(taps, worN=8192)
-hh = np.array(map(cic_response, w / R))
+hh = np.fromiter(map(cic_response, w / R), dtype=np.float64)
 
-gain_theo = abs(h * hh)**2 
+gain_theo = abs(h * hh)**2
 gain_theo /= max(gain_theo)
 
 plt.plot(1e-3 * freqs, 10*np.log10(gain/max(gain)), label='Measured response')

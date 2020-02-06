@@ -31,12 +31,17 @@ class Ad9747
     };
 
     void init() {
+        spi_cfg.lock();
         reset();
         write_reg((POWER_DOWN << 8) + 0b10110000);
         write_reg((DATA_CONTROL << 8) + (0 << 7) + (0 << 3));
         write_reg((DAC_MODE_SELECT << 8) + 0x00); // Normal mode
         set_dac_gain(0x1B8); // 1 Vpp
+        spi_cfg.unlock();
     }
+
+  private:
+    SpiConfig& spi_cfg;
 
     void reset() {
         write_reg((SPI_CONTROL << 8) + 0b00100000);
@@ -50,8 +55,6 @@ class Ad9747
         write_reg((DAC2_GAIN_MSB << 8) + (gain >> 8));
     }
 
-  private:
-    SpiConfig& spi_cfg;
 
     void write_reg(uint32_t data) {
         spi_cfg.write_reg<1, 2>(data << 16);

@@ -148,11 +148,11 @@ class Memory
 
     // Write a std::array (offset defined at compile-time)
     template<typename T, size_t N, uint32_t offset = 0>
-    void write_array(const std::array<T, N>& arr) {
+    void write_array(const std::array<T, N>& arr, uint32_t block_idx = 0) {
         static_assert(offset + sizeof(T) * (N - 1) < mem::get_range(id), "Invalid offset");
         static_assert(mem::is_writable(id), "Not writable");
 
-        set_ptr<T, offset>(arr.data(), N);
+        set_ptr<T, offset>(arr.data(), N, block_idx);
     }
 
     // Write a std::array (offset defined at run-time)

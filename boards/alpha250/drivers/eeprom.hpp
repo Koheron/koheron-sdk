@@ -57,6 +57,51 @@ namespace eeprom_map {
     constexpr int32_t user_off = 0x1000;
 }
 
+namespace eeprom_map_alpha250_4 {
+    namespace identifications {
+        constexpr int32_t offset = 0x000;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace precision_dac_calib {
+        constexpr int32_t offset = 0x100;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace rf_adc0_ch0_calib {
+        constexpr int32_t offset = 0x200;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace rf_adc0_ch1_calib {
+        constexpr int32_t offset = 0x300;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace clock_generator_calib {
+        constexpr int32_t offset = 0x400;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace precision_adc_calib {
+        constexpr int32_t offset = 0x700;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace rf_adc1_ch0_calib {
+        constexpr int32_t offset = 0x800;
+        constexpr int32_t range = 0x100;
+    }
+
+    namespace rf_adc1_ch1_calib {
+        constexpr int32_t offset = 0x900;
+        constexpr int32_t range = 0x100;
+    }
+
+    // Addresses above 0x1000 are reserved to user
+    constexpr int32_t user_off = 0x1000;
+}
+
 class Eeprom
 {
   public:
@@ -86,7 +131,10 @@ class Eeprom
         const uint8_t *begin = reinterpret_cast<const uint8_t*>(data.data());
 
         while (bytes_written < n_bytes) {
-            auto size = std::min(PAGESIZE, n_bytes - bytes_written);
+            // PAGESIZE cast required to compile in -O0.
+            // Should not be required anymore in C++17.
+            // https://stackoverflow.com/questions/40690260/undefined-reference-error-for-static-constexpr-member
+            auto size = std::min(uint32_t(PAGESIZE), n_bytes - bytes_written);
             if (__write_packet(offset + bytes_written, begin + bytes_written, size) < 0) {
                     return -1;
             }

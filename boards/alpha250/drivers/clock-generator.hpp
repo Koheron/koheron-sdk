@@ -7,20 +7,23 @@
 #include "spi-config.hpp"
 
 #include <array>
-#include <mutex>
+#include <fstream>
+#include <thread>
+#include <chrono>
 
 namespace clock_cfg {
-
     // Input clock selection
     constexpr uint32_t EXT_CLOCK = 0;
     constexpr uint32_t FPGA_CLOCK = 1;
     constexpr uint32_t TCXO_CLOCK = 2;
+    constexpr uint32_t PIN_SELECT = 3;
     constexpr uint32_t AUTO_CLOCK = 4;
 
     constexpr auto clkin_names = koheron::make_array(
         koheron::str_const("External"),
         koheron::str_const("FPGA"),
         koheron::str_const("TCXO"),
+        koheron::str_const("Pin Select"),
         koheron::str_const("Auto")
     );
 
@@ -67,27 +70,27 @@ class ClockGenerator
     , i2c(ctx.i2c.get("i2c-0"))
     , eeprom(ctx.get<Eeprom>())
     , spi_cfg(ctx.get<SpiConfig>())
-    {}
+    {
+        std::ifstream ifile(filename);
+
+        if (!ifile.good()) {
+            ctx.log<INFO>("Clock generator - Not initialized");
+            is_clock_generator_initialized = false;
+        } else {
+            ctx.log<INFO>("Clock generator - Already initialized");
+        }
+    }
 
     void phase_shift(uint32_t n_shifts) {
         // Phase shift the MMCM
-        for (uint32_t i = 0; i < n_shifts; i++) {
+        while (n_shifts--) {
             single_phase_shift(1);
         }
     }
 
-    void single_phase_shift(uint32_t incdec) {
-        constexpr uint32_t psen_bit = 2;
-        constexpr uint32_t psincdec_bit = 3;
-        ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));
-        ctl.clear_bit<reg::mmcm, psen_bit>();
-    }
-
     int32_t set_tcxo_calibration(uint8_t new_cal) {
-        tcxo_calibration = new_cal;
-        set_tcxo_clock(tcxo_calibration);
-
-        std::array<uint8_t, 1> cal_array {tcxo_calibration};
+        set_tcxo_clock(new_cal);
+        std::array<uint8_t, 1> cal_array {new_cal};
         return eeprom.write<eeprom_map::clock_generator_calib::offset>(cal_array);
     }
 
@@ -97,23 +100,24 @@ class ClockGenerator
     }
 
     void init() {
+        ctx.log<INFO>("Clock generator - Setting default configuration ...");
         std::array<uint8_t, 1> cal_array;
         eeprom.read<eeprom_map::clock_generator_calib::offset>(cal_array);
-        tcxo_calibration = cal_array[0];
-        set_tcxo_clock(tcxo_calibration);
-        configure(clock_cfg::TCXO_CLOCK, clock_cfg::fs_250MHz);
+        ctx.log<INFO>("Clock generator - TCXO calibration is %u", cal_array[0]);
+        set_tcxo_clock(cal_array[0]);
+        configure(CFG_ALL, clock_cfg::TCXO_CLOCK, clock_cfg::fs_250MHz);
     }
 
     // 0: Ext. clock, 1: FPGA clock, 2: TCXO, 4: Automatic
     void set_reference_clock(uint32_t clkin_) {
         if (clkin_ != clkin) {
-            configure(clkin_, clk_cfg);
+            configure(CLKIN_SELECT, clkin_, clk_cfg);
         }
     }
 
     void set_sampling_frequency(uint32_t fs_select) {
         if (fs_select < clock_cfg::num_configs && fs_select != fs_selected) {
-            if (configure(clkin, clock_cfg::configs[fs_select]) == 0) {
+            if (configure(SAMPLING_FREQ_SET, clkin, clock_cfg::configs[fs_select]) == 0) {
                 fs_selected = fs_select;
             }
         }
@@ -138,10 +142,10 @@ class ClockGenerator
     Eeprom& eeprom;
     SpiConfig& spi_cfg;
 
-    std::mutex mtx;
+    const char* filename = "/tmp/clock-generator-initialized";
+    bool is_clock_generator_initialized = true;
 
-    uint8_t tcxo_calibration;
-    uint32_t clkin; // Current input clock
+    uint32_t clkin = clock_cfg::TCXO_CLOCK; // Current input clock
     uint32_t fs_selected = clock_cfg::configs.size(); // Current frequency configuration
     std::array<uint32_t, clock_cfg::num_params> clk_cfg;
 
@@ -154,13 +158,26 @@ class ClockGenerator
     // AD5141 non volatile digital potentiometer for TCXO frequency adjustment
     static constexpr uint32_t i2c_address = 0b0101111;
 
+    void single_phase_shift(uint32_t incdec) {
+        constexpr uint32_t psen_bit = 2;
+        constexpr uint32_t psincdec_bit = 3;
+        ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));
+        ctl.clear_bit<reg::mmcm, psen_bit>();
+    }
+
     void write_reg(uint32_t data) {
         constexpr uint8_t cs_clk_gen = 0;
         constexpr uint8_t pack_size = 4; // bytes
         spi_cfg.write_reg<cs_clk_gen, pack_size>(data);
     }
 
-    int configure(uint32_t clkin_select, const std::array<uint32_t, clock_cfg::num_params>& clk_cfg_) {
+    enum CLK_CONFIG_MODE {
+        CLKIN_SELECT,
+        SAMPLING_FREQ_SET,
+        CFG_ALL
+    };
+
+    int configure(uint32_t cfg_mode, uint32_t clkin_select, const std::array<uint32_t, clock_cfg::num_params>& clk_cfg_) {
         if (clkin_select > 4) {
             ctx.log<ERROR>("Clock generator - Invalid reference clock source");
             return -1;
@@ -280,7 +297,7 @@ class ClockGenerator
         // R15
         uint32_t MAN_DAC = 100;
         uint32_t EN_MAN_DAC = 0;
-        uint32_t HOLDOVER_DLD_CNT = 512; //512
+        uint32_t HOLDOVER_DLD_CNT = 512;
         uint32_t FORCE_HOLDOVER = 0;
 
         // R16
@@ -355,17 +372,22 @@ class ClockGenerator
         ctx.log<INFO>("Clock generator - Ref: %s, VCO: %f MHz, ADC: %f MHz, DAC: %f MHz\n",
                       clock_cfg::clkin_names[clkin_select].data(), f_vco * 1E-6, fs_adc * 1E-6, fs_dac * 1E-6);
 
-        {
-            std::lock_guard<std::mutex> lock(mtx);
+        spi_cfg.lock();
 
-            // For each change the whole chip must be reprogram and the registers order must be respected
+        if (!is_clock_generator_initialized) {
             write_reg(1 << 17); // Reset
+        }
+
+        if (cfg_mode == SAMPLING_FREQ_SET || cfg_mode == CFG_ALL) {
             write_reg((CLKout0_PD << 31) + (CLKout0_DDLY << 18) + (CLKout0_DIV << 5) + 0);
             write_reg((CLKout1_PD << 31) + (CLKout1_DDLY << 18) + (CLKout1_DIV << 5) + 1);
             write_reg((CLKout2_PD << 31) + (CLKout2_DDLY << 18) + (CLKout2_DIV << 5) + 2);
             write_reg((CLKout3_PD << 31) + (CLKout3_DDLY << 18) + (CLKout3_DIV << 5) + 3);
             write_reg((CLKout4_PD << 31) + (CLKout4_DDLY << 18) + (CLKout4_DIV << 5) + 4);
             write_reg((CLKout5_PD << 31) + (CLKout5_DDLY << 18) + (CLKout5_DIV << 5) + 5);
+        }
+
+        if (!is_clock_generator_initialized) {
             write_reg((CLKout1_TYPE << 24) + (CLKout0_TYPE << 20) + (CLKout1_ADLY << 11) + (CLKout0_ADLY << 5) + 6);
             write_reg((CLKout3_TYPE << 24) + (CLKout2_TYPE << 20) + (CLKout3_ADLY << 11) + (CLKout2_ADLY << 5) + 7);
             write_reg((CLKout5_TYPE << 24) + (CLKout4_TYPE << 16) + (CLKout5_ADLY << 11) + (CLKout4_ADLY << 5) + 8);
@@ -378,9 +400,15 @@ class ClockGenerator
                     + (SYNC_QUAL << 17) + (SYNC_POL_INV << 16) + (SYNC_EN_AUTO << 15) + (SYNC_TYPE << 12) + (EN_PLL2_XTAL << 5) + 11);
             write_reg((LD_MUX << 27) + (LD_TYPE << 24) + (SYNC_PLL2_DLD << 23) + (SYNC_PLL1_DLD << 22)
                     + (1 << 19) + (1 << 18) + (EN_TRACK << 8) + (HOLDOVER_MODE << 6) + 12);
+        }
+
+        if (cfg_mode == CLKIN_SELECT || cfg_mode == CFG_ALL) {
             write_reg((HOLDOVER_MUX << 27) + (HOLDOVER_TYPE << 24) + (Status_CLKin1_MUX << 20) + (Status_CLKin0_TYPE << 16)
                     + (DISABLE_DLD1_DET << 15) + (Status_CLKin0_MUX << 12) + (CLKin_SELECT_MODE << 9 ) + (CLKin_Sel_INV << 8)
                     + (EN_CLKin2 << 7) + (EN_CLKin1 << 6) + (EN_CLKin0 << 5) + 13);
+        }
+
+        if (!is_clock_generator_initialized) {
             write_reg((LOS_TIMEOUT << 30) + (EN_LOS << 28) + (Status_CLKin1_TYPE << 24) + (CLKin2_BUF_TYPE << 22) + (CLKin1_BUF_TYPE << 21)
                     + (CLKin0_BUF_TYPE << 20) + (DAC_HIGH_TRIP << 14) + (DAC_LOW_TRIP << 6) + (EN_VTUNE_RAIL_DET << 5) + 14);
             write_reg((MAN_DAC << 22) + (EN_MAN_DAC << 20) + (HOLDOVER_DLD_CNT << 6) + (FORCE_HOLDOVER << 5) + 15);
@@ -392,12 +420,26 @@ class ClockGenerator
                     + (1 << 25) + (1 << 24) + (1 << 23) + (1 << 21) + (PLL2_DLD_CNT << 6) + (PLL2_CP_TRI << 5) + 26);
             write_reg((PLL1_CP_POL << 28) + (PLL1_CP_GAIN << 26) + (CLKin2_PreR_DIV << 24) + (CLKin1_PreR_DIV << 22)
                     + (CLKin0_PreR_DIV << 20) + (PLL1_R << 6) + (PLL1_CP_TRI << 5) + 27);
+        }
+
+        if (cfg_mode == SAMPLING_FREQ_SET || cfg_mode == CFG_ALL) {
             write_reg( (PLL2_R << 20) + (PLL1_N << 6) + 28);
             write_reg((OSCin_FREQ << 24) + (PLL2_FAST_PDF << 23) + (PLL2_N_CAL << 5) + 29);
             write_reg((PLL2_P << 24) + (PLL2_N << 5) + 30);
+        }
 
-            // phase shift the MMCM
+        spi_cfg.unlock();
+
+        if (cfg_mode == SAMPLING_FREQ_SET || cfg_mode == CFG_ALL) {
+            // Wait for the clock to stabilize before sending commands
+            // to the FPGA for MMCM phase-shift
+            std::this_thread::sleep_for(std::chrono::microseconds(50));
             phase_shift(clk_cfg[9]);
+        }
+
+        if (!is_clock_generator_initialized) {
+            std::ofstream ofile(filename);
+            is_clock_generator_initialized = true;
         }
 
         return 0;

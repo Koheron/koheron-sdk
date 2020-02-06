@@ -1,0 +1,69 @@
+---
+name: adc-bram
+board: boards/alpha250-4
+version: 0.1.0
+
+cores:
+  - fpga/cores/axi_ctl_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
+  - fpga/cores/edge_detector_v1_0
+  - fpga/cores/comparator_v1_0
+  - fpga/cores/unrandomizer_v1_0
+  - boards/alpha250/cores/precision_dac_v1_0
+  - boards/alpha250/cores/spi_cfg_v1_0
+  - examples/alpha250/adc-dac-bram/address_counter_v1_0
+
+memory:
+  - name: control
+    offset: '0x60000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+  - name: xadc
+    offset: '0x43C00000'
+    range: 64K
+  - name: adc0
+    range: 256K
+    offset: '0x40000000'
+  - name: adc1
+    range: 256K
+    offset: '0x40040000'
+
+control_registers:
+  - mmcm
+  - precision_dac_ctl
+  - precision_dac_data[2]
+  - spi_cfg_data
+  - spi_cfg_cmd
+  - trig
+
+status_registers:
+  - spi_cfg_sts
+
+parameters:
+  fclk0: 200000000 # FPGA clock speed in Hz
+  adc_clk: 250000000
+
+xdc:
+  - boards/alpha250-4/config/ports.xdc
+
+drivers:
+  - boards/alpha250-4/drivers/common.hpp
+  - boards/alpha250-4/drivers/ltc2157.hpp
+  - boards/alpha250-4/drivers/clock-generator.hpp
+  - boards/alpha250/drivers/eeprom.hpp
+  - boards/alpha250/drivers/gpio-expander.hpp
+  - boards/alpha250/drivers/temperature-sensor.hpp
+  - boards/alpha250/drivers/power-monitor.hpp
+  - boards/alpha250/drivers/ad9747.hpp
+  - boards/alpha250/drivers/precision-adc.hpp
+  - boards/alpha250/drivers/precision-dac.hpp
+  - boards/alpha250/drivers/spi-config.hpp
+  - ./adc_bram.hpp
+
+web:
+  - web/index.html
+  - web/main.css
+  - web/koheron.ts

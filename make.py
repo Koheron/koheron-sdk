@@ -22,7 +22,7 @@ def load_config(config_filename):
     ''' Get the config dictionary from the file 'config.yml' '''
 
     with open(config_filename) as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
 
     return config
 
@@ -35,7 +35,6 @@ def parse_brackets(string):
         return string, '1'
 
 def read_parameters(string, parameters):
-
     string, parameter = parse_brackets(string)
 
     if parameter.isdigit():
@@ -47,9 +46,7 @@ def read_parameters(string, parameters):
     return string, parameter
 
 def build_memory(memory, parameters):
-
     for address in memory:
-
         address['name'], address['n_blocks'] = read_parameters(address['name'], parameters)
         assert (address['n_blocks'] > 0)
 
@@ -64,7 +61,6 @@ def build_memory(memory, parameters):
     return memory
 
 def build_registers(registers, parameters):
-
     new_registers = []
 
     for register in registers:
@@ -77,7 +73,6 @@ def build_registers(registers, parameters):
                 new_registers.append(register+str(i))
 
     registers = new_registers
-
     return registers
 
 def build_json(dict):
@@ -88,7 +83,7 @@ def dump_if_changed(filename, new_dict):
     changed = False
     if os.path.isfile(filename):
         with open(filename, 'r') as yml_file:
-            old_dict = yaml.load(yml_file)
+            old_dict = yaml.safe_load(yml_file)
             if old_dict != new_dict:
                changed = True
 
@@ -168,11 +163,7 @@ if __name__ == "__main__":
         config['status_registers'] = build_registers(config.get('status_registers', {}), parameters)
         fill_template(config, 'config.tcl', output_filename)
 
-    elif cmd == '--start_sh':
-        fill_template(config, 'start.sh', output_filename)
-
     elif cmd == '--cores':
-
         for module in config.get('modules', []):
             module_path = os.path.dirname(module)
             module = append_path(module, module_path)

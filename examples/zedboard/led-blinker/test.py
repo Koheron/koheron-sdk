@@ -18,12 +18,12 @@ class LedBlinker(object):
 
 if __name__=="__main__":
     host = os.getenv('HOST','192.168.1.100')
-    client = connect(host, 'led_blinker')
+    client = connect(host, 'led-blinker')
     driver = LedBlinker(client)
 
     print(driver.get_forty_two())
 
     print('Start blinking...')
     for i in range(255):
-        driver.set_led(i)
+        driver.set_leds(i)
         time.sleep(0.01)

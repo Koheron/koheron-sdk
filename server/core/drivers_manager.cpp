@@ -109,6 +109,7 @@ int DriverManager::init()
         return -1;
     }
 
+    get<driver_id_of<Common>>().init();
     return 0;
 }
 
