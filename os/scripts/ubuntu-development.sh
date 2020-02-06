@@ -10,11 +10,15 @@ image=$tmp_project_path/${name}-development.img
 size=1024
 
 ubuntu_version=18.04.1
+part1=/dev/mmcblk0p1
+part2=/dev/mmcblk0p2
 if [ "${zynq_type}" = "zynqmp" ]; then
     echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-MPSoC..."
     root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
     linux_image=Image
     qemu_path=/usr/bin/qemu-aarch64-static
+    part1=/dev/mmcblk1p1
+    part2=/dev/mmcblk1p2
 else
     echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-7000..."
     root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
@@ -116,8 +120,8 @@ EOF_CAT
 cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
-/dev/mmcblk0p2  /               ext4    rw,noatime          0       1
-/dev/mmcblk0p1  /boot           vfat    rw,noatime          0       2
+$part2          /               ext4    rw,noatime          0       1
+$part1          /boot           vfat    rw,noatime          0       2
 tmpfs           /tmp            tmpfs   defaults,noatime    0       0
 tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 EOF_CAT
@@ -168,7 +172,7 @@ pip install uwsgi
 
 systemctl enable uwsgi
 systemctl enable unzip-default-instrument
-systemctl enable koheron-server
+#systemctl enable koheron-server
 systemctl enable nginx
 
 sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
