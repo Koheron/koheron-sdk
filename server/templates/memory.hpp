@@ -9,9 +9,13 @@
 #include <tuple>
 #include <cstdint>
 
+#include <zynq_fclk.hpp>
+
 extern "C" {
   #include <sys/mman.h> // PROT_READ, PROT_WRITE
 }
+
+constexpr auto instrument_name = "{{ config['name'] }}";
 
 namespace mem {
 {% for addr in config['memory'] -%}
@@ -55,6 +59,19 @@ constexpr uint32_t {{ key }} = {{ config['parameters'][key] }};
 {% endfor %}
 
 } // namespace prm
+
+namespace zynq_clocks {
+
+inline void set_clocks(ZynqFclk& fclk) {
+
+{% for clk in ['fclk0','fclk1','fclk2','fclk3'] -%}
+{% if clk in config['parameters'] -%}
+    fclk.set("{{ clk }}", {{ config['parameters'][clk] }});
+{% endif -%}
+{% endfor %}
+
+}
+}
 
 // -- JSONified config
 constexpr auto CFG_JSON = "{{ config['json'] }}";

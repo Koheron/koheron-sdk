@@ -1,4 +1,4 @@
-source $sdk_path/fpga/lib/bram.tcl
+source $::sdk_path/fpga/lib/bram.tcl
 
 # Single BRAM recorder (32 bit width)
 

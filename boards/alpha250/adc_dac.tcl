@@ -88,11 +88,11 @@ cell xilinx.com:ip:clk_wiz:5.4 mmcm {
     USE_RESET false
     USE_DYN_PHASE_SHIFT true
 } {
-    CLK_IN1_D clk_in1
-    CLK_IN2_D clk_in2
+    CLK_IN1_D clk_in2
+    CLK_IN2_D clk_in1
     locked pll_locked
     clk_out1 adc_clk
-    clk_in_sel [get_slice_pin ctl 0 0]
+    clk_in_sel [get_not_pin [get_slice_pin ctl 0 0]]
     reset [get_slice_pin ctl 1 1]
     psclk mmcm/clk_out1
     psen [get_edge_detector_pin [get_slice_pin ctl 2 2] mmcm/clk_out1]

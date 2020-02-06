@@ -29,8 +29,8 @@ class Common
     Common(Context& ctx_)
     : ctx(ctx_)
     , sts(ctx.mm.get<mem::status>())
-    , gpio(ctx.get<GpioExpander>())
     , clkgen(ctx.get<ClockGenerator>())
+    , gpio(ctx.get<GpioExpander>())
     , ltc2157(ctx.get<Ltc2157>())
     , ad9747(ctx.get<Ad9747>())
     , precisiondac(ctx.get<PrecisionDac>())
@@ -42,11 +42,12 @@ class Common
     }
 
     void init() {
+        ctx.log<INFO>("Common - Initializing ...");
         clkgen.init();
         ltc2157.init();
         ad9747.init();
         precisiondac.init();
-        ip_on_leds();
+        // ip_on_leds();
     };
 
     std::string get_instrument_config() {
@@ -94,8 +95,8 @@ class Common
   private:
     Context& ctx;
     Memory<mem::status>& sts;
-    GpioExpander& gpio;
     ClockGenerator& clkgen;
+    GpioExpander& gpio;
     Ltc2157& ltc2157;
     Ad9747& ad9747;
     PrecisionDac& precisiondac;

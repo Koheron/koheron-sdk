@@ -1,5 +1,5 @@
-jinja2==2.9.6
+jinja2>=2.10.1
 pytest==3.0.7
-pyyaml==3.12
+pyyaml>=4.2b1
 CppHeaderParser==2.7.4
 numpy==1.12.1

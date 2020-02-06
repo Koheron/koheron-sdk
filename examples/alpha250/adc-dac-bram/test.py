@@ -13,19 +13,25 @@ from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
 host = os.getenv('HOST', '192.168.1.16')
-client = connect(host, 'adc-dac-bram', restart=False)
+client = connect(host, 'adc-dac-bram', restart=True)
 driver = AdcDacBram(client)
 
 print('DAC size = {}'.format(driver.dac_size))
 print('ADC size = {}'.format(driver.adc_size))
 
-sampling_frequency = 250e6 # Hz
-t = np.arange(driver.dac_size) / sampling_frequency
+clk_200MHz = {'idx': 0, 'fs': 200E6}
+clk_250MHz = {'idx': 1, 'fs': 250E6}
+
+clock = clk_250MHz
+driver.set_sampling_frequency(clock['idx'])
+# driver.phase_shift(100)
+
+t = np.arange(driver.dac_size) / clock['fs']
 t_us = 1e6 * t
 
 # Set modulation on DAC
 amp_mod = 0.99
-freq_mod = sampling_frequency / driver.dac_size * 10
+freq_mod = clock['fs'] / driver.dac_size * 10
 driver.dac[0, :] = amp_mod * np.cos(2 * np.pi * freq_mod * t)
 driver.dac[1, :] = amp_mod * np.sin(2 * np.pi * freq_mod * t)
 driver.set_dac()
@@ -42,16 +48,14 @@ ax.set_xlabel('Time (us)')
 ax.set_ylabel('ADC Raw data')
 ax.set_xlim((t_us[0], t_us[-1]))
 ax.set_ylim((-2**15, 2**15))
-ax.legend()
+ax.legend(loc='upper right')
 fig.canvas.draw()
 
 i = 0
 
-
-
 while True:
     try:
-        i = i+1
+        i += 1
         print i
         driver.get_adc()
         line0.set_data(t_us, driver.adc[0,:])
