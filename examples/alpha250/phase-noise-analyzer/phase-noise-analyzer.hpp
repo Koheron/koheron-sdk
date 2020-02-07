@@ -8,12 +8,12 @@
 #include <context.hpp>
 
 #include <unsupported/Eigen/FFT>
-#include <numeric>
 #include <complex>
 #include <algorithm>
 #include <thread>
 #include <chrono>
 #include <tuple>
+#include <numeric>
 
 #include <boards/alpha250/drivers/clock-generator.hpp>
 #include <server/drivers/dma-s2mm.hpp>

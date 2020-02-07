@@ -20,17 +20,20 @@ proc ctl_pin {pin_name} {
   return ctl/$pin_name
 }
 
-
 # Get a PS configuration pin
 # name : name of the register defined in the instrument YAML
 proc ps_ctl_pin {pin_name} {
   return ps_ctl/$pin_name
 }
 
-
 # Get a status pin
 proc sts_pin {pin_name} {
   return sts/$pin_name
+}
+
+# Get a PS status pin
+proc ps_sts_pin {pin_name} {
+  return ps_sts/$pin_name
 }
 
 # Get a parameter defined in main.yml

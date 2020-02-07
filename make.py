@@ -75,6 +75,15 @@ def build_registers(registers, parameters):
     registers = new_registers
     return registers
 
+def append_memory_to_config(config):
+    parameters = config.get('parameters', {})
+    config['memory'] = build_memory(config.get('memory', {}), parameters)
+    config['control_registers'] = build_registers(config.get('control_registers', {}), parameters)
+    config['ps_control_registers'] = build_registers(config.get('ps_control_registers', {}), parameters)
+    config['status_registers'] = build_registers(config.get('status_registers', {}), parameters)
+    config['ps_status_registers'] = build_registers(config.get('ps_status_registers', {}), parameters)
+    return config
+
 def build_json(dict):
     dict_json = json.dumps(dict, separators=(',', ':')).replace('"', '\\"')
     return dict_json
@@ -157,12 +166,7 @@ if __name__ == "__main__":
         dump_if_changed(output_filename, config)
 
     elif cmd == '--config_tcl':
-        parameters = config.get('parameters', {})
-        config['memory'] = build_memory(config.get('memory', {}), parameters)
-        config['control_registers'] = build_registers(config.get('control_registers', {}), parameters)
-        config['ps_control_registers'] = build_registers(config.get('ps_control_registers', {}), parameters)
-        config['status_registers'] = build_registers(config.get('status_registers', {}), parameters)
-        fill_template(config, 'config.tcl', output_filename)
+        fill_template(append_memory_to_config(config), 'config.tcl', output_filename)
 
     elif cmd == '--cores':
         for module in config.get('modules', []):
@@ -198,11 +202,7 @@ if __name__ == "__main__":
             f.write(' '.join(config.get('xdc', [])))
 
     elif cmd == '--memory_hpp':
-        parameters = config.get('parameters', {})
-        config['memory'] = build_memory(config.get('memory', {}), parameters)
-        config['control_registers'] = build_registers(config.get('control_registers', {}), parameters)
-        config['ps_control_registers'] = build_registers(config.get('ps_control_registers', {}), parameters)
-        config['status_registers'] = build_registers(config.get('status_registers', {}), parameters)
+        config = append_memory_to_config(config)
         config['json'] = build_json(config)
         fill_template(config, 'memory.hpp', output_filename)
 

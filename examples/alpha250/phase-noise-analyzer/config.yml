@@ -29,6 +29,9 @@ memory:
   - name: status
     offset: '0x50000000'
     range: 4K
+  - name: ps_status
+    offset: '0x70000000'
+    range: 4K
   - name: xadc
     offset: '0x43C00000'
     range: 64K
@@ -50,12 +53,14 @@ control_registers:
   - cordic
 
 status_registers:
-  - spi_cfg_sts
   - adc[n_adc]
 
 ps_control_registers:
   - spi_cfg_data
   - spi_cfg_cmd
+
+ps_status_registers:
+  - spi_cfg_sts
 
 parameters:
   fclk0: 200000000

@@ -9,7 +9,7 @@ class SpiConfig {
   public:
     SpiConfig(Context& ctx)
     : ctl(ctx.mm.get<mem::ps_control>())
-    //, sts(ctx.mm.get<mem::status>())
+    , sts(ctx.mm.get<mem::ps_status>())
     {}
 
     void lock() {
@@ -29,8 +29,7 @@ class SpiConfig {
         static_assert(cs_id <= 2, "Exceeds maximum number of slaves on SPI config bus");
 
         // Wait for previous write to finish
-        // while (sts.read<reg::spi_cfg_sts>() == 0);
-        std::this_thread::sleep_for(std::chrono::microseconds(50));
+        while (sts.read<reg::spi_cfg_sts>() == 0);
 
         constexpr uint32_t TVALID_IDX = 8;
         constexpr uint32_t cmd = (1 << TVALID_IDX) + ((nbytes - 1) << 2) + cs_id;
@@ -41,7 +40,7 @@ class SpiConfig {
 
   private:
     Memory<mem::ps_control>& ctl;
-    //Memory<mem::status>& sts;
+    Memory<mem::ps_status>& sts;
     std::mutex mtx;
 };
 
