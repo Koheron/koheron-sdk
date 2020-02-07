@@ -33,10 +33,7 @@ class DmaS2MM
 
     // Ideally would take a std::chrono::duration as an argument
     void wait_for_transfer(float dma_transfer_duration_seconds) {
-        constexpr uint32_t max_sleeps_cnt = 4;
-        
-        auto dma_duration = std::chrono::milliseconds(uint32_t(1000 * dma_transfer_duration_seconds));
-
+        const auto dma_duration = std::chrono::milliseconds(uint32_t(1000 * dma_transfer_duration_seconds));
         uint32_t cnt = 0;
 
         while (! idle()) {
@@ -44,7 +41,7 @@ class DmaS2MM
             cnt++;
 
             if (cnt > max_sleeps_cnt) {
-                ctx.log<ERROR>("DmaS2MM::wait_for_transfer: Max number of sleeps exeeded. [set duration %f s]\n",
+                ctx.log<ERROR>("DmaS2MM::wait_for_transfer: Max number of sleeps exceeded. [set duration %f s]\n",
                                double(dma_transfer_duration_seconds));
                 break;
             }
@@ -57,13 +54,13 @@ class DmaS2MM
     static constexpr uint32_t s2mm_da     = 0x48;  // S2MM Destination Address
     static constexpr uint32_t s2mm_length = 0x58;  // S2MM Buffer Length (Bytes)
 
+    static constexpr uint32_t max_sleeps_cnt = 4;
+
     Context& ctx;
     Memory<mem::dma>& dma;
     Memory<mem::axi_hp0>& axi_hp0;
 
     void reset() {
-        constexpr uint32_t max_sleeps_cnt = 4;
-
         dma.set_bit<s2mm_dmacr, 2>();
 
         // Wait for reset
@@ -74,15 +71,13 @@ class DmaS2MM
             cnt++;
 
             if (cnt > max_sleeps_cnt) {
-                ctx.log<ERROR>("DmaS2MM::reset: Max number of sleeps exeeded.\n");
+                ctx.log<ERROR>("DmaS2MM::reset: Max number of sleeps exceeded.\n");
                 break;
             }
         }
     }
 
     void start() {
-        constexpr uint32_t max_sleeps_cnt = 4;
-
         dma.set_bit<s2mm_dmacr, 0>();
 
         // Wait for start up
@@ -93,7 +88,7 @@ class DmaS2MM
             cnt++;
 
             if (cnt > max_sleeps_cnt) {
-                ctx.log<ERROR>("DmaS2MM::start: Max number of sleeps exeeded.\n");
+                ctx.log<ERROR>("DmaS2MM::start: Max number of sleeps exceeded.\n");
                 break;
             }
         }
