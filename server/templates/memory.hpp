@@ -45,6 +45,11 @@ namespace reg {
 constexpr uint32_t {{ offset }} = {{ 4 * loop.index0 }};
 static_assert({{ offset }} < mem::control_range, "Invalid control register offset {{ offset }}");
 {% endfor %}
+// -- PS Control offsets
+{% for offset in config['ps_control_registers'] -%}
+constexpr uint32_t {{ offset }} = {{ 4 * loop.index0 }};
+static_assert({{ offset }} < mem::ps_control_range, "Invalid ps control register offset {{ offset }}");
+{% endfor %}
 // -- Status offsets
 {% for offset in config['status_registers'] -%}
 constexpr uint32_t {{ offset }} = {{ 4 * (2 + loop.index0) }};

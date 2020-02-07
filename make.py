@@ -160,6 +160,7 @@ if __name__ == "__main__":
         parameters = config.get('parameters', {})
         config['memory'] = build_memory(config.get('memory', {}), parameters)
         config['control_registers'] = build_registers(config.get('control_registers', {}), parameters)
+        config['ps_control_registers'] = build_registers(config.get('ps_control_registers', {}), parameters)
         config['status_registers'] = build_registers(config.get('status_registers', {}), parameters)
         fill_template(config, 'config.tcl', output_filename)
 
@@ -200,6 +201,7 @@ if __name__ == "__main__":
         parameters = config.get('parameters', {})
         config['memory'] = build_memory(config.get('memory', {}), parameters)
         config['control_registers'] = build_registers(config.get('control_registers', {}), parameters)
+        config['ps_control_registers'] = build_registers(config.get('ps_control_registers', {}), parameters)
         config['status_registers'] = build_registers(config.get('status_registers', {}), parameters)
         config['json'] = build_json(config)
         fill_template(config, 'memory.hpp', output_filename)

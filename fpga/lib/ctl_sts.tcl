@@ -1,15 +1,20 @@
 proc add_ctl_sts {{mclk "None"}  {mrstn "None"}} {
-  add_config_register ctl control $mclk $mrstn $config::control_size
+  add_config_register ctl control $mclk $mrstn config::ctl_register $config::control_size
   add_status_register sts status $mclk $mrstn $config::status_size
+
+  if {$config::ps_control_size > 0} {
+    add_config_register ps_ctl ps_control "None" "None" config::ps_ctl_register $config::ps_control_size
+  }
 }
 
-proc add_config_register {module_name memory_name mclk mrstn {num_ports 32} {intercon_idx 0}} {
+proc add_config_register {module_name memory_name mclk mrstn reg_names {num_ports 32} {intercon_idx 0}} {
+  upvar 1 $reg_names register
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
   for {set i 0} {$i < $num_ports} {incr i} {
-    create_bd_pin -dir O -from 31 -to 0 $config::ctl_register($i)
+    create_bd_pin -dir O -from 31 -to 0 $register($i)
   }
 
   # Add a new Master Interface to AXI Interconnect
@@ -40,7 +45,7 @@ proc add_config_register {module_name memory_name mclk mrstn {num_ports 32} {int
   }
 
   # Cfg register
-  cell pavel-demin:user:axi_ctl_register:1.0 axi_ctl_register_0 {
+  cell pavel-demin:user:axi_ctl_register:1.0 axi_ctl_register_$module_name {
     CTL_DATA_WIDTH [expr $num_ports*32]
   } {
     aclk $m_axi_aclk
@@ -48,8 +53,8 @@ proc add_config_register {module_name memory_name mclk mrstn {num_ports 32} {int
     S_AXI $M_AXI
   }
 
-  assign_bd_address [get_bd_addr_segs {axi_ctl_register_0/s_axi/reg0 }]
-  set memory_segment [get_bd_addr_segs /${::ps_name}/Data/SEG_axi_ctl_register_0_reg0]
+  assign_bd_address [get_bd_addr_segs {axi_ctl_register_$module_name/s_axi/reg0 }]
+  set memory_segment [get_bd_addr_segs /${::ps_name}/Data/SEG_axi_ctl_register_${module_name}_reg0]
   set_property range  [get_memory_range $memory_name]  $memory_segment
   set_property offset [get_memory_offset $memory_name] $memory_segment
 
@@ -57,7 +62,7 @@ proc add_config_register {module_name memory_name mclk mrstn {num_ports 32} {int
     set wid  [expr $num_ports*32]
     set from [expr 31+$i*32]
     set to   [expr $i*32]
-    connect_pins $config::ctl_register($i) [get_slice_pin axi_ctl_register_0/ctl_data $from $to]
+    connect_pins $register($i) [get_slice_pin axi_ctl_register_$module_name/ctl_data $from $to]
   }
 
   current_bd_instance $bd
