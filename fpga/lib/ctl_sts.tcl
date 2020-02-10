@@ -74,7 +74,6 @@ proc add_config_register {module_name memory_name mclk mrstn reg_names {num_port
 
 proc add_status_register {module_name memory_name mclk mrstn reg_names {num_ports 32} {intercon_idx 0} {has_dna 1}} {
   upvar 1 $reg_names register
-  parray register
 
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
