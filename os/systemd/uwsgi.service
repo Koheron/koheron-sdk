@@ -5,7 +5,7 @@ After=network.target
 [Service]
 ExecStartPre=/bin/mkdir -p /var/run/uwsgi
 ExecStartPre=/bin/mkdir -p /var/log/uwsgi
-ExecStart=/usr/local/bin/uwsgi --ini /etc/uwsgi/uwsgi.ini
+ExecStart=/usr/local/bin/uwsgi -python27 --ini /etc/uwsgi/uwsgi.ini
 Restart=always
 KillSignal=SIGKILL
 Type=notify

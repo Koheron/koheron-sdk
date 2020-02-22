@@ -7,7 +7,7 @@ name=$4
 os_version_file=$5
 zynq_type=$6
 image=$tmp_project_path/${name}-development.img
-size=1024
+size=2024
 
 ubuntu_version=18.04.1
 part1=/dev/mmcblk0p1
@@ -162,13 +162,17 @@ apt install -y ntpdate sudo rsync
 apt install -y kmod
 
 apt install -y nginx
+sudo dpkg --configure -a
 apt install -y build-essential python-dev
+sudo dpkg --configure -a
 apt install -y python-numpy
+sudo dpkg --configure -a
 apt install -y python-pip python-setuptools python-all-dev python-wheel
-
+sudo dpkg --configure -a
 pip install --upgrade pip==9.0.3
 pip install flask
 pip install uwsgi
+pip install werkzeug==0.16.0
 
 systemctl enable uwsgi
 systemctl enable unzip-default-instrument
