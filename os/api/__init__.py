@@ -2,7 +2,7 @@ import os
 import json
 import subprocess
 from flask import Flask, jsonify, request, make_response
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 import uwsgi
 
 def is_zip(filename):
