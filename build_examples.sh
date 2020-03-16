@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+# set -e
 
 target=$1
 mode=development
