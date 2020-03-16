@@ -10,7 +10,7 @@ jobs:
       - checkout
       - run:
           name: Install python requirements
-          command: apt-get install -y python -pip; pip install -r requirements.txt
+          command: apt-get install -y python-pip; pip install -r requirements.txt
       - run:
           name: Setup Base
           command: apt-get update; make setup_base
