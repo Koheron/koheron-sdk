@@ -39,7 +39,7 @@ MAKE_PY := SDK_PATH=$(SDK_PATH) $(PYTHON) $(SDK_PATH)/make.py
 MEMORY_YML := $(TMP_PROJECT_PATH)/memory.yml
 
 # Number of CPU cores available for parallel execution
-N_CPUS := $(shell nproc 2> /dev/null || echo 1)
+N_CPUS ?= $(shell nproc 2> /dev/null || echo 1)
 
 NAME := $(shell $(MAKE_PY) --name $(CONFIG) $(TMP_PROJECT_PATH)/name && cat $(TMP_PROJECT_PATH)/name)
 

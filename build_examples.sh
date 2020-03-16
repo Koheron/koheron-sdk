@@ -1,15 +1,15 @@
 #!/bin/bash
-# set -e
+set -e
 
 target=$1
 mode=development
+ncpu=1
 
 make CONFIG=examples/alpha250/fft/config.yml MODE=$mode $target
 make CONFIG=examples/alpha250/loopback/config.yml MODE=$mode $target
 make CONFIG=examples/alpha250/adc-dac-bram/config.yml MODE=$mode $target
 make CONFIG=examples/alpha250/adc-dac-dma/config.yml MODE=$mode $target
-make CONFIG=examples/alpha250/phase-noise-analyzer/config.yml MODE=$mode $target
-dmesg
+make CONFIG=examples/alpha250/phase-noise-analyzer/config.yml MODE=$mode N_CPUS=1 $target
 make CONFIG=examples/red-pitaya/led-blinker/config.yml MODE=$mode $target
 make CONFIG=examples/red-pitaya/oscillo/config.yml MODE=$mode $target
 make CONFIG=examples/red-pitaya/spectrum/config.yml MODE=$mode $target
