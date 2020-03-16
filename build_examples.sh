@@ -10,7 +10,7 @@ make CONFIG=examples/alpha250/loopback/config.yml MODE=$mode $target
 make CONFIG=examples/alpha250/adc-dac-bram/config.yml MODE=$mode $target
 make CONFIG=examples/alpha250/adc-dac-dma/config.yml MODE=$mode $target
 make CONFIG=examples/alpha250/phase-noise-analyzer/config.yml MODE=$mode N_CPUS=1 $target # Must be build with 1 CPU in Circle CI not to exhaust memory.
-make CONFIG=examples/alpha250-4/adc-dac/config.yml MODE=$mode $target
+make CONFIG=examples/alpha250-4/adc-bram/config.yml MODE=$mode $target
 make CONFIG=examples/alpha250-4/fft/config.yml MODE=$mode $target
 make CONFIG=examples/red-pitaya/led-blinker/config.yml MODE=$mode $target
 make CONFIG=examples/red-pitaya/oscillo/config.yml MODE=$mode $target
