@@ -16,8 +16,8 @@ jobs:
                    sudo apt-get install -y --allow-unauthenticated gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf;\
                    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100;\
                    sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100;\
-                   sudo update-alternatives --install /usr/bin/gcc-5-arm-linux-gnueabihf gcc-5-arm-linux-gnueabihf /usr/bin/gcc-5-arm-linux-gnueabihf 100;\
-                   sudo update-alternatives --install /usr/bin/g++-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf /usr/bin/g++-5-arm-linux-gnueabihf 100
+                   sudo update-alternatives --install /usr/bin/gcc-arm-linux-gnueabihf gcc-arm-linux-gnueabihf /usr/bin/gcc-5-arm-linux-gnueabihf 100;\
+                   sudo update-alternatives --install /usr/bin/g++-arm-linux-gnueabihf g++-arm-linux-gnueabihf /usr/bin/g++-5-arm-linux-gnueabihf 100
       - run:
           name: Link GCC
           command: sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc; sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-g++
