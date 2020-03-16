@@ -12,7 +12,7 @@ jobs:
           command: sudo bash -c "echo deb http://archive.ubuntu.com/ubuntu/ xenial main >> /etc/apt/sources.list"; sudo bash -c "echo deb-src http://archive.ubuntu.com/ubuntu/ xenial main >> /etc/apt/sources.list"
       - run:
           name: Install GCC
-          command: sudo apt-get update; sudo apt-get install -y --allow-unauthenticated gcc-5 g++-5 gcc-5-arm-linux-gnueabihf g++-5-arm-linux-gnueabihf; sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100; sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
+          command: sudo apt-get update; sudo apt-get install -y --allow-unauthenticated gcc-5 g++-5 gcc-5.5-arm-linux-gnueabihf g++-5.5-arm-linux-gnueabihf; sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100; sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
       - run:
           name: Link GCC
           command: sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc; sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-g++
