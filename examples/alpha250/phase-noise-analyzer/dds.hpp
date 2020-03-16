@@ -21,14 +21,10 @@ class Dds
     , sts(ctx.mm.get<mem::status>())
     , clk_gen(ctx.get<ClockGenerator>())
     {
-        //clk_gen.set_sampling_frequency(0);
-
-        // Phase accumulator on
-        ctl.write_mask<reg::cordic, 0b11>(0b11);
+        clk_gen.set_sampling_frequency(0);
     }
 
     void set_dds_freq(uint32_t channel, double freq_hz) {
-
         if (channel >= 2) {
             ctx.log<ERROR>("FFT::set_dds_freq invalid channel\n");
             return;
@@ -51,12 +47,10 @@ class Dds
 
         double factor = (uint64_t(1) << 48) / fs_adc;
 
-        //ctl.write<reg::phase_incr0, uint64_t>(phase_incr);
-
         ctl.write_reg<uint64_t>(reg::phase_incr0 + 8 * channel, uint64_t(factor * freq_hz));
         dds_freq[channel] = freq_hz;
 
-        ctx.log<INFO>("fs %lf , channel %u, ref. frequency set to %lf \n", fs_adc, channel, freq_hz);
+        ctx.log<INFO>("fs: %lf , channel %u, ref. frequency set to %lf \n", fs_adc, channel, freq_hz);
     }
 
   private:
@@ -66,7 +60,6 @@ class Dds
     ClockGenerator& clk_gen;
 
     std::array<double, 2> dds_freq = {{0.0, 0.0}};
-
 };
 
 #endif // __DRIVERS_DDS_HPP__

@@ -62,6 +62,7 @@ parameters:
   cic_differential_delay: 1
   cic_decimation_rate: 20
   cic_n_stages: 6
+  n_pts: 262144
 
 xdc:
   - boards/alpha250/config/ports.xdc
@@ -78,10 +79,24 @@ drivers:
   - boards/alpha250/drivers/precision-adc.hpp
   - boards/alpha250/drivers/precision-dac.hpp
   - boards/alpha250/drivers/spi-config.hpp
+  - server/drivers/dma-s2mm.hpp
   - ./dds.hpp
-  - ./dma.hpp
+  - ./phase-noise-analyzer.hpp
 
 web:
-  - web/index.html
-  - web/main.css
   - web/koheron.ts
+  - web/jquery.flot.d.ts
+  - web/main.css
+  - web/dds-frequency/dds-frequency.html
+  - web/dds-frequency/dds-frequency.ts
+  - ./web/index.html
+  - ./web/app.ts
+  - ./web/dds.ts
+  - ./web/clock-generator/clock-generator.ts
+  - ./web/clock-generator/clock-generator-app.ts
+  - ./web/clock-generator/reference-clock.html
+  - ./web/phase-noise-analyzer.ts
+  - ./web/phase-noise-analyzer-app.ts
+  - web/plot-basics/plot-basics.ts
+  - web/plot-basics/plot-basics.html
+  - ./web/plot.ts
