@@ -4,8 +4,6 @@ jobs:
   build:
     docker:
       - image: buildpack-deps:bionic
-      # - image: circleci/python:2.7-stretch-browsers
-      # - image: circleci/node:10.11.0-stretch-browsers
     steps:
       - checkout
       - run:
