@@ -12,6 +12,9 @@ jobs:
       #     name: Append dev to source.list
       #     command: sudo bash -c "echo deb http://archive.ubuntu.com/ubuntu/ xenial main >> /etc/apt/sources.list"; sudo bash -c "echo deb-src http://archive.ubuntu.com/ubuntu/ xenial main >> /etc/apt/sources.list"
       - run:
+          name: Install python requirements
+          command: pip install -r requirements.txt
+      - run:
           name: Setup Base
           command: apt-get update; make setup_base
       # - run:
@@ -23,9 +26,9 @@ jobs:
       - run:
           name: Install Eigen library
           command: sudo bash ./install_eigen.sh
-      - run:
-          name: Install python requirements
-          command: sudo pip install -r requirements.txt
+      # - run:
+      #     name: Install python requirements
+      #     command: sudo pip install -r requirements.txt
       - run:
           name: Install Koheron python
           command: sudo pip install python/.
