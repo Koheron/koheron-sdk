@@ -4,6 +4,8 @@ set -e
 target=$1
 mode=development
 
+/usr/bin/arm-linux-gnueabihf-g++-5 --version
+
 make CONFIG=examples/alpha250/fft/config.yml MODE=$mode $target
 make CONFIG=examples/alpha250/loopback/config.yml MODE=$mode $target
 make CONFIG=examples/alpha250/adc-dac-bram/config.yml MODE=$mode $target
