@@ -12,9 +12,9 @@ connect_cell adc_dac {
     adc0 [sts_pin adc0]
     adc1 [sts_pin adc1]
     ctl [ctl_pin mmcm]
-    cfg_data [ctl_pin spi_cfg_data]
-    cfg_cmd [ctl_pin spi_cfg_cmd]
-    cfg_sts [sts_pin spi_cfg_sts]
+    cfg_data [ps_ctl_pin spi_cfg_data]
+    cfg_cmd [ps_ctl_pin spi_cfg_cmd]
+    cfg_sts [ps_sts_pin spi_cfg_sts]
 }
 
 # Add XADC for monitoring of Zynq temperature

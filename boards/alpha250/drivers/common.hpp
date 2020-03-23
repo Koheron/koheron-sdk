@@ -28,7 +28,6 @@ class Common
   public:
     Common(Context& ctx_)
     : ctx(ctx_)
-    , sts(ctx.mm.get<mem::status>())
     , clkgen(ctx.get<ClockGenerator>())
     , gpio(ctx.get<GpioExpander>())
     , ltc2157(ctx.get<Ltc2157>())
@@ -94,7 +93,6 @@ class Common
 
   private:
     Context& ctx;
-    Memory<mem::status>& sts;
     ClockGenerator& clkgen;
     GpioExpander& gpio;
     Ltc2157& ltc2157;

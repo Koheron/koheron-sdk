@@ -8,8 +8,8 @@
 class SpiConfig {
   public:
     SpiConfig(Context& ctx)
-    : ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
+    : ctl(ctx.mm.get<mem::ps_control>())
+    , sts(ctx.mm.get<mem::ps_status>())
     {}
 
     void lock() {
@@ -39,8 +39,8 @@ class SpiConfig {
     }
 
   private:
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
+    Memory<mem::ps_control>& ctl;
+    Memory<mem::ps_status>& sts;
     std::mutex mtx;
 };
 
