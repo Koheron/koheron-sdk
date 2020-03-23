@@ -1,7 +1,7 @@
 ---
 name: fft
 board: boards/alpha250-4
-version: 0.1.0
+version: 0.2.0
 
 cores:
   - fpga/cores/axi_ctl_register_v1_0
@@ -20,8 +20,14 @@ memory:
   - name: control
     offset: '0x40000000'
     range: 4K
+  - name: ps_control
+    offset: '0x44000000'
+    range: 4K
   - name: status
     offset: '0x50000000'
+    range: 4K
+  - name: ps_status
+    offset: '0x54000000'
     range: 4K
   - name: xadc
     offset: '0x43C00000'
@@ -43,19 +49,23 @@ control_registers:
   - mmcm
   - precision_dac_ctl
   - precision_dac_data[2]
-  - spi_cfg_data
-  - spi_cfg_cmd
   - ctl_fft[2]
   - psd_valid[2]
   - psd_input_sel[2]
   - digital_outputs
 
+ps_control_registers:
+  - spi_cfg_data
+  - spi_cfg_cmd
+
 status_registers:
-  - spi_cfg_sts
   - adc0[n_adc]
   - adc1[n_adc]
   - cycle_index[2]
   - digital_inputs
+
+ps_status_registers:
+  - spi_cfg_sts
 
 parameters:
   fclk0: 200000000

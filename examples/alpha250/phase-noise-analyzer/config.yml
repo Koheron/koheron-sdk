@@ -1,7 +1,7 @@
 ---
 name: phase-noise-analyzer
 board: boards/alpha250
-version: 0.1.1
+version: 0.2.0
 
 cores:
   - fpga/cores/axi_ctl_register_v1_0
@@ -23,8 +23,14 @@ memory:
   - name: control
     offset: '0x40000000'
     range: 4K
+  - name: ps_control
+    offset: '0x60000000'
+    range: 4K
   - name: status
     offset: '0x50000000'
+    range: 4K
+  - name: ps_status
+    offset: '0x70000000'
     range: 4K
   - name: xadc
     offset: '0x43C00000'
@@ -43,14 +49,18 @@ control_registers:
   - mmcm
   - precision_dac_ctl
   - precision_dac_data[2]
-  - spi_cfg_data
-  - spi_cfg_cmd
   - phase_incr[4]
   - cordic
 
 status_registers:
-  - spi_cfg_sts
   - adc[n_adc]
+
+ps_control_registers:
+  - spi_cfg_data
+  - spi_cfg_cmd
+
+ps_status_registers:
+  - spi_cfg_sts
 
 parameters:
   fclk0: 200000000

@@ -11,9 +11,9 @@ add_ctl_sts adc_dac/adc_clk rst_adc_clk/peripheral_aresetn
 
 connect_cell adc_dac {
     ctl [ctl_pin mmcm]
-    cfg_data [ctl_pin spi_cfg_data]
-    cfg_cmd [ctl_pin spi_cfg_cmd]
-    cfg_sts [sts_pin spi_cfg_sts]
+    cfg_data [ps_ctl_pin spi_cfg_data]
+    cfg_cmd [ps_ctl_pin spi_cfg_cmd]
+    cfg_sts [ps_sts_pin spi_cfg_sts]
 }
 
 # Add XADC for monitoring of Zynq temperature

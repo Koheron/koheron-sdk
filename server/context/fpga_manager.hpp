@@ -91,7 +91,7 @@ class FpgaManager {
 
         if (read(fileno(fprog_done), buff.data(), 1) == 1) {
             if (buff[0] == '1') {
-                ctx.log<INFO>("FpgaManager:Bitstream successfully loaded\n");
+                ctx.log<INFO>("FpgaManager: Bitstream successfully loaded\n");
                 fclose(fprog_done);
                 return 0;
             } else {

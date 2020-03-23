@@ -11,6 +11,16 @@ set ctl_register({{ loop.index0 }}) {{name}}
 variable control_size {{ config['control_registers'] | length }}
 
 ##########################################################
+# Define ps control offsets
+##########################################################
+variable ps_ctl_register
+{% for name in config['ps_control_registers'] -%}
+set ps_ctl_register({{ loop.index0 }}) {{name}}
+{% endfor -%}
+
+variable ps_control_size {{ config['ps_control_registers'] | length }}
+
+##########################################################
 # Define status offsets
 ##########################################################
 set sts_start 2
@@ -20,6 +30,16 @@ set sts_register([expr {{ loop.index0 }} + $sts_start]) {{name}}
 {% endfor -%}
 
 variable status_size [expr {{ config['status_registers'] | length }} + $sts_start]
+
+##########################################################
+# Define ps status offsets
+##########################################################
+variable ps_sts_register
+{% for name in config['ps_status_registers'] -%}
+set ps_sts_register({{ loop.index0 }}) {{name}}
+{% endfor -%}
+
+variable ps_status_size {{ config['ps_status_registers'] | length }}
 
 ##########################################################
 # Define parameters
