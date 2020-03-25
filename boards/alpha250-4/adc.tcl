@@ -68,6 +68,7 @@ create_bd_pin -dir O spi_cfg_cs_rf_adc1
 # Input clocks
 create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 clk_in1
 create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 clk_in2
+create_bd_pin -dir I ps_clk
 
 # Output clocks
 create_bd_pin -dir O adc_clk
@@ -153,7 +154,7 @@ cell koheron:user:spi_cfg:1.0 spi_cfg_0 {
   s_axis_tready cfg_sts
   sclk spi_cfg_sck
   sdi spi_cfg_sdi
-  aclk mmcm/clk_out1
+  aclk ps_clk
 }
 
 connect_pins spi_cfg_cs_clk_gen [get_slice_pin spi_cfg_0/cs 0 0]
@@ -178,6 +179,7 @@ cell xilinx.com:ip:proc_sys_reset:5.0 rst_adc_clk {} {
 connect_cell adc {
     clk_in1 adc1_clk_in
     clk_in2 clk_gen_in
+    ps_clk ps_0/FCLK_CLK0
     adc0_0_p adc0_0_p
     adc0_0_n adc0_0_n
     adc0_1_p adc0_1_p
