@@ -47,7 +47,7 @@ ax.set_xlabel('Time (us)')
 ax.set_ylabel('ADC Raw data')
 ax.set_xlim((t_us[0], t_us[-1]))
 # ax.set_ylim((-2**15, 2**15))
-ax.set_ylim((-300, 300))
+ax.set_ylim((-32768, 32768))
 ax.legend(loc='upper right')
 fig.canvas.draw()
 
