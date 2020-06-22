@@ -8,6 +8,6 @@ include $(OS_PATH)/$(ZYNQ_TYPE).mk
 
 
 PATCHES := $(BOARD_PATH)/patches
-HSI := source $(VIVADO_PATH)/$(VIVADO_VER)/settings64.sh && hsi -nolog -nojournal -mode batch
+HSI := source $(VIVADO_PATH)/$(VIVADO_VER)/settings64.sh && xsct 
 BOOTGEN := source $(VIVADO_PATH)/$(VIVADO_VER)/settings64.sh && bootgen
 

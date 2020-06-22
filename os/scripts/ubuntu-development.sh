@@ -7,11 +7,12 @@ name=$4
 os_version_file=$5
 zynq_type=$6
 image=$tmp_project_path/${name}-development.img
+BOOTPART=$7
 size=2024
 
 ubuntu_version=18.04.1
-part1=/dev/mmcblk0p1
-part2=/dev/mmcblk0p2
+part1=/dev/${BOOTPART}p1
+part2=/dev/${BOOTPART}p2
 if [ "${zynq_type}" = "zynqmp" ]; then
     echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-MPSoC..."
     root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
