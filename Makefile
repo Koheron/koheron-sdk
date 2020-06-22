@@ -13,8 +13,9 @@ TMP ?= tmp
 
 KOHERON_VERSION_FILE := $(SDK_PATH)/version
 KOHERON_VERSION := $(shell cat $(KOHERON_VERSION_FILE))
-VIVADO_VERSION := 2019.1
+VIVADO_VERSION := 2020.1
 VIVADO_PATH := /opt/Xilinx/Vivado
+VITIS_PATH := /opt/Xilinx/Vitis
 PYTHON := python
 
 .PHONY: help
@@ -63,13 +64,7 @@ $(VERSION_FILE): $(CONFIG)
 
 # Zip file that contains all the files needed to run the instrument:
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
-<<<<<<< HEAD
-$(INSTRUMENT_ZIP): server $(BITSTREAM) web $(VERSION_FILE)
-	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM) $(SERVER) $(WEB_ASSETS) $(VERSION_FILE)
-=======
-$(INSTRUMENT_ZIP): server $(BITSTREAM) web $(VERSION_FILE)  $(BITSTREAM).bin
-	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM).bin  $(BITSTREAM) $(SERVER) $(WEB_ASSETS) $(VERSION_FILE)
->>>>>>> bdc3680f... misc update to SDK
+$(INSTRUMENT_ZIP): server $(BITSTREAM) web $(VERSION_FILE) $(TMP_PROJECT_PATH)/overlay.dtb $(BITSTREAM).bin
 	@echo [$@] OK
 
 # Make builds the instrument zip file by default
