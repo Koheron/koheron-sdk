@@ -1,6 +1,6 @@
 ---
 name: fft
-board: boards/alpha250
+board: boards/alpha250-1g
 version: 0.2.0
 
 cores:
@@ -74,7 +74,7 @@ parameters:
   cic_n_stages: 6
 
 xdc:
-  - boards/alpha250/config/ports.xdc
+  - boards/alpha250-1g/config/ports.xdc
 
 drivers:
   - boards/alpha250/drivers/common.hpp
