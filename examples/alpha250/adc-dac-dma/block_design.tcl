@@ -1,8 +1,5 @@
 source $board_path/starting_point.tcl
 
-connect_pins ps_0/SDIO0_CDN [get_constant_pin 0 1]
-connect_pins ps_0/SDIO0_WP [get_constant_pin 0 1]
-
 ##################################################
 # DMA
 ##################################################
