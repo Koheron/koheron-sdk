@@ -1,0 +1,125 @@
+---
+name: fft
+board: boards/alpha250-1g
+version: 0.2.0
+
+cores:
+  - fpga/cores/axi_ctl_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
+  - fpga/cores/axis_constant_v1_0
+  - fpga/cores/latched_mux_v1_0
+  - fpga/cores/edge_detector_v1_0
+  - fpga/cores/comparator_v1_0
+  - fpga/cores/unrandomizer_v1_0
+  - boards/alpha250/cores/precision_dac_v1_0
+  - boards/alpha250/cores/spi_cfg_v1_0
+  - fpga/cores/psd_counter_v1_0
+
+memory:
+  - name: control
+    offset: '0x40000000'
+    range: 4K
+  - name: ps_control
+    offset: '0x44000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+  - name: ps_status
+    offset: '0x55000000'
+    range: 4K
+  - name: xadc
+    offset: '0x43C00000'
+    range: 64K
+  - name: demod
+    offset: '0x60000000'
+    range: 32K
+  - name: psd
+    offset: '0x70000000'
+    range: 32K
+
+control_registers:
+  - mmcm
+  - precision_dac_ctl
+  - precision_dac_data[2]
+  - ctl_fft
+  - psd_valid
+  - psd_input_sel
+  - phase_incr[2]
+  - digital_outputs
+
+status_registers:
+  - adc[n_adc]
+  - cycle_index
+  - digital_inputs
+
+ps_control_registers:
+  - spi_cfg_data
+  - spi_cfg_cmd
+
+ps_status_registers:
+  - spi_cfg_sts
+
+parameters:
+  fclk0: 200000000
+  adc_clk: 250000000
+  dac_width: 16
+  adc_width: 16
+  n_adc: 2
+  fft_size: 8192
+  n_cycles: 1023
+  cic_differential_delay: 1
+  cic_decimation_rate: 500
+  cic_n_stages: 6
+
+xdc:
+  - boards/alpha250-1g/config/ports.xdc
+
+drivers:
+  - boards/alpha250/drivers/common.hpp
+  - boards/alpha250/drivers/eeprom.hpp
+  - boards/alpha250/drivers/gpio-expander.hpp
+  - boards/alpha250/drivers/temperature-sensor.hpp
+  - boards/alpha250/drivers/power-monitor.hpp
+  - boards/alpha250/drivers/clock-generator.hpp
+  - boards/alpha250/drivers/ltc2157.hpp
+  - boards/alpha250/drivers/ad9747.hpp
+  - boards/alpha250/drivers/precision-adc.hpp
+  - boards/alpha250/drivers/precision-dac.hpp
+  - boards/alpha250/drivers/spi-config.hpp
+  - ./fft.hpp
+
+web:
+  - web/koheron.ts
+  - web/jquery.flot.d.ts
+  - web/main.css
+  - web/dds-frequency/dds-frequency.html
+  - web/dds-frequency/dds-frequency.ts
+  - ./web/index.html
+  - ./web/app.ts
+  - ./web/fft.ts
+  - ./web/fft/fft-window.html
+  - ./web/fft/input-channel.html
+  - ./web/fft/fft-app.ts
+  - web/plot-basics/plot-basics.ts
+  - web/plot-basics/plot-basics.html
+  - ./web/plot/plot.ts
+  - ./web/plot/yunit.html
+  - ./web/plot/peak-detection.html
+  - ./web/precision-channels/precision-adc.ts
+  - ./web/precision-channels/precision-dac.ts
+  - ./web/precision-channels/precision-channels-app.ts
+  - ./web/precision-channels/precision-channels.html
+  - ./web/clock-generator/clock-generator.ts
+  - ./web/clock-generator/clock-generator-app.ts
+  - ./web/clock-generator/sampling-frequency.html
+  - ./web/clock-generator/reference-clock.html
+  - ./web/export-file/export-file.html
+  - ./web/export-file/export-file.ts
+  - ./web/temperature-sensor/temperature-sensor.html
+  - ./web/temperature-sensor/temperature-sensor.ts
+  - ./web/temperature-sensor/temperature-sensor-app.ts
+  - ./web/power-monitor/power-monitor.html
+  - ./web/power-monitor/power-monitor.ts
+  - ./web/power-monitor/power-monitor-app.ts
