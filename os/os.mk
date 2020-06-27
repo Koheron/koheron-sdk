@@ -208,10 +208,10 @@ $(DTREE_PATH): $(DTREE_TAR)
 	@echo [$@] OK
 
 .PHONY: overlay_dtree
-overlay_dtree: $(TMP_OS_PATH)/overlay/system-top.dts
+overlay_dtree: $(TMP_OS_PATH)/overlay/system-top.dts clean_
 
 .PHONY: devicetree
-devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
+devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts clean_
 
 /tmp/var_dt.tcl: clean_
 	echo "set project_name \"$(NAME)\"" > /tmp/var_dt.tcl
@@ -235,10 +235,19 @@ $(TMP_OS_PATH)/overlay/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH
 
 $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/devicetree.patch /tmp/var_dt.tcl
 	mkdir -p $(@D)
-	echo "set en_overlay false" >> /tmp/var_dt.tcl
+	echo "set project_name \"$(NAME)\"" > /tmp/var_dt.tcl
+	echo "set proc_name \"$(PROC)\"" >> /tmp/var_dt.tcl
+	echo "set dtree_path \"$(DTREE_PATH)\"" >> /tmp/var_dt.tcl
+	echo "set vivado_version \"$(VIVADO_VER)\"" >> /tmp/var_dt.tcl
+	echo "set hard_path \"$(TMP_OS_PATH)/hard\"" >> /tmp/var_dt.tcl
+	echo "set tree_path \"$(TMP_OS_PATH)/devicetree\"" >> /tmp/var_dt.tcl
+	echo "set hwdef_filename \"$(TMP_FPGA_PATH)/$(NAME).xsa\"" >> /tmp/var_dt.tcl
+	echo "set partition \"$(BOOT_MEDIUM)\"" >> /tmp/var_dt.tcl
+	echo "set en_overlay true" >> /tmp/var_dt.tcl
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl 
 	rm /tmp/var_dt.tcl
-	cp -R $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig
+	rm -r $(TMP_OS_PATH)/devicetree.orig || true
+	cp -r $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig
 	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/devicetree.patch 
 	@echo [$@] OK
 
@@ -284,8 +293,10 @@ $(TMP_OS_PATH)/overlay.dtb: $(TMP_OS_PATH)/overlay/system-top.dts
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/devicetree/system-top.dts
+	gcc -I my_dts -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
+		$(TMP_OS_PATH)/devicetree/system-top.dts.tmp $(TMP_OS_PATH)/devicetree/system-top.dts
 	$(OS_PATH)/dtc-1.5.0/dtc -I dts -O dtb -o $@ \
-	  -i $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree/system-top.dts
+	  -i $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree/system-top.dts.tmp
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/devicetree_linux: $(TMP_OS_PATH)/$(LINUX_IMAGE)
