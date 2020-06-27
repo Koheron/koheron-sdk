@@ -293,7 +293,7 @@ $(TMP_OS_PATH)/overlay.dtb: $(TMP_OS_PATH)/overlay/system-top.dts
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/devicetree/system-top.dts
-	gcc -I my_dts -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
+	gcc -I $(TMP_OS_PATH)/devicetree/ -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
 		$(TMP_OS_PATH)/devicetree/system-top.dts.tmp $(TMP_OS_PATH)/devicetree/system-top.dts
 	$(OS_PATH)/dtc-1.5.0/dtc -I dts -O dtb -o $@ \
 	  -i $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree/system-top.dts.tmp
