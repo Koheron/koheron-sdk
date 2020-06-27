@@ -54,20 +54,14 @@ DTREE_SWITCH = $(TMP_OS_PATH)/devicetree.dtb
 ifdef DTREE_OVERRIDE
 DTREE_SWITCH = $(TMP_OS_PATH)/devicetree_$(DTREE_LOC) 
 endif
-ifdef BOOT_MEDIUM 
-BOOT_MEDIUM := mmcblk0
-endif
+BOOT_MEDIUM ?= mmcblk0
 .PHONY: os
 os: $(INSTRUMENT_ZIP) www api $(BOOTCALL) $(TMP_OS_PATH)/$(LINUX_IMAGE) $(DTREE_SWITCH)  $(TMP_OS_VERSION_FILE)
 
 # Build image (run as root)
 .PHONY: image
 image:
-<<<<<<< HEAD
-	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE)
-=======
-	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE) $(BOOT_MEDIUM)
->>>>>>> 59bc3dfd... support for vivado 2020.1 + building ultrascale OS with overlay support
+	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE) $(BOOT_MEDIUM)
 
 .PHONY: clean_os
 clean_os:
@@ -128,7 +122,8 @@ $(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES) -type f)
 	make -C $< arch=arm $(UBOOT_CONFIG)
 	make -C $< arch=arm CFLAGS="-O2 $(GCC_FLAGS)" \
 	  CROSS_COMPILE=$(GCC_ARCH)- all
-	cp $</u-boot.elf $@
+	cp $</u-boot $@
+	cp $</u-boot.elf $@ || true
 	@echo [$@] OK
 
 
@@ -179,7 +174,10 @@ $(TMP_OS_PATH)/bl31.elf: $(ATRUST_PATH)
 ###############################################################################
 
 $(TMP_OS_PATH)/boot.bin: $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_OS_PATH)/u-boot.elf 
-	echo "img:{[bootloader] $^}" > $(TMP_OS_PATH)/boot.bif
+	echo "img:{[bootloader] $(TMP_OS_PATH)/fsbl/executable.elf" > $(TMP_OS_PATH)/boot.bif
+	echo " $(BITSTREAM)" >> $(TMP_OS_PATH)/boot.bif
+	echo " $(TMP_OS_PATH)/u-boot.elf" >> $(TMP_OS_PATH)/boot.bif
+	echo " }" >> $(TMP_OS_PATH)/boot.bif
 	$(BOOTGEN) -image $(TMP_OS_PATH)/boot.bif -arch $(ZYNQ_TYPE) -w -o i $@
 	@echo [$@] OK
 
