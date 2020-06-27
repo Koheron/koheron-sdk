@@ -1,19 +1,7 @@
 diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
---- devicetree.orig/pcw.dtsi
-+++ devicetree/pcw.dtsi
-@@ -13,9 +13,11 @@
- 	};
- };
- &gem0 {
-+	local-mac-address = [00 0a 35 00 00 00];
- 	phy-mode = "rgmii-id";
- 	status = "okay";
- 	xlnx,ptp-enet-clock = <0x69f6bcb>;
-+	phy-handle = <&phy0>;
- };
- &gpio0 {
- 	emio-gpio-width = <64>;
-@@ -49,11 +51,21 @@
+--- devicetree.orig/pcw.dtsi	2020-06-27 19:06:54.711890867 +0100
++++ devicetree/pcw.dtsi	2020-06-27 19:06:54.711890867 +0100
+@@ -51,11 +51,21 @@
  	is-decoded-cs = <0>;
  	num-cs = <3>;
  	status = "okay";
@@ -34,21 +22,25 @@ diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
 +	};
  };
  &uart0 {
- 	device_type = "serial";
-@@ -62,7 +74,7 @@
+ 	cts-override ;
+@@ -64,7 +74,7 @@
+ 	status = "okay";
  };
  &usb0 {
- 	dr_mode = "host";
 -	phy_type = "ulpi";
 +	usb-phy = <&usb_phy0>;
  	status = "okay";
  };
  &clkc {
 diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
---- devicetree.orig/system-top.dts
-+++ devicetree/system-top.dts
-@@ -14,6 +14,10 @@
- 		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait earlycon";
+--- devicetree.orig/system-top.dts	2020-06-27 19:06:54.711890867 +0100
++++ devicetree/system-top.dts	2020-06-27 19:12:55.760565809 +0100
+@@ -10,9 +10,13 @@
+ #include "pcw.dtsi"
+ / {
+ 	chosen {
+-		bootargs = "console=ttyPS0,115200 root=/dev/${partition}p2 ro rootfstype=ext4 earlyprintk rootwait earlycon";
++		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait earlycon";
  		stdout-path = "serial0:115200n8";
  	};
 +	usb_phy0: phy1 {
@@ -57,27 +49,30 @@ diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
 +	};
  	aliases {
  		ethernet0 = &gem0;
- 		serial0 = &uart0;
-@@ -23,8 +30,21 @@
+ 		i2c0 = &i2c0;
+@@ -24,6 +28,24 @@
  	};
  	memory {
  		device_type = "memory";
 -		reg = <0x0 0x20000000>;
 +		reg = <0x0 0x1E000000>;
  	};
- 	cpus {
- 	};
-+	mdio {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		phy0: ethernet-phy@3 {
-+			compatible = "micrel,ksz9031";
-+			device_type = "ethernet-phy";
+ };
++
++&gem0 {
++	status = "okay";
++	phy-mode = "rgmii-id";
++	phy-handle = <&ethernet_phy>;
++	local-mac-address = [00 0a 35 00 00 00];
++
++	ethernet_phy: ethernet-phy@3 {
++		reg = <3>;
++		device_type = "ethernet-phy";
 +			rxc-skew-ps = <1860>;
 +			rxdv-skew-ps = <420>;
 +			txc-skew-ps = <1860>;
 +			txen-skew-ps = <420>;
-+			reg = <3>;
-+		};
 +	};
- };
++};
++
++
