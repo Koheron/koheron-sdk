@@ -1,6 +1,6 @@
 source /tmp/var_dt.tcl
 
-set boot_args {console=ttyPS0,115200 root=/dev/${partition}p2 ro rootfstype=ext4 earlyprintk rootwait}
+set boot_args "console=ttyPS0,115200 root=/dev/${partition}p2 ro rootfstype=ext4 earlyprintk rootwait"
 
 file mkdir $hard_path
 file copy -force $hwdef_filename $hard_path/$project_name.xsa
