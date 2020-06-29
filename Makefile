@@ -13,13 +13,8 @@ TMP ?= tmp
 
 KOHERON_VERSION_FILE := $(SDK_PATH)/version
 KOHERON_VERSION := $(shell cat $(KOHERON_VERSION_FILE))
-<<<<<<< HEAD
-VIVADO_VERSION := 2020.1
-VIVADO_PATH := /tools/Xilinx/Vivado
-=======
 VIVADO_VERSION := 2019.1
 VIVADO_PATH := /opt/Xilinx/Vivado
->>>>>>> a0624deb... added support ultrascale support for os building
 PYTHON := python
 
 .PHONY: help
