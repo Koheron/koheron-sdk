@@ -68,8 +68,13 @@ $(VERSION_FILE): $(CONFIG)
 
 # Zip file that contains all the files needed to run the instrument:
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
+<<<<<<< HEAD
 $(INSTRUMENT_ZIP): server $(BITSTREAM) web $(VERSION_FILE)
 	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM) $(SERVER) $(WEB_ASSETS) $(VERSION_FILE)
+=======
+$(INSTRUMENT_ZIP): server $(BITSTREAM) web $(VERSION_FILE)  $(BITSTREAM).bin
+	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM).bin  $(BITSTREAM) $(SERVER) $(WEB_ASSETS) $(VERSION_FILE)
+>>>>>>> bdc3680f... misc update to SDK
 	@echo [$@] OK
 
 # Make builds the instrument zip file by default

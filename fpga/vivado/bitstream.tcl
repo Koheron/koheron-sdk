@@ -1,10 +1,13 @@
 set xpr_filename [lindex $argv 0]
 set bit_filename [lindex $argv 1]
+set type [lindex $argv 2]
+set nCPU [lindex $argv 3]
+
 
 open_project $xpr_filename
 
 if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
-  launch_runs impl_1 -to_step route_design
+  launch_runs impl_1 -to_step route_design -jobs $nCPU
   wait_on_run impl_1
 }
 

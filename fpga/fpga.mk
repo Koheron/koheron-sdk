@@ -53,11 +53,17 @@ $(TMP_FPGA_PATH)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/*.tcl $(CORES
 fpga: $(BITSTREAM)
 
 $(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xpr | $(TMP_FPGA_PATH)
-	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $< $@
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $< $@ $(ZYNQ_TYPE) $(N_CPUS)
+	@echo [$@] OK
+
+$(BITSTREAM).bin: $(BITSTREAM)
+	echo "all:{$(BITSTREAM)}" > $(TMP_FPGA_PATH)/overlay.bif
+	$(BOOTGEN) -image $(TMP_FPGA_PATH)/overlay.bif -arch $(ZYNQ_TYPE) -process_bitstream bin -w on -o $(BITSTREAM).bin 
 	@echo [$@] OK
 
 $(TMP_FPGA_PATH)/$(NAME).hwdef: $(TMP_FPGA_PATH)/$(NAME).xpr | $(TMP_FPGA_PATH)
-	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/hwdef.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $(TMP_FPGA_PATH)/$(NAME).hwdef
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/hwdef.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $(TMP_FPGA_PATH)/$(NAME).hwdef $(N_CPUS)
+
 	@echo [$@] OK
 
 # Build the block design in Vivado GUI
