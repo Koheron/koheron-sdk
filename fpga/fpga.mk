@@ -13,6 +13,8 @@ VIVADO_BATCH := $(VIVADO) -mode batch
 $(MEMORY_YML): $(CONFIG)
 	$(MAKE_PY) --memory_yml $(CONFIG) $@
 
+include $(OS_PATH)/toolchain.mk
+
 # Cores
 ###############################################################################
 TMP_CORES_PATH := $(TMP_PROJECT_PATH)/cores
