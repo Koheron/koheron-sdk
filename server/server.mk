@@ -49,7 +49,7 @@ OBJ := $(SERVER_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
-SERVER_CCXX = /usr/bin/$(GCC_ARCH)-g++ -flto
+SERVER_CCXX = /usr/bin/$(GCC_ARCH)-g++-5 -flto
 
 SERVER_CCXXFLAGS = -Wall -Werror -Wextra
 SERVER_CCXXFLAGS += -Wpedantic -Wfloat-equal -Wunused-macros -Wcast-qual -Wuseless-cast

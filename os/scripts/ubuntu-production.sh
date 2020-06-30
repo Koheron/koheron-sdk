@@ -7,7 +7,26 @@ name=$4
 os_version_file=$5
 zynq_type=$6
 image=$tmp_project_path/${name}-production.img
-size=512
+BOOTPART=$7
+size=2048
+
+ubuntu_version=18.04.1
+
+part1=/dev/${BOOTPART}p1
+part2=/dev/${BOOTPART}p2
+if [ "${zynq_type}" = "zynqmp" ]; then
+    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-MPSoC..."
+    root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
+    linux_image=Image
+    qemu_path=/usr/bin/qemu-aarch64-static
+    part1=/dev/mmcblk1p1
+    part2=/dev/mmcblk1p2
+else
+    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-7000..."
+    root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
+    linux_image=uImage
+    qemu_path=/usr/bin/qemu-arm-static
+fi
 
 ubuntu_version=18.04.1
 
@@ -40,8 +59,8 @@ timezone=Europe/Paris
 # Create partitions
 
 parted -s $device mklabel msdos
-parted -s $device mkpart primary fat16 4MB 16MB
-parted -s $device mkpart primary ext4 16MB 100%
+parted -s $device mkpart primary fat16 4MB 512MB
+parted -s $device mkpart primary ext4 512MB 100%
 
 boot_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '2!d'`
 root_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '3!d'`
@@ -58,7 +77,7 @@ mount $root_dev $root_dir
 
 # Copy files to the boot file system
 
-cp $tmp_os_path/boot.bin $tmp_os_path/devicetree.dtb $tmp_os_path/uImage $os_path/uEnv.txt $boot_dir
+cp $tmp_os_path/boot.bin $tmp_os_path/devicetree.dtb $tmp_os_path/$linux_image $os_path/uEnv.txt $boot_dir
 
 # Copy Ubuntu Core to the root file system
 
@@ -106,8 +125,8 @@ chmod +x /usr/local/bin/mount_unionfs
 cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
-/dev/mmcblk0p2  /               ext4    ro,noatime          0       1
-/dev/mmcblk0p1  /boot           vfat    ro,noatime          0       2
+$part2          /               ext4    rw,noatime          0       1
+$part1          /boot           vfat    rw,noatime          0       2
 tmpfs           /tmp            tmpfs   defaults,noatime    0       0
 tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 mount_unionfs   /etc            fuse    defaults,noatime    0       0
@@ -143,6 +162,7 @@ apt install -y usbutils psmisc lsof unzip
 apt install -y udev net-tools netbase ifupdown network-manager lsb-base
 apt install -y nginx
 
+pip install werkzeug==0.16.0
 # For release mode
 apt install -y unionfs-fuse
 apt install -y python
@@ -195,6 +215,8 @@ mv $root_dir/var $root_dir/var_org
 mkdir $root_dir/etc_rw
 mkdir $root_dir/var $root_dir/var_rw
 
+#rm $root_dir/etc/resolv.conf
+rm $root_dir/usr/bin/qemu-a*
 # Unmount file systems
 
 umount $boot_dir $root_dir

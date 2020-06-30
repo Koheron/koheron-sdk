@@ -15,6 +15,7 @@ KOHERON_VERSION_FILE := $(SDK_PATH)/version
 KOHERON_VERSION := $(shell cat $(KOHERON_VERSION_FILE))
 VIVADO_VERSION := 2020.1
 VIVADO_PATH := /tools/Xilinx/Vivado
+VITIS_PATH := /tools/Xilinx/Vitis
 PYTHON := python
 
 .PHONY: help
@@ -53,7 +54,8 @@ NAME := $(shell $(MAKE_PY) --name $(CONFIG) $(TMP_PROJECT_PATH)/name && cat $(TM
 # - Bash configuration script
 # - Web files (HTML, CSS, Javascript)
 
-BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit # FPGA bitstream
+BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit
+# FPGA bitstream
 SERVER := $(TMP_PROJECT_PATH)/serverd # TCP / Websocket server executable that communicates with the FPGA
 
 VERSION_FILE := $(TMP_PROJECT_PATH)/version
@@ -63,8 +65,8 @@ $(VERSION_FILE): $(CONFIG)
 
 # Zip file that contains all the files needed to run the instrument:
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
-$(INSTRUMENT_ZIP): server $(BITSTREAM) web $(VERSION_FILE)
-	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM) $(SERVER) $(WEB_ASSETS) $(VERSION_FILE)
+$(INSTRUMENT_ZIP): server $(BITSTREAM) web $(VERSION_FILE) $(TMP_PROJECT_PATH)/overlay.dtb $(BITSTREAM).bin
+	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM).bin $(TMP_PROJECT_PATH)/overlay.dtb $(BITSTREAM) $(SERVER) $(WEB_ASSETS) $(VERSION_FILE)
 	@echo [$@] OK
 
 # Make builds the instrument zip file by default
@@ -82,6 +84,8 @@ run: $(INSTRUMENT_ZIP)
 ###############################################################################
 # FPGA BITSTREAM
 ###############################################################################
+OS_PATH := $(SDK_PATH)/os
+OS_MK ?= $(OS_PATH)/os.mk
 FPGA_PATH := $(SDK_PATH)/fpga
 FPGA_MK ?= $(FPGA_PATH)/fpga.mk
 include $(FPGA_MK)
@@ -115,8 +119,6 @@ include $(WEB_MK)
 ###############################################################################
 # LINUX OS
 ###############################################################################
-OS_PATH := $(SDK_PATH)/os
-OS_MK ?= $(OS_PATH)/os.mk
 include $(OS_MK)
 
 ###############################################################################
@@ -142,13 +144,13 @@ setup: setup_fpga setup_server setup_web setup_os
 
 .PHONY: setup_base
 setup_base:
-	sudo apt install -y g++-arm-linux-gnueabihf
+	sudo apt-get install -y g++-5-arm-linux-gnueabihf
 	sudo apt install -y g++-aarch64-linux-gnu
 	# On Ubuntu 18.04 you may have to link:	
 	# sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
-	# sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-5 /usr/bin/arm-linux-gnueabihf-g++
-	sudo apt install -y python-pip
-	sudo apt install -y curl
+	# sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-5 /usr/bin/arm-linux-gnueabihf-g++	
+	sudo apt-get install -y python-pip
+	sudo apt-get install -y curl
 	$(PIP) install -r $(SDK_PATH)/requirements.txt
 	$(PIP) install $(SDK_PATH)/python
 
@@ -161,17 +163,17 @@ setup_server: setup_base
 
 .PHONY: setup_web
 setup_web: setup_base
-	sudo apt install -y nodejs
-	sudo apt install -y node-typescript
-	# sudo apt install -y npm # npm installed with nodejs
+	sudo apt-get install -y nodejs
+	sudo apt-get install -y node-typescript
+	sudo apt-get install -y npm # npm installed with nodejs
 	#sudo rm -f /usr/bin/node && sudo ln -s /usr/bin/nodejs /usr/bin/node
 	npm install typescript
 	npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
 
 .PHONY: setup_os
 setup_os: setup_base
-	sudo apt install -y libssl-dev bc device-tree-compiler qemu-user-static zerofree
-	sudo apt install -y lib32stdc++6 lib32z1 u-boot-tools
+	sudo apt-get install -y libssl-dev bc device-tree-compiler qemu-user-static zerofree
+	sudo apt-get install -y lib32stdc++6 lib32z1 u-boot-tools
 
 ###############################################################################
 # CLEAN TARGETS

@@ -3,24 +3,14 @@
 # - Device tree
 # - U-boot
 # - Linux kernel
+include $(OS_PATH)/toolchain.mk
 
-PATCHES := $(BOARD_PATH)/patches
-HSI := source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && hsi -nolog -nojournal -mode batch
-BOOTGEN := source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && bootgen
+clean_:
+	rm /tmp/var_* 22 /dev/null || true
 
 BOARD := $(shell basename $(BOARD_PATH))
 
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
-
-ZYNQ_TYPE := zynq
-
-# Define U-boot and Linux repositories
--include $(OS_PATH)/board.mk
-ifneq ("$(wildcard $(BOARD_PATH)/board.mk)","")
--include $(BOARD_PATH)/board.mk
-endif
-
--include $(OS_PATH)/$(ZYNQ_TYPE).mk
 
 UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
 LINUX_PATH := $(TMP_OS_PATH)/linux-xlnx-$(LINUX_TAG)
@@ -35,13 +25,28 @@ TMP_OS_VERSION_FILE := $(TMP_OS_PATH)/version.json
 $(TMP_OS_VERSION_FILE): $(KOHERON_VERSION_FILE)
 	echo '{ "version": "$(KOHERON_VERSION)" }' > $@
 
+BOOTCALL := $(TMP_OS_PATH)/boot.bin
+ifeq ($(ZYNQ_TYPE), zynqmp)
+	ARMTRUST_URL := https://github.com/Xilinx/arm-trusted-firmware/archive/xilinx-v$(VIVADO_VERSION).tar.gz
+	ATRUST_TAG := arm-trust-v$(VIVADO_VERSION)
+	BOOTCALL := $(TMP_OS_PATH)/bootmp.bin
+	ATRUST_PATH := $(TMP_OS_PATH)/a-trust-xlnx-$(ATRUST_TAG)
+	ATRUST_TAR := $(TMP)/arm-trust-xlnx-$(ATRUST_TAG).tar.gz
+endif
+
+DTREE_SWITCH = $(TMP_OS_PATH)/devicetree.dtb
+ifdef DTREE_OVERRIDE
+DTREE_SWITCH = $(TMP_OS_PATH)/devicetree_$(DTREE_LOC) 
+endif
+BOOT_MEDIUM ?= mmcblk0
+
 .PHONY: os
-os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/boot.bin $(TMP_OS_PATH)/$(LINUX_IMAGE) $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_VERSION_FILE)
+os: $(INSTRUMENT_ZIP) www api $(BOOTCALL) $(TMP_OS_PATH)/$(LINUX_IMAGE) $(DTREE_SWITCH) $(TMP_OS_VERSION_FILE)
 
 # Build image (run as root)
 .PHONY: image
 image:
-	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE)
+	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE) $(BOOT_MEDIUM)
 
 .PHONY: clean_os
 clean_os:
@@ -57,14 +62,20 @@ FSBL_FILES := $(wildcard $(BOARD_PATH)/patches/fsbl/*.h $(BOARD_PATH)/patches/fs
 .PHONY: fsbl
 fsbl: $(TMP_OS_PATH)/fsbl/executable.elf
 
-$(TMP_OS_PATH)/fsbl/Makefile: $(TMP_FPGA_PATH)/$(NAME).hwdef
+$(TMP_OS_PATH)/fsbl/Makefile:  $(TMP_FPGA_PATH)/$(NAME).xsa
 	mkdir -p $(@D)
-	$(HSI) -source $(FPGA_PATH)/hsi/fsbl.tcl -tclargs $(NAME) $(PROC) $(TMP_OS_PATH)/hard $(@D) $< $(ZYNQ_TYPE)
+	echo "set project_name \"$(NAME)\"" > /tmp/var_fsbl.tcl
+	echo "set proc_name \"$(PROC)\"" >> /tmp/var_fsbl.tcl
+	echo "set hard_path \"$(TMP_OS_PATH)/hard\"" >> /tmp/var_fsbl.tcl
+	echo "set fsbl_path \"$(@D)\"" >> /tmp/var_fsbl.tcl
+	echo "set hwdef_filename \"$<\"" >> /tmp/var_fsbl.tcl
+	echo "set zynq_type \"$(ZYNQ_TYPE)\"" >> /tmp/var_fsbl.tcl
+	$(HSI) $(FPGA_PATH)/hsi/fsbl.tcl 
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
 	cp -a $(BOARD_PATH)/patches/fsbl/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
-	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && make -C $(@D) all
+	source $(VIVADO_PATH)/$(VIVADO_VER)/settings64.sh && make -C $(@D) all
 
 .PHONY: clean_fsbl
 clean_fsbl:
@@ -89,6 +100,7 @@ UBOOT_CONFIG = zynq_$(BOARD)_defconfig
 endif
 
 $(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES) -type f)
+	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	mkdir -p $(@D)
 	make -C $< mrproper
@@ -96,15 +108,74 @@ $(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES) -type f)
 	make -C $< arch=arm CFLAGS="-O2 $(GCC_FLAGS)" \
 	  CROSS_COMPILE=$(GCC_ARCH)- all
 	cp $</u-boot $@
+	cp $</u-boot.elf $@ || true
+	@echo [$@] OK
+
+
+###############################################################################
+# pmufw
+###############################################################################
+
+.PHONY: pmufw
+pmufw: $(TMP_OS_PATH)/pmu/pmufw.elf
+
+$(TMP_OS_PATH)/pmu/Makefile:  $(TMP_FPGA_PATH)/$(NAME).xsa
+	mkdir -p $(@D)
+	echo "set project_name \"$(NAME)\"" > /tmp/var_pmufw.tcl
+	echo "set hard_path \"$(TMP_OS_PATH)/hard\"" >> /tmp/var_pmufw.tcl
+	echo "set pmufw_path \"$(@D)\"" >> /tmp/var_pmufw.tcl
+	echo "set hwdef_filename \"$<\"" >> /tmp/var_pmufw.tcl
+	$(HSI) $(FPGA_PATH)/hsi/pmufw.tcl 
+	@echo [$@] OK
+
+$(TMP_OS_PATH)/pmu/executable.elf: $(TMP_OS_PATH)/pmu/Makefile 
+	source $(VITIS_PATH)/$(VIVADO_VER)/settings64.sh && make -C $(@D) all
+
+.PHONY: clean_pmufw
+clean_pmufw:
+	rm -rf $(TMP_OS_PATH)/pmu
+
+###############################################################################
+# arm_trusted_firmware
+###############################################################################
+
+$(ATRUST_TAR):
+	mkdir -p $(@D)
+	curl -L $(ARMTRUST_URL) -o $@
+	@echo [$@] OK
+
+$(ATRUST_PATH): $(ATRUST_TAR)
+	mkdir -p $@
+	tar -zxf $< --strip-components=1 --directory=$@
+	@echo [$@] OK
+
+$(TMP_OS_PATH)/bl31.elf: $(ATRUST_PATH)
+	make CROSS_COMPILE=$(GCC_ARCH)- PLAT=zynqmp bl31 ZYNQMP_ATF_MEM_BASE=0x10000 ZYNQMP_ATF_MEM_SIZE=0x40000 -C $(ATRUST_PATH)
+	cp $</build/zynqmp/release/bl31/bl31.elf $@
 	@echo [$@] OK
 
 ###############################################################################
 # boot.bin
 ###############################################################################
 
-$(TMP_OS_PATH)/boot.bin: $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_OS_PATH)/u-boot.elf
-	echo "img:{[bootloader] $^}" > $(TMP_OS_PATH)/boot.bif
+$(TMP_OS_PATH)/boot.bin: $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_OS_PATH)/u-boot.elf 
+	echo "img:{[bootloader] $(TMP_OS_PATH)/fsbl/executable.elf" > $(TMP_OS_PATH)/boot.bif
+	echo " $(BITSTREAM)" >> $(TMP_OS_PATH)/boot.bif
+	echo " $(TMP_OS_PATH)/u-boot.elf" >> $(TMP_OS_PATH)/boot.bif
+	echo " }" >> $(TMP_OS_PATH)/boot.bif
 	$(BOOTGEN) -image $(TMP_OS_PATH)/boot.bif -arch $(ZYNQ_TYPE) -w -o i $@
+	@echo [$@] OK
+
+$(TMP_OS_PATH)/bootmp.bin: $(TMP_OS_PATH)/pmu/executable.elf $(TMP_OS_PATH)/bl31.elf $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_OS_PATH)/u-boot.elf 
+	echo "img:{ [fsbl_config] a53_x64" > $(TMP_OS_PATH)/boot.bif
+	echo "[pmufw_image] $(TMP_OS_PATH)/pmu/executable.elf" >> $(TMP_OS_PATH)/boot.bif
+	echo "[bootloader] $(TMP_OS_PATH)/fsbl/executable.elf" >> $(TMP_OS_PATH)/boot.bif
+	echo "[destination_device=pl] $(BITSTREAM)" >> $(TMP_OS_PATH)/boot.bif
+	echo "[destination_cpu=a53-0,exception_level=el-2] $(TMP_OS_PATH)/bl31.elf" >> $(TMP_OS_PATH)/boot.bif
+	echo "[destination_cpu=a53-0,exception_level=el-2] $(TMP_OS_PATH)/u-boot.elf" >> $(TMP_OS_PATH)/boot.bif
+	echo "}" >> $(TMP_OS_PATH)/boot.bif
+	$(BOOTGEN) -image $(TMP_OS_PATH)/boot.bif -arch $(ZYNQ_TYPE) -w -o i $@
+	cp $(TMP_OS_PATH)/bootmp.bin $(TMP_OS_PATH)/boot.bin
 	@echo [$@] OK
 
 ###############################################################################
@@ -121,15 +192,48 @@ $(DTREE_PATH): $(DTREE_TAR)
 	tar -zxf $< --strip-components=1 --directory=$@
 	@echo [$@] OK
 
-.PHONY: devicetree
-devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
+.PHONY: overlay_dtree
+overlay_dtree: $(TMP_OS_PATH)/overlay/system-top.dts clean_
 
-$(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).hwdef $(DTREE_PATH) $(PATCHES)/devicetree.patch
+.PHONY: devicetree
+devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts clean_
+
+/tmp/var_dt.tcl: clean_
+	echo "set project_name \"$(NAME)\"" > /tmp/var_dt.tcl
+	echo "set proc_name \"$(PROC)\"" >> /tmp/var_dt.tcl
+	echo "set dtree_path \"$(DTREE_PATH)\"" >> /tmp/var_dt.tcl
+	echo "set vivado_version \"$(VIVADO_VER)\"" >> /tmp/var_dt.tcl
+	echo "set hard_path \"$(TMP_OS_PATH)/hard\"" >> /tmp/var_dt.tcl
+	echo "set tree_path \"$(TMP_OS_PATH)/overlay\"" >> /tmp/var_dt.tcl
+	echo "set hwdef_filename \"$(TMP_FPGA_PATH)/$(NAME).xsa\"" >> /tmp/var_dt.tcl
+	echo "set partition \"$(BOOT_MEDIUM)\"" >> /tmp/var_dt.tcl
+
+
+$(TMP_OS_PATH)/overlay/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/overlay.patch /tmp/var_dt.tcl
 	mkdir -p $(@D)
-	$(HSI) -source $(FPGA_PATH)/hsi/devicetree.tcl -tclargs $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) \
-	  $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/devicetree $(TMP_FPGA_PATH)/$(NAME).hwdef
-	cp -R $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig
-	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/devicetree.patch
+	echo "set en_overlay true" >> /tmp/var_dt.tcl
+	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl 
+	rm /tmp/var_dt.tcl
+	cp -R $(TMP_OS_PATH)/overlay $(TMP_OS_PATH)/overlay.orig
+	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/overlay.patch 
+	@echo [$@] OK
+
+$(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/devicetree.patch /tmp/var_dt.tcl
+	mkdir -p $(@D)
+	echo "set project_name \"$(NAME)\"" > /tmp/var_dt.tcl
+	echo "set proc_name \"$(PROC)\"" >> /tmp/var_dt.tcl
+	echo "set dtree_path \"$(DTREE_PATH)\"" >> /tmp/var_dt.tcl
+	echo "set vivado_version \"$(VIVADO_VER)\"" >> /tmp/var_dt.tcl
+	echo "set hard_path \"$(TMP_OS_PATH)/hard\"" >> /tmp/var_dt.tcl
+	echo "set tree_path \"$(TMP_OS_PATH)/devicetree\"" >> /tmp/var_dt.tcl
+	echo "set hwdef_filename \"$(TMP_FPGA_PATH)/$(NAME).xsa\"" >> /tmp/var_dt.tcl
+	echo "set partition \"$(BOOT_MEDIUM)\"" >> /tmp/var_dt.tcl
+	echo "set en_overlay true" >> /tmp/var_dt.tcl
+	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl 
+	rm /tmp/var_dt.tcl
+	rm -r $(TMP_OS_PATH)/devicetree.orig || true
+	cp -r $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig
+	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/devicetree.patch 
 	@echo [$@] OK
 
 .PHONY: clean_devicetree
@@ -155,8 +259,7 @@ $(LINUX_PATH): $(LINUX_TAR)
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/$(LINUX_IMAGE): $(LINUX_PATH) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
-	cp $(OS_PATH)/xilinx_devcfg.c $(LINUX_PATH)/drivers/char
-	cp $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs
+	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
 	make -C $< mrproper
 	make -C $< ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
 	make -C $< ARCH=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
@@ -165,10 +268,33 @@ $(TMP_OS_PATH)/$(LINUX_IMAGE): $(LINUX_PATH) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defc
 	cp $</arch/$(ARCH)/boot/$(LINUX_IMAGE) $@
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/$(LINUX_IMAGE) $(TMP_OS_PATH)/devicetree/system-top.dts
-	$(LINUX_PATH)/scripts/dtc/dtc -I dts -O dtb -o $@ \
-	  -i $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree/system-top.dts
+$(TMP_PROJECT_PATH)/overlay.dtb: $(TMP_OS_PATH)/overlay.dtb
+	cp $(TMP_OS_PATH)/overlay.dtb  $(TMP_PROJECT_PATH)/overlay.dtb
+
+$(TMP_OS_PATH)/overlay.dtb: $(TMP_OS_PATH)/$(LINUX_IMAGE) $(TMP_OS_PATH)/overlay/system-top.dts
+	# sed -i 's/.bin/$(NAME).bit.bin/g' $(TMP_OS_PATH)/overlay/pl.dtsi
+	$(LINUX_PATH)/scripts/dtc/dtc -O dtb -o $@ \
+	  -i $(TMP_OS_PATH)/overlay -b 0 -@ $(TMP_OS_PATH)/overlay/pl.dtsi
 	@echo [$@] OK
+
+$(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/$(LINUX_IMAGE) $(TMP_OS_PATH)/devicetree/system-top.dts
+	gcc -I $(TMP_OS_PATH)/devicetree/ -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
+		$(TMP_OS_PATH)/devicetree/system-top.dts.tmp $(TMP_OS_PATH)/devicetree/system-top.dts
+	$(LINUX_PATH)/scripts/dtc/dtc -I dts -O dtb -o $@ \
+	  -i $(TMP_OS_PATH)/devicetree -b 0 -@ $(TMP_OS_PATH)/devicetree/system-top.dts.tmp
+	@echo [$@] OK
+
+$(TMP_OS_PATH)/devicetree_linux: $(TMP_OS_PATH)/$(LINUX_IMAGE)
+	echo ${DTREE_OVERRIDE}
+	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
+	make -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
+	cp $(LINUX_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
+	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
+
+$(TMP_OS_PATH)/devicetree_uboot: $(TMP_OS_PATH)/u-boot.elf
+	echo ${DTREE_OVERRIDE}
+	cp $(UBOOT_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
+	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
 
 ###############################################################################
 # HTTP API
