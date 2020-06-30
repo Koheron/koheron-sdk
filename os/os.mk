@@ -25,7 +25,6 @@ TMP_OS_VERSION_FILE := $(TMP_OS_PATH)/version.json
 $(TMP_OS_VERSION_FILE): $(KOHERON_VERSION_FILE)
 	echo '{ "version": "$(KOHERON_VERSION)" }' > $@
 
-
 BOOTCALL := $(TMP_OS_PATH)/boot.bin
 ifeq ($(ZYNQ_TYPE), zynqmp)
 	ARMTRUST_URL := https://github.com/Xilinx/arm-trusted-firmware/archive/xilinx-v$(VIVADO_VERSION).tar.gz
