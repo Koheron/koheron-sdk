@@ -35,15 +35,14 @@ ifeq ($(ZYNQ_TYPE), zynqmp)
 	ATRUST_TAR := $(TMP)/arm-trust-xlnx-$(ATRUST_TAG).tar.gz
 endif
 
-
-
 DTREE_SWITCH = $(TMP_OS_PATH)/devicetree.dtb
 ifdef DTREE_OVERRIDE
 DTREE_SWITCH = $(TMP_OS_PATH)/devicetree_$(DTREE_LOC) 
 endif
 BOOT_MEDIUM ?= mmcblk0
+
 .PHONY: os
-os: $(INSTRUMENT_ZIP) www api $(BOOTCALL) $(TMP_OS_PATH)/$(LINUX_IMAGE) $(DTREE_SWITCH)  $(TMP_OS_VERSION_FILE)
+os: $(INSTRUMENT_ZIP) www api $(BOOTCALL) $(TMP_OS_PATH)/$(LINUX_IMAGE) $(DTREE_SWITCH) $(TMP_OS_VERSION_FILE)
 
 # Build image (run as root)
 .PHONY: image

@@ -8,7 +8,7 @@ os_version_file=$5
 zynq_type=$6
 image=$tmp_project_path/${name}-production.img
 BOOTPART=$7
-size=2024
+size=2048
 
 ubuntu_version=18.04.1
 
@@ -77,7 +77,7 @@ mount $root_dev $root_dir
 
 # Copy files to the boot file system
 
-cp $tmp_os_path/boot.bin $tmp_os_path/devicetree.dtb $tmp_os_path/uImage $os_path/uEnv.txt $boot_dir
+cp $tmp_os_path/boot.bin $tmp_os_path/devicetree.dtb $tmp_os_path/$linux_image $os_path/uEnv.txt $boot_dir
 
 # Copy Ubuntu Core to the root file system
 
