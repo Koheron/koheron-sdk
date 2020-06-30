@@ -16,8 +16,8 @@
 #endif
 #define CONFIG_EXTRA_ENV_SETTINGS \
     "fdt_high=0x1E000000\0" \
-      "preboot=env import -t 0xFFFFFC00" \
-        "sdboot=echo Importing environment from SD... && mmcinfo && fatload mmc 0 0x2000000 uEnv.txt && env import -t 0x2000000 ${filesize} && boot"
+    "preboot=env import -t 0xFFFFFC00\0" \
+    "sdboot=echo Importing environment from SD... && mmcinfo && fatload mmc 0 0x2000000 uEnv.txt && env import -t 0x2000000 ${filesize} && boot"
 #define CONFIG_ZYNQ_SDHCI0
 /* Select Micrel PHY */
 #define CONFIG_PHY_MICREL
