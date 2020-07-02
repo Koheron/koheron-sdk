@@ -1,4 +1,9 @@
-source /tmp/var_fsbl.tcl
+set project_name [lindex $argv 0]
+set proc_name [lindex $argv 1]
+set hard_path [lindex $argv 2]
+set fsbl_path [lindex $argv 3]
+set hwdef_filename [lindex $argv 4]
+set zynq_type [lindex $argv 5]
 
 file mkdir $hard_path
 file copy -force $hwdef_filename $hard_path/$project_name.xsa

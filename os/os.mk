@@ -5,9 +5,6 @@
 # - Linux kernel
 include $(OS_PATH)/toolchain.mk
 
-clean_:
-	rm /tmp/var_* 22 /dev/null || true
-
 BOARD := $(shell basename $(BOARD_PATH))
 
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
@@ -64,13 +61,7 @@ fsbl: $(TMP_OS_PATH)/fsbl/executable.elf
 
 $(TMP_OS_PATH)/fsbl/Makefile:  $(TMP_FPGA_PATH)/$(NAME).xsa
 	mkdir -p $(@D)
-	echo "set project_name \"$(NAME)\"" > /tmp/var_fsbl.tcl
-	echo "set proc_name \"$(PROC)\"" >> /tmp/var_fsbl.tcl
-	echo "set hard_path \"$(TMP_OS_PATH)/hard\"" >> /tmp/var_fsbl.tcl
-	echo "set fsbl_path \"$(@D)\"" >> /tmp/var_fsbl.tcl
-	echo "set hwdef_filename \"$<\"" >> /tmp/var_fsbl.tcl
-	echo "set zynq_type \"$(ZYNQ_TYPE)\"" >> /tmp/var_fsbl.tcl
-	$(HSI) $(FPGA_PATH)/hsi/fsbl.tcl 
+	$(HSI) $(FPGA_PATH)/hsi/fsbl.tcl $(NAME) $(PROC) $(TMP_OS_PATH)/hard $(@D) $< $(ZYNQ_TYPE)
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
@@ -99,7 +90,7 @@ ifeq ("$(UBOOT_CONFIG)","")
 UBOOT_CONFIG = zynq_$(BOARD)_defconfig
 endif
 
-$(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES) -type f)
+$(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES)/u-boot -type f)
 	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	mkdir -p $(@D)
@@ -119,13 +110,9 @@ $(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES) -type f)
 .PHONY: pmufw
 pmufw: $(TMP_OS_PATH)/pmu/pmufw.elf
 
-$(TMP_OS_PATH)/pmu/Makefile:  $(TMP_FPGA_PATH)/$(NAME).xsa
+$(TMP_OS_PATH)/pmu/Makefile: $(TMP_FPGA_PATH)/$(NAME).xsa
 	mkdir -p $(@D)
-	echo "set project_name \"$(NAME)\"" > /tmp/var_pmufw.tcl
-	echo "set hard_path \"$(TMP_OS_PATH)/hard\"" >> /tmp/var_pmufw.tcl
-	echo "set pmufw_path \"$(@D)\"" >> /tmp/var_pmufw.tcl
-	echo "set hwdef_filename \"$<\"" >> /tmp/var_pmufw.tcl
-	$(HSI) $(FPGA_PATH)/hsi/pmufw.tcl 
+	$(HSI) $(FPGA_PATH)/hsi/pmufw.tcl $(NAME) $(TMP_OS_PATH)/hard $(@D) $<
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/pmu/executable.elf: $(TMP_OS_PATH)/pmu/Makefile 
@@ -193,45 +180,21 @@ $(DTREE_PATH): $(DTREE_TAR)
 	@echo [$@] OK
 
 .PHONY: overlay_dtree
-overlay_dtree: $(TMP_OS_PATH)/overlay/system-top.dts clean_
+overlay_dtree: $(TMP_OS_PATH)/overlay/system-top.dts
 
 .PHONY: devicetree
-devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts clean_
+devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
 
-/tmp/var_dt.tcl: clean_
-	echo "set project_name \"$(NAME)\"" > /tmp/var_dt.tcl
-	echo "set proc_name \"$(PROC)\"" >> /tmp/var_dt.tcl
-	echo "set dtree_path \"$(DTREE_PATH)\"" >> /tmp/var_dt.tcl
-	echo "set vivado_version \"$(VIVADO_VER)\"" >> /tmp/var_dt.tcl
-	echo "set hard_path \"$(TMP_OS_PATH)/hard\"" >> /tmp/var_dt.tcl
-	echo "set tree_path \"$(TMP_OS_PATH)/overlay\"" >> /tmp/var_dt.tcl
-	echo "set hwdef_filename \"$(TMP_FPGA_PATH)/$(NAME).xsa\"" >> /tmp/var_dt.tcl
-	echo "set partition \"$(BOOT_MEDIUM)\"" >> /tmp/var_dt.tcl
-
-
-$(TMP_OS_PATH)/overlay/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/overlay.patch /tmp/var_dt.tcl
+$(TMP_OS_PATH)/overlay/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/overlay.patch
 	mkdir -p $(@D)
-	echo "set en_overlay true" >> /tmp/var_dt.tcl
-	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl 
-	rm /tmp/var_dt.tcl
+	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VER) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/overlay $(TMP_FPGA_PATH)/$(NAME).xsa $(BOOT_MEDIUM)
 	cp -R $(TMP_OS_PATH)/overlay $(TMP_OS_PATH)/overlay.orig
 	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/overlay.patch 
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/devicetree.patch /tmp/var_dt.tcl
+$(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/devicetree.patch
 	mkdir -p $(@D)
-	echo "set project_name \"$(NAME)\"" > /tmp/var_dt.tcl
-	echo "set proc_name \"$(PROC)\"" >> /tmp/var_dt.tcl
-	echo "set dtree_path \"$(DTREE_PATH)\"" >> /tmp/var_dt.tcl
-	echo "set vivado_version \"$(VIVADO_VER)\"" >> /tmp/var_dt.tcl
-	echo "set hard_path \"$(TMP_OS_PATH)/hard\"" >> /tmp/var_dt.tcl
-	echo "set tree_path \"$(TMP_OS_PATH)/devicetree\"" >> /tmp/var_dt.tcl
-	echo "set hwdef_filename \"$(TMP_FPGA_PATH)/$(NAME).xsa\"" >> /tmp/var_dt.tcl
-	echo "set partition \"$(BOOT_MEDIUM)\"" >> /tmp/var_dt.tcl
-	echo "set en_overlay true" >> /tmp/var_dt.tcl
-	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl 
-	rm /tmp/var_dt.tcl
-	rm -r $(TMP_OS_PATH)/devicetree.orig || true
+	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VER) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/devicetree $(TMP_FPGA_PATH)/$(NAME).xsa $(BOOT_MEDIUM)
 	cp -r $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig
 	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/devicetree.patch 
 	@echo [$@] OK
@@ -284,17 +247,17 @@ $(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/$(LINUX_IMAGE) $(TMP_OS_PATH)/devi
 	  -i $(TMP_OS_PATH)/devicetree -b 0 -@ $(TMP_OS_PATH)/devicetree/system-top.dts.tmp
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/devicetree_linux: $(TMP_OS_PATH)/$(LINUX_IMAGE)
-	echo ${DTREE_OVERRIDE}
-	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
-	make -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
-	cp $(LINUX_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
-	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
+# $(TMP_OS_PATH)/devicetree_linux: $(TMP_OS_PATH)/$(LINUX_IMAGE)
+# 	echo ${DTREE_OVERRIDE}
+# 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
+# 	make -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
+# 	cp $(LINUX_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
+# 	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
 
-$(TMP_OS_PATH)/devicetree_uboot: $(TMP_OS_PATH)/u-boot.elf
-	echo ${DTREE_OVERRIDE}
-	cp $(UBOOT_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
-	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
+# $(TMP_OS_PATH)/devicetree_uboot: $(TMP_OS_PATH)/u-boot.elf
+# 	echo ${DTREE_OVERRIDE}
+# 	cp $(UBOOT_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
+# 	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
 
 ###############################################################################
 # HTTP API

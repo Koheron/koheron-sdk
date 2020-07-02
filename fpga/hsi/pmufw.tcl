@@ -1,4 +1,8 @@
-source /tmp/var_pmufw.tcl
+set project_name [lindex $argv 0]
+set hard_path [lindex $argv 1]
+set pmufw_path [lindex $argv 2]
+set hwdef_filename [lindex $argv 3]
+
 # https://wiki.york.ac.uk/display/RTS/ZCU102+Linux
 
 file mkdir $hard_path
