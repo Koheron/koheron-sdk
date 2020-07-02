@@ -4,7 +4,7 @@ GCC_ARCH := aarch64-linux-gnu
 LINUX_IMAGE := Image
 ARCH := arm64
 
-BOOTCALL := $(TMP_OS_PATH)/bootmp.bin
+BOOTCALL := bootmp.bin
 
 ARMTRUST_URL := https://github.com/Xilinx/arm-trusted-firmware/archive/xilinx-v$(VIVADO_VERSION).tar.gz
 ATRUST_TAG := arm-trust-v$(VIVADO_VERSION)

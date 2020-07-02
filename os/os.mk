@@ -30,7 +30,7 @@ endif
 BOOT_MEDIUM ?= mmcblk0
 
 .PHONY: os
-os: $(INSTRUMENT_ZIP) www api $(BOOTCALL) $(TMP_OS_PATH)/$(LINUX_IMAGE) $(DTREE_SWITCH) $(TMP_OS_VERSION_FILE)
+os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/$(BOOTCALL) $(TMP_OS_PATH)/$(LINUX_IMAGE) $(DTREE_SWITCH) $(TMP_OS_VERSION_FILE)
 
 # Build image (run as root)
 .PHONY: image

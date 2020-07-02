@@ -4,4 +4,4 @@ GCC_ARCH := arm-linux-gnueabihf
 LINUX_IMAGE := uImage
 ARCH := arm
 
-BOOTCALL := $(TMP_OS_PATH)/boot.bin
+BOOTCALL := boot.bin
