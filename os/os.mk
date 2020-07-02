@@ -22,19 +22,11 @@ TMP_OS_VERSION_FILE := $(TMP_OS_PATH)/version.json
 $(TMP_OS_VERSION_FILE): $(KOHERON_VERSION_FILE)
 	echo '{ "version": "$(KOHERON_VERSION)" }' > $@
 
-BOOTCALL := $(TMP_OS_PATH)/boot.bin
-ifeq ($(ZYNQ_TYPE), zynqmp)
-	ARMTRUST_URL := https://github.com/Xilinx/arm-trusted-firmware/archive/xilinx-v$(VIVADO_VERSION).tar.gz
-	ATRUST_TAG := arm-trust-v$(VIVADO_VERSION)
-	BOOTCALL := $(TMP_OS_PATH)/bootmp.bin
-	ATRUST_PATH := $(TMP_OS_PATH)/a-trust-xlnx-$(ATRUST_TAG)
-	ATRUST_TAR := $(TMP)/arm-trust-xlnx-$(ATRUST_TAG).tar.gz
-endif
-
 DTREE_SWITCH = $(TMP_OS_PATH)/devicetree.dtb
 ifdef DTREE_OVERRIDE
 DTREE_SWITCH = $(TMP_OS_PATH)/devicetree_$(DTREE_LOC) 
 endif
+
 BOOT_MEDIUM ?= mmcblk0
 
 .PHONY: os
