@@ -239,17 +239,19 @@ $(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/$(LINUX_IMAGE) $(TMP_OS_PATH)/devi
 	  -i $(TMP_OS_PATH)/devicetree -b 0 -@ $(TMP_OS_PATH)/devicetree/system-top.dts.tmp
 	@echo [$@] OK
 
-# $(TMP_OS_PATH)/devicetree_linux: $(TMP_OS_PATH)/$(LINUX_IMAGE)
-# 	echo ${DTREE_OVERRIDE}
-# 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
-# 	make -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
-# 	cp $(LINUX_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
-# 	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
+.PHONY: $(TMP_OS_PATH)/devicetree_linux
+$(TMP_OS_PATH)/devicetree_linux: $(TMP_OS_PATH)/$(LINUX_IMAGE)
+	echo ${DTREE_OVERRIDE}
+	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
+	make -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
+	cp $(LINUX_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
+	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
 
-# $(TMP_OS_PATH)/devicetree_uboot: $(TMP_OS_PATH)/u-boot.elf
-# 	echo ${DTREE_OVERRIDE}
-# 	cp $(UBOOT_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
-# 	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
+.PHONY: $(TMP_OS_PATH)/devicetree_uboot
+$(TMP_OS_PATH)/devicetree_uboot: $(TMP_OS_PATH)/u-boot.elf
+	echo ${DTREE_OVERRIDE}
+	cp $(UBOOT_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
+	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
 
 ###############################################################################
 # HTTP API
