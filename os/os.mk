@@ -171,8 +171,8 @@ $(DTREE_PATH): $(DTREE_TAR)
 	tar -zxf $< --strip-components=1 --directory=$@
 	@echo [$@] OK
 
-.PHONY: overlay_dtree
-overlay_dtree: $(TMP_OS_PATH)/overlay/system-top.dts
+.PHONY: overlay
+overlay: $(TMP_OS_PATH)/overlay/system-top.dts
 
 .PHONY: devicetree
 devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
@@ -198,6 +198,16 @@ clean_devicetree:
 .PHONY: patch_devicetree
 patch_devicetree:
 	bash os/scripts/patch_devicetree.sh $(TMP_OS_PATH) $(BOARD_PATH)
+
+.PHONY: patch_overlay
+patch_overlay:
+	bash os/scripts/patch_overlay.sh $(TMP_OS_PATH) $(BOARD_PATH)
+
+.PHONY: clean_overlay
+clean_overlay:
+	rm -rf $(TMP_OS_PATH)/overlay $(TMP_OS_PATH)/overlay.orig
+
+
 
 ###############################################################################
 # LINUX
