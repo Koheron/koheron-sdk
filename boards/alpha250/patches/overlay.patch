@@ -1,0 +1,21 @@
+diff -rupN overlay.orig/pl.dtsi overlay/pl.dtsi
+--- overlay.orig/pl.dtsi	2020-07-03 15:49:15.733347068 +0200
++++ overlay/pl.dtsi	2020-07-03 15:49:37.326092622 +0200
+@@ -13,7 +13,7 @@
+ 		overlay0: __overlay__ {
+ 			#address-cells = <1>;
+ 			#size-cells = <1>;
+-			firmware-name = ".bin";
++			firmware-name = "fft.bit.bin";
+ 		};
+ 	};
+ 	fragment@1 {
+@@ -21,7 +21,7 @@
+ 		overlay1: __overlay__ {
+ 			clocking0: clocking0 {
+ 				#clock-cells = <0>;
+-				assigned-clock-rates = <200000000>;
++				assigned-clock-rates = <20000000>;
+ 				assigned-clocks = <&clkc 15>;
+ 				clock-output-names = "fabric_clk";
+ 				clocks = <&clkc 15>;

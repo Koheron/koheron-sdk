@@ -172,12 +172,12 @@ $(DTREE_PATH): $(DTREE_TAR)
 	@echo [$@] OK
 
 .PHONY: overlay
-overlay: $(TMP_OS_PATH)/overlay/system-top.dts
+overlay: $(TMP_OS_PATH)/overlay/pl.dtsi
 
 .PHONY: devicetree
 devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
 
-$(TMP_OS_PATH)/overlay/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/overlay.patch
+$(TMP_OS_PATH)/overlay/pl.dtsi: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/overlay.patch
 	mkdir -p $(@D)
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VER) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/overlay $(TMP_FPGA_PATH)/$(NAME).xsa $(BOOT_MEDIUM)
 	cp -R $(TMP_OS_PATH)/overlay $(TMP_OS_PATH)/overlay.orig
@@ -233,10 +233,10 @@ $(TMP_OS_PATH)/$(LINUX_IMAGE): $(LINUX_PATH) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defc
 	cp $</arch/$(ARCH)/boot/$(LINUX_IMAGE) $@
 	@echo [$@] OK
 
-$(TMP_PROJECT_PATH)/overlay.dtb: $(TMP_OS_PATH)/overlay.dtb
-	cp $(TMP_OS_PATH)/overlay.dtb  $(TMP_PROJECT_PATH)/overlay.dtb
+$(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
+	cp $(TMP_OS_PATH)/pl.dtbo  $(TMP_PROJECT_PATH)/pl.dtbo
 
-$(TMP_OS_PATH)/overlay.dtb: $(TMP_OS_PATH)/$(LINUX_IMAGE) $(TMP_OS_PATH)/overlay/system-top.dts
+$(TMP_OS_PATH)/pl.dtbo: $(TMP_OS_PATH)/$(LINUX_IMAGE) $(TMP_OS_PATH)/overlay/pl.dtsi
 	# sed -i 's/.bin/$(NAME).bit.bin/g' $(TMP_OS_PATH)/overlay/pl.dtsi
 	$(LINUX_PATH)/scripts/dtc/dtc -O dtb -o $@ \
 	  -i $(TMP_OS_PATH)/overlay -b 0 -@ $(TMP_OS_PATH)/overlay/pl.dtsi

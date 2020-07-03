@@ -50,13 +50,13 @@ class FpgaManager {
                 fs::create_directories(lib_firmware_dirname);
 
             // remove old binaries
-            if (exists_fs(lib_firmware_dirname + "overlay.dtb")) 
-                fs::remove(lib_firmware_dirname + "overlay.dtb");
+            if (exists_fs(lib_firmware_dirname + "pl.dtbo")) 
+                fs::remove(lib_firmware_dirname + "pl.dtbo");
             if (exists_fs(lib_firmware_dirname + instrument_name + bit_extension)) 
                 fs::remove(lib_firmware_dirname + instrument_name + bit_extension);
 
             // copy new binaries
-            fs::copy_file(live_instrument_dirname + "overlay.dtb", lib_firmware_dirname + "/overlay.dtb", fs::copy_options::overwrite_existing);
+            fs::copy_file(live_instrument_dirname + "pl.dtbo", lib_firmware_dirname + "/pl.dtbo", fs::copy_options::overwrite_existing);
             fs::copy_file(live_instrument_dirname + instrument_name + bit_extension, lib_firmware_dirname + instrument_name + bit_extension, fs::copy_options::overwrite_existing);
 
             // create /configfs if needed
@@ -75,19 +75,18 @@ class FpgaManager {
                     fs::remove_all(overlay_path);
                 }
                 if (exists_fs(overlay_path))
-                ctx.log<PANIC>("Failed to remove previous overlay ...\n");
+                    ctx.log<PANIC>("Failed to remove previous overlay ...\n");
 
                 fs::create_directories(overlay_path);
 
-                if (exists_fs(overlay)) {
+                if (exists_fs(overlay_path)) {
                     chandle_path = overlay_done;
                     useOverlay = true;
                     fhandle_path = overlay;
-                    chandle_path = overlay_done;
                     return;
                 }
-        }
-        else
+            }
+            else
                 ctx.log<PANIC>("Failed to mount configfs or device-tree overlay not included in kernel image...\n");
             // Exit if file descriptor for writing bit.bin exists
             if (firmware_exists) return;
@@ -99,6 +98,7 @@ class FpgaManager {
     }
 
     int load_bitstream(const char* name) {
+        ctx.log<INFO>("Start loading bitstream...");
         FILE *xdevcfg = fopen(fhandle_path.c_str(), "w");
 
         if (isXDevCfg) {
@@ -120,9 +120,9 @@ class FpgaManager {
         } else {
             // set flag to indice that we are flashing entire firmware, i.e. not partial reconfig
             FILE *xflag = fopen(fmanager_flags.c_str(), "w");
-            ctx.log<INFO>("echo 0 > %s\n", fmanager_flags);
+            ctx.log<INFO>("echo 0 > %s\n", fmanager_flags.c_str());
             if (fwrite("0", 1, 1, xflag) != 1) {
-              ctx.log<PANIC>("FpgaManager: Failed to set flag on %s\n", fmanager_flags);
+              ctx.log<PANIC>("FpgaManager: Failed to set flag on %s\n", fmanager_flags.c_str());
               fclose(xflag);
               fclose(xdevcfg);
               return -1;
@@ -133,12 +133,15 @@ class FpgaManager {
             std::string echo = name + bit_extension + "\n";
             if (useOverlay)
             {
-              echo = "overlay.dtb\n";
+                ctx.log<INFO>("Using Overlay...");
+                echo = "pl.dtbo\n";
+            } else {
+                ctx.log<INFO>("Not using Overlay...");
             }
             // write image
-            ctx.log<INFO>("echo %s > %s\n", echo, fhandle_path);
+            ctx.log<INFO>("echo %s > %s\n", echo, fhandle_path.c_str());
             if (fwrite(echo.c_str(), echo.size(), 1, xdevcfg) != 1) {
-                ctx.log<PANIC>("FpgaManager: Failed to write bitstream to %s\n", fhandle_path);
+                ctx.log<PANIC>("FpgaManager: Failed to write bitstream to %s\n", fhandle_path.c_str());
                 fclose(xdevcfg);
                 return -1;
             }
@@ -163,7 +166,6 @@ class FpgaManager {
     const std::string fmanager_flags = "/sys/class/fpga_manager/fpga0/flags";
     const std::string fmanager_done = "/sys/class/fpga_manager/fpga0/state";
     const std::string fmanager_firmware = "/sys/class/fpga_manager/fpga0/firmware";
-
 
     const std::string overlay_path = "/configfs/device-tree/overlays/full";
     const std::string overlay = "/configfs/device-tree/overlays/full/path";
@@ -230,7 +232,7 @@ class FpgaManager {
         }
 
         if (fprog_done == nullptr) {
-            ctx.log<PANIC>("FpgaManager: Failed to open %s\n", chandle_path);
+            ctx.log<PANIC>("FpgaManager: Failed to open %s\n", chandle_path.c_str());
             return -1;
         }
 
@@ -247,7 +249,7 @@ class FpgaManager {
                 return -1;
             }
         } else {
-            ctx.log<PANIC>("FpgaManager: Failed to read %s\n", chandle_path);
+            ctx.log<PANIC>("FpgaManager: Failed to read %s\n", chandle_path.c_str());
             fclose(fprog_done);
             return -1;
         }
