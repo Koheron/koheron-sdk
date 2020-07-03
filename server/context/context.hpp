@@ -29,7 +29,7 @@ class Context : public ContextBase
         //}
 
         // We set all the Zynq clocks before starting the drivers
-        zynq_clocks::set_clocks(fclk);
+        //zynq_clocks::set_clocks(fclk);
     }
 
     int init() {
