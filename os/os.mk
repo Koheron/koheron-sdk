@@ -172,7 +172,7 @@ $(DTREE_PATH): $(DTREE_TAR)
 	@echo [$@] OK
 
 .PHONY: overlay
-overlay: $(TMP_OS_PATH)/overlay/pl.dtsi
+overlay: $(TMP_OS_PATH)/pl.dtbo
 
 .PHONY: devicetree
 devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
@@ -237,7 +237,7 @@ $(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
 	cp $(TMP_OS_PATH)/pl.dtbo  $(TMP_PROJECT_PATH)/pl.dtbo
 
 $(TMP_OS_PATH)/pl.dtbo: $(TMP_OS_PATH)/$(LINUX_IMAGE) $(TMP_OS_PATH)/overlay/pl.dtsi
-	# sed -i 's/.bin/$(NAME).bit.bin/g' $(TMP_OS_PATH)/overlay/pl.dtsi
+	sed -i 's/.bin/$(NAME).bit.bin/g' $(TMP_OS_PATH)/overlay/pl.dtsi
 	$(LINUX_PATH)/scripts/dtc/dtc -O dtb -o $@ \
 	  -i $(TMP_OS_PATH)/overlay -b 0 -@ $(TMP_OS_PATH)/overlay/pl.dtsi
 	@echo [$@] OK
