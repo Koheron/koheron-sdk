@@ -223,7 +223,8 @@ $(LINUX_PATH): $(LINUX_TAR)
 	tar -zxf $< --strip-components=1 --directory=$@
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/$(LINUX_IMAGE): $(LINUX_PATH) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
+$(TMP_OS_PATH)/$(LINUX_IMAGE): $(LINUX_PATH) $(shell find $(PATCHES)/linux -type f) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
+	cp $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs
 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
 	make -C $< mrproper
 	make -C $< ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
