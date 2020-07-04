@@ -6,7 +6,7 @@ diff -rupN overlay.orig/pl.dtsi overlay/pl.dtsi
  			clocking0: clocking0 {
  				#clock-cells = <0>;
 -				assigned-clock-rates = <200000000>;
-+				assigned-clock-rates = <20000000>;
++				assigned-clock-rates = <200000000>;
  				assigned-clocks = <&clkc 15>;
  				clock-output-names = "fabric_clk";
  				clocks = <&clkc 15>;
