@@ -3,7 +3,6 @@
 
 import numpy as np
 import os
-import time
 from adc_dac_bram import AdcDacBram
 from koheron import connect
 
@@ -12,7 +11,7 @@ matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
-host = os.getenv('HOST', '192.168.1.16')
+host = os.getenv('HOST', '192.168.1.100')
 client = connect(host, 'adc-dac-bram', restart=True)
 driver = AdcDacBram(client)
 
@@ -56,7 +55,7 @@ i = 0
 while True:
     try:
         i += 1
-        print i
+        print(i)
         driver.get_adc()
         line0.set_data(t_us, driver.adc[0,:])
         line1.set_data(t_us, driver.adc[1,:])
