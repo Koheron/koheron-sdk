@@ -156,6 +156,7 @@ setup_base:
 
 .PHONY: setup_fpga
 setup_fpga: setup_base
+	sudo apt-get install device-tree-compiler
 	sudo rm -f /usr/bin/gmake && sudo ln -s make /usr/bin/gmake
 
 .PHONY: setup_server
@@ -172,7 +173,7 @@ setup_web: setup_base
 
 .PHONY: setup_os
 setup_os: setup_base
-	sudo apt-get install -y libssl-dev bc device-tree-compiler qemu-user-static zerofree
+	sudo apt-get install -y libssl-dev bc qemu-user-static zerofree
 	sudo apt-get install -y lib32stdc++6 lib32z1 u-boot-tools
 
 ###############################################################################
