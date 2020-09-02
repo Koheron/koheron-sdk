@@ -10,7 +10,7 @@ image=$tmp_project_path/${name}-development.img
 BOOTPART=$7
 size=2048
 
-ubuntu_version=18.04.2
+ubuntu_version=20.04.1
 part1=/dev/${BOOTPART}p1
 part2=/dev/${BOOTPART}p2
 if [ "${zynq_type}" = "zynqmp" ]; then
@@ -139,15 +139,15 @@ cat <<- EOF_CAT >> etc/hosts
 127.0.1.1    koheron
 EOF_CAT
 
-apt -y install locales
-
-locale-gen en_US.UTF-8
-update-locale LANG=en_US.UTF-8
-
 sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
 
 apt update
 apt -y upgrade
+
+apt -y install locales
+
+locale-gen en_US.UTF-8
+update-locale LANG=en_US.UTF-8
 
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
@@ -158,22 +158,24 @@ apt install -y usbutils psmisc lsof
 apt install -y parted curl less vim iw ntfs-3g
 apt install -y bash-completion unzip
 
-apt install -y udev net-tools netbase ifupdown network-manager lsb-base
+apt install -y udev net-tools netbase ifupdown network-manager lsb-base isc-dhcp-client
 apt install -y ntpdate sudo rsync
 apt install -y kmod
+apt install -y gcc
 
 apt install -y nginx
 sudo dpkg --configure -a
-apt install -y build-essential python-dev
+apt install -y build-essential python3-dev
 sudo dpkg --configure -a
 apt install -y python-numpy
 sudo dpkg --configure -a
-apt install -y python-pip python-setuptools python-all-dev python-wheel
+apt install -y python3-pip python-setuptools
 sudo dpkg --configure -a
-pip install --upgrade pip==9.0.3
-pip install flask
-pip install uwsgi
-pip install werkzeug==0.16.0
+pip3 install wheel
+pip3 install --upgrade pip==20.2.2
+pip3 install flask
+pip3 install uwsgi
+pip3 install werkzeug==1.0.1
 
 systemctl enable uwsgi
 systemctl enable unzip-default-instrument
