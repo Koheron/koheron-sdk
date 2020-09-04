@@ -9,7 +9,7 @@ import numpy as np
 
 class AdcDacDma(object):
     def __init__(self, client):
-        self.n = 8*1024*1024
+        self.n = 256*1024*1024
         self.client = client
         self.dac = np.zeros((self.n))
         self.adc = np.zeros((self.n))
