@@ -1,5 +1,6 @@
 # Linux and U-boot
-UBOOT_TAG := koheron-v$(VIVADO_VERSION)
+#UBOOT_TAG := koheron-v$(VIVADO_VERSION)
+UBOOT_TAG := koheron-v2017.2-adc-dac-dma-128MB
 LINUX_TAG := koheron-v$(VIVADO_VERSION)-kernel-module
 DTREE_TAG := xilinx-v$(VIVADO_VERSION)
 

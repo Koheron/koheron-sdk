@@ -33,11 +33,11 @@ memory:
     offset: '0x43C00000'
     range: 64K
   - name: ram_mm2s
-    offset: '0x10000000'
-    range: 128M
-  - name: ram_s2mm
     offset: '0x18000000'
-    range: 128M
+    range: 64M
+  - name: ram_s2mm
+    offset: '0x1C000000'
+    range: 64M
   - name: dma
     offset: '0x40400000'
     range: 64K
