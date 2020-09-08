@@ -176,6 +176,7 @@ pip3 install --upgrade pip==20.2.2
 pip3 install flask
 pip3 install uwsgi
 pip3 install werkzeug==1.0.1
+pip3 install simplejson
 
 systemctl enable uwsgi
 systemctl enable unzip-default-instrument
