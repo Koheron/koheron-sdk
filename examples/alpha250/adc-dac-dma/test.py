@@ -9,7 +9,7 @@ import numpy as np
 
 class AdcDacDma(object):
     def __init__(self, client):
-        self.n = 8*1024*1024
+        self.n = 32*1024*1024
         self.client = client
         self.dac = np.zeros((self.n))
         self.adc = np.zeros((self.n))
@@ -39,7 +39,7 @@ class AdcDacDma(object):
 
     @command()
     def get_adc_data(self):
-        return self.client.recv_array(self.n/2, dtype='uint32')
+        return self.client.recv_array(self.n//2, dtype='uint32')
 
     def get_adc(self):
         data = self.get_adc_data()
@@ -74,7 +74,7 @@ if __name__=="__main__":
     driver.get_adc()
     driver.stop_dma()
 
-    n_pts = 1000000
+    n_pts = driver.n
     print("Plot first {} points".format(n_pts))
     plt.plot(1e6 * t[0:n_pts], driver.adc[0:n_pts])
     plt.ylim((-2**15, 2**15))
