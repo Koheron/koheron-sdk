@@ -3,13 +3,13 @@
  *   * (C) Copyright 2015 Antmicro Ltd
  *    * (C) Copyright 2015 Koheron SAS
  *     *
- *      * Configuration for Koheron Alpha250
+ *      * Configuration for Koheron Alpha250-1g
  *       * See zynq-common.h for Zynq common configs
  *        *
  *         * SPDX-License-Identifier: GPL-2.0+
  *          */
-#ifndef __CONFIG_ZYNQ_ALPHA250_H
-#define __CONFIG_ZYNQ_ALPHA250_H
+#ifndef __CONFIG_ZYNQ_ALPHA250_1G_H
+#define __CONFIG_ZYNQ_ALPHA250_1G_H
 #include <configs/zynq-common.h>
 #ifdef CONFIG_EXTRA_ENV_SETTINGS
 #undef CONFIG_EXTRA_ENV_SETTINGS
@@ -25,4 +25,4 @@
 #ifdef CONFIG_PHY_MARVELL
 #undef CONFIG_PHY_MARVELL
 #endif
-#endif /* __CONFIG_ZYNQ_ALPHA250_H */
+#endif /* __CONFIG_ZYNQ_ALPHA250_1G_H */
