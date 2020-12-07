@@ -17,7 +17,7 @@ losetup ${device} ${image}
 boot_dir=`mktemp -d /tmp/BOOT.XXXXXXXXXX`
 root_dir=`mktemp -d /tmp/ROOT.XXXXXXXXXX`
 
-ubuntu_version=16.04.3
+ubuntu_version=16.04.6
 root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
 root_url=http://cdimage.ubuntu.com/ubuntu-base/releases/${ubuntu_version}/release/$root_tar
 
