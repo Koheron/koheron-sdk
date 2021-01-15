@@ -10,6 +10,8 @@ source $sdk_path/fpga/lib/ctl_sts.tcl
 add_ctl_sts adc_dac/adc_clk rst_adc_clk/peripheral_aresetn
 
 connect_cell adc_dac {
+    adc0 [sts_pin adc0]
+    adc1 [sts_pin adc1]
     ctl [ctl_pin mmcm]
     cfg_data [ps_ctl_pin spi_cfg_data]
     cfg_cmd [ps_ctl_pin spi_cfg_cmd]
