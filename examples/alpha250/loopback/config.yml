@@ -35,6 +35,9 @@ control_registers:
   - precision_dac_ctl
   - precision_dac_data[2]
 
+status_registers:
+  - adc[n_adc]
+
 ps_control_registers:
   - spi_cfg_data
   - spi_cfg_cmd
@@ -45,6 +48,7 @@ ps_status_registers:
 parameters:
   fclk0: 200000000 # FPGA clock speed in Hz
   adc_clk: 250000000
+  n_adc: 2
 
 xdc:
   - boards/alpha250/config/ports.xdc
