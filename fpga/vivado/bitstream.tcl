@@ -1,12 +1,8 @@
 set xpr_filename [lindex $argv 0]
 set bit_filename [lindex $argv 1]
-<<<<<<< HEAD
 set type [lindex $argv 2]
 set nCPU [lindex $argv 3]
 
-=======
-set nCPU [lindex $argv 2]
->>>>>>> d8bf2165890c46bf522f1053ba7f3597f99ddbb7
 
 open_project $xpr_filename
 
