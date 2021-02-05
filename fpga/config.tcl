@@ -41,6 +41,16 @@ set ps_sts_register({{ loop.index0 }}) {{name}}
 variable ps_status_size {{ config['ps_status_registers'] | length }}
 
 ##########################################################
+# Define ps status offsets
+##########################################################
+variable ps_sts_register
+{% for name in config['ps_status_registers'] -%}
+set ps_sts_register({{ loop.index0 }}) {{name}}
+{% endfor -%}
+
+variable ps_status_size {{ config['ps_status_registers'] | length }}
+
+##########################################################
 # Define parameters
 ##########################################################
 {% for key in config['parameters'] -%}

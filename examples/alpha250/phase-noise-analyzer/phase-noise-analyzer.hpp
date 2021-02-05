@@ -58,14 +58,14 @@ class PhaseNoiseAnalyzer
         );
     }
 
-    const auto& get_data() {
+    auto get_data() {
         dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
         dma.wait_for_transfer(dma_transfer_duration);
         data = ram.read_array<int32_t, data_size, read_offset>();
         return data;
     }
 
-    const auto& get_phase_noise(uint32_t n_avg);
+    auto get_phase_noise(uint32_t n_avg);
 
   private:
     static constexpr uint32_t data_size = 200000;
@@ -99,7 +99,7 @@ class PhaseNoiseAnalyzer
     }
 };
 
-inline const auto& PhaseNoiseAnalyzer::get_phase_noise(uint32_t n_avg) {
+inline auto PhaseNoiseAnalyzer::get_phase_noise(uint32_t n_avg) {
     std::fill(phase_noise.begin(), phase_noise.end(), 0.0f);
 
     for (uint32_t i=0; i<n_avg; i++) {
@@ -135,7 +135,7 @@ inline void PhaseNoiseAnalyzer::compute_fft() {
     constexpr size_t begin = idx * fft_size;
     constexpr size_t end = (idx + 1) * fft_size -1;
 
-    float data_mean = std::accumulate(data.data() + begin, data.data() + end, 0.0) / double(fft_size);
+    const float data_mean = std::accumulate(data.data() + begin, data.data() + end, 0.0) / double(fft_size);
 
     for (uint32_t i=0; i<fft_size; i++) {
         std::get<idx>(data_vec)[i] = (data[i + begin] - data_mean) * window[i] * float(M_PI) / 8192.0f;

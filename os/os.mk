@@ -336,7 +336,7 @@ $(TMP_WWW_PATH)/instruments.js: $(WWW_TS_FILES)
 
 $(TMP_WWW_PATH)/koheron.css:
 	mkdir -p $(@D)
-	curl https://www.koheron.com/static/css/main.css -o $@
+	curl https://assets.koheron.com/css/main.css -o $@
 
 $(TMP_WWW_PATH)/index.html: $(WWW_PATH)/index.html
 	mkdir -p $(@D)
@@ -364,15 +364,15 @@ $(TMP_WWW_PATH)/jquery.min.js:
 
 $(TMP_WWW_PATH)/koheron.svg:
 	mkdir -p $(@D)
-	curl https://www.koheron.com/static/images/website/koheron.svg -o $@
+	curl https://assets.koheron.com/images/logo/koheron.svg -o $@
 
 $(TMP_WWW_PATH)/koheron_logo.svg:
 	mkdir -p $(@D)
-	curl https://www.koheron.com/static/images/website/koheron_logo.svg -o $@
+	curl https://assets.koheron.com/images/logo/koheron_logo.svg -o $@
 
 $(TMP_WWW_PATH)/kbird.ico:
 	mkdir -p $(@D)
-	curl https://www.koheron.com/static/images/website/kbird.ico -o $@
+	curl https://assets.koheron.com/images/logo/koheron.ico -o $@
 
 $(TMP_WWW_PATH)/lato-v11-latin-400.woff2:
 	mkdir -p $(@D)

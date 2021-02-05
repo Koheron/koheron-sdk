@@ -239,8 +239,8 @@ class FpgaManager {
         std::array<char, 1> buff{};
 
         if (read(fileno(fprog_done), buff.data(), 1) == 1) {
-            if (buff[0] == expected[0]) {
-                ctx.log<INFO>("FpgaManager:Bitstream successfully loaded\n");
+            if (buff[0] == '1') {
+                ctx.log<INFO>("FpgaManager: Bitstream successfully loaded\n");
                 fclose(fprog_done);
                 return 0;
             } else {

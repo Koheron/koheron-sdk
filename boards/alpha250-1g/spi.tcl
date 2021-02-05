@@ -1,3 +1,5 @@
+make_bd_intf_pins_external  [get_bd_intf_pins ps_0/IIC_0]
+
 # Precision ADC SPI (SPI0)
 
 create_bd_port -dir O spi_precision_adc_cs

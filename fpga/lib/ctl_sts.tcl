@@ -78,7 +78,17 @@ proc add_status_register {module_name memory_name mclk mrstn reg_names {num_port
   set bd [current_bd_instance .]
   current_bd_instance [create_bd_cell -type hier $module_name]
 
+<<<<<<< HEAD
   for {set i 0} {$i < $num_ports} {incr i} {
+=======
+  if {$has_dna == 1} {
+    set n_hidden_ports 2
+  } else {
+    set n_hidden_ports 0
+  }
+
+  for {set i $n_hidden_ports} {$i < $num_ports} {incr i} {
+>>>>>>> d8bf2165890c46bf522f1053ba7f3597f99ddbb7
     create_bd_pin -dir I -from 31 -to 0 $register($i)
   }
 
@@ -123,6 +133,17 @@ proc add_status_register {module_name memory_name mclk mrstn reg_names {num_port
   set_property range  [get_memory_range $memory_name]  $memory_segment
   set_property offset [get_memory_offset $memory_name] $memory_segment
 
+<<<<<<< HEAD
+=======
+  if {$has_dna == 1} {
+    # DNA (hidden ports)
+    cell pavel-demin:user:dna_reader:1.0 dna {} {
+      aclk /$mclk
+      aresetn /$mrstn
+    }
+  }
+
+>>>>>>> d8bf2165890c46bf522f1053ba7f3597f99ddbb7
   set left_ports $num_ports
   set concat_idx 0
 
@@ -151,6 +172,14 @@ proc add_status_register {module_name memory_name mclk mrstn reg_names {num_port
     incr concat_idx
   }
 
+<<<<<<< HEAD
+=======
+  if {$has_dna == 1} {
+    connect_pins concat_0/In0 [get_slice_pin dna/dna_data 31 0]
+    connect_pins concat_0/In1 [get_slice_pin dna/dna_data 56 32]
+  }
+
+>>>>>>> d8bf2165890c46bf522f1053ba7f3597f99ddbb7
   # Other ports
   for {set i 0} {$i < $num_ports} {incr i} {
     set iidx [expr $i % 32]
