@@ -62,7 +62,7 @@ while True:
         ax.relim()
         ax.autoscale_view(True, True, True)
         fig.canvas.draw()
-        print time.time() - t0, peak_pos
+        print(time.time() - t0, peak_pos)
         plt.pause(0.001)
     except KeyboardInterrupt:
         break

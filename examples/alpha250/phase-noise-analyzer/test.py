@@ -81,7 +81,7 @@ while True:
     try:
         i = (i + 1) % n_avg
         data = driver.get_data()
-        print i, np.mean(data)
+        print(i, np.mean(data))
         data = data / 8192.0 * np.pi
         #data = data - data[0] - x * (data[-1] - data[0])
         data -= np.mean(data)

@@ -27,7 +27,7 @@ def test_phase_shift(config):
     data = np.zeros((2,n))
 
     for i in range(n):
-        print i
+        print(i)
         driver.phase_shift(1)
         driver.get_adc()
         data[0,i] = np.std(np.diff(driver.adc[0]))

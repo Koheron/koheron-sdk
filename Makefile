@@ -17,7 +17,6 @@ VIVADO_VERSION := 2020.1
 VIVADO_PATH := /tools/Xilinx/Vivado
 VITIS_PATH := /tools/Xilinx/Vitis
 PYTHON := python3
-PIP:= pip
 
 .PHONY: help
 help:

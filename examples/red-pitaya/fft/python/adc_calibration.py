@@ -34,7 +34,7 @@ class Keysight33600A:
 def calibrate_transfer_function(gene, driver):
     n_pts = driver.n_pts
     fs = driver.get_fs()
-    print n_pts, fs
+    print(n_pts, fs)
 
     freqs = np.linspace(1e6, 62e6, num=200)
     freqs = np.round(freqs / fs * n_pts) * fs / n_pts
@@ -49,7 +49,7 @@ def calibrate_transfer_function(gene, driver):
         psd = driver.read_psd_raw()
         peak_power[i] = psd[n-1]
         #peak_power[i] = np.max(psd)
-        print i, freq, peak_power[i]
+        print(i, freq, peak_power[i])
 
     H = peak_power / peak_power[0] # Power transfer function
 
@@ -80,13 +80,13 @@ def calibrate_offset_gain(gene, driver, channel):
         gene.set_dc_offset(Voff)
         time.sleep(0.5)
         off_raw[i] = driver.get_adc_raw_data(100)[channel]
-        print i, off_raw[i]
+        print(i, off_raw[i])
 
     gain_lsb, offset_lsb, r_value, p_value, std_err = stats.linregress(voltages, off_raw)
-    print gain_lsb, offset_lsb
+    print(gain_lsb, offset_lsb)
 
     gain_volts, offset_volts, r_value, p_value, std_err = stats.linregress(off_raw, voltages)
-    print gain_volts, offset_volts
+    print(gain_volts, offset_volts)
 
     residuals = off_raw - (gain_lsb * voltages + offset_lsb)
 
@@ -118,4 +118,4 @@ if __name__=="__main__":
         p = calibrate_transfer_function(gene, driver)
 
         cal_coeffs = np.float32(np.concatenate((np.array([gain, offset]), p)))
-        print cal_coeffs
+        print(cal_coeffs)

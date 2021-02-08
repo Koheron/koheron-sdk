@@ -48,7 +48,7 @@ while True:
         data_rcv = driver.get_next_pulse(n)
         adc0 = (np.int32(data_rcv % 16384) - 8192) % 16384 - 8192
         adc1 = (np.int32((data_rcv >> 16) % 16384) - 8192) % 16384 - 8192
-        print driver.get_fifo_length(), np.mean(adc0), np.mean(adc1)
+        print(driver.get_fifo_length(), np.mean(adc0), np.mean(adc1))
         li.set_ydata(adc0)
         fig.canvas.draw()
         plt.pause(0.001)

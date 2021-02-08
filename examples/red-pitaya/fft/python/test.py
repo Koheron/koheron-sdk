@@ -58,7 +58,7 @@ for i, freq in enumerate(freqs):
     else:
         hd3[i] = psd_db[(3*n)%(n_pts/2) - 1] - hd1[i]
 
-    print i, freq, hd1[i], hd2[i], hd3[i]
+    print(i, freq, hd1[i], hd2[i], hd3[i])
 
 plt.xlabel('Frequency (MHz)')
 plt.ylabel('Harmonic distortion (dB)')

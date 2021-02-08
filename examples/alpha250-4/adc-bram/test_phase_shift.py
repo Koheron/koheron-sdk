@@ -21,7 +21,7 @@ def test_phase_shift(config):
     data = np.zeros((4,n))
 
     for i in range(n):
-        print i
+        print(i)
         driver.phase_shift(1)
         driver.trigger_acquisition()
         time.sleep(0.1)
