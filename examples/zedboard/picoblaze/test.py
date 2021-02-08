@@ -50,5 +50,5 @@ for i in range(100):
 
     driver.set_input(2)
     #driver.reset() # Restart picoblaze
-    print i, driver.get_output()
+    print(i, driver.get_output())
     assert(driver.get_output() == 2 + i)

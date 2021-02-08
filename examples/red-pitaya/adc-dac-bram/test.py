@@ -52,7 +52,7 @@ i = 0
 while True:
     try:
         i = i+1
-        print i
+        print(i)
         driver.get_adc()
         line0.set_data(t_us, driver.adc[0,:])
         line1.set_data(t_us, driver.adc[1,:])

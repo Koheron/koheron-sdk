@@ -45,7 +45,7 @@ if __name__=="__main__":
     while True:
         try:
             i = (i + 1) % n_avg
-            print driver.get_fifo_length()
+            print(driver.get_fifo_length())
             data = driver.get_vector(2*n)
             z = data[::2] + 1j*data[1::2]
 

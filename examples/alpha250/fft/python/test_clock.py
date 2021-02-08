@@ -12,7 +12,7 @@ class ClockGenerator(object):
 
     @command()
     def set_sampling_frequency(self, val):
-        return self.client.recv_int32()
+        pass
 
     @command()
     def set_reference_clock(self, val):

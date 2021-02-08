@@ -73,7 +73,7 @@ while True:
     try:
         i = (i + 1) % n_avg
         data = driver.get_data()
-        print i, np.mean(data)
+        print(i, np.mean(data))
         data = data / 8192.0 * np.pi
         data -= np.mean(data)
         psd[i,:] = np.abs(np.fft.fft(window * data))**2

@@ -33,11 +33,11 @@ class FFT(object):
 
     @command()
     def read_psd(self, adc):
-        return self.client.recv_array(self.n_pts/2, dtype='float32')
+        return self.client.recv_array(self.n_pts//2, dtype='float32')
 
     @command()
     def read_psd_raw(self, adc):
-        return self.client.recv_array(self.n_pts/2, dtype='float32')
+        return self.client.recv_array(self.n_pts//2, dtype='float32')
 
     @command()
     def set_fft_window(self, window_name):

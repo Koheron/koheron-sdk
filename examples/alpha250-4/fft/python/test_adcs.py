@@ -31,9 +31,9 @@ print(driver.get_fs())
 # for _ in range(300):
 #     print("-----")
 #     driver.read_psd_raw(0)
-#     print (driver.get_acq_cycle_index(0))
+#     print(driver.get_acq_cycle_index(0))
 #     driver.read_psd_raw(1)
-#     print (driver.get_acq_cycle_index(1))
+#     print(driver.get_acq_cycle_index(1))
 
 driver.set_fft_window(1)
 driver.set_input_channel(0)

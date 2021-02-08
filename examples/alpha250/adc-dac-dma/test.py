@@ -39,7 +39,7 @@ class AdcDacDma(object):
 
     @command()
     def get_adc_data(self):
-        return self.client.recv_array(self.n/2, dtype='uint32')
+        return self.client.recv_array(self.n//2, dtype='uint32')
 
     def get_adc(self):
         data = self.get_adc_data()

@@ -44,7 +44,7 @@ for i, freq in enumerate(freqs):
     hd2[i] = psd_db[2*n-1] - hd1[i]
     hd3[i] = psd_db[3*n-1] - hd1[i]
 
-    print freq, hd1[i], hd2[i], hd3[i]
+    print(freq, hd1[i], hd2[i], hd3[i])
 
 fig = plt.figure(figsize=(6,6))
 ax = fig.add_subplot(111)

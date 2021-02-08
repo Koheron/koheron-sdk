@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 from fft import FFT
 from koheron import connect
 
+try: input = raw_input
+except NameError: pass
+
 host = os.getenv('HOST', '192.168.1.16')
 client = connect(host, 'fft', restart=False)
 driver = FFT(client)
@@ -38,7 +41,7 @@ ax.set_ylabel('Crosstalk (dB)')
 
 for j in range(2):
 
-	raw_input("Connect DAC0 to ADC"+str(j))
+	input("Connect DAC0 to ADC"+str(j))
 
 	for i, freq in enumerate(freqs):
 	    n = np.uint32(freq / fs * n_pts)
@@ -54,7 +57,7 @@ for j in range(2):
 
 	    crosstalk[j,i] = 10 * np.log10(psd1[n-1] / psd0[n-1])
 
-	    print freq, crosstalk[j,i]
+	    print(freq, crosstalk[j,i])
 
 	ax.plot(freqs*1e-6, crosstalk[j,:], label='ADC{} to ADC{}'.format(j%2, (j+1)%2))
 
