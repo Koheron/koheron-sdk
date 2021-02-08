@@ -34,7 +34,7 @@ while True:
     try:
         data = driver.read_adc()
         data = np.fft.fftshift(10*np.log10(np.abs(np.fft.fft(data))**2))
-        print driver.get_fifo_length()
+        print(driver.get_fifo_length())
         li.set_ydata(data)
         fig.canvas.draw()
         plt.pause(0.001)

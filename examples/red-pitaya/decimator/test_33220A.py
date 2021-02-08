@@ -38,7 +38,7 @@ ffft = np.fft.fftfreq(n) * fs / 512
 
 fidx = np.arange(1, 4096, 1)
 freqs = ffft[fidx]
-print freqs
+print(freqs)
 gain = 0 * freqs
 
 window = 0.5 * (1 + np.cos(2*np.pi*np.arange(n)/n))
@@ -52,7 +52,7 @@ for i, idx in enumerate(fidx):
     data = np.double(driver.read_adc())/2**31
     psd = np.abs(np.fft.fft(data * window))**2
     gain[i] += psd[idx]
-    print freqs[i], gain[i]
+    print(freqs[i], gain[i])
 
 N = 6.
 R = 256.
