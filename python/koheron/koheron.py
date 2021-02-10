@@ -350,10 +350,11 @@ class KoheronClient:
     def recv_all(self, n_bytes):
         '''Receive exactly n_bytes bytes.'''
         data = []
+        BUFF_SIZE = 65535
         n_rcv = 0
         while n_rcv < n_bytes:
             try:
-                chunk = self.sock.recv(n_bytes - n_rcv)
+                chunk = self.sock.recv(min(n_bytes - n_rcv, BUFF_SIZE))
                 if chunk == '':
                     break
                 n_rcv += len(chunk)
