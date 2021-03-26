@@ -8,7 +8,7 @@ os_version_file=$5
 zynq_type=$6
 image=$tmp_project_path/${name}-development.img
 BOOTPART=$7
-size=2048
+size=1024
 
 ubuntu_version=20.04.2
 part1=/dev/${BOOTPART}p1
@@ -44,8 +44,8 @@ timezone=Europe/Paris
 # Create partitions
 
 parted -s $device mklabel msdos
-parted -s $device mkpart primary fat16 4MB 512MB
-parted -s $device mkpart primary ext4 512MB 100%
+parted -s $device mkpart primary fat16 4MB 16MB
+parted -s $device mkpart primary ext4 16MB 100%
 
 boot_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '2!d'`
 root_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '3!d'`
@@ -119,7 +119,7 @@ cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
 $part2          /               ext4    rw,noatime          0       1
-$part1          /boot           vfat    rw,noatime          0       2
+$part1          /boot           vfat    ro,noatime          0       2
 tmpfs           /tmp            tmpfs   defaults,noatime    0       0
 tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 EOF_CAT
