@@ -36,13 +36,15 @@ TMP_OS_VERSION_FILE := $(TMP_OS_PATH)/version.json
 $(TMP_OS_VERSION_FILE): $(KOHERON_VERSION_FILE)
 	echo '{ "version": "$(KOHERON_VERSION)" }' > $@
 
+BOOT_MEDIUM ?= mmcblk0
+
 .PHONY: os
 os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/boot.bin $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_VERSION_FILE)
 
 # Build image (run as root)
 .PHONY: image
 image:
-	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE)
+	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE) $(BOOT_MEDIUM)
 
 .PHONY: clean_os
 clean_os:
