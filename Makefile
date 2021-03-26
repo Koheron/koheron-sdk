@@ -16,7 +16,7 @@ KOHERON_VERSION := $(shell cat $(KOHERON_VERSION_FILE))
 VIVADO_VERSION := 2017.2
 VIVADO_PATH := /opt/Xilinx/Vivado
 PYTHON := python3
-# Change GCC_VERSION to 5 if running Ubuntu 16.04
+# Use GCC version >=7
 GCC_VERSION := 9
 
 .PHONY: help
@@ -145,9 +145,6 @@ setup: setup_fpga setup_server setup_web setup_os
 .PHONY: setup_base
 setup_base:
 	sudo apt-get install -y g++-$(GCC_VERSION)-arm-linux-gnueabihf
-	# On Ubuntu 18.04 you may have to link:	
-	# sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
-	# sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-5 /usr/bin/arm-linux-gnueabihf-g++
 	sudo apt-get install -y $(PYTHON)-pip
 	sudo apt-get install -y curl
 	$(PIP) install -r $(SDK_PATH)/requirements.txt
