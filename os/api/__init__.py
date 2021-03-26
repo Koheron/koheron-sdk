@@ -81,7 +81,7 @@ class KoheronApp(Flask):
 
         self.instruments_list = []
 
-        for filename in (x for x in os.listdir(instruments_dirname) if x.endswith(".zip"))::
+        for filename in (x for x in os.listdir(instruments_dirname) if x.endswith(".zip")):
 
             instrument_filename = os.path.join(instruments_dirname, filename)
             is_default = self.is_default_instrument(instrument_filename, instruments_dirname, KoheronApp.default_filename)
