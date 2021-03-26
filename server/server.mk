@@ -62,8 +62,8 @@ SERVER_CCXXFLAGS += -DKOHERON_VERSION=$(KOHERON_VERSION).$(shell git rev-parse -
 SERVER_CCXXFLAGS += -MMD -MP -O3
 # Arch flags obtain by running on the Zynq:
 # gcc -march=native -Q --help=target
-SERVER_CCXXFLAGS += -march=armv7-a -mcpu=cortex-a9 -mfpu=vfpv3-d16 -mvectorize-with-neon-quad -mfloat-abi=hard
-SERVER_CCXXFLAGS += -std=c++14 -pthread
+SERVER_CCXXFLAGS += -mcpu=cortex-a9 -mfpu=vfpv3-d16 -mvectorize-with-neon-quad -mfloat-abi=hard
+SERVER_CCXXFLAGS += -std=c++14 -pthread -lstdc++ -static-libstdc++
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
