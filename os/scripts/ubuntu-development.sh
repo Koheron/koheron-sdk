@@ -10,7 +10,7 @@ image=$tmp_project_path/${name}-development.img
 BOOTPART=$7
 size=2048
 
-ubuntu_version=20.04.1
+ubuntu_version=20.04.2
 part1=/dev/${BOOTPART}p1
 part2=/dev/${BOOTPART}p2
 if [ "${zynq_type}" = "zynqmp" ]; then
