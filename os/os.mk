@@ -25,7 +25,7 @@ $(TMP_OS_VERSION_FILE): $(KOHERON_VERSION_FILE)
 BOOT_MEDIUM ?= mmcblk0
 
 .PHONY: os
-os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/boot.bin $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_VERSION_FILE)
+os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/$(BOOTCALL) $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_VERSION_FILE)
 
 # Build image (run as root)
 .PHONY: image

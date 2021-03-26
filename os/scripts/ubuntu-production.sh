@@ -6,7 +6,7 @@ tmp_os_path=$3
 name=$4
 os_version_file=$5
 zynq_type=$6
-image=$tmp_project_path/${name}-development.img
+image=$tmp_project_path/${name}-production.img
 BOOTPART=$7
 size=1024
 

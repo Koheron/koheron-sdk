@@ -84,6 +84,8 @@ run: $(INSTRUMENT_ZIP)
 ###############################################################################
 # FPGA BITSTREAM
 ###############################################################################
+OS_PATH := $(SDK_PATH)/os
+OS_MK ?= $(OS_PATH)/os.mk
 FPGA_PATH := $(SDK_PATH)/fpga
 FPGA_MK ?= $(FPGA_PATH)/fpga.mk
 include $(FPGA_MK)
@@ -117,8 +119,6 @@ include $(WEB_MK)
 ###############################################################################
 # LINUX OS
 ###############################################################################
-OS_PATH := $(SDK_PATH)/os
-OS_MK ?= $(OS_PATH)/os.mk
 include $(OS_MK)
 
 ###############################################################################
@@ -152,6 +152,7 @@ setup_base:
 
 .PHONY: setup_fpga
 setup_fpga: setup_base
+    sudo apt-get install device-tree-compiler
 	sudo rm -f /usr/bin/gmake && sudo ln -s make /usr/bin/gmake
 
 .PHONY: setup_server
@@ -161,14 +162,14 @@ setup_server: setup_base
 setup_web: setup_base
 	sudo apt-get install -y nodejs
 	sudo apt-get install -y node-typescript
-	# sudo apt-get install -y npm # npm installed with nodejs
+	sudo apt-get install -y npm # npm installed with nodejs
 	#sudo rm -f /usr/bin/node && sudo ln -s /usr/bin/nodejs /usr/bin/node
 	npm install typescript
 	npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
 
 .PHONY: setup_os
 setup_os: setup_base
-	sudo apt-get install -y libssl-dev bc device-tree-compiler qemu-user-static zerofree
+	sudo apt-get install -y libssl-dev bc qemu-user-static zerofree
 	sudo apt-get install -y lib32stdc++6 lib32z1 u-boot-tools
 
 ###############################################################################
