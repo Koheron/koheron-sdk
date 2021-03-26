@@ -152,7 +152,7 @@ setup_base:
 
 .PHONY: setup_fpga
 setup_fpga: setup_base
-    sudo apt-get install device-tree-compiler
+	sudo apt-get install device-tree-compiler
 	sudo rm -f /usr/bin/gmake && sudo ln -s make /usr/bin/gmake
 
 .PHONY: setup_server
