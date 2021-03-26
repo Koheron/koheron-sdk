@@ -297,3 +297,11 @@ $(TMP_WWW_PATH)/html-imports.min.js:
 $(TMP_WWW_PATH)/html-imports.min.js.map:
 	mkdir -p $(@D)
 	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js.map -o $@
+
+###############################################################################
+# TEST
+###############################################################################
+
+.PHONY: test_os
+test_os:
+	$(PYTHON) $(OS_PATH)/test_os.py $(HOST)
