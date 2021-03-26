@@ -16,8 +16,8 @@ KOHERON_VERSION := $(shell cat $(KOHERON_VERSION_FILE))
 VIVADO_VERSION := 2017.2
 VIVADO_PATH := /opt/Xilinx/Vivado
 PYTHON := python3
-# Change GCC_VERSION to 7 if running Ubuntu 20.04
-GCC_VERSION := 5
+# Change GCC_VERSION to 5 if running Ubuntu 16.04
+GCC_VERSION := 9
 
 .PHONY: help
 help:
@@ -147,7 +147,7 @@ setup_base:
 	sudo apt-get install -y g++-$(GCC_VERSION)-arm-linux-gnueabihf
 	# On Ubuntu 18.04 you may have to link:	
 	# sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
-	# sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-5 /usr/bin/arm-linux-gnueabihf-g++	
+	# sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-5 /usr/bin/arm-linux-gnueabihf-g++
 	sudo apt-get install -y $(PYTHON)-pip
 	sudo apt-get install -y curl
 	$(PIP) install -r $(SDK_PATH)/requirements.txt

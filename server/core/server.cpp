@@ -124,7 +124,7 @@ void Server::notify_systemd_ready()
     int len = strlen(config::sd_notify_socket);
     memset(&sd_sun, 0, sizeof(struct sockaddr_un));
     sd_sun.sun_family = AF_UNIX;
-    strncpy(sd_sun.sun_path, config::sd_notify_socket, std::min(static_cast<size_t>(len), sizeof(sd_sun.sun_path)));
+    memcpy(sd_sun.sun_path, config::sd_notify_socket, std::min(static_cast<size_t>(len), sizeof(sd_sun.sun_path)));
 
     if (sd_sun.sun_path[0] == '@') {
         sd_sun.sun_path[0] = 0;
