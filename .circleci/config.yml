@@ -3,7 +3,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: buildpack-deps:bionic
+      - image: buildpack-deps:focal
     steps:
       - checkout
       - run:
