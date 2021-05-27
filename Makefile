@@ -145,6 +145,9 @@ setup: setup_fpga setup_server setup_web setup_os
 .PHONY: setup_base
 setup_base:
 	sudo apt-get install -y g++-$(GCC_VERSION)-arm-linux-gnueabihf
+	sudo rm -f /usr/bin/arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-g++
+	sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-gcc
+	sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-g++
 	sudo apt-get install -y $(PYTHON)-pip
 	sudo apt-get install -y curl
 	$(PIP) install -r $(SDK_PATH)/requirements.txt
