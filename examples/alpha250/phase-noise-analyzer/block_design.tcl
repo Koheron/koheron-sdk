@@ -92,7 +92,7 @@ cell xilinx.com:ip:cic_compiler:4.0 cic {
   s_axis_data_tvalid [get_constant_pin 1 1]
 }
 
-set fir_coeffs [exec python $project_path/fir.py $n_stages $dec_rate $diff_delay print]
+set fir_coeffs [exec $python $project_path/fir.py $n_stages $dec_rate $diff_delay print]
 
 cell xilinx.com:ip:fir_compiler:7.2 fir {
   Filter_Type Decimation
