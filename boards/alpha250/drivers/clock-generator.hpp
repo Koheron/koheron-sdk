@@ -267,7 +267,7 @@ class ClockGenerator
         uint32_t LD_TYPE = 3;
         uint32_t SYNC_PLL2_DLD = 0;
         uint32_t SYNC_PLL1_DLD = 0;
-        uint32_t EN_TRACK = 0;
+        uint32_t EN_TRACK = 1; // cf. datasheet 8.3.5.1: if EN_MAN_DAC = 0 then EN_TRACK must be 1
         uint32_t HOLDOVER_MODE = 2;
 
         // R13
@@ -335,7 +335,7 @@ class ClockGenerator
 
         // R28
         uint32_t PLL2_R = clk_cfg[2];
-        uint32_t PLL1_N = 1000;
+        uint32_t PLL1_N = 1000; // fPD1 = fVCXO / PLL1_N = 100 MHz / 1000 = 100 kHz
 
         // R29
         uint32_t OSCin_FREQ = 1;    // 63 MHz < VCXO freq (100 MHz) < 127 MHz
