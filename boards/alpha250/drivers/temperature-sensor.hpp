@@ -53,18 +53,15 @@ class TemperatureSensor
     static constexpr uint8_t configuration = 3;
 
     float get_tmp116_temperature(uint32_t i2c_address) {
-        int16_t temp;
-
+        uint16_t temp;
         if (i2c.write(i2c_address, temperature_msb) < 0) {
             return 0;
         }
-
         if (i2c.read(i2c_address, temp) < 0) {
             return 0;
         }
-
         temp = ((temp & 0xFF) << 8) + (temp >> 8);
-        return ((temp - 32768) % 65536 + 32768) / 32768.0 * 256.0;
+        return (reinterpret_cast<int16_t&>(temp) * 0.0078125);
     }
 };
 
