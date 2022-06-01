@@ -6,6 +6,7 @@
 #include <context.hpp>
 
 #include <array>
+#include <numeric>
 
 class TemperatureSensor
 {
@@ -26,12 +27,20 @@ class TemperatureSensor
     }
 
     float get_zynq_temperature() {
-        return (xadc.read<0x200>() * 503.975) / 65356 - 273.15;
+        zynq_temp[i] = (xadc.read<0x200>() * 503.975) / 65356 - 273.15;
+        i = (i+1)%n_avg;
+        float sum = 0;
+        sum = std::accumulate(zynq_temp.data(), zynq_temp.data()+n_avg, sum);
+        return sum/n_avg;
     }
 
   private:
     static constexpr uint32_t i2c_address_vref = 0b1001000;  // Voltage reference sensor
     static constexpr uint32_t i2c_address_board = 0b1001001; // Board sensor
+
+    static constexpr uint32_t n_avg = 100;
+    uint32_t i = 0;
+    std::array<float, n_avg> zynq_temp;
 
     Context& ctx;
     I2cDev& i2c;
