@@ -28,7 +28,7 @@ class FpgaManager {
         // use xdev it it exists
         if (exists_fs(xdev)) {
             ctx.log<INFO>("Detected xdevcfg ... %s\n", "True" );
-            isXDevCfg = false;
+            isXDevCfg = true;
             return;
         }
         // check if fpga manager is present, without flag option, it wont work. 
@@ -95,6 +95,30 @@ class FpgaManager {
         ctx.log<PANIC>("Failed to identify bitstream loading mechanism...\n");
         exit(EXIT_FAILURE);
         
+    }
+
+    int unload_bitstream()
+    {
+      namespace fs = std::experimental::filesystem;
+      if (!useOverlay) return 0;
+
+      // remove any previous overlay
+      if (exists_fs(overlay_path)) 
+      {
+          fs::remove_all(overlay_path);
+      }
+      if (exists_fs(overlay_path))
+      {
+         ctx.log<PANIC>("Failed to remove previous overlay ...\n");
+         return -1;
+      }
+      fs::create_directories(overlay_path);
+
+      if (exists_fs(overlay_path)) {
+          return 0;
+      }
+       
+      return -1;
     }
 
     int load_bitstream(const char* name) {
@@ -239,8 +263,8 @@ class FpgaManager {
         std::array<char, 1> buff{};
 
         if (read(fileno(fprog_done), buff.data(), 1) == 1) {
-            if (buff[0] == '1') {
-                ctx.log<INFO>("FpgaManager: Bitstream successfully loaded\n");
+            if (buff[0] == expected[0]) {
+                ctx.log<INFO>("FpgaManager:Bitstream successfully loaded\n");
                 fclose(fprog_done);
                 return 0;
             } else {

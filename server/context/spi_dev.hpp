@@ -21,6 +21,7 @@
 #include <memory>
 #include <vector>
 #include <array>
+#include <mutex>
 
 #include <context_base.hpp>
 
@@ -56,7 +57,6 @@ class SpiDev
 
     int recv(uint8_t *buffer, size_t n_bytes);
     int transfer(uint8_t *tx_buff, uint8_t *rx_buff, size_t len);
-
     template<typename T>
     int recv(std::vector<T>& vec) {
         return recv(reinterpret_cast<uint8_t*>(vec.data()),
@@ -69,7 +69,8 @@ class SpiDev
                     N * sizeof(T));
     }
 
-  private:
+
+   private:
     ContextBase& ctx;
     std::string devname;
 
@@ -89,6 +90,7 @@ class SpiManager
     int init();
 
     bool has_device(const std::string& devname);
+
 
     SpiDev& get(const std::string& devname,
                 uint8_t mode = SPI_MODE_0,
