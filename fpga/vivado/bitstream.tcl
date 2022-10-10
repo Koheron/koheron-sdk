@@ -14,8 +14,9 @@ if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
 open_run [get_runs impl_1]
 
 set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
-set_property BITSTREAM.GENERAL.XADCENHANCEDLINEARITY On [current_design]
-
+if {$type == "zynq"} {
+  set_property BITSTREAM.GENERAL.XADCENHANCEDLINEARITY On [current_design]
+}
 write_bitstream -force -file $bit_filename
 
 close_project
