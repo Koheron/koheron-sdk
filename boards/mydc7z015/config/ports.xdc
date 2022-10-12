@@ -29,14 +29,16 @@ set_property PACKAGE_PIN AA12 [get_ports {pmod3[5]}]
 set_property PACKAGE_PIN W13 [get_ports {pmod3[6]}]
 set_property PACKAGE_PIN AB12 [get_ports {pmod3[7]}]
 
+set_property IOSTANDARD LVCMOS33 [get_ports pmod3*]
 
-set_property PACKAGE_PIN Y18 [get_ports {sfp_disable}]
-set_property PACKAGE_PIN AA20 [get_ports {sfp_txfault}]
-set_property PACKAGE_PIN Y19 [get_ports {sfp_los}]
-set_property PACKAGE_PIN V18 [get_ports {sfp_rate_sel}]
-set_property PACKAGE_PIN AA17 [get_ports {sfp_mode_def[0]}]
-set_property PACKAGE_PIN AA16 [get_ports {sfp_mode_def[1]}]
-set_property PACKAGE_PIN W18 [get_ports {sfp_mode_def[2]}]
+set_property PACKAGE_PIN Y18 [get_ports {sfp_ctrl_disable}]
+set_property PACKAGE_PIN AA20 [get_ports {sfp_ctrl_txfault}]
+set_property PACKAGE_PIN Y19 [get_ports {sfp_ctrl_los}]
+set_property PACKAGE_PIN V18 [get_ports {sfp_ctrl_rate_sel}]
+set_property PACKAGE_PIN AA17 [get_ports {sfp_ctrl_mode_def[0]}]
+set_property PACKAGE_PIN AA16 [get_ports {sfp_ctrl_mode_def[1]}]
+set_property PACKAGE_PIN W18 [get_ports {sfp_ctrl_mode_def[2]}]
+set_property IOSTANDARD LVCMOS33 [get_ports sfp_ctrl*]
 
 set_property PACKAGE_PIN W2 [get_ports {sfp_tx_p}]
 set_property PACKAGE_PIN Y2 [get_ports {sfp_tx_n}]
@@ -52,15 +54,15 @@ set_property PACKAGE_PIN AB9 [get_ports {pcie_rx_n[0]}]
 set_property PACKAGE_PIN AA7 [get_ports {pcie_rx_p[1]}]
 set_property PACKAGE_PIN AB7 [get_ports {pcie_rx_n[1]}]
 
-set_property PACKAGE_PIN AB21 [get_ports pcie_smbclk]
-set_property PACKAGE_PIN AB22 [get_ports pcie_smbdat]
-set_property PACKAGE_PIN AB18 [get_ports pcie_perst_n]
-set_property PACKAGE_PIN AB18 [get_ports pcie_perst_n]
-set_property PACKAGE_PIN AB19 [get_ports pcie_wake]
-set_property PACKAGE_PIN AA19 [get_ports pcie_prsnt2]
-set_property PULLUP true [get_ports pcie_perst_n]
-set_property PULLUP true [get_ports pcie_prsnt2]
-set_property PULLUP true [get_ports pcie_wake]
+set_property PACKAGE_PIN AB21 [get_ports pcie_ctrl_smbclk]
+set_property PACKAGE_PIN AB22 [get_ports pcie_ctrl_smbdat]
+set_property PACKAGE_PIN AB18 [get_ports pcie_ctrl_perst_n]
+set_property PACKAGE_PIN AB19 [get_ports pcie_ctrl_wake]
+set_property PACKAGE_PIN AA19 [get_ports pcie_ctrl_prsnt2]
+set_property PULLUP true [get_ports pcie_ctrl_perst_n]
+set_property PULLUP true [get_ports pcie_ctrl_prsnt2]
+set_property PULLUP true [get_ports pcie_ctrl_wake]
+set_property IOSTANDARD LVCMOS33 [get_ports pcie_ctrl*]
 
 
 set_property PACKAGE_PIN U9 [get_ports {pcie_refclk_p}]  # 100 mhz pcie ?
@@ -148,6 +150,9 @@ set_property PACKAGE_PIN J1 [get_ports {fmc_n[33]}]
 
 set_property PACKAGE_PIN H5  [get_ports {fmc_sda}]
 set_property PACKAGE_PIN H6  [get_ports {fmc_scl}]
+set_property IOSTANDARD LVCMOS33 [get_ports fmc_s*]
+set_property IOSTANDARD LVCMOS33 [get_ports fmc_p*]
+set_property IOSTANDARD LVCMOS33 [get_ports fmc_n*]
 
 
 #set_property IOSTANDARD LVCMOS33 [get_ports lcd_bl_en_io]
@@ -165,23 +170,9 @@ set_property PACKAGE_PIN H6  [get_ports {fmc_scl}]
 #set_property PULLUP true [get_ports tp_intn]
 #set_property PULLUP true [get_ports tp_resetn_io]
 #
-set_property PACKAGE_PIN U9 [get_ports {pcie_refclk_p[0]}]
-set_property PACKAGE_PIN AB18 [get_ports pcie_perst_n]
-set_property IOSTANDARD LVCMOS33 [get_ports pcie_perst_n]
-set_property PACKAGE_PIN AB9 [get_ports {pcie_rxn[0]}]
 
-set_property PACKAGE_PIN AB19 [get_ports pcie_wake]
-set_property IOSTANDARD LVCMOS33 [get_ports pcie_wake]
-set_property PACKAGE_PIN AA19 [get_ports pcie_prsnt2]
-set_property IOSTANDARD LVCMOS33 [get_ports pcie_prsnt2]
-
-
-set_property PULLUP true [get_ports pcie_perst_n]
-set_property PULLUP true [get_ports pcie_prsnt2]
-set_property PULLUP true [get_ports pcie_wake]
 
 set_property IOSTANDARD LVCMOS33 [get_ports gpio_0_tri_io]
 set_property PACKAGE_PIN K7 [get_ports gpio_0_tri_io]
 
-set_property PACKAGE_PIN U9 [get_ports {pcie_refclk_p[0]}]
 
