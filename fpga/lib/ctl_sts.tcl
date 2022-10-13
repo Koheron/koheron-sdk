@@ -174,7 +174,7 @@ proc add_status_register {module_name memory_name mclk mrstn reg_names {num_port
   if {$has_dna == 1} {
   if {$isZynqMP == 0} {
     connect_pins concat_0/In0 [get_slice_pin dna/dna_data 31 0]
-    connect_pins concat_0/In1 [get_slice_pin dna/dna_data 56 32]
+    connect_pins concat_0/In1 [get_slice_pin dna/dna_data 63 32]
   } else {
     connect_pins concat_0/In0 [get_constant_pin 4222 32]
     connect_pins concat_0/In1 [get_constant_pin 78661 32]
