@@ -21,19 +21,25 @@ class PhaseNoiseAnalyzer(object):
 
     @command()
     def get_data(self):
-        return self.client.recv_array(1000000, dtype='int32')
+        return self.client.recv_array(200000, dtype='int32')
+
+    @command()
+    def set_cic_rate(self, val):
+        pass
 
 
 host = os.getenv('HOST','192.168.1.29')
 freq = 10e6
+cic_rate = 100
 
 driver = PhaseNoiseAnalyzer(connect(host, 'phase-noise-analyzer'))
 driver.set_reference_clock(0)
 driver.set_dds_freq(0, freq)
+driver.set_cic_rate(cic_rate)
 
-n = 1000000
+n = 200000
 fs = 200e6
-cic_rate = 20
+
 n_avg = 1
 
 ffft = np.fft.fftfreq(n) * fs / (cic_rate * 2)

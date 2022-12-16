@@ -51,6 +51,12 @@ class PhaseNoiseAnalyzer
         dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
     }
 
+    void set_cic_rate(uint32_t cic_rate) {
+        fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
+        dma_transfer_duration = prm::n_pts / fs;
+        ctl.write<reg::cic_rate>(cic_rate);
+    }
+
     const auto get_parameters() {
         return std::make_tuple(
             fft_size / 2, // data_size
