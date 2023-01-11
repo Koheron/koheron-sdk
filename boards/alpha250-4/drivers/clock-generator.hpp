@@ -266,7 +266,7 @@ class ClockGenerator
         uint32_t HOLDOVER_MODE = 2;
 
         // R13
-        uint32_t HOLDOVER_MUX = 7;
+        uint32_t HOLDOVER_MUX = 4;
         uint32_t HOLDOVER_TYPE = 3;  // Push-pull output
         uint32_t Status_CLKin1_MUX = 0;
         uint32_t Status_CLKin0_TYPE = 3; // Push-pull output
