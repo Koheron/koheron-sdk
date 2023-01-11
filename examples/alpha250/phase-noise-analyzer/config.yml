@@ -18,6 +18,7 @@ cores:
   - fpga/cores/axis_lfsr_v1_0
   - fpga/cores/phase_unwrapper_v1_0
   - fpga/cores/boxcar_filter_v1_0
+  - fpga/cores/axis_variable_v1_0
 
 memory:
   - name: control
@@ -51,6 +52,7 @@ control_registers:
   - precision_dac_data[2]
   - phase_incr[4]
   - cordic
+  - cic_rate
 
 status_registers:
   - adc[n_adc]
