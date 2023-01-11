@@ -295,9 +295,9 @@ class ClockGenerator
         uint32_t EN_VTUNE_RAIL_DET = 0;
 
         // R15
-        uint32_t MAN_DAC = 100;
+        uint32_t MAN_DAC = 512;
         uint32_t EN_MAN_DAC = 0;
-        uint32_t HOLDOVER_DLD_CNT = 512;
+        uint32_t HOLDOVER_DLD_CNT = 8;
         uint32_t FORCE_HOLDOVER = 0;
 
         // R16
