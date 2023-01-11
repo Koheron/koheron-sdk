@@ -339,7 +339,7 @@ class ClockGenerator
 
         // R29
         uint32_t OSCin_FREQ = 1;    // 63 MHz < VCXO freq (100 MHz) < 127 MHz
-        uint32_t PLL2_FAST_PDF = 0; // PDF = 100 MHz
+        uint32_t PLL2_FAST_PDF = 0; // PDF <= 100 MHz
         uint32_t PLL2_N_CAL = clk_cfg[1];
 
         // R30
@@ -356,6 +356,16 @@ class ClockGenerator
         if (f_vco < 2.37E9 || f_vco > 2.6E9) {
             ctx.log<ERROR>("Clock generator - VCO frequency at %f MHz is out of range (2370 to 2600 MHz)", f_vco * 1E-6);
             return -1;
+        }
+
+        // PLL2 phase detector frequency
+        const auto f_pd2 = f_vco / PLL2_P / PLL2_N;
+        ctx.log<INFO>("Clock generator: Freq. PD PLL2 = %f MHz\n", f_pd2 * 1E-6);
+
+        if (f_pd2 > 100E6) {
+            // Enable fast PDF if PLL2 PD frequency gretaer than 100 MHz
+            PLL2_FAST_PDF = 1;
+            ctx.log<INFO>("Clock generator: PLL2 Enable fast PDF\n");
         }
 
         fs_adc = f_vco / CLKout1_DIV;

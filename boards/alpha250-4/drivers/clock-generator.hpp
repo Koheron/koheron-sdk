@@ -353,6 +353,16 @@ class ClockGenerator
             return -1;
         }
 
+        // PLL2 phase detector frequency
+        const auto f_pd2 = f_vco / PLL2_P / PLL2_N;
+        ctx.log<INFO>("Clock generator: Freq. PD PLL2 = %f MHz\n", f_pd2 * 1E-6);
+
+        if (f_pd2 > 100E6) {
+            // Enable fast PDF if PLL2 PD frequency gretaer than 100 MHz
+            PLL2_FAST_PDF = 1;
+            ctx.log<INFO>("Clock generator: PLL2 Enable fast PDF\n");
+        }
+
         fs_adc[1] = f_vco / CLKout1_DIV;
         fs_adc[0] = f_vco / CLKout2_DIV;
 
