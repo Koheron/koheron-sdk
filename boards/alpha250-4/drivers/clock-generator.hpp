@@ -267,11 +267,11 @@ class ClockGenerator
 
         // R13
         uint32_t HOLDOVER_MUX = 7;
-        uint32_t HOLDOVER_TYPE = 3;
+        uint32_t HOLDOVER_TYPE = 3;  // Push-pull output
         uint32_t Status_CLKin1_MUX = 0;
-        uint32_t Status_CLKin0_TYPE = 2;
+        uint32_t Status_CLKin0_TYPE = 3; // Push-pull output
         uint32_t DISABLE_DLD1_DET = 0;
-        uint32_t Status_CLKin0_MUX = 0;
+        uint32_t Status_CLKin0_MUX = 2; // SPI readback
         uint32_t CLKin_SELECT_MODE = clkin_select; // 0: Ext. clock, 1: FPGA clock, 2: TCXO, 4: Automatic
         uint32_t CLKin_Sel_INV =0;
         uint32_t EN_CLKin2 = 1; // CLKin2 usable
