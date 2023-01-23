@@ -326,16 +326,16 @@ class ClockGenerator
 
         // R27
         uint32_t PLL1_CP_POL = 1;     // CP1 polarity positive
-        uint32_t PLL1_CP_GAIN = 3;    // CP1 gain 1.6 mA
+        uint32_t PLL1_CP_GAIN = 2;    // CP1 gain 0.4 mA
         uint32_t CLKin2_PreR_DIV = 0; // Prediv by 1
         uint32_t CLKin1_PreR_DIV = 0; // Prediv by 1
         uint32_t CLKin0_PreR_DIV = 0; // Prediv by 1
-        uint32_t PLL1_R = 100;
+        uint32_t PLL1_R = 1;
         uint32_t PLL1_CP_TRI = 0;     // Active
 
         // R28
         uint32_t PLL2_R = clk_cfg[2];
-        uint32_t PLL1_N = 1000; // fPD1 = fVCXO / PLL1_N = 100 MHz / 1000 = 100 kHz
+        uint32_t PLL1_N = 10; // fPD1 = fVCXO / PLL1_N = 100 MHz / 10 = 10 MHz
 
         // R29
         uint32_t OSCin_FREQ = 1;    // 63 MHz < VCXO freq (100 MHz) < 127 MHz
