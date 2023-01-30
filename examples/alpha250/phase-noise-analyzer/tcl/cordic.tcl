@@ -4,7 +4,7 @@ proc pins {cmd} {
     $cmd -dir I -type clk      aclk
     $cmd -dir I -from 0  -to 0 aresetn
     $cmd -dir I -from 31 -to 0 s_axis_data_a
-    $cmd -dir I -from 31 -to 0 s_axis_data_b
+    $cmd -dir I -from [expr (1 + 2 * ([get_parameter dds_output_width] - 1) / 16) * 16 - 1] -to 0 s_axis_data_b
     $cmd -dir I -from 0  -to 0 s_axis_tvalid
     $cmd -dir O -from 31 -to 0 m_axis_tdata
     $cmd -dir O -from 0  -to 0 m_axis_tvalid
@@ -30,7 +30,7 @@ proc create {module_name} {
 
     cell xilinx.com:ip:cmpy:6.0 complex_mult {
         APortWidth 16
-        BPortWidth 16
+        BPortWidth [get_parameter dds_output_width]
         OutputWidth 16
         OptimizeGoal Performance
         RoundMode Random_Rounding

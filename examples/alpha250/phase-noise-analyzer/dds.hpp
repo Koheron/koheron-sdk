@@ -37,8 +37,8 @@ class Dds
 
         double fs_adc = clk_gen.get_dac_sampling_freq();
 
-        if (freq_hz > fs_adc / 2) {
-            freq_hz = fs_adc / 2;
+        if (freq_hz > fs_adc / 2.0) {
+            freq_hz = fs_adc / 2.0;
         }
 
         if (freq_hz < 0.0) {

@@ -1,7 +1,7 @@
 ---
 name: phase-noise-analyzer
 board: boards/alpha250
-version: 0.2.0
+version: 0.2.1
 
 cores:
   - fpga/cores/axi_ctl_register_v1_0
@@ -70,6 +70,7 @@ parameters:
   adc_clk: 200000000
   dac_width: 16
   adc_width: 16
+  dds_output_width: 16
   n_adc: 2
   cic_differential_delay: 1
   cic_decimation_rate: 20

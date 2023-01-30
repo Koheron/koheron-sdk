@@ -6,12 +6,15 @@ source ${board_path}/starting_point.tcl
 
 for {set i 0} {$i < 2} {incr i} {
 
+  # Noise_Shaping Taylor_Series_Corrected
+
   cell xilinx.com:ip:dds_compiler:6.0 dds$i {
     PartsPresent Phase_Generator_and_SIN_COS_LUT
     DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000]
     Parameter_Entry Hardware_Parameters
+    Noise_Shaping None
     Phase_Width 48
-    Output_Width 16
+    Output_Width [get_parameter dds_output_width]
     Phase_Increment Programmable
     Latency_Configuration Configurable
     Latency 9
@@ -27,8 +30,7 @@ for {set i 0} {$i < 2} {incr i} {
     M_AXIS dds$i/S_AXIS_CONFIG
   }
 
-  connect_pins adc_dac/dac$i [get_slice_pin dds$i/m_axis_data_tdata 15 0]
-
+  connect_pins adc_dac/dac$i [get_slice_pin dds$i/m_axis_data_tdata [expr [get_parameter dds_output_width] - 1] [expr [get_parameter dds_output_width] - 16]]
 }
 
 ####################################
