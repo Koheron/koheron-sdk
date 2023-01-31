@@ -6,7 +6,7 @@ import numpy as np
 # http://dsp.stackexchange.com/questions/160/fir-filter-compensator-when-using-a-cic-decimation-filter
 # http://www.acasper.org/2011/10/02/my-sdr/
 
-def get_taps(N, R, M, ntaps=256, cutoff=0.45):
+def get_taps(N, R, M, ntaps=128, cutoff=0.40):
     """
     Find the coefficients of the half-band FIR filter that compensate the CIC filter from 0 to cutoff
     N : number of CIC stages

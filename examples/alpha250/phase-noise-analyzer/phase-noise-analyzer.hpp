@@ -57,6 +57,10 @@ class PhaseNoiseAnalyzer
         ctl.write<reg::cic_rate>(cic_rate);
     }
 
+    void set_channel(uint32_t channel) {
+        ctl.write_mask<reg::cordic, 0b10000>((channel & 1) << 4);
+    }
+
     const auto get_parameters() {
         return std::make_tuple(
             fft_size / 2, // data_size
