@@ -32,28 +32,46 @@
 <body>
 
 <div id="navigation"></div>
+  <div id="main" class="container-fluid" style="padding: 10px">
+    <div class="row">
+      <div class="col-md-8">
+        <div id="plot-placeholder" class="plot-placeholder"></div>
+        <div id="plot-basics"></div>
+      </div>
 
-<div id="main" class="container-fluid" style="padding: 10px">
+      <div class="col-md-4">
+        <section style="margin-bottom: 20px;">
+          <div id="reference-clock"></div>
+        </section>
 
-  <div class="row">
-
-    <div class="col-md-8">
-      <div id="plot-placeholder" class="plot-placeholder"></div>
-      <div id="plot-basics"></div>
+        <section id="dds-frequency"></section>
+    
+        <section style="margin-bottom: 20px;">
+          <div class="crossed">
+            <span>Acquisition</span>
+          </div>
+          <table class="full-width">
+            <tr>
+              <td style="width: 160px">
+                DECIMATION RATE
+              </td>
+              <td style="width: 120px">
+                <input type="number" value="4" min="4" step="1" max="1000" data-command="setCicRate" class="cic-rate-input">
+              </td>
+            </tr>
+            <tr>
+              <td style="width: 160px">
+                NUM. AVERAGES
+              </td>
+              <td style="width: 120px">
+                <input type="number" value="1" min="1" step="1" max="1000" class="plot-navg-input">
+              </td>
+            </tr>
+          </table>
+        </section>
+      </div>
     </div>
-
-    <div class="col-md-4">
-
-      <section style="margin-bottom: 20px;">
-        <div id="reference-clock"></div>
-      </section>
-
-      <section id="dds-frequency"></section>
-    </div>
-
   </div>
-
-</div>
 
   <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
@@ -63,7 +81,6 @@
   <script language="javascript" type="text/javascript" src="jquery.flot.canvas.js"></script>
 
   <script src="app.js?random=<?php echo uniqid(); ?>"></script>
-
 </div>
 
 </body>

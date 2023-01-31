@@ -52,12 +52,22 @@ class PhaseNoiseAnalyzer
     }
 
     void set_cic_rate(uint32_t cic_rate) {
+        if (cic_rate < 4) {
+            ctx.log<ERROR>("PhaseNoiseAnalyzer: Min. CIC rate is 4\n");
+            return;
+        }
+
         fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
         dma_transfer_duration = prm::n_pts / fs;
         ctl.write<reg::cic_rate>(cic_rate);
     }
 
     void set_channel(uint32_t channel) {
+        if (channel != 0 && channel != 1) {
+            ctx.log<ERROR>("PhaseNoiseAnalyzer: Invalid channel\n");
+            return;
+        }
+
         ctl.write_mask<reg::cordic, 0b10000>((channel & 1) << 4);
     }
 

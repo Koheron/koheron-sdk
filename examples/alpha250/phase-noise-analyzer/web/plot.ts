@@ -6,6 +6,7 @@ class Plot {
   public plot: jquery.flot.plot;
   public plot_data: Array<Array<number>>;
   private nAverage: number;
+  private nAvgInput: HTMLInputElement;
   private samplingFrequency: number;
 
   public yLabel: string = "PHASE NOISE (dBc/Hz)";
@@ -16,6 +17,8 @@ class Plot {
     this.plot_data = [];
     this.init();
     this.nAverage = 1;
+    this.nAvgInput = <HTMLInputElement>document.getElementsByClassName("plot-navg-input")[0];
+    this.initNavgInput();
     this.updatePlot();
   }
 
@@ -24,20 +27,47 @@ class Plot {
       this.driver.getParameters((parameters) => {
         this.n_pts = parameters.data_size;
         this.samplingFrequency = parameters.fs;
-      })
-    });
-  }
-
-  updatePlot() {
-    this.driver.getPhaseNoise(this.nAverage, (data: Float32Array) => {
-      for (let i = 0; i < this.n_pts; i++) {
-        let x: number = i * this.samplingFrequency / this.n_pts / 2;
-        this.plot_data[i] = [x, 10 * Math.log10(data[i])]
-      }
-      this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, () => {
-        requestAnimationFrame(() => { this.updatePlot(); });
+        this.setFreqAxis();
       });
     });
   }
 
+  initNavgInput(): void {
+    let events = ['change', 'input'];
+    for (let j = 0; j < events.length; j++) {
+      this.nAvgInput.addEventListener(events[j], (event) => {
+          let value = parseInt((<HTMLInputElement>event.currentTarget).value);
+          this.setNavg(value);
+      });
+    }
+  }
+
+  setNavg(navg: number) {
+    this.nAverage = navg;
+  }
+
+  setFreqAxis(): void {
+    this.plotBasics.setRangeX(this.samplingFrequency / this.n_pts,
+                              0.75 * 0.5 * this.samplingFrequency);
+  }
+
+  updatePlot() {
+    this.driver.getPhaseNoise(this.nAverage, (data: Float32Array) => {
+      this.driver.getParameters((parameters) => {
+        if (parameters.fs != this.samplingFrequency) {
+          this.samplingFrequency = parameters.fs;
+          this.setFreqAxis();
+        }
+
+        for (let i = 0; i < this.n_pts; i++) {
+          let x: number = i * this.samplingFrequency / this.n_pts / 2;
+          this.plot_data[i] = [x, 10 * Math.log10(data[i])]
+        }
+
+        this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, () => {
+          requestAnimationFrame(() => { this.updatePlot(); });
+        });
+      });
+    });
+  }
 }

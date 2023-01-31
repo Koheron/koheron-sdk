@@ -46,4 +46,11 @@ class PhaseNoiseAnalyzer {
     });
   }
 
+  setCicRate(cic_rate: number): void {
+    this.client.send(Command(this.id, this.cmds['set_cic_rate'], cic_rate));
+  }
+
+  setChannel(channel: number): void {
+    this.client.send(Command(this.id, this.cmds['set_channel'], channel));
+  }
 }

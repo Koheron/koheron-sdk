@@ -1,5 +1,4 @@
 class App {
-
     private imports: Imports;
     private dds: DDS;
     public ddsFrequency: DDSFrequency;
@@ -46,7 +45,6 @@ class App {
 
         window.onbeforeunload = () => { client.exit(); };
     }
-
 }
 
 let app = new App(window, document, location.hostname, $('#plot-placeholder'));
