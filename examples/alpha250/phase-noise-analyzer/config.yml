@@ -73,7 +73,9 @@ parameters:
   dds_output_width: 16
   n_adc: 2
   cic_differential_delay: 1
-  cic_decimation_rate: 20
+  cic_decimation_rate_default: 20
+  cic_decimation_rate_min: 4
+  cic_decimation_rate_max: 8192
   cic_n_stages: 6
   n_pts: 262144
 

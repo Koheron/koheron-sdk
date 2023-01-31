@@ -42,7 +42,7 @@ class PhaseNoiseAnalyzer
         std::get<1>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
 
         fs_adc = clk_gen.get_adc_sampling_freq();
-        fs = fs_adc / (2.0f * prm::cic_decimation_rate); // Sampling frequency (factor of 2 because of FIR)
+        fs = fs_adc / (2.0f * prm::cic_decimation_rate_default); // Sampling frequency (factor of 2 because of FIR)
         dma_transfer_duration = prm::n_pts / fs;
         ctx.log<INFO>("DMA transfer duration = %f s\n", double(dma_transfer_duration));
     }
@@ -52,8 +52,9 @@ class PhaseNoiseAnalyzer
     }
 
     void set_cic_rate(uint32_t cic_rate) {
-        if (cic_rate < 4) {
-            ctx.log<ERROR>("PhaseNoiseAnalyzer: Min. CIC rate is 4\n");
+        if (cic_rate < prm::cic_decimation_rate_min ||
+            cic_rate > prm::cic_decimation_rate_max) {
+            ctx.log<ERROR>("PhaseNoiseAnalyzer: CIC rate out of range\n");
             return;
         }
 
