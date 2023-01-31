@@ -72,7 +72,7 @@ parameters:
   adc_width: 16
   n_adc: 2
   cic_differential_delay: 1
-  cic_decimation_rate: 20
+  cic_decimation_rate: 4
   cic_n_stages: 6
   n_pts: 262144
 

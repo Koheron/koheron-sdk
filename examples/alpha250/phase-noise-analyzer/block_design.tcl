@@ -77,7 +77,7 @@ set n_stages [get_parameter cic_n_stages]
 cell xilinx.com:ip:cic_compiler:4.0 cic {
   Filter_Type Decimation
   Number_Of_Stages $n_stages
-  Fixed_Or_Initial_Rate $dec_rate
+  Fixed_Or_Initial_Rate 4
   Sample_Rate_Changes Programmable
   Minimum_Rate 4
   Maximum_Rate 1024
@@ -109,7 +109,7 @@ set fir_coeffs [exec $python $project_path/fir.py $n_stages $dec_rate $diff_dela
 cell xilinx.com:ip:fir_compiler:7.2 fir {
   Filter_Type Decimation
   Sample_Frequency [expr [get_parameter adc_clk] / 1000000. / $dec_rate]
-  Clock_Frequency [expr [get_parameter fclk1] / 1000000.]
+  Clock_Frequency [expr [get_parameter adc_clk] / 1000000.]
   Coefficient_Width 32
   Data_Width 32
   Output_Rounding_Mode Convergent_Rounding_to_Even
