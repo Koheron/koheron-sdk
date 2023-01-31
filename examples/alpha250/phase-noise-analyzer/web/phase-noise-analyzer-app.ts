@@ -3,6 +3,7 @@
 
 class PhaseNoiseAnalyzerApp {
   private cicRateInput: HTMLInputElement;
+  private channelInputs: HTMLInputElement[];
   public nPoints: number;
 
   constructor(document: Document, private driver) {}
@@ -11,7 +12,9 @@ class PhaseNoiseAnalyzerApp {
     this.driver.getParameters((parameters) => {
       this.nPoints = parameters.data_size;
       this.cicRateInput = <HTMLInputElement>document.getElementsByClassName("cic-rate-input")[0];
+      this.channelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("channel-input");
       this.initCicRateInput();
+      this.initChannelInput();
       callback();
     });
   }
@@ -24,6 +27,14 @@ class PhaseNoiseAnalyzerApp {
           let value = (<HTMLInputElement>event.currentTarget).value;
           this.driver[command](value);
       });
+    }
+  }
+
+  initChannelInput(): void {
+    for (let i = 0; i < this.channelInputs.length; i++) {
+      this.channelInputs[i].addEventListener('change', (event) => {
+          this.driver[(<HTMLInputElement>event.currentTarget).dataset.command](parseInt((<HTMLInputElement>event.currentTarget).value));
+      })
     }
   }
 }

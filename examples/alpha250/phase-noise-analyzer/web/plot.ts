@@ -28,6 +28,7 @@ class Plot {
         this.n_pts = parameters.data_size;
         this.samplingFrequency = parameters.fs;
         this.setFreqAxis();
+        this.plotBasics.setLogX();
       });
     });
   }
@@ -47,8 +48,9 @@ class Plot {
   }
 
   setFreqAxis(): void {
-    this.plotBasics.setRangeX(this.samplingFrequency / this.n_pts,
-                              0.75 * 0.5 * this.samplingFrequency);
+    this.plotBasics.x_min = this.samplingFrequency / this.n_pts;
+    this.plotBasics.x_max = 0.75 * 0.5 * this.samplingFrequency;
+    this.plotBasics.setRangeX(this.plotBasics.x_min, this.plotBasics.x_max);
   }
 
   updatePlot() {

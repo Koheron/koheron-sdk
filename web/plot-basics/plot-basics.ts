@@ -133,7 +133,7 @@ class PlotBasics {
     // A double click on the plot resets to full span
     dblClick(rangeFunction: string) {
         this.plot_placeholder.bind("dblclick", (evt: JQueryEventObject) => {
-            this.range_x.from = 0;
+            this.range_x.from = this.x_min;
             this.range_x.to = this.x_max;
             this.range_y = <jquery.flot.range>{};
             if (rangeFunction.length > 0) {
@@ -147,6 +147,22 @@ class PlotBasics {
         this.range_x.from = from;
         this.range_x.to = to;
         this.reset_range = true;
+    }
+
+    setLogX() {
+        this.options.xaxis.ticks = [0.001, 0.01, 0.1 ,1 ,10 ,100, 1000, 10000, 100000, 1000000, 10000000];
+        this.options.xaxis.tickDecimals = 0;
+        this.options.xaxis.transform = (v) => {return v > 0 ? Math.log10(v) : null};
+        this.options.xaxis.inverseTransform = (v) => {return v!= null ? Math.pow(10, v) : 0.0};
+        this.options.xaxis.tickFormatter = (val, axis) => {
+            if (val >= 1E6) {
+                return (val / 1E6).toFixed(axis.tickDecimals) + "M";
+            } else if (val >= 1E3) {
+                return (val / 1E3).toFixed(axis.tickDecimals) + "k";
+            } else {
+                return val.toFixed(axis.tickDecimals);
+            }
+        }
     }
 
     updateDatapointSpan(datapoint: number[], datapointSpan: HTMLSpanElement): void {

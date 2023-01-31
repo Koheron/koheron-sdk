@@ -45,23 +45,32 @@
         </section>
 
         <section id="dds-frequency"></section>
-    
+
         <section style="margin-bottom: 20px;">
           <div class="crossed">
             <span>Acquisition</span>
           </div>
-          <table class="full-width">
+
+          <label for="channel-clock">Channel:</label>
+          <div class="radio-wrapper">
+            <input type="radio" name="channel" value="0" checked class="channel-input" data-valuestr="0" data-command="setChannel">0
+          </div>
+          <div class="radio-wrapper">
+            <input type="radio" name="channel" value="1" class="channel-input" data-valuestr="1" data-command="setChannel">1
+          </div>
+
+          <table class="full-width" style="margin-top: 20px;">
             <tr>
               <td style="width: 160px">
                 DECIMATION RATE
               </td>
               <td style="width: 120px">
-                <input type="number" value="4" min="4" step="1" max="1000" data-command="setCicRate" class="cic-rate-input">
+                <input type="number" value="20" min="4" step="1" max="8192" data-command="setCicRate" class="cic-rate-input">
               </td>
             </tr>
             <tr>
               <td style="width: 160px">
-                NUM. AVERAGES
+                AVERAGES
               </td>
               <td style="width: 120px">
                 <input type="number" value="1" min="1" step="1" max="1000" class="plot-navg-input">
