@@ -86,12 +86,23 @@ class PhaseNoiseAnalyzer
         return data;
     }
 
+    auto get_phase() {
+        get_data();
+
+        for (uint32_t i=0; i<data_size; i++) {
+            data_phase[i] = data[i] * calib_factor * float(M_PI) / 8192.0f;
+        }
+
+        return data_phase;
+    }
+
     auto get_phase_noise(uint32_t n_avg);
 
   private:
     static constexpr uint32_t data_size = 200000;
     static constexpr uint32_t fft_size = data_size / 2;
     static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2;
+    static constexpr float calib_factor = 4.196;
 
     Context& ctx;
     DmaS2MM& dma;
@@ -103,6 +114,7 @@ class PhaseNoiseAnalyzer
     float dma_transfer_duration;
 
     std::array<int32_t, data_size> data;
+    std::array<float, data_size> data_phase;
 
     std::array<Eigen::FFT<float>, 2> fft;
     std::array<std::vector<float>, 2> data_vec;
@@ -138,9 +150,7 @@ inline auto PhaseNoiseAnalyzer::get_phase_noise(uint32_t n_avg) {
         dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
 
         for (uint32_t j=0; j<fft_size / 2; j++) {
-            // Kiss FFT amplitudes must be scaled by a factor 1/2
-            // https://stackoverflow.com/questions/5628056/kissfft-scaling
-            phase_noise[j] += (std::norm(0.5f *std::get<0>(fft_data)[j]) + std::norm(0.5f * std::get<1>(fft_data)[j])) / 2.0f;
+            phase_noise[j] += (std::norm(std::get<0>(fft_data)[j]) + std::norm(std::get<1>(fft_data)[j])) / 2.0f;
         }
     }
 
@@ -159,7 +169,7 @@ inline void PhaseNoiseAnalyzer::compute_fft() {
     const float data_mean = std::accumulate(data.data() + begin, data.data() + end, 0.0) / double(fft_size);
 
     for (uint32_t i=0; i<fft_size; i++) {
-        std::get<idx>(data_vec)[i] = (data[i + begin] - data_mean) * window[i] * float(M_PI) / 8192.0f;
+        std::get<idx>(data_vec)[i] = (data[i + begin] - data_mean) * window[i] * calib_factor * float(M_PI) / 8192.0f;
     }
 
     std::get<idx>(fft).fwd(std::get<idx>(fft_data), std::get<idx>(data_vec));
