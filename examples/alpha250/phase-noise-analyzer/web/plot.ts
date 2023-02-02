@@ -70,7 +70,7 @@ class Plot {
     let fmin: number = this.plotBasics.x_min;
     let fmax: number = this.plotBasics.x_max;
 
-    let freq_decades: number[] = [1E-1, 1E0, 1E2, 1E3, 1E4, 1E5, 1E6, 1E7];
+    let freq_decades: number[] = [1E-1, 1E0, 1E1, 1E2, 1E3, 1E4, 1E5, 1E6, 1E7];
     this.decade_values = [];
 
     for (let freq of freq_decades) {

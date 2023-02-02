@@ -16,8 +16,10 @@
 #include <tuple>
 
 #include <boards/alpha250/drivers/clock-generator.hpp>
+#include <boards/alpha250/drivers/ltc2157.hpp>
 #include <server/drivers/dma-s2mm.hpp>
 #include <server/fft-windows.hpp>
+#include <dds.hpp>
 
 class PhaseNoiseAnalyzer
 {
@@ -26,7 +28,10 @@ class PhaseNoiseAnalyzer
     : ctx(ctx_)
     , dma(ctx.get<DmaS2MM>())
     , clk_gen(ctx.get<ClockGenerator>())
+    , ltc2157(ctx.get<Ltc2157>())
+    , dds(ctx.get<Dds>())
     , ctl(ctx.mm.get<mem::control>())
+    , sts(ctx.mm.get<mem::status>())
     , ram(ctx.mm.get<mem::ram>())
     , phase_noise(fft_size / 2)
     , window(FFTwindow::hann, fft_size)
@@ -34,9 +39,13 @@ class PhaseNoiseAnalyzer
         std::get<0>(data_vec) = std::vector<float>(fft_size);
         std::get<1>(data_vec) = std::vector<float>(fft_size);
 
+        vrange= { ltc2157.get_input_voltage_range(0),
+                  ltc2157.get_input_voltage_range(1) };
+
         clk_gen.set_sampling_frequency(0); // 200 MHz
 
         ctl.write_mask<reg::cordic, 0b11>(0b11); // Phase accumulator on
+        set_channel(0);
 
         std::get<0>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
         std::get<1>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
@@ -63,12 +72,13 @@ class PhaseNoiseAnalyzer
         ctl.write<reg::cic_rate>(cic_rate);
     }
 
-    void set_channel(uint32_t channel) {
-        if (channel != 0 && channel != 1) {
+    void set_channel(uint32_t chan) {
+        if (chan != 0 && chan != 1) {
             ctx.log<ERROR>("PhaseNoiseAnalyzer: Invalid channel\n");
             return;
         }
 
+        channel = chan;
         ctl.write_mask<reg::cordic, 0b10000>((channel & 1) << 4);
     }
 
@@ -77,6 +87,40 @@ class PhaseNoiseAnalyzer
             fft_size / 2, // data_size
             fs
         );
+    }
+
+    // Carrier power in dBm
+    auto get_carrier_power(uint32_t navg) {
+        uint32_t demod_raw;
+        float res = 0.0;
+
+        for (uint32_t i=0; i<navg; ++i) {
+            if (channel == 0) {
+                demod_raw = sts.read<reg::demod0, uint32_t>();
+            } else {
+                demod_raw = sts.read<reg::demod1, uint32_t>();
+            }
+
+            // Extract real and imaginary parts and convert fix16_0 to float to obtain complex IQ signal
+            const auto z = std::complex(static_cast<int16_t>(demod_raw & 0xFFFF) / 65536.0f,
+                                        static_cast<int16_t>((demod_raw >> 16) & 0xFFFF) / 65536.0f);
+            res += std::norm(z);
+        }
+
+        const auto cal_coeffs = ltc2157.get_calibration(channel);
+        const float fdds = dds.get_dds_freq(channel);
+        const float Hinv = cal_coeffs[2] * fdds * fdds * fdds * fdds * fdds
+                        + cal_coeffs[3] * fdds * fdds * fdds * fdds
+                        + cal_coeffs[4] * fdds * fdds * fdds
+                        + cal_coeffs[5] * fdds * fdds
+                        + cal_coeffs[6] * fdds
+                        + cal_coeffs[7];
+        constexpr float load = 50.0; // Ohm
+        constexpr float magic_factor = 22.0;
+        const float conv_factor = 1E3f * magic_factor * Hinv * vrange[channel] * vrange[channel] / load;
+        // ctx.log<INFO>("PhaseNoiseAnalyzer: vrange = %f, Hinv = %f, conv_factor = %f\n", double(vrange[channel]), double(Hinv), double(conv_factor));
+
+        return 10.0f * std::log10(conv_factor * res / float(navg));
     }
 
     auto get_data() {
@@ -107,11 +151,17 @@ class PhaseNoiseAnalyzer
     Context& ctx;
     DmaS2MM& dma;
     ClockGenerator& clk_gen;
+    Ltc2157& ltc2157;
+    Dds& dds;
     Memory<mem::control>& ctl;
+    Memory<mem::status>& sts;
     Memory<mem::ram>& ram;
 
+    uint32_t channel;
     float fs_adc, fs;
     float dma_transfer_duration;
+
+    std::array<float, 2> vrange;
 
     std::array<int32_t, data_size> data;
     std::array<float, data_size> data_phase;

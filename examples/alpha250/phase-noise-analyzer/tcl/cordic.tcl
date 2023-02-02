@@ -12,6 +12,7 @@ proc pins {cmd} {
     $cmd -dir I -from 0  -to 0 rst_phase
     $cmd -dir O -from 16 -to 0 freq
     $cmd -dir O -from 31 -to 0 phase
+    $cmd -dir O -from 31 -to 0 demod
 }
 
 proc create {module_name} {
@@ -70,6 +71,8 @@ proc create {module_name} {
         s_axis_cartesian_tdata [get_concat_pin [list boxcar0/dout boxcar1/dout]]
         m_axis_dout_tvalid m_axis_tvalid
     }
+
+    connect_bd_net [get_bd_pins demod] [get_bd_pins concat_dout_dout/dout]
 
     # Phase unwrapping
 

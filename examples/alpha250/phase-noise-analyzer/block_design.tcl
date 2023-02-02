@@ -53,6 +53,7 @@ for {set i 0} {$i < 2} {incr i} {
         rst_phase [get_slice_pin [ctl_pin cordic] [expr $i+2] [expr $i+2]]
     }
 
+  connect_pins cordic$i/demod [sts_pin demod$i]
 }
 
 ####################################

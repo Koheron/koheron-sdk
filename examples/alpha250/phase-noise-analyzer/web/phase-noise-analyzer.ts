@@ -53,4 +53,10 @@ class PhaseNoiseAnalyzer {
   setChannel(channel: number): void {
     this.client.send(Command(this.id, this.cmds['set_channel'], channel));
   }
+
+  getCarrierPower(nAverage: number, callback: (data: number) => void) {
+    this.client.readFloat32(Command(this.id, this.cmds['get_carrier_power'], nAverage), (data: number) => {
+      callback(data);
+    });
+  }
 }

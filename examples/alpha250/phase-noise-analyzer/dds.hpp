@@ -53,6 +53,10 @@ class Dds
         ctx.log<INFO>("fs: %lf , channel %u, ref. frequency set to %lf \n", fs_adc, channel, freq_hz);
     }
 
+    auto get_dds_freq(uint32_t channel) {
+        return dds_freq[channel];
+    }
+
   private:
     Context& ctx;
     Memory<mem::control>& ctl;

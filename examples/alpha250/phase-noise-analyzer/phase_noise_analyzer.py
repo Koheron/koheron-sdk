@@ -25,6 +25,10 @@ class PhaseNoiseAnalyzer(object):
         pass
 
     @command()
+    def get_carrier_power(self, navg):
+        return self.client.recv_float()
+
+    @command()
     def get_data(self):
         return self.client.recv_array(self.npts, dtype='int32')
 
@@ -37,12 +41,17 @@ class PhaseNoiseAnalyzer(object):
         f = np.arange((self.npts // 2 + 1)) * self.fs / self.npts
         psd = np.zeros(f.size)
 
+        power = 0
+
         for i in range(navg):
             if verbose:
                 print("Acquiring sample {}/{}".format(i + 1, navg))
 
             phase = self.get_phase()
             psd += 2.0 * np.abs(np.fft.rfft(win * (phase - np.mean(phase)))) ** 2
+            power += self.get_carrier_power(40)
+
+        print(power / navg)
 
         psd /= navg
         psd /= (self.fs * np.sum(win ** 2)) # rad^2/Hz

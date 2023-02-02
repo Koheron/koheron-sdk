@@ -62,7 +62,7 @@
           <table class="full-width" style="margin-top: 20px;">
             <tr>
               <td style="width: 160px">
-                DECIMATION RATE
+                Decimation Rate
               </td>
               <td style="width: 120px">
                 <input type="number" value="20" min="4" step="1" max="8192" data-command="setCicRate" class="cic-rate-input">
@@ -70,7 +70,7 @@
             </tr>
             <tr>
               <td style="width: 160px">
-                AVERAGES
+                Averages
               </td>
               <td style="width: 120px">
                 <input type="number" value="1" min="1" step="1" max="1000" class="plot-navg-input">
@@ -81,8 +81,15 @@
 
         <section style="margin-bottom: 20px;">
           <div class="crossed">
-            <span>Table</span>
+            <span>Measurements</span>
           </div>
+          <table class="full-width">
+            <tr>
+              <td>Carrier Power</td>
+              <td style="text-align: right">
+                <span class="carrier-power-span"></span>
+              </td>
+          </table>
           <table id="decade-values-table" class="table">
           </table>
         </section>
