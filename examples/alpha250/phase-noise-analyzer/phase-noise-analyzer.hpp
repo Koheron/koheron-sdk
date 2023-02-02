@@ -60,13 +60,14 @@ class PhaseNoiseAnalyzer
         dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
     }
 
-    void set_cic_rate(uint32_t cic_rate) {
-        if (cic_rate < prm::cic_decimation_rate_min ||
-            cic_rate > prm::cic_decimation_rate_max) {
+    void set_cic_rate(uint32_t rate) {
+        if (rate < prm::cic_decimation_rate_min ||
+            rate > prm::cic_decimation_rate_max) {
             ctx.log<ERROR>("PhaseNoiseAnalyzer: CIC rate out of range\n");
             return;
         }
 
+        cic_rate = rate;
         fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
         dma_transfer_duration = prm::n_pts / fs;
         ctl.write<reg::cic_rate>(cic_rate);
@@ -85,7 +86,10 @@ class PhaseNoiseAnalyzer
     const auto get_parameters() {
         return std::make_tuple(
             fft_size / 2, // data_size
-            fs
+            fs,
+            channel,
+            cic_rate,
+            fft_navg
         );
     }
 
@@ -158,6 +162,8 @@ class PhaseNoiseAnalyzer
     Memory<mem::ram>& ram;
 
     uint32_t channel;
+    uint32_t fft_navg;
+    uint32_t cic_rate;
     float fs_adc, fs;
     float dma_transfer_duration;
 
@@ -183,6 +189,7 @@ class PhaseNoiseAnalyzer
 };
 
 inline auto PhaseNoiseAnalyzer::get_phase_noise(uint32_t n_avg) {
+    fft_navg = n_avg;
     std::fill(phase_noise.begin(), phase_noise.end(), 0.0f);
 
     for (uint32_t i=0; i<n_avg; i++) {

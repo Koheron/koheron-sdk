@@ -3,7 +3,10 @@
 
 interface IParameters {
   data_size: number; // fft_size/2
-  fs: number; // Sampling frequency (Hz)
+  fs: number;        // Sampling frequency (Hz)
+  channel: number;   // Acquired channel
+  cic_rate: number;
+  fft_navg: number;
 }
 
 class PhaseNoiseAnalyzer {
@@ -33,9 +36,12 @@ class PhaseNoiseAnalyzer {
 
   getParameters(callback: (parameters: IParameters) => void): void {
     this.client.readTuple(Command(this.id, this.cmds['get_parameters']), 'If',
-    (tup: [number, number]) => {
+    (tup: [number, number, number, number, number]) => {
       this.parameters.data_size = tup[0];
       this.parameters.fs = tup[1];
+      this.parameters.channel = tup[2];
+      this.parameters.cic_rate = tup[3];
+      this.parameters.fft_navg = tup[4];
       callback(this.parameters);
     });
   }
@@ -54,7 +60,7 @@ class PhaseNoiseAnalyzer {
     this.client.send(Command(this.id, this.cmds['set_channel'], channel));
   }
 
-  getCarrierPower(nAverage: number, callback: (data: number) => void) {
+  getCarrierPower(nAverage: number, callback: (data: number) => void): void {
     this.client.readFloat32(Command(this.id, this.cmds['get_carrier_power'], nAverage), (data: number) => {
       callback(data);
     });
