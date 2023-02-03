@@ -13,7 +13,7 @@ class Plot {
   public yLabel: string = "PHASE NOISE (dBc/Hz)";
   private peakDatapoint: number[];
 
-  constructor(document: Document, private driver: PhaseNoiseAnalyzer, private plotBasics: PlotBasics) {
+  constructor(document: Document, private driver: PhaseNoiseAnalyzer, public plotBasics: PlotBasics) {
     this.peakDatapoint = [];
     this.plot_data = [];
     this.init();

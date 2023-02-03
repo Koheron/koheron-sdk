@@ -45,7 +45,6 @@ class PhaseNoiseAnalyzerApp {
   private updatePower() {
     let navg: number = 100;
     this.driver.getCarrierPower(navg, (power) => {
-      console.log(power)
       this.carrierPowerSpan.innerHTML = power.toFixed(2) + " dBm";
       requestAnimationFrame( () => { this.updatePower(); } )
     });

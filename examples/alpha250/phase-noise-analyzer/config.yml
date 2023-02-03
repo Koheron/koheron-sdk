@@ -116,3 +116,5 @@ web:
   - web/plot-basics/plot-basics.ts
   - web/plot-basics/plot-basics.html
   - ./web/plot.ts
+  - ./web/export-file/export-file.html
+  - ./web/export-file/export-file.ts
