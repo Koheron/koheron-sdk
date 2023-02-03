@@ -1,7 +1,7 @@
 ---
 name: phase-noise-analyzer
 board: boards/alpha250
-version: 0.2.0
+version: 0.2.1
 
 cores:
   - fpga/cores/axi_ctl_register_v1_0
@@ -56,6 +56,7 @@ control_registers:
 
 status_registers:
   - adc[n_adc]
+  - demod[n_adc]
 
 ps_control_registers:
   - spi_cfg_data
@@ -70,9 +71,12 @@ parameters:
   adc_clk: 200000000
   dac_width: 16
   adc_width: 16
+  dds_output_width: 16
   n_adc: 2
   cic_differential_delay: 1
-  cic_decimation_rate: 4
+  cic_decimation_rate_default: 20
+  cic_decimation_rate_min: 4
+  cic_decimation_rate_max: 8192
   cic_n_stages: 6
   n_pts: 262144
 
@@ -112,3 +116,5 @@ web:
   - web/plot-basics/plot-basics.ts
   - web/plot-basics/plot-basics.html
   - ./web/plot.ts
+  - ./web/export-file/export-file.html
+  - ./web/export-file/export-file.ts
