@@ -17,7 +17,8 @@ class PhaseNoiseAnalyzerApp {
       this.carrierPowerSpan = <HTMLElement>document.getElementsByClassName("carrier-power-span")[0];
       this.initCicRateInput();
       this.initChannelInput();
-      this.update();
+      this.updatePower();
+      this.updateControls();
       callback();
     });
   }
@@ -41,12 +42,28 @@ class PhaseNoiseAnalyzerApp {
     }
   }
 
-  private update() {
+  private updatePower() {
     let navg: number = 100;
     this.driver.getCarrierPower(navg, (power) => {
       console.log(power)
       this.carrierPowerSpan.innerHTML = power.toFixed(2) + " dBm";
-      requestAnimationFrame( () => { this.update(); } )
+      requestAnimationFrame( () => { this.updatePower(); } )
+    });
+  }
+
+  private updateControls() {
+    this.driver.getParameters( (parameters: IParameters) => {
+      if (parameters.channel == 0) {
+        this.channelInputs[0].checked = true;
+        this.channelInputs[1].checked = false;
+      } else {
+        this.channelInputs[0].checked = false;
+        this.channelInputs[1].checked = true;
+      }
+
+      this.cicRateInput.value = parameters.cic_rate.toString();
+
+      requestAnimationFrame( () => { this.updateControls(); } )
     });
   }
 }

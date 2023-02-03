@@ -35,7 +35,7 @@ class PhaseNoiseAnalyzer {
   }
 
   getParameters(callback: (parameters: IParameters) => void): void {
-    this.client.readTuple(Command(this.id, this.cmds['get_parameters']), 'If',
+    this.client.readTuple(Command(this.id, this.cmds['get_parameters']), 'IfIII',
     (tup: [number, number, number, number, number]) => {
       this.parameters.data_size = tup[0];
       this.parameters.fs = tup[1];
@@ -46,8 +46,12 @@ class PhaseNoiseAnalyzer {
     });
   }
 
-  getPhaseNoise(nAverage: number, callback: (data: Float32Array) => void): void {
-    this.client.readFloat32Array(Command(this.id, this.cmds['get_phase_noise'], nAverage), (data: Float32Array) => {
+  setFFTNavg(navg: number): void {
+    this.client.send(Command(this.id, this.cmds['set_fft_navg'], navg));
+  }
+
+  getPhaseNoise(callback: (data: Float32Array) => void): void {
+    this.client.readFloat32Array(Command(this.id, this.cmds['get_phase_noise']), (data: Float32Array) => {
       callback(data);
     });
   }

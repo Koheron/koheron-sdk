@@ -6,7 +6,6 @@ class Plot {
   public plot: jquery.flot.plot;
   public plot_data: Array<Array<number>>;
   public decade_values: Array<Array<number>>;
-  private nAverage: number;
   private nAvgInput: HTMLInputElement;
   private samplingFrequency: number;
   private decadeValuesTable: HTMLTableElement;
@@ -18,7 +17,6 @@ class Plot {
     this.peakDatapoint = [];
     this.plot_data = [];
     this.init();
-    this.nAverage = 1;
     this.nAvgInput = <HTMLInputElement>document.getElementsByClassName("plot-navg-input")[0];
     this.decadeValuesTable = <HTMLTableElement>document.getElementById('decade-values-table');
     this.initNavgInput();
@@ -47,7 +45,7 @@ class Plot {
   }
 
   setNavg(navg: number) {
-    this.nAverage = navg;
+    this.driver.setFFTNavg(navg);
   }
 
   setFreqAxis(): void {
@@ -92,12 +90,14 @@ class Plot {
   }
 
   updatePlot() {
-    this.driver.getPhaseNoise(this.nAverage, (data: Float32Array) => {
-      this.driver.getParameters((parameters) => {
+    this.driver.getPhaseNoise((data: Float32Array) => {
+      this.driver.getParameters((parameters: IParameters) => {
         if (parameters.fs != this.samplingFrequency) {
           this.samplingFrequency = parameters.fs;
           this.setFreqAxis();
         }
+
+        this.nAvgInput.value = parameters.fft_navg.toString();
 
         for (let i = 0; i < this.n_pts; i++) {
           let x: number = i * this.samplingFrequency / this.n_pts / 2;

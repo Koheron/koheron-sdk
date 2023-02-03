@@ -47,11 +47,12 @@ class PhaseNoiseAnalyzer
         ctl.write_mask<reg::cordic, 0b11>(0b11); // Phase accumulator on
         set_channel(0);
 
+        set_fft_navg(1);
         std::get<0>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
         std::get<1>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
 
         fs_adc = clk_gen.get_adc_sampling_freq();
-        fs = fs_adc / (2.0f * prm::cic_decimation_rate_default); // Sampling frequency (factor of 2 because of FIR)
+        set_cic_rate(prm::cic_decimation_rate_default);
         dma_transfer_duration = prm::n_pts / fs;
         ctx.log<INFO>("DMA transfer duration = %f s\n", double(dma_transfer_duration));
     }
@@ -144,7 +145,11 @@ class PhaseNoiseAnalyzer
         return data_phase;
     }
 
-    auto get_phase_noise(uint32_t n_avg);
+    void set_fft_navg(uint32_t n_avg) {
+        fft_navg = n_avg;
+    }
+
+    auto get_phase_noise();
 
   private:
     static constexpr uint32_t data_size = 200000;
@@ -188,11 +193,10 @@ class PhaseNoiseAnalyzer
     }
 };
 
-inline auto PhaseNoiseAnalyzer::get_phase_noise(uint32_t n_avg) {
-    fft_navg = n_avg;
+inline auto PhaseNoiseAnalyzer::get_phase_noise() {
     std::fill(phase_noise.begin(), phase_noise.end(), 0.0f);
 
-    for (uint32_t i=0; i<n_avg; i++) {
+    for (uint32_t i=0; i<fft_navg; i++) {
         dma.wait_for_transfer(dma_transfer_duration);
         data = ram.read_array<int32_t, data_size, read_offset>();
 
@@ -212,7 +216,7 @@ inline auto PhaseNoiseAnalyzer::get_phase_noise(uint32_t n_avg) {
     }
 
     for (uint32_t i=0; i<fft_size / 2; i++) {
-        phase_noise[i] /= (fs * window.W2() * n_avg); // rad^2/Hz
+        phase_noise[i] /= (fs * window.W2() * fft_navg); // rad^2/Hz
     }
 
     return phase_noise;
