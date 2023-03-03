@@ -1,0 +1,87 @@
+---
+name: decimator
+board: boards/alpha15
+version: 0.1.0
+
+cores:
+  - fpga/cores/axi_ctl_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
+  - fpga/cores/edge_detector_v1_0
+  - fpga/cores/comparator_v1_0
+  - fpga/cores/unrandomizer_v1_0
+  - boards/alpha250/cores/precision_dac_v1_0
+  - boards/alpha250/cores/spi_cfg_v1_0
+  - boards/alpha15/cores/ltc2387_v1_0
+  - boards/alpha15/cores/dcdc_sync_v1_0
+
+memory:
+  - name: control
+    offset: '0x60000000'
+    range: 4K
+  - name: ps_control
+    offset: '0x64000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+  - name: ps_status
+    offset: '0x54000000'
+    range: 4K
+  - name: xadc
+    offset: '0x43C00000'
+    range: 64K
+  - name: adc_fifo
+    offset: '0x43C10000'
+    range: 64K
+
+control_registers:
+  - mmcm
+  - precision_dac_ctl
+  - precision_dac_data[2]
+  - trig
+  - rf_adc_ctl[2]
+  - digital_outputs
+  - adp5071_sync
+
+status_registers:
+  - adc[n_adc]
+  - digital_inputs
+
+ps_control_registers:
+  - spi_cfg_data
+  - spi_cfg_cmd
+
+ps_status_registers:
+  - spi_cfg_sts
+
+parameters:
+  fclk0: 166666667 # CPU clock speed in Hz
+  adc_clk: 240000000
+  adp5071_clk: 2400000
+  n_adc: 2
+  adc_width: 18
+  cic_differential_delay: 1
+  cic_decimation_rate: 2048
+  cic_n_stages: 6
+
+xdc:
+  - boards/alpha15/config/ports.xdc
+
+drivers:
+  - boards/alpha15/drivers/common.hpp
+  - boards/alpha15/drivers/eeprom.hpp
+  - boards/alpha15/drivers/clock-generator.hpp
+  - boards/alpha15/drivers/ltc2387.hpp
+  - boards/alpha250/drivers/gpio-expander.hpp
+  - boards/alpha250/drivers/temperature-sensor.hpp
+  - boards/alpha250/drivers/power-monitor.hpp
+  - boards/alpha250/drivers/ad9747.hpp
+  - boards/alpha250/drivers/precision-dac.hpp
+  - boards/alpha250/drivers/spi-config.hpp
+  - ./decimator.hpp
+
+web:
+  - web/index.html
+  - web/main.css
+  - web/koheron.ts

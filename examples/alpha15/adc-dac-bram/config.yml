@@ -1,0 +1,91 @@
+---
+name: adc-dac-bram
+board: boards/alpha15
+version: 0.1.0
+
+cores:
+  - fpga/cores/axi_ctl_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
+  - fpga/cores/edge_detector_v1_0
+  - fpga/cores/comparator_v1_0
+  - fpga/cores/unrandomizer_v1_0
+  - boards/alpha250/cores/precision_dac_v1_0
+  - boards/alpha250/cores/spi_cfg_v1_0
+  - boards/alpha15/cores/ltc2387_v1_0
+  - boards/alpha15/cores/dcdc_sync_v1_0
+  - ./address_counter_v1_0
+
+memory:
+  - name: control
+    offset: '0x60000000'
+    range: 4K
+  - name: ps_control
+    offset: '0x64000000'
+    range: 4K
+  - name: status
+    offset: '0x50000000'
+    range: 4K
+  - name: ps_status
+    offset: '0x54000000'
+    range: 4K
+  - name: xadc
+    offset: '0x43C00000'
+    range: 64K
+  - name: adc0
+    range: 128K
+    offset: '0x80000000'
+  - name: adc1
+    range: 128K
+    offset: '0x80040000'
+  - name: dac
+    range: 128K
+    offset: '0x40080000'
+
+control_registers:
+  - mmcm
+  - precision_dac_ctl
+  - precision_dac_data[2]
+  - trig
+  - rf_adc_ctl[2]
+  - adp5071_sync
+  - digital_outputs
+
+status_registers:
+  - adc[n_adc]
+  - digital_inputs
+
+ps_control_registers:
+  - spi_cfg_data
+  - spi_cfg_cmd
+
+ps_status_registers:
+  - spi_cfg_sts
+
+parameters:
+  fclk0: 200000000 # CPU clock speed in Hz
+  fclk1: 200000000 # CPU clock speed in Hz
+  adc_clk: 240000000
+  adp5071_clk: 2400000
+  n_adc: 2
+
+xdc:
+  - boards/alpha15/config/ports.xdc
+
+drivers:
+  - boards/alpha15/drivers/common.hpp
+  - boards/alpha15/drivers/eeprom.hpp
+  - boards/alpha15/drivers/clock-generator.hpp
+  - boards/alpha15/drivers/ltc2387.hpp
+  - boards/alpha250/drivers/gpio-expander.hpp
+  - boards/alpha250/drivers/temperature-sensor.hpp
+  - boards/alpha250/drivers/power-monitor.hpp
+  - boards/alpha250/drivers/ad9747.hpp
+  - boards/alpha250/drivers/precision-dac.hpp
+  - boards/alpha250/drivers/spi-config.hpp
+  - ./adc_dac_bram.hpp
+
+web:
+  - web/index.html
+  - web/main.css
+  - web/koheron.ts
