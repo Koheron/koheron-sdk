@@ -217,7 +217,7 @@ class Ltc2387
         const auto offset1 = get_offset(1, range1); // LSB
 
         return std::array{ (val0 - offset0) / gain0,
-                           (val1 - offset1) / gain1};
+                           (val1 - offset1) / gain1 };
     }
 
     // Calibrations
