@@ -49,11 +49,12 @@ control_registers:
   - trig
   - rf_adc_ctl[2]
   - adp5071_sync
-  - digital_outputs
+  - digital_outputs_b34
+  - digital_outputs_b35_n
 
 status_registers:
   - adc[n_adc]
-  - digital_inputs
+  - digital_inputs_b35_p
 
 ps_control_registers:
   - spi_cfg_data

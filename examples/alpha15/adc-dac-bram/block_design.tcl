@@ -73,16 +73,16 @@ for {set i 0} {$i < 2} {incr i} {
 # Test IOs
 # -----------------------------------------------------------------------------
 
-connect_pins [sts_pin digital_inputs] [get_concat_pin [list exp_io_b35_0_p exp_io_b35_1_p exp_io_b35_2_p exp_io_b35_3_p exp_io_b35_4_p exp_io_b35_5_p exp_io_b35_6_p exp_io_b35_7_p]]
-
-for {set i 0} {$i < 8} {incr i} {
-    connect_pins [get_slice_pin [ctl_pin digital_outputs] $i $i] exp_io_b35_${i}_n
+# B34 => outputs
+for {set i 0} {$i < 5} {incr i} {
+    connect_pins [get_slice_pin [ctl_pin digital_outputs_b34] [expr 2 * $i] [expr 2 * $i]] exp_io_b34_${i}_n
+    connect_pins [get_slice_pin [ctl_pin digital_outputs_b34] [expr 2 * $i + 1] [expr 2 * $i + 1]] exp_io_b34_${i}_p
 }
 
-connect_pins adc_dac/adc_valid exp_io_b34_0_n
-connect_pins address_counter_adc0/trig exp_io_b34_1_n
+# B35 P lines => inputs
+connect_pins [sts_pin digital_inputs_b35_p] [get_concat_pin [list exp_io_b35_0_p exp_io_b35_1_p exp_io_b35_2_p exp_io_b35_3_p exp_io_b35_4_p exp_io_b35_5_p exp_io_b35_6_p exp_io_b35_7_p]]
 
-# DEBUG output to EXP_IO
-# connect_pins adc_dac/adc0_dco exp_io_b34_2_p
-# connect_pins adc_dac/adc0_da exp_io_b34_3_p
-# connect_pins adc_dac/adc0_db exp_io_b34_4_p
+# B35 N lines => outputs
+for {set i 0} {$i < 8} {incr i} {
+    connect_pins [get_slice_pin [ctl_pin digital_outputs_b35_n] $i $i] exp_io_b35_${i}_n
+}

@@ -57,6 +57,12 @@ class AdcDacBram
                        : adc0_map.read_array<uint32_t, adc_size>();
     }
 
+    // IOs
+
+    void set_b34_ios(uint32_t value) {
+        ctl.write<reg::digital_outputs_b34>(value);
+    }
+
  private:
     Context& ctx;
     Memory<mem::control>& ctl;
