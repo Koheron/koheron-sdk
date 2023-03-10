@@ -34,19 +34,8 @@ class Ltc2387
 
         // Clock generator must be initialized before enabling ADC
         enable_adcs();
-
-        // TODO Remove delay tap
-        constexpr auto delay_tap = 0U;
-        dco_delay_tap(0, delay_tap);
-        da_delay_tap(0, delay_tap);
-        db_delay_tap(0, delay_tap);
-        dco_delay_tap(1, delay_tap);
-        da_delay_tap(1, delay_tap);
-        db_delay_tap(1, delay_tap);
-
         range_select(0, 0);
         range_select(1, 0);
-
         set_clock_delay();
     }
 
@@ -91,10 +80,6 @@ class Ltc2387
     // BIT  1      : TESTPAT
     // BIT  2      : ENABLE
     // BIT  3      : CLKOUT_DEC (Only ADC0 is used)
-    // BITS [4:8]  : DCO_DELAY_TAP
-    // BITS [9:14] : DA_DELAY_TAP
-    // BITS [15:20]: DB_DELAY_TAP
-    // BIT  21     : DELAY_RESET
 
     void enable_adcs() {
         ctl.set_bit<reg::rf_adc_ctl0, 2>();
@@ -148,38 +133,6 @@ class Ltc2387
     uint32_t input_range(uint32_t channel) {
         return channel ? ctl.read_bit<reg::rf_adc_ctl1, 0>()
                        : ctl.read_bit<reg::rf_adc_ctl0, 0>();
-    }
-
-    // TODO Remove delay tap
-
-    template<uint32_t regid, uint32_t lsb>
-    void set_delay_tap(uint32_t tap) {
-        if (tap > 31U) {
-            ctx.log<WARNING>("Ltc2387: Tap too large [%u > 31]\n", tap);
-            tap = 31U;
-        }
-
-        constexpr auto mask = ~((0b11111) << lsb);
-        ctl.write<regid>((ctl.read<regid, uint32_t>() & mask) | (tap << lsb));
-
-        // Reset delay
-        ctl.set_bit<regid, 21>();
-        ctl.clear_bit<regid, 21>();
-    }
-
-    void dco_delay_tap(bool channel, uint32_t tap) {
-        channel ? set_delay_tap<reg::rf_adc_ctl1, 4>(tap)
-                : set_delay_tap<reg::rf_adc_ctl0, 4>(tap);
-    }
-
-    void da_delay_tap(bool channel, uint32_t tap) {
-        channel ? set_delay_tap<reg::rf_adc_ctl1, 9>(tap)
-                : set_delay_tap<reg::rf_adc_ctl0, 9>(tap);
-    }
-
-    void db_delay_tap(bool channel, uint32_t tap) {
-        channel ? set_delay_tap<reg::rf_adc_ctl1, 15>(tap)
-                : set_delay_tap<reg::rf_adc_ctl0, 15>(tap);
     }
 
     // Data
