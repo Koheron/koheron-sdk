@@ -53,7 +53,10 @@ clean_os:
 ###############################################################################
 
 # Additional files (including fsbl_hooks.c) can be added to the FSBL in $(BOARD_PATH)/patches/fsbl
-FSBL_FILES := $(wildcard $(BOARD_PATH)/patches/fsbl/*.h $(BOARD_PATH)/patches/fsbl/*.c)
+ifndef FSBL_PATH
+FSBL_PATH := $(BOARD_PATH)/patches/fsbl
+endif
+FSBL_FILES := $(wildcard $(FSBL_PATH)/*.h $(FSBL_PATH)/*.c)
 
 .PHONY: fsbl
 fsbl: $(TMP_OS_PATH)/fsbl/executable.elf
@@ -64,8 +67,9 @@ $(TMP_OS_PATH)/fsbl/Makefile: $(TMP_FPGA_PATH)/$(NAME).hwdef
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
-	cp -a $(BOARD_PATH)/patches/fsbl/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
+	cp -a $(FSBL_PATH)/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
 	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && make -C $(@D) all
+	@echo [$@] OK
 
 .PHONY: clean_fsbl
 clean_fsbl:
