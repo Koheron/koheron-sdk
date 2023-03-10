@@ -33,6 +33,7 @@ Ready to develop your instrument? Read the [documentation](https://www.koheron.c
 * [`loopback`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250/loopback) : minimal instrument.
 * [`adc-dac-bram`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250/adc-dac-bram) : set DAC waveforms and get ADC using Block RAMs.
 * [`adc-dac-dma`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250/adc-dac-dma) : set DAC waveforms and get ADC using DMA.
+* [`phase-noise-analyzer`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250/adc-dac-dma) : phase noise analyzer.
 
 ## Red Pitaya designs
 
