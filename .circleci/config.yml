@@ -3,21 +3,18 @@ version: 2
 jobs:
   build:
     docker:
-      - image: buildpack-deps:bionic
+      - image: buildpack-deps:focal
     steps:
       - checkout
       - run:
           name: Install python requirements
-          command: apt-get update; apt-get install -y sudo; apt-get install -y python-pip; pip install -r requirements.txt
+          command: apt-get update; apt-get install -y sudo; apt-get install -y python3-pip; pip install -r requirements.txt
       - run:
           name: Install Koheron python
           command: pip install python/.
       - run:
           name: Setup Base
           command: apt-get update; make setup_base
-      - run:
-          name: Link GCC
-          command: sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc; sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-g++
       - run:
           name: Install Eigen library
           command: sudo bash ./install_eigen.sh
@@ -32,18 +29,18 @@ jobs:
           command: sudo bash build_examples.sh web
   deploy:
     docker:
-      - image: circleci/python:2.7-stretch-browsers
+      - image: cimg/python:3.11.2
     steps:
       - checkout
       - run:
           name: Install python requirements
-          command: sudo pip install -r requirements.txt
+          command: pip install -r requirements.txt
       - run:
           name: install twine
-          command: sudo pip install twine
+          command: pip install twine
       - run:
           name: Upload Koheron python to pypi
-          command: sudo make PYPI_USERNAME=$PYPI_USERNAME PYPI_PASSWORD=$PYPI_PASSWORD upload_pip
+          command: make PYPI_USERNAME=$PYPI_USERNAME PYPI_PASSWORD=$PYPI_PASSWORD upload_pip
 
 workflows:
   version: 2
