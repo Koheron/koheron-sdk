@@ -34,10 +34,10 @@ jobs:
       - checkout
       - run:
           name: Install python requirements
-          command: sudo pip install -r requirements.txt
+          command: sudo pip3 install -r requirements.txt
       - run:
           name: install twine
-          command: sudo pip install twine
+          command: sudo pip3 install twine
       - run:
           name: Upload Koheron python to pypi
           command: sudo make PYPI_USERNAME=$PYPI_USERNAME PYPI_PASSWORD=$PYPI_PASSWORD upload_pip
