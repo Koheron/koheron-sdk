@@ -146,18 +146,10 @@ setup: setup_fpga setup_server setup_web setup_os
 
 .PHONY: setup_base
 setup_base:
-<<<<<<< HEAD
-	sudo apt-get install -y g++-5-arm-linux-gnueabihf
-	sudo apt install -y g++-aarch64-linux-gnu
-	# On Ubuntu 18.04 you may have to link:	
-	# sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
-	# sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-5 /usr/bin/arm-linux-gnueabihf-g++	
-=======
 	sudo apt-get install -y g++-$(GCC_VERSION)-arm-linux-gnueabihf
 	sudo rm -f /usr/bin/arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-g++
 	sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-gcc
 	sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-g++
->>>>>>> 64ef5fc4b99170dee2391e1c35a08d388f0a703d
 	sudo apt-get install -y $(PYTHON)-pip
 	sudo apt-get install -y curl
 	$(PIP) install -r $(SDK_PATH)/requirements.txt
