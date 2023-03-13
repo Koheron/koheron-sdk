@@ -15,4 +15,9 @@ class DDS {
   setDDSFreq(channel: number, freq_hz: number): void {
     this.client.send(Command(this.id, this.cmds['set_dds_freq'], channel, freq_hz));
   }
+
+  getDDSFreq(channel: number, callback: (data: number) => void): void {
+    this.client.readFloat32(Command(this.id, this.cmds['get_dds_freq'], channel),
+                            (data: number) => { callback(data); });
+  }
 }

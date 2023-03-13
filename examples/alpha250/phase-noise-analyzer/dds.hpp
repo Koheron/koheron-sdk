@@ -37,8 +37,8 @@ class Dds
 
         double fs_adc = clk_gen.get_dac_sampling_freq();
 
-        if (freq_hz > fs_adc / 2) {
-            freq_hz = fs_adc / 2;
+        if (freq_hz > fs_adc / 2.0) {
+            freq_hz = fs_adc / 2.0;
         }
 
         if (freq_hz < 0.0) {
@@ -51,6 +51,10 @@ class Dds
         dds_freq[channel] = freq_hz;
 
         ctx.log<INFO>("fs: %lf , channel %u, ref. frequency set to %lf \n", fs_adc, channel, freq_hz);
+    }
+
+    auto get_dds_freq(uint32_t channel) {
+        return dds_freq[channel];
     }
 
   private:

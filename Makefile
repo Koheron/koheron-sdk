@@ -17,6 +17,8 @@ VIVADO_VERSION := 2020.1
 VIVADO_PATH := /tools/Xilinx/Vivado
 VITIS_PATH := /tools/Xilinx/Vitis
 PYTHON := python3
+# Use GCC version >=7
+GCC_VERSION := 9
 
 .PHONY: help
 help:
@@ -144,11 +146,10 @@ setup: setup_fpga setup_server setup_web setup_os
 
 .PHONY: setup_base
 setup_base:
-	sudo apt-get install -y g++-5-arm-linux-gnueabihf
-	sudo apt install -y g++-aarch64-linux-gnu
-	# On Ubuntu 18.04 you may have to link:	
-	# sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-5 /usr/bin/arm-linux-gnueabihf-gcc
-	# sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-5 /usr/bin/arm-linux-gnueabihf-g++	
+	sudo apt-get install -y g++-$(GCC_VERSION)-arm-linux-gnueabihf
+	sudo rm -f /usr/bin/arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-g++
+	sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-gcc
+	sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-g++
 	sudo apt-get install -y $(PYTHON)-pip
 	sudo apt-get install -y curl
 	$(PIP) install -r $(SDK_PATH)/requirements.txt

@@ -1,5 +1,13 @@
+<<<<<<< HEAD
 jinja2>=2.11.2
 pytest==6.0.1
 pyyaml>=5.3.1
 CppHeaderParser==2.7.4
 numpy==1.19.1
+=======
+jinja2>=2.11.3
+pytest>=6.2.2
+pyyaml>=5.3.1
+CppHeaderParser==2.7.4
+numpy>=1.20.1
+>>>>>>> 64ef5fc4b99170dee2391e1c35a08d388f0a703d

@@ -6,7 +6,8 @@ set board_path [lindex $argv 4]
 set mode [lindex $argv 5]
 set output_path [lindex $argv 6]
 set xdc_filename [lindex $argv 7]
-set prefix [lindex $argv 8]
+set python [lindex $argv 8]
+set prefix [lindex $argv 9]
 
 # Add optional prefix to the project name
 if {$prefix == "block_design_"} {

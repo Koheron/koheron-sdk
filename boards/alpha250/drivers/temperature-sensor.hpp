@@ -6,6 +6,7 @@
 #include <context.hpp>
 
 #include <array>
+#include <numeric>
 
 class TemperatureSensor
 {
@@ -27,12 +28,20 @@ class TemperatureSensor
     }
 
     float get_zynq_temperature() {
-        return (xadc.read<0x200>() * 503.975) / 65356 - 273.15;
+        zynq_temp[i] = (xadc.read<0x200>() * 503.975) / 65356 - 273.15;
+        i = (i+1)%n_avg;
+        float sum = 0;
+        sum = std::accumulate(zynq_temp.data(), zynq_temp.data()+n_avg, sum);
+        return sum/n_avg;
     }
 
   private:
     static constexpr uint32_t i2c_address_vref = 0b1001000;  // Voltage reference sensor
     static constexpr uint32_t i2c_address_board = 0b1001001; // Board sensor
+
+    static constexpr uint32_t n_avg = 100;
+    uint32_t i = 0;
+    std::array<float, n_avg> zynq_temp;
 
     Context& ctx;
     I2cDev& i2c;
@@ -45,18 +54,15 @@ class TemperatureSensor
     static constexpr uint8_t configuration = 3;
 
     float get_tmp116_temperature(uint32_t i2c_address) {
-        int16_t temp;
-
+        uint16_t temp;
         if (i2c.write(i2c_address, temperature_msb) < 0) {
             return 0;
         }
-
         if (i2c.read(i2c_address, temp) < 0) {
             return 0;
         }
-
         temp = ((temp & 0xFF) << 8) + (temp >> 8);
-        return ((temp - 32768) % 65536 + 32768) / 32768.0 * 256.0;
+        return (reinterpret_cast<int16_t&>(temp) * 0.0078125);
     }
 };
 

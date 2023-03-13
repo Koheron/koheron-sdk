@@ -24,7 +24,7 @@ $(TMP_OS_VERSION_FILE): $(KOHERON_VERSION_FILE)
 
 DTREE_SWITCH = $(TMP_OS_PATH)/devicetree.dtb
 ifdef DTREE_OVERRIDE
-DTREE_SWITCH = $(TMP_OS_PATH)/devicetree_$(DTREE_LOC) 
+DTREE_SWITCH = $(TMP_OS_PATH)/devicetree_$(DTREE_LOC)
 endif
 
 BOOT_MEDIUM ?= mmcblk0
@@ -46,7 +46,10 @@ clean_os:
 ###############################################################################
 
 # Additional files (including fsbl_hooks.c) can be added to the FSBL in $(BOARD_PATH)/patches/fsbl
-FSBL_FILES := $(wildcard $(BOARD_PATH)/patches/fsbl/*.h $(BOARD_PATH)/patches/fsbl/*.c)
+ifndef FSBL_PATH
+FSBL_PATH := $(BOARD_PATH)/patches/fsbl
+endif
+FSBL_FILES := $(wildcard $(FSBL_PATH)/*.h $(FSBL_PATH)/*.c)
 
 .PHONY: fsbl
 fsbl: $(TMP_OS_PATH)/fsbl/executable.elf
@@ -57,8 +60,9 @@ $(TMP_OS_PATH)/fsbl/Makefile:  $(TMP_FPGA_PATH)/$(NAME).xsa
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
-	cp -a $(BOARD_PATH)/patches/fsbl/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
-	source $(VIVADO_PATH)/$(VIVADO_VER)/settings64.sh && make -C $(@D) all
+	cp -a $(FSBL_PATH)/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
+	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && make -C $(@D) all
+	@echo [$@] OK
 
 .PHONY: clean_fsbl
 clean_fsbl:
@@ -107,7 +111,7 @@ $(TMP_OS_PATH)/pmu/Makefile: $(TMP_FPGA_PATH)/$(NAME).xsa
 	$(HSI) $(FPGA_PATH)/hsi/pmufw.tcl $(NAME) $(TMP_OS_PATH)/hard $(@D) $<
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/pmu/executable.elf: $(TMP_OS_PATH)/pmu/Makefile 
+$(TMP_OS_PATH)/pmu/executable.elf: $(TMP_OS_PATH)/pmu/Makefile
 	source $(VITIS_PATH)/$(VIVADO_VER)/settings64.sh && make -C $(@D) all
 
 .PHONY: clean_pmufw
@@ -137,7 +141,7 @@ $(TMP_OS_PATH)/bl31.elf: $(ATRUST_PATH)
 # boot.bin
 ###############################################################################
 
-$(TMP_OS_PATH)/boot.bin: $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_OS_PATH)/u-boot.elf 
+$(TMP_OS_PATH)/boot.bin: $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_OS_PATH)/u-boot.elf
 	echo "img:{[bootloader] $(TMP_OS_PATH)/fsbl/executable.elf" > $(TMP_OS_PATH)/boot.bif
 	echo " $(BITSTREAM)" >> $(TMP_OS_PATH)/boot.bif
 	echo " $(TMP_OS_PATH)/u-boot.elf" >> $(TMP_OS_PATH)/boot.bif
@@ -145,7 +149,7 @@ $(TMP_OS_PATH)/boot.bin: $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_O
 	$(BOOTGEN) -image $(TMP_OS_PATH)/boot.bif -arch $(ZYNQ_TYPE) -w -o i $@
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/bootmp.bin: $(TMP_OS_PATH)/pmu/executable.elf $(TMP_OS_PATH)/bl31.elf $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_OS_PATH)/u-boot.elf 
+$(TMP_OS_PATH)/bootmp.bin: $(TMP_OS_PATH)/pmu/executable.elf $(TMP_OS_PATH)/bl31.elf $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_OS_PATH)/u-boot.elf
 	echo "img:{ [fsbl_config] a53_x64" > $(TMP_OS_PATH)/boot.bif
 	echo "[pmufw_image] $(TMP_OS_PATH)/pmu/executable.elf" >> $(TMP_OS_PATH)/boot.bif
 	echo "[bootloader] $(TMP_OS_PATH)/fsbl/executable.elf" >> $(TMP_OS_PATH)/boot.bif
@@ -188,7 +192,7 @@ $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_P
 	mkdir -p $(@D)
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VER) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/devicetree $(TMP_FPGA_PATH)/$(NAME).xsa $(BOOT_MEDIUM)
 	cp -r $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig
-	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/devicetree.patch 
+	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/devicetree.patch
 	@echo [$@] OK
 
 .PHONY: clean_devicetree
@@ -400,3 +404,11 @@ $(TMP_WWW_PATH)/html-imports.min.js:
 $(TMP_WWW_PATH)/html-imports.min.js.map:
 	mkdir -p $(@D)
 	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js.map -o $@
+
+###############################################################################
+# TEST
+###############################################################################
+
+.PHONY: test_os
+test_os:
+	$(PYTHON) $(OS_PATH)/test_os.py $(HOST)
