@@ -185,7 +185,7 @@ $(TMP_OS_PATH)/overlay/pl.dtsi: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PAT
 	mkdir -p $(@D)
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VER) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/overlay $(TMP_FPGA_PATH)/$(NAME).xsa $(BOOT_MEDIUM)
 	cp -R $(TMP_OS_PATH)/overlay $(TMP_OS_PATH)/overlay.orig
-	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/overlay.patch
+	patch -d $(TMP_OS_PATH) -p -0 < $(PROJECT_PATH)/overlay.patch 
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/devicetree.patch
@@ -205,7 +205,7 @@ patch_devicetree:
 
 .PHONY: patch_overlay
 patch_overlay:
-	bash os/scripts/patch_overlay.sh $(TMP_OS_PATH) $(BOARD_PATH)
+	bash os/scripts/patch_overlay.sh $(TMP_OS_PATH) $(PROJECT_PATH)
 
 .PHONY: clean_overlay
 clean_overlay:
@@ -238,16 +238,19 @@ $(TMP_OS_PATH)/$(LINUX_IMAGE): $(LINUX_PATH) $(shell find $(PATCHES)/linux -type
 	cp $</arch/$(ARCH)/boot/$(LINUX_IMAGE) $@
 	@echo [$@] OK
 
-$(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
+$(LINUX_PATH)/scripts/dtc/dtc: $(TMP_OS_PATH)/$(LINUX_IMAGE)
+	@echo [$@] OK
+
+$(TMP_PROJECT_PATH)/pl.dtbo: $(LINUX_PATH) $(TMP_OS_PATH)/pl.dtbo
 	cp $(TMP_OS_PATH)/pl.dtbo  $(TMP_PROJECT_PATH)/pl.dtbo
 
-$(TMP_OS_PATH)/pl.dtbo: $(TMP_OS_PATH)/overlay/pl.dtsi
+$(TMP_OS_PATH)/pl.dtbo: $(LINUX_PATH)/scripts/dtc/dtc $(TMP_OS_PATH)/overlay/pl.dtsi
 	sed -i 's/".bin"/"$(NAME).bit.bin"/g' $(TMP_OS_PATH)/overlay/pl.dtsi
-	dtc -O dtb -o $@ \
+	$(LINUX_PATH)/scripts/dtc/dtc -O dtb -o $@ \
 	  -i $(TMP_OS_PATH)/overlay -b 0 -@ $(TMP_OS_PATH)/overlay/pl.dtsi
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/$(LINUX_IMAGE) $(TMP_OS_PATH)/devicetree/system-top.dts
+$(TMP_OS_PATH)/devicetree.dtb: $(LINUX_PATH)/scripts/dtc/dtc  $(TMP_OS_PATH)/devicetree/system-top.dts
 	gcc -I $(TMP_OS_PATH)/devicetree/ -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
 		$(TMP_OS_PATH)/devicetree/system-top.dts.tmp $(TMP_OS_PATH)/devicetree/system-top.dts
 	$(LINUX_PATH)/scripts/dtc/dtc -I dts -O dtb -o $@ \

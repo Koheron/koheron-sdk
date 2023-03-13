@@ -19,22 +19,6 @@ if [ "${zynq_type}" = "zynqmp" ]; then
     root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
     linux_image=Image
     qemu_path=/usr/bin/qemu-aarch64-static
-    part1=/dev/mmcblk1p1
-    part2=/dev/mmcblk1p2
-else
-    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-7000..."
-    root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
-    linux_image=uImage
-    qemu_path=/usr/bin/qemu-arm-static
-fi
-
-ubuntu_version=18.04.1
-
-if [ "${zynq_type}" = "zynqmp" ]; then
-    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-MPSoC..."
-    root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
-    linux_image=Image
-    qemu_path=/usr/bin/qemu-aarch64-static
 else
     echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-7000..."
     root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz

@@ -1,63 +1,494 @@
 diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
---- devicetree.orig/pcw.dtsi
-+++ devicetree/pcw.dtsi
-@@ -16,9 +16,11 @@
+--- devicetree.orig/pcw.dtsi	2022-10-10 13:08:46.581838906 +0100
++++ devicetree/pcw.dtsi	2022-10-10 13:14:36.487103438 +0100
+@@ -6,39 +6,195 @@
+ 
+ 
+ / {
+-	cpus {
+-		cpu@0 {
+-			operating-points = <666666 1000000 333333 1000000>;
++    cpus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		cpu0: cpu@0 {
++			compatible = "arm,cortex-a9";
++			device_type = "cpu";
++			reg = <0>;
++			clocks = <&clkc 3>;
++			clock-latency = <1000>;
++			cpu0-supply = <&regulator_vccpint>;
++			operating-points = <
++				/* kHz    uV */
++                766666  1000000
++				666667  1000000
++				333334  1000000
++			>;
++		};
++
++		cpu1: cpu@1 {
++			compatible = "arm,cortex-a9";
++			device_type = "cpu";
++			reg = <1>;
++			clocks = <&clkc 3>;
+ 		};
+ 	};
+ };
+ &can1 {
  	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_can0_default>;
  };
  &gem0 {
 +	local-mac-address = [00 0a 35 00 00 00];
  	phy-mode = "rgmii-id";
  	status = "okay";
  	xlnx,ptp-enet-clock = <0x69f6bcb>;
-+	phy-handle = <&phy0>;
++	phy-handle = <&phy3>;
++
++	phy3: phy@3 {
++		reg = <0x3>;
++	};
++};
++
++&gem1 {
++	status = "disable";
++	phy-mode = "gmii";
++	phy-handle = <&phy6>;
++	// phy-reset-gpio = <&gpio0 0x6f 0x1>;
++
++	phy6: phy@6 {
++		// compatible = "ethernet-phy-id0174.0c00"; //use Xilinx phy driver
++		// phy-reset-gpio = <&gpio0 0x6f 1>;
++		xlnx,phy-type = <0x5>;
++		reg = <0x6>;
++	};
  };
  &gpio0 {
- 	emio-gpio-width = <64>;
-@@ -52,7 +54,8 @@
+-	emio-gpio-width = <64>;
++	compatible = "xlnx,zynq-gpio-1.0";
++	#gpio-cells = <0x2>;
++	clocks = <0x1 0x2a>;
++	gpio-controller;
++	interrupt-parent = <0x3>;
++	interrupts = <0x0 0x14 0x4>;
++	reg = <0xe000a000 0x1000>;
++	emio-gpio-width = <0x40>;
+ 	gpio-mask-high = <0x0>;
+ 	gpio-mask-low = <0x5600>;
++	xlnx,emio-gpio-width = <0x40>;
++	xlnx,mio-gpio-mask = <0x5600>;
++	linux,phandle = <0x4>;
++	phandle = <0x4>;
+ };
++
+ &i2c0 {
+-	clock-frequency = <400000>;
++	compatible = "cdns,i2c-r1p10";
  	status = "okay";
++	clocks = <0x1 0x26>;
++	interrupt-parent = <0x3>;
++	interrupts = <0x0 0x19 0x4>;
++	reg = <0xe0004000 0x1000>;
++	#address-cells = <0x1>;
++	#size-cells = <0x0>;
++	clock-frequency = <0x61a80>;
++	xlnx,has-interrupt = <0x1>;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c0_default>;
++	pinctrl-1 = <&pinctrl_i2c0_gpio>;
++
++	ds3231: ds3231@51 {
++		compatible = "maxim,ds3231";
++		reg = <0x68>;
++		#clock-cells = <1>;
++	};
++
++	sii902x@3b {
++		compatible = "sii902x";
++		reg = <0x3b>;
++		interrupt-parent = <0x3>;
++		interrupts = <0x0 29 0x4>;
++		mode_str = "1920x1080";
++		bits-per-pixel = <0x10>;
++		display-color-space = <1>; //0:RGB, 1:YUV
++	};
++
++	ft0x5x_ts@38 {
++		compatible = "ft5x06_ts";
++		status = "okay";
++		reg = <0x38>;
++		tp_int = <&gpio0 117 0x1>;
++		tp_resetn = <&gpio0 116 0x1>;
++		bl_en = <&gpio0 115 0x1>;
++		pwr_en = <&gpio0 114 1>;
++		polling_mode = [00];
++		multi_touch = [00];
++	};
++
++	tsc2007@49 {
++		compatible = "ti,tsc2007";
++		status = "disable";
++		reg = <0x49>;
++		interrupt-parent = <&gpio0>;
++		interrupts = <0x0 117 4>;
++		gpios = <&gpio0 117 1>;
++		ti,x-plate-ohms = <0x28f>;
++		ti,poll-period = <0x0 0x1e>;
++	};
++};
++
++&i2c1 {
++	compatible = "cdns,i2c-r1p10";
++	status = "disable";
++	clocks = <0x1 0x27>;
++	interrupt-parent = <0x3>;
++	interrupts = <0x0 0x30 0x4>;
++	reg = <0xe0005000 0x1000>;
++	#address-cells = <0x1>;
++	#size-cells = <0x0>;
++	clock-frequency = <0x61a80>;
++	xlnx,has-interrupt = <0x1>;
+ };
+ &intc {
+ 	num_cpus = <2>;
+ 	num_interrupts = <96>;
+ };
+ &qspi {
++	u-boot,dm-pre-reloc;
++	status = "okay";
+ 	is-dual = <0>;
+ 	num-cs = <1>;
+-	spi-rx-bus-width = <4>;
+-	spi-tx-bus-width = <4>;
+-	status = "okay";
++	flash@0 {
++		compatible = "n25q128a11";
++		reg = <0x0>;
++		spi-tx-bus-width = <1>;
++		spi-rx-bus-width = <4>;
++		spi-max-frequency = <50000000>;
++		#address-cells = <1>;
++		#size-cells = <1>;
++
++		partition@qspi-boot {
++			label = "qspi-boot";
++			reg = <0x0 0x100000>;
++		};
++		partition@qspi-ubootenv {
++			label = "qspi-ubootenv";
++			reg = <0x100000 0x020000>;
++		};
++		partition@qspi-bitstream {
++			label = "qspi-bitstream";
++			reg = <0x120000 0x600000>;
++		};
++		partition@qspi-kernel {
++			label = "qspi-kernel";
++			reg = <0x720000 0x600000>;
++		};
++		partition@qspi-devicetree {
++			label = "qspi-devicetree";
++			reg = <0xD20000 0x020000>;
++		};
++		partition@qspi-rootfs {
++			label = "qspi-rootfs";
++			reg = <0xD40000 0xC00000>;
++		};
++		partition@qspi-data {
++			label = "data";
++			reg = <0x1940000 0x6C0000>;
++		};
++	};
+ };
+ &sdhci0 {
+ 	status = "okay";
+@@ -52,18 +208,221 @@
+ 	xlnx,has-power = <0x0>;
+ 	xlnx,has-wp = <0x0>;
+ };
++&uart0 {
++	status = "disable";
++    current-speed = <115200>;
++    port-number = <1>;
++    xlnx,has-modem = <0x0>;
++};
++
+ &uart1 {
+-	cts-override ;
+-	device_type = "serial";
+-	port-number = <0>;
++	u-boot,dm-pre-reloc;
+ 	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart1_default>;
  };
  &usb0 {
 -	phy_type = "ulpi";
+ 	status = "okay";
+-	usb-reset = <&gpio0 7 0>;
 +	dr_mode = "host";
 +	usb-phy = <&usb_phy0>;
- 	status = "okay";
- 	usb-reset = <&gpio0 7 0>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_usb0_default>;
  };
-diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
---- devicetree.orig/system-top.dtsi
-+++ devicetree/system-top.dts
-@@ -14,6 +14,13 @@
- 		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait earlycon";
- 		stdout-path = "serial0:115200n8";
- 	};
-+	usb_phy0: phy0 {
-+		#phy-cells = <0>;
-+		compatible = "ulpi-phy";
-+		reg = <0xe0002000 0x1000>;
-+		view-port = <0x0170>;
-+		drv-vbus;
+ &clkc {
+ 	fclk-enable = <0x1>;
+ 	ps-clk-frequency = <33333333>;
+ };
++&pinctrl0 {
++	pinctrl_gem0_default: gem0-default {
++		mux {
++			function = "ethernet0";
++			groups = "ethernet0_0_grp";
++		};
++
++		conf {
++			groups = "ethernet0_0_grp";
++			slew-rate = <0>;
++			io-standard = <4>;
++		};
++
++		conf-rx {
++			pins = "MIO22", "MIO23", "MIO24", "MIO25", "MIO26", "MIO27";
++			bias-high-impedance;
++			low-power-disable;
++		};
++
++		conf-tx {
++			pins = "MIO16", "MIO17", "MIO18", "MIO19", "MIO20", "MIO21";
++			low-power-enable;
++			bias-disable;
++		};
++
++		mux-mdio {
++			function = "mdio0";
++			groups = "mdio0_0_grp";
++		};
++
++		conf-mdio {
++			groups = "mdio0_0_grp";
++			slew-rate = <0>;
++			io-standard = <1>;
++			bias-disable;
++		};
 +	};
- 	aliases {
++
++	pinctrl_can0_default: can0-default {
++		mux {
++			function = "can0";
++			groups = "can0_9_grp";
++		};
++
++		conf {
++			groups = "can0_9_grp";
++			slew-rate = <0>;
++			io-standard = <1>;
++		};
++
++		conf-rx {
++			pins = "MIO9";
++			bias-high-impedance;
++		};
++
++		conf-tx {
++			pins = "MIO8";
++			bias-disable;
++		};
++	};
++
++	pinctrl_gpio0_default: gpio0-default {
++		mux {
++			function = "gpio0";
++			groups = "gpio0_7_grp", "gpio0_8_grp", "gpio0_9_grp",
++				 "gpio0_10_grp", "gpio0_11_grp", "gpio0_12_grp",
++				 "gpio0_13_grp", "gpio0_14_grp";
++		};
++
++		conf {
++			groups = "gpio0_7_grp", "gpio0_8_grp", "gpio0_9_grp",
++				 "gpio0_10_grp", "gpio0_11_grp", "gpio0_12_grp",
++				 "gpio0_13_grp", "gpio0_14_grp";
++			slew-rate = <0>;
++			io-standard = <1>;
++		};
++
++		conf-pull-up {
++			pins = "MIO9", "MIO10", "MIO11", "MIO12", "MIO13", "MIO14";
++			bias-pull-up;
++		};
++
++		conf-pull-none {
++			pins = "MIO7", "MIO8";
++			bias-disable;
++		};
++	};
++
++	pinctrl_i2c0_default: i2c0-default {
++		mux {
++			groups = "i2c0_10_grp";
++			function = "i2c0";
++		};
++
++		conf {
++			groups = "i2c0_10_grp";
++			bias-pull-up;
++			slew-rate = <0>;
++			io-standard = <1>;
++		};
++	};
++
++	pinctrl_i2c0_gpio: i2c0-gpio {
++		mux {
++			groups = "gpio0_50_grp", "gpio0_51_grp";
++			function = "gpio0";
++		};
++
++		conf {
++			groups = "gpio0_50_grp", "gpio0_51_grp";
++			slew-rate = <0>;
++			io-standard = <1>;
++		};
++	};
++
++	pinctrl_uart1_default: uart1-default {
++		mux {
++			groups = "uart1_10_grp";
++			function = "uart1";
++		};
++
++		conf {
++			groups = "uart1_10_grp";
++			slew-rate = <0>;
++			io-standard = <1>;
++		};
++
++		conf-rx {
++			pins = "MIO49";
++			bias-high-impedance;
++		};
++
++		conf-tx {
++			pins = "MIO48";
++			bias-disable;
++		};
++	};
++
++	pinctrl_usb0_default: usb0-default {
++		mux {
++			groups = "usb0_0_grp";
++			function = "usb0";
++		};
++
++		conf {
++			groups = "usb0_0_grp";
++			slew-rate = <0>;
++			io-standard = <1>;
++		};
++
++		conf-rx {
++			pins = "MIO29", "MIO31", "MIO36";
++			bias-high-impedance;
++		};
++
++		conf-tx {
++			pins = "MIO28", "MIO30", "MIO32", "MIO33", "MIO34",
++			       "MIO35", "MIO37", "MIO38", "MIO39";
++			bias-disable;
++		};
++	};
++
++	pinctrl_sdhci0_default: sdhci0-default {
++		mux {
++			groups = "sdio0_2_grp";
++			function = "sdio0";
++		};
++
++		conf {
++			groups = "sdio0_2_grp";
++			slew-rate = <0>;
++			io-standard = <1>;
++			bias-disable;
++		};
++
++		conf-cd {
++			pins = "MIO46";
++			bias-high-impedance;
++			bias-pull-up;
++			slew-rate = <0>;
++			io-standard = <1>;
++		};
++
++		conf-wp {
++			pins = "MIO47";
++			bias-high-impedance;
++			bias-pull-up;
++			slew-rate = <0>;
++			io-standard = <1>;
++		};
++	};
++};
++
++
+diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
+--- devicetree.orig/system-top.dts	2022-10-10 13:08:46.581838906 +0100
++++ devicetree/system-top.dts	2022-10-10 13:08:46.585838966 +0100
+@@ -17,10 +17,55 @@
  		ethernet0 = &gem0;
  		i2c0 = &i2c0;
-@@ -22,6 +29,19 @@
+ 		serial0 = &uart1;
++		serial1 = &uart0;
+ 		spi0 = &qspi;
++		mmc0 = &sdhci0;
++		usb0 = &usb0;
  	};
  	memory {
  		device_type = "memory";
 -		reg = <0x0 0x40000000>;
-+		reg = <0x0 0x3E000000>;
-+	};
-+	mdio {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		phy0: ethernet-phy@3 {
-+			compatible = "micrel,ksz9031";
-+			device_type = "ethernet-phy";
-+			rxc-skew-ps = <1800>;
-+			rxdv-skew-ps = <0>;
-+			txc-skew-ps = <1800>;
-+			txen-skew-ps = <0>;
-+			reg = <3>;
-+		};
++		reg = <0x0 0x10000000>;
  	};
++	gpio-leds {
++		compatible = "gpio-leds";
++
++		d2 {
++			label = "sys_led";
++			gpios = <&gpio0 0x71 0x1>;
++			default-state = "on";
++			linux,default-trigger = "heartbeat";
++		};
++	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++		#address-cells = <0x1>;
++		#size-cells = <0x0>;
++		autorepeat;
++
++		K1 {
++			label = "K1";
++			gpios = <&gpio0 0x2f 0x0>;
++			linux,code = <0x66>;
++			gpio-key,wakeup;
++			autorepeat;
++		};
++	};
++	usb_phy0: phy0@e0002000 {
++		compatible = "ulpi-phy";
++		#phy-cells = <0>;
++		reg = <0xe0002000 0x1000>;
++		view-port = <0x0170>;
++		drv-vbus;
++	};
++
++	myir_wdt {
++		compatible = "myir_watchdog";
++		status = "okay";
++		device_type = "watchdog";
++		gpios = <&gpio0 0x0 0x0>;
++		timeout-ms = <400>;
++	};
++
  };
++
