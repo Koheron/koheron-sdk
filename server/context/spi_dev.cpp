@@ -101,7 +101,7 @@ int SpiDev::recv(uint8_t *buffer, size_t n_bytes)
     int bytes_rcv = 0;
     size_t bytes_read = 0;
 
-    while (bytes_read < n_bytes) {
+    while (bytes_read < int(n_bytes)) {
         bytes_rcv = read(fd, buffer + bytes_read, n_bytes - bytes_read);
 
         if (bytes_rcv == 0) {
@@ -115,7 +115,7 @@ int SpiDev::recv(uint8_t *buffer, size_t n_bytes)
         bytes_read += bytes_rcv;
     }
 
-    assert(bytes_read == n_bytes);
+    assert(bytes_read == int(n_bytes));
     return bytes_read;
 }
 

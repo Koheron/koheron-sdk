@@ -91,8 +91,8 @@ $(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES)/u-boot -type f)
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	mkdir -p $(@D)
 	make -C $< mrproper
-	make -C $< arch=arm $(UBOOT_CONFIG)
-	make -C $< arch=arm CFLAGS="-O2 $(GCC_FLAGS)" \
+	make -C $< arch=$(ARCH) arch=arm $(UBOOT_CONFIG)
+	make -C $< arch=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
 	  CROSS_COMPILE=$(GCC_ARCH)- all
 	cp $</u-boot $@
 	cp $</u-boot.elf $@ || true

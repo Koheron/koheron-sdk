@@ -99,7 +99,6 @@ class Alpha250(object):
         return self.client.recv_float()
 
     # Misc
-
     @command(classname='Eeprom')
     def set_serial_number(self, sn):
         return self.client.recv_int32()
