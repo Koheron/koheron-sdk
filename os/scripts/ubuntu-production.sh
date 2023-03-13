@@ -11,6 +11,7 @@ BOOTPART=$7
 size=1024
 
 ubuntu_version=20.04.2
+
 part1=/dev/${BOOTPART}p1
 part2=/dev/${BOOTPART}p2
 if [ "${zynq_type}" = "zynqmp" ]; then
@@ -44,8 +45,8 @@ timezone=Europe/Paris
 # Create partitions
 
 parted -s $device mklabel msdos
-parted -s $device mkpart primary fat16 4MB 16MB
-parted -s $device mkpart primary ext4 16MB 100%
+parted -s $device mkpart primary fat16 4MB 512MB
+parted -s $device mkpart primary ext4 512MB 100%
 
 boot_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '2!d'`
 root_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '3!d'`
@@ -73,7 +74,6 @@ tar -zxf tmp/$root_tar --directory=$root_dir
 # Add missing configuration files and packages
 
 cp /etc/resolv.conf $root_dir/etc/
-#cp /usr/bin/qemu-arm-static $root_dir/usr/bin/
 cp $qemu_path $root_dir/usr/bin/
 
 # Add Koheron TCP/Websocket Server
@@ -132,7 +132,7 @@ cat <<- EOF_CAT >> etc/hosts
 127.0.1.1    koheron
 EOF_CAT
 
-apt-get -y install locales
+apt -y install locales
 
 locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
@@ -156,15 +156,18 @@ apt install -y udev net-tools netbase ifupdown network-manager lsb-base isc-dhcp
 apt install -y ntpdate sudo rsync
 apt install -y kmod
 apt install -y gcc
+
 apt install -y nginx
 
+pip install werkzeug==0.16.0
 # For release mode
-apt-get install -y unionfs-fuse
-apt-get install -y python
+apt install -y unionfs-fuse
+apt install -y python
 
 systemctl enable unzip-default-instrument
 #systemctl enable koheron-server
 systemctl enable nginx
+timedatectl set-ntp on
 
 sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
@@ -188,7 +191,7 @@ EOF_CAT
 
 systemd-machine-id-setup
 
-apt-get clean
+apt clean
 echo root:$passwd | chpasswd
 history -c
 
@@ -209,6 +212,8 @@ mv $root_dir/var $root_dir/var_org
 mkdir $root_dir/etc_rw
 mkdir $root_dir/var $root_dir/var_rw
 
+#rm $root_dir/etc/resolv.conf
+rm $root_dir/usr/bin/qemu-a*
 # Unmount file systems
 
 umount $boot_dir $root_dir

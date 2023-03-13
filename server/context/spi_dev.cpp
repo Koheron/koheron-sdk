@@ -99,7 +99,7 @@ int SpiDev::recv(uint8_t *buffer, size_t n_bytes)
         return -1;
 
     int bytes_rcv = 0;
-    int64_t bytes_read = 0;
+    size_t bytes_read = 0;
 
     while (bytes_read < int(n_bytes)) {
         bytes_rcv = read(fd, buffer + bytes_read, n_bytes - bytes_read);

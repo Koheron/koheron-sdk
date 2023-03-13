@@ -8,7 +8,25 @@ os_version_file=$5
 zynq_type=$6
 image=$tmp_project_path/${name}-development.img
 BOOTPART=$7
-size=1024
+
+size=2048
+
+ubuntu_version=20.04.1
+part1=/dev/${BOOTPART}p1
+part2=/dev/${BOOTPART}p2
+if [ "${zynq_type}" = "zynqmp" ]; then
+    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-MPSoC..."
+    root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
+    linux_image=Image
+    qemu_path=/usr/bin/qemu-aarch64-static
+    part1=/dev/mmcblk1p1
+    part2=/dev/mmcblk1p2
+else
+    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-7000..."
+    root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
+    linux_image=uImage
+    qemu_path=/usr/bin/qemu-arm-static
+fi
 
 ubuntu_version=20.04.2
 part1=/dev/${BOOTPART}p1
@@ -44,8 +62,8 @@ timezone=Europe/Paris
 # Create partitions
 
 parted -s $device mklabel msdos
-parted -s $device mkpart primary fat16 4MB 16MB
-parted -s $device mkpart primary ext4 16MB 100%
+parted -s $device mkpart primary fat16 4MB 512MB
+parted -s $device mkpart primary ext4 512MB 100%
 
 boot_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '2!d'`
 root_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '3!d'`
@@ -132,6 +150,7 @@ cat <<- EOF_CAT >> etc/hosts
 127.0.0.1    localhost.localdomain localhost
 127.0.1.1    koheron
 EOF_CAT
+
 sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
 apt update
 apt -y upgrade
@@ -140,15 +159,18 @@ locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
+
 DEBIAN_FRONTEND=noninteractive apt install -yq ntp
 apt install -y openssh-server
 apt install -y usbutils psmisc lsof
 apt install -y parted curl less vim iw ntfs-3g
 apt install -y bash-completion unzip
+
 apt install -y udev net-tools netbase ifupdown network-manager lsb-base isc-dhcp-client
 apt install -y ntpdate sudo rsync
 apt install -y kmod
 apt install -y gcc
+
 apt install -y nginx
 sudo dpkg --configure -a
 apt install -y build-essential python3-dev
@@ -163,11 +185,14 @@ pip3 install flask
 pip3 install uwsgi
 pip3 install werkzeug==2.2.2
 pip3 install simplejson
+
 systemctl enable uwsgi
 systemctl enable unzip-default-instrument
 #systemctl enable koheron-server
 systemctl enable nginx
+
 sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
 touch etc/udev/rules.d/75-persistent-net-generator.rules
 cat <<- EOF_CAT >> etc/network/interfaces
 allow-hotplug eth0
@@ -185,6 +210,7 @@ iface eth0 inet dhcp
   post-up systemctl start koheron-server-init
   post-up ntpdate -u ntp.u-psud.fr
 EOF_CAT
+
 apt clean
 echo root:$passwd | chpasswd
 history -c
