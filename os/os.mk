@@ -400,9 +400,6 @@ $(TMP_WWW_PATH)/html-imports.min.js:
 
 $(TMP_WWW_PATH)/html-imports.min.js.map:
 	mkdir -p $(@D)
-<<<<<<< HEAD
-	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js.map -o $@
-=======
 	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js.map -o $@
 
 ###############################################################################
@@ -412,4 +409,3 @@ $(TMP_WWW_PATH)/html-imports.min.js.map:
 .PHONY: test_os
 test_os:
 	$(PYTHON) $(OS_PATH)/test_os.py $(HOST)
->>>>>>> 64ef5fc4b99170dee2391e1c35a08d388f0a703d
