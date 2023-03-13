@@ -36,10 +36,6 @@ class Common
     , ctl(ctx.mm.get<mem::control>())
     {}
 
-    uint64_t get_dna() {
-        return ctx.mm.get<mem::status>().read<reg::dna, uint64_t>();
-    }
-
     void set_led(uint32_t value) {
         gpio.set_led(value);
     }
