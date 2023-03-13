@@ -267,16 +267,16 @@ class ClockGenerator
         uint32_t LD_TYPE = 3;
         uint32_t SYNC_PLL2_DLD = 0;
         uint32_t SYNC_PLL1_DLD = 0;
-        uint32_t EN_TRACK = 0;
+        uint32_t EN_TRACK = 1; // cf. datasheet 8.3.5.1: if EN_MAN_DAC = 0 then EN_TRACK must be 1
         uint32_t HOLDOVER_MODE = 2;
 
         // R13
-        uint32_t HOLDOVER_MUX = 7;
-        uint32_t HOLDOVER_TYPE = 3;
+        uint32_t HOLDOVER_MUX = 4; // Holdover status
+        uint32_t HOLDOVER_TYPE = 3;  // Push-pull output
         uint32_t Status_CLKin1_MUX = 0;
-        uint32_t Status_CLKin0_TYPE = 2;
+        uint32_t Status_CLKin0_TYPE = 3; // Push-pull output
         uint32_t DISABLE_DLD1_DET = 0;
-        uint32_t Status_CLKin0_MUX = 0;
+        uint32_t Status_CLKin0_MUX = 2; // SPI readback
         uint32_t CLKin_SELECT_MODE = clkin_select; // 0: Ext. clock, 1: FPGA clock, 2: TCXO, 4: Automatic
         uint32_t CLKin_Sel_INV =0;
         uint32_t EN_CLKin2 = 1; // CLKin2 usable
@@ -295,9 +295,9 @@ class ClockGenerator
         uint32_t EN_VTUNE_RAIL_DET = 0;
 
         // R15
-        uint32_t MAN_DAC = 100;
+        uint32_t MAN_DAC = 512;
         uint32_t EN_MAN_DAC = 0;
-        uint32_t HOLDOVER_DLD_CNT = 512;
+        uint32_t HOLDOVER_DLD_CNT = 8;
         uint32_t FORCE_HOLDOVER = 0;
 
         // R16
@@ -326,20 +326,20 @@ class ClockGenerator
 
         // R27
         uint32_t PLL1_CP_POL = 1;     // CP1 polarity positive
-        uint32_t PLL1_CP_GAIN = 3;    // CP1 gain 1.6 mA
+        uint32_t PLL1_CP_GAIN = 2;    // CP1 gain 0.4 mA
         uint32_t CLKin2_PreR_DIV = 0; // Prediv by 1
         uint32_t CLKin1_PreR_DIV = 0; // Prediv by 1
         uint32_t CLKin0_PreR_DIV = 0; // Prediv by 1
-        uint32_t PLL1_R = 100;
+        uint32_t PLL1_R = 1;
         uint32_t PLL1_CP_TRI = 0;     // Active
 
         // R28
         uint32_t PLL2_R = clk_cfg[2];
-        uint32_t PLL1_N = 1000;
+        uint32_t PLL1_N = 10; // fPD1 = fVCXO / PLL1_N = 100 MHz / 10 = 10 MHz
 
         // R29
         uint32_t OSCin_FREQ = 1;    // 63 MHz < VCXO freq (100 MHz) < 127 MHz
-        uint32_t PLL2_FAST_PDF = 0; // PDF = 100 MHz
+        uint32_t PLL2_FAST_PDF = 0; // PDF <= 100 MHz
         uint32_t PLL2_N_CAL = clk_cfg[1];
 
         // R30
@@ -356,6 +356,16 @@ class ClockGenerator
         if (f_vco < 2.37E9 || f_vco > 2.6E9) {
             ctx.log<ERROR>("Clock generator - VCO frequency at %f MHz is out of range (2370 to 2600 MHz)", f_vco * 1E-6);
             return -1;
+        }
+
+        // PLL2 phase detector frequency
+        const auto f_pd2 = f_vco / PLL2_P / PLL2_N;
+        ctx.log<INFO>("Clock generator: Freq. PD PLL2 = %f MHz\n", f_pd2 * 1E-6);
+
+        if (f_pd2 > 100E6) {
+            // Enable fast PDF if PLL2 PD frequency gretaer than 100 MHz
+            PLL2_FAST_PDF = 1;
+            ctx.log<INFO>("Clock generator: PLL2 Enable fast PDF\n");
         }
 
         fs_adc = f_vco / CLKout1_DIV;

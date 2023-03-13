@@ -3,7 +3,10 @@
 
 interface IParameters {
   data_size: number; // fft_size/2
-  fs: number; // Sampling frequency (Hz)
+  fs: number;        // Sampling frequency (Hz)
+  channel: number;   // Acquired channel
+  cic_rate: number;
+  fft_navg: number;
 }
 
 class PhaseNoiseAnalyzer {
@@ -32,18 +35,38 @@ class PhaseNoiseAnalyzer {
   }
 
   getParameters(callback: (parameters: IParameters) => void): void {
-    this.client.readTuple(Command(this.id, this.cmds['get_parameters']), 'If',
-    (tup: [number, number]) => {
+    this.client.readTuple(Command(this.id, this.cmds['get_parameters']), 'IfIII',
+    (tup: [number, number, number, number, number]) => {
       this.parameters.data_size = tup[0];
       this.parameters.fs = tup[1];
+      this.parameters.channel = tup[2];
+      this.parameters.cic_rate = tup[3];
+      this.parameters.fft_navg = tup[4];
       callback(this.parameters);
     });
   }
 
-  getPhaseNoise(nAverage: number, callback: (data: Float32Array) => void): void {
-    this.client.readFloat32Array(Command(this.id, this.cmds['get_phase_noise'], nAverage), (data: Float32Array) => {
+  setFFTNavg(navg: number): void {
+    this.client.send(Command(this.id, this.cmds['set_fft_navg'], navg));
+  }
+
+  getPhaseNoise(callback: (data: Float32Array) => void): void {
+    this.client.readFloat32Array(Command(this.id, this.cmds['get_phase_noise']), (data: Float32Array) => {
       callback(data);
     });
   }
 
+  setCicRate(cic_rate: number): void {
+    this.client.send(Command(this.id, this.cmds['set_cic_rate'], cic_rate));
+  }
+
+  setChannel(channel: number): void {
+    this.client.send(Command(this.id, this.cmds['set_channel'], channel));
+  }
+
+  getCarrierPower(nAverage: number, callback: (data: number) => void): void {
+    this.client.readFloat32(Command(this.id, this.cmds['get_carrier_power'], nAverage), (data: number) => {
+      callback(data);
+    });
+  }
 }

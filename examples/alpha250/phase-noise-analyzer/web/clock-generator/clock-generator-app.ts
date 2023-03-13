@@ -1,5 +1,4 @@
 class ClockGeneratorApp {
-
     private clkgenInputs: HTMLInputElement[];
 
     constructor(document: Document, private driver) {
@@ -28,5 +27,4 @@ class ClockGeneratorApp {
             requestAnimationFrame( () => { this.updateReferenceClock(); } )
         });
     }
-
 }

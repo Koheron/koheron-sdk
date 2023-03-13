@@ -6,12 +6,15 @@ source ${board_path}/starting_point.tcl
 
 for {set i 0} {$i < 2} {incr i} {
 
+  # Noise_Shaping Taylor_Series_Corrected
+
   cell xilinx.com:ip:dds_compiler:6.0 dds$i {
     PartsPresent Phase_Generator_and_SIN_COS_LUT
     DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000]
     Parameter_Entry Hardware_Parameters
+    Noise_Shaping None
     Phase_Width 48
-    Output_Width 16
+    Output_Width [get_parameter dds_output_width]
     Phase_Increment Programmable
     Latency_Configuration Configurable
     Latency 9
@@ -27,8 +30,7 @@ for {set i 0} {$i < 2} {incr i} {
     M_AXIS dds$i/S_AXIS_CONFIG
   }
 
-  connect_pins adc_dac/dac$i [get_slice_pin dds$i/m_axis_data_tdata 15 0]
-
+  connect_pins adc_dac/dac$i [get_slice_pin dds$i/m_axis_data_tdata [expr [get_parameter dds_output_width] - 1] [expr [get_parameter dds_output_width] - 16]]
 }
 
 ####################################
@@ -51,6 +53,7 @@ for {set i 0} {$i < 2} {incr i} {
         rst_phase [get_slice_pin [ctl_pin cordic] [expr $i+2] [expr $i+2]]
     }
 
+  connect_pins cordic$i/demod [sts_pin demod$i]
 }
 
 ####################################
@@ -71,13 +74,18 @@ cell koheron:user:latched_mux:1.0 phase_mux {
 # Define CIC parameters
 
 set diff_delay [get_parameter cic_differential_delay]
-set dec_rate [get_parameter cic_decimation_rate]
+set dec_rate_default [get_parameter cic_decimation_rate_default]
+set dec_rate_min [get_parameter cic_decimation_rate_min]
+set dec_rate_max [get_parameter cic_decimation_rate_max]
 set n_stages [get_parameter cic_n_stages]
 
 cell xilinx.com:ip:cic_compiler:4.0 cic {
   Filter_Type Decimation
   Number_Of_Stages $n_stages
-  Fixed_Or_Initial_Rate $dec_rate
+  Fixed_Or_Initial_Rate $dec_rate_default
+  Sample_Rate_Changes Programmable
+  Minimum_Rate $dec_rate_min
+  Maximum_Rate $dec_rate_max
   Differential_Delay $diff_delay
   Input_Sample_Frequency [expr [get_parameter adc_clk] / 1000000.]
   Clock_Frequency [expr [get_parameter adc_clk] / 1000000.]
@@ -92,12 +100,21 @@ cell xilinx.com:ip:cic_compiler:4.0 cic {
   s_axis_data_tvalid [get_constant_pin 1 1]
 }
 
-set fir_coeffs [exec python $project_path/fir.py $n_stages $dec_rate $diff_delay print]
+cell pavel-demin:user:axis_variable:1.0 cic_rate {
+  AXIS_TDATA_WIDTH 16
+} {
+  cfg_data [ctl_pin cic_rate]
+  aclk adc_dac/adc_clk
+  aresetn rst_adc_clk/peripheral_aresetn
+  M_AXIS cic/S_AXIS_CONFIG
+}
+
+set fir_coeffs [exec $python $project_path/fir.py $n_stages $dec_rate_min $diff_delay print]
 
 cell xilinx.com:ip:fir_compiler:7.2 fir {
   Filter_Type Decimation
-  Sample_Frequency [expr [get_parameter adc_clk] / 1000000. / $dec_rate]
-  Clock_Frequency [expr [get_parameter fclk1] / 1000000.]
+  Sample_Frequency [expr [get_parameter adc_clk] / 1000000. / $dec_rate_min]
+  Clock_Frequency [expr [get_parameter adc_clk] / 1000000.]
   Coefficient_Width 32
   Data_Width 32
   Output_Rounding_Mode Convergent_Rounding_to_Even

@@ -49,7 +49,7 @@ OBJ := $(SERVER_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
-SERVER_CCXX = /usr/bin/$(GCC_ARCH)-g++-7 -flto
+SERVER_CCXX := /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) -flto
 
 SERVER_CCXXFLAGS = -Wall -Werror -Wextra
 SERVER_CCXXFLAGS += -Wpedantic -Wfloat-equal -Wunused-macros -Wcast-qual -Wuseless-cast
@@ -60,8 +60,11 @@ SERVER_CCXXFLAGS += -Wuninitialized -Wshadow -Wzero-as-null-pointer-constant -Wm
 #SERVER_CCXXFLAGS += -Wshift-negative-value -Wduplicated-cond -Wduplicated-branches -Waligned-new
 SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/core -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 SERVER_CCXXFLAGS += -DKOHERON_VERSION=$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)
-SERVER_CCXXFLAGS += -MMD -MP -O3 -lstdc++fs $(GCC_FLAGS)
-SERVER_CCXXFLAGS += -std=c++17 -pthread
+SERVER_CCXXFLAGS += -MMD -MP -O3 $(GCC_FLAGS)
+# Arch flags obtain by running on the Zynq:
+# gcc -march=native -Q --help=target
+SERVER_CCXXFLAGS += -mcpu=cortex-a9 -mfpu=vfpv3-d16 -mvectorize-with-neon-quad -mfloat-abi=hard
+SERVER_CCXXFLAGS += -std=c++17 -pthread -lstdc++ -lstdc++fs -static-libstdc++
 
 PHONY: gcc_flags
 gcc_flags:

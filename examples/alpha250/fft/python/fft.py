@@ -74,3 +74,7 @@ class FFT(object):
     @command()
     def set_fft_window(self, window_name):
         pass
+
+    @command(classname="ClockGenerator")
+    def set_reference_clock(self, val):
+        pass
