@@ -6,6 +6,7 @@ version: 0.1.2
 cores:
   - fpga/cores/axi_ctl_register_v1_0
   - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
   - fpga/cores/latched_mux_v1_0
   - fpga/cores/edge_detector_v1_0
   - fpga/cores/unrandomizer_v1_0

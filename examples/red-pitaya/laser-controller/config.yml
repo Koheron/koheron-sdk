@@ -8,6 +8,7 @@ cores:
   - fpga/cores/redp_dac_v1_0
   - fpga/cores/axi_ctl_register_v1_0
   - fpga/cores/axi_sts_register_v1_0
+  - fpga/cores/dna_reader_v1_0
   - fpga/cores/pdm_v1_0
   - fpga/cores/pulse_generator_v1_0
   - fpga/cores/comparator_v1_0
