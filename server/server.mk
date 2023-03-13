@@ -70,10 +70,6 @@ PHONY: gcc_flags
 gcc_flags:
 	@echo $(GCC_FLAGS)
 
-PHONY: gcc_flags
-gcc_flags:
-	@echo $(GCC_FLAGS)
-
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
