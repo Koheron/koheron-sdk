@@ -1,5 +1,4 @@
 class App {
-
     private imports: Imports;
     private dds: DDS;
     public ddsFrequency: DDSFrequency;
@@ -9,6 +8,7 @@ class App {
     private phaseNoiseAnalyzerApp: PhaseNoiseAnalyzerApp;
     public plot: Plot;
     private plotBasics: PlotBasics;
+    private exportFile: ExportFile;
 
     private n_pts: number;
     private x_min: number;
@@ -40,13 +40,13 @@ class App {
 
                     this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.phaseNoiseAnalyzer, "", "FREQUENCY OFFSET (Hz)");
                     this.plot = new Plot(document, this.phaseNoiseAnalyzer, this.plotBasics);
+                    this.exportFile = new ExportFile(document, this.plot);
                 })
             });
         }, false);
 
         window.onbeforeunload = () => { client.exit(); };
     }
-
 }
 
 let app = new App(window, document, location.hostname, $('#plot-placeholder'));
