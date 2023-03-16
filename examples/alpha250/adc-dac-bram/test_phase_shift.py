@@ -40,7 +40,7 @@ def test_phase_shift(config):
     plt.show()
 
 if __name__ == "__main__":
-    host = os.getenv('HOST', '192.168.1.16')
+    host = os.getenv('HOST', '192.168.1.42')
     client = connect(host, 'adc-dac-bram', restart=True)
     driver = AdcDacBram(client)
 
@@ -50,6 +50,8 @@ if __name__ == "__main__":
 
     clk_200MHz = {'name': '200 MHz', 'idx': 0, 'fs': 200E6}
     clk_250MHz = {'name': '250 MHz', 'idx': 1, 'fs': 250E6}
+    clk_100MHz = {'name': '100 MHz', 'idx': 2, 'fs': 100E6}
 
-    test_phase_shift(clk_200MHz)
-    #test_phase_shift(clk_250MHz)
+    # test_phase_shift(clk_200MHz)
+    # test_phase_shift(clk_250MHz)
+    test_phase_shift(clk_100MHz)
