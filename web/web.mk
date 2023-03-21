@@ -5,7 +5,7 @@ include $(WEB_DOWNLOADS_MK)
 
 # Typescript compiler
 TSC_BIN := node_modules/typescript/bin/tsc
-TSC ?= $(TSC_BIN) --pretty --target ES3 --lib es6,dom --alwaysStrict
+TSC ?= $(TSC_BIN) --pretty --target ES5 --lib es6,dom --alwaysStrict
 
 WEB_FILES := $(shell $(MAKE_PY) --web $(CONFIG) $(TMP_WEB_PATH)/web_files && cat $(TMP_WEB_PATH)/web_files)
 
