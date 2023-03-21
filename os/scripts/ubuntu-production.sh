@@ -10,7 +10,7 @@ image=$tmp_project_path/${name}-production.img
 BOOTPART=$7
 size=1024
 
-ubuntu_version=20.04.2
+ubuntu_version=22.04.2
 part1=/dev/${BOOTPART}p1
 part2=/dev/${BOOTPART}p2
 if [ "${zynq_type}" = "zynqmp" ]; then
@@ -138,6 +138,9 @@ locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
 
 sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
+rm /dev/null
+mknod /dev/null c 1 3
+chmod 666 /dev/null
 
 apt update
 apt -y upgrade

@@ -10,7 +10,7 @@ image=$tmp_project_path/${name}-development.img
 BOOTPART=$7
 size=1024
 
-ubuntu_version=20.04.2
+ubuntu_version=22.04.2
 part1=/dev/${BOOTPART}p1
 part2=/dev/${BOOTPART}p2
 if [ "${zynq_type}" = "zynqmp" ]; then
@@ -133,6 +133,9 @@ cat <<- EOF_CAT >> etc/hosts
 127.0.1.1    koheron
 EOF_CAT
 sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
+rm /dev/null
+mknod /dev/null c 1 3
+chmod 666 /dev/null
 apt update
 apt -y upgrade
 apt -y install locales
