@@ -17,7 +17,7 @@ VIVADO_VERSION := 2017.2
 VIVADO_PATH := /opt/Xilinx/Vivado
 PYTHON := python3
 # Use GCC version >=7
-GCC_VERSION := 9
+GCC_VERSION := 11
 
 .PHONY: help
 help:
