@@ -14,7 +14,7 @@ file delete -force \
   $output_path/$project_name.xpr \
   $output_path/$project_name.sim
 
-create_project -part $part $project_name $output_path
+create_project -force -part $part $project_name $output_path
 
 set_property IP_REPO_PATHS $output_path/../cores [current_project]
 update_ip_catalog -rebuild -scan_changes
@@ -34,7 +34,7 @@ make_wrapper -files [get_files $bd_path/system.bd] -top
 
 add_files -norecurse $bd_path/hdl/system_wrapper.v
 
-add_files -norecurse $project_path/test_bench.v
+add_files -norecurse [glob -nocomplain $project_path/test_bench.v*] -fileset sim_1
 
 set_property -name {xsim.simulate.runtime} -value {100000ns} -objects [current_fileset -simset]
 
