@@ -70,7 +70,7 @@ set_property PACKAGE_PIN A27 [get_ports {FF_TX_p[3]}]; # B230_TX3_P
 set_property PACKAGE_PIN A28 [get_ports {FF_TX_n[3]}]; # B230_TX3_P
 
 # SFP 
-set_property PACKAGE_PIN G8 [get_ports {SFP_clk_p}] # B230_CLK0_clk_p controlled from Si5345 (on SoM), out1
+set_property PACKAGE_PIN G8 [get_ports {SFP_clk_p}]; # B230_CLK0_clk_p controlled from Si5345 (on SoM), out1
 set_property PACKAGE_PIN A4 [get_ports {SFP_RX_p[0]}]; # B230_RX3_P
 set_property PACKAGE_PIN A8 [get_ports {SFP_TX_p[0]}]; # B230_TX3_P
 set_property PACKAGE_PIN B2 [get_ports {SFP_RX_p[1]}]; # B230_RX2_P
