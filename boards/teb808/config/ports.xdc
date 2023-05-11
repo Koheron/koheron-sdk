@@ -37,6 +37,17 @@ set_property IOSTANDARD LVCMOS18 [get_ports BASE_sc18]
 set_property IOSTANDARD LVCMOS18 [get_ports BASE_sc19]
 
 
+#GPIO
+set_property -dict {PACKAGE_PIN AC12 IOSTANDARD LVCMOS18} [get_ports {GPIO[0]}]
+set_property -dict {PACKAGE_PIN AE8 IOSTANDARD LVCMOS18} [get_ports {GPIO[1]}]
+set_property -dict {PACKAGE_PIN AE7 IOSTANDARD LVCMOS18} [get_ports {GPIO[2]}]
+set_property -dict {PACKAGE_PIN AE1 IOSTANDARD LVCMOS18} [get_ports {GPIO[3]}]
+
+set_property -dict {PACKAGE_PIN Y10 IOSTANDARD LVCMOS18} [get_ports {GPIO_DIR[0]}]
+set_property -dict {PACKAGE_PIN Y7 IOSTANDARD LVCMOS18} [get_ports {GPIO_DIR[1]}]
+set_property -dict {PACKAGE_PIN V3 IOSTANDARD LVCMOS18} [get_ports {GPIO_DIR[2]}]
+set_property -dict {PACKAGE_PIN N11 IOSTANDARD LVCMOS18} [get_ports {GPIO_DIR[3]}]
+#
 
 # PLL
 #  H6 [get_ports {si570_clk_p[0]}]
