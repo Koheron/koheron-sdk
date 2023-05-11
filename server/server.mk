@@ -61,14 +61,14 @@ SERVER_CCXXFLAGS +=  -Wpacked -Wredundant-decls -Wvarargs -Wvector-operation-per
 SERVER_CCXXFLAGS += -Wuninitialized  -Wmissing-declarations
 # SERVER_CCXXFLAGS += -Wconversion -Wsign-conversion
 #SERVER_CCXXFLAGS += -Wshift-negative-value -Wduplicated-cond -Wduplicated-branches -Waligned-new
-SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/rootfs/$(GCC_ARCH)/include/ -I$(SERVER_PATH)/core -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
+SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/jsoncpp/include/ -I$(SERVER_PATH)/core -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 SERVER_CCXXFLAGS += -DKOHERON_VERSION=$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)
-SERVER_CCXXFLAGS += -MMD -MP -O3 -lstdc++fs $(GCC_FLAGS) -L$(SERVER_PATH)/rootfs/$(GCC_ARCH)/lib/ #-ljsoncpp
+SERVER_CCXXFLAGS += -MMD -MP -O3 -lstdc++fs $(GCC_FLAGS) -L$(SERVER_PATH)/jsoncpp_build/lib/ #-ljsoncpp
 SERVER_CCXXFLAGS += -std=c++17 -pthread
 
 PHONY: gcc_flags
 gcc_flags:
-	@echo $(GCC_FLAGS)
+	@echo $(GCC_FLAGS) -std=c++2a
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<

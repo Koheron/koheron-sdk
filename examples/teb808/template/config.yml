@@ -1,0 +1,40 @@
+---
+name: trenz_teb080x_te808_template
+board: boards/teb808
+version: 0.1.1
+
+cores:
+  - fpga/cores/axi_ctl_register_v1_0
+  - fpga/cores/axi_sts_register_v1_0
+
+memory:
+  - name: control
+    offset: '0xA4001000'
+    range: 4K
+  - name: status
+    offset: '0xA4002000'
+    range: 4K
+
+control_registers:
+  - led
+
+status_registers:
+  - forty_two
+
+parameters:
+  fclk0: 100000000 # FPGA clock speed in Hz
+
+xdc:
+  - ./../../../boards/teb808/config/ports.xdc 
+  - ./constraints.xdc
+
+drivers:
+  - server/drivers/common.hpp
+  - ./led_blinker.hpp
+
+web:
+  - ./web/index.html
+  - web/koheron.ts
+  - web/led-blinker.ts
+  - ./web/app.ts
+  - web/main.css

@@ -1,0 +1,16 @@
+diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
+--- devicetree.orig/system-top.dts	2019-10-26 02:32:32.572265271 +0100
++++ devicetree/system-top.dts	2019-10-26 02:35:24.818194423 +0100
+@@ -6,9 +6,9 @@
+ 
+ 
+ /dts-v1/;
+-#include "zynq-7000.dtsi"
+-#include "pl.dtsi"
+-#include "pcw.dtsi"
++/include/ "zynq-7000.dtsi"
++/include/ "pl.dtsi"
++/include/ "pcw.dtsi"
+ / {
+ 	chosen {
+ 		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait earlycon";
