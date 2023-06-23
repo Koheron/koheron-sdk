@@ -77,6 +77,15 @@ $(UBOOT_PATH): $(UBOOT_TAR)
 	tar -zxf $< --strip-components=1 --directory=$@
 	@echo [$@] OK
 
+# In /arch/arm/Makefile
+# Replace
+# arch-$(CONFIG_CPU_V7) =$(call cc-option, -march=armv7-a, \
+#                   $(call cc-option, -march=armv7, -march=armv5))
+# By
+# arch-$(CONFIG_CPU_V7) =$(call cc-option, -march=armv7-a, \
+#                        $(call cc-option, -march=armv7-a, -march=armv7-a))
+
+# CFLAGS useless must use KCFLAGS instead to pass specific cflags
 $(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH)
 	mkdir -p $(@D)
 	make -C $< mrproper
@@ -111,6 +120,9 @@ $(DTREE_PATH): $(DTREE_TAR)
 
 .PHONY: devicetree
 devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
+
+# Build fail see
+# https://github.com/bwalle/ptxdist-vetero/commit/f1332461242e3245a47b4685bc02153160c0a1dd
 
 $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).hwdef $(DTREE_PATH) $(PATCHES)/devicetree.patch
 	mkdir -p $(@D)
