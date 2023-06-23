@@ -17,9 +17,8 @@ namespace koheron {
 
 template<>
 int Driver<driver_id_of<{{ driver.objects[0]["type"] }}>>::
-        execute_operation<Driver<driver_id_of<{{ driver.objects[0]["type"] }}>>::{{ operation['tag'] }}>(Command& cmd)
+        execute_operation<Driver<driver_id_of<{{ driver.objects[0]["type"] }}>>::{{ operation['tag'] }}>([[maybe_unused]] Command& cmd)
 {
-    (void)cmd;
     {{ operation | get_parser(driver) }}
     {{ operation | get_fragment(driver) }}
 }
