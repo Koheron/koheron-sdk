@@ -19,6 +19,13 @@ PYTHON := python3
 # Use GCC version >=7
 GCC_VERSION := 11
 
+# Use this command to set GCC_VERSION to 9 by default on Ubuntu 22.04
+.PHONY: set_gcc_version
+set_gcc_version:
+	unlink /usr/bin/arm-linux-gnueabihf-gcc
+	ln -s /usr/bin/arm-linux-gnueabihf-gcc-9 /usr/bin/arm-linux-gnueabihf-gcc
+	arm-linux-gnueabihf-gcc --version
+
 .PHONY: help
 help:
 	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
