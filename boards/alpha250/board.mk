@@ -1,7 +1,7 @@
 # Linux and U-boot
 ZYNQ_TYPE ?= zynq
 UBOOT_TAG := koheron-v$(VIVADO_VERSION)
-LINUX_TAG := koheron-v$(VIVADO_VERSION)-kernel-module-fix-dma
+LINUX_TAG := koheron-v$(VIVADO_VERSION)-kernel-module-fix-dma-0
 DTREE_TAG := xilinx-v$(VIVADO_VERSION)
 
 UBOOT_URL := https://github.com/Koheron/u-boot-xlnx/archive/$(UBOOT_TAG).tar.gz
