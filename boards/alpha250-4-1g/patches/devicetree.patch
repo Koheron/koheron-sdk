@@ -62,8 +62,8 @@ diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
  	};
  	memory {
  		device_type = "memory";
--		reg = <0x0 0x20000000>;
-+		reg = <0x0 0x1E000000>;
+-		reg = <0x0 0x40000000>;
++		reg = <0x0 0x20000000>;
  	};
  	cpus {
  	};
