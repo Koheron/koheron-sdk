@@ -44,7 +44,11 @@ def run_instrument(host, name=None, restart=False):
         if name in instruments:
             instrument_in_store = True
         else:
-            raise ValueError('Did not found instrument {}'.format(name))
+            print("Instrument {} not found".format(name))
+            print("Available instruments:")
+            for instrument in instruments:
+                print("- {}".format(instrument))
+            raise ValueError('Instrument {} not found'.format(name))
 
     if instrument_in_store or (instrument_running and restart):
         r = requests.get('http://{}/api/instruments/run/{}'.format(host, name))
