@@ -60,6 +60,7 @@ class AdcDacDma
     {
         // Unlock SCLR
         sclr.write<Sclr_regs::sclr_unlock>(0xDF0D);
+
         sclr.clear_bit<Sclr_regs::fpga_rst_ctrl, 1>();
 
         // Make sure that the width of the AXI HP port is 64 bit.
@@ -78,7 +79,25 @@ class AdcDacDma
     }
 
     void select_adc_channel(uint32_t channel) {
-        ctl.write<reg::channel_select>(channel % 2);
+        if (channel == 0) {
+            ctl.clear_bit<reg::channel_select, 0>();
+            ctl.clear_bit<reg::channel_select, 1>();
+        } else if (channel == 1) {
+            ctl.set_bit<reg::channel_select, 0>();
+            ctl.clear_bit<reg::channel_select, 1>();
+        } else if (channel == 3) { // Diff or sum of channels
+            ctl.clear_bit<reg::channel_select, 0>();
+            ctl.set_bit<reg::channel_select, 1>();
+        }
+    }
+
+    void set_operation(uint32_t operation) {
+        // operation:
+        // 0 : Substration
+        // 1 : Addition
+
+        operation == 0 ? ctl.clear_bit<reg::channel_select, 2>()
+                       : ctl.set_bit<reg::channel_select, 2>();
     }
 
     void set_dac_data(const std::vector<uint32_t>& dac_data) {
