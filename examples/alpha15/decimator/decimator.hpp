@@ -26,6 +26,30 @@ class Decimator
     , adc_fifo_map(ctx.mm.get<mem::adc_fifo>())
     {}
 
+    // Channel selection
+
+    void select_adc_channel(uint32_t channel) {
+        if (channel == 0) {
+            ctl.clear_bit<reg::channel_select, 0>();
+            ctl.clear_bit<reg::channel_select, 1>();
+        } else if (channel == 1) {
+            ctl.set_bit<reg::channel_select, 0>();
+            ctl.clear_bit<reg::channel_select, 1>();
+        } else if (channel == 3) { // Diff or sum of channels
+            ctl.clear_bit<reg::channel_select, 0>();
+            ctl.set_bit<reg::channel_select, 1>();
+        }
+    }
+
+    void set_operation(uint32_t operation) {
+        // operation:
+        // 0 : Substration
+        // 1 : Addition
+
+        operation == 0 ? ctl.clear_bit<reg::channel_select, 2>()
+                       : ctl.set_bit<reg::channel_select, 2>();
+    }
+
     // Adc FIFO
 
     uint32_t get_fifo_occupancy() {
