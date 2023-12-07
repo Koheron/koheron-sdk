@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_SIGNAL_ANALYZER_HPP__
-#define __DRIVERS_SIGNAL_ANALYZER_HPP__
+#ifndef __DRIVERS_FFT_HPP__
+#define __DRIVERS_FFT_HPP__
 
 #include <context.hpp>
 
@@ -16,7 +16,6 @@
 #include <array>
 
 #include <boards/alpha250/drivers/clock-generator.hpp>
-#include <boards/alpha250/drivers/ltc2157.hpp>
 
 class FFT
 {
@@ -25,10 +24,11 @@ class FFT
     : ctx(ctx_)
     , ctl(ctx.mm.get<mem::control>())
     , sts(ctx.mm.get<mem::status>())
+    , ps_ctl(ctx.mm.get<mem::ps_control>())
+    , ps_sts(ctx.mm.get<mem::ps_status>())
     , psd_map(ctx.mm.get<mem::psd>())
     , demod_map(ctx.mm.get<mem::demod>())
     , clk_gen(ctx.get<ClockGenerator>())
-    , ltc2157(ctx.get<Ltc2157>())
     {
         set_input_channel(0);
         set_scale_sch(0);
@@ -42,18 +42,19 @@ class FFT
     //////////////////////////////////////
 
     void set_input_channel(uint32_t channel) {
-        if (channel >= 2) {
+        if (channel >= 8) {
             ctx.log<ERROR>("FFT::set_input_channel invalid channel\n");
             return;
         }
 
         input_channel = channel;
-        ctl.write<reg::psd_input_sel>(channel);
+        ctl.write<reg::channel_select>(channel);
+
     }
 
     void set_scale_sch(uint32_t scale_sch) {
         // LSB at 1 for forward FFT
-        ctl.write<reg::ctl_fft>(1 + (scale_sch << 1));
+        ps_ctl.write<reg::ctl_fft>(1 + (scale_sch << 1));
     }
 
     void set_fft_window(uint32_t window_id) {
@@ -114,38 +115,6 @@ class FFT
         }
     }
 
-    //////////////////////////////////////
-    // Direct Digital Synthesis
-    //////////////////////////////////////
-
-    void set_dds_freq(uint32_t channel, double freq_hz) {
-        if (channel >= 2) {
-            ctx.log<ERROR>("FFT::set_dds_freq invalid channel\n");
-            return;
-        }
-
-        if (std::isnan(freq_hz)) {
-            ctx.log<ERROR>("FFT::set_dds_freq Frequency is NaN\n");
-            return;
-        }
-
-        if (freq_hz > fs_adc / 2) {
-            freq_hz = fs_adc / 2;
-        }
-
-        if (freq_hz < 0.0) {
-            freq_hz = 0.0;
-        }
-
-        double factor = (uint64_t(1) << 32) / fs_adc;
-        ctl.write_reg(reg::phase_incr0 + 4 * channel, uint32_t(factor * freq_hz));
-        dds_freq[channel] = freq_hz;
-    }
-
-    auto get_control_parameters() {
-        return std::make_tuple(dds_freq[0], dds_freq[1], fs_adc, input_channel, W1, W2);
-    }
-
     const auto& get_window_index() const {
         return window_index;
     }
@@ -154,10 +123,11 @@ class FFT
     Context& ctx;
     Memory<mem::control>& ctl;
     Memory<mem::status>& sts;
+    Memory<mem::ps_control>& ps_ctl;
+    Memory<mem::ps_status>& ps_sts;
     Memory<mem::psd>& psd_map;
     Memory<mem::demod>& demod_map;
     ClockGenerator& clk_gen;
-    Ltc2157& ltc2157;
 
     double fs_adc; // ADC sampling rate (Hz)
     std::array<std::array<float, prm::fft_size/2>, 2> freq_calibration; // Conversion to W/Hz
@@ -169,8 +139,8 @@ class FFT
     uint32_t input_channel = 0;
     std::array<double, 2> dds_freq = {{0.0, 0.0}};
 
-    std::array<float, prm::fft_size/2> psd_buffer_raw;
     std::array<float, prm::fft_size/2> psd_buffer;
+    std::array<float, prm::fft_size/2> psd_buffer_raw;
     std::thread psd_thread;
     std::mutex mutex;
     std::atomic<bool> psd_acquisition_started{false};
@@ -198,22 +168,16 @@ class FFT
     void set_conversion_vectors() {
         constexpr double load = 50.0; // Ohm
 
-        fs_adc = clk_gen.get_adc_sampling_freq();
+        fs_adc = 15E6;;
 
-        auto Hinv = koheron::make_array(
-            ltc2157.get_inverse_transfer_function<0, prm::fft_size/2>(fs_adc),
-            ltc2157.get_inverse_transfer_function<1, prm::fft_size/2>(fs_adc)
-        );
-
-        std::array<double, 2> vin = { ltc2157.get_input_voltage_range(0),
-                                      ltc2157.get_input_voltage_range(1) };
+        std::array<double, 2> vin = {8.0,8.0};
 
         float C0 =  (vin[0] / (2 << 20)) * (vin[0] / (2 << 20)) / prm::n_cycles / fs_adc / load / W2;
         float C1 =  (vin[1] / (2 << 20)) * (vin[1] / (2 << 20)) / prm::n_cycles / fs_adc / load / W2;
 
         for (unsigned int i=0; i<prm::fft_size/2; i++) {
-            freq_calibration[0][i] = C0 * Hinv[0][i];
-            freq_calibration[1][i] = C1 * Hinv[1][i];
+            freq_calibration[0][i] = C0;
+            freq_calibration[1][i] = C1;
         }
     }
 
@@ -236,7 +200,7 @@ class FFT
     }
 
     uint32_t get_cycle_index() {
-        return sts.read<reg::cycle_index>();
+        return ps_sts.read<reg::cycle_index>();
     }
 
 }; // class FFT
@@ -270,14 +234,7 @@ inline void  FFT::psd_acquisition_thread() {
 
         {
             std::lock_guard<std::mutex> lock(mutex);
-            psd_buffer_raw = psd_map.read_array<float, prm::fft_size/2, 0>();
-
-            if (std::abs(clk_gen.get_adc_sampling_freq() - fs_adc) > std::numeric_limits<double>::round_error()) {
-                // Sampling frequency has changed
-                set_conversion_vectors();
-                set_dds_freq(0, dds_freq[0]);
-                set_dds_freq(1, dds_freq[1]);
-            }
+            psd_buffer = psd_map.read_array<float, prm::fft_size/2, 0>();
 
             for (unsigned int i=0; i<prm::fft_size/2; i++) {
                 psd_buffer[i] = psd_buffer_raw[i] * freq_calibration[input_channel][i];
@@ -288,4 +245,4 @@ inline void  FFT::psd_acquisition_thread() {
     }
 }
 
-#endif // __DRIVERS_SIGNAL_ANALYZER_HPP__
+#endif // __DRIVERS_FFT_HPP__

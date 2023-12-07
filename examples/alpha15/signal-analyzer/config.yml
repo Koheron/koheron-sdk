@@ -38,10 +38,10 @@ memory:
     range: 64K
   - name: demod
     offset: '0x70000000'
-    range: 4K
+    range: 32K
   - name: psd
     offset: '0x74000000'
-    range: 4K
+    range: 32K
 
 control_registers:
   - mmcm
@@ -51,20 +51,21 @@ control_registers:
   - rf_adc_ctl[2]
   - digital_outputs
   - adp5071_sync
-  - ctl_fft
   - channel_select
 
 status_registers:
   - adc[n_adc]
   - digital_inputs
-  - cycle_index
 
 ps_control_registers:
   - spi_cfg_data
   - spi_cfg_cmd
+  - psd_valid
+  - ctl_fft
 
 ps_status_registers:
   - spi_cfg_sts
+  - cycle_index
 
 parameters:
   fclk0: 166666667 # CPU clock speed in Hz
@@ -75,7 +76,7 @@ parameters:
   cic_differential_delay: 1
   cic_decimation_rate: 2048
   cic_n_stages: 6
-  fft_size: 1024
+  fft_size: 8192
   n_cycles: 1023
 
 xdc:

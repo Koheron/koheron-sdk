@@ -60,6 +60,7 @@ power_spectral_density::create psd [get_parameter fft_size]
 set intercon_idx 0
 cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
   TDATA_NUM_BYTES 3
+  SYNCHRONIZATION_STAGES 3
 } {
   s_axis_tdata adc_mux1/dout
   s_axis_tvalid [get_Q_pin adc_dac/adc_valid 2 noce adc_dac/adc_clk]
@@ -73,7 +74,7 @@ connect_cell psd {
   data       adc_clock_converter/m_axis_tdata
   clk        [set ps_clk$intercon_idx]
   tvalid     adc_clock_converter/m_axis_tvalid
-  ctl_fft    [ctl_pin ctl_fft]
+  ctl_fft    [ps_ctl_pin ctl_fft]
 }
 
 # Accumulator
@@ -86,7 +87,7 @@ cell koheron:user:psd_counter:1.0 psd_counter {
   clk           [set ps_clk$intercon_idx]
   s_axis_tvalid psd/m_axis_result_tvalid
   s_axis_tdata  psd/m_axis_result_tdata
-  cycle_index   [sts_pin cycle_index]
+  cycle_index   [ps_sts_pin cycle_index]
 }
 
 bram_accumulator::create bram_accum
@@ -109,7 +110,6 @@ connect_cell psd_bram {
   wen bram_accum/wen
   adc bram_accum/m_axis_tdata
 }
-
 
 # Define CIC parameters
 
