@@ -14,6 +14,7 @@ class AdcDacBram(object):
         self.dac = np.zeros((2, self.dac_size))
         self.adc_size = self.get_adc_size()
         self.adc = np.zeros((2, self.adc_size))
+        self.dac_clk_fs = 240E6
 
     @command()
     def get_dac_size(self):
@@ -32,8 +33,10 @@ class AdcDacBram(object):
         def set_dac_data(self, data):
             pass
         # Conversion to two's complement:
-        data1 = np.uint32(np.mod(np.floor(32768 * self.dac[0, :]) + 32768, 65536) + 32768)
-        data2 = np.uint32(np.mod(np.floor(32768 * self.dac[1, :]) + 32768, 65536) + 32768)
+        nbits = 16
+        nmax = 2**nbits
+        data1 = np.uint32(np.mod(np.floor(nmax / 2 * self.dac[0, :]) + nmax / 2, nmax) + nmax / 2)
+        data2 = np.uint32(np.mod(np.floor(nmax / 2 * self.dac[1, :]) + nmax / 2, nmax) + nmax / 2)
         set_dac_data(self, data1 + (data2 << 16))
 
     def _to_two_complement(self, data):
@@ -47,6 +50,23 @@ class AdcDacBram(object):
         # self.adc[channel,:] = data
         self.adc[channel,:] = self._to_two_complement(data)
 
+    def set_dac_sine(self, ampl, freq):
+        t = np.arange(self.dac_size) / self.dac_clk_fs
+        f = np.floor(freq * self.dac_size / self.dac_clk_fs) * self.dac_clk_fs / self.dac_size
+        self.dac[0, :] = ampl * np.cos(2 * np.pi * f * t)
+        self.dac[1, :] = ampl * np.cos(2 * np.pi * f * t + np.pi)
+        self.set_dac()
+
+    # IOs
+
+    @command()
+    def set_b34_ios(self, value):
+        pass
+
+    # For compatibility with ALPHA250 user IOs
+    def set_user_ios(self, value):
+        self.set_b34_ios(value << 2)
+
     @command(classname='ClockGenerator')
     def phase_shift(self, shift):
         pass
@@ -54,6 +74,7 @@ class AdcDacBram(object):
     @command(classname='ClockGenerator')
     def set_sampling_frequency(self, val):
         pass
+
     @command(classname='ClockGenerator')
     def set_reference_clock(self, clkin):
         pass

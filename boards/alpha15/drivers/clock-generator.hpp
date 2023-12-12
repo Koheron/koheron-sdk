@@ -195,12 +195,12 @@ class ClockGenerator
         uint32_t CLKout0_PD = 0;    // Power down
 
         // R1: ADC0 clock
-        uint32_t CLKout1_DIV = clk_cfg[clock_cfg::CLKout1_DIV]; 
+        uint32_t CLKout1_DIV = clk_cfg[clock_cfg::CLKout1_DIV];
         uint32_t CLKout1_DDLY = 0; // Digital delay
         uint32_t CLKout1_PD = 0;   // Power down
 
         // R2: DAC clock
-        uint32_t CLKout2_DIV = clk_cfg[clock_cfg::CLKout2_DIV]; 
+        uint32_t CLKout2_DIV = clk_cfg[clock_cfg::CLKout2_DIV];
         uint32_t CLKout2_DDLY = 9;  // Digital delay  (6: fail, 7: pass, ... , 11: pass, 12: fail)
         uint32_t CLKout2_PD = 0;    // Power down
 

@@ -12,8 +12,8 @@ matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
-host = os.getenv('HOST', '192.168.1.113')
-client = connect(host, 'alpha15-adc-dac-bram', restart=True)
+host = os.getenv('HOST', '192.168.1.156')
+client = connect(host, 'adc-dac-bram', restart=True)
 driver = AdcDacBram(client)
 
 driver.range_select(0, 0)
@@ -54,26 +54,35 @@ driver.set_dac()
 
 # -------------------------------------------------------------------------------
 
-n = 32
+n = 512
 data = np.zeros((2, n))
 
-for i in range (n):
+for i in range(n):
     driver.clkout_dec()
+    time.sleep(0.1)
     driver.get_adc(0)
     driver.get_adc(1)
-    raw_data = driver.adc_raw_data()
+    raw_data = driver.adc_raw_data(1)
     print(i, i % 16, raw_data)
-    print("{0:018b}, {0:018b}".format(raw_data[0], raw_data[1]))
+
+    print("{:018b}, {:018b}".format(raw_data[0], raw_data[1]))
+    print("{:05x}, {:05x}".format(raw_data[0], raw_data[1]))
+
+    # lsbrms0 = np.std(driver.adc[0,:])
+    # lsbrms1 = np.std(driver.adc[1,:])
+    # print("{:.2f}, {:.2f} LSBrms".format(lsbrms0, lsbrms1))
+    # data[0,i] = lsbrms0
+    # data[1,i] = lsbrms1
 
     # data[0,i] = np.std(np.diff(driver.adc[0,:]))
     # data[1,i] = np.std(np.diff(driver.adc[1,:]))
 
     data[0,i] = np.mean(driver.adc[0,:])
     data[1,i] = np.mean(driver.adc[1,:])
-
-    time.sleep(0.1)
+    print("{:.2f}, {:.2f} LSBrms".format(data[0,i], data[1,i]))
 
 plt.plot(data[0,:], label='ADC0')
 plt.plot(data[1,:], label='ADC1')
+plt.plot(driver._to_two_complement(0x330FC) * np.ones(data[0,:].size))
 plt.legend(loc='upper right')
 plt.show()
