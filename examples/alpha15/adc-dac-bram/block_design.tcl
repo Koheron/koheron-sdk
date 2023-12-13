@@ -46,7 +46,9 @@ for {set i 0} {$i < 2} {incr i} {
   connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 2 2] adc${i}_ctl_en
 
   connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 8 4] adc_dac/adc${i}_dco_delay_tap
-  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 9 9] adc_dac/adc${i}_delay_rst
+  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 14 9] adc_dac/adc${i}_da_delay_tap
+  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 20 15] adc_dac/adc${i}_db_delay_tap
+  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 21 21] adc_dac/adc${i}_delay_rst
 
   # Add a counter for BRAM addressing
   cell koheron:user:address_counter:1.0 address_counter_adc${i} {

@@ -70,6 +70,8 @@ for {set i 0} {$i < 2} {incr i} {
     create_bd_pin -dir I adc${i}_db_n
 
     create_bd_pin -dir I -from 4 -to 0 adc${i}_dco_delay_tap
+    create_bd_pin -dir I -from 4 -to 0 adc${i}_da_delay_tap
+    create_bd_pin -dir I -from 4 -to 0 adc${i}_db_delay_tap
     create_bd_pin -dir I adc${i}_delay_rst
 
     create_bd_pin -dir O -from 17 -to 0 adc${i}
@@ -161,8 +163,8 @@ cell xilinx.com:ip:util_ds_buf:2.1 util_ds_buf_0 {
 connect_pins adc_two_lane [get_constant_pin 1 1]
 
 for {set i 0} {$i < 2} {incr i} {
-    # The selecio INDELAY must be enabled (even if no delay is set)
-    # to use the IDELAYCTRL reference
+    # The selectio delay must be enabled (even if no delay is set)
+    # to instantiate IDELAYE primitives using the IDELAYCTRL reference
 
     cell xilinx.com:ip:selectio_wiz:5.1 selectio_adc_da_$i {
         BUS_SIG_TYPE DIFF
@@ -177,6 +179,8 @@ for {set i 0} {$i < 2} {incr i} {
         clk_in mmcm/clk_out1
         data_in_from_pins_p adc${i}_da_p
         data_in_from_pins_n adc${i}_da_n
+        in_delay_tap_in adc${i}_da_delay_tap
+        in_delay_reset  adc${i}_delay_rst
     }
 
     cell xilinx.com:ip:selectio_wiz:5.1 selectio_adc_db_$i {
@@ -192,6 +196,8 @@ for {set i 0} {$i < 2} {incr i} {
         clk_in mmcm/clk_out1
         data_in_from_pins_p adc${i}_db_p
         data_in_from_pins_n adc${i}_db_n
+        in_delay_tap_in adc${i}_db_delay_tap
+        in_delay_reset  adc${i}_delay_rst
     }
 
     cell xilinx.com:ip:selectio_wiz:5.1 selectio_adc_dco_$i {

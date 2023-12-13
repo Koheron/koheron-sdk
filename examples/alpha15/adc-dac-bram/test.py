@@ -17,10 +17,6 @@ host = os.getenv('HOST', '192.168.1.156')
 client = connect(host, 'adc-dac-bram', restart=True)
 driver = AdcDacBram(client)
 
-ndec = 3
-for _ in range(ndec):
-    driver.clkout_dec()
-
 driver.set_reference_clock(0)
 
 input_range = 1
@@ -33,7 +29,7 @@ if input_range == 0:
 else:
     input_span = 8.192 # Vpp
 
-driver.set_testpat()
+# driver.set_testpat()
 
 print('DAC size = {}'.format(driver.dac_size))
 print('ADC size = {}'.format(driver.adc_size))
