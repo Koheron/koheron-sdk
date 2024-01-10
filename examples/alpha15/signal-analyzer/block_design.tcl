@@ -37,7 +37,7 @@ cell xilinx.com:ip:c_addsub:12.0 adc_addsub {
 # Channel selection
 
 cell koheron:user:bus_multiplexer:1.0 adc_mux0 {
-  WIDTH 24
+  WIDTH 18
 } {
   din0 adc_dac/adc0
   din1 adc_dac/adc1
@@ -45,26 +45,12 @@ cell koheron:user:bus_multiplexer:1.0 adc_mux0 {
 }
 
 cell koheron:user:bus_multiplexer:1.0 adc_mux1 {
-  WIDTH 24
+  WIDTH 19
 } {
   din0 adc_mux0/dout
   din1 adc_addsub/S
   sel [get_slice_pin [ctl_pin channel_select] 1 1]
 }
-
-# Use AXI Stream clock converter (ADC clock -> FPGA clock)
-# set intercon_idx 0
-# cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
-#   TDATA_NUM_BYTES 3
-#   SYNCHRONIZATION_STAGES 3
-# } {
-#   s_axis_tdata adc_mux1/dout
-#   s_axis_tvalid [get_Q_pin adc_dac/adc_valid 2 noce adc_dac/adc_clk]
-#   s_axis_aresetn rst_adc_clk/peripheral_aresetn
-#   m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
-#   s_axis_aclk adc_dac/adc_clk
-#   m_axis_aclk [set ps_clk$intercon_idx]
-# }
 
 # Use AXI Stream clock converter (ADC clock -> FPGA clock)
 set intercon_idx 0
@@ -78,16 +64,6 @@ cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
   s_axis_aclk adc_dac/adc_clk
   m_axis_aclk [set ps_clk$intercon_idx]
 }
-
-# # AXI Stream broadcaster
-
-# cell xilinx.com:ip:axis_broadcaster:1.1 axis_broadcaster {
-#   NUM_MI 2
-# } {
-#   S_AXIS adc_clock_converter/M_AXIS
-#   aclk [set ps_clk$intercon_idx]
-#   aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
-# }
 
 # -----------------------------------------------------------------------------
 # Decimation
@@ -172,6 +148,7 @@ cell xilinx.com:ip:axis_clock_converter:1.1 psd_clock_converter {
   m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
   s_axis_aclk    adc_dac/adc_clk
   m_axis_aclk    [set ps_clk$intercon_idx]
+  m_axis_tready  [get_constant_pin 1 1]
 }
 
 connect_cell psd {

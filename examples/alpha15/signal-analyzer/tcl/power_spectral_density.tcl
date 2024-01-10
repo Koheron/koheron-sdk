@@ -38,14 +38,14 @@ proc create {module_name fft_size} {
   set shifted_tvalid [get_Q_pin tvalid 3]
 
   cell xilinx.com:ip:cmpy:6.0 complex_mult {
-    APortWidth 18
+    APortWidth 19
     BPortWidth 16
-    OutputWidth 35
+    OutputWidth 36
     LatencyConfig Manual
     MinimumLatency 7
   } {
     aclk clk
-    s_axis_a_tdata [get_concat_pin [list [get_Q_pin data 3] [get_constant_pin 0 18]]]
+    s_axis_a_tdata [get_concat_pin [list [get_Q_pin data 3] [get_constant_pin 0 29]]]
     s_axis_b_tdata  [get_Q_pin $demod_bram_name/doutb 1]
     s_axis_a_tvalid $shifted_tvalid
     s_axis_b_tvalid $shifted_tvalid
@@ -61,7 +61,7 @@ proc create {module_name fft_size} {
       Maximum_Latency True
     } {
       aclk clk
-      s_axis_a_tdata [get_slice_pin complex_mult/m_axis_dout_tdata [expr 32+40*$i] [expr 40*$i]]
+      s_axis_a_tdata [get_slice_pin complex_mult/m_axis_dout_tdata [expr 35+40*$i] [expr 40*$i]]
       s_axis_a_tvalid complex_mult/m_axis_dout_tvalid
     }
   }
@@ -73,7 +73,7 @@ proc create {module_name fft_size} {
     target_clock_frequency [expr [get_parameter fclk0] / 1000000]
     target_data_throughput 15
     phase_factor_width 24
-    throttle_scheme realtime
+    throttle_scheme nonrealtime
     output_ordering natural_order
     complex_mult_type use_mults_resources
     number_of_stages_using_block_ram_for_data_and_phase_factors 5
