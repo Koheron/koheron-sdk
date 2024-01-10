@@ -12,7 +12,7 @@ from decimator import Decimator
 from fft import FFT
 from koheron import connect
 
-host = os.getenv('HOST', '192.168.1.113')
+host = os.getenv('HOST', '192.168.1.129')
 client = connect(host, 'signal-analyzer')
 decimator = Decimator(client)
 fft = FFT(client)
@@ -35,15 +35,16 @@ fft = FFT(client)
 fft.set_fft_window(0)
 fft.set_input_channel(0)
 
-fig = plt.figure(figsize=(6,6))
+fig = plt.figure()
 ax = fig.add_subplot(111)
-ax.set_xlim([0, 125])
-ax.set_ylim([0, 40])
+# ax.set_xlim([0, 125])
+# ax.set_ylim([0, 40])
 
-freqs = np.arange(driver.n_pts/2) * 15. / 8192
+freqs = np.arange(fft.n_pts/2) * 15. / 8192
 
-psd = np.sqrt(driver.read_psd()) # V/rtHz
-ax.plot(freqs, psd * 1e9, label='psd')
+psd = np.sqrt(fft.read_psd_raw())
+# psd = np.sqrt(fft.read_psd()) # V/rtHz
+ax.loglog(freqs, psd * 1e9, label='psd')
 
 ax.set_xlabel('Frequency (MHz)')
 ax.set_ylabel('Voltage noise density (U.A.)')

@@ -234,7 +234,7 @@ inline void  FFT::psd_acquisition_thread() {
 
         {
             std::lock_guard<std::mutex> lock(mutex);
-            psd_buffer = psd_map.read_array<float, prm::fft_size/2, 0>();
+            psd_buffer_raw = psd_map.read_array<float, prm::fft_size/2, 0>();
 
             for (unsigned int i=0; i<prm::fft_size/2; i++) {
                 psd_buffer[i] = psd_buffer_raw[i] * freq_calibration[input_channel][i];

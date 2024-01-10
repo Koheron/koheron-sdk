@@ -12,11 +12,11 @@ from decimator import Decimator
 from koheron import connect
 
 host = os.getenv('HOST', '192.168.1.129')
-client = connect(host, 'decimator')
+client = connect(host, 'signal-analyzer')
 driver = Decimator(client)
 
 n = 8192
-m = 2
+m = 1
 data = np.zeros(n*m)
 
 driver.read_adc()
