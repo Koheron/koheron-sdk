@@ -16,26 +16,33 @@ host = os.getenv('HOST', '192.168.1.129')
 client = connect(host, 'signal-analyzer')
 fft = FFT(client)
 
-fft.set_fft_window(1)
-# fft.set_raw_window(65536 * np.ones(fft.n_pts, dtype=np.uint32))
+# fft.set_fft_window(0)
+win_ones = 65535 * np.ones(fft.n_pts, dtype=np.uint32)
+print(bin(win_ones[0]))
+fft.set_raw_window(win_ones)
+
 fft.select_adc_channel(0)
 fft.range_select(0, 1)
+
+# Substract
+# fft.select_adc_channel(3)
+# fft.set_operation(0)
 
 freqs = np.arange(fft.n_pts/2) * 15. / 8192
 psd = np.sqrt(fft.read_psd_raw())
 
-fig = plt.figure()
-ax = fig.add_subplot(111)
-# ax.set_xlim([0, 125])
-# ax.set_ylim([0, 40])
+# fig = plt.figure()
+# ax = fig.add_subplot(111)
+# # ax.set_xlim([0, 125])
+# # ax.set_ylim([0, 40])
 
-# psd = np.sqrt(fft.read_psd()) # V/rtHz
-ax.loglog(freqs, psd * 1e9, label='psd')
+# # psd = np.sqrt(fft.read_psd()) # V/rtHz
+# ax.loglog(freqs, psd * 1e9, label='psd')
 
-ax.set_xlabel('Frequency (MHz)')
-ax.set_ylabel('Voltage noise density (U.A.)')
-ax.legend()
-plt.show()
+# ax.set_xlabel('Frequency (MHz)')
+# ax.set_ylabel('Voltage noise density (U.A.)')
+# ax.legend()
+# plt.show()
 
 # Live fig
 
@@ -64,9 +71,6 @@ ax.set_ylim((1E3, 1E10))
 # ax.set_xticklabels(xlabels)
 fig.canvas.draw()
 
-time_prev = time.time()
-
-print("start plot")
 while True:
     try:
         psd = np.sqrt(fft.read_psd_raw())
@@ -82,11 +86,8 @@ while True:
             psd_max = psd_max_
             ax.set_ylim((0.9 * psd_min, 1.1 * psd_max))
 
-        time_next = time.time()
-        print(time_next - time_prev)
         li.set_ydata(psd)
         fig.canvas.draw()
-        time_prev = time_next
         plt.pause(0.01)
     except KeyboardInterrupt:
         break

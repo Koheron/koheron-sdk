@@ -30,10 +30,11 @@ class FFT
     , demod_map(ctx.mm.get<mem::demod>())
     , clk_gen(ctx.get<ClockGenerator>())
     {
+        set_offsets(0, 0);
         select_adc_channel(0);
+        set_operation(0);
         set_scale_sch(0);
         set_fft_window(1);
-        ctl.set_bit<reg::psd_valid, 0>();
         start_psd_acquisition();
     }
 
@@ -41,15 +42,20 @@ class FFT
     // Power Spectral Density
     //////////////////////////////////////
 
+    void set_offsets(uint32_t off0, uint32_t off1) {
+        ctl.write<reg::channel_offset0>(off0);
+        ctl.write<reg::channel_offset1>(off1);
+    }
+
     void select_adc_channel(uint32_t channel) {
         if (channel == 0) {
             ctl.clear_bit<reg::channel_select, 0>();
-            ctl.clear_bit<reg::channel_select, 1>();
+            ctl.set_bit<reg::channel_select, 1>();
         } else if (channel == 1) {
             ctl.set_bit<reg::channel_select, 0>();
             ctl.clear_bit<reg::channel_select, 1>();
         } else if (channel == 3) { // Diff or sum of channels
-            ctl.clear_bit<reg::channel_select, 0>();
+            ctl.set_bit<reg::channel_select, 0>();
             ctl.set_bit<reg::channel_select, 1>();
         }
     }
