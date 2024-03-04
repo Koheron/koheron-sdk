@@ -9,7 +9,6 @@ cores:
   - fpga/cores/dna_reader_v1_0
   - fpga/cores/edge_detector_v1_0
   - fpga/cores/comparator_v1_0
-  - fpga/cores/unrandomizer_v1_0
   - fpga/cores/bus_multiplexer_v1_0
   - fpga/cores/psd_counter_v1_0
   - boards/alpha250/cores/precision_dac_v1_0
@@ -52,6 +51,7 @@ control_registers:
   - digital_outputs
   - adp5071_sync
   - channel_select
+  - channel_offset[2]
 
 status_registers:
   - adc[n_adc]
@@ -60,7 +60,6 @@ status_registers:
 ps_control_registers:
   - spi_cfg_data
   - spi_cfg_cmd
-  - psd_valid
   - ctl_fft
 
 ps_status_registers:

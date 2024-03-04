@@ -30,10 +30,11 @@ class FFT
     , demod_map(ctx.mm.get<mem::demod>())
     , clk_gen(ctx.get<ClockGenerator>())
     {
-        set_input_channel(0);
+        set_offsets(0, 0);
+        select_adc_channel(0);
+        set_operation(0);
         set_scale_sch(0);
         set_fft_window(1);
-        ctl.set_bit<reg::psd_valid, 0>();
         start_psd_acquisition();
     }
 
@@ -41,15 +42,31 @@ class FFT
     // Power Spectral Density
     //////////////////////////////////////
 
-    void set_input_channel(uint32_t channel) {
-        if (channel >= 8) {
-            ctx.log<ERROR>("FFT::set_input_channel invalid channel\n");
-            return;
+    void set_offsets(uint32_t off0, uint32_t off1) {
+        ctl.write<reg::channel_offset0>(off0);
+        ctl.write<reg::channel_offset1>(off1);
+    }
+
+    void select_adc_channel(uint32_t channel) {
+        if (channel == 0) {
+            ctl.clear_bit<reg::channel_select, 0>();
+            ctl.set_bit<reg::channel_select, 1>();
+        } else if (channel == 1) {
+            ctl.set_bit<reg::channel_select, 0>();
+            ctl.clear_bit<reg::channel_select, 1>();
+        } else if (channel == 3) { // Diff or sum of channels
+            ctl.set_bit<reg::channel_select, 0>();
+            ctl.set_bit<reg::channel_select, 1>();
         }
+    }
 
-        input_channel = channel;
-        ctl.write<reg::channel_select>(channel);
+    void set_operation(uint32_t operation) {
+        // operation:
+        // 0 : Substration
+        // 1 : Addition
 
+        operation == 0 ? ctl.clear_bit<reg::channel_select, 2>()
+                       : ctl.set_bit<reg::channel_select, 2>();
     }
 
     void set_scale_sch(uint32_t scale_sch) {
@@ -75,14 +92,30 @@ class FFT
         window_index = window_id;
     }
 
+    void set_raw_window(const std::array<uint32_t, prm::fft_size>& win) {
+        double res1 = 0;
+        double res2 = 0;
+
+        for (auto value : win) {
+            res1 += value;
+            res2 += value * value;
+        }
+
+        demod_map.write_array(win);
+
+        W1 = (res1 / prm::fft_size) * (res1 / prm::fft_size);
+        W2 = res2 / prm::fft_size;
+        set_conversion_vectors();
+    }
+
     // Read averaged spectrum data
-    const auto& read_psd_raw() {
+    auto read_psd_raw() {
         std::lock_guard<std::mutex> lock(mutex);
         return psd_buffer_raw;
     }
 
     // Return the PSD in W/Hz
-    const auto& read_psd() {
+    auto read_psd() {
         std::lock_guard<std::mutex> lock(mutex);
         return psd_buffer;
     }
@@ -95,27 +128,7 @@ class FFT
         return prm::fft_size;
     }
 
-    // Return the raw input value of each ADC channel
-    // n_avg: number of averages
-    const std::array<int32_t, prm::n_adc> get_adc_raw_data(uint32_t n_avg) {
-        if (n_avg <= 1) {
-            return { sts.read<reg::adc0, int16_t>(),
-                     sts.read<reg::adc1, int16_t>() };
-        } else {
-            int32_t adc0 = 0;
-            int32_t adc1 = 0;
-
-            for (size_t i=0; i<n_avg; i++) {
-                adc0 += sts.read<reg::adc0, int16_t>();
-                adc1 += sts.read<reg::adc1, int16_t>();
-            }
-
-            return { int32_t(std::round(adc0 / double(n_avg))),
-                     int32_t(std::round(adc1 / double(n_avg))) };
-        }
-    }
-
-    const auto& get_window_index() const {
+    auto get_window_index() const {
         return window_index;
     }
 
@@ -224,17 +237,20 @@ inline void  FFT::psd_acquisition_thread() {
 
         // Wait for data
         while (cycle_index >= previous_cycle_index) {
-            auto sleep_time = std::chrono::nanoseconds((prm::n_cycles - cycle_index) * 8192 * 4);
+            // 1/15 MHz = 66.7 ns
+            const auto sleep_time = std::chrono::nanoseconds((prm::n_cycles - cycle_index) * prm::fft_size * 67);
+
             if (sleep_time > 1ms) {
                 std::this_thread::sleep_for(sleep_time);
             }
+
             previous_cycle_index = cycle_index;
             cycle_index = get_cycle_index();
         }
 
         {
             std::lock_guard<std::mutex> lock(mutex);
-            psd_buffer = psd_map.read_array<float, prm::fft_size/2, 0>();
+            psd_buffer_raw = psd_map.read_array<float, prm::fft_size/2, 0>();
 
             for (unsigned int i=0; i<prm::fft_size/2; i++) {
                 psd_buffer[i] = psd_buffer_raw[i] * freq_calibration[input_channel][i];

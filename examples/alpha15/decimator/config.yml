@@ -9,12 +9,11 @@ cores:
   - fpga/cores/dna_reader_v1_0
   - fpga/cores/edge_detector_v1_0
   - fpga/cores/comparator_v1_0
-  - fpga/cores/unrandomizer_v1_0
+  - fpga/cores/bus_multiplexer_v1_0
   - boards/alpha250/cores/precision_dac_v1_0
   - boards/alpha250/cores/spi_cfg_v1_0
   - boards/alpha15/cores/ltc2387_v1_0
   - boards/alpha15/cores/dcdc_sync_v1_0
-  - fpga/cores/bus_multiplexer_v1_0
 
 memory:
   - name: control

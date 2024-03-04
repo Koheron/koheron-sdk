@@ -38,14 +38,14 @@ proc create {module_name fft_size} {
   set shifted_tvalid [get_Q_pin tvalid 3]
 
   cell xilinx.com:ip:cmpy:6.0 complex_mult {
-    APortWidth 18
+    APortWidth 19
     BPortWidth 16
-    OutputWidth 35
+    OutputWidth 36
     LatencyConfig Manual
     MinimumLatency 7
   } {
-    aclk clk
-    s_axis_a_tdata [get_concat_pin [list [get_Q_pin data 3] [get_constant_pin 0 18]]]
+    aclk            clk
+    s_axis_a_tdata  [get_concat_pin [list [get_Q_pin data 3] [get_constant_pin 0 24]]]
     s_axis_b_tdata  [get_Q_pin $demod_bram_name/doutb 1]
     s_axis_a_tvalid $shifted_tvalid
     s_axis_b_tvalid $shifted_tvalid
@@ -55,13 +55,13 @@ proc create {module_name fft_size} {
     cell xilinx.com:ip:floating_point:7.1 float_$i {
       Operation_Type Fixed_to_float
       A_Precision_Type Custom
-      C_A_Exponent_Width 17
-      C_A_Fraction_Width 16
-      Flow_Control NonBlocking
+      C_A_Exponent_Width 19
+      C_A_Fraction_Width 17
+      Flow_Control Blocking
       Maximum_Latency True
     } {
       aclk clk
-      s_axis_a_tdata [get_slice_pin complex_mult/m_axis_dout_tdata [expr 32+40*$i] [expr 40*$i]]
+      s_axis_a_tdata [get_slice_pin complex_mult/m_axis_dout_tdata [expr 35+40*$i] [expr 40*$i]]
       s_axis_a_tvalid complex_mult/m_axis_dout_tvalid
     }
   }
@@ -73,7 +73,7 @@ proc create {module_name fft_size} {
     target_clock_frequency [expr [get_parameter fclk0] / 1000000]
     target_data_throughput 15
     phase_factor_width 24
-    throttle_scheme realtime
+    throttle_scheme nonrealtime
     output_ordering natural_order
     complex_mult_type use_mults_resources
     number_of_stages_using_block_ram_for_data_and_phase_factors 5
@@ -86,9 +86,12 @@ proc create {module_name fft_size} {
                          }]
     s_axis_data_tvalid   [get_and_pin float_0/m_axis_result_tvalid float_1/m_axis_result_tvalid]
     s_axis_data_tlast    [get_constant_pin 0 1]
-    s_axis_config_tdata  [get_slice_pin ctl_fft 15 0]
+    s_axis_config_tdata  ctl_fft
     s_axis_config_tvalid [get_constant_pin 1 1]
   }
+
+  connect_pins float_0/m_axis_result_tready fft_0/s_axis_data_tready
+  connect_pins float_1/m_axis_result_tready fft_0/s_axis_data_tready
 
   for {set i 0} {$i < 2} {incr i} {
     set slice_tdata [get_slice_pin fft_0/m_axis_data_tdata [expr 31+32*$i] [expr 32*$i]]
@@ -121,4 +124,4 @@ proc create {module_name fft_size} {
   current_bd_instance $bd
 }
 
-} ;# end spectrum namespace
+} ;# end power_spectral_density namespace
