@@ -37,10 +37,10 @@ class PrecisionDac
 
         ctl.write<reg::precision_dac_ctl>((regs::RESET << 1));
         ctl.write<reg::precision_dac_ctl>((regs::WRITE_UPDATE << 1) + enable);
-        set_dac_value(0, 0);
-        set_dac_value(1, 0);
-        set_dac_value(2, 0);
-        set_dac_value(3, 0);
+        set_dac_value_volts(0, 0.0);
+        set_dac_value_volts(1, 0.0);
+        set_dac_value_volts(2, 0.0);
+        set_dac_value_volts(3, 0.0);
     }
 
     void set_dac_value_volts(uint32_t channel, float voltage) {

@@ -36,7 +36,7 @@ class Common
     {}
 
     uint64_t get_dna() {
-        return sts.read<reg::dna, uint64_t>();
+        return ctx.mm.get<mem::status>().read<reg::dna, uint64_t>();
     }
 
     void set_led(uint32_t value) {

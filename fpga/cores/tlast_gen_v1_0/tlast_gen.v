@@ -45,11 +45,13 @@ module tlast_gen
     output                           m_axis_tvalid,
     input                            m_axis_tready,
     output                           m_axis_tlast,
-    output [TDATA_WIDTH-1:0]         m_axis_tdata
+    output [TDATA_WIDTH-1:0]         m_axis_tdata,
+    output [31:0]                    pkt_count
 );
 
     // Internal signals
-    wire                           new_sample;
+    wire                          new_sample;
+    reg [31:0]                   count;
     reg [$clog2(PKT_LENGTH):0] cnt = 0;
 
     // Pass through control signals
@@ -60,14 +62,23 @@ module tlast_gen
     // Count samples
     assign new_sample = s_axis_tvalid & s_axis_tready;
     always @ (posedge aclk) begin
-        if (~resetn | (m_axis_tlast & new_sample))
+        if (~resetn) begin
             cnt <= 0;
-        else
+            count <= 0;
+        end
+        else if (m_axis_tlast & new_sample) begin
+            cnt <= 0;
+            count <= count + 1'b1;
+        end
+        else begin
             if (new_sample)
                 cnt <= cnt + 1'b1;
+                count <= count;
+        end
     end
 
     // Generate tlast
     assign m_axis_tlast = (cnt == PKT_LENGTH-1);
+    assign pkt_count = (cnt == PKT_LENGTH-1);
 
 endmodule

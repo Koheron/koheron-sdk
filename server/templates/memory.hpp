@@ -52,7 +52,7 @@ static_assert({{ offset }} < mem::ps_control_range, "Invalid ps control register
 {% endfor %}
 // -- Status offsets
 {% for offset in config['status_registers'] -%}
-constexpr uint32_t {{ offset }} = {{ 4 * (2 + loop.index0) }};
+constexpr uint32_t {{ offset }} = {{ 4 * loop.index0 }};
 static_assert({{ offset }} < mem::status_range, "Invalid status register offset {{ offset }}");
 {% endfor %}
 // -- PS Status offsets

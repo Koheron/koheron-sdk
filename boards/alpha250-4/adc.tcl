@@ -151,12 +151,12 @@ cell koheron:user:spi_cfg:1.0 spi_cfg_0 {
   s_axis_tdata cfg_data
   s_axis_tvalid [get_slice_pin cfg_cmd 8 8]
   cmd [get_slice_pin cfg_cmd 7 0]
-  s_axis_tready cfg_sts
   sclk spi_cfg_sck
   sdi spi_cfg_sdi
   aclk ps_clk
 }
 
+connect_pins cfg_sts [get_concat_pin [list spi_cfg_0/s_axis_tready [get_constant_pin 0 31]]] 
 connect_pins spi_cfg_cs_clk_gen [get_slice_pin spi_cfg_0/cs 0 0]
 connect_pins spi_cfg_cs_rf_adc0 [get_slice_pin spi_cfg_0/cs 1 1]
 connect_pins spi_cfg_cs_rf_adc1 [get_slice_pin spi_cfg_0/cs 2 2]

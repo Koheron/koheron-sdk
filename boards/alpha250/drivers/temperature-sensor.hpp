@@ -15,7 +15,8 @@ class TemperatureSensor
     : ctx(ctx_)
     , i2c(ctx.i2c.get("i2c-0"))
     , xadc(ctx.mm.get<mem::xadc>())
-    {}
+    {
+    }
 
     // Temperatures in °C
     std::array<float, 3> get_temperatures() {

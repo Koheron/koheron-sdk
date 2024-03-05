@@ -1,4 +1,5 @@
 set ps_name ps_0
+variable isZynqMP 0
 
 # Find the number of interconnects
 set i 0

@@ -9,7 +9,7 @@
 
 ## Getting started
 
-1. [Install Vivado 2017.2](https://koheron.com/software-development-kit/documentation/setup-development-machine)
+1. [Install Vivado 2020.1](https://koheron.com/software-development-kit/documentation/setup-development-machine)
 
 2. Install required packages
 
@@ -17,7 +17,7 @@
     $ make setup
     ```
 
-3. Install Ubuntu 16.04 for Zynq ([Download SD card image](https://www.koheron.com/software-development-kit/documentation/ubuntu-zynq/))
+3. Install Ubuntu 20.04 for Zynq ([Download SD card image](https://www.koheron.com/software-development-kit/documentation/ubuntu-zynq/))
 
 4. Build and run the led-blinker instrument
 

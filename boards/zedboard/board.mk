@@ -1,0 +1,1 @@
+UBOOT_CONFIG = zynq_zed_defconfig

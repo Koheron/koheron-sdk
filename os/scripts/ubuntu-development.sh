@@ -5,8 +5,45 @@ os_path=$2
 tmp_os_path=$3
 name=$4
 os_version_file=$5
+zynq_type=$6
 image=$tmp_project_path/${name}-development.img
-size=1024
+BOOTPART=$7
+
+size=2048
+
+ubuntu_version=20.04.1
+part1=/dev/${BOOTPART}p1
+part2=/dev/${BOOTPART}p2
+if [ "${zynq_type}" = "zynqmp" ]; then
+    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-MPSoC..."
+    root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
+    linux_image=Image
+    qemu_path=/usr/bin/qemu-aarch64-static
+    part1=/dev/mmcblk1p1
+    part2=/dev/mmcblk1p2
+else
+    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-7000..."
+    root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
+    linux_image=uImage
+    qemu_path=/usr/bin/qemu-arm-static
+fi
+
+ubuntu_version=20.04.2
+part1=/dev/${BOOTPART}p1
+part2=/dev/${BOOTPART}p2
+if [ "${zynq_type}" = "zynqmp" ]; then
+    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-MPSoC..."
+    root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
+    linux_image=Image
+    qemu_path=/usr/bin/qemu-aarch64-static
+    part1=/dev/mmcblk1p1
+    part2=/dev/mmcblk1p2
+else
+    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-7000..."
+    root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
+    linux_image=uImage
+    qemu_path=/usr/bin/qemu-arm-static
+fi
 
 dd if=/dev/zero of=$image bs=1M count=${size}
 
@@ -17,8 +54,6 @@ losetup ${device} ${image}
 boot_dir=`mktemp -d /tmp/BOOT.XXXXXXXXXX`
 root_dir=`mktemp -d /tmp/ROOT.XXXXXXXXXX`
 
-ubuntu_version=16.04.6
-root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
 root_url=http://cdimage.ubuntu.com/ubuntu-base/releases/${ubuntu_version}/release/$root_tar
 
 passwd=changeme
@@ -27,8 +62,8 @@ timezone=Europe/Paris
 # Create partitions
 
 parted -s $device mklabel msdos
-parted -s $device mkpart primary fat16 4MB 16MB
-parted -s $device mkpart primary ext4 16MB 100%
+parted -s $device mkpart primary fat16 4MB 512MB
+parted -s $device mkpart primary ext4 512MB 100%
 
 boot_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '2!d'`
 root_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '3!d'`
@@ -45,7 +80,7 @@ mount $root_dev $root_dir
 
 # Copy files to the boot file system
 
-cp $tmp_os_path/boot.bin $tmp_os_path/devicetree.dtb $tmp_os_path/uImage $os_path/uEnv.txt $boot_dir
+cp $tmp_os_path/boot.bin $tmp_os_path/devicetree.dtb $tmp_os_path/$linux_image $os_path/uEnv.txt $boot_dir
 
 # Copy Ubuntu Core to the root file system
 
@@ -56,7 +91,8 @@ tar -zxf tmp/$root_tar --directory=$root_dir
 # Add missing configuration files and packages
 
 cp /etc/resolv.conf $root_dir/etc/
-cp /usr/bin/qemu-arm-static $root_dir/usr/bin/
+#cp /usr/bin/qemu-arm-static $root_dir/usr/bin/
+cp $qemu_path $root_dir/usr/bin/
 
 # Add Web app
 mkdir $root_dir/usr/local/www
@@ -89,83 +125,79 @@ cp ${tmp_project_path}/${name}.zip $root_dir/usr/local/instruments
 chroot $root_dir <<- EOF_CHROOT
 export LANG=C
 export LC_ALL=C
-
 # Add /usr/local/koheron-server to the environment PATH
 cat <<- EOF_CAT > etc/environment
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/koheron-server"
 EOF_CAT
-
 cat <<- EOF_CAT > etc/apt/apt.conf.d/99norecommends
 APT::Install-Recommends "0";
 APT::Install-Suggests "0";
 EOF_CAT
-
 cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
-/dev/mmcblk0p2  /               ext4    rw,noatime          0       1
-/dev/mmcblk0p1  /boot           vfat    ro,noatime          0       2
+$part2          /               ext4    rw,noatime          0       1
+$part1          /boot           vfat    ro,noatime          0       2
 tmpfs           /tmp            tmpfs   defaults,noatime    0       0
 tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 EOF_CAT
-
 cat <<- EOF_CAT >> etc/securetty
 # Serial Console for Xilinx Zynq-7000
 ttyPS0
 EOF_CAT
-
 echo koheron > etc/hostname
-
 cat <<- EOF_CAT >> etc/hosts
 127.0.0.1    localhost.localdomain localhost
 127.0.1.1    koheron
 EOF_CAT
 
-apt-get -y install locales
-
+sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
+apt update
+apt -y upgrade
+apt -y install locales
 locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
-
-sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
-
-apt-get update
-apt-get -y upgrade
-
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 
-apt-get -y install openssh-server ntp usbutils psmisc lsof \
-  parted curl less vim iw ntfs-3g \
-  bash-completion unzip
+DEBIAN_FRONTEND=noninteractive apt install -yq ntp
+apt install -y openssh-server
+apt install -y usbutils psmisc lsof
+apt install -y parted curl less vim iw ntfs-3g
+apt install -y bash-completion unzip
 
-apt-get install -y udev net-tools netbase ifupdown network-manager lsb-base
-apt-get install -y ntpdate sudo rsync
-apt-get install -y kmod
+apt install -y udev net-tools netbase ifupdown network-manager lsb-base isc-dhcp-client
+apt install -y ntpdate sudo rsync
+apt install -y kmod
+apt install -y gcc
 
-apt-get install -y nginx
-apt-get install -y build-essential python-dev
-apt-get install -y python-numpy
-apt-get install -y python-pip python-setuptools python-all-dev python-wheel
-
-pip install --upgrade pip==9.0.3
-pip install flask
-pip install uwsgi
+apt install -y nginx
+sudo dpkg --configure -a
+apt install -y build-essential python3-dev
+sudo dpkg --configure -a
+apt install -y python-numpy
+sudo dpkg --configure -a
+apt install -y python3-pip python-setuptools
+sudo dpkg --configure -a
+pip3 install wheel
+pip3 install --upgrade pip==20.2.2
+pip3 install flask
+pip3 install uwsgi
+pip3 install werkzeug==2.2.2
+pip3 install simplejson
 
 systemctl enable uwsgi
 systemctl enable unzip-default-instrument
-systemctl enable koheron-server
+#systemctl enable koheron-server
 systemctl enable nginx
 
-sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
+sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 touch etc/udev/rules.d/75-persistent-net-generator.rules
-
 cat <<- EOF_CAT >> etc/network/interfaces
 allow-hotplug eth0
-
 # DHCP configuration
 iface eth0 inet dhcp
-
 # Static IP
 #iface eth0 inet static
 #  address 192.168.1.100
@@ -179,11 +211,9 @@ iface eth0 inet dhcp
   post-up ntpdate -u ntp.u-psud.fr
 EOF_CAT
 
-apt-get clean
+apt clean
 echo root:$passwd | chpasswd
-service ntp stop
 history -c
-
 EOF_CHROOT
 
 # nginx
@@ -192,8 +222,8 @@ cp $os_path/config/nginx.conf $root_dir/etc/nginx/nginx.conf
 cp $os_path/config/nginx-server.conf $root_dir/etc/nginx/sites-enabled/nginx-server.conf
 cp $os_path/systemd/nginx.service $root_dir/etc/systemd/system/nginx.service
 
-rm $root_dir/etc/resolv.conf
-rm $root_dir/usr/bin/qemu-arm-static
+#rm $root_dir/etc/resolv.conf
+rm $root_dir/usr/bin/qemu-a*
 
 # Unmount file systems
 
