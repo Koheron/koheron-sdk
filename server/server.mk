@@ -49,7 +49,10 @@ OBJ := $(SERVER_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
-SERVER_CCXX := /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) -flto
+uid = $(shell id -u)
+gid = $(shell id -g) 
+server_ccxx := docker run --rm -v $(sdk_full_path):/home/containeruser/wkspace:z -u $(uid):$(gid) -w /home/containeruser/wkspace gnu-gcc-9.5 $(gcc_arch)-g++-$(gcc_version) -flto
+#SERVER_CCXX := /usr/bin/arm-linux-gnu-g++ -flto
 
 SERVER_CCXXFLAGS = -Wall -Werror -Wextra
 SERVER_CCXXFLAGS += -Wpedantic -Wfloat-equal -Wunused-macros -Wcast-qual -Wuseless-cast

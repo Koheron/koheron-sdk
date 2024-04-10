@@ -8,6 +8,7 @@ SHELL := bash
 CONFIG ?= examples/red-pitaya/led-blinker/config.yml
 SDK_PATH ?= .
 MODE ?= development
+SDK_FULL_PATH = $(realpath $(SDK_PATH))
 HOST ?= 192.168.1.100
 TMP ?= tmp
 
@@ -146,6 +147,8 @@ setup: setup_fpga setup_server setup_web setup_os
 
 .PHONY: setup_base
 setup_base:
+	sudo usermod -aG docker $(shell whoami)
+	docker build -t gnu-gcc-9.5 ./docker/.
 	sudo apt-get install -y g++-$(GCC_VERSION)-arm-linux-gnueabihf
 	sudo rm -f /usr/bin/arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-g++
 	sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-gcc
