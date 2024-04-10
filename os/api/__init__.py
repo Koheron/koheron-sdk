@@ -60,7 +60,7 @@ class KoheronApp(Flask):
         version = "0.0.0"
 
         if (is_file_in_zip(instrument_filename, version_filename)):
-            version = read_file_in_zip(instrument_filename, version_filename)
+            version = read_file_in_zip(instrument_filename, version_filename).decode('utf8')
 
         instrument["version"] = version
         instrument["is_default"] = is_default

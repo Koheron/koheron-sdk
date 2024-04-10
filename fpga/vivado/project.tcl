@@ -32,24 +32,16 @@ set_property VERILOG_DEFINE {TOOL_VIVADO} [current_fileset]
 
 switch $mode {
   "development" {
-    set_property STRATEGY Flow_PerfOptimized_High [get_runs synth_1]
-    set_property STRATEGY Performance_NetDelay_high [get_runs impl_1]
-    generate_target all [get_files  $bd_path/system.bd]
-    set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs *synth_1]
-    set_property strategy Flow_PerfOptimized_high [get_runs *synth_1]
-    set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs *synth_1]
+    # set_property STRATEGY Flow_PerfOptimized_High [get_runs synth_1]
+    # set_property STRATEGY Performance_NetDelay_high [get_runs impl_1]
   }
   "production" {
     set_property STRATEGY Flow_PerfOptimized_High [get_runs synth_1]
     set_property STRATEGY Performance_NetDelay_high [get_runs impl_1]
-    generate_target all [get_files  $bd_path/system.bd]
-    set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs *synth_1]
-    set_property strategy Flow_PerfOptimized_high [get_runs *synth_1]
-    set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs *synth_1]
   }
   "custom" {
-    # Put your custom implementation strategy here (and run $ make MODE=custom ...)    
-  }  
+    # Put your custom implementation strategy here (and run $ make MODE=custom ...)
+  }
   default {
   }
 }

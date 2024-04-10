@@ -96,8 +96,8 @@ $(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES)/u-boot -type f)
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	mkdir -p $(@D)
 	$(MAKE_DOCKER) -C $< mrproper
-	$(MAKE_DOCKER) -C $< arch=arm $(UBOOT_CONFIG)
-	$(MAKE_DOCKER) -C $< arch=arm CFLAGS="-O2 $(GCC_FLAGS)" \
+	$(MAKE_DOCKER) -C $< arch=$(ARCH) $(UBOOT_CONFIG)
+	$(MAKE_DOCKER) -C $< arch=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
 	  CROSS_COMPILE=$(GCC_ARCH)- all
 	cp $</u-boot $@
 	cp $</u-boot.elf $@ || true
@@ -190,7 +190,7 @@ $(TMP_OS_PATH)/overlay/pl.dtsi: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PAT
 	mkdir -p $(@D)
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VER) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/overlay $(TMP_FPGA_PATH)/$(NAME).xsa $(BOOT_MEDIUM)
 	cp -R $(TMP_OS_PATH)/overlay $(TMP_OS_PATH)/overlay.orig
-	patch -d $(TMP_OS_PATH) -p -0 < $(PROJECT_PATH)/overlay.patch 
+	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/overlay.patch
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/devicetree.patch

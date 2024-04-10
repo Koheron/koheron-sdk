@@ -8,9 +8,9 @@ os_version_file=$5
 zynq_type=$6
 image=$tmp_project_path/${name}-production.img
 BOOTPART=$7
-size=2048
+size=1024
 
-ubuntu_version=18.04.1
+ubuntu_version=20.04.2
 
 part1=/dev/${BOOTPART}p1
 part2=/dev/${BOOTPART}p2
@@ -19,6 +19,8 @@ if [ "${zynq_type}" = "zynqmp" ]; then
     root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
     linux_image=Image
     qemu_path=/usr/bin/qemu-aarch64-static
+    part1=/dev/mmcblk1p1
+    part2=/dev/mmcblk1p2
 else
     echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-7000..."
     root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
@@ -76,8 +78,9 @@ cp $qemu_path $root_dir/usr/bin/
 
 # Add Koheron TCP/Websocket Server
 mkdir $root_dir/usr/local/koheron-server
-cp $os_path/systemd/unzip-default-instrument.service $root_dir/etc/systemd/system/unzip-default-instrument.service
 cp $os_path/scripts/koheron-server-init.py $root_dir/usr/local/koheron-server/koheron-server-init.py
+
+cp $os_path/systemd/unzip-default-instrument.service $root_dir/etc/systemd/system/unzip-default-instrument.service
 cp $os_path/systemd/koheron-server.service $root_dir/etc/systemd/system/koheron-server.service
 cp $os_path/systemd/koheron-server-init.service $root_dir/etc/systemd/system/koheron-server-init.service
 
@@ -109,8 +112,8 @@ chmod +x /usr/local/bin/mount_unionfs
 cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
-$part2          /               ext4    rw,noatime          0       1
-$part1          /boot           vfat    rw,noatime          0       2
+$part2          /               ext4    ro,noatime          0       1
+$part1          /boot           vfat    ro,noatime          0       2
 tmpfs           /tmp            tmpfs   defaults,noatime    0       0
 tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 mount_unionfs   /etc            fuse    defaults,noatime    0       0
@@ -138,12 +141,22 @@ sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
 
 apt update
 apt -y upgrade
-
+apt -y install locales
+locale-gen en_US.UTF-8
+update-locale LANG=en_US.UTF-8
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 
-apt install -y usbutils psmisc lsof unzip
-apt install -y udev net-tools netbase ifupdown network-manager lsb-base
+DEBIAN_FRONTEND=noninteractive apt install -yq ntp
+apt install -y openssh-server
+apt install -y usbutils psmisc lsof
+apt install -y parted curl less vim iw ntfs-3g
+apt install -y bash-completion unzip
+apt install -y udev net-tools netbase ifupdown network-manager lsb-base isc-dhcp-client
+apt install -y ntpdate sudo rsync
+apt install -y kmod
+apt install -y gcc
+
 apt install -y nginx
 
 pip install werkzeug==0.16.0
@@ -152,7 +165,7 @@ apt install -y unionfs-fuse
 apt install -y python
 
 systemctl enable unzip-default-instrument
-systemctl enable koheron-server
+#systemctl enable koheron-server
 systemctl enable nginx
 timedatectl set-ntp on
 

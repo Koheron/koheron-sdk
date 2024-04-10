@@ -5,3 +5,4 @@ LINUX_IMAGE := uImage
 ARCH := arm
 
 BOOTCALL := boot.bin
+

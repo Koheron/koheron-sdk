@@ -8,9 +8,27 @@ os_version_file=$5
 zynq_type=$6
 image=$tmp_project_path/${name}-development.img
 BOOTPART=$7
+
 size=2048
 
 ubuntu_version=20.04.1
+part1=/dev/${BOOTPART}p1
+part2=/dev/${BOOTPART}p2
+if [ "${zynq_type}" = "zynqmp" ]; then
+    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-MPSoC..."
+    root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
+    linux_image=Image
+    qemu_path=/usr/bin/qemu-aarch64-static
+    part1=/dev/mmcblk1p1
+    part2=/dev/mmcblk1p2
+else
+    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-7000..."
+    root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
+    linux_image=uImage
+    qemu_path=/usr/bin/qemu-arm-static
+fi
+
+ubuntu_version=20.04.2
 part1=/dev/${BOOTPART}p1
 part2=/dev/${BOOTPART}p2
 if [ "${zynq_type}" = "zynqmp" ]; then
@@ -107,48 +125,38 @@ cp ${tmp_project_path}/${name}.zip $root_dir/usr/local/instruments
 chroot $root_dir <<- EOF_CHROOT
 export LANG=C
 export LC_ALL=C
-
 # Add /usr/local/koheron-server to the environment PATH
 cat <<- EOF_CAT > etc/environment
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/koheron-server"
 EOF_CAT
-
 cat <<- EOF_CAT > etc/apt/apt.conf.d/99norecommends
 APT::Install-Recommends "0";
 APT::Install-Suggests "0";
 EOF_CAT
-
 cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
 $part2          /               ext4    rw,noatime          0       1
-$part1          /boot           vfat    rw,noatime          0       2
+$part1          /boot           vfat    ro,noatime          0       2
 tmpfs           /tmp            tmpfs   defaults,noatime    0       0
 tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 EOF_CAT
-
 cat <<- EOF_CAT >> etc/securetty
 # Serial Console for Xilinx Zynq-7000
 ttyPS0
 EOF_CAT
-
 echo koheron > etc/hostname
-
 cat <<- EOF_CAT >> etc/hosts
 127.0.0.1    localhost.localdomain localhost
 127.0.1.1    koheron
 EOF_CAT
 
 sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
-
 apt update
 apt -y upgrade
-
 apt -y install locales
-
 locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
-
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 
@@ -175,7 +183,7 @@ pip3 install wheel
 pip3 install --upgrade pip==20.2.2
 pip3 install flask
 pip3 install uwsgi
-pip3 install werkzeug==1.0.1
+pip3 install werkzeug==2.2.2
 pip3 install simplejson
 
 systemctl enable uwsgi
@@ -186,13 +194,10 @@ systemctl enable nginx
 sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 touch etc/udev/rules.d/75-persistent-net-generator.rules
-
 cat <<- EOF_CAT >> etc/network/interfaces
 allow-hotplug eth0
-
 # DHCP configuration
 iface eth0 inet dhcp
-
 # Static IP
 #iface eth0 inet static
 #  address 192.168.1.100
@@ -209,7 +214,6 @@ EOF_CAT
 apt clean
 echo root:$passwd | chpasswd
 history -c
-
 EOF_CHROOT
 
 # nginx
