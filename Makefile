@@ -21,6 +21,7 @@ PYTHON := python3
 # Use GCC version >=7
 GCC_VERSION := 9
 
+
 BUILD_METHOD := native
 #BUILD_METHOD = docker
 
@@ -49,6 +50,13 @@ MEMORY_YML := $(TMP_PROJECT_PATH)/memory.yml
 N_CPUS ?= $(shell nproc 2> /dev/null || echo 1)
 
 NAME := $(shell $(MAKE_PY) --name $(CONFIG) $(TMP_PROJECT_PATH)/name && cat $(TMP_PROJECT_PATH)/name)
+
+###############################################################################
+# DOCKER
+###############################################################################
+DOCKER_PATH := $(SDK_PATH)/docker
+DOCKER_MK ?= $(DOCKER_PATH)/docker.mk
+include $(DOCKER_MK)
 
 ###############################################################################
 # INSTRUMENT
@@ -146,13 +154,10 @@ include $(PYTHON_MK)
 ###############################################################################
 
 .PHONY: setup
-setup: setup_fpga setup_server setup_web setup_os
+setup: setup_docker setup_fpga setup_server setup_web setup_os
 
 .PHONY: setup_base
 setup_base:
-	sudo bash docker/install_docker.sh
-	sudo usermod -aG docker $(shell whoami)
-	sudo docker build -t gnu-gcc-9.5 ./docker/.
 	sudo apt-get install -y g++-$(GCC_VERSION)-arm-linux-gnueabihf
 	sudo rm -f /usr/bin/arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-g++
 	sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-gcc
@@ -161,6 +166,12 @@ setup_base:
 	sudo apt-get install -y curl
 	$(PIP) install -r $(SDK_PATH)/requirements.txt
 	$(PIP) install $(SDK_PATH)/python
+
+.PHONY: setup_docker
+setup_docker: setup_base
+	sudo bash docker/install_docker.sh
+	sudo usermod -aG docker $(shell whoami)
+	sudo docker build -t gnu-gcc-9.5 ./docker/.
 
 .PHONY: setup_fpga
 setup_fpga: setup_base

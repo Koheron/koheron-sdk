@@ -51,11 +51,8 @@ DEP := $(subst .o,.d,$(OBJ))
 
 SERVER_CCXX := /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) -flto
 ifeq ($(BUILD_METHOD),docker)
-	UID = $(shell id -u)
-	GID = $(shell id -g)
-	SERVER_CCXX := docker run --rm -v $(SDK_FULL_PATH):/home/containeruser/wkspace:Z -u $(UID):$(GID) -w /home/containeruser/wkspace gnu-gcc-9.5 $(GCC_ARCH)-g++-$(GCC_VERSION) -flto
+	SERVER_CCXX = $(DOCKER) $(GCC_ARCH)-g++-$(GCC_VERSION) -flto
 endif
-
 
 SERVER_CCXXFLAGS = -Wall -Werror -Wextra
 SERVER_CCXXFLAGS += -Wpedantic -Wfloat-equal -Wunused-macros -Wcast-qual -Wuseless-cast

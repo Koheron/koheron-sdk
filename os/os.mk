@@ -29,14 +29,6 @@ endif
 
 BOOT_MEDIUM ?= mmcblk0
 
-MAKE_GCC := make
-ifeq ($(BUILD_METHOD),docker)
-	UID = $(shell id -u)
-	GID = $(shell id -g)
-	MAKE_GCC := docker run --rm -v $(SDK_FULL_PATH):/home/containeruser/wkspace:Z -u $(UID):$(GID) -w /home/containeruser/wkspace gnu-gcc-9.5  make
-    #SERVER_CCXX := /usr/bin/arm-linux-gnu-g++ -flto
-endif
-
 .PHONY: os
 os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/$(BOOTCALL) $(TMP_OS_PATH)/$(LINUX_IMAGE) $(DTREE_SWITCH) $(TMP_OS_VERSION_FILE)
 
@@ -69,7 +61,7 @@ $(TMP_OS_PATH)/fsbl/Makefile:  $(TMP_FPGA_PATH)/$(NAME).xsa
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
 	cp -a $(FSBL_PATH)/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
-	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && $(MAKE_GCC) -C $(@D) CFLAGS="$(GCC_FLAGS)" all
+	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && $(DOCKER) make -C $(@D) CFLAGS="$(GCC_FLAGS)" all
 	@echo [$@] OK
 
 .PHONY: clean_fsbl
@@ -98,9 +90,9 @@ $(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES)/u-boot -type f)
 	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	mkdir -p $(@D)
-	$(MAKE_GCC) -C $< mrproper
-	$(MAKE_GCC) -C $< arch=$(ARCH) $(UBOOT_CONFIG)
-	$(MAKE_GCC) -C $< arch=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
+	$(DOCKER) make -C $< mrproper
+	$(DOCKER) make -C $< arch=$(ARCH) $(UBOOT_CONFIG)
+	$(DOCKER) make -C $< arch=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
 	  CROSS_COMPILE=$(GCC_ARCH)- all
 	cp $</u-boot $@
 	cp $</u-boot.elf $@ || true
@@ -120,7 +112,7 @@ $(TMP_OS_PATH)/pmu/Makefile: $(TMP_FPGA_PATH)/$(NAME).xsa
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/pmu/executable.elf: $(TMP_OS_PATH)/pmu/Makefile
-	source $(VITIS_PATH)/$(VIVADO_VER)/settings64.sh && $(MAKE_GCC) -C $(@D) all
+	source $(VITIS_PATH)/$(VIVADO_VER)/settings64.sh && $(DOCKER) make -C $(@D) all
 
 .PHONY: clean_pmufw
 clean_pmufw:
@@ -141,7 +133,7 @@ $(ATRUST_PATH): $(ATRUST_TAR)
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/bl31.elf: $(ATRUST_PATH)
-	$(MAKE_GCC) CROSS_COMPILE=$(GCC_ARCH)- PLAT=zynqmp bl31 ZYNQMP_ATF_MEM_BASE=0x10000 ZYNQMP_ATF_MEM_SIZE=0x40000 -C $(ATRUST_PATH)
+	$(DOCKER) make CROSS_COMPILE=$(GCC_ARCH)- PLAT=zynqmp bl31 ZYNQMP_ATF_MEM_BASE=0x10000 ZYNQMP_ATF_MEM_SIZE=0x40000 -C $(ATRUST_PATH)
 	cp $</build/zynqmp/release/bl31/bl31.elf $@
 	@echo [$@] OK
 
@@ -238,9 +230,9 @@ $(LINUX_PATH): $(LINUX_TAR)
 $(TMP_OS_PATH)/$(LINUX_IMAGE): $(LINUX_PATH) $(shell find $(PATCHES)/linux -type f) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
 	cp $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs
 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
-	$(MAKE_GCC) -C $< mrproper
-	$(MAKE_GCC) -C $< ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
-	$(MAKE_GCC) -C $< ARCH=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
+	$(DOCKER) make -C $< mrproper
+	$(DOCKER) make -C $< ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
+	$(DOCKER) make -C $< ARCH=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
 	  --jobs=$(N_CPUS) \
 	  CROSS_COMPILE=$(GCC_ARCH)- UIMAGE_LOADADDR=0x8000 $(LINUX_IMAGE)
 	cp $</arch/$(ARCH)/boot/$(LINUX_IMAGE) $@
@@ -269,7 +261,7 @@ $(TMP_OS_PATH)/devicetree.dtb: $(LINUX_PATH)/scripts/dtc/dtc  $(TMP_OS_PATH)/dev
 $(TMP_OS_PATH)/devicetree_linux: $(TMP_OS_PATH)/$(LINUX_IMAGE)
 	echo ${DTREE_OVERRIDE}
 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
-	$(MAKE_GCC) -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
+	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
 	cp $(LINUX_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
 	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
 
