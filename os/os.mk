@@ -69,7 +69,7 @@ $(TMP_OS_PATH)/fsbl/Makefile:  $(TMP_FPGA_PATH)/$(NAME).xsa
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
 	cp -a $(FSBL_PATH)/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
-	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && $(MAKE_GCC) -C $(@D) all
+	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && $(MAKE_GCC) -C $(@D) CFLAGS="$(GCC_FLAGS)" all
 	@echo [$@] OK
 
 .PHONY: clean_fsbl
