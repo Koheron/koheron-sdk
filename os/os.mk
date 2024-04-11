@@ -28,6 +28,7 @@ UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
+FSBL_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 LINUX_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 UBOOT_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 
@@ -68,7 +69,7 @@ $(TMP_OS_PATH)/fsbl/Makefile: $(TMP_FPGA_PATH)/$(NAME).hwdef
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
 	cp -a $(FSBL_PATH)/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
-	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && $(DOCKER) make -C $(@D) all
+	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && $(DOCKER) make -C $(@D) CFLAGS=$(FSBL_CFLAGS) all
 	@echo [$@] OK
 
 .PHONY: clean_fsbl
