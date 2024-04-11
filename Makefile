@@ -21,6 +21,9 @@ PYTHON := python3
 # Use GCC version >=7
 GCC_VERSION := 9
 
+BUILD_METHOD := native
+#BUILD_METHOD = docker
+
 .PHONY: help
 help:
 	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
