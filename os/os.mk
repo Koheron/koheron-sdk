@@ -3,22 +3,11 @@
 # - Device tree
 # - U-boot
 # - Linux kernel
-
-PATCHES := $(BOARD_PATH)/patches
-PROC := ps7_cortexa9_0
-HSI := source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && hsi -nolog -nojournal -mode batch
-BOOTGEN := source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && bootgen
+include $(OS_PATH)/toolchain.mk
 
 BOARD := $(shell basename $(BOARD_PATH))
 
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
-
-# Define U-boot and Linux repositories
-ifneq ("$(wildcard $(BOARD_PATH)/board.mk)","")
--include $(BOARD_PATH)/board.mk
-else
--include $(OS_PATH)/board.mk
-endif
 
 UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
 LINUX_PATH := $(TMP_OS_PATH)/linux-xlnx-$(LINUX_TAG)
@@ -37,13 +26,15 @@ TMP_OS_VERSION_FILE := $(TMP_OS_PATH)/version.json
 $(TMP_OS_VERSION_FILE): $(KOHERON_VERSION_FILE)
 	echo '{ "version": "$(KOHERON_VERSION)" }' > $@
 
+BOOT_MEDIUM ?= mmcblk0
+
 .PHONY: os
-os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/boot.bin $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_VERSION_FILE)
+os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/$(BOOTCALL) $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_VERSION_FILE)
 
 # Build image (run as root)
 .PHONY: image
 image:
-	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE)
+	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE) $(BOOT_MEDIUM)
 
 .PHONY: clean_os
 clean_os:
@@ -160,8 +151,8 @@ $(TMP_OS_PATH)/uImage: $(LINUX_PATH)
 	$(DOCKER) make -C $< ARCH=arm xilinx_zynq_defconfig
 	$(DOCKER) make -C $< ARCH=arm CFLAGS=$(LINUX_CFLAGS) \
 	  --jobs=$(N_CPUS) \
-	  CROSS_COMPILE=arm-linux-gnueabihf- UIMAGE_LOADADDR=0x8000 uImage
-	cp $</arch/arm/boot/uImage $@
+	  CROSS_COMPILE=$(GCC_ARCH)- UIMAGE_LOADADDR=0x8000 $(LINUX_IMAGE)
+	cp $</arch/arm/boot/$(LINUX_IMAGE) $@
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree/system-top.dts

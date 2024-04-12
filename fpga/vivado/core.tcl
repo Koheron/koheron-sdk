@@ -28,7 +28,7 @@ set core [ipx::current_core]
 set_property VERSION $version $core
 set_property NAME $project_name $core
 set_property LIBRARY {user} $core
-set_property SUPPORTED_FAMILIES {zynq Production} $core
+set_property SUPPORTED_FAMILIES {zynq Production zynquplus Production} $core
 
 proc core_parameter {name display_name description} {
   set core [ipx::current_core]

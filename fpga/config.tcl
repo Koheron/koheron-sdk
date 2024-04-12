@@ -23,13 +23,12 @@ variable ps_control_size {{ config['ps_control_registers'] | length }}
 ##########################################################
 # Define status offsets
 ##########################################################
-set sts_start 2
 variable sts_register
 {% for name in config['status_registers'] -%}
-set sts_register([expr {{ loop.index0 }} + $sts_start]) {{name}}
+set sts_register({{ loop.index0 }}) {{name}}
 {% endfor -%}
 
-variable status_size [expr {{ config['status_registers'] | length }} + $sts_start]
+variable status_size {{ config['status_registers'] | length }}
 
 ##########################################################
 # Define ps status offsets
