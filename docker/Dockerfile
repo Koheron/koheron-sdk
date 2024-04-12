@@ -4,6 +4,7 @@ RUN apt install -y binutils-aarch64-linux-gnu binutils-arm-linux-gnueabi gcc-9-a
 RUN apt install -y g++-arm-linux-gnueabihf
 RUN apt install -y gcc-arm-none-eabi
 RUN apt install -y flex bison bc u-boot-tools
+RUN apt install device-tree-compiler
 ENV TERM=xterm-256color
 USER containeruser
 
