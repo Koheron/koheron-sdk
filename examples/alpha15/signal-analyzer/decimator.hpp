@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_DECIMATOR_HPP__
-#define __DRIVERS_DECIMATOR_HPP__
+#ifndef __DRIVERS_SIGNAL_ANALYZER_HPP__
+#define __DRIVERS_SIGNAL_ANALYZER_HPP__
 
 #include <context.hpp>
 
@@ -25,30 +25,6 @@ class Decimator
     , sts(ctx.mm.get<mem::status>())
     , adc_fifo_map(ctx.mm.get<mem::adc_fifo>())
     {}
-
-    // Channel selection
-
-    void select_adc_channel(uint32_t channel) {
-        if (channel == 0) {
-            ctl.clear_bit<reg::channel_select, 0>();
-            ctl.clear_bit<reg::channel_select, 1>();
-        } else if (channel == 1) {
-            ctl.set_bit<reg::channel_select, 0>();
-            ctl.clear_bit<reg::channel_select, 1>();
-        } else if (channel == 3) { // Diff or sum of channels
-            ctl.clear_bit<reg::channel_select, 0>();
-            ctl.set_bit<reg::channel_select, 1>();
-        }
-    }
-
-    void set_operation(uint32_t operation) {
-        // operation:
-        // 0 : Substration
-        // 1 : Addition
-
-        operation == 0 ? ctl.clear_bit<reg::channel_select, 2>()
-                       : ctl.set_bit<reg::channel_select, 2>();
-    }
 
     // Adc FIFO
 
@@ -89,4 +65,4 @@ class Decimator
     std::array<uint32_t, ARR_SIZE> adc_data;
 };
 
-#endif // __DRIVERS_PULSE_HPP__
+#endif // __DRIVERS_SIGNAL_ANALYZER_HPP__

@@ -9,7 +9,7 @@ set elements [split $core_name _]
 set project_name [join [lrange $elements 0 end-2] _]
 set version [string trimleft [join [lrange $elements end-1 end] .] v]
 
-file delete -force $output_path/$core_name $output_path/$project_name.cache $output_path/$project_name.hw $output_path/$project_name.xpr
+file delete -force $output_path/$core_name $output_path/$project_name.cache $output_path/$project_name.hw $output_path/$project_name.ip_user_files $output_path/$project_name.sim $output_path/$project_name.xpr
 
 create_project -part $part $project_name $output_path
 

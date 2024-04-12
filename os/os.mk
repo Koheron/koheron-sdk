@@ -17,6 +17,13 @@ UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
+<<<<<<< HEAD
+=======
+FSBL_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
+LINUX_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
+UBOOT_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
+
+>>>>>>> 36004d65dc82f152cb8f86d6337f1b264313fad5
 TMP_OS_VERSION_FILE := $(TMP_OS_PATH)/version.json
 
 $(TMP_OS_VERSION_FILE): $(KOHERON_VERSION_FILE)
@@ -56,7 +63,7 @@ $(TMP_OS_PATH)/fsbl/Makefile: $(TMP_FPGA_PATH)/$(NAME).hwdef
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
 	cp -a $(FSBL_PATH)/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
-	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && make -C $(@D) all
+	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && $(DOCKER) make -C $(@D) CFLAGS=$(FSBL_CFLAGS) all
 	@echo [$@] OK
 
 .PHONY: clean_fsbl
@@ -79,10 +86,17 @@ $(UBOOT_PATH): $(UBOOT_TAR)
 
 $(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH)
 	mkdir -p $(@D)
+<<<<<<< HEAD
 	make -C $< mrproper
 	make -C $< arch=$(ARCH) `find $(PATCHES) -name '*_defconfig' -exec basename {} \;`
 	make -C $< arch=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
 	  CROSS_COMPILE=$(GCC_ARCH)- all
+=======
+	$(DOCKER) make -C $< mrproper
+	$(DOCKER) make -C $< arch=arm `find $(PATCHES) -name '*_defconfig' -exec basename {} \;`
+	$(DOCKER) make -C $< arch=arm CFLAGS=$(UBOOT_CFLAGS) \
+	  CROSS_COMPILE=arm-linux-gnueabihf- all
+>>>>>>> 36004d65dc82f152cb8f86d6337f1b264313fad5
 	cp $</u-boot $@
 	@echo [$@] OK
 
@@ -143,9 +157,15 @@ $(LINUX_PATH): $(LINUX_TAR)
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/uImage: $(LINUX_PATH)
+<<<<<<< HEAD
 	make -C $< mrproper
 	make -C $< ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
 	make -C $< ARCH=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
+=======
+	$(DOCKER) make -C $< mrproper
+	$(DOCKER) make -C $< ARCH=arm xilinx_zynq_defconfig
+	$(DOCKER) make -C $< ARCH=arm CFLAGS=$(LINUX_CFLAGS) \
+>>>>>>> 36004d65dc82f152cb8f86d6337f1b264313fad5
 	  --jobs=$(N_CPUS) \
 	  CROSS_COMPILE=$(GCC_ARCH)- UIMAGE_LOADADDR=0x8000 $(LINUX_IMAGE)
 	cp $</arch/arm/boot/$(LINUX_IMAGE) $@

@@ -135,6 +135,48 @@ class Ltc2387
                        : ctl.read_bit<reg::rf_adc_ctl0, 0>();
     }
 
+    // Data input delay
+
+    template<uint32_t regid, uint32_t lsb>
+    void set_delay_tap(uint32_t tap) {
+        if (tap > 31U) {
+            ctx.log<WARNING>("Ltc2387: Tap too large [%u > 31]\n", tap);
+            tap = 31U;
+        }
+
+        constexpr auto mask = ~((0b11111) << lsb);
+        ctl.write<regid>((ctl.read<regid, uint32_t>() & mask) | (tap << lsb));
+
+        // Reset delay
+        ctl.set_bit<regid, 21>();
+        ctl.clear_bit<regid, 21>();
+    }
+
+    void dco_delay_tap(bool channel, uint32_t tap) {
+        channel ? set_delay_tap<reg::rf_adc_ctl1, 4>(tap)
+                : set_delay_tap<reg::rf_adc_ctl0, 4>(tap);
+    }
+
+    void da_delay_tap(bool channel, uint32_t tap) {
+        channel ? set_delay_tap<reg::rf_adc_ctl1, 9>(tap)
+                : set_delay_tap<reg::rf_adc_ctl0, 9>(tap);
+    }
+
+    void db_delay_tap(bool channel, uint32_t tap) {
+        channel ? set_delay_tap<reg::rf_adc_ctl1, 15>(tap)
+                : set_delay_tap<reg::rf_adc_ctl0, 15>(tap);
+    }
+
+    // Set the same delay on all inputs
+    void set_input_delay(uint32_t tap) {
+        dco_delay_tap(0, tap);
+        dco_delay_tap(1, tap);
+        da_delay_tap(0, tap);
+        da_delay_tap(1, tap);
+        db_delay_tap(0, tap);
+        db_delay_tap(1, tap);
+    }
+
     // Data
 
     auto adc_raw_data(uint32_t n_avg) {

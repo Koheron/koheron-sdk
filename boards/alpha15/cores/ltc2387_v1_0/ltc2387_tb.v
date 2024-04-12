@@ -62,6 +62,78 @@ module ltc2387_tb();
     // Period 2
     #(CLK_PERIOD) din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1;
     #(CLK_PERIOD) din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1;              //D17 D16
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0; // D15 D14
+    #(CLK_PERIOD) din0_co = 0; din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; // D13 D12
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0; // D11 D10
+    #(CLK_PERIOD) din0_co = 0; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0; // D9 D8
+    #(CLK_PERIOD) din0_co = 1; din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; // D7 D6
+    #(CLK_PERIOD) din0_co = 0; din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; // D5 D4
+    #(CLK_PERIOD) din0_co = 1; din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; // D3 D2
+    #(CLK_PERIOD) din0_co = 0; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0; // D1 D0
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_co = 0; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+        
+    // Period 3 => clkout_dec
+    #(CLK_PERIOD) din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; clkout_dec = 1;
+    #(CLK_PERIOD) din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; clkout_dec = 0;            //D17 D16
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 1; din1_b = 1; // D15 D14
+    #(CLK_PERIOD) din0_co = 1; din0_a = 1; din0_b = 1; din1_a = 0; din1_b = 0; // D13 D12
+    #(CLK_PERIOD) din0_co = 0; din0_a = 0; din0_b = 0; din1_a = 1; din1_b = 1; // D11 D10
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0; // D9 D8
+    #(CLK_PERIOD) din0_co = 0; din0_a = 1; din0_b = 1; din1_a = 0; din1_b = 0; // D7 D6
+    #(CLK_PERIOD) din0_co = 1; din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; // D5 D4
+    #(CLK_PERIOD) din0_co = 0; din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; // D3 D2
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 1; din1_b = 1; // D1 D0
+    #(CLK_PERIOD) din0_co = 0; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_co = 0; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0; 
+    #(CLK_PERIOD) din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    
+    // Period 4
+    #(CLK_PERIOD) din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1;
+    #(CLK_PERIOD) din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1;              //D17 D16
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 1; din1_b = 1; // D15 D14
+    #(CLK_PERIOD) din0_co = 0; din0_a = 1; din0_b = 1; din1_a = 0; din1_b = 0; // D13 D12
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 1; din1_b = 1; // D11 D10
+    #(CLK_PERIOD) din0_co = 0; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0; // D9 D8
+    #(CLK_PERIOD) din0_co = 1; din0_a = 1; din0_b = 1; din1_a = 0; din1_b = 0; // D7 D6
+    #(CLK_PERIOD) din0_co = 0; din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; // D5 D4
+    #(CLK_PERIOD) din0_co = 1; din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; // D3 D2
+    #(CLK_PERIOD) din0_co = 0; din0_a = 0; din0_b = 0; din1_a = 1; din1_b = 1; // D1 D0
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_co = 0; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    
+        // Period 3 => clkout_dec
+    #(CLK_PERIOD) din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; clkout_dec = 1;
+    #(CLK_PERIOD) din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; clkout_dec = 0;            //D17 D16
+    #(CLK_PERIOD) din0_co = 0; din0_a = 0; din0_b = 0; din1_a = 1; din1_b = 1; // D15 D14
+    #(CLK_PERIOD) din0_co = 1; din0_a = 1; din0_b = 1; din1_a = 0; din1_b = 0; // D13 D12
+    #(CLK_PERIOD) din0_co = 0; din0_a = 0; din0_b = 0; din1_a = 1; din1_b = 1; // D11 D10
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0; // D9 D8
+    #(CLK_PERIOD) din0_co = 0; din0_a = 1; din0_b = 1; din1_a = 0; din1_b = 0; // D7 D6
+    #(CLK_PERIOD) din0_co = 1; din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; // D5 D4
+    #(CLK_PERIOD) din0_co = 0; din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1; // D3 D2
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 1; din1_b = 1; // D1 D0
+    #(CLK_PERIOD) din0_co = 0; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0; clkout_dec = 1;
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0; clkout_dec = 0;     
+    #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0; 
+    #(CLK_PERIOD) din0_co = 0; din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    #(CLK_PERIOD) din0_a = 0; din0_b = 0; din1_a = 0; din1_b = 0;
+    
+    // Period 4
+    #(CLK_PERIOD) din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1;
+    #(CLK_PERIOD) din0_a = 1; din0_b = 1; din1_a = 1; din1_b = 1;              //D17 D16
     #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 1; din1_b = 1; // D15 D14
     #(CLK_PERIOD) din0_co = 0; din0_a = 1; din0_b = 1; din1_a = 0; din1_b = 0; // D13 D12
     #(CLK_PERIOD) din0_co = 1; din0_a = 0; din0_b = 0; din1_a = 1; din1_b = 1; // D11 D10

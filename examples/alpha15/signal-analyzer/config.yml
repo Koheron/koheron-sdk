@@ -1,5 +1,5 @@
 ---
-name: decimator
+name: signal-analyzer
 board: boards/alpha15
 version: 0.1.0
 
@@ -10,6 +10,7 @@ cores:
   - fpga/cores/edge_detector_v1_0
   - fpga/cores/comparator_v1_0
   - fpga/cores/bus_multiplexer_v1_0
+  - fpga/cores/psd_counter_v1_0
   - boards/alpha250/cores/precision_dac_v1_0
   - boards/alpha250/cores/spi_cfg_v1_0
   - boards/alpha15/cores/ltc2387_v1_0
@@ -34,16 +35,23 @@ memory:
   - name: adc_fifo
     offset: '0x43C10000'
     range: 64K
+  - name: demod
+    offset: '0x70000000'
+    range: 32K
+  - name: psd
+    offset: '0x74000000'
+    range: 32K
 
 control_registers:
   - mmcm
   - precision_dac_ctl
   - precision_dac_data[2]
-  - channel_select
   - trig
   - rf_adc_ctl[2]
   - digital_outputs
   - adp5071_sync
+  - channel_select
+  - channel_offset[2]
 
 status_registers:
   - adc[n_adc]
@@ -52,9 +60,11 @@ status_registers:
 ps_control_registers:
   - spi_cfg_data
   - spi_cfg_cmd
+  - ctl_fft
 
 ps_status_registers:
   - spi_cfg_sts
+  - cycle_index
 
 parameters:
   fclk0: 166666667 # CPU clock speed in Hz
@@ -65,6 +75,8 @@ parameters:
   cic_differential_delay: 1
   cic_decimation_rate: 2048
   cic_n_stages: 6
+  fft_size: 8192
+  n_cycles: 1023
 
 xdc:
   - boards/alpha15/config/ports.xdc
@@ -81,6 +93,7 @@ drivers:
   - boards/alpha250/drivers/precision-dac.hpp
   - boards/alpha250/drivers/spi-config.hpp
   - ./decimator.hpp
+  - ./fft.hpp
 
 web:
   - web/index.html
