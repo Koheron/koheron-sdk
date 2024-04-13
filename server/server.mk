@@ -61,13 +61,10 @@ SERVER_CCXXFLAGS +=  -Wpacked -Wredundant-decls -Wvarargs -Wvector-operation-per
 SERVER_CCXXFLAGS += -Wuninitialized  -Wmissing-declarations
 # SERVER_CCXXFLAGS += -Wconversion -Wsign-conversion
 #SERVER_CCXXFLAGS += -Wshift-negative-value -Wduplicated-cond -Wduplicated-branches -Waligned-new
-SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/core -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
+SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/rootfs/$(GCC_ARCH)/include/ -I$(SERVER_PATH)/core -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 SERVER_CCXXFLAGS += -DKOHERON_VERSION=$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)
-SERVER_CCXXFLAGS += -MMD -MP -O3 $(GCC_FLAGS)
-# Arch flags obtain by running on the Zynq:
-# gcc -march=native -Q --help=target
-SERVER_CCXXFLAGS += -mfpu=vfpv3-d16 -mvectorize-with-neon-quad -mfloat-abi=hard
-SERVER_CCXXFLAGS += -std=c++17 -pthread -lstdc++ -lstdc++fs -static-libstdc++
+SERVER_CCXXFLAGS += -MMD -MP -O3 -lstdc++fs $(GCC_FLAGS) -L$(SERVER_PATH)/rootfs/$(GCC_ARCH)/lib/ #-ljsoncpp
+SERVER_CCXXFLAGS += -std=c++17 -pthread
 
 PHONY: gcc_flags
 gcc_flags:
