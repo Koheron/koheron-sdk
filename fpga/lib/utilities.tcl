@@ -260,6 +260,10 @@ proc cell {cell_vlnv cell_name {cell_props {}} {cell_ports {}}} {
 
 proc check_vlnv {vlnv} {
   set name [get_name_from_vlnv $vlnv]
+  if {$name == "axis_interconnect"} {
+    # Fix bug in Vivado IP list
+    return $vlnv
+  }
   if {$name == "axi_interconnect"} {
     # Fix bug in Vivado IP list
     return $vlnv
