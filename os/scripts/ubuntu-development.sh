@@ -9,24 +9,8 @@ zynq_type=$6
 image=$tmp_project_path/${name}-development.img
 BOOTPART=$7
 
-size=2048
+size=2560
 
-ubuntu_version=20.04.1
-part1=/dev/${BOOTPART}p1
-part2=/dev/${BOOTPART}p2
-if [ "${zynq_type}" = "zynqmp" ]; then
-    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-MPSoC..."
-    root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
-    linux_image=Image
-    qemu_path=/usr/bin/qemu-aarch64-static
-    part1=/dev/mmcblk1p1
-    part2=/dev/mmcblk1p2
-else
-    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-7000..."
-    root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
-    linux_image=uImage
-    qemu_path=/usr/bin/qemu-arm-static
-fi
 
 ubuntu_version=20.04.2
 part1=/dev/${BOOTPART}p1
@@ -62,7 +46,7 @@ timezone=Europe/Paris
 # Create partitions
 
 parted -s $device mklabel msdos
-parted -s $device mkpart primary fat16 4MB 512MB
+parted -s $device mkpart primary fat16 4MB 1024MB
 parted -s $device mkpart primary ext4 512MB 100%
 
 boot_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '2!d'`
@@ -137,7 +121,7 @@ cat <<- EOF_CAT > etc/fstab
 # /etc/fstab: static file system information.
 # <file system> <mount point>   <type>  <options>           <dump>  <pass>
 $part2          /               ext4    rw,noatime          0       1
-$part1          /boot           vfat    ro,noatime          0       2
+$part1          /boot           vfat    rw,noatime          0       2
 tmpfs           /tmp            tmpfs   defaults,noatime    0       0
 tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
 EOF_CAT
