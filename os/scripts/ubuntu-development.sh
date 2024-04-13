@@ -153,7 +153,7 @@ apt install -y bash-completion unzip
 apt install -y udev net-tools netbase ifupdown network-manager lsb-base isc-dhcp-client
 apt install -y ntpdate sudo rsync
 apt install -y kmod
-apt install -y gcc
+apt install -y gcc g++ strace gdb
 
 apt install -y nginx
 sudo dpkg --configure -a
