@@ -247,7 +247,7 @@ $(LINUX_PATH)/scripts/dtc/dtc: $(TMP_OS_PATH)/$(LINUX_PATH) $(shell find $(PATCH
 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $< mrproper
 	$(DOCKER) make -C $< ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
-	make dtbs
+	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
 	@echo [$@] OK
 
 
