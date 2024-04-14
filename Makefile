@@ -25,6 +25,11 @@ GCC_VERSION := 9
 BUILD_METHOD := native
 #BUILD_METHOD = docker
 
+OS=$(shell lsb_release -si)
+VER=$(shell lsb_release -sr)
+DISTRO := $(shell ./setup/get_distro.sh)
+
+
 .PHONY: help
 help:
 	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
@@ -158,24 +163,18 @@ setup: setup_docker setup_fpga setup_server setup_web setup_os
 
 .PHONY: setup_base
 setup_base:
-	sudo apt-get install -y g++-$(GCC_VERSION)-arm-linux-gnueabihf
-	sudo rm -f /usr/bin/arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-g++
-	sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-gcc
-	sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-g++
-	sudo apt-get install -y $(PYTHON)-pip
-	sudo apt-get install -y curl
-	$(PIP) install -r $(SDK_PATH)/requirements.txt
-	$(PIP) install $(SDK_PATH)/python
+	sudo bash setup/install_gcc_compilers_$(DISTRO).sh $(GCC_VERSION) || true
+	sudo bash setup/install_dependencies_$(DISTRO).sh $(PYTHON)
+	$(PIP) install -r $(SDK_PATH)/requirements.txt --break-system-packages
+	$(PIP) install $(SDK_PATH)/python --break-system-packages
 
 .PHONY: setup_docker
 setup_docker: setup_base
-	sudo bash docker/install_docker.sh
-	sudo usermod -aG docker $(shell whoami)
+	sudo bash docker/install_docker_$(DISTRO).sh
 	sudo docker build -t gnu-gcc-9.5 ./docker/.
 
 .PHONY: setup_fpga
 setup_fpga: setup_base
-	sudo apt-get install device-tree-compiler
 	sudo rm -f /usr/bin/gmake && sudo ln -s make /usr/bin/gmake
 
 .PHONY: setup_server
@@ -183,17 +182,14 @@ setup_server: setup_base
 
 .PHONY: setup_web
 setup_web: setup_base
-	sudo apt-get install -y nodejs
-	sudo apt-get install -y node-typescript
-	sudo apt-get install -y npm # npm installed with nodejs
+	sudo bash setup/install_web_$(DISTRO).sh
 	#sudo rm -f /usr/bin/node && sudo ln -s /usr/bin/nodejs /usr/bin/node
 	npm install typescript
 	npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
 
 .PHONY: setup_os
 setup_os: setup_base
-	sudo apt-get install -y libssl-dev bc qemu-user-static zerofree
-	sudo apt-get install -y lib32stdc++6 lib32z1 u-boot-tools
+	sudo bash setup/install_os_$(DISTRO).sh
 
 ###############################################################################
 # CLEAN TARGETS

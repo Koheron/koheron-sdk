@@ -14,3 +14,10 @@ apt-get update
 
 # Install Docker
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+systemctl start docker
+systemctl enable docker
+
+usermod -aG docker $(whoami)
+
+# Add Docker's official GPG key:
