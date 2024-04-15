@@ -9,13 +9,14 @@
 #include <array>
 #include <string>
 #include <vector>
+#include <filesystem>
 #include <sys/mount.h>
-#include <experimental/filesystem>
+
 #include <context_base.hpp>
 #include "memory.hpp"
 
 namespace {
-    namespace fs = std::experimental::filesystem;
+    namespace fs = std::filesystem;
 }
 
 class FpgaManager {
@@ -115,17 +116,16 @@ class FpgaManager {
             return -1;
         }
 
-        // Not permitted to remove /configfs/device-tree/
-        // In principle we cannot remove a directory with something mounted on it.
-
         // remove any previous overlay
-        // if (fs::exists(overlay_path)) {
-        //     fs::remove_all(overlay_path);
-        // }
+        if (fs::exists(overlay_path)) {
+            // fs::remove_all(overlay_path); // => Fails with "filesystem error: cannot remove all: Operation not permitted"
+            rmdir(overlay_path.c_str());
+        }
 
-        // if (fs::exists(overlay_path)) {
-        //     ctx.log<PANIC>("Failed to remove previous overlay ...\n");
-        // }
+        if (fs::exists(overlay_path)) {
+            ctx.log<PANIC>("Failed to remove previous overlay\n");
+            return -1;
+        }
 
         fs::create_directories(overlay_path);
 
@@ -252,7 +252,7 @@ class FpgaManager {
             return -1;
         }
 
-        const std::string echo = "pl.dtbo";
+        const std::string echo = "pl.dtbo\n";
 
         ctx.log<INFO>("echo %s > %s\n", echo.c_str(), overlay.c_str());
 
