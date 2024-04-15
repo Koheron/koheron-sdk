@@ -22,8 +22,8 @@ PYTHON := python3
 GCC_VERSION := 9
 
 
-BUILD_METHOD := native
-#BUILD_METHOD = docker
+#BUILD_METHOD := native
+BUILD_METHOD = docker
 
 OS=$(shell lsb_release -si)
 VER=$(shell lsb_release -sr)
