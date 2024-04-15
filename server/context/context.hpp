@@ -23,27 +23,13 @@ class Context : public ContextBase
     , fclk(*this)
     , fpga(*this)
     {
-        if (fpga.load_bitstream(instrument_name) < 0) {
+        if (fpga.load_bitstream() < 0) {
            log<PANIC>("Failed to load bitstream. Exiting server...\n");
            exit(EXIT_FAILURE);
         }
 
         // We set all the Zynq clocks before starting the drivers
         zynq_clocks::set_clocks(fclk);
-    }
-
-    bool fpga_rewrite_bitsream()
-    {
-
-        if (fpga.unload_bitstream() < 0) {
-           log<PANIC>("Failed to unload bitstream. \n");
-           return false;
-        }
-        if (fpga.load_bitstream(instrument_name) < 0) {
-           log<PANIC>("Failed to load bitstream. \n");
-           return false;
-        }
-        return true;
     }
 
     int init() {
