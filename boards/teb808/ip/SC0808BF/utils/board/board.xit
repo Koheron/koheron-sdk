@@ -1,0 +1,38 @@
+package require xilinx::board 1.0
+namespace import ::xilinx::board::*
+
+set instname [current_inst]
+set f_xdc [add_ipfile -usedIn  [list synthesis implementation board ] -force ${instname}_board.xdc]
+puts_ipfile $f_xdc "#--------------------Physical Constraints-----------------\n"
+
+if { [get_project_property BOARD] == "" } {
+    close_ipfile $f_xdc
+    return 
+}
+
+
+set board_if [get_property PARAM_VALUE.BOARD_INTERFACE]
+
+if { $board_if eq "SC0841"} {
+
+# file interface interface_port board_port
+
+board_add_port_constraints $f_xdc $board_if EN_OSC EN_OSC
+
+board_add_port_constraints $f_xdc $board_if PG_GT PG_GT
+
+#board_add_port_constraints $f_xdc $board_if XIO XIO
+
+board_add_tri_state_port_constraints $f_xdc $board_if \
+		XIO_O XIO_O\
+		XIO_I XIO_I\
+		XIO_T XIO_T
+    
+
+puts_ipfile $f_xdc "\n\n"
+puts_ipfile $f_xdc "#---------------------------------------------------------\n"
+
+}
+
+close_ipfile $f_xdc
+

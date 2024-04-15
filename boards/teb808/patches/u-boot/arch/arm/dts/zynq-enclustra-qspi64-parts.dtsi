@@ -1,0 +1,38 @@
+&qspi {
+	status = "okay";
+	is-dual = <0>;
+	num-cs = <1>;
+	flash@0 {
+		compatible = "s25fl512s";
+		reg = <0x0>;
+		spi-tx-bus-width = <1>;
+		spi-rx-bus-width = <4>;
+		spi-max-frequency = <50000000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		partition@qspi-bootimage {
+			label = "qspi-bootimage";
+			reg = <0x0 0x700000>;
+		};
+		partition@qspi-kernel {
+			label = "qspi-kernel";
+			reg = <0x700000 0x500000>;
+		};
+		partition@qspi-device-tree {
+			label = "qspi-device-tree";
+			reg = <0xC00000 0x80000>;
+		};
+		partition@qspi-bootargs {
+			label = "qspi-bootargs";
+			reg = <0xC80000 0x80000>;
+		};
+		partition@qspi-bootscript {
+			label = "qspi-bootscript";
+			reg = <0xD00000 0x40000>;
+		};
+		partition@qspi-rootfs {
+			label = "qspi-rootfs";
+			reg = <0xD40000 0x32C0000>;
+		};
+	};
+};
