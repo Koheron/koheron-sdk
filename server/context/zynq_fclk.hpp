@@ -9,8 +9,13 @@
 
 #include <cstdio>
 #include <string>
+#include <filesystem>
 
 #include <context_base.hpp>
+
+namespace {
+    namespace fs = std::filesystem;
+}
 
 class ZynqFclk {
   public:
@@ -19,6 +24,34 @@ class ZynqFclk {
     {}
 
     void set(const std::string& fclk_name, uint32_t fclk_rate) {
+        if (fs::exists(devcfg + "/fclk/")) {
+            set_fclk_devcfg(fclk_name, fclk_rate);
+            return;
+        } else {
+            const auto clkid = fclk_name.back(); // Ex. if fclk_name = fclk0, clkid = 0
+            const auto clkdir = amba_clocking + clkid;
+
+            if (fs::exists(clkdir)) {
+                ctx.log<INFO>("ZynqFclk: Found %s\n", clkdir.c_str());
+                set_fclk_amba_clocking(clkdir, fclk_rate);
+            } else {
+                ctx.log<ERROR>("ZynqFclk: Cannot find %s required to set %s\n", clkdir.c_str(), fclk_name.c_str());
+                return;
+            }
+        }
+    }
+
+  private:
+    ContextBase& ctx;
+
+    const std::string devcfg = "/sys/devices/soc0/amba/f8007000.devcfg";
+    const std::string amba_clocking = "/sys/devices/soc0/amba/amba:clocking";
+
+    // ------------------------------------------------------------------------
+    // Use devcfg
+    // ------------------------------------------------------------------------
+
+    void set_fclk_devcfg(const std::string& fclk_name, uint32_t fclk_rate) {
         const auto fclk_dir_name = devcfg + "/fclk/" + fclk_name;
 
         if (fclk_export(fclk_name, fclk_dir_name) < 0) {
@@ -35,10 +68,6 @@ class ZynqFclk {
 
         ctx.log<INFO>("ZynqFclk: Clock %s set to %u Hz\n", fclk_name.c_str(), fclk_rate);
     }
-
-  private:
-    ContextBase& ctx;
-    const std::string devcfg = "/sys/devices/soc0/amba/f8007000.devcfg";
 
     int fclk_export(const std::string& fclk_name, const std::string& fclk_dir_name) {
         DIR *fclk_dir = opendir(fclk_dir_name.c_str());
@@ -107,6 +136,15 @@ class ZynqFclk {
         fclose(fclk_set_rate);
         return 0;
     }
+
+    // ------------------------------------------------------------------------
+    // Use amba_clocking
+    // ------------------------------------------------------------------------
+
+    void set_fclk_amba_clocking(const std::string& clkdir, uint32_t fclk_rate) {
+        // TODO
+    }
+
 }; // class ZynqFclk
 
 #endif // __SERVER_CONTEXT_ZYNQ_FCLK__
