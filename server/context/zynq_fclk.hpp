@@ -9,6 +9,8 @@
 
 #include <cstdio>
 #include <string>
+#include <fstream>
+#include <iterator>
 #include <filesystem>
 
 #include <context_base.hpp>
@@ -23,17 +25,23 @@ class ZynqFclk {
     : ctx(ctx_)
     {}
 
-    void set(const std::string& fclk_name, uint32_t fclk_rate) {
+    void set(const std::string& fclk_name, uint32_t fclk_rate, [[maybe_unused]] bool update_rate=false) {
+        // When devcfg is used clock rate is always update.
+        //
+        // When using devicetree overlay the clock rate is updated when the overlay is loaded.
+        // Therefore there is no need to update it in most cases.
+        // If we want to update it, set update_rate to true when calling ctx.fclk.set()
+
         if (fs::exists(devcfg + "/fclk/")) {
             set_fclk_devcfg(fclk_name, fclk_rate);
             return;
         } else {
-            const auto clkid = fclk_name.back(); // Ex. if fclk_name = fclk0, clkid = 0
+            const auto clkid = fclk_name.back(); // Ex. if fclk_name = fclk0 then clkid = 0
             const auto clkdir = amba_clocking + clkid;
 
             if (fs::exists(clkdir)) {
                 ctx.log<INFO>("ZynqFclk: Found %s\n", clkdir.c_str());
-                set_fclk_amba_clocking(clkdir, fclk_rate);
+                set_fclk_amba_clocking(clkdir, clkid, fclk_rate, update_rate);
             } else {
                 ctx.log<ERROR>("ZynqFclk: Cannot find %s required to set %s\n", clkdir.c_str(), fclk_name.c_str());
                 return;
@@ -141,8 +149,46 @@ class ZynqFclk {
     // Use amba_clocking
     // ------------------------------------------------------------------------
 
-    void set_fclk_amba_clocking(const std::string& clkdir, uint32_t fclk_rate) {
-        // TODO
+    void set_fclk_amba_clocking(const std::string& clkdir, char clkid,
+                                uint32_t fclk_rate, bool update_rate) {
+        if (update_rate) {
+            amba_clocking_set_rate(clkdir, clkid, fclk_rate);
+        }
+
+        const auto rate = amba_clocking_get_rate(clkdir);
+        ctx.log<INFO>("ZynqFclk: amba:clocking%c rate is %u Hz\n", clkid, rate);
+
+        const auto rel_rate_err =  1E9 * std::abs(rate - long(fclk_rate)) / double(fclk_rate);
+        ctx.log<INFO>("ZynqFclk: amba:clocking%c relative rate error is %lf ppb\n", clkid, rel_rate_err);
+    }
+
+    int amba_clocking_set_rate(const std::string& clkdir, char clkid, uint32_t fclk_rate) {
+        const auto fclk_set_rate_name = clkdir + "/set_rate";
+        FILE *file_set_rate = fopen(fclk_set_rate_name.c_str(), "w");
+
+        if (file_set_rate == nullptr) {
+            ctx.log<ERROR>("ZynqFclk: Cannot open set_rate for amba:clocking%c\n", clkid);
+            return -1;
+        }
+
+        const auto fclk_rate_str = std::to_string(fclk_rate);
+
+        if (write(fileno(file_set_rate), fclk_rate_str.c_str(), fclk_rate_str.length() + 1) < 0) {
+            ctx.log<ERROR>("ZynqFclk: Failed to set clock for amba:clocking%c\n", clkid);
+            fclose(file_set_rate);
+            return -1;
+        }
+
+        fclose(file_set_rate);
+        ctx.log<INFO>("ZynqFclk: amba:clocking%c set to %u Hz\n", clkid, fclk_rate);
+        return 0;
+    }
+
+    long amba_clocking_get_rate(const std::string& clkdir) {
+        const auto fclk_set_rate_name = clkdir + "/set_rate";
+        std::ifstream ifs(fclk_set_rate_name);
+        std::string set_rate_data(std::istreambuf_iterator<char>{ifs}, {});
+        return std::stol(set_rate_data);
     }
 
 }; // class ZynqFclk
