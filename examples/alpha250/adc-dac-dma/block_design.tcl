@@ -1,8 +1,8 @@
 source $board_path/starting_point.tcl
-
 ##################################################
 # DMA
 ##################################################
+#
 
 # Configure Zynq Processing System
 set_cell_props ps_0 {
@@ -152,6 +152,7 @@ exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOC
 
 # S2MM on HP0
 assign_bd_address [get_bd_addr_segs {ps_0/S_AXI_HP2/HP2_DDR_LOWOCM }]
+assign_bd_address -target_address_space /axi_dma_0/Data_S2MM [get_bd_addr_segs ps_0/S_AXI_HP2/HP2_DDR_LOWOCM] -force
 set_property range [get_memory_range ram_s2mm] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP2_DDR_LOWOCM}]
 set_property offset [get_memory_offset ram_s2mm] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP2_DDR_LOWOCM}]
 exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_SG/SEG_ps_0_HP2_DDR_LOWOCM]
