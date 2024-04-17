@@ -14,10 +14,10 @@ I2cDev::I2cDev(ContextBase& ctx_, std::string devname_)
 , devname(devname_)
 {}
 
-int I2cDev::init()
-{
-    if (fd >=0)
+int I2cDev::init() {
+    if (fd >= 0) {
         return 0;
+    }
 
     const char *devpath = ("/dev/" + devname).c_str();
 
@@ -29,6 +29,7 @@ int I2cDev::init()
         }
     }
 
+    ctx.log<INFO>("I2cManager: Device %s initialized", devname.c_str());
     return 0;
 }
 
@@ -44,8 +45,7 @@ I2cManager::I2cManager(ContextBase& ctx_)
 // Never return a negative number on failure.
 // I2C missing is not considered critical as it might not
 // be used by any driver.
-int I2cManager::init()
-{
+int I2cManager::init() {
     struct dirent *ent;
     DIR *dir = opendir("/sys/class/i2c-dev");
 
@@ -58,6 +58,7 @@ int I2cManager::init()
 
         // Exclude '.' and '..' repositories
         if (devname[0] != '.') {
+            ctx.log<INFO>("I2cManager: Found device %s", devname);
 
             i2c_drivers.insert(
                 std::make_pair(devname, std::make_unique<I2cDev>(ctx, devname))
@@ -69,7 +70,6 @@ int I2cManager::init()
     return 0;
 }
 
-bool I2cManager::has_device(const std::string& devname) const
-{
+bool I2cManager::has_device(const std::string& devname) const {
     return i2c_drivers.find(devname) != i2c_drivers.end();
 }

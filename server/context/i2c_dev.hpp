@@ -44,8 +44,7 @@ class I2cDev
     /// addr: Address of the driver to write to
     /// buffer: Pointer to the data to send
     /// len: Number of elements on the buffer array
-    int write(int32_t addr, const uint8_t *buffer, size_t n_bytes)
-    {
+    int write(int32_t addr, const uint8_t *buffer, size_t n_bytes) {
         // Lock to avoid another process to change
         // the driver address while writing
         std::lock_guard<std::mutex> lock(mutex);
@@ -53,6 +52,7 @@ class I2cDev
         if (! is_ok()) {
             return -1;
         }
+
         if (set_address(addr) < 0) {
             return -1;
         }
@@ -76,8 +76,7 @@ class I2cDev
     }
 
     // Receive data from I2C driver
-    int read(int32_t addr, uint8_t *buffer, size_t n_bytes)
-    {
+    int read(int32_t addr, uint8_t *buffer, size_t n_bytes) {
         // Lock to avoid another process to change
         // the driver address while reading
         std::lock_guard<std::mutex> lock(mutex);
@@ -139,12 +138,15 @@ class I2cDev
         if (addr < 0 || addr > 127) {
             return -1;
         }
+
         if (addr != last_addr) {
             if (ioctl(fd, I2C_SLAVE_FORCE, addr) < 0) {
                 return -1;
             }
+
             last_addr = addr;
         }
+
         return 0;
     }
 
@@ -162,7 +164,7 @@ class I2cManager
 
     auto& get(const std::string& devname) {
         if (! has_device(devname)) {
-            // This is critical since explicit driver request cannot be honored
+            ctx.log<CRITICAL>("I2cManager: Device %s not found", devname);
             return *empty_i2cdev;
         }
 
