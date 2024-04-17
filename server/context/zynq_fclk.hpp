@@ -25,11 +25,13 @@ class ZynqFclk {
     : ctx(ctx_)
     {}
 
-    void set(const std::string& fclk_name, uint32_t fclk_rate, [[maybe_unused]] bool update_rate=false) {
-        // When devcfg is used clock rate is always update.
+    void set(const std::string& fclk_name,
+             uint32_t fclk_rate,
+             [[maybe_unused]] bool update_rate=false) {
+        // When devcfg is used clock rate is always updated.
         //
         // When using devicetree overlay the clock rate is updated when the overlay is loaded.
-        // Therefore there is no need to update it in most cases.
+        // Therefore there is no need to set it in most cases.
         // If we want to update it, set update_rate to true when calling ctx.fclk.set()
 
         if (fs::exists(devcfg + "/fclk/")) {
@@ -43,7 +45,8 @@ class ZynqFclk {
                 ctx.log<INFO>("ZynqFclk: Found %s\n", clkdir.c_str());
                 set_fclk_amba_clocking(clkdir, clkid, fclk_rate, update_rate);
             } else {
-                ctx.log<ERROR>("ZynqFclk: Cannot find %s required to set %s\n", clkdir.c_str(), fclk_name.c_str());
+                ctx.log<ERROR>("ZynqFclk: Cannot find %s required to set %s\n",
+                               clkdir.c_str(), fclk_name.c_str());
                 return;
             }
         }
@@ -74,7 +77,8 @@ class ZynqFclk {
             return;
         }
 
-        ctx.log<INFO>("ZynqFclk: Clock %s set to %u Hz\n", fclk_name.c_str(), fclk_rate);
+        ctx.log<INFO>("ZynqFclk: Clock %s set to %u Hz\n",
+                      fclk_name.c_str(), fclk_rate);
     }
 
     int fclk_export(const std::string& fclk_name, const std::string& fclk_dir_name) {
@@ -88,7 +92,8 @@ class ZynqFclk {
             FILE *fclk_export = fopen(fclk_export_name.c_str(), "w");
 
             if (fclk_export == nullptr) {
-                ctx.log<ERROR>("ZynqFclk: Cannot open fclk_export for clock %s\n", fclk_name.c_str());
+                ctx.log<ERROR>("ZynqFclk: Cannot open fclk_export for clock %s\n",
+                               fclk_name.c_str());
                 return -1;
             }
 
@@ -110,7 +115,8 @@ class ZynqFclk {
         FILE *fclk_enable = fopen(fclk_enable_name.c_str(), "w");
 
         if (fclk_enable == nullptr) {
-            ctx.log<ERROR>("ZynqFclk: Cannot open fclk_enable for clock %s\n", fclk_name.c_str());
+            ctx.log<ERROR>("ZynqFclk: Cannot open fclk_enable for clock %s\n",
+                           fclk_name.c_str());
             return -1;
         }
 
@@ -124,7 +130,9 @@ class ZynqFclk {
         return 0;
     }
 
-    int fclk_set_rate(const std::string& fclk_name, const std::string& fclk_dir_name, uint32_t fclk_rate) {
+    int fclk_set_rate(const std::string& fclk_name,
+                      const std::string& fclk_dir_name,
+                      uint32_t fclk_rate) {
         const auto fclk_set_rate_name = fclk_dir_name + "/set_rate";
         FILE *fclk_set_rate = fopen(fclk_set_rate_name.c_str(), "w");
 
@@ -159,7 +167,8 @@ class ZynqFclk {
         ctx.log<INFO>("ZynqFclk: amba:clocking%c rate is %u Hz\n", clkid, rate);
 
         const auto rel_rate_err =  1E9 * std::abs(rate - long(fclk_rate)) / double(fclk_rate);
-        ctx.log<INFO>("ZynqFclk: amba:clocking%c relative rate error is %lf ppb\n", clkid, rel_rate_err);
+        ctx.log<INFO>("ZynqFclk: amba:clocking%c relative rate error is %lf ppb\n",
+                      clkid, rel_rate_err);
     }
 
     int amba_clocking_set_rate(const std::string& clkdir, char clkid, uint32_t fclk_rate) {
