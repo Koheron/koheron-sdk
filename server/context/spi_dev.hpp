@@ -32,8 +32,9 @@ class SpiDev
     SpiDev(ContextBase& ctx_, std::string devname_);
 
     ~SpiDev() {
-        if (fd >= 0)
+        if (fd >= 0) {
             close(fd);
+        }
     }
 
     bool is_ok() {return fd >= 0;}
@@ -47,16 +48,17 @@ class SpiDev
     int set_word_length(uint8_t word_length_);
 
     template<typename T>
-    int write(const T *buffer, uint32_t len)
-    {
-        if (fd >= 0)
+    int write(const T *buffer, uint32_t len) {
+        if (fd >= 0) {
             return ::write(fd, buffer, len * sizeof(T));
+        }
 
         return -1;
     }
 
     int recv(uint8_t *buffer, size_t n_bytes);
     int transfer(uint8_t *tx_buff, uint8_t *rx_buff, size_t len);
+
     template<typename T>
     int recv(std::vector<T>& vec) {
         return recv(reinterpret_cast<uint8_t*>(vec.data()),
@@ -68,7 +70,6 @@ class SpiDev
         return recv(reinterpret_cast<uint8_t*>(arr.data()),
                     N * sizeof(T));
     }
-
 
    private:
     ContextBase& ctx;
@@ -90,7 +91,6 @@ class SpiManager
     int init();
 
     bool has_device(const std::string& devname);
-
 
     SpiDev& get(const std::string& devname,
                 uint8_t mode = SPI_MODE_0,

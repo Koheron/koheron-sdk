@@ -4,7 +4,6 @@
 
 #include <dirent.h>
 
-
 // ---------------------------------------------------------------------
 // SpiDev
 // ---------------------------------------------------------------------
@@ -14,10 +13,10 @@ SpiDev::SpiDev(ContextBase& ctx_, std::string devname_)
 , devname(devname_)
 {}
 
-int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_)
-{
-    if (fd >=0)
+int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
+    if (fd >= 0) {
         return 0;
+    }
 
     const char *devpath = ("/dev/" + devname).c_str();
 
@@ -31,16 +30,18 @@ int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_)
 
     if (set_mode(mode_) < 0              ||
         set_speed(speed_) < 0            ||
-        set_word_length(word_length_) < 0)
+        set_word_length(word_length_) < 0) {
         return -1;
+    }
 
+    ctx.log<INFO>("SpiManager: Device %s initialized", devname.c_str());
     return 0;
 }
 
-int SpiDev::set_mode(uint8_t mode_)
-{
-    if (! is_ok())
+int SpiDev::set_mode(uint8_t mode_) {
+    if (! is_ok()) {
         return -1;
+    }
 
     mode = mode_;
 
@@ -51,10 +52,10 @@ int SpiDev::set_mode(uint8_t mode_)
     return 0;
 }
 
-int SpiDev::set_full_mode(uint32_t mode32_)
-{
-    if (! is_ok())
+int SpiDev::set_full_mode(uint32_t mode32_) {
+    if (! is_ok()) {
         return -1;
+    }
 
     mode32 = mode32_;
 
@@ -65,10 +66,10 @@ int SpiDev::set_full_mode(uint32_t mode32_)
     return 0;
 }
 
-int SpiDev::set_speed(uint32_t speed_)
-{
-    if (! is_ok())
+int SpiDev::set_speed(uint32_t speed_) {
+    if (! is_ok()) {
         return -1;
+    }
 
     speed = speed_;
 
@@ -79,10 +80,10 @@ int SpiDev::set_speed(uint32_t speed_)
     return 0;
 }
 
-int SpiDev::set_word_length(uint8_t word_length_)
-{
-    if (! is_ok())
+int SpiDev::set_word_length(uint8_t word_length_) {
+    if (! is_ok()) {
         return -1;
+    }
 
     word_length = word_length_;
 
@@ -93,10 +94,10 @@ int SpiDev::set_word_length(uint8_t word_length_)
     return 0;
 }
 
-int SpiDev::recv(uint8_t *buffer, size_t n_bytes)
-{
-    if (! is_ok())
+int SpiDev::recv(uint8_t *buffer, size_t n_bytes) {
+    if (! is_ok()) {
         return -1;
+    }
 
     int bytes_rcv = 0;
     size_t bytes_read = 0;
@@ -119,10 +120,10 @@ int SpiDev::recv(uint8_t *buffer, size_t n_bytes)
     return bytes_read;
 }
 
-int SpiDev::transfer(uint8_t *tx_buff, uint8_t *rx_buff, size_t len)
-{
-    if (! is_ok())
+int SpiDev::transfer(uint8_t *tx_buff, uint8_t *rx_buff, size_t len) {
+    if (! is_ok()) {
         return -1;
+    }
 
     struct spi_ioc_transfer tr{};
     tr.tx_buf = reinterpret_cast<unsigned long>(tx_buff);
@@ -143,8 +144,7 @@ SpiManager::SpiManager(ContextBase& ctx_)
 // Never return a negative number on failure.
 // SPI missing is not considered critical as it might not
 // be used by any driver.
-int SpiManager::init()
-{
+int SpiManager::init() {
     struct dirent *ent;
     DIR *dir = opendir("/sys/class/spidev");
 
@@ -157,6 +157,7 @@ int SpiManager::init()
 
         // Exclude '.' and '..' repositories
         if (devname[0] != '.') {
+            ctx.log<INFO>("SpiManager: Found device %s", devname);
 
             spi_drivers.insert(
                 std::make_pair(devname, std::make_unique<SpiDev>(ctx, devname))
@@ -168,16 +169,14 @@ int SpiManager::init()
     return 0;
 }
 
-bool SpiManager::has_device(const std::string& devname)
-{
+bool SpiManager::has_device(const std::string& devname) {
     return spi_drivers.find(devname) != spi_drivers.end();
 }
 
 SpiDev& SpiManager::get(const std::string& devname,
-                        uint8_t mode, uint32_t speed, uint8_t word_length)
-{
+                        uint8_t mode, uint32_t speed, uint8_t word_length) {
     if (! has_device(devname)) {
-        // This is critical since explicit driver request cannot be honored
+        ctx.log<CRITICAL>("SpiManager: Device %s not found", devname);
         return empty_spidev;
     }
 
