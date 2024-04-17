@@ -25,3 +25,9 @@ make BUILD_METHOD=$build_method CONFIG=examples/red-pitaya/fft/config.yml MODE=$
 make BUILD_METHOD=$build_method CONFIG=examples/red-pitaya/phase-noise-analyzer/config.yml MODE=$mode $target
 make BUILD_METHOD=$build_method CONFIG=examples/zedboard/led-blinker/config.yml MODE=$mode $target
 make BUILD_METHOD=$build_method CONFIG=examples/zedboard/picoblaze/config.yml MODE=$mode $target
+make BUILD_METHOD=$build_method CONFIG=examples/microzed/default/config.yml MODE=$mode $target
+make BUILD_METHOD=$build_method CONFIG=examples/mars_st3_z7020/default/config.yml MODE=$mode $target
+make BUILD_METHOD=$build_method CONFIG=examples/mydc7z015/default/config.yml MODE=$mode $target
+make BUILD_METHOD=$build_method CONFIG=examples/te0745/default/config.yml MODE=$mode $target
+make BUILD_METHOD=$build_method CONFIG=examples/teb808/template/config.yml MODE=$mode $target
+make BUILD_METHOD=$build_method CONFIG=examples/zc706/led-blinker/config.yml MODE=$mode $target
