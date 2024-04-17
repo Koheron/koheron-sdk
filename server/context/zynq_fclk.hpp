@@ -164,11 +164,14 @@ class ZynqFclk {
         }
 
         const auto rate = amba_clocking_get_rate(clkdir);
-        ctx.log<INFO>("ZynqFclk: amba:clocking%c rate is %u Hz\n", clkid, rate);
 
-        const auto rel_rate_err =  1E9 * std::abs(rate - long(fclk_rate)) / double(fclk_rate);
-        ctx.log<INFO>("ZynqFclk: amba:clocking%c relative rate error is %lf ppb\n",
-                      clkid, rel_rate_err);
+        if (rate > 0) {
+            ctx.log<INFO>("ZynqFclk: amba:clocking%c rate is %u Hz\n", clkid, rate);
+
+            const auto rel_rate_err =  1E9 * std::abs(rate - long(fclk_rate)) / double(fclk_rate);
+            ctx.log<INFO>("ZynqFclk: amba:clocking%c relative rate error is %lf ppb\n",
+                        clkid, rel_rate_err);
+        }
     }
 
     int amba_clocking_set_rate(const std::string& clkdir, char clkid, uint32_t fclk_rate) {
@@ -195,8 +198,14 @@ class ZynqFclk {
 
     long amba_clocking_get_rate(const std::string& clkdir) {
         const auto fclk_set_rate_name = clkdir + "/set_rate";
-        std::ifstream ifs(fclk_set_rate_name);
-        std::string set_rate_data(std::istreambuf_iterator<char>{ifs}, {});
+        std::ifstream file_set_rate(fclk_set_rate_name);
+
+        if (!file_set_rate.is_open()) {
+            ctx.log<INFO>("ZynqFclk: Cannot open \n", fclk_set_rate_name.c_str());
+            return -1;
+        }
+
+        std::string set_rate_data(std::istreambuf_iterator<char>{file_set_rate}, {});
         return std::stol(set_rate_data);
     }
 
