@@ -201,7 +201,7 @@ class ZynqFclk {
         std::ifstream file_set_rate(fclk_set_rate_name);
 
         if (!file_set_rate.is_open()) {
-            ctx.log<INFO>("ZynqFclk: Cannot open \n", fclk_set_rate_name.c_str());
+            ctx.log<ERROR>("ZynqFclk: Cannot open \n", fclk_set_rate_name.c_str());
             return -1;
         }
 
