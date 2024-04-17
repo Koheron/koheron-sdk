@@ -35,6 +35,12 @@ class TestSystem(unittest.TestCase):
         # pprint.pprint(lines)
         self.assertEqual(lines[0], "1000\n")
 
+    def test_ethernet_full_duplex(self):
+        stdin, stdout, sterr = self.ssh.exec_command('cat /sys/class/net/eth0/duplex')
+        lines = stdout.readlines()
+        # pprint.pprint(lines)
+        self.assertEqual(lines[0], "full\n")
+
     def test_i2c_devices(self):
         stdin, stdout, sterr = self.ssh.exec_command('ls /sys/bus/i2c/devices')
         lines = stdout.readlines()
@@ -61,6 +67,24 @@ class TestSystem(unittest.TestCase):
         # pprint.pprint(lines)
         self.assertTrue("fft.bit.bin\n" in lines)
         self.assertTrue("pl.dtbo\n" in lines)
+
+    def test_fpga_manager_flags(self):
+        stdin, stdout, sterr = self.ssh.exec_command('cat /sys/class/fpga_manager/fpga0/flags')
+        lines = stdout.readlines()
+        # pprint.pprint(lines)
+        self.assertEqual(lines[0], "0\n")
+
+    def test_overlay_status(self):
+        stdin, stdout, sterr = self.ssh.exec_command('cat /configfs/device-tree/overlays/full/status')
+        lines = stdout.readlines()
+        # pprint.pprint(lines)
+        self.assertEqual(lines[0], "applied\n")
+
+    def test_fclk0(self):
+        stdin, stdout, sterr = self.ssh.exec_command('cat /sys/devices/soc0/amba/amba:clocking0/set_rate')
+        lines = stdout.readlines()
+        # pprint.pprint(lines)
+        self.assertEqual(lines[0], "199999998\n")
 
 class TestKoheronServer(unittest.TestCase):
     def __init__(self, name, ssh):
