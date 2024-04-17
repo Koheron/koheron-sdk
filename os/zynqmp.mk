@@ -1,5 +1,7 @@
 PROC := psu_cortexa53_0
-GCC_FLAGS := -march=armv8-a -mcpu=cortex-a53
+# -cpu shorthand for -march + -mtune
+# -mcpu=cortex-a53 <=> march=armv8-a+crc -mtune=cortex-a53
+GCC_FLAGS := -mcpu=cortex-a53
 GCC_ARCH := aarch64-linux-gnu
 LINUX_IMAGE := Image
 ARCH := arm64
