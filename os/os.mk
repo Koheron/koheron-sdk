@@ -102,7 +102,6 @@ $(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES)/u-boot -type f)
 	cp $</u-boot.elf $@ || true
 	@echo [$@] OK
 
-
 ###############################################################################
 # pmufw
 ###############################################################################
@@ -215,8 +214,6 @@ patch_overlay:
 .PHONY: clean_overlay
 clean_overlay:
 	rm -rf $(TMP_OS_PATH)/overlay $(TMP_OS_PATH)/overlay.orig
-
-
 
 ###############################################################################
 # LINUX
