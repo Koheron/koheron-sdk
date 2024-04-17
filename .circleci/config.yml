@@ -20,7 +20,7 @@ jobs:
           command: sudo bash ./setup/install_eigen.sh
       - run:
           name: Setup web
-          command: apt-get remove nodejs npm; apt-get update; curl -sL https://deb.nodesource.com/setup_18.x | sudo -E bash -; sudo make setup_web
+          command: apt-get remove nodejs npm; apt-get update; curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -; sudo make setup_web
       - run:
           name: Build server
           command: sudo bash build_examples.sh server
