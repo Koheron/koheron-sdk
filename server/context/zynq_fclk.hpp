@@ -170,7 +170,7 @@ class ZynqFclk {
 
             const auto rel_rate_err =  1E9 * std::abs(rate - long(fclk_rate)) / double(fclk_rate);
             ctx.log<INFO>("ZynqFclk: amba:clocking%c relative rate error is %lf ppb\n",
-                        clkid, rel_rate_err);
+                          clkid, rel_rate_err);
         }
     }
 
