@@ -8,7 +8,7 @@ jobs:
       - checkout
       - run:
           name: Install python requirements
-          command: apt-get update; apt-get install -y sudo; apt-get install -y python3-pip; pip install -r requirements.txt
+          command: apt-get update; apt-get install -y sudo; apt-get install -y python3-pip; pip install --upgrade pip; pip install -r requirements.txt
       - run:
           name: Install Koheron python
           command: pip install python/.
