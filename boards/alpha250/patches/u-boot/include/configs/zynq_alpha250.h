@@ -18,8 +18,12 @@
     "fdt_high=0x18000000\0" \
     "preboot=env import -t 0xFFFFFC00\0" \
     "sdboot=echo Importing environment from SD... && mmcinfo && fatload mmc 0 0x2000000 uEnv.txt && env import -t 0x2000000 ${filesize} && boot"
+
 /* Select Micrel PHY */
+#ifndef CONFIG_PHY_MICREL
 #define CONFIG_PHY_MICREL
+#endif
+
 #define PHY_ANEG_TIMEOUT  8000  /* PHY needs a longer aneg time */
 /* Unselect Marvell PHY (selected by zynq-common) */
 #ifdef CONFIG_PHY_MARVELL
