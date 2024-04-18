@@ -9,7 +9,7 @@ set elements [split $core_name _]
 set project_name [join [lrange $elements 0 end-2] _]
 set version [string trimleft [join [lrange $elements end-1 end] .] v]
 
-file delete -force $output_path/$core_name $output_path/$project_name.cache $output_path/$project_name.hw $output_path/$project_name.xpr
+file delete -force $output_path/$core_name $output_path/$project_name.cache $output_path/$project_name.hw $output_path/$project_name.ip_user_files $output_path/$project_name.sim $output_path/$project_name.xpr
 
 create_project -part $part $project_name $output_path
 
@@ -28,7 +28,7 @@ set core [ipx::current_core]
 set_property VERSION $version $core
 set_property NAME $project_name $core
 set_property LIBRARY {user} $core
-set_property SUPPORTED_FAMILIES {zynq Production} $core
+set_property SUPPORTED_FAMILIES {zynq Production zynquplus Production} $core
 
 proc core_parameter {name display_name description} {
   set core [ipx::current_core]

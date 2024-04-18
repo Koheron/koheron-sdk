@@ -8,6 +8,7 @@ SHELL := bash
 CONFIG ?= examples/red-pitaya/led-blinker/config.yml
 SDK_PATH ?= .
 MODE ?= development
+SDK_FULL_PATH = $(realpath $(SDK_PATH))
 HOST ?= 192.168.1.100
 TMP ?= tmp
 
@@ -25,6 +26,9 @@ set_gcc_version:
 	unlink /usr/bin/arm-linux-gnueabihf-gcc
 	ln -s /usr/bin/arm-linux-gnueabihf-gcc-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-gcc
 	arm-linux-gnueabihf-gcc --version
+
+BUILD_METHOD := native
+#BUILD_METHOD = docker
 
 .PHONY: help
 help:
@@ -51,6 +55,13 @@ MEMORY_YML := $(TMP_PROJECT_PATH)/memory.yml
 N_CPUS ?= $(shell nproc 2> /dev/null || echo 1)
 
 NAME := $(shell $(MAKE_PY) --name $(CONFIG) $(TMP_PROJECT_PATH)/name && cat $(TMP_PROJECT_PATH)/name)
+
+###############################################################################
+# DOCKER
+###############################################################################
+DOCKER_PATH := $(SDK_PATH)/docker
+DOCKER_MK ?= $(DOCKER_PATH)/docker.mk
+include $(DOCKER_MK)
 
 ###############################################################################
 # INSTRUMENT
@@ -91,6 +102,8 @@ run: $(INSTRUMENT_ZIP)
 ###############################################################################
 # FPGA BITSTREAM
 ###############################################################################
+OS_PATH := $(SDK_PATH)/os
+OS_MK ?= $(OS_PATH)/os.mk
 FPGA_PATH := $(SDK_PATH)/fpga
 FPGA_MK ?= $(FPGA_PATH)/fpga.mk
 include $(FPGA_MK)
@@ -124,8 +137,6 @@ include $(WEB_MK)
 ###############################################################################
 # LINUX OS
 ###############################################################################
-OS_PATH := $(SDK_PATH)/os
-OS_MK ?= $(OS_PATH)/os.mk
 include $(OS_MK)
 
 ###############################################################################
@@ -147,7 +158,7 @@ include $(PYTHON_MK)
 ###############################################################################
 
 .PHONY: setup
-setup: setup_fpga setup_server setup_web setup_os
+setup: setup_docker setup_fpga setup_server setup_web setup_os
 
 .PHONY: setup_base
 setup_base:
@@ -160,8 +171,15 @@ setup_base:
 	$(PIP) install -r $(SDK_PATH)/requirements.txt
 	$(PIP) install $(SDK_PATH)/python
 
+.PHONY: setup_docker
+setup_docker: setup_base
+	sudo bash docker/install_docker.sh
+	sudo usermod -aG docker $(shell whoami)
+	sudo docker build -t gnu-gcc-9.5 ./docker/.
+
 .PHONY: setup_fpga
 setup_fpga: setup_base
+	sudo apt-get install device-tree-compiler
 	sudo rm -f /usr/bin/gmake && sudo ln -s make /usr/bin/gmake
 
 .PHONY: setup_server
@@ -178,7 +196,7 @@ setup_web: setup_base
 
 .PHONY: setup_os
 setup_os: setup_base
-	sudo apt-get install -y libssl-dev bc device-tree-compiler qemu-user-static zerofree
+	sudo apt-get install -y libssl-dev bc qemu-user-static zerofree
 	sudo apt-get install -y lib32stdc++6 lib32z1 u-boot-tools
 
 ###############################################################################

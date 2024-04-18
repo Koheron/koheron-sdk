@@ -19,55 +19,36 @@ for {set i 0} {$i < 2} {incr i} {
   connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 21 21] adc_dac/adc${i}_delay_rst
 }
 
-# ADC add/substract channels 0 and 1
+# Channel selection / addition / substraction
+source $project_path/tcl/adc_selector.tcl
+adc_selector::create adc_selector
 
-cell xilinx.com:ip:c_addsub:12.0 adc_addsub {
-  A_WIDTH 18
-  B_WIDTH 18
-  OUT_WIDTH 19
-  ADD_MODE Add_Subtract
-  CE false
-} {
-  A adc_dac/adc0
-  B adc_dac/adc1
-  ADD [get_slice_pin [ctl_pin channel_select] 2 2]
-  CLK adc_dac/adc_clk
-}
-
-# Channel selection
-
-cell koheron:user:bus_multiplexer:1.0 adc_mux0 {
-  WIDTH 18
-} {
-  din0 adc_dac/adc0
-  din1 adc_dac/adc1
-  sel [get_slice_pin [ctl_pin channel_select] 0 0]
-}
-
-cell koheron:user:bus_multiplexer:1.0 adc_mux1 {
-  WIDTH 19
-} {
-  din0 adc_mux0/dout
-  din1 adc_addsub/S
-  sel [get_slice_pin [ctl_pin channel_select] 1 1]
-}
-
-# Use AXI Stream clock converter (ADC clock -> FPGA clock)
-set intercon_idx 0
-cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
-  TDATA_NUM_BYTES 3
-} {
-  s_axis_tdata adc_mux1/dout
-  s_axis_tvalid adc_dac/adc_valid
-  s_axis_aresetn rst_adc_clk/peripheral_aresetn
-  m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
-  s_axis_aclk adc_dac/adc_clk
-  m_axis_aclk [set ps_clk$intercon_idx]
+connect_cell adc_selector {
+  adc0           adc_dac/adc0
+  adc1           adc_dac/adc1
+  offset0        [ctl_pin channel_offset0]
+  offset1        [ctl_pin channel_offset1]
+  channel_select [ctl_pin channel_select]
+  clk            adc_dac/adc_clk
+  adc_valid      adc_dac/adc_valid
 }
 
 # -----------------------------------------------------------------------------
 # Decimation
 # -----------------------------------------------------------------------------
+
+# Use AXI Stream clock converter (ADC clock -> PS clock)
+set intercon_idx 0
+cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
+  TDATA_NUM_BYTES 3
+} {
+  s_axis_tdata   adc_selector/tdata
+  s_axis_tvalid  adc_selector/tvalid
+  s_axis_aresetn rst_adc_clk/peripheral_aresetn
+  m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
+  s_axis_aclk    adc_dac/adc_clk
+  m_axis_aclk    [set ps_clk$intercon_idx]
+}
 
 # Define CIC parameters
 
@@ -87,7 +68,7 @@ cell xilinx.com:ip:cic_compiler:4.0 cic {
   Output_Data_Width 32
   Use_Xtreme_DSP_Slice false
 } {
-  aclk [set ps_clk$intercon_idx]
+  aclk        [set ps_clk$intercon_idx]
   S_AXIS_DATA adc_clock_converter/M_AXIS
 }
 
@@ -118,13 +99,13 @@ cell xilinx.com:ip:axi_fifo_mm_s:4.1 adc_axis_fifo {
   C_RX_FIFO_DEPTH 16384
   C_RX_FIFO_PF_THRESHOLD 8192
 } {
-  s_axi_aclk [set ps_clk$intercon_idx]
+  s_axi_aclk    [set ps_clk$intercon_idx]
   s_axi_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
-  S_AXI [set interconnect_${intercon_idx}_name]/M${idx}_AXI
-  AXI_STR_RXD fir/M_AXIS_DATA
+  S_AXI         [set interconnect_${intercon_idx}_name]/M${idx}_AXI
+  AXI_STR_RXD   fir/M_AXIS_DATA
 }
 
-assign_bd_address [get_bd_addr_segs adc_axis_fifo/S_AXI/Mem0]
+assign_bd_address   [get_bd_addr_segs adc_axis_fifo/S_AXI/Mem0]
 set memory_segment  [get_bd_addr_segs /${::ps_name}/Data/SEG_adc_axis_fifo_Mem0]
 set_property offset [get_memory_offset adc_fifo] $memory_segment
 set_property range  [get_memory_range adc_fifo]  $memory_segment
@@ -142,8 +123,8 @@ power_spectral_density::create psd [get_parameter fft_size]
 cell xilinx.com:ip:axis_clock_converter:1.1 psd_clock_converter {
   TDATA_NUM_BYTES 3
 } {
-  s_axis_tdata   adc_mux1/dout 
-  s_axis_tvalid  adc_dac/adc_valid
+  s_axis_tdata   adc_selector/tdata
+  s_axis_tvalid  adc_selector/tvalid
   s_axis_aresetn rst_adc_clk/peripheral_aresetn
   m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
   s_axis_aclk    adc_dac/adc_clk
@@ -173,21 +154,21 @@ cell koheron:user:psd_counter:1.0 psd_counter {
 
 bram_accumulator::create bram_accum
 connect_cell bram_accum {
-  clk [set ps_clk$intercon_idx]
-  s_axis_tdata psd_counter/m_axis_tdata
+  clk           [set ps_clk$intercon_idx]
+  s_axis_tdata  psd_counter/m_axis_tdata
   s_axis_tvalid psd_counter/m_axis_tvalid
-  addr_in psd_counter/addr
-  first_cycle psd_counter/first_cycle
-  last_cycle psd_counter/last_cycle
+  addr_in       psd_counter/addr
+  first_cycle   psd_counter/first_cycle
+  last_cycle    psd_counter/last_cycle
 }
 
 # Record spectrum data in BRAM
 
 add_bram_recorder psd_bram psd
 connect_cell psd_bram {
-  clk [set ps_clk$intercon_idx]
-  rst [set rst${intercon_idx}_name]/peripheral_reset
+  clk  [set ps_clk$intercon_idx]
+  rst  [set rst${intercon_idx}_name]/peripheral_reset
   addr bram_accum/addr_out
-  wen bram_accum/wen
-  adc bram_accum/m_axis_tdata
+  wen  bram_accum/wen
+  adc  bram_accum/m_axis_tdata
 }

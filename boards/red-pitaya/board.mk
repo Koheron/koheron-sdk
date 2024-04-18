@@ -1,4 +1,5 @@
 # Linux and U-boot
+ZYNQ_TYPE ?= zynq
 UBOOT_TAG := koheron-red-pitaya-v$(VIVADO_VERSION)
 LINUX_TAG := koheron-v$(VIVADO_VERSION)-kernel-module-fix-dma
 DTREE_TAG := xilinx-v$(VIVADO_VERSION)

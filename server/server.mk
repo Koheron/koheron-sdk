@@ -50,6 +50,9 @@ DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
 SERVER_CCXX := /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) -flto
+ifeq ($(BUILD_METHOD),docker)
+	SERVER_CCXX = $(DOCKER) arm-linux-gnueabihf-g++-$(GCC_VERSION) -flto
+endif
 
 SERVER_CCXXFLAGS := -Wall -Werror -Wextra
 SERVER_CCXXFLAGS += -Wpedantic -Wfloat-equal -Wunused-macros -Wcast-qual -Wuseless-cast

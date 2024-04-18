@@ -3,22 +3,11 @@
 # - Device tree
 # - U-boot
 # - Linux kernel
-
-PATCHES := $(BOARD_PATH)/patches
-PROC := ps7_cortexa9_0
-HSI := source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && hsi -nolog -nojournal -mode batch
-BOOTGEN := source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && bootgen
+include $(OS_PATH)/toolchain.mk
 
 BOARD := $(shell basename $(BOARD_PATH))
 
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
-
-# Define U-boot and Linux repositories
-ifneq ("$(wildcard $(BOARD_PATH)/board.mk)","")
--include $(BOARD_PATH)/board.mk
-else
--include $(OS_PATH)/board.mk
-endif
 
 UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
 LINUX_PATH := $(TMP_OS_PATH)/linux-xlnx-$(LINUX_TAG)
@@ -28,6 +17,7 @@ UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
+FSBL_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 LINUX_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 UBOOT_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 
@@ -36,13 +26,15 @@ TMP_OS_VERSION_FILE := $(TMP_OS_PATH)/version.json
 $(TMP_OS_VERSION_FILE): $(KOHERON_VERSION_FILE)
 	echo '{ "version": "$(KOHERON_VERSION)" }' > $@
 
+BOOT_MEDIUM ?= mmcblk0
+
 .PHONY: os
-os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/boot.bin $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_VERSION_FILE)
+os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/$(BOOTCALL) $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_VERSION_FILE)
 
 # Build image (run as root)
 .PHONY: image
 image:
-	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE)
+	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE) $(BOOT_MEDIUM)
 
 .PHONY: clean_os
 clean_os:
@@ -68,7 +60,7 @@ $(TMP_OS_PATH)/fsbl/Makefile: $(TMP_FPGA_PATH)/$(NAME).hwdef
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
 	cp -a $(FSBL_PATH)/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
-	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && make -C $(@D) all
+	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && $(DOCKER) make -C $(@D) CFLAGS=$(FSBL_CFLAGS) all
 	@echo [$@] OK
 
 .PHONY: clean_fsbl
@@ -91,9 +83,9 @@ $(UBOOT_PATH): $(UBOOT_TAR)
 
 $(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH)
 	mkdir -p $(@D)
-	make -C $< mrproper
-	make -C $< arch=arm `find $(PATCHES) -name '*_defconfig' -exec basename {} \;`
-	make -C $< arch=arm CFLAGS=$(UBOOT_CFLAGS) \
+	$(DOCKER) make -C $< mrproper
+	$(DOCKER) make -C $< arch=arm `find $(PATCHES) -name '*_defconfig' -exec basename {} \;`
+	$(DOCKER) make -C $< arch=arm CFLAGS=$(UBOOT_CFLAGS) \
 	  CROSS_COMPILE=arm-linux-gnueabihf- all
 	cp $</u-boot $@
 	@echo [$@] OK
@@ -155,12 +147,12 @@ $(LINUX_PATH): $(LINUX_TAR)
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/uImage: $(LINUX_PATH)
-	make -C $< mrproper
-	make -C $< ARCH=arm xilinx_zynq_defconfig
-	make -C $< ARCH=arm CFLAGS=$(LINUX_CFLAGS) \
+	$(DOCKER) make -C $< mrproper
+	$(DOCKER) make -C $< ARCH=arm xilinx_zynq_defconfig
+	$(DOCKER) make -C $< ARCH=arm CFLAGS=$(LINUX_CFLAGS) \
 	  --jobs=$(N_CPUS) \
-	  CROSS_COMPILE=arm-linux-gnueabihf- UIMAGE_LOADADDR=0x8000 uImage
-	cp $</arch/arm/boot/uImage $@
+	  CROSS_COMPILE=$(GCC_ARCH)- UIMAGE_LOADADDR=0x8000 $(LINUX_IMAGE)
+	cp $</arch/arm/boot/$(LINUX_IMAGE) $@
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree/system-top.dts
