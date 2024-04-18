@@ -5,7 +5,7 @@ SHELL := bash
 .DELETE_ON_ERROR:
 .SUFFIXES:
 
-CONFIG ?= examples/red-pitaya/led-blinker/config.yml
+CONFIG ?= examples/alpha250/fft/config.yml
 SDK_PATH ?= .
 MODE ?= development
 SDK_FULL_PATH = $(realpath $(SDK_PATH))
