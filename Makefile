@@ -165,6 +165,7 @@ setup: setup_docker setup_fpga setup_server setup_web setup_os
 setup_base:
 	sudo bash setup/install_gcc_compilers_$(DISTRO).sh $(GCC_VERSION) || true
 	sudo bash setup/install_dependencies_$(DISTRO).sh $(PYTHON)
+	$(PIP) install pip --upgrade
 	$(PIP) install -r $(SDK_PATH)/requirements.txt --break-system-packages
 	$(PIP) install $(SDK_PATH)/python --break-system-packages
 
