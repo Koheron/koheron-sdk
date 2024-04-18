@@ -13,7 +13,8 @@ RUN apt install -y binutils-aarch64-linux-gnu \
   bc \
   qemu-user-static \
   zerofree \
-  u-boot-tools
+  u-boot-tools \
+  libgnutls28-dev
 
 RUN update-alternatives --install /usr/bin/arm-linux-gnueabihf-g++ arm-linux-gnueabihf-g++ /usr/bin/arm-linux-gnueabihf-g++-${GCC_VERSION}  100
 RUN update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcc arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-gcc-${GCC_VERSION}  100
