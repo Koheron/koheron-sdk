@@ -56,7 +56,7 @@ class ZynqFclk {
     ContextBase& ctx;
 
     const std::string devcfg = "/sys/devices/soc0/amba/f8007000.devcfg";
-    const std::string amba_clocking = "/sys/devices/soc0/amba/amba:clocking";
+    const std::string amba_clocking = "/sys/devices/soc0/axi/axi:clocking";
 
     // ------------------------------------------------------------------------
     // Use devcfg
