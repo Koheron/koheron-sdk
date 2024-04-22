@@ -6,7 +6,7 @@ diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
  	num-cs = <3>;
  	status = "okay";
 +	spidev@0 {
-+		compatible = "spidev";
++		compatible = "rohm,dh2228fv";
 +		reg = <0x0>;
 +		spi-max-frequency = <10000000>;
 +	};
@@ -16,7 +16,7 @@ diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
  	num-cs = <3>;
  	status = "okay";
 +	spidev@0 {
-+		compatible = "spidev";
++		compatible = "rohm,dh2228fv";
 +		reg = <0x0>;
 +		spi-max-frequency = <10000000>;
 +	};
