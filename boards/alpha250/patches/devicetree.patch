@@ -1,7 +1,7 @@
 diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
---- devicetree.orig/pcw.dtsi	2020-12-08 11:54:18.826945863 +0100
-+++ devicetree/pcw.dtsi	2020-12-08 11:58:32.285853505 +0100
-@@ -51,11 +51,21 @@
+--- devicetree.orig/pcw.dtsi	2024-04-22 14:42:13.960879604 +0200
++++ devicetree/pcw.dtsi	2024-04-22 15:43:11.678562288 +0200
+@@ -49,11 +49,21 @@
  	is-decoded-cs = <0>;
  	num-cs = <3>;
  	status = "okay";
@@ -23,43 +23,38 @@ diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
  };
  &uart0 {
  	cts-override ;
-@@ -64,8 +74,10 @@
+@@ -62,7 +72,8 @@
  	status = "okay";
  };
  &usb0 {
 -	phy_type = "ulpi";
-+	dr_mode = "host";
++	dr_mode="host";
 +	usb-phy = <&usb_phy0>;
  	status = "okay";
-+	xlnx,phy-reset-gpio = <&gpio0 48 0>;
  };
  &clkc {
- 	fclk-enable = <0x1>;
 diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
---- devicetree.orig/system-top.dts	2020-12-08 11:54:18.826945863 +0100
-+++ devicetree/system-top.dts	2020-12-08 11:57:42.541299730 +0100
-@@ -13,6 +13,13 @@
+--- devicetree.orig/system-top.dts	2024-04-22 14:42:13.960879604 +0200
++++ devicetree/system-top.dts	2024-04-22 15:42:27.505923351 +0200
+@@ -13,6 +13,10 @@
  		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait earlycon";
  		stdout-path = "serial0:115200n8";
  	};
-+	usb_phy0: phy0 {
++	usb_phy0: phy1 {
 +		#phy-cells = <0>;
-+		compatible = "ulpi-phy";
-+		reg = <0xe0002000 0x1000>;
-+		view-port = <0x0170>;
-+		drv-vbus;
++		compatible = "usb-nop-xceiv";
 +	};
  	aliases {
  		ethernet0 = &gem0;
  		i2c0 = &i2c0;
-@@ -24,6 +31,24 @@
+@@ -24,6 +28,23 @@
  	};
- 	memory {
+ 	memory@0 {
  		device_type = "memory";
 -		reg = <0x0 0x20000000>;
 +		reg = <0x0 0x18000000>;
-+	};
-+};
+ 	};
+ };
 +
 +&gem0 {
 +	status = "okay";
@@ -68,13 +63,13 @@ diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
 +	local-mac-address = [00 0a 35 00 00 00];
 +
 +	ethernet_phy: ethernet-phy@3 {
++		compatible = "micrel,ksz9031";
 +		reg = <3>;
 +		device_type = "ethernet-phy";
 +			rxc-skew-ps = <1860>;
 +			rxdv-skew-ps = <420>;
 +			txc-skew-ps = <1860>;
 +			txen-skew-ps = <420>;
- 	};
- };
-+
-+
++	};
++};
+\ No newline at end of file
