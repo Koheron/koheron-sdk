@@ -27,8 +27,8 @@ set_gcc_version:
 	ln -s /usr/bin/arm-linux-gnueabihf-gcc-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-gcc
 	arm-linux-gnueabihf-gcc --version
 
-BUILD_METHOD := native
-#BUILD_METHOD = docker
+#BUILD_METHOD := native
+BUILD_METHOD = docker
 
 .PHONY: help
 help:
