@@ -10,7 +10,7 @@ image=$tmp_project_path/${name}-development.img
 BOOTPART=$7
 size=1024
 
-ubuntu_version=20.04.5
+ubuntu_version=22.04.4
 part1=/dev/${BOOTPART}p1
 part2=/dev/${BOOTPART}p2
 if [ "${zynq_type}" = "zynqmp" ]; then
@@ -133,6 +133,9 @@ cat <<- EOF_CAT >> etc/hosts
 127.0.1.1    koheron
 EOF_CAT
 sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
+rm /dev/null
+mknod /dev/null c 1 3
+chmod 666 /dev/null
 apt update
 apt -y upgrade
 apt -y install locales
@@ -157,12 +160,11 @@ apt install -y python-numpy
 sudo dpkg --configure -a
 apt install -y python3-pip python-setuptools
 sudo dpkg --configure -a
-pip3 install wheel==0.43.0
-pip3 install --upgrade pip==20.4
-pip3 install flask==3.0.3
-pip3 install uwsgi==2.0.24
-pip3 install werkzeug==3.0.2
-pip3 install simplejson==3.19.2
+pip3 install wheel
+pip3 install flask
+pip3 install uwsgi
+pip3 install werkzeug
+pip3 install simplejson
 systemctl enable uwsgi
 systemctl enable unzip-default-instrument
 #systemctl enable koheron-server
