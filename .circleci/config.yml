@@ -16,6 +16,9 @@ jobs:
           name: Setup Base
           command: apt-get update; make setup_base
       - run:
+          name: Setup Docker
+          command: apt-get update; make setup_docker
+      - run:
           name: Install Eigen library
           command: sudo bash ./install_eigen.sh
       - run:
