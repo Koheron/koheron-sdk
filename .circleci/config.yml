@@ -23,10 +23,10 @@ jobs:
           command: curl -sL https://deb.nodesource.com/setup_18.x | sudo -E bash -; sudo make setup_web
       - run:
           name: Build server
-          command: sudo BUILD_METHOD=native bash build_examples.sh server
+          command: sudo bash build_examples.sh server native
       - run:
           name: Build web
-          command: sudo BUILD_METHOD=native bash build_examples.sh web
+          command: sudo bash build_examples.sh web native
   deploy:
     docker:
       - image: cimg/python:3.11.2
