@@ -6,5 +6,6 @@ from .koheron import ConnectionError
 from .koheron import connect
 from .koheron import run_instrument
 from .koheron import upload_instrument
+from .koheron import instrument_status
 from .alpha250 import Alpha250
 
