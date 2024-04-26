@@ -384,15 +384,19 @@ class KoheronClient:
     def recv_int8(self):
         self.check_ret_type(['int8_t', 'char', 'signed char'])
         return self.recv(fmt='b')
-    def recv_uintu(self):
+        
+    def recv_uint8(self):
         self.check_ret_type(['uint8_t', 'unsigned char'])
         return self.recv(fmt='B')
+        
     def recv_int16(self):
         self.check_ret_type(['int16_t', 'short'])
         return self.recv(fmt='h')
+        
     def recv_uint16(self):
         self.check_ret_type(['uint16_t'])
         return self.recv(fmt='H')
+        
     def recv_uint32(self):
         self.check_ret_type(['uint32_t', 'unsigned int'])
         return self.recv()
