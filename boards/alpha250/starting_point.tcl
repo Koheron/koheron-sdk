@@ -22,12 +22,19 @@ connect_cell adc_dac {
 
 create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_analog_io_rtl:1.0 Vp_Vn
 
+cell xilinx.com:ip:xlconcat:2.1 concat_interrupts {
+  NUM_PORTS 1
+} {
+  dout ps_0/IRQ_F2P
+}
+
 cell xilinx.com:ip:xadc_wiz:3.3 xadc_wiz_0 {
 } {
   Vp_Vn Vp_Vn
   s_axi_lite axi_mem_intercon_0/M[add_master_interface 0]_AXI
   s_axi_aclk ps_0/FCLK_CLK0
   s_axi_aresetn proc_sys_reset_0/peripheral_aresetn
+  ip2intc_irpt concat_interrupts/In0
 }
 assign_bd_address [get_bd_addr_segs xadc_wiz_0/s_axi_lite/Reg]
 
