@@ -3,9 +3,7 @@
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/Koheron/koheron-sdk/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Koheron/koheron-sdk/tree/master)
 [![PyPI version](https://img.shields.io/pypi/v/koheron.svg)](https://pypi.python.org/pypi/koheron)
 
-## What is Koheron Software Development Kit ?
-
-[Koheron Software Development Kit](https://www.koheron.com/software-development-kit) is a tool to develop FPGA / Linux instruments for Zynq SoCs.
+https://www.koheron.com/software-development-kit
 
 ## Getting started
 
