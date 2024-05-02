@@ -127,6 +127,8 @@ cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
   m_axi_s2mm_aclk ps_0/FCLK_CLK0
   S_AXIS_S2MM tlast_gen_0/m_axis
   axi_resetn proc_sys_reset_0/peripheral_aresetn
+  s2mm_introut [get_interrupt_pin]
+  mm2s_introut [get_interrupt_pin]
 }
 
 # DAC Streaming (MM2S)
