@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Koheron | Dpll</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Koheron">
+  <meta charset="utf-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <script type="text/javascript" src="html-imports.min.js"></script>
+
+  <link rel="shortcut icon" href="kbird.ico">
+  <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="main.css">
+  <link rel="stylesheet" type="text/css" href="variables.css">
+  <link rel="stylesheet" type="text/css" href="dpll.css">
+
+  <link rel="import" href="navigation.html" data-parent="navigation">
+  <link rel="import" href="reference-clock.html" data-parent="reference-clock">
+
+</head>
+
+<body style="background-color: #f7f7f7;">
+
+  <div id="navigation" style="background-color: #eff9fc;"></div>
+
+  <div class="container-fluid" id="main" style="padding-top: 1.28rem;">
+
+    <div class="flex-container" style="flex-flow: row wrap; justify-content: space-evenly;">
+
+      <!--##############################################################################################################################"""-->
+      <!--################### SETTINGS ######################-->
+      <!--##############################################################################################################################"""-->
+
+      <div id="settings" style="padding: 1rem;">
+
+
+        <div class="group-item">
+
+          <!--___________________________________________________-->
+          <!--################### CHANNELS ######################-->
+          <!--___________________________________________________-->
+
+          <div id="channel">
+            <button class="btn btn-select channel-button active" value="0">ADC 0</button><!--
+          --><button class="btn btn-select channel-button" value="1">ADC 1</button>
+          </div>
+
+
+          <!--___________________________________________________-->
+          <!--################### PARAMETERS ####################-->
+          <!--___________________________________________________-->
+
+
+          <div id="channel-parameters">
+
+            <!--################### FREQUENCY ######################-->
+
+            <div class="item">
+              <label>Frequency (MHz)</label>
+              <div class="flex-container">
+                <input type="number" value="0" min="0" step="0.000001" max="125.0" class="frequency-input status-input" data-status="dds_freq"
+                  data-channel="0">
+                <button class="btn btn-primary btn-save frequency-save disabled" data-command="setDDSFreq" data-channel="0">Save</button>
+              </div>
+            </div>
+
+            <!--################### INTEGRATORS ######################-->
+
+            <div class="item">
+
+              <label style="margin-bottom: 0;" title="Enable/Disable the integrators">Integrators</label>
+              <div class="flex-container">
+
+                <div class="integrator-group">
+                  <span class="sub-label">1</span><br>
+                  <label class="switch">
+                    <input type="checkbox" class="switch-btn integrator-switch" data-integratorindex="0" data-channel="0">
+                    <div class="slider square">
+                    </div>
+                  </label>
+                </div>
+
+                <div class="integrator-group">
+                  <span class="sub-label">2</span><br>
+                  <label class="switch">
+                    <input type="checkbox" class="switch-btn integrator-switch" data-integratorindex="1" data-channel="0">
+                    <div class="slider square">
+                    </div>
+                  </label>
+                </div>
+
+                <div class="integrator-group">
+                  <span class="sub-label">3</span><br>
+                  <label class="switch">
+                    <input type="checkbox" class="switch-btn integrator-switch" data-integratorindex="2" data-channel="0">
+                    <div class="slider square">
+                    </div>
+                  </label>
+                </div>
+
+                <div class="integrator-group">
+                  <span class="sub-label">4</span><br>
+                  <label class="switch">
+                    <input type="checkbox" class="switch-btn integrator-switch" data-integratorindex="3" data-channel="0">
+                    <div class="slider square">
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+
+
+
+            <!--################### GAINS ######################-->
+
+            <div class="item">
+
+              <!-- ______________P_______________________________-->
+
+              <div class="sub-item">
+
+                <label title="between 0 and 30.99 (log scale)">P Gain</label>
+                <div class="flex-container">
+                  <button class="btn btn-select gain-button status-button" value="-1" data-status="p_gain" data-channel="0">-1</button>
+                  <!--
+                  -->
+                  <button class="btn btn-select gain-button status-button" value="0" data-status="p_gain" data-channel="0">0</button>
+                  <!--
+                  -->
+                  <button class="btn btn-select gain-button status-button" value="+1" data-status="p_gain" data-channel="0">+1</button>
+                  <input type="number" class="gain-input status-input" data-status="p_gain" data-channel="0">
+                  <button class="btn btn-primary btn-save gain-save disabled" data-status="p_gain" data-command="setPGain" data-channel="0">Save</button>
+                </div>
+
+              </div>
+
+
+              <!-- ______________PI_______________________________-->
+
+              <div class="sub-item">
+
+                <label title="between 0 and 30.99 (log scale)">PI Gain</label>
+                <div class="flex-container">
+                  <button class="btn btn-select gain-button status-button" value="-1" data-status="pi_gain" data-channel="0">-1</button>
+                  <!--
+                  -->
+                  <button class="btn btn-select gain-button status-button" value="0" data-status="pi_gain" data-channel="0">0</button>
+                  <!--
+                  -->
+                  <button class="btn btn-select gain-button status-button" value="+1" data-status="pi_gain" data-channel="0">+1</button>
+                  <input type="number" class="gain-input status-input" data-status="pi_gain" data-channel="0">
+                  <button class="btn btn-primary btn-save gain-save disabled" data-status="pi_gain" data-command="setPiGain" data-channel="0">Save</button>
+                </div>
+
+              </div>
+
+              <!-- ______________I2_______________________________-->
+
+              <div class="sub-item">
+
+                <label title="between 0 and 30.99 (log scale)">I2 Gain</label>
+                <div class="flex-container">
+                  <button class="btn btn-select gain-button status-button" value="-1" data-status="i2_gain" data-channel="0">-1</button>
+                  <!--
+                  -->
+                  <button class="btn btn-select gain-button status-button" value="0" data-status="i2_gain" data-channel="0">0</button>
+                  <!--
+                  -->
+                  <button class="btn btn-select gain-button status-button" value="+1" data-status="i2_gain" data-channel="0">+1</button>
+                  <input type="number" class="gain-input status-input" data-status="i2_gain" data-channel="0">
+                  <button class="btn btn-primary btn-save gain-save disabled" data-status="i2_gain" data-command="setI2Gain" data-channel="0">Save</button>
+                </div>
+
+              </div>
+
+
+              <!-- ______________I3_______________________________-->
+
+              <div class="sub-item">
+
+                <label title="between 0 and 30.99 (log scale)">I3 Gain</label>
+                <div class="flex-container">
+                  <button class="btn btn-select gain-button status-button" value="-1" data-status="i3_gain" data-channel="0">-1</button>
+                  <!--
+                  -->
+                  <button class="btn btn-select gain-button status-button" value="0" data-status="i3_gain" data-channel="0">0</button>
+                  <!--
+                  -->
+                  <button class="btn btn-select gain-button status-button" value="+1" data-status="i3_gain" data-channel="0">+1</button>
+                  <input type="number" class="gain-input status-input" data-status="i3_gain" data-channel="0">
+                  <button class="btn btn-primary btn-save gain-save disabled" data-status="i3_gain" data-command="setI3Gain" data-channel="0">Save</button>
+                </div>
+
+              </div>
+
+            </div><!--END OF GAINS-->
+
+          </div><!--END OF CHANNEL-PARAMETERS-->
+
+        </div><!--END OF GROUP-ITEM-->
+
+
+        <!--___________________________________________________-->
+        <!--################### DAC OUTPUT ######################-->
+        <!--___________________________________________________-->
+
+        <div class="group-item">
+
+          <label>DAC Output</label><br>
+
+          <div class="flex-container" style="justify-content: space-between;">
+            <div style="margin-right: 2rem;">
+              <span class="sub-label" style="margin: 0 0.5rem 0 0;">DAC 0</span>
+              <select class="dac-output" data-channel="0">
+                <option value="0">Fast DAC 0</option>
+                <option value="1">Fast DAC 1</option>
+                <option value="2">Phase 0 (16 LSBs)</option>
+                <option value="3">Phase 1 (16 LSBs)</option>
+                <option value="4">Phase 0 (16 MSBs)</option>
+                <option value="5">Phase 1 (16 MSBs)</option>
+                <option value="6">DDS 0</option>
+                <option value="7">DDS 1</option>
+              </select>
+            </div>
+
+            <div>
+              <span class="sub-label" style="margin: 0 0.5rem 0 0;">DAC 1</span>
+              <select class="dac-output" data-channel="1">
+                <option value="0">Fast DAC 0</option>
+                <option value="1">Fast DAC 1</option>
+                <option value="2">Phase 0 (16 LSBs)</option>
+                <option value="3">Phase 1 (16 LSBs)</option>
+                <option value="4">Phase 0 (16 MSBs)</option>
+                <option value="5">Phase 1 (16 MSBs)</option>
+                <option value="6">DDS 0</option>
+                <option value="7">DDS 1</option>
+              </select>
+            </div>
+          </div>
+
+          <br>
+          <div id="reference-clock"></div>
+
+        </div>
+
+
+
+      </div><!--END OF SETTINGS-->
+
+
+      <!--###############################################################"-->
+      <!--DIAGRAM-->
+      <!--###############################################################"-->
+
+      <div id="diagram" style="padding: 1rem;">
+        <div class="group-item">
+          <img src="block_diagram_path.svg" style="max-width: 400px;">
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="app.js?random=<?php echo uniqid(); ?>"></script>
+
+</body>
+
+</html>
