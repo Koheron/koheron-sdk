@@ -360,8 +360,8 @@ class KoheronClient:
         while n_rcv < n_bytes:
             try:
                 chunk = self.sock.recv(min(n_bytes - n_rcv, BUFF_SIZE))
-                if chunk == '':
-                    break
+                if not chunk:
+                    raise ConnectionError('recv_all: Socket connection broken.')
                 n_rcv += len(chunk)
                 data.append(chunk)
             except:
