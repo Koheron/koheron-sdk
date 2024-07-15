@@ -121,7 +121,7 @@ def get_renderer():
         return toks[0]
 
     def replace_KMG(string):
-        return string.replace('K', '*1024').replace('M', '*1024*1024').replace('G', '*1024*1024*1024')
+        return string.replace('K', '*1024U').replace('M', '*1024U*1024U').replace('G', '*1024U*1024U*1024U')
 
     renderer.filters['quote'] = quote
     renderer.filters['remove_extension'] = remove_extension
