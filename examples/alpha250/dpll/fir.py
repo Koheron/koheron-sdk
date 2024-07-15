@@ -19,7 +19,7 @@ def get_taps(N, R, M, ntaps=256, cutoff=0.45):
     H = np.array(map(cic_response, f*np.pi))
 
     # Define frequency reponse of ideal compensation filter
-    H = np.array(map(cic_response, f*np.pi / R))
+    H = np.array(list(map(cic_response, f*np.pi / R)))
     Hc = 1/H * (f < cutoff)
 
     beta = 8
