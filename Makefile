@@ -190,15 +190,8 @@ setup_server: setup_base
 
 .PHONY: setup_web
 setup_web: setup_base
-<<<<<<< HEAD
 	sudo bash setup/install_web_$(DISTRO).sh
 	#sudo rm -f /usr/bin/node && sudo ln -s /usr/bin/nodejs /usr/bin/node
-=======
-	sudo apt-get install -y nodejs
-	# sudo apt-get install -y node-typescript
-	# sudo apt-get install -y npm # npm installed with nodejs
-	# sudo rm -f /usr/bin/node && sudo ln -s /usr/bin/nodejs /usr/bin/node
->>>>>>> 975b48b7e87afb844bdba5b03d3ac084be482768
 	npm install typescript
 	npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
 
