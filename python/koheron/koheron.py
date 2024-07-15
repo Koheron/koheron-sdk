@@ -248,14 +248,14 @@ class KoheronClient:
                 # Connect to Kserver
                 self.sock.connect((host, port))
                 self.is_connected = True
-            except BaseException as e:
+            except Exception as e:
                 raise ConnectionError('Failed to connect to {}:{} : {}'.format(host, port, e))
         elif unixsock != '':
             try:
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.connect(unixsock)
                 self.is_connected = True
-            except BaseException as e:
+            except Exception as e:
                 raise ConnectionError('Failed to connect to unix socket address ' + unixsock)
         else:
             raise ValueError('Unknown socket type')
@@ -267,7 +267,7 @@ class KoheronClient:
     def check_version(self):
         try:
             self.send_command(1, 0)
-        except:
+        except Exception:
             raise ConnectionError('Failed to retrieve the server version')
         server_version = self.recv_string(check_type=False)
         server_version_ = server_version.split('.')
@@ -280,7 +280,7 @@ class KoheronClient:
     def load_devices(self):
         try:
             self.send_command(1, 1)
-        except:
+        except Exception:
             raise ConnectionError('Failed to send initialization command')
 
         self.commands = self.recv_json(check_type=False)
@@ -360,11 +360,11 @@ class KoheronClient:
         while n_rcv < n_bytes:
             try:
                 chunk = self.sock.recv(min(n_bytes - n_rcv, BUFF_SIZE))
-                if chunk == '':
-                    break
+                if not chunk:
+                    raise ConnectionError('recv_all: Socket connection broken.')
                 n_rcv += len(chunk)
                 data.append(chunk)
-            except:
+            except Exception:
                 raise ConnectionError('recv_all: Socket connection broken.')
         return b''.join(data)
 
