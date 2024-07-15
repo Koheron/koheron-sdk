@@ -17,11 +17,7 @@ UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
-<<<<<<< HEAD
-FSBL_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
-=======
 FSBL_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard"
->>>>>>> 975b48b7e87afb844bdba5b03d3ac084be482768
 LINUX_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 UBOOT_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
 
@@ -99,15 +95,9 @@ $(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES)/u-boot -type f)
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	mkdir -p $(@D)
 	$(DOCKER) make -C $< mrproper
-<<<<<<< HEAD
 	$(DOCKER) make -C $< arch=$(ARCH) $(UBOOT_CONFIG)
 	$(DOCKER) make -C $< arch=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
 	  CROSS_COMPILE=$(GCC_ARCH)- all
-=======
-	$(DOCKER) make -C $< arch=arm `find $(PATCHES) -name '*_defconfig' -exec basename {} \;`
-	$(DOCKER) make -C $< arch=arm CFLAGS=$(UBOOT_CFLAGS) \
-	  CROSS_COMPILE=arm-linux-gnueabihf- all
->>>>>>> 975b48b7e87afb844bdba5b03d3ac084be482768
 	cp $</u-boot $@
 	cp $</u-boot.elf $@ || true
 	@echo [$@] OK
@@ -239,19 +229,12 @@ $(LINUX_PATH): $(LINUX_TAR)
 	tar -zxf $< --strip-components=1 --directory=$@
 	@echo [$@] OK
 
-<<<<<<< HEAD
 $(TMP_OS_PATH)/$(LINUX_IMAGE): $(LINUX_PATH) $(shell find $(PATCHES)/linux -type f) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
 	cp $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs
 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $< mrproper
 	$(DOCKER) make -C $< ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
 	$(DOCKER) make -C $< ARCH=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
-=======
-$(TMP_OS_PATH)/uImage: $(LINUX_PATH)
-	$(DOCKER) make -C $< mrproper
-	$(DOCKER) make -C $< ARCH=arm xilinx_zynq_defconfig
-	$(DOCKER) make -C $< ARCH=arm CFLAGS=$(LINUX_CFLAGS) \
->>>>>>> 975b48b7e87afb844bdba5b03d3ac084be482768
 	  --jobs=$(N_CPUS) \
 	  CROSS_COMPILE=$(GCC_ARCH)- UIMAGE_LOADADDR=0x8000 $(LINUX_IMAGE)
 	cp $</arch/$(ARCH)/boot/$(LINUX_IMAGE) $@
