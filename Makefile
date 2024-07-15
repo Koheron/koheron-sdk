@@ -21,14 +21,15 @@ PYTHON := python3
 # Use GCC version >=7
 GCC_VERSION := 9
 
+# Use this command to set GCC_VERSION to 9 on Ubuntu 22.04
+.PHONY: set_gcc_version
+set_gcc_version:
+	unlink /usr/bin/arm-linux-gnueabihf-gcc
+	ln -s /usr/bin/arm-linux-gnueabihf-gcc-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-gcc
+	arm-linux-gnueabihf-gcc --version
 
 #BUILD_METHOD := native
 BUILD_METHOD = docker
-
-OS=$(shell lsb_release -si)
-VER=$(shell lsb_release -sr)
-DISTRO := $(shell ./setup/get_distro.sh)
-
 
 .PHONY: help
 help:
@@ -174,6 +175,12 @@ setup_docker: setup_base
 	sudo bash docker/install_docker_$(DISTRO).sh
 	sudo docker build -t gnu-gcc-9.5 ./docker/.
 
+.PHONY: setup_docker
+setup_docker: setup_base
+	sudo bash docker/install_docker.sh
+	sudo usermod -aG docker $(shell whoami)
+	sudo docker build -t gnu-gcc-9.5 ./docker/.
+
 .PHONY: setup_fpga
 setup_fpga: setup_base
 	sudo rm -f /usr/bin/gmake && sudo ln -s make /usr/bin/gmake
@@ -183,8 +190,15 @@ setup_server: setup_base
 
 .PHONY: setup_web
 setup_web: setup_base
+<<<<<<< HEAD
 	sudo bash setup/install_web_$(DISTRO).sh
 	#sudo rm -f /usr/bin/node && sudo ln -s /usr/bin/nodejs /usr/bin/node
+=======
+	sudo apt-get install -y nodejs
+	# sudo apt-get install -y node-typescript
+	# sudo apt-get install -y npm # npm installed with nodejs
+	# sudo rm -f /usr/bin/node && sudo ln -s /usr/bin/nodejs /usr/bin/node
+>>>>>>> 975b48b7e87afb844bdba5b03d3ac084be482768
 	npm install typescript
 	npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
 

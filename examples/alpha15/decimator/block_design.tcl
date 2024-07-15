@@ -16,7 +16,40 @@ for {set i 0} {$i < 2} {incr i} {
   connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 8 4] adc_dac/adc${i}_dco_delay_tap
   connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 14 9] adc_dac/adc${i}_da_delay_tap
   connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 20 15] adc_dac/adc${i}_db_delay_tap
-  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 21 21] adc_dac/adc${i}_delay_reset
+  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 21 21] adc_dac/adc${i}_delay_rst
+}
+
+# ADC add/substract channels 0 and 1
+
+cell xilinx.com:ip:c_addsub:12.0 adc_addsub {
+  A_WIDTH 18
+  B_WIDTH 18
+  OUT_WIDTH 19
+  ADD_MODE Add_Subtract
+  CE false
+} {
+  A adc_dac/adc0
+  B adc_dac/adc1
+  add [get_slice_pin [ctl_pin channel_select] 2 2]
+  clk adc_dac/adc_clk
+}
+
+# Channel selection
+
+cell koheron:user:bus_multiplexer:1.0 adc_mux0 {
+  WIDTH 24
+} {
+  din0 adc_dac/adc0
+  din1 adc_dac/adc1
+  sel [get_slice_pin [ctl_pin channel_select] 0 0]
+}
+
+cell koheron:user:bus_multiplexer:1.0 adc_mux1 {
+  WIDTH 24
+} {
+  din0 adc_mux0/dout
+  din1 adc_addsub/S
+  sel [get_slice_pin [ctl_pin channel_select] 1 1]
 }
 
 # Use AXI Stream clock converter (ADC clock -> FPGA clock)
@@ -25,7 +58,7 @@ set idx [add_master_interface $intercon_idx]
 cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
   TDATA_NUM_BYTES 3
 } {
-  s_axis_tdata adc_dac/adc0
+  s_axis_tdata adc_mux1/dout
   s_axis_tvalid adc_dac/adc_valid
   s_axis_aresetn rst_adc_clk/peripheral_aresetn
   m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn

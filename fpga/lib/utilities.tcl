@@ -188,6 +188,11 @@ proc get_edge_detector_pin {pin_name {clk clk}} {
   return $cell_name/dout
 }
 
+proc get_interrupt_pin {} {
+    set num_ports [get_property CONFIG.NUM_PORTS [get_bd_cells /concat_interrupts]]
+    set_property -dict [list CONFIG.NUM_PORTS [expr $num_ports+1]] [get_bd_cells /concat_interrupts]
+    return concat_interrupts/In$num_ports
+}
 
 proc connect_pins {pin1 pin2} {
   connect_bd_net [get_bd_pins $pin1] [get_bd_pins $pin2]

@@ -44,7 +44,11 @@ def run_instrument(host, name=None, restart=False):
         if name in instruments:
             instrument_in_store = True
         else:
-            raise ValueError('Did not found instrument {}'.format(name))
+            print("Instrument {} not found".format(name))
+            print("Available instruments:")
+            for instrument in instruments:
+                print("- {}".format(instrument))
+            raise ValueError('Instrument {} not found'.format(name))
 
     if instrument_in_store or (instrument_running and restart):
         r = requests.get('http://{}/api/instruments/run/{}'.format(host, name))
@@ -195,6 +199,7 @@ def get_std_vector_params(_type):
 
 cpp_to_np_types = {
   'bool': 'bool',
+  'unsigned char': 'uint8', 'char': 'int8',
   'uint8_t': 'uint8', 'int8_t': 'int8',
   'uint16_t': 'uint16', 'int16_t': 'int16',
   'uint32_t': 'uint32', 'unsigned int': 'uint32',
@@ -243,14 +248,14 @@ class KoheronClient:
                 # Connect to Kserver
                 self.sock.connect((host, port))
                 self.is_connected = True
-            except BaseException as e:
+            except Exception as e:
                 raise ConnectionError('Failed to connect to {}:{} : {}'.format(host, port, e))
         elif unixsock != '':
             try:
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.connect(unixsock)
                 self.is_connected = True
-            except BaseException as e:
+            except Exception as e:
                 raise ConnectionError('Failed to connect to unix socket address ' + unixsock)
         else:
             raise ValueError('Unknown socket type')
@@ -262,7 +267,7 @@ class KoheronClient:
     def check_version(self):
         try:
             self.send_command(1, 0)
-        except:
+        except Exception:
             raise ConnectionError('Failed to retrieve the server version')
         server_version = self.recv_string(check_type=False)
         server_version_ = server_version.split('.')
@@ -275,7 +280,7 @@ class KoheronClient:
     def load_devices(self):
         try:
             self.send_command(1, 1)
-        except:
+        except Exception:
             raise ConnectionError('Failed to send initialization command')
 
         self.commands = self.recv_json(check_type=False)
@@ -355,11 +360,11 @@ class KoheronClient:
         while n_rcv < n_bytes:
             try:
                 chunk = self.sock.recv(min(n_bytes - n_rcv, BUFF_SIZE))
-                if chunk == '':
-                    break
+                if not chunk:
+                    raise ConnectionError('recv_all: Socket connection broken.')
                 n_rcv += len(chunk)
                 data.append(chunk)
-            except:
+            except Exception:
                 raise ConnectionError('recv_all: Socket connection broken.')
         return b''.join(data)
 
@@ -376,6 +381,22 @@ class KoheronClient:
         else:
             return t
 
+    def recv_int8(self):
+        self.check_ret_type(['int8_t', 'char', 'signed char'])
+        return self.recv(fmt='b')
+        
+    def recv_uint8(self):
+        self.check_ret_type(['uint8_t', 'unsigned char'])
+        return self.recv(fmt='B')
+        
+    def recv_int16(self):
+        self.check_ret_type(['int16_t', 'short'])
+        return self.recv(fmt='h')
+        
+    def recv_uint16(self):
+        self.check_ret_type(['uint16_t'])
+        return self.recv(fmt='H')
+        
     def recv_uint32(self):
         self.check_ret_type(['uint32_t', 'unsigned int'])
         return self.recv()

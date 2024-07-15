@@ -11,12 +11,12 @@ import time
 from decimator import Decimator
 from koheron import connect
 
-host = os.getenv('HOST', '192.168.1.113')
+host = os.getenv('HOST', '192.168.1.129')
 client = connect(host, 'decimator')
 driver = Decimator(client)
 
 n = 8192
-m = 16
+m = 2
 data = np.zeros(n*m)
 
 driver.read_adc()

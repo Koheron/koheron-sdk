@@ -127,6 +127,8 @@ cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
   m_axi_s2mm_aclk ps_0/FCLK_CLK0
   S_AXIS_S2MM tlast_gen_0/m_axis
   axi_resetn proc_sys_reset_0/peripheral_aresetn
+  s2mm_introut [get_interrupt_pin]
+  mm2s_introut [get_interrupt_pin]
 }
 
 # DAC Streaming (MM2S)
@@ -197,9 +199,4 @@ for {set i 0} {$i < 2} {incr i} {
   connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 0 0] adc${i}_ctl_range_sel
   connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 1 1] adc${i}_ctl_testpat
   connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 2 2] adc${i}_ctl_en
-
-  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 8 4] adc_dac/adc${i}_dco_delay_tap
-  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 14 9] adc_dac/adc${i}_da_delay_tap
-  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 20 15] adc_dac/adc${i}_db_delay_tap
-  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 21 21] adc_dac/adc${i}_delay_reset
 }
