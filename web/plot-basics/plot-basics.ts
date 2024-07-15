@@ -23,7 +23,7 @@ class PlotBasics {
     private clickDatapointSpan: HTMLSpanElement;
     private clickDatapoint: number[];
 
-    constructor(document: Document, private plot_placeholder: JQuery, private plotDriver: Plot, private n_pts: number, public x_min, public x_max, public y_min, public y_max,
+    constructor(document: Document, private plot_placeholder: JQuery, private n_pts: number, public x_min, public x_max, public y_min, public y_max,
         private driver, private rangeFunction, private plotTitle: string) {
 
         this.plotTitleSpan = <HTMLSpanElement>document.getElementById("plot-title");
