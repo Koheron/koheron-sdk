@@ -136,7 +136,6 @@ class FFT
         return std::tuple{fs_adc, input_channel, W1, W2};
     }
 
-
  private:
     Context& ctx;
     Memory<mem::control>& ctl;
