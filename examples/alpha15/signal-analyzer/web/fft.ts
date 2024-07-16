@@ -64,17 +64,13 @@ class FFT {
         });
     }
 
-    setDDSFreq(channel: number, freq_hz: number): void {
-        this.client.send(Command(this.id, this.cmds['set_dds_freq'], channel, freq_hz));
-    }
-
     setInputChannel(channel: number): void {
-        if (channel == 3) { // 0 - 1
+        if (channel == 2) { // 0 - 1
             this.client.send(Command(this.id, this.cmds['set_operation'], 0));
-            this.client.send(Command(this.id, this.cmds['select_adc_channel'], 3));
-        } else if (channel == 4) { // 0 + 1
+            this.client.send(Command(this.id, this.cmds['select_adc_channel'], 2));
+        } else if (channel == 3) { // 0 + 1
             this.client.send(Command(this.id, this.cmds['set_operation'], 1));
-            this.client.send(Command(this.id, this.cmds['select_adc_channel'], 3));
+            this.client.send(Command(this.id, this.cmds['select_adc_channel'], 2));
         } else { // Channel 0 or 1
             this.client.send(Command(this.id, this.cmds['select_adc_channel'], channel));
         }
@@ -85,12 +81,24 @@ class FFT {
     }
 
     getControlParameters(cb: (status: IFFTStatus) => void): void {
-        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'dIdd',
-                               (tup: [number, number, number, number]) => {
+        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'dIIdd',
+                               (tup: [number, number, number, number, number]) => {
             this.status.fs = tup[0];
-            this.status.channel = tup[1];
-            this.status.W1 = tup[2];
-            this.status.W2 = tup[3];
+            let input_channel = tup[1];
+            let input_operation = tup[2];
+            this.status.W1 = tup[3];
+            this.status.W2 = tup[4];
+
+            if (input_channel == 2) {
+                if (input_operation == 0) {
+                    this.status.channel = 2;
+                } else {
+                    this.status.channel = 3;
+                }
+            } else {
+                this.status.channel = input_channel;
+            }
+
             cb(this.status);
         });
     }
