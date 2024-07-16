@@ -53,16 +53,23 @@ class FFT
     }
 
     void select_adc_channel(uint32_t channel) {
+        ctx.log<INFO>("FFT: Select channel %u", channel);
+
         if (channel == 0) {
             ctl.clear_bit<reg::channel_select, 0>();
             ctl.set_bit<reg::channel_select, 1>();
         } else if (channel == 1) {
             ctl.set_bit<reg::channel_select, 0>();
             ctl.clear_bit<reg::channel_select, 1>();
-        } else if (channel == 3) { // Diff or sum of channels
+        } else if (channel == 2) { // Diff or sum of channels
             ctl.set_bit<reg::channel_select, 0>();
             ctl.set_bit<reg::channel_select, 1>();
+        } else {
+            ctx.log<ERROR>("FFT: Invalid input channel");
+            return;
         }
+
+        input_channel = channel;
     }
 
     void set_operation(uint32_t operation) {
@@ -70,8 +77,11 @@ class FFT
         // 0 : Substration
         // 1 : Addition
 
+        ctx.log<INFO>("FFT: Select operation %u", operation);
+
         operation == 0 ? ctl.clear_bit<reg::channel_select, 2>()
                        : ctl.set_bit<reg::channel_select, 2>();
+        input_operation = operation;
     }
 
     void set_scale_sch(uint32_t scale_sch) {
@@ -158,7 +168,7 @@ class FFT
     }
 
     auto get_control_parameters() {
-        return std::tuple{fs_adc, input_channel, W1, W2};
+        return std::tuple{fs_adc, input_channel, input_operation, W1, W2};
     }
 
  private:
@@ -179,7 +189,7 @@ class FFT
     uint32_t window_index;
 
     uint32_t input_channel = 0;
-    std::array<double, 2> dds_freq = {{0.0, 0.0}};
+    uint32_t input_operation = 0;
 
     std::array<float, prm::fft_size/2> psd_buffer;
     std::array<float, prm::fft_size/2> psd_buffer_raw;

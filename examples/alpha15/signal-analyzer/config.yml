@@ -76,7 +76,7 @@ parameters:
   cic_decimation_rate: 2048
   cic_n_stages: 6
   fft_size: 8192
-  n_cycles: 1023
+  n_cycles: 63
 
 xdc:
   - boards/alpha15/config/ports.xdc
