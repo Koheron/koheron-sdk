@@ -44,4 +44,3 @@ RUN cp -r /tmp/eigen-3.3.9/Eigen /usr/include
 RUN apt-get clean
 ENV TERM=xterm-256color
 USER containeruser
-

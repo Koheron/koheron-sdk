@@ -82,22 +82,37 @@ class FFT
     void set_fft_window(uint32_t window_id) {
         switch (window_id) {
           case 0:
-            window = win::get_window<double, prm::fft_size>(win::Boxcar);
-        }
-
-        constexpr std::array<std::array<double, 6>, 4> window_coeffs = {{
-            {1.0, 0, 0, 0, 0, 1.0},                      // Rectangular
-            {0.5, 0.5, 0, 0, 0, 1.0},                    // Hann
-            {1.0, 1.93, 1.29, 0.388, 0.028, 0.2},        // Flat top
-            {0.35875, 0.48829, 0.14128, 0.01168, 0, 1.0} // Blackman-Harris
-        }};
-
-        if (window_id >= 4) {
-            ctx.log<ERROR>("Invalid FFT window index \n");
+            window = win::boxcar<double, prm::fft_size>();
+            break;
+          case 1:
+            window = win::hann<double, prm::fft_size>();
+            break;
+          case 2:
+            window = win::flattop<double, prm::fft_size>();
+            break;
+          case 3:
+            window = win::blackmanharris<double, prm::fft_size>();
+            break;
+          default:
+            ctx.log<ERROR>("FFT: Invalid window index\n");
             return;
         }
 
-        set_cosine_sum_window(window_coeffs[window_id]);
+        // window = win::get_window<double, prm::fft_size>(window_select);
+
+        // constexpr std::array<std::array<double, 6>, 4> window_coeffs = {{
+        //     {1.0, 0, 0, 0, 0, 1.0},                      // Rectangular
+        //     {0.5, 0.5, 0, 0, 0, 1.0},                    // Hann
+        //     {1.0, 1.93, 1.29, 0.388, 0.028, 0.2},        // Flat top
+        //     {0.35875, 0.48829, 0.14128, 0.01168, 0, 1.0} // Blackman-Harris
+        // }};
+
+        // if (window_id >= 4) {
+        //     ctx.log<ERROR>("Invalid FFT window index \n");
+        //     return;
+        // }
+
+        // set_cosine_sum_window(window_coeffs[window_id]);
         set_window_buffer();
         window_index = window_id;
     }
@@ -176,20 +191,20 @@ class FFT
     void start_psd_acquisition();
 
     // https://en.wikipedia.org/wiki/Window_function
-    void set_cosine_sum_window(const std::array<double, 6>& a) {
-        double sign;
+    // void set_cosine_sum_window(const std::array<double, 6>& a) {
+    //     double sign;
 
-        for (size_t i=0; i<prm::fft_size; i++) {
-            window[i] = 0;
+    //     for (size_t i=0; i<prm::fft_size; i++) {
+    //         window[i] = 0;
 
-            for (size_t j=0; j<(a.size() - 1); j++) {
-                j % 2 == 0 ? sign = 1.0 : sign = -1.0;
-                window[i] += sign * a[j] * std::cos(2 * M_PI * i * j / double(prm::fft_size - 1));
-            }
+    //         for (size_t j=0; j<(a.size() - 1); j++) {
+    //             j % 2 == 0 ? sign = 1.0 : sign = -1.0;
+    //             window[i] += sign * a[j] * std::cos(2 * M_PI * i * j / double(prm::fft_size - 1));
+    //         }
 
-            window[i] *= a[a.size() - 1]; // Scaling
-        }
-    }
+    //         window[i] *= a[a.size() - 1]; // Scaling
+    //     }
+    // }
 
     // Vectors to convert PSD raw data into W/Hz
     void set_conversion_vectors() {

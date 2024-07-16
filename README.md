@@ -3,13 +3,13 @@
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/Koheron/koheron-sdk/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Koheron/koheron-sdk/tree/master)
 [![PyPI version](https://img.shields.io/pypi/v/koheron.svg)](https://pypi.python.org/pypi/koheron)
 
-## What is Koheron Software Development Kit ?
-
-[Koheron Software Development Kit](https://www.koheron.com/software-development-kit) is a tool to develop FPGA / Linux instruments for Zynq SoCs.
+https://www.koheron.com/software-development-kit
 
 ## Getting started
 
-1. [Install Vivado 2020.1](https://koheron.com/software-development-kit/documentation/setup-development-machine)
+The SDK is tested on an Ubuntu 22.04 development machine.
+
+1. Install Vivado. Instruments can be built on Vivado versions newer than 2017.2. The OS can only be built with Vivado 2017.2. The branch [2023.2](https://github.com/Koheron/koheron-sdk/tree/2023.2) uses Vivado/Vitis 2023.2 and includes preliminary Zynq Utrascale support.
 
 2. Install required packages
 
@@ -17,12 +17,13 @@
     $ make setup
     ```
 
-3. Install Ubuntu 20.04 for Zynq ([Download SD card image](https://www.koheron.com/software-development-kit/documentation/ubuntu-zynq/))
+3. Install Ubuntu 22.04 for Zynq ([Download SD card image](https://www.koheron.com/software-development-kit/documentation/ubuntu-zynq/))
 
-4. Build and run the led-blinker instrument
+4. Build and run an instrument
 
     ```bash
-    $ make CONFIG=examples/zedboard/led-blinker/config.yml HOST=192.168.1.100 run
+    $ make CONFIG=examples/alpha250/adc-dac-bram/config.yml HOST=192.168.1.100 run
+    $ HOST=192.168.1.100 python3 examples/alpha250/adc-dac-bram/test.py
     ```
 
 Ready to develop your instrument? Read the [documentation](https://www.koheron.com/software-development-kit/documentation).
@@ -30,25 +31,15 @@ Ready to develop your instrument? Read the [documentation](https://www.koheron.c
 ## Koheron Alpha250 designs
 
 * [`fft`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250/fft) : reference design with spectrum analyzer, DDS and demodulation.
+* [`phase-noise-analyzer`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250/adc-dac-dma) : phase noise analyzer.
 * [`loopback`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250/loopback) : minimal instrument.
 * [`adc-dac-bram`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250/adc-dac-bram) : set DAC waveforms and get ADC using Block RAMs.
 * [`adc-dac-dma`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250/adc-dac-dma) : set DAC waveforms and get ADC using DMA.
-* [`phase-noise-analyzer`](https://github.com/Koheron/koheron-sdk/tree/master/examples/alpha250/adc-dac-dma) : phase noise analyzer.
 
 ## Red Pitaya designs
 
-* [`led-blinker`](https://github.com/Koheron/koheron-sdk/tree/master/examples/red-pitaya/led-blinker) : minimal instrument with LED control.
 * [`adc-dac`](https://github.com/Koheron/koheron-sdk/tree/master/examples/red-pitaya/adc-dac) : instrument with minimal read/write capability on Red Pitaya ADCs and DACs.
-* [`pulse-generator`](https://github.com/Koheron/koheron-sdk/tree/master/examples/red-pitaya/pulse-generator) : pulse generation with synchronous acquisition.
-* [`laser-controller`](https://github.com/Koheron/koheron-sdk/tree/master/examples/red-pitaya/laser-controller) : laser current control using pulse-density modulation.
 * [`decimator`](https://github.com/Koheron/koheron-sdk/tree/master/examples/red-pitaya/decimator) : decimation using a compensated CIC filter.
-* [`oscillo`](https://github.com/Koheron/koheron-sdk/tree/master/examples/red-pitaya/oscillo) : signal acquisition / generation with coherent averaging mode.
-* [`spectrum`](https://github.com/Koheron/koheron-sdk/tree/master/examples/red-pitaya/spectrum) : spectrum analyzer with peak-detection and averaging.
-
-## Zedboard designs
-
-* [`led-blinker`](https://github.com/Koheron/koheron-sdk/tree/master/examples/zedboard/led-blinker) : minimal instrument with LED control.
-* [`picoblaze`](https://github.com/Koheron/koheron-sdk/tree/master/examples/zedboard/picoblaze) : 8 bit picoblaze microcontroller controllable from the PS.
 
 ## How to
 

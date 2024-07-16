@@ -27,6 +27,11 @@ initial count = 0;
 reg [3:0] count_data_bits;
 initial count_data_bits = 0;
 
+reg [17:0] adc0_reg;
+reg [17:0] adc1_reg;
+initial adc0_reg = 0;
+initial adc1_reg = 0;
+
 reg din0_co_reg;
 reg din0_a_reg;
 reg din0_b_reg;
@@ -84,11 +89,11 @@ end
  
 always @(posedge clk) begin
   if (count_data_bits < 9) begin
-    adc0[addr_a_reg] <= din0_a_reg_reg;
-    adc0[addr_b_reg] <= din0_b_reg_reg;
+    adc0_reg[addr_a_reg] <= din0_a_reg_reg;
+    adc0_reg[addr_b_reg] <= din0_b_reg_reg;
     
-    adc1[addr_a_reg] <= din1_a_reg_reg;
-    adc1[addr_b_reg] <= din1_b_reg_reg;
+    adc1_reg[addr_a_reg] <= din1_a_reg_reg;
+    adc1_reg[addr_b_reg] <= din1_b_reg_reg;
   end
 end
 
@@ -103,6 +108,8 @@ end
 always @(posedge clk) begin
   if (count_data_bits == 9) begin
     adc_valid <= 1;
+    adc0 <= adc0_reg;
+    adc1 <= adc1_reg;
   end else begin
     adc_valid <= 0;
   end

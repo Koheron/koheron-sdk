@@ -9,7 +9,6 @@ ExecStart=/usr/local/bin/uwsgi --ini /etc/uwsgi/uwsgi.ini
 Restart=always
 KillSignal=SIGKILL
 Type=notify
-StandardError=syslog
 NotifyAccess=all
 
 [Install]

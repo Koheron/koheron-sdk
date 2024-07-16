@@ -11,7 +11,7 @@ matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
-host = os.getenv('HOST', '192.168.1.100')
+host = os.getenv('HOST', '192.168.1.42')
 client = connect(host, 'adc-dac-bram', restart=True)
 driver = AdcDacBram(client)
 
@@ -20,8 +20,9 @@ print('ADC size = {}'.format(driver.adc_size))
 
 clk_200MHz = {'idx': 0, 'fs': 200E6}
 clk_250MHz = {'idx': 1, 'fs': 250E6}
+clk_100MHz = {'idx': 2, 'fs': 100E6}
 
-clock = clk_250MHz
+clock = clk_100MHz
 driver.set_sampling_frequency(clock['idx'])
 # driver.phase_shift(100)
 

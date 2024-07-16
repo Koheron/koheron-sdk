@@ -13,11 +13,13 @@ matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
-host = os.getenv('HOST', '192.168.1.113')
+host = os.getenv('HOST', '192.168.1.156')
 client = connect(host, 'adc-dac-bram', restart=True)
 driver = AdcDacBram(client)
 
-input_range = 0
+driver.set_reference_clock(0)
+
+input_range = 1
 
 driver.range_select(0, input_range)
 driver.range_select(1, input_range)
@@ -105,7 +107,7 @@ while True:
         line1.set_data(t_adc_us, driver.adc[1,:])
         # line0.set_data(t_adc_us, driver.adc[0,:] * input_span / 2**18)
         # line1.set_data(t_adc_us, driver.adc[1,:] * input_span / 2**18)
-        raw_data = driver.adc_raw_data()
+        raw_data = driver.adc_raw_data(1)
         print(i, raw_data)
         print("{:018b}, {:018b}".format(raw_data[0], raw_data[1]))
         print("{:05x}, {:05x}".format(raw_data[0], raw_data[1]))
