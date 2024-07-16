@@ -31,6 +31,10 @@ set_gcc_version:
 #BUILD_METHOD := native
 BUILD_METHOD = docker
 
+OS=$(shell lsb_release -si)
+VER=$(shell lsb_release -sr)
+DISTRO := $(shell ./setup/get_distro.sh)
+
 .PHONY: help
 help:
 	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
