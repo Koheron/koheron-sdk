@@ -109,8 +109,10 @@ web:
   - ./web/app.ts
   - ./web/fft.ts
   - ./web/decimator.ts
+  - ./web/ltc2387.ts
   - ./web/fft/fft-window.html
   - ./web/fft/input-channel.html
+  - ./web/fft/input-range.html
   - ./web/fft/fft-app.ts
   - web/plot-basics/plot-basics.ts
   - web/plot-basics/plot-basics.html
