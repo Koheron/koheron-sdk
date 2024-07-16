@@ -15,7 +15,12 @@
 #include <limits>
 #include <array>
 
+#include <scicpp/signal.hpp>
 #include <boards/alpha250/drivers/clock-generator.hpp>
+
+namespace {
+    namespace win = scicpp::signal::windows;
+}
 
 class FFT
 {
@@ -75,6 +80,11 @@ class FFT
     }
 
     void set_fft_window(uint32_t window_id) {
+        switch (window_id) {
+          case 0:
+            window = win::get_window<double, prm::fft_size>(win::Boxcar);
+        }
+
         constexpr std::array<std::array<double, 6>, 4> window_coeffs = {{
             {1.0, 0, 0, 0, 0, 1.0},                      // Rectangular
             {0.5, 0.5, 0, 0, 0, 1.0},                    // Hann
