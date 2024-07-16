@@ -496,6 +496,12 @@ class Client {
         });
     }
 
+    readInt32Array(cmd: CmdMessage, fn: (x: Int32Array) => void): void {
+        this._readBase('static', cmd, (data) => {
+            fn(new Int32Array(data.buffer));
+        });
+    }
+
     readFloat32Array(cmd: CmdMessage, fn: (x: Float32Array) => void): void {
         this._readBase('static', cmd, (data) => {
             fn(new Float32Array(data.buffer));

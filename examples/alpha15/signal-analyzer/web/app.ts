@@ -1,11 +1,12 @@
 class App {
-
     private imports: Imports;
     public plot: Plot;
     private plotBasics: PlotBasics;
+    public plotDecimator: DecimatorPlot;
+    private plotBasicsDecimator: PlotBasics;
     private fft: FFT;
     public fftApp: FFTApp;
-    public ddsFrequency: DDSFrequency;
+    private decimator: Decimator;
     private temperatureSensor: TemperatureSensor;
     private temperatureSensorApp: TemperatureSensorApp;
     private powerMonitor: PowerMonitor;
@@ -13,9 +14,7 @@ class App {
     private clockGenerator: ClockGenerator;
     private clockGeneratorApp: ClockGeneratorApp;
     private precisionDac: PrecisionDac;
-    private precisionAdc: PrecisionAdc;
     private precisionChannelsApp: PrecisionChannelsApp;
-    private exportFile: ExportFile;
 
     private n_pts: number;
     private x_min: number;
@@ -23,8 +22,17 @@ class App {
     private y_min: number;
     private y_max: number;
 
-    constructor(window: Window, document: Document,
-                ip: string, plot_placeholder: JQuery) {
+    private decim_n_pts: number;
+    private decim_x_min: number;
+    private decim_x_max: number;
+    private decim_y_min: number;
+    private decim_y_max: number;
+
+    constructor(window: Window,
+                document: Document,
+                ip: string,
+                plot_placeholder: JQuery,
+                decim_plot_placeholder: JQuery) {
         let sockpoolSize: number = 10;
         let client = new Client(ip, sockpoolSize);
 
@@ -32,31 +40,46 @@ class App {
             client.init( () => {
                 this.imports = new Imports(document);
                 this.fft = new FFT(client);
+                this.decimator = new Decimator(client);
                 this.precisionDac = new PrecisionDac(client);
-                this.precisionAdc = new PrecisionAdc(client);
                 this.temperatureSensor = new TemperatureSensor(client);
                 this.powerMonitor = new PowerMonitor(client);
                 this.clockGenerator = new ClockGenerator(client);
 
                 this.fft.init( () => {
                     this.fftApp = new FFTApp(document, this.fft);
-                    this.ddsFrequency = new DDSFrequency(document, this.fft);
 
+                    // FFT plot
                     this.n_pts = this.fft.fft_size / 2;
                     this.x_min = 0;
                     this.x_max = this.fft.status.fs / 1E6 / 2;
                     this.y_min = -200;
                     this.y_max = 170;
 
-                    this.plotBasics = new PlotBasics(document, plot_placeholder, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.fft, "", "Frequency (MHz)");
+                    this.plotBasics = new PlotBasics(document, plot_placeholder,
+                                                     this.n_pts,
+                                                     this.x_min, this.x_max,
+                                                     this.y_min, this.y_max,
+                                                     this.fft, "", "Frequency (MHz)");
                     this.plot = new Plot(document, this.fft, this.plotBasics);
+
+                    // Decimator plot
+                    this.decim_n_pts = 8192;
+                    this.decim_x_min = 0;
+                    this.decim_x_max = 8192;
+                    this.decim_y_min = -2;
+                    this.decim_y_max = 2;
+                    this.plotBasicsDecimator = new PlotBasics(document, decim_plot_placeholder,
+                                                              this.decim_n_pts,
+                                                              this.decim_x_min, this.decim_x_max,
+                                                              this.decim_y_min, this.decim_y_max,
+                                                              this.decimator, "", "Time (s)");
+                    this.plotDecimator = new DecimatorPlot(document, this.decimator, this.plotBasicsDecimator);
 
                     this.temperatureSensorApp = new TemperatureSensorApp(document, this.temperatureSensor);
                     this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);
                     this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
-                    this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionAdc, this.precisionDac);
-                    this.exportFile = new ExportFile(document, this.plot);
-
+                    this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionDac);
                 });
             });
         }, false);
@@ -66,4 +89,6 @@ class App {
 
 }
 
-let app = new App(window, document, location.hostname, $('#plot-placeholder'));
+let app = new App(window, document, location.hostname,
+                  $('#plot-placeholder'),
+                  $('#decim-plot-placeholder'));
