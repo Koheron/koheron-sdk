@@ -2,12 +2,16 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_SIGNAL_ANALYZER_HPP__
-#define __DRIVERS_SIGNAL_ANALYZER_HPP__
+#ifndef __DRIVERS_DECIMATOR_HPP__
+#define __DRIVERS_DECIMATOR_HPP__
 
 #include <context.hpp>
-#include <server/drivers/fifo.hpp>
 
+#include <atomic>
+#include <thread>
+#include <mutex>
+
+#include <server/drivers/fifo.hpp>
 #include <boards/alpha15/drivers/clock-generator.hpp>
 
 class Decimator
@@ -24,6 +28,8 @@ class Decimator
         set_cic_rate(prm::cic_decimation_rate_default);
         fifo_transfer_duration = n_pts / fs;
         ctx.log<INFO>("Decimator: FIFO transfer duration = %f s\n", double(fifo_transfer_duration));
+
+        start_acquisition();
     }
 
     void set_cic_rate(uint32_t rate) {
@@ -40,12 +46,6 @@ class Decimator
     }
 
     auto read_adc() {
-        fifo.wait_for_data(n_pts, fs);
-
-        for (unsigned int i=0; i < n_pts; i++) {
-            adc_data[i] = fifo.read();
-        }
-
         return adc_data;
     }
 
@@ -64,6 +64,37 @@ class Decimator
     float fifo_transfer_duration;
 
     std::array<uint32_t, n_pts> adc_data;
-};
 
-#endif // __DRIVERS_SIGNAL_ANALYZER_HPP__
+    // Data acquisition thread
+    std::thread acq_thread;
+    std::mutex mutex;
+    std::atomic<bool> acquisition_started{false};
+    void acquisition_thread();
+    void start_acquisition();
+}; // Decimator
+
+inline void Decimator::start_acquisition() {
+    if (! acquisition_started) {
+        adc_data.fill(0);
+        acq_thread = std::thread{&Decimator::acquisition_thread, this};
+        acq_thread.detach();
+    }
+}
+
+inline void Decimator::acquisition_thread() {
+    acquisition_started = true;
+
+    while (acquisition_started) {
+        fifo.wait_for_data(n_pts, fs);
+
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+
+            for (uint32_t i = 0; i < n_pts; i++) {
+                adc_data[i] = fifo.read();
+            }
+        }
+    }
+}
+
+#endif // __DRIVERS_DECIMATOR_HPP__
