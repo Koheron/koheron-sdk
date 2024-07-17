@@ -28,8 +28,9 @@ class Fifo
         fifo.template write<rdfr>(0x000000A5);
     }
 
+    template<typename T = uint32_t>
     uint32_t read() {
-        return fifo.template read<rdfd>();
+        return fifo.template read<rdfd, T>();
     }
 
     uint32_t length() {

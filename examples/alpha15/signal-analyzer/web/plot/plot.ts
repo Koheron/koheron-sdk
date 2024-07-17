@@ -2,15 +2,25 @@
 // (c) Koheron
 
 class Plot {
+    public n_pts_slow: number;
+    public n_pts_fast: number;
     public n_pts: number;
+    public n_start_fast: number;
     public plot: jquery.flot.plot;
     public plot_data: Array<Array<number>>;
 
     public yLabel: string = "Power Spectral Density";
     private peakDatapoint: number[];
 
-    constructor(document: Document, private fft: FFT, private plotBasics: PlotBasics) {
-        this.n_pts = this.fft.fft_size / 2;
+    constructor(document: Document,
+                private fft: FFT,
+                private decimator: Decimator,
+                private plotBasics: PlotBasics) {
+        this.n_pts_fast = this.fft.fft_size / 2;
+        this.n_pts_slow = 1 + this.decimator.status.n_pts / 2;
+        this.n_start_fast = 20; // Don't plot the 1st 20 points
+        this.n_pts = this.n_pts_fast + this.n_pts_slow - this.n_start_fast;
+        
         this.peakDatapoint = [];
         this.plot_data = [];
 
@@ -18,30 +28,44 @@ class Plot {
     }
 
     updatePlot() {
-        this.fft.read_psd( (psd: Float32Array) => {
-            let max_x: number = this.fft.status.fs / 1E6 / 2
+        this.fft.read_psd( (fast_psd: Float32Array) => {
+            this.decimator.spectral_density( (slow_psd: Float64Array) => {
+                let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
+    
+                // Slow PSD
+                for (let i: number = 0; i <= this.n_pts_slow; i++) {
+                    let freq = (i + 1) * this.decimator.status.fs / 2 / this.n_pts_slow;
+                    let convertedSlowPsd = this.convertValue(slow_psd[i], yUnit);
+                    this.plot_data[i] = [freq, convertedSlowPsd];
+                }
 
-            if (max_x != this.plotBasics.x_max) { // Sampling frequency has changed
-                this.plotBasics.x_max = max_x;
-                this.plotBasics.setRangeX(0, this.plotBasics.x_max);
-            }
+                // Fast PSD
+                let max_x: number = this.fft.status.fs / 2
 
-            let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
-            this.peakDatapoint = [this.plotBasics.x_max / this.n_pts , this.convertValue(psd[0], yUnit)];
+                if (max_x != this.plotBasics.x_max) { // Sampling frequency has changed
+                    this.plotBasics.x_max = max_x;
+                    this.plotBasics.setRangeX(10, this.plotBasics.x_max);
+                    this.plotBasics.setLogX();
+                }
 
-            for (let i: number = 0; i <= this.n_pts; i++) {
-                let freq: number = (i + 1) * this.plotBasics.x_max / this.n_pts; // MHz
-                let convertedPsd: number = this.convertValue(psd[i], yUnit);
-                this.plot_data[i] = [freq, convertedPsd];
-            };
+                this.peakDatapoint = [this.plotBasics.x_max / this.n_pts_fast ,
+                                    this.convertValue(fast_psd[0], yUnit)];
 
-            this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, () => {
-                requestAnimationFrame( () => { this.updatePlot(); } );
+                for (let i: number = this.n_start_fast; i <= this.n_pts_fast; i++) {
+                    let freq = (i + 1) * this.plotBasics.x_max / this.n_pts_fast;
+                    let convertedFastPsd = this.convertValue(fast_psd[i], yUnit);
+                    this.plot_data[this.n_pts_slow + 1 + i - this.n_start_fast] = [freq, convertedFastPsd];
+                };
+
+                // Redraw
+                this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, () => {
+                    requestAnimationFrame( () => { this.updatePlot(); } );
+                });
             });
         });
     }
 
-    convertValue(inValue: number, outUnit: string): number {
+    private convertValue(inValue: number, outUnit: string): number {
         // inValue in W / Hz
         let outValue: number = 0;
 

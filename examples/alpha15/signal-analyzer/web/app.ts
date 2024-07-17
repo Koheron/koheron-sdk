@@ -50,45 +50,52 @@ class App {
                 this.ltc2387 = new Ltc2387(client);
 
                 this.fft.init( () => {
-                    this.fftApp = new FFTApp(document, this.fft);
-
-                    // FFT plot
-                    this.n_pts = this.fft.fft_size / 2;
-                    this.x_min = 0;
-                    this.x_max = this.fft.status.fs / 1E6 / 2;
-                    this.y_min = -200;
-                    this.y_max = 170;
-
-                    this.plotBasics = new PlotBasics(document, plot_placeholder,
-                                                     this.n_pts,
-                                                     this.x_min, this.x_max,
-                                                     this.y_min, this.y_max,
-                                                     this.fft, "", "Frequency (MHz)");
-                    this.plot = new Plot(document, this.fft, this.plotBasics);
-
-                    // Decimator plot
-                    this.decim_n_pts = 8192;
-                    this.decim_x_min = 0;
-                    this.decim_x_max = 8192;
-                    this.decim_y_min = -2;
-                    this.decim_y_max = 2;
-                    this.plotBasicsDecimator = new PlotBasics(document, decim_plot_placeholder,
-                                                              this.decim_n_pts,
-                                                              this.decim_x_min, this.decim_x_max,
-                                                              this.decim_y_min, this.decim_y_max,
-                                                              this.decimator, "", "Time (s)");
-                    this.plotDecimator = new DecimatorPlot(document, this.decimator, this.plotBasicsDecimator);
-
-                    this.temperatureSensorApp = new TemperatureSensorApp(document, this.temperatureSensor);
-                    this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);
-                    this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
-                    this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionDac);
-                    this.adcRangeApp = new AdcRangeApp(document, this.ltc2387);
+                    this.decimator.init( () => {
+                        this.initApp(plot_placeholder, decim_plot_placeholder);
+                    });
                 });
             });
         }, false);
 
         window.onbeforeunload = () => { client.exit(); };
+    }
+
+    private initApp(plot_placeholder: JQuery,
+                    decim_plot_placeholder: JQuery) {
+        this.fftApp = new FFTApp(document, this.fft);
+
+        // FFT plot
+        this.n_pts = this.fft.fft_size / 2;
+        this.x_min = 0;
+        this.x_max = this.fft.status.fs / 1E6 / 2;
+        this.y_min = -200;
+        this.y_max = 170;
+
+        this.plotBasics = new PlotBasics(document, plot_placeholder,
+                                         this.n_pts,
+                                         this.x_min, this.x_max,
+                                         this.y_min, this.y_max,
+                                         this.fft, "", "Frequency (MHz)");
+        this.plot = new Plot(document, this.fft, this.decimator, this.plotBasics);
+
+        // Decimator plot
+        this.decim_n_pts = 8192;
+        this.decim_x_min = 0;
+        this.decim_x_max = 8192;
+        this.decim_y_min = -2;
+        this.decim_y_max = 2;
+        this.plotBasicsDecimator = new PlotBasics(document, decim_plot_placeholder,
+                                                  this.decim_n_pts,
+                                                  this.decim_x_min, this.decim_x_max,
+                                                  this.decim_y_min, this.decim_y_max,
+                                                  this.decimator, "", "Time (s)");
+        this.plotDecimator = new DecimatorPlot(document, this.decimator, this.plotBasicsDecimator);
+
+        this.temperatureSensorApp = new TemperatureSensorApp(document, this.temperatureSensor);
+        this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);
+        this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
+        this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionDac);
+        this.adcRangeApp = new AdcRangeApp(document, this.ltc2387);
     }
 
 }
