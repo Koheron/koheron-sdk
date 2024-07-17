@@ -195,7 +195,6 @@ class FFT
     uint32_t get_cycle_index() {
         return ps_sts.read<reg::cycle_index>();
     }
-
 }; // class FFT
 
 inline void FFT::start_psd_acquisition() {
@@ -206,7 +205,7 @@ inline void FFT::start_psd_acquisition() {
     }
 }
 
-inline void  FFT::psd_acquisition_thread() {
+inline void FFT::psd_acquisition_thread() {
     using namespace std::chrono_literals;
 
     psd_acquisition_started = true;
