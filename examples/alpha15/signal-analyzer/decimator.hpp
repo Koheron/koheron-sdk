@@ -6,16 +6,9 @@
 #define __DRIVERS_SIGNAL_ANALYZER_HPP__
 
 #include <context.hpp>
+#include <server/drivers/fifo.hpp>
 
 #include <boards/alpha15/drivers/clock-generator.hpp>
-
-// http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
-namespace Fifo_regs {
-    constexpr uint32_t rdfr = 0x18;
-    constexpr uint32_t rdfo = 0x1C;
-    constexpr uint32_t rdfd = 0x20;
-    constexpr uint32_t rlr = 0x24;
-}
 
 class Decimator
 {
@@ -24,7 +17,7 @@ class Decimator
     : ctx(ctx_)
     , ctl(ctx.mm.get<mem::control>())
     , sts(ctx.mm.get<mem::status>())
-    , adc_fifo_map(ctx.mm.get<mem::adc_fifo>())
+    , fifo(ctx)
     , clk_gen(ctx.get<ClockGenerator>())
     {
         fs_adc = clk_gen.get_adc_sampling_freq()[0];
@@ -46,45 +39,11 @@ class Decimator
         ctl.write<reg::cic_rate>(cic_rate);
     }
 
-    // Adc FIFO => TODO FIFO driver
-
-    uint32_t get_fifo_occupancy() {
-        return adc_fifo_map.read<Fifo_regs::rdfo>();
-    }
-
-    void reset_fifo() {
-        adc_fifo_map.write<Fifo_regs::rdfr>(0x000000A5);
-    }
-
-    uint32_t read_fifo() {
-        return adc_fifo_map.read<Fifo_regs::rdfd>();
-    }
-
-    uint32_t get_fifo_length() {
-        return (adc_fifo_map.read<Fifo_regs::rlr>() & 0x3FFFFF) >> 2;
-    }
-
-    void wait_for_transfer(float fifo_transfer_duration_seconds) {
-        const auto fifo_duration = std::chrono::milliseconds(uint32_t(1000 * fifo_transfer_duration_seconds));
-        uint32_t cnt = 0;
-
-        while (get_fifo_length() < n_pts) {
-            std::this_thread::sleep_for(0.55 * fifo_duration);
-            cnt++;
-
-            if (cnt > max_sleeps_cnt) {
-                ctx.log<ERROR>("Fifo::wait_for_transfer: Max number of sleeps exceeded. [set duration %f s]\n",
-                               double(fifo_transfer_duration_seconds));
-                break;
-            }
-        }
-    }
-
     auto read_adc() {
-        wait_for_transfer(fifo_transfer_duration);
+        fifo.wait_for_data(n_pts, fs);
 
         for (unsigned int i=0; i < n_pts; i++) {
-            adc_data[i] = read_fifo();
+            adc_data[i] = fifo.read();
         }
 
         return adc_data;
@@ -92,12 +51,11 @@ class Decimator
 
   private:
     static constexpr uint32_t n_pts = 8192;
-    static constexpr uint32_t max_sleeps_cnt = 4;
 
     Context& ctx;
     Memory<mem::control>& ctl;
     Memory<mem::status>& sts;
-    Memory<mem::adc_fifo>& adc_fifo_map;
+    Fifo<mem::adc_fifo> fifo;
 
     ClockGenerator& clk_gen;
 
