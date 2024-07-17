@@ -13,7 +13,6 @@ class Ltc2387 {
     }
 
     rangeSelect(channel: number, range: number): void {
-        console.log(channel, range)
         this.client.send(Command(this.id, this.cmds['range_select'], channel, range));
     }
 

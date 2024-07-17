@@ -18,7 +18,7 @@
 #include <scicpp/core.hpp>
 #include <scicpp/signal.hpp>
 
-#include <boards/alpha250/drivers/clock-generator.hpp>
+#include <boards/alpha15/drivers/clock-generator.hpp>
 
 namespace {
     namespace sci = scicpp;
@@ -174,7 +174,7 @@ class FFT
 
     // Vectors to convert PSD raw data into V²/Hz
     void set_calibs() {
-        fs_adc = 15E6;
+        fs_adc = clk_gen.get_adc_sampling_freq()[0];
 
         std::array<double, 2> vin = {8.0, 8.0}; // TODO Update with actual ADC range + Use calibration
 
