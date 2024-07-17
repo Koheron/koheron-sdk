@@ -128,6 +128,9 @@ class Ltc2387
 
         channel ? ctl.write_bit<reg::rf_adc_ctl1, 0>(range)
                 : ctl.write_bit<reg::rf_adc_ctl0, 0>(range);
+
+        ctx.log<INFO>("Ltc2387: Channel %u set to range %s\n",
+                      channel, range ? "8 Vpp": "2 Vpp");
     }
 
     uint32_t input_range(uint32_t channel) {

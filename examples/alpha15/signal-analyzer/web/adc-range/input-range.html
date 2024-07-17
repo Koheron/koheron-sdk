@@ -1,0 +1,32 @@
+<template class="template">
+  <label for="input-range">Input Range:</label>
+
+  <table class="full-width">
+    <tr>
+      <td style="width: 60px;">
+        Ch 0
+      </td>
+      <td style="width: 60px;">
+        <td>
+          <input type="radio" name="input-range-ch0" value="0" checked class="adc-range" data-command="setInputRange">2 V
+          <td>
+        <td>
+          <input type="radio" name="input-range-ch0" value="1" class="adc-range" data-command="setInputRange">8 V
+          <td>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Ch 1
+      </td>
+      <td>
+        <td>
+          <input type="radio" name="input-range-ch1" value="2" checked class="adc-range" data-command="setInputRange">2 V
+          <td>
+        <td>
+          <input type="radio" name="input-range-ch1" value="3" class="adc-range" data-command="setInputRange">8 V
+          <td>
+      </td>
+    </tr>
+  </table>
+</template>
