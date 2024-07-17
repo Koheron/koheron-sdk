@@ -15,10 +15,13 @@
 #include <limits>
 #include <array>
 
+#include <scicpp/core.hpp>
 #include <scicpp/signal.hpp>
+
 #include <boards/alpha250/drivers/clock-generator.hpp>
 
 namespace {
+    namespace sci = scicpp;
     namespace win = scicpp::signal::windows;
 }
 
@@ -108,39 +111,8 @@ class FFT
             return;
         }
 
-        // window = win::get_window<double, prm::fft_size>(window_select);
-
-        // constexpr std::array<std::array<double, 6>, 4> window_coeffs = {{
-        //     {1.0, 0, 0, 0, 0, 1.0},                      // Rectangular
-        //     {0.5, 0.5, 0, 0, 0, 1.0},                    // Hann
-        //     {1.0, 1.93, 1.29, 0.388, 0.028, 0.2},        // Flat top
-        //     {0.35875, 0.48829, 0.14128, 0.01168, 0, 1.0} // Blackman-Harris
-        // }};
-
-        // if (window_id >= 4) {
-        //     ctx.log<ERROR>("Invalid FFT window index \n");
-        //     return;
-        // }
-
-        // set_cosine_sum_window(window_coeffs[window_id]);
         set_window_buffer();
         window_index = window_id;
-    }
-
-    void set_raw_window(const std::array<uint32_t, prm::fft_size>& win) {
-        double res1 = 0;
-        double res2 = 0;
-
-        for (auto value : win) {
-            res1 += value;
-            res2 += value * value;
-        }
-
-        demod_map.write_array(win);
-
-        W1 = (res1 / prm::fft_size) * (res1 / prm::fft_size);
-        W2 = res2 / prm::fft_size;
-        set_conversion_vectors();
     }
 
     // Read averaged spectrum data
@@ -182,7 +154,7 @@ class FFT
     ClockGenerator& clk_gen;
 
     double fs_adc; // ADC sampling rate (Hz)
-    std::array<std::array<float, prm::fft_size/2>, 2> freq_calibration; // Conversion to W/Hz
+    std::array<float, 2> calibration; // Conversion to V/Hz
 
     std::array<double, prm::fft_size> window;
     double W1, W2; // Window correction factors
@@ -200,55 +172,24 @@ class FFT
     void psd_acquisition_thread();
     void start_psd_acquisition();
 
-    // https://en.wikipedia.org/wiki/Window_function
-    // void set_cosine_sum_window(const std::array<double, 6>& a) {
-    //     double sign;
+    // Vectors to convert PSD raw data into V²/Hz
+    void set_calibs() {
+        fs_adc = 15E6;
 
-    //     for (size_t i=0; i<prm::fft_size; i++) {
-    //         window[i] = 0;
+        std::array<double, 2> vin = {8.0, 8.0}; // TODO Update with actual ADC range + Use calibration
 
-    //         for (size_t j=0; j<(a.size() - 1); j++) {
-    //             j % 2 == 0 ? sign = 1.0 : sign = -1.0;
-    //             window[i] += sign * a[j] * std::cos(2 * M_PI * i * j / double(prm::fft_size - 1));
-    //         }
-
-    //         window[i] *= a[a.size() - 1]; // Scaling
-    //     }
-    // }
-
-    // Vectors to convert PSD raw data into W/Hz
-    void set_conversion_vectors() {
-        constexpr double load = 50.0; // Ohm
-
-        fs_adc = 15E6;;
-
-        std::array<double, 2> vin = {8.0,8.0};
-
-        float C0 =  (vin[0] / (2 << 20)) * (vin[0] / (2 << 20)) / prm::n_cycles / fs_adc / load / W2;
-        float C1 =  (vin[1] / (2 << 20)) * (vin[1] / (2 << 20)) / prm::n_cycles / fs_adc / load / W2;
-
-        for (unsigned int i=0; i<prm::fft_size/2; i++) {
-            freq_calibration[0][i] = C0;
-            freq_calibration[1][i] = C1;
-        }
+        calibration[0] =  (vin[0] / (2 << 20)) * (vin[0] / (2 << 20)) / prm::n_cycles / fs_adc / W2;
+        calibration[1] =  (vin[1] / (2 << 20)) * (vin[1] / (2 << 20)) / prm::n_cycles / fs_adc / W2;
     }
 
     void set_window_buffer() {
-        std::array<uint32_t, prm::fft_size> window_buffer;
-        double res1 = 0;
-        double res2 = 0;
+        demod_map.write_array(sci::map([](auto w){
+            return uint32_t(((int32_t(32768 * w) + 32768) % 65536) + 32768);
+        }, window));
 
-        for (size_t i=0; i<prm::fft_size; i++) {
-            window_buffer[i] = ((int32_t(32768 * window[i]) + 32768) % 65536) + 32768;
-            res1 += window[i];
-            res2 += window[i] * window[i];
-        }
-
-        demod_map.write_array(window_buffer);
-
-        W1 = (res1 / prm::fft_size) * (res1 / prm::fft_size);
-        W2 = res2 / prm::fft_size;
-        set_conversion_vectors();
+        W1 = win::s1(window) / prm::fft_size / prm::fft_size;
+        W2 = win::s2(window) / prm::fft_size;
+        set_calibs();
     }
 
     uint32_t get_cycle_index() {
@@ -288,12 +229,11 @@ inline void  FFT::psd_acquisition_thread() {
         }
 
         {
+            using namespace sci::operators;
+
             std::lock_guard<std::mutex> lock(mutex);
             psd_buffer_raw = psd_map.read_array<float, prm::fft_size/2, 0>();
-
-            for (unsigned int i=0; i<prm::fft_size/2; i++) {
-                psd_buffer[i] = psd_buffer_raw[i] * freq_calibration[input_channel][i];
-            }
+            psd_buffer = psd_buffer_raw * calibration[input_channel];
         }
 
         acq_cycle_index = get_cycle_index();

@@ -15,6 +15,8 @@ class App {
     private clockGeneratorApp: ClockGeneratorApp;
     private precisionDac: PrecisionDac;
     private precisionChannelsApp: PrecisionChannelsApp;
+    private ltc2387: Ltc2387;
+    private adcRangeApp: AdcRangeApp;
 
     private n_pts: number;
     private x_min: number;
@@ -45,6 +47,7 @@ class App {
                 this.temperatureSensor = new TemperatureSensor(client);
                 this.powerMonitor = new PowerMonitor(client);
                 this.clockGenerator = new ClockGenerator(client);
+                this.ltc2387 = new Ltc2387(client);
 
                 this.fft.init( () => {
                     this.fftApp = new FFTApp(document, this.fft);
@@ -80,6 +83,7 @@ class App {
                     this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);
                     this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
                     this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionDac);
+                    this.adcRangeApp = new AdcRangeApp(document, this.ltc2387);
                 });
             });
         }, false);

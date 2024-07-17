@@ -21,7 +21,6 @@ class FFTApp {
     private updateControls() {
         this.driver.getControlParameters( (sts: IFFTStatus) => {
             (<HTMLInputElement>document.querySelector("[data-command='setInputChannel'][value='" + sts.channel.toString() + "']")).checked = true;
-            // TODO Update Input range
             requestAnimationFrame( () => { this.updateControls(); } )
         });
     }
