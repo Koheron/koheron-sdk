@@ -20,15 +20,15 @@ class DecimatorPlot {
     }
 
     updatePlot() {
-        this.decimator.read_adc( (data: Float64Array) => {
-            for (let i: number = 0; i <= this.n_pts; i++) {
-                this.plot_data[i] = [i, data[i]];
-            }
+        // this.decimator.read_adc( (data: Float64Array) => {
+        //     for (let i: number = 0; i <= this.n_pts; i++) {
+        //         this.plot_data[i] = [i, data[i]];
+        //     }
 
-            this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, () => {
-                setTimeout(() => { this.updatePlot(); }, 
-                           this.decimator.status.tx_duration * 1000);
-            });
-        });
+        //     this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, () => {
+        //         setTimeout(() => { this.updatePlot(); }, 
+        //                    this.decimator.status.tx_duration * 1000);
+        //     });
+        // });
     }
 }
