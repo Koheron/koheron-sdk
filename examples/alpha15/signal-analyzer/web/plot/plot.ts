@@ -6,6 +6,7 @@ class Plot {
     public n_pts_fast: number;
     public n_pts: number;
     public n_start_fast: number;
+    public n_stop_slow: number;
     public plot: jquery.flot.plot;
     public plot_data: Array<Array<number>>;
 
@@ -18,8 +19,10 @@ class Plot {
                 private plotBasics: PlotBasics) {
         this.n_pts_fast = this.fft.fft_size / 2;
         this.n_pts_slow = 1 + this.decimator.status.n_pts / 2;
-        this.n_start_fast = 20; // Don't plot the 1st 20 points
-        this.n_pts = this.n_pts_fast + this.n_pts_slow - this.n_start_fast;
+        this.n_start_fast = 50; // Don't plot the 1st points
+        this.n_stop_slow = 120; // Don't plot the last points
+        this.n_pts = this.n_pts_fast + this.n_pts_slow
+                     - this.n_start_fast - this.n_stop_slow;
         
         this.peakDatapoint = [];
         this.plot_data = [];
@@ -33,8 +36,10 @@ class Plot {
                 let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
     
                 // Slow PSD
-                for (let i: number = 0; i <= this.n_pts_slow; i++) {
-                    let freq = (i + 1) * this.decimator.status.fs / 2 / this.n_pts_slow;
+                let fstep = this.decimator.status.fs / 2 / this.n_pts_slow;
+
+                for (let i: number = 0; i <= this.n_pts_slow - this.n_stop_slow; i++) {
+                    let freq = (i + 1) * fstep;
                     let convertedSlowPsd = this.convertValue(slow_psd[i], yUnit);
                     this.plot_data[i] = [freq, convertedSlowPsd];
                 }
@@ -54,7 +59,7 @@ class Plot {
                 for (let i: number = this.n_start_fast; i <= this.n_pts_fast; i++) {
                     let freq = (i + 1) * this.plotBasics.x_max / this.n_pts_fast;
                     let convertedFastPsd = this.convertValue(fast_psd[i], yUnit);
-                    this.plot_data[this.n_pts_slow + 1 + i - this.n_start_fast] = [freq, convertedFastPsd];
+                    this.plot_data[this.n_pts_slow - this.n_stop_slow + 1 + i - this.n_start_fast] = [freq, convertedFastPsd];
                 };
 
                 // Redraw

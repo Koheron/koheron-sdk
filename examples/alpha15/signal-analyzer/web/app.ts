@@ -66,10 +66,10 @@ class App {
 
         // FFT plot
         this.n_pts = this.fft.fft_size / 2;
-        this.x_min = 0;
+        this.x_min = 10;
         this.x_max = this.fft.status.fs / 1E6 / 2;
-        this.y_min = -200;
-        this.y_max = 170;
+        this.y_min = -150;
+        this.y_max = 50;
 
         this.plotBasics = new PlotBasics(document, plot_placeholder,
                                          this.n_pts,
