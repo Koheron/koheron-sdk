@@ -6,8 +6,6 @@ interface IDecimatorStatus {
     tx_duration: number; // FIFO transfer duration (s)
     cic_rate: number;
     n_pts: number;
-    n_pts_full: number;
-    fs_full: number;
 }
 
 class Decimator {
@@ -45,22 +43,13 @@ class Decimator {
             });
     }
 
-    spectral_density_full(cb: (data: Float64Array) => void): void {
-        this.client.readFloat64Vector(Command(this.id, this.cmds['spectral_density_full']),
-            (data: Float64Array) => {
-                cb(data);
-            });
-    }
-
     getControlParameters(cb: (status: IDecimatorStatus) => void): void {
-        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'ffIIIf',
-                               (tup: [number, number, number, number, number, number]) => {
+        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'ffII',
+                               (tup: [number, number, number, number]) => {
             this.status.fs = tup[0];
             this.status.tx_duration = tup[1];
             this.status.cic_rate = tup[2];
             this.status.n_pts = tup[3];
-            this.status.n_pts_full = tup[4];
-            this.status.fs_full = tup[5];
 
             cb(this.status);
         });
