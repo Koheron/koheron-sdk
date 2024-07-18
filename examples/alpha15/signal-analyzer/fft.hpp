@@ -176,10 +176,10 @@ class FFT
     void set_calibs() {
         fs_adc = clk_gen.get_adc_sampling_freq()[0];
 
-        std::array<double, 2> vin = {8.0, 8.0}; // TODO Update with actual ADC range + Use calibration
+        std::array<double, 2> vin = {2.048, 2.048}; // TODO Update with actual ADC range + Use calibration
 
-        calibration[0] =  (vin[0] / (2 << 20)) * (vin[0] / (2 << 20)) / prm::n_cycles / fs_adc / W2;
-        calibration[1] =  (vin[1] / (2 << 20)) * (vin[1] / (2 << 20)) / prm::n_cycles / fs_adc / W2;
+        calibration[0] =  (vin[0] / (2 << 21)) * (vin[0] / (2 << 21)) / prm::n_cycles / fs_adc / W2;
+        calibration[1] =  (vin[1] / (2 << 21)) * (vin[1] / (2 << 21)) / prm::n_cycles / fs_adc / W2;
     }
 
     void set_window_buffer() {
@@ -217,7 +217,9 @@ inline void FFT::psd_acquisition_thread() {
         // Wait for data
         while (cycle_index >= previous_cycle_index) {
             // 1/15 MHz = 66.7 ns
-            const auto sleep_time = std::chrono::nanoseconds((prm::n_cycles - cycle_index) * prm::fft_size * 67);
+            const auto acq_period = std::chrono::nanoseconds(int32_t(std::ceil(1E9 / fs_adc)));
+            const auto sleep_time = (prm::n_cycles - cycle_index) * prm::fft_size * acq_period;
+            // const auto sleep_time = std::chrono::nanoseconds((prm::n_cycles - cycle_index) * prm::fft_size * 67);
 
             if (sleep_time > 1ms) {
                 std::this_thread::sleep_for(sleep_time);
