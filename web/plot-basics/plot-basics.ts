@@ -7,6 +7,9 @@ class PlotBasics {
 
     private range_x: jquery.flot.range;
     private range_y: jquery.flot.range;
+    
+    private log_y: boolean;
+    public LogYaxisFormatter;
 
     private reset_range: boolean;
     private options: jquery.flot.plotOptions;
@@ -35,6 +38,8 @@ class PlotBasics {
         this.range_y = <jquery.flot.range>{};
         this.range_y.from = this.y_min;
         this.range_y.to = this.y_max;
+        
+        this.log_y = false;
 
         this.setPlot(this.range_x.from, this.range_x.to, this.range_y.from, this.range_y.to);
         this.rangeSelect(this.rangeFunction);
@@ -54,6 +59,7 @@ class PlotBasics {
         this.peakDatapointSpan = <HTMLSpanElement>document.getElementById("peak-datapoint");
 
         this.plot_data = [];
+        this.LogYaxisFormatter = (val, axis) => {};
 
         this.initUnitInputs();
         this.initPeakDetection();
@@ -165,6 +171,18 @@ class PlotBasics {
         }
     }
 
+    setLogY() {
+        this.log_y = true;
+        this.range_y = <jquery.flot.range>{};
+        this.reset_range = true;
+    }
+    
+    setLinY() {
+        this.log_y = false;
+        this.range_y = <jquery.flot.range>{};
+        this.reset_range = true;
+    }
+
     updateDatapointSpan(datapoint: number[], datapointSpan: HTMLSpanElement): void {
         let positionX: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).left;
         let positionY: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).top;
@@ -185,10 +203,23 @@ class PlotBasics {
     }
 
     redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void) {
-
         const plt_data: jquery.flot.dataSeries[] = [{label: ylabel, data: plot_data}];
 
         if (this.reset_range) {
+            if (this.log_y) {
+                // /!\ Cannot set ticks lower than 1 /!\
+                this.options.yaxis.ticks = [1 ,10 ,100, 1E3, 1E4, 1E5, 1E6, 1E7, 1E8, 1E9];
+                this.options.yaxis.tickDecimals = 0;
+                this.options.yaxis.transform = (v) => {return v > 0 ? Math.log10(v) : null};
+                this.options.yaxis.inverseTransform = (v) => {return v!= null ? Math.pow(10, v) : 0.0};
+                this.options.yaxis.tickFormatter = this.LogYaxisFormatter;
+            } else {
+                this.options.yaxis = {
+                    min: this.range_y.from,
+                    max: this.range_y.to
+                };
+            }
+
             this.options.xaxis.min = this.range_x.from;
             this.options.xaxis.max = this.range_x.to;
             this.options.yaxis.min = this.range_y.from;
@@ -239,7 +270,6 @@ class PlotBasics {
         }
 
         if (this.isPeakDetection && peakDatapoint.length > 0) {
-
             for (let i: number = 0; i <= n_pts; i++) {
                 if (peakDatapoint[1] < plot_data[i][1]) {
                     peakDatapoint[0] = plot_data[i][0];
@@ -265,7 +295,6 @@ class PlotBasics {
 
         callback();
     }
-
 
     redrawRange(data: number[][], range_x: jquery.flot.range, ylabel: string, callback: () => void): void {
         const plt_data: jquery.flot.dataSeries[] = [{label: ylabel, data: data}];
