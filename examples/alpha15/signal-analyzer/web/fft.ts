@@ -2,10 +2,11 @@
 // (c) Koheron
 
 interface IFFTStatus {
-    fs: number; // Sampling frequency (Hz)
+    fs: number;      // Sampling frequency (Hz)
     channel: number; // Input channel
-    W1: number; // FFT window correction (sum w)^2
-    W2: number; // FFT window correction (sum w^2)
+    S1: number;      // FFT window correction (sum w)^2
+    S2: number;      // FFT window correction (sum w^2)
+    ENBW: number;    // FFT window effective noise bandwidth
 }
 
 class FFT {
@@ -81,13 +82,14 @@ class FFT {
     }
 
     getControlParameters(cb: (status: IFFTStatus) => void): void {
-        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'dIIdd',
-                               (tup: [number, number, number, number, number]) => {
+        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'dIIddd',
+                               (tup: [number, number, number, number, number, number]) => {
             this.status.fs = tup[0];
             let input_channel = tup[1];
             let input_operation = tup[2];
-            this.status.W1 = tup[3];
-            this.status.W2 = tup[4];
+            this.status.S1 = tup[3];
+            this.status.S2 = tup[4];
+            this.status.ENBW = tup[5];
 
             if (input_channel == 2) {
                 if (input_operation == 0) {

@@ -17,6 +17,7 @@
 
 #include <server/drivers/fifo.hpp>
 #include <boards/alpha15/drivers/clock-generator.hpp>
+#include "fft.hpp"
 
 namespace {
     namespace sci = scicpp;
@@ -34,13 +35,34 @@ class Decimator
     , ps_ctl(ctx.mm.get<mem::ps_control>())
     , fifo(ctx)
     , clk_gen(ctx.get<ClockGenerator>())
+    , fft(ctx.get<FFT>())
     {
         fs_adc = clk_gen.get_adc_sampling_freq()[0];
         // set_cic_rate(prm::cic_decimation_rate_default);
         set_cic_rate(32);
         psd.resize(1 + n_pts / 2);
-        spectrum.window(win::Hann, n_pts);
+        set_fft_window(1);
         start_acquisition();
+    }
+
+    void set_fft_window(uint32_t window_id) {
+        switch (window_id) {
+          case 0:
+            spectrum.window(win::Boxcar, n_pts);
+            break;
+          case 1:
+            spectrum.window(win::Hann, n_pts);
+            break;
+          case 2:
+            spectrum.window(win::Flattop, n_pts);
+            break;
+          case 3:
+            spectrum.window(win::Blackmanharris, n_pts);
+            break;
+          default:
+            ctx.log<ERROR>("Decimator: Invalid window index\n");
+            return;
+        }
     }
 
     void set_cic_rate(uint32_t rate) {
@@ -85,6 +107,7 @@ class Decimator
     Fifo<mem::adc_fifo> fifo;
 
     ClockGenerator& clk_gen;
+    FFT& fft;
 
     uint32_t cic_rate;
     float fs_adc, fs;
@@ -117,7 +140,7 @@ inline void Decimator::acquisition_thread() {
     acquisition_started = true;
 
     while (acquisition_started) {
-        if (n_fifo <= fifo_depth) {
+        if constexpr (n_fifo <= fifo_depth) {
             acquire_fifo(n_fifo);
         } else {
             uint32_t n_remaining = n_fifo;
@@ -141,7 +164,7 @@ inline void Decimator::acquire_fifo(uint32_t ntps_pts_fifo) {
     uint32_t seg_cnt = 0;
 
     fifo.wait_for_data(ntps_pts_fifo, fs);
-    const double vrange = 2.048; // TODO Use calibration and range
+    const double vrange = fft.input_voltage_range();
     constexpr double nmax = 262144.0; // 2^18
 
     for (uint32_t i = 0; i < ntps_pts_fifo; i++) {

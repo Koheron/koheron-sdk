@@ -52,7 +52,7 @@ class App {
     }
 
     private initApp(plot_placeholder: JQuery) {
-        this.fftApp = new FFTApp(document, this.fft);
+        this.fftApp = new FFTApp(document, this.fft, this.decimator);
 
         // FFT plot
         this.n_pts = this.fft.fft_size / 2;

@@ -19,6 +19,7 @@
 #include <scicpp/signal.hpp>
 
 #include <boards/alpha15/drivers/clock-generator.hpp>
+#include <boards/alpha15/drivers/ltc2387.hpp>
 
 namespace {
     namespace sci = scicpp;
@@ -37,7 +38,9 @@ class FFT
     , psd_map(ctx.mm.get<mem::psd>())
     , demod_map(ctx.mm.get<mem::demod>())
     , clk_gen(ctx.get<ClockGenerator>())
+    , ltc2387(ctx.get<Ltc2387>())
     {
+        fs_adc = clk_gen.get_adc_sampling_freq()[0];
         set_offsets(0, 0);
         select_adc_channel(0);
         set_operation(0);
@@ -140,7 +143,17 @@ class FFT
     }
 
     auto get_control_parameters() {
-        return std::tuple{fs_adc, input_channel, input_operation, W1, W2};
+        return std::tuple{fs_adc, input_channel, input_operation, S1, S2, ENBW};
+    }
+
+    double input_voltage_range() {
+        // TODO Use calibration from EEPROM
+
+        if (input_range() == 0) {
+            return 2.048;
+        } else {
+            return 8.192;
+        }
     }
 
  private:
@@ -151,13 +164,15 @@ class FFT
     Memory<mem::ps_status>& ps_sts;
     Memory<mem::psd>& psd_map;
     Memory<mem::demod>& demod_map;
+
     ClockGenerator& clk_gen;
+    Ltc2387& ltc2387;
 
     double fs_adc; // ADC sampling rate (Hz)
-    std::array<float, 2> calibration; // Conversion to V/Hz
+    float calibration; // Conversion to V^2/Hz
 
     std::array<double, prm::fft_size> window;
-    double W1, W2; // Window correction factors
+    double S1, S2, W1, W2, ENBW; // Window correction factors
     uint32_t window_index;
 
     uint32_t input_channel = 0;
@@ -172,14 +187,26 @@ class FFT
     void psd_acquisition_thread();
     void start_psd_acquisition();
 
-    // Vectors to convert PSD raw data into V²/Hz
+    uint32_t input_range() {
+        if (input_channel <= 1) { // Channel 0 or 1
+            return ltc2387.input_range(input_channel);
+        } else { // Channel 0 - 1 or 0 + 1
+            const auto rg0 = ltc2387.input_range(0);
+            const auto rg1 = ltc2387.input_range(1);
+
+            if (rg0 != rg1) {
+                ctx.log<WARNING>("FFT: Ch0 and Ch1 have different input ranges\n");
+            }
+
+            return rg0;
+        }
+    }
+
+    // Factor to convert PSD raw data into V^2/Hz
     void set_calibs() {
         fs_adc = clk_gen.get_adc_sampling_freq()[0];
-
-        std::array<double, 2> vin = {2.048, 2.048}; // TODO Update with actual ADC range + Use calibration
-
-        calibration[0] =  (vin[0] / (2 << 21)) * (vin[0] / (2 << 21)) / prm::n_cycles / fs_adc / W2;
-        calibration[1] =  (vin[1] / (2 << 21)) * (vin[1] / (2 << 21)) / prm::n_cycles / fs_adc / W2;
+        double vrange = input_voltage_range() / (2 << 21);
+        calibration = vrange * vrange / prm::n_cycles / fs_adc / W2;
     }
 
     void set_window_buffer() {
@@ -187,9 +214,12 @@ class FFT
             return uint32_t(((int32_t(32768 * w) + 32768) % 65536) + 32768);
         }, window));
 
-        W1 = win::s1(window) / prm::fft_size / prm::fft_size;
-        W2 = win::s2(window) / prm::fft_size;
-        set_calibs();
+        S1 = win::s1(window);
+        S2 = win::s2(window);
+        ENBW = win::enbw(window);
+
+        W1 = S1 / prm::fft_size / prm::fft_size;
+        W2 = S2 / prm::fft_size;
     }
 
     uint32_t get_cycle_index() {
@@ -234,7 +264,8 @@ inline void FFT::psd_acquisition_thread() {
 
             std::lock_guard<std::mutex> lock(mutex);
             psd_buffer_raw = psd_map.read_array<float, prm::fft_size/2, 0>();
-            psd_buffer = psd_buffer_raw * calibration[input_channel];
+            set_calibs();
+            psd_buffer = psd_buffer_raw * calibration;
         }
 
         acq_cycle_index = get_cycle_index();
