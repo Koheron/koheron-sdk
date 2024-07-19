@@ -20,25 +20,28 @@ WEB_DOWNLOADS += $(TMP_WEB_PATH)/html-imports.min.js
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/html-imports.min.js.map
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/navigation.html
 
+FLOT_VERSION = 0.8.3
+#FLOT_VERSION = 4.2.6
+
 $(TMP_WEB_PATH)/_koheron.css:
 	mkdir -p $(@D)
 	curl https://assets.koheron.com/css/main.css -o $@
 
 $(TMP_WEB_PATH)/jquery.flot.js:
 	mkdir -p $(@D)
-	curl https://cdnjs.cloudflare.com/ajax/libs/flot/0.8.3/jquery.flot.min.js -o $@
+	curl https://cdnjs.cloudflare.com/ajax/libs/flot/$(FLOT_VERSION)/jquery.flot.min.js -o $@
 
 $(TMP_WEB_PATH)/jquery.flot.resize.js:
 	mkdir -p $(@D)
-	curl https://cdnjs.cloudflare.com/ajax/libs/flot/0.8.3/jquery.flot.resize.min.js -o $@
+	curl https://cdnjs.cloudflare.com/ajax/libs/flot/$(FLOT_VERSION)/jquery.flot.resize.min.js -o $@
 
 $(TMP_WEB_PATH)/jquery.flot.selection.js:
 	mkdir -p $(@D)
-	curl https://cdnjs.cloudflare.com/ajax/libs/flot/0.8.3/jquery.flot.selection.min.js -o $@
+	curl https://cdnjs.cloudflare.com/ajax/libs/flot/$(FLOT_VERSION)/jquery.flot.selection.min.js -o $@
 
 $(TMP_WEB_PATH)/jquery.flot.time.js:
 	mkdir -p $(@D)
-	curl https://cdnjs.cloudflare.com/ajax/libs/flot/0.8.3/jquery.flot.time.min.js -o $@
+	curl https://cdnjs.cloudflare.com/ajax/libs/flot/$(FLOT_VERSION)/jquery.flot.time.min.js -o $@
 
 $(TMP_WEB_PATH)/jquery.flot.axislabels.js:
 	mkdir -p $(@D)
@@ -46,7 +49,7 @@ $(TMP_WEB_PATH)/jquery.flot.axislabels.js:
 
 $(TMP_WEB_PATH)/jquery.flot.canvas.js:
 	mkdir -p $(@D)
-	curl https://cdnjs.cloudflare.com/ajax/libs/flot/0.8.3/jquery.flot.canvas.js -o $@
+	curl https://cdnjs.cloudflare.com/ajax/libs/flot/$(FLOT_VERSION)/jquery.flot.canvas.js -o $@
 
 $(TMP_WEB_PATH)/bootstrap.min.js:
 	mkdir -p $(@D)

@@ -15,8 +15,10 @@ class Plot {
     public plot: jquery.flot.plot;
     public plot_data: Array<Array<number>>;
 
-    public yLabel: string = "Power Spectral Density";
+    public yLabel: string = "Power Spectrum";
     private peakDatapoint: number[];
+
+    private yunit: string;
 
     constructor(document: Document,
                 private fft: FFT,
@@ -37,6 +39,18 @@ class Plot {
         this.peakDatapoint = [];
         this.plot_data = [];
 
+        this.yunit = "dBV";
+        
+        this.plotBasics.LogYaxisFormatter = (val, axis) => {
+            if (val >= 1E6) {
+                return (val / 1E6).toFixed(axis.tickDecimals) + "m";
+            } else if (val >= 1E3) {
+                return (val / 1E3).toFixed(axis.tickDecimals) + "µ";
+            } else {
+                return val.toFixed(axis.tickDecimals) + "n";
+            }
+        }
+
         this.updatePlot();
     }
 
@@ -45,13 +59,23 @@ class Plot {
             this.decimator.spectral_density( (slow_psd: Float64Array) => {
                 let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
 
+                if (this.yunit !== yUnit) {
+                    this.yunit = yUnit;
+
+                    if (yUnit === "v-rtHz") {
+                        this.plotBasics.setLogY();
+                    } else {
+                        this.plotBasics.setLinY();
+                    }
+                }
+
                 this.updateSlowPsdPlot(slow_psd, yUnit);
                 this.updateFastPsdPlot(fast_psd, yUnit);
 
                 this.plotBasics.redraw(this.plot_data,
-                                    this.n_pts,
-                                    this.peakDatapoint,
-                                    this.yLabel, () => {
+                                       this.n_pts,
+                                       this.peakDatapoint,
+                                       this.yLabel, () => {
                     requestAnimationFrame( () => { this.updatePlot(); } );
                 });
             });
@@ -92,11 +116,11 @@ class Plot {
         let outValue: number = 0;
 
         if (outUnit === "dBV") {
-            outValue = 10 * Math.log(inValue * this.fft.status.ENBW * this.decimator.status.fs) / Math.LN10;
+            outValue = 10 * Math.log10(inValue * this.fft.status.ENBW * this.decimator.status.fs);
         } else if (outUnit === "dbv-rtHz") {
-            outValue = 10 * Math.log(inValue) / Math.LN10;
+            outValue = 10 * Math.log10(inValue);
         } else if (outUnit === "v-rtHz") {
-            outValue = Math.sqrt(inValue);
+            outValue = Math.sqrt(inValue) * 1E9;
         }
 
         return outValue;
