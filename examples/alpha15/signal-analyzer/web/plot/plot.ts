@@ -30,7 +30,6 @@ class Plot {
         this.n_start_fast = 55;
 
         let size_slow = this.n_pts_slow - this.n_stop_slow - this.n_start_slow;
-        let size_fast = this.n_pts_fast - this.n_start_fast;
 
         this.n0_slow = 0;
         this.n0_fast = size_slow + 1;
@@ -89,15 +88,15 @@ class Plot {
     }
 
     private convertValue(inValue: number, outUnit: string): number {
-        // inValue in W / Hz
+        // inValue in V^2 / Hz
         let outValue: number = 0;
 
-        if (outUnit === "dBm-Hz") {
-            outValue = 10 * Math.log(inValue / 1E-3) / Math.LN10;
-        } else if (outUnit === "dBm") {
-            outValue = 10 * Math.log(inValue * (this.fft.status.W2 / this.fft.status.W1) * this.fft.status.fs / this.fft.fft_size / 1E-3) / Math.LN10;
-        } else if (outUnit === "nv-rtHz") {
-            outValue = Math.sqrt(50 * inValue) * 1E9;
+        if (outUnit === "dBV") {
+            outValue = 10 * Math.log(inValue * this.fft.status.ENBW * this.decimator.status.fs) / Math.LN10;
+        } else if (outUnit === "dbv-rtHz") {
+            outValue = 10 * Math.log(inValue) / Math.LN10;
+        } else if (outUnit === "v-rtHz") {
+            outValue = Math.sqrt(inValue);
         }
 
         return outValue;

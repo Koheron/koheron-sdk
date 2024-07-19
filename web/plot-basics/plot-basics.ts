@@ -220,9 +220,9 @@ class PlotBasics {
             let p1 = localData[0]['data'][i-1];
             let p2 = localData[0]['data'][i];
 
-            if (p1 === null) {
+            if ((p1 === null) || (p1 === undefined)) {
                 this.clickDatapoint[1] = p2[1];
-            } else if (p2 === null) {
+            } else if ((p2 === null) || (p2 === undefined)) {
                 this.clickDatapoint[1] = p1[1];
             } else {
                 this.clickDatapoint[1] = p1[1] + (p2[1] - p1[1]) * (this.clickDatapoint[0] - p1[0]) / (p2[0] - p1[0]);

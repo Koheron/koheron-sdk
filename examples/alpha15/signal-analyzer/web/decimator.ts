@@ -29,6 +29,10 @@ class Decimator {
         });
     }
 
+    setFFTWindow(windowIndex: number): void {
+        this.client.send(Command(this.id, this.cmds['set_fft_window'], windowIndex));
+    }
+
     read_adc(cb: (data: Float64Array) => void): void {
         this.client.readFloat64Array(Command(this.id, this.cmds['read_adc']),
             (data: Float64Array) => {

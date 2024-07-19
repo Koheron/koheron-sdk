@@ -6,7 +6,7 @@ class FFTApp {
     private fftSelects: HTMLSelectElement[];
     private fftInputs: HTMLInputElement[];
 
-    constructor(document: Document, private driver) {
+    constructor(document: Document, private fft: FFT, private decimator: Decimator) {
         this.fftSelects = <HTMLSelectElement[]><any>document.getElementsByClassName("fft-select");
         this.initFFTSelects();
         this.fftInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-input");
@@ -19,14 +19,14 @@ class FFTApp {
     // Updaters
 
     private updateControls() {
-        this.driver.getControlParameters( (sts: IFFTStatus) => {
+        this.fft.getControlParameters( (sts: IFFTStatus) => {
             (<HTMLInputElement>document.querySelector("[data-command='setInputChannel'][value='" + sts.channel.toString() + "']")).checked = true;
             requestAnimationFrame( () => { this.updateControls(); } )
         });
     }
 
     private updateFFTWindowInputs() {
-        this.driver.getFFTWindowIndex( (windowIndex: number) => {
+        this.fft.getFFTWindowIndex( (windowIndex: number) => {
             (<HTMLSelectElement>document.querySelector("[data-command='setFFTWindow']")).value = windowIndex.toString();
             requestAnimationFrame( () => { this.updateFFTWindowInputs(); } )
         });
@@ -37,7 +37,8 @@ class FFTApp {
     initFFTSelects(): void {
         for (let i = 0; i < this.fftSelects.length; i++) {
             this.fftSelects[i].addEventListener('change', (event) => {
-                this.driver[(<HTMLSelectElement>event.currentTarget).dataset.command]((<HTMLSelectElement>event.currentTarget).value);
+                this.fft[(<HTMLSelectElement>event.currentTarget).dataset.command]((<HTMLSelectElement>event.currentTarget).value);
+                this.decimator[(<HTMLSelectElement>event.currentTarget).dataset.command]((<HTMLSelectElement>event.currentTarget).value);
             })
         }
     }
@@ -45,7 +46,7 @@ class FFTApp {
     initFFTInputs(): void {
         for (let i = 0; i < this.fftInputs.length; i++) {
             this.fftInputs[i].addEventListener('change', (event) => {
-                this.driver[(<HTMLInputElement>event.currentTarget).dataset.command]((<HTMLInputElement>event.currentTarget).value);
+                this.fft[(<HTMLInputElement>event.currentTarget).dataset.command]((<HTMLInputElement>event.currentTarget).value);
             })
         }
     }
