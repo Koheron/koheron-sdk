@@ -249,7 +249,6 @@ inline void FFT::psd_acquisition_thread() {
             // 1/15 MHz = 66.7 ns
             const auto acq_period = std::chrono::nanoseconds(int32_t(std::ceil(1E9 / fs_adc)));
             const auto sleep_time = (prm::n_cycles - cycle_index) * prm::fft_size * acq_period;
-            // const auto sleep_time = std::chrono::nanoseconds((prm::n_cycles - cycle_index) * prm::fft_size * 67);
 
             if (sleep_time > 1ms) {
                 std::this_thread::sleep_for(sleep_time);
