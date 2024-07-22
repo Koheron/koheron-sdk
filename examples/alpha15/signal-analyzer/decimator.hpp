@@ -94,7 +94,6 @@ class Decimator
     }
 
     auto spectral_density() const {
-        ctx.log<INFO>("psd.size() = %u", psd.size());
         return psd;
     }
 

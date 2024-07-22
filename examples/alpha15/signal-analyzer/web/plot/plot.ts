@@ -26,6 +26,7 @@ class Plot {
                 private plotBasics: PlotBasics) {
         this.n_pts_fast = this.fft.fft_size / 2;
         this.n_pts_slow = 1 + this.decimator.status.n_pts / 2;
+        this.n_pts = this.n_pts_slow + this.n_pts_fast;
 
         this.n_start_slow = 1;
         this.n_stop_slow = 600;
@@ -42,7 +43,9 @@ class Plot {
         this.yunit = "dBV";
         
         this.plotBasics.LogYaxisFormatter = (val, axis) => {
-            if (val >= 1E6) {
+            if (val >= 1E9) {
+                return (val / 1E9).toFixed(axis.tickDecimals);
+            } else if (val >= 1E6) {
                 return (val / 1E6).toFixed(axis.tickDecimals) + "m";
             } else if (val >= 1E3) {
                 return (val / 1E3).toFixed(axis.tickDecimals) + "µ";
@@ -69,8 +72,8 @@ class Plot {
                     }
                 }
 
-                this.updateSlowPsdPlot(slow_psd, yUnit);
-                this.updateFastPsdPlot(fast_psd, yUnit);
+                this.updateSlowPsdPlot(slow_psd);
+                this.updateFastPsdPlot(fast_psd);
 
                 this.plotBasics.redraw(this.plot_data,
                                        this.n_pts,
@@ -82,17 +85,19 @@ class Plot {
         });
     }
 
-    private updateSlowPsdPlot(slow_psd: Float64Array, yUnit: string) {
+    private updateSlowPsdPlot(slow_psd: Float64Array) {
         let fstep = this.decimator.status.fs / 2 / this.n_pts_slow;
+
+        this.peakDatapoint = [4 * fstep, this.convertValue(slow_psd[3], this.decimator.status.fs)];
 
         for (let i: number = this.n_start_slow; i <= this.n_pts_slow - this.n_stop_slow; i++) {
             let freq = (i + 1) * fstep;
-            let convertedSlowPsd = this.convertValue(slow_psd[i], yUnit);
+            let convertedSlowPsd = this.convertValue(slow_psd[i], this.decimator.status.fs);
             this.plot_data[this.n0_slow - this.n_start_slow + i] = [freq, convertedSlowPsd];
         }
     }
 
-    private updateFastPsdPlot(fast_psd: Float32Array, yUnit: string) {
+    private updateFastPsdPlot(fast_psd: Float32Array) {
         let max_x: number = this.fft.status.fs / 2
 
         if (max_x != this.plotBasics.x_max) { // Sampling frequency has changed
@@ -101,28 +106,25 @@ class Plot {
             this.plotBasics.setLogX();
         }
 
-        this.peakDatapoint = [this.plotBasics.x_max / this.n_pts_fast ,
-                            this.convertValue(fast_psd[0], yUnit)];
+        let fstep = this.plotBasics.x_max / this.n_pts_fast;
+
+        // this.peakDatapoint = [fstep, this.convertValue(fast_psd[0], this.fft.status.fs)];
 
         for (let i: number = this.n_start_fast; i <= this.n_pts_fast; i++) {
-            let freq = (i + 1) * this.plotBasics.x_max / this.n_pts_fast;
-            let convertedFastPsd = this.convertValue(fast_psd[i], yUnit);
+            let freq = (i + 1) * fstep;
+            let convertedFastPsd = this.convertValue(fast_psd[i], this.fft.status.fs);
             this.plot_data[this.n0_fast - this.n_start_fast + i] = [freq, convertedFastPsd];
         };
     }
 
-    private convertValue(inValue: number, outUnit: string): number {
-        // inValue in V^2 / Hz
-        let outValue: number = 0;
-
-        if (outUnit === "dBV") {
-            outValue = 10 * Math.log10(inValue * this.fft.status.ENBW * this.decimator.status.fs);
-        } else if (outUnit === "dbv-rtHz") {
-            outValue = 10 * Math.log10(inValue);
-        } else if (outUnit === "v-rtHz") {
-            outValue = Math.sqrt(inValue) * 1E9;
+    private convertValue(value: number, fs: number): number {
+        // value in V^2 / Hz
+        if (this.yunit === "dBV") {
+            return 10 * Math.log10(value * this.fft.status.ENBW * fs);
+        } else if (this.yunit === "dbv-rtHz") {
+            return 10 * Math.log10(value);
+        } else if (this.yunit === "v-rtHz") {
+            return Math.sqrt(value) * 1E9;
         }
-
-        return outValue;
     }
 }
