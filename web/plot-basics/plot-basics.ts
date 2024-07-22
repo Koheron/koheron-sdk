@@ -242,7 +242,7 @@ class PlotBasics {
 
         if (this.clickDatapoint.length > 0) {
             let i: number;
-            for (i = 0; i < n_pts; i++) {
+            for (i = 0; i < plot_data.length; i++) {
                 if (localData[0]['data'][i][0] > this.clickDatapoint[0]) {
                     break;
                 }
@@ -259,8 +259,8 @@ class PlotBasics {
                 this.clickDatapoint[1] = p1[1] + (p2[1] - p1[1]) * (this.clickDatapoint[0] - p1[0]) / (p2[0] - p1[0]);
             }
 
-            if (this.range_x.from < this.clickDatapoint[0] && this.clickDatapoint[0] < this.range_x.to &&
-                 this.range_y.from < this.clickDatapoint[1] &&  this.clickDatapoint[1] < this.range_y.to) {
+            if (  this.range_x.from < this.clickDatapoint[0] && this.clickDatapoint[0] < this.range_x.to
+                &&this.range_y.from < this.clickDatapoint[1] && this.clickDatapoint[1] < this.range_y.to) {
                 this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan);
                 this.clickDatapointSpan.style.display = "inline-block";
                 this.plot.highlight(localData[0], this.clickDatapoint);
@@ -270,7 +270,8 @@ class PlotBasics {
         }
 
         if (this.isPeakDetection && peakDatapoint.length > 0) {
-            for (let i: number = 0; i <= n_pts; i++) {
+            for (let i: number = 0; i < plot_data.length; i++) {
+                
                 if (peakDatapoint[1] < plot_data[i][1]) {
                     peakDatapoint[0] = plot_data[i][0];
                     peakDatapoint[1] = plot_data[i][1];
@@ -279,8 +280,8 @@ class PlotBasics {
 
             this.plot.unhighlight(localData[0], peakDatapoint);
 
-            if (this.range_x.from < peakDatapoint[0] && peakDatapoint[0] < this.range_x.to &&
-            this.range_y.from < peakDatapoint[1] &&  peakDatapoint[1] < this.range_y.to) {
+            if (   this.range_x.from < peakDatapoint[0] && peakDatapoint[0] < this.range_x.to
+                && this.range_y.from < peakDatapoint[1] && peakDatapoint[1] < this.range_y.to) {
                 this.updateDatapointSpan(peakDatapoint, this.peakDatapointSpan);
                 this.plot.highlight(localData[0], peakDatapoint);
                 this.peakDatapointSpan.style.display = "inline-block";
