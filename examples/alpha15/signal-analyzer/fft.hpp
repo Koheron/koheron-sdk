@@ -68,8 +68,8 @@ class FFT
             ctl.set_bit<reg::channel_select, 0>();
             ctl.clear_bit<reg::channel_select, 1>();
         } else if (channel == 2) { // Diff or sum of channels
-            ctl.set_bit<reg::channel_select, 0>();
-            ctl.set_bit<reg::channel_select, 1>();
+            ctl.clear_bit<reg::channel_select, 0>();
+            ctl.clear_bit<reg::channel_select, 1>();
         } else {
             ctx.log<ERROR>("FFT: Invalid input channel");
             return;
