@@ -54,6 +54,10 @@ class Plot {
             }
         }
 
+        this.plotBasics.x_max = this.fft.status.fs / 2;
+        this.plotBasics.setRangeX(100, this.plotBasics.x_max);
+        this.plotBasics.setLogX();
+
         this.updatePlot();
     }
 
@@ -98,17 +102,7 @@ class Plot {
     }
 
     private updateFastPsdPlot(fast_psd: Float32Array) {
-        let max_x: number = this.fft.status.fs / 2
-
-        if (max_x != this.plotBasics.x_max) { // Sampling frequency has changed
-            this.plotBasics.x_max = max_x;
-            this.plotBasics.setRangeX(100, this.plotBasics.x_max);
-            this.plotBasics.setLogX();
-        }
-
         let fstep = this.plotBasics.x_max / this.n_pts_fast;
-
-        // this.peakDatapoint = [fstep, this.convertValue(fast_psd[0], this.fft.status.fs)];
 
         for (let i: number = this.n_start_fast; i <= this.n_pts_fast; i++) {
             let freq = (i + 1) * fstep;
