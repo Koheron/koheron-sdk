@@ -11,13 +11,16 @@
 #include <atomic>
 #include <thread>
 #include <mutex>
+#include <vector>
 
 #include <scicpp/core.hpp>
 #include <scicpp/signal.hpp>
 
 #include <server/drivers/fifo.hpp>
 #include <boards/alpha15/drivers/clock-generator.hpp>
+
 #include "fft.hpp"
+#include "moving_averager.hpp"
 
 namespace {
     namespace sci = scicpp;
@@ -91,6 +94,7 @@ class Decimator
     }
 
     auto spectral_density() const {
+        ctx.log<INFO>("psd.size() = %u", psd.size());
         return psd;
     }
 
@@ -124,8 +128,9 @@ class Decimator
     void start_acquisition();
     void acquire_fifo(uint32_t ntps_pts_fifo);
 
-    // Spectrum analyzers
+    // Spectrum analyzer
     sig::Spectrum<double> spectrum;
+    MovingAverager<16> averager;
     std::vector<double> psd;
 }; // Decimator
 
@@ -179,9 +184,11 @@ inline void Decimator::acquire_fifo(uint32_t ntps_pts_fifo) {
 
             {
                 std::lock_guard<std::mutex> lock(mutex);
-                // Exponential moving average (IIR filter)
-                // TODO FIR moving average with circular buffer
-                psd = psd + 0.5 * (spectrum.periodogram<sig::DENSITY, false>(seg_data) - psd);
+                averager.append(spectrum.periodogram<sig::DENSITY, false>(seg_data));
+
+                if (averager.full()) {
+                    psd = averager.average();
+                }
             }
         }
     }
