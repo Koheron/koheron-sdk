@@ -125,12 +125,42 @@ class Decimator
     std::atomic<bool> acquisition_started{false};
     void acquisition_thread();
     void start_acquisition();
-    void acquire_fifo(uint32_t ntps_pts_fifo);
 
     // Spectrum analyzer
     sig::Spectrum<double> spectrum;
     MovingAverager<16> averager;
     std::vector<double> psd;
+
+    void acquire_fifo(uint32_t ntps_pts_fifo) {
+        using namespace sci::operators;
+
+        uint32_t seg_cnt = 0;
+
+        fifo.wait_for_data(ntps_pts_fifo, fs);
+        const double vrange = fft.input_voltage_range();
+        constexpr double nmax = 262144.0; // 2^18
+
+        for (uint32_t i = 0; i < ntps_pts_fifo; i++) {
+            const auto value = vrange * static_cast<int32_t>(fifo.read()) / nmax / 4096.0;
+            adc_data[i] = value;
+
+            seg_data[seg_cnt] = value;
+            ++seg_cnt;
+
+            if (seg_cnt == n_pts) {
+                seg_cnt = 0;
+
+                {
+                    std::lock_guard<std::mutex> lock(mutex);
+                    averager.append(spectrum.periodogram<sig::DENSITY, false>(seg_data));
+
+                    if (averager.full()) {
+                        psd = averager.average();
+                    }
+                }
+            }
+        }
+    }
 }; // Decimator
 
 inline void Decimator::start_acquisition() {
@@ -156,37 +186,6 @@ inline void Decimator::acquisition_thread() {
                 } else {
                     acquire_fifo(n_remaining);
                     n_remaining = 0;
-                }
-            }
-        }
-    }
-}
-
-inline void Decimator::acquire_fifo(uint32_t ntps_pts_fifo) {
-    using namespace sci::operators;
-
-    uint32_t seg_cnt = 0;
-
-    fifo.wait_for_data(ntps_pts_fifo, fs);
-    const double vrange = fft.input_voltage_range();
-    constexpr double nmax = 262144.0; // 2^18
-
-    for (uint32_t i = 0; i < ntps_pts_fifo; i++) {
-        const auto value = vrange * static_cast<int32_t>(fifo.read()) / nmax / 4096.0;
-        adc_data[i] = value;
-
-        seg_data[seg_cnt] = value;
-        ++seg_cnt;
-
-        if (seg_cnt == n_pts) {
-            seg_cnt = 0;
-
-            {
-                std::lock_guard<std::mutex> lock(mutex);
-                averager.append(spectrum.periodogram<sig::DENSITY, false>(seg_data));
-
-                if (averager.full()) {
-                    psd = averager.average();
                 }
             }
         }
