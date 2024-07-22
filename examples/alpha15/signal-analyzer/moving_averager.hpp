@@ -8,13 +8,13 @@
 template<std::size_t buff_size, typename T=double>
 struct MovingAverager {
     void append(std::vector<T> &&vec) {
-        // Check all append vectors are of the same size
+        // Assume all append vectors have the same size
         circ_buffer[idx] = std::move(vec);
         inc_idx();
     }
 
     void append(const std::vector<T> &vec) {
-        circ_buffer[(++idx) % buff_size] = vec;
+        circ_buffer[idx] = vec;
         inc_idx();
     }
 
