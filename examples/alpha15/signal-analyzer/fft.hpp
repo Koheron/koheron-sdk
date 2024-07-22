@@ -98,30 +98,23 @@ class FFT
     void set_fft_window(uint32_t window_id) {
         switch (window_id) {
           case 0:
-            window = win::boxcar<double, prm::fft_size>();
+            set_window(win::boxcar<double, prm::fft_size>());
             break;
           case 1:
-            window = win::hann<double, prm::fft_size>();
+            set_window(win::hann<double, prm::fft_size>());
             break;
           case 2:
-            window = win::flattop<double, prm::fft_size>();
+            set_window(win::flattop<double, prm::fft_size>());
             break;
           case 3:
-            window = win::blackmanharris<double, prm::fft_size>();
+            set_window(win::blackmanharris<double, prm::fft_size>());
             break;
           default:
             ctx.log<ERROR>("FFT: Invalid window index\n");
             return;
         }
 
-        set_window_buffer();
         window_index = window_id;
-    }
-
-    // Read averaged spectrum data
-    auto read_psd_raw() {
-        std::lock_guard<std::mutex> lock(mutex);
-        return psd_buffer_raw;
     }
 
     // Return the PSD in W/Hz
@@ -169,9 +162,7 @@ class FFT
     Ltc2387& ltc2387;
 
     double fs_adc; // ADC sampling rate (Hz)
-    float calibration; // Conversion to V^2/Hz
 
-    std::array<double, prm::fft_size> window;
     double S1, S2, W1, W2, ENBW; // Window correction factors
     uint32_t window_index;
 
@@ -179,7 +170,6 @@ class FFT
     uint32_t input_operation = 0;
 
     std::array<float, prm::fft_size/2> psd_buffer;
-    std::array<float, prm::fft_size/2> psd_buffer_raw;
     std::thread psd_thread;
     std::mutex mutex;
     std::atomic<bool> psd_acquisition_started{false};
@@ -203,13 +193,12 @@ class FFT
     }
 
     // Factor to convert PSD raw data into V^2/Hz
-    void set_calibs() {
-        fs_adc = clk_gen.get_adc_sampling_freq()[0];
-        double vrange = input_voltage_range() / (2 << 21);
-        calibration = vrange * vrange / prm::n_cycles / fs_adc / W2;
+    float calibration() {
+        const double vrange = input_voltage_range() / (2 << 21);
+        return vrange * vrange / prm::n_cycles / fs_adc / W2;
     }
 
-    void set_window_buffer() {
+    void set_window(const std::array<double, prm::fft_size> &window) {
         demod_map.write_array(sci::map([](auto w){
             return uint32_t(((int32_t(32768 * w) + 32768) % 65536) + 32768);
         }, window));
@@ -246,8 +235,7 @@ inline void FFT::psd_acquisition_thread() {
 
         // Wait for data
         while (cycle_index >= previous_cycle_index) {
-            // 1/15 MHz = 66.7 ns
-            const auto acq_period = std::chrono::nanoseconds(int32_t(std::ceil(1E9 / fs_adc)));
+            const auto acq_period = std::chrono::nanoseconds(int32_t(std::ceil(1E9 / fs_adc))); // 1/15 MHz = 66.7 ns
             const auto sleep_time = (prm::n_cycles - cycle_index) * prm::fft_size * acq_period;
 
             if (sleep_time > 1ms) {
@@ -262,9 +250,7 @@ inline void FFT::psd_acquisition_thread() {
             using namespace sci::operators;
 
             std::lock_guard<std::mutex> lock(mutex);
-            psd_buffer_raw = psd_map.read_array<float, prm::fft_size/2, 0>();
-            set_calibs();
-            psd_buffer = psd_buffer_raw * calibration;
+            psd_buffer = calibration() * psd_map.read_array<float, prm::fft_size/2, 0>();
         }
 
         acq_cycle_index = get_cycle_index();
