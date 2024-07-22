@@ -5,7 +5,7 @@
 #include <vector>
 #include <scicpp/core.hpp>
 
-template<std::size_t buff_size, typename T=double>
+template<std::size_t navg, typename T=double>
 struct MovingAverager {
     void append(std::vector<T> &&vec) {
         // Assume all append vectors have the same size
@@ -31,21 +31,21 @@ struct MovingAverager {
             res = std::move(res) + vec;
         }
 
-        return res / T(buff_size);
+        return res / T(navg);
     }
 
   private:
     std::size_t idx = 0;
     bool is_full = false;
-    std::array<std::vector<T>, buff_size> circ_buffer{};
+    std::array<std::vector<T>, navg> circ_buffer{};
 
     void inc_idx() {
-        if (idx == buff_size - 1) {
+        if (idx == navg - 1) {
             is_full = true;
         }
 
         ++idx;
-        idx %= buff_size;
+        idx %= navg;
     }
 }; // MovingAverager
 

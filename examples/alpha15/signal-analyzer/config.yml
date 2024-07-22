@@ -115,6 +115,8 @@ web:
   - ./web/fft/fft-window.html
   - ./web/fft/input-channel.html
   - ./web/fft/fft-app.ts
+  - ./web/export-file/export-file.ts
+  - ./web/export-file/export-file.html
   - web/plot-basics/plot-basics.ts
   - web/plot-basics/plot-basics.html
   - ./web/plot/plot.ts
