@@ -15,6 +15,7 @@ class App {
     private precisionChannelsApp: PrecisionChannelsApp;
     private ltc2387: Ltc2387;
     private adcRangeApp: AdcRangeApp;
+    private exportFile: ExportFile;
 
     private n_pts: number;
     private x_min: number;
@@ -73,6 +74,7 @@ class App {
         this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
         this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionDac);
         this.adcRangeApp = new AdcRangeApp(document, this.ltc2387);
+        this.exportFile = new ExportFile(document, this.plot);
     }
 
 }
