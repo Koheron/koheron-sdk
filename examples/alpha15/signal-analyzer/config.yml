@@ -11,6 +11,7 @@ cores:
   - fpga/cores/comparator_v1_0
   - fpga/cores/bus_multiplexer_v1_0
   - fpga/cores/psd_counter_v1_0
+  - fpga/cores/axis_variable_v1_0
   - boards/alpha250/cores/precision_dac_v1_0
   - boards/alpha250/cores/spi_cfg_v1_0
   - boards/alpha15/cores/ltc2387_v1_0
@@ -61,6 +62,7 @@ ps_control_registers:
   - spi_cfg_data
   - spi_cfg_cmd
   - ctl_fft
+  - cic_rate
 
 ps_status_registers:
   - spi_cfg_sts
@@ -73,10 +75,12 @@ parameters:
   n_adc: 2
   adc_width: 18
   cic_differential_delay: 1
-  cic_decimation_rate: 2048
+  cic_decimation_rate_min: 4
+  cic_decimation_rate_max: 8192
+  cic_decimation_rate_default: 512
   cic_n_stages: 6
   fft_size: 8192
-  n_cycles: 1023
+  n_cycles: 63
 
 xdc:
   - boards/alpha15/config/ports.xdc
@@ -96,6 +100,38 @@ drivers:
   - ./fft.hpp
 
 web:
-  - web/index.html
-  - web/main.css
   - web/koheron.ts
+  - web/jquery.flot.d.ts
+  - web/main.css
+  # - web/dds-frequency/dds-frequency.html
+  # - web/dds-frequency/dds-frequency.ts
+  - ./web/index.html
+  - ./web/app.ts
+  - ./web/fft.ts
+  - ./web/decimator.ts
+  - ./web/adc-range/ltc2387.ts
+  - ./web/adc-range/adc-range-app.ts
+  - ./web/adc-range/input-range.html
+  - ./web/fft/fft-window.html
+  - ./web/fft/input-channel.html
+  - ./web/fft/fft-app.ts
+  - ./web/export-file/export-file.ts
+  - ./web/export-file/export-file.html
+  - web/plot-basics/plot-basics.ts
+  - web/plot-basics/plot-basics.html
+  - ./web/plot/plot.ts
+  - ./web/plot/yunit.html
+  - ./web/plot/peak-detection.html
+  - ./web/precision-channels/precision-dac.ts
+  - ./web/precision-channels/precision-channels-app.ts
+  - ./web/precision-channels/precision-channels.html
+  - ./web/clock-generator/clock-generator.ts
+  - ./web/clock-generator/clock-generator-app.ts
+  - ./web/clock-generator/sampling-frequency.html
+  - ./web/clock-generator/reference-clock.html
+  - ./web/temperature-sensor/temperature-sensor.html
+  - ./web/temperature-sensor/temperature-sensor.ts
+  - ./web/temperature-sensor/temperature-sensor-app.ts
+  - ./web/power-monitor/power-monitor.html
+  - ./web/power-monitor/power-monitor.ts
+  - ./web/power-monitor/power-monitor-app.ts

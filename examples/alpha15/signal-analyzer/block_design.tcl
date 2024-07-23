@@ -53,13 +53,18 @@ cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
 # Define CIC parameters
 
 set diff_delay [get_parameter cic_differential_delay]
-set dec_rate [get_parameter cic_decimation_rate]
+set dec_rate_default [get_parameter cic_decimation_rate_default]
+set dec_rate_min [get_parameter cic_decimation_rate_min]
+set dec_rate_max [get_parameter cic_decimation_rate_max]
 set n_stages [get_parameter cic_n_stages]
 
 cell xilinx.com:ip:cic_compiler:4.0 cic {
   Filter_Type Decimation
   Number_Of_Stages $n_stages
-  Fixed_Or_Initial_Rate $dec_rate
+  Fixed_Or_Initial_Rate $dec_rate_default
+  Sample_Rate_Changes Programmable
+  Minimum_Rate $dec_rate_min
+  Maximum_Rate $dec_rate_max
   Differential_Delay $diff_delay
   Input_Sample_Frequency 15
   Clock_Frequency [expr [get_parameter fclk0] / 1000000.]
@@ -72,11 +77,20 @@ cell xilinx.com:ip:cic_compiler:4.0 cic {
   S_AXIS_DATA adc_clock_converter/M_AXIS
 }
 
-set fir_coeffs [exec $python $project_path/fir.py $n_stages $dec_rate $diff_delay print]
+cell pavel-demin:user:axis_variable:1.0 cic_rate {
+  AXIS_TDATA_WIDTH 16
+} {
+  cfg_data [ps_ctl_pin cic_rate]
+  aclk [set ps_clk$intercon_idx]
+  aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
+  M_AXIS cic/S_AXIS_CONFIG
+}
+
+set fir_coeffs [exec $python $project_path/fir.py $n_stages $dec_rate_min $diff_delay print]
 
 cell xilinx.com:ip:fir_compiler:7.2 fir {
   Filter_Type Decimation
-  Sample_Frequency [expr 15.0 / $dec_rate]
+  Sample_Frequency [expr 15.0 / $dec_rate_min]
   Clock_Frequency [expr [get_parameter fclk0] / 1000000.]
   Coefficient_Width 32
   Data_Width 32

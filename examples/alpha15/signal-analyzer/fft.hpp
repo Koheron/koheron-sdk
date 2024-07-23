@@ -15,7 +15,16 @@
 #include <limits>
 #include <array>
 
-#include <boards/alpha250/drivers/clock-generator.hpp>
+#include <scicpp/core.hpp>
+#include <scicpp/signal.hpp>
+
+#include <boards/alpha15/drivers/clock-generator.hpp>
+#include <boards/alpha15/drivers/ltc2387.hpp>
+
+namespace {
+    namespace sci = scicpp;
+    namespace win = scicpp::signal::windows;
+}
 
 class FFT
 {
@@ -29,7 +38,9 @@ class FFT
     , psd_map(ctx.mm.get<mem::psd>())
     , demod_map(ctx.mm.get<mem::demod>())
     , clk_gen(ctx.get<ClockGenerator>())
+    , ltc2387(ctx.get<Ltc2387>())
     {
+        fs_adc = clk_gen.get_adc_sampling_freq()[0];
         set_offsets(0, 0);
         select_adc_channel(0);
         set_operation(0);
@@ -48,16 +59,23 @@ class FFT
     }
 
     void select_adc_channel(uint32_t channel) {
+        ctx.log<INFO>("FFT: Select channel %u", channel);
+
         if (channel == 0) {
             ctl.clear_bit<reg::channel_select, 0>();
             ctl.set_bit<reg::channel_select, 1>();
         } else if (channel == 1) {
             ctl.set_bit<reg::channel_select, 0>();
             ctl.clear_bit<reg::channel_select, 1>();
-        } else if (channel == 3) { // Diff or sum of channels
-            ctl.set_bit<reg::channel_select, 0>();
-            ctl.set_bit<reg::channel_select, 1>();
+        } else if (channel == 2) { // Diff or sum of channels
+            ctl.clear_bit<reg::channel_select, 0>();
+            ctl.clear_bit<reg::channel_select, 1>();
+        } else {
+            ctx.log<ERROR>("FFT: Invalid input channel");
+            return;
         }
+
+        input_channel = channel;
     }
 
     void set_operation(uint32_t operation) {
@@ -65,8 +83,11 @@ class FFT
         // 0 : Substration
         // 1 : Addition
 
+        ctx.log<INFO>("FFT: Select operation %u", operation);
+
         operation == 0 ? ctl.clear_bit<reg::channel_select, 2>()
                        : ctl.set_bit<reg::channel_select, 2>();
+        input_operation = operation;
     }
 
     void set_scale_sch(uint32_t scale_sch) {
@@ -75,43 +96,25 @@ class FFT
     }
 
     void set_fft_window(uint32_t window_id) {
-        constexpr std::array<std::array<double, 6>, 4> window_coeffs = {{
-            {1.0, 0, 0, 0, 0, 1.0},                      // Rectangular
-            {0.5, 0.5, 0, 0, 0, 1.0},                    // Hann
-            {1.0, 1.93, 1.29, 0.388, 0.028, 0.2},        // Flat top
-            {0.35875, 0.48829, 0.14128, 0.01168, 0, 1.0} // Blackman-Harris
-        }};
-
-        if (window_id >= 4) {
-            ctx.log<ERROR>("Invalid FFT window index \n");
+        switch (window_id) {
+          case 0:
+            set_window(win::boxcar<double, prm::fft_size>());
+            break;
+          case 1:
+            set_window(win::hann<double, prm::fft_size>());
+            break;
+          case 2:
+            set_window(win::flattop<double, prm::fft_size>());
+            break;
+          case 3:
+            set_window(win::blackmanharris<double, prm::fft_size>());
+            break;
+          default:
+            ctx.log<ERROR>("FFT: Invalid window index\n");
             return;
         }
 
-        set_cosine_sum_window(window_coeffs[window_id]);
-        set_window_buffer();
         window_index = window_id;
-    }
-
-    void set_raw_window(const std::array<uint32_t, prm::fft_size>& win) {
-        double res1 = 0;
-        double res2 = 0;
-
-        for (auto value : win) {
-            res1 += value;
-            res2 += value * value;
-        }
-
-        demod_map.write_array(win);
-
-        W1 = (res1 / prm::fft_size) * (res1 / prm::fft_size);
-        W2 = res2 / prm::fft_size;
-        set_conversion_vectors();
-    }
-
-    // Read averaged spectrum data
-    auto read_psd_raw() {
-        std::lock_guard<std::mutex> lock(mutex);
-        return psd_buffer_raw;
     }
 
     // Return the PSD in W/Hz
@@ -132,6 +135,20 @@ class FFT
         return window_index;
     }
 
+    auto get_control_parameters() {
+        return std::tuple{fs_adc, input_channel, input_operation, S1, S2, ENBW};
+    }
+
+    double input_voltage_range() {
+        // TODO Use calibration from EEPROM
+
+        if (input_range() == 0) {
+            return 2.048;
+        } else {
+            return 8.192;
+        }
+    }
+
  private:
     Context& ctx;
     Memory<mem::control>& ctl;
@@ -140,20 +157,19 @@ class FFT
     Memory<mem::ps_status>& ps_sts;
     Memory<mem::psd>& psd_map;
     Memory<mem::demod>& demod_map;
+
     ClockGenerator& clk_gen;
+    Ltc2387& ltc2387;
 
     double fs_adc; // ADC sampling rate (Hz)
-    std::array<std::array<float, prm::fft_size/2>, 2> freq_calibration; // Conversion to W/Hz
 
-    std::array<double, prm::fft_size> window;
-    double W1, W2; // Window correction factors
+    double S1, S2, W1, W2, ENBW; // Window correction factors
     uint32_t window_index;
 
     uint32_t input_channel = 0;
-    std::array<double, 2> dds_freq = {{0.0, 0.0}};
+    uint32_t input_operation = 0;
 
     std::array<float, prm::fft_size/2> psd_buffer;
-    std::array<float, prm::fft_size/2> psd_buffer_raw;
     std::thread psd_thread;
     std::mutex mutex;
     std::atomic<bool> psd_acquisition_started{false};
@@ -161,61 +177,43 @@ class FFT
     void psd_acquisition_thread();
     void start_psd_acquisition();
 
-    // https://en.wikipedia.org/wiki/Window_function
-    void set_cosine_sum_window(const std::array<double, 6>& a) {
-        double sign;
+    uint32_t input_range() {
+        if (input_channel <= 1) { // Channel 0 or 1
+            return ltc2387.input_range(input_channel);
+        } else { // Channel 0 - 1 or 0 + 1
+            const auto rg0 = ltc2387.input_range(0);
+            const auto rg1 = ltc2387.input_range(1);
 
-        for (size_t i=0; i<prm::fft_size; i++) {
-            window[i] = 0;
-
-            for (size_t j=0; j<(a.size() - 1); j++) {
-                j % 2 == 0 ? sign = 1.0 : sign = -1.0;
-                window[i] += sign * a[j] * std::cos(2 * M_PI * i * j / double(prm::fft_size - 1));
+            if (rg0 != rg1) {
+                ctx.log<WARNING>("FFT: Ch0 and Ch1 have different input ranges\n");
             }
 
-            window[i] *= a[a.size() - 1]; // Scaling
+            return rg0;
         }
     }
 
-    // Vectors to convert PSD raw data into W/Hz
-    void set_conversion_vectors() {
-        constexpr double load = 50.0; // Ohm
-
-        fs_adc = 15E6;;
-
-        std::array<double, 2> vin = {8.0,8.0};
-
-        float C0 =  (vin[0] / (2 << 20)) * (vin[0] / (2 << 20)) / prm::n_cycles / fs_adc / load / W2;
-        float C1 =  (vin[1] / (2 << 20)) * (vin[1] / (2 << 20)) / prm::n_cycles / fs_adc / load / W2;
-
-        for (unsigned int i=0; i<prm::fft_size/2; i++) {
-            freq_calibration[0][i] = C0;
-            freq_calibration[1][i] = C1;
-        }
+    // Factor to convert PSD raw data into V^2/Hz
+    float calibration() {
+        const double vrange = input_voltage_range() / (2 << 21);
+        return vrange * vrange / prm::n_cycles / fs_adc / W2;
     }
 
-    void set_window_buffer() {
-        std::array<uint32_t, prm::fft_size> window_buffer;
-        double res1 = 0;
-        double res2 = 0;
+    void set_window(const std::array<double, prm::fft_size> &window) {
+        demod_map.write_array(sci::map([](auto w){
+            return uint32_t(((int32_t(32768 * w) + 32768) % 65536) + 32768);
+        }, window));
 
-        for (size_t i=0; i<prm::fft_size; i++) {
-            window_buffer[i] = ((int32_t(32768 * window[i]) + 32768) % 65536) + 32768;
-            res1 += window[i];
-            res2 += window[i] * window[i];
-        }
+        S1 = win::s1(window);
+        S2 = win::s2(window);
+        ENBW = win::enbw(window);
 
-        demod_map.write_array(window_buffer);
-
-        W1 = (res1 / prm::fft_size) * (res1 / prm::fft_size);
-        W2 = res2 / prm::fft_size;
-        set_conversion_vectors();
+        W1 = S1 / prm::fft_size / prm::fft_size;
+        W2 = S2 / prm::fft_size;
     }
 
     uint32_t get_cycle_index() {
         return ps_sts.read<reg::cycle_index>();
     }
-
 }; // class FFT
 
 inline void FFT::start_psd_acquisition() {
@@ -226,7 +224,7 @@ inline void FFT::start_psd_acquisition() {
     }
 }
 
-inline void  FFT::psd_acquisition_thread() {
+inline void FFT::psd_acquisition_thread() {
     using namespace std::chrono_literals;
 
     psd_acquisition_started = true;
@@ -237,8 +235,8 @@ inline void  FFT::psd_acquisition_thread() {
 
         // Wait for data
         while (cycle_index >= previous_cycle_index) {
-            // 1/15 MHz = 66.7 ns
-            const auto sleep_time = std::chrono::nanoseconds((prm::n_cycles - cycle_index) * prm::fft_size * 67);
+            const auto acq_period = std::chrono::nanoseconds(int32_t(std::ceil(1E9 / fs_adc))); // 1/15 MHz = 66.7 ns
+            const auto sleep_time = (prm::n_cycles - cycle_index) * prm::fft_size * acq_period;
 
             if (sleep_time > 1ms) {
                 std::this_thread::sleep_for(sleep_time);
@@ -249,12 +247,10 @@ inline void  FFT::psd_acquisition_thread() {
         }
 
         {
-            std::lock_guard<std::mutex> lock(mutex);
-            psd_buffer_raw = psd_map.read_array<float, prm::fft_size/2, 0>();
+            using namespace sci::operators;
 
-            for (unsigned int i=0; i<prm::fft_size/2; i++) {
-                psd_buffer[i] = psd_buffer_raw[i] * freq_calibration[input_channel][i];
-            }
+            std::lock_guard<std::mutex> lock(mutex);
+            psd_buffer = calibration() * psd_map.read_array<float, prm::fft_size/2, 0>();
         }
 
         acq_cycle_index = get_cycle_index();
