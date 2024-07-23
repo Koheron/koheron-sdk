@@ -40,7 +40,7 @@ class App {
                 this.y_min = -8192;
                 this.y_max = +8191;
 
-                this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.oscillo, "setTimeRange", "Time (µs)");
+                this.plotBasics = new PlotBasics(document, plot_placeholder, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.oscillo, "setTimeRange", "Time (µs)");
                 this.plot = new Plot(document, this.oscillo, this.plotBasics);
             });
         }, false);

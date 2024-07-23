@@ -8,6 +8,9 @@ class PlotBasics {
     private range_x: jquery.flot.range;
     private range_y: jquery.flot.range;
 
+    private log_y: boolean;
+    public LogYaxisFormatter;
+
     private reset_range: boolean;
     private options: jquery.flot.plotOptions;
     private plot: jquery.flot.plot;
@@ -23,7 +26,7 @@ class PlotBasics {
     private clickDatapointSpan: HTMLSpanElement;
     private clickDatapoint: number[];
 
-    constructor(document: Document, private plot_placeholder: JQuery, private plotDriver: Plot, private n_pts: number, public x_min, public x_max, public y_min, public y_max,
+    constructor(document: Document, private plot_placeholder: JQuery, private n_pts: number, public x_min, public x_max, public y_min, public y_max,
         private driver, private rangeFunction, private plotTitle: string) {
 
         this.plotTitleSpan = <HTMLSpanElement>document.getElementById("plot-title");
@@ -35,6 +38,8 @@ class PlotBasics {
         this.range_y = <jquery.flot.range>{};
         this.range_y.from = this.y_min;
         this.range_y.to = this.y_max;
+
+        this.log_y = false;
 
         this.setPlot(this.range_x.from, this.range_x.to, this.range_y.from, this.range_y.to);
         this.rangeSelect(this.rangeFunction);
@@ -54,6 +59,7 @@ class PlotBasics {
         this.peakDatapointSpan = <HTMLSpanElement>document.getElementById("peak-datapoint");
 
         this.plot_data = [];
+        this.LogYaxisFormatter = (val, axis) => {};
 
         this.initUnitInputs();
         this.initPeakDetection();
@@ -165,6 +171,18 @@ class PlotBasics {
         }
     }
 
+    setLogY() {
+        this.log_y = true;
+        this.range_y = <jquery.flot.range>{};
+        this.reset_range = true;
+    }
+
+    setLinY() {
+        this.log_y = false;
+        this.range_y = <jquery.flot.range>{};
+        this.reset_range = true;
+    }
+
     updateDatapointSpan(datapoint: number[], datapointSpan: HTMLSpanElement): void {
         let positionX: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).left;
         let positionY: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).top;
@@ -185,10 +203,23 @@ class PlotBasics {
     }
 
     redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void) {
-
         const plt_data: jquery.flot.dataSeries[] = [{label: ylabel, data: plot_data}];
 
         if (this.reset_range) {
+            if (this.log_y) {
+                // /!\ Cannot set ticks lower than 1 /!\
+                this.options.yaxis.ticks = [1 ,10 ,100, 1E3, 1E4, 1E5, 1E6, 1E7, 1E8, 1E9];
+                this.options.yaxis.tickDecimals = 0;
+                this.options.yaxis.transform = (v) => {return v > 0 ? Math.log10(v) : null};
+                this.options.yaxis.inverseTransform = (v) => {return v!= null ? Math.pow(10, v) : 0.0};
+                this.options.yaxis.tickFormatter = this.LogYaxisFormatter;
+            } else {
+                this.options.yaxis = {
+                    min: this.range_y.from,
+                    max: this.range_y.to
+                };
+            }
+
             this.options.xaxis.min = this.range_x.from;
             this.options.xaxis.max = this.range_x.to;
             this.options.yaxis.min = this.range_y.from;
@@ -211,7 +242,7 @@ class PlotBasics {
 
         if (this.clickDatapoint.length > 0) {
             let i: number;
-            for (i = 0; i < n_pts; i++) {
+            for (i = 0; i < plot_data.length; i++) {
                 if (localData[0]['data'][i][0] > this.clickDatapoint[0]) {
                     break;
                 }
@@ -220,16 +251,16 @@ class PlotBasics {
             let p1 = localData[0]['data'][i-1];
             let p2 = localData[0]['data'][i];
 
-            if (p1 === null) {
+            if ((p1 === null) || (p1 === undefined)) {
                 this.clickDatapoint[1] = p2[1];
-            } else if (p2 === null) {
+            } else if ((p2 === null) || (p2 === undefined)) {
                 this.clickDatapoint[1] = p1[1];
             } else {
                 this.clickDatapoint[1] = p1[1] + (p2[1] - p1[1]) * (this.clickDatapoint[0] - p1[0]) / (p2[0] - p1[0]);
             }
 
-            if (this.range_x.from < this.clickDatapoint[0] && this.clickDatapoint[0] < this.range_x.to &&
-                 this.range_y.from < this.clickDatapoint[1] &&  this.clickDatapoint[1] < this.range_y.to) {
+            if (  this.range_x.from < this.clickDatapoint[0] && this.clickDatapoint[0] < this.range_x.to
+                && this.range_y.from < this.clickDatapoint[1] && this.clickDatapoint[1] < this.range_y.to) {
                 this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan);
                 this.clickDatapointSpan.style.display = "inline-block";
                 this.plot.highlight(localData[0], this.clickDatapoint);
@@ -239,8 +270,7 @@ class PlotBasics {
         }
 
         if (this.isPeakDetection && peakDatapoint.length > 0) {
-
-            for (let i: number = 0; i <= n_pts; i++) {
+            for (let i: number = 0; i < plot_data.length; i++) {
                 if (peakDatapoint[1] < plot_data[i][1]) {
                     peakDatapoint[0] = plot_data[i][0];
                     peakDatapoint[1] = plot_data[i][1];
@@ -249,8 +279,8 @@ class PlotBasics {
 
             this.plot.unhighlight(localData[0], peakDatapoint);
 
-            if (this.range_x.from < peakDatapoint[0] && peakDatapoint[0] < this.range_x.to &&
-            this.range_y.from < peakDatapoint[1] &&  peakDatapoint[1] < this.range_y.to) {
+            if (   this.range_x.from < peakDatapoint[0] && peakDatapoint[0] < this.range_x.to
+                && this.range_y.from < peakDatapoint[1] && peakDatapoint[1] < this.range_y.to) {
                 this.updateDatapointSpan(peakDatapoint, this.peakDatapointSpan);
                 this.plot.highlight(localData[0], peakDatapoint);
                 this.peakDatapointSpan.style.display = "inline-block";
@@ -265,7 +295,6 @@ class PlotBasics {
 
         callback();
     }
-
 
     redrawRange(data: number[][], range_x: jquery.flot.range, ylabel: string, callback: () => void): void {
         const plt_data: jquery.flot.dataSeries[] = [{label: ylabel, data: data}];
@@ -290,7 +319,6 @@ class PlotBasics {
 
         callback();
     }
-
 
     redrawTwoChannels(ch0: number[][], ch1: number[][],
         range_x: jquery.flot.range, label1: string, label2: string, is_channel_1: boolean, is_channel_2: boolean, callback: () => void): void {
@@ -438,5 +466,4 @@ class PlotBasics {
             this.hoverDatapointSpan.style.display = "none";
         });
     }
-
 }
