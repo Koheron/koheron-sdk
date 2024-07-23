@@ -38,7 +38,7 @@ class App {
                     this.y_min = -200;
                     this.y_max = 0;
 
-                    this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.phaseNoiseAnalyzer, "", "FREQUENCY OFFSET (Hz)");
+                    this.plotBasics = new PlotBasics(document, plot_placeholder, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.phaseNoiseAnalyzer, "", "FREQUENCY OFFSET (Hz)");
                     this.plot = new Plot(document, this.phaseNoiseAnalyzer, this.plotBasics);
                     this.exportFile = new ExportFile(document, this.plot);
                 })

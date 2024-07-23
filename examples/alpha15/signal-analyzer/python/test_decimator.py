@@ -12,7 +12,7 @@ from decimator import Decimator
 from fft import FFT
 from koheron import connect
 
-host = os.getenv('HOST', '192.168.1.129')
+host = os.getenv('HOST', '192.168.1.156')
 client = connect(host, 'signal-analyzer')
 decimator = Decimator(client)
 fft = FFT(client)

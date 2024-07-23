@@ -48,7 +48,7 @@ class App {
                     this.y_min = -200;
                     this.y_max = 170;
 
-                    this.plotBasics = new PlotBasics(document, plot_placeholder, this.plot, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.fft, "", "Frequency (MHz)");
+                    this.plotBasics = new PlotBasics(document, plot_placeholder, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.fft, "", "Frequency (MHz)");
                     this.plot = new Plot(document, this.fft, this.plotBasics);
 
                     this.temperatureSensorApp = new TemperatureSensorApp(document, this.temperatureSensor);

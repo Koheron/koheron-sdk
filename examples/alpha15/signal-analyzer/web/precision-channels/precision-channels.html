@@ -1,0 +1,50 @@
+<template class="template">
+  <div class="crossed"><span>Precision DACs (mV)</span></div>
+
+  <table class="full-width">
+    <tr>
+      <td style="width: 60px;">
+        DAC 0
+      </td>
+      <td style="width: 60px;">
+        <input type="number" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="0" data-command="setDac">
+      </td>
+      <td>
+        <input type="range" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="0" data-command="setDac">
+      </td>
+    </tr>
+    <tr>
+      <td>
+        DAC 1
+      </td>
+      <td>
+        <input type="number" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="1" data-command="setDac">
+      </td>
+      <td>
+        <input type="range" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="1" data-command="setDac">
+      </td>
+    </tr>
+    <tr>
+      <td>
+        DAC 2
+      </td>
+      <td>
+        <input type="number" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="2" data-command="setDac">
+      </td>
+      <td>
+        <input type="range" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="2" data-command="setDac">
+      </td>
+    </tr>
+    <tr>
+      <td>
+        DAC 3
+      </td>
+      <td>
+        <input type="number" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="3" data-command="setDac">
+      </td>
+      <td>
+        <input type="range" value="0" min="0" step="0.001" max="2500" class="precision-dac-input" data-channel="3" data-command="setDac">
+      </td>
+    </tr>
+  </table>
+</template>

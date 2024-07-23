@@ -51,6 +51,15 @@ proc create {module_name fft_size} {
     s_axis_b_tvalid $shifted_tvalid
   }
 
+  cell xilinx.com:ip:axis_data_fifo:2.0 fifo {
+    FIFO_DEPTH $fft_size
+    TDATA_NUM_BYTES 10
+  } {
+    S_AXIS complex_mult/M_AXIS_DOUT
+    s_axis_aclk s_axi_aclk
+    s_axis_aresetn s_axi_aresetn
+  }
+
   for {set i 0} {$i < 2} {incr i} {
     cell xilinx.com:ip:floating_point:7.1 float_$i {
       Operation_Type Fixed_to_float
@@ -61,18 +70,20 @@ proc create {module_name fft_size} {
       Maximum_Latency True
     } {
       aclk clk
-      s_axis_a_tdata [get_slice_pin complex_mult/m_axis_dout_tdata [expr 35+40*$i] [expr 40*$i]]
-      s_axis_a_tvalid complex_mult/m_axis_dout_tvalid
+      s_axis_a_tdata [get_slice_pin fifo/m_axis_tdata [expr 35+40*$i] [expr 40*$i]]
+      s_axis_a_tvalid fifo/m_axis_tvalid
     }
   }
+
+  connect_pins float_0/s_axis_a_tready fifo/m_axis_tready
 
   cell xilinx.com:ip:xfft:9.0 fft_0 {
     transform_length $fft_size
     implementation_options automatically_select
     data_format floating_point
     target_clock_frequency [expr [get_parameter fclk0] / 1000000]
-    target_data_throughput 15
-    phase_factor_width 24
+    target_data_throughput 20
+    phase_factor_width 25
     throttle_scheme nonrealtime
     output_ordering natural_order
     complex_mult_type use_mults_resources
@@ -97,7 +108,7 @@ proc create {module_name fft_size} {
     set slice_tdata [get_slice_pin fft_0/m_axis_data_tdata [expr 31+32*$i] [expr 32*$i]]
     cell xilinx.com:ip:floating_point:7.1 mult_$i {
       Operation_Type Multiply
-      Flow_Control NonBlocking
+      Flow_Control Blocking
       Maximum_Latency True
     } {
       aclk clk
@@ -108,11 +119,14 @@ proc create {module_name fft_size} {
     }
   }
 
+  connect_pins fft_0/m_axis_data_tready mult_0/s_axis_a_tready
+
   cell xilinx.com:ip:floating_point:7.1 add_0 {
-    Flow_Control NonBlocking
+    Flow_Control Blocking
     Add_Sub_Value Add
     C_Mult_Usage No_Usage
     Maximum_Latency True
+    Has_RESULT_TREADY false
   } {
     aclk clk
     S_AXIS_A mult_0/M_AXIS_RESULT
