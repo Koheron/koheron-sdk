@@ -113,13 +113,6 @@ class Ltc2387
 
         ctx.log<INFO>("Ltc2387: counter = %li\n", counter);
 
-        // Increase phase-shift until we recover the test pattern
-        while (data0 != testpat || data1 != testpat) {
-            clkgen.phase_shift(1);
-            data0 = sts.read<reg::adc0, int32_t>();
-            data1 = sts.read<reg::adc1, int32_t>();
-        }
-
         const auto t2 = std::chrono::high_resolution_clock::now();
         const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
         ctx.log<INFO>("Ltc2387: Delay clock adjustment duration %lu us\n", duration);
