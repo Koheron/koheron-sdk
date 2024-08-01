@@ -8,6 +8,7 @@
 #include <context.hpp>
 
 #include "eeprom.hpp"
+#include "clock-generator.hpp"
 
 #include <array>
 #include <cmath>
@@ -25,6 +26,7 @@ class Ltc2387
     , ctl(ctx.mm.get<mem::control>())
     , sts(ctx.mm.get<mem::status>())
     , eeprom(ctx.get<Eeprom>())
+    , clkgen(ctx.get<ClockGenerator>())
     {}
 
     void init() {
@@ -42,10 +44,6 @@ class Ltc2387
     void set_clock_delay() {
         using namespace std::literals;
 
-        // Set output clock delay (t_FIRSTCLK)
-        // We acquire the ADC test pattern
-        // and decrement delay until the expected pattern is acquired.
-
         ctx.log<INFO>("Ltc2387: Setting ADC clock delay ...\n");
 
         // Two lane mode test pattern
@@ -54,24 +52,71 @@ class Ltc2387
         set_testpat();
         std::this_thread::sleep_for(50us);
 
-        for (int i=0; i < 32; ++i) { // Delay is 16 bits but we run up to 2 turns
-            const auto data0 = sts.read<reg::adc0, int32_t>();
-            const auto data1 = sts.read<reg::adc1, int32_t>();
+        const auto t1 = std::chrono::high_resolution_clock::now();
 
-            ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
-                          testpat, data0, data1);
+        // Skip first readings if testpattern is already good
+        int32_t data0 = testpat;
+        int32_t data1 = testpat;
 
-            if (data0 == testpat) {
-                clear_testpat();
-                ctx.log<INFO>("Ltc2387: ADCs clock delay set [ndec = %u]\n", i);
-                return;
-            }
-
-            clkout_dec();
-            std::this_thread::sleep_for(50us);
+        while (data0 == testpat && data1 == testpat) {
+            clkgen.phase_shift(1);
+            data0 = sts.read<reg::adc0, int32_t>();
+            data1 = sts.read<reg::adc1, int32_t>();
         }
 
-        ctx.log<ERROR>("Ltc2387: Failed to set ADC clock delay\n");
+        ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
+                      testpat, data0, data1);
+
+        // Increase phase-shift until we recover the test pattern
+        while (data0 != testpat || data1 != testpat) {
+            clkgen.phase_shift(1);
+            data0 = sts.read<reg::adc0, int32_t>();
+            data1 = sts.read<reg::adc1, int32_t>();
+        }
+
+        ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
+                      testpat, data0, data1);
+
+        int32_t cnt_good_shifts = 0; // Count the size of the good pattern window
+
+        while (data0 == testpat && data1 == testpat) {
+            ++cnt_good_shifts;
+            clkgen.phase_shift(1);
+            data0 = sts.read<reg::adc0, int32_t>();
+            data1 = sts.read<reg::adc1, int32_t>();
+        }
+
+        ctx.log<INFO>("Ltc2387: cnt_good_shifts = %li\n", cnt_good_shifts);
+        ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
+                      testpat, data0, data1);
+
+        // Increase phase-shift until we recover the test pattern
+        while (data0 != testpat || data1 != testpat) {
+            clkgen.phase_shift(1);
+            data0 = sts.read<reg::adc0, int32_t>();
+            data1 = sts.read<reg::adc1, int32_t>();
+        }
+
+        ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
+                      testpat, data0, data1);
+
+        // Add half of the good pattern window
+        clkgen.phase_shift(cnt_good_shifts / 2);
+
+        data0 = sts.read<reg::adc0, int32_t>();
+        data1 = sts.read<reg::adc1, int32_t>();
+
+        ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
+                      testpat, data0, data1);
+
+        if (data0 != testpat || data1 != testpat) {
+            ctx.log<ERROR>("Ltc2387: Failed to set ADC clock delay\n");
+        }
+
+        const auto t2 = std::chrono::high_resolution_clock::now();
+        const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+        ctx.log<INFO>("Ltc2387: Delay clock adjustment duration %lu us\n", duration);
+
         clear_testpat();
     }
 
@@ -283,6 +328,7 @@ class Ltc2387
     Memory<mem::control>& ctl;
     Memory<mem::status>& sts;
     Eeprom& eeprom;
+    ClockGenerator& clkgen;
 
     // Calibration array: [gain_2V, offset_2V, gain_8V, offset_8V]
     // gain in LSB / Volts
