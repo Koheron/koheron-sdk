@@ -9,6 +9,7 @@ cores:
   - fpga/cores/dna_reader_v1_0
   - fpga/cores/edge_detector_v1_0
   - fpga/cores/comparator_v1_0
+  - fpga/cores/tlast_gen_v1_0
   - fpga/cores/bus_multiplexer_v1_0
   - fpga/cores/psd_counter_v1_0
   - fpga/cores/axis_variable_v1_0
@@ -42,6 +43,15 @@ memory:
   - name: psd
     offset: '0x74000000'
     range: 32K
+  - name: ram
+    offset: '0x1E000000'
+    range: 32M
+  - name: dma
+    offset: '0x80000000'
+    range: 64K
+  - name: axi_hp0
+    offset: '0xF8008000'
+    range: 4K
 
 control_registers:
   - mmcm
@@ -70,6 +80,7 @@ ps_status_registers:
 
 parameters:
   fclk0: 166666667 # CPU clock speed in Hz
+  fclk1: 143000000
   adc_clk: 240000000
   adp5071_clk: 2400000
   n_adc: 2
@@ -98,6 +109,7 @@ drivers:
   - boards/alpha250/drivers/spi-config.hpp
   - ./decimator.hpp
   - ./fft.hpp
+  - ./dma.hpp
 
 web:
   - web/koheron.ts
