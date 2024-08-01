@@ -70,6 +70,8 @@ class Ltc2387
             data1 = sts.read<reg::adc1, int32_t>();
             if (data0 != testpat || data1 != testpat) {
                 n--;
+            } else {
+                n = 10;
             }
         }
 
