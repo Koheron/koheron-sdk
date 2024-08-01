@@ -58,59 +58,66 @@ class Ltc2387
         int32_t data0 = testpat;
         int32_t data1 = testpat;
 
-        while (data0 == testpat && data1 == testpat) {
+        int n = 10;
+        int counter = 0;
+        int start = 0;
+        int stop = 0;
+
+        while (n > 0) {
             clkgen.phase_shift(1);
+            counter ++;
             data0 = sts.read<reg::adc0, int32_t>();
             data1 = sts.read<reg::adc1, int32_t>();
+            if (data0 != testpat || data1 != testpat) {
+                n--;
+            }
         }
+
+        n = 10;
+        while (n > 0) {
+            clkgen.phase_shift(1);
+            counter ++;
+            data0 = sts.read<reg::adc0, int32_t>();
+            data1 = sts.read<reg::adc1, int32_t>();
+            if (data0 == testpat && data1 == testpat) {
+                if (n == 10) {
+                    start = counter;
+                }
+                n--;
+            } else {
+                n = 10;
+            }
+        }
+
+        n = 10;
+        while (n > 0) {
+            clkgen.phase_shift(1);
+            counter ++;
+            data0 = sts.read<reg::adc0, int32_t>();
+            data1 = sts.read<reg::adc1, int32_t>();
+            if (data0 != testpat && data1 != testpat) {
+                if (n == 10) {
+                    stop = counter;
+                }
+                n--;
+            } else {
+                n = 10;
+            }
+        }
+
+        clkgen.phase_shift(4480 - counter + (stop + start)/2);
+        counter += 4480 - counter + (stop + start)/2;
 
         ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
                       testpat, data0, data1);
+
+        ctx.log<INFO>("Ltc2387: counter = %li\n", counter);
 
         // Increase phase-shift until we recover the test pattern
         while (data0 != testpat || data1 != testpat) {
             clkgen.phase_shift(1);
             data0 = sts.read<reg::adc0, int32_t>();
             data1 = sts.read<reg::adc1, int32_t>();
-        }
-
-        ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
-                      testpat, data0, data1);
-
-        int32_t cnt_good_shifts = 0; // Count the size of the good pattern window
-
-        while (data0 == testpat && data1 == testpat) {
-            ++cnt_good_shifts;
-            clkgen.phase_shift(1);
-            data0 = sts.read<reg::adc0, int32_t>();
-            data1 = sts.read<reg::adc1, int32_t>();
-        }
-
-        ctx.log<INFO>("Ltc2387: cnt_good_shifts = %li\n", cnt_good_shifts);
-        ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
-                      testpat, data0, data1);
-
-        // Increase phase-shift until we recover the test pattern
-        while (data0 != testpat || data1 != testpat) {
-            clkgen.phase_shift(1);
-            data0 = sts.read<reg::adc0, int32_t>();
-            data1 = sts.read<reg::adc1, int32_t>();
-        }
-
-        ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
-                      testpat, data0, data1);
-
-        // Add half of the good pattern window
-        clkgen.phase_shift(cnt_good_shifts / 2);
-
-        data0 = sts.read<reg::adc0, int32_t>();
-        data1 = sts.read<reg::adc1, int32_t>();
-
-        ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
-                      testpat, data0, data1);
-
-        if (data0 != testpat || data1 != testpat) {
-            ctx.log<ERROR>("Ltc2387: Failed to set ADC clock delay\n");
         }
 
         const auto t2 = std::chrono::high_resolution_clock::now();
