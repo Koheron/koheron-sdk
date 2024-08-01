@@ -41,79 +41,119 @@ class Ltc2387
         set_clock_delay();
     }
 
+    // Data
+
+    auto adc_raw_data(uint32_t n_avg) {
+        if (n_avg <= 1) {
+            return std::array{sts.read<reg::adc0, int32_t>(),
+                              sts.read<reg::adc1, int32_t>()};
+        } else  {
+            int64_t adc0 = 0;
+            int64_t adc1 = 0;
+
+            for (size_t i=0; i<n_avg; ++i) {
+                adc0 += sts.read<reg::adc0, int32_t>();
+                adc1 += sts.read<reg::adc1, int32_t>();
+            }
+
+            return std::array{
+                int32_t(std::round(adc0 / double(n_avg))),
+                int32_t(std::round(adc1 / double(n_avg)))
+            };
+        }
+    }
+
+    auto adc_data_volts(uint32_t n_avg) {
+        const auto [data_raw0, data_raw1] = adc_raw_data(n_avg);
+        const auto val0 = float(to_two_complement(data_raw0));
+        const auto val1 = float(to_two_complement(data_raw1));
+
+        const auto range0 = input_range(0);
+        const auto range1 = input_range(1);
+        const auto gain0 = get_gain(0, range0);     // LSB/V
+        const auto gain1 = get_gain(1, range1);     // LSB/V
+        const auto offset0 = get_offset(0, range0); // LSB
+        const auto offset1 = get_offset(1, range1); // LSB
+
+        return std::array{ (val0 - offset0) / gain0,
+                           (val1 - offset1) / gain1 };
+    }
+
     void set_clock_delay() {
         using namespace std::literals;
 
         ctx.log<INFO>("Ltc2387: Setting ADC clock delay ...\n");
+        const auto t1 = std::chrono::high_resolution_clock::now();
 
         // Two lane mode test pattern
         constexpr int32_t testpat = 0b110011000011111100;
+        constexpr int32_t period = 4480;
+        constexpr int32_t nhyst = 10;
 
         set_testpat();
         std::this_thread::sleep_for(50us);
 
-        const auto t1 = std::chrono::high_resolution_clock::now();
-
-        // Skip first readings if testpattern is already good
-        int32_t data0 = testpat;
-        int32_t data1 = testpat;
-
-        int n = 10;
+        int n = nhyst;
         int counter = 0;
         int start = 0;
         int stop = 0;
 
+        // Skip first readings if test pattern is already good
         while (n > 0) {
             clkgen.phase_shift(1);
-            counter ++;
-            data0 = sts.read<reg::adc0, int32_t>();
-            data1 = sts.read<reg::adc1, int32_t>();
+            counter++;
+            const auto [data0, data1] = adc_raw_data(1U);
             if (data0 != testpat || data1 != testpat) {
                 n--;
             } else {
-                n = 10;
+                n = nhyst;
             }
         }
 
-        n = 10;
+        // Recover test pattern
+        n = nhyst;
         while (n > 0) {
             clkgen.phase_shift(1);
-            counter ++;
-            data0 = sts.read<reg::adc0, int32_t>();
-            data1 = sts.read<reg::adc1, int32_t>();
+            counter++;
+            const auto [data0, data1] = adc_raw_data(1U);
             if (data0 == testpat && data1 == testpat) {
-                if (n == 10) {
+                if (n == nhyst) {
                     start = counter;
                 }
                 n--;
             } else {
-                n = 10;
+                n = nhyst;
             }
         }
 
-        n = 10;
+        // Count test pattern valid window size
+        n = nhyst;
         while (n > 0) {
             clkgen.phase_shift(1);
-            counter ++;
-            data0 = sts.read<reg::adc0, int32_t>();
-            data1 = sts.read<reg::adc1, int32_t>();
-            if (data0 != testpat && data1 != testpat) {
-                if (n == 10) {
+            counter++;
+            const auto [data0, data1] = adc_raw_data(1U);
+            if (data0 != testpat || data1 != testpat) {
+                if (n == nhyst) {
                     stop = counter;
                 }
                 n--;
             } else {
-                n = 10;
+                n = nhyst;
             }
         }
 
-        clkgen.phase_shift(4480 - counter + (stop + start)/2);
-        counter += 4480 - counter + (stop + start)/2;
+        const auto step = period - counter + (stop + start) / 2; // = period - (stop - start) / 2 - (counter - stop)
+        clkgen.phase_shift(step);
+        counter += step;
 
+        const auto [data0, data1] = adc_raw_data(1U);
         ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
                       testpat, data0, data1);
+        ctx.log<INFO>("Ltc2387: counter = %li, stop - start = %li\n", counter, stop - start);
 
-        ctx.log<INFO>("Ltc2387: counter = %li\n", counter);
+        if (data0 != testpat || data1 != testpat) {
+            ctx.log<ERROR>("Ltc2387: Failled to set clock delay");
+        }
 
         const auto t2 = std::chrono::high_resolution_clock::now();
         const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
@@ -225,44 +265,6 @@ class Ltc2387
         da_delay_tap(1, tap);
         db_delay_tap(0, tap);
         db_delay_tap(1, tap);
-    }
-
-    // Data
-
-    auto adc_raw_data(uint32_t n_avg) {
-        if (n_avg <= 1) {
-            return std::array{sts.read<reg::adc0, int32_t>(),
-                              sts.read<reg::adc1, int32_t>()};
-        } else  {
-            int64_t adc0 = 0;
-            int64_t adc1 = 0;
-
-            for (size_t i=0; i<n_avg; ++i) {
-                adc0 += sts.read<reg::adc0, int32_t>();
-                adc1 += sts.read<reg::adc1, int32_t>();
-            }
-
-            return std::array{
-                int32_t(std::round(adc0 / double(n_avg))),
-                int32_t(std::round(adc1 / double(n_avg)))
-            };
-        }
-    }
-
-    auto adc_data_volts(uint32_t n_avg) {
-        const auto [data_raw0, data_raw1] = adc_raw_data(n_avg);
-        const auto val0 = float(to_two_complement(data_raw0));
-        const auto val1 = float(to_two_complement(data_raw1));
-
-        const auto range0 = input_range(0);
-        const auto range1 = input_range(1);
-        const auto gain0 = get_gain(0, range0);     // LSB/V
-        const auto gain1 = get_gain(1, range1);     // LSB/V
-        const auto offset0 = get_offset(0, range0); // LSB
-        const auto offset1 = get_offset(1, range1); // LSB
-
-        return std::array{ (val0 - offset0) / gain0,
-                           (val1 - offset1) / gain1 };
     }
 
     // Calibrations
