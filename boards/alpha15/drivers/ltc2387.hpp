@@ -8,6 +8,7 @@
 #include <context.hpp>
 
 #include "eeprom.hpp"
+#include "clock-generator.hpp"
 
 #include <array>
 #include <cmath>
@@ -25,6 +26,7 @@ class Ltc2387
     , ctl(ctx.mm.get<mem::control>())
     , sts(ctx.mm.get<mem::status>())
     , eeprom(ctx.get<Eeprom>())
+    , clkgen(ctx.get<ClockGenerator>())
     {}
 
     void init() {
@@ -39,39 +41,124 @@ class Ltc2387
         set_clock_delay();
     }
 
+    // Data
+
+    auto adc_raw_data(uint32_t n_avg) {
+        if (n_avg <= 1) {
+            return std::array{sts.read<reg::adc0, int32_t>(),
+                              sts.read<reg::adc1, int32_t>()};
+        } else  {
+            int64_t adc0 = 0;
+            int64_t adc1 = 0;
+
+            for (size_t i=0; i<n_avg; ++i) {
+                adc0 += sts.read<reg::adc0, int32_t>();
+                adc1 += sts.read<reg::adc1, int32_t>();
+            }
+
+            return std::array{
+                int32_t(std::round(adc0 / double(n_avg))),
+                int32_t(std::round(adc1 / double(n_avg)))
+            };
+        }
+    }
+
+    auto adc_data_volts(uint32_t n_avg) {
+        const auto [data_raw0, data_raw1] = adc_raw_data(n_avg);
+        const auto val0 = float(to_two_complement(data_raw0));
+        const auto val1 = float(to_two_complement(data_raw1));
+
+        const auto range0 = input_range(0);
+        const auto range1 = input_range(1);
+        const auto gain0 = get_gain(0, range0);     // LSB/V
+        const auto gain1 = get_gain(1, range1);     // LSB/V
+        const auto offset0 = get_offset(0, range0); // LSB
+        const auto offset1 = get_offset(1, range1); // LSB
+
+        return std::array{ (val0 - offset0) / gain0,
+                           (val1 - offset1) / gain1 };
+    }
+
     void set_clock_delay() {
         using namespace std::literals;
 
-        // Set output clock delay (t_FIRSTCLK)
-        // We acquire the ADC test pattern
-        // and decrement delay until the expected pattern is acquired.
-
         ctx.log<INFO>("Ltc2387: Setting ADC clock delay ...\n");
+        const auto t1 = std::chrono::high_resolution_clock::now();
 
         // Two lane mode test pattern
         constexpr int32_t testpat = 0b110011000011111100;
+        constexpr int32_t period = 4480;
+        constexpr int32_t nhyst = 10;
 
         set_testpat();
         std::this_thread::sleep_for(50us);
 
-        for (int i=0; i < 32; ++i) { // Delay is 16 bits but we run up to 2 turns
-            const auto data0 = sts.read<reg::adc0, int32_t>();
-            const auto data1 = sts.read<reg::adc1, int32_t>();
+        int n = nhyst;
+        int counter = 0;
+        int start = 0;
+        int stop = 0;
 
-            ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
-                          testpat, data0, data1);
-
-            if (data0 == testpat) {
-                clear_testpat();
-                ctx.log<INFO>("Ltc2387: ADCs clock delay set [ndec = %u]\n", i);
-                return;
+        // Skip first readings if test pattern is already good
+        while (n > 0) {
+            clkgen.phase_shift(1);
+            counter++;
+            const auto [data0, data1] = adc_raw_data(1U);
+            if (data0 != testpat || data1 != testpat) {
+                n--;
+            } else {
+                n = nhyst;
             }
-
-            clkout_dec();
-            std::this_thread::sleep_for(50us);
         }
 
-        ctx.log<ERROR>("Ltc2387: Failed to set ADC clock delay\n");
+        // Recover test pattern
+        n = nhyst;
+        while (n > 0) {
+            clkgen.phase_shift(1);
+            counter++;
+            const auto [data0, data1] = adc_raw_data(1U);
+            if (data0 == testpat && data1 == testpat) {
+                if (n == nhyst) {
+                    start = counter;
+                }
+                n--;
+            } else {
+                n = nhyst;
+            }
+        }
+
+        // Count test pattern valid window size
+        n = nhyst;
+        while (n > 0) {
+            clkgen.phase_shift(1);
+            counter++;
+            const auto [data0, data1] = adc_raw_data(1U);
+            if (data0 != testpat || data1 != testpat) {
+                if (n == nhyst) {
+                    stop = counter;
+                }
+                n--;
+            } else {
+                n = nhyst;
+            }
+        }
+
+        const auto step = period - counter + (stop + start) / 2; // = period - (stop - start) / 2 - (counter - stop)
+        clkgen.phase_shift(step);
+        counter += step;
+
+        const auto [data0, data1] = adc_raw_data(1U);
+        ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
+                      testpat, data0, data1);
+        ctx.log<INFO>("Ltc2387: counter = %li, stop - start = %li\n", counter, stop - start);
+
+        if (data0 != testpat || data1 != testpat) {
+            ctx.log<ERROR>("Ltc2387: Failled to set clock delay");
+        }
+
+        const auto t2 = std::chrono::high_resolution_clock::now();
+        const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+        ctx.log<INFO>("Ltc2387: Delay clock adjustment duration %lu us\n", duration);
+
         clear_testpat();
     }
 
@@ -180,44 +267,6 @@ class Ltc2387
         db_delay_tap(1, tap);
     }
 
-    // Data
-
-    auto adc_raw_data(uint32_t n_avg) {
-        if (n_avg <= 1) {
-            return std::array{sts.read<reg::adc0, int32_t>(),
-                              sts.read<reg::adc1, int32_t>()};
-        } else  {
-            int64_t adc0 = 0;
-            int64_t adc1 = 0;
-
-            for (size_t i=0; i<n_avg; ++i) {
-                adc0 += sts.read<reg::adc0, int32_t>();
-                adc1 += sts.read<reg::adc1, int32_t>();
-            }
-
-            return std::array{
-                int32_t(std::round(adc0 / double(n_avg))),
-                int32_t(std::round(adc1 / double(n_avg)))
-            };
-        }
-    }
-
-    auto adc_data_volts(uint32_t n_avg) {
-        const auto [data_raw0, data_raw1] = adc_raw_data(n_avg);
-        const auto val0 = float(to_two_complement(data_raw0));
-        const auto val1 = float(to_two_complement(data_raw1));
-
-        const auto range0 = input_range(0);
-        const auto range1 = input_range(1);
-        const auto gain0 = get_gain(0, range0);     // LSB/V
-        const auto gain1 = get_gain(1, range1);     // LSB/V
-        const auto offset0 = get_offset(0, range0); // LSB
-        const auto offset1 = get_offset(1, range1); // LSB
-
-        return std::array{ (val0 - offset0) / gain0,
-                           (val1 - offset1) / gain1 };
-    }
-
     // Calibrations
 
     auto get_calibration(uint32_t channel) {
@@ -283,6 +332,7 @@ class Ltc2387
     Memory<mem::control>& ctl;
     Memory<mem::status>& sts;
     Eeprom& eeprom;
+    ClockGenerator& clkgen;
 
     // Calibration array: [gain_2V, offset_2V, gain_8V, offset_8V]
     // gain in LSB / Volts
