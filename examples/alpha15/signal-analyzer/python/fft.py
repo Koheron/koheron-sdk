@@ -33,15 +33,7 @@ class FFT(object):
         return self.client.recv_array(self.n_pts//2, dtype='float32')
 
     @command()
-    def read_psd_raw(self):
-        return self.client.recv_array(self.n_pts//2, dtype='float32')
-
-    @command()
     def set_fft_window(self, window_name):
-        pass
-
-    @command()
-    def set_raw_window(self, win):
         pass
 
     # LTC2387
@@ -58,4 +50,8 @@ class FFT(object):
 
     @command(classname="ClockGenerator")
     def set_reference_clock(self, val):
+        pass
+
+    @command(classname="Ltc2387")
+    def set_clock_delay(self):
         pass
