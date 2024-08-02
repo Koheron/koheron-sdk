@@ -186,3 +186,74 @@ connect_cell psd_bram {
   wen  bram_accum/wen
   adc  bram_accum/m_axis_tdata
 }
+
+##################################################
+# DMA
+##################################################
+
+set_property -dict [list CONFIG.PCW_USE_S_AXI_HP0 {1} CONFIG.PCW_S_AXI_HP0_DATA_WIDTH {32}] [get_bd_cells ps_0]
+connect_pins ps_0/S_AXI_HP0_ACLK ps_0/FCLK_CLK1
+set_property -dict [list CONFIG.NUM_SI {2} CONFIG.NUM_MI {2}] [get_bd_cells axi_mem_intercon_1]
+
+#https://forums.xilinx.com/t5/Design-Entry/BD-41-237-Bus-Interface-property-ID-WIDTH-does-not-match/td-p/655028/page/2
+set_property -dict [list CONFIG.STRATEGY {1}] [get_bd_cells axi_mem_intercon_1]
+
+#connect_pins ps_0/FCLK_CLK1 axi_mem_intercon_1/M00_ACLK
+#connect_pins axi_mem_intercon_1/M00_ARESETN proc_sys_reset_1/peripheral_aresetn
+connect_bd_intf_net -boundary_type upper [get_bd_intf_pins axi_mem_intercon_1/M01_AXI] [get_bd_intf_pins ps_0/S_AXI_HP0]
+connect_bd_net [get_bd_pins axi_mem_intercon_1/S01_ACLK] [get_bd_pins ps_0/FCLK_CLK1]
+connect_bd_net [get_bd_pins axi_mem_intercon_1/S01_ARESETN] [get_bd_pins proc_sys_reset_1/peripheral_aresetn]
+
+# Use AXI Stream clock converter (ADC clock -> FPGA clock)
+set intercon_idx 1
+set idx [add_master_interface $intercon_idx]
+
+cell xilinx.com:ip:axis_clock_converter:1.1 dma_clock_converter {
+  TDATA_NUM_BYTES 4
+} {
+  s_axis_tdata adc_selector/tdata
+  s_axis_tvalid adc_selector/tvalid
+  s_axis_aresetn rst_adc_clk/peripheral_aresetn
+  m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
+  s_axis_aclk adc_dac/adc_clk
+  m_axis_aclk ps_0/FCLK_CLK1
+}
+
+cell koheron:user:tlast_gen:1.0 tlast_gen_0 {
+  TDATA_WIDTH 32
+  PKT_LENGTH [expr 1024*1024]
+} {
+  aclk ps_0/FCLK_CLK1
+  resetn proc_sys_reset_1/peripheral_aresetn
+  s_axis dma_clock_converter/M_AXIS
+}
+
+cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
+  c_include_sg 0
+  c_include_mm2s 0
+  c_sg_include_stscntrl_strm 0
+  c_sg_length_width 23
+  c_s2mm_burst_size 16
+} {
+  S_AXIS_S2MM tlast_gen_0/m_axis
+  S_AXI_LITE axi_mem_intercon_1/M00_AXI
+  s_axi_lite_aclk ps_0/FCLK_CLK1
+  M_AXI_S2MM axi_mem_intercon_1/S01_AXI
+  m_axi_s2mm_aclk ps_0/FCLK_CLK1
+  axi_resetn proc_sys_reset_1/peripheral_aresetn
+  s2mm_introut [get_interrupt_pin]
+}
+
+connect_bd_net [get_bd_pins axi_mem_intercon_1/M01_ACLK] [get_bd_pins ps_0/FCLK_CLK1]
+connect_bd_net [get_bd_pins axi_mem_intercon_1/M01_ARESETN] [get_bd_pins proc_sys_reset_1/peripheral_aresetn]
+
+assign_bd_address [get_bd_addr_segs {axi_dma_0/S_AXI_LITE/Reg }]
+set_property range [get_memory_range dma] [get_bd_addr_segs {ps_0/Data/SEG_axi_dma_0_Reg}]
+set_property offset [get_memory_offset dma] [get_bd_addr_segs {ps_0/Data/SEG_axi_dma_0_Reg}]
+
+assign_bd_address [get_bd_addr_segs {ps_0/S_AXI_HP0/HP0_DDR_LOWOCM }]
+set_property range [get_memory_range ram] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM}]
+set_property offset [get_memory_offset ram] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM}]
+
+delete_bd_objs [get_bd_addr_segs -excluded axi_dma_0/Data_S2MM/SEG_axi_dma_0_Reg]
+delete_bd_objs [get_bd_addr_segs ps_0/Data/SEG_ps_0_HP0_DDR_LOWOCM]
