@@ -81,11 +81,13 @@ class ClockGenerator
         }
     }
 
-    void phase_shift(uint32_t n_shifts) {
-        // Phase shift the MMCM
-        while (n_shifts--) {
-            single_phase_shift(1);
-        }
+    void phase_shift(int32_t n_shifts) {
+        int32_t i = (n_shifts > 0) ? n_shifts : -n_shifts;
+        int32_t incdec = (n_shifts > 0);
+        while (i--) {
+                single_phase_shift(incdec);
+            }
+        total_phase_shift += n_shifts;
     }
 
     int32_t set_tcxo_calibration(uint8_t new_cal) {
@@ -123,16 +125,20 @@ class ClockGenerator
         }
     }
 
-    auto get_adc_sampling_freq() const {
+    auto get_adc_sampling_freq() {
         return fs_adc;
     }
 
-    double get_dac_sampling_freq() const {
+    double get_dac_sampling_freq() {
         return fs_dac;
     }
 
-    uint32_t get_reference_clock() const {
+    uint32_t get_reference_clock() {
         return clkin;
+    }
+
+    int32_t get_total_phase_shift() {
+        return total_phase_shift;
     }
 
   private:
@@ -141,6 +147,8 @@ class ClockGenerator
     I2cDev& i2c;
     Eeprom& eeprom;
     SpiConfig& spi_cfg;
+
+    int32_t total_phase_shift = 0;
 
     const char* filename = "/tmp/clock-generator-initialized";
     bool is_clock_generator_initialized = true;
@@ -162,6 +170,8 @@ class ClockGenerator
     static constexpr uint32_t i2c_address = 0b0101111;
 
     void single_phase_shift(uint32_t incdec) {
+        // incdec = 0 : decrement the phase shift
+        // incdec = 1 : increment the phase shift
         constexpr uint32_t psen_bit = 2;
         constexpr uint32_t psincdec_bit = 3;
         ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));

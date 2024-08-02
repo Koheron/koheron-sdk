@@ -87,72 +87,67 @@ class Ltc2387
 
         // Two lane mode test pattern
         constexpr int32_t testpat = 0b110011000011111100;
-        constexpr int32_t period = 4480;
-        constexpr int32_t nhyst = 10;
+        //constexpr int32_t period = 4480;
+        constexpr int32_t n_hyst = 100;
 
         set_testpat();
         std::this_thread::sleep_for(50us);
 
-        int n = nhyst;
-        int counter = 0;
-        int start = 0;
-        int stop = 0;
+        int n = n_hyst;
+        int32_t start = 0;
+        int32_t end = 0;
 
-        // Skip first readings if test pattern is already good
+        // Make sure we start from an unvalid zone
         while (n > 0) {
             clkgen.phase_shift(1);
-            counter++;
             const auto [data0, data1] = adc_raw_data(1U);
             if (data0 != testpat || data1 != testpat) {
                 n--;
             } else {
-                n = nhyst;
+                n = n_hyst;
             }
         }
 
-        // Recover test pattern
-        n = nhyst;
+        // Find start of the valid window
+        n = n_hyst;
         while (n > 0) {
             clkgen.phase_shift(1);
-            counter++;
             const auto [data0, data1] = adc_raw_data(1U);
             if (data0 == testpat && data1 == testpat) {
-                if (n == nhyst) {
-                    start = counter;
+                if (n == n_hyst) {
+                    start = clkgen.get_total_phase_shift();
                 }
                 n--;
             } else {
-                n = nhyst;
+                n = n_hyst;
             }
         }
 
-        // Count test pattern valid window size
-        n = nhyst;
+        // Find end of the valid window
+        n = n_hyst;
         while (n > 0) {
             clkgen.phase_shift(1);
-            counter++;
             const auto [data0, data1] = adc_raw_data(1U);
             if (data0 != testpat || data1 != testpat) {
-                if (n == nhyst) {
-                    stop = counter;
+                if (n == n_hyst) {
+                    end = clkgen.get_total_phase_shift();
                 }
                 n--;
             } else {
-                n = nhyst;
+                n = n_hyst;
             }
         }
 
-        const auto step = period - counter + (stop + start) / 2; // = period - (stop - start) / 2 - (counter - stop)
-        clkgen.phase_shift(step);
-        counter += step;
+        // Go back to the middle of the valid window
+        clkgen.phase_shift((end + start) / 2 - clkgen.get_total_phase_shift());
 
         const auto [data0, data1] = adc_raw_data(1U);
         ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
                       testpat, data0, data1);
-        ctx.log<INFO>("Ltc2387: counter = %li, stop - start = %li\n", counter, stop - start);
+        ctx.log<INFO>("Ltc2387: total phase shift = %li, window size = %li\n", clkgen.get_total_phase_shift(), end - start);
 
         if (data0 != testpat || data1 != testpat) {
-            ctx.log<ERROR>("Ltc2387: Failled to set clock delay");
+            ctx.log<ERROR>("Ltc2387: Failed to set clock delay");
         }
 
         const auto t2 = std::chrono::high_resolution_clock::now();
