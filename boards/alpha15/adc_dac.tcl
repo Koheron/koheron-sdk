@@ -93,7 +93,7 @@ create_bd_pin -dir O adc_valid
 
 # Control pin
 create_bd_pin -dir I -from 31 -to 0 ctl
-create_bd_pin -dir O pll_locked
+create_bd_pin -dir O -from 31 -to 0 sts
 
 # Config SPI
 create_bd_pin -dir I -from 31 -to 0 cfg_data
@@ -138,12 +138,18 @@ cell xilinx.com:ip:clk_wiz:5.4 mmcm {
     USE_DYN_PHASE_SHIFT true
 } {
     CLK_IN1_D clk_in
-    locked pll_locked
     clk_out1 adc_clk
     psclk mmcm/clk_out1
-    psen [get_edge_detector_pin [get_slice_pin ctl 2 2] mmcm/clk_out1]
-    psincdec [get_slice_pin ctl 3 3]
 }
+
+cell koheron:user:mmcm_phase_shifter:1.0 mmcm_phase_shifter {} {
+    clk mmcm/clk_out1
+    ctl ctl
+    psen mmcm/psen
+    psincdec mmcm/psincdec
+}
+
+connect_pins sts [get_concat_pin [list mmcm/locked mmcm_phase_shifter/done]]
 
 # IDELAYCTRL requires a 200 MHz clock
 cell xilinx.com:ip:util_idelay_ctrl:1.0 idelayctrl_0 {} {

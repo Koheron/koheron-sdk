@@ -88,7 +88,7 @@ class Ltc2387
         // Two lane mode test pattern
         constexpr int32_t testpat = 0b110011000011111100;
         //constexpr int32_t period = 4480;
-        constexpr int32_t n_hyst = 100;
+        constexpr int32_t n_hyst = 10;
 
         set_testpat();
         std::this_thread::sleep_for(50us);
@@ -99,7 +99,7 @@ class Ltc2387
 
         // Make sure we start from an unvalid zone
         while (n > 0) {
-            clkgen.phase_shift(1);
+            clkgen.phase_shift(10);
             const auto [data0, data1] = adc_raw_data(1U);
             if (data0 != testpat || data1 != testpat) {
                 n--;
@@ -111,7 +111,7 @@ class Ltc2387
         // Find start of the valid window
         n = n_hyst;
         while (n > 0) {
-            clkgen.phase_shift(1);
+            clkgen.phase_shift(10);
             const auto [data0, data1] = adc_raw_data(1U);
             if (data0 == testpat && data1 == testpat) {
                 if (n == n_hyst) {
@@ -126,7 +126,7 @@ class Ltc2387
         // Find end of the valid window
         n = n_hyst;
         while (n > 0) {
-            clkgen.phase_shift(1);
+            clkgen.phase_shift(10);
             const auto [data0, data1] = adc_raw_data(1U);
             if (data0 != testpat || data1 != testpat) {
                 if (n == n_hyst) {
@@ -140,6 +140,7 @@ class Ltc2387
 
         // Go back to the middle of the valid window
         clkgen.phase_shift((end + start) / 2 - clkgen.get_total_phase_shift());
+        while (!(sts.read_bit<reg::mmcm_sts, 1>())) {}
 
         const auto [data0, data1] = adc_raw_data(1U);
         ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",

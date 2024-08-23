@@ -67,6 +67,7 @@ class ClockGenerator
     ClockGenerator(Context& ctx_)
     : ctx(ctx_)
     , ctl(ctx.mm.get<mem::control>())
+    , sts(ctx.mm.get<mem::status>())
     , i2c(ctx.i2c.get("i2c-0"))
     , eeprom(ctx.get<Eeprom>())
     , spi_cfg(ctx.get<SpiConfig>())
@@ -82,11 +83,17 @@ class ClockGenerator
     }
 
     void phase_shift(int32_t n_shifts) {
-        int32_t i = (n_shifts > 0) ? n_shifts : -n_shifts;
+        // Wait for end of previous phase shift
+        while (!(sts.read_bit<reg::mmcm_sts, 1>())) {}
+
+        int32_t abs_n_shifts = (n_shifts > 0) ? n_shifts : -n_shifts;
         int32_t incdec = (n_shifts > 0);
-        while (i--) {
-                single_phase_shift(incdec);
-            }
+        constexpr uint32_t psen_bit = 2;
+        constexpr uint32_t psincdec_bit = 3;
+        constexpr uint32_t n_shifts_bit = 4;
+        ctl.write_mask<reg::mmcm, (0xFFF << n_shifts_bit) + (1 << psen_bit) + (1 << psincdec_bit)>
+            (((abs_n_shifts & 0xFFF) << n_shifts_bit) + (1 << psen_bit) + (incdec << psincdec_bit));
+        ctl.clear_bit<reg::mmcm, psen_bit>();
         total_phase_shift += n_shifts;
     }
 
@@ -144,6 +151,7 @@ class ClockGenerator
   private:
     Context& ctx;
     Memory<mem::control>& ctl;
+    Memory<mem::status>& sts;
     I2cDev& i2c;
     Eeprom& eeprom;
     SpiConfig& spi_cfg;
@@ -169,13 +177,8 @@ class ClockGenerator
     // AD5141 non volatile digital potentiometer for TCXO frequency adjustment
     static constexpr uint32_t i2c_address = 0b0101111;
 
-    void single_phase_shift(uint32_t incdec) {
-        // incdec = 0 : decrement the phase shift
-        // incdec = 1 : increment the phase shift
-        constexpr uint32_t psen_bit = 2;
-        constexpr uint32_t psincdec_bit = 3;
-        ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));
-        ctl.clear_bit<reg::mmcm, psen_bit>();
+    bool phase_shift_done() {
+        return sts.read_bit<reg::mmcm_sts, 1>();
     }
 
     void write_reg(uint32_t data) {
