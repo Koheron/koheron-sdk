@@ -11,6 +11,8 @@ cores:
   - fpga/cores/unrandomizer_v1_0
   - boards/alpha250/cores/precision_dac_v1_0
   - boards/alpha250/cores/spi_cfg_v1_0
+  - fpga/cores/axis_variable_v1_0
+  - fpga/cores/right_shifter_v1_0
 
 memory:
   - name: control
@@ -33,6 +35,8 @@ control_registers:
   - mmcm
   - precision_dac_ctl
   - precision_dac_data[2]
+  - phase_incr[4]
+  - vco_gain[2]
 
 status_registers:
   - adc[n_adc]
@@ -48,6 +52,7 @@ parameters:
   fclk0: 200000000 # FPGA clock speed in Hz
   adc_clk: 250000000
   n_adc: 2
+  adc_width: 16
 
 xdc:
   - boards/alpha250/config/ports.xdc
@@ -64,6 +69,7 @@ drivers:
   - boards/alpha250/drivers/precision-adc.hpp
   - boards/alpha250/drivers/precision-dac.hpp
   - boards/alpha250/drivers/spi-config.hpp
+  - ./vco.hpp
 
 web:
   - web/index.html
