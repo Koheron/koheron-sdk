@@ -26,6 +26,14 @@ class VCO(object):
 host = os.getenv('HOST','192.168.1.22')
 driver = VCO(connect(host, 'vco', restart=False))
 
+# Use external reference clock
 driver.set_reference_clock(0)
+
+# Set offset frequency to 10 MHz
 driver.set_dds_freq(0, 10e6)
-driver.set_vco_gain(0,4)
+
+# gain = 0 -> maximum gain
+# gain = 48 -> minimum gain
+gain = 4
+
+driver.set_vco_gain(0, gain)
