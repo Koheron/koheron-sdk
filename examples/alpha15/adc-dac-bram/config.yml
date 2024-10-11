@@ -54,6 +54,7 @@ control_registers:
   - digital_outputs_b35_n
 
 status_registers:
+  - mmcm_sts
   - adc[n_adc]
   - digital_inputs_b35_p
 

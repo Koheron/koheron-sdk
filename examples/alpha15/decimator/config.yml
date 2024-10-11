@@ -47,6 +47,7 @@ control_registers:
   - adp5071_sync
 
 status_registers:
+  - mmcm_sts
   - adc[n_adc]
   - digital_inputs
 
