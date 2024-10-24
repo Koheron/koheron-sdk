@@ -60,7 +60,6 @@ control_registers:
   - mmcm
   - precision_dac_ctl
   - precision_dac_data[2]
-  - channel_select
 
 status_registers:
   - adc[n_adc]
@@ -73,7 +72,7 @@ ps_status_registers:
   - spi_cfg_sts
 
 parameters:
-  fclk0: 143000000
+  fclk0: 166666667
   adc_clk: 250000000
   dac_width: 16
   adc_width: 16

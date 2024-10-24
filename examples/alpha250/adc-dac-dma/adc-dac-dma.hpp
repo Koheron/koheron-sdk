@@ -77,10 +77,6 @@ class AdcDacDma
 
     }
 
-    void select_adc_channel(uint32_t channel) {
-        ctl.write<reg::channel_select>(channel % 2);
-    }
-
     void set_dac_data(const std::vector<uint32_t>& dac_data) {
         for (uint32_t i = 0; i < dac_data.size(); i++) {
             ram_mm2s.write_reg(4*i, dac_data[i]);
