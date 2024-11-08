@@ -12,7 +12,7 @@ proc add_xadc {name {idx "auto"} {intercon_idx 0}} {
     m_axi_aclk $::adc_clk
     m_axi_aresetn $::rst_adc_clk_name/peripheral_aresetn
   }
- 
+
   connect_bd_intf_net -boundary_type upper [get_bd_intf_pins axi_mem_intercon_$intercon_idx/M${idx}_AXI] [get_bd_intf_pins axi_clk_conv_xadc/S_AXI]
 
   cell xilinx.com:ip:xadc_wiz:3.3 $name {
@@ -27,6 +27,7 @@ proc add_xadc {name {idx "auto"} {intercon_idx 0}} {
   } {
     s_axi_aclk $::adc_clk
     s_axi_aresetn $::rst_adc_clk_name/peripheral_aresetn
+    ip2intc_irpt concat_interrupts/In0
   }
 
   connect_bd_intf_net -boundary_type upper [get_bd_intf_pins axi_clk_conv_xadc/M_AXI] [get_bd_intf_pins $name/s_axi_lite]

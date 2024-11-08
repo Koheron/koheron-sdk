@@ -26,6 +26,12 @@ add_ctl_sts $adc_clk $rst_adc_clk_name/peripheral_aresetn
 # Connect LEDs
 connect_port_pin led_o [get_slice_pin [ctl_pin led] 7 0]
 
+cell xilinx.com:ip:xlconcat:2.1 concat_interrupts {
+  NUM_PORTS 1
+} {
+  dout ps_0/IRQ_F2P
+}
+
 # Add XADC
 source $sdk_path/fpga/lib/xadc.tcl
 add_xadc xadc

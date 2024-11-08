@@ -159,7 +159,7 @@ cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
   s_axi_lite_aclk ps_0/FCLK_CLK1
   M_AXI_S2MM axi_mem_intercon_1/S01_AXI
   m_axi_s2mm_aclk ps_0/FCLK_CLK1
-  axi_resetn proc_sys_reset_1/peripheral_aresetn
+  s2mm_introut [get_interrupt_pin]
 }
 
 connect_bd_net [get_bd_pins axi_mem_intercon_1/M01_ACLK] [get_bd_pins ps_0/FCLK_CLK1]
