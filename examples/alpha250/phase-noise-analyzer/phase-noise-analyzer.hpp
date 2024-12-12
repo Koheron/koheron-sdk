@@ -86,7 +86,7 @@ class PhaseNoiseAnalyzer
 
     const auto get_parameters() {
         return std::make_tuple(
-            fft_size / 2, // data_size
+            fft_size / 2,
             fs,
             channel,
             cic_rate,
