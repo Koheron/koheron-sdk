@@ -83,9 +83,9 @@ namespace clock_cfg {
         60,  // CLKout3_DIV (FPGA clock)
         240, // CLKout4_DIV (EXP_CLK0 clock)
         240, // CLKout5_DIV (EXP_CLK1 clock)
-        120  // MMCM phase shift
+        64  // MMCM phase shift
     };
-    
+
     constexpr std::array<std::array<uint32_t, num_params>, num_configs> configs = {fs_200MHz, fs_250MHz, fs_100MHz, fs_40MHz};
 }
 
