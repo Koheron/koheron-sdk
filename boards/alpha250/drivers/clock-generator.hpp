@@ -27,7 +27,7 @@ namespace clock_cfg {
         koheron::str_const("Auto")
     );
 
-    constexpr size_t num_configs = 3;
+    constexpr size_t num_configs = 4;
     constexpr size_t num_params = 10;
 
     // Sampling frequency 200 MHz (f_vco = 2400 MHz)
@@ -71,8 +71,22 @@ namespace clock_cfg {
         240, // CLKout5_DIV (EXP_CLK1 clock)
         120  // MMCM phase shift
     };
+
+    // Sampling frequency 40 MHz (f_vco = 2400 MHz)
+    constexpr std::array<uint32_t, num_params> fs_40MHz = {
+        2,   // PLL2_P
+        12,  // PLL2_N
+        2,   // PLL2_R
+        240, // CLKout0_DIV (CLKOUT)
+        60,  // CLKout1_DIV (ADC clock)
+        60,  // CLKout2_DIV (DAC clock)
+        60,  // CLKout3_DIV (FPGA clock)
+        240, // CLKout4_DIV (EXP_CLK0 clock)
+        240, // CLKout5_DIV (EXP_CLK1 clock)
+        120  // MMCM phase shift
+    };
     
-    constexpr std::array<std::array<uint32_t, num_params>, num_configs> configs = {fs_200MHz, fs_250MHz, fs_100MHz};
+    constexpr std::array<std::array<uint32_t, num_params>, num_configs> configs = {fs_200MHz, fs_250MHz, fs_100MHz, fs_40MHz};
 }
 
 class ClockGenerator
