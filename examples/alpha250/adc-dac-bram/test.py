@@ -21,8 +21,9 @@ print('ADC size = {}'.format(driver.adc_size))
 clk_200MHz = {'idx': 0, 'fs': 200E6}
 clk_250MHz = {'idx': 1, 'fs': 250E6}
 clk_100MHz = {'idx': 2, 'fs': 100E6}
+clk_40MHz = {'idx': 3, 'fs': 40E6}
 
-clock = clk_100MHz
+clock = clk_40MHz
 driver.set_sampling_frequency(clock['idx'])
 # driver.phase_shift(100)
 
