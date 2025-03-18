@@ -50,3 +50,7 @@ class AdcDacBram(object):
     @command(classname='ClockGenerator')
     def set_sampling_frequency(self, val):
         pass
+
+    @command(classname="ClockGenerator")
+    def set_reference_clock(self, val):
+        pass
