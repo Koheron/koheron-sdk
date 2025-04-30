@@ -51,7 +51,9 @@ if __name__ == "__main__":
     clk_200MHz = {'name': '200 MHz', 'idx': 0, 'fs': 200E6}
     clk_250MHz = {'name': '250 MHz', 'idx': 1, 'fs': 250E6}
     clk_100MHz = {'name': '100 MHz', 'idx': 2, 'fs': 100E6}
+    clk_40MHz = {'name': '40 MHz', 'idx': 3, 'fs': 40E6}
 
     # test_phase_shift(clk_200MHz)
     # test_phase_shift(clk_250MHz)
-    test_phase_shift(clk_100MHz)
+    # test_phase_shift(clk_100MHz)
+    test_phase_shift(clk_40MHz)
