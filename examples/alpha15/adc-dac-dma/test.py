@@ -11,14 +11,14 @@ from adc_dac_dma import AdcDacDma
 
 if __name__=="__main__":
     host = os.getenv('HOST','192.168.1.113')
-    client = connect(host, name='adc-dac-dma',restart=True)
+    client = connect(host, name='adc-dac-dma')
     driver = AdcDacDma(client)
 
     # -------------------------------------------------------------------------------
     # Set ADC
     # -------------------------------------------------------------------------------
 
-    input_range = 1
+    input_range = 0
 
     driver.range_select(0, input_range)
     driver.range_select(1, input_range)
