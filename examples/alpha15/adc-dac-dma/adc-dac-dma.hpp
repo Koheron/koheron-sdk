@@ -78,6 +78,23 @@ class AdcDacDma
 
     }
 
+    void reset() {
+        dma.set_bit<Dma_regs::s2mm_dmacr, 2>();
+
+        // Wait for reset
+        uint32_t cnt = 0;
+
+        while (dma.read_bit<Dma_regs::s2mm_dmacr, 2>()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            cnt++;
+
+            if (cnt > 10) {
+                ctx.log<ERROR>("DmaS2MM::reset: Max number of sleeps exceeded.\n");
+                break;
+            }
+        }
+    }
+
     void select_adc_channel(uint32_t channel) {
         if (channel == 0) {
             ctl.clear_bit<reg::channel_select, 0>();
@@ -128,6 +145,7 @@ class AdcDacDma
     }
 
     void start_dma() {
+        reset();
         set_descriptors();
         // Write address of the starting descriptor
         dma.write<Dma_regs::mm2s_curdesc>(mem::ocm_mm2s_addr + 0x0);

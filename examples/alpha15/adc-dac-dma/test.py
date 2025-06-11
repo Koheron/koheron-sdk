@@ -11,14 +11,14 @@ from adc_dac_dma import AdcDacDma
 
 if __name__=="__main__":
     host = os.getenv('HOST','192.168.1.113')
-    client = connect(host, name='adc-dac-dma')
+    client = connect(host, name='adc-dac-dma',restart=True)
     driver = AdcDacDma(client)
 
     # -------------------------------------------------------------------------------
     # Set ADC
     # -------------------------------------------------------------------------------
 
-    input_range = 0
+    input_range = 1
 
     driver.range_select(0, input_range)
     driver.range_select(1, input_range)
@@ -43,8 +43,10 @@ if __name__=="__main__":
     chirp = (fmax - fmin) / (t_dac[-1] - t_dac[0])
     # chirp = 0.0
 
+    phase = np.random.random() * 2 * np.pi
+
     print("Set DAC waveform (chirp between {} and {} kHz)".format(1E-3 * fmin, 1E-3 * fmax))
-    driver.dac = 0.9 * np.cos(2.0 * np.pi * (fmin + chirp * t_dac) * t_dac)
+    driver.dac = 0.9 * np.cos(2.0 * np.pi * (fmin + chirp * t_dac) * t_dac + phase)
     driver.set_dac()
 
     # -------------------------------------------------------------------------------
@@ -56,10 +58,11 @@ if __name__=="__main__":
 
     print("Get ADC{} data ({} points)".format(adc_channel, driver.n))
     driver.start_dma()
+    time.sleep(driver.n / fs_adc)
     driver.get_adc()
     driver.stop_dma()
 
-    n_pts = 500000
+    n_pts = 4*1024*1024
     t_adc = np.arange(n_pts) / fs_adc
     print("Plot first {} points".format(n_pts))
     plt.plot(1E3 * t_adc, driver.adc[0:n_pts] * input_span / 2**18)

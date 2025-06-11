@@ -1,5 +1,24 @@
 source $board_path/starting_point.tcl
 
+# -----------------------------------------------------------------------------
+# ADC
+# -----------------------------------------------------------------------------
+
+connect_pins [get_slice_pin [ctl_pin rf_adc_ctl0] 3 3] adc_dac/adc_clkout_dec
+connect_pins [get_slice_pin [ctl_pin adp5071_sync] 0 0] adc_dac/adp5071_sync_en
+connect_pins [get_slice_pin [ctl_pin adp5071_sync] 1 1] adc_dac/adp5071_sync_state
+
+for {set i 0} {$i < 2} {incr i} {
+  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 0 0] adc${i}_ctl_range_sel
+  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 1 1] adc${i}_ctl_testpat
+  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 2 2] adc${i}_ctl_en
+
+  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 8 4] adc_dac/adc${i}_dco_delay_tap
+  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 14 9] adc_dac/adc${i}_da_delay_tap
+  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 20 15] adc_dac/adc${i}_db_delay_tap
+  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 21 21] adc_dac/adc${i}_delay_rst
+}
+
 ##################################################
 # DMA
 ##################################################
@@ -43,38 +62,21 @@ cell xilinx.com:ip:axi_interconnect:2.1 dma_interconnect {
   M02_ARESETN proc_sys_reset_0/peripheral_aresetn
 }
 
-# ADC add/substract channels 0 and 1
+# Channel selection / addition / substraction
+source $project_path/tcl/adc_selector.tcl
+adc_selector::create adc_selector
 
-cell xilinx.com:ip:c_addsub:12.0 adc_addsub {
-  A_WIDTH 18
-  B_WIDTH 18
-  OUT_WIDTH 19
-  ADD_MODE Add_Subtract
-  CE false
-} {
-  A adc_dac/adc0
-  B adc_dac/adc1
-  add [get_slice_pin [ctl_pin channel_select] 2 2]
-  clk adc_dac/adc_clk
+connect_cell adc_selector {
+  adc0           adc_dac/adc0
+  adc1           adc_dac/adc1
+  offset0        [ctl_pin channel_offset0]
+  offset1        [ctl_pin channel_offset1]
+  channel_select [ctl_pin channel_select]
+  clk            adc_dac/adc_clk
+  adc_valid      adc_dac/adc_valid
 }
 
 # ADC Streaming (S2MM)
-
-cell koheron:user:bus_multiplexer:1.0 adc_mux0 {
-  WIDTH 32
-} {
-  din0 adc_dac/adc0
-  din1 adc_dac/adc1
-  sel [get_slice_pin [ctl_pin channel_select] 0 0]
-}
-
-cell koheron:user:bus_multiplexer:1.0 adc_mux1 {
-  WIDTH 32
-} {
-  din0 adc_mux0/dout
-  din1 adc_addsub/S
-  sel [get_slice_pin [ctl_pin channel_select] 1 1]
-}
 
 cell xilinx.com:ip:axis_dwidth_converter:1.1 axis_dwidth_converter_0 {
   S_TDATA_NUM_BYTES 4
@@ -82,8 +84,8 @@ cell xilinx.com:ip:axis_dwidth_converter:1.1 axis_dwidth_converter_0 {
 } {
   aclk adc_dac/adc_clk
   aresetn rst_adc_clk/peripheral_aresetn
-  s_axis_tdata adc_mux1/dout
-  s_axis_tvalid adc_dac/adc_valid
+  s_axis_tdata adc_selector/tdata
+  s_axis_tvalid adc_selector/tvalid
 }
 
 cell xilinx.com:ip:axis_clock_converter:1.1 axis_clock_converter_0 {
@@ -186,17 +188,3 @@ delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM]
 
 # Hack to change the 32 bit auto width in AXI_DMA S_AXI_S2MM
 validate_bd_design
-
-# -----------------------------------------------------------------------------
-# ADC
-# -----------------------------------------------------------------------------
-
-connect_pins [get_slice_pin [ctl_pin rf_adc_ctl0] 3 3] adc_dac/adc_clkout_dec
-connect_pins [get_slice_pin [ctl_pin adp5071_sync] 0 0] adc_dac/adp5071_sync_en
-connect_pins [get_slice_pin [ctl_pin adp5071_sync] 1 1] adc_dac/adp5071_sync_state
-
-for {set i 0} {$i < 2} {incr i} {
-  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 0 0] adc${i}_ctl_range_sel
-  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 1 1] adc${i}_ctl_testpat
-  connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 2 2] adc${i}_ctl_en
-}
