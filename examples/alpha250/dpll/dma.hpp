@@ -7,60 +7,69 @@
 
 #include <context.hpp>
 
-// https://www.xilinx.com/support/documentation/ip_documentation/axi_dma/v7_1/pg021_axi_dma.pdf
-namespace Dma_regs {
-    constexpr uint32_t s2mm_dmacr = 0x30;  // S2MM DMA Control register
-    constexpr uint32_t s2mm_dmasr = 0x34;  // S2MM DMA Status register
-    constexpr uint32_t s2mm_da = 0x48;     // S2MM Destination Address
-    constexpr uint32_t s2mm_length = 0x58; // S2MM Buffer Length (Bytes)
-}
-
-constexpr uint32_t n_pts = 1024*1024;
+#include <boards/alpha250/drivers/clock-generator.hpp>
+#include <server/drivers/dma-s2mm.hpp>
 
 class Dma
 {
   public:
-    Dma(Context& ctx)
-    : dma(ctx.mm.get<mem::dma>())
+    Dma(Context& ctx_)
+    : ctx(ctx_)
+    , dma(ctx.get<DmaS2MM>())
+    , clk_gen(ctx.get<ClockGenerator>())
+    , ctl(ctx.mm.get<mem::control>())
+    , sts(ctx.mm.get<mem::status>())
     , ram(ctx.mm.get<mem::ram>())
-    , axi_hp0(ctx.mm.get<mem::axi_hp0>())
     {
-        // Set AXI_HP0 to 32 bits
-        axi_hp0.set_bit<0x0, 0>();
-        axi_hp0.set_bit<0x14, 0>();
+        fs_adc = clk_gen.get_adc_sampling_freq();
+        set_cic_rate(prm::cic_decimation_rate_default);
+        ctx.log<INFO>("DMA transfer duration = %f s\n", double(dma_transfer_duration));
     }
 
-    void reset_dma() {
-        dma.set_bit<Dma_regs::s2mm_dmacr, 2>();
-    }
+    void set_cic_rate(uint32_t rate) {
+        if (rate < prm::cic_decimation_rate_min ||
+            rate > prm::cic_decimation_rate_max) {
+            ctx.log<ERROR>("DMA: CIC rate out of range\n");
+            return;
+        }
 
-    void start_dma() {
-        dma.set_bit<Dma_regs::s2mm_dmacr, 0>();
-    }
-
-    void set_destination_address(uint32_t address) {
-        dma.write<Dma_regs::s2mm_da>(address);
-    }
-
-    void set_length(uint32_t length) {
-        dma.write<Dma_regs::s2mm_length>(length);
+        cic_rate = rate;
+        fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
+        dma_transfer_duration = prm::n_pts / fs;
+        ctl.write<reg::cic_rate>(cic_rate);
     }
 
     auto& get_data() {
-        reset_dma();
-        start_dma();
-        set_destination_address(mem::ram_addr);
-        set_length(4 * n_pts);
-        data = ram.read_array<int32_t, 1000000, 12288>();
+        dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
+        dma.wait_for_transfer(dma_transfer_duration);
+        data = ram.read_array<int32_t, data_size, read_offset>();
         return data;
     }
 
-  private:
-    Memory<mem::dma>& dma;
-    Memory<mem::ram>& ram;
-    Memory<mem::axi_hp0>& axi_hp0;
+    uint32_t get_data_size() {
+        return data_size;
+    }
 
-    std::array<int32_t, 1000000> data;
+    uint32_t get_sampling_frequency() {
+        return fs;
+    }
+
+  private:
+    static constexpr uint32_t data_size = 1000000;
+    static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2;
+
+    Context& ctx;
+    DmaS2MM& dma;
+    ClockGenerator& clk_gen;
+    Memory<mem::control>& ctl;
+    Memory<mem::status>& sts;
+    Memory<mem::ram>& ram;
+
+    uint32_t cic_rate;
+    float fs_adc, fs;
+    float dma_transfer_duration;
+
+    std::array<int32_t, data_size> data;
 
 } ;
 

@@ -56,6 +56,18 @@ class Dpll(object):
         pass
 
     @command(classname='Dma')
+    def set_cic_rate(self, val):
+        pass
+
+    @command(classname='Dma')
+    def get_sampling_frequency(self):
+        return self.client.recv_float()
+
+    @command(classname='Dma')
+    def get_data_size(self):
+        return self.client.recv_uint32()
+
+    @command(classname='Dma')
     def get_data(self):
         return self.client.recv_array(1000000, dtype='int32')
 
@@ -77,16 +89,15 @@ for i, driver in enumerate(drivers):
     driver.set_dac_output(0, 6)
     driver.set_dac_output(1, 7)
 
-n = 1000000
-
-x = 5 * np.arange(n)
-
-n = 1000000
-fs = 100e6
 cic_rate = 20
 n_avg = 100
 
-ffft = np.fft.fftfreq(n) * fs / (cic_rate * 2)
+driver.set_cic_rate()
+
+n = driver.get_data_size()
+fs = driver.get_sampling_frequency()
+
+ffft = np.fft.fftfreq(n) * fs
 
 y = np.ones(n)
 
@@ -131,7 +142,7 @@ while True:
         data = data / 8192.0 * np.pi
         data -= np.mean(data)
         psd[j,i,:] = np.abs(np.fft.fft(window * data))**2
-        psd[j,i,:] /= (fs / (cic_rate * 2) * W) # rad^2/Hz
+        psd[j,i,:] /= fs * W # rad^2/Hz
         mean_psd = np.mean(psd[j,:,:], axis=0)
         li[j].set_ydata(np.fft.fftshift(10*np.log10(mean_psd[1:n/2+1]/2)))
     fig.canvas.draw()
