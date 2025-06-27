@@ -83,7 +83,7 @@ x = 5 * np.arange(n)
 
 n = 1000000
 fs = 100e6
-cic_rate = 25
+cic_rate = 20
 n_avg = 100
 
 ffft = np.fft.fftfreq(n) * fs / (cic_rate * 2)
