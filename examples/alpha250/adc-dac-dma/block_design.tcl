@@ -45,13 +45,17 @@ cell xilinx.com:ip:axi_interconnect:2.1 dma_interconnect {
 
 # ADC Streaming (S2MM)
 
-cell koheron:user:bus_multiplexer:1.0 adc_mux {
-  WIDTH 16
-} {
-  din0 adc_dac/adc0
-  din1 adc_dac/adc1
-  sel [get_slice_pin [ctl_pin channel_select] 0 0]
-}
+  cell xilinx.com:ip:c_addsub:12.0 adc_addsub {
+      A_WIDTH 16
+      B_WIDTH 16
+      OUT_WIDTH 16
+      ADD_MODE Subtract
+      CE false
+  } {
+      A   adc_dac/adc0
+      B   adc_dac/adc1
+      CLK adc_dac/adc_clk
+  }
 
 cell xilinx.com:ip:axis_dwidth_converter:1.1 axis_dwidth_converter_0 {
   S_TDATA_NUM_BYTES 2
@@ -59,7 +63,7 @@ cell xilinx.com:ip:axis_dwidth_converter:1.1 axis_dwidth_converter_0 {
 } {
   aclk adc_dac/adc_clk
   aresetn rst_adc_clk/peripheral_aresetn
-  s_axis_tdata adc_mux/dout
+  s_axis_tdata adc_addsub/S
   s_axis_tvalid axis_dwidth_converter_0/s_axis_tready
 }
 
