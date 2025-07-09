@@ -19,6 +19,7 @@ cores:
   - fpga/cores/boxcar_filter_v1_0
   - fpga/cores/phase_unwrapper_v1_0
   - fpga/cores/unrandomizer_v1_0
+  - fpga/cores/axis_variable_v1_0
 
 memory:
   - name: control
@@ -58,6 +59,7 @@ control_registers:
   - integrators[2]
   - dac_sel
   - phase_sel
+  - cic_rate
 
 ps_control_registers:
   - spi_cfg_data
@@ -77,8 +79,11 @@ parameters:
   adc_width: 16
   n_adc: 2
   cic_differential_delay: 1
-  cic_decimation_rate: 20
+  cic_decimation_rate_default: 20
+  cic_decimation_rate_min: 4
+  cic_decimation_rate_max: 8192
   cic_n_stages: 6
+  n_pts: 1048576
 
 xdc:
   - boards/alpha250/config/ports.xdc
@@ -95,6 +100,7 @@ drivers:
   - boards/alpha250/drivers/precision-adc.hpp
   - boards/alpha250/drivers/precision-dac.hpp
   - boards/alpha250/drivers/spi-config.hpp
+  - server/drivers/dma-s2mm.hpp
   - ./dpll.hpp
   - ./dma.hpp
 
