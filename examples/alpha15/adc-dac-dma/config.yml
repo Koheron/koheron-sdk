@@ -10,7 +10,7 @@ cores:
   - fpga/cores/latched_mux_v1_0
   - fpga/cores/edge_detector_v1_0
   - fpga/cores/comparator_v1_0
-  - fpga/cores/tlast_gen_v1_0
+  - fpga/cores/tlast_gen_v2_0
   - fpga/cores/bus_multiplexer_v1_0
   - boards/alpha250/cores/precision_dac_v1_0
   - boards/alpha250/cores/spi_cfg_v1_0
@@ -75,6 +75,7 @@ status_registers:
 ps_control_registers:
   - spi_cfg_data
   - spi_cfg_cmd
+  - trig
 
 ps_status_registers:
   - spi_cfg_sts

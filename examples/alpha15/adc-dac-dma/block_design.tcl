@@ -98,13 +98,14 @@ cell xilinx.com:ip:axis_clock_converter:1.1 axis_clock_converter_0 {
   S_AXIS axis_dwidth_converter_0/M_AXIS
 }
 
-cell koheron:user:tlast_gen:1.0 tlast_gen_0 {
+cell koheron:user:tlast_gen:2.0 tlast_gen_0 {
   TDATA_WIDTH 64
   PKT_LENGTH [expr 1024 * 1024]
 } {
   aclk ps_0/FCLK_CLK0
   resetn proc_sys_reset_0/peripheral_aresetn
   s_axis axis_clock_converter_0/M_AXIS
+  trig [ps_ctl_pin trig]
 }
 
 # DMA

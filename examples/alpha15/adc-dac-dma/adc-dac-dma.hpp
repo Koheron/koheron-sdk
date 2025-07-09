@@ -49,6 +49,7 @@ class AdcDacDma
     AdcDacDma(Context& ctx_)
     : ctx(ctx_)
     , ctl(ctx.mm.get<mem::control>())
+    , ps_ctl(ctx.mm.get<mem::ps_control>())
     , dma(ctx.mm.get<mem::dma>())
     , ram_s2mm(ctx.mm.get<mem::ram_s2mm>())
     , ram_mm2s(ctx.mm.get<mem::ram_mm2s>())
@@ -93,6 +94,8 @@ class AdcDacDma
                 break;
             }
         }
+        ps_ctl.set_bit<reg::trig, 0>();
+        ps_ctl.clear_bit<reg::trig, 0>();
     }
 
     void select_adc_channel(uint32_t channel) {
@@ -179,6 +182,7 @@ class AdcDacDma
   private:
     Context& ctx;
     Memory<mem::control>& ctl;
+    Memory<mem::ps_control>& ps_ctl;
     Memory<mem::dma>& dma;
     Memory<mem::ram_s2mm>& ram_s2mm;
     Memory<mem::ram_mm2s>& ram_mm2s;
