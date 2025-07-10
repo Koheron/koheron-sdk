@@ -17,6 +17,7 @@ cores:
   - boards/alpha15/cores/ltc2387_v1_0
   - boards/alpha15/cores/dcdc_sync_v1_0
   - boards/alpha15/cores/mmcm_phase_shifter_v1_0
+  - ./tvalid_gen_v1_0
 
 memory:
   - name: control
@@ -76,6 +77,7 @@ ps_control_registers:
   - spi_cfg_data
   - spi_cfg_cmd
   - trig
+  - en
 
 ps_status_registers:
   - spi_cfg_sts
