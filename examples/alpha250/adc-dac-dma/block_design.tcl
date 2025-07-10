@@ -52,8 +52,8 @@ cell xilinx.com:ip:axi_interconnect:2.1 dma_interconnect {
       ADD_MODE Subtract
       CE false
   } {
-      A   [get_slice_pin adc_dac/adc0 14 0]
-      B   [get_slice_pin adc_dac/adc1 14 0]
+      A   [get_slice_pin adc_dac/adc0 15 1]
+      B   [get_slice_pin adc_dac/adc1 15 1]
       CLK adc_dac/adc_clk
   }
 
