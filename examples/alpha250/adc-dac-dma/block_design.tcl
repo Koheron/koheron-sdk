@@ -46,14 +46,14 @@ cell xilinx.com:ip:axi_interconnect:2.1 dma_interconnect {
 # ADC Streaming (S2MM)
 
   cell xilinx.com:ip:c_addsub:12.0 adc_addsub {
-      A_WIDTH 16
-      B_WIDTH 16
+      A_WIDTH 15
+      B_WIDTH 15
       OUT_WIDTH 16
       ADD_MODE Subtract
       CE false
   } {
-      A   adc_dac/adc0
-      B   adc_dac/adc1
+      A   [get_slice_pin adc_dac/adc0 14 0]
+      B   [get_slice_pin adc_dac/adc1 14 0]
       CLK adc_dac/adc_clk
   }
 
