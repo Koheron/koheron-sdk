@@ -21,8 +21,19 @@ connect_pins ps_0/S_AXI_HP2_ACLK ps_0/FCLK_CLK0
 cell xilinx.com:ip:axi_interconnect:2.1 dma_interconnect {
   NUM_SI 3
   NUM_MI 3
-  S01_HAS_REGSLICE 1
-  S02_HAS_REGSLICE 1
+  S00_HAS_REGSLICE 4
+  S01_HAS_REGSLICE 4
+  S02_HAS_REGSLICE 4
+  STRATEGY 2
+  S00_HAS_DATA_FIFO 2
+  S01_HAS_DATA_FIFO 2
+  S02_HAS_DATA_FIFO 2
+  M00_HAS_REGSLICE 4
+  M01_HAS_REGSLICE 4
+  M02_HAS_REGSLICE 4
+  M00_HAS_DATA_FIFO 2
+  M01_HAS_DATA_FIFO 2
+  M02_HAS_DATA_FIFO 2
 } {
   ACLK ps_0/FCLK_CLK0
   ARESETN proc_sys_reset_0/peripheral_aresetn
@@ -45,22 +56,23 @@ cell xilinx.com:ip:axi_interconnect:2.1 dma_interconnect {
 
 # ADC Streaming (S2MM)
 
-cell koheron:user:bus_multiplexer:1.0 adc_mux {
-  WIDTH 16
+cell xilinx.com:ip:axis_data_fifo:1.1 axis_data_fifo_0 {
+  FIFO_DEPTH 1024
+  TDATA_NUM_BYTES 4
 } {
-  din0 adc_dac/adc0
-  din1 adc_dac/adc1
-  sel [get_slice_pin [ctl_pin channel_select] 0 0]
+  s_axis_aclk adc_dac/adc_clk
+  s_axis_aresetn rst_adc_clk/peripheral_aresetn
+  s_axis_tdata [get_concat_pin [list adc_dac/adc0 adc_dac/adc1]]
+  s_axis_tvalid axis_data_fifo_0/s_axis_tready
 }
 
 cell xilinx.com:ip:axis_dwidth_converter:1.1 axis_dwidth_converter_0 {
-  S_TDATA_NUM_BYTES 2
+  S_TDATA_NUM_BYTES 4
   M_TDATA_NUM_BYTES 8
 } {
+  S_AXIS axis_data_fifo_0/M_AXIS
   aclk adc_dac/adc_clk
   aresetn rst_adc_clk/peripheral_aresetn
-  s_axis_tdata adc_mux/dout
-  s_axis_tvalid axis_dwidth_converter_0/s_axis_tready
 }
 
 cell xilinx.com:ip:axis_clock_converter:1.1 axis_clock_converter_0 {
@@ -88,11 +100,11 @@ cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
   c_include_sg 1
   c_sg_include_stscntrl_strm 0
   c_sg_length_width 20
-  c_s2mm_burst_size 16
+  c_s2mm_burst_size 256
   c_m_axi_s2mm_data_width 64
   c_m_axi_mm2s_data_width 64
   c_m_axis_mm2s_tdata_width 64
-  c_mm2s_burst_size 16
+  c_mm2s_burst_size 256
 } {
   S_AXI_LITE axi_mem_intercon_0/M[add_master_interface]_AXI
   s_axi_lite_aclk ps_0/FCLK_CLK0
@@ -122,16 +134,25 @@ cell xilinx.com:ip:axis_clock_converter:1.1 axis_clock_converter_1 {
 
 cell xilinx.com:ip:axis_dwidth_converter:1.1 axis_dwidth_converter_1 {
   S_TDATA_NUM_BYTES 8
-  M_TDATA_NUM_BYTES 2
+  M_TDATA_NUM_BYTES 4
 } {
   aclk adc_dac/adc_clk
   aresetn rst_adc_clk/peripheral_aresetn
   S_AXIS axis_clock_converter_1/M_AXIS
-  m_axis_tvalid axis_dwidth_converter_1/m_axis_tready
 }
 
-connect_pins adc_dac/dac0 axis_dwidth_converter_1/m_axis_tdata
-connect_pins adc_dac/dac1 axis_dwidth_converter_1/m_axis_tdata
+cell xilinx.com:ip:axis_data_fifo:1.1 axis_data_fifo_1 {
+  FIFO_DEPTH 1024
+  TDATA_NUM_BYTES 4
+} {
+  S_AXIS axis_dwidth_converter_1/M_AXIS
+  s_axis_aclk adc_dac/adc_clk
+  s_axis_aresetn rst_adc_clk/peripheral_aresetn
+  m_axis_tvalid axis_data_fifo_1/m_axis_tready
+}
+
+connect_pins adc_dac/dac0 [get_slice_pin axis_data_fifo_1/m_axis_tdata 15 0]
+connect_pins adc_dac/dac1 [get_slice_pin axis_data_fifo_1/m_axis_tdata 31 16]
 
 # DMA AXI Lite
 assign_bd_address [get_bd_addr_segs {axi_dma_0/S_AXI_LITE/Reg }]
