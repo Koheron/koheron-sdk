@@ -21,7 +21,8 @@ module tlast_gen
     output                           m_axis_tvalid,
     input                            m_axis_tready,
     output                           m_axis_tlast,
-    output [TDATA_WIDTH-1:0]         m_axis_tdata
+    output [TDATA_WIDTH-1:0]         m_axis_tdata,
+    output [(TDATA_WIDTH/8)-1:0]     m_axis_tkeep   // <-- ADDED
 );
 
     // Edge detection for trig
@@ -57,5 +58,8 @@ module tlast_gen
     end
 
     assign m_axis_tlast = capture_enabled && (cnt == PKT_LENGTH-1);
+
+    // All bytes are valid in every beat for fixed-width streaming
+    assign m_axis_tkeep = {(TDATA_WIDTH/8){1'b1}};
 
 endmodule

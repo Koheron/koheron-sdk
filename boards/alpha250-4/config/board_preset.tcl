@@ -128,7 +128,7 @@ set_property -dict [list \
     CONFIG.PCW_I2C1_PERIPHERAL_ENABLE {1}  \
     CONFIG.PCW_I2C1_I2C1_IO {MIO 48 .. 49}  \
     CONFIG.PCW_I2C1_GRP_INT_ENABLE {1}  \
-    CONFIG.PCW_I2C1_GRP_INT_IO {EMIO}  \
+    CONFIG.PCW_I2C1_GRP_INT_IO {MIO 9} \
     CONFIG.PCW_I2C_RESET_ENABLE {1}  \
     CONFIG.PCW_I2C_RESET_SELECT {Share reset pin}  \
     CONFIG.PCW_GPIO_MIO_GPIO_ENABLE {1}  \
@@ -171,7 +171,7 @@ set_property -dict [list \
     CONFIG.PCW_MIO_8_SLEW {slow}  \
     CONFIG.PCW_MIO_9_PULLUP {enabled}  \
     CONFIG.PCW_MIO_9_IOTYPE {LVCMOS 1.8V}  \
-    CONFIG.PCW_MIO_9_DIRECTION {inout}  \
+    CONFIG.PCW_MIO_9_DIRECTION {in}  \
     CONFIG.PCW_MIO_9_SLEW {slow}  \
     CONFIG.PCW_MIO_10_PULLUP {enabled}  \
     CONFIG.PCW_MIO_10_IOTYPE {LVCMOS 1.8V}  \
@@ -349,8 +349,6 @@ set_property -dict [list \
     CONFIG.PCW_MIO_53_IOTYPE {LVCMOS 1.8V}  \
     CONFIG.PCW_MIO_53_DIRECTION {inout}  \
     CONFIG.PCW_MIO_53_SLEW {slow}  \
-    CONFIG.PCW_MIO_TREE_PERIPHERALS {GPIO#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#GPIO#Quad SPI Flash#GPIO#GPIO#GPIO#GPIO#GPIO#I2C 0#I2C 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#Enet 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#SD 0#SD 0#SD 0#SD 0#SD 0#SD 0#UART 0#UART 0#I2C 1#I2C 1#GPIO#GPIO#Enet 0#Enet 0}  \
-    CONFIG.PCW_MIO_TREE_SIGNALS {gpio[0]#qspi0_ss_b#qspi0_io[0]#qspi0_io[1]#qspi0_io[2]#qspi0_io[3]#qspi0_sclk#gpio[7]#qspi_fbclk#gpio[9]#gpio[10]#gpio[11]#gpio[12]#gpio[13]#scl#sda#tx_clk#txd[0]#txd[1]#txd[2]#txd[3]#tx_ctl#rx_clk#rxd[0]#rxd[1]#rxd[2]#rxd[3]#rx_ctl#data[4]#dir#stp#nxt#data[0]#data[1]#data[2]#data[3]#clk#data[5]#data[6]#data[7]#clk#cmd#data[0]#data[1]#data[2]#data[3]#rx#tx#scl#sda#gpio[50]#gpio[51]#mdc#mdio}  \
     CONFIG.PCW_FPGA_FCLK1_ENABLE {1}  \
     CONFIG.PCW_USE_FABRIC_INTERRUPT {1} \
     CONFIG.PCW_IRQ_F2P_INTR {1} \

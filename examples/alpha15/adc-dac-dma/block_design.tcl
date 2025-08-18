@@ -88,8 +88,11 @@ cell xilinx.com:ip:axis_dwidth_converter:1.1 axis_dwidth_converter_0 {
   s_axis_tvalid adc_selector/tvalid
 }
 
-cell xilinx.com:ip:axis_clock_converter:1.1 axis_clock_converter_0 {
+cell xilinx.com:ip:axis_data_fifo:1.1 axis_data_fifo_0 {
   TDATA_NUM_BYTES 8
+  FIFO_DEPTH 128
+  IS_ACLK_ASYNC 1
+  SYNCHRONIZATION_STAGES 3
 } {
   s_axis_aclk adc_dac/adc_clk
   s_axis_aresetn rst_adc_clk/peripheral_aresetn
@@ -104,7 +107,7 @@ cell koheron:user:tlast_gen:2.0 tlast_gen_0 {
 } {
   aclk ps_0/FCLK_CLK0
   resetn proc_sys_reset_0/peripheral_aresetn
-  s_axis axis_clock_converter_0/M_AXIS
+  s_axis axis_data_fifo_0/M_AXIS
   trig [ps_ctl_pin trig]
 }
 

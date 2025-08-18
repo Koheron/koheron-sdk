@@ -94,8 +94,6 @@ class AdcDacDma
                 break;
             }
         }
-        ps_ctl.set_bit<reg::trig, 0>();
-        ps_ctl.clear_bit<reg::trig, 0>();
     }
 
     void select_adc_channel(uint32_t channel) {
@@ -150,6 +148,8 @@ class AdcDacDma
     void start_dma() {
         reset();
         set_descriptors();
+        ps_ctl.set_bit<reg::trig, 0>();
+        ps_ctl.clear_bit<reg::trig, 0>();
         // Write address of the starting descriptor
         dma.write<Dma_regs::mm2s_curdesc>(mem::ocm_mm2s_addr + 0x0);
         dma.write<Dma_regs::s2mm_curdesc>(mem::ocm_s2mm_addr + 0x0);
