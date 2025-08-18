@@ -17,6 +17,7 @@ KOHERON_VERSION := $(shell cat $(KOHERON_VERSION_FILE))
 VIVADO_VERSION := 2017.2
 VIVADO_PATH := /opt/Xilinx/Vivado
 PYTHON := python3
+VENV := .venv
 # Use GCC version >=7
 GCC_VERSION := 9
 
@@ -47,7 +48,7 @@ PROJECT_PATH := $(dir $(CONFIG))
 TMP_PROJECT_PATH := $(TMP)/$(PROJECT_PATH)
 
 # Python script that manages the instrument configuration
-MAKE_PY := SDK_PATH=$(SDK_PATH) $(PYTHON) $(SDK_PATH)/make.py
+MAKE_PY := SDK_PATH=$(SDK_PATH) $(VENV)/bin/$(PYTHON) $(SDK_PATH)/make.py
 
 MEMORY_YML := $(TMP_PROJECT_PATH)/memory.yml
 
@@ -166,8 +167,10 @@ setup_base:
 	sudo rm -f /usr/bin/arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-g++
 	sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-gcc
 	sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-g++
-	sudo apt-get install -y $(PYTHON)-pip
-	sudo apt-get install -y curl
+	sudo apt-get install -y curl $(PYTHON)-venv
+	[ -d $(VENV) ] || $(PYTHON) -m venv $(VENV)
+	$(VENV)/bin/$(PYTHON) -m ensurepip --upgrade
+	$(VENV)/bin/$(PYTHON) -m pip install --upgrade pip
 	$(PIP) install -r $(SDK_PATH)/requirements.txt
 	$(PIP) install $(SDK_PATH)/python
 
@@ -187,12 +190,13 @@ setup_server: setup_base
 
 .PHONY: setup_web
 setup_web: setup_base
-	sudo apt-get install -y nodejs
-	# sudo apt-get install -y node-typescript
-	# sudo apt-get install -y npm # npm installed with nodejs
-	# sudo rm -f /usr/bin/node && sudo ln -s /usr/bin/nodejs /usr/bin/node
-	npm install typescript
-	npm install @types/jquery@2.0.46 @types/jquery-mousewheel@3.1.5 websocket @types/node
+	[ -x "$$(command -v npm)" ] || (echo "npm not found. Install Node.js from NodeSource." && false)
+	rm -rf node_modules package-lock.json
+	npm install --save-dev typescript \
+		@types/jquery@2.0.46 \
+		@types/jquery-mousewheel@3.1.5 \
+		@types/node
+	npm install websocket
 
 .PHONY: setup_os
 setup_os: setup_base

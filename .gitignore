@@ -22,4 +22,6 @@ vivado_*.str
 .cache/
 *.img
 
-venv/
+.venv/
+package-lock.json
+package.json
