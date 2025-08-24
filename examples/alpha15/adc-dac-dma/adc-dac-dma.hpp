@@ -163,6 +163,10 @@ class AdcDacDma
         dma.write<Dma_regs::mm2s_taildesc>(mem::ocm_mm2s_addr + (n_desc-1) * 0x40);
         dma.write<Dma_regs::s2mm_taildesc>(mem::ocm_s2mm_addr + (n_desc-1) * 0x40);
 
+        // Wait for DMA to start before enabling tvalid
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        ps_ctl.set_bit<reg::en, 0>();
+        
         //log_dma();
         //log_hp0();
     }
@@ -172,6 +176,7 @@ class AdcDacDma
         dma.clear_bit<Dma_regs::s2mm_dmacr, 0>();
         dma.write<Dma_regs::mm2s_taildesc>(mem::ocm_mm2s_addr + (n_desc-1) * 0x40);
         dma.write<Dma_regs::s2mm_taildesc>(mem::ocm_s2mm_addr + (n_desc-1) * 0x40);
+        ps_ctl.clear_bit<reg::en, 0>();
     }
 
     auto& get_adc_data() {

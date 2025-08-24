@@ -85,7 +85,6 @@ cell xilinx.com:ip:axis_dwidth_converter:1.1 axis_dwidth_converter_0 {
   aclk adc_dac/adc_clk
   aresetn rst_adc_clk/peripheral_aresetn
   s_axis_tdata adc_selector/tdata
-  s_axis_tvalid adc_selector/tvalid
 }
 
 cell xilinx.com:ip:axis_data_fifo:1.1 axis_data_fifo_0 {
@@ -135,6 +134,13 @@ cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
   axi_resetn proc_sys_reset_0/peripheral_aresetn
   s2mm_introut [get_interrupt_pin]
   mm2s_introut [get_interrupt_pin]
+}
+
+cell koheron:user:tvalid_gen:1.0 tvalid_gen_0 {} {
+  valid adc_selector/tvalid
+  tready axi_dma_0/s_axis_s2mm_tready
+  en [ps_ctl_pin en]
+  tvalid axis_dwidth_converter_0/s_axis_tvalid
 }
 
 # DAC Streaming (MM2S)
