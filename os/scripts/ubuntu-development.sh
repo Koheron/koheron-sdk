@@ -163,20 +163,11 @@ apt install -y python-numpy
 sudo dpkg --configure -a
 apt install -y python3-pip python-setuptools
 sudo dpkg --configure -a
-<<<<<<< HEAD
-pip3 install wheel==0.43.0
-pip3 install --upgrade pip==20.4
-pip3 install flask==3.0.3
-pip3 install uwsgi==2.0.24
-pip3 install werkzeug==3.0.2
-pip3 install simplejson==3.19.2
-=======
 pip3 install wheel
 pip3 install flask
 pip3 install uwsgi
 pip3 install werkzeug
 pip3 install simplejson
->>>>>>> 975b48b7e87afb844bdba5b03d3ac084be482768
 systemctl enable uwsgi
 systemctl enable unzip-default-instrument
 #systemctl enable koheron-server
