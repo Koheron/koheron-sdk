@@ -144,6 +144,7 @@ update-locale LANG=en_US.UTF-8
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 DEBIAN_FRONTEND=noninteractive apt install -yq ntp
+apt install -y device-tree-compiler
 apt install -y openssh-server
 apt install -y usbutils psmisc lsof
 apt install -y parted curl less vim iw ntfs-3g
