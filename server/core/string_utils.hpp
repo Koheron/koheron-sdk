@@ -6,7 +6,6 @@
 #include <cstring>
 #include <string>
 #include <array>
-#include <stdexcept>
 #include <syslog.h>
 
 namespace koheron {

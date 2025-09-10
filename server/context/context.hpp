@@ -23,9 +23,9 @@ class Context : public ContextBase
     , fclk(*this)
     , fpga(*this)
     {
-        if (fpga.load_bitstream(instrument_name) < 0) {
-            log<PANIC>("Failed to load bitstream. Exiting server...\n");
-            exit(EXIT_FAILURE);
+        if (fpga.load_bitstream() < 0) {
+           log<PANIC>("Failed to load bitstream. Exiting server...\n");
+           exit(EXIT_FAILURE);
         }
 
         // We set all the Zynq clocks before starting the drivers

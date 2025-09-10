@@ -21,6 +21,7 @@
 #include <memory>
 #include <vector>
 #include <array>
+#include <mutex>
 
 #include <context_base.hpp>
 
@@ -31,8 +32,9 @@ class SpiDev
     SpiDev(ContextBase& ctx_, std::string devname_);
 
     ~SpiDev() {
-        if (fd >= 0)
+        if (fd >= 0) {
             close(fd);
+        }
     }
 
     bool is_ok() {return fd >= 0;}
@@ -46,10 +48,10 @@ class SpiDev
     int set_word_length(uint8_t word_length_);
 
     template<typename T>
-    int write(const T *buffer, uint32_t len)
-    {
-        if (fd >= 0)
+    int write(const T *buffer, uint32_t len) {
+        if (fd >= 0) {
             return ::write(fd, buffer, len * sizeof(T));
+        }
 
         return -1;
     }
@@ -69,7 +71,7 @@ class SpiDev
                     N * sizeof(T));
     }
 
-  private:
+   private:
     ContextBase& ctx;
     std::string devname;
 
