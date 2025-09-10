@@ -1,9 +1,12 @@
+# Test to be executed with ALPHA250 running FFT instrument
+
 import sys
 import paramiko
 import unittest
 import pprint
 import urllib.request
 import json
+from koheron import connect
 
 def parse_systemctl_line(line):
     return line.split(']: ')[1].split('\n')[0]
@@ -24,13 +27,19 @@ class TestSystem(unittest.TestCase):
         lines = stdout.readlines()
         # pprint.pprint(lines)
         self.assertTrue(lines[0].startswith("eth0"))
-        self.assertEqual(lines[1], "          inet addr:{}  Bcast:192.168.1.255  Mask:255.255.255.0\n".format(host))
+        self.assertEqual(lines[1].lstrip(), "inet {}  netmask 255.255.255.0  broadcast 192.168.1.255\n".format(host))
 
     def test_ethernet_speed(self):
-        stdin, stdout, sterr = self.ssh.exec_command('dmesg | grep eth0 | grep up')
+        stdin, stdout, sterr = self.ssh.exec_command('cat /sys/class/net/eth0/speed')
         lines = stdout.readlines()
         # pprint.pprint(lines)
-        self.assertEqual(lines[0].split('eth0: ')[1].split('\n')[0], "link up (1000/Full)")
+        self.assertEqual(lines[0], "1000\n")
+
+    def test_ethernet_full_duplex(self):
+        stdin, stdout, sterr = self.ssh.exec_command('cat /sys/class/net/eth0/duplex')
+        lines = stdout.readlines()
+        # pprint.pprint(lines)
+        self.assertEqual(lines[0], "full\n")
 
     def test_i2c_devices(self):
         stdin, stdout, sterr = self.ssh.exec_command('ls /sys/bus/i2c/devices')
@@ -52,6 +61,31 @@ class TestSystem(unittest.TestCase):
         # pprint.pprint(lines)
         self.assertEqual(lines[0].split(': ')[1].split('\n')[0], "Xilinx Zynq Platform")
 
+    def test_lib_firmware(self):
+        stdin, stdout, sterr = self.ssh.exec_command('ls /lib/firmware/')
+        lines = stdout.readlines()
+        # pprint.pprint(lines)
+        self.assertTrue("fft.bit.bin\n" in lines)
+        self.assertTrue("pl.dtbo\n" in lines)
+
+    def test_fpga_manager_flags(self):
+        stdin, stdout, sterr = self.ssh.exec_command('cat /sys/class/fpga_manager/fpga0/flags')
+        lines = stdout.readlines()
+        # pprint.pprint(lines)
+        self.assertEqual(lines[0], "0\n")
+
+    def test_overlay_status(self):
+        stdin, stdout, sterr = self.ssh.exec_command('cat /configfs/device-tree/overlays/full/status')
+        lines = stdout.readlines()
+        # pprint.pprint(lines)
+        self.assertEqual(lines[0], "applied\n")
+
+    def test_fclk0(self):
+        stdin, stdout, sterr = self.ssh.exec_command('cat /sys/devices/soc0/amba/amba:clocking0/set_rate')
+        lines = stdout.readlines()
+        # pprint.pprint(lines)
+        self.assertEqual(lines[0], "199999998\n")
+
 class TestKoheronServer(unittest.TestCase):
     def __init__(self, name, ssh):
         super(TestKoheronServer, self).__init__(name)
@@ -62,8 +96,8 @@ class TestKoheronServer(unittest.TestCase):
         lines = stdout.readlines()
         # pprint.pprint(lines)
         self.assertEqual(lines[0], "● koheron-server.service - Koheron TCP/Websocket server\n")
-        self.assertEqual(lines[1], "   Loaded: loaded (/etc/systemd/system/koheron-server.service; enabled; vendor preset: enabled)\n")
-        self.assertTrue(lines[2].startswith("   Active: active (running)"))
+        self.assertEqual(lines[1].lstrip(), "Loaded: loaded (/etc/systemd/system/koheron-server.service; disabled; vendor preset: enabled)\n")
+        self.assertTrue(lines[2].lstrip().startswith("Active: active (running)"))
 
     def test_koheron_server_ready(self):
         stdin, stdout, sterr = self.ssh.exec_command('journalctl -u koheron-server | grep Koheron | grep ready')
@@ -93,8 +127,8 @@ class TestUwsgi(unittest.TestCase):
         lines = stdout.readlines()
         # pprint.pprint(lines)
         self.assertEqual(lines[0], "● uwsgi.service - uWSGI\n")
-        self.assertEqual(lines[1], "   Loaded: loaded (/etc/systemd/system/uwsgi.service; enabled; vendor preset: enabled)\n")
-        self.assertTrue(lines[2].startswith("   Active: active (running)"))
+        self.assertEqual(lines[1].lstrip(), "Loaded: loaded (/etc/systemd/system/uwsgi.service; enabled; vendor preset: enabled)\n")
+        self.assertTrue(lines[2].lstrip().startswith("Active: active (running)"))
 
     def test_intruments_details(self):
         with urllib.request.urlopen("http://{}/api/instruments/details".format(host)) as url:
@@ -128,8 +162,8 @@ class TestNginx(unittest.TestCase):
         lines = stdout.readlines()
         # pprint.pprint(lines)
         self.assertEqual(lines[0], "● nginx.service - A high performance web server and a reverse proxy server\n")
-        self.assertEqual(lines[1], "   Loaded: loaded (/etc/systemd/system/nginx.service; enabled; vendor preset: enabled)\n")
-        self.assertTrue(lines[2].startswith("   Active: active (running)"))
+        self.assertEqual(lines[1].lstrip(), "Loaded: loaded (/etc/systemd/system/nginx.service; enabled; vendor preset: enabled)\n")
+        self.assertTrue(lines[2].lstrip().startswith("Active: active (running)"))
 
     def test_koheron_location_folder(self):
         stdin, stdout, sterr = self.ssh.exec_command('ls /usr/local/www')
@@ -167,6 +201,7 @@ def run_test_suite(test_suite, ssh):
 
 if __name__ == '__main__':
     host = sys.argv[1]
+    client = connect(host, 'fft', restart=True)
     ssh = set_ssh(host)
     run_test_suite(TestSystem, ssh)
     run_test_suite(TestKoheronServer, ssh)
