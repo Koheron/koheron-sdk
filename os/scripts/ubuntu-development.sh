@@ -210,3 +210,13 @@ rmdir $boot_dir $root_dir
 zerofree $root_dev
 
 losetup -d $device
+
+img_dir="$(dirname "$image")"
+img_base="$(basename "$image")"
+
+(
+  cd "$img_dir"
+  sha256sum "$img_base" > "${img_base}.sha256"
+  zip release.zip "$img_base" "${img_base}.sha256"
+)
+
