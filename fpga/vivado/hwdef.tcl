@@ -9,6 +9,6 @@ if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
   wait_on_run synth_1
 }
 
-write_hwdef -force -file $hwdef_filename
+write_hw_platform -fixed -force -file $hwdef_filename
 
 close_project
