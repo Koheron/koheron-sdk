@@ -75,8 +75,10 @@ include $(DOCKER_MK)
 # - Bash configuration script
 # - Web files (HTML, CSS, Javascript)
 
-BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit # FPGA bitstream
-SERVER := $(TMP_PROJECT_PATH)/serverd # TCP / Websocket server executable that communicates with the FPGA
+BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit
+
+# TCP / Websocket server executable that communicates with the FPGA
+SERVER := $(TMP_PROJECT_PATH)/serverd
 
 VERSION_FILE := $(TMP_PROJECT_PATH)/version
 
