@@ -1,6 +1,6 @@
 diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
---- devicetree.orig/pcw.dtsi	2025-09-11 09:13:56.659386773 +0200
-+++ devicetree/pcw.dtsi	2025-09-11 09:15:43.598174607 +0200
+--- devicetree.orig/pcw.dtsi	2025-09-11 12:53:35.463531012 +0200
++++ devicetree/pcw.dtsi	2025-09-11 12:53:35.465531039 +0200
 @@ -49,11 +49,21 @@
  	is-decoded-cs = <0>;
  	num-cs = <3>;
@@ -34,8 +34,8 @@ diff -rupN devicetree.orig/pcw.dtsi devicetree/pcw.dtsi
  };
  &clkc {
 diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
---- devicetree.orig/system-top.dts	2025-09-11 09:13:56.660386792 +0200
-+++ devicetree/system-top.dts	2025-09-11 09:14:56.426427196 +0200
+--- devicetree.orig/system-top.dts	2025-09-11 12:53:35.463531012 +0200
++++ devicetree/system-top.dts	2025-09-11 12:53:48.373700909 +0200
 @@ -13,6 +13,10 @@
  		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 ro rootfstype=ext4 earlyprintk rootwait earlycon";
  		stdout-path = "serial0:115200n8";
@@ -47,3 +47,11 @@ diff -rupN devicetree.orig/system-top.dts devicetree/system-top.dts
  	aliases {
  		ethernet0 = &gem0;
  		i2c0 = &i2c0;
+@@ -24,6 +28,6 @@
+ 	};
+ 	memory@0 {
+ 		device_type = "memory";
+-		reg = <0x0 0x20000000>;
++		reg = <0x0 0x18000000>;
+ 	};
+ };
