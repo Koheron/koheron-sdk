@@ -58,8 +58,8 @@ $(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xpr | $(TMP_FPGA_PATH)
 	@echo [$@] OK
 
 $(BITSTREAM).bin: $(BITSTREAM)
-	echo "all:{$(strip $(BITSTREAM))}" > $(TMP_FPGA_PATH)/overlay.bif
-	$(BOOTGEN) -image $(TMP_FPGA_PATH)/overlay.bif -arch $(ZYNQ_TYPE) -process_bitstream bin -w on -o "$(strip $(BITSTREAM)).bin"
+	echo "all:{$(BITSTREAM)}" > $(TMP_FPGA_PATH)/overlay.bif
+	$(BOOTGEN) -image $(TMP_FPGA_PATH)/overlay.bif -arch $(ZYNQ_TYPE) -process_bitstream bin -w on -o $(BITSTREAM).bin 
 	@echo [$@] OK
 
 $(TMP_FPGA_PATH)/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xpr | $(TMP_FPGA_PATH)
