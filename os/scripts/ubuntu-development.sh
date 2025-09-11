@@ -10,7 +10,7 @@ image=$tmp_project_path/${name}-development.img
 BOOTPART=$7
 size=1024
 
-ubuntu_version=22.04.4
+ubuntu_version=24.04.3
 part1=/dev/${BOOTPART}p1
 part2=/dev/${BOOTPART}p2
 if [ "${zynq_type}" = "zynqmp" ]; then
@@ -132,10 +132,20 @@ cat <<- EOF_CAT >> etc/hosts
 127.0.0.1    localhost.localdomain localhost
 127.0.1.1    koheron
 EOF_CAT
-sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
-rm /dev/null
+
+# Noble on ARM uses ports.ubuntu.com
+cat > /etc/apt/sources.list <<'EOF_SOURCES'
+deb http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse
+deb http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse
+deb http://ports.ubuntu.com/ubuntu-ports noble-security main restricted universe multiverse
+# deb http://ports.ubuntu.com/ubuntu-ports noble-backports main restricted universe multiverse
+EOF_SOURCES
+
+# Make sure /dev/null exists in the fresh chroot before apt
+rm -f /dev/null
 mknod /dev/null c 1 3
 chmod 666 /dev/null
+
 apt update
 apt -y upgrade
 apt -y install locales
@@ -144,7 +154,6 @@ update-locale LANG=en_US.UTF-8
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 DEBIAN_FRONTEND=noninteractive apt install -yq ntp
-apt install -y device-tree-compiler
 apt install -y openssh-server
 apt install -y usbutils psmisc lsof
 apt install -y parted curl less vim iw ntfs-3g
@@ -154,18 +163,11 @@ apt install -y ntpdate sudo rsync
 apt install -y kmod
 apt install -y gcc
 apt install -y nginx
-sudo dpkg --configure -a
-apt install -y build-essential python3-dev
-sudo dpkg --configure -a
-apt install -y python-numpy
-sudo dpkg --configure -a
-apt install -y python3-pip python-setuptools
-sudo dpkg --configure -a
-pip3 install wheel
-pip3 install flask
-pip3 install uwsgi
-pip3 install werkzeug
-pip3 install simplejson
+apt install -y python3-numpy
+apt install -y python3-flask
+apt install -y uwsgi-core uwsgi-plugin-python3
+apt install -y python3-simplejson
+
 systemctl enable uwsgi
 systemctl enable unzip-default-instrument
 #systemctl enable koheron-server
@@ -173,11 +175,11 @@ systemctl enable nginx
 sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 touch etc/udev/rules.d/75-persistent-net-generator.rules
 cat <<- EOF_CAT >> etc/network/interfaces
-allow-hotplug eth0
+allow-hotplug end0
 # DHCP configuration
-iface eth0 inet dhcp
+iface end0 inet dhcp
 # Static IP
-#iface eth0 inet static
+#iface end0 inet static
 #  address 192.168.1.100
 #  gateway 192.168.1.1
 #  netmask 255.255.255.0

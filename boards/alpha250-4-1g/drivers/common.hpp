@@ -56,40 +56,29 @@ class Common
     }
 
     void ip_on_leds() {
-        struct ifaddrs *addrs;
-        getifaddrs(&addrs);
-        ifaddrs *tmp = addrs;
+        struct ifaddrs* addrs = nullptr;
+        if (getifaddrs(&addrs) != 0 || !addrs) return;
 
-        // Turn all the leds ON
+        // Turn all the LEDs ON (your original behavior)
         gpio.set_led(255);
 
-        char interface[] = "eth0";
+        const char* preferred[] = {"end0", "eth0"};
+        for (const char* want : preferred) {
+            for (auto* it = addrs; it; it = it->ifa_next) {
+                if (!it->ifa_addr || it->ifa_addr->sa_family != AF_INET) continue;
+                if (std::strcmp(it->ifa_name, want) != 0) continue;
 
-        while (tmp) {
-            // Works only for IPv4 address
-            if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET) {
-                #pragma GCC diagnostic push
-                #pragma GCC diagnostic ignored "-Wcast-align"
-                struct sockaddr_in *pAddr = reinterpret_cast<struct sockaddr_in *>(tmp->ifa_addr);
-                #pragma GCC diagnostic pop
-                int val = strcmp(tmp->ifa_name, interface);
-
-                if (val != 0) {
-                    tmp = tmp->ifa_next;
-                    continue;
-                }
-
-                ctx.log<INFO>("Interface %s found: %s\n", tmp->ifa_name, inet_ntoa(pAddr->sin_addr));
+                auto* pAddr = reinterpret_cast<sockaddr_in*>(it->ifa_addr);
+                ctx.log<INFO>("Interface %s found: %s\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
                 uint32_t ip = htonl(pAddr->sin_addr.s_addr);
-
-                // Write IP address
                 set_led(ip);
-                break;
+                freeifaddrs(addrs);
+                return;
             }
-
-            tmp = tmp->ifa_next;
         }
 
+        // Neither end0 nor eth0 had an IPv4; keep LEDs as-is (optional: log)
+        // ctx.log<INFO>("No IPv4 on end0/eth0\n");
         freeifaddrs(addrs);
     }
 
