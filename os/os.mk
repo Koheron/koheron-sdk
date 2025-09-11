@@ -205,7 +205,7 @@ $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_P
 
 .PHONY: clean_devicetree
 clean_devicetree:
-	rm -rf $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig
+	rm -rf $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig $(TMP_OS_PATH)/devicetree.patch
 
 .PHONY: patch_devicetree
 patch_devicetree:
