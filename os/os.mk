@@ -74,7 +74,7 @@ $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
 		echo "Patching ps7_init.c ..."; \
 		$(PYTHON) $(FSBL_PATH)/apply_ps7_init_patch.py $(TMP_OS_PATH)/fsbl; \
 	fi
-	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && $(DOCKER) make -C $(@D) CFLAGS=$(FSBL_CFLAGS) all
+	source $(VIVADO_PATH)/settings64.sh && $(DOCKER) make -C $(@D) CFLAGS=$(FSBL_CFLAGS) all
 	@echo [$@] OK
 
 .PHONY: clean_fsbl
@@ -124,7 +124,7 @@ $(TMP_OS_PATH)/pmu/Makefile: $(TMP_FPGA_PATH)/$(NAME).xsa
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/pmu/executable.elf: $(TMP_OS_PATH)/pmu/Makefile
-	source $(VITIS_PATH)/$(VIVADO_VER)/settings64.sh && $(DOCKER) make -C $(@D) all
+	source $(VITIS_PATH)/settings64.sh && $(DOCKER) make -C $(@D) all
 
 .PHONY: clean_pmufw
 clean_pmufw:

@@ -7,7 +7,7 @@ $(TMP_FPGA_PATH):
 BOARD_PATH := $(shell $(MAKE_PY) --board $(CONFIG) $(TMP_FPGA_PATH)/board && cat $(TMP_FPGA_PATH)/board)
 PART := $(shell cat $(BOARD_PATH)/PART)
 
-VIVADO := source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && vivado -nolog -nojournal
+VIVADO := source $(VIVADO_PATH)/settings64.sh && vivado -nolog -nojournal
 VIVADO_BATCH := $(VIVADO) -mode batch
 
 $(MEMORY_YML): $(CONFIG)
@@ -59,7 +59,7 @@ $(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xpr | $(TMP_FPGA_PATH)
 
 $(BITSTREAM).bin: $(BITSTREAM)
 	echo "all:{$(BITSTREAM)}" > $(TMP_FPGA_PATH)/overlay.bif
-	$(BOOTGEN) -image $(TMP_FPGA_PATH)/overlay.bif -arch $(ZYNQ_TYPE) -process_bitstream bin -w on -o $(BITSTREAM).bin 
+	$(BOOTGEN) -image $(TMP_FPGA_PATH)/overlay.bif -arch $(ZYNQ_TYPE) -process_bitstream bin -w on -o $(BITSTREAM).bin
 	@echo [$@] OK
 
 $(TMP_FPGA_PATH)/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xpr | $(TMP_FPGA_PATH)

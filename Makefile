@@ -4,6 +4,10 @@ SHELL := bash
 .DEFAULT_GOAL := all
 .DELETE_ON_ERROR:
 .SUFFIXES:
+PYTHONPATH :=
+export PYTHONPATH
+MATLABPATH :=
+export MATLABPATH
 
 CONFIG ?= examples/alpha250/fft/config.yml
 SDK_PATH ?= .
@@ -14,9 +18,9 @@ TMP ?= tmp
 
 KOHERON_VERSION_FILE := $(SDK_PATH)/version
 KOHERON_VERSION := $(shell cat $(KOHERON_VERSION_FILE))
-VIVADO_VERSION := 2023.2
-VIVADO_PATH := /tools/Xilinx/Vivado
-VITIS_PATH := /tools/Xilinx/Vitis
+VIVADO_VERSION := 2025.1
+VIVADO_PATH := /tools/Xilinx/$(VIVADO_VERSION)/Vivado
+VITIS_PATH := /tools/Xilinx/$(VIVADO_VERSION)/Vitis
 PYTHON := python3
 VENV := .venv
 # Use GCC version >=7
