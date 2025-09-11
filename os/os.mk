@@ -41,6 +41,11 @@ os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/$(BOOTCALL) $(TMP_OS_PATH)/$(LINUX_
 image:
 	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE) $(BOOT_MEDIUM)
 
+# Flash image on SD card
+.PHONY: flash
+flash:
+	$(PYTHON) $(OS_PATH)/scripts/flash_all.py $(TMP_PROJECT_PATH)/release.zip
+
 .PHONY: clean_os
 clean_os:
 	rm -rf $(TMP_OS_PATH)
