@@ -71,7 +71,7 @@ TIMEOUT 3
 MENU TITLE Koheron Boot
 
 LABEL Linux
-    KERNEL /${linux_image]
+    KERNEL /${linux_image}
     FDT /devicetree.dtb
     APPEND console=ttyPS0,115200 root=${part2} ro rootfstype=ext4 rootwait
 EOF
