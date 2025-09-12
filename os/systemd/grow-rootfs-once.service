@@ -1,0 +1,11 @@
+[Unit]
+Description=Grow root partition/filesystem once
+After=systemd-remount-fs.service local-fs.target
+RequiresMountsFor=/
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/grow-rootfs-once
+
+[Install]
+WantedBy=multi-user.target

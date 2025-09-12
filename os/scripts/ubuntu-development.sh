@@ -113,6 +113,10 @@ mkdir $root_dir/etc/uwsgi
 cp $os_path/config/uwsgi.ini $root_dir/etc/uwsgi/uwsgi.ini
 cp $os_path/systemd/uwsgi.service $root_dir/etc/systemd/system/uwsgi.service
 
+# grow-rootfs-once
+cp $os_path/scripts/grow-rootfs-once $root_dir/usr/local/sbin/grow-rootfs-once
+cp $os_path/systemd/grow-rootfs-once.service $root_dir/etc/systemd/system/grow-rootfs-once.service
+
 # Add zips
 mkdir $root_dir/usr/local/instruments
 cp $os_path/scripts/unzip_default_instrument.sh $root_dir/usr/local/instruments/unzip_default_instrument.sh
@@ -156,10 +160,16 @@ deb http://ports.ubuntu.com/ubuntu-ports noble-security main restricted universe
 # deb http://ports.ubuntu.com/ubuntu-ports noble-backports main restricted universe multiverse
 EOF_SOURCES
 
+# Disable the Deb822 default to avoid “configured multiple times”
+if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+  sed -i 's/^Enabled:\s*yes/Enabled: no/i' /etc/apt/sources.list.d/ubuntu.sources
+fi
+
 # Make sure /dev/null exists in the fresh chroot before apt
 rm -f /dev/null
 mknod /dev/null c 1 3
 chmod 666 /dev/null
+chmod +x /usr/local/sbin/grow-rootfs-once
 
 apt update
 apt -y upgrade
@@ -172,6 +182,7 @@ DEBIAN_FRONTEND=noninteractive apt install -yq ntp
 apt install -y openssh-server
 apt install -y usbutils psmisc lsof
 apt install -y parted curl less vim iw ntfs-3g
+apt install -y cloud-guest-utils e2fsprogs
 apt install -y bash-completion unzip
 apt install -y udev net-tools netbase ifupdown network-manager lsb-base isc-dhcp-client
 apt install -y ntpdate sudo rsync
@@ -184,6 +195,7 @@ apt install -y uwsgi-core uwsgi-plugin-python3
 apt install -y python3-simplejson
 
 systemctl enable uwsgi
+systemctl enable grow-rootfs-once.service
 systemctl enable unzip-default-instrument
 #systemctl enable koheron-server
 systemctl enable nginx

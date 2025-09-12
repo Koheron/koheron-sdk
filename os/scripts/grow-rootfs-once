@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+
+STAMP=/var/lib/growroot.done
+[ -e "$STAMP" ] && exit 0
+
+ROOTDEV="$(findmnt -no SOURCE /)"
+# Expect /dev/mmcblk0p2
+case "$ROOTDEV" in
+  /dev/mmcblk0p2) ;;
+  *) echo "grow-rootfs-once: root is $ROOTDEV, skipping"; exit 0 ;;
+esac
+
+# Grow partition entry to fill the device
+growpart /dev/mmcblk0 2 || true
+udevadm settle || true
+blockdev --rereadpt /dev/mmcblk0 2>/dev/null || true
+
+# Grow the ext4 filesystem online
+resize2fs /dev/mmcblk0p2
+
+mkdir -p /var/lib
+touch "$STAMP"
+echo "grow-rootfs-once: done"
+exit 0
