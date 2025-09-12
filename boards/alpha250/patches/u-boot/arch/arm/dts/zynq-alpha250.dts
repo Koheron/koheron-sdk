@@ -14,8 +14,9 @@
   aliases {
     serial0 = &uart0;
     mmc0 = &sdhci0;
+    ethernet0 = &gem0;
   };
-  memory {
+  memory@0 {
       device_type = "memory";
       reg = <0 0x18000000>;
     };
@@ -43,4 +44,23 @@
   status = "okay";
   dr_mode = "host";
   usb-phy = <&usb_phy0>;
+};
+&gem0 {
+  status = "okay";
+  phy-mode = "rgmii-id";
+  phy-handle = <&ethphy0>;
+  /* local-mac-address : FSBL/env import already provides ethaddr */
+  mdio {
+    #address-cells = <1>;
+    #size-cells = <0>;
+
+    ethphy0: ethernet-phy@3 {
+      reg = <3>;
+      compatible = "micrel,ksz9031";
+      rxc-skew-ps = <1860>;
+      rxdv-skew-ps = <420>;
+      txc-skew-ps = <1860>;
+      txen-skew-ps = <420>;
+    };
+  };
 };
