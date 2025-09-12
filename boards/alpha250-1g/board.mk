@@ -10,3 +10,5 @@ LINUX_URL := https://github.com/Xilinx/linux-xlnx/archive/xilinx-v$(VIVADO_VERSI
 DTREE_URL := https://github.com/Xilinx/device-tree-xlnx/archive/$(DTREE_TAG).tar.gz
 
 FSBL_PATH := $(OS_PATH)/alpha/fsbl
+
+PATCHES := boards/alpha250-1g/patches

@@ -6,7 +6,6 @@ ZYNQ_TYPE ?= zynq
 VIVADO_VER ?= $(VIVADO_VERSION)
 include $(OS_PATH)/$(ZYNQ_TYPE).mk
 
-PATCHES := $(BOARD_PATH)/patches
 HSI := source $(VIVADO_PATH)/settings64.sh && xsct
 BOOTGEN := source $(VIVADO_PATH)/settings64.sh && bootgen
 
