@@ -33,11 +33,11 @@
  };
 };
 &sdhci0 {
-  u-boot,dm-pre-reloc;
+  bootph-pre-ram;
   status = "okay";
 };
 &uart0 {
-  u-boot,dm-pre-reloc;
+  bootph-pre-ram;
   status = "okay";
 };
 &usb0 {
