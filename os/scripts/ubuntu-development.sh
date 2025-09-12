@@ -60,9 +60,24 @@ mkfs.ext4 -F -j $root_dev
 mount $boot_dev $boot_dir
 mount $root_dev $root_dir
 
-# Copy files to the boot file system
+# Copy boot artifacts
+cp "$tmp_os_path/boot.bin" "$tmp_os_path/$linux_image" "$tmp_os_path/devicetree.dtb" "$boot_dir"
 
-cp $tmp_os_path/boot.bin $tmp_os_path/devicetree.dtb $tmp_os_path/$linux_image $os_path/uEnv.txt $boot_dir
+# Create extlinux menu (U-Boot will auto-scan /extlinux/extlinux.conf)
+mkdir -p "$boot_dir/extlinux"
+cat > "$boot_dir/extlinux/extlinux.conf" <<EOF
+DEFAULT Linux
+TIMEOUT 3
+MENU TITLE Koheron Boot
+
+LABEL Linux
+    KERNEL /${linux_image]
+    FDT /devicetree.dtb
+    APPEND console=ttyPS0,115200 root=${part2} ro rootfstype=ext4 rootwait
+EOF
+
+sync
+
 
 # Copy Ubuntu Core to the root file system
 
