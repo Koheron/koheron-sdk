@@ -24,7 +24,7 @@ VITIS_PATH := /tools/Xilinx/$(VIVADO_VERSION)/Vitis
 PYTHON := python3
 VENV := .venv
 # Use GCC version >=7
-GCC_VERSION := 9
+GCC_VERSION := 13
 
 # Use this command to set GCC_VERSION to 9 on Ubuntu 22.04
 .PHONY: set_gcc_version
@@ -185,7 +185,7 @@ setup_base:
 setup_docker: setup_base
 	sudo bash docker/install_docker.sh
 	sudo usermod -aG docker $(shell whoami)
-	sudo docker build -t gnu-gcc-9.5 ./docker/.
+	sudo docker build -t cross-armhf:24.04 ./docker/.
 
 .PHONY: setup_fpga
 setup_fpga: setup_base

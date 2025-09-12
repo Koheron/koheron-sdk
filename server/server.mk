@@ -49,9 +49,9 @@ OBJ := $(SERVER_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
-SERVER_CCXX := /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) -flto
+SERVER_CCXX := /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) -flto=$(N_CPUS)
 ifeq ($(BUILD_METHOD),docker)
-	SERVER_CCXX = $(DOCKER) $(GCC_ARCH)-g++-$(GCC_VERSION) -flto
+	SERVER_CCXX = $(DOCKER) $(GCC_ARCH)-g++-$(GCC_VERSION) -flto=$(N_CPUS)
 endif
 
 SERVER_CCXXFLAGS = -Wall -Werror -Wextra
