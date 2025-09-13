@@ -17,9 +17,9 @@ UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
-FSBL_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard"
-LINUX_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
-UBOOT_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
+FSBL_CFLAGS := -O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard
+LINUX_CFLAGS := -O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard
+UBOOT_CFLAGS := -O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard
 
 TMP_OS_VERSION_FILE := $(TMP_OS_PATH)/version.json
 
@@ -74,7 +74,7 @@ $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
 		echo "Patching ps7_init.c ..."; \
 		$(PYTHON) $(FSBL_PATH)/apply_ps7_init_patch.py $(TMP_OS_PATH)/fsbl; \
 	fi
-	source $(VIVADO_PATH)/settings64.sh && $(DOCKER) make -C $(@D) CFLAGS=$(FSBL_CFLAGS) all
+	source $(VIVADO_PATH)/settings64.sh && $(DOCKER) make -C $(@D) CFLAGS="$(FSBL_CFLAGS)" all
 	@echo [$@] OK
 
 .PHONY: clean_fsbl
@@ -99,16 +99,17 @@ ifeq ("$(UBOOT_CONFIG)","")
 UBOOT_CONFIG = zynq_$(BOARD)_defconfig
 endif
 
-$(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(shell find $(PATCHES)/u-boot -type f)
+UBOOT_PATCH_FILES := $(shell test -d $(PATCHES)/u-boot && find $(PATCHES)/u-boot -type f)
+
+$(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(UBOOT_PATCH_FILES)
 	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	mkdir -p $(@D)
 	$(DOCKER) make -C $< mrproper
-	$(DOCKER) make -C $< arch=$(ARCH) $(UBOOT_CONFIG)
-	$(DOCKER) make -C $< arch=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
+	$(DOCKER) make -C $< ARCH=$(ARCH) $(UBOOT_CONFIG)
+	$(DOCKER) make -C $< ARCH=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
 	  CROSS_COMPILE=$(GCC_ARCH)- all
-	cp $</u-boot $@
-	cp $</u-boot.elf $@ || true
+	if [ -f $</u-boot.elf ]; then cp $</u-boot.elf $@; else cp $</u-boot $@; fi
 	@echo [$@] OK
 
 ###############################################################################
@@ -197,8 +198,8 @@ $(TMP_OS_PATH)/overlay/pl.dtsi: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PAT
 	mkdir -p $(@D)
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VER) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/overlay $(TMP_FPGA_PATH)/$(NAME).xsa $(BOOT_MEDIUM)
 	cp -R $(TMP_OS_PATH)/overlay $(TMP_OS_PATH)/overlay.orig
-	[[ -f $(PROJECT_PATH)/overlay.patch ]] || touch $(PROJECT_PATH)/overlay.patch
-	patch -d $(TMP_OS_PATH) -p -0 < $(PROJECT_PATH)/overlay.patch
+	[[ -f $(PATCHES)/overlay.patch ]] || :
+	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/overlay.patch
 	@echo [$@] OK
 
 $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/devicetree.patch
@@ -238,12 +239,14 @@ $(LINUX_PATH): $(LINUX_TAR)
 	tar -zxf $< --strip-components=1 --directory=$@
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/$(LINUX_IMAGE): $(LINUX_PATH) $(shell find $(PATCHES)/linux -type f) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
+LINUX_PATCH_FILES := $(shell test -d $(PATCHES)/linux && find $(PATCHES)/linux -type f)
+
+$(TMP_OS_PATH)/$(LINUX_IMAGE): $(LINUX_PATH) $(LINUX_PATCH_FILES) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
 	cp $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs
 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $< mrproper
 	$(DOCKER) make -C $< ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
-	$(DOCKER) make -C $< ARCH=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
+	$(DOCKER) make -C $< ARCH=$(ARCH) KCFLAGS="-O2 $(GCC_FLAGS)" \
 	  --jobs=$(N_CPUS) \
 	  CROSS_COMPILE=$(GCC_ARCH)- UIMAGE_LOADADDR=0x8000 $(LINUX_IMAGE)
 	cp $</arch/$(ARCH)/boot/$(LINUX_IMAGE) $@
@@ -252,7 +255,7 @@ $(TMP_OS_PATH)/$(LINUX_IMAGE): $(LINUX_PATH) $(shell find $(PATCHES)/linux -type
 $(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
 	cp $(TMP_OS_PATH)/pl.dtbo  $(TMP_PROJECT_PATH)/pl.dtbo
 
-$(LINUX_PATH)/scripts/dtc/dtc: $(LINUX_PATH) $(shell find $(PATCHES)/linux -type f) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
+$(LINUX_PATH)/scripts/dtc/dtc: $(LINUX_PATH) $(LINUX_PATCH_FILES) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
 	cp $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs
 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $< mrproper
