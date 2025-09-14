@@ -13,19 +13,21 @@ size=1024
 ubuntu_version=24.04.3
 part1=/dev/${BOOTPART}p1
 part2=/dev/${BOOTPART}p2
+
 if [ "${zynq_type}" = "zynqmp" ]; then
     echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-MPSoC..."
     root_tar=ubuntu-base-${ubuntu_version}-base-arm64.tar.gz
-    linux_image=Image
+
     qemu_path=/usr/bin/qemu-aarch64-static
     part1=/dev/mmcblk1p1
     part2=/dev/mmcblk1p2
 else
     echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-7000..."
     root_tar=ubuntu-base-${ubuntu_version}-base-armhf.tar.gz
-    linux_image=uImage
     qemu_path=/usr/bin/qemu-arm-static
 fi
+
+linux_image=kernel.itb
 
 dd if=/dev/zero of=$image bs=1M count=${size}
 
@@ -60,20 +62,25 @@ mkfs.ext4 -F -j $root_dev
 mount $boot_dev $boot_dir
 mount $root_dev $root_dir
 
-# Copy boot artifacts
-cp "$tmp_os_path/boot.bin" "$tmp_os_path/$linux_image" "$tmp_os_path/devicetree.dtb" "$boot_dir"
 
-# Create extlinux menu (U-Boot will auto-scan /extlinux/extlinux.conf)
+# Ensure the boot FS is actually mounted, then create extlinux dir
+mountpoint -q "$boot_dir" || { echo "Boot partition not mounted"; exit 1; }
 mkdir -p "$boot_dir/extlinux"
+
+# Copy boot artifacts
+cp "$tmp_os_path/boot.bin" "$tmp_os_path/$linux_image" "$boot_dir"
+
+ROOTUUID=$(blkid -s PARTUUID -o value "$root_dev")
+BOOTUUID=$(blkid -s PARTUUID -o value "$boot_dev")
+
 cat > "$boot_dir/extlinux/extlinux.conf" <<EOF
 DEFAULT Linux
 TIMEOUT 3
 MENU TITLE Koheron Boot
 
 LABEL Linux
-    KERNEL /${linux_image}
-    FDT /devicetree.dtb
-    APPEND console=ttyPS0,115200 root=${part2} ro rootfstype=ext4 rootwait
+  KERNEL /kernel.itb
+  APPEND console=ttyPS0,115200n8 root=PARTUUID=${ROOTUUID} ro rootwait rootfstype=ext4 fsck.repair=yes
 EOF
 
 sync
@@ -123,25 +130,30 @@ cp $os_path/scripts/unzip_default_instrument.sh $root_dir/usr/local/instruments/
 echo "${name}.zip" > $root_dir/usr/local/instruments/default
 cp ${tmp_project_path}/${name}.zip $root_dir/usr/local/instruments
 
-chroot $root_dir <<- EOF_CHROOT
+chroot "$root_dir" <<- EOF_CHROOT
 export LANG=C
 export LC_ALL=C
-# Add /usr/local/koheron-server to the environment PATH
-cat <<- EOF_CAT > etc/environment
+
+# PATH
+cat > /etc/environment <<'EOF_ENV'
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/koheron-server"
-EOF_CAT
-cat <<- EOF_CAT > etc/apt/apt.conf.d/99norecommends
+EOF_ENV
+
+# APT recommends off
+cat > /etc/apt/apt.conf.d/99norecommends <<'EOF_APT'
 APT::Install-Recommends "0";
 APT::Install-Suggests "0";
-EOF_CAT
-cat <<- EOF_CAT > etc/fstab
-# /etc/fstab: static file system information.
-# <file system> <mount point>   <type>  <options>           <dump>  <pass>
-$part2          /               ext4    rw,noatime          0       1
-$part1          /boot           vfat    ro,noatime          0       2
-tmpfs           /tmp            tmpfs   defaults,noatime    0       0
-tmpfs           /var/log        tmpfs   size=1M,noatime     0       0
-EOF_CAT
+EOF_APT
+
+# fstab (PARTUUID-based)
+cat > /etc/fstab <<EOF_FSTAB
+# <fs>                    <mount>  <type>  <opts>                                     <dump> <pass>
+PARTUUID=${ROOTUUID}      /        ext4    defaults,noatime,errors=remount-ro         0      1
+PARTUUID=${BOOTUUID}      /boot    vfat    ro,noatime,umask=022                       0      0
+tmpfs                     /tmp     tmpfs   mode=1777,nosuid,nodev,noexec              0      0
+tmpfs                     /var/log tmpfs   size=16M,mode=0755,nosuid,nodev,noexec     0      0
+EOF_FSTAB
+
 cat <<- EOF_CAT >> etc/securetty
 # Serial Console for Xilinx Zynq-7000
 ttyPS0
@@ -232,14 +244,12 @@ cp $os_path/systemd/nginx.service $root_dir/etc/systemd/system/nginx.service
 rm $root_dir/usr/bin/qemu-a*
 
 # Unmount file systems
-
-umount $boot_dir $root_dir
-
-rmdir $boot_dir $root_dir
-
-zerofree $root_dev
-
-losetup -d $device
+sync
+umount "$boot_dir"
+umount "$root_dir"
+rmdir "$boot_dir" "$root_dir"
+zerofree "$root_dev"
+losetup -d "$device"
 
 img_dir="$(dirname "$image")"
 img_base="$(basename "$image")"
@@ -249,4 +259,3 @@ img_base="$(basename "$image")"
   sha256sum "$img_base" > "${img_base}.sha256"
   zip release.zip "$img_base" "${img_base}.sha256"
 )
-

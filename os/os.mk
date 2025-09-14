@@ -8,6 +8,7 @@ include $(OS_PATH)/toolchain.mk
 BOARD := $(shell basename $(BOARD_PATH))
 
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
+ABS_TMP_OS_PATH := $(abspath $(TMP_OS_PATH))
 
 UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
 LINUX_PATH := $(TMP_OS_PATH)/linux-xlnx-$(LINUX_TAG)
@@ -17,24 +18,36 @@ UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
-FSBL_CFLAGS := -O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard
-LINUX_CFLAGS := -O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard
-UBOOT_CFLAGS := -O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard
+FSBL_CFLAGS := -O2 -march=armv7-a -mfpu=vfpv3 -mfloat-abi=hard
+UBOOT_CFLAGS := -O2 -march=armv7-a -mfpu=neon -mfloat-abi=hard
 
 TMP_OS_VERSION_FILE := $(TMP_OS_PATH)/version.json
 
 $(TMP_OS_VERSION_FILE): $(KOHERON_VERSION_FILE)
 	echo '{ "version": "$(KOHERON_VERSION)" }' > $@
 
-DTREE_SWITCH = $(TMP_OS_PATH)/devicetree.dtb
+DTB_SWITCH = $(TMP_OS_PATH)/devicetree.dtb
 ifdef DTREE_OVERRIDE
-DTREE_SWITCH = $(TMP_OS_PATH)/devicetree_$(DTREE_LOC)
+DTB_SWITCH = $(TMP_OS_PATH)/devicetree_$(DTREE_LOC)
 endif
+ABS_DTB_SWITCH  := $(abspath $(DTB_SWITCH))
+
+# Kernel image name per arch
+ifeq ($(ARCH),arm)
+  KERNEL_BIN := zImage
+else ifeq ($(ARCH),arm64)
+  KERNEL_BIN := Image
+else
+  $(error Unsupported ARCH $(ARCH); expected arm or arm64)
+endif
+
+FIT_ITS := $(TMP_OS_PATH)/kernel.its
+FIT_ITB := $(TMP_OS_PATH)/kernel.itb
 
 BOOT_MEDIUM ?= mmcblk0
 
 .PHONY: os
-os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/$(BOOTCALL) $(TMP_OS_PATH)/$(LINUX_IMAGE) $(DTREE_SWITCH) $(TMP_OS_VERSION_FILE)
+os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/$(BOOTCALL) $(FIT_ITB) $(DTB_SWITCH) $(TMP_OS_VERSION_FILE)
 
 # Build image (run as root)
 .PHONY: image
@@ -241,15 +254,14 @@ $(LINUX_PATH): $(LINUX_TAR)
 
 LINUX_PATCH_FILES := $(shell test -d $(PATCHES)/linux && find $(PATCHES)/linux -type f)
 
-$(TMP_OS_PATH)/$(LINUX_IMAGE): $(LINUX_PATH) $(LINUX_PATCH_FILES) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
+$(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_PATH) $(LINUX_PATCH_FILES) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig | $(TMP_OS_PATH)
 	cp $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs
 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
-	$(DOCKER) make -C $< mrproper
-	$(DOCKER) make -C $< ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
-	$(DOCKER) make -C $< ARCH=$(ARCH) KCFLAGS="-O2 $(GCC_FLAGS)" \
-	  --jobs=$(N_CPUS) \
-	  CROSS_COMPILE=$(GCC_ARCH)- UIMAGE_LOADADDR=0x8000 $(LINUX_IMAGE)
-	cp $</arch/$(ARCH)/boot/$(LINUX_IMAGE) $@
+	$(DOCKER) make -C $(LINUX_PATH) mrproper
+	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
+	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) KCFLAGS="$(GCC_FLAGS)" \
+	  CROSS_COMPILE=$(GCC_ARCH)- --jobs=$(N_CPUS) $(KERNEL_BIN) dtbs
+	cp $(LINUX_PATH)/arch/$(ARCH)/boot/$(KERNEL_BIN) $@
 	@echo [$@] OK
 
 $(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
@@ -290,6 +302,43 @@ $(TMP_OS_PATH)/devicetree_uboot: $(TMP_OS_PATH)/u-boot.elf
 	echo ${DTREE_OVERRIDE}
 	cp $(UBOOT_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
 	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
+
+define ITS_TEMPLATE
+/dts-v1/;
+/ {
+  description = "Linux + DTB (FIT)";
+  #address-cells = <1>;
+  images {
+    kernel_1 {
+      description = "Linux kernel";
+      data = /incbin/("$(ABS_TMP_OS_PATH)/$(KERNEL_BIN)");
+      type = "kernel";
+      arch = "$(ARCH)";
+      os = "linux";
+      compression = "none";
+    };
+    fdt_1 {
+      description = "Device Tree";
+      data = /incbin/("$(ABS_DTB_SWITCH)");
+      type = "flat_dt";
+      arch = "$(ARCH)";
+      compression = "none";
+    };
+  };
+  configurations {
+    default = "conf_1";
+    conf_1 { kernel = "kernel_1"; fdt = "fdt_1"; };
+  };
+};
+endef
+
+$(FIT_ITS): $(TMP_OS_PATH)/$(KERNEL_BIN) $(DTB_SWITCH) | $(TMP_OS_PATH)
+	@$(file >$@,$(ITS_TEMPLATE))
+	@echo "[$@] OK"
+
+$(FIT_ITB): $(FIT_ITS) | $(TMP_OS_PATH)
+	mkimage -f $< $@
+	@echo "[$@] OK"
 
 ###############################################################################
 # HTTP API
