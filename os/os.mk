@@ -76,8 +76,7 @@ FSBL_FILES := $(wildcard $(FSBL_PATH)/*.h $(FSBL_PATH)/*.c)
 .PHONY: fsbl
 fsbl: $(TMP_OS_PATH)/fsbl/executable.elf
 
-$(TMP_OS_PATH)/fsbl/Makefile:  $(TMP_FPGA_PATH)/$(NAME).xsa
-	mkdir -p $(@D)
+$(TMP_OS_PATH)/fsbl/Makefile:  $(TMP_FPGA_PATH)/$(NAME).xsa | $(TMP_OS_PATH)/fsbl/
 	$(HSI) $(FPGA_PATH)/hsi/fsbl.tcl $(NAME) $(PROC) $(TMP_OS_PATH)/hard $(@D) $< $(ZYNQ_TYPE)
 	@echo [$@] OK
 
@@ -103,9 +102,9 @@ $(UBOOT_TAR):
 	curl -L $(UBOOT_URL) -o $@
 	@echo [$@] OK
 
-$(UBOOT_PATH): $(UBOOT_TAR)
-	mkdir -p $@
-	tar -zxf $< --strip-components=1 --directory=$@
+$(UBOOT_PATH)/.unpacked: $(UBOOT_TAR) | $(UBOOT_PATH)/
+	tar -zxf $< --strip-components=1 -C $(@D)
+	touch $@
 	@echo [$@] OK
 
 ifeq ("$(UBOOT_CONFIG)","")
@@ -114,15 +113,14 @@ endif
 
 UBOOT_PATCH_FILES := $(shell test -d $(PATCHES)/u-boot && find $(PATCHES)/u-boot -type f)
 
-$(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH) $(UBOOT_PATCH_FILES)
+$(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) | $(TMP_OS_PATH)/
 	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
-	mkdir -p $(@D)
-	$(DOCKER) make -C $< mrproper
-	$(DOCKER) make -C $< ARCH=$(ARCH) $(UBOOT_CONFIG)
-	$(DOCKER) make -C $< ARCH=$(ARCH) CFLAGS="-O2 $(GCC_FLAGS)" \
+	$(DOCKER) make -C $(UBOOT_PATH) mrproper
+	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(ARCH) $(UBOOT_CONFIG)
+	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(ARCH) CFLAGS="$(UBOOT_CFLAGS) $(GCC_FLAGS)" \
 	  CROSS_COMPILE=$(GCC_ARCH)- all
-	if [ -f $</u-boot.elf ]; then cp $</u-boot.elf $@; else cp $</u-boot $@; fi
+	if [ -f $(UBOOT_PATH)/u-boot.elf ]; then cp $(UBOOT_PATH)/u-boot.elf $@; else cp $(UBOOT_PATH)/u-boot $@; fi
 	@echo [$@] OK
 
 ###############################################################################
@@ -153,12 +151,12 @@ $(ATRUST_TAR):
 	curl -L $(ARMTRUST_URL) -o $@
 	@echo [$@] OK
 
-$(ATRUST_PATH): $(ATRUST_TAR)
-	mkdir -p $@
-	tar -zxf $< --strip-components=1 --directory=$@
+$(ATRUST_PATH)/.unpacked: $(ATRUST_TAR) | $(ATRUST_PATH)/
+	tar -zxf $< --strip-components=1 -C $(@D)
+	@touch $@
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/bl31.elf: $(ATRUST_PATH)
+$(TMP_OS_PATH)/bl31.elf: $(ATRUST_PATH)/.unpacked
 	$(DOCKER) make CROSS_COMPILE=$(GCC_ARCH)- PLAT=zynqmp bl31 ZYNQMP_ATF_MEM_BASE=0x10000 ZYNQMP_ATF_MEM_SIZE=0x40000 -C $(ATRUST_PATH)
 	cp $</build/zynqmp/release/bl31/bl31.elf $@
 	@echo [$@] OK
@@ -196,9 +194,9 @@ $(DTREE_TAR):
 	curl -L $(DTREE_URL) -o $@
 	@echo [$@] OK
 
-$(DTREE_PATH): $(DTREE_TAR)
-	mkdir -p $@
-	tar -zxf $< --strip-components=1 --directory=$@
+$(DTREE_PATH)/.unpacked: $(DTREE_TAR) | $(DTREE_PATH)/
+	tar -zxf $< --strip-components=1 -C $(@D)
+	@touch $@
 	@echo [$@] OK
 
 .PHONY: overlay
@@ -207,7 +205,7 @@ overlay: $(TMP_OS_PATH)/pl.dtbo
 .PHONY: devicetree
 devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
 
-$(TMP_OS_PATH)/overlay/pl.dtsi: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/overlay.patch
+$(TMP_OS_PATH)/overlay/pl.dtsi: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH)/.unpacked $(PATCHES)/overlay.patch
 	mkdir -p $(@D)
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VER) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/overlay $(TMP_FPGA_PATH)/$(NAME).xsa $(BOOT_MEDIUM)
 	cp -R $(TMP_OS_PATH)/overlay $(TMP_OS_PATH)/overlay.orig
@@ -215,7 +213,7 @@ $(TMP_OS_PATH)/overlay/pl.dtsi: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PAT
 	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/overlay.patch
 	@echo [$@] OK
 
-$(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH) $(PATCHES)/devicetree.patch
+$(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).xsa $(DTREE_PATH)/.unpacked $(PATCHES)/devicetree.patch
 	mkdir -p $(@D)
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VER) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/devicetree $(TMP_FPGA_PATH)/$(NAME).xsa $(BOOT_MEDIUM)
 	cp -r $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig
@@ -247,14 +245,14 @@ $(LINUX_TAR):
 	curl -L $(LINUX_URL) -o $@
 	@echo [$@] OK
 
-$(LINUX_PATH): $(LINUX_TAR)
-	mkdir -p $@
-	tar -zxf $< --strip-components=1 --directory=$@
+$(LINUX_PATH)/.unpacked: $(LINUX_TAR) | $(LINUX_PATH)/
+	tar -zxf $< --strip-components=1 -C $(@D)
+	@touch $@
 	@echo [$@] OK
 
 LINUX_PATCH_FILES := $(shell test -d $(PATCHES)/linux && find $(PATCHES)/linux -type f)
 
-$(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_PATH) $(LINUX_PATCH_FILES) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig | $(TMP_OS_PATH)
+$(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig | $(TMP_OS_PATH)/
 	cp $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs
 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $(LINUX_PATH) mrproper
@@ -267,14 +265,13 @@ $(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_PATH) $(LINUX_PATCH_FILES) $(OS_PATH)/xili
 $(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
 	cp $(TMP_OS_PATH)/pl.dtbo  $(TMP_PROJECT_PATH)/pl.dtbo
 
-$(LINUX_PATH)/scripts/dtc/dtc: $(LINUX_PATH) $(LINUX_PATCH_FILES) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
+$(LINUX_PATH)/scripts/dtc/dtc: $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
 	cp $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs
 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
-	$(DOCKER) make -C $< mrproper
-	$(DOCKER) make -C $< ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
+	$(DOCKER) make -C $(LINUX_PATH) mrproper
+	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
 	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
 	@echo [$@] OK
-
 
 $(TMP_OS_PATH)/pl.dtbo: $(LINUX_PATH)/scripts/dtc/dtc $(TMP_OS_PATH)/overlay/pl.dtsi
 	sed -i 's/".bin"/"$(NAME).bit.bin"/g' $(TMP_OS_PATH)/overlay/pl.dtsi
@@ -332,11 +329,11 @@ define ITS_TEMPLATE
 };
 endef
 
-$(FIT_ITS): $(TMP_OS_PATH)/$(KERNEL_BIN) $(DTB_SWITCH) | $(TMP_OS_PATH)
+$(FIT_ITS): $(TMP_OS_PATH)/$(KERNEL_BIN) $(DTB_SWITCH) | $(TMP_OS_PATH)/
 	@$(file >$@,$(ITS_TEMPLATE))
 	@echo "[$@] OK"
 
-$(FIT_ITB): $(FIT_ITS) | $(TMP_OS_PATH)
+$(FIT_ITB): $(FIT_ITS) | $(TMP_OS_PATH)/
 	mkimage -f $< $@
 	@echo "[$@] OK"
 

@@ -9,6 +9,9 @@ export PYTHONPATH
 MATLABPATH :=
 export MATLABPATH
 
+%/:
+	mkdir -p $@
+
 CONFIG ?= examples/alpha250/fft/config.yml
 SDK_PATH ?= .
 MODE ?= development
