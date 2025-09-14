@@ -1,4 +1,5 @@
-set -e
+set -Eeuo pipefail
+IFS=$'\n\t'
 
 tmp_project_path=$1
 os_path=$2
@@ -54,8 +55,10 @@ root_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '3!d'`
 
 # Create file systems
 
-mkfs.vfat -v $boot_dev
-mkfs.ext4 -F -j $root_dev
+mkfs.vfat -F 16 -n BOOT "$boot_dev"
+mkfs.ext4 -F -L rootfs -O metadata_csum,64bit \
+         -E lazy_itable_init=1,lazy_journal_init=1 "$root_dev"
+tune2fs -m 0 -c 0 -i 6m "$root_dev"
 
 # Mount file systems
 
@@ -130,115 +133,158 @@ cp $os_path/scripts/unzip_default_instrument.sh $root_dir/usr/local/instruments/
 echo "${name}.zip" > $root_dir/usr/local/instruments/default
 cp ${tmp_project_path}/${name}.zip $root_dir/usr/local/instruments
 
+# --- mount pseudo-filesystems for chrooted operations ---
+mount -t proc proc "$root_dir/proc"
+mount --rbind /sys  "$root_dir/sys"  && mount --make-rslave "$root_dir/sys"
+mount --rbind /dev  "$root_dir/dev"  && mount --make-rslave "$root_dir/dev"
+mount --bind  /run  "$root_dir/run"  || true  # optional, helps some postinsts
+
 chroot "$root_dir" <<- EOF_CHROOT
+export DEBIAN_FRONTEND=noninteractive
 export LANG=C
 export LC_ALL=C
 
-# PATH
+# ---- PATH for login shells ----
 cat > /etc/environment <<'EOF_ENV'
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/koheron-server"
 EOF_ENV
 
-# APT recommends off
+# ---- Faster/leaner apt & dpkg ----
+# 1) Avoid fsyncs during dpkg (big speed-up on SD/loops)
+cat > /etc/dpkg/dpkg.cfg.d/02_nofsync <<'EOF_DPKG_IO'
+force-unsafe-io
+EOF_DPKG_IO
+# 2) Don’t download docs/manpages/locales (except en_US)
+cat > /etc/dpkg/dpkg.cfg.d/01_nodoc <<'EOF_NODOC'
+path-exclude=/usr/share/doc/*
+path-exclude=/usr/share/man/*
+path-exclude=/usr/share/info/*
+path-exclude=/usr/share/locale/*
+path-include=/usr/share/locale/en/*
+path-include=/usr/share/locale/en_US/*
+EOF_NODOC
+# 3) Don’t fetch translation indexes
+cat > /etc/apt/apt.conf.d/99nolangs <<'EOF_NOLANGS'
+Acquire::Languages "none";
+EOF_NOLANGS
+# 4) No recommends/suggests by default
 cat > /etc/apt/apt.conf.d/99norecommends <<'EOF_APT'
 APT::Install-Recommends "0";
 APT::Install-Suggests "0";
 EOF_APT
+# 5) Be resilient in automation
+cat > /etc/apt/apt.conf.d/99conf <<'EOF_CONF'
+Dpkg::Options { "--force-confdef"; "--force-confold"; };
+Acquire::Retries "3";
+EOF_CONF
 
-# fstab (PARTUUID-based)
+# ---- fstab (PARTUUID-based) ----
 cat > /etc/fstab <<EOF_FSTAB
-# <fs>                    <mount>  <type>  <opts>                                     <dump> <pass>
-PARTUUID=${ROOTUUID}      /        ext4    defaults,noatime,errors=remount-ro         0      1
-PARTUUID=${BOOTUUID}      /boot    vfat    ro,noatime,umask=022                       0      0
-tmpfs                     /tmp     tmpfs   mode=1777,nosuid,nodev,noexec              0      0
-tmpfs                     /var/log tmpfs   size=16M,mode=0755,nosuid,nodev,noexec     0      0
+# <fs>                    <mount>  <type>  <opts>                                                  <dump> <pass>
+PARTUUID=${ROOTUUID}      /        ext4    defaults,noatime,lazytime,commit=30,errors=remount-ro   0      1
+PARTUUID=${BOOTUUID}      /boot    vfat    ro,noatime,umask=022                                    0      0
+tmpfs                     /tmp     tmpfs   mode=1777,nosuid,nodev,noexec                           0      0
+tmpfs                     /var/log tmpfs   size=16M,mode=0755,nosuid,nodev,noexec                  0      0
 EOF_FSTAB
 
-cat <<- EOF_CAT >> etc/securetty
-# Serial Console for Xilinx Zynq-7000
-ttyPS0
-EOF_CAT
-echo koheron > etc/hostname
-cat <<- EOF_CAT >> etc/hosts
+# ---- basic identity ----
+printf '%s\n' 'ttyPS0' >> /etc/securetty
+echo koheron > /etc/hostname
+cat >> /etc/hosts <<'EOF_HOSTS'
 127.0.0.1    localhost.localdomain localhost
 127.0.1.1    koheron
-EOF_CAT
+EOF_HOSTS
 
-# Noble on ARM uses ports.ubuntu.com
+# ---- apt sources (Noble on ARM uses ports.ubuntu.com) ----
 cat > /etc/apt/sources.list <<'EOF_SOURCES'
 deb http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse
 deb http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse
 deb http://ports.ubuntu.com/ubuntu-ports noble-security main restricted universe multiverse
 # deb http://ports.ubuntu.com/ubuntu-ports noble-backports main restricted universe multiverse
 EOF_SOURCES
+rm -f /etc/apt/sources.list.d/ubuntu.sources
 
-# Disable the Deb822 default to avoid “configured multiple times”
-if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
-  sed -i 's/^Enabled:\s*yes/Enabled: no/i' /etc/apt/sources.list.d/ubuntu.sources
-fi
+# ---- /dev/null can be missing in a fresh chroot tarball ----
+rm -f /dev/null && mknod /dev/null c 1 3 && chmod 666 /dev/null
 
-# Make sure /dev/null exists in the fresh chroot before apt
-rm -f /dev/null
-mknod /dev/null c 1 3
-chmod 666 /dev/null
 chmod +x /usr/local/sbin/grow-rootfs-once
 
-apt update
-apt -y upgrade
-apt -y install locales
+apt-get update
+# install it first (without eatmydata), then use it for everything else
+apt-get -yq install --no-install-recommends locales eatmydata
+
 locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
-echo $timezone > etc/timezone
+echo "$timezone" > /etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
-DEBIAN_FRONTEND=noninteractive apt install -yq ntp
-apt install -y openssh-server
-apt install -y usbutils psmisc lsof
-apt install -y parted curl less vim iw ntfs-3g
-apt install -y cloud-guest-utils e2fsprogs
-apt install -y bash-completion unzip
-apt install -y udev net-tools netbase ifupdown network-manager lsb-base isc-dhcp-client
-apt install -y ntpdate sudo rsync
-apt install -y kmod
-apt install -y gcc
-apt install -y nginx
-apt install -y python3-numpy
-apt install -y python3-flask
-apt install -y uwsgi-core uwsgi-plugin-python3
-apt install -y python3-simplejson
 
-systemctl enable uwsgi
-systemctl enable grow-rootfs-once.service
-systemctl enable unzip-default-instrument
-#systemctl enable koheron-server
-systemctl enable nginx
-sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-touch etc/udev/rules.d/75-persistent-net-generator.rules
-cat <<- EOF_CAT >> etc/network/interfaces
+# now use eatmydata directly
+eatmydata apt-get -yq install --no-install-recommends \
+  openssh-server usbutils psmisc lsof parted curl less nano iw ntfs-3g \
+  cloud-guest-utils e2fsprogs bash-completion unzip udev net-tools netbase \
+  ifupdown lsb-base isc-dhcp-client sudo rsync kmod gcc nginx \
+  python3-numpy python3-flask uwsgi-core uwsgi-plugin-python3 python3-simplejson \
+  systemd-timesyncd
+
+systemd-sysusers || true
+systemd-tmpfiles --create || true
+
+# ---- Enable services (create symlinks even in chroot) ----
+systemctl enable systemd-timesyncd || true
+systemctl enable uwsgi || true
+systemctl enable grow-rootfs-once.service || true
+systemctl enable unzip-default-instrument || true
+# systemctl enable koheron-server || true
+systemctl enable nginx || true
+
+# SSH policy (you currently allow root login; consider using a non-root user instead)
+sed -i 's/#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+# ---- Basic net config (ifupdown) ----
+touch /etc/udev/rules.d/75-persistent-net-generator.rules
+cat >> /etc/network/interfaces <<'EOF_IF'
 allow-hotplug end0
 # DHCP configuration
 iface end0 inet dhcp
-# Static IP
-#iface end0 inet static
-#  address 192.168.1.100
-#  gateway 192.168.1.1
-#  netmask 255.255.255.0
-#  network 192.168.1.0
-#  broadcast 192.168.1.255
-  # /!\ koheron-server-init must be the first post-up called
-  # else it wont be called if a previous post-up fails.
+# Static IP (example)
+# iface end0 inet static
+#   address 192.168.1.100
+#   gateway 192.168.1.1
+#   netmask 255.255.255.0
+#   network 192.168.1.0
+#   broadcast 192.168.1.255
+  # koheron-server-init must be first post-up
   post-up systemctl start koheron-server-init
-  post-up ntpdate -u ntp.u-psud.fr
-EOF_CAT
-apt clean
-echo root:$passwd | chpasswd
-history -c
+EOF_IF
+
+eatmydata apt-get clean
+rm -rf /var/lib/apt/lists/*
+
+# Root password
+echo "root:$passwd" | chpasswd
+
+# Hygiene
+rm -f /root/.bash_history /root/.ash_history /root/.python_history /root/.lesshst || true
+
 EOF_CHROOT
 
-# nginx
-rm $root_dir/etc/nginx/sites-enabled/default
-cp $os_path/config/nginx.conf $root_dir/etc/nginx/nginx.conf
-cp $os_path/config/nginx-server.conf $root_dir/etc/nginx/sites-enabled/nginx-server.conf
-cp $os_path/systemd/nginx.service $root_dir/etc/systemd/system/nginx.service
+umount -l "$root_dir/run" 2>/dev/null || true
+umount -R  "$root_dir/dev" 2>/dev/null || true
+umount -R  "$root_dir/sys" 2>/dev/null || true
+umount -l  "$root_dir/proc" 2>/dev/null || true
+
+install -d "$root_dir/etc/nginx" \
+          "$root_dir/etc/nginx/sites-available" \
+          "$root_dir/etc/nginx/sites-enabled"
+install -m 0644 "$os_path/config/nginx.conf" \
+                 "$root_dir/etc/nginx/nginx.conf"
+install -m 0644 "$os_path/config/nginx-server.conf" \
+                 "$root_dir/etc/nginx/sites-available/koheron.conf"
+ln -sf ../sites-available/koheron.conf \
+       "$root_dir/etc/nginx/sites-enabled/koheron.conf"
+rm -f "$root_dir/etc/nginx/sites-enabled/default"
+install -D -m 0644 "$os_path/systemd/nginx.service" \
+                    "$root_dir/etc/systemd/system/nginx.service"
 
 #rm $root_dir/etc/resolv.conf
 rm $root_dir/usr/bin/qemu-a*
@@ -248,7 +294,8 @@ sync
 umount "$boot_dir"
 umount "$root_dir"
 rmdir "$boot_dir" "$root_dir"
-zerofree "$root_dev"
+e2fsck -f -y "$root_dev" || true
+zerofree "$root_dev" >/dev/null 2>&1 || true
 losetup -d "$device"
 
 img_dir="$(dirname "$image")"
@@ -259,3 +306,9 @@ img_base="$(basename "$image")"
   sha256sum "$img_base" > "${img_base}.sha256"
   zip release.zip "$img_base" "${img_base}.sha256"
 )
+
+# Make outputs owned by the host user if we ran as root in the container
+if [ -n "${HOST_UID:-}" ] && [ -n "${HOST_GID:-}" ]; then
+  chown ${HOST_UID}:${HOST_GID} "$image" "${image}.sha256" \
+    "$(dirname "$image")/release.zip" 2>/dev/null || true
+fi

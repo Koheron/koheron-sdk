@@ -28,3 +28,13 @@ DOCKER ?= docker run --rm $(DOCKER_DEV) $(DOCKER_ENV) \
          $(DOCKER_VOL) $(DOCKER_FLAGS) $(DOCKER_IMAGE)
 
 DOCKER_MAKE = $(DOCKER) env -u MAKEFLAGS MAKEFLAGS="-j$(N_CPUS) --output-sync=target" make
+
+DOCKER_ENV  += -e HOST_UID=$(DOCKER_UID) -e HOST_GID=$(DOCKER_GID)
+
+# root-runner: same flags, but run as root (no -u)
+DOCKER_ROOT = docker run --rm -t --privileged -v /dev:/dev \
+               --tmpfs /run --tmpfs /tmp \
+               -e HOME=$(DOCKER_WD) -e http_proxy -e https_proxy -e no_proxy \
+               -e TZ=$(shell cat /etc/timezone 2>/dev/null || echo UTC) \
+               -w $(DOCKER_WD) -v $(SDK_FULL_PATH):$(DOCKER_WD):Z \
+               --cpus=$(N_CPUS) $(DOCKER_FLAGS) $(DOCKER_IMAGE)

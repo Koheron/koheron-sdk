@@ -51,7 +51,9 @@ os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/$(BOOTCALL) $(FIT_ITB) $(DTB_SWITCH
 # Build image (run as root)
 .PHONY: image
 image:
-	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE) $(BOOT_MEDIUM)
+	$(DOCKER_ROOT) bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh \
+	  $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) \
+	  $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE) $(BOOT_MEDIUM)
 
 # Flash image on SD card
 .PHONY: flash
