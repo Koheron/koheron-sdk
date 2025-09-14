@@ -21,7 +21,10 @@ DOCKER_VOL    = -v $(SDK_FULL_PATH):$(DOCKER_WD):Z
 # Optional: ccache (if you use it)
 # DOCKER_VOL   += -v $(HOME)/.ccache:/home/containeruser/.ccache
 
-DOCKER_FLAGS ?=
+DOCKER_FLAGS ?= --cpus=$(N_CPUS)
+
 DOCKER ?= docker run --rm $(DOCKER_DEV) $(DOCKER_ENV) \
          -u $(DOCKER_UID):$(DOCKER_GID) -w $(DOCKER_WD) \
          $(DOCKER_VOL) $(DOCKER_FLAGS) $(DOCKER_IMAGE)
+
+DOCKER_MAKE = $(DOCKER) env -u MAKEFLAGS MAKEFLAGS="-j$(N_CPUS) --output-sync=target" make

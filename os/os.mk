@@ -18,7 +18,6 @@ UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
-FSBL_CFLAGS := -O2 -march=armv7-a -mfpu=vfpv3 -mfloat-abi=hard
 UBOOT_CFLAGS := -O2 -march=armv7-a -mfpu=neon -mfloat-abi=hard
 
 TMP_OS_VERSION_FILE := $(TMP_OS_PATH)/version.json
@@ -86,7 +85,7 @@ $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
 		echo "Patching ps7_init.c ..."; \
 		$(PYTHON) $(FSBL_PATH)/apply_ps7_init_patch.py $(TMP_OS_PATH)/fsbl; \
 	fi
-	source $(VIVADO_PATH)/settings64.sh && $(DOCKER) make -C $(@D) CFLAGS="$(FSBL_CFLAGS)" all
+	source $(VIVADO_PATH)/settings64.sh && $(DOCKER) make -C $(@D) all
 	@echo [$@] OK
 
 .PHONY: clean_fsbl
