@@ -25,9 +25,10 @@ int misc_init_r(void)
 		return 0;
 
 	char line[OCM_ENV_MAX];
-	int n = 0;
-	while (n + 1 < (int)sizeof(line) && p[n] && p[n] != '\n')
-		line[n++] = p[n];
+	int n;
+
+	for (n = 0; n + 1 < (int)sizeof(line) && p[n] && p[n] != '\n'; ++n)
+		line[n] = p[n];
 	line[n] = '\0';
 
 	const char *mac = line + 8;
