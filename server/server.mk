@@ -1,8 +1,7 @@
 
 TMP_SERVER_PATH := $(TMP_PROJECT_PATH)/server
 
-$(TMP_SERVER_PATH):
-	@mkdir -p $@
+$(TMP_SERVER_PATH)/%.o: | $(TMP_SERVER_PATH)/
 
 SERVER_TEMPLATES := $(wildcard $(SERVER_PATH)/templates/*.hpp $(SERVER_PATH)/templates/*.cpp)
 SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/core/*.cpp))))
