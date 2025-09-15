@@ -145,9 +145,9 @@ export LANG=C
 export LC_ALL=C
 
 # ---- PATH for login shells ----
-cat > /etc/environment <<'EOF_ENV'
-PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/koheron-server"
-EOF_ENV
+cat >/etc/environment <<'EOF'
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/koheron-server"
+EOF
 
 # ---- Faster/leaner apt & dpkg ----
 # 1) Avoid fsyncs during dpkg (big speed-up on SD/loops)
@@ -223,40 +223,48 @@ eatmydata apt-get -yq install --no-install-recommends \
   systemd systemd-sysv \
   openssh-server usbutils psmisc lsof parted curl less nano iw ntfs-3g \
   cloud-guest-utils e2fsprogs bash-completion unzip udev net-tools netbase \
-  ifupdown lsb-base isc-dhcp-client sudo rsync kmod gcc nginx \
+  lsb-base sudo rsync kmod gcc nginx \
   python3-numpy python3-flask uwsgi-core uwsgi-plugin-python3 python3-simplejson \
-  systemd-timesyncd
+  systemd-timesyncd systemd-resolved iproute2
+
+rm -f /etc/network/interfaces /etc/network/interfaces.d/* || true
+
+install -d -m0755 /etc/systemd/network
+cat >/etc/systemd/network/10-end0.network <<'EOF'
+[Match]
+Name=end0
+
+[Network]
+DHCP=ipv4
+
+[DHCPv4]
+UseDNS=true
+EOF
+
+# Hook resolv.conf to systemd-resolved stub
+rm -f /etc/resolv.conf
+ln -s ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 
 systemd-sysusers || true
 systemd-tmpfiles --create || true
 
+
 # ---- Enable services (create symlinks even in chroot) ----
-systemctl enable systemd-timesyncd || true
 systemctl enable uwsgi || true
 systemctl enable grow-rootfs-once.service || true
 systemctl enable unzip-default-instrument || true
 # systemctl enable koheron-server || true
 systemctl enable nginx || true
+systemctl enable systemd-networkd.service
+systemctl enable systemd-resolved.service
+systemctl enable systemd-timesyncd.service
+systemctl enable systemd-networkd-wait-online.service || true
+
+systemctl disable getty@tty2.service getty@tty3.service getty@tty4.service getty@tty5.service getty@tty6.service
+systemctl mask apt-daily.timer apt-daily-upgrade.timer dpkg-db-backup.timer
 
 # SSH policy (you currently allow root login; consider using a non-root user instead)
 sed -i 's/#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-
-# ---- Basic net config (ifupdown) ----
-touch /etc/udev/rules.d/75-persistent-net-generator.rules
-cat >> /etc/network/interfaces <<'EOF_IF'
-allow-hotplug end0
-# DHCP configuration
-iface end0 inet dhcp
-# Static IP (example)
-# iface end0 inet static
-#   address 192.168.1.100
-#   gateway 192.168.1.1
-#   netmask 255.255.255.0
-#   network 192.168.1.0
-#   broadcast 192.168.1.255
-  # koheron-server-init must be first post-up
-  post-up systemctl start koheron-server-init
-EOF_IF
 
 eatmydata apt-get clean
 rm -rf /var/lib/apt/lists/*
