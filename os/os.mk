@@ -258,7 +258,7 @@ $(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES) $(OS_
 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $(LINUX_PATH) mrproper
 	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
-	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) KCFLAGS="$(GCC_FLAGS)" \
+	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) \
 	  CROSS_COMPILE=$(GCC_ARCH)- --jobs=$(N_CPUS) $(KERNEL_BIN) dtbs
 	cp $(LINUX_PATH)/arch/$(ARCH)/boot/$(KERNEL_BIN) $@
 	@echo [$@] OK
@@ -301,6 +301,12 @@ $(TMP_OS_PATH)/devicetree_uboot: $(TMP_OS_PATH)/u-boot.elf
 	cp $(UBOOT_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
 	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
 
+ifeq ($(ARCH),arm)
+  FIT_LOAD := 0x03000000
+else ifeq ($(ARCH),arm64)
+  FIT_LOAD ?= 0x03000000
+endif
+
 define ITS_TEMPLATE
 /dts-v1/;
 / {
@@ -314,6 +320,8 @@ define ITS_TEMPLATE
       arch = "$(ARCH)";
       os = "linux";
       compression = "none";
+      load = <$(FIT_LOAD)>;
+      entry = <$(FIT_LOAD)>;
     };
     fdt_1 {
       description = "Device Tree";

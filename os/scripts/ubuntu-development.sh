@@ -183,7 +183,7 @@ cat > /etc/fstab <<EOF_FSTAB
 # <fs>                    <mount>  <type>  <opts>                                                  <dump> <pass>
 PARTUUID=${ROOTUUID}      /        ext4    defaults,noatime,lazytime,commit=30,errors=remount-ro   0      1
 PARTUUID=${BOOTUUID}      /boot    vfat    ro,noatime,umask=022                                    0      0
-tmpfs                     /tmp     tmpfs   mode=1777,nosuid,nodev,noexec                           0      0
+tmpfs                     /tmp     tmpfs   mode=1777,nosuid,nodev                                  0      0
 tmpfs                     /var/log tmpfs   size=16M,mode=0755,nosuid,nodev,noexec                  0      0
 EOF_FSTAB
 
@@ -220,6 +220,7 @@ dpkg-reconfigure --frontend=noninteractive tzdata
 
 # now use eatmydata directly
 eatmydata apt-get -yq install --no-install-recommends \
+  systemd systemd-sysv \
   openssh-server usbutils psmisc lsof parted curl less nano iw ntfs-3g \
   cloud-guest-utils e2fsprogs bash-completion unzip udev net-tools netbase \
   ifupdown lsb-base isc-dhcp-client sudo rsync kmod gcc nginx \
