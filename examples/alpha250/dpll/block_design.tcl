@@ -21,7 +21,7 @@ connect_cell adc_dac {
 
 create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_analog_io_rtl:1.0 Vp_Vn
 
-cell xilinx.com:ip:xlconcat:2.1 concat_interrupts {
+cell_inline xilinx.com:inline_hdl:ilconcat:1.0 concat_interrupts {
   NUM_PORTS 1
 } {
   dout ps_0/IRQ_F2P

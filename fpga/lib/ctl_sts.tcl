@@ -129,7 +129,7 @@ proc add_status_register {module_name memory_name mclk mrstn reg_names {num_port
   # Use multiple concats because Xilinx IP does not allow num_ports > 32
   set concat_num [expr $num_ports / 32 + 1]
   # Concat the multiple concat blocks
-  cell xilinx.com:ip:xlconcat:2.1 concat_concat {
+  cell_inline xilinx.com:inline_hdl:ilconcat:1.0 concat_concat {
     NUM_PORTS $concat_num
   } {
     dout axi_${module_name}_register_0/sts_data
@@ -138,7 +138,7 @@ proc add_status_register {module_name memory_name mclk mrstn reg_names {num_port
   while {$left_ports > 0} {
     set concat_num_ports [expr min($left_ports, 32)]
 
-    cell xilinx.com:ip:xlconcat:2.1 concat_$concat_idx {
+    cell_inline xilinx.com:inline_hdl:ilconcat:1.0 concat_$concat_idx {
       NUM_PORTS $concat_num_ports
     } {
       dout concat_concat/In$concat_idx

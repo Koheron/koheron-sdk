@@ -66,7 +66,7 @@ proc get_concat_pin {pins {cell_name ""}} {
     set cell_name concat_[join [lmap pin $pin_names {set pin [lindex [split $pin /] end]}] _]
   }
   if {[get_bd_cells $cell_name] eq ""} {
-    cell xilinx.com:inline_hdl:ilconcat:1.0 $cell_name {
+    cell_inline xilinx.com:inline_hdl:ilconcat:1.0 $cell_name {
       NUM_PORTS [llength $pin_names]
     } {}
   }
@@ -125,7 +125,7 @@ proc get_slice_pin {pin_name from to {cell_name ""}} {
     set cell_name slice_${from}_${to}_[underscore $pin_name]
   }
   if {[get_bd_cells $cell_name] eq ""} {
-    cell xilinx.com:inline_hdl:ilslice:1.0 $cell_name {
+    cell_inline xilinx.com:inline_hdl:ilslice:1.0 $cell_name {
       DIN_WIDTH [get_pin_width $pin_name]
       DIN_FROM $from
       DIN_TO $to
@@ -168,7 +168,7 @@ proc get_Q_pin {pin_name {depth 1} {ce_pin_name "noce"} {clk clk} {cell_name ""}
 proc get_constant_pin {value width} {
   set cell_name const_v${value}_w${width}
   if {[get_bd_cells $cell_name] eq ""} {
-    cell xilinx.com:inline_hdl:ilconstant:1.0 $cell_name {
+    cell_inline xilinx.com:inline_hdl:ilconstant:1.0 $cell_name {
       CONST_VAL $value
       CONST_WIDTH $width
     } {}
@@ -203,7 +203,7 @@ proc connect_port_pin {port pin} {
 }
 
 proc connect_constant {name value width pin} {
-  cell xilinx.com:inline_hdl:ilconstant:1.0 $name {
+  cell_inline xilinx.com:inline_hdl:ilconstant:1.0 $name {
     CONST_VAL $value
     CONST_WIDTH $width
   } {
@@ -255,6 +255,12 @@ proc set_cell_props {cell_name cell_props} {
 
 proc cell {cell_vlnv cell_name {cell_props {}} {cell_ports {}}} {
   create_bd_cell -type ip -vlnv [check_vlnv $cell_vlnv] $cell_name
+  set_cell_props $cell_name [uplevel 1 [list subst $cell_props]]
+  connect_cell   $cell_name [uplevel 1 [list subst $cell_ports]]
+}
+
+proc cell_inline {cell_vlnv cell_name {cell_props {}} {cell_ports {}}} {
+  create_bd_cell -type inline_hdl -vlnv [check_vlnv $cell_vlnv] $cell_name
   set_cell_props $cell_name [uplevel 1 [list subst $cell_props]]
   connect_cell   $cell_name [uplevel 1 [list subst $cell_ports]]
 }
