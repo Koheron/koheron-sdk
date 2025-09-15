@@ -88,7 +88,7 @@ cell xilinx.com:ip:cic_compiler:4.0 cic {
   S_AXIS_DATA adc_clock_converter/M_AXIS
 }
 
-set fir_coeffs [exec -- env -i [lindex $argv end] -I fpga/scripts/fir.py $n_stages $dec_rate_min $diff_delay print]
+set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rate_min $diff_delay print]
 
 cell xilinx.com:ip:fir_compiler:7.2 fir {
   Filter_Type Decimation

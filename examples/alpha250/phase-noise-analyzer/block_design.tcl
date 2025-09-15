@@ -109,7 +109,7 @@ cell pavel-demin:user:axis_variable:1.0 cic_rate {
   M_AXIS cic/S_AXIS_CONFIG
 }
 
-set fir_coeffs [exec -- env -i [lindex $argv end] -I fpga/scripts/fir.py $n_stages $dec_rate_min $diff_delay print]
+set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rate_min $diff_delay print]
 
 cell xilinx.com:ip:fir_compiler:7.2 fir {
   Filter_Type Decimation
