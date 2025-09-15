@@ -37,7 +37,6 @@ class Ltc2157
         // Load calibrations
         eeprom.read<eeprom_map::rf_adc_ch0_calib::offset>(cal_coeffs[0]);
         eeprom.read<eeprom_map::rf_adc_ch1_calib::offset>(cal_coeffs[1]);
-
         spi_cfg.lock();
 
         // Reset
@@ -65,6 +64,8 @@ class Ltc2157
         uint32_t TWOSCOMP = 1;
         write_reg((DATA_FORMAT << 8) + (RAND << 1) + (TWOSCOMP << 0));
         spi_cfg.unlock();
+
+        ctx.log<INFO>("Ltc2157: Initialized");
     }
 
     const auto get_calibration(uint32_t channel) {
