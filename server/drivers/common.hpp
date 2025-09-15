@@ -43,82 +43,36 @@ class Common
     }
 
     void ip_on_leds() {
-        size_t cnt = get_iplist();
-        bool found = false;
-        // Turn all the leds ON
-        ctl.write<reg::led>(255);
-        for (size_t i = 0; i < cnt; i++) {
-          struct ifaddrs* addrs;
-          getifaddrs(&addrs);
-          ifaddrs* tmp = addrs;
+        struct ifaddrs* addrs = nullptr;
+        if (getifaddrs(&addrs) != 0 || !addrs) return;
 
-          while (tmp) {
-            // Works only for IPv4 address
-            if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-align"
-              struct sockaddr_in* pAddr =
-                  reinterpret_cast<struct sockaddr_in*>(tmp->ifa_addr);
-#pragma GCC diagnostic pop
-              int val = strcmp(tmp->ifa_name, iplist.at(i).c_str());
+        // Turn all the LEDs ON
+        set_led(255);
 
-              if (val != 0) {
-                tmp = tmp->ifa_next;
-                continue;
-              }
+        const char* preferred[] = {"end0", "eth0"};
+        for (const char* want : preferred) {
+            for (auto* it = addrs; it; it = it->ifa_next) {
+                if (!it->ifa_addr || it->ifa_addr->sa_family != AF_INET) continue;
+                if (std::strcmp(it->ifa_name, want) != 0) continue;
 
-              printf("Interface %s found: %s\n", tmp->ifa_name,
-                     inet_ntoa(pAddr->sin_addr));
-              uint32_t ip = htonl(pAddr->sin_addr.s_addr);
-
-              // Write IP address in FPGA memory
-              // The 8 Least Significant Bits should be connected to the FPGA
-              // LEDs
-              ctl.write_mask<reg::led, 0xFF>(ip);
-              found = true;
-              break;
+                auto* pAddr = reinterpret_cast<sockaddr_in*>(it->ifa_addr);
+                ctx.log<INFO>("Interface %s found: %s\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
+                uint32_t ip = htonl(pAddr->sin_addr.s_addr);
+                set_led(ip);
+                freeifaddrs(addrs);
+                return;
             }
-
-            tmp = tmp->ifa_next;
-          }
-          freeifaddrs(addrs);
-          if (found) break;
         }
+
+        // Neither end0 nor eth0 had an IPv4; keep LEDs as-is (optional: log)
+        ctx.log<INFO>("No IPv4 on end0/eth0\n");
+        freeifaddrs(addrs);
     }
 
   private:
     Context& ctx;
     Memory<mem::control>& ctl;
     Memory<mem::status>& sts;
-    std::vector<std::string> iplist;
-
-    size_t get_iplist () {
-        std::string s = exec("find /sys/class/net -type l -not -lname '*virtual*' -printf '%f\n'");
-        std::string delimiter = "\n";
-        size_t pos = 0;
-        std::string token;
-        while ((pos = s.find(delimiter)) != std::string::npos) {
-          token = s.substr(0, pos);
-          if (token.size() > 2) {
-             iplist.push_back(token);
-          }
-          s.erase(0, pos + delimiter.length());
-        }
-        return iplist.size();
-    }
-
-    std::string exec(const char* cmd) {
-      std::array<char, 128> buffer;
-      std::string result;
-      std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
-      if (!pipe) {
-        return "";
-      }
-      while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-        result += buffer.data();
-      }
-      return result;
-    }
 
 };
 
