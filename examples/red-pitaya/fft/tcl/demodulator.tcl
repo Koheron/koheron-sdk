@@ -86,7 +86,7 @@ proc create {module_name} {
         aresetn aresetn
     }
 
-    set fir_coeffs [exec -- env -i [lindex $argv end] -I fpga/scripts/fir.py  $n_stages $dec_rate $diff_delay print]
+    set fir_coeffs [exec -- env -i [lindex $::argv end] -I fpga/scripts/fir.py  $n_stages $dec_rate $diff_delay print]
 
     cell xilinx.com:ip:fir_compiler:7.2 fir {
         Filter_Type Decimation
