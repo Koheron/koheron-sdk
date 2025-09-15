@@ -55,7 +55,7 @@ class Common
         struct ifaddrs* addrs = nullptr;
         if (getifaddrs(&addrs) != 0 || !addrs) return;
 
-        // Turn all the LEDs ON (your original behavior)
+        // Turn all the LEDs ON
         gpio.set_led(255);
 
         const char* preferred[] = {"end0", "eth0"};

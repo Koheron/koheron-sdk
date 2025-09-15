@@ -59,7 +59,7 @@ class Common
         struct ifaddrs* addrs = nullptr;
         if (getifaddrs(&addrs) != 0 || !addrs) return;
 
-        // Turn all the LEDs ON (your original behavior)
+        // Turn all the LEDs ON
         gpio.set_led(255);
 
         const char* preferred[] = {"end0", "eth0"};
@@ -78,7 +78,7 @@ class Common
         }
 
         // Neither end0 nor eth0 had an IPv4; keep LEDs as-is (optional: log)
-        // ctx.log<INFO>("No IPv4 on end0/eth0\n");
+        ctx.log<INFO>("No IPv4 on end0/eth0\n");
         freeifaddrs(addrs);
     }
 
