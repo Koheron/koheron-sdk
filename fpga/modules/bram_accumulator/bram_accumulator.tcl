@@ -80,7 +80,7 @@ proc create {module_name} {
 
   set wen_pin [get_Q_pin last_cycle $total_latency]
 
-  cell_inline xilinx.com:inline_hdl:ilconcat:1.0 concat_wen {
+  cell xilinx.com:ip:xlconcat:2.1 concat_wen {
     NUM_PORTS 4
   } {
     In0 $wen_pin
