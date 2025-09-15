@@ -1,6 +1,5 @@
 # koheron-sdk
 
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/Koheron/koheron-sdk/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Koheron/koheron-sdk/tree/master)
 [![PyPI version](https://img.shields.io/pypi/v/koheron.svg)](https://pypi.python.org/pypi/koheron)
 
 https://www.koheron.com/software-development-kit
