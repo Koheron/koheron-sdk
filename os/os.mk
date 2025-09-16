@@ -1,14 +1,10 @@
-# Build:
-# - First-stage boot loader
-# - Device tree
-# - U-boot
-# - Linux kernel
-include $(OS_PATH)/toolchain.mk
-
-BOARD := $(shell basename $(BOARD_PATH))
-
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 ABS_TMP_OS_PATH := $(abspath $(TMP_OS_PATH))
+
+include $(OS_PATH)/toolchain.mk
+include $(OS_PATH)/rootfs.mk
+
+BOARD := $(shell basename $(BOARD_PATH))
 
 UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
 LINUX_PATH := $(TMP_OS_PATH)/linux-xlnx-$(LINUX_TAG)
@@ -45,15 +41,36 @@ FIT_ITB := $(TMP_OS_PATH)/kernel.itb
 
 BOOT_MEDIUM ?= mmcblk0
 
-.PHONY: os
-os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/$(BOOTCALL) $(FIT_ITB) $(DTB_SWITCH) $(TMP_OS_VERSION_FILE)
+RELEASE_ZIP := $(TMP_PROJECT_PATH)/release.zip
 
-# Build image (run as root)
-.PHONY: image
-image:
+OS_FILES := \
+  $(INSTRUMENT_ZIP) \
+  $(API_FILES) \
+  $(WWW_ASSETS) \
+  $(TMP_OS_PATH)/$(BOOTCALL) \
+  $(FIT_ITB) \
+  $(DTB_SWITCH) \
+  $(TMP_OS_VERSION_FILE)
+
+.PHONY: os
+os: $(OS_FILES)
+
+$(RELEASE_ZIP): \
+  $(INSTRUMENT_ZIP) \
+  $(TMP_OS_PATH)/$(BOOTCALL) $(FIT_ITB) $(DTB_SWITCH) \
+  $(TMP_OS_VERSION_FILE) $(OS_PATH)/scripts/ubuntu-$(MODE).sh \
+  $(ROOT_TAR_PATH) $(OVERLAY_TAR) \
+  | $(TMP_PROJECT_PATH)/ $(TMP_OS_PATH)/
+	@test -s "$(ROOT_TAR_PATH)" || { echo "Missing root tar: $(ROOT_TAR_PATH)"; exit 1; }
+	@test -s "$(OVERLAY_TAR)"   || { echo "Missing overlay tar: $(OVERLAY_TAR)"; exit 1; }
 	$(DOCKER_ROOT) bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh \
 	  $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) \
-	  $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE) $(BOOT_MEDIUM)
+	  $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE) $(BOOT_MEDIUM) \
+	  $(ROOT_TAR_PATH) $(OVERLAY_TAR) $(QEMU_BIN)
+
+# Build image
+.PHONY: image
+image: $(RELEASE_ZIP)
 
 # Flash image on SD card
 .PHONY: flash
@@ -345,144 +362,6 @@ $(FIT_ITS): $(TMP_OS_PATH)/$(KERNEL_BIN) $(DTB_SWITCH) | $(TMP_OS_PATH)/
 $(FIT_ITB): $(FIT_ITS) | $(TMP_OS_PATH)/
 	mkimage -f $< $@
 	@echo "[$@] OK"
-
-###############################################################################
-# HTTP API
-###############################################################################
-
-TMP_API_PATH := $(TMP)/api
-
-.PHONY:
-api: $(TMP_API_PATH)/wsgi.py \
-        $(TMP_API_PATH)/app/__init__.py \
-        $(TMP_API_PATH)/app/install_instrument.sh
-
-$(TMP_API_PATH)/wsgi.py: $(OS_PATH)/api/wsgi.py
-	mkdir -p $(@D)
-	cp $< $@
-
-$(TMP_API_PATH)/app/%: $(OS_PATH)/api/%
-	mkdir -p $(@D)
-	cp $< $@
-
-
-PASSWORD ?= changeme
-
-.PHONY:
-api_sync: api
-	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" $(TMP_API_PATH)/. root@$(HOST):/usr/local/api/
-	sshpass -p "$(PASSWORD)" ssh -i /ssh-private-key root@$(HOST) 'systemctl daemon-reload || true; systemctl reload-or-restart uwsgi'
-
-.PHONY:
-api_clean:
-	rm -rf $(TMP_API_PATH)
-
-###############################################################################
-# WWW
-###############################################################################
-
-WWW_PATH:= $(OS_PATH)/www
-TMP_WWW_PATH:= $(TMP)/www
-
-.PHONY: www
-www : $(TMP_WWW_PATH)/koheron.css \
-		$(TMP_WWW_PATH)/instruments.js \
-		$(TMP_WWW_PATH)/index.html \
-		$(TMP_WWW_PATH)/main.css \
-		$(TMP_WWW_PATH)/bootstrap.min.js \
-		$(TMP_WWW_PATH)/bootstrap.min.css \
-		$(TMP_WWW_PATH)/jquery.min.js \
-		$(TMP_WWW_PATH)/koheron.svg \
-		$(TMP_WWW_PATH)/koheron_logo.svg \
-		$(TMP_WWW_PATH)/kbird.ico \
-		$(TMP_WWW_PATH)/lato-v11-latin-400.woff2 \
-		$(TMP_WWW_PATH)/lato-v11-latin-700.woff2 \
-		$(TMP_WWW_PATH)/lato-v11-latin-900.woff2 \
-		$(TMP_WWW_PATH)/glyphicons-halflings-regular.woff2 \
-		$(TMP_WWW_PATH)/navigation.html \
-		$(TMP_WWW_PATH)/html-imports.min.js \
-		$(TMP_WWW_PATH)/html-imports.min.js.map
-
-.PHONY: www_sync
-www_sync: www
-	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" $(TMP_WWW_PATH)/. root@$(HOST):/usr/local/www/
-
-.PHONY: clean_www
-clean_www:
-	rm -rf $(TMP_WWW_PATH)
-
-WWW_TS_FILES := $(WEB_PATH)/koheron.ts
-WWW_TS_FILES += $(WWW_PATH)/instruments.ts
-WWW_TS_FILES += $(WWW_PATH)/instruments_widget.ts
-WWW_TS_FILES += $(WWW_PATH)/koheron_server_log.ts
-
-$(TMP_WWW_PATH)/instruments.js: $(WWW_TS_FILES)
-	mkdir -p $(@D)
-	$(TSC) $^ --outFile $@
-
-$(TMP_WWW_PATH)/koheron.css:
-	mkdir -p $(@D)
-	curl https://assets.koheron.com/css/main.css -o $@
-
-$(TMP_WWW_PATH)/index.html: $(WWW_PATH)/index.html
-	mkdir -p $(@D)
-	cp $< $@
-
-$(TMP_WWW_PATH)/navigation.html: $(WEB_PATH)/navigation.html
-	mkdir -p $(@D)
-	cp $< $@
-
-$(TMP_WWW_PATH)/main.css: $(WEB_PATH)/main.css
-	mkdir -p $(@D)
-	cp $< $@
-
-$(TMP_WWW_PATH)/bootstrap.min.js:
-	mkdir -p $(@D)
-	curl http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js -o $@
-
-$(TMP_WWW_PATH)/bootstrap.min.css:
-	mkdir -p $(@D)
-	curl http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css -o $@
-
-$(TMP_WWW_PATH)/jquery.min.js:
-	mkdir -p $(@D)
-	curl https://code.jquery.com/jquery-1.12.4.min.js -o $@
-
-$(TMP_WWW_PATH)/koheron.svg:
-	mkdir -p $(@D)
-	curl https://assets.koheron.com/images/logo/koheron.svg -o $@
-
-$(TMP_WWW_PATH)/koheron_logo.svg:
-	mkdir -p $(@D)
-	curl https://assets.koheron.com/images/logo/koheron_logo.svg -o $@
-
-$(TMP_WWW_PATH)/kbird.ico:
-	mkdir -p $(@D)
-	curl https://assets.koheron.com/images/logo/koheron.ico -o $@
-
-$(TMP_WWW_PATH)/lato-v11-latin-400.woff2:
-	mkdir -p $(@D)
-	curl https://fonts.gstatic.com/s/lato/v13/1YwB1sO8YE1Lyjf12WNiUA.woff2 -o $@
-
-$(TMP_WWW_PATH)/lato-v11-latin-700.woff2:
-	mkdir -p $(@D)
-	curl https://fonts.gstatic.com/s/lato/v13/H2DMvhDLycM56KNuAtbJYA.woff2 -o $@
-
-$(TMP_WWW_PATH)/lato-v11-latin-900.woff2:
-	mkdir -p $(@D)
-	curl https://fonts.gstatic.com/s/lato/v13/tI4j516nok_GrVf4dhunkg.woff2 -o $@
-
-$(TMP_WWW_PATH)/glyphicons-halflings-regular.woff2:
-	mkdir -p $(@D)
-	curl https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/fonts/glyphicons-halflings-regular.woff2 -o $@
-
-$(TMP_WWW_PATH)/html-imports.min.js:
-	mkdir -p $(@D)
-	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js -o $@
-
-$(TMP_WWW_PATH)/html-imports.min.js.map:
-	mkdir -p $(@D)
-	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js.map -o $@
 
 ###############################################################################
 # TEST
