@@ -231,5 +231,8 @@ OVERLAY_FILES := \
   $(OVERLAY_DIR)/etc/systemd/system/nginx.service
 
 $(OVERLAY_TAR): $(OVERLAY_FILES) | $(OVERLAY_DIR)/
-	tar -C $(OVERLAY_DIR) -cf $@ .
+	tar -C $(OVERLAY_DIR) \
+	    --owner=0 --group=0 --numeric-owner \
+	    --mtime='UTC 1970-01-01' \
+	    -cf $@ .
 	@echo [$@] OK

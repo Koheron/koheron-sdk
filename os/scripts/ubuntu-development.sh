@@ -63,25 +63,11 @@ cleanup() {
 trap 'cleanup' EXIT
 trap 'exit 130' INT TERM
 
-ubuntu_version=24.04.3
-part1=/dev/${BOOTPART}p1
-part2=/dev/${BOOTPART}p2
-
-if [ "${zynq_type}" = "zynqmp" ]; then
-    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-MPSoC..."
-    part1=/dev/mmcblk1p1
-    part2=/dev/mmcblk1p2
-else
-    echo "Building Ubuntu ${ubuntu_version} rootfs for Zynq-7000..."
-fi
-
 linux_image=kernel.itb
 
 dd if=/dev/zero of=$image bs=1M count=${size}
 
-device=`losetup -f`
-
-losetup ${device} ${image}
+device="$(losetup --find --show "$image")"
 
 boot_dir=`mktemp -d /tmp/BOOT.XXXXXXXXXX`
 root_dir=`mktemp -d /tmp/ROOT.XXXXXXXXXX`
@@ -97,9 +83,13 @@ parted -s $device mkpart primary ext4 16MB 100%
 
 partprobe "$device" || true
 udevadm settle || true
+sleep 0.3
 
-boot_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '2!d'`
-root_dev=/dev/`lsblk -ln -o NAME -x NAME $device | sed '3!d'`
+[ -b "${device}p1" ] || { echo "No ${device}p1 found"; exit 1; }
+[ -b "${device}p2" ] || { echo "No ${device}p2 found"; exit 1; }
+
+boot_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '2!d')"
+root_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '3!d')"
 
 # Create file systems
 
@@ -322,7 +312,14 @@ rm -f "$root_dir/usr/bin/qemu-a*" 2>/dev/null || true
 umount "$boot_dir"
 umount "$root_dir"
 
-e2fsck -f -y "$root_dev" || true
+e2fsck -p -f "$root_dev" >/dev/null 2>&1 || {
+  rc=$?
+  if [ "$rc" -ne 1 ] && [ "$rc" -ne 0 ]; then
+    echo "e2fsck reported a serious error (exit $rc)" >&2
+    exit "$rc"
+  fi
+}
+
 zerofree "$root_dev" >/dev/null 2>&1 || true
 
 img_dir="$(dirname "$image")"
