@@ -94,12 +94,6 @@ class str_const { // constexpr string
     std::string to_string() const {return std::string(p_);}
 };
 
-template<class T, class... Tail, class Elem = typename std::decay<T>::type>
-constexpr std::array<Elem,1+sizeof...(Tail)> make_array(T&& head, Tail&&... values)
-{
-  return {{ std::forward<T>(head), std::forward<Tail>(values)... }};
-}
-
 } // namespace koheron
 
 #endif // __STRING_UTILS_HPP__

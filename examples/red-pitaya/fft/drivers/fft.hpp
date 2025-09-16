@@ -218,10 +218,10 @@ class FFT
     void set_conversion_vectors() {
         constexpr double load = 50.0; // Ohm
 
-        auto Hinv = koheron::make_array(
+        auto Hinv = std::array{
             adc_calib.get_inverse_transfer_function<0, prm::fft_size/2>(fs_adc),
             adc_calib.get_inverse_transfer_function<1, prm::fft_size/2>(fs_adc)
-        );
+        };
 
         std::array<double, 2> vin = { adc_calib.get_input_voltage_range(0),
                                       adc_calib.get_input_voltage_range(1) };

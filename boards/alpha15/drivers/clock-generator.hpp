@@ -19,13 +19,13 @@ namespace clock_cfg {
     constexpr uint32_t PIN_SELECT = 3;
     constexpr uint32_t AUTO_CLOCK = 4;
 
-    constexpr auto clkin_names = koheron::make_array(
+    constexpr auto clkin_names = std::array{
         koheron::str_const("External"),
         koheron::str_const("FPGA"),
         koheron::str_const("TCXO"),
         koheron::str_const("Pin Select"),
         koheron::str_const("Auto")
-    );
+    };
 
     enum ClkCfg {
         PLL2_P,
@@ -41,11 +41,10 @@ namespace clock_cfg {
         ClkCfgNum
     };
 
-    constexpr size_t num_configs = 1;
     constexpr size_t num_params = ClkCfgNum;
 
     // Sampling frequency 15 MHz (f_vco = 2400 MHz)
-    constexpr std::array<uint32_t, num_params> fs_15MHz = {
+    constexpr auto fs_15MHz = std::to_array<uint32_t>({
         2,   // PLL2_P
         12,  // PLL2_N
         2,   // PLL2_R
@@ -56,9 +55,9 @@ namespace clock_cfg {
         160, // CLKout4_DIV (ADC1 clock 15 MHz)
         240, // CLKout5_DIV (EXP_CLK clock 10 MHz)
         0    // MMCM phase shift
-    };
+    });
 
-    constexpr std::array<std::array<uint32_t, num_params>, num_configs> configs = {fs_15MHz};
+    constexpr std::array<std::array<uint32_t, num_params>, 1> configs = {fs_15MHz};
 }
 
 class ClockGenerator
@@ -125,7 +124,7 @@ class ClockGenerator
     }
 
     void set_sampling_frequency(uint32_t fs_select) {
-        if (fs_select < clock_cfg::num_configs && fs_select != fs_selected) {
+        if (fs_select < clock_cfg::configs.size() && fs_select != fs_selected) {
             if (configure(SAMPLING_FREQ_SET, clkin, clock_cfg::configs[fs_select]) == 0) {
                 fs_selected = fs_select;
             }

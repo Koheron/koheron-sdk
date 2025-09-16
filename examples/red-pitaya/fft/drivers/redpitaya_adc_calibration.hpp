@@ -8,18 +8,32 @@
 #include <context.hpp>
 
 #include <array>
+#include <ranges>
 #include <cmath>
 #include <limits>
+
+#include <scicpp/core.hpp>
+#include <scicpp/polynomials.hpp>
+
+namespace {
+    namespace sci = scicpp;
+    namespace poly = scicpp::polynomial;
+}
 
 // Calibration array: [gain, offset, p0, p1, p2, p3, p4, p5]
 // gain in LSB / Volts
 // offset in LSB
 // pi: Coefficient of the polynomial fit of 1 / H(f)
 
-static constexpr std::array<std::array<float, 8>, 2> cal_coeffs = {{
-    {7.25926074e+03, -1.25870003e+02, 3.49261787e-38, -4.39604832e-30, 1.90004015e-22, -3.35273936e-15, 2.54795065e-08, 9.48362052e-01},
-    {7.26281201e+03, -7.75899963e+01, 4.63291048e-38, -5.88647924e-30, 2.58020095e-22, -4.58396909e-15, 3.54267726e-08, 9.28313494e-01}
-}};
+static constexpr auto cal_coeffs = std::array{
+    std::array{7.25926074e+03f, -1.25870003e+02f, 3.49261787e-38f,
+               -4.39604832e-30f, 1.90004015e-22f, -3.35273936e-15f,
+               2.54795065e-08f,  9.48362052e-01f},
+
+    std::array{7.26281201e+03f, -7.75899963e+01f, 4.63291048e-38f,
+               -5.88647924e-30f, 2.58020095e-22f, -4.58396909e-15f,
+               3.54267726e-08f,  9.28313494e-01f}
+};
 
 class RedPitayaAdcCalibration
 {
@@ -40,19 +54,11 @@ class RedPitayaAdcCalibration
     template<uint32_t channel, uint32_t n_pts>
     const auto get_inverse_transfer_function(float fs) {
         static_assert(channel < 2, "Invalid channel");
-        std::array<float, n_pts> res;
-
-        for (unsigned int i=0; i<n_pts; i++) {
-            float f = i * fs / (2 * n_pts);
-            res[i] = cal_coeffs[channel][2] * f * f * f * f * f
-                   + cal_coeffs[channel][3] * f * f * f * f
-                   + cal_coeffs[channel][4] * f * f * f
-                   + cal_coeffs[channel][5] * f * f
-                   + cal_coeffs[channel][6] * f
-                   + cal_coeffs[channel][7];
-        }
-
-        return res;
+        // Keep only the last 6 elements of cal_coeffs in reverse order
+        std::array<float, 6> coeffs{};
+        std::ranges::reverse_copy(cal_coeffs[channel] | std::views::drop(2) | std::views::take(6), coeffs.begin());
+        const auto f = sci::arange(0.0f, 0.5f * fs, 0.5f * fs / n_pts);
+        return poly::polyval(f, coeffs);
     }
 
     float get_input_voltage_range(uint32_t channel) const {

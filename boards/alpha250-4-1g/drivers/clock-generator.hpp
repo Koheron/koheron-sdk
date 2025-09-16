@@ -19,19 +19,16 @@ namespace clock_cfg {
     constexpr uint32_t PIN_SELECT = 3;
     constexpr uint32_t AUTO_CLOCK = 4;
 
-    constexpr auto clkin_names = koheron::make_array(
+    constexpr auto clkin_names = std::array{
         koheron::str_const("External"),
         koheron::str_const("FPGA"),
         koheron::str_const("TCXO"),
         koheron::str_const("Pin Select"),
         koheron::str_const("Auto")
-    );
-
-    constexpr size_t num_configs = 2;
-    constexpr size_t num_params = 10;
+    };
 
     // Sampling frequency 200 MHz (f_vco = 2400 MHz)
-    constexpr std::array<uint32_t, num_params> fs_200MHz = {
+    constexpr auto fs_200MHz = std::to_array<uint32_t>({
         2,   // PLL2_P
         12,  // PLL2_N
         2,   // PLL2_R
@@ -42,10 +39,10 @@ namespace clock_cfg {
         240, // CLKout4_DIV (EXP_CLK0 clock)
         240, // CLKout5_DIV (EXP_CLK1 clock)
         210  // MMCM phase shift
-    };
+    });
 
     // Sampling frequency 250 MHz (f_vco = 2500 MHz)
-    constexpr std::array<uint32_t, num_params> fs_250MHz = {
+    constexpr auto fs_250MHz = std::to_array<uint32_t>({
         5,   // PLL2_P
         5,   // PLL2_N
         2,   // PLL2_R
@@ -56,9 +53,10 @@ namespace clock_cfg {
         250, // CLKout4_DIV (EXP_CLK0 clock)
         250, // CLKout5_DIV (EXP_CLK1 clock)
         50   // MMCM phase shift
-    };
+    });
 
-    constexpr std::array<std::array<uint32_t, num_params>, num_configs> configs = {fs_200MHz, fs_250MHz};
+    constexpr auto configs = std::array{fs_200MHz, fs_250MHz, fs_100MHz, fs_240MHz};
+    constexpr size_t num_params = configs[0].size();
 }
 
 class ClockGenerator

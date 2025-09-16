@@ -200,10 +200,10 @@ class FFT
 
         fs_adc = clk_gen.get_adc_sampling_freq();
 
-        auto Hinv = koheron::make_array(
+        auto Hinv = std::array{
             ltc2157.get_inverse_transfer_function<0, prm::fft_size/2>(fs_adc),
             ltc2157.get_inverse_transfer_function<1, prm::fft_size/2>(fs_adc)
-        );
+        };
 
         std::array<double, 2> vin = { ltc2157.get_input_voltage_range(0),
                                       ltc2157.get_input_voltage_range(1) };

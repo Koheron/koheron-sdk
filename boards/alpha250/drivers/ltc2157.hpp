@@ -104,13 +104,12 @@ class Ltc2157
 
     template<uint32_t channel, uint32_t n_pts>
     auto get_inverse_transfer_function(float fs) {
-        using namespace scicpp::operators;
         static_assert(channel < 2, "Invalid channel");
 
         // Keep only the last 6 elements of cal_coeffs in reverse order
         std::array<float, 6> coeffs{};
         std::ranges::reverse_copy(cal_coeffs[channel] | std::views::drop(2) | std::views::take(6), coeffs.begin());
-        const auto f = sci::arange(0.0f, float(n_pts)) * fs / (2 * n_pts);
+        const auto f = sci::arange(0.0f, 0.5f * fs, 0.5f * fs / n_pts);
         return poly::polyval(f, coeffs);
     }
 

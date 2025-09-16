@@ -22,7 +22,7 @@ class {{ driver.objects[0]["type"] }};
 
 constexpr driver_id device_num = {{ drivers|length + 2 }};
 
-constexpr auto drivers_names = koheron::make_array(
+constexpr auto drivers_names = std::array{
     koheron::str_const("NoDriver"),
     koheron::str_const("Server"),
 {%- for driver in drivers -%}
@@ -32,7 +32,7 @@ constexpr auto drivers_names = koheron::make_array(
     koheron::str_const("{{ driver.objects[0]['type'] }}")
 {%- endif %}
 {%- endfor %}
-);
+};
 
 static_assert(std::tuple_size<decltype(drivers_names)>::value == device_num, "");
 
