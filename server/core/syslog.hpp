@@ -1,22 +1,19 @@
 /// Server system log
-///
 /// (c) Koheron
 
 #ifndef __KOHERON_SYSLOG_HPP__
 #define __KOHERON_SYSLOG_HPP__
 
 #include "config.hpp"
+#include "string_utils.hpp"
 
-#include <memory>
-#include <string>
-#include <cstring>
-#include <tuple>
+#include <array>
+#include <string_view>
+#include <type_traits>
+#include <utility>
 
 #include <syslog.h>
 
-#include "string_utils.hpp"
-
-/// Severity of the message
 enum severity {
     PANIC,    ///< When Server is not functional anymore
     CRITICAL, ///< When an error results in session crash
@@ -31,27 +28,69 @@ namespace koheron {
 
 class Server;
 
-static constexpr auto log_array = koheron::make_array(
-    std::make_tuple(LOG_ALERT, str_const("KOHERON PANIC")),
-    std::make_tuple(LOG_CRIT, str_const("KOHERON CRITICAL")),
-    std::make_tuple(LOG_ERR, str_const("KOHERON ERROR")),
-    std::make_tuple(LOG_WARNING, str_const("KOHERON WARNING")),
-    std::make_tuple(LOG_NOTICE, str_const("KOHERON INFO")),
-    std::make_tuple(LOG_DEBUG, str_const("KOHERON DEBUG"))
-);
+struct Severity {
+    int priority;
+    std::string_view label;
+};
 
-template<int severity>
-constexpr str_const severity_msg = std::get<1>(std::get<severity>(log_array));
+static constexpr std::array<Severity, syslog_severity_num> Severities{{
+    {LOG_ALERT,   "KOHERON PANIC"},
+    {LOG_CRIT,    "KOHERON CRITICAL"},
+    {LOG_ERR,     "KOHERON ERROR"},
+    {LOG_WARNING, "KOHERON WARNING"},
+    {LOG_NOTICE,  "KOHERON INFO"},
+    {LOG_DEBUG,   "KOHERON DEBUG"},
+}};
+
+template<int S>
+inline constexpr std::string_view severity_msg_v = Severities[S].label;
+
+template<int S>
+inline constexpr int to_priority_v = Severities[S].priority;
+
+static_assert(to_priority_v<PANIC> == LOG_ALERT);
+static_assert(to_priority_v<INFO>  == LOG_NOTICE);
 
 struct SysLog
 {
-    template<int severity, typename... Args>
-    void print(const char *msg, Args&&... args);
+    template<int S, typename... Args>
+    void print(std::string_view msg, Args&&... args)
+    {
+        static_assert(S >= 0 && S < syslog_severity_num, "Invalid logging level");
+
+        if constexpr (S <= WARNING && config::log::use_stderr) {
+            const std::string prefixed =
+                std::string(severity_msg_v<S>) + ": " + std::string(msg);
+
+            if constexpr (sizeof...(Args) == 0) {
+                koheron::fprintf(stderr, "%s", prefixed.c_str());
+            } else {
+                koheron::fprintf(stderr, prefixed.c_str(), std::forward<Args>(args)...);
+            }
+        }
+
+        if constexpr (S >= INFO && config::log::verbose) {
+            if constexpr (sizeof...(Args) == 0) {
+                koheron::printf("%s", std::string(msg).c_str());
+            } else {
+                koheron::printf(msg.data(), std::forward<Args>(args)...);
+            }
+        }
+
+        if constexpr (S <= INFO && config::log::syslog) {
+            if constexpr (sizeof...(Args) == 0) {
+                ::syslog(to_priority_v<S>, "%s", std::string(msg).c_str());
+            } else {
+                ::syslog(to_priority_v<S>, msg.data(), std::forward<Args>(args)...);
+            }
+        }
+    }
 
   private:
-    SysLog() {
+    SysLog()
+    {
         if (config::log::syslog) {
-            setlogmask(LOG_UPTO(LOG_NOTICE));
+            setlogmask(LOG_UPTO(LOG_NOTICE)); // PANIC..INFO
             openlog("koheron-server", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_USER);
         }
     }
@@ -59,67 +98,17 @@ struct SysLog
     // This cannot be done in the destructor
     // since it is called after the "delete config"
     // at the end of the main()
-    void close() {
+    void close()
+    {
         if (config::log::syslog) {
             print<INFO>("Close syslog ...\n");
             closelog();
         }
     }
 
-    // High severity (Panic, ..., Warning) => stderr
-    template<int severity, typename... Args>
-    std::enable_if_t< severity <= WARNING && config::log::use_stderr, void >
-    print_msg(const char *message, Args... args) {
-        koheron::fprintf(stderr, (severity_msg<severity>.to_string()
-                                    + ": " + std::string(message)).c_str(),
-                            std::forward<Args>(args)...);
-    }
-
-    template<int severity, typename... Args>
-    std::enable_if_t< severity <= WARNING && !config::log::use_stderr, void >
-    print_msg(const char *, Args...) {}
-
-    // Low severity (Info, Debug) => stdout if verbose
-    template<int severity, typename... Args>
-    std::enable_if_t< severity >= INFO && config::log::verbose, void >
-    print_msg(const char *message, Args&&... args) {
-        koheron::printf(message, std::forward<Args>(args)...);
-    }
-
-    template<int severity, typename... Args>
-    std::enable_if_t< severity >= INFO && !config::log::verbose, void >
-    print_msg(const char *, Args&&...) {}
-
-    template<int severity>
-    static constexpr int to_priority = std::get<0>(std::get<severity>(log_array));
-
-    static_assert(to_priority<PANIC> == LOG_ALERT, "");
-    static_assert(to_priority<INFO> == LOG_NOTICE, "");
-
-    template<int severity, typename... Args>
-    std::enable_if_t< severity <= INFO && config::log::syslog, void >
-    call_syslog(const char *message, Args&&... args) {
-        syslog<to_priority<severity>>(message, std::forward<Args>(args)...);
-    }
-
-    // We don't send debug messages to the system log
-    template<int severity, typename... Args>
-    std::enable_if_t< severity >= DEBUG, int >
-    call_syslog(const char *, Args&&...) {
-        return 0;
-    }
-
-friend class Server;
-friend class SessionManager;
+  friend class Server;
+  friend class SessionManager;
 };
-
-template<int severity, typename... Args>
-void SysLog::print(const char *msg, Args&&... args)
-{
-    static_assert(severity <= syslog_severity_num, "Invalid logging level");
-    print_msg<severity>(msg, std::forward<Args>(args)...);
-    call_syslog<severity>(msg, std::forward<Args>(args)...);
-}
 
 } // namespace koheron
 
