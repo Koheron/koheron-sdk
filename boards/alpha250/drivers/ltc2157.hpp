@@ -11,8 +11,17 @@
 #include "spi-config.hpp"
 
 #include <array>
+#include <ranges>
 #include <cmath>
 #include <limits>
+
+#include <scicpp/core.hpp>
+#include <scicpp/polynomials.hpp>
+
+namespace {
+    namespace sci = scicpp;
+    namespace poly = scicpp::polynomial;
+}
 
 // http://cds.linear.com/docs/en/datasheet/21576514fb.pdf
 
@@ -94,21 +103,15 @@ class Ltc2157
     }
 
     template<uint32_t channel, uint32_t n_pts>
-    const auto get_inverse_transfer_function(float fs) {
+    auto get_inverse_transfer_function(float fs) {
+        using namespace scicpp::operators;
         static_assert(channel < 2, "Invalid channel");
-        std::array<float, n_pts> res;
 
-        for (unsigned int i=0; i<n_pts; i++) {
-            float f = i * fs / (2 * n_pts);
-            res[i] = cal_coeffs[channel][2] * f * f * f * f * f
-                   + cal_coeffs[channel][3] * f * f * f * f
-                   + cal_coeffs[channel][4] * f * f * f
-                   + cal_coeffs[channel][5] * f * f
-                   + cal_coeffs[channel][6] * f
-                   + cal_coeffs[channel][7];
-        }
-
-        return res;
+        // Keep only the last 6 elements of cal_coeffs in reverse order
+        std::array<float, 6> coeffs{};
+        std::ranges::reverse_copy(cal_coeffs[channel] | std::views::drop(2) | std::views::take(6), coeffs.begin());
+        const auto f = sci::arange(0.0f, float(n_pts)) * fs / (2 * n_pts);
+        return poly::polyval(f, coeffs);
     }
 
     float get_input_voltage_range(uint32_t channel) const {

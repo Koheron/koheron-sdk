@@ -274,13 +274,11 @@ inline int Session<TCP>::write(const T *data, unsigned int len)
 // Unix socket
 // -----------------------------------------------
 
-// Unix socket has the same interface than TCP socket
 template<>
 class Session<UNIX> : public Session<TCP>
 {
   public:
-    Session<UNIX>(int comm_fd_, SessionID id_, SysLog& syslog_, DriverManager& drv_manager_)
-    : Session<TCP>(comm_fd_, id_, syslog_, drv_manager_) {}
+    using Session<TCP>::Session;
 };
 
 // -----------------------------------------------

@@ -64,7 +64,7 @@ SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERV
 SERVER_CCXXFLAGS += -DKOHERON_VERSION=$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)
 SERVER_CCXXFLAGS += -O3 -fno-math-errno
 SERVER_CCXXFLAGS += -MMD -MP -lstdc++fs -static-libstdc++ $(GCC_FLAGS)
-SERVER_CCXXFLAGS += -std=c++17 -pthread
+SERVER_CCXXFLAGS += -std=c++20 -pthread
 
 PHONY: gcc_flags
 gcc_flags:
