@@ -365,10 +365,13 @@ $(TMP_API_PATH)/app/%: $(OS_PATH)/api/%
 	mkdir -p $(@D)
 	cp $< $@
 
-# run `systemctl restart uwsgi` on the board
+
+PASSWORD ?= changeme
+
 .PHONY:
 api_sync: api
-	rsync -avz -e "ssh -i /ssh-private-key" $(TMP_API_PATH)/. root@$(HOST):/usr/local/api/
+	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" $(TMP_API_PATH)/. root@$(HOST):/usr/local/api/
+	sshpass -p "$(PASSWORD)" ssh -i /ssh-private-key root@$(HOST) 'systemctl daemon-reload || true; systemctl reload-or-restart uwsgi'
 
 .PHONY:
 api_clean:
@@ -402,7 +405,7 @@ www : $(TMP_WWW_PATH)/koheron.css \
 
 .PHONY: www_sync
 www_sync: www
-	rsync -avz -e "ssh -i /ssh-private-key" $(TMP_WWW_PATH)/. root@$(HOST):/usr/local/www/
+	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" $(TMP_WWW_PATH)/. root@$(HOST):/usr/local/www/
 
 .PHONY: clean_www
 clean_www:
@@ -411,6 +414,7 @@ clean_www:
 WWW_TS_FILES := $(WEB_PATH)/koheron.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments_widget.ts
+WWW_TS_FILES += $(WWW_PATH)/koheron_server_log.ts
 
 $(TMP_WWW_PATH)/instruments.js: $(WWW_TS_FILES)
 	mkdir -p $(@D)

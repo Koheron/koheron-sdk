@@ -1,7 +1,7 @@
 import os
 import json
 import subprocess
-from flask import Flask, jsonify, request, make_response
+from flask import Flask, jsonify, request, make_response, Response
 from werkzeug.utils import secure_filename
 import uwsgi
 
@@ -15,7 +15,6 @@ def get_name_from_zipfilename(zip_filename):
     return split[0] if split[1] == '.zip' else None
 
 def is_file_in_zip(zip_filename, target_filename):
-
     """
     zip_filename = "/usr/local/instruments/led-blinker.zip"
     target_filename = "version" # file in zip_filename
@@ -30,7 +29,6 @@ def is_file_in_zip(zip_filename, target_filename):
         return False
 
 def read_file_in_zip(zip_filename, target_filename):
-
     """
     zip_filename = "/usr/local/instruments/led-blinker.zip"
     target_filename = "version" # file to read in zip_filename
@@ -42,7 +40,6 @@ def read_file_in_zip(zip_filename, target_filename):
     return target_file_content
 
 class KoheronApp(Flask):
-
     instruments_dirname = "/usr/local/instruments/"
     live_instrument_dirname = "/tmp/live-instrument/"
     default_filename = "default"
@@ -53,7 +50,6 @@ class KoheronApp(Flask):
         self.init_instruments(KoheronApp.instruments_dirname)
 
     def get_instrument_dict(self, instrument_filename, is_default, version_filename):
-
         instrument = {}
         instrument["name"] = get_name_from_zipfilename(instrument_filename)
 
@@ -68,7 +64,6 @@ class KoheronApp(Flask):
         return instrument
 
     def is_default_instrument(self, instrument_filename, instruments_dirname, default_filename):
-
         with open(os.path.join(instruments_dirname, default_filename), 'r') as f:
             default_instrument_filename = os.path.join(instruments_dirname, f.read().rstrip('\n'))
 
@@ -78,35 +73,30 @@ class KoheronApp(Flask):
             return False
 
     def init_instruments(self, instruments_dirname):
-
         self.instruments_list = []
 
         for filename in (x for x in os.listdir(instruments_dirname) if x.endswith(".zip")):
-
             instrument_filename = os.path.join(instruments_dirname, filename)
             is_default = self.is_default_instrument(instrument_filename, instruments_dirname, KoheronApp.default_filename)
 
             instrument = self.get_instrument_dict(instrument_filename, is_default, KoheronApp.version_filename)
 
             if instrument["name"] is not None:
-
                 self.instruments_list.append(instrument)
 
             if is_default:
-
                 self.run_instrument(instrument_filename, KoheronApp.live_instrument_dirname, instrument)
 
     def run_instrument(self, instrument_filename, live_instrument_dirname, instrument_dict):
-
         if not os.path.exists(instrument_filename):
             print('Instrument zip file not found.\nNo installation done.')
             return
+
         name = get_name_from_zipfilename(instrument_filename)
         print('Installing instrument ' + name)
         subprocess.call(['/bin/bash', 'app/install_instrument.sh', name, live_instrument_dirname])
 
         self.live_instrument = instrument_dict
-
         return 'success'
 
 app = KoheronApp(__name__)
@@ -134,10 +124,12 @@ def run_instrument(name):
     is_default = app.is_default_instrument(os.path.join(app.instruments_dirname, secure_filename(filename)), app.instruments_dirname, app.default_filename)
     instrument_dict = app.get_instrument_dict(filename, is_default, app.version_filename)
     status = app.run_instrument(filename, app.live_instrument_dirname, instrument_dict)
+
     if status == 'success':
         response = 'Instrument %s successfully installed' % zip_filename
     else:
         response = 'Failed to install instrument %s' % zip_filename
+
     return make_response(response)
 
 @app.route('/api/instruments/delete/<name>', methods=['GET'])
@@ -149,15 +141,10 @@ def delete_instrument(name):
         os.remove(instrument_filename)
 
     for instrument in app.instruments_list:
-
         if instrument["name"] == name:
-
             if instrument["is_default"]:
-
                 return make_response('Default instrument cannot be removed')
-
             else:
-
                 app.instruments_list.remove(instrument)
                 return make_response('Instrument ' + zip_filename + ' removed.')
 
@@ -174,20 +161,66 @@ def upload_instrument():
             is_instrument_in_list = False
 
             for listed_instrument in app.instruments_list:
-
                 if listed_instrument["name"] == instrument["name"]:
-
                     if listed_instrument["version"] != instrument["name"]:
-
                         app.instruments_list.remove(listed_instrument)
-
                     else:
-
                         is_instrument_in_list = True
 
             if not (is_instrument_in_list):
-
                 app.instruments_list.append(instrument)
 
             return make_response('Instrument ' + filename + ' uploaded.')
     return make_response('Instrument upload failed.')
+
+# ------------------------
+# Koheron server log
+# ------------------------
+
+UNIT = "koheron-server"
+MAX_LINES = 5000
+
+def _read_journal_json(unit: str, cursor: str | None, n: int) -> dict:
+    # Build a safe argv list (no shell)
+    argv = ["journalctl", "-u", unit, "-o", "json"]
+    if cursor:
+        argv += ["--after-cursor", cursor]
+    else:
+        argv += ["-n", str(min(n, MAX_LINES))]
+
+    p = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                       text=True, check=False)
+    entries, last_cursor = [], cursor
+    for line in p.stdout.splitlines():
+        try:
+            j = json.loads(line)
+            entries.append({
+                "ts": j.get("__REALTIME_TIMESTAMP"),   # microseconds since epoch
+                "prio": int(j.get("PRIORITY", 6)),
+                "msg": j.get("MESSAGE", "")
+            })
+            last_cursor = j.get("__CURSOR", last_cursor)
+        except Exception:
+            continue
+    return {"cursor": last_cursor, "entries": entries}
+
+@app.route("/api/logs/koheron", methods=["GET"])
+def logs_tail():
+    lines = int(request.args.get("lines", 200))
+    return jsonify(_read_journal_json(UNIT, None, lines))
+
+@app.route("/api/logs/koheron/incr", methods=["GET"])
+def logs_incr():
+    cursor = request.args.get("cursor")
+    return jsonify(_read_journal_json(UNIT, cursor, 0))
+
+@app.route("/api/logs/koheron/download", methods=["GET"])
+def logs_download():
+    lines = int(request.args.get("lines", 2000))
+    argv = ["journalctl", "-u", UNIT, "-o", "short-iso", "-n", str(min(lines, MAX_LINES))]
+    p = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                       text=True, check=False)
+    return Response(
+        p.stdout, mimetype="text/plain",
+        headers={"Content-Disposition": "attachment; filename=koheron-server.log"}
+    )

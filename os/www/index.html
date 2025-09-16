@@ -23,6 +23,34 @@
     <script type="text/javascript" src="/koheron/bootstrap.min.js"></script>
   </head>
 
+  <style>
+    #koheron-log {
+      background: #0b0b0b !important;
+      color: #f1f1f1 !important;          /* brighter than #ddd */
+      border: 0px solid #222 !important;  /* optional edge */
+      opacity: 1 !important;              /* kill any inherited dimming */
+      filter: none !important;            /* kill grayscale/blur if any */
+      text-shadow: none !important;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+            "Liberation Mono", "Courier New", monospace;
+      white-space: pre-wrap;               /* optional: wrap long lines */
+      word-break: break-word;              /* optional: wrap very long tokens */
+
+      display: block;
+      max-width: 1000px;       /* limit the width — pick value that fits your layout */
+      height: 400px;          /* fixed height for vertical space */
+      overflow-y: auto;       /* vertical scroll bar */
+      overflow-x: auto;       /* horizontal scroll if long lines */
+      margin: 0 0 1rem 0;     /* add some bottom spacing */
+      padding: 10px;
+      border-radius: 0px;
+      white-space: pre-wrap;  /* wrap long lines if you prefer */
+      word-break: break-word;
+    }
+  </style>
+
   <body>
 
   <div id="navigation"></div>
@@ -44,15 +72,35 @@
     <input type="file" id="upload-input" name="file" onchange="instruments_widget.uploadInstrumentClick(); return false;" style="display: none;">
     <span style="color: red; margin: 0px 10px;" id="upload-status"></span>
 
+    <br><br>
+    <h1 style="font-size: 120%; padding-bottom: 20px;">Instrument log</h1>
+    <pre id="koheron-log"></pre>
+    <div style="margin-bottom:8px;">
+      <a type="button" class="btn btn-primary" href="/api/logs/koheron/download?lines=2000">Download</a>
+    </div>
+
   </div>
 
   <script src="/koheron/instruments.js"></script>
 
-  <script language="javascript" type="text/javascript">
+  <script>
     window.addEventListener('HTMLImportsLoaded', function() {
       imports = new Imports(document);
       driver = new Instruments();
       instruments_widget = new InstrumentsWidget(document, driver);
+
+      const pre = document.getElementById('koheron-log');
+      const coalescingFormatter = makeCoalescingFormatter(pre);
+
+      const logView = new KoheronLog(
+        "/api/logs/koheron",   // <-- endpoint, not the element
+        1000,                  // poll interval ms
+        200,                   // initial lines
+        (entries) => coalescingFormatter(entries)
+      );
+
+      logView.start();
+      // document.getElementById('log-stop').onclick  = () => logView.stop();
     }, false);
   </script>
 
