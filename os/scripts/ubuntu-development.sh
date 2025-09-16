@@ -206,10 +206,10 @@ EOF_HOSTS
 
 # ---- apt sources (Noble on ARM uses ports.ubuntu.com) ----
 cat > /etc/apt/sources.list <<'EOF_SOURCES'
-deb http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse
-deb http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse
-deb http://ports.ubuntu.com/ubuntu-ports noble-security main restricted universe multiverse
-# deb http://ports.ubuntu.com/ubuntu-ports noble-backports main restricted universe multiverse
+deb http://ports.ubuntu.com/ubuntu-ports noble main universe
+deb http://ports.ubuntu.com/ubuntu-ports noble-updates main universe
+deb http://ports.ubuntu.com/ubuntu-ports noble-security main universe
+# deb http://ports.ubuntu.com/ubuntu-ports noble-backports main universe
 EOF_SOURCES
 rm -f /etc/apt/sources.list.d/ubuntu.sources
 
@@ -218,9 +218,16 @@ rm -f /dev/null && mknod /dev/null c 1 3 && chmod 666 /dev/null
 
 chmod +x /usr/local/sbin/grow-rootfs-once
 
+install -D -m0644 /dev/null "$root_dir/etc/modules"
+
 apt-get update
 # install it first (without eatmydata), then use it for everything else
-apt-get -yq install --no-install-recommends locales eatmydata
+apt-get -yq -o Dpkg::Use-Pty=0 install --no-install-recommends locales eatmydata tzdata
+
+# Create the system accounts expected by systemd-tmpfiles
+getent group systemd-journal >/dev/null 2>&1 || groupadd --system systemd-journal
+id -u systemd-network  >/dev/null 2>&1 || useradd --system --home /run/systemd/network \
+  --no-create-home --user-group systemd-network
 
 locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
@@ -228,7 +235,7 @@ echo "$timezone" > /etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 
 # now use eatmydata directly
-eatmydata apt-get -yq install --no-install-recommends \
+eatmydata apt-get -yq install -o Dpkg::Use-Pty=0 --no-install-recommends \
   systemd systemd-sysv \
   openssh-server usbutils psmisc lsof parted curl less nano iw ntfs-3g \
   cloud-guest-utils e2fsprogs bash-completion unzip udev net-tools netbase \
@@ -302,6 +309,8 @@ install -D -m 0644 "$os_path/systemd/nginx.service" \
 
 #rm $root_dir/etc/resolv.conf
 rm -f "$root_dir/usr/bin/qemu-a*" 2>/dev/null || true
+
+rm -f "$root_dir"/etc/ssh/ssh_host_*
 
 # Unmount file systems
 umount "$boot_dir"
