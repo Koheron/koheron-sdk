@@ -209,12 +209,12 @@ class FFT
             prm::n_cycles * fs_adc[1] * load * W2
         };
 
-        const auto Hinv = koheron::make_array(
+        const auto Hinv = std::array{
             ltc2157.get_inverse_transfer_function<0, 0, prm::fft_size/2>(fs_adc[0]),
             ltc2157.get_inverse_transfer_function<0, 1, prm::fft_size/2>(fs_adc[0]),
             ltc2157.get_inverse_transfer_function<1, 0, prm::fft_size/2>(fs_adc[1]),
             ltc2157.get_inverse_transfer_function<1, 1, prm::fft_size/2>(fs_adc[1])
-        );
+        };
 
         const std::array<double, 4> vin = {
             ltc2157.get_input_voltage_range(0, 0),

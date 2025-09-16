@@ -10,6 +10,9 @@
 #include <fstream>
 #include <thread>
 #include <chrono>
+#include <string_view>
+
+using namespace std::string_view_literals;
 
 namespace clock_cfg {
     // Input clock selection
@@ -19,19 +22,16 @@ namespace clock_cfg {
     constexpr uint32_t PIN_SELECT = 3;
     constexpr uint32_t AUTO_CLOCK = 4;
 
-    constexpr auto clkin_names = koheron::make_array(
-        koheron::str_const("External"),
-        koheron::str_const("FPGA"),
-        koheron::str_const("TCXO"),
-        koheron::str_const("Pin Select"),
-        koheron::str_const("Auto")
-    );
-
-    constexpr size_t num_configs = 4;
-    constexpr size_t num_params = 10;
+    constexpr auto clkin_names = std::array{
+        "External"sv,
+        "FPGA"sv,
+        "TCXO"sv,
+        "Pin Select"sv,
+        "Auto"sv
+    };
 
     // Sampling frequency 200 MHz (f_vco = 2400 MHz)
-    constexpr std::array<uint32_t, num_params> fs_200MHz = {
+    constexpr auto fs_200MHz = std::to_array<uint32_t>({
         2,   // PLL2_P
         12,  // PLL2_N
         2,   // PLL2_R
@@ -42,10 +42,10 @@ namespace clock_cfg {
         240, // CLKout4_DIV (EXP_CLK0 clock)
         240, // CLKout5_DIV (EXP_CLK1 clock)
         0    // MMCM phase shift
-    };
+    });
 
     // Sampling frequency 250 MHz (f_vco = 2500 MHz)
-    constexpr std::array<uint32_t, num_params> fs_250MHz = {
+    constexpr auto fs_250MHz = std::to_array<uint32_t>({
         5,   // PLL2_P
         5,   // PLL2_N
         2,   // PLL2_R
@@ -56,10 +56,10 @@ namespace clock_cfg {
         250, // CLKout4_DIV (EXP_CLK0 clock)
         250, // CLKout5_DIV (EXP_CLK1 clock)
         56   // MMCM phase shift
-    };
+    });
 
     // Sampling frequency 100 MHz (f_vco = 2400 MHz)
-    constexpr std::array<uint32_t, num_params> fs_100MHz = {
+    constexpr auto fs_100MHz = std::to_array<uint32_t>({
         2,   // PLL2_P
         12,  // PLL2_N
         2,   // PLL2_R
@@ -70,10 +70,10 @@ namespace clock_cfg {
         240, // CLKout4_DIV (EXP_CLK0 clock)
         240, // CLKout5_DIV (EXP_CLK1 clock)
         120  // MMCM phase shift
-    };
+    });
 
     // Sampling frequency 240 MHz (f_vco = 2400 MHz)
-    constexpr std::array<uint32_t, num_params> fs_240MHz = {
+    constexpr auto fs_240MHz = std::to_array<uint32_t>({
         2,   // PLL2_P
         12,  // PLL2_N
         2,   // PLL2_R
@@ -84,9 +84,10 @@ namespace clock_cfg {
         240, // CLKout4_DIV (EXP_CLK0 clock)
         240, // CLKout5_DIV (EXP_CLK1 clock)
         40   // MMCM phase shift
-    };
+    });
     
-    constexpr std::array<std::array<uint32_t, num_params>, num_configs> configs = {fs_200MHz, fs_250MHz, fs_100MHz, fs_240MHz};
+    constexpr auto configs = std::array{fs_200MHz, fs_250MHz, fs_100MHz, fs_240MHz};
+    constexpr size_t num_params = configs[0].size();
 }
 
 class ClockGenerator
@@ -144,7 +145,7 @@ class ClockGenerator
     }
 
     void set_sampling_frequency(uint32_t fs_select) {
-        if (fs_select < clock_cfg::num_configs && fs_select != fs_selected) {
+        if (fs_select < clock_cfg::configs.size() && fs_select != fs_selected) {
             if (configure(SAMPLING_FREQ_SET, clkin, clock_cfg::configs[fs_select]) == 0) {
                 fs_selected = fs_select;
             }
@@ -382,13 +383,13 @@ class ClockGenerator
         }
 
         if (f_vco < 2.37E9 || f_vco > 2.6E9) {
-            ctx.log<ERROR>("Clock generator - VCO frequency at %f MHz is out of range (2370 to 2600 MHz)", f_vco * 1E-6);
+            ctx.logf<ERROR>("Clock generator - VCO frequency at {} MHz is out of range (2370 to 2600 MHz)\n", f_vco * 1E-6);
             return -1;
         }
 
         // PLL2 phase detector frequency
         const auto f_pd2 = f_vco / PLL2_P / PLL2_N;
-        ctx.log<INFO>("Clock generator: Freq. PD PLL2 = %f MHz\n", f_pd2 * 1E-6);
+        ctx.logf<INFO>("Clock generator: Freq. PD PLL2 = {} MHz\n", f_pd2 * 1E-6);
 
         if (f_pd2 > 100E6) {
             // Enable fast PDF if PLL2 PD frequency gretaer than 100 MHz
@@ -407,8 +408,8 @@ class ClockGenerator
             return -1;
         }
 
-        ctx.log<INFO>("Clock generator - Ref: %s, VCO: %f MHz, ADC: %f MHz, DAC: %f MHz\n",
-                      clock_cfg::clkin_names[clkin_select].data(), f_vco * 1E-6, fs_adc * 1E-6, fs_dac * 1E-6);
+        ctx.logf<INFO>("Clock generator - Ref: {}, VCO: {} MHz, ADC: {} MHz, DAC: {} MHz\n",
+                       clock_cfg::clkin_names[clkin_select].data(), f_vco * 1E-6, fs_adc * 1E-6, fs_dac * 1E-6);
 
         spi_cfg.lock();
 

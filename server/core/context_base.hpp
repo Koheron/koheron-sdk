@@ -7,6 +7,8 @@
 #include <syslog.hpp>
 #include <drivers_table.hpp>
 
+#include <format>
+
 namespace koheron {
     class DriverManager;
     class Server;
@@ -33,6 +35,11 @@ class ContextBase
     template<int severity, typename... Args>
     void log(const char *msg, Args&&... args) {
         syslog->print<severity>(msg, std::forward<Args>(args)...);
+    }
+
+    template<int severity, typename... Args>
+    void logf(std::format_string<Args...> fmt, Args&&... args) {
+        syslog->print<severity>(std::format(fmt, std::forward<Args>(args)...));
     }
 
   protected:
