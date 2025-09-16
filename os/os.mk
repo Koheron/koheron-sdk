@@ -65,7 +65,7 @@ $(RELEASE_ZIP): \
 	@test -s "$(OVERLAY_TAR)"   || { echo "Missing overlay tar: $(OVERLAY_TAR)"; exit 1; }
 	$(DOCKER_ROOT) bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh \
 	  $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) \
-	  $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE) $(BOOT_MEDIUM) \
+	  $(NAME) \
 	  $(ROOT_TAR_PATH) $(OVERLAY_TAR) $(QEMU_BIN)
 
 # Build image

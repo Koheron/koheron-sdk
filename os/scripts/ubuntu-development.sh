@@ -5,13 +5,11 @@ tmp_project_path=$1
 os_path=$2
 tmp_os_path=$3
 name=$4
-os_version_file=$5
-zynq_type=$6
-image=$tmp_project_path/${name}-development.img
-BOOTPART=$7
-root_tar_path=$8
-overlay_tar=$9
-qemu_path=${10:-/usr/bin/qemu-arm-static}
+root_tar_path=$5
+overlay_tar=$6
+qemu_path=${7:-/usr/bin/qemu-arm-static}
+
+image="$tmp_project_path/${name}-development.img"
 size=1024
 
 # --- robust cleanup & ownership on any exit (success, error, Ctrl-C) ---
@@ -109,6 +107,7 @@ if [ ! -s "$root_tar_path" ]; then
   exit 1
 fi
 tar -xzf "$root_tar_path" -C "$root_dir"
+chown 0:0 "$root_dir"
 
 # Sanity: ensure /etc & /usr/bin are directories
 mkdir -p "$root_dir/etc" "$root_dir/usr/bin"
@@ -254,10 +253,6 @@ EOF
 # Hook resolv.conf to systemd-resolved stub
 rm -f /etc/resolv.conf
 ln -s ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
-
-systemd-sysusers || true
-systemd-tmpfiles --create || true
-
 
 # ---- Enable services (create symlinks even in chroot) ----
 systemctl enable uwsgi || true
