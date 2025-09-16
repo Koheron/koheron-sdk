@@ -8,7 +8,6 @@
 #include "string_utils.hpp"
 
 #include <array>
-#include <format>
 #include <string_view>
 #include <type_traits>
 #include <utility>

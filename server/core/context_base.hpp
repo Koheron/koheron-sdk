@@ -7,6 +7,8 @@
 #include <syslog.hpp>
 #include <drivers_table.hpp>
 
+#include <format>
+
 namespace koheron {
     class DriverManager;
     class Server;
