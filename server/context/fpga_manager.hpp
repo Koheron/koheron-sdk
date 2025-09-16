@@ -123,11 +123,11 @@ class FpgaManager {
 
     int clean_up_previous_overlays() {
         if (fs::exists(overlay_path)) {
-            // Calling:
-            // fs::remove_all(overlay_path);
-            // Fails with "filesystem error: cannot remove all: Operation not permitted"
-            // So use rmdir instead
-            rmdir(overlay_path.c_str());
+            // In the device-tree overlay configfs, you’re supposed to remove an overlay by rmdir on the overlay directory.
+            // You’re not allowed to unlink the files inside (like dtbo). Kernel refuses that with EPERM (“Operation not permitted”).
+            // std::filesystem::remove_all tries to recursively unlink everything inside before removing the directory, so it hits the dtbo file and throws filesystem_error.
+            // So we cannot use fs::remove_all(overlay_path) here.
+            ::rmdir(overlay_path.c_str());
         }
 
         if (fs::exists(overlay_path)) {
@@ -247,7 +247,7 @@ class FpgaManager {
         // https://stackoverflow.com/questions/22059189/read-a-file-as-byte-array
         const auto bistream_basename = fs::path(instrument_name + std::string(".bit"));
         const auto bistream_filename = live_instrument_dirname / bistream_basename;
-        ctx.log<INFO>("FpgaManager: Loading bitstream %s...\n", bistream_filename.c_str());
+        ctx.logf<INFO>("FpgaManager: Loading bitstream {}...\n", bistream_filename);
         FILE *fbitstream = fopen(bistream_filename.c_str(), "rb");
 
         if (fbitstream == nullptr) {
