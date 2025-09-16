@@ -1,10 +1,10 @@
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 ABS_TMP_OS_PATH := $(abspath $(TMP_OS_PATH))
 
+BOARD := $(shell basename $(BOARD_PATH))
+
 include $(OS_PATH)/toolchain.mk
 include $(OS_PATH)/rootfs.mk
-
-BOARD := $(shell basename $(BOARD_PATH))
 
 UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
 LINUX_PATH := $(TMP_OS_PATH)/linux-xlnx-$(LINUX_TAG)
@@ -15,11 +15,6 @@ LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
 UBOOT_CFLAGS := -O2 -march=armv7-a -mfpu=neon -mfloat-abi=hard
-
-TMP_OS_VERSION_FILE := $(TMP_OS_PATH)/version.json
-
-$(TMP_OS_VERSION_FILE): $(KOHERON_VERSION_FILE)
-	echo '{ "version": "$(KOHERON_VERSION)" }' > $@
 
 DTB_SWITCH = $(TMP_OS_PATH)/devicetree.dtb
 ifdef DTREE_OVERRIDE
@@ -41,8 +36,6 @@ FIT_ITB := $(TMP_OS_PATH)/kernel.itb
 
 BOOT_MEDIUM ?= mmcblk0
 
-RELEASE_ZIP := $(TMP_PROJECT_PATH)/release.zip
-
 OS_FILES := \
   $(INSTRUMENT_ZIP) \
   $(API_FILES) \
@@ -50,7 +43,6 @@ OS_FILES := \
   $(TMP_OS_PATH)/$(BOOTCALL) \
   $(FIT_ITB) \
   $(DTB_SWITCH) \
-  $(TMP_OS_VERSION_FILE)
 
 .PHONY: os
 os: $(OS_FILES)
@@ -58,15 +50,15 @@ os: $(OS_FILES)
 $(RELEASE_ZIP): \
   $(INSTRUMENT_ZIP) \
   $(TMP_OS_PATH)/$(BOOTCALL) $(FIT_ITB) $(DTB_SWITCH) \
-  $(TMP_OS_VERSION_FILE) $(OS_PATH)/scripts/ubuntu-$(MODE).sh \
-  $(ROOT_TAR_PATH) $(OVERLAY_TAR) \
+  $(OS_PATH)/scripts/ubuntu-$(MODE).sh \
+  $(ROOT_TAR_PATH) $(OVERLAY_TAR) $(MANIFEST_TXT) \
   | $(TMP_PROJECT_PATH)/ $(TMP_OS_PATH)/
 	@test -s "$(ROOT_TAR_PATH)" || { echo "Missing root tar: $(ROOT_TAR_PATH)"; exit 1; }
 	@test -s "$(OVERLAY_TAR)"   || { echo "Missing overlay tar: $(OVERLAY_TAR)"; exit 1; }
 	$(DOCKER_ROOT) bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh \
 	  $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) \
-	  $(NAME) \
-	  $(ROOT_TAR_PATH) $(OVERLAY_TAR) $(QEMU_BIN)
+	  $(ROOT_TAR_PATH) $(OVERLAY_TAR) $(QEMU_BIN) \
+	  $(RELEASE_NAME)
 
 # Build image
 .PHONY: image
@@ -75,7 +67,7 @@ image: $(RELEASE_ZIP)
 # Flash image on SD card
 .PHONY: flash
 flash:
-	$(PYTHON) $(OS_PATH)/scripts/flash_all.py $(TMP_PROJECT_PATH)/release.zip
+	$(PYTHON) $(OS_PATH)/scripts/flash_all.py $(TMP_PROJECT_PATH)/$(RELEASE_NAME).zip
 
 .PHONY: clean_os
 clean_os:

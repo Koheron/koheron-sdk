@@ -166,12 +166,79 @@ $(ROOT_TAR_PATH):
 ###############################################################################
 # ROOTFS OVERLAY
 ###############################################################################
+GIT_IN_REPO := $(shell command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1 && echo yes || echo no)
+
+GIT_COMMIT   := $(shell [ "$(GIT_IN_REPO)" = yes ] && git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
+GIT_BRANCH   := $(shell [ "$(GIT_IN_REPO)" = yes ] && git rev-parse --abbrev-ref HEAD 2>/dev/null   || echo unknown)
+GIT_TAG      := $(shell [ "$(GIT_IN_REPO)" = yes ] && git describe --tags --abbrev=0 2>/dev/null     || echo none)
+GIT_DESCRIBE := $(shell [ "$(GIT_IN_REPO)" = yes ] && git describe --tags --always --dirty=-dirty 2>/dev/null || echo unknown)
+# "dirty" = any tracked changes (ignores untracked for reproducibility; change to --untracked-files=normal if you want)
+GIT_DIRTY    := $(shell \
+  if [ "$(GIT_IN_REPO)" = yes ]; then \
+    if [ -n "$$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; then echo yes; else echo no; fi; \
+  else echo n/a; fi)
+
+# ---------- Build ID: UTC timestamp + short commit + -dirty if needed ----------
+BUILD_TIME_UTC := $(shell date -u +%Y%m%d.%H%M%S)
+BUILD_REV      := $(GIT_COMMIT)
+BUILD_DIRTY_SFX:= $(if $(filter yes,$(GIT_DIRTY)),-dirty,)
+BUILD_ID       ?= $(BUILD_TIME_UTC).$(BUILD_REV)$(BUILD_DIRTY_SFX)
+
+RELEASE_NAME := $(BOARD)-$(NAME)
+
+# (keep your existing paths)
+MANIFEST_TXT          := $(TMP_PROJECT_PATH)/manifest-$(RELEASE_NAME).txt
+OVERLAY_MANIFEST_TXT  := $(OVERLAY_DIR)/usr/local/share/koheron/manifest.txt
+OVERLAY_RELEASE_FILE  := $(OVERLAY_DIR)/etc/koheron-release
+
+RELEASE_ZIP := $(TMP_PROJECT_PATH)/$(RELEASE_NAME).zip
+
+# ---------- Manifest generation ----------
+$(MANIFEST_TXT):
+	@mkdir -p $(@D)
+	@{ \
+	  echo "release=$(RELEASE_NAME)"; \
+	  echo "build_id=$(BUILD_ID)"; \
+	  echo "project=$(NAME)"; \
+	  echo "board=$(BOARD)"; \
+	  echo "zynq=$(ZYNQ_TYPE)"; \
+	  echo "kernel=$(LINUX_TAG)"; \
+	  echo "u-boot=$(UBOOT_TAG)"; \
+	  echo "device-tree=$(DTREE_TAG)"; \
+	  echo "koheron_version=$(KOHERON_VERSION)"; \
+	  echo "git_commit=$(GIT_COMMIT)"; \
+	  echo "git_branch=$(GIT_BRANCH)"; \
+	  echo "git_tag=$(GIT_TAG)"; \
+	  echo "git_describe=$(GIT_DESCRIBE)"; \
+	  echo "git_dirty=$(GIT_DIRTY)"; \
+	  echo "generated_utc=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)"; \
+	} > $@
+
+$(OVERLAY_MANIFEST_TXT): $(MANIFEST_TXT) | $(OVERLAY_DIR)/
+	@mkdir -p $(@D)
+	install -m 0644 $< $@
+
+# ---------- /etc/koheron-release ----------
+$(OVERLAY_RELEASE_FILE): | $(OVERLAY_DIR)/
+	@mkdir -p $(@D)
+	@{ \
+	  echo "NAME=Koheron"; \
+	  echo "RELEASE=$(RELEASE_NAME)"; \
+	  echo "BUILD_ID=$(BUILD_ID)"; \
+	  echo "UBUNTU=$(UBUNTU_VERSION)"; \
+	  echo "KOHERON_VERSION=$(KOHERON_VERSION)"; \
+	  echo "GIT_COMMIT=$(GIT_COMMIT)"; \
+	  echo "GIT_BRANCH=$(GIT_BRANCH)"; \
+	  echo "GIT_TAG=$(GIT_TAG)"; \
+	  echo "GIT_DESCRIBE=$(GIT_DESCRIBE)"; \
+	  echo "GIT_DIRTY=$(GIT_DIRTY)"; \
+	} > $@
+	@chmod 0644 $@
 
 # Stage WWW
-$(OVERLAY_DIR)/usr/local/www/.stamp: $(WWW_ASSETS) $(TMP_OS_VERSION_FILE)
+$(OVERLAY_DIR)/usr/local/www/.stamp: $(WWW_ASSETS)
 	mkdir -p $(@D)
 	rsync -a $(TMP_WWW_PATH)/ $(OVERLAY_DIR)/usr/local/www/
-	cp $(TMP_OS_VERSION_FILE) $(OVERLAY_DIR)/usr/local/www/version.json
 	touch $@
 
 # Stage API
@@ -216,6 +283,8 @@ $(OVERLAY_DIR)/etc/nginx/sites-available/koheron.conf: $(OS_PATH)/config/nginx-s
 
 # Bundle overlay as a single tar the script can explode into /
 OVERLAY_FILES := \
+  $(OVERLAY_MANIFEST_TXT) \
+  $(OVERLAY_RELEASE_FILE) \
   $(OVERLAY_DIR)/usr/local/www/.stamp \
   $(OVERLAY_DIR)/usr/local/api/.stamp \
   $(OVERLAY_DIR)/usr/local/koheron-server/koheron-server-init.py \
@@ -239,3 +308,12 @@ $(OVERLAY_TAR): $(OVERLAY_FILES) | $(OVERLAY_DIR)/
 	    --mtime='UTC 1970-01-01' \
 	    -cf $@ .
 	@echo [$@] OK
+
+
+.PHONY: clean_overlay_rootfs
+clean_overlay_rootfs:
+	@echo "Cleaning overlay artifacts…"
+	@rm -rf $(OVERLAY_DIR) $(OVERLAY_TAR) \
+	       $(OVERLAY_MANIFEST_TXT) $(OVERLAY_RELEASE_FILE) \
+	       $(OVERLAY_DIR)/usr/local/www/.stamp \
+	       $(OVERLAY_DIR)/usr/local/api/.stamp

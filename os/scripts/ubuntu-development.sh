@@ -4,12 +4,12 @@ IFS=$'\n\t'
 tmp_project_path=$1
 os_path=$2
 tmp_os_path=$3
-name=$4
-root_tar_path=$5
-overlay_tar=$6
-qemu_path=${7:-/usr/bin/qemu-arm-static}
+root_tar_path=$4
+overlay_tar=$5
+qemu_path=${6:-/usr/bin/qemu-arm-static}
+release_name=$7
 
-image="$tmp_project_path/${name}-development.img"
+image="$tmp_project_path/${release_name}.img"
 size=1024
 
 # --- robust cleanup & ownership on any exit (success, error, Ctrl-C) ---
@@ -41,11 +41,11 @@ cleanup() {
 
   # Make outputs owned by host user even on interruption
   if [ -n "${HOST_UID:-}" ] && [ -n "${HOST_GID:-}" ]; then
-    img_dir="$(dirname "${image}")"
-    img_base="$(basename "${image}")"
     chown "${HOST_UID}:${HOST_GID}" \
-      "${image}" "${image}.sha256" \
-      "${img_dir}/release.zip" \
+      "${$tmp_project_path}/${release_name}.img" \
+      "${$tmp_project_path}/${release_name}.img.sha256" \
+      "${$tmp_project_path}/${release_name}.zip" \
+      "${$tmp_project_path}/manifest-${release_name}.txt" \
       2>/dev/null || true
     # Optional: also take ownership of build dirs
     chown -R "${HOST_UID}:${HOST_GID}" \
@@ -125,7 +125,7 @@ BOOTUUID=$(blkid -s PARTUUID -o value "$boot_dev")
 cat > "$boot_dir/extlinux/extlinux.conf" <<EOF
 DEFAULT Linux
 TIMEOUT 3
-MENU TITLE Koheron Boot
+MENU TITLE Koheron Boot (${release_name})
 
 LABEL Linux
   KERNEL /kernel.itb
@@ -218,7 +218,7 @@ rm -f /dev/null && mknod /dev/null c 1 3 && chmod 666 /dev/null
 
 chmod +x /usr/local/sbin/grow-rootfs-once
 
-install -D -m0644 /dev/null "$root_dir/etc/modules"
+install -D -m0644 /dev/null /etc/modules
 
 apt-get update
 # install it first (without eatmydata), then use it for everything else
@@ -326,12 +326,24 @@ e2fsck -p -f "$root_dev" >/dev/null 2>&1 || {
 
 zerofree "$root_dev" >/dev/null 2>&1 || true
 
-img_dir="$(dirname "$image")"
-img_base="$(basename "$image")"
-
 (
-  cd "$img_dir"
-  sha256sum "$img_base" > "${img_base}.sha256"
-  zip release.zip "$img_base" "${img_base}.sha256"
-)
+  set -Eeuo pipefail
+  cd "$tmp_project_path"
 
+  img="${release_name}.img"
+  sha="${release_name}.img.sha256"
+  manifest="manifest-${release_name}.txt"
+  zipfile="${release_name}.zip"
+
+  # Require artifacts to exist (and be non-empty)
+  for f in "$img" "$manifest"; do
+    if [ ! -s "$f" ]; then
+      echo "Missing required artifact: $f" >&2
+      exit 1
+    fi
+  done
+
+  # Create checksum then zip everything (fail on any error)
+  sha256sum -- "$img" > "$sha"
+  zip -X -9 "$zipfile" "$img" "$sha" "$manifest"
+)
