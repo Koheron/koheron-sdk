@@ -164,7 +164,7 @@ class I2cManager
 
     auto& get(const std::string& devname) {
         if (! has_device(devname)) {
-            ctx.log<CRITICAL>("I2cManager: Device %s not found", devname);
+            ctx.logf<CRITICAL>("I2cManager: Device {} not found", devname);
             return *empty_i2cdev;
         }
 

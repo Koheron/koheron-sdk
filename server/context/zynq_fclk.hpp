@@ -42,11 +42,10 @@ class ZynqFclk {
             const auto clkdir = amba_clocking + clkid;
 
             if (fs::exists(clkdir)) {
-                ctx.log<INFO>("ZynqFclk: Found %s\n", clkdir.c_str());
+                ctx.logf<INFO>("ZynqFclk: Found {}\n", clkdir);
                 set_fclk_amba_clocking(clkdir, clkid, fclk_rate, update_rate);
             } else {
-                ctx.log<ERROR>("ZynqFclk: Cannot find %s required to set %s\n",
-                               clkdir.c_str(), fclk_name.c_str());
+                ctx.logf<ERROR>("ZynqFclk: Cannot find {} required to set {}\n", clkdir, fclk_name);
                 return;
             }
         }
@@ -77,8 +76,7 @@ class ZynqFclk {
             return;
         }
 
-        ctx.log<INFO>("ZynqFclk: Clock %s set to %u Hz\n",
-                      fclk_name.c_str(), fclk_rate);
+        ctx.logf<INFO>("ZynqFclk: Clock {} set to {} Hz\n", fclk_name, fclk_rate);
     }
 
     int fclk_export(const std::string& fclk_name, const std::string& fclk_dir_name) {
@@ -92,13 +90,12 @@ class ZynqFclk {
             FILE *fclk_export = fopen(fclk_export_name.c_str(), "w");
 
             if (fclk_export == nullptr) {
-                ctx.log<ERROR>("ZynqFclk: Cannot open fclk_export for clock %s\n",
-                               fclk_name.c_str());
+                ctx.logf<ERROR>("ZynqFclk: Cannot open fclk_export for clock {}\n", fclk_name);
                 return -1;
             }
 
             if (write(fileno(fclk_export), fclk_name.c_str(), fclk_name.length() + 1) < 0) {
-                ctx.log<ERROR>("ZynqFclk: clock name %s is invalid\n", fclk_name.c_str());
+                ctx.logf<ERROR>("ZynqFclk: clock name {} is invalid\n", fclk_name);
                 fclose(fclk_export);
                 return -1;
             }
@@ -115,13 +112,12 @@ class ZynqFclk {
         FILE *fclk_enable = fopen(fclk_enable_name.c_str(), "w");
 
         if (fclk_enable == nullptr) {
-            ctx.log<ERROR>("ZynqFclk: Cannot open fclk_enable for clock %s\n",
-                           fclk_name.c_str());
+            ctx.logf<ERROR>("ZynqFclk: Cannot open fclk_enable for clock {}\n", fclk_name);
             return -1;
         }
 
         if (write(fileno(fclk_enable), "1", 2) < 0) {
-            ctx.log<ERROR>("ZynqFclk: Failed to enable clock %s\n", fclk_name.c_str());
+            ctx.logf<ERROR>("ZynqFclk: Failed to enable clock {}\n", fclk_name);
             fclose(fclk_enable);
             return -1;
         }
@@ -137,14 +133,14 @@ class ZynqFclk {
         FILE *fclk_set_rate = fopen(fclk_set_rate_name.c_str(), "w");
 
         if (fclk_set_rate == nullptr) {
-            ctx.log<ERROR>("ZynqFclk: Cannot open fclk_set_rate for clock %s\n", fclk_name.c_str());
+            ctx.logf<ERROR>("ZynqFclk: Cannot open fclk_set_rate for clock {}\n", fclk_name);
             return -1;
         }
 
         const auto fclk_rate_str = std::to_string(fclk_rate);
 
         if (write(fileno(fclk_set_rate), fclk_rate_str.c_str(), fclk_rate_str.length() + 1) < 0) {
-            ctx.log<ERROR>("ZynqFclk: Failed to set clock %s rate\n", fclk_name.c_str());
+            ctx.logf<ERROR>("ZynqFclk: Failed to set clock {} rate\n", fclk_name);
             fclose(fclk_set_rate);
             return -1;
         }
@@ -166,11 +162,10 @@ class ZynqFclk {
         const auto rate = amba_clocking_get_rate(clkdir);
 
         if (rate > 0) {
-            ctx.log<INFO>("ZynqFclk: amba:clocking%c rate is %u Hz\n", clkid, rate);
+            ctx.logf<INFO>("ZynqFclk: amba:clocking{} rate is {} Hz\n", clkid, rate);
 
             const auto rel_rate_err =  1E9 * std::abs(rate - long(fclk_rate)) / double(fclk_rate);
-            ctx.log<INFO>("ZynqFclk: amba:clocking%c relative rate error is %lf ppb\n",
-                          clkid, rel_rate_err);
+            ctx.logf<INFO>("ZynqFclk: amba:clocking{} relative rate error is {} ppb\n", clkid, rel_rate_err);
         }
     }
 
@@ -179,20 +174,20 @@ class ZynqFclk {
         FILE *file_set_rate = fopen(fclk_set_rate_name.c_str(), "w");
 
         if (file_set_rate == nullptr) {
-            ctx.log<ERROR>("ZynqFclk: Cannot open set_rate for amba:clocking%c\n", clkid);
+            ctx.logf<ERROR>("ZynqFclk: Cannot open set_rate for amba:clocking{}\n", clkid);
             return -1;
         }
 
         const auto fclk_rate_str = std::to_string(fclk_rate);
 
         if (write(fileno(file_set_rate), fclk_rate_str.c_str(), fclk_rate_str.length() + 1) < 0) {
-            ctx.log<ERROR>("ZynqFclk: Failed to set clock for amba:clocking%c\n", clkid);
+            ctx.logf<ERROR>("ZynqFclk: Failed to set clock for amba:clocking{}\n", clkid);
             fclose(file_set_rate);
             return -1;
         }
 
         fclose(file_set_rate);
-        ctx.log<INFO>("ZynqFclk: amba:clocking%c set to %u Hz\n", clkid, fclk_rate);
+        ctx.logf<INFO>("ZynqFclk: amba:clocking{} set to {} Hz\n", clkid, fclk_rate);
         return 0;
     }
 
@@ -201,7 +196,7 @@ class ZynqFclk {
         std::ifstream file_set_rate(fclk_set_rate_name);
 
         if (!file_set_rate.is_open()) {
-            ctx.log<ERROR>("ZynqFclk: Cannot open \n", fclk_set_rate_name.c_str());
+            ctx.logf<ERROR>("ZynqFclk: Cannot open {}\n", fclk_set_rate_name);
             return -1;
         }
 

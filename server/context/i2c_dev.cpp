@@ -29,7 +29,7 @@ int I2cDev::init() {
         }
     }
 
-    ctx.log<INFO>("I2cManager: Device %s initialized", devname.c_str());
+    ctx.logf<INFO>("I2cManager: Device {} initialized", devname);
     return 0;
 }
 
@@ -58,7 +58,7 @@ int I2cManager::init() {
 
         // Exclude '.' and '..' repositories
         if (devname[0] != '.') {
-            ctx.log<INFO>("I2cManager: Found device %s", devname);
+            ctx.logf<INFO>("I2cManager: Found device {}", devname);
 
             i2c_drivers.insert(
                 std::make_pair(devname, std::make_unique<I2cDev>(ctx, devname))

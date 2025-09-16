@@ -7,12 +7,22 @@
 #include <syslog.hpp>
 #include <drivers_table.hpp>
 
+#include <filesystem>
 #include <format>
+#include <string>
 
 namespace koheron {
     class DriverManager;
     class Server;
 } // namespace koheron
+
+// Formatter for std::filesystem::path
+template <>
+struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
+    auto format(const std::filesystem::path& p, auto& ctx) const {
+        return std::formatter<std::string>::format(p.string(), ctx);
+    }
+};
 
 class ContextBase
 {

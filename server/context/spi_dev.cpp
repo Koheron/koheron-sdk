@@ -34,7 +34,7 @@ int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
         return -1;
     }
 
-    ctx.log<INFO>("SpiManager: Device %s initialized", devname.c_str());
+    ctx.logf<INFO>("SpiManager: Device {} initialized", devname);
     return 0;
 }
 
@@ -157,7 +157,7 @@ int SpiManager::init() {
 
         // Exclude '.' and '..' repositories
         if (devname[0] != '.') {
-            ctx.log<INFO>("SpiManager: Found device %s", devname);
+            ctx.logf<INFO>("SpiManager: Found device {}", devname);
 
             spi_drivers.insert(
                 std::make_pair(devname, std::make_unique<SpiDev>(ctx, devname))
@@ -176,7 +176,7 @@ bool SpiManager::has_device(const std::string& devname) {
 SpiDev& SpiManager::get(const std::string& devname,
                         uint8_t mode, uint32_t speed, uint8_t word_length) {
     if (! has_device(devname)) {
-        ctx.log<CRITICAL>("SpiManager: Device %s not found", devname);
+        ctx.logf<CRITICAL>("SpiManager: Device {} not found", devname);
         return empty_spidev;
     }
 

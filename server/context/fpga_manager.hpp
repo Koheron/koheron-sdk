@@ -98,7 +98,7 @@ class FpgaManager {
     int copy_firmware() {
         const fs::path lib_firmware_dirname = "/lib/firmware/";
         const fs::path bistream_name = instrument_name + std::string(".bit.bin");
-        ctx.log<INFO>("FpgaManager: Loading bitstream %s...\n", bistream_name.c_str());
+        ctx.logf<INFO>("FpgaManager: Loading bitstream {}...\n", bistream_name);
 
         if (!fs::exists(lib_firmware_dirname)) {
             fs::create_directories(lib_firmware_dirname);
@@ -224,12 +224,12 @@ class FpgaManager {
         }
 
         if (setup_fmanager_flags() < 0) {
-            ctx.log<ERROR>("FpgaManager: Failed to set flag on %s\n", fmanager_flags.c_str());
+            ctx.logf<ERROR>("FpgaManager: Failed to set flag on {}\n", fmanager_flags);
             return -1;
         }
 
         if (write_overlay() < 0) {
-            ctx.log<ERROR>("FpgaManager: Failed to write bitstream to %s\n", overlay_path.c_str());
+            ctx.logf<ERROR>("FpgaManager: Failed to write bitstream to {}\n", overlay_path);
             return -1;
         }
 

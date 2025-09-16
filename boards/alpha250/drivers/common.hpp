@@ -67,7 +67,7 @@ class Common
                 if (std::strcmp(it->ifa_name, want) != 0) continue;
 
                 auto* pAddr = reinterpret_cast<sockaddr_in*>(it->ifa_addr);
-                ctx.log<INFO>("Interface %s found: %s\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
+                ctx.logf<INFO>("ip_on_leds: Interface {} found: {}\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
                 uint32_t ip = htonl(pAddr->sin_addr.s_addr);
                 set_led(ip);
                 freeifaddrs(addrs);
