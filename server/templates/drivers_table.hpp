@@ -8,9 +8,11 @@
 #include <array>
 #include <tuple>
 #include <memory>
+#include <string_view>
 
-#include <string_utils.hpp>
 #include <meta_utils.hpp>
+
+using namespace std::string_view_literals;
 
 using driver_id = std::size_t;
 
@@ -23,13 +25,13 @@ class {{ driver.objects[0]["type"] }};
 constexpr driver_id device_num = {{ drivers|length + 2 }};
 
 constexpr auto drivers_names = std::array{
-    koheron::str_const("NoDriver"),
-    koheron::str_const("Server"),
+    "NoDriver"sv,
+    "Server"sv,
 {%- for driver in drivers -%}
 {% if not loop.last %}
-    koheron::str_const("{{ driver.objects[0]['type'] }}"),
+    "{{ driver.objects[0]['type'] }}"sv,
 {%- else %}
-    koheron::str_const("{{ driver.objects[0]['type'] }}")
+    "{{ driver.objects[0]['type'] }}"sv
 {%- endif %}
 {%- endfor %}
 };

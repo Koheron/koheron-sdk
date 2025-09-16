@@ -10,6 +10,9 @@
 #include <fstream>
 #include <thread>
 #include <chrono>
+#include <string_view>
+
+using namespace std::string_view_literals;
 
 namespace clock_cfg {
     // Input clock selection
@@ -20,11 +23,11 @@ namespace clock_cfg {
     constexpr uint32_t AUTO_CLOCK = 4;
 
     constexpr auto clkin_names = std::array{
-        koheron::str_const("External"),
-        koheron::str_const("FPGA"),
-        koheron::str_const("TCXO"),
-        koheron::str_const("Pin Select"),
-        koheron::str_const("Auto")
+        "External"sv,
+        "FPGA"sv,
+        "TCXO"sv,
+        "Pin Select"sv,
+        "Auto"sv
     };
 
     enum ClkCfg {
