@@ -5,7 +5,6 @@
 
 #include <cstring>
 #include <string>
-#include <array>
 #include <stdexcept>
 #include <syslog.h>
 
@@ -15,56 +14,40 @@ namespace koheron {
 // Variadic string formating functions accepting parameter packs
 // -------------------------------------------------------------------------
 
-// printf
-template<typename... Args>
-typename std::enable_if_t< 0 < sizeof...(Args), void >
-printf(const char *fmt, Args&&... args) {
-    std::printf(fmt, std::forward<Args>(args)...);
+template <typename... Args>
+void printf(const char* fmt, Args&&... args) {
+    if constexpr (sizeof...(Args) == 0) {
+        std::printf("%s", fmt);
+    } else {
+        std::printf(fmt, std::forward<Args>(args)...);
+    }
 }
 
-template<typename... Args>
-typename std::enable_if_t< 0 == sizeof...(Args), void >
-printf(const char *fmt, Args&&... args) {
-    std::printf("%s", fmt);
+template <typename... Args>
+void fprintf(FILE* stream, const char* fmt, Args&&... args) {
+    if constexpr (sizeof...(Args) == 0) {
+        std::fprintf(stream, "%s", fmt);
+    } else {
+        std::fprintf(stream, fmt, std::forward<Args>(args)...);
+    }
 }
 
-// fprintf
-template<typename... Args>
-typename std::enable_if_t< 0 < sizeof...(Args), void >
-fprintf(FILE *stream, const char *fmt, Args&&... args) {
-    std::fprintf(stream, fmt, std::forward<Args>(args)...);
+template <typename... Args>
+int snprintf(char* s, std::size_t n, const char* fmt, Args&&... args) {
+    if constexpr (sizeof...(Args) == 0) {
+        return std::snprintf(s, n, "%s", fmt);
+    } else {
+        return std::snprintf(s, n, fmt, std::forward<Args>(args)...);
+    }
 }
 
-template<typename... Args>
-typename std::enable_if_t< 0 == sizeof...(Args), void >
-fprintf(FILE *stream, const char *fmt, Args&&... args) {
-    std::fprintf(stream, "%s", fmt);
-}
-
-// snprintf
-template<typename... Args>
-typename std::enable_if_t< 0 < sizeof...(Args), int >
-snprintf(char *s, size_t n, const char *fmt, Args&&... args) {
-    return std::snprintf(s, n, fmt, std::forward<Args>(args)...);
-}
-
-template<typename... Args>
-typename std::enable_if_t< 0 == sizeof...(Args), int >
-snprintf(char *s, size_t n, const char *fmt, Args&&... args) {
-    return std::snprintf(s, n, "%s", fmt);
-}
-
-// syslog
-template<int priority, typename... Args>
-typename std::enable_if_t< 0 < sizeof...(Args), void >
-syslog(const char *fmt, Args&&... args) {
-    ::syslog(priority, fmt, std::forward<Args>(args)...);
-}
-
-template<int priority, typename... Args>
-typename std::enable_if_t< 0 == sizeof...(Args), void >
-syslog(const char *fmt, Args&&... args) {
-    ::syslog(priority, "%s", fmt);
+template <int Priority, typename... Args>
+void syslog(const char* fmt, Args&&... args) {
+    if constexpr (sizeof...(Args) == 0) {
+        ::syslog(Priority, "%s", fmt);
+    } else {
+        ::syslog(Priority, fmt, std::forward<Args>(args)...);
+    }
 }
 
 // -------------------------------------------------------------------------

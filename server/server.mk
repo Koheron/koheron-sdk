@@ -58,12 +58,13 @@ SERVER_CCXXFLAGS += -Wpedantic -Wfloat-equal -Wunused-macros -Wcast-qual -Wusele
 SERVER_CCXXFLAGS += -Wlogical-op -Wdouble-promotion -Wformat -Wmissing-include-dirs -Wundef
 SERVER_CCXXFLAGS +=  -Wpacked -Wredundant-decls -Wvarargs -Wvector-operation-performance -Wswitch-default
 SERVER_CCXXFLAGS += -Wuninitialized  -Wmissing-declarations
+SERVER_CCXXFLAGS += -Wno-psabi
 # SERVER_CCXXFLAGS += -Wconversion -Wsign-conversion
 # SERVER_CCXXFLAGS += -Wshift-negative-value -Wduplicated-cond -Wduplicated-branches -Waligned-new
 SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/core -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 SERVER_CCXXFLAGS += -DKOHERON_VERSION=$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)
 SERVER_CCXXFLAGS += -O3 -fno-math-errno
-SERVER_CCXXFLAGS += -MMD -MP -lstdc++fs -static-libstdc++ $(GCC_FLAGS)
+SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
 SERVER_CCXXFLAGS += -std=c++20 -pthread
 
 PHONY: gcc_flags

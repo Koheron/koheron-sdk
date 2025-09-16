@@ -35,6 +35,11 @@ class ContextBase
         syslog->print<severity>(msg, std::forward<Args>(args)...);
     }
 
+    template<int severity, typename... Args>
+    void logf(std::format_string<Args...> fmt, Args&&... args) {
+        syslog->print<severity>(std::format(fmt, std::forward<Args>(args)...));
+    }
+
   protected:
     virtual int init() { return 0; }
 

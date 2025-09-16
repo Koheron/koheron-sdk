@@ -380,13 +380,13 @@ class ClockGenerator
         }
 
         if (f_vco < 2.37E9 || f_vco > 2.6E9) {
-            ctx.log<ERROR>("Clock generator - VCO frequency at %f MHz is out of range (2370 to 2600 MHz)", f_vco * 1E-6);
+            ctx.logf<ERROR>("Clock generator - VCO frequency at {} MHz is out of range (2370 to 2600 MHz)\n", f_vco * 1E-6);
             return -1;
         }
 
         // PLL2 phase detector frequency
         const auto f_pd2 = f_vco / PLL2_P / PLL2_N;
-        ctx.log<INFO>("Clock generator: Freq. PD PLL2 = %f MHz\n", f_pd2 * 1E-6);
+        ctx.logf<INFO>("Clock generator: Freq. PD PLL2 = {} MHz\n", f_pd2 * 1E-6);
 
         if (f_pd2 > 100E6) {
             // Enable fast PDF if PLL2 PD frequency gretaer than 100 MHz
@@ -405,8 +405,8 @@ class ClockGenerator
             return -1;
         }
 
-        ctx.log<INFO>("Clock generator - Ref: %s, VCO: %f MHz, ADC: %f MHz, DAC: %f MHz\n",
-                      clock_cfg::clkin_names[clkin_select].data(), f_vco * 1E-6, fs_adc * 1E-6, fs_dac * 1E-6);
+        ctx.logf<INFO>("Clock generator - Ref: {}, VCO: {} MHz, ADC: {} MHz, DAC: {} MHz\n",
+                       clock_cfg::clkin_names[clkin_select].data(), f_vco * 1E-6, fs_adc * 1E-6, fs_dac * 1E-6);
 
         spi_cfg.lock();
 
