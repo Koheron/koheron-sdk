@@ -310,7 +310,7 @@ install -D -m 0644 "$os_path/systemd/nginx.service" \
 #rm $root_dir/etc/resolv.conf
 rm -f "$root_dir/usr/bin/qemu-a*" 2>/dev/null || true
 
-rm -f "$root_dir"/etc/ssh/ssh_host_*
+#rm -f "$root_dir"/etc/ssh/ssh_host_*
 
 # Unmount file systems
 umount "$boot_dir"
