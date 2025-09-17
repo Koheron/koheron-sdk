@@ -10,6 +10,8 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <filesystem>
+#include <format>
 
 #include <syslog.h>
 
@@ -21,6 +23,14 @@ enum severity {
     INFO,
     DEBUG,
     syslog_severity_num
+};
+
+// Formatter for std::filesystem::path
+template <>
+struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
+    auto format(const std::filesystem::path& p, auto& ctx) const {
+        return std::formatter<std::string>::format(p.string(), ctx);
+    }
 };
 
 namespace koheron {
@@ -123,6 +133,12 @@ struct SysLog
                 ::syslog(to_priority_v<S>, msg.data(), std::forward<Args>(args)...);
             }
         }
+    }
+
+    template<int S, typename... Args>
+    void print_fmt(std::format_string<Args...> fmt, Args&&... args)
+    {
+        print<S>(std::format(fmt, std::forward<Args>(args)...));
     }
 
   private:

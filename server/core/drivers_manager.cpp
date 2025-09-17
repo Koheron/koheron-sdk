@@ -59,14 +59,14 @@ void DriverManager::alloc_driver()
         return;
     }
 
-    server->syslog.print<INFO>(
-        "Driver Manager: Starting driver [%u] %s...\n",
-        driver, std::get<driver>(drivers_names).data());
+    server->syslog.print_fmt<INFO>(
+        "Driver Manager: Starting driver [{}] {}...\n",
+        driver, std::get<driver>(drivers_names));
 
     if (driver_container.alloc<driver>() < 0) {
-        server->syslog.print<PANIC>(
-            "Failed to allocate driver [%u] %s. Exiting server...\n",
-            driver, std::get<driver>(drivers_names).data());
+        server->syslog.print_fmt<PANIC>(
+            "Failed to allocate driver [{}] {}. Exiting server...\n",
+            driver, std::get<driver>(drivers_names));
 
         server->exit_all = true;
         return;

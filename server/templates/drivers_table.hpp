@@ -5,14 +5,7 @@
 #ifndef __DRIVERS_TABLE_HPP__
 #define __DRIVERS_TABLE_HPP__
 
-#include <array>
-#include <tuple>
-#include <memory>
-#include <string_view>
-
-#include <meta_utils.hpp>
-
-using namespace std::string_view_literals;
+#include <drivers_utils.hpp>
 
 using driver_id = std::size_t;
 
@@ -22,32 +15,9 @@ class Server;
 class {{ driver.objects[0]["type"] }};
 {% endfor -%}
 
-constexpr driver_id device_num = {{ drivers|length + 2 }};
-
-constexpr auto drivers_names = std::array{
-    "NoDriver"sv,
-    "Server"sv,
+using driver_table = koheron::drivers_table<
 {%- for driver in drivers -%}
-{% if not loop.last %}
-    "{{ driver.objects[0]['type'] }}"sv,
-{%- else %}
-    "{{ driver.objects[0]['type'] }}"sv
-{%- endif %}
-{%- endfor %}
-};
-
-static_assert(std::tuple_size<decltype(drivers_names)>::value == device_num, "");
-
-// Drivers are stored as unique_ptr ensuring single
-// instantiation of each driver.
-
-using drivers_tuple_t = std::tuple<
-{%- for driver in drivers -%}
-{% if not loop.last -%}
- std::unique_ptr<{{ driver.objects[0]['type'] }}>,
-{%- else -%}
- std::unique_ptr<{{ driver.objects[0]['type'] }}>
-{%- endif -%}
+{{ driver.objects[0]["type"] }}{{ ", " if not loop.last }}
 {%- endfor -%}
 >;
 

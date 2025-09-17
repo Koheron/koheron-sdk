@@ -1,9 +1,17 @@
 #ifndef __DRIVER_ID_HPP__
 #define __DRIVER_ID_HPP__
 
+#include "meta_utils.hpp"
+
 #include <drivers_table.hpp>
 
 namespace koheron {
+
+inline constexpr driver_id device_num = driver_table::device_num;
+inline constexpr auto drivers_names = driver_table::names;
+using drivers_tuple_t = typename driver_table::tuple_t;
+
+static_assert(std::tuple_size_v<decltype(drivers_names)> == device_num);
 
 static_assert(std::tuple_size<drivers_tuple_t>::value == device_num - 2, "");
 
