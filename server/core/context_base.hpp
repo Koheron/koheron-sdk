@@ -5,7 +5,6 @@
 
 #include <server_definitions.hpp>
 #include <syslog.hpp>
-#include <drivers_table.hpp>
 
 #include <filesystem>
 #include <format>

@@ -14,7 +14,6 @@
 #include <mutex>
 #include "driver.hpp"
 #include <drivers.hpp>
-#include <drivers_table.hpp>
 
 namespace koheron {
 
