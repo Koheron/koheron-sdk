@@ -224,3 +224,61 @@ def logs_download():
         p.stdout, mimetype="text/plain",
         headers={"Content-Disposition": "attachment; filename=koheron-server.log"}
     )
+
+# ------------------------
+# System manifest / release as JSON
+# ------------------------
+
+MANIFEST_PATH = "/usr/local/share/koheron/manifest.txt"
+RELEASE_PATH  = "/etc/koheron-release"
+
+def _parse_kv_file(path: str) -> dict | None:
+    """Parse simple key=value files. Returns dict or None if file missing."""
+    if not os.path.exists(path):
+        return None
+    data: dict[str, str] = {}
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                k, v = line.split("=", 1)
+                data[k.strip()] = v.strip()
+    return data
+
+@app.route("/api/system/manifest", methods=["GET"])
+def api_system_manifest():
+    data = _parse_kv_file(MANIFEST_PATH)
+    if data is None:
+        return jsonify({"error": "manifest not found"}), 404
+    return jsonify(data)
+
+@app.route("/api/system/release", methods=["GET"])
+def api_system_release():
+    data = _parse_kv_file(RELEASE_PATH)
+    if data is None:
+        return jsonify({"error": "release file not found"}), 404
+    return jsonify(data)
+
+@app.route("/api/system/build", methods=["GET"])
+def api_system_build():
+    """Combined view for convenience."""
+    manifest = _parse_kv_file(MANIFEST_PATH) or {}
+    release  = _parse_kv_file(RELEASE_PATH)  or {}
+    return jsonify({"manifest": manifest, "release": release})
+
+# Raw files downloads
+@app.route("/api/system/manifest/raw", methods=["GET"])
+def api_system_manifest_raw():
+    if not os.path.exists(MANIFEST_PATH):
+        return make_response("manifest not found", 404)
+    with open(MANIFEST_PATH, "rb") as f:
+        return Response(f.read(), mimetype="text/plain")
+
+@app.route("/api/system/release/raw", methods=["GET"])
+def api_system_release_raw():
+    if not os.path.exists(RELEASE_PATH):
+        return make_response("release not found", 404)
+    with open(RELEASE_PATH, "rb") as f:
+        return Response(f.read(), mimetype="text/plain")
