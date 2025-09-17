@@ -15,6 +15,7 @@
     serial0 = &uart0;
     mmc0 = &sdhci0;
     ethernet0 = &gem0;
+    i2c0 = &i2c0;
   };
   memory@0 {
       device_type = "memory";
@@ -62,5 +63,38 @@
       txc-skew-ps = <1860>;
       txen-skew-ps = <420>;
     };
+  };
+};
+&qspi {
+  status = "okay";
+  num-cs = <1>;
+  is-dual = <0>;
+  bootph-pre-ram;
+  flash0: flash@0 {
+    reg = <0>;
+    compatible = "spansion,s25fl512s", "jedec,spi-nor";
+    spi-max-frequency = <50000000>;
+    spi-rx-bus-width = <4>;
+    spi-tx-bus-width = <4>;
+  };
+};
+&i2c0 {
+  status = "okay";
+  clock-frequency = <400000>;
+  bootph-pre-ram;
+
+  pcf85063: rtc@51 {
+    compatible = "nxp,pcf85063";
+    reg = <0x51>;
+    status = "okay";
+  };
+
+  eeprom@54 {
+    compatible = "atmel,24c64";
+    reg = <0x54>;              /* 0b1010100 */
+    pagesize = <32>;
+    size = <8192>;             /* bytes (64 kbit) */
+    address-width = <16>;      /* 16-bit word address */
+    bootph-pre-ram;
   };
 };
