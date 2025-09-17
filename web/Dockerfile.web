@@ -1,0 +1,17 @@
+# Dockerfile.web
+FROM node:20-alpine
+
+# Install deps into an image layer (fast rebuilds)
+WORKDIR /opt/app
+COPY package.json package-lock.json* ./
+RUN if [ -f package-lock.json ]; then \
+      npm ci --ignore-scripts; \
+    else \
+      npm install --no-audit --no-fund; \
+    fi
+
+# Expose tsc on PATH
+ENV PATH="/opt/app/node_modules/.bin:${PATH}"
+
+# We'll mount your source at /work
+WORKDIR /work

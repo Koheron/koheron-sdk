@@ -1,11 +1,32 @@
+
+# Docker builder
+###############################################################################
+
+WEB_BUILDER_IMG ?= koheron-web:node20
+
+.PHONY: web_builder
+web_builder:
+	docker build -f $(WEB_PATH)/Dockerfile.web -t $(WEB_BUILDER_IMG) $(WEB_PATH)
+
+WEB_DOCKER_RUN := docker run --rm -t \
+                  -u $$(id -u):$$(id -g) \
+                  -v $(PWD):/work \
+                  -w /work \
+                  $(WEB_BUILDER_IMG)
+
+# Typescript compiler
+###############################################################################
+
+TSC_FLAGS ?= --pretty --target ES5 --lib es6,dom --alwaysStrict
+TSC       ?= $(WEB_DOCKER_RUN) tsc $(TSC_FLAGS)
+
+# Build webpage
+###############################################################################
+
 TMP_WEB_PATH := $(TMP_PROJECT_PATH)/web
 
 WEB_DOWNLOADS_MK ?= $(WEB_PATH)/downloads.mk
 include $(WEB_DOWNLOADS_MK)
-
-# Typescript compiler
-TSC_BIN := node_modules/typescript/bin/tsc
-TSC ?= $(TSC_BIN) --pretty --target ES5 --lib es6,dom --alwaysStrict
 
 WEB_FILES := $(shell $(MAKE_PY) --web $(CONFIG) $(TMP_WEB_PATH)/web_files && cat $(TMP_WEB_PATH)/web_files)
 

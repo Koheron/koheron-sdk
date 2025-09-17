@@ -199,14 +199,7 @@ setup_fpga: setup_base
 setup_server: setup_base
 
 .PHONY: setup_web
-setup_web: setup_base
-	[ -x "$$(command -v npm)" ] || (echo "npm not found. Install Node.js from NodeSource." && false)
-	rm -rf node_modules package-lock.json
-	npm install --save-dev typescript \
-		@types/jquery@2.0.46 \
-		@types/jquery-mousewheel@3.1.5 \
-		@types/node
-	npm install websocket
+setup_web: setup_base web_builder
 
 .PHONY: setup_os
 setup_os: setup_base
