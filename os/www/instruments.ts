@@ -2,7 +2,6 @@
 // Instruments
 
 class Instruments {
-
     private ip: string;
     public instruments: string[];
     public liveInstrument: string;
@@ -68,5 +67,4 @@ class Instruments {
         xhr.open('GET', '/api/instruments/delete/' + name, true);
         xhr.send(null);
     }
-
 }

@@ -1,29 +1,24 @@
 class InstrumentsWidget {
-
-    private imageVersionSpan: HTMLSpanElement;
-
     private instrumentsTable: HTMLTableElement;
     private isUpdate: boolean;
 
     private uploadInput: HTMLInputElement;
     private uploadStatus: HTMLSpanElement;
 
-    constructor (document: Document, private driver: Instruments) {
+    private driver: Instruments;
 
-        this.writeImageVersion();
-
+    constructor (document: Document) {
+        this.driver = new Instruments();
         this.instrumentsTable = <HTMLTableElement>document.getElementById('instruments-table');
         this.isUpdate = true;
         this.update();
 
         this.uploadInput = <HTMLInputElement>document.getElementById("upload-input");
         this.uploadStatus = <HTMLSpanElement>document.getElementById("upload-status");
-
     }
 
     update() {
         if (this.isUpdate) {
-
             this.driver.getInstrumentsStatus( (status) => {
                 let instruments = status['instruments'];
                 let liveInstrument = status['live_instrument'];
@@ -31,7 +26,6 @@ class InstrumentsWidget {
                 this.instrumentsTable.innerHTML = '<thead><tr><th>Name</th><th>Status</th><th colspan="2">Action</th><th>Version</th></tr></thead>';
 
                 for (let instrument of instruments) {
-
                     let row = this.instrumentsTable.insertRow(-1);
 
                     let nameCell = row.insertCell(0);
@@ -53,7 +47,7 @@ class InstrumentsWidget {
 
                     if (instrument["name"] == liveInstrument["name"]) {
                         isLive = true;
-                    };
+                    }
 
                     if (instrument["is_default"]) {
                         isDefault = true;
@@ -64,24 +58,16 @@ class InstrumentsWidget {
                     this.setDeleteCell(deleteCell, instrument["name"], isLive, isDefault);
                     nameCell.innerHTML = instrument["name"];
                     versionCell.innerHTML = instrument["version"];
-
                 }
+
                 this.isUpdate = false;
                 document.body.style.cursor = "default";
-
             });
         };
 
-        setTimeout( () => {
+        setTimeout(() => {
             this.update(), 200
         });
-    }
-
-    writeImageVersion(): void {
-        $.getJSON("version.json", function (data) {
-            this.imageVersionSpan = <HTMLSpanElement>document.getElementById("image-version");
-            this.imageVersionSpan.innerHTML = data["version"];
-        })
     }
 
     setStatusCell(cell: any, isLive: boolean): void {
@@ -129,6 +115,7 @@ class InstrumentsWidget {
     uploadInstrumentClick() {
         this.uploadStatus.innerHTML = "";
         let file = this.uploadInput.files[0];
+
         if ((file.name).indexOf(".zip") !== -1) {
             this.driver.uploadInstrument(file, (status) => {
                 this.isUpdate = status;
@@ -136,7 +123,5 @@ class InstrumentsWidget {
         } else {
             this.uploadStatus.innerHTML = "Select ZIP file";
         }
-
     }
-
 }
