@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libeigen3-dev \
     libnewlib-arm-none-eabi \
     libssl-dev zlib1g-dev pkg-config \
-    parted udev curl ca-certificates dosfstools e2fsprogs zip eatmydata\
+    fdisk util-linux parted udev curl ca-certificates dosfstools e2fsprogs zip eatmydata \
     && rm -rf /var/lib/apt/lists/*
 
 # Optional Eigen shim (see above)

@@ -42,10 +42,10 @@ cleanup() {
   # Make outputs owned by host user even on interruption
   if [ -n "${HOST_UID:-}" ] && [ -n "${HOST_GID:-}" ]; then
     chown "${HOST_UID}:${HOST_GID}" \
-      "${$tmp_project_path}/${release_name}.img" \
-      "${$tmp_project_path}/${release_name}.img.sha256" \
-      "${$tmp_project_path}/${release_name}.zip" \
-      "${$tmp_project_path}/manifest-${release_name}.txt" \
+      "${tmp_project_path}/${release_name}.img" \
+      "${tmp_project_path}/${release_name}.img.sha256" \
+      "${tmp_project_path}/${release_name}.zip" \
+      "${tmp_project_path}/manifest-${release_name}.txt" \
       2>/dev/null || true
     # Optional: also take ownership of build dirs
     chown -R "${HOST_UID}:${HOST_GID}" \
@@ -63,7 +63,7 @@ trap 'exit 130' INT TERM
 
 linux_image=kernel.itb
 
-dd if=/dev/zero of=$image bs=1M count=${size}
+dd if=/dev/zero of="$image" bs=1M count=0 seek="${size}"
 
 device="$(losetup --find --show "$image")"
 
@@ -316,14 +316,75 @@ rm -f "$root_dir/usr/bin/qemu-a*" 2>/dev/null || true
 umount "$boot_dir"
 umount "$root_dir"
 
-e2fsck -p -f "$root_dev" >/dev/null 2>&1 || {
+# --- shrink rootfs to minimum, leave 32 MiB cushion, resize p2, truncate image, refresh loop ---
+
+# accept e2fsck rc 0/1 ("fixed") as success
+fsck_ok() {
+  set +e
+  e2fsck -f -y "$root_dev"
   rc=$?
-  if [ "$rc" -ne 1 ] && [ "$rc" -ne 0 ]; then
-    echo "e2fsck reported a serious error (exit $rc)" >&2
-    exit "$rc"
-  fi
+  set -e
+  case "$rc" in 0|1) return 0 ;; *) echo "e2fsck error (rc=$rc)" >&2; exit "$rc" ;; esac
 }
 
+# log original image size
+orig_img_bytes=$(stat -c%s "$image" 2>/dev/null || wc -c <"$image")
+echo "[shrink] original image: $(numfmt --to=iec --suffix=B "$orig_img_bytes" 2>/dev/null || echo ${orig_img_bytes}B)"
+
+# 1) fsck -> shrink to minimum -> fsck again
+fsck_ok
+resize2fs -M "$root_dev"
+fsck_ok
+
+# 2) gather geometry
+eval "$(parted -sm "$device" unit s print | awk -F: '/^2:/{gsub(/s/,"",$2); printf "p2_start=%d;\n", $2+0}')"
+blkcnt=$(tune2fs -l "$root_dev" | awk -F': *' '/Block count:/ {print $2}')
+blksz=$(tune2fs -l "$root_dev" | awk -F': *' '/Block size:/  {print $2}')
+root_bytes=$(( blkcnt * blksz ))
+
+# 3) compute new p2 size (1 MiB align + 32 MiB cushion)
+align=2048                 # sectors per MiB (512B sectors)
+cushion_mib=32
+cushion_sectors=$(( cushion_mib * align ))
+need_sectors=$(( (root_bytes + 511) / 512 ))
+new_p2_sectors=$(( ( (need_sectors + align - 1) / align ) * align ))
+new_p2_sectors=$(( new_p2_sectors + cushion_sectors ))
+new_p2_sectors=$(( ( (new_p2_sectors + align - 1) / align ) * align ))
+new_p2_end=$(( p2_start + new_p2_sectors - 1 ))
+
+echo "[shrink] fs(min): $(numfmt --to=iec --suffix=B "$root_bytes" 2>/dev/null || echo ${root_bytes}B)"
+echo "[shrink] cushion: ${cushion_mib} MiB"
+echo "[shrink] p2 -> start=${p2_start} end=${new_p2_end} sectors=${new_p2_sectors} ($(numfmt --to=iec --suffix=B $((new_p2_sectors*512)) 2>/dev/null || echo $((new_p2_sectors*512))B))"
+
+# 4) shrink partition 2 (quiet; don't ask kernel to reread here)
+if command -v sfdisk >/dev/null 2>&1; then
+  echo ",${new_p2_sectors}" | sfdisk --no-reread -q -N 2 "$device" >/dev/null 2>&1 || true
+else
+  echo "[shrink] sfdisk not found; falling back to parted"
+  parted -s "$device" unit s resizepart 2 "${new_p2_end}" >/dev/null 2>&1 || true
+fi
+
+# 5) truncate the image to the end of p2
+new_img_bytes=$(( (new_p2_end + 1) * 512 ))
+truncate -s "$new_img_bytes" "$image"
+saved=$(( orig_img_bytes - new_img_bytes ))
+echo "[shrink] new image: $(numfmt --to=iec --suffix=B "$new_img_bytes" 2>/dev/null || echo ${new_img_bytes}B)  (saved $(numfmt --to=iec --suffix=B "$saved" 2>/dev/null || echo ${saved}B))"
+
+# 6) refresh loop mapping so kernel sees new partition table (needed for zerofree)
+sync
+blockdev --flushbufs "$device" 2>/dev/null || true
+losetup -d "$device"
+device="$(losetup --find --show -P "$image")"
+
+# recompute p1/p2 nodes
+boot_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '2!d')"
+root_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '3!d')"
+
+# sanity: verify the new end
+current_end=$(parted -sm "$device" unit s print | awk -F: '/^2:/{gsub(/s/,"",$3); print $3+0}')
+[ "$current_end" -eq "$new_p2_end" ] || echo "[shrink] WARN: p2 end mismatch ($current_end != $new_p2_end)"
+
+# now run zerofree (unmounted p2)
 zerofree "$root_dev" >/dev/null 2>&1 || true
 
 (
