@@ -1,0 +1,11 @@
+{
+    "devDependencies": {
+      "typescript": "^5.6.3",
+      "@types/jquery": "^3.5.29",
+      "@types/jquery-mousewheel": "^3.1.10",
+      "@types/node": "^20.14.14"
+    },
+    "dependencies": {
+      "websocket": "^1.0.35"
+    }
+}

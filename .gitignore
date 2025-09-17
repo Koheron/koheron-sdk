@@ -24,4 +24,3 @@ vivado_*.str
 
 .venv/
 package-lock.json
-package.json
