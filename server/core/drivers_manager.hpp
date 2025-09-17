@@ -45,6 +45,11 @@ class DriverContainer
     std::array<bool, device_num - 2> is_starting;
 
     drivers_tuple_t driver_tuple;
+
+    template<driver_id driver>
+    bool is_driver_started() {
+        return std::get<driver - 2>(is_started);
+    }
 };
 
 class Server;
@@ -60,7 +65,7 @@ class DriverManager
 
     template<driver_id driver>
     auto& get() {
-        if (! std::get<driver - 2>(is_started)) {
+        if (! is_driver_started<driver>()) {
             alloc_driver<driver>();
         }
         return driver_container.get<driver>();
@@ -76,33 +81,22 @@ class DriverManager
 
     Context ctx;
 
-    template<std::size_t driver> void alloc_driver();
+    template<driver_id driver>
+    bool is_driver_started() {
+        return std::get<driver - 2>(is_started);
+    }
+
+    template<driver_id driver> void alloc_driver();
 
     // Start
 
     template<driver_id... drivers>
     void start(driver_id driver, std::index_sequence<drivers...>);
 
-    template<driver_id dev0, driver_id... drivers>
-    std::enable_if_t<0 == sizeof...(drivers) && 2 <= dev0, void>
-    start_impl(driver_id driver);
-
-    template<driver_id dev0, driver_id... drivers>
-    std::enable_if_t<0 < sizeof...(drivers) && 2 <= dev0, void>
-    start_impl(driver_id driver);
-
     // Execute
 
     template<driver_id... drivers>
     int execute_driver(DriverAbstract *dev_abs, Command& cmd, std::index_sequence<drivers...>);
-
-    template<driver_id dev0, driver_id... drivers>
-    std::enable_if_t<0 == sizeof...(drivers) && 2 <= dev0, int>
-    execute_driver_implementation(DriverAbstract *dev_abs, Command& cmd);
-
-    template<driver_id dev0, driver_id... drivers>
-    std::enable_if_t<0 < sizeof...(drivers) && 2 <= dev0, int>
-    execute_driver_implementation(DriverAbstract *dev_abs, Command& cmd);
 };
 
 } // namespace koheron

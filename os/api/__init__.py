@@ -3,7 +3,6 @@ import json
 import subprocess
 from flask import Flask, jsonify, request, make_response, Response
 from werkzeug.utils import secure_filename
-import uwsgi
 
 def is_zip(filename):
     base = os.path.basename(filename)
@@ -22,11 +21,7 @@ def is_file_in_zip(zip_filename, target_filename):
 
     zip_files_stdout = subprocess.Popen(["/usr/bin/unzip", "-l", zip_filename], stdout=subprocess.PIPE)
     zip_files = zip_files_stdout.stdout.read()
-
-    if target_filename.encode() in zip_files:
-        return True
-    else:
-        return False
+    return target_filename.encode() in zip_files
 
 def read_file_in_zip(zip_filename, target_filename):
     """
@@ -36,7 +31,6 @@ def read_file_in_zip(zip_filename, target_filename):
 
     target_stdout = subprocess.Popen(["/usr/bin/unzip", "-c", zip_filename, target_filename], stdout=subprocess.PIPE)
     target_file_content = target_stdout.stdout.read().splitlines()[2]
-
     return target_file_content
 
 class KoheronApp(Flask):

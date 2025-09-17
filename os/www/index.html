@@ -49,6 +49,17 @@
       white-space: pre-wrap;  /* wrap long lines if you prefer */
       word-break: break-word;
     }
+
+    #system-info-content {
+      transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+      overflow: hidden;
+    }
+
+    #system-info-content.collapsed {
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
   </style>
 
   <body>
@@ -56,51 +67,57 @@
   <div id="navigation"></div>
 
   <div id="main" class="container-fluid" style="padding: 20px;">
-
-    <h1 style="font-size: 120%; padding-bottom: 20px; margin-top: 40px;">Image</h1>
-
-    <p>Version: <span id="image-version"></span></p>
-
-    <br><br>
-
     <h1 style="font-size: 120%; padding-bottom: 20px;">Instruments</h1>
 
-    <table id="instruments-table" class="table">
-    </table>
-
-    <input type="button" id="upload-btn" class="btn btn-primary" value="Add instrument" onclick="document.getElementById('upload-input').click();" style="width: auto; border: 0; display: inline-block; height: auto;">
-    <input type="file" id="upload-input" name="file" onchange="instruments_widget.uploadInstrumentClick(); return false;" style="display: none;">
-    <span style="color: red; margin: 0px 10px;" id="upload-status"></span>
-
-    <br><br>
-    <h1 style="font-size: 120%; padding-bottom: 20px;">Instrument log</h1>
-    <pre id="koheron-log"></pre>
-    <div style="margin-bottom:8px;">
-      <a type="button" class="btn btn-primary" href="/api/logs/koheron/download?lines=2000">Download Log</a>
+    <div class="row">
+      <div class="col-md-6">
+        <table id="instruments-table" class="table"></table>
+      </div>
     </div>
 
+    <div style="margin-top: 1rem;">
+      <input type="button" id="upload-btn" class="btn btn-primary" value="Add instrument" onclick="document.getElementById('upload-input').click();" style="width: auto; border: 0; display: inline-block; height: auto;">
+      <input type="file" id="upload-input" name="file" onchange="instruments_widget.uploadInstrumentClick(); return false;" style="display: none;">
+      <span style="color: red; margin: 0px 10px;" id="upload-status"></span>
+    </div>
+
+    <div style="margin-top: 1rem;">
+      <h1 style="font-size: 120%; padding-bottom: 20px;">Instrument log</h1>
+      <pre id="koheron-log"></pre>
+      <div style="margin-bottom:8px;">
+        <a type="button" class="btn btn-primary" href="/api/logs/koheron/download?lines=2000">Download Log</a>
+      </div>
+    </div>
+
+    <div style="margin-top: 1rem;">
+      <h1 id="system-info-header"
+          style="font-size:120%; margin-top: 40px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+        <span>System info</span>
+        <span id="system-info-arrow" style="font-size: 80%;">▼</span>
+      </h1>
+
+      <div id="system-info-content" class="row">
+        <div class="col-md-6">
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-body" style="padding:12px;">
+              <table class="table table-sm" id="release-table" style="margin:0;">
+                <!-- rows injected -->
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="/koheron/instruments.js"></script>
 
   <script>
-    window.addEventListener('HTMLImportsLoaded', function() {
-      imports = new Imports(document);
-      driver = new Instruments();
-      instruments_widget = new InstrumentsWidget(document, driver);
-
-      const pre = document.getElementById('koheron-log');
-      const coalescingFormatter = makeCoalescingFormatter(pre);
-
-      const logView = new KoheronLog(
-        "/api/logs/koheron",   // <-- endpoint, not the element
-        1000,                  // poll interval ms
-        200,                   // initial lines
-        (entries) => coalescingFormatter(entries)
-      );
-
-      logView.start();
-      // document.getElementById('log-stop').onclick  = () => logView.stop();
+    window.addEventListener('HTMLImportsLoaded', () => {
+      new Imports(document);
+      new InstrumentsWidget(document);
+      new KoheronLogWidget(document);
+      new SystemInfoWidget(document);
     }, false);
   </script>
 

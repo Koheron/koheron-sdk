@@ -66,6 +66,8 @@ WWW_TS_FILES := $(WEB_PATH)/koheron.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments_widget.ts
 WWW_TS_FILES += $(WWW_PATH)/koheron_server_log.ts
+WWW_TS_FILES += $(WWW_PATH)/koheron_system.ts
+WWW_TS_FILES += $(WWW_PATH)/system_info_widget.ts
 
 $(TMP_WWW_PATH)/instruments.js: $(WWW_TS_FILES)
 	mkdir -p $(@D)

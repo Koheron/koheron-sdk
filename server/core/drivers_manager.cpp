@@ -16,7 +16,7 @@ namespace koheron {
 
 template<driver_id driver>
 int DriverContainer::alloc() {
-    if (std::get<driver - 2>(is_started)) {
+    if (is_driver_started<driver>()) {
         return 0;
     }
 
@@ -49,12 +49,12 @@ DriverManager::DriverManager(Server *server_)
     is_started.fill(false);
 }
 
-template<std::size_t driver>
+template<driver_id driver>
 void DriverManager::alloc_driver()
 {
-    std::lock_guard<std::recursive_mutex> lock(mutex);
+    std::scoped_lock lock(mutex);
 
-    if (std::get<driver - 2>(is_started)) {
+    if (is_driver_started<driver>()) {
         return;
     }
 
@@ -76,30 +76,10 @@ void DriverManager::alloc_driver()
     std::get<driver - 2>(is_started) = true;
 }
 
-template<driver_id dev0, driver_id... drivers>
-std::enable_if_t<0 == sizeof...(drivers) && 2 <= dev0, void>
-DriverManager::start_impl(driver_id)
-{
-    static_assert(dev0 < device_num, "");
-    static_assert(dev0 >= 2, "");
-    alloc_driver<dev0>();
-}
-
-template<driver_id dev0, driver_id... drivers>
-std::enable_if_t<0 < sizeof...(drivers) && 2 <= dev0, void>
-DriverManager::start_impl(driver_id driver)
-{
-    static_assert(dev0 < device_num, "");
-    static_assert(dev0 >= 2, "");
-
-    driver == dev0 ? alloc_driver<dev0>()
-                : start_impl<drivers...>(driver);
-}
-
 template<driver_id... drivers>
 void DriverManager::start(driver_id driver, std::index_sequence<drivers...>)
 {
-    start_impl<drivers...>(driver);
+    ((driver == drivers ? (alloc_driver<drivers>(), void()) : void()), ...);
 }
 
 int DriverManager::init()
@@ -113,32 +93,22 @@ int DriverManager::init()
     return 0;
 }
 
-template<driver_id dev0, driver_id... drivers>
-std::enable_if_t<0 == sizeof...(drivers) && 2 <= dev0, int>
-DriverManager::execute_driver_implementation(DriverAbstract *dev_abs, Command& cmd)
-{
-    static_assert(dev0 < device_num, "");
-    static_assert(dev0 >= 2, "");
-    return static_cast<Driver<dev0>*>(dev_abs)->execute(cmd);
-}
-
-template<driver_id dev0, driver_id... drivers>
-std::enable_if_t<0 < sizeof...(drivers) && 2 <= dev0, int>
-DriverManager::execute_driver_implementation(DriverAbstract *dev_abs, Command& cmd)
-{
-    static_assert(dev0 < device_num, "");
-    static_assert(dev0 >= 2, "");
-
-    return dev_abs->type == dev0 ? static_cast<Driver<dev0>*>(dev_abs)->execute(cmd)
-                                 : execute_driver_implementation<drivers...>(dev_abs, cmd);
-}
-
 template<driver_id... drivers>
 int DriverManager::execute_driver(DriverAbstract *dev_abs, Command& cmd,
-                               std::index_sequence<drivers...>)
+                                  std::index_sequence<drivers...>)
 {
-    static_assert(sizeof...(drivers) == device_num - 2, "");
-    return execute_driver_implementation<drivers...>(dev_abs, cmd);
+    int result = 0;
+    bool done = false;
+
+    // Left-to-right evaluation; only the matching branch runs work.
+    (void)std::initializer_list<int>{
+        ((dev_abs->type == drivers && !done)
+            ? (result = static_cast<Driver<drivers>*>(dev_abs)->execute(cmd),
+               done = true, 0)
+            : 0)...
+    };
+
+    return result;
 }
 
 int DriverManager::execute(Command& cmd)
