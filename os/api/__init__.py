@@ -3,7 +3,6 @@ import json
 import subprocess
 from flask import Flask, jsonify, request, make_response, Response
 from werkzeug.utils import secure_filename
-import uwsgi
 
 def is_zip(filename):
     base = os.path.basename(filename)
