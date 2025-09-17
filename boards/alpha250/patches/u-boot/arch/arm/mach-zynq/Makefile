@@ -13,4 +13,4 @@ obj-y	+= clk.o
 obj-y	+= lowlevel_init.o
 AFLAGS_lowlevel_init.o := -mfpu=neon
 obj-$(CONFIG_XPL_BUILD)	+= spl.o ps7_spl_init.o
-obj-$(CONFIG_MISC_INIT_R) += ocm_ethaddr.o
+obj-y	+= koheron_init.o
