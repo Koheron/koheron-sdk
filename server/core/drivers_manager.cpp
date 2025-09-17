@@ -6,6 +6,7 @@
 #include "server.hpp"
 #include "commands.hpp"
 #include "meta_utils.hpp"
+#include "driver_id.hpp"
 #include <interface_drivers.hpp>
 
 namespace koheron {

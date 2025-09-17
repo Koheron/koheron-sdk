@@ -8,7 +8,7 @@
 #include <cstring>
 
 #include "server_definitions.hpp"
-#include <drivers_table.hpp>
+#include "driver_id.hpp"
 
 namespace koheron {
 

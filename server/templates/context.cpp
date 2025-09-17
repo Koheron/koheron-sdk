@@ -4,11 +4,11 @@
 
 #include <context_base.hpp>
 #include <drivers_manager.hpp>
-#include <drivers_table.hpp>
+#include "driver_id.hpp"
 
 template<class Driver>
 Driver& ContextBase::get() const {
-    return driver_manager->get<driver_id_of<Driver>>();
+    return driver_manager->get<koheron::driver_id_of<Driver>>();
 }
 
 {%- for driver in drivers -%}

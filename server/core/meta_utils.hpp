@@ -5,6 +5,8 @@
 
 #include <utility>
 #include <cstdint>
+#include <tuple>
+#include <type_traits>
 
 // Range integer sequence
 
@@ -27,22 +29,22 @@ auto make_index_sequence_in_range() {
 
 // http://stackoverflow.com/questions/18063451/get-index-of-a-tuple-elements-type
 template <class T, class Tuple>
-struct Index;
+struct tuple_index;
 
 template <class T, class... Types>
-struct Index<T, std::tuple<T, Types...>> {
+struct tuple_index<T, std::tuple<T, Types...>> {
     static constexpr std::size_t value = 0;
 };
 
 template <class T, class U, class... Types>
-struct Index<T, std::tuple<U, Types...>> {
-    static constexpr std::size_t value = 1 + Index<T, std::tuple<Types...>>::value;
+struct tuple_index<T, std::tuple<U, Types...>> {
+    static constexpr std::size_t value = 1 + tuple_index<T, std::tuple<Types...>>::value;
 };
 
 template <class T, class Tuple>
-constexpr std::size_t Index_v = Index<T, Tuple>::value;
+constexpr std::size_t tuple_index_v = tuple_index<T, Tuple>::value;
 
-static_assert(Index_v<uint32_t, std::tuple<uint32_t, float>> == 0, "");
-static_assert(Index_v<float, std::tuple<uint32_t, float>> == 1, "");
+static_assert(tuple_index_v<uint32_t, std::tuple<uint32_t, float>> == 0, "");
+static_assert(tuple_index_v<float, std::tuple<uint32_t, float>> == 1, "");
 
 #endif // __META_UTILS_HPP__
