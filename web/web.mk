@@ -17,7 +17,13 @@ WEB_DOCKER_RUN := docker run --rm -t \
 # Typescript compiler
 ###############################################################################
 
-TSC_FLAGS ?= --pretty --target ES5 --lib es6,dom --alwaysStrict
+TSC_FLAGS ?= -pretty \
+             --target ES5 \
+             --lib es6,dom \
+             --alwaysStrict \
+             --skipLibCheck \
+             --module system \
+             --incremental
 TSC       ?= $(WEB_DOCKER_RUN) tsc $(TSC_FLAGS)
 
 # Build webpage
