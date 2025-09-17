@@ -10,6 +10,8 @@
 
 namespace koheron {
 
+using driver_id = std::size_t;
+
 template<class T>
 consteval std::string_view type_name() {
     std::string_view p = __PRETTY_FUNCTION__;
@@ -36,19 +38,20 @@ consteval std::string_view short_name(std::string_view s) {
     return (pos == std::string_view::npos) ? s : s.substr(pos + 2);
 }
 
-template<class... Ts>
+// Generates the necessary objects from a list of drivers
+template<class... Drivers>
 struct drivers_table {
     static constexpr std::size_t offset = 2; // 0: NoDriver, 1: Server
 
-    using tuple_t = std::tuple<std::unique_ptr<Ts>...>;
-    static constexpr std::size_t device_num = offset + sizeof...(Ts);
+    using tuple_t = std::tuple<std::unique_ptr<Drivers>...>;
+    static constexpr std::size_t device_num = offset + sizeof...(Drivers);
 
     static consteval auto make_names() {
         std::array<std::string_view, device_num> a{};
         a[0] = "NoDriver";
         a[1] = "Server";
         std::size_t i = offset;
-        ((a[i++] = short_name(type_name<Ts>())), ...);
+        ((a[i++] = short_name(type_name<Drivers>())), ...);
         return a;
     }
 

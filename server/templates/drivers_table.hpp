@@ -7,8 +7,6 @@
 
 #include <drivers_utils.hpp>
 
-using driver_id = std::size_t;
-
 class NoDriver;
 class Server;
 {% for driver in drivers %}
