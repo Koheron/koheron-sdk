@@ -18,7 +18,6 @@
 #include <utility>
 
 #include "drivers_manager.hpp"
-#include "syslog.hpp"
 #include "signal_handler.hpp"
 #include "session_manager.hpp"
 
@@ -120,7 +119,6 @@ class Server
 
     // Managers
     DriverManager driver_manager;
-    SysLog syslog;
     SessionManager session_manager;
 
     std::mutex ks_mutex;

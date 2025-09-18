@@ -17,14 +17,9 @@ class ContextBase
 {
   private:
     koheron::DriverManager *driver_manager;
-    koheron::SysLog *syslog;
 
     void set_driver_manager(koheron::DriverManager *driver_manager_) {
         driver_manager = driver_manager_;
-    }
-
-    void set_syslog(koheron::SysLog *syslog_) {
-        syslog = syslog_;
     }
 
   public:

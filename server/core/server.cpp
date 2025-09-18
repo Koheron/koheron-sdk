@@ -10,6 +10,7 @@
 #include "commands.hpp"
 #include "session.hpp"
 #include "session_manager.hpp"
+#include "syslog.hpp"
 
 extern "C" {
   #include <sys/un.h>
@@ -23,9 +24,10 @@ Server::Server()
 , websock_listener(this)
 , unix_listener(this)
 , driver_manager(this)
-, syslog()
 , session_manager(driver_manager)
 {
+    start_syslog();
+
     if (signal_handler.init(this) < 0) {
         exit(EXIT_FAILURE);
     }
@@ -182,7 +184,7 @@ int Server::run()
             print<INFO>("Interrupt received, killing Koheron server ...\n");
             session_manager.delete_all();
             close_listeners();
-            syslog.close();
+            stop_syslog();
             return 0;
         }
 

@@ -75,8 +75,6 @@ void syslog(const char* fmt, Args&&... args) {
     }
 }
 
-class Server;
-
 struct Severity {
     int priority;
     std::string_view label;
@@ -139,31 +137,19 @@ void print_fmt(std::format_string<Args...> fmt, Args&&... args)
     print<S>(std::format(fmt, std::forward<Args>(args)...));
 }
 
-struct SysLog
-{
-  private:
-    SysLog()
-    {
-        if (config::log::syslog) {
-            setlogmask(LOG_UPTO(LOG_NOTICE)); // PANIC..INFO
-            openlog("koheron-server", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_USER);
-        }
+inline void start_syslog() {
+    if constexpr (config::log::syslog) {
+        setlogmask(LOG_UPTO(LOG_NOTICE)); // PANIC..INFO
+        openlog("koheron-server", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_USER);
     }
+}
 
-    // This cannot be done in the destructor
-    // since it is called after the "delete config"
-    // at the end of the main()
-    void close()
-    {
-        if (config::log::syslog) {
-            print<INFO>("Close syslog ...\n");
-            closelog();
-        }
+inline void stop_syslog() {
+    if constexpr (config::log::syslog) {
+        print<INFO>("Close syslog ...\n");
+        closelog();
     }
-
-  friend class Server;
-  friend class SessionManager;
-};
+}
 
 } // namespace koheron
 

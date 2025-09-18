@@ -43,10 +43,10 @@ int DriverContainer::alloc() {
 
 DriverManager::DriverManager(Server *server_)
 : server(server_)
-, driver_container(ctx, server->syslog)
+, ctx()
+, driver_container(ctx)
 {
     ctx.set_driver_manager(this);
-    ctx.set_syslog(&server->syslog);
     is_started.fill(false);
 }
 

@@ -20,9 +20,8 @@ namespace koheron {
 class DriverContainer
 {
   public:
-    DriverContainer(Context& ctx_, SysLog& syslog_)
+    DriverContainer(Context& ctx_)
     : ctx(ctx_)
-    , syslog(syslog_)
     {
         is_started.fill(false);
         is_starting.fill(false);
@@ -38,7 +37,6 @@ class DriverContainer
 
   private:
     Context& ctx;
-    SysLog& syslog;
 
     std::array<bool, device_num - 2> is_started;
     std::array<bool, device_num - 2> is_starting;
@@ -74,11 +72,11 @@ class DriverManager
     // Store drivers (except Server) as unique_ptr
     std::array<std::unique_ptr<DriverAbstract>, device_num - 2> device_list;
     Server *server;
+    Context ctx;
     DriverContainer driver_container;
     std::array<bool, device_num - 2> is_started;
     std::recursive_mutex mutex;
 
-    Context ctx;
 
     template<driver_id driver>
     bool is_driver_started() {
