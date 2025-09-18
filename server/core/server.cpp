@@ -30,19 +30,19 @@ Server::Server()
     exit_comm.store(false);
     exit_all.store(false);
 
-    if (config::tcp_worker_connections > 0) {
+    if constexpr (config::tcp_worker_connections > 0) {
         if (tcp_listener.init() < 0) {
             exit(EXIT_FAILURE);
         }
     }
 
-    if (config::websocket_worker_connections > 0) {
+    if constexpr (config::websocket_worker_connections > 0) {
         if (websock_listener.init() < 0) {
             exit(EXIT_FAILURE);
         }
     }
 
-    if (config::unix_socket_worker_connections > 0) {
+    if constexpr (config::unix_socket_worker_connections > 0) {
         if (unix_listener.init() < 0) {
             exit(EXIT_FAILURE);
         }
@@ -86,15 +86,19 @@ void Server::join_listeners_workers()
 bool Server::is_ready()
 {
     bool ready = true;
-    if (config::tcp_worker_connections > 0) {
+
+    if constexpr (config::tcp_worker_connections > 0) {
         ready = ready && tcp_listener.is_ready;
     }
-    if (config::websocket_worker_connections > 0) {
+
+    if constexpr (config::websocket_worker_connections > 0) {
         ready = ready && websock_listener.is_ready;
     }
-    if (config::unix_socket_worker_connections > 0) {
+
+    if constexpr (config::unix_socket_worker_connections > 0) {
         ready = ready && unix_listener.is_ready;
     }
+
     return ready;
 }
 
@@ -114,7 +118,7 @@ void Server::notify_systemd_ready()
         return;
     }
 
-    int len = strlen(config::sd_notify_socket);
+    constexpr int len = strlen(config::sd_notify_socket);
     memset(&sd_sun, 0, sizeof(struct sockaddr_un));
     sd_sun.sun_family = AF_UNIX;
     memcpy(sd_sun.sun_path, config::sd_notify_socket, std::min(static_cast<size_t>(len), sizeof(sd_sun.sun_path)));
@@ -165,7 +169,7 @@ int Server::run()
     while (true) {
         if (!ready_notified && is_ready()) {
             print<INFO>("Koheron server ready\n");
-            if (config::notify_systemd) {
+            if constexpr (config::notify_systemd) {
                 notify_systemd_ready();
             }
             ready_notified = true;

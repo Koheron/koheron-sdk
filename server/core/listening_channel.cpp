@@ -37,7 +37,7 @@ static int create_tcp_listening_socket(unsigned int port)
         print<CRITICAL>("Cannot set SO_REUSEADDR\n");
     }
 
-    if (config::tcp_nodelay) {
+    if constexpr (config::tcp_nodelay) {
         int one = 1;
 
         if (setsockopt(listen_fd_, IPPROTO_TCP, TCP_NODELAY,
@@ -84,7 +84,7 @@ static int set_socket_options(int comm_fd)
         return -1;
     }
 
-    if (config::tcp_nodelay) {
+    if constexpr (config::tcp_nodelay) {
         int one = 1;
 
         if (setsockopt(comm_fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char *>(&one), sizeof(one)) < 0) {
@@ -119,7 +119,7 @@ int ListeningChannel<TCP>::init()
 {
     number_of_threads = 0;
 
-    if (config::tcp_worker_connections > 0) {
+    if constexpr (config::tcp_worker_connections > 0) {
         listen_fd = create_tcp_listening_socket(config::tcp_port);
         return listen_fd;
     }
@@ -130,7 +130,7 @@ int ListeningChannel<TCP>::init()
 template<>
 void ListeningChannel<TCP>::shutdown()
 {
-    if (config::tcp_worker_connections > 0) {
+    if constexpr (config::tcp_worker_connections > 0) {
         print<INFO>("Closing TCP listener ...\n");
 
         if (::shutdown(listen_fd, SHUT_RDWR) < 0)
@@ -159,7 +159,7 @@ int ListeningChannel<WEBSOCK>::init()
 {
     number_of_threads = 0;
 
-    if (config::websocket_worker_connections > 0) {
+    if constexpr (config::websocket_worker_connections > 0) {
         listen_fd = create_tcp_listening_socket(config::websocket_port);
         return listen_fd;
     }
@@ -170,7 +170,7 @@ int ListeningChannel<WEBSOCK>::init()
 template<>
 void ListeningChannel<WEBSOCK>::shutdown()
 {
-    if (config::websocket_worker_connections > 0) {
+    if constexpr (config::websocket_worker_connections > 0) {
         print<INFO>("Closing WebSocket listener ...\n");
 
         if (::shutdown(listen_fd, SHUT_RDWR) < 0)
@@ -225,7 +225,7 @@ int ListeningChannel<UNIX>::init()
 {
     number_of_threads = 0;
 
-    if (config::unix_socket_worker_connections > 0) {
+    if constexpr (config::unix_socket_worker_connections > 0) {
         listen_fd = create_unix_listening_socket(config::unix_socket_path);
         return listen_fd;
     }
@@ -236,7 +236,7 @@ int ListeningChannel<UNIX>::init()
 template<>
 void ListeningChannel<UNIX>::shutdown()
 {
-    if (config::unix_socket_worker_connections > 0) {
+    if constexpr (config::unix_socket_worker_connections > 0) {
         print<INFO>("Closing Unix listener ...\n");
 
         if (::shutdown(listen_fd, SHUT_RDWR) < 0)
