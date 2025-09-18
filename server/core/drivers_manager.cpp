@@ -43,8 +43,7 @@ int DriverContainer::alloc() {
 
 DriverManager::DriverManager(Server *server_)
 : server(server_)
-, ctx()
-, driver_container(ctx)
+, driver_container()
 {
     is_started.fill(false);
 }
@@ -84,8 +83,7 @@ void DriverManager::start(driver_id driver, std::index_sequence<drivers...>)
 
 int DriverManager::init()
 {
-    if (ctx.init() < 0) {
-        print<CRITICAL>("Context initialization failed\n");
+    if (driver_container.init() < 0) {
         return -1;
     }
 

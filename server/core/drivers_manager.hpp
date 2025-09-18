@@ -16,17 +16,28 @@
 #include "driver.hpp"
 #include <drivers.hpp>
 #include "services.hpp"
+#include "lib/syslog.hpp"
 
 namespace koheron {
 
 class DriverContainer
 {
   public:
-    DriverContainer(Context& ctx_)
-    : ctx(ctx_)
+    DriverContainer()
+    : ctx()
     {
         is_started.fill(false);
         is_starting.fill(false);
+    }
+
+    int init()
+    {
+        if (ctx.init() < 0) {
+            print<CRITICAL>("Context initialization failed\n");
+            return -1;
+        }
+
+        return 0;
     }
 
     template<driver_id driver>
@@ -38,7 +49,7 @@ class DriverContainer
     int alloc();
 
   private:
-    Context& ctx;
+    Context ctx;
 
     std::array<bool, device_num - 2> is_started;
     std::array<bool, device_num - 2> is_starting;
@@ -74,7 +85,6 @@ class DriverManager
     // Store drivers (except Server) as unique_ptr
     std::array<std::unique_ptr<DriverAbstract>, device_num - 2> device_list;
     Server *server;
-    Context ctx;
     DriverContainer driver_container;
     std::array<bool, device_num - 2> is_started;
     std::recursive_mutex mutex;
