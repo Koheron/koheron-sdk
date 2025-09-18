@@ -62,8 +62,6 @@ class DriverContainer
     }
 };
 
-struct Command;
-
 class DriverManager
 {
   public:
