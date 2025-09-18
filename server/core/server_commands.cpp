@@ -15,13 +15,13 @@ namespace koheron {
 
 template<> int Server::execute_operation<Server::GET_VERSION>(Command& cmd)
 {
-    return session_manager.get_session(cmd.session_id).send<1, Server::GET_VERSION>(xstr(KOHERON_VERSION));
+    return services::require<SessionManager>().get_session(cmd.session_id).send<1, Server::GET_VERSION>(xstr(KOHERON_VERSION));
 }
 
 // Send the commands numbers
 template<> int Server::execute_operation<Server::GET_CMDS>(Command& cmd)
 {
-    return session_manager.get_session(cmd.session_id).send<1, Server::GET_CMDS>(build_drivers_json());
+    return services::require<SessionManager>().get_session(cmd.session_id).send<1, Server::GET_CMDS>(build_drivers_json());
 }
 
 ////////////////////////////////////////////////

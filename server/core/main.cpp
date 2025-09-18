@@ -25,6 +25,8 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    services::provide<koheron::SessionManager>();
+
     auto server = services::provide<koheron::Server>();
     server->run();
 

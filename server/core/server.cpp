@@ -24,7 +24,6 @@ Server::Server()
 : tcp_listener(this)
 , websock_listener(this)
 , unix_listener(this)
-, session_manager()
 {
     start_syslog();
 
@@ -56,7 +55,7 @@ Server::Server()
 void Server::close_listeners()
 {
     exit_comm.store(true);
-    session_manager.exit_comm();
+    services::require<SessionManager>().exit_comm();
     tcp_listener.shutdown();
     websock_listener.shutdown();
     unix_listener.shutdown();
@@ -174,7 +173,7 @@ int Server::run()
 
         if (services::require<SignalHandler>().interrupt() || exit_all) {
             print<INFO>("Interrupt received, killing Koheron server ...\n");
-            session_manager.delete_all();
+            services::require<SessionManager>().delete_all();
             close_listeners();
             stop_syslog();
             return 0;
