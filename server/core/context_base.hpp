@@ -10,25 +10,16 @@
 #include <string>
 
 namespace koheron {
-    class DriverManager;
-
     template<driver_id id>
-    device_t<id>& get_driver(DriverManager* dm);
+    device_t<id>& get_driver();
 } // namespace koheron
 
 class ContextBase
 {
-  private:
-    koheron::DriverManager *driver_manager;
-
-    void set_driver_manager(koheron::DriverManager *dm) {
-        driver_manager = dm;
-    }
-
   public:
     template<class Driver>
     inline Driver& get() const {
-      return koheron::get_driver<koheron::driver_id_of<Driver>>(driver_manager);
+      return koheron::get_driver<koheron::driver_id_of<Driver>>();
     }
 
     template<int severity, typename... Args>
@@ -43,8 +34,6 @@ class ContextBase
 
   protected:
     virtual int init() { return 0; }
-
-friend class koheron::DriverManager;
 };
 
 #endif // __CONTEXT_BASE_HPP__

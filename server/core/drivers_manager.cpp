@@ -46,7 +46,6 @@ DriverManager::DriverManager(Server *server_)
 , ctx()
 , driver_container(ctx)
 {
-    ctx.set_driver_manager(this);
     is_started.fill(false);
 }
 

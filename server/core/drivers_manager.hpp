@@ -12,8 +12,10 @@
 #include <cassert>
 #include <thread>
 #include <mutex>
+
 #include "driver.hpp"
 #include <drivers.hpp>
+#include "services.hpp"
 
 namespace koheron {
 
@@ -92,8 +94,8 @@ class DriverManager
 };
 
 template<driver_id id>
-device_t<id>& get_driver(DriverManager* dm) {
-    return dm->template get<id>();
+device_t<id>& get_driver() {
+    return services::require<koheron::DriverManager>().template get<id>();
 }
 
 } // namespace koheron
