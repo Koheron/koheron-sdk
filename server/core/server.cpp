@@ -24,7 +24,7 @@ Server::Server()
 , unix_listener(this)
 , driver_manager(this)
 , syslog()
-, session_manager(driver_manager, syslog)
+, session_manager(driver_manager)
 {
     if (signal_handler.init(this) < 0) {
         exit(EXIT_FAILURE);

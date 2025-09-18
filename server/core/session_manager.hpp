@@ -14,8 +14,6 @@
 #include "server_definitions.hpp"
 #include "config.hpp"
 #include "session_abstract.hpp"
-#include "syslog.hpp"
-
 
 namespace koheron {
 
@@ -26,7 +24,7 @@ class DriverManager;
 class SessionManager
 {
   public:
-    SessionManager(DriverManager& drv_manager_, SysLog& syslog_);
+    SessionManager(DriverManager& drv_manager_);
 
     ~SessionManager();
 
@@ -46,7 +44,6 @@ class SessionManager
     void exit_comm();
 
     DriverManager& driver_manager;
-    SysLog& syslog;
 
   private:
     // Sessions pool
@@ -75,7 +72,7 @@ SessionID SessionManager::create_session(int comm_fd)
         reusable_ids.pop_back();
     }
 
-    auto session = std::make_unique<Session<socket_type>>(comm_fd, new_id, syslog, driver_manager);
+    auto session = std::make_unique<Session<socket_type>>(comm_fd, new_id, driver_manager);
 
     session_pool.insert(std::pair<SessionID, std::unique_ptr<SessionAbstract>>(new_id,
                 static_cast<std::unique_ptr<SessionAbstract>>(std::move(session))));

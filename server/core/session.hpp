@@ -33,7 +33,7 @@ template<int socket_type>
 class Session : public SessionAbstract
 {
   public:
-    Session(int comm_fd, SessionID id_, SysLog& syslog_, DriverManager& drv_manager_);
+    Session(int comm_fd, SessionID id_, DriverManager& drv_manager_);
 
     int run();
 
@@ -76,7 +76,6 @@ class Session : public SessionAbstract
   private:
     int comm_fd;  ///< Socket file descriptor
     SessionID id;
-    SysLog& syslog;
     DriverManager& driver_manager;
 
     struct EmptyBuffer {};
@@ -84,7 +83,7 @@ class Session : public SessionAbstract
                        Buffer<KOHERON_RECV_DATA_BUFF_LEN>, EmptyBuffer> recv_data_buff;
 
     struct EmptyWebsock {
-        EmptyWebsock(SysLog&) {}
+        EmptyWebsock() {}
     };
 
     std::conditional_t<socket_type == WEBSOCK, WebSocket, EmptyWebsock> websock;
@@ -129,13 +128,12 @@ friend class SessionManager;
 };
 
 template<int socket_type>
-Session<socket_type>::Session(int comm_fd_, SessionID id_, SysLog& syslog_, DriverManager& drv_manager_)
+Session<socket_type>::Session(int comm_fd_, SessionID id_, DriverManager& drv_manager_)
 : SessionAbstract(socket_type)
 , comm_fd(comm_fd_)
 , id(id_)
-, syslog(syslog_)
 , driver_manager(drv_manager_)
-, websock(syslog)
+, websock()
 , send_buffer(0)
 , status(OPENED)
 {}

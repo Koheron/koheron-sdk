@@ -24,11 +24,10 @@ extern "C" {
 
 namespace koheron {
 
-WebSocket::WebSocket(SysLog& syslog_)
-: syslog(syslog_),
-  comm_fd(-1),
-  read_str_len(0),
-  connection_closed(false)
+WebSocket::WebSocket()
+  : comm_fd(-1)
+  , read_str_len(0)
+  , connection_closed(false)
 {
     bzero(read_str, WEBSOCK_READ_STR_LEN);
     bzero(sha_str, 21);

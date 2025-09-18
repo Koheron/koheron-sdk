@@ -13,12 +13,10 @@
 
 namespace koheron {
 
-struct SysLog;
-
 class WebSocket
 {
   public:
-    WebSocket(SysLog& syslog_);
+    WebSocket();
 
     void set_id(int comm_fd_);
     int authenticate();
@@ -35,8 +33,6 @@ class WebSocket
     int exit();
 
   private:
-    SysLog& syslog;
-
     int comm_fd;
 
     // Buffers
