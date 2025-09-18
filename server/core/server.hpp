@@ -186,7 +186,7 @@ void comm_thread_call(ListeningChannel<socket_type> *listener)
         session_thread.detach();
     }
 
-    print<INFO>("%s listener closed.\n", listen_channel_desc[socket_type].c_str());
+    print_fmt<INFO>("{} listener closed.\n", listen_channel_desc[socket_type]);
 }
 
 template<int socket_type>
@@ -194,7 +194,7 @@ inline int ListeningChannel<socket_type>::start_worker()
 {
     if (listen_fd >= 0) {
         if (::listen(listen_fd, NUMBER_OF_PENDING_CONNECTIONS) < 0) {
-            print<PANIC>("Listen %s error\n", listen_channel_desc[socket_type].c_str());
+            print_fmt<PANIC>("Listen {} error\n", listen_channel_desc[socket_type]);
             return -1;
         }
         comm_thread = std::thread{comm_thread_call<socket_type>, this};

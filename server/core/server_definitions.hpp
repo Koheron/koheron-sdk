@@ -7,7 +7,9 @@
 
 #include <cstdint>
 #include <array>
-#include <string>
+#include <string_view>
+
+using namespace std::string_view_literals;
 
 namespace koheron {
 
@@ -67,13 +69,12 @@ enum SockType {
 };
 
 /// Listening channel descriptions
-const std::array<std::string, socket_type_num>
-listen_channel_desc = {{
-    "NONE",
-    "TCP",
-    "WebSocket",
-    "Unix socket"
-}};
+constexpr auto listen_channel_desc = std::array{
+    "NONE"sv,
+    "TCP"sv,
+    "WebSocket"sv,
+    "Unix socket"sv
+};
 
 } // namespace koheron
 
