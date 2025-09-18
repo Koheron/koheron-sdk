@@ -7,17 +7,14 @@
 
 namespace koheron {
 
-class Server;
-
 class SignalHandler
 {
   public:
-    int init(Server *server_);
+    int init();
 
     bool interrupt() const {return s_interrupted != 0;}
 
     static int volatile s_interrupted;
-    static Server *server;
 
   private:
     int set_interrupt_signals();

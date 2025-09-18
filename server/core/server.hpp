@@ -24,11 +24,12 @@
 #include <unistd.h>
 #include <cerrno>
 
-#include "signal_handler.hpp"
 #include "session_manager.hpp"
 #include "lib/syslog.hpp"
 
 namespace koheron {
+
+class Server;
 
 template<int socket_type> class Session;
 
@@ -111,8 +112,6 @@ class Server
         server_op_num
     };
 
-    SignalHandler signal_handler;
-
     std::atomic<bool> exit_comm;
     std::atomic<bool> exit_all;
 
@@ -124,7 +123,6 @@ class Server
     /// True when all listeners are ready
     bool is_ready();
 
-    // Managers => GET THAT OUT !
     SessionManager session_manager;
 
     std::mutex ks_mutex;

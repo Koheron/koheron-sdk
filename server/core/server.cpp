@@ -12,6 +12,7 @@
 #include "session_manager.hpp"
 #include "lib/syslog.hpp"
 #include "services.hpp"
+#include "signal_handler.hpp"
 
 extern "C" {
   #include <sys/un.h>
@@ -20,17 +21,12 @@ extern "C" {
 namespace koheron {
 
 Server::Server()
-: signal_handler()
-, tcp_listener(this)
+: tcp_listener(this)
 , websock_listener(this)
 , unix_listener(this)
 , session_manager()
 {
     start_syslog();
-
-    if (signal_handler.init(this) < 0) {
-        exit(EXIT_FAILURE);
-    }
 
     exit_comm.store(false);
     exit_all.store(false);
@@ -176,7 +172,7 @@ int Server::run()
             ready_notified = true;
         }
 
-        if (signal_handler.interrupt() || exit_all) {
+        if (services::require<SignalHandler>().interrupt() || exit_all) {
             print<INFO>("Interrupt received, killing Koheron server ...\n");
             session_manager.delete_all();
             close_listeners();

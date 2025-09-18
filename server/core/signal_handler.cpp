@@ -17,15 +17,11 @@ extern "C" {
 
 namespace koheron {
 
-Server *SignalHandler::server = nullptr;
-
-int SignalHandler::init(Server *server_)
+int SignalHandler::init()
 {
-    server = server_;
-
     if (set_interrupt_signals() < 0 ||
-        set_ignore_signals()   < 0 ||
-        set_crash_signals()    < 0)
+        set_ignore_signals()    < 0 ||
+        set_crash_signals()     < 0)
         return -1;
 
     return 0;

@@ -7,11 +7,18 @@
 #include "server.hpp"
 #include "services.hpp"
 #include "drivers_manager.hpp"
+#include "signal_handler.hpp"
 
 int main() {
     auto dm = services::provide<koheron::DriverManager>();
 
     if (dm->init() < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    auto signal_handler = services::provide<koheron::SignalHandler>();
+
+    if (signal_handler->init() < 0) {
         exit(EXIT_FAILURE);
     }
 
