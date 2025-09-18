@@ -108,10 +108,10 @@ def render_template(template_filename, output_filename, drivers):
 
 def render_driver(driver, output_filename_hpp):
     output_filename_split = os.path.splitext(output_filename_hpp)
-    assert(output_filename_split[1] == '.hpp')
-    for extension in ['.cpp', '.hpp']:
-        with open(output_filename_split[0] + extension, 'w') as output:
-            output.write(get_template('interface_driver' + extension).render(driver=driver))
+    extension = output_filename_split[1]
+    assert(extension in ['.hpp','.cpp'])
+    with open(output_filename_split[0] + extension, 'w') as output:
+        output.write(get_template('interface_driver' + extension).render(driver=driver))
 
 # -----------------------------------------------------------------------------
 # Parse driver C++ header
