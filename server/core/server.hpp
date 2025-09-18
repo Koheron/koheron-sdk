@@ -16,10 +16,17 @@
 #include <atomic>
 #include <ctime>
 #include <utility>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/un.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <cerrno>
 
-#include "drivers_manager.hpp"
 #include "signal_handler.hpp"
 #include "session_manager.hpp"
+#include "lib/syslog.hpp"
 
 namespace koheron {
 
@@ -188,7 +195,7 @@ template<int socket_type>
 inline int ListeningChannel<socket_type>::start_worker()
 {
     if (listen_fd >= 0) {
-        if (listen(listen_fd, NUMBER_OF_PENDING_CONNECTIONS) < 0) {
+        if (::listen(listen_fd, NUMBER_OF_PENDING_CONNECTIONS) < 0) {
             print<PANIC>("Listen %s error\n", listen_channel_desc[socket_type].c_str());
             return -1;
         }
