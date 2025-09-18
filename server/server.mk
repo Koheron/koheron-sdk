@@ -17,15 +17,20 @@ INTERFACE_DRIVERS_HPP := $(addprefix $(TMP_SERVER_PATH)/interface_,$(notdir $(DR
 INTERFACE_DRIVERS_CPP := $(subst .hpp,.cpp,$(INTERFACE_DRIVERS_HPP))
 INTERFACE_DRIVERS_OBJ := $(subst .hpp,.o,$(INTERFACE_DRIVERS_HPP))
 
+$(TMP_SERVER_PATH)/interface_drivers.hpp: $(INTERFACE_DRIVERS_HPP)
+$(TMP_SERVER_PATH)/interface_drivers.cpp: $(INTERFACE_DRIVERS_HPP)
+
 # Render driver interfaces from templates
 ###############################################################################
 
-define render_interface
-$(TMP_SERVER_PATH)/interface_$(notdir $1) $(TMP_SERVER_PATH)/interface_$(subst .hpp,.cpp,$(notdir $1)): \
-		$1 $(SERVER_PATH)/templates/interface_driver.hpp $(SERVER_PATH)/templates/interface_driver.cpp | $(TMP_SERVER_PATH)
-	$(MAKE_PY) --render_interface $(CONFIG) $$@ $1
-endef
-$(foreach driver,$(DRIVERS_HPP),$(eval $(call render_interface,$(driver))))
+$(foreach H,$(DRIVERS_HPP),\
+  $(eval $(TMP_SERVER_PATH)/interface_$(notdir $(H)): \
+      $(H) $(SERVER_PATH)/templates/interface_driver.hpp $(SERVER_PATH)/templates/interface_driver.cpp | $(TMP_SERVER_PATH)/ ; \
+      $$(MAKE_PY) --render_interface $(CONFIG) $$@ $(H)) \
+  $(eval $(TMP_SERVER_PATH)/interface_$(patsubst %.hpp,%.cpp,$(notdir $(H))): \
+      $(H) $(SERVER_PATH)/templates/interface_driver.hpp $(SERVER_PATH)/templates/interface_driver.cpp | $(TMP_SERVER_PATH)/ ; \
+      $$(MAKE_PY) --render_interface $(CONFIG) $$@ $(H)) \
+)
 
 # Render other templates
 ###############################################################################
@@ -40,6 +45,16 @@ $1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP)
 	$(MAKE_PY) --render_template $(CONFIG) $$@ $$<
 endef
 $(foreach template,$(SERVER_TEMPLATE_LIST),$(eval $(call render_template,$(template))))
+
+# All interface outputs (per-driver + aggregate)
+INTERFACE_TARGETS := \
+  $(INTERFACE_DRIVERS_HPP) $(INTERFACE_DRIVERS_CPP) \
+  $(TMP_SERVER_PATH)/interface_drivers.hpp $(TMP_SERVER_PATH)/interface_drivers.cpp
+
+# A single stamp that flips only when every interface is present
+INTERFACE_STAMP := $(TMP_SERVER_PATH)/.interfaces.stamp
+$(INTERFACE_STAMP): $(INTERFACE_TARGETS)
+	@touch $@
 
 # Compile the executable with GCC
 ###############################################################################
@@ -71,16 +86,16 @@ PHONY: gcc_flags
 gcc_flags:
 	@echo $(GCC_FLAGS)
 
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp $(INTERFACE_STAMP)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/%.cpp
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/%.cpp $(INTERFACE_STAMP)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-$(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp
+$(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp $(INTERFACE_STAMP)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-$(SERVER): $(OBJ)
+$(SERVER): $(OBJ) $(INTERFACE_STAMP)
 	$(SERVER_CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm
 
 .PHONY: server
