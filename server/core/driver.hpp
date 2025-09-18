@@ -12,19 +12,15 @@
 
 namespace koheron {
 
-class Server;
 struct Command;
 
 class DriverAbstract {
   public:
-    DriverAbstract(driver_id type_, Server *server_)
+    DriverAbstract(driver_id type_)
     : type(type_)
-    , server(server_)
     {}
 
     driver_id type = driver_id_of<NoDriver>;
-    Server *server;
-friend class DriverManager;
 };
 
 template<driver_id type>

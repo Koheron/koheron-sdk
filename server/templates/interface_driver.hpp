@@ -25,8 +25,8 @@ class Driver<driver_id_of<{{ driver.objects[0]["type"] }}>> : public DriverAbstr
     int execute(Command& cmd);
     template<int op> int execute_operation(Command& cmd);
 
-    Driver(Server *server_, {{ driver.objects[0]["type"] }}& {{ driver.objects[0]["name"] }}_)
-    : DriverAbstract(driver_id_of<{{ driver.objects[0]["type"] }}>, server_)
+    Driver({{ driver.objects[0]["type"] }}& {{ driver.objects[0]["name"] }}_)
+    : DriverAbstract(driver_id_of<{{ driver.objects[0]["type"] }}>)
     , {{ driver.objects[0]["name"] }}({{ driver.objects[0]["name"] }}_)
     {}
 

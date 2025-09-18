@@ -71,7 +71,7 @@ void DriverManager::alloc_driver()
     }
 
     std::get<driver - 2>(device_list)
-        = std::make_unique<Driver<driver>>(services::get<Server>().get(), driver_container.get<driver>());
+        = std::make_unique<Driver<driver>>(driver_container.get<driver>());
     std::get<driver - 2>(is_started) = true;
 }
 

@@ -76,6 +76,8 @@ constexpr auto listen_channel_desc = std::array{
     "Unix socket"sv
 };
 
+static_assert(listen_channel_desc.size() == socket_type_num);
+
 } // namespace koheron
 
 #endif // __SERVER_DEFINITIONS_HPP__
