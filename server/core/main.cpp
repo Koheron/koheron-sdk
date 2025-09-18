@@ -7,6 +7,7 @@
 #include "server.hpp"
 #include "services.hpp"
 #include "drivers_manager.hpp"
+#include "drivers_executor.hpp"
 #include "signal_handler.hpp"
 
 int main() {
@@ -15,6 +16,8 @@ int main() {
     if (dm->init() < 0) {
         exit(EXIT_FAILURE);
     }
+
+    services::provide<koheron::DriverExecutor>();
 
     auto signal_handler = services::provide<koheron::SignalHandler>();
 

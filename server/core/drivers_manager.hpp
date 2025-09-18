@@ -70,40 +70,37 @@ class DriverManager
     DriverManager();
 
     int init();
-    int execute(Command &cmd);
+    void ensure_core_started(driver_id id);
 
-    template<driver_id driver>
-    auto& get() {
-        if (! is_driver_started<driver>()) {
-            alloc_driver<driver>();
-        }
-        return driver_container.get<driver>();
+    // Typed access to the core driver
+    template<driver_id id>
+    auto& core() {
+        ensure_core_started(id);
+        return driver_container.get<id>();
+    }
+
+    template<driver_id id>
+    auto& get() { return core<id>(); }
+
+    // internal (used by executor via public API)
+    bool is_core_started(driver_id id) const {
+        return is_started[id - 2];
     }
 
   private:
-    // Store drivers (except Server) as unique_ptr
-    std::array<std::unique_ptr<DriverAbstract>, device_num - 2> device_list;
     DriverContainer driver_container;
-    std::array<bool, device_num - 2> is_started;
+    std::array<bool, device_num - 2> is_started{};
     std::recursive_mutex mutex;
 
-    template<driver_id driver>
-    bool is_driver_started() {
-        return std::get<driver - 2>(is_started);
-    }
+    template<driver_id id>
+    void alloc_core_();
 
-    template<driver_id driver> void alloc_driver();
-
-    template<driver_id... drivers>
-    void start(driver_id driver, std::index_sequence<drivers...>);
-
-    template<driver_id... drivers>
-    int execute_driver(DriverAbstract *dev_abs, Command& cmd, std::index_sequence<drivers...>);
+    void alloc_core(driver_id id);
 };
 
 template<driver_id id>
 device_t<id>& get_driver() {
-    return services::require<koheron::DriverManager>().template get<id>();
+    return services::require<koheron::DriverManager>().template core<id>();
 }
 
 } // namespace koheron

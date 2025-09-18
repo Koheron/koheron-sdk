@@ -17,7 +17,7 @@
 #include "server_definitions.hpp"
 #include "lib/syslog.hpp"
 #include "session_abstract.hpp"
-#include "drivers_manager.hpp"
+#include "drivers_executor.hpp"
 #include "websocket.hpp"
 #include "services.hpp"
 
@@ -157,7 +157,7 @@ int Session<socket_type>::run()
             return nb_bytes_rcvd;
         }
 
-        if (services::require<DriverManager>().execute(cmd) < 0) {
+        if (services::require<DriverExecutor>().execute(cmd) < 0) {
             print<ERROR>("Failed to execute command [driver = %i, operation = %i]\n", cmd.driver, cmd.operation);
         }
 
