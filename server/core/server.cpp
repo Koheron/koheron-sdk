@@ -10,7 +10,7 @@
 #include "commands.hpp"
 #include "session.hpp"
 #include "session_manager.hpp"
-#include "syslog.hpp"
+#include "lib/syslog.hpp"
 
 extern "C" {
   #include <sys/un.h>

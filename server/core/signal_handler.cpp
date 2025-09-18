@@ -3,7 +3,7 @@
 /// (c) Koheron
 
 #include "signal_handler.hpp"
-#include "syslog.hpp"
+#include "lib/syslog.hpp"
 
 #include <iostream>
 #include <cxxabi.h>

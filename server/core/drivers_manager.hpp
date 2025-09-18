@@ -85,16 +85,17 @@ class DriverManager
 
     template<driver_id driver> void alloc_driver();
 
-    // Start
-
     template<driver_id... drivers>
     void start(driver_id driver, std::index_sequence<drivers...>);
-
-    // Execute
 
     template<driver_id... drivers>
     int execute_driver(DriverAbstract *dev_abs, Command& cmd, std::index_sequence<drivers...>);
 };
+
+template<driver_id id>
+device_t<id>& get_driver(DriverManager* dm) {
+    return dm->template get<id>();
+}
 
 } // namespace koheron
 

@@ -43,6 +43,7 @@ template<class... Drivers>
 struct drivers_table {
     static constexpr std::size_t offset = 2; // 0: NoDriver, 1: Server
 
+    using types = std::tuple<Drivers...>;
     using tuple_t = std::tuple<std::unique_ptr<Drivers>...>;
     static constexpr std::size_t device_num = offset + sizeof...(Drivers);
 

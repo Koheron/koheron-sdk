@@ -4,13 +4,16 @@
 #define __CONTEXT_BASE_HPP__
 
 #include <server_definitions.hpp>
-#include <syslog.hpp>
+#include <lib/syslog.hpp>
+#include "driver_id.hpp"
 
 #include <string>
 
 namespace koheron {
     class DriverManager;
-    class Server;
+
+    template<driver_id id>
+    device_t<id>& get_driver(DriverManager* dm);
 } // namespace koheron
 
 class ContextBase
@@ -24,7 +27,9 @@ class ContextBase
 
   public:
     template<class Driver>
-    Driver& get() const;
+    inline Driver& get() const {
+      return koheron::get_driver<koheron::driver_id_of<Driver>>(driver_manager);
+    }
 
     template<int severity, typename... Args>
     void log(const char *msg, Args&&... args) {
@@ -40,7 +45,6 @@ class ContextBase
     virtual int init() { return 0; }
 
 friend class koheron::DriverManager;
-friend class koheron::Server;
 };
 
 #endif // __CONTEXT_BASE_HPP__

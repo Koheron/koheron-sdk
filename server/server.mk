@@ -33,7 +33,7 @@ $(foreach driver,$(DRIVERS_HPP),$(eval $(call render_interface,$(driver))))
 $(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML)
 	$(MAKE_PY) --memory_hpp $(CONFIG) $@
 
-SERVER_TEMPLATE_LIST := $(addprefix $(TMP_SERVER_PATH)/, drivers_table.hpp drivers_json.hpp context.cpp drivers.hpp interface_drivers.hpp operations.hpp)
+SERVER_TEMPLATE_LIST := $(addprefix $(TMP_SERVER_PATH)/, drivers_table.hpp drivers_json.hpp drivers.hpp interface_drivers.hpp operations.hpp)
 
 define render_template
 $1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP)
@@ -43,7 +43,7 @@ $(foreach template,$(SERVER_TEMPLATE_LIST),$(eval $(call render_template,$(templ
 
 # Compile the executable with GCC
 ###############################################################################
-CONTEXT_OBJS := $(TMP_SERVER_PATH)/context.o $(TMP_SERVER_PATH)/spi_dev.o $(TMP_SERVER_PATH)/i2c_dev.o
+CONTEXT_OBJS := $(TMP_SERVER_PATH)/spi_dev.o $(TMP_SERVER_PATH)/i2c_dev.o
 OBJ := $(SERVER_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)

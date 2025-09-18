@@ -15,7 +15,7 @@
 #include "commands.hpp"
 #include "serializer_deserializer.hpp"
 #include "server_definitions.hpp"
-#include "syslog.hpp"
+#include "lib/syslog.hpp"
 #include "session_abstract.hpp"
 #include "drivers_manager.hpp"
 #include "websocket.hpp"
