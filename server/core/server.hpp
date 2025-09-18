@@ -32,7 +32,7 @@ template<int socket_type>
 struct ListenerStats
 {
     int number_of_opened_sessions = 0; ///< Number of currently opened sessions
-    int total_sessions_num = 0;  ///< Total number of sessions
+    int total_sessions_num = 0;        ///< Total number of sessions
     int total_number_of_requests = 0;  ///< Total number of requests
 };
 
@@ -110,15 +110,14 @@ class Server
     std::atomic<bool> exit_all;
 
     // Listeners
-    ListeningChannel<TCP> tcp_listener;
+    ListeningChannel<TCP>     tcp_listener;
     ListeningChannel<WEBSOCK> websock_listener;
-    ListeningChannel<UNIX> unix_listener;
+    ListeningChannel<UNIX>    unix_listener;
 
     /// True when all listeners are ready
     bool is_ready();
 
-    // Managers
-    DriverManager driver_manager;
+    // Managers => GET THAT OUT !
     SessionManager session_manager;
 
     std::mutex ks_mutex;

@@ -13,9 +13,8 @@
 
 namespace koheron {
 
-SessionManager::SessionManager(DriverManager& drv_manager_)
-: driver_manager(drv_manager_),
-  session_pool(),
+SessionManager::SessionManager()
+: session_pool(),
   reusable_ids(0)
 {}
 

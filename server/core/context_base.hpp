@@ -21,8 +21,8 @@ class ContextBase
   private:
     koheron::DriverManager *driver_manager;
 
-    void set_driver_manager(koheron::DriverManager *driver_manager_) {
-        driver_manager = driver_manager_;
+    void set_driver_manager(koheron::DriverManager *dm) {
+        driver_manager = dm;
     }
 
   public:

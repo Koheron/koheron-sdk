@@ -11,6 +11,7 @@
 #include "session.hpp"
 #include "session_manager.hpp"
 #include "lib/syslog.hpp"
+#include "services.hpp"
 
 extern "C" {
   #include <sys/un.h>
@@ -23,16 +24,11 @@ Server::Server()
 , tcp_listener(this)
 , websock_listener(this)
 , unix_listener(this)
-, driver_manager(this)
-, session_manager(driver_manager)
+, session_manager()
 {
     start_syslog();
 
     if (signal_handler.init(this) < 0) {
-        exit(EXIT_FAILURE);
-    }
-
-    if (driver_manager.init() < 0) {
         exit(EXIT_FAILURE);
     }
 

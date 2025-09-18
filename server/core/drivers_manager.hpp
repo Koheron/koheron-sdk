@@ -77,7 +77,6 @@ class DriverManager
     std::array<bool, device_num - 2> is_started;
     std::recursive_mutex mutex;
 
-
     template<driver_id driver>
     bool is_driver_started() {
         return std::get<driver - 2>(is_started);

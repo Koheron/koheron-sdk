@@ -19,6 +19,7 @@
 #include "session_abstract.hpp"
 #include "drivers_manager.hpp"
 #include "websocket.hpp"
+#include "services.hpp"
 
 namespace koheron {
 
@@ -33,7 +34,7 @@ template<int socket_type>
 class Session : public SessionAbstract
 {
   public:
-    Session(int comm_fd, SessionID id_, DriverManager& drv_manager_);
+    Session(int comm_fd, SessionID id_);
 
     int run();
 
@@ -76,7 +77,6 @@ class Session : public SessionAbstract
   private:
     int comm_fd;  ///< Socket file descriptor
     SessionID id;
-    DriverManager& driver_manager;
 
     struct EmptyBuffer {};
     std::conditional_t<socket_type == TCP || socket_type == UNIX,
@@ -128,11 +128,10 @@ friend class SessionManager;
 };
 
 template<int socket_type>
-Session<socket_type>::Session(int comm_fd_, SessionID id_, DriverManager& drv_manager_)
+Session<socket_type>::Session(int comm_fd_, SessionID id_)
 : SessionAbstract(socket_type)
 , comm_fd(comm_fd_)
 , id(id_)
-, driver_manager(drv_manager_)
 , websock()
 , send_buffer(0)
 , status(OPENED)
@@ -158,7 +157,7 @@ int Session<socket_type>::run()
             return nb_bytes_rcvd;
         }
 
-        if (driver_manager.execute(cmd) < 0) {
+        if (services::require<DriverManager>().execute(cmd) < 0) {
             print<ERROR>("Failed to execute command [driver = %i, operation = %i]\n", cmd.driver, cmd.operation);
         }
 
