@@ -7,6 +7,7 @@
 #include "commands.hpp"
 #include "meta_utils.hpp"
 #include "driver_id.hpp"
+#include "services.hpp"
 #include <interface_drivers.hpp>
 
 namespace koheron {
@@ -41,9 +42,8 @@ int DriverContainer::alloc() {
 // Driver manager
 //----------------------------------------------------------------------------
 
-DriverManager::DriverManager(Server *server_)
-: server(server_)
-, driver_container()
+DriverManager::DriverManager()
+: driver_container()
 {
     is_started.fill(false);
 }
@@ -66,12 +66,12 @@ void DriverManager::alloc_driver()
             "Failed to allocate driver [{}] {}. Exiting server...\n",
             driver, std::get<driver>(drivers_names));
 
-        server->exit_all = true;
+        services::require<Server>().exit_all = true;
         return;
     }
 
     std::get<driver - 2>(device_list)
-        = std::make_unique<Driver<driver>>(server, driver_container.get<driver>());
+        = std::make_unique<Driver<driver>>(services::get<Server>().get(), driver_container.get<driver>());
     std::get<driver - 2>(is_started) = true;
 }
 
@@ -118,7 +118,7 @@ int DriverManager::execute(Command& cmd)
     }
 
     if (cmd.driver == 1) {
-        return server->execute(cmd);
+        return services::require<Server>().execute(cmd);
     }
 
     if (!is_started[cmd.driver - 2]) {

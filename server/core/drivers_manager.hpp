@@ -62,13 +62,12 @@ class DriverContainer
     }
 };
 
-class Server;
 struct Command;
 
 class DriverManager
 {
   public:
-    explicit DriverManager(Server *server_);
+    DriverManager();
 
     int init();
     int execute(Command &cmd);
@@ -84,7 +83,6 @@ class DriverManager
   private:
     // Store drivers (except Server) as unique_ptr
     std::array<std::unique_ptr<DriverAbstract>, device_num - 2> device_list;
-    Server *server;
     DriverContainer driver_container;
     std::array<bool, device_num - 2> is_started;
     std::recursive_mutex mutex;

@@ -9,14 +9,15 @@
 #include "drivers_manager.hpp"
 
 int main() {
-    koheron::Server server;
-    auto dm = services::provide<koheron::DriverManager>(&server);
+    auto dm = services::provide<koheron::DriverManager>();
 
     if (dm->init() < 0) {
         exit(EXIT_FAILURE);
     }
 
-    server.run();
+    auto server = services::provide<koheron::Server>();
+    server->run();
+
     exit(EXIT_SUCCESS);
     return 0;
 }
