@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <type_traits>
 #include <cassert>
+#include <memory_resource>
 
 #include "commands.hpp"
 #include "serializer_deserializer.hpp"
@@ -65,7 +66,7 @@ class Session : public SessionAbstract
     template<uint16_t class_id, uint16_t func_id, typename... Args>
     int send(Args&&... args) {
         builder.reset_into(send_buffer);
-        builder.write_header(class_id, func_id);
+        builder.write_header<class_id, func_id>();
         builder.push(std::forward<Args>(args)...);
         builder.finalize();
         const auto bytes_send = write(send_buffer.data(), send_buffer.size());
@@ -91,7 +92,13 @@ class Session : public SessionAbstract
 
     std::conditional_t<socket_type == WEBSOCK, WebSocket, EmptyWebsock> websock;
 
-    std::vector<unsigned char> send_buffer;
+    // First 4 KiB of allocations come from initial_storage, no heap at all
+    // If we exceed it will grab memory from the system allocator.
+    std::array<std::byte, 4096> seed{};
+    std::pmr::monotonic_buffer_resource pool{
+        seed.data(), seed.size(), std::pmr::get_default_resource()
+    };
+    std::pmr::vector<unsigned char> send_buffer{ &pool };
     CommandBuilder builder;
 
     enum {CLOSED, OPENED};
@@ -138,9 +145,7 @@ Session<socket_type>::Session(int comm_fd_, SessionID id_)
 , websock()
 , send_buffer(0)
 , status(OPENED)
-{
-    send_buffer.reserve(4 + 2 + 2 + 1024); // header + ~1KB payload
-}
+{}
 
 template<int socket_type>
 int Session<socket_type>::run()

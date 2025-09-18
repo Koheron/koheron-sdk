@@ -18,6 +18,7 @@
 #include <type_traits>
 #include <span>
 #include <ranges>
+#include <memory_resource>
 
 namespace koheron {
 
@@ -235,9 +236,9 @@ concept ScalarLike = (std::is_scalar_v<std::remove_reference_t<T>> && !std::is_p
 
 // packer that batches scalars, flushing before contiguous payloads
 struct CommandBuilder {
-    std::vector<unsigned char>* out = nullptr;
+    std::pmr::vector<unsigned char>* out = nullptr;
 
-    void reset_into(std::vector<unsigned char>& dst) noexcept {
+    void reset_into(std::pmr::vector<unsigned char>& dst) noexcept {
         out = &dst;
         out->clear();
     }
@@ -279,7 +280,8 @@ struct CommandBuilder {
     }
 
     // header (length filled in finalize)
-    void write_header(std::uint16_t class_id, std::uint16_t func_id) {
+    template<uint16_t class_id, uint16_t func_id>
+    void write_header() {
         auto p = append_raw(4 + 2 + 2);
         // 4 bytes placeholder
         append<uint16_t>(p + 4, class_id);
@@ -288,7 +290,6 @@ struct CommandBuilder {
 
     void finalize() noexcept {
         const std::size_t payload = out->size() - 4;
-        // On 32-bit ARM this is already uint32_t-sized
         append<uint32_t>(out->data(), static_cast<std::uint32_t>(payload));
     }
 
