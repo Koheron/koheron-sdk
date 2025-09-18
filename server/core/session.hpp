@@ -64,7 +64,10 @@ class Session : public SessionAbstract
 
     template<uint16_t class_id, uint16_t func_id, typename... Args>
     int send(Args&&... args) {
-        dynamic_serializer.build_command<class_id, func_id>(send_buffer, std::forward<Args>(args)...);
+        builder.reset_into(send_buffer);
+        builder.write_header(class_id, func_id);
+        builder.push(std::forward<Args>(args)...);
+        builder.finalize();
         const auto bytes_send = write(send_buffer.data(), send_buffer.size());
 
         if (bytes_send == 0) {
@@ -89,7 +92,7 @@ class Session : public SessionAbstract
     std::conditional_t<socket_type == WEBSOCK, WebSocket, EmptyWebsock> websock;
 
     std::vector<unsigned char> send_buffer;
-    DynamicSerializer<1024> dynamic_serializer;
+    CommandBuilder builder;
 
     enum {CLOSED, OPENED};
     int status;
@@ -135,7 +138,9 @@ Session<socket_type>::Session(int comm_fd_, SessionID id_)
 , websock()
 , send_buffer(0)
 , status(OPENED)
-{}
+{
+    send_buffer.reserve(4 + 2 + 2 + 1024); // header + ~1KB payload
+}
 
 template<int socket_type>
 int Session<socket_type>::run()
