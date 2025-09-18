@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <cerrno>
 
+#include "services.hpp"
 #include "session_manager.hpp"
 #include "lib/syslog.hpp"
 
@@ -123,8 +124,6 @@ class Server
     /// True when all listeners are ready
     bool is_ready();
 
-    SessionManager session_manager;
-
     std::mutex ks_mutex;
 
     int execute(Command& cmd);
@@ -148,15 +147,15 @@ void session_thread_call(int comm_fd, ListeningChannel<socket_type> *listener)
     listener->stats.number_of_opened_sessions++;
     listener->stats.total_sessions_num++;
 
-    SessionID sid = listener->server->session_manager. template create_session<socket_type>(comm_fd);
+    SessionID sid = services::require<SessionManager>(). template create_session<socket_type>(comm_fd);
 
-    auto session = static_cast<Session<socket_type>*>(&listener->server->session_manager.get_session(sid));
+    auto session = static_cast<Session<socket_type>*>(&services::require<SessionManager>().get_session(sid));
 
     if (session->run() < 0) {
         print<ERROR>("An error occured during session\n");
     }
 
-    listener->server->session_manager.delete_session(sid);
+    services::require<SessionManager>().delete_session(sid);
     listener->number_of_threads--;
     listener->stats.number_of_opened_sessions--;
 }
