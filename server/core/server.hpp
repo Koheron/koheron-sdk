@@ -151,7 +151,7 @@ void session_thread_call(int comm_fd, ListeningChannel<socket_type> *listener)
     auto session = static_cast<Session<socket_type>*>(&listener->server->session_manager.get_session(sid));
 
     if (session->run() < 0) {
-        listener->server->syslog. template print<ERROR>("An error occured during session\n");
+        print<ERROR>("An error occured during session\n");
     }
 
     listener->server->session_manager.delete_session(sid);
@@ -171,12 +171,12 @@ void comm_thread_call(ListeningChannel<socket_type> *listener)
             break;
 
         if (comm_fd < 0) {
-            listener->server->syslog. template print<CRITICAL>("Connection to client rejected [socket_type = %u]\n", socket_type);
+            print<CRITICAL>("Connection to client rejected [socket_type = %u]\n", socket_type);
             continue;
         }
 
         if (listener->is_max_threads()) {
-            listener->server->syslog. template print<WARNING>("Maximum number of workers exceeded\n");
+            print<WARNING>("Maximum number of workers exceeded\n");
             continue;
         }
 
@@ -184,7 +184,7 @@ void comm_thread_call(ListeningChannel<socket_type> *listener)
         session_thread.detach();
     }
 
-    listener->server->syslog. template print<INFO>("%s listener closed.\n", listen_channel_desc[socket_type].c_str());
+    print<INFO>("%s listener closed.\n", listen_channel_desc[socket_type].c_str());
 }
 
 template<int socket_type>
@@ -192,7 +192,7 @@ inline int ListeningChannel<socket_type>::start_worker()
 {
     if (listen_fd >= 0) {
         if (listen(listen_fd, NUMBER_OF_PENDING_CONNECTIONS) < 0) {
-            server->syslog.print<PANIC>("Listen %s error\n", listen_channel_desc[socket_type].c_str());
+            print<PANIC>("Listen %s error\n", listen_channel_desc[socket_type].c_str());
             return -1;
         }
         comm_thread = std::thread{comm_thread_call<socket_type>, this};

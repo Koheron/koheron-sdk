@@ -117,7 +117,7 @@ void Server::notify_systemd_ready()
     int sd_notif_fd = socket(AF_UNIX, SOCK_DGRAM|SOCK_CLOEXEC, 0);
 
     if (sd_notif_fd < 0) {
-        syslog.print<WARNING>("Cannot open notification socket\n");
+        print<WARNING>("Cannot open notification socket\n");
         return;
     }
 
@@ -134,7 +134,7 @@ void Server::notify_systemd_ready()
     msg.msg_iov = reinterpret_cast<struct iovec*>(malloc(sizeof(struct iovec) * 3));
 
     if (msg.msg_iov == nullptr) {
-        syslog.print<WARNING>("Cannot allocate msg.msg_iov\n");
+        print<WARNING>("Cannot allocate msg.msg_iov\n");
         goto exit_notification_socket;
     }
 
@@ -148,14 +148,14 @@ void Server::notify_systemd_ready()
     msg.msg_iovlen = 1;
 
     if (sendmsg(sd_notif_fd, &msg, MSG_NOSIGNAL) < 0) {
-        syslog.print<WARNING>("Cannot send notification to systemd.\n");
+        print<WARNING>("Cannot send notification to systemd.\n");
     }
 
     free(msg.msg_iov);
 
 exit_notification_socket:
     if (::shutdown(sd_notif_fd, SHUT_RDWR) < 0) {
-        syslog.print<WARNING>("Cannot shutdown notification socket\n");
+        print<WARNING>("Cannot shutdown notification socket\n");
     }
 
     close(sd_notif_fd);
@@ -171,7 +171,7 @@ int Server::run()
 
     while (true) {
         if (!ready_notified && is_ready()) {
-            syslog.print<INFO>("Koheron server ready\n");
+            print<INFO>("Koheron server ready\n");
             if (config::notify_systemd) {
                 notify_systemd_ready();
             }
@@ -179,7 +179,7 @@ int Server::run()
         }
 
         if (signal_handler.interrupt() || exit_all) {
-            syslog.print<INFO>("Interrupt received, killing Koheron server ...\n");
+            print<INFO>("Interrupt received, killing Koheron server ...\n");
             session_manager.delete_all();
             close_listeners();
             syslog.close();

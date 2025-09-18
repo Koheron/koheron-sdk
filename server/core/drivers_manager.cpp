@@ -22,7 +22,7 @@ int DriverContainer::alloc() {
     }
 
     if (std::get<driver - 2>(is_starting)) {
-        syslog.print<CRITICAL>(
+        print<CRITICAL>(
             "Circular dependency detected while initializing driver [%u] %s\n",
             driver, std::get<driver>(drivers_names).data());
 
@@ -59,12 +59,12 @@ void DriverManager::alloc_driver()
         return;
     }
 
-    server->syslog.print_fmt<INFO>(
+    print_fmt<INFO>(
         "Driver Manager: Starting driver [{}] {}...\n",
         driver, std::get<driver>(drivers_names));
 
     if (driver_container.alloc<driver>() < 0) {
-        server->syslog.print_fmt<PANIC>(
+        print_fmt<PANIC>(
             "Failed to allocate driver [{}] {}. Exiting server...\n",
             driver, std::get<driver>(drivers_names));
 
@@ -86,7 +86,7 @@ void DriverManager::start(driver_id driver, std::index_sequence<drivers...>)
 int DriverManager::init()
 {
     if (ctx.init() < 0) {
-        server->syslog.print<CRITICAL>("Context initialization failed\n");
+        print<CRITICAL>("Context initialization failed\n");
         return -1;
     }
 

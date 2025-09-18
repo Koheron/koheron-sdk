@@ -100,47 +100,47 @@ inline constexpr int to_priority_v = Severities[S].priority;
 static_assert(to_priority_v<PANIC> == LOG_ALERT);
 static_assert(to_priority_v<INFO>  == LOG_NOTICE);
 
+template<int S, typename... Args>
+void print(std::string_view msg, Args&&... args)
+{
+    static_assert(S >= 0 && S < syslog_severity_num, "Invalid logging level");
+
+    if constexpr (S <= WARNING && config::log::use_stderr) {
+        const std::string prefixed =
+            std::string(severity_msg_v<S>) + ": " + std::string(msg);
+
+        if constexpr (sizeof...(Args) == 0) {
+            koheron::fprintf(stderr, "%s", prefixed.c_str());
+        } else {
+            koheron::fprintf(stderr, prefixed.c_str(), std::forward<Args>(args)...);
+        }
+    }
+
+    if constexpr (S >= INFO && config::log::verbose) {
+        if constexpr (sizeof...(Args) == 0) {
+            koheron::printf("%s", std::string(msg).c_str());
+        } else {
+            koheron::printf(msg.data(), std::forward<Args>(args)...);
+        }
+    }
+
+    if constexpr (S <= INFO && config::log::syslog) {
+        if constexpr (sizeof...(Args) == 0) {
+            ::syslog(to_priority_v<S>, "%s", std::string(msg).c_str());
+        } else {
+            ::syslog(to_priority_v<S>, msg.data(), std::forward<Args>(args)...);
+        }
+    }
+}
+
+template<int S, typename... Args>
+void print_fmt(std::format_string<Args...> fmt, Args&&... args)
+{
+    print<S>(std::format(fmt, std::forward<Args>(args)...));
+}
+
 struct SysLog
 {
-    template<int S, typename... Args>
-    void print(std::string_view msg, Args&&... args)
-    {
-        static_assert(S >= 0 && S < syslog_severity_num, "Invalid logging level");
-
-        if constexpr (S <= WARNING && config::log::use_stderr) {
-            const std::string prefixed =
-                std::string(severity_msg_v<S>) + ": " + std::string(msg);
-
-            if constexpr (sizeof...(Args) == 0) {
-                koheron::fprintf(stderr, "%s", prefixed.c_str());
-            } else {
-                koheron::fprintf(stderr, prefixed.c_str(), std::forward<Args>(args)...);
-            }
-        }
-
-        if constexpr (S >= INFO && config::log::verbose) {
-            if constexpr (sizeof...(Args) == 0) {
-                koheron::printf("%s", std::string(msg).c_str());
-            } else {
-                koheron::printf(msg.data(), std::forward<Args>(args)...);
-            }
-        }
-
-        if constexpr (S <= INFO && config::log::syslog) {
-            if constexpr (sizeof...(Args) == 0) {
-                ::syslog(to_priority_v<S>, "%s", std::string(msg).c_str());
-            } else {
-                ::syslog(to_priority_v<S>, msg.data(), std::forward<Args>(args)...);
-            }
-        }
-    }
-
-    template<int S, typename... Args>
-    void print_fmt(std::format_string<Args...> fmt, Args&&... args)
-    {
-        print<S>(std::format(fmt, std::forward<Args>(args)...));
-    }
-
   private:
     SysLog()
     {

@@ -33,12 +33,12 @@ class ContextBase
 
     template<int severity, typename... Args>
     void log(const char *msg, Args&&... args) {
-        syslog->print<severity>(msg, std::forward<Args>(args)...);
+        koheron::print<severity>(msg, std::forward<Args>(args)...);
     }
 
     template<int severity, typename... Args>
     void logf(std::format_string<Args...> fmt, Args&&... args) {
-        syslog->print_fmt<severity>(fmt, std::forward<Args>(args)...);
+        koheron::print_fmt<severity>(fmt, std::forward<Args>(args)...);
     }
 
   protected:

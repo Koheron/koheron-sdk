@@ -3,6 +3,7 @@
 /// (c) Koheron
 
 #include "signal_handler.hpp"
+#include "syslog.hpp"
 
 #include <iostream>
 #include <cxxabi.h>
@@ -48,12 +49,12 @@ int SignalHandler::set_interrupt_signals()
     sig_int_handler.sa_flags = 0;
 
     if (sigaction(SIGINT, &sig_int_handler, nullptr) < 0) {
-        server->syslog.print<CRITICAL>("Cannot set SIGINT handler\n");
+        print<CRITICAL>("Cannot set SIGINT handler\n");
         return -1;
     }
 
     if (sigaction(SIGTERM, &sig_int_handler, nullptr) < 0) {
-        server->syslog.print<CRITICAL>("Cannot set SIGTERM handler\n");
+        print<CRITICAL>("Cannot set SIGTERM handler\n");
         return -1;
     }
 
@@ -74,7 +75,7 @@ int SignalHandler::set_ignore_signals()
     // when client closes its connection during writing.
     // Results in an unwanted server shutdown
     if (sigaction(SIGPIPE, &sig_ign_handler, nullptr) < 0) {
-        server->syslog.print<CRITICAL>("Cannot disable SIGPIPE\n");
+        print<CRITICAL>("Cannot disable SIGPIPE\n");
         return -1;
     }
 
@@ -86,7 +87,7 @@ int SignalHandler::set_ignore_signals()
     // It might thus be possible to stop the session emitting it.
 
     if (sigaction(SIGTSTP, &sig_ign_handler, nullptr) < 0) {
-        server->syslog.print<CRITICAL>("Cannot disable SIGTSTP\n");
+        print<CRITICAL>("Cannot disable SIGTSTP\n");
         return -1;
     }
 
@@ -124,16 +125,14 @@ static void crash_signal_handler(int sig)
         sig_name = "(Unidentify signal)";
     }
 
-    SignalHandler::server->syslog.print<PANIC>(
-                              "CRASH: signal %d %s\n", sig, sig_name);
+    print<PANIC>("CRASH: signal %d %s\n", sig, sig_name);
 
     void *buffer[backtrace_buff_size];
     auto size = backtrace(buffer, backtrace_buff_size);
     char **messages = backtrace_symbols(buffer, size);
 
     if (messages == nullptr) {
-        SignalHandler::server->syslog.print<ERROR>(
-                                             "No backtrace_symbols");
+        print<ERROR>("No backtrace_symbols");
         goto exit;
     }
 
@@ -168,11 +167,11 @@ static void crash_signal_handler(int sig)
 
             // If demangling is successful, output the demangled function name
             if (status == 0) {
-                SignalHandler::server->syslog.print<INFO>(
+                print<INFO>(
                         "[bt]: (%d) %s : %s+%s%s\n",
                         i, messages[i], real_name, offset_begin, offset_end);
             } else { // Otherwise, output the mangled function name
-                SignalHandler::server->syslog.print<INFO>(
+                print<INFO>(
                         "[bt]: (%d) %s : %s+%s%s\n",
                         i, messages[i], mangled_name, offset_begin, offset_end);
             }
@@ -196,17 +195,17 @@ int SignalHandler::set_crash_signals()
     sig_crash_handler.sa_flags = SA_RESTART | SA_SIGINFO;
 
     if (sigaction(SIGSEGV, &sig_crash_handler, nullptr) < 0) {
-        server->syslog.print<CRITICAL>("Cannot set SIGSEGV handler\n");
+        print<CRITICAL>("Cannot set SIGSEGV handler\n");
         return -1;
     }
 
     if (sigaction(SIGBUS, &sig_crash_handler, nullptr) < 0) {
-        server->syslog.print<CRITICAL>("Cannot set SIGBUS handler\n");
+        print<CRITICAL>("Cannot set SIGBUS handler\n");
         return -1;
     }
 
     if (sigaction(SIGABRT, &sig_crash_handler, nullptr) < 0) {
-        server->syslog.print<CRITICAL>("Cannot set SIGABRT handler\n");
+        print<CRITICAL>("Cannot set SIGABRT handler\n");
         return -1;
     }
 
