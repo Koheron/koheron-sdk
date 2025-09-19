@@ -34,34 +34,42 @@ TMP_WEB_PATH := $(TMP_PROJECT_PATH)/web
 WEB_DOWNLOADS_MK ?= $(WEB_PATH)/downloads.mk
 include $(WEB_DOWNLOADS_MK)
 
-WEB_FILES := $(shell $(MAKE_PY) --web $(CONFIG) $(TMP_WEB_PATH)/web_files && cat $(TMP_WEB_PATH)/web_files)
+WEB_FILES := $(shell $(MAKE_PY) --web $(CONFIG_YML) $(TMP_WEB_PATH)/web_files && cat $(TMP_WEB_PATH)/web_files)
 
-TS_FILES := $(filter %.ts,$(WEB_FILES))
-NO_TS_FILES := $(filter-out $(TS_FILES),$(WEB_FILES))
-TMP_NO_TS_FILES := $(addprefix $(TMP_WEB_PATH)/, $(notdir $(NO_TS_FILES)))
+TS_FILES      := $(filter %.ts,$(WEB_FILES))
+NON_TS_FILES  := $(filter-out %.ts,$(WEB_FILES))
 
+# Paths relative to ".../web/"
+REL_NON_TS := $(patsubst %/web/%,%,$(NON_TS_FILES))
+# Where to find sources (no SDK/PROJECT in rules)
+VPATH := $(sort $(patsubst %/web/%,%/web,$(NON_TS_FILES)))
+
+# Targets (preserve subdirectories)
+TMP_NON_TS_FILES := $(addprefix $(TMP_WEB_PATH)/,$(REL_NON_TS))
+
+# Typescript → single bundle
 ifeq ($(TS_FILES),)
-APP_JS :=
+  APP_JS :=
 else
-APP_JS := $(TMP_WEB_PATH)/app.js
-$(APP_JS): $(TS_FILES)
+  APP_JS := $(TMP_WEB_PATH)/app.js
+$(APP_JS): $(TS_FILES) | $(TMP_WEB_PATH)/
 	mkdir -p $(@D)
 	$(TSC) $^ --outFile $@
 endif
 
-define copy_no_ts_file
-$(TMP_WEB_PATH)/$(notdir $1): $1
-	cp $$< $$@
-endef
-$(foreach file,$(NO_TS_FILES),$(eval $(call copy_no_ts_file,$(file))))
+# Generic copy rule for non-TS assets
+$(TMP_WEB_PATH)/%: % | $(TMP_WEB_PATH)/
+	mkdir -p $(@D)
+	cp $< $@
 
-WEB_ASSETS := $(WEB_DOWNLOADS) $(APP_JS) $(TMP_NO_TS_FILES)
+# Ensure the staging root exists (prevents -j races)
+$(TMP_WEB_PATH)/:
+	mkdir -p $@
+
+WEB_ASSETS := $(WEB_DOWNLOADS) $(APP_JS) $(TMP_NON_TS_FILES)
 
 .PHONY: web
 web: $(WEB_ASSETS)
-
-# Clean targets
-###############################################################################
 
 .PHONY: clean_web
 clean_web:

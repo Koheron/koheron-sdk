@@ -2,6 +2,8 @@
 SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := all
+# Cleaner logs when running -j
+MAKEFLAGS += --output-sync=target
 .DELETE_ON_ERROR:
 .SUFFIXES:
 PYTHONPATH :=
@@ -9,32 +11,49 @@ export PYTHONPATH
 MATLABPATH :=
 export MATLABPATH
 
+GREEN := \033[1;32m
+RESET := \033[0m
+
+ok = @printf '%b\n' '$(GREEN)[$(1)] OK$(RESET)'
+
 %/:
 	mkdir -p $@
 
-CONFIG ?= examples/alpha250/fft/config.yml
 SDK_PATH ?= .
 MODE ?= development
 SDK_FULL_PATH = $(realpath $(SDK_PATH))
 HOST ?= 192.168.1.100
 TMP ?= tmp
 
-KOHERON_VERSION_FILE := $(SDK_PATH)/version
-KOHERON_VERSION := $(shell cat $(KOHERON_VERSION_FILE))
+KOHERON_VERSION := 1.0
 VIVADO_VERSION := 2025.1
 VIVADO_PATH := /tools/Xilinx/$(VIVADO_VERSION)/Vivado
 VITIS_PATH := /tools/Xilinx/$(VIVADO_VERSION)/Vitis
 PYTHON := python3
 VENV := .venv
-# Use GCC version >=7
+HSI := source $(VIVADO_PATH)/settings64.sh && xsct
+BOOTGEN := source $(VIVADO_PATH)/settings64.sh && bootgen
 GCC_VERSION := 13
 
-# Use this command to set GCC_VERSION to 9 on Ubuntu 22.04
-.PHONY: set_gcc_version
-set_gcc_version:
-	unlink /usr/bin/arm-linux-gnueabihf-gcc
-	ln -s /usr/bin/arm-linux-gnueabihf-gcc-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-gcc
-	arm-linux-gnueabihf-gcc --version
+DOCKER_PATH := $(SDK_PATH)/docker
+OS_PATH := $(SDK_PATH)/os
+FPGA_PATH := $(SDK_PATH)/fpga
+SERVER_PATH := $(SDK_PATH)/server
+WEB_PATH := $(SDK_PATH)/web
+
+# Use config.mk instead of config.yml
+CONFIG_MK ?= examples/alpha250/fft/config.mk
+BOARD_MK ?= $(BOARD_PATH)/board.mk
+DOCKER_MK ?= $(DOCKER_PATH)/docker.mk
+FPGA_MK ?= $(FPGA_PATH)/fpga.mk
+OS_MK ?= $(OS_PATH)/os.mk
+SERVER_MK ?= $(SERVER_PATH)/server.mk
+WEB_MK ?= $(WEB_PATH)/web.mk
+
+PROJECT_PATH := $(dir $(CONFIG_MK))
+TMP_PROJECT_PATH := $(TMP)/$(PROJECT_PATH)
+
+CORES :=
 
 #BUILD_METHOD := native
 BUILD_METHOD = docker
@@ -51,10 +70,6 @@ help:
 	@echo ' - block_design : Build the Vivado block design interactively'
 	@echo ' - open_project : Open the Vivado .xpr project'
 
-# Directory for storing the build artifacts
-PROJECT_PATH := $(dir $(CONFIG))
-TMP_PROJECT_PATH := $(TMP)/$(PROJECT_PATH)
-
 # Python script that manages the instrument configuration
 MAKE_PY := SDK_PATH=$(SDK_PATH) $(VENV)/bin/$(PYTHON) $(SDK_PATH)/make.py
 
@@ -63,14 +78,21 @@ MEMORY_YML := $(TMP_PROJECT_PATH)/memory.yml
 # Number of CPU cores available for parallel execution
 N_CPUS ?= $(shell nproc 2> /dev/null || echo 1)
 
-NAME := $(shell $(MAKE_PY) --name $(CONFIG) $(TMP_PROJECT_PATH)/name && cat $(TMP_PROJECT_PATH)/name)
+BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit
 
-###############################################################################
-# DOCKER
-###############################################################################
-DOCKER_PATH := $(SDK_PATH)/docker
-DOCKER_MK ?= $(DOCKER_PATH)/docker.mk
+# TCP / Websocket server executable that communicates with the FPGA
+SERVER := $(TMP_PROJECT_PATH)/serverd
+
+VERSION_FILE := $(TMP_PROJECT_PATH)/version
+
+include $(CONFIG_MK)
+include $(BOARD_MK)
+include $(OS_PATH)/$(ZYNQ_TYPE).mk
 include $(DOCKER_MK)
+include $(FPGA_MK)
+include $(OS_MK)
+include $(SERVER_MK)
+include $(WEB_MK)
 
 ###############################################################################
 # INSTRUMENT
@@ -82,21 +104,11 @@ include $(DOCKER_MK)
 # - Bash configuration script
 # - Web files (HTML, CSS, Javascript)
 
-BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit
-
-# TCP / Websocket server executable that communicates with the FPGA
-SERVER := $(TMP_PROJECT_PATH)/serverd
-
-VERSION_FILE := $(TMP_PROJECT_PATH)/version
-
-$(VERSION_FILE): $(CONFIG)
-	$(MAKE_PY) --version $(CONFIG) $@
-
 # Zip file that contains all the files needed to run the instrument:
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
-$(INSTRUMENT_ZIP): server $(BITSTREAM) web $(VERSION_FILE) $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM).bin
+$(INSTRUMENT_ZIP): $(SERVER) $(BITSTREAM) $(WEB_ASSETS) $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM).bin $(VERSION_FILE)
 	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM).bin $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM) $(SERVER) $(WEB_ASSETS) $(VERSION_FILE)
-	@echo [$@] OK
+	$(call ok,$@)
 
 # Make builds the instrument zip file by default
 .PHONY: all
@@ -111,22 +123,6 @@ run: $(INSTRUMENT_ZIP)
 	@echo
 
 ###############################################################################
-# FPGA BITSTREAM
-###############################################################################
-OS_PATH := $(SDK_PATH)/os
-OS_MK ?= $(OS_PATH)/os.mk
-FPGA_PATH := $(SDK_PATH)/fpga
-FPGA_MK ?= $(FPGA_PATH)/fpga.mk
-include $(FPGA_MK)
-
-###############################################################################
-# TCP / WEBSOCKET SERVER
-###############################################################################
-SERVER_PATH := $(SDK_PATH)/server
-SERVER_MK ?= $(SERVER_PATH)/server.mk
-include $(SERVER_MK)
-
-###############################################################################
 # C++ CLIENT
 ###############################################################################
 CLIENT_PATH := $(PROJECT_PATH)/client
@@ -137,18 +133,6 @@ PHONY: client
 client:
 	@echo 'No client available for this instrument'
 endif
-
-###############################################################################
-# WEB FILES
-###############################################################################
-WEB_PATH := $(SDK_PATH)/web
-WEB_MK ?= $(WEB_PATH)/web.mk
-include $(WEB_MK)
-
-###############################################################################
-# LINUX OS
-###############################################################################
-include $(OS_MK)
 
 ###############################################################################
 # TESTS
@@ -177,7 +161,7 @@ setup_base:
 # 	sudo rm -f /usr/bin/arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-g++
 # 	sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-gcc
 # 	sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-g++
-	sudo apt-get install -y curl $(PYTHON)-venv
+	sudo apt-get install -y curl rsync $(PYTHON)-venv
 	[ -d $(VENV) ] || $(PYTHON) -m venv $(VENV)
 	$(VENV)/bin/$(PYTHON) -m ensurepip --upgrade
 	$(VENV)/bin/$(PYTHON) -m pip install --upgrade pip

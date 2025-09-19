@@ -1,6 +1,12 @@
+BOARD := alpha250
+PART := xc7z020clg400-2
+ZYNQ_TYPE := zynq
+
+CORES += $(SDK_PATH)/boards/alpha250/cores/precision_dac_v1_0
+CORES += $(SDK_PATH)/boards/alpha250/cores/spi_cfg_v1_0
+
 # Linux and U-boot
 UBOOT_CONFIG = zynq_alpha250_defconfig
-ZYNQ_TYPE ?= zynq
 UBOOT_TAG := xilinx-uboot-v$(VIVADO_VERSION)
 LINUX_TAG := xilinx-linux-v$(VIVADO_VERSION)
 DTREE_TAG := xilinx_v$(VIVADO_VERSION)

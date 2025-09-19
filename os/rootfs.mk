@@ -4,10 +4,13 @@
 
 TMP_API_PATH := $(TMP)/api
 
-.PHONY:
-api: $(TMP_API_PATH)/wsgi.py \
-        $(TMP_API_PATH)/app/__init__.py \
-        $(TMP_API_PATH)/app/install_instrument.sh
+API_FILES := \
+  $(TMP_API_PATH)/wsgi.py \
+  $(TMP_API_PATH)/app/__init__.py \
+  $(TMP_API_PATH)/app/install_instrument.sh
+
+.PHONY: api
+api: $(API_FILES)
 
 $(TMP_API_PATH)/wsgi.py: $(OS_PATH)/api/wsgi.py
 	mkdir -p $(@D)
@@ -20,7 +23,7 @@ $(TMP_API_PATH)/app/%: $(OS_PATH)/api/%
 PASSWORD ?= changeme
 
 .PHONY:
-api_sync: api
+api_sync: $(API_FILES)
 	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" $(TMP_API_PATH)/. root@$(HOST):/usr/local/api/
 	sshpass -p "$(PASSWORD)" ssh -i /ssh-private-key root@$(HOST) 'systemctl daemon-reload || true; systemctl reload-or-restart uwsgi'
 
@@ -35,24 +38,27 @@ api_clean:
 WWW_PATH:= $(OS_PATH)/www
 TMP_WWW_PATH:= $(TMP)/www
 
+WWW_ASSETS := \
+  $(TMP_WWW_PATH)/koheron.css \
+  $(TMP_WWW_PATH)/instruments.js \
+  $(TMP_WWW_PATH)/index.html \
+  $(TMP_WWW_PATH)/main.css \
+  $(TMP_WWW_PATH)/bootstrap.min.js \
+  $(TMP_WWW_PATH)/bootstrap.min.css \
+  $(TMP_WWW_PATH)/jquery.min.js \
+  $(TMP_WWW_PATH)/koheron.svg \
+  $(TMP_WWW_PATH)/koheron_logo.svg \
+  $(TMP_WWW_PATH)/kbird.ico \
+  $(TMP_WWW_PATH)/lato-v11-latin-400.woff2 \
+  $(TMP_WWW_PATH)/lato-v11-latin-700.woff2 \
+  $(TMP_WWW_PATH)/lato-v11-latin-900.woff2 \
+  $(TMP_WWW_PATH)/glyphicons-halflings-regular.woff2 \
+  $(TMP_WWW_PATH)/navigation.html \
+  $(TMP_WWW_PATH)/html-imports.min.js \
+  $(TMP_WWW_PATH)/html-imports.min.js.map
+
 .PHONY: www
-www : $(TMP_WWW_PATH)/koheron.css \
-		$(TMP_WWW_PATH)/instruments.js \
-		$(TMP_WWW_PATH)/index.html \
-		$(TMP_WWW_PATH)/main.css \
-		$(TMP_WWW_PATH)/bootstrap.min.js \
-		$(TMP_WWW_PATH)/bootstrap.min.css \
-		$(TMP_WWW_PATH)/jquery.min.js \
-		$(TMP_WWW_PATH)/koheron.svg \
-		$(TMP_WWW_PATH)/koheron_logo.svg \
-		$(TMP_WWW_PATH)/kbird.ico \
-		$(TMP_WWW_PATH)/lato-v11-latin-400.woff2 \
-		$(TMP_WWW_PATH)/lato-v11-latin-700.woff2 \
-		$(TMP_WWW_PATH)/lato-v11-latin-900.woff2 \
-		$(TMP_WWW_PATH)/glyphicons-halflings-regular.woff2 \
-		$(TMP_WWW_PATH)/navigation.html \
-		$(TMP_WWW_PATH)/html-imports.min.js \
-		$(TMP_WWW_PATH)/html-imports.min.js.map
+www : $(WWW_ASSETS)
 
 .PHONY: www_sync
 www_sync: www
@@ -91,11 +97,11 @@ $(TMP_WWW_PATH)/main.css: $(WEB_PATH)/main.css
 
 $(TMP_WWW_PATH)/bootstrap.min.js:
 	mkdir -p $(@D)
-	curl http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js -o $@
+	curl https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js -o $@
 
 $(TMP_WWW_PATH)/bootstrap.min.css:
 	mkdir -p $(@D)
-	curl http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css -o $@
+	curl https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css -o $@
 
 $(TMP_WWW_PATH)/jquery.min.js:
 	mkdir -p $(@D)
@@ -151,7 +157,7 @@ else
 endif
 
 ROOT_TAR := ubuntu-base-$(UBUNTU_VERSION)-base-$(UBUNTU_ARCH).tar.gz
-ROOT_TAR_URL := http://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/$(ROOT_TAR)
+ROOT_TAR_URL := https://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/$(ROOT_TAR)
 ROOT_TAR_PATH := $(TMP)/$(ROOT_TAR)
 OVERLAY_TAR := $(TMP_OS_PATH)/rootfs_overlay.tar
 
@@ -163,7 +169,7 @@ OVERLAY_DIR := $(TMP_OS_PATH)/rootfs_overlay
 $(ROOT_TAR_PATH):
 	mkdir -p $(@D)
 	curl -L $(ROOT_TAR_URL) -o $@
-	@echo [$@] OK
+	$(call ok,$@)
 
 ###############################################################################
 # ROOTFS OVERLAY
@@ -309,7 +315,7 @@ $(OVERLAY_TAR): $(OVERLAY_FILES) | $(OVERLAY_DIR)/
 	    --owner=0 --group=0 --numeric-owner \
 	    --mtime='UTC 1970-01-01' \
 	    -cf $@ .
-	@echo [$@] OK
+	$(call ok,$@)
 
 
 .PHONY: clean_overlay_rootfs

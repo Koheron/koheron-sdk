@@ -15,8 +15,6 @@ extern "C" {
   #include <sys/mman.h> // PROT_READ, PROT_WRITE
 }
 
-constexpr auto instrument_name = "{{ config['name'] }}";
-
 namespace mem {
 {% for addr in config['memory'] -%}
 constexpr size_t {{ addr['name'] }} = {{ loop.index0 }};

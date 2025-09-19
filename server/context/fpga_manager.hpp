@@ -15,6 +15,9 @@
 #include <context_base.hpp>
 #include "memory.hpp"
 
+#define str_(s) #s
+#define xstr_(s) str_(s)
+
 namespace {
     namespace fs = std::filesystem;
 }
@@ -54,6 +57,7 @@ class FpgaManager {
 
   private:
     ContextBase& ctx;
+    const std::string instrument_name = xstr_(INSTRUMENT_NAME);
 
     bool use_xdevcgf = false;
     bool use_overlay = false;
@@ -264,7 +268,7 @@ class FpgaManager {
             fclose(fbitstream);
             return -1;
         }
-        
+
         fclose(fbitstream);
         return 0;
     }

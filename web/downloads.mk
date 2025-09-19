@@ -53,11 +53,11 @@ $(TMP_WEB_PATH)/jquery.flot.canvas.js:
 
 $(TMP_WEB_PATH)/bootstrap.min.js:
 	mkdir -p $(@D)
-	curl http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js -o $@
+	curl https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js -o $@
 
 $(TMP_WEB_PATH)/bootstrap.min.css:
 	mkdir -p $(@D)
-	curl http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css -o $@
+	curl https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css -o $@
 
 $(TMP_WEB_PATH)/jquery.min.js:
 	mkdir -p $(@D)

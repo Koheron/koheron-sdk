@@ -45,7 +45,7 @@ $(TMP_SERVER_PATH)/interface_drivers.cpp: $(INTERFACE_DRIVERS_HPP)
 # -----------------------------------------------------------------------------
 # Memory header from YAML
 # -----------------------------------------------------------------------------
-$(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML)
+$(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp
 	$(MAKE_PY) --memory_hpp $(CONFIG) $@
 
 # -----------------------------------------------------------------------------
@@ -80,7 +80,7 @@ SERVER_CCXXFLAGS += -Wpacked -Wredundant-decls -Wvarargs -Wvector-operation-perf
 SERVER_CCXXFLAGS += -Wuninitialized  -Wmissing-declarations
 SERVER_CCXXFLAGS += -Wno-psabi
 SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/core -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
-SERVER_CCXXFLAGS += -DKOHERON_VERSION=$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)
+SERVER_CCXXFLAGS += -DKOHERON_VERSION=$(KOHERON_VERSION).$(shell git rev-parse --short HEAD) -DINSTRUMENT_NAME=$(NAME)
 SERVER_CCXXFLAGS += -O3 -fno-math-errno
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
 SERVER_CCXXFLAGS += -std=c++20 -pthread
@@ -114,6 +114,7 @@ $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
 # Link: depend on actual generated files (not stamps)
 $(SERVER): $(OBJ) $(SERVER_TEMPLATE_LIST) $(GEN_HEADERS) $(INTERFACE_DRIVERS_CPP) | $(KOHERON_SERVER_PATH)
 	$(SERVER_CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm
+	$(call ok,$@)
 
 .PHONY: server
 server: $(SERVER)
