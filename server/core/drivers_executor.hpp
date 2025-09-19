@@ -4,7 +4,6 @@
 
 #include <array>
 #include <memory>
-#include "drivers_table.hpp"
 
 namespace koheron {
 

@@ -4,7 +4,7 @@
 #define __CONTEXT_BASE_HPP__
 
 #include <lib/syslog.hpp>
-#include "drivers_table.hpp"
+#include "lib/drivers_table.hpp"
 
 class ContextBase
 {
