@@ -8,7 +8,9 @@
 #include <tuple>
 #include <type_traits>
 
+// ----------------------------------------------------------------------------
 // Range integer sequence
+// ----------------------------------------------------------------------------
 
 // http://stackoverflow.com/questions/35625079/offset-for-variadic-template-integer-sequence
 template <std::size_t O, std::size_t... Is>
@@ -24,6 +26,10 @@ template <std::size_t First, std::size_t Last>
 auto make_index_sequence_in_range() {
     return make_index_sequence_with_offset<First, Last - First>();
 }
+
+// ----------------------------------------------------------------------------
+// Tuple utilities
+// ----------------------------------------------------------------------------
 
 // Index of type in tuple
 
@@ -46,6 +52,8 @@ constexpr std::size_t tuple_index_v = tuple_index<T, Tuple>::value;
 
 static_assert(tuple_index_v<uint32_t, std::tuple<uint32_t, float>> == 0);
 static_assert(tuple_index_v<float, std::tuple<uint32_t, float>> == 1);
+
+// Tuple contains
 
 template<class T, class Tuple>
 struct _tuple_contains;

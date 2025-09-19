@@ -10,8 +10,8 @@
 #include <tuple>
 #include <string>
 
-#include "drivers_config.hpp"
-#include "server_definitions.hpp"
+#include "server/core/configs/drivers_config.hpp"
+#include "server/core/configs/server_definitions.hpp"
 #include "serializer_deserializer.hpp"
 
 namespace koheron {

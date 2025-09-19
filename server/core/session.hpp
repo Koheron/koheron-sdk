@@ -13,10 +13,11 @@
 #include <cassert>
 #include <memory_resource>
 
+#include "server/core/configs/server_definitions.hpp"
+#include "server/core/lib/syslog.hpp"
+
 #include "commands.hpp"
 #include "serializer_deserializer.hpp"
-#include "server_definitions.hpp"
-#include "lib/syslog.hpp"
 #include "session_abstract.hpp"
 #include "drivers_executor.hpp"
 #include "websocket.hpp"

@@ -5,7 +5,6 @@
 #ifndef __DRIVERS_MANAGER_HPP__
 #define __DRIVERS_MANAGER_HPP__
 
-#include "config.hpp"
 
 #include <array>
 #include <memory>
@@ -14,10 +13,13 @@
 #include <mutex>
 #include <functional>
 
-#include "drivers_config.hpp"
-#include <drivers.hpp>
+#include "server/core/configs/drivers_config.hpp"
+#include "server/core/configs/config.hpp"
+#include "server/core/lib/syslog.hpp"
+
+// TODO Handle those dependencies
+#include <drivers.hpp> // Drivers includes
 #include "services.hpp"
-#include "lib/syslog.hpp"
 
 namespace koheron {
 

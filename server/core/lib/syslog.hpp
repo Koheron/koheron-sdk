@@ -4,7 +4,7 @@
 #ifndef __KOHERON_SYSLOG_HPP__
 #define __KOHERON_SYSLOG_HPP__
 
-#include "config.hpp"
+#include "server/core/configs/config.hpp"
 
 #include <array>
 #include <string_view>

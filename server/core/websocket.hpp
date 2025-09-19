@@ -7,8 +7,8 @@
 
 #include <string>
 
-#include "server_definitions.hpp"
-#include "config.hpp"
+#include "server/core/configs/server_definitions.hpp"
+#include "server/core/configs/config.hpp"
 #include "commands.hpp"
 
 namespace koheron {

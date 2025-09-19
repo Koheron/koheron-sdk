@@ -3,8 +3,8 @@
 #ifndef __CONTEXT_BASE_HPP__
 #define __CONTEXT_BASE_HPP__
 
-#include <lib/syslog.hpp>
-#include "lib/drivers_table.hpp"
+#include "server/core/lib/syslog.hpp"
+#include "server/core/lib/drivers_table.hpp"
 
 class ContextBase
 {

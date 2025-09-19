@@ -6,9 +6,9 @@
 
 #include "{{ driver.interface_name }}.hpp"
 
-#include <commands.hpp>
-#include <session.hpp>
-#include <drivers_config.hpp>
+#include <server/core/commands.hpp>
+#include <server/core/session.hpp>
+#include <server/core/configs/drivers_config.hpp>
 
 namespace koheron {
 

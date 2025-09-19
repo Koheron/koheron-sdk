@@ -11,7 +11,7 @@
 #include <mutex>
 
 #include <driver.hpp>
-#include <drivers_config.hpp>
+#include <server/core/configs/drivers_config.hpp>
 
 {% for include in driver.includes -%}
 #include "{{ include }}"
