@@ -10,9 +10,10 @@
 #include "commands.hpp"
 #include "session.hpp"
 #include "session_manager.hpp"
-#include "lib/syslog.hpp"
-#include "services.hpp"
 #include "signal_handler.hpp"
+
+#include "server/core/lib/syslog.hpp"
+#include "server/core/lib/services.hpp"
 
 extern "C" {
   #include <sys/un.h>

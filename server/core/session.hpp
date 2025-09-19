@@ -15,13 +15,13 @@
 
 #include "server/core/configs/server_definitions.hpp"
 #include "server/core/lib/syslog.hpp"
+#include "server/core/lib/services.hpp"
 
 #include "commands.hpp"
 #include "serializer_deserializer.hpp"
 #include "session_abstract.hpp"
 #include "drivers_executor.hpp"
 #include "websocket.hpp"
-#include "services.hpp"
 
 namespace koheron {
 

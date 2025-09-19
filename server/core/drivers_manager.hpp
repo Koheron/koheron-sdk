@@ -16,10 +16,9 @@
 #include "server/core/configs/drivers_config.hpp"
 #include "server/core/configs/config.hpp"
 #include "server/core/lib/syslog.hpp"
+#include "server/core/lib/services.hpp"
 
-// TODO Handle those dependencies
 #include <drivers.hpp> // Drivers includes
-#include "services.hpp"
 
 namespace koheron {
 
@@ -109,7 +108,6 @@ class DriverManager
 };
 
 // Driver access
-// TODO Move that somewhere to remove the #include "services.hpp" dependency
 
 template<driver_id id>
 drivers::table::type_of<id>& get_driver() {

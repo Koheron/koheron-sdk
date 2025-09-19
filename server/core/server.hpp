@@ -5,9 +5,6 @@
 #ifndef __KOHERON_HPP__
 #define __KOHERON_HPP__
 
-#include "server/core/configs/server_definitions.hpp"
-#include "server/core/configs/config.hpp"
-
 #include <thread>
 #include <mutex>
 #include <array>
@@ -24,9 +21,13 @@
 #include <unistd.h>
 #include <cerrno>
 
-#include "services.hpp"
+#include "server/core/configs/server_definitions.hpp"
+#include "server/core/configs/config.hpp"
+
+#include "server/core/lib/services.hpp"
+#include "server/core/lib/syslog.hpp"
+
 #include "session_manager.hpp"
-#include "lib/syslog.hpp"
 
 namespace koheron {
 
