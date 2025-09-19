@@ -5,7 +5,7 @@
 #ifndef __DRIVERS_TABLE_HPP__
 #define __DRIVERS_TABLE_HPP__
 
-#include <drivers_utils.hpp>
+#include <tuple>
 
 class NoDriver;
 class Server;
@@ -13,7 +13,7 @@ class Server;
 class {{ driver.objects[0]["type"] }};
 {% endfor -%}
 
-using driver_table = koheron::drivers_table<
+using driver_list = std::tuple<
 {%- for driver in drivers -%}
 {{ driver.objects[0]["type"] }}{{ ", " if not loop.last }}
 {%- endfor -%}

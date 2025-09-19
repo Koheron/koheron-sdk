@@ -20,7 +20,7 @@ int DriverContainer::alloc() {
         return 0;
     }
 
-    if (std::get<driver - 2>(is_starting)) {
+    if (std::get<driver - device_off>(is_starting)) {
         print<CRITICAL>(
             "Circular dependency detected while initializing driver [%u] %s\n",
             driver, std::get<driver>(drivers_names).data());
@@ -28,10 +28,10 @@ int DriverContainer::alloc() {
         return -1;
     }
 
-    std::get<driver - 2>(is_starting) = true;
-    std::get<driver - 2>(driver_tuple) = std::make_unique<device_t<driver>>(ctx);
-    std::get<driver - 2>(is_starting) = false;
-    std::get<driver - 2>(is_started) = true;
+    std::get<driver - device_off>(is_starting) = true;
+    std::get<driver - device_off>(driver_tuple) = std::make_unique<device_t<driver>>(ctx);
+    std::get<driver - device_off>(is_starting) = false;
+    std::get<driver - device_off>(is_started) = true;
 
     return 0;
 }
@@ -60,7 +60,7 @@ template<driver_id id>
 void DriverManager::alloc_core_() {
     std::scoped_lock lock(mutex);
 
-    if (is_started[id - 2]) {
+    if (is_started[id - device_off]) {
         return;
     }
 
@@ -74,12 +74,12 @@ void DriverManager::alloc_core_() {
         return;
     }
 
-    is_started[id - 2] = true;
+    is_started[id - device_off] = true;
 }
 
 void DriverManager::alloc_core(driver_id id) {
     // runtime switch via fold
-    auto seq = make_index_sequence_in_range<2, device_num>();
+    auto seq = make_index_sequence_in_range<device_off, device_num>();
     (void)seq;
 
     auto do_alloc = [this, id]<driver_id... ids>(std::index_sequence<ids...>) {
