@@ -12,11 +12,11 @@
 #include <mutex>
 #include <functional>
 
-#include "server/core/configs/drivers_config.hpp"
-#include "server/core/configs/config.hpp"
-#include "server/core/lib/syslog.hpp"
-#include "server/core/lib/services.hpp"
+#include "syslog.hpp"
+#include "services.hpp"
 
+// Those includes must be provided by library user
+#include "server/core/configs/drivers_config.hpp"
 #include <drivers.hpp> // Drivers includes
 
 namespace koheron {
@@ -107,10 +107,11 @@ class DriverManager
 };
 
 // Driver access
+// We require that a DriverManager service runs
 
 template<driver_id id>
 drivers::table::type_of<id>& get_driver() {
-    return services::require<koheron::DriverManager>().template core<id>();
+    return services::require<DriverManager>().template core<id>();
 }
 
 template<class Driver>

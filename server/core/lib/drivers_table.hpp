@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "lib/meta_utils.hpp"
+#include "meta_utils.hpp"
 
 namespace koheron {
 

@@ -23,7 +23,6 @@ enum severity {
     syslog_severity_num
 };
 
-// Formatter for std::filesystem::path
 template <>
 struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
     auto format(const std::filesystem::path& p, auto& ctx) const {
