@@ -23,13 +23,13 @@
 #include <array>
 #include <mutex>
 
-#include <context_base.hpp>
+#include <server/core/lib/syslog.hpp>
 
 // https://www.kernel.org/doc/Documentation/spi/spidev
 class SpiDev
 {
   public:
-    SpiDev(ContextBase& ctx_, std::string devname_);
+    SpiDev(std::string devname_);
 
     ~SpiDev() {
         if (fd >= 0) {
@@ -72,7 +72,6 @@ class SpiDev
     }
 
    private:
-    ContextBase& ctx;
     std::string devname;
 
     uint8_t mode = SPI_MODE_0;
@@ -86,7 +85,7 @@ class SpiDev
 class SpiManager
 {
   public:
-    SpiManager(ContextBase& ctx_);
+    SpiManager();
 
     int init();
 
@@ -98,7 +97,6 @@ class SpiManager
                 uint8_t word_length = 8);
 
   private:
-    ContextBase& ctx;
     std::unordered_map<std::string, std::unique_ptr<SpiDev>> spi_drivers;
     SpiDev empty_spidev;
 };

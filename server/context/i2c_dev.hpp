@@ -24,12 +24,12 @@
 #include <thread>
 #include <mutex>
 
-#include <context_base.hpp>
+#include <server/core/lib/syslog.hpp>
 
 class I2cDev
 {
   public:
-    I2cDev(ContextBase& ctx_, std::string devname_);
+    I2cDev(std::string devname_);
 
     ~I2cDev() {
         if (fd >= 0) {
@@ -125,7 +125,6 @@ class I2cDev
     }
 
   private:
-    ContextBase& ctx;
     std::string devname;
     int fd = -1;
     std::atomic<int32_t> last_addr{-1};
@@ -156,7 +155,7 @@ friend class I2cManager;
 class I2cManager
 {
   public:
-    I2cManager(ContextBase& ctx_);
+    I2cManager();
 
     int init();
 
@@ -164,7 +163,7 @@ class I2cManager
 
     auto& get(const std::string& devname) {
         if (! has_device(devname)) {
-            ctx.logf<CRITICAL>("I2cManager: Device {} not found", devname);
+            koheron::print_fmt<CRITICAL>("I2cManager: Device {} not found", devname);
             return *empty_i2cdev;
         }
 
@@ -173,7 +172,6 @@ class I2cManager
     }
 
   private:
-    ContextBase& ctx;
     std::unordered_map<std::string, std::unique_ptr<I2cDev>> i2c_drivers;
     std::unique_ptr<I2cDev> empty_i2cdev;
 };

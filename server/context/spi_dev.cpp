@@ -1,6 +1,7 @@
 // (c) Koheron
 
 #include "spi_dev.hpp"
+#include <server/core/lib/syslog.hpp>
 
 #include <dirent.h>
 
@@ -8,9 +9,8 @@
 // SpiDev
 // ---------------------------------------------------------------------
 
-SpiDev::SpiDev(ContextBase& ctx_, std::string devname_)
-: ctx(ctx_)
-, devname(devname_)
+SpiDev::SpiDev(std::string devname_)
+: devname(devname_)
 {}
 
 int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
@@ -34,7 +34,7 @@ int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
         return -1;
     }
 
-    ctx.logf<INFO>("SpiManager: Device {} initialized", devname);
+    koheron::print_fmt<INFO>("SpiManager: Device {} initialized", devname);
     return 0;
 }
 
@@ -136,9 +136,8 @@ int SpiDev::transfer(uint8_t *tx_buff, uint8_t *rx_buff, size_t len) {
 // SpiManager
 // ---------------------------------------------------------------------
 
-SpiManager::SpiManager(ContextBase& ctx_)
-: ctx(ctx_)
-, empty_spidev(ctx, "")
+SpiManager::SpiManager()
+: empty_spidev("")
 {}
 
 // Never return a negative number on failure.
@@ -157,10 +156,10 @@ int SpiManager::init() {
 
         // Exclude '.' and '..' repositories
         if (devname[0] != '.') {
-            ctx.logf<INFO>("SpiManager: Found device {}", devname);
+            koheron::print_fmt<INFO>("SpiManager: Found device {}", devname);
 
             spi_drivers.insert(
-                std::make_pair(devname, std::make_unique<SpiDev>(ctx, devname))
+                std::make_pair(devname, std::make_unique<SpiDev>(devname))
             );
         }
     }
@@ -176,7 +175,7 @@ bool SpiManager::has_device(const std::string& devname) {
 SpiDev& SpiManager::get(const std::string& devname,
                         uint8_t mode, uint32_t speed, uint8_t word_length) {
     if (! has_device(devname)) {
-        ctx.logf<CRITICAL>("SpiManager: Device {} not found", devname);
+        koheron::print_fmt<CRITICAL>("SpiManager: Device {} not found", devname);
         return empty_spidev;
     }
 

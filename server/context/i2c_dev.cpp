@@ -1,6 +1,7 @@
 // (c) Koheron
 
 #include "i2c_dev.hpp"
+#include <server/core/lib/syslog.hpp>
 
 #include <dirent.h>
 
@@ -9,9 +10,8 @@
 // I2cDev
 // ---------------------------------------------------------------------
 
-I2cDev::I2cDev(ContextBase& ctx_, std::string devname_)
-: ctx(ctx_)
-, devname(devname_)
+I2cDev::I2cDev(std::string devname_)
+: devname(devname_)
 {}
 
 int I2cDev::init() {
@@ -29,7 +29,7 @@ int I2cDev::init() {
         }
     }
 
-    ctx.logf<INFO>("I2cManager: Device {} initialized", devname);
+    koheron::print_fmt<INFO>("I2cManager: Device {} initialized", devname);
     return 0;
 }
 
@@ -37,9 +37,8 @@ int I2cDev::init() {
 // I2cManager
 // ---------------------------------------------------------------------
 
-I2cManager::I2cManager(ContextBase& ctx_)
-: ctx(ctx_)
-, empty_i2cdev(std::make_unique<I2cDev>(ctx, ""))
+I2cManager::I2cManager()
+: empty_i2cdev(std::make_unique<I2cDev>(""))
 {}
 
 // Never return a negative number on failure.
@@ -58,10 +57,10 @@ int I2cManager::init() {
 
         // Exclude '.' and '..' repositories
         if (devname[0] != '.') {
-            ctx.logf<INFO>("I2cManager: Found device {}", devname);
+            koheron::print_fmt<INFO>("I2cManager: Found device {}", devname);
 
             i2c_drivers.insert(
-                std::make_pair(devname, std::make_unique<I2cDev>(ctx, devname))
+                std::make_pair(devname, std::make_unique<I2cDev>(devname))
             );
         }
     }

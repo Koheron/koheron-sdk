@@ -12,7 +12,7 @@
 #include <filesystem>
 #include <sys/mount.h>
 
-#include <context_base.hpp>
+#include <server/core/lib/syslog.hpp>
 #include "memory.hpp"
 
 #define str_(s) #s
@@ -24,22 +24,21 @@ namespace {
 
 class FpgaManager {
   public:
-    FpgaManager(ContextBase& ctx_)
-    : ctx(ctx_)
+    FpgaManager()
     {
         if (fs::exists(xdev)) {
-            ctx.log<INFO>("FpgaManager: Bitstream loading method: xdevcfg\n");
+            koheron::print<INFO>("FpgaManager: Bitstream loading method: xdevcfg\n");
             use_xdevcgf = true;
             return;
         }
 
         if (fs::exists(fmanager_flags)) {
-            ctx.log<INFO>("FpgaManager: Bitstream loading method: fpga_manager\n");
+            koheron::print<INFO>("FpgaManager: Bitstream loading method: fpga_manager\n");
             use_overlay = true;
             return;
         }
 
-        ctx.log<PANIC>("FpgaManager: Failed to identify bitstream loading mechanism\n");
+        koheron::print<PANIC>("FpgaManager: Failed to identify bitstream loading mechanism\n");
         exit(EXIT_FAILURE);
     }
 
@@ -56,7 +55,6 @@ class FpgaManager {
     }
 
   private:
-    ContextBase& ctx;
     const std::string instrument_name = xstr_(INSTRUMENT_NAME);
 
     bool use_xdevcgf = false;
@@ -68,7 +66,7 @@ class FpgaManager {
         FILE *fprog_done =fopen(fprog_done_path.c_str(), "r");
 
         if (fprog_done == nullptr) {
-            ctx.log<PANIC>("FpgaManager: Failed to open FPGA status\n");
+            koheron::print<PANIC>("FpgaManager: Failed to open FPGA status\n");
             return -1;
         }
 
@@ -76,16 +74,16 @@ class FpgaManager {
 
         if (read(fileno(fprog_done), buff.data(), 1) == 1) {
             if (buff[0] == expected) {
-                ctx.log<INFO>("FpgaManager: Bitstream successfully loaded\n");
+                koheron::print<INFO>("FpgaManager: Bitstream successfully loaded\n");
                 fclose(fprog_done);
                 return 0;
             } else {
-                ctx.log<PANIC>("FpgaManager: Failed to load bitstream\n");
+                koheron::print<PANIC>("FpgaManager: Failed to load bitstream\n");
                 fclose(fprog_done);
                 return -1;
             }
         } else {
-            ctx.log<PANIC>("FpgaManager: Failed to read FPGA status\n");
+            koheron::print<PANIC>("FpgaManager: Failed to read FPGA status\n");
             fclose(fprog_done);
             return -1;
         }
@@ -102,7 +100,7 @@ class FpgaManager {
     int copy_firmware() {
         const fs::path lib_firmware_dirname = "/lib/firmware/";
         const fs::path bistream_name = instrument_name + std::string(".bit.bin");
-        ctx.logf<INFO>("FpgaManager: Loading bitstream {}...\n", bistream_name);
+        koheron::print_fmt<INFO>("FpgaManager: Loading bitstream {}...\n", bistream_name);
 
         if (!fs::exists(lib_firmware_dirname)) {
             fs::create_directories(lib_firmware_dirname);
@@ -111,14 +109,14 @@ class FpgaManager {
         if (!fs::copy_file(live_instrument_dirname / "pl.dtbo",
                            lib_firmware_dirname / "pl.dtbo",
                            fs::copy_options::overwrite_existing)) {
-            ctx.log<ERROR>("FpgaManager: pl.dtbo copy failed\n");
+            koheron::print<ERROR>("FpgaManager: pl.dtbo copy failed\n");
             return -1;
         }
 
         if (!fs::copy_file(live_instrument_dirname / bistream_name,
                            lib_firmware_dirname / bistream_name,
                            fs::copy_options::overwrite_existing)) {
-            ctx.log<ERROR>("FpgaManager: bistream copy failed\n");
+            koheron::print<ERROR>("FpgaManager: bistream copy failed\n");
             return -1;
         }
 
@@ -135,7 +133,7 @@ class FpgaManager {
         }
 
         if (fs::exists(overlay_path)) {
-            ctx.log<PANIC>("FpgaManager: Failed to remove previous overlay\n");
+            koheron::print<PANIC>("FpgaManager: Failed to remove previous overlay\n");
             return -1;
         }
 
@@ -183,7 +181,7 @@ class FpgaManager {
         FILE *xflag = fopen(fmanager_flags.c_str(), "w");
 
         if (xflag == nullptr) {
-            ctx.log<ERROR>("FpgaManager: Cannot open xflag\n");
+            koheron::print<ERROR>("FpgaManager: Cannot open xflag\n");
             return -1;
         }
 
@@ -201,7 +199,7 @@ class FpgaManager {
         FILE *overlay_file = fopen(overlay.c_str(), "w");
 
         if (overlay_file == nullptr) {
-            ctx.log<ERROR>("FpgaManager: Cannot open overlay\n");
+            koheron::print<ERROR>("FpgaManager: Cannot open overlay\n");
             return -1;
         }
 
@@ -218,22 +216,22 @@ class FpgaManager {
 
     int load_bitstream_overlay() {
         if (copy_firmware() < 0) {
-            ctx.log<ERROR>("FpgaManager: Failed to copy firmware\n");
+            koheron::print<ERROR>("FpgaManager: Failed to copy firmware\n");
             return -1;
         }
 
         if (setup_overlay_path() < 0) {
-            ctx.log<ERROR>("FpgaManager: Failed to setup overlay path\n");
+            koheron::print<ERROR>("FpgaManager: Failed to setup overlay path\n");
             return -1;
         }
 
         if (setup_fmanager_flags() < 0) {
-            ctx.logf<ERROR>("FpgaManager: Failed to set flag on {}\n", fmanager_flags);
+            koheron::print_fmt<ERROR>("FpgaManager: Failed to set flag on {}\n", fmanager_flags);
             return -1;
         }
 
         if (write_overlay() < 0) {
-            ctx.logf<ERROR>("FpgaManager: Failed to write bitstream to {}\n", overlay_path);
+            koheron::print_fmt<ERROR>("FpgaManager: Failed to write bitstream to {}\n", overlay_path);
             return -1;
         }
 
@@ -251,11 +249,11 @@ class FpgaManager {
         // https://stackoverflow.com/questions/22059189/read-a-file-as-byte-array
         const auto bistream_basename = fs::path(instrument_name + std::string(".bit"));
         const auto bistream_filename = live_instrument_dirname / bistream_basename;
-        ctx.logf<INFO>("FpgaManager: Loading bitstream {}...\n", bistream_filename);
+        koheron::print_fmt<INFO>("FpgaManager: Loading bitstream {}...\n", bistream_filename);
         FILE *fbitstream = fopen(bistream_filename.c_str(), "rb");
 
         if (fbitstream == nullptr) {
-            ctx.log<ERROR>("FpgaManager: Cannot open bitstream file\n");
+            koheron::print_fmt<ERROR>("FpgaManager: Cannot open bitstream file\n");
             return -1;
         }
 
@@ -264,7 +262,7 @@ class FpgaManager {
         rewind(fbitstream);
 
         if (fread(bitstream_data.data(), bitstream_data.size(), 1, fbitstream) != 1) {
-            ctx.log<ERROR>("FpgaManager: Cannot read bitstream data\n");
+            koheron::print_fmt<ERROR>("FpgaManager: Cannot read bitstream data\n");
             fclose(fbitstream);
             return -1;
         }
@@ -277,7 +275,7 @@ class FpgaManager {
         FILE *xdevcfg = fopen(xdev.c_str(), "w");
 
         if (xdevcfg == nullptr) {
-            ctx.log<ERROR>("FpgaManager: Cannot open xdevcfg\n");
+            koheron::print_fmt<ERROR>("FpgaManager: Cannot open xdevcfg\n");
             return -1;
         }
 
@@ -289,7 +287,7 @@ class FpgaManager {
         }
 
         if (fwrite(bitstream_data.data(), bitstream_data.size(), 1, xdevcfg) != 1) {
-            ctx.log<ERROR>("FpgaManager: Failed to write bitstream to xdevcfg\n");
+            koheron::print_fmt<ERROR>("FpgaManager: Failed to write bitstream to xdevcfg\n");
             fclose(xdevcfg);
             return -1;
         }

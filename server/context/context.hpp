@@ -3,7 +3,8 @@
 #ifndef __CONTEXT_HPP__
 #define __CONTEXT_HPP__
 
-#include <context_base.hpp>
+#include <server/core/lib/syslog.hpp>
+#include <server/core/lib/drivers_table.hpp>
 
 #include <memory_manager.hpp>
 #include <spi_dev.hpp>
@@ -13,15 +14,15 @@
 
 #include "memory.hpp"
 
-class Context : public ContextBase
+class Context
 {
   public:
     Context()
     : mm()
-    , spi(*this)
-    , i2c(*this)
-    , fclk(*this)
-    , fpga(*this)
+    , spi()
+    , i2c()
+    , fclk()
+    , fpga()
     {
         if (fpga.load_bitstream() < 0) {
            log<PANIC>("Failed to load bitstream. Exiting server...\n");
@@ -39,6 +40,21 @@ class Context : public ContextBase
             return -1;
 
         return 0;
+    }
+
+    template<class Driver>
+    inline Driver& get() const {
+        return koheron::get_driver<Driver>();
+    }
+
+    template<int severity, typename... Args>
+    void log(const char *msg, Args&&... args) {
+        koheron::print<severity>(msg, std::forward<Args>(args)...);
+    }
+
+    template<int severity, typename... Args>
+    void logf(std::format_string<Args...> fmt, Args&&... args) {
+        koheron::print_fmt<severity>(fmt, std::forward<Args>(args)...);
     }
 
     MemoryManager mm;
