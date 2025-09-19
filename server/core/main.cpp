@@ -3,12 +3,12 @@
 /// (c) Koheron
 
 #include "server.hpp"
-#include "drivers_manager.hpp"
 #include "drivers_executor.hpp"
 #include "signal_handler.hpp"
 
 #include "server/core/lib/syslog.hpp"
 #include "server/core/lib/services.hpp"
+#include "server/core/lib/drivers_manager.hpp"
 
 int main() {
     auto on_fail = [](koheron::driver_id id, std::string_view name) {

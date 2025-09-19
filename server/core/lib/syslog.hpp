@@ -4,8 +4,6 @@
 #ifndef __KOHERON_SYSLOG_HPP__
 #define __KOHERON_SYSLOG_HPP__
 
-#include "server/core/configs/config.hpp"
-
 #include <array>
 #include <string_view>
 #include <type_traits>
@@ -34,6 +32,17 @@ struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
 };
 
 namespace koheron {
+
+namespace config::log {
+    /// Display messages emitted and received
+    constexpr bool verbose = false;
+
+    /// Send error messages to stderr
+    constexpr bool use_stderr = true;
+
+    /// Send messages to syslog
+    constexpr bool syslog = true;
+}
 
 // -------------------------------------------------------------------------
 // Variadic string formating functions accepting parameter packs

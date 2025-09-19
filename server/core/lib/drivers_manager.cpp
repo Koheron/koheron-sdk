@@ -2,7 +2,7 @@
 ///
 /// (c) Koheron
 
-#include "drivers_manager.hpp"
+#include "server/core/lib/drivers_manager.hpp"
 #include "server/core/lib/meta_utils.hpp"
 #include "server/core/configs/drivers_config.hpp"
 

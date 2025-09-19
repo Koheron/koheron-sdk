@@ -12,6 +12,7 @@ $(TMP_SERVER_PATH)/%.o: | $(TMP_SERVER_PATH)/
 # -----------------------------------------------------------------------------
 SERVER_TEMPLATES := $(wildcard $(SERVER_PATH)/templates/*.hpp $(SERVER_PATH)/templates/*.cpp)
 SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/core/*.cpp))))
+SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/core/lib/*.cpp))))
 
 # -----------------------------------------------------------------------------
 # Drivers from config.yml
@@ -64,7 +65,7 @@ $(foreach template,$(SERVER_TEMPLATE_LIST),$(eval $(call _render_template_rule,$
 # Compile / Link
 # -----------------------------------------------------------------------------
 CONTEXT_OBJS := $(TMP_SERVER_PATH)/spi_dev.o $(TMP_SERVER_PATH)/i2c_dev.o
-OBJ := $(SERVER_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
+OBJ := $(SERVER_OBJ) $(SERVER_LIB_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
@@ -99,6 +100,9 @@ GEN_HDRS := \
 
 # --- compile rules must wait for generated headers ---
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/%.cpp $(GEN_HDRS)
+	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/lib/%.cpp $(GEN_HDRS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp $(GEN_HDRS)

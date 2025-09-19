@@ -5,7 +5,6 @@
 #ifndef __DRIVERS_MANAGER_HPP__
 #define __DRIVERS_MANAGER_HPP__
 
-
 #include <array>
 #include <memory>
 #include <cassert>

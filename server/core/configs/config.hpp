@@ -8,17 +8,6 @@
 
 namespace koheron {
     namespace config {
-        namespace log {
-            /// Display messages emitted and received
-            constexpr bool verbose = false;
-
-            /// Send error messages to stderr
-            constexpr bool use_stderr = true;
-
-            /// Send messages to syslog
-            constexpr bool syslog = true;
-        }
-
         /// Maximum length of the Unix socket file path
         ///
         /// Note:
