@@ -19,14 +19,14 @@
 namespace koheron {
 
 template<>
-class Driver<driver_id_of<{{ driver.objects[0]["type"] }}>> : public DriverAbstract
+class Driver<driver_table::id_of<{{ driver.objects[0]["type"] }}>> : public DriverAbstract
 {
   public:
     int execute(Command& cmd);
     template<int op> int execute_operation(Command& cmd);
 
     Driver({{ driver.objects[0]["type"] }}& {{ driver.objects[0]["name"] }}_)
-    : DriverAbstract(driver_id_of<{{ driver.objects[0]["type"] }}>)
+    : DriverAbstract(driver_table::id_of<{{ driver.objects[0]["type"] }}>)
     , {{ driver.objects[0]["name"] }}({{ driver.objects[0]["name"] }}_)
     {}
 

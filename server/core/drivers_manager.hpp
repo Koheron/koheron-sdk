@@ -13,7 +13,7 @@
 #include <thread>
 #include <mutex>
 
-#include "driver.hpp"
+#include "drivers_table.hpp"
 #include <drivers.hpp>
 #include "services.hpp"
 #include "lib/syslog.hpp"
@@ -42,7 +42,7 @@ class DriverContainer
 
     template<driver_id driver>
     auto& get() {
-        return *std::get<driver - 2>(driver_tuple);
+        return *std::get<driver - driver_table::offset>(driver_tuple);
     }
 
     template<driver_id driver>
@@ -51,14 +51,15 @@ class DriverContainer
   private:
     Context ctx;
 
-    std::array<bool, device_num - 2> is_started;
-    std::array<bool, device_num - 2> is_starting;
+    std::array<bool, driver_table::size - driver_table::offset> is_started;
+    std::array<bool, driver_table::size - driver_table::offset> is_starting;
 
+    using drivers_tuple_t = typename driver_table::tuple_t;
     drivers_tuple_t driver_tuple;
 
     template<driver_id driver>
     bool is_driver_started() {
-        return std::get<driver - 2>(is_started);
+        return std::get<driver - driver_table::offset>(is_started);
     }
 };
 
@@ -82,12 +83,12 @@ class DriverManager
 
     // internal (used by executor via public API)
     bool is_core_started(driver_id id) const {
-        return is_started[id - 2];
+        return is_started[id - driver_table::offset];
     }
 
   private:
     DriverContainer driver_container;
-    std::array<bool, device_num - 2> is_started{};
+    std::array<bool, driver_table::size - driver_table::offset> is_started{};
     std::recursive_mutex mutex;
 
     template<driver_id id>
@@ -96,9 +97,16 @@ class DriverManager
     void alloc_core(driver_id id);
 };
 
+// Driver access
+
 template<driver_id id>
-device_t<id>& get_driver() {
+driver_table::type_of<id>& get_driver() {
     return services::require<koheron::DriverManager>().template core<id>();
+}
+
+template<class Driver>
+Driver& get_driver() {
+    return get_driver<driver_table::id_of<Driver>>();
 }
 
 } // namespace koheron

@@ -3,23 +3,15 @@
 #ifndef __CONTEXT_BASE_HPP__
 #define __CONTEXT_BASE_HPP__
 
-#include <server_definitions.hpp>
 #include <lib/syslog.hpp>
-#include "driver_id.hpp"
-
-#include <string>
-
-namespace koheron {
-    template<driver_id id>
-    device_t<id>& get_driver();
-} // namespace koheron
+#include "drivers_table.hpp"
 
 class ContextBase
 {
   public:
     template<class Driver>
     inline Driver& get() const {
-      return koheron::get_driver<koheron::driver_id_of<Driver>>();
+        return koheron::get_driver<Driver>();
     }
 
     template<int severity, typename... Args>

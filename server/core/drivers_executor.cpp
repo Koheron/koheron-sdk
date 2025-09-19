@@ -12,10 +12,7 @@
 namespace koheron {
 
 struct DriverExecutor::Impl {
-    DriverManager& mgr;
-    std::array<std::unique_ptr<DriverAbstract>, device_num - 2> wrappers{};
-
-    explicit Impl() : mgr(services::require<DriverManager>()) {}
+    std::array<std::unique_ptr<DriverAbstract>, driver_table::size - driver_table::offset> wrappers{};
 
     template<driver_id id>
     void ensure_wrapper() {
@@ -25,12 +22,13 @@ struct DriverExecutor::Impl {
             return;
         }
 
-        mgr.ensure_core_started(id);
-        slot = std::make_unique<Driver<id>>(mgr.core<id>());
+        auto& dm = services::require<DriverManager>();
+        dm.ensure_core_started(id);
+        slot = std::make_unique<Driver<id>>(dm.core<id>());
     }
 
     void ensure_wrapper_runtime(driver_id id) {
-        auto seq = make_index_sequence_in_range<2, device_num>();
+        auto seq = make_index_sequence_in_range<driver_table::offset, driver_table::size>();
         auto do_ensure = [this, id]<driver_id... ids>(std::index_sequence<ids...>) {
             ((id == ids ? (ensure_wrapper<ids>(), void()) : void()), ...);
         };
@@ -49,7 +47,7 @@ struct DriverExecutor::Impl {
     }
 
     int execute(Command& cmd) {
-        assert(cmd.driver < device_num);
+        assert(cmd.driver < driver_table::size);
         if (cmd.driver == 0) { // NoDriver
             return 0;
         }
@@ -59,8 +57,8 @@ struct DriverExecutor::Impl {
         }
 
         ensure_wrapper_runtime(cmd.driver);
-        auto* abs = wrappers[cmd.driver - 2].get();
-        auto seq = make_index_sequence_in_range<2, device_num>();
+        auto* abs = wrappers[cmd.driver - driver_table::offset].get();
+        auto seq = make_index_sequence_in_range<driver_table::offset, driver_table::size>();
         return exec_on(abs, cmd, seq);
     }
 };
