@@ -3,7 +3,7 @@ SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := all
 # Cleaner logs when running -j
-#MAKEFLAGS += --output-sync=target
+MAKEFLAGS += --output-sync=target
 
 .DELETE_ON_ERROR:
 .SUFFIXES:
@@ -84,12 +84,14 @@ SERVER := $(TMP_PROJECT_PATH)/serverd
 
 VERSION_FILE := $(TMP_PROJECT_PATH)/version
 
+include $(CONFIG_MK)
+include $(BOARD_MK)
+
+BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit
+
 $(VERSION_FILE): | $(TMP_PROJECT_PATH)/
 	@printf '%s\n' '$(VERSION)' > $@
 
-include $(CONFIG_MK)
-include $(BOARD_MK)
-BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit
 include $(OS_PATH)/$(ZYNQ_TYPE).mk
 include $(DOCKER_MK)
 include $(FPGA_MK)
