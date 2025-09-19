@@ -20,7 +20,7 @@ class DriverAbstract {
     : type(type_)
     {}
 
-    driver_id type = drivers::table::id_of<NoDriver>;
+    driver_id type = drivers::table::id_of<drivers::NoDriver>;
 };
 
 template<driver_id type>

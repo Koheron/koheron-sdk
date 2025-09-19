@@ -38,12 +38,6 @@ int DriverContainer::alloc() {
 // Driver manager
 //----------------------------------------------------------------------------
 
-// DriverManager::DriverManager()
-// : driver_container()
-// {
-//     is_started.fill(false);
-// }
-
 int DriverManager::init()
 {
     if (driver_container.init() < 0) {

@@ -91,7 +91,7 @@ struct Command
 
     SessionID session_id = -1; // ID of the session emitting the command
     SessionAbstract *session; // Pointer to the session emitting the command
-    driver_id driver = drivers::table::id_of<NoDriver>; // The driver to control
+    driver_id driver = drivers::table::id_of<drivers::NoDriver>; // The driver to control
     int32_t operation = -1; // Operation ID
 
     Buffer<HEADER_SIZE> header; // Raw data header

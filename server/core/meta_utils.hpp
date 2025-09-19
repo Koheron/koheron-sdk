@@ -44,7 +44,16 @@ struct tuple_index<T, std::tuple<U, Types...>> {
 template <class T, class Tuple>
 constexpr std::size_t tuple_index_v = tuple_index<T, Tuple>::value;
 
-static_assert(tuple_index_v<uint32_t, std::tuple<uint32_t, float>> == 0, "");
-static_assert(tuple_index_v<float, std::tuple<uint32_t, float>> == 1, "");
+static_assert(tuple_index_v<uint32_t, std::tuple<uint32_t, float>> == 0);
+static_assert(tuple_index_v<float, std::tuple<uint32_t, float>> == 1);
+
+template<class T, class Tuple>
+struct _tuple_contains;
+
+template<class T, class... Ts>
+struct _tuple_contains<T, std::tuple<Ts...>>
+    : std::bool_constant<(std::is_same_v<T, Ts> || ...)> {};
+template<class T, class Tuple>
+inline constexpr bool tuple_contains_v = _tuple_contains<T, Tuple>::value;
 
 #endif // __META_UTILS_HPP__

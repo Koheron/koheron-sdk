@@ -7,7 +7,11 @@
 
 namespace drivers {
 
-using table = koheron::drivers_table_t<driver_list>;
+// NB: For now we require a 'Common' driver with an init() method
+struct NoDriver;
+struct Server;
+
+using table = koheron::drivers_table_t<std::tuple<NoDriver, Server>, driver_list>;
 
 // Manual definition
 // Do not include the generated drivers_list.hpp,
