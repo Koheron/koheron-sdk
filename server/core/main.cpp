@@ -2,16 +2,23 @@
 ///
 /// (c) Koheron
 
-#include "server_definitions.hpp"
-#include "config.hpp"
 #include "server.hpp"
 #include "services.hpp"
 #include "drivers_manager.hpp"
 #include "drivers_executor.hpp"
 #include "signal_handler.hpp"
+#include "lib/syslog.hpp"
 
 int main() {
-    auto dm = services::provide<koheron::DriverManager>();
+    auto on_fail = [](koheron::driver_id id, std::string_view name) {
+        koheron::print_fmt<PANIC>("DriverManager: driver [{}] {} failed, requesting shutdown.\n", id, name);
+
+        if (auto s = services::get<koheron::Server>()) {
+            s->exit_all = true;
+        }
+    };
+
+    auto dm = services::provide<koheron::DriverManager>(on_fail);
 
     if (dm->init() < 0) {
         exit(EXIT_FAILURE);
@@ -26,9 +33,7 @@ int main() {
     }
 
     services::provide<koheron::SessionManager>();
-
-    auto server = services::provide<koheron::Server>();
-    server->run();
+    services::provide<koheron::Server>()->run();
 
     exit(EXIT_SUCCESS);
     return 0;

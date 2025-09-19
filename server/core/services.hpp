@@ -15,11 +15,8 @@ namespace services {
 // One slot per service type T
 template<class T>
 struct Slot {
-    static std::atomic<std::shared_ptr<T>> ptr;
+    inline static std::atomic<std::shared_ptr<T>> ptr{};
 };
-
-template<class T>
-std::atomic<std::shared_ptr<T>> Slot<T>::ptr{};
 
 // Install (owning)
 template<class T, class... Args>

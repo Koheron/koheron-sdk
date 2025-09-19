@@ -8,7 +8,7 @@
 #include <cstring>
 
 #include "server_definitions.hpp"
-#include "drivers_table.hpp"
+#include "drivers_config.hpp"
 
 namespace koheron {
 
@@ -20,7 +20,7 @@ class DriverAbstract {
     : type(type_)
     {}
 
-    driver_id type = driver_table::id_of<NoDriver>;
+    driver_id type = drivers::table::id_of<NoDriver>;
 };
 
 template<driver_id type>

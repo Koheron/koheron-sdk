@@ -10,8 +10,6 @@
 
 #include "meta_utils.hpp"
 
-#include <drivers_list.hpp>
-
 namespace koheron {
 
 using driver_id = std::size_t;
@@ -44,6 +42,9 @@ consteval std::string_view short_name(std::string_view s) {
     auto pos = s.rfind("::");
     return (pos == std::string_view::npos) ? s : s.substr(pos + 2);
 }
+
+class NoDriver;
+class Server;
 
 // Generates the necessary objects from a list of drivers
 template<class... Drivers>
@@ -93,11 +94,6 @@ struct drivers_table_from_tuple<std::tuple<Drivers...>> : drivers_table<Drivers.
 
 template<class Tuple>
 using drivers_table_t = drivers_table_from_tuple<Tuple>;
-
-// ----------------------------------------------------------
-// Instantiate driver_table from driver_list
-
-using driver_table = drivers_table_t<driver_list>;
 
 // ----------------------------------------------------------
 // Forward declarations

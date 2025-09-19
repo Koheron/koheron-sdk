@@ -8,6 +8,7 @@
 
 #include <commands.hpp>
 #include <session.hpp>
+#include <drivers_config.hpp>
 
 namespace koheron {
 
@@ -16,8 +17,8 @@ namespace koheron {
 // {{ operation['name'] }}
 
 template<>
-int Driver<driver_table::id_of<{{ driver.objects[0]["type"] }}>>::
-        execute_operation<Driver<driver_table::id_of<{{ driver.objects[0]["type"] }}>>::{{ operation['tag'] }}>(Command& cmd)
+int Driver<drivers::table::id_of<{{ driver.objects[0]["type"] }}>>::
+        execute_operation<Driver<drivers::table::id_of<{{ driver.objects[0]["type"] }}>>::{{ operation['tag'] }}>(Command& cmd)
 {
     (void)cmd;
     {{ operation | get_parser(driver) }}
@@ -26,7 +27,7 @@ int Driver<driver_table::id_of<{{ driver.objects[0]["type"] }}>>::
 
 {% endfor %}
 
-int Driver<driver_table::id_of<{{ driver.objects[0]["type"] }}>>::execute(Command& cmd)
+int Driver<drivers::table::id_of<{{ driver.objects[0]["type"] }}>>::execute(Command& cmd)
 {
     std::lock_guard<std::mutex> lock(mutex);
 

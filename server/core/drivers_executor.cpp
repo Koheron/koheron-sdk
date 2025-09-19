@@ -1,7 +1,7 @@
 // driver_executor.cpp
 #include "drivers_executor.hpp"
 #include "drivers_manager.hpp"
-#include "drivers_table.hpp"
+#include "drivers_config.hpp"
 #include "meta_utils.hpp"
 #include "services.hpp"
 #include "commands.hpp"
@@ -12,7 +12,7 @@
 namespace koheron {
 
 struct DriverExecutor::Impl {
-    std::array<std::unique_ptr<DriverAbstract>, driver_table::size - driver_table::offset> wrappers{};
+    std::array<std::unique_ptr<DriverAbstract>, drivers::table::size - drivers::table::offset> wrappers{};
 
     template<driver_id id>
     void ensure_wrapper() {
@@ -28,7 +28,7 @@ struct DriverExecutor::Impl {
     }
 
     void ensure_wrapper_runtime(driver_id id) {
-        auto seq = make_index_sequence_in_range<driver_table::offset, driver_table::size>();
+        auto seq = make_index_sequence_in_range<drivers::table::offset, drivers::table::size>();
         auto do_ensure = [this, id]<driver_id... ids>(std::index_sequence<ids...>) {
             ((id == ids ? (ensure_wrapper<ids>(), void()) : void()), ...);
         };
@@ -47,7 +47,7 @@ struct DriverExecutor::Impl {
     }
 
     int execute(Command& cmd) {
-        assert(cmd.driver < driver_table::size);
+        assert(cmd.driver < drivers::table::size);
         if (cmd.driver == 0) { // NoDriver
             return 0;
         }
@@ -57,8 +57,8 @@ struct DriverExecutor::Impl {
         }
 
         ensure_wrapper_runtime(cmd.driver);
-        auto* abs = wrappers[cmd.driver - driver_table::offset].get();
-        auto seq = make_index_sequence_in_range<driver_table::offset, driver_table::size>();
+        auto* abs = wrappers[cmd.driver - drivers::table::offset].get();
+        auto seq = make_index_sequence_in_range<drivers::table::offset, drivers::table::size>();
         return exec_on(abs, cmd, seq);
     }
 };

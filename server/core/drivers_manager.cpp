@@ -3,10 +3,8 @@
 /// (c) Koheron
 
 #include "drivers_manager.hpp"
-#include "server.hpp"
 #include "meta_utils.hpp"
-#include "drivers_table.hpp"
-#include "services.hpp"
+#include "drivers_config.hpp"
 
 namespace koheron {
 
@@ -20,18 +18,18 @@ int DriverContainer::alloc() {
         return 0;
     }
 
-    if (std::get<driver - driver_table::offset>(is_starting)) {
+    if (std::get<driver - drivers::table::offset>(is_starting)) {
         print<CRITICAL>(
             "Circular dependency detected while initializing driver [%u] %s\n",
-            driver, std::get<driver>(driver_table::names).data());
+            driver, std::get<driver>(drivers::table::names).data());
 
         return -1;
     }
 
-    std::get<driver - driver_table::offset>(is_starting) = true;
-    std::get<driver - driver_table::offset>(driver_tuple) = std::make_unique<driver_table::type_of<driver>>(ctx);
-    std::get<driver - driver_table::offset>(is_starting) = false;
-    std::get<driver - driver_table::offset>(is_started) = true;
+    std::get<driver - drivers::table::offset>(is_starting) = true;
+    std::get<driver - drivers::table::offset>(driver_tuple) = std::make_unique<drivers::table::type_of<driver>>(ctx);
+    std::get<driver - drivers::table::offset>(is_starting) = false;
+    std::get<driver - drivers::table::offset>(is_started) = true;
 
     return 0;
 }
@@ -40,11 +38,11 @@ int DriverContainer::alloc() {
 // Driver manager
 //----------------------------------------------------------------------------
 
-DriverManager::DriverManager()
-: driver_container()
-{
-    is_started.fill(false);
-}
+// DriverManager::DriverManager()
+// : driver_container()
+// {
+//     is_started.fill(false);
+// }
 
 int DriverManager::init()
 {
@@ -52,7 +50,7 @@ int DriverManager::init()
         return -1;
     }
 
-    core<driver_table::id_of<Common>>().init(); // Maybe we don't want the hardwired ?
+    core<drivers::table::id_of<Common>>().init(); // Maybe we need some mechanism to specify the Common driver (if any) ?
     return 0;
 }
 
@@ -60,26 +58,28 @@ template<driver_id id>
 void DriverManager::alloc_core_() {
     std::scoped_lock lock(mutex);
 
-    if (is_started[id - driver_table::offset]) {
+    if (is_started[id - drivers::table::offset]) {
         return;
     }
 
     print_fmt<INFO>("Driver Manager: Allocating driver [{}] {}...\n",
-                    id, std::get<id>(driver_table::names));
+                    id, std::get<id>(drivers::table::names));
 
     if (driver_container.alloc<id>() < 0) {
         print_fmt<PANIC>("Failed to allocate driver [{}] {}. Exiting server...\n",
-                         id, std::get<id>(driver_table::names));
-        services::require<Server>().exit_all = true;
+                         id, std::get<id>(drivers::table::names));
+        if (on_alloc_fail_) {
+            on_alloc_fail_(id, std::get<id>(drivers::table::names));
+        }
         return;
     }
 
-    is_started[id - driver_table::offset] = true;
+    is_started[id - drivers::table::offset] = true;
 }
 
 void DriverManager::alloc_core(driver_id id) {
     // runtime switch via fold
-    auto seq = make_index_sequence_in_range<driver_table::offset, driver_table::size>();
+    auto seq = make_index_sequence_in_range<drivers::table::offset, drivers::table::size>();
     (void)seq;
 
     auto do_alloc = [this, id]<driver_id... ids>(std::index_sequence<ids...>) {

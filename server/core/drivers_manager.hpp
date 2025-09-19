@@ -12,8 +12,9 @@
 #include <cassert>
 #include <thread>
 #include <mutex>
+#include <functional>
 
-#include "drivers_table.hpp"
+#include "drivers_config.hpp"
 #include <drivers.hpp>
 #include "services.hpp"
 #include "lib/syslog.hpp"
@@ -42,7 +43,7 @@ class DriverContainer
 
     template<driver_id driver>
     auto& get() {
-        return *std::get<driver - driver_table::offset>(driver_tuple);
+        return *std::get<driver - drivers::table::offset>(driver_tuple);
     }
 
     template<driver_id driver>
@@ -51,22 +52,29 @@ class DriverContainer
   private:
     Context ctx;
 
-    std::array<bool, driver_table::size - driver_table::offset> is_started;
-    std::array<bool, driver_table::size - driver_table::offset> is_starting;
+    std::array<bool, drivers::table::size - drivers::table::offset> is_started;
+    std::array<bool, drivers::table::size - drivers::table::offset> is_starting;
 
-    using drivers_tuple_t = typename driver_table::tuple_t;
+    using drivers_tuple_t = typename drivers::table::tuple_t;
     drivers_tuple_t driver_tuple;
 
     template<driver_id driver>
     bool is_driver_started() {
-        return std::get<driver - driver_table::offset>(is_started);
+        return std::get<driver - drivers::table::offset>(is_started);
     }
 };
 
 class DriverManager
 {
   public:
-    DriverManager();
+    using alloc_fail_cb = std::function<void(driver_id, std::string_view)>;
+
+    explicit DriverManager(alloc_fail_cb on_alloc_fail = {})
+    : driver_container()
+    , on_alloc_fail_(std::move(on_alloc_fail))
+    {
+        is_started.fill(false);
+    }
 
     int init();
     void ensure_core_started(driver_id id);
@@ -83,13 +91,14 @@ class DriverManager
 
     // internal (used by executor via public API)
     bool is_core_started(driver_id id) const {
-        return is_started[id - driver_table::offset];
+        return is_started[id - drivers::table::offset];
     }
 
   private:
     DriverContainer driver_container;
-    std::array<bool, driver_table::size - driver_table::offset> is_started{};
+    std::array<bool, drivers::table::size - drivers::table::offset> is_started{};
     std::recursive_mutex mutex;
+    alloc_fail_cb on_alloc_fail_;
 
     template<driver_id id>
     void alloc_core_();
@@ -98,15 +107,16 @@ class DriverManager
 };
 
 // Driver access
+// TODO Move that somewhere to remove the #include "services.hpp" dependency
 
 template<driver_id id>
-driver_table::type_of<id>& get_driver() {
+drivers::table::type_of<id>& get_driver() {
     return services::require<koheron::DriverManager>().template core<id>();
 }
 
 template<class Driver>
 Driver& get_driver() {
-    return get_driver<driver_table::id_of<Driver>>();
+    return get_driver<drivers::table::id_of<Driver>>();
 }
 
 } // namespace koheron
