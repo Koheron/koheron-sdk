@@ -46,6 +46,8 @@ class DriverContainer
         return *std::get<driver - drivers::table::offset>(driver_tuple);
     }
 
+    auto& context() { return ctx; }
+
     template<driver_id driver>
     int alloc();
 
@@ -88,6 +90,10 @@ class DriverManager
 
     template<driver_id id>
     auto& get() { return core<id>(); }
+
+    auto& context() {
+        return driver_container.context();
+    }
 
     // internal (used by executor via public API)
     bool is_core_started(driver_id id) const {

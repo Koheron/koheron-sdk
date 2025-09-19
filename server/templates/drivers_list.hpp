@@ -7,8 +7,6 @@
 
 #include <tuple>
 
-class NoDriver;
-class Server;
 {% for driver in drivers %}
 class {{ driver.objects[0]["type"] }};
 {% endfor -%}

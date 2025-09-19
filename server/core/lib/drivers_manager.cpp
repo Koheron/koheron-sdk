@@ -59,7 +59,7 @@ void DriverManager::alloc_core_() {
                     id, std::get<id>(drivers::table::names));
 
     if (driver_container.alloc<id>() < 0) {
-        print_fmt<PANIC>("Failed to allocate driver [{}] {}. Exiting server...\n",
+        print_fmt<PANIC>("Driver Manager: Failed to allocate driver [{}] {}.\n",
                          id, std::get<id>(drivers::table::names));
         if (on_alloc_fail_) {
             on_alloc_fail_(id, std::get<id>(drivers::table::names));
