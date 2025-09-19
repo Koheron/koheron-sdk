@@ -10,11 +10,14 @@
 
 #include "meta_utils.hpp"
 
-#include <drivers_table.hpp>
+#include <drivers_list.hpp>
 
 namespace koheron {
 
 using driver_id = std::size_t;
+
+// ----------------------------------------------------------
+// drivers_table
 
 template<class T>
 consteval std::string_view type_name() {
@@ -49,10 +52,10 @@ struct drivers_table {
 
     using types = std::tuple<Drivers...>;
     using tuple_t = std::tuple<std::unique_ptr<Drivers>...>;
-    static constexpr std::size_t device_num = offset + sizeof...(Drivers);
+    static constexpr std::size_t size = offset + sizeof...(Drivers);
 
     static consteval auto make_names() {
-        std::array<std::string_view, device_num> a{};
+        std::array<std::string_view, size> a{};
         a[0] = "NoDriver";
         a[1] = "Server";
         std::size_t i = offset;
@@ -61,6 +64,24 @@ struct drivers_table {
     }
 
     inline static constexpr auto names = make_names();
+    static_assert(std::tuple_size_v<decltype(names)> == size);
+
+    template<class D>
+    inline static constexpr driver_id id_of = [] {
+        if constexpr (std::is_same_v<D, NoDriver>) {
+            return driver_id{0};
+        } else if constexpr (std::is_same_v<D, Server>) {
+            return driver_id{1};
+        } else {
+            return driver_id{offset + tuple_index_v<D, types>};
+        }
+    }();
+
+    template<driver_id id>
+    using type_of =
+        std::conditional_t<id == 0, NoDriver,
+        std::conditional_t<id == 1, Server,
+        std::tuple_element_t<id - offset, types>>>;
 };
 
 // Adapter: build drivers_table from a std::tuple<Drivers...>
@@ -73,31 +94,12 @@ struct drivers_table_from_tuple<std::tuple<Drivers...>> : drivers_table<Drivers.
 template<class Tuple>
 using drivers_table_t = drivers_table_from_tuple<Tuple>;
 
+// ----------------------------------------------------------
 // Instantiate driver_table from driver_list
 
 using driver_table = drivers_table_t<driver_list>;
-inline constexpr driver_id device_off = driver_table::offset;
-inline constexpr driver_id device_num = driver_table::device_num;
-inline constexpr auto drivers_names = driver_table::names;
-using drivers_tuple_t = typename driver_table::tuple_t;
 
-static_assert(std::tuple_size_v<decltype(drivers_names)> == device_num);
-
-static_assert(std::tuple_size<drivers_tuple_t>::value == device_num - 2, "");
-
-// Driver id from driver type
-
-template<class Driver>
-constexpr driver_id driver_id_of = tuple_index_v<std::unique_ptr<Driver>, drivers_tuple_t> + 2;
-
-template<> constexpr driver_id driver_id_of<NoDriver> = 0;
-template<> constexpr driver_id driver_id_of<Server> = 1;
-
-// Driver type from driver id
-
-template<driver_id driver>
-using device_t = std::remove_reference_t<decltype(*std::get<driver - 2>(std::declval<drivers_tuple_t>()))>;
-
+// ----------------------------------------------------------
 // Forward declarations
 
 template<class Driver> Driver& get_driver();

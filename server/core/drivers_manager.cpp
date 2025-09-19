@@ -5,7 +5,7 @@
 #include "drivers_manager.hpp"
 #include "server.hpp"
 #include "meta_utils.hpp"
-#include "driver_id.hpp"
+#include "drivers_table.hpp"
 #include "services.hpp"
 
 namespace koheron {
@@ -20,18 +20,18 @@ int DriverContainer::alloc() {
         return 0;
     }
 
-    if (std::get<driver - device_off>(is_starting)) {
+    if (std::get<driver - driver_table::offset>(is_starting)) {
         print<CRITICAL>(
             "Circular dependency detected while initializing driver [%u] %s\n",
-            driver, std::get<driver>(drivers_names).data());
+            driver, std::get<driver>(driver_table::names).data());
 
         return -1;
     }
 
-    std::get<driver - device_off>(is_starting) = true;
-    std::get<driver - device_off>(driver_tuple) = std::make_unique<device_t<driver>>(ctx);
-    std::get<driver - device_off>(is_starting) = false;
-    std::get<driver - device_off>(is_started) = true;
+    std::get<driver - driver_table::offset>(is_starting) = true;
+    std::get<driver - driver_table::offset>(driver_tuple) = std::make_unique<driver_table::type_of<driver>>(ctx);
+    std::get<driver - driver_table::offset>(is_starting) = false;
+    std::get<driver - driver_table::offset>(is_started) = true;
 
     return 0;
 }
@@ -52,7 +52,7 @@ int DriverManager::init()
         return -1;
     }
 
-    core<driver_id_of<Common>>().init(); // Maybe we don't want the hardwired ?
+    core<driver_table::id_of<Common>>().init(); // Maybe we don't want the hardwired ?
     return 0;
 }
 
@@ -60,26 +60,26 @@ template<driver_id id>
 void DriverManager::alloc_core_() {
     std::scoped_lock lock(mutex);
 
-    if (is_started[id - device_off]) {
+    if (is_started[id - driver_table::offset]) {
         return;
     }
 
     print_fmt<INFO>("Driver Manager: Allocating driver [{}] {}...\n",
-                    id, std::get<id>(drivers_names));
+                    id, std::get<id>(driver_table::names));
 
     if (driver_container.alloc<id>() < 0) {
         print_fmt<PANIC>("Failed to allocate driver [{}] {}. Exiting server...\n",
-                         id, std::get<id>(drivers_names));
+                         id, std::get<id>(driver_table::names));
         services::require<Server>().exit_all = true;
         return;
     }
 
-    is_started[id - device_off] = true;
+    is_started[id - driver_table::offset] = true;
 }
 
 void DriverManager::alloc_core(driver_id id) {
     // runtime switch via fold
-    auto seq = make_index_sequence_in_range<device_off, device_num>();
+    auto seq = make_index_sequence_in_range<driver_table::offset, driver_table::size>();
     (void)seq;
 
     auto do_alloc = [this, id]<driver_id... ids>(std::index_sequence<ids...>) {

@@ -52,7 +52,7 @@ $(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML)
 # Other templates
 # -----------------------------------------------------------------------------
 SERVER_TEMPLATE_LIST := $(addprefix $(TMP_SERVER_PATH)/, \
-  drivers_table.hpp drivers_json.hpp drivers.hpp interface_drivers.hpp operations.hpp)
+  drivers_list.hpp drivers_json.hpp drivers.hpp interface_drivers.hpp operations.hpp)
 
 define _render_template_rule
 $1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP)
@@ -93,7 +93,7 @@ GEN_HDRS := \
   $(TMP_SERVER_PATH)/memory.hpp \
   $(TMP_SERVER_PATH)/drivers.hpp \
   $(TMP_SERVER_PATH)/drivers_json.hpp \
-  $(TMP_SERVER_PATH)/drivers_table.hpp \
+  $(TMP_SERVER_PATH)/drivers_list.hpp \
   $(TMP_SERVER_PATH)/interface_drivers.hpp \
   $(INTERFACE_DRIVERS_HPP)
 
@@ -117,6 +117,7 @@ $(SERVER): $(OBJ) $(SERVER_TEMPLATE_LIST) $(GEN_HEADERS) $(INTERFACE_DRIVERS_CPP
 
 .PHONY: server
 server: $(SERVER)
+	$(MAKE) --jobs=$(N_CPUS) $(SERVER)
 
 # -----------------------------------------------------------------------------
 # Clean
