@@ -3,7 +3,8 @@ SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := all
 # Cleaner logs when running -j
-MAKEFLAGS += --output-sync=target
+#MAKEFLAGS += --output-sync=target
+
 .DELETE_ON_ERROR:
 .SUFFIXES:
 PYTHONPATH :=
@@ -78,15 +79,17 @@ MEMORY_YML := $(TMP_PROJECT_PATH)/memory.yml
 # Number of CPU cores available for parallel execution
 N_CPUS ?= $(shell nproc 2> /dev/null || echo 1)
 
-BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit
-
 # TCP / Websocket server executable that communicates with the FPGA
 SERVER := $(TMP_PROJECT_PATH)/serverd
 
 VERSION_FILE := $(TMP_PROJECT_PATH)/version
 
+$(VERSION_FILE): | $(TMP_PROJECT_PATH)/
+	@printf '%s\n' '$(VERSION)' > $@
+
 include $(CONFIG_MK)
 include $(BOARD_MK)
+BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit
 include $(OS_PATH)/$(ZYNQ_TYPE).mk
 include $(DOCKER_MK)
 include $(FPGA_MK)

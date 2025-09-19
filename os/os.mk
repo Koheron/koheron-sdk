@@ -44,7 +44,6 @@ OS_FILES := \
 .PHONY: os
 os: $(OS_FILES)
 
-.NOTPARALLEL: $(RELEASE_ZIP)
 $(RELEASE_ZIP): \
   $(INSTRUMENT_ZIP) \
   $(TMP_OS_PATH)/$(BOOTCALL) $(FIT_ITB) $(DTB_SWITCH) \
@@ -121,11 +120,18 @@ endif
 
 UBOOT_PATCH_FILES := $(shell test -d $(PATCHES)/u-boot && find $(PATCHES)/u-boot -type f)
 
-$(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) | $(TMP_OS_PATH)/
+# Configure U-Boot once to avoid concurrent defconfig/mrproper races
+UBOOT_CONFIG_STAMP := $(UBOOT_PATH)/.config
+
+$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES)
 	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $(UBOOT_PATH) mrproper
 	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(ARCH) $(UBOOT_CONFIG)
+	@touch $@
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/u-boot.elf: $(UBOOT_CONFIG_STAMP) | $(TMP_OS_PATH)/
 	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(ARCH) CFLAGS="$(UBOOT_CFLAGS) $(GCC_FLAGS)" \
 	  CROSS_COMPILE=$(GCC_ARCH)- all
 	if [ -f $(UBOOT_PATH)/u-boot.elf ]; then cp $(UBOOT_PATH)/u-boot.elf $@; else cp $(UBOOT_PATH)/u-boot $@; fi
@@ -260,26 +266,31 @@ $(LINUX_PATH)/.unpacked: $(LINUX_TAR) | $(LINUX_PATH)/
 
 LINUX_PATCH_FILES := $(shell test -d $(PATCHES)/linux && find $(PATCHES)/linux -type f)
 
-$(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig | $(TMP_OS_PATH)/
+# Configure the kernel once to avoid concurrent mrproper/defconfig races
+LINUX_CONFIG      := $(LINUX_PATH)/.config
+LINUX_BUILD_STAMP := $(LINUX_PATH)/.built_all
+
+$(LINUX_CONFIG): $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
 	cp $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs
 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $(LINUX_PATH) mrproper
 	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
+	@touch $@
+
+$(LINUX_BUILD_STAMP): $(LINUX_CONFIG)
 	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) \
 	  CROSS_COMPILE=$(GCC_ARCH)- --jobs=$(N_CPUS) $(KERNEL_BIN) dtbs
+	@touch $@
+
+$(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_BUILD_STAMP) | $(TMP_OS_PATH)/
 	cp $(LINUX_PATH)/arch/$(ARCH)/boot/$(KERNEL_BIN) $@
 	$(call ok,$@)
 
 $(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
 	cp $(TMP_OS_PATH)/pl.dtbo  $(TMP_PROJECT_PATH)/pl.dtbo
 
-$(LINUX_PATH)/scripts/dtc/dtc: $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
-	cp $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs
-	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
-	$(DOCKER) make -C $(LINUX_PATH) mrproper
-	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
-	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
-	$(call ok,$@)
+$(LINUX_PATH)/scripts/dtc/dtc: $(LINUX_BUILD_STAMP)
+	@true
 
 $(TMP_OS_PATH)/pl.dtbo: $(LINUX_PATH)/scripts/dtc/dtc $(TMP_OS_PATH)/overlay/pl.dtsi
 	sed -i 's/".bin"/"$(NAME).bit.bin"/g' $(TMP_OS_PATH)/overlay/pl.dtsi
