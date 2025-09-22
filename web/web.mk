@@ -34,10 +34,9 @@ TMP_WEB_PATH := $(TMP_PROJECT_PATH)/web
 WEB_DOWNLOADS_MK ?= $(WEB_PATH)/downloads.mk
 include $(WEB_DOWNLOADS_MK)
 
-WEB_FILES_ABS := $(abspath $(WEB_FILES))
-
-TS_FILES_ABS     := $(filter %.ts,$(WEB_FILES_ABS))
-NON_TS_FILES_ABS := $(filter-out %.ts,$(WEB_FILES_ABS))
+WEB_FILES_ABS     := $(abspath $(WEB_FILES))
+TS_FILES_ABS      := $(filter %.ts,$(WEB_FILES_ABS))
+NON_TS_FILES_ABS  := $(filter-out %.ts,$(WEB_FILES_ABS))
 
 TMP_WEB_PATH := $(TMP_PROJECT_PATH)/web
 
@@ -50,33 +49,16 @@ $(APP_JS): $(TS_FILES_ABS) | $(TMP_WEB_PATH)/
 	$(TSC) $^ --outFile $@
 endif
 
-ASSETS_STAMP := $(TMP_WEB_PATH)/.assets.stamp
+BASENAMES            := $(notdir $(NON_TS_FILES_ABS))
+FLAT_ASSET_TARGETS   := $(addprefix $(TMP_WEB_PATH)/,$(BASENAMES))
 
-# Absolute roots for robust stripping
-SDK_ROOT      := $(abspath $(SDK_PATH))
-PROJECT_ROOT  := $(abspath $(PROJECT_PATH))
+define COPY_ONE
+$(TMP_WEB_PATH)/$(notdir $1): $1 | $(TMP_WEB_PATH)/
+	cp $$< $$@
+endef
+$(foreach f,$(NON_TS_FILES_ABS),$(eval $(call COPY_ONE,$(f))))
 
-$(ASSETS_STAMP): $(NON_TS_FILES_ABS) | $(TMP_WEB_PATH)/
-	@set -e; \
-	for src in $^; do \
-	  rel="$${src#$(SDK_ROOT)/}"; \
-	  rel="$${rel#$(PROJECT_ROOT)/}"; \
-	  case "$$rel" in \
-	    web/*) : ;; \
-	    */web/*) rel="$${rel#*web/}"; rel="web/$$rel" ;; \
-	    *) rel="$$(basename "$$rel")" ;; \
-	  esac; \
-	  dst="$(TMP_WEB_PATH)/$$rel"; \
-	  mkdir -p "$$(dirname "$$dst")"; \
-	  cp "$$src" "$$dst"; \
-	done; \
-	touch $@
-
-# Ensure the staging root exists
-$(TMP_WEB_PATH)/:
-	mkdir -p $@
-
-WEB_ASSETS := $(WEB_DOWNLOADS) $(APP_JS) $(ASSETS_STAMP)
+WEB_ASSETS := $(WEB_DOWNLOADS) $(APP_JS) $(FLAT_ASSET_TARGETS)
 
 .PHONY: web
 web: $(WEB_ASSETS)
