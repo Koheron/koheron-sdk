@@ -17,8 +17,15 @@ SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(w
 # -----------------------------------------------------------------------------
 # Drivers from config.yml
 # -----------------------------------------------------------------------------
+ifndef DRIVERS
 DRIVERS := $(shell $(MAKE_PY) --drivers $(CONFIG) $(TMP_SERVER_PATH)/drivers && cat $(TMP_SERVER_PATH)/drivers)
+endif
+
+export DRIVERS
+
 DRIVERS_HPP := $(filter %.hpp,$(DRIVERS))
+override DRIVERS := $(abspath $(DRIVERS_HPP))
+
 DRIVERS_CPP := $(filter %.cpp,$(DRIVERS))
 DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/, $(subst .cpp,.o,$(notdir $(filter %.cpp,$(DRIVERS)))))
 

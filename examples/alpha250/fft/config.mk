@@ -17,3 +17,16 @@ CORES += $(SDK_PATH)/fpga/cores/edge_detector_v1_0
 CORES += $(SDK_PATH)/fpga/cores/comparator_v1_0
 CORES += $(SDK_PATH)/fpga/cores/unrandomizer_v1_0
 CORES += $(SDK_PATH)/fpga/cores/psd_counter_v1_0
+
+DRIVERS := $(SDK_PATH)/boards/alpha250/drivers/common.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/eeprom.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/gpio-expander.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/temperature-sensor.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/power-monitor.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/clock-generator.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/ltc2157.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/ad9747.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/precision-adc.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/precision-dac.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/spi-config.hpp
+DRIVERS += $(PROJECT_PATH)/fft.hpp

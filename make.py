@@ -9,12 +9,11 @@ import yaml
 import server
 
 def append_path(filename, file_path):
-    ''' If a filename starts with './' then it is relative to the config.yml path.
-    '''
     if filename.startswith('./'):
-        filename = os.path.join(file_path, filename)
-    else:
-        filename = os.path.join(SDK_PATH, filename)
+        return os.path.join(file_path, filename[2:])
+    if os.path.isabs(filename):          # <-- keep absolute paths
+        return filename
+    return os.path.join(SDK_PATH, filename)
 
     return filename
 
@@ -133,6 +132,17 @@ def fill_template(config, template_filename, output_filename):
     with open(output_filename, 'w') as output:
         output.write(template.render(config=config))
 
+def _to_include_path(p):
+    # produce a path relative to SDK_PATH when possible; otherwise relative to CWD
+    rp = os.path.realpath(p)
+    sdk = os.path.realpath(SDK_PATH) if SDK_PATH else None
+    try:
+        if sdk and os.path.commonpath([rp, sdk]) == sdk:
+            return os.path.relpath(rp, sdk)
+    except Exception:
+        pass
+    return os.path.relpath(rp)
+
 ###################
 # Main
 ###################
@@ -151,6 +161,7 @@ if __name__ == "__main__":
 
     config = load_config(config_filename)
     config_path = os.path.dirname(config_filename)
+    config['drivers'] = config.get('drivers') or os.getenv('DRIVERS','').split()
 
     if sys.version_info[0] < 3:
         reload(sys)
@@ -208,9 +219,19 @@ if __name__ == "__main__":
 
     elif cmd == '--render_template':
         template_filename = sys.argv[4]
-        for i in range(len(config['drivers'])):
-            config['drivers'][i] = append_path(config['drivers'][i], config_path)
-        server.render_template(template_filename, output_filename, server.get_drivers(config['drivers']))
+        drivers = config.get('drivers', os.getenv('DRIVERS','').split())
+
+        # normalize to full paths first
+        drivers = [append_path(p, config_path) for p in drivers]
+
+        # convert to include paths (relative to SDK_PATH)
+        drivers_for_includes = [_to_include_path(p) for p in drivers]
+
+        server.render_template(
+            template_filename,
+            output_filename,
+            server.get_drivers(drivers_for_includes)
+        )
 
     elif cmd == '--render_interface':
         driver_filename_hpp = sys.argv[4]
