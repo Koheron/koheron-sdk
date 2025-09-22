@@ -28,7 +28,7 @@ file delete -force \
 
 create_project -force -part $part $project_name $output_path
 
-set_property IP_REPO_PATHS $output_path/../cores [current_project]
+set_property IP_REPO_PATHS [list $output_path/../cores $sdk_path/tmp/cores] [current_project]
 update_ip_catalog -rebuild -scan_changes
 
 set bd_path $output_path/$project_name.srcs/sources_1/bd/system

@@ -13,11 +13,9 @@ $(MEMORY_YML): $(CONFIG_YML) | $(TMP_PROJECT_PATH)/
 
 # Cores
 ###############################################################################
-TMP_CORES_PATH := $(TMP_PROJECT_PATH)/cores
+TMP_CORES_PATH := $(TMP)/cores
 $(TMP_CORES_PATH)/: ; @mkdir -p $@
 
-# Build one IP package per core into: tmp/.../cores/<core_name>/component.xml
-# Rebuild if any HDL inside the core folder or its core_config.tcl changes.
 define make_core_target
 $(TMP_CORES_PATH)/$(notdir $1)/component.xml: \
     $(wildcard $1/*.v $1/*.sv $1/*.vh $1/*.vhd $1/*.vhdl) $1/core_config.tcl | $(TMP_CORES_PATH)/
