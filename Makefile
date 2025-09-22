@@ -43,7 +43,10 @@ SERVER_PATH := $(SDK_PATH)/server
 WEB_PATH := $(SDK_PATH)/web
 
 # Use config.mk instead of config.yml
-CONFIG_MK ?= examples/alpha250/fft/config.mk
+
+CFG ?= examples/alpha250/fft/config.mk
+
+CONFIG_MK := $(CFG)
 BOARD_MK ?= $(BOARD_PATH)/board.mk
 DOCKER_MK ?= $(DOCKER_PATH)/docker.mk
 FPGA_MK ?= $(FPGA_PATH)/fpga.mk
