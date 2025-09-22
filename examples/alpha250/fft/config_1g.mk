@@ -1,7 +1,7 @@
 NAME := fft
 VERSION := 0.2.1
 
-BOARD_PATH := $(SDK_PATH)/boards/alpha250
+BOARD_PATH := $(SDK_PATH)/boards/alpha250-1g
 
 CONFIG_YML = $(PROJECT_PATH)/config.yml
 
@@ -19,7 +19,7 @@ CORES += $(SDK_PATH)/fpga/cores/psd_counter_v1_0
 
 DRIVERS += $(PROJECT_PATH)/fft.hpp
 
-SERVER_MK = $(SDK_PATH)/server/server.mk
+SERVER_MK = $(PROJECT_PATH)/server.mk
 
 WEB_FILES += $(SDK_PATH)/web/koheron.ts
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts

@@ -44,7 +44,7 @@ $(XDC_FILE): $(XDC) | $(TMP_FPGA_PATH)/
 
 CONFIG_TCL := $(TMP_FPGA_PATH)/config.tcl
 $(CONFIG_TCL): $(MEMORY_YML) $(FPGA_PATH)/config.tcl
-	$(MAKE_PY) --config_tcl $(CONFIG) $@
+	$(MAKE_PY) --config_tcl $(CONFIG_YML) $@
 	$(call ok,$@)
 
 .PHONY: xpr
