@@ -1,10 +1,13 @@
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 ABS_TMP_OS_PATH := $(abspath $(TMP_OS_PATH))
 
+LINUX_TAG := xilinx-linux-v$(VIVADO_VERSION)
+LINUX_URL := https://github.com/Xilinx/linux-xlnx/archive/refs/tags/xilinx-v$(VIVADO_VERSION).tar.gz
+
 include $(OS_PATH)/rootfs.mk
 
 UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
-LINUX_PATH := $(TMP_OS_PATH)/linux-xlnx-$(LINUX_TAG)
+LINUX_PATH := $(TMP)/linux-xlnx-$(LINUX_TAG)
 DTREE_PATH := $(TMP_OS_PATH)/device-tree-xlnx-$(DTREE_TAG)
 
 UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
@@ -264,7 +267,7 @@ $(LINUX_PATH)/.unpacked: $(LINUX_TAR) | $(LINUX_PATH)/
 	@touch $@
 	$(call ok,$@)
 
-LINUX_PATCH_FILES := $(shell test -d $(PATCHES)/linux && find $(PATCHES)/linux -type f)
+LINUX_PATCH_FILES := $(find os/patches/linux -type f)
 
 # Configure the kernel once to avoid concurrent mrproper/defconfig races
 LINUX_CONFIG      := $(LINUX_PATH)/.config
