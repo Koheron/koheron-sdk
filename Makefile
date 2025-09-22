@@ -56,7 +56,8 @@ TMP_PROJECT_PATH := $(TMP)/$(PROJECT_PATH)
 
 CORES :=
 DRIVERS :=
-WEB_FILES :=
+WEB_FILES := $(SDK_PATH)/web/main.css $(SDK_PATH)/web/koheron.ts
+
 
 #BUILD_METHOD := native
 BUILD_METHOD = docker
@@ -164,10 +165,6 @@ setup: setup_docker setup_fpga setup_server setup_web setup_os
 
 .PHONY: setup_base
 setup_base:
-# 	sudo apt-get install -y g++-$(GCC_VERSION)-arm-linux-gnueabihf
-# 	sudo rm -f /usr/bin/arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-g++
-# 	sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-gcc
-# 	sudo ln -s /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) /usr/bin/arm-linux-gnueabihf-g++
 	sudo apt-get install -y curl rsync $(PYTHON)-venv
 	[ -d $(VENV) ] || $(PYTHON) -m venv $(VENV)
 	$(VENV)/bin/$(PYTHON) -m ensurepip --upgrade
