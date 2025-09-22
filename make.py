@@ -167,9 +167,9 @@ if __name__ == "__main__":
         reload(sys)
         sys.setdefaultencoding('utf-8')
 
-    if cmd == '--name':
-        with open(output_filename, 'w') as f:
-            f.write(config['name'])
+    # if cmd == '--name':
+    #     with open(output_filename, 'w') as f:
+    #         f.write(config['name'])
 
     elif cmd == '--memory_yml':
         for field in ['drivers', 'web', 'cores', 'modules', 'name', 'board', 'version']:
@@ -179,38 +179,38 @@ if __name__ == "__main__":
     elif cmd == '--config_tcl':
         fill_template(append_memory_to_config(config), 'config.tcl', output_filename)
 
-    elif cmd == '--cores':
-        for module in config.get('modules', []):
-            module_path = os.path.dirname(module)
-            module = append_path(module, module_path)
-            module_config = load_config(module)
-            module_cores = module_config.get('cores')
-            if module_cores is not None:
-                config['cores'].extend(module_cores)
-            config['cores'] = list(set(config['cores']))
+    # elif cmd == '--cores':
+    #     for module in config.get('modules', []):
+    #         module_path = os.path.dirname(module)
+    #         module = append_path(module, module_path)
+    #         module_config = load_config(module)
+    #         module_cores = module_config.get('cores')
+    #         if module_cores is not None:
+    #             config['cores'].extend(module_cores)
+    #         config['cores'] = list(set(config['cores']))
 
-        for i in range(len(config['cores'])):
-            config['cores'][i] = append_path(config['cores'][i], config_path)
+    #     for i in range(len(config['cores'])):
+    #         config['cores'][i] = append_path(config['cores'][i], config_path)
 
-        with open(output_filename, 'w') as f:
-            f.write(' '.join(config.get('cores', [])))
+    #     with open(output_filename, 'w') as f:
+    #         f.write(' '.join(config.get('cores', [])))
 
-    elif cmd == '--board':
-        config['board'] = append_path(config['board'], config_path)
-        with open(output_filename, 'w') as f:
-            f.write(config['board'])
+    # elif cmd == '--board':
+    #     config['board'] = append_path(config['board'], config_path)
+    #     with open(output_filename, 'w') as f:
+    #         f.write(config['board'])
 
-    elif cmd == '--drivers':
-        for i, path in enumerate(config.get('drivers', [])):
-            config['drivers'][i] = append_path(path, config_path)
-        with open(output_filename, 'w') as f:
-            f.write(' '.join(config.get('drivers', [])))
+    # elif cmd == '--drivers':
+    #     for i, path in enumerate(config.get('drivers', [])):
+    #         config['drivers'][i] = append_path(path, config_path)
+    #     with open(output_filename, 'w') as f:
+    #         f.write(' '.join(config.get('drivers', [])))
 
-    elif cmd == '--xdc':
-        for i, path in enumerate(config.get('xdc', [])):
-            config['xdc'][i] = append_path(path, config_path)
-        with open(output_filename, 'w') as f:
-            f.write(' '.join(config.get('xdc', [])))
+    # elif cmd == '--xdc':
+    #     for i, path in enumerate(config.get('xdc', [])):
+    #         config['xdc'][i] = append_path(path, config_path)
+    #     with open(output_filename, 'w') as f:
+    #         f.write(' '.join(config.get('xdc', [])))
 
     elif cmd == '--memory_hpp':
         config = append_memory_to_config(config)
@@ -238,16 +238,16 @@ if __name__ == "__main__":
         id_ = server.get_driver_id(config['drivers'], driver_filename_hpp)
         server.render_driver(server.get_driver(driver_filename_hpp, id_), output_filename)
 
-    elif cmd == '--web':
-        for i, path in enumerate(config.get('web', [])):
-            config['web'][i] = append_path(path, config_path)
-        with open(output_filename, 'w') as f:
-            f.write(' '.join(config.get('web', [])))
+    # elif cmd == '--web':
+    #     for i, path in enumerate(config.get('web', [])):
+    #         config['web'][i] = append_path(path, config_path)
+    #     with open(output_filename, 'w') as f:
+    #         f.write(' '.join(config.get('web', [])))
 
-    elif cmd == '--version':
-        config['version'] = config.get('version', '0.0.0')
-        with open(output_filename, 'w') as f:
-            f.write(config['version'])
+    # elif cmd == '--version':
+    #     config['version'] = config.get('version', '0.0.0')
+    #     with open(output_filename, 'w') as f:
+    #         f.write(config['version'])
 
     else:
         raise ValueError('Unknown command')
