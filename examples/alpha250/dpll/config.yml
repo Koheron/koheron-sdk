@@ -1,26 +1,4 @@
 ---
-name: dpll
-board: boards/alpha250
-version: 0.1.0
-
-cores:
-  - fpga/cores/axi_ctl_register_v1_0
-  - fpga/cores/axi_sts_register_v1_0
-  - fpga/cores/dna_reader_v1_0
-  - fpga/cores/axis_constant_v1_0
-  - fpga/cores/latched_mux_v1_0
-  - fpga/cores/edge_detector_v1_0
-  - fpga/cores/comparator_v1_0
-  - fpga/cores/tlast_gen_v1_0
-  - boards/alpha250/cores/precision_dac_v1_0
-  - boards/alpha250/cores/spi_cfg_v1_0
-  - fpga/cores/axis_lfsr_v1_0
-  - fpga/cores/double_saturation_v1_0
-  - fpga/cores/boxcar_filter_v1_0
-  - fpga/cores/phase_unwrapper_v1_0
-  - fpga/cores/unrandomizer_v1_0
-  - fpga/cores/axis_variable_v1_0
-
 memory:
   - name: control
     offset: '0x40000000'
@@ -84,36 +62,3 @@ parameters:
   cic_decimation_rate_max: 8192
   cic_n_stages: 6
   n_pts: 1048576
-
-xdc:
-  - boards/alpha250/config/ports.xdc
-
-drivers:
-  - boards/alpha250/drivers/common.hpp
-  - boards/alpha250/drivers/eeprom.hpp
-  - boards/alpha250/drivers/gpio-expander.hpp
-  - boards/alpha250/drivers/temperature-sensor.hpp
-  - boards/alpha250/drivers/clock-generator.hpp
-  - boards/alpha250/drivers/power-monitor.hpp
-  - boards/alpha250/drivers/ltc2157.hpp
-  - boards/alpha250/drivers/ad9747.hpp
-  - boards/alpha250/drivers/precision-adc.hpp
-  - boards/alpha250/drivers/precision-dac.hpp
-  - boards/alpha250/drivers/spi-config.hpp
-  - server/drivers/dma-s2mm.hpp
-  - ./dpll.hpp
-  - ./dma.hpp
-
-web:
-  - ./web/index.html
-  - web/main.css
-  - web/koheron.ts
-  - ./web/app.ts
-  - ./web/control.ts
-  - ./web/dpll.ts
-  - ./web/variables.css
-  - ./web/dpll.css
-  - ./web/block_diagram_path.svg
-  - ./web/clock-generator/clock-generator.ts
-  - ./web/clock-generator/clock-generator-app.ts
-  - ./web/clock-generator/reference-clock.html

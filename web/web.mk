@@ -34,6 +34,9 @@ TMP_WEB_PATH := $(TMP_PROJECT_PATH)/web
 WEB_DOWNLOADS_MK ?= $(WEB_PATH)/downloads.mk
 include $(WEB_DOWNLOADS_MK)
 
+WEB_FILES += $(SDK_PATH)/web/main.css
+WEB_FILES += $(SDK_PATH)/web/koheron.ts
+
 WEB_FILES_ABS     := $(abspath $(WEB_FILES))
 TS_FILES_ABS      := $(filter %.ts,$(WEB_FILES_ABS))
 NON_TS_FILES_ABS  := $(filter-out %.ts,$(WEB_FILES_ABS))
