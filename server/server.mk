@@ -17,9 +17,9 @@ SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(w
 # -----------------------------------------------------------------------------
 # Drivers from config.yml
 # -----------------------------------------------------------------------------
-ifndef DRIVERS
-DRIVERS := $(shell $(MAKE_PY) --drivers $(CONFIG_YML) $(TMP_SERVER_PATH)/drivers && cat $(TMP_SERVER_PATH)/drivers)
-endif
+# ifndef DRIVERS
+# DRIVERS := $(shell $(MAKE_PY) --drivers $(CONFIG_YML) $(TMP_SERVER_PATH)/drivers && cat $(TMP_SERVER_PATH)/drivers)
+# endif
 
 export DRIVERS
 

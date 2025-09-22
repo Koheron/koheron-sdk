@@ -27,6 +27,9 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    // Expects a 'Common' driver with init() method
+    dm->core<drivers::table::id_of<Common>>().init();
+
     services::provide<DriverExecutor>();
 
     auto signal_handler = services::provide<SignalHandler>();
