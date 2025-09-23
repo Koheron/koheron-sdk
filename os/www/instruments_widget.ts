@@ -78,11 +78,17 @@ class InstrumentsWidget {
         }
     }
 
-    setRunCell(cell: any, name: string, isLive: boolean): void {
-        if (isLive) {
-            cell.innerHTML = '';
-        } else {
-            cell.innerHTML = '<a onclick="instruments_widget.runClick(this.parentNode, \'' + name + '\'); return false;" href="#">Run</a>';
+    setRunCell(cell: HTMLTableCellElement, name: string, isLive: boolean): void {
+        cell.innerHTML = '';
+        if (!isLive) {
+            const link = document.createElement("a");
+            link.href = "#";
+            link.textContent = "Run";
+            link.addEventListener("click", (ev) => {
+                ev.preventDefault();
+                this.runClick(cell, name);
+            });
+            cell.appendChild(link);
         }
     }
 
@@ -94,15 +100,23 @@ class InstrumentsWidget {
         })
     }
 
-    setDeleteCell(cell: any, name: string, isLive: boolean, isDefault: boolean): void {
+    setDeleteCell(cell: HTMLTableCellElement, name: string, isLive: boolean, isDefault: boolean): void {
+        cell.innerHTML = '';
         if (isLive) {
-            cell.innerHTML = "Live";
+            cell.textContent = "Live";
             cell.style.color = "#737373";
-        } else if (isDefault ) {
-            cell.innerHTML = "Default";
+        } else if (isDefault) {
+            cell.textContent = "Default";
             cell.style.color = "#737373";
         } else {
-            cell.innerHTML = '<a onclick="instruments_widget.deleteClick(this.parentNode, \'' + name + '\'); return false;" href="#">Remove</a>';
+            const link = document.createElement("a");
+            link.href = "#";
+            link.textContent = "Remove";
+            link.addEventListener("click", (ev) => {
+                ev.preventDefault();
+                this.deleteClick(cell, name);
+            });
+            cell.appendChild(link);
         }
     }
 
