@@ -25,6 +25,8 @@ DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/precision-dac.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/spi-config.hpp
 
 # Linux and U-boot
+TMP_OS_BOARD_PATH := $(TMP)/alpha250
+
 UBOOT_CONFIG = zynq_alpha250_defconfig
 UBOOT_TAG := xilinx-uboot-v$(VIVADO_VERSION)
 DTREE_TAG := xilinx_v$(VIVADO_VERSION)
