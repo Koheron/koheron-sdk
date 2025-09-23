@@ -9,7 +9,7 @@
 
 #include "server/core/configs/server_definitions.hpp"
 #include "server/core/configs/config.hpp"
-#include "commands.hpp"
+#include "server/core/commands.hpp"
 
 namespace koheron {
 

@@ -4,7 +4,10 @@
 ///
 /// (c) Koheron
 
-#include "websocket.hpp"
+#include "server/core/websocket.hpp"
+#include "server/core/base64.hpp"
+#include "server/core/sha1.h"
+#include "server/runtime/syslog.hpp"
 
 #include <cstring>
 #include <sstream>
@@ -17,10 +20,6 @@ extern "C" {
     #include <sys/types.h>  // socket types
     #include <unistd.h>
 }
-
-#include "base64.hpp"
-#include "sha1.h"
-#include "server/runtime/syslog.hpp"
 
 namespace koheron {
 

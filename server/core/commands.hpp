@@ -12,7 +12,7 @@
 
 #include "server/core/configs/drivers_config.hpp"
 #include "server/core/configs/server_definitions.hpp"
-#include "serializer_deserializer.hpp"
+#include "server/core/serializer_deserializer.hpp"
 
 namespace koheron {
 

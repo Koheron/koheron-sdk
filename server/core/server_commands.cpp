@@ -2,9 +2,11 @@
 ///
 /// (c) Koheron
 
-#include "server.hpp"
-#include "session.hpp"
+#include "server/core/server.hpp"
+#include "server/core/session.hpp"
+
 #include <ctime>
+
 #include <drivers_json.hpp>
 
 namespace koheron {

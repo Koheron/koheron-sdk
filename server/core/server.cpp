@@ -2,19 +2,18 @@
 ///
 /// (c) Koheron
 
-#include "server.hpp"
-
-#include <chrono>
-#include <cstdlib>
-
-#include "commands.hpp"
-#include "session.hpp"
-#include "session_manager.hpp"
-#include "signal_handler.hpp"
+#include "server/core/server.hpp"
+#include "server/core/commands.hpp"
+#include "server/core/session.hpp"
+#include "server/core/session_manager.hpp"
+#include "server/core/signal_handler.hpp"
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/systemd.hpp"
+
+#include <chrono>
+#include <cstdlib>
 
 extern "C" {
   #include <sys/un.h>

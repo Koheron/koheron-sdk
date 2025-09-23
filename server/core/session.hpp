@@ -17,11 +17,11 @@
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 
-#include "commands.hpp"
-#include "serializer_deserializer.hpp"
-#include "session_abstract.hpp"
-#include "drivers_executor.hpp"
-#include "websocket.hpp"
+#include "server/core/commands.hpp"
+#include "server/core/serializer_deserializer.hpp"
+#include "server/core/session_abstract.hpp"
+#include "server/core/drivers_executor.hpp"
+#include "server/core/websocket.hpp"
 
 namespace koheron {
 

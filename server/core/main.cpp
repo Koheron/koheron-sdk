@@ -2,9 +2,9 @@
 ///
 /// (c) Koheron
 
-#include "server.hpp"
-#include "drivers_executor.hpp"
-#include "signal_handler.hpp"
+#include "server/core/server.hpp"
+#include "server/core/drivers_executor.hpp"
+#include "server/core/signal_handler.hpp"
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"

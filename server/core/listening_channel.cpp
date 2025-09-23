@@ -3,8 +3,8 @@
 ///
 /// (c) Koheron
 
-#include "server.hpp"
-#include "session.hpp"
+#include "server/core/server.hpp"
+#include "server/core/session.hpp"
 #include "server/runtime/syslog.hpp"
 
 #include <thread>

@@ -3,7 +3,7 @@
 #ifndef __SESSION_ABSTRACT_HPP__
 #define __SESSION_ABSTRACT_HPP__
 
-#include "commands.hpp"
+#include "server/core/commands.hpp"
 
 #include <atomic>
 

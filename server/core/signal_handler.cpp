@@ -2,7 +2,8 @@
 ///
 /// (c) Koheron
 
-#include "signal_handler.hpp"
+#include "server/core/signal_handler.hpp"
+#include "server/core/server.hpp"
 #include "server/runtime/syslog.hpp"
 
 #include <iostream>
@@ -12,8 +13,6 @@
 extern "C" {
   #include <execinfo.h>
 }
-
-#include "server.hpp"
 
 namespace koheron {
 
