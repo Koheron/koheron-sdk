@@ -9,8 +9,9 @@ class Runtime {
   public:
     Runtime() {
         start_syslog();
-        dm_ = services::provide<DriverManager>(on_fail_);
-        if (dm_->init() < 0) {
+        auto dm = services::provide<DriverManager>(on_fail_);
+
+        if (dm->init() < 0) {
             std::exit(EXIT_FAILURE);
         }
     }
@@ -25,12 +26,8 @@ class Runtime {
     Runtime& operator=(Runtime&&) = delete;
 
     // Access to the Context
-    auto& context() { return dm_->context(); }
-    const auto& context() const { return dm_->context(); }
-
-    // Convenience so you can write: rt->log<...>(...)
-    auto* operator->() { return &dm_->context(); }
-    const auto* operator->() const { return &dm_->context(); }
+    auto& context() { return services::require<Context>(); }
+    const auto& context() const { return services::require<Context>(); }
 
     void systemd_notify_ready() {
         systemd::notify_ready();
@@ -41,8 +38,6 @@ class Runtime {
         print_fmt<PANIC>("DriverManager: driver [{}] {} failed to allocate.\n", id, name);
         std::exit(EXIT_FAILURE);
     }
-
-    std::shared_ptr<DriverManager> dm_;
 };
 
 } // namespace koheron

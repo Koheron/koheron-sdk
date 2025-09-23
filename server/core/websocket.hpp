@@ -103,16 +103,18 @@ class WebSocket
 template<class T>
 inline int WebSocket::send(const T *data, unsigned int len)
 {
-    if (connection_closed)
+    if (connection_closed) {
         return 0;
+    }
 
     auto char_data_len = len * sizeof(T) / sizeof(char);
 
-    if (char_data_len + 10 > WEBSOCK_SEND_BUF_LEN)
+    if (char_data_len + 10 > WEBSOCK_SEND_BUF_LEN) {
         return -1;
+    }
 
     auto mask_offset = set_send_header(send_buf, char_data_len, (1 << 7) + BINARY_FRAME);
-    memcpy(&send_buf[mask_offset], data, char_data_len);
+    std::memcpy(&send_buf[mask_offset], data, char_data_len);
     return send_request(send_buf, static_cast<int64_t>(mask_offset) + static_cast<int64_t>(char_data_len));
 }
 

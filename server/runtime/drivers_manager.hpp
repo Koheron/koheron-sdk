@@ -29,15 +29,15 @@ class DriverContainer
 {
   public:
     DriverContainer()
-    : ctx()
     {
         is_started.fill(false);
         is_starting.fill(false);
+        services::provide<Context>();
     }
 
     int init()
     {
-        if (ctx.init() < 0) {
+        if (services::require<Context>().init() < 0) {
             print<CRITICAL>("Context initialization failed\n");
             return -1;
         }
@@ -50,14 +50,10 @@ class DriverContainer
         return *std::get<driver - drivers::table::offset>(driver_tuple);
     }
 
-    auto& context() { return ctx; }
-
     template<driver_id driver>
     int alloc();
 
   private:
-    Context ctx;
-
     std::array<bool, drivers::table::size - drivers::table::offset> is_started;
     std::array<bool, drivers::table::size - drivers::table::offset> is_starting;
 
@@ -86,7 +82,12 @@ class DriverManager
 
     template<driver_id id>
     auto& get() {
-        ensure_core_started(id);
+        const bool is_core_started = std::get<id - drivers::table::offset>(is_started);
+
+        if (!is_core_started) {
+            alloc_core(id);
+        }
+
         return driver_container.get<id>();
     }
 
@@ -95,22 +96,11 @@ class DriverManager
         return get<drivers::table::id_of<Driver>>();
     }
 
-    auto& context() {
-        return driver_container.context();
-    }
-
-    // internal (used by executor via public API)
-    bool is_core_started(driver_id id) const {
-        return is_started[id - drivers::table::offset];
-    }
-
   private:
     DriverContainer driver_container;
     std::array<bool, drivers::table::size - drivers::table::offset> is_started{};
     std::recursive_mutex mutex;
     alloc_fail_cb on_alloc_fail_;
-
-    void ensure_core_started(driver_id id);
 
     template<driver_id id>
     void alloc_core_();
