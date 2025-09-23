@@ -15,11 +15,17 @@
 #include <chrono>
 #include <tuple>
 
+#include <scicpp/signal.hpp>
+
 #include <boards/alpha250/drivers/clock-generator.hpp>
 #include <boards/alpha250/drivers/ltc2157.hpp>
 #include <server/drivers/dma-s2mm.hpp>
-#include <server/fft-windows.hpp>
 #include <dds.hpp>
+
+namespace {
+    namespace sci = scicpp;
+    namespace win = scicpp::signal::windows;
+}
 
 class PhaseNoiseAnalyzer
 {
@@ -34,7 +40,8 @@ class PhaseNoiseAnalyzer
     , sts(ctx.mm.get<mem::status>())
     , ram(ctx.mm.get<mem::ram>())
     , phase_noise(fft_size / 2)
-    , window(FFTwindow::hann, fft_size)
+    , window(win::hann<float, fft_size>())
+    , S2(win::s2(window))
     {
         std::get<0>(data_vec) = std::vector<float>(fft_size);
         std::get<1>(data_vec) = std::vector<float>(fft_size);
@@ -182,7 +189,9 @@ class PhaseNoiseAnalyzer
     std::array<std::vector<std::complex<float>>, 2> fft_data;
     std::vector<float> phase_noise;
 
-    FFTwindow window;
+    // FFTwindow window;
+    std::array<float, fft_size> window;
+    float S2;
 
     template<size_t idx>
     void compute_fft();
@@ -216,7 +225,7 @@ inline auto PhaseNoiseAnalyzer::get_phase_noise() {
     }
 
     for (uint32_t i=0; i<fft_size / 2; i++) {
-        phase_noise[i] /= (fs * window.W2() * fft_navg); // rad^2/Hz
+        phase_noise[i] /= (fs * S2 * fft_navg); // rad^2/Hz
     }
 
     return phase_noise;
