@@ -4,8 +4,8 @@
 
 #include "server/core/server.hpp"
 #include "server/core/drivers_executor.hpp"
-#include "server/core/signal_handler.hpp"
 
+#include "server/runtime/signal_handler.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/drivers_manager.hpp"

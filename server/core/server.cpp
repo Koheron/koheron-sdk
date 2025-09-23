@@ -6,8 +6,8 @@
 #include "server/core/commands.hpp"
 #include "server/core/session.hpp"
 #include "server/core/session_manager.hpp"
-#include "server/core/signal_handler.hpp"
 
+#include "server/runtime/signal_handler.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/systemd.hpp"
