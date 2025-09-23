@@ -15,8 +15,12 @@
 #include "syslog.hpp"
 #include "services.hpp"
 
-// Those includes must be provided by library user
-#include "server/core/configs/drivers_config.hpp"
+#ifdef KOHERON_SERVER_BUILD
+  #include "server/core/configs/drivers_config.hpp"
+#else
+  #include <drivers_config.hpp>
+#endif
+
 #include <drivers.hpp> // Drivers includes
 
 namespace koheron {

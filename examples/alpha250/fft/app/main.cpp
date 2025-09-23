@@ -1,11 +1,38 @@
-
 #include "server/core/lib/app.hpp"
 
+#include <chrono>
+#include <thread>
+
 int main() {
-    auto& ctx = koheron::start_app();
+    koheron::App app;
+    auto& ctx = app.context();
+
+    ctx.log<INFO>("Initialize");
+    // You may also call ctx.get<Common>().init();
+    auto& clkgen = ctx.get<ClockGenerator>();
+    ctx.get<GpioExpander>();
+    auto& ltc2157 = ctx.get<Ltc2157>();
+    auto& ad9747 = ctx.get<Ad9747>();
+    auto& precisiondac = ctx.get<PrecisionDac>();
+    ctx.get<PrecisionAdc>();
+
+    clkgen.init();
+    ltc2157.init();
+    ad9747.init();
+    precisiondac.init();
+
+    app.notify_systemd_ready();
 
     auto& fft = ctx.get<FFT>();
+    ctx.logf<INFO>("FFT size = {} points", fft.get_fft_size());
 
-    koheron::stop_app();
+    while (true) {
+        using namespace std::chrono_literals;
+
+        auto data = fft.get_adc_raw_data(10);
+        ctx.logf<INFO>("FFT data = {}, {}", data[0], data[1]);
+        std::this_thread::sleep_for(10ms);
+    }
+
     return 0;
 }
