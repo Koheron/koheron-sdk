@@ -29,7 +29,7 @@ int Driver<drivers::table::id_of<{{ driver.objects[0]["type"] }}>>::
 
 int Driver<drivers::table::id_of<{{ driver.objects[0]["type"] }}>>::execute(Command& cmd)
 {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard lock(mutex);
 
     switch(cmd.operation) {
 {% for operation in driver.operations -%}

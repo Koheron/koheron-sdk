@@ -22,9 +22,9 @@ extern "C" {
 namespace koheron {
 
 Server::Server()
-: tcp_listener(this)
-, websock_listener(this)
-, unix_listener(this)
+: tcp_listener()
+, websock_listener()
+, unix_listener()
 {
     start_syslog();
 

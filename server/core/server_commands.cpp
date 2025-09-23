@@ -30,7 +30,7 @@ template<> int Server::execute_operation<Server::GET_CMDS>(Command& cmd)
 
 int Server::execute(Command& cmd)
 {
-    std::lock_guard<std::mutex> lock(this->ks_mutex);
+    std::lock_guard lock(this->ks_mutex);
 
     switch (cmd.operation) {
       case Server::GET_VERSION:
