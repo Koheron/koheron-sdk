@@ -1,4 +1,9 @@
+
+#include "server/runtime/syslog.hpp"
+
 #include <memory>
+#include <string_view>
+#include <string>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -7,7 +12,7 @@
 
 namespace systemd {
 
-inline void notify_ready() {
+inline void notify_ready(std::string_view status_msg = {}) {
     const char* sock = std::getenv("NOTIFY_SOCKET");
 
     if (!sock || !*sock) {
@@ -17,6 +22,7 @@ inline void notify_ready() {
     int fd = ::socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
 
     if (fd < 0) {
+        koheron::print<WARNING>("Cannot open notification socket\n");
         return;
     }
 
@@ -37,8 +43,19 @@ inline void notify_ready() {
 
     socklen_t addrlen = offsetof(sockaddr_un, sun_path) + len;
 
-    static constexpr char msg[] = "READY=1";
-    (void)::sendto(fd, msg, sizeof(msg) - 1, 0, reinterpret_cast<sockaddr*>(&sa), addrlen);
+    std::string payload;
+
+    if (!status_msg.empty()) {
+        payload.reserve(status_msg.size() + 16);
+        payload.append("STATUS=");
+        payload.append(status_msg);
+        payload.push_back('\n');
+    }
+
+    payload.append("READY=1\n");
+
+    (void)::sendto(fd, payload.data(), payload.size(), 0,
+                   reinterpret_cast<sockaddr*>(&sa), addrlen);
 
     ::close(fd);
 }

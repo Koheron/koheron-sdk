@@ -21,7 +21,7 @@ int main() {
     ad9747.init();
     precisiondac.init();
 
-    rt.notify_systemd_ready();
+    rt.systemd_notify_ready();
 
     auto& fft = ctx.get<FFT>();
     ctx.logf<INFO>("FFT size = {} points", fft.get_fft_size());

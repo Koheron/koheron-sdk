@@ -12,8 +12,8 @@
 #include <mutex>
 #include <functional>
 
-#include "syslog.hpp"
-#include "services.hpp"
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
 
 #ifdef KOHERON_SERVER_BUILD
   #include "server/core/configs/drivers_config.hpp"

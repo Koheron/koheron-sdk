@@ -14,6 +14,7 @@
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
+#include "server/runtime/systemd.hpp"
 
 extern "C" {
   #include <sys/un.h>
@@ -103,62 +104,6 @@ bool Server::is_ready()
     return ready;
 }
 
-void Server::notify_systemd_ready()
-{
-    // We call directly the notification socket as uwsgi does:
-    // https://github.com/unbit/uwsgi/blob/master/core/notify.c
-
-    struct sockaddr_un sd_sun{};
-    struct msghdr msg{};
-    const char *state;
-
-    int sd_notif_fd = socket(AF_UNIX, SOCK_DGRAM|SOCK_CLOEXEC, 0);
-
-    if (sd_notif_fd < 0) {
-        print<WARNING>("Cannot open notification socket\n");
-        return;
-    }
-
-    constexpr int len = strlen(config::sd_notify_socket);
-    memset(&sd_sun, 0, sizeof(struct sockaddr_un));
-    sd_sun.sun_family = AF_UNIX;
-    memcpy(sd_sun.sun_path, config::sd_notify_socket, std::min(static_cast<size_t>(len), sizeof(sd_sun.sun_path)));
-
-    if (sd_sun.sun_path[0] == '@') {
-        sd_sun.sun_path[0] = 0;
-    }
-
-    memset(&msg, 0, sizeof(struct msghdr));
-    msg.msg_iov = reinterpret_cast<struct iovec*>(malloc(sizeof(struct iovec) * 3));
-
-    if (msg.msg_iov == nullptr) {
-        print<WARNING>("Cannot allocate msg.msg_iov\n");
-        goto exit_notification_socket;
-    }
-
-    memset(msg.msg_iov, 0, sizeof(struct iovec) * 3);
-    msg.msg_name = &sd_sun;
-    msg.msg_namelen = sizeof(struct sockaddr_un) - (sizeof(sd_sun.sun_path) - static_cast<unsigned int>(len));
-
-    state = "STATUS=Koheron server is ready\nREADY=1\n";
-    msg.msg_iov[0].iov_base = const_cast<char *>(state);
-    msg.msg_iov[0].iov_len = strlen(state);
-    msg.msg_iovlen = 1;
-
-    if (sendmsg(sd_notif_fd, &msg, MSG_NOSIGNAL) < 0) {
-        print<WARNING>("Cannot send notification to systemd.\n");
-    }
-
-    free(msg.msg_iov);
-
-exit_notification_socket:
-    if (::shutdown(sd_notif_fd, SHUT_RDWR) < 0) {
-        print<WARNING>("Cannot shutdown notification socket\n");
-    }
-
-    close(sd_notif_fd);
-}
-
 int Server::run()
 {
     bool ready_notified = false;
@@ -171,7 +116,7 @@ int Server::run()
         if (!ready_notified && is_ready()) {
             print<INFO>("Koheron server ready\n");
             if constexpr (config::notify_systemd) {
-                notify_systemd_ready();
+                systemd::notify_ready("Koheron server is ready");
             }
             ready_notified = true;
         }

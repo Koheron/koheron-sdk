@@ -16,7 +16,6 @@ namespace koheron {
         constexpr uint32_t unix_socket_path_len = 108;
 
         constexpr bool notify_systemd = true;
-        constexpr char sd_notify_socket[unix_socket_path_len] = "/run/systemd/notify";
 
         /// Enable/Disable the Nagle algorithm in the TCP buffer
         constexpr bool tcp_nodelay = true;

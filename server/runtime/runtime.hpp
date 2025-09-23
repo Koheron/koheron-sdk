@@ -1,7 +1,7 @@
-#include "syslog.hpp"
-#include "services.hpp"
-#include "drivers_manager.hpp"
-#include "systemd.hpp"
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
+#include "server/runtime/drivers_manager.hpp"
+#include "server/runtime/systemd.hpp"
 
 namespace koheron {
 
@@ -32,7 +32,7 @@ class Runtime {
     auto* operator->() { return &dm_->context(); }
     const auto* operator->() const { return &dm_->context(); }
 
-    void notify_systemd_ready() {
+    void systemd_notify_ready() {
         systemd::notify_ready();
     }
 

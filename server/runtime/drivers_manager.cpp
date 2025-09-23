@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#include "drivers_manager.hpp"
-#include "meta_utils.hpp"
+#include "server/runtime/drivers_manager.hpp"
+#include "server/runtime/meta_utils.hpp"
 
 namespace koheron {
 
