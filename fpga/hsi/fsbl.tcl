@@ -5,9 +5,6 @@ set fsbl_path [lindex $argv 3]
 set hwdef_filename [lindex $argv 4]
 set zynq_type [lindex $argv 5]
 
-file mkdir $hard_path
-file copy -force $hwdef_filename $hard_path/$project_name.xsa
-
 hsi::open_hw_design $hard_path/$project_name.xsa
 hsi::create_sw_design -proc $proc_name -os standalone fsbl
 

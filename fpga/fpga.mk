@@ -46,18 +46,26 @@ $(CONFIG_TCL): $(MEMORY_YML) $(FPGA_PATH)/config.tcl
 	$(call ok,$@)
 
 .PHONY: xpr
-xpr: $(TMP_FPGA_PATH)/$(NAME).xpr
+xpr: $(TMP_FPGA_PATH)/$(NAME).xpr.stamp
 
-$(TMP_FPGA_PATH)/$(NAME).xpr: $(CONFIG_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML) $(XDC_FILE) | $(TMP_FPGA_PATH)/
+$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(CONFIG_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML) $(XDC_FILE) | $(TMP_FPGA_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/project.tcl \
 	  -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(BOARD_PATH) $(MODE) $(TMP_FPGA_PATH) $(XDC_FILE) $(VENV)/bin/$(PYTHON)
+	touch $@
+	$(call ok,$@)
+
+.PHONY: xsa
+xsa: $(TMP_FPGA_PATH)/$(NAME).xsa
+
+$(TMP_FPGA_PATH)/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xpr.stamp | $(TMP_FPGA_PATH)/
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/hwdef.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(N_CPUS)
 	$(call ok,$@)
 
 .PHONY: fpga
 fpga: $(BITSTREAM)
 
-$(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xpr | $(TMP_FPGA_PATH)/
-	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $< $@ $(ZYNQ_TYPE) $(N_CPUS)
+$(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xsa | $(TMP_FPGA_PATH)/
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(ZYNQ_TYPE) $(N_CPUS)
 	$(call ok,$@)
 
 $(BITSTREAM).bin: $(BITSTREAM)
@@ -65,9 +73,6 @@ $(BITSTREAM).bin: $(BITSTREAM)
 	$(BOOTGEN) -image $(TMP_FPGA_PATH)/overlay.bif -arch $(ZYNQ_TYPE) -process_bitstream bin -w on -o $(BITSTREAM).bin
 	$(call ok,$@)
 
-$(TMP_FPGA_PATH)/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xpr | $(TMP_FPGA_PATH)/
-	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/hwdef.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $(TMP_FPGA_PATH)/$(NAME).xsa $(N_CPUS)
-	$(call ok,$@)
 
 # Build the block design in Vivado GUI
 .PHONY: block_design

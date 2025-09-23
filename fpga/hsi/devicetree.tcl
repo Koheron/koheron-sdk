@@ -9,9 +9,6 @@ set partition [lindex $argv 7]
 
 set boot_args "console=ttyPS0,115200 root=/dev/${partition}p2 ro rootfstype=ext4 earlyprintk rootwait"
 
-file mkdir $hard_path
-file copy -force $hwdef_filename $hard_path/$project_name.xsa
-
 hsi::set_repo_path $dtree_path
 
 hsi::open_hw_design $hard_path/$project_name.xsa
