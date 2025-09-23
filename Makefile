@@ -4,6 +4,7 @@ SHELL := bash
 .DEFAULT_GOAL := all
 # Cleaner logs when running -j
 MAKEFLAGS += --output-sync=target
+MAKEFLAGS += --shuffle
 
 .DELETE_ON_ERROR:
 .SUFFIXES:
@@ -61,10 +62,6 @@ CORES :=
 DRIVERS :=
 WEB_FILES := $(SDK_PATH)/web/main.css $(SDK_PATH)/web/koheron.ts
 
-
-#BUILD_METHOD := native
-BUILD_METHOD = docker
-
 .PHONY: help
 help:
 	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
@@ -73,7 +70,7 @@ help:
 	@echo ' - server       : Build the server'
 	@echo ' - web          : Build the web interface'
 	@echo ' - os           : Build the operating system'
-	@echo ' - image        : Build the root file system (run as root)'
+	@echo ' - image        : Build the full image'
 	@echo ' - block_design : Build the Vivado block design interactively'
 	@echo ' - open_project : Open the Vivado .xpr project'
 
@@ -210,3 +207,28 @@ clean:
 .PHONY: clean_all
 clean_all:
 	rm -rf $(TMP)
+
+###############################################################################
+# BUILD ALL EXAMPLES AT ONCE
+###############################################################################
+
+.PHONY: print_variables
+print_variables:
+	@echo "CFG = $(CFG)"
+	@echo "NAME = $(NAME)"
+	@echo "BOARD = $(BOARD)"
+
+# CFG_LIST :=
+# #CFG_LIST += examples/alpha250/fft/config.mk
+# CFG_LIST += examples/alpha250/adc-dac-bram/config.mk
+# #CFG_LIST += examples/alpha250/adc-dac-dma/config.mk
+# #CFG_LIST += examples/alpha250/phase-noise-analyzer/config.mk
+
+# CFG_TARGETS := $(CFG_LIST:%=build-%)
+
+# .PHONY: all_examples $(CFG_TARGETS)
+# all_examples: $(CFG_TARGETS)
+
+# $(CFG_TARGETS):
+# 	@echo ">>> Building CFG=$(@:build-%=%)"
+# 	$(MAKE) CFG=$(@:build-%=%)

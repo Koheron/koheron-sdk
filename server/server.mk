@@ -76,10 +76,7 @@ OBJ := $(SERVER_OBJ) $(SERVER_LIB_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
-SERVER_CCXX := /usr/bin/arm-linux-gnueabihf-g++-$(GCC_VERSION) -flto=$(N_CPUS)
-ifeq ($(BUILD_METHOD),docker)
-	SERVER_CCXX = $(DOCKER) $(GCC_ARCH)-g++-$(GCC_VERSION) -flto=$(N_CPUS)
-endif
+SERVER_CCXX = $(DOCKER) $(GCC_ARCH)-g++-$(GCC_VERSION) -flto=$(N_CPUS)
 
 SERVER_CCXXFLAGS = -Wall -Werror -Wextra
 SERVER_CCXXFLAGS += -Wpedantic -Wfloat-equal -Wunused-macros -Wcast-qual -Wuseless-cast
@@ -124,8 +121,9 @@ $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
 
 # Link: depend on actual generated files (not stamps)
 $(SERVER): $(OBJ) $(SERVER_TEMPLATE_LIST) $(GEN_HEADERS) $(INTERFACE_DRIVERS_CPP) | $(KOHERON_SERVER_PATH)
+	@$(call start,$@)
 	$(SERVER_CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm
-	$(call ok,$@)
+	@$(call ok,$@)
 
 .PHONY: server
 server: $(SERVER)

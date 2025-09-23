@@ -371,11 +371,11 @@ endef
 
 $(FIT_ITS): $(TMP_OS_PATH)/$(KERNEL_BIN) $(DTB_SWITCH) | $(TMP_OS_PATH)/
 	@$(file >$@,$(ITS_TEMPLATE))
-	@echo "[$@] OK"
+	$(call ok,$@)
 
 $(FIT_ITB): $(FIT_ITS) | $(TMP_OS_PATH)/
 	mkimage -f $< $@
-	@echo "[$@] OK"
+	$(call ok,$@)
 
 ###############################################################################
 # TEST
