@@ -6,9 +6,9 @@
 #include "drivers_executor.hpp"
 #include "signal_handler.hpp"
 
-#include "server/core/lib/syslog.hpp"
-#include "server/core/lib/services.hpp"
-#include "server/core/lib/drivers_manager.hpp"
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
+#include "server/runtime/drivers_manager.hpp"
 
 int main() {
     using namespace koheron;

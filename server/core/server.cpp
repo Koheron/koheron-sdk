@@ -12,8 +12,8 @@
 #include "session_manager.hpp"
 #include "signal_handler.hpp"
 
-#include "server/core/lib/syslog.hpp"
-#include "server/core/lib/services.hpp"
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
 
 extern "C" {
   #include <sys/un.h>

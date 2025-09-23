@@ -13,7 +13,7 @@
 #include <iterator>
 #include <filesystem>
 
-#include <server/core/lib/syslog.hpp>
+#include <server/runtime/syslog.hpp>
 
 namespace {
     namespace fs = std::filesystem;

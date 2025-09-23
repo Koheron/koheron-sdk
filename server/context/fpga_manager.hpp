@@ -12,7 +12,7 @@
 #include <filesystem>
 #include <sys/mount.h>
 
-#include <server/core/lib/syslog.hpp>
+#include <server/runtime/syslog.hpp>
 #include "memory.hpp"
 
 #define str_(s) #s

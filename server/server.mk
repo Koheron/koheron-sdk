@@ -12,7 +12,7 @@ $(TMP_SERVER_PATH)/%.o: | $(TMP_SERVER_PATH)/
 # -----------------------------------------------------------------------------
 SERVER_TEMPLATES := $(wildcard $(SERVER_PATH)/templates/*.hpp $(SERVER_PATH)/templates/*.cpp)
 SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/core/*.cpp))))
-SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/core/lib/*.cpp))))
+SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/runtime/*.cpp))))
 
 # -----------------------------------------------------------------------------
 # Drivers from config.yml
@@ -109,7 +109,7 @@ GEN_HDRS := \
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/%.cpp $(GEN_HDRS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/lib/%.cpp $(GEN_HDRS)
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp $(GEN_HDRS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp $(GEN_HDRS)

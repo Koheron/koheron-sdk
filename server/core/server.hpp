@@ -24,8 +24,8 @@
 #include "server/core/configs/server_definitions.hpp"
 #include "server/core/configs/config.hpp"
 
-#include "server/core/lib/services.hpp"
-#include "server/core/lib/syslog.hpp"
+#include "server/runtime/services.hpp"
+#include "server/runtime/syslog.hpp"
 
 #include "session_manager.hpp"
 

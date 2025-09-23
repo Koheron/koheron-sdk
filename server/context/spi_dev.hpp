@@ -23,7 +23,7 @@
 #include <array>
 #include <mutex>
 
-#include <server/core/lib/syslog.hpp>
+#include <server/runtime/syslog.hpp>
 
 // https://www.kernel.org/doc/Documentation/spi/spidev
 class SpiDev
