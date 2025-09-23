@@ -14,6 +14,7 @@ CORES += $(SDK_PATH)/fpga/cores/phase_unwrapper_v1_0
 CORES += $(SDK_PATH)/fpga/cores/boxcar_filter_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
 
+include $(BOARD_PATH)/drivers/drivers.mk
 DRIVERS += $(PROJECT_PATH)/dds.hpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.hpp
 
