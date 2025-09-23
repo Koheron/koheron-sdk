@@ -43,7 +43,6 @@ int DriverManager::init()
         return -1;
     }
 
-    core<drivers::table::id_of<Common>>().init(); // Maybe we need some mechanism to specify the Common driver (if any) ?
     return 0;
 }
 
