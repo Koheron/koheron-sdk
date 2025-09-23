@@ -1,11 +1,11 @@
-#include "server/runtime/app.hpp"
+#include "server/runtime/runtime.hpp"
 
 #include <chrono>
 #include <thread>
 
 int main() {
-    koheron::App app;
-    auto& ctx = app.context();
+    koheron::Runtime rt;
+    auto& ctx = rt.context();
 
     ctx.log<INFO>("Initialize");
     // You may also call ctx.get<Common>().init();
@@ -21,7 +21,7 @@ int main() {
     ad9747.init();
     precisiondac.init();
 
-    app.notify_systemd_ready();
+    rt.notify_systemd_ready();
 
     auto& fft = ctx.get<FFT>();
     ctx.logf<INFO>("FFT size = {} points", fft.get_fft_size());
