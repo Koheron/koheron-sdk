@@ -420,13 +420,13 @@ class Spectrum {
         using namespace scicpp::operators;
 
         if constexpr (sides == ONESIDED) {
-            v = 2.0 * std::move(v);
+            v = T(2) * std::move(v);
             // Don't find why in scipy code, but need it to match scipy result
-            v.front() *= 0.5;
+            v.front() *= T(0.5);
 
             if (!(m_nperseg % 2)) {
                 // Last point is unpaired Nyquist freq point, don't double
-                v.back() *= 0.5;
+                v.back() *= T(0.5);
             }
         }
 

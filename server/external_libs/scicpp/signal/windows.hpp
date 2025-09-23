@@ -114,7 +114,7 @@ void cosine_filler(Array &w) {
         using T = typename Array::value_type;
         const T scaling = pi<T> / T(w.size());
         symmetric_filler(
-            w, [&](std::size_t i) { return std::sin(scaling * (T(i) + 0.5)); });
+            w, [&](std::size_t i) { return std::sin(scaling * (T(i) + T(0.5))); });
     }
 }
 

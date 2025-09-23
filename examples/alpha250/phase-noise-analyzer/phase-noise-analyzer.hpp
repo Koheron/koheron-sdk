@@ -27,6 +27,7 @@
 
 namespace {
     namespace sci = scicpp;
+    namespace sig = scicpp::signal;
     namespace win = scicpp::signal::windows;
     namespace poly = scicpp::polynomial;
 }
@@ -43,9 +44,6 @@ class PhaseNoiseAnalyzer
     , ctl(ctx.mm.get<mem::control>())
     , sts(ctx.mm.get<mem::status>())
     , ram(ctx.mm.get<mem::ram>())
-    , phase_noise(fft_size / 2)
-    , window(win::hann<float, fft_size>())
-    , S2(win::s2(window))
     {
         std::get<0>(data_vec) = std::vector<float>(fft_size);
         std::get<1>(data_vec) = std::vector<float>(fft_size);
@@ -67,6 +65,11 @@ class PhaseNoiseAnalyzer
         set_cic_rate(prm::cic_decimation_rate_default);
         dma_transfer_duration = prm::n_pts / fs;
         ctx.logf<INFO>("DMA transfer duration = {} s\n", dma_transfer_duration);
+
+        // Configure the spectrum analyzer
+        spectrum.window(win::hann<float>(fft_size));
+        spectrum.nthreads(2);
+        spectrum.fs(fs);
     }
 
     void start() {
@@ -83,6 +86,7 @@ class PhaseNoiseAnalyzer
         cic_rate = rate;
         fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
         dma_transfer_duration = prm::n_pts / fs;
+        spectrum.fs(fs);
         ctl.write<reg::cic_rate>(cic_rate);
     }
 
@@ -191,10 +195,9 @@ class PhaseNoiseAnalyzer
     std::array<Eigen::FFT<float>, 2> fft;
     std::array<std::vector<float>, 2> data_vec;
     std::array<std::vector<std::complex<float>>, 2> fft_data;
-    std::vector<float> phase_noise;
 
-    std::array<float, fft_size> window;
-    float S2;
+    // Spectrum analyzer
+    sig::Spectrum<float> spectrum;
 
     template<size_t idx>
     void compute_fft();
@@ -206,46 +209,20 @@ class PhaseNoiseAnalyzer
 };
 
 inline auto PhaseNoiseAnalyzer::get_phase_noise() {
-    std::fill(phase_noise.begin(), phase_noise.end(), 0.0f);
+    using namespace sci::operators;
+
+    auto res = scicpp::zeros<float>(1 + fft_size / 2);
 
     for (uint32_t i=0; i<fft_navg; i++) {
         dma.wait_for_transfer(dma_transfer_duration);
         data = ram.read_array<int32_t, data_size, read_offset>();
-
-        // Two FFTs of half a DMA buffer are computed in parallel
-        auto t0 = std::thread{&PhaseNoiseAnalyzer::compute_fft<0>, this};
-        auto t1 = std::thread{&PhaseNoiseAnalyzer::compute_fft<1>, this};
-
-        t0.join();
-        t1.join();
+        res = std::move(res) + spectrum.welch<sig::DENSITY, false>(data * calib_factor * float(M_PI) / 8192.0f);
 
         reset_phase_unwrapper();
         dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
-
-        for (uint32_t j=0; j<fft_size / 2; j++) {
-            phase_noise[j] += (std::norm(std::get<0>(fft_data)[j]) + std::norm(std::get<1>(fft_data)[j])) / 2.0f;
-        }
     }
 
-    for (uint32_t i=0; i<fft_size / 2; i++) {
-        phase_noise[i] /= (fs * S2 * fft_navg); // rad^2/Hz
-    }
-
-    return phase_noise;
-}
-
-template<size_t idx>
-inline void PhaseNoiseAnalyzer::compute_fft() {
-    constexpr size_t begin = idx * fft_size;
-    constexpr size_t end = (idx + 1) * fft_size -1;
-
-    const float data_mean = std::accumulate(data.data() + begin, data.data() + end, 0.0) / double(fft_size);
-
-    for (uint32_t i=0; i<fft_size; i++) {
-        std::get<idx>(data_vec)[i] = (data[i + begin] - data_mean) * window[i] * calib_factor * float(M_PI) / 8192.0f;
-    }
-
-    std::get<idx>(fft).fwd(std::get<idx>(fft_data), std::get<idx>(data_vec));
+    return res / float(fft_navg);
 }
 
 #endif // __DRIVERS_DMA_HPP__
