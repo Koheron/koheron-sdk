@@ -13,6 +13,8 @@ CORES += $(SDK_PATH)/boards/alpha250/cores/spi_cfg_v1_0
 XDC := $(BOARD_PATH)/config/ports.xdc
 
 # Linux and U-boot
+TMP_OS_BOARD_PATH := $(TMP)/alpha250
+
 UBOOT_CONFIG = zynq_alpha250_defconfig
 UBOOT_TAG := xilinx-uboot-v$(VIVADO_VERSION)
 DTREE_TAG := xilinx_v$(VIVADO_VERSION)

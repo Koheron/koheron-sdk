@@ -1,12 +1,14 @@
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 ABS_TMP_OS_PATH := $(abspath $(TMP_OS_PATH))
 
+TMP_OS_BOARD_PATH ?= $(TMP_PROJECT_PATH)/os
+
 LINUX_TAG := xilinx-linux-v$(VIVADO_VERSION)
 LINUX_URL := https://github.com/Xilinx/linux-xlnx/archive/refs/tags/xilinx-v$(VIVADO_VERSION).tar.gz
 
 include $(OS_PATH)/rootfs.mk
 
-UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
+UBOOT_PATH ?= $(TMP_OS_BOARD_PATH)/u-boot-xlnx-$(UBOOT_TAG)
 LINUX_PATH := $(TMP)/linux-xlnx-$(LINUX_TAG)
 DTREE_PATH := $(TMP_OS_PATH)/device-tree-xlnx-$(DTREE_TAG)
 
@@ -88,6 +90,7 @@ fsbl: $(TMP_OS_PATH)/fsbl/executable.elf
 
 $(TMP_OS_PATH)/hard/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xsa | $(TMP_OS_PATH)/hard/
 	cp $< $@
+	$(call ok,$@)
 
 $(TMP_OS_PATH)/fsbl/Makefile:  $(TMP_OS_PATH)/hard/$(NAME).xsa | $(TMP_OS_PATH)/fsbl/
 	$(HSI) $(FPGA_PATH)/hsi/fsbl.tcl $(NAME) $(PROC) $(TMP_OS_PATH)/hard $(@D) $< $(ZYNQ_TYPE)
@@ -137,10 +140,14 @@ $(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES)
 	@touch $@
 	$(call ok,$@)
 
-$(TMP_OS_PATH)/u-boot.elf: $(UBOOT_CONFIG_STAMP) | $(TMP_OS_PATH)/
+$(TMP_OS_BOARD_PATH)/u-boot.elf: $(UBOOT_CONFIG_STAMP) | $(TMP_BOARD_PATH)/
 	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(ARCH) CFLAGS="$(UBOOT_CFLAGS) $(GCC_FLAGS)" \
 	  CROSS_COMPILE=$(GCC_ARCH)- all
 	if [ -f $(UBOOT_PATH)/u-boot.elf ]; then cp $(UBOOT_PATH)/u-boot.elf $@; else cp $(UBOOT_PATH)/u-boot $@; fi
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/u-boot.elf: $(TMP_OS_BOARD_PATH)/u-boot.elf | $(TMP_OS_PATH)/
+	cp $< $@
 	$(call ok,$@)
 
 ###############################################################################
