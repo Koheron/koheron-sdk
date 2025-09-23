@@ -65,7 +65,7 @@ class PhaseNoiseAnalyzer {
   }
 
   getCarrierPower(nAverage: number, callback: (data: number) => void): void {
-    this.client.readFloat32(Command(this.id, this.cmds['get_carrier_power'], nAverage), (data: number) => {
+    this.client.readFloat64(Command(this.id, this.cmds['get_carrier_power'], nAverage), (data: number) => {
       callback(data);
     });
   }

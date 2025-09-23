@@ -41,8 +41,9 @@ class DmaS2MM
             cnt++;
 
             if (cnt > max_sleeps_cnt) {
-                ctx.log<ERROR>("DmaS2MM::wait_for_transfer: Max number of sleeps exceeded. [set duration %f s]\n",
-                               double(dma_transfer_duration_seconds));
+                ctx.logf<ERROR>(
+                    "DmaS2MM::wait_for_transfer: Max number of sleeps exceeded. [set duration {} s]\n",
+                    dma_transfer_duration_seconds);
                 break;
             }
         }

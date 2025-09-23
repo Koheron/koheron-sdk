@@ -14,7 +14,10 @@
 #include <thread>
 #include <chrono>
 #include <tuple>
+#include <ranges>
 
+#include <scicpp/core.hpp>
+#include <scicpp/polynomials.hpp>
 #include <scicpp/signal.hpp>
 
 #include <boards/alpha250/drivers/clock-generator.hpp>
@@ -25,6 +28,7 @@
 namespace {
     namespace sci = scicpp;
     namespace win = scicpp::signal::windows;
+    namespace poly = scicpp::polynomial;
 }
 
 class PhaseNoiseAnalyzer
@@ -46,8 +50,9 @@ class PhaseNoiseAnalyzer
         std::get<0>(data_vec) = std::vector<float>(fft_size);
         std::get<1>(data_vec) = std::vector<float>(fft_size);
 
-        vrange= { ltc2157.get_input_voltage_range(0),
-                  ltc2157.get_input_voltage_range(1) };
+        using namespace sci::units::literals;
+        vrange= { 1_V * ltc2157.get_input_voltage_range(0),
+                  1_V * ltc2157.get_input_voltage_range(1) };
 
         clk_gen.set_sampling_frequency(0); // 200 MHz
 
@@ -61,7 +66,7 @@ class PhaseNoiseAnalyzer
         fs_adc = clk_gen.get_adc_sampling_freq();
         set_cic_rate(prm::cic_decimation_rate_default);
         dma_transfer_duration = prm::n_pts / fs;
-        ctx.log<INFO>("DMA transfer duration = %f s\n", double(dma_transfer_duration));
+        ctx.logf<INFO>("DMA transfer duration = {} s\n", dma_transfer_duration);
     }
 
     void start() {
@@ -104,7 +109,7 @@ class PhaseNoiseAnalyzer
     // Carrier power in dBm
     auto get_carrier_power(uint32_t navg) {
         uint32_t demod_raw;
-        float res = 0.0;
+        double res = 0.0;
 
         for (uint32_t i=0; i<navg; ++i) {
             if (channel == 0) {
@@ -114,25 +119,24 @@ class PhaseNoiseAnalyzer
             }
 
             // Extract real and imaginary parts and convert fix16_0 to float to obtain complex IQ signal
-            const auto z = std::complex(static_cast<int16_t>(demod_raw & 0xFFFF) / 65536.0f,
-                                        static_cast<int16_t>((demod_raw >> 16) & 0xFFFF) / 65536.0f);
+            const auto z = std::complex(static_cast<int16_t>(demod_raw & 0xFFFF) / 65536.0,
+                                        static_cast<int16_t>((demod_raw >> 16) & 0xFFFF) / 65536.0);
             res += std::norm(z);
         }
 
         const auto cal_coeffs = ltc2157.get_calibration(channel);
-        const float fdds = dds.get_dds_freq(channel);
-        const float Hinv = cal_coeffs[2] * fdds * fdds * fdds * fdds * fdds
-                        + cal_coeffs[3] * fdds * fdds * fdds * fdds
-                        + cal_coeffs[4] * fdds * fdds * fdds
-                        + cal_coeffs[5] * fdds * fdds
-                        + cal_coeffs[6] * fdds
-                        + cal_coeffs[7];
-        constexpr float load = 50.0; // Ohm
-        constexpr float magic_factor = 22.0;
-        const float conv_factor = 1E3f * magic_factor * Hinv * vrange[channel] * vrange[channel] / load;
-        // ctx.log<INFO>("PhaseNoiseAnalyzer: vrange = %f, Hinv = %f, conv_factor = %f\n", double(vrange[channel]), double(Hinv), double(conv_factor));
+        std::array<double, 6> coeffs{};
+        std::ranges::reverse_copy(cal_coeffs | std::views::drop(2) | std::views::take(6), coeffs.begin());
+        const double Hinv = poly::polyval(dds.get_dds_freq(channel), coeffs);
 
-        return 10.0f * std::log10(conv_factor * res / float(navg));
+        using namespace sci::units::literals;
+        constexpr auto load = 50_Ohm;
+        constexpr double magic_factor = 22.0;
+        const auto power_conv_factor = Hinv * magic_factor * vrange[channel] * vrange[channel] / load;
+        static_assert(sci::units::is_power<decltype(power_conv_factor)>);
+        const auto conv_factor_dBm = power_conv_factor / 1_mW;
+        static_assert(sci::units::is_dimensionless<decltype(conv_factor_dBm)>);
+        return 10.0 * std::log10(conv_factor_dBm.eval() * res / double(navg));
     }
 
     auto get_data() {
@@ -179,7 +183,7 @@ class PhaseNoiseAnalyzer
     float fs_adc, fs;
     float dma_transfer_duration;
 
-    std::array<float, 2> vrange;
+    std::array<sci::units::electric_potential<double>, 2> vrange;
 
     std::array<int32_t, data_size> data;
     std::array<float, data_size> data_phase;
@@ -189,7 +193,6 @@ class PhaseNoiseAnalyzer
     std::array<std::vector<std::complex<float>>, 2> fft_data;
     std::vector<float> phase_noise;
 
-    // FFTwindow window;
     std::array<float, fft_size> window;
     float S2;
 
