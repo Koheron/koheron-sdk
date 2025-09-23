@@ -6,8 +6,8 @@
 #include "server/core/commands.hpp"
 #include "server/core/session.hpp"
 #include "server/core/session_manager.hpp"
-#include "server/core/signal_handler.hpp"
 
+#include "server/runtime/signal_handler.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/systemd.hpp"
@@ -22,9 +22,9 @@ extern "C" {
 namespace koheron {
 
 Server::Server()
-: tcp_listener(this)
-, websock_listener(this)
-, unix_listener(this)
+: tcp_listener()
+, websock_listener()
+, unix_listener()
 {
     start_syslog();
 

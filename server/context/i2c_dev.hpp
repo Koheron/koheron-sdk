@@ -79,7 +79,7 @@ class I2cDev
     int read(int32_t addr, uint8_t *buffer, size_t n_bytes) {
         // Lock to avoid another process to change
         // the driver address while reading
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard lock(mutex);
 
         if (! is_ok()) {
             return -1;

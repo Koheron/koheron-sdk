@@ -17,18 +17,20 @@ int DriverContainer::alloc() {
         return 0;
     }
 
-    if (std::get<driver - drivers::table::offset>(is_starting)) {
-        print<CRITICAL>(
-            "Circular dependency detected while initializing driver [%u] %s\n",
-            driver, std::get<driver>(drivers::table::names).data());
+    constexpr auto id = driver - drivers::table::offset;
+
+    if (std::get<id>(is_starting)) {
+        print_fmt<CRITICAL>(
+            "Circular dependency detected while initializing driver [{}] {}\n",
+            driver, std::get<driver>(drivers::table::names));
 
         return -1;
     }
 
-    std::get<driver - drivers::table::offset>(is_starting) = true;
-    std::get<driver - drivers::table::offset>(driver_tuple) = std::make_unique<drivers::table::type_of<driver>>(ctx);
-    std::get<driver - drivers::table::offset>(is_starting) = false;
-    std::get<driver - drivers::table::offset>(is_started) = true;
+    std::get<id>(is_starting) = true;
+    std::get<id>(driver_tuple) = std::make_unique<drivers::table::type_of<driver>>(services::require<Context>());
+    std::get<id>(is_starting) = false;
+    std::get<id>(is_started) = true;
 
     return 0;
 }
@@ -50,23 +52,24 @@ template<driver_id id>
 void DriverManager::alloc_core_() {
     std::scoped_lock lock(mutex);
 
-    if (is_started[id - drivers::table::offset]) {
+    if (std::get<id - drivers::table::offset>(is_started)) {
         return;
     }
 
-    print_fmt<INFO>("Driver Manager: Allocating driver [{}] {}...\n",
-                    id, std::get<id>(drivers::table::names));
+    const auto driver_name = std::get<id>(drivers::table::names);
+
+    print_fmt<INFO>("Driver Manager: Allocating driver [{}] {}...\n", id, driver_name);
 
     if (driver_container.alloc<id>() < 0) {
-        print_fmt<PANIC>("Driver Manager: Failed to allocate driver [{}] {}.\n",
-                         id, std::get<id>(drivers::table::names));
+        print_fmt<PANIC>("Driver Manager: Failed to allocate driver [{}] {}.\n", id, driver_name);
+
         if (on_alloc_fail_) {
-            on_alloc_fail_(id, std::get<id>(drivers::table::names));
+            on_alloc_fail_(id, driver_name);
         }
         return;
     }
 
-    is_started[id - drivers::table::offset] = true;
+    std::get<id - drivers::table::offset>(is_started) = true;
 }
 
 void DriverManager::alloc_core(driver_id id) {
@@ -79,12 +82,6 @@ void DriverManager::alloc_core(driver_id id) {
     };
 
     do_alloc(seq);
-}
-
-void DriverManager::ensure_core_started(driver_id id) {
-    if (!is_core_started(id)) {
-        alloc_core(id);
-    }
 }
 
 } // namespace koheron

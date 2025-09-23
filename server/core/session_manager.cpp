@@ -56,7 +56,7 @@ std::vector<SessionID> SessionManager::get_session_ids()
 
 void SessionManager::delete_session(SessionID id)
 {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard lock(mutex);
 
     int session_fd = 0;
 

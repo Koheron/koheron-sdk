@@ -39,8 +39,9 @@ void WebSocket::set_id(int comm_fd_)
 
 int WebSocket::authenticate()
 {
-    if (read_http_packet() < 0)
+    if (read_http_packet() < 0) {
         return -1;
+    }
 
     static const std::string WSKeyIdentifier("Sec-WebSocket-Key: ");
     static const std::string WSProtocolIdentifier("Sec-WebSocket-Protocol: ");
@@ -120,7 +121,7 @@ int WebSocket::read_http_packet()
 int WebSocket::set_send_header(unsigned char *bits, int64_t data_len,
                                unsigned int format)
 {
-    memset(bits, 0, 10 + data_len);
+    std::memset(bits, 0, 10 + data_len);
 
     bits[0] = format;
     int mask_offset = 0;
@@ -128,8 +129,7 @@ int WebSocket::set_send_header(unsigned char *bits, int64_t data_len,
     if (data_len <= SMALL_STREAM) {
         bits[1] = data_len;
         mask_offset = SMALL_OFFSET;
-    }
-    else if (data_len > SMALL_STREAM
+    } else if (data_len > SMALL_STREAM
              && data_len <= 0xFFFF) {
         bits[1] = MEDIUM_STREAM;
         bits[2] = (data_len >> 8) & 0xFF;
@@ -158,29 +158,32 @@ int WebSocket::exit()
 
 int WebSocket::receive_cmd(Command& cmd)
 {
-    if (connection_closed)
+    if (connection_closed) {
         return 0;
+    }
 
     int err = read_stream();
 
-    if (err < 0)
+    if (err < 0) {
         return -1;
-    else if (err == 1) /* Connection closed by client*/
+    } else if (err == 1) { /* Connection closed by client*/
         return 0;
+    }
 
     if (decode_raw_stream_cmd(cmd) < 0) {
         print<CRITICAL>("WebSocket: Cannot decode command stream\n");
         return -1;
     }
 
-    print<DEBUG>("[R] WebSocket: command of %u bytes\n", header.payload_size);
+    print_fmt<DEBUG>("[R] WebSocket: command of {} bytes\n", header.payload_size);
     return header.payload_size;
 }
 
 int WebSocket::decode_raw_stream_cmd(Command& cmd)
 {
-    if (read_str_len < header.header_size + 1)
+    if (read_str_len < header.header_size + 1) {
         return -1;
+    }
 
     char *mask = read_str + header.mask_offset;
     char *payload_ptr = read_str + header.mask_offset + 4;
@@ -198,8 +201,9 @@ int WebSocket::decode_raw_stream_cmd(Command& cmd)
 
 int WebSocket::decode_raw_stream()
 {
-    if (read_str_len < header.header_size + 1)
+    if (read_str_len < header.header_size + 1) {
         return -1;
+    }
 
     char *mask = read_str + header.mask_offset;
     payload = read_str + header.mask_offset + 4;
@@ -258,7 +262,7 @@ int WebSocket::check_opcode(unsigned int opcode)
         print<CRITICAL>("WebSocket: Pong is not suported\n");
         return -1;
       default:
-        print<CRITICAL>("WebSocket: Invalid opcode %u\n", opcode);
+        print_fmt<CRITICAL>("WebSocket: Invalid opcode {}\n", opcode);
         return -1;
     }
 
@@ -267,11 +271,13 @@ int WebSocket::check_opcode(unsigned int opcode)
 
 int WebSocket::read_header()
 {
-    if (read_n_bytes(6,6) < 0)
+    if (read_n_bytes(6,6) < 0) {
         return -1;
+    }
 
-    if (connection_closed)
+    if (connection_closed) {
         return 0;
+    }
 
     header.fin = read_str[0] & 0x80;
 
@@ -288,31 +294,34 @@ int WebSocket::read_header()
         connection_closed = true;
         return opcode_err;
     }
+
     if (stream_size <= SMALL_STREAM) {
         header.header_size = SMALL_HEADER;
         header.payload_size = stream_size;
         header.mask_offset = SMALL_OFFSET;
-    }
-    else if (stream_size == MEDIUM_STREAM) {
+    } else if (stream_size == MEDIUM_STREAM) {
         if (read_n_bytes(2, 2) < 0) {
             return -1;
         }
+
         if (connection_closed) {
             return 0;
         }
+
         header.header_size = MEDIUM_HEADER;
         uint16_t s = 0;
         memcpy(&s, reinterpret_cast<const char*>(&read_str[2]), 2);
         header.payload_size = ntohs(s);
         header.mask_offset = MEDIUM_OFFSET;
-    }
-    else if (stream_size == BIG_STREAM) {
+    } else if (stream_size == BIG_STREAM) {
         if (read_n_bytes(8, 8) < 0) {
             return -1;
         }
+
         if (connection_closed) {
             return 0;
         }
+
         header.header_size = BIG_HEADER;
         uint64_t l = 0;
         memcpy(&l, reinterpret_cast<const char*>(&read_str[2]), 8);
@@ -338,7 +347,6 @@ int WebSocket::read_n_bytes(int64_t bytes, int64_t expected)
 
     while (expected > 0) {
         while ((remaining > 0) && ((bytes_read = read(comm_fd, &read_str[read_str_len], remaining)) > 0)) {
-
             if (bytes_read > 0) {
                 read_str_len += bytes_read;
                 remaining -= bytes_read;
@@ -378,8 +386,9 @@ int WebSocket::send_request(const std::string& request)
 
 int WebSocket::send_request(const unsigned char *bits, int64_t len)
 {
-    if (connection_closed)
+    if (connection_closed) {
         return 0;
+    }
 
     int bytes_send = 0;
     int remaining = len;
@@ -400,8 +409,7 @@ int WebSocket::send_request(const unsigned char *bits, int64_t len)
 
     if (bytes_send < 0) {
         connection_closed = true;
-        print<ERROR>(
-                "WebSocket: Cannot send request. Error %i\n", bytes_send);
+        print_fmt<ERROR>("WebSocket: Cannot send request. Error {}\n", bytes_send);
         return -1;
     }
 

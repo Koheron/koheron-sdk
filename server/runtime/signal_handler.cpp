@@ -2,17 +2,13 @@
 ///
 /// (c) Koheron
 
-#include "server/core/signal_handler.hpp"
-#include "server/core/server.hpp"
+#include "server/runtime/signal_handler.hpp"
 #include "server/runtime/syslog.hpp"
 
 #include <iostream>
 #include <cxxabi.h>
 #include <csignal>
-
-extern "C" {
-  #include <execinfo.h>
-}
+#include <execinfo.h>
 
 namespace koheron {
 
@@ -43,12 +39,12 @@ int SignalHandler::set_interrupt_signals()
     sigemptyset(&sig_int_handler.sa_mask);
     sig_int_handler.sa_flags = 0;
 
-    if (sigaction(SIGINT, &sig_int_handler, nullptr) < 0) {
+    if (::sigaction(SIGINT, &sig_int_handler, nullptr) < 0) {
         print<CRITICAL>("Cannot set SIGINT handler\n");
         return -1;
     }
 
-    if (sigaction(SIGTERM, &sig_int_handler, nullptr) < 0) {
+    if (::sigaction(SIGTERM, &sig_int_handler, nullptr) < 0) {
         print<CRITICAL>("Cannot set SIGTERM handler\n");
         return -1;
     }
@@ -69,19 +65,12 @@ int SignalHandler::set_ignore_signals()
     // Disable SIGPIPE which is call by the socket write function
     // when client closes its connection during writing.
     // Results in an unwanted server shutdown
-    if (sigaction(SIGPIPE, &sig_ign_handler, nullptr) < 0) {
+    if (::sigaction(SIGPIPE, &sig_ign_handler, nullptr) < 0) {
         print<CRITICAL>("Cannot disable SIGPIPE\n");
         return -1;
     }
 
-    // XXX TV
-    // According to this:
-    // http://stackoverflow.com/questions/7296923/different-signal-handler-for-thread-and-process-is-it-possible
-    //
-    // SIGPIPE is delivered to the thread generating it.
-    // It might thus be possible to stop the session emitting it.
-
-    if (sigaction(SIGTSTP, &sig_ign_handler, nullptr) < 0) {
+    if (::sigaction(SIGTSTP, &sig_ign_handler, nullptr) < 0) {
         print<CRITICAL>("Cannot disable SIGTSTP\n");
         return -1;
     }
@@ -101,8 +90,9 @@ static void crash_signal_handler(int sig)
     // The signal handler is called several times
     // on a segmentation fault (WHY ?).
     // So only display the backtrace the first time
-    if (SignalHandler::s_interrupted)
+    if (SignalHandler::s_interrupted) {
         return;
+    }
 
     const char *sig_name;
 
@@ -140,11 +130,9 @@ static void crash_signal_handler(int sig)
         for (char *p = messages[i]; *p; ++p) {
             if (*p == '(') {
                 mangled_name = p;
-            }
-            else if (*p == '+') {
+            } else if (*p == '+') {
                 offset_begin = p;
-            }
-            else if (*p == ')') {
+            } else if (*p == ')') {
                 offset_end = p;
                 break;
             }
@@ -162,12 +150,12 @@ static void crash_signal_handler(int sig)
 
             // If demangling is successful, output the demangled function name
             if (status == 0) {
-                print<INFO>(
-                        "[bt]: (%d) %s : %s+%s%s\n",
+                print_fmt<INFO>(
+                        "[bt]: ({}) {} : {}+{}{}\n",
                         i, messages[i], real_name, offset_begin, offset_end);
             } else { // Otherwise, output the mangled function name
-                print<INFO>(
-                        "[bt]: (%d) %s : %s+%s%s\n",
+                print_fmt<INFO>(
+                        "[bt]: ({}) {} : {}+{}{}\n",
                         i, messages[i], mangled_name, offset_begin, offset_end);
             }
 
@@ -189,17 +177,17 @@ int SignalHandler::set_crash_signals()
     sigemptyset(&sig_crash_handler.sa_mask);
     sig_crash_handler.sa_flags = SA_RESTART | SA_SIGINFO;
 
-    if (sigaction(SIGSEGV, &sig_crash_handler, nullptr) < 0) {
+    if (::sigaction(SIGSEGV, &sig_crash_handler, nullptr) < 0) {
         print<CRITICAL>("Cannot set SIGSEGV handler\n");
         return -1;
     }
 
-    if (sigaction(SIGBUS, &sig_crash_handler, nullptr) < 0) {
+    if (::sigaction(SIGBUS, &sig_crash_handler, nullptr) < 0) {
         print<CRITICAL>("Cannot set SIGBUS handler\n");
         return -1;
     }
 
-    if (sigaction(SIGABRT, &sig_crash_handler, nullptr) < 0) {
+    if (::sigaction(SIGABRT, &sig_crash_handler, nullptr) < 0) {
         print<CRITICAL>("Cannot set SIGABRT handler\n");
         return -1;
     }
