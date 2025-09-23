@@ -13,6 +13,7 @@
 int main() {
     using namespace koheron;
 
+    // On driver allocation failure
     auto on_fail = []([[maybe_unused]] driver_id id, [[maybe_unused]] std::string_view name) {
         print<PANIC>("Exiting server...\n");
 
@@ -28,7 +29,7 @@ int main() {
     }
 
     // Expects a 'Common' driver with init() method
-    dm->core<drivers::table::id_of<Common>>().init();
+    dm->get<Common>().init();
 
     services::provide<DriverExecutor>();
 

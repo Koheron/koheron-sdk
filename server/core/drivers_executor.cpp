@@ -26,8 +26,7 @@ struct DriverExecutor::Impl {
         }
 
         auto& dm = services::require<DriverManager>();
-        dm.ensure_core_started(id);
-        slot = std::make_unique<Driver<id>>(dm.core<id>());
+        slot = std::make_unique<Driver<id>>(dm.get<id>());
     }
 
     void ensure_wrapper_runtime(driver_id id) {

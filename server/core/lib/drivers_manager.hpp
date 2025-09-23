@@ -79,17 +79,17 @@ class DriverManager
     }
 
     int init();
-    void ensure_core_started(driver_id id);
 
-    // Typed access to the core driver
     template<driver_id id>
-    auto& core() {
+    auto& get() {
         ensure_core_started(id);
         return driver_container.get<id>();
     }
 
-    template<driver_id id>
-    auto& get() { return core<id>(); }
+    template<class Driver>
+    auto& get() {
+        return get<drivers::table::id_of<Driver>>();
+    }
 
     auto& context() {
         return driver_container.context();
@@ -106,6 +106,8 @@ class DriverManager
     std::recursive_mutex mutex;
     alloc_fail_cb on_alloc_fail_;
 
+    void ensure_core_started(driver_id id);
+
     template<driver_id id>
     void alloc_core_();
 
@@ -113,16 +115,11 @@ class DriverManager
 };
 
 // Driver access
-// We require that a DriverManager service runs
-
-template<driver_id id>
-drivers::table::type_of<id>& get_driver() {
-    return services::require<DriverManager>().template core<id>();
-}
+// We require that a DriverManager service to be provided
 
 template<class Driver>
 Driver& get_driver() {
-    return get_driver<drivers::table::id_of<Driver>>();
+    return services::require<DriverManager>().template get<Driver>();;
 }
 
 } // namespace koheron
