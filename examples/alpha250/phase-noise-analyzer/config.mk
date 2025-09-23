@@ -15,6 +15,7 @@ CORES += $(SDK_PATH)/fpga/cores/boxcar_filter_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
 
 include $(SDK_PATH)/boards/alpha250/drivers/drivers.mk
+DRIVERS += $(SDK_PATH)/server/drivers/dma-s2mm.hpp
 DRIVERS += $(PROJECT_PATH)/dds.hpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.hpp
 
