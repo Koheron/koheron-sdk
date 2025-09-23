@@ -20,7 +20,7 @@ extern "C" {
 
 #include "base64.hpp"
 #include "sha1.h"
-#include "server/core/lib/syslog.hpp"
+#include "server/runtime/syslog.hpp"
 
 namespace koheron {
 

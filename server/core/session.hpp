@@ -14,8 +14,8 @@
 #include <memory_resource>
 
 #include "server/core/configs/server_definitions.hpp"
-#include "server/core/lib/syslog.hpp"
-#include "server/core/lib/services.hpp"
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
 
 #include "commands.hpp"
 #include "serializer_deserializer.hpp"

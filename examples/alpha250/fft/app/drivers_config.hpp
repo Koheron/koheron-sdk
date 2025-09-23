@@ -1,7 +1,7 @@
 #ifndef __DRIVERS_CONFIG_HPP__
 #define __DRIVERS_CONFIG_HPP__
 
-#include "server/core/lib/drivers_table.hpp"
+#include "server/runtime/drivers_table.hpp"
 
 class Common; // NB: We require a 'Common' driver with an init() method
 class Eeprom;

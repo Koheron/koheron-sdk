@@ -5,7 +5,7 @@
 
 #include "server.hpp"
 #include "session.hpp"
-#include "server/core/lib/syslog.hpp"
+#include "server/runtime/syslog.hpp"
 
 #include <thread>
 

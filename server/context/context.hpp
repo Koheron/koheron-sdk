@@ -3,8 +3,8 @@
 #ifndef __CONTEXT_HPP__
 #define __CONTEXT_HPP__
 
-#include <server/core/lib/syslog.hpp>
-#include <server/core/lib/drivers_table.hpp>
+#include <server/runtime/syslog.hpp>
+#include <server/runtime/drivers_table.hpp>
 
 #include <memory_manager.hpp>
 #include <spi_dev.hpp>

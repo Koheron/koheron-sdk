@@ -1,7 +1,7 @@
 #ifndef __DRIVERS_CONFIG_HPP__
 #define __DRIVERS_CONFIG_HPP__
 
-#include "server/core/lib/drivers_table.hpp"
+#include "server/runtime/drivers_table.hpp"
 
 #include <drivers_list.hpp> // Provides driver_list
 

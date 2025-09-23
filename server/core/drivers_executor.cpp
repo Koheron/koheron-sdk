@@ -5,9 +5,9 @@
 #include "server.hpp"
 
 #include "server/core/configs/drivers_config.hpp"
-#include "server/core/lib/meta_utils.hpp"
-#include "server/core/lib/services.hpp"
-#include "server/core/lib/drivers_manager.hpp"
+#include "server/runtime/meta_utils.hpp"
+#include "server/runtime/services.hpp"
+#include "server/runtime/drivers_manager.hpp"
 
 #include <interface_drivers.hpp>
 #include <cassert>
