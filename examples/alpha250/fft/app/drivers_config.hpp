@@ -3,8 +3,6 @@
 
 #include "server/core/lib/drivers_table.hpp"
 
-namespace drivers {
-
 class Common; // NB: We require a 'Common' driver with an init() method
 class Eeprom;
 class GpioExpander;
@@ -18,8 +16,10 @@ class PrecisionDac;
 class SpiConfig;
 class FFT;
 
+namespace drivers {
+
 using table = koheron::drivers_table<Common, Eeprom, GpioExpander, TemperatureSensor, PowerMonitor, ClockGenerator, Ltc2157, Ad9747, PrecisionAdc, PrecisionDac, SpiConfig, FFT>;
 
-}// namespace drivers
+} // namespace drivers
 
 #endif // __DRIVERS_CONFIG_HPP__

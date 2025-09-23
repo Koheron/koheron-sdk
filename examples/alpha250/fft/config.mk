@@ -10,6 +10,7 @@ CORES += $(SDK_PATH)/fpga/cores/axis_constant_v1_0
 CORES += $(SDK_PATH)/fpga/cores/latched_mux_v1_0
 CORES += $(SDK_PATH)/fpga/cores/psd_counter_v1_0
 
+include $(BOARD_PATH)/drivers/drivers.mk
 DRIVERS += $(PROJECT_PATH)/fft.hpp
 
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
