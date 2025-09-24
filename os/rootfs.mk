@@ -13,21 +13,21 @@ API_FILES := \
 api: $(API_FILES)
 
 $(TMP_API_PATH)/wsgi.py: $(OS_PATH)/api/wsgi.py
-	mkdir -p $(@D)
-	cp $< $@
+	# create parents and copy
+	install -D -m0644 $< $@
 
 $(TMP_API_PATH)/app/%: $(OS_PATH)/api/%
-	mkdir -p $(@D)
-	cp $< $@
+	# create parents and copy
+	install -D -m0644 $< $@
 
 PASSWORD ?= changeme
 
-.PHONY:
+.PHONY: api_sync
 api_sync: $(API_FILES)
-	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" $(TMP_API_PATH)/. root@$(HOST):/usr/local/api/
-	sshpass -p "$(PASSWORD)" ssh -i /ssh-private-key root@$(HOST) 'systemctl daemon-reload || true; systemctl reload-or-restart uwsgi'
+	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" "$(TMP_API_PATH)/." "root@$(HOST):/usr/local/api/"
+	sshpass -p "$(PASSWORD)" ssh -i /ssh-private-key "root@$(HOST)" 'systemctl daemon-reload || true; systemctl reload-or-restart uwsgi || true'
 
-.PHONY:
+.PHONY: api_clean
 api_clean:
 	rm -rf $(TMP_API_PATH)
 
@@ -62,7 +62,7 @@ www : $(WWW_ASSETS)
 
 .PHONY: www_sync
 www_sync: www
-	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" $(TMP_WWW_PATH)/. root@$(HOST):/usr/local/www/
+	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" "$(TMP_WWW_PATH)/." "root@$(HOST):/usr/local/www/"
 
 .PHONY: clean_www
 clean_www:
@@ -159,6 +159,9 @@ endif
 ROOT_TAR := ubuntu-base-$(UBUNTU_VERSION)-base-$(UBUNTU_ARCH).tar.gz
 ROOT_TAR_URL := https://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/$(ROOT_TAR)
 ROOT_TAR_PATH := $(TMP)/$(ROOT_TAR)
+
+BASE_ROOTFS_TAR := $(TMP)/ubuntu-base-$(UBUNTU_VERSION)-base-koheron-$(UBUNTU_ARCH).tgz
+
 OVERLAY_TAR := $(TMP_OS_PATH)/rootfs_overlay.tar
 
 ABS_ROOT_TAR_PATH := $(abspath $(ROOT_TAR_PATH))
@@ -174,6 +177,11 @@ $(ROOT_TAR_PATH):
 ###############################################################################
 # ROOTFS OVERLAY
 ###############################################################################
+
+# Ensure overlay root directory exists (for order-only prereqs)
+$(OVERLAY_DIR)/:
+	mkdir -p $@
+
 GIT_IN_REPO := $(shell command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1 && echo yes || echo no)
 
 GIT_COMMIT   := $(shell [ "$(GIT_IN_REPO)" = yes ] && git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
@@ -221,10 +229,12 @@ $(MANIFEST_TXT):
 	} > $@
 
 $(OVERLAY_DIR)/usr/local/share/koheron/manifest.txt: $(MANIFEST_TXT) | $(OVERLAY_DIR)/
-	install -m 0644 $< $@
+	# ensure parents exist and copy
+	install -D -m0644 $< $@
 
 # ---------- /etc/koheron-release ----------
-$(OVERLAY_DIR)/etc/koheron-release : | $(OVERLAY_DIR)/
+$(OVERLAY_DIR)/etc/koheron-release :
+	@mkdir -p $(dir $@)
 	@{ \
 	  echo "NAME=Koheron"; \
 	  echo "RELEASE=$(RELEASE_NAME)"; \
@@ -241,46 +251,52 @@ $(OVERLAY_DIR)/etc/koheron-release : | $(OVERLAY_DIR)/
 
 # Stage WWW
 $(OVERLAY_DIR)/usr/local/www/.stamp: $(WWW_ASSETS) | $(OVERLAY_DIR)/
+	# ensure destination exists, then stage
+	mkdir -p $(OVERLAY_DIR)/usr/local/www
 	rsync -a $(TMP_WWW_PATH)/ $(OVERLAY_DIR)/usr/local/www/
 	touch $@
 
 # Stage API
 $(OVERLAY_DIR)/usr/local/api/.stamp: $(API_FILES) | $(OVERLAY_DIR)/
+	# ensure destination exists, then stage
+	mkdir -p $(OVERLAY_DIR)/usr/local/api
 	rsync -a $(TMP_API_PATH)/ $(OVERLAY_DIR)/usr/local/api/
 	touch $@
 
 # Koheron server bits
 $(OVERLAY_DIR)/usr/local/koheron-server/koheron-server-init.py: $(OS_PATH)/scripts/koheron-server-init.py
-	install -D -m 0755 $< $@
+	install -D -m0755 $< $@
 
 # Systemd units
 $(OVERLAY_DIR)/etc/systemd/system/%: $(OS_PATH)/systemd/%
-	install -D -m 0644 $< $@
+	install -D -m0644 $< $@
 
 # uwsgi
 $(OVERLAY_DIR)/etc/uwsgi/uwsgi.ini: $(OS_PATH)/config/uwsgi.ini
-	install -D -m 0644 $< $@
+	install -D -m0644 $< $@
 
 # grow-rootfs-once
 $(OVERLAY_DIR)/usr/local/sbin/grow-rootfs-once: $(OS_PATH)/scripts/grow-rootfs-once
-	install -D -m 0755 $< $@
+	install -D -m0755 $< $@
 
 # Instruments
 $(OVERLAY_DIR)/usr/local/instruments/unzip_default_instrument.sh: $(OS_PATH)/scripts/unzip_default_instrument.sh
-	install -D -m 0755 $< $@
+	install -D -m0755 $< $@
 
 $(OVERLAY_DIR)/usr/local/instruments/$(NAME).zip: $(TMP_PROJECT_PATH)/$(NAME).zip
-	install -D -m 0644 $< $@
+	install -D -m0644 $< $@
 
-$(OVERLAY_DIR)/usr/local/instruments/default:  | $(OVERLAY_DIR)/
+$(OVERLAY_DIR)/usr/local/instruments/default: | $(OVERLAY_DIR)/
+	# ensure parent dir exists and write default name
+	@mkdir -p $(dir $@)
 	echo "$(NAME).zip" > $@
 
 # nginx
 $(OVERLAY_DIR)/etc/nginx/nginx.conf: $(OS_PATH)/config/nginx.conf
-	install -D -m 0644 $< $@
+	install -D -m0644 $< $@
 
 $(OVERLAY_DIR)/etc/nginx/sites-available/koheron.conf: $(OS_PATH)/config/nginx-server.conf
-	install -D -m 0644 $< $@
+	install -D -m0644 $< $@
 
 # Bundle overlay as a single tar the script can explode into /
 OVERLAY_FILES := \
@@ -304,12 +320,13 @@ OVERLAY_FILES := \
   $(OVERLAY_DIR)/etc/systemd/system/nginx.service
 
 $(OVERLAY_TAR): $(OVERLAY_FILES) | $(OVERLAY_DIR)/
+	# ensure destination dir for tar exists
+	mkdir -p $(@D)
 	tar -C $(OVERLAY_DIR) \
 	    --owner=0 --group=0 --numeric-owner \
 	    --mtime='UTC 1970-01-01' \
 	    -cf $@ .
 	$(call ok,$@)
-
 
 .PHONY: clean_overlay_rootfs
 clean_overlay_rootfs:

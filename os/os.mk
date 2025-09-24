@@ -49,18 +49,38 @@ OS_FILES := \
 .PHONY: os
 os: $(OS_FILES)
 
-$(RELEASE_ZIP): \
+.PHONY: base-rootfs
+base-rootfs: $(BASE_ROOTFS_TAR)
+
+.PHONY: clean-base-rootfs
+clean-base-rootfs:
+	rm -f $(BASE_ROOTFS_TAR)
+
+$(BASE_ROOTFS_TAR): \
+  $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
+  $(OS_PATH)/scripts/chroot_base_rootfs.sh \
+  $(ROOT_TAR_PATH)
+	@mkdir -p $(@D)
+	@test -s "$(ROOT_TAR_PATH)" || { echo "Missing root tar: $(ROOT_TAR_PATH)"; exit 1; }
+	# Optional envs: TIMEZONE, PASSWD
+	$(DOCKER) bash $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
+	  "$(ROOT_TAR_PATH)" "$@" "$(QEMU_BIN)"
+	$(call ok,$@)
+
+$(RELEASE_ZIP): $(BASE_ROOTFS_TAR) \
   $(INSTRUMENT_ZIP) \
   $(TMP_OS_PATH)/$(BOOTCALL) $(FIT_ITB) $(DTB_SWITCH) \
-  $(OS_PATH)/scripts/ubuntu-$(MODE).sh \
-  $(ROOT_TAR_PATH) $(OVERLAY_TAR) $(MANIFEST_TXT) \
-  | $(TMP_PROJECT_PATH)/ $(TMP_OS_PATH)/
-	@test -s "$(ROOT_TAR_PATH)" || { echo "Missing root tar: $(ROOT_TAR_PATH)"; exit 1; }
-	@test -s "$(OVERLAY_TAR)"   || { echo "Missing overlay tar: $(OVERLAY_TAR)"; exit 1; }
-	$(DOCKER_ROOT) bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh \
-	  $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) \
-	  $(ROOT_TAR_PATH) $(OVERLAY_TAR) $(QEMU_BIN) \
-	  $(RELEASE_NAME)
+  $(OS_PATH)/scripts/build_image.sh \
+  $(OVERLAY_TAR) $(MANIFEST_TXT) \
+  $(OS_PATH)/scripts/chroot_overlay.sh
+	@mkdir -p $(@D)
+	@test -s "$(OVERLAY_TAR)" || { echo "Missing overlay tar: $(OVERLAY_TAR)"; exit 1; }
+	$(DOCKER_ROOT) env BASE_ROOTFS_TAR="$(BASE_ROOTFS_TAR)" \
+	  bash $(OS_PATH)/scripts/build_image.sh \
+	    "$(TMP_PROJECT_PATH)" "$(OS_PATH)" "$(TMP_OS_PATH)" \
+	    "$(ROOT_TAR_PATH)" "$(OVERLAY_TAR)" "$(QEMU_BIN)" \
+	    "$(RELEASE_NAME)"
+	$(call ok,$@)
 
 # Build image
 .PHONY: image
