@@ -24,13 +24,12 @@ class Plot {
   }
 
   init() {
-    this.driver.start(() => {
-      this.driver.getParameters((parameters) => {
-        this.n_pts = parameters.data_size;
-        this.samplingFrequency = parameters.fs;
-        this.setFreqAxis();
-        this.plotBasics.setLogX();
-      });
+    this.driver.start(async () => {
+      const parameters = await this.driver.getParameters();
+      this.n_pts = parameters.data_size;
+      this.samplingFrequency = parameters.fs;
+      this.setFreqAxis();
+      this.plotBasics.setLogX();
     });
   }
 
@@ -90,25 +89,25 @@ class Plot {
   }
 
   updatePlot() {
-    this.driver.getPhaseNoise((data: Float32Array) => {
-      this.driver.getParameters((parameters: IParameters) => {
-        if (parameters.fs != this.samplingFrequency) {
-          this.samplingFrequency = parameters.fs;
-          this.setFreqAxis();
-        }
+    this.driver.getPhaseNoise(async (data: Float32Array) => {
+      const parameters = await this.driver.getParameters();
 
-        this.nAvgInput.value = parameters.fft_navg.toString();
+      if (parameters.fs != this.samplingFrequency) {
+        this.samplingFrequency = parameters.fs;
+        this.setFreqAxis();
+      }
 
-        for (let i = 0; i < this.n_pts; i++) {
-          let x: number = i * this.samplingFrequency / this.n_pts / 2;
-          this.plot_data[i] = [x, 10 * Math.log10(data[i])]
-        }
+      this.nAvgInput.value = parameters.fft_navg.toString();
 
-        this.getDecadeValues();
+      for (let i = 0; i < this.n_pts; i++) {
+        let x: number = i * this.samplingFrequency / this.n_pts / 2;
+        this.plot_data[i] = [x, 10 * Math.log10(data[i])]
+      }
 
-        this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, () => {
-          requestAnimationFrame(() => { this.updatePlot(); });
-        });
+      this.getDecadeValues();
+
+      this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, () => {
+        requestAnimationFrame(() => { this.updatePlot(); });
       });
     });
   }
