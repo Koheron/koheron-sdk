@@ -196,8 +196,6 @@ RELEASE_NAME := $(BOARD)-$(NAME)
 
 # (keep your existing paths)
 MANIFEST_TXT          := $(TMP_PROJECT_PATH)/manifest-$(RELEASE_NAME).txt
-OVERLAY_MANIFEST_TXT  := $(OVERLAY_DIR)/usr/local/share/koheron/manifest.txt
-OVERLAY_RELEASE_FILE  := $(OVERLAY_DIR)/etc/koheron-release
 
 RELEASE_ZIP := $(TMP_PROJECT_PATH)/$(RELEASE_NAME).zip
 
@@ -222,13 +220,11 @@ $(MANIFEST_TXT):
 	  echo "generated_utc=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)"; \
 	} > $@
 
-$(OVERLAY_MANIFEST_TXT): $(MANIFEST_TXT) | $(OVERLAY_DIR)/
-	@mkdir -p $(@D)
+$(OVERLAY_DIR)/usr/local/share/koheron/manifest.txt: $(MANIFEST_TXT) | $(OVERLAY_DIR)/
 	install -m 0644 $< $@
 
 # ---------- /etc/koheron-release ----------
-$(OVERLAY_RELEASE_FILE): | $(OVERLAY_DIR)/
-	@mkdir -p $(@D)
+$(OVERLAY_DIR)/etc/koheron-release : | $(OVERLAY_DIR)/
 	@{ \
 	  echo "NAME=Koheron"; \
 	  echo "RELEASE=$(RELEASE_NAME)"; \
@@ -244,14 +240,12 @@ $(OVERLAY_RELEASE_FILE): | $(OVERLAY_DIR)/
 	@chmod 0644 $@
 
 # Stage WWW
-$(OVERLAY_DIR)/usr/local/www/.stamp: $(WWW_ASSETS)
-	mkdir -p $(@D)
+$(OVERLAY_DIR)/usr/local/www/.stamp: $(WWW_ASSETS) | $(OVERLAY_DIR)/
 	rsync -a $(TMP_WWW_PATH)/ $(OVERLAY_DIR)/usr/local/www/
 	touch $@
 
 # Stage API
-$(OVERLAY_DIR)/usr/local/api/.stamp: $(API_FILES)
-	mkdir -p $(@D)
+$(OVERLAY_DIR)/usr/local/api/.stamp: $(API_FILES) | $(OVERLAY_DIR)/
 	rsync -a $(TMP_API_PATH)/ $(OVERLAY_DIR)/usr/local/api/
 	touch $@
 
@@ -278,8 +272,7 @@ $(OVERLAY_DIR)/usr/local/instruments/unzip_default_instrument.sh: $(OS_PATH)/scr
 $(OVERLAY_DIR)/usr/local/instruments/$(NAME).zip: $(TMP_PROJECT_PATH)/$(NAME).zip
 	install -D -m 0644 $< $@
 
-$(OVERLAY_DIR)/usr/local/instruments/default:
-	mkdir -p $(@D)
+$(OVERLAY_DIR)/usr/local/instruments/default:  | $(OVERLAY_DIR)/
 	echo "$(NAME).zip" > $@
 
 # nginx
@@ -291,8 +284,8 @@ $(OVERLAY_DIR)/etc/nginx/sites-available/koheron.conf: $(OS_PATH)/config/nginx-s
 
 # Bundle overlay as a single tar the script can explode into /
 OVERLAY_FILES := \
-  $(OVERLAY_MANIFEST_TXT) \
-  $(OVERLAY_RELEASE_FILE) \
+  $(OVERLAY_DIR)/usr/local/share/koheron/manifest.txt \
+  $(OVERLAY_DIR)/etc/koheron-release \
   $(OVERLAY_DIR)/usr/local/www/.stamp \
   $(OVERLAY_DIR)/usr/local/api/.stamp \
   $(OVERLAY_DIR)/usr/local/koheron-server/koheron-server-init.py \
@@ -322,6 +315,7 @@ $(OVERLAY_TAR): $(OVERLAY_FILES) | $(OVERLAY_DIR)/
 clean_overlay_rootfs:
 	@echo "Cleaning overlay artifacts…"
 	@rm -rf $(OVERLAY_DIR) $(OVERLAY_TAR) \
-	       $(OVERLAY_MANIFEST_TXT) $(OVERLAY_RELEASE_FILE) \
+	       $(OVERLAY_DIR)/usr/local/share/koheron/manifest.txt \
+	       $(OVERLAY_DIR)/etc/koheron-release \
 	       $(OVERLAY_DIR)/usr/local/www/.stamp \
 	       $(OVERLAY_DIR)/usr/local/api/.stamp
