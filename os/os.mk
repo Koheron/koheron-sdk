@@ -63,7 +63,7 @@ $(BASE_ROOTFS_TAR): \
 	@mkdir -p $(@D)
 	@test -s "$(ROOT_TAR_PATH)" || { echo "Missing root tar: $(ROOT_TAR_PATH)"; exit 1; }
 	# Optional envs: TIMEZONE, PASSWD
-	$(DOCKER) bash $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
+	$(DOCKER_ROOT) bash $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
 	  "$(ROOT_TAR_PATH)" "$@" "$(QEMU_BIN)"
 	$(call ok,$@)
 
