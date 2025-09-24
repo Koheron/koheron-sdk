@@ -1,5 +1,5 @@
-#ifndef __DRIVER_ID_HPP__
-#define __DRIVER_ID_HPP__
+#ifndef __DRIVERS_TABLE_HPP__
+#define __DRIVERS_TABLE_HPP__
 
 #include <array>
 #include <memory>
@@ -139,4 +139,4 @@ template<class Driver> Driver& get_driver();
 
 } // namespace koheron
 
-#endif // __DRIVER_ID_HPP__
+#endif // __DRIVERS_TABLE_HPP__

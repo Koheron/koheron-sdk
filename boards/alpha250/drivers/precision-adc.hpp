@@ -7,6 +7,7 @@
 #include <chrono>
 #include <thread>
 #include <mutex>
+#include <span>
 
 class PrecisionAdc
 {
@@ -54,41 +55,51 @@ class PrecisionAdc
     void start_adc_acquisition();
 
     uint32_t read(uint32_t address, uint32_t len) {
-        uint8_t cmd[] = {uint8_t((0 << 7) + (1 << 6) + (address & 0x3F))};
-        uint8_t data[4];
-        spi.transfer(cmd, data, len + 1);
-        switch (len) {
-            case 1: return data[1];
-            case 2: return (data[1] << 8) + data[2];
-            case 3: return (data[1] << 16) + (data[2] << 8) + data[3];
-            default: return 0;
+        if (len == 0 || len > 3) {
+            return 0;
         }
+
+        std::array<uint8_t, 4> tx{};  // [cmd, dmy/dmy/dmy]
+        std::array<uint8_t, 4> rx{};  // [dmy, b1, b2, b3]
+
+        tx[0] = static_cast<uint8_t>((0u << 7) | (1u << 6) | (address & 0x3Fu));
+
+        if (spi.transfer(tx, rx, len + 1) < 0) {
+            return 0;
+        }
+
+        // assemble big-endian payload from rx[1..len]
+        uint32_t v = 0;
+
+        for (uint32_t i = 0; i < len; ++i) {
+            v = (v << 8) | static_cast<uint32_t>(rx[1 + i]);
+        }
+
+        return v;
     }
 
     void write(uint32_t address, uint32_t value, uint32_t len) {
-        uint8_t cmd[4];
-        uint8_t data[4];
-        cmd[0] = uint8_t((0 << 7) + (0 << 6) + (address & 0x3F));
-        switch (len) {
-            case 1: {
-                cmd[1] = value & 0xFF;
-                break;
-            };
-            case 2: {
-                cmd[1] = (value >> 8) & 0xFF;
-                cmd[2] = value & 0xFF;
-                break;
-            };
-            case 3: {
-                cmd[1] = (value >> 16) & 0xFF;
-                cmd[2] = (value >> 8) & 0xFF;
-                cmd[3] = value & 0xFF;
-                break;
-            };
-            default: break;
+        if (len == 0 || len > 3) {
+            ctx.log<ERROR>("PrecisionAdc: write invalid length");
+            return;
         }
 
-        spi.transfer(cmd, data, len + 1);
+        std::array<uint8_t, 4> tx{};  // [cmd, b1, b2, b3]
+        tx[0] = static_cast<uint8_t>((0u << 7) | (0u << 6) | (address & 0x3Fu));
+
+        // big-endian payload
+        if (len == 1) {
+            tx[1] = static_cast<uint8_t>(value & 0xFFu);
+        } else if (len == 2) {
+            tx[1] = static_cast<uint8_t>((value >> 8) & 0xFFu);
+            tx[2] = static_cast<uint8_t>(value & 0xFFu);
+        } else { // len == 3
+            tx[1] = static_cast<uint8_t>((value >> 16) & 0xFFu);
+            tx[2] = static_cast<uint8_t>((value >> 8) & 0xFFu);
+            tx[3] = static_cast<uint8_t>(value & 0xFFu);
+        }
+
+        spi.transfer(tx, len + 1);
     }
 
     void set_channels(int32_t setup_idx) {
@@ -165,10 +176,10 @@ inline void PrecisionAdc::adc_acquisition_thread() {
         if (channel < channel_num) {
             constexpr float vref = 1.25; // Volts
 
-            std::lock_guard<std::mutex> lock(acquisition_mtx);
+            std::lock_guard lock(acquisition_mtx);
             analog_inputs_data[channel] = vref * (float(raw_data) / (1 << 23) - 1);
         } else {
-            ctx.log<WARNING>("Unexpected channel (# %u) received while reading precision ADC\n", channel);
+            ctx.logf<WARNING>("Unexpected channel (# {}) received while reading precision ADC\n", channel);
         }
 
         std::this_thread::sleep_for(10ms);

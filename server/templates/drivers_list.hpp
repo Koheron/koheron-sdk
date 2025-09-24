@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_TABLE_HPP__
-#define __DRIVERS_TABLE_HPP__
+#ifndef __DRIVERS_LIST_HPP__
+#define __DRIVERS_LIST_HPP__
 
 #include <tuple>
 
@@ -17,4 +17,4 @@ using driver_list = std::tuple<
 {%- endfor -%}
 >;
 
-#endif // __DRIVERS_TABLE_HPP__
+#endif // __DRIVERS_LIST_HPP__

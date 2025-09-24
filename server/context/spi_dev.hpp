@@ -1,83 +1,183 @@
 // SPI interface
 // (c) Koheron
 //
-// From http://redpitaya.com/examples-new/spi/
-// See also https://www.kernel.org/doc/Documentation/spi/spidev
+// https://www.kernel.org/doc/Documentation/spi/spidev
 
 #ifndef __DRIVERS_LIB_SPI_DEV_HPP__
 #define __DRIVERS_LIB_SPI_DEV_HPP__
 
-#include <cstdio>
 #include <cstdint>
+#include <string>
+#include <memory>
+#include <vector>
+#include <array>
+#include <unordered_map>
+#include <span>
+#include <string_view>
+#include <filesystem>
 #include <cassert>
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
 
-#include <unordered_map>
-#include <string>
-#include <memory>
-#include <vector>
-#include <array>
-#include <mutex>
-
 #include <server/runtime/syslog.hpp>
 
-// https://www.kernel.org/doc/Documentation/spi/spidev
 class SpiDev
 {
   public:
-    SpiDev(std::string devname_);
+    explicit SpiDev(std::string devname_) : devname(std::move(devname_)) {}
 
     ~SpiDev() {
         if (fd >= 0) {
-            close(fd);
+            ::close(fd);
         }
     }
 
-    bool is_ok() {return fd >= 0;}
+    SpiDev(const SpiDev&) = delete;
+    SpiDev& operator=(const SpiDev&) = delete;
+    SpiDev(SpiDev&& other) noexcept {
+        *this = std::move(other);
+    }
+
+    SpiDev& operator=(SpiDev&& other) noexcept {
+        if (this != &other) {
+            if (fd >= 0) {
+                ::close(fd);
+            }
+
+            fd = std::exchange(other.fd, -1);
+            mode = other.mode;
+            mode32 = other.mode32;
+            speed = other.speed;
+            word_length = other.word_length;
+            devname = std::move(other.devname);
+        }
+
+        return *this;
+    }
+
+    bool is_ok() const noexcept {
+        return fd >= 0;
+    }
 
     int init(uint8_t mode_, uint32_t speed_, uint8_t word_length_);
     int set_mode(uint8_t mode_);
     int set_full_mode(uint32_t mode32_);
     int set_speed(uint32_t speed_);
-
-    /// Set the number of bits in each SPI transfer word.
     int set_word_length(uint8_t word_length_);
 
+    // -------- write
+
     template<typename T>
-    int write(const T *buffer, uint32_t len) {
-        if (fd >= 0) {
-            return ::write(fd, buffer, len * sizeof(T));
+    int write(const T* buffer, uint32_t len) {
+        if (fd < 0) {
+            return -1;
         }
 
-        return -1;
+        const uint8_t* p = reinterpret_cast<const uint8_t*>(buffer);
+        const size_t bytes = size_t(len) * sizeof(T);
+        size_t sent = 0;
+
+        while (sent < bytes) {
+            ssize_t w = ::write(fd, p + sent, bytes - sent);
+
+            if (w > 0) {
+                sent += size_t(w);
+                continue;
+            }
+            
+            if (w < 0 && errno == EINTR) {
+                continue;
+            }
+
+            return -1;
+        }
+
+        return int(sent);
     }
 
-    int recv(uint8_t *buffer, size_t n_bytes);
-    int transfer(uint8_t *tx_buff, uint8_t *rx_buff, size_t len);
+    // -------- recv
+
+    int recv(std::span<uint8_t> buffer);
+    int recv(uint8_t* buffer, size_t n_bytes);
 
     template<typename T>
     int recv(std::vector<T>& vec) {
-        return recv(reinterpret_cast<uint8_t*>(vec.data()),
-                    vec.size() * sizeof(T));
+        return recv(std::span<uint8_t>(reinterpret_cast<uint8_t*>(vec.data()),
+                                       vec.size() * sizeof(T)));
     }
 
     template<typename T, size_t N>
     int recv(std::array<T, N>& arr) {
-        return recv(reinterpret_cast<uint8_t*>(arr.data()),
-                    N * sizeof(T));
+        return recv(std::span<uint8_t>(reinterpret_cast<uint8_t*>(arr.data()),
+                                       N * sizeof(T)));
     }
 
-   private:
+    // -------- transfer
+
+    int transfer(std::span<const uint8_t> tx, std::span<uint8_t> rx);
+    int transfer(uint8_t* tx_buff, uint8_t* rx_buff, size_t);
+
+    // TX+RX, same length N
+    template<std::size_t N>
+    int transfer(const std::array<uint8_t, N>& tx,
+                 std::array<uint8_t, N>& rx) {
+        return transfer(std::span<const uint8_t>(tx),
+                        std::span<uint8_t>(rx));
+    }
+
+    // TX-only
+    template<std::size_t N>
+    int transfer(const std::array<uint8_t, N>& tx) {
+        return transfer(std::span<const uint8_t>(tx),
+                        std::span<uint8_t>()); // empty RX
+    }
+
+    // RX-only
+    template<std::size_t N>
+    int transfer(std::array<uint8_t, N>& rx) {
+        return transfer(std::span<const uint8_t>(),
+                        std::span<uint8_t>(rx));
+    }
+
+    // Only transfers the first count bytes
+    template<std::size_t Nt, std::size_t Nr>
+    int transfer(const std::array<uint8_t, Nt>& tx,
+                 std::array<uint8_t, Nr>& rx,
+                 std::size_t count) {
+        assert(count <= Nt && "count exceeds tx size");
+        assert(count <= Nr && "count exceeds rx size");
+        return transfer(std::span<const uint8_t>(tx.data(), count),
+                        std::span<uint8_t>(rx.data(), count));
+    }
+
+    template<std::size_t N>
+    int transfer(const std::array<uint8_t, N>& tx, std::size_t count) {
+        assert(count <= N && "count exceeds tx size");
+        return transfer(std::span<const uint8_t>(tx.data(), count),
+                        std::span<uint8_t>());
+    }
+
+    template<std::size_t N>
+    int transfer(std::array<uint8_t, N>& rx, std::size_t count) {
+        assert(count <= N && "count exceeds rx size");
+        return transfer(std::span<const uint8_t>(),
+                        std::span<uint8_t>(rx.data(), count));
+    }
+
+    int fd_value() const noexcept { return fd; }
+    std::string_view name() const noexcept { return devname; }
+
+  private:
     std::string devname;
 
-    uint8_t mode = SPI_MODE_0;
+    uint8_t  mode = SPI_MODE_0;
     uint32_t mode32 = SPI_MODE_0;
-    uint32_t speed = 1000000; // SPI bus speed
-    uint8_t word_length = 8;
+    uint32_t speed = 1'000'000; // Hz
+    uint8_t  word_length = 8;
 
     int fd = -1;
 };
@@ -89,16 +189,16 @@ class SpiManager
 
     int init();
 
-    bool has_device(const std::string& devname);
+    bool has_device(std::string_view devname) const;
 
-    SpiDev& get(const std::string& devname,
+    SpiDev& get(std::string_view devname,
                 uint8_t mode = SPI_MODE_0,
-                uint32_t speed = 1000000,
+                uint32_t speed = 1'000'000,
                 uint8_t word_length = 8);
 
   private:
     std::unordered_map<std::string, std::unique_ptr<SpiDev>> spi_drivers;
-    SpiDev empty_spidev;
+    SpiDev empty_spidev{""};
 };
 
 #endif // __DRIVERS_LIB_SPI_DEV_HPP__

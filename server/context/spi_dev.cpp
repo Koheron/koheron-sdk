@@ -3,33 +3,29 @@
 #include "spi_dev.hpp"
 #include <server/runtime/syslog.hpp>
 
-#include <dirent.h>
+#include <filesystem>
+#include <cstring>
+
+namespace fs = std::filesystem;
 
 // ---------------------------------------------------------------------
 // SpiDev
 // ---------------------------------------------------------------------
 
-SpiDev::SpiDev(std::string devname_)
-: devname(devname_)
-{}
-
 int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
-    if (fd >= 0) {
-        return 0;
-    }
-
-    const char *devpath = ("/dev/" + devname).c_str();
-
     if (fd < 0) {
-        fd = open(devpath, O_RDWR | O_NOCTTY);
+        const fs::path devpath = fs::path("/dev") / devname;
+        // Use O_CLOEXEC to avoid fd leaks across exec
+        fd = ::open(devpath.c_str(), O_RDWR | O_NOCTTY | O_CLOEXEC);
 
         if (fd < 0) {
+            koheron::print_fmt<WARNING>("SpiManager: open({}) failed: {}", devname, std::strerror(errno));
             return -1;
         }
     }
 
-    if (set_mode(mode_) < 0              ||
-        set_speed(speed_) < 0            ||
+    if (set_mode(mode_) < 0 ||
+        set_speed(speed_) < 0 ||
         set_word_length(word_length_) < 0) {
         return -1;
     }
@@ -39,13 +35,14 @@ int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
 }
 
 int SpiDev::set_mode(uint8_t mode_) {
-    if (! is_ok()) {
+    if (!is_ok()) {
         return -1;
     }
 
     mode = mode_;
 
-    if (ioctl(fd, SPI_IOC_WR_MODE, &mode) < 0) {
+    if (::ioctl(fd, SPI_IOC_WR_MODE, &mode) < 0) {
+        koheron::print_fmt<ERROR>("SPI_IOC_WR_MODE({}): {}", devname, std::strerror(errno));
         return -1;
     }
 
@@ -53,13 +50,14 @@ int SpiDev::set_mode(uint8_t mode_) {
 }
 
 int SpiDev::set_full_mode(uint32_t mode32_) {
-    if (! is_ok()) {
+    if (!is_ok()) {
         return -1;
     }
 
     mode32 = mode32_;
 
-    if (ioctl(fd, SPI_IOC_WR_MODE32, &mode32) < 0) {
+    if (::ioctl(fd, SPI_IOC_WR_MODE32, &mode32) < 0) {
+        koheron::print_fmt<ERROR>("SPI_IOC_WR_MODE32({}): {}", devname, std::strerror(errno));
         return -1;
     }
 
@@ -67,13 +65,14 @@ int SpiDev::set_full_mode(uint32_t mode32_) {
 }
 
 int SpiDev::set_speed(uint32_t speed_) {
-    if (! is_ok()) {
+    if (!is_ok()) {
         return -1;
     }
 
     speed = speed_;
 
-    if (ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) < 0) {
+    if (::ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) < 0) {
+        koheron::print_fmt<ERROR>("SPI_IOC_WR_MAX_SPEED_HZ({}): {}", devname, std::strerror(errno));
         return -1;
     }
 
@@ -81,55 +80,81 @@ int SpiDev::set_speed(uint32_t speed_) {
 }
 
 int SpiDev::set_word_length(uint8_t word_length_) {
-    if (! is_ok()) {
+    if (!is_ok()) {
         return -1;
     }
 
     word_length = word_length_;
 
-    if (ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &word_length) < 0) {
+    if (::ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &word_length) < 0) {
+        koheron::print_fmt<ERROR>("SPI_IOC_WR_BITS_PER_WORD({}): {}", devname, std::strerror(errno));
         return -1;
     }
 
     return 0;
 }
 
-int SpiDev::recv(uint8_t *buffer, size_t n_bytes) {
-    if (! is_ok()) {
+int SpiDev::recv(std::span<uint8_t> buffer) {
+    if (!is_ok()) {
         return -1;
     }
 
-    int bytes_rcv = 0;
-    size_t bytes_read = 0;
+    size_t total = 0;
 
-    while (bytes_read < n_bytes) {
-        bytes_rcv = read(fd, buffer + bytes_read, n_bytes - bytes_read);
+    while (total < buffer.size()) {
+        ssize_t r = ::read(fd, buffer.data() + total, buffer.size() - total);
 
-        if (bytes_rcv == 0) {
-            return 0;
+        if (r > 0) {
+            total += size_t(r);
+            continue;
         }
 
-        if (bytes_rcv < 0) {
-            return -1;
+        if (r == 0) {
+            return int(total);      // short read (EOF-like)
         }
 
-        bytes_read += bytes_rcv;
+        if (errno == EINTR) {
+            continue;
+        }
+
+        return -1;
     }
 
-    assert(bytes_read == n_bytes);
-    return bytes_read;
+    return int(total);
 }
 
-int SpiDev::transfer(uint8_t *tx_buff, uint8_t *rx_buff, size_t len) {
-    if (! is_ok()) {
+int SpiDev::recv(uint8_t* buffer, size_t n_bytes) {
+    return recv(std::span<uint8_t>(buffer, n_bytes));
+}
+
+int SpiDev::transfer(std::span<const uint8_t> tx, std::span<uint8_t> rx) {
+    if (!is_ok()) {
         return -1;
     }
 
-    struct spi_ioc_transfer tr{};
-    tr.tx_buf = reinterpret_cast<unsigned long>(tx_buff);
-    tr.rx_buf = reinterpret_cast<unsigned long>(rx_buff);
-    tr.len = len;
-    return ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
+    if (!tx.empty() && !rx.empty() && tx.size() != rx.size()) {
+        koheron::print_fmt<ERROR>("SpiDev {}: tx/rx size mismatch ({} vs {})",
+                                  devname, tx.size(), rx.size());
+        return -1;
+    }
+
+    const size_t len = tx.empty() ? rx.size() : tx.size();
+
+    spi_ioc_transfer tr{};
+    tr.tx_buf = reinterpret_cast<__u64>(tx.data());
+    tr.rx_buf = reinterpret_cast<__u64>(rx.data());
+    tr.len    = static_cast<__u32>(len);
+    tr.speed_hz      = speed;        // kernel uses current if 0; we set it
+    tr.bits_per_word = word_length;  // likewise
+
+    return (::ioctl(fd, SPI_IOC_MESSAGE(1), &tr) < 0) ? -1 : 0;
+}
+
+int SpiDev::transfer(uint8_t* tx_buff, uint8_t* rx_buff, size_t len) {
+    return transfer(
+        std::span<const uint8_t>(tx_buff, tx_buff ? len : 0),
+        std::span<uint8_t>(rx_buff, rx_buff ? len : 0)
+    );
 }
 
 // ---------------------------------------------------------------------
@@ -140,45 +165,47 @@ SpiManager::SpiManager()
 : empty_spidev("")
 {}
 
-// Never return a negative number on failure.
-// SPI missing is not considered critical as it might not
-// be used by any driver.
 int SpiManager::init() {
-    struct dirent *ent;
-    DIR *dir = opendir("/sys/class/spidev");
+    const fs::path sys_spidev{"/sys/class/spidev"};
+    std::error_code ec;
 
-    if (dir == nullptr) {
-        return 0;
+    if (!fs::exists(sys_spidev, ec) || !fs::is_directory(sys_spidev, ec)) {
+        return 0; // not critical
     }
 
-    while ((ent = readdir(dir)) != nullptr) {
-        const char *devname = ent->d_name;
-
-        // Exclude '.' and '..' repositories
-        if (devname[0] != '.') {
-            koheron::print_fmt<INFO>("SpiManager: Found device {}", devname);
-
-            spi_drivers.insert(
-                std::make_pair(devname, std::make_unique<SpiDev>(devname))
-            );
+    for (const auto& entry : fs::directory_iterator(sys_spidev, ec)) {
+        if (ec) {
+            break;
         }
+
+        const auto name = entry.path().filename().string();
+
+        if (name.empty() || name[0] == '.') {
+            continue;
+        }
+
+        koheron::print_fmt<INFO>("SpiManager: Found device {}", name);
+        spi_drivers.emplace(name, std::make_unique<SpiDev>(name));
     }
 
-    closedir(dir);
     return 0;
 }
 
-bool SpiManager::has_device(const std::string& devname) {
-    return spi_drivers.find(devname) != spi_drivers.end();
+bool SpiManager::has_device(std::string_view devname) const {
+    return spi_drivers.find(std::string(devname)) != spi_drivers.end();
 }
 
-SpiDev& SpiManager::get(const std::string& devname,
-                        uint8_t mode, uint32_t speed, uint8_t word_length) {
-    if (! has_device(devname)) {
+SpiDev& SpiManager::get(std::string_view devname,
+                        uint8_t mode,
+                        uint32_t speed,
+                        uint8_t word_length) {
+    auto it = spi_drivers.find(std::string(devname));
+
+    if (it == spi_drivers.end()) {
         koheron::print_fmt<CRITICAL>("SpiManager: Device {} not found", devname);
         return empty_spidev;
     }
 
-    spi_drivers[devname]->init(mode, speed, word_length);
-    return *spi_drivers[devname];
+    it->second->init(mode, speed, word_length);
+    return *it->second;
 }

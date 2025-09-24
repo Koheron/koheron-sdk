@@ -63,7 +63,7 @@ class FpgaManager {
     const fs::path live_instrument_dirname = "/tmp/live-instrument/";
 
     int check_bitstream_loaded(const fs::path& fprog_done_path, char expected) {
-        FILE *fprog_done =fopen(fprog_done_path.c_str(), "r");
+        FILE *fprog_done = fopen(fprog_done_path.c_str(), "r");
 
         if (fprog_done == nullptr) {
             koheron::print<PANIC>("FpgaManager: Failed to open FPGA status\n");
