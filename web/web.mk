@@ -23,7 +23,9 @@ TSC_FLAGS ?= -pretty \
              --alwaysStrict \
              --skipLibCheck \
              --module system \
-             --incremental
+             --incremental \
+             --typeRoots /opt/app/node_modules/@types
+
 TSC       ?= $(WEB_DOCKER_RUN) tsc $(TSC_FLAGS)
 
 # Build webpage

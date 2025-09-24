@@ -174,9 +174,10 @@ setup_base:
 
 .PHONY: setup_docker
 setup_docker: setup_base
-	sudo bash docker/install_docker.sh
+	bash docker/install_docker.sh
 	sudo usermod -aG docker $(shell whoami)
-	sudo docker build -t cross-armhf:24.04 ./docker/.
+	docker build -t cross-armhf:24.04 ./docker/.
+
 
 .PHONY: setup_fpga
 setup_fpga: setup_base
