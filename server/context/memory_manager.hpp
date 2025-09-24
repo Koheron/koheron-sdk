@@ -8,6 +8,8 @@
 #include <vector>
 #include <tuple>
 
+#include <server/runtime/syslog.hpp>
+
 extern "C" {
     #include <fcntl.h>
     #include <sys/mman.h>
@@ -61,14 +63,15 @@ int MemoryManagerImpl<N, std::index_sequence<ids...>>::open()
     fd = ::open("/dev/mem", O_RDWR | O_SYNC);
 
      if (fd == -1) {
-        fprintf(stderr, "Can't open /dev/mem\n");
+        koheron::print<ERROR>("Can't open /dev/mem\n");
         return -1;
     }
 
     open_maps<N>();
 
-    if (! failed_maps.empty())
+    if (!failed_maps.empty()) {
         return -1;
+    }
 
     return fd;
 }
@@ -79,8 +82,8 @@ void MemoryManagerImpl<N, std::index_sequence<ids...>>::open_memory_map()
 {
     get<id>().open(fd);
 
-    if (! get<id>().opened()) {
-        fprintf(stderr, "Can't open memory map id = %u\n", uint32_t(id));
+    if (!get<id>().is_open()) {
+        koheron::print_fmt<ERROR>("Can't open memory map id = {}\n", id);
         failed_maps.push_back(id);
     }
 }
