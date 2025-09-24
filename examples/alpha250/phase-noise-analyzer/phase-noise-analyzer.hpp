@@ -189,14 +189,12 @@ class PhaseNoiseAnalyzer
     }
 
     void set_power_conversion_factor() {
-        const auto cal_coeffs = ltc2157.get_calibration(channel);
-        std::array<double, 6> coeffs{};
-        std::ranges::reverse_copy(cal_coeffs | std::views::drop(2) | std::views::take(6), coeffs.begin());
-        const double Hinv = poly::polyval(dds.get_dds_freq(channel), coeffs);
-
         using namespace sci::units::literals;
         constexpr auto load = 50_Ohm;
         constexpr double magic_factor = 22.0;
+
+        const double Hinv = poly::polyval(dds.get_dds_freq(channel),
+                                          ltc2157.tf_polynomial<double>(channel));
         const auto power_conv_factor = Hinv * magic_factor * vrange[channel] * vrange[channel] / load;
         static_assert(sci::units::is_power<decltype(power_conv_factor)>);
         const auto conv_factor_dBm = power_conv_factor / 1_mW;
