@@ -54,10 +54,8 @@ class PhaseNoiseAnalyzer
         set_channel(0);
         set_fft_navg(1);
 
-        fs_adc = clk_gen.get_adc_sampling_freq();
+        fs_adc = sci::units::frequency<float>(clk_gen.get_adc_sampling_freq());
         set_cic_rate(prm::cic_decimation_rate_default);
-        dma_transfer_duration = prm::n_pts / fs;
-        ctx.logf<INFO>("DMA transfer duration = {} s\n", dma_transfer_duration);
 
         // Configure the spectrum analyzer
         spectrum.window(win::hann<float>(fft_size));
@@ -79,6 +77,7 @@ class PhaseNoiseAnalyzer
         cic_rate = rate;
         fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
         dma_transfer_duration = prm::n_pts / fs;
+        ctx.logf<INFO>("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
         spectrum.fs(fs);
         ctl.write<reg::cic_rate>(cic_rate);
     }
@@ -97,7 +96,7 @@ class PhaseNoiseAnalyzer
     const auto get_parameters() {
         return std::make_tuple(
             fft_size / 2,
-            fs,
+            fs.eval(),
             channel,
             cic_rate,
             fft_navg
@@ -128,7 +127,7 @@ class PhaseNoiseAnalyzer
     auto get_data() {
         reset_phase_unwrapper();
         dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
-        dma.wait_for_transfer(dma_transfer_duration);
+        dma.wait_for_transfer(dma_transfer_duration.eval());
         return ram.read_array<int32_t, data_size, read_offset>();
     }
 
@@ -174,8 +173,8 @@ class PhaseNoiseAnalyzer
     uint32_t channel;
     uint32_t fft_navg;
     uint32_t cic_rate;
-    float fs_adc, fs;
-    float dma_transfer_duration;
+    sci::units::frequency<float> fs_adc, fs;
+    sci::units::time<float> dma_transfer_duration;
     double power_conversion_factor;
 
     std::array<sci::units::electric_potential<double>, 2> vrange;
