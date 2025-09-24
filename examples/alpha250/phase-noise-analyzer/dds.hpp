@@ -50,7 +50,7 @@ class Dds
         ctl.write_reg<uint64_t>(reg::phase_incr0 + 8 * channel, uint64_t(factor * freq_hz));
         dds_freq[channel] = freq_hz;
 
-        ctx.log<INFO>("fs: %lf , channel %u, ref. frequency set to %lf \n", fs_adc, channel, freq_hz);
+        ctx.logf<INFO>("fs: {}, channel {}, ref. frequency set to {}\n", fs_adc, channel, freq_hz);
     }
 
     auto get_dds_freq(uint32_t channel) {

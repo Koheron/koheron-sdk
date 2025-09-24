@@ -1,6 +1,8 @@
 // Interface for the Phase Noise Analyzer driver
 // (c) Koheron
 
+type TupleGetParameters = [number, number, number, number, number];
+
 interface IParameters {
   data_size: number; // fft_size/2
   fs: number;        // Sampling frequency (Hz)
@@ -14,13 +16,10 @@ class PhaseNoiseAnalyzer {
   private id: number;
   private cmds: Commands;
 
-  public parameters: IParameters;
-
   constructor(private client: Client) {
     this.driver = this.client.getDriver('PhaseNoiseAnalyzer');
     this.id = this.driver.id;
     this.cmds = this.driver.getCmds();
-    this.parameters = <IParameters>{};
   }
 
   getData(callback: (data: Uint32Array) => void): void {
@@ -34,15 +33,16 @@ class PhaseNoiseAnalyzer {
     callback();
   }
 
-  getParameters(callback: (parameters: IParameters) => void): void {
-    this.client.readTuple(Command(this.id, this.cmds['get_parameters']), 'IfIII',
-    (tup: [number, number, number, number, number]) => {
-      this.parameters.data_size = tup[0];
-      this.parameters.fs = tup[1];
-      this.parameters.channel = tup[2];
-      this.parameters.cic_rate = tup[3];
-      this.parameters.fft_navg = tup[4];
-      callback(this.parameters);
+  getParameters(): Promise<IParameters> {
+    return new Promise<IParameters>((resolve, reject) => {
+      this.client.readTuple(
+        Command(this.id, this.cmds['get_parameters']),
+        'IfIII',
+        (tup: TupleGetParameters) => {
+          const [data_size, fs, channel, cic_rate, fft_navg] = tup;
+          const params: IParameters = { data_size, fs, channel, cic_rate, fft_navg };
+          resolve(params);
+        });
     });
   }
 
