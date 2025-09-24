@@ -7,7 +7,6 @@
 
 #include <context.hpp>
 
-#include <unsupported/Eigen/FFT>
 #include <numeric>
 #include <complex>
 #include <algorithm>
@@ -45,9 +44,6 @@ class PhaseNoiseAnalyzer
     , sts(ctx.mm.get<mem::status>())
     , ram(ctx.mm.get<mem::ram>())
     {
-        std::get<0>(data_vec) = std::vector<float>(fft_size);
-        std::get<1>(data_vec) = std::vector<float>(fft_size);
-
         using namespace sci::units::literals;
         vrange= { 1_V * ltc2157.get_input_voltage_range(0),
                   1_V * ltc2157.get_input_voltage_range(1) };
@@ -56,10 +52,7 @@ class PhaseNoiseAnalyzer
 
         ctl.write_mask<reg::cordic, 0b11>(0b11); // Phase accumulator on
         set_channel(0);
-
         set_fft_navg(1);
-        std::get<0>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
-        std::get<1>(fft).SetFlag(Eigen::FFT<float>::HalfSpectrum);
 
         fs_adc = clk_gen.get_adc_sampling_freq();
         set_cic_rate(prm::cic_decimation_rate_default);
@@ -97,6 +90,7 @@ class PhaseNoiseAnalyzer
         }
 
         channel = chan;
+        set_power_conversion_factor();
         ctl.write_mask<reg::cordic, 0b10000>((channel & 1) << 4);
     }
 
@@ -128,49 +122,45 @@ class PhaseNoiseAnalyzer
             res += std::norm(z);
         }
 
-        const auto cal_coeffs = ltc2157.get_calibration(channel);
-        std::array<double, 6> coeffs{};
-        std::ranges::reverse_copy(cal_coeffs | std::views::drop(2) | std::views::take(6), coeffs.begin());
-        const double Hinv = poly::polyval(dds.get_dds_freq(channel), coeffs);
-
-        using namespace sci::units::literals;
-        constexpr auto load = 50_Ohm;
-        constexpr double magic_factor = 22.0;
-        const auto power_conv_factor = Hinv * magic_factor * vrange[channel] * vrange[channel] / load;
-        static_assert(sci::units::is_power<decltype(power_conv_factor)>);
-        const auto conv_factor_dBm = power_conv_factor / 1_mW;
-        static_assert(sci::units::is_dimensionless<decltype(conv_factor_dBm)>);
-        return 10.0 * std::log10(conv_factor_dBm.eval() * res / double(navg));
+        return 10.0 * std::log10(power_conversion_factor * res / double(navg));
     }
 
     auto get_data() {
+        reset_phase_unwrapper();
         dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
         dma.wait_for_transfer(dma_transfer_duration);
-        data = ram.read_array<int32_t, data_size, read_offset>();
-        return data;
+        return ram.read_array<int32_t, data_size, read_offset>();
     }
 
     auto get_phase() {
-        get_data();
-
-        for (uint32_t i=0; i<data_size; i++) {
-            data_phase[i] = data[i] * calib_factor * float(M_PI) / 8192.0f;
-        }
-
-        return data_phase;
+        using namespace sci::operators;
+        return get_data() * calib_factor;
     }
 
     void set_fft_navg(uint32_t n_avg) {
         fft_navg = n_avg;
     }
 
-    auto get_phase_noise();
+    auto get_phase_noise() {
+        if (fft_navg > 1) {
+            using namespace sci::operators;
+            auto res = sci::zeros<float>(1 + fft_size / 2);
+
+            for (uint32_t i=0; i<fft_navg; i++) {
+                res = std::move(res) + spectrum.welch<sig::DENSITY, false>(get_phase());
+            }
+
+            return std::move(res) / float(fft_navg);
+        } else {
+            return spectrum.welch<sig::DENSITY, false>(get_phase());
+        }
+    }
 
   private:
     static constexpr uint32_t data_size = 200000;
     static constexpr uint32_t fft_size = data_size / 2;
     static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2;
-    static constexpr float calib_factor = 4.196;
+    static constexpr float calib_factor = 4.196f * sci::pi<float> / 8192.0f;
 
     Context& ctx;
     DmaS2MM& dma;
@@ -186,43 +176,33 @@ class PhaseNoiseAnalyzer
     uint32_t cic_rate;
     float fs_adc, fs;
     float dma_transfer_duration;
+    double power_conversion_factor;
 
     std::array<sci::units::electric_potential<double>, 2> vrange;
 
-    std::array<int32_t, data_size> data;
-    std::array<float, data_size> data_phase;
-
-    std::array<Eigen::FFT<float>, 2> fft;
-    std::array<std::vector<float>, 2> data_vec;
-    std::array<std::vector<std::complex<float>>, 2> fft_data;
-
     // Spectrum analyzer
     sig::Spectrum<float> spectrum;
-
-    template<size_t idx>
-    void compute_fft();
 
     void reset_phase_unwrapper() {
         ctl.write_mask<reg::cordic, 0b1100>(0b1100);
         ctl.write_mask<reg::cordic, 0b1100>(0b0000);
     }
-};
 
-inline auto PhaseNoiseAnalyzer::get_phase_noise() {
-    using namespace sci::operators;
+    void set_power_conversion_factor() {
+        const auto cal_coeffs = ltc2157.get_calibration(channel);
+        std::array<double, 6> coeffs{};
+        std::ranges::reverse_copy(cal_coeffs | std::views::drop(2) | std::views::take(6), coeffs.begin());
+        const double Hinv = poly::polyval(dds.get_dds_freq(channel), coeffs);
 
-    auto res = scicpp::zeros<float>(1 + fft_size / 2);
-
-    for (uint32_t i=0; i<fft_navg; i++) {
-        dma.wait_for_transfer(dma_transfer_duration);
-        data = ram.read_array<int32_t, data_size, read_offset>();
-        res = std::move(res) + spectrum.welch<sig::DENSITY, false>(data * calib_factor * float(M_PI) / 8192.0f);
-
-        reset_phase_unwrapper();
-        dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
+        using namespace sci::units::literals;
+        constexpr auto load = 50_Ohm;
+        constexpr double magic_factor = 22.0;
+        const auto power_conv_factor = Hinv * magic_factor * vrange[channel] * vrange[channel] / load;
+        static_assert(sci::units::is_power<decltype(power_conv_factor)>);
+        const auto conv_factor_dBm = power_conv_factor / 1_mW;
+        static_assert(sci::units::is_dimensionless<decltype(conv_factor_dBm)>);
+        power_conversion_factor = conv_factor_dBm.eval();
     }
-
-    return res / float(fft_navg);
-}
+};
 
 #endif // __DRIVERS_DMA_HPP__
