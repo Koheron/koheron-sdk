@@ -9,6 +9,8 @@
 #include <mutex>
 #include <span>
 
+#include <server/runtime/endian_utils.hpp>
+
 class PrecisionAdc
 {
   public:
@@ -68,14 +70,8 @@ class PrecisionAdc
             return 0;
         }
 
-        // assemble big-endian payload from rx[1..len]
-        uint32_t v = 0;
-
-        for (uint32_t i = 0; i < len; ++i) {
-            v = (v << 8) | static_cast<uint32_t>(rx[1 + i]);
-        }
-
-        return v;
+        auto payload = std::span<const uint8_t>(rx).subspan(1, static_cast<std::size_t>(len));
+        return koheron::from_big_endian_bytes<std::uint32_t>(payload, len);
     }
 
     void write(uint32_t address, uint32_t value, uint32_t len) {
@@ -86,19 +82,7 @@ class PrecisionAdc
 
         std::array<uint8_t, 4> tx{};  // [cmd, b1, b2, b3]
         tx[0] = static_cast<uint8_t>((0u << 7) | (0u << 6) | (address & 0x3Fu));
-
-        // big-endian payload
-        if (len == 1) {
-            tx[1] = static_cast<uint8_t>(value & 0xFFu);
-        } else if (len == 2) {
-            tx[1] = static_cast<uint8_t>((value >> 8) & 0xFFu);
-            tx[2] = static_cast<uint8_t>(value & 0xFFu);
-        } else { // len == 3
-            tx[1] = static_cast<uint8_t>((value >> 16) & 0xFFu);
-            tx[2] = static_cast<uint8_t>((value >> 8) & 0xFFu);
-            tx[3] = static_cast<uint8_t>(value & 0xFFu);
-        }
-
+        koheron::to_big_endian_bytes(value, tx, static_cast<std::size_t>(len), 1);
         spi.transfer(tx, len + 1);
     }
 

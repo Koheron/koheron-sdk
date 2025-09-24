@@ -8,6 +8,7 @@
 #include "server/core/base64.hpp"
 #include "server/core/sha1.h"
 #include "server/runtime/syslog.hpp"
+#include "server/runtime/endian_utils.hpp"
 
 #include <cstring>
 #include <sstream>
@@ -118,37 +119,38 @@ int WebSocket::read_http_packet()
     return nb_bytes_rcvd;
 }
 
-int WebSocket::set_send_header(unsigned char *bits, int64_t data_len,
+int WebSocket::set_send_header(unsigned char* bits, int64_t data_len,
                                unsigned int format)
 {
-    std::memset(bits, 0, 10 + data_len);
+    std::memset(bits, 0, BIG_OFFSET);
 
-    bits[0] = format;
-    int mask_offset = 0;
+    auto* b = reinterpret_cast<std::uint8_t*>(bits);
+    b[0] = static_cast<std::uint8_t>(format);
 
     if (data_len <= SMALL_STREAM) {
-        bits[1] = data_len;
-        mask_offset = SMALL_OFFSET;
-    } else if (data_len > SMALL_STREAM
-             && data_len <= 0xFFFF) {
-        bits[1] = MEDIUM_STREAM;
-        bits[2] = (data_len >> 8) & 0xFF;
-        bits[3] = data_len & 0xFF;
-        mask_offset = MEDIUM_OFFSET;
-    } else {
-        bits[1] = BIG_STREAM;
-        bits[2] = (data_len >> 56) & 0xFF;
-        bits[3] = (data_len >> 48) & 0xFF;
-        bits[4] = (data_len >> 40) & 0xFF;
-        bits[5] = (data_len >> 32) & 0xFF;
-        bits[6] = (data_len >> 24) & 0xFF;
-        bits[7] = (data_len >> 16) & 0xFF;
-        bits[8] = (data_len >>  8) & 0xFF;
-        bits[9] = data_len & 0xFF;
-        mask_offset = BIG_OFFSET;
+        b[1] = static_cast<std::uint8_t>(data_len);
+        return SMALL_OFFSET;
     }
 
-    return mask_offset;
+    if (data_len <= 0xFFFF) {
+        b[1] = MEDIUM_STREAM;
+        // Write 16-bit big-endian length into b[2], b[3]
+        koheron::to_big_endian_bytes<std::uint64_t>(
+            static_cast<std::uint64_t>(data_len),
+            std::span<std::uint8_t>(b + 2, 2),
+            /*len=*/2
+        );
+        return MEDIUM_OFFSET;
+    }
+
+    // Else: 64-bit big-endian length at b[2..9]
+    b[1] = BIG_STREAM;
+    koheron::to_big_endian_bytes<std::uint64_t>(
+        static_cast<std::uint64_t>(data_len),
+        std::span<std::uint8_t>(b + 2, 8),
+        /*len=*/8
+    );
+    return BIG_OFFSET;
 }
 
 int WebSocket::exit()
