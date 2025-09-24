@@ -81,7 +81,7 @@ class Plot {
       }
 
       for (let i = 0; i < this.n_pts; i++) {
-        let x: number = i * this.samplingFrequency / this.n_pts / 2;
+        let x: number = (i - 1) * this.samplingFrequency / this.n_pts / 2;
         this.plot_data[i] = [x, 10 * Math.log10(data[i])]
       }
 

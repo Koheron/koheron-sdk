@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <tuple>
 #include <memory>
+#include <span>
 
 extern "C" {
     #include <unistd.h>
@@ -53,8 +54,13 @@ namespace mem {
     }
 } // namespace mem
 
-static constexpr off_t get_mmap_offset(uintptr_t phys_addr, uint32_t size) {
-    return static_cast<off_t>(phys_addr) & ~(static_cast<off_t>(size) - 1);
+static inline std::size_t page_size() noexcept {
+    static std::size_t sz = static_cast<std::size_t>(::sysconf(_SC_PAGESIZE));
+    return sz;
+}
+
+static inline std::size_t align_up(std::size_t x, std::size_t a) noexcept {
+    return (x + a - 1) & ~(a - 1);
 }
 
 template<MemID id,
@@ -75,27 +81,37 @@ class Memory
     {}
 
     ~Memory() {
-        if (is_opened)
-            munmap(mapped_base, size);
+        if (is_opened) {
+            const std::size_t pg = page_size();
+            const std::size_t delta = phys_addr & (pg - 1);
+            const std::size_t len = align_up(size + delta, pg);
+            ::munmap(mapped_base, len);
+        }
     }
 
     void open(const int& fd) {
-        mapped_base = mmap(nullptr, size, protection, MAP_SHARED, fd, get_mmap_offset(phys_addr, size));
+        const std::size_t pg = page_size();
+        const off_t off = static_cast<off_t>(phys_addr & ~(pg - 1));
+        const std::size_t delta = phys_addr & (pg - 1);
+        const std::size_t len = align_up(size + delta, pg);
 
-        if (mapped_base == (void *) -1) {
+        mapped_base = ::mmap(nullptr, len, protection, MAP_SHARED, fd, off);
+
+        if (mapped_base == MAP_FAILED) {
             is_opened = false;
+            mapped_base = nullptr;
             return;
         }
 
         is_opened = true;
-        base_address = reinterpret_cast<uintptr_t>(mapped_base) + (phys_addr & (size - 1));
+        base_address = reinterpret_cast<uintptr_t>(mapped_base) + delta;
     }
 
-    int get_protection() const {return protection;}
-    int opened() const {return is_opened;}
-    uintptr_t get_base_addr() const {return base_address;}
-    uint32_t mapped_size() const {return size;}
-    uintptr_t get_phys_addr() const {return phys_addr;}
+    int get_protection() const noexcept {return protection;}
+    int is_open() const noexcept {return is_opened;}
+    uintptr_t get_base_addr() const noexcept {return base_address;}
+    uint32_t mapped_size() const noexcept {return size;}
+    uintptr_t get_phys_addr() const noexcept {return phys_addr;}
 
     auto get_params() {
         return std::make_tuple(
@@ -202,6 +218,7 @@ class Memory
     T* get_ptr(uint32_t block_idx = 0) {
         static_assert(offset < mem::get_range(id), "Invalid offset");
         static_assert(mem::is_readable(id), "Not readable");
+        static_assert(offset % alignof(T) == 0, "Offset is not properly aligned for this type");
 
         return reinterpret_cast<T*>(base_address + block_size * block_idx + offset);
     }
@@ -220,6 +237,14 @@ class Memory
 
         auto p = get_ptr<std::array<T, N>, offset>(block_idx);
         return *p;
+    }
+
+    template<typename T, std::size_t N, uint32_t offset = 0>
+    std::span<const T, N> read_span(uint32_t block_idx = 0) {
+        static_assert(offset + sizeof(T) * (N - 1) < (mem::get_range(id) * mem::get_n_blocks(id)), "Invalid offset");
+        static_assert(mem::is_readable(id), "Not readable");
+
+        return { get_ptr<const T, offset>(block_idx), N };
     }
 
     // Read a std::array (offset defined at run-time)

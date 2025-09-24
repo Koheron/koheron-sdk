@@ -1,9 +1,9 @@
-/// DMA driver
+/// PhaseNoiseAnalyzer driver
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_DMA_HPP__
-#define __DRIVERS_DMA_HPP__
+#ifndef __PHASE_NOISE_ANALYZER_HPP__
+#define __PHASE_NOISE_ANALYZER_HPP__
 
 #include <context.hpp>
 
@@ -14,6 +14,8 @@
 #include <tuple>
 #include <algorithm>
 #include <ranges>
+#include <thread>
+#include <shared_mutex>
 
 #include <scicpp/core.hpp>
 #include <scicpp/polynomials.hpp>
@@ -43,6 +45,7 @@ class PhaseNoiseAnalyzer
     , ctl(ctx.mm.get<mem::control>())
     , sts(ctx.mm.get<mem::status>())
     , ram(ctx.mm.get<mem::ram>())
+    , phase_noise(1 + fft_size / 2)
     {
         using namespace sci::units::literals;
         vrange= { 1_V * ltc2157.get_input_voltage_range(0),
@@ -61,6 +64,8 @@ class PhaseNoiseAnalyzer
         spectrum.window(win::hann<float>(fft_size));
         spectrum.nthreads(2);
         spectrum.fs(fs);
+        phase_noise.reserve(1 + fft_size / 2);
+        start_acquisition();
     }
 
     void start() {
@@ -124,35 +129,18 @@ class PhaseNoiseAnalyzer
         return 10.0 * std::log10(power_conversion_factor * res / double(navg));
     }
 
-    auto get_data() {
-        reset_phase_unwrapper();
-        dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
-        dma.wait_for_transfer(dma_transfer_duration);
-        return ram.read_array<int32_t, data_size, read_offset>();
+    auto get_phase() const {
+        std::shared_lock lk(mtx);
+        return phase;
     }
 
-    auto get_phase() {
-        using namespace sci::operators;
-        return get_data() * calib_factor;
+    auto get_phase_noise() const {
+        std::shared_lock lk(mtx);
+        return phase_noise;
     }
 
     void set_fft_navg(uint32_t n_avg) {
         fft_navg = n_avg;
-    }
-
-    auto get_phase_noise() {
-        if (fft_navg > 1) {
-            using namespace sci::operators;
-            auto res = sci::zeros<float>(1 + fft_size / 2);
-
-            for (uint32_t i=0; i<fft_navg; i++) {
-                res = std::move(res) + spectrum.welch<sig::DENSITY, false>(get_phase());
-            }
-
-            return std::move(res) / float(fft_navg);
-        } else {
-            return spectrum.welch<sig::DENSITY, false>(get_phase());
-        }
     }
 
   private:
@@ -175,17 +163,34 @@ class PhaseNoiseAnalyzer
     uint32_t cic_rate;
     sci::units::frequency<float> fs_adc, fs;
     sci::units::time<float> dma_transfer_duration;
-    double power_conversion_factor;
 
-    std::array<sci::units::electric_potential<double>, 2> vrange;
+    // Data acquisition thread
+    std::thread acq_thread;
+    mutable std::shared_mutex mtx;   // protects phase & phase_noise
+    std::atomic<bool> acquisition_started{false};
+    void acquisition_thread();
+    void start_acquisition();
+    std::array<float, data_size> phase;
 
     // Spectrum analyzer
     sig::Spectrum<float> spectrum;
+    std::vector<float> phase_noise;
 
     void reset_phase_unwrapper() {
         ctl.write_mask<reg::cordic, 0b1100>(0b1100);
         ctl.write_mask<reg::cordic, 0b1100>(0b0000);
     }
+
+    auto get_data() {
+        reset_phase_unwrapper();
+        dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
+        dma.wait_for_transfer(dma_transfer_duration);
+        return ram.read_array<int32_t, data_size, read_offset>();
+    }
+
+    // Carrier power
+    double power_conversion_factor;
+    std::array<sci::units::electric_potential<double>, 2> vrange;
 
     void set_power_conversion_factor() {
         using namespace sci::units::literals;
@@ -200,6 +205,44 @@ class PhaseNoiseAnalyzer
         static_assert(sci::units::is_dimensionless<decltype(conv_factor_dBm)>);
         power_conversion_factor = conv_factor_dBm.eval();
     }
+
+    auto compute_phase_noise_from(std::array<float, data_size>& new_phase) {
+        if (fft_navg > 1) {
+            using namespace sci::operators;
+            auto res = sci::zeros<float>(1 + fft_size / 2);
+
+            for (uint32_t i=0; i<fft_navg; i++) {
+                res = std::move(res) + spectrum.welch<sig::DENSITY, false>(new_phase);
+            }
+
+            return std::move(res) / float(fft_navg);
+        } else {
+            return spectrum.welch<sig::DENSITY, false>(new_phase);
+        }
+    }
 };
 
-#endif // __DRIVERS_DMA_HPP__
+inline void PhaseNoiseAnalyzer::start_acquisition() {
+    if (! acquisition_started) {
+        acq_thread = std::thread{&PhaseNoiseAnalyzer::acquisition_thread, this};
+        acq_thread.detach();
+    }
+}
+
+inline void PhaseNoiseAnalyzer::acquisition_thread() {
+    acquisition_started = true;
+
+    while (acquisition_started) {
+        using namespace sci::operators;
+        auto new_phase = get_data() * calib_factor;
+        auto new_pn = compute_phase_noise_from(new_phase);
+
+        {
+            std::unique_lock lk(mtx);
+            phase = std::move(new_phase);
+            phase_noise = std::move(new_pn);
+        }
+    }
+}
+
+#endif // __PHASE_NOISE_ANALYZER_HPP__
