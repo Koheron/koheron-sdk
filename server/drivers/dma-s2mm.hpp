@@ -10,6 +10,7 @@
 #include <context.hpp>
 
 #include <chrono>
+#include <scicpp/core.hpp>
 
 class DmaS2MM
 {
@@ -31,7 +32,11 @@ class DmaS2MM
         set_length(length);
     }
 
-    // Ideally would take a std::chrono::duration as an argument
+    template<typename T>
+    void wait_for_transfer(scicpp::units::time<T> dma_transfer_duration) {
+        wait_for_transfer(dma_transfer_duration.eval());
+    }
+
     void wait_for_transfer(float dma_transfer_duration_seconds) {
         const auto dma_duration = std::chrono::milliseconds(uint32_t(1000 * dma_transfer_duration_seconds));
         uint32_t cnt = 0;

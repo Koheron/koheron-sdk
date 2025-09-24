@@ -127,7 +127,7 @@ class PhaseNoiseAnalyzer
     auto get_data() {
         reset_phase_unwrapper();
         dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
-        dma.wait_for_transfer(dma_transfer_duration.eval());
+        dma.wait_for_transfer(dma_transfer_duration);
         return ram.read_array<int32_t, data_size, read_offset>();
     }
 
