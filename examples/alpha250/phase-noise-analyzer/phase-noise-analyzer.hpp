@@ -26,6 +26,8 @@
 #include <server/drivers/dma-s2mm.hpp>
 #include <dds.hpp>
 
+#include "moving_averager.hpp"
+
 namespace {
     namespace sci = scicpp;
     namespace sig = scicpp::signal;
@@ -46,6 +48,7 @@ class PhaseNoiseAnalyzer
     , sts(ctx.mm.get<mem::status>())
     , ram(ctx.mm.get<mem::ram>())
     , phase_noise(1 + fft_size / 2)
+    , averager(1)
     {
         using namespace sci::units::literals;
         vrange= { 1_V * ltc2157.get_input_voltage_range(0),
@@ -141,6 +144,7 @@ class PhaseNoiseAnalyzer
 
     void set_fft_navg(uint32_t n_avg) {
         fft_navg = n_avg;
+        averager.set_navg(fft_navg);
     }
 
   private:
@@ -175,6 +179,7 @@ class PhaseNoiseAnalyzer
     // Spectrum analyzer
     sig::Spectrum<float> spectrum;
     std::vector<float> phase_noise;
+    MovingAverager<float> averager;
 
     void reset_phase_unwrapper() {
         ctl.write_mask<reg::cordic, 0b1100>(0b1100);
@@ -208,14 +213,8 @@ class PhaseNoiseAnalyzer
 
     auto compute_phase_noise_from(std::array<float, data_size>& new_phase) {
         if (fft_navg > 1) {
-            using namespace sci::operators;
-            auto res = sci::zeros<float>(1 + fft_size / 2);
-
-            for (uint32_t i=0; i<fft_navg; i++) {
-                res = std::move(res) + spectrum.welch<sig::DENSITY, false>(new_phase);
-            }
-
-            return std::move(res) / float(fft_navg);
+            averager.append(spectrum.welch<sig::DENSITY, false>(new_phase));
+            return averager.average();
         } else {
             return spectrum.welch<sig::DENSITY, false>(new_phase);
         }
