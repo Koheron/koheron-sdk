@@ -283,6 +283,15 @@ $(OVERLAY_DIR)/usr/local/sbin/grow-rootfs-once: $(OS_PATH)/scripts/grow-rootfs-o
 $(OVERLAY_DIR)/usr/local/instruments/unzip_default_instrument.sh: $(OS_PATH)/scripts/unzip_default_instrument.sh
 	install -D -m0755 $< $@
 
+# --- copy all (or selected) instruments into overlay; create a stamp ---
+COPY_INSTRUMENTS ?=
+COPY_INSTR_FILES := $(addprefix $(TMP)/$(BOARD)/instruments/,$(addsuffix .zip,$(COPY_INSTRUMENTS)))
+
+$(OVERLAY_DIR)/usr/local/instruments/.stamp: $(COPY_INSTR_FILES)
+	@mkdir -p $(OVERLAY_DIR)/usr/local/instruments
+	@if [ -n "$^" ]; then cp -f $^ $(OVERLAY_DIR)/usr/local/instruments/; fi
+	@touch $@
+
 $(OVERLAY_DIR)/usr/local/instruments/$(NAME).zip: $(TMP_PROJECT_PATH)/$(NAME).zip
 	install -D -m0644 $< $@
 
@@ -300,6 +309,7 @@ $(OVERLAY_DIR)/etc/nginx/sites-available/koheron.conf: $(OS_PATH)/config/nginx-s
 
 # Bundle overlay as a single tar the script can explode into /
 OVERLAY_FILES := \
+  $(OVERLAY_DIR)/usr/local/instruments/.stamp \
   $(OVERLAY_DIR)/usr/local/share/koheron/manifest.txt \
   $(OVERLAY_DIR)/etc/koheron-release \
   $(OVERLAY_DIR)/usr/local/www/.stamp \
