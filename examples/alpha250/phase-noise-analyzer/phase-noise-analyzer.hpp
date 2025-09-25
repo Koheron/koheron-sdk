@@ -83,6 +83,8 @@ class PhaseNoiseAnalyzer
             return;
         }
 
+        std::scoped_lock lk(dma_mtx); // block until any DMA transfer finishes
+
         cic_rate = rate;
         fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
         dma_transfer_duration = prm::n_pts / fs;
@@ -136,17 +138,16 @@ class PhaseNoiseAnalyzer
     }
 
     auto get_jitter() {
-        std::shared_lock lk(mtx);
         return std::tuple{phase_jitter, time_jitter, f_lo_used, f_hi_used};
     }
 
     auto get_phase() const {
-        std::shared_lock lk(mtx);
+        std::shared_lock lk(data_mtx);
         return phase;
     }
 
     auto get_phase_noise() const {
-        std::shared_lock lk(mtx);
+        std::shared_lock lk(data_mtx);
         return phase_noise;
     }
 
@@ -176,9 +177,11 @@ class PhaseNoiseAnalyzer
     sci::units::frequency<float> fs_adc, fs;
     sci::units::time<float> dma_transfer_duration;
 
+    std::mutex dma_mtx; // Guard DMA transfer
+    mutable std::shared_mutex data_mtx; // protects phase & phase_noise
+
     // Data acquisition thread
     std::thread acq_thread;
-    mutable std::shared_mutex mtx;   // protects phase & phase_noise
     std::atomic<bool> acquisition_started{false};
     void acquisition_thread();
     void start_acquisition();
@@ -203,6 +206,7 @@ class PhaseNoiseAnalyzer
     }
 
     auto get_data() {
+        std::scoped_lock lk(dma_mtx);
         reset_phase_unwrapper();
         dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
         dma.wait_for_transfer(dma_transfer_duration);
@@ -307,7 +311,7 @@ inline void PhaseNoiseAnalyzer::acquisition_thread() {
         compute_jitter(new_pn);
 
         {
-            std::unique_lock lk(mtx);
+            std::unique_lock lk(data_mtx);
             phase = std::move(new_phase);
             phase_noise = std::move(new_pn);
         }
