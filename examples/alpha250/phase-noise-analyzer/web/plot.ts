@@ -72,7 +72,7 @@ class Plot {
   }
 
   updatePlot() {
-    this.driver.getPhaseNoise(async (data: Float32Array) => {
+    this.driver.getPhaseNoise(async (phase_noise: Float32Array) => {
       const parameters = await this.driver.getParameters();
 
       if (parameters.fs != this.samplingFrequency) {
@@ -82,7 +82,7 @@ class Plot {
 
       for (let i = 0; i < this.n_pts; i++) {
         let x: number = (i - 1) * this.samplingFrequency / this.n_pts / 2;
-        this.plot_data[i] = [x, 10 * Math.log10(data[i])]
+        this.plot_data[i] = [x, 10 * Math.log10(0.5 * phase_noise[i])]; // Phase noise (rad^2/Hz) to dBc/Hz
       }
 
       this.getDecadeValues();

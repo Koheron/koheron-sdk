@@ -11,6 +11,13 @@ interface IParameters {
   fft_navg: number;
 }
 
+type TupleGetJitter = [number, number];
+
+interface IJitter {
+  phase_jitter: number; // rad rms
+  time_jitter: number;  // s rms
+}
+
 class PhaseNoiseAnalyzer {
   private driver: Driver;
   private id: number;
@@ -42,6 +49,19 @@ class PhaseNoiseAnalyzer {
           const [data_size, fs, channel, cic_rate, fft_navg] = tup;
           const params: IParameters = { data_size, fs, channel, cic_rate, fft_navg };
           resolve(params);
+        });
+    });
+  }
+
+  getJitter(): Promise<IJitter> {
+    return new Promise<IJitter>((resolve, reject) => {
+      this.client.readTuple(
+        Command(this.id, this.cmds['get_jitter']),
+        'ff',
+        (tup: TupleGetJitter) => {
+          const [phase_jitter, time_jitter] = tup;
+          const jitters: IJitter = { phase_jitter, time_jitter };
+          resolve(jitters);
         });
     });
   }

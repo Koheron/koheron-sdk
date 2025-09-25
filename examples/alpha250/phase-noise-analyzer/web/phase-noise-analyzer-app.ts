@@ -6,6 +6,8 @@ class PhaseNoiseAnalyzerApp {
   private nAvgInput: HTMLInputElement;
   private channelInputs: HTMLInputElement[];
   private carrierPowerSpan: HTMLElement;
+  private phaseJitterSpan: HTMLElement;
+  private timeJitterSpan: HTMLElement;
   private isEditingCic: boolean;
   private isEditingNavg: boolean;
   public nPoints: number;
@@ -18,10 +20,13 @@ class PhaseNoiseAnalyzerApp {
 
     this.channelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("channel-input");
     this.carrierPowerSpan = <HTMLElement>document.getElementsByClassName("carrier-power-span")[0];
+    this.phaseJitterSpan = <HTMLElement>document.getElementsByClassName("phase-jitter-span")[0];
+    this.timeJitterSpan = <HTMLElement>document.getElementsByClassName("time-jitter-span")[0];
+
     this.initCicRateInput();
     this.initNavgInput();
     this.initChannelInput();
-    this.updatePower();
+    this.updateMeasurements();
     this.updateControls();
     callback();
   }
@@ -81,11 +86,24 @@ class PhaseNoiseAnalyzerApp {
     this.driver.setFFTNavg(navg);
   }
 
-  private updatePower() {
+  private formatMeasurement(value: number, unit: string, digits: number = 2) {
+    if (Number.isNaN(value)) {
+      return "---";
+    } else {
+      return `${value.toFixed(digits)}  ${unit}`;
+    }
+  }
+
+  private updateMeasurements() {
     let navg: number = 400;
-    this.driver.getCarrierPower(navg, (power: number) => {
-      this.carrierPowerSpan.innerHTML = power.toFixed(2) + " dBm";
-      requestAnimationFrame( () => { this.updatePower(); } )
+    this.driver.getCarrierPower(navg, async (power: number) => {
+      this.carrierPowerSpan.innerHTML = this.formatMeasurement(power, "dBm")
+
+      const jitters = await this.driver.getJitter();
+      this.phaseJitterSpan.innerHTML = this.formatMeasurement(jitters.phase_jitter * 1E3, "mrad<sub>rms</sub>");
+      this.timeJitterSpan.innerHTML = this.formatMeasurement(jitters.time_jitter * 1E12, "ps<sub>rms</sub>");
+
+      requestAnimationFrame( () => { this.updateMeasurements(); } )
     });
   }
 

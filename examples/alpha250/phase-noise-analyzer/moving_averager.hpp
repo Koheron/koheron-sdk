@@ -10,13 +10,32 @@ template<typename T>
 class MovingAverager {
   public:
     explicit MovingAverager(std::size_t navg)
-    : navg_(navg), ring_(navg), head_(0), filled_(0), width_(0) {}
+    : navg_(navg), ring_(navg) {}
 
+    // --- resets the ring to a new window and forgets shape (width_=0)
     void resize(std::size_t new_navg) {
-        navg_ = new_navg;
-        ring_.assign(navg_, {});      // reset ring (vectors empty)
-        sum_.clear();                 // reset running sum
+        navg_ = (new_navg == 0) ? 1 : new_navg;
+        ring_.assign(navg_, {});   // empty slots
+        sum_.clear();
         width_ = 0;
+        head_ = 0;
+        filled_ = 0;
+    }
+
+    // --- soft clear: keep current width & capacity, drop samples & sum
+    void clear() {
+        if (width_ == 0) {
+            head_ = 0;
+            filled_ = 0;
+            return;
+        }
+
+        std::fill(sum_.begin(), sum_.end(), T{});
+
+        for (auto& v : ring_) {
+            v.clear();   // keep capacity
+        }
+
         head_ = 0;
         filled_ = 0;
     }
@@ -49,16 +68,13 @@ class MovingAverager {
     }
 
     void set_navg(std::size_t new_navg) {
-        if (new_navg == 0) {
-            new_navg = 1;
-        }
-
+        new_navg = (new_navg == 0) ? 1 : new_navg;
         if (new_navg == navg_) {
             return;
         }
 
-        // If we have no shape yet, just reset structures
         if (width_ == 0) {
+            // shapeless: just rebuild ring for the new window
             navg_ = new_navg;
             ring_.assign(navg_, {});
             head_ = 0;
@@ -67,7 +83,7 @@ class MovingAverager {
         }
 
         if (new_navg > navg_) {
-            // GROW: keep running sum & positions; just add capacity
+            // GROW: keep state; extend ring with empty, reserved slots
             const auto old_n = navg_;
             navg_ = new_navg;
             ring_.resize(navg_);
@@ -75,45 +91,45 @@ class MovingAverager {
             for (std::size_t i = old_n; i < navg_; ++i) {
                 ring_[i].reserve(width_);
             }
-
+            // sum_, head_, filled_ remain valid
             return;
         }
 
-        // new_navg < navg_
-        // SHRINK: keep the most recent `kept = min(filled_, new_navg)` samples
+        // SHRINK: keep most recent 'kept' samples, then rebuild sum
         const std::size_t kept = std::min(filled_, new_navg);
-        const std::size_t drop = filled_ - kept;
-
-        // Oldest sample index in current ring:
-        // range of valid samples is [oldest ... oldest + filled_-1] circularly
         const std::size_t oldest = (head_ + navg_ - filled_) % navg_;
 
-        // Subtract the dropped samples from the running sum
-        for (std::size_t k = 0; k < drop; ++k) {
-            const auto& old = ring_[(oldest + k) % navg_];
-            if (old.size() == width_) {
-                for (std::size_t i = 0; i < width_; ++i) {
-                    sum_[i] -= old[i];
-                }
-            }
-        }
-
-        // Build a compact new ring of size new_navg with the kept (most-recent) samples
         std::vector<std::vector<T>> new_ring(new_navg);
 
         for (auto& v : new_ring) {
             v.reserve(width_);
         }
 
-        // kept samples start at index (oldest + drop)
+        // copy/move most recent 'kept' samples into compact ring
+        const std::size_t start = (oldest + (filled_ - kept)) % navg_;
+
         for (std::size_t i = 0; i < kept; ++i) {
-            new_ring[i] = std::move(ring_[(oldest + drop + i) % navg_]);
+            new_ring[i] = std::move(ring_[(start + i) % navg_]);
         }
 
-        ring_  = std::move(new_ring);
-        navg_  = new_navg;
+        ring_   = std::move(new_ring);
+        navg_   = new_navg;
         filled_ = kept;
-        head_   = kept % navg_;  // next slot to overwrite
+        head_   = kept % navg_;
+        rebuild_sum();  // ensures sum_ is exactly consistent
+    }
+
+    void clear_to_width(std::size_t width) {
+        width_ = width;
+        sum_.assign(width_, T{});
+
+        for (auto& v : ring_) {
+            v.clear();
+            v.reserve(width_);
+        }
+
+        head_ = 0;
+        filled_ = 0;
     }
 
     // Accessors
@@ -126,26 +142,20 @@ class MovingAverager {
     std::size_t navg_;
     std::vector<std::vector<T>> ring_;  // circular buffer
     std::vector<T> sum_;                // running sum
-    std::size_t head_;                  // index to overwrite next
-    std::size_t filled_;                // how many slots currently valid (≤ navg_)
-    std::size_t width_;                 // element count per vector
+    std::size_t head_   = 0;            // index to overwrite next
+    std::size_t filled_ = 0;            // how many slots currently valid (≤ navg_)
+    std::size_t width_  = 0;            // element count per vector
 
-    // Reserve/initialize on first append
     void ensure_shape(std::size_t w) {
         if (width_ == 0) {
-            width_ = w;
-            sum_.assign(width_, T(0));
-
-            for (auto& v : ring_) {
-                v.reserve(width_);
-            }
+            clear_to_width(w);
         } else {
             assert(w == width_ && "All appended vectors must have identical length");
         }
     }
 
     std::size_t next_slot() {
-        auto i = head_;
+        const auto i = head_;
         head_ = (head_ + 1) % navg_;
 
         if (filled_ < navg_) {
@@ -165,13 +175,34 @@ class MovingAverager {
                 sum_[i] -= old[i];
             }
         }
-
+        // store new
         ring_[slot] = std::forward<Vec>(src);
-
         // add new contribution
         const auto& cur = ring_[slot];
         for (std::size_t i = 0; i < width_; ++i) {
             sum_[i] += cur[i];
+        }
+    }
+
+    void rebuild_sum() {
+        if (width_ == 0) {
+            sum_.clear();
+            return;
+        }
+
+        sum_.assign(width_, T{});
+        const std::size_t oldest = (head_ + navg_ - filled_) % navg_;
+
+        for (std::size_t k = 0; k < filled_; ++k) {
+            const auto& v = ring_[(oldest + k) % navg_];
+
+            if (v.size() != width_) {
+                continue;
+            }
+
+            for (std::size_t i = 0; i < width_; ++i) {
+                sum_[i] += v[i];
+            }
         }
     }
 };
