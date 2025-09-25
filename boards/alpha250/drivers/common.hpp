@@ -6,6 +6,9 @@
 #define __ALPHA_DRIVERS_COMMON_HPP__
 
 #include <cstring>
+#include <thread>
+#include <atomic>
+#include <chrono>
 
 extern "C" {
   #include <sys/socket.h>
@@ -36,17 +39,21 @@ class Common
     , precisionadc(ctx.get<PrecisionAdc>())
     {}
 
+    ~Common() {
+        stop_blink(); // in case ip_on_leds() was never called
+    }
+
     void set_led(uint32_t value) {
         gpio.set_led(value);
     }
 
     void init() {
         ctx.log<INFO>("Common - Initializing ...");
+        start_blink();
         clkgen.init();
         ltc2157.init();
         ad9747.init();
         precisiondac.init();
-        // ip_on_leds();
     };
 
     std::string get_instrument_config() {
@@ -54,6 +61,7 @@ class Common
     }
 
     void ip_on_leds() {
+        stop_blink();
         struct ifaddrs* addrs = nullptr;
         if (getifaddrs(&addrs) != 0 || !addrs) return;
 
@@ -80,6 +88,37 @@ class Common
         freeifaddrs(addrs);
     }
 
+    void start_blink() {
+        if (blinker.joinable()) return;
+        blinker_should_stop.store(false, std::memory_order_release);
+
+        blinker = std::thread([this]{
+            using namespace std::chrono;
+            constexpr auto step = milliseconds(100);
+
+            // t = 0s → 0x00
+            try { gpio.set_led(0x00); } catch (...) {}
+            auto next_tick = std::chrono::steady_clock::now() + step;
+
+            uint32_t pat = 0x01; // next at 0.125s
+
+            while (!blinker_should_stop.load(std::memory_order_acquire)) {
+                try { gpio.set_led(pat); } catch (...) {}
+
+                std::this_thread::sleep_until(next_tick);
+                next_tick += step;
+
+                // shift left; wrap 0x80 → 0x01
+                pat = (pat == 0x80) ? 0x01 : ((pat << 1) & 0xFF);
+            }
+        });
+    }
+
+    void stop_blink() {
+        blinker_should_stop.store(true, std::memory_order_release);
+        if (blinker.joinable()) { try { blinker.join(); } catch (...) {} }
+    }
+
   private:
     Context& ctx;
     ClockGenerator& clkgen;
@@ -88,6 +127,9 @@ class Common
     Ad9747& ad9747;
     PrecisionDac& precisiondac;
     PrecisionAdc& precisionadc;
+
+    std::thread blinker;
+    std::atomic<bool> blinker_should_stop{true}; // true = not running yet
 };
 
 #endif // __ALPHA_DRIVERS_COMMON_HPP__
