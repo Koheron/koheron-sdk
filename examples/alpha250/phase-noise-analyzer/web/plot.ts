@@ -55,7 +55,7 @@ class Plot {
 
     for (let freq of freq_decades) {
       if (freq >= fmin && freq <= fmax) {
-        let i: number = Math.floor(2 * freq * this.n_pts / this.samplingFrequency);
+        let i: number = Math.floor(2 * freq * this.n_pts / this.samplingFrequency) + 1;
         this.decade_values.push(this.plot_data[i]);
       }
     }
@@ -72,7 +72,7 @@ class Plot {
   }
 
   updatePlot() {
-    this.driver.getPhaseNoise(async (phase_noise: Float32Array) => {
+    this.driver.getPhaseNoise(async (phaseNoise: Float32Array) => {
       const parameters = await this.driver.getParameters();
 
       if (parameters.fs != this.samplingFrequency) {
@@ -80,9 +80,19 @@ class Plot {
         this.setFreqAxis();
       }
 
+      // Remove the first points of the FFT
+      const nstart = 3;
+      const binWidth = this.samplingFrequency / (2 * this.n_pts);
+
       for (let i = 0; i < this.n_pts; i++) {
-        let x: number = (i - 1) * this.samplingFrequency / this.n_pts / 2;
-        this.plot_data[i] = [x, 10 * Math.log10(0.5 * phase_noise[i])]; // Phase noise (rad^2/Hz) to dBc/Hz
+        if (i < nstart - 1) {
+          this.plot_data[i] = [0, NaN];
+        } else {
+          this.plot_data[i] = [
+            (i - 1) * binWidth,
+            10 * Math.log10(0.5 * phaseNoise[i]) // rad²/Hz => dBc/Hz
+          ];
+        }
       }
 
       this.getDecadeValues();
