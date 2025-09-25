@@ -114,8 +114,9 @@ include $(WEB_MK)
 
 # Zip file that contains all the files needed to run the instrument:
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
-$(INSTRUMENT_ZIP): $(SERVER) $(BITSTREAM) $(WEB_ASSETS) $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM).bin $(VERSION_FILE)
+$(INSTRUMENT_ZIP): $(SERVER) $(BITSTREAM) $(WEB_ASSETS) $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM).bin $(VERSION_FILE) | $(TMP_PROJECT_PATH)/ $(TMP)/$(BOARD)/instruments/
 	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM).bin $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM) $(SERVER) $(WEB_ASSETS) $(VERSION_FILE)
+	cp $(INSTRUMENT_ZIP) $(TMP)/$(BOARD)/instruments/$(NAME).zip
 	$(call ok,$@)
 
 # Make builds the instrument zip file by default
@@ -218,18 +219,3 @@ print_variables:
 	@echo "CFG = $(CFG)"
 	@echo "NAME = $(NAME)"
 	@echo "BOARD = $(BOARD)"
-
-# CFG_LIST :=
-# #CFG_LIST += examples/alpha250/fft/config.mk
-# CFG_LIST += examples/alpha250/adc-dac-bram/config.mk
-# #CFG_LIST += examples/alpha250/adc-dac-dma/config.mk
-# #CFG_LIST += examples/alpha250/phase-noise-analyzer/config.mk
-
-# CFG_TARGETS := $(CFG_LIST:%=build-%)
-
-# .PHONY: all_examples $(CFG_TARGETS)
-# all_examples: $(CFG_TARGETS)
-
-# $(CFG_TARGETS):
-# 	@echo ">>> Building CFG=$(@:build-%=%)"
-# 	$(MAKE) CFG=$(@:build-%=%)

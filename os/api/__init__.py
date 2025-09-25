@@ -79,7 +79,8 @@ class KoheronApp(Flask):
                 self.instruments_list.append(instrument)
 
             if is_default:
-                self.run_instrument(instrument_filename, KoheronApp.live_instrument_dirname, instrument)
+                self.live_instrument = instrument
+                #self.run_instrument(instrument_filename, KoheronApp.live_instrument_dirname, instrument)
 
     def run_instrument(self, instrument_filename, live_instrument_dirname, instrument_dict):
         if not os.path.exists(instrument_filename):
