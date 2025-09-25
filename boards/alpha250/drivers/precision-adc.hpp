@@ -81,9 +81,10 @@ class PrecisionAdc
         }
 
         std::array<uint8_t, 4> tx{};  // [cmd, b1, b2, b3]
+        std::array<uint8_t, 4> rx{};
         tx[0] = static_cast<uint8_t>((0u << 7) | (0u << 6) | (address & 0x3Fu));
         koheron::to_big_endian_bytes(value, tx, static_cast<std::size_t>(len), 1);
-        spi.transfer(tx, len + 1);
+        spi.transfer(tx, rx, len + 1);
     }
 
     void set_channels(int32_t setup_idx) {
@@ -150,20 +151,26 @@ inline void PrecisionAdc::adc_acquisition_thread() {
     adc_acquisition_started = true;
 
     while (adc_acquisition_started) {
-        uint8_t cmd[] = {uint8_t((0 << 7) + (1 << 6) + (0x02 & 0x3F))};
-        uint8_t data[5];
-        spi.transfer(cmd, data, 6);
+        constexpr uint8_t cmd_byte = static_cast<uint8_t>((0u << 7) | (1u << 6) | (0x02u & 0x3Fu));
+        std::array<uint8_t, 5> tx{};  // [cmd, dmy, dmy, dmy, dmy]
+        std::array<uint8_t, 5> rx{};  // [dmy, b1,  b2,  b3,  ch ]
+        tx[0] = cmd_byte;
 
-        uint32_t raw_data = (data[1] << 16) + (data[2] << 8) + data[3];
-        uint8_t channel = data[4] & 0xF;
+        if (spi.transfer(tx, rx) < 0) {
+            ctx.log<WARNING>("PrecisionAdc: An error occured during read\n");
+            std::this_thread::sleep_for(10ms);
+            continue;
+        }
+
+        const uint32_t raw_data = (uint32_t(rx[1]) << 16) | (uint32_t(rx[2]) << 8) | uint32_t(rx[3]);
+        const uint8_t  channel  = rx[4] & 0x0F;
 
         if (channel < channel_num) {
-            constexpr float vref = 1.25; // Volts
-
+            constexpr float vref = 1.25f; // Volts
             std::lock_guard lock(acquisition_mtx);
-            analog_inputs_data[channel] = vref * (float(raw_data) / (1 << 23) - 1);
+            analog_inputs_data[channel] = vref * (float(raw_data) / float(1u << 23) - 1.0f);
         } else {
-            ctx.logf<WARNING>("Unexpected channel (# {}) received while reading precision ADC\n", channel);
+            ctx.logf<WARNING>("PrecisionAdc: Unexpected channel (# {}) received\n", channel);
         }
 
         std::this_thread::sleep_for(10ms);

@@ -129,20 +129,6 @@ class SpiDev
                         std::span<uint8_t>(rx));
     }
 
-    // TX-only
-    template<std::size_t N>
-    int transfer(const std::array<uint8_t, N>& tx) {
-        return transfer(std::span<const uint8_t>(tx),
-                        std::span<uint8_t>()); // empty RX
-    }
-
-    // RX-only
-    template<std::size_t N>
-    int transfer(std::array<uint8_t, N>& rx) {
-        return transfer(std::span<const uint8_t>(),
-                        std::span<uint8_t>(rx));
-    }
-
     // Only transfers the first count bytes
     template<std::size_t Nt, std::size_t Nr>
     int transfer(const std::array<uint8_t, Nt>& tx,
