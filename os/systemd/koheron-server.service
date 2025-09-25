@@ -1,6 +1,10 @@
 [Unit]
 Description=Koheron TCP/Websocket server
-After=network.target unzip-default-instrument.service
+DefaultDependencies=no
+# minimal boot deps to be safe; no network wait
+After=sysinit.target local-fs.target tmp.mount unzip-default-instrument.service
+Before=basic.target
+Requires=unzip-default-instrument.service
 
 [Service]
 Type=notify
@@ -8,9 +12,7 @@ NotifyAccess=all
 ExecStart=/tmp/live-instrument/serverd
 ExecStop=/usr/bin/pkill -SIGINT serverd
 KillSignal=SIGKILL
-
-# No limitation in the number of restarts per time interval
 StartLimitInterval=0
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=basic.target

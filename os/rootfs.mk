@@ -320,6 +320,7 @@ OVERLAY_FILES := \
   $(OVERLAY_DIR)/etc/systemd/system/koheron-server-init.service \
   $(OVERLAY_DIR)/etc/uwsgi/uwsgi.ini \
   $(OVERLAY_DIR)/etc/systemd/system/uwsgi.service \
+  $(OVERLAY_DIR)/etc/systemd/system/uwsgi.socket \
   $(OVERLAY_DIR)/usr/local/sbin/grow-rootfs-once \
   $(OVERLAY_DIR)/etc/systemd/system/grow-rootfs-once.service \
   $(OVERLAY_DIR)/usr/local/instruments/unzip_default_instrument.sh \

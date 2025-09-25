@@ -1,16 +1,21 @@
+# /etc/systemd/system/nginx.service
 [Unit]
-Description=A high performance web server and a reverse proxy server
-After=network-online.target
+Description=Nginx (fronting uWSGI)
+DefaultDependencies=no
+After=sysinit.target local-fs.target systemd-tmpfiles-setup.service uwsgi.socket
+Before=basic.target
+Wants=uwsgi.socket
 
 [Service]
 Type=forking
 PIDFile=/run/nginx.pid
-ExecStartPre=/bin/mkdir -p /var/log/nginx
+RuntimeDirectory=nginx
+RuntimeDirectoryMode=0755
 ExecStartPre=/usr/sbin/nginx -t
 ExecStart=/usr/sbin/nginx
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s QUIT $MAINPID
+Restart=always
 
 [Install]
-WantedBy=multi-user.target
-
+WantedBy=basic.target

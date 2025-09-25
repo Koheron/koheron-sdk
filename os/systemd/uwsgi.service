@@ -1,15 +1,19 @@
+# /etc/systemd/system/uwsgi.service
 [Unit]
-Description=uWSGI
-After=network.target
+Description=uWSGI (socket-activated, runs as root)
+DefaultDependencies=no
+After=sysinit.target local-fs.target systemd-tmpfiles-setup.service
+Before=basic.target
 
 [Service]
-ExecStartPre=/bin/mkdir -p /var/run/uwsgi
-ExecStartPre=/bin/mkdir -p /var/log/uwsgi
-ExecStart=/usr/bin/uwsgi --ini /etc/uwsgi/uwsgi.ini --plugin python3
-Restart=always
-KillSignal=SIGKILL
 Type=notify
 NotifyAccess=all
+User=root
+Group=root
+# inherit the systemd socket on fd 3
+ExecStart=/usr/bin/uwsgi --ini /etc/uwsgi/uwsgi.ini --plugin python3 --socket fd://0
+Restart=always
+KillSignal=SIGINT
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=basic.target
