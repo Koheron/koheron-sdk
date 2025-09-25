@@ -16,6 +16,7 @@
 #include <ranges>
 #include <thread>
 #include <shared_mutex>
+#include <limits>
 
 #include <scicpp/core.hpp>
 #include <scicpp/polynomials.hpp>
@@ -87,6 +88,7 @@ class PhaseNoiseAnalyzer
         dma_transfer_duration = prm::n_pts / fs;
         ctx.logf<INFO>("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
         spectrum.fs(fs);
+        averager.clear();
         ctl.write<reg::cic_rate>(cic_rate);
     }
 
@@ -97,18 +99,19 @@ class PhaseNoiseAnalyzer
         }
 
         channel = chan;
+        averager.clear();
         set_power_conversion_factor();
         ctl.write_mask<reg::cordic, 0b10000>((channel & 1) << 4);
     }
 
     const auto get_parameters() {
-        return std::make_tuple(
+        return std::tuple{
             fft_size / 2,
             fs.eval(),
             channel,
             cic_rate,
             fft_navg
-        );
+        };
     }
 
     // Carrier power in dBm
@@ -132,6 +135,11 @@ class PhaseNoiseAnalyzer
         return 10.0 * std::log10(power_conversion_factor * res / double(navg));
     }
 
+    auto get_jitter() {
+        std::shared_lock lk(mtx);
+        return std::tuple{phase_jitter, time_jitter, f_lo_used, f_hi_used};
+    }
+
     auto get_phase() const {
         std::shared_lock lk(mtx);
         return phase;
@@ -151,7 +159,7 @@ class PhaseNoiseAnalyzer
     static constexpr uint32_t data_size = 200000;
     static constexpr uint32_t fft_size = data_size / 2;
     static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2;
-    static constexpr float calib_factor = 4.196f * sci::pi<float> / 8192.0f;
+    static constexpr float calib_factor = 4.196f * sci::pi<float> / 8192.0f; // radians
 
     Context& ctx;
     DmaS2MM& dma;
@@ -174,12 +182,20 @@ class PhaseNoiseAnalyzer
     std::atomic<bool> acquisition_started{false};
     void acquisition_thread();
     void start_acquisition();
-    std::array<float, data_size> phase;
+    std::array<float, data_size> phase; // rad
 
     // Spectrum analyzer
     sig::Spectrum<float> spectrum;
-    std::vector<float> phase_noise;
+    std::vector<float> phase_noise; // rad^2/Hz
     MovingAverager<float> averager;
+
+    // Jitter (integrated noise)
+    float phase_jitter = 0.0f; // rad rms
+    float time_jitter = 0.0f; // s rms
+    float f_lo_used = 0.0f; // Integration interval start
+    float f_hi_used = 0.0f; // Integration interval end
+
+    // ----------------- Private functions
 
     void reset_phase_unwrapper() {
         ctl.write_mask<reg::cordic, 0b1100>(0b1100);
@@ -205,18 +221,71 @@ class PhaseNoiseAnalyzer
         const double Hinv = poly::polyval(dds.get_dds_freq(channel),
                                           ltc2157.tf_polynomial<double>(channel));
         const auto power_conv_factor = Hinv * magic_factor * vrange[channel] * vrange[channel] / load;
-        static_assert(sci::units::is_power<decltype(power_conv_factor)>);
         const auto conv_factor_dBm = power_conv_factor / 1_mW;
-        static_assert(sci::units::is_dimensionless<decltype(conv_factor_dBm)>);
         power_conversion_factor = conv_factor_dBm.eval();
+
+        // Dimensional analysis checks
+        static_assert(sci::units::is_power<decltype(power_conv_factor)>);
+        static_assert(sci::units::is_dimensionless<decltype(conv_factor_dBm)>);
     }
 
     auto compute_phase_noise_from(std::array<float, data_size>& new_phase) {
+        auto phase_psd = spectrum.welch<sig::DENSITY, false>(new_phase);
+
         if (fft_navg > 1) {
-            averager.append(spectrum.welch<sig::DENSITY, false>(new_phase));
+            averager.append(std::move(phase_psd));
             return averager.average();
         } else {
-            return spectrum.welch<sig::DENSITY, false>(new_phase);
+            return phase_psd;
+        }
+    }
+
+    auto compute_jitter(const std::vector<float>& new_pn) {
+        const float f_dss = dds.get_dds_freq(channel);
+
+        if (sci::almost_equal(f_dss, 0.0f)) {
+            // No demodulation is DSS frequency is zero
+            const auto NaN = std::numeric_limits<float>::quiet_NaN();
+            phase_jitter = NaN;
+            time_jitter  = NaN;
+            f_lo_used    = NaN;
+            f_hi_used    = NaN;
+        } else {
+            const std::size_t n_bins = new_pn.size();
+            const float df = fs.eval() / float(fft_size);
+            const float f_min_avail = df;
+            const float f_max_avail = (n_bins - 1) * df;
+
+            auto log10f = [](float f) {
+                return std::log10(std::max(f, std::numeric_limits<float>::min()));
+            };
+
+            const float low_dec  = std::ceil(log10f(f_min_avail));
+            const float high_dec = std::floor(log10f(f_max_avail));
+
+            if (high_dec <= low_dec) {
+                // No full decade: integrate whole available band (excluding DC)
+                f_lo_used = f_min_avail;
+                f_hi_used = f_max_avail;
+                phase_jitter = sci::sqrt(sci::trapz(new_pn.begin() + 1, new_pn.end(), df));
+            } else {
+                f_lo_used = std::pow(10.0f, low_dec);
+                f_hi_used = std::pow(10.0f, high_dec);
+
+                std::size_t k1 = std::max(1u, static_cast<std::size_t>(std::ceil(f_lo_used / df)));
+                std::size_t k2 = std::min(n_bins - 1u, static_cast<std::size_t>(std::floor(f_hi_used / df)));
+
+                if (k2 <= k1) {
+                    k1 = std::max(1u, k1);
+                    k2 = std::min(n_bins - 1u, std::max(k1 + 1, k2));
+                }
+
+                phase_jitter = sci::sqrt(sci::trapz(new_pn.begin() + k1,
+                                                    new_pn.begin() + k2 + 1,
+                                                    df));
+            }
+
+            time_jitter = phase_jitter / (2.0f * sci::pi<float> * f_dss);
         }
     }
 };
@@ -235,6 +304,7 @@ inline void PhaseNoiseAnalyzer::acquisition_thread() {
         using namespace sci::operators;
         auto new_phase = get_data() * calib_factor;
         auto new_pn = compute_phase_noise_from(new_phase);
+        compute_jitter(new_pn);
 
         {
             std::unique_lock lk(mtx);
