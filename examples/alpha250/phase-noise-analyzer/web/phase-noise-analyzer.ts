@@ -11,11 +11,13 @@ interface IParameters {
   fft_navg: number;
 }
 
-type TupleGetJitter = [number, number];
+type TupleGetJitter = [number, number, number, number];
 
 interface IJitter {
   phase_jitter: number; // rad rms
   time_jitter: number;  // s rms
+  freq_lo: number; // Integration interval start
+  freq_hi: number; // Integration interval end
 }
 
 class PhaseNoiseAnalyzer {
@@ -57,10 +59,10 @@ class PhaseNoiseAnalyzer {
     return new Promise<IJitter>((resolve, reject) => {
       this.client.readTuple(
         Command(this.id, this.cmds['get_jitter']),
-        'ff',
+        'ffff',
         (tup: TupleGetJitter) => {
-          const [phase_jitter, time_jitter] = tup;
-          const jitters: IJitter = { phase_jitter, time_jitter };
+          const [phase_jitter, time_jitter, freq_lo, freq_hi] = tup;
+          const jitters: IJitter = { phase_jitter, time_jitter, freq_lo, freq_hi };
           resolve(jitters);
         });
     });

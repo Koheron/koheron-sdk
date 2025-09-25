@@ -86,7 +86,25 @@ class PhaseNoiseAnalyzerApp {
     this.driver.setFFTNavg(navg);
   }
 
-  private formatMeasurement(value: number, unit: string, digits: number = 2) {
+  private formatFrequency(freq: number): string {
+    if (Number.isNaN(freq)) {
+      return "---";
+    }
+
+    const absFreq = Math.abs(freq);
+
+    if (absFreq >= 1e9) {
+      return `${(freq / 1e9).toFixed(0)} GHz`;
+    } else if (absFreq >= 1e6) {
+      return `${(freq / 1e6).toFixed(0)} MHz`;
+    } else if (absFreq >= 1e3) {
+      return `${(freq / 1e3).toFixed(0)} kHz`;
+    } else {
+      return `${freq.toFixed(0)} Hz`;
+    }
+  }
+
+  private formatMeasurement(value: number, unit: string, digits: number = 2): string {
     if (Number.isNaN(value)) {
       return "---";
     } else {
@@ -97,13 +115,17 @@ class PhaseNoiseAnalyzerApp {
   private updateMeasurements() {
     let navg: number = 400;
     this.driver.getCarrierPower(navg, async (power: number) => {
-      this.carrierPowerSpan.innerHTML = this.formatMeasurement(power, "dBm")
+      this.carrierPowerSpan.innerHTML = this.formatMeasurement(power, "dBm");
 
       const jitters = await this.driver.getJitter();
-      this.phaseJitterSpan.innerHTML = this.formatMeasurement(jitters.phase_jitter * 1E3, "mrad<sub>rms</sub>");
-      this.timeJitterSpan.innerHTML = this.formatMeasurement(jitters.time_jitter * 1E12, "ps<sub>rms</sub>");
+      const freqRange = `(${this.formatFrequency(jitters.freq_lo)} - ${this.formatFrequency(jitters.freq_hi)})`;
 
-      requestAnimationFrame( () => { this.updateMeasurements(); } )
+      this.phaseJitterSpan.innerHTML =
+        this.formatMeasurement(jitters.phase_jitter * 1E3, `mrad<sub>rms</sub> ${freqRange}`);
+      this.timeJitterSpan.innerHTML =
+        this.formatMeasurement(jitters.time_jitter * 1E12, `ps<sub>rms</sub> ${freqRange}`);
+
+      requestAnimationFrame(() => { this.updateMeasurements(); });
     });
   }
 
