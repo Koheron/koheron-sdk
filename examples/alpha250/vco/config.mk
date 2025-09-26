@@ -7,6 +7,7 @@ CONFIG_YML = $(PROJECT_PATH)/config.yml
 
 XDC := $(BOARD_PATH)/config/ports.xdc
 
+include $(SDK_PATH)/boards/alpha250/cores/cores.mk
 CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
 CORES += $(SDK_PATH)/fpga/cores/right_shifter_v1_0
 

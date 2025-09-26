@@ -1,1 +1,1 @@
-include boards/alpha250/board.mk
+include $(SDK_PATH)/boards/alpha250/board.mk

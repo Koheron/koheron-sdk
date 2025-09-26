@@ -5,6 +5,7 @@ BOARD_PATH := $(SDK_PATH)/boards/alpha250-4
 
 CONFIG_YML = $(PROJECT_PATH)/config.yml
 
+include $(SDK_PATH)/boards/alpha250/cores/cores.mk
 CORES += $(SDK_PATH)/examples/alpha250/adc-dac-bram/address_counter_v1_0
 
 include $(SDK_PATH)/boards/alpha250-4/drivers/drivers.mk
