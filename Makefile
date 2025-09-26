@@ -109,7 +109,6 @@ include $(WEB_MK)
 # The instrument is packaged in a zip file that contains:
 # - FPGA bitstream
 # - TCP / Websocket server
-# - Bash configuration script
 # - Web files (HTML, CSS, Javascript)
 
 # Zip file that contains all the files needed to run the instrument:
@@ -157,44 +156,18 @@ PYTHON_PATH := $(SDK_PATH)/python
 PYTHON_MK ?= $(PYTHON_PATH)/python.mk
 include $(PYTHON_MK)
 
-###############################################################################
-# SETUP TARGETS
-###############################################################################
-
 .PHONY: setup
-setup: setup_docker setup_fpga setup_server setup_web setup_os
-
-.PHONY: setup_base
-setup_base:
+setup:
 	sudo apt-get install -y curl rsync $(PYTHON)-venv
 	[ -d $(VENV) ] || $(PYTHON) -m venv $(VENV)
 	$(VENV)/bin/$(PYTHON) -m ensurepip --upgrade
 	$(VENV)/bin/$(PYTHON) -m pip install --upgrade pip
 	$(PIP) install -r $(SDK_PATH)/requirements.txt
 	$(PIP) install $(SDK_PATH)/python
-
-.PHONY: setup_docker
-setup_docker: setup_base
 	bash docker/install_docker.sh
 	sudo usermod -aG docker $(shell whoami)
 	docker build -t cross-armhf:24.04 ./docker/.
-
-
-.PHONY: setup_fpga
-setup_fpga: setup_base
-	sudo apt-get install device-tree-compiler
-	sudo rm -f /usr/bin/gmake && sudo ln -s make /usr/bin/gmake
-
-.PHONY: setup_server
-setup_server: setup_base
-
-.PHONY: setup_web
-setup_web: setup_base web_builder
-
-.PHONY: setup_os
-setup_os: setup_base
-	sudo apt-get install -y libssl-dev bc qemu-user-static zerofree
-	sudo apt-get install -y lib32stdc++6 lib32z1 u-boot-tools
+	docker build -f $(WEB_PATH)/Dockerfile.web -t koheron-web:node20 $(WEB_PATH)
 
 ###############################################################################
 # CLEAN TARGETS
@@ -209,13 +182,3 @@ clean:
 .PHONY: clean_all
 clean_all:
 	rm -rf $(TMP)
-
-###############################################################################
-# BUILD ALL EXAMPLES AT ONCE
-###############################################################################
-
-.PHONY: print_variables
-print_variables:
-	@echo "CFG = $(CFG)"
-	@echo "NAME = $(NAME)"
-	@echo "BOARD = $(BOARD)"

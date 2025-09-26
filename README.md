@@ -6,23 +6,20 @@ https://www.koheron.com/software-development-kit
 
 ## Getting started
 
-The SDK is tested on an Ubuntu 22.04 development machine.
+The SDK is tested on an Ubuntu 24.04 development machine with Vivado/Vitis 2025.1.
 
-1. Install Vivado. Instruments can be built on Vivado versions newer than 2017.2. The OS can only be built with Vivado 2017.2. The branch [2023.2](https://github.com/Koheron/koheron-sdk/tree/2023.2) uses Vivado/Vitis 2023.2 and includes preliminary Zynq Utrascale support.
+1. Install Vivado/Vitis 2025.1.
 
-2. Install required packages
+2. Install required packages:
 
     ```bash
     $ make setup
     ```
 
-3. Install Ubuntu 22.04 for Zynq ([Download SD card image](https://www.koheron.com/software-development-kit/documentation/ubuntu-zynq/))
-
-4. Build and run an instrument
+3. Build the SD card image (Ubuntu 24.04.3 with xilinx-linux-v2025.1 kernel):
 
     ```bash
-    $ make CONFIG=examples/alpha250/adc-dac-bram/config.yml HOST=192.168.1.100 run
-    $ HOST=192.168.1.100 python3 examples/alpha250/adc-dac-bram/test.py
+    $ make -j CFG=examples/alpha250/adc-dac-bram/config.mk image
     ```
 
 Ready to develop your instrument? Read the [documentation](https://www.koheron.com/software-development-kit/documentation).
@@ -44,12 +41,12 @@ Ready to develop your instrument? Read the [documentation](https://www.koheron.c
 
 Build an instrument:
 ```
-$ make CONFIG=path/to/config.yml
+$ make CFG=path/to/config.mk
 ```
 
 Build an instrument block design:
 ```
-$ make CONFIG=path/to/config.yml block_design
+$ make CFG=path/to/config.mk block_design
 ```
 
 More commands are listed in the [documentation](https://www.koheron.com/software-development-kit/documentation/build-run-makefile).

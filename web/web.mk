@@ -1,18 +1,9 @@
 
-# Docker builder
-###############################################################################
-
-WEB_BUILDER_IMG ?= koheron-web:node20
-
-.PHONY: web_builder
-web_builder:
-	docker build -f $(WEB_PATH)/Dockerfile.web -t $(WEB_BUILDER_IMG) $(WEB_PATH)
-
 WEB_DOCKER_RUN := docker run --rm -t \
                   -u $$(id -u):$$(id -g) \
                   -v $(PWD):$(PWD) \
                   -w $(PWD) \
-                  $(WEB_BUILDER_IMG)
+                  koheron-web:node20
 
 # Typescript compiler
 ###############################################################################
