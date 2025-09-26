@@ -135,21 +135,13 @@ int WebSocket::set_send_header(unsigned char* bits, int64_t data_len,
     if (data_len <= 0xFFFF) {
         b[1] = MEDIUM_STREAM;
         // Write 16-bit big-endian length into b[2], b[3]
-        koheron::to_big_endian_bytes<std::uint64_t>(
-            static_cast<std::uint64_t>(data_len),
-            std::span<std::uint8_t>(b + 2, 2),
-            /*len=*/2
-        );
+        to_big_endian_bytes<std::uint64_t>(data_len, std::span(b + 2, 2), 2);
         return MEDIUM_OFFSET;
     }
 
     // Else: 64-bit big-endian length at b[2..9]
     b[1] = BIG_STREAM;
-    koheron::to_big_endian_bytes<std::uint64_t>(
-        static_cast<std::uint64_t>(data_len),
-        std::span<std::uint8_t>(b + 2, 8),
-        /*len=*/8
-    );
+    to_big_endian_bytes<std::uint64_t>(data_len, std::span(b + 2, 8), 8);
     return BIG_OFFSET;
 }
 
