@@ -309,11 +309,13 @@ $(LINUX_CONFIG): $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES) $(OS_PATH)/xilinx_
 	$(DOCKER) make -C $(LINUX_PATH) mrproper
 	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
 	@touch $@
+	$(call ok,$@)
 
 $(LINUX_BUILD_STAMP): $(LINUX_CONFIG)
 	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) \
 	  CROSS_COMPILE=$(GCC_ARCH)- --jobs=$(N_CPUS) $(KERNEL_BIN) dtbs
 	@touch $@
+	$(call ok,$@)
 
 $(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_BUILD_STAMP) | $(TMP_OS_PATH)/
 	cp $(LINUX_PATH)/arch/$(ARCH)/boot/$(KERNEL_BIN) $@
@@ -344,7 +346,7 @@ $(TMP_OS_PATH)/devicetree_linux: $(LINUX_PATH)/scripts/dtc/dtc
 	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
 	cp $(LINUX_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
-	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
+	$(call ok,$@)
 
 .PHONY: $(TMP_OS_PATH)/devicetree_uboot
 $(TMP_OS_PATH)/devicetree_uboot: $(TMP_OS_PATH)/u-boot.elf
