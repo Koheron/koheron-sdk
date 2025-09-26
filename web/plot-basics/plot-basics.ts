@@ -8,13 +8,15 @@ class PlotBasics {
     private range_x: jquery.flot.range;
     private range_y: jquery.flot.range;
     
+    private log_x: boolean;
     private log_y: boolean;
     public LogYaxisFormatter;
+    private decimate: boolean;
 
     private reset_range: boolean;
     private options: jquery.flot.plotOptions;
     private plot: jquery.flot.plot;
-    private plot_data: Array<Array<number>>;
+    private seriesOne: jquery.flot.dataSeries[];
 
     private isPeakDetection: boolean = true;
     private peakDatapointSpan: HTMLSpanElement;
@@ -38,10 +40,13 @@ class PlotBasics {
         this.range_y = <jquery.flot.range>{};
         this.range_y.from = this.y_min;
         this.range_y.to = this.y_max;
-        
+
+        this.log_x = false;
         this.log_y = false;
+        this.decimate = false;
 
         this.setPlot(this.range_x.from, this.range_x.to, this.range_y.from, this.range_y.to);
+        this.seriesOne = [{ label: '', data: [] }];
         this.rangeSelect(this.rangeFunction);
         this.dblClick(this.rangeFunction);
         this.onWheel(this.rangeFunction);
@@ -58,7 +63,6 @@ class PlotBasics {
 
         this.peakDatapointSpan = <HTMLSpanElement>document.getElementById("peak-datapoint");
 
-        this.plot_data = [];
         this.LogYaxisFormatter = (val, axis) => {};
 
         this.initUnitInputs();
@@ -71,7 +75,9 @@ class PlotBasics {
         this.options = {
             canvas: true,
             series: {
-                shadowSize: 0 // Drawing is faster without shadows
+                shadowSize: 0, // Drawing is faster without shadows
+                lines: { show: true, lineWidth: 2, fill: false },
+                points: { show: false }
             },
             yaxis: {
                 min: y_min,
@@ -155,12 +161,16 @@ class PlotBasics {
         this.reset_range = true;
     }
 
+    private static readonly log10T = (v: number) => Math.log(v) * Math.LOG10E;
+    private static readonly pow10  = (v: number) => Math.exp(v * Math.LN10);
+
     setLogX() {
+        this.log_x = true;
         this.options.xaxis.ticks = [0.001, 0.01, 0.1 ,1 ,10 ,100, 1000, 10000, 100000, 1000000, 10000000];
         this.options.xaxis.tickDecimals = 0;
-        this.options.xaxis.transform = (v) => {return v > 0 ? Math.log10(v) : null};
-        this.options.xaxis.inverseTransform = (v) => {return v!= null ? Math.pow(10, v) : 0.0};
-        this.options.xaxis.tickFormatter = (val, axis) => {
+        this.options.xaxis.transform = PlotBasics.log10T;
+        this.options.xaxis.inverseTransform = PlotBasics.pow10;
+        this.options.xaxis.tickFormatter = (val: number, axis) => {
             if (val >= 1E6) {
                 return (val / 1E6).toFixed(axis.tickDecimals) + "M";
             } else if (val >= 1E3) {
@@ -183,6 +193,14 @@ class PlotBasics {
         this.reset_range = true;
     }
 
+    enableDecimation() {
+        this.decimate = true;
+    }
+
+    disableDecimation() {
+        this.decimate = false;
+    }
+
     updateDatapointSpan(datapoint: number[], datapointSpan: HTMLSpanElement): void {
         let positionX: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).left;
         let positionY: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).top;
@@ -202,8 +220,118 @@ class PlotBasics {
         }
     }
 
+    private _decimated: number[][] = [];
+
+    // binary searches on already-sorted data by x
+    private bsLeft(data: number[][], x: number) {
+        let lo = 0, hi = data.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >>> 1;
+            if (data[mid][0] < x) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        return Math.min(Math.max(lo, 0), Math.max(data.length - 1, 0));
+    }
+
+    private bsRight(data: number[][], x: number) {
+        let lo = 0, hi = data.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >>> 1;
+            if (data[mid][0] <= x) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        return Math.min(Math.max(lo - 1, 0), Math.max(data.length - 1, 0));
+    }
+
+    // Decimate visible slice by canvas columns (log-x aware)
+    private decimateToCanva(plot_data: number[][], xMin: number, xMax: number): number[][] {
+        const out = this._decimated; out.length = 0;
+
+        if (!plot_data.length || !(xMax > xMin)) {
+            return out;
+        }
+
+        const ph = this.plot?.getPlaceholder() ?? this.plot_placeholder;
+        const wAll = ph.width() || 800;
+        const off = this.plot ? this.plot.getPlotOffset() : { left: 0, right: 0 };
+        const innerW = Math.max(1, wAll - (off.left || 0) - (off.right || 0));
+        const axes = this.plot?.getAxes();
+
+        const colFromX = (x: number) => {
+            const pt = this.plot!.pointOffset({ x, y: axes.yaxis.min });
+            return Math.floor(pt.left - off.left);
+        };
+
+        const i0 = this.bsLeft(plot_data, xMin);
+        const i1 = this.bsRight(plot_data, xMax);
+    
+        let currCol = -2;
+        let minY = Infinity, maxY = -Infinity, minI = -1, maxI = -1;
+
+        for (let i = i0; i <= i1; i++) {
+            const x = plot_data[i][0];
+            const y = plot_data[i][1];
+            const col = colFromX(x);
+
+            if (col < 0 || col >= innerW) {
+                continue;
+            }
+
+            if (col !== currCol) {
+                if (currCol >= 0) {
+                    if (minI >= 0) {
+                        out.push(plot_data[minI]);
+                    }
+
+                    if (maxI >= 0 && maxI !== minI) {
+                        out.push(plot_data[maxI]);
+                    }
+                }
+                currCol = col;
+                minY = Infinity; maxY = -Infinity; minI = -1; maxI = -1;
+            }
+
+            if (Number.isFinite(y)) {
+                if (y < minY) { minY = y; minI = i; }
+                if (y > maxY) { maxY = y; maxI = i; }
+            }
+        }
+
+        if (currCol >= 0) {
+            if (minI >= 0) {
+                out.push(plot_data[minI]);
+            }
+
+            if (maxI >= 0 && maxI !== minI) {
+                out.push(plot_data[maxI]);
+            }
+        }
+        return out;
+    }
+
     redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void) {
-        const plt_data: jquery.flot.dataSeries[] = [{label: ylabel, data: plot_data}];
+        if (!this.plot) {
+            this.seriesOne[0].label = ylabel;
+            this.seriesOne[0].data  = []; // temporary
+            this.plot = $.plot(this.plot_placeholder, this.seriesOne, this.options);
+        }
+
+        if (this.decimate) {
+            const xMin = this.reset_range ? this.range_x.from : this.plot.getAxes().xaxis.min;
+            const xMax = this.reset_range ? this.range_x.to   : this.plot.getAxes().xaxis.max;
+            const drawData = this.decimateToCanva(plot_data, xMin, xMax);
+            this.seriesOne[0].data  = drawData;
+        } else {
+            this.seriesOne[0].data  = plot_data;
+        }
+
+        this.seriesOne[0].label = ylabel;
 
         if (this.reset_range) {
             if (this.log_y) {
@@ -224,7 +352,7 @@ class PlotBasics {
             this.options.xaxis.max = this.range_x.to;
             this.options.yaxis.min = this.range_y.from;
             this.options.yaxis.max = this.range_y.to;
-            this.plot = $.plot(this.plot_placeholder, plt_data, this.options);
+            this.plot = $.plot(this.plot_placeholder, this.seriesOne, this.options);
             this.plot.setupGrid();
 
             this.range_y.from = this.plot.getAxes().yaxis.min;
@@ -232,7 +360,7 @@ class PlotBasics {
 
             this.reset_range = false;
         } else {
-            this.plot.setData(plt_data);
+            this.plot.setData(this.seriesOne);
             this.plot.draw();
         }
 
@@ -321,51 +449,55 @@ class PlotBasics {
         callback();
     }
 
+    redrawTwoChannels(ch0: number[][],
+                      ch1: number[][],
+                      range_x: jquery.flot.range,
+                      label1: string,
+                      label2: string,
+                      is_channel_1: boolean,
+                      is_channel_2: boolean,
+                      callback: () => void): void {
+        if (ch0.length === 0 || ch1.length === 0) {
+            callback();
+            return;
+        }
 
-    redrawTwoChannels(ch0: number[][], ch1: number[][],
-        range_x: jquery.flot.range, label1: string, label2: string, is_channel_1: boolean, is_channel_2: boolean, callback: () => void): void {
+        let plotCh0: number[][] = [];
+        let plotCh1: number[][] = [];
 
-     if (ch0.length === 0 || ch1.length === 0) {
-         callback();
-         return;
-     }
+        if (is_channel_1 && is_channel_2) {
+            plotCh0 = ch0;
+            plotCh1 = ch1;
+            // plotData = [ch0, ch1];
+        } else if (is_channel_1 && !is_channel_2) {
+            plotCh0 = ch0;
+            plotCh1 = [];
+        } else if (!is_channel_1 && is_channel_2) {
+            plotCh0 = [];
+            plotCh1 = ch1;
+        } else {
+            plotCh0 = [];
+            plotCh1 = [];
+        }
 
-     let plotCh0: number[][] = [];
-     let plotCh1: number[][] = [];
+        const plt_data: jquery.flot.dataSeries[] = [{label: label1, data: plotCh0}, {label: label2, data: plotCh1}];
 
-     if (is_channel_1 && is_channel_2) {
-         plotCh0 = ch0;
-         plotCh1 = ch1;
-         // plotData = [ch0, ch1];
-     } else if (is_channel_1 && !is_channel_2) {
-         plotCh0 = ch0;
-         plotCh1 = [];
-     } else if (!is_channel_1 && is_channel_2) {
-         plotCh0 = [];
-         plotCh1 = ch1;
-     } else {
-         plotCh0 = [];
-         plotCh1 = [];
-     }
+        if (this.reset_range) {
+            this.options.xaxis.min = range_x.from;
+            this.options.xaxis.max = range_x.to;
+            this.options.yaxis.min = this.range_y.from;
+            this.options.yaxis.max = this.range_y.to;
 
-     const plt_data: jquery.flot.dataSeries[] = [{label: label1, data: plotCh0}, {label: label2, data: plotCh1}];
+            this.plot = $.plot(this.plot_placeholder, plt_data, this.options);
 
-     if (this.reset_range) {
-         this.options.xaxis.min = range_x.from;
-         this.options.xaxis.max = range_x.to;
-         this.options.yaxis.min = this.range_y.from;
-         this.options.yaxis.max = this.range_y.to;
+            this.plot.setupGrid();
+            this.reset_range = false;
+        } else {
+            this.plot.setData(plt_data);
+            this.plot.draw();
+        }
 
-         this.plot = $.plot(this.plot_placeholder, plt_data, this.options);
-
-         this.plot.setupGrid();
-         this.reset_range = false;
-     } else {
-         this.plot.setData(plt_data);
-         this.plot.draw();
-     }
-
-     callback();
+        callback();
     }
 
     onWheel(rangeFunction: string): void {
@@ -468,5 +600,4 @@ class PlotBasics {
             this.hoverDatapointSpan.style.display = "none";
         });
     }
-
 }

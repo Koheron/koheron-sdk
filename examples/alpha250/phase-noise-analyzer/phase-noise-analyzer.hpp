@@ -156,6 +156,10 @@ class PhaseNoiseAnalyzer
     }
 
     void set_fft_navg(uint32_t n_avg) {
+        if (n_avg > 200) {
+            n_avg = 200;
+        }
+
         fft_navg = n_avg;
         averager.set_navg(fft_navg);
     }
