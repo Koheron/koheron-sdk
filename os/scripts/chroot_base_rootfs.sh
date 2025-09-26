@@ -80,7 +80,7 @@ eatmydata apt-get -yq install -o Dpkg::Use-Pty=0 --no-install-recommends \
   openssh-server usbutils psmisc lsof parted curl less nano iw \
   cloud-guest-utils e2fsprogs bash-completion unzip udev net-tools netbase \
   lsb-base sudo rsync kmod nginx \
-  python3-flask uwsgi-core uwsgi-plugin-python3 python3-simplejson \
+  python3-flask uwsgi-core uwsgi-plugin-python3 python3-simplejson python3-systemd\
   iproute2
 
 # Networkd config (end0 via DHCP)
