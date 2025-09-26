@@ -95,20 +95,15 @@ class Common
         blinker = std::thread([this]{
             using namespace std::chrono;
             constexpr auto step = milliseconds(100);
-
-            // t = 0s → 0x00
-            try { gpio.set_led(0x00); } catch (...) {}
+            gpio.set_led(0x00);
             auto next_tick = std::chrono::steady_clock::now() + step;
-
-            uint32_t pat = 0x01; // next at 0.125s
+            uint32_t pat = 0x01;
 
             while (!blinker_should_stop.load(std::memory_order_acquire)) {
-                try { gpio.set_led(pat); } catch (...) {}
-
+                gpio.set_led(pat);
                 std::this_thread::sleep_until(next_tick);
                 next_tick += step;
 
-                // shift left; wrap 0x80 → 0x01
                 pat = (pat == 0x80) ? 0x01 : ((pat << 1) & 0xFF);
             }
         });
@@ -116,7 +111,7 @@ class Common
 
     void stop_blink() {
         blinker_should_stop.store(true, std::memory_order_release);
-        if (blinker.joinable()) { try { blinker.join(); } catch (...) {} }
+        if (blinker.joinable()) {blinker.join();}
     }
 
   private:
