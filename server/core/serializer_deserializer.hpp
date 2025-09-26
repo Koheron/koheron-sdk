@@ -273,10 +273,14 @@ struct CommandBuilder {
     template<class C>
     void push_container(const C& c) {
         using V = typename C::value_type;
-        const std::uint32_t nbytes = static_cast<std::uint32_t>(c.size() * sizeof(V));
-        append<uint32_t>(append_raw(4), nbytes);
+        static_assert(std::ranges::contiguous_range<C>);
+
+        const std::uint32_t nbytes = c.size() * sizeof(V);
+        out->reserve(out->size() + 4 + nbytes);
+        unsigned char* p = append_raw(4 + nbytes);
+        append<uint32_t>(p, nbytes);
         if (nbytes) {
-            std::memcpy(append_raw(nbytes), c.data(), nbytes);
+            std::memcpy(p + 4, c.data(), nbytes);
         }
     }
 
