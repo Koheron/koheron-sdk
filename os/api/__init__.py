@@ -8,74 +8,47 @@ from werkzeug.utils import secure_filename
 from systemd import journal as _sd_journal
 from datetime import datetime, timezone
 
-DEFAULT_UNIT = "koheron-server.service"   # <- single source of truth
+
+DEFAULT_UNIT = "koheron-server.service"
 MAX_LINES = 5000
 
-def _ts_us(entry) -> int:
-    v = entry.get("__REALTIME_TIMESTAMP", 0)
+def _ts_us(e) -> int:
+    v = e.get("__REALTIME_TIMESTAMP", 0)
     if isinstance(v, (int, float)): return int(v)
     if hasattr(v, "timestamp"):      return int(v.timestamp() * 1_000_000)
     if isinstance(v, str):
-        try:    return int(v)
-        except:
-            try:
-                return int(datetime.fromisoformat(v).timestamp() * 1_000_000)
-            except: return 0
+        try: return int(v)
+        except: return 0
     return 0
 
-def _prio(entry) -> int:
-    v = entry.get("PRIORITY", 6)
-    try: return int(v)
-    except:
-        names = {"emerg":0,"alert":1,"crit":2,"err":3,"warning":4,"notice":5,"info":6,"debug":7}
-        return names.get(str(v).lower(), 6)
-
-def _reader_for_unit_strict(unit: str) -> "_sd_journal.Reader":
+def _reader() -> "_sd_journal.Reader":
     r = _sd_journal.Reader()
-    try: r.this_boot()
+    try: r.this_boot()         # keep results to current boot
     except Exception: pass
-    if not unit.endswith(".service"):
-        unit = unit + ".service"
-    r.add_match(_SYSTEMD_UNIT=unit)
+    r.add_match(_SYSTEMD_UNIT=DEFAULT_UNIT)
     return r
 
-def _read_journal_json_unit(unit: str, cursor: str | None, n: int) -> dict:
-    r = _reader_for_unit_strict(unit)
+def _read(cursor: str | None, n: int) -> dict:
+    r = _reader()
     limit = MAX_LINES if n <= 0 else min(n, MAX_LINES)
-    entries, last_cursor = [], None
+    entries, last = [], None
 
     if cursor:
         try:
-            r.seek_cursor(cursor); r.get_next()
+            r.seek_cursor(cursor); r.get_next()   # skip the cursor entry
         except Exception:
             return {"cursor": None, "entries": []}
     else:
         r.seek_tail()
-        stepped = 0
-        while stepped < limit and r.get_previous():
-            stepped += 1
+        for _ in range(limit):
+            if not r.get_previous(): break
 
     for e in r:
-        entries.append({"ts": _ts_us(e), "prio": _prio(e), "msg": e.get("MESSAGE", "")})
-        last_cursor = e.get("__CURSOR", last_cursor)
+        entries.append({"ts": _ts_us(e), "msg": e.get("MESSAGE", "")})
+        last = e.get("__CURSOR", last)
         if cursor and len(entries) >= limit:
             break
-    return {"cursor": last_cursor, "entries": entries}
-
-def _filter_entries(entries: list[dict]) -> list[dict]:
-    try: prio_limit = int(request.args.get("prio_at_most", 7))
-    except: prio_limit = 7
-    contains = request.args.get("contains")
-    try: since_ms = int(request.args.get("since_ms")) if request.args.get("since_ms") else None
-    except: since_ms = None
-
-    out = []
-    for e in entries:
-        if e.get("prio", 7) > prio_limit: continue
-        if contains and contains not in e.get("msg", ""): continue
-        if since_ms is not None and e.get("ts", 0) < since_ms * 1000: continue
-        out.append(e)
-    return out
+    return {"cursor": last, "entries": entries}
 
 def is_zip(filename):
     base = os.path.basename(filename)
@@ -240,18 +213,15 @@ def upload_instrument():
 @app.route("/api/logs/koheron", methods=["GET"])
 def logs_tail():
     lines = int(request.args.get("lines", 200))
-    data = _read_journal_json_unit(DEFAULT_UNIT, cursor=None, n=lines)
-    data["entries"] = _filter_entries(data["entries"])
+    data = _read(cursor=None, n=lines)
     if not data["entries"]:
-        return jsonify({"error": f"no logs for {DEFAULT_UNIT} in this boot"}), 404
+        return jsonify({"error": f"no logs for {DEFAULT_UNIT}"}), 404
     return jsonify(data)
 
 @app.route("/api/logs/koheron/incr", methods=["GET"])
 def logs_incr():
     cursor = request.args.get("cursor")
-    data = _read_journal_json_unit(DEFAULT_UNIT, cursor=cursor, n=0)
-    data["entries"] = _filter_entries(data["entries"])
-    return jsonify(data)
+    return jsonify(_read(cursor=cursor, n=0))
 
 # ------------------------
 # System manifest / release as JSON
