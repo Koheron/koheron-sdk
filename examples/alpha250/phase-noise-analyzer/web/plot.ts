@@ -174,21 +174,7 @@ class Plot {
       }
 
       // --- Fetch one thing per tick: the data ---
-      // If your driver can return { data, rev }, use it to skip identical frames.
-      // Otherwise this will just be a Float32Array.
-      const pn = await this.driver.getPhaseNoise() as any;
-      const phaseNoise: Float32Array = pn.data ?? pn;   // support both shapes
-      const rev: number | undefined = pn.rev;
-
-      if (rev !== undefined) {
-        if (this._lastRev !== null && rev === this._lastRev) {
-          // Nothing new → skip redraw
-          this._busy = false;
-          requestAnimationFrame(() => this.updatePlot());
-          return;
-        }
-        this._lastRev = rev;
-      }
+      const phaseNoise: Float32Array = await this.driver.getPhaseNoise();
 
       // --- Prepare plot data in-place (no new arrays) ---
       const nstart = 3;

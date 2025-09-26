@@ -69,7 +69,6 @@ class Session : public SessionAbstract
         builder.reset_into(send_buffer);
         builder.write_header<class_id, func_id>();
         builder.push(std::forward<Args>(args)...);
-        builder.finalize();
         const auto bytes_send = write(send_buffer.data(), send_buffer.size());
 
         if (bytes_send == 0) {
