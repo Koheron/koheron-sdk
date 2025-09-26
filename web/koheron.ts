@@ -444,29 +444,56 @@ class Client {
         }
     }
 
-    getPayload(mode: 'static' | 'dynamic', evt: MessageEvent) {
-        let buffer, dvBuff, i, len;
-        let dv = new DataView(evt.data);
-        let reserved = dv.getUint32(0);
-        let classId = dv.getUint16(4);
-        let funcId = dv.getUint16(6);
+    getPayload(
+        mode: 'static' | 'dynamic',
+        evt: MessageEvent<ArrayBuffer>
+    ): Payload {
+        const STATIC_HEADER_BYTES  = 8;   // reserved(4) + classId(2) + funcId(2)
+        const DYNAMIC_HEADER_BYTES = 12;  // + length(4) at offset 8
 
-        if (mode === 'static') {
-            len = dv.byteLength - 8;
-            buffer = new ArrayBuffer(len);
-            dvBuff = new DataView(buffer);
-            for (i = 0, end = len-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) { var asc, end;
-            dvBuff.setUint8(i, dv.getUint8(8 + i)); }
-        } else { // 'dynamic'
-            len = dv.getUint32(8);
-            console.assert(dv.byteLength === (len + 12));
-            buffer = new ArrayBuffer(len);
-            dvBuff = new DataView(buffer);
-            for (i = 0, end1 = len-1, asc1 = 0 <= end1; asc1 ? i <= end1 : i >= end1; asc1 ? i++ : i--) { var asc1, end1;
-            dvBuff.setUint8(i, dv.getUint8(12 + i)); }
+        const buf = evt.data;
+        if (!(buf instanceof ArrayBuffer)) {
+            // If this ever triggers, ensure: websocket.binaryType = 'arraybuffer'
+            throw new Error('Expected ArrayBuffer in MessageEvent.data');
         }
 
-        return [dvBuff, classId, funcId];
+        const dv = new DataView(buf);
+        if (dv.byteLength < STATIC_HEADER_BYTES) {
+            throw new Error(`Frame too small: ${dv.byteLength} < ${STATIC_HEADER_BYTES}`);
+        }
+
+        // Header
+        // reserved is available if you need it later:
+        // const reserved = dv.getUint32(0);
+        const classId = dv.getUint16(4);
+        const funcId  = dv.getUint16(6);
+
+        let offset: number;
+        let len: number;
+
+        if (mode === 'static') {
+            offset = STATIC_HEADER_BYTES;
+            len = dv.byteLength - STATIC_HEADER_BYTES;
+
+            if (len < 0) {
+                throw new Error('Negative payload length (static).');
+            }
+        } else {
+            if (dv.byteLength < DYNAMIC_HEADER_BYTES) {
+                throw new Error(`Frame too small for dynamic header: ${dv.byteLength} < ${DYNAMIC_HEADER_BYTES}`);
+            }
+
+            len = dv.getUint32(8);
+
+            if (dv.byteLength !== len + DYNAMIC_HEADER_BYTES) {
+                throw new Error(`Bad dynamic length: expected ${len + DYNAMIC_HEADER_BYTES}, got ${dv.byteLength}`);
+            }
+
+            offset = DYNAMIC_HEADER_BYTES;
+        }
+
+        const payloadView = new DataView(buf, offset, len);
+        return { dv: payloadView, classId, funcId };
     }
 
     private _readBaseAsync(
@@ -516,9 +543,8 @@ class Client {
                 const onMessage = (evt: MessageEvent) => {
                     try {
                         const payload = this.getPayload(mode, evt);
-                        const dv: DataView = payload[0];
                         cleanup(websocket, onMessage, onError, onClose);
-                        resolve(dv);
+                        resolve(payload.dv);
                     } catch (e) {
                         cleanup(websocket, onMessage, onError, onClose);
                         reject(e instanceof Error ? e : new Error(String(e)));
@@ -560,7 +586,7 @@ class Client {
     readUint32Array(cmd: CmdMessage, fn?: (x: Uint32Array) => void) {
         return this._dual(async () => {
             const dv = await this._readBaseAsync('static', cmd);
-            return new Uint32Array(dv.buffer);
+            return new Uint32Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
         }, fn);
     }
 
@@ -569,7 +595,7 @@ class Client {
     readInt32Array(cmd: CmdMessage, fn?: (x: Int32Array) => void) {
         return this._dual(async () => {
             const dv = await this._readBaseAsync('static', cmd);
-            return new Int32Array(dv.buffer);
+            return new Int32Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
         }, fn);
     }
 
@@ -578,7 +604,7 @@ class Client {
     readFloat32Array(cmd: CmdMessage, fn?: (x: Float32Array) => void) {
         return this._dual(async () => {
             const dv = await this._readBaseAsync('static', cmd);
-            return new Float32Array(dv.buffer);
+            return new Float32Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
         }, fn);
     }
 
@@ -587,7 +613,7 @@ class Client {
     readFloat64Array(cmd: CmdMessage, fn?: (x: Float64Array) => void) {
         return this._dual(async () => {
             const dv = await this._readBaseAsync('static', cmd);
-            return new Float64Array(dv.buffer);
+            return new Float64Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
         }, fn);
     }
 
@@ -596,7 +622,7 @@ class Client {
     readUint32Vector(cmd: CmdMessage, fn?: (x: Uint32Array) => void) {
         return this._dual(async () => {
             const dv = await this._readBaseAsync('dynamic', cmd);
-            return new Uint32Array(dv.buffer);
+            return new Uint32Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
         }, fn);
     }
 
@@ -605,7 +631,7 @@ class Client {
     readFloat32Vector(cmd: CmdMessage, fn?: (x: Float32Array) => void) {
         return this._dual(async () => {
             const dv = await this._readBaseAsync('dynamic', cmd);
-            return new Float32Array(dv.buffer);
+            return new Float32Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
         }, fn);
     }
 
@@ -614,7 +640,7 @@ class Client {
     readFloat64Vector(cmd: CmdMessage, fn?: (x: Float64Array) => void) {
         return this._dual(async () => {
             const dv = await this._readBaseAsync('dynamic', cmd);
-            return new Float64Array(dv.buffer);
+            return new Float64Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
         }, fn);
     }
 
@@ -799,12 +825,12 @@ class Imports {
     private importLinks: HTMLLinkElement[];
 
     constructor (document: Document) {
-      this.importLinks = <HTMLLinkElement[]><any>document.querySelectorAll('link[rel="import"]');
-      for (let i = 0; i < this.importLinks.length ; i++) {
-        let template = (this.importLinks[i] as any).import.querySelector('.template');
-        let clone = document.importNode(template.content, true);
-        let parentId = this.importLinks[i].dataset.parent;
-        document.getElementById(parentId).appendChild(clone);
-      }
+        this.importLinks = <HTMLLinkElement[]><any>document.querySelectorAll('link[rel="import"]');
+        for (let i = 0; i < this.importLinks.length ; i++) {
+            let template = (this.importLinks[i] as any).import.querySelector('.template');
+            let clone = document.importNode(template.content, true);
+            let parentId = this.importLinks[i].dataset.parent;
+            document.getElementById(parentId).appendChild(clone);
+        }
     }
-  }
+}
