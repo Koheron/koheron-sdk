@@ -15,12 +15,10 @@ class DDS {
   setDDSFreq(channel: number, freq_hz: number): void {
     this.client.send(Command(this.id, this.cmds['set_dds_freq'], channel, freq_hz));
   }
-  getDDSFreq(channel: number): Promise<number> {
-    return new Promise<number>((resolve, reject) => {
-      this.client.readFloat64(
-        Command(this.id, this.cmds['get_dds_freq'], channel),
-        (data: number) => { resolve(data); }
-      );
-    });
+
+  async getDDSFreq(channel: number): Promise<number> {
+    return await this.client.readFloat64(
+      Command(this.id, this.cmds['get_dds_freq'], channel)
+    );
   }
 }

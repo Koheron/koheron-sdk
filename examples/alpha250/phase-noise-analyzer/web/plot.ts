@@ -78,47 +78,46 @@ class Plot {
     return Number.isFinite(freqDdsHz) && Math.abs(freqDdsHz) >= 1;
   }
 
-  updatePlot() {
-    this.driver.getPhaseNoise(async (phaseNoise: Float32Array) => {
-      const parameters = await this.driver.getParameters();
-      const ddsFreq = await app.dds.getDDSFreq(parameters.channel);
+  async updatePlot() {
+    const phaseNoise: Float32Array = await this.driver.getPhaseNoise();
+    const parameters = await this.driver.getParameters();
+    const ddsFreq = await app.dds.getDDSFreq(parameters.channel);
 
-      const plotEmptyDiv: HTMLElement = document.getElementById('plot-empty');
+    const plotEmptyDiv: HTMLElement = document.getElementById('plot-empty');
 
-      if (!this.loIsSet(ddsFreq)) {
-        // Display message asking to turn on the DDS
-        plotEmptyDiv.classList.remove('hidden');
-        requestAnimationFrame(() => { this.updatePlot(); });
-        return;
+    if (!this.loIsSet(ddsFreq)) {
+      // Display message asking to turn on the DDS
+      plotEmptyDiv.classList.remove('hidden');
+      requestAnimationFrame(() => { this.updatePlot(); });
+      return;
+    } else {
+      plotEmptyDiv.classList.add('hidden');
+    }
+
+    if (parameters.fs != this.samplingFrequency) {
+      this.samplingFrequency = parameters.fs;
+      this.setFreqAxis();
+    }
+
+    // Remove the first points of the FFT
+    const nstart = 3;
+    const binWidth = this.samplingFrequency / (2 * this.n_pts);
+
+    for (let i = 0; i < this.n_pts; i++) {
+      if (i < nstart - 1) {
+        this.plot_data[i] = [0, NaN];
       } else {
-        plotEmptyDiv.classList.add('hidden');
+        this.plot_data[i] = [
+          (i - 1) * binWidth,
+          10 * Math.log10(0.5 * phaseNoise[i]) // rad²/Hz => dBc/Hz
+        ];
       }
+    }
 
-      if (parameters.fs != this.samplingFrequency) {
-        this.samplingFrequency = parameters.fs;
-        this.setFreqAxis();
-      }
+    this.getDecadeValues();
 
-      // Remove the first points of the FFT
-      const nstart = 3;
-      const binWidth = this.samplingFrequency / (2 * this.n_pts);
-
-      for (let i = 0; i < this.n_pts; i++) {
-        if (i < nstart - 1) {
-          this.plot_data[i] = [0, NaN];
-        } else {
-          this.plot_data[i] = [
-            (i - 1) * binWidth,
-            10 * Math.log10(0.5 * phaseNoise[i]) // rad²/Hz => dBc/Hz
-          ];
-        }
-      }
-
-      this.getDecadeValues();
-
-      this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, () => {
-        requestAnimationFrame(() => { this.updatePlot(); });
-      });
+    this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, () => {
+      requestAnimationFrame(() => { this.updatePlot(); });
     });
   }
 }

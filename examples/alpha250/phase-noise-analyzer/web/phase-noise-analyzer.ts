@@ -31,36 +31,24 @@ class PhaseNoiseAnalyzer {
     this.cmds = this.driver.getCmds();
   }
 
-  getData(callback: (data: Uint32Array) => void): void {
-    this.client.readUint32Array(Command(this.id, this.cmds['get_data']), (data: Uint32Array) => {
-      callback(data);
-    });
-  }
-
-  getParameters(): Promise<IParameters> {
-    return new Promise<IParameters>((resolve, reject) => {
-      this.client.readTuple(
+  async getParameters(): Promise<IParameters> {
+    const [data_size, fs, channel, cic_rate, fft_navg] =
+      await this.client.readTuple<TupleGetParameters>(
         Command(this.id, this.cmds['get_parameters']),
-        'IfIII',
-        (tup: TupleGetParameters) => {
-          const [data_size, fs, channel, cic_rate, fft_navg] = tup;
-          const params: IParameters = { data_size, fs, channel, cic_rate, fft_navg };
-          resolve(params);
-        });
-    });
+        'IfIII'
+      );
+
+    return { data_size, fs, channel, cic_rate, fft_navg };
   }
 
-  getJitter(): Promise<IJitter> {
-    return new Promise<IJitter>((resolve, reject) => {
-      this.client.readTuple(
+  async getJitter(): Promise<IJitter> {
+    const [phase_jitter, time_jitter, freq_lo, freq_hi] =
+      await this.client.readTuple<TupleGetJitter>(
         Command(this.id, this.cmds['get_jitter']),
-        'ffff',
-        (tup: TupleGetJitter) => {
-          const [phase_jitter, time_jitter, freq_lo, freq_hi] = tup;
-          const jitters: IJitter = { phase_jitter, time_jitter, freq_lo, freq_hi };
-          resolve(jitters);
-        });
-    });
+        'ffff'
+      );
+
+    return { phase_jitter, time_jitter, freq_lo, freq_hi };
   }
 
   setFFTNavg(navg: number): void {
@@ -71,10 +59,8 @@ class PhaseNoiseAnalyzer {
     this.client.send(Command(this.id, this.cmds['set_local_oscillator'], channel, freqHz));
   }
 
-  getPhaseNoise(callback: (data: Float32Array) => void): void {
-    this.client.readFloat32Array(Command(this.id, this.cmds['get_phase_noise']), (data: Float32Array) => {
-      callback(data);
-    });
+  async getPhaseNoise(): Promise<Float32Array> {
+    return await this.client.readFloat32Array(Command(this.id, this.cmds['get_phase_noise']));
   }
 
   setCicRate(cic_rate: number): void {
@@ -85,9 +71,9 @@ class PhaseNoiseAnalyzer {
     this.client.send(Command(this.id, this.cmds['set_channel'], channel));
   }
 
-  getCarrierPower(nAverage: number, callback: (data: number) => void): void {
-    this.client.readFloat64(Command(this.id, this.cmds['get_carrier_power'], nAverage), (data: number) => {
-      callback(data);
-    });
+  async getCarrierPower(nAverage: number): Promise<number> {
+    return await this.client.readFloat64(
+      Command(this.id, this.cmds['get_carrier_power'], nAverage)
+    );
   }
 }

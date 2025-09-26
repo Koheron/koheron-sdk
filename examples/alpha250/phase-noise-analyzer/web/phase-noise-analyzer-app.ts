@@ -114,21 +114,20 @@ class PhaseNoiseAnalyzerApp {
     }
   }
 
-  private updateMeasurements() {
-    let navg: number = 400;
-    this.driver.getCarrierPower(navg, async (power: number) => {
-      this.carrierPowerSpan.innerHTML = this.formatMeasurement(power, "dBm");
+  private async updateMeasurements() {
+    const navg: number = 400;
+    const power = await this.driver.getCarrierPower(navg)
+    this.carrierPowerSpan.innerHTML = this.formatMeasurement(power, "dBm");
 
-      const jitters = await this.driver.getJitter();
-      const freqRange = `(${this.formatFrequency(jitters.freq_lo)} - ${this.formatFrequency(jitters.freq_hi)})`;
+    const jitters = await this.driver.getJitter();
+    const freqRange = `(${this.formatFrequency(jitters.freq_lo)} - ${this.formatFrequency(jitters.freq_hi)})`;
 
-      this.phaseJitterSpan.innerHTML =
-        this.formatMeasurement(jitters.phase_jitter * 1E3, `mrad<sub>rms</sub> ${freqRange}`);
-      this.timeJitterSpan.innerHTML =
-        this.formatMeasurement(jitters.time_jitter * 1E12, `ps<sub>rms</sub> ${freqRange}`);
+    this.phaseJitterSpan.innerHTML =
+      this.formatMeasurement(jitters.phase_jitter * 1E3, `mrad<sub>rms</sub> ${freqRange}`);
+    this.timeJitterSpan.innerHTML =
+      this.formatMeasurement(jitters.time_jitter * 1E12, `ps<sub>rms</sub> ${freqRange}`);
 
-      requestAnimationFrame(() => { this.updateMeasurements(); });
-    });
+    requestAnimationFrame(() => { this.updateMeasurements(); });
   }
 
   private async updateControls(): Promise<void> {
