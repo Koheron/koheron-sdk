@@ -8,12 +8,17 @@ class PhaseNoiseAnalyzerApp {
   private carrierPowerSpan: HTMLElement;
   private phaseJitterSpan: HTMLElement;
   private timeJitterSpan: HTMLElement;
+
+  private ddsInputs: HTMLInputElement[];
+  private ddsSetButtons: HTMLButtonElement[];
+
   private isEditingCic: boolean;
   private isEditingNavg: boolean;
+  private isEditingDdsInputs: boolean;
   public nPoints: number;
   public channel: number;
 
-  constructor(document: Document, private driver) {}
+  constructor(document: Document, private driver: PhaseNoiseAnalyzer) {}
 
   async init(callback: () => void): Promise<void> {
     const parameters = await this.driver.getParameters();
@@ -23,6 +28,11 @@ class PhaseNoiseAnalyzerApp {
     this.carrierPowerSpan = <HTMLElement>document.getElementsByClassName("carrier-power-span")[0];
     this.phaseJitterSpan = <HTMLElement>document.getElementsByClassName("phase-jitter-span")[0];
     this.timeJitterSpan = <HTMLElement>document.getElementsByClassName("time-jitter-span")[0];
+
+    this.ddsInputs = [0, 1].map(i =>
+      document.querySelector<HTMLInputElement>(`.dds-input${i}`)!);
+    this.ddsSetButtons = [0, 1].map(i =>
+      document.querySelector<HTMLButtonElement>(`.dds-set${i}`)!);
 
     this.initCicRateInput();
     this.initNavgInput();
@@ -50,6 +60,22 @@ class PhaseNoiseAnalyzerApp {
           let command = (<HTMLInputElement>event.currentTarget).dataset.command;
           let value = (<HTMLInputElement>event.currentTarget).value;
           this.driver[command](value);
+      });
+    }
+
+    for (let channel = 0; channel < this.ddsInputs.length; channel++) {
+      this.ddsInputs[channel].addEventListener("focus", () => {
+        this.isEditingDdsInputs = true;
+      });
+
+      this.ddsInputs[channel].addEventListener("change", () => {
+        this.isEditingDdsInputs = true;
+      });
+
+      this.ddsSetButtons[channel].addEventListener('click', (event) => {
+          this.driver.setLocalOscillator(channel, 1E6 * parseFloat(this.ddsInputs[channel].value));
+          this.isEditingDdsInputs = false;
+          this.updateControls();
       });
     }
   }
@@ -147,6 +173,11 @@ class PhaseNoiseAnalyzerApp {
 
     if (!this.isEditingNavg) {
       this.nAvgInput.value = parameters.fft_navg.toString();
+    }
+
+    if (!this.isEditingDdsInputs) {
+      this.ddsInputs[0].value = (parameters.fdds0 / 1E6).toString();
+      this.ddsInputs[1].value = (parameters.fdds1 / 1E6).toString();
     }
 
     requestAnimationFrame( () => { this.updateControls(); } )

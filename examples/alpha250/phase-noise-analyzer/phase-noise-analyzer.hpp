@@ -116,7 +116,9 @@ class PhaseNoiseAnalyzer
             fs.eval(),
             channel,
             cic_rate,
-            fft_navg
+            fft_navg,
+            dds.get_dds_freq(0),
+            dds.get_dds_freq(1)
         };
     }
 

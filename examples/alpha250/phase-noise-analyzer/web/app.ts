@@ -1,7 +1,6 @@
 class App {
     private imports: Imports;
     public dds: DDS;
-    public ddsFrequency: DDSFrequency;
     private clockGenerator: ClockGenerator;
     private clockGeneratorApp: ClockGeneratorApp;
     private phaseNoiseAnalyzer: PhaseNoiseAnalyzer;
@@ -29,7 +28,6 @@ class App {
                 this.phaseNoiseAnalyzer = new PhaseNoiseAnalyzer(client);
 
                 this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
-                this.ddsFrequency = new DDSFrequency(document, this.phaseNoiseAnalyzer);
                 this.phaseNoiseAnalyzerApp = new PhaseNoiseAnalyzerApp(document, this.phaseNoiseAnalyzer);
 
                 this.phaseNoiseAnalyzerApp.init( () => {

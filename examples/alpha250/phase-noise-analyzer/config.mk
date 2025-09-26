@@ -1,5 +1,5 @@
 NAME := phase-noise-analyzer
-VERSION := 0.2.1
+VERSION := 1.0.0
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
 
@@ -24,7 +24,6 @@ WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
 WEB_FILES += $(PROJECT_PATH)/web/dds-frequency/dds-frequency.html
-WEB_FILES += $(PROJECT_PATH)/web/dds-frequency/dds-frequency.ts
 WEB_FILES += $(PROJECT_PATH)/web/index.html
 WEB_FILES += $(PROJECT_PATH)/web/app.ts
 WEB_FILES += $(PROJECT_PATH)/web/dds.ts

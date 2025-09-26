@@ -1,7 +1,7 @@
 // Interface for the Phase Noise Analyzer driver
 // (c) Koheron
 
-type TupleGetParameters = [number, number, number, number, number];
+type TupleGetParameters = [number, number, number, number, number, number, number];
 
 interface IParameters {
   data_size: number; // fft_size/2
@@ -9,6 +9,8 @@ interface IParameters {
   channel: number;   // Acquired channel
   cic_rate: number;
   fft_navg: number;
+  fdds0: number;
+  fdds1: number;
 }
 
 type TupleGetJitter = [number, number, number, number];
@@ -32,13 +34,13 @@ class PhaseNoiseAnalyzer {
   }
 
   async getParameters(): Promise<IParameters> {
-    const [data_size, fs, channel, cic_rate, fft_navg] =
+    const [data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1] =
       await this.client.readTuple<TupleGetParameters>(
         Command(this.id, this.cmds['get_parameters']),
-        'IfIII'
+        'IfIIIdd'
       );
 
-    return { data_size, fs, channel, cic_rate, fft_navg };
+    return { data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1 };
   }
 
   async getJitter(): Promise<IJitter> {
