@@ -91,11 +91,8 @@ root_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '3!d')"
 
 # --- Create file systems ---
 mkfs.vfat -F 16 -n BOOT "$boot_dev"
-mkfs.ext4 -F -L rootfs \
-  -O metadata_csum,64bit,fast_commit \
-  -J size=64,fast_commit_size=4 \
-  -E lazy_itable_init=1,lazy_journal_init=1 \
-  "$root_dev"
+mkfs.ext4 -F -L rootfs -O metadata_csum,64bit \
+  -E lazy_itable_init=1,lazy_journal_init=1 "$root_dev"
 tune2fs -m 0 -c 0 -i 6m "$root_dev"
 
 # --- Mount file systems ---
