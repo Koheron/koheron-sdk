@@ -22,4 +22,4 @@ DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.hpp
 # Web assets
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
-WEB_FILES += $(shell find $(PROJECT_PATH)/web -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css'\))
+WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
