@@ -264,14 +264,9 @@ struct CommandBuilder {
     template<uint16_t class_id, uint16_t func_id>
     void write_header() {
         auto p = append_raw(4 + 2 + 2);
-        // 4 bytes placeholder
+        append<uint32_t>(p, 0); // Reserved
         append<uint16_t>(p + 4, class_id);
         append<uint16_t>(p + 6, func_id);
-    }
-
-    void finalize() noexcept {
-        const std::size_t payload = out->size() - 4;
-        append<uint32_t>(out->data(), static_cast<std::uint32_t>(payload));
     }
 
     // containers
@@ -303,6 +298,7 @@ struct CommandBuilder {
             std::memcpy(append_raw(sv.size()), sv.data(), sv.size());
         }
     }
+
     void push_cstr(const char* s) {
         const auto len = std::char_traits<char>::length(s);
         append<uint32_t>(append_raw(4), len);
@@ -324,16 +320,21 @@ struct CommandBuilder {
     void push_one(T&& v) {
         using U = std::remove_cvref_t<T>;
 
-        if constexpr (ScalarLike<U>) {
-            push_scalar(std::forward<T>(v));
+        constexpr bool CStrPtr =
+            std::is_pointer_v<U> &&
+            std::is_same_v<std::remove_cv_t<std::remove_pointer_t<U>>, char>;
+        constexpr bool CStrArray =
+            std::is_array_v<U> &&
+            std::is_same_v<std::remove_cv_t<std::remove_extent_t<U>>, char>;
+
+        if constexpr (CStrPtr || CStrArray) {
+            push_cstr(v);
         } else if constexpr (is_std_tuple_v<U>) {
             push_tuple(std::forward<T>(v));
         } else if constexpr (StdArray<U>) {
             push_array(v);
-        } else if constexpr (std::is_pointer_v<U> && std::is_same_v<std::remove_cv_t<std::remove_pointer_t<U>>, char>) {
-            push_cstr(v);
-        } else if constexpr (std::is_array_v<U> && std::is_same_v<std::remove_cv_t<std::remove_extent_t<U>>, char>) {
-            push_cstr(v);
+        } else if constexpr (ScalarLike<U>) {
+            push_scalar(std::forward<T>(v));
         } else {
             push_container(v);
         }

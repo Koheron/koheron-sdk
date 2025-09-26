@@ -78,46 +78,135 @@ class Plot {
     return Number.isFinite(freqDdsHz) && Math.abs(freqDdsHz) >= 1;
   }
 
+  private _busy = false;
+  private _targetHz = 15;                 // UI update cadence
+  private _lastTick = 0;
+  private _paramCheckIntervalMs = 1000;   // fetch params ~1 Hz
+  private _lastParamCheck = 0;
+  private _paramCache: any = null;
+  private _lastRev: number | null = null; // or timestamp from device if available
+  private _loBackoffMs = 250;             // slower polling when LO is off
+
+  // async updatePlot() {
+  //   const phaseNoise: Float32Array = await this.driver.getPhaseNoise();
+  //   const parameters = await this.driver.getParameters();
+  //   const ddsFreq = await app.dds.getDDSFreq(parameters.channel);
+
+  //   const plotEmptyDiv: HTMLElement = document.getElementById('plot-empty');
+
+  //   if (!this.loIsSet(ddsFreq)) {
+  //     // Display message asking to turn on the DDS
+  //     plotEmptyDiv.classList.remove('hidden');
+  //     requestAnimationFrame(() => { this.updatePlot(); });
+  //     return;
+  //   } else {
+  //     plotEmptyDiv.classList.add('hidden');
+  //   }
+
+  //   if (parameters.fs != this.samplingFrequency) {
+  //     this.samplingFrequency = parameters.fs;
+  //     this.setFreqAxis();
+  //   }
+
+  //   // Remove the first points of the FFT
+  //   const nstart = 3;
+  //   const binWidth = this.samplingFrequency / (2 * this.n_pts);
+
+  //   for (let i = 0; i < this.n_pts; i++) {
+  //     if (i < nstart - 1) {
+  //       this.plot_data[i] = [0, NaN];
+  //     } else {
+  //       this.plot_data[i] = [
+  //         (i - 1) * binWidth,
+  //         10 * Math.log10(0.5 * phaseNoise[i]) // rad²/Hz => dBc/Hz
+  //       ];
+  //     }
+  //   }
+
+  //   this.getDecadeValues();
+
+  //   this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, () => {
+  //     requestAnimationFrame(() => { this.updatePlot(); });
+  //   });
+  // }
+
   async updatePlot() {
-    const phaseNoise: Float32Array = await this.driver.getPhaseNoise();
-    const parameters = await this.driver.getParameters();
-    const ddsFreq = await app.dds.getDDSFreq(parameters.channel);
+    // Don’t overlap ticks (prevents stacking fetch+redraw)
+    if (this._busy) return;
+    this._busy = true;
 
-    const plotEmptyDiv: HTMLElement = document.getElementById('plot-empty');
+    const frameBudgetMs = 1000 / this._targetHz;
+    const now = performance.now();
+    const sinceLast = now - this._lastTick;
 
-    if (!this.loIsSet(ddsFreq)) {
-      // Display message asking to turn on the DDS
-      plotEmptyDiv.classList.remove('hidden');
-      requestAnimationFrame(() => { this.updatePlot(); });
+    // Throttle to targetHz
+    if (sinceLast < frameBudgetMs) {
+      this._busy = false;
+      setTimeout(() => requestAnimationFrame(() => this.updatePlot()), Math.ceil(frameBudgetMs - sinceLast));
       return;
-    } else {
-      plotEmptyDiv.classList.add('hidden');
     }
+    this._lastTick = now;
 
-    if (parameters.fs != this.samplingFrequency) {
-      this.samplingFrequency = parameters.fs;
-      this.setFreqAxis();
-    }
+    try {
+      // --- Params: poll sparsely (~1 Hz) ---
+      if (!this._paramCache || (now - this._lastParamCheck) > this._paramCheckIntervalMs) {
+        this._paramCache = await this.driver.getParameters();
+        this._lastParamCheck = performance.now();
+      }
+      const parameters = this._paramCache;
 
-    // Remove the first points of the FFT
-    const nstart = 3;
-    const binWidth = this.samplingFrequency / (2 * this.n_pts);
+      const ddsFreq = await app.dds.getDDSFreq(parameters.channel);
+      const plotEmptyDiv: HTMLElement = document.getElementById('plot-empty')!;
 
-    for (let i = 0; i < this.n_pts; i++) {
-      if (i < nstart - 1) {
-        this.plot_data[i] = [0, NaN];
+      if (!this.loIsSet(ddsFreq)) {
+        plotEmptyDiv.classList.remove('hidden');
+        this._busy = false;
+        // Back off while idle; don’t hammer the backend
+        setTimeout(() => requestAnimationFrame(() => this.updatePlot()), this._loBackoffMs);
+        return;
       } else {
+        plotEmptyDiv.classList.add('hidden');
+      }
+
+      if (parameters.fs !== this.samplingFrequency) {
+        this.samplingFrequency = parameters.fs;
+        this.setFreqAxis();
+      }
+
+      // --- Fetch one thing per tick: the data ---
+      const phaseNoise: Float32Array = await this.driver.getPhaseNoise();
+
+      // --- Prepare plot data in-place (no new arrays) ---
+      const nstart = 3;
+      const binWidth = this.samplingFrequency / (2 * this.n_pts);
+  
+      for (let i = 0; i < this.n_pts; i++) {
         this.plot_data[i] = [
           (i - 1) * binWidth,
           10 * Math.log10(0.5 * phaseNoise[i]) // rad²/Hz => dBc/Hz
         ];
       }
+
+      this.getDecadeValues();
+
+      // --- Redraw once; when done, schedule next tick ---
+      this.plotBasics.redraw(
+        this.plot_data,
+        this.n_pts,
+        this.peakDatapoint,
+        this.yLabel,
+        () => {
+          this._busy = false;
+          const elapsed = performance.now() - now;
+          const delay = Math.max(0, Math.ceil(frameBudgetMs - elapsed));
+          setTimeout(() => requestAnimationFrame(() => this.updatePlot()), delay);
+        }
+      );
+
+    } catch (err) {
+      console.error('updatePlot error:', err);
+      this._busy = false;
+      setTimeout(() => requestAnimationFrame(() => this.updatePlot()), 500);
     }
-
-    this.getDecadeValues();
-
-    this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, () => {
-      requestAnimationFrame(() => { this.updatePlot(); });
-    });
   }
 }

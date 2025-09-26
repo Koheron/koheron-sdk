@@ -210,11 +210,17 @@ class PhaseNoiseAnalyzer
         ctl.write_mask<reg::cordic, 0b1100>(0b0000);
     }
 
-    auto get_data() {
+    void kick_dma() {
         std::scoped_lock lk(dma_mtx);
         reset_phase_unwrapper();
         dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
+    }
+
+    auto read_dma() {
+        std::scoped_lock lk(dma_mtx);
         dma.wait_for_transfer(dma_transfer_duration);
+        // ram.read_array<> should return by value (copy). If it returns a view,
+        // copy it into a std::vector to decouple from the DMA destination.
         return ram.read_array<int32_t, data_size, read_offset>();
     }
 
@@ -308,13 +314,17 @@ inline void PhaseNoiseAnalyzer::start_acquisition() {
 
 inline void PhaseNoiseAnalyzer::acquisition_thread() {
     acquisition_started = true;
+    kick_dma();
 
     while (acquisition_started) {
         using namespace sci::operators;
 
-        auto new_phase = get_data() * calib_factor;
+        auto samples = read_dma(); // blocking wait
+        auto new_phase = samples * calib_factor;
 
-        if (dirty_cnt > 0) {
+        kick_dma(); // Immediately kick the next DMA so it runs while we compute
+
+        if (dirty_cnt.load(std::memory_order_relaxed) > 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             --dirty_cnt;
             averager.clear();
