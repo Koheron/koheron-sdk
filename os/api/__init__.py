@@ -1,8 +1,81 @@
 import os
 import json
 import subprocess
+import zipfile
 from flask import Flask, jsonify, request, make_response, Response
 from werkzeug.utils import secure_filename
+
+from systemd import journal as _sd_journal
+from datetime import datetime, timezone
+
+DEFAULT_UNIT = "koheron-server.service"   # <- single source of truth
+MAX_LINES = 5000
+
+def _ts_us(entry) -> int:
+    v = entry.get("__REALTIME_TIMESTAMP", 0)
+    if isinstance(v, (int, float)): return int(v)
+    if hasattr(v, "timestamp"):      return int(v.timestamp() * 1_000_000)
+    if isinstance(v, str):
+        try:    return int(v)
+        except:
+            try:
+                return int(datetime.fromisoformat(v).timestamp() * 1_000_000)
+            except: return 0
+    return 0
+
+def _prio(entry) -> int:
+    v = entry.get("PRIORITY", 6)
+    try: return int(v)
+    except:
+        names = {"emerg":0,"alert":1,"crit":2,"err":3,"warning":4,"notice":5,"info":6,"debug":7}
+        return names.get(str(v).lower(), 6)
+
+def _reader_for_unit_strict(unit: str) -> "_sd_journal.Reader":
+    r = _sd_journal.Reader()
+    try: r.this_boot()
+    except Exception: pass
+    if not unit.endswith(".service"):
+        unit = unit + ".service"
+    r.add_match(_SYSTEMD_UNIT=unit)
+    return r
+
+def _read_journal_json_unit(unit: str, cursor: str | None, n: int) -> dict:
+    r = _reader_for_unit_strict(unit)
+    limit = MAX_LINES if n <= 0 else min(n, MAX_LINES)
+    entries, last_cursor = [], None
+
+    if cursor:
+        try:
+            r.seek_cursor(cursor); r.get_next()
+        except Exception:
+            return {"cursor": None, "entries": []}
+    else:
+        r.seek_tail()
+        stepped = 0
+        while stepped < limit and r.get_previous():
+            stepped += 1
+
+    for e in r:
+        entries.append({"ts": _ts_us(e), "prio": _prio(e), "msg": e.get("MESSAGE", "")})
+        last_cursor = e.get("__CURSOR", last_cursor)
+        if cursor and len(entries) >= limit:
+            break
+    return {"cursor": last_cursor, "entries": entries}
+
+def _filter_entries(entries: list[dict]) -> list[dict]:
+    try: prio_limit = int(request.args.get("prio_at_most", 7))
+    except: prio_limit = 7
+    contains = request.args.get("contains")
+    try: since_ms = int(request.args.get("since_ms")) if request.args.get("since_ms") else None
+    except: since_ms = None
+
+    out = []
+    for e in entries:
+        if e.get("prio", 7) > prio_limit: continue
+        if contains and contains not in e.get("msg", ""): continue
+        if since_ms is not None and e.get("ts", 0) < since_ms * 1000: continue
+        out.append(e)
+    return out
 
 def is_zip(filename):
     base = os.path.basename(filename)
@@ -13,25 +86,20 @@ def get_name_from_zipfilename(zip_filename):
     split = os.path.splitext(base)
     return split[0] if split[1] == '.zip' else None
 
-def is_file_in_zip(zip_filename, target_filename):
-    """
-    zip_filename = "/usr/local/instruments/led-blinker.zip"
-    target_filename = "version" # file in zip_filename
-    """
+def zip_has_file(zip_filename: str, member: str) -> bool:
+    try:
+        with zipfile.ZipFile(zip_filename) as zf:
+            zf.getinfo(member)  # raises KeyError if missing
+            return True
+    except (KeyError, zipfile.BadZipFile, FileNotFoundError):
+        return False
 
-    zip_files_stdout = subprocess.Popen(["/usr/bin/unzip", "-l", zip_filename], stdout=subprocess.PIPE)
-    zip_files = zip_files_stdout.stdout.read()
-    return target_filename.encode() in zip_files
-
-def read_file_in_zip(zip_filename, target_filename):
-    """
-    zip_filename = "/usr/local/instruments/led-blinker.zip"
-    target_filename = "version" # file to read in zip_filename
-    """
-
-    target_stdout = subprocess.Popen(["/usr/bin/unzip", "-c", zip_filename, target_filename], stdout=subprocess.PIPE)
-    target_file_content = target_stdout.stdout.read().splitlines()[2]
-    return target_file_content
+def read_text_from_zip(zip_filename: str, member: str) -> str | None:
+    try:
+        with zipfile.ZipFile(zip_filename) as zf, zf.open(member) as f:
+            return f.read().decode("utf-8", errors="replace").strip()
+    except Exception:
+        return None
 
 class KoheronApp(Flask):
     instruments_dirname = "/usr/local/instruments/"
@@ -47,10 +115,7 @@ class KoheronApp(Flask):
         instrument = {}
         instrument["name"] = get_name_from_zipfilename(instrument_filename)
 
-        version = "0.0.0"
-
-        if (is_file_in_zip(instrument_filename, version_filename)):
-            version = read_file_in_zip(instrument_filename, version_filename).decode('utf8')
+        version = read_text_from_zip(instrument_filename, version_filename) or "0.0.0"
 
         instrument["version"] = version
         instrument["is_default"] = is_default
@@ -116,7 +181,7 @@ def get_instruments_details():
 def run_instrument(name):
     zip_filename = '{}.zip'.format(name)
     filename = os.path.join(app.instruments_dirname, secure_filename(zip_filename))
-    is_default = app.is_default_instrument(os.path.join(app.instruments_dirname, secure_filename(filename)), app.instruments_dirname, app.default_filename)
+    is_default = app.is_default_instrument(filename, app.instruments_dirname, app.default_filename)
     instrument_dict = app.get_instrument_dict(filename, is_default, app.version_filename)
     status = app.run_instrument(filename, app.live_instrument_dirname, instrument_dict)
 
@@ -157,7 +222,7 @@ def upload_instrument():
 
             for listed_instrument in app.instruments_list:
                 if listed_instrument["name"] == instrument["name"]:
-                    if listed_instrument["version"] != instrument["name"]:
+                    if listed_instrument["version"] != instrument["version"]:
                         app.instruments_list.remove(listed_instrument)
                     else:
                         is_instrument_in_list = True
@@ -172,53 +237,21 @@ def upload_instrument():
 # Koheron server log
 # ------------------------
 
-UNIT = "koheron-server"
-MAX_LINES = 5000
-
-def _read_journal_json(unit: str, cursor: str | None, n: int) -> dict:
-    # Build a safe argv list (no shell)
-    argv = ["journalctl", "-u", unit, "-o", "json"]
-    if cursor:
-        argv += ["--after-cursor", cursor]
-    else:
-        argv += ["-n", str(min(n, MAX_LINES))]
-
-    p = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                       text=True, check=False)
-    entries, last_cursor = [], cursor
-    for line in p.stdout.splitlines():
-        try:
-            j = json.loads(line)
-            entries.append({
-                "ts": j.get("__REALTIME_TIMESTAMP"),   # microseconds since epoch
-                "prio": int(j.get("PRIORITY", 6)),
-                "msg": j.get("MESSAGE", "")
-            })
-            last_cursor = j.get("__CURSOR", last_cursor)
-        except Exception:
-            continue
-    return {"cursor": last_cursor, "entries": entries}
-
 @app.route("/api/logs/koheron", methods=["GET"])
 def logs_tail():
     lines = int(request.args.get("lines", 200))
-    return jsonify(_read_journal_json(UNIT, None, lines))
+    data = _read_journal_json_unit(DEFAULT_UNIT, cursor=None, n=lines)
+    data["entries"] = _filter_entries(data["entries"])
+    if not data["entries"]:
+        return jsonify({"error": f"no logs for {DEFAULT_UNIT} in this boot"}), 404
+    return jsonify(data)
 
 @app.route("/api/logs/koheron/incr", methods=["GET"])
 def logs_incr():
     cursor = request.args.get("cursor")
-    return jsonify(_read_journal_json(UNIT, cursor, 0))
-
-@app.route("/api/logs/koheron/download", methods=["GET"])
-def logs_download():
-    lines = int(request.args.get("lines", 2000))
-    argv = ["journalctl", "-u", UNIT, "-o", "short-iso", "-n", str(min(lines, MAX_LINES))]
-    p = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                       text=True, check=False)
-    return Response(
-        p.stdout, mimetype="text/plain",
-        headers={"Content-Disposition": "attachment; filename=koheron-server.log"}
-    )
+    data = _read_journal_json_unit(DEFAULT_UNIT, cursor=cursor, n=0)
+    data["entries"] = _filter_entries(data["entries"])
+    return jsonify(data)
 
 # ------------------------
 # System manifest / release as JSON
