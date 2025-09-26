@@ -11,6 +11,7 @@ class PhaseNoiseAnalyzerApp {
   private isEditingCic: boolean;
   private isEditingNavg: boolean;
   public nPoints: number;
+  public channel: number;
 
   constructor(document: Document, private driver) {}
 
@@ -77,7 +78,8 @@ class PhaseNoiseAnalyzerApp {
   initChannelInput(): void {
     for (let i = 0; i < this.channelInputs.length; i++) {
       this.channelInputs[i].addEventListener('change', (event) => {
-          this.driver[(<HTMLInputElement>event.currentTarget).dataset.command](parseInt((<HTMLInputElement>event.currentTarget).value));
+        this.channel = parseInt((<HTMLInputElement>event.currentTarget).value);
+          this.driver[(<HTMLInputElement>event.currentTarget).dataset.command](this.channel);
       })
     }
   }

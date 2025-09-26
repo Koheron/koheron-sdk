@@ -20,14 +20,12 @@ class Plot {
     this.updatePlot();
   }
 
-  init() {
-    this.driver.start(async () => {
-      const parameters = await this.driver.getParameters();
-      this.n_pts = parameters.data_size;
-      this.samplingFrequency = parameters.fs;
-      this.setFreqAxis();
-      this.plotBasics.setLogX();
-    });
+  async init() {
+    const parameters = await this.driver.getParameters();
+    this.n_pts = parameters.data_size;
+    this.samplingFrequency = parameters.fs;
+    this.setFreqAxis();
+    this.plotBasics.setLogX();
   }
 
   setFreqAxis(): void {
@@ -67,13 +65,34 @@ class Plot {
       let freqCell = row.insertCell(0);
       freqCell.innerHTML = this.frequencyFormater(value[0]);
       let valueCell = row.insertCell(1);
-      valueCell.innerHTML = value[1].toFixed(2) + " dBc/Hz";
+
+      if (Number.isFinite(value[1])) {
+        valueCell.innerHTML = value[1].toFixed(2) + " dBc/Hz";
+      } else {
+        valueCell.innerHTML = "---";
+      }
     }
+  }
+
+  private loIsSet(freqDdsHz: number): boolean {
+    return Number.isFinite(freqDdsHz) && Math.abs(freqDdsHz) >= 1;
   }
 
   updatePlot() {
     this.driver.getPhaseNoise(async (phaseNoise: Float32Array) => {
       const parameters = await this.driver.getParameters();
+      const ddsFreq = await app.dds.getDDSFreq(parameters.channel);
+
+      const plotEmptyDiv: HTMLElement = document.getElementById('plot-empty');
+
+      if (!this.loIsSet(ddsFreq)) {
+        // Display message asking to turn on the DDS
+        plotEmptyDiv.classList.remove('hidden');
+        requestAnimationFrame(() => { this.updatePlot(); });
+        return;
+      } else {
+        plotEmptyDiv.classList.add('hidden');
+      }
 
       if (parameters.fs != this.samplingFrequency) {
         this.samplingFrequency = parameters.fs;

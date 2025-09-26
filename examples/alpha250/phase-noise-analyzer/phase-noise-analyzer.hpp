@@ -8,6 +8,7 @@
 #include <context.hpp>
 
 #include <array>
+#include <atomic>
 #include <complex>
 #include <cstdint>
 #include <cmath>
@@ -25,8 +26,8 @@
 #include <boards/alpha250/drivers/clock-generator.hpp>
 #include <boards/alpha250/drivers/ltc2157.hpp>
 #include <server/drivers/dma-s2mm.hpp>
-#include <dds.hpp>
 
+#include "dds.hpp"
 #include "moving_averager.hpp"
 
 namespace {
@@ -72,8 +73,10 @@ class PhaseNoiseAnalyzer
         start_acquisition();
     }
 
-    void start() {
-        dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
+    void set_local_oscillator(uint32_t channel, double freq_hz) {
+        dirty_cnt = 4;
+        dds.set_dds_freq(channel, freq_hz);
+        averager.clear();
     }
 
     void set_cic_rate(uint32_t rate) {
@@ -91,6 +94,7 @@ class PhaseNoiseAnalyzer
         ctx.logf<INFO>("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
         spectrum.fs(fs);
         averager.clear();
+        dirty_cnt = 2;
         ctl.write<reg::cic_rate>(cic_rate);
     }
 
@@ -174,6 +178,7 @@ class PhaseNoiseAnalyzer
     uint32_t channel;
     uint32_t fft_navg;
     uint32_t cic_rate;
+    std::atomic<int32_t> dirty_cnt = 0;
     sci::units::frequency<float> fs_adc, fs;
     sci::units::time<float> dma_transfer_duration;
 
@@ -233,7 +238,7 @@ class PhaseNoiseAnalyzer
         static_assert(sci::units::is_dimensionless<decltype(conv_factor_dBm)>);
     }
 
-    auto compute_phase_noise_from(std::array<float, data_size>& new_phase) {
+    auto compute_phase_noise(std::array<float, data_size>& new_phase) {
         auto phase_psd = spectrum.welch<sig::DENSITY, false>(new_phase);
 
         if (fft_navg > 1) {
@@ -306,8 +311,17 @@ inline void PhaseNoiseAnalyzer::acquisition_thread() {
 
     while (acquisition_started) {
         using namespace sci::operators;
+
         auto new_phase = get_data() * calib_factor;
-        auto new_pn = compute_phase_noise_from(new_phase);
+
+        if (dirty_cnt > 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            --dirty_cnt;
+            averager.clear();
+            continue;
+        }
+
+        auto new_pn = compute_phase_noise(new_phase);
         compute_jitter(new_pn);
 
         {

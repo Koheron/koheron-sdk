@@ -37,11 +37,6 @@ class PhaseNoiseAnalyzer {
     });
   }
 
-  start(callback: () => void): void {
-    this.client.send(Command(this.id, this.cmds['start']));
-    callback();
-  }
-
   getParameters(): Promise<IParameters> {
     return new Promise<IParameters>((resolve, reject) => {
       this.client.readTuple(
@@ -70,6 +65,10 @@ class PhaseNoiseAnalyzer {
 
   setFFTNavg(navg: number): void {
     this.client.send(Command(this.id, this.cmds['set_fft_navg'], navg));
+  }
+
+  setLocalOscillator(channel: number, freqHz: number): void {
+    this.client.send(Command(this.id, this.cmds['set_local_oscillator'], channel, freqHz));
   }
 
   getPhaseNoise(callback: (data: Float32Array) => void): void {

@@ -16,14 +16,7 @@
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
-
-  <style>
-    /* Override only for this page */
-    #plot-placeholder.plot-placeholder {
-      height: 750px;
-      width: 100%;
-    }
-  </style>
+  <link rel="stylesheet" type="text/css" href="phase-noise-plot.css">
 
   <script type="text/javascript" src="html-imports.min.js"></script>
 
@@ -35,7 +28,6 @@
   <link rel="import" href="reference-clock.html" data-parent="reference-clock">
   <link rel="import" href="plot-basics.html" data-parent="plot-basics">
   <link rel="import" href="export-file.html" data-parent="export-file">
-
 </head>
 
 <body>
@@ -44,7 +36,16 @@
   <div id="main" class="container-fluid" style="padding: 10px">
     <div class="row">
       <div class="col-md-8">
-        <div id="plot-placeholder" class="plot-placeholder"></div>
+        <div id="plot-wrap">
+          <div id="plot-placeholder" class="plot-placeholder"></div>
+          <div id="plot-empty" class="plot-empty hidden">
+            <div class="plot-empty-card">
+              <h4>Local oscillator not set</h4>
+              <p>Set the DDS frequency to start measurement.</p>
+            </div>
+          </div>
+        </div>
+
         <div id="plot-basics"></div>
       </div>
 
@@ -119,8 +120,6 @@
       </div>
     </div>
   </div>
-
-
 
   <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
