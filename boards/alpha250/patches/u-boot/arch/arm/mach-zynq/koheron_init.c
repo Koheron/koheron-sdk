@@ -92,6 +92,7 @@ int misc_init_r(void)
 {
 	set_ethaddr_from_ocm();
 	set_serial_from_eeprom();
+	env_set("bootdelay", "1");
 	return 0;
 }
 
