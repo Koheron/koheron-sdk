@@ -152,7 +152,7 @@ class Eeprom
     int32_t __write_packet(int32_t offset, const uint8_t *packet, int32_t len)
     {
         int32_t packet_len = len + 2;
-        assert(packet_len <= PAGESIZE + 2);
+        assert(packet_len <= int32_t(PAGESIZE) + 2);
         uint8_t buffer[PAGESIZE + 2];
 
         buffer[0] = static_cast<uint8_t>(offset >> 8);
