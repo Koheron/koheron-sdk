@@ -1,5 +1,5 @@
 /*
-    * Koheron Alpha250 devicetree
+    * Koheron Alpha250 1G devicetree
      *
       * Copyright (C) 2015 Antmicro Ltd
        * Copyright (C) 2017 Koheron SAS
@@ -9,8 +9,8 @@
 /dts-v1/;
 #include "zynq-7000.dtsi"
 / {
-  model = "Koheron Alpha250";
-  compatible = "xlnx,zynq-alpha250","xlnx,zynq-7000";
+  model = "Koheron Alpha250 1G";
+  compatible = "xlnx,zynq-alpha250-1g","xlnx,zynq-7000";
   aliases {
     serial0 = &uart0;
     mmc0 = &sdhci0;

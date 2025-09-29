@@ -1,7 +1,2 @@
-include  $(SDK_PATH)/boards/alpha250-4/board.mk
-
+include  $(SDK_PATH)/boards/alpha250-1g/board.mk
 BOARD := alpha250-4-1g
-PART := xc7z020clg484-2
-
-# Linux and U-boot
-TMP_OS_BOARD_PATH := $(TMP)/alpha250-4-1g

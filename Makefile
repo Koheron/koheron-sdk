@@ -98,14 +98,19 @@ $(info XDC      = $(XDC))
 $(info CORES    = $(CORES))
 $(info DRIVERS  = $(DRIVERS))
 $(info WEB_FILES = $(WEB_FILES))
+$(info )
 
 include $(BOARD_MK)
 $(info ------------------------)
 $(info BOARD_MK = $(BOARD_MK))
 $(info ------------------------)
-$(info BOARD     = $(BOARD))
-$(info PART      = $(PART))
-$(info ZYNQ_TYPE = $(ZYNQ_TYPE))
+$(info BOARD             = $(BOARD))
+$(info PART              = $(PART))
+$(info ZYNQ_TYPE         = $(ZYNQ_TYPE))
+$(info TMP_OS_BOARD_PATH = $(TMP_OS_BOARD_PATH))
+$(info FSBL_PATH         = $(FSBL_PATH))
+$(info PATCHES           = $(PATCHES))
+$(info )
 
 BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit
 
