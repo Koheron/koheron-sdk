@@ -9,13 +9,11 @@
 
 #include <thread>
 
-extern "C" {
-  #include <sys/socket.h>   // socket definitions
-  #include <arpa/inet.h>    // inet (3) functions
-  #include <netinet/tcp.h>
-  #include <sys/types.h>    // socket types
-  #include <sys/un.h>
-}
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/tcp.h>
+#include <sys/types.h>
+#include <sys/un.h>
 
 namespace koheron {
 

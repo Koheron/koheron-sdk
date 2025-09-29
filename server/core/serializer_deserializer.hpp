@@ -5,6 +5,8 @@
 #ifndef __SERIALIZER_DESERIALIZER_HPP__
 #define __SERIALIZER_DESERIALIZER_HPP__
 
+#include "server/runtime/endian_utils.hpp"
+
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -19,8 +21,6 @@
 #include <span>
 #include <ranges>
 #include <memory_resource>
-
-#include "server/runtime/endian_utils.hpp"
 
 namespace koheron {
 

@@ -8,12 +8,10 @@
 #include <cstring>
 #include <array>
 
-extern "C" {
-  #include <sys/socket.h>
-  #include <sys/types.h>
-  #include <arpa/inet.h>
-  #include <ifaddrs.h>
-}
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
 
 #include <context.hpp>
 

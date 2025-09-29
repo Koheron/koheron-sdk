@@ -24,7 +24,7 @@
 #include <thread>
 #include <mutex>
 
-#include <server/runtime/syslog.hpp>
+#include "server/runtime/syslog.hpp"
 
 class I2cDev
 {

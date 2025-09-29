@@ -1,14 +1,14 @@
 #ifndef __DRIVERS_TABLE_HPP__
 #define __DRIVERS_TABLE_HPP__
 
+#include "server/runtime/meta_utils.hpp"
+
 #include <array>
 #include <memory>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
-#include "server/runtime/meta_utils.hpp"
 
 namespace koheron {
 

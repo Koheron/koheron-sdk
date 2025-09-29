@@ -1,7 +1,7 @@
 // (c) Koheron
 
-#include "i2c_dev.hpp"
-#include <server/runtime/syslog.hpp>
+#include "server/context/i2c_dev.hpp"
+#include "server/runtime/syslog.hpp"
 
 #include <dirent.h>
 

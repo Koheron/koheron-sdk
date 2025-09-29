@@ -5,11 +5,12 @@
 #ifndef __WEBSOCKET_HPP__
 #define __WEBSOCKET_HPP__
 
-#include <string>
-
 #include "server/core/configs/server_definitions.hpp"
 #include "server/core/configs/config.hpp"
 #include "server/core/commands.hpp"
+
+#include <string>
+#include <ranges>
 
 namespace koheron {
 
@@ -23,7 +24,8 @@ class WebSocket
     int receive_cmd(Command& cmd);
 
     /// Send binary blob
-    template<class T> int send(const T *data, unsigned int len);
+    template<std::ranges::contiguous_range R>
+    int send(const R& r);
 
     char* get_payload_no_copy() {return payload;}
     int64_t payload_size() const {return header.payload_size;}
@@ -100,21 +102,23 @@ class WebSocket
     int send_request(const unsigned char *bits, int64_t len);
 };
 
-template<class T>
-inline int WebSocket::send(const T *data, unsigned int len)
+template<std::ranges::contiguous_range R>
+inline int WebSocket::send(const R& r)
 {
+    using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
+
     if (connection_closed) {
         return 0;
     }
 
-    auto char_data_len = len * sizeof(T) / sizeof(char);
+    auto char_data_len = std::size(r) * sizeof(T) / sizeof(char);
 
     if (char_data_len + 10 > WEBSOCK_SEND_BUF_LEN) {
         return -1;
     }
 
     auto mask_offset = set_send_header(send_buf, char_data_len, (1 << 7) + BINARY_FRAME);
-    std::memcpy(&send_buf[mask_offset], data, char_data_len);
+    std::memcpy(&send_buf[mask_offset], std::data(r), char_data_len);
     return send_request(send_buf, static_cast<int64_t>(mask_offset) + static_cast<int64_t>(char_data_len));
 }
 

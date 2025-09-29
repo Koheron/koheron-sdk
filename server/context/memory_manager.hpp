@@ -5,17 +5,13 @@
 #ifndef __DRIVERS_LIB_MEMORY_MANAGER_HPP__
 #define __DRIVERS_LIB_MEMORY_MANAGER_HPP__
 
+#include "server/runtime/syslog.hpp"
+#include "server/context/memory_map.hpp"
+
 #include <vector>
 #include <tuple>
-
-#include <server/runtime/syslog.hpp>
-
-extern "C" {
-    #include <fcntl.h>
-    #include <sys/mman.h>
-}
-
-#include "memory_map.hpp"
+#include <fcntl.h>
+#include <sys/mman.h>
 
 // http://stackoverflow.com/questions/39041236/tuple-of-sequence
 template<size_t N, class = std::make_index_sequence<N>> class MemoryManagerImpl;

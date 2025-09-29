@@ -3,16 +3,6 @@
 #ifndef __KOHERON_SESSION_HPP__
 #define __KOHERON_SESSION_HPP__
 
-#include <string>
-#include <ctime>
-#include <vector>
-#include <array>
-#include <memory>
-#include <unistd.h>
-#include <type_traits>
-#include <cassert>
-#include <memory_resource>
-
 #include "server/core/configs/server_definitions.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
@@ -22,6 +12,16 @@
 #include "server/core/session_abstract.hpp"
 #include "server/core/drivers_executor.hpp"
 #include "server/core/websocket.hpp"
+
+#include <string>
+#include <vector>
+#include <array>
+#include <memory>
+#include <unistd.h>
+#include <type_traits>
+#include <cassert>
+#include <memory_resource>
+#include <ranges>
 
 namespace koheron {
 
@@ -69,7 +69,7 @@ class Session : public SessionAbstract
         builder.reset_into(send_buffer);
         builder.write_header<class_id, func_id>();
         builder.push(std::forward<Args>(args)...);
-        const auto bytes_send = write(send_buffer.data(), send_buffer.size());
+        const auto bytes_send = write(send_buffer);
 
         if (bytes_send == 0) {
             status = CLOSED;
@@ -132,7 +132,8 @@ class Session : public SessionAbstract
         return std::get<0>(buff.deserialize<uint32_t>());
     }
 
-    template<class T> int write(const T *data, unsigned int len);
+    template<std::ranges::contiguous_range R>
+    int write(const R& r);
 
 friend class SessionManager;
 };
@@ -252,11 +253,13 @@ inline std::tuple<int, Tp...> Session<TCP>::deserialize(Command&, std::true_type
 }
 
 template<>
-template<class T>
-inline int Session<TCP>::write(const T *data, unsigned int len)
+template<std::ranges::contiguous_range R>
+inline int Session<TCP>::write(const R& r)
 {
-    const auto bytes_send = sizeof(T) * len;
-    const int n_bytes_send = ::write(comm_fd, static_cast<const unsigned char*>(data), bytes_send);
+    using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
+
+    const auto bytes_send = sizeof(T) * std::size(r);
+    const int n_bytes_send = ::write(comm_fd, static_cast<const unsigned char*>(std::data(r)), std::size(r));
 
     if (n_bytes_send == 0) {
        print<ERROR>("TCPSocket::write: Connection closed by client\n");
@@ -345,10 +348,10 @@ inline std::tuple<int, Tp...> Session<WEBSOCK>::deserialize(Command& cmd, std::t
 }
 
 template<>
-template<class T>
-inline int Session<WEBSOCK>::write(const T *data, unsigned int len)
+template<std::ranges::contiguous_range R>
+inline int Session<WEBSOCK>::write(const R& r)
 {
-    return websock.send(data, len);
+    return websock.send(r);
 }
 
 

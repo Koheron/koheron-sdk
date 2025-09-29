@@ -106,7 +106,6 @@ class Xadc
 
   const uint32_t channel_0 = 1;
   const uint32_t channel_1 = 8;
-
 };
 
 #endif //__DRIVERS_XADC_HPP__

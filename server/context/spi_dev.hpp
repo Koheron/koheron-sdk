@@ -6,6 +6,8 @@
 #ifndef __DRIVERS_LIB_SPI_DEV_HPP__
 #define __DRIVERS_LIB_SPI_DEV_HPP__
 
+#include "server/runtime/syslog.hpp"
+
 #include <cstdint>
 #include <string>
 #include <memory>
@@ -22,8 +24,6 @@
 #include <sys/ioctl.h>
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
-
-#include <server/runtime/syslog.hpp>
 
 class SpiDev
 {

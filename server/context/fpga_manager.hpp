@@ -4,16 +4,14 @@
 #ifndef __SERVER_CONTEXT_FPGA_MANAGER__
 #define __SERVER_CONTEXT_FPGA_MANAGER__
 
-#include <unistd.h>
+#include "server/runtime/syslog.hpp"
 
 #include <array>
 #include <string>
 #include <vector>
 #include <filesystem>
 #include <sys/mount.h>
-
-#include <server/runtime/syslog.hpp>
-#include "memory.hpp"
+#include <unistd.h>
 
 #define str_(s) #s
 #define xstr_(s) str_(s)
