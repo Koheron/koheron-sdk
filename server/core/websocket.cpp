@@ -14,11 +14,15 @@
 #include <sstream>
 #include <iostream>
 #include <cstdlib>
+#include <string_view>
+#include <span>
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+using namespace std::string_view_literals;
 
 namespace koheron {
 
@@ -41,52 +45,63 @@ int WebSocket::authenticate()
         return -1;
     }
 
-    static const std::string WSKeyIdentifier("Sec-WebSocket-Key: ");
-    static const std::string WSProtocolIdentifier("Sec-WebSocket-Protocol: ");
-    static const std::string WSMagic("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+    constexpr auto WSKeyId  = "Sec-WebSocket-Key: "sv;
+    constexpr auto WSProtId = "Sec-WebSocket-Protocol: "sv;
+    constexpr auto WSMagic  = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"sv;
+    constexpr size_t WSKeyLen = 24; // per RFC: base64 of 16 bytes => 24 chars
+    constexpr size_t WSMagicLen = WSMagic.size();
 
-    bool is_protocol = (http_packet.find(WSProtocolIdentifier) != std::string::npos);
+    const bool is_protocol = (http_packet.find(WSProtId) != std::string_view::npos);
+    const size_t pos = http_packet.find(WSKeyId);
 
-    std::size_t pos = http_packet.find(WSKeyIdentifier);
-
-    if (pos == std::string::npos) {
-        print<CRITICAL>("WebSocket: No WebSocket Key");
+    if (pos == std::string_view::npos) {
+        print<CRITICAL>("WebSocket: No Sec-WebSocket-Key header");
         return -1;
     }
 
-    std::string key;
-    static const int WSKeyLen = 24;
-    key = http_packet.substr(pos + WSKeyIdentifier.length(), WSKeyLen);
-    key.append(WSMagic);
+    const size_t key_begin = pos + WSKeyId.size();
 
-    SHA1(reinterpret_cast<const unsigned char*>(key.c_str()), key.length(), sha_str);
-    std::string final_str = base64_encode(sha_str, 20);
-
-    std::ostringstream oss;
-    oss << "HTTP/1.1 101 Switching Protocols\r\n";
-    oss << "Upgrade: websocket\r\n";
-    oss << "Connection: Upgrade\r\n";
-    oss << "Sec-WebSocket-Accept: " << final_str << "\r\n";
-
-    // Chrome is not happy when the Protocol wasn't
-    // specified in the HTTP request:
-    // "Response must not include 'Sec-WebSocket-Protocol'
-    // header if not present in request: chat"
-    // so only answer protocol if requested
-    if (is_protocol) {
-        oss << "Sec-WebSocket-Protocol: chat\r\n";
+    if (key_begin + WSKeyLen > http_packet.size()) {
+        print<CRITICAL>("WebSocket: Truncated Sec-WebSocket-Key");
+        return -1;
     }
 
-    oss << "\r\n";
+    const std::string_view key_view = http_packet.substr(key_begin, WSKeyLen);
 
-    return send_request(oss.str());
+    // Concatenate key + magic into a small stack buffer (24 + 36 = 60 bytes)
+    std::array<char, WSKeyLen + WSMagicLen> concat;
+    std::memcpy(concat.data(), key_view.data(), WSKeyLen);
+    std::memcpy(concat.data() + WSKeyLen, WSMagic.data(), WSMagicLen);
+
+    // SHA1(concat) => base64
+    unsigned char sha[20];
+    SHA1(reinterpret_cast<const unsigned char*>(concat.data()), concat.size(), sha);
+    std::string accept_b64 = base64_encode(sha, sizeof(sha));
+
+    // Build response
+    std::string resp;
+    resp.reserve(160);
+    resp += "HTTP/1.1 101 Switching Protocols\r\n"
+            "Upgrade: websocket\r\n"
+            "Connection: Upgrade\r\n"
+            "Sec-WebSocket-Accept: ";
+    resp += accept_b64;
+    resp += "\r\n";
+
+    if (is_protocol) {
+        resp += "Sec-WebSocket-Protocol: chat\r\n";
+    }
+
+    resp += "\r\n";
+
+    return send_request(resp);
 }
 
 int WebSocket::read_http_packet()
 {
     reset_read_buff();
 
-    int nb_bytes_rcvd = read(comm_fd, read_str.data(), read_str.size());
+    const ssize_t nb_bytes_rcvd = ::read(comm_fd, read_str.data(), read_str.size());
 
     // Check reception ...
     if (nb_bytes_rcvd < 0) {
@@ -104,52 +119,57 @@ int WebSocket::read_http_packet()
         return -1;
     }
 
-    http_packet = std::string(read_str.data());
-    std::size_t delim_pos = http_packet.find("\r\n\r\n");
+    http_packet = std::string_view(read_str.data(), static_cast<size_t>(nb_bytes_rcvd));
 
-    if (delim_pos == std::string::npos) {
-        print<CRITICAL>("WebSocket: No HTML header found\n");
+    if (http_packet.find("\r\n\r\n") == std::string_view::npos) {
+        if (static_cast<size_t>(nb_bytes_rcvd) == read_str.size()) {
+            print<CRITICAL>("WebSocket: HTTP header too large for buffer\n");
+        } else {
+            print<CRITICAL>("WebSocket: Incomplete HTTP header\n");
+        }
         return -1;
     }
 
     print<DEBUG>("[R] HTTP header\n");
-    return nb_bytes_rcvd;
+    return static_cast<int>(nb_bytes_rcvd);
 }
 
-int WebSocket::set_send_header(unsigned char* bits, int64_t data_len,
-                               unsigned int format)
+int WebSocket::set_send_header(int64_t data_len, unsigned int format)
 {
-    std::memset(bits, 0, BIG_OFFSET);
+    if (data_len < 0) [[unlikely]] {
+        print<CRITICAL>("WebSocket: negative payload length\n");
+        return -1;
+    }
 
-    auto* b = reinterpret_cast<std::uint8_t*>(bits);
-    b[0] = static_cast<std::uint8_t>(format);
+    std::span<uint8_t> b(send_buf.data(), send_buf.size());
+    b[0] = static_cast<uint8_t>(format);
 
     if (data_len <= SMALL_STREAM) {
-        b[1] = static_cast<std::uint8_t>(data_len);
+        b[1] = static_cast<uint8_t>(data_len);
         return SMALL_OFFSET;
     }
 
     if (data_len <= 0xFFFF) {
         b[1] = MEDIUM_STREAM;
         // Write 16-bit big-endian length into b[2], b[3]
-        to_big_endian_bytes<std::uint64_t>(data_len, std::span(b + 2, 2), 2);
+        to_big_endian_bytes<uint64_t>(data_len, b.subspan(2, 2), 2);
         return MEDIUM_OFFSET;
     }
 
     // Else: 64-bit big-endian length at b[2..9]
     b[1] = BIG_STREAM;
-    to_big_endian_bytes<std::uint64_t>(data_len, std::span(b + 2, 8), 8);
+    to_big_endian_bytes<uint64_t>(data_len, b.subspan(2, 8), 8);
     return BIG_OFFSET;
 }
 
 int WebSocket::exit()
 {
-    return send_request(send_buf.data(), set_send_header(send_buf.data(), 0, (1 << 7) + CONNECTION_CLOSE));
+    return send_request(send_buf, set_send_header(0, (1 << 7) + CONNECTION_CLOSE));
 }
 
 int WebSocket::receive_cmd(Command& cmd)
 {
-    if (connection_closed) {
+    if (connection_closed) [[unlikely]] {
         return 0;
     }
 
@@ -172,35 +192,51 @@ int WebSocket::receive_cmd(Command& cmd)
 
 int WebSocket::decode_raw_stream_cmd(Command& cmd)
 {
-    if (read_str_len < header.header_size + 1) {
+    // We need: base header up to mask, +4 mask bytes, + payload bytes
+    const std::size_t need =
+        static_cast<std::size_t>(header.mask_offset) + 4u +
+        static_cast<std::size_t>(header.payload_size);
+
+    if (read_str_len < need) {
+        print<CRITICAL>("WebSocket: truncated masked frame\n");
         return -1;
     }
 
-    char *mask = read_str.data() + header.mask_offset;
-    char *payload_ptr = read_str.data() + header.mask_offset + 4;
-
-    for (int64_t i = 0; i < Command::HEADER_SIZE; ++i) {
-        cmd.header.data()[i] = (payload_ptr[i] ^ mask[i % 4]);
-    }
-
-    for (int64_t i = Command::HEADER_SIZE; i < header.payload_size; ++i) {
-        cmd.payload.data()[i - Command::HEADER_SIZE] = (payload_ptr[i] ^ mask[i % 4]);
-    }
-
-    return 0;
-}
-
-int WebSocket::decode_raw_stream()
-{
-    if (read_str_len < header.header_size + 1) {
+    if (header.payload_size < Command::HEADER_SIZE) {
+        print<CRITICAL>("WebSocket: payload smaller than command header\n");
         return -1;
     }
 
-    char *mask = read_str.data() + header.mask_offset;
-    payload = read_str.data() + header.mask_offset + 4;
+    const auto* mask = reinterpret_cast<const uint8_t*>(
+        read_str.data() + header.mask_offset);
+    const auto* src  = reinterpret_cast<const uint8_t*>(
+        read_str.data() + header.mask_offset + 4);
 
-    for (int64_t i = 0; i < header.payload_size; ++i) {
-        payload[i] = (payload[i] ^ mask[i % 4]);
+    // 1) decode command header
+    auto* dst = reinterpret_cast<uint8_t*>(cmd.header.data());
+    std::size_t k = 0; // mask index
+
+    for (std::size_t i = 0; i < Command::HEADER_SIZE; ++i) {
+        dst[i] = src[i] ^ mask[k];
+        k = (k + 1) & 3;
+    }
+
+    // 2) decode payload (continue mask phase from HEADER_SIZE)
+    const std::size_t payload_bytes =
+        static_cast<std::size_t>(header.payload_size) - Command::HEADER_SIZE;
+
+    if (payload_bytes > cmd.payload.size()) {
+        print<CRITICAL>("WebSocket: payload longer than destination buffer\n");
+        return -1;
+    }
+
+    const auto* sp = src + Command::HEADER_SIZE;
+    auto* dp = reinterpret_cast<uint8_t*>(cmd.payload.data());
+    std::size_t k = (Command::HEADER_SIZE) & 3; // continue phase
+
+    for (std::size_t i = 0; i < payload_bytes; ++i) {
+        dp[i] = sp[i] ^ mask[k];
+        k = (k + 1) & 3;
     }
 
     return 0;
@@ -266,7 +302,7 @@ int WebSocket::read_header()
         return -1;
     }
 
-    if (connection_closed) {
+    if (connection_closed) [[unlikely]] {
         return 0;
     }
 
@@ -295,13 +331,13 @@ int WebSocket::read_header()
             return -1;
         }
 
-        if (connection_closed) {
+        if (connection_closed) [[unlikely]] {
             return 0;
         }
 
         header.header_size = MEDIUM_HEADER;
         uint16_t s = 0;
-        memcpy(&s, reinterpret_cast<const char*>(&read_str[2]), 2);
+        std::memcpy(&s, reinterpret_cast<const char*>(&read_str[2]), 2);
         header.payload_size = ntohs(s);
         header.mask_offset = MEDIUM_OFFSET;
     } else if (stream_size == BIG_STREAM) {
@@ -309,13 +345,13 @@ int WebSocket::read_header()
             return -1;
         }
 
-        if (connection_closed) {
+        if (connection_closed) [[unlikely]] {
             return 0;
         }
 
         header.header_size = BIG_HEADER;
         uint64_t l = 0;
-        memcpy(&l, reinterpret_cast<const char*>(&read_str[2]), 8);
+        std::memcpy(&l, reinterpret_cast<const char*>(&read_str[2]), 8);
         header.payload_size = static_cast<int64_t>(be64toh(l));
         header.mask_offset = BIG_OFFSET;
     } else {
@@ -337,7 +373,7 @@ int WebSocket::read_n_bytes(int64_t bytes, int64_t expected)
     int64_t bytes_read = -1;
 
     while (expected > 0) {
-        while ((remaining > 0) && ((bytes_read = read(comm_fd, &read_str[read_str_len], remaining)) > 0)) {
+        while ((remaining > 0) && ((bytes_read = ::read(comm_fd, &read_str[read_str_len], remaining)) > 0)) {
             if (bytes_read > 0) {
                 read_str_len += bytes_read;
                 remaining -= bytes_read;
@@ -377,7 +413,7 @@ int WebSocket::send_request(const std::string& request)
 
 int WebSocket::send_request(const unsigned char *bits, int64_t len)
 {
-    if (connection_closed) {
+    if (connection_closed) [[unlikely]] {
         return 0;
     }
 
@@ -386,7 +422,7 @@ int WebSocket::send_request(const unsigned char *bits, int64_t len)
     int offset = 0;
 
     while ((remaining > 0) &&
-           (bytes_send = write(comm_fd, &bits[offset], static_cast<uint32_t>(remaining))) > 0) {
+           (bytes_send = ::write(comm_fd, &bits[offset], static_cast<uint32_t>(remaining))) > 0) {
         if (bytes_send > 0) {
             offset += bytes_send;
             remaining -= bytes_send;

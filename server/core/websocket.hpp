@@ -12,6 +12,7 @@
 #include <array>
 #include <string>
 #include <ranges>
+#include <string_view>
 
 namespace koheron {
 
@@ -28,7 +29,6 @@ class WebSocket
     template<std::ranges::contiguous_range R>
     int send(const R& r);
 
-    char* get_payload_no_copy() {return payload;}
     int64_t payload_size() const {return header.payload_size;}
 
     bool is_closed() const {return connection_closed;}
@@ -42,13 +42,13 @@ class WebSocket
     uint32_t read_str_len;
     std::array<char, WEBSOCK_READ_STR_LEN> read_str{};
 
-    char *payload;
+    // char *payload;
     unsigned char sha_str[21];
     std::array<unsigned char, WEBSOCK_SEND_BUF_LEN> send_buf{};
 
     void reset_read_buff();
 
-    std::string http_packet;
+    std::string_view http_packet;
 
     struct {
         unsigned int header_size;
@@ -91,21 +91,28 @@ class WebSocket
 
     // Internal functions
     int read_http_packet();
-    int decode_raw_stream();
     int decode_raw_stream_cmd(Command& cmd);
     int read_stream();
     int read_header();
     int check_opcode(unsigned int opcode);
     int read_n_bytes(int64_t bytes, int64_t expected);
 
-    int set_send_header(unsigned char *bits, int64_t data_len,
-                        unsigned int format);
+    int set_send_header(int64_t data_len, unsigned int format);
+
+    template<std::ranges::contiguous_range R>
+    int send_request(const R& r, int64_t len);
     int send_request(const std::string& request);
     int send_request(const unsigned char *bits, int64_t len);
 };
 
 template<std::ranges::contiguous_range R>
-inline int WebSocket::send(const R& r)
+int WebSocket::send_request(const R& r, int64_t len)
+{
+    return send_request(reinterpret_cast<const unsigned char*>(std::data(r)), len);
+}
+
+template<std::ranges::contiguous_range R>
+int WebSocket::send(const R& r)
 {
     using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
 
@@ -119,9 +126,9 @@ inline int WebSocket::send(const R& r)
         return -1;
     }
 
-    auto mask_offset = set_send_header(send_buf.data(), char_data_len, (1 << 7) + BINARY_FRAME);
+    auto mask_offset = set_send_header(char_data_len, (1 << 7) + BINARY_FRAME);
     std::memcpy(&send_buf[mask_offset], std::data(r), char_data_len);
-    return send_request(send_buf.data(), static_cast<int64_t>(mask_offset) + static_cast<int64_t>(char_data_len));
+    return send_request(send_buf, static_cast<int64_t>(mask_offset) + static_cast<int64_t>(char_data_len));
 }
 
 } // namespace koheron
