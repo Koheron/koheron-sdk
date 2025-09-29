@@ -9,6 +9,7 @@
 #include "server/core/configs/config.hpp"
 #include "server/core/commands.hpp"
 
+#include <array>
 #include <string>
 #include <ranges>
 
@@ -39,10 +40,11 @@ class WebSocket
 
     // Buffers
     uint32_t read_str_len;
-    char read_str[WEBSOCK_READ_STR_LEN];
+    std::array<char, WEBSOCK_READ_STR_LEN> read_str{};
+
     char *payload;
     unsigned char sha_str[21];
-    unsigned char send_buf[WEBSOCK_SEND_BUF_LEN];
+    std::array<unsigned char, WEBSOCK_SEND_BUF_LEN> send_buf{};
 
     void reset_read_buff();
 
@@ -113,13 +115,13 @@ inline int WebSocket::send(const R& r)
 
     auto char_data_len = std::size(r) * sizeof(T) / sizeof(char);
 
-    if (char_data_len + 10 > WEBSOCK_SEND_BUF_LEN) {
+    if (char_data_len + 10 > send_buf.size()) {
         return -1;
     }
 
-    auto mask_offset = set_send_header(send_buf, char_data_len, (1 << 7) + BINARY_FRAME);
+    auto mask_offset = set_send_header(send_buf.data(), char_data_len, (1 << 7) + BINARY_FRAME);
     std::memcpy(&send_buf[mask_offset], std::data(r), char_data_len);
-    return send_request(send_buf, static_cast<int64_t>(mask_offset) + static_cast<int64_t>(char_data_len));
+    return send_request(send_buf.data(), static_cast<int64_t>(mask_offset) + static_cast<int64_t>(char_data_len));
 }
 
 } // namespace koheron

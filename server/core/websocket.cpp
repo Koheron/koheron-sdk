@@ -27,7 +27,6 @@ WebSocket::WebSocket()
   , read_str_len(0)
   , connection_closed(false)
 {
-    bzero(read_str, WEBSOCK_READ_STR_LEN);
     bzero(sha_str, 21);
 }
 
@@ -87,7 +86,7 @@ int WebSocket::read_http_packet()
 {
     reset_read_buff();
 
-    int nb_bytes_rcvd = read(comm_fd, read_str, WEBSOCK_READ_STR_LEN);
+    int nb_bytes_rcvd = read(comm_fd, read_str.data(), read_str.size());
 
     // Check reception ...
     if (nb_bytes_rcvd < 0) {
@@ -105,7 +104,7 @@ int WebSocket::read_http_packet()
         return -1;
     }
 
-    http_packet = std::string(read_str);
+    http_packet = std::string(read_str.data());
     std::size_t delim_pos = http_packet.find("\r\n\r\n");
 
     if (delim_pos == std::string::npos) {
@@ -145,7 +144,7 @@ int WebSocket::set_send_header(unsigned char* bits, int64_t data_len,
 
 int WebSocket::exit()
 {
-    return send_request(send_buf, set_send_header(send_buf, 0, (1 << 7) + CONNECTION_CLOSE));
+    return send_request(send_buf.data(), set_send_header(send_buf.data(), 0, (1 << 7) + CONNECTION_CLOSE));
 }
 
 int WebSocket::receive_cmd(Command& cmd)
@@ -177,8 +176,8 @@ int WebSocket::decode_raw_stream_cmd(Command& cmd)
         return -1;
     }
 
-    char *mask = read_str + header.mask_offset;
-    char *payload_ptr = read_str + header.mask_offset + 4;
+    char *mask = read_str.data() + header.mask_offset;
+    char *payload_ptr = read_str.data() + header.mask_offset + 4;
 
     for (int64_t i = 0; i < Command::HEADER_SIZE; ++i) {
         cmd.header.data()[i] = (payload_ptr[i] ^ mask[i % 4]);
@@ -197,8 +196,8 @@ int WebSocket::decode_raw_stream()
         return -1;
     }
 
-    char *mask = read_str + header.mask_offset;
-    payload = read_str + header.mask_offset + 4;
+    char *mask = read_str.data() + header.mask_offset;
+    payload = read_str.data() + header.mask_offset + 4;
 
     for (int64_t i = 0; i < header.payload_size; ++i) {
         payload[i] = (payload[i] ^ mask[i % 4]);
@@ -324,7 +323,7 @@ int WebSocket::read_header()
         return -1;
     }
 
-    if (header.payload_size > WEBSOCK_READ_STR_LEN - 56) {
+    if (header.payload_size > read_str.size() - 56) {
         print<CRITICAL>("WebSocket: Message too large\n");
         return -1;
     }
@@ -411,7 +410,7 @@ int WebSocket::send_request(const unsigned char *bits, int64_t len)
 
 void WebSocket::reset_read_buff()
 {
-    std::memset(read_str, 0, read_str_len);
+    std::memset(read_str.data(), 0, read_str_len);
     read_str_len = 0;
 }
 
