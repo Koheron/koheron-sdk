@@ -89,6 +89,7 @@ SERVER := $(TMP_PROJECT_PATH)/serverd
 VERSION_FILE := $(TMP_PROJECT_PATH)/version
 
 include $(CONFIG_MK)
+ifdef VERBOSE
 $(info ------------------------)
 $(info CONFIG_MK = $(CONFIG_MK))
 $(info ------------------------)
@@ -99,8 +100,10 @@ $(info CORES    = $(CORES))
 $(info DRIVERS  = $(DRIVERS))
 $(info WEB_FILES = $(WEB_FILES))
 $(info )
+endif
 
 include $(BOARD_MK)
+ifdef VERBOSE
 $(info ------------------------)
 $(info BOARD_MK = $(BOARD_MK))
 $(info ------------------------)
@@ -111,6 +114,7 @@ $(info TMP_OS_BOARD_PATH = $(TMP_OS_BOARD_PATH))
 $(info FSBL_PATH         = $(FSBL_PATH))
 $(info PATCHES           = $(PATCHES))
 $(info )
+endif
 
 BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit
 
@@ -224,6 +228,9 @@ images:
 	@$(MAKE) -j$(J) CFG=examples/alpha250/adc-dac-dma/config.mk
 	@$(MAKE) -j$(J) CFG=examples/alpha250/fft/config.mk \
 		COPY_INSTRUMENTS="phase-noise-analyzer adc-dac-bram adc-dac-dma" image
-	@$(MAKE) -j$(J) CFG=examples/redpitaya/adc-dac-bram/config.mk
-	@$(MAKE) -j$(J) CFG=examples/redpitaya/fft/config.mk \
+	@$(MAKE) -j$(J) CFG=examples/red-pitaya/adc-dac-bram/config.mk
+	@$(MAKE) -j$(J) CFG=examples/red-pitaya/fft/config.mk \
 		COPY_INSTRUMENTS="adc-dac-bram" image
+	@$(MAKE) -j$(J) CFG=examples/zedboard/picoblaze/config.mk
+	@$(MAKE) -j$(J) CFG=examples/zedboard/led-blinker/config.mk \
+		COPY_INSTRUMENTS="picoblaze" image
