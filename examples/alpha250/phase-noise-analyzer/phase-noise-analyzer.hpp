@@ -158,8 +158,8 @@ class PhaseNoiseAnalyzer
     }
 
     void set_fft_navg(uint32_t n_avg) {
-        if (n_avg > 200) {
-            n_avg = 200;
+        if (n_avg > 100) {
+            n_avg = 100;
         }
 
         fft_navg = n_avg;
@@ -167,9 +167,10 @@ class PhaseNoiseAnalyzer
     }
 
   private:
-    static constexpr uint32_t data_size = 200000;
-    static constexpr uint32_t fft_size = data_size / 2;
-    static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2;
+    // static constexpr uint32_t fft_size = 100000;
+    static constexpr uint32_t fft_size = 102400; // 2^12 x 5^2
+    static constexpr uint32_t data_size = 2 * fft_size;
+    static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2; // Do use the first transfered points
     static constexpr float calib_factor = 4.196f * sci::pi<float> / 8192.0f; // radians
 
     Context& ctx;
@@ -219,7 +220,7 @@ class PhaseNoiseAnalyzer
     void kick_dma() {
         std::scoped_lock lk(dma_mtx);
         reset_phase_unwrapper();
-        dma.start_transfer_elems<mem::ram, int32_t, prm::n_pts>();
+        dma.start_transfer<mem::ram, prm::n_pts, int32_t>();
     }
 
     auto read_dma() {
