@@ -1,8 +1,4 @@
 ---
-name: fft
-board: boards/red-pitaya
-version: 0.1.1
-
 cores:
   - fpga/cores/axi_ctl_register_v1_0
   - fpga/cores/axi_sts_register_v1_0
@@ -67,39 +63,3 @@ parameters:
   cic_differential_delay: 1
   cic_decimation_rate: 250
   cic_n_stages: 6
-
-xdc:
-  - boards/red-pitaya/config/ports.xdc
-  - boards/red-pitaya/config/clocks.xdc
-  - ./expansion_connector.xdc
-
-drivers:
-  - server/drivers/common.hpp
-  - server/drivers/xadc.hpp
-  - server/drivers/laser.hpp
-  - server/drivers/eeprom.hpp
-  - ./drivers/fft.hpp
-  - ./drivers/demodulator.hpp
-  - ./drivers/redpitaya_adc_calibration.hpp
-
-web:
-  - web/koheron.ts
-  - web/jquery.flot.d.ts
-  - web/laser.ts
-  - web/laser-control.html
-  - web/dds-frequency/dds-frequency.ts
-  - web/dds-frequency/dds-frequency.html
-  - ./web/app.ts
-  - ./web/fft.ts
-  - ./web/plot/plot.ts
-  - web/plot-basics/plot-basics.ts
-  - web/plot-basics/plot-basics.html
-  - ./web/plot/yunit.html
-  - ./web/plot/peak-detection.html
-  - ./web/fft/fft-app.ts
-  - ./web/fft/fft-window.html
-  - ./web/fft/input-channel.html
-  - ./web/export-file/export-file.html
-  - ./web/export-file/export-file.ts
-  - ./web/index.html
-  - web/main.css
