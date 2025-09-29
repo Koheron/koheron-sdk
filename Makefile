@@ -4,7 +4,7 @@ SHELL := bash
 .DEFAULT_GOAL := all
 # Cleaner logs when running -j
 MAKEFLAGS += --output-sync=target
-MAKEFLAGS += --shuffle
+#MAKEFLAGS += --shuffle
 
 .DELETE_ON_ERROR:
 .SUFFIXES:
@@ -205,12 +205,25 @@ clean:
 clean_all:
 	rm -rf $(TMP)
 
-.PHONY: print_variables
-print_variables:
-	@echo "NAME = $(NAME)"
-	@echo "BOARD = $(BOARD)"
-	@echo "VERSION = $(VERSION)"
-	@echo "PART = $(PART)"
-	@echo "XDC = $(XDC)"
-	@echo "CORES = $(CORES)"
-	@echo "DRIVERS = $(DRIVERS)"
+
+
+.PHONY: images
+
+J ?= $(shell nproc)
+
+images:
+	@$(MAKE) -j$(J) CFG=examples/alpha15/adc-dac-bram/config.mk
+	@$(MAKE) -j$(J) CFG=examples/alpha15/adc-dac-dma/config.mk
+	@$(MAKE) -j$(J) CFG=examples/alpha15/signal-analyzer/config.mk \
+		COPY_INSTRUMENTS="adc-dac-bram adc-dac-dma" image
+	@$(MAKE) -j$(J) CFG=examples/alpha250-4/adc-bram/config.mk
+	@$(MAKE) -j$(J) CFG=examples/alpha250-4/fft/config.mk \
+		COPY_INSTRUMENTS="adc-bram" image
+	@$(MAKE) -j$(J) CFG=examples/alpha250/phase-noise-analyzer/config.mk
+	@$(MAKE) -j$(J) CFG=examples/alpha250/adc-dac-bram/config.mk
+	@$(MAKE) -j$(J) CFG=examples/alpha250/adc-dac-dma/config.mk
+	@$(MAKE) -j$(J) CFG=examples/alpha250/fft/config.mk \
+		COPY_INSTRUMENTS="phase-noise-analyzer adc-dac-bram adc-dac-dma" image
+	@$(MAKE) -j$(J) CFG=examples/redpitaya/adc-dac-bram/config.mk
+	@$(MAKE) -j$(J) CFG=examples/redpitaya/fft/config.mk \
+		COPY_INSTRUMENTS="adc-dac-bram" image
