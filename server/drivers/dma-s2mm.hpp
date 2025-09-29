@@ -33,11 +33,15 @@ class DmaS2MM
         set_length(length);
     }
 
-    template<MemID id, class T, std::size_t n_elems>
-    void start_transfer_elems() {
+    template<MemID id, std::size_t n_elems, class T>
+    void start_transfer() {
         using mem = Memory<id>;
         constexpr auto transfer_size = n_elems * sizeof(T);
+
+        static_assert(n_elems > 0);
+        static_assert(std::is_trivially_copyable_v<T>); // Trivial types avoid surprises in sizeof(T)
         static_assert(transfer_size <= mem::total_size_c);
+
         start_transfer(mem::phys_addr_c, transfer_size);
     }
 
