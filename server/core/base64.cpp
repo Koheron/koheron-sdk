@@ -25,7 +25,7 @@
 
 */
 
-#include "base64.hpp"
+#include "server/core/base64.hpp"
 #include <iostream>
 
 static const std::string base64_chars =

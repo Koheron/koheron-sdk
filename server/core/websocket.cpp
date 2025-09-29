@@ -6,7 +6,7 @@
 
 #include "server/core/websocket.hpp"
 #include "server/core/base64.hpp"
-#include "server/core/sha1.h"
+#include "server/core/sha1.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/endian_utils.hpp"
 
@@ -15,12 +15,10 @@
 #include <iostream>
 #include <cstdlib>
 
-extern "C" {
-    #include <sys/socket.h> // socket definitions
-    #include <arpa/inet.h>  // inet (3) funtions
-    #include <sys/types.h>  // socket types
-    #include <unistd.h>
-}
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace koheron {
 

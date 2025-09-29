@@ -4,8 +4,9 @@
 
 #include "server/core/server.hpp"
 #include "server/core/session.hpp"
+#include "server/runtime/syslog.hpp"
 
-#include <ctime>
+#include <mutex>
 
 #include <drivers_json.hpp>
 

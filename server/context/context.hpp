@@ -3,16 +3,14 @@
 #ifndef __CONTEXT_HPP__
 #define __CONTEXT_HPP__
 
-#include <server/runtime/syslog.hpp>
-#include <server/runtime/drivers_table.hpp>
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/drivers_table.hpp"
 
-#include <memory_manager.hpp>
-#include <spi_dev.hpp>
-#include <i2c_dev.hpp>
-#include <zynq_fclk.hpp>
-#include <fpga_manager.hpp>
-
-#include "memory.hpp"
+#include "server/context/memory_manager.hpp"
+#include "server/context/spi_dev.hpp"
+#include "server/context/i2c_dev.hpp"
+#include "server/context/zynq_fclk.hpp"
+#include "server/context/fpga_manager.hpp"
 
 class Context
 {

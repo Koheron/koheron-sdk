@@ -4,8 +4,7 @@
 #ifndef __SERVER_CONTEXT_ZYNQ_FCLK__
 #define __SERVER_CONTEXT_ZYNQ_FCLK__
 
-#include <dirent.h>
-#include <unistd.h>
+#include "server/runtime/syslog.hpp"
 
 #include <cstdio>
 #include <string>
@@ -13,7 +12,8 @@
 #include <iterator>
 #include <filesystem>
 
-#include <server/runtime/syslog.hpp>
+#include <dirent.h>
+#include <unistd.h>
 
 namespace {
     namespace fs = std::filesystem;

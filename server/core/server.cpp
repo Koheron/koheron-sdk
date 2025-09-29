@@ -15,9 +15,7 @@
 #include <chrono>
 #include <cstdlib>
 
-extern "C" {
-  #include <sys/un.h>
-}
+#include <sys/un.h>
 
 namespace koheron {
 

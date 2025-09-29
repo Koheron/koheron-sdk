@@ -5,9 +5,9 @@
 #ifndef __DRIVER_HPP__
 #define __DRIVER_HPP__
 
-#include <cstring>
-
 #include "server/core/configs/drivers_config.hpp"
+
+#include <cstring>
 
 namespace koheron {
 

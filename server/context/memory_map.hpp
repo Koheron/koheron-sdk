@@ -10,11 +10,8 @@
 #include <tuple>
 #include <memory>
 #include <span>
-
-extern "C" {
-    #include <unistd.h>
-    #include <sys/mman.h>
-}
+#include <unistd.h>
+#include <sys/mman.h>
 
 #include <memory.hpp>
 

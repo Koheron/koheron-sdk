@@ -5,15 +5,15 @@
 #ifndef __SESSION_MANAGER_HPP__
 #define __SESSION_MANAGER_HPP__
 
+#include "server/core/configs/server_definitions.hpp"
+#include "server/core/configs/config.hpp"
+#include "server/core/session_abstract.hpp"
+
 #include <map>
 #include <vector>
 #include <stack>
 #include <memory>
 #include <mutex>
-
-#include "server/core/configs/server_definitions.hpp"
-#include "server/core/configs/config.hpp"
-#include "server/core/session_abstract.hpp"
 
 namespace koheron {
 

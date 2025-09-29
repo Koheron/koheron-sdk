@@ -1,7 +1,7 @@
 // (c) Koheron
 
-#include "spi_dev.hpp"
-#include <server/runtime/syslog.hpp>
+#include "server/context/spi_dev.hpp"
+#include "server/runtime/syslog.hpp"
 
 #include <filesystem>
 #include <cstring>

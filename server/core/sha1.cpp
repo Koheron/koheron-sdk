@@ -32,7 +32,7 @@
  * implemented by Jun-ichiro itojun Itoh <itojun@itojun.org>
  */
 
-#include "sha1.h"
+#include "server/core/sha1.hpp"
 #include <sys/types.h>
 #include <cstdint>
 

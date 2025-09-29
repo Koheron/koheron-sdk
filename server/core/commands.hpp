@@ -5,14 +5,14 @@
 #ifndef __COMMANDS_HPP__
 #define __COMMANDS_HPP__
 
+#include "server/core/configs/drivers_config.hpp"
+#include "server/core/configs/server_definitions.hpp"
+#include "server/core/serializer_deserializer.hpp"
+
 #include <array>
 #include <vector>
 #include <tuple>
 #include <string>
-
-#include "server/core/configs/drivers_config.hpp"
-#include "server/core/configs/server_definitions.hpp"
-#include "server/core/serializer_deserializer.hpp"
 
 namespace koheron {
 
