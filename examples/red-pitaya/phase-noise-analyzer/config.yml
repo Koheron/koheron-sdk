@@ -1,20 +1,4 @@
 ---
-name: phase-noise-analyzer
-board: boards/red-pitaya
-version: 0.1.0
-
-cores:
-  - fpga/cores/axi_ctl_register_v1_0
-  - fpga/cores/axi_sts_register_v1_0
-  - fpga/cores/axis_constant_v1_0
-  - fpga/cores/latched_mux_v1_0
-  - fpga/cores/tlast_gen_v1_0
-  - fpga/cores/redp_adc_v1_0
-  - fpga/cores/redp_dac_v1_0
-  - fpga/cores/axis_lfsr_v1_0
-  - fpga/cores/phase_unwrapper_v1_0
-  - fpga/cores/boxcar_filter_v1_0
-
 memory:
   - name: control
     offset: '0x40000000'
@@ -53,17 +37,3 @@ parameters:
   cic_differential_delay: 1
   cic_decimation_rate: 20
   cic_n_stages: 6
-
-xdc:
-  - boards/red-pitaya/config/ports.xdc
-  - boards/red-pitaya/config/clocks.xdc
-
-drivers:
-  - server/drivers/common.hpp
-  - ./dds.hpp
-  - ./dma.hpp
-
-web:
-  - web/index.html
-  - web/main.css
-  - web/koheron.ts
