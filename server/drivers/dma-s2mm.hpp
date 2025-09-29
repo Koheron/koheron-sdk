@@ -7,7 +7,8 @@
 #ifndef __SERVER_DRIVERS_DMA_S2MM_HPP__
 #define __SERVER_DRIVERS_DMA_S2MM_HPP__
 
-#include <context.hpp>
+#include "server/context/context.hpp"
+#include "server/context/memory_map.hpp"
 
 #include <chrono>
 #include <scicpp/core.hpp>
@@ -30,6 +31,14 @@ class DmaS2MM
         start();
         set_destination_address(dest_addr);
         set_length(length);
+    }
+
+    template<MemID id, class T, std::size_t n_elems>
+    void start_transfer_elems() {
+        using mem = Memory<id>;
+        constexpr auto transfer_size = n_elems * sizeof(T);
+        static_assert(transfer_size <= mem::total_size_c);
+        start_transfer(mem::phys_addr_c, transfer_size);
     }
 
     template<typename T>

@@ -74,6 +74,12 @@ class Memory
   public:
     static_assert(id < mem::count, "Invalid ID");
 
+    static constexpr uintptr_t phys_addr_c   = phys_addr;
+    static constexpr uint32_t  n_blocks_c    = n_blocks;
+    static constexpr uint32_t  block_size_c  = block_size;
+    static constexpr uint32_t  total_size_c  = size;
+    static constexpr int       protection_c  = protection;
+
     Memory()
     : mapped_base(nullptr)
     , base_address(0)
@@ -107,11 +113,11 @@ class Memory
         base_address = reinterpret_cast<uintptr_t>(mapped_base) + delta;
     }
 
-    int get_protection() const noexcept {return protection;}
+    constexpr int get_protection() const noexcept {return protection;}
     int is_open() const noexcept {return is_opened;}
-    uintptr_t get_base_addr() const noexcept {return base_address;}
-    uint32_t mapped_size() const noexcept {return size;}
-    uintptr_t get_phys_addr() const noexcept {return phys_addr;}
+    uintptr_t base_addr() const noexcept {return base_address;}
+    constexpr uint32_t mapped_size() const noexcept {return size;}
+    constexpr uintptr_t phys_address() const noexcept {return phys_addr;}
 
     auto get_params() {
         return std::make_tuple(

@@ -219,7 +219,7 @@ class PhaseNoiseAnalyzer
     void kick_dma() {
         std::scoped_lock lk(dma_mtx);
         reset_phase_unwrapper();
-        dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
+        dma.start_transfer_elems<mem::ram, int32_t, prm::n_pts>();
     }
 
     auto read_dma() {
