@@ -143,10 +143,6 @@ $(UBOOT_PATH)/.unpacked: $(UBOOT_TAR) | $(UBOOT_PATH)/
 	touch $@
 	$(call ok,$@)
 
-ifeq ("$(UBOOT_CONFIG)","")
-UBOOT_CONFIG = zynq_$(BOARD)_defconfig
-endif
-
 UBOOT_PATCH_FILES := $(shell test -d $(PATCHES)/u-boot && find $(PATCHES)/u-boot -type f)
 
 # Configure U-Boot once to avoid concurrent defconfig/mrproper races

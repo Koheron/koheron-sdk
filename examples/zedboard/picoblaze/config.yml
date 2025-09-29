@@ -1,13 +1,4 @@
 ---
-name: picoblaze
-board: boards/zedboard
-version: 0.1.1
-
-cores:
-  - fpga/cores/axi_ctl_register_v1_0
-  - fpga/cores/axi_sts_register_v1_0
-  - fpga/cores/kcpsm6_v1_0
-
 memory:
   - name: control
     offset: '0x60000000'
@@ -29,15 +20,3 @@ status_registers:
 
 parameters:
   fclk0: 50000000 # FPGA clock speed in Hz
-
-xdc:
-  - ./constraints.xdc
-
-drivers:
-  - server/drivers/common.hpp
-  - ./picoblaze.hpp
-
-web:
-  - web/index.html
-  - web/main.css
-  - web/koheron.ts
