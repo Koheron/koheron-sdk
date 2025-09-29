@@ -113,7 +113,7 @@ class PhaseNoiseAnalyzer
     const auto get_parameters() {
         return std::tuple{
             fft_size / 2,
-            fs.eval(),
+            fs,
             channel,
             cic_rate,
             fft_navg,
@@ -140,15 +140,15 @@ class PhaseNoiseAnalyzer
             res += std::norm(z);
         }
 
-        return 10.0 * std::log10(power_conversion_factor * res / double(navg));
+        return 10.0 * sci::log10(conv_factor_dBm * res / double(navg));
     }
 
     auto get_jitter() {
         return std::tuple{
-            phase_jitter.eval(),
-            time_jitter.eval(),
-            f_lo_used.eval(),
-            f_hi_used.eval()
+            phase_jitter,
+            time_jitter,
+            f_lo_used,
+            f_hi_used
         };
     }
 
@@ -246,7 +246,7 @@ class PhaseNoiseAnalyzer
     }
 
     // Carrier power
-    double power_conversion_factor;
+    sci::units::dimensionless<double> conv_factor_dBm;
     std::array<sci::units::electric_potential<double>, 2> vrange;
 
     void set_power_conversion_factor() {
@@ -257,8 +257,7 @@ class PhaseNoiseAnalyzer
         const double Hinv = poly::polyval(dds.get_dds_freq(channel),
                                           ltc2157.tf_polynomial<double>(channel));
         const auto power_conv_factor = Hinv * magic_factor * vrange[channel] * vrange[channel] / load;
-        const auto conv_factor_dBm = power_conv_factor / 1_mW;
-        power_conversion_factor = conv_factor_dBm.eval();
+        conv_factor_dBm = power_conv_factor / 1_mW;
 
         // Dimensional analysis checks
         static_assert(sci::units::is_power<decltype(power_conv_factor)>);
@@ -312,8 +311,8 @@ class PhaseNoiseAnalyzer
                 f_lo_used = pow10f(low_dec);
                 f_hi_used = pow10f(high_dec);
 
-                std::size_t k1 = std::max(1u, static_cast<std::size_t>(sci::units::ceil(f_lo_used / df).eval()));
-                std::size_t k2 = std::min(n_bins - 1u, static_cast<std::size_t>(sci::units::floor(f_hi_used / df).eval()));
+                std::size_t k1 = std::max(1u, static_cast<std::size_t>(sci::ceil(f_lo_used / df).eval()));
+                std::size_t k2 = std::min(n_bins - 1u, static_cast<std::size_t>(sci::floor(f_hi_used / df).eval()));
 
                 if (k2 <= k1) {
                     k1 = std::max(1u, k1);

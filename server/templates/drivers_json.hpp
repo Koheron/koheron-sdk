@@ -11,66 +11,13 @@
 #include <typeinfo>
 #include <cxxabi.h>
 
-#include <scicpp/core.hpp>
+#include "server/runtime/meta_utils.hpp"
 
 {% for driver in drivers -%}
 {% for include in driver.includes -%}
 #include "{{ include }}"
 {% endfor -%}
 {% endfor %}
-
-// normalize_units
-// --- primary template: leave T unchanged ---
-template<class T, class = void>
-struct strip_units { using type = T; };
-
-// detect scicpp quantity via availability of representation_t<T>
-template<class T>
-struct strip_units<T, std::void_t<typename scicpp::units::representation_t<T>>> {
-  using type = typename scicpp::units::representation_t<T>;
-};
-
-// std::array<T, N>
-template<class T, std::size_t N>
-struct strip_units<std::array<T,N>> {
-  using type = std::array<typename strip_units<T>::type, N>;
-};
-
-// std::vector<T, Alloc>
-template<class T, class Alloc>
-struct strip_units<std::vector<T,Alloc>> {
-  using U       = typename strip_units<T>::type;
-  using NewAlloc= typename std::allocator_traits<Alloc>::template rebind_alloc<U>;
-  using type    = std::vector<U, NewAlloc>;
-};
-
-// std::optional<T>
-template<class T>
-struct strip_units<std::optional<T>> {
-  using type = std::optional<typename strip_units<T>::type>;
-};
-
-// std::pair<A,B>
-template<class A, class B>
-struct strip_units<std::pair<A,B>> {
-  using type = std::pair<typename strip_units<A>::type, typename strip_units<B>::type>;
-};
-
-// std::tuple<Ts...>
-template<class... Ts>
-struct strip_units<std::tuple<Ts...>> {
-  using type = std::tuple<typename strip_units<Ts>::type...>;
-};
-
-// std::span<T, Extent>  (for API typing only; OK to map element)
-template<class T, std::size_t Extent>
-struct strip_units<std::span<T,Extent>> {
-  using type = std::span<typename strip_units<T>::type, Extent>;
-};
-
-// helper alias
-template<class T>
-using strip_units_t = typename strip_units<T>::type;
 
 template<typename T>
 inline auto get_type_str()

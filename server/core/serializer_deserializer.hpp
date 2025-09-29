@@ -6,6 +6,7 @@
 #define __SERIALIZER_DESERIALIZER_HPP__
 
 #include "server/runtime/endian_utils.hpp"
+#include "server/runtime/meta_utils.hpp"
 
 #include <bit>
 #include <cstddef>
@@ -21,6 +22,8 @@
 #include <span>
 #include <ranges>
 #include <memory_resource>
+
+#include <scicpp/core.hpp>
 
 namespace koheron {
 
@@ -242,14 +245,20 @@ struct CommandBuilder {
     }
 
     template<class T> requires ((std::is_integral_v<T> && std::is_signed_v<T>))
-    void push_scalar(T v) { push_scalar<std::make_unsigned_t<T>>(static_cast<std::make_unsigned_t<T>>(v)); }
-
-    template<class T> requires (std::is_floating_point_v<T>)
     void push_scalar(T v) {
-        if constexpr (sizeof(T) == 4) {
-            push_scalar<uint32_t>(std::bit_cast<uint32_t>(static_cast<float>(v)));
+        push_scalar<std::make_unsigned_t<T>>(static_cast<std::make_unsigned_t<T>>(v));
+    }
+
+    template<class T> requires (std::is_floating_point_v<strip_units_t<T>>)
+    void push_scalar(T v) {
+        if constexpr (sizeof(strip_units_t<T>) == 4) {
+            push_scalar<uint32_t>(
+                std::bit_cast<uint32_t>(
+                    static_cast<float>(scicpp::units::value(v))));
         } else {
-            push_scalar<uint64_t>(std::bit_cast<uint64_t>(static_cast<double>(v)));
+            push_scalar<uint64_t>(
+                std::bit_cast<uint64_t>(
+                    static_cast<double>(scicpp::units::value(v))));
         }
     }
 
@@ -272,8 +281,9 @@ struct CommandBuilder {
     // containers
     template<class C>
     void push_container(const C& c) {
-        using V = C::value_type;
-        static_assert(std::ranges::contiguous_range<C>);
+        using Cbase = strip_units_t<C>;
+        using V = Cbase::value_type;
+        static_assert(std::ranges::contiguous_range<Cbase>);
 
         const uint32_t nbytes = c.size() * sizeof(V);
         out->reserve(out->size() + 4 + nbytes);
@@ -322,7 +332,7 @@ struct CommandBuilder {
     // dispatcher
     template<class T>
     void push_one(T&& v) {
-        using U = std::remove_cvref_t<T>;
+        using U = strip_units_t<std::remove_cvref_t<T>>;
 
         constexpr bool CStrPtr =
             std::is_pointer_v<U> &&
