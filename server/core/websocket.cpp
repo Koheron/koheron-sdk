@@ -232,7 +232,7 @@ int WebSocket::decode_raw_stream_cmd(Command& cmd)
 
     const auto* sp = src + Command::HEADER_SIZE;
     auto* dp = reinterpret_cast<uint8_t*>(cmd.payload.data());
-    std::size_t k = (Command::HEADER_SIZE) & 3; // continue phase
+    k = (Command::HEADER_SIZE) & 3; // continue phase
 
     for (std::size_t i = 0; i < payload_bytes; ++i) {
         dp[i] = sp[i] ^ mask[k];

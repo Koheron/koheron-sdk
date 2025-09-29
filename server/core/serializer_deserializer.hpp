@@ -70,7 +70,7 @@ inline T extract(const char* p) {
 
 template<class T> requires is_std_complex_v<T>
 inline T extract(const char* p) {
-    using V = typename T::value_type;
+    using V = T::value_type;
     V r = extract<V>(p);
     V i = extract<V>(p + sizeof(V));
     return T{r,i};
@@ -111,7 +111,7 @@ inline void append(unsigned char* p, T v) {
 
 template<class T> requires is_std_complex_v<T>
 inline void append(unsigned char* p, T v) {
-    using V = typename T::value_type;
+    using V = T::value_type;
     append<V>(p, v.real());
     append<V>(p + sizeof(V), v.imag());
 }
@@ -247,15 +247,15 @@ struct CommandBuilder {
     template<class T> requires (std::is_floating_point_v<T>)
     void push_scalar(T v) {
         if constexpr (sizeof(T) == 4) {
-            push_scalar<std::uint32_t>(std::bit_cast<std::uint32_t>(static_cast<float>(v)));
+            push_scalar<uint32_t>(std::bit_cast<uint32_t>(static_cast<float>(v)));
         } else {
-            push_scalar<std::uint64_t>(std::bit_cast<std::uint64_t>(static_cast<double>(v)));
+            push_scalar<uint64_t>(std::bit_cast<uint64_t>(static_cast<double>(v)));
         }
     }
 
     template<class T> requires is_std_complex_v<T>
     void push_scalar(const T& v) {
-        using V = typename T::value_type;
+        using V = T::value_type;
         push_scalar<V>(v.real());
         push_scalar<V>(v.imag());
     }
@@ -272,10 +272,10 @@ struct CommandBuilder {
     // containers
     template<class C>
     void push_container(const C& c) {
-        using V = typename C::value_type;
+        using V = C::value_type;
         static_assert(std::ranges::contiguous_range<C>);
 
-        const std::uint32_t nbytes = c.size() * sizeof(V);
+        const uint32_t nbytes = c.size() * sizeof(V);
         out->reserve(out->size() + 4 + nbytes);
         unsigned char* p = append_raw(4 + nbytes);
         append<uint32_t>(p, nbytes);
@@ -286,7 +286,7 @@ struct CommandBuilder {
 
     template<class A> // std::array
     void push_array(const A& a) {
-        using V = typename A::value_type;
+        using V = A::value_type;
         constexpr std::size_t nbytes = std::tuple_size<A>::value * sizeof(V);
         if constexpr (nbytes) {
             std::memcpy(append_raw(nbytes), a.data(), nbytes);
