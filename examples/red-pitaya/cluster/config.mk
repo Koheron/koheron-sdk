@@ -3,9 +3,8 @@ VERSION := 0.1.1
 
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya
 
-# TODO Fix double xdc
 XDC += $(PROJECT_PATH)/ports.xdc
-XDC += $(SDK_PATH)/red-pitaya/config/clocks.xdc
+XDC += $(SDK_PATH)/boards/red-pitaya/config/clocks.xdc
 XDC += $(PROJECT_PATH)/sata.xdc
 XDC += $(PROJECT_PATH)/expansion_connector.xdc
 

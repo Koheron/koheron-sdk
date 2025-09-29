@@ -3,9 +3,6 @@ BOARD := red-pitaya
 PART := xc7z010clg400-1
 ZYNQ_TYPE := zynq
 
-XDC := $(BOARD_PATH)/config/ports.xdc
-XDC += $(BOARD_PATH)/config/clocks.xdc
-
 # Linux and U-boot
 TMP_OS_BOARD_PATH := $(TMP)/red-pitaya
 

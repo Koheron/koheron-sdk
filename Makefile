@@ -58,6 +58,7 @@ WEB_MK ?= $(WEB_PATH)/web.mk
 PROJECT_PATH := $(dir $(CONFIG_MK))
 TMP_PROJECT_PATH := $(TMP)/$(PROJECT_PATH)
 
+XDC :=
 CORES :=
 DRIVERS :=
 WEB_FILES := $(SDK_PATH)/web/main.css $(SDK_PATH)/web/koheron.ts
@@ -88,7 +89,23 @@ SERVER := $(TMP_PROJECT_PATH)/serverd
 VERSION_FILE := $(TMP_PROJECT_PATH)/version
 
 include $(CONFIG_MK)
+$(info ------------------------)
+$(info CONFIG_MK = $(CONFIG_MK))
+$(info ------------------------)
+$(info VERSION  = $(VERSION))
+$(info NAME     = $(NAME))
+$(info XDC      = $(XDC))
+$(info CORES    = $(CORES))
+$(info DRIVERS  = $(DRIVERS))
+$(info WEB_FILES = $(WEB_FILES))
+
 include $(BOARD_MK)
+$(info ------------------------)
+$(info BOARD_MK = $(BOARD_MK))
+$(info ------------------------)
+$(info BOARD     = $(BOARD))
+$(info PART      = $(PART))
+$(info ZYNQ_TYPE = $(ZYNQ_TYPE))
 
 BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit
 
@@ -182,3 +199,13 @@ clean:
 .PHONY: clean_all
 clean_all:
 	rm -rf $(TMP)
+
+.PHONY: print_variables
+print_variables:
+	@echo "NAME = $(NAME)"
+	@echo "BOARD = $(BOARD)"
+	@echo "VERSION = $(VERSION)"
+	@echo "PART = $(PART)"
+	@echo "XDC = $(XDC)"
+	@echo "CORES = $(CORES)"
+	@echo "DRIVERS = $(DRIVERS)"

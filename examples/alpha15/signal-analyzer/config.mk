@@ -5,6 +5,8 @@ BOARD_PATH := $(SDK_PATH)/boards/alpha15
 
 CONFIG_YML = $(PROJECT_PATH)/config.yml
 
+XDC += $(SDK_PATH)/boards/alpha15/config/ports.xdc
+
 include $(SDK_PATH)/boards/alpha15/cores/cores.mk
 CORES += $(SDK_PATH)/fpga/cores/tlast_gen_v1_0
 CORES += $(SDK_PATH)/fpga/cores/bus_multiplexer_v1_0

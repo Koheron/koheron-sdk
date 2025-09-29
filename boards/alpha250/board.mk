@@ -2,8 +2,6 @@ BOARD := alpha250
 PART := xc7z020clg400-2
 ZYNQ_TYPE := zynq
 
-XDC := $(BOARD_PATH)/config/ports.xdc
-
 # Linux and U-boot
 TMP_OS_BOARD_PATH := $(TMP)/alpha250
 

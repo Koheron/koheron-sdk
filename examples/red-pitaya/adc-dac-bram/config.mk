@@ -1,4 +1,4 @@
-NAME := decimator
+NAME := adc-dac-bram
 VERSION := 0.0.0
 
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya
@@ -11,6 +11,6 @@ XDC += $(SDK_PATH)/boards/red-pitaya/config/clocks.xdc
 include $(SDK_PATH)/boards/red-pitaya/cores/cores.mk
 
 DRIVERS += $(SDK_PATH)/server/drivers/common.hpp
-DRIVERS += $(PROJECT_PATH)/decimator.hpp
+DRIVERS += $(PROJECT_PATH)/adc_dac_bram.hpp
 
 WEB_FILES += $(SDK_PATH)/web/index.html

@@ -1,16 +1,4 @@
 ---
-name: adc-dac-bram
-board: boards/red-pitaya
-
-cores:
-  - fpga/cores/redp_adc_v1_0
-  - fpga/cores/redp_dac_v1_0
-  - fpga/cores/axi_ctl_register_v1_0
-  - fpga/cores/axi_sts_register_v1_0
-  - fpga/cores/edge_detector_v1_0
-  - fpga/cores/comparator_v1_0
-  - ./address_counter_v1_0
-
 memory:
   - name: control
     offset: '0x60000000'
@@ -38,16 +26,3 @@ status_registers:
 parameters:
   fclk0: 200000000 # FPGA clock speed in Hz
   adc_clk: 125000000
-
-xdc:
-  - boards/red-pitaya/config/ports.xdc
-  - boards/red-pitaya/config/clocks.xdc
-
-drivers:
-  - server/drivers/common.hpp
-  - ./adc_dac_bram.hpp
-
-web:
-  - web/index.html
-  - web/main.css
-  - web/koheron.ts
