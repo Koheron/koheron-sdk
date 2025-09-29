@@ -6,8 +6,12 @@
 #include <cassert>
 #include <algorithm>
 
+#include <scicpp/core.hpp>
+
 template<typename T>
 class MovingAverager {
+    using RepT = scicpp::units::representation_t<T>;
+
   public:
     explicit MovingAverager(std::size_t navg)
     : navg_(navg), ring_(navg) {}
@@ -53,18 +57,13 @@ class MovingAverager {
     }
 
     std::vector<T> average() const {
+        using namespace scicpp::operators;
+
         if (filled_ == 0) {
             return {};
         }
 
-        std::vector<T> out(sum_);
-        const T denom = static_cast<T>(filled_);
-
-        for (auto& x : out) {
-            x /= denom;
-        }
-
-        return out;
+        return sum_ / static_cast<RepT>(filled_);
     }
 
     void set_navg(std::size_t new_navg) {

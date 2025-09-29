@@ -42,7 +42,6 @@ class WebSocket
     uint32_t read_str_len;
     std::array<char, WEBSOCK_READ_STR_LEN> read_str{};
 
-    // char *payload;
     unsigned char sha_str[21];
     std::array<unsigned char, WEBSOCK_SEND_BUF_LEN> send_buf{};
 

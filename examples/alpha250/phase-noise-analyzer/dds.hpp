@@ -12,6 +12,8 @@
 #include <limits>
 #include <cmath>
 
+#include <scicpp/core.hpp>
+
 class Dds
 {
   public:
@@ -55,6 +57,11 @@ class Dds
 
     auto get_dds_freq(uint32_t channel) {
         return dds_freq[channel];
+    }
+
+    template<typename T=float>
+    auto get_lo_freq(uint32_t channel) {
+        return scicpp::units::frequency<T>(dds_freq[channel]);
     }
 
   private:

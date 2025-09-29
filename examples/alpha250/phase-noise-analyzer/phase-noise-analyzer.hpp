@@ -144,7 +144,12 @@ class PhaseNoiseAnalyzer
     }
 
     auto get_jitter() {
-        return std::tuple{phase_jitter, time_jitter, f_lo_used, f_hi_used};
+        return std::tuple{
+            phase_jitter.eval(),
+            time_jitter.eval(),
+            f_lo_used.eval(),
+            f_hi_used.eval()
+        };
     }
 
     auto get_phase() const {
@@ -167,11 +172,17 @@ class PhaseNoiseAnalyzer
     }
 
   private:
-    // static constexpr uint32_t fft_size = 100000;
+    using Phase = sci::units::radian<float>;
+    using Time = sci::units::time<float>;
+    using Frequency = sci::units::frequency<float>;
+    using PhaseNoiseDensity = sci::units::quantity_divide<
+                sci::units::quantity_multiply<Phase, Phase>,
+                Frequency>;
+
     static constexpr uint32_t fft_size = 102400; // 2^12 x 5^2
     static constexpr uint32_t data_size = 2 * fft_size;
     static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2; // Do use the first transfered points
-    static constexpr float calib_factor = 4.196f * sci::pi<float> / 8192.0f; // radians
+    static constexpr auto calib_factor = 4.196f * sci::pi<Phase> / 8192.0f;
 
     Context& ctx;
     DmaS2MM& dma;
@@ -186,8 +197,8 @@ class PhaseNoiseAnalyzer
     uint32_t fft_navg;
     uint32_t cic_rate;
     std::atomic<int32_t> dirty_cnt = 0;
-    sci::units::frequency<float> fs_adc, fs;
-    sci::units::time<float> dma_transfer_duration;
+    Frequency fs_adc, fs;
+    Time dma_transfer_duration;
 
     std::mutex dma_mtx; // Guard DMA transfer
     mutable std::shared_mutex data_mtx; // protects phase & phase_noise
@@ -197,18 +208,21 @@ class PhaseNoiseAnalyzer
     std::atomic<bool> acquisition_started{false};
     void acquisition_thread();
     void start_acquisition();
-    std::array<float, data_size> phase; // rad
+
+    using PhaseDataArray = std::array<Phase, data_size>;
+    PhaseDataArray phase;
 
     // Spectrum analyzer
     sig::Spectrum<float> spectrum;
-    std::vector<float> phase_noise; // rad^2/Hz
-    MovingAverager<float> averager;
+    using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
+    PhaseNoiseDensityVector phase_noise;
+    MovingAverager<PhaseNoiseDensity> averager;
 
     // Jitter (integrated noise)
-    float phase_jitter = 0.0f; // rad rms
-    float time_jitter = 0.0f; // s rms
-    float f_lo_used = 0.0f; // Integration interval start
-    float f_hi_used = 0.0f; // Integration interval end
+    Phase phase_jitter{0.0f};
+    Time time_jitter{0.0f};
+    Frequency f_lo_used{0.0f}; // Integration interval start
+    Frequency f_hi_used{0.0f}; // Integration interval end
 
     // ----------------- Private functions
 
@@ -251,7 +265,7 @@ class PhaseNoiseAnalyzer
         static_assert(sci::units::is_dimensionless<decltype(conv_factor_dBm)>);
     }
 
-    auto compute_phase_noise(std::array<float, data_size>& new_phase) {
+    auto compute_phase_noise(PhaseDataArray& new_phase) {
         auto phase_psd = spectrum.welch<sig::DENSITY, false>(new_phase);
 
         if (fft_navg > 1) {
@@ -262,24 +276,28 @@ class PhaseNoiseAnalyzer
         }
     }
 
-    auto compute_jitter(const std::vector<float>& new_pn) {
-        const float f_dss = dds.get_dds_freq(channel);
+    auto compute_jitter(const PhaseNoiseDensityVector& new_pn) {
+        const auto f_dss = dds.get_lo_freq(channel);
 
-        if (sci::almost_equal(f_dss, 0.0f)) {
-            // No demodulation is DSS frequency is zero
-            const auto NaN = std::numeric_limits<float>::quiet_NaN();
-            phase_jitter = NaN;
-            time_jitter  = NaN;
-            f_lo_used    = NaN;
-            f_hi_used    = NaN;
+        if (sci::almost_equal(f_dss, Frequency{0.0f})) {
+            // No demodulation if DSS frequency is zero
+            phase_jitter = std::numeric_limits<Phase>::quiet_NaN();
+            time_jitter  = std::numeric_limits<Time>::quiet_NaN();
+            f_lo_used    = std::numeric_limits<Frequency>::quiet_NaN();
+            f_hi_used    = std::numeric_limits<Frequency>::quiet_NaN();
         } else {
             const std::size_t n_bins = new_pn.size();
-            const float df = fs.eval() / float(fft_size);
-            const float f_min_avail = df;
-            const float f_max_avail = (n_bins - 1) * df;
+            const auto df = fs / float(fft_size);
+            const auto f_min_avail = df;
+            const auto f_max_avail = (n_bins - 1) * df;
 
-            auto log10f = [](float f) {
-                return std::log10(std::max(f, std::numeric_limits<float>::min()));
+            auto log10f = [](Frequency f) {
+                const auto fmin = std::numeric_limits<Frequency>::min();
+                return std::log10(sci::units::fmax(f, fmin).eval());
+            };
+
+            auto pow10f = [](float x) {
+                return Frequency(std::pow(10.0f, x));
             };
 
             const float low_dec  = std::ceil(log10f(f_min_avail));
@@ -291,23 +309,21 @@ class PhaseNoiseAnalyzer
                 f_hi_used = f_max_avail;
                 phase_jitter = sci::sqrt(sci::trapz(new_pn.begin() + 1, new_pn.end(), df));
             } else {
-                f_lo_used = std::pow(10.0f, low_dec);
-                f_hi_used = std::pow(10.0f, high_dec);
+                f_lo_used = pow10f(low_dec);
+                f_hi_used = pow10f(high_dec);
 
-                std::size_t k1 = std::max(1u, static_cast<std::size_t>(std::ceil(f_lo_used / df)));
-                std::size_t k2 = std::min(n_bins - 1u, static_cast<std::size_t>(std::floor(f_hi_used / df)));
+                std::size_t k1 = std::max(1u, static_cast<std::size_t>(sci::units::ceil(f_lo_used / df).eval()));
+                std::size_t k2 = std::min(n_bins - 1u, static_cast<std::size_t>(sci::units::floor(f_hi_used / df).eval()));
 
                 if (k2 <= k1) {
                     k1 = std::max(1u, k1);
                     k2 = std::min(n_bins - 1u, std::max(k1 + 1, k2));
                 }
 
-                phase_jitter = sci::sqrt(sci::trapz(new_pn.begin() + k1,
-                                                    new_pn.begin() + k2 + 1,
-                                                    df));
+                phase_jitter = sci::sqrt(sci::trapz(new_pn.begin() + k1, new_pn.begin() + k2 + 1, df));
             }
 
-            time_jitter = phase_jitter / (2.0f * sci::pi<float> * f_dss);
+            time_jitter = phase_jitter / (2.0f * sci::pi<Phase> * f_dss);
         }
     }
 };

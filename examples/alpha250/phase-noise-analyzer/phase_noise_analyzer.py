@@ -6,7 +6,7 @@ class PhaseNoiseAnalyzer(object):
     def __init__(self, client):
         self.client = client
         self.calib_factor = 4.196
-        self.npts = 200000
+        self.npts = 204800
 
     @command(classname="Dds")
     def set_dds_freq(self, channel, freq):
@@ -26,7 +26,7 @@ class PhaseNoiseAnalyzer(object):
 
     @command()
     def get_carrier_power(self, navg):
-        return self.client.recv_float()
+        return self.client.recv_double()
 
     @command()
     def get_data(self):
