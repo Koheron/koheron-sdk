@@ -1,18 +1,4 @@
 ---
-cores:
-  - fpga/cores/axi_ctl_register_v1_0
-  - fpga/cores/axi_sts_register_v1_0
-  - fpga/cores/latched_mux_v1_0
-  - fpga/cores/axis_constant_v1_0
-  - fpga/cores/redp_adc_v1_0
-  - fpga/cores/redp_dac_v1_0
-  - fpga/cores/psd_counter_v1_0
-  - fpga/cores/comparator_v1_0
-  - fpga/cores/saturation_v1_0
-  - fpga/cores/pdm_v1_0
-  - fpga/cores/at93c46d_spi_v1_0
-  - fpga/cores/bus_multiplexer_v1_0
-
 memory:
   - name: control
     offset: '0x40000000'
