@@ -12,6 +12,7 @@
 #include <array>
 #include <string>
 #include <ranges>
+#include <string_view>
 
 namespace koheron {
 
@@ -48,7 +49,7 @@ class WebSocket
 
     void reset_read_buff();
 
-    std::string http_packet;
+    std::string_view http_packet;
 
     struct {
         unsigned int header_size;
@@ -98,8 +99,7 @@ class WebSocket
     int check_opcode(unsigned int opcode);
     int read_n_bytes(int64_t bytes, int64_t expected);
 
-    int set_send_header(unsigned char *bits, int64_t data_len,
-                        unsigned int format);
+    int set_send_header(int64_t data_len, unsigned int format);
     int send_request(const std::string& request);
     int send_request(const unsigned char *bits, int64_t len);
 };
@@ -119,7 +119,7 @@ inline int WebSocket::send(const R& r)
         return -1;
     }
 
-    auto mask_offset = set_send_header(send_buf.data(), char_data_len, (1 << 7) + BINARY_FRAME);
+    auto mask_offset = set_send_header(char_data_len, (1 << 7) + BINARY_FRAME);
     std::memcpy(&send_buf[mask_offset], std::data(r), char_data_len);
     return send_request(send_buf.data(), static_cast<int64_t>(mask_offset) + static_cast<int64_t>(char_data_len));
 }
