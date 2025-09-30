@@ -1,7 +1,7 @@
 // Interface for the Phase Noise Analyzer driver
 // (c) Koheron
 
-type TupleGetParameters = [number, number, number, number, number, number, number];
+type TupleGetParameters = [number, number, number, number, number, number, number, number];
 
 interface IParameters {
   data_size: number; // fft_size/2
@@ -11,6 +11,7 @@ interface IParameters {
   fft_navg: number;
   fdds0: number;
   fdds1: number;
+  analyzer_mode: string
 }
 
 type TupleGetJitter = [number, number, number, number];
@@ -34,13 +35,14 @@ class PhaseNoiseAnalyzer {
   }
 
   async getParameters(): Promise<IParameters> {
-    const [data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1] =
+    const [data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, mode] =
       await this.client.readTuple<TupleGetParameters>(
         Command(this.id, this.cmds['get_parameters']),
-        'IfIIIdd'
+        'IfIIIddI'
       );
 
-    return { data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1 };
+    const analyzer_mode = (mode == 0 ?  'rf' : 'laser');
+    return { data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, analyzer_mode };
   }
 
   async getJitter(): Promise<IJitter> {
@@ -71,6 +73,14 @@ class PhaseNoiseAnalyzer {
 
   setChannel(channel: number): void {
     this.client.send(Command(this.id, this.cmds['set_channel'], channel));
+  }
+
+  setAnalyzerMode(mode: number): void {
+    this.client.send(Command(this.id, this.cmds['set_analyzer_mode'], mode));
+  }
+
+  setInterferometerDelay(delay_s: number): void {
+    this.client.send(Command(this.id, this.cmds['set_interferometer_delay'], delay_s));
   }
 
   async getCarrierPower(nAverage: number): Promise<number> {

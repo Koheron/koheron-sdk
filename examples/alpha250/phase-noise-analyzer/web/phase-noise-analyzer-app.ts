@@ -9,12 +9,16 @@ class PhaseNoiseAnalyzerApp {
   private phaseJitterSpan: HTMLElement;
   private timeJitterSpan: HTMLElement;
 
+  private laserModeEnableCheckbox: HTMLInputElement;
+  private interferometerDelayInput: HTMLInputElement;
+
   private ddsInputs: HTMLInputElement[];
   private ddsSetButtons: HTMLButtonElement[];
 
   private isEditingCic: boolean;
   private isEditingNavg: boolean;
   private isEditingDdsInputs: boolean;
+  private isEditingDelay: boolean;
   public nPoints: number;
   public channel: number;
 
@@ -37,6 +41,7 @@ class PhaseNoiseAnalyzerApp {
     this.initCicRateInput();
     this.initNavgInput();
     this.initChannelInput();
+    this.initLaserMode();
     this.updateMeasurements();
     this.updateControls();
     callback();
@@ -107,6 +112,34 @@ class PhaseNoiseAnalyzerApp {
         this.channel = parseInt((<HTMLInputElement>event.currentTarget).value);
           this.driver[(<HTMLInputElement>event.currentTarget).dataset.command](this.channel);
       })
+    }
+  }
+
+  initLaserMode(): void {
+    this.laserModeEnableCheckbox = <HTMLInputElement>document.getElementsByClassName("laser-mode-input")[0];
+    this.interferometerDelayInput = <HTMLInputElement>document.getElementsByClassName("interferometer-delay")[0];
+
+    this.laserModeEnableCheckbox.addEventListener("change", () => {
+      const enabled: 0 | 1 = this.laserModeEnableCheckbox.checked ? 1 : 0;
+      this.driver.setAnalyzerMode(enabled);
+      this.interferometerDelayInput.disabled = !enabled;
+    });
+
+    this.interferometerDelayInput.addEventListener("focus", () => {
+      this.isEditingDelay = true;
+    });
+
+    this.interferometerDelayInput.addEventListener("blur", () => {
+      this.isEditingDelay = false;
+      this.updateControls();
+    });
+
+    let events = ['change', 'input'];
+    for (let j = 0; j < events.length; j++) {
+      this.interferometerDelayInput.addEventListener(events[j], (event) => {
+          let value = parseInt((<HTMLInputElement>event.currentTarget).value);
+          this.driver.setInterferometerDelay(value * 1E-9);
+      });
     }
   }
 

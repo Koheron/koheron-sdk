@@ -118,7 +118,8 @@ class PhaseNoiseAnalyzer
             cic_rate,
             fft_navg,
             dds.get_dds_freq(0),
-            dds.get_dds_freq(1)
+            dds.get_dds_freq(1),
+            analyzer_mode
         };
     }
 
@@ -169,6 +170,21 @@ class PhaseNoiseAnalyzer
 
         fft_navg = n_avg;
         averager.set_navg(fft_navg);
+    }
+
+    void set_analyzer_mode(uint32_t mode) {
+        if (mode != AnalyzerMode::RF && mode != AnalyzerMode::LASER) {
+            ctx.logf<WARNING>("PhaseNoiseAnalyzer: Invalid mode {}", mode);
+            return;
+        }
+
+        analyzer_mode = mode;
+    }
+
+    void set_interferometer_delay(float delay_s) {
+        interferometer_delay = Time(delay_s);
+        ctx.logf<INFO>("PhaseNoiseAnalyzer: Interferometer delay set to {} ns",
+                       interferometer_delay.eval() * 1E9f);
     }
 
   private:
@@ -224,6 +240,15 @@ class PhaseNoiseAnalyzer
     Frequency f_lo_used{0.0f}; // Integration interval start
     Frequency f_hi_used{0.0f}; // Integration interval end
 
+    // Laser phase noise
+    enum AnalyzerMode: uint32_t {
+        RF,   // Return the RF signal phase noise
+        LASER // Return the laser phase noise (compensate for interferometer response)
+    };
+
+    uint32_t analyzer_mode = AnalyzerMode::RF;
+    Time interferometer_delay{0.0f};
+
     // ----------------- Private functions
 
     void reset_phase_unwrapper() {
@@ -264,8 +289,18 @@ class PhaseNoiseAnalyzer
         static_assert(sci::units::is_dimensionless<decltype(conv_factor_dBm)>);
     }
 
+    auto get_psd(PhaseDataArray& new_phase) {
+        if (analyzer_mode == AnalyzerMode::RF) {
+            return spectrum.welch<sig::DENSITY, false>(new_phase);
+        } else { // analyzer_mode == AnalyzerMode::LASER
+            using namespace sci::operators;
+            auto [freqs, phase_psd] = spectrum.welch<sig::DENSITY, true>(new_phase);
+            return std::move(phase_psd) * 0.5f / sci::sin(sci::pi<Phase> * freqs * interferometer_delay.eval());
+        }
+    }
+
     auto compute_phase_noise(PhaseDataArray& new_phase) {
-        auto phase_psd = spectrum.welch<sig::DENSITY, false>(new_phase);
+        auto phase_psd = get_psd(new_phase);
 
         if (fft_navg > 1) {
             averager.append(std::move(phase_psd));
