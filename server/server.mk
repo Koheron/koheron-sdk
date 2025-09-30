@@ -94,7 +94,7 @@ PHONY: gcc_flags
 gcc_flags:
 	@echo $(GCC_FLAGS)
 
-GEN_HDRS := \
+GEN_HEADERS := \
   $(TMP_SERVER_PATH)/memory.hpp \
   $(TMP_SERVER_PATH)/drivers.hpp \
   $(TMP_SERVER_PATH)/drivers_json.hpp \
@@ -103,16 +103,16 @@ GEN_HDRS := \
   $(INTERFACE_DRIVERS_HPP)
 
 # --- compile rules must wait for generated headers ---
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/%.cpp $(GEN_HDRS)
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/%.cpp | $(GEN_HEADERS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp $(GEN_HDRS)
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp | $(GEN_HEADERS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp $(GEN_HDRS)
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp | $(GEN_HEADERS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-$(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp $(GEN_HDRS)
+$(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
 # Generated interface .cpp → .o (depends on its own .hpp via auto-deps)
