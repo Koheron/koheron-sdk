@@ -5,9 +5,11 @@ class Plot {
   public n_pts: number;
   public plot: jquery.flot.plot;
   public plot_data: Array<Array<number>>;
-  public decade_values: Array<Array<number>>;
   private samplingFrequency: number;
   private decadeValuesTable: HTMLTableElement;
+
+  private laserPlotTypeInputs: HTMLInputElement[];
+  private laserPlotType: 'phase' | 'frequency' = 'phase';
 
   public yLabel: string = "PHASE NOISE (dBc/Hz)";
   private peakDatapoint: number[];
@@ -27,6 +29,25 @@ class Plot {
     this.setFreqAxis();
     this.plotBasics.setLogX();
     this.plotBasics.enableDecimation();
+
+    this.initLaserPlotType();
+  }
+
+  initLaserPlotType(): void {
+    this.laserPlotTypeInputs = Array.from(
+      document.getElementsByClassName('laser-plot-type')
+    ) as HTMLInputElement[];
+
+    const syncPlotType = () => {
+      const selected = this.laserPlotTypeInputs.find(i => i.checked);
+      this.laserPlotType = (selected?.value as 'phase' | 'frequency') ?? 'phase';
+    };
+
+    this.laserPlotTypeInputs.forEach(input => {
+      input.addEventListener('change', syncPlotType);
+    });
+
+    syncPlotType();
   }
 
   setFreqAxis(): void {
@@ -54,33 +75,67 @@ class Plot {
     }
   }
 
-  getDecadeValues() {
+  getDecadeValues(): Array<Array<number>> {
     let fmin: number = this.plotBasics.x_min;
     let fmax: number = this.plotBasics.x_max;
 
     let freq_decades: number[] = [1E-1, 1E0, 1E1, 1E2, 1E3, 1E4, 1E5, 1E6, 1E7];
-    this.decade_values = [];
+    let decade_values = [];
 
-    for (let freq of freq_decades) {
-      if (freq >= fmin && freq <= fmax) {
-        let i: number = Math.floor(2 * freq * this.n_pts / this.samplingFrequency) + 1;
-        this.decade_values.push(this.plot_data[i]);
+    for (const freq of freq_decades) {
+      if (freq < fmin || freq > fmax) {
+        continue;
       }
+
+      const idxFloat = 2 * freq * this.n_pts / this.samplingFrequency + 1;
+      const i0 = Math.floor(idxFloat);
+      const i1 = Math.min(i0 + 1, this.plot_data.length - 1);
+
+      const v0 = this.plot_data[i0]?.[1];
+      const v1 = this.plot_data[i1]?.[1];
+
+      let v: number;
+      if (Number.isFinite(v0) && Number.isFinite(v1)) {
+        // (Linear interpolation
+        const f0 = this.plot_data[i0][0], f1 = this.plot_data[i1][0];
+        const t = (freq - f0) / (f1 - f0);
+        v = v0 + (v1 - v0) * t;
+      } else {
+        v = Number.isFinite(v0) ? v0 : Number.isFinite(v1) ? v1 : NaN;
+      }
+
+      decade_values.push([freq, v]);
     }
 
-    this.decadeValuesTable.innerHTML = '<thead><tr><th>Carrier Offset Frequency</th><th>Phase Noise</th></tr></thead>';
+    return decade_values;
+  }
 
-    for (let value of this.decade_values) {
-      let row = this.decadeValuesTable.insertRow(-1);
-      let freqCell = row.insertCell(0);
+  private setDecadeValuesTable(): void {
+    const decade_values = this.getDecadeValues();
+
+    this.decadeValuesTable.innerHTML = `
+      <colgroup>
+        <col style="width:250px">
+        <col>
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Carrier Offset Frequency</th>
+          <th>Phase Noise</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+
+    const tbody = this.decadeValuesTable.tBodies[0] as HTMLTableSectionElement;
+
+    for (const value of decade_values) {
+      const row = tbody.insertRow(-1);
+      const freqCell = row.insertCell(0);
       freqCell.innerHTML = this.frequencyFormater(value[0]);
-      let valueCell = row.insertCell(1);
 
-      if (Number.isFinite(value[1])) {
-        valueCell.innerHTML = value[1].toFixed(2) + " dBc/Hz";
-      } else {
-        valueCell.innerHTML = "---";
-      }
+      const valueCell = row.insertCell(1);
+      valueCell.innerHTML = Number.isFinite(value[1]) ? `${value[1].toFixed(2)} dBc/Hz` : '---';
     }
   }
 
@@ -152,11 +207,18 @@ class Plot {
         plot[i][1] = NaN;
       }
 
-      for (let i = nstart - 1; i < N; i++) {
-        plot[i][1] = DB10 * Math.log(phaseNoise[i]) + SHIFT; // rad²/Hz => dBc/Hz
+      if (this.laserPlotType === 'phase') {
+        for (let i = nstart - 1; i < N; i++) {
+          plot[i][1] = DB10 * Math.log(phaseNoise[i]) + SHIFT; // rad²/Hz => dBc/Hz
+        }
+      } else { // Frequency noise
+        for (let i = nstart - 1; i < N; i++) {
+          // plot[i][1] = DB10 * (2 * Math.log(plot[i][0]) + Math.log(phaseNoise[i])) + SHIFT; // rad²/Hz => dBc/Hz
+          plot[i][1] = 10 * Math.log10(phaseNoise[i]) + 20 * Math.log10(plot[i][0]); // dB Hz²/Hz
+        }
       }
 
-      this.getDecadeValues();
+      this.setDecadeValuesTable();
 
       this.plotBasics.redraw(
         this.plot_data,

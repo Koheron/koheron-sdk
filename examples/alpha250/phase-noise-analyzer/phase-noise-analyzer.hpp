@@ -51,6 +51,7 @@ class PhaseNoiseAnalyzer
     , ram(ctx.mm.get<mem::ram>())
     , phase_noise(1 + fft_size / 2)
     , averager(1)
+    , interferometer_tf(1 + fft_size / 2)
     {
         using namespace sci::units::literals;
         vrange= { 1_V * ltc2157.get_input_voltage_range(0),
@@ -182,9 +183,16 @@ class PhaseNoiseAnalyzer
     }
 
     void set_interferometer_delay(float delay_s) {
+        using namespace sci::operators;
+
         interferometer_delay = Time(delay_s);
         ctx.logf<INFO>("PhaseNoiseAnalyzer: Interferometer delay set to {} ns",
                        interferometer_delay.eval() * 1E9f);
+
+        // Update interferometer TF
+        auto freqs = sig::rfftfreq(fft_size, 1.0f / fs);
+        auto tf_0 = 0.5f / sci::sin(sci::pi<Phase> * std::move(freqs) * interferometer_delay);
+        interferometer_tf = std::move(tf_0) * std::move(tf_0);
     }
 
   private:
@@ -248,6 +256,7 @@ class PhaseNoiseAnalyzer
 
     uint32_t analyzer_mode = AnalyzerMode::RF;
     Time interferometer_delay{0.0f};
+    std::vector<float> interferometer_tf; // Interferometer transfer function
 
     // ----------------- Private functions
 
@@ -289,18 +298,14 @@ class PhaseNoiseAnalyzer
         static_assert(sci::units::is_dimensionless<decltype(conv_factor_dBm)>);
     }
 
-    auto get_psd(PhaseDataArray& new_phase) {
-        if (analyzer_mode == AnalyzerMode::RF) {
-            return spectrum.welch<sig::DENSITY, false>(new_phase);
-        } else { // analyzer_mode == AnalyzerMode::LASER
-            using namespace sci::operators;
-            auto [freqs, phase_psd] = spectrum.welch<sig::DENSITY, true>(new_phase);
-            return std::move(phase_psd) * 0.5f / sci::sin(sci::pi<Phase> * freqs * interferometer_delay.eval());
-        }
-    }
-
     auto compute_phase_noise(PhaseDataArray& new_phase) {
-        auto phase_psd = get_psd(new_phase);
+        auto phase_psd = spectrum.welch<sig::DENSITY, false>(new_phase);
+
+        if (analyzer_mode == AnalyzerMode::LASER) {
+            using namespace sci::operators;
+            ctx.logf<INFO>("interferometer_tf.size = {}; phase_psd.size = {}", interferometer_tf.size(), phase_psd.size());
+            phase_psd = std::move(phase_psd) * interferometer_tf;
+        }
 
         if (fft_navg > 1) {
             averager.append(std::move(phase_psd));

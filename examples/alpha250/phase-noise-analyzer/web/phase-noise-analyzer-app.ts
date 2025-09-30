@@ -137,8 +137,8 @@ class PhaseNoiseAnalyzerApp {
     let events = ['change', 'input'];
     for (let j = 0; j < events.length; j++) {
       this.interferometerDelayInput.addEventListener(events[j], (event) => {
-          let value = parseInt((<HTMLInputElement>event.currentTarget).value);
-          this.driver.setInterferometerDelay(value * 1E-9);
+        let value = parseInt((<HTMLInputElement>event.currentTarget).value);
+        this.driver.setInterferometerDelay(value * 1E-9);
       });
     }
   }

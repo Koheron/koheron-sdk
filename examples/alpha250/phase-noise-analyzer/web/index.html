@@ -16,6 +16,7 @@
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
+  <link rel="stylesheet" type="text/css" href="phase-noise.css">
   <link rel="stylesheet" type="text/css" href="phase-noise-plot.css">
 
   <script type="text/javascript" src="html-imports.min.js"></script>
@@ -29,63 +30,6 @@
   <link rel="import" href="plot-basics.html" data-parent="plot-basics">
   <link rel="import" href="export-file.html" data-parent="export-file">
 </head>
-
-<style>
-/* Summary: no default marker, flex layout */
-.collapsible-summary {
-  list-style: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 0;
-  user-select: none;
-}
-.collapsible-summary::-webkit-details-marker { display: none; }
-
-/* Custom chevron on the left */
-.chevron::before {
-  content: "▸";
-  display: inline-block;
-  transition: transform 0.15s ease;
-  font-size: 1.4em;
-  line-height: 1;
-}
-details[open] .chevron::before {
-  content: "▾";
-}
-
-/* Make the crossed title take available width (so text can be centered) */
-.flex-fill { flex: 1; }
-
-/* Single centered line behind the title text */
-.crossed {
-  width: 100%;
-  text-align: center;
-  margin: 20px 0;
-  position: relative;
-}
-
-.crossed::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  border-top: 1px solid #d5d5d5;
-  transform: translateY(-50%);
-  z-index: 0;
-}
-
-.crossed > span {
-  background: white;
-  padding: 0 10px;
-  font-weight: bold;
-  position: relative;
-  z-index: 1;
-}
-
-</style>
 
 <body>
 
@@ -106,7 +50,7 @@ details[open] .chevron::before {
         <div id="plot-basics"></div>
       </div>
 
-      <div class="col-md-4">
+      <div class="col-md-3">
         <section style="margin-bottom: 20px;">
           <div id="reference-clock"></div>
         </section>
@@ -170,6 +114,19 @@ details[open] .chevron::before {
                 </td>
                 <td style="width: 120px">
                   <input type="number" value="1" min="1" step="1" max="1000" disabled=1 class="interferometer-delay">
+                </td>
+              </tr>
+              <tr>
+                <td style="width: 160px">
+                  Plot
+                </td>
+                <td style="width: 250px">
+                  <div class="radio-wrapper">
+                    <input type="radio" name="laser-plot-type" value="phase" checked class="laser-plot-type">Phase Noise (dBc/Hz)
+                  </div>
+                  <div class="radio-wrapper">
+                    <input type="radio" name="laser-plot-type" value="frequency" class="laser-plot-type">Frequency Noise (dB Hz<sup>2</sup>/Hz)
+                  </div>
                 </td>
               </tr>
             </table>
