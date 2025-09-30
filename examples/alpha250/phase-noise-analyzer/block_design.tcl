@@ -56,10 +56,6 @@ for {set i 0} {$i < 2} {incr i} {
   connect_pins cordic$i/demod [sts_pin demod$i]
 }
 
-####################################
-# Monitor Phase with DMA
-####################################
-
 cell koheron:user:latched_mux:1.0 phase_mux {
     WIDTH 32
     N_INPUTS 2
@@ -71,7 +67,9 @@ cell koheron:user:latched_mux:1.0 phase_mux {
     sel [get_slice_pin [ctl_pin cordic] 4 4]
 }
 
-# Define CIC parameters
+###########################
+# First stage decimation
+###########################
 
 set diff_delay [get_parameter cic_differential_delay]
 set dec_rate_default [get_parameter cic_decimation_rate_default]
@@ -127,6 +125,75 @@ cell xilinx.com:ip:fir_compiler:7.2 fir {
   aclk adc_dac/adc_clk
   S_AXIS_DATA cic/M_AXIS_DATA
 }
+
+####################################
+# PSD of phase
+####################################
+
+source $project_path/tcl/power_spectral_density.tcl
+source $sdk_path/fpga/modules/bram_accumulator/bram_accumulator.tcl
+source $sdk_path/fpga/lib/bram_recorder.tcl
+
+set intercon_idx 0
+
+power_spectral_density::create psd [get_parameter fft_size]
+
+cell xilinx.com:ip:axis_clock_converter:1.1 psd_clock_converter {
+  TDATA_NUM_BYTES 4
+} {
+  s_axis_tdata   fir/m_axis_data_tdata
+  s_axis_tvalid  fir/m_axis_data_tvalid
+  s_axis_aresetn rst_adc_clk/peripheral_aresetn
+  m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
+  s_axis_aclk    adc_dac/adc_clk
+  m_axis_aclk    [set ps_clk$intercon_idx]
+  m_axis_tready  [get_constant_pin 1 1]
+}
+
+connect_cell psd {
+  data       psd_clock_converter/m_axis_tdata
+  clk        [set ps_clk$intercon_idx]
+  tvalid     psd_clock_converter/m_axis_tvalid
+  ctl_fft    [ps_ctl_pin ctl_fft]
+}
+
+# Accumulator
+cell koheron:user:psd_counter:1.0 psd_counter {
+  PERIOD [get_parameter fft_size]
+  PERIOD_WIDTH [expr int(ceil(log([get_parameter fft_size]))/log(2))]
+  N_CYCLES [get_parameter n_cycles]
+  N_CYCLES_WIDTH [expr int(ceil(log([get_parameter n_cycles]))/log(2))]
+} {
+  clk           [set ps_clk$intercon_idx]
+  s_axis_tdata  psd/m_axis_result_tdata
+  s_axis_tvalid psd/m_axis_result_tvalid
+  cycle_index   [ps_sts_pin cycle_index]
+}
+
+bram_accumulator::create bram_accum
+connect_cell bram_accum {
+  clk           [set ps_clk$intercon_idx]
+  s_axis_tdata  psd_counter/m_axis_tdata
+  s_axis_tvalid psd_counter/m_axis_tvalid
+  addr_in       psd_counter/addr
+  first_cycle   psd_counter/first_cycle
+  last_cycle    psd_counter/last_cycle
+}
+
+# Record spectrum data in BRAM
+
+add_bram_recorder psd_bram psd
+connect_cell psd_bram {
+  clk  [set ps_clk$intercon_idx]
+  rst  [set rst${intercon_idx}_name]/peripheral_reset
+  addr bram_accum/addr_out
+  wen  bram_accum/wen
+  adc  bram_accum/m_axis_tdata
+}
+
+####################################
+# Monitor Phase with DMA
+####################################
 
 set_property -dict [list CONFIG.PCW_USE_S_AXI_HP0 {1} CONFIG.PCW_S_AXI_HP0_DATA_WIDTH {32}] [get_bd_cells ps_0]
 connect_pins ps_0/S_AXI_HP0_ACLK ps_0/FCLK_CLK1

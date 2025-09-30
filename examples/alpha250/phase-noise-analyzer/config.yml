@@ -15,6 +15,12 @@ memory:
   - name: xadc
     offset: '0x43C00000'
     range: 64K
+  - name: demod
+    offset: '0x74000000'
+    range: 32K
+  - name: psd
+    offset: '0x76000000'
+    range: 16K
   - name: ram
     offset: '0x1E000000'
     range: 32M
@@ -40,9 +46,11 @@ status_registers:
 ps_control_registers:
   - spi_cfg_data
   - spi_cfg_cmd
+  - ctl_fft
 
 ps_status_registers:
   - spi_cfg_sts
+  - cycle_index
 
 parameters:
   fclk0: 200000000
@@ -58,3 +66,5 @@ parameters:
   cic_decimation_rate_max: 8192
   cic_n_stages: 6
   n_pts: 262144
+  fft_size: 4096
+  n_cycles: 63
