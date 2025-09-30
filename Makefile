@@ -192,8 +192,8 @@ setup:
 	$(PIP) install $(SDK_PATH)/python
 	bash docker/install_docker.sh
 	sudo usermod -aG docker $(shell whoami)
-	docker build -t cross-armhf:24.04 ./docker/.
-	docker build -f $(WEB_PATH)/Dockerfile.web -t koheron-web:node20 $(WEB_PATH)
+	docker build -f $(DOCKER_PATH)/Dockerfile -t $(DOCKER_IMAGE) $(DOCKER_PATH)
+	docker build -f $(WEB_PATH)/Dockerfile.web -t $(WEB_DOCKER_IMAGE) $(WEB_PATH)
 
 ###############################################################################
 # CLEAN TARGETS
@@ -208,8 +208,6 @@ clean:
 .PHONY: clean_all
 clean_all:
 	rm -rf $(TMP)
-
-
 
 .PHONY: images
 

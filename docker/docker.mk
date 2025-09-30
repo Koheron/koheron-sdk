@@ -39,3 +39,15 @@ DOCKER_ROOT = docker run --rm -t $(DOCKER_DEV) \
                $(DOCKER_ENV) \
                -w $(DOCKER_WD) $(DOCKER_VOL) \
                --cpus=$(N_CPUS) $(DOCKER_FLAGS) $(DOCKER_IMAGE)
+
+.PHONY: clean_docker
+clean_docker:
+	@id=$$(docker images -q $(DOCKER_IMAGE) 2>/dev/null); \
+	if [ -n "$$id" ]; then \
+	  echo "Removing containers using $$id..."; \
+	  docker ps -aq --filter ancestor=$$id | xargs -r docker rm -f; \
+	  echo "Removing image $(DOCKER_IMAGE) ($$id)..."; \
+	  docker rmi -f $$id; \
+	else \
+	  echo "Image $(DOCKER_IMAGE) not found."; \
+	fi

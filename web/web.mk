@@ -1,9 +1,10 @@
+WEB_DOCKER_IMAGE ?= koheron-web:node20
 
 WEB_DOCKER_RUN := docker run --rm -t \
                   -u $$(id -u):$$(id -g) \
                   -v $(PWD):$(PWD) \
                   -w $(PWD) \
-                  koheron-web:node20
+                  $(WEB_DOCKER_IMAGE)
 
 # Typescript compiler
 ###############################################################################
@@ -17,7 +18,7 @@ TSC_FLAGS ?= -pretty \
              --incremental \
              --typeRoots /opt/app/node_modules/@types
 
-TSC       ?= $(WEB_DOCKER_RUN) tsc $(TSC_FLAGS)
+TSC ?= $(WEB_DOCKER_RUN) tsc $(TSC_FLAGS)
 
 # Build webpage
 ###############################################################################

@@ -179,7 +179,7 @@ class PhaseNoiseAnalyzer
                 sci::units::quantity_multiply<Phase, Phase>,
                 Frequency>;
 
-    static constexpr uint32_t fft_size = 102400; // 2^12 x 5^2
+    static constexpr uint32_t fft_size = 32768;
     static constexpr uint32_t data_size = 2 * fft_size;
     static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2; // Do use the first transfered points
     static constexpr auto calib_factor = 4.196f * sci::pi<Phase> / 8192.0f;
