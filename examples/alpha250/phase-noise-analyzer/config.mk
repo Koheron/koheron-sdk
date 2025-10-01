@@ -20,6 +20,7 @@ include $(SDK_PATH)/boards/alpha250/drivers/drivers.mk
 DRIVERS += $(SDK_PATH)/server/drivers/dma-s2mm.hpp
 DRIVERS += $(PROJECT_PATH)/dds.hpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.hpp
+DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.cpp
 
 # Web assets
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts

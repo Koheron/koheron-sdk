@@ -63,7 +63,7 @@ class PhaseNoiseAnalyzer
         set_channel(0);
         set_fft_navg(1);
 
-        fs_adc = sci::units::frequency<float>(clk_gen.get_adc_sampling_freq());
+        fs_adc = Frequency(clk_gen.get_adc_sampling_freq());
         set_cic_rate(prm::cic_decimation_rate_default);
 
         // Configure the spectrum analyzer
@@ -93,6 +93,8 @@ class PhaseNoiseAnalyzer
         fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
         dma_transfer_duration = prm::n_pts / fs;
         ctx.logf<INFO>("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
+
+        update_interferometer_transfer_function();
         spectrum.fs(fs);
         averager.clear();
         dirty_cnt = 2;
@@ -183,16 +185,11 @@ class PhaseNoiseAnalyzer
     }
 
     void set_interferometer_delay(float delay_s) {
-        using namespace sci::operators;
-
         interferometer_delay = Time(delay_s);
         ctx.logf<INFO>("PhaseNoiseAnalyzer: Interferometer delay set to {} ns",
                        interferometer_delay.eval() * 1E9f);
 
-        // Update interferometer TF
-        auto freqs = sig::rfftfreq(fft_size, 1.0f / fs);
-        auto tf_0 = 0.5f / sci::sin(sci::pi<Phase> * std::move(freqs) * interferometer_delay);
-        interferometer_tf = std::move(tf_0) * std::move(tf_0);
+        update_interferometer_transfer_function();
     }
 
   private:
@@ -258,6 +255,10 @@ class PhaseNoiseAnalyzer
     Time interferometer_delay{0.0f};
     std::vector<float> interferometer_tf; // Interferometer transfer function
 
+    // Carrier power
+    sci::units::dimensionless<double> conv_factor_dBm;
+    std::array<sci::units::electric_potential<double>, 2> vrange;
+
     // ----------------- Private functions
 
     void reset_phase_unwrapper() {
@@ -279,9 +280,12 @@ class PhaseNoiseAnalyzer
         return ram.read_array<int32_t, data_size, read_offset>();
     }
 
-    // Carrier power
-    sci::units::dimensionless<double> conv_factor_dBm;
-    std::array<sci::units::electric_potential<double>, 2> vrange;
+    void update_interferometer_transfer_function() {
+        using namespace sci::operators;
+        auto freqs = sig::rfftfreq(fft_size, 1.0f / fs);
+        auto tf_0 = 0.5f / sci::sin(sci::pi<Phase> * std::move(freqs) * interferometer_delay);
+        interferometer_tf = std::move(tf_0) * std::move(tf_0);
+    }
 
     void set_power_conversion_factor() {
         using namespace sci::units::literals;
@@ -303,7 +307,6 @@ class PhaseNoiseAnalyzer
 
         if (analyzer_mode == AnalyzerMode::LASER) {
             using namespace sci::operators;
-            ctx.logf<INFO>("interferometer_tf.size = {}; phase_psd.size = {}", interferometer_tf.size(), phase_psd.size());
             phase_psd = std::move(phase_psd) * interferometer_tf;
         }
 
@@ -367,41 +370,41 @@ class PhaseNoiseAnalyzer
     }
 };
 
-inline void PhaseNoiseAnalyzer::start_acquisition() {
-    if (! acquisition_started) {
-        acq_thread = std::thread{&PhaseNoiseAnalyzer::acquisition_thread, this};
-        acq_thread.detach();
-    }
-}
+// inline void PhaseNoiseAnalyzer::start_acquisition() {
+//     if (! acquisition_started) {
+//         acq_thread = std::thread{&PhaseNoiseAnalyzer::acquisition_thread, this};
+//         acq_thread.detach();
+//     }
+// }
 
-inline void PhaseNoiseAnalyzer::acquisition_thread() {
-    acquisition_started = true;
-    kick_dma();
+// inline void PhaseNoiseAnalyzer::acquisition_thread() {
+//     acquisition_started = true;
+//     kick_dma();
 
-    while (acquisition_started) {
-        using namespace sci::operators;
+//     while (acquisition_started) {
+//         using namespace sci::operators;
 
-        auto samples = read_dma(); // blocking wait
-        auto new_phase = samples * calib_factor;
+//         auto samples = read_dma(); // blocking wait
+//         auto new_phase = samples * calib_factor;
 
-        kick_dma(); // Immediately kick the next DMA so it runs while we compute
+//         kick_dma(); // Immediately kick the next DMA so it runs while we compute
 
-        if (dirty_cnt.load(std::memory_order_relaxed) > 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            --dirty_cnt;
-            averager.clear();
-            continue;
-        }
+//         if (dirty_cnt.load(std::memory_order_relaxed) > 0) {
+//             std::this_thread::sleep_for(std::chrono::milliseconds(10));
+//             --dirty_cnt;
+//             averager.clear();
+//             continue;
+//         }
 
-        auto new_pn = compute_phase_noise(new_phase);
-        compute_jitter(new_pn);
+//         auto new_pn = compute_phase_noise(new_phase);
+//         compute_jitter(new_pn);
 
-        {
-            std::unique_lock lk(data_mtx);
-            phase = std::move(new_phase);
-            phase_noise = std::move(new_pn);
-        }
-    }
-}
+//         {
+//             std::unique_lock lk(data_mtx);
+//             phase = std::move(new_phase);
+//             phase_noise = std::move(new_pn);
+//         }
+//     }
+// }
 
 #endif // __PHASE_NOISE_ANALYZER_HPP__

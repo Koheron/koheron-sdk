@@ -22,12 +22,33 @@ SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(w
 # endif
 
 export DRIVERS
+# override DRIVERS := $(abspath $(DRIVERS))
+
+# DRIVERS_HPP := $(filter %.hpp,$(DRIVERS))
+# override DRIVERS := $(abspath $(DRIVERS_HPP))
+
+override PROJECT_PATH := $(abspath $(PROJECT_PATH))
+override DRIVERS      := $(abspath $(DRIVERS))
 
 DRIVERS_HPP := $(filter %.hpp,$(DRIVERS))
-override DRIVERS := $(abspath $(DRIVERS_HPP))
-
 DRIVERS_CPP := $(filter %.cpp,$(DRIVERS))
-DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/, $(subst .cpp,.o,$(notdir $(filter %.cpp,$(DRIVERS)))))
+
+# Strip the PROJECT_PATH prefix, keep subdirs, then map to TMP_SERVER_PATH and .o
+DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/, \
+                 $(patsubst $(PROJECT_PATH)/%,%,$(DRIVERS_CPP:.cpp=.o)))
+
+# DRIVERS_CPP := $(filter %.cpp,$(DRIVERS))
+# DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/, $(subst .cpp,.o,$(notdir $(filter %.cpp,$(DRIVERS)))))
+
+PHONY: list_drivers
+list_drivers:
+	@echo $(DRIVERS)
+	@echo "-------------------"
+	@echo $(DRIVERS_HPP)
+	@echo "-------------------"
+	@echo $(DRIVERS_CPP)
+	@echo "-------------------"
+	@echo $(DRIVERS_OBJ)
 
 # -----------------------------------------------------------------------------
 # Generated interface sources/objects
@@ -115,7 +136,11 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp | $(GEN_HEADERS)
 $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-# Generated interface .cpp → .o (depends on its own .hpp via auto-deps)
+$(TMP_SERVER_PATH)/%.o: $(PROJECT_PATH)/%.cpp | $(GEN_HEADERS)
+	@mkdir -p $(dir $@)
+	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+
+# Generated interface .cpp => .o (depends on its own .hpp via auto-deps)
 $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
