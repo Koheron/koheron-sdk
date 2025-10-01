@@ -33,7 +33,6 @@ def get_driver_id(drivers_list, driver_path):
     return None
 
 def get_drivers(drivers_list):
-    print(drivers_list)
     drivers = [] # List of generated drivers
     obj_files = []  # Object file names
     driver_id = 2

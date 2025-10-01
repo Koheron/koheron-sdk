@@ -132,17 +132,6 @@ def fill_template(config, template_filename, output_filename):
     with open(output_filename, 'w') as output:
         output.write(template.render(config=config))
 
-def _to_include_path(p):
-    # produce a path relative to SDK_PATH when possible; otherwise relative to CWD
-    rp = os.path.realpath(p)
-    sdk = os.path.realpath(SDK_PATH) if SDK_PATH else None
-    try:
-        if sdk and os.path.commonpath([rp, sdk]) == sdk:
-            return os.path.relpath(rp, sdk)
-    except Exception:
-        pass
-    return os.path.relpath(rp)
-
 ###################
 # Main
 ###################
@@ -176,23 +165,17 @@ if __name__ == "__main__":
 
     elif cmd == '--render_template':
         template_filename = sys.argv[4]
-        drivers = os.getenv('DRIVERS','').split()
-
-        # normalize to full paths first
-        drivers = [append_path(p, config_path) for p in drivers]
-
-        # convert to include paths (relative to SDK_PATH)
-        drivers_for_includes = [_to_include_path(p) for p in drivers]
+        drivers = os.getenv('DRIVERS_HPP','').split()
 
         server.render_template(
             template_filename,
             output_filename,
-            server.get_drivers(drivers_for_includes)
+            server.get_drivers(drivers)
         )
 
     elif cmd == '--render_interface':
         driver_filename_hpp = sys.argv[4]
-        drivers = os.getenv('DRIVERS','').split()
+        drivers = os.getenv('DRIVERS_HPP','').split()
         id_ = server.get_driver_id(drivers, driver_filename_hpp)
         server.render_driver(server.get_driver(driver_filename_hpp, id_), output_filename)
 

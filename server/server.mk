@@ -14,24 +14,11 @@ SERVER_TEMPLATES := $(wildcard $(SERVER_PATH)/templates/*.hpp $(SERVER_PATH)/tem
 SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/core/*.cpp))))
 SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/runtime/*.cpp))))
 
-export DRIVERS
-# override DRIVERS := $(abspath $(DRIVERS))
-
-# DRIVERS_HPP := $(filter %.hpp,$(DRIVERS))
-# override DRIVERS := $(abspath $(DRIVERS_HPP))
-
-override PROJECT_PATH := $(abspath $(PROJECT_PATH))
-override DRIVERS      := $(abspath $(DRIVERS))
-
 DRIVERS_HPP := $(filter %.hpp,$(DRIVERS))
+export DRIVERS_HPP
+
 DRIVERS_CPP := $(filter %.cpp,$(DRIVERS))
-
-# Strip the PROJECT_PATH prefix, keep subdirs, then map to TMP_SERVER_PATH and .o
-DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/, \
-                 $(patsubst $(PROJECT_PATH)/%,%,$(DRIVERS_CPP:.cpp=.o)))
-
-# DRIVERS_CPP := $(filter %.cpp,$(DRIVERS))
-# DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/, $(subst .cpp,.o,$(notdir $(filter %.cpp,$(DRIVERS)))))
+DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/, $(subst .cpp,.o,$(notdir $(filter %.cpp,$(DRIVERS)))))
 
 PHONY: list_drivers
 list_drivers:
