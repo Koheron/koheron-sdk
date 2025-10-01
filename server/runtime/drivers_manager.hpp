@@ -6,13 +6,9 @@
 #define __DRIVERS_MANAGER_HPP__
 
 #include <array>
-#include <memory>
-#include <cassert>
-#include <thread>
 #include <mutex>
 #include <functional>
 
-#include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 
 #ifdef KOHERON_SERVER_BUILD
@@ -28,22 +24,8 @@ namespace koheron {
 class DriverContainer
 {
   public:
-    DriverContainer()
-    {
-        is_started.fill(false);
-        is_starting.fill(false);
-        services::provide<Context>();
-    }
-
-    int init()
-    {
-        if (services::require<Context>().init() < 0) {
-            print<CRITICAL>("Context initialization failed\n");
-            return -1;
-        }
-
-        return 0;
-    }
+    DriverContainer();
+    int init();
 
     template<driver_id driver>
     auto& get() {
@@ -71,12 +53,7 @@ class DriverManager
   public:
     using alloc_fail_cb = std::function<void(driver_id, std::string_view)>;
 
-    explicit DriverManager(alloc_fail_cb on_alloc_fail = {})
-    : driver_container()
-    , on_alloc_fail_(std::move(on_alloc_fail))
-    {
-        is_started.fill(false);
-    }
+    explicit DriverManager(alloc_fail_cb on_alloc_fail = {});
 
     int init();
 

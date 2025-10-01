@@ -2,6 +2,7 @@
 ///
 /// (c) Koheron
 
+#include "server/runtime/syslog.hpp"
 #include "server/runtime/drivers_manager.hpp"
 #include "server/runtime/meta_utils.hpp"
 
@@ -10,6 +11,23 @@ namespace koheron {
 //----------------------------------------------------------------------------
 // Driver container
 //----------------------------------------------------------------------------
+
+DriverContainer::DriverContainer()
+{
+    is_started.fill(false);
+    is_starting.fill(false);
+    services::provide<Context>();
+}
+
+int DriverContainer::init()
+{
+    if (services::require<Context>().init() < 0) {
+        print<CRITICAL>("Context initialization failed\n");
+        return -1;
+    }
+
+    return 0;
+}
 
 template<driver_id driver>
 int DriverContainer::alloc() {
@@ -38,6 +56,13 @@ int DriverContainer::alloc() {
 //----------------------------------------------------------------------------
 // Driver manager
 //----------------------------------------------------------------------------
+
+DriverManager::DriverManager(alloc_fail_cb on_alloc_fail)
+: driver_container()
+, on_alloc_fail_(std::move(on_alloc_fail))
+{
+    is_started.fill(false);
+}
 
 int DriverManager::init()
 {

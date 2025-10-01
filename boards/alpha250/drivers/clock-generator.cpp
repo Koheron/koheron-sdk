@@ -8,7 +8,6 @@
 ClockGenerator::ClockGenerator(Context& ctx_)
 : ctx(ctx_)
 , ctl(ctx.mm.get<mem::control>())
-, i2c(ctx.i2c.get("i2c-0"))
 , eeprom(ctx.get<Eeprom>())
 , spi_cfg(ctx.get<SpiConfig>())
 {
@@ -37,7 +36,7 @@ int32_t ClockGenerator::set_tcxo_calibration(uint8_t new_cal) {
 
 int32_t ClockGenerator::set_tcxo_clock(uint8_t value) {
     std::array<uint8_t, 2> buff {0b00010000, value};
-    return i2c.write(i2c_address, buff);
+    return ctx.i2c.get("i2c-0").write(i2c_address, buff);
 }
 
 void ClockGenerator::init() {
