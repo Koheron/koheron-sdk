@@ -211,7 +211,7 @@ auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
 }
 
 auto PhaseNoiseAnalyzer::compute_jitter(const PhaseNoiseDensityVector& new_pn) {
-    const auto f_dss = dds.get_lo_freq(channel);
+    const auto f_dss = Frequency(dds.get_dds_freq(channel));
 
     if (sci::almost_equal(f_dss, Frequency{0.0f})) {
         // No demodulation if DSS frequency is zero

@@ -19,6 +19,7 @@ CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
 include $(BOARD_PATH)/drivers/drivers.mk
 DRIVERS += $(SDK_PATH)/server/drivers/dma-s2mm.hpp
 DRIVERS += $(PROJECT_PATH)/dds.hpp
+DRIVERS += $(PROJECT_PATH)/dds.cpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.hpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.cpp
 
