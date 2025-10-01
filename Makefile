@@ -54,7 +54,7 @@ OS_MK ?= $(OS_PATH)/os.mk
 SERVER_MK ?= $(SERVER_PATH)/server.mk
 WEB_MK ?= $(WEB_PATH)/web.mk
 
-PROJECT_PATH := $(dir $(CONFIG_MK))
+PROJECT_PATH := $(patsubst %/,%,$(dir $(CONFIG_MK)))
 TMP_PROJECT_PATH := $(TMP)/$(PROJECT_PATH)
 
 XDC :=
@@ -86,15 +86,22 @@ SERVER := $(TMP_PROJECT_PATH)/serverd
 VERSION_FILE := $(TMP_PROJECT_PATH)/version
 
 include $(CONFIG_MK)
+
+MEMORY_YML ?= $(PROJECT_PATH)/memory.yml
+BD_TCL ?= $(PROJECT_PATH)/block_design.tcl
+TCL_FILES ?= $(BD_TCL) $(wildcard $(PROJECT_PATH)/tcl/*.tcl)
+
 ifdef VERBOSE
 $(info ------------------------)
 $(info CONFIG_MK = $(CONFIG_MK))
 $(info ------------------------)
-$(info VERSION  = $(VERSION))
-$(info NAME     = $(NAME))
-$(info XDC      = $(XDC))
-$(info CORES    = $(CORES))
-$(info DRIVERS  = $(DRIVERS))
+$(info VERSION   = $(VERSION))
+$(info NAME      = $(NAME))
+$(info BD_TCL    = $(BD_TCL))
+$(info TCL_FILES = $(TCL_FILES))
+$(info XDC       = $(XDC))
+$(info CORES     = $(CORES))
+$(info DRIVERS   = $(DRIVERS))
 $(info WEB_FILES = $(WEB_FILES))
 $(info )
 endif
@@ -205,27 +212,3 @@ clean:
 .PHONY: clean_all
 clean_all:
 	rm -rf $(TMP)
-
-.PHONY: images
-
-J ?= $(shell nproc)
-
-images:
-	@$(MAKE) -j$(J) CFG=examples/alpha15/adc-dac-bram/config.mk
-	@$(MAKE) -j$(J) CFG=examples/alpha15/adc-dac-dma/config.mk
-	@$(MAKE) -j$(J) CFG=examples/alpha15/signal-analyzer/config.mk \
-		COPY_INSTRUMENTS="adc-dac-bram adc-dac-dma" image
-	@$(MAKE) -j$(J) CFG=examples/alpha250-4/adc-bram/config.mk
-	@$(MAKE) -j$(J) CFG=examples/alpha250-4/fft/config.mk \
-		COPY_INSTRUMENTS="adc-bram" image
-	@$(MAKE) -j$(J) CFG=examples/alpha250/phase-noise-analyzer/config.mk
-	@$(MAKE) -j$(J) CFG=examples/alpha250/adc-dac-bram/config.mk
-	@$(MAKE) -j$(J) CFG=examples/alpha250/adc-dac-dma/config.mk
-	@$(MAKE) -j$(J) CFG=examples/alpha250/fft/config.mk \
-		COPY_INSTRUMENTS="phase-noise-analyzer adc-dac-bram adc-dac-dma" image
-	@$(MAKE) -j$(J) CFG=examples/red-pitaya/adc-dac-bram/config.mk
-	@$(MAKE) -j$(J) CFG=examples/red-pitaya/fft/config.mk \
-		COPY_INSTRUMENTS="adc-dac-bram" image
-	@$(MAKE) -j$(J) CFG=examples/zedboard/picoblaze/config.mk
-	@$(MAKE) -j$(J) CFG=examples/zedboard/led-blinker/config.mk \
-		COPY_INSTRUMENTS="picoblaze" image

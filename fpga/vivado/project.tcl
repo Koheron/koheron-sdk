@@ -1,8 +1,6 @@
 source [file join [file dirname [info script]] "block_design.tcl"]
 
-if {[version -short] >= 2016.3} {
-  set_property synth_checkpoint_mode None [get_files $bd_path/system.bd]
-}
+set_property synth_checkpoint_mode None [get_files $bd_path/system.bd]
 
 generate_target all [get_files $bd_path/system.bd]
 make_wrapper -files [get_files $bd_path/system.bd] -top
@@ -15,26 +13,11 @@ if {[llength $files] > 0} {
   add_files -norecurse $files
 }
 
-# Add constraint files
 set constr_files {}
-if {[info exists xdc_filename]} {
-  if {[file isfile $xdc_filename]} {
-    set fp [open $xdc_filename r]
-    set content [read $fp]
-    close $fp
-    foreach f $content { if {$f ne ""} { lappend constr_files $f } }
-  } elseif {[file isdirectory $xdc_filename]} {
-    set constr_files [glob -nocomplain -directory $xdc_filename *.xdc]
-  } else {
-    puts "WARNING: constraints path '$xdc_filename' does not exist"
-  }
-} else {
-  puts "WARNING: xdc_filename not set; no constraints will be added"
+foreach pat [split $::env(XDC)] {
+    lappend constr_files {*}[glob -nocomplain -- $pat]
 }
-if {[llength $constr_files] > 0} {
-  add_files -norecurse -fileset constrs_1 $constr_files
-}
-
+add_files -norecurse -fileset constrs_1 $constr_files
 
 set_property VERILOG_DEFINE {TOOL_VIVADO} [current_fileset]
 
