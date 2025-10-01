@@ -31,7 +31,6 @@ KOHERON_VERSION := 1.0
 VIVADO_VERSION := 2025.1
 VIVADO_PATH := /tools/Xilinx/$(VIVADO_VERSION)/Vivado
 VITIS_PATH := /tools/Xilinx/$(VIVADO_VERSION)/Vitis
-PYTHON := python3
 VENV := .venv
 HSI := source $(VIVADO_PATH)/settings64.sh && xsct
 BOOTGEN := source $(VIVADO_PATH)/settings64.sh && bootgen
@@ -75,7 +74,7 @@ help:
 	@echo ' - open_project : Open the Vivado .xpr project'
 
 # Python script that manages the instrument configuration
-MAKE_PY := SDK_PATH=$(SDK_PATH) $(VENV)/bin/$(PYTHON) $(SDK_PATH)/make.py
+MAKE_PY := SDK_PATH=$(SDK_PATH) $(VENV)/bin/python3 $(SDK_PATH)/make.py
 
 # Number of CPU cores available for parallel execution
 N_CPUS ?= $(shell nproc 2> /dev/null || echo 1)
@@ -188,10 +187,10 @@ include $(PYTHON_MK)
 
 .PHONY: setup
 setup:
-	sudo apt-get install -y curl rsync $(PYTHON)-venv
-	[ -d $(VENV) ] || $(PYTHON) -m venv $(VENV)
-	$(VENV)/bin/$(PYTHON) -m ensurepip --upgrade
-	$(VENV)/bin/$(PYTHON) -m pip install --upgrade pip
+	sudo apt-get install -y curl rsync python3-venv
+	[ -d $(VENV) ] || python3 -m venv $(VENV)
+	$(VENV)/bin/python3 -m ensurepip --upgrade
+	$(VENV)/bin/python3) -m pip install --upgrade pip
 	$(PIP) install -r $(SDK_PATH)/requirements.txt
 	$(PIP) install $(SDK_PATH)/python
 	bash docker/install_docker.sh

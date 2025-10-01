@@ -94,7 +94,7 @@ image: $(RELEASE_ZIP)
 # Flash image on SD card
 .PHONY: flash
 flash:
-	$(PYTHON) $(OS_PATH)/scripts/flash_all.py $(TMP_PROJECT_PATH)/$(RELEASE_NAME).zip
+	python3 $(OS_PATH)/scripts/flash_all.py $(TMP_PROJECT_PATH)/$(RELEASE_NAME).zip
 
 .PHONY: clean_os
 clean_os:
@@ -125,7 +125,7 @@ $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
 	cp -a $(FSBL_PATH)/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
 	@if test -f $(FSBL_PATH)/apply_ps7_init_patch.py; then \
 		echo "Patching ps7_init.c ..."; \
-		$(PYTHON) $(FSBL_PATH)/apply_ps7_init_patch.py $(TMP_OS_PATH)/fsbl; \
+		python3 $(FSBL_PATH)/apply_ps7_init_patch.py $(TMP_OS_PATH)/fsbl; \
 	fi
 	source $(VIVADO_PATH)/settings64.sh && $(DOCKER) make -C $(@D) all
 	$(call ok,$@)

@@ -6,7 +6,7 @@ set part $::env(PART)
 set board_path $::env(BOARD_PATH)
 set mode $::env(MODE)
 set output_path $::env(TMP_FPGA_PATH)
-set python $::env(VENV)/bin/$::env(PYTHON)
+set python $::env(VENV)/bin/python3
 
 # Add optional prefix to the project name
 if {$prefix == "block_design_"} {

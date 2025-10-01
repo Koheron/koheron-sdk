@@ -48,7 +48,6 @@ export TMP_FPGA_PATH
 export TMP_CORES_PATH
 export XDC
 export VENV
-export PYTHON
 export BD_TCL
 
 $(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(MEMORY_TCL) $(TCL_FILES) $(CORES_COMPONENT_XML) $(XDC) | $(TMP_FPGA_PATH)/
