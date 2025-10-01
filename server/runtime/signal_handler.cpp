@@ -5,10 +5,11 @@
 #include "server/runtime/signal_handler.hpp"
 #include "server/runtime/syslog.hpp"
 
-#include <iostream>
-#include <cxxabi.h>
-#include <csignal>
+#include <signal.h>
 #include <execinfo.h>
+#include <cxxabi.h>
+#include <cstdlib>
+#include <cstdint>
 
 namespace koheron {
 

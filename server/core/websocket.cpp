@@ -11,12 +11,12 @@
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/endian_utils.hpp"
 
-#include <cstring>
-#include <sstream>
-#include <iostream>
-#include <cstdlib>
+#include <array>
+#include <string>
 #include <string_view>
 #include <span>
+#include <cstdint>
+#include <cstring>
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -32,7 +32,7 @@ WebSocket::WebSocket()
   , read_str_len(0)
   , connection_closed(false)
 {
-    bzero(sha_str, 21);
+    std::memset(sha_str, 0, 21);
 }
 
 void WebSocket::set_id(int comm_fd_)
