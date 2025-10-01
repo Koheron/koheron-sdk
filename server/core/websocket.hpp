@@ -6,15 +6,16 @@
 #define __WEBSOCKET_HPP__
 
 #include "server/core/configs/server_definitions.hpp"
-#include "server/core/configs/config.hpp"
-#include "server/core/commands.hpp"
 
 #include <array>
 #include <string>
 #include <ranges>
+#include <cstring>
 #include <string_view>
 
 namespace koheron {
+
+struct Command;
 
 class WebSocket
 {

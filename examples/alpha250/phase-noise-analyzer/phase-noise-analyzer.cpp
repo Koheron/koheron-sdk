@@ -2,41 +2,60 @@
 ///
 /// (c) Koheron
 
+
 #include "./phase-noise-analyzer.hpp"
 
-// PhaseNoiseAnalyzer::PhaseNoiseAnalyzer(Context& ctx_)
-// : ctx(ctx_)
-// , dma(ctx.get<DmaS2MM>())
-// , clk_gen(ctx.get<ClockGenerator>())
-// , ltc2157(ctx.get<Ltc2157>())
-// , dds(ctx.get<Dds>())
-// , ctl(ctx.mm.get<mem::control>())
-// , sts(ctx.mm.get<mem::status>())
-// , ram(ctx.mm.get<mem::ram>())
-// , phase_noise(1 + fft_size / 2)
-// , averager(1)
-// , interferometer_tf(1 + fft_size / 2)
-// {
-//     using namespace sci::units::literals;
-//     vrange= { 1_V * ltc2157.get_input_voltage_range(0),
-//                 1_V * ltc2157.get_input_voltage_range(1) };
+#include "server/runtime/drivers_manager.hpp"
 
-//     clk_gen.set_sampling_frequency(0); // 200 MHz
+#include <boards/alpha250/drivers/clock-generator.hpp>
+#include <boards/alpha250/drivers/ltc2157.hpp>
+#include <server/drivers/dma-s2mm.hpp>
 
-//     ctl.write_mask<reg::cordic, 0b11>(0b11); // Phase accumulator on
-//     set_channel(0);
-//     set_fft_navg(1);
+#include <algorithm>
+#include <cmath>
+#include <complex>
+#include <limits>
+#include <thread>
 
-//     fs_adc = Frequency(clk_gen.get_adc_sampling_freq());
-//     set_cic_rate(prm::cic_decimation_rate_default);
+#include <scicpp/polynomials.hpp>
 
-//     // Configure the spectrum analyzer
-//     spectrum.window(win::hann<float>(fft_size));
-//     spectrum.nthreads(2);
-//     spectrum.fs(fs);
-//     phase_noise.reserve(1 + fft_size / 2);
-//     start_acquisition();
-// }
+namespace sci = scicpp;
+namespace sig = scicpp::signal;
+
+PhaseNoiseAnalyzer::PhaseNoiseAnalyzer(Context& ctx_)
+: ctx(ctx_)
+, dma(ctx.get<DmaS2MM>())
+, clk_gen(ctx.get<ClockGenerator>())
+, ltc2157(ctx.get<Ltc2157>())
+, dds(ctx.get<Dds>())
+, ctl(ctx.mm.get<mem::control>())
+, sts(ctx.mm.get<mem::status>())
+, ram(ctx.mm.get<mem::ram>())
+, phase_noise(1 + fft_size / 2)
+, averager(1)
+, interferometer_tf(1 + fft_size / 2)
+{
+    using namespace sci::units::literals;
+    vrange= { 1_V * ltc2157.get_input_voltage_range(0),
+              1_V * ltc2157.get_input_voltage_range(1) };
+
+    clk_gen.set_sampling_frequency(0); // 200 MHz
+
+    ctl.write_mask<reg::cordic, 0b11>(0b11); // Phase accumulator on
+    set_channel(0);
+    set_fft_navg(1);
+
+    fs_adc = Frequency(clk_gen.get_adc_sampling_freq());
+    set_cic_rate(prm::cic_decimation_rate_default);
+
+    // Configure the spectrum analyzer
+    spectrum.window(sig::windows::hann<float>(fft_size));
+    spectrum.nthreads(2);
+    spectrum.fs(fs);
+    phase_noise.reserve(1 + fft_size / 2);
+    interferometer_tf.reserve(1 + fft_size / 2);
+    start_acquisition();
+}
 
 void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t channel, double freq_hz) {
     dirty_cnt = 4;
@@ -165,8 +184,8 @@ void PhaseNoiseAnalyzer::set_power_conversion_factor() {
     constexpr auto load = 50_Ohm;
     constexpr double magic_factor = 22.0;
 
-    const double Hinv = poly::polyval(dds.get_dds_freq(channel),
-                                        ltc2157.tf_polynomial<double>(channel));
+    const double Hinv = sci::polynomial::polyval(dds.get_dds_freq(channel),
+                                                 ltc2157.tf_polynomial<double>(channel));
     const auto power_conv_factor = Hinv * magic_factor * vrange[channel] * vrange[channel] / load;
     conv_factor_dBm = power_conv_factor / 1_mW;
 

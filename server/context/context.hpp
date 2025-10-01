@@ -4,13 +4,20 @@
 #define __CONTEXT_HPP__
 
 #include "server/runtime/syslog.hpp"
-#include "server/runtime/drivers_table.hpp"
 
 #include "server/context/memory_manager.hpp"
 #include "server/context/spi_dev.hpp"
 #include "server/context/i2c_dev.hpp"
 #include "server/context/zynq_fclk.hpp"
 #include "server/context/fpga_manager.hpp"
+
+// Forward declarations
+
+#include <drivers_list.hpp>
+
+namespace koheron {
+template<class Driver> Driver& get_driver();
+}
 
 class Context
 {

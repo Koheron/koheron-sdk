@@ -5,7 +5,7 @@
 #ifndef __DRIVER_HPP__
 #define __DRIVER_HPP__
 
-#include "server/core/configs/drivers_config.hpp"
+#include "server/runtime/drivers_table.hpp"
 
 #include <cstring>
 
@@ -19,7 +19,7 @@ class DriverAbstract {
     : type(type_)
     {}
 
-    driver_id type = drivers::table::id_of<drivers::NoDriver>;
+    driver_id type = 0;
 };
 
 template<driver_id type>

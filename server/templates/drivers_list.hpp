@@ -5,6 +5,8 @@
 #ifndef __DRIVERS_LIST_HPP__
 #define __DRIVERS_LIST_HPP__
 
+#include "server/runtime/drivers_table.hpp"
+
 #include <tuple>
 
 {% for driver in drivers %}

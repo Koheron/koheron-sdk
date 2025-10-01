@@ -5,6 +5,7 @@
 /// (c) Koheron
 
 #include "server/core/websocket.hpp"
+#include "server/core/commands.hpp"
 #include "server/core/base64.hpp"
 #include "server/core/sha1.hpp"
 #include "server/runtime/syslog.hpp"

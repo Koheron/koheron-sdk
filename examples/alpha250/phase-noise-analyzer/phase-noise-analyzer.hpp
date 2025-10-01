@@ -9,91 +9,43 @@
 
 #include <array>
 #include <atomic>
-#include <complex>
 #include <cstdint>
-#include <cmath>
-#include <tuple>
-#include <algorithm>
-#include <ranges>
-#include <thread>
 #include <shared_mutex>
-#include <limits>
+#include <tuple>
+#include <vector>
 
 #include <scicpp/core.hpp>
-#include <scicpp/polynomials.hpp>
 #include <scicpp/signal.hpp>
 
-#include <boards/alpha250/drivers/clock-generator.hpp>
-#include <boards/alpha250/drivers/ltc2157.hpp>
-#include <server/drivers/dma-s2mm.hpp>
-
-#include "dds.hpp"
-#include "moving_averager.hpp"
-
-namespace {
-    namespace sci = scicpp;
-    namespace sig = scicpp::signal;
-    namespace win = scicpp::signal::windows;
-    namespace poly = scicpp::polynomial;
-}
+#include "./dds.hpp"
+#include "./moving_averager.hpp"
 
 class PhaseNoiseAnalyzer
 {
-    using Phase = sci::units::radian<float>;
-    using Time = sci::units::time<float>;
-    using Frequency = sci::units::frequency<float>;
-    using PhaseNoiseDensity = sci::units::quantity_divide<
-                sci::units::quantity_multiply<Phase, Phase>,
+    using Phase = scicpp::units::radian<float>;
+    using Time = scicpp::units::time<float>;
+    using Frequency = scicpp::units::frequency<float>;
+    using PhaseNoiseDensity = scicpp::units::quantity_divide<
+                scicpp::units::quantity_multiply<Phase, Phase>,
                 Frequency>;
 
     static constexpr uint32_t fft_size = 32768;
     static constexpr uint32_t data_size = 2 * fft_size;
     static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2; // Do use the first transfered points
-    static constexpr auto calib_factor = 4.196f * sci::pi<Phase> / 8192.0f;
+    static constexpr auto calib_factor = 4.196f * scicpp::pi<Phase> / 8192.0f;
 
     using PhaseDataArray = std::array<Phase, data_size>;
     using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
 
-
   public:
-    // PhaseNoiseAnalyzer(Context& ctx_);
-    PhaseNoiseAnalyzer(Context& ctx_)
-    : ctx(ctx_)
-    , dma(ctx.get<DmaS2MM>())
-    , clk_gen(ctx.get<ClockGenerator>())
-    , ltc2157(ctx.get<Ltc2157>())
-    , dds(ctx.get<Dds>())
-    , ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
-    , ram(ctx.mm.get<mem::ram>())
-    , phase_noise(1 + fft_size / 2)
-    , averager(1)
-    , interferometer_tf(1 + fft_size / 2)
-    {
-        using namespace sci::units::literals;
-        vrange= { 1_V * ltc2157.get_input_voltage_range(0),
-                  1_V * ltc2157.get_input_voltage_range(1) };
-
-        clk_gen.set_sampling_frequency(0); // 200 MHz
-
-        ctl.write_mask<reg::cordic, 0b11>(0b11); // Phase accumulator on
-        set_channel(0);
-        set_fft_navg(1);
-
-        fs_adc = Frequency(clk_gen.get_adc_sampling_freq());
-        set_cic_rate(prm::cic_decimation_rate_default);
-
-        // Configure the spectrum analyzer
-        spectrum.window(win::hann<float>(fft_size));
-        spectrum.nthreads(2);
-        spectrum.fs(fs);
-        phase_noise.reserve(1 + fft_size / 2);
-        start_acquisition();
-    }
+    PhaseNoiseAnalyzer(Context& ctx_);
 
     void set_local_oscillator(uint32_t channel, double freq_hz);
     void set_cic_rate(uint32_t rate);
     void set_channel(uint32_t chan);
+    void set_fft_navg(uint32_t n_avg);
+    void set_analyzer_mode(uint32_t mode);
+    void set_interferometer_delay(float delay_s);
 
     auto get_parameters() {
         return std::tuple{
@@ -108,8 +60,7 @@ class PhaseNoiseAnalyzer
         };
     }
 
-    // Carrier power in dBm
-    double get_carrier_power(uint32_t navg);
+    double get_carrier_power(uint32_t navg); // Carrier power in dBm
 
     auto get_jitter() {
         return std::tuple{
@@ -123,12 +74,7 @@ class PhaseNoiseAnalyzer
     PhaseDataArray get_phase() const;
     PhaseNoiseDensityVector get_phase_noise() const;
 
-    void set_fft_navg(uint32_t n_avg);
-    void set_analyzer_mode(uint32_t mode);
-    void set_interferometer_delay(float delay_s);
   private:
-
-
     Context& ctx;
     DmaS2MM& dma;
     ClockGenerator& clk_gen;
@@ -151,13 +97,11 @@ class PhaseNoiseAnalyzer
     // Data acquisition thread
     std::thread acq_thread;
     std::atomic<bool> acquisition_started{false};
-    void acquisition_thread();
-    void start_acquisition();
 
     PhaseDataArray phase;
 
     // Spectrum analyzer
-    sig::Spectrum<float> spectrum;
+    scicpp::signal::Spectrum<float> spectrum;
     PhaseNoiseDensityVector phase_noise;
     MovingAverager<PhaseNoiseDensity> averager;
 
@@ -178,8 +122,8 @@ class PhaseNoiseAnalyzer
     std::vector<float> interferometer_tf; // Interferometer transfer function
 
     // Carrier power
-    sci::units::dimensionless<double> conv_factor_dBm;
-    std::array<sci::units::electric_potential<double>, 2> vrange;
+    scicpp::units::dimensionless<double> conv_factor_dBm;
+    std::array<scicpp::units::electric_potential<double>, 2> vrange;
 
     // ----------------- Private functions
 
@@ -190,6 +134,8 @@ class PhaseNoiseAnalyzer
     void set_power_conversion_factor();
     auto compute_phase_noise(PhaseDataArray& new_phase);
     auto compute_jitter(const PhaseNoiseDensityVector& new_pn);
+    void acquisition_thread();
+    void start_acquisition();
 };
 
 #endif // __PHASE_NOISE_ANALYZER_HPP__

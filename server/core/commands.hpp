@@ -5,7 +5,7 @@
 #ifndef __COMMANDS_HPP__
 #define __COMMANDS_HPP__
 
-#include "server/core/configs/drivers_config.hpp"
+#include "server/runtime/drivers_table.hpp"
 #include "server/core/configs/server_definitions.hpp"
 #include "server/core/serializer_deserializer.hpp"
 
@@ -91,7 +91,7 @@ struct Command
 
     SessionID session_id = -1; // ID of the session emitting the command
     SessionAbstract *session; // Pointer to the session emitting the command
-    driver_id driver = drivers::table::id_of<drivers::NoDriver>; // The driver to control
+    driver_id driver = 0; // The driver to control
     int32_t operation = -1; // Operation ID
 
     Buffer<HEADER_SIZE> header; // Raw data header

@@ -132,11 +132,6 @@ template<class... Sentinels, class... Drivers>
 struct drivers_table_from_tuple<std::tuple<Sentinels...>, std::tuple<Drivers...>>
     : drivers_table_with_prefix<std::tuple<Sentinels...>, Drivers...> {};
 
-// ----------------------------------------------------------
-// Forward declarations
-
-template<class Driver> Driver& get_driver();
-
 } // namespace koheron
 
 #endif // __DRIVERS_TABLE_HPP__
