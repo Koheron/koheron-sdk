@@ -6,6 +6,7 @@ DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/power-monitor.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/clock-generator.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/clock-generator.cpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/ltc2157.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/ltc2157.cpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/ad9747.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/precision-adc.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/precision-dac.hpp
