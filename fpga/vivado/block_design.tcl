@@ -37,6 +37,6 @@ create_bd_design system
 
 source $sdk_path/fpga/lib/utilities.tcl
 
-source $output_path/config.tcl
+source $output_path/memory.tcl
 
 source $project_path/block_design.tcl

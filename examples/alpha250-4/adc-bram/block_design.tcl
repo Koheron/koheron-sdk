@@ -43,7 +43,7 @@ connect_pins ps_0/SDIO0_CDN [get_constant_pin 0 1]
 connect_pins ps_0/SDIO0_WP [get_constant_pin 0 1]
 
 # Add BRAMs for ADC and DAC
-# "adc" and "dac" BRAM ranges and offsets are defined in the "memory" part of config.yml
+# "adc" and "dac" BRAM ranges and offsets are defined in the "memory" part of memory.yml
 source $sdk_path/fpga/lib/bram.tcl
 
 # Add a counter for BRAM addressing

@@ -7,10 +7,6 @@ $(TMP_FPGA_PATH):
 VIVADO := source $(VIVADO_PATH)/settings64.sh && vivado -nolog -nojournal -notrace
 VIVADO_BATCH := $(VIVADO) -mode batch
 
-$(MEMORY_YML): $(CONFIG_YML) | $(TMP_PROJECT_PATH)/
-	$(MAKE_PY) --memory_yml $< $@
-	$(call ok,$@)
-
 # Cores
 ###############################################################################
 TMP_CORES_PATH := $(TMP)/cores
@@ -40,15 +36,16 @@ $(XDC_FILE): $(XDC) | $(TMP_FPGA_PATH)/
 	} > $@
 	@echo "[constraints] wrote list to $@"
 
-CONFIG_TCL := $(TMP_FPGA_PATH)/config.tcl
-$(CONFIG_TCL): $(MEMORY_YML) $(FPGA_PATH)/config.tcl
-	$(MAKE_PY) --config_tcl $(CONFIG_YML) $@
+MEMORY_TCL := $(TMP_FPGA_PATH)/memory.tcl
+
+$(MEMORY_TCL): $(MEMORY_YML) $(FPGA_PATH)/memory.tcl
+	$(MAKE_PY) --memory_tcl $@ $(MEMORY_YML)
 	$(call ok,$@)
 
 .PHONY: xpr
 xpr: $(TMP_FPGA_PATH)/$(NAME).xpr.stamp
 
-$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(CONFIG_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML) $(XDC_FILE) | $(TMP_FPGA_PATH)/
+$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(MEMORY_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML) $(XDC_FILE) | $(TMP_FPGA_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/project.tcl \
 	  -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(BOARD_PATH) $(MODE) $(TMP_FPGA_PATH) $(XDC_FILE) $(VENV)/bin/$(PYTHON)
 	touch $@
@@ -76,7 +73,7 @@ $(BITSTREAM).bin: $(BITSTREAM)
 
 # Build the block design in Vivado GUI
 .PHONY: block_design
-block_design: $(CONFIG_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML) $(XDC_FILE)
+block_design: $(MEMORY_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML) $(XDC_FILE)
 	$(VIVADO) -source $(FPGA_PATH)/vivado/block_design.tcl \
 	  -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(BOARD_PATH) $(MODE) $(TMP_FPGA_PATH) $(XDC_FILE) $(VENV)/bin/$(PYTHON) block_design_
 
@@ -87,7 +84,7 @@ open_project: $(TMP_FPGA_PATH)/$(NAME).xpr
 
 # Build and test a module in Vivado GUI
 .PHONY: test_module
-test_module: $(CONFIG_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML)
+test_module: $(MEMORY_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML)
 	$(VIVADO) -source $(FPGA_PATH)/vivado/test_module.tcl -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(TMP_FPGA_PATH)
 
 # Build and test a core in Vivado GUI

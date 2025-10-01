@@ -8,7 +8,7 @@ XDC += $(SDK_PATH)/boards/red-pitaya/config/clocks.xdc
 XDC += $(PROJECT_PATH)/sata.xdc
 XDC += $(PROJECT_PATH)/expansion_connector.xdc
 
-CONFIG_YML = $(PROJECT_PATH)/config.yml
+MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 include $(SDK_PATH)/boards/red-pitaya/cores/cores.mk
 CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
