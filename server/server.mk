@@ -72,7 +72,7 @@ $(foreach template,$(SERVER_TEMPLATE_LIST),$(eval $(call _render_template_rule,$
 # -----------------------------------------------------------------------------
 # Compile / Link
 # -----------------------------------------------------------------------------
-CONTEXT_OBJS := $(TMP_SERVER_PATH)/spi_dev.o $(TMP_SERVER_PATH)/i2c_dev.o $(TMP_SERVER_PATH)/fpga_manager.o
+CONTEXT_OBJS := $(TMP_SERVER_PATH)/spi_dev.o $(TMP_SERVER_PATH)/i2c_dev.o $(TMP_SERVER_PATH)/fpga_manager.o $(TMP_SERVER_PATH)/zynq_fclk.o
 OBJ := $(SERVER_OBJ) $(SERVER_LIB_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)

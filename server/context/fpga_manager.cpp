@@ -6,6 +6,8 @@
 #include <sys/mount.h>
 #include <unistd.h>
 
+namespace fs = std::filesystem;
+
 FpgaManager::FpgaManager() {
     if (fs::exists(xdev)) {
         koheron::print<INFO>("FpgaManager: Bitstream loading method: xdevcfg\n");
