@@ -26,7 +26,8 @@
 */
 
 #include "server/core/base64.hpp"
-#include <iostream>
+#include <string>
+#include <cctype>
 
 static const std::string base64_chars =
              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -40,6 +41,7 @@ static inline bool is_base64(unsigned char c) {
 
 std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len) {
   std::string ret;
+  ret.reserve(((in_len + 2) / 3) * 4);
   int i = 0;
   int j = 0;
   unsigned char char_array_3[3];
@@ -88,6 +90,7 @@ std::string base64_decode(std::string const& encoded_string) {
   auto in_ = 0U;
   unsigned char char_array_4[4], char_array_3[3];
   std::string ret;
+  ret.reserve(in_len * 3 / 4);
 
   while (in_len-- && ( encoded_string[in_] != '=') && is_base64(encoded_string[in_])) {
     char_array_4[i++] = encoded_string[in_]; in_++;
