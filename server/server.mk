@@ -120,6 +120,10 @@ $(TMP_SERVER_PATH)/%.o: $(PROJECT_PATH)/%.cpp | $(GEN_HEADERS)
 	@mkdir -p $(dir $@)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
+$(TMP_SERVER_PATH)/%.o: $(BOARD_PATH)/drivers/%.cpp | $(GEN_HEADERS)
+	@mkdir -p $(dir $@)
+	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+
 # Generated interface .cpp => .o (depends on its own .hpp via auto-deps)
 $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
