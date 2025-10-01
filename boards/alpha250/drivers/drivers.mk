@@ -1,4 +1,5 @@
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/common.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/common.cpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/eeprom.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/gpio-expander.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/temperature-sensor.hpp
