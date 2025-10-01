@@ -14,13 +14,6 @@ SERVER_TEMPLATES := $(wildcard $(SERVER_PATH)/templates/*.hpp $(SERVER_PATH)/tem
 SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/core/*.cpp))))
 SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/runtime/*.cpp))))
 
-# -----------------------------------------------------------------------------
-# Drivers from config.yml
-# -----------------------------------------------------------------------------
-# ifndef DRIVERS
-# DRIVERS := $(shell $(MAKE_PY) --drivers $(CONFIG_YML) $(TMP_SERVER_PATH)/drivers && cat $(TMP_SERVER_PATH)/drivers)
-# endif
-
 export DRIVERS
 
 DRIVERS_HPP := $(filter %.hpp,$(DRIVERS))
@@ -40,10 +33,10 @@ INTERFACE_DRIVERS_OBJ := $(subst .hpp,.o,$(INTERFACE_DRIVERS_HPP))
 $(foreach H,$(DRIVERS_HPP),\
   $(eval $(TMP_SERVER_PATH)/interface_$(notdir $(H)): \
       $(H) $(SERVER_PATH)/templates/interface_driver.hpp $(SERVER_PATH)/templates/interface_driver.cpp | $(TMP_SERVER_PATH)/ ; \
-      $$(MAKE_PY) --render_interface $(CONFIG_YML) $$@ $(H)) \
+      $$(MAKE_PY) --render_interface $$@ $(MEMORY_YML) $(H)) \
   $(eval $(TMP_SERVER_PATH)/interface_$(patsubst %.hpp,%.cpp,$(notdir $(H))): \
       $(H) $(SERVER_PATH)/templates/interface_driver.hpp $(SERVER_PATH)/templates/interface_driver.cpp | $(TMP_SERVER_PATH)/ ; \
-      $$(MAKE_PY) --render_interface $(CONFIG_YML) $$@ $(H)) \
+      $$(MAKE_PY) --render_interface $$@ $(MEMORY_YML) $(H)) \
 )
 
 # Aggregated interface files must be rendered AFTER all per-driver headers exist
@@ -54,7 +47,7 @@ $(TMP_SERVER_PATH)/interface_drivers.cpp: $(INTERFACE_DRIVERS_HPP)
 # Memory header from YAML
 # -----------------------------------------------------------------------------
 $(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp
-	$(MAKE_PY) --memory_hpp $(CONFIG_YML) $@
+	$(MAKE_PY) --memory_hpp $@ $(MEMORY_YML)
 
 # -----------------------------------------------------------------------------
 # Other templates
@@ -64,7 +57,7 @@ SERVER_TEMPLATE_LIST := $(addprefix $(TMP_SERVER_PATH)/, \
 
 define _render_template_rule
 $1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP)
-	$(MAKE_PY) --render_template $(CONFIG_YML) $$@ $$<
+	$(MAKE_PY) --render_template $$@ $(MEMORY_YML) $$<
 endef
 $(foreach template,$(SERVER_TEMPLATE_LIST),$(eval $(call _render_template_rule,$(template))))
 

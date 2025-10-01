@@ -3,7 +3,7 @@ VERSION := 0.2.1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
 
-CONFIG_YML = $(PROJECT_PATH)/config.yml
+MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 XDC += $(SDK_PATH)/boards/alpha250/config/ports.xdc
 

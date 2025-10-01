@@ -3,7 +3,7 @@ VERSION := 0.1.1
 
 BOARD_PATH := $(SDK_PATH)/boards/zedboard
 
-CONFIG_YML = $(PROJECT_PATH)/config.yml
+MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 XDC += $(PROJECT_PATH)/constraints.xdc
 

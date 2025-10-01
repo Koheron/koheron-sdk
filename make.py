@@ -18,7 +18,7 @@ def append_path(filename, file_path):
     return filename
 
 def load_config(config_filename):
-    ''' Get the config dictionary from the file 'config.yml' '''
+    ''' Get the config dictionary from the file 'memory.yml' '''
 
     with open(config_filename) as f:
         config = yaml.safe_load(f)
@@ -152,32 +152,22 @@ SDK_PATH = os.getenv('SDK_PATH', '')
 if __name__ == "__main__":
 
     cmd = sys.argv[1]
-    config_filename = sys.argv[2]
-    output_filename = sys.argv[3]
+    output_filename = sys.argv[2]
 
     output_dirname = os.path.dirname(output_filename)
     if not os.path.exists(output_dirname):
         os.makedirs(output_dirname)
 
+    config_filename = sys.argv[3]
     config = load_config(config_filename)
     config_path = os.path.dirname(config_filename)
-    config['drivers'] = config.get('drivers') or os.getenv('DRIVERS','').split()
 
     if sys.version_info[0] < 3:
         reload(sys)
         sys.setdefaultencoding('utf-8')
 
-    # if cmd == '--name':
-    #     with open(output_filename, 'w') as f:
-    #         f.write(config['name'])
-
-    elif cmd == '--memory_yml':
-        for field in ['drivers', 'web', 'cores', 'modules', 'name', 'board', 'version']:
-            config.pop(field, None)
-        dump_if_changed(output_filename, config)
-
-    elif cmd == '--config_tcl':
-        fill_template(append_memory_to_config(config), 'config.tcl', output_filename)
+    elif cmd == '--memory_tcl':
+        fill_template(append_memory_to_config(config), 'memory.tcl', output_filename)
 
     elif cmd == '--memory_hpp':
         config = append_memory_to_config(config)
@@ -186,7 +176,7 @@ if __name__ == "__main__":
 
     elif cmd == '--render_template':
         template_filename = sys.argv[4]
-        drivers = config.get('drivers', os.getenv('DRIVERS','').split())
+        drivers = os.getenv('DRIVERS','').split()
 
         # normalize to full paths first
         drivers = [append_path(p, config_path) for p in drivers]
@@ -202,8 +192,9 @@ if __name__ == "__main__":
 
     elif cmd == '--render_interface':
         driver_filename_hpp = sys.argv[4]
-        id_ = server.get_driver_id(config['drivers'], driver_filename_hpp)
+        drivers = os.getenv('DRIVERS','').split()
+        id_ = server.get_driver_id(drivers, driver_filename_hpp)
         server.render_driver(server.get_driver(driver_filename_hpp, id_), output_filename)
 
     else:
-        raise ValueError('Unknown command')
+        raise ValueError('make.py unknown command')

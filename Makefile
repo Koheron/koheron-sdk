@@ -44,7 +44,6 @@ SERVER_PATH := $(SDK_PATH)/server
 WEB_PATH := $(SDK_PATH)/web
 
 # Use config.mk instead of config.yml
-
 CFG ?= examples/alpha250/fft/config.mk
 
 CONFIG_MK := $(CFG)
@@ -77,8 +76,6 @@ help:
 
 # Python script that manages the instrument configuration
 MAKE_PY := SDK_PATH=$(SDK_PATH) $(VENV)/bin/$(PYTHON) $(SDK_PATH)/make.py
-
-MEMORY_YML := $(TMP_PROJECT_PATH)/memory.yml
 
 # Number of CPU cores available for parallel execution
 N_CPUS ?= $(shell nproc 2> /dev/null || echo 1)

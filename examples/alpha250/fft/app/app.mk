@@ -34,7 +34,7 @@ SERVER_CCXXFLAGS += -std=c++20 -pthread
 # -----------------------------------------------------------------------------
 
 $(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp
-	$(MAKE_PY) --memory_hpp $(CONFIG_YML) $@
+	$(MAKE_PY) --memory_hpp $@ $(MEMORY_YML)
 
 # -----------------------------------------------------------------------------
 # Generate drivers include
