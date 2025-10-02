@@ -24,9 +24,21 @@ DOCKER_VOL    = -v $(SDK_FULL_PATH):$(DOCKER_WD):Z
 
 DOCKER_FLAGS ?= --cpus=$(N_CPUS)
 
+# Host cache directory (persistent across runs)
+CCACHE_DIR ?= $(SDK_FULL_PATH)/.ccache
+
+DOCKER_CCACHE_FLAGS = \
+  -e CCACHE_DIR=$(DOCKER_WD)/.ccache \
+  -e CCACHE_BASEDIR=$(DOCKER_WD) \
+  -e CCACHE_COMPRESS=1 \
+  -e CCACHE_MAXSIZE=10G \
+  -e CCACHE_TEMPDIR=/tmp/ccache_tmp \
+  -e CCACHE_NOHARDLINK=true \
+  -e CCACHE_NOFILECLONE=true
+
 DOCKER ?= docker run --rm $(DOCKER_DEV) $(DOCKER_ENV) \
          -u $(DOCKER_UID):$(DOCKER_GID) -w $(DOCKER_WD) \
-         $(DOCKER_VOL) $(DOCKER_FLAGS) $(DOCKER_IMAGE)
+         $(DOCKER_VOL) $(DOCKER_CCACHE_FLAGS) $(DOCKER_FLAGS) $(DOCKER_IMAGE)
 
 DOCKER_MAKE = $(DOCKER) env -u MAKEFLAGS MAKEFLAGS="-j$(N_CPUS) --output-sync=target" make
 
@@ -37,8 +49,23 @@ DOCKER_ENV  += -e HOST_UID=$(DOCKER_UID) -e HOST_GID=$(DOCKER_GID)
 # Reuse DOCKER_ENV (HOME/proxies/TZ + HOST_UID/GID), keep exec tmpfs
 DOCKER_ROOT = docker run --rm -t $(DOCKER_DEV) \
                $(DOCKER_ENV) \
-               -w $(DOCKER_WD) $(DOCKER_VOL) \
+               -w $(DOCKER_WD) $(DOCKER_VOL) $(DOCKER_CCACHE_FLAGS) \
                --cpus=$(N_CPUS) $(DOCKER_FLAGS) $(DOCKER_IMAGE)
+
+# Create and fix perms from inside the container as root
+.PHONY: ccache-prepare
+ccache-prepare:
+	$(DOCKER_ROOT) bash -lc '\
+	  install -d -m 0775 $(DOCKER_WD)/.ccache && \
+	  chown -R $(DOCKER_UID):$(DOCKER_GID) $(DOCKER_WD)/.ccache && \
+	  chmod -R u+rwX,g+rwX $(DOCKER_WD)/.ccache'
+
+.PHONY: ccache-check
+ccache-check:
+	$(DOCKER) sh -lc 'id; ls -ld $$CCACHE_DIR; stat -c "%u:%g %a" $$CCACHE_DIR; \
+	                  mkdir -p $$CCACHE_TEMPDIR; \
+	                  test -w $$CCACHE_DIR || echo "not writable"; \
+	                  echo ok'
 
 .PHONY: clean_docker
 clean_docker:

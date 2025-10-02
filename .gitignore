@@ -24,3 +24,4 @@ vivado_*.str
 
 .venv/
 package-lock.json
+.ccache/

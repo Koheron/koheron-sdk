@@ -154,7 +154,7 @@ all: $(INSTRUMENT_ZIP)
 # The "run" target launches the instrument on the Zynq board
 # this is done via the HTTP API (see os/api)
 .PHONY: run
-run: $(INSTRUMENT_ZIP)
+run: ccache-prepare $(INSTRUMENT_ZIP)
 	curl -v -F $(NAME).zip=@$(INSTRUMENT_ZIP) http://$(HOST)/api/instruments/upload
 	curl http://$(HOST)/api/instruments/run/$(NAME)
 	@echo
@@ -190,7 +190,7 @@ setup:
 	sudo apt-get install -y curl rsync python3-venv
 	[ -d $(VENV) ] || python3 -m venv $(VENV)
 	$(VENV)/bin/python3 -m ensurepip --upgrade
-	$(VENV)/bin/python3) -m pip install --upgrade pip
+	$(VENV)/bin/python3 -m pip install --upgrade pip
 	$(PIP) install -r $(SDK_PATH)/requirements.txt
 	$(PIP) install $(SDK_PATH)/python
 	bash docker/install_docker.sh

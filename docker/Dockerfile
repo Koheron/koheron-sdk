@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnewlib-arm-none-eabi \
     libssl-dev zlib1g-dev pkg-config \
     fdisk util-linux parted udev curl ca-certificates dosfstools e2fsprogs zip eatmydata \
+    ccache \
     && rm -rf /var/lib/apt/lists/*
 
 # Optional Eigen shim (see above)
