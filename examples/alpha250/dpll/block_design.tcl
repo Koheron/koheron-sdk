@@ -36,6 +36,7 @@ cell xilinx.com:ip:xadc_wiz:3.3 xadc_wiz_0 {
   ip2intc_irpt concat_interrupts/In0
 }
 assign_bd_address [get_bd_addr_segs xadc_wiz_0/s_axi_lite/Reg]
+set_property offset [get_memory_offset xadc] [get_bd_addr_segs {ps_0/Data/SEG_xadc_wiz_0_Reg}]
 
 # Expansion connector IOs
 
