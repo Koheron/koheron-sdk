@@ -4,6 +4,7 @@
 #include "server/runtime/syslog.hpp"
 
 #include <filesystem>
+#include <cstring>
 
 #include <unistd.h>
 #include <fcntl.h>
