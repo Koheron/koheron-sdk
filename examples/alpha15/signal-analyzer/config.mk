@@ -1,4 +1,4 @@
-NAME := signal_analyzer
+NAME := signal-analyzer
 VERSION := 0.1.0
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha15
