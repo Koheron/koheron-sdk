@@ -6,6 +6,9 @@
 #define __ALPHA250_4_DRIVERS_COMMON_HPP__
 
 #include <cstring>
+#include <thread>
+#include <atomic>
+#include <chrono>
 
 extern "C" {
   #include <sys/socket.h>
@@ -35,12 +38,17 @@ class Common
     , precisionadc(ctx.get<PrecisionAdc>())
     {}
 
+    ~Common() {
+        stop_blink(); // in case ip_on_leds() was never called
+    }
+
     void set_led(uint32_t value) {
         gpio.set_led(value);
     }
 
     void init() {
         ctx.log<INFO>("Common - Initializing ...");
+        start_blink();
         clkgen.init();
         ltc2157.init();
         precisiondac.init();
@@ -52,6 +60,7 @@ class Common
     }
 
     void ip_on_leds() {
+        stop_blink();
         struct ifaddrs* addrs = nullptr;
         if (getifaddrs(&addrs) != 0 || !addrs) return;
 
@@ -79,6 +88,33 @@ class Common
     }
 
   private:
+
+    void start_blink() {
+        if (blinker.joinable()) return;
+        blinker_should_stop.store(false, std::memory_order_release);
+
+        blinker = std::thread([this]{
+            using namespace std::chrono;
+            constexpr auto step = milliseconds(100);
+            gpio.set_led(0x00);
+            auto next_tick = std::chrono::steady_clock::now() + step;
+            uint32_t pat = 0x01;
+
+            while (!blinker_should_stop.load(std::memory_order_acquire)) {
+                gpio.set_led(pat);
+                std::this_thread::sleep_until(next_tick);
+                next_tick += step;
+
+                pat = (pat == 0x80) ? 0x01 : ((pat << 1) & 0xFF);
+            }
+        });
+    }
+
+    void stop_blink() {
+        blinker_should_stop.store(true, std::memory_order_release);
+        if (blinker.joinable()) {blinker.join();}
+    }
+
     Context& ctx;
     Memory<mem::status>& sts;
     ClockGenerator& clkgen;
@@ -86,6 +122,9 @@ class Common
     Ltc2157& ltc2157;
     PrecisionDac& precisiondac;
     PrecisionAdc& precisionadc;
+
+    std::thread blinker;
+    std::atomic<bool> blinker_should_stop{true}; // true = not running yet
 };
 
 #endif // __ALPHA250_4_DRIVERS_COMMON_HPP__

@@ -5,7 +5,11 @@
 #ifndef __ALPHA_DRIVERS_COMMON_HPP__
 #define __ALPHA_DRIVERS_COMMON_HPP__
 
+
 #include <cstring>
+#include <thread>
+#include <atomic>
+#include <chrono>
 
 extern "C" {
   #include <sys/socket.h>
@@ -36,8 +40,8 @@ class Common
     , ctl(ctx.mm.get<mem::control>())
     {}
 
-    uint64_t get_dna() {
-        return ctx.mm.get<mem::status>().read<reg::dna, uint64_t>();
+    ~Common() {
+        stop_blink();
     }
 
     void set_led(uint32_t value) {
@@ -46,6 +50,7 @@ class Common
 
     void init() {
         ctx.log<INFO>("Common - Initializing ...");
+        start_blink();
         clkgen.init(); // Clock generator must be initialized before enabling LT2387 ADC
         ltc2387.init();
         ad9747.init();
@@ -59,6 +64,7 @@ class Common
     }
 
     void ip_on_leds() {
+        stop_blink();
         struct ifaddrs* addrs = nullptr;
         if (getifaddrs(&addrs) != 0 || !addrs) return;
 
@@ -101,6 +107,38 @@ class Common
     }
 
   private:
+
+    void start_blink() {
+        if (blinker.joinable()) {
+            return;
+        }
+
+        blinker_should_stop.store(false, std::memory_order_release);
+
+        blinker = std::thread([this]{
+            using namespace std::chrono;
+            constexpr auto step = milliseconds(100);
+            gpio.set_led(0x00);
+            auto next_tick = std::chrono::steady_clock::now() + step;
+            uint32_t pat = 0x01;
+
+            while (!blinker_should_stop.load(std::memory_order_acquire)) {
+                gpio.set_led(pat);
+                std::this_thread::sleep_until(next_tick);
+                next_tick += step;
+
+                pat = (pat == 0x80) ? 0x01 : ((pat << 1) & 0xFF);
+            }
+        });
+    }
+
+    void stop_blink() {
+        blinker_should_stop.store(true, std::memory_order_release);
+        if (blinker.joinable()) {
+            blinker.join();
+        }
+    }
+
     Context& ctx;
     ClockGenerator& clkgen;
     GpioExpander& gpio;
@@ -108,6 +146,9 @@ class Common
     Ad9747& ad9747;
     PrecisionDac& precisiondac;
     Memory<mem::control>& ctl;
+    std::thread blinker;
+    std::atomic<bool> blinker_should_stop{true}; // true = not running yet
+
 };
 
 #endif // __ALPHA_DRIVERS_COMMON_HPP__
