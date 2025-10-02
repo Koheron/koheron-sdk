@@ -25,7 +25,7 @@ quiet := quiet_
 cmd = $($(1))
 
 # pretty label shown when V=0
-quiet_cmd_cxx = CXX $@
+quiet_cmd_cxx = CPP $@
 
 # the real compile command
 cmd_cxx = $(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
@@ -191,19 +191,54 @@ $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
 # Link
 # -----------------------------------------------------------------------------
 
+# ---- Derived fields for summary ----
+STD_FLAG   := $(firstword $(filter -std=%,$(SERVER_CCXXFLAGS)))
+OPT_FLAG   := $(firstword $(filter -O%,$(SERVER_CCXXFLAGS)))
+HAS_PTHREAD:= $(if $(findstring -pthread,$(SERVER_CCXXFLAGS)),yes,no)
+
+INC_DIRS   := $(patsubst -I%,%,$(filter -I%,$(SERVER_CCXXFLAGS)))
+INC_COUNT  := $(words $(INC_DIRS))
+
+DEF_LIST   := $(patsubst -D%,%,$(filter -D%,$(SERVER_CCXXFLAGS)))
+DEF_COUNT  := $(words $(DEF_LIST))
+
+# Pretty tag + real command for summary
+quiet_cmd_cfg = CFG $@
+cmd_cfg = \
+  printf "  Toolchain : %s\n" '$(GCC_ARCH)-g++-$(GCC_VERSION)'; \
+  printf "  Standard  : %s   Optimize: %s   LTO: %s   Threads: %s   Pthreads: %s\n" \
+         '$(STD_FLAG)' '$(OPT_FLAG)' '$(firstword $(filter -flto%,$(SERVER_CCXX)))' '$(N_CPUS)' '$(HAS_PTHREAD)'; \
+  printf "  Includes  : %s dirs\n" '$(INC_COUNT)'; \
+  set -- $(INC_DIRS); for d in $$@; do \
+    printf "              %s\n" "$$d"; \
+  done; \
+  printf "  Defines   : %s\n" '$(DEF_COUNT)'; \
+  set -- $(DEF_LIST); for d in $$@; do \
+    printf "              %s\n" "$$d"; \
+  done; \
+  :
+
 $(SERVER): $(OBJ) $(SERVER_TEMPLATE_LIST) $(GEN_HEADERS) $(INTERFACE_DRIVERS_CPP) | $(KOHERON_SERVER_PATH)
 	@$(call start,$@)
 	@$(call echo-cmd,link)
 	$(Q)$(call cmd,cmd_link)
 	@$(call ok,$@)
 
+.PHONY: server_config
+server_config:
+	@$(call echo-cmd,cfg)
+	$(Q)$(call cmd,cmd_cfg)
+
 .PHONY: server
-server: $(SERVER)
-	$(MAKE) --jobs=$(N_CPUS) $(SERVER)
+server:
+	@$(call echo-cmd,cfg_server)
+	$(Q)$(call cmd,cmd_cfg)
+	+$(Q)$(MAKE) --no-print-directory $(SERVER)
 
 # -----------------------------------------------------------------------------
 # Clean
 # -----------------------------------------------------------------------------
+
 .PHONY: clean_server
 clean_server:
 	rm -rf $(TMP_SERVER_PATH)
