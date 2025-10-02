@@ -17,14 +17,13 @@
   #include <drivers_config.hpp>
 #endif
 
-#include <drivers.hpp> // Drivers includes
-
 namespace koheron {
 
 class DriverContainer
 {
   public:
     DriverContainer();
+    ~DriverContainer();
     int init();
 
     template<driver_id driver>
@@ -54,6 +53,7 @@ class DriverManager
     using alloc_fail_cb = std::function<void(driver_id, std::string_view)>;
 
     explicit DriverManager(alloc_fail_cb on_alloc_fail = {});
+    ~DriverManager();
 
     int init();
 
@@ -86,11 +86,10 @@ class DriverManager
 };
 
 // Driver access
-// We require that a DriverManager service to be provided
 
 template<class Driver>
 Driver& get_driver() {
-    return services::require<DriverManager>().template get<Driver>();;
+    return services::require<DriverManager>().template get<Driver>();
 }
 
 } // namespace koheron

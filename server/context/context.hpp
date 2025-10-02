@@ -46,7 +46,7 @@ class Context
     }
 
     template<class Driver>
-    inline Driver& get() const {
+    Driver& get() const {
         return koheron::get_driver<Driver>();
     }
 

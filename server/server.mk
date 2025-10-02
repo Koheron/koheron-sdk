@@ -61,13 +61,15 @@ $(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp
 # Other templates
 # -----------------------------------------------------------------------------
 SERVER_TEMPLATE_LIST := $(addprefix $(TMP_SERVER_PATH)/, \
-  drivers_list.hpp drivers_json.hpp drivers.hpp interface_drivers.hpp operations.hpp)
+  drivers_list.hpp drivers_json.hpp drivers.hpp interface_drivers.hpp operations.hpp get_driver_inst.cpp)
 
 define _render_template_rule
 $1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP)
 	$(MAKE_PY) --render_template $$@ $(MEMORY_YML) $$<
 endef
 $(foreach template,$(SERVER_TEMPLATE_LIST),$(eval $(call _render_template_rule,$(template))))
+
+INTERFACE_DRIVERS_OBJ += $(TMP_SERVER_PATH)/get_driver_inst.o
 
 # -----------------------------------------------------------------------------
 # Compile / Link

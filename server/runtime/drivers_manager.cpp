@@ -6,6 +6,8 @@
 #include "server/runtime/drivers_manager.hpp"
 #include "server/runtime/meta_utils.hpp"
 
+#include <drivers.hpp> // Drivers includes
+
 namespace koheron {
 
 //----------------------------------------------------------------------------
@@ -19,8 +21,9 @@ DriverContainer::DriverContainer()
     services::provide<Context>();
 }
 
-int DriverContainer::init()
-{
+DriverContainer::~DriverContainer() = default;
+
+int DriverContainer::init() {
     if (services::require<Context>().init() < 0) {
         print<CRITICAL>("Context initialization failed\n");
         return -1;
@@ -64,14 +67,22 @@ DriverManager::DriverManager(alloc_fail_cb on_alloc_fail)
     is_started.fill(false);
 }
 
-int DriverManager::init()
-{
+int DriverManager::init() {
     if (driver_container.init() < 0) {
         return -1;
     }
 
+    // If there is a Common driver with an init() method we call it
+    if constexpr (drivers::table::has_driver<Common>) {
+        if constexpr (HasInit<Common>) {
+            get<Common>().init();
+        }
+    }
+
     return 0;
 }
+
+DriverManager::~DriverManager() = default;
 
 template<driver_id id>
 void DriverManager::alloc_core_() {

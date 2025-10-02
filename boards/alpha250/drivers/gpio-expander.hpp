@@ -3,8 +3,7 @@
 #ifndef __ALPHA_DRIVERS_GPIO_EXPANDER_HPP__
 #define __ALPHA_DRIVERS_GPIO_EXPANDER_HPP__
 
-#include <context.hpp>
-
+#include <cstdint>
 #include <array>
 
 // http://www.nxp.com/documents/data_sheet/PCAL6416A.pdf
@@ -27,37 +26,20 @@
 // P1_6: USER_LED6
 // P1_7: USER_LED7
 
+class Context;
+class I2cDev;
+
 class GpioExpander
 {
   public:
-    GpioExpander(Context& ctx_)
-    : ctx(ctx_)
-    , i2c(ctx.i2c.get("i2c-0"))
-    {
-        write_reg(0x4F, 2); // Port 0: push-pull, Port 1: open drain
-        write_reg(0x42, 0);
-        write_reg(0x43, 0);
-        write_reg(Configuration_port_0, 0b11110000);
-        write_reg(Configuration_port_1, 0b00000000);
-    }
+    GpioExpander(Context& ctx);
 
-    void set_led(uint8_t value) {
-        write_reg(Output_port_1, ~value);
-    }
-
-    uint32_t get_inputs() {
-        uint8_t data = 0;
-        read_reg(Input_port_0, data);
-        return data;
-    }
-
-    void set_user_ios(uint8_t value) {
-        write_reg(Output_port_0, (value & 0xF));
-    }
+    void set_led(uint8_t value);
+    uint32_t get_inputs();
+    void set_user_ios(uint8_t value);
 
   private:
     static constexpr uint32_t i2c_address = 0b0100000;
-    Context& ctx;
     I2cDev& i2c;
 
     // Command addresses
@@ -68,21 +50,8 @@ class GpioExpander
     static constexpr uint8_t Configuration_port_0 = 0x6;
     static constexpr uint8_t Configuration_port_1 = 0x7;
 
-    int32_t write_reg(uint8_t addr, uint8_t value) {
-        std::array<uint8_t, 2> buff {addr, value};
-        return i2c.write(i2c_address, buff);
-    }
-
-    int32_t read_reg(uint8_t addr, uint8_t &data) {
-        if (i2c.write(i2c_address, addr) < 0) {
-            return -1;
-        }
-        if (i2c.read(i2c_address, data) < 0) {
-            return -1;
-        }
-        return 1;
-    }
-
+    int32_t write_reg(uint8_t addr, uint8_t value);
+    int32_t read_reg(uint8_t addr, uint8_t &data);
 };
 
 #endif // __ALPHA_DRIVERS_GPIO_EXPANDER_HPP__

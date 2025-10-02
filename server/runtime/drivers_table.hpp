@@ -89,12 +89,18 @@ struct drivers_table_with_prefix<std::tuple<Sentinels...>, Drivers...> {
         ((a[i++] = short_name(type_name<Drivers>())),  ...);
         return a;
     }
-    inline static constexpr auto names = make_names();
+
+    static constexpr auto names = make_names();
     static_assert(std::tuple_size_v<decltype(names)> == size);
+
+    // ---------- Presence test (the "has_id_of" you wanted) ----------
+    template<class D>
+    static constexpr bool has_driver =
+        tuple_contains_v<D, sentinels_t> || tuple_contains_v<D, types>;
 
     // Map TYPE -> id
     template<class D>
-    inline static constexpr driver_id id_of = [] {
+    static constexpr driver_id id_of = [] {
         if constexpr (tuple_contains_v<D, sentinels_t>) {
             return driver_id{tuple_index_v<D, sentinels_t>};
         } else {
@@ -131,6 +137,14 @@ using drivers_table_t = drivers_table_from_tuple<Tuple1, Tuple2>;
 template<class... Sentinels, class... Drivers>
 struct drivers_table_from_tuple<std::tuple<Sentinels...>, std::tuple<Drivers...>>
     : drivers_table_with_prefix<std::tuple<Sentinels...>, Drivers...> {};
+
+// ------------------------------------------------------------------
+// Check if a driver has an init() method returning void
+
+template <class Driver>
+concept HasInit = requires(Driver& d) {
+    { d.init() } -> std::same_as<void>;
+};
 
 } // namespace koheron
 
