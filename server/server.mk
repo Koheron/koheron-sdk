@@ -8,8 +8,39 @@ $(TMP_SERVER_PATH)/: ; @mkdir -p $@
 $(TMP_SERVER_PATH)/%.o: | $(TMP_SERVER_PATH)/
 
 # -----------------------------------------------------------------------------
+# Command lines Verbosity (V=0 quiet, V=1 verbose)
+# -----------------------------------------------------------------------------
+
+V ?= 0
+ifeq ($(V),1)
+  Q :=
+  echo-cmd =
+else
+  Q := @
+  echo-cmd = @printf "  %s\n" "$($(quiet)cmd_$(1))";
+endif
+quiet := quiet_
+
+# helpers: expand a cmd variable by name
+cmd = $($(1))
+
+# pretty label shown when V=0
+quiet_cmd_cxx = CXX $@
+
+# the real compile command
+cmd_cxx = $(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+
+# link
+quiet_cmd_link = LD  $@
+cmd_link = $(SERVER_CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm
+
+# Pretty printer for template rendering
+quiet_cmd_tpl = TPL $@
+
+# -----------------------------------------------------------------------------
 # Discover
 # -----------------------------------------------------------------------------
+
 SERVER_TEMPLATES := $(wildcard $(SERVER_PATH)/templates/*.hpp $(SERVER_PATH)/templates/*.cpp)
 SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/core/*.cpp))))
 SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/runtime/*.cpp))))
@@ -37,15 +68,19 @@ INTERFACE_DRIVERS_HPP := $(addprefix $(TMP_SERVER_PATH)/interface_,$(notdir $(DR
 INTERFACE_DRIVERS_CPP := $(subst .hpp,.cpp,$(INTERFACE_DRIVERS_HPP))
 INTERFACE_DRIVERS_OBJ := $(subst .hpp,.o,$(INTERFACE_DRIVERS_HPP))
 
-# For each driver header H, make two explicit targets (hpp & cpp)
-$(foreach H,$(DRIVERS_HPP),\
-  $(eval $(TMP_SERVER_PATH)/interface_$(notdir $(H)): \
-      $(H) $(SERVER_PATH)/templates/interface_driver.hpp $(SERVER_PATH)/templates/interface_driver.cpp | $(TMP_SERVER_PATH)/ ; \
-      $$(MAKE_PY) --render_interface $$@ $(MEMORY_YML) $(H)) \
-  $(eval $(TMP_SERVER_PATH)/interface_$(patsubst %.hpp,%.cpp,$(notdir $(H))): \
-      $(H) $(SERVER_PATH)/templates/interface_driver.hpp $(SERVER_PATH)/templates/interface_driver.cpp | $(TMP_SERVER_PATH)/ ; \
-      $$(MAKE_PY) --render_interface $$@ $(MEMORY_YML) $(H)) \
-)
+define RENDER_IFACE_RULES
+$(TMP_SERVER_PATH)/interface_$(notdir $(1)): \
+    $(1) $(SERVER_PATH)/templates/interface_driver.hpp $(SERVER_PATH)/templates/interface_driver.cpp | $(TMP_SERVER_PATH)
+	$$(call echo-cmd,tpl)
+	$$(Q)$$(MAKE_PY) --render_interface $$@ $(MEMORY_YML) $(1)
+
+$(TMP_SERVER_PATH)/interface_$(patsubst %.hpp,%.cpp,$(notdir $(1))): \
+    $(1) $(SERVER_PATH)/templates/interface_driver.hpp $(SERVER_PATH)/templates/interface_driver.cpp | $(TMP_SERVER_PATH)
+	$$(call echo-cmd,tpl)
+	$$(Q)$$(MAKE_PY) --render_interface $$@ $(MEMORY_YML) $(1)
+endef
+
+$(foreach H,$(DRIVERS_HPP),$(eval $(call RENDER_IFACE_RULES,$(H))))
 
 # Aggregated interface files must be rendered AFTER all per-driver headers exist
 $(TMP_SERVER_PATH)/interface_drivers.hpp: $(INTERFACE_DRIVERS_HPP)
@@ -54,8 +89,11 @@ $(TMP_SERVER_PATH)/interface_drivers.cpp: $(INTERFACE_DRIVERS_HPP)
 # -----------------------------------------------------------------------------
 # Memory header from YAML
 # -----------------------------------------------------------------------------
+
 $(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp
-	$(MAKE_PY) --memory_hpp $@ $(MEMORY_YML)
+	$(Q)mkdir -p $(dir $@)
+	@$(call echo-cmd,tpl)
+	$(Q)$(MAKE_PY) --memory_hpp $@ $(MEMORY_YML)
 
 # -----------------------------------------------------------------------------
 # Other templates
@@ -65,19 +103,27 @@ SERVER_TEMPLATE_LIST := $(addprefix $(TMP_SERVER_PATH)/, \
 
 define _render_template_rule
 $1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP)
-	$(MAKE_PY) --render_template $$@ $(MEMORY_YML) $$<
+	$(Q)mkdir -p $(dir $$@)
+	$$(call echo-cmd,tpl)
+	$(Q)$(MAKE_PY) --render_template $$@ $(MEMORY_YML) $$<
 endef
+
 $(foreach template,$(SERVER_TEMPLATE_LIST),$(eval $(call _render_template_rule,$(template))))
 
 INTERFACE_DRIVERS_OBJ += $(TMP_SERVER_PATH)/get_driver_inst.o
 
 # -----------------------------------------------------------------------------
-# Compile / Link
+# Objects
 # -----------------------------------------------------------------------------
+
 CONTEXT_OBJS := $(TMP_SERVER_PATH)/spi_dev.o $(TMP_SERVER_PATH)/i2c_dev.o $(TMP_SERVER_PATH)/fpga_manager.o $(TMP_SERVER_PATH)/zynq_fclk.o
 OBJ := $(SERVER_OBJ) $(SERVER_LIB_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
+
+# -----------------------------------------------------------------------------
+# Compiler
+# -----------------------------------------------------------------------------
 
 SERVER_CCXX = $(DOCKER) $(GCC_ARCH)-g++-$(GCC_VERSION) -flto=$(N_CPUS)
 
@@ -105,35 +151,50 @@ GEN_HEADERS := \
   $(TMP_SERVER_PATH)/interface_drivers.hpp \
   $(INTERFACE_DRIVERS_HPP)
 
+# -----------------------------------------------------------------------------
+# Compile objects
+# -----------------------------------------------------------------------------
+
 # --- compile rules must wait for generated headers ---
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/%.cpp | $(GEN_HEADERS)
-	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+	$(call echo-cmd,cxx)
+	$(Q)$(call cmd,cmd_cxx)
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp | $(GEN_HEADERS)
-	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+	$(call echo-cmd,cxx)
+	$(Q)$(call cmd,cmd_cxx)
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp | $(GEN_HEADERS)
-	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+	$(call echo-cmd,cxx)
+	$(Q)$(call cmd,cmd_cxx)
 
 $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
-	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+	$(call echo-cmd,cxx)
+	$(Q)$(call cmd,cmd_cxx)
 
 $(TMP_SERVER_PATH)/%.o: $(PROJECT_PATH)/%.cpp | $(GEN_HEADERS)
 	@mkdir -p $(dir $@)
-	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+	$(call echo-cmd,cxx)
+	$(Q)$(call cmd,cmd_cxx)
 
 $(TMP_SERVER_PATH)/%.o: $(BOARD_PATH)/drivers/%.cpp | $(GEN_HEADERS)
-	@mkdir -p $(dir $@)
-	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+	$(Q)mkdir -p $(dir $@)
+	@$(call echo-cmd,cxx)
+	$(Q)$(call cmd,cmd_cxx)
 
 # Generated interface .cpp => .o (depends on its own .hpp via auto-deps)
 $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
-	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+	@$(call echo-cmd,cxx)
+	$(Q)$(call cmd,cmd_cxx)
 
-# Link: depend on actual generated files (not stamps)
+# -----------------------------------------------------------------------------
+# Link
+# -----------------------------------------------------------------------------
+
 $(SERVER): $(OBJ) $(SERVER_TEMPLATE_LIST) $(GEN_HEADERS) $(INTERFACE_DRIVERS_CPP) | $(KOHERON_SERVER_PATH)
 	@$(call start,$@)
-	$(SERVER_CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm
+	@$(call echo-cmd,link)
+	$(Q)$(call cmd,cmd_link)
 	@$(call ok,$@)
 
 .PHONY: server
