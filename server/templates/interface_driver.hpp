@@ -11,7 +11,6 @@
 #include <mutex>
 
 #include <driver.hpp>
-#include <server/core/configs/drivers_config.hpp>
 
 {% for include in driver.includes -%}
 #include "{{ include }}"
@@ -20,16 +19,13 @@
 namespace koheron {
 
 template<>
-class Driver<drivers::table::id_of<{{ driver.objects[0]["type"] }}>> : public DriverAbstract
+class Driver<{{ driver.id }}> : public DriverAbstract
 {
   public:
     int execute(Command& cmd);
     template<int op> int execute_operation(Command& cmd);
 
-    Driver({{ driver.objects[0]["type"] }}& {{ driver.objects[0]["name"] }}_)
-    : DriverAbstract(drivers::table::id_of<{{ driver.objects[0]["type"] }}>)
-    , {{ driver.objects[0]["name"] }}({{ driver.objects[0]["name"] }}_)
-    {}
+    Driver({{ driver.objects[0]["type"] }}& {{ driver.objects[0]["name"] }}_);
 
     enum Operation {
         {% for operation in driver.operations -%}
