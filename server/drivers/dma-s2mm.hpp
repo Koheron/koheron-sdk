@@ -11,6 +11,7 @@
 #include "server/context/memory_map.hpp"
 
 #include <chrono>
+#include <thread>
 #include <scicpp/core.hpp>
 
 class DmaS2MM

@@ -6,11 +6,39 @@
 #include <filesystem>
 #include <cstring>
 
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/types.h>
+
 namespace fs = std::filesystem;
 
 // ---------------------------------------------------------------------
 // SpiDev
 // ---------------------------------------------------------------------
+
+SpiDev::~SpiDev() {
+    if (fd >= 0) {
+        ::close(fd);
+    }
+}
+
+SpiDev& SpiDev::operator=(SpiDev&& other) noexcept {
+    if (this != &other) {
+        if (fd >= 0) {
+            ::close(fd);
+        }
+
+        fd = std::exchange(other.fd, -1);
+        mode = other.mode;
+        mode32 = other.mode32;
+        speed = other.speed;
+        word_length = other.word_length;
+        devname = std::move(other.devname);
+    }
+
+    return *this;
+}
 
 int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
     if (fd < 0) {
@@ -155,6 +183,31 @@ int SpiDev::transfer(uint8_t* tx_buff, uint8_t* rx_buff, size_t len) {
         std::span<const uint8_t>(tx_buff, tx_buff ? len : 0),
         std::span<uint8_t>(rx_buff, rx_buff ? len : 0)
     );
+}
+
+int SpiDev::write_u8(const uint8_t* p, uint32_t bytes) {
+    if (fd < 0) {
+        return -1;
+    }
+
+    size_t sent = 0;
+
+    while (sent < bytes) {
+        ssize_t w = ::write(fd, p + sent, bytes - sent);
+
+        if (w > 0) {
+            sent += size_t(w);
+            continue;
+        }
+
+        if (w < 0 && errno == EINTR) {
+            continue;
+        }
+
+        return -1;
+    }
+
+    return int(sent);
 }
 
 // ---------------------------------------------------------------------

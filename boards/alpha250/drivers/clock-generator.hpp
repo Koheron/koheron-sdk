@@ -3,11 +3,11 @@
 
 #include <context.hpp>
 
-#include "./eeprom.hpp"
-#include "./spi-config.hpp"
-
 #include <array>
 #include <string_view>
+
+class Eeprom;
+class SpiConfig;
 
 using namespace std::string_view_literals;
 

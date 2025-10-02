@@ -16,13 +16,8 @@
 #include <unordered_map>
 #include <span>
 #include <string_view>
-#include <filesystem>
 #include <cassert>
 
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <linux/types.h>
 #include <linux/spi/spidev.h>
 
 class SpiDev
@@ -30,11 +25,7 @@ class SpiDev
   public:
     explicit SpiDev(std::string devname_) : devname(std::move(devname_)) {}
 
-    ~SpiDev() {
-        if (fd >= 0) {
-            ::close(fd);
-        }
-    }
+    ~SpiDev();
 
     SpiDev(const SpiDev&) = delete;
     SpiDev& operator=(const SpiDev&) = delete;
@@ -42,22 +33,7 @@ class SpiDev
         *this = std::move(other);
     }
 
-    SpiDev& operator=(SpiDev&& other) noexcept {
-        if (this != &other) {
-            if (fd >= 0) {
-                ::close(fd);
-            }
-
-            fd = std::exchange(other.fd, -1);
-            mode = other.mode;
-            mode32 = other.mode32;
-            speed = other.speed;
-            word_length = other.word_length;
-            devname = std::move(other.devname);
-        }
-
-        return *this;
-    }
+    SpiDev& operator=(SpiDev&& other) noexcept;
 
     bool is_ok() const noexcept {
         return fd >= 0;
@@ -73,30 +49,8 @@ class SpiDev
 
     template<typename T>
     int write(const T* buffer, uint32_t len) {
-        if (fd < 0) {
-            return -1;
-        }
-
         const uint8_t* p = reinterpret_cast<const uint8_t*>(buffer);
-        const size_t bytes = size_t(len) * sizeof(T);
-        size_t sent = 0;
-
-        while (sent < bytes) {
-            ssize_t w = ::write(fd, p + sent, bytes - sent);
-
-            if (w > 0) {
-                sent += size_t(w);
-                continue;
-            }
-            
-            if (w < 0 && errno == EINTR) {
-                continue;
-            }
-
-            return -1;
-        }
-
-        return int(sent);
+        return write_u8(p, size_t(len) * sizeof(T));
     }
 
     // -------- recv
@@ -166,6 +120,8 @@ class SpiDev
     uint8_t  word_length = 8;
 
     int fd = -1;
+
+    int write_u8(const uint8_t* p, uint32_t bytes);
 };
 
 class SpiManager

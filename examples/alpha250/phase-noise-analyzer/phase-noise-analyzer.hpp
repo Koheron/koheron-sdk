@@ -20,6 +20,11 @@
 #include "./dds.hpp"
 #include "./moving_averager.hpp"
 
+class DmaS2MM;
+class ClockGenerator;
+class Ltc2157;
+class Dds;
+
 class PhaseNoiseAnalyzer
 {
     using Phase = scicpp::units::radian<float>;

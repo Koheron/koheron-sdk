@@ -1,6 +1,9 @@
 
 #include "./clock-generator.hpp"
 
+#include "./eeprom.hpp"
+#include "./spi-config.hpp"
+
 #include <fstream>
 #include <thread>
 #include <chrono>

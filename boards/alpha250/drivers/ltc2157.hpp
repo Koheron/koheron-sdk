@@ -5,16 +5,15 @@
 #ifndef __ALPHA_DRIVERS_LTC2157_HPP__
 #define __ALPHA_DRIVERS_LTC2157_HPP__
 
-#include <context.hpp>
-
-#include "./eeprom.hpp"
-#include "./spi-config.hpp"
-
 #include <array>
 #include <ranges>
 
 #include <scicpp/core.hpp>
 #include <scicpp/polynomials.hpp>
+
+class Context;
+class Eeprom;
+class SpiConfig;
 
 // http://cds.linear.com/docs/en/datasheet/21576514fb.pdf
 

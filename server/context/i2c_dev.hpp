@@ -6,22 +6,12 @@
 #ifndef __DRIVERS_LIB_I2C_DEV_HPP__
 #define __DRIVERS_LIB_I2C_DEV_HPP__
 
-#include <cstdio>
-#include <cstdint>
-#include <cassert>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <linux/types.h>
-#include <linux/i2c-dev.h>
-
 #include <unordered_map>
 #include <string>
 #include <memory>
 #include <array>
 #include <vector>
 #include <atomic>
-#include <thread>
 #include <mutex>
 
 #include "server/runtime/syslog.hpp"
@@ -31,11 +21,7 @@ class I2cDev
   public:
     I2cDev(std::string devname_);
 
-    ~I2cDev() {
-        if (fd >= 0) {
-            close(fd);
-        }
-    }
+    ~I2cDev();
 
     bool is_ok() {return fd >= 0;}
 
@@ -44,21 +30,7 @@ class I2cDev
     /// addr: Address of the driver to write to
     /// buffer: Pointer to the data to send
     /// len: Number of elements on the buffer array
-    int write(int32_t addr, const uint8_t *buffer, size_t n_bytes) {
-        // Lock to avoid another process to change
-        // the driver address while writing
-        std::lock_guard<std::mutex> lock(mutex);
-
-        if (! is_ok()) {
-            return -1;
-        }
-
-        if (set_address(addr) < 0) {
-            return -1;
-        }
-
-        return ::write(fd, buffer, n_bytes);
-    }
+    int write(int32_t addr, const uint8_t *buffer, size_t n_bytes);
 
     template<typename T>
     int write(int32_t addr, const T scalar) {
@@ -76,38 +48,7 @@ class I2cDev
     }
 
     // Receive data from I2C driver
-    int read(int32_t addr, uint8_t *buffer, size_t n_bytes) {
-        // Lock to avoid another process to change
-        // the driver address while reading
-        std::lock_guard lock(mutex);
-
-        if (! is_ok()) {
-            return -1;
-        }
-
-        if (set_address(addr) < 0) {
-            return -1;
-        }
-
-        int bytes_rcv = 0;
-        int64_t bytes_read = 0;
-
-        while (bytes_read < int64_t(n_bytes)) {
-            bytes_rcv = ::read(fd, buffer + bytes_read, n_bytes - bytes_read);
-
-            if (bytes_rcv == 0) {
-                return 0;
-            }
-
-            if (bytes_rcv < 0) {
-                return -1;
-            }
-
-            bytes_read += bytes_rcv;
-        }
-
-        return bytes_read;
-    }
+    int read(int32_t addr, uint8_t *buffer, size_t n_bytes);
 
     template<typename T>
     int read(int32_t addr, T& scalar) {
@@ -131,23 +72,7 @@ class I2cDev
     std::mutex mutex;
 
     int init();
-
-    int set_address(int32_t addr) {
-        // Check that address is 7 bits long
-        if (addr < 0 || addr > 127) {
-            return -1;
-        }
-
-        if (addr != last_addr) {
-            if (ioctl(fd, I2C_SLAVE_FORCE, addr) < 0) {
-                return -1;
-            }
-
-            last_addr = addr;
-        }
-
-        return 0;
-    }
+    int set_address(int32_t addr);
 
 friend class I2cManager;
 };
@@ -156,20 +81,9 @@ class I2cManager
 {
   public:
     I2cManager();
-
     int init();
-
     bool has_device(const std::string& devname) const;
-
-    auto& get(const std::string& devname) {
-        if (! has_device(devname)) {
-            koheron::print_fmt<CRITICAL>("I2cManager: Device {} not found", devname);
-            return *empty_i2cdev;
-        }
-
-        i2c_drivers[devname]->init();
-        return *i2c_drivers[devname];
-    }
+    I2cDev& get(const std::string& devname);
 
   private:
     std::unordered_map<std::string, std::unique_ptr<I2cDev>> i2c_drivers;
