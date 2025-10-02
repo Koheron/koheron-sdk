@@ -74,7 +74,7 @@ create_bd_pin -dir O clk_gen_out_n
 set adc_clk_mhz [expr [get_parameter adc_clk] / 1000000]
 
 # Mixed-mode clock manager
-cell xilinx.com:ip:clk_wiz:5.4 mmcm {
+cell xilinx.com:ip:clk_wiz:6.0 mmcm {
     PRIMITIVE              MMCM
     PRIM_IN_FREQ.VALUE_SRC USER
     PRIM_IN_FREQ $adc_clk_mhz
@@ -99,7 +99,7 @@ cell xilinx.com:ip:clk_wiz:5.4 mmcm {
     psincdec [get_slice_pin ctl 3 3]
 }
 
-cell xilinx.com:ip:util_ds_buf:2.1 util_ds_buf_0 {
+cell xilinx.com:ip:util_ds_buf:2.2 util_ds_buf_0 {
     C_BUF_TYPE OBUFDS
 } {
     OBUF_IN mmcm/clk_out2

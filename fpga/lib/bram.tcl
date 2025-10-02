@@ -5,7 +5,7 @@ proc add_bram {memory_name {intercon_idx 0}} {
   set idx [add_master_interface $intercon_idx]
 
   # Add BRAM Controller
-  cell xilinx.com:ip:axi_bram_ctrl:4.0 axi_bram_ctrl_$memory_name {
+  cell xilinx.com:ip:axi_bram_ctrl:4.1 axi_bram_ctrl_$memory_name {
     SINGLE_PORT_BRAM 1
     PROTOCOL AXI4LITE
   } {

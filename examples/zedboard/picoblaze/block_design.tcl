@@ -14,7 +14,7 @@ connect_port_pin led_o [get_slice_pin [ctl_pin led] 7 0]
 
 # Add Dual port BRAM for configuration of picoblaze instructions via AXI
 
-cell xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_0 {
+cell xilinx.com:ip:blk_mem_gen:8.4 blk_mem_gen_0 {
     use_bram_block Stand_Alone
     Memory_Type True_Dual_Port_RAM
     Enable_32bit_Address false
@@ -26,7 +26,7 @@ cell xilinx.com:ip:blk_mem_gen:8.3 blk_mem_gen_0 {
     clkb ps_0/FCLK_CLK0
 }
 
-cell xilinx.com:ip:axi_bram_ctrl:4.0 axi_bram_ctrl_0 {
+cell xilinx.com:ip:axi_bram_ctrl:4.1 axi_bram_ctrl_0 {
     SINGLE_PORT_BRAM 1
     PROTOCOL AXI4LITE
 } {

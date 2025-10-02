@@ -31,7 +31,7 @@ proc create {module_name} {
 
   # Add BRAM for accumulator (write on port A and read on port B)
 
-  cell xilinx.com:ip:blk_mem_gen:8.3 accum_bram {
+  cell xilinx.com:ip:blk_mem_gen:8.4 accum_bram {
     Memory_Type True_Dual_Port_RAM
     use_bram_block Stand_Alone
     Enable_32bit_Address true

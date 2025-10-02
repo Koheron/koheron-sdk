@@ -67,7 +67,7 @@ proc create {module_name n_pts_fft adc_width} {
     }
   }
 
-  cell xilinx.com:ip:xfft:9.0 fft_0 {
+  cell xilinx.com:ip:xfft:9.1 fft_0 {
     transform_length $n_pts_fft
     target_clock_frequency 125
     implementation_options pipelined_streaming_io

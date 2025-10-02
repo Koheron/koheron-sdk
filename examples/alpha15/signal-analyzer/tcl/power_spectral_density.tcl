@@ -77,7 +77,7 @@ proc create {module_name fft_size} {
 
   connect_pins float_0/s_axis_a_tready fifo/m_axis_tready
 
-  cell xilinx.com:ip:xfft:9.0 fft_0 {
+  cell xilinx.com:ip:xfft:9.1 fft_0 {
     transform_length $fft_size
     implementation_options automatically_select
     data_format floating_point

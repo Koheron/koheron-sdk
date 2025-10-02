@@ -12,7 +12,7 @@ proc add_redp_adc_dac {module_name} {
   create_bd_pin -dir O pwm_clk
 
   # Phase-locked Loop (PLL)
-  cell xilinx.com:ip:clk_wiz:5.4 pll {
+  cell xilinx.com:ip:clk_wiz:6.0 pll {
     PRIMITIVE              PLL
     PRIM_IN_FREQ.VALUE_SRC USER
     PRIM_IN_FREQ           125.0
@@ -29,7 +29,7 @@ proc add_redp_adc_dac {module_name} {
     clk_out5 ser_clk
     clk_out6 pwm_clk
   }
-  
+
   foreach {pol} {p n} {connect_port_pin /adc_clk_${pol}_i pll/clk_in1_${pol}}
 
   # Add ADC IP block
@@ -38,7 +38,7 @@ proc add_redp_adc_dac {module_name} {
     adc_dat_a_o adc1
     adc_dat_b_o adc2
   }
-  
+
   connect_ports adc
 
   # Add DAC IP block
@@ -50,7 +50,7 @@ proc add_redp_adc_dac {module_name} {
     dac_clk_2p pll/clk_out4
     dac_locked pll/locked
   }
-  
+
   connect_ports dac
 
   # Connect reset
