@@ -8,9 +8,9 @@
 #include <thread>
 #include <atomic>
 
-#include <context.hpp>
-#include "./gpio-expander.hpp"
-#include "./precision-adc.hpp"
+class Context;
+class GpioExpander;
+class PrecisionAdc;
 
 class Common
 {

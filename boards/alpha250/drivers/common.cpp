@@ -1,11 +1,14 @@
 #include "./common.hpp"
 
+#include "server/runtime/drivers_manager.hpp"
+#include "server/context/context.hpp"
+
 #include "./clock-generator.hpp"
 #include "./ltc2157.hpp"
 #include "./ad9747.hpp"
 #include "./precision-dac.hpp"
-
-#include "server/runtime/drivers_manager.hpp"
+#include "./gpio-expander.hpp"
+#include "./precision-adc.hpp"
 
 #include <cstring>
 #include <chrono>

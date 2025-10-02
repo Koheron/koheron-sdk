@@ -13,8 +13,6 @@
 
 // Forward declarations
 
-#include <drivers_list.hpp>
-
 namespace koheron {
 template<class Driver> Driver& get_driver();
 }

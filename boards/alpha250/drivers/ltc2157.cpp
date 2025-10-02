@@ -1,5 +1,10 @@
 #include "./ltc2157.hpp"
 
+#include "server/context/context.hpp"
+
+#include "./eeprom.hpp"
+#include "./spi-config.hpp"
+
 #include <cmath>
 #include <limits>
 

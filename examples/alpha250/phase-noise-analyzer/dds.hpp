@@ -9,6 +9,8 @@
 
 #include <array>
 
+class ClockGenerator;
+
 class Dds
 {
   public:
