@@ -267,7 +267,7 @@ class Memory
     template<uint32_t offset, uint32_t index>
     bool get_bit() {
         static_assert(offset < mem::get_range(id), "Invalid offset");
-        static_assert(mem::is_writable(id), "Not writable");
+        static_assert(mem::is_readable(id), "Not readable");
 
         uintptr_t addr = base_address + offset;
         return ((*((volatile uintptr_t *) addr) >> index ) & 1U );
