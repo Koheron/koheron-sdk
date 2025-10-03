@@ -19,6 +19,14 @@
 #include <thread>
 #include <functional>
 #include <span>
+#include <map>
+#include <fstream>
+#include <sstream>
+#include <filesystem>
+#include <charconv>
+#include <atomic>
+#include <stack>
+#include <unordered_map>
 
 #include <scicpp/core.hpp>
 #include <scicpp/signal.hpp>
