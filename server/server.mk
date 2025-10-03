@@ -52,8 +52,6 @@ DRIVERS_CPP := $(filter %.cpp,$(DRIVERS))
 DRIVERS_CPP_REL := $(patsubst $(SDK_FULL_PATH)/%,%,$(DRIVERS_CPP))
 DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/,$(DRIVERS_CPP_REL:.cpp=.o))
 
-# DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/, $(subst .cpp,.o,$(notdir $(filter %.cpp,$(DRIVERS)))))
-
 PHONY: list_drivers
 list_drivers:
 	@echo $(DRIVERS)
@@ -138,7 +136,7 @@ SERVER_CCXXFLAGS += -Wpacked -Wredundant-decls -Wvarargs -Wvector-operation-perf
 SERVER_CCXXFLAGS += -Wuninitialized  -Wmissing-declarations
 SERVER_CCXXFLAGS += -Wno-psabi
 SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/core -I$(SDK_PATH) -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
-SERVER_CCXXFLAGS += -DKOHERON_VERSION=$(KOHERON_VERSION).$(shell git rev-parse --short HEAD) -DINSTRUMENT_NAME=$(NAME) -DKOHERON_SERVER_BUILD
+SERVER_CCXXFLAGS += -DKOHERON_VERSION=\"$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)\" -DINSTRUMENT_NAME=\"$(NAME)\" -DKOHERON_SERVER_BUILD
 SERVER_CCXXFLAGS += -O3 -fno-math-errno -fno-exceptions
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
 SERVER_CCXXFLAGS += -std=c++20 -pthread
@@ -164,8 +162,8 @@ PCH_DST := $(TMP_PROJECT_PATH)/pch/pch.hpp
 PCH_GCH := $(PCH_DST).gch
 
 PCH_CXX := $(DOCKER) ccache $(GCC_ARCH)-g++-$(GCC_VERSION)
-PCH_CXXFLAGS := $(SERVER_CCXXFLAGS)
-PCH_CXXFLAGS := $(filter-out -flto% -static-libstdc++ -MMD -MP,$(PCH_CXXFLAGS))
+PCH_CXXFLAGS := $(filter-out -flto% -static-libstdc++ -MMD -MP,$(SERVER_CCXXFLAGS))
+PCH_CXXFLAGS := $(filter-out -D%,$(PCH_CXXFLAGS))
 PCH_CXXFLAGS += -Wno-unused-macros
 
 $(PCH_DST): $(PCH_SRC)
@@ -195,20 +193,6 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp | $(GEN_HEADERS)
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp | $(GEN_HEADERS)
 	$(call echo-cmd,cxx)
 	$(Q)$(call cmd,cmd_cxx)
-
-# $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
-# 	$(call echo-cmd,cxx)
-# 	$(Q)$(call cmd,cmd_cxx)
-
-# $(TMP_SERVER_PATH)/%.o: $(PROJECT_PATH)/%.cpp | $(GEN_HEADERS)
-# 	@mkdir -p $(dir $@)
-# 	$(call echo-cmd,cxx)
-# 	$(Q)$(call cmd,cmd_cxx)
-
-# $(TMP_SERVER_PATH)/%.o: $(BOARD_PATH)/drivers/%.cpp | $(GEN_HEADERS)
-# 	$(Q)mkdir -p $(dir $@)
-# 	@$(call echo-cmd,cxx)
-# 	$(Q)$(call cmd,cmd_cxx)
 
 # Generated interface .cpp => .o (depends on its own .hpp via auto-deps)
 $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)

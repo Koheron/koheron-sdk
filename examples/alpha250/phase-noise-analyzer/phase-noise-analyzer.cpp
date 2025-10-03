@@ -40,13 +40,11 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer(Context& ctx_)
               1_V * ltc2157.get_input_voltage_range(1) };
 
     clk_gen.set_sampling_frequency(0); // 200 MHz
+    fs_adc = Frequency(clk_gen.get_adc_sampling_freq());
 
     ctl.write_mask<reg::cordic, 0b11>(0b11); // Phase accumulator on
-    set_channel(0);
-    set_fft_navg(1);
 
-    fs_adc = Frequency(clk_gen.get_adc_sampling_freq());
-    set_cic_rate(prm::cic_decimation_rate_default);
+    load_config();
 
     // Configure the spectrum analyzer
     spectrum.window(sig::windows::hann<float>(fft_size));
@@ -55,6 +53,15 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer(Context& ctx_)
     phase_noise.reserve(1 + fft_size / 2);
     interferometer_tf.reserve(1 + fft_size / 2);
     start_acquisition();
+}
+
+void PhaseNoiseAnalyzer::save_config() {
+    ctx.cfg.set("PhaseNoiseAnalyzer", "channel", channel);
+    ctx.cfg.set("PhaseNoiseAnalyzer", "fft_navg", fft_navg);
+    ctx.cfg.set("PhaseNoiseAnalyzer", "cic_rate", cic_rate);
+    ctx.cfg.set("PhaseNoiseAnalyzer", "analyzer_mode", analyzer_mode);
+    ctx.cfg.set("PhaseNoiseAnalyzer", "interferometer_delay", interferometer_delay.eval());
+    ctx.cfg.save();
 }
 
 void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t channel, double freq_hz) {
@@ -154,6 +161,38 @@ void PhaseNoiseAnalyzer::set_interferometer_delay(float delay_s) {
 }
 
 // ----------------- Private functions
+
+void PhaseNoiseAnalyzer::load_config() {
+    if (ctx.cfg.has("PhaseNoiseAnalyzer", "channel")) {
+        set_channel(ctx.cfg.get<uint32_t>("PhaseNoiseAnalyzer", "channel"));
+    } else {
+        set_channel(0);
+    }
+
+    if (ctx.cfg.has("PhaseNoiseAnalyzer", "fft_navg")) {
+        set_fft_navg(ctx.cfg.get<uint32_t>("PhaseNoiseAnalyzer", "fft_navg"));
+    } else {
+        set_fft_navg(1);
+    }
+
+    if (ctx.cfg.has("PhaseNoiseAnalyzer", "cic_rate")) {
+        set_cic_rate(ctx.cfg.get<uint32_t>("PhaseNoiseAnalyzer", "cic_rate"));
+    } else {
+        set_cic_rate(prm::cic_decimation_rate_default);
+    }
+
+    if (ctx.cfg.has("PhaseNoiseAnalyzer", "analyzer_mode")) {
+        set_analyzer_mode(ctx.cfg.get<uint32_t>("PhaseNoiseAnalyzer", "analyzer_mode"));
+    } else {
+        set_analyzer_mode(AnalyzerMode::RF);
+    }
+
+    if (ctx.cfg.has("PhaseNoiseAnalyzer", "interferometer_delay")) {
+        set_interferometer_delay(ctx.cfg.get<float>("PhaseNoiseAnalyzer", "interferometer_delay"));
+    } else {
+        set_interferometer_delay(0.0f);
+    }
+}
 
 void PhaseNoiseAnalyzer::reset_phase_unwrapper() {
     ctl.write_mask<reg::cordic, 0b1100>(0b1100);

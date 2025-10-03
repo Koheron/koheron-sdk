@@ -45,6 +45,7 @@ class PhaseNoiseAnalyzer
   public:
     PhaseNoiseAnalyzer(Context& ctx_);
 
+    void save_config();
     void set_local_oscillator(uint32_t channel, double freq_hz);
     void set_cic_rate(uint32_t rate);
     void set_channel(uint32_t chan);
@@ -132,6 +133,7 @@ class PhaseNoiseAnalyzer
 
     // ----------------- Private functions
 
+    void load_config();
     void reset_phase_unwrapper();
     void kick_dma();
     auto read_dma();
