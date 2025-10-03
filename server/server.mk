@@ -164,8 +164,8 @@ PCH_DST := $(TMP_PROJECT_PATH)/pch/pch.hpp
 PCH_GCH := $(PCH_DST).gch
 
 PCH_CXX := $(DOCKER) ccache $(GCC_ARCH)-g++-$(GCC_VERSION)
-PCH_CXXFLAGS := $(SERVER_CCXXFLAGS)
-PCH_CXXFLAGS := $(filter-out -flto% -static-libstdc++ -MMD -MP,$(PCH_CXXFLAGS))
+PCH_CXXFLAGS := $(filter-out -flto% -static-libstdc++ -MMD -MP,$(SERVER_CCXXFLAGS))
+PCH_CXXFLAGS := $(filter-out -D%,$(PCH_CXXFLAGS))
 PCH_CXXFLAGS += -Wno-unused-macros
 
 $(PCH_DST): $(PCH_SRC)
