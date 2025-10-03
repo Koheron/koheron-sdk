@@ -1,0 +1,1 @@
+obj-y += bram_wc.o

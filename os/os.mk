@@ -253,6 +253,9 @@ overlay: $(TMP_OS_PATH)/pl.dtbo
 .PHONY: devicetree
 devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
 
+phony: pl.dtsi
+pl.dtsi: $(TMP_OS_PATH)/overlay/pl.dtsi
+
 $(TMP_OS_PATH)/overlay/pl.dtsi: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.unpacked $(PATCHES)/overlay.patch
 	mkdir -p $(@D)
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/overlay $< $(BOOT_MEDIUM)
@@ -298,34 +301,61 @@ $(LINUX_PATH)/.unpacked: $(LINUX_TAR) | $(LINUX_PATH)/
 	@touch $@
 	$(call ok,$@)
 
-LINUX_PATCH_FILES := $(find os/patches/linux -type f)
+# Paths
+LINUX_PATH       := tmp/linux-xlnx-xilinx-linux-v2025.1
+LINUX_PATCH_DIR  := os/patches/linux
+LINUX_PATCH_FILES:= $(shell find $(LINUX_PATCH_DIR) -type f)
 
-# Configure the kernel once to avoid concurrent mrproper/defconfig races
-LINUX_CONFIG      := $(LINUX_PATH)/.config
-LINUX_BUILD_STAMP := $(LINUX_PATH)/.built_all
+# Stamps
+LINUX_SYNC_STAMP := $(LINUX_PATH)/.patched
+LINUX_CONFIG     := $(LINUX_PATH)/.config
+LINUX_BUILD_STAMP:= $(LINUX_PATH)/.built_all
 
-$(LINUX_CONFIG): $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
-	cp $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig $(LINUX_PATH)/arch/$(ARCH)/configs
-	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
-	$(DOCKER) make -C $(LINUX_PATH) mrproper
-	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig
+$(LINUX_SYNC_STAMP): $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES)
+	# Mirror patches into the kernel tree
+	rsync -a "$(LINUX_PATCH_DIR)/" "$(LINUX_PATH)/"
+	install -d "$(LINUX_PATH)/drivers/koheron"
+	printf "obj-y += bram_wc.o\n" >"$(LINUX_PATH)/drivers/koheron/Makefile"
+	echo 'obj-y += koheron/' >> "$(LINUX_PATH)/drivers/Makefile"
+
+	@touch $@
+
+$(LINUX_CONFIG): $(LINUX_PATH)/.unpacked $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig \
+                 $(shell find $(OS_PATH)/patches/linux/drivers/koheron -type f)
+	# 1) hook once (no Kconfig)
+	install -d "$(LINUX_PATH)/drivers/koheron"
+	[ -f "$(LINUX_PATH)/drivers/koheron/Makefile" ] || \
+	  printf 'obj-y += bram_wc.o\n' >"$(LINUX_PATH)/drivers/koheron/Makefile"
+	f="$(LINUX_PATH)/drivers/Makefile"; \
+	grep -qxF 'obj-y += koheron/' "$$f" || echo 'obj-y += koheron/' >> "$$f"
+
+	# 2) sync only the koheron subtree
+	rsync -a --delete "$(OS_PATH)/patches/linux/drivers/koheron/" \
+	                "$(LINUX_PATH)/drivers/koheron/"
+
+	# 3) configure only if needed (no mrproper on normal edits)
+	if [ ! -f "$(LINUX_PATH)/.config" ]; then \
+	  install -d "$(LINUX_PATH)/arch/$(ARCH)/configs"; \
+	  cp "$(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig" \
+	     "$(LINUX_PATH)/arch/$(ARCH)/configs"; \
+	  $(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig; \
+	fi
 	@touch $@
 	$(call ok,$@)
 
+# normal build
 $(LINUX_BUILD_STAMP): $(LINUX_CONFIG)
 	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) \
 	  CROSS_COMPILE=$(GCC_ARCH)- --jobs=$(N_CPUS) $(KERNEL_BIN) dtbs
 	@touch $@
 	$(call ok,$@)
-
 $(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_BUILD_STAMP) | $(TMP_OS_PATH)/
-	cp $(LINUX_PATH)/arch/$(ARCH)/boot/$(KERNEL_BIN) $@
-	$(call ok,$@)
+	cp "$(LINUX_PATH)/arch/$(ARCH)/boot/$(KERNEL_BIN)" "$@"
 
 $(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
 	cp $(TMP_OS_PATH)/pl.dtbo  $(TMP_PROJECT_PATH)/pl.dtbo
 
-$(LINUX_PATH)/scripts/dtc/dtc: $(LINUX_BUILD_STAMP)
+$(LINUX_PATH)/scripts/dtc/dtc: $(LINUX_PATH)/.unpacked $(LINUX_BUILD_STAMP)
 	@true
 
 $(TMP_OS_PATH)/pl.dtbo: $(LINUX_PATH)/scripts/dtc/dtc $(TMP_OS_PATH)/overlay/pl.dtsi
@@ -344,7 +374,7 @@ $(TMP_OS_PATH)/devicetree.dtb: $(LINUX_PATH)/scripts/dtc/dtc  $(TMP_OS_PATH)/dev
 .PHONY: $(TMP_OS_PATH)/devicetree_linux
 $(TMP_OS_PATH)/devicetree_linux: $(LINUX_PATH)/scripts/dtc/dtc
 	echo ${DTREE_OVERRIDE}
-	cp -a $(PATCHES)/linux/. $(LINUX_PATH)/ 2>/dev/null || true
+	cp -a $(OS_PATH)/patches/linux/. $(LINUX_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
 	cp $(LINUX_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
 	$(call ok,$@)

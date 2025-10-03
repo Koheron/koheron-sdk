@@ -15,7 +15,12 @@ if {$prefix == "block_design_"} {
   set project_name $project_name
 }
 
-puts $project_name
+puts "==============================="
+puts "BUILDING PROJECT: $project_name"
+puts "==============================="
+puts "PROJECT_PATH = $project_path"
+puts "BOARD_PATH = $board_path"
+puts ""
 
 file delete -force \
   $output_path/$project_name.cache \
@@ -25,7 +30,11 @@ file delete -force \
   $output_path/$project_name.xpr \
   $output_path/$project_name.sim
 
+set_param board.repoPaths {}
+
 create_project -force -part $part $project_name $output_path
+
+catch { unset_property board_part [current_project] }
 
 set_property IP_REPO_PATHS [list $::env(TMP_CORES_PATH)] [current_project]
 #update_ip_catalog -rebuild -scan_changes
