@@ -70,7 +70,7 @@ int FpgaManager::check_bitstream_loaded(const fs::path& fprog_done_path, char ex
 
 int FpgaManager::copy_firmware() {
     const fs::path lib_firmware_dirname = "/lib/firmware/";
-    const fs::path bistream_name = instrument_name + std::string(".bit.bin");
+    const auto bistream_name = fs::path{INSTRUMENT_NAME ".bit.bin"};
     koheron::print_fmt<INFO>("FpgaManager: Loading bitstream {}...\n", bistream_name);
 
     if (!fs::exists(lib_firmware_dirname)) {
@@ -78,15 +78,15 @@ int FpgaManager::copy_firmware() {
     }
 
     if (!fs::copy_file(live_instrument_dirname / "pl.dtbo",
-                        lib_firmware_dirname / "pl.dtbo",
-                        fs::copy_options::overwrite_existing)) {
+                       lib_firmware_dirname / "pl.dtbo",
+                       fs::copy_options::overwrite_existing)) {
         koheron::print<ERROR>("FpgaManager: pl.dtbo copy failed\n");
         return -1;
     }
 
     if (!fs::copy_file(live_instrument_dirname / bistream_name,
-                        lib_firmware_dirname / bistream_name,
-                        fs::copy_options::overwrite_existing)) {
+                       lib_firmware_dirname / bistream_name,
+                       fs::copy_options::overwrite_existing)) {
         koheron::print<ERROR>("FpgaManager: bistream copy failed\n");
         return -1;
     }
@@ -215,7 +215,7 @@ int FpgaManager::load_bitstream_overlay() {
 
 int FpgaManager::read_bitstream_data(std::vector<char>& bitstream_data) {
     // https://stackoverflow.com/questions/22059189/read-a-file-as-byte-array
-    const auto bistream_basename = fs::path(instrument_name + std::string(".bit"));
+    const auto bistream_basename = fs::path{INSTRUMENT_NAME ".bit"};
     const auto bistream_filename = live_instrument_dirname / bistream_basename;
     koheron::print_fmt<INFO>("FpgaManager: Loading bitstream {}...\n", bistream_filename);
     FILE *fbitstream = fopen(bistream_filename.c_str(), "rb");

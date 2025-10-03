@@ -4,12 +4,9 @@
 #ifndef __SERVER_CONTEXT_FPGA_MANAGER__
 #define __SERVER_CONTEXT_FPGA_MANAGER__
 
-#include <string>
+#include <string_view>
 #include <filesystem>
 #include <vector>
-
-#define str_(s) #s
-#define xstr_(s) str_(s)
 
 class FpgaManager {
     using Path = std::filesystem::path;
@@ -18,8 +15,6 @@ class FpgaManager {
     int load_bitstream();
 
   private:
-    const std::string instrument_name = xstr_(INSTRUMENT_NAME);
-
     bool use_xdevcgf = false;
     bool use_overlay = false;
 

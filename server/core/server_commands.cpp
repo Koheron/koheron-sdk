@@ -13,24 +13,18 @@
 namespace koheron {
 
 // Send the server commit version
-#define xstr(s) str(s)
-#define str(s) #s
-
-template<> int Server::execute_operation<Server::GET_VERSION>(Command& cmd)
-{
-    return services::require<SessionManager>().get_session(cmd.session_id).send<1, Server::GET_VERSION>(xstr(KOHERON_VERSION));
+template<> int Server::execute_operation<Server::GET_VERSION>(Command& cmd) {
+    return services::require<SessionManager>().get_session(cmd.session_id).send<1, Server::GET_VERSION>(KOHERON_VERSION);
 }
 
 // Send the commands numbers
-template<> int Server::execute_operation<Server::GET_CMDS>(Command& cmd)
-{
+template<> int Server::execute_operation<Server::GET_CMDS>(Command& cmd) {
     return services::require<SessionManager>().get_session(cmd.session_id).send<1, Server::GET_CMDS>(build_drivers_json());
 }
 
 ////////////////////////////////////////////////
 
-int Server::execute(Command& cmd)
-{
+int Server::execute(Command& cmd) {
     std::lock_guard lock(this->ks_mutex);
 
     switch (cmd.operation) {
