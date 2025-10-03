@@ -12,6 +12,13 @@
 #include <span>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <sys/ioctl.h>
+
+#ifndef BRAM_IOC_MAGIC
+#define BRAM_IOC_MAGIC 'B'
+struct bram_inv { uint64_t uaddr; uint64_t len; };
+#define BRAM_INV_RANGE _IOW(BRAM_IOC_MAGIC, 1, struct bram_inv)
+#endif
 
 #include <memory.hpp>
 
@@ -109,6 +116,23 @@ class Memory
         is_opened = true;
         base_address = reinterpret_cast<uintptr_t>(mapped_base) + delta;
     }
+
+    void open_devnode(const int& fd) {
+        const std::size_t pg = page_size();
+        const std::size_t len = align_up(size, pg);
+        mapped_base = ::mmap(nullptr, len, protection, MAP_SHARED, fd, 0);
+        if (mapped_base == MAP_FAILED) {
+            is_opened = false;
+            mapped_base = nullptr;
+            dev_fd = -1;
+            return;
+        }
+        is_opened = true;
+        base_address = reinterpret_cast<uintptr_t>(mapped_base);
+        dev_fd = fd; // remember for burst reads
+    }
+
+    void set_dev_fd(int fd) { dev_fd = fd; }
 
     constexpr int get_protection() const noexcept {return protection;}
     int is_open() const noexcept {return is_opened;}
@@ -232,14 +256,39 @@ class Memory
         return reinterpret_cast<T*>(base_address + offset);
     }
 
-    // Read a std::array (offset defined at compile-time)
-    template<typename T, size_t N, uint32_t offset = 0>
+    // Read a std::array at compile-time offset.
+    // - memcpy=false: returns a reference mapped directly on the BRAM window (zero-copy view).
+    // - memcpy=true : invalidates (if dev_fd set) then memcpy() into a per-thread scratch array and returns it.
+    template<typename T, size_t N, uint32_t offset = 0, bool memcpy = false>
     std::array<T, N>& read_array(uint32_t block_idx = 0) {
-        static_assert(offset + sizeof(T) * (N - 1) < (mem::get_range(id) * mem::get_n_blocks(id)), "Invalid offset");
+        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
         static_assert(mem::is_readable(id), "Not readable");
+        static_assert(offset % alignof(T) == 0, "Offset alignment mismatch");
+        static_assert(offset + sizeof(T) * (N - 1) < mem::get_range(id), "Invalid offset");
 
-        auto p = get_ptr<std::array<T, N>, offset>(block_idx);
-        return *p;
+        constexpr std::size_t bs  = block_size;
+        const     std::size_t off = bs * static_cast<std::size_t>(block_idx) + offset;
+
+        if constexpr (memcpy) {
+            // Per-thread scratch to keep the reference valid until the next call on this thread.
+            static thread_local std::array<T, N> scratch;
+
+            // If this mapping was opened via the *cacheable* node, this ensures fresh cachelines.
+            // On WC mappings it’s a harmless no-op.
+            (void)invalidate_range_fd_(dev_fd, off, sizeof(T) * N);
+
+            const void* src = reinterpret_cast<const void*>(base_address + off);
+
+            // Optional: prefetch ahead to hide some latency (safe no-op if ignored)
+            const char* pf = static_cast<const char*>(src);
+            for (std::size_t i = 0; i < sizeof(T)*N; i += 64) __builtin_prefetch(pf + i + 256, 0, 0);
+
+            std::memcpy(scratch.data(), src, sizeof(T) * N);
+            return scratch;
+        } else {
+            // Zero-copy view onto the mapped region. Be careful: this is not an owned object.
+            return *reinterpret_cast<std::array<T, N>*>(base_address + off);
+        }
     }
 
     template<typename T, std::size_t N, uint32_t offset = 0>
@@ -358,9 +407,19 @@ class Memory
     }
 
   private:
+    int invalidate_range_fd_(int fd, std::size_t offset, std::size_t length) const {
+        if (fd < 0) return -1;
+        struct bram_inv inv{
+            .uaddr = static_cast<uint64_t>(base_address + offset),
+            .len   = static_cast<uint64_t>(length)
+        };
+        return ::ioctl(fd, BRAM_INV_RANGE, &inv);
+    }
+
     void *mapped_base;       ///< Map base address
     uintptr_t base_address;  ///< Virtual memory base address of the driver
     bool is_opened;
+    int dev_fd = -1;
 };
 
 #endif // __MEMORY_MAP_HPP__

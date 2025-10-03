@@ -270,7 +270,7 @@ inline void  FFT::psd_acquisition_thread() {
 
         {
             std::lock_guard<std::mutex> lock(mutex);
-            psd_buffer_raw = psd_map.read_array<float, prm::fft_size/2, 0>();
+            psd_buffer_raw = psd_map.read_array<float, prm::fft_size/2, 0, true>();
 
             if (std::abs(clk_gen.get_adc_sampling_freq() - fs_adc) > std::numeric_limits<double>::round_error()) {
                 // Sampling frequency has changed

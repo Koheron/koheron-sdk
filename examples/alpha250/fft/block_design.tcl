@@ -93,6 +93,8 @@ connect_cell psd_bram {
   adc bram_accum/m_axis_tdata
 }
 
+set_property CONFIG.PROTOCOL {AXI4} [get_bd_cells psd_bram/axi_bram_ctrl_psd]
+
 # Test IOs
 
 connect_pins [sts_pin digital_inputs] [get_concat_pin [list exp_io_0_p exp_io_1_p exp_io_2_p exp_io_3_p exp_io_4_p exp_io_5_p exp_io_6_p exp_io_7_p]]
