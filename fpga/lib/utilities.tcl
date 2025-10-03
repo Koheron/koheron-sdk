@@ -12,7 +12,15 @@ proc lmap {_var list body} {
 
 proc range {from to} {
     if {$to>$from} {concat [range $from [incr to -1]] $to}
- }
+}
+
+# --- Quiet helpers + existence checks ---
+proc _bd_cells {name} { get_bd_cells -quiet $name }
+proc _bd_pins  {name} { get_bd_pins  -quiet $name }
+proc _bd_ipins {name} { get_bd_intf_pins -quiet $name }
+proc _pin_exists {name}  { expr {[llength [_bd_pins $name]]} }
+proc _cell_exists {name} { expr {[llength [_bd_cells $name]]} }
+# --- end additions ---
 
 # Get a configuration pin
 # name : name of the register defined in the instrument YAML
@@ -54,8 +62,8 @@ proc get_cell_name {op pin_name1 {pin_name2 ""}} {
 }
 
 proc get_pin_width {pin_name} {
-  set left  [get_property LEFT  [get_bd_pins $pin_name]]
-  set right [get_property RIGHT [get_bd_pins $pin_name]]
+  set left  [get_property LEFT  [_bd_pins $pin_name]]
+  set right [get_property RIGHT [_bd_pins $pin_name]]
   set width [expr $left - $right + 1]
   if {$width < 1} {return 1} else {return $width}
 }
@@ -65,7 +73,7 @@ proc get_concat_pin {pins {cell_name ""}} {
   if {$cell_name eq ""} {
     set cell_name concat_[join [lmap pin $pin_names {set pin [lindex [split $pin /] end]}] _]
   }
-  if {[get_bd_cells $cell_name] eq ""} {
+  if {![_cell_exists $cell_name]} {
     cell xilinx.com:ip:xlconcat:2.1 $cell_name {
       NUM_PORTS [llength $pin_names]
     } {}
@@ -87,7 +95,7 @@ foreach op {and or nor not} {
     if {$cell_name eq ""} {
       set cell_name [get_cell_name $op $pin_name1 $pin_name2]
     }
-    if {[get_bd_cells $cell_name] eq ""} {
+    if {![_cell_exists $cell_name]} {
       cell xilinx.com:ip:util_vector_logic:2.0 $cell_name {
         C_SIZE [get_pin_width $pin_name1]
         C_OPERATION $op
@@ -107,7 +115,7 @@ foreach op {GE GT LE LT EQ NE} {
     if {$cell_name eq ""} {
       set cell_name [get_cell_name $op $pin_name1 $pin_name2]
     }
-    if {[get_bd_cells $cell_name] eq ""} {
+    if {![_cell_exists $cell_name]} {
       cell koheron:user:comparator:1.0 $cell_name {
         DATA_WIDTH [get_pin_width $pin_name1]
         OPERATION $op
@@ -124,7 +132,7 @@ proc get_slice_pin {pin_name from to {cell_name ""}} {
   if {$cell_name eq ""} {
     set cell_name slice_${from}_${to}_[underscore $pin_name]
   }
-  if {[get_bd_cells $cell_name] eq ""} {
+  if {![_cell_exists $cell_name]} {
     cell xilinx.com:ip:xlslice:1.0 $cell_name {
       DIN_WIDTH [get_pin_width $pin_name]
       DIN_FROM $from
@@ -141,7 +149,7 @@ proc get_Q_pin {pin_name {depth 1} {ce_pin_name "noce"} {clk clk} {cell_name ""}
     set cell_name Q_d${depth}_[underscore $ce_pin_name]_[underscore $pin_name]
   }
   set width [get_pin_width $pin_name]
-  if {[get_bd_cells $cell_name] eq ""} {
+  if {![_cell_exists $cell_name]} {
     if { [string match "noce" $ce_pin_name] } {
       cell xilinx.com:ip:c_shift_ram:12.0 $cell_name {
         Width $width
@@ -167,7 +175,7 @@ proc get_Q_pin {pin_name {depth 1} {ce_pin_name "noce"} {clk clk} {cell_name ""}
 
 proc get_constant_pin {value width} {
   set cell_name const_v${value}_w${width}
-  if {[get_bd_cells $cell_name] eq ""} {
+  if {![_cell_exists $cell_name]} {
     cell xilinx.com:ip:xlconstant:1.1 $cell_name {
       CONST_VAL $value
       CONST_WIDTH $width
@@ -179,7 +187,7 @@ proc get_constant_pin {value width} {
 # see fpga/cores/edge_detector_v1_0
 proc get_edge_detector_pin {pin_name {clk clk}} {
   set cell_name edge_detector_[lindex [split $pin_name /] end]
-  if {[get_bd_cells $cell_name] eq ""} {
+  if {![_cell_exists $cell_name]} {
     cell koheron:user:edge_detector:1.0 $cell_name {} {
       clk $clk
       din $pin_name
@@ -189,17 +197,17 @@ proc get_edge_detector_pin {pin_name {clk clk}} {
 }
 
 proc get_interrupt_pin {} {
-    set num_ports [get_property CONFIG.NUM_PORTS [get_bd_cells /concat_interrupts]]
-    set_property -dict [list CONFIG.NUM_PORTS [expr $num_ports+1]] [get_bd_cells /concat_interrupts]
+    set num_ports [get_property CONFIG.NUM_PORTS [_bd_cells /concat_interrupts]]
+    set_property -dict [list CONFIG.NUM_PORTS [expr $num_ports+1]] [_bd_cells /concat_interrupts]
     return concat_interrupts/In$num_ports
 }
 
 proc connect_pins {pin1 pin2} {
-  connect_bd_net [get_bd_pins $pin1] [get_bd_pins $pin2]
+  connect_bd_net [_bd_pins $pin1] [_bd_pins $pin2]
 }
 
 proc connect_port_pin {port pin} {
-  connect_bd_net [get_bd_ports $port] [get_bd_pins $pin]
+  connect_bd_net [get_bd_ports $port] [_bd_pins $pin]
 }
 
 proc connect_constant {name value width pin} {
@@ -213,12 +221,12 @@ proc connect_constant {name value width pin} {
 
 # Connect all the pins of a cell that have a port with an identical name
 proc connect_ports {cell_name} {
-  set cell_pins [lmap pin [get_bd_pins $cell_name/*] {set pin [lindex [split $pin /] end]}]
-  set ports     [lmap pin [get_bd_ports /*]          {set pin [lindex [split $pin /] end]}]
+  set cell_pins [lmap pin [_bd_pins $cell_name/*] {set pin [lindex [split $pin /] end]}]
+  set ports     [lmap pin [get_bd_ports /*]       {set pin [lindex [split $pin /] end]}]
   package require struct::set
   set common_ports [::struct::set intersect $cell_pins $ports]
   foreach port $common_ports {
-    connect_bd_net [get_bd_ports /$port] [get_bd_pins $cell_name/$port]
+    connect_bd_net [get_bd_ports /$port] [_bd_pins $cell_name/$port]
   }
 }
 
@@ -227,14 +235,14 @@ proc connect_ports {cell_name} {
 
 proc connect_cell {cell_name cell_ports} {
   foreach {local_name remote_name} [uplevel 1 [list subst $cell_ports]] {
-    set local_port [get_bd_pins $cell_name/$local_name]
-    set remote_port [get_bd_pins $remote_name]
+    set local_port  [_bd_pins  $cell_name/$local_name]
+    set remote_port [_bd_pins  $remote_name]
     if {[llength $local_port] == 1 && [llength $remote_port] == 1} {
       connect_bd_net $local_port $remote_port
       continue
     }
-    set local_port [get_bd_intf_pins $cell_name/$local_name]
-    set remote_port [get_bd_intf_pins $remote_name]
+    set local_port  [_bd_ipins $cell_name/$local_name]
+    set remote_port [_bd_ipins $remote_name]
     if {[llength $local_port] == 1 && [llength $remote_port] == 1} {
       connect_bd_intf_net $local_port $remote_port
       continue
@@ -318,13 +326,13 @@ proc add_master_interface {{intercon_idx 0}} {
   # Creates an empty M_${idx}_AXI interface in interconnect $intercon_idx
   # Return $idx
 
-  set num_mi [get_property CONFIG.NUM_MI [get_bd_cells /axi_mem_intercon_$intercon_idx]]
+  set num_mi [get_property CONFIG.NUM_MI [_bd_cells /axi_mem_intercon_$intercon_idx]]
 
   # Look for an already empty interface
   set found 0
   for {set i [expr $num_mi]} {$i > 0} {incr i -1} {
     if { $i <= 10 } { set idx 0[expr $i-1] } { set idx [expr $i-1] }
-    set net [get_bd_intf_nets -of_objects [get_bd_intf_pins /axi_mem_intercon_${intercon_idx}/M${idx}_AXI]]
+    set net [get_bd_intf_nets -quiet -of_objects [_bd_ipins /axi_mem_intercon_${intercon_idx}/M${idx}_AXI]]
     if {$net eq ""} {
       puts "Found empty interface M${idx}_AXI on interconnect $intercon_idx..."
       set found 1
@@ -334,7 +342,7 @@ proc add_master_interface {{intercon_idx 0}} {
   if {$found == 0} {
     puts "No empty interface found on interconnect $intercon_idx..."
     incr num_mi
-    set_property -dict [list CONFIG.NUM_MI $num_mi] [get_bd_cells /axi_mem_intercon_$intercon_idx]
+    set_property -dict [list CONFIG.NUM_MI $num_mi] [_bd_cells /axi_mem_intercon_$intercon_idx]
     if { $num_mi <= 10 } { set idx 0[expr $num_mi-1] } { set idx [expr $num_mi-1] }
   }
   connect_pins /axi_mem_intercon_$intercon_idx/M${idx}_ACLK    /[set ::ps_clk$intercon_idx]
