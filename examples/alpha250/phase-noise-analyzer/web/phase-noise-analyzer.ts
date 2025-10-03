@@ -88,4 +88,8 @@ class PhaseNoiseAnalyzer {
       Command(this.id, this.cmds['get_carrier_power'], nAverage)
     );
   }
+
+  saveConfig(): void {
+    this.client.send(Command(this.id, this.cmds['save_config']));
+  }
 }
