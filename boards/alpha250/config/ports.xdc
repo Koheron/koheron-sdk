@@ -168,3 +168,7 @@ set_property PACKAGE_PIN H15 [get_ports {dac_1[15]}]
 
 set_property PACKAGE_PIN K9  [get_ports Vp_Vn_v_p]
 set_property PACKAGE_PIN L10 [get_ports Vp_Vn_v_n]
+
+set_false_path \
+    -from [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/*CLKOUT0*]] \
+    -to [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/*CLKOUT1*]]
