@@ -25,7 +25,7 @@ DOCKER_VOL    = -v $(SDK_FULL_PATH):$(DOCKER_WD):Z
 DOCKER_FLAGS ?= --cpus=$(N_CPUS)
 
 # Host cache directory (persistent across runs)
-CCACHE_DIR ?= $(SDK_FULL_PATH)/.ccache
+CCACHE_DIR ?= $(TMP_PROJECT_PATH)/.ccache
 
 DOCKER_CCACHE_FLAGS = \
   -e CCACHE_DIR=$(DOCKER_WD)/.ccache \

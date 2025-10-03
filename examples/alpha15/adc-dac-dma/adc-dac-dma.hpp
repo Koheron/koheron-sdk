@@ -7,6 +7,10 @@
 
 #include <context.hpp>
 
+#include <cstdint>
+#include <array>
+#include <thread>
+
 // AXI DMA Registers
 // https://www.xilinx.com/support/documentation/ip_documentation/axi_dma/v7_1/pg021_axi_dma.pdf
 namespace Dma_regs {
@@ -191,7 +195,6 @@ class AdcDacDma
     std::array<uint32_t, n_desc * n_pts> data;
 
     void log_dma() {
-
         ctx.log<INFO>("MM2S LOG \n");
         ctx.log<INFO>("DMAIntErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 4>());
         ctx.log<INFO>("DMASlvErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 5>());
@@ -228,7 +231,6 @@ class AdcDacDma
         ctx.log<INFO>("AFI_WRDEBUG = %x \n", axi_hp0.read<0x24>());
         ctx.log<INFO>("\n");
     }
-
 } ;
 
 #endif // __DRIVERS_ADC_DAC_DMA_HPP__
