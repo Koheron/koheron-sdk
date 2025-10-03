@@ -49,7 +49,10 @@ DRIVERS_HPP := $(filter %.hpp,$(DRIVERS))
 export DRIVERS_HPP
 
 DRIVERS_CPP := $(filter %.cpp,$(DRIVERS))
-DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/, $(subst .cpp,.o,$(notdir $(filter %.cpp,$(DRIVERS)))))
+DRIVERS_CPP_REL := $(patsubst $(SDK_FULL_PATH)/%,%,$(DRIVERS_CPP))
+DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/,$(DRIVERS_CPP_REL:.cpp=.o))
+
+# DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/, $(subst .cpp,.o,$(notdir $(filter %.cpp,$(DRIVERS)))))
 
 PHONY: list_drivers
 list_drivers:
@@ -64,6 +67,7 @@ list_drivers:
 # -----------------------------------------------------------------------------
 # Generated interface sources/objects
 # -----------------------------------------------------------------------------
+
 INTERFACE_DRIVERS_HPP := $(addprefix $(TMP_SERVER_PATH)/interface_,$(notdir $(DRIVERS_HPP)))
 INTERFACE_DRIVERS_CPP := $(subst .hpp,.cpp,$(INTERFACE_DRIVERS_HPP))
 INTERFACE_DRIVERS_OBJ := $(subst .hpp,.o,$(INTERFACE_DRIVERS_HPP))
@@ -168,23 +172,28 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp | $(GEN_HEADERS)
 	$(call echo-cmd,cxx)
 	$(Q)$(call cmd,cmd_cxx)
 
-$(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
-	$(call echo-cmd,cxx)
-	$(Q)$(call cmd,cmd_cxx)
+# $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
+# 	$(call echo-cmd,cxx)
+# 	$(Q)$(call cmd,cmd_cxx)
 
-$(TMP_SERVER_PATH)/%.o: $(PROJECT_PATH)/%.cpp | $(GEN_HEADERS)
-	@mkdir -p $(dir $@)
-	$(call echo-cmd,cxx)
-	$(Q)$(call cmd,cmd_cxx)
+# $(TMP_SERVER_PATH)/%.o: $(PROJECT_PATH)/%.cpp | $(GEN_HEADERS)
+# 	@mkdir -p $(dir $@)
+# 	$(call echo-cmd,cxx)
+# 	$(Q)$(call cmd,cmd_cxx)
 
-$(TMP_SERVER_PATH)/%.o: $(BOARD_PATH)/drivers/%.cpp | $(GEN_HEADERS)
-	$(Q)mkdir -p $(dir $@)
-	@$(call echo-cmd,cxx)
-	$(Q)$(call cmd,cmd_cxx)
+# $(TMP_SERVER_PATH)/%.o: $(BOARD_PATH)/drivers/%.cpp | $(GEN_HEADERS)
+# 	$(Q)mkdir -p $(dir $@)
+# 	@$(call echo-cmd,cxx)
+# 	$(Q)$(call cmd,cmd_cxx)
 
 # Generated interface .cpp => .o (depends on its own .hpp via auto-deps)
 $(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
 	@$(call echo-cmd,cxx)
+	$(Q)$(call cmd,cmd_cxx)
+
+$(TMP_SERVER_PATH)/%.o: %.cpp | $(GEN_HEADERS)
+	@mkdir -p $(dir $@)
+	$(call echo-cmd,cxx)
 	$(Q)$(call cmd,cmd_cxx)
 
 # -----------------------------------------------------------------------------
