@@ -17,7 +17,7 @@ proc add_bram {memory_name {intercon_idx 0}} {
   set bram_name blk_mem_gen_$memory_name
 
   # Add Block Memory Generator
-  cell xilinx.com:ip:blk_mem_gen:8.3 $bram_name {
+  cell xilinx.com:ip:blk_mem_gen:8.4 $bram_name {
     Memory_Type True_Dual_Port_RAM
   } {
     BRAM_PORTA axi_bram_ctrl_$memory_name/BRAM_PORTA
