@@ -46,7 +46,12 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer(Context& ctx_)
     set_fft_navg(1);
 
     fs_adc = Frequency(clk_gen.get_adc_sampling_freq());
-    set_cic_rate(prm::cic_decimation_rate_default);
+
+    if (ctx.cfg.has("acquisition", "cic_rate")) {
+        set_cic_rate(ctx.cfg.get<uint32_t>("acquisition", "cic_rate"));
+    } else {
+        set_cic_rate(prm::cic_decimation_rate_default);
+    }
 
     // Configure the spectrum analyzer
     spectrum.window(sig::windows::hann<float>(fft_size));
@@ -82,6 +87,7 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
     averager.clear();
     dirty_cnt = 2;
     ctl.write<reg::cic_rate>(cic_rate);
+    ctx.cfg.set("acquisition", "cic_rate", cic_rate);
 }
 
 void PhaseNoiseAnalyzer::set_channel(uint32_t chan) {
