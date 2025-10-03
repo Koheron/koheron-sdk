@@ -31,8 +31,6 @@ set_property IP_REPO_PATHS [list $::env(TMP_CORES_PATH)] [current_project]
 #update_ip_catalog -rebuild -scan_changes
 update_ip_catalog
 
-set_msg_config -help
-
 set_msg_config -string {Only lower order bits will be connected} -suppress
 set_msg_config -string {is being overridden by the user} -suppress
 set_msg_config -string {It is recommended to use inline hdl version} -suppress
