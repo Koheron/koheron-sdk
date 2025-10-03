@@ -156,6 +156,30 @@ GEN_HEADERS := \
   $(INTERFACE_DRIVERS_HPP)
 
 # -----------------------------------------------------------------------------
+# Precompiled headers
+# -----------------------------------------------------------------------------
+
+PCH_SRC := $(SERVER_PATH)/pch.hpp
+PCH_DST := $(TMP_PROJECT_PATH)/pch/pch.hpp
+PCH_GCH := $(PCH_DST).gch
+
+PCH_CXX := $(DOCKER) ccache $(GCC_ARCH)-g++-$(GCC_VERSION)
+PCH_CXXFLAGS := $(SERVER_CCXXFLAGS)
+PCH_CXXFLAGS := $(filter-out -flto% -static-libstdc++ -MMD -MP,$(PCH_CXXFLAGS))
+PCH_CXXFLAGS += -Wno-unused-macros
+
+$(PCH_DST): $(PCH_SRC)
+	@mkdir -p $(dir $@)
+	@cp -f $< $@
+
+$(PCH_GCH): $(PCH_DST)
+	$(PCH_CXX) -x c++-header $(PCH_CXXFLAGS) -o $@ $<
+
+# Use the PCH for all compilations and ensure it’s built first
+SERVER_CCXXFLAGS += -Winvalid-pch -include $(PCH_DST)
+$(OBJ): | $(PCH_GCH)
+
+# -----------------------------------------------------------------------------
 # Compile objects
 # -----------------------------------------------------------------------------
 
