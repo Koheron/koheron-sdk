@@ -4,6 +4,7 @@
 #include "./config_ini.hpp"
 
 #include <filesystem>
+#include <string>
 
 namespace {
     namespace fs = std::filesystem;
@@ -42,6 +43,10 @@ class ConfigManager {
     template<class T>
     void set(const std::string& sect, const std::string& key, T value) {
         cfg::set(cfg_, sect, key, value);
+        cfg::save_ini(config_path, cfg_);
+    }
+
+    void save() {
         cfg::save_ini(config_path, cfg_);
     }
 
