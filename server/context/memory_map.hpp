@@ -256,39 +256,14 @@ class Memory
         return reinterpret_cast<T*>(base_address + offset);
     }
 
-    // Read a std::array at compile-time offset.
-    // - memcpy=false: returns a reference mapped directly on the BRAM window (zero-copy view).
-    // - memcpy=true : invalidates (if dev_fd set) then memcpy() into a per-thread scratch array and returns it.
-    template<typename T, size_t N, uint32_t offset = 0, bool memcpy = false>
+    // Read a std::array (offset defined at compile-time)
+    template<typename T, size_t N, uint32_t offset = 0>
     std::array<T, N>& read_array(uint32_t block_idx = 0) {
-        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+        static_assert(offset + sizeof(T) * (N - 1) < (mem::get_range(id) * mem::get_n_blocks(id)), "Invalid offset");
         static_assert(mem::is_readable(id), "Not readable");
-        static_assert(offset % alignof(T) == 0, "Offset alignment mismatch");
-        static_assert(offset + sizeof(T) * (N - 1) < mem::get_range(id), "Invalid offset");
 
-        constexpr std::size_t bs  = block_size;
-        const     std::size_t off = bs * static_cast<std::size_t>(block_idx) + offset;
-
-        if constexpr (memcpy) {
-            // Per-thread scratch to keep the reference valid until the next call on this thread.
-            static thread_local std::array<T, N> scratch;
-
-            // If this mapping was opened via the *cacheable* node, this ensures fresh cachelines.
-            // On WC mappings it’s a harmless no-op.
-            (void)invalidate_range_fd_(dev_fd, off, sizeof(T) * N);
-
-            const void* src = reinterpret_cast<const void*>(base_address + off);
-
-            // Optional: prefetch ahead to hide some latency (safe no-op if ignored)
-            const char* pf = static_cast<const char*>(src);
-            for (std::size_t i = 0; i < sizeof(T)*N; i += 64) __builtin_prefetch(pf + i + 256, 0, 0);
-
-            std::memcpy(scratch.data(), src, sizeof(T) * N);
-            return scratch;
-        } else {
-            // Zero-copy view onto the mapped region. Be careful: this is not an owned object.
-            return *reinterpret_cast<std::array<T, N>*>(base_address + off);
-        }
+        auto p = get_ptr<std::array<T, N>, offset>(block_idx);
+        return *p;
     }
 
     template<typename T, std::size_t N, uint32_t offset = 0>
