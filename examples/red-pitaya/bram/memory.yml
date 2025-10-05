@@ -1,0 +1,23 @@
+---
+memory:
+  - name: control
+    range: 4K
+    offset: '0x18000000'
+  - name: status
+    range: 4K
+    offset: '0x19000000'
+  - name: bram0
+    range: 64K
+    offset: '0x40000000'
+  - name: bram1
+    range: 64K
+    offset: '0x42000000'
+
+control_registers:
+  - led
+
+status_registers:
+  - reg1
+
+parameters:
+  fclk0: 187500000 # FPGA clock speed in Hz
