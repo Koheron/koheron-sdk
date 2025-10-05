@@ -1,0 +1,15 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0 {
+        target-path = "/";
+        __overlay__ {
+            ramwc@18000000 {
+                compatible = "koheron,ramwc";
+                reg = <0x0 0x18000000 0x08000000>; /* hi, lo, size: 128 MiB */
+                status = "okay";
+            };
+        };
+    };
+};

@@ -10,5 +10,6 @@ XDC += $(PROJECT_PATH)/constraints.xdc
 #DRIVERS += $(SDK_PATH)/server/drivers/common.hpp
 DRIVERS += $(PROJECT_PATH)/common.hpp
 DRIVERS += $(PROJECT_PATH)/bram.hpp
+DRIVERS += $(PROJECT_PATH)/ram.hpp
 
 WEB_FILES += $(SDK_PATH)/web/index.html

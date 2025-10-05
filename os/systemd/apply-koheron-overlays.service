@@ -1,0 +1,31 @@
+[Unit]
+Description=Apply all .dtbo overlays from /lib/firmware/koheron/dtbo
+After=local-fs.target
+RequiresMountsFor=/lib/firmware/koheron/dtbo
+ConditionPathIsDirectory=/lib/firmware/koheron/dtbo
+
+[Service]
+Type=oneshot
+Environment=DTBO_DIR=/lib/firmware/koheron/dtbo
+ExecStart=/bin/sh -eu -c '
+  mount -t configfs none /sys/kernel/config 2>/dev/null || true
+  root=/sys/kernel/config/device-tree/overlays
+  mkdir -p "$root"
+  for f in "$DTBO_DIR"/*.dtbo; do
+    [ -e "$f" ] || continue
+    name="$(basename "$f" .dtbo | tr -c "A-Za-z0-9._-" "_")"
+    dir="$root/$name"
+    mkdir -p "$dir" 2>/dev/null || true
+    # apply by streaming the blob; works regardless of its location
+    if [ ! -e "$dir/merged" ]; then
+      if cat "$f" > "$dir/dtbo"; then
+        echo "Applied overlay: $name ($f)"
+      else
+        echo "WARN: failed applying $f (already applied or invalid?)" >&2
+      fi
+    fi
+  done
+'
+
+[Install]
+WantedBy=multi-user.target

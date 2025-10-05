@@ -307,6 +307,9 @@ $(OVERLAY_DIR)/etc/nginx/nginx.conf: $(OS_PATH)/config/nginx.conf
 $(OVERLAY_DIR)/etc/nginx/sites-available/koheron.conf: $(OS_PATH)/config/nginx-server.conf
 	install -D -m0644 $< $@
 
+
+
+
 # Bundle overlay as a single tar the script can explode into /
 OVERLAY_FILES := \
   $(OVERLAY_DIR)/usr/local/instruments/.stamp \
@@ -323,12 +326,22 @@ OVERLAY_FILES := \
   $(OVERLAY_DIR)/etc/systemd/system/uwsgi.socket \
   $(OVERLAY_DIR)/usr/local/sbin/grow-rootfs-once \
   $(OVERLAY_DIR)/etc/systemd/system/grow-rootfs-once.service \
+  $(OVERLAY_DIR)/etc/systemd/system/apply-koheron-overlays.service \
   $(OVERLAY_DIR)/usr/local/instruments/unzip_default_instrument.sh \
   $(OVERLAY_DIR)/usr/local/instruments/$(NAME).zip \
   $(OVERLAY_DIR)/usr/local/instruments/default \
   $(OVERLAY_DIR)/etc/nginx/nginx.conf \
   $(OVERLAY_DIR)/etc/nginx/sites-available/koheron.conf \
   $(OVERLAY_DIR)/etc/systemd/system/nginx.service
+
+DTBO_OVERLAY_DIR := $(OVERLAY_DIR)/lib/firmware/koheron/dtbo
+
+$(DTBO_OVERLAY_DIR)/.stamp: $(DTBO_DTBO) | $(OVERLAY_DIR)/
+	@mkdir -p "$(DTBO_OVERLAY_DIR)"
+	@set -e; for f in $^; do install -D -m0644 "$$f" "$(DTBO_OVERLAY_DIR)/$$(basename "$$f")"; done
+	@touch $@
+
+OVERLAY_FILES += $(DTBO_OVERLAY_DIR)/.stamp
 
 $(OVERLAY_TAR): $(OVERLAY_FILES) | $(OVERLAY_DIR)/
 	# ensure destination dir for tar exists

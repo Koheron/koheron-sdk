@@ -17,4 +17,5 @@ systemctl enable nginx || true
 systemctl enable systemd-networkd.service
 systemctl enable systemd-resolved.service
 systemctl enable systemd-timesyncd.service
+systemctl enable apply-koheron-overlays.service
 exit 0

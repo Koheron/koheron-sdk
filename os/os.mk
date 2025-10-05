@@ -49,7 +49,7 @@ OS_FILES := \
   $(WWW_ASSETS) \
   $(TMP_OS_PATH)/$(BOOTCALL) \
   $(FIT_ITB) \
-  $(DTB_SWITCH) \
+  $(DTB_SWITCH)
 
 .PHONY: os
 os: $(OS_FILES)
@@ -281,11 +281,27 @@ patch_devicetree:
 
 .PHONY: patch_overlay
 patch_overlay:
-	bash os/scripts/patch_overlay.sh $(TMP_OS_PATH) $(PROJECT_PATH)
+	bash os/scripts/patch_overlay.sh $(TMP_OS_PATH) $(BOARD_PATH)
 
 .PHONY: clean_overlay
 clean_overlay:
 	rm -rf $(TMP_OS_PATH)/overlay $(TMP_OS_PATH)/overlay.orig
+
+###############################################################################
+# Build a list of DT overlays (.dtso -> .dtbo)
+###############################################################################
+
+DTBO_DTSOS := $(OS_PATH)/overlays/ramwc/ramwc.dtso
+DTBO_BUILD_DIR := $(TMP_OS_PATH)/dtbo
+DTBO_DTBO := $(patsubst $(OS_PATH)/overlays/%.dtso,$(DTBO_BUILD_DIR)/%.dtbo,$(DTBO_DTSOS))
+
+$(DTBO_BUILD_DIR)/%.dtbo: $(OS_PATH)/overlays/%.dtso $(LINUX_PATH)/scripts/dtc/dtc | $(DTBO_BUILD_DIR)/
+	@mkdir -p $(dir $@)
+	$(LINUX_PATH)/scripts/dtc/dtc -@ -I dts -O dtb -o $@ $<
+	$(call ok,$@)
+
+.PHONY: dtbos
+dtbos: $(DTBO_DTBO)
 
 ###############################################################################
 # LINUX

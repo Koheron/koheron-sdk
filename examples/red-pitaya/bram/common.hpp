@@ -15,6 +15,7 @@
 
 #include <context.hpp>
 #include <bram.hpp>
+#include <ram.hpp>
 
 class Common
 {
@@ -24,6 +25,7 @@ class Common
     , ctl(ctx.mm.get<mem::control>())
     , sts(ctx.mm.get<mem::status>())
     , bram(ctx.get<Bram>())
+    , ram(ctx.get<Ram>())
     {}
 
     void set_led(uint32_t value) {
@@ -37,7 +39,9 @@ class Common
     void init() {
         ip_on_leds();
         ctx.log<INFO>("Start Bram test\n");
-        //bram.test();
+        bram.test();
+        ctx.log<INFO>("Start Ram test\n");
+        ram.test();
     };
 
     std::string get_instrument_config() {
@@ -76,6 +80,7 @@ class Common
     Memory<mem::control>& ctl;
     Memory<mem::status>& sts;
     Bram& bram;
+    Ram& ram;
 
 };
 
