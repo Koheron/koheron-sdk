@@ -1,14 +1,21 @@
-#include "server/runtime/runtime.hpp"
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/systemd.hpp"
+#include "server/context/memory_manager.hpp"
 
 #include <array>
 
 int main() {
-    koheron::Runtime rt;
-    auto& ctx = rt.context();
-    rt.systemd_notify_ready();
+    MemoryManager mm;
 
-    auto& bram0 = ctx.mm.get<mem::bram0>();
-    auto& bram1 = ctx.mm.get<mem::bram1>();
+    if (mm.open() < 0) {
+        koheron::print<PANIC>("No MM");
+        return -1;
+    }
+
+    systemd::notify_ready();
+
+    auto& bram0 = mm.get<mem::bram0>();
+    auto& bram1 = mm.get<mem::bram1>();
     constexpr uint32_t bram_size = mem::bram0_range/sizeof(uint32_t);
 
     std::array<uint32_t, bram_size> data;
@@ -19,7 +26,7 @@ int main() {
     (void)bram0.read_array<uint32_t, bram_size>();
     (void)bram1.read_array<uint32_t, bram_size>();
 
-    ctx.logf<INFO>("Bram size = {}", bram_size);
+    koheron::print_fmt<INFO>("Bram size = {}", bram_size);
 
     return 0;
 }
