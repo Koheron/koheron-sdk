@@ -7,6 +7,6 @@ MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 XDC += $(PROJECT_PATH)/constraints.xdc
 
-SERVER_MK = $(PROJECT_PATH)/app.mk
+SERVER_MK = $(SDK_PATH)/server/server_bare.mk
 
 WEB_FILES += $(SDK_PATH)/web/index.html
