@@ -1,30 +1,20 @@
 // SPDX-License-Identifier: GPL-2.0
 // Koheron BRAM window character device (write-combine mmap)
-// Creates /dev/bram_wc0x<BASE> only when xlnx,s-axi-id-width > 0 (AXI4).
+// Creates /dev/bram_wc0x<BASE> for Xilinx AXI BRAM controller.
 
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/of.h>
-#include <linux/of_address.h>
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
 #include <linux/mm.h>
-#include <linux/io.h>
-#include <linux/uaccess.h>
 #include <linux/slab.h>
 
 #define DRV_NAME "bram_wc"
 
-#ifndef BRAM_IOC_MAGIC
-#define BRAM_IOC_MAGIC 'B'
-struct bram_inv { __u64 uaddr; __u64 len; };
-#define BRAM_INV_RANGE _IOW(BRAM_IOC_MAGIC, 1, struct bram_inv)
-#endif
-
 struct bram_wc {
-	void __iomem    *base;
-	phys_addr_t      phys_start;
-	resource_size_t  size;
+	phys_addr_t       phys_start;
+	resource_size_t   size;
 	struct miscdevice misc;
 };
 
@@ -47,42 +37,17 @@ static int bram_wc_mmap(struct file *filp, struct vm_area_struct *vma)
 			       vma->vm_page_prot);
 }
 
-static long bram_wc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
-{
-	switch (cmd) {
-	case BRAM_INV_RANGE: {
-		struct bram_inv inv;
-		if (copy_from_user(&inv, (void __user *)arg, sizeof(inv)))
-			return -EFAULT;
-		return 0; /* WC mapping: explicit invalidate is a no-op */
-	}
-	default:
-		return -ENOTTY;
-	}
-}
-
 static const struct file_operations bram_wc_fops = {
-	.owner          = THIS_MODULE,
-	.mmap           = bram_wc_mmap,
-	.unlocked_ioctl = bram_wc_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl   = bram_wc_ioctl,
-#endif
-	.llseek         = default_llseek,
+	.owner  = THIS_MODULE,
+	.mmap   = bram_wc_mmap,
+	.llseek = default_llseek,
 };
 
 static int bram_wc_probe(struct platform_device *pdev)
 {
 	struct bram_wc *wc;
 	struct resource *res;
-	u32 idw = 0;
 	int ret;
-
-	/* AXI selection: require xlnx,s-axi-id-width > 0 (AXI4). */
-	if (of_property_read_u32(pdev->dev.of_node, "xlnx,s-axi-id-width", &idw) || idw == 0) {
-		dev_info(&pdev->dev, "bram_wc: AXI4-Lite (id-width=%u) — skipping\n", idw);
-		return -ENODEV;
-	}
 
 	wc = devm_kzalloc(&pdev->dev, sizeof(*wc), GFP_KERNEL);
 	if (!wc)
@@ -94,11 +59,6 @@ static int bram_wc_probe(struct platform_device *pdev)
 
 	wc->phys_start = res->start;
 	wc->size       = resource_size(res);
-
-	/* Optional kernel mapping (not required for user mmap). */
-	wc->base = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(wc->base))
-		return PTR_ERR(wc->base);
 
 	/* Name device as bram_wc0x<BASEADDR-low32> */
 	{
@@ -122,11 +82,6 @@ static int bram_wc_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, wc);
-
-	dev_info(&pdev->dev,
-		 "bram_wc: mapped base=0x%pa size=%pa (AXI4 id-width=%u) → /dev/%s\n",
-		 &wc->phys_start, &wc->size, idw, wc->misc.name);
-
 	return 0;
 }
 
@@ -149,7 +104,7 @@ MODULE_DEVICE_TABLE(of, bram_wc_of_match);
 
 static struct platform_driver bram_wc_driver = {
 	.probe  = bram_wc_probe,
-	.remove = bram_wc_remove,   /* void signature in modern kernels */
+	.remove = bram_wc_remove,
 	.driver = {
 		.name           = DRV_NAME,
 		.of_match_table = bram_wc_of_match,
@@ -158,5 +113,5 @@ static struct platform_driver bram_wc_driver = {
 module_platform_driver(bram_wc_driver);
 
 MODULE_AUTHOR("Koheron");
-MODULE_DESCRIPTION("Koheron BRAM window chardev (WC mmap, AXI4 only via xlnx,s-axi-id-width)");
+MODULE_DESCRIPTION("Koheron BRAM window chardev (WC mmap)");
 MODULE_LICENSE("GPL");
