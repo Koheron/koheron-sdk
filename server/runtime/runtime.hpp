@@ -3,6 +3,8 @@
 #include "server/runtime/drivers_manager.hpp"
 #include "server/runtime/systemd.hpp"
 
+#include "server/context/context.hpp"
+
 namespace koheron {
 
 class Runtime {

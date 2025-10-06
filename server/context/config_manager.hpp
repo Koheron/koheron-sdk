@@ -54,7 +54,7 @@ class ConfigManager {
     }
 
     template<class T>
-    T get(const std::string& sect, const std::string& key, T deflt = T{}) {
+    T get<>(const std::string& sect, const std::string& key, T deflt = T{}) {
         return cfg::get(cfg_, sect, key, deflt);
     }
 

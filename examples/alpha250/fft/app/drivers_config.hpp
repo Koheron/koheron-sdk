@@ -3,7 +3,7 @@
 
 #include "server/runtime/drivers_table.hpp"
 
-class Common; // NB: We require a 'Common' driver with an init() method
+class Common;
 class Eeprom;
 class GpioExpander;
 class TemperatureSensor;

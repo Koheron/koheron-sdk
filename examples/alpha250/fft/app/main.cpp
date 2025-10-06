@@ -1,5 +1,15 @@
 #include "server/runtime/runtime.hpp"
 
+// Can either include all drivers using:
+// #include <drivers.hpp>
+// or only the drivers used by the app (lighter dependencies)
+#include "boards/alpha250/drivers/clock-generator.hpp"
+#include "boards/alpha250/drivers/ltc2157.hpp"
+#include "boards/alpha250/drivers/ad9747.hpp"
+#include "boards/alpha250/drivers/precision-adc.hpp"
+#include "boards/alpha250/drivers/precision-dac.hpp"
+#include "examples/alpha250/fft/fft.hpp"
+
 #include <chrono>
 #include <thread>
 
