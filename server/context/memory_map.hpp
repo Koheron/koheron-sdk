@@ -19,12 +19,6 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
-#ifndef BRAM_IOC_MAGIC
-#define BRAM_IOC_MAGIC 'B'
-struct bram_inv { uint64_t uaddr; uint64_t len; };
-#define BRAM_INV_RANGE _IOW(BRAM_IOC_MAGIC, 1, struct bram_inv)
-#endif
-
 #include <memory.hpp>
 
 using  MemID = size_t;

@@ -7,10 +7,6 @@ APP_PATH := $(PROJECT_PATH)
 
 TMP_SERVER_PATH := $(TMP_PROJECT_PATH)/server
 
-# ensure tmp dir exists early
-$(shell mkdir -p '$(TMP_SERVER_PATH)' >/dev/null 2>&1)
-$(TMP_SERVER_PATH)/: ; @mkdir -p $@
-
 # -----------------------------------------------------------------------------
 # Compiler
 # -----------------------------------------------------------------------------
@@ -33,7 +29,7 @@ SERVER_CCXXFLAGS += -std=c++20 -pthread
 # Memory header from YAML
 # -----------------------------------------------------------------------------
 
-$(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp
+$(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp | $(TMP_SERVER_PATH)
 	$(MAKE_PY) --memory_hpp $@ $(MEMORY_YML)
 
 # -----------------------------------------------------------------------------
@@ -53,13 +49,13 @@ OBJ = $(TMP_SERVER_PATH)/systemd.o \
 GEN_HDRS := \
   $(TMP_SERVER_PATH)/memory.hpp
 
-$(TMP_SERVER_PATH)/%.o: $(APP_PATH)/%.cpp | $(GEN_HDRS)
+$(TMP_SERVER_PATH)/%.o: $(APP_PATH)/%.cpp $(TMP_SERVER_PATH)/memory.hpp | $(TMP_SERVER_PATH)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp | $(GEN_HDRS)
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp $(TMP_SERVER_PATH)/memory.hpp | $(TMP_SERVER_PATH)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp | $(GEN_HDRS)
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp $(TMP_SERVER_PATH)/memory.hpp | $(TMP_SERVER_PATH)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
 $(SERVER): $(OBJ) $(GEN_HDRS) | $(KOHERON_SERVER_PATH)
