@@ -62,7 +62,8 @@ class PhaseNoiseAnalyzer
             fft_navg,
             dds.get_dds_freq(0),
             dds.get_dds_freq(1),
-            analyzer_mode
+            analyzer_mode,
+            interferometer_delay
         };
     }
 
@@ -125,7 +126,7 @@ class PhaseNoiseAnalyzer
 
     uint32_t analyzer_mode = AnalyzerMode::RF;
     Time interferometer_delay{0.0f};
-    std::vector<float> interferometer_tf; // Interferometer transfer function
+    std::array<float, 1 + fft_size / 2> interferometer_tf{}; // Interferometer transfer function
 
     // Carrier power
     scicpp::units::dimensionless<double> conv_factor_dBm;

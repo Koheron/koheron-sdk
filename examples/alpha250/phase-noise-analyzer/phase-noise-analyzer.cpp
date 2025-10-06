@@ -33,7 +33,6 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer(Context& ctx_)
 , ram(ctx.mm.get<mem::ram>())
 , phase_noise(1 + fft_size / 2)
 , averager(1)
-, interferometer_tf(1 + fft_size / 2)
 {
     using namespace sci::units::literals;
     vrange= { 1_V * ltc2157.get_input_voltage_range(0),
@@ -51,7 +50,6 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer(Context& ctx_)
     spectrum.nthreads(2);
     spectrum.fs(fs);
     phase_noise.reserve(1 + fft_size / 2);
-    interferometer_tf.reserve(1 + fft_size / 2);
     start_acquisition();
 }
 
@@ -59,6 +57,8 @@ void PhaseNoiseAnalyzer::save_config() {
     ctx.cfg.set("PhaseNoiseAnalyzer", "channel", channel);
     ctx.cfg.set("PhaseNoiseAnalyzer", "fft_navg", fft_navg);
     ctx.cfg.set("PhaseNoiseAnalyzer", "cic_rate", cic_rate);
+    ctx.cfg.set("PhaseNoiseAnalyzer", "dds_freq[0]", dds.get_dds_freq(0));
+    ctx.cfg.set("PhaseNoiseAnalyzer", "dds_freq[1]", dds.get_dds_freq(1));
     ctx.cfg.set("PhaseNoiseAnalyzer", "analyzer_mode", analyzer_mode);
     ctx.cfg.set("PhaseNoiseAnalyzer", "interferometer_delay", interferometer_delay.eval());
     ctx.cfg.save();
@@ -181,6 +181,18 @@ void PhaseNoiseAnalyzer::load_config() {
         set_cic_rate(prm::cic_decimation_rate_default);
     }
 
+    if (ctx.cfg.has("PhaseNoiseAnalyzer", "dds_freq[0]")) {
+        dds.set_dds_freq(0, ctx.cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[0]"));
+    } else {
+        dds.set_dds_freq(0, 10E6);
+    }
+
+    if (ctx.cfg.has("PhaseNoiseAnalyzer", "dds_freq[1]")) {
+        dds.set_dds_freq(1, ctx.cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[1]"));
+    } else {
+        dds.set_dds_freq(1, 10E6);
+    }
+
     if (ctx.cfg.has("PhaseNoiseAnalyzer", "analyzer_mode")) {
         set_analyzer_mode(ctx.cfg.get<uint32_t>("PhaseNoiseAnalyzer", "analyzer_mode"));
     } else {
@@ -213,9 +225,9 @@ auto PhaseNoiseAnalyzer::read_dma() {
 
 void PhaseNoiseAnalyzer::update_interferometer_transfer_function() {
     using namespace sci::operators;
-    auto freqs = sig::rfftfreq(fft_size, 1.0f / fs);
-    auto tf_0 = 0.5f / sci::sin(sci::pi<Phase> * std::move(freqs) * interferometer_delay);
-    interferometer_tf = std::move(tf_0) * std::move(tf_0);
+    auto freqs = sig::rfftfreq<fft_size>(1.0f / fs);
+    interferometer_tf = std::move(sci::pow<2>(
+        0.5f / sci::sin(sci::pi<Phase> * std::move(freqs) * interferometer_delay)));
 }
 
 void PhaseNoiseAnalyzer::set_power_conversion_factor() {
