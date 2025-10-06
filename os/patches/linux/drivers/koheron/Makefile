@@ -1,1 +1,1 @@
-obj-y += bram_wc.o
+obj-y += mem_wc.o
