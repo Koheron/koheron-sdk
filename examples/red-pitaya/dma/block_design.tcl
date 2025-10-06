@@ -7,7 +7,8 @@ source $board_path/config/board_preset.tcl
 create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0
 
 set_property -dict [list \
-  CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {143} \
+  CONFIG.PCW_FCLK0_PERIPHERAL_CLKSRC {ARM PLL} \
+  CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {133.34} \
   CONFIG.PCW_USE_S_AXI_HP0 {1} \
   CONFIG.PCW_USE_S_AXI_HP2 {1} \
   CONFIG.PCW_USE_HIGH_OCM {1} \
