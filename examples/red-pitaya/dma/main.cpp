@@ -25,8 +25,8 @@ namespace Dma_regs {
 namespace Sg_regs {
     constexpr uint32_t nxtdesc = 0x0;        // Next Descriptor Pointer
     constexpr uint32_t buffer_address = 0x8; // Buffer address
-    constexpr uint32_t control = 0x18;       // Control
-    constexpr uint32_t status = 0x1C;        // Status
+    constexpr uint32_t control = 0x18;       // Control (length and flags)
+    constexpr uint32_t status = 0x1C;        // Status (S2MM complete bit[31], byte count [25:0])
 }
 
 // System Level Control Registers
@@ -37,11 +37,10 @@ namespace Sclr_regs {
     constexpr uint32_t fpga1_clk_ctrl = 0x180;  // PL Clock 1 Output control
     constexpr uint32_t ocm_rst_ctrl = 0x238;    // OCM Software Reset Control
     constexpr uint32_t fpga_rst_ctrl = 0x240;   // FPGA Software Reset Control
-    constexpr uint32_t ocm_cfg = 0x910;         // FPGA Software Reset Control
+    constexpr uint32_t ocm_cfg = 0x910;         // OCM remap (High OCM)
 }
 
 constexpr uint32_t n_pts = 64 * 1024; // Number of words in one descriptor
-constexpr uint32_t n_desc = 256; // Number of descriptors
 
 int main() {
     FpgaManager fpga;
@@ -54,40 +53,38 @@ int main() {
     }
 
     if (mm.open() < 0) {
-        koheron::print<PANIC>("Failed to open memory");
+        koheron::print<PANIC>("Failed to open memory\n");
         return -1;
     }
 
+    // 100 MHz fabric clock
     fclk.set("fclk0", 100000000, true);
     systemd::notify_ready();
 
-    auto& dma = mm.get<mem::dma>();
+    auto& dma      = mm.get<mem::dma>();
     auto& ram_s2mm = mm.get<mem::ram_s2mm>();
     auto& ram_mm2s = mm.get<mem::ram_mm2s>();
-    auto& axi_hp0 = mm.get<mem::axi_hp0>();
-    auto& axi_hp2 = mm.get<mem::axi_hp2>();
+    auto& axi_hp0  = mm.get<mem::axi_hp0>();
+    auto& axi_hp2  = mm.get<mem::axi_hp2>();
     auto& ocm_mm2s = mm.get<mem::ocm_mm2s>();
     auto& ocm_s2mm = mm.get<mem::ocm_s2mm>();
-    auto& sclr = mm.get<mem::sclr>();
+    auto& sclr     = mm.get<mem::sclr>();
 
-    // Unlock SCLR
+    // --- PS/SLCR setup ------------------------------------------------------------
     sclr.write<Sclr_regs::sclr_unlock>(0xDF0D);
-    sclr.clear_bit<Sclr_regs::fpga_rst_ctrl, 1>();
+    sclr.clear_bit<Sclr_regs::fpga_rst_ctrl, 1>(); // deassert PL reset
 
-    // Make sure that the width of the AXI HP port is 64 bit.
+    // Force AXI HP0/HP2 to 64-bit
     axi_hp0.clear_bit<0x0, 0>();
     axi_hp0.clear_bit<0x14, 0>();
     axi_hp2.clear_bit<0x0, 0>();
     axi_hp2.clear_bit<0x14, 0>();
 
-    // Map the last 64 kB of OCM RAM to the high address space
+    // Map last 64 kB of OCM to high address space (0xFFFF0000..0xFFFFFFFF)
     sclr.write<Sclr_regs::ocm_cfg>(0b1000);
 
-    for (uint32_t i = 0; i < n_pts * n_desc; i++) {
-        ram_s2mm.write_reg(4*i, 0);
-    }
-
-    // Fill TX buffer with a simple ramp
+    // --- Prepare one-shot payload -------------------------------------------------
+    // Fill TX buffer with a simple ramp so we can sanity-check RX.
     for (uint32_t i = 0; i < n_pts; i++)
         ram_mm2s.write_reg(4*i, i);
 
@@ -171,5 +168,4 @@ int main() {
         koheron::print<WARNING>("Mismatch: TX[0]=0x%08x RX[0]=0x%08x\n", tx0, w0);
 
     return 0;
-
 }
