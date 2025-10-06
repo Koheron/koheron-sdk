@@ -9,7 +9,7 @@ https://www.koheron.com/software-development-kit
 
 The SDK is tested on an Ubuntu 22.04 development machine.
 
-1. Install Vivado. Instruments can be built on Vivado versions newer than 2017.2. The OS can only be built with Vivado 2017.2. The branch [2023.2](https://github.com/Koheron/koheron-sdk/tree/2023.2) uses Vivado/Vitis 2023.2 and includes preliminary Zynq Utrascale support.
+1. Install Vivado. Instruments can be built on Vivado versions newer than 2017.2. The OS can only be built with Vivado 2017.2. The branch [V1](https://github.com/Koheron/koheron-sdk/tree/V1) uses Vivado/Vitis 2025.1 and is not backward compatible with V0.x.
 
 2. Install required packages
 
