@@ -1,6 +1,7 @@
 DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/common.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/eeprom.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/clock-generator.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/clock-generator.cpp
 DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/ltc2387.hpp
 
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/gpio-expander.hpp

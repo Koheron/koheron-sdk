@@ -16,11 +16,11 @@
 #include <scicpp/core.hpp>
 #include <scicpp/signal.hpp>
 
-#include <server/drivers/fifo.hpp>
-#include <boards/alpha15/drivers/clock-generator.hpp>
+#include "server/drivers/fifo.hpp"
+#include "boards/alpha15/drivers/clock-generator.hpp"
 
-#include "fft.hpp"
-#include "moving_averager.hpp"
+#include "./fft.hpp"
+#include "./moving_averager.hpp"
 
 namespace {
     namespace sci = scicpp;
@@ -77,10 +77,9 @@ class Decimator
 
         cic_rate = rate;
         fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
-        ctx.log<INFO>("Decimator: Sampling frequency = %f Hz\n", double(fs));
+        ctx.logf<INFO>("Decimator: Sampling frequency = {} Hz\n", fs);
         fifo_transfer_duration = n_pts / fs;
-        ctx.log<INFO>("Decimator: FIFO transfer duration = %f s\n",
-                      double(fifo_transfer_duration));
+        ctx.logf<INFO>("Decimator: FIFO transfer duration = {} s\n", fifo_transfer_duration);
         spectrum.fs(fs);
         ps_ctl.write<reg::cic_rate>(cic_rate);
     }

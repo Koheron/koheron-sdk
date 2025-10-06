@@ -59,7 +59,6 @@ class Dma
     Memory<mem::axi_hp0>& axi_hp0;
     static constexpr uint32_t n_pts = 1024*1024;
     std::array<int32_t, 1000000> data;
-
-} ;
+};
 
 #endif // __DRIVERS_DMA_HPP__
