@@ -22,7 +22,8 @@ int main() {
         return -1;
     }
 
-    zynq_clocks::set_clocks(fclk);
+    fclk.set("fclk0", 187500000, true);
+
     systemd::notify_ready();
 
     auto& bram0 = mm.get<mem::bram0>();
