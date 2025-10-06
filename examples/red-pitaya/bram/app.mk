@@ -37,48 +37,21 @@ $(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp
 	$(MAKE_PY) --memory_hpp $@ $(MEMORY_YML)
 
 # -----------------------------------------------------------------------------
-# Generate drivers include
-# -----------------------------------------------------------------------------
-
-DRIVERS_HPP := $(filter %.hpp,$(DRIVERS))
-
-# Target to generate drivers.hpp
-$(TMP_SERVER_PATH)/drivers.hpp: $(DRIVERS_HPP)
-	@echo "Generating $@"
-	@{ \
-	  echo "// Auto-generated file. Do not edit."; \
-	  echo "#ifndef __GENERATED_DRIVERS_HPP__"; \
-	  echo "#define __GENERATED_DRIVERS_HPP__"; \
-	  echo; \
-	  for d in $(DRIVERS_HPP); do \
-	    echo "#include \"$$d\""; \
-	  done; \
-	  echo; \
-	  echo "#endif // __GENERATED_DRIVERS_HPP__"; \
-	} > $@
-
-# -----------------------------------------------------------------------------
 # Object files
 # -----------------------------------------------------------------------------
 
-DRIVERS_CPP := $(filter %.cpp,$(DRIVERS))
-DRIVERS_CPP_REL := $(patsubst $(SDK_FULL_PATH)/%,%,$(DRIVERS_CPP))
-DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/,$(DRIVERS_CPP_REL:.cpp=.o))
-SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/runtime/*.cpp))))
-CONTEXT_OBJS := $(TMP_SERVER_PATH)/spi_dev.o $(TMP_SERVER_PATH)/i2c_dev.o $(TMP_SERVER_PATH)/fpga_manager.o $(TMP_SERVER_PATH)/zynq_fclk.o
-
-# Add here other object files needed by the app
-APP_OBJ := $(TMP_SERVER_PATH)/main.o
-
-OBJ := $(APP_OBJ) $(SERVER_LIB_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
+# Runtime / Context objects
+OBJ = $(TMP_SERVER_PATH)/systemd.o \
+	  $(TMP_SERVER_PATH)/fpga_manager.o \
+	  $(TMP_SERVER_PATH)/zynq_fclk.o \
+      $(TMP_SERVER_PATH)/main.o
 
 # -----------------------------------------------------------------------------
 # Compile / Link
 # -----------------------------------------------------------------------------
 
 GEN_HDRS := \
-  $(TMP_SERVER_PATH)/memory.hpp \
-  $(TMP_SERVER_PATH)/drivers.hpp
+  $(TMP_SERVER_PATH)/memory.hpp
 
 $(TMP_SERVER_PATH)/%.o: $(APP_PATH)/%.cpp | $(GEN_HDRS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
@@ -89,11 +62,7 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp | $(GEN_HDRS)
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp | $(GEN_HDRS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-$(TMP_SERVER_PATH)/%.o: %.cpp | $(GEN_HEADERS)
-	@mkdir -p $(dir $@)
-	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
-
-$(SERVER): $(OBJ) $(GEN_HEADERS) | $(KOHERON_SERVER_PATH)
+$(SERVER): $(OBJ) $(GEN_HDRS) | $(KOHERON_SERVER_PATH)
 	$(SERVER_CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm
 	$(call ok,$@)
 
