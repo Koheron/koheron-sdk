@@ -23,33 +23,36 @@ int main() {
     }
 
     fclk.set("fclk0", 187500000, true);
-
     systemd::notify_ready();
 
     auto& bram0 = mm.get<mem::bram0>();
     auto& bram1 = mm.get<mem::bram1>();
-    constexpr uint32_t bram_size = mem::bram0_range/sizeof(uint32_t);
+    constexpr uint32_t bram_size = mem::bram0_range / sizeof(uint32_t);
 
     // 1) Initialize
     std::array<uint32_t, bram_size> data;
-    for (uint32_t i = 0; i < data.size(); ++i) data[i] = 0x12340000u + i;
+    for (uint32_t i = 0; i < data.size(); ++i) {
+        data[i] = 0x12340000u + i;
+    }
 
     auto fence = [](){ asm volatile("" ::: "memory"); };
 
     // Warmup (touch paths & TLB)
-    bram0.write_array<uint32_t, bram_size,0,false>(data);
-    bram1.write_array<uint32_t, bram_size,0,false>(data);
+    bram0.write_array<uint32_t, bram_size, 0>(data);
+    bram1.write_array<uint32_t, bram_size, 0>(data);
     (void)bram0.read_array<uint32_t, bram_size>();
     (void)bram1.read_array<uint32_t, bram_size>();
 
+    constexpr bool use_memcpy = true;
     constexpr int R = 1000;
     const double bytes_total = double(bram_size) * sizeof(uint32_t) * R;
 
     // AXI4-Lite WRITE
     fence();
     auto t0 = std::chrono::steady_clock::now();
-    for (int i = 0; i < R; ++i)
-        bram0.write_array<uint32_t, bram_size,0,false>(data);
+    for (int i = 0; i < R; ++i) {
+        bram0.write_array<uint32_t, bram_size, 0>(data);
+    }
     fence();
     auto t1 = std::chrono::steady_clock::now();
     double s = std::chrono::duration<double>(t1 - t0).count();
@@ -58,8 +61,9 @@ int main() {
     // AXI4-Lite WRITE
     fence();
     t0 = std::chrono::steady_clock::now();
-    for (int i = 0; i < R; ++i)
-        bram0.write_array<uint32_t, bram_size,0,true>(data);
+    for (int i = 0; i < R; ++i) {
+        bram0.write_array<uint32_t, bram_size , 0, use_memcpy>(data);
+    }
     fence();
     t1 = std::chrono::steady_clock::now();
     s = std::chrono::duration<double>(t1 - t0).count();
@@ -68,8 +72,9 @@ int main() {
     // AXI4 WRITE
     fence();
     t0 = std::chrono::steady_clock::now();
-    for (int i = 0; i < R; ++i)
-        bram1.write_array<uint32_t, bram_size,0,false>(data);
+    for (int i = 0; i < R; ++i) {
+        bram1.write_array<uint32_t, bram_size, 0>(data);
+    }
     fence();
     t1 = std::chrono::steady_clock::now();
     s = std::chrono::duration<double>(t1 - t0).count();
@@ -78,8 +83,9 @@ int main() {
     // AXI4 MEMCPY WRITE
     fence();
     t0 = std::chrono::steady_clock::now();
-    for (int i = 0; i < R; ++i)
-        bram1.write_array<uint32_t, bram_size,0,true>(data);
+    for (int i = 0; i < R; ++i) {
+        bram1.write_array<uint32_t, bram_size, 0, use_memcpy>(data);
+    }
     fence();
     t1 = std::chrono::steady_clock::now();
     s = std::chrono::duration<double>(t1 - t0).count();
@@ -96,8 +102,7 @@ int main() {
     fence();
     t1 = std::chrono::steady_clock::now();
     s = std::chrono::duration<double>(t1 - t0).count();
-    koheron::print_fmt<INFO>("AXI4LITE READ = {} s ({:.1f} MB/s) [sum={}]\n",
-                s, bytes_total/s/1e6, (unsigned long long)sum0);
+    koheron::print_fmt<INFO>("AXI4LITE READ = {} s ({:.1f} MB/s) [sum={}]\n", s, bytes_total/s/1e6, sum0);
 
     // AXI4 READ
     uint64_t sum1 = 0;
@@ -110,8 +115,7 @@ int main() {
     fence();
     t1 = std::chrono::steady_clock::now();
     s = std::chrono::duration<double>(t1 - t0).count();
-    koheron::print_fmt<INFO>("AXI4 READ = {} s ({:.1f} MB/s) [sum={}]\n",
-                s, bytes_total/s/1e6, (unsigned long long)sum1);
+    koheron::print_fmt<INFO>("AXI4 READ = {} s ({:.1f} MB/s) [sum={}]\n", s, bytes_total/s/1e6, sum1);
 
     return 0;
 }

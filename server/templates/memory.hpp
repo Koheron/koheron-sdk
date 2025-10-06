@@ -72,7 +72,7 @@ constexpr uint32_t {{ key }} = {{ config['parameters'][key] }};
 
 namespace zynq_clocks {
 
-inline void set_clocks(ZynqFclk& fclk) {
+inline void set_clocks([[maybe_unused]] ZynqFclk& fclk) {
 
 {% for clk in ['fclk0','fclk1','fclk2','fclk3'] -%}
 {% if clk in config['parameters'] -%}
