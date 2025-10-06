@@ -7,8 +7,6 @@ MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 XDC += $(PROJECT_PATH)/constraints.xdc
 
-#DRIVERS += $(SDK_PATH)/server/drivers/common.hpp
-DRIVERS += $(PROJECT_PATH)/common.hpp
-DRIVERS += $(PROJECT_PATH)/bram.hpp
+SERVER_MK = $(PROJECT_PATH)/app.mk
 
 WEB_FILES += $(SDK_PATH)/web/index.html
