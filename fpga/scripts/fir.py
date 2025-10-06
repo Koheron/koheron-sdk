@@ -33,12 +33,21 @@ if __name__=="__main__":
     R = float(sys.argv[2]) # decimation rate
     M = float(sys.argv[3]) # differential delay
 
-    taps, cic_response = get_taps(N, R, M)
+    ntaps = 128
+    cutoff = 0.40
 
-    if sys.argv[4] == 'print':
+    if (len(sys.argv) >= 5):
+        ntaps = int(sys.argv[4])
+
+    if (len(sys.argv) >= 6):
+        cutoff = float(sys.argv[5])
+
+    taps, cic_response = get_taps(N, R, M, ntaps, cutoff)
+
+    if sys.argv[-1] == 'print':
         print(', '.join('%e' % f for f in taps))
 
-    if sys.argv[4] == 'plot':
+    if sys.argv[-1] == 'plot':
         import matplotlib.pyplot as plt
         w, h = signal.freqz(taps, worN=16384)
         hh = np.fromiter(map(cic_response, w / R), dtype=np.float64)
