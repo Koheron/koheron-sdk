@@ -59,7 +59,7 @@ def build_memory(memory, parameters):
 
         if not 'dev' in address:
             address['dev'] = '/dev/mem'
-        elif address['dev'] == '/dev/bram_wc':
+        elif address['dev'] == '/dev/mem_wc':
             address['dev'] = address['dev'] + address['offset']
 
     return memory
