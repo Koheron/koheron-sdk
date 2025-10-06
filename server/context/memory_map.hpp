@@ -15,6 +15,9 @@
 #include <sys/ioctl.h>
 #include <cstring>
 #include <atomic>
+#include <string_view>
+#include <fcntl.h>
+#include <sys/mman.h>
 
 #ifndef BRAM_IOC_MAGIC
 #define BRAM_IOC_MAGIC 'B'
@@ -31,10 +34,6 @@ namespace mem {
         return std::get<0>(memory_array[id]);
     }
 
-    // Makes sure it gets evaluated at compile time
-    // static_assert(get_base_addr(control) == std::get<0>(memory_array[control]),
-    //               "get_base_address test failed");
-
     constexpr uint32_t get_range(const MemID id) {
         return std::get<1>(memory_array[id]);
     }
@@ -45,6 +44,10 @@ namespace mem {
 
     constexpr uint32_t get_n_blocks(const MemID id) {
         return std::get<3>(memory_array[id]);
+    }
+
+    constexpr std::string_view get_device_driver(const MemID id) {
+        return std::get<4>(memory_array[id]);
     }
 
     constexpr bool is_writable(const MemID id) {
@@ -101,40 +104,31 @@ class Memory
         }
     }
 
-    void open(const int& fd) {
-        const std::size_t pg = page_size();
-        const off_t off = static_cast<off_t>(phys_addr & ~(pg - 1));
-        const std::size_t delta = phys_addr & (pg - 1);
-        const std::size_t len = align_up(size + delta, pg);
+    int open() {
+        constexpr auto device = mem::get_device_driver(id);
+        constexpr bool is_devmem = device == "/dev/mem";
 
-        mapped_base = ::mmap(nullptr, len, protection, MAP_SHARED, fd, off);
+        koheron::print_fmt<INFO>("Memory [MemId{}] Opening {}\n", id, device);
+        const auto fd = ::open(device.data(), O_RDWR | O_SYNC);
 
-        if (mapped_base == MAP_FAILED) {
-            is_opened = false;
-            mapped_base = nullptr;
-            return;
+        if (fd == -1) {
+            koheron::print_fmt<ERROR>("Memory: Can't open {}\n", device);
+            if constexpr (!is_devmem) {
+                koheron::print<INFO>("Memory: Fallback to /dev/mem\n");
+                const auto fd = ::open("/dev/mem", O_RDWR | O_SYNC);
+
+                 if (fd > 0) {
+                    return map_memory<true>(fd);
+                 } else {
+                     return -1;
+                 }
+            } else {
+                return -1;
+            }
         }
 
-        is_opened = true;
-        base_address = reinterpret_cast<uintptr_t>(mapped_base) + delta;
+        return map_memory<is_devmem>(fd);
     }
-
-    void open_devnode(const int& fd) {
-        const std::size_t pg = page_size();
-        const std::size_t len = align_up(size, pg);
-        mapped_base = ::mmap(nullptr, len, protection, MAP_SHARED, fd, 0);
-        if (mapped_base == MAP_FAILED) {
-            is_opened = false;
-            mapped_base = nullptr;
-            dev_fd = -1;
-            return;
-        }
-        is_opened = true;
-        base_address = reinterpret_cast<uintptr_t>(mapped_base);
-        dev_fd = fd; // remember for burst reads
-    }
-
-    void set_dev_fd(int fd) { dev_fd = fd; }
 
     constexpr int get_protection() const noexcept {return protection;}
     int is_open() const noexcept {return is_opened;}
@@ -392,14 +386,39 @@ class Memory
         return *((volatile uint32_t *) (base_address + offset)) & (1U << index);
     }
 
+  private:
     void *mapped_base;       ///< Map base address
     uintptr_t base_address;  ///< Virtual memory base address of the driver
     bool is_opened;
     int dev_fd = -1;
 
-    private:
+    template<bool is_devmem>
+    int map_memory(int fd) {
+        const std::size_t pg = page_size();
+        off_t off = 0;
+        std::size_t delta = 0;
 
-    inline void wc_flush_(std::size_t off, std::size_t len) const {
+        if constexpr (is_devmem) {
+            off = static_cast<off_t>(phys_addr & ~(pg - 1));
+            delta = phys_addr & (pg - 1);
+        }
+
+        const std::size_t len = align_up(size + delta, pg);
+        mapped_base = ::mmap(nullptr, len, protection, MAP_SHARED, fd, off);
+
+        if (mapped_base == MAP_FAILED) {
+            is_opened = false;
+            mapped_base = nullptr;
+            return -1;
+        }
+
+        is_opened = true;
+        base_address = reinterpret_cast<uintptr_t>(mapped_base) + delta;
+        dev_fd = fd;
+        return fd;
+    }
+
+    void wc_flush_(std::size_t off, std::size_t len) const {
         // Drain WC writes toward the fabric before you trigger hardware.
         if (len == 0) {
             std::atomic_thread_fence(std::memory_order_seq_cst);

@@ -8,29 +8,30 @@
 #include <array>
 #include <tuple>
 #include <cstdint>
+#include <string_view>
 
 #include <zynq_fclk.hpp>
 
-extern "C" {
-  #include <sys/mman.h> // PROT_READ, PROT_WRITE
-}
+#include <sys/mman.h> // PROT_READ, PROT_WRITE
 
 namespace mem {
+
 {% for addr in config['memory'] -%}
 constexpr size_t {{ addr['name'] }} = {{ loop.index0 }};
 constexpr uintptr_t {{ addr['name'] }}_addr = {{ addr['offset'] }};
 constexpr uint32_t {{ addr['name'] }}_range = {{ addr['range'] | replace_KMG }};
 constexpr uint32_t {{ addr['name'] }}_nblocks = {{ addr['n_blocks'] }};
+constexpr std::string_view {{ addr['name'] }}_dev = "{{ addr['dev'] }}";
 {% endfor %}
 
 constexpr size_t count = {{ config['memory']|length }};
 
-constexpr std::array<std::tuple<uintptr_t, uint32_t, uint32_t, uint32_t>, count> memory_array = {{ '{{' }}
+constexpr std::array<std::tuple<uintptr_t, uint32_t, uint32_t, uint32_t, std::string_view>, count> memory_array = {{ '{{' }}
     {% for addr in config['memory'] -%}
         {% if not loop.last -%}
-            std::make_tuple({{ addr['name'] }}_addr, {{ addr['name'] }}_range, {{ addr['prot_flag'] }}, {{ addr['name'] }}_nblocks),
+            std::make_tuple({{ addr['name'] }}_addr, {{ addr['name'] }}_range, {{ addr['prot_flag'] }}, {{ addr['name'] }}_nblocks, {{ addr['name'] }}_dev),
         {% else -%}
-            std::make_tuple({{ addr['name'] }}_addr, {{ addr['name'] }}_range, {{ addr['prot_flag'] }}, {{ addr['name'] }}_nblocks)
+            std::make_tuple({{ addr['name'] }}_addr, {{ addr['name'] }}_range, {{ addr['prot_flag'] }}, {{ addr['name'] }}_nblocks, {{ addr['name'] }}_dev)
         {% endif -%}
     {% endfor -%}
 {{ '}};' }}
