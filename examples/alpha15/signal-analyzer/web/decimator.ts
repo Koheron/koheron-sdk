@@ -40,11 +40,8 @@ class Decimator {
             });
     }
 
-    spectral_density(cb: (data: Float64Array) => void): void {
-        this.client.readFloat64Vector(Command(this.id, this.cmds['spectral_density']),
-            (data: Float64Array) => {
-                cb(data);
-            });
+    async spectralDensity(): Promise<Float64Array> {
+        return await this.client.readFloat64Vector(Command(this.id, this.cmds['spectral_density']));
     }
 
     getControlParameters(cb: (status: IDecimatorStatus) => void): void {

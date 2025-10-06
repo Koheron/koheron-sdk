@@ -61,31 +61,29 @@ class Plot {
         this.updatePlot();
     }
 
-    updatePlot() {
-        this.fft.read_psd( (fast_psd: Float32Array) => {
-            this.decimator.spectral_density( (slow_psd: Float64Array) => {
-                let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
+    async updatePlot() {
+        const fast_psd = await this.fft.readPsd();
+        const slow_psd = await this.decimator.spectralDensity();
+        let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
 
-                if (this.yunit !== yUnit) {
-                    this.yunit = yUnit;
+        if (this.yunit !== yUnit) {
+            this.yunit = yUnit;
 
-                    if (yUnit === "v-rtHz") {
-                        this.plotBasics.setLogY();
-                    } else {
-                        this.plotBasics.setLinY();
-                    }
-                }
+            if (yUnit === "v-rtHz") {
+                this.plotBasics.setLogY();
+            } else {
+                this.plotBasics.setLinY();
+            }
+        }
 
-                this.updateSlowPsdPlot(slow_psd);
-                this.updateFastPsdPlot(fast_psd);
+        this.updateSlowPsdPlot(slow_psd);
+        this.updateFastPsdPlot(fast_psd);
 
-                this.plotBasics.redraw(this.plot_data,
-                                       this.n_pts,
-                                       this.peakDatapoint,
-                                       this.yLabel, () => {
-                    requestAnimationFrame( () => { this.updatePlot(); } );
-                });
-            });
+        this.plotBasics.redraw(this.plot_data,
+                                this.n_pts,
+                                this.peakDatapoint,
+                                this.yLabel, () => {
+            requestAnimationFrame( () => { this.updatePlot(); } );
         });
     }
 
