@@ -613,7 +613,7 @@ class Client {
     readFloat64Array(cmd: CmdMessage, fn?: (x: Float64Array) => void) {
         return this._dual(async () => {
             const dv = await this._readBaseAsync('static', cmd);
-            return new Float64Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
+            return new Float64Array(dv.buffer.slice(dv.byteOffset, dv.byteOffset + dv.byteLength));
         }, fn);
     }
 
@@ -640,7 +640,7 @@ class Client {
     readFloat64Vector(cmd: CmdMessage, fn?: (x: Float64Array) => void) {
         return this._dual(async () => {
             const dv = await this._readBaseAsync('dynamic', cmd);
-            return new Float64Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
+            return new Float64Array(dv.buffer.slice(dv.byteOffset, dv.byteOffset + dv.byteLength));
         }, fn);
     }
 
