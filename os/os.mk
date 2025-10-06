@@ -302,8 +302,7 @@ $(LINUX_PATH)/.unpacked: $(LINUX_TAR) | $(LINUX_PATH)/
 	$(call ok,$@)
 
 # Paths
-LINUX_PATH       := tmp/linux-xlnx-xilinx-linux-v2025.1
-LINUX_PATCH_DIR  := os/patches/linux
+LINUX_PATCH_DIR  := $(OS_PATH)/patches/linux
 LINUX_PATCH_FILES:= $(shell find $(LINUX_PATCH_DIR) -type f)
 
 # Stamps
@@ -315,9 +314,7 @@ $(LINUX_SYNC_STAMP): $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES)
 	# Mirror patches into the kernel tree
 	rsync -a "$(LINUX_PATCH_DIR)/" "$(LINUX_PATH)/"
 	install -d "$(LINUX_PATH)/drivers/koheron"
-	printf "obj-y += bram_wc.o\n" >"$(LINUX_PATH)/drivers/koheron/Makefile"
 	echo 'obj-y += koheron/' >> "$(LINUX_PATH)/drivers/Makefile"
-
 	@touch $@
 
 $(LINUX_CONFIG): $(LINUX_PATH)/.unpacked $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig \
@@ -349,6 +346,7 @@ $(LINUX_BUILD_STAMP): $(LINUX_CONFIG)
 	  CROSS_COMPILE=$(GCC_ARCH)- --jobs=$(N_CPUS) $(KERNEL_BIN) dtbs
 	@touch $@
 	$(call ok,$@)
+
 $(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_BUILD_STAMP) | $(TMP_OS_PATH)/
 	cp "$(LINUX_PATH)/arch/$(ARCH)/boot/$(KERNEL_BIN)" "$@"
 

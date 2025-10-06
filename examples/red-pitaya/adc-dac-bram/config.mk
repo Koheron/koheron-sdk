@@ -9,6 +9,7 @@ XDC += $(SDK_PATH)/boards/red-pitaya/config/ports.xdc
 XDC += $(SDK_PATH)/boards/red-pitaya/config/clocks.xdc
 
 include $(SDK_PATH)/boards/red-pitaya/cores/cores.mk
+CORES += $(PROJECT_PATH)/address_counter_v1_0
 
 DRIVERS += $(SDK_PATH)/server/drivers/common.hpp
 DRIVERS += $(PROJECT_PATH)/adc_dac_bram.hpp

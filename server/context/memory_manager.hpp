@@ -10,8 +10,6 @@
 
 #include <vector>
 #include <tuple>
-#include <fcntl.h>
-#include <sys/mman.h>
 
 // http://stackoverflow.com/questions/39041236/tuple-of-sequence
 template<size_t N, class = std::make_index_sequence<N>> class MemoryManagerImpl;
@@ -21,11 +19,16 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
 {
   public:
     MemoryManagerImpl()
-    : fd(-1)
-    , failed_maps(0)
+    : failed_maps(0)
     {}
 
-    ~MemoryManagerImpl() {close(fd);}
+    ~MemoryManagerImpl() {
+        for (int& fd : fds) {
+            if (fd >= 0) {
+                ::close(fd);
+            }
+        }
+    }
 
     int open();
 
@@ -35,51 +38,40 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
     }
 
   private:
-    int fd;
+    std::array<int, N> fds{};
     std::vector<MemID> failed_maps;
     std::tuple<Memory<ids>...> mem_maps;
 
     template<MemID id> void open_memory_map();
 
     template<MemID cnt>
-    std::enable_if_t<cnt == 0, void>
-    open_maps() {}
-
-    template<MemID cnt>
-    std::enable_if_t<(cnt > 0), void>
-    open_maps() {
-        open_memory_map<cnt-1>();
-        open_maps<cnt-1>();
+    void open_maps() {
+        if constexpr (cnt > 0) {
+            open_memory_map<cnt-1>();
+            open_maps<cnt-1>();
+        }
     }
 };
 
 template<size_t N, MemID... ids>
-int MemoryManagerImpl<N, std::index_sequence<ids...>>::open()
-{
-    fd = ::open("/dev/mem", O_RDWR | O_SYNC);
-
-     if (fd == -1) {
-        koheron::print<ERROR>("Can't open /dev/mem\n");
-        return -1;
-    }
-
+int MemoryManagerImpl<N, std::index_sequence<ids...>>::open() {
     open_maps<N>();
 
     if (!failed_maps.empty()) {
         return -1;
     }
 
-    return fd;
+    return 0;
 }
 
 template<size_t N, MemID... ids>
 template<MemID id>
-void MemoryManagerImpl<N, std::index_sequence<ids...>>::open_memory_map()
-{
-    get<id>().open(fd);
+void MemoryManagerImpl<N, std::index_sequence<ids...>>::open_memory_map() {
+    const int fd = get<id>().open();
+    std::get<id>(fds) = fd;
 
-    if (!get<id>().is_open()) {
-        koheron::print_fmt<ERROR>("Can't open memory map id = {}\n", id);
+    if (fd< 0) {
+        koheron::print_fmt<ERROR>("MemoryManager: Can't open memory map id = {}\n", id);
         failed_maps.push_back(id);
     }
 }

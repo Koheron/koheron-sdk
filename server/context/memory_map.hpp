@@ -12,6 +12,12 @@
 #include <span>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <cstring>
+#include <atomic>
+#include <string_view>
+#include <fcntl.h>
+#include <sys/mman.h>
 
 #include <memory.hpp>
 
@@ -21,10 +27,6 @@ namespace mem {
     constexpr uintptr_t get_base_addr(const MemID id) {
         return std::get<0>(memory_array[id]);
     }
-
-    // Makes sure it gets evaluated at compile time
-    static_assert(get_base_addr(control) == std::get<0>(memory_array[control]),
-                  "get_base_address test failed");
 
     constexpr uint32_t get_range(const MemID id) {
         return std::get<1>(memory_array[id]);
@@ -36,6 +38,10 @@ namespace mem {
 
     constexpr uint32_t get_n_blocks(const MemID id) {
         return std::get<3>(memory_array[id]);
+    }
+
+    constexpr std::string_view get_device_driver(const MemID id) {
+        return std::get<4>(memory_array[id]);
     }
 
     constexpr bool is_writable(const MemID id) {
@@ -77,6 +83,9 @@ class Memory
     static constexpr uint32_t  total_size_c  = size;
     static constexpr int       protection_c  = protection;
 
+    static constexpr auto device = mem::get_device_driver(id);
+    static constexpr bool is_devmem = (device == "/dev/mem");
+
     Memory()
     : mapped_base(nullptr)
     , base_address(0)
@@ -92,22 +101,27 @@ class Memory
         }
     }
 
-    void open(const int& fd) {
-        const std::size_t pg = page_size();
-        const off_t off = static_cast<off_t>(phys_addr & ~(pg - 1));
-        const std::size_t delta = phys_addr & (pg - 1);
-        const std::size_t len = align_up(size + delta, pg);
+    int open() {
+        koheron::print_fmt<INFO>("Memory [MemId{}] Opening {}\n", id, device);
+        const auto fd = ::open(device.data(), O_RDWR | O_SYNC);
 
-        mapped_base = ::mmap(nullptr, len, protection, MAP_SHARED, fd, off);
+        if (fd == -1) {
+            koheron::print_fmt<ERROR>("Memory: Can't open {}\n", device);
+            if constexpr (!is_devmem) {
+                koheron::print<INFO>("Memory: Fallback to /dev/mem\n");
+                const auto fd = ::open("/dev/mem", O_RDWR | O_SYNC);
 
-        if (mapped_base == MAP_FAILED) {
-            is_opened = false;
-            mapped_base = nullptr;
-            return;
+                 if (fd > 0) {
+                    return map_memory<true>(fd);
+                 } else {
+                     return -1;
+                 }
+            } else {
+                return -1;
+            }
         }
 
-        is_opened = true;
-        base_address = reinterpret_cast<uintptr_t>(mapped_base) + delta;
+        return map_memory<is_devmem>(fd);
     }
 
     constexpr int get_protection() const noexcept {return protection;}
@@ -166,12 +180,19 @@ class Memory
     }
 
     // Write a std::array (offset defined at compile-time)
-    template<typename T, size_t N, uint32_t offset = 0>
+    template<typename T, size_t N, uint32_t offset = 0, bool use_memcpy = false>
     void write_array(const std::array<T, N>& arr, uint32_t block_idx = 0) {
         static_assert(offset + sizeof(T) * (N - 1) < mem::get_range(id), "Invalid offset");
         static_assert(mem::is_writable(id), "Not writable");
 
-        set_ptr<T, offset>(arr.data(), N, block_idx);
+        if constexpr (use_memcpy) {
+            const std::size_t off = block_size * block_idx + offset;
+            constexpr std::size_t len = sizeof(T) * N;
+            std::memcpy(reinterpret_cast<void*>(base_address + off), arr.data(), len);
+            wc_flush_(off, len); // Ensure the fabric sees the data before you poke any control register
+        } else {
+            set_ptr<T, offset>(arr.data(), N, block_idx);
+        }
     }
 
     // Write a std::array (offset defined at run-time)
@@ -267,7 +288,7 @@ class Memory
     template<uint32_t offset, uint32_t index>
     bool get_bit() {
         static_assert(offset < mem::get_range(id), "Invalid offset");
-        static_assert(mem::is_writable(id), "Not writable");
+        static_assert(mem::is_readable(id), "Not readable");
 
         uintptr_t addr = base_address + offset;
         return ((*((volatile uintptr_t *) addr) >> index ) & 1U );
@@ -361,6 +382,54 @@ class Memory
     void *mapped_base;       ///< Map base address
     uintptr_t base_address;  ///< Virtual memory base address of the driver
     bool is_opened;
+    int dev_fd = -1;
+
+    template<bool is_devmem>
+    int map_memory(int fd) {
+        const std::size_t pg = page_size();
+        off_t off = 0;
+        std::size_t delta = 0;
+
+        if constexpr (is_devmem) {
+            off = static_cast<off_t>(phys_addr & ~(pg - 1));
+            delta = phys_addr & (pg - 1);
+        }
+
+        const std::size_t len = align_up(size + delta, pg);
+        mapped_base = ::mmap(nullptr, len, protection, MAP_SHARED, fd, off);
+
+        if (mapped_base == MAP_FAILED) {
+            is_opened = false;
+            mapped_base = nullptr;
+            return -1;
+        }
+
+        is_opened = true;
+        base_address = reinterpret_cast<uintptr_t>(mapped_base) + delta;
+        dev_fd = fd;
+        return fd;
+    }
+
+    void wc_flush_(std::size_t off, std::size_t len) const {
+        // Drain WC writes toward the fabric before you trigger hardware.
+        if (len == 0) {
+            std::atomic_thread_fence(std::memory_order_seq_cst);
+            return;
+        }
+        const auto* p = reinterpret_cast<const std::uint8_t*>(base_address);
+        if (len >= 4) {
+            const std::size_t touch = (off + len - 4) & ~std::size_t(3);
+            volatile std::uint32_t sink =
+                *reinterpret_cast<const volatile std::uint32_t*>(p + touch);
+            (void)sink;
+        } else {
+            volatile std::uint8_t sink =
+                *reinterpret_cast<const volatile std::uint8_t*>(p + off + len - 1);
+            (void)sink;
+        }
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+    }
+
 };
 
 #endif // __MEMORY_MAP_HPP__

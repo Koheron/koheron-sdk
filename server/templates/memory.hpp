@@ -8,29 +8,30 @@
 #include <array>
 #include <tuple>
 #include <cstdint>
+#include <string_view>
 
 #include <zynq_fclk.hpp>
 
-extern "C" {
-  #include <sys/mman.h> // PROT_READ, PROT_WRITE
-}
+#include <sys/mman.h> // PROT_READ, PROT_WRITE
 
 namespace mem {
+
 {% for addr in config['memory'] -%}
 constexpr size_t {{ addr['name'] }} = {{ loop.index0 }};
 constexpr uintptr_t {{ addr['name'] }}_addr = {{ addr['offset'] }};
 constexpr uint32_t {{ addr['name'] }}_range = {{ addr['range'] | replace_KMG }};
 constexpr uint32_t {{ addr['name'] }}_nblocks = {{ addr['n_blocks'] }};
+constexpr std::string_view {{ addr['name'] }}_dev = "{{ addr['dev'] }}";
 {% endfor %}
 
 constexpr size_t count = {{ config['memory']|length }};
 
-constexpr std::array<std::tuple<uintptr_t, uint32_t, uint32_t, uint32_t>, count> memory_array = {{ '{{' }}
+constexpr std::array<std::tuple<uintptr_t, uint32_t, uint32_t, uint32_t, std::string_view>, count> memory_array = {{ '{{' }}
     {% for addr in config['memory'] -%}
         {% if not loop.last -%}
-            std::make_tuple({{ addr['name'] }}_addr, {{ addr['name'] }}_range, {{ addr['prot_flag'] }}, {{ addr['name'] }}_nblocks),
+            std::make_tuple({{ addr['name'] }}_addr, {{ addr['name'] }}_range, {{ addr['prot_flag'] }}, {{ addr['name'] }}_nblocks, {{ addr['name'] }}_dev),
         {% else -%}
-            std::make_tuple({{ addr['name'] }}_addr, {{ addr['name'] }}_range, {{ addr['prot_flag'] }}, {{ addr['name'] }}_nblocks)
+            std::make_tuple({{ addr['name'] }}_addr, {{ addr['name'] }}_range, {{ addr['prot_flag'] }}, {{ addr['name'] }}_nblocks, {{ addr['name'] }}_dev)
         {% endif -%}
     {% endfor -%}
 {{ '}};' }}
@@ -56,7 +57,7 @@ static_assert({{ offset }} < mem::status_range, "Invalid status register offset 
 // -- PS Status offsets
 {% for offset in config['ps_status_registers'] -%}
 constexpr uint32_t {{ offset }} = {{ 4 * loop.index0 }};
-static_assert({{ offset }} < mem::status_range, "Invalid ps status register offset {{ offset }}");
+static_assert({{ offset }} < mem::ps_status_range, "Invalid ps status register offset {{ offset }}");
 {% endfor %}
 
 constexpr uint32_t dna = 0;
@@ -71,7 +72,7 @@ constexpr uint32_t {{ key }} = {{ config['parameters'][key] }};
 
 namespace zynq_clocks {
 
-inline void set_clocks(ZynqFclk& fclk) {
+inline void set_clocks([[maybe_unused]] ZynqFclk& fclk) {
 
 {% for clk in ['fclk0','fclk1','fclk2','fclk3'] -%}
 {% if clk in config['parameters'] -%}

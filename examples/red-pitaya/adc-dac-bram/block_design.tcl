@@ -35,3 +35,5 @@ connect_cell blk_mem_gen_dac {
 
 connect_pins adc_dac/dac1 [get_slice_pin blk_mem_gen_dac/doutb 13 0]
 connect_pins adc_dac/dac2 [get_slice_pin blk_mem_gen_dac/doutb 29 16]
+
+set_property CONFIG.PROTOCOL {AXI4} [get_bd_cells axi_bram_ctrl_dac]
