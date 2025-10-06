@@ -43,7 +43,6 @@ class ConfigManager {
     template<class T>
     void set(const std::string& sect, const std::string& key, T value) {
         cfg::set(cfg_, sect, key, value);
-        cfg::save_ini(config_path, cfg_);
     }
 
     void save() {
@@ -56,7 +55,7 @@ class ConfigManager {
 
     template<class T>
     T get(const std::string& sect, const std::string& key, T deflt = T{}) {
-        return cfg::get(cfg_, sect, key, deflt);
+        return cfg::get<T>(cfg_, sect, key, deflt);
     }
 
   private:

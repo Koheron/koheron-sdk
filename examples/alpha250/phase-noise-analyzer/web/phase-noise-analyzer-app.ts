@@ -213,6 +213,14 @@ class PhaseNoiseAnalyzerApp {
       this.ddsInputs[1].value = (parameters.fdds1 / 1E6).toString();
     }
 
+    const laserModeEnabled: boolean = parameters.analyzer_mode === 'laser';
+    this.laserModeEnableCheckbox.checked = laserModeEnabled;
+    this.interferometerDelayInput.disabled = !laserModeEnabled;
+
+    if (!this.isEditingDelay) {
+      this.interferometerDelayInput.value = (parameters.interferometer_delay * 1E9).toFixed(2);
+    }
+
     requestAnimationFrame( () => { this.updateControls(); } )
   }
 }
