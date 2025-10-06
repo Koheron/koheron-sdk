@@ -5,7 +5,7 @@ APP_PATH := $(PROJECT_PATH)
 # Build directory
 # -----------------------------------------------------------------------------
 
-TMP_SERVER_PATH := $(TMP_PROJECT_PATH)/server
+TMP_SERVER_PATH := $(TMP_PROJECT_PATH)/server/
 
 # -----------------------------------------------------------------------------
 # Compiler

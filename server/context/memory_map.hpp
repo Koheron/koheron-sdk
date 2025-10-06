@@ -83,6 +83,9 @@ class Memory
     static constexpr uint32_t  total_size_c  = size;
     static constexpr int       protection_c  = protection;
 
+    static constexpr auto device = mem::get_device_driver(id);
+    static constexpr bool is_devmem = (device == "/dev/mem");
+
     Memory()
     : mapped_base(nullptr)
     , base_address(0)
@@ -99,9 +102,6 @@ class Memory
     }
 
     int open() {
-        constexpr auto device = mem::get_device_driver(id);
-        constexpr bool is_devmem = device == "/dev/mem";
-
         koheron::print_fmt<INFO>("Memory [MemId{}] Opening {}\n", id, device);
         const auto fd = ::open(device.data(), O_RDWR | O_SYNC);
 
@@ -180,18 +180,16 @@ class Memory
     }
 
     // Write a std::array (offset defined at compile-time)
-    template<typename T, size_t N, uint32_t offset = 0, bool wc = false>
+    template<typename T, size_t N, uint32_t offset = 0, bool use_memcpy = false>
     void write_array(const std::array<T, N>& arr, uint32_t block_idx = 0) {
         static_assert(offset + sizeof(T) * (N - 1) < mem::get_range(id), "Invalid offset");
         static_assert(mem::is_writable(id), "Not writable");
-        if constexpr(wc) {
-            //static_assert opened with /dev/bram_wc0x....
-            const std::size_t off = block_size * static_cast<std::size_t>(block_idx) + offset;
-            const std::size_t len = sizeof(T) * N;
-            // Fast bulk write into the (WC) mapping
+
+        if constexpr (use_memcpy) {
+            const std::size_t off = block_size * block_idx + offset;
+            constexpr std::size_t len = sizeof(T) * N;
             std::memcpy(reinterpret_cast<void*>(base_address + off), arr.data(), len);
-            // Ensure the fabric sees the data before you poke any control register
-            wc_flush_(off, len);
+            wc_flush_(off, len); // Ensure the fabric sees the data before you poke any control register
         } else {
             set_ptr<T, offset>(arr.data(), N, block_idx);
         }
