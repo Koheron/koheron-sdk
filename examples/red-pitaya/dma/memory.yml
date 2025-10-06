@@ -24,6 +24,3 @@ memory:
   - name: sclr
     offset: '0xF8000000'
     range: 64K
-
-parameters:
-  fclk0: 100000

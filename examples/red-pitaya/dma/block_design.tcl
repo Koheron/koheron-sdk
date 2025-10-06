@@ -7,7 +7,7 @@ source $board_path/config/board_preset.tcl
 create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0
 
 set_property -dict [list \
-  CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {100} \
+  CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {143} \
   CONFIG.PCW_USE_S_AXI_HP0 {1} \
   CONFIG.PCW_USE_S_AXI_HP2 {1} \
   CONFIG.PCW_USE_HIGH_OCM {1} \
@@ -28,8 +28,6 @@ set_property -dict [list \
   CONFIG.c_sg_include_stscntrl_strm {0} \
 ] [get_bd_cells axi_dma_0]
 
-
-
 connect_bd_intf_net [get_bd_intf_pins axi_dma_0/M_AXIS_MM2S] [get_bd_intf_pins axi_dma_0/S_AXIS_S2MM]
 
 apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config { Clk_master {Auto} Clk_slave {Auto} Clk_xbar {Auto} Master {/ps_0/M_AXI_GP0} Slave {/axi_dma_0/S_AXI_LITE} ddr_seg {Auto} intc_ip {New AXI SmartConnect} master_apm {0}}  [get_bd_intf_pins axi_dma_0/S_AXI_LITE]
@@ -39,6 +37,11 @@ apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config { Clk_master {Auto} Cl
 
 apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config { Clk_master {Auto} Clk_slave {/ps_0/FCLK_CLK0 (100 MHz)} Clk_xbar {/ps_0/FCLK_CLK0 (100 MHz)} Master {/axi_dma_0/M_AXI_S2MM} Slave {/ps_0/S_AXI_GP0} ddr_seg {Auto} intc_ip {/axi_mem_intercon} master_apm {0}}  [get_bd_intf_pins axi_dma_0/M_AXI_S2MM]
 apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config { Clk_master {Auto} Clk_slave {/ps_0/FCLK_CLK0 (100 MHz)} Clk_xbar {/ps_0/FCLK_CLK0 (100 MHz)} Master {/axi_dma_0/M_AXI_SG} Slave {/ps_0/S_AXI_GP0} ddr_seg {Auto} intc_ip {/axi_mem_intercon} master_apm {0}}  [get_bd_intf_pins axi_dma_0/M_AXI_SG]
+
+create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilconcat:1.0 ilconcat_0
+connect_bd_net [get_bd_pins axi_dma_0/mm2s_introut] [get_bd_pins ilconcat_0/In0]
+connect_bd_net [get_bd_pins axi_dma_0/s2mm_introut] [get_bd_pins ilconcat_0/In1]
+connect_bd_net [get_bd_pins ilconcat_0/dout] [get_bd_pins ps_0/IRQ_F2P]
 
 delete_bd_objs [get_bd_addr_segs] [get_bd_addr_segs -excluded]
 
