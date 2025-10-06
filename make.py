@@ -8,6 +8,17 @@ import jinja2
 import yaml
 import server
 
+def write_if_changed(path, text):
+    old = None
+    if os.path.isfile(path):
+        with open(path, 'r') as f:
+            old = f.read()
+    if old != text:
+        with open(path, 'w') as f:
+            f.write(text)
+        return True
+    return False
+
 def append_path(filename, file_path):
     if filename.startswith('./'):
         return os.path.join(file_path, filename[2:])
@@ -104,6 +115,10 @@ def dump_if_changed(filename, new_dict):
         with open(filename, 'w') as yml_file:
             yaml.dump(new_dict, yml_file)
 
+def render_template_to_string(config, template_filename):
+    tpl = get_renderer().get_template(template_filename)
+    return tpl.render(config=config)
+
 #########################
 # Jinja2 template engine
 #########################
@@ -161,12 +176,14 @@ if __name__ == "__main__":
         sys.setdefaultencoding('utf-8')
 
     elif cmd == '--memory_tcl':
-        fill_template(append_memory_to_config(config), 'memory.tcl', output_filename)
+        text = render_template_to_string(append_memory_to_config(config), 'memory.tcl')
+        write_if_changed(output_filename, text)
 
     elif cmd == '--memory_hpp':
-        config = append_memory_to_config(config)
-        config['json'] = build_json(config)
-        fill_template(config, 'memory.hpp', output_filename)
+        cfg = append_memory_to_config(config)
+        cfg['json'] = build_json(cfg)
+        text = render_template_to_string(cfg, 'memory.hpp')
+        write_if_changed(output_filename, text)
 
     elif cmd == '--render_template':
         template_filename = sys.argv[4]

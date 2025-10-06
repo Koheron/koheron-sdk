@@ -31,6 +31,7 @@ SERVER_CCXXFLAGS += -std=c++20 -pthread
 
 $(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp | $(TMP_SERVER_PATH)
 	$(MAKE_PY) --memory_hpp $@ $(MEMORY_YML)
+	$(call ok,$@)
 
 # -----------------------------------------------------------------------------
 # Object files

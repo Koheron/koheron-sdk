@@ -314,7 +314,6 @@ $(LINUX_SYNC_STAMP): $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES)
 	# Mirror patches into the kernel tree
 	rsync -a "$(LINUX_PATCH_DIR)/" "$(LINUX_PATH)/"
 	install -d "$(LINUX_PATH)/drivers/koheron"
-	printf "obj-y += bram_wc.o\n" >"$(LINUX_PATH)/drivers/koheron/Makefile"
 	echo 'obj-y += koheron/' >> "$(LINUX_PATH)/drivers/Makefile"
 	@touch $@
 
