@@ -9,7 +9,7 @@ class TemperatureSensor {
         this.cmds = this.driver.getCmds();
     }
 
-    getTemperatures(cb: (temperatures: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['get_temperatures']), (temperatures: Float32Array) => {cb(temperatures)});
+    async getTemperatures(): Promise<Float32Array> {
+        return await this.client.readFloat32Array(Command(this.id, this.cmds['get_temperatures']));
     }
 }

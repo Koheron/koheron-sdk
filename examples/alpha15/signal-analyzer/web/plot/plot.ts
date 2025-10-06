@@ -80,9 +80,9 @@ class Plot {
         this.updateFastPsdPlot(fast_psd);
 
         this.plotBasics.redraw(this.plot_data,
-                                this.n_pts,
-                                this.peakDatapoint,
-                                this.yLabel, () => {
+                               this.n_pts,
+                               this.peakDatapoint,
+                               this.yLabel, () => {
             requestAnimationFrame( () => { this.updatePlot(); } );
         });
     }

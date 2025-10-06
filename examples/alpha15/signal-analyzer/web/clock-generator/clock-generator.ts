@@ -9,9 +9,8 @@ class ClockGenerator {
         this.cmds = this.driver.getCmds();
     }
 
-    getReferenceClock(cb: (clkin: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['get_reference_clock']),
-                                 (clkin: number) => {cb(clkin)});
+    async getReferenceClock(): Promise<number> {
+        return await this.client.readUint32(Command(this.id, this.cmds['get_reference_clock']));
     }
 
     setReferenceClock(clkin: number): void {

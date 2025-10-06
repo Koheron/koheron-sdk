@@ -16,9 +16,8 @@ class Ltc2387 {
         this.client.send(Command(this.id, this.cmds['range_select'], channel, range));
     }
 
-    inputRange(channel: number, cb: (range: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['input_range'], channel),
-                             (range) => {cb(range)});
+    async inputRange(channel: number): Promise<number> {
+        return await this.client.readUint32(Command(this.id, this.cmds['input_range'], channel));
     }
 
     setInputRange(value: number): void {
