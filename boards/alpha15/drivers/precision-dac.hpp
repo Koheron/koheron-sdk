@@ -1,12 +1,11 @@
-#ifndef __ALPHA_DRIVERS_PRECISION_DAC_HPP__
-#define __ALPHA_DRIVERS_PRECISION_DAC_HPP__
+#ifndef __ALPHA15_DRIVERS_PRECISION_DAC_HPP__
+#define __ALPHA15_DRIVERS_PRECISION_DAC_HPP__
 
-#include <context.hpp>
+#include "server/context/context.hpp"
+#include "./eeprom.hpp"
 
 #include <array>
 #include <cmath>
-
-#include "./eeprom.hpp"
 
 static constexpr uint32_t n_dacs = 4;
 
@@ -97,4 +96,4 @@ class PrecisionDac
     std::array<float, 2 * n_dacs> cal_coeffs{};
 };
 
-#endif // __ALPHA_DRIVERS_PRECISION_DAC_HPP__
+#endif // __ALPHA15_DRIVERS_PRECISION_DAC_HPP__
