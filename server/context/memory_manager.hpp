@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_LIB_MEMORY_MANAGER_HPP__
-#define __DRIVERS_LIB_MEMORY_MANAGER_HPP__
+#ifndef __SERVER_CONTEXT_MEMORY_MANAGER_HPP__
+#define __SERVER_CONTEXT_MEMORY_MANAGER_HPP__
 
 #include "server/runtime/syslog.hpp"
 #include "server/context/memory_map.hpp"
@@ -30,7 +30,19 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
         }
     }
 
-    int open();
+    int open() {
+        // Expand over all ids...
+        ( [&]{
+            const int fd = std::get<ids>(mem_maps).open();
+            std::get<ids>(fds) = fd;
+            if (fd < 0) {
+                koheron::print_fmt<ERROR>("MemoryManager: Can't open memory map id = {}\n", ids);
+                failed_maps.push_back(ids);
+            }
+        }(), ... );
+
+        return failed_maps.empty() ? 0 : -1;
+    }
 
     template<MemID id>
     Memory<id>& get() {
@@ -41,41 +53,8 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
     std::array<int, N> fds{};
     std::vector<MemID> failed_maps;
     std::tuple<Memory<ids>...> mem_maps;
-
-    template<MemID id> void open_memory_map();
-
-    template<MemID cnt>
-    void open_maps() {
-        if constexpr (cnt > 0) {
-            open_memory_map<cnt-1>();
-            open_maps<cnt-1>();
-        }
-    }
 };
-
-template<size_t N, MemID... ids>
-int MemoryManagerImpl<N, std::index_sequence<ids...>>::open() {
-    open_maps<N>();
-
-    if (!failed_maps.empty()) {
-        return -1;
-    }
-
-    return 0;
-}
-
-template<size_t N, MemID... ids>
-template<MemID id>
-void MemoryManagerImpl<N, std::index_sequence<ids...>>::open_memory_map() {
-    const int fd = get<id>().open();
-    std::get<id>(fds) = fd;
-
-    if (fd< 0) {
-        koheron::print_fmt<ERROR>("MemoryManager: Can't open memory map id = {}\n", id);
-        failed_maps.push_back(id);
-    }
-}
 
 using MemoryManager = MemoryManagerImpl<mem::count>;
 
-#endif // __DRIVERS_LIB_MEMORY_MANAGER_HPP__
+#endif // __SERVER_CONTEXT_MEMORY_MANAGER_HPP__
