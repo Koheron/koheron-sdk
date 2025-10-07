@@ -3,8 +3,8 @@
 
 // See also https://www.kernel.org/doc/Documentation/spi/spidev
 
-#ifndef __DRIVERS_LIB_I2C_DEV_HPP__
-#define __DRIVERS_LIB_I2C_DEV_HPP__
+#ifndef __SERVER_CONTEXT_I2C_DEV_HPP__
+#define __SERVER_CONTEXT_I2C_DEV_HPP__
 
 #include <unordered_map>
 #include <string>
@@ -90,4 +90,4 @@ class I2cManager
     std::unique_ptr<I2cDev> empty_i2cdev;
 };
 
-#endif // __DRIVERS_LIB_I2C_DEV_HPP__
+#endif // __SERVER_CONTEXT_I2C_DEV_HPP__

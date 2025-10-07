@@ -1,5 +1,5 @@
-#ifndef __DRIVERS_TABLE_HPP__
-#define __DRIVERS_TABLE_HPP__
+#ifndef __SERVER_RUNTIME_DRIVERS_TABLE_HPP__
+#define __SERVER_RUNTIME_DRIVERS_TABLE_HPP__
 
 #include "server/runtime/meta_utils.hpp"
 
@@ -148,4 +148,4 @@ concept HasInit = requires(Driver& d) {
 
 } // namespace koheron
 
-#endif // __DRIVERS_TABLE_HPP__
+#endif // __SERVER_RUNTIME_DRIVERS_TABLE_HPP__

@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __SIGNAL_HANDLER_HPP__
-#define __SIGNAL_HANDLER_HPP__
+#ifndef __SERVER_RUNTIME_SIGNAL_HANDLER_HPP__
+#define __SERVER_RUNTIME_SIGNAL_HANDLER_HPP__
 
 namespace koheron {
 
@@ -24,4 +24,4 @@ class SignalHandler
 
 } // namespace koheron
 
-#endif // __SIGNAL_HANDLER_HPP__
+#endif // __SERVER_RUNTIME_SIGNAL_HANDLER_HPP__

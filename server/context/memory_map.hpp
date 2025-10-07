@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __MEMORY_MAP_HPP__
-#define __MEMORY_MAP_HPP__
+#ifndef __SERVER_CONTEXT_MEMORY_MAP_HPP__
+#define __SERVER_CONTEXT_MEMORY_MAP_HPP__
 
 #include <cstdio>
 #include <cstdint>
@@ -433,4 +433,4 @@ class Memory
 
 };
 
-#endif // __MEMORY_MAP_HPP__
+#endif // __SERVER_CONTEXT_MEMORY_MAP_HPP__

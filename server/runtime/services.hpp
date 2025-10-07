@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __SERVICES_HPP__
-#define __SERVICES_HPP__
+#ifndef __SERVER_RUNTIME_SERVICES_HPP__
+#define __SERVER_RUNTIME_SERVICES_HPP__
 
 #include <memory>
 #include <atomic>
@@ -54,4 +54,4 @@ void remove() {
 
 } // namespace services
 
-#endif // __SERVICES_HPP__
+#endif // __SERVER_RUNTIME_SERVICES_HPP__

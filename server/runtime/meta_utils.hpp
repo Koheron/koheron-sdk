@@ -1,7 +1,7 @@
 /// (c) Koheron
 
-#ifndef __META_UTILS_HPP__
-#define __META_UTILS_HPP__
+#ifndef __SERVER_RUNTIME_META_UTILS_HPP__
+#define __SERVER_RUNTIME_META_UTILS_HPP__
 
 #include <array>
 #include <utility>
@@ -133,4 +133,4 @@ struct strip_units<std::span<T,Extent>> {
 template<class T>
 using strip_units_t = typename strip_units<T>::type;
 
-#endif // __META_UTILS_HPP__
+#endif // __SERVER_RUNTIME_META_UTILS_HPP__

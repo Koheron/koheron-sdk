@@ -3,8 +3,8 @@
 //
 // https://www.kernel.org/doc/Documentation/spi/spidev
 
-#ifndef __DRIVERS_LIB_SPI_DEV_HPP__
-#define __DRIVERS_LIB_SPI_DEV_HPP__
+#ifndef __SERVER_CONTEXT_SPI_DEV_HPP__
+#define __SERVER_CONTEXT_SPI_DEV_HPP__
 
 #include "server/runtime/syslog.hpp"
 
@@ -143,4 +143,4 @@ class SpiManager
     SpiDev empty_spidev{""};
 };
 
-#endif // __DRIVERS_LIB_SPI_DEV_HPP__
+#endif // __SERVER_CONTEXT_SPI_DEV_HPP__
