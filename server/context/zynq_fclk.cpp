@@ -16,7 +16,7 @@ namespace fs = std::filesystem;
 void ZynqFclk::set(const std::string& fclk_name,
             uint32_t fclk_rate,
             [[maybe_unused]] bool update_rate) {
-    
+
 
     if (fs::exists(devcfg + "/fclk/")) {
         set_fclk_devcfg(fclk_name, fclk_rate);
@@ -141,9 +141,6 @@ void ZynqFclk::set_fclk_amba_clocking(const std::string& clkdir, char clkid,
 
     if (rate > 0) {
         koheron::print_fmt<INFO>("ZynqFclk: amba:clocking{} rate is {} Hz\n", clkid, rate);
-
-        const auto rel_rate_err =  1E9 * std::abs(rate - long(fclk_rate)) / double(fclk_rate);
-        koheron::print_fmt<INFO>("ZynqFclk: amba:clocking{} relative rate error is {} ppb\n", clkid, rel_rate_err);
     }
 }
 

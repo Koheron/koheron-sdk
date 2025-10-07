@@ -27,37 +27,54 @@ int main() {
     systemd::notify_ready();
 
     auto& gpio = mm.get<mem::gpio>();
-
     using namespace std::chrono;
 
-    // Warm-up read
-    (void)gpio.read<0x0, uint32_t>();
+    auto measure_mhz = [&]() -> double {
+        // Warm-up read
+        (void)gpio.read<0x0, uint32_t>();
 
-    // Measure over ~10 ms
-    const auto t0 = steady_clock::now();
-    const uint32_t v0 = gpio.read<0x0, uint32_t>();
+        const auto t0 = steady_clock::now();
+        const uint32_t v0 = gpio.read<0x0, uint32_t>();
 
-    std::this_thread::sleep_for(milliseconds(10));
+        std::this_thread::sleep_for(milliseconds(10));
 
-    const auto t1 = steady_clock::now();
-    const uint32_t v1 = gpio.read<0x0, uint32_t>();
+        const auto t1 = steady_clock::now();
+        const uint32_t v1 = gpio.read<0x0, uint32_t>();
 
-    // 32-bit wrap-around
-    const uint32_t delta = (v1 >= v0) ? (v1 - v0) : (0xFFFFFFFFu - v0 + 1u + v1);
-    const double   dt_s  = duration_cast<duration<double>>(t1 - t0).count();
-    const double   f_hz  = delta / dt_s;
+        const uint32_t delta = (v1 >= v0) ? (v1 - v0) : (0xFFFFFFFFu - v0 + 1u + v1);
+        const double dt_s = duration_cast<duration<double>>(t1 - t0).count();
+        return (delta / dt_s) / 1e6; // MHz
+    };
 
-    koheron::print<INFO>("GPIO counter delta=%u over %.6f s -> FCLK ≈ %.3f MHz\n",
-                         delta, dt_s, f_hz / 1e6);
+    // --- Measure @ 100 MHz --------------------------------------------------------
+    {
+        const double f_mhz = measure_mhz();
+        koheron::print<INFO>("FCLK0 set=100.000 MHz -> measured ≈ %.3f MHz\n", f_mhz);
+    }
 
+    // Switch to 125 MHz, allow a brief settle, then measure
+    fclk.set("fclk0", 125000000, true);
+    std::this_thread::sleep_for(milliseconds(20));
+    {
+        const double f_mhz = measure_mhz();
+        koheron::print<INFO>("FCLK0 set=125.000 MHz -> measured ≈ %.3f MHz\n", f_mhz);
+    }
 
+    // Switch to 187.5 MHz, allow a brief settle, then measure
     fclk.set("fclk0", 187500000, true);
+    std::this_thread::sleep_for(milliseconds(20));
+    {
+        const double f_mhz = measure_mhz();
+        koheron::print<INFO>("FCLK0 set=187.500 MHz -> measured ≈ %.3f MHz\n", f_mhz);
+    }
 
-    // .......
-
+    // Switch to 200 MHz, allow a brief settle, then measure
     fclk.set("fclk0", 200000000, true);
-
-    // .......
+    std::this_thread::sleep_for(milliseconds(20));
+    {
+        const double f_mhz = measure_mhz();
+        koheron::print<INFO>("FCLK0 set=200.000 MHz -> measured ≈ %.3f MHz\n", f_mhz);
+    }
 
     return 0;
 }
