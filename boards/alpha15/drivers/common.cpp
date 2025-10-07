@@ -1,17 +1,15 @@
 #include "./common.hpp"
+#include "./clock-generator.hpp"
+#include "./ltc2387.hpp"
 
 #include "server/context/context.hpp"
+#include "boards/alpha250/drivers/gpio-expander.hpp"
+#include "boards/alpha250/drivers/ad9747.hpp"
+#include "boards/alpha250/drivers/temperature-sensor.hpp"
+#include "boards/alpha250/drivers/precision-dac.hpp"
 
-#include "./clock-generator.hpp"
-#include "./ltc2157.hpp"
-#include "./ad9747.hpp"
-#include "./precision-dac.hpp"
-#include "./gpio-expander.hpp"
-#include "./precision-adc.hpp"
-
-#include <cstring>
 #include <chrono>
-
+#include <cstring>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
@@ -20,11 +18,10 @@
 Common::Common(Context& ctx_)
 : ctx(ctx_)
 , gpio(ctx.get<GpioExpander>())
-, precisionadc(ctx.get<PrecisionAdc>()) // Initialize PrecisionADC
 {}
 
 Common::~Common() {
-    stop_blink(); // in case ip_on_leds() was never called
+    stop_blink();
 }
 
 void Common::set_led(uint32_t value) {
@@ -34,15 +31,13 @@ void Common::set_led(uint32_t value) {
 void Common::init() {
     ctx.log<INFO>("Common - Initializing ...");
     start_blink();
-    ctx.get<ClockGenerator>().init();
-    ctx.get<Ltc2157>().init();
+    ctx.get<ClockGenerator>().init(); // Clock generator must be initialized before enabling LT2387 ADC
+    ctx.get<Ltc2387>().init();
     ctx.get<Ad9747>().init();
     ctx.get<PrecisionDac>().init();
+    adp5071_sync(0, 1); // By default synchronization disable. ADP5071 frequency set to 2.4 MHz.
+    // ip_on_leds();
 };
-
-std::string Common::get_instrument_config() {
-    return CFG_JSON;
-}
 
 void Common::ip_on_leds() {
     stop_blink();
@@ -58,7 +53,7 @@ void Common::ip_on_leds() {
             if (std::strcmp(it->ifa_name, want) != 0) continue;
 
             auto* pAddr = reinterpret_cast<sockaddr_in*>(it->ifa_addr);
-            ctx.logf<INFO>("ip_on_leds: Interface {} found: {}\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
+            ctx.logf<INFO>("Interface {} found: {}\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
             uint32_t ip = htonl(pAddr->sin_addr.s_addr);
             set_led(ip);
             freeifaddrs(addrs);
@@ -68,6 +63,27 @@ void Common::ip_on_leds() {
 
     // Neither end0 nor eth0 had an IPv4; keep LEDs as-is
     freeifaddrs(addrs);
+}
+
+void Common::adp5071_sync(bool enable, bool state_out) {
+    auto& ctl = ctx.mm.get<mem::control>();
+
+    if (enable) {
+        ctl.set_bit<reg::adp5071_sync, 0>();
+    } else {
+        ctl.clear_bit<reg::adp5071_sync, 0>();
+
+        // State out only applies when sync is disabled
+        if (state_out) {
+            ctl.set_bit<reg::adp5071_sync, 1>();
+        } else {
+            ctl.clear_bit<reg::adp5071_sync, 1>();
+        }
+    }
+}
+
+std::string Common::get_instrument_config() {
+    return CFG_JSON;
 }
 
 void Common::start_blink() {

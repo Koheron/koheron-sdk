@@ -96,7 +96,7 @@ class ClockGenerator
 
     int32_t total_phase_shift = 0;
 
-    const char* filename = "/tmp/clock-generator-initialized";
+    static constexpr auto filename = "/tmp/clock-generator-initialized"sv;
     bool is_clock_generator_initialized = true;
 
     uint32_t clkin = clock_cfg::TCXO_CLOCK; // Current input clock
@@ -109,9 +109,6 @@ class ClockGenerator
     double f_vco;                               // VCO frequency (Hz)
     std::array<double, 2> fs_adc;               // ADC sampling frequency (Hz)
     double fs_dac;                              // DAC sampling frequency (Hz)
-
-    // AD5141 non volatile digital potentiometer for TCXO frequency adjustment
-    static constexpr uint32_t i2c_address = 0b0101111;
 
     enum CLK_CONFIG_MODE {
         CLKIN_SELECT,
