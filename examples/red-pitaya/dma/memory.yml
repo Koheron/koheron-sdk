@@ -1,0 +1,26 @@
+---
+memory:
+  - name: ram_mm2s
+    offset: '0x18000000'
+    range: 64M
+  - name: ram_s2mm
+    offset: '0x1C000000'
+    range: 64M
+  - name: dma
+    offset: '0x40400000'
+    range: 64K
+  - name: axi_hp0
+    offset: '0xF8008000'
+    range: 4K
+  - name: axi_hp2
+    offset: '0xF800A000'
+    range: 4K
+  - name: ocm_mm2s
+    offset: '0xFFFF0000'
+    range: 32K
+  - name: ocm_s2mm
+    offset: '0xFFFF8000'
+    range: 32K
+  - name: sclr
+    offset: '0xF8000000'
+    range: 64K
