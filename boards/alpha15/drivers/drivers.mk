@@ -6,6 +6,7 @@ DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/clock-generator.cpp
 DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/ltc2387.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/ltc2387.cpp
 DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/precision-dac.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/precision-dac.cpp
 
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/gpio-expander.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/gpio-expander.cpp
