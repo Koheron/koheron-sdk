@@ -73,19 +73,19 @@ void FFT::set_scale_sch(uint32_t scale_sch) {
 
 void FFT::set_fft_window(uint32_t window_id) {
     switch (window_id) {
-        case 0:
+      case 0:
         set_window(win::boxcar<double, prm::fft_size>());
         break;
-        case 1:
+      case 1:
         set_window(win::hann<double, prm::fft_size>());
         break;
-        case 2:
+      case 2:
         set_window(win::flattop<double, prm::fft_size>());
         break;
-        case 3:
+      case 3:
         set_window(win::blackmanharris<double, prm::fft_size>());
         break;
-        default:
+      default:
         ctx.log<ERROR>("FFT: Invalid window index\n");
         return;
     }
