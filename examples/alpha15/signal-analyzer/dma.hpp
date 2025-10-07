@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_DMA_HPP__
-#define __DRIVERS_DMA_HPP__
+#ifndef __ALPHA15_SIGNAL_ANALYZER_DMA_HPP__
+#define __ALPHA15_SIGNAL_ANALYZER_DMA_HPP__
 
 #include <context.hpp>
 
@@ -61,4 +61,4 @@ class Dma
     std::array<int32_t, 1000000> data;
 };
 
-#endif // __DRIVERS_DMA_HPP__
+#endif // __ALPHA15_SIGNAL_ANALYZER_DMA_HPP__

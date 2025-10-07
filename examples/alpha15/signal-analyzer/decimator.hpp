@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_DECIMATOR_HPP__
-#define __DRIVERS_DECIMATOR_HPP__
+#ifndef __ALPHA15_SIGNAL_ANALYZER_DECIMATOR_HPP__
+#define __ALPHA15_SIGNAL_ANALYZER_DECIMATOR_HPP__
 
 #include "server/drivers/fifo.hpp"
 #include "./moving_averager.hpp"
@@ -67,4 +67,4 @@ class Decimator
     void acquire_fifo(uint32_t ntps_pts_fifo);
 }; // Decimator
 
-#endif // __DRIVERS_DECIMATOR_HPP__
+#endif // __ALPHA15_SIGNAL_ANALYZER_DECIMATOR_HPP__

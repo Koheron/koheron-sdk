@@ -17,6 +17,7 @@ include $(SDK_PATH)/boards/alpha15/drivers/drivers.mk
 DRIVERS += $(PROJECT_PATH)/decimator.hpp
 DRIVERS += $(PROJECT_PATH)/decimator.cpp
 DRIVERS += $(PROJECT_PATH)/fft.hpp
+DRIVERS += $(PROJECT_PATH)/fft.cpp
 DRIVERS += $(PROJECT_PATH)/dma.hpp
 
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
