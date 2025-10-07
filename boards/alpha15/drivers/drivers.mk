@@ -1,4 +1,5 @@
 DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/common.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/common.cpp
 DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/eeprom.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/clock-generator.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha15/drivers/clock-generator.cpp

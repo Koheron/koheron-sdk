@@ -14,7 +14,7 @@ ClockGenerator::ClockGenerator(Context& ctx_)
 , eeprom(ctx.get<Eeprom>())
 , spi_cfg(ctx.get<SpiConfig>())
 {
-    std::ifstream ifile(filename);
+    std::ifstream ifile(filename.data());
 
     if (!ifile.good()) {
         ctx.log<INFO>("Clock generator - Not initialized");
@@ -47,6 +47,8 @@ int32_t ClockGenerator::set_tcxo_calibration(uint8_t new_cal) {
 }
 
 int32_t ClockGenerator::set_tcxo_clock(uint8_t value) {
+    // AD5141 non volatile digital potentiometer for TCXO frequency adjustment
+    static constexpr uint32_t i2c_address = 0b0101111;
     std::array<uint8_t, 2> buff {0b00010000, value};
     return i2c.write(i2c_address, buff);
 }
@@ -357,7 +359,7 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
     }
 
     if (!is_clock_generator_initialized) {
-        std::ofstream ofile(filename);
+        std::ofstream ofile(filename.data());
         is_clock_generator_initialized = true;
     }
 
