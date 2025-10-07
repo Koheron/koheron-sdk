@@ -166,19 +166,65 @@ class PlotBasics {
 
     setLogX() {
         this.log_x = true;
-        this.options.xaxis.ticks = [0.001, 0.01, 0.1 ,1 ,10 ,100, 1000, 10000, 100000, 1000000, 10000000];
-        this.options.xaxis.tickDecimals = 0;
+
         this.options.xaxis.transform = PlotBasics.log10T;
         this.options.xaxis.inverseTransform = PlotBasics.pow10;
-        this.options.xaxis.tickFormatter = (val: number, axis) => {
-            if (val >= 1E6) {
-                return (val / 1E6).toFixed(axis.tickDecimals) + "M";
-            } else if (val >= 1E3) {
-                return (val / 1E3).toFixed(axis.tickDecimals) + "k";
-            } else {
-                return val.toFixed(axis.tickDecimals);
+
+        // majors only (powers of 10) for labels
+        this.options.xaxis.ticks = (axis) => {
+            const min = Math.max(axis.min, 1e-300);
+            const max = axis.max;
+            const pMin = Math.floor(Math.log10(min));
+            const pMax = Math.ceil(Math.log10(max));
+            const majors: number[] = [];
+
+            for (let p = pMin; p <= pMax; p++) {
+                majors.push(Math.pow(10, p));
             }
-        }
+
+            return majors;
+        };
+
+        this.options.xaxis.tickDecimals = 0;
+        this.options.xaxis.tickFormatter = (val: number, axis) => {
+            if (val >= 1e6) {
+                return (val / 1e6).toFixed(axis.tickDecimals || 0) + "M";
+            }
+
+            if (val >= 1e3) {
+                return (val / 1e3).toFixed(axis.tickDecimals || 0) + "k";
+            }
+
+            return val.toFixed(axis.tickDecimals || 0);
+        };
+
+        // add minor vertical grid lines between decades
+        this.options.grid.markings = (axes) => {
+            const min = Math.max(axes.xaxis.min, 1e-300);
+            const max = axes.xaxis.max;
+            const pMin = Math.floor(Math.log10(min));
+            const pMax = Math.ceil(Math.log10(max));
+
+            const markings: any[] = [];
+
+            for (let p = pMin; p <= pMax; p++) {
+                const base = Math.pow(10, p);
+
+                // 2..9 * 10^p are minors (skip 1*10^p to avoid doubling the major line)
+                for (let m = 2; m < 10; m++) {
+                    const v = m * base;
+                    if (v >= min && v <= max) {
+                        markings.push({
+                            color: "#eee",      // lighter than your #d5d5d5
+                            lineWidth: 1,
+                            xaxis: { from: v, to: v },
+                        });
+                    }
+                }
+            }
+
+            return markings;
+        };
     }
 
     setLogY() {
