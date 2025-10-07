@@ -52,8 +52,7 @@ void Common::ip_on_leds() {
     // Turn all the LEDs ON
     gpio.set_led(255);
 
-    const char* preferred[] = {"end0", "eth0"};
-    for (const char* want : preferred) {
+    for (const char* want : {"end0", "eth0"}) {
         for (auto* it = addrs; it; it = it->ifa_next) {
             if (!it->ifa_addr || it->ifa_addr->sa_family != AF_INET) continue;
             if (std::strcmp(it->ifa_name, want) != 0) continue;
@@ -67,8 +66,7 @@ void Common::ip_on_leds() {
         }
     }
 
-    // Neither end0 nor eth0 had an IPv4; keep LEDs as-is (optional: log)
-    // ctx.log<INFO>("No IPv4 on end0/eth0\n");
+    // Neither end0 nor eth0 had an IPv4; keep LEDs as-is
     freeifaddrs(addrs);
 }
 

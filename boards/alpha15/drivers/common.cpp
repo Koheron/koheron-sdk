@@ -17,11 +17,7 @@
 
 Common::Common(Context& ctx_)
 : ctx(ctx_)
-, clkgen(ctx.get<ClockGenerator>())
 , gpio(ctx.get<GpioExpander>())
-, ltc2387(ctx.get<Ltc2387>())
-, ad9747(ctx.get<Ad9747>())
-, precisiondac(ctx.get<PrecisionDac>())
 {}
 
 Common::~Common() {
@@ -35,10 +31,10 @@ void Common::set_led(uint32_t value) {
 void Common::init() {
     ctx.log<INFO>("Common - Initializing ...");
     start_blink();
-    clkgen.init(); // Clock generator must be initialized before enabling LT2387 ADC
-    ltc2387.init();
-    ad9747.init();
-    precisiondac.init();
+    ctx.get<ClockGenerator>().init(); // Clock generator must be initialized before enabling LT2387 ADC
+    ctx.get<Ltc2387>().init();
+    ctx.get<Ad9747>().init();
+    ctx.get<PrecisionDac>().init();
     adp5071_sync(0, 1); // By default synchronization disable. ADP5071 frequency set to 2.4 MHz.
     // ip_on_leds();
 };
@@ -51,14 +47,13 @@ void Common::ip_on_leds() {
     // Turn all the LEDs ON
     gpio.set_led(255);
 
-    const char* preferred[] = {"end0", "eth0"};
-    for (const char* want : preferred) {
+    for (const char* want : {"end0", "eth0"}) {
         for (auto* it = addrs; it; it = it->ifa_next) {
             if (!it->ifa_addr || it->ifa_addr->sa_family != AF_INET) continue;
             if (std::strcmp(it->ifa_name, want) != 0) continue;
 
             auto* pAddr = reinterpret_cast<sockaddr_in*>(it->ifa_addr);
-            ctx.log<INFO>("Interface %s found: %s\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
+            ctx.logf<INFO>("Interface {} found: {}\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
             uint32_t ip = htonl(pAddr->sin_addr.s_addr);
             set_led(ip);
             freeifaddrs(addrs);
@@ -66,8 +61,7 @@ void Common::ip_on_leds() {
         }
     }
 
-    // Neither end0 nor eth0 had an IPv4; keep LEDs as-is (optional: log)
-    // ctx.log<INFO>("No IPv4 on end0/eth0\n");
+    // Neither end0 nor eth0 had an IPv4; keep LEDs as-is
     freeifaddrs(addrs);
 }
 

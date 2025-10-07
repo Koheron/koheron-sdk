@@ -11,11 +11,7 @@
 #include <string>
 
 class Context;
-class ClockGenerator;
-class Ltc2387;
 class GpioExpander;
-class Ad9747;
-class PrecisionDac;
 
 class Common
 {
@@ -34,11 +30,7 @@ class Common
     void stop_blink();
 
     Context& ctx;
-    ClockGenerator& clkgen;
     GpioExpander& gpio;
-    Ltc2387& ltc2387;
-    Ad9747& ad9747;
-    PrecisionDac& precisiondac;
     std::thread blinker;
     std::atomic<bool> blinker_should_stop{true}; // true = not running yet
 };
