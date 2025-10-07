@@ -127,13 +127,26 @@ def _parse_size_bytes(s):
         return num * mul
     return int(s, 0)
 
+def _compat_to_dt(val):
+    # Accept string or list; return a DTS-compatible string list
+    if isinstance(val, (list, tuple)):
+        return ", ".join(f'"{s}"' for s in val)
+    return f'"{str(val)}"'  # single string
+
 def build_mem_simple_context(cfg):
     regions = []
     for e in cfg.get('memory', []):
-        # require offset + range; nothing else is inferred
+        # Only include entries that explicitly set a compatible
+        if 'compatible' not in e:
+            continue
         base = int(str(e['offset']), 0)
         size = _parse_size_bytes(e['range'])
-        regions.append({'name': e['name'], 'base': base, 'size': size})
+        regions.append({
+            'name': e['name'],
+            'base': base,
+            'size': size,
+            'compat_str': _compat_to_dt(e['compatible']),
+        })
     return {'regions': regions}
 
 #########################

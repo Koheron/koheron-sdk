@@ -5,20 +5,18 @@ TMP_OS_BOARD_PATH ?= $(TMP_PROJECT_PATH)/os
 
 UBOOT_TAG ?= xilinx-uboot-v$(VIVADO_VERSION)
 DTREE_TAG ?= xilinx_v$(VIVADO_VERSION)
-LINUX_TAG := xilinx-linux-v$(VIVADO_VERSION)
+
 
 UBOOT_URL := https://github.com/Xilinx/u-boot-xlnx/archive/xilinx-v$(VIVADO_VERSION).tar.gz
 DTREE_URL := https://github.com/Xilinx/device-tree-xlnx/archive/refs/tags/$(DTREE_TAG).tar.gz
-LINUX_URL := https://github.com/Xilinx/linux-xlnx/archive/refs/tags/xilinx-v$(VIVADO_VERSION).tar.gz
+
 
 include $(OS_PATH)/rootfs.mk
 
 UBOOT_PATH ?= $(TMP_OS_BOARD_PATH)/u-boot-xlnx-$(UBOOT_TAG)
-LINUX_PATH := $(TMP)/linux-xlnx-$(LINUX_TAG)
 DTREE_PATH := $(TMP_OS_PATH)/device-tree-xlnx-$(DTREE_TAG)
 
 UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
-LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
 UBOOT_CFLAGS := -O2 -march=armv7-a -mfpu=neon -mfloat-abi=hard
@@ -28,15 +26,6 @@ ifdef DTREE_OVERRIDE
 DTB_SWITCH = $(TMP_OS_PATH)/devicetree_$(DTREE_LOC)
 endif
 ABS_DTB_SWITCH  := $(abspath $(DTB_SWITCH))
-
-# Kernel image name per arch
-ifeq ($(ARCH),arm)
-  KERNEL_BIN := zImage
-else ifeq ($(ARCH),arm64)
-  KERNEL_BIN := Image
-else
-  $(error Unsupported ARCH $(ARCH); expected arm or arm64)
-endif
 
 FIT_ITS := $(TMP_OS_PATH)/kernel.its
 FIT_ITB := $(TMP_OS_PATH)/kernel.itb
@@ -256,12 +245,9 @@ devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
 phony: pl.dtsi
 pl.dtsi: $(TMP_OS_PATH)/overlay/pl.dtsi
 
-$(TMP_OS_PATH)/overlay/pl.dtsi: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.unpacked $(PATCHES)/overlay.patch
+$(TMP_OS_PATH)/overlay/pl.dtsi: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.unpacked
 	mkdir -p $(@D)
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/overlay $< $(BOOT_MEDIUM)
-	cp -R $(TMP_OS_PATH)/overlay $(TMP_OS_PATH)/overlay.orig
-	[[ -f $(PATCHES)/overlay.patch ]] || :
-	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/overlay.patch
 	$(call ok,$@)
 
 $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.unpacked $(PATCHES)/devicetree.patch
@@ -291,81 +277,36 @@ clean_overlay:
 # LINUX
 ###############################################################################
 
-$(LINUX_TAR):
-	mkdir -p $(@D)
-	curl -L $(LINUX_URL) -o $@
-	$(call ok,$@)
-
-$(LINUX_PATH)/.unpacked: $(LINUX_TAR) | $(LINUX_PATH)/
-	tar -zxf $< --strip-components=1 -C $(@D)
-	@touch $@
-	$(call ok,$@)
-
-# Paths
-LINUX_PATCH_DIR  := $(OS_PATH)/patches/linux
-LINUX_PATCH_FILES:= $(shell find $(LINUX_PATCH_DIR) -type f)
-
-# Stamps
-LINUX_SYNC_STAMP := $(LINUX_PATH)/.patched
-LINUX_CONFIG     := $(LINUX_PATH)/.config
-LINUX_BUILD_STAMP:= $(LINUX_PATH)/.built_all
-
-$(LINUX_SYNC_STAMP): $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES)
-	# Mirror patches into the kernel tree
-	rsync -a "$(LINUX_PATCH_DIR)/" "$(LINUX_PATH)/"
-	install -d "$(LINUX_PATH)/drivers/koheron"
-	echo 'obj-y += koheron/' >> "$(LINUX_PATH)/drivers/Makefile"
-	@touch $@
-
-$(LINUX_CONFIG): $(LINUX_PATH)/.unpacked $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig \
-                 $(shell find $(OS_PATH)/patches/linux/drivers/koheron -type f)
-	# 1) hook once (no Kconfig)
-	install -d "$(LINUX_PATH)/drivers/koheron"
-	[ -f "$(LINUX_PATH)/drivers/koheron/Makefile" ] || \
-	  printf 'obj-y += bram_wc.o\n' >"$(LINUX_PATH)/drivers/koheron/Makefile"
-	f="$(LINUX_PATH)/drivers/Makefile"; \
-	grep -qxF 'obj-y += koheron/' "$$f" || echo 'obj-y += koheron/' >> "$$f"
-
-	# 2) sync only the koheron subtree
-	rsync -a --delete "$(OS_PATH)/patches/linux/drivers/koheron/" \
-	                "$(LINUX_PATH)/drivers/koheron/"
-
-	# 3) configure only if needed (no mrproper on normal edits)
-	if [ ! -f "$(LINUX_PATH)/.config" ]; then \
-	  install -d "$(LINUX_PATH)/arch/$(ARCH)/configs"; \
-	  cp "$(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig" \
-	     "$(LINUX_PATH)/arch/$(ARCH)/configs"; \
-	  $(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig; \
-	fi
-	@touch $@
-	$(call ok,$@)
-
-# normal build
-$(LINUX_BUILD_STAMP): $(LINUX_CONFIG)
-	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) \
-	  CROSS_COMPILE=$(GCC_ARCH)- --jobs=$(N_CPUS) $(KERNEL_BIN) dtbs
-	@touch $@
-	$(call ok,$@)
-
 $(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_BUILD_STAMP) | $(TMP_OS_PATH)/
 	cp "$(LINUX_PATH)/arch/$(ARCH)/boot/$(KERNEL_BIN)" "$@"
+
+$(TMP_OS_PATH)/overlay/memory.dtsi: $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi
+	$(MAKE_PY) --memory_dtsi $@ $<
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/overlay/pl_wrap.dts: $(TMP_OS_PATH)/overlay/pl.dtsi $(TMP_OS_PATH)/overlay/memory.dtsi
+	@{ echo '/dts-v1/;'; \
+	   echo '/plugin/;'; \
+	   echo '/include/ "pl.dtsi"'; \
+	   echo '/include/ "memory.dtsi"'; } > $@
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/pl.dtbo: $(DTC_BIN) $(TMP_OS_PATH)/overlay/pl.dtsi $(TMP_OS_PATH)/overlay/pl_wrap.dts
+	sed -i 's/".bin"/"$(NAME).bit.bin"/g' $(TMP_OS_PATH)/overlay/pl.dtsi
+	$(DTC_BIN) -@ -I dts -O dtb -b 0 \
+	  -i $(TMP_OS_PATH)/overlay \
+	  -o $@ $(TMP_OS_PATH)/overlay/pl_wrap.dts
+	$(call ok,$@)
 
 $(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
 	cp $(TMP_OS_PATH)/pl.dtbo  $(TMP_PROJECT_PATH)/pl.dtbo
 
-$(LINUX_PATH)/scripts/dtc/dtc: $(LINUX_PATH)/.unpacked $(LINUX_BUILD_STAMP)
-	@true
 
-$(TMP_OS_PATH)/pl.dtbo: $(LINUX_PATH)/scripts/dtc/dtc $(TMP_OS_PATH)/overlay/pl.dtsi
-	sed -i 's/".bin"/"$(NAME).bit.bin"/g' $(TMP_OS_PATH)/overlay/pl.dtsi
-	$(LINUX_PATH)/scripts/dtc/dtc -O dtb -o $@ \
-	  -i $(TMP_OS_PATH)/overlay -b 0 -@ $(TMP_OS_PATH)/overlay/pl.dtsi
-	$(call ok,$@)
 
 $(TMP_OS_PATH)/devicetree.dtb: $(LINUX_PATH)/scripts/dtc/dtc  $(TMP_OS_PATH)/devicetree/system-top.dts
 	$(DOCKER) gcc -I $(TMP_OS_PATH)/devicetree/ -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
 		$(TMP_OS_PATH)/devicetree/system-top.dts.tmp $(TMP_OS_PATH)/devicetree/system-top.dts
-	$(LINUX_PATH)/scripts/dtc/dtc -I dts -O dtb -o $@ \
+	$(DTC_BIN) -I dts -O dtb -o $@ \
 	  -i $(TMP_OS_PATH)/devicetree -b 0 -@ $(TMP_OS_PATH)/devicetree/system-top.dts.tmp
 	$(call ok,$@)
 

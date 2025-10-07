@@ -63,7 +63,7 @@ static int mem_wc_probe(struct platform_device *pdev)
 	/* Name device as mem_wc0x<BASEADDR> (full phys addr width) */
 	mw->misc.minor  = MISC_DYNAMIC_MINOR;
 	mw->misc.name   = devm_kasprintf(&pdev->dev, GFP_KERNEL,
-	                                 "mem_wc0x%llx",
+	                                 "mem_wc0x%llX",
 	                                 (unsigned long long)mw->phys_start);
 	if (!mw->misc.name)
 		return -ENOMEM;

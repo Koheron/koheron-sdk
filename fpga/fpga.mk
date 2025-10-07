@@ -35,15 +35,6 @@ $(MEMORY_TCL): $(MEMORY_YML) $(FPGA_PATH)/memory.tcl
 	$(MAKE_PY) --memory_tcl $@ $(MEMORY_YML)
 	$(call ok,$@)
 
-MEMORY_DTSI := $(TMP_FPGA_PATH)/memory.dtsi
-
-$(MEMORY_DTSI): $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi
-	$(MAKE_PY) --memory_dtsi $@ $(MEMORY_YML)
-	$(call ok,$@)
-
-PHONY: dtsi
-dtsi: $(MEMORY_DTSI)
-
 .PHONY: xpr
 xpr: $(TMP_FPGA_PATH)/$(NAME).xpr.stamp
 

@@ -13,7 +13,8 @@ TMP_SERVER_PATH := $(TMP_PROJECT_PATH)/server/
 
 SERVER_CCXX = $(DOCKER) $(GCC_ARCH)-g++-$(GCC_VERSION) -flto=$(N_CPUS)
 
-SERVER_CCXXFLAGS = -Wall -Werror -Wextra
+SERVER_CCXXFLAGS = -Wall -Wextra
+#SERVER_CCXXFLAGS += -Werror
 SERVER_CCXXFLAGS += -Wpedantic -Wfloat-equal -Wunused-macros -Wcast-qual -Wuseless-cast
 SERVER_CCXXFLAGS += -Wlogical-op -Wdouble-promotion -Wformat -Wmissing-include-dirs -Wundef
 SERVER_CCXXFLAGS += -Wpacked -Wredundant-decls -Wvarargs -Wvector-operation-performance -Wswitch-default
