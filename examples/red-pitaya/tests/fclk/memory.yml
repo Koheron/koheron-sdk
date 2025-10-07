@@ -1,0 +1,5 @@
+---
+memory:
+  - name: gpio
+    range: 64K
+    offset: '0x41200000'
