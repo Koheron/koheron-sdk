@@ -68,12 +68,12 @@ int main() {
         koheron::print<INFO>("FCLK0 set=187.500 MHz -> measured ≈ %.3f MHz\n", f_mhz);
     }
 
-    // Switch to 200 MHz, allow a brief settle, then measure
-    fclk.set("fclk0", 200000000, true);
+    // Switch to 250 MHz, allow a brief settle, then measure
+    fclk.set("fclk0", 250000000, true);
     std::this_thread::sleep_for(milliseconds(20));
     {
         const double f_mhz = measure_mhz();
-        koheron::print<INFO>("FCLK0 set=200.000 MHz -> measured ≈ %.3f MHz\n", f_mhz);
+        koheron::print<INFO>("FCLK0 set=250.000 MHz -> measured ≈ %.3f MHz\n", f_mhz);
     }
 
     return 0;
