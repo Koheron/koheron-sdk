@@ -119,6 +119,23 @@ def render_template_to_string(config, template_filename):
     tpl = get_renderer().get_template(template_filename)
     return tpl.render(config=config)
 
+def _parse_size_bytes(s):
+    s = str(s).strip()
+    if s.endswith(('K','M','G')):
+        num = int(s[:-1], 0) if s[:-1].startswith('0x') else int(s[:-1])
+        mul = {'K':1024, 'M':1024*1024, 'G':1024*1024*1024}[s[-1]]
+        return num * mul
+    return int(s, 0)
+
+def build_mem_simple_context(cfg):
+    regions = []
+    for e in cfg.get('memory', []):
+        # require offset + range; nothing else is inferred
+        base = int(str(e['offset']), 0)
+        size = _parse_size_bytes(e['range'])
+        regions.append({'name': e['name'], 'base': base, 'size': size})
+    return {'regions': regions}
+
 #########################
 # Jinja2 template engine
 #########################
@@ -177,6 +194,11 @@ if __name__ == "__main__":
 
     elif cmd == '--memory_tcl':
         text = render_template_to_string(append_memory_to_config(config), 'memory.tcl')
+        write_if_changed(output_filename, text)
+
+    elif cmd == '--memory_dtsi':
+        ctx = build_mem_simple_context(config)
+        text = get_renderer().get_template('memory.dtsi').render(**ctx)
         write_if_changed(output_filename, text)
 
     elif cmd == '--memory_hpp':
