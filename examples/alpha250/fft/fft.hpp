@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_FFT_HPP__
-#define __DRIVERS_FFT_HPP__
+#ifndef __ALPHA250_FFT_FFT_HPP__
+#define __ALPHA250_FFT_FFT_HPP__
 
 #include "server/context/context.hpp"
 
@@ -89,4 +89,4 @@ class FFT
     uint32_t get_cycle_index();
 }; // class FFT
 
-#endif // __DRIVERS_FFT_HPP__
+#endif // __ALPHA250_FFT_FFT_HPP__
