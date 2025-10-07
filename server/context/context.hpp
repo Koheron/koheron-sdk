@@ -1,7 +1,7 @@
 /// (c) Koheron
 
-#ifndef __CONTEXT_HPP__
-#define __CONTEXT_HPP__
+#ifndef __SERVER_CONTEXT_CONTEXT_HPP__
+#define __SERVER_CONTEXT_CONTEXT_HPP__
 
 #include "server/runtime/syslog.hpp"
 
@@ -70,4 +70,4 @@ class Context {
     ConfigManager cfg;
 };
 
-#endif // __CONTEXT_HPP__
+#endif // __SERVER_CONTEXT_CONTEXT_HPP__

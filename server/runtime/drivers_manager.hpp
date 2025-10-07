@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_MANAGER_HPP__
-#define __DRIVERS_MANAGER_HPP__
+#ifndef __SERVER_RUNTIME_DRIVERS_MANAGER_HPP__
+#define __SERVER_RUNTIME_DRIVERS_MANAGER_HPP__
 
 #include <array>
 #include <mutex>
@@ -94,4 +94,4 @@ Driver& get_driver() {
 
 } // namespace koheron
 
-#endif // __DRIVERS_MANAGER_HPP__
+#endif // __SERVER_RUNTIME_DRIVERS_MANAGER_HPP__

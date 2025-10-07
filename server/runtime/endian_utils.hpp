@@ -1,5 +1,5 @@
-#ifndef __ENDIAN_UTILS_HPP__
-#define __ENDIAN_UTILS_HPP__
+#ifndef __SERVER_RUNTIME_ENDIAN_UTILS_HPP__
+#define __SERVER_RUNTIME_ENDIAN_UTILS_HPP__
 
 #include <array>
 #include <bit>
@@ -93,4 +93,4 @@ template <std::size_t N, typename T>
 
 } // namespace koheron
 
-#endif // __ENDIAN_UTILS_HPP__
+#endif // __SERVER_RUNTIME_ENDIAN_UTILS_HPP__

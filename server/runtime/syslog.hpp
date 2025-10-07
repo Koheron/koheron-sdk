@@ -1,8 +1,8 @@
 /// Server system log
 /// (c) Koheron
 
-#ifndef __KOHERON_SYSLOG_HPP__
-#define __KOHERON_SYSLOG_HPP__
+#ifndef __SERVER_RUNTIME_SYSLOG_HPP__
+#define __SERVER_RUNTIME_SYSLOG_HPP__
 
 #include <array>
 #include <string_view>
@@ -161,4 +161,4 @@ inline void stop_syslog() {
 
 } // namespace koheron
 
-#endif // __KOHERON_SYSLOG_HPP__
+#endif // __SERVER_RUNTIME_SYSLOG_HPP__

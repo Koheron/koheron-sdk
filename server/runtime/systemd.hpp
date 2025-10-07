@@ -1,6 +1,6 @@
 
-#ifndef __KOHERON_SYSTEMD_HPP__
-#define __KOHERON_SYSTEMD_HPP__
+#ifndef __SERVER_RUNTIME_SYSTEMD_HPP__
+#define __SERVER_RUNTIME_SYSTEMD_HPP__
 
 #include <string_view>
 
@@ -10,4 +10,4 @@ void notify_ready(std::string_view status_msg = {});
 
 } // namespace systemd
 
-#endif //__KOHERON_SYSTEMD_HPP__
+#endif //__SERVER_RUNTIME_SYSTEMD_HPP__
