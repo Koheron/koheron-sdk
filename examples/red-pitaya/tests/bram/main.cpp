@@ -7,6 +7,8 @@
 #include <array>
 #include <chrono>
 
+#define DO_NOT_OPTIMIZE(x) asm volatile("" : : "r"(x) : "memory")
+
 int main() {
     FpgaManager fpga;
     ZynqFclk fclk;
@@ -92,30 +94,32 @@ int main() {
     koheron::print_fmt<INFO>("AXI4 WRITE (MEMCPY) = {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
 
     // AXI4-Lite READ (use checksum so compiler can't delete it)
-    uint64_t sum0 = 0;
     fence();
     t0 = std::chrono::steady_clock::now();
     for (int i = 0; i < R; ++i) {
         auto tmp = bram0.read_array<uint32_t, bram_size>();
-        for (auto v : tmp) sum0 += v;
+        for (uint32_t v : tmp) {
+            DO_NOT_OPTIMIZE(v);  // forces the load, no arithmetic, no stores
+        }
     }
     fence();
     t1 = std::chrono::steady_clock::now();
     s = std::chrono::duration<double>(t1 - t0).count();
-    koheron::print_fmt<INFO>("AXI4LITE READ = {} s ({:.1f} MB/s) [sum={}]\n", s, bytes_total/s/1e6, sum0);
+    koheron::print_fmt<INFO>("AXI4LITE READ = {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
 
     // AXI4 READ
-    uint64_t sum1 = 0;
     fence();
     t0 = std::chrono::steady_clock::now();
     for (int i = 0; i < R; ++i) {
         auto tmp = bram1.read_array<uint32_t, bram_size>();
-        for (auto v : tmp) sum1 += v;
+        for (uint32_t v : tmp) {
+            DO_NOT_OPTIMIZE(v);  // forces the load, no arithmetic, no stores
+        }
     }
     fence();
     t1 = std::chrono::steady_clock::now();
     s = std::chrono::duration<double>(t1 - t0).count();
-    koheron::print_fmt<INFO>("AXI4 READ = {} s ({:.1f} MB/s) [sum={}]\n", s, bytes_total/s/1e6, sum1);
+    koheron::print_fmt<INFO>("AXI4 READ = {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
 
     return 0;
 }

@@ -98,6 +98,7 @@ class Memory
             const std::size_t delta = phys_addr & (pg - 1);
             const std::size_t len = align_up(size + delta, pg);
             ::munmap(mapped_base, len);
+            if (dev_fd >= 0) ::close(dev_fd);
         }
     }
 
