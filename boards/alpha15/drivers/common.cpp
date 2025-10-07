@@ -1,13 +1,12 @@
 #include "./common.hpp"
 #include "./clock-generator.hpp"
 #include "./ltc2387.hpp"
+#include "./precision-dac.hpp"
 
 #include "server/context/context.hpp"
 #include "boards/alpha250/drivers/gpio-expander.hpp"
 #include "boards/alpha250/drivers/ad9747.hpp"
 #include "boards/alpha250/drivers/temperature-sensor.hpp"
-#include "boards/alpha250/drivers/precision-dac.hpp"
-
 #include <chrono>
 #include <cstring>
 #include <sys/socket.h>

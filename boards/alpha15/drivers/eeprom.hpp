@@ -1,7 +1,7 @@
 /// (c) Koheron
 
-#ifndef __ALPHA_DRIVERS_EEPROM_HPP__
-#define __ALPHA_DRIVERS_EEPROM_HPP__
+#ifndef __ALPHA15_DRIVERS_EEPROM_HPP__
+#define __ALPHA15_DRIVERS_EEPROM_HPP__
 
 #include <thread>
 #include <chrono>
@@ -167,4 +167,4 @@ class Eeprom
     }
 };
 
-#endif // __ALPHA_DRIVERS_EEPROM_HPP__
+#endif // __ALPHA15_DRIVERS_EEPROM_HPP__
