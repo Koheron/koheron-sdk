@@ -12,6 +12,7 @@ DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/ltc2157.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/ltc2157.cpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/ad9747.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/precision-adc.hpp
+DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/precision-adc.cpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/precision-dac.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/precision-dac.cpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/spi-config.hpp
