@@ -21,12 +21,16 @@ memory:
   - name: demod
     offset: '0x70000000'
     range: 32K
+    dev: '/dev/mem_wc'
   - name: psd
     offset: '0x74000000'
     range: 32K
+    dev: '/dev/mem_wc'
   - name: ram
     offset: '0x1E000000'
     range: 32M
+    compatible: "koheron,mem-wc-1.0"
+    dev: '/dev/mem_wc'
   - name: dma
     offset: '0x80000000'
     range: 64K
