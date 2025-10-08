@@ -8,7 +8,7 @@ dist/
 build/
 
 # Folders
-tmp
+tmp*
 .Xil
 .vscode
 node_modules/
