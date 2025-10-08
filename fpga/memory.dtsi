@@ -12,10 +12,3 @@
     };
 {%- endfor %}
 };
-
-&axi_timer_0 {
-    compatible = "generic-uio";
-    status = "okay";
-    linux,uio-name = "irq-timer";
-    linux,driver-override = "uio_pdrv_genirq";
-};

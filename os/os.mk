@@ -284,11 +284,18 @@ $(TMP_OS_PATH)/overlay/memory.dtsi: $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi
 	$(MAKE_PY) --memory_dtsi $@ $<
 	$(call ok,$@)
 
-$(TMP_OS_PATH)/overlay/pl_wrap.dts: $(TMP_OS_PATH)/overlay/pl.dtsi $(TMP_OS_PATH)/overlay/memory.dtsi
+OVERRIDE_DTSI ?= $(FPGA_PATH)/override.dtsi
+
+$(TMP_OS_PATH)/overlay/override.dtsi: $(OVERRIDE_DTSI)
+	cp $< $@
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/overlay/pl_wrap.dts: $(TMP_OS_PATH)/overlay/pl.dtsi $(TMP_OS_PATH)/overlay/memory.dtsi $(TMP_OS_PATH)/overlay/override.dtsi
 	@{ echo '/dts-v1/;'; \
 	   echo '/plugin/;'; \
 	   echo '/include/ "pl.dtsi"'; \
-	   echo '/include/ "memory.dtsi"'; } > $@
+	   echo '/include/ "memory.dtsi"'; \
+	   echo '/include/ "override.dtsi"'; } > $@
 	$(call ok,$@)
 
 $(TMP_OS_PATH)/pl.dtbo: $(DTC_BIN) $(TMP_OS_PATH)/overlay/pl.dtsi $(TMP_OS_PATH)/overlay/pl_wrap.dts
