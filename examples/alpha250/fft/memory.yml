@@ -18,9 +18,11 @@ memory:
   - name: demod
     offset: '0x60000000'
     range: 32K
+    dev: '/dev/mem_wc'
   - name: psd
     offset: '0x70000000'
     range: 32K
+    dev: '/dev/mem_wc'
 
 control_registers:
   - mmcm
