@@ -124,7 +124,7 @@ MENU TITLE Koheron Boot (${release_name})
 
 LABEL Linux
   KERNEL /kernel.itb
-  APPEND console=ttyPS0,115200n8 root=PARTUUID=${ROOTUUID} ro rootwait rootfstype=ext4 fsck.repair=yes
+  APPEND console=ttyPS0,115200n8 root=PARTUUID=${ROOTUUID} ro rootwait rootfstype=ext4 fsck.repair=yes uio_pdrv_genirq.of_id=generic-uio
 EOF
 
 sync
