@@ -300,7 +300,7 @@ $(TMP_OS_PATH)/overlay/pl_wrap.dts: $(TMP_OS_PATH)/overlay/pl.dtsi $(TMP_OS_PATH
 
 $(TMP_OS_PATH)/pl.dtbo: $(DTC_BIN) $(TMP_OS_PATH)/overlay/pl.dtsi $(TMP_OS_PATH)/overlay/pl_wrap.dts
 	sed -i 's/".bin"/"$(NAME).bit.bin"/g' $(TMP_OS_PATH)/overlay/pl.dtsi
-	$(DTC_BIN) -@ -I dts -O dtb -b 0 \
+	$(DOCKER) $(DTC_BIN) -@ -I dts -O dtb -b 0 \
 	  -i $(TMP_OS_PATH)/overlay \
 	  -o $@ $(TMP_OS_PATH)/overlay/pl_wrap.dts
 	$(call ok,$@)
@@ -311,7 +311,7 @@ $(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
 $(TMP_OS_PATH)/devicetree.dtb: $(DTC_BIN)  $(TMP_OS_PATH)/devicetree/system-top.dts
 	$(DOCKER) gcc -I $(TMP_OS_PATH)/devicetree/ -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
 		$(TMP_OS_PATH)/devicetree/system-top.dts.tmp $(TMP_OS_PATH)/devicetree/system-top.dts
-	$(DTC_BIN) -I dts -O dtb -o $@ \
+	$(DOCKER) $(DTC_BIN) -I dts -O dtb -o $@ \
 	  -i $(TMP_OS_PATH)/devicetree -b 0 -@ $(TMP_OS_PATH)/devicetree/system-top.dts.tmp
 	$(call ok,$@)
 
