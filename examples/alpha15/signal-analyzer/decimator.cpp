@@ -23,19 +23,19 @@ Decimator::Decimator(Context& ctx_)
 
 void Decimator::set_fft_window(uint32_t window_id) {
     switch (window_id) {
-        case 0:
+      case 0:
         spectrum.window(win::Boxcar, n_pts);
         break;
-        case 1:
+      case 1:
         spectrum.window(win::Hann, n_pts);
         break;
-        case 2:
+      case 2:
         spectrum.window(win::Flattop, n_pts);
         break;
-        case 3:
+      case 3:
         spectrum.window(win::Blackmanharris, n_pts);
         break;
-        default:
+      default:
         ctx.log<ERROR>("Decimator: Invalid window index\n");
         return;
     }
@@ -49,12 +49,14 @@ void Decimator::set_cic_rate(uint32_t rate) {
     }
 
     cic_rate = rate;
+    ctx.mm.get<mem::ps_control>().write<reg::cic_rate>(cic_rate);
+
     fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
-    ctx.logf<INFO>("Decimator: Sampling frequency = {} Hz\n", fs);
+    spectrum.fs(fs);
+    ctx.logf<INFO>("Decimator: Sampling frequencies fs = {} Hz\n", fs);
+
     fifo_transfer_duration = n_pts / fs;
     ctx.logf<INFO>("Decimator: FIFO transfer duration = {} s\n", fifo_transfer_duration);
-    spectrum.fs(fs);
-    ctx.mm.get<mem::ps_control>().write<reg::cic_rate>(cic_rate);
 }
 
 void Decimator::acquire_fifo(uint32_t ntps_pts_fifo) {
@@ -74,15 +76,13 @@ void Decimator::acquire_fifo(uint32_t ntps_pts_fifo) {
         ++seg_cnt;
 
         if (seg_cnt == n_pts) {
+            std::lock_guard lock(mutex);
+
             seg_cnt = 0;
+            averager.append(spectrum.periodogram<sig::DENSITY, false>(seg_data));
 
-            {
-                std::lock_guard<std::mutex> lock(mutex);
-                averager.append(spectrum.periodogram<sig::DENSITY, false>(seg_data));
-
-                if (averager.full()) {
-                    psd = averager.average();
-                }
+            if (averager.full()) {
+                psd = averager.average();
             }
         }
     }

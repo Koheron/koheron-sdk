@@ -181,7 +181,8 @@ void FFT::psd_acquisition_thread() {
             using namespace sci::operators;
 
             std::lock_guard<std::mutex> lock(mutex);
-            psd_buffer = calibration() * psd_map.read_array<float, prm::fft_size/2, 0>();
+            const auto calib = calibration();
+            psd_buffer = calib * psd_map.read_array<float, prm::fft_size/2, 0>();
         }
 
         acq_cycle_index = get_cycle_index();

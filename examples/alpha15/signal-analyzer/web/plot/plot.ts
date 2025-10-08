@@ -2,15 +2,20 @@
 // (c) Koheron
 
 class Plot {
-    private n_pts_slow: number;
-    private n_pts_fast: number;
+    // private n_pts_low_freq: number;
+    private n_pts_mid_freq: number;
+    private n_pts_high_freq: number;
     public n_pts: number;
 
-    private n_start_fast: number;
-    private n_start_slow: number;
-    private n_stop_slow: number;
-    private n0_slow: number;
-    private n0_fast: number;
+    // private n_start_low_freq: number;
+    private n_start_high_freq: number;
+    private n_start_mid_freq: number;
+    // private n_stop_low_freq: number;
+    private n_stop_mid_freq: number;
+
+    // private n0_low_freq: number;
+    private n0_mid_freq: number;
+    private n0_high_freq: number;
 
     public plot: jquery.flot.plot;
     public plot_data: Array<Array<number>>;
@@ -24,19 +29,34 @@ class Plot {
                 private fft: FFT,
                 private decimator: Decimator,
                 private plotBasics: PlotBasics) {
-        this.n_pts_fast = this.fft.fft_size / 2;
-        this.n_pts_slow = 1 + this.decimator.status.n_pts / 2;
-        this.n_pts = this.n_pts_slow + this.n_pts_fast;
+        this.n_pts_high_freq = this.fft.fft_size / 2;
+        // low & mid use the same N/2+1 size from the decimator path
+        this.n_pts_mid_freq = 1 + this.decimator.status.n_pts / 2;
+        // this.n_pts_low_freq = this.n_pts_mid_freq;
 
-        this.n_start_slow = 1;
-        this.n_stop_slow = 600;
-        this.n_start_fast = 55;
+        // Ranges
+        // this.n_start_low_freq = 1;        // skip DC bin
+        // this.n_stop_low_freq  = 0;        // keep full top of low band
+        this.n_start_mid_freq = 1;        // skip DC bin
+        this.n_stop_mid_freq  = 600;
+        this.n_start_high_freq = 55;
 
-        let size_slow = this.n_pts_slow - this.n_stop_slow - this.n_start_slow;
+        // Sizes actually plotted
+        // const size_low_freq = this.n_pts_low_freq - this.n_stop_low_freq - this.n_start_low_freq;
+        const size_mid_freq = this.n_pts_mid_freq - this.n_stop_mid_freq - this.n_start_mid_freq;
+        const size_high_freq = this.n_pts_high_freq - this.n_start_high_freq + 1;
 
-        this.n0_slow = 0;
-        this.n0_fast = size_slow + 1;
-        
+        // Offsets in plot_data
+        // this.n0_low_freq = 0;
+        this.n0_mid_freq = 0;
+        this.n0_high_freq = size_mid_freq + 1;
+        // this.n0_mid_freq = size_low_freq + 1;
+        // this.n0_high_freq = size_low_freq + size_mid_freq + 1;
+
+        // Total plotted points
+        // this.n_pts = size_low_freq + size_mid_freq + size_high_freq;
+        this.n_pts = size_mid_freq + size_high_freq;
+
         this.peakDatapoint = [];
         this.plot_data = [];
 
@@ -55,15 +75,18 @@ class Plot {
         }
 
         this.plotBasics.x_max = this.fft.status.fs / 2;
-        this.plotBasics.setRangeX(100, this.plotBasics.x_max);
+        this.plotBasics.setRangeX(100.0, this.plotBasics.x_max);
         this.plotBasics.setLogX();
+        // this.plotBasics.enableDecimation();
 
         this.updatePlot();
     }
 
     async updatePlot() {
-        const fast_psd = await this.fft.readPsd();
-        const slow_psd = await this.decimator.spectralDensity();
+        const high_freq_psd = await this.fft.readPsd();
+        const mid_freq_psd = await this.decimator.spectralDensity();
+        // const low_freq_psd  = await this.decimator.spectralDensityLf();
+
         let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
 
         if (this.yunit !== yUnit) {
@@ -76,8 +99,9 @@ class Plot {
             }
         }
 
-        this.updateSlowPsdPlot(slow_psd);
-        this.updateFastPsdPlot(fast_psd);
+        // this.updateLowFreqPsdPlot(low_freq_psd);
+        this.updateMidFreqPsdPlot(mid_freq_psd);
+        this.updateHighFreqPsdPlot(high_freq_psd);
 
         this.plotBasics.redraw(this.plot_data,
                                this.n_pts,
@@ -87,25 +111,38 @@ class Plot {
         });
     }
 
-    private updateSlowPsdPlot(slow_psd: Float64Array) {
-        let fstep = this.decimator.status.fs / 2 / this.n_pts_slow;
+    // private updateLowFreqPsdPlot(low_freq_psd: Float64Array) {
+    //     const fs_low = this.decimator.status.fs_lf;
+    //     const fstep = (fs_low / 2) / this.n_pts_low_freq;
 
-        this.peakDatapoint = [4 * fstep, this.convertValue(slow_psd[3], this.decimator.status.fs)];
+    //     // optional: place peak marker in the low band (here: third bin for consistency)
+    //     this.peakDatapoint = [4 * fstep, this.convertValue(low_freq_psd[3], fs_low)];
 
-        for (let i: number = this.n_start_slow; i <= this.n_pts_slow - this.n_stop_slow; i++) {
+    //     for (let i = this.n_start_low_freq; i <= this.n_pts_low_freq - this.n_stop_low_freq; i++) {
+    //         const freq = (i + 1) * fstep;
+    //         const y = this.convertValue(low_freq_psd[i], fs_low);
+    //         this.plot_data[this.n0_low_freq - this.n_start_low_freq + i] = [freq, y];
+    //     }
+    // }
+
+    private updateMidFreqPsdPlot(mid_freq_psd: Float64Array) {
+        let fstep = this.decimator.status.fs / 2 / this.n_pts_mid_freq;
+        this.peakDatapoint = [4 * fstep, this.convertValue(mid_freq_psd[3], this.decimator.status.fs)];
+
+        for (let i: number = this.n_start_mid_freq; i <= this.n_pts_mid_freq - this.n_stop_mid_freq; i++) {
             let freq = (i + 1) * fstep;
-            let convertedSlowPsd = this.convertValue(slow_psd[i], this.decimator.status.fs);
-            this.plot_data[this.n0_slow - this.n_start_slow + i] = [freq, convertedSlowPsd];
+            let convertedSlowPsd = this.convertValue(mid_freq_psd[i], this.decimator.status.fs);
+            this.plot_data[this.n0_mid_freq - this.n_start_mid_freq + i] = [freq, convertedSlowPsd];
         }
     }
 
-    private updateFastPsdPlot(fast_psd: Float32Array) {
-        let fstep = this.plotBasics.x_max / this.n_pts_fast;
+    private updateHighFreqPsdPlot(high_freq_psd: Float32Array) {
+        let fstep = this.plotBasics.x_max / this.n_pts_high_freq;
 
-        for (let i: number = this.n_start_fast; i <= this.n_pts_fast; i++) {
+        for (let i: number = this.n_start_high_freq; i <= this.n_pts_high_freq; i++) {
             let freq = (i + 1) * fstep;
-            let convertedFastPsd = this.convertValue(fast_psd[i], this.fft.status.fs);
-            this.plot_data[this.n0_fast - this.n_start_fast + i] = [freq, convertedFastPsd];
+            let convertedFastPsd = this.convertValue(high_freq_psd[i], this.fft.status.fs);
+            this.plot_data[this.n0_high_freq - this.n_start_high_freq + i] = [freq, convertedFastPsd];
         };
     }
 

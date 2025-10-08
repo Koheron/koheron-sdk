@@ -10,6 +10,7 @@
 
 #include <array>
 #include <atomic>
+#include <cstdint>
 #include <thread>
 #include <mutex>
 #include <vector>
@@ -25,7 +26,12 @@ class Decimator
     void set_cic_rate(uint32_t rate);
 
     auto get_control_parameters() {
-        return std::tuple{fs, fifo_transfer_duration, cic_rate, n_pts};
+        return std::tuple{
+            fs,
+            fifo_transfer_duration,
+            cic_rate,
+            n_pts
+        };
     }
 
     auto read_adc() const {
