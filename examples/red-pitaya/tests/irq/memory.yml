@@ -1,0 +1,5 @@
+---
+memory:
+  - name: timer
+    range: 64K
+    offset: '0x42800000'
