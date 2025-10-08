@@ -37,10 +37,11 @@ if __name__=="__main__":
     cutoff = 0.40
 
     if (len(sys.argv) >= 5):
-        ntaps = int(sys.argv[4])
+        if sys.argv[4] != 'print':
+            ntaps = int(sys.argv[4])
 
-    if (len(sys.argv) >= 6):
-        cutoff = float(sys.argv[5])
+        if (len(sys.argv) >= 6):
+            cutoff = float(sys.argv[5])
 
     taps, cic_response = get_taps(N, R, M, ntaps, cutoff)
 
