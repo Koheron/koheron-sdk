@@ -125,6 +125,7 @@ $(VERSION_FILE): | $(TMP_PROJECT_PATH)/
 	@printf '%s\n' '$(VERSION)' > $@
 
 include $(OS_PATH)/$(ZYNQ_TYPE).mk
+include $(OS_PATH)/linux.mk
 include $(DOCKER_MK)
 include $(FPGA_MK)
 include $(OS_MK)

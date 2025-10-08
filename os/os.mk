@@ -301,9 +301,7 @@ $(TMP_OS_PATH)/pl.dtbo: $(DTC_BIN) $(TMP_OS_PATH)/overlay/pl.dtsi $(TMP_OS_PATH)
 $(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
 	cp $(TMP_OS_PATH)/pl.dtbo  $(TMP_PROJECT_PATH)/pl.dtbo
 
-
-
-$(TMP_OS_PATH)/devicetree.dtb: $(LINUX_PATH)/scripts/dtc/dtc  $(TMP_OS_PATH)/devicetree/system-top.dts
+$(TMP_OS_PATH)/devicetree.dtb: $(DTC_BIN)  $(TMP_OS_PATH)/devicetree/system-top.dts
 	$(DOCKER) gcc -I $(TMP_OS_PATH)/devicetree/ -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
 		$(TMP_OS_PATH)/devicetree/system-top.dts.tmp $(TMP_OS_PATH)/devicetree/system-top.dts
 	$(DTC_BIN) -I dts -O dtb -o $@ \
@@ -311,7 +309,7 @@ $(TMP_OS_PATH)/devicetree.dtb: $(LINUX_PATH)/scripts/dtc/dtc  $(TMP_OS_PATH)/dev
 	$(call ok,$@)
 
 .PHONY: $(TMP_OS_PATH)/devicetree_linux
-$(TMP_OS_PATH)/devicetree_linux: $(LINUX_PATH)/scripts/dtc/dtc
+$(TMP_OS_PATH)/devicetree_linux: $(DTC_BIN)
 	echo ${DTREE_OVERRIDE}
 	cp -a $(OS_PATH)/patches/linux/. $(LINUX_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
