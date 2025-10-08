@@ -59,7 +59,7 @@ for {set i 0} {$i < 2} {incr i} {
 
   cell xilinx.com:ip:dds_compiler:6.0 dds$i {
     PartsPresent Phase_Generator_and_SIN_COS_LUT
-    DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000]
+    DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000.0]
     Parameter_Entry Hardware_Parameters
     Phase_Width 48
     Output_Width 16

@@ -68,7 +68,7 @@ proc create {module_name fft_size} {
 
   cell xilinx.com:ip:xfft:9.1 fft_0 {
     transform_length $fft_size
-    target_clock_frequency [expr [get_parameter adc_clk] / 1000000]
+    target_clock_frequency [expr [get_parameter adc_clk] / 1000000.0]
     implementation_options pipelined_streaming_io
     data_format floating_point
     phase_factor_width 24

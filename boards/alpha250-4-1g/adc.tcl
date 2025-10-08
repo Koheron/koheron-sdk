@@ -76,7 +76,7 @@ create_bd_pin -dir O clk_gen_out_p
 create_bd_pin -dir O clk_gen_out_n
 
 
-set adc_clk_mhz [expr [get_parameter adc_clk] / 1000000]
+set adc_clk_mhz [expr [get_parameter adc_clk] / 1000000.0]
 
 # Mixed-mode clock manager
 cell xilinx.com:ip:clk_wiz:6.0 mmcm {

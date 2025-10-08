@@ -81,7 +81,7 @@ proc create {module_name fft_size} {
     transform_length $fft_size
     implementation_options automatically_select
     data_format floating_point
-    target_clock_frequency [expr [get_parameter fclk0] / 1000000]
+    target_clock_frequency [expr [get_parameter fclk0] / 1000000.0]
     target_data_throughput 20
     phase_factor_width 25
     throttle_scheme nonrealtime

@@ -9,7 +9,7 @@ for {set i 0} {$i < 2} {incr i} {
 
   cell xilinx.com:ip:dds_compiler:6.0 dds$i {
     PartsPresent Phase_Generator_and_SIN_COS_LUT
-    DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000]
+    DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000.0]
     Parameter_Entry Hardware_Parameters
     Phase_Width 48
     Output_Width 16
@@ -97,7 +97,7 @@ set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rat
 cell xilinx.com:ip:fir_compiler:7.2 fir {
   Filter_Type Decimation
   Sample_Frequency [expr [get_parameter adc_clk] / 1000000. / $dec_rate]
-  Clock_Frequency [expr [get_parameter fclk1] / 1000000.]
+  Clock_Frequency [expr [get_parameter fclk1] / 1000000.0.]
   Coefficient_Width 32
   Data_Width 32
   Output_Rounding_Mode Convergent_Rounding_to_Even

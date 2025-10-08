@@ -78,7 +78,7 @@ cell xilinx.com:ip:cic_compiler:4.0 cic {
   Fixed_Or_Initial_Rate $dec_rate
   Differential_Delay $diff_delay
   Input_Sample_Frequency 15
-  Clock_Frequency [expr [get_parameter fclk0] / 1000000.]
+  Clock_Frequency [expr [get_parameter fclk0] / 1000000.0]
   Input_Data_Width [get_parameter adc_width]
   Quantization Truncation
   Output_Data_Width 32
@@ -93,7 +93,7 @@ set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rat
 cell xilinx.com:ip:fir_compiler:7.2 fir {
   Filter_Type Decimation
   Sample_Frequency [expr 15.0 / $dec_rate]
-  Clock_Frequency [expr [get_parameter fclk0] / 1000000.]
+  Clock_Frequency [expr [get_parameter fclk0] / 1000000.0]
   Coefficient_Width 32
   Data_Width 32
   Output_Rounding_Mode Convergent_Rounding_to_Even
