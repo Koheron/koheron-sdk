@@ -10,7 +10,7 @@ for {set i 0} {$i < 2} {incr i} {
 
   cell xilinx.com:ip:dds_compiler:6.0 dds$i {
     PartsPresent Phase_Generator_and_SIN_COS_LUT
-    DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000]
+    DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000.0]
     Parameter_Entry Hardware_Parameters
     Noise_Shaping None
     Phase_Width 48
@@ -87,8 +87,8 @@ cell xilinx.com:ip:cic_compiler:4.0 cic {
   Minimum_Rate $dec_rate_min
   Maximum_Rate $dec_rate_max
   Differential_Delay $diff_delay
-  Input_Sample_Frequency [expr [get_parameter adc_clk] / 1000000.]
-  Clock_Frequency [expr [get_parameter adc_clk] / 1000000.]
+  Input_Sample_Frequency [expr [get_parameter adc_clk] / 1000000.0]
+  Clock_Frequency [expr [get_parameter adc_clk] / 1000000.0]
   Input_Data_Width 32
   Quantization Truncation
   Output_Data_Width 32
