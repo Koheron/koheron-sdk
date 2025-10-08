@@ -12,7 +12,7 @@ namespace win = scicpp::signal::windows;
 
 Decimator::Decimator(Context& ctx_)
 : ctx(ctx_)
-, fifo(ctx)
+, fifo0(ctx)
 {
     fs_adc = ctx.get<ClockGenerator>().get_adc_sampling_freq()[0];
     set_cic_rate(32);
@@ -49,7 +49,7 @@ void Decimator::set_cic_rate(uint32_t rate) {
     }
 
     cic_rate = rate;
-    ctx.mm.get<mem::ps_control>().write<reg::cic_rate>(cic_rate);
+    ctx.mm.get<mem::ps_control>().write<reg::cic_rate0>(cic_rate);
 
     fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
     spectrum.fs(fs);
@@ -64,12 +64,12 @@ void Decimator::acquire_fifo(uint32_t ntps_pts_fifo) {
 
     uint32_t seg_cnt = 0;
 
-    fifo.wait_for_data(ntps_pts_fifo, fs);
+    fifo0.wait_for_data(ntps_pts_fifo, fs);
     const double vrange = ctx.get<FFT>().input_voltage_range();
     constexpr double nmax = 262144.0; // 2^18
 
     for (uint32_t i = 0; i < ntps_pts_fifo; i++) {
-        const auto value = vrange * static_cast<int32_t>(fifo.read()) / nmax / 4096.0;
+        const auto value = vrange * static_cast<int32_t>(fifo0.read()) / nmax / 4096.0;
         adc_data[i] = value;
 
         seg_data[seg_cnt] = value;

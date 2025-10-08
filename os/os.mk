@@ -286,7 +286,7 @@ $(TMP_OS_PATH)/overlay/memory.dtsi: $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi
 
 OVERRIDE_DTSI ?= $(FPGA_PATH)/override.dtsi
 
-$(TMP_OS_PATH)/overlay/override.dtsi: $(OVERRIDE_DTSI)
+$(TMP_OS_PATH)/overlay/override.dtsi: $(OVERRIDE_DTSI) | $(TMP_OS_PATH)/overlay/
 	cp $< $@
 	$(call ok,$@)
 

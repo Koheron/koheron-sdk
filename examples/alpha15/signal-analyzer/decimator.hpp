@@ -49,7 +49,7 @@ class Decimator
     static constexpr uint32_t n_pts = n_fifo / n_segs;
 
     Context& ctx;
-    Fifo<mem::adc_fifo> fifo;
+    Fifo<mem::adc_fifo0> fifo0;
 
     uint32_t cic_rate;
     float fs_adc, fs;
