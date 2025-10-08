@@ -280,7 +280,7 @@ clean_overlay:
 $(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_BUILD_STAMP) | $(TMP_OS_PATH)/
 	cp "$(LINUX_PATH)/arch/$(ARCH)/boot/$(KERNEL_BIN)" "$@"
 
-$(TMP_OS_PATH)/overlay/memory.dtsi: $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi
+$(TMP_OS_PATH)/overlay/memory.dtsi: $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi | $(TMP_OS_PATH)/overlay/
 	$(MAKE_PY) --memory_dtsi $@ $<
 	$(call ok,$@)
 
@@ -290,15 +290,15 @@ $(TMP_OS_PATH)/overlay/override.dtsi: $(OVERRIDE_DTSI) | $(TMP_OS_PATH)/overlay/
 	cp $< $@
 	$(call ok,$@)
 
-$(TMP_OS_PATH)/overlay/pl_wrap.dts: $(TMP_OS_PATH)/overlay/pl.dtsi $(TMP_OS_PATH)/overlay/memory.dtsi $(TMP_OS_PATH)/overlay/override.dtsi
-	@{ echo '/dts-v1/;'; \
-	   echo '/plugin/;'; \
-	   echo '/include/ "pl.dtsi"'; \
-	   echo '/include/ "memory.dtsi"'; \
-	   echo '/include/ "override.dtsi"'; } > $@
+$(TMP_OS_PATH)/overlay/pl_wrap.dts: $(FPGA_PATH)/pl_wrap.dts | $(TMP_OS_PATH)/overlay/
+	cp $< $@
 	$(call ok,$@)
 
-$(TMP_OS_PATH)/pl.dtbo: $(DTC_BIN) $(TMP_OS_PATH)/overlay/pl.dtsi $(TMP_OS_PATH)/overlay/pl_wrap.dts
+$(TMP_OS_PATH)/pl.dtbo: $(DTC_BIN) \
+  $(TMP_OS_PATH)/overlay/pl.dtsi \
+  $(TMP_OS_PATH)/overlay/memory.dtsi \
+  $(TMP_OS_PATH)/overlay/override.dtsi \
+  $(TMP_OS_PATH)/overlay/pl_wrap.dts
 	sed -i 's/".bin"/"$(NAME).bit.bin"/g' $(TMP_OS_PATH)/overlay/pl.dtsi
 	$(DOCKER) $(DTC_BIN) -@ -I dts -O dtb -b 0 \
 	  -i $(TMP_OS_PATH)/overlay \
