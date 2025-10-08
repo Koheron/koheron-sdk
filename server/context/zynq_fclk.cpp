@@ -12,9 +12,9 @@
 
 namespace fs = std::filesystem;
 
-void ZynqFclk::set(const std::string& fclk_name,
+void ZynqFclk::set_impl(const std::string& fclk_name,
             uint32_t fclk_rate,
-            [[maybe_unused]] FclkIntent intent) {
+            [[maybe_unused]] bool update_rate) {
 
     if (fs::exists(devcfg / "fclk")) {
         set_fclk_devcfg(fclk_name, fclk_rate);
@@ -26,7 +26,7 @@ void ZynqFclk::set(const std::string& fclk_name,
 
         if (fs::exists(clkdir)) {
             koheron::print_fmt<INFO>("ZynqFclk: Found {}\n", clkdir);
-            set_fclk_amba_clocking(clkdir, clkid, fclk_rate, intent);
+            set_fclk_amba_clocking(clkdir, clkid, fclk_rate, update_rate);
         } else {
             koheron::print_fmt<ERROR>("ZynqFclk: Cannot find {} required to set {}\n", clkdir, fclk_name);
             return;
@@ -131,8 +131,8 @@ int ZynqFclk::fclk_set_rate(const std::string& fclk_name,
 // ------------------------------------------------------------------------
 
 void ZynqFclk::set_fclk_amba_clocking(const Path& clkdir, char clkid,
-                                      uint32_t fclk_rate, FclkIntent intent) {
-    if (intent == FclkIntent::ForceUpdate) {
+                                      uint32_t fclk_rate, bool update_rate) {
+    if (update_rate) {
         amba_clocking_set_rate(clkdir, clkid, fclk_rate);
     }
 

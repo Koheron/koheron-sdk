@@ -8,30 +8,22 @@
 #include <cstdint>
 #include <filesystem>
 
-enum class FclkIntent {
-    CheckOnly,          // validate overlay/driver state; no writes
-    ForceUpdate         // always write (even if already correct)
-};
-
 class ZynqFclk {
     using Path = std::filesystem::path;
   public:
-    // When devcfg is used clock rate is always updated.
-    //
-    // When using devicetree overlay the clock rate is updated when the overlay is loaded.
-    // Therefore there is no need to set it in most cases and we only check it.
-    // If we want to update it, set update_rate flag to true when calling ctx.fclk.set()
-    void set(const std::string& fclk_name,
-             uint32_t fclk_rate,
-             FclkIntent intent = FclkIntent::CheckOnly);
+    void set(const std::string& fclk_name, uint32_t fclk_rate) {
+        set_impl(fclk_name, fclk_rate, true);
+    }
 
-    void write(const std::string& fclk_name, uint32_t fclk_rate) {
-         return set(fclk_name, fclk_rate, FclkIntent::ForceUpdate);
+    void set_if_devcfg(const std::string& fclk_name, uint32_t fclk_rate) {
+        set_impl(fclk_name, fclk_rate, false);
     }
 
   private:
     const Path devcfg = "/sys/devices/soc0/amba/f8007000.devcfg";
     const Path amba_clocking = "/sys/devices/soc0/fpga-region/fpga-region:clocking";
+
+    void set_impl(const std::string& fclk_name, uint32_t fclk_rate, bool update_rate);
 
     // ------------------------------------------------------------------------
     // Use devcfg
@@ -49,7 +41,7 @@ class ZynqFclk {
     // ------------------------------------------------------------------------
 
     void set_fclk_amba_clocking(const Path& clkdir, char clkid,
-                                uint32_t fclk_rate, FclkIntent intent);
+                                uint32_t fclk_rate, bool update_rate);
     int amba_clocking_set_rate(const Path& clkdir, char clkid, uint32_t fclk_rate);
     long amba_clocking_get_rate(const Path& clkdir);
 }; // class ZynqFclk

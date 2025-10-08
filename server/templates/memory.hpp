@@ -76,7 +76,7 @@ inline void set_clocks([[maybe_unused]] ZynqFclk& fclk) {
 
 {% for clk in ['fclk0','fclk1','fclk2','fclk3'] -%}
 {% if clk in config['parameters'] -%}
-    fclk.set("{{ clk }}", {{ config['parameters'][clk] }});
+    fclk.set_if_devcfg("{{ clk }}", {{ config['parameters'][clk] }});
 {% endif -%}
 {% endfor %}
 
