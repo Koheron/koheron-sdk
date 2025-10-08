@@ -24,7 +24,7 @@ int main() {
         return -1;
     }
 
-    fclk.set("fclk0", 187500000, true);
+    fclk.set("fclk0", 187500000);
     systemd::notify_ready();
 
     auto& bram0 = mm.get<mem::bram0>();

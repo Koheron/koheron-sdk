@@ -56,7 +56,7 @@ int main() {
     if (mm.open() < 0)            { koheron::print<PANIC>("Failed to open memory\n");      return -1; }
 
     // 100 MHz fabric clock
-    fclk.set("fclk0", 100000000, true);
+    fclk.set("fclk0", 100000000);
     systemd::notify_ready();
 
     auto& dma      = mm.get<mem::dma>();
