@@ -23,7 +23,7 @@ int main() {
     }
 
     // Set fabric clock; change to 200'000'000 to test 200 MHz
-    fclk.set("fclk0", 100000000, true);
+    fclk.write("fclk0", 100000000);
     systemd::notify_ready();
 
     auto& gpio = mm.get<mem::gpio>();
@@ -53,7 +53,7 @@ int main() {
     }
 
     // Switch to 125 MHz, allow a brief settle, then measure
-    fclk.set("fclk0", 125000000, true);
+    fclk.write("fclk0", 125000000);
     std::this_thread::sleep_for(milliseconds(20));
     {
         const double f_mhz = measure_mhz();
@@ -61,7 +61,7 @@ int main() {
     }
 
     // Switch to 187.5 MHz, allow a brief settle, then measure
-    fclk.set("fclk0", 187500000, true);
+    fclk.write("fclk0", 187500000);
     std::this_thread::sleep_for(milliseconds(20));
     {
         const double f_mhz = measure_mhz();
@@ -69,7 +69,7 @@ int main() {
     }
 
     // Switch to 250 MHz, allow a brief settle, then measure
-    fclk.set("fclk0", 250000000, true);
+    fclk.write("fclk0", 250000000);
     std::this_thread::sleep_for(milliseconds(20));
     {
         const double f_mhz = measure_mhz();
