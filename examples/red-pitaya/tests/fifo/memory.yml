@@ -1,0 +1,5 @@
+---
+memory:
+  - name: fifo
+    range: 64K
+    offset: '0x43C00000'
