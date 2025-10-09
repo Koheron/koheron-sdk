@@ -36,19 +36,12 @@ class Decimator {
         this.client.send(Command(this.id, this.cmds['set_fft_window'], windowIndex));
     }
 
-    read_adc(cb: (data: Float64Array) => void): void {
-        this.client.readFloat64Array(Command(this.id, this.cmds['read_adc']),
-            (data: Float64Array) => {
-                cb(data);
-            });
-    }
-
     async spectralDensity(): Promise<Float64Array> {
-        return await this.client.readFloat64Vector(Command(this.id, this.cmds['spectral_density']));
+        return await this.client.readFloat64Vector(Command(this.id, this.cmds['spectral_density0']));
     }
 
     async spectralDensityLf(): Promise<Float64Array> {
-        return await this.client.readFloat64Vector(Command(this.id, this.cmds['spectral_density_lf']));
+        return await this.client.readFloat64Vector(Command(this.id, this.cmds['spectral_density1']));
     }
 
     getControlParameters(cb: (status: IDecimatorStatus) => void): void {

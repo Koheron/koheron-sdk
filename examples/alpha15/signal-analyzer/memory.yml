@@ -81,3 +81,4 @@ parameters:
   cic_n_stages: 6
   fft_size: 8192
   n_cycles: 63
+  fifo_depth: 16384

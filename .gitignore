@@ -17,6 +17,7 @@ node_modules/
 *.jou
 *.log
 vivado_*.str
+vivado_*.zip
 
 \.vscode/
 .cache/

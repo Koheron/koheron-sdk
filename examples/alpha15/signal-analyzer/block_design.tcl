@@ -110,7 +110,7 @@ for {set i 0} {$i < 2} {incr i} {
     C_USE_TX_DATA 0
     C_USE_TX_CTRL 0
     C_USE_RX_CUT_THROUGH true
-    C_RX_FIFO_DEPTH 16384
+    C_RX_FIFO_DEPTH [get_parameter fifo_depth]
     C_RX_FIFO_PF_THRESHOLD 8192
   } {
     s_axi_aclk    [set ps_clk$intercon_idx]
