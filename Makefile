@@ -42,10 +42,16 @@ FPGA_PATH := $(SDK_PATH)/fpga
 SERVER_PATH := $(SDK_PATH)/server
 WEB_PATH := $(SDK_PATH)/web
 
-# Use config.mk instead of config.yml
-CFG ?= examples/alpha250/fft/config.mk
+ifndef CFG
+$(error CFG is not defined. Please set CFG to the path of a config.mk file, e.g. `make CFG=examples/<board>/<instrument>/config.mk`.)
+endif
 
 CONFIG_MK := $(CFG)
+
+ifeq ("$(wildcard $(CONFIG_MK))","")
+$(error CFG '$(CFG)' does not reference an existing config.mk file.)
+endif
+
 BOARD_MK ?= $(BOARD_PATH)/board.mk
 DOCKER_MK ?= $(DOCKER_PATH)/docker.mk
 FPGA_MK ?= $(FPGA_PATH)/fpga.mk
