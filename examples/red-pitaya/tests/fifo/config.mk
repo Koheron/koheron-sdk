@@ -10,3 +10,5 @@ XDC += $(PROJECT_PATH)/constraints.xdc
 SERVER_MK = $(SDK_PATH)/server/server_bare.mk
 
 WEB_FILES += $(SDK_PATH)/web/index.html
+
+OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi

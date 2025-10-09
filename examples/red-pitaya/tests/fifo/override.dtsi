@@ -1,0 +1,4 @@
+&axi_fifo_mm_s_0 {
+    compatible = "koheron,mem-wc-1.0";
+    status = "okay";
+};
