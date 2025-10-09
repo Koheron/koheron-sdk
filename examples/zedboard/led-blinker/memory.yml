@@ -3,15 +3,13 @@ memory:
   - name: control
     offset: '0x60000000'
     range: 4K
+    registers:
+    - led
   - name: status
     offset: '0x50000000'
     range: 4K
-
-control_registers:
-  - led
-
-status_registers:
-  - forty_two
+    registers:
+    - forty_two
 
 parameters:
   fclk0: 50000000 # FPGA clock speed in Hz

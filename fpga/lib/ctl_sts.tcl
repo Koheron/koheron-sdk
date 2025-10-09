@@ -1,13 +1,18 @@
 proc add_ctl_sts {{mclk "None"}  {mrstn "None"}} {
-  add_config_register ctl control $mclk $mrstn config::ctl_register $config::control_size
-  add_status_register sts status $mclk $mrstn config::sts_register $config::status_size
-
-  if {$config::ps_control_size > 0} {
-    add_config_register ps_ctl ps_control "None" "None" config::ps_ctl_register $config::ps_control_size
+  if {[info exists config::register_count_control] && $config::register_count_control > 0} {
+    add_config_register ctl control $mclk $mrstn config::register_control $config::register_count_control
   }
 
-  if {$config::ps_status_size > 0} {
-    add_status_register ps_sts ps_status "None" "None" config::ps_sts_register $config::ps_status_size 0 0
+  if {[info exists config::register_count_status] && $config::register_count_status > 0} {
+    add_status_register sts status $mclk $mrstn config::register_status $config::register_count_status
+  }
+
+  if {[info exists config::register_count_ps_control] && $config::register_count_ps_control > 0} {
+    add_config_register ps_ctl ps_control "None" "None" config::register_ps_control $config::register_count_ps_control
+  }
+
+  if {[info exists config::register_count_ps_status] && $config::register_count_ps_status > 0} {
+    add_status_register ps_sts ps_status "None" "None" config::register_ps_status $config::register_count_ps_status 0 0
   }
 }
 

@@ -3,15 +3,37 @@ memory:
   - name: control
     offset: '0x60000000'
     range: 4K
+    registers:
+    - mmcm
+    - precision_dac_ctl
+    - precision_dac_data[2]
+    - trig
+    - rf_adc_ctl[2]
+    - digital_outputs
+    - adp5071_sync
+    - channel_select
+    - channel_offset[2]
   - name: ps_control
     offset: '0x64000000'
     range: 4K
+    registers:
+    - spi_cfg_data
+    - spi_cfg_cmd
+    - ctl_fft
+    - cic_rate[2]
   - name: status
     offset: '0x50000000'
     range: 4K
+    registers:
+    - mmcm_sts
+    - adc[n_adc]
+    - digital_inputs
   - name: ps_status
     offset: '0x54000000'
     range: 4K
+    registers:
+    - spi_cfg_sts
+    - cycle_index
   - name: xadc
     offset: '0x43C00000'
     range: 64K
@@ -40,32 +62,6 @@ memory:
   - name: axi_hp0
     offset: '0xF8008000'
     range: 4K
-
-control_registers:
-  - mmcm
-  - precision_dac_ctl
-  - precision_dac_data[2]
-  - trig
-  - rf_adc_ctl[2]
-  - digital_outputs
-  - adp5071_sync
-  - channel_select
-  - channel_offset[2]
-
-status_registers:
-  - mmcm_sts
-  - adc[n_adc]
-  - digital_inputs
-
-ps_control_registers:
-  - spi_cfg_data
-  - spi_cfg_cmd
-  - ctl_fft
-  - cic_rate[2]
-
-ps_status_registers:
-  - spi_cfg_sts
-  - cycle_index
 
 parameters:
   fclk0: 166666667 # CPU clock speed in Hz

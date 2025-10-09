@@ -3,9 +3,15 @@ memory:
   - name: control
     offset: '0x40000000'
     range: 4K
+    registers:
+    - led
+    - phase_incr[4]
+    - cordic
   - name: status
     offset: '0x50000000'
     range: 4K
+    registers:
+    - adc[n_adc]
   - name: xadc
     offset: '0x43C00000'
     range: 64K
@@ -18,14 +24,6 @@ memory:
   - name: axi_hp0
     offset: '0xF8008000'
     range: 4K
-
-control_registers:
-  - led
-  - phase_incr[4]
-  - cordic
-
-status_registers:
-  - adc[n_adc]
 
 parameters:
   fclk0: 125000000

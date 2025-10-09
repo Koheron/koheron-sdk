@@ -3,41 +3,37 @@ memory:
   - name: control
     offset: '0x60000000'
     range: 4K
+    registers:
+    - mmcm
+    - precision_dac_ctl
+    - precision_dac_data[2]
+    - trig
+    - rf_adc_ctl[2]
+    - digital_outputs
+    - adp5071_sync
+    - phase_incr[4]
+    - vco_gain[2]
   - name: ps_control
     offset: '0x64000000'
     range: 4K
+    registers:
+    - spi_cfg_data
+    - spi_cfg_cmd
   - name: status
     offset: '0x50000000'
     range: 4K
+    registers:
+    - mmcm_sts
+    - adc[n_adc]
+    - digital_inputs
   - name: ps_status
     offset: '0x54000000'
     range: 4K
+    registers:
+    - spi_cfg_sts
   - name: xadc
     offset: '0x43C00000'
     range: 64K
-
-control_registers:
-  - mmcm
-  - precision_dac_ctl
-  - precision_dac_data[2]
-  - trig
-  - rf_adc_ctl[2]
-  - digital_outputs
-  - adp5071_sync
-  - phase_incr[4]
-  - vco_gain[2]
-
-status_registers:
-  - mmcm_sts
-  - adc[n_adc]
-  - digital_inputs
-
-ps_control_registers:
-  - spi_cfg_data
-  - spi_cfg_cmd
-
-ps_status_registers:
-  - spi_cfg_sts
 
 parameters:
   fclk0: 200000000

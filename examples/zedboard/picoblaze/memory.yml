@@ -3,20 +3,18 @@ memory:
   - name: control
     offset: '0x60000000'
     range: 4K
+    registers:
+    - led
+    - in_port
+    - reset
   - name: status
     offset: '0x50000000'
     range: 4K
+    registers:
+    - out_port
   - name: picoram
     offset: '0x40000000'
     range: 4K
-
-control_registers:
-  - led
-  - in_port
-  - reset
-
-status_registers:
-  - out_port
 
 parameters:
   fclk0: 50000000 # FPGA clock speed in Hz

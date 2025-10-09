@@ -19,26 +19,24 @@ memory:
   - name: control
     offset: '0x60000000'
     range: 4K
+    registers:
+    - led
+    - laser_current
+    - laser_control
+    - power_setpoint
+    - dac[n_dac]
+    - eeprom_ctl
   - name: status
     offset: '0x50000000'
     range: 4K
     protection: read
+    registers:
+    - adc[n_adc]
+    - pid_control
+    - eeprom_sts
   - name: xadc
     offset: '0x43C00000'
     range: 64K
-
-control_registers:
-  - led
-  - laser_current
-  - laser_control
-  - power_setpoint
-  - dac[n_dac]
-  - eeprom_ctl
-
-status_registers:
-  - adc[n_adc]
-  - pid_control
-  - eeprom_sts
 
 parameters:
   fclk0: 200000000

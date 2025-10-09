@@ -3,25 +3,23 @@ memory:
   - name: control
     offset: '0x60000000'
     range: 4K
+    registers:
+    - led
+    - trigger
+    - pulse_width
+    - pulse_period
   - name: status
     offset: '0x50000000'
     range: 4K
+    registers:
+    - adc[n_adc]
+    - count
   - name: dac
     offset: '0x40000000'
     range: 32K
   - name: adc_fifo
     offset: '0x43C10000'
     range: 64K
-
-control_registers:
-  - led
-  - trigger
-  - pulse_width
-  - pulse_period
-
-status_registers:
-  - adc[n_adc]
-  - count
 
 parameters:
   fclk0: 166666667
