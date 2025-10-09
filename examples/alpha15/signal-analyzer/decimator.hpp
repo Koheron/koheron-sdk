@@ -23,13 +23,16 @@ class Decimator
   public:
     Decimator(Context& ctx_);
     void set_fft_window(uint32_t window_id);
-    void set_cic_rate(uint32_t rate);
+    void set_cic_rate(uint32_t fifo_idx, uint32_t rate);
 
     auto get_control_parameters() {
         return std::tuple{
-            fs,
-            fifo_transfer_duration,
-            cic_rate,
+            fs[0],
+            fs[1],
+            fifo_transfer_duration[0],
+            fifo_transfer_duration[1],
+            cic_rate[0],
+            cic_rate[1],
             n_pts
         };
     }
@@ -39,38 +42,47 @@ class Decimator
     }
 
     auto spectral_density() const {
-        return psd;
+        std::lock_guard lock(mutex[0]);
+        return std::get<0>(psd);
+    }
+
+    auto spectral_density_lf() const {
+        std::lock_guard lock(mutex[1]);
+        return std::get<1>(psd);
     }
 
   private:
     static constexpr uint32_t fifo_depth = 16384;
+    static constexpr uint32_t n_acq_max = fifo_depth / 2;
     static constexpr uint32_t n_fifo = 2 * fifo_depth; // Number of points read from FIFO
     static constexpr uint32_t n_segs = 4;
     static constexpr uint32_t n_pts = n_fifo / n_segs;
 
     Context& ctx;
     Fifo<mem::adc_fifo0> fifo0;
+    Fifo<mem::adc_fifo1> fifo1;
 
-    uint32_t cic_rate;
-    float fs_adc, fs;
-    float fifo_transfer_duration;
+    std::array<uint32_t, 2> cic_rate;
+    float fs_adc;
+    std::array<float, 2> fs;
+    std::array<float, 2> fifo_transfer_duration;
 
     std::array<double, n_fifo> adc_data;
-    std::array<double, n_pts> seg_data;
+    std::array<std::array<double, n_pts>, 2> seg_data;
 
     // Data acquisition thread
-    std::thread acq_thread;
-    std::mutex mutex;
-    std::atomic<bool> acquisition_started{false};
+    std::array<std::thread, 2> acq_thread;
+    mutable std::array<std::mutex, 2> mutex;
+    std::array<std::atomic<bool>, 2> acquisition_started{false, false};
 
     // Spectrum analyzer
-    scicpp::signal::Spectrum<double> spectrum;
-    MovingAverager<16> averager;
-    std::vector<double> psd;
+    std::array<scicpp::signal::Spectrum<double>, 2> spectrum;
+    std::array<MovingAverager<16>, 2> averager;
+    std::array<std::vector<double>, 2> psd;
 
-    void acquisition_thread();
+    template <uint32_t fifo_idx> void acquisition_thread();
+    template <uint32_t fifo_idx> void acquire_fifo(uint32_t ntps_pts_fifo);
     void start_acquisition();
-    void acquire_fifo(uint32_t ntps_pts_fifo);
 }; // Decimator
 
 #endif // __ALPHA15_SIGNAL_ANALYZER_DECIMATOR_HPP__

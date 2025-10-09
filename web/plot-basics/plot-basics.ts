@@ -156,6 +156,8 @@ class PlotBasics {
     }
 
     setRangeX(from: number, to: number) {
+        this.x_min = from;
+        this.x_max = to;
         this.range_x.from = from;
         this.range_x.to = to;
         this.reset_range = true;
