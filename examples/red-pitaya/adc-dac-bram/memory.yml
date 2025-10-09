@@ -3,9 +3,14 @@ memory:
   - name: control
     offset: '0x60000000'
     range: 4K
+    registers:
+    - led
+    - trig
   - name: status
     offset: '0x50001000'
     range: 4K
+    registers:
+    - reg1
   - name: xadc
     offset: '0x43C00000'
     range: 64K
@@ -15,13 +20,6 @@ memory:
   - name: dac
     range: 64K
     offset: '0x40040000'
-
-control_registers:
-  - led
-  - trig
-
-status_registers:
-  - reg1
 
 parameters:
   fclk0: 200000000 # FPGA clock speed in Hz

@@ -3,19 +3,17 @@ memory:
   - name: control
     offset: '0x60000000'
     range: 4K
+    registers:
+    - led
+    - dac[n_dac]
   - name: status
     offset: '0x50000000'
     range: 4K
+    registers:
+    - adc[n_adc]
   - name: adc_fifo
     offset: '0x43C10000'
     range: 64K
-
-control_registers:
-  - led
-  - dac[n_dac]
-
-status_registers:
-  - adc[n_adc]
 
 parameters:
   fclk0: 166666667

@@ -39,25 +39,12 @@ constexpr std::array<std::tuple<uintptr_t, uint32_t, uint32_t, uint32_t, std::st
 } // namespace mem
 
 namespace reg {
-// -- Control offsets
-{% for offset in config['control_registers'] -%}
+{% for addr in config['memory'] if addr['registers'] -%}
+// -- {{ addr['name'] }} offsets
+{% for offset in addr['registers'] -%}
 constexpr uint32_t {{ offset }} = {{ 4 * loop.index0 }};
-static_assert({{ offset }} < mem::control_range, "Invalid control register offset {{ offset }}");
+static_assert({{ 4 * loop.index0 }} < mem::{{ addr['name'] }}_range, "Invalid {{ addr['name'] }} register offset {{ offset }}");
 {% endfor %}
-// -- PS Control offsets
-{% for offset in config['ps_control_registers'] -%}
-constexpr uint32_t {{ offset }} = {{ 4 * loop.index0 }};
-static_assert({{ offset }} < mem::ps_control_range, "Invalid ps control register offset {{ offset }}");
-{% endfor %}
-// -- Status offsets
-{% for offset in config['status_registers'] -%}
-constexpr uint32_t {{ offset }} = {{ 4 * loop.index0 }};
-static_assert({{ offset }} < mem::status_range, "Invalid status register offset {{ offset }}");
-{% endfor %}
-// -- PS Status offsets
-{% for offset in config['ps_status_registers'] -%}
-constexpr uint32_t {{ offset }} = {{ 4 * loop.index0 }};
-static_assert({{ offset }} < mem::ps_status_range, "Invalid ps status register offset {{ offset }}");
 {% endfor %}
 
 constexpr uint32_t dna = 0;

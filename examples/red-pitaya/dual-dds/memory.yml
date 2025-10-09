@@ -3,16 +3,14 @@ memory:
   - name: control
     offset: '0x40000000'
     range: 4K
+    registers:
+    - led
+    - phase_incr[4]
   - name: status
     offset: '0x50000000'
     range: 4K
-
-control_registers:
-  - led
-  - phase_incr[4]
-
-status_registers:
-  - adc[n_adc]
+    registers:
+    - adc[n_adc]
 
 parameters:
   fclk0: 200000000

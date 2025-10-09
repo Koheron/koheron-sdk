@@ -73,6 +73,11 @@ def build_memory(memory, parameters):
         elif address['dev'] == '/dev/mem_wc':
             address['dev'] = address['dev'] + address['offset']
 
+        registers = address.get('registers', []) or []
+        registers = build_registers(registers, parameters) if registers else []
+        address['registers'] = registers
+        address['register_count'] = len(registers)
+
     return memory
 
 def build_registers(registers, parameters):
@@ -93,10 +98,6 @@ def build_registers(registers, parameters):
 def append_memory_to_config(config):
     parameters = config.get('parameters', {})
     config['memory'] = build_memory(config.get('memory', {}), parameters)
-    config['control_registers'] = build_registers(config.get('control_registers', {}), parameters)
-    config['ps_control_registers'] = build_registers(config.get('ps_control_registers', {}), parameters)
-    config['status_registers'] = build_registers(config.get('status_registers', {}), parameters)
-    config['ps_status_registers'] = build_registers(config.get('ps_status_registers', {}), parameters)
     return config
 
 def build_json(dict):

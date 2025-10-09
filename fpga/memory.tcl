@@ -1,44 +1,15 @@
 namespace eval config {
 
 ##########################################################
-# Define control offsets
+# Define register offsets
 ##########################################################
-variable ctl_register
-{% for name in config['control_registers'] -%}
-set ctl_register({{ loop.index0 }}) {{name}}
+{% for address in config['memory'] if address['registers'] -%}
+variable register_{{ address['name'] }}
+{% for name in address['registers'] -%}
+set register_{{ address['name'] }}({{ loop.index0 }}) {{name}}
 {% endfor -%}
-
-variable control_size {{ config['control_registers'] | length }}
-
-##########################################################
-# Define ps control offsets
-##########################################################
-variable ps_ctl_register
-{% for name in config['ps_control_registers'] -%}
-set ps_ctl_register({{ loop.index0 }}) {{name}}
+variable register_count_{{ address['name'] }} {{ address['register_count'] }}
 {% endfor -%}
-
-variable ps_control_size {{ config['ps_control_registers'] | length }}
-
-##########################################################
-# Define status offsets
-##########################################################
-variable sts_register
-{% for name in config['status_registers'] -%}
-set sts_register({{ loop.index0 }}) {{name}}
-{% endfor -%}
-
-variable status_size {{ config['status_registers'] | length }}
-
-##########################################################
-# Define ps status offsets
-##########################################################
-variable ps_sts_register
-{% for name in config['ps_status_registers'] -%}
-set ps_sts_register({{ loop.index0 }}) {{name}}
-{% endfor -%}
-
-variable ps_status_size {{ config['ps_status_registers'] | length }}
 
 ##########################################################
 # Define parameters

@@ -3,24 +3,22 @@ memory:
   - name: control
     offset: '0x60000000'
     range: 4K
+    registers:
+    - led
+    - phase_incr[2]
+    - ctl_sata
+    - pulse_width
+    - pulse_period
+    - trigger
   - name: status
     offset: '0x50000000'
     range: 4K
+    registers:
+    - adc[n_adc]
+    - sts_sata
   - name: ctl_clk
     offset: '0x70000000'
     range: 4K
-
-control_registers:
-  - led
-  - phase_incr[2]
-  - ctl_sata
-  - pulse_width
-  - pulse_period
-  - trigger
-
-status_registers:
-  - adc[n_adc]
-  - sts_sata
 
 parameters:
   fclk0: 200000000

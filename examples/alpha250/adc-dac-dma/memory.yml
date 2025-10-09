@@ -3,15 +3,27 @@ memory:
   - name: control
     offset: '0x40000000'
     range: 4K
+    registers:
+    - mmcm
+    - precision_dac_ctl
+    - precision_dac_data[2]
+    - channel_select
   - name: ps_control
     offset: '0x54000000'
     range: 4K
+    registers:
+    - spi_cfg_data
+    - spi_cfg_cmd
   - name: status
     offset: '0x50000000'
     range: 4K
+    registers:
+    - adc[n_adc]
   - name: ps_status
     offset: '0x58000000'
     range: 4K
+    registers:
+    - spi_cfg_sts
   - name: xadc
     offset: '0x43C00000'
     range: 64K
@@ -39,22 +51,6 @@ memory:
   - name: sclr
     offset: '0xF8000000'
     range: 64K
-
-control_registers:
-  - mmcm
-  - precision_dac_ctl
-  - precision_dac_data[2]
-  - channel_select
-
-status_registers:
-  - adc[n_adc]
-
-ps_control_registers:
-  - spi_cfg_data
-  - spi_cfg_cmd
-
-ps_status_registers:
-  - spi_cfg_sts
 
 parameters:
   fclk0: 143000000
