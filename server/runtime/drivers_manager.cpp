@@ -5,6 +5,8 @@
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/drivers_manager.hpp"
 #include "server/runtime/meta_utils.hpp"
+#include "server/runtime/services.hpp"
+#include "server/context/context.hpp"
 
 #include <drivers.hpp> // Drivers includes
 
@@ -18,6 +20,7 @@ DriverContainer::DriverContainer()
 {
     is_started.fill(false);
     is_starting.fill(false);
+    provide_context_services();
     services::provide<Context>();
 }
 

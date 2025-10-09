@@ -4,6 +4,7 @@
 #define __SERVER_CONTEXT_CONTEXT_HPP__
 
 #include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
 
 #include "server/context/memory_manager.hpp"
 #include "server/context/spi_dev.hpp"
@@ -18,22 +19,33 @@ namespace koheron {
 template<class Driver> Driver& get_driver();
 }
 
+inline void provide_context_services() {
+    if (!services::get<MemoryManager>()) {
+        services::provide<MemoryManager>();
+        services::provide<SpiManager>();
+        services::provide<I2cManager>();
+        services::provide<ZynqFclk>();
+        services::provide<FpgaManager>();
+        services::provide<ConfigManager>();
+    }
+}
+
 class Context {
   public:
     Context()
-    : mm()
-    , spi()
-    , i2c()
-    , fclk()
-    , fpga()
-    , cfg()
+    : mm(services::require<MemoryManager>())
+    , spi(services::require<SpiManager>())
+    , i2c(services::require<I2cManager>())
+    , fclk(services::require<ZynqFclk>())
+    , fpga(services::require<FpgaManager>())
+    , cfg(services::require<ConfigManager>())
     {
         if (fpga.load_bitstream() < 0) {
-           log<PANIC>("Failed to load bitstream. Exiting server...\n");
-           exit(EXIT_FAILURE);
+            log<PANIC>("Failed to load bitstream. Exiting server...\n");
+            std::exit(EXIT_FAILURE);
         }
 
-        // We set all the Zynq clocks before starting the drivers
+        // Set Zynq clocks before starting drivers
         zynq_clocks::set_clocks(fclk);
     }
 
@@ -43,7 +55,6 @@ class Context {
             i2c.init() < 0 ||
             cfg.init() < 0)
             return -1;
-
         return 0;
     }
 
@@ -62,12 +73,12 @@ class Context {
         koheron::print_fmt<severity>(fmt, std::forward<Args>(args)...);
     }
 
-    MemoryManager mm;
-    SpiManager spi;
-    I2cManager i2c;
-    ZynqFclk fclk;
-    FpgaManager fpga;
-    ConfigManager cfg;
+    MemoryManager& mm;
+    SpiManager&    spi;
+    I2cManager&    i2c;
+    ZynqFclk&      fclk;
+    FpgaManager&   fpga;
+    ConfigManager& cfg;
 };
 
 #endif // __SERVER_CONTEXT_CONTEXT_HPP__

@@ -26,7 +26,7 @@ class FifoSpectralAnalyzer {
   public:
     explicit FifoSpectralAnalyzer(Context& ctx_)
     : ctx(ctx_)
-    , fifo(ctx)
+    , fifo()
     {
         psd.resize(1 + Cfg::n_pts / 2);
         set_cic_rate();

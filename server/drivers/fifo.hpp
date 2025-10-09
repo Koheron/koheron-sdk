@@ -7,7 +7,8 @@
 #ifndef __SERVER_DRIVERS_FIFO_HPP__
 #define __SERVER_DRIVERS_FIFO_HPP__
 
-#include "server/context/context.hpp"
+#include "server/runtime/services.hpp"
+#include "server/context/memory_manager.hpp"
 
 #include <chrono>
 
@@ -15,9 +16,8 @@ template <size_t fifo_mem>
 class Fifo
 {
   public:
-    Fifo(Context& ctx_)
-    : ctx(ctx_)
-    , fifo(ctx.mm.get<fifo_mem>())
+    Fifo()
+    : fifo(services::get<MemoryManager>()->get<fifo_mem>())
     {}
 
     uint32_t occupancy() {
@@ -52,7 +52,6 @@ class Fifo
     static constexpr uint32_t rdfd = 0x20;
     static constexpr uint32_t rlr = 0x24;
 
-    Context& ctx;
     Memory<fifo_mem>& fifo;
 };
 
