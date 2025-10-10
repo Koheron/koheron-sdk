@@ -5,124 +5,102 @@
 #ifndef __SERVER_CONTEXT_MEMORY_MAP_HPP__
 #define __SERVER_CONTEXT_MEMORY_MAP_HPP__
 
+#include "server/context/memory_catalog.hpp"
+#include "server/drivers/uio.hpp"
+
 #include <cstdio>
 #include <cstdint>
 #include <tuple>
 #include <memory>
 #include <span>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <sys/ioctl.h>
 #include <cstring>
 #include <atomic>
 #include <string_view>
+#include <optional>
+
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
 
-#include <memory.hpp>
-
-using  MemID = size_t;
-
-namespace mem {
-    constexpr uintptr_t get_base_addr(const MemID id) {
-        return std::get<0>(memory_array[id]);
-    }
-
-    constexpr uint32_t get_range(const MemID id) {
-        return std::get<1>(memory_array[id]);
-    }
-
-    constexpr uint32_t get_protection(const MemID id) {
-        return std::get<2>(memory_array[id]);
-    }
-
-    constexpr uint32_t get_n_blocks(const MemID id) {
-        return std::get<3>(memory_array[id]);
-    }
-
-    constexpr std::string_view get_device_driver(const MemID id) {
-        return std::get<4>(memory_array[id]);
-    }
-
-    constexpr bool is_writable(const MemID id) {
-        return (get_protection(id) & PROT_WRITE) == PROT_WRITE;
-    }
-
-    constexpr bool is_readable(const MemID id) {
-        return (get_protection(id) & PROT_READ) == PROT_READ;
-    }
-
-    constexpr uint32_t get_total_size(const MemID id) {
-        return get_range(id) * get_n_blocks(id);
-    }
-} // namespace mem
-
-static inline std::size_t page_size() noexcept {
-    static std::size_t sz = static_cast<std::size_t>(::sysconf(_SC_PAGESIZE));
-    return sz;
-}
-
-static inline std::size_t align_up(std::size_t x, std::size_t a) noexcept {
-    return (x + a - 1) & ~(a - 1);
-}
-
-template<MemID id,
-         uintptr_t phys_addr = mem::get_base_addr(id),
-         uint32_t n_blocks = mem::get_n_blocks(id),
-         uint32_t block_size = mem::get_range(id),
-         uint32_t size = mem::get_total_size(id),
-         int protection = mem::get_protection(id)>
+template<MemID id>
 class Memory
 {
   public:
     static_assert(id < mem::count, "Invalid ID");
 
-    static constexpr uintptr_t phys_addr_c   = phys_addr;
-    static constexpr uint32_t  n_blocks_c    = n_blocks;
-    static constexpr uint32_t  block_size_c  = block_size;
-    static constexpr uint32_t  total_size_c  = size;
-    static constexpr int       protection_c  = protection;
-
+    static constexpr uintptr_t phys_addr = mem::get_base_addr(id); 
+    static constexpr uint32_t n_blocks = mem::get_n_blocks(id); 
+    static constexpr uint32_t block_size = mem::get_range(id); 
+    static constexpr uint32_t size = mem::get_total_size(id); 
+    static constexpr int protection = mem::get_protection(id);
+    static constexpr auto name = mem::get_name(id);
     static constexpr auto device = mem::get_device_driver(id);
     static constexpr bool is_devmem = (device == "/dev/mem");
+    static constexpr bool is_uio = (device == "/dev/uio");
 
     Memory()
     : mapped_base(nullptr)
     , base_address(0)
     , is_opened(false)
+    , dev_fd(-1)
     {}
 
     ~Memory() {
-        if (is_opened) {
-            const std::size_t pg = page_size();
-            const std::size_t delta = phys_addr & (pg - 1);
-            const std::size_t len = align_up(size + delta, pg);
-            ::munmap(mapped_base, len);
-            if (dev_fd >= 0) ::close(dev_fd);
+        if constexpr (is_uio) {
+            if (uio_) {
+                uio_->unmap(); // Uio<> dtor closes the fd
+            }
+        } else {
+            if (is_opened) {
+                const std::size_t pg = page_size();
+                const std::size_t delta = phys_addr & (pg - 1);
+                const std::size_t len = align_up(size + delta, pg);
+                ::munmap(mapped_base, len);
+
+                if (dev_fd >= 0) {
+                    ::close(dev_fd);
+                }
+            }
         }
     }
 
     int open() {
-        koheron::print_fmt<INFO>("Memory [MemId{}] Opening {}\n", id, device);
-        const auto fd = ::open(device.data(), O_RDWR | O_SYNC);
+        koheron::print_fmt<INFO>("Memory[{}]: Opening {}\n", name, device);
 
-        if (fd == -1) {
-            koheron::print_fmt<ERROR>("Memory: Can't open {}\n", device);
-            if constexpr (!is_devmem) {
-                koheron::print<INFO>("Memory: Fallback to /dev/mem\n");
-                const auto fd = ::open("/dev/mem", O_RDWR | O_SYNC);
+        if constexpr (is_uio) {
+            uio_.emplace();
 
-                 if (fd > 0) {
-                    return map_memory<true>(fd);
-                 } else {
-                     return -1;
-                 }
-            } else {
+            if (uio_->open() < 0) {
+                return open_via_devmem_fallback();
+            }
+
+            void* p = uio_->mmap();
+
+            if (!p) {
+                koheron::print_fmt<ERROR>("Memory[{}]: UIO mmap failed\n", name);
                 return -1;
             }
-        }
 
-        return map_memory<is_devmem>(fd);
+            mapped_base = p;
+            base_address = reinterpret_cast<uintptr_t>(p);
+            is_opened = true;
+            dev_fd = uio_->fd();
+            return dev_fd;
+        } else {
+            const auto fd = ::open(device.data(), O_RDWR | O_SYNC);
+
+            if (fd == -1) {
+                koheron::print_fmt<ERROR>("Memory[{}]: Can't open {}\n", name, device);
+                if constexpr (!is_devmem) {
+                    return open_via_devmem_fallback();
+                } else {
+                    return -1;
+                }
+            }
+
+            return map_memory<is_devmem>(fd);
+        }
     }
 
     constexpr int get_protection() const noexcept {return protection;}
@@ -385,11 +363,13 @@ class Memory
     bool is_opened;
     int dev_fd = -1;
 
+    std::optional<Uio<id>> uio_; // only used when device == "/dev/uio"
+
     template<bool is_devmem>
     int map_memory(int fd) {
-        const std::size_t pg = page_size();
+        const size_t pg = page_size();
         off_t off = 0;
-        std::size_t delta = 0;
+        size_t delta = 0;
 
         if constexpr (is_devmem) {
             off = static_cast<off_t>(phys_addr & ~(pg - 1));
@@ -409,6 +389,17 @@ class Memory
         base_address = reinterpret_cast<uintptr_t>(mapped_base) + delta;
         dev_fd = fd;
         return fd;
+    }
+
+    int open_via_devmem_fallback() {
+        koheron::print_fmt<INFO>("Memory[{}]: Fallback to /dev/mem\n", name);
+        const int fdm = ::open("/dev/mem", O_RDWR | O_SYNC);
+
+        if (fdm < 0) {
+            return -1;
+        }
+
+        return map_memory<true>(fdm);
     }
 
     void wc_flush_(std::size_t off, std::size_t len) const {

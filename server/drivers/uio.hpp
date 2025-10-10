@@ -2,7 +2,7 @@
 #define __SERVER_DRIVERS_UIO_HPP__
 
 #include "server/runtime/syslog.hpp"
-#include "server/context/memory_map.hpp"
+#include "server/context/memory_catalog.hpp"
 
 #include <atomic>
 #include <thread>
@@ -15,11 +15,14 @@
 #include <climits>
 #include <cerrno>
 #include <cstring>
+#include <chrono>
+#include <utility>
+#include <string_view>
+
+#include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <poll.h>
-#include <chrono>
-#include <utility>
 
 template <MemID uio_mem>
 class Uio
@@ -30,7 +33,7 @@ class Uio
     // Non-copyable, movable (unique FD owner)
     Uio(const Uio&) = delete;
     Uio& operator=(const Uio&) = delete;
-    Uio(Uio&& other) noexcept : fd(std::exchange(other.fd, -1)) {}
+    Uio(Uio&& other) noexcept : fd_(std::exchange(other.fd(), -1)) {}
 
     Uio& operator=(Uio&& other) noexcept {
         if (this != &other) {
@@ -43,6 +46,7 @@ class Uio
 
     ~Uio() {
         unlisten();
+        unmap();
         close_fd();
     }
 
@@ -86,7 +90,7 @@ class Uio
                 continue;
             }
 
-            if (addr == mem_base) {
+            if (addr == phys_addr) {
                 const auto dev_path = fs::path("/dev") / name;
                 new_fd = ::open(dev_path.c_str(), O_RDWR | O_CLOEXEC);
 
@@ -94,8 +98,7 @@ class Uio
                     koheron::print_fmt<ERROR>("Uio: Cannot open {}: {}\n",
                                               dev_path, std::strerror(errno));
                 } else {
-                    koheron::print_fmt<INFO>("Uio: Using {} for IRQs (addr={:#x})\n",
-                                             dev_path, mem_base);
+                    koheron::print_fmt<INFO>("Uio: {} @ {} ready\n", mem_name, dev_path);
                 }
 
                 break;
@@ -103,25 +106,31 @@ class Uio
         }
 
         if (new_fd < 0) {
-            koheron::print_fmt<ERROR>("Uio: No device with base {:#x}\n", mem_base);
+            koheron::print_fmt<ERROR>("Uio: No device with base {:#x}\n", phys_addr);
             return -1;
         }
 
         close_fd();
-        fd = new_fd;
-        return fd;
+        fd_ = new_fd;
+        return fd_;
     }
 
+    int fd() const noexcept { return fd_; }
+
+    // ------------------------------------------------------------------------
+    // Interrupt API
+    // ------------------------------------------------------------------------
+
     bool arm_irq() {
-        if (fd < 0) {
+        if (fd_ < 0) {
             koheron::print_fmt<ERROR>("Uio: arm_irq on invalid fd\n");
             return false;
         }
 
-        std::uint32_t arm = 1;
+        uint32_t arm = 1;
         ssize_t n;
         do {
-            n = ::write(fd, &arm, sizeof(arm));
+            n = ::write(fd_, &arm, sizeof(arm));
         } while (n < 0 && errno == EINTR);
 
         if (n != static_cast<ssize_t>(sizeof(arm))) {
@@ -154,7 +163,7 @@ class Uio
     template <class Fn>
     bool listen(Fn&& fn,
                 std::chrono::milliseconds timeout = std::chrono::milliseconds{-1}) {
-        if (fd < 0) {
+        if (fd_ < 0) {
             koheron::print_fmt<ERROR>("Uio: on_irq called with invalid fd\n");
             return false;
         }
@@ -221,28 +230,80 @@ class Uio
     void cancel() noexcept { running_.store(false); }
     bool is_running() const noexcept { return running_.load(); }
 
+    // ------------------------------------------------------------------------
+    // Memory map
+    // ------------------------------------------------------------------------
+
+    void* mmap() {
+        if (fd_ < 0) {
+            koheron::print_fmt<ERROR>("Uio: mmap on invalid fd\n");
+            return nullptr;
+        }
+
+        // If already mapped, unmap first
+        unmap();
+
+        const size_t pg = page_size();
+        int map_index = 0; // maps/map0
+        // In UIO: offset selects the map index (offset = page_size * map_index).
+        const off_t off = static_cast<off_t>(map_index) * static_cast<off_t>(pg);
+        const size_t len = align_up(size, pg);  // Length: align to page size to be safe
+
+        void* p = ::mmap(nullptr, len, protection, MAP_SHARED, fd_, off);
+
+        if (p == MAP_FAILED) {
+            koheron::print_fmt<ERROR>(
+                "Uio: mmap({}, len={:#x}) failed: {}\n",
+                mem_name, len, std::strerror(errno));
+            return nullptr;
+        } else {
+            koheron::print_fmt<INFO>("Uio: {} memory mapped\n", mem_name);
+        }
+
+        map_base_ = p;
+        map_len_ = len;
+        return map_base_;
+    }
+
+    void unmap() noexcept {
+        if (map_base_ && map_base_ != MAP_FAILED) {
+            ::munmap(map_base_, map_len_);
+        }
+
+        map_base_  = MAP_FAILED;
+        map_len_   = 0;
+    }
+
   private:
-    static constexpr uintptr_t mem_base = mem::get_base_addr(uio_mem);
-    int fd = -1;
+    static constexpr uintptr_t phys_addr = mem::get_base_addr(uio_mem);
+    static constexpr uint32_t size = mem::get_total_size(uio_mem);
+    static constexpr int protection = mem::get_protection(uio_mem);
+    static constexpr std::string_view mem_name = mem::get_name(uio_mem);
+
+    int fd_ = -1;
 
     // Worker thread for asynchrous API
     std::thread worker_;
     std::atomic<bool> running_{false};
 
+    // Memory map
+    void* map_base_ = MAP_FAILED;
+    size_t map_len_ = 0;
+
     void close_fd() noexcept {
-        if (fd >= 0) {
-            ::close(fd);
-            fd = -1;
+        if (fd_ >= 0) {
+            ::close(fd_);
+            fd_ = -1;
         }
     }
 
     int wait_for_irq_impl(int timeout_ms) {
-        if (fd < 0) {
+        if (fd_ < 0) {
             koheron::print_fmt<ERROR>("Uio: wait_for_irq on invalid fd\n");
             return -1;
         }
 
-        struct pollfd pfd{fd, POLLIN, 0};
+        struct pollfd pfd{fd_, POLLIN, 0};
 
         for (;;) {
             int pr = ::poll(&pfd, 1, timeout_ms);
@@ -275,7 +336,7 @@ class Uio
             uint32_t irqcnt = 0;
             ssize_t n;
             do {
-                n = ::read(fd, &irqcnt, sizeof(irqcnt));
+                n = ::read(fd_, &irqcnt, sizeof(irqcnt));
             } while (n < 0 && errno == EINTR);
 
             if (n != static_cast<ssize_t>(sizeof(irqcnt))) {

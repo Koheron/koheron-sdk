@@ -22,16 +22,17 @@ constexpr uintptr_t {{ addr['name'] }}_addr = {{ addr['offset'] }};
 constexpr uint32_t {{ addr['name'] }}_range = {{ addr['range'] | replace_KMG }};
 constexpr uint32_t {{ addr['name'] }}_nblocks = {{ addr['n_blocks'] }};
 constexpr std::string_view {{ addr['name'] }}_dev = "{{ addr['dev'] }}";
+constexpr std::string_view {{ addr['name'] }}_name = "{{ addr['name'] }}";
 {% endfor %}
 
 constexpr size_t count = {{ config['memory']|length }};
 
-constexpr std::array<std::tuple<uintptr_t, uint32_t, uint32_t, uint32_t, std::string_view>, count> memory_array = {{ '{{' }}
+constexpr std::array<std::tuple<uintptr_t, uint32_t, uint32_t, uint32_t, std::string_view, std::string_view>, count> memory_array = {{ '{{' }}
     {% for addr in config['memory'] -%}
         {% if not loop.last -%}
-            std::make_tuple({{ addr['name'] }}_addr, {{ addr['name'] }}_range, {{ addr['prot_flag'] }}, {{ addr['name'] }}_nblocks, {{ addr['name'] }}_dev),
+            std::make_tuple({{ addr['name'] }}_addr, {{ addr['name'] }}_range, {{ addr['prot_flag'] }}, {{ addr['name'] }}_nblocks, {{ addr['name'] }}_dev, {{ addr['name'] }}_name),
         {% else -%}
-            std::make_tuple({{ addr['name'] }}_addr, {{ addr['name'] }}_range, {{ addr['prot_flag'] }}, {{ addr['name'] }}_nblocks, {{ addr['name'] }}_dev)
+            std::make_tuple({{ addr['name'] }}_addr, {{ addr['name'] }}_range, {{ addr['prot_flag'] }}, {{ addr['name'] }}_nblocks, {{ addr['name'] }}_dev, {{ addr['name'] }}_name)
         {% endif -%}
     {% endfor -%}
 {{ '}};' }}
