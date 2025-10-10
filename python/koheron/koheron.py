@@ -9,7 +9,9 @@ import json
 import requests
 import time
 import sys
-from datetime import datetime, timezone
+
+BLUE = "\033[34m"
+RESET = "\033[0m"
 
 from .version import __version__
 
@@ -71,16 +73,6 @@ def logs_bookmark(host, endpoint: str = 'koheron'):
     return data.get('cursor')
 
 
-def _format_log_timestamp(ts):
-    if not ts:
-        return None
-    try:
-        dt = datetime.fromtimestamp(ts / 1_000_000, tz=timezone.utc)
-    except (TypeError, ValueError, OSError):
-        return None
-    return dt.astimezone().isoformat()
-
-
 def stream_logs(host, cursor=None, poll_interval=1.0, stream=None, endpoint: str = 'koheron'):
     """Stream koheron-server logs starting from the given cursor."""
 
@@ -91,6 +83,20 @@ def stream_logs(host, cursor=None, poll_interval=1.0, stream=None, endpoint: str
         params['cursor'] = cursor
 
     url = _logs_base_url(host, endpoint) + '/incr'
+    start_timestamp_us = None
+
+    def format_elapsed(ts_us):
+        nonlocal start_timestamp_us
+        if ts_us is None:
+            return None
+        try:
+            ts_us = int(ts_us)
+        except (TypeError, ValueError):
+            return None
+        if start_timestamp_us is None:
+            start_timestamp_us = ts_us
+        elapsed_seconds = (ts_us - start_timestamp_us) / 1_000_000
+        return f"{elapsed_seconds:.6f}s"
 
     while True:
         try:
@@ -108,10 +114,11 @@ def stream_logs(host, cursor=None, poll_interval=1.0, stream=None, endpoint: str
 
         entries = data.get('entries', [])
         for entry in entries:
-            timestamp = _format_log_timestamp(entry.get('ts'))
+            timestamp = format_elapsed(entry.get('ts'))
             message = (entry.get('msg') or '').rstrip('\n')
             if timestamp:
-                print('[{}] {}'.format(timestamp, message), file=stream)
+                colored_timestamp = f"{BLUE}[{timestamp}]{RESET}"
+                print(f"{colored_timestamp} {message}", file=stream)
             else:
                 print(message, file=stream)
             stream.flush()

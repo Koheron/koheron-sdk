@@ -6,6 +6,9 @@ from typing import Optional
 
 import requests
 
+GREEN = "\033[1;32m"
+RESET = "\033[0m"
+
 from .koheron import (
     upload_instrument,
     run_instrument,
@@ -52,15 +55,18 @@ def main(argv=None) -> int:
         argv = sys.argv[1:]
     args = _parse_args(argv)
 
-    print("Uploading {} to {}...".format(args.instrument_zip, args.host))
+    def color(text: str, color) -> str:
+        return f"{color}{text}{RESET}"
+
+    print(color("Uploading {} to {}...".format(args.instrument_zip, args.host), GREEN))
     upload_instrument(args.host, args.instrument_zip, run=False)
 
-    print("Starting instrument '{}'...".format(args.name))
+    print(color("Starting instrument '{}'...".format(args.name), GREEN))
     run_instrument(args.host, args.name, restart=True)
 
     bookmark = _safe_instrument_logs_bookmark(args.host)
 
-    print("Streaming logs (press Ctrl+C to stop)...")
+    print(color("Streaming logs (press Ctrl+C to stop)...", GREEN))
     try:
         stream_instrument_logs(args.host, cursor=bookmark, poll_interval=args.poll)
     except KeyboardInterrupt:
