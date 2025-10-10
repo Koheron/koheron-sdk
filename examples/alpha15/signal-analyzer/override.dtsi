@@ -1,0 +1,13 @@
+&adc_axis_fifo0 {
+    compatible = "generic-uio";
+    status = "okay";
+    linux,uio-name = "irq-fifo";
+    linux,driver-override = "uio_pdrv_genirq";
+};
+
+&adc_axis_fifo1 {
+    compatible = "generic-uio";
+    status = "okay";
+    linux,uio-name = "irq-fifo";
+    linux,driver-override = "uio_pdrv_genirq";
+};

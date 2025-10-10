@@ -20,7 +20,7 @@ memory:
     - spi_cfg_data
     - spi_cfg_cmd
     - ctl_fft
-    - cic_rate[2]
+    - cic_rate[n_fifos]
   - name: status
     offset: '0x50000000'
     range: 4K
@@ -40,9 +40,15 @@ memory:
   - name: adc_fifo0
     offset: '0x43C10000'
     range: 64K
+    dev: '/dev/uio'
   - name: adc_fifo1
     offset: '0x43C20000'
     range: 64K
+    dev: '/dev/uio'
+  - name: adc_fifo2
+    offset: '0x43C30000'
+    range: 64K
+    dev: '/dev/uio'
   - name: demod
     offset: '0x70000000'
     range: 32K
@@ -77,4 +83,5 @@ parameters:
   cic_n_stages: 6
   fft_size: 8192
   n_cycles: 63
-  fifo_depth: 16384
+  n_fifos: 3
+  fifo_depth: 8192
