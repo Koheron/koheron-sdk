@@ -223,6 +223,16 @@ def logs_incr():
     cursor = request.args.get("cursor")
     return jsonify(_read(cursor=cursor, n=0))
 
+
+@app.route("/api/logs/koheron/bookmark", methods=["GET"])
+def logs_bookmark():
+    """Return the latest journal cursor and timestamp without streaming entries."""
+
+    data = _read(cursor=None, n=1)
+    entries = data.get("entries", [])
+    ts = entries[-1]["ts"] if entries else None
+    return jsonify({"cursor": data.get("cursor"), "ts": ts})
+
 # ------------------------
 # System manifest / release as JSON
 # ------------------------
