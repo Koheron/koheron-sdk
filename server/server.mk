@@ -52,7 +52,7 @@ DRIVERS_CPP := $(filter %.cpp,$(DRIVERS))
 DRIVERS_CPP_REL := $(patsubst $(SDK_FULL_PATH)/%,%,$(DRIVERS_CPP))
 DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/,$(DRIVERS_CPP_REL:.cpp=.o))
 
-PHONY: list_drivers
+.PHONY: list_drivers
 list_drivers:
 	@echo $(DRIVERS)
 	@echo "-------------------"
@@ -141,7 +141,7 @@ SERVER_CCXXFLAGS += -O3 -fno-math-errno -fno-exceptions
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
 SERVER_CCXXFLAGS += -std=c++20 -pthread
 
-PHONY: gcc_flags
+.PHONY: gcc_flags
 gcc_flags:
 	@echo $(GCC_FLAGS)
 
