@@ -45,7 +45,7 @@ OBJ = $(TMP_SERVER_PATH)/systemd.o \
 
 SERVERLESS_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(SERVERLESS_CPP_SRCS))))
 
-OBJ += $(PROJECT_OBJ)
+OBJ += $(SERVERLESS_OBJ)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
