@@ -41,14 +41,14 @@ CLIENT_DEP=$(subst .o,.d,$(OBJ))
 $(TMP_CLIENT_PATH)/%.o: $(CLIENT_PATH)/%.cpp $(OPERATIONS_HPP) | $(TMP_CLIENT_PATH)
 	$(CLIENT_CCXX) -c $(CLIENT_CCXXFLAGS) -o $@ $<
 
-PHONY: client
+.PHONY: client
 client: server | $(CLIENT_OBJ)
 	$(CLIENT_CCXX) -o $(CLIENT) $(CLIENT_OBJ) $(CLIENT_CCXXFLAGS) $(CLIENT_LD_FLAGS)
 
-PHONY: run_client
+.PHONY: run_client
 run_client: client
 	$(CLIENT) $(HOST)
 
-PHONY: clean_client
+.PHONY: clean_client
 clean_client:
 	rm -rf $(TMP_CLIENT_PATH)

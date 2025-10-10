@@ -1,54 +1,182 @@
 import os
-import json
 import subprocess
 import zipfile
+from datetime import datetime, timezone
+
 from flask import Flask, jsonify, request, make_response, Response
 from werkzeug.utils import secure_filename
 
 from systemd import journal as _sd_journal
-from datetime import datetime, timezone
+
+
+INVOCATION_ID = os.environ.get("INVOCATION_ID")
 
 
 DEFAULT_UNIT = "koheron-server.service"
 MAX_LINES = 5000
 
-def _ts_us(e) -> int:
-    v = e.get("__REALTIME_TIMESTAMP", 0)
-    if isinstance(v, (int, float)): return int(v)
-    if hasattr(v, "timestamp"):      return int(v.timestamp() * 1_000_000)
-    if isinstance(v, str):
-        try: return int(v)
-        except: return 0
-    return 0
 
-def _reader() -> "_sd_journal.Reader":
-    r = _sd_journal.Reader()
-    try: r.this_boot()         # keep results to current boot
-    except Exception: pass
-    r.add_match(_SYSTEMD_UNIT=DEFAULT_UNIT)
-    return r
+def _ts_us(entry) -> int | None:
+    value = entry.get("__REALTIME_TIMESTAMP")
+    if isinstance(value, (int, float)):
+        return int(value)
+    if hasattr(value, "timestamp"):
+        return int(value.timestamp() * 1_000_000)
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return None
+    return None
 
-def _read(cursor: str | None, n: int) -> dict:
-    r = _reader()
+
+def _now_ts_us() -> int:
+    return int(datetime.now(timezone.utc).timestamp() * 1_000_000)
+
+
+def _combine_ts(*values: int | None) -> int | None:
+    filtered = [v for v in values if isinstance(v, (int, float)) and v > 0]
+    return int(max(filtered)) if filtered else None
+
+
+def _reader(*, invocation_id: str | None = None) -> "_sd_journal.Reader":
+    reader = _sd_journal.Reader()
+    try:
+        reader.this_boot()
+    except Exception:
+        pass
+    reader.add_match(_SYSTEMD_UNIT=DEFAULT_UNIT)
+    if invocation_id:
+        try:
+            reader.add_match(_SYSTEMD_INVOCATION_ID=invocation_id)
+        except Exception:
+            pass
+    return reader
+
+
+def _detect_invocation_id() -> str | None:
+    if INVOCATION_ID:
+        return INVOCATION_ID
+    try:
+        reader = _reader()
+        reader.seek_tail()
+        entry = reader.get_previous()
+        if entry:
+            return entry.get("_SYSTEMD_INVOCATION_ID")
+    except Exception:
+        pass
+    return None
+
+
+def _collect_from_tail(reader: "_sd_journal.Reader", limit: int) -> list:
+    if limit <= 0:
+        limit = MAX_LINES
+    collected = []
+    try:
+        reader.seek_tail()
+    except Exception:
+        return collected
+    count = 0
+    while count < limit:
+        entry = reader.get_previous()
+        if not entry:
+            break
+        collected.append(entry)
+        count += 1
+    collected.reverse()
+    return collected
+
+
+def _collect_from_cursor(reader: "_sd_journal.Reader", cursor: str, limit: int) -> list:
+    if limit <= 0 or limit > MAX_LINES:
+        limit = MAX_LINES
+    try:
+        reader.seek_cursor(cursor)
+        reader.get_next()  # move past the cursor entry
+    except Exception:
+        return []
+    collected = []
+    count = 0
+    while count < limit:
+        entry = reader.get_next()
+        if not entry:
+            break
+        collected.append(entry)
+        count += 1
+    return collected
+
+
+def _normalize_entries(entries: list, *, min_ts: int | None) -> tuple[list, str | None]:
+    normalized: list[dict] = []
+    last_cursor: str | None = None
+    for entry in entries:
+        ts = _ts_us(entry)
+        last_cursor = entry.get("__CURSOR", last_cursor)
+        if min_ts is not None and ts is not None and ts < min_ts:
+            continue
+        normalized.append({"ts": ts, "msg": entry.get("MESSAGE", "")})
+    if min_ts is not None and normalized:
+        # drop any entries that barely made it due to cursor alignment
+        normalized = [e for e in normalized if e.get("ts") is None or e["ts"] >= min_ts]
+    return normalized, last_cursor
+
+
+def _read(
+    cursor: str | None,
+    n: int,
+    *,
+    min_ts: int | None = None,
+    invocation_id: str | None = None,
+    allow_fallback: bool = True,
+) -> dict:
+    reader = _reader(invocation_id=invocation_id)
     limit = MAX_LINES if n <= 0 else min(n, MAX_LINES)
-    entries, last = [], None
 
     if cursor:
-        try:
-            r.seek_cursor(cursor); r.get_next()   # skip the cursor entry
-        except Exception:
+        raw_entries = _collect_from_cursor(reader, cursor, limit)
+        if not raw_entries:
             return {"cursor": None, "entries": []}
     else:
-        r.seek_tail()
-        for _ in range(limit):
-            if not r.get_previous(): break
+        raw_entries = _collect_from_tail(reader, limit)
 
-    for e in r:
-        entries.append({"ts": _ts_us(e), "msg": e.get("MESSAGE", "")})
-        last = e.get("__CURSOR", last)
-        if cursor and len(entries) >= limit:
-            break
-    return {"cursor": last, "entries": entries}
+    entries, last_cursor = _normalize_entries(raw_entries, min_ts=min_ts)
+
+    if not entries and last_cursor is None and invocation_id and allow_fallback:
+        return _read(
+            cursor=cursor,
+            n=n,
+            min_ts=min_ts,
+            invocation_id=None,
+            allow_fallback=False,
+        )
+
+    if not cursor and limit > 0 and len(entries) > limit:
+        entries = entries[-limit:]
+
+    return {"cursor": last_cursor, "entries": entries}
+
+
+def _bookmark_tail(
+    *, invocation_id: str | None = None, allow_fallback: bool = True
+) -> tuple[str | None, int | None, str | None]:
+    reader = _reader(invocation_id=invocation_id)
+    try:
+        reader.seek_tail()
+        entry = reader.get_previous()
+    except Exception:
+        entry = None
+
+    if entry:
+        return (
+            entry.get("__CURSOR"),
+            _ts_us(entry),
+            entry.get("_SYSTEMD_INVOCATION_ID"),
+        )
+
+    if invocation_id and allow_fallback:
+        return _bookmark_tail(invocation_id=None, allow_fallback=False)
+
+    return None, None, None
 
 def is_zip(filename):
     base = os.path.basename(filename)
@@ -83,6 +211,13 @@ class KoheronApp(Flask):
     def __init__(self, *args, **kwargs):
         super(KoheronApp, self).__init__(*args, **kwargs)
         self.init_instruments(KoheronApp.instruments_dirname)
+        self.instrument_log_cursor: str | None = None
+        self.instrument_log_ts: int | None = None
+        initial_invocation = _detect_invocation_id()
+        cursor, ts, tail_invocation = _bookmark_tail(invocation_id=initial_invocation)
+        self.instrument_invocation_id: str | None = tail_invocation or initial_invocation
+        self.instrument_log_cursor = cursor
+        self.instrument_log_ts = _combine_ts(ts)
 
     def get_instrument_dict(self, instrument_filename, is_default, version_filename):
         instrument = {}
@@ -127,10 +262,28 @@ class KoheronApp(Flask):
 
         name = get_name_from_zipfilename(instrument_filename)
         print('Installing instrument ' + name)
-        subprocess.call(['/bin/bash', 'app/install_instrument.sh', name, live_instrument_dirname])
+        start_cursor, start_ts, start_invocation = _bookmark_tail(
+            invocation_id=self.instrument_invocation_id
+        )
+        if start_invocation:
+            self.instrument_invocation_id = start_invocation
+        if start_ts is None:
+            start_ts = _now_ts_us()
+        result = subprocess.call(['/bin/bash', 'app/install_instrument.sh', name, live_instrument_dirname])
 
-        self.live_instrument = instrument_dict
-        return 'success'
+        if result == 0:
+            self.live_instrument = instrument_dict
+            post_cursor, post_ts, post_invocation = _bookmark_tail()
+            if post_invocation:
+                self.instrument_invocation_id = post_invocation
+            baseline_cursor = start_cursor or post_cursor
+            baseline_ts = start_ts if start_cursor else post_ts
+            if baseline_ts is None:
+                baseline_ts = _now_ts_us()
+            self.instrument_log_cursor = baseline_cursor
+            self.instrument_log_ts = _combine_ts(baseline_ts)
+            return 'success'
+        return 'failed'
 
 app = KoheronApp(__name__)
 
@@ -232,6 +385,44 @@ def logs_bookmark():
     entries = data.get("entries", [])
     ts = entries[-1]["ts"] if entries else None
     return jsonify({"cursor": data.get("cursor"), "ts": ts})
+
+
+@app.route("/api/logs/koheron/instrument/incr", methods=["GET"])
+def logs_instrument_incr():
+    if app.instrument_invocation_id is None:
+        app.instrument_invocation_id = _detect_invocation_id()
+    requested_cursor = request.args.get("cursor")
+    cursor = requested_cursor or app.instrument_log_cursor
+    min_ts = app.instrument_log_ts if cursor is None else None
+    data = _read(
+        cursor=cursor,
+        n=0,
+        min_ts=min_ts,
+        invocation_id=app.instrument_invocation_id,
+    )
+    if data.get("cursor"):
+        app.instrument_log_cursor = data["cursor"]
+    entries = data.get("entries", [])
+    if entries:
+        app.instrument_log_ts = _combine_ts(app.instrument_log_ts, entries[-1].get("ts"))
+    return jsonify(data)
+
+
+@app.route("/api/logs/koheron/instrument/bookmark", methods=["GET"])
+def logs_instrument_bookmark():
+    if app.instrument_invocation_id is None:
+        app.instrument_invocation_id = _detect_invocation_id()
+    cursor = app.instrument_log_cursor
+    ts = app.instrument_log_ts
+    if cursor is None and ts is None:
+        cursor, ts, inv = _bookmark_tail(invocation_id=app.instrument_invocation_id)
+        if inv:
+            app.instrument_invocation_id = inv
+        app.instrument_log_cursor = cursor
+        app.instrument_log_ts = _combine_ts(ts, _now_ts_us())
+        cursor = app.instrument_log_cursor
+        ts = app.instrument_log_ts
+    return jsonify({"cursor": cursor, "ts": ts})
 
 # ------------------------
 # System manifest / release as JSON
