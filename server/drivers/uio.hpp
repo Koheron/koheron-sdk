@@ -4,6 +4,9 @@
 #include "server/runtime/syslog.hpp"
 #include "server/context/memory_map.hpp"
 
+#include <atomic>
+#include <thread>
+#include <functional>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -38,7 +41,10 @@ class Uio
         return *this;
     }
 
-    ~Uio() { close_fd(); }
+    ~Uio() {
+        unlisten();
+        close_fd();
+    }
 
     int open() {
         namespace fs = std::filesystem;
@@ -145,9 +151,83 @@ class Uio
         return wait_for_irq_impl(tmo);
     }
 
+    template <class Fn>
+    bool listen(Fn&& fn,
+                std::chrono::milliseconds timeout = std::chrono::milliseconds{-1}) {
+        if (fd < 0) {
+            koheron::print_fmt<ERROR>("Uio: on_irq called with invalid fd\n");
+            return false;
+        }
+
+        if (running_.exchange(true)) {
+            koheron::print_fmt<ERROR>("Uio: on_irq already running\n");
+            return false;
+        }
+
+        auto cb = std::function<void(int)>(std::forward<Fn>(fn));
+
+        if (!cb) {
+            running_ = false;
+            return false;
+        }
+
+        // (Re)arm before entering the loop so the first IRQ can arrive.
+        if (!arm_irq()) {
+            running_ = false;
+            return false;
+        }
+
+        worker_ = std::thread([this, timeout, cb = std::move(cb)]() mutable {
+            while (running_) {
+                const int rc = wait_for_irq(timeout);
+
+                if (rc <= 0) { // Error or Timeout
+                    cb(rc);
+                    break;
+                }
+
+                // Oe or more interrupts have occurred;
+                // Re-arm *before* calling the user callback to minimize dead time.
+                if (!arm_irq()) {
+                    cb(-1);
+                    break;
+                }
+
+                cb(rc);
+            }
+
+            running_ = false;
+        });
+
+        return true;
+    }
+
+    // Stop the async loop and join the thread.
+    void unlisten() {
+        if (!running_.exchange(false)) {
+            return;
+        }
+
+        if (worker_.joinable()) {
+            if (std::this_thread::get_id() == worker_.get_id()) {
+                // don't join self; let the owner thread join later
+                worker_.detach();
+            } else {
+                worker_.join();
+            }
+        }
+    }
+
+    void cancel() noexcept { running_.store(false); }
+    bool is_running() const noexcept { return running_.load(); }
+
   private:
     static constexpr uintptr_t mem_base = mem::get_base_addr(uio_mem);
     int fd = -1;
+
+    // Worker thread for asynchrous API
+    std::thread worker_;
+    std::atomic<bool> running_{false};
 
     void close_fd() noexcept {
         if (fd >= 0) {

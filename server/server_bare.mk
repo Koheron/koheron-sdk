@@ -44,6 +44,9 @@ OBJ = $(TMP_SERVER_PATH)/systemd.o \
 	  $(TMP_SERVER_PATH)/zynq_fclk.o \
       $(TMP_SERVER_PATH)/main.o
 
+DEP := $(subst .o,.d,$(OBJ))
+-include $(DEP)
+
 # -----------------------------------------------------------------------------
 # Compile / Link
 # -----------------------------------------------------------------------------

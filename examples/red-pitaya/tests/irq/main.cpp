@@ -82,6 +82,10 @@ int main() {
         return -1;
     }
 
+    // -----------------------------------------
+    // Synchronous API
+    // -----------------------------------------
+
     if (!timer_uio.arm_irq()) {
         return -1;
     }
@@ -128,6 +132,46 @@ int main() {
         }
     }
 
+    // -----------------------------------------
+    // Asynchronous API
+    // -----------------------------------------
+
+    std::atomic<bool> done = false;
+    int cnt = 0;
+    t_prev = clk::now();
+
+    timer_uio.listen(
+        [&] (int irqcnt) {
+            if (irqcnt <= 0) { // error/timeout policy: stop
+                done = true;
+                return;
+            }
+
+            const auto t_now = clk::now();
+            const auto period = t_now - t_prev;
+            t_prev = t_now;
+
+            // ACK device IRQ and keep timer running
+            timer.write<reg::TCSR0>(TCSR_T0INT | cfg | TCSR_ENT0);
+            const auto ms = std::chrono::duration<double, std::milli>(period);
+            uint32_t tcr = timer.read<reg::TCR0>();
+            koheron::print_fmt<INFO>("ASYNC: [IRQ {}] period={:%Q %q} TCR0={}\n",
+                                    irqcnt, ms, tcr);
+
+            cnt += irqcnt;
+            if (cnt > 10) {
+                done = true;
+            }
+        },
+        2s  // timeout passed to wait_for_irq inside the worker
+    );
+
+    // Keep main alive until done
+    while (!done) {
+        std::this_thread::sleep_for(10ms);
+    }
+
+    timer_uio.unlisten();
     // Stop timer (clear ENT0, keep config)
     timer.write<reg::TCSR0>(TCSR_T0INT | cfg);
     return 0;
