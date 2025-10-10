@@ -8,9 +8,13 @@
 #define __SERVER_DRIVERS_FIFO_HPP__
 
 #include "server/runtime/services.hpp"
+#include "server/runtime/syslog.hpp"
 #include "server/context/memory_manager.hpp"
+#include "server/drivers/uio.hpp"
 
 #include <chrono>
+#include <optional>
+#include <string_view>
 
 template <MemID fifo_mem>
 class Fifo
@@ -18,32 +22,93 @@ class Fifo
   public:
     Fifo()
     : fifo(services::require<MemoryManager>().get<fifo_mem>())
-    {}
+    {
+        if constexpr (mem_dev == "/dev/uio") {
+            uio.emplace();
+
+            if (uio->open() >= 0) {
+                irq_ready = true;
+                enable_rx_irqs();
+            } else {
+                uio.reset();
+            }
+        }
+    }
 
     uint32_t occupancy() {
-        return fifo.template read<RDFO>();
+        return read_reg<RDFO>();
     }
 
     void reset() {
-        fifo.template write<RDFR>(0x000000A5);
+        write_reg<SRR>(0xA5);
+        write_reg<RDFR>(0xA5);
     }
 
     template<typename T = uint32_t>
     uint32_t read() {
-        return fifo.template read<RDFD, T>();
+        return read_reg<RDFD, T>();
     }
 
     uint32_t length() {
-        return (fifo.template read<RLR>() & 0x3FFFFF) >> 2;
+        return (read_reg<RLR>() & 0x3FFFFF) >> 2;
     }
 
     void wait_for_data(uint32_t n_pts, float fs_hz) {
-        using namespace std::chrono_literals;
-        const auto fifo_duration = 1s * n_pts / fs_hz;
+        using namespace std::chrono;
 
-        while (length() < n_pts) {
-            std::this_thread::sleep_for(0.55 * fifo_duration);
+        if (!irq_ready) { // Fallback: Sleep-based wait
+            const auto fifo_duration = duration_cast<milliseconds>(duration<double>(n_pts / fs_hz));
+            while (length() < n_pts) {
+                std::this_thread::sleep_for(fifo_duration * 55 / 100); // ~0.55 * T
+            }
+            return;
         }
+
+        // Reasonable timeout: a few FIFO durations; keep it bounded
+        auto tmo = duration_cast<milliseconds>(duration<double>(n_pts / fs_hz));
+        if (tmo < 1ms)  {
+            tmo = 1ms;
+        }
+
+        if (tmo > 10s) {
+            tmo = 10s;
+        }
+
+        // Loop until enough samples are present
+        for (;;) {
+            if (length() >= n_pts) {
+                return;
+            }
+
+            // Re-arm IRQ *before* waiting to avoid dead time
+            if (!uio->arm_irq()) { // Arming fails, degrade to sleep loop
+                irq_ready = false;
+                wait_for_data(n_pts, fs_hz);
+                return;
+            }
+
+            const int rc = uio->wait_for_irq(tmo);
+
+            if (rc < 0) { // Error: degrade to sleep loop
+                irq_ready = false;
+                wait_for_data(n_pts, fs_hz);
+                return;
+            }
+
+            // Timeout: just loop; either more data will arrive or next arm+wait catches it
+            if (rc == 0) {
+                continue;
+            }
+
+            // IRQ fired: acknowledge FIFO side by W1C the ISR
+            const auto isr = read_reg<ISR>();
+            write_reg<ISR>(isr); // W1C: write back set bits
+        }
+    }
+
+    void probe() {
+        koheron::print_fmt<INFO>("FIFO [mem::{}] probe: ISR={:#010x} IER={:#010x} RDFO={}\n",
+            mem_name, read_reg<ISR>(), read_reg<IER>(), read_reg<RDFO>());
     }
 
   private:
@@ -54,10 +119,32 @@ class Fifo
     static constexpr uint32_t RDFR = 0x18; // RX FIFO Reset (W: 0xA5)
     static constexpr uint32_t RDFO = 0x1C; // RX FIFO Occupancy (words)
     static constexpr uint32_t RDFD = 0x20; // RX Data (32-bit)
-    static constexpr uint32_t RLR = 0x24;  // Receive length
+    static constexpr uint32_t RLR  = 0x24; // Receive length
     static constexpr uint32_t SRR  = 0x28; // Stream Reset (W: 0xA5)
 
+    static constexpr std::string_view mem_name = mem::get_name(fifo_mem);
+    static constexpr std::string_view mem_dev = mem::get_device_driver(fifo_mem);
+
     Memory<fifo_mem>& fifo;
+
+    std::optional<Uio<fifo_mem>> uio;
+    bool irq_ready = false;
+
+    void enable_rx_irqs() {
+        // Clear any pending bits (W1C) and enable interrupts
+        write_reg<ISR>(0xFFFFFFFFu);
+        write_reg<IER>(0xFFFFFFFFu);
+    }
+
+    template<uint32_t reg, typename T = uint32_t>
+    uint32_t read_reg() {
+        return fifo.template read<reg, T>();
+    }
+
+    template<uint32_t reg, typename T = uint32_t>
+    void write_reg(T value) {
+        return fifo.template write<reg>(value);
+    }
 };
 
 #endif // __SERVER_DRIVERS_FIFO_HPP__

@@ -4,6 +4,7 @@
 #include "server/context/memory_manager.hpp"
 #include "server/context/fpga_manager.hpp"
 #include "server/context/zynq_fclk.hpp"
+#include "server/drivers/fifo.hpp"
 
 #include <cstdint>
 #include <chrono>
@@ -38,37 +39,28 @@ int main() {
     }
 
     ZynqFclk fclk;
-    fclk.set("fclk0", 100000000);   // AXI/control
-    fclk.set("fclk1", 10000000);     // stream source (e.g., 2.5e6 or 5e6)
+    fclk.set("fclk0", 100000000); // AXI/control
+    fclk.set("fclk1", 10000000);  // stream source (e.g., 2.5e6 or 5e6)
     systemd::notify_ready();
 
-    auto& fifo = mm->get<mem::fifo>();
-
-    // One-time bring-up
-    fifo.write<reg::fifo::SRR>(0xA5);
-    fifo.write<reg::fifo::RDFR>(0xA5);
-    fifo.write<reg::fifo::TDFR>(0xA5);
-    fifo.write<reg::fifo::ISR>(0xFFFFFFFF);
-    fifo.write<reg::fifo::IER>(0x00000000);
-
-    koheron::print<INFO>("FIFO probe: ISR=0x%08x IER=0x%08x RDFO=%u\n",
-                         fifo.read<reg::fifo::ISR>(),
-                         fifo.read<reg::fifo::IER>(),
-                         fifo.read<reg::fifo::RDFO>());
+    // auto& fifo = mm->get<mem::fifo>();
+    Fifo<mem::fifo> fifo; // Requires a MemoryManager service
+    fifo.reset();
+    fifo.probe();
 
     using clock = std::chrono::steady_clock;
 
     // Pre-drain briefly (no reset) so we start caught up
     const auto pre_until = clock::now() + std::chrono::milliseconds(30);
     while (clock::now() < pre_until) {
-        uint32_t occ = fifo.read<reg::fifo::RDFO>();
-        while (occ--) { (void)fifo.read<reg::fifo::RDFD>(); }
+        uint32_t occ = fifo.occupancy();
+        while (occ--) { (void)fifo.read(); }
     }
 
     // Baseline at T0: wait for at least 1 word, take it, clear ISR
-    while (fifo.read<reg::fifo::RDFO>() == 0) {}
-    uint32_t last = fifo.read<reg::fifo::RDFD>();
-    fifo.write<reg::fifo::ISR>(0xFFFFFFFF);
+    while (fifo.occupancy() == 0) {}
+    uint32_t last = fifo.read();
+    // fifo.write<reg::fifo::ISR>(0xFFFFFFFF);
 
     // Counters
     uint64_t words = 0;   // received words (counted in CHUNKs)
@@ -79,18 +71,21 @@ int main() {
     auto next_stat   = start + std::chrono::seconds(1);
     const auto stop  = start + std::chrono::seconds(10);
 
+    // Estimated word rate for wait timeout computation
+    // (10 MHz stream -> ~10M words/s if one word per tick)
+    const float fs_words_per_sec = 10'000'000.f;
+
     while (clock::now() < stop) {
         // Wait until occupancy reaches the batch threshold
-        uint32_t occ = fifo.read<reg::fifo::RDFO>();
-        if (occ < CHUNK) {
-            // Busy-wait for minimum latency; add a tiny pause if you want to save CPU
-            continue;
+        if (fifo.occupancy() < CHUNK) {
+            fifo.wait_for_data(CHUNK, fs_words_per_sec);  // blocks on UIO IRQ
+            if (fifo.occupancy() < CHUNK) continue;      // re-check; harmless if spurious wake
         }
 
         // --- Read exactly CHUNK words, remember only the last one ---
         uint32_t last_in_batch = last;
         for (uint32_t i = 0; i < CHUNK; i++) {
-            last_in_batch = fifo.read<reg::fifo::RDFD>();
+            last_in_batch = fifo.read();
         }
 
         // Single continuity check for the batch:
@@ -110,9 +105,7 @@ int main() {
             const double loss_pct = expected ? (100.0 * double(lost) / double(expected)) : 0.0;
             koheron::print_fmt<INFO>(
                 "RX: total={} lost={} loss={:.3f}% last={:#010x} (occ={})\n",
-                expected, lost, loss_pct, last,
-                fifo.read<reg::fifo::RDFO>()
-            );
+                expected, lost, loss_pct, last, fifo.occupancy());
             next_stat += std::chrono::seconds(1);
         }
     }
