@@ -8,6 +8,8 @@ import string
 import json
 import requests
 import time
+import sys
+from datetime import datetime, timezone
 
 from .version import __version__
 
@@ -52,6 +54,77 @@ def run_instrument(host, name=None, restart=False):
 
     if instrument_in_store or (instrument_running and restart):
         r = requests.get('http://{}/api/instruments/run/{}'.format(host, name))
+
+
+def _logs_base_url(host, endpoint: str) -> str:
+    endpoint = endpoint.strip("/")
+    return f'http://{host}/api/logs/{endpoint}'
+
+
+def logs_bookmark(host, endpoint: str = 'koheron'):
+    """Return the latest log cursor for koheron-server."""
+
+    url = _logs_base_url(host, endpoint) + '/bookmark'
+    response = requests.get(url)
+    response.raise_for_status()
+    data = response.json()
+    return data.get('cursor')
+
+
+def _format_log_timestamp(ts):
+    if not ts:
+        return None
+    try:
+        dt = datetime.fromtimestamp(ts / 1_000_000, tz=timezone.utc)
+    except (TypeError, ValueError, OSError):
+        return None
+    return dt.astimezone().isoformat()
+
+
+def stream_logs(host, cursor=None, poll_interval=1.0, stream=None, endpoint: str = 'koheron'):
+    """Stream koheron-server logs starting from the given cursor."""
+
+    stream = stream or sys.stdout
+    session = requests.Session()
+    params = {}
+    if cursor:
+        params['cursor'] = cursor
+
+    url = _logs_base_url(host, endpoint) + '/incr'
+
+    while True:
+        try:
+            response = session.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+        except (requests.RequestException, ValueError) as exc:
+            print('[log-stream] {}: {}'.format(type(exc).__name__, exc), file=sys.stderr)
+            time.sleep(poll_interval)
+            continue
+
+        new_cursor = data.get('cursor')
+        if new_cursor:
+            params['cursor'] = new_cursor
+
+        entries = data.get('entries', [])
+        for entry in entries:
+            timestamp = _format_log_timestamp(entry.get('ts'))
+            message = (entry.get('msg') or '').rstrip('\n')
+            if timestamp:
+                print('[{}] {}'.format(timestamp, message), file=stream)
+            else:
+                print(message, file=stream)
+            stream.flush()
+
+        time.sleep(poll_interval)
+
+
+def instrument_logs_bookmark(host):
+    return logs_bookmark(host, endpoint='koheron/instrument')
+
+
+def stream_instrument_logs(host, cursor=None, poll_interval=1.0, stream=None):
+    return stream_logs(host, cursor=cursor, poll_interval=poll_interval, stream=stream, endpoint='koheron/instrument')
 
 def connect(host, *args, **kwargs):
     run_instrument(host, *args, **kwargs)

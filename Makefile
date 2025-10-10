@@ -1,4 +1,4 @@
-# http://clarkgrubb.com/makefile-style-guide
+	# http://clarkgrubb.com/makefile-style-guide
 SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := all
@@ -162,8 +162,7 @@ all: $(INSTRUMENT_ZIP)
 # this is done via the HTTP API (see os/api)
 .PHONY: run
 run: ccache-prepare $(INSTRUMENT_ZIP)
-	curl -v -F $(NAME).zip=@$(INSTRUMENT_ZIP) http://$(HOST)/api/instruments/upload
-	curl http://$(HOST)/api/instruments/run/$(NAME)
+	PYTHONPATH=$(SDK_PATH)/python python3 -m koheron.instrument_runner --host $(HOST) --name $(NAME) $(INSTRUMENT_ZIP)
 	@echo
 
 ###############################################################################
