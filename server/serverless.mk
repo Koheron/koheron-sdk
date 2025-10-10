@@ -43,7 +43,7 @@ OBJ = $(TMP_SERVER_PATH)/systemd.o \
 	  $(TMP_SERVER_PATH)/fpga_manager.o \
 	  $(TMP_SERVER_PATH)/zynq_fclk.o
 
-PROJECT_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(PROJECT_CPP))))
+SERVERLESS_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(SERVERLESS_CPP_SRCS))))
 
 OBJ += $(PROJECT_OBJ)
 DEP := $(subst .o,.d,$(OBJ))
