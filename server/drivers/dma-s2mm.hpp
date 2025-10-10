@@ -41,9 +41,9 @@ class DmaS2MM
 
         static_assert(n_elems > 0);
         static_assert(std::is_trivially_copyable_v<T>); // Trivial types avoid surprises in sizeof(T)
-        static_assert(transfer_size <= mem::total_size_c);
+        static_assert(transfer_size <= mem::total_size);
 
-        start_transfer(mem::phys_addr_c, transfer_size);
+        start_transfer(mem::phys_addr, transfer_size);
     }
 
     template<typename T>

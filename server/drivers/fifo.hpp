@@ -21,20 +21,20 @@ class Fifo
     {}
 
     uint32_t occupancy() {
-        return fifo.template read<rdfo>();
+        return fifo.template read<RDFO>();
     }
 
     void reset() {
-        fifo.template write<rdfr>(0x000000A5);
+        fifo.template write<RDFR>(0x000000A5);
     }
 
     template<typename T = uint32_t>
     uint32_t read() {
-        return fifo.template read<rdfd, T>();
+        return fifo.template read<RDFD, T>();
     }
 
     uint32_t length() {
-        return (fifo.template read<rlr>() & 0x3FFFFF) >> 2;
+        return (fifo.template read<RLR>() & 0x3FFFFF) >> 2;
     }
 
     void wait_for_data(uint32_t n_pts, float fs_hz) {
@@ -47,10 +47,15 @@ class Fifo
     }
 
   private:
-    static constexpr uint32_t rdfr = 0x18;
-    static constexpr uint32_t rdfo = 0x1C;
-    static constexpr uint32_t rdfd = 0x20;
-    static constexpr uint32_t rlr = 0x24;
+    // AXI FIFO MM-S byte offsets (PG080)
+    static constexpr uint32_t ISR  = 0x00; // Interrupt Status (RW1C)
+    static constexpr uint32_t IER  = 0x04; // Interrupt Enable
+    static constexpr uint32_t TDFR = 0x08; // TX FIFO Reset (W: 0xA5)
+    static constexpr uint32_t RDFR = 0x18; // RX FIFO Reset (W: 0xA5)
+    static constexpr uint32_t RDFO = 0x1C; // RX FIFO Occupancy (words)
+    static constexpr uint32_t RDFD = 0x20; // RX Data (32-bit)
+    static constexpr uint32_t RLR = 0x24;  // Receive length
+    static constexpr uint32_t SRR  = 0x28; // Stream Reset (W: 0xA5)
 
     Memory<fifo_mem>& fifo;
 };

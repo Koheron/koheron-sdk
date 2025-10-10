@@ -1,5 +1,6 @@
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/systemd.hpp"
+#include "server/runtime/services.hpp"
 #include "server/context/memory_manager.hpp"
 #include "server/context/fpga_manager.hpp"
 #include "server/context/zynq_fclk.hpp"
@@ -23,23 +24,25 @@ static constexpr uint32_t CHUNK = 1024;
 
 int main() {
     FpgaManager fpga;
-    ZynqFclk fclk;
-    MemoryManager mm;
 
     if (fpga.load_bitstream() < 0) {
         koheron::print<PANIC>("Failed to load bitstream.\n");
         return -1;
     }
-    if (mm.open() < 0) {
+
+    auto mm = services::provide<MemoryManager>();
+
+    if (mm->open() < 0) {
         koheron::print<PANIC>("Failed to open memory\n");
         return -1;
     }
 
+    ZynqFclk fclk;
     fclk.set("fclk0", 100000000);   // AXI/control
     fclk.set("fclk1", 10000000);     // stream source (e.g., 2.5e6 or 5e6)
     systemd::notify_ready();
 
-    auto& fifo = mm.get<mem::fifo>();
+    auto& fifo = mm->get<mem::fifo>();
 
     // One-time bring-up
     fifo.write<reg::fifo::SRR>(0xA5);
@@ -105,12 +108,9 @@ int main() {
         if (now >= next_stat) {
             const uint64_t expected = words + lost;
             const double loss_pct = expected ? (100.0 * double(lost) / double(expected)) : 0.0;
-            koheron::print<INFO>(
-                "RX: total=%llu lost=%llu loss=%.3f%% last=0x%08x (occ=%u)\n",
-                static_cast<unsigned long long>(expected),
-                static_cast<unsigned long long>(lost),
-                loss_pct,
-                last,
+            koheron::print_fmt<INFO>(
+                "RX: total={} lost={} loss={:.3f}% last={:#010x} (occ={})\n",
+                expected, lost, loss_pct, last,
                 fifo.read<reg::fifo::RDFO>()
             );
             next_stat += std::chrono::seconds(1);
@@ -120,10 +120,7 @@ int main() {
     // Final summary
     const uint64_t expected = words + lost;
     const double loss_pct = expected ? (100.0 * double(lost) / double(expected)) : 0.0;
-    koheron::print<INFO>("DONE (10s): total=%llu lost=%llu loss=%.3f%% last=0x%08x\n",
-                         static_cast<unsigned long long>(expected),
-                         static_cast<unsigned long long>(lost),
-                         loss_pct,
-                         last);
+    koheron::print_fmt<INFO>("DONE (10s): total={} lost={} loss={:.3f}% last={:#010x}\n",
+                         expected, lost, loss_pct, last);
     return 0;
 }

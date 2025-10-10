@@ -1,4 +1,6 @@
 &axi_fifo_mm_s_0 {
-    compatible = "koheron,mem-wc-1.0";
+    compatible = "generic-uio";
     status = "okay";
+    linux,uio-name = "irq-fifo";
+    linux,driver-override = "uio_pdrv_genirq";
 };
