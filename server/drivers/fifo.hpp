@@ -12,12 +12,12 @@
 
 #include <chrono>
 
-template <size_t fifo_mem>
+template <MemID fifo_mem>
 class Fifo
 {
   public:
     Fifo()
-    : fifo(services::get<MemoryManager>()->get<fifo_mem>())
+    : fifo(services::require<MemoryManager>().get<fifo_mem>())
     {}
 
     uint32_t occupancy() {

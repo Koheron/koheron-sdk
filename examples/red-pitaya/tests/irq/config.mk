@@ -7,7 +7,8 @@ MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 XDC += $(PROJECT_PATH)/constraints.xdc
 
-SERVER_MK = $(SDK_PATH)/server/server_bare.mk
+SERVERLESS_CPP_SRCS := $(PROJECT_PATH)/main.cpp
+SERVER_MK = $(SDK_PATH)/server/serverless.mk
 
 WEB_FILES += $(SDK_PATH)/web/index.html
 

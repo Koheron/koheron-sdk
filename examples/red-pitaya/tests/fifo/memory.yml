@@ -1,0 +1,6 @@
+---
+memory:
+  - name: fifo
+    range: 64K
+    offset: '0x43C00000'
+    dev: '/dev/mem_wc'

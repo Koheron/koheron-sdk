@@ -7,19 +7,17 @@
 #include "server/context/memory_manager.hpp"
 #include "server/context/fpga_manager.hpp"
 #include "server/context/zynq_fclk.hpp"
+#include "server/drivers/uio.hpp"
 
-#include <cstdint>
-#include <cstring>
-#include <cerrno>
-#include <unistd.h>
-#include <fcntl.h>
-#include <poll.h>
+#include <chrono>
+#include <format>
+
 #include <time.h>
 #include <sched.h>
 #include <sys/mman.h>
-#include <signal.h>
-#include <dirent.h>
-#include <cstdio>
+
+using namespace std::chrono_literals;
+using clk = std::chrono::steady_clock;
 
 namespace reg {
 constexpr unsigned TCSR0 = 0x00; // Timer 0 Control/Status
@@ -35,14 +33,6 @@ constexpr uint32_t TCSR_ENIT0 = 1u << 6;  // IRQ enable
 constexpr uint32_t TCSR_ENT0  = 1u << 7;  // timer enable
 constexpr uint32_t TCSR_T0INT = 1u << 8;  // IRQ status (w1c)
 
-// Graceful stop
-static volatile sig_atomic_t g_stop = 0;
-static void on_sigint(int) { g_stop = 1; }
-
-static inline double ms_between(const timespec& a, const timespec& b) {
-    return (b.tv_sec - a.tv_sec) * 1000.0 + (b.tv_nsec - a.tv_nsec) / 1e6;
-}
-
 static void best_effort_rt() {
     // Lock memory and try to reduce jitter; ignore failures if unprivileged
     mlockall(MCL_CURRENT | MCL_FUTURE);
@@ -52,49 +42,7 @@ static void best_effort_rt() {
     sched_setscheduler(0, SCHED_FIFO, &sp);
 }
 
-// Open /dev/uioX whose map0/addr == want_base
-static int open_uio_by_addr(uintptr_t want_base) {
-    DIR* d = opendir("/sys/class/uio");
-    if (!d) {
-        koheron::print<PANIC>("opendir(/sys/class/uio): %s\n", std::strerror(errno));
-        return -1;
-    }
-    int fd = -1;
-    for (dirent* e; (e = readdir(d)); ) {
-        if (std::strncmp(e->d_name, "uio", 3) != 0) continue;
-        char path[256];
-        std::snprintf(path, sizeof(path), "/sys/class/uio/%s/maps/map0/addr", e->d_name);
-        FILE* f = std::fopen(path, "r");
-        if (!f) continue;
-        unsigned long long addr = 0;
-        const int n = std::fscanf(f, "%llx", &addr);
-        std::fclose(f);
-        if (n == 1 && addr == static_cast<unsigned long long>(want_base)) {
-            char dev[64];
-            std::snprintf(dev, sizeof(dev), "/dev/%s", e->d_name);
-            fd = ::open(dev, O_RDWR | O_CLOEXEC);
-            if (fd < 0) {
-                koheron::print<PANIC>("open(%s): %s\n", dev, std::strerror(errno));
-            } else {
-                koheron::print<INFO>("Using %s for IRQs (addr=0x%llx)\n",
-                                     dev, static_cast<unsigned long long>(want_base));
-            }
-            break;
-        }
-    }
-    closedir(d);
-    if (fd < 0) {
-        koheron::print<PANIC>("No UIO device with base 0x%llx\n",
-                              static_cast<unsigned long long>(want_base));
-    }
-    return fd;
-}
-
 int main() {
-    // Signals
-    signal(SIGINT,  on_sigint);
-    signal(SIGTERM, on_sigint);
-
     FpgaManager fpga;
     ZynqFclk fclk;
     MemoryManager mm;
@@ -127,81 +75,104 @@ int main() {
     timer.write<reg::TCSR0>(TCSR_T0INT | cfg);           // config (down, autoreload, IRQ)
     timer.write<reg::TCSR0>(TCSR_T0INT | cfg | TCSR_ENT0); // start
 
-    // --- Userspace IRQ via UIO (open by mem::timer_addr) ---
-    int uio = open_uio_by_addr(mem::timer_addr);
-    if (uio < 0) return -1;
+    // --- Userspace IRQ via UIO (open by mem::timer) ---
+    Uio<mem::timer> timer_uio;
 
-    uint32_t arm = 1;
-    if (::write(uio, &arm, sizeof(arm)) != sizeof(arm)) {
-        koheron::print<PANIC>("E5: uio enable: %s\n", std::strerror(errno));
-        ::close(uio);
+    if (timer_uio.open() < 0) {
+        return -1;
+    }
+
+    // -----------------------------------------
+    // Synchronous API
+    // -----------------------------------------
+
+    if (!timer_uio.arm_irq()) {
         return -1;
     }
 
     // Prime on first IRQ: sync point (no period printed here)
-    {
-        struct pollfd pfd{uio, POLLIN, 0};
-        int pr = ::poll(&pfd, 1, 2000);
-        if (pr <= 0) {
-            koheron::print<PANIC>("E6: poll during prime %s\n", pr==0 ? "timeout" : std::strerror(errno));
-            ::close(uio);
-            return -1;
-        }
-        uint32_t irqcnt = 0;
-        if (::read(uio, &irqcnt, sizeof(irqcnt)) != sizeof(irqcnt)) {
-            koheron::print<PANIC>("E7: uio read during prime: %s\n", std::strerror(errno));
-            ::close(uio);
-            return -1;
-        }
-        timer.write<reg::TCSR0>(TCSR_T0INT | cfg | TCSR_ENT0); // ACK and keep running
-        if (::write(uio, &arm, sizeof(arm)) != sizeof(arm)) {
-            koheron::print<PANIC>("E8: uio re-arm during prime: %s\n", std::strerror(errno));
-            ::close(uio);
-            return -1;
-        }
-        koheron::print<INFO>("Synced on first IRQ (cnt=%u)\n", irqcnt);
+    int irqcnt = timer_uio.wait_for_irq(2s);
+
+    if (irqcnt < 0) {
+        return -1;
     }
 
+    timer.write<reg::TCSR0>(TCSR_T0INT | cfg | TCSR_ENT0); // ACK and keep running
+
+    if (!timer_uio.arm_irq()) {
+        return -1;
+    }
+
+    koheron::print_fmt<INFO>("Synced on first IRQ (cnt={})\n", irqcnt);
+
     // Measure and print IRQ-to-IRQ period
-    timespec t_prev{}, t_now{};
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_prev);
+    auto t_prev = clk::now();
 
-    for (int i = 1; !g_stop && i <= 10; ++i) {
-        struct pollfd pfd{uio, POLLIN, 0};
-        int pr = ::poll(&pfd, 1, 2000); // 2 s timeout
-        if (pr <= 0) {
-            koheron::print<PANIC>("E6: poll %s\n", pr==0 ? "timeout" : std::strerror(errno));
-            break;
+    for (int i = 1; i <= 10; ++i) {
+        irqcnt = timer_uio.wait_for_irq(2s);
+
+        if (irqcnt < 0) {
+            return -1;
         }
 
-        uint32_t irqcnt = 0;
-        if (::read(uio, &irqcnt, sizeof(irqcnt)) != sizeof(irqcnt)) {
-            koheron::print<PANIC>("E7: uio read: %s\n", std::strerror(errno));
-            break;
-        }
-
-        clock_gettime(CLOCK_MONOTONIC_RAW, &t_now);
-        double period_ms = ms_between(t_prev, t_now);
+        const auto t_now = clk::now();
+        const auto period = t_now - t_prev;
         t_prev = t_now;
 
         // ACK device IRQ and keep timer running (preserve ENT0|cfg)
         timer.write<reg::TCSR0>(TCSR_T0INT | cfg | TCSR_ENT0);
-
-        // (Optional) observe counter value
         uint32_t tcr = timer.read<reg::TCR0>();
-        koheron::print<INFO>("[IRQ %u] period=%.3f ms  TCR0=%u\n", irqcnt, period_ms, tcr);
 
-        // Re-arm UIO delivery
-        if (::write(uio, &arm, sizeof(arm)) != sizeof(arm)) {
-            koheron::print<PANIC>("E8: uio re-enable: %s\n", std::strerror(errno));
-            break;
+        const auto ms = std::chrono::duration<double, std::milli>(period);
+        koheron::print_fmt<INFO>("[IRQ {}] period={:%Q %q} TCR0={}\n",
+                                irqcnt, ms, tcr);
+
+        if (!timer_uio.arm_irq()) {
+            return -1;
         }
     }
 
-    ::close(uio);
+    // -----------------------------------------
+    // Asynchronous API
+    // -----------------------------------------
 
+    std::atomic<bool> done = false;
+    int cnt = 0;
+    t_prev = clk::now();
+
+    timer_uio.listen(
+        [&] (int irqcnt) {
+            if (irqcnt <= 0) { // error/timeout policy: stop
+                done = true;
+                return;
+            }
+
+            const auto t_now = clk::now();
+            const auto period = t_now - t_prev;
+            t_prev = t_now;
+
+            // ACK device IRQ and keep timer running
+            timer.write<reg::TCSR0>(TCSR_T0INT | cfg | TCSR_ENT0);
+            const auto ms = std::chrono::duration<double, std::milli>(period);
+            uint32_t tcr = timer.read<reg::TCR0>();
+            koheron::print_fmt<INFO>("ASYNC: [IRQ {}] period={:%Q %q} TCR0={}\n",
+                                    irqcnt, ms, tcr);
+
+            cnt += irqcnt;
+            if (cnt > 10) {
+                done = true;
+            }
+        },
+        2s  // timeout passed to wait_for_irq inside the worker
+    );
+
+    // Keep main alive until done
+    while (!done) {
+        std::this_thread::sleep_for(10ms);
+    }
+
+    timer_uio.unlisten();
     // Stop timer (clear ENT0, keep config)
     timer.write<reg::TCSR0>(TCSR_T0INT | cfg);
-
     return 0;
 }
