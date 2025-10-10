@@ -161,7 +161,7 @@ all: $(INSTRUMENT_ZIP)
 # The "run" target launches the instrument on the Zynq board
 # this is done via the HTTP API (see os/api)
 .PHONY: run
-run: ccache-prepare $(INSTRUMENT_ZIP)
+run: $(INSTRUMENT_ZIP)
 	PYTHONPATH=$(SDK_PATH)/python python3 -m koheron.instrument_runner --host $(HOST) --name $(NAME) $(INSTRUMENT_ZIP)
 	@echo
 
