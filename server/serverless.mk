@@ -41,9 +41,11 @@ $(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp
 # Runtime / Context objects
 OBJ = $(TMP_SERVER_PATH)/systemd.o \
 	  $(TMP_SERVER_PATH)/fpga_manager.o \
-	  $(TMP_SERVER_PATH)/zynq_fclk.o \
-      $(TMP_SERVER_PATH)/main.o
+	  $(TMP_SERVER_PATH)/zynq_fclk.o
 
+PROJECT_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(PROJECT_CPP))))
+
+OBJ += $(PROJECT_OBJ)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
