@@ -57,6 +57,7 @@ class FifoSpectralAnalyzer {
     Context& ctx;
     Fifo<Cfg::fifo_mem> fifo;
     std::array<double, Cfg::n_pts> seg_data;
+    uint32_t seg_cnt = 0;
 
     // Data acquisition thread
     std::thread acq_thread;
@@ -92,15 +93,14 @@ class FifoSpectralAnalyzer {
         constexpr double nmax = 262144.0; // 2^18
 
         fifo.wait_for_data(ntps_pts_fifo, fs);
-        uint32_t seg_cnt = 0;
 
         for (uint32_t i = 0; i < ntps_pts_fifo; i++) {
             seg_data[seg_cnt] = vrange * static_cast<int32_t>(fifo.read()) / nmax / 4096.0;;
             ++seg_cnt;
 
             if (seg_cnt == Cfg::n_pts) {
-                std::lock_guard lock(mutex);
                 seg_cnt = 0;
+                std::lock_guard lock(mutex);
                 averager.append(spectrum.periodogram<sig::DENSITY, false>(seg_data));
 
                 if (averager.full()) {

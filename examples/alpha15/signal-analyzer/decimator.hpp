@@ -45,7 +45,7 @@ class Decimator
     struct FifoCfg0 {
         static constexpr uint32_t    fifo_idx   = 0;
         static constexpr std::size_t fifo_mem   = mem::adc_fifo0;
-        static constexpr uint32_t    n_fifo     = 2 * prm::fifo_depth;
+        static constexpr uint32_t    n_fifo     = 4 * prm::fifo_depth;
         static constexpr uint32_t    n_acq_max  = prm::fifo_depth / 2;
         static constexpr uint32_t    n_pts      = n_fifo / n_segs;
         static constexpr std::size_t navg       = 16;
@@ -57,7 +57,7 @@ class Decimator
     struct FifoCfg1 {
         static constexpr uint32_t    fifo_idx   = 1;
         static constexpr std::size_t fifo_mem   = mem::adc_fifo1;
-        static constexpr uint32_t    n_fifo     = 2 * prm::fifo_depth;
+        static constexpr uint32_t    n_fifo     = 4 * prm::fifo_depth;
         static constexpr uint32_t    n_acq_max  = prm::fifo_depth / 2;
         static constexpr uint32_t    n_pts      = n_fifo / n_segs;
         static constexpr std::size_t navg       = 16;

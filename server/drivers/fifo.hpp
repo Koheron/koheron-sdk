@@ -97,6 +97,9 @@ class Fifo
 
             // Timeout: just loop; either more data will arrive or next arm+wait catches it
             if (rc == 0) {
+                koheron::print_fmt<WARNING>(
+                    "FIFO [{}] Timed out. tmo={:%Q %q} [{} pts at {} Hz]\n",
+                    mem_name, tmo, n_pts, fs_hz);
                 continue;
             }
 
@@ -107,7 +110,7 @@ class Fifo
     }
 
     void probe() {
-        koheron::print_fmt<INFO>("FIFO [mem::{}] probe: ISR={:#010x} IER={:#010x} RDFO={}\n",
+        koheron::print_fmt<INFO>("FIFO [{}] probe: ISR={:#010x} IER={:#010x} RDFO={}\n",
             mem_name, read_reg<ISR>(), read_reg<IER>(), read_reg<RDFO>());
     }
 
