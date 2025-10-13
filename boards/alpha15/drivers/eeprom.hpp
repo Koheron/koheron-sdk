@@ -8,7 +8,8 @@
 #include <cstring>
 #include <array>
 
-#include "server/context/context.hpp"
+#include "server/runtime/services.hpp"
+#include "server/context/i2c_dev.hpp"
 
 // http://ww1.microchip.com/downloads/en/DeviceDoc/21189K.pdf
 
@@ -55,9 +56,8 @@ namespace eeprom_map {
 class Eeprom
 {
   public:
-    Eeprom(Context& ctx_)
-    : ctx(ctx_)
-    , i2c(ctx.i2c.get("i2c-0"))
+    Eeprom()
+    : i2c(services::require<I2cManager>().get("i2c-0"))
     {}
 
     int32_t set_serial_number(uint32_t sn) {
@@ -118,7 +118,6 @@ class Eeprom
     static constexpr uint32_t PAGESIZE = 32;
     static constexpr uint32_t EEPROM_SIZE = 64 * 1024 / 8;
 
-    Context& ctx;
     I2cDev& i2c;
 
     int __write(const uint8_t *buffer, int32_t n_bytes)

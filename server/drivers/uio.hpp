@@ -57,8 +57,7 @@ class Uio
 
         if (!fs::exists(uio_root, ec) || !fs::is_directory(uio_root, ec)) {
             koheron::print_fmt<ERROR>("Uio: Cannot open {} [{}]\n",
-                                      uio_root.string(),
-                                      ec ? ec.message().c_str() : std::strerror(errno));
+                uio_root, ec ? ec.message().c_str() : std::strerror(errno));
             return -1;
         }
 
