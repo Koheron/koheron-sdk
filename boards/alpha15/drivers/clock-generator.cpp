@@ -1,39 +1,44 @@
 #include "./clock-generator.hpp"
 #include "./eeprom.hpp"
 
-#include "server/context/context.hpp"
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
+#include "server/runtime/drivers_manager.hpp"
+#include "server/context/memory_manager.hpp"
+#include "server/context/i2c_dev.hpp"
 #include "boards/alpha250/drivers/spi-config.hpp"
 
 #include <thread>
 #include <fstream>
 #include <chrono>
 
-ClockGenerator::ClockGenerator(Context& ctx_)
-: ctx(ctx_)
-, i2c(ctx.i2c.get("i2c-0"))
-, eeprom(ctx.get<Eeprom>())
-, spi_cfg(ctx.get<SpiConfig>())
+ClockGenerator::ClockGenerator()
+: i2c(services::require<I2cManager>().get("i2c-0"))
+, eeprom(services::require<koheron::DriverManager>().get<Eeprom>())
+, spi_cfg(services::require<koheron::DriverManager>().get<SpiConfig>())
 {
     std::ifstream ifile(filename.data());
 
     if (!ifile.good()) {
-        ctx.log<INFO>("Clock generator - Not initialized");
+        log("Clock generator: Not initialized\n");
         is_clock_generator_initialized = false;
     } else {
-        ctx.log<INFO>("Clock generator - Already initialized");
+        log("Clock generator: Already initialized\n");
     }
 }
 
 void ClockGenerator::phase_shift(int32_t n_shifts) {
+    auto& mm = services::require<MemoryManager>();
+
     // Wait for end of previous phase shift
-    while (!(ctx.mm.get<mem::status>().read_bit<reg::mmcm_sts, 1>())) {}
+    while (!(mm.get<mem::status>().read_bit<reg::mmcm_sts, 1>())) {}
 
     int32_t abs_n_shifts = (n_shifts > 0) ? n_shifts : -n_shifts;
     int32_t incdec = (n_shifts > 0);
     constexpr uint32_t psen_bit = 2;
     constexpr uint32_t psincdec_bit = 3;
     constexpr uint32_t n_shifts_bit = 4;
-    auto& ctl = ctx.mm.get<mem::control>();
+    auto& ctl = mm.get<mem::control>();
     ctl.write_mask<reg::mmcm, (0xFFF << n_shifts_bit) + (1 << psen_bit) + (1 << psincdec_bit)>
         (((abs_n_shifts & 0xFFF) << n_shifts_bit) + (1 << psen_bit) + (incdec << psincdec_bit));
     ctl.clear_bit<reg::mmcm, psen_bit>();
@@ -54,10 +59,10 @@ int32_t ClockGenerator::set_tcxo_clock(uint8_t value) {
 }
 
 void ClockGenerator::init() {
-    ctx.log<INFO>("Clock generator - Setting default configuration ...");
+    log("Clock generator: Setting default configuration ...\n");
     std::array<uint8_t, 1> cal_array;
     eeprom.read<eeprom_map::clock_generator_calib::offset>(cal_array);
-    ctx.log<INFO>("Clock generator - TCXO calibration is %u", cal_array[0]);
+    logf("Clock generator: TCXO calibration is {}\n", cal_array[0]);
     set_tcxo_clock(cal_array[0]);
     configure(CFG_ALL, clock_cfg::TCXO_CLOCK, clock_cfg::fs_15MHz);
 }
@@ -77,7 +82,8 @@ void ClockGenerator::set_sampling_frequency(uint32_t fs_select) {
 }
 
 bool ClockGenerator::phase_shift_done() {
-    return ctx.mm.get<mem::status>().read_bit<reg::mmcm_sts, 1>();
+    auto& sts = services::require<MemoryManager>().get<mem::status>();
+    return sts.read_bit<reg::mmcm_sts, 1>();
 }
 
 void ClockGenerator::write_reg(uint32_t data) {
@@ -88,7 +94,7 @@ void ClockGenerator::write_reg(uint32_t data) {
 
 int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const std::array<uint32_t, clock_cfg::num_params>& clk_cfg_) {
     if (clkin_select > 4) {
-        ctx.log<ERROR>("Clock generator - Invalid reference clock source");
+        log<ERROR>("Clock generator: Invalid reference clock source\n");
         return -1;
     }
 
@@ -263,18 +269,18 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
     }
 
     if (f_vco < 2.37E9 || f_vco > 2.6E9) {
-        ctx.logf<ERROR>("Clock generator - VCO frequency at {} MHz is out of range (2370 to 2600 MHz)", f_vco * 1E-6);
+        logf<ERROR>("Clock generator - VCO frequency at {} MHz is out of range (2370 to 2600 MHz)\n", f_vco * 1E-6);
         return -1;
     }
 
     // PLL2 phase detector frequency
     const auto f_pd2 = f_vco / PLL2_P / PLL2_N;
-    ctx.logf<INFO>("Clock generator: Freq. PD PLL2 = {} MHz\n", f_pd2 * 1E-6);
+    logf("Clock generator: Freq. PD PLL2 = {} MHz\n", f_pd2 * 1E-6);
 
     if (f_pd2 > 100E6) {
         // Enable fast PDF if PLL2 PD frequency gretaer than 100 MHz
         PLL2_FAST_PDF = 1;
-        ctx.log<INFO>("Clock generator: PLL2 Enable fast PDF\n");
+        log("Clock generator: PLL2 Enable fast PDF\n");
     }
 
     fs_adc[0] = f_vco / CLKout1_DIV;
@@ -285,13 +291,13 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
         // We don't program the clock generator if it
         // results in data converters overclocking
 
-        ctx.log<ERROR>("Clock generator - Data converters overclocking\n");
+        log<ERROR>("Clock generator - Data converters overclocking\n");
         return -1;
     }
 
-    ctx.logf<INFO>("Clock generator - Ref: {}, VCO: {} MHz, ADC0: {} MHz, ADC1: {} MHz, DAC: {} MHz\n",
-                    clock_cfg::clkin_names[clkin_select],
-                    f_vco * 1E-6, fs_adc[0] * 1E-6, fs_adc[1] * 1E-6, fs_dac * 1E-6);
+    logf("Clock generator - Ref: {}, VCO: {} MHz, ADC0: {} MHz, ADC1: {} MHz, DAC: {} MHz\n",
+         clock_cfg::clkin_names[clkin_select],
+         f_vco * 1E-6, fs_adc[0] * 1E-6, fs_adc[1] * 1E-6, fs_dac * 1E-6);
 
     spi_cfg.lock();
 

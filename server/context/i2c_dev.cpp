@@ -43,7 +43,7 @@ int I2cDev::init() {
         }
     }
 
-    koheron::print_fmt("I2cManager: Device {} initialized", devname);
+    logf("I2cManager: Device {} initialized\n", devname);
     return 0;
 }
 
@@ -137,7 +137,7 @@ int I2cManager::init() {
 
         // Exclude '.' and '..' repositories
         if (devname[0] != '.') {
-            koheron::print_fmt("I2cManager: Found device {}", devname);
+            logf("I2cManager: Found device {}\n", devname);
 
             i2c_drivers.insert(
                 std::make_pair(devname, std::make_unique<I2cDev>(devname))
@@ -155,7 +155,7 @@ bool I2cManager::has_device(const std::string& devname) const {
 
 I2cDev& I2cManager::get(const std::string& devname) {
     if (! has_device(devname)) {
-        koheron::print_fmt<CRITICAL>("I2cManager: Device {} not found", devname);
+        logf<CRITICAL>("I2cManager: Device {} not found\n", devname);
         return *empty_i2cdev;
     }
 

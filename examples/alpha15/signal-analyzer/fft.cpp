@@ -1,5 +1,8 @@
 #include "./fft.hpp"
 
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
+#include "server/runtime/drivers_manager.hpp"
 #include "boards/alpha15/drivers/clock-generator.hpp"
 #include "boards/alpha15/drivers/ltc2387.hpp"
 
@@ -12,15 +15,12 @@
 namespace sci = scicpp;
 namespace win = scicpp::signal::windows;
 
-FFT::FFT(Context& ctx_)
-: ctx(ctx_)
-, ctl(ctx.mm.get<mem::control>())
-, psd_map(ctx.mm.get<mem::psd>())
-, demod_map(ctx.mm.get<mem::demod>())
-, clk_gen(ctx.get<ClockGenerator>())
-, ltc2387(ctx.get<Ltc2387>())
+FFT::FFT()
+: dm(services::require<koheron::DriverManager>())
+, mm(services::require<MemoryManager>())
+, ctl(mm.get<mem::control>())
 {
-    fs_adc = clk_gen.get_adc_sampling_freq()[0];
+    fs_adc = dm.get<ClockGenerator>().get_adc_sampling_freq()[0];
     set_offsets(0, 0);
     select_adc_channel(0);
     set_operation(0);
@@ -35,7 +35,7 @@ void FFT::set_offsets(uint32_t off0, uint32_t off1) {
 }
 
 void FFT::select_adc_channel(uint32_t channel) {
-    ctx.logf("FFT: Select channel {}", channel);
+    logf("FFT: Select channel {}\n", channel);
 
     if (channel == 0) {
         ctl.clear_bit<reg::channel_select, 0>();
@@ -47,7 +47,7 @@ void FFT::select_adc_channel(uint32_t channel) {
         ctl.clear_bit<reg::channel_select, 0>();
         ctl.clear_bit<reg::channel_select, 1>();
     } else {
-        ctx.log<ERROR>("FFT: Invalid input channel");
+        log<ERROR>("FFT: Invalid input channel");
         return;
     }
 
@@ -59,7 +59,7 @@ void FFT::set_operation(uint32_t operation) {
     // 0 : Substration
     // 1 : Addition
 
-    ctx.logf("FFT: Select operation {}", operation);
+    logf("FFT: Select operation {}\n", operation);
 
     operation == 0 ? ctl.clear_bit<reg::channel_select, 2>()
                    : ctl.set_bit<reg::channel_select, 2>();
@@ -68,7 +68,7 @@ void FFT::set_operation(uint32_t operation) {
 
 void FFT::set_scale_sch(uint32_t scale_sch) {
     // LSB at 1 for forward FFT
-    ctx.mm.get<mem::ps_control>().write<reg::ctl_fft>(1 + (scale_sch << 1));
+    mm.get<mem::ps_control>().write<reg::ctl_fft>(1 + (scale_sch << 1));
 }
 
 void FFT::set_fft_window(uint32_t window_id) {
@@ -86,7 +86,7 @@ void FFT::set_fft_window(uint32_t window_id) {
         set_window(win::blackmanharris<double, prm::fft_size>());
         break;
       default:
-        ctx.log<ERROR>("FFT: Invalid window index\n");
+        log<ERROR>("FFT: Invalid window index\n");
         return;
     }
 
@@ -110,6 +110,8 @@ double FFT::input_voltage_range() {
 }
 
 uint32_t FFT::input_range() {
+    auto& ltc2387 = dm.get<Ltc2387>();
+
     if (input_channel <= 1) { // Channel 0 or 1
         return ltc2387.input_range(input_channel);
     } else { // Channel 0 - 1 or 0 + 1
@@ -117,7 +119,7 @@ uint32_t FFT::input_range() {
         const auto rg1 = ltc2387.input_range(1);
 
         if (rg0 != rg1) {
-            ctx.log<WARNING>("FFT: Ch0 and Ch1 have different input ranges\n");
+            log<WARNING>("FFT: Ch0 and Ch1 have different input ranges\n");
         }
 
         return rg0;
@@ -131,7 +133,7 @@ float FFT::calibration() {
 }
 
 void FFT::set_window(const std::array<double, prm::fft_size> &window) {
-    demod_map.write_array(sci::map([](auto w){
+    mm.get<mem::demod>().write_array(sci::map([](auto w){
         return uint32_t(((int32_t(32768 * w) + 32768) % 65536) + 32768);
     }, window));
 
@@ -144,7 +146,7 @@ void FFT::set_window(const std::array<double, prm::fft_size> &window) {
 }
 
 uint32_t FFT::get_cycle_index() {
-    return ctx.mm.get<mem::ps_status>().read<reg::cycle_index>();
+    return mm.get<mem::ps_status>().read<reg::cycle_index>();
 }
 
 void FFT::start_psd_acquisition() {
@@ -182,6 +184,7 @@ void FFT::psd_acquisition_thread() {
 
             std::lock_guard<std::mutex> lock(mutex);
             const auto calib = calibration();
+            auto& psd_map = mm.get<mem::psd>();
             psd_buffer = calib * psd_map.read_array<float, prm::fft_size/2, 0>();
         }
 

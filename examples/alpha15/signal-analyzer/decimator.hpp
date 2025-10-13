@@ -14,7 +14,7 @@ class Context;
 class Decimator
 {
   public:
-    Decimator(Context& ctx_);
+    Decimator();
     void set_fft_window(uint32_t window_id);
 
     auto get_control_parameters() const {
@@ -38,8 +38,6 @@ class Decimator
     }
 
   private:
-    Context& ctx;
-
     static constexpr uint32_t n_segs = 4;
 
     struct FifoCfg0 {

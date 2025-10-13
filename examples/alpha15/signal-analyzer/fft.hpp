@@ -5,20 +5,19 @@
 #ifndef __ALPHA15_SIGNAL_ANALYZER_FFT_HPP__
 #define __ALPHA15_SIGNAL_ANALYZER_FFT_HPP__
 
-#include "server/context/context.hpp"
+#include "server/context/memory_manager.hpp"
 
 #include <atomic>
 #include <thread>
 #include <mutex>
 #include <array>
 
-class ClockGenerator;
-class Ltc2387;
+namespace koheron { class DriverManager; }
 
 class FFT
 {
   public:
-    FFT(Context& ctx_);
+    FFT();
     void set_offsets(uint32_t off0, uint32_t off1);
     void select_adc_channel(uint32_t channel);
     void set_operation(uint32_t operation);
@@ -47,13 +46,9 @@ class FFT
     double input_voltage_range();
 
  private:
-    Context& ctx;
+    koheron::DriverManager& dm;
+    MemoryManager& mm;
     Memory<mem::control>& ctl;
-    Memory<mem::psd>& psd_map;
-    Memory<mem::demod>& demod_map;
-
-    ClockGenerator& clk_gen;
-    Ltc2387& ltc2387;
 
     double fs_adc; // ADC sampling rate (Hz)
 

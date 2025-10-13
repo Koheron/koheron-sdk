@@ -55,7 +55,6 @@ namespace clock_cfg {
     constexpr std::array<std::array<uint32_t, num_params>, 1> configs = {fs_15MHz};
 }
 
-class Context;
 class I2cDev;
 class Eeprom;
 class SpiConfig;
@@ -63,7 +62,7 @@ class SpiConfig;
 class ClockGenerator
 {
   public:
-    ClockGenerator(Context& ctx_);
+    ClockGenerator();
 
     void phase_shift(int32_t n_shifts);
     int32_t set_tcxo_calibration(uint8_t new_cal);
@@ -89,7 +88,6 @@ class ClockGenerator
     }
 
   private:
-    Context& ctx;
     I2cDev& i2c;
     Eeprom& eeprom;
     SpiConfig& spi_cfg;

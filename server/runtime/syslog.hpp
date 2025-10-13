@@ -94,4 +94,16 @@ void print_fmt(std::format_string<Args...> fmt, Args&&... args) {
 
 } // namespace koheron
 
+// Convinience logging functions outside the koheron namespace
+
+template<int severity=INFO, typename... Args>
+void log(const char *msg, Args&&... args) {
+    koheron::print<severity>(msg, std::forward<Args>(args)...);
+}
+
+template<int severity=INFO, typename... Args>
+void logf(std::format_string<Args...> fmt, Args&&... args) {
+    koheron::print_fmt<severity>(fmt, std::forward<Args>(args)...);
+}
+
 #endif // __SERVER_RUNTIME_SYSLOG_HPP__

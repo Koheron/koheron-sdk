@@ -3,10 +3,14 @@
 #include "./ltc2387.hpp"
 #include "./precision-dac.hpp"
 
-#include "server/context/context.hpp"
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
+#include "server/runtime/drivers_manager.hpp"
+#include "server/context/memory_manager.hpp"
 #include "boards/alpha250/drivers/gpio-expander.hpp"
 #include "boards/alpha250/drivers/ad9747.hpp"
 #include "boards/alpha250/drivers/temperature-sensor.hpp"
+
 #include <chrono>
 #include <cstring>
 #include <sys/socket.h>
@@ -14,9 +18,8 @@
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 
-Common::Common(Context& ctx_)
-: ctx(ctx_)
-, gpio(ctx.get<GpioExpander>())
+Common::Common()
+: gpio(services::require<koheron::DriverManager>().get<GpioExpander>())
 {}
 
 Common::~Common() {
@@ -28,12 +31,13 @@ void Common::set_led(uint32_t value) {
 }
 
 void Common::init() {
-    ctx.log<INFO>("Common - Initializing ...");
+    log("Common: Initializing ...\n");
     start_blink();
-    ctx.get<ClockGenerator>().init(); // Clock generator must be initialized before enabling LT2387 ADC
-    ctx.get<Ltc2387>().init();
-    ctx.get<Ad9747>().init();
-    ctx.get<PrecisionDac>().init();
+    auto& dm = services::require<koheron::DriverManager>();
+    dm.get<ClockGenerator>().init(); // Clock generator must be initialized before enabling LT2387 ADC
+    dm.get<Ltc2387>().init();
+    dm.get<Ad9747>().init();
+    dm.get<PrecisionDac>().init();
     adp5071_sync(0, 1); // By default synchronization disable. ADP5071 frequency set to 2.4 MHz.
     // ip_on_leds();
 };
@@ -52,7 +56,7 @@ void Common::ip_on_leds() {
             if (std::strcmp(it->ifa_name, want) != 0) continue;
 
             auto* pAddr = reinterpret_cast<sockaddr_in*>(it->ifa_addr);
-            ctx.logf<INFO>("Interface {} found: {}\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
+            logf("Interface {} found: {}\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
             uint32_t ip = htonl(pAddr->sin_addr.s_addr);
             set_led(ip);
             freeifaddrs(addrs);
@@ -65,7 +69,7 @@ void Common::ip_on_leds() {
 }
 
 void Common::adp5071_sync(bool enable, bool state_out) {
-    auto& ctl = ctx.mm.get<mem::control>();
+    auto& ctl = services::require<MemoryManager>().get<mem::control>();
 
     if (enable) {
         ctl.set_bit<reg::adp5071_sync, 0>();

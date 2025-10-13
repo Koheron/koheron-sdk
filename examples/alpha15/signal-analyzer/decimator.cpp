@@ -1,6 +1,6 @@
 #include "./decimator.hpp"
 
-#include "server/context/context.hpp"
+#include "server/runtime/syslog.hpp"
 
 #include <utility>
 #include <tuple>
@@ -10,10 +10,9 @@ namespace sci = scicpp;
 namespace sig = scicpp::signal;
 namespace win = scicpp::signal::windows;
 
-Decimator::Decimator(Context& ctx_)
-: ctx(ctx_)
-, analyzer0(ctx_)
-, analyzer1(ctx_)
+Decimator::Decimator()
+: analyzer0()
+, analyzer1()
 {
     set_fft_window(1);
     start_acquisition();
@@ -38,7 +37,7 @@ void Decimator::set_fft_window(uint32_t window_id) {
         analyzer1.set_window<win::Blackmanharris>();
         break;
       default:
-        ctx.log<ERROR>("Decimator: Invalid window index\n");
+        koheron::print<ERROR>("Decimator: Invalid window index\n");
         return;
     }
 }

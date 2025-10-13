@@ -10,13 +10,12 @@
 #include <atomic>
 #include <string>
 
-class Context;
 class GpioExpander;
 
 class Common
 {
   public:
-    Common(Context& ctx_);
+    Common();
     ~Common();
 
     void set_led(uint32_t value);
@@ -29,7 +28,6 @@ class Common
     void start_blink();
     void stop_blink();
 
-    Context& ctx;
     GpioExpander& gpio;
     std::thread blinker;
     std::atomic<bool> blinker_should_stop{true}; // true = not running yet
