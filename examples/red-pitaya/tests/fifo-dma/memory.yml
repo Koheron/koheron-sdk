@@ -1,0 +1,17 @@
+---
+memory:
+  - name: ram
+    offset: '0x18000000'
+    range: 128M
+  - name: dma
+    offset: '0x40400000'
+    range: 64K
+  - name: mux
+    offset: '0x40000000'
+    range: 4K
+  - name: axi_hp0
+    offset: '0xF8008000'
+    range: 4K
+  - name: sclr
+    offset: '0xF8000000'
+    range: 64K

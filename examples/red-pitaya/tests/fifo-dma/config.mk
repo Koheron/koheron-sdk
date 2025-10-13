@@ -1,0 +1,16 @@
+NAME := fifo-dma
+VERSION := 0.0.0
+
+BOARD_PATH := $(SDK_PATH)/boards/red-pitaya
+
+MEMORY_YML = $(PROJECT_PATH)/memory.yml
+
+CORES += $(PROJECT_PATH)/axis_stream_packet_mux_v1_0
+
+XDC += $(PROJECT_PATH)/constraints.xdc
+
+SERVERLESS_CPP_SRCS := $(PROJECT_PATH)/main.cpp
+SERVER_MK = $(SDK_PATH)/server/serverless.mk
+
+WEB_FILES += $(SDK_PATH)/web/index.html
+
