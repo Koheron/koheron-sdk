@@ -25,7 +25,7 @@ void ZynqFclk::set_impl(const std::string& fclk_name,
         clkdir += std::string(1, clkid);
 
         if (fs::exists(clkdir)) {
-            koheron::print_fmt<INFO>("ZynqFclk: Found {}\n", clkdir);
+            koheron::print_fmt("ZynqFclk: Found {}\n", clkdir);
             set_fclk_amba_clocking(clkdir, clkid, fclk_rate, update_rate);
         } else {
             koheron::print_fmt<ERROR>("ZynqFclk: Cannot find {} required to set {}\n", clkdir, fclk_name);
@@ -53,7 +53,7 @@ void ZynqFclk::set_fclk_devcfg(const std::string& fclk_name, uint32_t fclk_rate)
         return;
     }
 
-    koheron::print_fmt<INFO>("ZynqFclk: Clock {} set to {} Hz\n", fclk_name, fclk_rate);
+    koheron::print_fmt("ZynqFclk: Clock {} set to {} Hz\n", fclk_name, fclk_rate);
 }
 
 int ZynqFclk::fclk_export(const std::string& fclk_name, const Path& fclk_dir_name) {
@@ -139,7 +139,7 @@ void ZynqFclk::set_fclk_amba_clocking(const Path& clkdir, char clkid,
     const auto rate = amba_clocking_get_rate(clkdir);
 
     if (rate > 0) {
-        koheron::print_fmt<INFO>("ZynqFclk: amba:clocking{} rate is {} Hz\n", clkid, rate);
+        koheron::print_fmt("ZynqFclk: amba:clocking{} rate is {} Hz\n", clkid, rate);
 
         // We check the that the set rate is close to the expected rate in memory.yml.
         // This is important for CIC / FIR based designs which are configured from memory.yml.
@@ -171,7 +171,7 @@ int ZynqFclk::amba_clocking_set_rate(const Path& clkdir, char clkid, uint32_t fc
     }
 
     ::fclose(file_set_rate);
-    koheron::print_fmt<INFO>("ZynqFclk: amba:clocking{} set to {} Hz\n", clkid, fclk_rate);
+    koheron::print_fmt("ZynqFclk: amba:clocking{} set to {} Hz\n", clkid, fclk_rate);
     return 0;
 }
 

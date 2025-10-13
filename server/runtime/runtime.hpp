@@ -10,16 +10,11 @@ namespace koheron {
 class Runtime {
   public:
     Runtime() {
-        start_syslog();
         auto dm = services::provide<DriverManager>(on_fail_);
 
         if (dm->init() < 0) {
             std::exit(EXIT_FAILURE);
         }
-    }
-
-    ~Runtime() {
-        stop_syslog();
     }
 
     Runtime(const Runtime&) = delete;

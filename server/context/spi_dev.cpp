@@ -58,7 +58,7 @@ int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
         return -1;
     }
 
-    koheron::print_fmt<INFO>("SpiManager: Device {} initialized", devname);
+    koheron::print_fmt("SpiManager: Device {} initialized", devname);
     return 0;
 }
 
@@ -237,7 +237,7 @@ int SpiManager::init() {
             continue;
         }
 
-        koheron::print_fmt<INFO>("SpiManager: Found device {}", name);
+        koheron::print_fmt("SpiManager: Found device {}", name);
         spi_drivers.emplace(name, std::make_unique<SpiDev>(name));
     }
 

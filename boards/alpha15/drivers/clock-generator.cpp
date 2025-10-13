@@ -1,7 +1,7 @@
 #include "./clock-generator.hpp"
+#include "./eeprom.hpp"
 
 #include "server/context/context.hpp"
-#include "boards/alpha250/drivers/eeprom.hpp"
 #include "boards/alpha250/drivers/spi-config.hpp"
 
 #include <thread>

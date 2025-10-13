@@ -57,8 +57,7 @@ class Uio
 
         if (!fs::exists(uio_root, ec) || !fs::is_directory(uio_root, ec)) {
             koheron::print_fmt<ERROR>("Uio: Cannot open {} [{}]\n",
-                                      uio_root.string(),
-                                      ec ? ec.message().c_str() : std::strerror(errno));
+                uio_root, ec ? ec.message().c_str() : std::strerror(errno));
             return -1;
         }
 
@@ -98,7 +97,7 @@ class Uio
                     koheron::print_fmt<ERROR>("Uio: Cannot open {}: {}\n",
                                               dev_path, std::strerror(errno));
                 } else {
-                    koheron::print_fmt<INFO>("Uio: {} @ {} ready\n", mem_name, dev_path);
+                    koheron::print_fmt("Uio: {} @ {} ready\n", mem_name, dev_path);
                 }
 
                 break;
@@ -257,7 +256,7 @@ class Uio
                 mem_name, len, std::strerror(errno));
             return nullptr;
         } else {
-            koheron::print_fmt<INFO>("Uio: {} memory mapped\n", mem_name);
+            koheron::print_fmt("Uio: {} memory mapped\n", mem_name);
         }
 
         map_base_ = p;

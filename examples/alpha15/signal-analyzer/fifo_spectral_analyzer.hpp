@@ -57,6 +57,7 @@ class FifoSpectralAnalyzer {
     Context& ctx;
     Fifo<Cfg::fifo_mem> fifo;
     std::array<double, Cfg::n_pts> seg_data;
+    uint32_t seg_cnt = 0;
 
     // Data acquisition thread
     std::thread acq_thread;
@@ -79,12 +80,11 @@ class FifoSpectralAnalyzer {
         const float fs_adc = ctx.get<ClockGenerator>().get_adc_sampling_freq()[0];
         fs = fs_adc / (2.0f * Cfg::cic_rate); // Sampling frequency (factor of 2 because of FIR)
         spectrum.fs(fs);
-        ctx.logf<INFO>("FifoSpectralAnalyzer: Sampling frequency fs[{}] = {} Hz\n",
-                       Cfg::fifo_idx, fs);
+        ctx.logf("FifoSpectralAnalyzer: Sampling frequency fs[{}] = {} Hz\n", Cfg::fifo_idx, fs);
 
         fifo_transfer_duration = Cfg::n_pts / fs;
-        ctx.logf<INFO>("FifoSpectralAnalyzer: FIFO {} transfer duration = {} s\n",
-                       Cfg::fifo_idx, fifo_transfer_duration);
+        ctx.logf("FifoSpectralAnalyzer: FIFO {} transfer duration = {} s\n",
+                 Cfg::fifo_idx, fifo_transfer_duration);
     }
 
     void acquire(uint32_t ntps_pts_fifo) {
@@ -92,15 +92,14 @@ class FifoSpectralAnalyzer {
         constexpr double nmax = 262144.0; // 2^18
 
         fifo.wait_for_data(ntps_pts_fifo, fs);
-        uint32_t seg_cnt = 0;
 
         for (uint32_t i = 0; i < ntps_pts_fifo; i++) {
             seg_data[seg_cnt] = vrange * static_cast<int32_t>(fifo.read()) / nmax / 4096.0;;
             ++seg_cnt;
 
             if (seg_cnt == Cfg::n_pts) {
-                std::lock_guard lock(mutex);
                 seg_cnt = 0;
+                std::lock_guard lock(mutex);
                 averager.append(spectrum.periodogram<sig::DENSITY, false>(seg_data));
 
                 if (averager.full()) {

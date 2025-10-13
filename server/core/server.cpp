@@ -24,8 +24,6 @@ Server::Server()
 , websock_listener()
 , unix_listener()
 {
-    start_syslog();
-
     exit_comm.store(false);
     exit_all.store(false);
 
@@ -122,7 +120,6 @@ int Server::run()
             print<INFO>("Interrupt received, killing Koheron server ...\n");
             services::require<SessionManager>().delete_all();
             close_listeners();
-            stop_syslog();
             return 0;
         }
 

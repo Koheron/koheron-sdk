@@ -63,12 +63,12 @@ class Context {
         return koheron::get_driver<Driver>();
     }
 
-    template<int severity, typename... Args>
+    template<int severity=INFO, typename... Args>
     void log(const char *msg, Args&&... args) {
         koheron::print<severity>(msg, std::forward<Args>(args)...);
     }
 
-    template<int severity, typename... Args>
+    template<int severity=INFO, typename... Args>
     void logf(std::format_string<Args...> fmt, Args&&... args) {
         koheron::print_fmt<severity>(fmt, std::forward<Args>(args)...);
     }

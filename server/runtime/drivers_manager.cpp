@@ -16,8 +16,26 @@ namespace koheron {
 // Driver container
 //----------------------------------------------------------------------------
 
-DriverContainer::DriverContainer()
+template<class D>
+inline constexpr bool needs_context_v =
+    std::is_constructible_v<D, Context&> ||
+    std::is_constructible_v<D, const Context&>;
+
+template<class D>
+std::unique_ptr<D> make_driver()
 {
+    static_assert(
+        std::is_default_constructible_v<D> || needs_context_v<D>,
+        "Driver must be default-constructible or constructible from Context&");
+
+    if constexpr (needs_context_v<D>) {
+        return std::make_unique<D>(services::require<Context>());
+    } else {
+        return std::make_unique<D>();
+    }
+}
+
+DriverContainer::DriverContainer() {
     is_started.fill(false);
     is_starting.fill(false);
     provide_context_services();
@@ -52,7 +70,7 @@ int DriverContainer::alloc() {
     }
 
     std::get<id>(is_starting) = true;
-    std::get<id>(driver_tuple) = std::make_unique<drivers::table::type_of<driver>>(services::require<Context>());
+    std::get<id>(driver_tuple) = make_driver<drivers::table::type_of<driver>>();;
     std::get<id>(is_starting) = false;
     std::get<id>(is_started) = true;
 

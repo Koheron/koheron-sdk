@@ -7,6 +7,8 @@ MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 XDC += $(SDK_PATH)/boards/alpha15/config/ports.xdc
 
+OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi
+
 include $(SDK_PATH)/boards/alpha15/cores/cores.mk
 CORES += $(SDK_PATH)/fpga/cores/tlast_gen_v1_0
 CORES += $(SDK_PATH)/fpga/cores/bus_multiplexer_v1_0
