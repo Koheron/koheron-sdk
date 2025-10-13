@@ -1,0 +1,25 @@
+/ {
+    uio_fifo0: uio-fifo0 {
+        compatible = "generic-uio";
+		interrupt-parent = <&intc>;
+		interrupts = <0 29 4>;
+        linux,uio-name = "uio-fifo0-progfull";
+        status = "okay";
+    };
+
+    uio_fifo1: uio-fifo1 {
+        compatible = "generic-uio";
+		interrupt-parent = <&intc>;
+		interrupts = <0 30 4>;
+        linux,uio-name = "uio-fifo1-progfull";
+        status = "okay";
+    };
+};
+
+&axi_dma_0 {
+    compatible = "generic-uio";
+    status = "okay";
+    linux,uio-name = "uio-dma-s2mm";
+    linux,driver-override = "uio_pdrv_genirq";
+    /delete-node/ dma-channel@40400030;
+};

@@ -14,3 +14,4 @@ SERVER_MK = $(SDK_PATH)/server/serverless.mk
 
 WEB_FILES += $(SDK_PATH)/web/index.html
 
+OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi
