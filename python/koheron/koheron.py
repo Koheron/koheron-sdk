@@ -9,6 +9,7 @@ import json
 import requests
 import time
 import sys
+import os
 
 BLUE = "\033[94m"
 RESET = "\033[0m"
@@ -25,13 +26,22 @@ def instrument_status(host):
     status = requests.get('http://{}/api/instruments'.format(host)).json()
     return status
 
-def upload_instrument(host, filename, run=False):
-    with open(filename, 'rb') as fileobj:
-        url = 'http://{}/api/instruments/upload'.format(host)
-        r = requests.post(url, files={filename: fileobj})
+def upload_instrument(host, zip_path, run=False):
+    field_name = os.path.basename(zip_path)
+    upload_name = field_name
+
+    with open(zip_path, 'rb') as f:
+        files = {field_name: (upload_name, f, 'application/zip')}
+        r = requests.post(f'http://{host}/api/instruments/upload', files=files)
+        r.raise_for_status()
+
     if run:
-        name = get_name_version(filename)
-        r = requests.get('http://{}/api/instruments/run/{}'.format(host, name))
+        name = get_name_version(zip_path)
+        rr = requests.get(f'http://{host}/api/instruments/run/{name}')
+        rr.raise_for_status()
+        return rr
+
+    return r
 
 def run_instrument(host, name=None, restart=False):
     instrument_running = False
