@@ -80,12 +80,11 @@ class FifoSpectralAnalyzer {
         const float fs_adc = ctx.get<ClockGenerator>().get_adc_sampling_freq()[0];
         fs = fs_adc / (2.0f * Cfg::cic_rate); // Sampling frequency (factor of 2 because of FIR)
         spectrum.fs(fs);
-        ctx.logf<INFO>("FifoSpectralAnalyzer: Sampling frequency fs[{}] = {} Hz\n",
-                       Cfg::fifo_idx, fs);
+        ctx.logf("FifoSpectralAnalyzer: Sampling frequency fs[{}] = {} Hz\n", Cfg::fifo_idx, fs);
 
         fifo_transfer_duration = Cfg::n_pts / fs;
-        ctx.logf<INFO>("FifoSpectralAnalyzer: FIFO {} transfer duration = {} s\n",
-                       Cfg::fifo_idx, fifo_transfer_duration);
+        ctx.logf("FifoSpectralAnalyzer: FIFO {} transfer duration = {} s\n",
+                 Cfg::fifo_idx, fifo_transfer_duration);
     }
 
     void acquire(uint32_t ntps_pts_fifo) {

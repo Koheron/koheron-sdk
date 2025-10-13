@@ -35,7 +35,7 @@ void FFT::set_offsets(uint32_t off0, uint32_t off1) {
 }
 
 void FFT::select_adc_channel(uint32_t channel) {
-    ctx.logf<INFO>("FFT: Select channel {}", channel);
+    ctx.logf("FFT: Select channel {}", channel);
 
     if (channel == 0) {
         ctl.clear_bit<reg::channel_select, 0>();
@@ -59,7 +59,7 @@ void FFT::set_operation(uint32_t operation) {
     // 0 : Substration
     // 1 : Addition
 
-    ctx.logf<INFO>("FFT: Select operation {}", operation);
+    ctx.logf("FFT: Select operation {}", operation);
 
     operation == 0 ? ctl.clear_bit<reg::channel_select, 2>()
                    : ctl.set_bit<reg::channel_select, 2>();

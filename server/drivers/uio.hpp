@@ -98,7 +98,7 @@ class Uio
                     koheron::print_fmt<ERROR>("Uio: Cannot open {}: {}\n",
                                               dev_path, std::strerror(errno));
                 } else {
-                    koheron::print_fmt<INFO>("Uio: {} @ {} ready\n", mem_name, dev_path);
+                    koheron::print_fmt("Uio: {} @ {} ready\n", mem_name, dev_path);
                 }
 
                 break;
@@ -257,7 +257,7 @@ class Uio
                 mem_name, len, std::strerror(errno));
             return nullptr;
         } else {
-            koheron::print_fmt<INFO>("Uio: {} memory mapped\n", mem_name);
+            koheron::print_fmt("Uio: {} memory mapped\n", mem_name);
         }
 
         map_base_ = p;

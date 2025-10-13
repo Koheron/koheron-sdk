@@ -10,13 +10,13 @@ namespace fs = std::filesystem;
 
 FpgaManager::FpgaManager() {
     if (fs::exists(xdev)) {
-        koheron::print<INFO>("FpgaManager: Bitstream loading method: xdevcfg\n");
+        koheron::print("FpgaManager: Bitstream loading method: xdevcfg\n");
         use_xdevcgf = true;
         return;
     }
 
     if (fs::exists(fmanager_flags)) {
-        koheron::print<INFO>("FpgaManager: Bitstream loading method: fpga_manager\n");
+        koheron::print("FpgaManager: Bitstream loading method: fpga_manager\n");
         use_overlay = true;
         return;
     }
@@ -49,7 +49,7 @@ int FpgaManager::check_bitstream_loaded(const fs::path& fprog_done_path, char ex
 
     if (read(fileno(fprog_done), buff.data(), 1) == 1) {
         if (buff[0] == expected) {
-            koheron::print<INFO>("FpgaManager: Bitstream successfully loaded\n");
+            koheron::print("FpgaManager: Bitstream successfully loaded\n");
             fclose(fprog_done);
             return 0;
         } else {
@@ -71,7 +71,7 @@ int FpgaManager::check_bitstream_loaded(const fs::path& fprog_done_path, char ex
 int FpgaManager::copy_firmware() {
     const fs::path lib_firmware_dirname = "/lib/firmware/";
     const auto bistream_name = fs::path{INSTRUMENT_NAME ".bit.bin"};
-    koheron::print_fmt<INFO>("FpgaManager: Loading bitstream {}...\n", bistream_name);
+    koheron::print_fmt("FpgaManager: Loading bitstream {}...\n", bistream_name);
 
     if (!fs::exists(lib_firmware_dirname)) {
         fs::create_directories(lib_firmware_dirname);
@@ -217,7 +217,7 @@ int FpgaManager::read_bitstream_data(std::vector<char>& bitstream_data) {
     // https://stackoverflow.com/questions/22059189/read-a-file-as-byte-array
     const auto bistream_basename = fs::path{INSTRUMENT_NAME ".bit"};
     const auto bistream_filename = live_instrument_dirname / bistream_basename;
-    koheron::print_fmt<INFO>("FpgaManager: Loading bitstream {}...\n", bistream_filename);
+    koheron::print_fmt("FpgaManager: Loading bitstream {}...\n", bistream_filename);
     FILE *fbitstream = fopen(bistream_filename.c_str(), "rb");
 
     if (fbitstream == nullptr) {

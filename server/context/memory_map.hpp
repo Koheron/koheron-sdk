@@ -66,7 +66,7 @@ class Memory
     }
 
     int open() {
-        koheron::print_fmt<INFO>("Memory[{}]: Opening {}\n", name, device);
+        koheron::print_fmt("Memory[{}]: Opening {}\n", name, device);
 
         if constexpr (is_uio) {
             uio_.emplace();
@@ -392,7 +392,7 @@ class Memory
     }
 
     int open_via_devmem_fallback() {
-        koheron::print_fmt<INFO>("Memory[{}]: Fallback to /dev/mem\n", name);
+        koheron::print_fmt("Memory[{}]: Fallback to /dev/mem\n", name);
         const int fdm = ::open("/dev/mem", O_RDWR | O_SYNC);
 
         if (fdm < 0) {
