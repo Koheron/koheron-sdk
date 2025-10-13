@@ -1,94 +1,118 @@
 // Plot widget
 // (c) Koheron
 
+type PsdArray = Float32Array | Float64Array;
+type PsdProvider = () => Promise<PsdArray>;
+
+interface SegmentConfig {
+  name: string;
+  fetchPsd: PsdProvider; // Fetch PSD data for this segment
+  getFs: () => number; // Sampling frequency (Hz)
+  getNBins: () => number; // Number of FFT bins in the PSD array (N/2+1)
+
+  skipFirst: number;           // how many bins to drop from DC side
+  skipLast: number;            // how many bins to drop from Nyquist side
+
+  // Optional: whether to place peak marker using this segment (first true wins)
+  markPeak?: boolean;
+}
+
+// After computing layout we also carry indices & placement
+interface SegmentLayout extends SegmentConfig {
+    iStart: number;
+    iEnd: number;
+    size: number;
+    offset: number;
+}
+
 class Plot {
-    private n_pts_low_freq: number;
-    private n_pts_mid_freq: number;
-    private n_pts_high_freq: number;
-    public n_pts: number;
-
-    private n_start_low_freq: number;
-    private n_start_high_freq: number;
-    private n_start_mid_freq: number;
-    private n_stop_low_freq: number;
-    private n_stop_mid_freq: number;
-
-    private n0_low_freq: number;
-    private n0_mid_freq: number;
-    private n0_high_freq: number;
-
     public plot: jquery.flot.plot;
-    public plot_data: Array<Array<number>>;
+    public plot_data: Array<Array<number>> = [];
+    public yLabel = "Power Spectrum";
+    private peakDatapoint: number[] = [];
+    
+    private segs: SegmentLayout[] = [];
+    private total_pts = 0;
 
-    public yLabel: string = "Power Spectrum";
-    private peakDatapoint: number[];
+    // axis unit state
+    private yunit = "dBV";
 
-    private yunit: string;
+    constructor(
+        private document: Document,
+        private fft: FFT,
+        private decimator: Decimator,
+        private plotBasics: PlotBasics
+    ) {
+            // Plot segments
+            const segConfigs: SegmentConfig[] = [
+                {
+                    name: "low-freq",
+                    fetchPsd: () => this.decimator.spectralDensityLf(),
+                    getFs: () => this.decimator.status.fs_lf,
+                    getNBins: () => 1 + this.decimator.status.n_pts / 2,
+                    skipFirst: 0,
+                    skipLast: 550,
+                    markPeak: true,
+                },
+                {
+                    name: "mid-freq",
+                    fetchPsd: () => this.decimator.spectralDensity(),
+                    getFs: () => this.decimator.status.fs,
+                    getNBins: () => 1 + this.decimator.status.n_pts / 2,
+                    skipFirst: 220,
+                    skipLast: 600,
+                },
+                {
+                    name: "high-freq",
+                    fetchPsd: () => this.fft.readPsd(),
+                    getFs: () => this.fft.status.fs,
+                    getNBins: () => this.fft.fft_size / 2,
+                    skipFirst: 110,
+                    skipLast: 0,
+                },
+            ];
 
-    constructor(document: Document,
-                private fft: FFT,
-                private decimator: Decimator,
-                private plotBasics: PlotBasics) {
-        this.n_pts_high_freq = this.fft.fft_size / 2;
-        // low & mid use the same N/2+1 size from the decimator path
-        this.n_pts_mid_freq = 1 + this.decimator.status.n_pts / 2;
-        this.n_pts_low_freq = this.n_pts_mid_freq;
+            this.segs = this.computeLayout(segConfigs);
+            this.total_pts = this.segs.reduce((s, e) => s + e.size, 0);
 
-        // Ranges
-        this.n_start_low_freq = 0;        // skip DC bin
-        this.n_stop_low_freq  = 550;        // keep full top of low band
-        this.n_start_mid_freq = 220;        // skip DC bin
-        this.n_stop_mid_freq  = 600;
-        this.n_start_high_freq = 110;
-
-        // Sizes actually plotted
-        const size_low_freq = this.n_pts_low_freq - this.n_stop_low_freq - this.n_start_low_freq;
-        const size_mid_freq = this.n_pts_mid_freq - this.n_stop_mid_freq - this.n_start_mid_freq;
-        const size_high_freq = this.n_pts_high_freq - this.n_start_high_freq + 1;
-
-        // Offsets in plot_data
-        this.n0_low_freq = 0;
-        this.n0_mid_freq = size_low_freq + 1;
-        this.n0_high_freq = size_low_freq + size_mid_freq + 1;
-
-        // Total plotted points
-        this.n_pts = size_low_freq + size_mid_freq + size_high_freq;
-
-        this.peakDatapoint = [];
-        this.plot_data = [];
-
-        this.yunit = "dBV";
-        
-        this.plotBasics.LogYaxisFormatter = (val, axis) => {
-            if (val >= 1E9) {
-                return (val / 1E9).toFixed(axis.tickDecimals);
-            } else if (val >= 1E6) {
-                return (val / 1E6).toFixed(axis.tickDecimals) + "m";
-            } else if (val >= 1E3) {
-                return (val / 1E3).toFixed(axis.tickDecimals) + "µ";
-            } else {
+            this.plotBasics.LogYaxisFormatter = (val, axis) => {
+                if (val >= 1e9) return (val / 1e9).toFixed(axis.tickDecimals);
+                if (val >= 1e6) return (val / 1e6).toFixed(axis.tickDecimals) + "m";
+                if (val >= 1e3) return (val / 1e3).toFixed(axis.tickDecimals) + "µ";
                 return val.toFixed(axis.tickDecimals) + "n";
-            }
+            };
+
+            this.plotBasics.x_max = this.fft.status.fs / 2;
+            this.plotBasics.setRangeX(10.0, this.plotBasics.x_max);
+            this.plotBasics.setLogX();
+            this.plotBasics.enableDecimation();
+
+            this.updatePlot();
         }
 
-        this.plotBasics.x_max = this.fft.status.fs / 2;
-        this.plotBasics.setRangeX(10.0, this.plotBasics.x_max);
-        this.plotBasics.setLogX();
-        this.plotBasics.enableDecimation();
+    private computeLayout(configs: SegmentConfig[]): SegmentLayout[] {
+        let offset = 0;
+        return configs.map<SegmentLayout>(cfg => {
+            const nBins = cfg.getNBins();
+            const iStart = clamp(cfg.skipFirst, 0, Math.max(0, nBins - 1));
+            const iEnd   = clamp(nBins - 1 - cfg.skipLast, iStart, nBins - 1);
+            const size   = iEnd - iStart + 1;
 
-        this.updatePlot();
+            const entry: SegmentLayout = { ...cfg, iStart, iEnd, size, offset };
+            offset += size;
+            return entry;
+        });
     }
 
-    async updatePlot() {
-        const high_freq_psd = await this.fft.readPsd();
-        const mid_freq_psd  = await this.decimator.spectralDensity();
-        const low_freq_psd  = await this.decimator.spectralDensityLf();
+    private async updatePlot() {
+        // Fetch all PSDs in parallel
+        // TODO Update each segment at its acquisition rate
+        const psdPromises = this.segs.map(s => s.fetchPsd());
+        const psds = await Promise.all(psdPromises);
 
-        let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
-
+        const yUnit = (this.document.querySelector(".unit-input:checked") as HTMLInputElement).value;
         if (this.yunit !== yUnit) {
             this.yunit = yUnit;
-
             if (yUnit === "v-rtHz") {
                 this.plotBasics.setLogY();
             } else {
@@ -96,61 +120,45 @@ class Plot {
             }
         }
 
-        this.updateLowFreqPsdPlot(low_freq_psd);
-        this.updateMidFreqPsdPlot(mid_freq_psd);
-        this.updateHighFreqPsdPlot(high_freq_psd);
+        let peakSet = false;
 
-        this.plotBasics.redraw(this.plot_data,
-                               this.n_pts,
-                               this.peakDatapoint,
-                               this.yLabel, () => {
-            requestAnimationFrame( () => { this.updatePlot(); } );
-        });
-    }
+        for (let si = 0; si < this.segs.length; si++) {
+            const seg = this.segs[si];
+            const psd = psds[si];
+            const fs  = seg.getFs();
+            const nBins = seg.getNBins();
 
-    private updateLowFreqPsdPlot(low_freq_psd: Float64Array) {
-        const fs_low = this.decimator.status.fs_lf;
-        const fstep = (fs_low / 2) / this.n_pts_low_freq;
+            const fstep = (fs / 2) / nBins;
+            if (!peakSet && seg.markPeak && seg.iStart + 3 <= seg.iEnd) {
+                this.peakDatapoint = [4 * fstep, this.convertValue(psd[seg.iStart + 3], fs)];
+                peakSet = true;
+            }
 
-        // optional: place peak marker in the low band (here: third bin for consistency)
-        this.peakDatapoint = [4 * fstep, this.convertValue(low_freq_psd[3], fs_low)];
-
-        for (let i = this.n_start_low_freq; i <= this.n_pts_low_freq - this.n_stop_low_freq; i++) {
-            const freq = (i + 1) * fstep;
-            const y = this.convertValue(low_freq_psd[i], fs_low);
-            this.plot_data[this.n0_low_freq - this.n_start_low_freq + i] = [freq, y];
+            for (let i = seg.iStart, local = 0; i <= seg.iEnd; ++i, ++local) {
+                const freq = (i + 1) * fstep;
+                const y    = this.convertValue(psd[i], fs);
+                this.plot_data[seg.offset + local] = [freq, y];
+            }
         }
-    }
 
-    private updateMidFreqPsdPlot(mid_freq_psd: Float64Array) {
-        let fstep = this.decimator.status.fs / 2 / this.n_pts_mid_freq;
-        this.peakDatapoint = [4 * fstep, this.convertValue(mid_freq_psd[3], this.decimator.status.fs)];
-
-        for (let i: number = this.n_start_mid_freq; i <= this.n_pts_mid_freq - this.n_stop_mid_freq; i++) {
-            let freq = (i + 1) * fstep;
-            let convertedSlowPsd = this.convertValue(mid_freq_psd[i], this.decimator.status.fs);
-            this.plot_data[this.n0_mid_freq - this.n_start_mid_freq + i] = [freq, convertedSlowPsd];
-        }
-    }
-
-    private updateHighFreqPsdPlot(high_freq_psd: Float32Array) {
-        let fstep = this.plotBasics.x_max / this.n_pts_high_freq;
-
-        for (let i: number = this.n_start_high_freq; i <= this.n_pts_high_freq; i++) {
-            let freq = (i + 1) * fstep;
-            let convertedFastPsd = this.convertValue(high_freq_psd[i], this.fft.status.fs);
-            this.plot_data[this.n0_high_freq - this.n_start_high_freq + i] = [freq, convertedFastPsd];
-        };
+        this.plotBasics.redraw(
+            this.plot_data,
+            this.total_pts,
+            this.peakDatapoint,
+            this.yLabel,
+            () => requestAnimationFrame(() => { this.updatePlot(); })
+        );
     }
 
     private convertValue(value: number, fs: number): number {
         // value in V^2 / Hz
-        if (this.yunit === "dBV") {
-            return 10 * Math.log10(value * this.fft.status.ENBW * fs);
-        } else if (this.yunit === "dbv-rtHz") {
-            return 10 * Math.log10(value);
-        } else if (this.yunit === "v-rtHz") {
-            return Math.sqrt(value) * 1E9;
-        }
+        if (this.yunit === "dBV")         return 10 * Math.log10(value * this.fft.status.ENBW * fs);
+        if (this.yunit === "dbv-rtHz")    return 10 * Math.log10(value);
+        /* v-rtHz */                      return Math.sqrt(value) * 1e9;
     }
+} // class Plot
+
+// Helpers
+function clamp(x: number, lo: number, hi: number) {
+  return Math.min(Math.max(x, lo), hi);
 }
