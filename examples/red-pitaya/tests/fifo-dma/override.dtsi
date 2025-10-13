@@ -1,9 +1,10 @@
-/ {
+&amba {
     uio_fifo0: uio-fifo0 {
         compatible = "generic-uio";
 		interrupt-parent = <&intc>;
 		interrupts = <0 29 4>;
         linux,uio-name = "uio-fifo0-progfull";
+        linux,driver-override = "uio_pdrv_genirq";
         status = "okay";
     };
 
@@ -12,6 +13,7 @@
 		interrupt-parent = <&intc>;
 		interrupts = <0 30 4>;
         linux,uio-name = "uio-fifo1-progfull";
+        linux,driver-override = "uio_pdrv_genirq";
         status = "okay";
     };
 };
