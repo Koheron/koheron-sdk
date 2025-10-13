@@ -72,3 +72,7 @@ $(LINUX_BUILD_STAMP): $(LINUX_CONFIG)
 
 $(DTC_BIN): $(LINUX_PATH)/.unpacked $(LINUX_BUILD_STAMP)
 	@true
+
+.PHONY: clean_linux
+clean_linux:
+	rm -rf $(LINUX_PATH)
