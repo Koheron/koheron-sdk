@@ -1,4 +1,4 @@
-NAME := fclk
+NAME := fifo
 VERSION := 0.0.0
 
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya
