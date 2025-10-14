@@ -156,22 +156,33 @@ else
   QEMU_BIN    := /usr/bin/qemu-arm-static
 endif
 
-ROOT_TAR := ubuntu-base-$(UBUNTU_VERSION)-base-$(UBUNTU_ARCH).tar.gz
-ROOT_TAR_URL := https://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/$(ROOT_TAR)
+ROOT_TAR      := ubuntu-base-$(UBUNTU_VERSION)-base-$(UBUNTU_ARCH).tar.gz
+ROOT_TAR_URL  := https://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/$(ROOT_TAR)
 ROOT_TAR_PATH := $(TMP)/$(ROOT_TAR)
 
+# NEW: versioned SHA256SUMS
+SHA256SUMS_URL  := https://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/SHA256SUMS
+SHA256SUMS_PATH := $(TMP)/ubuntu-base-$(UBUNTU_VERSION)-SHA256SUMS
+ABS_SHA256SUMS  := $(abspath $(SHA256SUMS_PATH))
+
 BASE_ROOTFS_TAR := $(TMP)/ubuntu-base-$(UBUNTU_VERSION)-base-koheron-$(UBUNTU_ARCH).tgz
-
-OVERLAY_TAR := $(TMP_OS_PATH)/rootfs_overlay.tar
-
+OVERLAY_TAR     := $(TMP_OS_PATH)/rootfs_overlay.tar
 ABS_ROOT_TAR_PATH := $(abspath $(ROOT_TAR_PATH))
 ABS_OVERLAY_TAR   := $(abspath $(OVERLAY_TAR))
+OVERLAY_DIR       := $(TMP_OS_PATH)/rootfs_overlay
 
-OVERLAY_DIR := $(TMP_OS_PATH)/rootfs_overlay
-
-$(ROOT_TAR_PATH):
+$(SHA256SUMS_PATH):
 	mkdir -p $(@D)
-	curl -L $(ROOT_TAR_URL) -o $@
+	curl -fL $(SHA256SUMS_URL) -o $@
+	$(call ok,$@)
+
+$(ROOT_TAR_PATH): $(SHA256SUMS_PATH)
+	mkdir -p $(@D)
+	curl -fL $(ROOT_TAR_URL) -o $@
+	@cd $(@D); \
+	  grep -E "^[0-9a-f]{64}[[:space:]]+\\*?$(ROOT_TAR)$$" $(ABS_SHA256SUMS) | sha256sum -c -; \
+	  status=$$?; \
+	  if [ $$status -ne 0 ]; then echo "Checksum verification FAILED for $(ROOT_TAR)"; rm -f $(@F); exit $$status; fi
 	$(call ok,$@)
 
 ###############################################################################
