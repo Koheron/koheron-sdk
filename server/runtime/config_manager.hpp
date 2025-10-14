@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <string>
 
-namespace hw {
+namespace rt {
 
 namespace fs = std::filesystem;
 
@@ -65,6 +65,6 @@ class ConfigManager {
     cfg::ini cfg_;
 };
 
-} // namespace hw
+} // namespace rt
 
 #endif // __SERVER_CONTEXT_CONFIG_HPP__

@@ -24,7 +24,6 @@ class DriverContainer
   public:
     DriverContainer();
     ~DriverContainer();
-    int init();
 
     template<driver_id driver>
     auto& get() {

@@ -38,20 +38,10 @@ std::unique_ptr<D> make_driver()
 DriverContainer::DriverContainer() {
     is_started.fill(false);
     is_starting.fill(false);
-    provide_context_services();
     services::provide<Context>();
 }
 
 DriverContainer::~DriverContainer() = default;
-
-int DriverContainer::init() {
-    if (services::require<Context>().init() < 0) {
-        log<CRITICAL>("Context initialization failed\n");
-        return -1;
-    }
-
-    return 0;
-}
 
 template<driver_id driver>
 int DriverContainer::alloc() {
@@ -89,10 +79,6 @@ DriverManager::DriverManager(alloc_fail_cb on_alloc_fail)
 }
 
 int DriverManager::init() {
-    if (driver_container.init() < 0) {
-        return -1;
-    }
-
     // If there is a Common driver with an init() method we call it
     if constexpr (drivers::table::has_driver<Common>) {
         if constexpr (HasInit<Common>) {
