@@ -9,7 +9,7 @@
 #include <array>
 
 #include "server/runtime/services.hpp"
-#include "server/context/i2c_dev.hpp"
+#include "server/hardware/i2c_manager.hpp"
 
 // http://ww1.microchip.com/downloads/en/DeviceDoc/21189K.pdf
 

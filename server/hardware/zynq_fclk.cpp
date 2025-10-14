@@ -1,5 +1,5 @@
 
-#include "server/context/zynq_fclk.hpp"
+#include "server/hardware/zynq_fclk.hpp"
 
 #include "server/runtime/syslog.hpp"
 

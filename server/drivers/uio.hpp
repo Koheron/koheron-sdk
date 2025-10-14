@@ -2,7 +2,7 @@
 #define __SERVER_DRIVERS_UIO_HPP__
 
 #include "server/runtime/syslog.hpp"
-#include "server/context/memory_catalog.hpp"
+#include "server/hardware/memory_catalog.hpp"
 
 #include <atomic>
 #include <thread>

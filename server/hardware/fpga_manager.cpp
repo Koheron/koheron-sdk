@@ -1,7 +1,7 @@
 // Zynq bitstream loader
 // (c) Koheron
 
-#include "server/context/fpga_manager.hpp"
+#include "server/hardware/fpga_manager.hpp"
 #include "server/runtime/syslog.hpp"
 
 #include <array>

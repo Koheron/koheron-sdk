@@ -1,6 +1,6 @@
 // (c) Koheron
 
-#include "server/context/spi_dev.hpp"
+#include "server/hardware/spi_manager.hpp"
 #include "server/runtime/syslog.hpp"
 
 #include <filesystem>

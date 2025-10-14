@@ -1,6 +1,6 @@
 // (c) Koheron
 
-#include "server/context/i2c_dev.hpp"
+#include "server/hardware/i2c_manager.hpp"
 #include "server/runtime/syslog.hpp"
 
 #include <cstdio>

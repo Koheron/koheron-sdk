@@ -5,7 +5,7 @@
 #ifndef __ALPHA15_SIGNAL_ANALYZER_FFT_HPP__
 #define __ALPHA15_SIGNAL_ANALYZER_FFT_HPP__
 
-#include "server/context/memory_manager.hpp"
+#include "server/hardware/memory_manager.hpp"
 
 #include <atomic>
 #include <thread>

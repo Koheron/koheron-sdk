@@ -6,7 +6,7 @@
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/drivers_manager.hpp"
-#include "server/context/memory_manager.hpp"
+#include "server/hardware/memory_manager.hpp"
 #include "boards/alpha250/drivers/gpio-expander.hpp"
 #include "boards/alpha250/drivers/ad9747.hpp"
 #include "boards/alpha250/drivers/temperature-sensor.hpp"

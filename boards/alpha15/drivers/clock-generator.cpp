@@ -4,8 +4,8 @@
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/drivers_manager.hpp"
-#include "server/context/memory_manager.hpp"
-#include "server/context/i2c_dev.hpp"
+#include "server/hardware/memory_manager.hpp"
+#include "server/hardware/i2c_manager.hpp"
 #include "boards/alpha250/drivers/spi-config.hpp"
 
 #include <thread>

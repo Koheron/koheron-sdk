@@ -9,7 +9,7 @@
 
 #include "server/runtime/services.hpp"
 #include "server/runtime/syslog.hpp"
-#include "server/context/memory_manager.hpp"
+#include "server/hardware/memory_manager.hpp"
 #include "server/drivers/uio.hpp"
 
 #include <chrono>

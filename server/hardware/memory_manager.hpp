@@ -6,7 +6,7 @@
 #define __SERVER_CONTEXT_MEMORY_MANAGER_HPP__
 
 #include "server/runtime/syslog.hpp"
-#include "server/context/memory_map.hpp"
+#include "server/hardware/memory_map.hpp"
 
 #include <vector>
 #include <tuple>

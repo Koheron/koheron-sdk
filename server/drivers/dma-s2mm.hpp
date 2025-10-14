@@ -8,7 +8,7 @@
 #define __SERVER_DRIVERS_DMA_S2MM_HPP__
 
 #include "server/context/context.hpp"
-#include "server/context/memory_map.hpp"
+#include "server/hardware/memory_map.hpp"
 
 #include <chrono>
 #include <thread>

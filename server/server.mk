@@ -42,7 +42,8 @@ quiet_cmd_tpl = TPL $@
 # -----------------------------------------------------------------------------
 
 SERVER_TEMPLATES := $(wildcard $(SERVER_PATH)/templates/*.hpp $(SERVER_PATH)/templates/*.cpp)
-SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/core/*.cpp))))
+SERVER_CPP := $(wildcard $(SERVER_PATH)/core/*.cpp) $(wildcard $(SERVER_PATH)/main/*.cpp)
+SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(SERVER_CPP))))
 SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/runtime/*.cpp))))
 
 DRIVERS_HPP := $(filter %.hpp,$(DRIVERS))
@@ -118,8 +119,8 @@ INTERFACE_DRIVERS_OBJ += $(TMP_SERVER_PATH)/get_driver_inst.o
 # Objects
 # -----------------------------------------------------------------------------
 
-CONTEXT_OBJS := $(TMP_SERVER_PATH)/spi_dev.o $(TMP_SERVER_PATH)/i2c_dev.o $(TMP_SERVER_PATH)/fpga_manager.o $(TMP_SERVER_PATH)/zynq_fclk.o
-OBJ := $(SERVER_OBJ) $(SERVER_LIB_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
+HARDWARE_OBJ := $(TMP_SERVER_PATH)/spi_manager.o $(TMP_SERVER_PATH)/i2c_manager.o $(TMP_SERVER_PATH)/fpga_manager.o $(TMP_SERVER_PATH)/zynq_fclk.o
+OBJ := $(SERVER_OBJ) $(SERVER_LIB_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(HARDWARE_OBJ)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
@@ -135,7 +136,7 @@ SERVER_CCXXFLAGS += -Wlogical-op -Wdouble-promotion -Wformat -Wmissing-include-d
 SERVER_CCXXFLAGS += -Wpacked -Wredundant-decls -Wvarargs -Wvector-operation-performance -Wswitch-default
 SERVER_CCXXFLAGS += -Wuninitialized  -Wmissing-declarations
 SERVER_CCXXFLAGS += -Wno-psabi
-SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/core -I$(SDK_PATH) -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
+SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/core -I$(SERVER_PATH)/hardware -I$(SDK_PATH) -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 SERVER_CCXXFLAGS += -DKOHERON_VERSION=\"$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)\" -DINSTRUMENT_NAME=\"$(NAME)\" -DKOHERON_SERVER_BUILD
 SERVER_CCXXFLAGS += -O3 -fno-math-errno -fno-exceptions
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
@@ -190,7 +191,11 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp | $(GEN_HEADERS)
 	$(call echo-cmd,cxx)
 	$(Q)$(call cmd,cmd_cxx)
 
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp | $(GEN_HEADERS)
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/hardware/%.cpp | $(GEN_HEADERS)
+	$(call echo-cmd,cxx)
+	$(Q)$(call cmd,cmd_cxx)
+
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/main/%.cpp | $(GEN_HEADERS)
 	$(call echo-cmd,cxx)
 	$(Q)$(call cmd,cmd_cxx)
 

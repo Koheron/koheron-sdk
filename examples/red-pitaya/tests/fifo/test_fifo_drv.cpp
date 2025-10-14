@@ -1,9 +1,9 @@
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/systemd.hpp"
 #include "server/runtime/services.hpp"
-#include "server/context/memory_manager.hpp"
-#include "server/context/fpga_manager.hpp"
-#include "server/context/zynq_fclk.hpp"
+#include "server/hardware/memory_manager.hpp"
+#include "server/hardware/fpga_manager.hpp"
+#include "server/hardware/zynq_fclk.hpp"
 #include "server/drivers/fifo.hpp"
 
 #include <cstdint>

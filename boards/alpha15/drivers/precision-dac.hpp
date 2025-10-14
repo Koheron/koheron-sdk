@@ -1,7 +1,7 @@
 #ifndef __ALPHA15_DRIVERS_PRECISION_DAC_HPP__
 #define __ALPHA15_DRIVERS_PRECISION_DAC_HPP__
 
-#include "server/context/memory_manager.hpp"
+#include "server/hardware/memory_manager.hpp"
 
 #include <array>
 #include <cstdint>

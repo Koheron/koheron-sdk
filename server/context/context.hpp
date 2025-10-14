@@ -6,12 +6,12 @@
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 
-#include "server/context/memory_manager.hpp"
-#include "server/context/spi_dev.hpp"
-#include "server/context/i2c_dev.hpp"
-#include "server/context/zynq_fclk.hpp"
-#include "server/context/fpga_manager.hpp"
-#include "server/context/config_manager.hpp"
+#include "server/hardware/memory_manager.hpp"
+#include "server/hardware/spi_manager.hpp"
+#include "server/hardware/i2c_manager.hpp"
+#include "server/hardware/zynq_fclk.hpp"
+#include "server/hardware/fpga_manager.hpp"
+#include "server/hardware/config_manager.hpp"
 
 // Forward declarations
 

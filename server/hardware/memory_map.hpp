@@ -5,7 +5,7 @@
 #ifndef __SERVER_CONTEXT_MEMORY_MAP_HPP__
 #define __SERVER_CONTEXT_MEMORY_MAP_HPP__
 
-#include "server/context/memory_catalog.hpp"
+#include "server/hardware/memory_catalog.hpp"
 #include "server/drivers/uio.hpp"
 
 #include <cstdio>

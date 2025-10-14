@@ -24,7 +24,7 @@ SERVER_CCXXFLAGS += -Wpacked -Wredundant-decls -Wvarargs -Wvector-operation-perf
 SERVER_CCXXFLAGS += -Wuninitialized  -Wmissing-declarations
 SERVER_CCXXFLAGS += -Wno-psabi
 SERVER_CCXXFLAGS += -DINSTRUMENT_NAME=\"$(NAME)\"
-SERVER_CCXXFLAGS += -I$(APP_PATH) -I$(TMP_SERVER_PATH) -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/runtime -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
+SERVER_CCXXFLAGS += -I$(APP_PATH) -I$(TMP_SERVER_PATH) -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/runtime -I$(SERVER_PATH)/hardware -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 SERVER_CCXXFLAGS += -O3 -fno-math-errno
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
 SERVER_CCXXFLAGS += -std=c++20 -pthread
@@ -65,12 +65,12 @@ DRIVERS_CPP := $(filter %.cpp,$(DRIVERS))
 DRIVERS_CPP_REL := $(patsubst $(SDK_FULL_PATH)/%,%,$(DRIVERS_CPP))
 DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/,$(DRIVERS_CPP_REL:.cpp=.o))
 SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/runtime/*.cpp))))
-CONTEXT_OBJS := $(TMP_SERVER_PATH)/spi_dev.o $(TMP_SERVER_PATH)/i2c_dev.o $(TMP_SERVER_PATH)/fpga_manager.o $(TMP_SERVER_PATH)/zynq_fclk.o
+HARDWARE_OBJ := $(TMP_SERVER_PATH)/spi_manager.o $(TMP_SERVER_PATH)/i2c_manager.o $(TMP_SERVER_PATH)/fpga_manager.o $(TMP_SERVER_PATH)/zynq_fclk.o
 
 # Add here other object files needed by the app
 APP_OBJ := $(TMP_SERVER_PATH)/main.o
 
-OBJ := $(APP_OBJ) $(SERVER_LIB_OBJ) $(DRIVERS_OBJ) $(CONTEXT_OBJS)
+OBJ := $(APP_OBJ) $(SERVER_LIB_OBJ) $(DRIVERS_OBJ) $(HARDWARE_OBJ)
 
 # -----------------------------------------------------------------------------
 # Compile / Link
@@ -86,7 +86,7 @@ $(TMP_SERVER_PATH)/%.o: $(APP_PATH)/%.cpp | $(GEN_HDRS)
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp | $(GEN_HDRS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/context/%.cpp | $(GEN_HDRS)
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/hardware/%.cpp | $(GEN_HDRS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
 $(TMP_SERVER_PATH)/%.o: %.cpp | $(GEN_HEADERS)
