@@ -135,7 +135,7 @@ SERVER_CCXXFLAGS += -Wpedantic -Wfloat-equal -Wunused-macros -Wcast-qual -Wusele
 SERVER_CCXXFLAGS += -Wlogical-op -Wdouble-promotion -Wformat -Wmissing-include-dirs -Wundef
 SERVER_CCXXFLAGS += -Wpacked -Wredundant-decls -Wvarargs -Wvector-operation-performance -Wswitch-default
 SERVER_CCXXFLAGS += -Wuninitialized  -Wmissing-declarations
-SERVER_CCXXFLAGS += -Wno-psabi
+SERVER_CCXXFLAGS += -Wno-psabi -Wno-error=deprecated-declarations
 SERVER_CCXXFLAGS += -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/core -I$(SERVER_PATH)/hardware -I$(SDK_PATH) -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 SERVER_CCXXFLAGS += -DKOHERON_VERSION=\"$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)\" -DINSTRUMENT_NAME=\"$(NAME)\" -DKOHERON_SERVER_BUILD
 SERVER_CCXXFLAGS += -O3 -fno-math-errno -fno-exceptions

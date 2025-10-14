@@ -11,7 +11,6 @@
 #include "server/hardware/i2c_manager.hpp"
 #include "server/hardware/zynq_fclk.hpp"
 #include "server/hardware/fpga_manager.hpp"
-#include "server/runtime/config_manager.hpp"
 
 // Forward declarations
 
@@ -27,7 +26,6 @@ class Context {
     , i2c(services::require<hw::I2cManager>())
     , fclk(services::require<hw::ZynqFclk>())
     , fpga(services::require<hw::FpgaManager>())
-    , cfg(services::require<rt::ConfigManager>())
     {}
 
     template<class Driver>
@@ -50,7 +48,6 @@ class Context {
     hw::I2cManager&    i2c;
     hw::ZynqFclk&      fclk;
     hw::FpgaManager&   fpga;
-    rt::ConfigManager& cfg;
 };
 
 #endif // __SERVER_CONTEXT_CONTEXT_HPP__

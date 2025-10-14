@@ -3,9 +3,9 @@
 /// (c) Koheron
 
 #include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
 #include "server/runtime/drivers_manager.hpp"
 #include "server/utilities/meta_utils.hpp"
-#include "server/runtime/services.hpp"
 #include "server/context/context.hpp"
 
 #include <drivers.hpp> // Drivers includes
@@ -21,6 +21,13 @@ inline constexpr bool needs_context_v =
     std::is_constructible_v<D, Context&> ||
     std::is_constructible_v<D, const Context&>;
 
+template <class D>
+[[deprecated("Driver constructors taking Context& are deprecated; "
+             "prefer a default constructor and use services inside the driver.")]]
+inline Context& deprecated_context_arg_for() {
+    return services::require<Context>();
+}
+
 template<class D>
 std::unique_ptr<D> make_driver()
 {
@@ -28,10 +35,13 @@ std::unique_ptr<D> make_driver()
         std::is_default_constructible_v<D> || needs_context_v<D>,
         "Driver must be default-constructible or constructible from Context&");
 
-    if constexpr (needs_context_v<D>) {
-        return std::make_unique<D>(services::require<Context>());
-    } else {
+    if constexpr (std::is_default_constructible_v<D>) {
+        if constexpr (needs_context_v<D>) {
+            (void)&deprecated_context_arg_for<D>;
+        }
         return std::make_unique<D>();
+    } else {
+        return std::make_unique<D>(deprecated_context_arg_for<D>());
     }
 }
 
