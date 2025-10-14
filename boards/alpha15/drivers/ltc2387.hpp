@@ -5,7 +5,7 @@
 #ifndef __ALPHA15_DRIVERS_LTC2387_HPP__
 #define __ALPHA15_DRIVERS_LTC2387_HPP__
 
-#include "server/context/context.hpp"
+#include "server/hardware/memory_manager.hpp"
 
 #include <array>
 
@@ -16,7 +16,7 @@ class Eeprom;
 class Ltc2387
 {
   public:
-    Ltc2387(Context& ctx_);
+    Ltc2387();
     void init();
 
     // Data
@@ -48,7 +48,6 @@ class Ltc2387
     float get_offset(uint32_t channel, uint32_t range) const;
 
   private:
-    Context& ctx;
     Memory<mem::control>& ctl;
     Memory<mem::status>& sts;
     Eeprom& eeprom;

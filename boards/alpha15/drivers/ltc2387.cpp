@@ -2,18 +2,19 @@
 #include "./clock-generator.hpp"
 #include "./eeprom.hpp"
 
+#include "server/runtime/services.hpp"
 #include "server/runtime/syslog.hpp"
+#include "server/runtime/drivers_manager.hpp"
 
 #include <cmath>
 #include <chrono>
 #include <thread>
 #include <limits>
 
-Ltc2387::Ltc2387(Context& ctx_)
-: ctx(ctx_)
-, ctl(ctx.mm.get<mem::control>())
-, sts(ctx.mm.get<mem::status>())
-, eeprom(ctx.get<Eeprom>())
+Ltc2387::Ltc2387()
+: ctl(services::require<MemoryManager>().get<mem::control>())
+, sts(services::require<MemoryManager>().get<mem::status>())
+, eeprom(services::require<koheron::DriverManager>().get<Eeprom>())
 {}
 
 void Ltc2387::init() {
@@ -81,7 +82,7 @@ void Ltc2387::set_clock_delay() {
     set_testpat();
     std::this_thread::sleep_for(50us);
 
-    auto& clkgen = ctx.get<ClockGenerator>();
+    auto& clkgen = services::require<koheron::DriverManager>().get<ClockGenerator>();
     int n = n_hyst;
     int32_t start = 0;
     int32_t end = 0;
