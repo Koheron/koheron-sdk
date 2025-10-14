@@ -7,11 +7,9 @@
 
 #include <array>
 #include <ranges>
-
 #include <scicpp/core.hpp>
 #include <scicpp/polynomials.hpp>
 
-class Context;
 class Eeprom;
 class SpiConfig;
 
@@ -20,7 +18,7 @@ class SpiConfig;
 class Ltc2157
 {
   public:
-    Ltc2157(Context& ctx_);
+    Ltc2157();
 
     void init();
     const std::array<float, 8> get_calibration(uint32_t channel);
@@ -46,7 +44,6 @@ class Ltc2157
     float get_offset(uint32_t channel) const;
 
   private:
-    Context& ctx;
     Eeprom& eeprom;
     SpiConfig& spi_cfg;
 

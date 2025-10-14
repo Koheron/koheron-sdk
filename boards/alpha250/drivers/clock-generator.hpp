@@ -1,8 +1,6 @@
 #ifndef __ALPHA_DRIVERS_CLOCK_GENERATOR_HPP__
 #define __ALPHA_DRIVERS_CLOCK_GENERATOR_HPP__
 
-#include <context.hpp>
-
 #include <array>
 #include <string_view>
 
@@ -90,7 +88,7 @@ namespace clock_cfg {
 class ClockGenerator
 {
   public:
-    ClockGenerator(Context& ctx_);
+    ClockGenerator();
     void phase_shift(uint32_t n_shifts);
     int32_t set_tcxo_calibration(uint8_t new_cal);
     int32_t set_tcxo_clock(uint8_t value);
@@ -105,8 +103,6 @@ class ClockGenerator
     uint32_t get_reference_clock() const;
 
   private:
-    Context& ctx;
-    hw::Memory<mem::control>& ctl;
     Eeprom& eeprom;
     SpiConfig& spi_cfg;
 

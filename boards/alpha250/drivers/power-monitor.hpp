@@ -6,13 +6,12 @@
 #include <cstdint>
 #include <array>
 
-class Context;
 namespace hw { class I2cDev; }
 
 class PowerMonitor
 {
   public:
-    PowerMonitor(Context& ctx);
+    PowerMonitor();
 
     std::array<float, 4> get_supplies_ui();
     float get_shunt_voltage(uint32_t index);

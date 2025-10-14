@@ -3,7 +3,9 @@
 #ifndef __ALPHA_DRIVERS_TEMPERATURE_SENSOR_HPP__
 #define __ALPHA_DRIVERS_TEMPERATURE_SENSOR_HPP__
 
-#include <context.hpp>
+#include "server/runtime/services.hpp"
+#include "server/hardware/i2c_manager.hpp"
+#include "server/hardware/memory_manager.hpp"
 
 #include <array>
 #include <numeric>
@@ -11,12 +13,6 @@
 class TemperatureSensor
 {
   public:
-    TemperatureSensor(Context& ctx_)
-    : ctx(ctx_)
-    , i2c(ctx.i2c.get("i2c-0"))
-    , xadc(ctx.mm.get<mem::xadc>())
-    {}
-
     // Temperatures in °C
     std::array<float, 3> get_temperatures() {
         return {
@@ -27,8 +23,9 @@ class TemperatureSensor
     }
 
     float get_zynq_temperature() {
+        auto& xadc = services::require<hw::MemoryManager>().get<mem::xadc>();
         zynq_temp[i] = (xadc.read<0x200>() * 503.975) / 65356 - 273.15;
-        i = (i+1)%n_avg;
+        i = (i + 1) % n_avg;
         float sum = 0;
         sum = std::accumulate(zynq_temp.data(), zynq_temp.data()+n_avg, sum);
         return sum/n_avg;
@@ -42,10 +39,6 @@ class TemperatureSensor
     uint32_t i = 0;
     std::array<float, n_avg> zynq_temp;
 
-    Context& ctx;
-    hw::I2cDev& i2c;
-    hw::Memory<mem::xadc>& xadc;
-
     // http://www.ti.com/lit/ds/symlink/tmp116.pdf
     static constexpr uint8_t temperature_msb = 0;
     static constexpr uint8_t temperature_lsb = 1;
@@ -53,13 +46,18 @@ class TemperatureSensor
     static constexpr uint8_t configuration = 3;
 
     float get_tmp116_temperature(uint32_t i2c_address) {
+        auto& i2c = services::require<hw::I2cManager>().get("i2c-0");
+
         uint16_t temp;
+
         if (i2c.write(i2c_address, temperature_msb) < 0) {
             return 0;
         }
+
         if (i2c.read(i2c_address, temp) < 0) {
             return 0;
         }
+
         temp = ((temp & 0xFF) << 8) + (temp >> 8);
         return (reinterpret_cast<int16_t&>(temp) * 0.0078125);
     }

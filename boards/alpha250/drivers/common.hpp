@@ -8,14 +8,13 @@
 #include <thread>
 #include <atomic>
 
-class Context;
 class GpioExpander;
 class PrecisionAdc;
 
 class Common
 {
   public:
-    Common(Context& ctx_);
+    Common();
     ~Common();
 
     void set_led(uint32_t value);
@@ -25,7 +24,6 @@ class Common
     void start_blink();
     void stop_blink();
   private:
-    Context& ctx;
     GpioExpander& gpio;
     PrecisionAdc& precisionadc;
 

@@ -26,13 +26,12 @@
 // P1_6: USER_LED6
 // P1_7: USER_LED7
 
-class Context;
 namespace hw { class I2cDev; }
 
 class GpioExpander
 {
   public:
-    GpioExpander(Context& ctx);
+    GpioExpander();
 
     void set_led(uint8_t value);
     uint32_t get_inputs();

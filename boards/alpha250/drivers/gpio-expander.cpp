@@ -1,9 +1,10 @@
 #include "./gpio-expander.hpp"
 
-#include "server/context/context.hpp"
+#include "server/runtime/services.hpp"
+#include "server/hardware/i2c_manager.hpp"
 
-GpioExpander::GpioExpander(Context& ctx)
-: i2c(ctx.i2c.get("i2c-0"))
+GpioExpander::GpioExpander()
+: i2c(services::require<hw::I2cManager>().get("i2c-0"))
 {
     write_reg(0x4F, 2); // Port 0: push-pull, Port 1: open drain
     write_reg(0x42, 0);
@@ -35,8 +36,10 @@ int32_t GpioExpander::read_reg(uint8_t addr, uint8_t &data) {
     if (i2c.write(i2c_address, addr) < 0) {
         return -1;
     }
+
     if (i2c.read(i2c_address, data) < 0) {
         return -1;
     }
+
     return 1;
 }

@@ -1,17 +1,16 @@
 #include "./ltc2157.hpp"
-
-#include "server/context/context.hpp"
-
 #include "./eeprom.hpp"
 #include "./spi-config.hpp"
+
+#include "server/runtime/services.hpp"
+#include "server/runtime/drivers_manager.hpp"
 
 #include <cmath>
 #include <limits>
 
-Ltc2157::Ltc2157(Context& ctx_)
-: ctx(ctx_)
-, eeprom(ctx.get<Eeprom>())
-, spi_cfg(ctx.get<SpiConfig>())
+Ltc2157::Ltc2157()
+: eeprom(services::require<rt::DriverManager>().get<Eeprom>())
+, spi_cfg(services::require<rt::DriverManager>().get<SpiConfig>())
 {}
 
 void Ltc2157::init() {
@@ -46,20 +45,21 @@ void Ltc2157::init() {
     write_reg((DATA_FORMAT << 8) + (RAND << 1) + (TWOSCOMP << 0));
     spi_cfg.unlock();
 
-    ctx.log<INFO>("Ltc2157: Initialized");
+    log("Ltc2157: Initialized\n");
 }
 
 const std::array<float, 8> Ltc2157::get_calibration(uint32_t channel) {
     if (channel >= 2) {
-        ctx.log<ERROR>("Ltc2157::get_calibration: Invalid channel\n");
+        log<ERROR>("Ltc2157::get_calibration: Invalid channel\n");
         return std::array<float, 8>{};
     }
+
     return cal_coeffs[channel];
 }
 
 int32_t Ltc2157::set_calibration(uint32_t channel, const std::array<float, 8>& new_coeffs) {
     if (channel >= 2) {
-        ctx.log<ERROR>("Ltc2157::set_calibration: Invalid channel\n");
+        log<ERROR>("Ltc2157::set_calibration: Invalid channel\n");
         return -1;
     }
 
@@ -78,7 +78,7 @@ float Ltc2157::get_input_voltage_range(uint32_t channel) const {
     float g = get_gain(channel);
 
     if (std::isnan(g) || std::abs(g) < std::numeric_limits<float>::epsilon()) {
-        return NAN;
+        return std::numeric_limits<float>::quiet_NaN();
     }
 
     return (2 << 15) / g;
@@ -86,8 +86,8 @@ float Ltc2157::get_input_voltage_range(uint32_t channel) const {
 
 float Ltc2157::get_gain(uint32_t channel) const {
     if (channel >= 2) {
-        ctx.log<ERROR>("Ltc2157::get_gain: Invalid channel\n");
-        return NAN;
+        log<ERROR>("Ltc2157::get_gain: Invalid channel\n");
+        return std::numeric_limits<float>::quiet_NaN();
     }
 
     return cal_coeffs[channel][0];
@@ -95,8 +95,8 @@ float Ltc2157::get_gain(uint32_t channel) const {
 
 float Ltc2157::get_offset(uint32_t channel) const {
     if (channel >= 2) {
-        ctx.log<ERROR>("Ltc2157::get_offset: Invalid channel\n");
-        return NAN;
+        log<ERROR>("Ltc2157::get_offset: Invalid channel\n");
+        return std::numeric_limits<float>::quiet_NaN();
     }
 
     return cal_coeffs[channel][1];

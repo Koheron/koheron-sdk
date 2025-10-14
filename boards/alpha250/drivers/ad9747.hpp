@@ -5,14 +5,16 @@
 #ifndef __ALPHA_DRIVERS_AD9747_HPP__
 #define __ALPHA_DRIVERS_AD9747_HPP__
 
-#include <context.hpp>
+#include "server/runtime/services.hpp"
+#include "server/runtime/drivers_manager.hpp"
+
 #include "spi-config.hpp"
 
 class Ad9747
 {
   public:
-    Ad9747(Context& ctx)
-    : spi_cfg(ctx.get<SpiConfig>())
+    Ad9747()
+    : spi_cfg(services::require<rt::DriverManager>().get<SpiConfig>())
     {}
 
     enum regs {

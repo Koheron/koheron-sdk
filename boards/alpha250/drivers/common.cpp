@@ -1,13 +1,14 @@
 #include "./common.hpp"
-
-#include "server/context/context.hpp"
-
 #include "./clock-generator.hpp"
 #include "./ltc2157.hpp"
 #include "./ad9747.hpp"
 #include "./precision-dac.hpp"
 #include "./gpio-expander.hpp"
 #include "./precision-adc.hpp"
+
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
+#include "server/runtime/drivers_manager.hpp"
 
 #include <cstring>
 #include <chrono>
@@ -17,10 +18,9 @@
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 
-Common::Common(Context& ctx_)
-: ctx(ctx_)
-, gpio(ctx.get<GpioExpander>())
-, precisionadc(ctx.get<PrecisionAdc>()) // Initialize PrecisionADC
+Common::Common()
+: gpio(services::require<rt::DriverManager>().get<GpioExpander>())
+, precisionadc(services::require<rt::DriverManager>().get<PrecisionAdc>()) // Initialize PrecisionADC
 {}
 
 Common::~Common() {
@@ -32,12 +32,14 @@ void Common::set_led(uint32_t value) {
 }
 
 void Common::init() {
-    ctx.log<INFO>("Common - Initializing ...");
+    log("Common: Initializing ...");
     start_blink();
-    ctx.get<ClockGenerator>().init();
-    ctx.get<Ltc2157>().init();
-    ctx.get<Ad9747>().init();
-    ctx.get<PrecisionDac>().init();
+
+    auto& dm = services::require<rt::DriverManager>();
+    dm.get<ClockGenerator>().init();
+    dm.get<Ltc2157>().init();
+    dm.get<Ad9747>().init();
+    dm.get<PrecisionDac>().init();
 };
 
 std::string Common::get_instrument_config() {
@@ -58,7 +60,7 @@ void Common::ip_on_leds() {
             if (std::strcmp(it->ifa_name, want) != 0) continue;
 
             auto* pAddr = reinterpret_cast<sockaddr_in*>(it->ifa_addr);
-            ctx.logf<INFO>("ip_on_leds: Interface {} found: {}\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
+            logf("ip_on_leds: Interface {} found: {}\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
             uint32_t ip = htonl(pAddr->sin_addr.s_addr);
             set_led(ip);
             freeifaddrs(addrs);

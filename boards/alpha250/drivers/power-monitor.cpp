@@ -1,9 +1,10 @@
 #include "./power-monitor.hpp"
 
-#include "server/context/context.hpp"
+#include "server/runtime/services.hpp"
+#include "server/hardware/i2c_manager.hpp"
 
-PowerMonitor::PowerMonitor(Context& ctx)
-: i2c(ctx.i2c.get("i2c-0"))
+PowerMonitor::PowerMonitor()
+: i2c(services::require<hw::I2cManager>().get("i2c-0"))
 {
     // Averages = 4. Conversion time = 8.244 ms
     std::array<uint8_t, 3> buff {reg_configuration, 0x43, 0xFF};

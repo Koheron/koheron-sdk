@@ -1,26 +1,29 @@
 
 #include "./clock-generator.hpp"
-
 #include "./eeprom.hpp"
 #include "./spi-config.hpp"
+
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
+#include "server/runtime/drivers_manager.hpp"
+#include "server/hardware/memory_manager.hpp"
+#include "server/hardware/i2c_manager.hpp"
 
 #include <fstream>
 #include <thread>
 #include <chrono>
 
-ClockGenerator::ClockGenerator(Context& ctx_)
-: ctx(ctx_)
-, ctl(ctx.mm.get<mem::control>())
-, eeprom(ctx.get<Eeprom>())
-, spi_cfg(ctx.get<SpiConfig>())
+ClockGenerator::ClockGenerator()
+: eeprom(services::require<rt::DriverManager>().get<Eeprom>())
+, spi_cfg(services::require<rt::DriverManager>().get<SpiConfig>())
 {
     std::ifstream ifile(filename.data());
 
     if (!ifile.good()) {
-        ctx.log<INFO>("Clock generator - Not initialized");
+        log("Clock generator: Not initialized\n");
         is_clock_generator_initialized = false;
     } else {
-        ctx.log<INFO>("Clock generator - Already initialized");
+        log("Clock generator: Already initialized\n");
     }
 }
 
@@ -39,14 +42,14 @@ int32_t ClockGenerator::set_tcxo_calibration(uint8_t new_cal) {
 
 int32_t ClockGenerator::set_tcxo_clock(uint8_t value) {
     std::array<uint8_t, 2> buff {0b00010000, value};
-    return ctx.i2c.get("i2c-0").write(i2c_address, buff);
+    return services::require<hw::I2cManager>().get("i2c-0").write(i2c_address, buff);
 }
 
 void ClockGenerator::init() {
-    ctx.log<INFO>("Clock generator - Setting default configuration ...");
+    log("Clock generator: Setting default configuration ...\n");
     std::array<uint8_t, 1> cal_array;
     eeprom.read<eeprom_map::clock_generator_calib::offset>(cal_array);
-    ctx.log<INFO>("Clock generator - TCXO calibration is %u", cal_array[0]);
+    logf("Clock generator: TCXO calibration is {}\n", cal_array[0]);
     set_tcxo_clock(cal_array[0]);
     configure(CFG_ALL, clock_cfg::TCXO_CLOCK, clock_cfg::fs_250MHz);
 }
@@ -81,6 +84,7 @@ uint32_t ClockGenerator::get_reference_clock() const {
 void ClockGenerator::single_phase_shift(uint32_t incdec) {
     constexpr uint32_t psen_bit = 2;
     constexpr uint32_t psincdec_bit = 3;
+    auto& ctl = services::require<hw::MemoryManager>().get<mem::control>();
     ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));
     ctl.clear_bit<reg::mmcm, psen_bit>();
 }
@@ -93,7 +97,7 @@ void ClockGenerator::write_reg(uint32_t data) {
 
 int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const std::array<uint32_t, clock_cfg::num_params>& clk_cfg_) {
     if (clkin_select > 4) {
-        ctx.log<ERROR>("Clock generator - Invalid reference clock source");
+        log<ERROR>("Clock generator: Invalid reference clock source\n");
         return -1;
     }
 
@@ -268,18 +272,18 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
     }
 
     if (f_vco < 2.37E9 || f_vco > 2.6E9) {
-        ctx.logf<ERROR>("Clock generator - VCO frequency at {} MHz is out of range (2370 to 2600 MHz)\n", f_vco * 1E-6);
+        logf<ERROR>("Clock generator: VCO frequency at {} MHz is out of range (2370 to 2600 MHz)\n", f_vco * 1E-6);
         return -1;
     }
 
     // PLL2 phase detector frequency
     const auto f_pd2 = f_vco / PLL2_P / PLL2_N;
-    ctx.logf<INFO>("Clock generator: Freq. PD PLL2 = {} MHz\n", f_pd2 * 1E-6);
+    logf("Clock generator: Freq. PD PLL2 = {} MHz\n", f_pd2 * 1E-6);
 
     if (f_pd2 > 100E6) {
         // Enable fast PDF if PLL2 PD frequency gretaer than 100 MHz
         PLL2_FAST_PDF = 1;
-        ctx.log<INFO>("Clock generator: PLL2 Enable fast PDF\n");
+        log("Clock generator: PLL2 Enable fast PDF\n");
     }
 
     fs_adc = f_vco / CLKout1_DIV;
@@ -289,12 +293,12 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
         // We don't program the clock generator if it
         // results in data converters overclocking
 
-        ctx.log<ERROR>("Clock generator - Data converters overclocking\n");
+        log<ERROR>("Clock generator: Data converters overclocking\n");
         return -1;
     }
 
-    ctx.logf<INFO>("Clock generator - Ref: {}, VCO: {} MHz, ADC: {} MHz, DAC: {} MHz\n",
-                    clock_cfg::clkin_names[clkin_select].data(), f_vco * 1E-6, fs_adc * 1E-6, fs_dac * 1E-6);
+    logf("Clock generator - Ref: {}, VCO: {} MHz, ADC: {} MHz, DAC: {} MHz\n",
+         clock_cfg::clkin_names[clkin_select].data(), f_vco * 1E-6, fs_adc * 1E-6, fs_dac * 1E-6);
 
     spi_cfg.lock();
 

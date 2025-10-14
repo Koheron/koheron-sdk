@@ -1,17 +1,13 @@
 #ifndef __ALPHA_DRIVERS_SPI_CONFIG_HPP__
 #define __ALPHA_DRIVERS_SPI_CONFIG_HPP__
 
-#include <context.hpp>
+#include "server/runtime/services.hpp"
+#include "server/hardware/memory_manager.hpp"
 
 #include <mutex>
 
 class SpiConfig {
   public:
-    SpiConfig(Context& ctx)
-    : ctl(ctx.mm.get<mem::ps_control>())
-    , sts(ctx.mm.get<mem::ps_status>())
-    {}
-
     void lock() {
         mtx.lock();
     }
@@ -28,6 +24,10 @@ class SpiConfig {
         static_assert(nbytes <= 4, "Max. 4 bytes per packet");
         static_assert(cs_id <= 2, "Exceeds maximum number of slaves on SPI config bus");
 
+        auto& mm = services::require<hw::MemoryManager>();
+        auto& ctl = mm.get<mem::ps_control>();
+        auto& sts = mm.get<mem::ps_status>();
+
         // Wait for previous write to finish
         while (sts.read<reg::spi_cfg_sts>() == 0);
 
@@ -39,8 +39,6 @@ class SpiConfig {
     }
 
   private:
-    hw::Memory<mem::ps_control>& ctl;
-    hw::Memory<mem::ps_status>& sts;
     std::mutex mtx;
 };
 
