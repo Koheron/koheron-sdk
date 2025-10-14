@@ -194,11 +194,10 @@ umount "$root_dir"
 # --- shrink rootfs to minimum, leave 32 MiB cushion, resize p2, truncate image, refresh loop ---
 
 # accept e2fsck rc 0/1 ("fixed") as success
-fsck_ok() {
+fsck_ok_once() {
   set +e
-  e2fsck -f -y "$root_dev"
-  rc=$?
-  set -e
+  e2fsck -p -f "$root_dev"
+  rc=$?; set -e
   case "$rc" in 0|1) return 0 ;; *) echo "e2fsck error (rc=$rc)" >&2; exit "$rc" ;; esac
 }
 
@@ -207,9 +206,8 @@ orig_img_bytes=$(stat -c%s "$image" 2>/dev/null || wc -c <"$image")
 echo "[shrink] original image: $(numfmt --to=iec --suffix=B "$orig_img_bytes" 2>/dev/null || echo ${orig_img_bytes}B)"
 
 # 1) fsck -> shrink to minimum -> fsck again
-fsck_ok
-resize2fs -M "$root_dev"
-fsck_ok
+resize2fs -f -M "$root_dev"
+fsck_ok_once
 
 # 2) gather geometry
 eval "$(parted -sm "$device" unit s print | awk -F: '/^2:/{gsub(/s/,"",$2); printf "p2_start=%d;\n", $2+0}')"
@@ -246,12 +244,10 @@ saved=$(( orig_img_bytes - new_img_bytes ))
 echo "[shrink] new image: $(numfmt --to=iec --suffix=B "$new_img_bytes" 2>/dev/null || echo ${new_img_bytes}B)  (saved $(numfmt --to=iec --suffix=B "$saved" 2>/dev/null || echo ${saved}B))"
 
 # 6) refresh loop mapping so kernel sees new partition table (needed for zerofree)
-sync
 blockdev --flushbufs "$device" 2>/dev/null || true
-losetup -d "$device"
-device="$(losetup --find --show -P "$image")"
+losetup -c "$device" 2>/dev/null || true
 
-# recompute p1/p2 nodes
+# recompute p1/p2 nodes after table change
 boot_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '2!d')"
 root_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '3!d')"
 
@@ -259,8 +255,7 @@ root_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '3!d')"
 current_end=$(parted -sm "$device" unit s print | awk -F: '/^2:/{gsub(/s/,"",$3); print $3+0}')
 [ "$current_end" -eq "$new_p2_end" ] || echo "[shrink] WARN: p2 end mismatch ($current_end != $new_p2_end)"
 
-# now run zerofree (unmounted p2)
-zerofree "$root_dev" >/dev/null 2>&1 || true
+# zerofree "$root_dev" >/dev/null 2>&1 || true
 
 # --- package (sha + zip) ---
 (
@@ -272,15 +267,15 @@ zerofree "$root_dev" >/dev/null 2>&1 || true
   manifest="manifest-${release_name}.txt"
   zipfile="${release_name}.zip"
 
-  # Require artifacts to exist (and be non-empty)
   for f in "$img" "$manifest"; do
-    if [ ! -s "$f" ]; then
-      echo "Missing required artifact: $f" >&2
-      exit 1
-    fi
+    [ -s "$f" ] || { echo "Missing required artifact: $f" >&2; exit 1; }
   done
 
-  # Create checksum then zip everything (fail on any error)
-  sha256sum -- "$img" > "$sha"
-  zip -X -9 "$zipfile" "$img" "$sha" "$manifest"
+  # compute sha in parallel with page cache warm; zip at fast level
+  sha256sum -- "$img" > "$sha" &
+
+  # -1 is much faster with small ratio loss; keep -X to strip extra attrs
+  zip -X -1 "$zipfile" "$img" "$manifest" "$sha"
+
+  wait  # ensure sha finished (already included in zip)
 )
