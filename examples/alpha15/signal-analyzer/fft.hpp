@@ -11,6 +11,7 @@
 #include <thread>
 #include <mutex>
 #include <array>
+#include <tuple>
 
 namespace koheron { class DriverManager; }
 

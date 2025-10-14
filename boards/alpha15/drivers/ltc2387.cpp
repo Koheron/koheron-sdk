@@ -2,6 +2,8 @@
 #include "./clock-generator.hpp"
 #include "./eeprom.hpp"
 
+#include "server/runtime/syslog.hpp"
+
 #include <cmath>
 #include <chrono>
 #include <thread>
@@ -69,7 +71,7 @@ std::array<float, 2> Ltc2387::adc_data_volts(uint32_t n_avg) {
 void Ltc2387::set_clock_delay() {
     using namespace std::literals;
 
-    ctx.log<INFO>("Ltc2387: Setting ADC clock delay ...\n");
+    log("Ltc2387: Setting ADC clock delay ...\n");
     const auto t1 = std::chrono::high_resolution_clock::now();
 
     // Two lane mode test pattern
@@ -130,17 +132,18 @@ void Ltc2387::set_clock_delay() {
     while (!(sts.read_bit<reg::mmcm_sts, 1>())) {}
 
     const auto [data0, data1] = adc_raw_data(1U);
-    ctx.log<INFO>("Ltc2387: testpat = 0x%05x, data0 = 0x%05x, data1 = 0x%05x\n",
-                    testpat, data0, data1);
-    ctx.log<INFO>("Ltc2387: total phase shift = %li, window size = %li\n", clkgen.get_total_phase_shift(), end - start);
+    logf("Ltc2387: testpat = {:#07x}, data0 = {:#07x}, data1 = {:#07x}\n",
+         testpat, data0, data1);
+    logf("Ltc2387: total phase shift = {}, window size = {}\n",
+         clkgen.get_total_phase_shift(), end - start);
 
     if (data0 != testpat || data1 != testpat) {
-        ctx.log<ERROR>("Ltc2387: Failed to set clock delay");
+        log<ERROR>("Ltc2387: Failed to set clock delay");
     }
 
     const auto t2 = std::chrono::high_resolution_clock::now();
-    const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
-    ctx.log<INFO>("Ltc2387: Delay clock adjustment duration %lu us\n", duration);
+    const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
+    logf("Ltc2387: Delay clock adjustment duration {:%Q %q}\n", duration);
 
     clear_testpat();
 }
@@ -183,20 +186,19 @@ void Ltc2387::range_select(uint32_t channel, uint32_t range) {
     // range = 1: Input range 8 Vpp
 
     if (range >= input_range_num) {
-        ctx.log<ERROR>("Ltc2387::range_select: Invalid range\n");
+        log<ERROR>("Ltc2387::range_select: Invalid range\n");
         return;
     }
 
     if (channel >= 2) {
-        ctx.log<ERROR>("Ltc2387::range_select: Invalid channel\n");
+        log<ERROR>("Ltc2387::range_select: Invalid channel\n");
         return;
     }
 
     channel ? ctl.write_bit<reg::rf_adc_ctl1, 0>(range)
             : ctl.write_bit<reg::rf_adc_ctl0, 0>(range);
 
-    ctx.log<INFO>("Ltc2387: Channel %u set to range %s\n",
-                    channel, range ? "8 Vpp": "2 Vpp");
+    logf("Ltc2387: Channel {} set to range {}\n", channel, range ? "8 Vpp": "2 Vpp");
 }
 
 uint32_t Ltc2387::input_range(uint32_t channel) {
@@ -208,7 +210,7 @@ uint32_t Ltc2387::input_range(uint32_t channel) {
 
 std::array<float, cal_coeffs_num> Ltc2387::get_calibration(uint32_t channel) {
     if (channel >= 2) {
-        ctx.log<ERROR>("Ltc2387::get_calibration: Invalid channel\n");
+        log<ERROR>("Ltc2387::get_calibration: Invalid channel\n");
         return std::array<float, cal_coeffs_num>{};
     }
 
@@ -217,7 +219,7 @@ std::array<float, cal_coeffs_num> Ltc2387::get_calibration(uint32_t channel) {
 
 int32_t Ltc2387::set_calibration(uint32_t channel, const std::array<float, cal_coeffs_num>& new_coeffs) {
     if (channel >= 2) {
-        ctx.log<ERROR>("Ltc2387::set_calibration: Invalid channel\n");
+        log<ERROR>("Ltc2387::set_calibration: Invalid channel\n");
         return -1;
     }
 
@@ -234,8 +236,8 @@ int32_t Ltc2387::set_calibration(uint32_t channel, const std::array<float, cal_c
 
 float Ltc2387::get_gain(uint32_t channel, uint32_t range) const {
     if (channel >= 2) {
-        ctx.log<ERROR>("Ltc2387::get_gain: Invalid channel\n");
-        return NAN;
+        log<ERROR>("Ltc2387::get_gain: Invalid channel\n");
+        return std::numeric_limits<float>::quiet_NaN();
     }
 
     if (range == RANGE_2V) {
@@ -243,15 +245,15 @@ float Ltc2387::get_gain(uint32_t channel, uint32_t range) const {
     } else if (range == RANGE_8V) {
         return cal_coeffs[channel][2];
     } else {
-        ctx.log<ERROR>("Ltc2157::get_gain: Invalid range\n");
-        return NAN;
+        log<ERROR>("Ltc2157::get_gain: Invalid range\n");
+        return std::numeric_limits<float>::quiet_NaN();
     }
 }
 
 float Ltc2387::get_offset(uint32_t channel, uint32_t range) const {
     if (channel >= 2) {
-        ctx.log<ERROR>("Ltc2387::get_offset: Invalid channel\n");
-        return NAN;
+        log<ERROR>("Ltc2387::get_offset: Invalid channel\n");
+        return std::numeric_limits<float>::quiet_NaN();
     }
 
     if (range == RANGE_2V) {
@@ -259,8 +261,8 @@ float Ltc2387::get_offset(uint32_t channel, uint32_t range) const {
     } else if (range == RANGE_8V) {
         return cal_coeffs[channel][3];
     } else {
-        ctx.log<ERROR>("Ltc2157::get_offset: Invalid range\n");
-        return NAN;
+        log<ERROR>("Ltc2157::get_offset: Invalid range\n");
+        return std::numeric_limits<float>::quiet_NaN();
     }
 }
 

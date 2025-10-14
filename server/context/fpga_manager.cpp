@@ -205,7 +205,7 @@ static void log_mem_wc_mappings() {
 
         const auto node = find_devnode_for_platform_dev(devpath);
         if (!node.empty()) {
-            koheron::print_fmt<INFO>("FpgaManager: '{}' mapped to {}\n", devname, node);
+            logf<INFO>("FpgaManager: '{}' mapped to {}\n", devname, node);
         }
     }
 }
@@ -224,7 +224,7 @@ FpgaManager::FpgaManager() {
 
 int FpgaManager::load_bitstream() {
     if (use_xdevcgf) return load_bitstream_xdevcfg();
-    if (use_overlay)  return load_bitstream_overlay();
+    if (use_overlay) return load_bitstream_overlay();
     koheron::print<ERROR>("FpgaManager: load_bitstream(): neither xdevcfg nor fpga_manager selected\n");
     return -1;
 }

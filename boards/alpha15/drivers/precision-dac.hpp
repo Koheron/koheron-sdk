@@ -1,18 +1,19 @@
 #ifndef __ALPHA15_DRIVERS_PRECISION_DAC_HPP__
 #define __ALPHA15_DRIVERS_PRECISION_DAC_HPP__
 
+#include "server/context/memory_manager.hpp"
+
 #include <array>
 #include <cstdint>
 
 static constexpr uint32_t n_dacs = 4;
 
-class Context;
 class Eeprom;
 
 class PrecisionDac
 {
   public:
-    PrecisionDac(Context& ctx_);
+    PrecisionDac();
     void init();
     void set_dac_value_volts(uint32_t channel, float voltage);
     void set_dac_value(uint32_t channel, uint32_t code);
@@ -37,7 +38,7 @@ class PrecisionDac
         READBACK
     };
 
-    Context& ctx;
+    MemoryManager& mm;
     Eeprom& eeprom;
 
     std::array<uint32_t, n_dacs> dac_values{};
