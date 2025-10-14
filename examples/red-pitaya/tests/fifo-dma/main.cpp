@@ -6,6 +6,7 @@
 #include "server/context/memory_manager.hpp"
 #include "server/context/fpga_manager.hpp"
 #include "server/context/zynq_fclk.hpp"
+#include "server/drivers/uio.hpp"
 
 int main() {
     FpgaManager   fpga;
