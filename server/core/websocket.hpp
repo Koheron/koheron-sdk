@@ -106,14 +106,12 @@ class WebSocket
 };
 
 template<std::ranges::contiguous_range R>
-int WebSocket::send_request(const R& r, int64_t len)
-{
+int WebSocket::send_request(const R& r, int64_t len) {
     return send_request(reinterpret_cast<const unsigned char*>(std::data(r)), len);
 }
 
 template<std::ranges::contiguous_range R>
-int WebSocket::send(const R& r)
-{
+int WebSocket::send(const R& r) {
     using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
 
     if (connection_closed) {

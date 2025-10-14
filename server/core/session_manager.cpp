@@ -61,7 +61,7 @@ void SessionManager::delete_session(SessionID id)
     int session_fd = 0;
 
     if (!is_id_in_session_ids(id)) {
-        rt::print<INFO>("Not allocated session ID: %u\n", id);
+        logf("Not allocated session ID: {}\n", id);
         return;
     }
 
@@ -80,7 +80,7 @@ void SessionManager::delete_session(SessionID id)
         }
 
         if (shutdown(session_fd, SHUT_RDWR) < 0) {
-            rt::print<WARNING>("Cannot shutdown socket for session ID: %u\n", id);
+            logf<WARNING>("Cannot shutdown socket for session ID: {}\n", id);
         }
         close(session_fd);
     }
@@ -92,14 +92,14 @@ void SessionManager::delete_session(SessionID id)
 
 void SessionManager::delete_all()
 {
-    rt::print<INFO>("Closing all active sessions ...\n");
+    log("Closing all active sessions ...\n");
     assert(number_of_sessions == session_pool.size());
 
     if (!session_pool.empty()) {
         auto ids = get_session_ids();
 
         for (auto& id : ids) {
-            rt::print<INFO>("Delete session %u\n", id);
+            logf("Delete session {}\n", id);
             delete_session(id);
         }
     }

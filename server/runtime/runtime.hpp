@@ -34,7 +34,7 @@ class Runtime {
 
   private:
     static void on_fail_(driver_id id, std::string_view name) {
-        rt::print_fmt<PANIC>("DriverManager: driver [{}] {} failed to allocate.\n", id, name);
+        log<PANIC>("DriverManager: driver [{}] {} failed to allocate.\n", id, name);
         std::exit(EXIT_FAILURE);
     }
 };

@@ -34,7 +34,7 @@ int Server::execute(Command& cmd) {
         return execute_operation<Server::GET_CMDS>(cmd);
       case Server::server_op_num:
       default:
-        rt::print<ERROR>("Server::execute unknown operation\n");
+        log<ERROR>("Server::execute unknown operation\n");
         return -1;
     }
 }

@@ -26,7 +26,7 @@ void notify_ready(std::string_view status_msg) {
     int fd = ::socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
 
     if (fd < 0) {
-        rt::print<WARNING>("Cannot open notification socket\n");
+        log<WARNING>("Cannot open notification socket\n");
         return;
     }
 

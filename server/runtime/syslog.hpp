@@ -85,22 +85,11 @@ void print(std::string_view msg, Args&&... args) {
             std::fflush(stdout);
         }
     }
-
 }
 
 template<int S=INFO, typename... Args>
 void print_fmt(std::format_string<Args...> fmt, Args&&... args) {
     print<S>(std::format(fmt, std::forward<Args>(args)...));
-}
-
-template<int severity=INFO, typename... Args>
-void log(const char *msg, Args&&... args) {
-    print<severity>(msg, std::forward<Args>(args)...);
-}
-
-template<int severity=INFO, typename... Args>
-void logf(std::format_string<Args...> fmt, Args&&... args) {
-    print_fmt<severity>(fmt, std::forward<Args>(args)...);
 }
 
 } // namespace rt
@@ -110,12 +99,12 @@ void logf(std::format_string<Args...> fmt, Args&&... args) {
 
 template<int severity=INFO, typename... Args>
 inline void log(const char *msg, Args&&... args) {
-    rt::log<severity>(msg, std::forward<Args>(args)...);
+    rt::print<severity>(msg, std::forward<Args>(args)...);
 }
 
 template<int severity=INFO, typename... Args>
 inline void logf(std::format_string<Args...> fmt, Args&&... args) {
-    rt::logf<severity>(fmt, std::forward<Args>(args)...);
+    rt::print_fmt<severity>(fmt, std::forward<Args>(args)...);
 }
 
 #endif // __SERVER_RUNTIME_SYSLOG_HPP__
