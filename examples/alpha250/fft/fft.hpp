@@ -5,7 +5,7 @@
 #ifndef __ALPHA250_FFT_FFT_HPP__
 #define __ALPHA250_FFT_FFT_HPP__
 
-#include "server/context/context.hpp"
+#include "server/hardware/memory_manager.hpp"
 
 #include <cstdint>
 #include <atomic>
@@ -18,7 +18,7 @@ class ClockGenerator;
 class FFT
 {
   public:
-    FFT(Context& ctx_);
+    FFT();
     void set_input_channel(uint32_t channel);
     void set_scale_sch(uint32_t scale_sch);
     void set_fft_window(uint32_t window_id);
@@ -58,11 +58,8 @@ class FFT
     }
 
  private:
-    Context& ctx;
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::status>& sts;
-    hw::Memory<mem::psd>& psd_map;
-    hw::Memory<mem::demod>& demod_map;
     ClockGenerator& clk_gen;
 
     double fs_adc; // ADC sampling rate (Hz)

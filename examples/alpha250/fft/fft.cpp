@@ -1,5 +1,8 @@
 #include "./fft.hpp"
 
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
+#include "server/runtime/drivers_manager.hpp"
 #include "boards/alpha250/drivers/clock-generator.hpp"
 #include "boards/alpha250/drivers/ltc2157.hpp"
 
@@ -12,13 +15,12 @@
 namespace sci = scicpp;
 namespace win = scicpp::signal::windows;
 
-FFT::FFT(Context& ctx_)
-: ctx(ctx_)
-, ctl(ctx.mm.get<mem::control>())
-, sts(ctx.mm.get<mem::status>())
-, psd_map(ctx.mm.get<mem::psd>())
-, demod_map(ctx.mm.get<mem::demod>())
-, clk_gen(ctx.get<ClockGenerator>())
+using services::require;
+
+FFT::FFT()
+: ctl(require<hw::MemoryManager>().get<mem::control>())
+, sts(require<hw::MemoryManager>().get<mem::status>())
+, clk_gen(require<rt::DriverManager>().get<ClockGenerator>())
 {
     set_input_channel(0);
     set_scale_sch(0);
@@ -29,7 +31,7 @@ FFT::FFT(Context& ctx_)
 
 void FFT::set_input_channel(uint32_t channel) {
     if (channel >= 2) {
-        ctx.log<ERROR>("FFT::set_input_channel invalid channel\n");
+        log<ERROR>("FFT::set_input_channel invalid channel\n");
         return;
     }
 
@@ -57,7 +59,7 @@ void FFT::set_fft_window(uint32_t window_id) {
         set_window(win::blackmanharris<double, prm::fft_size>());
         break;
     default:
-        ctx.log<ERROR>("FFT: Invalid window index\n");
+        log<ERROR>("FFT: Invalid window index\n");
         return;
     }
 
@@ -84,12 +86,12 @@ std::array<int32_t, prm::n_adc> FFT::get_adc_raw_data(uint32_t n_avg) {
 
 void FFT::set_dds_freq(uint32_t channel, double freq_hz) {
     if (channel >= 2) {
-        ctx.log<ERROR>("FFT::set_dds_freq invalid channel\n");
+        log<ERROR>("FFT::set_dds_freq invalid channel\n");
         return;
     }
 
     if (std::isnan(freq_hz)) {
-        ctx.log<ERROR>("FFT::set_dds_freq Frequency is NaN\n");
+        log<ERROR>("FFT::set_dds_freq Frequency is NaN\n");
         return;
     }
 
@@ -110,7 +112,7 @@ void FFT::set_conversion_vectors() {
     constexpr double load = 50.0; // Ohm
 
     fs_adc = clk_gen.get_adc_sampling_freq();
-    auto& ltc2157 = ctx.get<Ltc2157>();
+    auto& ltc2157 = require<rt::DriverManager>().get<Ltc2157>();
 
     auto Hinv = std::array{
         ltc2157.get_inverse_transfer_function<0, prm::fft_size/2>(fs_adc),
@@ -130,6 +132,7 @@ void FFT::set_conversion_vectors() {
 }
 
 void FFT::set_window(const std::array<double, prm::fft_size> &window) {
+    auto& demod_map = require<hw::MemoryManager>().get<mem::demod>();
     demod_map.write_array(sci::map([](auto w){
         return uint32_t(((int32_t(32768 * w) + 32768) % 65536) + 32768);
     }, window));
@@ -176,6 +179,7 @@ void  FFT::psd_acquisition_thread() {
 
         {
             std::lock_guard<std::mutex> lock(mutex);
+            auto& psd_map = require<hw::MemoryManager>().get<mem::psd>();
             psd_buffer_raw = psd_map.read_array<float, prm::fft_size/2>();
 
             if (std::abs(clk_gen.get_adc_sampling_freq() - fs_adc) > std::numeric_limits<double>::round_error()) {
