@@ -3,7 +3,7 @@
 #include "./spi-config.hpp"
 
 #include "server/runtime/services.hpp"
-#include "server/runtime/drivers_manager.hpp"
+#include "server/runtime/driver_manager.hpp"
 
 #include <cmath>
 #include <limits>

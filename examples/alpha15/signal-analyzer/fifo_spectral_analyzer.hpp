@@ -5,7 +5,7 @@
 #include "./moving_averager.hpp"
 
 #include "server/runtime/services.hpp"
-#include "server/runtime/drivers_manager.hpp"
+#include "server/runtime/driver_manager.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/hardware/memory_manager.hpp"
 #include "server/drivers/fifo.hpp"

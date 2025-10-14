@@ -6,7 +6,7 @@
 #define __ALPHA_DRIVERS_AD9747_HPP__
 
 #include "server/runtime/services.hpp"
-#include "server/runtime/drivers_manager.hpp"
+#include "server/runtime/driver_manager.hpp"
 
 #include "spi-config.hpp"
 

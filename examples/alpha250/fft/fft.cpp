@@ -2,7 +2,7 @@
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
-#include "server/runtime/drivers_manager.hpp"
+#include "server/runtime/driver_manager.hpp"
 #include "boards/alpha250/drivers/clock-generator.hpp"
 #include "boards/alpha250/drivers/ltc2157.hpp"
 

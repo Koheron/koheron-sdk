@@ -1,10 +1,10 @@
-/// Implementation of drivers_manager.hpp
+/// Implementation of driver_manager.hpp
 ///
 /// (c) Koheron
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
-#include "server/runtime/drivers_manager.hpp"
+#include "server/runtime/driver_manager.hpp"
 #include "server/utilities/meta_utils.hpp"
 #include "server/context/context.hpp"
 
