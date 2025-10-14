@@ -18,8 +18,10 @@
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 
+using services::require;
+
 Common::Common()
-: gpio(services::require<rt::DriverManager>().get<GpioExpander>())
+: gpio(require<rt::DriverManager>().get<GpioExpander>())
 {}
 
 Common::~Common() {
@@ -33,7 +35,7 @@ void Common::set_led(uint32_t value) {
 void Common::init() {
     log("Common: Initializing ...\n");
     start_blink();
-    auto& dm = services::require<rt::DriverManager>();
+    auto& dm = require<rt::DriverManager>();
     dm.get<ClockGenerator>().init(); // Clock generator must be initialized before enabling LT2387 ADC
     dm.get<Ltc2387>().init();
     dm.get<Ad9747>().init();
@@ -69,7 +71,7 @@ void Common::ip_on_leds() {
 }
 
 void Common::adp5071_sync(bool enable, bool state_out) {
-    auto& ctl = services::require<hw::MemoryManager>().get<mem::control>();
+    auto& ctl = require<hw::MemoryManager>().get<mem::control>();
 
     if (enable) {
         ctl.set_bit<reg::adp5071_sync, 0>();

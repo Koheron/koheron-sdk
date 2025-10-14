@@ -13,9 +13,11 @@
 #include <thread>
 #include <chrono>
 
+using services::require;
+
 ClockGenerator::ClockGenerator()
-: eeprom(services::require<rt::DriverManager>().get<Eeprom>())
-, spi_cfg(services::require<rt::DriverManager>().get<SpiConfig>())
+: eeprom (require<rt::DriverManager>().get<Eeprom>())
+, spi_cfg(require<rt::DriverManager>().get<SpiConfig>())
 {
     std::ifstream ifile(filename.data());
 
@@ -42,7 +44,7 @@ int32_t ClockGenerator::set_tcxo_calibration(uint8_t new_cal) {
 
 int32_t ClockGenerator::set_tcxo_clock(uint8_t value) {
     std::array<uint8_t, 2> buff {0b00010000, value};
-    return services::require<hw::I2cManager>().get("i2c-0").write(i2c_address, buff);
+    return require<hw::I2cManager>().get("i2c-0").write(i2c_address, buff);
 }
 
 void ClockGenerator::init() {
@@ -84,7 +86,7 @@ uint32_t ClockGenerator::get_reference_clock() const {
 void ClockGenerator::single_phase_shift(uint32_t incdec) {
     constexpr uint32_t psen_bit = 2;
     constexpr uint32_t psincdec_bit = 3;
-    auto& ctl = services::require<hw::MemoryManager>().get<mem::control>();
+    auto& ctl = require<hw::MemoryManager>().get<mem::control>();
     ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));
     ctl.clear_bit<reg::mmcm, psen_bit>();
 }

@@ -9,7 +9,7 @@
 #include <limits>
 
 Ltc2157::Ltc2157()
-: eeprom(services::require<rt::DriverManager>().get<Eeprom>())
+: eeprom (services::require<rt::DriverManager>().get<Eeprom>())
 , spi_cfg(services::require<rt::DriverManager>().get<SpiConfig>())
 {}
 

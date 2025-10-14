@@ -8,7 +8,7 @@
 #include <cmath>
 
 PrecisionDac::PrecisionDac()
-: mm(services::require<hw::MemoryManager>())
+: mm    (services::require<hw::MemoryManager>())
 , eeprom(services::require<rt::DriverManager>().get<Eeprom>())
 {}
 
