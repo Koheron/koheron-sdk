@@ -5,8 +5,6 @@
 #ifndef __DRIVERS_DDS_HPP__
 #define __DRIVERS_DDS_HPP__
 
-#include <context.hpp>
-
 #include <array>
 
 class ClockGenerator;
@@ -14,7 +12,7 @@ class ClockGenerator;
 class Dds
 {
   public:
-    Dds(Context& ctx_);
+    Dds();
     void set_dds_freq(uint32_t channel, double freq_hz);
 
     auto get_dds_freq(uint32_t channel) {
@@ -22,11 +20,7 @@ class Dds
     }
 
   private:
-    Context& ctx;
-    hw::Memory<mem::control>& ctl;
-    hw::Memory<mem::status>& sts;
     ClockGenerator& clk_gen;
-
     std::array<double, 2> dds_freq = {{0.0, 0.0}};
 };
 

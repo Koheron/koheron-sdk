@@ -18,9 +18,11 @@
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 
+using services::require;
+
 Common::Common()
-: gpio(services::require<rt::DriverManager>().get<GpioExpander>())
-, precisionadc(services::require<rt::DriverManager>().get<PrecisionAdc>()) // Initialize PrecisionADC
+: gpio(require<rt::DriverManager>().get<GpioExpander>())
+, precisionadc(require<rt::DriverManager>().get<PrecisionAdc>()) // Initialize PrecisionADC
 {}
 
 Common::~Common() {
@@ -35,7 +37,7 @@ void Common::init() {
     log("Common: Initializing ...");
     start_blink();
 
-    auto& dm = services::require<rt::DriverManager>();
+    auto& dm = require<rt::DriverManager>();
     dm.get<ClockGenerator>().init();
     dm.get<Ltc2157>().init();
     dm.get<Ad9747>().init();

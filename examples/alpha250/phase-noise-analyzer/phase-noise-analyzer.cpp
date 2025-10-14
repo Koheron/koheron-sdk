@@ -5,32 +5,32 @@
 
 #include "./phase-noise-analyzer.hpp"
 
-#include "server/context/context.hpp"
-
-#include <boards/alpha250/drivers/clock-generator.hpp>
-#include <boards/alpha250/drivers/ltc2157.hpp>
-#include <server/drivers/dma-s2mm.hpp>
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
+#include "server/runtime/drivers_manager.hpp"
+#include "server/drivers/dma-s2mm.hpp"
+#include "boards/alpha250/drivers/clock-generator.hpp"
+#include "boards/alpha250/drivers/ltc2157.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <complex>
 #include <limits>
 #include <thread>
-
 #include <scicpp/polynomials.hpp>
 
 namespace sci = scicpp;
 namespace sig = scicpp::signal;
 
-PhaseNoiseAnalyzer::PhaseNoiseAnalyzer(Context& ctx_)
-: ctx(ctx_)
-, dma(ctx.get<DmaS2MM>())
-, clk_gen(ctx.get<ClockGenerator>())
-, ltc2157(ctx.get<Ltc2157>())
-, dds(ctx.get<Dds>())
-, ctl(ctx.mm.get<mem::control>())
-, sts(ctx.mm.get<mem::status>())
-, ram(ctx.mm.get<mem::ram>())
+using services::require;
+
+PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
+: cfg    (require<rt::ConfigManager>())
+, dma    (require<rt::DriverManager>().get<DmaS2MM>())
+, ltc2157(require<rt::DriverManager>().get<Ltc2157>())
+, dds    (require<rt::DriverManager>().get<Dds>())
+, ctl    (require<hw::MemoryManager>().get<mem::control>())
+, sts    (require<hw::MemoryManager>().get<mem::status>())
 , phase_noise(1 + fft_size / 2)
 , averager(1)
 {
@@ -38,6 +38,7 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer(Context& ctx_)
     vrange= { 1_V * ltc2157.get_input_voltage_range(0),
               1_V * ltc2157.get_input_voltage_range(1) };
 
+    auto& clk_gen = require<rt::DriverManager>().get<ClockGenerator>();
     clk_gen.set_sampling_frequency(0); // 200 MHz
     fs_adc = Frequency(clk_gen.get_adc_sampling_freq());
 
@@ -54,14 +55,14 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer(Context& ctx_)
 }
 
 void PhaseNoiseAnalyzer::save_config() {
-    ctx.cfg.set("PhaseNoiseAnalyzer", "channel", channel);
-    ctx.cfg.set("PhaseNoiseAnalyzer", "fft_navg", fft_navg);
-    ctx.cfg.set("PhaseNoiseAnalyzer", "cic_rate", cic_rate);
-    ctx.cfg.set("PhaseNoiseAnalyzer", "dds_freq[0]", dds.get_dds_freq(0));
-    ctx.cfg.set("PhaseNoiseAnalyzer", "dds_freq[1]", dds.get_dds_freq(1));
-    ctx.cfg.set("PhaseNoiseAnalyzer", "analyzer_mode", analyzer_mode);
-    ctx.cfg.set("PhaseNoiseAnalyzer", "interferometer_delay", interferometer_delay.eval());
-    ctx.cfg.save();
+    cfg.set("PhaseNoiseAnalyzer", "channel", channel);
+    cfg.set("PhaseNoiseAnalyzer", "fft_navg", fft_navg);
+    cfg.set("PhaseNoiseAnalyzer", "cic_rate", cic_rate);
+    cfg.set("PhaseNoiseAnalyzer", "dds_freq[0]", dds.get_dds_freq(0));
+    cfg.set("PhaseNoiseAnalyzer", "dds_freq[1]", dds.get_dds_freq(1));
+    cfg.set("PhaseNoiseAnalyzer", "analyzer_mode", analyzer_mode);
+    cfg.set("PhaseNoiseAnalyzer", "interferometer_delay", interferometer_delay.eval());
+    cfg.save();
 }
 
 void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t channel, double freq_hz) {
@@ -73,7 +74,7 @@ void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t channel, double freq_hz) 
 void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
     if (rate < prm::cic_decimation_rate_min ||
         rate > prm::cic_decimation_rate_max) {
-        ctx.log<ERROR>("PhaseNoiseAnalyzer: CIC rate out of range\n");
+        log<ERROR>("PhaseNoiseAnalyzer: CIC rate out of range\n");
         return;
     }
 
@@ -82,7 +83,7 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
     cic_rate = rate;
     fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
     dma_transfer_duration = prm::n_pts / fs;
-    ctx.logf<INFO>("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
+    logf("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
 
     update_interferometer_transfer_function();
     spectrum.fs(fs);
@@ -93,7 +94,7 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
 
 void PhaseNoiseAnalyzer::set_channel(uint32_t chan) {
     if (chan != 0 && chan != 1) {
-        ctx.log<ERROR>("PhaseNoiseAnalyzer: Invalid channel\n");
+        log<ERROR>("PhaseNoiseAnalyzer: Invalid channel\n");
         return;
     }
 
@@ -145,7 +146,7 @@ void PhaseNoiseAnalyzer::set_fft_navg(uint32_t n_avg) {
 
 void PhaseNoiseAnalyzer::set_analyzer_mode(uint32_t mode) {
     if (mode != AnalyzerMode::RF && mode != AnalyzerMode::LASER) {
-        ctx.logf<WARNING>("PhaseNoiseAnalyzer: Invalid mode {}", mode);
+        logf<WARNING>("PhaseNoiseAnalyzer: Invalid mode {}", mode);
         return;
     }
 
@@ -154,8 +155,8 @@ void PhaseNoiseAnalyzer::set_analyzer_mode(uint32_t mode) {
 
 void PhaseNoiseAnalyzer::set_interferometer_delay(float delay_s) {
     interferometer_delay = Time(delay_s);
-    ctx.logf<INFO>("PhaseNoiseAnalyzer: Interferometer delay set to {} ns",
-                    interferometer_delay.eval() * 1E9f);
+    logf("PhaseNoiseAnalyzer: Interferometer delay set to {} ns",
+         interferometer_delay.eval() * 1E9f);
 
     update_interferometer_transfer_function();
 }
@@ -163,44 +164,44 @@ void PhaseNoiseAnalyzer::set_interferometer_delay(float delay_s) {
 // ----------------- Private functions
 
 void PhaseNoiseAnalyzer::load_config() {
-    if (ctx.cfg.has("PhaseNoiseAnalyzer", "channel")) {
-        set_channel(ctx.cfg.get<uint32_t>("PhaseNoiseAnalyzer", "channel"));
+    if (cfg.has("PhaseNoiseAnalyzer", "channel")) {
+        set_channel(cfg.get<uint32_t>("PhaseNoiseAnalyzer", "channel"));
     } else {
         set_channel(0);
     }
 
-    if (ctx.cfg.has("PhaseNoiseAnalyzer", "fft_navg")) {
-        set_fft_navg(ctx.cfg.get<uint32_t>("PhaseNoiseAnalyzer", "fft_navg"));
+    if (cfg.has("PhaseNoiseAnalyzer", "fft_navg")) {
+        set_fft_navg(cfg.get<uint32_t>("PhaseNoiseAnalyzer", "fft_navg"));
     } else {
         set_fft_navg(1);
     }
 
-    if (ctx.cfg.has("PhaseNoiseAnalyzer", "cic_rate")) {
-        set_cic_rate(ctx.cfg.get<uint32_t>("PhaseNoiseAnalyzer", "cic_rate"));
+    if (cfg.has("PhaseNoiseAnalyzer", "cic_rate")) {
+        set_cic_rate(cfg.get<uint32_t>("PhaseNoiseAnalyzer", "cic_rate"));
     } else {
         set_cic_rate(prm::cic_decimation_rate_default);
     }
 
-    if (ctx.cfg.has("PhaseNoiseAnalyzer", "dds_freq[0]")) {
-        dds.set_dds_freq(0, ctx.cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[0]"));
+    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[0]")) {
+        dds.set_dds_freq(0, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[0]"));
     } else {
         dds.set_dds_freq(0, 10E6);
     }
 
-    if (ctx.cfg.has("PhaseNoiseAnalyzer", "dds_freq[1]")) {
-        dds.set_dds_freq(1, ctx.cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[1]"));
+    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[1]")) {
+        dds.set_dds_freq(1, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[1]"));
     } else {
         dds.set_dds_freq(1, 10E6);
     }
 
-    if (ctx.cfg.has("PhaseNoiseAnalyzer", "analyzer_mode")) {
-        set_analyzer_mode(ctx.cfg.get<uint32_t>("PhaseNoiseAnalyzer", "analyzer_mode"));
+    if (cfg.has("PhaseNoiseAnalyzer", "analyzer_mode")) {
+        set_analyzer_mode(cfg.get<uint32_t>("PhaseNoiseAnalyzer", "analyzer_mode"));
     } else {
         set_analyzer_mode(AnalyzerMode::RF);
     }
 
-    if (ctx.cfg.has("PhaseNoiseAnalyzer", "interferometer_delay")) {
-        set_interferometer_delay(ctx.cfg.get<float>("PhaseNoiseAnalyzer", "interferometer_delay"));
+    if (cfg.has("PhaseNoiseAnalyzer", "interferometer_delay")) {
+        set_interferometer_delay(cfg.get<float>("PhaseNoiseAnalyzer", "interferometer_delay"));
     } else {
         set_interferometer_delay(0.0f);
     }
@@ -220,6 +221,7 @@ void PhaseNoiseAnalyzer::kick_dma() {
 auto PhaseNoiseAnalyzer::read_dma() {
     std::scoped_lock lk(dma_mtx);
     dma.wait_for_transfer(dma_transfer_duration);
+    auto& ram = require<hw::MemoryManager>().get<mem::ram>();
     return ram.read_array<int32_t, data_size, read_offset>();
 }
 

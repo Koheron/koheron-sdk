@@ -5,23 +5,22 @@
 #ifndef __PHASE_NOISE_ANALYZER_HPP__
 #define __PHASE_NOISE_ANALYZER_HPP__
 
-#include <context.hpp>
-
 #include <array>
 #include <atomic>
 #include <cstdint>
 #include <shared_mutex>
 #include <tuple>
 #include <vector>
-
 #include <scicpp/core.hpp>
 #include <scicpp/signal.hpp>
+
+#include "server/hardware/memory_manager.hpp"
 
 #include "./dds.hpp"
 #include "./moving_averager.hpp"
 
+namespace rt { class ConfigManager; }
 class DmaS2MM;
-class ClockGenerator;
 class Ltc2157;
 class Dds;
 
@@ -43,7 +42,7 @@ class PhaseNoiseAnalyzer
     using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
 
   public:
-    PhaseNoiseAnalyzer(Context& ctx_);
+    PhaseNoiseAnalyzer();
 
     void save_config();
     void set_local_oscillator(uint32_t channel, double freq_hz);
@@ -82,14 +81,12 @@ class PhaseNoiseAnalyzer
     PhaseNoiseDensityVector get_phase_noise() const;
 
   private:
-    Context& ctx;
+    rt::ConfigManager& cfg;
     DmaS2MM& dma;
-    ClockGenerator& clk_gen;
     Ltc2157& ltc2157;
     Dds& dds;
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::status>& sts;
-    hw::Memory<mem::ram>& ram;
 
     uint32_t channel;
     uint32_t fft_navg;
