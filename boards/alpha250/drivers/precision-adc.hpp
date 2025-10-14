@@ -7,13 +7,12 @@
 #include <thread>
 #include <mutex>
 
-class Context;
-class SpiDev;
+namespace hw { class SpiDev; }
 
 class PrecisionAdc
 {
   public:
-    PrecisionAdc(Context& ctx_);
+    PrecisionAdc();
 
     uint32_t get_device_id() {
         return read(0x05, 1);
@@ -25,8 +24,7 @@ class PrecisionAdc
     }
 
   private:
-    Context& ctx;
-    SpiDev& spi;
+    hw::SpiDev& spi;
 
     static constexpr uint8_t channel_num = 8;
     std::array<float, channel_num> analog_inputs_data{};
