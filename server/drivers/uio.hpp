@@ -179,7 +179,7 @@ class Uio
             return false;
         }
 
-        // (Re)arm before entering the loop so the first IRQ can arrive.
+        // Arm before entering the loop so the first IRQ can arrive.
         if (!arm_irq()) {
             running_ = false;
             return false;
@@ -194,7 +194,7 @@ class Uio
                     break;
                 }
 
-                // Oe or more interrupts have occurred;
+                // Interrupts have occurred;
                 // Re-arm *before* calling the user callback to minimize dead time.
                 if (!arm_irq()) {
                     cb(-1);
