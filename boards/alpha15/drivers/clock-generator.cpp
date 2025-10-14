@@ -13,9 +13,9 @@
 #include <chrono>
 
 ClockGenerator::ClockGenerator()
-: i2c(services::require<I2cManager>().get("i2c-0"))
-, eeprom(services::require<koheron::DriverManager>().get<Eeprom>())
-, spi_cfg(services::require<koheron::DriverManager>().get<SpiConfig>())
+: i2c(services::require<hw::I2cManager>().get("i2c-0"))
+, eeprom(services::require<rt::DriverManager>().get<Eeprom>())
+, spi_cfg(services::require<rt::DriverManager>().get<SpiConfig>())
 {
     std::ifstream ifile(filename.data());
 
@@ -28,7 +28,7 @@ ClockGenerator::ClockGenerator()
 }
 
 void ClockGenerator::phase_shift(int32_t n_shifts) {
-    auto& mm = services::require<MemoryManager>();
+    auto& mm = services::require<hw::MemoryManager>();
 
     // Wait for end of previous phase shift
     while (!(mm.get<mem::status>().read_bit<reg::mmcm_sts, 1>())) {}
@@ -82,7 +82,7 @@ void ClockGenerator::set_sampling_frequency(uint32_t fs_select) {
 }
 
 bool ClockGenerator::phase_shift_done() {
-    auto& sts = services::require<MemoryManager>().get<mem::status>();
+    auto& sts = services::require<hw::MemoryManager>().get<mem::status>();
     return sts.read_bit<reg::mmcm_sts, 1>();
 }
 

@@ -1,3 +1,4 @@
+// (c) Koheron
 
 #include "server/runtime/systemd.hpp"
 #include "server/runtime/syslog.hpp"
@@ -7,12 +8,13 @@
 #include <string>
 #include <cstring>
 #include <cstddef>
+#include <cstdlib>
 
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
 
-namespace systemd {
+namespace rt::systemd {
 
 void notify_ready(std::string_view status_msg) {
     const char* sock = std::getenv("NOTIFY_SOCKET");
@@ -24,7 +26,7 @@ void notify_ready(std::string_view status_msg) {
     int fd = ::socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
 
     if (fd < 0) {
-        koheron::print<WARNING>("Cannot open notification socket\n");
+        rt::print<WARNING>("Cannot open notification socket\n");
         return;
     }
 
@@ -62,4 +64,5 @@ void notify_ready(std::string_view status_msg) {
     ::close(fd);
 }
 
-} // namespace systemd
+} // namespace rt::systemd
+

@@ -10,6 +10,14 @@
 #include <utility>
 #include <filesystem>
 #include <format>
+#include <cstdio>
+
+template <>
+struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
+    auto format(const std::filesystem::path& p, auto& ctx) const {
+        return std::formatter<std::string>::format(p.string(), ctx);
+    }
+};
 
 enum severity {
     PANIC,    ///< When Server is not functional anymore
@@ -21,14 +29,7 @@ enum severity {
     syslog_severity_num
 };
 
-template <>
-struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
-    auto format(const std::filesystem::path& p, auto& ctx) const {
-        return std::formatter<std::string>::format(p.string(), ctx);
-    }
-};
-
-namespace koheron {
+namespace rt {
 
 namespace config::log {
     /// Display messages emitted and received
@@ -92,18 +93,29 @@ void print_fmt(std::format_string<Args...> fmt, Args&&... args) {
     print<S>(std::format(fmt, std::forward<Args>(args)...));
 }
 
-} // namespace koheron
-
-// Convinience logging functions outside the koheron namespace
-
 template<int severity=INFO, typename... Args>
 void log(const char *msg, Args&&... args) {
-    koheron::print<severity>(msg, std::forward<Args>(args)...);
+    print<severity>(msg, std::forward<Args>(args)...);
 }
 
 template<int severity=INFO, typename... Args>
 void logf(std::format_string<Args...> fmt, Args&&... args) {
-    koheron::print_fmt<severity>(fmt, std::forward<Args>(args)...);
+    print_fmt<severity>(fmt, std::forward<Args>(args)...);
+}
+
+} // namespace rt
+
+// Convenience logging wrappers in the global namespace so existing call sites
+// do not need to qualify the runtime namespace explicitly.
+
+template<int severity=INFO, typename... Args>
+inline void log(const char *msg, Args&&... args) {
+    rt::log<severity>(msg, std::forward<Args>(args)...);
+}
+
+template<int severity=INFO, typename... Args>
+inline void logf(std::format_string<Args...> fmt, Args&&... args) {
+    rt::logf<severity>(fmt, std::forward<Args>(args)...);
 }
 
 #endif // __SERVER_RUNTIME_SYSLOG_HPP__

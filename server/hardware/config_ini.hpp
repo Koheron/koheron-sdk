@@ -14,6 +14,8 @@
 #include <charconv>
 #include <system_error>
 
+namespace hw {
+
 namespace cfg {
 
 struct ini {
@@ -275,5 +277,7 @@ inline bool save_ini(const std::filesystem::path& p, const ini& in) {
 }
 
 } // namespace cfg
+
+} // namespace hw
 
 #endif // __SERVER_CONTEXT_CONFIG_INI_HPP__

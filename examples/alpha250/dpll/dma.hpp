@@ -61,9 +61,9 @@ class Dma
     Context& ctx;
     DmaS2MM& dma;
     ClockGenerator& clk_gen;
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
-    Memory<mem::ram>& ram;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
+    hw::Memory<mem::ram>& ram;
 
     uint32_t cic_rate;
     float fs_adc, fs;

@@ -153,12 +153,12 @@ class FFT
 
  private:
     Context& ctx;
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
-    Memory<mem::psd0>& psd_map0;
-    Memory<mem::demod0>& demod_map0;
-    Memory<mem::psd1>& psd_map1;
-    Memory<mem::demod1>& demod_map1;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
+    hw::Memory<mem::psd0>& psd_map0;
+    hw::Memory<mem::demod0>& demod_map0;
+    hw::Memory<mem::psd1>& psd_map1;
+    hw::Memory<mem::demod1>& demod_map1;
     ClockGenerator& clk_gen;
     Ltc2157& ltc2157;
 

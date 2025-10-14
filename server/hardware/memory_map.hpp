@@ -23,6 +23,8 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 
+namespace hw {
+
 template<MemID id>
 class Memory
 {
@@ -66,7 +68,7 @@ class Memory
     }
 
     int open() {
-        koheron::print_fmt("Memory[{}]: Opening {}\n", name, device);
+        rt::print_fmt("Memory[{}]: Opening {}\n", name, device);
 
         if constexpr (is_uio) {
             uio_.emplace();
@@ -78,7 +80,7 @@ class Memory
             void* p = uio_->mmap();
 
             if (!p) {
-                koheron::print_fmt<ERROR>("Memory[{}]: UIO mmap failed\n", name);
+                rt::print_fmt<ERROR>("Memory[{}]: UIO mmap failed\n", name);
                 return -1;
             }
 
@@ -91,7 +93,7 @@ class Memory
             const auto fd = ::open(device.data(), O_RDWR | O_SYNC);
 
             if (fd == -1) {
-                koheron::print_fmt<ERROR>("Memory[{}]: Can't open {}\n", name, device);
+                rt::print_fmt<ERROR>("Memory[{}]: Can't open {}\n", name, device);
                 if constexpr (!is_devmem) {
                     return open_via_devmem_fallback();
                 } else {
@@ -392,7 +394,7 @@ class Memory
     }
 
     int open_via_devmem_fallback() {
-        koheron::print_fmt("Memory[{}]: Fallback to /dev/mem\n", name);
+        rt::print_fmt("Memory[{}]: Fallback to /dev/mem\n", name);
         const int fdm = ::open("/dev/mem", O_RDWR | O_SYNC);
 
         if (fdm < 0) {
@@ -423,5 +425,7 @@ class Memory
     }
 
 };
+
+} // namespace hw
 
 #endif // __SERVER_CONTEXT_MEMORY_MAP_HPP__

@@ -87,9 +87,9 @@ class PhaseNoiseAnalyzer
     ClockGenerator& clk_gen;
     Ltc2157& ltc2157;
     Dds& dds;
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
-    Memory<mem::ram>& ram;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
+    hw::Memory<mem::ram>& ram;
 
     uint32_t channel;
     uint32_t fft_navg;

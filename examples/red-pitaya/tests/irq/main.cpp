@@ -43,22 +43,22 @@ static void best_effort_rt() {
 }
 
 int main() {
-    FpgaManager fpga;
-    ZynqFclk fclk;
-    MemoryManager mm;
+    hw::FpgaManager fpga;
+    hw::ZynqFclk fclk;
+    hw::MemoryManager mm;
 
     if (fpga.load_bitstream() < 0) {
-        koheron::print<PANIC>("E1: Failed to load bitstream\n");
+        rt::print<PANIC>("E1: Failed to load bitstream\n");
         return -1;
     }
     if (mm.open() < 0) {
-        koheron::print<PANIC>("E2: Failed to open /dev/mem\n");
+        rt::print<PANIC>("E2: Failed to open /dev/mem\n");
         return -1;
     }
 
     // FCLK0 = 100 MHz (drives AXI Timer clock)
     fclk.set("fclk0", 100000000);
-    systemd::notify_ready();
+    rt::systemd::notify_ready();
 
     // Light RT tuning
     best_effort_rt();
@@ -103,7 +103,7 @@ int main() {
         return -1;
     }
 
-    koheron::print_fmt<INFO>("Synced on first IRQ (cnt={})\n", irqcnt);
+    rt::print_fmt<INFO>("Synced on first IRQ (cnt={})\n", irqcnt);
 
     // Measure and print IRQ-to-IRQ period
     auto t_prev = clk::now();
@@ -124,7 +124,7 @@ int main() {
         uint32_t tcr = timer.read<reg::TCR0>();
 
         const auto ms = std::chrono::duration<double, std::milli>(period);
-        koheron::print_fmt<INFO>("[IRQ {}] period={:%Q %q} TCR0={}\n",
+        rt::print_fmt<INFO>("[IRQ {}] period={:%Q %q} TCR0={}\n",
                                 irqcnt, ms, tcr);
 
         if (!timer_uio.arm_irq()) {
@@ -155,7 +155,7 @@ int main() {
             timer.write<reg::TCSR0>(TCSR_T0INT | cfg | TCSR_ENT0);
             const auto ms = std::chrono::duration<double, std::milli>(period);
             uint32_t tcr = timer.read<reg::TCR0>();
-            koheron::print_fmt<INFO>("ASYNC: [IRQ {}] period={:%Q %q} TCR0={}\n",
+            rt::print_fmt<INFO>("ASYNC: [IRQ {}] period={:%Q %q} TCR0={}\n",
                                     irqcnt, ms, tcr);
 
             cnt += irqcnt;

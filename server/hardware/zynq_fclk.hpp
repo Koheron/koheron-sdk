@@ -8,6 +8,8 @@
 #include <cstdint>
 #include <filesystem>
 
+namespace hw {
+
 class ZynqFclk {
     using Path = std::filesystem::path;
   public:
@@ -45,5 +47,7 @@ class ZynqFclk {
     int amba_clocking_set_rate(const Path& clkdir, char clkid, uint32_t fclk_rate);
     long amba_clocking_get_rate(const Path& clkdir);
 }; // class ZynqFclk
+
+} // namespace hw
 
 #endif // __SERVER_CONTEXT_ZYNQ_FCLK__

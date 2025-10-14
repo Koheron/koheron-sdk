@@ -65,11 +65,11 @@ class AdcDacBram
 
  private:
     Context& ctx;
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
-    Memory<mem::adc0>& adc0_map;
-    Memory<mem::adc1>& adc1_map;
-    Memory<mem::dac>& dac_map;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
+    hw::Memory<mem::adc0>& adc0_map;
+    hw::Memory<mem::adc1>& adc1_map;
+    hw::Memory<mem::dac>& dac_map;
     ClockGenerator& clockgen;
 
     // Acquisition time for each ADC channel (microseconds)

@@ -8,8 +8,8 @@
 #include <cmath>
 
 PrecisionDac::PrecisionDac()
-: mm(services::require<MemoryManager>())
-, eeprom(services::require<koheron::DriverManager>().get<Eeprom>())
+: mm(services::require<hw::MemoryManager>())
+, eeprom(services::require<rt::DriverManager>().get<Eeprom>())
 {}
 
 void PrecisionDac::init() {

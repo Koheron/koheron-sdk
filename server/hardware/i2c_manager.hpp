@@ -16,6 +16,8 @@
 
 #include "server/runtime/syslog.hpp"
 
+namespace hw {
+
 class I2cDev
 {
   public:
@@ -89,5 +91,7 @@ class I2cManager
     std::unordered_map<std::string, std::unique_ptr<I2cDev>> i2c_drivers;
     std::unique_ptr<I2cDev> empty_i2cdev;
 };
+
+} // namespace hw
 
 #endif // __SERVER_CONTEXT_I2C_DEV_HPP__

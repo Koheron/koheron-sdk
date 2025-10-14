@@ -27,7 +27,7 @@
 // P1_7: USER_LED7
 
 class Context;
-class I2cDev;
+namespace hw { class I2cDev; }
 
 class GpioExpander
 {
@@ -40,7 +40,7 @@ class GpioExpander
 
   private:
     static constexpr uint32_t i2c_address = 0b0100000;
-    I2cDev& i2c;
+    hw::I2cDev& i2c;
 
     // Command addresses
     static constexpr uint8_t Input_port_0 = 0x0;

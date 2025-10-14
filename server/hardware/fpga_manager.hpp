@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <vector>
 
+namespace hw {
+
 class FpgaManager {
     using Path = std::filesystem::path;
 
@@ -46,5 +48,7 @@ class FpgaManager {
     int read_bitstream_data(std::vector<char>& bitstream_data);
     int load_bitstream_xdevcfg();
 }; // FpgaManager
+
+} // namespace hw
 
 #endif // __SERVER_CONTEXT_FPGA_MANAGER__

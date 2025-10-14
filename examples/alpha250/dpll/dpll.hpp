@@ -116,8 +116,8 @@ class Dpll
 
   private:
     Context& ctx;
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
     ClockGenerator& clk_gen;
 
     std::array<double, 2> dds_freq = {{0.0, 0.0}};

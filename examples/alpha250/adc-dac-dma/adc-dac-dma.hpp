@@ -141,15 +141,15 @@ class AdcDacDma
 
   private:
     Context& ctx;
-    Memory<mem::control>& ctl;
-    Memory<mem::dma>& dma;
-    Memory<mem::ram_s2mm>& ram_s2mm;
-    Memory<mem::ram_mm2s>& ram_mm2s;
-    Memory<mem::axi_hp0>& axi_hp0;
-    Memory<mem::axi_hp2>& axi_hp2;
-    Memory<mem::ocm_mm2s>& ocm_mm2s;
-    Memory<mem::ocm_s2mm>& ocm_s2mm;
-    Memory<mem::sclr>& sclr;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::dma>& dma;
+    hw::Memory<mem::ram_s2mm>& ram_s2mm;
+    hw::Memory<mem::ram_mm2s>& ram_mm2s;
+    hw::Memory<mem::axi_hp0>& axi_hp0;
+    hw::Memory<mem::axi_hp2>& axi_hp2;
+    hw::Memory<mem::ocm_mm2s>& ocm_mm2s;
+    hw::Memory<mem::ocm_s2mm>& ocm_s2mm;
+    hw::Memory<mem::sclr>& sclr;
 
     std::array<uint32_t, n_desc * n_pts> data;
 

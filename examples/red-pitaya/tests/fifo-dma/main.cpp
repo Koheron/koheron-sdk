@@ -9,20 +9,20 @@
 #include "server/drivers/uio.hpp"
 
 int main() {
-    FpgaManager   fpga;
-    ZynqFclk      fclk;
-    MemoryManager mm;
+    hw::FpgaManager   fpga;
+    hw::ZynqFclk      fclk;
+    hw::MemoryManager mm;
 
     if (fpga.load_bitstream() < 0) {
-        koheron::print<PANIC>("Failed to load bitstream.\n");
+        rt::print<PANIC>("Failed to load bitstream.\n");
         return -1;
     }
     if (mm.open() < 0) {
-        koheron::print<PANIC>("Failed to open memory\n");
+        rt::print<PANIC>("Failed to open memory\n");
         return -1;
     }
 
-    systemd::notify_ready();
+    rt::systemd::notify_ready();
 
 
 

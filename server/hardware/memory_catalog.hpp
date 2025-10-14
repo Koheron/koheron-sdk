@@ -1,4 +1,3 @@
-
 #ifndef __SERVER_CONTEXT_MEMORY_CATALOG_HPP__
 #define __SERVER_CONTEXT_MEMORY_CATALOG_HPP__
 
@@ -6,7 +5,7 @@
 
 #include <memory.hpp>
 
-using  MemID = size_t;
+using MemID = size_t;
 
 namespace mem {
     constexpr uintptr_t get_base_addr(const MemID id) {

@@ -17,7 +17,7 @@
   #include <drivers_config.hpp>
 #endif
 
-namespace koheron {
+namespace rt {
 
 class DriverContainer
 {
@@ -89,8 +89,14 @@ class DriverManager
 
 template<class Driver>
 Driver& get_driver() {
-    return services::require<DriverManager>().template get<Driver>();
+    return services::require<rt::DriverManager>().template get<Driver>();
 }
+
+} // namespace rt
+
+namespace koheron {
+
+using rt::get_driver;
 
 } // namespace koheron
 

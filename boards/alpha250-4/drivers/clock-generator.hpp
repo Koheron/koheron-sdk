@@ -162,8 +162,8 @@ class ClockGenerator
 
   private:
     Context& ctx;
-    Memory<mem::control>& ctl;
-    I2cDev& i2c;
+    hw::Memory<mem::control>& ctl;
+    hw::I2cDev& i2c;
     Eeprom& eeprom;
     SpiConfig& spi_cfg;
 

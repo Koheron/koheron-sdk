@@ -69,9 +69,9 @@ class Cluster
 
   private:
     Context& ctx;
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
-    Memory<mem::ctl_clk>& ctl_clk;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
+    hw::Memory<mem::ctl_clk>& ctl_clk;
 };
 
 #endif // __DRIVERS_CLUSTER_HPP__

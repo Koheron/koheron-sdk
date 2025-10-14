@@ -57,7 +57,7 @@ class Eeprom
 {
   public:
     Eeprom()
-    : i2c(services::require<I2cManager>().get("i2c-0"))
+    : i2c(services::require<hw::I2cManager>().get("i2c-0"))
     {}
 
     int32_t set_serial_number(uint32_t sn) {
@@ -118,7 +118,7 @@ class Eeprom
     static constexpr uint32_t PAGESIZE = 32;
     static constexpr uint32_t EEPROM_SIZE = 64 * 1024 / 8;
 
-    I2cDev& i2c;
+    hw::I2cDev& i2c;
 
     int __write(const uint8_t *buffer, int32_t n_bytes)
     {

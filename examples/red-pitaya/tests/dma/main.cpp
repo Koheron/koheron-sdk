@@ -46,13 +46,13 @@ static double mib_per_s(size_t nbytes, duration<double> dt) {
 }
 
 int main() {
-    FpgaManager fpga; ZynqFclk fclk; MemoryManager mm;
-    if (fpga.load_bitstream() < 0) { koheron::print<PANIC>("Failed to load bitstream.\n"); return -1; }
-    if (mm.open() < 0)            { koheron::print<PANIC>("Failed to open memory\n");      return -1; }
+    hw::FpgaManager fpga; hw::ZynqFclk fclk; hw::MemoryManager mm;
+    if (fpga.load_bitstream() < 0) { rt::print<PANIC>("Failed to load bitstream.\n"); return -1; }
+    if (mm.open() < 0)            { rt::print<PANIC>("Failed to open memory\n");      return -1; }
 
     // 100 MHz fabric clock
     fclk.set("fclk0", 100000000);
-    systemd::notify_ready();
+    rt::systemd::notify_ready();
 
     auto& dma      = mm.get<mem::dma>();
     auto& ram_s2mm = mm.get<mem::ram_s2mm>(); // WC in YAML
@@ -88,7 +88,7 @@ int main() {
     // Make sure WC writes are visible to DMA
     asm volatile("dsb sy" ::: "memory");
 
-    koheron::print<INFO>("Prep TX (write_array): %.2f MiB/s | Clear RX: %.2f MiB/s\n",
+    rt::print<INFO>("Prep TX (write_array): %.2f MiB/s | Clear RX: %.2f MiB/s\n",
                          mib_per_s(bytes, t_prep1 - t_prep0),
                          mib_per_s(bytes, t_clr1  - t_clr0));
 
@@ -119,7 +119,7 @@ int main() {
         const uint32_t sr = dma.read<s2mm_dmasr>();
         if (sr & DMASR_IOC_IRQ) break;
         if (steady_clock::now() > deadline) {
-            koheron::print<ERROR>("Timeout: MM2S_SR=0x%08x S2MM_SR=0x%08x\n",
+            rt::print<ERROR>("Timeout: MM2S_SR=0x%08x S2MM_SR=0x%08x\n",
                                   dma.read<mm2s_dmasr>(), sr);
             dma.clear_bit<mm2s_dmacr, 0>();
             dma.clear_bit<s2mm_dmacr, 0>();
@@ -144,7 +144,7 @@ int main() {
     const double us   = duration_cast<duration<double, std::micro>>(t1 - t0).count();
     const double rate = double(bytes) / (1024.0 * 1024.0) / (us * 1e-6);
 
-    koheron::print<INFO>("DMA moved %u bytes in %.3f ms -> %.2f MiB/s | checksum=%llu/%llu\n",
+    rt::print<INFO>("DMA moved %u bytes in %.3f ms -> %.2f MiB/s | checksum=%llu/%llu\n",
                          bytes, us / 1000.0, rate,
                          (unsigned long long)sum, (unsigned long long)exp_sum);
 

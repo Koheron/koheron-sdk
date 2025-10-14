@@ -11,6 +11,8 @@
 #include <vector>
 #include <tuple>
 
+namespace hw {
+
 // http://stackoverflow.com/questions/39041236/tuple-of-sequence
 template<size_t N, class = std::make_index_sequence<N>> class MemoryManagerImpl;
 
@@ -36,7 +38,7 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
             const int fd = std::get<ids>(mem_maps).open();
             std::get<ids>(fds) = fd;
             if (fd < 0) {
-                koheron::print_fmt<ERROR>("MemoryManager: Can't open memory map id = {}\n", ids);
+                rt::print_fmt<ERROR>("MemoryManager: Can't open memory map id = {}\n", ids);
                 failed_maps.push_back(ids);
             }
         }(), ... );
@@ -56,5 +58,7 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
 };
 
 using MemoryManager = MemoryManagerImpl<mem::count>;
+
+} // namespace hw
 
 #endif // __SERVER_CONTEXT_MEMORY_MANAGER_HPP__

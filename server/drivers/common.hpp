@@ -69,8 +69,8 @@ class Common
 
   private:
     Context& ctx;
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
 
 };
 

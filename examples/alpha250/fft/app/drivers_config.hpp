@@ -18,8 +18,10 @@ class FFT;
 
 namespace drivers {
 
-using table = koheron::drivers_table<Common, Eeprom, GpioExpander, TemperatureSensor, PowerMonitor, ClockGenerator, Ltc2157, Ad9747, PrecisionAdc, PrecisionDac, SpiConfig, FFT>;
+using table = rt::drivers_table<Common, Eeprom, GpioExpander, TemperatureSensor, PowerMonitor, ClockGenerator, Ltc2157, Ad9747,
+PrecisionAdc, PrecisionDac, SpiConfig, FFT>;
 
 } // namespace drivers
 
 #endif // __DRIVERS_CONFIG_HPP__
+

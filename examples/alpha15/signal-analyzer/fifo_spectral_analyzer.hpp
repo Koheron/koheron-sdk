@@ -28,7 +28,7 @@ template<class Cfg>
 class FifoSpectralAnalyzer {
   public:
     explicit FifoSpectralAnalyzer()
-    : dm(services::require<koheron::DriverManager>())
+    : dm(services::require<rt::DriverManager>())
     , fifo()
     {
         psd.resize(1 + Cfg::n_pts / 2);
@@ -57,7 +57,7 @@ class FifoSpectralAnalyzer {
     float fifo_transfer_duration;
 
   private:
-    koheron::DriverManager& dm;
+    rt::DriverManager& dm;
     Fifo<Cfg::fifo_mem> fifo;
     std::array<double, Cfg::n_pts> seg_data;
     uint32_t seg_cnt = 0;
@@ -76,7 +76,7 @@ class FifoSpectralAnalyzer {
         static_assert(Cfg::cic_rate > prm::cic_decimation_rate_min &&
                       Cfg::cic_rate < prm::cic_decimation_rate_max);
 
-        auto& ctl = services::require<MemoryManager>().get<mem::ps_control>();
+        auto& ctl = services::require<hw::MemoryManager>().get<mem::ps_control>();
 
         if constexpr (Cfg::fifo_idx == 0) {
             ctl.write<reg::cic_rate0>(Cfg::cic_rate);

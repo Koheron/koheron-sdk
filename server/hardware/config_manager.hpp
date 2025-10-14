@@ -6,9 +6,9 @@
 #include <filesystem>
 #include <string>
 
-namespace {
-    namespace fs = std::filesystem;
-}
+namespace hw {
+
+namespace fs = std::filesystem;
 
 class ConfigManager {
     using Path = fs::path;
@@ -64,5 +64,7 @@ class ConfigManager {
 
     cfg::ini cfg_;
 };
+
+} // namespace hw
 
 #endif // __SERVER_CONTEXT_CONFIG_HPP__

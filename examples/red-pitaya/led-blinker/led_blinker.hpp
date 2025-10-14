@@ -32,8 +32,8 @@ class LedBlinker
     }
 
   private:
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
 };
 
 #endif // __DRIVERS_LED_BLINKER_HPP__

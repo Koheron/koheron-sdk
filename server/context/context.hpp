@@ -15,30 +15,30 @@
 
 // Forward declarations
 
-namespace koheron {
+namespace rt {
 template<class Driver> Driver& get_driver();
 }
 
 inline void provide_context_services() {
-    if (!services::get<MemoryManager>()) {
-        services::provide<MemoryManager>();
-        services::provide<SpiManager>();
-        services::provide<I2cManager>();
-        services::provide<ZynqFclk>();
-        services::provide<FpgaManager>();
-        services::provide<ConfigManager>();
+    if (!services::get<hw::MemoryManager>()) {
+        services::provide<hw::MemoryManager>();
+        services::provide<hw::SpiManager>();
+        services::provide<hw::I2cManager>();
+        services::provide<hw::ZynqFclk>();
+        services::provide<hw::FpgaManager>();
+        services::provide<hw::ConfigManager>();
     }
 }
 
 class Context {
   public:
     Context()
-    : mm(services::require<MemoryManager>())
-    , spi(services::require<SpiManager>())
-    , i2c(services::require<I2cManager>())
-    , fclk(services::require<ZynqFclk>())
-    , fpga(services::require<FpgaManager>())
-    , cfg(services::require<ConfigManager>())
+    : mm(services::require<hw::MemoryManager>())
+    , spi(services::require<hw::SpiManager>())
+    , i2c(services::require<hw::I2cManager>())
+    , fclk(services::require<hw::ZynqFclk>())
+    , fpga(services::require<hw::FpgaManager>())
+    , cfg(services::require<hw::ConfigManager>())
     {
         if (fpga.load_bitstream() < 0) {
             log<PANIC>("Failed to load bitstream. Exiting server...\n");
@@ -60,25 +60,25 @@ class Context {
 
     template<class Driver>
     Driver& get() const {
-        return koheron::get_driver<Driver>();
+        return rt::get_driver<Driver>();
     }
 
     template<int severity=INFO, typename... Args>
     void log(const char *msg, Args&&... args) {
-        koheron::print<severity>(msg, std::forward<Args>(args)...);
+        rt::print<severity>(msg, std::forward<Args>(args)...);
     }
 
     template<int severity=INFO, typename... Args>
     void logf(std::format_string<Args...> fmt, Args&&... args) {
-        koheron::print_fmt<severity>(fmt, std::forward<Args>(args)...);
+        rt::print_fmt<severity>(fmt, std::forward<Args>(args)...);
     }
 
-    MemoryManager& mm;
-    SpiManager&    spi;
-    I2cManager&    i2c;
-    ZynqFclk&      fclk;
-    FpgaManager&   fpga;
-    ConfigManager& cfg;
+    hw::MemoryManager& mm;
+    hw::SpiManager&    spi;
+    hw::I2cManager&    i2c;
+    hw::ZynqFclk&      fclk;
+    hw::FpgaManager&   fpga;
+    hw::ConfigManager& cfg;
 };
 
 #endif // __SERVER_CONTEXT_CONTEXT_HPP__

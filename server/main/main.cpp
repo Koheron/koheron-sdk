@@ -15,17 +15,17 @@ int main() {
 
     // On driver allocation failure
     auto on_fail = []([[maybe_unused]] driver_id id, [[maybe_unused]] std::string_view name) {
-        print<PANIC>("Exiting server...\n");
+        rt::print<PANIC>("Exiting server...\n");
         services::get<Server>()->exit_all = true;
     };
 
-    if (services::provide<DriverManager>(on_fail)->init() < 0) {
+    if (services::provide<rt::DriverManager>(on_fail)->init() < 0) {
         exit(EXIT_FAILURE);
     }
 
     services::provide<DriverExecutor>();
 
-    if (services::provide<SignalHandler>()->init() < 0) {
+    if (services::provide<rt::SignalHandler>()->init() < 0) {
         exit(EXIT_FAILURE);
     }
 

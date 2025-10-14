@@ -72,8 +72,8 @@ class Eeprom
 
   private:
     Context& ctx;
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
 };
 
 #endif // __DRIVERS_EEPROM_HPP__

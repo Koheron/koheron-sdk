@@ -56,14 +56,14 @@ int WebSocket::authenticate()
     const size_t pos = http_packet.find(WSKeyId);
 
     if (pos == std::string_view::npos) {
-        print<CRITICAL>("WebSocket: No Sec-WebSocket-Key header");
+        rt::print<CRITICAL>("WebSocket: No Sec-WebSocket-Key header");
         return -1;
     }
 
     const size_t key_begin = pos + WSKeyId.size();
 
     if (key_begin + WSKeyLen > http_packet.size()) {
-        print<CRITICAL>("WebSocket: Truncated Sec-WebSocket-Key");
+        rt::print<CRITICAL>("WebSocket: Truncated Sec-WebSocket-Key");
         return -1;
     }
 
@@ -106,12 +106,12 @@ int WebSocket::read_http_packet()
 
     // Check reception ...
     if (nb_bytes_rcvd < 0) {
-        print<CRITICAL>("WebSocket: Read error\n");
+        rt::print<CRITICAL>("WebSocket: Read error\n");
         return -1;
     }
 
     if (nb_bytes_rcvd == KOHERON_READ_STR_LEN) {
-        print<CRITICAL>("WebSocket: Read buffer overflow\n");
+        rt::print<CRITICAL>("WebSocket: Read buffer overflow\n");
         return -1;
     }
 
@@ -124,21 +124,21 @@ int WebSocket::read_http_packet()
 
     if (http_packet.find("\r\n\r\n") == std::string_view::npos) {
         if (static_cast<size_t>(nb_bytes_rcvd) == read_str.size()) {
-            print<CRITICAL>("WebSocket: HTTP header too large for buffer\n");
+            rt::print<CRITICAL>("WebSocket: HTTP header too large for buffer\n");
         } else {
-            print<CRITICAL>("WebSocket: Incomplete HTTP header\n");
+            rt::print<CRITICAL>("WebSocket: Incomplete HTTP header\n");
         }
         return -1;
     }
 
-    print<DEBUG>("[R] HTTP header\n");
+    rt::print<DEBUG>("[R] HTTP header\n");
     return static_cast<int>(nb_bytes_rcvd);
 }
 
 int WebSocket::set_send_header(int64_t data_len, unsigned int format)
 {
     if (data_len < 0) [[unlikely]] {
-        print<CRITICAL>("WebSocket: negative payload length\n");
+        rt::print<CRITICAL>("WebSocket: negative payload length\n");
         return -1;
     }
 
@@ -183,11 +183,11 @@ int WebSocket::receive_cmd(Command& cmd)
     }
 
     if (decode_raw_stream_cmd(cmd) < 0) {
-        print<CRITICAL>("WebSocket: Cannot decode command stream\n");
+        rt::print<CRITICAL>("WebSocket: Cannot decode command stream\n");
         return -1;
     }
 
-    print_fmt<DEBUG>("[R] WebSocket: command of {} bytes\n", header.payload_size);
+    rt::print_fmt<DEBUG>("[R] WebSocket: command of {} bytes\n", header.payload_size);
     return header.payload_size;
 }
 
@@ -199,12 +199,12 @@ int WebSocket::decode_raw_stream_cmd(Command& cmd)
         static_cast<std::size_t>(header.payload_size);
 
     if (read_str_len < need) {
-        print<CRITICAL>("WebSocket: truncated masked frame\n");
+        rt::print<CRITICAL>("WebSocket: truncated masked frame\n");
         return -1;
     }
 
     if (header.payload_size < Command::HEADER_SIZE) {
-        print<CRITICAL>("WebSocket: payload smaller than command header\n");
+        rt::print<CRITICAL>("WebSocket: payload smaller than command header\n");
         return -1;
     }
 
@@ -227,7 +227,7 @@ int WebSocket::decode_raw_stream_cmd(Command& cmd)
         static_cast<std::size_t>(header.payload_size) - Command::HEADER_SIZE;
 
     if (payload_bytes > cmd.payload.size()) {
-        print<CRITICAL>("WebSocket: payload longer than destination buffer\n");
+        rt::print<CRITICAL>("WebSocket: payload longer than destination buffer\n");
         return -1;
     }
 
@@ -250,7 +250,7 @@ int WebSocket::read_stream()
     int read_head_err = read_header();
 
     if (read_head_err < 0) {
-        print<CRITICAL>("WebSocket: Cannot read header\n");
+        rt::print<CRITICAL>("WebSocket: Cannot read header\n");
         return -1;
     }
 
@@ -263,7 +263,7 @@ int WebSocket::read_stream()
     int err = read_n_bytes(header.payload_size, header.payload_size);
 
     if (err < 0) {
-        print<CRITICAL>("WebSocket: Cannot read payload\n");
+        rt::print<CRITICAL>("WebSocket: Cannot read payload\n");
         return -1;
     }
 
@@ -274,23 +274,23 @@ int WebSocket::check_opcode(unsigned int opcode)
 {
     switch (opcode) {
       case CONTINUATION_FRAME:
-        print<CRITICAL>("WebSocket: Continuation frame is not suported\n");
+        rt::print<CRITICAL>("WebSocket: Continuation frame is not suported\n");
         return -1;
       case TEXT_FRAME:
         break;
       case BINARY_FRAME:
         break;
       case CONNECTION_CLOSE:
-        print<INFO>("WebSocket: Connection close\n");
+        rt::print<INFO>("WebSocket: Connection close\n");
         return 1;
       case PING:
-        print<CRITICAL>("WebSocket: Ping is not suported\n");
+        rt::print<CRITICAL>("WebSocket: Ping is not suported\n");
         return -1;
       case PONG:
-        print<CRITICAL>("WebSocket: Pong is not suported\n");
+        rt::print<CRITICAL>("WebSocket: Pong is not suported\n");
         return -1;
       default:
-        print_fmt<CRITICAL>("WebSocket: Invalid opcode {}\n", opcode);
+        rt::print_fmt<CRITICAL>("WebSocket: Invalid opcode {}\n", opcode);
         return -1;
     }
 
@@ -356,12 +356,12 @@ int WebSocket::read_header()
         header.payload_size = static_cast<int64_t>(be64toh(l));
         header.mask_offset = BIG_OFFSET;
     } else {
-        print<CRITICAL>("WebSocket: Couldn't decode stream size\n");
+        rt::print<CRITICAL>("WebSocket: Couldn't decode stream size\n");
         return -1;
     }
 
     if (header.payload_size > read_str.size() - 56) {
-        print<CRITICAL>("WebSocket: Message too large\n");
+        rt::print<CRITICAL>("WebSocket: Message too large\n");
         return -1;
     }
 
@@ -382,7 +382,7 @@ int WebSocket::read_n_bytes(int64_t bytes, int64_t expected)
             }
 
             if (bytes_read < 0) {
-                print<ERROR>("WebSocket: Cannot read data\n");
+                rt::print<ERROR>("WebSocket: Cannot read data\n");
                 return -1;
             }
 
@@ -393,13 +393,13 @@ int WebSocket::read_n_bytes(int64_t bytes, int64_t expected)
         }
 
         if (bytes_read == 0) {
-            print<INFO>("WebSocket: Connection closed by client\n");
+            rt::print<INFO>("WebSocket: Connection closed by client\n");
             connection_closed = true;
             return 1;
         }
 
         if (read_str_len == KOHERON_READ_STR_LEN) {
-            print<CRITICAL>("WebSocket: Read buffer overflow\n");
+            rt::print<CRITICAL>("WebSocket: Read buffer overflow\n");
             return -1;
         }
     }
@@ -430,18 +430,18 @@ int WebSocket::send_request(const unsigned char *bits, int64_t len)
         }
         else if (bytes_send == 0) {
             connection_closed = true;
-            print<INFO>("WebSocket: Connection closed by client\n");
+            rt::print<INFO>("WebSocket: Connection closed by client\n");
             return 0;
         }
     }
 
     if (bytes_send < 0) {
         connection_closed = true;
-        print_fmt<ERROR>("WebSocket: Cannot send request. Error {}\n", bytes_send);
+        rt::print_fmt<ERROR>("WebSocket: Cannot send request. Error {}\n", bytes_send);
         return -1;
     }
 
-    print<DEBUG>("[S] %i bytes\n", bytes_send);
+    rt::print<DEBUG>("[S] %i bytes\n", bytes_send);
     return bytes_send;
 }
 

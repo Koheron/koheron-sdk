@@ -36,14 +36,14 @@ class DmaS2MM
 
     template<MemID id, std::size_t n_elems, class T>
     void start_transfer() {
-        using mem = Memory<id>;
+        using memory = hw::Memory<id>;
         constexpr auto transfer_size = n_elems * sizeof(T);
 
         static_assert(n_elems > 0);
         static_assert(std::is_trivially_copyable_v<T>); // Trivial types avoid surprises in sizeof(T)
-        static_assert(transfer_size <= mem::total_size);
+        static_assert(transfer_size <= memory::size);
 
-        start_transfer(mem::phys_addr, transfer_size);
+        start_transfer(memory::phys_addr, transfer_size);
     }
 
     template<typename T>
@@ -77,8 +77,8 @@ class DmaS2MM
     static constexpr uint32_t max_sleeps_cnt = 4;
 
     Context& ctx;
-    Memory<mem::dma>& dma;
-    Memory<mem::axi_hp0>& axi_hp0;
+    hw::Memory<mem::dma>& dma;
+    hw::Memory<mem::axi_hp0>& axi_hp0;
 
     void reset() {
         dma.set_bit<s2mm_dmacr, 2>();

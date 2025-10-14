@@ -39,8 +39,8 @@ class SpiConfig {
     }
 
   private:
-    Memory<mem::ps_control>& ctl;
-    Memory<mem::ps_status>& sts;
+    hw::Memory<mem::ps_control>& ctl;
+    hw::Memory<mem::ps_status>& sts;
     std::mutex mtx;
 };
 
