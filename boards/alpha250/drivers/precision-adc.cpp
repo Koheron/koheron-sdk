@@ -1,7 +1,7 @@
 #include "./precision-adc.hpp"
 
 #include "server/context/context.hpp"
-#include "server/runtime/endian_utils.hpp"
+#include "server/utilities/endian_utils.hpp"
 
 #include <chrono>
 #include <span>

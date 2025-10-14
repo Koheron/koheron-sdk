@@ -5,7 +5,7 @@
 #include "server/core/server.hpp"
 #include "server/core/configs/drivers_config.hpp"
 
-#include "server/runtime/meta_utils.hpp"
+#include "server/utilities/meta_utils.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/drivers_manager.hpp"
 

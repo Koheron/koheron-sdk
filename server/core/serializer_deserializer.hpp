@@ -5,8 +5,8 @@
 #ifndef __SERIALIZER_DESERIALIZER_HPP__
 #define __SERIALIZER_DESERIALIZER_HPP__
 
-#include "server/runtime/endian_utils.hpp"
-#include "server/runtime/meta_utils.hpp"
+#include "server/utilities/endian_utils.hpp"
+#include "server/utilities/meta_utils.hpp"
 
 #include <bit>
 #include <cstddef>

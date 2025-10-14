@@ -9,7 +9,7 @@
 #include "server/core/base64.hpp"
 #include "server/core/sha1.hpp"
 #include "server/runtime/syslog.hpp"
-#include "server/runtime/endian_utils.hpp"
+#include "server/utilities/endian_utils.hpp"
 
 #include <array>
 #include <string>
