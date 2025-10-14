@@ -88,17 +88,6 @@ DriverManager::DriverManager(alloc_fail_cb on_alloc_fail)
     is_started.fill(false);
 }
 
-int DriverManager::init() {
-    // If there is a Common driver with an init() method we call it
-    if constexpr (drivers::table::has_driver<Common>) {
-        if constexpr (HasInit<Common>) {
-            get<Common>().init();
-        }
-    }
-
-    return 0;
-}
-
 DriverManager::~DriverManager() = default;
 
 template<driver_id id>

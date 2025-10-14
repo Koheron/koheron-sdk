@@ -54,8 +54,6 @@ class DriverManager
     explicit DriverManager(alloc_fail_cb on_alloc_fail = {});
     ~DriverManager();
 
-    int init();
-
     template<driver_id id>
     auto& get() {
         const bool is_core_started = std::get<id - drivers::table::offset>(is_started);
