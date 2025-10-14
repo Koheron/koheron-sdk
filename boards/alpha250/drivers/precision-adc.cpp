@@ -1,14 +1,15 @@
 #include "./precision-adc.hpp"
 
-#include "server/context/context.hpp"
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
+#include "server/hardware/spi_manager.hpp"
 #include "server/utilities/endian_utils.hpp"
 
 #include <chrono>
 #include <span>
 
-PrecisionAdc::PrecisionAdc(Context& ctx_)
-: ctx(ctx_)
-, spi(ctx.spi.get("spidev1.0"))
+PrecisionAdc::PrecisionAdc()
+: spi(services::require<hw::SpiManager>().get("spidev1.0"))
 {
     if (! spi.is_ok()) {
         return;
@@ -46,7 +47,7 @@ uint32_t PrecisionAdc::read(uint32_t address, uint32_t len) {
 
 void PrecisionAdc::write(uint32_t address, uint32_t value, uint32_t len) {
     if (len == 0 || len > 3) {
-        ctx.log<ERROR>("PrecisionAdc: write invalid length");
+        log<ERROR>("PrecisionAdc: write invalid length");
         return;
     }
 
@@ -126,7 +127,7 @@ void PrecisionAdc::adc_acquisition_thread() {
         tx[0] = cmd_byte;
 
         if (spi.transfer(tx, rx) < 0) {
-            ctx.log<WARNING>("PrecisionAdc: An error occured during read\n");
+            log<WARNING>("PrecisionAdc: An error occured during read\n");
             std::this_thread::sleep_for(10ms);
             continue;
         }
@@ -139,7 +140,7 @@ void PrecisionAdc::adc_acquisition_thread() {
             std::lock_guard lock(acquisition_mtx);
             analog_inputs_data[channel] = vref * (float(raw_data) / float(1u << 23) - 1.0f);
         } else {
-            ctx.logf<WARNING>("PrecisionAdc: Unexpected channel (# {}) received\n", channel);
+            logf<WARNING>("PrecisionAdc: Unexpected channel (# {}) received\n", channel);
         }
 
         std::this_thread::sleep_for(10ms);
