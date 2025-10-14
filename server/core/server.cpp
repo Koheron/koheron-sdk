@@ -109,15 +109,15 @@ int Server::run()
 
     while (true) {
         if (!ready_notified && is_ready()) {
-            print<INFO>("Koheron server ready\n");
+            rt::print<INFO>("Koheron server ready\n");
             if constexpr (config::notify_systemd) {
-                systemd::notify_ready("Koheron server is ready");
+                rt::systemd::notify_ready("Koheron server is ready");
             }
             ready_notified = true;
         }
 
-        if (services::require<SignalHandler>().interrupt() || exit_all) {
-            print<INFO>("Interrupt received, killing Koheron server ...\n");
+        if (services::require<rt::SignalHandler>().interrupt() || exit_all) {
+            rt::print<INFO>("Interrupt received, killing Koheron server ...\n");
             services::require<SessionManager>().delete_all();
             close_listeners();
             return 0;

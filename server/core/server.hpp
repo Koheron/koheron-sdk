@@ -129,7 +129,7 @@ void session_thread_call(int comm_fd, ListeningChannel<socket_type> *listener)
     auto session = static_cast<Session<socket_type>*>(&sm.get_session(sid));
 
     if (session->run() < 0) {
-        print<ERROR>("An error occured during session\n");
+        rt::print<ERROR>("An error occured during session\n");
     }
 
     sm.delete_session(sid);
@@ -151,12 +151,12 @@ void comm_thread_call(ListeningChannel<socket_type> *listener)
         }
 
         if (comm_fd < 0) {
-            print<CRITICAL>("Connection to client rejected [socket_type = %u]\n", socket_type);
+            rt::print<CRITICAL>("Connection to client rejected [socket_type = %u]\n", socket_type);
             continue;
         }
 
         if (listener->is_max_threads()) {
-            print<WARNING>("Maximum number of workers exceeded\n");
+            rt::print<WARNING>("Maximum number of workers exceeded\n");
             continue;
         }
 
@@ -164,7 +164,7 @@ void comm_thread_call(ListeningChannel<socket_type> *listener)
         session_thread.detach();
     }
 
-    print_fmt<INFO>("{} listener closed.\n", listen_channel_desc[socket_type]);
+    rt::print_fmt<INFO>("{} listener closed.\n", listen_channel_desc[socket_type]);
 }
 
 template<int socket_type>
@@ -172,7 +172,7 @@ int ListeningChannel<socket_type>::start_worker()
 {
     if (listen_fd >= 0) {
         if (::listen(listen_fd, NUMBER_OF_PENDING_CONNECTIONS) < 0) {
-            print_fmt<PANIC>("Listen {} error\n", listen_channel_desc[socket_type]);
+            rt::print_fmt<PANIC>("Listen {} error\n", listen_channel_desc[socket_type]);
             return -1;
         }
         comm_thread = std::thread{comm_thread_call<socket_type>, this};

@@ -14,7 +14,7 @@
 #include <thread>
 
 int main() {
-    koheron::Runtime rt;
+    rt::Runtime rt;
     auto& ctx = rt.context();
 
     ctx.log<INFO>("Initialize");

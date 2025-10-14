@@ -114,7 +114,7 @@ class Session : public SessionAbstract
 
     void exit_session() {
         if (exit_socket() < 0) {
-            print<WARNING>("An error occured during session exit\n");
+            rt::print<WARNING>("An error occured during session exit\n");
         }
     }
 
@@ -125,7 +125,7 @@ class Session : public SessionAbstract
         const auto err = rcv_n_bytes(buff.data(), sizeof(uint32_t));
 
         if (err < 0) {
-            print<ERROR>("Cannot read pack length\n");
+            rt::print<ERROR>("Cannot read pack length\n");
             return -1;
         }
 
@@ -169,7 +169,7 @@ int Session<socket_type>::run()
         }
 
         if (services::require<DriverExecutor>().execute(cmd) < 0) {
-            print<ERROR>("Failed to execute command [driver = %i, operation = %i]\n", cmd.driver, cmd.operation);
+            rt::print<ERROR>("Failed to execute command [driver = %i, operation = %i]\n", cmd.driver, cmd.operation);
         }
 
         if (status == CLOSED) {
@@ -209,7 +209,7 @@ inline int Session<TCP>::recv(std::vector<T>& vec, Command&)
     const auto err = rcv_n_bytes(reinterpret_cast<char *>(vec.data()), length * sizeof(T));
 
     if (err >= 0) {
-        print<DEBUG>("TCPSocket: Received a vector of %lu bytes\n", length);
+        rt::print<DEBUG>("TCPSocket: Received a vector of %lu bytes\n", length);
     }
 
     return err;
@@ -229,7 +229,7 @@ inline int Session<TCP>::recv(std::string& str, Command&)
     const auto err = rcv_n_bytes(str.data(), length);
 
     if (err >= 0) {
-       print<DEBUG>("TCPSocket: Received a string of %lu bytes\n", length);
+       rt::print<DEBUG>("TCPSocket: Received a string of %lu bytes\n", length);
     }
 
     return err;
@@ -262,21 +262,21 @@ inline int Session<TCP>::write(const R& r)
     const int n_bytes_send = ::write(comm_fd, static_cast<const unsigned char*>(std::data(r)), std::size(r));
 
     if (n_bytes_send == 0) {
-       print<ERROR>("TCPSocket::write: Connection closed by client\n");
+       rt::print<ERROR>("TCPSocket::write: Connection closed by client\n");
        return 0;
     }
 
     if (n_bytes_send < 0) {
-       print<ERROR>("TCPSocket::write: Can't write to client\n");
+       rt::print<ERROR>("TCPSocket::write: Can't write to client\n");
        return -1;
     }
 
     if (n_bytes_send != static_cast<int>(bytes_send)) {
-        print<ERROR>("TCPSocket::write: Some bytes have not been sent\n");
+        rt::print<ERROR>("TCPSocket::write: Some bytes have not been sent\n");
         return -1;
     }
 
-    print<DEBUG>("[S] [%u bytes]\n", bytes_send);
+    rt::print<DEBUG>("[S] [%u bytes]\n", bytes_send);
     return static_cast<int>(bytes_send);
 }
 
@@ -310,7 +310,7 @@ inline int Session<WEBSOCK>::recv(std::vector<T>& vec, Command& cmd)
     const auto length = std::get<0>(cmd.payload.deserialize<uint32_t>());
 
     if (length > CMD_PAYLOAD_BUFFER_LEN) {
-        print<ERROR>("WebSocket: Payload size overflow during buffer reception\n");
+        rt::print<ERROR>("WebSocket: Payload size overflow during buffer reception\n");
         return -1;
     }
 
@@ -325,7 +325,7 @@ inline int Session<WEBSOCK>::recv(std::string& str, Command& cmd)
     const auto length = std::get<0>(cmd.payload.deserialize<uint32_t>());
 
     if (length > CMD_PAYLOAD_BUFFER_LEN) {
-        print<ERROR>("WebSocket::rcv_vector: Payload size overflow\n");
+        rt::print<ERROR>("WebSocket::rcv_vector: Payload size overflow\n");
         return -1;
     }
 

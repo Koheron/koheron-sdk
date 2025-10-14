@@ -25,7 +25,7 @@ struct DriverExecutor::Impl {
             return;
         }
 
-        auto& dm = services::require<DriverManager>();
+        auto& dm = services::require<rt::DriverManager>();
         slot = std::make_unique<Driver<id>>(dm.get<id>());
     }
 

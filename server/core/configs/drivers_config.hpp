@@ -8,8 +8,9 @@ namespace drivers {
 struct NoDriver;
 struct Server;
 
-using table = koheron::drivers_table_t<std::tuple<NoDriver, Server>, driver_list>;
+using table = rt::drivers_table_t<std::tuple<NoDriver, Server>, driver_list>;
 
-}// namespace drivers
+} // namespace drivers
 
 #endif // __DRIVERS_CONFIG_HPP__
+

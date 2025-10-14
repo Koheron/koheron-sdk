@@ -116,7 +116,7 @@ class Common
     }
 
     Context& ctx;
-    Memory<mem::status>& sts;
+    hw::Memory<mem::status>& sts;
     ClockGenerator& clkgen;
     GpioExpander& gpio;
     Ltc2157& ltc2157;

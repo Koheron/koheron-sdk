@@ -21,7 +21,7 @@ class Fifo
 {
   public:
     Fifo()
-    : fifo(services::require<MemoryManager>().get<fifo_mem>())
+    : fifo(services::require<hw::MemoryManager>().get<fifo_mem>())
     {
         if constexpr (mem_dev == "/dev/uio") {
             uio.emplace();
@@ -97,7 +97,7 @@ class Fifo
 
             // Timeout: just loop; either more data will arrive or next arm+wait catches it
             if (rc == 0) {
-                koheron::print_fmt<WARNING>(
+                rt::print_fmt<WARNING>(
                     "FIFO [{}] Timed out. tmo={:%Q %q} [{} pts at {} Hz]\n",
                     mem_name, tmo, n_pts, fs_hz);
                 continue;
@@ -110,7 +110,7 @@ class Fifo
     }
 
     void probe() {
-        koheron::print_fmt<INFO>("FIFO [{}] probe: ISR={:#010x} IER={:#010x} RDFO={}\n",
+        rt::print_fmt<INFO>("FIFO [{}] probe: ISR={:#010x} IER={:#010x} RDFO={}\n",
             mem_name, read_reg<ISR>(), read_reg<IER>(), read_reg<RDFO>());
     }
 
@@ -128,7 +128,7 @@ class Fifo
     static constexpr std::string_view mem_name = mem::get_name(fifo_mem);
     static constexpr std::string_view mem_dev = mem::get_device_driver(fifo_mem);
 
-    Memory<fifo_mem>& fifo;
+    hw::Memory<fifo_mem>& fifo;
 
     std::optional<Uio<fifo_mem>> uio;
     bool irq_ready = false;

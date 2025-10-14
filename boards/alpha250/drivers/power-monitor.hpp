@@ -7,7 +7,7 @@
 #include <array>
 
 class Context;
-class I2cDev;
+namespace hw { class I2cDev; }
 
 class PowerMonitor
 {
@@ -22,7 +22,7 @@ class PowerMonitor
     // index = 0: VCC main supply
     // index = 1: Clocking subsystem supply
     const std::array<uint8_t, 2> i2c_address = {{0b1000001, 0b1000101}};
-    I2cDev& i2c;
+    hw::I2cDev& i2c;
 
     // http://www.ti.com/lit/ds/symlink/ina230.pdf
     static constexpr uint8_t reg_configuration = 0;

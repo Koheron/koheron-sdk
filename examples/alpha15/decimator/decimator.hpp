@@ -82,9 +82,9 @@ class Decimator
 
   private:
 
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
-    Memory<mem::adc_fifo>& adc_fifo_map;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
+    hw::Memory<mem::adc_fifo>& adc_fifo_map;
 
     std::array<uint32_t, ARR_SIZE> adc_data;
 };

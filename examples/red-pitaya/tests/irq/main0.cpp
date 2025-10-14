@@ -56,7 +56,7 @@ static void best_effort_rt() {
 static int open_uio_by_addr(uintptr_t want_base) {
     DIR* d = opendir("/sys/class/uio");
     if (!d) {
-        koheron::print<PANIC>("opendir(/sys/class/uio): %s\n", std::strerror(errno));
+        rt::print<PANIC>("opendir(/sys/class/uio): %s\n", std::strerror(errno));
         return -1;
     }
     int fd = -1;
@@ -74,9 +74,9 @@ static int open_uio_by_addr(uintptr_t want_base) {
             std::snprintf(dev, sizeof(dev), "/dev/%s", e->d_name);
             fd = ::open(dev, O_RDWR | O_CLOEXEC);
             if (fd < 0) {
-                koheron::print<PANIC>("open(%s): %s\n", dev, std::strerror(errno));
+                rt::print<PANIC>("open(%s): %s\n", dev, std::strerror(errno));
             } else {
-                koheron::print<INFO>("Using %s for IRQs (addr=0x%llx)\n",
+                rt::print<INFO>("Using %s for IRQs (addr=0x%llx)\n",
                                      dev, static_cast<unsigned long long>(want_base));
             }
             break;
@@ -84,7 +84,7 @@ static int open_uio_by_addr(uintptr_t want_base) {
     }
     closedir(d);
     if (fd < 0) {
-        koheron::print<PANIC>("No UIO device with base 0x%llx\n",
+        rt::print<PANIC>("No UIO device with base 0x%llx\n",
                               static_cast<unsigned long long>(want_base));
     }
     return fd;
@@ -95,22 +95,22 @@ int main() {
     signal(SIGINT,  on_sigint);
     signal(SIGTERM, on_sigint);
 
-    FpgaManager fpga;
-    ZynqFclk fclk;
-    MemoryManager mm;
+    hw::FpgaManager fpga;
+    hw::ZynqFclk fclk;
+    hw::MemoryManager mm;
 
     if (fpga.load_bitstream() < 0) {
-        koheron::print<PANIC>("E1: Failed to load bitstream\n");
+        rt::print<PANIC>("E1: Failed to load bitstream\n");
         return -1;
     }
     if (mm.open() < 0) {
-        koheron::print<PANIC>("E2: Failed to open /dev/mem\n");
+        rt::print<PANIC>("E2: Failed to open /dev/mem\n");
         return -1;
     }
 
     // FCLK0 = 100 MHz (drives AXI Timer clock)
     fclk.set("fclk0", 100000000);
-    systemd::notify_ready();
+    rt::systemd::notify_ready();
 
     // Light RT tuning
     best_effort_rt();
@@ -133,7 +133,7 @@ int main() {
 
     uint32_t arm = 1;
     if (::write(uio, &arm, sizeof(arm)) != sizeof(arm)) {
-        koheron::print<PANIC>("E5: uio enable: %s\n", std::strerror(errno));
+        rt::print<PANIC>("E5: uio enable: %s\n", std::strerror(errno));
         ::close(uio);
         return -1;
     }
@@ -143,23 +143,23 @@ int main() {
         struct pollfd pfd{uio, POLLIN, 0};
         int pr = ::poll(&pfd, 1, 2000);
         if (pr <= 0) {
-            koheron::print<PANIC>("E6: poll during prime %s\n", pr==0 ? "timeout" : std::strerror(errno));
+            rt::print<PANIC>("E6: poll during prime %s\n", pr==0 ? "timeout" : std::strerror(errno));
             ::close(uio);
             return -1;
         }
         uint32_t irqcnt = 0;
         if (::read(uio, &irqcnt, sizeof(irqcnt)) != sizeof(irqcnt)) {
-            koheron::print<PANIC>("E7: uio read during prime: %s\n", std::strerror(errno));
+            rt::print<PANIC>("E7: uio read during prime: %s\n", std::strerror(errno));
             ::close(uio);
             return -1;
         }
         timer.write<reg::TCSR0>(TCSR_T0INT | cfg | TCSR_ENT0); // ACK and keep running
         if (::write(uio, &arm, sizeof(arm)) != sizeof(arm)) {
-            koheron::print<PANIC>("E8: uio re-arm during prime: %s\n", std::strerror(errno));
+            rt::print<PANIC>("E8: uio re-arm during prime: %s\n", std::strerror(errno));
             ::close(uio);
             return -1;
         }
-        koheron::print<INFO>("Synced on first IRQ (cnt=%u)\n", irqcnt);
+        rt::print<INFO>("Synced on first IRQ (cnt=%u)\n", irqcnt);
     }
 
     // Measure and print IRQ-to-IRQ period
@@ -170,13 +170,13 @@ int main() {
         struct pollfd pfd{uio, POLLIN, 0};
         int pr = ::poll(&pfd, 1, 2000); // 2 s timeout
         if (pr <= 0) {
-            koheron::print<PANIC>("E6: poll %s\n", pr==0 ? "timeout" : std::strerror(errno));
+            rt::print<PANIC>("E6: poll %s\n", pr==0 ? "timeout" : std::strerror(errno));
             break;
         }
 
         uint32_t irqcnt = 0;
         if (::read(uio, &irqcnt, sizeof(irqcnt)) != sizeof(irqcnt)) {
-            koheron::print<PANIC>("E7: uio read: %s\n", std::strerror(errno));
+            rt::print<PANIC>("E7: uio read: %s\n", std::strerror(errno));
             break;
         }
 
@@ -189,11 +189,11 @@ int main() {
 
         // (Optional) observe counter value
         uint32_t tcr = timer.read<reg::TCR0>();
-        koheron::print<INFO>("[IRQ %u] period=%.3f ms  TCR0=%u\n", irqcnt, period_ms, tcr);
+        rt::print<INFO>("[IRQ %u] period=%.3f ms  TCR0=%u\n", irqcnt, period_ms, tcr);
 
         // Re-arm UIO delivery
         if (::write(uio, &arm, sizeof(arm)) != sizeof(arm)) {
-            koheron::print<PANIC>("E8: uio re-enable: %s\n", std::strerror(errno));
+            rt::print<PANIC>("E8: uio re-enable: %s\n", std::strerror(errno));
             break;
         }
     }

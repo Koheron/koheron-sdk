@@ -150,8 +150,8 @@ class Laser
     bool constant_power_on;
     bool is_calibrated;
     Context& ctx;
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
     Xadc& xadc;
 
     // Calibration

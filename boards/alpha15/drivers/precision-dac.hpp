@@ -38,7 +38,7 @@ class PrecisionDac
         READBACK
     };
 
-    MemoryManager& mm;
+    hw::MemoryManager& mm;
     Eeprom& eeprom;
 
     std::array<uint32_t, n_dacs> dac_values{};

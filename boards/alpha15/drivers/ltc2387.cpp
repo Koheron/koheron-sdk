@@ -12,9 +12,9 @@
 #include <limits>
 
 Ltc2387::Ltc2387()
-: ctl(services::require<MemoryManager>().get<mem::control>())
-, sts(services::require<MemoryManager>().get<mem::status>())
-, eeprom(services::require<koheron::DriverManager>().get<Eeprom>())
+: ctl(services::require<hw::MemoryManager>().get<mem::control>())
+, sts(services::require<hw::MemoryManager>().get<mem::status>())
+, eeprom(services::require<rt::DriverManager>().get<Eeprom>())
 {}
 
 void Ltc2387::init() {
@@ -82,7 +82,7 @@ void Ltc2387::set_clock_delay() {
     set_testpat();
     std::this_thread::sleep_for(50us);
 
-    auto& clkgen = services::require<koheron::DriverManager>().get<ClockGenerator>();
+    auto& clkgen = services::require<rt::DriverManager>().get<ClockGenerator>();
     int n = n_hyst;
     int32_t start = 0;
     int32_t end = 0;

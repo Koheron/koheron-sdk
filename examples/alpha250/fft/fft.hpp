@@ -59,10 +59,10 @@ class FFT
 
  private:
     Context& ctx;
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
-    Memory<mem::psd>& psd_map;
-    Memory<mem::demod>& demod_map;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
+    hw::Memory<mem::psd>& psd_map;
+    hw::Memory<mem::demod>& demod_map;
     ClockGenerator& clk_gen;
 
     double fs_adc; // ADC sampling rate (Hz)

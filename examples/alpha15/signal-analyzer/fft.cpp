@@ -16,8 +16,8 @@ namespace sci = scicpp;
 namespace win = scicpp::signal::windows;
 
 FFT::FFT()
-: dm(services::require<koheron::DriverManager>())
-, mm(services::require<MemoryManager>())
+: dm(services::require<rt::DriverManager>())
+, mm(services::require<hw::MemoryManager>())
 , ctl(mm.get<mem::control>())
 {
     fs_adc = dm.get<ClockGenerator>().get_adc_sampling_freq()[0];

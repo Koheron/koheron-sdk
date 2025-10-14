@@ -20,6 +20,8 @@
 
 #include <linux/spi/spidev.h>
 
+namespace hw {
+
 class SpiDev
 {
   public:
@@ -142,5 +144,7 @@ class SpiManager
     std::unordered_map<std::string, std::unique_ptr<SpiDev>> spi_drivers;
     SpiDev empty_spidev{""};
 };
+
+} // namespace hw
 
 #endif // __SERVER_CONTEXT_SPI_DEV_HPP__

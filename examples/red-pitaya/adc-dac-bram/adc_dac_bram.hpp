@@ -47,10 +47,10 @@ class AdcDacBram
 
  private:
     Context& ctx;
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
-    Memory<mem::adc>& adc_map;
-    Memory<mem::dac>& dac_map;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
+    hw::Memory<mem::adc>& adc_map;
+    hw::Memory<mem::dac>& dac_map;
 
 }; // class AdcDacBram
 

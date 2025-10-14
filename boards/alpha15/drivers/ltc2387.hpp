@@ -48,8 +48,8 @@ class Ltc2387
     float get_offset(uint32_t channel, uint32_t range) const;
 
   private:
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
     Eeprom& eeprom;
 
     // Calibration array: [gain_2V, offset_2V, gain_8V, offset_8V]

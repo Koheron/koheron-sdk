@@ -5,12 +5,14 @@
 
 #include "server/context/context.hpp"
 
-namespace koheron {
+#include <cstdlib>
+
+namespace rt {
 
 class Runtime {
   public:
     Runtime() {
-        auto dm = services::provide<DriverManager>(on_fail_);
+        auto dm = services::provide<rt::DriverManager>(on_fail_);
 
         if (dm->init() < 0) {
             std::exit(EXIT_FAILURE);
@@ -27,14 +29,15 @@ class Runtime {
     const auto& context() const { return services::require<Context>(); }
 
     void systemd_notify_ready() {
-        systemd::notify_ready();
+        rt::systemd::notify_ready();
     }
 
   private:
     static void on_fail_(driver_id id, std::string_view name) {
-        print_fmt<PANIC>("DriverManager: driver [{}] {} failed to allocate.\n", id, name);
+        rt::print_fmt<PANIC>("DriverManager: driver [{}] {} failed to allocate.\n", id, name);
         std::exit(EXIT_FAILURE);
     }
 };
 
-} // namespace koheron
+} // namespace rt
+

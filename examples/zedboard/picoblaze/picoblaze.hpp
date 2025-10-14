@@ -34,9 +34,9 @@ class Picoblaze
     }
 
   private:
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
-    Memory<mem::picoram>& picoram;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
+    hw::Memory<mem::picoram>& picoram;
 };
 
 #endif // __DRIVERS_PICOBLAZE_HPP__

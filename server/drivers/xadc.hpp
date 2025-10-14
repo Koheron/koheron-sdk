@@ -102,7 +102,7 @@ class Xadc
   }
 
  private:
-  Memory<mem::xadc>& xadc;
+  hw::Memory<mem::xadc>& xadc;
 
   const uint32_t channel_0 = 1;
   const uint32_t channel_1 = 8;

@@ -169,7 +169,7 @@ class Eeprom
     static constexpr uint32_t EEPROM_SIZE = 64 * 1024 / 8;
 
     Context& ctx;
-    I2cDev& i2c;
+    hw::I2cDev& i2c;
 
     int __write(const uint8_t *buffer, int32_t n_bytes)
     {

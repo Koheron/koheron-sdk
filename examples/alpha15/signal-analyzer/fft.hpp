@@ -13,7 +13,7 @@
 #include <array>
 #include <tuple>
 
-namespace koheron { class DriverManager; }
+namespace rt { class DriverManager; }
 
 class FFT
 {
@@ -47,9 +47,9 @@ class FFT
     double input_voltage_range();
 
  private:
-    koheron::DriverManager& dm;
-    MemoryManager& mm;
-    Memory<mem::control>& ctl;
+    rt::DriverManager& dm;
+    hw::MemoryManager& mm;
+    hw::Memory<mem::control>& ctl;
 
     double fs_adc; // ADC sampling rate (Hz)
 

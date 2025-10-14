@@ -43,8 +43,8 @@ class TemperatureSensor
     std::array<float, n_avg> zynq_temp;
 
     Context& ctx;
-    I2cDev& i2c;
-    Memory<mem::xadc>& xadc;
+    hw::I2cDev& i2c;
+    hw::Memory<mem::xadc>& xadc;
 
     // http://www.ti.com/lit/ds/symlink/tmp116.pdf
     static constexpr uint8_t temperature_msb = 0;

@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include <cstdint>
 
-namespace koheron {
+namespace rt {
 
 int SignalHandler::init()
 {
@@ -41,12 +41,12 @@ int SignalHandler::set_interrupt_signals()
     sig_int_handler.sa_flags = 0;
 
     if (::sigaction(SIGINT, &sig_int_handler, nullptr) < 0) {
-        print<CRITICAL>("Cannot set SIGINT handler\n");
+        rt::print<CRITICAL>("Cannot set SIGINT handler\n");
         return -1;
     }
 
     if (::sigaction(SIGTERM, &sig_int_handler, nullptr) < 0) {
-        print<CRITICAL>("Cannot set SIGTERM handler\n");
+        rt::print<CRITICAL>("Cannot set SIGTERM handler\n");
         return -1;
     }
 
@@ -67,12 +67,12 @@ int SignalHandler::set_ignore_signals()
     // when client closes its connection during writing.
     // Results in an unwanted server shutdown
     if (::sigaction(SIGPIPE, &sig_ign_handler, nullptr) < 0) {
-        print<CRITICAL>("Cannot disable SIGPIPE\n");
+        rt::print<CRITICAL>("Cannot disable SIGPIPE\n");
         return -1;
     }
 
     if (::sigaction(SIGTSTP, &sig_ign_handler, nullptr) < 0) {
-        print<CRITICAL>("Cannot disable SIGTSTP\n");
+        rt::print<CRITICAL>("Cannot disable SIGTSTP\n");
         return -1;
     }
 
@@ -111,14 +111,14 @@ static void crash_signal_handler(int sig)
         sig_name = "(Unidentify signal)";
     }
 
-    print<PANIC>("CRASH: signal %d %s\n", sig, sig_name);
+    rt::print<PANIC>("CRASH: signal %d %s\n", sig, sig_name);
 
     void *buffer[backtrace_buff_size];
     auto size = backtrace(buffer, backtrace_buff_size);
     char **messages = backtrace_symbols(buffer, size);
 
     if (messages == nullptr) {
-        print<ERROR>("No backtrace_symbols");
+        rt::print<ERROR>("No backtrace_symbols");
         goto exit;
     }
 
@@ -151,11 +151,11 @@ static void crash_signal_handler(int sig)
 
             // If demangling is successful, output the demangled function name
             if (status == 0) {
-                print_fmt<INFO>(
+                rt::print_fmt<INFO>(
                         "[bt]: ({}) {} : {}+{}{}\n",
                         i, messages[i], real_name, offset_begin, offset_end);
             } else { // Otherwise, output the mangled function name
-                print_fmt<INFO>(
+                rt::print_fmt<INFO>(
                         "[bt]: ({}) {} : {}+{}{}\n",
                         i, messages[i], mangled_name, offset_begin, offset_end);
             }
@@ -179,21 +179,21 @@ int SignalHandler::set_crash_signals()
     sig_crash_handler.sa_flags = SA_RESTART | SA_SIGINFO;
 
     if (::sigaction(SIGSEGV, &sig_crash_handler, nullptr) < 0) {
-        print<CRITICAL>("Cannot set SIGSEGV handler\n");
+        rt::print<CRITICAL>("Cannot set SIGSEGV handler\n");
         return -1;
     }
 
     if (::sigaction(SIGBUS, &sig_crash_handler, nullptr) < 0) {
-        print<CRITICAL>("Cannot set SIGBUS handler\n");
+        rt::print<CRITICAL>("Cannot set SIGBUS handler\n");
         return -1;
     }
 
     if (::sigaction(SIGABRT, &sig_crash_handler, nullptr) < 0) {
-        print<CRITICAL>("Cannot set SIGABRT handler\n");
+        rt::print<CRITICAL>("Cannot set SIGABRT handler\n");
         return -1;
     }
 
     return 0;
 }
 
-} // namespace koheron
+} // namespace rt

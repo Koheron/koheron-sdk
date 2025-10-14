@@ -14,6 +14,8 @@
 #include <linux/i2c-dev.h>
 #include <dirent.h>
 
+namespace hw {
+
 // ---------------------------------------------------------------------
 // I2cDev
 // ---------------------------------------------------------------------
@@ -162,3 +164,5 @@ I2cDev& I2cManager::get(const std::string& devname) {
     i2c_drivers[devname]->init();
     return *i2c_drivers[devname];
 }
+
+} // namespace hw

@@ -44,9 +44,9 @@ class AdcBram
     static_assert(adc0_size == adc1_size, "");
 
     Context& ctx;
-    Memory<mem::control>& ctl;
-    Memory<mem::adc0>& adc0_map;
-    Memory<mem::adc1>& adc1_map;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::adc0>& adc0_map;
+    hw::Memory<mem::adc1>& adc1_map;
 }; // class AdcBram
 
 #endif // __EXAMPLES_ALPHA250_4_ADC_BRAM_HPP__

@@ -24,27 +24,27 @@ constexpr uint32_t SRR  = 0x28; // Stream Reset (W: 0xA5)
 static constexpr uint32_t CHUNK = 1024;
 
 int main() {
-    FpgaManager fpga;
+    hw::FpgaManager fpga;
 
     if (fpga.load_bitstream() < 0) {
-        koheron::print<PANIC>("Failed to load bitstream.\n");
+        rt::print<PANIC>("Failed to load bitstream.\n");
         return -1;
     }
 
-    auto mm = services::provide<MemoryManager>();
+    auto mm = services::provide<hw::MemoryManager>();
 
     if (mm->open() < 0) {
-        koheron::print<PANIC>("Failed to open memory\n");
+        rt::print<PANIC>("Failed to open memory\n");
         return -1;
     }
 
-    ZynqFclk fclk;
+    hw::ZynqFclk fclk;
     fclk.set("fclk0", 100000000); // AXI/control
     fclk.set("fclk1", 10000000);  // stream source (e.g., 2.5e6 or 5e6)
-    systemd::notify_ready();
+    rt::systemd::notify_ready();
 
     // auto& fifo = mm->get<mem::fifo>();
-    Fifo<mem::fifo> fifo; // Requires a MemoryManager service
+    Fifo<mem::fifo> fifo; // Requires a hw::MemoryManager service
     fifo.reset();
     fifo.probe();
 
@@ -103,7 +103,7 @@ int main() {
         if (now >= next_stat) {
             const uint64_t expected = words + lost;
             const double loss_pct = expected ? (100.0 * double(lost) / double(expected)) : 0.0;
-            koheron::print_fmt<INFO>(
+            rt::print_fmt<INFO>(
                 "RX: total={} lost={} loss={:.3f}% last={:#010x} (occ={})\n",
                 expected, lost, loss_pct, last, fifo.occupancy());
             next_stat += std::chrono::seconds(1);
@@ -113,7 +113,7 @@ int main() {
     // Final summary
     const uint64_t expected = words + lost;
     const double loss_pct = expected ? (100.0 * double(lost) / double(expected)) : 0.0;
-    koheron::print_fmt<INFO>("DONE (10s): total={} lost={} loss={:.3f}% last={:#010x}\n",
+    rt::print_fmt<INFO>("DONE (10s): total={} lost={} loss={:.3f}% last={:#010x}\n",
                          expected, lost, loss_pct, last);
     return 0;
 }

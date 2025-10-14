@@ -11,6 +11,8 @@
 #include <sys/ioctl.h>
 #include <linux/types.h>
 
+namespace hw {
+
 namespace fs = std::filesystem;
 
 // ---------------------------------------------------------------------
@@ -58,7 +60,7 @@ int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
         return -1;
     }
 
-    koheron::print_fmt("SpiManager: Device {} initialized", devname);
+    rt::print_fmt("SpiManager: Device {} initialized", devname);
     return 0;
 }
 
@@ -262,3 +264,5 @@ SpiDev& SpiManager::get(std::string_view devname,
     it->second->init(mode, speed, word_length);
     return *it->second;
 }
+
+} // namespace hw

@@ -123,7 +123,7 @@ class Modulation
     std::array<std::atomic<bool>,2> modulation_changed;
 
     Context& ctx;
-    Memory<mem::dac>& dac_map;
+    hw::Memory<mem::dac>& dac_map;
 
 };
 

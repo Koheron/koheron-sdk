@@ -10,7 +10,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace koheron {
+namespace rt {
 
 using driver_id = std::size_t;
 
@@ -145,6 +145,12 @@ template <class Driver>
 concept HasInit = requires(Driver& d) {
     { d.init() } -> std::same_as<void>;
 };
+
+} // namespace rt
+
+namespace koheron {
+
+using driver_id = rt::driver_id;
 
 } // namespace koheron
 

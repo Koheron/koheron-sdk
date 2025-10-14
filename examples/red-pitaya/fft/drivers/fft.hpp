@@ -151,10 +151,10 @@ class FFT
  private:
     Context& ctx;
     RedPitayaAdcCalibration& adc_calib;
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
-    Memory<mem::psd>& psd_map;
-    Memory<mem::demod>& demod_map;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
+    hw::Memory<mem::psd>& psd_map;
+    hw::Memory<mem::demod>& demod_map;
 
     static constexpr double fs_adc = prm::adc_clk; // ADC sampling rate (Hz)
     std::array<std::array<float, prm::fft_size/2>, 2> freq_calibration; // Conversion to W/Hz

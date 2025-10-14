@@ -119,10 +119,10 @@ class Pulse
     void start_fifo_acquisition();
 
   private:
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
-    Memory<mem::adc_fifo>& adc_fifo_map;
-    Memory<mem::dac>& dac_map;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
+    hw::Memory<mem::adc_fifo>& adc_fifo_map;
+    hw::Memory<mem::dac>& dac_map;
 
     uint32_t pulse_width;
     uint32_t pulse_period;

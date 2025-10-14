@@ -5,7 +5,7 @@
 #ifndef __SERVER_RUNTIME_SIGNAL_HANDLER_HPP__
 #define __SERVER_RUNTIME_SIGNAL_HANDLER_HPP__
 
-namespace koheron {
+namespace rt {
 
 class SignalHandler
 {
@@ -22,6 +22,6 @@ class SignalHandler
     int set_crash_signals();
 };
 
-} // namespace koheron
+} // namespace rt
 
 #endif // __SERVER_RUNTIME_SIGNAL_HANDLER_HPP__

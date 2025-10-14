@@ -53,8 +53,8 @@ class Demodulator
 
   private:
     Context& ctx;
-    Memory<mem::control>& ctl;
-    Memory<mem::adc_fifo>& adc_fifo_map;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::adc_fifo>& adc_fifo_map;
 
     std::mutex mutex;
 

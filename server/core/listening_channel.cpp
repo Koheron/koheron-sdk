@@ -22,7 +22,7 @@ static int create_tcp_listening_socket(unsigned int port)
     int listen_fd_ = socket(AF_INET, SOCK_STREAM, 0);
 
     if (listen_fd_ < 0) {
-        print<PANIC>("Can't open socket\n");
+        rt::print<PANIC>("Can't open socket\n");
         return -1;
     }
 
@@ -32,7 +32,7 @@ static int create_tcp_listening_socket(unsigned int port)
 
     if (setsockopt(listen_fd_, SOL_SOCKET, SO_REUSEADDR,
                   &yes, sizeof(int))==-1) {
-        print<CRITICAL>("Cannot set SO_REUSEADDR\n");
+        rt::print<CRITICAL>("Cannot set SO_REUSEADDR\n");
     }
 
     if constexpr (config::tcp_nodelay) {
@@ -43,7 +43,7 @@ static int create_tcp_listening_socket(unsigned int port)
             // This is only considered critical since it is performance
             // related but this doesn't prevent to use the socket
             // so only log the error and keep going ...
-            print<CRITICAL>("Cannot set TCP_NODELAY\n");
+            rt::print<CRITICAL>("Cannot set TCP_NODELAY\n");
         }
     }
 
@@ -56,7 +56,7 @@ static int create_tcp_listening_socket(unsigned int port)
     // Assign name (address) to socket
     if (bind(listen_fd_, reinterpret_cast<struct sockaddr *>(&servaddr),
              sizeof(servaddr)) < 0) {
-        print<PANIC>("Binding error\n");
+        rt::print<PANIC>("Binding error\n");
         close(listen_fd_);
         return -1;
     }
@@ -69,7 +69,7 @@ static int set_socket_options(int comm_fd)
     int sndbuf_len = sizeof(uint32_t) * KOHERON_SIG_LEN;
 
     if (setsockopt(comm_fd, SOL_SOCKET, SO_SNDBUF, &sndbuf_len, sizeof(sndbuf_len)) < 0) {
-        print<CRITICAL>("Cannot set socket send options\n");
+        rt::print<CRITICAL>("Cannot set socket send options\n");
         close(comm_fd);
         return -1;
     }
@@ -77,7 +77,7 @@ static int set_socket_options(int comm_fd)
     int rcvbuf_len = KOHERON_READ_STR_LEN;
 
     if (setsockopt(comm_fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf_len, sizeof(rcvbuf_len)) < 0) {
-        print<CRITICAL>("Cannot set socket receive options\n");
+        rt::print<CRITICAL>("Cannot set socket receive options\n");
         close(comm_fd);
         return -1;
     }
@@ -86,7 +86,7 @@ static int set_socket_options(int comm_fd)
         int one = 1;
 
         if (setsockopt(comm_fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char *>(&one), sizeof(one)) < 0) {
-            print<CRITICAL>("Cannot set TCP_NODELAY\n");
+            rt::print<CRITICAL>("Cannot set TCP_NODELAY\n");
             close(comm_fd);
             return -1;
         }
@@ -129,10 +129,10 @@ template<>
 void ListeningChannel<TCP>::shutdown()
 {
     if constexpr (config::tcp_worker_connections > 0) {
-        print<INFO>("Closing TCP listener ...\n");
+        rt::print<INFO>("Closing TCP listener ...\n");
 
         if (::shutdown(listen_fd, SHUT_RDWR) < 0)
-            print<WARNING>("Cannot shutdown socket for TCP listener\n");
+            rt::print<WARNING>("Cannot shutdown socket for TCP listener\n");
 
         close(listen_fd);
     }
@@ -169,10 +169,10 @@ template<>
 void ListeningChannel<WEBSOCK>::shutdown()
 {
     if constexpr (config::websocket_worker_connections > 0) {
-        print<INFO>("Closing WebSocket listener ...\n");
+        rt::print<INFO>("Closing WebSocket listener ...\n");
 
         if (::shutdown(listen_fd, SHUT_RDWR) < 0)
-            print<WARNING>("Cannot shutdown socket for WebSocket listener\n");
+            rt::print<WARNING>("Cannot shutdown socket for WebSocket listener\n");
 
         close(listen_fd);
     }
@@ -199,7 +199,7 @@ static int create_unix_listening_socket(const char *unix_sock_path)
     int listen_fd_ = socket(AF_UNIX, SOCK_STREAM, 0);
 
     if (listen_fd_ < 0) {
-        print<PANIC>("Can't open Unix socket\n");
+        rt::print<PANIC>("Can't open Unix socket\n");
         return -1;
     }
 
@@ -210,7 +210,7 @@ static int create_unix_listening_socket(const char *unix_sock_path)
     auto len = strlen(local.sun_path) + sizeof(local.sun_family);
 
     if (bind(listen_fd_, reinterpret_cast<struct sockaddr *>(&local), len) < 0) {
-        print<PANIC>("Unix socket binding error\n");
+        rt::print<PANIC>("Unix socket binding error\n");
         close(listen_fd_);
         return -1;
     }
@@ -235,10 +235,10 @@ template<>
 void ListeningChannel<UNIX>::shutdown()
 {
     if constexpr (config::unix_socket_worker_connections > 0) {
-        print<INFO>("Closing Unix listener ...\n");
+        rt::print<INFO>("Closing Unix listener ...\n");
 
         if (::shutdown(listen_fd, SHUT_RDWR) < 0)
-            print<WARNING>("Cannot shutdown socket for Unix listener\n");
+            rt::print<WARNING>("Cannot shutdown socket for Unix listener\n");
 
         close(listen_fd);
     }

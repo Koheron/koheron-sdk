@@ -55,7 +55,7 @@ namespace clock_cfg {
     constexpr std::array<std::array<uint32_t, num_params>, 1> configs = {fs_15MHz};
 }
 
-class I2cDev;
+namespace hw { class I2cDev; }
 class Eeprom;
 class SpiConfig;
 
@@ -88,7 +88,7 @@ class ClockGenerator
     }
 
   private:
-    I2cDev& i2c;
+    hw::I2cDev& i2c;
     Eeprom& eeprom;
     SpiConfig& spi_cfg;
 
