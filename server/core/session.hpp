@@ -114,7 +114,7 @@ class Session : public SessionAbstract
 
     void exit_session() {
         if (exit_socket() < 0) {
-            rt::print<WARNING>("An error occured during session exit\n");
+            log<WARNING>("An error occured during session exit\n");
         }
     }
 
@@ -125,7 +125,7 @@ class Session : public SessionAbstract
         const auto err = rcv_n_bytes(buff.data(), sizeof(uint32_t));
 
         if (err < 0) {
-            rt::print<ERROR>("Cannot read pack length\n");
+            log<ERROR>("Cannot read pack length\n");
             return -1;
         }
 
@@ -149,8 +149,7 @@ Session<socket_type>::Session(int comm_fd_, SessionID id_)
 {}
 
 template<int socket_type>
-int Session<socket_type>::run()
-{
+int Session<socket_type>::run() {
     if (init_session() < 0) {
         return -1;
     }
@@ -169,7 +168,8 @@ int Session<socket_type>::run()
         }
 
         if (services::require<DriverExecutor>().execute(cmd) < 0) {
-            rt::print<ERROR>("Failed to execute command [driver = %i, operation = %i]\n", cmd.driver, cmd.operation);
+            logf<ERROR>("Failed to execute command [driver = {}, operation = {}]\n",
+                        cmd.driver, cmd.operation);
         }
 
         if (status == CLOSED) {
@@ -190,15 +190,13 @@ int64_t Session<TCP>::rcv_n_bytes(char *buffer, int64_t n_bytes);
 
 template<>
 template<typename T, size_t N>
-inline int Session<TCP>::recv(std::array<T, N>& arr, Command&)
-{
+inline int Session<TCP>::recv(std::array<T, N>& arr, Command&) {
     return rcv_n_bytes(reinterpret_cast<char*>(arr.data()), size_of<T, N>);
 }
 
 template<>
 template<typename T>
-inline int Session<TCP>::recv(std::vector<T>& vec, Command&)
-{
+inline int Session<TCP>::recv(std::vector<T>& vec, Command&) {
     const auto length = get_pack_length() / sizeof(T);
 
     if (length < 0) {
@@ -209,7 +207,7 @@ inline int Session<TCP>::recv(std::vector<T>& vec, Command&)
     const auto err = rcv_n_bytes(reinterpret_cast<char *>(vec.data()), length * sizeof(T));
 
     if (err >= 0) {
-        rt::print<DEBUG>("TCPSocket: Received a vector of %lu bytes\n", length);
+        logf<DEBUG>("TCPSocket: Received a vector of {} bytes\n", length);
     }
 
     return err;
@@ -217,8 +215,7 @@ inline int Session<TCP>::recv(std::vector<T>& vec, Command&)
 
 template<>
 template<>
-inline int Session<TCP>::recv(std::string& str, Command&)
-{
+inline int Session<TCP>::recv(std::string& str, Command&) {
     const auto length = get_pack_length();
 
     if (length < 0) {
@@ -229,7 +226,7 @@ inline int Session<TCP>::recv(std::string& str, Command&)
     const auto err = rcv_n_bytes(str.data(), length);
 
     if (err >= 0) {
-       rt::print<DEBUG>("TCPSocket: Received a string of %lu bytes\n", length);
+       logf<DEBUG>("TCPSocket: Received a string of {} bytes\n", length);
     }
 
     return err;
@@ -237,15 +234,13 @@ inline int Session<TCP>::recv(std::string& str, Command&)
 
 template<>
 template<typename... Tp>
-inline std::tuple<int, Tp...> Session<TCP>::deserialize(Command&, std::false_type)
-{
+inline std::tuple<int, Tp...> Session<TCP>::deserialize(Command&, std::false_type) {
     return std::make_tuple(0);
 }
 
 template<>
 template<typename... Tp>
-inline std::tuple<int, Tp...> Session<TCP>::deserialize(Command&, std::true_type)
-{
+inline std::tuple<int, Tp...> Session<TCP>::deserialize(Command&, std::true_type) {
     constexpr auto pack_len = required_buffer_size<Tp...>();
     Buffer<pack_len> buff;
     const int err = rcv_n_bytes(buff.data(), pack_len);
@@ -254,29 +249,28 @@ inline std::tuple<int, Tp...> Session<TCP>::deserialize(Command&, std::true_type
 
 template<>
 template<std::ranges::contiguous_range R>
-inline int Session<TCP>::write(const R& r)
-{
+inline int Session<TCP>::write(const R& r) {
     using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
 
     const auto bytes_send = sizeof(T) * std::size(r);
     const int n_bytes_send = ::write(comm_fd, static_cast<const unsigned char*>(std::data(r)), std::size(r));
 
     if (n_bytes_send == 0) {
-       rt::print<ERROR>("TCPSocket::write: Connection closed by client\n");
+       log<ERROR>("TCPSocket::write: Connection closed by client\n");
        return 0;
     }
 
     if (n_bytes_send < 0) {
-       rt::print<ERROR>("TCPSocket::write: Can't write to client\n");
+       log<ERROR>("TCPSocket::write: Can't write to client\n");
        return -1;
     }
 
     if (n_bytes_send != static_cast<int>(bytes_send)) {
-        rt::print<ERROR>("TCPSocket::write: Some bytes have not been sent\n");
+        log<ERROR>("TCPSocket::write: Some bytes have not been sent\n");
         return -1;
     }
 
-    rt::print<DEBUG>("[S] [%u bytes]\n", bytes_send);
+    logf<DEBUG>("[S] [{} bytes]\n", bytes_send);
     return static_cast<int>(bytes_send);
 }
 
@@ -297,20 +291,18 @@ class Session<UNIX> : public Session<TCP>
 
 template<>
 template<typename T, size_t N>
-inline int Session<WEBSOCK>::recv(std::array<T, N>& arr, Command& cmd)
-{
+inline int Session<WEBSOCK>::recv(std::array<T, N>& arr, Command& cmd) {
     arr = cmd.payload.extract_array<T, N>();
     return 0;
 }
 
 template<>
 template<typename T>
-inline int Session<WEBSOCK>::recv(std::vector<T>& vec, Command& cmd)
-{
+inline int Session<WEBSOCK>::recv(std::vector<T>& vec, Command& cmd) {
     const auto length = std::get<0>(cmd.payload.deserialize<uint32_t>());
 
     if (length > CMD_PAYLOAD_BUFFER_LEN) {
-        rt::print<ERROR>("WebSocket: Payload size overflow during buffer reception\n");
+        log<ERROR>("WebSocket: Payload size overflow during buffer reception\n");
         return -1;
     }
 
@@ -320,12 +312,11 @@ inline int Session<WEBSOCK>::recv(std::vector<T>& vec, Command& cmd)
 
 template<>
 template<>
-inline int Session<WEBSOCK>::recv(std::string& str, Command& cmd)
-{
+inline int Session<WEBSOCK>::recv(std::string& str, Command& cmd) {
     const auto length = std::get<0>(cmd.payload.deserialize<uint32_t>());
 
     if (length > CMD_PAYLOAD_BUFFER_LEN) {
-        rt::print<ERROR>("WebSocket::rcv_vector: Payload size overflow\n");
+        log<ERROR>("WebSocket::rcv_vector: Payload size overflow\n");
         return -1;
     }
 
@@ -335,22 +326,19 @@ inline int Session<WEBSOCK>::recv(std::string& str, Command& cmd)
 
 template<>
 template<typename... Tp>
-inline std::tuple<int, Tp...> Session<WEBSOCK>::deserialize(Command& cmd, std::false_type)
-{
+inline std::tuple<int, Tp...> Session<WEBSOCK>::deserialize(Command& cmd, std::false_type) {
     return std::make_tuple(0);
 }
 
 template<>
 template<typename... Tp>
-inline std::tuple<int, Tp...> Session<WEBSOCK>::deserialize(Command& cmd, std::true_type)
-{
+inline std::tuple<int, Tp...> Session<WEBSOCK>::deserialize(Command& cmd, std::true_type) {
     return std::tuple_cat(std::make_tuple(0), cmd.payload.deserialize<Tp...>());
 }
 
 template<>
 template<std::ranges::contiguous_range R>
-inline int Session<WEBSOCK>::write(const R& r)
-{
+inline int Session<WEBSOCK>::write(const R& r) {
     return websock.send(r);
 }
 
@@ -363,8 +351,7 @@ inline int Session<WEBSOCK>::write(const R& r)
 // http://stackoverflow.com/questions/1682844/templates-template-function-not-playing-well-with-classs-template-member-funct/1682885#1682885
 
 template<typename... Tp>
-inline std::tuple<int, Tp...> SessionAbstract::deserialize(Command& cmd)
-{
+inline std::tuple<int, Tp...> SessionAbstract::deserialize(Command& cmd) {
     switch (this->type) {
         case TCP:
             return static_cast<Session<TCP>*>(this)->template deserialize<Tp...>(cmd, std::integral_constant<bool, 0 < sizeof...(Tp)>());
@@ -378,8 +365,7 @@ inline std::tuple<int, Tp...> SessionAbstract::deserialize(Command& cmd)
 }
 
 template<typename Tp>
-inline int SessionAbstract::recv(Tp& container, Command& cmd)
-{
+inline int SessionAbstract::recv(Tp& container, Command& cmd) {
     switch (this->type) {
         case TCP:
             return static_cast<Session<TCP>*>(this)->recv(container, cmd);
@@ -393,8 +379,7 @@ inline int SessionAbstract::recv(Tp& container, Command& cmd)
 }
 
 template<uint16_t class_id, uint16_t func_id, typename... Args>
-inline int SessionAbstract::send(Args&&... args)
-{
+inline int SessionAbstract::send(Args&&... args) {
     switch (this->type) {
         case TCP:
             return static_cast<Session<TCP>*>(this)->template send<class_id, func_id>(std::forward<Args>(args)...);
@@ -410,8 +395,7 @@ inline int SessionAbstract::send(Args&&... args)
 // Cast abstract session unique_ptr
 template<int socket_type>
 Session<socket_type>*
-cast_to_session(const std::unique_ptr<SessionAbstract>& sess_abstract)
-{
+cast_to_session(const std::unique_ptr<SessionAbstract>& sess_abstract) {
     return static_cast<Session<socket_type>*>(sess_abstract.get());
 }
 

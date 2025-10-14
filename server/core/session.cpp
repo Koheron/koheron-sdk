@@ -12,8 +12,7 @@ template<> int Session<TCP>::init_socket() {return 0;}
 template<> int Session<TCP>::exit_socket() {return 0;}
 
 template<>
-int Session<TCP>::read_command(Command& cmd)
-{
+int Session<TCP>::read_command(Command& cmd) {
     // Read and decode header
     // |      RESERVED     | dev_id  |  op_id  |             payload_size              |   payload
     // |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | ...
@@ -24,7 +23,7 @@ int Session<TCP>::read_command(Command& cmd)
     }
 
     if (header_bytes < 0) {
-        rt::print<ERROR>("TCPSocket: Cannot read header\n");
+        log<ERROR>("TCPSocket: Cannot read header\n");
         return header_bytes;
     }
 
@@ -34,16 +33,15 @@ int Session<TCP>::read_command(Command& cmd)
     cmd.driver = static_cast<driver_id>(std::get<0>(header_tuple));
     cmd.operation = std::get<1>(header_tuple);
 
-    rt::print<DEBUG>("TCPSocket: Receive command for driver %u, operation %u\n",
-        cmd.driver, cmd.operation);
+    logf<DEBUG>("TCPSocket: Receive command for driver {}, operation {}\n",
+                cmd.driver, cmd.operation);
 
     return header_bytes;
 }
 
 // TODO Replace by function load_buffer
 template<>
-int64_t Session<TCP>::rcv_n_bytes(char *buffer, int64_t n_bytes)
-{
+int64_t Session<TCP>::rcv_n_bytes(char *buffer, int64_t n_bytes) {
     int64_t bytes_rcv = 0;
     int64_t bytes_read = 0;
 
@@ -51,12 +49,12 @@ int64_t Session<TCP>::rcv_n_bytes(char *buffer, int64_t n_bytes)
         bytes_rcv = read(comm_fd, buffer + bytes_read, n_bytes - bytes_read);
 
         if (bytes_rcv == 0) {
-            rt::print<INFO>("TCPSocket: Connection closed by client\n");
+            log("TCPSocket: Connection closed by client\n");
             return 0;
         }
 
         if (bytes_rcv < 0) {
-            rt::print<ERROR>("TCPSocket: Can't receive data\n");
+            log<ERROR>("TCPSocket: Can't receive data\n");
             return -1;
         }
 
@@ -64,7 +62,7 @@ int64_t Session<TCP>::rcv_n_bytes(char *buffer, int64_t n_bytes)
     }
 
     assert(bytes_read == n_bytes);
-    rt::print<DEBUG>("[R@%u] [%u bytes]\n", id, bytes_read);
+    logf<DEBUG>("[R@{}] [{} bytes]\n", id, bytes_read);
     return bytes_read;
 }
 
@@ -73,28 +71,25 @@ int64_t Session<TCP>::rcv_n_bytes(char *buffer, int64_t n_bytes)
 // -----------------------------------------------
 
 template<>
-int Session<WEBSOCK>::init_socket()
-{
+int Session<WEBSOCK>::init_socket() {
     websock.set_id(comm_fd);
 
     if (websock.authenticate() < 0) {
-        rt::print<CRITICAL>("Cannot connect websocket to client\n");
+        log<CRITICAL>("Cannot connect websocket to client\n");
         return -1;
     }
 
     return 0;
 }
 
-template<> int Session<WEBSOCK>::exit_socket()
-{
+template<> int Session<WEBSOCK>::exit_socket() {
     return websock.exit();
 }
 
 template<>
-int Session<WEBSOCK>::read_command(Command& cmd)
-{
+int Session<WEBSOCK>::read_command(Command& cmd) {
     if (websock.receive_cmd(cmd) < 0) {
-        rt::print<ERROR>("WebSocket: Command reception failed\n");
+        log<ERROR>("WebSocket: Command reception failed\n");
         return -1;
     }
 
@@ -103,7 +98,7 @@ int Session<WEBSOCK>::read_command(Command& cmd)
     }
 
     if (websock.payload_size() < Command::HEADER_SIZE) {
-        rt::print<ERROR>("WebSocket: Command too small\n");
+        log<ERROR>("WebSocket: Command too small\n");
         return -1;
     }
 
@@ -113,8 +108,8 @@ int Session<WEBSOCK>::read_command(Command& cmd)
     cmd.driver = static_cast<driver_id>(std::get<0>(header_tuple));
     cmd.operation = std::get<1>(header_tuple);
 
-    rt::print<DEBUG>(
-        "WebSocket: Receive command for driver %u, operation %u\n",
+    logf<DEBUG>(
+        "WebSocket: Receive command for driver {}, operation {}\n",
         cmd.driver, cmd.operation);
 
     return Command::HEADER_SIZE;

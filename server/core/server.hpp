@@ -151,12 +151,12 @@ void comm_thread_call(ListeningChannel<socket_type> *listener)
         }
 
         if (comm_fd < 0) {
-            rt::print<CRITICAL>("Connection to client rejected [socket_type = %u]\n", socket_type);
+            log<CRITICAL>("Connection to client rejected [socket_type = %u]\n", socket_type);
             continue;
         }
 
         if (listener->is_max_threads()) {
-            rt::print<WARNING>("Maximum number of workers exceeded\n");
+            log<WARNING>("Maximum number of workers exceeded\n");
             continue;
         }
 
@@ -164,7 +164,7 @@ void comm_thread_call(ListeningChannel<socket_type> *listener)
         session_thread.detach();
     }
 
-    rt::print_fmt<INFO>("{} listener closed.\n", listen_channel_desc[socket_type]);
+    logf("{} listener closed.\n", listen_channel_desc[socket_type]);
 }
 
 template<int socket_type>
@@ -172,7 +172,7 @@ int ListeningChannel<socket_type>::start_worker()
 {
     if (listen_fd >= 0) {
         if (::listen(listen_fd, NUMBER_OF_PENDING_CONNECTIONS) < 0) {
-            rt::print_fmt<PANIC>("Listen {} error\n", listen_channel_desc[socket_type]);
+            logf<PANIC>("Listen {} error\n", listen_channel_desc[socket_type]);
             return -1;
         }
         comm_thread = std::thread{comm_thread_call<socket_type>, this};

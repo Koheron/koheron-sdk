@@ -15,7 +15,7 @@ int main() {
 
     // On driver allocation failure
     auto on_fail = []([[maybe_unused]] driver_id id, [[maybe_unused]] std::string_view name) {
-        rt::print<PANIC>("Exiting server...\n");
+        log<PANIC>("Exiting server...\n");
         services::get<Server>()->exit_all = true;
     };
 

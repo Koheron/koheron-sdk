@@ -46,7 +46,7 @@ DriverContainer::~DriverContainer() = default;
 
 int DriverContainer::init() {
     if (services::require<Context>().init() < 0) {
-        rt::print<CRITICAL>("Context initialization failed\n");
+        log<CRITICAL>("Context initialization failed\n");
         return -1;
     }
 
@@ -62,7 +62,7 @@ int DriverContainer::alloc() {
     constexpr auto id = driver - drivers::table::offset;
 
     if (std::get<id>(is_starting)) {
-        rt::print_fmt<CRITICAL>(
+        logf<CRITICAL>(
             "Circular dependency detected while initializing driver [{}] {}\n",
             driver, std::get<driver>(drivers::table::names));
 
@@ -115,10 +115,10 @@ void DriverManager::alloc_core_() {
 
     const auto driver_name = std::get<id>(drivers::table::names);
 
-    rt::print_fmt<INFO>("Driver Manager: Allocating driver [{}] {}...\n", id, driver_name);
+    logf("Driver Manager: Allocating driver [{}] {}...\n", id, driver_name);
 
     if (driver_container.alloc<id>() < 0) {
-        rt::print_fmt<PANIC>("Driver Manager: Failed to allocate driver [{}] {}.\n", id, driver_name);
+        logf<PANIC>("Driver Manager: Failed to allocate driver [{}] {}.\n", id, driver_name);
 
         if (on_alloc_fail_) {
             on_alloc_fail_(id, driver_name);
