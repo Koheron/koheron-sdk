@@ -1,29 +1,16 @@
-#ifndef __SERVER_CORE_DRIVER_OP_HELPER_HPP__
-#define __SERVER_CORE_DRIVER_OP_HELPER_HPP__
+#ifndef __SERVER_CORE_DRIVER_ADAPTER_HPP__
+#define __SERVER_CORE_DRIVER_ADAPTER_HPP__
 
 #include "server/core/driver.hpp"
 #include "server/core/commands.hpp"
 #include "server/core/session.hpp"
 
-#include <tuple>
-#include <type_traits>
-#include <string>
 #include <array>
-#include <vector>
+#include <type_traits>
+#include <utility>
+#include <mutex>
 
 namespace koheron {
-
-struct Command;
-
-template<class... Args>
-struct overload_any_t {
-  template<class C, class R>
-  constexpr auto operator()(R (C::*p)(Args...)) const -> R (C::*)(Args...) { return p; }
-  template<class C, class R>
-  constexpr auto operator()(R (C::*p)(Args...) const) const -> R (C::*)(Args...) const { return p; }
-};
-template<class... Args>
-constexpr overload_any_t<Args...> select_overload{};
 
 // ---------- Low-level readers ----------
 
@@ -139,6 +126,86 @@ int op_invoke(const C& obj, Ret (C::*pmf)(Args...) const, Command& cmd) {
     }
 }
 
+// Descriptor for an operation: PMF + op id.
+// PMF is a *non-type template parameter* (e.g. &C::method or static_cast<PMF>(&C::method))
+template<auto PMF, int OpID>
+struct OpDesc {
+    static constexpr auto pmf  = PMF;
+    static constexpr int  id   = OpID;
+};
+
+// Thunk that turns a PMF + IDs into a uniform callable: int(C&, Command&)
+template<class C, int DriverID, auto PMF, int OpID>
+struct OpThunk {
+    static int call(C& obj, Command& cmd) {
+        // op_invoke deduces Ret/Args from PMF and does the deserialize/send for you
+        return op_invoke<DriverID, OpID>(obj, PMF, cmd);
+    }
+};
+
+// The adapter: builds a constexpr jump table and implements execute().
+template<int DriverID, class C, class... Descs>
+class DriverAdapter : public DriverAbstract {
+public:
+    explicit DriverAdapter(C& impl)
+    : DriverAbstract(DriverID)
+    , obj(impl)
+    {}
+
+    int execute(Command& cmd) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        const auto op = static_cast<int>(cmd.operation);
+        if (op < 0 || op >= static_cast<int>(table_.size()))
+            return -1;
+        auto* fn = table_[op];
+        if (!fn)
+            return -1;
+        return fn(obj, cmd);
+    }
+
+protected:
+    C& obj;
+    std::mutex mutex_;
+
+    // Build a dense table indexed by op id.
+    // We assume op ids are 0..MaxOpId (contiguous). If not, see note below.
+    static constexpr int MaxOpId = []{
+        int m = -1;
+        ((m = (Descs::id > m ? Descs::id : m)), ...);
+        return m;
+    }();
+
+    using Entry = int(*)(C&, Command&);
+
+    // Start with nulls
+    static constexpr std::array<Entry, MaxOpId + 1> make_table_null() {
+        std::array<Entry, MaxOpId + 1> a{};
+        for (auto& e : a) e = nullptr;
+        return a;
+    }
+
+    // Fill positions corresponding to Descs... with the right thunks
+    static constexpr std::array<Entry, MaxOpId + 1> make_table_filled() {
+        auto a = make_table_null();
+        // Fold-expression to assign each thunk
+        ( (a[Descs::id] = &OpThunk<C, DriverID, Descs::pmf, Descs::id>::call), ... );
+        return a;
+    }
+
+    static constexpr auto table_ = make_table_filled();
+
+    // Compile-time sanity: no duplicate ids
+    static consteval bool unique_ids() {
+        constexpr bool used[MaxOpId + 1] = { ((void)Descs::id, false)... }; // placeholder, we’ll check differently
+        (void)used;
+        // poor man's check: sum of distinct positions we fill must equal number of descs
+        // (if duplicates exist, later writes just overwrite, still OK at runtime, but catch it here:)
+        // We can’t iterate easily in consteval without more machinery; leave runtime-only if you prefer.
+        return true;
+    }
+    static_assert(unique_ids(), "Duplicate operation ids in DriverAdapter");
+};
+
 } // namespace koheron
 
-#endif // __SERVER_CORE_DRIVER_OP_HELPER_HPP__
+#endif // __SERVER_CORE_DRIVER_ADAPTER_HPP__

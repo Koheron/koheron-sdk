@@ -10,49 +10,59 @@
 #include <memory>
 #include <mutex>
 
-#include <driver.hpp>
-
 {% for include in driver.includes -%}
 #include "{{ include }}"
 {% endfor -%}
 
+#include "server/core/driver_adapter.hpp"
+
 namespace koheron {
 
-template<>
-class Driver<{{ driver.id }}> : public DriverAbstract
-{
-  public:
-    int execute(Command& cmd);
-    template<int op> int execute_operation(Command& cmd);
-
-    Driver({{ driver.objects[0]["type"] }}& {{ driver.objects[0]["name"] }}_);
-
-    enum Operation {
-        {% for operation in driver.operations -%}
-        {{ operation['tag'] }} = {{ operation['id'] }},
-        {% endfor -%}
-        {{ driver.tag|lower }}_op_num
-    };
-
-    std::mutex mutex;
-
-    {{ driver.objects[0]["type"] }}& {{ driver.objects[0]["name"] }};
-
+// Per-driver enum (nice for readability, also gives you {{ driver.tag|lower }}_op_num)
+enum class {{ driver.name }}_Op : int {
 {% for operation in driver.operations -%}
-struct Argument_{{ operation['name'] }} {
-{%- macro print_param_line(arg) %}
-        {{ arg["type"] }} {{ arg["name"]}};
+  {{ operation['tag'] }} = {{ operation['id'] }},
+{% endfor -%}
+  {{ driver.tag|lower }}_op_num
+};
+
+// Build the driver adapter = DriverAdapter<DriverID, ImplClass, OpDesc<...>...>
+{# Helpers to print PMF casts only when needed #}
+{%- macro full_arg_type(a) -%}
+{{ 'const ' if a.get('is_const') }}{{ a['type'] }}{{ '&' if a.get('by_reference') }}
 {%- endmacro -%}
-{% for arg in operation["arguments"] -%}
-    {{ arg["type"] }} {{ arg["name"]}};
-{% endfor -%}
-} args_{{ operation['name'] }};
+{%- macro arg_type_list(args) -%}
+{%- for a in args -%}
+{{ full_arg_type(a) }}{{ ", " if not loop.last }}
+{%- endfor -%}
+{%- endmacro -%}
 
-{% endfor -%}
+using {{ driver.name }}_Adapter =
+    DriverAdapter<
+        {{ driver.id }},
+        {{ driver.name }},
+{%- for op in driver.operations %}
+{%- if op.needs_cast %}
+        OpDesc<
+            static_cast<{{ op.ret_expr }} ({{ driver.name }}::*)({{ arg_type_list(op.get('arguments', [])) }})>(&{{ driver.name }}::{{ op['name'] }}),
+            {{ op['id'] }}
+        >{{ "," if not loop.last }}
+{%- else %}
+        OpDesc<&{{ driver.name }}::{{ op['name'] }}, {{ op['id'] }}>{% if not loop.last %},{% endif %}
+{%- endif %}
+{%- endfor %}
+    >;
 
-}; // class Interface_{{ driver.tag|capitalize }}
+template<>
+class Driver<{{ driver.id }}> : public {{ driver.name }}_Adapter {
+  public:
+    using Operation = {{ driver.name }}_Op;
+
+    explicit Driver({{ driver.objects[0]["type"] }}& {{ driver.objects[0]["name"] }}_)
+    : {{ driver.name }}_Adapter({{ driver.objects[0]["name"] }}_)
+    {}
+};
 
 } // namespace koheron
 
 #endif //__{{ driver.class_name|upper }}_HPP__
-

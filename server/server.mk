@@ -68,17 +68,10 @@ list_drivers:
 # -----------------------------------------------------------------------------
 
 INTERFACE_DRIVERS_HPP := $(addprefix $(TMP_SERVER_PATH)/interface_,$(notdir $(DRIVERS_HPP)))
-INTERFACE_DRIVERS_CPP := $(subst .hpp,.cpp,$(INTERFACE_DRIVERS_HPP))
-INTERFACE_DRIVERS_OBJ := $(subst .hpp,.o,$(INTERFACE_DRIVERS_HPP))
 
 define RENDER_IFACE_RULES
 $(TMP_SERVER_PATH)/interface_$(notdir $(1)): \
-    $(1) $(SERVER_PATH)/templates/interface_driver.hpp $(SERVER_PATH)/templates/interface_driver.cpp | $(TMP_SERVER_PATH)
-	$$(call echo-cmd,tpl)
-	$$(Q)$$(MAKE_PY) --render_interface $$@ $(MEMORY_YML) $(1)
-
-$(TMP_SERVER_PATH)/interface_$(patsubst %.hpp,%.cpp,$(notdir $(1))): \
-    $(1) $(SERVER_PATH)/templates/interface_driver.hpp $(SERVER_PATH)/templates/interface_driver.cpp | $(TMP_SERVER_PATH)
+    $(1) $(SERVER_PATH)/templates/interface_driver.hpp | $(TMP_SERVER_PATH)
 	$$(call echo-cmd,tpl)
 	$$(Q)$$(MAKE_PY) --render_interface $$@ $(MEMORY_YML) $(1)
 endef
@@ -87,7 +80,6 @@ $(foreach H,$(DRIVERS_HPP),$(eval $(call RENDER_IFACE_RULES,$(H))))
 
 # Aggregated interface files must be rendered AFTER all per-driver headers exist
 $(TMP_SERVER_PATH)/interface_drivers.hpp: $(INTERFACE_DRIVERS_HPP)
-$(TMP_SERVER_PATH)/interface_drivers.cpp: $(INTERFACE_DRIVERS_HPP)
 
 # -----------------------------------------------------------------------------
 # Memory header from YAML
@@ -102,7 +94,7 @@ $(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp
 # Other templates
 # -----------------------------------------------------------------------------
 SERVER_TEMPLATE_LIST := $(addprefix $(TMP_SERVER_PATH)/, \
-  drivers_list.hpp drivers_json.hpp drivers.hpp interface_drivers.hpp operations.hpp get_driver_inst.cpp)
+  drivers_list.hpp drivers_json.hpp drivers.hpp interface_drivers.hpp operations.hpp)
 
 define _render_template_rule
 $1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP)
@@ -113,14 +105,12 @@ endef
 
 $(foreach template,$(SERVER_TEMPLATE_LIST),$(eval $(call _render_template_rule,$(template))))
 
-INTERFACE_DRIVERS_OBJ += $(TMP_SERVER_PATH)/get_driver_inst.o
-
 # -----------------------------------------------------------------------------
 # Objects
 # -----------------------------------------------------------------------------
 
 HARDWARE_OBJ := $(TMP_SERVER_PATH)/spi_manager.o $(TMP_SERVER_PATH)/i2c_manager.o $(TMP_SERVER_PATH)/fpga_manager.o $(TMP_SERVER_PATH)/zynq_fclk.o
-OBJ := $(SERVER_OBJ) $(SERVER_LIB_OBJ) $(INTERFACE_DRIVERS_OBJ) $(DRIVERS_OBJ) $(HARDWARE_OBJ)
+OBJ := $(SERVER_OBJ) $(SERVER_LIB_OBJ) $(DRIVERS_OBJ) $(HARDWARE_OBJ)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
@@ -199,11 +189,6 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/main/%.cpp | $(GEN_HEADERS)
 	$(call echo-cmd,cxx)
 	$(Q)$(call cmd,cmd_cxx)
 
-# Generated interface .cpp => .o (depends on its own .hpp via auto-deps)
-$(TMP_SERVER_PATH)/%.o: $(TMP_SERVER_PATH)/%.cpp | $(GEN_HEADERS)
-	@$(call echo-cmd,cxx)
-	$(Q)$(call cmd,cmd_cxx)
-
 $(TMP_SERVER_PATH)/%.o: %.cpp | $(GEN_HEADERS)
 	@mkdir -p $(dir $@)
 	$(call echo-cmd,cxx)
@@ -240,7 +225,7 @@ cmd_cfg = \
   done; \
   :
 
-$(SERVER): $(OBJ) $(SERVER_TEMPLATE_LIST) $(GEN_HEADERS) $(INTERFACE_DRIVERS_CPP) | $(KOHERON_SERVER_PATH)
+$(SERVER): $(OBJ) $(SERVER_TEMPLATE_LIST) $(GEN_HEADERS) | $(KOHERON_SERVER_PATH)
 	@$(call start,$@)
 	@$(call echo-cmd,link)
 	$(Q)$(call cmd,cmd_link)
