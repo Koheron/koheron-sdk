@@ -7,8 +7,9 @@
 #ifndef __SERVER_DRIVERS_DMA_S2MM_HPP__
 #define __SERVER_DRIVERS_DMA_S2MM_HPP__
 
-#include "server/context/context.hpp"
-#include "server/hardware/memory_map.hpp"
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
+#include "server/hardware/memory_manager.hpp"
 
 #include <chrono>
 #include <thread>
@@ -17,10 +18,9 @@
 class DmaS2MM
 {
   public:
-    DmaS2MM(Context& ctx_)
-    : ctx(ctx_)
-    , dma(ctx.mm.get<mem::dma>())
-    , axi_hp0(ctx.mm.get<mem::axi_hp0>())
+    DmaS2MM()
+    : dma(services::require<hw::MemoryManager>().get<mem::dma>())
+    , axi_hp0(services::require<hw::MemoryManager>().get<mem::axi_hp0>())
     {
         // Set AXI_HP0 to 32 bits
         axi_hp0.set_bit<0x0, 0>();
@@ -60,7 +60,7 @@ class DmaS2MM
             cnt++;
 
             if (cnt > max_sleeps_cnt) {
-                ctx.logf<ERROR>(
+                logf<ERROR>(
                     "DmaS2MM::wait_for_transfer: Max number of sleeps exceeded. [set duration {} s]\n",
                     dma_transfer_duration_seconds);
                 break;
@@ -76,7 +76,6 @@ class DmaS2MM
 
     static constexpr uint32_t max_sleeps_cnt = 4;
 
-    Context& ctx;
     hw::Memory<mem::dma>& dma;
     hw::Memory<mem::axi_hp0>& axi_hp0;
 
@@ -91,7 +90,7 @@ class DmaS2MM
             cnt++;
 
             if (cnt > max_sleeps_cnt) {
-                ctx.log<ERROR>("DmaS2MM::reset: Max number of sleeps exceeded.\n");
+                log<ERROR>("DmaS2MM::reset: Max number of sleeps exceeded.\n");
                 break;
             }
         }
@@ -108,7 +107,7 @@ class DmaS2MM
             cnt++;
 
             if (cnt > max_sleeps_cnt) {
-                ctx.log<ERROR>("DmaS2MM::start: Max number of sleeps exceeded.\n");
+                log<ERROR>("DmaS2MM::start: Max number of sleeps exceeded.\n");
                 break;
             }
         }
