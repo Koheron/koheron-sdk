@@ -20,23 +20,14 @@ Driver({{ driver.objects[0]["type"] }}& {{ driver.objects[0]["name"] }}_)
 /////////////////////////////////////
 // {{ operation['name'] }}
 
-{%- macro full_arg_type(a) -%}
-{{ 'const ' if a.get('is_const') }}{{ a['type'] }}{{ '&' if a.get('by_reference') }}
-{%- endmacro -%}
-
-{%- macro arg_type_list(args) -%}
-{%- for a in args -%}
-{{ full_arg_type(a) }}{{ ", " if not loop.last }}
-{%- endfor -%}
-{%- endmacro -%}
-
 template<>
-template<>
-int Driver<{{ driver.id }}>::execute_operation<Driver<{{ driver.id }}>::{{ operation['tag'] }}>(Command& cmd) {
+int Driver<{{ driver.id }}>::
+        execute_operation<Driver<{{ driver.id }}>::{{ operation['tag'] }}>(Command& cmd)
+{
     using C = {{ driver.objects[0]["type"] }};
     {%- if operation.needs_cast %}
-    using Ret = {{ operation | exact_ret_type(driver.objects[0]["type"]) }};
-    using PMF = Ret (C::*)({{ arg_type_list(operation.get('arguments', [])) }});
+    using Ret = {{ operation.ret_expr }};
+    using PMF = Ret (C::*)({{ operation.arg_types_str }});
     return op_invoke<{{ driver.id }}, {{ operation['id'] }}>(
         {{ driver.objects[0]["name"] }},
         static_cast<PMF>(&C::{{ operation['name'] }}),
