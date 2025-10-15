@@ -17,7 +17,6 @@ SDK_PATH = os.getenv('SDK_PATH', '')
 def get_driver(path, driver_id=0):
     driver = Driver(path)
     driver.id = driver_id
-    driver.calls = cmd_calls(driver.raw, driver_id)
     return driver
 
 def get_driver_id(drivers_list, driver_path):
@@ -43,10 +42,19 @@ def get_drivers(drivers_list):
         drivers.append(driver)
     return drivers
 
+def mark_overloads(driver_dict):
+    # driver_dict like the one returned by parse_driver_header
+    counts = {}
+    for op in driver_dict['operations']:
+        counts[op['name']] = counts.get(op['name'], 0) + 1
+    for op in driver_dict['operations']:
+        op['is_overloaded'] = counts[op['name']] > 1
+
 class Driver:
     def __init__(self, path, base_dir='.'):
         dev = parse_header(os.path.join(base_dir, path))[0]
         self.raw = dev
+        mark_overloads(dev)
         self.header_path = os.path.dirname(path)
         self.path = path
         self.operations = dev['operations']
@@ -90,16 +98,7 @@ def get_template(filename):
       loader = jinja2.FileSystemLoader(os.path.join(SDK_PATH, 'server/templates'))
     )
 
-    def get_fragment(operation, driver):
-        return driver.calls[operation['tag']]
-
-    def get_parser(operation, driver):
-        return parser_generator(driver, operation)
-
-    renderer.filters['get_fragment'] = get_fragment
-    renderer.filters['get_parser'] = get_parser
-    renderer.filters['get_exact_ret_type'] = get_exact_ret_type
-
+    renderer.filters['exact_ret_type'] = lambda operation, classname: get_exact_ret_type(classname, operation)
     return renderer.get_template(filename)
 
 def render_template(template_filename, output_filename, drivers):
@@ -124,6 +123,20 @@ def parse_header(hppfile):
         drivers.append(parse_driver_header(cpp_header.classes[classname], hppfile))
     return drivers
 
+def mark_ops_needing_cast(_class, driver_dict):
+    templated_names = set()
+    for m in _class['methods']['public']:
+        if m.get('template', False):
+            templated_names.add(m['name'])
+
+    counts = {}
+    for op in driver_dict['operations']:
+        counts[op['name']] = counts.get(op['name'], 0) + 1
+    overloaded_names = {name for name, c in counts.items() if c > 1}
+
+    for op in driver_dict['operations']:
+        op['needs_cast'] = (op['name'] in templated_names) or (op['name'] in overloaded_names)
+
 def parse_driver_header(_class, hppfile):
     driver = {}
     driver['name'] = _class['name']
@@ -142,6 +155,7 @@ def parse_driver_header(_class, hppfile):
             driver['operations'].append(parse_header_operation(driver['name'], method))
             driver['operations'][-1]['id'] = op_id
             op_id += 1
+    mark_ops_needing_cast(_class, driver)
     return driver
 
 def parse_header_operation(driver_name, method):
@@ -204,128 +218,9 @@ def format_ret_type(classname, operation):
     else:
         return operation['ret_type']
 
-
-# -----------------------------------------------------------------------------
-# Generate command call and send
-# -----------------------------------------------------------------------------
-
-def cmd_calls(driver, driver_id):
-    calls = {}
-    for op in driver['operations']:
-        calls[op['tag']] = generate_call(driver, driver_id, op)
-    return calls
-
-def generate_call(driver, driver_id, operation):
-    def build_func_call(driver, operation):
-        call = driver['objects'][0]['name'] + '.' + operation['name'] + '('
-        call += ', '.join('args_' + operation['name'] + '.' + arg['name'] for arg in operation.get('arguments', []))
-        return call + ')'
-
-    lines = []
-    if operation['ret_type'] == 'void':
-        lines.append('    {};\n'.format(build_func_call(driver, operation)))
-        lines.append('    return 0;\n')
-    else:
-        lines.append('    return cmd.session->send<{}, {}>({});\n'.format(driver_id, operation['id'], build_func_call(driver, operation)))
-    return ''.join(lines)
-
 # -----------------------------------------------------------
 # Parse command arguments
 # -----------------------------------------------------------
-
-def parser_generator(driver, operation):
-
-    if operation.get('arguments') is None:
-        return ''
-
-    lines = []
-    packs, has_vector = build_args_packs(lines, operation)
-
-    if not has_vector:
-        print_required_buff_size(lines, packs)
-        lines.append('    static_assert(req_buff_size <= CMD_PAYLOAD_BUFFER_LEN, "Buffer size too small");\n\n');
-
-    for idx, pack in enumerate(packs):
-        if pack['family'] == 'scalar':
-            lines.append('\n    auto args_tuple' + str(idx)  + ' = cmd.session->deserialize<')
-            print_type_list_pack(lines, pack)
-            lines.append('>(cmd);\n')
-            lines.append('    if (std::get<0>(args_tuple' + str(idx)  + ') < 0) {\n')
-            lines.append('        return -1;\n')
-            lines.append('    }\n')
-
-            for i, arg in enumerate(pack['args']):
-                lines.append('    args_' + operation['name'] + '.' + arg["name"] + ' = ' + 'std::get<' + str(i + 1) + '>(args_tuple' + str(idx) + ');\n');
-
-        elif pack['family'] in ['vector', 'string', 'array']:
-            lines.append('    if (cmd.session->recv(args_' + operation['name'] + '.' + pack['args']['name'] + ', cmd) < 0) {\n')
-            lines.append('        return -1;\n')
-            lines.append('    }\n\n')
-        else:
-            raise ValueError('Unknown argument family')
-    return ''.join(lines)
-
-def print_required_buff_size(lines, packs):
-    lines.append('    constexpr size_t req_buff_size = ')
-
-    for idx, pack in enumerate(packs):
-        if pack['family'] == 'scalar':
-            if idx == 0:
-                lines.append('required_buffer_size<')
-            else:
-                lines.append('                                     + required_buffer_size<')
-            print_type_list_pack(lines, pack)
-            if idx < len(packs) - 1:
-                lines.append('>()\n')
-            else:
-                lines.append('>();\n')
-        elif pack['family'] == 'array':
-            array_params = get_std_array_params(pack['args']['type'])
-            if idx == 0:
-                lines.append('size_of<')
-            else:
-                lines.append('                                     + size_of<')
-            lines.append(array_params['T'] + ', ' + array_params['N'] + '>')
-            if idx < len(packs) - 1:
-                lines.append('\n')
-            else:
-                lines.append(';\n')
-
-def print_type_list_pack(lines, pack):
-    for idx, arg in enumerate(pack['args']):
-        if idx < len(pack['args']) - 1:
-            lines.append(arg['type'] + ', ')
-        else:
-            lines.append(arg['type'])
-
-def build_args_packs(lines, operation):
-    ''' Packs the adjacent scalars together for deserialization
-        and separate them from the arrays and vectors '''
-    packs = []
-    args_list = []
-    has_vector = False
-    for idx, arg in enumerate(operation["arguments"]):
-        if is_std_array(arg['type']):
-            if len(args_list) > 0:
-                packs.append({'family': 'scalar', 'args': args_list})
-                args_list = []
-            packs.append({'family': 'array', 'args': arg})
-        elif is_std_vector(arg['type']) or is_std_string(arg['type']):
-            has_vector = True
-            if len(args_list) > 0:
-                packs.append({'family': 'scalar', 'args': args_list})
-                args_list = []
-            if is_std_vector(arg['type']):
-                packs.append({'family': 'vector', 'args': arg})
-            elif is_std_string(arg['type']):
-                packs.append({'family': 'string', 'args': arg})
-            else:
-                assert False
-        else:
-            args_list.append(arg)
-    if len(args_list) > 0:
-        packs.append({'family': 'scalar', 'args': args_list})
-    return packs, has_vector
 
 def is_std_array(arg_type):
     container_type = arg_type.split('<')[0].strip()
@@ -337,10 +232,3 @@ def is_std_vector(arg_type):
 
 def is_std_string(arg_type):
     return arg_type.strip() in ['std::string', 'const std::string']
-
-def get_std_array_params(arg_type):
-    templates = arg_type.split('<')[1].split('>')[0].split(',')
-    return {
-      'T': templates[0].strip(),
-      'N': templates[1].strip()
-    }

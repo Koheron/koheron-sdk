@@ -45,10 +45,13 @@ template<uint32_t id> using ret_type_t = typename ret_type<id>::type;
         >;
     };
 
-    template<>
-    struct ret_type<op::{{ driver.name }}::{{ operation['name'] }}> {
-        using type = scicpp::units::representation_t<std::decay_t<{{ driver.name | get_exact_ret_type(operation) }}>>;
-    };
+template<>
+struct ret_type<op::{{ driver.name }}::{{ operation['name'] }}> {
+    using type =
+        scicpp::units::representation_t<
+            std::decay_t<{{ operation | exact_ret_type(driver.name) }}>
+        >;
+};
 
     {% endfor -%}
 {% endfor %}

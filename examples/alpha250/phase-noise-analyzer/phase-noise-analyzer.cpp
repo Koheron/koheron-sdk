@@ -2,12 +2,12 @@
 ///
 /// (c) Koheron
 
-
 #include "./phase-noise-analyzer.hpp"
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/driver_manager.hpp"
+#include "server/runtime/config_manager.hpp"
 #include "server/drivers/dma-s2mm.hpp"
 #include "boards/alpha250/drivers/clock-generator.hpp"
 #include "boards/alpha250/drivers/ltc2157.hpp"

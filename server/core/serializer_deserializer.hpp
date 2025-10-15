@@ -41,6 +41,9 @@ template<class T> inline constexpr bool is_std_complex_v = is_std_complex<std::r
 template<> inline constexpr std::size_t size_of<std::complex<float>>  = 2 * sizeof(float);
 template<> inline constexpr std::size_t size_of<std::complex<double>> = 2 * sizeof(double);
 
+template<class T, std::size_t N>
+inline constexpr std::size_t size_of<std::array<T,N>> = N * size_of<T>;
+
 //------------------------------------------------------------------------------
 // extract<T>/append<T> in big-endian, using bit_cast and generic code
 //------------------------------------------------------------------------------
@@ -82,6 +85,20 @@ inline T extract(const char* p) {
 template<>
 inline bool extract<bool>(const char* p) {
     return static_cast<unsigned char>(p[0]) == 1;
+}
+
+template<class A>
+requires requires { typename A::value_type; std::tuple_size<A>::value; } // std::array-like
+inline A extract(const char* p) {
+    using V = typename A::value_type;
+    constexpr std::size_t N = std::tuple_size<A>::value;
+    A out{}; // value-initialize
+    if constexpr (N > 0) {
+        for (std::size_t i = 0; i < N; ++i) {
+            out[i] = extract<V>(p + i * sizeof(V));
+        }
+    }
+    return out;
 }
 
 // ---- append ----
