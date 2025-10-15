@@ -63,6 +63,17 @@ list_drivers:
 	@echo "-------------------"
 	@echo $(DRIVERS_OBJ)
 
+# A stamp that only changes when the *set* of drivers changes
+DRIVERS_LIST_FILE := $(TMP_SERVER_PATH)/drivers.list
+
+# Update the list only if content actually changed (keeps timestamp stable)
+$(DRIVERS_LIST_FILE): | $(TMP_SERVER_PATH)
+	@{ \
+	  printf "%s\n" $(DRIVERS_HPP) | sed 's|^\./||' | LC_ALL=C sort; \
+	} > $@.tmp
+	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
+	@rm -f $@.tmp
+
 # -----------------------------------------------------------------------------
 # Generated interface sources/objects
 # -----------------------------------------------------------------------------
@@ -93,17 +104,33 @@ $(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp
 # -----------------------------------------------------------------------------
 # Other templates
 # -----------------------------------------------------------------------------
-SERVER_TEMPLATE_LIST := $(addprefix $(TMP_SERVER_PATH)/, \
-  drivers_list.hpp drivers_json.hpp drivers.hpp interface_drivers.hpp operations.hpp)
 
-define _render_template_rule
+# Aggregates that depend only on the membership of DRIVERS (not their contents)
+AGG_LIST_TEMPLATES := $(addprefix $(TMP_SERVER_PATH)/, \
+  drivers_list.hpp interface_drivers.hpp)
+
+# Aggregates that depend on the actual driver *contents*
+META_TEMPLATES := $(addprefix $(TMP_SERVER_PATH)/, \
+  drivers_json.hpp drivers.hpp operations.hpp)
+
+# Render rule that depends on the list *only*
+define _render_template_rule_list
+$1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_LIST_FILE)
+	$(Q)mkdir -p $(dir $$@)
+	$$(call echo-cmd,tpl)
+	$(Q)$(MAKE_PY) --render_template $$@ $(MEMORY_YML) $$<
+endef
+
+# Render rule that depends on the full set of driver headers
+define _render_template_rule_full
 $1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP)
 	$(Q)mkdir -p $(dir $$@)
 	$$(call echo-cmd,tpl)
 	$(Q)$(MAKE_PY) --render_template $$@ $(MEMORY_YML) $$<
 endef
 
-$(foreach template,$(SERVER_TEMPLATE_LIST),$(eval $(call _render_template_rule,$(template))))
+$(foreach t,$(AGG_LIST_TEMPLATES),$(eval $(call _render_template_rule_list,$(t))))
+$(foreach t,$(META_TEMPLATES),$(eval $(call _render_template_rule_full,$(t))))
 
 # -----------------------------------------------------------------------------
 # Objects
