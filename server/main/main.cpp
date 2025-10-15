@@ -56,8 +56,12 @@ int main() {
 
     // On driver allocation failure
     auto on_fail = []([[maybe_unused]] driver_id id, [[maybe_unused]] std::string_view name) {
-        log<PANIC>("Exiting server...\n");
-        get<Server>()->exit_all = true;
+        auto server = get<Server>();
+
+        if (server) {
+            log<PANIC>("Exiting server...\n");
+            server->exit_all = true;
+        }
     };
 
     auto dm = provide<rt::DriverManager>(on_fail);
