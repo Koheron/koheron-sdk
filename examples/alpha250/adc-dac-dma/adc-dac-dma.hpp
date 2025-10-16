@@ -6,7 +6,6 @@
 #define __DRIVERS_ADC_DAC_DMA_HPP__
 
 #include "server/runtime/syslog.hpp"
-#include "server/runtime/services.hpp"
 #include "server/hardware/memory_manager.hpp"
 
 #include <array>
@@ -53,15 +52,14 @@ class AdcDacDma
 {
   public:
     AdcDacDma()
-    : mm(services::require<hw::MemoryManager>())
-    , ctl(mm.get<mem::control>())
-    , dma(mm.get<mem::dma>())
-    , ram_s2mm(mm.get<mem::ram_s2mm>())
-    , axi_hp0(mm.get<mem::axi_hp0>())
-    , axi_hp2(mm.get<mem::axi_hp2>())
-    , ocm_mm2s(mm.get<mem::ocm_mm2s>())
-    , ocm_s2mm(mm.get<mem::ocm_s2mm>())
-    , sclr(mm.get<mem::sclr>())
+    : ctl     (hw::get_memory<mem::control>())
+    , dma     (hw::get_memory<mem::dma>())
+    , ram_s2mm(hw::get_memory<mem::ram_s2mm>())
+    , axi_hp0 (hw::get_memory<mem::axi_hp0>())
+    , axi_hp2 (hw::get_memory<mem::axi_hp2>())
+    , ocm_mm2s(hw::get_memory<mem::ocm_mm2s>())
+    , ocm_s2mm(hw::get_memory<mem::ocm_s2mm>())
+    , sclr    (hw::get_memory<mem::sclr>())
     {
         // Unlock SCLR
         sclr.write<Sclr_regs::sclr_unlock>(0xDF0D);
@@ -86,7 +84,7 @@ class AdcDacDma
     }
 
     void set_dac_data(const std::vector<uint32_t>& dac_data) {
-        auto& ram_mm2s = mm.get<mem::ram_mm2s>();
+        auto& ram_mm2s = hw::get_memory<mem::ram_mm2s>();
 
         for (uint32_t i = 0; i < dac_data.size(); i++) {
             ram_mm2s.write_reg(4*i, dac_data[i]);
@@ -146,7 +144,6 @@ class AdcDacDma
     }
 
   private:
-    hw::MemoryManager& mm;
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::dma>& dma;
     hw::Memory<mem::ram_s2mm>& ram_s2mm;

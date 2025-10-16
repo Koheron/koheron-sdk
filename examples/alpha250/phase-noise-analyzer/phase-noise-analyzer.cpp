@@ -22,15 +22,13 @@
 namespace sci = scicpp;
 namespace sig = scicpp::signal;
 
-using services::require;
-
 PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
-: cfg    (require<rt::ConfigManager>())
-, dma    (require<rt::DriverManager>().get<DmaS2MM>())
-, ltc2157(require<rt::DriverManager>().get<Ltc2157>())
-, dds    (require<rt::DriverManager>().get<Dds>())
-, ctl    (require<hw::MemoryManager>().get<mem::control>())
-, sts    (require<hw::MemoryManager>().get<mem::status>())
+: cfg    (services::require<rt::ConfigManager>())
+, dma    (rt::get_driver<DmaS2MM>())
+, ltc2157(rt::get_driver<Ltc2157>())
+, dds    (rt::get_driver<Dds>())
+, ctl    (hw::get_memory<mem::control>())
+, sts    (hw::get_memory<mem::status>())
 , phase_noise(1 + fft_size / 2)
 , averager(1)
 {
@@ -38,7 +36,7 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
     vrange= { 1_V * ltc2157.get_input_voltage_range(0),
               1_V * ltc2157.get_input_voltage_range(1) };
 
-    auto& clk_gen = require<rt::DriverManager>().get<ClockGenerator>();
+    auto& clk_gen = rt::get_driver<ClockGenerator>();
     clk_gen.set_sampling_frequency(0); // 200 MHz
     fs_adc = Frequency(clk_gen.get_adc_sampling_freq());
 
@@ -221,7 +219,7 @@ void PhaseNoiseAnalyzer::kick_dma() {
 auto PhaseNoiseAnalyzer::read_dma() {
     std::scoped_lock lk(dma_mtx);
     dma.wait_for_transfer(dma_transfer_duration);
-    auto& ram = require<hw::MemoryManager>().get<mem::ram>();
+    auto& ram = hw::get_memory<mem::ram>();
     return ram.read_array<int32_t, data_size, read_offset>();
 }
 

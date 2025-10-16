@@ -1,6 +1,5 @@
 #include "./dds.hpp"
 
-#include "server/runtime/services.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/driver_manager.hpp"
 #include "server/hardware/memory_manager.hpp"
@@ -9,10 +8,8 @@
 #include <limits>
 #include <cmath>
 
-using services::require;
-
 Dds::Dds()
-: clk_gen(require<rt::DriverManager>().get<ClockGenerator>())
+: clk_gen(rt::get_driver<ClockGenerator>())
 {
     clk_gen.set_sampling_frequency(0);
 }
@@ -40,7 +37,7 @@ void Dds::set_dds_freq(uint32_t channel, double freq_hz) {
 
     double factor = (uint64_t(1) << 48) / fs_adc;
 
-    auto& ctl= require<hw::MemoryManager>().get<mem::control>();
+    auto& ctl= hw::get_memory<mem::control>();
     ctl.write_reg<uint64_t>(reg::phase_incr0 + 8 * channel, uint64_t(factor * freq_hz));
     dds_freq[channel] = freq_hz;
 
