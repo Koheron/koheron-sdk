@@ -14,6 +14,7 @@ CORES += $(SDK_PATH)/fpga/cores/psd_counter_v1_0
 
 include $(SDK_PATH)/boards/alpha250-4/drivers/drivers.mk
 DRIVERS += $(PROJECT_PATH)/fft.hpp
+DRIVERS += $(PROJECT_PATH)/fft.cpp
 
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
 WEB_FILES += $(SDK_PATH)/web/dds-frequency/dds-frequency.html

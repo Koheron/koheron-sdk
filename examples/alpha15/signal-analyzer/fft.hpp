@@ -8,6 +8,7 @@
 #include "server/hardware/memory_manager.hpp"
 
 #include <atomic>
+#include <cstdint>
 #include <thread>
 #include <mutex>
 #include <array>

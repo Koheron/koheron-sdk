@@ -2,10 +2,13 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_DECIMATOR_HPP__
-#define __DRIVERS_DECIMATOR_HPP__
+#ifndef __ALPHA15_DECIMATOR_DECIMATOR_HPP__
+#define __ALPHA15_DECIMATOR_DECIMATOR_HPP__
 
-#include <context.hpp>
+#include "server/hardware/memory_manager.hpp"
+
+#include <cstdint>
+#include <array>
 
 // http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
 namespace Fifo_regs {
@@ -20,10 +23,9 @@ constexpr uint32_t ARR_SIZE = 8192;
 class Decimator
 {
   public:
-    Decimator(Context& ctx)
-    : ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
-    , adc_fifo_map(ctx.mm.get<mem::adc_fifo>())
+    Decimator()
+    : ctl(hw::get_memory<mem::control>())
+    , adc_fifo_map(hw::get_memory<mem::adc_fifo>())
     {}
 
     // Channel selection
@@ -81,12 +83,10 @@ class Decimator
     }
 
   private:
-
     hw::Memory<mem::control>& ctl;
-    hw::Memory<mem::status>& sts;
     hw::Memory<mem::adc_fifo>& adc_fifo_map;
 
     std::array<uint32_t, ARR_SIZE> adc_data;
 };
 
-#endif // __DRIVERS_PULSE_HPP__
+#endif // __ALPHA15_DECIMATOR_DECIMATOR_HPP__

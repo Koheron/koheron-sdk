@@ -1,8 +1,6 @@
 #ifndef __ALPHA250_DRIVERS_PRECISION_DAC_HPP__
 #define __ALPHA250_DRIVERS_PRECISION_DAC_HPP__
 
-#include "server/hardware/memory_manager.hpp"
-
 #include <array>
 #include <cstdint>
 
@@ -38,7 +36,6 @@ class PrecisionDac
         READBACK
     };
 
-    hw::MemoryManager& mm;
     Eeprom& eeprom;
 
     std::array<uint32_t, n_dacs> dac_values{};

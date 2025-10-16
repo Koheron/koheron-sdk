@@ -7,7 +7,6 @@
 #ifndef __SERVER_DRIVERS_FIFO_HPP__
 #define __SERVER_DRIVERS_FIFO_HPP__
 
-#include "server/runtime/services.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/hardware/memory_manager.hpp"
 #include "server/drivers/uio.hpp"
@@ -21,7 +20,7 @@ class Fifo
 {
   public:
     Fifo()
-    : fifo(services::require<hw::MemoryManager>().get<fifo_mem>())
+    : fifo(hw::get_memory<fifo_mem>())
     {
         if constexpr (mem_dev == "/dev/uio") {
             uio.emplace();
@@ -97,9 +96,8 @@ class Fifo
 
             // Timeout: just loop; either more data will arrive or next arm+wait catches it
             if (rc == 0) {
-                rt::print_fmt<WARNING>(
-                    "FIFO [{}] Timed out. tmo={:%Q %q} [{} pts at {} Hz]\n",
-                    mem_name, tmo, n_pts, fs_hz);
+                logf<WARNING>("FIFO [{}] Timed out. tmo={:%Q %q} [{} pts at {} Hz]\n",
+                              mem_name, tmo, n_pts, fs_hz);
                 continue;
             }
 
@@ -110,8 +108,8 @@ class Fifo
     }
 
     void probe() {
-        rt::print_fmt<INFO>("FIFO [{}] probe: ISR={:#010x} IER={:#010x} RDFO={}\n",
-            mem_name, read_reg<ISR>(), read_reg<IER>(), read_reg<RDFO>());
+        logf("FIFO [{}] probe: ISR={:#010x} IER={:#010x} RDFO={}\n",
+             mem_name, read_reg<ISR>(), read_reg<IER>(), read_reg<RDFO>());
     }
 
   private:

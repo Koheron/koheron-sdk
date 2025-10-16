@@ -56,7 +56,7 @@ class Uio
         std::error_code ec;
 
         if (!fs::exists(uio_root, ec) || !fs::is_directory(uio_root, ec)) {
-            rt::print_fmt<ERROR>("Uio: Cannot open {} [{}]\n",
+            logf<ERROR>("Uio: Cannot open {} [{}]\n",
                 uio_root, ec ? ec.message().c_str() : std::strerror(errno));
             return -1;
         }
@@ -65,7 +65,7 @@ class Uio
 
         for (const auto& entry : fs::directory_iterator(uio_root, ec)) {
             if (ec) {
-                rt::print_fmt<ERROR>("Uio: directory_iterator error: {}\n", ec.message());
+                logf<ERROR>("Uio: directory_iterator error: {}\n", ec.message());
                 break;
             }
 
@@ -94,10 +94,10 @@ class Uio
                 new_fd = ::open(dev_path.c_str(), O_RDWR | O_CLOEXEC);
 
                 if (new_fd < 0) {
-                    rt::print_fmt<ERROR>("Uio: Cannot open {}: {}\n",
+                    logf<ERROR>("Uio: Cannot open {}: {}\n",
                                               dev_path, std::strerror(errno));
                 } else {
-                    rt::print_fmt("Uio: {} @ {} ready\n", mem_name, dev_path);
+                    logf("Uio: {} @ {} ready\n", mem_name, dev_path);
                 }
 
                 break;
@@ -105,7 +105,7 @@ class Uio
         }
 
         if (new_fd < 0) {
-            rt::print_fmt<ERROR>("Uio: No device with base {:#x}\n", phys_addr);
+            logf<ERROR>("Uio: No device with base {:#x}\n", phys_addr);
             return -1;
         }
 
@@ -122,7 +122,7 @@ class Uio
 
     bool arm_irq() {
         if (fd_ < 0) {
-            rt::print_fmt<ERROR>("Uio: arm_irq on invalid fd\n");
+            logf<ERROR>("Uio: arm_irq on invalid fd\n");
             return false;
         }
 
@@ -133,7 +133,7 @@ class Uio
         } while (n < 0 && errno == EINTR);
 
         if (n != static_cast<ssize_t>(sizeof(arm))) {
-            rt::print_fmt<ERROR>("Uio: Cannot enable IRQ: {}\n", std::strerror(errno));
+            logf<ERROR>("Uio: Cannot enable IRQ: {}\n", std::strerror(errno));
             return false;
         }
 
@@ -163,12 +163,12 @@ class Uio
     bool listen(Fn&& fn,
                 std::chrono::milliseconds timeout = std::chrono::milliseconds{-1}) {
         if (fd_ < 0) {
-            rt::print_fmt<ERROR>("Uio: on_irq called with invalid fd\n");
+            logf<ERROR>("Uio: on_irq called with invalid fd\n");
             return false;
         }
 
         if (running_.exchange(true)) {
-            rt::print_fmt<ERROR>("Uio: on_irq already running\n");
+            logf<ERROR>("Uio: on_irq already running\n");
             return false;
         }
 
@@ -235,7 +235,7 @@ class Uio
 
     void* mmap() {
         if (fd_ < 0) {
-            rt::print_fmt<ERROR>("Uio: mmap on invalid fd\n");
+            logf<ERROR>("Uio: mmap on invalid fd\n");
             return nullptr;
         }
 
@@ -251,12 +251,11 @@ class Uio
         void* p = ::mmap(nullptr, len, protection, MAP_SHARED, fd_, off);
 
         if (p == MAP_FAILED) {
-            rt::print_fmt<ERROR>(
-                "Uio: mmap({}, len={:#x}) failed: {}\n",
-                mem_name, len, std::strerror(errno));
+            logf<ERROR>("Uio: mmap({}, len={:#x}) failed: {}\n",
+                        mem_name, len, std::strerror(errno));
             return nullptr;
         } else {
-            rt::print_fmt("Uio: {} memory mapped\n", mem_name);
+            logf("Uio: {} memory mapped\n", mem_name);
         }
 
         map_base_ = p;
@@ -298,7 +297,7 @@ class Uio
 
     int wait_for_irq_impl(int timeout_ms) {
         if (fd_ < 0) {
-            rt::print_fmt<ERROR>("Uio: wait_for_irq on invalid fd\n");
+            logf<ERROR>("Uio: wait_for_irq on invalid fd\n");
             return -1;
         }
 
@@ -316,13 +315,13 @@ class Uio
             }
 
             if (pr < 0) {
-                rt::print_fmt<ERROR>("Uio: poll error: {}\n", std::strerror(errno));
+                logf<ERROR>("Uio: poll error: {}\n", std::strerror(errno));
                 return -1;
             }
 
             // Check for error/hangup conditions
             if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
-                rt::print_fmt<ERROR>("Uio: poll revents=0x{:x}\n", pfd.revents);
+                logf<ERROR>("Uio: poll revents=0x{:x}\n", pfd.revents);
                 return -1;
             }
 
@@ -339,7 +338,7 @@ class Uio
             } while (n < 0 && errno == EINTR);
 
             if (n != static_cast<ssize_t>(sizeof(irqcnt))) {
-                rt::print_fmt<ERROR>("Uio: read error: {}\n", std::strerror(errno));
+                logf<ERROR>("Uio: read error: {}\n", std::strerror(errno));
                 return -1;
             }
 

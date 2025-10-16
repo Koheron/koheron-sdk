@@ -8,6 +8,7 @@
 #include "server/hardware/memory_manager.hpp"
 
 #include <array>
+#include <cstdint>
 #include <numeric>
 
 class TemperatureSensor
@@ -23,7 +24,7 @@ class TemperatureSensor
     }
 
     float get_zynq_temperature() {
-        auto& xadc = services::require<hw::MemoryManager>().get<mem::xadc>();
+        auto& xadc = hw::get_memory<mem::xadc>();
         zynq_temp[i] = (xadc.read<0x200>() * 503.975) / 65356 - 273.15;
         i = (i + 1) % n_avg;
         float sum = 0;
