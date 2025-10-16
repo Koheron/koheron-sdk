@@ -9,121 +9,146 @@
 #include <type_traits>
 #include <utility>
 #include <mutex>
+#include <tuple>
+#include <vector>
+#include <string>
+#include <initializer_list>
 
 namespace koheron {
 
-// ---------- Low-level readers ----------
+// --------- low-level "read one arg" ----------
 
 template <typename T>
 inline bool read_one(Command& cmd, T& v) {
+    // fixed-size / POD-ish types
     auto t = cmd.session->deserialize<T>(cmd);
-
     if (std::get<0>(t) < 0) {
         return false;
     }
-
     v = std::get<1>(t);
     return true;
 }
 
-template <typename T, std::size_t N>
-inline bool read_one(Command& cmd, std::array<T,N>& a) {
-    return cmd.session->recv(a, cmd) >= 0;
-}
-
 template <typename T>
 inline bool read_one(Command& cmd, std::vector<T>& v) {
-    return cmd.session->recv(v, cmd) >= 0;
+    return cmd.session->recv(v, cmd) >= 0;   // reads [u32 len][payload...]
 }
 
 inline bool read_one(Command& cmd, std::string& s) {
-    return cmd.session->recv(s, cmd) >= 0;
+    return cmd.session->recv(s, cmd) >= 0;   // reads [u32 len][bytes...]
 }
 
-template <typename... Ts>
-inline bool read_args(Command& cmd, Ts&... ts) {
+template <class Tuple, std::size_t... I>
+inline bool read_tuple_into(Command& cmd, Tuple& tup, std::index_sequence<I...>) {
     bool ok = true;
-    (void)std::initializer_list<int>{ (ok = ok && read_one(cmd, ts), 0)... };
+    (void)std::initializer_list<int>{ (ok = ok && read_one(cmd, std::get<I>(tup)), 0)... };
     return ok;
 }
 
-// ---------- Tuple utilities ----------
-template <typename... Args>
-inline bool deserialize_tuple(Command& cmd, std::tuple<Args...>& tup) {
-    bool ok = true;
-    std::apply([&](auto&... elems) {
-        (void)std::initializer_list<int>{ (ok = ok && read_one(cmd, elems), 0)... };
-    }, tup);
-    return ok;
+// ---- PMF (pointer-to-member function) traits ----
+template<class> struct pmf_traits;
+
+template<class C, class R, class... A>
+struct pmf_traits<R (C::*)(A...)> {
+    using clazz = C;
+    using ret   = R;
+    using args  = std::tuple<A...>;
+};
+
+template<class C, class R, class... A>
+struct pmf_traits<R (C::*)(A...) const> {
+    using clazz = const C;
+    using ret   = R;
+    using args  = std::tuple<A...>;
+};
+
+template<class Tuple> struct prepend_status;
+
+template<class... A>
+struct prepend_status<std::tuple<A...>> {
+    using type = std::tuple<int, std::decay_t<A>...>;
+};
+
+// ---- detect dynamic-size args (vector/string) ----
+template<class T> struct is_dynamic_arg : std::false_type {};
+template<class U, class A> struct is_dynamic_arg<std::vector<U,A>> : std::true_type {};
+template<class Ch, class Tr, class A>
+struct is_dynamic_arg<std::basic_string<Ch,Tr,A>> : std::true_type {};
+
+template<class Tuple, std::size_t... I>
+consteval bool all_args_static(std::index_sequence<I...>) {
+    return (... && !is_dynamic_arg<std::decay_t<std::tuple_element_t<I, Tuple>>>::value);
 }
 
-template<int DriverID, int OpID, class C, class Ret, class... Args>
-int op_invoke(C& obj, Ret (C::*pmf)(Args...), Command& cmd) {
-    // How many args arrive on the wire (excluding the status int)
-    constexpr std::size_t N = sizeof...(Args);
+// ---- buffer size computation for fixed-size args ----
+template<class Tuple, std::size_t... I>
+constexpr std::size_t required_size_over_tuple(std::index_sequence<I...>) {
+    return required_buffer_size<std::decay_t<std::tuple_element_t<I, Tuple>>...>();
+}
 
-    // Only assert buffer size when there are arguments
-    if constexpr (N > 0) {
-        constexpr std::size_t need = required_buffer_size<std::decay_t<Args>...>();
+// ---- “make decayed tuple from index sequence” meta ----
+template<class Tuple, class Seq> struct decayed_tuple_from_seq;
+template<class Tuple, std::size_t... I>
+struct decayed_tuple_from_seq<Tuple, std::index_sequence<I...>> {
+    using type = std::tuple<std::decay_t<std::tuple_element_t<I, Tuple>>...>;
+};
+
+template<int DriverID, int OpID, class Obj, class PMF>
+int op_invoke_impl(Obj&& obj, PMF pmf, Command& cmd) {
+    using traits     = pmf_traits<PMF>;
+    using Ret        = typename traits::ret;
+    using ArgsTuple  = typename traits::args;
+
+    constexpr std::size_t N = std::tuple_size_v<ArgsTuple>;
+
+    // Only assert static buffer size if all args are fixed-size
+    if constexpr (N > 0 && all_args_static<ArgsTuple>(std::make_index_sequence<N>{})) {
+        constexpr auto need = required_size_over_tuple<ArgsTuple>(std::make_index_sequence<N>{});
         static_assert(need <= CMD_PAYLOAD_BUFFER_LEN, "Buffer size too small");
     }
 
-    // Deserialize (or fabricate an OK status for zero-arg ops)
-    using deser_tuple_t =
-        std::conditional_t<N == 0, std::tuple<int>, std::tuple<int, std::decay_t<Args>...>>;
-
-    deser_tuple_t tup = [&] {
-        if constexpr (N == 0) {
-            return deser_tuple_t{0}; // success status, no payload to read
-        } else {
-            return cmd.session->deserialize<std::decay_t<Args>...>(cmd);
-        }
-    }();
-
-    if (std::get<0>(tup) < 0) {
-        return -1;
-    }
-
-    // Invoke with perfect forwarding. Preserve reference returns with decltype(auto).
-    return [&]<std::size_t... I>(std::index_sequence<I...>) -> int {
-        // Tail = the arguments (skip status at index 0)
-        auto tail = std::forward_as_tuple(std::get<I + 1>(tup)...);
-
+    if constexpr (N == 0) {
+        // No payload to read
         if constexpr (std::is_void_v<Ret>) {
-            std::apply([&](auto&&... a) {
-                (obj.*pmf)(std::forward<decltype(a)>(a)...);
-            }, tail);
+            std::invoke(pmf, std::forward<Obj>(obj));
             return 0;
         } else {
-            decltype(auto) r = std::apply([&](auto&&... a) -> decltype(auto) {
-                return (obj.*pmf)(std::forward<decltype(a)>(a)...);
-            }, tail);
-
-            // Forward value or lvalue-ref exactly as returned by the method
+            decltype(auto) r = std::invoke(pmf, std::forward<Obj>(obj));
             return cmd.session->send<DriverID, OpID>(std::forward<decltype(r)>(r));
         }
-    }(std::make_index_sequence<N>{});
+    } else {
+        using IS = std::make_index_sequence<N>;
+        using DecayedArgsTuple = typename decayed_tuple_from_seq<ArgsTuple, IS>::type;
+
+        DecayedArgsTuple args{};
+        if (!read_tuple_into(cmd, args, IS{})) {
+            return -1;
+        }
+
+        if constexpr (std::is_void_v<Ret>) {
+            std::apply([&](auto&... a) {
+                std::invoke(pmf, std::forward<Obj>(obj), a...);
+            }, args);
+            return 0;
+        } else {
+            decltype(auto) r = std::apply([&](auto&... a) -> decltype(auto) {
+                return std::invoke(pmf, std::forward<Obj>(obj), a...);
+            }, args);
+            return cmd.session->send<DriverID, OpID>(std::forward<decltype(r)>(r));
+        }
+    }
 }
 
-template<int DriverID, int OpID, typename C, typename Ret, typename... Args>
-int op_invoke(const C& obj, Ret (C::*pmf)(Args...) const, Command& cmd) {
-    using Tup = std::tuple<std::decay_t<Args>...>;
-    Tup args{};
-    if (!deserialize_tuple(cmd, args)) {
-        return -1;
-    }
+// Non-const member functions
+template<int DriverID, int OpID, class C, class Ret, class... Args>
+int op_invoke(C& obj, Ret (C::*pmf)(Args...), Command& cmd) {
+    return op_invoke_impl<DriverID, OpID>(obj, pmf, cmd);
+}
 
-    if constexpr (std::is_void_v<Ret>) {
-        std::apply([&](auto&... elems){
-            (obj.*pmf)(elems...);
-        }, args);
-        return 0;
-    } else {
-        Ret r = std::apply([&](auto&... elems){
-            return (obj.*pmf)(elems...);
-        }, args);
-        return cmd.session->send<DriverID, OpID>(r);
-    }
+// const member functions
+template<int DriverID, int OpID, class C, class Ret, class... Args>
+int op_invoke(const C& obj, Ret (C::*pmf)(Args...) const, Command& cmd) {
+    return op_invoke_impl<DriverID, OpID>(obj, pmf, cmd);
 }
 
 // Descriptor for an operation: PMF + op id.
@@ -155,11 +180,17 @@ public:
     int execute(Command& cmd) {
         std::lock_guard<std::mutex> lock(mutex_);
         const auto op = static_cast<int>(cmd.operation);
-        if (op < 0 || op >= static_cast<int>(table_.size()))
+
+        if (op < 0 || op >= static_cast<int>(table_.size())) {
             return -1;
+        }
+
         auto* fn = table_[op];
-        if (!fn)
+
+        if (!fn) {
             return -1;
+        }
+
         return fn(obj, cmd);
     }
 
