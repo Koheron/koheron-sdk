@@ -151,90 +151,79 @@ int op_invoke(const C& obj, Ret (C::*pmf)(Args...) const, Command& cmd) {
     return op_invoke_impl<DriverID, OpID>(obj, pmf, cmd);
 }
 
-// Descriptor for an operation: PMF + op id.
-// PMF is a *non-type template parameter* (e.g. &C::method or static_cast<PMF>(&C::method))
-template<auto PMF, int OpID>
-struct OpDesc {
-    static constexpr auto pmf  = PMF;
-    static constexpr int  id   = OpID;
+// op id is the position in the pack
+template<auto PMF>
+struct Op {
+    static constexpr auto pmf = PMF;
 };
 
-// Thunk that turns a PMF + IDs into a uniform callable: int(C&, Command&)
+// Force a specific id
+template<auto PMF, int FixedID>
+struct OpAt {
+    static constexpr auto pmf = PMF;
+    static constexpr int  id  = FixedID;
+};
+
 template<class C, int DriverID, auto PMF, int OpID>
 struct OpThunk {
     static int call(C& obj, Command& cmd) {
-        // op_invoke deduces Ret/Args from PMF and does the deserialize/send for you
         return op_invoke<DriverID, OpID>(obj, PMF, cmd);
     }
 };
 
-// The adapter: builds a constexpr jump table and implements execute().
-template<int DriverID, class C, class... Descs>
+template<class T, class = void>
+struct has_id : std::false_type {};
+
+template<class T>
+struct has_id<T, std::void_t<decltype(T::id)>> : std::true_type {};
+
+template<int DriverID, class C, class... Ops>
 class DriverAdapter : public DriverAbstract {
   public:
-    explicit DriverAdapter(C& impl)
-    : DriverAbstract(DriverID)
-    , obj(impl)
-    {}
+    explicit DriverAdapter(C& impl) : DriverAbstract(DriverID), obj(impl) {}
 
     int execute(Command& cmd) {
         std::lock_guard<std::mutex> lock(mutex_);
-        const auto op = static_cast<int>(cmd.operation);
-
-        if (op < 0 || op >= static_cast<int>(table_.size())) {
-            return -1;
-        }
-
+        const int op = static_cast<int>(cmd.operation);
+        if (op < 0 || op >= static_cast<int>(table_.size())) return -1;
         auto* fn = table_[op];
-
-        if (!fn) {
-            return -1;
-        }
-
-        return fn(obj, cmd);
+        return fn ? fn(obj, cmd) : -1;
     }
 
-  protected:
+  private:
     C& obj;
     std::mutex mutex_;
 
-    // Build a dense table indexed by op id.
-    // We assume op ids are 0..MaxOpId (contiguous). If not, see note below.
-    static constexpr int MaxOpId = []{
-        int m = -1;
-        ((m = (Descs::id > m ? Descs::id : m)), ...);
-        return m;
-    }();
-
     using Entry = int(*)(C&, Command&);
 
-    // Start with nulls
-    static constexpr std::array<Entry, MaxOpId + 1> make_table_null() {
-        std::array<Entry, MaxOpId + 1> a{};
-        for (auto& e : a) e = nullptr;
+    template<std::size_t I, class Op>
+    static constexpr int op_id_for() {
+        if constexpr (has_id<Op>::value) return Op::id;
+        else return static_cast<int>(I);     // position == id
+    }
+
+    template<std::size_t... I>
+    static constexpr int max_id(std::index_sequence<I...>) {
+        int m = -1;
+        ((m = (op_id_for<I, Ops>() > m ? op_id_for<I, Ops>() : m)), ...);
+        return m;
+    }
+
+    template<std::size_t... I>
+    static constexpr auto make_table(std::index_sequence<I...>) {
+        // size is max_id + 1; default-init to nullptrs (OK in constexpr)
+        constexpr int N = max_id(std::index_sequence<I...>{}) + 1;
+        std::array<Entry, N> a{}; // all nullptr
+
+        // Assign each slot via a fold; no loops -> constexpr friendly.
+        (( a[ op_id_for<I, Ops>() ] =
+              &OpThunk<C, DriverID, Ops::pmf, op_id_for<I, Ops>()>::call ), ...);
+
         return a;
     }
 
-    // Fill positions corresponding to Descs... with the right thunks
-    static constexpr std::array<Entry, MaxOpId + 1> make_table_filled() {
-        auto a = make_table_null();
-        // Fold-expression to assign each thunk
-        ( (a[Descs::id] = &OpThunk<C, DriverID, Descs::pmf, Descs::id>::call), ... );
-        return a;
-    }
-
-    static constexpr auto table_ = make_table_filled();
-
-    // Compile-time sanity: no duplicate ids
-    static consteval bool unique_ids() {
-        constexpr bool used[MaxOpId + 1] = { ((void)Descs::id, false)... }; // placeholder, we’ll check differently
-        (void)used;
-        // poor man's check: sum of distinct positions we fill must equal number of descs
-        // (if duplicates exist, later writes just overwrite, still OK at runtime, but catch it here:)
-        // We can’t iterate easily in consteval without more machinery; leave runtime-only if you prefer.
-        return true;
-    }
-    static_assert(unique_ids(), "Duplicate operation ids in DriverAdapter");
+    static constexpr auto table_ =
+        make_table(std::make_index_sequence<sizeof...(Ops)>{});
 };
 
 } // namespace koheron

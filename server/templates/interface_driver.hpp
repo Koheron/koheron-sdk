@@ -29,26 +29,28 @@ namespace koheron {
 {%- endfor -%}
 {%- endmacro -%}
 
-using {{ driver.name }}_Adapter = DriverAdapter<
-        {{ driver.id }},
+constexpr int {{ driver.name }}Id = {{ driver.id }};
+
+using {{ driver.name }}Adapter = DriverAdapter<
+        {{ driver.name }}Id,
         {{ driver.name }},
 {% set SEP = joiner(',\n') -%}
 {%- for op in driver.operations -%}
-{{ SEP() }}        OpDesc<
+{{ SEP() }}        Op<
         {%- if op.needs_cast -%}
             static_cast<{{ op.ret_expr }} ({{ driver.name }}::*)({{ arg_type_list(op.get('arguments', [])) }})>
             (&{{ driver.name }}::{{ op['name'] }})
         {%- else -%}
             &{{ driver.name }}::{{ op['name'] }}
         {%- endif -%}
-        , {{ op['id'] }}>
+        >
 {%- endfor %}
 >;
 
 template<>
-class Driver<{{ driver.id }}> : public {{ driver.name }}_Adapter {
+class Driver<{{ driver.name }}Id> : public {{ driver.name }}Adapter {
   public:
-    using {{ driver.name }}_Adapter::{{ driver.name }}_Adapter; // inherit constructors
+    using {{ driver.name }}Adapter::{{ driver.name }}Adapter; // inherit constructors
 };
 
 } // namespace koheron

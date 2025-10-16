@@ -43,7 +43,6 @@ class AdcDacBram
     }
 
   private:
-
     hw::MemoryManager& mm;
 }; // class AdcDacBram
 
