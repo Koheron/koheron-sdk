@@ -1,0 +1,48 @@
+#!/bin/sh
+# Print Koheron board metadata in the login banner
+
+# Source the koheron-release file if present to expose build metadata
+if [ -r /etc/koheron-release ]; then
+  # shellcheck disable=SC1091
+  . /etc/koheron-release
+fi
+
+manifest="/usr/local/share/koheron/manifest.txt"
+if [ -r "$manifest" ]; then
+  board_name=$(awk -F '=' '/^board=/{print $2}' "$manifest" | head -n1)
+  project_name=$(awk -F '=' '/^project=/{print $2}' "$manifest" | head -n1)
+else
+  board_name=""
+  project_name=""
+fi
+
+primary_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+
+banner=""
+
+append_field() {
+  local label="$1"
+  local value="$2"
+  if [ -n "$value" ]; then
+    banner="${banner}${label}: ${value}\\n"
+  fi
+}
+
+append_field "Board" "${board_name:-${BOARD:-}}"
+append_field "Project" "${project_name:-${PROJECT:-}}"
+
+if [ -n "${RELEASE:-}" ]; then
+  release_line="${RELEASE}"
+  if [ -n "${BUILD_ID:-}" ]; then
+    release_line="${release_line} (${BUILD_ID})"
+  fi
+  append_field "Release" "$release_line"
+fi
+
+append_field "Git" "${GIT_DESCRIBE:-${GIT_COMMIT:-}}"
+append_field "Ubuntu" "${UBUNTU:-}"
+append_field "IP" "$primary_ip"
+
+if [ -n "$banner" ]; then
+  printf '%b' "$banner"
+fi

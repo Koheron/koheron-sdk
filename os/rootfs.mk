@@ -284,11 +284,27 @@ $(OVERLAY_DIR)/etc/systemd/system/%: $(OS_PATH)/systemd/%
 
 # uwsgi
 $(OVERLAY_DIR)/etc/uwsgi/uwsgi.ini: $(OS_PATH)/config/uwsgi.ini
-	install -D -m0644 $< $@
+        install -D -m0644 $< $@
+
+# Login banner customization
+$(OVERLAY_DIR)/etc/update-motd.d/10-help-text: $(OS_PATH)/config/update-motd.d/10-help-text
+        install -D -m0755 $< $@
+
+$(OVERLAY_DIR)/etc/update-motd.d/50-motd-news: $(OS_PATH)/config/update-motd.d/50-motd-news
+        install -D -m0755 $< $@
+
+$(OVERLAY_DIR)/etc/update-motd.d/60-unminimize: $(OS_PATH)/config/update-motd.d/60-unminimize
+        install -D -m0755 $< $@
+
+$(OVERLAY_DIR)/etc/update-motd.d/91-koheron-info: $(OS_PATH)/config/update-motd.d/91-koheron-info
+        install -D -m0755 $< $@
+
+$(OVERLAY_DIR)/etc/motd: $(OS_PATH)/config/etc/motd
+        install -D -m0644 $< $@
 
 # grow-rootfs-once
 $(OVERLAY_DIR)/usr/local/sbin/grow-rootfs-once: $(OS_PATH)/scripts/grow-rootfs-once
-	install -D -m0755 $< $@
+        install -D -m0755 $< $@
 
 # Instruments
 $(OVERLAY_DIR)/usr/local/instruments/unzip_default_instrument.sh: $(OS_PATH)/scripts/unzip_default_instrument.sh
@@ -339,6 +355,11 @@ OVERLAY_FILES := \
   $(OVERLAY_DIR)/usr/local/instruments/default \
   $(OVERLAY_DIR)/etc/nginx/nginx.conf \
   $(OVERLAY_DIR)/etc/nginx/sites-available/koheron.conf \
+  $(OVERLAY_DIR)/etc/update-motd.d/10-help-text \
+  $(OVERLAY_DIR)/etc/update-motd.d/50-motd-news \
+  $(OVERLAY_DIR)/etc/update-motd.d/60-unminimize \
+  $(OVERLAY_DIR)/etc/update-motd.d/91-koheron-info \
+  $(OVERLAY_DIR)/etc/motd \
   $(OVERLAY_DIR)/etc/systemd/system/nginx.service
 
 $(OVERLAY_TAR): $(OVERLAY_FILES) | $(OVERLAY_DIR)/
