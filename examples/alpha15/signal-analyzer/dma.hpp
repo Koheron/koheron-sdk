@@ -5,7 +5,9 @@
 #ifndef __ALPHA15_SIGNAL_ANALYZER_DMA_HPP__
 #define __ALPHA15_SIGNAL_ANALYZER_DMA_HPP__
 
-#include <context.hpp>
+#include "server/hardware/memory_manager.hpp"
+
+#include <array>
 
 // https://www.xilinx.com/support/documentation/ip_documentation/axi_dma/v7_1/pg021_axi_dma.pdf
 namespace Dma_regs {
@@ -18,12 +20,10 @@ namespace Dma_regs {
 class Dma
 {
   public:
-    Dma(Context& ctx)
-    : dma(ctx.mm.get<mem::dma>())
-    , ram(ctx.mm.get<mem::ram>())
-    , axi_hp0(ctx.mm.get<mem::axi_hp0>())
+    Dma() : dma(hw::get_memory<mem::dma>())
     {
         // Set AXI_HP0 to 32 bits
+        auto& axi_hp0 = hw::get_memory<mem::axi_hp0>();
         axi_hp0.set_bit<0x0, 0>();
         axi_hp0.set_bit<0x14, 0>();
     }
@@ -49,14 +49,11 @@ class Dma
         start_dma();
         set_destination_address(mem::ram_addr);
         set_length(4 * n_pts);
-        data = ram.read_array<int32_t, 1000000, 12288>();
-        return data;
+        return hw::get_memory<mem::ram>().read_array<int32_t, 1000000, 12288>();
     }
 
   private:
     hw::Memory<mem::dma>& dma;
-    hw::Memory<mem::ram>& ram;
-    hw::Memory<mem::axi_hp0>& axi_hp0;
     static constexpr uint32_t n_pts = 1024*1024;
     std::array<int32_t, 1000000> data;
 };
