@@ -6,12 +6,15 @@ import struct
 import numpy as np
 import string
 import json
+import re
 import requests
 import time
 import sys
 import os
 
 BLUE = "\033[94m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
 RESET = "\033[0m"
 
 from .version import __version__
@@ -108,6 +111,18 @@ def stream_logs(host, cursor=None, poll_interval=1.0, stream=None, endpoint: str
         elapsed_seconds = (ts_us - start_timestamp_us) / 1_000_000
         return f"{elapsed_seconds:.6f}s"
 
+    # Keep the severity labels in sync with server/runtime/syslog.hpp so we
+    # strip exactly the prefixes emitted by koheron-server before coloring.
+    severity_colors = {
+        "PANIC": RED,
+        "CRITICAL": RED,
+        "ERROR": RED,
+        "WARNING": YELLOW,
+    }
+    severity_pattern = re.compile(
+        r"^(?P<label>" + "|".join(severity_colors.keys()) + r"):\s*"
+    )
+
     while True:
         try:
             response = session.get(url, params=params, timeout=10)
@@ -126,6 +141,12 @@ def stream_logs(host, cursor=None, poll_interval=1.0, stream=None, endpoint: str
         for entry in entries:
             timestamp = format_elapsed(entry.get('ts'))
             message = (entry.get('msg') or '').rstrip('\n')
+
+            match = severity_pattern.match(message)
+            if match:
+                label = match.group('label')
+                color = severity_colors[label]
+                message = f"{color}{message[match.end():]}{RESET}"
             if timestamp:
                 colored_timestamp = f"{BLUE}[{timestamp}]{RESET}"
                 print(f"{colored_timestamp} {message}", file=stream)

@@ -3,3 +3,4 @@ memory:
   - name: gpio
     range: 64K
     offset: 0x4120_0000
+    dev: '/dev/uio' # test fallback to /dev/mem
