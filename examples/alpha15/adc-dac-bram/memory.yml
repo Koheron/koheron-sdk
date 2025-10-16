@@ -1,7 +1,7 @@
 ---
 memory:
   - name: control
-    offset: '0x60000000'
+    offset: '0x6000_0000'
     range: 4K
     registers:
     - mmcm
@@ -13,35 +13,35 @@ memory:
     - digital_outputs_b34
     - digital_outputs_b35_n
   - name: ps_control
-    offset: '0x64000000'
+    offset: '0x6400_0000'
     range: 4K
     registers:
     - spi_cfg_data
     - spi_cfg_cmd
   - name: status
-    offset: '0x50000000'
+    offset: '0x5000_0000'
     range: 4K
     registers:
     - mmcm_sts
     - adc[n_adc]
     - digital_inputs_b35_p
   - name: ps_status
-    offset: '0x54000000'
+    offset: '0x5400_0000'
     range: 4K
     registers:
     - spi_cfg_sts
   - name: xadc
-    offset: '0x43C00000'
+    offset: '0x43C0_0000'
     range: 64K
   - name: adc0
     range: 128K
-    offset: '0x80000000'
+    offset: '0x8000_0000'
   - name: adc1
     range: 128K
-    offset: '0x80040000'
+    offset: '0x8004_0000'
   - name: dac
     range: 128K
-    offset: '0x40080000'
+    offset: '0x4008_0000'
 
 parameters:
   fclk0: 200000000 # CPU clock speed in Hz

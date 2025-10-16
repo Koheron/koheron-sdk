@@ -55,10 +55,37 @@ def read_parameters(string, parameters):
 
     return string, parameter
 
+def _normalize_int_literal(value):
+    """Return a string literal without numeric separators."""
+    if isinstance(value, str):
+        cleaned = value.replace('_', '')
+        try:
+            parsed = int(cleaned, 0)
+        except ValueError:
+            return value
+
+        lowered = cleaned.lower()
+        if lowered.startswith('0x'):
+            return f'0x{parsed:X}'
+        if lowered.startswith('0o'):
+            return f'0o{parsed:o}'
+        if lowered.startswith('0b'):
+            return f'0b{parsed:b}'
+        return str(parsed)
+
+    if isinstance(value, int):
+        return str(value)
+
+    return value
+
+
 def build_memory(memory, parameters):
     for address in memory:
         address['name'], address['n_blocks'] = read_parameters(address['name'], parameters)
         assert (address['n_blocks'] > 0)
+
+        if 'offset' in address:
+            address['offset'] = _normalize_int_literal(address['offset'])
 
         # Protection
         if not 'protection' in address:

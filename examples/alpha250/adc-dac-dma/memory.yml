@@ -1,7 +1,7 @@
 ---
 memory:
   - name: control
-    offset: '0x40000000'
+    offset: '0x4000_0000'
     range: 4K
     registers:
     - mmcm
@@ -9,47 +9,47 @@ memory:
     - precision_dac_data[2]
     - channel_select
   - name: ps_control
-    offset: '0x54000000'
+    offset: '0x5400_0000'
     range: 4K
     registers:
     - spi_cfg_data
     - spi_cfg_cmd
   - name: status
-    offset: '0x50000000'
+    offset: '0x5000_0000'
     range: 4K
     registers:
     - adc[n_adc]
   - name: ps_status
-    offset: '0x58000000'
+    offset: '0x5800_0000'
     range: 4K
     registers:
     - spi_cfg_sts
   - name: xadc
-    offset: '0x43C00000'
+    offset: '0x43C0_0000'
     range: 64K
   - name: ram_mm2s
-    offset: '0x18000000'
+    offset: '0x1800_0000'
     range: 64M
   - name: ram_s2mm
-    offset: '0x1C000000'
+    offset: '0x1C00_0000'
     range: 64M
   - name: dma
-    offset: '0x40400000'
+    offset: '0x4040_0000'
     range: 64K
   - name: axi_hp0
-    offset: '0xF8008000'
+    offset: '0xF800_8000'
     range: 4K
   - name: axi_hp2
-    offset: '0xF800A000'
+    offset: '0xF800_A000'
     range: 4K
   - name: ocm_mm2s
-    offset: '0xFFFF0000'
+    offset: '0xFFFF_0000'
     range: 32K
   - name: ocm_s2mm
-    offset: '0xFFFF8000'
+    offset: '0xFFFF_8000'
     range: 32K
   - name: sclr
-    offset: '0xF8000000'
+    offset: '0xF800_0000'
     range: 64K
 
 parameters:

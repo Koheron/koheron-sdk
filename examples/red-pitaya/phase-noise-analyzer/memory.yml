@@ -1,28 +1,28 @@
 ---
 memory:
   - name: control
-    offset: '0x40000000'
+    offset: '0x4000_0000'
     range: 4K
     registers:
     - led
     - phase_incr[4]
     - cordic
   - name: status
-    offset: '0x50000000'
+    offset: '0x5000_0000'
     range: 4K
     registers:
     - adc[n_adc]
   - name: xadc
-    offset: '0x43C00000'
+    offset: '0x43C0_0000'
     range: 64K
   - name: ram
-    offset: '0x1E000000'
+    offset: '0x1E00_0000'
     range: 32M
   - name: dma
-    offset: '0x80000000'
+    offset: '0x8000_0000'
     range: 64K
   - name: axi_hp0
-    offset: '0xF8008000'
+    offset: '0xF800_8000'
     range: 4K
 
 parameters:
