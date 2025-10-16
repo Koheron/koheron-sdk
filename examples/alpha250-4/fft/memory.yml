@@ -1,7 +1,7 @@
 ---
 memory:
   - name: control
-    offset: '0x4000_0000'
+    offset: 0x4000_0000
     range: 4K
     registers:
     - mmcm
@@ -12,13 +12,13 @@ memory:
     - psd_input_sel[2]
     - digital_outputs
   - name: ps_control
-    offset: '0x4400_0000'
+    offset: 0x4400_0000
     range: 4K
     registers:
     - spi_cfg_data
     - spi_cfg_cmd
   - name: status
-    offset: '0x5000_0000'
+    offset: 0x5000_0000
     range: 4K
     registers:
     - adc0[n_adc]
@@ -26,24 +26,24 @@ memory:
     - cycle_index[2]
     - digital_inputs
   - name: ps_status
-    offset: '0x5400_0000'
+    offset: 0x5400_0000
     range: 4K
     registers:
     - spi_cfg_sts
   - name: xadc
-    offset: '0x43C0_0000'
+    offset: 0x43C0_0000
     range: 64K
   - name: demod0
-    offset: '0x6000_0000'
+    offset: 0x6000_0000
     range: 32K
   - name: psd0
-    offset: '0x6100_0000'
+    offset: 0x6100_0000
     range: 32K
   - name: demod1
-    offset: '0x6200_0000'
+    offset: 0x6200_0000
     range: 32K
   - name: psd1
-    offset: '0x6300_0000'
+    offset: 0x6300_0000
     range: 32K
 
 parameters:

@@ -1,7 +1,7 @@
 ---
 memory:
   - name: control
-    offset: '0x6000_0000'
+    offset: 0x6000_0000
     range: 4K
     registers:
     - mmcm
@@ -10,23 +10,23 @@ memory:
     - phase_incr[4]
     - vco_gain[2]
   - name: ps_control
-    offset: '0x6400_0000'
+    offset: 0x6400_0000
     range: 4K
     registers:
     - spi_cfg_data
     - spi_cfg_cmd
   - name: status
-    offset: '0x5000_0000'
+    offset: 0x5000_0000
     range: 4K
     registers:
     - adc[n_adc]
   - name: ps_status
-    offset: '0x5400_0000'
+    offset: 0x5400_0000
     range: 4K
     registers:
     - spi_cfg_sts
   - name: xadc
-    offset: '0x43C0_0000'
+    offset: 0x43C0_0000
     range: 64K
 
 parameters:

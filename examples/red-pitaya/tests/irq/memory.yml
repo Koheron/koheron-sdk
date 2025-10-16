@@ -2,4 +2,4 @@
 memory:
   - name: timer
     range: 64K
-    offset: '0x4280_0000'
+    offset: 0x4280_0000

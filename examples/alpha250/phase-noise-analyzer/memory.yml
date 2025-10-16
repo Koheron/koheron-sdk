@@ -1,7 +1,7 @@
 ---
 memory:
   - name: control
-    offset: '0x4000_0000'
+    offset: 0x4000_0000
     range: 4K
     registers:
     - mmcm
@@ -11,35 +11,35 @@ memory:
     - cordic
     - cic_rate
   - name: ps_control
-    offset: '0x6000_0000'
+    offset: 0x6000_0000
     range: 4K
     registers:
     - spi_cfg_data
     - spi_cfg_cmd
   - name: status
-    offset: '0x5000_0000'
+    offset: 0x5000_0000
     range: 4K
     registers:
     - adc[n_adc]
     - demod[n_adc]
   - name: ps_status
-    offset: '0x7000_0000'
+    offset: 0x7000_0000
     range: 4K
     registers:
     - spi_cfg_sts
   - name: xadc
-    offset: '0x43C0_0000'
+    offset: 0x43C0_0000
     range: 64K
   - name: ram
-    offset: '0x1E00_0000'
+    offset: 0x1E00_0000
     range: 32M
     compatible: "koheron,mem-wc-1.0"
     dev: '/dev/mem_wc'
   - name: dma
-    offset: '0x8000_0000'
+    offset: 0x8000_0000
     range: 64K
   - name: axi_hp0
-    offset: '0xF800_8000'
+    offset: 0xF800_8000
     range: 4K
 
 parameters:

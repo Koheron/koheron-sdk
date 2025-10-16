@@ -1,18 +1,18 @@
 ---
 memory:
   - name: ram
-    offset: '0x1800_0000'
+    offset: 0x1800_0000
     range: 128M
   - name: dma
-    offset: '0x4040_0000'
+    offset: 0x4040_0000
     range: 64K
     dev: /dev/uio
   - name: mux
-    offset: '0x4000_0000'
+    offset: 0x4000_0000
     range: 4K
   - name: axi_hp0
-    offset: '0xF800_8000'
+    offset: 0xF800_8000
     range: 4K
   - name: sclr
-    offset: '0xF800_0000'
+    offset: 0xF800_0000
     range: 64K

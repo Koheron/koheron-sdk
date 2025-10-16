@@ -74,7 +74,11 @@ def _normalize_int_literal(value):
         return str(parsed)
 
     if isinstance(value, int):
-        return str(value)
+        # Preserve hexadecimal formatting for integer literals that may have
+        # been parsed by YAML (e.g. ``0x5400_0000``). Represent them in
+        # uppercase hexadecimal so downstream templates still receive an
+        # address-like string instead of a decimal representation.
+        return f'0x{value:X}'
 
     return value
 

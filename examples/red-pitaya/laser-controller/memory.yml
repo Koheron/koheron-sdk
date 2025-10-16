@@ -17,7 +17,7 @@ cores:
 
 memory:
   - name: control
-    offset: '0x6000_0000'
+    offset: 0x6000_0000
     range: 4K
     registers:
     - led
@@ -27,7 +27,7 @@ memory:
     - dac[n_dac]
     - eeprom_ctl
   - name: status
-    offset: '0x5000_0000'
+    offset: 0x5000_0000
     range: 4K
     protection: read
     registers:
@@ -35,7 +35,7 @@ memory:
     - pid_control
     - eeprom_sts
   - name: xadc
-    offset: '0x43C0_0000'
+    offset: 0x43C0_0000
     range: 64K
 
 parameters:

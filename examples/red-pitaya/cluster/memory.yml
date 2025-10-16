@@ -1,7 +1,7 @@
 ---
 memory:
   - name: control
-    offset: '0x6000_0000'
+    offset: 0x6000_0000
     range: 4K
     registers:
     - led
@@ -11,13 +11,13 @@ memory:
     - pulse_period
     - trigger
   - name: status
-    offset: '0x5000_0000'
+    offset: 0x5000_0000
     range: 4K
     registers:
     - adc[n_adc]
     - sts_sata
   - name: ctl_clk
-    offset: '0x7000_0000'
+    offset: 0x7000_0000
     range: 4K
 
 parameters:

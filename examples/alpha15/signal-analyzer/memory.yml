@@ -1,7 +1,7 @@
 ---
 memory:
   - name: control
-    offset: '0x6000_0000'
+    offset: 0x6000_0000
     range: 4K
     registers:
     - mmcm
@@ -14,7 +14,7 @@ memory:
     - channel_select
     - channel_offset[2]
   - name: ps_control
-    offset: '0x6400_0000'
+    offset: 0x6400_0000
     range: 4K
     registers:
     - spi_cfg_data
@@ -22,51 +22,51 @@ memory:
     - ctl_fft
     - cic_rate[n_fifos]
   - name: status
-    offset: '0x5000_0000'
+    offset: 0x5000_0000
     range: 4K
     registers:
     - mmcm_sts
     - adc[n_adc]
     - digital_inputs
   - name: ps_status
-    offset: '0x5400_0000'
+    offset: 0x5400_0000
     range: 4K
     registers:
     - spi_cfg_sts
     - cycle_index
   - name: xadc
-    offset: '0x43C0_0000'
+    offset: 0x43C0_0000
     range: 64K
   - name: adc_fifo0
-    offset: '0x43C1_0000'
+    offset: 0x43C1_0000
     range: 64K
     dev: '/dev/uio'
   - name: adc_fifo1
-    offset: '0x43C2_0000'
+    offset: 0x43C2_0000
     range: 64K
     dev: '/dev/uio'
   - name: adc_fifo2
-    offset: '0x43C3_0000'
+    offset: 0x43C3_0000
     range: 64K
     dev: '/dev/uio'
   - name: demod
-    offset: '0x7000_0000'
+    offset: 0x7000_0000
     range: 32K
     dev: '/dev/mem_wc'
   - name: psd
-    offset: '0x7400_0000'
+    offset: 0x7400_0000
     range: 32K
     dev: '/dev/mem_wc'
   - name: ram
-    offset: '0x1E00_0000'
+    offset: 0x1E00_0000
     range: 32M
     compatible: "koheron,mem-wc-1.0"
     dev: '/dev/mem_wc'
   - name: dma
-    offset: '0x8000_0000'
+    offset: 0x8000_0000
     range: 64K
   - name: axi_hp0
-    offset: '0xF800_8000'
+    offset: 0xF800_8000
     range: 4K
 
 parameters:
