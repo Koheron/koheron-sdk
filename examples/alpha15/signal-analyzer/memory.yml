@@ -40,28 +40,28 @@ memory:
   - name: adc_fifo0
     offset: 0x43C1_0000
     range: 64K
-    dev: '/dev/uio'
+    dev: /dev/uio
   - name: adc_fifo1
     offset: 0x43C2_0000
     range: 64K
-    dev: '/dev/uio'
+    dev: /dev/uio
   - name: adc_fifo2
     offset: 0x43C3_0000
     range: 64K
-    dev: '/dev/uio'
+    dev: /dev/uio
   - name: demod
     offset: 0x7000_0000
     range: 32K
-    dev: '/dev/mem_wc'
+    dev: /dev/mem_wc
   - name: psd
     offset: 0x7400_0000
     range: 32K
-    dev: '/dev/mem_wc'
+    dev: /dev/mem_wc
   - name: ram
     offset: 0x1E00_0000
     range: 32M
     compatible: "koheron,mem-wc-1.0"
-    dev: '/dev/mem_wc'
+    dev: /dev/mem_wc
   - name: dma
     offset: 0x8000_0000
     range: 64K

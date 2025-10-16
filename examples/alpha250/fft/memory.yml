@@ -36,11 +36,11 @@ memory:
   - name: demod
     offset: 0x6000_0000
     range: 32K
-    dev: '/dev/mem_wc'
+    dev: /dev/mem_wc
   - name: psd
     offset: 0x7000_0000
     range: 32K
-    dev: '/dev/mem_wc'
+    dev: /dev/mem_wc
 
 parameters:
   fclk0: 200000000

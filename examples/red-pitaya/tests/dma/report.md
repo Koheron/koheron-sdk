@@ -25,7 +25,7 @@ memory:
     offset: '0x18000000'
     range: 64M
     compatible: "koheron,mem-wc-1.0"
-    dev: '/dev/mem_wc'
+    dev: /dev/mem_wc
   - name: ram_s2mm
     offset: '0x1C000000'
     range: 64M

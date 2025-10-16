@@ -47,7 +47,7 @@ memory:
 offset: 0x1E00_0000
 range: 32M
 compatible: "koheron,mem-wc-1.0"
-dev: '/dev/mem_wc'
+dev: /dev/mem_wc
 ```
 
 The `compatible: "koheron,mem-wc-1.0` attribute tells the build system to add a fragment in `memory.dtsi`:
@@ -64,7 +64,7 @@ The `compatible: "koheron,mem-wc-1.0` attribute tells the build system to add a 
 };
 ```
 
-The `dev: '/dev/mem_wc'` attribute tells the server to use `/dev/mem_wc@0x1E000000` instead of the default `/dev/mem`
+The `dev: /dev/mem_wc` attribute tells the server to use `/dev/mem_wc@0x1E000000` instead of the default `/dev/mem`
 
 ### Example 2: Interrupt access in the userspace
 
@@ -74,7 +74,7 @@ memory:
 - name: fifo
   range: 64K
   offset: 0x43C0_0000
-  dev: '/dev/uio'
+  dev: /dev/uio
 ```
 
 ```dtsi
@@ -88,7 +88,7 @@ memory:
 ```
 
 The fragment defined in override.dtsi allows Linux to bind the FIFO to a /dev/uio* device.
-The `dev: '/dev/uio'` attribute tells the server to map to a `/dev/uio*` device that matches the range and offset attributes.
+The `dev: /dev/uio` attribute tells the server to map to a `/dev/uio*` device that matches the range and offset attributes.
 
 ## Other new features
 

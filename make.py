@@ -101,7 +101,9 @@ def build_memory(memory, parameters):
 
         if not 'dev' in address:
             address['dev'] = '/dev/mem'
-        elif address['dev'] == '/dev/mem_wc':
+        else:
+            address['dev'] = str(address['dev'])
+        if address['dev'] == '/dev/mem_wc':
             address['dev'] = address['dev'] + address['offset']
 
         registers = address.get('registers', []) or []

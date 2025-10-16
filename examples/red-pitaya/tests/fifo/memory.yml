@@ -3,4 +3,4 @@ memory:
 - name: fifo
   range: 64K
   offset: 0x43C0_0000
-  dev: '/dev/uio'
+  dev: /dev/uio
