@@ -5,10 +5,11 @@
 #ifndef __ALPHA_DRIVERS_COMMON_HPP__
 #define __ALPHA_DRIVERS_COMMON_HPP__
 
-#include <thread>
-#include <atomic>
+#include <cstdint>
+#include <string>
+#include <memory>
 
-class GpioExpander;
+class LedsController;
 class PrecisionAdc;
 
 class Common
@@ -23,12 +24,10 @@ class Common
     void ip_on_leds();
     void start_blink();
     void stop_blink();
-  private:
-    GpioExpander& gpio;
-    PrecisionAdc& precisionadc;
 
-    std::thread blinker;
-    std::atomic<bool> blinker_should_stop{true}; // true = not running yet
+  private:
+    std::unique_ptr<LedsController> leds;
+    PrecisionAdc& precisionadc;
 };
 
 #endif // __ALPHA_DRIVERS_COMMON_HPP__
