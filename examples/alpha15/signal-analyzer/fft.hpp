@@ -13,8 +13,6 @@
 #include <array>
 #include <tuple>
 
-namespace rt { class DriverManager; }
-
 class FFT
 {
   public:
@@ -47,8 +45,6 @@ class FFT
     double input_voltage_range();
 
  private:
-    rt::DriverManager& dm;
-    hw::MemoryManager& mm;
     hw::Memory<mem::control>& ctl;
 
     double fs_adc; // ADC sampling rate (Hz)

@@ -4,7 +4,6 @@
 #include "./fft.hpp"
 #include "./moving_averager.hpp"
 
-#include "server/runtime/services.hpp"
 #include "server/runtime/driver_manager.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/hardware/memory_manager.hpp"
@@ -28,8 +27,7 @@ template<class Cfg>
 class FifoSpectralAnalyzer {
   public:
     explicit FifoSpectralAnalyzer()
-    : dm(services::require<rt::DriverManager>())
-    , fifo()
+    : fifo()
     {
         psd.resize(1 + Cfg::n_pts / 2);
         set_cic_rate();
@@ -57,7 +55,6 @@ class FifoSpectralAnalyzer {
     float fifo_transfer_duration;
 
   private:
-    rt::DriverManager& dm;
     Fifo<Cfg::fifo_mem> fifo;
     std::array<double, Cfg::n_pts> seg_data;
     uint32_t seg_cnt = 0;
@@ -76,7 +73,7 @@ class FifoSpectralAnalyzer {
         static_assert(Cfg::cic_rate > prm::cic_decimation_rate_min &&
                       Cfg::cic_rate < prm::cic_decimation_rate_max);
 
-        auto& ctl = services::require<hw::MemoryManager>().get<mem::ps_control>();
+        auto& ctl = hw::get_memory<mem::ps_control>();
 
         if constexpr (Cfg::fifo_idx == 0) {
             ctl.write<reg::cic_rate0>(Cfg::cic_rate);
@@ -84,7 +81,7 @@ class FifoSpectralAnalyzer {
             ctl.write<reg::cic_rate1>(Cfg::cic_rate);
         }
 
-        const float fs_adc = dm.get<ClockGenerator>().get_adc_sampling_freq()[0];
+        const float fs_adc = rt::get_driver<ClockGenerator>().get_adc_sampling_freq()[0];
         fs = fs_adc / (2.0f * Cfg::cic_rate); // Sampling frequency (factor of 2 because of FIR)
         spectrum.fs(fs);
         logf("FifoSpectralAnalyzer: Sampling frequency fs[{}] = {} Hz\n", Cfg::fifo_idx, fs);
@@ -95,7 +92,7 @@ class FifoSpectralAnalyzer {
     }
 
     void acquire(uint32_t ntps_pts_fifo) {
-        const double vrange = dm.get<FFT>().input_voltage_range();
+        const double vrange = rt::get_driver<FFT>().input_voltage_range();
         constexpr double nmax = 262144.0; // 2^18
 
         fifo.wait_for_data(ntps_pts_fifo, fs);

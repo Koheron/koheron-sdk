@@ -1,7 +1,6 @@
 #include "./fft.hpp"
 
 #include "server/runtime/syslog.hpp"
-#include "server/runtime/services.hpp"
 #include "server/runtime/driver_manager.hpp"
 #include "boards/alpha15/drivers/clock-generator.hpp"
 #include "boards/alpha15/drivers/ltc2387.hpp"
@@ -16,11 +15,9 @@ namespace sci = scicpp;
 namespace win = scicpp::signal::windows;
 
 FFT::FFT()
-: dm(services::require<rt::DriverManager>())
-, mm(services::require<hw::MemoryManager>())
-, ctl(mm.get<mem::control>())
+: ctl(hw::get_memory<mem::control>())
 {
-    fs_adc = dm.get<ClockGenerator>().get_adc_sampling_freq()[0];
+    fs_adc = rt::get_driver<ClockGenerator>().get_adc_sampling_freq()[0];
     set_offsets(0, 0);
     select_adc_channel(0);
     set_operation(0);
@@ -68,7 +65,7 @@ void FFT::set_operation(uint32_t operation) {
 
 void FFT::set_scale_sch(uint32_t scale_sch) {
     // LSB at 1 for forward FFT
-    mm.get<mem::ps_control>().write<reg::ctl_fft>(1 + (scale_sch << 1));
+    hw::get_memory<mem::ps_control>().write<reg::ctl_fft>(1 + (scale_sch << 1));
 }
 
 void FFT::set_fft_window(uint32_t window_id) {
@@ -110,7 +107,7 @@ double FFT::input_voltage_range() {
 }
 
 uint32_t FFT::input_range() {
-    auto& ltc2387 = dm.get<Ltc2387>();
+    auto& ltc2387 = rt::get_driver<Ltc2387>();
 
     if (input_channel <= 1) { // Channel 0 or 1
         return ltc2387.input_range(input_channel);
@@ -133,7 +130,7 @@ float FFT::calibration() {
 }
 
 void FFT::set_window(const std::array<double, prm::fft_size> &window) {
-    mm.get<mem::demod>().write_array(sci::map([](auto w){
+    hw::get_memory<mem::demod>().write_array(sci::map([](auto w){
         return uint32_t(((int32_t(32768 * w) + 32768) % 65536) + 32768);
     }, window));
 
@@ -146,7 +143,7 @@ void FFT::set_window(const std::array<double, prm::fft_size> &window) {
 }
 
 uint32_t FFT::get_cycle_index() {
-    return mm.get<mem::ps_status>().read<reg::cycle_index>();
+    return hw::get_memory<mem::ps_status>().read<reg::cycle_index>();
 }
 
 void FFT::start_psd_acquisition() {
@@ -184,7 +181,7 @@ void FFT::psd_acquisition_thread() {
 
             std::lock_guard<std::mutex> lock(mutex);
             const auto calib = calibration();
-            auto& psd_map = mm.get<mem::psd>();
+            auto& psd_map = hw::get_memory<mem::psd>();
             psd_buffer = calib * psd_map.read_array<float, prm::fft_size/2, 0>();
         }
 
