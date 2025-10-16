@@ -1,4 +1,3 @@
----
 memory:
   - name: bram0
     range: 64K

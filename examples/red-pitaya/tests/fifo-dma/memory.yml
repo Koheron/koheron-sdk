@@ -1,4 +1,3 @@
----
 memory:
   - name: ram
     offset: 0x1800_0000

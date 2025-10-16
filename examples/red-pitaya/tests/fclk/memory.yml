@@ -1,4 +1,3 @@
----
 memory:
   - name: gpio
     range: 64K

@@ -1,4 +1,3 @@
----
 memory:
   - name: control
     offset: 0x4000_0000

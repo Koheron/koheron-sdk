@@ -1,4 +1,3 @@
----
 name: laser-controller
 board: boards/red-pitaya
 version: 0.1.1

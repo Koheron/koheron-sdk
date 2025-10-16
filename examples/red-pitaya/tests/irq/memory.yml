@@ -1,4 +1,3 @@
----
 memory:
   - name: timer
     range: 64K
