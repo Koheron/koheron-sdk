@@ -95,7 +95,6 @@ os/        # Linux image build system and board-specific settings
 python/    # Python tooling, runners and client libraries
 server/    # C++ server sources and build rules
 web/       # Front-end assets shared across instruments
-tests/     # Automated tests for the SDK and example instruments
 ```
 
 Exploring these directories is the best way to learn how to assemble your own instrument configuration.
