@@ -10,14 +10,6 @@
 #include "server/runtime/driver_manager.hpp"
 #include "server/drivers/leds-control.hpp"
 
-#include <cstring>
-#include <chrono>
-
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <ifaddrs.h>
-
 Common::Common()
 : leds(std::make_unique<LedsController>())
 , precisionadc(rt::get_driver<PrecisionAdc>()) // Initialize PrecisionADC
@@ -51,12 +43,4 @@ std::string Common::get_instrument_config() {
 
 void Common::ip_on_leds() {
     leds->ip_on_leds();
-}
-
-void Common::start_blink() {
-    leds->start_blink();
-}
-
-void Common::stop_blink() {
-    leds->stop_blink();
 }

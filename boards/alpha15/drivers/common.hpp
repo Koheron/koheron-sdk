@@ -10,7 +10,7 @@
 #include <atomic>
 #include <string>
 
-class GpioExpander;
+class LedsController;
 
 class Common
 {
@@ -25,12 +25,7 @@ class Common
     std::string get_instrument_config();
 
   private:
-    void start_blink();
-    void stop_blink();
-
-    GpioExpander& gpio;
-    std::thread blinker;
-    std::atomic<bool> blinker_should_stop{true}; // true = not running yet
+    std::unique_ptr<LedsController> leds;
 };
 
 #endif // __ALPHA15_DRIVERS_COMMON_HPP__

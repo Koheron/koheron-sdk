@@ -22,8 +22,6 @@ class Common
     void init();
     std::string get_instrument_config();
     void ip_on_leds();
-    void start_blink();
-    void stop_blink();
 
   private:
     std::unique_ptr<LedsController> leds;
