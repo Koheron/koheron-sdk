@@ -4,8 +4,8 @@
 # Always unmounts before writing, always powers off after verify.
 # Whitelist ensures only intended card readers are touched.
 
-ALLOWED_VENDORS = ["TS-RDF5", "TS-RDF5A"]
-ALLOWED_MODELS  = ["SD_Transcend", "Transcend"]
+DEFAULT_ALLOWED_VENDORS = ["TS-RDF5", "TS-RDF5A"]
+DEFAULT_ALLOWED_MODELS  = ["SD_Transcend", "Transcend"]
 
 import os, sys, subprocess, zipfile, hashlib, fcntl, struct, errno, time, re, json
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -18,6 +18,18 @@ BLKGETSIZE64 = 0x80081272
 BLKROGET     = 0x125e
 
 color_init(autoreset=True)
+
+
+def parse_env_list(name, default):
+    raw = os.environ.get(name)
+    if not raw:
+        return list(default)
+    parts = [item for item in re.split(r"[\s,]+", raw.strip()) if item]
+    return parts or list(default)
+
+
+ALLOWED_VENDORS = parse_env_list("FLASH_ALLOWED_VENDORS", DEFAULT_ALLOWED_VENDORS)
+ALLOWED_MODELS = parse_env_list("FLASH_ALLOWED_MODELS", DEFAULT_ALLOWED_MODELS)
 
 # ---------- helpers ----------
 def sh(args):
@@ -97,6 +109,36 @@ def candidate_disks():
         if vendor not in ALLOWED_VENDORS or model not in ALLOWED_MODELS: continue
         if cap == 0: continue
         out.append({"dev": dev, "size": b.get("size")})
+    return out
+
+
+def device_size_str(dev):
+    try:
+        return sh(["lsblk", "-dn", "-o", "SIZE", dev]).strip()
+    except subprocess.CalledProcessError:
+        return "unknown"
+
+
+def manual_disks(device_paths):
+    r = root_disk()
+    out = []
+    for raw in device_paths:
+        dev = os.path.realpath(raw)
+        if not dev.startswith("/dev/"):
+            dev = f"/dev/{os.path.basename(dev)}"
+        if not os.path.exists(dev):
+            sys.exit(Fore.RED + f"Device '{raw}' not found." + Style.RESET_ALL)
+        if dev == r:
+            sys.exit(Fore.RED + f"Refusing to flash root disk '{dev}'." + Style.RESET_ALL)
+        sys_block = f"/sys/block/{os.path.basename(dev)}"
+        if not os.path.isdir(sys_block):
+            sys.exit(Fore.RED + f"'{dev}' is not a whole-disk block device." + Style.RESET_ALL)
+        _, cap, removable = get_props(dev)
+        if cap == 0:
+            sys.exit(Fore.RED + f"Device '{dev}' has no media present." + Style.RESET_ALL)
+        if not removable:
+            tqdm.write(Fore.YELLOW + f"Warning: '{dev}' is not reported as removable." + Style.RESET_ALL)
+        out.append({"dev": dev, "size": device_size_str(dev)})
     return out
 
 # ---------- checksum ----------
@@ -198,7 +240,13 @@ def main():
 
     zipfile_path = sys.argv[1]
     make_reader,total,label,expected=image_source(zipfile_path)
-    disks=candidate_disks()
+
+    env_devices = os.environ.get("FLASH_DEVICES") or os.environ.get("FLASH_DEVICE")
+    if env_devices:
+        device_list = [item for item in re.split(r"[\s,]+", env_devices.strip()) if item]
+        disks = manual_disks(device_list)
+    else:
+        disks = candidate_disks()
     if not disks:
         sys.exit(Fore.RED+"No matching SD readers with media found."+Style.RESET_ALL)
 
