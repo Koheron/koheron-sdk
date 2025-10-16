@@ -1,6 +1,8 @@
 #ifndef __SERVER_DRIVERS_LEDS_CONTROL_HPP__
 #define __SERVER_DRIVERS_LEDS_CONTROL_HPP__
 
+#include "server/runtime/syslog.hpp"
+
 #include <utility>
 #include <cstdint>
 #include <thread>
