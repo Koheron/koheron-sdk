@@ -2,15 +2,15 @@
 #include "./eeprom.hpp"
 #include "./spi-config.hpp"
 
-#include "server/runtime/services.hpp"
+#include "server/runtime/syslog.hpp"
 #include "server/runtime/driver_manager.hpp"
 
 #include <cmath>
 #include <limits>
 
 Ltc2157::Ltc2157()
-: eeprom (services::require<rt::DriverManager>().get<Eeprom>())
-, spi_cfg(services::require<rt::DriverManager>().get<SpiConfig>())
+: eeprom (rt::get_driver<Eeprom>())
+, spi_cfg(rt::get_driver<SpiConfig>())
 {}
 
 void Ltc2157::init() {

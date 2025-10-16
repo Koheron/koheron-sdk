@@ -1,9 +1,9 @@
 #ifndef __ALPHA_DRIVERS_SPI_CONFIG_HPP__
 #define __ALPHA_DRIVERS_SPI_CONFIG_HPP__
 
-#include "server/runtime/services.hpp"
 #include "server/hardware/memory_manager.hpp"
 
+#include <cstdint>
 #include <mutex>
 
 class SpiConfig {
@@ -24,9 +24,8 @@ class SpiConfig {
         static_assert(nbytes <= 4, "Max. 4 bytes per packet");
         static_assert(cs_id <= 2, "Exceeds maximum number of slaves on SPI config bus");
 
-        auto& mm = services::require<hw::MemoryManager>();
-        auto& ctl = mm.get<mem::ps_control>();
-        auto& sts = mm.get<mem::ps_status>();
+        auto& ctl = hw::get_memory<mem::ps_control>();
+        auto& sts = hw::get_memory<mem::ps_status>();
 
         // Wait for previous write to finish
         while (sts.read<reg::spi_cfg_sts>() == 0);
