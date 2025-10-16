@@ -80,7 +80,7 @@ build_all_boards() {
 
   for board in "${boards[@]}"; do
     log "Starting build for ${board}"
-    build_board "${board}"
+    build_board "${board}" false
   done
 }
 
@@ -92,7 +92,7 @@ load_board_config() {
     exit 1
   fi
 
-  unset BOARD_NAME IMAGE_CONFIG ENABLE_FLASH_PROMPT
+  unset BOARD_NAME IMAGE_CONFIG
   INSTRUMENT_CONFIGS=()
   COPY_INSTRUMENTS=()
 
@@ -101,7 +101,6 @@ load_board_config() {
 
   : "${BOARD_NAME:?BOARD_NAME must be set in ${config_file}}"
   : "${IMAGE_CONFIG:?IMAGE_CONFIG must be set in ${config_file}}"
-  ENABLE_FLASH_PROMPT=${ENABLE_FLASH_PROMPT:-false}
 }
 
 run_make_command() {
@@ -111,6 +110,7 @@ run_make_command() {
 
 build_board() {
   local board="$1"
+  local prompt_flash=${2:-true}
   load_board_config "${board}"
 
   SECONDS=0
@@ -142,7 +142,7 @@ build_board() {
     run_make_command make -j CFG="${IMAGE_CONFIG}" image
   fi
 
-  if [[ ${ENABLE_FLASH_PROMPT} == true ]]; then
+  if [[ ${prompt_flash} == true ]]; then
     read -r -p $'\nWould you like to burn the SD card image now? [y/N] ' answer
     answer=${answer,,}
     if [[ ${answer} == "y" || ${answer} == "yes" ]]; then
@@ -174,7 +174,7 @@ main() {
       build_all_boards
       exit 0
     fi
-    build_board "${selected_board}"
+    build_board "${selected_board}" true
     exit 0
   fi
 
@@ -192,7 +192,7 @@ main() {
       if [[ $1 == "all" ]]; then
         build_all_boards
       else
-        build_board "$1"
+        build_board "$1" true
       fi
       ;;
   esac
