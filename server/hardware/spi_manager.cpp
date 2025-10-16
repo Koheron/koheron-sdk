@@ -49,7 +49,7 @@ int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
         fd = ::open(devpath.c_str(), O_RDWR | O_NOCTTY | O_CLOEXEC);
 
         if (fd < 0) {
-            logf<WARNING>("SpiManager: open({}) failed: {}", devname, std::strerror(errno));
+            logf<WARNING>("SpiManager: open({}) failed: {}\n", devname, std::strerror(errno));
             return -1;
         }
     }
@@ -60,7 +60,7 @@ int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
         return -1;
     }
 
-    rt::print_fmt("SpiManager: Device {} initialized", devname);
+    rt::print_fmt("SpiManager: Device {} initialized\n", devname);
     return 0;
 }
 
@@ -72,7 +72,7 @@ int SpiDev::set_mode(uint8_t mode_) {
     mode = mode_;
 
     if (::ioctl(fd, SPI_IOC_WR_MODE, &mode) < 0) {
-        logf<ERROR>("SPI_IOC_WR_MODE({}): {}", devname, std::strerror(errno));
+        logf<ERROR>("SPI_IOC_WR_MODE({}): {}\n", devname, std::strerror(errno));
         return -1;
     }
 
@@ -87,7 +87,7 @@ int SpiDev::set_full_mode(uint32_t mode32_) {
     mode32 = mode32_;
 
     if (::ioctl(fd, SPI_IOC_WR_MODE32, &mode32) < 0) {
-        logf<ERROR>("SPI_IOC_WR_MODE32({}): {}", devname, std::strerror(errno));
+        logf<ERROR>("SPI_IOC_WR_MODE32({}): {}\n", devname, std::strerror(errno));
         return -1;
     }
 
@@ -102,7 +102,7 @@ int SpiDev::set_speed(uint32_t speed_) {
     speed = speed_;
 
     if (::ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) < 0) {
-        logf<ERROR>("SPI_IOC_WR_MAX_SPEED_HZ({}): {}", devname, std::strerror(errno));
+        logf<ERROR>("SPI_IOC_WR_MAX_SPEED_HZ({}): {}\n", devname, std::strerror(errno));
         return -1;
     }
 
@@ -117,7 +117,7 @@ int SpiDev::set_word_length(uint8_t word_length_) {
     word_length = word_length_;
 
     if (::ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &word_length) < 0) {
-        logf<ERROR>("SPI_IOC_WR_BITS_PER_WORD({}): {}", devname, std::strerror(errno));
+        logf<ERROR>("SPI_IOC_WR_BITS_PER_WORD({}): {}\n", devname, std::strerror(errno));
         return -1;
     }
 
@@ -163,7 +163,7 @@ int SpiDev::transfer(std::span<const uint8_t> tx, std::span<uint8_t> rx) {
     }
 
     if (!tx.empty() && !rx.empty() && tx.size() != rx.size()) {
-        logf<ERROR>("SpiDev {}: tx/rx size mismatch ({} vs {})",
+        logf<ERROR>("SpiDev {}: tx/rx size mismatch ({} vs {})\n",
                     devname, tx.size(), rx.size());
         return -1;
     }
@@ -257,7 +257,7 @@ SpiDev& SpiManager::get(std::string_view devname,
     auto it = spi_drivers.find(std::string(devname));
 
     if (it == spi_drivers.end()) {
-        logf<CRITICAL>("SpiManager: Device {} not found", devname);
+        logf<CRITICAL>("SpiManager: Device {} not found\n", devname);
         return empty_spidev;
     }
 
