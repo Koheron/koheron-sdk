@@ -6,9 +6,8 @@
 #define __ALPHA15_DRIVERS_COMMON_HPP__
 
 #include <cstdint>
-#include <thread>
-#include <atomic>
 #include <string>
+#include <memory>
 
 class LedsController;
 
