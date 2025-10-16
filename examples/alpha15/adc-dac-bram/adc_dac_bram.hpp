@@ -5,10 +5,13 @@
 #ifndef __DRIVERS_ADC_DAC_BRAM_HPP__
 #define __DRIVERS_ADC_DAC_BRAM_HPP__
 
-#include <context.hpp>
-#include <boards/alpha15/drivers/clock-generator.hpp>
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/driver_manager.hpp"
+#include "server/hardware/memory_manager.hpp"
+#include "boards/alpha15/drivers/clock-generator.hpp"
 
 #include <array>
+#include <cstdint>
 #include <thread>
 #include <chrono>
 
@@ -18,19 +21,13 @@ constexpr uint32_t adc_size = mem::adc0_range / sizeof(uint32_t);
 class AdcDacBram
 {
   public:
-    AdcDacBram(Context& ctx_)
-    : ctx(ctx_)
-    , ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
-    , adc0_map(ctx.mm.get<mem::adc0>())
-    , adc1_map(ctx.mm.get<mem::adc1>())
-    , dac_map(ctx.mm.get<mem::dac>())
-    , clockgen(ctx.get<ClockGenerator>())
+    AdcDacBram()
+    : ctl(hw::get_memory<mem::control>())
     {
-        const auto fs_adc = clockgen.get_adc_sampling_freq();
+        const auto fs_adc = rt::get_driver<ClockGenerator>().get_adc_sampling_freq();
         t_acq[0] = int32_t(1E6 * adc_size / fs_adc[0]);
         t_acq[1] = int32_t(1E6 * adc_size / fs_adc[1]);
-        ctx.log<INFO>("AdcDacBram: t_acq = {%li, %li} us\n", t_acq[0], t_acq[1]);
+        logf("AdcDacBram: t_acq = {{{}, {}}} us\n", t_acq[0], t_acq[1]);
     }
 
     void trigger_acquisition() {
@@ -47,14 +44,14 @@ class AdcDacBram
     }
 
     void set_dac_data(const std::array<uint32_t, dac_size>& data) {
-        dac_map.write_array(data);
+        hw::get_memory<mem::dac>().write_array(data);
     }
 
     auto get_adc(bool channel) {
         trigger_acquisition();
         std::this_thread::sleep_for(std::chrono::microseconds(t_acq[channel]));
-        return channel ? adc1_map.read_array<uint32_t, adc_size>()
-                       : adc0_map.read_array<uint32_t, adc_size>();
+        return channel ? hw::get_memory<mem::adc1>().read_array<uint32_t, adc_size>()
+                       : hw::get_memory<mem::adc0>().read_array<uint32_t, adc_size>();
     }
 
     // IOs
@@ -64,13 +61,7 @@ class AdcDacBram
     }
 
  private:
-    Context& ctx;
     hw::Memory<mem::control>& ctl;
-    hw::Memory<mem::status>& sts;
-    hw::Memory<mem::adc0>& adc0_map;
-    hw::Memory<mem::adc1>& adc1_map;
-    hw::Memory<mem::dac>& dac_map;
-    ClockGenerator& clockgen;
 
     // Acquisition time for each ADC channel (microseconds)
     std::array<int32_t, 2> t_acq;

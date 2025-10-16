@@ -2,10 +2,11 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_ADC_DAC_DMA_HPP__
-#define __DRIVERS_ADC_DAC_DMA_HPP__
+#ifndef __ALPHA15_ADC_DAC_DMA_HPP__
+#define __ALPHA15_ADC_DAC_DMA_HPP__
 
-#include <context.hpp>
+#include "server/runtime/syslog.hpp"
+#include "server/hardware/memory_manager.hpp"
 
 #include <cstdint>
 #include <array>
@@ -50,17 +51,15 @@ constexpr uint32_t n_desc = 64; // Number of descriptors
 class AdcDacDma
 {
   public:
-    AdcDacDma(Context& ctx_)
-    : ctx(ctx_)
-    , ctl(ctx.mm.get<mem::control>())
-    , dma(ctx.mm.get<mem::dma>())
-    , ram_s2mm(ctx.mm.get<mem::ram_s2mm>())
-    , ram_mm2s(ctx.mm.get<mem::ram_mm2s>())
-    , axi_hp0(ctx.mm.get<mem::axi_hp0>())
-    , axi_hp2(ctx.mm.get<mem::axi_hp2>())
-    , ocm_mm2s(ctx.mm.get<mem::ocm_mm2s>())
-    , ocm_s2mm(ctx.mm.get<mem::ocm_s2mm>())
-    , sclr(ctx.mm.get<mem::sclr>())
+    AdcDacDma()
+    : ctl(hw::get_memory<mem::control>())
+    , dma(hw::get_memory<mem::dma>())
+    , ram_s2mm(hw::get_memory<mem::ram_s2mm>())
+    , axi_hp0(hw::get_memory<mem::axi_hp0>())
+    , axi_hp2(hw::get_memory<mem::axi_hp2>())
+    , ocm_mm2s(hw::get_memory<mem::ocm_mm2s>())
+    , ocm_s2mm(hw::get_memory<mem::ocm_s2mm>())
+    , sclr(hw::get_memory<mem::sclr>())
     {
         // Unlock SCLR
         sclr.write<Sclr_regs::sclr_unlock>(0xDF0D);
@@ -93,7 +92,7 @@ class AdcDacDma
             cnt++;
 
             if (cnt > 10) {
-                ctx.log<ERROR>("DmaS2MM::reset: Max number of sleeps exceeded.\n");
+                log<ERROR>("DmaS2MM::reset: Max number of sleeps exceeded.\n");
                 break;
             }
         }
@@ -122,6 +121,7 @@ class AdcDacDma
     }
 
     void set_dac_data(const std::vector<uint32_t>& dac_data) {
+        auto& ram_mm2s = hw::get_memory<mem::ram_mm2s>();
         for (uint32_t i = 0; i < dac_data.size(); i++) {
             ram_mm2s.write_reg(4*i, dac_data[i]);
         }
@@ -181,11 +181,9 @@ class AdcDacDma
     }
 
   private:
-    Context& ctx;
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::dma>& dma;
     hw::Memory<mem::ram_s2mm>& ram_s2mm;
-    hw::Memory<mem::ram_mm2s>& ram_mm2s;
     hw::Memory<mem::axi_hp0>& axi_hp0;
     hw::Memory<mem::axi_hp2>& axi_hp2;
     hw::Memory<mem::ocm_mm2s>& ocm_mm2s;
@@ -195,42 +193,42 @@ class AdcDacDma
     std::array<uint32_t, n_desc * n_pts> data;
 
     void log_dma() {
-        ctx.log<INFO>("MM2S LOG \n");
-        ctx.log<INFO>("DMAIntErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 4>());
-        ctx.log<INFO>("DMASlvErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 5>());
-        ctx.log<INFO>("DMADecErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 6>());
-        ctx.log<INFO>("SGIntErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 8>());
-        ctx.log<INFO>("SGSlvErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 9>());
-        ctx.log<INFO>("SGDecErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 10>());
-        ctx.log<INFO>("CURDESC = %u \n", (dma.read<Dma_regs::mm2s_curdesc>() - mem::ocm_mm2s_addr)/0x40);
-        ctx.log<INFO>("\n");
+        log("MM2S LOG \n");
+        log("DMAIntErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 4>());
+        log("DMASlvErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 5>());
+        log("DMADecErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 6>());
+        log("SGIntErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 8>());
+        log("SGSlvErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 9>());
+        log("SGDecErr = %d \n", dma.read_bit<Dma_regs::mm2s_dmasr, 10>());
+        log("CURDESC = %u \n", (dma.read<Dma_regs::mm2s_curdesc>() - mem::ocm_mm2s_addr)/0x40);
+        log("\n");
 
-        ctx.log<INFO>("S2MM LOG \n");
-        ctx.log<INFO>("DMAIntErr = %d \n", dma.read_bit<Dma_regs::s2mm_dmasr, 4>());
-        ctx.log<INFO>("DMASlvErr = %d \n", dma.read_bit<Dma_regs::s2mm_dmasr, 5>());
-        ctx.log<INFO>("DMADecErr = %d \n", dma.read_bit<Dma_regs::s2mm_dmasr, 6>());
-        ctx.log<INFO>("SGIntErr = %d \n", dma.read_bit<Dma_regs::s2mm_dmasr, 8>());
-        ctx.log<INFO>("SGSlvErr = %d \n", dma.read_bit<Dma_regs::s2mm_dmasr, 9>());
-        ctx.log<INFO>("SGDecErr = %d \n", dma.read_bit<Dma_regs::s2mm_dmasr, 10>());
-        ctx.log<INFO>("CURDESC = %u \n", (dma.read<Dma_regs::s2mm_curdesc>() - mem::ocm_s2mm_addr)/0x40);
-        ctx.log<INFO>("\n");
+        log("S2MM LOG \n");
+        log("DMAIntErr = %d \n", dma.read_bit<Dma_regs::s2mm_dmasr, 4>());
+        log("DMASlvErr = %d \n", dma.read_bit<Dma_regs::s2mm_dmasr, 5>());
+        log("DMADecErr = %d \n", dma.read_bit<Dma_regs::s2mm_dmasr, 6>());
+        log("SGIntErr = %d \n", dma.read_bit<Dma_regs::s2mm_dmasr, 8>());
+        log("SGSlvErr = %d \n", dma.read_bit<Dma_regs::s2mm_dmasr, 9>());
+        log("SGDecErr = %d \n", dma.read_bit<Dma_regs::s2mm_dmasr, 10>());
+        log("CURDESC = %u \n", (dma.read<Dma_regs::s2mm_curdesc>() - mem::ocm_s2mm_addr)/0x40);
+        log("\n");
 
-        ctx.log<INFO>("S2MM_STATUS DMAIntErr = %d \n", ocm_s2mm.read_bit<Sg_regs::status, 28>());
-        ctx.log<INFO>("S2MM_STATUS DMASlvErr = %d \n", ocm_s2mm.read_bit<Sg_regs::status, 29>());
-        ctx.log<INFO>("S2MM_STATUS DMADecErr = %d \n", ocm_s2mm.read_bit<Sg_regs::status, 30>());
-        ctx.log<INFO>("S2MM_STATUS Cmplt = %d \n", ocm_s2mm.read_bit<Sg_regs::status, 31>());
-        ctx.log<INFO>("\n");
+        log("S2MM_STATUS DMAIntErr = %d \n", ocm_s2mm.read_bit<Sg_regs::status, 28>());
+        log("S2MM_STATUS DMASlvErr = %d \n", ocm_s2mm.read_bit<Sg_regs::status, 29>());
+        log("S2MM_STATUS DMADecErr = %d \n", ocm_s2mm.read_bit<Sg_regs::status, 30>());
+        log("S2MM_STATUS Cmplt = %d \n", ocm_s2mm.read_bit<Sg_regs::status, 31>());
+        log("\n");
     }
 
     void log_hp0() {
-        ctx.log<INFO>("AXI_HP0 LOG \n");
-        ctx.log<INFO>("AFI_WRCHAN_CTRL = %x \n", axi_hp0.read<0x14>());
-        ctx.log<INFO>("AFI_WRCHAN_ISSUINGCAP = %x \n", axi_hp0.read<0x18>());
-        ctx.log<INFO>("AFI_WRQOS = %x \n", axi_hp0.read<0x1C>());
-        ctx.log<INFO>("AFI_WRDATAFIFO_LEVEL = %x \n", axi_hp0.read<0x20>());
-        ctx.log<INFO>("AFI_WRDEBUG = %x \n", axi_hp0.read<0x24>());
-        ctx.log<INFO>("\n");
+        log("AXI_HP0 LOG \n");
+        log("AFI_WRCHAN_CTRL = %x \n", axi_hp0.read<0x14>());
+        log("AFI_WRCHAN_ISSUINGCAP = %x \n", axi_hp0.read<0x18>());
+        log("AFI_WRQOS = %x \n", axi_hp0.read<0x1C>());
+        log("AFI_WRDATAFIFO_LEVEL = %x \n", axi_hp0.read<0x20>());
+        log("AFI_WRDEBUG = %x \n", axi_hp0.read<0x24>());
+        log("\n");
     }
-} ;
+};
 
-#endif // __DRIVERS_ADC_DAC_DMA_HPP__
+#endif // __ALPHA15_ADC_DAC_DMA_HPP__
