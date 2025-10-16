@@ -2,48 +2,46 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_DMA_HPP__
-#define __DRIVERS_DMA_HPP__
+#ifndef __ALPHA250_DPLL_DMA_HPP__
+#define __ALPHA250_DPLL_DMA_HPP__
 
-#include <context.hpp>
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/driver_manager.hpp"
+#include "server/hardware/memory_manager.hpp"
+#include "server/drivers/dma-s2mm.hpp"
+#include "boards/alpha250/drivers/clock-generator.hpp"
 
-#include <boards/alpha250/drivers/clock-generator.hpp>
-#include <server/drivers/dma-s2mm.hpp>
+#include <cstdint>
+#include <array>
 
 class Dma
 {
   public:
-    Dma(Context& ctx_)
-    : ctx(ctx_)
-    , dma(ctx.get<DmaS2MM>())
-    , clk_gen(ctx.get<ClockGenerator>())
-    , ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
-    , ram(ctx.mm.get<mem::ram>())
-    {
-        fs_adc = clk_gen.get_adc_sampling_freq();
+    Dma() {
+        fs_adc = rt::get_driver<ClockGenerator>().get_adc_sampling_freq();
         set_cic_rate(prm::cic_decimation_rate_default);
-        ctx.log<INFO>("DMA transfer duration = %f s\n", double(dma_transfer_duration));
+        logf("DMA transfer duration = {} s\n", double(dma_transfer_duration));
     }
 
     void set_cic_rate(uint32_t rate) {
         if (rate < prm::cic_decimation_rate_min ||
             rate > prm::cic_decimation_rate_max) {
-            ctx.log<ERROR>("DMA: CIC rate out of range\n");
+            log<ERROR>("DMA: CIC rate out of range\n");
             return;
         }
 
         cic_rate = rate;
         fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
         dma_transfer_duration = prm::n_pts / fs;
-        ctl.write<reg::cic_rate>(cic_rate);
+        hw::get_memory<mem::control>().write<reg::cic_rate>(cic_rate);
     }
 
     auto& get_data() {
+        auto& dma = rt::get_driver<DmaS2MM>();
         dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
         dma.wait_for_transfer(dma_transfer_duration);
-        data = ram.read_array<int32_t, data_size, read_offset>();
-        return data;
+        auto& ram = hw::get_memory<mem::ram>();
+        return ram.read_array<int32_t, data_size, read_offset>();
     }
 
     uint32_t get_data_size() {
@@ -58,19 +56,11 @@ class Dma
     static constexpr uint32_t data_size = 1000000;
     static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2;
 
-    Context& ctx;
-    DmaS2MM& dma;
-    ClockGenerator& clk_gen;
-    hw::Memory<mem::control>& ctl;
-    hw::Memory<mem::status>& sts;
-    hw::Memory<mem::ram>& ram;
-
     uint32_t cic_rate;
     float fs_adc, fs;
     float dma_transfer_duration;
 
     std::array<int32_t, data_size> data;
+};
 
-} ;
-
-#endif // __DRIVERS_DMA_HPP__
+#endif // __ALPHA250_DPLL_DMA_HPP__

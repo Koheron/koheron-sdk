@@ -2,24 +2,26 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_DPLL_HPP__
-#define __DRIVERS_DPLL_HPP__
+#ifndef __ALPHA250_DPLL_DPLL_HPP__
+#define __ALPHA250_DPLL_DPLL_HPP__
 
-#include <context.hpp>
-#include <boards/alpha250/drivers/clock-generator.hpp>
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/driver_manager.hpp"
+#include "server/hardware/memory_manager.hpp"
+#include "boards/alpha250/drivers/clock-generator.hpp"
 
 #include <array>
 #include <limits>
 #include <cmath>
+#include <cstdint>
+#include <tuple>
 
 class Dpll
 {
   public:
-    Dpll(Context& _ctx)
-    : ctx(_ctx)
-    , ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
-    , clk_gen(ctx.get<ClockGenerator>())
+    Dpll()
+    : ctl(hw::get_memory<mem::control>())
+    , clk_gen(rt::get_driver<ClockGenerator>())
     {
         clk_gen.set_sampling_frequency(0);
     }
@@ -43,18 +45,18 @@ class Dpll
         } else if (channel == 1) {
             ctl.write_mask<reg::dac_sel, 0b111000>(sel << 3);
         }
-        ctx.log<INFO>("DAC%u output set to %u\n", channel, sel);
+
+        logf("DAC{} output set to {}\n", channel, sel);
     }
 
     void set_dds_freq(uint32_t channel, double freq_hz) {
-
         if (channel >= 2) {
-            ctx.log<ERROR>("FFT::set_dds_freq invalid channel\n");
+            log<ERROR>("FFT::set_dds_freq invalid channel\n");
             return;
         }
 
         if (std::isnan(freq_hz)) {
-            ctx.log<ERROR>("FFT::set_dds_freq Frequency is NaN\n");
+            log<ERROR>("FFT::set_dds_freq Frequency is NaN\n");
             return;
         }
 
@@ -75,22 +77,22 @@ class Dpll
         ctl.write_reg<uint64_t>(reg::phase_incr0 + 8 * channel, uint64_t(factor * freq_hz));
         dds_freq[channel] = freq_hz;
 
-        ctx.log<INFO>("fs %lf , channel %u, ref. frequency set to %lf \n", fs_adc, channel, freq_hz);
+        logf("fs {}, channel {}, ref. frequency set to {}\n", fs_adc, channel, freq_hz);
     }
 
     void set_p_gain(uint32_t channel, int32_t p_gain_) {
         ctl.write_reg<int32_t>(reg::p_gain0 + 4*channel, p_gain_);
-        ctx.log<INFO>("channel %u, p_gain set to %d \n", channel, p_gain_);
+        logf("channel {}, p_gain set to {}\n", channel, p_gain_);
     }
 
     void set_pi_gain(uint32_t channel, int32_t pi_gain_) {
         ctl.write_reg<int32_t>(reg::pi_gain0 + 4*channel, pi_gain_);
-        ctx.log<INFO>("channel %u, pi_gain set to %d \n", channel, pi_gain_);
+        logf("channel {}, pi_gain set to {}\n", channel, pi_gain_);
     }
 
     void set_i2_gain(uint32_t channel, int32_t i2_gain_) {
         ctl.write_reg<int32_t>(reg::i2_gain0 + 4*channel, i2_gain_);
-        ctx.log<INFO>("channel %u, i2_gain set to %d \n", channel, i2_gain_);
+        logf("channel {}, i2_gain set to {}\n", channel, i2_gain_);
     }
 
     void set_i3_gain(uint32_t channel, int32_t i3_gain_) {
@@ -98,7 +100,7 @@ class Dpll
     }
 
     auto get_control_parameters() {
-        return std::make_tuple(
+        return std::tuple{
             dds_freq[0],
             dds_freq[1],
             ctl.read<reg::p_gain0>(),
@@ -111,17 +113,14 @@ class Dpll
             ctl.read<reg::i3_gain1>(),
             ctl.read<reg::integrators0>(),
             ctl.read<reg::integrators1>()
-        );
+        };
     }
 
   private:
-    Context& ctx;
     hw::Memory<mem::control>& ctl;
-    hw::Memory<mem::status>& sts;
     ClockGenerator& clk_gen;
 
     std::array<double, 2> dds_freq = {{0.0, 0.0}};
-
 };
 
-#endif // __DRIVER_DPLL_HPP__
+#endif // __ALPHA250_DPLL_DPLL_HPP__
