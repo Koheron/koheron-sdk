@@ -8,7 +8,6 @@
 #define __SERVER_DRIVERS_DMA_S2MM_HPP__
 
 #include "server/runtime/syslog.hpp"
-#include "server/runtime/services.hpp"
 #include "server/hardware/memory_manager.hpp"
 
 #include <chrono>
@@ -19,8 +18,8 @@ class DmaS2MM
 {
   public:
     DmaS2MM()
-    : dma(services::require<hw::MemoryManager>().get<mem::dma>())
-    , axi_hp0(services::require<hw::MemoryManager>().get<mem::axi_hp0>())
+    : dma(hw::get_memory<mem::dma>())
+    , axi_hp0(hw::get_memory<mem::axi_hp0>())
     {
         // Set AXI_HP0 to 32 bits
         axi_hp0.set_bit<0x0, 0>();
