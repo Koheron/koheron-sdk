@@ -2,14 +2,10 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_FFT_HPP__
-#define __DRIVERS_FFT_HPP__
+#ifndef __ALPHA250_4_FFT_FFT_HPP__
+#define __ALPHA250_4_FFT_FFT_HPP__
 
 #include "server/hardware/memory_manager.hpp"
-
-#include <chrono>
-#include <cmath>
-#include <limits>
 
 #include <array>
 #include <cstdint>
@@ -70,10 +66,8 @@ class FFT
     std::array<double, 2> fs_adc{}; // ADC sampling rates (Hz)
     std::array<std::array<float, prm::fft_size/2>, 4> freq_calibration{}; // Conversion to W/Hz
 
-    // std::array<double, prm::fft_size> window{};
     double S1, S2, W1, W2, ENBW; // Window correction factors
     uint32_t window_index;
-
     uint32_t input_channel = 0;
 
     std::array<std::array<float, prm::fft_size/2>, 2> psd_buffer_raw{};
@@ -92,4 +86,4 @@ class FFT
     uint32_t get_cycle_index(uint32_t adc);
 }; // class FFT
 
-#endif // __DRIVERS_FFT_HPP__
+#endif // __ALPHA250_4_FFT_FFT_HPP__
