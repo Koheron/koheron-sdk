@@ -171,7 +171,7 @@ struct OpThunk {
 // The adapter: builds a constexpr jump table and implements execute().
 template<int DriverID, class C, class... Descs>
 class DriverAdapter : public DriverAbstract {
-public:
+  public:
     explicit DriverAdapter(C& impl)
     : DriverAbstract(DriverID)
     , obj(impl)
@@ -194,7 +194,7 @@ public:
         return fn(obj, cmd);
     }
 
-protected:
+  protected:
     C& obj;
     std::mutex mutex_;
 
