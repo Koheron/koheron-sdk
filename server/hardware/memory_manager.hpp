@@ -6,6 +6,7 @@
 #define __SERVER_CONTEXT_MEMORY_MANAGER_HPP__
 
 #include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
 #include "server/hardware/memory_map.hpp"
 
 #include <vector>
@@ -58,6 +59,12 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
 };
 
 using MemoryManager = MemoryManagerImpl<mem::count>;
+
+// Convinience access to MemoryManager service
+template<MemID id>
+Memory<id>& get_memory() {
+    return services::require<hw::MemoryManager>().get<id>();
+}
 
 } // namespace hw
 

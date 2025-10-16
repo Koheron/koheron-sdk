@@ -82,8 +82,7 @@ class DriverManager
     void alloc_core(driver_id id);
 };
 
-// Driver access
-
+// Convinience access to DriverManager service
 template<class Driver>
 Driver& get_driver() {
     return services::require<rt::DriverManager>().template get<Driver>();

@@ -6,7 +6,6 @@
 #define __ALPHA250_DPLL_DPLL_HPP__
 
 #include "server/runtime/syslog.hpp"
-#include "server/runtime/services.hpp"
 #include "server/runtime/driver_manager.hpp"
 #include "server/hardware/memory_manager.hpp"
 #include "boards/alpha250/drivers/clock-generator.hpp"
@@ -21,8 +20,8 @@ class Dpll
 {
   public:
     Dpll()
-    : ctl(services::require<hw::MemoryManager>().get<mem::control>())
-    , clk_gen(services::require<rt::DriverManager>().get<ClockGenerator>())
+    : ctl(hw::get_memory<mem::control>())
+    , clk_gen(rt::get_driver<ClockGenerator>())
     {
         clk_gen.set_sampling_frequency(0);
     }
