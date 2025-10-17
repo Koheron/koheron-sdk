@@ -359,6 +359,28 @@ def upload_instrument():
             return make_response('Instrument ' + filename + ' uploaded.')
     return make_response('Instrument upload failed.')
 
+@app.route('/api/instruments/commands/<name>', methods=['GET'])
+def download_instrument_commands(name: str):
+    zip_filename = secure_filename(f"{name}.zip")
+    instrument_filename = os.path.join(app.instruments_dirname, zip_filename)
+
+    if not os.path.exists(instrument_filename):
+        return make_response('Instrument not found', 404)
+
+    try:
+        with zipfile.ZipFile(instrument_filename) as zf:
+            try:
+                with zf.open('drivers.json') as drivers_file:
+                    data = drivers_file.read()
+            except KeyError:
+                return make_response('drivers.json not found', 404)
+    except zipfile.BadZipFile:
+        return make_response('Invalid instrument archive', 400)
+
+    response = Response(data, mimetype='application/json')
+    response.headers['Content-Disposition'] = f'attachment; filename={name}-drivers.json'
+    return response
+
 # ------------------------
 # Koheron server log
 # ------------------------
