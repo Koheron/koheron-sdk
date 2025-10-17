@@ -2,6 +2,7 @@
 #define __SERVER_RUNTIME_DRIVERS_TABLE_HPP__
 
 #include "server/utilities/meta_utils.hpp"
+#include "server/utilities/reflections.hpp"
 
 #include <array>
 #include <memory>
@@ -16,32 +17,6 @@ using driver_id = std::size_t;
 
 // ----------------------------------------------------------
 // drivers_table
-
-template<class T>
-consteval std::string_view type_name() {
-    std::string_view p = __PRETTY_FUNCTION__;
-    // e.g. "consteval std::string_view ... type_name() [with T = ns::Type; std::string_view = std::basic_string_view<char>]"
-    constexpr std::string_view key = "T = ";
-    auto from = p.find(key);
-
-    if (from == std::string_view::npos) {
-        return {};
-    }
-
-    from += key.size();
-    auto to = p.find_first_of(";]", from);       // stop before alias note or closing bracket
-    if (to == std::string_view::npos) {
-        to = p.size();
-    }
-
-    return p.substr(from, to - from);
-}
-
-// Keep only the last component after '::'
-consteval std::string_view short_name(std::string_view s) {
-    auto pos = s.rfind("::");
-    return (pos == std::string_view::npos) ? s : s.substr(pos + 2);
-}
 
 template<std::size_t id, bool InSentinels, class SentTuple, class TypesTuple>
 struct id_to_type_sel;
@@ -85,8 +60,8 @@ struct drivers_table_with_prefix<std::tuple<Sentinels...>, Drivers...> {
     static consteval auto make_names() {
         std::array<std::string_view, size> a{};
         std::size_t i = 0;
-        ((a[i++] = short_name(type_name<Sentinels>())), ...);
-        ((a[i++] = short_name(type_name<Drivers>())),  ...);
+        ((a[i++] = short_type_name<Sentinels>()), ...);
+        ((a[i++] = short_type_name<Drivers>()),  ...);
         return a;
     }
 
