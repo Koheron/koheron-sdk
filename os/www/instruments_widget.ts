@@ -56,7 +56,11 @@ class InstrumentsWidget {
                     this.setStatusCell(statusCell, isLive);
                     this.setRunCell(runCell, instrument["name"], isLive);
                     this.setDeleteCell(deleteCell, instrument["name"], isLive, isDefault);
-                    nameCell.innerHTML = instrument["name"];
+                    nameCell.innerHTML = '';
+                    const link = document.createElement("a");
+                    link.href = `/koheron/instrument_summary.html?name=${encodeURIComponent(instrument["name"])}`;
+                    link.textContent = instrument["name"];
+                    nameCell.appendChild(link);
                     versionCell.innerHTML = instrument["version"];
                 }
 

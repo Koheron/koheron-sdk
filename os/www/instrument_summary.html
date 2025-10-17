@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Instrument summary</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Koheron">
+    <meta charset="utf-8">
+
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <link rel="shortcut icon" href="/koheron/kbird.ico">
+    <link rel="stylesheet" type="text/css" href="/koheron/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/koheron/koheron.css">
+    <link rel="stylesheet" type="text/css" href="main.css">
+
+    <script type="text/javascript" src="html-imports.min.js"></script>
+    <link rel="import" href="/koheron/navigation.html" data-parent="navigation">
+
+    <script type="text/javascript" src="/koheron/jquery.min.js"></script>
+    <script type="text/javascript" src="/koheron/bootstrap.min.js"></script>
+
+    <style>
+      #instrument-commands {
+        margin-top: 12px;
+      }
+
+      #instrument-commands .command-group {
+        border: 1px solid #dddddd;
+        border-radius: 4px;
+        padding: 10px 12px;
+        margin-bottom: 12px;
+        background: #fafafa;
+      }
+
+      #instrument-commands .command-group[open] {
+        background: #ffffff;
+      }
+
+      #instrument-commands .command-group-title {
+        font-size: 90%;
+        font-weight: 600;
+        color: #333333;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      #instrument-commands .command-group-title::-webkit-details-marker {
+        display: none;
+      }
+
+      #instrument-commands .command-group summary::marker {
+        display: none;
+      }
+
+      #instrument-commands .command-group summary:before {
+        content: '\25BC';
+        display: inline-block;
+        transform: rotate(0deg);
+        transition: transform 0.15s ease-out;
+        margin-right: 6px;
+        font-size: 75%;
+      }
+
+      #instrument-commands .command-group:not([open]) summary:before {
+        transform: rotate(-90deg);
+      }
+
+      #instrument-commands .command-list {
+        margin: 10px 0 0 18px;
+      }
+
+      #instrument-commands .command-entry {
+        margin-bottom: 4px;
+        line-height: 1.4;
+      }
+
+      #instrument-commands .command-entry:last-child {
+        margin-bottom: 0;
+      }
+
+      #instrument-commands .command-name {
+        font-weight: 600;
+        color: #1a1a1a;
+      }
+
+      #instrument-commands .command-input-type {
+        color: #1f77b4;
+      }
+
+      #instrument-commands .command-arg-name {
+        color: #d62728;
+      }
+
+      #instrument-commands .command-output-type {
+        color: #2ca02c;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="navigation"></div>
+
+    <div id="main" class="container-fluid" style="padding: 20px;">
+      <a href="/koheron" style="display: inline-flex; align-items: center; gap: 4px; font-size: 90%; text-decoration: none;">← Back to instruments</a>
+      <h1 style="font-size: 140%; margin-top: 20px;">Instrument summary</h1>
+
+      <div class="card" style="max-width: 640px; margin-top: 20px;">
+        <div class="card-body" style="padding: 16px;">
+          <dl class="row" style="margin-bottom: 0;">
+            <dt class="col-sm-3">Name</dt>
+            <dd class="col-sm-9" id="instrument-name">—</dd>
+
+            <dt class="col-sm-3">Version</dt>
+            <dd class="col-sm-9" id="instrument-version">—</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div style="margin-top: 30px; max-width: 640px;">
+        <h2 style="font-size: 120%;">Available commands</h2>
+        <p id="instrument-commands-status" style="color: #737373; margin-top: 8px;">Loading…</p>
+        <div id="instrument-commands"></div>
+      </div>
+    </div>
+
+    <script src="/koheron/instruments.js"></script>
+    <script>
+      window.addEventListener('HTMLImportsLoaded', () => {
+        new Imports(document);
+        new InstrumentSummaryWidget(document);
+      }, false);
+    </script>
+  </body>
+</html>

@@ -42,6 +42,7 @@ WWW_ASSETS := \
   $(TMP_WWW_PATH)/koheron.css \
   $(TMP_WWW_PATH)/instruments.js \
   $(TMP_WWW_PATH)/index.html \
+  $(TMP_WWW_PATH)/instrument_summary.html \
   $(TMP_WWW_PATH)/main.css \
   $(TMP_WWW_PATH)/bootstrap.min.js \
   $(TMP_WWW_PATH)/bootstrap.min.css \
@@ -71,6 +72,7 @@ clean_www:
 WWW_TS_FILES := $(WEB_PATH)/koheron.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments_widget.ts
+WWW_TS_FILES += $(WWW_PATH)/instrument_summary.ts
 WWW_TS_FILES += $(WWW_PATH)/koheron_server_log.ts
 WWW_TS_FILES += $(WWW_PATH)/koheron_system.ts
 WWW_TS_FILES += $(WWW_PATH)/system_info_widget.ts
@@ -84,6 +86,10 @@ $(TMP_WWW_PATH)/koheron.css:
 	curl https://assets.koheron.com/css/main.css -o $@
 
 $(TMP_WWW_PATH)/index.html: $(WWW_PATH)/index.html
+	mkdir -p $(@D)
+	cp $< $@
+
+$(TMP_WWW_PATH)/instrument_summary.html: $(WWW_PATH)/instrument_summary.html
 	mkdir -p $(@D)
 	cp $< $@
 
