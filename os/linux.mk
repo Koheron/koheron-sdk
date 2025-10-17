@@ -1,6 +1,6 @@
 LINUX_TAG := xilinx-linux-v$(VIVADO_VERSION)
 LINUX_URL := https://github.com/Xilinx/linux-xlnx/archive/refs/tags/xilinx-v$(VIVADO_VERSION).tar.gz
-LINUX_PATH := $(TMP)/linux-xlnx-$(ARCH)-LINUX_TAG)
+LINUX_PATH := $(TMP)/linux-xlnx-$(ARCH)-$(LINUX_TAG)
 LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 
 DTC_BIN := $(LINUX_PATH)/scripts/dtc/dtc
