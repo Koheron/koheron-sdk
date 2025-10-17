@@ -7,9 +7,6 @@
 #ifndef __{{ driver.class_name|upper }}_HPP__
 #define __{{ driver.class_name|upper }}_HPP__
 
-#include <memory>
-#include <mutex>
-
 {% for include in driver.includes -%}
 #include "{{ include }}"
 {% endfor -%}
