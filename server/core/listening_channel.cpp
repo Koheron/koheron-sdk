@@ -107,82 +107,6 @@ static int open_tcp_communication(int listen_fd) {
     return comm_fd;
 }
 
-// ---- TCP ----
-
-template<>
-int ListeningChannel<TCP>::init() {
-    number_of_threads = 0;
-
-    if constexpr (config::tcp_worker_connections > 0) {
-        listen_fd = create_tcp_listening_socket(config::tcp_port);
-        return listen_fd;
-    }
-
-    return 0;
-}
-
-template<>
-void ListeningChannel<TCP>::shutdown() {
-    if constexpr (config::tcp_worker_connections > 0) {
-        log("Closing TCP listener ...\n");
-
-        if (::shutdown(listen_fd, SHUT_RDWR) < 0) {
-            log<WARNING>("Cannot shutdown socket for TCP listener\n");
-        }
-
-        close(listen_fd);
-    }
-}
-
-template<>
-int ListeningChannel<TCP>::open_communication() {
-    return open_tcp_communication(listen_fd);
-}
-
-template<>
-bool ListeningChannel<TCP>::is_max_threads() {
-    return number_of_threads >= config::tcp_worker_connections;
-}
-
-// ---- WEBSOCK ----
-
-template<>
-int ListeningChannel<WEBSOCK>::init() {
-    number_of_threads = 0;
-
-    if constexpr (config::websocket_worker_connections > 0) {
-        listen_fd = create_tcp_listening_socket(config::websocket_port);
-        return listen_fd;
-    }
-
-    return 0;
-}
-
-template<>
-void ListeningChannel<WEBSOCK>::shutdown() {
-    if constexpr (config::websocket_worker_connections > 0) {
-        log("Closing WebSocket listener ...\n");
-
-        if (::shutdown(listen_fd, SHUT_RDWR) < 0) {
-            log<WARNING>("Cannot shutdown socket for WebSocket listener\n");
-        }
-
-        close(listen_fd);
-    }
-}
-
-template<>
-int ListeningChannel<WEBSOCK>::open_communication() {
-    return open_tcp_communication(listen_fd);
-}
-
-template<>
-bool ListeningChannel<WEBSOCK>::is_max_threads() {
-    return number_of_threads >= config::websocket_worker_connections;
-}
-
-// ---- UNIX ----
-
 static int create_unix_listening_socket(const char *unix_sock_path) {
     struct sockaddr_un local{};
 
@@ -208,41 +132,122 @@ static int create_unix_listening_socket(const char *unix_sock_path) {
     return listen_fd_;
 }
 
+// ---- Transport policies ------------------------------------------------------
+
+template<int socket_type>
+struct ListeningChannelTransport;
+
+template<unsigned int Port, int ConnectionLimit>
+struct TcpLikeListeningTransport {
+    static constexpr bool enabled() {
+        return ConnectionLimit > 0;
+    }
+
+    static constexpr int worker_limit() {
+        return ConnectionLimit;
+    }
+
+    static int create_listener() {
+        return create_tcp_listening_socket(Port);
+    }
+
+    static int open_connection(int listen_fd) {
+        return open_tcp_communication(listen_fd);
+    }
+
+    static void close_listener(int listen_fd) {
+        close(listen_fd);
+    }
+};
+
 template<>
-int ListeningChannel<UNIX>::init() {
+struct ListeningChannelTransport<TCP>
+: TcpLikeListeningTransport<config::tcp_port, config::tcp_worker_connections> {};
+
+template<>
+struct ListeningChannelTransport<WEBSOCK>
+: TcpLikeListeningTransport<config::websocket_port, config::websocket_worker_connections> {};
+
+template<>
+struct ListeningChannelTransport<UNIX> {
+    static constexpr bool enabled() {
+        return config::unix_socket_worker_connections > 0;
+    }
+
+    static constexpr int worker_limit() {
+        return config::unix_socket_worker_connections;
+    }
+
+    static int create_listener() {
+        return create_unix_listening_socket(config::unix_socket_path);
+    }
+
+    static int open_connection(int listen_fd) {
+        struct sockaddr_un remote{};
+        uint32_t t = sizeof(remote);
+        return accept(listen_fd, reinterpret_cast<struct sockaddr *>(&remote), &t);
+    }
+
+    static void close_listener(int listen_fd) {
+        close(listen_fd);
+    }
+};
+
+// ---- Generic ListeningChannel implementation --------------------------------
+
+template<int socket_type>
+int ListeningChannel<socket_type>::init() {
     number_of_threads = 0;
 
-    if constexpr (config::unix_socket_worker_connections > 0) {
-        listen_fd = create_unix_listening_socket(config::unix_socket_path);
+    if constexpr (ListeningChannelTransport<socket_type>::enabled()) {
+        listen_fd = ListeningChannelTransport<socket_type>::create_listener();
         return listen_fd;
     }
 
     return 0;
 }
 
-template<>
-void ListeningChannel<UNIX>::shutdown() {
-    if constexpr (config::unix_socket_worker_connections > 0) {
-        log("Closing Unix listener ...\n");
+template<int socket_type>
+void ListeningChannel<socket_type>::shutdown() {
+    if constexpr (ListeningChannelTransport<socket_type>::enabled()) {
+        logf("Closing {} listener ...\n", listen_channel_desc[socket_type]);
 
         if (::shutdown(listen_fd, SHUT_RDWR) < 0) {
-            log<WARNING>("Cannot shutdown socket for Unix listener\n");
+            logf<WARNING>("Cannot shutdown socket for {} listener\n", listen_channel_desc[socket_type]);
         }
 
-        close(listen_fd);
+        ListeningChannelTransport<socket_type>::close_listener(listen_fd);
     }
 }
 
-template<>
-int ListeningChannel<UNIX>::open_communication() {
-    struct sockaddr_un remote{};
-    uint32_t t = sizeof(remote);
-    return accept(listen_fd, reinterpret_cast<struct sockaddr *>(&remote), &t);
+template<int socket_type>
+int ListeningChannel<socket_type>::open_communication() {
+    return ListeningChannelTransport<socket_type>::open_connection(listen_fd);
 }
 
-template<>
-bool ListeningChannel<UNIX>::is_max_threads() {
-    return number_of_threads >= config::unix_socket_worker_connections;
+template<int socket_type>
+bool ListeningChannel<socket_type>::is_max_threads() {
+    if constexpr (ListeningChannelTransport<socket_type>::enabled()) {
+        return number_of_threads >= ListeningChannelTransport<socket_type>::worker_limit();
+    }
+
+    return false;
 }
+
+// Explicit instantiations for supported socket types
+template int ListeningChannel<TCP>::init();
+template void ListeningChannel<TCP>::shutdown();
+template int ListeningChannel<TCP>::open_communication();
+template bool ListeningChannel<TCP>::is_max_threads();
+
+template int ListeningChannel<WEBSOCK>::init();
+template void ListeningChannel<WEBSOCK>::shutdown();
+template int ListeningChannel<WEBSOCK>::open_communication();
+template bool ListeningChannel<WEBSOCK>::is_max_threads();
+
+template int ListeningChannel<UNIX>::init();
+template void ListeningChannel<UNIX>::shutdown();
+template int ListeningChannel<UNIX>::open_communication();
+template bool ListeningChannel<UNIX>::is_max_threads();
 
 } // namespace koheron
