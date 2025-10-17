@@ -69,7 +69,6 @@ class TransportService {
     int start();
     void request_stop();
     void shutdown();
-    void join();
 
     bool is_ready() const;
     bool should_stop() const;

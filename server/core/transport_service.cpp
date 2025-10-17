@@ -51,12 +51,12 @@ void TransportService::shutdown() {
     tcp_listener_.shutdown();
     websock_listener_.shutdown();
     unix_listener_.shutdown();
-}
 
-void TransportService::join() {
     tcp_listener_.join_worker();
     websock_listener_.join_worker();
     unix_listener_.join_worker();
+
+    services::require<SessionManager>().delete_all();
 }
 
 bool TransportService::is_ready() const {

@@ -54,8 +54,7 @@ std::vector<SessionID> SessionManager::get_session_ids()
     return res;
 }
 
-void SessionManager::delete_session(SessionID id)
-{
+void SessionManager::delete_session(SessionID id) {
     std::lock_guard lock(mutex);
 
     int session_fd = 0;
@@ -90,8 +89,7 @@ void SessionManager::delete_session(SessionID id)
     number_of_sessions--;
 }
 
-void SessionManager::delete_all()
-{
+void SessionManager::delete_all() {
     log("Closing all active sessions ...\n");
     assert(number_of_sessions == session_pool.size());
 
@@ -107,8 +105,7 @@ void SessionManager::delete_all()
     assert(number_of_sessions == 0);
 }
 
-void SessionManager::exit_comm()
-{
+void SessionManager::exit_comm() {
     for (auto& session : session_pool) {
         session.second->exit_comm();
     }

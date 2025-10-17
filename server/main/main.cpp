@@ -11,15 +11,16 @@
 #include "server/runtime/signal_handler.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
+#include "server/runtime/systemd.hpp"
 #include "server/runtime/driver_manager.hpp"
 #include "server/runtime/config_manager.hpp"
 
-#include "server/core/server.hpp"
 #include "server/core/session_manager.hpp"
 #include "server/core/transport_service.hpp"
 #include "server/core/drivers/driver_executor.hpp"
 #include <drivers.hpp> // For call to Common
 
+#include <atomic>
 #include <cstdlib>
 
 using namespace koheron;
@@ -27,6 +28,8 @@ using services::provide;
 using services::get;
 
 int main() {
+    std::atomic<bool> exit_all = false;
+
     // /!\ Services initialization order matters
 
     // ---------- Hardware services ----------
@@ -56,13 +59,8 @@ int main() {
     }
 
     // On driver allocation failure
-    auto on_fail = []([[maybe_unused]] driver_id id, [[maybe_unused]] std::string_view name) {
-        auto server = get<Server>();
-
-        if (server) {
-            log<PANIC>("Exiting server...\n");
-            server->exit_all = true;
-        }
+    auto on_fail = [&]([[maybe_unused]] driver_id id, [[maybe_unused]] std::string_view name) {
+        exit_all = true;
     };
 
     auto dm = provide<rt::DriverManager>(on_fail);
@@ -74,7 +72,9 @@ int main() {
         }
     }
 
-    if (provide<rt::SignalHandler>()->init() < 0) {
+    auto signal_handler = provide<rt::SignalHandler>();
+
+    if (signal_handler->init() < 0) {
         std::exit(EXIT_FAILURE);
     }
 
@@ -82,8 +82,34 @@ int main() {
 
     provide<DriverExecutor>();
     provide<SessionManager>();
-    provide<TransportService>();
-    provide<Server>()->run();
+
+    auto transport = provide<TransportService>();
+
+    if (transport->start() < 0) {
+        std::exit(EXIT_FAILURE);
+    }
+
+    bool ready_notified = false;
+
+    while (true) {
+        if (!ready_notified && transport->is_ready()) {
+            log("Koheron server ready\n");
+
+            if constexpr (config::notify_systemd) {
+                rt::systemd::notify_ready("Koheron server is ready");
+            }
+
+            ready_notified = true;
+        }
+
+        if (signal_handler->interrupt() || exit_all) {
+            log("Interrupt received, killing Koheron server ...\n");
+            transport->shutdown();
+            return 0;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
 
     std::exit(EXIT_SUCCESS);
     return 0;
