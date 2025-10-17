@@ -354,7 +354,7 @@ int WebSocket::read_header()
         return -1;
     }
 
-    if (header.payload_size > read_str.size() - 56) {
+    if (header.payload_size > static_cast<int64_t>(read_str.size()) - 56) {
         log<CRITICAL>("WebSocket: Message too large\n");
         return -1;
     }
