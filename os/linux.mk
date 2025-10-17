@@ -11,7 +11,7 @@ ifeq ($(ARCH),arm)
 else ifeq ($(ARCH),arm64)
   KERNEL_BIN := Image
 else
-  $(error Unsupported ARCH $(ARCH); expected arm or arm64)
+  $(call fail,Unsupported ARCH $(ARCH); expected arm or arm64)
 endif
 
 $(LINUX_TAR):

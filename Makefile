@@ -14,7 +14,10 @@ MATLABPATH :=
 export MATLABPATH
 
 GREEN := \033[1;32m
+RED := \033[1;31m
 RESET := \033[0m
+
+fail = $(error $(RED)[ERROR] $(1)$(RESET))
 
 ok = @printf '%b\n' '$(GREEN)[$(1)] OK$(RESET)'
 
@@ -24,6 +27,9 @@ ok = @printf '%b\n' '$(GREEN)[$(1)] OK$(RESET)'
 SDK_PATH ?= .
 MODE ?= development
 SDK_FULL_PATH = $(realpath $(SDK_PATH))
+# Ensure every recipe prints a colorized error message when a shell command fails.
+MAKE_BASH_ENV := $(SDK_FULL_PATH)/.make-bash-env
+export BASH_ENV := $(MAKE_BASH_ENV)
 HOST ?= 192.168.1.100
 TMP ?= tmp
 
@@ -43,13 +49,13 @@ SERVER_PATH := $(SDK_PATH)/server
 WEB_PATH := $(SDK_PATH)/web
 
 ifndef CFG
-$(error CFG is not defined. Please set CFG to the path of a config.mk file, e.g. `make CFG=examples/<board>/<instrument>/config.mk`.)
+$(call fail,CFG is not defined. Please set CFG to the path of a config.mk file, e.g. `make CFG=examples/<board>/<instrument>/config.mk`.)
 endif
 
 CONFIG_MK := $(CFG)
 
 ifeq ("$(wildcard $(CONFIG_MK))","")
-$(error CFG '$(CFG)' does not reference an existing config.mk file.)
+$(call fail,CFG '$(CFG)' does not reference an existing config.mk file.)
 endif
 
 BOARD_MK ?= $(BOARD_PATH)/board.mk
