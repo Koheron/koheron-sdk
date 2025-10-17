@@ -13,7 +13,7 @@
 ClockGenerator::ClockGenerator()
 : ctl(hw::get_memory<mem::control>())
 , eeprom(rt::get_driver<Eeprom>())
-, spi_cfg(rt::get_driver<SpiConfig>())
+, spi_cfg(services::require<SpiConfig>())
 {
     std::ifstream ifile(filename);
 

@@ -17,7 +17,7 @@ using services::require;
 ClockGenerator::ClockGenerator()
 : i2c(require<hw::I2cManager>().get("i2c-0"))
 , eeprom(require<rt::DriverManager>().get<Eeprom>())
-, spi_cfg(require<rt::DriverManager>().get<SpiConfig>())
+, spi_cfg(require<SpiConfig>())
 {
     std::ifstream ifile(filename.data());
 

@@ -14,7 +14,7 @@ class Ad9747
 {
   public:
     Ad9747()
-    : spi_cfg(services::require<rt::DriverManager>().get<SpiConfig>())
+    : spi_cfg(services::require<SpiConfig>())
     {}
 
     enum regs {

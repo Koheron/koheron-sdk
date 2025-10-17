@@ -5,6 +5,7 @@
 #include "./precision-dac.hpp"
 #include "./gpio-expander.hpp"
 #include "./precision-adc.hpp"
+#include "./spi-config.hpp"
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/driver_manager.hpp"
@@ -30,6 +31,8 @@ void Common::set_led(uint32_t value) {
 void Common::init() {
     log("Common: Initializing ...");
     leds->start_blink();
+
+    services::provide<SpiConfig>();
 
     rt::get_driver<ClockGenerator>().init();
     rt::get_driver<Ltc2157>().init();

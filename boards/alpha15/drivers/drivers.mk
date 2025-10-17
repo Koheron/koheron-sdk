@@ -14,4 +14,3 @@ DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/temperature-sensor.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/power-monitor.hpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/power-monitor.cpp
 DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/ad9747.hpp
-DRIVERS += $(SDK_PATH)/boards/alpha250/drivers/spi-config.hpp

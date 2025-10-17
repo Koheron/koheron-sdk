@@ -3,12 +3,14 @@
 #include "./ltc2157.hpp"
 
 #include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
 #include "server/runtime/driver_manager.hpp"
 #include "server/drivers/leds-control.hpp"
 #include "boards/alpha250/drivers/gpio-expander.hpp"
 #include "boards/alpha250/drivers/temperature-sensor.hpp"
 #include "boards/alpha250/drivers/precision-dac.hpp"
 #include "boards/alpha250/drivers/precision-adc.hpp"
+#include "boards/alpha250/drivers/spi-config.hpp"
 
 Common::Common()
 : leds(std::make_unique<LedsController>())
@@ -30,6 +32,8 @@ void Common::set_led(uint32_t value) {
 void Common::init() {
     log("Common: Initializing ...");
     leds->start_blink();
+
+    services::provide<SpiConfig>();
 
     rt::get_driver<ClockGenerator>().init();
     rt::get_driver<Ltc2157>().init();
