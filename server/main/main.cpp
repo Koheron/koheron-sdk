@@ -16,6 +16,7 @@
 
 #include "server/core/server.hpp"
 #include "server/core/session_manager.hpp"
+#include "server/core/transport_service.hpp"
 #include "server/core/drivers/driver_executor.hpp"
 #include <drivers.hpp> // For call to Common
 
@@ -81,6 +82,7 @@ int main() {
 
     provide<DriverExecutor>();
     provide<SessionManager>();
+    provide<TransportService>();
     provide<Server>()->run();
 
     std::exit(EXIT_SUCCESS);

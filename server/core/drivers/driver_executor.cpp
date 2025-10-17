@@ -2,7 +2,7 @@
 
 #include "server/core/drivers/driver_executor.hpp"
 #include "server/core/commands.hpp"
-#include "server/core/server.hpp"
+#include "server/core/session_manager.hpp"
 #include "server/core/drivers/drivers_config.hpp"
 
 #include "server/utilities/meta_utils.hpp"
@@ -10,9 +10,18 @@
 #include "server/runtime/driver_manager.hpp"
 
 #include <interface_drivers.hpp>
+#include <drivers_json.hpp>
+
 #include <cassert>
 
 namespace koheron {
+
+/// Operations associated to the Server "driver"
+enum Operation {
+    GET_VERSION = 0,            ///< Send the version of the server
+    GET_CMDS = 1,               ///< Send the commands numbers
+    server_op_num,
+};
 
 struct DriverExecutor::Impl {
     std::array<std::unique_ptr<DriverAbstract>, drivers::table::size - drivers::table::offset> wrappers{};
@@ -55,7 +64,18 @@ struct DriverExecutor::Impl {
         }
 
         if (cmd.driver == 1) { // Server
-            return services::require<Server>().execute(cmd);
+            auto& session = services::require<SessionManager>().get_session(cmd.session_id);
+
+            switch (cmd.operation) {
+            case GET_VERSION:
+                return session.send<1, GET_VERSION>(KOHERON_VERSION);
+            case GET_CMDS:
+                return session.send<1, GET_CMDS>(build_drivers_json());
+            case server_op_num:
+            default:
+                log<ERROR>("Server::execute unknown operation\n");
+                return -1;
+            }
         }
 
         ensure_wrapper_runtime(cmd.driver);

@@ -1,9 +1,9 @@
 /// Implementation and specializations of
-/// the class ListeningChannel in server.hpp
+/// the class ListeningChannel in transport_service.hpp
 ///
 /// (c) Koheron
 
-#include "server/core/server.hpp"
+#include "server/core/transport_service.hpp"
 #include "server/core/session.hpp"
 #include "server/runtime/syslog.hpp"
 
@@ -17,8 +17,7 @@
 
 namespace koheron {
 
-static int create_tcp_listening_socket(unsigned int port)
-{
+static int create_tcp_listening_socket(unsigned int port) {
     int listen_fd_ = socket(AF_INET, SOCK_STREAM, 0);
 
     if (listen_fd_ < 0) {
@@ -64,8 +63,7 @@ static int create_tcp_listening_socket(unsigned int port)
     return listen_fd_;
 }
 
-static int set_socket_options(int comm_fd)
-{
+static int set_socket_options(int comm_fd) {
     int sndbuf_len = sizeof(uint32_t) * KOHERON_SIG_LEN;
 
     if (setsockopt(comm_fd, SOL_SOCKET, SO_SNDBUF, &sndbuf_len, sizeof(sndbuf_len)) < 0) {
@@ -95,8 +93,7 @@ static int set_socket_options(int comm_fd)
     return 0;
 }
 
-static int open_tcp_communication(int listen_fd)
-{
+static int open_tcp_communication(int listen_fd) {
     int comm_fd = accept(listen_fd, nullptr, nullptr);
 
     if (comm_fd < 0) {
@@ -113,8 +110,7 @@ static int open_tcp_communication(int listen_fd)
 // ---- TCP ----
 
 template<>
-int ListeningChannel<TCP>::init()
-{
+int ListeningChannel<TCP>::init() {
     number_of_threads = 0;
 
     if constexpr (config::tcp_worker_connections > 0) {
@@ -126,8 +122,7 @@ int ListeningChannel<TCP>::init()
 }
 
 template<>
-void ListeningChannel<TCP>::shutdown()
-{
+void ListeningChannel<TCP>::shutdown() {
     if constexpr (config::tcp_worker_connections > 0) {
         log("Closing TCP listener ...\n");
 
@@ -140,22 +135,19 @@ void ListeningChannel<TCP>::shutdown()
 }
 
 template<>
-int ListeningChannel<TCP>::open_communication()
-{
+int ListeningChannel<TCP>::open_communication() {
     return open_tcp_communication(listen_fd);
 }
 
 template<>
-bool ListeningChannel<TCP>::is_max_threads()
-{
+bool ListeningChannel<TCP>::is_max_threads() {
     return number_of_threads >= config::tcp_worker_connections;
 }
 
 // ---- WEBSOCK ----
 
 template<>
-int ListeningChannel<WEBSOCK>::init()
-{
+int ListeningChannel<WEBSOCK>::init() {
     number_of_threads = 0;
 
     if constexpr (config::websocket_worker_connections > 0) {
@@ -167,8 +159,7 @@ int ListeningChannel<WEBSOCK>::init()
 }
 
 template<>
-void ListeningChannel<WEBSOCK>::shutdown()
-{
+void ListeningChannel<WEBSOCK>::shutdown() {
     if constexpr (config::websocket_worker_connections > 0) {
         log("Closing WebSocket listener ...\n");
 
@@ -181,21 +172,18 @@ void ListeningChannel<WEBSOCK>::shutdown()
 }
 
 template<>
-int ListeningChannel<WEBSOCK>::open_communication()
-{
+int ListeningChannel<WEBSOCK>::open_communication() {
     return open_tcp_communication(listen_fd);
 }
 
 template<>
-bool ListeningChannel<WEBSOCK>::is_max_threads()
-{
+bool ListeningChannel<WEBSOCK>::is_max_threads() {
     return number_of_threads >= config::websocket_worker_connections;
 }
 
 // ---- UNIX ----
 
-static int create_unix_listening_socket(const char *unix_sock_path)
-{
+static int create_unix_listening_socket(const char *unix_sock_path) {
     struct sockaddr_un local{};
 
     int listen_fd_ = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -221,8 +209,7 @@ static int create_unix_listening_socket(const char *unix_sock_path)
 }
 
 template<>
-int ListeningChannel<UNIX>::init()
-{
+int ListeningChannel<UNIX>::init() {
     number_of_threads = 0;
 
     if constexpr (config::unix_socket_worker_connections > 0) {
@@ -234,8 +221,7 @@ int ListeningChannel<UNIX>::init()
 }
 
 template<>
-void ListeningChannel<UNIX>::shutdown()
-{
+void ListeningChannel<UNIX>::shutdown() {
     if constexpr (config::unix_socket_worker_connections > 0) {
         log("Closing Unix listener ...\n");
 
@@ -248,16 +234,14 @@ void ListeningChannel<UNIX>::shutdown()
 }
 
 template<>
-int ListeningChannel<UNIX>::open_communication()
-{
+int ListeningChannel<UNIX>::open_communication() {
     struct sockaddr_un remote{};
     uint32_t t = sizeof(remote);
     return accept(listen_fd, reinterpret_cast<struct sockaddr *>(&remote), &t);
 }
 
 template<>
-bool ListeningChannel<UNIX>::is_max_threads()
-{
+bool ListeningChannel<UNIX>::is_max_threads() {
     return number_of_threads >= config::unix_socket_worker_connections;
 }
 

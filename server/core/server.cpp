@@ -3,9 +3,8 @@
 /// (c) Koheron
 
 #include "server/core/server.hpp"
-#include "server/core/commands.hpp"
-#include "server/core/session.hpp"
 #include "server/core/session_manager.hpp"
+#include "server/core/transport_service.hpp"
 
 #include "server/runtime/signal_handler.hpp"
 #include "server/runtime/syslog.hpp"
@@ -13,113 +12,37 @@
 #include "server/runtime/systemd.hpp"
 
 #include <chrono>
-#include <cstdlib>
-
-#include <sys/un.h>
 
 namespace koheron {
 
-Server::Server()
-: tcp_listener()
-, websock_listener()
-, unix_listener()
-{
-    exit_comm.store(false);
+Server::Server() {
     exit_all.store(false);
-
-    if constexpr (config::tcp_worker_connections > 0) {
-        if (tcp_listener.init() < 0) {
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    if constexpr (config::websocket_worker_connections > 0) {
-        if (websock_listener.init() < 0) {
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    if constexpr (config::unix_socket_worker_connections > 0) {
-        if (unix_listener.init() < 0) {
-            exit(EXIT_FAILURE);
-        }
-    }
 }
 
-// This cannot be done in the destructor
-// since it is called after the "delete config"
-// at the end of the main()
-void Server::close_listeners()
-{
-    exit_comm.store(true);
-    services::require<SessionManager>().exit_comm();
-    tcp_listener.shutdown();
-    websock_listener.shutdown();
-    unix_listener.shutdown();
-    join_listeners_workers();
-}
-
-int Server::start_listeners_workers()
-{
-    if (tcp_listener.start_worker() < 0) {
-        return -1;
-    }
-    if (websock_listener.start_worker() < 0) {
-        return -1;
-    }
-    if (unix_listener.start_worker() < 0) {
-        return -1;
-    }
-    return 0;
-}
-
-void Server::join_listeners_workers()
-{
-    tcp_listener.join_worker();
-    websock_listener.join_worker();
-    unix_listener.join_worker();
-}
-
-bool Server::is_ready()
-{
-    bool ready = true;
-
-    if constexpr (config::tcp_worker_connections > 0) {
-        ready = ready && tcp_listener.is_ready;
-    }
-
-    if constexpr (config::websocket_worker_connections > 0) {
-        ready = ready && websock_listener.is_ready;
-    }
-
-    if constexpr (config::unix_socket_worker_connections > 0) {
-        ready = ready && unix_listener.is_ready;
-    }
-
-    return ready;
-}
-
-int Server::run()
-{
+int Server::run() {
     bool ready_notified = false;
+    auto& transport = services::require<TransportService>();
 
-    if (start_listeners_workers() < 0) {
+    if (transport.start() < 0) {
         return -1;
     }
 
     while (true) {
-        if (!ready_notified && is_ready()) {
+        if (!ready_notified && transport.is_ready()) {
             log("Koheron server ready\n");
+
             if constexpr (config::notify_systemd) {
                 rt::systemd::notify_ready("Koheron server is ready");
             }
+
             ready_notified = true;
         }
 
         if (services::require<rt::SignalHandler>().interrupt() || exit_all) {
             log("Interrupt received, killing Koheron server ...\n");
             services::require<SessionManager>().delete_all();
-            close_listeners();
+            transport.shutdown();
+            transport.join();
             return 0;
         }
 
