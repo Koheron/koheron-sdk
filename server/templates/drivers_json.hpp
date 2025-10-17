@@ -5,38 +5,19 @@
 #ifndef __DRIVERS_JSON_HPP__
 #define __DRIVERS_JSON_HPP__
 
-#include <array>
-#include <sstream>
-#include <string>
-#include <typeinfo>
-#include <cxxabi.h>
+#include "server/core/drivers_json.hpp"
+# include <interface_drivers.hpp>
 
-#include "server/utilities/meta_utils.hpp"
+namespace koheron {
 
-{% for driver in drivers -%}
-{% for include in driver.includes -%}
-#include "{{ include }}"
-{% endfor -%}
-{% endfor %}
-
-template<typename T>
-inline auto get_type_str()
-{
-    using U = strip_units_t<std::remove_cv_t<std::remove_reference_t<T>>>;
-
-    std::string res;
-    int status = 0;
-    char* name = abi::__cxa_demangle(typeid(U).name(), nullptr, nullptr, &status);
-    if (name) { res.assign(name); std::free(name); }
-    else      { res = typeid(U).name(); }
-    return res;
+inline auto build_drivers_json() {
+    return build_drivers_json<
+        {%- for d in drivers -%}
+        {{ d.name }}Adapter{{ ", " if not loop.last }}
+        {%- endfor -%}
+    >();
 }
 
-inline auto build_drivers_json()
-{
-    std::stringstream ss;
-    ss << "{{ json }}";
-    return ss.str();
-}
+} // namespace koheron
 
 #endif // __DRIVERS_JSON_HPP__

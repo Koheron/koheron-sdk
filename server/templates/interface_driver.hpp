@@ -43,6 +43,10 @@ using {{ driver.name }}Adapter = DriverAdapter<
         {%- else -%}
             &{{ driver.name }}::{{ op['name'] }}
         {%- endif -%}
+        {%- set args = op.get('arguments', []) -%}
+        {%- if args|length > 0 -%}
+        {%- for a in args -%}, "{{ a['name'] }}"{% endfor -%}
+        {%- endif -%}
         >
 {%- endfor %}
 >;

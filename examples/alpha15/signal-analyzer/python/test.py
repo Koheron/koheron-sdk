@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+from pprint import pprint
 import time
 from koheron import command, connect
 import matplotlib.pyplot as plt
@@ -31,6 +32,7 @@ class SignalAnalyzer(object):
 if __name__=="__main__":
     host = os.getenv('HOST','192.168.1.122')
     client = connect(host, name='signal-analyzer')
+    pprint(client.commands)
     driver = SignalAnalyzer(client)
 
     for channel in [0,1]:

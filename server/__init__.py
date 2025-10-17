@@ -45,12 +45,6 @@ def format_type(_type):
     else:
         return _type
 
-def format_ret_type(classname, operation):
-    if "auto" in operation["ret_type"] or is_std_array(operation["ret_type"]):
-        return '" << get_type_str<{}>() << "'.format(exact_ret_type(classname, operation))
-
-    return operation["ret_type"]
-
 # ------------------------- Jinja env ------------------------
 
 _ENV = None
@@ -224,38 +218,12 @@ def get_driver_id(drivers_list, driver_path):
         driver_id += 1
     return None
 
-def get_json(drivers):
-    data = [{
-        "class": "KServer",
-        "id": 1,
-        "functions": [
-            {"name": "get_version", "id": 0, "args": [], "ret_type": "const char *"},
-            {"name": "get_cmds", "id": 1, "args": [], "ret_type": "std::string"},
-        ],
-    }]
-    for driver in drivers:
-        data.append({
-            "class": driver.name,
-            "id": driver.id,
-            "functions": [
-                {
-                    "name": op["name"],
-                    "id": op["id"],
-                    "ret_type": format_ret_type(driver.name, op),
-                    "args": op.get("args_client", []),
-                }
-                for op in driver.operations
-            ],
-        })
-
-    return json.dumps(data, separators=(',', ':')).replace('"', '\\"').replace('\\\\','')
-
 # ------------------------- Rendering entry points ---------------------------
 
 def render_template(template_filename, output_filename, drivers):
     with open(output_filename, "w") as out:
         out.write(get_template(os.path.basename(template_filename))
-           .render(drivers=drivers, json=get_json(drivers)))
+           .render(drivers=drivers))
 
 def render_driver(driver, output_filename_hpp):
     base, ext = os.path.splitext(output_filename_hpp)

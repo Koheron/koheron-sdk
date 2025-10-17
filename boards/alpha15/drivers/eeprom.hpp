@@ -71,7 +71,7 @@ class Eeprom
         return data[0];
     }
 
-    template<int32_t offset, typename T, uint32_t N>
+    template<int32_t offset, typename T, std::size_t N>
     int32_t write(const std::array<T, N>& data)
     {
         constexpr uint32_t n_bytes = N * sizeof(T);
@@ -93,7 +93,7 @@ class Eeprom
         return n_bytes;
     }
 
-    template<int32_t offset, typename T, uint32_t N>
+    template<int32_t offset, typename T, std::size_t N>
     int32_t read(std::array<T, N>& data)
     {
         constexpr uint32_t n_bytes = N * sizeof(T);
