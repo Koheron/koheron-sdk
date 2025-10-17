@@ -3,6 +3,8 @@ VERSION := 0.1.0
 
 BOARD_PATH := $(SDK_PATH)/boards/kria-kr260
 
+XDC += $(PROJECT_PATH)/constraints.xdc
+
 MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 SERVERLESS_CPP_SRCS := $(PROJECT_PATH)/main.cpp
