@@ -60,7 +60,7 @@ int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
         return -1;
     }
 
-    rt::print_fmt("SpiManager: Device {} initialized\n", devname);
+    logf("SpiManager: Device {} initialized\n", devname);
     return 0;
 }
 

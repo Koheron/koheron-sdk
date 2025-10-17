@@ -35,12 +35,12 @@ class Context {
 
     template<int severity=INFO, typename... Args>
     void log(const char *msg, Args&&... args) {
-        rt::print<severity>(msg, std::forward<Args>(args)...);
+        ::log<severity>(msg, std::forward<Args>(args)...);
     }
 
     template<int severity=INFO, typename... Args>
     void logf(std::format_string<Args...> fmt, Args&&... args) {
-        rt::print_fmt<severity>(fmt, std::forward<Args>(args)...);
+        ::logf<severity>(fmt, std::forward<Args>(args)...);
     }
 
     hw::MemoryManager& mm;

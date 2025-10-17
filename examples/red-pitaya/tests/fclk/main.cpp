@@ -14,11 +14,11 @@ int main() {
     hw::MemoryManager mm;
 
     if (fpga.load_bitstream() < 0) {
-        rt::print<PANIC>("Failed to load bitstream.\n");
+        log<PANIC>("Failed to load bitstream.\n");
         return -1;
     }
     if (mm.open() < 0) {
-        rt::print<PANIC>("Failed to open memory");
+        log<PANIC>("Failed to open memory");
         return -1;
     }
 
@@ -49,7 +49,7 @@ int main() {
     // --- Measure @ 100 MHz --------------------------------------------------------
     {
         const double f_mhz = measure_mhz();
-        rt::print<INFO>("FCLK0 set=100.000 MHz -> measured ≈ %.3f MHz\n", f_mhz);
+        log<INFO>("FCLK0 set=100.000 MHz -> measured ≈ %.3f MHz\n", f_mhz);
     }
 
     // Switch to 125 MHz, allow a brief settle, then measure
@@ -57,7 +57,7 @@ int main() {
     std::this_thread::sleep_for(milliseconds(20));
     {
         const double f_mhz = measure_mhz();
-        rt::print<INFO>("FCLK0 set=125.000 MHz -> measured ≈ %.3f MHz\n", f_mhz);
+        log<INFO>("FCLK0 set=125.000 MHz -> measured ≈ %.3f MHz\n", f_mhz);
     }
 
     // Switch to 187.5 MHz, allow a brief settle, then measure
@@ -65,7 +65,7 @@ int main() {
     std::this_thread::sleep_for(milliseconds(20));
     {
         const double f_mhz = measure_mhz();
-        rt::print<INFO>("FCLK0 set=187.500 MHz -> measured ≈ %.3f MHz\n", f_mhz);
+        log<INFO>("FCLK0 set=187.500 MHz -> measured ≈ %.3f MHz\n", f_mhz);
     }
 
     // Switch to 250 MHz, allow a brief settle, then measure
@@ -73,7 +73,7 @@ int main() {
     std::this_thread::sleep_for(milliseconds(20));
     {
         const double f_mhz = measure_mhz();
-        rt::print<INFO>("FCLK0 set=250.000 MHz -> measured ≈ %.3f MHz\n", f_mhz);
+        log<INFO>("FCLK0 set=250.000 MHz -> measured ≈ %.3f MHz\n", f_mhz);
     }
 
     return 0;

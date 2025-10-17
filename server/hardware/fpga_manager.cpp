@@ -74,7 +74,7 @@ static int synthesize_uio_devnodes() {
         const auto name = u.path().filename().string(); // uio0, uio1...
         std::ifstream f(u.path() / "dev");
         if (!f.good()) {
-            rt::print_fmt<ERROR>("FpgaManager: cannot read {}/dev\n", u.path());
+            logf<ERROR>("FpgaManager: cannot read {}/dev\n", u.path());
             continue;
         }
         std::string dev; f >> dev; if (dev.empty()) { continue; }
@@ -84,7 +84,7 @@ static int synthesize_uio_devnodes() {
         const auto node = std::string("/dev/") + name;
         if (access(node.c_str(), F_OK) != 0) {
             if (mknod(node.c_str(), S_IFCHR | 0660, makedev(maj, min)) != 0) {
-                rt::print_fmt<ERROR>("FpgaManager: mknod({}) failed ({}: {})\n", node, errno, strerror(errno));
+                logf<ERROR>("FpgaManager: mknod({}) failed ({}: {})\n", node, errno, strerror(errno));
             } else {
                 ++made;
             }
@@ -187,9 +187,9 @@ static void bind_and_log_uio_mappings() {
         const auto devname  = devdir.filename().string();
         const auto uio_node = map_to_uio_node(devdir);
         if (!uio_node.empty()) {
-            rt::print_fmt<INFO>("FpgaManager: '{}' mapped to /dev/{}\n", devname, uio_node);
+            logf<INFO>("FpgaManager: '{}' mapped to /dev/{}\n", devname, uio_node);
         } else {
-            rt::print_fmt<ERROR>("FpgaManager: '{}' has no /dev/uio mapping yet\n", devname);
+            logf<ERROR>("FpgaManager: '{}' has no /dev/uio mapping yet\n", devname);
         }
     }
 }
@@ -220,40 +220,40 @@ FpgaManager::FpgaManager() {
     // Pick method silently; the load function will print user-facing lines.
     if (fs::exists(xdev))            { use_xdevcgf = true;  return; }
     if (fs::exists(fmanager_flags))  { use_overlay = true;  return; }
-    rt::print<PANIC>("FpgaManager: cannot identify bitstream loading mechanism\n");
+    log<PANIC>("FpgaManager: cannot identify bitstream loading mechanism\n");
     ::_exit(EXIT_FAILURE);
 }
 
 int FpgaManager::load_bitstream() {
     if (use_xdevcgf) return load_bitstream_xdevcfg();
     if (use_overlay) return load_bitstream_overlay();
-    rt::print<ERROR>("FpgaManager: load_bitstream(): neither xdevcfg nor fpga_manager selected\n");
+    log<ERROR>("FpgaManager: load_bitstream(): neither xdevcfg nor fpga_manager selected\n");
     return -1;
 }
 
 int FpgaManager::check_bitstream_loaded(const fs::path& fprog_done_path, char expected) {
     FILE *f = fopen(fprog_done_path.c_str(), "r");
     if (!f) {
-        rt::print_fmt<ERROR>("FpgaManager: check_bitstream_loaded: open('{}') failed ({}: {})\n",
+        logf<ERROR>("FpgaManager: check_bitstream_loaded: open('{}') failed ({}: {})\n",
                                   fprog_done_path, errno, strerror(errno));
-        rt::print<PANIC>("FpgaManager: open FPGA status failed\n");
+        log<PANIC>("FpgaManager: open FPGA status failed\n");
         return -1;
     }
     std::array<char,1> b{};
     int r = read(fileno(f), b.data(), 1);
     if (r != 1) {
-        rt::print_fmt<ERROR>("FpgaManager: check_bitstream_loaded: read('{}') returned {}\n", fprog_done_path, r);
+        logf<ERROR>("FpgaManager: check_bitstream_loaded: read('{}') returned {}\n", fprog_done_path, r);
         fclose(f);
-        rt::print<PANIC>("FpgaManager: Failed to read FPGA status\n");
+        log<PANIC>("FpgaManager: Failed to read FPGA status\n");
         return -1;
     }
     fclose(f);
     if (b[0] == expected) {
-        rt::print("FpgaManager: Bitstream successfully loaded\n");
+        log("FpgaManager: Bitstream successfully loaded\n");
         return 0;
     }
-    rt::print_fmt<ERROR>("FpgaManager: check_bitstream_loaded: got '{}', expected '{}'\n", b[0], expected);
-    rt::print<PANIC>("FpgaManager: PL configuration failed\n");
+    logf<ERROR>("FpgaManager: check_bitstream_loaded: got '{}', expected '{}'\n", b[0], expected);
+    log<PANIC>("FpgaManager: PL configuration failed\n");
     return -1;
 }
 
@@ -266,14 +266,14 @@ int FpgaManager::copy_firmware() {
     const auto bitbin = fs::path{INSTRUMENT_NAME ".bit.bin"};
 
     if (!fs::exists(live_instrument_dirname)) {
-        rt::print_fmt<ERROR>("FpgaManager: copy_firmware: source dir '{}' missing\n", live_instrument_dirname);
+        logf<ERROR>("FpgaManager: copy_firmware: source dir '{}' missing\n", live_instrument_dirname);
         return -1;
     }
     if (!fs::exists(libfw)) {
         std::error_code ec;
         fs::create_directories(libfw, ec);
         if (ec) {
-            rt::print_fmt<ERROR>("FpgaManager: copy_firmware: mkdir '{}' failed: {}\n", libfw, ec.message());
+            logf<ERROR>("FpgaManager: copy_firmware: mkdir '{}' failed: {}\n", libfw, ec.message());
             return -1;
         }
     }
@@ -282,14 +282,14 @@ int FpgaManager::copy_firmware() {
     fs::copy_file(live_instrument_dirname / "pl.dtbo", libfw / "pl.dtbo",
                   fs::copy_options::overwrite_existing, ec1);
     if (ec1) {
-        rt::print_fmt<ERROR>("FpgaManager: copy_firmware: pl.dtbo copy failed: {}\n", ec1.message());
+        logf<ERROR>("FpgaManager: copy_firmware: pl.dtbo copy failed: {}\n", ec1.message());
         return -1;
     }
 
     fs::copy_file(live_instrument_dirname / bitbin, libfw / bitbin,
                   fs::copy_options::overwrite_existing, ec2);
     if (ec2) {
-        rt::print_fmt<ERROR>("FpgaManager: copy_firmware: '{}' copy failed: {}\n", bitbin, ec2.message());
+        logf<ERROR>("FpgaManager: copy_firmware: '{}' copy failed: {}\n", bitbin, ec2.message());
         return -1;
     }
     return 0;
@@ -322,7 +322,7 @@ int FpgaManager::clean_up_previous_overlays() {
     region_enable(true);
 
     if (fs::directory_iterator(kOverlaysRoot) != fs::directory_iterator{}) {
-        rt::print<PANIC>("FpgaManager: overlays still present; cannot proceed\n");
+        log<PANIC>("FpgaManager: overlays still present; cannot proceed\n");
         return -1;
     }
     return 0;
@@ -333,13 +333,13 @@ int FpgaManager::mount_configfs() {
         std::error_code ec;
         fs::create_directories(kCfgfsRoot, ec);
         if (ec) {
-            rt::print_fmt<ERROR>("FpgaManager: mount_configfs: mkdir '{}' failed: {}\n", kCfgfsRoot, ec.message());
+            logf<ERROR>("FpgaManager: mount_configfs: mkdir '{}' failed: {}\n", kCfgfsRoot, ec.message());
             return -1;
         }
     }
     if (!fs::exists(kCfgfsDT)) {
         if (mount("none", kCfgfsRoot.c_str(), "configfs", 0, nullptr) < 0) {
-            rt::print_fmt<ERROR>("FpgaManager: mount_configfs: mount failed ({}: {})\n", errno, strerror(errno));
+            logf<ERROR>("FpgaManager: mount_configfs: mount failed ({}: {})\n", errno, strerror(errno));
             return -1;
         }
     }
@@ -348,21 +348,21 @@ int FpgaManager::mount_configfs() {
 
 int FpgaManager::setup_overlay_path() {
     if (mount_configfs() < 0) {
-        rt::print<ERROR>("FpgaManager: setup_overlay_path: mount_configfs failed\n");
+        log<ERROR>("FpgaManager: setup_overlay_path: mount_configfs failed\n");
         return -1;
     }
     if (clean_up_previous_overlays() < 0) {
-        rt::print<ERROR>("FpgaManager: setup_overlay_path: cleanup failed\n");
+        log<ERROR>("FpgaManager: setup_overlay_path: cleanup failed\n");
         return -1;
     }
     std::error_code ec;
     fs::create_directories(overlay_path, ec);
     if (ec) {
-        rt::print_fmt<ERROR>("FpgaManager: setup_overlay_path: mkdir '{}' failed: {}\n", overlay_path, ec.message());
+        logf<ERROR>("FpgaManager: setup_overlay_path: mkdir '{}' failed: {}\n", overlay_path, ec.message());
         return -1;
     }
     if (!fs::exists(overlay_path)) {
-        rt::print_fmt<ERROR>("FpgaManager: setup_overlay_path: '{}' not present after mkdir\n", overlay_path);
+        logf<ERROR>("FpgaManager: setup_overlay_path: '{}' not present after mkdir\n", overlay_path);
         return -1;
     }
     return 0;
@@ -371,12 +371,12 @@ int FpgaManager::setup_overlay_path() {
 int FpgaManager::setup_fmanager_flags() {
     FILE *xflag = fopen(fmanager_flags.c_str(), "w");
     if (!xflag) {
-        rt::print_fmt<ERROR>("FpgaManager: setup_fmanager_flags: open('{}') failed ({}: {})\n",
+        logf<ERROR>("FpgaManager: setup_fmanager_flags: open('{}') failed ({}: {})\n",
                                   fmanager_flags, errno, strerror(errno));
         return -1;
     }
     if (fwrite("0", 1, 1, xflag) != 1) {
-        rt::print_fmt<ERROR>("FpgaManager: setup_fmanager_flags: write('{}') failed ({}: {})\n",
+        logf<ERROR>("FpgaManager: setup_fmanager_flags: write('{}') failed ({}: {})\n",
                                   fmanager_flags, errno, strerror(errno));
         fclose(xflag);
         return -1;
@@ -389,13 +389,13 @@ int FpgaManager::write_overlay() {
     const fs::path overlay = overlay_path / "path";
     FILE *f = fopen(overlay.c_str(), "w");
     if (!f) {
-        rt::print_fmt<ERROR>("FpgaManager: write_overlay: open('{}') failed ({}: {})\n",
+        logf<ERROR>("FpgaManager: write_overlay: open('{}') failed ({}: {})\n",
                                   overlay, errno, strerror(errno));
         return -1;
     }
     const std::string echo = "pl.dtbo\n";
     if (fwrite(echo.c_str(), echo.size(), 1, f) != 1) {
-        rt::print_fmt<ERROR>("FpgaManager: write_overlay: write('{}') failed\n", overlay);
+        logf<ERROR>("FpgaManager: write_overlay: write('{}') failed\n", overlay);
         fclose(f);
         return -1;
     }
@@ -410,28 +410,28 @@ int FpgaManager::write_overlay() {
 int FpgaManager::load_bitstream_overlay() {
     // upfront info line (what we're loading)
     const auto bitbin = fs::path{INSTRUMENT_NAME ".bit.bin"};
-    rt::print_fmt<INFO>("FpgaManager: Loading {}\n", bitbin);
+    logf<INFO>("FpgaManager: Loading {}\n", bitbin);
 
     if (copy_firmware() < 0) {
-        rt::print_fmt<ERROR>("FpgaManager: copy_firmware() failed — could not install 'pl.dtbo' or '{}' into /lib/firmware\n", bitbin);
+        logf<ERROR>("FpgaManager: copy_firmware() failed — could not install 'pl.dtbo' or '{}' into /lib/firmware\n", bitbin);
         return -1;
     }
     if (setup_overlay_path() < 0) {
-        rt::print_fmt<ERROR>("FpgaManager: setup_overlay_path() failed — cannot prepare overlay dir '{}'\n", overlay_path);
+        logf<ERROR>("FpgaManager: setup_overlay_path() failed — cannot prepare overlay dir '{}'\n", overlay_path);
         return -1;
     }
     if (setup_fmanager_flags() < 0) {
-        rt::print_fmt<ERROR>("FpgaManager: setup_fmanager_flags() failed — cannot write flags at '{}'\n", fmanager_flags);
+        logf<ERROR>("FpgaManager: setup_fmanager_flags() failed — cannot write flags at '{}'\n", fmanager_flags);
         return -1;
     }
     if (write_overlay() < 0) {
-        rt::print_fmt<ERROR>("FpgaManager: write_overlay() failed — cannot write 'pl.dtbo' to '{}/path'\n", overlay_path);
+        logf<ERROR>("FpgaManager: write_overlay() failed — cannot write 'pl.dtbo' to '{}/path'\n", overlay_path);
         return -1;
     }
 
     int rc = check_bitstream_loaded(overlay_fpga_done, 'a');
     if (rc != 0) {
-        rt::print_fmt<ERROR>("FpgaManager: overlay apply failed — expected status 'a' in '{}'\n", overlay_fpga_done);
+        logf<ERROR>("FpgaManager: overlay apply failed — expected status 'a' in '{}'\n", overlay_fpga_done);
         return rc;
     }
 
@@ -453,19 +453,19 @@ int FpgaManager::read_bitstream_data(std::vector<char>& bitstream_data) {
     const auto filename = live_instrument_dirname / bit;
     FILE *f = fopen(filename.c_str(), "rb");
     if (!f) {
-        rt::print_fmt<ERROR>("FpgaManager: read_bitstream_data: open('{}') failed ({}: {})\n",
+        logf<ERROR>("FpgaManager: read_bitstream_data: open('{}') failed ({}: {})\n",
                                   filename, errno, strerror(errno));
         return -1;
     }
 
     if (fseek(f, 0, SEEK_END) != 0) {
-        rt::print_fmt<ERROR>("FpgaManager: read_bitstream_data: fseek end failed\n");
+        logf<ERROR>("FpgaManager: read_bitstream_data: fseek end failed\n");
         fclose(f);
         return -1;
     }
     long sz = ftell(f);
     if (sz <= 0) {
-        rt::print_fmt<ERROR>("FpgaManager: read_bitstream_data: invalid size {}\n", sz);
+        logf<ERROR>("FpgaManager: read_bitstream_data: invalid size {}\n", sz);
         fclose(f);
         return -1;
     }
@@ -473,7 +473,7 @@ int FpgaManager::read_bitstream_data(std::vector<char>& bitstream_data) {
 
     bitstream_data.resize(static_cast<size_t>(sz));
     if (fread(bitstream_data.data(), bitstream_data.size(), 1, f) != 1) {
-        rt::print_fmt<ERROR>("FpgaManager: read_bitstream_data: fread failed\n");
+        logf<ERROR>("FpgaManager: read_bitstream_data: fread failed\n");
         fclose(f);
         return -1;
     }
@@ -484,20 +484,20 @@ int FpgaManager::read_bitstream_data(std::vector<char>& bitstream_data) {
 int FpgaManager::load_bitstream_xdevcfg() {
     FILE *xdevcfg = fopen(xdev.c_str(), "w");
     if (!xdevcfg) {
-        rt::print_fmt<ERROR>("FpgaManager: load_bitstream_xdevcfg: open('{}') failed ({}: {})\n",
+        logf<ERROR>("FpgaManager: load_bitstream_xdevcfg: open('{}') failed ({}: {})\n",
                                   xdev, errno, strerror(errno));
         return -1;
     }
 
     std::vector<char> buf;
     if (read_bitstream_data(buf) < 0) {
-        rt::print<ERROR>("FpgaManager: load_bitstream_xdevcfg: read_bitstream_data failed\n");
+        log<ERROR>("FpgaManager: load_bitstream_xdevcfg: read_bitstream_data failed\n");
         fclose(xdevcfg);
         return -1;
     }
 
     if (fwrite(buf.data(), buf.size(), 1, xdevcfg) != 1) {
-        rt::print_fmt<ERROR>("FpgaManager: load_bitstream_xdevcfg: write '{}' failed\n", xdev);
+        logf<ERROR>("FpgaManager: load_bitstream_xdevcfg: write '{}' failed\n", xdev);
         fclose(xdevcfg);
         return -1;
     }
@@ -505,7 +505,7 @@ int FpgaManager::load_bitstream_xdevcfg() {
 
     int rc = check_bitstream_loaded(xdev_fpga_done, '1');
     if (rc != 0) {
-        rt::print_fmt<ERROR>("FpgaManager: xdevcfg apply failed — expected status '1' in '{}'\n", xdev_fpga_done);
+        logf<ERROR>("FpgaManager: xdevcfg apply failed — expected status '1' in '{}'\n", xdev_fpga_done);
     }
     return rc;
 }

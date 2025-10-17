@@ -52,8 +52,8 @@ int main() {
     using namespace std::chrono;
 
     hw::FpgaManager fpga; hw::ZynqFclk fclk; hw::MemoryManager mm;
-    if (fpga.load_bitstream() < 0) { rt::print<PANIC>("Failed to load bitstream.\n"); return -1; }
-    if (mm.open() < 0)            { rt::print<PANIC>("Failed to open memory\n");      return -1; }
+    if (fpga.load_bitstream() < 0) { log<PANIC>("Failed to load bitstream.\n"); return -1; }
+    if (mm.open() < 0)            { log<PANIC>("Failed to open memory\n");      return -1; }
 
     // 100 MHz fabric clock
     fclk.set("fclk0", 100000000);
@@ -130,7 +130,7 @@ int main() {
         const uint32_t last = ocm_s2mm.read_reg(Sg_regs::status + 0x40 * (N_BD - 1));
         if (last & (1u << 31)) break;
         if (clock::now() > deadline) {
-            rt::print<ERROR>("Timeout: MM2S_SR=0x%08x S2MM_SR=0x%08x\n",
+            log<ERROR>("Timeout: MM2S_SR=0x%08x S2MM_SR=0x%08x\n",
                                   dma.read<Dma_regs::mm2s_dmasr>(), dma.read<Dma_regs::s2mm_dmasr>());
             dma.clear_bit<Dma_regs::mm2s_dmacr, 0>();
             dma.clear_bit<Dma_regs::s2mm_dmacr, 0>();
@@ -156,7 +156,7 @@ int main() {
     const double us   = duration_cast<duration<double, std::micro>>(t1 - t0).count();
     const double rate = double(BYTES) / (1024.0 * 1024.0) / (us * 1e-6);
 
-    rt::print<INFO>("Moved %u bytes in %.3f ms -> %.2f MiB/s | checksum=%llu/%llu mismatches=%u (n_bd=%u, chunk=%u)\n",
+    log<INFO>("Moved %u bytes in %.3f ms -> %.2f MiB/s | checksum=%llu/%llu mismatches=%u (n_bd=%u, chunk=%u)\n",
                          BYTES, us / 1000.0, rate,
                          (unsigned long long)sum, (unsigned long long)exp_sum, mismatches,
                          N_BD, CHUNK);

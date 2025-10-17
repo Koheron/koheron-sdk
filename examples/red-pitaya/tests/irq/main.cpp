@@ -48,11 +48,11 @@ int main() {
     hw::MemoryManager mm;
 
     if (fpga.load_bitstream() < 0) {
-        rt::print<PANIC>("E1: Failed to load bitstream\n");
+        log<PANIC>("E1: Failed to load bitstream\n");
         return -1;
     }
     if (mm.open() < 0) {
-        rt::print<PANIC>("E2: Failed to open /dev/mem\n");
+        log<PANIC>("E2: Failed to open /dev/mem\n");
         return -1;
     }
 
@@ -103,7 +103,7 @@ int main() {
         return -1;
     }
 
-    rt::print_fmt<INFO>("Synced on first IRQ (cnt={})\n", irqcnt);
+    logf<INFO>("Synced on first IRQ (cnt={})\n", irqcnt);
 
     // Measure and print IRQ-to-IRQ period
     auto t_prev = clk::now();
@@ -124,7 +124,7 @@ int main() {
         uint32_t tcr = timer.read<reg::TCR0>();
 
         const auto ms = std::chrono::duration<double, std::milli>(period);
-        rt::print_fmt<INFO>("[IRQ {}] period={:%Q %q} TCR0={}\n",
+        logf<INFO>("[IRQ {}] period={:%Q %q} TCR0={}\n",
                                 irqcnt, ms, tcr);
 
         if (!timer_uio.arm_irq()) {
@@ -155,7 +155,7 @@ int main() {
             timer.write<reg::TCSR0>(TCSR_T0INT | cfg | TCSR_ENT0);
             const auto ms = std::chrono::duration<double, std::milli>(period);
             uint32_t tcr = timer.read<reg::TCR0>();
-            rt::print_fmt<INFO>("ASYNC: [IRQ {}] period={:%Q %q} TCR0={}\n",
+            logf<INFO>("ASYNC: [IRQ {}] period={:%Q %q} TCR0={}\n",
                                     irqcnt, ms, tcr);
 
             cnt += irqcnt;

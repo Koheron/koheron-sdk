@@ -27,11 +27,11 @@ int main() {
     hw::MemoryManager mm;
 
     if (fpga.load_bitstream() < 0) {
-        rt::print<PANIC>("Failed to load bitstream.\n");
+        log<PANIC>("Failed to load bitstream.\n");
         return -1;
     }
     if (mm.open() < 0) {
-        rt::print<PANIC>("Failed to open memory\n");
+        log<PANIC>("Failed to open memory\n");
         return -1;
     }
 
@@ -48,7 +48,7 @@ int main() {
     fifo.write<reg::fifo::ISR>(0xFFFFFFFF);
     fifo.write<reg::fifo::IER>(0x00000000);
 
-    rt::print<INFO>("FIFO probe: ISR=0x%08x IER=0x%08x RDFO=%u\n",
+    log<INFO>("FIFO probe: ISR=0x%08x IER=0x%08x RDFO=%u\n",
                          fifo.read<reg::fifo::ISR>(),
                          fifo.read<reg::fifo::IER>(),
                          fifo.read<reg::fifo::RDFO>());
@@ -105,7 +105,7 @@ int main() {
         if (now >= next_stat) {
             const uint64_t expected = words + lost;
             const double loss_pct = expected ? (100.0 * double(lost) / double(expected)) : 0.0;
-            rt::print<INFO>(
+            log<INFO>(
                 "RX: total=%llu lost=%llu loss=%.3f%% last=0x%08x (occ=%u)\n",
                 static_cast<unsigned long long>(expected),
                 static_cast<unsigned long long>(lost),
@@ -120,7 +120,7 @@ int main() {
     // Final summary
     const uint64_t expected = words + lost;
     const double loss_pct = expected ? (100.0 * double(lost) / double(expected)) : 0.0;
-    rt::print<INFO>("DONE (10s): total=%llu lost=%llu loss=%.3f%% last=0x%08x\n",
+    log<INFO>("DONE (10s): total=%llu lost=%llu loss=%.3f%% last=0x%08x\n",
                          static_cast<unsigned long long>(expected),
                          static_cast<unsigned long long>(lost),
                          loss_pct,

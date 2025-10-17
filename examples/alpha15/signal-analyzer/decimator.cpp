@@ -37,7 +37,7 @@ void Decimator::set_fft_window(uint32_t window_id) {
         analyzer1.set_window<win::Blackmanharris>();
         break;
       default:
-        rt::print<ERROR>("Decimator: Invalid window index\n");
+        log<ERROR>("Decimator: Invalid window index\n");
         return;
     }
 }

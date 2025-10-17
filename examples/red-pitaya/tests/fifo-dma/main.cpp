@@ -14,11 +14,11 @@ int main() {
     hw::MemoryManager mm;
 
     if (fpga.load_bitstream() < 0) {
-        rt::print<PANIC>("Failed to load bitstream.\n");
+        log<PANIC>("Failed to load bitstream.\n");
         return -1;
     }
     if (mm.open() < 0) {
-        rt::print<PANIC>("Failed to open memory\n");
+        log<PANIC>("Failed to open memory\n");
         return -1;
     }
 

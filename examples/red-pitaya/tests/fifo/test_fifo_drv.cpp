@@ -27,14 +27,14 @@ int main() {
     hw::FpgaManager fpga;
 
     if (fpga.load_bitstream() < 0) {
-        rt::print<PANIC>("Failed to load bitstream.\n");
+        log<PANIC>("Failed to load bitstream.\n");
         return -1;
     }
 
     auto mm = services::provide<hw::MemoryManager>();
 
     if (mm->open() < 0) {
-        rt::print<PANIC>("Failed to open memory\n");
+        log<PANIC>("Failed to open memory\n");
         return -1;
     }
 
@@ -103,7 +103,7 @@ int main() {
         if (now >= next_stat) {
             const uint64_t expected = words + lost;
             const double loss_pct = expected ? (100.0 * double(lost) / double(expected)) : 0.0;
-            rt::print_fmt<INFO>(
+            logf<INFO>(
                 "RX: total={} lost={} loss={:.3f}% last={:#010x} (occ={})\n",
                 expected, lost, loss_pct, last, fifo.occupancy());
             next_stat += std::chrono::seconds(1);
@@ -113,7 +113,7 @@ int main() {
     // Final summary
     const uint64_t expected = words + lost;
     const double loss_pct = expected ? (100.0 * double(lost) / double(expected)) : 0.0;
-    rt::print_fmt<INFO>("DONE (10s): total={} lost={} loss={:.3f}% last={:#010x}\n",
+    logf<INFO>("DONE (10s): total={} lost={} loss={:.3f}% last={:#010x}\n",
                          expected, lost, loss_pct, last);
     return 0;
 }

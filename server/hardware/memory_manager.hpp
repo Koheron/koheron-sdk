@@ -39,7 +39,7 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
             const int fd = std::get<ids>(mem_maps).open();
             std::get<ids>(fds) = fd;
             if (fd < 0) {
-                rt::print_fmt<ERROR>("MemoryManager: Can't open memory map id = {}\n", ids);
+                logf<ERROR>("MemoryManager: Can't open memory map id = {}\n", ids);
                 failed_maps.push_back(ids);
             }
         }(), ... );

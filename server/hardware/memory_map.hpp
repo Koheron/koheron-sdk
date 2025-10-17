@@ -68,7 +68,7 @@ class Memory
     }
 
     int open() {
-        rt::print_fmt("Memory[{}]: Opening {}\n", name, device);
+        logf("Memory[{}]: Opening {}\n", name, device);
 
         if constexpr (is_uio) {
             uio_.emplace();
@@ -80,7 +80,7 @@ class Memory
             void* p = uio_->mmap();
 
             if (!p) {
-                rt::print_fmt<ERROR>("Memory[{}]: UIO mmap failed\n", name);
+                logf<ERROR>("Memory[{}]: UIO mmap failed\n", name);
                 return -1;
             }
 
@@ -93,7 +93,7 @@ class Memory
             const auto fd = ::open(device.data(), O_RDWR | O_SYNC);
 
             if (fd == -1) {
-                rt::print_fmt<ERROR>("Memory[{}]: Can't open {}\n", name, device);
+                logf<ERROR>("Memory[{}]: Can't open {}\n", name, device);
                 if constexpr (!is_devmem) {
                     return open_via_devmem_fallback();
                 } else {
@@ -394,7 +394,7 @@ class Memory
     }
 
     int open_via_devmem_fallback() {
-        rt::print_fmt("Memory[{}]: Fallback to /dev/mem\n", name);
+        logf("Memory[{}]: Fallback to /dev/mem\n", name);
         const int fdm = ::open("/dev/mem", O_RDWR | O_SYNC);
 
         if (fdm < 0) {

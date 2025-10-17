@@ -129,7 +129,7 @@ void session_thread_call(int comm_fd, ListeningChannel<socket_type> *listener)
     auto session = static_cast<Session<socket_type>*>(&sm.get_session(sid));
 
     if (session->run() < 0) {
-        rt::print<ERROR>("An error occured during session\n");
+        log<ERROR>("An error occured during session\n");
     }
 
     sm.delete_session(sid);

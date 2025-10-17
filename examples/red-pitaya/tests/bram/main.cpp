@@ -15,12 +15,12 @@ int main() {
     hw::MemoryManager mm;
 
     if (fpga.load_bitstream() < 0) {
-        rt::print<PANIC>("Failed to load bitstream.\n");
+        log<PANIC>("Failed to load bitstream.\n");
         return -1;
     }
 
     if (mm.open() < 0) {
-        rt::print<PANIC>("Failed to open memory");
+        log<PANIC>("Failed to open memory");
         return -1;
     }
 
@@ -58,7 +58,7 @@ int main() {
     fence();
     auto t1 = std::chrono::steady_clock::now();
     double s = std::chrono::duration<double>(t1 - t0).count();
-    rt::print_fmt<INFO>("AXI4LITE WRITE= {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
+    logf<INFO>("AXI4LITE WRITE= {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
 
     // AXI4-Lite WRITE
     fence();
@@ -69,7 +69,7 @@ int main() {
     fence();
     t1 = std::chrono::steady_clock::now();
     s = std::chrono::duration<double>(t1 - t0).count();
-    rt::print_fmt<INFO>("AXI4LITE WRITE (MEMCPY) = {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
+    logf<INFO>("AXI4LITE WRITE (MEMCPY) = {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
 
     // AXI4 WRITE
     fence();
@@ -80,7 +80,7 @@ int main() {
     fence();
     t1 = std::chrono::steady_clock::now();
     s = std::chrono::duration<double>(t1 - t0).count();
-    rt::print_fmt<INFO>("AXI4 WRITE = {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
+    logf<INFO>("AXI4 WRITE = {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
 
     // AXI4 MEMCPY WRITE
     fence();
@@ -91,7 +91,7 @@ int main() {
     fence();
     t1 = std::chrono::steady_clock::now();
     s = std::chrono::duration<double>(t1 - t0).count();
-    rt::print_fmt<INFO>("AXI4 WRITE (MEMCPY) = {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
+    logf<INFO>("AXI4 WRITE (MEMCPY) = {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
 
     // AXI4-Lite READ (use checksum so compiler can't delete it)
     fence();
@@ -105,7 +105,7 @@ int main() {
     fence();
     t1 = std::chrono::steady_clock::now();
     s = std::chrono::duration<double>(t1 - t0).count();
-    rt::print_fmt<INFO>("AXI4LITE READ = {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
+    logf<INFO>("AXI4LITE READ = {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
 
     // AXI4 READ
     fence();
@@ -119,7 +119,7 @@ int main() {
     fence();
     t1 = std::chrono::steady_clock::now();
     s = std::chrono::duration<double>(t1 - t0).count();
-    rt::print_fmt<INFO>("AXI4 READ = {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
+    logf<INFO>("AXI4 READ = {} s ({:.1f} MB/s)\n", s, bytes_total/s/1e6);
 
     return 0;
 }

@@ -193,12 +193,12 @@ int WebSocket::decode_raw_stream_cmd(Command& cmd)
         static_cast<std::size_t>(header.payload_size);
 
     if (read_str_len < need) {
-        rt::print<CRITICAL>("WebSocket: truncated masked frame\n");
+        log<CRITICAL>("WebSocket: truncated masked frame\n");
         return -1;
     }
 
     if (header.payload_size < Command::HEADER_SIZE) {
-        rt::print<CRITICAL>("WebSocket: payload smaller than command header\n");
+        log<CRITICAL>("WebSocket: payload smaller than command header\n");
         return -1;
     }
 
@@ -221,7 +221,7 @@ int WebSocket::decode_raw_stream_cmd(Command& cmd)
         static_cast<std::size_t>(header.payload_size) - Command::HEADER_SIZE;
 
     if (payload_bytes > cmd.payload.size()) {
-        rt::print<CRITICAL>("WebSocket: payload longer than destination buffer\n");
+        log<CRITICAL>("WebSocket: payload longer than destination buffer\n");
         return -1;
     }
 
@@ -244,7 +244,7 @@ int WebSocket::read_stream()
     int read_head_err = read_header();
 
     if (read_head_err < 0) {
-        rt::print<CRITICAL>("WebSocket: Cannot read header\n");
+        log<CRITICAL>("WebSocket: Cannot read header\n");
         return -1;
     }
 
@@ -257,7 +257,7 @@ int WebSocket::read_stream()
     int err = read_n_bytes(header.payload_size, header.payload_size);
 
     if (err < 0) {
-        rt::print<CRITICAL>("WebSocket: Cannot read payload\n");
+        log<CRITICAL>("WebSocket: Cannot read payload\n");
         return -1;
     }
 
@@ -268,23 +268,23 @@ int WebSocket::check_opcode(unsigned int opcode)
 {
     switch (opcode) {
       case CONTINUATION_FRAME:
-        rt::print<CRITICAL>("WebSocket: Continuation frame is not suported\n");
+        log<CRITICAL>("WebSocket: Continuation frame is not suported\n");
         return -1;
       case TEXT_FRAME:
         break;
       case BINARY_FRAME:
         break;
       case CONNECTION_CLOSE:
-        rt::print<INFO>("WebSocket: Connection close\n");
+        log<INFO>("WebSocket: Connection close\n");
         return 1;
       case PING:
-        rt::print<CRITICAL>("WebSocket: Ping is not suported\n");
+        log<CRITICAL>("WebSocket: Ping is not suported\n");
         return -1;
       case PONG:
-        rt::print<CRITICAL>("WebSocket: Pong is not suported\n");
+        log<CRITICAL>("WebSocket: Pong is not suported\n");
         return -1;
       default:
-        rt::print_fmt<CRITICAL>("WebSocket: Invalid opcode {}\n", opcode);
+        logf<CRITICAL>("WebSocket: Invalid opcode {}\n", opcode);
         return -1;
     }
 
