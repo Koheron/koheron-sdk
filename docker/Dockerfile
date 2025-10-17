@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libeigen3-dev \
     libnewlib-arm-none-eabi \
     libssl-dev zlib1g-dev pkg-config \
-    swig python3 python3-dev python3-setuptools \
+    swig python3 python3-dev python3-setuptools device-tree-compiler \
     fdisk util-linux parted udev dosfstools e2fsprogs zip eatmydata \
     ccache \
     && rm -rf /var/lib/apt/lists/*

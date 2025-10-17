@@ -18,7 +18,22 @@ DTREE_PATH := $(TMP_OS_PATH)/device-tree-xlnx-$(DTREE_TAG)
 UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
+ifeq ($(origin UBOOT_ARCH), undefined)
+# U-Boot keeps 64-bit Arm platforms under arch/arm, so default to ARCH=arm
+ifeq ($(ARCH),arm64)
+UBOOT_ARCH := arm
+else
+UBOOT_ARCH := $(ARCH)
+endif
+endif
+
+ifeq ($(origin UBOOT_CFLAGS), undefined)
+ifeq ($(ARCH),arm64)
+UBOOT_CFLAGS := -O2
+else
 UBOOT_CFLAGS := -O2 -march=armv7-a -mfpu=neon -mfloat-abi=hard
+endif
+endif
 
 DTB_SWITCH = $(TMP_OS_PATH)/devicetree.dtb
 ifdef DTREE_OVERRIDE
@@ -154,12 +169,12 @@ $(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES)
 	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $(UBOOT_PATH) mrproper
-	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(ARCH) $(UBOOT_CONFIG)
+	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) $(UBOOT_CONFIG)
 	@touch $@
 	$(call ok,$@)
 
 $(TMP_OS_BOARD_PATH)/u-boot.elf: $(UBOOT_CONFIG_STAMP) | $(TMP_BOARD_PATH)/
-	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(ARCH) CFLAGS="$(UBOOT_CFLAGS) $(GCC_FLAGS)" \
+	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) CFLAGS="$(UBOOT_CFLAGS) $(GCC_FLAGS)" \
 	  CROSS_COMPILE=$(GCC_ARCH)- all
 	if [ -f $(UBOOT_PATH)/u-boot.elf ]; then cp $(UBOOT_PATH)/u-boot.elf $@; else cp $(UBOOT_PATH)/u-boot $@; fi
 	$(call ok,$@)
