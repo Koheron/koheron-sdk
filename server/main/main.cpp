@@ -16,7 +16,7 @@
 #include "server/runtime/config_manager.hpp"
 
 #include "server/core/session_manager.hpp"
-#include "server/core/transport_service.hpp"
+#include "server/core/transport_layer.hpp"
 #include "server/core/drivers/driver_executor.hpp"
 #include <drivers.hpp> // For call to Common
 
@@ -72,9 +72,9 @@ int main() {
         }
     }
 
-    auto signal_handler = provide<rt::SignalHandler>();
+    auto signal_handler = rt::SignalHandler();
 
-    if (signal_handler->init() < 0) {
+    if (signal_handler.init() < 0) {
         std::exit(EXIT_FAILURE);
     }
 
@@ -83,16 +83,16 @@ int main() {
     provide<DriverExecutor>();
     provide<SessionManager>();
 
-    auto transport = provide<TransportService>();
+    auto transport = TransportLayer();
 
-    if (transport->start() < 0) {
+    if (transport.start() < 0) {
         std::exit(EXIT_FAILURE);
     }
 
     bool ready_notified = false;
 
     while (true) {
-        if (!ready_notified && transport->is_ready()) {
+        if (!ready_notified && transport.is_ready()) {
             log("Koheron server ready\n");
 
             if constexpr (config::notify_systemd) {
@@ -102,9 +102,9 @@ int main() {
             ready_notified = true;
         }
 
-        if (signal_handler->interrupt() || exit_all) {
+        if (signal_handler.interrupt() || exit_all) {
             log("Interrupt received, killing Koheron server ...\n");
-            transport->shutdown();
+            transport.shutdown();
             return 0;
         }
 

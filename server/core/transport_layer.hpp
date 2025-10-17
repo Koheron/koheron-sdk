@@ -21,7 +21,7 @@
 
 namespace koheron {
 
-class TransportService;
+class TransportLayer;
 
 template<int socket_type>
 struct ListenerStats {
@@ -45,7 +45,7 @@ class ListeningChannel {
     /// True if the maximum of threads set by the config is reached
     bool is_max_threads();
 
-    int start_worker(TransportService& transport);
+    int start_worker(TransportLayer& transport);
     void join_worker();
     int open_communication();
 
@@ -60,11 +60,11 @@ template<int socket_type>
 void session_thread_call(int comm_fd, ListeningChannel<socket_type>* listener);
 
 template<int socket_type>
-void comm_thread_call(ListeningChannel<socket_type>* listener, TransportService* transport);
+void comm_thread_call(ListeningChannel<socket_type>* listener, TransportLayer* transport);
 
-class TransportService {
+class TransportLayer {
   public:
-    TransportService();
+    TransportLayer();
 
     int start();
     void request_stop();
@@ -83,7 +83,7 @@ class TransportService {
     ListeningChannel<UNIX> unix_listener_;
 
     template<int socket_type>
-    friend void comm_thread_call(ListeningChannel<socket_type>* listener, TransportService* transport);
+    friend void comm_thread_call(ListeningChannel<socket_type>* listener, TransportLayer* transport);
 };
 
 // -----------------------------------------------------------------------------
@@ -98,7 +98,7 @@ void ListeningChannel<socket_type>::join_worker() {
 }
 
 template<int socket_type>
-int ListeningChannel<socket_type>::start_worker(TransportService& transport) {
+int ListeningChannel<socket_type>::start_worker(TransportLayer& transport) {
     if (listen_fd >= 0) {
         if (::listen(listen_fd, NUMBER_OF_PENDING_CONNECTIONS) < 0) {
             logf<PANIC>("Listen {} error\n", listen_channel_desc[socket_type]);
@@ -130,7 +130,7 @@ void session_thread_call(int comm_fd, ListeningChannel<socket_type>* listener) {
 }
 
 template<int socket_type>
-void comm_thread_call(ListeningChannel<socket_type>* listener, TransportService* transport) {
+void comm_thread_call(ListeningChannel<socket_type>* listener, TransportLayer* transport) {
     listener->is_ready = true;
 
     while (!transport->should_stop()) {

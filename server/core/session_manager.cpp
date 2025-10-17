@@ -3,7 +3,6 @@
 /// (c) Koheron
 
 #include "server/core/session_manager.hpp"
-#include "server/core/server.hpp"
 #include "server/core/session.hpp"
 
 #include <cassert>
@@ -22,8 +21,7 @@ SessionManager::~SessionManager() {delete_all();}
 
 int SessionManager::number_of_sessions = 0;
 
-bool SessionManager::is_reusable_id(SessionID id)
-{
+bool SessionManager::is_reusable_id(SessionID id) {
     for (auto& reusable_id : reusable_ids)
         if (reusable_id == id)
             return true;
@@ -31,8 +29,7 @@ bool SessionManager::is_reusable_id(SessionID id)
     return false;
 }
 
-bool SessionManager::is_id_in_session_ids(SessionID id)
-{
+bool SessionManager::is_id_in_session_ids(SessionID id) {
     auto curr_ids = get_session_ids();
 
     for (auto& curr_id : curr_ids)
@@ -42,8 +39,7 @@ bool SessionManager::is_id_in_session_ids(SessionID id)
     return false;
 }
 
-std::vector<SessionID> SessionManager::get_session_ids()
-{
+std::vector<SessionID> SessionManager::get_session_ids() {
     std::vector<SessionID> res(0);
 
     for (auto& session : session_pool) {
