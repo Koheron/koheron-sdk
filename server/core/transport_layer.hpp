@@ -7,6 +7,7 @@
 
 #include "server/core/configs/server_definitions.hpp"
 #include "server/core/configs/config.hpp"
+#include "server/core/listening_channel.hpp"
 #include "server/core/session_manager.hpp"
 #include "server/core/session.hpp"
 
@@ -15,52 +16,8 @@
 
 #include <atomic>
 #include <thread>
-#include <utility>
-#include <sys/types.h>
-#include <sys/socket.h>
 
 namespace koheron {
-
-class TransportLayer;
-
-template<int socket_type>
-struct ListenerStats {
-    int number_of_opened_sessions = 0; ///< Number of currently opened sessions
-    int total_sessions_num = 0;        ///< Total number of sessions
-    int total_number_of_requests = 0;  ///< Total number of requests
-};
-
-template<int socket_type>
-class ListeningChannel {
-  public:
-    ListeningChannel()
-    : listen_fd(-1)
-    , number_of_threads(-1)
-    , is_ready(false)
-    {}
-
-    int init();
-    void shutdown();
-
-    /// True if the maximum of threads set by the config is reached
-    bool is_max_threads();
-
-    int start_worker(TransportLayer& transport);
-    void join_worker();
-    int open_communication();
-
-    int listen_fd;
-    std::atomic<int> number_of_threads; // Number of sessions using the channel
-    std::atomic<bool> is_ready;
-    std::thread comm_thread; // Listening thread
-    ListenerStats<socket_type> stats;
-};
-
-template<int socket_type>
-void session_thread_call(int comm_fd, ListeningChannel<socket_type>* listener);
-
-template<int socket_type>
-void comm_thread_call(ListeningChannel<socket_type>* listener, TransportLayer* transport);
 
 class TransportLayer {
   public:
@@ -83,32 +40,12 @@ class TransportLayer {
     ListeningChannel<UNIX> unix_listener_;
 
     template<int socket_type>
-    friend void comm_thread_call(ListeningChannel<socket_type>* listener, TransportLayer* transport);
+    friend void listening_thread_call(ListeningChannel<socket_type>* listener, TransportLayer* transport);
 };
 
 // -----------------------------------------------------------------------------
 // Template implementations
 // -----------------------------------------------------------------------------
-
-template<int socket_type>
-void ListeningChannel<socket_type>::join_worker() {
-    if (listen_fd >= 0 && comm_thread.joinable()) {
-        comm_thread.join();
-    }
-}
-
-template<int socket_type>
-int ListeningChannel<socket_type>::start_worker(TransportLayer& transport) {
-    if (listen_fd >= 0) {
-        if (::listen(listen_fd, NUMBER_OF_PENDING_CONNECTIONS) < 0) {
-            logf<PANIC>("Listen {} error\n", listen_channel_desc[socket_type]);
-            return -1;
-        }
-        comm_thread = std::thread{comm_thread_call<socket_type>, this, &transport};
-    }
-
-    return 0;
-}
 
 template<int socket_type>
 void session_thread_call(int comm_fd, ListeningChannel<socket_type>* listener) {
@@ -130,7 +67,7 @@ void session_thread_call(int comm_fd, ListeningChannel<socket_type>* listener) {
 }
 
 template<int socket_type>
-void comm_thread_call(ListeningChannel<socket_type>* listener, TransportLayer* transport) {
+void listening_thread_call(ListeningChannel<socket_type>* listener, TransportLayer* transport) {
     listener->is_ready = true;
 
     while (!transport->should_stop()) {

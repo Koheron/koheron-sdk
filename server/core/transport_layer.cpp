@@ -5,6 +5,7 @@
 #include "server/core/transport_layer.hpp"
 
 #include <cstdlib>
+#include <sys/socket.h>
 
 namespace koheron {
 
@@ -83,7 +84,16 @@ bool TransportLayer::should_stop() const {
 
 template<int socket_type>
 int TransportLayer::start_listener(ListeningChannel<socket_type>& listener) {
-    return listener.start_worker(*this);
+    if (listener.listen_fd >= 0) {
+        if (::listen(listener.listen_fd, NUMBER_OF_PENDING_CONNECTIONS) < 0) {
+            logf<PANIC>("Listen {} error\n", listen_channel_desc[socket_type]);
+            return -1;
+        }
+
+        listener.listening_thread = std::thread{listening_thread_call<socket_type>, &listener, this};
+    }
+
+    return 0;
 }
 
 // Explicit instantiations for supported socket types

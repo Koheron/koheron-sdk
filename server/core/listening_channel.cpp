@@ -1,9 +1,10 @@
 /// Implementation and specializations of
-/// the class ListeningChannel in transport_service.hpp
+/// the class ListeningChannel in listening_channel.hpp
 ///
 /// (c) Koheron
 
-#include "server/core/transport_layer.hpp"
+#include "server/core/listening_channel.hpp"
+#include "server/core/configs/config.hpp"
 #include "server/core/session.hpp"
 #include "server/runtime/syslog.hpp"
 
