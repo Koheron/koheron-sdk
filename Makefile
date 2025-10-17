@@ -61,6 +61,7 @@ WEB_MK ?= $(WEB_PATH)/web.mk
 
 PROJECT_PATH := $(patsubst %/,%,$(dir $(CONFIG_MK)))
 TMP_PROJECT_PATH := $(TMP)/$(PROJECT_PATH)
+TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 
 XDC :=
 CORES :=

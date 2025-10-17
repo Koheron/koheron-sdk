@@ -4,5 +4,5 @@ ZYNQ_TYPE := zynqmp
 
 TMP_OS_BOARD_PATH := $(TMP)/kria-kr260
 
-UBOOT_CONFIG = zynqmp_kria_kr260_defconfig
+UBOOT_CONFIG = xilinx_zynqmp_kria_defconfig
 PATCHES := boards/kria-kr260/patches
