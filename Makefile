@@ -149,8 +149,8 @@ include $(WEB_MK)
 
 # Zip file that contains all the files needed to run the instrument:
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
-$(INSTRUMENT_ZIP): $(SERVER) $(BITSTREAM) $(WEB_ASSETS) $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM).bin $(VERSION_FILE) | $(TMP_PROJECT_PATH)/ $(TMP)/$(BOARD)/instruments/
-	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM).bin $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM) $(SERVER) $(WEB_ASSETS) $(VERSION_FILE)
+$(INSTRUMENT_ZIP): $(SERVER) $(DRIVERS_JSON_OUT) $(BITSTREAM) $(WEB_ASSETS) $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM).bin $(VERSION_FILE) | $(TMP_PROJECT_PATH)/ $(TMP)/$(BOARD)/instruments/
+	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM).bin $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM) $(SERVER) $(DRIVERS_JSON_OUT) $(WEB_ASSETS) $(VERSION_FILE)
 	cp $(INSTRUMENT_ZIP) $(TMP)/$(BOARD)/instruments/$(NAME).zip
 	$(call ok,$@)
 
