@@ -203,7 +203,7 @@ $(ATRUST_PATH)/.unpacked: $(ATRUST_TAR) | $(ATRUST_PATH)/
 
 $(TMP_OS_PATH)/bl31.elf: $(ATRUST_PATH)/.unpacked
 	$(DOCKER) make CROSS_COMPILE=$(GCC_ARCH)- PLAT=zynqmp bl31 ZYNQMP_ATF_MEM_BASE=0x10000 ZYNQMP_ATF_MEM_SIZE=0x40000 -C $(ATRUST_PATH)
-	cp $</build/zynqmp/release/bl31/bl31.elf $@
+	cp $(ATRUST_PATH)/build/zynqmp/release/bl31/bl31.elf $@
 	$(call ok,$@)
 
 ###############################################################################
