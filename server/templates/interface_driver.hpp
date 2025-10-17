@@ -11,7 +11,7 @@
 #include "{{ include }}"
 {% endfor -%}
 
-#include "server/core/driver_adapter.hpp"
+#include "server/core/drivers/driver_adapter.hpp"
 
 namespace koheron {
 
