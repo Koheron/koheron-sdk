@@ -42,7 +42,9 @@ quiet_cmd_tpl = TPL $@
 # -----------------------------------------------------------------------------
 
 SERVER_TEMPLATES := $(wildcard $(SERVER_PATH)/templates/*.hpp $(SERVER_PATH)/templates/*.cpp)
-SERVER_CPP := $(wildcard $(SERVER_PATH)/core/*.cpp) $(wildcard $(SERVER_PATH)/main/*.cpp)
+SERVER_CPP := $(wildcard $(SERVER_PATH)/core/*.cpp) \
+              $(wildcard $(SERVER_PATH)/core/drivers/*.cpp) \
+              $(wildcard $(SERVER_PATH)/main/*.cpp)
 SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(SERVER_CPP))))
 SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/runtime/*.cpp))))
 
@@ -206,6 +208,10 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/%.cpp | $(GEN_HEADERS)
 	$(call echo-cmd,cxx)
 	$(Q)$(call cmd,cmd_cxx)
 
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/drivers/%.cpp | $(GEN_HEADERS)
+	$(call echo-cmd,cxx)
+	$(Q)$(call cmd,cmd_cxx)
+
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp | $(GEN_HEADERS)
 	$(call echo-cmd,cxx)
 	$(Q)$(call cmd,cmd_cxx)
@@ -283,10 +289,25 @@ clean_server:
 # Dump JSON
 # -----------------------------------------------------------------------------
 
+DRIVERS_JSON_HPP      := $(TMP_SERVER_PATH)/drivers_json.hpp
+INTERFACE_DRIVERS_HPP := $(TMP_SERVER_PATH)/interface_drivers.hpp
+
 DRIVERS_JSON_DUMP_CPP := $(SERVER_PATH)/tools/drivers_json_dump.cpp
 DRIVERS_JSON_DUMP_EXE := $(TMP_SERVER_PATH)/drivers_json_dump
+DRIVERS_JSON_OUT      := $(TMP_SERVER_PATH)/drivers.json
+
+JSON_CXX      := g++-$(GCC_VERSION)
+JSON_CXXFLAGS := -std=c++20 -O2 -DKOHERON_SERVER_BUILD $(SERVER_INCLUDE_DIRS)
+
+$(DRIVERS_JSON_DUMP_EXE): $(DRIVERS_JSON_DUMP_CPP) $(DRIVERS_JSON_HPP) $(INTERFACE_DRIVERS_HPP)
+	$(DOCKER) $(JSON_CXX) $(JSON_CXXFLAGS) $< -o $@
+
+$(DRIVERS_JSON_OUT): $(DRIVERS_JSON_DUMP_EXE)
+	./$< > $@
+	$(call ok,$@)
 
 .PHONY: json_dump
-json_dump:
-	$(DOCKER) ccache g++-$(GCC_VERSION) -std=c++20 -O2 $(SERVER_INCLUDE_DIRS) -DKOHERON_SERVER_BUILD \
-		$(DRIVERS_JSON_DUMP_CPP) -o $(DRIVERS_JSON_DUMP_EXE)
+json_dump: $(DRIVERS_JSON_DUMP_EXE)
+
+.PHONY: drivers_json
+drivers_json: $(DRIVERS_JSON_OUT)

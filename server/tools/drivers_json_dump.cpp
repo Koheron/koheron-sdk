@@ -3,7 +3,7 @@
 #include <string>
 #include <string_view>
 
-#include <drivers_json.hpp>
+#include "server/core/drivers/drivers_json.hpp"
 
 static std::string pretty(std::string_view s) {
     std::string out;

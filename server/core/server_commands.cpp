@@ -8,7 +8,7 @@
 
 #include <mutex>
 
-#include <drivers_json.hpp>
+#include "server/core/drivers/drivers_json.hpp"
 
 namespace koheron {
 

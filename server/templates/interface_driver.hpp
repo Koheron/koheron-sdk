@@ -7,14 +7,11 @@
 #ifndef __{{ driver.class_name|upper }}_HPP__
 #define __{{ driver.class_name|upper }}_HPP__
 
-#include <memory>
-#include <mutex>
-
 {% for include in driver.includes -%}
 #include "{{ include }}"
 {% endfor -%}
 
-#include "server/core/driver_adapter.hpp"
+#include "server/core/drivers/driver_adapter.hpp"
 
 namespace koheron {
 
