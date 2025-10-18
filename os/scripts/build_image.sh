@@ -14,12 +14,39 @@ release_name=$7
 image="$tmp_project_path/${release_name}.img"
 size=1024
 
+# Linux image filename (allow override via env for alternate platforms)
+linux_image=${LINUX_IMAGE:-kernel.itb}
+
+# Default boot partition sizing (start offset preserved at 4 MiB)
+boot_part_start_mib=4
+boot_part_min_size_mib=12   # matches former fixed 4MB-16MB layout
+boot_part_margin_bytes=$((8 * 1024 * 1024)) # ensure room for filesystem slack
+
+# Detect zynqmp builds (generate bootmp.bin alongside boot.bin) to trigger
+# dynamic boot partition sizing. Legacy zynq images retain the previous 12 MiB
+# partition to avoid unnecessary diffs when artifacts still fit comfortably.
+boot_part_required_mib=$boot_part_min_size_mib
+if [ -f "$tmp_os_path/bootmp.bin" ]; then
+  boot_part_required_bytes=0
+  for artifact in "$tmp_os_path/boot.bin" "$tmp_os_path/$linux_image"; do
+    if [ -f "$artifact" ]; then
+      artifact_size_bytes=$(stat -c%s "$artifact")
+      boot_part_required_bytes=$((boot_part_required_bytes + artifact_size_bytes))
+    fi
+  done
+  boot_part_required_bytes=$((boot_part_required_bytes + boot_part_margin_bytes))
+
+  boot_part_required_mib=$(((boot_part_required_bytes + 1024 * 1024 - 1) / (1024 * 1024)))
+  if [ "$boot_part_required_mib" -lt "$boot_part_min_size_mib" ]; then
+    boot_part_required_mib=$boot_part_min_size_mib
+  fi
+fi
+boot_part_end_mib=$((boot_part_start_mib + boot_part_required_mib))
+
 # --- Required: fully-configured base rootfs cache (post-chroot, pre-overlay) ---
 # Build it with build_base_rootfs_tar.sh first, then pass via env from Make:
 #   env BASE_ROOTFS_TAR=".../.cache/base-rootfs-<mode>.tgz"
 BASE_ROOTFS_TAR="${BASE_ROOTFS_TAR:?BASE_ROOTFS_TAR must be set (run: make base-rootfs)}"
-
-linux_image=kernel.itb
 passwd=changeme
 timezone=Europe/Paris
 
@@ -76,8 +103,8 @@ root_dir=$(mktemp -d /tmp/ROOT.XXXXXXXXXX)
 
 # --- Create partitions ---
 parted -s "$device" mklabel msdos
-parted -s "$device" mkpart primary fat16 4MB 16MB
-parted -s "$device" mkpart primary ext4 16MB 100%
+parted -s "$device" mkpart primary fat16 ${boot_part_start_mib}MB ${boot_part_end_mib}MB
+parted -s "$device" mkpart primary ext4 ${boot_part_end_mib}MB 100%
 
 partprobe "$device" || true
 udevadm settle || true
