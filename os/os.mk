@@ -225,7 +225,10 @@ $(TMP_OS_PATH)/bl31.elf: $(ATRUST_PATH)/.unpacked
 # boot.bin
 ###############################################################################
 
-$(TMP_OS_PATH)/boot.bin: $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_OS_PATH)/u-boot.elf
+$(TMP_OS_PATH)/boot.bin: \
+  $(TMP_OS_PATH)/fsbl/executable.elf \
+  $(BITSTREAM) \
+  $(TMP_OS_PATH)/u-boot.elf
 	echo "img:{[bootloader] $(TMP_OS_PATH)/fsbl/executable.elf" > $(TMP_OS_PATH)/boot.bif
 	echo " $(BITSTREAM)" >> $(TMP_OS_PATH)/boot.bif
 	echo " $(TMP_OS_PATH)/u-boot.elf" >> $(TMP_OS_PATH)/boot.bif
@@ -233,12 +236,17 @@ $(TMP_OS_PATH)/boot.bin: $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_O
 	$(BOOTGEN) -image $(TMP_OS_PATH)/boot.bif -arch $(ZYNQ_TYPE) -w -o i $@
 	$(call ok,$@)
 
-$(TMP_OS_PATH)/bootmp.bin: $(TMP_OS_PATH)/pmu/executable.elf $(TMP_OS_PATH)/bl31.elf $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_OS_PATH)/u-boot.elf
+$(TMP_OS_PATH)/bootmp.bin: \
+  $(TMP_OS_PATH)/pmu/executable.elf \
+  $(TMP_OS_PATH)/bl31.elf \
+  $(TMP_OS_PATH)/fsbl/executable.elf \
+  $(BITSTREAM) \
+  $(TMP_OS_PATH)/u-boot.elf
 	echo "img:{ [fsbl_config] a53_x64" > $(TMP_OS_PATH)/boot.bif
 	echo "[pmufw_image] $(TMP_OS_PATH)/pmu/executable.elf" >> $(TMP_OS_PATH)/boot.bif
 	echo "[bootloader] $(TMP_OS_PATH)/fsbl/executable.elf" >> $(TMP_OS_PATH)/boot.bif
 	echo "[destination_device=pl] $(BITSTREAM)" >> $(TMP_OS_PATH)/boot.bif
-	echo "[destination_cpu=a53-0,exception_level=el-2] $(TMP_OS_PATH)/bl31.elf" >> $(TMP_OS_PATH)/boot.bif
+	echo "[destination_cpu=a53-0,exception_level=el-3] $(TMP_OS_PATH)/bl31.elf" >> $(TMP_OS_PATH)/boot.bif
 	echo "[destination_cpu=a53-0,exception_level=el-2] $(TMP_OS_PATH)/u-boot.elf" >> $(TMP_OS_PATH)/boot.bif
 	echo "}" >> $(TMP_OS_PATH)/boot.bif
 	$(BOOTGEN) -image $(TMP_OS_PATH)/boot.bif -arch $(ZYNQ_TYPE) -w -o i $@
