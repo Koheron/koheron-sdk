@@ -47,8 +47,8 @@ class Session : public SessionAbstract
     // TODO Move in Session<TCP> specialization
     int64_t rcv_n_bytes(char *buffer, int64_t n_bytes);
 
-    template<typename... Tp> std::tuple<int, Tp...> deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload, std::false_type);
-    template<typename... Tp> std::tuple<int, Tp...> deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload, std::true_type);
+    template<typename... Tp>
+    std::tuple<int, Tp...> deserialize([[maybe_unused]] Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload);
 
     // The command is passed in argument since for the WebSocket the vector data
     // are stored into it. This implies that the whole vector is already stored on
@@ -234,17 +234,15 @@ inline int Session<TCP>::recv(std::string& str, Buffer<CMD_PAYLOAD_BUFFER_LEN>&)
 
 template<>
 template<typename... Tp>
-inline std::tuple<int, Tp...> Session<TCP>::deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>&, std::false_type) {
-    return std::make_tuple(0);
-}
-
-template<>
-template<typename... Tp>
-inline std::tuple<int, Tp...> Session<TCP>::deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>&, std::true_type) {
-    constexpr auto pack_len = required_buffer_size<Tp...>();
-    Buffer<pack_len> buff;
-    const int err = rcv_n_bytes(buff.data(), pack_len);
-    return std::tuple_cat(std::make_tuple(err), buff.template deserialize<Tp...>());
+inline std::tuple<int, Tp...> Session<TCP>::deserialize([[maybe_unused]] Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
+    if constexpr (sizeof...(Tp) == 0) {
+        return std::make_tuple(0);
+    } else {
+        constexpr auto pack_len = required_buffer_size<Tp...>();
+        Buffer<pack_len> buff;
+        const int err = rcv_n_bytes(buff.data(), pack_len);
+        return std::tuple_cat(std::make_tuple(err), buff.template deserialize<Tp...>());
+    }
 }
 
 template<>
@@ -326,14 +324,12 @@ inline int Session<WEBSOCK>::recv(std::string& str, Buffer<CMD_PAYLOAD_BUFFER_LE
 
 template<>
 template<typename... Tp>
-inline std::tuple<int, Tp...> Session<WEBSOCK>::deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>&, std::false_type) {
-    return std::make_tuple(0);
-}
-
-template<>
-template<typename... Tp>
-inline std::tuple<int, Tp...> Session<WEBSOCK>::deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload, std::true_type) {
-    return std::tuple_cat(std::make_tuple(0), payload.deserialize<Tp...>());
+inline std::tuple<int, Tp...> Session<WEBSOCK>::deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
+    if constexpr (sizeof...(Tp) == 0) {
+        return std::make_tuple(0);
+    } else {
+        return std::tuple_cat(std::make_tuple(0), payload.deserialize<Tp...>());
+    }
 }
 
 template<>
@@ -353,11 +349,11 @@ template<typename... Tp>
 inline std::tuple<int, Tp...> SessionAbstract::deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
     switch (this->type) {
         case TCP:
-            return static_cast<Session<TCP>*>(this)->template deserialize<Tp...>(payload, std::integral_constant<bool, 0 < sizeof...(Tp)>());
+            return static_cast<Session<TCP>*>(this)->template deserialize<Tp...>(payload);
         case UNIX:
-            return static_cast<Session<UNIX>*>(this)->template deserialize<Tp...>(payload, std::integral_constant<bool, 0 < sizeof...(Tp)>());
+            return static_cast<Session<UNIX>*>(this)->template deserialize<Tp...>(payload);
         case WEBSOCK:
-            return static_cast<Session<WEBSOCK>*>(this)->template deserialize<Tp...>(payload, std::integral_constant<bool, 0 < sizeof...(Tp)>());
+            return static_cast<Session<WEBSOCK>*>(this)->template deserialize<Tp...>(payload);
         default:
             return std::tuple_cat(std::make_tuple(-1), std::tuple<Tp...>());
     }
