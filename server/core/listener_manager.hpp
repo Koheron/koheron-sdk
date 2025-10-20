@@ -19,9 +19,9 @@
 
 namespace koheron {
 
-class TransportLayer {
+class ListenerManager {
   public:
-    TransportLayer();
+    ListenerManager();
 
     int start();
     void request_stop();
@@ -40,7 +40,7 @@ class TransportLayer {
     ListeningChannel<UNIX> unix_listener_;
 
     template<int socket_type>
-    friend void listening_thread_call(ListeningChannel<socket_type>* listener, TransportLayer* transport);
+    friend void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerManager* transport);
 };
 
 // -----------------------------------------------------------------------------
@@ -67,7 +67,7 @@ void session_thread_call(int comm_fd, ListeningChannel<socket_type>* listener) {
 }
 
 template<int socket_type>
-void listening_thread_call(ListeningChannel<socket_type>* listener, TransportLayer* transport) {
+void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerManager* transport) {
     listener->is_ready = true;
 
     while (!transport->should_stop()) {

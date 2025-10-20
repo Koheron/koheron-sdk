@@ -1,15 +1,15 @@
-/// TransportLayer implementation
+/// ListenerManager implementation
 ///
 /// (c) Koheron
 
-#include "server/core/transport_layer.hpp"
+#include "server/core/listener_manager.hpp"
 
 #include <cstdlib>
 #include <sys/socket.h>
 
 namespace koheron {
 
-TransportLayer::TransportLayer()
+ListenerManager::ListenerManager()
 : exit_comm_(false)
 {
     if (tcp_listener_.init() < 0) {
@@ -25,7 +25,7 @@ TransportLayer::TransportLayer()
     }
 }
 
-int TransportLayer::start() {
+int ListenerManager::start() {
     if (start_listener(tcp_listener_) < 0) {
         return -1;
     }
@@ -41,11 +41,11 @@ int TransportLayer::start() {
     return 0;
 }
 
-void TransportLayer::request_stop() {
+void ListenerManager::request_stop() {
     exit_comm_.store(true, std::memory_order_release);
 }
 
-void TransportLayer::shutdown() {
+void ListenerManager::shutdown() {
     request_stop();
     services::require<SessionManager>().exit_comm();
 
@@ -60,7 +60,7 @@ void TransportLayer::shutdown() {
     services::require<SessionManager>().delete_all();
 }
 
-bool TransportLayer::is_ready() const {
+bool ListenerManager::is_ready() const {
     bool ready = true;
 
     if constexpr (config::tcp_worker_connections > 0) {
@@ -78,12 +78,12 @@ bool TransportLayer::is_ready() const {
     return ready;
 }
 
-bool TransportLayer::should_stop() const {
+bool ListenerManager::should_stop() const {
     return exit_comm_.load(std::memory_order_acquire);
 }
 
 template<int socket_type>
-int TransportLayer::start_listener(ListeningChannel<socket_type>& listener) {
+int ListenerManager::start_listener(ListeningChannel<socket_type>& listener) {
     if (listener.listen_fd >= 0) {
         if (::listen(listener.listen_fd, NUMBER_OF_PENDING_CONNECTIONS) < 0) {
             logf<PANIC>("Listen {} error\n", listen_channel_desc[socket_type]);
@@ -98,8 +98,8 @@ int TransportLayer::start_listener(ListeningChannel<socket_type>& listener) {
 
 // Explicit instantiations for supported socket types
 
-template int TransportLayer::start_listener<TCP>(ListeningChannel<TCP>& listener);
-template int TransportLayer::start_listener<WEBSOCK>(ListeningChannel<WEBSOCK>& listener);
-template int TransportLayer::start_listener<UNIX>(ListeningChannel<UNIX>& listener);
+template int ListenerManager::start_listener<TCP>(ListeningChannel<TCP>& listener);
+template int ListenerManager::start_listener<WEBSOCK>(ListeningChannel<WEBSOCK>& listener);
+template int ListenerManager::start_listener<UNIX>(ListeningChannel<UNIX>& listener);
 
 } // namespace koheron

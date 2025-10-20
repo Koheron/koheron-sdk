@@ -3,11 +3,13 @@
 #ifndef __SESSION_ABSTRACT_HPP__
 #define __SESSION_ABSTRACT_HPP__
 
-#include "server/core/commands.hpp"
-
 #include <atomic>
+#include <cstdint>
+#include <tuple>
 
 namespace koheron {
+
+class Command;
 
 class SessionAbstract
 {
