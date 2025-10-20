@@ -3,10 +3,11 @@
 #ifndef __KOHERON_SESSION_HPP__
 #define __KOHERON_SESSION_HPP__
 
-#include "server/core/configs/server_definitions.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
+#include "server/utilities/concepts.hpp"
 
+#include "server/core/configs/server_definitions.hpp"
 #include "server/core/commands.hpp"
 #include "server/core/serializer_deserializer.hpp"
 #include "server/core/session_abstract.hpp"
@@ -55,14 +56,8 @@ class Session : public SessionAbstract
     // the stack which might not be a good thing.
     //
     // TCP sockets won't use it as it reads directly the TCP buffer.
-    template<typename Tp>
-    int recv(Tp& container, Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload);
-
-    template<typename T, size_t N>
-    int recv(std::array<T, N>& arr, Buffer<CMD_PAYLOAD_BUFFER_LEN>&);
-
-    template<typename T>
-    int recv(std::vector<T>& vec, Buffer<CMD_PAYLOAD_BUFFER_LEN>&);
+    template<resizableContiguousRange R>
+    int recv(R& container, Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload);
 
     template<uint16_t class_id, uint16_t func_id, typename... Args>
     int send(Args&&... args) {
@@ -189,44 +184,20 @@ template<>
 int64_t Session<TCP>::rcv_n_bytes(char *buffer, int64_t n_bytes);
 
 template<>
-template<typename T, size_t N>
-inline int Session<TCP>::recv(std::array<T, N>& arr, Buffer<CMD_PAYLOAD_BUFFER_LEN>&) {
-    return rcv_n_bytes(reinterpret_cast<char*>(arr.data()), size_of<T, N>);
-}
-
-template<>
-template<typename T>
-inline int Session<TCP>::recv(std::vector<T>& vec, Buffer<CMD_PAYLOAD_BUFFER_LEN>&) {
+template<resizableContiguousRange R>
+inline int Session<TCP>::recv(R& c, Buffer<CMD_PAYLOAD_BUFFER_LEN>&) {
+    using T = R::value_type;
     const auto length = get_pack_length() / sizeof(T);
 
     if (length < 0) {
         return -1;
     }
 
-    vec.resize(length);
-    const auto err = rcv_n_bytes(reinterpret_cast<char *>(vec.data()), length * sizeof(T));
+    c.resize(length);
+    const auto err = rcv_n_bytes(reinterpret_cast<char *>(c.data()), length * sizeof(T));
 
     if (err >= 0) {
-        logf<DEBUG>("TCPSocket: Received a vector of {} bytes\n", length);
-    }
-
-    return err;
-}
-
-template<>
-template<>
-inline int Session<TCP>::recv(std::string& str, Buffer<CMD_PAYLOAD_BUFFER_LEN>&) {
-    const auto length = get_pack_length();
-
-    if (length < 0) {
-        return -1;
-    }
-
-    str.resize(length);
-    const auto err = rcv_n_bytes(str.data(), length);
-
-    if (err >= 0) {
-       logf<DEBUG>("TCPSocket: Received a string of {} bytes\n", length);
+        logf<DEBUG>("TCPSocket: Received a container of {} bytes\n", length);
     }
 
     return err;
@@ -236,12 +207,12 @@ template<>
 template<typename... Tp>
 inline std::tuple<int, Tp...> Session<TCP>::deserialize([[maybe_unused]] Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
     if constexpr (sizeof...(Tp) == 0) {
-        return std::make_tuple(0);
+        return std::tuple{0};
     } else {
         constexpr auto pack_len = required_buffer_size<Tp...>();
         Buffer<pack_len> buff;
         const int err = rcv_n_bytes(buff.data(), pack_len);
-        return std::tuple_cat(std::make_tuple(err), buff.template deserialize<Tp...>());
+        return std::tuple_cat(std::tuple{err}, buff.template deserialize<Tp...>());
     }
 }
 
@@ -288,53 +259,32 @@ class Session<UNIX> : public Session<TCP>
 // -----------------------------------------------
 
 template<>
-template<typename T, size_t N>
-inline int Session<WEBSOCK>::recv(std::array<T, N>& arr, Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
-    arr = payload.extract_array<T, N>();
-    return 0;
-}
-
-template<>
-template<typename T>
-inline int Session<WEBSOCK>::recv(std::vector<T>& vec, Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
-    const auto length = std::get<0>(payload.deserialize<uint32_t>());
+template<resizableContiguousRange R>
+int Session<WEBSOCK>::recv(R& c, Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
+    const auto [length] = payload.deserialize<uint32_t>();
 
     if (length > CMD_PAYLOAD_BUFFER_LEN) {
-        log<ERROR>("WebSocket: Payload size overflow during buffer reception\n");
+        log<ERROR>("WebSocket::rcv dynamic container: Payload size overflow\n");
         return -1;
     }
 
-    payload.to_vector(vec, length / sizeof(T));
-    return 0;
-}
-
-template<>
-template<>
-inline int Session<WEBSOCK>::recv(std::string& str, Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
-    const auto length = std::get<0>(payload.deserialize<uint32_t>());
-
-    if (length > CMD_PAYLOAD_BUFFER_LEN) {
-        log<ERROR>("WebSocket::rcv_vector: Payload size overflow\n");
-        return -1;
-    }
-
-    payload.to_string(str, length);
+    payload.to_container(c, length);
     return 0;
 }
 
 template<>
 template<typename... Tp>
-inline std::tuple<int, Tp...> Session<WEBSOCK>::deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
+std::tuple<int, Tp...> Session<WEBSOCK>::deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
     if constexpr (sizeof...(Tp) == 0) {
-        return std::make_tuple(0);
+        return std::tuple{0};
     } else {
-        return std::tuple_cat(std::make_tuple(0), payload.deserialize<Tp...>());
+        return std::tuple_cat(std::tuple{0}, payload.deserialize<Tp...>());
     }
 }
 
 template<>
 template<std::ranges::contiguous_range R>
-inline int Session<WEBSOCK>::write(const R& r) {
+int Session<WEBSOCK>::write(const R& r) {
     return websock.send(r);
 }
 
@@ -355,7 +305,7 @@ inline std::tuple<int, Tp...> SessionAbstract::deserialize(Buffer<CMD_PAYLOAD_BU
         case WEBSOCK:
             return static_cast<Session<WEBSOCK>*>(this)->template deserialize<Tp...>(payload);
         default:
-            return std::tuple_cat(std::make_tuple(-1), std::tuple<Tp...>());
+            return std::tuple_cat(std::tuple{-1}, std::tuple<Tp...>());
     }
 }
 

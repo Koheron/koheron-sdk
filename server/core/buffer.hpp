@@ -50,17 +50,18 @@ struct Buffer
     }
 
     template<typename T>
-    void to_vector(std::vector<T>& vec, uint64_t length) {
+    void to_container(std::vector<T>& vec, uint64_t length) {
+        std::size_t n_elems = length / sizeof(T);
         #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wcast-align"
         const auto b = reinterpret_cast<const T*>(begin());
         #pragma GCC diagnostic pop
-        vec.resize(length);
-        std::move(b, b + length, vec.begin());
-        position += length * sizeof(T);
+        vec.resize(n_elems);
+        std::move(b, b + n_elems, vec.begin());
+        position += length;
     }
 
-    void to_string(std::string& str, uint64_t length) {
+    void to_container(std::string& str, uint64_t length) {
         str.resize(length);
         std::move(begin(), begin() + length, str.begin());
         position += length;

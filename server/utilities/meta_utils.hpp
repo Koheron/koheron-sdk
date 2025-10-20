@@ -70,6 +70,26 @@ template<class T, class Tuple>
 inline constexpr bool tuple_contains_v = _tuple_contains<T, Tuple>::value;
 
 // ----------------------------------------------------------------------------
+// PMF (pointer-to-member function) traits
+// ----------------------------------------------------------------------------
+
+template<class> struct pmf_traits;
+
+template<class C, class R, class... A>
+struct pmf_traits<R (C::*)(A...)> {
+    using clazz = C;
+    using ret   = R;
+    using args  = std::tuple<A...>;
+};
+
+template<class C, class R, class... A>
+struct pmf_traits<R (C::*)(A...) const> {
+    using clazz = const C;
+    using ret   = R;
+    using args  = std::tuple<A...>;
+};
+
+// ----------------------------------------------------------------------------
 // Units utilities
 // ----------------------------------------------------------------------------
 
