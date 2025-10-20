@@ -83,25 +83,6 @@ eatmydata apt-get -yq install -o Dpkg::Use-Pty=0 --no-install-recommends \
   python3-flask uwsgi-core uwsgi-plugin-python3 python3-simplejson python3-systemd\
   iproute2
 
-# Networkd config (end0 via DHCP)
-rm -f /etc/network/interfaces /etc/network/interfaces.d/* || true
-install -d -m0755 /etc/systemd/network
-cat >/etc/systemd/network/10-end0.network <<'EOF'
-[Match]
-Name=end0
-[Network]
-DHCP=ipv4
-[DHCPv4]
-UseDNS=true
-EOF
-
-# resolv.conf -> systemd-resolved stub
-rm -f /etc/resolv.conf
-ln -s ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
-
-# SSH policy (keep like your original)
-sed -i 's/#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-
 # Clean & hygiene
 eatmydata apt-get clean
 rm -rf /var/lib/apt/lists/*
