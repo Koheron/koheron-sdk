@@ -375,7 +375,7 @@ define ITS_TEMPLATE
   description = "Linux + DTB (FIT)";
   #address-cells = <1>;
   images {
-    kernel_1 {
+    kernel@1 {
       description = "Linux kernel";
       data = /incbin/("$(ABS_TMP_OS_PATH)/$(KERNEL_BIN)");
       type = "kernel";
@@ -385,7 +385,7 @@ define ITS_TEMPLATE
       load = <$(FIT_LOAD)>;
       entry = <$(FIT_LOAD)>;
     };
-    fdt_1 {
+    fdt@1 {
       description = "Device Tree";
       data = /incbin/("$(ABS_DTB_SWITCH)");
       type = "flat_dt";
@@ -394,8 +394,12 @@ define ITS_TEMPLATE
     };
   };
   configurations {
-    default = "conf_1";
-    conf_1 { kernel = "kernel_1"; fdt = "fdt_1"; };
+    default = "conf@1";
+    conf@1 {
+      description = "Boot Linux kernel";
+      kernel = "kernel@1";
+      fdt = "fdt@1";
+    };
   };
 };
 endef
