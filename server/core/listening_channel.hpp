@@ -14,13 +14,6 @@
 namespace koheron {
 
 template<int socket_type>
-struct ListenerStats {
-    int number_of_opened_sessions = 0; ///< Number of currently opened sessions
-    int total_sessions_num = 0;        ///< Total number of sessions
-    int total_number_of_requests = 0;  ///< Total number of requests
-};
-
-template<int socket_type>
 class ListeningChannel {
   public:
     ListeningChannel()
@@ -42,7 +35,6 @@ class ListeningChannel {
     std::atomic<int> number_of_threads; // Number of sessions using the channel
     std::atomic<bool> is_ready;
     std::thread listening_thread;
-    ListenerStats<socket_type> stats;
 };
 
 template<int socket_type>

@@ -23,16 +23,15 @@
 #include <cassert>
 #include <memory_resource>
 #include <ranges>
+#include <span>
+#include <cstddef>
+#include <cerrno>
 
 namespace koheron {
 
 /// Session
 ///
-/// Receive and parse the client request for execution.
-///
-/// By calling the appropriate socket interface, it offers
-/// an abstract communication layer to the drivers. Thus
-/// shielding them from the underlying communication protocol.
+/// Receive and parse the client request for execution
 template<int socket_type>
 class Session : public SessionAbstract
 {
@@ -44,10 +43,6 @@ class Session : public SessionAbstract
     SessionID get_id() const {return id;}
 
     // Receive - Send
-
-    // TODO Move in Session<TCP> specialization
-    int64_t rcv_n_bytes(char *buffer, int64_t n_bytes);
-
     template<typename... Tp>
     std::tuple<int, Tp...> deserialize([[maybe_unused]] Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload);
 
@@ -115,18 +110,6 @@ class Session : public SessionAbstract
 
     int read_command(Command& cmd);
 
-    int64_t get_pack_length() {
-        Buffer<sizeof(uint64_t)> buff;
-        const auto err = rcv_n_bytes(buff.data(), sizeof(uint32_t));
-
-        if (err < 0) {
-            log<ERROR>("Cannot read pack length\n");
-            return -1;
-        }
-
-        return std::get<0>(buff.deserialize<uint32_t>());
-    }
-
     template<std::ranges::contiguous_range R>
     int write(const R& r);
 
@@ -180,21 +163,62 @@ int Session<socket_type>::run() {
 // TCP
 // -----------------------------------------------
 
-template<>
-int64_t Session<TCP>::rcv_n_bytes(char *buffer, int64_t n_bytes);
+// Reads until span is filled, returns bytes read (0 = EOF), or -1 on error.
+inline ssize_t read_exact(int fd, std::span<std::byte> buf) {
+    size_t done = 0;
+    while (done < buf.size()) {
+        ssize_t n = ::read(fd, buf.data() + done, buf.size() - done);
+
+        if (n == 0) {
+            log("TCPSocket: Connection closed by client\n");
+            return 0;
+        }
+
+        if (n < 0) {
+            if (errno == EINTR) { // interrupted -> retry
+                continue;
+            }
+
+            logf<ERROR>("TCPSocket: Can't receive data (errno={})\n", errno);
+            return -1;
+        }
+
+        done += static_cast<size_t>(n);
+    }
+
+    return static_cast<ssize_t>(done);
+}
+
+inline int64_t get_pack_length(int comm_fd) {
+    Buffer<sizeof(uint64_t)> buff;
+    const auto err = read_exact(
+        comm_fd,
+        std::as_writable_bytes(std::span{buff.data(), sizeof(uint32_t)})
+    );
+
+    if (err < 0) {
+        log<ERROR>("Cannot read pack length\n");
+        return -1;
+    }
+
+    return std::get<0>(buff.deserialize<uint32_t>());
+}
 
 template<>
 template<resizableContiguousRange R>
-inline int Session<TCP>::recv(R& c, Buffer<CMD_PAYLOAD_BUFFER_LEN>&) {
+int Session<TCP>::recv(R& c, Buffer<CMD_PAYLOAD_BUFFER_LEN>&) {
     using T = R::value_type;
-    const auto length = get_pack_length() / sizeof(T);
+    const auto length = get_pack_length(comm_fd) / sizeof(T);
 
     if (length < 0) {
         return -1;
     }
 
     c.resize(length);
-    const auto err = rcv_n_bytes(reinterpret_cast<char *>(c.data()), length * sizeof(T));
+    const auto err = read_exact(
+        comm_fd,
+        std::as_writable_bytes(std::span{c.data(), length})
+    );
 
     if (err >= 0) {
         logf<DEBUG>("TCPSocket: Received a container of {} bytes\n", length);
@@ -205,24 +229,27 @@ inline int Session<TCP>::recv(R& c, Buffer<CMD_PAYLOAD_BUFFER_LEN>&) {
 
 template<>
 template<typename... Tp>
-inline std::tuple<int, Tp...> Session<TCP>::deserialize([[maybe_unused]] Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
+std::tuple<int, Tp...> Session<TCP>::deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>&) {
     if constexpr (sizeof...(Tp) == 0) {
         return std::tuple{0};
     } else {
         constexpr auto pack_len = required_buffer_size<Tp...>();
         Buffer<pack_len> buff;
-        const int err = rcv_n_bytes(buff.data(), pack_len);
+        const auto err = read_exact(
+            comm_fd,
+            std::as_writable_bytes(std::span{buff.data(), pack_len})
+        );
         return std::tuple_cat(std::tuple{err}, buff.template deserialize<Tp...>());
     }
 }
 
 template<>
 template<std::ranges::contiguous_range R>
-inline int Session<TCP>::write(const R& r) {
+int Session<TCP>::write(const R& r) {
     using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
 
     const auto bytes_send = sizeof(T) * std::size(r);
-    const int n_bytes_send = ::write(comm_fd, static_cast<const unsigned char*>(std::data(r)), std::size(r));
+    const int n_bytes_send = ::write(comm_fd, std::data(r), bytes_send);
 
     if (n_bytes_send == 0) {
        log<ERROR>("TCPSocket::write: Connection closed by client\n");
@@ -247,10 +274,7 @@ inline int Session<TCP>::write(const R& r) {
 // Unix socket
 // -----------------------------------------------
 
-template<>
-class Session<UNIX> : public Session<TCP>
-{
-  public:
+template<> class Session<UNIX> : public Session<TCP> {
     using Session<TCP>::Session;
 };
 
@@ -296,7 +320,7 @@ int Session<WEBSOCK>::write(const R& r) {
 // http://stackoverflow.com/questions/1682844/templates-template-function-not-playing-well-with-classs-template-member-funct/1682885#1682885
 
 template<typename... Tp>
-inline std::tuple<int, Tp...> SessionAbstract::deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
+std::tuple<int, Tp...> SessionAbstract::deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
     switch (this->type) {
         case TCP:
             return static_cast<Session<TCP>*>(this)->template deserialize<Tp...>(payload);
@@ -310,7 +334,7 @@ inline std::tuple<int, Tp...> SessionAbstract::deserialize(Buffer<CMD_PAYLOAD_BU
 }
 
 template<typename Tp>
-inline int SessionAbstract::recv(Tp& container, Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
+int SessionAbstract::recv(Tp& container, Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload) {
     switch (this->type) {
         case TCP:
             return static_cast<Session<TCP>*>(this)->recv(container, payload);
@@ -324,7 +348,7 @@ inline int SessionAbstract::recv(Tp& container, Buffer<CMD_PAYLOAD_BUFFER_LEN>& 
 }
 
 template<uint16_t class_id, uint16_t func_id, typename... Args>
-inline int SessionAbstract::send(Args&&... args) {
+int SessionAbstract::send(Args&&... args) {
     switch (this->type) {
         case TCP:
             return static_cast<Session<TCP>*>(this)->template send<class_id, func_id>(std::forward<Args>(args)...);

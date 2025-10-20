@@ -197,7 +197,7 @@ int WebSocket::check_opcode(unsigned int opcode) {
       case BINARY_FRAME:
         break;
       case CONNECTION_CLOSE:
-        log<INFO>("WebSocket: Connection close\n");
+        log("WebSocket: Connection close\n");
         return 1;
       case PING:
         log<CRITICAL>("WebSocket: Ping is not suported\n");
