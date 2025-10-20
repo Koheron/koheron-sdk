@@ -181,7 +181,11 @@ def build_mem_simple_context(cfg):
             'size': size,
             'compat_str': _compat_to_dt(e['compatible']),
         })
-    return {'regions': regions}
+    arch = os.getenv('ARCH', '').strip()
+    return {
+        'regions': regions,
+        'arch': arch,
+    }
 
 #########################
 # Jinja2 template engine

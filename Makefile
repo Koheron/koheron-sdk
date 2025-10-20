@@ -87,7 +87,7 @@ help:
 	@echo ' - open_project : Open the Vivado .xpr project'
 
 # Python script that manages the instrument configuration
-MAKE_PY := SDK_PATH=$(SDK_PATH) $(VENV)/bin/python3 $(SDK_PATH)/make.py
+MAKE_PY = SDK_PATH=$(SDK_PATH) ARCH=$(ARCH) $(VENV)/bin/python3 $(SDK_PATH)/make.py
 
 # Number of CPU cores available for parallel execution
 N_CPUS ?= $(shell nproc 2> /dev/null || echo 1)

@@ -3,8 +3,8 @@
  */
 
 &amba {
-    #address-cells = <1>;
-    #size-cells    = <1>;
+    #address-cells = <{{ 2 if arch == 'arm64' else 1 }}>;
+    #size-cells    = <{{ 2 if arch == 'arm64' else 1 }}>;
 {%- for r in regions %}
     kmem_{{ r.name }}: {{ r.name }}@{{ "%08x"|format(r.base) }} {
         compatible = {{ r.compat_str }};
