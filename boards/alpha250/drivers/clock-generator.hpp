@@ -3,6 +3,7 @@
 
 #include <array>
 #include <string_view>
+#include <cstdint>
 
 class Eeprom;
 class SpiConfig;
