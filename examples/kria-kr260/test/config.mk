@@ -3,7 +3,7 @@ VERSION := 0.1.0
 
 BOARD_PATH := $(SDK_PATH)/boards/kria-kr260
 
-XDC += $(PROJECT_PATH)/constraints.xdc
+XDC += $(SDK_PATH)/boards/kria-kr260/config/default.xdc
 
 MEMORY_YML = $(PROJECT_PATH)/memory.yml
 

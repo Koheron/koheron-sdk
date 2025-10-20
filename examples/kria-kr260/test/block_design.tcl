@@ -13,4 +13,8 @@ apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config { Clk_master {/ps_0/pl
 set_property range [get_memory_range gpio] [get_bd_addr_segs {ps_0/Data/SEG_axi_gpio_0_Reg}]
 set_property offset [get_memory_offset gpio] [get_bd_addr_segs {ps_0/Data/SEG_axi_gpio_0_Reg}]
 
-connect_bd_net [get_bd_pins ps_0/dp_audio_ref_clk] [get_bd_pins ps_0/dp_s_axis_audio_clk]
+create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilslice:1.0 ilslice_0
+set_property CONFIG.DIN_WIDTH {3} [get_bd_cells ilslice_0]
+connect_bd_net [get_bd_pins ps_0/emio_ttc0_wave_o] [get_bd_pins ilslice_0/Din]
+create_bd_port -dir O fan_en_b
+connect_bd_net [get_bd_ports fan_en_b] [get_bd_pins ilslice_0/Dout]
