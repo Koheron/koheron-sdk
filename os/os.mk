@@ -75,19 +75,22 @@ $(BASE_ROOTFS_TAR): \
 	  "$(ROOT_TAR_PATH)" "$@" "$(QEMU_BIN)"
 	$(call ok,$@)
 
+EXTLINUX_CONF ?= $(OS_PATH)/extlinux.conf
+
 $(RELEASE_ZIP): $(BASE_ROOTFS_TAR) \
   $(INSTRUMENT_ZIP) \
   $(TMP_OS_PATH)/$(BOOTCALL) $(FIT_ITB) $(DTB_SWITCH) \
   $(OS_PATH)/scripts/build_image.sh \
-  $(OVERLAY_TAR) $(MANIFEST_TXT) \
+  $(OVERLAY_TAR) $(MANIFEST_TXT) $(EXTLINUX_CONF) \
   $(OS_PATH)/scripts/chroot_overlay.sh
 	@mkdir -p $(@D)
 	@test -s "$(OVERLAY_TAR)" || { echo "Missing overlay tar: $(OVERLAY_TAR)"; exit 1; }
 	$(DOCKER_ROOT) env BASE_ROOTFS_TAR="$(BASE_ROOTFS_TAR)" \
-	  bash $(OS_PATH)/scripts/build_image.sh \
-	    "$(TMP_PROJECT_PATH)" "$(OS_PATH)" "$(TMP_OS_PATH)" \
-	    "$(ROOT_TAR_PATH)" "$(OVERLAY_TAR)" "$(QEMU_BIN)" \
-	    "$(RELEASE_NAME)"
+		EXTLINUX_CONF="$(EXTLINUX_CONF)" \
+		bash $(OS_PATH)/scripts/build_image.sh \
+		"$(TMP_PROJECT_PATH)" "$(OS_PATH)" "$(TMP_OS_PATH)" \
+		"$(ROOT_TAR_PATH)" "$(OVERLAY_TAR)" "$(QEMU_BIN)" \
+		"$(RELEASE_NAME)"
 	$(call ok,$@)
 
 # Build image

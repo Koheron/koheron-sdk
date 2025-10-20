@@ -144,15 +144,19 @@ cp "$tmp_os_path/boot.bin" "$tmp_os_path/$linux_image" "$boot_dir"
 ROOTUUID=$(blkid -s PARTUUID -o value "$root_dev")
 BOOTUUID=$(blkid -s PARTUUID -o value "$boot_dev")
 
-cat > "$boot_dir/extlinux/extlinux.conf" <<EOF
-DEFAULT Linux
-TIMEOUT 1
-MENU TITLE Koheron Boot (${release_name})
+render_extlinux_conf() {
+  local target="$1"
+  local template="$2"
+  env ROOTUUID="$ROOTUUID" \
+      BOOTUUID="$BOOTUUID" \
+      RELEASE_NAME="$release_name" \
+      LINUX_IMAGE="$linux_image" \
+      envsubst '${ROOTUUID} ${BOOTUUID} ${RELEASE_NAME} ${LINUX_IMAGE}' \
+      < "$template" > "$target"
+}
 
-LABEL Linux
-  KERNEL /kernel.itb
-  APPEND console=ttyPS0,115200n8 root=PARTUUID=${ROOTUUID} ro rootwait rootfstype=ext4 fsck.repair=yes uio_pdrv_genirq.of_id=generic-uio
-EOF
+extlinux_output="$boot_dir/extlinux/extlinux.conf"
+render_extlinux_conf "$extlinux_output" "$EXTLINUX_CONF"
 
 sync
 
