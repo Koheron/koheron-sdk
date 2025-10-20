@@ -38,9 +38,6 @@ class ListenerManager {
     ListeningChannel<TCP> tcp_listener_;
     ListeningChannel<WEBSOCK> websock_listener_;
     ListeningChannel<UNIX> unix_listener_;
-
-    template<int socket_type>
-    friend void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerManager* lm);
 };
 
 // -----------------------------------------------------------------------------
@@ -50,9 +47,6 @@ class ListenerManager {
 template<int socket_type>
 void session_thread_call(int comm_fd, ListeningChannel<socket_type>* listener) {
     listener->number_of_threads++;
-    listener->stats.number_of_opened_sessions++;
-    listener->stats.total_sessions_num++;
-
     auto& sm = services::require<SessionManager>();
     auto sid = sm.template create_session<socket_type>(comm_fd);
     auto session = static_cast<Session<socket_type>*>(&sm.get_session(sid));
@@ -63,7 +57,6 @@ void session_thread_call(int comm_fd, ListeningChannel<socket_type>* listener) {
 
     sm.delete_session(sid);
     listener->number_of_threads--;
-    listener->stats.number_of_opened_sessions--;
 }
 
 template<int socket_type>
@@ -78,7 +71,7 @@ void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerMana
         }
 
         if (comm_fd < 0) {
-            log<CRITICAL>("Connection to client rejected [socket_type = %u]\n", socket_type);
+            logf<CRITICAL>("Connection to client rejected [socket_type = {}]\n", socket_type);
             continue;
         }
 

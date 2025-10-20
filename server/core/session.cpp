@@ -16,7 +16,10 @@ int Session<TCP>::read_command(Command& cmd) {
     // Read and decode header
     // |      RESERVED     | dev_id  |  op_id  |             payload_size              |   payload
     // |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | ...
-    const int header_bytes = rcv_n_bytes(cmd.header.data(), Command::HEADER_SIZE);
+    const int header_bytes = read_exact(
+        comm_fd,
+        std::as_writable_bytes(std::span{cmd.header.data(), cmd.header.size()})
+    );
 
     if (header_bytes == 0) {
         return header_bytes;
@@ -37,33 +40,6 @@ int Session<TCP>::read_command(Command& cmd) {
                 cmd.driver, cmd.operation);
 
     return header_bytes;
-}
-
-// TODO Replace by function load_buffer
-template<>
-int64_t Session<TCP>::rcv_n_bytes(char *buffer, int64_t n_bytes) {
-    int64_t bytes_rcv = 0;
-    int64_t bytes_read = 0;
-
-    while (bytes_read < n_bytes) {
-        bytes_rcv = read(comm_fd, buffer + bytes_read, n_bytes - bytes_read);
-
-        if (bytes_rcv == 0) {
-            log("TCPSocket: Connection closed by client\n");
-            return 0;
-        }
-
-        if (bytes_rcv < 0) {
-            log<ERROR>("TCPSocket: Can't receive data\n");
-            return -1;
-        }
-
-        bytes_read += bytes_rcv;
-    }
-
-    assert(bytes_read == n_bytes);
-    logf<DEBUG>("[R@{}] [{} bytes]\n", id, bytes_read);
-    return bytes_read;
 }
 
 // -----------------------------------------------

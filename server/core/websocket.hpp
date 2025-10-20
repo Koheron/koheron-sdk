@@ -97,9 +97,9 @@ class WebSocket
     // Internal functions
     int read_http_packet();
 
-    template<uint32_t HEADER_SIZE, uint32_t CMD_PAYLOAD_BUFFER_LEN>
+    template<uint32_t HEADER_SIZE, uint32_t PAYLOAD_SIZE>
     int decode_raw_stream_cmd(Buffer<HEADER_SIZE>& cmd_header,
-                              Buffer<CMD_PAYLOAD_BUFFER_LEN>& cmd_payload);
+                              Buffer<PAYLOAD_SIZE>& cmd_payload);
     int read_stream();
     int read_header();
     int check_opcode(unsigned int opcode);
@@ -161,9 +161,9 @@ int WebSocket::receive_cmd(Buffer<HEADER_SIZE>& cmd_header,
     return header.payload_size;
 }
 
-template<uint32_t HEADER_SIZE, uint32_t CMD_PAYLOAD_BUFFER_LEN>
+template<uint32_t HEADER_SIZE, uint32_t PAYLOAD_SIZE>
 int WebSocket::decode_raw_stream_cmd(Buffer<HEADER_SIZE>& cmd_header,
-                                     Buffer<CMD_PAYLOAD_BUFFER_LEN>& cmd_payload) {
+                                     Buffer<PAYLOAD_SIZE>& cmd_payload) {
     // We need: base header up to mask, +4 mask bytes, + payload bytes
     const std::size_t need =
         static_cast<std::size_t>(header.mask_offset) + 4u +
