@@ -3,13 +3,13 @@
 #ifndef __SESSION_ABSTRACT_HPP__
 #define __SESSION_ABSTRACT_HPP__
 
+#include "server/core/buffer.hpp"
+
 #include <atomic>
 #include <cstdint>
 #include <tuple>
 
 namespace koheron {
-
-class Command;
 
 class SessionAbstract
 {
@@ -19,8 +19,8 @@ class SessionAbstract
 
     virtual ~SessionAbstract() {}
 
-    template<typename... Tp> std::tuple<int, Tp...> deserialize(Command& cmd);
-    template<typename Tp> int recv(Tp& container, Command& cmd);
+    template<typename... Tp> std::tuple<int, Tp...> deserialize(Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload);
+    template<typename Tp> int recv(Tp& container, Buffer<CMD_PAYLOAD_BUFFER_LEN>& payload);
     template<uint16_t class_id, uint16_t func_id, typename... Args> int send(Args&&... args);
 
     int type;

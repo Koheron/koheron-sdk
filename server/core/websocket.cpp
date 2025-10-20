@@ -5,10 +5,8 @@
 /// (c) Koheron
 
 #include "server/core/websocket.hpp"
-#include "server/core/commands.hpp"
 #include "server/utilities/base64.hpp"
 #include "server/utilities/sha1.hpp"
-#include "server/runtime/syslog.hpp"
 #include "server/utilities/endian_utils.hpp"
 
 #include <array>
@@ -163,82 +161,7 @@ int WebSocket::exit() {
     return send_request(send_buf, set_send_header(0, (1 << 7) + CONNECTION_CLOSE));
 }
 
-int WebSocket::receive_cmd(Command& cmd) {
-    if (connection_closed) [[unlikely]] {
-        return 0;
-    }
-
-    int err = read_stream();
-
-    if (err < 0) {
-        return -1;
-    } else if (err == 1) { /* Connection closed by client*/
-        return 0;
-    }
-
-    if (decode_raw_stream_cmd(cmd) < 0) {
-        log<CRITICAL>("WebSocket: Cannot decode command stream\n");
-        return -1;
-    }
-
-    logf<DEBUG>("[R] WebSocket: command of {} bytes\n", header.payload_size);
-    return header.payload_size;
-}
-
-int WebSocket::decode_raw_stream_cmd(Command& cmd)
-{
-    // We need: base header up to mask, +4 mask bytes, + payload bytes
-    const std::size_t need =
-        static_cast<std::size_t>(header.mask_offset) + 4u +
-        static_cast<std::size_t>(header.payload_size);
-
-    if (read_str_len < need) {
-        log<CRITICAL>("WebSocket: truncated masked frame\n");
-        return -1;
-    }
-
-    if (header.payload_size < Command::HEADER_SIZE) {
-        log<CRITICAL>("WebSocket: payload smaller than command header\n");
-        return -1;
-    }
-
-    const auto* mask = reinterpret_cast<const uint8_t*>(
-        read_str.data() + header.mask_offset);
-    const auto* src  = reinterpret_cast<const uint8_t*>(
-        read_str.data() + header.mask_offset + 4);
-
-    // 1) decode command header
-    auto* dst = reinterpret_cast<uint8_t*>(cmd.header.data());
-    std::size_t k = 0; // mask index
-
-    for (std::size_t i = 0; i < Command::HEADER_SIZE; ++i) {
-        dst[i] = src[i] ^ mask[k];
-        k = (k + 1) & 3;
-    }
-
-    // 2) decode payload (continue mask phase from HEADER_SIZE)
-    const std::size_t payload_bytes =
-        static_cast<std::size_t>(header.payload_size) - Command::HEADER_SIZE;
-
-    if (payload_bytes > cmd.payload.size()) {
-        log<CRITICAL>("WebSocket: payload longer than destination buffer\n");
-        return -1;
-    }
-
-    const auto* sp = src + Command::HEADER_SIZE;
-    auto* dp = reinterpret_cast<uint8_t*>(cmd.payload.data());
-    k = (Command::HEADER_SIZE) & 3; // continue phase
-
-    for (std::size_t i = 0; i < payload_bytes; ++i) {
-        dp[i] = sp[i] ^ mask[k];
-        k = (k + 1) & 3;
-    }
-
-    return 0;
-}
-
-int WebSocket::read_stream()
-{
+int WebSocket::read_stream() {
     reset_read_buff();
 
     int read_head_err = read_header();
@@ -264,8 +187,7 @@ int WebSocket::read_stream()
     return err;
 }
 
-int WebSocket::check_opcode(unsigned int opcode)
-{
+int WebSocket::check_opcode(unsigned int opcode) {
     switch (opcode) {
       case CONTINUATION_FRAME:
         log<CRITICAL>("WebSocket: Continuation frame is not suported\n");
@@ -291,8 +213,7 @@ int WebSocket::check_opcode(unsigned int opcode)
     return 0;
 }
 
-int WebSocket::read_header()
-{
+int WebSocket::read_header() {
     if (read_n_bytes(6,6) < 0) {
         return -1;
     }

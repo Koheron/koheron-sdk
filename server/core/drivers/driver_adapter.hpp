@@ -22,7 +22,7 @@ namespace koheron {
 template <typename T>
 inline bool read_one(Command& cmd, T& v) {
     // fixed-size / POD-ish types
-    auto t = cmd.session->deserialize<T>(cmd);
+    auto t = cmd.session->deserialize<T>(cmd.payload);
     if (std::get<0>(t) < 0) {
         return false;
     }
@@ -32,11 +32,11 @@ inline bool read_one(Command& cmd, T& v) {
 
 template <typename T>
 inline bool read_one(Command& cmd, std::vector<T>& v) {
-    return cmd.session->recv(v, cmd) >= 0;   // reads [u32 len][payload...]
+    return cmd.session->recv(v, cmd.payload) >= 0;   // reads [u32 len][payload...]
 }
 
 inline bool read_one(Command& cmd, std::string& s) {
-    return cmd.session->recv(s, cmd) >= 0;   // reads [u32 len][bytes...]
+    return cmd.session->recv(s, cmd.payload) >= 0;   // reads [u32 len][bytes...]
 }
 
 template <class Tuple, std::size_t... I>

@@ -1,9 +1,9 @@
-/// Transport layer service for listener orchestration
+/// Listeners orchestration
 ///
 /// (c) Koheron
 
-#ifndef __SERVER_CORE_TRANSPORT_SERVICE_HPP__
-#define __SERVER_CORE_TRANSPORT_SERVICE_HPP__
+#ifndef __SERVER_CORE_LISTENER_MANAGER_HPP__
+#define __SERVER_CORE_LISTENER_MANAGER_HPP__
 
 #include "server/core/configs/server_definitions.hpp"
 #include "server/core/configs/config.hpp"
@@ -40,7 +40,7 @@ class ListenerManager {
     ListeningChannel<UNIX> unix_listener_;
 
     template<int socket_type>
-    friend void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerManager* transport);
+    friend void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerManager* lm);
 };
 
 // -----------------------------------------------------------------------------
@@ -67,13 +67,13 @@ void session_thread_call(int comm_fd, ListeningChannel<socket_type>* listener) {
 }
 
 template<int socket_type>
-void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerManager* transport) {
+void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerManager* lm) {
     listener->is_ready = true;
 
-    while (!transport->should_stop()) {
+    while (!lm->should_stop()) {
         int comm_fd = listener->open_communication();
 
-        if (transport->should_stop()) {
+        if (lm->should_stop()) {
             break;
         }
 
@@ -96,4 +96,4 @@ void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerMana
 
 } // namespace koheron
 
-#endif // __SERVER_CORE_TRANSPORT_SERVICE_HPP__
+#endif // __SERVER_CORE_LISTENER_MANAGER_HPP__

@@ -27,11 +27,11 @@ int Session<TCP>::read_command(Command& cmd) {
         return header_bytes;
     }
 
-    const auto header_tuple = cmd.header.deserialize<uint16_t, uint16_t>();
+    const auto [drv_id, op] = cmd.header.deserialize<uint16_t, uint16_t>();
     cmd.session_id = id;
     cmd.session = this;
-    cmd.driver = static_cast<driver_id>(std::get<0>(header_tuple));
-    cmd.operation = std::get<1>(header_tuple);
+    cmd.driver = static_cast<driver_id>(drv_id);
+    cmd.operation = op;
 
     logf<DEBUG>("TCPSocket: Receive command for driver {}, operation {}\n",
                 cmd.driver, cmd.operation);
@@ -88,7 +88,7 @@ template<> int Session<WEBSOCK>::exit_socket() {
 
 template<>
 int Session<WEBSOCK>::read_command(Command& cmd) {
-    if (websock.receive_cmd(cmd) < 0) {
+    if (websock.receive_cmd(cmd.header, cmd.payload) < 0) {
         log<ERROR>("WebSocket: Command reception failed\n");
         return -1;
     }
@@ -102,15 +102,14 @@ int Session<WEBSOCK>::read_command(Command& cmd) {
         return -1;
     }
 
-    const auto header_tuple = cmd.header.deserialize<uint16_t, uint16_t>();
+    const auto [drv_id, op] = cmd.header.deserialize<uint16_t, uint16_t>();
     cmd.session_id = id;
     cmd.session = this;
-    cmd.driver = static_cast<driver_id>(std::get<0>(header_tuple));
-    cmd.operation = std::get<1>(header_tuple);
+    cmd.driver = static_cast<driver_id>(drv_id);
+    cmd.operation = op;
 
-    logf<DEBUG>(
-        "WebSocket: Receive command for driver {}, operation {}\n",
-        cmd.driver, cmd.operation);
+    logf<DEBUG>("WebSocket: Receive command for driver {}, operation {}\n",
+                cmd.driver, cmd.operation);
 
     return Command::HEADER_SIZE;
 }
