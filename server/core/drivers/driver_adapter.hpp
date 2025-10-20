@@ -4,6 +4,7 @@
 #include "server/core/drivers/driver.hpp"
 #include "server/core/commands.hpp"
 #include "server/core/session.hpp"
+#include "server/utilities/meta_utils.hpp"
 
 #include <array>
 #include <type_traits>
@@ -13,62 +14,9 @@
 #include <vector>
 #include <string>
 #include <string_view>
-#include <initializer_list>
+#include <ranges>
 
 namespace koheron {
-
-// --------- low-level "read one arg" ----------
-
-template <typename T>
-inline bool read_one(Command& cmd, T& v) {
-    // fixed-size / POD-ish types
-    auto t = cmd.session->deserialize<T>(cmd);
-    if (std::get<0>(t) < 0) {
-        return false;
-    }
-    v = std::get<1>(t);
-    return true;
-}
-
-template <typename T>
-inline bool read_one(Command& cmd, std::vector<T>& v) {
-    return cmd.session->recv(v, cmd) >= 0;   // reads [u32 len][payload...]
-}
-
-inline bool read_one(Command& cmd, std::string& s) {
-    return cmd.session->recv(s, cmd) >= 0;   // reads [u32 len][bytes...]
-}
-
-template <class Tuple, std::size_t... I>
-inline bool read_tuple_into(Command& cmd, Tuple& tup, std::index_sequence<I...>) {
-    bool ok = true;
-    (void)std::initializer_list<int>{ (ok = ok && read_one(cmd, std::get<I>(tup)), 0)... };
-    return ok;
-}
-
-// ---- PMF (pointer-to-member function) traits ----
-template<class> struct pmf_traits;
-
-template<class C, class R, class... A>
-struct pmf_traits<R (C::*)(A...)> {
-    using clazz = C;
-    using ret   = R;
-    using args  = std::tuple<A...>;
-};
-
-template<class C, class R, class... A>
-struct pmf_traits<R (C::*)(A...) const> {
-    using clazz = const C;
-    using ret   = R;
-    using args  = std::tuple<A...>;
-};
-
-template<class Tuple> struct prepend_status;
-
-template<class... A>
-struct prepend_status<std::tuple<A...>> {
-    using type = std::tuple<int, std::decay_t<A>...>;
-};
 
 // ---- detect dynamic-size args (vector/string) ----
 template<class T> struct is_dynamic_arg : std::false_type {};
@@ -122,7 +70,7 @@ int op_invoke_impl(Obj&& obj, PMF pmf, Command& cmd) {
         using DecayedArgsTuple = typename decayed_tuple_from_seq<ArgsTuple, IS>::type;
 
         DecayedArgsTuple args{};
-        if (!read_tuple_into(cmd, args, IS{})) {
+        if (!cmd.read_arguments(args, IS{})) {
             return -1;
         }
 

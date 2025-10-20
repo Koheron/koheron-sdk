@@ -7,98 +7,63 @@
 
 #include "server/runtime/drivers_table.hpp"
 #include "server/core/configs/server_definitions.hpp"
-#include "server/core/serializer_deserializer.hpp"
+#include "server/core/buffer.hpp"
+#include "server/core/session_abstract.hpp"
+#include "server/utilities/concepts.hpp"
 
-#include <array>
-#include <vector>
-#include <tuple>
-#include <string>
+#include <cstdint>
+#include <utility>
+#include <initializer_list>
 
 namespace koheron {
 
-template<size_t len>
-struct Buffer
+// class SessionAbstract;
+
+class Command
 {
-    explicit constexpr Buffer(size_t position_ = 0) noexcept
-    : position(position_)
-    {};
-
-    constexpr size_t size() const {
-        return len;
-    }
-
-    void set()     {_data.fill(0);}
-    char* data()   {return _data.data();}
-    char* begin()  {return &(_data.data())[position];}
-
-    // These functions are used by Websocket
-
-    template<typename... Tp>
-    std::tuple<Tp...> deserialize() {
-        static_assert(required_buffer_size<Tp...>() <= len, "Buffer size too small");
-
-        const auto tup = koheron::deserialize<0, Tp...>(begin());
-        position += required_buffer_size<Tp...>();
-        return tup;
-    }
-
-    template<typename T, size_t N>
-    const std::array<T, N>& extract_array() {
-        // http://stackoverflow.com/questions/11205186/treat-c-cstyle-array-as-stdarray
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wcast-align"
-        const auto p = reinterpret_cast<const std::array<T, N>*>(begin());
-        #pragma GCC diagnostic pop
-        // assert(p->data() == reinterpret_cast<const T*>(begin()));
-        position += size_of<T, N>;
-        return *p;
-    }
-
-    template<typename T>
-    void to_vector(std::vector<T>& vec, uint64_t length) {
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wcast-align"
-        const auto b = reinterpret_cast<const T*>(begin());
-        #pragma GCC diagnostic pop
-        vec.resize(length);
-        std::move(b, b + length, vec.begin());
-        position += length * sizeof(T);
-    }
-
-    void to_string(std::string& str, uint64_t length) {
-        str.resize(length);
-        std::move(begin(), begin() + length, str.begin());
-        position += length;
-    }
-
-  private:
-    std::array<char, len> _data;
-    size_t position; // Current position in the buffer
-};
-
-class SessionAbstract;
-
-struct Command
-{
+  public:
     Command() noexcept
     : header(HEADER_START)
     {}
+
+    template <class Tuple, std::size_t... I>
+    bool read_arguments(Tuple& args, std::index_sequence<I...>) {
+        bool ok = true;
+        (void)std::initializer_list<int>{ (ok = ok && read_one(std::get<I>(args)), 0)... };
+        return ok;
+    }
 
     enum Header : uint32_t {
         HEADER_SIZE = 8,
         HEADER_START = 4  // First 4 bytes are reserved
     };
 
-    SessionID session_id = -1; // ID of the session emitting the command
-    SessionAbstract *session; // Pointer to the session emitting the command
-    driver_id driver = 0; // The driver to control
-    int32_t operation = -1; // Operation ID
+    SessionID session_id = -1;           // ID of the session emitting the command
+    SessionAbstract *session = nullptr;  // Pointer to the session emitting the command
+    driver_id driver = 0;                // The driver to control
+    int32_t operation = -1;              // Operation ID
 
     Buffer<HEADER_SIZE> header; // Raw data header
     Buffer<CMD_PAYLOAD_BUFFER_LEN> payload;
+
+  private:
+    template <typename T>
+    bool read_one(T& v) {
+        if constexpr (resizableContiguousRange<T>) {
+            return session->template recv(v, payload) >= 0;
+        } else { // fixed-size / POD-ish types
+            auto [status, value] = session->template deserialize<T>(payload);
+
+            if (status < 0) {
+                return false;
+            }
+
+            v = value;
+            return true;
+        }
+    }
 };
 
 } // namespace koheron
 
 #endif // __COMMANDS_HPP__
-

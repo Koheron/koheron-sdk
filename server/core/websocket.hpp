@@ -5,7 +5,9 @@
 #ifndef __WEBSOCKET_HPP__
 #define __WEBSOCKET_HPP__
 
+#include "server/runtime/syslog.hpp"
 #include "server/core/configs/server_definitions.hpp"
+#include "server/core/buffer.hpp"
 
 #include <array>
 #include <string>
@@ -24,7 +26,10 @@ class WebSocket
 
     void set_id(int comm_fd_);
     int authenticate();
-    int receive_cmd(Command& cmd);
+
+    template<uint32_t HEADER_SIZE, uint32_t CMD_PAYLOAD_BUFFER_LEN>
+    int receive_cmd(Buffer<HEADER_SIZE>& cmd_header,
+                    Buffer<CMD_PAYLOAD_BUFFER_LEN>& cmd_payload);
 
     /// Send binary blob
     template<std::ranges::contiguous_range R>
@@ -91,7 +96,10 @@ class WebSocket
 
     // Internal functions
     int read_http_packet();
-    int decode_raw_stream_cmd(Command& cmd);
+
+    template<uint32_t HEADER_SIZE, uint32_t CMD_PAYLOAD_BUFFER_LEN>
+    int decode_raw_stream_cmd(Buffer<HEADER_SIZE>& cmd_header,
+                              Buffer<CMD_PAYLOAD_BUFFER_LEN>& cmd_payload);
     int read_stream();
     int read_header();
     int check_opcode(unsigned int opcode);
@@ -127,6 +135,83 @@ int WebSocket::send(const R& r) {
     auto mask_offset = set_send_header(char_data_len, (1 << 7) + BINARY_FRAME);
     std::memcpy(&send_buf[mask_offset], std::data(r), char_data_len);
     return send_request(send_buf, static_cast<int64_t>(mask_offset) + static_cast<int64_t>(char_data_len));
+}
+
+template<uint32_t HEADER_SIZE, uint32_t CMD_PAYLOAD_BUFFER_LEN>
+int WebSocket::receive_cmd(Buffer<HEADER_SIZE>& cmd_header,
+                           Buffer<CMD_PAYLOAD_BUFFER_LEN>& cmd_payload) {
+    if (connection_closed) [[unlikely]] {
+        return 0;
+    }
+
+    int err = read_stream();
+
+    if (err < 0) {
+        return -1;
+    } else if (err == 1) { /* Connection closed by client*/
+        return 0;
+    }
+
+    if (decode_raw_stream_cmd(cmd_header, cmd_payload) < 0) {
+        log<CRITICAL>("WebSocket: Cannot decode command stream\n");
+        return -1;
+    }
+
+    logf<DEBUG>("[R] WebSocket: command of {} bytes\n", header.payload_size);
+    return header.payload_size;
+}
+
+template<uint32_t HEADER_SIZE, uint32_t CMD_PAYLOAD_BUFFER_LEN>
+int WebSocket::decode_raw_stream_cmd(Buffer<HEADER_SIZE>& cmd_header,
+                                     Buffer<CMD_PAYLOAD_BUFFER_LEN>& cmd_payload) {
+    // We need: base header up to mask, +4 mask bytes, + payload bytes
+    const std::size_t need =
+        static_cast<std::size_t>(header.mask_offset) + 4u +
+        static_cast<std::size_t>(header.payload_size);
+
+    if (read_str_len < need) {
+        log<CRITICAL>("WebSocket: truncated masked frame\n");
+        return -1;
+    }
+
+    if (header.payload_size < HEADER_SIZE) {
+        log<CRITICAL>("WebSocket: payload smaller than command header\n");
+        return -1;
+    }
+
+    const auto* mask = reinterpret_cast<const uint8_t*>(
+        read_str.data() + header.mask_offset);
+    const auto* src  = reinterpret_cast<const uint8_t*>(
+        read_str.data() + header.mask_offset + 4);
+
+    // 1) decode command header
+    auto* dst = reinterpret_cast<uint8_t*>(cmd_header.data());
+    std::size_t k = 0; // mask index
+
+    for (std::size_t i = 0; i < HEADER_SIZE; ++i) {
+        dst[i] = src[i] ^ mask[k];
+        k = (k + 1) & 3;
+    }
+
+    // 2) decode payload (continue mask phase from HEADER_SIZE)
+    const std::size_t payload_bytes =
+        static_cast<std::size_t>(header.payload_size) - HEADER_SIZE;
+
+    if (payload_bytes > cmd_payload.size()) {
+        log<CRITICAL>("WebSocket: payload longer than destination buffer\n");
+        return -1;
+    }
+
+    const auto* sp = src + HEADER_SIZE;
+    auto* dp = reinterpret_cast<uint8_t*>(cmd_payload.data());
+    k = (HEADER_SIZE) & 3; // continue phase
+
+    for (std::size_t i = 0; i < payload_bytes; ++i) {
+        dp[i] = sp[i] ^ mask[k];
+        k = (k + 1) & 3;
+    }
+
+    return 0;
 }
 
 } // namespace koheron
