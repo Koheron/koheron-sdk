@@ -33,6 +33,8 @@ int Session<TCP>::read_command(Command& cmd) {
     const auto [drv_id, op] = cmd.header.deserialize<uint16_t, uint16_t>();
     cmd.session_id = id;
     cmd.session = this;
+    cmd.socket_type = TCP;
+    cmd.comm_fd = comm_fd;
     cmd.driver = static_cast<driver_id>(drv_id);
     cmd.operation = op;
 
@@ -81,6 +83,8 @@ int Session<WEBSOCK>::read_command(Command& cmd) {
     const auto [drv_id, op] = cmd.header.deserialize<uint16_t, uint16_t>();
     cmd.session_id = id;
     cmd.session = this;
+    cmd.socket_type = WEBSOCK;
+    cmd.comm_fd = comm_fd;
     cmd.driver = static_cast<driver_id>(drv_id);
     cmd.operation = op;
 

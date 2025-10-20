@@ -13,8 +13,6 @@
 
 namespace koheron {
 
-// ---- Transport policies ------------------------------------------------------
-
 template<int socket_type>
 struct ListenerBackend;
 
@@ -71,8 +69,6 @@ struct ListenerBackend<UNIX> {
         close(listen_fd);
     }
 };
-
-// ---- Generic ListeningChannel implementation --------------------------------
 
 template<int socket_type>
 int ListeningChannel<socket_type>::init() {

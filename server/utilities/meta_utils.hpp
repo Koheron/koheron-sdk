@@ -90,6 +90,14 @@ struct pmf_traits<R (C::*)(A...) const> {
 };
 
 // ----------------------------------------------------------------------------
+// std::complex
+// ----------------------------------------------------------------------------
+
+template<class T> struct is_std_complex : std::false_type {};
+template<class U> struct is_std_complex<std::complex<U>> : std::true_type {};
+template<class T> inline constexpr bool is_std_complex_v = is_std_complex<std::remove_cv_t<T>>::value;
+
+// ----------------------------------------------------------------------------
 // Units utilities
 // ----------------------------------------------------------------------------
 
