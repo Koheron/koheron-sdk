@@ -7,6 +7,7 @@
 
 #include "server/utilities/endian_utils.hpp"
 #include "server/utilities/meta_utils.hpp"
+#include "server/utilities/concepts.hpp"
 
 #include <bit>
 #include <cstddef>
@@ -33,10 +34,6 @@ namespace koheron {
 
 template<class T, std::size_t N = 1>
 inline constexpr std::size_t size_of = sizeof(T) * N;
-
-template<class T> struct is_std_complex : std::false_type {};
-template<class U> struct is_std_complex<std::complex<U>> : std::true_type {};
-template<class T> inline constexpr bool is_std_complex_v = is_std_complex<std::remove_cv_t<T>>::value;
 
 template<> inline constexpr std::size_t size_of<std::complex<float>>  = 2 * sizeof(float);
 template<> inline constexpr std::size_t size_of<std::complex<double>> = 2 * sizeof(double);
@@ -207,33 +204,6 @@ serialize(Ts&&... ts) {
 //------------------------------------------------------------------------------
 // Dynamic command builder (replaces DynamicSerializer) with C++20 concepts
 //------------------------------------------------------------------------------
-
-// concepts
-template<class T>
-concept ContiguousContainer =
-    requires(T t) {
-        typename T::value_type;
-        { t.data() } -> std::convertible_to<const typename T::value_type*>;
-        { t.size() } -> std::convertible_to<std::size_t>;
-    };
-
-template<class T>
-concept StdArray = requires {
-    typename T::value_type;
-    std::tuple_size<T>::value; // std::array satisfies
-};
-
-template<class T>
-concept CStrLike =
-    // char* / const char*
-    (std::is_pointer_v<std::remove_reference_t<T>> &&
-     std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_reference_t<T>>>, char>) ||
-    // char[N] / const char[N]
-    (std::is_array_v<std::remove_reference_t<T>> &&
-     std::is_same_v<std::remove_cv_t<std::remove_extent_t<std::remove_reference_t<T>>>, char>);
-
-template<class T>
-concept ScalarLike = (std::is_scalar_v<std::remove_reference_t<T>> && !std::is_pointer_v<std::remove_reference_t<T>>) || is_std_complex_v<T>;
 
 // packer that batches scalars, flushing before contiguous payloads
 struct CommandBuilder {

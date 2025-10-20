@@ -53,31 +53,13 @@ std::vector<SessionID> SessionManager::get_session_ids() {
 void SessionManager::delete_session(SessionID id) {
     std::lock_guard lock(mutex);
 
-    int session_fd = 0;
-
     if (!is_id_in_session_ids(id)) {
         logf("Not allocated session ID: {}\n", id);
         return;
     }
 
     if (session_pool[id] != nullptr) {
-        switch (session_pool[id]->type) {
-          case TCP:
-            session_fd = cast_to_session<TCP>(session_pool[id])->comm_fd;
-            break;
-          case UNIX:
-            session_fd = cast_to_session<UNIX>(session_pool[id])->comm_fd;
-            break;
-          case WEBSOCK:
-            session_fd = cast_to_session<WEBSOCK>(session_pool[id])->comm_fd;
-            break;
-          default: assert(false);
-        }
-
-        if (shutdown(session_fd, SHUT_RDWR) < 0) {
-            logf<WARNING>("Cannot shutdown socket for session ID: {}\n", id);
-        }
-        close(session_fd);
+        session_pool[id]->shutdown();
     }
 
     session_pool.erase(id);
