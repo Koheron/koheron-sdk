@@ -6,11 +6,17 @@
 #include "server/core/buffer.hpp"
 #include "server/core/serializer_deserializer.hpp"
 
+#include <array>
 #include <atomic>
 #include <cstdint>
+#include <cstddef>
 #include <tuple>
+#include <span>
+#include <memory_resource>
 
 namespace koheron {
+
+class Command;
 
 class SessionAbstract
 {
@@ -36,18 +42,22 @@ class SessionAbstract
         return n;
     }
 
+    int run();
+
     virtual void shutdown() = 0;
+    void exit_comm() { exit_signal = true; }
+
     int type;
-
     std::atomic<bool> exit_signal{false};
-
-    void exit_comm() {
-        exit_signal = true;
-    }
 
   protected:
     enum {CLOSED, OPENED};
     int status = OPENED;
+
+    // Socket specific hooks
+    virtual int init_socket() = 0;
+    virtual int exit_socket() = 0;
+    virtual int read_command(Command& cmd) = 0;
     virtual int write_bytes(std::span<const std::byte>) = 0;
 
     // First 4 KiB of allocations come from initial_storage, no heap at all

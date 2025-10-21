@@ -1,6 +1,7 @@
 /// (c) Koheron
 
 #include "server/core/session.hpp"
+#include "server/core/commands.hpp"
 
 namespace koheron {
 

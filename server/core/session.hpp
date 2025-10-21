@@ -4,13 +4,10 @@
 #define __KOHERON_SESSION_HPP__
 
 #include "server/runtime/syslog.hpp"
-#include "server/runtime/services.hpp"
 #include "server/utilities/concepts.hpp"
 
 #include "server/core/configs/server_definitions.hpp"
-#include "server/core/commands.hpp"
 #include "server/core/session_abstract.hpp"
-#include "server/core/drivers/driver_executor.hpp"
 #include "server/core/websocket.hpp"
 
 #include <string>
@@ -20,7 +17,6 @@
 #include <unistd.h>
 #include <type_traits>
 #include <cassert>
-#include <memory_resource>
 #include <ranges>
 #include <span>
 #include <cstddef>
@@ -28,6 +24,8 @@
 #include <sys/socket.h>
 
 namespace koheron {
+
+class Command;
 
 /// Session
 ///
@@ -37,8 +35,6 @@ class Session : public SessionAbstract
 {
   public:
     Session(int comm_fd, SessionID id_);
-
-    int run();
 
     SessionID get_id() const {return id;}
 
@@ -81,42 +77,6 @@ Session<socket_type>::Session(int comm_fd_, SessionID id_)
 , id(id_)
 , websock{}
 {}
-
-template<int socket_type>
-int Session<socket_type>::run() {
-    if (init_socket() < 0) {
-        return -1;
-    }
-
-    while (!exit_signal) {
-        Command cmd;
-        const int nb_bytes_rcvd = read_command(cmd);
-
-        if (exit_signal) {
-            break;
-        }
-
-        if (nb_bytes_rcvd <= 0) {
-            // We don't call exit_session() here because the socket is already closed.
-            return nb_bytes_rcvd;
-        }
-
-        if (services::require<DriverExecutor>().execute(cmd) < 0) {
-            logf<ERROR>("Failed to execute command [driver = {}, operation = {}]\n",
-                        cmd.driver, cmd.operation);
-        }
-
-        if (status == CLOSED) {
-            break;
-        }
-    }
-
-    if (exit_socket() < 0) {
-        log<WARNING>("An error occured during session exit\n");
-    }
-
-    return 0;
-}
 
 template<int socket_type>
 template<std::ranges::contiguous_range R>
