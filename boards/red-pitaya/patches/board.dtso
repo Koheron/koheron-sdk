@@ -2,9 +2,8 @@
 /plugin/;
 
 / {
-	/* I2C0: add 24C64 EEPROM at 0x50 */
 	fragment@0 {
-		target = <&i2c0>;               /* or: target-path = "/amba/i2c@ff020000"; */
+		target = <&i2c0>;
 		__overlay__ {
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -17,35 +16,32 @@
 		};
 	};
 
-	/* SPI0: expose CS0 as spidev (10 MHz) */
 	fragment@1 {
-		target = <&spi0>;               /* or: target-path = "/amba/spi@ff040000"; */
+		target = <&spi0>;
 		__overlay__ {
 			#address-cells = <1>;
 			#size-cells = <0>;
 			spidev@0 {
-				compatible = "spidev";
-				reg = <0>;              /* CS0 */
+				compatible = "rohm,dh2228fv";
+				reg = <0x0>;
 				spi-max-frequency = <10000000>;
 			};
 		};
 	};
 
-	/* SPI1: expose CS0 as spidev (10 MHz) */
 	fragment@2 {
-		target = <&spi1>;               /* or: target-path = "/amba/spi@ff050000"; */
+		target = <&spi1>;
 		__overlay__ {
 			#address-cells = <1>;
 			#size-cells = <0>;
 			spidev@0 {
-				compatible = "spidev";
-				reg = <0>;              /* CS0 */
+				compatible = "rohm,dh2228fv";
+				reg = <0x0>;
 				spi-max-frequency = <10000000>;
 			};
 		};
 	};
 
-	/* Memory: change /memory@0 size (root bus uses 2 addr cells, 1 size cell) */
 	fragment@3 {
         target-path = "/";
         __overlay__ {
