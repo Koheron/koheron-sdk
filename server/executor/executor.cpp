@@ -1,9 +1,8 @@
-// driver_executor.cpp
+// executor.cpp
 
-#include "server/executor/driver_executor.hpp"
+#include "server/executor/executor.hpp"
 #include "server/executor/drivers_config.hpp"
 #include "server/network/commands.hpp"
-
 #include "server/utilities/meta_utils.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/driver_manager.hpp"
@@ -22,7 +21,7 @@ enum Operation {
     server_op_num,
 };
 
-struct DriverExecutor::Impl {
+struct Executor::Impl {
     std::array<std::unique_ptr<DriverAbstract>, drivers::table::size - drivers::table::offset> wrappers{};
 
     template<driver_id id>
@@ -82,14 +81,14 @@ struct DriverExecutor::Impl {
     }
 };
 
-DriverExecutor::DriverExecutor()
+Executor::Executor()
     : p_(std::make_unique<Impl>()) {}
 
-DriverExecutor::~DriverExecutor() = default;
-DriverExecutor::DriverExecutor(DriverExecutor&&) noexcept = default;
-DriverExecutor& DriverExecutor::operator=(DriverExecutor&&) noexcept = default;
+Executor::~Executor() = default;
+Executor::Executor(Executor&&) noexcept = default;
+Executor& Executor::operator=(Executor&&) noexcept = default;
 
-int DriverExecutor::execute(Command& cmd) {
+int Executor::execute(Command& cmd) {
     return p_->execute(cmd);
 }
 

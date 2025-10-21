@@ -2,7 +2,7 @@
 #include "server/runtime/syslog.hpp"
 #include "server/network/commands.hpp"
 #include "server/network/session.hpp"
-#include "server/executor/driver_executor.hpp"
+#include "server/executor/executor.hpp"
 
 namespace koheron {
 
@@ -24,7 +24,7 @@ int Session::run() {
             return nb_bytes_rcvd;
         }
 
-        if (services::require<DriverExecutor>().execute(cmd) < 0) {
+        if (services::require<Executor>().execute(cmd) < 0) {
             logf<ERROR>("Failed to execute command [driver = {}, operation = {}]\n",
                         cmd.driver, cmd.operation);
         }

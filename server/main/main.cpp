@@ -17,7 +17,7 @@
 
 #include "server/network/session_manager.hpp"
 #include "server/network/listener_manager.hpp"
-#include "server/executor/driver_executor.hpp"
+#include "server/executor/executor.hpp"
 #include <drivers.hpp> // For call to Common
 
 #include <atomic>
@@ -80,7 +80,7 @@ int main() {
 
     // ---------- Server services ----------
 
-    provide<DriverExecutor>();
+    provide<Executor>();
     provide<SessionManager>();
 
     auto lm = ListenerManager();
