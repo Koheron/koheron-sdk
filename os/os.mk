@@ -22,7 +22,7 @@ OS_FILES := \
   $(INSTRUMENT_ZIP) \
   $(API_FILES) \
   $(WWW_ASSETS) \
-  $(TMP_OS_PATH)/$(BOOTCALL) \
+  $(TMP_OS_PATH)/$(BOOT_BIN) \
   $(TMP_OS_PATH)/kernel.itb \
   $(TMP_OS_PATH)/devicetree.dtb
 

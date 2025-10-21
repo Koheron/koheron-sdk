@@ -6,7 +6,7 @@ GCC_ARCH := aarch64-linux-gnu
 LINUX_IMAGE := Image
 ARCH := arm64
 
-BOOTCALL := bootmp.bin
+BOOT_BIN := bootmp.bin
 
 UBOOT_ARCH := arm
 UBOOT_CFLAGS := -O2
