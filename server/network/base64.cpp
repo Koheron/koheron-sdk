@@ -25,7 +25,7 @@
 
 */
 
-#include "server/utilities/base64.hpp"
+#include "server/network/base64.hpp"
 #include <string>
 #include <cctype>
 

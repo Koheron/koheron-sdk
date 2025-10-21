@@ -3,7 +3,6 @@
 #ifndef __KOHERON_SESSION_HPP__
 #define __KOHERON_SESSION_HPP__
 
-#include "server/network/buffer.hpp"
 #include "server/network/serializer_deserializer.hpp"
 
 #include <array>

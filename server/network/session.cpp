@@ -1,8 +1,8 @@
 #include "server/runtime/services.hpp"
 #include "server/runtime/syslog.hpp"
+#include "server/runtime/executor.hpp"
 #include "server/network/commands.hpp"
 #include "server/network/session.hpp"
-#include "server/executor/executor.hpp"
 
 namespace net {
 
@@ -24,7 +24,7 @@ int Session::run() {
             return nb_bytes_rcvd;
         }
 
-        if (services::require<koheron::Executor>().execute(cmd) < 0) {
+        if (services::require<rt::IExecutor>().execute(cmd) < 0) {
             logf<ERROR>("Failed to execute command [driver = {}, operation = {}]\n",
                         cmd.driver, cmd.operation);
         }

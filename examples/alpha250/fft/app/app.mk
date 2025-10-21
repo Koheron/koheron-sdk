@@ -65,12 +65,13 @@ DRIVERS_CPP := $(filter %.cpp,$(DRIVERS))
 DRIVERS_CPP_REL := $(patsubst $(SDK_FULL_PATH)/%,%,$(DRIVERS_CPP))
 DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/,$(DRIVERS_CPP_REL:.cpp=.o))
 SERVER_LIB_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/runtime/*.cpp))))
+SERVER_NET_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(wildcard $(SERVER_PATH)/network/*.cpp))))
 HARDWARE_OBJ := $(TMP_SERVER_PATH)/spi_manager.o $(TMP_SERVER_PATH)/i2c_manager.o $(TMP_SERVER_PATH)/fpga_manager.o $(TMP_SERVER_PATH)/zynq_fclk.o
 
 # Add here other object files needed by the app
 APP_OBJ := $(TMP_SERVER_PATH)/main.o
 
-OBJ := $(APP_OBJ) $(SERVER_LIB_OBJ) $(DRIVERS_OBJ) $(HARDWARE_OBJ)
+OBJ := $(APP_OBJ) $(SERVER_LIB_OBJ) $(DRIVERS_OBJ) $(HARDWARE_OBJ) $(SERVER_NET_OBJ)
 
 # -----------------------------------------------------------------------------
 # Compile / Link
@@ -87,6 +88,9 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp | $(GEN_HDRS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/hardware/%.cpp | $(GEN_HDRS)
+	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/network/%.cpp | $(GEN_HEADERS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
 $(TMP_SERVER_PATH)/%.o: %.cpp | $(GEN_HEADERS)

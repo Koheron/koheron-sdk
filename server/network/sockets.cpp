@@ -4,6 +4,7 @@
 #include "server/network/configs/server_definitions.hpp"
 #include "server/runtime/syslog.hpp"
 
+#include <unistd.h>
 #include <cstdint>
 #include <cstring>
 #include <sys/socket.h>

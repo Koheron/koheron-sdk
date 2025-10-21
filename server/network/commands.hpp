@@ -98,11 +98,27 @@ class Command
         return session->send(driver, operation, std::forward<Args>(args)...);
     }
 
-    uint16_t driver = 0;    // The driver to control
+    template <typename T>
+    bool read_one(T& v) {
+        if constexpr (ut::resizableContiguousRange<T>) {
+            return recv(v) >= 0;
+        } else { // fixed-size / POD-ish types
+            auto [status, value] = deserialize<T>();
+
+            if (status < 0) {
+                return false;
+            }
+
+            v = value;
+            return true;
+        }
+    }
+
+    rt::driver_id driver = 0;    // The driver to control
     uint16_t operation = 0; // Operation ID
+    SessionID session_id = -1;   // ID of the session emitting the command
 
   private:
-    SessionID session_id = -1;   // ID of the session emitting the command
     Session *session = nullptr;  // Pointer to the session emitting the command
     int socket_type = -1;
     int comm_fd = -1;
@@ -187,22 +203,6 @@ class Command
             return 0;
         } else {
             return -1;
-        }
-    }
-
-    template <typename T>
-    bool read_one(T& v) {
-        if constexpr (ut::resizableContiguousRange<T>) {
-            return recv(v) >= 0;
-        } else { // fixed-size / POD-ish types
-            auto [status, value] = deserialize<T>();
-
-            if (status < 0) {
-                return false;
-            }
-
-            v = value;
-            return true;
         }
     }
 

@@ -32,6 +32,13 @@ void provide(std::shared_ptr<T> p) {
     Slot<T>::ptr.store(std::move(p), std::memory_order_release);
 }
 
+template<class T, class U>
+requires std::derived_from<U, T> && (!std::same_as<U, T>)
+void provide(std::shared_ptr<U> p) {
+    Slot<T>::ptr.store(std::static_pointer_cast<T>(std::move(p)),
+                       std::memory_order_release);
+}
+
 // Non-throwing lookup
 template<class T>
 std::shared_ptr<T> get() {

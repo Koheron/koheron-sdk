@@ -1,5 +1,3 @@
-// executor.cpp
-
 #include "server/executor/executor.hpp"
 #include "server/executor/drivers_config.hpp"
 #include "server/network/commands.hpp"
@@ -13,13 +11,6 @@
 #include <cassert>
 
 namespace koheron {
-
-/// Operations associated to the Server "driver"
-enum Operation {
-    GET_VERSION = 0, ///< Send the version of the server
-    GET_CMDS = 1,    ///< Send the commands numbers
-    server_op_num,
-};
 
 struct Executor::Impl {
     std::array<std::unique_ptr<DriverAbstract>, drivers::table::size - drivers::table::offset> wrappers{};
@@ -57,23 +48,6 @@ struct Executor::Impl {
 
     int execute(net::Command& cmd) {
         assert(cmd.driver < drivers::table::size);
-        if (cmd.driver == 0) { // NoDriver
-            return 0;
-        }
-
-        if (cmd.driver == 1) { // Server
-            switch (cmd.operation) {
-            case GET_VERSION:
-                return cmd.send(KOHERON_VERSION);
-            case GET_CMDS:
-                return cmd.send(build_drivers_json());
-            case server_op_num:
-            default:
-                log<ERROR>("Server::execute unknown operation\n");
-                return -1;
-            }
-        }
-
         ensure_wrapper_runtime(cmd.driver);
         auto* abs = wrappers[cmd.driver - drivers::table::offset].get();
         auto seq = make_index_sequence_in_range<drivers::table::offset, drivers::table::size>();
@@ -82,13 +56,15 @@ struct Executor::Impl {
 };
 
 Executor::Executor()
-    : p_(std::make_unique<Impl>()) {}
+    : p_(std::make_unique<Impl>()) {
+    set_drivers_json(build_drivers_json());
+}
 
 Executor::~Executor() = default;
 Executor::Executor(Executor&&) noexcept = default;
 Executor& Executor::operator=(Executor&&) noexcept = default;
 
-int Executor::execute(net::Command& cmd) {
+int Executor::handle_app(net::Command& cmd) {
     return p_->execute(cmd);
 }
 

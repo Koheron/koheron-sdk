@@ -14,8 +14,8 @@
 #include "server/runtime/systemd.hpp"
 #include "server/runtime/driver_manager.hpp"
 #include "server/runtime/config_manager.hpp"
+#include "server/runtime/executor.hpp"
 
-#include "server/network/session_manager.hpp"
 #include "server/network/listener_manager.hpp"
 #include "server/executor/executor.hpp"
 #include <drivers.hpp> // For call to Common
@@ -79,7 +79,7 @@ int main() {
 
     // ---------- Server services ----------
 
-    provide<koheron::Executor>();
+    rt::provide_executor<koheron::Executor>();
 
     auto lm = net::ListenerManager();
 

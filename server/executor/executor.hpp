@@ -2,6 +2,8 @@
 #ifndef __EXECUTOR_HPP__
 #define __EXECUTOR_HPP__
 
+#include "server/runtime/executor.hpp"
+
 #include <array>
 #include <memory>
 
@@ -12,19 +14,20 @@ namespace koheron {
 class DriverAbstract;
 class DriverContainer;
 
-class Executor {
-public:
+class Executor final : public rt::IExecutor {
+  public:
     Executor();
+    ~Executor() override;
 
-    ~Executor();
     Executor(Executor&&) noexcept;
     Executor& operator=(Executor&&) noexcept;
+    // No copy
     Executor(const Executor&) = delete;
     Executor& operator=(const Executor&) = delete;
 
-    int execute(net::Command& cmd);
+  private:
+    int handle_app(net::Command& cmd) override;
 
-private:
     struct Impl;
     std::unique_ptr<Impl> p_;
 };
