@@ -42,8 +42,8 @@ quiet_cmd_tpl = TPL $@
 # -----------------------------------------------------------------------------
 
 SERVER_TEMPLATES := $(wildcard $(SERVER_PATH)/templates/*.hpp $(SERVER_PATH)/templates/*.cpp)
-SERVER_CPP := $(wildcard $(SERVER_PATH)/core/*.cpp) \
-              $(wildcard $(SERVER_PATH)/core/drivers/*.cpp) \
+SERVER_CPP := $(wildcard $(SERVER_PATH)/network/*.cpp) \
+              $(wildcard $(SERVER_PATH)/executor/*.cpp) \
               $(wildcard $(SERVER_PATH)/utilities/*.cpp) \
               $(wildcard $(SERVER_PATH)/main/*.cpp)
 SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(SERVER_CPP))))
@@ -148,7 +148,7 @@ DEP := $(subst .o,.d,$(OBJ))
 # Compiler
 # -----------------------------------------------------------------------------
 
-SERVER_INCLUDE_DIRS = -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/core -I$(SERVER_PATH)/utilities -I$(SERVER_PATH)/hardware -I$(SDK_PATH) -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
+SERVER_INCLUDE_DIRS = -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SDK_PATH) -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 
 SERVER_CCXX = $(DOCKER) ccache $(GCC_ARCH)-g++-$(GCC_VERSION) -flto=$(N_CPUS)
 
@@ -205,11 +205,11 @@ $(OBJ): | $(PCH_GCH)
 # -----------------------------------------------------------------------------
 
 # --- compile rules must wait for generated headers ---
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/%.cpp | $(GEN_HEADERS)
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/network/%.cpp | $(GEN_HEADERS)
 	$(call echo-cmd,cxx)
 	$(Q)$(call cmd,cmd_cxx)
 
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/drivers/%.cpp | $(GEN_HEADERS)
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/executor/%.cpp | $(GEN_HEADERS)
 	$(call echo-cmd,cxx)
 	$(Q)$(call cmd,cmd_cxx)
 

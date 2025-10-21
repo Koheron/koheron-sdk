@@ -7,9 +7,9 @@
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/drivers_table.hpp"
-#include "server/core/configs/server_definitions.hpp"
-#include "server/core/buffer.hpp"
-#include "server/core/session.hpp"
+#include "server/network/configs/server_definitions.hpp"
+#include "server/network/buffer.hpp"
+#include "server/network/session.hpp"
 #include "server/utilities/concepts.hpp"
 #include "server/utilities/meta_utils.hpp"
 

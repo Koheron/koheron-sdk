@@ -1,8 +1,8 @@
 #ifndef __SERVER_CORE_DRIVER_ADAPTER_HPP__
 #define __SERVER_CORE_DRIVER_ADAPTER_HPP__
 
-#include "server/core/drivers/driver.hpp"
-#include "server/core/commands.hpp"
+#include "server/executor/driver.hpp"
+#include "server/network/commands.hpp"
 #include "server/utilities/meta_utils.hpp"
 
 #include <array>

@@ -12,7 +12,7 @@
 #include "server/runtime/services.hpp"
 
 #ifdef KOHERON_SERVER_BUILD
-  #include "server/core/drivers/drivers_config.hpp"
+  #include "server/executor/drivers_config.hpp"
 #else
   #include <drivers_config.hpp>
 #endif

@@ -5,13 +5,12 @@
 #ifndef __DRIVERS_MEMORY_HPP__
 #define __DRIVERS_MEMORY_HPP__
 
+#include "server/hardware/zynq_fclk.hpp"
+
 #include <array>
 #include <tuple>
 #include <cstdint>
 #include <string_view>
-
-#include <zynq_fclk.hpp>
-
 #include <sys/mman.h> // PROT_READ, PROT_WRITE
 
 namespace mem {

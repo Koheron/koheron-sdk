@@ -4,9 +4,9 @@
 #define __KOHERON_SOCKET_SESSION_HPP__
 
 #include "server/runtime/syslog.hpp"
-#include "server/core/configs/server_definitions.hpp"
-#include "server/core/session.hpp"
-#include "server/core/websocket.hpp"
+#include "server/network/configs/server_definitions.hpp"
+#include "server/network/session.hpp"
+#include "server/network/websocket.hpp"
 
 #include <string>
 #include <vector>
