@@ -161,7 +161,8 @@ class Command
             c.resize(length);
             const auto err = read_exact(
                 comm_fd,
-                std::as_writable_bytes(std::span{c.data(), length})
+                std::as_writable_bytes(
+                    std::span{c.data(), static_cast<std::size_t>(length)})
             );
 
             if (err >= 0) {
