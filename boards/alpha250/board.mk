@@ -9,4 +9,4 @@ UBOOT_CONFIG = zynq_alpha250_defconfig
 FSBL_PATH := $(OS_PATH)/alpha/fsbl
 PATCHES := boards/alpha250/patches
 
-BOARD_DTSO := boards/alpha250/patches/board.dtso
+BOARD_DTSO := boards/alpha250/config/board.dtso
