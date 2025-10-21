@@ -1,7 +1,7 @@
 // driver_executor.cpp
 
-#include "server/core/drivers/driver_executor.hpp"
-#include "server/core/drivers/drivers_config.hpp"
+#include "server/executor/driver_executor.hpp"
+#include "server/executor/drivers_config.hpp"
 #include "server/core/commands.hpp"
 
 #include "server/utilities/meta_utils.hpp"

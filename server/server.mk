@@ -43,7 +43,7 @@ quiet_cmd_tpl = TPL $@
 
 SERVER_TEMPLATES := $(wildcard $(SERVER_PATH)/templates/*.hpp $(SERVER_PATH)/templates/*.cpp)
 SERVER_CPP := $(wildcard $(SERVER_PATH)/core/*.cpp) \
-              $(wildcard $(SERVER_PATH)/core/drivers/*.cpp) \
+              $(wildcard $(SERVER_PATH)/executor/*.cpp) \
               $(wildcard $(SERVER_PATH)/utilities/*.cpp) \
               $(wildcard $(SERVER_PATH)/main/*.cpp)
 SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(SERVER_CPP))))
@@ -209,7 +209,7 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/%.cpp | $(GEN_HEADERS)
 	$(call echo-cmd,cxx)
 	$(Q)$(call cmd,cmd_cxx)
 
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/core/drivers/%.cpp | $(GEN_HEADERS)
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/executor/%.cpp | $(GEN_HEADERS)
 	$(call echo-cmd,cxx)
 	$(Q)$(call cmd,cmd_cxx)
 

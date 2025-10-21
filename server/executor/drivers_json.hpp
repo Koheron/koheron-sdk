@@ -3,7 +3,7 @@
 
 #include "server/utilities/reflections.hpp"
 #include "server/utilities/meta_utils.hpp"
-#include "server/core/drivers/driver_adapter.hpp"
+#include "server/executor/driver_adapter.hpp"
 
 #include <cstdint>
 #include <string>

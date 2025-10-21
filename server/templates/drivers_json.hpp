@@ -5,7 +5,7 @@
 #ifndef __DRIVERS_JSON_HPP__
 #define __DRIVERS_JSON_HPP__
 
-#include "server/core/drivers/drivers_json.hpp"
+#include "server/executor/drivers_json.hpp"
 #include <interface_drivers.hpp>
 
 namespace koheron {

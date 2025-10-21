@@ -3,4 +3,5 @@
 * `runtime/`: OS services (systemd notify, signals, logger).
 * `drivers/`: Generic drivers for basic IPs (FIFO, DMA, ...).
 * `core/`: Core server communication.
+* `executor/`: Drivers execution interface.
 * `utilities/`: Misc. utilities.
