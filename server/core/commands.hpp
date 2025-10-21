@@ -77,21 +77,25 @@ class Command
     : header(HEADER_START)
     {}
 
+    // op_invoke:
+    // Invoke a pointer-to-member-function (pmf) of class C.
+    // If the function does not return void it sends the result back to the caller.
+
     // Non-const member functions
-    template<int DriverID, int OpID, class C, class Ret, class... Args>
+    template<class C, class Ret, class... Args>
     int op_invoke(C& obj, Ret (C::*pmf)(Args...)) {
-        return op_invoke_impl<DriverID, OpID>(obj, pmf);
+        return op_invoke_impl(obj, pmf);
     }
 
     // const member functions
-    template<int DriverID, int OpID, class C, class Ret, class... Args>
+    template<class C, class Ret, class... Args>
     int op_invoke(const C& obj, Ret (C::*pmf)(Args...) const) {
-        return op_invoke_impl<DriverID, OpID>(obj, pmf);
+        return op_invoke_impl(obj, pmf);
     }
 
-    template<uint16_t DriverID, uint16_t OpID, typename... Args>
+    template<typename... Args>
     int send(Args&&... args) {
-        return session->send<DriverID, OpID>(std::forward<Args>(args)...);
+        return session->send(driver, operation, std::forward<Args>(args)...);
     }
 
     driver_id driver = 0;   // The driver to control
@@ -209,7 +213,7 @@ class Command
         return ok;
     }
 
-    template<int DriverID, int OpID, class Obj, class PMF>
+    template<class Obj, class PMF>
     int op_invoke_impl(Obj&& obj, PMF pmf) {
         using traits     = pmf_traits<PMF>;
         using Ret        = typename traits::ret;
@@ -230,7 +234,7 @@ class Command
                 return 0;
             } else {
                 decltype(auto) r = std::invoke(pmf, std::forward<Obj>(obj));
-                return send<DriverID, OpID>(std::forward<decltype(r)>(r));
+                return send(std::forward<decltype(r)>(r));
             }
         } else {
             using IS = std::make_index_sequence<N>;
@@ -250,7 +254,7 @@ class Command
                 decltype(auto) r = std::apply([&](auto&... a) -> decltype(auto) {
                     return std::invoke(pmf, std::forward<Obj>(obj), a...);
                 }, args);
-                return send<DriverID, OpID>(std::forward<decltype(r)>(r));
+                return send(std::forward<decltype(r)>(r));
             }
         }
     }

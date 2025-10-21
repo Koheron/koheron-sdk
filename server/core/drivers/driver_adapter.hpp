@@ -68,25 +68,12 @@ struct Op {
     }
 };
 
-// Force a specific id
-template<auto PMF, int FixedID>
-struct OpAt {
-    static constexpr auto pmf = PMF;
-    static constexpr int  id  = FixedID;
-};
-
-template<class C, int DriverID, auto PMF, int OpID>
+template<class C, auto PMF>
 struct OpThunk {
     static int call(C& obj, Command& cmd) {
-        return cmd.op_invoke<DriverID, OpID>(obj, PMF);
+        return cmd.op_invoke(obj, PMF);
     }
 };
-
-template<class T, class = void>
-struct has_id : std::false_type {};
-
-template<class T>
-struct has_id<T, std::void_t<decltype(T::id)>> : std::true_type {};
 
 template<int DriverID, class C, class... Ops>
 class DriverAdapter : public DriverAbstract {
@@ -111,16 +98,15 @@ class DriverAdapter : public DriverAbstract {
 
     using Entry = int(*)(C&, Command&);
 
-    template<std::size_t I, class Op>
+    template<std::size_t I>
     static constexpr int op_id_for() {
-        if constexpr (has_id<Op>::value) return Op::id;
-        else return static_cast<int>(I);     // position == id
+        return static_cast<int>(I);     // position == id
     }
 
     template<std::size_t... I>
     static constexpr int max_id(std::index_sequence<I...>) {
         int m = -1;
-        ((m = (op_id_for<I, Ops>() > m ? op_id_for<I, Ops>() : m)), ...);
+        ((m = (op_id_for<I>() > m ? op_id_for<I>() : m)), ...);
         return m;
     }
 
@@ -131,8 +117,8 @@ class DriverAdapter : public DriverAbstract {
         std::array<Entry, N> a{}; // all nullptr
 
         // Assign each slot via a fold; no loops -> constexpr friendly.
-        (( a[ op_id_for<I, Ops>() ] =
-              &OpThunk<C, DriverID, Ops::pmf, op_id_for<I, Ops>()>::call ), ...);
+        (( a[ op_id_for<I>() ] =
+              &OpThunk<C, Ops::pmf>::call ), ...);
 
         return a;
     }

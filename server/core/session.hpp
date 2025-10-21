@@ -26,11 +26,11 @@ class Session
 
     virtual ~Session() = default;
 
-    template<uint16_t class_id, uint16_t func_id, typename... Args>
-    int send(Args&&... args) {
+    template<typename... Args>
+    int send(uint16_t class_id, uint16_t func_id, Args&&... args) {
         // build into base-owned buffer
         builder.reset_into(send_buffer);
-        builder.template write_header<class_id, func_id>();
+        builder.write_header(class_id, func_id);
         builder.push(std::forward<Args>(args)...);
 
         int n = write_bytes(std::as_bytes(std::span{send_buffer}));

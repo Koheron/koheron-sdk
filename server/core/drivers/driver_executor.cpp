@@ -65,9 +65,9 @@ struct DriverExecutor::Impl {
         if (cmd.driver == 1) { // Server
             switch (cmd.operation) {
             case GET_VERSION:
-                return cmd.send<1, GET_VERSION>(KOHERON_VERSION);
+                return cmd.send(KOHERON_VERSION);
             case GET_CMDS:
-                return cmd.send<1, GET_CMDS>(build_drivers_json());
+                return cmd.send(build_drivers_json());
             case server_op_num:
             default:
                 log<ERROR>("Server::execute unknown operation\n");

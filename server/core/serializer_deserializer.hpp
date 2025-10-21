@@ -257,8 +257,7 @@ struct CommandBuilder {
     }
 
     // header (length filled in finalize)
-    template<uint16_t class_id, uint16_t func_id>
-    void write_header() {
+    void write_header(uint16_t class_id, uint16_t func_id) {
         auto p = append_raw(4 + 2 + 2);
         append<uint32_t>(p, 0); // Reserved
         append<uint16_t>(p + 4, class_id);
