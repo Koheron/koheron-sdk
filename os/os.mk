@@ -8,8 +8,6 @@ DTREE_TAG ?= xilinx_v$(VIVADO_VERSION)
 UBOOT_URL := https://github.com/Xilinx/u-boot-xlnx/archive/xilinx-v$(VIVADO_VERSION).tar.gz
 DTREE_URL := https://github.com/Xilinx/device-tree-xlnx/archive/refs/tags/$(DTREE_TAG).tar.gz
 
-include $(OS_PATH)/rootfs.mk
-
 UBOOT_PATH ?= $(TMP_OS_BOARD_PATH)/u-boot-xlnx-$(UBOOT_TAG)
 DTREE_PATH := $(TMP_OS_PATH)/device-tree-xlnx-$(DTREE_TAG)
 
@@ -337,55 +335,3 @@ os: $(OS_FILES)
 clean_os:
 	rm -rf $(TMP_OS_PATH)
 
-.PHONY: base-rootfs
-base-rootfs: $(BASE_ROOTFS_TAR)
-
-.PHONY: clean-base-rootfs
-clean-base-rootfs:
-	rm -f $(BASE_ROOTFS_TAR)
-
-$(BASE_ROOTFS_TAR): \
-  $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
-  $(OS_PATH)/scripts/chroot_base_rootfs.sh \
-  $(ROOT_TAR_PATH)
-	@mkdir -p $(@D)
-	@test -s "$(ROOT_TAR_PATH)" || { echo "Missing root tar: $(ROOT_TAR_PATH)"; exit 1; }
-	# Optional envs: TIMEZONE, PASSWD
-	$(DOCKER_ROOT) bash $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
-	  "$(ROOT_TAR_PATH)" "$@" "$(QEMU_BIN)"
-	$(call ok,$@)
-
-EXTLINUX_CONF ?= $(OS_PATH)/extlinux.conf
-
-$(RELEASE_ZIP): $(BASE_ROOTFS_TAR) \
-  $(OS_FILES) \
-  $(OS_PATH)/scripts/build_image.sh \
-  $(OVERLAY_TAR) $(MANIFEST_TXT) $(EXTLINUX_CONF) \
-  $(OS_PATH)/scripts/chroot_overlay.sh
-	@mkdir -p $(@D)
-	@test -s "$(OVERLAY_TAR)" || { echo "Missing overlay tar: $(OVERLAY_TAR)"; exit 1; }
-	$(DOCKER_ROOT) env BASE_ROOTFS_TAR="$(BASE_ROOTFS_TAR)" \
-		EXTLINUX_CONF="$(EXTLINUX_CONF)" \
-		bash $(OS_PATH)/scripts/build_image.sh \
-		"$(TMP_PROJECT_PATH)" "$(OS_PATH)" "$(TMP_OS_PATH)" \
-		"$(ROOT_TAR_PATH)" "$(OVERLAY_TAR)" "$(QEMU_BIN)" \
-		"$(RELEASE_NAME)"
-	$(call ok,$@)
-
-# Build image
-.PHONY: image
-image: $(RELEASE_ZIP)
-
-# Flash image on SD card
-FLASH_ALLOWED_VENDORS ?= TS-RDF5 TS-RDF5A
-FLASH_ALLOWED_MODELS  ?= SD_Transcend Transcend
-FLASH_DEVICES         ?=
-FLASH_DEVICE          ?=
-
-.PHONY: flash
-flash:
-	FLASH_ALLOWED_VENDORS="$(FLASH_ALLOWED_VENDORS)" \
-	FLASH_ALLOWED_MODELS="$(FLASH_ALLOWED_MODELS)" \
-	FLASH_DEVICES="$(FLASH_DEVICES)" \
-	FLASH_DEVICE="$(FLASH_DEVICE)" \
-	python3 $(OS_PATH)/scripts/flash_all.py $(TMP_PROJECT_PATH)/$(RELEASE_NAME).zip

@@ -150,17 +150,10 @@ $(TMP_WWW_PATH)/html-imports.min.js.map:
 	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js.map -o $@
 
 ###############################################################################
-# ROOTFS
+# BASE ROOTFS
 ###############################################################################
 
 UBUNTU_VERSION ?= 24.04.3
-ifeq ($(ZYNQ_TYPE),zynqmp)
-  UBUNTU_ARCH := arm64
-  QEMU_BIN    := /usr/bin/qemu-aarch64-static
-else
-  UBUNTU_ARCH := armhf
-  QEMU_BIN    := /usr/bin/qemu-arm-static
-endif
 
 ROOT_TAR      := ubuntu-base-$(UBUNTU_VERSION)-base-$(UBUNTU_ARCH).tar.gz
 ROOT_TAR_URL  := https://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/$(ROOT_TAR)
@@ -190,6 +183,24 @@ $(ROOT_TAR_PATH): $(SHA256SUMS_PATH)
 	  status=$$?; \
 	  if [ $$status -ne 0 ]; then echo "Checksum verification FAILED for $(ROOT_TAR)"; rm -f $(@F); exit $$status; fi
 	$(call ok,$@)
+
+$(BASE_ROOTFS_TAR): \
+  $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
+  $(OS_PATH)/scripts/chroot_base_rootfs.sh \
+  $(ROOT_TAR_PATH)
+	@mkdir -p $(@D)
+	@test -s "$(ROOT_TAR_PATH)" || { echo "Missing root tar: $(ROOT_TAR_PATH)"; exit 1; }
+	# Optional envs: TIMEZONE, PASSWD
+	$(DOCKER_ROOT) bash $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
+	  "$(ROOT_TAR_PATH)" "$@" "$(QEMU_BIN)"
+	$(call ok,$@)
+
+.PHONY: base-rootfs
+base-rootfs: $(BASE_ROOTFS_TAR)
+
+.PHONY: clean-base-rootfs
+clean-base-rootfs:
+	rm -f $(BASE_ROOTFS_TAR)
 
 ###############################################################################
 # ROOTFS OVERLAY
@@ -385,3 +396,42 @@ clean_overlay_rootfs:
 	       $(OVERLAY_DIR)/etc/koheron-release \
 	       $(OVERLAY_DIR)/usr/local/www/.stamp \
 	       $(OVERLAY_DIR)/usr/local/api/.stamp
+
+
+###############################################################################
+# SD CARD IMAGE
+###############################################################################
+
+EXTLINUX_CONF ?= $(OS_PATH)/extlinux.conf
+
+$(RELEASE_ZIP): $(BASE_ROOTFS_TAR) \
+  $(OS_FILES) \
+  $(OS_PATH)/scripts/build_image.sh \
+  $(OVERLAY_TAR) $(MANIFEST_TXT) $(EXTLINUX_CONF) \
+  $(OS_PATH)/scripts/chroot_overlay.sh
+	@mkdir -p $(@D)
+	@test -s "$(OVERLAY_TAR)" || { echo "Missing overlay tar: $(OVERLAY_TAR)"; exit 1; }
+	$(DOCKER_ROOT) env BASE_ROOTFS_TAR="$(BASE_ROOTFS_TAR)" \
+		EXTLINUX_CONF="$(EXTLINUX_CONF)" \
+		bash $(OS_PATH)/scripts/build_image.sh \
+		"$(TMP_PROJECT_PATH)" "$(OS_PATH)" "$(TMP_OS_PATH)" \
+		"$(ROOT_TAR_PATH)" "$(OVERLAY_TAR)" "$(QEMU_BIN)" \
+		"$(RELEASE_NAME)"
+	$(call ok,$@)
+
+.PHONY: image
+image: $(RELEASE_ZIP)
+
+# Flash image on SD card
+FLASH_ALLOWED_VENDORS ?= TS-RDF5 TS-RDF5A
+FLASH_ALLOWED_MODELS  ?= SD_Transcend Transcend
+FLASH_DEVICES         ?=
+FLASH_DEVICE          ?=
+
+.PHONY: flash
+flash:
+	FLASH_ALLOWED_VENDORS="$(FLASH_ALLOWED_VENDORS)" \
+	FLASH_ALLOWED_MODELS="$(FLASH_ALLOWED_MODELS)" \
+	FLASH_DEVICES="$(FLASH_DEVICES)" \
+	FLASH_DEVICE="$(FLASH_DEVICE)" \
+	python3 $(OS_PATH)/scripts/flash_all.py $(TMP_PROJECT_PATH)/$(RELEASE_NAME).zip

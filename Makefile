@@ -103,6 +103,8 @@ MEMORY_YML ?= $(PROJECT_PATH)/memory.yml
 BD_TCL ?= $(PROJECT_PATH)/block_design.tcl
 TCL_FILES ?= $(BD_TCL) $(wildcard $(PROJECT_PATH)/tcl/*.tcl)
 
+INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
+
 ifdef VERBOSE
 $(info ------------------------)
 $(info CONFIG_MK = $(CONFIG_MK))
@@ -142,6 +144,7 @@ include $(OS_PATH)/linux.mk
 include $(DOCKER_MK)
 include $(FPGA_MK)
 include $(OS_MK)
+include $(OS_PATH)/rootfs.mk
 include $(SERVER_MK)
 include $(WEB_MK)
 
@@ -151,11 +154,11 @@ include $(WEB_MK)
 
 # The instrument is packaged in a zip file that contains:
 # - FPGA bitstream
+# - Device tree overlay
 # - TCP / Websocket server
 # - Web files (HTML, CSS, Javascript)
 
 # Zip file that contains all the files needed to run the instrument:
-INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
 $(INSTRUMENT_ZIP): $(SERVER) $(DRIVERS_JSON_OUT) $(BITSTREAM) $(WEB_ASSETS) $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM).bin $(VERSION_FILE) | $(TMP_PROJECT_PATH)/ $(TMP)/$(BOARD)/instruments/
 	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM).bin $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM) $(SERVER) $(DRIVERS_JSON_OUT) $(WEB_ASSETS) $(VERSION_FILE)
 	cp $(INSTRUMENT_ZIP) $(TMP)/$(BOARD)/instruments/$(NAME).zip

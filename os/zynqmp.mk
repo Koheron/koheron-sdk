@@ -16,3 +16,6 @@ ATRUST_PATH := $(TMP_OS_PATH)/a-trust-xlnx-$(ATRUST_TAG)
 ATRUST_TAR := $(TMP)/arm-trust-xlnx-$(ATRUST_TAG).tar.gz
 
 KERNEL_BIN := Image
+
+UBUNTU_ARCH := arm64
+QEMU_BIN    := /usr/bin/qemu-aarch64-static

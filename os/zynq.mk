@@ -11,3 +11,6 @@ UBOOT_CFLAGS := -O2 -march=armv7-a -mfpu=neon -mfloat-abi=hard
 BOOT_BIN := boot.bin
 
 KERNEL_BIN := zImage
+
+UBUNTU_ARCH := armhf
+QEMU_BIN    := /usr/bin/qemu-arm-static
