@@ -16,15 +16,6 @@ DTREE_PATH := $(TMP_OS_PATH)/device-tree-xlnx-$(DTREE_TAG)
 UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
-DTB_SWITCH = $(TMP_OS_PATH)/devicetree.dtb
-ifdef DTREE_OVERRIDE
-DTB_SWITCH = $(TMP_OS_PATH)/devicetree_$(DTREE_LOC)
-endif
-ABS_DTB_SWITCH  := $(abspath $(DTB_SWITCH))
-
-FIT_ITS := $(TMP_OS_PATH)/kernel.its
-FIT_ITB := $(TMP_OS_PATH)/kernel.itb
-
 BOOT_MEDIUM ?= mmcblk0
 
 OS_FILES := \
@@ -32,8 +23,8 @@ OS_FILES := \
   $(API_FILES) \
   $(WWW_ASSETS) \
   $(TMP_OS_PATH)/$(BOOTCALL) \
-  $(FIT_ITB) \
-  $(DTB_SWITCH) \
+  $(TMP_OS_PATH)/kernel.itb \
+  $(TMP_OS_PATH)/devicetree.dtb
 
 .PHONY: os
 os: $(OS_FILES)
@@ -59,8 +50,7 @@ $(BASE_ROOTFS_TAR): \
 EXTLINUX_CONF ?= $(OS_PATH)/extlinux.conf
 
 $(RELEASE_ZIP): $(BASE_ROOTFS_TAR) \
-  $(INSTRUMENT_ZIP) \
-  $(TMP_OS_PATH)/$(BOOTCALL) $(FIT_ITB) $(DTB_SWITCH) \
+  $(OS_FILES) \
   $(OS_PATH)/scripts/build_image.sh \
   $(OVERLAY_TAR) $(MANIFEST_TXT) $(EXTLINUX_CONF) \
   $(OS_PATH)/scripts/chroot_overlay.sh
@@ -238,7 +228,7 @@ $(TMP_OS_PATH)/bootmp.bin: \
 	$(call ok,$@)
 
 ###############################################################################
-# DEVICE TREE
+# devicetree.dtb
 ###############################################################################
 
 $(DTREE_TAR):
@@ -259,6 +249,13 @@ $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTRE
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/devicetree $< $(BOOT_MEDIUM)
 	$(call ok,$@)
 
+$(TMP_OS_PATH)/devicetree.dtb: $(DTC_BIN)  $(TMP_OS_PATH)/devicetree/system-top.dts
+	$(DOCKER) gcc -I $(TMP_OS_PATH)/devicetree/ -I $(TMP_OS_PATH)/devicetree/include/ -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
+		$(TMP_OS_PATH)/devicetree/system-top.dts.tmp $(TMP_OS_PATH)/devicetree/system-top.dts
+	$(DOCKER) $(DTC_BIN) -I dts -O dtb -o $@ \
+	  -i $(TMP_OS_PATH)/devicetree -b 0 -@ $(TMP_OS_PATH)/devicetree/system-top.dts.tmp
+	$(call ok,$@)
+
 .PHONY: clean_devicetree
 clean_devicetree:
 	rm -rf $(TMP_OS_PATH)/devicetree
@@ -266,9 +263,6 @@ clean_devicetree:
 ###############################################################################
 # pl.dtbo
 ###############################################################################
-
-.PHONY: pl.dtsi
-pl.dtsi: $(TMP_OS_PATH)/pl-overlay/pl.dtsi
 
 $(TMP_OS_PATH)/pl-overlay/pl.dtsi: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.unpacked | $(TMP_OS_PATH)/pl-overlay/
 	mkdir -p $(@D)
@@ -326,35 +320,14 @@ $(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso
 	$(call ok,$@)
 
 ###############################################################################
-# LINUX
+# uImage / Image
 ###############################################################################
 
 $(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_BUILD_STAMP) | $(TMP_OS_PATH)/
 	cp "$(LINUX_PATH)/arch/$(ARCH)/boot/$(KERNEL_BIN)" "$@"
 
-$(TMP_OS_PATH)/devicetree.dtb: $(DTC_BIN)  $(TMP_OS_PATH)/devicetree/system-top.dts
-	$(DOCKER) gcc -I $(TMP_OS_PATH)/devicetree/ -I $(TMP_OS_PATH)/devicetree/include/ -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
-		$(TMP_OS_PATH)/devicetree/system-top.dts.tmp $(TMP_OS_PATH)/devicetree/system-top.dts
-	$(DOCKER) $(DTC_BIN) -I dts -O dtb -o $@ \
-	  -i $(TMP_OS_PATH)/devicetree -b 0 -@ $(TMP_OS_PATH)/devicetree/system-top.dts.tmp
-	$(call ok,$@)
-
-.PHONY: $(TMP_OS_PATH)/devicetree_linux
-$(TMP_OS_PATH)/devicetree_linux: $(DTC_BIN)
-	echo ${DTREE_OVERRIDE}
-	cp -a $(OS_PATH)/patches/linux/. $(LINUX_PATH)/ 2>/dev/null || true
-	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) CROSS_COMPILE=$(GCC_ARCH)- dtbs -j$(N_CPUS)
-	cp $(LINUX_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
-	$(call ok,$@)
-
-.PHONY: $(TMP_OS_PATH)/devicetree_uboot
-$(TMP_OS_PATH)/devicetree_uboot: $(TMP_OS_PATH)/u-boot.elf
-	echo ${DTREE_OVERRIDE}
-	cp $(UBOOT_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
-	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
-
 ###############################################################################
-# FIT
+# kernel.itb
 ###############################################################################
 
 define ITS_TEMPLATE
@@ -376,7 +349,7 @@ define ITS_TEMPLATE
     };
     fdt {
       description = "Base Device Tree";
-      data = /incbin/("$(ABS_DTB_SWITCH)");
+      data = /incbin/("$(ABS_TMP_OS_PATH)/devicetree.dtb");
       type = "flat_dt";
       arch = "$(ARCH)";
       compression = "none";
@@ -405,11 +378,11 @@ define ITS_TEMPLATE
 };
 endef
 
-$(FIT_ITS): $(TMP_OS_PATH)/$(KERNEL_BIN) $(DTB_SWITCH) $(TMP_OS_PATH)/board-overlay/board.dtbo | $(TMP_OS_PATH)/
+$(TMP_OS_PATH)/kernel.its: $(TMP_OS_PATH)/$(KERNEL_BIN) $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_PATH)/board-overlay/board.dtbo | $(TMP_OS_PATH)/
 	@$(file >$@,$(ITS_TEMPLATE))
 	$(call ok,$@)
 
-$(FIT_ITB): $(FIT_ITS) | $(TMP_OS_PATH)/
+$(TMP_OS_PATH)/kernel.itb: $(TMP_OS_PATH)/kernel.its | $(TMP_OS_PATH)/
 	mkimage -f $< $@
 	$(call ok,$@)
 
