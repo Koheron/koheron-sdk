@@ -3,10 +3,10 @@
 ///
 /// (c) Koheron
 
-#include "server/core/listening_channel.hpp"
-#include "server/core/configs/config.hpp"
-#include "server/core/socket_session.hpp"
-#include "server/core/sockets.hpp"
+#include "server/network/listening_channel.hpp"
+#include "server/network/configs/config.hpp"
+#include "server/network/socket_session.hpp"
+#include "server/network/sockets.hpp"
 #include "server/runtime/syslog.hpp"
 
 #include <thread>

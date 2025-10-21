@@ -5,7 +5,7 @@
 #ifndef __SERVER_CORE_LISTENING_CHANNEL_HPP__
 #define __SERVER_CORE_LISTENING_CHANNEL_HPP__
 
-#include "server/core/configs/server_definitions.hpp"
+#include "server/network/configs/server_definitions.hpp"
 #include "server/runtime/syslog.hpp"
 
 #include <atomic>

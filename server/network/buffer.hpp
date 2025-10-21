@@ -1,7 +1,7 @@
 #ifndef __SERVER_CORE_BUFFER_HPP__
 #define __SERVER_CORE_BUFFER_HPP__
 
-#include "server/core/serializer_deserializer.hpp"
+#include "server/network/serializer_deserializer.hpp"
 
 #include <array>
 #include <vector>

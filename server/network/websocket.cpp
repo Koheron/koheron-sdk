@@ -4,7 +4,7 @@
 ///
 /// (c) Koheron
 
-#include "server/core/websocket.hpp"
+#include "server/network/websocket.hpp"
 #include "server/utilities/base64.hpp"
 #include "server/utilities/sha1.hpp"
 #include "server/utilities/endian_utils.hpp"

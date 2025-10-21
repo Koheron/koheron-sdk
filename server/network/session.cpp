@@ -1,7 +1,7 @@
 #include "server/runtime/services.hpp"
 #include "server/runtime/syslog.hpp"
-#include "server/core/commands.hpp"
-#include "server/core/session.hpp"
+#include "server/network/commands.hpp"
+#include "server/network/session.hpp"
 #include "server/executor/driver_executor.hpp"
 
 namespace koheron {

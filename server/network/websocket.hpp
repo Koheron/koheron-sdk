@@ -6,8 +6,8 @@
 #define __WEBSOCKET_HPP__
 
 #include "server/runtime/syslog.hpp"
-#include "server/core/configs/server_definitions.hpp"
-#include "server/core/buffer.hpp"
+#include "server/network/configs/server_definitions.hpp"
+#include "server/network/buffer.hpp"
 
 #include <array>
 #include <string>

@@ -2,7 +2,7 @@
 #define __SERVER_CORE_DRIVER_ADAPTER_HPP__
 
 #include "server/executor/driver.hpp"
-#include "server/core/commands.hpp"
+#include "server/network/commands.hpp"
 #include "server/utilities/meta_utils.hpp"
 
 #include <array>

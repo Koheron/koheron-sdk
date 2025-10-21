@@ -5,11 +5,11 @@
 #ifndef __SERVER_CORE_LISTENER_MANAGER_HPP__
 #define __SERVER_CORE_LISTENER_MANAGER_HPP__
 
-#include "server/core/configs/server_definitions.hpp"
-#include "server/core/configs/config.hpp"
-#include "server/core/listening_channel.hpp"
-#include "server/core/session_manager.hpp"
-#include "server/core/socket_session.hpp"
+#include "server/network/configs/server_definitions.hpp"
+#include "server/network/configs/config.hpp"
+#include "server/network/listening_channel.hpp"
+#include "server/network/session_manager.hpp"
+#include "server/network/socket_session.hpp"
 
 #include "server/runtime/services.hpp"
 #include "server/runtime/syslog.hpp"

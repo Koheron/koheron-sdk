@@ -15,8 +15,8 @@
 #include "server/runtime/driver_manager.hpp"
 #include "server/runtime/config_manager.hpp"
 
-#include "server/core/session_manager.hpp"
-#include "server/core/listener_manager.hpp"
+#include "server/network/session_manager.hpp"
+#include "server/network/listener_manager.hpp"
 #include "server/executor/driver_executor.hpp"
 #include <drivers.hpp> // For call to Common
 

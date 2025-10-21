@@ -1,7 +1,7 @@
 /// (c) Koheron
 
-#include "server/core/socket_session.hpp"
-#include "server/core/commands.hpp"
+#include "server/network/socket_session.hpp"
+#include "server/network/commands.hpp"
 
 namespace koheron {
 
