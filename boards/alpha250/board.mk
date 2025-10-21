@@ -8,3 +8,5 @@ TMP_OS_BOARD_PATH := $(TMP)/alpha250
 UBOOT_CONFIG = zynq_alpha250_defconfig
 FSBL_PATH := $(OS_PATH)/alpha/fsbl
 PATCHES := boards/alpha250/patches
+
+BOARD_DTSO := boards/alpha250/patches/board.dtso

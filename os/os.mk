@@ -276,7 +276,7 @@ overlay: $(TMP_OS_PATH)/pl.dtbo
 .PHONY: devicetree
 devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
 
-phony: pl.dtsi
+.PHONY: pl.dtsi
 pl.dtsi: $(TMP_OS_PATH)/overlay/pl.dtsi
 
 $(TMP_OS_PATH)/overlay/pl.dtsi: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.unpacked
@@ -357,6 +357,27 @@ $(TMP_OS_PATH)/devicetree_linux: $(DTC_BIN)
 	cp $(LINUX_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
 	$(call ok,$@)
 
+BOARD_DTSO ?= $(OS_PATH)/board.dtso
+
+# copy the overlay source (path can be absolute or relative to your tree)
+$(TMP_OS_PATH)/board-overlay/board.dtso: $(BOARD_DTSO) | $(TMP_OS_PATH)/board-overlay/
+	cp $< $@
+	$(call ok,$@)
+
+# preprocess .dtso (CPP) → .tmp, then compile with dtc -@ (symbols required for overlays)
+$(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso $(LINUX_BUILD_STAMP)
+	# Preprocess so #include <dt-bindings/...> works
+	$(DOCKER) gcc -E -P -x assembler-with-cpp -nostdinc -undef -D__DTS__ \
+	  -I $(LINUX_PATH)/include \
+	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts \
+	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts/xilinx \
+	  -o $(TMP_OS_PATH)/board-overlay/board.pp $(TMP_OS_PATH)/board-overlay/board.dtso
+	# Compile overlay with symbols
+	$(DOCKER) $(DTC_BIN) -@ -I dts -O dtb -b 0 \
+	  -i $(LINUX_PATH)/arch/$(ARCH)/boot/dts -i $(LINUX_PATH)/arch/$(ARCH)/boot/dts/xilinx \
+	  -o $@ $(TMP_OS_PATH)/board-overlay/board.pp
+	$(call ok,$@)
+
 .PHONY: $(TMP_OS_PATH)/devicetree_uboot
 $(TMP_OS_PATH)/devicetree_uboot: $(TMP_OS_PATH)/u-boot.elf
 	echo ${DTREE_OVERRIDE}
@@ -375,7 +396,7 @@ define ITS_TEMPLATE
   description = "Linux + DTB (FIT)";
   #address-cells = <1>;
   images {
-    kernel@1 {
+    kernel {
       description = "Linux kernel";
       data = /incbin/("$(ABS_TMP_OS_PATH)/$(KERNEL_BIN)");
       type = "kernel";
@@ -384,27 +405,40 @@ define ITS_TEMPLATE
       compression = "none";
       load = <$(FIT_LOAD)>;
       entry = <$(FIT_LOAD)>;
+      hash-1 { algo = "sha256"; };
     };
-    fdt@1 {
-      description = "Device Tree";
+    fdt {
+      description = "Base Device Tree";
       data = /incbin/("$(ABS_DTB_SWITCH)");
       type = "flat_dt";
       arch = "$(ARCH)";
       compression = "none";
+	  load = <0x07000000>;
+      hash-1 { algo = "sha256"; };
+    };
+    overlay_board {
+      description = "Board overlay";
+      data = /incbin/("$(ABS_TMP_OS_PATH)/board-overlay/board.dtbo");
+      type = "flat_dt";
+      arch = "$(ARCH)";
+      compression = "none";
+      load = <0x07100000>;
+      hash-1 { algo = "sha256"; };
     };
   };
   configurations {
-    default = "conf@1";
-    conf@1 {
+    default = "conf";
+    conf {
       description = "Boot Linux kernel";
-      kernel = "kernel@1";
-      fdt = "fdt@1";
+      kernel = "kernel";
+      fdt = "fdt", "overlay_board";
+      hash-1 { algo = "sha256"; };
     };
   };
 };
 endef
 
-$(FIT_ITS): $(TMP_OS_PATH)/$(KERNEL_BIN) $(DTB_SWITCH) | $(TMP_OS_PATH)/
+$(FIT_ITS): $(TMP_OS_PATH)/$(KERNEL_BIN) $(DTB_SWITCH) $(TMP_OS_PATH)/board-overlay/board.dtbo | $(TMP_OS_PATH)/
 	@$(file >$@,$(ITS_TEMPLATE))
 	$(call ok,$@)
 

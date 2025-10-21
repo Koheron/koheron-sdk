@@ -1,0 +1,64 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/";
+		__overlay__ {
+			usb_phy0: phy1 {
+				#phy-cells = <0>;
+				compatible = "usb-nop-xceiv";
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&spi0>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			spidev@0 {
+				compatible = "rohm,dh2228fv";
+				reg = <0x0>;
+				spi-max-frequency = <10000000>;
+			};
+		};
+	};
+
+	fragment@2 {
+		target = <&spi1>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			spidev@0 {
+				compatible = "rohm,dh2228fv";
+				reg = <0x0>;
+				spi-max-frequency = <10000000>;
+			};
+		};
+	};
+
+	fragment@3 {
+        target-path = "/";
+        __overlay__ {
+            #address-cells = <2>;
+            #size-cells = <1>;
+
+            memory@0 {
+                device_type = "memory";
+                /* addr_hi, addr_lo, size */
+                reg = <0x0 0x0 0x18000000>;
+            };
+        };
+	};
+
+	fragment@4 {
+		target = <&usb0>;
+		__overlay__ {
+			dr_mode = "host";
+			usb-phy = <&usb_phy0>;
+			/delete-property/ phy_type;
+		};
+	};
+
+};

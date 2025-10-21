@@ -22,5 +22,13 @@ int main() {
         return -1;
     }
 
+    rt::systemd::notify_ready();
+
+    while (true) {
+        using namespace std::chrono_literals;
+        log("Server alive\n");
+        std::this_thread::sleep_for(1s);
+    }
+
     return 0;
 }
