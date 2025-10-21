@@ -6,5 +6,8 @@ GCC_ARCH := arm-linux-gnueabihf
 LINUX_IMAGE := uImage
 ARCH := arm
 
+UBOOT_ARCH := $(ARCH)
+UBOOT_CFLAGS := -O2 -march=armv7-a -mfpu=neon -mfloat-abi=hard
+
 BOOTCALL := boot.bin
 

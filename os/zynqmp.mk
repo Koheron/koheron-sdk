@@ -8,6 +8,9 @@ ARCH := arm64
 
 BOOTCALL := bootmp.bin
 
+UBOOT_ARCH := arm
+UBOOT_CFLAGS := -O2
+
 ARMTRUST_URL := https://github.com/Xilinx/arm-trusted-firmware/archive/xilinx-v$(VIVADO_VERSION).tar.gz
 ATRUST_TAG := arm-trust-v$(VIVADO_VERSION)
 ATRUST_PATH := $(TMP_OS_PATH)/a-trust-xlnx-$(ATRUST_TAG)

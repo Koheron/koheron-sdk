@@ -5,10 +5,8 @@ TMP_OS_BOARD_PATH ?= $(TMP_PROJECT_PATH)/os
 UBOOT_TAG ?= xilinx-uboot-v$(VIVADO_VERSION)
 DTREE_TAG ?= xilinx_v$(VIVADO_VERSION)
 
-
 UBOOT_URL := https://github.com/Xilinx/u-boot-xlnx/archive/xilinx-v$(VIVADO_VERSION).tar.gz
 DTREE_URL := https://github.com/Xilinx/device-tree-xlnx/archive/refs/tags/$(DTREE_TAG).tar.gz
-
 
 include $(OS_PATH)/rootfs.mk
 
@@ -17,23 +15,6 @@ DTREE_PATH := $(TMP_OS_PATH)/device-tree-xlnx-$(DTREE_TAG)
 
 UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
-
-ifeq ($(origin UBOOT_ARCH), undefined)
-# U-Boot keeps 64-bit Arm platforms under arch/arm, so default to ARCH=arm
-ifeq ($(ARCH),arm64)
-UBOOT_ARCH := arm
-else
-UBOOT_ARCH := $(ARCH)
-endif
-endif
-
-ifeq ($(origin UBOOT_CFLAGS), undefined)
-ifeq ($(ARCH),arm64)
-UBOOT_CFLAGS := -O2
-else
-UBOOT_CFLAGS := -O2 -march=armv7-a -mfpu=neon -mfloat-abi=hard
-endif
-endif
 
 DTB_SWITCH = $(TMP_OS_PATH)/devicetree.dtb
 ifdef DTREE_OVERRIDE
@@ -116,7 +97,7 @@ clean_os:
 	rm -rf $(TMP_OS_PATH)
 
 ###############################################################################
-# First-stage boot loader
+# fsbl/executable.elf
 ###############################################################################
 
 # Additional files (including fsbl_hooks.c) can be added to the FSBL in $(BOARD_PATH)/patches/fsbl
@@ -150,7 +131,7 @@ clean_fsbl:
 	rm -rf $(TMP_OS_PATH)/fsbl
 
 ###############################################################################
-# U-Boot
+# u-boot.elf
 ###############################################################################
 
 $(UBOOT_TAR):
@@ -187,7 +168,7 @@ $(TMP_OS_PATH)/u-boot.elf: $(TMP_OS_BOARD_PATH)/u-boot.elf | $(TMP_OS_PATH)/
 	$(call ok,$@)
 
 ###############################################################################
-# pmufw
+# pmu/executable.elf
 ###############################################################################
 
 .PHONY: pmufw
@@ -206,7 +187,7 @@ clean_pmufw:
 	rm -rf $(TMP_OS_PATH)/pmu
 
 ###############################################################################
-# arm_trusted_firmware
+# bl31.elf
 ###############################################################################
 
 $(ATRUST_TAR):
@@ -270,19 +251,8 @@ $(DTREE_PATH)/.unpacked: $(DTREE_TAR) | $(DTREE_PATH)/
 	@touch $@
 	$(call ok,$@)
 
-.PHONY: overlay
-overlay: $(TMP_OS_PATH)/pl.dtbo
-
 .PHONY: devicetree
 devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
-
-.PHONY: pl.dtsi
-pl.dtsi: $(TMP_OS_PATH)/overlay/pl.dtsi
-
-$(TMP_OS_PATH)/overlay/pl.dtsi: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.unpacked
-	mkdir -p $(@D)
-	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/overlay $< $(BOOT_MEDIUM)
-	$(call ok,$@)
 
 $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.unpacked
 	mkdir -p $(@D)
@@ -293,9 +263,67 @@ $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTRE
 clean_devicetree:
 	rm -rf $(TMP_OS_PATH)/devicetree
 
-.PHONY: clean_overlay
-clean_overlay:
-	rm -rf $(TMP_OS_PATH)/overlay
+###############################################################################
+# pl.dtbo
+###############################################################################
+
+.PHONY: pl.dtsi
+pl.dtsi: $(TMP_OS_PATH)/pl-overlay/pl.dtsi
+
+$(TMP_OS_PATH)/pl-overlay/pl.dtsi: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.unpacked | $(TMP_OS_PATH)/pl-overlay/
+	mkdir -p $(@D)
+	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/pl-overlay $< $(BOOT_MEDIUM)
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/pl-overlay/memory.dtsi: $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi | $(TMP_OS_PATH)/pl-overlay/
+	$(MAKE_PY) --memory_dtsi $@ $<
+	$(call ok,$@)
+
+OVERRIDE_DTSI ?= $(FPGA_PATH)/override.dtsi
+
+$(TMP_OS_PATH)/pl-overlay/override.dtsi: $(OVERRIDE_DTSI) | $(TMP_OS_PATH)/pl-overlay/
+	cp $< $@
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/pl-overlay/pl_wrap.dts: $(FPGA_PATH)/pl_wrap.dts | $(TMP_OS_PATH)/pl-overlay/
+	cp $< $@
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/pl.dtbo: $(DTC_BIN) \
+  $(TMP_OS_PATH)/pl-overlay/pl.dtsi \
+  $(TMP_OS_PATH)/pl-overlay/memory.dtsi \
+  $(TMP_OS_PATH)/pl-overlay/override.dtsi \
+  $(TMP_OS_PATH)/pl-overlay/pl_wrap.dts
+	sed -i 's/".bin"/"$(NAME).bit.bin"/g' $(TMP_OS_PATH)/pl-overlay/pl.dtsi
+	$(DOCKER) $(DTC_BIN) -@ -I dts -O dtb -b 0 \
+	  -i $(TMP_OS_PATH)/pl-overlay \
+	  -o $@ $(TMP_OS_PATH)/pl-overlay/pl_wrap.dts
+	$(call ok,$@)
+
+$(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
+	cp $(TMP_OS_PATH)/pl.dtbo  $(TMP_PROJECT_PATH)/pl.dtbo
+
+###############################################################################
+# board.dtbo
+###############################################################################
+
+BOARD_DTSO ?= $(OS_PATH)/board.dtso
+
+$(TMP_OS_PATH)/board-overlay/board.dtso: $(BOARD_DTSO) | $(TMP_OS_PATH)/board-overlay/
+	cp $< $@
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso $(LINUX_BUILD_STAMP)
+	# Preprocess so #include <dt-bindings/...> works
+	$(DOCKER) gcc -E -P -x assembler-with-cpp -nostdinc -undef -D__DTS__ \
+	  -I $(LINUX_PATH)/include \
+	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts \
+	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts/xilinx \
+	  -o $(TMP_OS_PATH)/board-overlay/board.pp $(TMP_OS_PATH)/board-overlay/board.dtso
+	$(DOCKER) $(DTC_BIN) -@ -I dts -O dtb -b 0 \
+	  -i $(LINUX_PATH)/arch/$(ARCH)/boot/dts -i $(LINUX_PATH)/arch/$(ARCH)/boot/dts/xilinx \
+	  -o $@ $(TMP_OS_PATH)/board-overlay/board.pp
+	$(call ok,$@)
 
 ###############################################################################
 # LINUX
@@ -303,34 +331,6 @@ clean_overlay:
 
 $(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_BUILD_STAMP) | $(TMP_OS_PATH)/
 	cp "$(LINUX_PATH)/arch/$(ARCH)/boot/$(KERNEL_BIN)" "$@"
-
-$(TMP_OS_PATH)/overlay/memory.dtsi: $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi | $(TMP_OS_PATH)/overlay/
-	$(MAKE_PY) --memory_dtsi $@ $<
-	$(call ok,$@)
-
-OVERRIDE_DTSI ?= $(FPGA_PATH)/override.dtsi
-
-$(TMP_OS_PATH)/overlay/override.dtsi: $(OVERRIDE_DTSI) | $(TMP_OS_PATH)/overlay/
-	cp $< $@
-	$(call ok,$@)
-
-$(TMP_OS_PATH)/overlay/pl_wrap.dts: $(FPGA_PATH)/pl_wrap.dts | $(TMP_OS_PATH)/overlay/
-	cp $< $@
-	$(call ok,$@)
-
-$(TMP_OS_PATH)/pl.dtbo: $(DTC_BIN) \
-  $(TMP_OS_PATH)/overlay/pl.dtsi \
-  $(TMP_OS_PATH)/overlay/memory.dtsi \
-  $(TMP_OS_PATH)/overlay/override.dtsi \
-  $(TMP_OS_PATH)/overlay/pl_wrap.dts
-	sed -i 's/".bin"/"$(NAME).bit.bin"/g' $(TMP_OS_PATH)/overlay/pl.dtsi
-	$(DOCKER) $(DTC_BIN) -@ -I dts -O dtb -b 0 \
-	  -i $(TMP_OS_PATH)/overlay \
-	  -o $@ $(TMP_OS_PATH)/overlay/pl_wrap.dts
-	$(call ok,$@)
-
-$(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
-	cp $(TMP_OS_PATH)/pl.dtbo  $(TMP_PROJECT_PATH)/pl.dtbo
 
 $(TMP_OS_PATH)/devicetree.dtb: $(DTC_BIN)  $(TMP_OS_PATH)/devicetree/system-top.dts
 	$(DOCKER) gcc -I $(TMP_OS_PATH)/devicetree/ -I $(TMP_OS_PATH)/devicetree/include/ -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
@@ -347,38 +347,15 @@ $(TMP_OS_PATH)/devicetree_linux: $(DTC_BIN)
 	cp $(LINUX_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
 	$(call ok,$@)
 
-BOARD_DTSO ?= $(OS_PATH)/board.dtso
-
-# copy the overlay source (path can be absolute or relative to your tree)
-$(TMP_OS_PATH)/board-overlay/board.dtso: $(BOARD_DTSO) | $(TMP_OS_PATH)/board-overlay/
-	cp $< $@
-	$(call ok,$@)
-
-# preprocess .dtso (CPP) → .tmp, then compile with dtc -@ (symbols required for overlays)
-$(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso $(LINUX_BUILD_STAMP)
-	# Preprocess so #include <dt-bindings/...> works
-	$(DOCKER) gcc -E -P -x assembler-with-cpp -nostdinc -undef -D__DTS__ \
-	  -I $(LINUX_PATH)/include \
-	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts \
-	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts/xilinx \
-	  -o $(TMP_OS_PATH)/board-overlay/board.pp $(TMP_OS_PATH)/board-overlay/board.dtso
-	# Compile overlay with symbols
-	$(DOCKER) $(DTC_BIN) -@ -I dts -O dtb -b 0 \
-	  -i $(LINUX_PATH)/arch/$(ARCH)/boot/dts -i $(LINUX_PATH)/arch/$(ARCH)/boot/dts/xilinx \
-	  -o $@ $(TMP_OS_PATH)/board-overlay/board.pp
-	$(call ok,$@)
-
 .PHONY: $(TMP_OS_PATH)/devicetree_uboot
 $(TMP_OS_PATH)/devicetree_uboot: $(TMP_OS_PATH)/u-boot.elf
 	echo ${DTREE_OVERRIDE}
 	cp $(UBOOT_PATH)/${DTREE_OVERRIDE} $(TMP_OS_PATH)/devicetree.dtb
 	@echo [$(TMP_OS_PATH)/devicetree.dtb] OK
 
-ifeq ($(ARCH),arm)
-  FIT_LOAD := 0x03000000
-else ifeq ($(ARCH),arm64)
-  FIT_LOAD ?= 0x03000000
-endif
+###############################################################################
+# FIT
+###############################################################################
 
 define ITS_TEMPLATE
 /dts-v1/;
@@ -393,8 +370,8 @@ define ITS_TEMPLATE
       arch = "$(ARCH)";
       os = "linux";
       compression = "none";
-      load = <$(FIT_LOAD)>;
-      entry = <$(FIT_LOAD)>;
+      load = <0x03000000>;
+      entry = <0x03000000>;
       hash-1 { algo = "sha256"; };
     };
     fdt {
