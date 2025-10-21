@@ -9,3 +9,5 @@ MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 SERVERLESS_CPP_SRCS := $(PROJECT_PATH)/main.cpp
 SERVER_MK = $(SDK_PATH)/server/serverless.mk
+
+WEB_FILES += $(SDK_PATH)/web/index.html
