@@ -413,6 +413,7 @@ define ITS_TEMPLATE
       type = "flat_dt";
       arch = "$(ARCH)";
       compression = "none";
+	  load = <0x07000000>;
       hash-1 { algo = "sha256"; };
     };
     overlay_board {
@@ -421,6 +422,7 @@ define ITS_TEMPLATE
       type = "flat_dt";
       arch = "$(ARCH)";
       compression = "none";
+      load = <0x07100000>;
       hash-1 { algo = "sha256"; };
     };
   };
@@ -429,8 +431,7 @@ define ITS_TEMPLATE
     conf {
       description = "Boot Linux kernel";
       kernel = "kernel";
-      fdt = "fdt";
-      fdt-overlays = "overlay_board";
+      fdt = "fdt", "overlay_board";
       hash-1 { algo = "sha256"; };
     };
   };
