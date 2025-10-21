@@ -9,7 +9,7 @@
 #include "server/core/configs/config.hpp"
 #include "server/core/listening_channel.hpp"
 #include "server/core/session_manager.hpp"
-#include "server/core/session.hpp"
+#include "server/core/socket_session.hpp"
 
 #include "server/runtime/services.hpp"
 #include "server/runtime/syslog.hpp"
@@ -49,7 +49,7 @@ void session_thread_call(int comm_fd, ListeningChannel<socket_type>* listener) {
     listener->number_of_threads++;
     auto& sm = services::require<SessionManager>();
     auto sid = sm.template create_session<socket_type>(comm_fd);
-    auto session = static_cast<Session<socket_type>*>(&sm.get_session(sid));
+    auto session = static_cast<SocketSession<socket_type>*>(&sm.get_session(sid));
 
     if (session->run() < 0) {
         log<ERROR>("An error occured during session\n");

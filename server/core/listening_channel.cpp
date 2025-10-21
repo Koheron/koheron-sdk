@@ -5,7 +5,7 @@
 
 #include "server/core/listening_channel.hpp"
 #include "server/core/configs/config.hpp"
-#include "server/core/session.hpp"
+#include "server/core/socket_session.hpp"
 #include "server/core/sockets.hpp"
 #include "server/runtime/syslog.hpp"
 

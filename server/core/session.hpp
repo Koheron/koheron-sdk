@@ -3,117 +3,71 @@
 #ifndef __KOHERON_SESSION_HPP__
 #define __KOHERON_SESSION_HPP__
 
-#include "server/runtime/syslog.hpp"
-#include "server/utilities/concepts.hpp"
+#include "server/core/buffer.hpp"
+#include "server/core/serializer_deserializer.hpp"
 
-#include "server/core/configs/server_definitions.hpp"
-#include "server/core/session_abstract.hpp"
-#include "server/core/websocket.hpp"
-
-#include <string>
-#include <vector>
 #include <array>
-#include <memory>
-#include <unistd.h>
-#include <type_traits>
-#include <cassert>
-#include <ranges>
-#include <span>
+#include <atomic>
+#include <cstdint>
 #include <cstddef>
-#include <cerrno>
-#include <sys/socket.h>
+#include <tuple>
+#include <span>
+#include <memory_resource>
 
 namespace koheron {
 
 class Command;
 
-/// Session
-///
-/// Receive and parse the client request for execution
-template<int socket_type>
-class Session : public SessionAbstract
+class Session
 {
   public:
-    Session(int comm_fd, SessionID id_);
+    explicit Session(int socket_type_)
+    : type(socket_type_) {}
 
-    SessionID get_id() const {return id;}
+    virtual ~Session() = default;
 
-    void shutdown() override {
-        if (::shutdown(comm_fd, SHUT_RDWR) < 0) {
-            logf<WARNING>("Cannot shutdown socket for session ID: {}\n", id);
+    template<uint16_t class_id, uint16_t func_id, typename... Args>
+    int send(Args&&... args) {
+        // build into base-owned buffer
+        builder.reset_into(send_buffer);
+        builder.template write_header<class_id, func_id>();
+        builder.push(std::forward<Args>(args)...);
+
+        int n = write_bytes(std::as_bytes(std::span{send_buffer}));
+
+        if (n == 0) {
+            status = CLOSED;
         }
 
-        ::close(comm_fd);
+        return n;
     }
 
-  private:
-    int comm_fd;  ///< Socket file descriptor
-    SessionID id;
+    int run();
 
-    struct EmptyWebsock {
-        EmptyWebsock() {}
+    virtual void shutdown() = 0;
+    void exit_comm() { exit_signal = true; }
+
+    int type;
+    std::atomic<bool> exit_signal{false};
+
+  protected:
+    enum {CLOSED, OPENED};
+    int status = OPENED;
+
+    // Socket specific hooks
+    virtual int init_socket() = 0;
+    virtual int exit_socket() = 0;
+    virtual int read_command(Command& cmd) = 0;
+    virtual int write_bytes(std::span<const std::byte>) = 0;
+
+    // First 4 KiB of allocations come from initial_storage, no heap at all
+    // If we exceed it will grab memory from the system allocator.
+    std::array<std::byte, 4096> seed{};
+    std::pmr::monotonic_buffer_resource pool{
+        seed.data(), seed.size(), std::pmr::get_default_resource()
     };
-
-    std::conditional_t<socket_type == WEBSOCK, WebSocket, EmptyWebsock> websock;
-
-    int init_socket();
-    int exit_socket();
-
-    int read_command(Command& cmd);
-
-    template<std::ranges::contiguous_range R>
-    int write(const R& r);
-
-    int write_bytes(std::span<const std::byte> bytes) override {
-        // R = std::span<const std::byte>
-        return write(bytes);
-    }
-};
-
-template<int socket_type>
-Session<socket_type>::Session(int comm_fd_, SessionID id_)
-: SessionAbstract(socket_type)
-, comm_fd(comm_fd_)
-, id(id_)
-, websock{}
-{}
-
-template<int socket_type>
-template<std::ranges::contiguous_range R>
-int Session<socket_type>::write(const R& r) {
-    if constexpr (socket_type == TCP || socket_type == UNIX) {
-        using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
-
-        const auto bytes_send = sizeof(T) * std::size(r);
-        const int n_bytes_send = ::write(comm_fd, std::data(r), bytes_send);
-
-        if (n_bytes_send == 0) {
-            log<ERROR>("TCPSocket::write: Connection closed by client\n");
-            return 0;
-        }
-
-        if (n_bytes_send < 0) {
-            log<ERROR>("TCPSocket::write: Can't write to client\n");
-            return -1;
-        }
-
-        if (n_bytes_send != static_cast<int>(bytes_send)) {
-            log<ERROR>("TCPSocket::write: Some bytes have not been sent\n");
-            return -1;
-        }
-
-        logf<DEBUG>("[S] [{} bytes]\n", bytes_send);
-        return static_cast<int>(bytes_send);
-    } else if constexpr (socket_type == WEBSOCK) {
-        return websock.send(r);
-    } else {
-        return -1;
-    }
-}
-
-// Unix socket session same as TCP session
-template<> class Session<UNIX> : public Session<TCP> {
-    using Session<TCP>::Session;
+    std::pmr::vector<unsigned char> send_buffer{ &pool };
+    CommandBuilder builder;
 };
 
 } // namespace koheron

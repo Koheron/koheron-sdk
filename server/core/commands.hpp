@@ -9,7 +9,7 @@
 #include "server/runtime/drivers_table.hpp"
 #include "server/core/configs/server_definitions.hpp"
 #include "server/core/buffer.hpp"
-#include "server/core/session_abstract.hpp"
+#include "server/core/session.hpp"
 #include "server/utilities/concepts.hpp"
 #include "server/utilities/meta_utils.hpp"
 
@@ -95,7 +95,7 @@ class Command
     };
 
     SessionID session_id = -1;           // ID of the session emitting the command
-    SessionAbstract *session = nullptr;  // Pointer to the session emitting the command
+    Session *session = nullptr;  // Pointer to the session emitting the command
     int socket_type = -1;
     int comm_fd = -1;
 

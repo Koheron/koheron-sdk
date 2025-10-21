@@ -7,17 +7,18 @@
 
 #include "server/core/configs/server_definitions.hpp"
 #include "server/core/configs/config.hpp"
-#include "server/core/session_abstract.hpp"
+#include "server/core/session.hpp"
 
 #include <map>
 #include <vector>
 #include <stack>
 #include <memory>
 #include <mutex>
+#include <utility>
 
 namespace koheron {
 
-template<int socket_type> class Session;
+template<int socket_type> class SocketSession;
 
 class SessionManager
 {
@@ -35,7 +36,7 @@ class SessionManager
 
     std::vector<SessionID> get_session_ids();
 
-    SessionAbstract& get_session(SessionID id) const {return *session_pool.at(id);}
+    Session& get_session(SessionID id) const {return *session_pool.at(id);}
 
     void delete_session(SessionID id);
     void delete_all();
@@ -43,7 +44,7 @@ class SessionManager
 
   private:
     // Sessions pool
-    std::map<SessionID, std::unique_ptr<SessionAbstract>> session_pool;
+    std::map<SessionID, std::unique_ptr<Session>> session_pool;
     std::vector<SessionID> reusable_ids;
 
     bool is_reusable_id(SessionID id);
@@ -68,10 +69,9 @@ SessionID SessionManager::create_session(int comm_fd)
         reusable_ids.pop_back();
     }
 
-    auto session = std::make_unique<Session<socket_type>>(comm_fd, new_id);
+    auto session = std::make_unique<SocketSession<socket_type>>(comm_fd, new_id);
 
-    session_pool.insert(std::pair<SessionID, std::unique_ptr<SessionAbstract>>(new_id,
-                static_cast<std::unique_ptr<SessionAbstract>>(std::move(session))));
+    session_pool.emplace(new_id, std::move(session));
     number_of_sessions++;
     return new_id;
 }

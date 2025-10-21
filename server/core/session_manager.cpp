@@ -3,7 +3,7 @@
 /// (c) Koheron
 
 #include "server/core/session_manager.hpp"
-#include "server/core/session.hpp"
+#include "server/core/socket_session.hpp"
 
 #include <cassert>
 #include <sys/socket.h>
