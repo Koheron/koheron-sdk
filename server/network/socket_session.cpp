@@ -3,7 +3,7 @@
 #include "server/network/socket_session.hpp"
 #include "server/network/commands.hpp"
 
-namespace koheron {
+namespace net {
 
 // -----------------------------------------------
 // TCP
@@ -36,7 +36,7 @@ int SocketSession<TCP>::read_command(Command& cmd) {
     cmd.session = this;
     cmd.socket_type = TCP;
     cmd.comm_fd = comm_fd;
-    cmd.driver = static_cast<driver_id>(drv_id);
+    cmd.driver = drv_id;
     cmd.operation = op;
 
     logf<DEBUG>("TCPSocket: Receive command for driver {}, operation {}\n",
@@ -86,7 +86,7 @@ int SocketSession<WEBSOCK>::read_command(Command& cmd) {
     cmd.session = this;
     cmd.socket_type = WEBSOCK;
     cmd.comm_fd = comm_fd;
-    cmd.driver = static_cast<driver_id>(drv_id);
+    cmd.driver = drv_id;
     cmd.operation = op;
 
     logf<DEBUG>("WebSocket: Receive command for driver {}, operation {}\n",
@@ -95,4 +95,4 @@ int SocketSession<WEBSOCK>::read_command(Command& cmd) {
     return Command::HEADER_SIZE;
 }
 
-} // namespace koheron
+} // namespace net

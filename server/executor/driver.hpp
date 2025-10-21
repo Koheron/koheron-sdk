@@ -11,8 +11,6 @@
 
 namespace koheron {
 
-struct Command;
-
 class DriverAbstract {
   public:
     DriverAbstract(driver_id type_)

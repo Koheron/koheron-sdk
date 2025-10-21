@@ -15,7 +15,7 @@
 #include <cstring>
 #include <string_view>
 
-namespace koheron {
+namespace net {
 
 struct Command;
 
@@ -214,6 +214,6 @@ int WebSocket::decode_raw_stream_cmd(Buffer<HEADER_SIZE>& cmd_header,
     return 0;
 }
 
-} // namespace koheron
+} // namespace net
 
 #endif // __WEBSOCKET_HPP__

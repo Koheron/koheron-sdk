@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-namespace koheron {
+namespace net {
     namespace config {
         /// Maximum length of the Unix socket file path
         ///
@@ -35,6 +35,6 @@ namespace koheron {
         /// Unix socket max parallel connections
         constexpr int unix_socket_worker_connections = 100;
     }
-} // namespace koheron
+} // namespace net
 
 #endif // __CONFIG_HPP__

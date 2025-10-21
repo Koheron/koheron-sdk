@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace koheron {
+namespace ut {
 
 template<class C>
 concept resizableContiguousRange =
@@ -51,6 +51,6 @@ concept CStrLike =
 template<class T>
 concept ScalarLike = (std::is_scalar_v<std::remove_reference_t<T>> && !std::is_pointer_v<std::remove_reference_t<T>>) || is_std_complex_v<T>;
 
-} // namespace koheron
+} // namespace ut
 
 #endif // __SERVER_UTILITIES_CONCEPTS_HPP__

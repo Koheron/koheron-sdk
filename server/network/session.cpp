@@ -4,7 +4,7 @@
 #include "server/network/session.hpp"
 #include "server/executor/executor.hpp"
 
-namespace koheron {
+namespace net {
 
 int Session::run() {
     if (init_socket() < 0) {
@@ -24,7 +24,7 @@ int Session::run() {
             return nb_bytes_rcvd;
         }
 
-        if (services::require<Executor>().execute(cmd) < 0) {
+        if (services::require<koheron::Executor>().execute(cmd) < 0) {
             logf<ERROR>("Failed to execute command [driver = {}, operation = {}]\n",
                         cmd.driver, cmd.operation);
         }
@@ -41,4 +41,4 @@ int Session::run() {
     return 0;
 }
 
-} // namespace koheron
+} // namespace net

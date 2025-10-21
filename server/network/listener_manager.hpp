@@ -17,7 +17,7 @@
 #include <atomic>
 #include <thread>
 
-namespace koheron {
+namespace net {
 
 class ListenerManager {
   public:
@@ -87,6 +87,6 @@ void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerMana
     logf("{} listener closed.\n", listen_channel_desc[socket_type]);
 }
 
-} // namespace koheron
+} // namespace net
 
 #endif // __SERVER_CORE_LISTENER_MANAGER_HPP__

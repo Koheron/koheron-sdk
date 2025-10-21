@@ -23,9 +23,7 @@
 #include <atomic>
 #include <cstdlib>
 
-using namespace koheron;
 using services::provide;
-using services::get;
 
 int main() {
     std::atomic<bool> exit_all = false;
@@ -59,7 +57,8 @@ int main() {
     }
 
     // On driver allocation failure
-    auto on_fail = [&]([[maybe_unused]] driver_id id, [[maybe_unused]] std::string_view name) {
+    auto on_fail = [&]([[maybe_unused]] rt::driver_id id,
+                       [[maybe_unused]] std::string_view name) {
         exit_all = true;
     };
 
@@ -80,10 +79,9 @@ int main() {
 
     // ---------- Server services ----------
 
-    provide<Executor>();
-    provide<SessionManager>();
+    provide<koheron::Executor>();
 
-    auto lm = ListenerManager();
+    auto lm = net::ListenerManager();
 
     if (lm.start() < 0) {
         std::exit(EXIT_FAILURE);
@@ -95,7 +93,7 @@ int main() {
         if (!ready_notified && lm.is_ready()) {
             log("Koheron server ready\n");
 
-            if constexpr (config::notify_systemd) {
+            if constexpr (net::config::notify_systemd) {
                 rt::systemd::notify_ready("Koheron server is ready");
             }
 

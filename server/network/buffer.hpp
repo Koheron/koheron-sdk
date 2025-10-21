@@ -9,7 +9,7 @@
 #include <string>
 #include <cstdint>
 
-namespace koheron {
+namespace net {
 
 template<size_t len>
 struct Buffer
@@ -32,7 +32,7 @@ struct Buffer
     std::tuple<Tp...> deserialize() {
         static_assert(required_buffer_size<Tp...>() <= len, "Buffer size too small");
 
-        const auto tup = koheron::deserialize<0, Tp...>(begin());
+        const auto tup = net::deserialize<0, Tp...>(begin());
         position += required_buffer_size<Tp...>();
         return tup;
     }
@@ -72,6 +72,6 @@ struct Buffer
     size_t position; // Current position in the buffer
 };
 
-} // namespace koheron
+} // namespace net
 
 #endif // __SERVER_CORE_BUFFER_HPP__

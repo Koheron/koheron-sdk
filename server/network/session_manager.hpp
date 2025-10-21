@@ -16,7 +16,7 @@
 #include <mutex>
 #include <utility>
 
-namespace koheron {
+namespace net {
 
 template<int socket_type> class SocketSession;
 
@@ -76,6 +76,6 @@ SessionID SessionManager::create_session(int comm_fd)
     return new_id;
 }
 
-} // namespace koheron
+} // namespace net
 
 #endif //__SESSION_MANAGER_HPP__

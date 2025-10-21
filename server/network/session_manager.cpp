@@ -10,7 +10,7 @@
 #include <thread>
 #include <mutex>
 
-namespace koheron {
+namespace net {
 
 SessionManager::SessionManager()
 : session_pool(),
@@ -89,5 +89,5 @@ void SessionManager::exit_comm() {
     }
 }
 
-} // namespace koheron
+} // namespace net
 

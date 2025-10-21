@@ -18,7 +18,7 @@
 #include <tuple>
 #include <initializer_list>
 
-namespace koheron {
+namespace net {
 
 // Reads until span is filled, returns bytes read (0 = EOF), or -1 on error.
 inline ssize_t read_exact(int fd, std::span<std::byte> buf) {
@@ -98,8 +98,8 @@ class Command
         return session->send(driver, operation, std::forward<Args>(args)...);
     }
 
-    driver_id driver = 0;   // The driver to control
-    int32_t operation = -1; // Operation ID
+    uint16_t driver = 0;    // The driver to control
+    uint16_t operation = 0; // Operation ID
 
   private:
     SessionID session_id = -1;   // ID of the session emitting the command
@@ -151,7 +151,7 @@ class Command
         return std::get<0>(buff.deserialize<uint32_t>());
     }
 
-    template<resizableContiguousRange R>
+    template<ut::resizableContiguousRange R>
     int recv(R& c) {
         if (socket_type == TCP || socket_type == UNIX) {
             // Read data directly from socket
@@ -192,7 +192,7 @@ class Command
 
     template <typename T>
     bool read_one(T& v) {
-        if constexpr (resizableContiguousRange<T>) {
+        if constexpr (ut::resizableContiguousRange<T>) {
             return recv(v) >= 0;
         } else { // fixed-size / POD-ish types
             auto [status, value] = deserialize<T>();
@@ -262,6 +262,6 @@ class Command
     template<int socket_type> friend class SocketSession;
 };
 
-} // namespace koheron
+} // namespace net
 
 #endif // __COMMANDS_HPP__

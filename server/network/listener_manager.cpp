@@ -7,11 +7,13 @@
 #include <cstdlib>
 #include <sys/socket.h>
 
-namespace koheron {
+namespace net {
 
 ListenerManager::ListenerManager()
 : exit_comm_(false)
 {
+    services::provide<SessionManager>();
+
     if (tcp_listener_.init() < 0) {
         std::exit(EXIT_FAILURE);
     }
@@ -102,4 +104,4 @@ template int ListenerManager::start_listener<TCP>(ListeningChannel<TCP>& listene
 template int ListenerManager::start_listener<WEBSOCK>(ListeningChannel<WEBSOCK>& listener);
 template int ListenerManager::start_listener<UNIX>(ListeningChannel<UNIX>& listener);
 
-} // namespace koheron
+} // namespace net

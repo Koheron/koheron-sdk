@@ -21,7 +21,7 @@
 #include <cerrno>
 #include <sys/socket.h>
 
-namespace koheron {
+namespace net {
 
 class Command;
 
@@ -114,6 +114,6 @@ template<> class SocketSession<UNIX> : public SocketSession<TCP> {
     using SocketSession<TCP>::SocketSession;
 };
 
-} // namespace koheron
+} // namespace net
 
 #endif // __KOHERON_SOCKET_SESSION_HPP__

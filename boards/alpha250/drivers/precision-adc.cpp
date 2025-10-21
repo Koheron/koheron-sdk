@@ -42,7 +42,7 @@ uint32_t PrecisionAdc::read(uint32_t address, uint32_t len) {
     }
 
     auto payload = std::span<const uint8_t>(rx).subspan(1, static_cast<std::size_t>(len));
-    return koheron::from_big_endian_bytes<std::uint32_t>(payload, len);
+    return ut::from_big_endian_bytes<std::uint32_t>(payload, len);
 }
 
 void PrecisionAdc::write(uint32_t address, uint32_t value, uint32_t len) {
@@ -54,7 +54,7 @@ void PrecisionAdc::write(uint32_t address, uint32_t value, uint32_t len) {
     std::array<uint8_t, 4> tx{};  // [cmd, b1, b2, b3]
     std::array<uint8_t, 4> rx{};
     tx[0] = static_cast<uint8_t>((0u << 7) | (0u << 6) | (address & 0x3Fu));
-    koheron::to_big_endian_bytes(value, tx, static_cast<std::size_t>(len), 1);
+    ut::to_big_endian_bytes(value, tx, static_cast<std::size_t>(len), 1);
     spi.transfer(tx, rx, len + 1);
 }
 

@@ -11,7 +11,7 @@
 
 #include <thread>
 
-namespace koheron {
+namespace net {
 
 template<int socket_type>
 struct ListenerBackend;
@@ -125,4 +125,4 @@ template void ListeningChannel<UNIX>::shutdown();
 template int ListeningChannel<UNIX>::open_communication();
 template bool ListeningChannel<UNIX>::is_max_threads();
 
-} // namespace koheron
+} // namespace net

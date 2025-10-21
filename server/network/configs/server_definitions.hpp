@@ -11,7 +11,7 @@
 
 using namespace std::string_view_literals;
 
-namespace koheron {
+namespace net {
 
 // ------------------------------------------
 // Connections
@@ -78,7 +78,7 @@ constexpr auto listen_channel_desc = std::array{
 
 static_assert(listen_channel_desc.size() == socket_type_num);
 
-} // namespace koheron
+} // namespace net
 
 #endif // __SERVER_DEFINITIONS_HPP__
 

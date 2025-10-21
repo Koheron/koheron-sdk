@@ -5,9 +5,10 @@
 #include <array>
 #include <memory>
 
+namespace net { class Command; }
+
 namespace koheron {
 
-struct Command;
 class DriverAbstract;
 class DriverContainer;
 
@@ -21,7 +22,7 @@ public:
     Executor(const Executor&) = delete;
     Executor& operator=(const Executor&) = delete;
 
-    int execute(Command& cmd);
+    int execute(net::Command& cmd);
 
 private:
     struct Impl;

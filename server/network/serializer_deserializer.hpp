@@ -26,7 +26,7 @@
 
 #include <scicpp/core.hpp>
 
-namespace koheron {
+namespace net {
 
 //------------------------------------------------------------------------------
 // size_of<T>: byte size on the wire for scalar-ish types
@@ -50,7 +50,7 @@ inline T extract(const char* p) {
     if constexpr (sizeof(T) == 1) return static_cast<unsigned char>(p[0]);
     T v{};
     std::memcpy(&v, p, sizeof(T));
-    return from_be(v);
+    return ut::from_be(v);
 }
 
 template<class T> requires (std::is_integral_v<T> && std::is_signed_v<T>)
@@ -107,7 +107,7 @@ inline void append(unsigned char* p, T v) {
         return;
     }
 
-    v = to_be(v);
+    v = ut::to_be(v);
     std::memcpy(p, &v, sizeof(T));
 }
 
@@ -226,7 +226,7 @@ struct CommandBuilder {
         if constexpr (sizeof(T) == 1) {
             *append_raw(1) = static_cast<unsigned char>(v);
         } else {
-            v = to_be(v);
+            v = ut::to_be(v);
             std::memcpy(append_raw(sizeof(T)), &v, sizeof(T));
         }
     }
@@ -331,9 +331,9 @@ struct CommandBuilder {
             push_cstr(v);
         } else if constexpr (is_std_tuple_v<U>) {
             push_tuple(std::forward<T>(v));
-        } else if constexpr (StdArray<U>) {
+        } else if constexpr (ut::StdArray<U>) {
             push_array(v);
-        } else if constexpr (ScalarLike<U>) {
+        } else if constexpr (ut::ScalarLike<U>) {
             push_scalar(std::forward<T>(v));
         } else {
             push_container(v);
@@ -344,6 +344,6 @@ struct CommandBuilder {
     void push(Args&&... args) { (push_one(std::forward<Args>(args)), ...); }
 };
 
-} // namespace koheron
+} // namespace net
 
 #endif // __SERIALIZER_DESERIALIZER_HPP__

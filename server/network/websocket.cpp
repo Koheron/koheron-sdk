@@ -23,7 +23,7 @@
 
 using namespace std::string_view_literals;
 
-namespace koheron {
+namespace net {
 
 WebSocket::WebSocket()
   : comm_fd(-1)
@@ -147,13 +147,13 @@ int WebSocket::set_send_header(int64_t data_len, unsigned int format) {
     if (data_len <= 0xFFFF) {
         b[1] = MEDIUM_STREAM;
         // Write 16-bit big-endian length into b[2], b[3]
-        to_big_endian_bytes<uint64_t>(data_len, b.subspan(2, 2), 2);
+        ut::to_big_endian_bytes<uint64_t>(data_len, b.subspan(2, 2), 2);
         return MEDIUM_OFFSET;
     }
 
     // Else: 64-bit big-endian length at b[2..9]
     b[1] = BIG_STREAM;
-    to_big_endian_bytes<uint64_t>(data_len, b.subspan(2, 8), 8);
+    ut::to_big_endian_bytes<uint64_t>(data_len, b.subspan(2, 8), 8);
     return BIG_OFFSET;
 }
 
@@ -362,4 +362,4 @@ void WebSocket::reset_read_buff() {
     read_str_len = 0;
 }
 
-} // namespace koheron
+} // namespace net

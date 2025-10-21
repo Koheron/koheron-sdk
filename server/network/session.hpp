@@ -14,7 +14,7 @@
 #include <span>
 #include <memory_resource>
 
-namespace koheron {
+namespace net {
 
 class Command;
 
@@ -70,6 +70,6 @@ class Session
     CommandBuilder builder;
 };
 
-} // namespace koheron
+} // namespace net
 
 #endif // __KOHERON_SESSION_HPP__

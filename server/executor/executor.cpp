@@ -45,7 +45,7 @@ struct Executor::Impl {
     }
 
     template<driver_id... ids>
-    int exec_on(DriverAbstract* abs, Command& cmd, std::index_sequence<ids...>) {
+    int exec_on(DriverAbstract* abs, net::Command& cmd, std::index_sequence<ids...>) {
         int result = 0;
         bool done = false;
         (void)std::initializer_list<int>{
@@ -55,7 +55,7 @@ struct Executor::Impl {
         return result;
     }
 
-    int execute(Command& cmd) {
+    int execute(net::Command& cmd) {
         assert(cmd.driver < drivers::table::size);
         if (cmd.driver == 0) { // NoDriver
             return 0;
@@ -88,7 +88,7 @@ Executor::~Executor() = default;
 Executor::Executor(Executor&&) noexcept = default;
 Executor& Executor::operator=(Executor&&) noexcept = default;
 
-int Executor::execute(Command& cmd) {
+int Executor::execute(net::Command& cmd) {
     return p_->execute(cmd);
 }
 

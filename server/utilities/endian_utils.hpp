@@ -8,7 +8,7 @@
 #include <span>
 #include <type_traits>
 
-namespace koheron {
+namespace ut {
 
 //------------------------------------------------------------------------------
 // Byteswap + Host endianness helpers
@@ -91,6 +91,6 @@ template <std::size_t N, typename T>
     return from_big_endian_bytes<T>(in.begin() + static_cast<std::ptrdiff_t>(offset), len);
 }
 
-} // namespace koheron
+} // namespace ut
 
 #endif // __SERVER_RUNTIME_ENDIAN_UTILS_HPP__

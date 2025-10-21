@@ -12,7 +12,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 
-namespace koheron {
+namespace net {
 
 // -----------------------------------------------
 // TCP
@@ -156,4 +156,4 @@ int shutdown_communication(int listen_fd) {
     return ::shutdown(listen_fd, SHUT_RDWR);
 }
 
-} // namespace koheron
+} // namespace net

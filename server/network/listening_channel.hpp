@@ -11,7 +11,7 @@
 #include <atomic>
 #include <thread>
 
-namespace koheron {
+namespace net {
 
 template<int socket_type>
 class ListeningChannel {
@@ -44,6 +44,6 @@ void ListeningChannel<socket_type>::join_worker() {
     }
 }
 
-} // namespace koheron
+} // namespace net
 
 #endif // __SERVER_CORE_LISTENING_CHANNEL_HPP__
