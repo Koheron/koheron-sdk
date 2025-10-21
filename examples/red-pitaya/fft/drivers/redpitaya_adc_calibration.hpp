@@ -5,7 +5,7 @@
 #ifndef __REDPITAYA_DRIVERS_ADC_CALIBRATION_HPP__
 #define __REDPITAYA_DRIVERS_ADC_CALIBRATION_HPP__
 
-#include <context.hpp>
+#include "server/runtime/syslog.hpp"
 
 #include <array>
 #include <ranges>
@@ -38,13 +38,9 @@ static constexpr auto cal_coeffs = std::array{
 class RedPitayaAdcCalibration
 {
   public:
-    RedPitayaAdcCalibration(Context& ctx_)
-    : ctx(ctx_)
-    {}
-
     const auto get_calibration(uint32_t channel) {
         if (channel >= 2) {
-            ctx.log<ERROR>("RedPitayaAdcCalibration::get_calibration: Invalid channel\n");
+            log<ERROR>("RedPitayaAdcCalibration::get_calibration: Invalid channel\n");
             return std::array<float, 8>{};
         }
 
@@ -65,7 +61,7 @@ class RedPitayaAdcCalibration
         float g = get_gain(channel);
 
         if (std::isnan(g) || std::abs(g) < std::numeric_limits<float>::epsilon()) {
-            return NAN;
+            return std::numeric_limits<float>::quiet_NaN();
         }
 
         return (1 << 14) / g;
@@ -73,8 +69,8 @@ class RedPitayaAdcCalibration
 
     float get_gain(uint32_t channel) const {
         if (channel >= 2) {
-            ctx.log<ERROR>("RedPitayaAdcCalibration::get_gain: Invalid channel\n");
-            return NAN;
+            log<ERROR>("RedPitayaAdcCalibration::get_gain: Invalid channel\n");
+            return std::numeric_limits<float>::quiet_NaN();
         }
 
         return cal_coeffs[channel][0];
@@ -82,15 +78,12 @@ class RedPitayaAdcCalibration
 
     float get_offset(uint32_t channel) const {
         if (channel >= 2) {
-            ctx.log<ERROR>("RedPitayaAdcCalibration::get_offset: Invalid channel\n");
-            return NAN;
+            log<ERROR>("RedPitayaAdcCalibration::get_offset: Invalid channel\n");
+            return std::numeric_limits<float>::quiet_NaN();
         }
 
         return cal_coeffs[channel][1];
     }
-
-  private:
-    Context& ctx;
 };
 
 #endif // __REDPITAYA_DRIVERS_ADC_CALIBRATION_HPP__

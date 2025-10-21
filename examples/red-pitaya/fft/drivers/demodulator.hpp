@@ -5,9 +5,16 @@
 #ifndef __DRIVERS_DEMODULATOR_HPP__
 #define __DRIVERS_DEMODULATOR_HPP__
 
-#include <context.hpp>
+#include "server/runtime/syslog.hpp"
+#include "server/hardware/memory_manager.hpp"
 
 #include <array>
+#include <atomic>
+#include <cstdint>
+#include <mutex>
+#include <chrono>
+#include <vector>
+#include <thread>
 
 // http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
 namespace Fifo_regs {
@@ -22,10 +29,8 @@ constexpr uint32_t fifo_buff_size = 8192 * 256;
 class Demodulator
 {
   public:
-    Demodulator(Context& _ctx)
-    : ctx(_ctx)
-    , ctl(ctx.mm.get<mem::control>())
-    , adc_fifo_map(_ctx.mm.get<mem::adc_fifo>())
+    Demodulator()
+    : adc_fifo_map(hw::get_memory<mem::adc_fifo>())
     {
         start_fifo_acquisition();
     }
@@ -52,8 +57,6 @@ class Demodulator
     void start_fifo_acquisition();
 
   private:
-    Context& ctx;
-    hw::Memory<mem::control>& ctl;
     hw::Memory<mem::adc_fifo>& adc_fifo_map;
 
     std::mutex mutex;
@@ -65,7 +68,6 @@ class Demodulator
     std::vector<int32_t> last_buffer_vect;
     std::thread fifo_thread;
     void fifo_acquisition_thread();
-
 };
 
 inline void Demodulator::start_fifo_acquisition() {
@@ -82,17 +84,18 @@ inline void Demodulator::fifo_acquisition_thread()
     fifo_acquisition_started = true;
     while (fifo_acquisition_started) {
         {
-            std::lock_guard<std::mutex> lock(mutex);
+            std::lock_guard lock(mutex);
             const uint32_t n_pts = get_fifo_length();
-            ctx.log<INFO>("fifo_length: %d \n", n_pts);
+            logf("fifo_length: {}\n", n_pts);
+
             for (size_t i = 0; i < n_pts; i++) {
                 fifo_buffer[fifo_buff_idx] = read_fifo();
                 fifo_buff_idx = (fifo_buff_idx + 1) % fifo_buff_size;
             }
         }
+
         std::this_thread::sleep_for(10ms);
     }
 }
-
 
 #endif // __DRIVERS_DEMODULATOR_HPP__

@@ -5,10 +5,15 @@
 #ifndef __DRIVERS_LASER_CONTROLLER_HPP__
 #define __DRIVERS_LASER_CONTROLLER_HPP__
 
-#include <context.hpp>
-#include <xadc.hpp>
-#include <eeprom.hpp>
+#include "./eeprom.hpp"
+
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/driver_manager.hpp"
+#include "server/hardware/memory_manager.hpp"
+#include "server/drivers/xadc.hpp"
+
 #include <chrono>
+#include <cstdint>
 
 namespace Laser_params {
     constexpr uint32_t power_channel = 1; //xadc channel
@@ -24,12 +29,11 @@ namespace Laser_params {
 class Laser
 {
   public:
-    Laser(Context& ctx_)
-    : ctx(ctx_)
-    , ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
-    , xadc(ctx.get<Xadc>())
-    , eeprom(ctx.get<Eeprom>())
+    Laser()
+    : ctl(hw::get_memory<mem::control>())
+    , sts(hw::get_memory<mem::status>())
+    , xadc(rt::get_driver<Xadc>())
+    , eeprom(rt::get_driver<Eeprom>())
     {
         stop();
         current = 0;
@@ -124,7 +128,7 @@ class Laser
         }
         eeprom.write(1, sum/100);
         std::this_thread::sleep_for(5ms);
-        ctx.log<INFO>("Power 0mW = %u\n", eeprom.read(1));
+        logf("Power 0mW = {}\n", eeprom.read(1));
         set_current(15.0);
         start();
     }
@@ -139,7 +143,7 @@ class Laser
         std::this_thread::sleep_for(5ms);
         eeprom.write(0, 1);
         std::this_thread::sleep_for(5ms);
-        ctx.log<INFO>("Power 1mW = %u\n", eeprom.read(2));
+        logf("Power 1mW = {}\n", eeprom.read(2));
         read_calibration();
     }
 
@@ -149,7 +153,7 @@ class Laser
     bool laser_on;
     bool constant_power_on;
     bool is_calibrated;
-    Context& ctx;
+
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::status>& sts;
     Xadc& xadc;
@@ -158,7 +162,6 @@ class Laser
     Eeprom& eeprom;
     uint32_t power_0mW;
     uint32_t power_1mW;
-
 };
 
 #endif // __DRIVERS_LASER_HPP__

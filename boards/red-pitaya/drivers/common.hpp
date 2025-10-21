@@ -5,23 +5,22 @@
 #ifndef __DRIVERS_COMMON_HPP__
 #define __DRIVERS_COMMON_HPP__
 
+#include "server/runtime/syslog.hpp"
+#include "server/hardware/memory_manager.hpp"
+
 #include <cstring>
 #include <array>
-
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 
-#include <context.hpp>
-
 class Common
 {
   public:
-    Common(Context& ctx_)
-    : ctx(ctx_)
-    , ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
+    Common()
+    : ctl(hw::get_memory<mem::control>())
+    , sts(hw::get_memory<mem::status>())
     {}
 
     void set_led(uint32_t value) {
@@ -54,7 +53,7 @@ class Common
                 if (std::strcmp(it->ifa_name, want) != 0) continue;
 
                 auto* pAddr = reinterpret_cast<sockaddr_in*>(it->ifa_addr);
-                ctx.log<INFO>("Interface %s found: %s\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
+                logf("Interface {} found: {}\n", it->ifa_name, inet_ntoa(pAddr->sin_addr));
                 uint32_t ip = htonl(pAddr->sin_addr.s_addr);
                 set_led(ip);
                 freeifaddrs(addrs);
@@ -63,15 +62,13 @@ class Common
         }
 
         // Neither end0 nor eth0 had an IPv4; keep LEDs as-is (optional: log)
-        ctx.log<INFO>("No IPv4 on end0/eth0\n");
+        log("No IPv4 on end0/eth0\n");
         freeifaddrs(addrs);
     }
 
   private:
-    Context& ctx;
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::status>& sts;
-
 };
 
 #endif // __DRIVERS_COMMON_HPP__

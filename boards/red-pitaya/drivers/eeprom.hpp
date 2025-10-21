@@ -1,11 +1,11 @@
 #ifndef __DRIVERS_EEPROM_HPP__
 #define __DRIVERS_EEPROM_HPP__
 
+#include "server/hardware/memory_manager.hpp"
+
 #include <vector>
 #include <thread>
 #include <chrono>
-
-#include <context.hpp>
 
 // EEPROM instructions
 // http://www.atmel.com/images/Atmel-5193-SEEPROM-AT93C46D-Datasheet.pdf
@@ -22,10 +22,9 @@ namespace Eeprom_instr {
 class Eeprom
 {
   public:
-    Eeprom(Context& ctx_)
-    : ctx(ctx_)
-    , ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
+    Eeprom()
+    : ctl(hw::get_memory<mem::control>())
+    , sts(hw::get_memory<mem::status>())
     {
         using namespace std::chrono_literals;
         write_enable();
@@ -71,7 +70,6 @@ class Eeprom
     }
 
   private:
-    Context& ctx;
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::status>& sts;
 };

@@ -4,17 +4,17 @@
 #ifndef __DRIVERS_XADC_HPP__
 #define __DRIVERS_XADC_HPP__
 
+#include "server/hardware/memory_manager.hpp"
+
 #include <algorithm>
 #include <iterator>
 
-#include <context.hpp>
-
 /// http://www.xilinx.com/support/documentation/user_guides/ug480_7Series_XADC.pdf
 namespace Xadc_regs {
-    constexpr uint32_t set_chan = 0x324;
-    constexpr uint32_t avg_en = 0x32C;
-    constexpr uint32_t read = 0x240;
-    constexpr uint32_t config0 = 0x300;
+    constexpr uint32_t set_chan     = 0x324;
+    constexpr uint32_t avg_en       = 0x32C;
+    constexpr uint32_t read         = 0x240;
+    constexpr uint32_t config0      = 0x300;
     constexpr uint32_t TEMP         = 0x200;    // fpga temperature
     constexpr uint32_t PLVCCINT     = 0x204;    // fpga PL Vccint
     constexpr uint32_t PLVCCAUX     = 0x208;    // fpga PL Vccaux
@@ -27,8 +27,8 @@ namespace Xadc_regs {
 class Xadc
 {
   public:
-    Xadc(Context& ctx)
-    : xadc(ctx.mm.get<mem::xadc>())
+    Xadc()
+    : xadc(hw::get_memory<mem::xadc>())
     {
       enable_averaging();
       set_averaging(256);

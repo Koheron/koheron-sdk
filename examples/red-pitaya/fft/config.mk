@@ -19,10 +19,8 @@ CORES += $(SDK_PATH)/fpga/cores/pdm_v1_0
 CORES += $(SDK_PATH)/fpga/cores/at93c46d_spi_v1_0
 CORES += $(SDK_PATH)/fpga/cores/bus_multiplexer_v1_0
 
-DRIVERS += $(SDK_PATH)/server/drivers/common.hpp
+include $(SDK_PATH)/boards/red-pitaya/drivers/drivers.mk
 DRIVERS += $(SDK_PATH)/server/drivers/xadc.hpp
-DRIVERS += $(SDK_PATH)/server/drivers/laser.hpp
-DRIVERS += $(SDK_PATH)/server/drivers/eeprom.hpp
 DRIVERS += $(PROJECT_PATH)/drivers/fft.hpp
 DRIVERS += $(PROJECT_PATH)/drivers/demodulator.hpp
 DRIVERS += $(PROJECT_PATH)/drivers/redpitaya_adc_calibration.hpp

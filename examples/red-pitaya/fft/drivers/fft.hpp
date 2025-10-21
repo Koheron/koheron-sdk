@@ -5,9 +5,11 @@
 #ifndef __DRIVERS_FFT_HPP__
 #define __DRIVERS_FFT_HPP__
 
-#include <context.hpp>
+#include "./redpitaya_adc_calibration.hpp"
 
-#include "redpitaya_adc_calibration.hpp"
+#include "server/runtime/syslog.hpp"
+#include "server/hardware/memory_manager.hpp"
+#include "server/runtime/driver_manager.hpp"
 
 #include <atomic>
 #include <thread>
@@ -20,13 +22,12 @@
 class FFT
 {
   public:
-    FFT(Context& ctx_)
-    : ctx(ctx_)
-    , adc_calib(ctx.get<RedPitayaAdcCalibration>())
-    , ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
-    , psd_map(ctx.mm.get<mem::psd>())
-    , demod_map(ctx.mm.get<mem::demod>())
+    FFT()
+    : adc_calib(rt::get_driver<RedPitayaAdcCalibration>())
+    , ctl(hw::get_memory<mem::control>())
+    , sts(hw::get_memory<mem::status>())
+    , psd_map(hw::get_memory<mem::psd>())
+    , demod_map(hw::get_memory<mem::demod>())
     {
         set_input_channel(0);
         set_scale_sch(0);
@@ -41,7 +42,7 @@ class FFT
 
     void set_input_channel(uint32_t channel) {
         if (channel >= 2) {
-            ctx.log<ERROR>("FFT::set_input_channel invalid channel\n");
+            log<ERROR>("FFT::set_input_channel invalid channel\n");
             return;
         }
 
@@ -63,7 +64,7 @@ class FFT
         }};
 
         if (window_id >= 4) {
-            ctx.log<ERROR>("Invalid FFT window index \n");
+            log<ERROR>("Invalid FFT window index \n");
             return;
         }
 
@@ -74,13 +75,13 @@ class FFT
 
     // Read averaged spectrum data
     const auto& read_psd_raw() {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard lock(mutex);
         return psd_buffer_raw;
     }
 
     // Return the PSD in W/Hz
     const auto& read_psd() {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard lock(mutex);
         return psd_buffer;
     }
 
@@ -118,12 +119,12 @@ class FFT
 
     void set_dds_freq(uint32_t channel, double freq_hz) {
         if (channel >= 2) {
-            ctx.log<ERROR>("FFT::set_dds_freq invalid channel\n");
+            log<ERROR>("FFT::set_dds_freq invalid channel\n");
             return;
         }
 
         if (std::isnan(freq_hz)) {
-            ctx.log<ERROR>("FFT::set_dds_freq Frequency is NaN\n");
+            log<ERROR>("FFT::set_dds_freq Frequency is NaN\n");
             return;
         }
 
@@ -149,7 +150,6 @@ class FFT
     }
 
  private:
-    Context& ctx;
     RedPitayaAdcCalibration& adc_calib;
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::status>& sts;
