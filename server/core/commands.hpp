@@ -89,23 +89,28 @@ class Command
         return op_invoke_impl<DriverID, OpID>(obj, pmf);
     }
 
+    template<uint16_t DriverID, uint16_t OpID, typename... Args>
+    int send(Args&&... args) {
+        return session->send<DriverID, OpID>(std::forward<Args>(args)...);
+    }
+
+    driver_id driver = 0;   // The driver to control
+    int32_t operation = -1; // Operation ID
+
+  private:
+    SessionID session_id = -1;   // ID of the session emitting the command
+    Session *session = nullptr;  // Pointer to the session emitting the command
+    int socket_type = -1;
+    int comm_fd = -1;
+
     enum Header : uint32_t {
         HEADER_SIZE = 8,
         HEADER_START = 4  // First 4 bytes are reserved
     };
 
-    SessionID session_id = -1;           // ID of the session emitting the command
-    Session *session = nullptr;  // Pointer to the session emitting the command
-    int socket_type = -1;
-    int comm_fd = -1;
-
-    driver_id driver = 0;                // The driver to control
-    int32_t operation = -1;              // Operation ID
-
     Buffer<HEADER_SIZE> header; // Raw data header
     Buffer<CMD_PAYLOAD_BUFFER_LEN> payload;
 
-  private:
     template<typename... Tp>
     std::tuple<int, Tp...> deserialize() {
         if constexpr (sizeof...(Tp) == 0) {
@@ -224,7 +229,7 @@ class Command
                 return 0;
             } else {
                 decltype(auto) r = std::invoke(pmf, std::forward<Obj>(obj));
-                return session->send<DriverID, OpID>(std::forward<decltype(r)>(r));
+                return send<DriverID, OpID>(std::forward<decltype(r)>(r));
             }
         } else {
             using IS = std::make_index_sequence<N>;
@@ -244,10 +249,12 @@ class Command
                 decltype(auto) r = std::apply([&](auto&... a) -> decltype(auto) {
                     return std::invoke(pmf, std::forward<Obj>(obj), a...);
                 }, args);
-                return session->send<DriverID, OpID>(std::forward<decltype(r)>(r));
+                return send<DriverID, OpID>(std::forward<decltype(r)>(r));
             }
         }
     }
+
+    template<int socket_type> friend class SocketSession;
 };
 
 } // namespace koheron

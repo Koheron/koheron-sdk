@@ -1,8 +1,8 @@
 // driver_executor.cpp
 
 #include "server/core/drivers/driver_executor.hpp"
-#include "server/core/commands.hpp"
 #include "server/core/drivers/drivers_config.hpp"
+#include "server/core/commands.hpp"
 
 #include "server/utilities/meta_utils.hpp"
 #include "server/runtime/services.hpp"
@@ -65,9 +65,9 @@ struct DriverExecutor::Impl {
         if (cmd.driver == 1) { // Server
             switch (cmd.operation) {
             case GET_VERSION:
-                return cmd.session->send<1, GET_VERSION>(KOHERON_VERSION);
+                return cmd.send<1, GET_VERSION>(KOHERON_VERSION);
             case GET_CMDS:
-                return cmd.session->send<1, GET_CMDS>(build_drivers_json());
+                return cmd.send<1, GET_CMDS>(build_drivers_json());
             case server_op_num:
             default:
                 log<ERROR>("Server::execute unknown operation\n");
