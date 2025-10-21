@@ -5,15 +5,6 @@ LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 
 DTC_BIN := $(LINUX_PATH)/scripts/dtc/dtc
 
-# Kernel image name per arch
-ifeq ($(ARCH),arm)
-  KERNEL_BIN := zImage
-else ifeq ($(ARCH),arm64)
-  KERNEL_BIN := Image
-else
-  $(call fail,Unsupported ARCH $(ARCH); expected arm or arm64)
-endif
-
 $(LINUX_TAR):
 	mkdir -p $(@D)
 	curl -L $(LINUX_URL) -o $@

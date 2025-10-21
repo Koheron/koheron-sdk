@@ -14,9 +14,6 @@ release_name=$7
 image="$tmp_project_path/${release_name}.img"
 size=1024
 
-# Linux image filename (allow override via env for alternate platforms)
-linux_image=${LINUX_IMAGE:-kernel.itb}
-
 # Default boot partition sizing (start offset preserved at 4 MiB)
 boot_part_start_mib=4
 boot_part_min_size_mib=12   # matches former fixed 4MB-16MB layout
@@ -28,7 +25,7 @@ boot_part_margin_bytes=$((8 * 1024 * 1024)) # ensure room for filesystem slack
 boot_part_required_mib=$boot_part_min_size_mib
 if [ -f "$tmp_os_path/bootmp.bin" ]; then
   boot_part_required_bytes=0
-  for artifact in "$tmp_os_path/boot.bin" "$tmp_os_path/$linux_image"; do
+  for artifact in "$tmp_os_path/boot.bin" "$tmp_os_path/kernel.itb"; do
     if [ -f "$artifact" ]; then
       artifact_size_bytes=$(stat -c%s "$artifact")
       boot_part_required_bytes=$((boot_part_required_bytes + artifact_size_bytes))
@@ -139,7 +136,7 @@ mountpoint -q "$boot_dir" || { echo "Boot partition not mounted"; exit 1; }
 mkdir -p "$boot_dir/extlinux"
 
 # Copy boot artifacts
-cp "$tmp_os_path/boot.bin" "$tmp_os_path/$linux_image" "$boot_dir"
+cp "$tmp_os_path/boot.bin" "$tmp_os_path/kernel.itb" "$boot_dir"
 
 ROOTUUID=$(blkid -s PARTUUID -o value "$root_dev")
 BOOTUUID=$(blkid -s PARTUUID -o value "$boot_dev")
@@ -150,8 +147,7 @@ render_extlinux_conf() {
   env ROOTUUID="$ROOTUUID" \
       BOOTUUID="$BOOTUUID" \
       RELEASE_NAME="$release_name" \
-      LINUX_IMAGE="$linux_image" \
-      envsubst '${ROOTUUID} ${BOOTUUID} ${RELEASE_NAME} ${LINUX_IMAGE}' \
+      envsubst '${ROOTUUID} ${BOOTUUID} ${RELEASE_NAME}' \
       < "$template" > "$target"
 }
 
