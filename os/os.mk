@@ -284,28 +284,18 @@ $(TMP_OS_PATH)/overlay/pl.dtsi: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.u
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/overlay $< $(BOOT_MEDIUM)
 	$(call ok,$@)
 
-$(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.unpacked $(PATCHES)/devicetree.patch
+$(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.unpacked
 	mkdir -p $(@D)
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/devicetree $< $(BOOT_MEDIUM)
-	cp -r $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig
-	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/devicetree.patch
 	$(call ok,$@)
 
 .PHONY: clean_devicetree
 clean_devicetree:
-	rm -rf $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig $(TMP_OS_PATH)/devicetree.patch
-
-.PHONY: patch_devicetree
-patch_devicetree:
-	bash os/scripts/patch_devicetree.sh $(TMP_OS_PATH) $(BOARD_PATH)
-
-.PHONY: patch_overlay
-patch_overlay:
-	bash os/scripts/patch_overlay.sh $(TMP_OS_PATH) $(PROJECT_PATH)
+	rm -rf $(TMP_OS_PATH)/devicetree
 
 .PHONY: clean_overlay
 clean_overlay:
-	rm -rf $(TMP_OS_PATH)/overlay $(TMP_OS_PATH)/overlay.orig
+	rm -rf $(TMP_OS_PATH)/overlay
 
 ###############################################################################
 # LINUX
