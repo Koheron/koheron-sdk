@@ -44,7 +44,9 @@ class AppExecutor final : public rt::IExecutor {
 
         if (cmd.operation == 0) {
             auto& sess = require<net::SessionManager>().get_session(cmd.session_id);
-            logf("{}\n", sess.type);
+            auto sock_tp = sess.metadata.get<std::string_view>("socket_type");
+            auto id = sess.metadata.get<int>("id");
+            logf("{} session [ID = {}]\n", *sock_tp, *id);
             std::string s;
             cmd.read_one(s);
             logf("echo: {}", s);

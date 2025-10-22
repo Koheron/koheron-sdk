@@ -74,7 +74,9 @@ SocketSession<socket_type>::SocketSession(int comm_fd_, SessionID id_)
 , comm_fd(comm_fd_)
 , id(id_)
 , websock{}
-{}
+{
+    metadata.set("id", id_);
+}
 
 template<int socket_type>
 template<std::ranges::contiguous_range R>

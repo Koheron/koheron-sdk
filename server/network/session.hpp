@@ -3,7 +3,9 @@
 #ifndef __KOHERON_SESSION_HPP__
 #define __KOHERON_SESSION_HPP__
 
+#include "server/network/configs/server_definitions.hpp"
 #include "server/network/serializer_deserializer.hpp"
+#include "server/utilities/metadata.hpp"
 
 #include <array>
 #include <atomic>
@@ -21,7 +23,9 @@ class Session
 {
   public:
     explicit Session(int socket_type_)
-    : type(socket_type_) {}
+    : type(socket_type_) {
+        metadata.set("socket_type", listen_channel_desc[socket_type_]);
+    }
 
     virtual ~Session() = default;
 
@@ -48,7 +52,7 @@ class Session
 
     int type;
     std::atomic<bool> exit_signal{false};
-
+    ut::Metadata<> metadata;
   protected:
     enum {CLOSED, OPENED};
     int status = OPENED;

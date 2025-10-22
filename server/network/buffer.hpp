@@ -9,6 +9,8 @@
 #include <string>
 #include <cstdint>
 #include <cstddef>
+#include <type_traits>
+#include <cstring>
 
 namespace net {
 
@@ -19,13 +21,17 @@ struct Buffer
     : position(position_)
     {}
 
-    constexpr std::size_t size() const {
+    constexpr std::size_t size() const noexcept {
         return len;
     }
 
-    void set()     {_data.fill(0);}
-    std::byte* data()   {return _data.data();}
-    std::byte* begin()  {return &(_data.data())[position];}
+    void set() noexcept {_data.fill(std::byte{0});}
+
+    std::byte* data() noexcept { return _data.data(); }
+    const std::byte* data() const noexcept { return _data.data(); }
+
+    std::byte* begin() noexcept { return _data.data() + position; }
+    const std::byte* begin() const noexcept { return _data.data() + position; }
 
     // These functions are used by Websocket
 
@@ -40,19 +46,16 @@ struct Buffer
 
     template<typename T>
     void to_container(std::vector<T>& vec, uint64_t length) {
+        static_assert(std::is_trivially_copyable_v<T>);
         std::size_t n_elems = length / sizeof(T);
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wcast-align"
-        const auto b = reinterpret_cast<const T*>(begin());
-        #pragma GCC diagnostic pop
         vec.resize(n_elems);
-        std::move(b, b + n_elems, vec.begin());
+        std::memcpy(vec.data(), begin(), n_elems * sizeof(T));
         position += length;
     }
 
     void to_container(std::string& str, uint64_t length) {
         str.resize(length);
-        std::move(begin(), begin() + length, str.begin());
+        std::memcpy(str.data(), reinterpret_cast<const char*>(begin()), length_bytes);
         position += length;
     }
 
