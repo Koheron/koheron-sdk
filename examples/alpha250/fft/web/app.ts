@@ -25,7 +25,7 @@ class App {
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
-        let sockpoolSize: number = 10;
+        let sockpoolSize: number = 5;
         let client = new Client(ip, sockpoolSize);
 
         window.addEventListener('HTMLImportsLoaded', () => {
