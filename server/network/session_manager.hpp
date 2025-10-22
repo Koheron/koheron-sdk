@@ -15,6 +15,7 @@
 #include <memory>
 #include <mutex>
 #include <utility>
+#include <string>
 
 namespace net {
 
@@ -42,6 +43,8 @@ class SessionManager
     void delete_all();
     void exit_comm();
 
+    bool dump_rates(const std::string& out_path);
+
   private:
     // Sessions pool
     std::map<SessionID, std::unique_ptr<Session>> session_pool;
@@ -54,8 +57,7 @@ class SessionManager
 };
 
 template<int socket_type>
-SessionID SessionManager::create_session(int comm_fd)
-{
+SessionID SessionManager::create_session(int comm_fd) {
     std::lock_guard lock(mutex);
 
     SessionID new_id;

@@ -3,7 +3,7 @@ import subprocess
 import zipfile
 from datetime import datetime, timezone
 
-from flask import Flask, jsonify, request, make_response, Response
+from flask import Flask, jsonify, request, make_response, Response, send_file
 from werkzeug.utils import secure_filename
 
 from systemd import journal as _sd_journal
@@ -445,6 +445,19 @@ def logs_instrument_bookmark():
         cursor = app.instrument_log_cursor
         ts = app.instrument_log_ts
     return jsonify({"cursor": cursor, "ts": ts})
+
+SESSION_RATE_PATHS = "/run/koheron/sessions_rates.json"
+
+@app.route("/api/logs/rate", methods=["GET"])
+def logs_session_rates():
+    path = SESSION_RATE_PATHS
+
+    if not os.path.exists(path):
+        return jsonify({"error": "rates file not found"}), 404
+
+    response = send_file(path, mimetype="application/json", conditional=True, max_age=0)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 # ------------------------
 # System manifest / release as JSON

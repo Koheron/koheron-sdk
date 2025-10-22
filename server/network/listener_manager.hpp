@@ -13,9 +13,13 @@
 
 #include "server/runtime/services.hpp"
 #include "server/runtime/syslog.hpp"
+#include "server/runtime/signal_handler.hpp"
+#include "server/runtime/systemd.hpp"
 
 #include <atomic>
 #include <thread>
+#include <chrono>
+#include <filesystem>
 
 namespace net {
 
@@ -85,6 +89,75 @@ void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerMana
     }
 
     logf("{} listener closed.\n", listen_channel_desc[socket_type]);
+}
+
+// -----------------------------------------------------------------------------
+// Run => Main server loop
+// -----------------------------------------------------------------------------
+
+inline int run_server(std::string_view on_ready_msg="server ready\n") {
+    using clock = std::chrono::steady_clock;
+    using namespace std::chrono_literals;
+    namespace fs = std::filesystem;
+
+    // Config periodic rates dump
+    constexpr auto dump_period = 1s; // adjust cadence
+    auto next_dump = clock::now() + dump_period;
+
+    fs::path dump_dir = "/run/koheron";
+    fs::create_directory(dump_dir);
+    auto dump_path = dump_dir / "sessions_rates.json";
+
+    auto signal_handler = rt::SignalHandler();
+
+    if (signal_handler.init() < 0) {
+        return EXIT_FAILURE;
+    }
+
+    auto lm = ListenerManager();
+
+    if (lm.start() < 0) {
+        return EXIT_FAILURE;
+    }
+
+    bool ready_notified = false;
+
+    while (true) {
+        if (!ready_notified && lm.is_ready()) {
+            log(on_ready_msg.data());
+
+            if constexpr (net::config::notify_systemd) {
+                rt::systemd::notify_ready(on_ready_msg);
+            }
+
+            ready_notified = true;
+        }
+
+        if (signal_handler.interrupt()) {
+            log("Interrupt received, killing Koheron server ...\n");
+            lm.shutdown();
+            return EXIT_SUCCESS;
+        }
+
+        // Periodic dump of session rate
+        const auto now = clock::now();
+        if (now >= next_dump) {
+            do {
+                const bool ok = services::require<net::SessionManager>().dump_rates(dump_path);
+                if (!ok) {
+                    logf<WARNING>("dump_rates: failed to write '{}'\n", dump_path);
+                }
+                next_dump += dump_period;
+            } while (now >= next_dump);
+        }
+
+        // Sleep until sooner of: next dump or 50 ms tick
+        constexpr auto tick = 50ms;
+        const auto until_next_dump = std::max(std::chrono::duration_cast<std::chrono::milliseconds>(next_dump - now), 0ms);
+        std::this_thread::sleep_for(std::min(tick, until_next_dump));
+    }
+
+    return EXIT_SUCCESS;
 }
 
 } // namespace net

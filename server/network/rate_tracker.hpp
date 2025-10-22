@@ -49,7 +49,6 @@ class RateTracker {
     // record N new bytes at time now (default: now)
     void update(int64_t bytes);
 
-
     struct Snapshot {
         double mean_bps;     // average since start
         double window_bps;   // rolling window rate (last window_sec seconds)

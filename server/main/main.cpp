@@ -8,10 +8,8 @@
 #include "server/hardware/zynq_fclk.hpp"
 #include "server/hardware/fpga_manager.hpp"
 
-#include "server/runtime/signal_handler.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
-#include "server/runtime/systemd.hpp"
 #include "server/runtime/driver_manager.hpp"
 #include "server/runtime/config_manager.hpp"
 #include "server/runtime/executor.hpp"
@@ -26,8 +24,6 @@
 using services::provide;
 
 int main() {
-    std::atomic<bool> exit_all = false;
-
     // /!\ Services initialization order matters
 
     // ---------- Hardware services ----------
@@ -59,7 +55,7 @@ int main() {
     // On driver allocation failure
     auto on_fail = [&]([[maybe_unused]] rt::driver_id id,
                        [[maybe_unused]] std::string_view name) {
-        exit_all = true;
+        std::exit(EXIT_FAILURE);
     };
 
     auto dm = provide<rt::DriverManager>(on_fail);
@@ -71,44 +67,8 @@ int main() {
         }
     }
 
-    auto signal_handler = rt::SignalHandler();
-
-    if (signal_handler.init() < 0) {
-        std::exit(EXIT_FAILURE);
-    }
-
-    // ---------- Server services ----------
+    // ---------- Server ----------
 
     rt::provide_executor<koheron::Executor>();
-
-    auto lm = net::ListenerManager();
-
-    if (lm.start() < 0) {
-        std::exit(EXIT_FAILURE);
-    }
-
-    bool ready_notified = false;
-
-    while (true) {
-        if (!ready_notified && lm.is_ready()) {
-            log("Koheron server ready\n");
-
-            if constexpr (net::config::notify_systemd) {
-                rt::systemd::notify_ready("Koheron server is ready");
-            }
-
-            ready_notified = true;
-        }
-
-        if (signal_handler.interrupt() || exit_all) {
-            log("Interrupt received, killing Koheron server ...\n");
-            lm.shutdown();
-            return 0;
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
-
-    std::exit(EXIT_SUCCESS);
-    return 0;
+    return net::run_server("Koheron server ready\n");
 }

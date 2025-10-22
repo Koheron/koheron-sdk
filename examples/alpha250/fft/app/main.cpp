@@ -14,9 +14,7 @@
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
-#include "server/runtime/systemd.hpp"
 #include "server/runtime/driver_manager.hpp"
-#include "server/runtime/signal_handler.hpp"
 #include "server/runtime/executor.hpp"
 
 #include "server/network/listener_manager.hpp"
@@ -94,44 +92,8 @@ int main() {
     // Initialize ALPHA250 peripherals. Common::init() performs board-level setup.
     dm->get<Common>().init();
 
-    // Set the signal handler
-    auto signal_handler = rt::SignalHandler();
-
-    if (signal_handler.init() < 0) {
-        std::exit(EXIT_FAILURE);
-    }
-
     // ----------- Run server
 
     rt::provide_executor<AppExecutor>();
-
-    auto lm = net::ListenerManager();
-
-    if (lm.start() < 0) {
-        std::exit(EXIT_FAILURE);
-    }
-
-    bool ready_notified = false;
-
-    while (true) {
-        if (!ready_notified && lm.is_ready()) {
-            log("FFT app is ready\n");
-
-            if constexpr (net::config::notify_systemd) {
-                rt::systemd::notify_ready("FFT app is ready");
-            }
-
-            ready_notified = true;
-        }
-
-        if (signal_handler.interrupt() || exit_all) {
-            log("Interrupt received, killing FFT app ...\n");
-            lm.shutdown();
-            return 0;
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
-
-    return 0;
+    return net::run_server("FFT app is ready\n");
 }

@@ -80,6 +80,7 @@ buff.extend(str.encode())
 
 for _ in range(10):
     sock.send(buff)
-    print(recv_string())
+    recv_string()
+    # print(recv_string())
 
 sock.close()

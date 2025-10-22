@@ -167,7 +167,6 @@ class Command
             return -1;
         }
 
-        session->rx_tracker.update(err);
         return std::get<0>(buff.deserialize<uint32_t>());
     }
 
@@ -190,7 +189,7 @@ class Command
             );
 
             if (nbytes >= 0) {
-                session->rx_tracker.update(nbytes);
+                session->rx_tracker.update(nbytes + sizeof(uint32_t));
                 logf<DEBUG>("TCPSocket: Received a container of {} bytes\n", length);
             }
 
