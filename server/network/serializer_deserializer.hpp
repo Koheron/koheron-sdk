@@ -46,7 +46,7 @@ inline constexpr std::size_t size_of<std::array<T,N>> = N * size_of<T>;
 //------------------------------------------------------------------------------
 
 template<class T> requires (std::is_integral_v<T> && std::is_unsigned_v<T>)
-inline T extract(const char* p) {
+inline T extract(const std::byte* p) {
     if constexpr (sizeof(T) == 1) return static_cast<unsigned char>(p[0]);
     T v{};
     std::memcpy(&v, p, sizeof(T));
@@ -54,14 +54,14 @@ inline T extract(const char* p) {
 }
 
 template<class T> requires (std::is_integral_v<T> && std::is_signed_v<T>)
-inline T extract(const char* p) {
+inline T extract(const std::byte* p) {
     using U = std::make_unsigned_t<T>;
     U u = extract<U>(p);
     return static_cast<T>(u);
 }
 
 template<class T> requires (std::is_floating_point_v<T>)
-inline T extract(const char* p) {
+inline T extract(const std::byte* p) {
     if constexpr (sizeof(T) == 4) {
         auto u = extract<uint32_t>(p);
         return std::bit_cast<float>(u);
@@ -72,7 +72,7 @@ inline T extract(const char* p) {
 }
 
 template<class T> requires is_std_complex_v<T>
-inline T extract(const char* p) {
+inline T extract(const std::byte* p) {
     using V = T::value_type;
     V r = extract<V>(p);
     V i = extract<V>(p + sizeof(V));
@@ -80,13 +80,13 @@ inline T extract(const char* p) {
 }
 
 template<>
-inline bool extract<bool>(const char* p) {
+inline bool extract<bool>(const std::byte* p) {
     return static_cast<unsigned char>(p[0]) == 1;
 }
 
 template<class A>
 requires requires { typename A::value_type; std::tuple_size<A>::value; } // std::array-like
-inline A extract(const char* p) {
+inline A extract(const std::byte* p) {
     using V = typename A::value_type;
     constexpr std::size_t N = std::tuple_size<A>::value;
     A out{}; // value-initialize
@@ -145,7 +145,7 @@ inline void append<bool>(unsigned char* p, bool v) {
 namespace detail {
 
 template<std::size_t pos, class T0, class... Ts>
-inline std::tuple<T0, Ts...> deser_fold(const char* buff) {
+inline std::tuple<T0, Ts...> deser_fold(const std::byte* buff) {
     if constexpr (sizeof...(Ts) == 0) {
         return std::tuple<T0>{ extract<T0>(buff + pos) };
     } else {
@@ -159,7 +159,7 @@ inline std::tuple<T0, Ts...> deser_fold(const char* buff) {
 } // namespace detail
 
 template<std::size_t pos, class... Ts>
-inline std::tuple<Ts...> deserialize(const char* buff) {
+inline std::tuple<Ts...> deserialize(const std::byte* buff) {
     if constexpr (sizeof...(Ts) == 0) return {};
     return detail::deser_fold<pos, Ts...>(buff);
 }
@@ -169,33 +169,32 @@ constexpr std::size_t required_buffer_size() {
     return (size_of<Ts> + ... + 0u);
 }
 
-// Serialize tuple => std::array<uint8_t, N>
+// Serialize tuple => std::array<std::byte, N>
+
 namespace detail {
+
 template<std::size_t buff_pos, std::size_t I, class... Ts>
-inline void serialize_tuple(const std::tuple<Ts...>& t, unsigned char* buff) {
+inline void serialize_tuple(const std::tuple<Ts...>& t, std::byte* buff) {
     if constexpr (I < sizeof...(Ts)) {
         using T = std::tuple_element_t<I, std::tuple<Ts...>>;
         append<T>(buff + buff_pos, std::get<I>(t));
         serialize_tuple<buff_pos + size_of<T>, I + 1, Ts...>(t, buff);
     }
 }
+
 } // namespace detail
 
 template<class... Ts>
-inline std::array<unsigned char, required_buffer_size<Ts...>()>
+inline std::array<std::byte, required_buffer_size<Ts...>()>
 serialize(const std::tuple<Ts...>& t) {
-    std::array<unsigned char, required_buffer_size<Ts...>()> arr{};
+    std::array<std::byte, required_buffer_size<Ts...>()> arr{};
     detail::serialize_tuple<0, 0, Ts...>(t, arr.data());
     return arr;
 }
 
-template<class T> struct is_std_tuple : std::false_type {};
-template<class... U> struct is_std_tuple<std::tuple<U...>> : std::true_type {};
-template<class T> inline constexpr bool is_std_tuple_v = is_std_tuple<std::remove_cv_t<T>>::value;
-
 template<class... Ts>
 requires ( (!is_std_tuple_v<std::remove_cvref_t<Ts>>) && ... )
-inline std::array<unsigned char, required_buffer_size<std::remove_cvref_t<Ts>...>()>
+inline std::array<std::byte, required_buffer_size<std::remove_cvref_t<Ts>...>()>
 serialize(Ts&&... ts) {
     auto t = std::tuple<std::remove_cvref_t<Ts>...>(std::forward<Ts>(ts)...);
     return serialize(t);

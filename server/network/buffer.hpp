@@ -8,23 +8,24 @@
 #include <tuple>
 #include <string>
 #include <cstdint>
+#include <cstddef>
 
 namespace net {
 
-template<size_t len>
+template<std::size_t len>
 struct Buffer
 {
-    explicit constexpr Buffer(size_t position_ = 0) noexcept
+    explicit constexpr Buffer(std::size_t position_ = 0) noexcept
     : position(position_)
-    {};
+    {}
 
-    constexpr size_t size() const {
+    constexpr std::size_t size() const {
         return len;
     }
 
     void set()     {_data.fill(0);}
-    char* data()   {return _data.data();}
-    char* begin()  {return &(_data.data())[position];}
+    std::byte* data()   {return _data.data();}
+    std::byte* begin()  {return &(_data.data())[position];}
 
     // These functions are used by Websocket
 
@@ -35,18 +36,6 @@ struct Buffer
         const auto tup = net::deserialize<0, Tp...>(begin());
         position += required_buffer_size<Tp...>();
         return tup;
-    }
-
-    template<typename T, size_t N>
-    const std::array<T, N>& extract_array() {
-        // http://stackoverflow.com/questions/11205186/treat-c-cstyle-array-as-stdarray
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wcast-align"
-        const auto p = reinterpret_cast<const std::array<T, N>*>(begin());
-        #pragma GCC diagnostic pop
-        // assert(p->data() == reinterpret_cast<const T*>(begin()));
-        position += size_of<T, N>;
-        return *p;
     }
 
     template<typename T>
@@ -68,8 +57,8 @@ struct Buffer
     }
 
   private:
-    std::array<char, len> _data;
-    size_t position; // Current position in the buffer
+    std::array<std::byte, len> _data;
+    std::size_t position; // Current position in the buffer
 };
 
 } // namespace net

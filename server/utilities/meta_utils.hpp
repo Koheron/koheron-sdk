@@ -36,6 +36,10 @@ auto make_index_sequence_in_range() {
 // Tuple utilities
 // ----------------------------------------------------------------------------
 
+template<class T> struct is_std_tuple : std::false_type {};
+template<class... U> struct is_std_tuple<std::tuple<U...>> : std::true_type {};
+template<class T> inline constexpr bool is_std_tuple_v = is_std_tuple<std::remove_cv_t<T>>::value;
+
 // Index of type in tuple
 
 // http://stackoverflow.com/questions/18063451/get-index-of-a-tuple-elements-type
