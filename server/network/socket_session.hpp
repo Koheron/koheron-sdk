@@ -7,6 +7,7 @@
 #include "server/network/configs/server_definitions.hpp"
 #include "server/network/session.hpp"
 #include "server/network/websocket.hpp"
+#include "server/network/commands.hpp"
 
 #include <string>
 #include <vector>
@@ -19,11 +20,16 @@
 #include <span>
 #include <cstddef>
 #include <cerrno>
+#include <cstdint>
+#include <cstring>
 #include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/tcp.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <netdb.h>
 
 namespace net {
-
-class Command;
 
 /// SocketSession
 ///
@@ -66,6 +72,8 @@ class SocketSession : public Session
         // R = std::span<const std::byte>
         return write(bytes);
     }
+
+    void set_socket_infos();
 };
 
 template<int socket_type>
@@ -75,7 +83,82 @@ SocketSession<socket_type>::SocketSession(int comm_fd_, SessionID id_)
 , id(id_)
 , websock{}
 {
-    metadata.set("id", id_);
+    set_socket_infos();
+}
+
+template<int socket_type>
+int SocketSession<socket_type>::init_socket() {
+    if constexpr (socket_type == WEBSOCK) {
+        websock.set_id(comm_fd);
+
+        if (websock.authenticate() < 0) {
+            log<CRITICAL>("Cannot connect websocket to client\n");
+            return -1;
+        }
+    }
+
+    return 0; // TCP/UNIX do nothing
+}
+
+template<int socket_type>
+int SocketSession<socket_type>::exit_socket() {
+    if constexpr (socket_type == WEBSOCK) {
+        return websock.exit();
+    } else {
+        return 0; // TCP/UNIX do nothing
+    }
+}
+
+template<int socket_type>
+int SocketSession<socket_type>::read_command(Command& cmd) {
+    if constexpr (socket_type == WEBSOCK) {
+        if (websock.receive_cmd(cmd.header, cmd.payload) < 0) {
+            log<ERROR>("WebSocket: Command reception failed\n");
+            return -1;
+        }
+
+        if (websock.is_closed()) {
+            return 0;
+        }
+
+        if (websock.payload_size() < Command::HEADER_SIZE) {
+            log<ERROR>("WebSocket: Command too small\n");
+            return -1;
+        }
+
+        cmd.socket_type = WEBSOCK;
+    } else { // TCP/UNIX
+        // Read and decode header
+        // |      RESERVED     | dev_id  |  op_id  |             payload_size              |   payload
+        // |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | ...
+        const int header_bytes = read_exact(
+            comm_fd,
+            std::as_writable_bytes(std::span{cmd.header.data(), cmd.header.size()})
+        );
+
+        if (header_bytes == 0) {
+            return header_bytes;
+        }
+
+        if (header_bytes < 0) {
+            log<ERROR>("TCPSocket: Cannot read header\n");
+            return header_bytes;
+        }
+
+        cmd.socket_type = TCP;
+    }
+
+    const auto [drv_id, op] = cmd.header.deserialize<uint16_t, uint16_t>();
+    cmd.session_id = id;
+    cmd.session = this;
+    cmd.comm_fd = comm_fd;
+    cmd.driver = drv_id;
+    cmd.operation = op;
+
+    logf<DEBUG>("WebSocket: Receive command for driver {}, operation {}\n",
+            cmd.driver, cmd.operation);
+
+    return Command::HEADER_SIZE;
 }
 
 template<int socket_type>
@@ -111,10 +194,52 @@ int SocketSession<socket_type>::write(const R& r) {
     }
 }
 
-// Unix socket session same as TCP session
-template<> class SocketSession<UNIX> : public SocketSession<TCP> {
-    using SocketSession<TCP>::SocketSession;
-};
+template<int socket_type>
+void SocketSession<socket_type>::set_socket_infos() {
+    infos.set("id", id);
+
+    if constexpr (socket_type == TCP || socket_type == WEBSOCK) {
+        // family + peer/local addresses
+        sockaddr_storage ss_peer{}, ss_local{};
+        socklen_t spl = sizeof(ss_peer), sll = sizeof(ss_local);
+
+        if (::getpeername(comm_fd, reinterpret_cast<sockaddr*>(&ss_peer), &spl) == 0) {
+            char host[NI_MAXHOST]{}, serv[NI_MAXSERV]{};
+
+            if (::getnameinfo(reinterpret_cast<sockaddr*>(&ss_peer), spl,
+                              host, sizeof(host), serv, sizeof(serv),
+                              NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
+                infos.set("peer_ip", std::string_view{host});
+                infos.set("peer_port", std::strtol(serv, nullptr, 10));
+            }
+
+            infos.set("family",
+                ss_peer.ss_family == AF_INET ? "AF_INET" :
+                ss_peer.ss_family == AF_INET6 ? "AF_INET6" : "AF_OTHER");
+        }
+
+        if (::getsockname(comm_fd, reinterpret_cast<sockaddr*>(&ss_local), &sll) == 0) {
+            char host[NI_MAXHOST]{}, serv[NI_MAXSERV]{};
+
+            if (::getnameinfo(reinterpret_cast<sockaddr*>(&ss_local), sll,
+                              host, sizeof(host), serv, sizeof(serv),
+                              NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
+                infos.set("local_ip", std::string_view{host});
+                infos.set("local_port", std::strtol(serv, nullptr, 10));
+            }
+        }
+    } else { // socket_type == UNIX
+        ucred uc{}; socklen_t ucl = sizeof(uc);
+
+        if (::getsockopt(comm_fd, SOL_SOCKET, SO_PEERCRED, &uc, &ucl) == 0) {
+            infos.set("peer_uid", static_cast<std::int64_t>(uc.uid));
+            infos.set("peer_gid", static_cast<std::int64_t>(uc.gid));
+            infos.set("peer_pid", static_cast<std::int64_t>(uc.pid));
+        }
+
+        infos.set("family", "AF_UNIX");
+    }
+}
 
 } // namespace net
 

@@ -24,7 +24,8 @@ class Session
   public:
     explicit Session(int socket_type_)
     : type(socket_type_) {
-        metadata.set("socket_type", listen_channel_desc[socket_type_]);
+        infos.set("socket_flag", socket_type_);
+        infos.set("socket_type", listen_channel_desc[socket_type_]);
     }
 
     virtual ~Session() = default;
@@ -50,9 +51,14 @@ class Session
     virtual void shutdown() = 0;
     void exit_comm() { exit_signal = true; }
 
+    void log_infos() {
+        log("Session infos:\n");
+        infos.log("    ");
+    }
+
     int type;
     std::atomic<bool> exit_signal{false};
-    ut::Metadata<> metadata;
+    ut::Metadata<> infos;
   protected:
     enum {CLOSED, OPENED};
     int status = OPENED;
@@ -71,6 +77,8 @@ class Session
     };
     std::pmr::vector<unsigned char> send_buffer{ &pool };
     CommandBuilder builder;
+
+    void set_socket_metadata();
 };
 
 } // namespace net

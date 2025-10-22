@@ -4,6 +4,8 @@
 #ifndef __SERVER_UTILITIES_METADATA_HPP__
 #define __SERVER_UTILITIES_METADATA_HPP__
 
+#include "server/runtime/syslog.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -39,6 +41,24 @@ class Metadata {
     void set(std::string_view key, const string_t& value) {
         std::scoped_lock lk(mtx_);
         map_[key_t{key, &pool_}] = value_t{ string_t{value, &pool_} };
+    }
+
+    void set(std::string_view key, const char* cstr) {
+        std::scoped_lock lk(mtx_);
+        map_[key_t{key, &pool_}] = string_t{std::string_view{cstr}, &pool_};
+    }
+
+    void set(std::string_view key, char* cstr) {
+        std::scoped_lock lk(mtx_);
+        map_[key_t{key, &pool_}] = string_t{std::string_view{cstr}, &pool_};
+    }
+
+    // Catch string literals directly (array reference)
+    template <std::size_t N>
+    void set(std::string_view key, const char (&lit)[N]) {
+        std::scoped_lock lk(mtx_);
+        // exclude the trailing '\0' if present; std::string_view(lit) already does that
+        map_[key_t{key, &pool_}] = string_t{std::string_view{lit}, &pool_};
     }
 
     void set(std::string_view key, bool v) {
@@ -131,14 +151,33 @@ class Metadata {
         }
     }
 
-    const map_t& all() const { return map_; }
-    std::pmr::memory_resource* resource() noexcept { return &pool_; }
+    void log(std::string_view prefix = "") const {
+        std::scoped_lock lk(mtx_);
+        for (const auto& [k, v] : map_) {
+            log_kv(prefix, k, v);
+        }
+    }
 
   private:
+    static void log_kv(std::string_view prefix, std::string_view k, const value_t& v) {
+        std::visit([&](auto&& x) {
+            using X = std::decay_t<decltype(x)>;
+            if constexpr (std::same_as<X, string_t>) {
+                logf("{0} {1}={2}\n", prefix, k, std::string_view{x});
+            } else if constexpr (std::same_as<X, bool>) {
+                logf("{0} {1}={2}\n", prefix, k, x ? "true" : "false");
+            } else { // int64_t or double
+                logf("{0} {1}={2}\n", prefix, k, x);
+            }
+        }, v);
+    }
+
     mutable std::mutex mtx_;
     std::array<std::byte, SeedBytes> seed_{};
-    mutable std::pmr::monotonic_buffer_resource pool_;
-    map_t map_;
+    mutable std::pmr::monotonic_buffer_resource pool_{
+        seed_.data(), seed_.size(), std::pmr::get_default_resource()
+    };
+    map_t map_{ &pool_ };
 };
 
 } // namespace ut

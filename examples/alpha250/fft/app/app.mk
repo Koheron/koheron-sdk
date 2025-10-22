@@ -72,6 +72,8 @@ HARDWARE_OBJ := $(TMP_SERVER_PATH)/spi_manager.o $(TMP_SERVER_PATH)/i2c_manager.
 APP_OBJ := $(TMP_SERVER_PATH)/main.o
 
 OBJ := $(APP_OBJ) $(SERVER_LIB_OBJ) $(DRIVERS_OBJ) $(HARDWARE_OBJ) $(SERVER_NET_OBJ)
+DEP := $(subst .o,.d,$(OBJ))
+-include $(DEP)
 
 # -----------------------------------------------------------------------------
 # Compile / Link

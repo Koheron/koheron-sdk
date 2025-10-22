@@ -4,6 +4,16 @@
 #include "server/network/commands.hpp"
 #include "server/network/session.hpp"
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/tcp.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <cstring>
+#include <string_view>
+
 namespace net {
 
 int Session::run() {

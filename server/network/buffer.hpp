@@ -55,7 +55,7 @@ struct Buffer
 
     void to_container(std::string& str, uint64_t length) {
         str.resize(length);
-        std::memcpy(str.data(), reinterpret_cast<const char*>(begin()), length_bytes);
+        std::memcpy(str.data(), reinterpret_cast<const char*>(begin()), length);
         position += length;
     }
 
