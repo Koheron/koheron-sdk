@@ -45,6 +45,7 @@ class AppExecutor final : public rt::IExecutor {
         if (cmd.operation == 0) {
             auto& sess = require<net::SessionManager>().get_session(cmd.session_id);
             sess.log_infos();
+            sess.log_rates();
 
             std::string s;
             cmd.read_one(s);

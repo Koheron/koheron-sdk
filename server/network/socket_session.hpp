@@ -158,6 +158,7 @@ int SocketSession<socket_type>::read_command(Command& cmd) {
     logf<DEBUG>("WebSocket: Receive command for driver {}, operation {}\n",
             cmd.driver, cmd.operation);
 
+    rx_tracker.update(Command::HEADER_SIZE);
     return Command::HEADER_SIZE;
 }
 
@@ -166,22 +167,23 @@ template<std::ranges::contiguous_range R>
 int SocketSession<socket_type>::write(const R& r) {
     if constexpr (socket_type == TCP || socket_type == UNIX) {
         using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
+        constexpr auto sock_name = listen_channel_desc[socket_type];
 
         const auto bytes_send = sizeof(T) * std::size(r);
         const int n_bytes_send = ::write(comm_fd, std::data(r), bytes_send);
 
         if (n_bytes_send == 0) {
-            log<ERROR>("TCPSocket::write: Connection closed by client\n");
+            logf<ERROR>("{}Socket::write: Connection closed by client\n", sock_name);
             return 0;
         }
 
         if (n_bytes_send < 0) {
-            log<ERROR>("TCPSocket::write: Can't write to client\n");
+            logf<ERROR>("{}Socket::write: Can't write to client\n", sock_name);
             return -1;
         }
 
         if (n_bytes_send != static_cast<int>(bytes_send)) {
-            log<ERROR>("TCPSocket::write: Some bytes have not been sent\n");
+            logf<ERROR>("{}Socket::write: Some bytes have not been sent\n", sock_name);
             return -1;
         }
 
@@ -232,9 +234,9 @@ void SocketSession<socket_type>::set_socket_infos() {
         ucred uc{}; socklen_t ucl = sizeof(uc);
 
         if (::getsockopt(comm_fd, SOL_SOCKET, SO_PEERCRED, &uc, &ucl) == 0) {
-            infos.set("peer_uid", static_cast<std::int64_t>(uc.uid));
-            infos.set("peer_gid", static_cast<std::int64_t>(uc.gid));
-            infos.set("peer_pid", static_cast<std::int64_t>(uc.pid));
+            infos.set("peer_uid", static_cast<int64_t>(uc.uid));
+            infos.set("peer_gid", static_cast<int64_t>(uc.gid));
+            infos.set("peer_pid", static_cast<int64_t>(uc.pid));
         }
 
         infos.set("family", "AF_UNIX");

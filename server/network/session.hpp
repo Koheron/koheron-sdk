@@ -5,6 +5,7 @@
 
 #include "server/network/configs/server_definitions.hpp"
 #include "server/network/serializer_deserializer.hpp"
+#include "server/network/rate_tracker.hpp"
 #include "server/utilities/metadata.hpp"
 
 #include <array>
@@ -38,6 +39,7 @@ class Session
         builder.push(std::forward<Args>(args)...);
 
         int n = write_bytes(std::as_bytes(std::span{send_buffer}));
+        tx_tracker.update(n);
 
         if (n == 0) {
             status = CLOSED;
@@ -51,14 +53,32 @@ class Session
     virtual void shutdown() = 0;
     void exit_comm() { exit_signal = true; }
 
+    int type;
+    std::atomic<bool> exit_signal{false};
+
+    // Infos
+    // Metadata are publicly available,
+    // users can expand it to fit extra requirements (for example authentification)
+    ut::Metadata<> infos;
+
     void log_infos() {
         log("Session infos:\n");
         infos.log("    ");
     }
 
-    int type;
-    std::atomic<bool> exit_signal{false};
-    ut::Metadata<> infos;
+    // Data rates
+    auto rates() const {
+        return std::tuple{
+            rx_tracker.snapshot(),
+            tx_tracker.snapshot()
+        };
+    }
+
+    void log_rates() const {
+        rx_tracker.log_snapshot("RX Rates");
+        tx_tracker.log_snapshot("TX Rates");
+    }
+
   protected:
     enum {CLOSED, OPENED};
     int status = OPENED;
@@ -78,7 +98,10 @@ class Session
     std::pmr::vector<unsigned char> send_buffer{ &pool };
     CommandBuilder builder;
 
-    void set_socket_metadata();
+    RateTracker rx_tracker{5, 64, 1.5}; // 5s window, keep 64s history, 1.5s EWMA half-life
+    RateTracker tx_tracker{5, 64, 1.5};
+
+    friend class Command;
 };
 
 } // namespace net

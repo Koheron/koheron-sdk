@@ -137,16 +137,19 @@ class Command
             return std::tuple{0};
         }
 
+        constexpr auto pack_len = required_buffer_size<Tp...>();
+
         if (socket_type == TCP || socket_type == UNIX) {
-            constexpr auto pack_len = required_buffer_size<Tp...>();
             Buffer<pack_len> buff;
             const auto err = read_exact(
                 comm_fd,
                 std::as_writable_bytes(std::span{buff.data(), pack_len})
             );
+            session->rx_tracker.update(err);
             return std::tuple_cat(std::tuple{err}, buff.template deserialize<Tp...>());
         } else if (socket_type == WEBSOCK) {
             return std::tuple_cat(std::tuple{0}, payload.deserialize<Tp...>());
+            session->rx_tracker.update(pack_len);
         } else {
             return std::tuple_cat(std::tuple{-1}, std::tuple<Tp...>());
         }
@@ -164,6 +167,7 @@ class Command
             return -1;
         }
 
+        session->rx_tracker.update(err);
         return std::get<0>(buff.deserialize<uint32_t>());
     }
 
@@ -179,17 +183,18 @@ class Command
             }
 
             c.resize(length);
-            const auto err = read_exact(
+            const auto nbytes = read_exact(
                 comm_fd,
                 std::as_writable_bytes(
                     std::span{c.data(), static_cast<std::size_t>(length)})
             );
 
-            if (err >= 0) {
+            if (nbytes >= 0) {
+                session->rx_tracker.update(nbytes);
                 logf<DEBUG>("TCPSocket: Received a container of {} bytes\n", length);
             }
 
-            return err;
+            return nbytes;
         } else if (socket_type == WEBSOCK) {
             // Data already stored in payload
             const auto [length] = payload.deserialize<uint32_t>();
@@ -200,6 +205,7 @@ class Command
             }
 
             payload.to_container(c, length);
+            session->rx_tracker.update(length);
             return 0;
         } else {
             return -1;
@@ -259,6 +265,7 @@ class Command
         }
     }
 
+    friend class Session;
     template<int socket_type> friend class SocketSession;
 };
 
