@@ -392,13 +392,14 @@ class LogsRatePage {
             if (s.rx_inst > 0 || s.tx_inst > 0 || s.rx_total > 0 || s.tx_total > 0) {
                 active += 1;
             }
+
             rxInstSum += this.safeNumber(s.rx_inst);
             txInstSum += this.safeNumber(s.tx_inst);
             rxTotal += this.safeNumber(s.rx_total);
             txTotal += this.safeNumber(s.tx_total);
         }
 
-        this.chart.addSample(rxInstSum, txInstSum);
+        this.chart.addSample(rxInstSum / 8.0, txInstSum / 8.0); // bits to Bytes
 
         if (this.summaryEl) {
             const parts: string[] = [];
@@ -438,6 +439,8 @@ class LogsRatePage {
         if (!isFinite(value) || value <= 0) {
             return "0 B/s";
         }
+
+        value /= 8.0; // bits to Bytes
         const units = ["B/s", "KiB/s", "MiB/s", "GiB/s", "TiB/s"];
         let idx = 0;
         let current = value;
@@ -453,6 +456,8 @@ class LogsRatePage {
         if (!isFinite(value) || value <= 0) {
             return "0 B";
         }
+
+        value /= 8.0; // bits to Bytes
         const units = ["B", "KiB", "MiB", "GiB", "TiB"];
         let idx = 0;
         let current = value;

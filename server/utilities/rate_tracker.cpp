@@ -24,7 +24,7 @@ void RateTracker::update(int64_t bytes) {
     inst_bps_ = buf_[idx_] * 8.0; // bits per second (per-current second)
 
     // 3) rolling window rate
-    window_bps_ = sum_last_seconds(window_sec_) * 8.0;
+    window_bps_ = sum_last_seconds(window_sec_) * 8.0 / std::max(1, window_sec_);
 
     // 4) EWMA (event-driven, not time-stepped)
     // Use per-second rate of this second as sample for EWMA.
