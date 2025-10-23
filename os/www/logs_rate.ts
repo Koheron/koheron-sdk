@@ -317,9 +317,13 @@ class LogsRateTable {
         if (!isFinite(value) || value <= 0) {
             return "0 B/s";
         }
+
+        // The backend reports rates in bits/second; convert to bytes/second for display.
+        const bytesPerSecond = value / 8.0;
+
         const units = ["B/s", "KiB/s", "MiB/s", "GiB/s", "TiB/s"];
         let idx = 0;
-        let current = value;
+        let current = bytesPerSecond;
         while (current >= 1024 && idx < units.length - 1) {
             current /= 1024;
             idx++;
@@ -332,6 +336,8 @@ class LogsRateTable {
         if (!isFinite(value) || value <= 0) {
             return "0 B";
         }
+
+        // Totals are already reported in bytes by the backend.
         const units = ["B", "KiB", "MiB", "GiB", "TiB"];
         let idx = 0;
         let current = value;
@@ -457,7 +463,6 @@ class LogsRatePage {
             return "0 B";
         }
 
-        value /= 8.0; // bits to Bytes
         const units = ["B", "KiB", "MiB", "GiB", "TiB"];
         let idx = 0;
         let current = value;

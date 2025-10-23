@@ -120,6 +120,7 @@ struct RateRow {
     std::string_view name;
     int64_t total_rx;
     int64_t total_tx;
+    // Rate metrics are expressed in bits per second to match RateTracker::Snapshot.
     double rx_mean, rx_win, rx_inst, rx_ewma, rx_max;
     double tx_mean, tx_win, tx_inst, tx_ewma, tx_max;
 };
