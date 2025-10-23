@@ -262,12 +262,12 @@ class LogsRateTable {
             "<th>Socket</th>",
             "<th>RX inst</th>",
             "<th>RX mean</th>",
-            "<th>RX EWMA</th>",
+            // "<th>RX EWMA</th>",
             "<th>RX max</th>",
             "<th>RX total</th>",
             "<th>TX inst</th>",
             "<th>TX mean</th>",
-            "<th>TX EWMA</th>",
+            // "<th>TX EWMA</th>",
             "<th>TX max</th>",
             "<th>TX total</th>",
             "</tr></thead>"
@@ -285,12 +285,12 @@ class LogsRateTable {
                 bodyParts.push("<td>" + this.escapeHtml(s.name) + "</td>");
                 bodyParts.push("<td>" + this.formatRate(s.rx_inst) + "</td>");
                 bodyParts.push("<td>" + this.formatRate(s.rx_mean) + "</td>");
-                bodyParts.push("<td>" + this.formatRate(s.rx_ewma) + "</td>");
+                // bodyParts.push("<td>" + this.formatRate(s.rx_ewma) + "</td>");
                 bodyParts.push("<td>" + this.formatRate(s.rx_max) + "</td>");
                 bodyParts.push("<td>" + this.formatBytes(s.rx_total) + "</td>");
                 bodyParts.push("<td>" + this.formatRate(s.tx_inst) + "</td>");
                 bodyParts.push("<td>" + this.formatRate(s.tx_mean) + "</td>");
-                bodyParts.push("<td>" + this.formatRate(s.tx_ewma) + "</td>");
+                // bodyParts.push("<td>" + this.formatRate(s.tx_ewma) + "</td>");
                 bodyParts.push("<td>" + this.formatRate(s.tx_max) + "</td>");
                 bodyParts.push("<td>" + this.formatBytes(s.tx_total) + "</td>");
                 bodyParts.push("</tr>");
@@ -369,7 +369,7 @@ class LogsRatePage {
         this.lastError = null;
 
         this.client = new LogsRateClient(
-            "/api/logs/rate",
+            "/run/rates/sessions.json",
             2000,
             (payload) => this.handleUpdate(payload),
             (error) => this.handleError(error)

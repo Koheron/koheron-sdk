@@ -448,17 +448,6 @@ def logs_instrument_bookmark():
 
 SESSION_RATE_PATHS = "/run/koheron/sessions_rates.json"
 
-@app.route("/api/logs/rate", methods=["GET"])
-def logs_session_rates():
-    path = SESSION_RATE_PATHS
-
-    if not os.path.exists(path):
-        return jsonify({"error": "rates file not found"}), 404
-
-    response = send_file(path, mimetype="application/json", conditional=True, max_age=0)
-    response.headers["Cache-Control"] = "no-store"
-    return response
-
 # ------------------------
 # System manifest / release as JSON
 # ------------------------

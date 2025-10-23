@@ -103,7 +103,7 @@ inline int run_server(std::string_view on_ready_msg="server ready\n") {
     // Config periodic rates dump
     constexpr auto dump_period = 1s; // adjust cadence
     auto next_dump = clock::now() + dump_period;
-    fs::path dump_path = "/run/koheron/sessions_rates.json";
+    fs::path dump_path = "/run/koheron/rates/sessions.json";
 
     auto signal_handler = rt::SignalHandler();
 
@@ -139,12 +139,13 @@ inline int run_server(std::string_view on_ready_msg="server ready\n") {
 
         // Periodic dump of session rate
         const auto now = clock::now();
+
         if (now >= next_dump) {
             do {
-                const bool ok = sm.dump_rates(dump_path);
-                if (!ok) {
+                if (!sm.dump_rates(dump_path)) {
                     logf<WARNING>("dump_rates: failed to write '{}'\n", dump_path);
                 }
+
                 next_dump += dump_period;
             } while (now >= next_dump);
         }

@@ -25,7 +25,9 @@ PASSWORD ?= changeme
 .PHONY: api_sync
 api_sync: $(API_FILES)
 	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" "$(TMP_API_PATH)/." "root@$(HOST):/usr/local/api/"
-	sshpass -p "$(PASSWORD)" ssh -i /ssh-private-key "root@$(HOST)" 'systemctl daemon-reload || true; systemctl reload-or-restart uwsgi || true'
+	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" "$(OS_PATH)/config/nginx.conf" "root@$(HOST):/etc/nginx/nginx.conf"
+	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" "$(OS_PATH)/config/nginx-server.conf" "root@$(HOST):/etc/nginx/sites-available/koheron.conf"
+	sshpass -p "$(PASSWORD)" ssh -i /ssh-private-key "root@$(HOST)" 'systemctl daemon-reload || true; systemctl reload-or-restart uwsgi || true; systemctl reload nginx || true'
 
 .PHONY: api_clean
 api_clean:
