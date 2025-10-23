@@ -1,8 +1,9 @@
 #include "server/utilities/rate_tracker.hpp"
 #include "server/runtime/syslog.hpp"
 
+#include <array>
 #include <format>
-#include <cstring>
+#include <charconv>
 
 namespace ut {
 
@@ -169,7 +170,7 @@ inline bool atomic_write(const std::filesystem::path& path, std::string_view dat
 
 inline std::string json_escape(std::string_view s) {
     std::string out;
-    out.reserve(s.size() + 8);
+    out.reserve(s.size() + 8); // small slack
 
     for (unsigned char c : s) {
         switch (c) {
@@ -182,55 +183,96 @@ inline std::string json_escape(std::string_view s) {
             case '\t': out += "\\t";  break;
             default:
                 if (c < 0x20) {
-                    char buf[7]; std::snprintf(buf, sizeof(buf), "\\u%04x", c); out += buf;
+                    // Emit \u00XX (4 hex digits, lower-case hex is fine for JSON)
+                    char hexbuf[8]; // plenty for to_chars
+                    auto res = std::to_chars(hexbuf, hexbuf + sizeof(hexbuf),
+                                             static_cast<unsigned>(c), 16);
+                    const int n = res.ptr - hexbuf;
+                    out += "\\u";
+
+                    for (int i = n; i < 4; ++i) {  // left-pad to width 4
+                        out += '0';
+                    }
+    
+                    out.append(hexbuf, res.ptr);
                 } else {
-                    out += char(c);
+                    out += static_cast<char>(c);
                 }
         }
     }
-
     return out;
+}
+
+inline void append_u64(std::string& out, std::uint64_t v) {
+    char buf[32];
+    auto [ptr, ec] = std::to_chars(buf, buf + sizeof(buf), v);
+    out.append(buf, ptr);
+}
+
+inline void append_i64(std::string& out, std::int64_t v) {
+    char buf[32];
+    auto [ptr, ec] = std::to_chars(buf, buf + sizeof(buf), v);
+    out.append(buf, ptr);
+}
+
+inline void append_fixed(std::string& out, double v, int precision) {
+    char buf[64];
+    auto [ptr, ec] = std::to_chars(buf, buf + sizeof(buf), v,
+                                   std::chars_format::fixed, precision);
+    out.append(buf, ptr);
 }
 
 inline std::string build_json(const std::vector<RateRow>& rows,
                               std::string_view collection_key) {
-    // JSON object with timestamp and an array of sessions
     using clock = std::chrono::steady_clock;
     using sec   = std::chrono::duration<double>;
+
     const auto now  = clock::now().time_since_epoch();
     const auto secs = std::chrono::duration_cast<sec>(now).count();
 
     std::string j;
     j.reserve(1024 + rows.size() * 512);
-    j += "{\"ts\":"; // steady_clock seconds (monotonic)
-    char buf[64];
-    std::snprintf(buf, sizeof(buf), "%.6f", secs);
 
-    j += buf;
+    j += "{\"ts\":";
+    append_fixed(j, secs, 6);
+
     j += ",\"";
-    j += std::string(collection_key);
+    j.append(collection_key);  // key name (caller-provided)
     j += "\":[";
 
     bool first = true;
-
     for (const auto& r : rows) {
         if (!first) {
             j += ',';
         }
 
         first = false;
-        j += "{";
-        j += "\"id\":" + std::to_string(r.id);
-        j += ",\"name\":\"" + json_escape(r.name) + "\"";
-        j += ",\"rx_total\":" + std::to_string(r.total_rx);
-        j += ",\"tx_total\":" + std::to_string(r.total_tx);
 
+        j += "{";
+
+        // "id": <num>
+        j += "\"id\":";
+        append_i64(j, static_cast<int64_t>(r.id));
+
+        // "name": "<escaped>"
+        j += ",\"name\":\"";
+        j += json_escape(r.name);
+        j += "\"";
+
+        // "rx_total": <num>
+        j += ",\"rx_total\":";
+        append_i64(j, r.total_rx);
+
+        // "tx_total": <num>
+        j += ",\"tx_total\":";
+        append_i64(j, r.total_tx);
+
+        // doubles with 3 decimals
         auto add_d = [&](const char* k, double v){
             j += ",\"";
             j += k;
             j += "\":";
-            std::snprintf(buf, sizeof(buf), "%.3f", v);
-            j += buf;
+            append_fixed(j, v, 3);
         };
 
         add_d("rx_mean", r.rx_mean);
@@ -243,6 +285,7 @@ inline std::string build_json(const std::vector<RateRow>& rows,
         add_d("tx_inst", r.tx_inst);
         add_d("tx_ewma", r.tx_ewma);
         add_d("tx_max",  r.tx_max);
+
         j += "}";
     }
 
