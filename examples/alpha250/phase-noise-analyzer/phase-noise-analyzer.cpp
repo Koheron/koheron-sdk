@@ -6,10 +6,8 @@
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
-#include "server/runtime/driver_manager.hpp"
 #include "server/runtime/config_manager.hpp"
 #include "server/drivers/dma-s2mm.hpp"
-#include "boards/alpha250/drivers/clock-generator.hpp"
 #include "boards/alpha250/drivers/ltc2157.hpp"
 
 #include <algorithm>
@@ -144,7 +142,7 @@ void PhaseNoiseAnalyzer::set_fft_navg(uint32_t n_avg) {
 
 void PhaseNoiseAnalyzer::set_analyzer_mode(uint32_t mode) {
     if (mode != AnalyzerMode::RF && mode != AnalyzerMode::LASER) {
-        logf<WARNING>("PhaseNoiseAnalyzer: Invalid mode {}", mode);
+        logf<WARNING>("PhaseNoiseAnalyzer: Invalid mode {}\n", mode);
         return;
     }
 
@@ -153,7 +151,7 @@ void PhaseNoiseAnalyzer::set_analyzer_mode(uint32_t mode) {
 
 void PhaseNoiseAnalyzer::set_interferometer_delay(float delay_s) {
     interferometer_delay = Time(delay_s);
-    logf("PhaseNoiseAnalyzer: Interferometer delay set to {} ns",
+    logf("PhaseNoiseAnalyzer: Interferometer delay set to {} ns\n",
          interferometer_delay.eval() * 1E9f);
 
     update_interferometer_transfer_function();

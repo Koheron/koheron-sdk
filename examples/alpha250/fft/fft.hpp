@@ -5,15 +5,21 @@
 #ifndef __ALPHA250_FFT_FFT_HPP__
 #define __ALPHA250_FFT_FFT_HPP__
 
+#include "server/runtime/driver_manager.hpp"
 #include "server/hardware/memory_manager.hpp"
+#include "boards/alpha250/drivers/clock-generator.hpp"
+#include "boards/alpha250/drivers/power-monitor.hpp"
+#include "boards/alpha250/drivers/precision-adc.hpp"
+#include "boards/alpha250/drivers/precision-dac.hpp"
+#include "boards/alpha250/drivers/temperature-sensor.hpp"
 
 #include <cstdint>
 #include <atomic>
 #include <thread>
 #include <mutex>
 #include <array>
-
-class ClockGenerator;
+#include <tuple>
+#include <scicpp/core.hpp>
 
 class FFT
 {
@@ -50,11 +56,27 @@ class FFT
     void set_dds_freq(uint32_t channel, double freq_hz);
 
     auto get_control_parameters() {
-        return std::make_tuple(dds_freq[0], dds_freq[1], fs_adc, input_channel, W1, W2);
+        return std::tuple{
+            dds_freq[0],
+            dds_freq[1],
+            fs_adc,
+            input_channel,
+            W1,
+            W2,
+            window_index,
+            clk_gen.get_reference_clock()
+        };
     }
 
-    const auto& get_window_index() const {
-        return window_index;
+    auto get_board_parameters() {
+        auto supplies = rt::get_driver<PowerMonitor>().get_supplies_ui(); // std::array<float, 4>
+        auto adc_values = rt::get_driver<PrecisionAdc>().get_adc_values(); // std::array<float, 8>
+        auto dac_values = rt::get_driver<PrecisionDac>().get_dac_values(); // std::array<float, 4>
+        auto temperatures = rt::get_driver<TemperatureSensor>().get_temperatures(); // std::array<float, 3>
+
+        // Concatenate the arrays
+        using namespace scicpp::operators;
+        return supplies | adc_values | dac_values | temperatures;
     }
 
  private:

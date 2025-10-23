@@ -1,12 +1,24 @@
 // Interface for the FFT driver
 // (c) Koheron
 
+type TupleGetParameters = [number, number, number, number, number, number, number, number];
+type TupleBoardParameters = [number, number, number, number];
+
 interface IFFTStatus {
     dds_freq: number[];
     fs: number; // Sampling frequency (Hz)
     channel: number; // Input channel
     W1: number; // FFT window correction (sum w)^2
     W2: number; // FFT window correction (sum w^2)
+    window_index: number;
+    clkIndex: string;
+}
+
+interface IBoardParameters {
+    supplyValues: Float32Array;
+    adcValues: Float32Array;
+    dacValues: Float32Array;
+    temperatures: Float32Array;
 }
 
 class FFT {
@@ -28,11 +40,10 @@ class FFT {
     }
 
     init(cb: () => void): void {
-        this.getFFTSize( (size: number) => {
+        this.getFFTSize( async (size: number) => {
             this.fft_size = size;
-            this.getControlParameters( () => {
-                cb();
-            });
+            await this.getControlParameters();
+            cb();
         });
     }
 
@@ -60,10 +71,8 @@ class FFT {
         });
     }
 
-    read_psd(cb: (psd: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd']), (psd: Float32Array) => {
-            cb(psd);
-        });
+    async read_psd(): Promise<Float32Array> {
+        return await this.client.readFloat32Array(Command(this.id, this.cmds['read_psd']));
     }
 
     setDDSFreq(channel: number, freq_hz: number): void {
@@ -78,23 +87,32 @@ class FFT {
         this.client.send(Command(this.id, this.cmds['set_fft_window'], windowIndex));
     }
 
-    getControlParameters(cb: (status: IFFTStatus) => void): void {
-        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'dddIdd',
-                               (tup: [number, number, number, number, number, number]) => {
-            this.status.dds_freq[0] = tup[0];
-            this.status.dds_freq[1] = tup[1];
-            this.status.fs = tup[2];
-            this.status.channel = tup[3];
-            this.status.W1 = tup[4];
-            this.status.W2 = tup[5];
-            cb(this.status);
-        });
+    async getControlParameters(): Promise<IFFTStatus> {
+        const [fdds0, fdds1, fs, channel, W1, W2, window_index, clkin] =
+        await this.client.readTuple<TupleGetParameters>(
+            Command(this.id, this.cmds['get_control_parameters']),
+            'dddIddI'
+        );
+
+        let clkIndex: string = "0";
+
+        if (clkin !== 0) {
+            clkIndex = "2";
+        }
+
+        this.status = {dds_freq: [fdds0, fdds1], fs, channel, W1, W2, window_index, clkIndex};
+        return this.status;
     }
 
-    getFFTWindowIndex(cb: (windowIndex: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['get_window_index']),
-                               (windowIndex: number) => {
-            cb(windowIndex);
-        });
+    async getBoardParameters(): Promise<IBoardParameters> {
+        const arr = await this.client.readFloat32Array(
+            Command(this.id, this.cmds['get_board_parameters']));
+
+        const supplyValues = arr.slice(0, 4);
+        const adcValues    = arr.slice(4, 12);
+        const dacValues    = arr.slice(12, 16);
+        const temperatures = arr.slice(16, 19);
+
+        return {supplyValues, adcValues, dacValues, temperatures};
     }
 }

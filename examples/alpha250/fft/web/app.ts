@@ -1,19 +1,13 @@
 class App {
-
     private imports: Imports;
     public plot: Plot;
     private plotBasics: PlotBasics;
     private fft: FFT;
     public fftApp: FFTApp;
     public ddsFrequency: DDSFrequency;
-    private temperatureSensor: TemperatureSensor;
-    private temperatureSensorApp: TemperatureSensorApp;
-    private powerMonitor: PowerMonitor;
-    private powerMonitorApp: PowerMonitorApp;
     private clockGenerator: ClockGenerator;
     private clockGeneratorApp: ClockGeneratorApp;
     private precisionDac: PrecisionDac;
-    private precisionAdc: PrecisionAdc;
     private precisionChannelsApp: PrecisionChannelsApp;
     private exportFile: ExportFile;
 
@@ -33,9 +27,6 @@ class App {
                 this.imports = new Imports(document);
                 this.fft = new FFT(client);
                 this.precisionDac = new PrecisionDac(client);
-                this.precisionAdc = new PrecisionAdc(client);
-                this.temperatureSensor = new TemperatureSensor(client);
-                this.powerMonitor = new PowerMonitor(client);
                 this.clockGenerator = new ClockGenerator(client);
 
                 this.fft.init( () => {
@@ -51,10 +42,8 @@ class App {
                     this.plotBasics = new PlotBasics(document, plot_placeholder, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.fft, "", "Frequency (MHz)");
                     this.plot = new Plot(document, this.fft, this.plotBasics);
 
-                    this.temperatureSensorApp = new TemperatureSensorApp(document, this.temperatureSensor);
-                    this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);
                     this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
-                    this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionAdc, this.precisionDac);
+                    this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionDac);
                     this.exportFile = new ExportFile(document, this.plot);
 
                 });

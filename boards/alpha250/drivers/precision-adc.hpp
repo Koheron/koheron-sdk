@@ -19,7 +19,7 @@ class PrecisionAdc
     }
 
     auto get_adc_values() {
-        std::lock_guard<std::mutex> lock(acquisition_mtx);
+        std::lock_guard lock(acquisition_mtx);
         return analog_inputs_data;
     }
 

@@ -24,7 +24,7 @@ class PhaseNoiseAnalyzerApp {
 
   constructor(document: Document, private driver: PhaseNoiseAnalyzer) {}
 
-  async init(callback: () => void): Promise<void> {
+  async init(): Promise<void> {
     const parameters = await this.driver.getParameters();
     this.nPoints = parameters.data_size;
 
@@ -44,7 +44,6 @@ class PhaseNoiseAnalyzerApp {
     this.initLaserMode();
     this.updateMeasurements();
     this.updateControls();
-    callback();
   }
 
   initCicRateInput(): void {
@@ -175,16 +174,15 @@ class PhaseNoiseAnalyzerApp {
 
   private async updateMeasurements() {
     const navg: number = 400;
-    const power = await this.driver.getCarrierPower(navg)
-    this.carrierPowerSpan.innerHTML = this.formatMeasurement(power, "dBm");
+    const meas = await this.driver.getMeasurements(navg);
 
-    const jitters = await this.driver.getJitter();
-    const freqRange = `(${this.formatFrequency(jitters.freq_lo)} - ${this.formatFrequency(jitters.freq_hi)})`;
+    this.carrierPowerSpan.innerHTML = this.formatMeasurement(meas.carrier_power, "dBm");
+    const freqRange = `(${this.formatFrequency(meas.freq_lo)} - ${this.formatFrequency(meas.freq_hi)})`;
 
     this.phaseJitterSpan.innerHTML =
-      this.formatMeasurement(jitters.phase_jitter * 1E3, `mrad<sub>rms</sub> ${freqRange}`);
+      this.formatMeasurement(meas.phase_jitter * 1E3, `mrad<sub>rms</sub> ${freqRange}`);
     this.timeJitterSpan.innerHTML =
-      this.formatMeasurement(jitters.time_jitter * 1E12, `ps<sub>rms</sub> ${freqRange}`);
+      this.formatMeasurement(meas.time_jitter * 1E12, `ps<sub>rms</sub> ${freqRange}`);
 
     requestAnimationFrame(() => { this.updateMeasurements(); });
   }
@@ -220,6 +218,8 @@ class PhaseNoiseAnalyzerApp {
     if (!this.isEditingDelay) {
       this.interferometerDelayInput.value = (parameters.interferometer_delay * 1E9).toFixed(2);
     }
+
+    (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock'][value='" + parameters.clkIndex + "']")).checked = true;
 
     requestAnimationFrame( () => { this.updateControls(); } )
   }

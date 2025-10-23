@@ -22,10 +22,9 @@ class Plot {
     this.updatePlot();
   }
 
-  async init() {
-    const parameters = await this.driver.getParameters();
-    this.n_pts = parameters.data_size;
-    this.samplingFrequency = parameters.fs;
+  init() {
+    this.n_pts = this.driver.parameters.data_size;
+    this.samplingFrequency = this.driver.parameters.fs;
     this.setFreqAxis();
     this.plotBasics.setLogX();
     this.plotBasics.enableDecimation();
@@ -175,9 +174,8 @@ class Plot {
     this._lastTick = now;
 
     try {
-      const parameters = await this.driver.getParameters();
+      const ddsFreq = await app.dds.getDDSFreq(this.driver.parameters.channel);
 
-      const ddsFreq = await app.dds.getDDSFreq(parameters.channel);
       const plotEmptyDiv: HTMLElement = document.getElementById('plot-empty')!;
 
       if (!this.loIsSet(ddsFreq)) {
@@ -189,8 +187,8 @@ class Plot {
         plotEmptyDiv.classList.add('hidden');
       }
 
-      if (parameters.fs !== this.samplingFrequency) {
-        this.samplingFrequency = parameters.fs;
+      if (this.driver.parameters.fs !== this.samplingFrequency) {
+        this.samplingFrequency = this.driver.parameters.fs;
         this.setFreqAxis();
       }
 

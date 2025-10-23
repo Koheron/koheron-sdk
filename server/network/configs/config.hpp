@@ -28,7 +28,7 @@ namespace net {
         /// Websocket listening port
         constexpr unsigned int websocket_port = 8080;
         /// Websocket max parallel connections
-        constexpr int websocket_worker_connections = 100;
+        constexpr int websocket_worker_connections = 200;
 
         /// Unix socket file path
         constexpr char unix_socket_path[unix_socket_path_len] = "/var/run/koheron-server.sock";

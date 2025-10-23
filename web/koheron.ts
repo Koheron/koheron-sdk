@@ -699,59 +699,52 @@ class Client {
         }, fn);
     }
 
-    deserialize(fmt: string, dv: DataView, onError?: any) {
-        if (onError == null) { onError = null; }
-        let tuple = [];
-        let offset = 0;
+    deserialize(fmt, dv, onError = null) {
+        // Parse optional endianness prefix (Python struct style)
+        let i = 0;
+        let little = false; // default big-endian (network order)
 
-        for (let i = 0, end = fmt.length-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) {
-            switch (fmt[i]) {
-                case 'B':
-                    tuple.push(dv.getUint8(offset));
-                    offset += 1;
-                    break;
-                case 'b':
-                    tuple.push(dv.getInt8(offset));
-                    offset += 1;
-                    break;
-                case 'H':
-                    tuple.push(dv.getUint16(offset));
-                    offset += 2;
-                    break;
-                case 'h':
-                    tuple.push(dv.getInt16(offset));
-                    offset += 2;
-                    break;
-                case 'I':
-                    tuple.push(dv.getUint32(offset));
-                    offset += 4;
-                    break;
-                case 'i':
-                    tuple.push(dv.getInt32(offset));
-                    offset += 4;
-                    break;
-                case 'f':
-                    tuple.push(dv.getFloat32(offset));
-                    offset += 4;
-                    break;
-                case 'd':
-                    tuple.push(dv.getFloat64(offset));
-                    offset += 8;
-                    break;
-                case '?':
-                    if (dv.getUint8(offset) === 0) {
-                        tuple.push(false);
-                    } else {
-                        tuple.push(true);
-                    }
-                    offset += 1;
-                    break;
-                default:
-                    this.redirectError(true, `Unknown or unsupported type ${fmt[i]}`, (function() {}), onError);
+        if (fmt.length) {
+            const c = fmt[0];
+            if (c === '<') {
+                little = true;
+                i = 1;
+            } else if (c === '>' || c === '!') {
+                little = false; i = 1;
+            } else if (c === '@' || c === '=') {
+                // Native; in JS we can only choose LE/BE. Assume little on most hosts.
+                little = true; // change if you truly want host-endian detection.
+                i = 1;
             }
         }
 
+        const tuple = [];
+        let offset = 0;
 
+        for (; i < fmt.length; ++i) {
+            switch (fmt[i]) {
+                case 'B': tuple.push(dv.getUint8(offset));  offset += 1; break;
+                case 'b': tuple.push(dv.getInt8(offset));   offset += 1; break;
+
+                case 'H': tuple.push(dv.getUint16(offset, little)); offset += 2; break;
+                case 'h': tuple.push(dv.getInt16(offset,  little)); offset += 2; break;
+
+                case 'I': tuple.push(dv.getUint32(offset, little)); offset += 4; break;
+                case 'i': tuple.push(dv.getInt32(offset,  little)); offset += 4; break;
+
+                case 'f': tuple.push(dv.getFloat32(offset, little)); offset += 4; break;
+                case 'd': tuple.push(dv.getFloat64(offset, little)); offset += 8; break;
+
+                case '?':
+                    tuple.push(dv.getUint8(offset) !== 0);
+                    offset += 1;
+                    break;
+
+                default:
+                    this.redirectError(true, `Unknown or unsupported type ${fmt[i]}`, () => {}, onError);
+                    return tuple;
+            }
+        }
         return tuple;
     }
 

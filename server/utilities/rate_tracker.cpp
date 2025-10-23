@@ -203,13 +203,13 @@ inline std::string json_escape(std::string_view s) {
     return out;
 }
 
-inline void append_u64(std::string& out, std::uint64_t v) {
+inline void append_u64(std::string& out, uint64_t v) {
     char buf[32];
     auto [ptr, ec] = std::to_chars(buf, buf + sizeof(buf), v);
     out.append(buf, ptr);
 }
 
-inline void append_i64(std::string& out, std::int64_t v) {
+inline void append_i64(std::string& out, int64_t v) {
     char buf[32];
     auto [ptr, ec] = std::to_chars(buf, buf + sizeof(buf), v);
     out.append(buf, ptr);

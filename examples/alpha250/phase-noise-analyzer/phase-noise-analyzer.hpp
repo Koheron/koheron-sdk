@@ -14,7 +14,9 @@
 #include <scicpp/core.hpp>
 #include <scicpp/signal.hpp>
 
+#include "server/runtime/driver_manager.hpp"
 #include "server/hardware/memory_manager.hpp"
+#include "boards/alpha250/drivers/clock-generator.hpp"
 
 #include "./dds.hpp"
 #include "./moving_averager.hpp"
@@ -62,7 +64,8 @@ class PhaseNoiseAnalyzer
             dds.get_dds_freq(0),
             dds.get_dds_freq(1),
             analyzer_mode,
-            interferometer_delay
+            interferometer_delay,
+            rt::get_driver<ClockGenerator>().get_reference_clock()
         };
     }
 
@@ -74,6 +77,16 @@ class PhaseNoiseAnalyzer
             time_jitter,
             f_lo_used,
             f_hi_used
+        };
+    }
+
+    auto get_measurements(uint32_t navg) {
+        return std::tuple{
+            phase_jitter,
+            time_jitter,
+            f_lo_used,
+            f_hi_used,
+            get_carrier_power(navg)
         };
     }
 

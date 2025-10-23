@@ -1,8 +1,6 @@
 #include "./fft.hpp"
 
 #include "server/runtime/syslog.hpp"
-#include "server/runtime/driver_manager.hpp"
-#include "boards/alpha250/drivers/clock-generator.hpp"
 #include "boards/alpha250/drivers/ltc2157.hpp"
 
 #include <array>
@@ -11,7 +9,6 @@
 #include <limits>
 #include <chrono>
 #include <thread>
-#include <scicpp/core.hpp>
 #include <scicpp/signal.hpp>
 
 namespace sci = scicpp;

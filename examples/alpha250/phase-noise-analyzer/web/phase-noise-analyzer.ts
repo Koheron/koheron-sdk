@@ -1,7 +1,7 @@
 // Interface for the Phase Noise Analyzer driver
 // (c) Koheron
 
-type TupleGetParameters = [number, number, number, number, number, number, number, number, number];
+type TupleGetParameters = [number, number, number, number, number, number, number, number, number, number];
 
 interface IParameters {
   data_size: number; // fft_size/2
@@ -13,21 +13,24 @@ interface IParameters {
   fdds1: number;
   analyzer_mode: string;
   interferometer_delay: number;
+  clkIndex: string;
 }
 
-type TupleGetJitter = [number, number, number, number];
+type TupleGetMeasurements = [number, number, number, number, number];
 
-interface IJitter {
+interface IMeasurements {
   phase_jitter: number; // rad rms
   time_jitter: number;  // s rms
   freq_lo: number; // Integration interval start
   freq_hi: number; // Integration interval end
+  carrier_power: number;
 }
 
 class PhaseNoiseAnalyzer {
   private driver: Driver;
   private id: number;
   private cmds: Commands;
+  public parameters: IParameters;
 
   constructor(private client: Client) {
     this.driver = this.client.getDriver('PhaseNoiseAnalyzer');
@@ -36,24 +39,32 @@ class PhaseNoiseAnalyzer {
   }
 
   async getParameters(): Promise<IParameters> {
-    const [data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, mode, interferometer_delay] =
+    const [data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, mode, interferometer_delay, clkin] =
       await this.client.readTuple<TupleGetParameters>(
         Command(this.id, this.cmds['get_parameters']),
-        'IfIIIddIf'
+        'IfIIIddIfI'
       );
 
     const analyzer_mode = (mode == 0 ?  'rf' : 'laser');
-    return { data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, analyzer_mode, interferometer_delay };
+
+    let clkIndex: string = "0";
+
+    if (clkin !== 0) {
+      clkIndex = "2";
+    }
+
+    this.parameters = { data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, analyzer_mode, interferometer_delay, clkIndex };
+    return this.parameters;
   }
 
-  async getJitter(): Promise<IJitter> {
-    const [phase_jitter, time_jitter, freq_lo, freq_hi] =
-      await this.client.readTuple<TupleGetJitter>(
-        Command(this.id, this.cmds['get_jitter']),
-        'ffff'
+  async getMeasurements(nAverage: number): Promise<IMeasurements> {
+    const [phase_jitter, time_jitter, freq_lo, freq_hi, carrier_power] =
+      await this.client.readTuple<TupleGetMeasurements>(
+        Command(this.id, this.cmds['get_measurements'], nAverage),
+        'ffffd'
       );
 
-    return { phase_jitter, time_jitter, freq_lo, freq_hi };
+    return { phase_jitter, time_jitter, freq_lo, freq_hi, carrier_power };
   }
 
   setFFTNavg(navg: number): void {

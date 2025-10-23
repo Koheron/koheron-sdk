@@ -1,42 +1,9 @@
 class PrecisionChannelsApp {
-
-    private precisionChannelsNum: number = 4;
     private precisionDacInputs: HTMLInputElement[];
 
-    constructor(document: Document, private precisionAdc: PrecisionAdc, private precisionDac: PrecisionDac) {
+    constructor(document: Document, private precisionDac: PrecisionDac) {
         this.precisionDacInputs = <HTMLInputElement[]><any>document.getElementsByClassName("precision-dac-input");
-        this.updatePrecisionAdc();
-        this.updatePrecisionDac();
         this.initPrecisionDacInputs();
-    }
-
-    private updatePrecisionAdc() {
-        this.precisionAdc.getAdcValues((adcValues: Float32Array) => {
-            for (let i: number = 0; i < this.precisionChannelsNum; i++) {
-                (<HTMLSpanElement>document.querySelector(".precision-adc-span[data-channel='" + i.toString() + "']")).textContent = (adcValues[i] * 1000).toFixed(4);
-            }
-            requestAnimationFrame( () => { this.updatePrecisionAdc(); });
-        });
-    }
-
-    private updatePrecisionDac() {
-        this.precisionDac.getDacValues( (dacValues: Float32Array) => {
-            for (let i = 0; i < this.precisionChannelsNum; i++) {
-                let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".precision-dac-input[data-command='setDac'][data-channel='" + i.toString() + "']");
-                let inputsArray = [];
-                for (let j = 0; j < inputs.length; j++) {
-                    inputsArray.push(inputs[j]);
-                }
-
-                if (inputsArray.indexOf(<HTMLInputElement>document.activeElement) == -1) {
-                    for (let j = 0; j < inputs.length; j++) {
-                      inputs[j].value = (dacValues[i] * 1000).toFixed(3).toString();
-                    }
-                }
-            }
-
-            requestAnimationFrame( () => { this.updatePrecisionDac(); } )
-        });
     }
 
     initPrecisionDacInputs(): void {

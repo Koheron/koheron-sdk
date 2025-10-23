@@ -17,11 +17,11 @@ class App {
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
-        let sockpoolSize: number = 10;
+        let sockpoolSize: number = 5;
         let client = new Client(ip, sockpoolSize);
 
         window.addEventListener('HTMLImportsLoaded', () => {
-            client.init( () => {
+            client.init( async () => {
                 this.imports = new Imports(document);
                 this.dds = new DDS(client);
                 this.clockGenerator = new ClockGenerator(client);
@@ -30,17 +30,17 @@ class App {
                 this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
                 this.phaseNoiseAnalyzerApp = new PhaseNoiseAnalyzerApp(document, this.phaseNoiseAnalyzer);
 
-                this.phaseNoiseAnalyzerApp.init( () => {
-                    this.n_pts = this.phaseNoiseAnalyzerApp.nPoints;
-                    this.x_min = 100;
-                    this.x_max = 2E6;
-                    this.y_min = -200;
-                    this.y_max = 0;
+                await this.phaseNoiseAnalyzerApp.init();
+                this.n_pts = this.phaseNoiseAnalyzerApp.nPoints;
+                this.x_min = 100;
+                this.x_max = 2E6;
+                this.y_min = -200;
+                this.y_max = 0;
 
-                    this.plotBasics = new PlotBasics(document, plot_placeholder, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.phaseNoiseAnalyzer, "", "FREQUENCY OFFSET (Hz)");
-                    this.plot = new Plot(document, this.phaseNoiseAnalyzer, this.plotBasics);
-                    this.exportFile = new ExportFile(document, this.plot);
-                })
+                this.plotBasics = new PlotBasics(document, plot_placeholder, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.phaseNoiseAnalyzer, "", "FREQUENCY OFFSET (Hz)");
+                this.plot = new Plot(document, this.phaseNoiseAnalyzer, this.plotBasics);
+                this.exportFile = new ExportFile(document, this.plot);
+
             });
         }, false);
 
