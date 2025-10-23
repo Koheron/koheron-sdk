@@ -103,10 +103,7 @@ inline int run_server(std::string_view on_ready_msg="server ready\n") {
     // Config periodic rates dump
     constexpr auto dump_period = 1s; // adjust cadence
     auto next_dump = clock::now() + dump_period;
-
-    fs::path dump_dir = "/run/koheron";
-    fs::create_directory(dump_dir);
-    auto dump_path = dump_dir / "sessions_rates.json";
+    fs::path dump_path = "/run/koheron/sessions_rates.json";
 
     auto signal_handler = rt::SignalHandler();
 
@@ -121,6 +118,7 @@ inline int run_server(std::string_view on_ready_msg="server ready\n") {
     }
 
     bool ready_notified = false;
+    auto& sm = services::require<net::SessionManager>();
 
     while (true) {
         if (!ready_notified && lm.is_ready()) {
@@ -143,7 +141,7 @@ inline int run_server(std::string_view on_ready_msg="server ready\n") {
         const auto now = clock::now();
         if (now >= next_dump) {
             do {
-                const bool ok = services::require<net::SessionManager>().dump_rates(dump_path);
+                const bool ok = sm.dump_rates(dump_path);
                 if (!ok) {
                     logf<WARNING>("dump_rates: failed to write '{}'\n", dump_path);
                 }

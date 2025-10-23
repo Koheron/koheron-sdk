@@ -5,7 +5,7 @@
 
 #include "server/network/configs/server_definitions.hpp"
 #include "server/network/serializer_deserializer.hpp"
-#include "server/network/rate_tracker.hpp"
+#include "server/utilities/rate_tracker.hpp"
 #include "server/utilities/metadata.hpp"
 
 #include <array>
@@ -68,7 +68,7 @@ class Session
 
     // Data rates
     auto rates() const {
-        return std::tuple{
+        return std::array{
             rx_tracker.snapshot(),
             tx_tracker.snapshot()
         };
@@ -98,8 +98,8 @@ class Session
     std::pmr::vector<unsigned char> send_buffer{ &pool };
     CommandBuilder builder;
 
-    RateTracker rx_tracker{5, 64, 1.5}; // 5s window, keep 64s history, 1.5s EWMA half-life
-    RateTracker tx_tracker{5, 64, 1.5};
+    ut::RateTracker rx_tracker{5, 64, 1.5}; // 5s window, keep 64s history, 1.5s EWMA half-life
+    ut::RateTracker tx_tracker{5, 64, 1.5};
 
     friend class Command;
 };

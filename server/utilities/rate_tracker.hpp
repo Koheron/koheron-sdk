@@ -1,13 +1,16 @@
-#ifndef __SERVER_NETWORK_RATE_TRACKER__
-#define __SERVER_NETWORK_RATE_TRACKER__
+#ifndef __SERVER_UTILITIES_RATE_TRACKER__
+#define __SERVER_UTILITIES_RATE_TRACKER__
 
 #include <array>
 #include <chrono>
 #include <cstdint>
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <string_view>
+#include <vector>
 
-namespace net {
+namespace ut {
 
 /* RateTracker metrics (all rates are in bits per second unless noted)
 
@@ -109,6 +112,22 @@ class RateTracker {
     double max_bps_    = 0.0;
 };
 
-} // namespace net
+// ------------------------------------------------
+// Dump data rates to JSON
 
-#endif // __SERVER_NETWORK_RATE_TRACKER__
+struct RateRow {
+    int id;
+    std::string_view name;
+    int64_t total_rx;
+    int64_t total_tx;
+    double rx_mean, rx_win, rx_inst, rx_ewma, rx_max;
+    double tx_mean, tx_win, tx_inst, tx_ewma, tx_max;
+};
+
+bool dump_rates_to_json(const std::filesystem::path& path,
+                        std::string_view collection_key,
+                        const std::vector<RateRow>& rows);
+
+} // namespace ut
+
+#endif // __SERVER_UTILITIES_RATE_TRACKER__

@@ -1,6 +1,6 @@
 interface LogRateSession {
     id: number;
-    socket: string;
+    name: string;
     rx_total: number;
     tx_total: number;
     rx_mean: number;
@@ -282,7 +282,7 @@ class LogsRateTable {
                 const s = sessions[i];
                 bodyParts.push("<tr>");
                 bodyParts.push("<td>" + s.id + "</td>");
-                bodyParts.push("<td>" + this.escapeHtml(s.socket) + "</td>");
+                bodyParts.push("<td>" + this.escapeHtml(s.name) + "</td>");
                 bodyParts.push("<td>" + this.formatRate(s.rx_inst) + "</td>");
                 bodyParts.push("<td>" + this.formatRate(s.rx_mean) + "</td>");
                 bodyParts.push("<td>" + this.formatRate(s.rx_ewma) + "</td>");
