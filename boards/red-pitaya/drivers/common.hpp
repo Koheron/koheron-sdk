@@ -9,13 +9,9 @@
 #include "server/hardware/memory_manager.hpp"
 #include "server/drivers/leds-control.hpp"
 
-#include <cstring>
-#include <array>
+#include <cstdint>
+#include <string>
 #include <memory>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <ifaddrs.h>
 
 class Common
 {

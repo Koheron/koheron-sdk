@@ -10,7 +10,7 @@ XDC += $(PROJECT_PATH)/constraints.xdc
 CORES += $(SDK_PATH)/fpga/cores/axi_ctl_register_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axi_sts_register_v1_0
 
-DRIVERS += $(SDK_PATH)/server/drivers/common.hpp
+DRIVERS += $(SDK_PATH)/boards/red-pitaya/drivers/common.hpp
 DRIVERS += $(PROJECT_PATH)/led_blinker.hpp
 
 WEB_FILES += $(SDK_PATH)/web/led-blinker.ts
