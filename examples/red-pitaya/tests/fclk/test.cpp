@@ -13,8 +13,6 @@
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
-#include "server/runtime/systemd.hpp"
-#include "server/runtime/signal_handler.hpp"
 #include "server/runtime/executor.hpp"
 
 #include "server/network/listener_manager.hpp"
@@ -166,29 +164,6 @@ class AppExecutor final : public rt::IExecutor {
 
 // ---------------- Main ----------------
 int main() {
-    rt::SignalHandler signal_handler;
-    if (signal_handler.init() < 0) std::exit(EXIT_FAILURE);
-
     rt::provide_executor<AppExecutor>();
-
-    net::ListenerManager lm;
-    if (lm.start() < 0) std::exit(EXIT_FAILURE);
-
-    bool ready_notified = false;
-    for (;;) {
-        if (!ready_notified && lm.is_ready()) {
-            log("chat app is ready\n");
-            if constexpr (net::config::notify_systemd) {
-                rt::systemd::notify_ready("chat app is ready");
-            }
-            ready_notified = true;
-        }
-        if (signal_handler.interrupt()) {
-            log("Interrupt received, shutting down...\n");
-            lm.shutdown();
-            break;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
-    return 0;
+    return net::run_server("ChatHub ready\n");
 }
