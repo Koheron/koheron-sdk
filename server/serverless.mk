@@ -43,9 +43,13 @@ OBJ = $(TMP_SERVER_PATH)/systemd.o \
           $(TMP_SERVER_PATH)/fpga_manager.o \
           $(TMP_SERVER_PATH)/zynq_fclk.o
 
-SERVERLESS_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(SERVERLESS_CPP_SRCS))))
+SERVER_CPP := $(wildcard $(SERVER_PATH)/utilities/*.cpp)
+SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(SERVER_CPP))))
+OBJ += $(SERVER_OBJ)
 
+SERVERLESS_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(SERVERLESS_CPP_SRCS))))
 OBJ += $(SERVERLESS_OBJ)
+
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 
@@ -63,6 +67,9 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp $(TMP_SERVER_PATH)/memory.h
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/hardware/%.cpp $(TMP_SERVER_PATH)/memory.hpp | $(TMP_SERVER_PATH)
+	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+
+$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/utilities/%.cpp | $(GEN_HEADERS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
 $(SERVER): $(OBJ) $(GEN_HDRS) | $(KOHERON_SERVER_PATH)
