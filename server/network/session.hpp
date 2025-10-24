@@ -16,6 +16,7 @@
 #include <tuple>
 #include <span>
 #include <memory_resource>
+#include <cstring>
 
 namespace net {
 
@@ -45,6 +46,27 @@ class Session
         using first_t = std::tuple_element_t<0, std::tuple<Args...>>;
 
         if constexpr (is_std_span_v<first_t>) {
+            if (type == WEBSOCK) {
+                // WebSocket messages must remain a single framed payload.
+                // Fall back to a copy that mirrors the zero-copy layout:
+                // header followed immediately by the raw span bytes, without
+                // inserting container metadata.
+                auto&& span = std::get<0>(std::forward_as_tuple(args...));
+                const auto bytes = std::as_bytes(span);
+                const auto header_size = send_buffer.size();
+                send_buffer.resize(header_size + bytes.size());
+                std::memcpy(send_buffer.data() + header_size, bytes.data(), bytes.size());
+
+                int n = write_bytes(std::as_bytes(std::span{send_buffer}));
+                tx_tracker.update(n);
+
+                if (n == 0) {
+                    status = CLOSED;
+                }
+
+                return n;
+            }
+
             // Use the send() API for std::span
 
             int n_header = write_bytes(std::as_bytes(std::span{send_buffer}));
