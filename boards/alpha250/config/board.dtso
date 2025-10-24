@@ -41,16 +41,30 @@
 	fragment@3 {
         target-path = "/";
         __overlay__ {
-            #address-cells = <2>;
-            #size-cells = <1>;
+			#address-cells = <1>;
+			#size-cells = <1>;
 
-            memory@0 {
-                device_type = "memory";
-                /* addr_hi, addr_lo, size */
-                reg = <0x0 0x0 0x18000000>;
-            };
-        };
+			memory@0 {
+			device_type = "memory";
+			reg = <0x00000000 0x20000000>; // 512 MiB
+			};
+
+			reserved-memory {
+				#address-cells = <1>;
+				#size-cells = <1>;
+				ranges;
+
+				cma_pool_ddr: cma@18000000 {
+					compatible = "shared-dma-pool";
+					reg = <0x18000000 0x08000000>;   // 128 MiB example
+					linux,cma;
+					reusable;
+					alignment = <0x100000>;          // (optional) 1 MiB alignment
+				};
+			};
+		};
 	};
+
 
 	fragment@4 {
 		target = <&usb0>;
