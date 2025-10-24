@@ -147,9 +147,11 @@ class AdcDacDma
     }
 
     auto get_adc_data() {
-        // data = ram_s2mm.read_array<uint32_t, n_desc * n_pts>();
-        // return data;
-        return std::array<uint32_t, 0>{};
+        return ram_s2mm.read_array<uint32_t, n_desc * n_pts>();
+    }
+
+    auto get_adc_data_span() {
+        return ram_s2mm.read_span<uint32_t, n_desc * n_pts>();
     }
 
   private:

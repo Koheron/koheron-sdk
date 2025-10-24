@@ -143,6 +143,10 @@ class AdcDacDma
         return data;
     }
 
+    auto get_adc_data_span() {
+        return ram_s2mm.read_span<uint32_t, n_desc * n_pts>();
+    }
+
   private:
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::dma>& dma;

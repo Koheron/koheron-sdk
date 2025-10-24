@@ -41,13 +41,22 @@ class AdcDacDma(object):
     def get_adc_data(self):
         return self.client.recv_array(self.n//2, dtype='uint32')
 
+    @command()
+    def get_adc_data_span(self):
+        return self.client.recv_array(self.n//2, dtype='uint32', check_type=False)
+
     def get_adc(self):
         data = self.get_adc_data()
         self.adc[::2] = (np.int32(data % 65536) - 32768) % 65536 - 32768
         self.adc[1::2] = (np.int32(data >> 16) - 32768) % 65536 - 32768
 
+    def get_adc_span(self):
+        data = self.get_adc_data_span()
+        self.adc[::2] = (np.int32(data % 65536) - 32768) % 65536 - 32768
+        self.adc[1::2] = (np.int32(data >> 16) - 32768) % 65536 - 32768
+
 if __name__=="__main__":
-    host = os.getenv('HOST','192.168.1.16')
+    host = os.getenv('HOST','192.168.1.98')
     client = connect(host, name='adc-dac-dma')
     driver = AdcDacDma(client)
 
@@ -71,7 +80,13 @@ if __name__=="__main__":
 
     print("Get ADC{} data ({} points)".format(adc_channel, driver.n))
     driver.start_dma()
-    driver.get_adc()
+
+    while True:
+        now = time.time()
+        driver.get_adc()
+        # driver.get_adc_span()
+        print(time.time() - now)
+
     driver.stop_dma()
 
     n_pts = driver.n

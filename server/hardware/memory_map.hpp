@@ -249,7 +249,8 @@ class Memory
         static_assert(offset + sizeof(T) * (N - 1) < (mem::get_range(id) * mem::get_n_blocks(id)), "Invalid offset");
         static_assert(mem::is_readable(id), "Not readable");
 
-        return { get_ptr<const T, offset>(block_idx), N };
+        const T* ptr = get_ptr<const T, offset>(block_idx);
+        return std::span<const T, N>(ptr, N);
     }
 
     // Read a std::array (offset defined at run-time)

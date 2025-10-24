@@ -102,6 +102,19 @@ template<class U> struct is_std_complex<std::complex<U>> : std::true_type {};
 template<class T> inline constexpr bool is_std_complex_v = is_std_complex<std::remove_cv_t<T>>::value;
 
 // ----------------------------------------------------------------------------
+// std::span
+// ----------------------------------------------------------------------------
+
+template<typename T>
+struct is_std_span : std::false_type {};
+
+template<typename T, std::size_t Extent>
+struct is_std_span<std::span<T, Extent>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_std_span_v = is_std_span<std::remove_cvref_t<T>>::value;
+
+// ----------------------------------------------------------------------------
 // Units utilities
 // ----------------------------------------------------------------------------
 

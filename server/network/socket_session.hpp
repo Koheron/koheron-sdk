@@ -73,6 +73,8 @@ class SocketSession : public Session
         return write(bytes);
     }
 
+    int send_all(const std::span<const std::byte> bytes) override;
+
     void set_socket_infos();
 };
 
@@ -194,6 +196,31 @@ int SocketSession<socket_type>::write(const R& r) {
     } else {
         return -1;
     }
+}
+
+template<int socket_type>
+int SocketSession<socket_type>::send_all(const std::span<const std::byte> bytes) {
+    // TODO Only for TCP sessions
+    const auto* ptr = bytes.data();
+    std::size_t length = bytes.size_bytes();
+    std::size_t remaining = length;
+
+    while (remaining > 0) {
+        const ssize_t sent = ::send(comm_fd, ptr, remaining, MSG_NOSIGNAL);
+
+        if (sent < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+
+            return -1;
+        }
+
+        ptr += static_cast<std::size_t>(sent);
+        remaining -= static_cast<std::size_t>(sent);
+    }
+
+    return length;
 }
 
 template<int socket_type>

@@ -7,6 +7,7 @@
 #include "server/network/serializer_deserializer.hpp"
 #include "server/utilities/rate_tracker.hpp"
 #include "server/utilities/metadata.hpp"
+#include "server/utilities/meta_utils.hpp"
 
 #include <array>
 #include <atomic>
@@ -33,19 +34,46 @@ class Session
 
     template<typename... Args>
     int send(uint16_t class_id, uint16_t func_id, Args&&... args) {
+        if constexpr (sizeof...(Args) == 0) {
+            return 0;
+        }
+
         // build into base-owned buffer
         builder.reset_into(send_buffer);
         builder.write_header(class_id, func_id);
-        builder.push(std::forward<Args>(args)...);
 
-        int n = write_bytes(std::as_bytes(std::span{send_buffer}));
-        tx_tracker.update(n);
+        using first_t = std::tuple_element_t<0, std::tuple<Args...>>;
 
-        if (n == 0) {
-            status = CLOSED;
+        if constexpr (is_std_span_v<first_t>) {
+            // Use the send() API for std::span
+
+            int n_header = write_bytes(std::as_bytes(std::span{send_buffer}));
+
+            if (n_header == 0) {
+                status = CLOSED;
+            }
+
+            auto&& span = std::get<0>(std::forward_as_tuple(args...));
+            int n = send_all(std::as_bytes(span));
+
+            if (n == 0) {
+                status = CLOSED;
+            }
+
+            tx_tracker.update(n + n_header);
+            return n + n_header;
+        } else  {
+            builder.push(std::forward<Args>(args)...);
+
+            int n = write_bytes(std::as_bytes(std::span{send_buffer}));
+            tx_tracker.update(n);
+
+            if (n == 0) {
+                status = CLOSED;
+            }
+
+            return n;
         }
-
-        return n;
     }
 
     int run();
@@ -88,6 +116,7 @@ class Session
     virtual int exit_socket() = 0;
     virtual int read_command(Command& cmd) = 0;
     virtual int write_bytes(std::span<const std::byte>) = 0;
+    virtual int send_all(const std::span<const std::byte> bytes) = 0;
 
     // First 4 KiB of allocations come from initial_storage, no heap at all
     // If we exceed it will grab memory from the system allocator.
