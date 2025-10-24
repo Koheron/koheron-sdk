@@ -7,6 +7,7 @@
 
 #include "server/runtime/syslog.hpp"
 #include "server/hardware/memory_manager.hpp"
+#include "server/drivers/ddr_stream.hpp"
 
 #include <array>
 #include <cstdint>
@@ -77,6 +78,9 @@ class AdcDacDma
         for (uint32_t i = 0; i < n_pts * n_desc; i++) {
             ram_s2mm.write_reg(4*i, 0);
         }
+
+        constexpr auto port = 36100;
+        ddr_stream.start(port);
     }
 
     void select_adc_channel(uint32_t channel) {
@@ -138,6 +142,10 @@ class AdcDacDma
         dma.write<Dma_regs::s2mm_taildesc>(mem::ocm_s2mm_addr + (n_desc-1) * 0x40);
     }
 
+    bool publish() {
+        return ddr_stream.publish();
+    }
+
     auto& get_adc_data() {
         data = ram_s2mm.read_array<uint32_t, n_desc * n_pts>();
         return data;
@@ -152,6 +160,8 @@ class AdcDacDma
     hw::Memory<mem::ocm_mm2s>& ocm_mm2s;
     hw::Memory<mem::ocm_s2mm>& ocm_s2mm;
     hw::Memory<mem::sclr>& sclr;
+
+    DdrStream ddr_stream;
 
     std::array<uint32_t, n_desc * n_pts> data;
 

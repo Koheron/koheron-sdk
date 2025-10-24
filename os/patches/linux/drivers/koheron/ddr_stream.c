@@ -32,6 +32,7 @@
 #include <linux/pipe_fs_i.h>   /* struct splice_pipe_desc / partial_page */
 #include <linux/pagemap.h>     /* page helpers */
 #include <linux/slab.h>
+#include <linux/uio.h>
 
 #define DRV_NAME "ddr_stream"
 #define DEV_NAME "ddr_stream"
@@ -91,7 +92,7 @@ static ssize_t dds_splice_read(struct file *file, loff_t *ppos,
 		.nr_pages     = 1,
 		.nr_pages_max = 1,
 		.partial      = &part,
-		.ops          = &page_cache_pipe_buf_ops,
+		.ops          = &default_pipe_buf_ops,
 	};
 	ssize_t n;
 
