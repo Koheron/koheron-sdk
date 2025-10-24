@@ -39,9 +39,17 @@ $(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp
 # -----------------------------------------------------------------------------
 
 # Runtime / Hardware objects
+ifeq ($(strip $(ENABLE_REMOTEPROC_MANAGER)),1)
+REMOTEPROC_OBJ := $(TMP_SERVER_PATH)/remoteproc_manager.o
+SERVER_CCXXFLAGS += -DKOHERON_HAS_REMOTEPROC_MANAGER
+else
+REMOTEPROC_OBJ :=
+endif
+
 OBJ = $(TMP_SERVER_PATH)/systemd.o \
           $(TMP_SERVER_PATH)/fpga_manager.o \
-          $(TMP_SERVER_PATH)/zynq_fclk.o
+          $(TMP_SERVER_PATH)/zynq_fclk.o \
+          $(REMOTEPROC_OBJ)
 
 SERVER_CPP := $(wildcard $(SERVER_PATH)/utilities/*.cpp)
 SERVER_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(SERVER_CPP))))

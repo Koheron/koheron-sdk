@@ -139,7 +139,13 @@ $(foreach t,$(META_TEMPLATES),$(eval $(call _render_template_rule_full,$(t))))
 # Objects
 # -----------------------------------------------------------------------------
 
-HARDWARE_OBJ := $(TMP_SERVER_PATH)/spi_manager.o $(TMP_SERVER_PATH)/i2c_manager.o $(TMP_SERVER_PATH)/fpga_manager.o $(TMP_SERVER_PATH)/zynq_fclk.o
+ifeq ($(strip $(ENABLE_REMOTEPROC_MANAGER)),1)
+REMOTEPROC_OBJ := $(TMP_SERVER_PATH)/remoteproc_manager.o
+else
+REMOTEPROC_OBJ :=
+endif
+
+HARDWARE_OBJ := $(TMP_SERVER_PATH)/spi_manager.o $(TMP_SERVER_PATH)/i2c_manager.o $(TMP_SERVER_PATH)/fpga_manager.o $(TMP_SERVER_PATH)/zynq_fclk.o $(REMOTEPROC_OBJ)
 OBJ := $(SERVER_OBJ) $(SERVER_LIB_OBJ) $(DRIVERS_OBJ) $(HARDWARE_OBJ)
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
@@ -160,6 +166,9 @@ SERVER_CCXXFLAGS += -Wuninitialized  -Wmissing-declarations
 SERVER_CCXXFLAGS += -Wno-psabi -Wno-error=deprecated-declarations
 SERVER_CCXXFLAGS += $(SERVER_INCLUDE_DIRS)
 SERVER_CCXXFLAGS += -DKOHERON_VERSION=\"$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)\" -DINSTRUMENT_NAME=\"$(NAME)\" -DKOHERON_SERVER_BUILD
+ifeq ($(strip $(ENABLE_REMOTEPROC_MANAGER)),1)
+SERVER_CCXXFLAGS += -DKOHERON_HAS_REMOTEPROC_MANAGER
+endif
 SERVER_CCXXFLAGS += -O3 -fno-math-errno -fno-exceptions
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
 SERVER_CCXXFLAGS += -std=c++20 -pthread

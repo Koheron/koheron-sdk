@@ -74,6 +74,13 @@ CORES :=
 DRIVERS :=
 WEB_FILES := $(SDK_PATH)/web/main.css $(SDK_PATH)/web/koheron.ts
 
+INSTRUMENT_ADDITIONAL_FILES :=
+FIRMWARE_TARGETS :=
+FIRMWARE_ENTRY_FILES :=
+FIRMWARE_MANIFEST := $(TMP_PROJECT_PATH)/firmware.manifest
+REMOTEPROC_ENTRY_FILES :=
+REMOTEPROC_MANIFEST := $(TMP_PROJECT_PATH)/remoteproc.manifest
+
 .PHONY: help
 help:
 	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
@@ -102,6 +109,10 @@ include $(CONFIG_MK)
 MEMORY_YML ?= $(PROJECT_PATH)/memory.yml
 BD_TCL ?= $(PROJECT_PATH)/block_design.tcl
 TCL_FILES ?= $(BD_TCL) $(wildcard $(PROJECT_PATH)/tcl/*.tcl)
+
+ifeq ($(origin ENABLE_REMOTEPROC_MANAGER), undefined)
+ENABLE_REMOTEPROC_MANAGER := $(if $(strip $(RPU_SRCS)$(RPU_CPP_SRCS)$(RPU_ASM_SRCS)$(RPU_REMOTEPROC)),1,)
+endif
 
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
 
@@ -148,6 +159,23 @@ include $(OS_PATH)/rootfs.mk
 include $(SERVER_MK)
 include $(WEB_MK)
 
+FIRMWARE_MK ?= $(SDK_PATH)/firmware/r5.mk
+ifeq ($(ZYNQ_TYPE),zynqmp)
+include $(FIRMWARE_MK)
+endif
+
+ifneq ($(strip $(FIRMWARE_ENTRY_FILES)),)
+$(FIRMWARE_MANIFEST): $(FIRMWARE_ENTRY_FILES) | $(TMP_PROJECT_PATH)/
+	cat $^ > $@
+INSTRUMENT_ADDITIONAL_FILES += $(FIRMWARE_MANIFEST)
+endif
+
+ifneq ($(strip $(REMOTEPROC_ENTRY_FILES)),)
+$(REMOTEPROC_MANIFEST): $(REMOTEPROC_ENTRY_FILES) | $(TMP_PROJECT_PATH)/
+	cat $^ > $@
+INSTRUMENT_ADDITIONAL_FILES += $(REMOTEPROC_MANIFEST)
+endif
+
 ###############################################################################
 # INSTRUMENT
 ###############################################################################
@@ -159,8 +187,8 @@ include $(WEB_MK)
 # - Web files (HTML, CSS, Javascript)
 
 # Zip file that contains all the files needed to run the instrument:
-$(INSTRUMENT_ZIP): $(SERVER) $(DRIVERS_JSON_OUT) $(BITSTREAM) $(WEB_ASSETS) $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM).bin $(VERSION_FILE) | $(TMP_PROJECT_PATH)/ $(TMP)/$(BOARD)/instruments/
-	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM).bin $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM) $(SERVER) $(DRIVERS_JSON_OUT) $(WEB_ASSETS) $(VERSION_FILE)
+$(INSTRUMENT_ZIP): $(SERVER) $(DRIVERS_JSON_OUT) $(BITSTREAM) $(WEB_ASSETS) $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM).bin $(VERSION_FILE) $(INSTRUMENT_ADDITIONAL_FILES) | $(TMP_PROJECT_PATH)/ $(TMP)/$(BOARD)/instruments/
+	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM).bin $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM) $(SERVER) $(DRIVERS_JSON_OUT) $(WEB_ASSETS) $(VERSION_FILE) $(INSTRUMENT_ADDITIONAL_FILES)
 	cp $(INSTRUMENT_ZIP) $(TMP)/$(BOARD)/instruments/$(NAME).zip
 	$(call ok,$@)
 
@@ -174,6 +202,13 @@ all: $(INSTRUMENT_ZIP)
 run: $(INSTRUMENT_ZIP)
 	PYTHONPATH=$(SDK_PATH)/python python3 -m koheron.instrument_runner --host $(HOST) --name $(NAME) $(INSTRUMENT_ZIP)
 	@echo
+
+.PHONY: firmware
+firmware: $(FIRMWARE_TARGETS) $(if $(strip $(FIRMWARE_ENTRY_FILES)),$(FIRMWARE_MANIFEST))
+
+.PHONY: clean_firmware
+clean_firmware:
+	rm -rf $(TMP_PROJECT_PATH)/firmware $(FIRMWARE_MANIFEST) $(REMOTEPROC_MANIFEST)
 
 ###############################################################################
 # C++ CLIENT

@@ -11,3 +11,8 @@ SERVERLESS_CPP_SRCS := $(PROJECT_PATH)/main.cpp
 SERVER_MK = $(SDK_PATH)/server/serverless.mk
 
 WEB_FILES += $(SDK_PATH)/web/index.html
+
+RPU_SRCS := rpu/main.c
+RPU_ELF_NAME := test-r5.elf
+RPU_INSTALL_PATH := koheron/test-r5.elf
+RPU_REMOTEPROC := remoteproc0

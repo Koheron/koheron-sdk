@@ -7,6 +7,10 @@
 #include "server/hardware/i2c_manager.hpp"
 #include "server/hardware/zynq_fclk.hpp"
 #include "server/hardware/fpga_manager.hpp"
+#if defined(KOHERON_HAS_REMOTEPROC_MANAGER)
+#include "server/hardware/remoteproc_manager.hpp"
+#include <filesystem>
+#endif
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
@@ -34,6 +38,24 @@ int main() {
         log<PANIC>("Failed to load bitstream. Exiting server...\n");
         std::exit(EXIT_FAILURE);
     }
+
+#if defined(KOHERON_HAS_REMOTEPROC_MANAGER)
+    const auto live_root = std::filesystem::path{"/tmp/live-instrument"};
+    const auto firmware_manifest = live_root / "firmware.manifest";
+    const auto remoteproc_manifest = live_root / "remoteproc.manifest";
+    const bool have_firmware = std::filesystem::exists(firmware_manifest);
+    const bool have_remoteproc = std::filesystem::exists(remoteproc_manifest);
+
+    if (have_firmware || have_remoteproc) {
+        auto rpu = provide<hw::RpuFirmwareManager>();
+        if (rpu->install_all() < 0) {
+            log<ERROR>("Failed to install Cortex-R5 firmware\n");
+        }
+        if (have_remoteproc && rpu->start_all() < 0) {
+            log<ERROR>("Failed to start Cortex-R5 firmware\n");
+        }
+    }
+#endif
 
     // Set Zynq clocks before starting drivers
     auto fclk = provide<hw::ZynqFclk>();

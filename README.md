@@ -31,6 +31,7 @@ Build high-performance instruments for Xilinx Zynq-based boards with a single to
 - Optimized for rapid iteration on Zynq-7000 and Zynq UltraScale+ instruments.
 - Generates deployable instrument archives that can be pushed to boards over HTTP.
 - Supports per-project Vivado block designs, memory maps and driver customisation via modular makefiles.
+- Optional Cortex-R5 firmware toolchain for Zynq UltraScale+ remote processors with automatic deployment to `/lib/firmware`.
 
 ---
 
