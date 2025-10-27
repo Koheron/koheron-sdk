@@ -1,0 +1,15 @@
+memory:
+  - name: control
+    offset: 0x6000_0000
+    range: 4K
+    registers:
+    - min_addr
+    - cfg_data
+  - name: status
+    offset: 0x5000_0000
+    range: 4K
+    registers:
+    - sts_data
+
+parameters:
+  fclk0: 100000000
