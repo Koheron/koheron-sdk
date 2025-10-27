@@ -48,6 +48,28 @@ FPGA_PATH := $(SDK_PATH)/fpga
 SERVER_PATH := $(SDK_PATH)/server
 WEB_PATH := $(SDK_PATH)/web
 
+CFG_OPTIONAL_GOALS := help setup
+
+ifneq ($(MAKECMDGOALS),)
+CFG_REQUIRED_GOALS := $(filter-out $(CFG_OPTIONAL_GOALS),$(MAKECMDGOALS))
+else
+CFG_REQUIRED_GOALS := all
+endif
+
+.PHONY: help
+help:
+	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
+	@echo ' - run          : Run the instrument'
+	@echo ' - fpga         : Build the FPGA bitstream'
+	@echo ' - server       : Build the server'
+	@echo ' - web          : Build the web interface'
+	@echo ' - os           : Build the operating system'
+	@echo ' - image        : Build the full image'
+	@echo ' - block_design : Build the Vivado block design interactively'
+	@echo ' - open_project : Open the Vivado .xpr project'
+
+ifneq ($(strip $(CFG_REQUIRED_GOALS)),)
+
 ifndef CFG
 $(call fail,CFG is not defined. Please set CFG to the path of a config.mk file, e.g. `make CFG=examples/<board>/<instrument>/config.mk`.)
 endif
@@ -73,18 +95,6 @@ XDC :=
 CORES :=
 DRIVERS :=
 WEB_FILES := $(SDK_PATH)/web/main.css $(SDK_PATH)/web/koheron.ts
-
-.PHONY: help
-help:
-	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
-	@echo ' - run          : Run the instrument'
-	@echo ' - fpga         : Build the FPGA bitstream'
-	@echo ' - server       : Build the server'
-	@echo ' - web          : Build the web interface'
-	@echo ' - os           : Build the operating system'
-	@echo ' - image        : Build the full image'
-	@echo ' - block_design : Build the Vivado block design interactively'
-	@echo ' - open_project : Open the Vivado .xpr project'
 
 # Python script that manages the instrument configuration
 MAKE_PY = SDK_PATH=$(SDK_PATH) ARCH=$(ARCH) $(VENV)/bin/python3 $(SDK_PATH)/make.py
@@ -194,19 +204,6 @@ PYTHON_PATH := $(SDK_PATH)/python
 PYTHON_MK ?= $(PYTHON_PATH)/python.mk
 include $(PYTHON_MK)
 
-.PHONY: setup
-setup:
-	sudo apt-get install -y curl rsync python3-venv
-	[ -d $(VENV) ] || python3 -m venv $(VENV)
-	$(VENV)/bin/python3 -m ensurepip --upgrade
-	$(VENV)/bin/python3 -m pip install --upgrade pip
-	$(PIP) install -r $(SDK_PATH)/requirements.txt
-	$(PIP) install $(SDK_PATH)/python
-	bash docker/install_docker.sh
-	sudo usermod -aG docker $(shell whoami)
-	docker build -f $(DOCKER_PATH)/Dockerfile -t $(DOCKER_IMAGE) $(DOCKER_PATH)
-	docker build -f $(WEB_PATH)/Dockerfile.web -t $(WEB_DOCKER_IMAGE) $(WEB_PATH)
-
 ###############################################################################
 # CLEAN TARGETS
 ###############################################################################
@@ -220,3 +217,28 @@ clean:
 .PHONY: clean_all
 clean_all:
 	rm -rf $(TMP)
+
+else
+
+PIP ?= $(VENV)/bin/pip
+DOCKER_IMAGE ?= cross-armhf:24.04
+WEB_DOCKER_IMAGE ?= koheron-web:node20
+
+endif
+
+###############################################################################
+# PYTHON SETUP
+###############################################################################
+
+.PHONY: setup
+setup:
+	sudo apt-get install -y curl rsync python3-venv
+	[ -d $(VENV) ] || python3 -m venv $(VENV)
+	$(VENV)/bin/python3 -m ensurepip --upgrade
+	$(VENV)/bin/python3 -m pip install --upgrade pip
+	$(PIP) install -r $(SDK_PATH)/requirements.txt
+	$(PIP) install $(SDK_PATH)/python
+	bash docker/install_docker.sh
+	sudo usermod -aG docker $(shell whoami)
+	docker build -f $(DOCKER_PATH)/Dockerfile -t $(DOCKER_IMAGE) $(DOCKER_PATH)
+	docker build -f $(WEB_PATH)/Dockerfile.web -t $(WEB_DOCKER_IMAGE) $(WEB_PATH)
