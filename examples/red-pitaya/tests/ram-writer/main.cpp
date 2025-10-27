@@ -21,8 +21,8 @@ int main() {
     auto mm = services::provide<hw::MemoryManager>();
     if (mm->open() < 0)            { log<PANIC>("Failed to open memory\n");      return -1; }
 
-    // 100 MHz fabric clock
-    fclk.set("fclk0", 100000000);
+    fclk.set("fclk0", 200000000);
+    fclk.set("fclk1", 50000000);
     rt::systemd::notify_ready();
 
     int fd;
@@ -42,7 +42,7 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    volatile uint32_t *ram = reinterpret_cast<uint32_t*>(mmap(NULL, 2048*sysconf(_SC_PAGESIZE), PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0));
+    volatile uint64_t *ram = reinterpret_cast<uint64_t*>(mmap(NULL, 2048*sysconf(_SC_PAGESIZE), PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0));
 
     if (ram == nullptr) {
         log("ram == nullptr");
@@ -53,15 +53,26 @@ int main() {
     ctl.write<reg::min_addr>(size);
     ctl.write<reg::cfg_data>(0xFFFF);
 
+    uint32_t position_prev = 0;
+    uint32_t position = 0;
+    uint64_t count, count_prev = 0;
+
     auto& sts = hw::get_memory<mem::status>();
 
-    while(true) {
-        uint32_t position = sts.read<reg::sts_data>();
-        logf("position = {}\n", position);
+    while (true) {
+        position = sts.read<reg::sts_data>();
 
-        logf("ram[0] = {}\n", ram[0]);
-        logf("ram[-1] = {}\n", ram[100000]);
-        std::this_thread::sleep_for(100ms);
+        if (position_prev < 32*1024 && position > 32*1024) {
+            count = ram[512*1024-1];
+            logf("Region LOW ready, position = {}, count = {}, delta = {}\n", position, count, count-count_prev);
+        } else if (position_prev > position) {
+            count = ram[1024 * 1024 - 1];
+            logf("Region HIGH ready, position = {}, count = {}, delta = {}\n", position, count, count-count_prev);
+        } else {
+            std::this_thread::sleep_for(1ms);
+        }
+        position_prev = position;
+        count_prev = count;
     }
 
     return 0;

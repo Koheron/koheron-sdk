@@ -12,4 +12,4 @@ memory:
     - sts_data
 
 parameters:
-  fclk0: 100000000
+  fclk0: 200000000
