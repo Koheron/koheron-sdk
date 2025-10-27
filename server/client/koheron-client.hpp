@@ -23,15 +23,14 @@
   #endif
   #include <winsock2.h>
 #else
-extern "C" {
   #include <sys/socket.h>   // socket definitions
   #include <sys/types.h>    // socket types
   #include <arpa/inet.h>    // inet (3) functions
   #include <netinet/tcp.h>
   #include <unistd.h>
-}
 #endif
 
+// #include "server/network/serializer_deserializer.hpp"
 #include <operations.hpp>
 
 #ifdef _WIN32
@@ -700,7 +699,7 @@ class KoheronClient
     , rcv_buffer(0)
     , send_buffer(0)
     {
-        memset(&serveraddr, 0, sizeof(serveraddr));
+        std::memset(&serveraddr, 0, sizeof(serveraddr));
         serveraddr.sin_family = AF_INET;
         serveraddr.sin_addr.s_addr = inet_addr(host);
         serveraddr.sin_port = htons(port);

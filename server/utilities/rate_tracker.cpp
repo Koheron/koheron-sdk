@@ -38,7 +38,8 @@ void RateTracker::update(int64_t bytes) {
     last_ = now;
 }
 
-RateTracker::Snapshot RateTracker::snapshot() const {
+RateTracker::Snapshot RateTracker::snapshot() {
+    refresh_to_now();
     const auto now = clock::now();
     const double dt = std::chrono::duration<double>(now - start_).count();
     const double mean = dt > 0 ? (total_bytes_ * 8.0) / dt : 0.0;
@@ -68,7 +69,7 @@ inline void format_rate(char* out, std::size_t n, double bps) {
     out[std::min<std::size_t>(res.size, n - 1)] = '\0';
 }
 
-void RateTracker::log_snapshot(std::string_view label) const {
+void RateTracker::log_snapshot(std::string_view label) {
     const auto s = snapshot();
 
     char mean_h[32]{}, win_h[32]{}, inst_h[32]{}, ewma_h[32]{}, max_h[32]{};
@@ -106,6 +107,28 @@ uint64_t RateTracker::sum_last_seconds(int n) const {
         sum += buf_[j];
     }
     return sum;
+}
+
+void RateTracker::refresh_to_now() {
+    const auto now     = clock::now();
+    const auto now_s   = sec(now);
+    const double dt    = std::chrono::duration<double>(now - last_).count();
+    if (dt <= 0) return;
+
+    // Advance the per-second buckets to now (zeroing skipped seconds)
+    advance_buckets(now_s);
+
+    // Recompute instant + window after advancing
+    inst_bps_   = buf_[idx_] * 8.0;
+    window_bps_ = sum_last_seconds(window_sec_) * 8.0 / std::max(1, window_sec_);
+
+    // Time-aware EWMA decay toward zero during idle:
+    // ewma(t+Δt) = ewma(t) * (1 - α)^{Δt}   with α = ewma_alpha_ per second
+    const double keep = std::pow(1.0 - ewma_alpha_, dt);   // == 2^{-Δt/halflife}
+    ewma_bps_ *= keep;
+
+    // Peak window stays as-is (it’s a historical maximum)
+    last_ = now;
 }
 
 // ------------------------------------------------

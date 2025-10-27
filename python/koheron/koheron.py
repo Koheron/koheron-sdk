@@ -348,7 +348,7 @@ class KoheronClient:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
                 # Prevent delayed ACK on Ubuntu
-                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 16384)
+                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 * 1024 * 1024)
                 so_rcvbuf = self.sock.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
 
                 #   Disable Nagle algorithm for real-time response:
@@ -460,24 +460,22 @@ class KoheronClient:
 
     def send_command(self, device_id, cmd_id, cmd_args=[], *args):
         cmd = make_command(device_id, cmd_id, cmd_args, *args)
-        if self.sock.send(cmd) == 0:
+        try:
+            self.sock.sendall(cmd)
+        except OSError as e:
             raise ConnectionError('send_command: Socket connection broken')
 
-    def recv_all(self, n_bytes):
-        '''Receive exactly n_bytes bytes.'''
-        data = []
-        BUFF_SIZE = 65535
-        n_rcv = 0
-        while n_rcv < n_bytes:
-            try:
-                chunk = self.sock.recv(min(n_bytes - n_rcv, BUFF_SIZE))
-                if not chunk:
-                    raise ConnectionError('recv_all: Socket connection broken.')
-                n_rcv += len(chunk)
-                data.append(chunk)
-            except Exception:
+    def recv_all(self, n_bytes: int) -> bytes:
+        """Receive exactly n_bytes bytes or raise ConnectionError."""
+        buf = bytearray(n_bytes)
+        view = memoryview(buf)
+        recv_into = self.sock.recv_into
+        while view:
+            n = recv_into(view)
+            if n == 0:
                 raise ConnectionError('recv_all: Socket connection broken.')
-        return b''.join(data)
+            view = view[n:]
+        return bytes(buf)
 
     def recv_dynamic_payload(self):
         reserved, class_id, func_id, length = struct.unpack('>IHHI', self.recv_all(struct.calcsize('>IHHI')))

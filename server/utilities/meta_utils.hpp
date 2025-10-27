@@ -115,6 +115,32 @@ template<typename T>
 inline constexpr bool is_std_span_v = is_std_span<std::remove_cvref_t<T>>::value;
 
 // ----------------------------------------------------------------------------
+// std::array
+// ----------------------------------------------------------------------------
+
+template<class T>
+struct is_std_array : std::false_type {};
+
+template<class U, std::size_t N>
+struct is_std_array<std::array<U, N>> : std::true_type {};
+
+template<class T>
+inline constexpr bool is_std_array_v = is_std_array<std::remove_cvref_t<T>>::value;
+
+// ----------------------------------------------------------------------------
+// std::vector
+// ----------------------------------------------------------------------------
+
+template<class T>
+struct is_std_vector : std::false_type {};
+
+template<class U>
+struct is_std_vector<std::vector<U>> : std::true_type {};
+
+template<class T>
+inline constexpr bool is_std_vector_v = is_std_vector<std::remove_cvref_t<T>>::value;
+
+// ----------------------------------------------------------------------------
 // Units utilities
 // ----------------------------------------------------------------------------
 

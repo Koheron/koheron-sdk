@@ -335,12 +335,11 @@ int WebSocket::send_request(const unsigned char *bits, int64_t len) {
     int offset = 0;
 
     while ((remaining > 0) &&
-           (bytes_send = ::write(comm_fd, &bits[offset], static_cast<uint32_t>(remaining))) > 0) {
+           (bytes_send = ::send(comm_fd, &bits[offset], static_cast<uint32_t>(remaining), MSG_NOSIGNAL | MSG_ZEROCOPY)) > 0) {
         if (bytes_send > 0) {
             offset += bytes_send;
             remaining -= bytes_send;
-        }
-        else if (bytes_send == 0) {
+        } else if (bytes_send == 0) {
             connection_closed = true;
             log("WebSocket: Connection closed by client\n");
             return 0;

@@ -24,9 +24,6 @@ constexpr int NUMBER_OF_PENDING_CONNECTIONS = 10;
 // Buffer sizes
 // ------------------------------------------
 
-/// Number of samples
-constexpr int KOHERON_SIG_LEN = 16384;
-
 /// Command payload buffer length
 constexpr int64_t CMD_PAYLOAD_BUFFER_LEN = 16384 * 16;
 

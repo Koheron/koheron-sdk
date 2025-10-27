@@ -2,12 +2,11 @@
 ///
 /// (c) Koheron
 
-#ifndef __ALPHA250_ZERO_COPY_DMA_HPP__
-#define __ALPHA250_ZERO_COPY_DMA_HPP__
+#ifndef __DRIVERS_ADC_DAC_DMA_HPP__
+#define __DRIVERS_ADC_DAC_DMA_HPP__
 
 #include "server/runtime/syslog.hpp"
 #include "server/hardware/memory_manager.hpp"
-#include "server/drivers/network_mapped_memory.hpp"
 
 #include <array>
 #include <cstdint>
@@ -55,7 +54,7 @@ class AdcDacDma
     AdcDacDma()
     : ctl     (hw::get_memory<mem::control>())
     , dma     (hw::get_memory<mem::dma>())
-    // , ram_s2mm(hw::get_memory<mem::ram_s2mm>())
+    , ram_s2mm(hw::get_memory<mem::ram_s2mm>())
     , axi_hp0 (hw::get_memory<mem::axi_hp0>())
     , axi_hp2 (hw::get_memory<mem::axi_hp2>())
     , ocm_mm2s(hw::get_memory<mem::ocm_mm2s>())
@@ -75,12 +74,9 @@ class AdcDacDma
         // Map the last 64 kB of OCM RAM to the high address space
         sclr.write<Sclr_regs::ocm_cfg>(0b1000);
 
-        // for (uint32_t i = 0; i < n_pts * n_desc; i++) {
-        //     ram_s2mm.write_reg(4*i, 0);
-        // }
-
-        constexpr auto port = 36100;
-        net_ram_s2mm.start(port);
+        for (uint32_t i = 0; i < n_pts * n_desc; i++) {
+            ram_s2mm.write_reg(4*i, 0);
+        }
     }
 
     void select_adc_channel(uint32_t channel) {
@@ -142,11 +138,7 @@ class AdcDacDma
         dma.write<Dma_regs::s2mm_taildesc>(mem::ocm_s2mm_addr + (n_desc-1) * 0x40);
     }
 
-    bool publish() {
-        return net_ram_s2mm.publish();
-    }
-
-    auto get_adc_data() {
+    auto& get_adc_data() {
         return ram_s2mm.read_array<uint32_t, n_desc * n_pts>();
     }
 
@@ -154,19 +146,27 @@ class AdcDacDma
         return ram_s2mm.read_span<uint32_t, n_desc * n_pts>();
     }
 
+    void set_test_vector(uint32_t size) {
+        test_vector.reserve(size);
+        test_vector = std::vector<uint32_t>(size, 3.1415);
+    }
+
+    auto get_test_vector() {
+        return test_vector;
+    }
+
   private:
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::dma>& dma;
-    // hw::Memory<mem::ram_s2mm>& ram_s2mm;
+    hw::Memory<mem::ram_s2mm>& ram_s2mm;
     hw::Memory<mem::axi_hp0>& axi_hp0;
     hw::Memory<mem::axi_hp2>& axi_hp2;
     hw::Memory<mem::ocm_mm2s>& ocm_mm2s;
     hw::Memory<mem::ocm_s2mm>& ocm_s2mm;
     hw::Memory<mem::sclr>& sclr;
 
-    NetworkMappedMemory<mem::ram_s2mm> net_ram_s2mm;
-
     std::array<uint32_t, n_desc * n_pts> data;
+    std::vector<uint32_t> test_vector;
 
     void log_dma() {
         log("MM2S LOG \n");
@@ -205,6 +205,6 @@ class AdcDacDma
         log("AFI_WRDEBUG = %x \n", axi_hp0.read<0x24>());
         log("\n");
     }
-};
+} ;
 
-#endif // __ALPHA250_ZERO_COPY_DMA_HPP__
+#endif // __DRIVERS_ADC_DAC_DMA_HPP__

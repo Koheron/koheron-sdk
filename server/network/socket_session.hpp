@@ -73,7 +73,9 @@ class SocketSession : public Session
         return write(bytes);
     }
 
-    int send_all(const std::span<const std::byte> bytes) override;
+    int send_iov(std::span<const std::byte> header,
+                 std::span<const std::byte> payload,
+                int flags) override;
 
     void set_socket_infos();
 };
@@ -199,28 +201,24 @@ int SocketSession<socket_type>::write(const R& r) {
 }
 
 template<int socket_type>
-int SocketSession<socket_type>::send_all(const std::span<const std::byte> bytes) {
-    // TODO Only for TCP sessions
-    const auto* ptr = bytes.data();
-    std::size_t length = bytes.size_bytes();
-    std::size_t remaining = length;
+int SocketSession<socket_type>::send_iov(std::span<const std::byte> header,
+                                         std::span<const std::byte> payload,
+                                         int flags) {
+    if constexpr (socket_type == TCP || socket_type == UNIX) {
+        iovec iov[2] = {
+            {const_cast<std::byte*>(header.data()), header.size_bytes()},
+            {const_cast<std::byte*>(payload.data()), payload.size_bytes()}
+        };
 
-    while (remaining > 0) {
-        const ssize_t sent = ::send(comm_fd, ptr, remaining, MSG_NOSIGNAL);
-
-        if (sent < 0) {
-            if (errno == EINTR) {
-                continue;
-            }
-
-            return -1;
-        }
-
-        ptr += static_cast<std::size_t>(sent);
-        remaining -= static_cast<std::size_t>(sent);
+        msghdr msg{};
+        msg.msg_iov = iov;
+        msg.msg_iovlen = 2;
+        return ::sendmsg(comm_fd, &msg, flags);
+    } else if constexpr (socket_type == WEBSOCK) {
+        return websock.send(header, payload);
+    } else {
+        return -1;
     }
-
-    return length;
 }
 
 template<int socket_type>
