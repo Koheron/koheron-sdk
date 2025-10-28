@@ -2,8 +2,8 @@
 ///
 /// (c) Koheron
 
-#ifndef __DRIVERS_ADC_DAC_DMA_HPP__
-#define __DRIVERS_ADC_DAC_DMA_HPP__
+#ifndef __ALPHA250_TESTS_NETWORK_ADC_DAC_DMA_HPP__
+#define __ALPHA250_TESTS_NETWORK_ADC_DAC_DMA_HPP__
 
 #include "server/runtime/syslog.hpp"
 #include "server/hardware/memory_manager.hpp"
@@ -127,8 +127,8 @@ class AdcDacDma
         dma.write<Dma_regs::mm2s_taildesc>(mem::ocm_mm2s_addr + (n_desc-1) * 0x40);
         dma.write<Dma_regs::s2mm_taildesc>(mem::ocm_s2mm_addr + (n_desc-1) * 0x40);
 
-        //log_dma();
-        //log_hp0();
+        log_dma();
+        log_hp0();
     }
 
     void stop_dma() {
@@ -207,4 +207,4 @@ class AdcDacDma
     }
 } ;
 
-#endif // __DRIVERS_ADC_DAC_DMA_HPP__
+#endif // __ALPHA250_TESTS_NETWORK_ADC_DAC_DMA_HPP__

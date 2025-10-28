@@ -89,12 +89,14 @@ int set_socket_options(int comm_fd) {
         }
     }
 
-    int one = 1;
+    if constexpr (config::use_zerocopy) {
+        int one = 1;
 
-    if (::setsockopt(comm_fd, SOL_SOCKET, SO_ZEROCOPY, &one, sizeof(one))) {
-        log<CRITICAL>("Cannot set SO_ZEROCOPY\n");
+        if (::setsockopt(comm_fd, SOL_SOCKET, SO_ZEROCOPY, &one, sizeof(one))) {
+            log<CRITICAL>("Cannot set SO_ZEROCOPY\n");
             ::close(comm_fd);
             return -1;
+        }
     }
 
     return 0;
