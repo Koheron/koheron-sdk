@@ -205,6 +205,10 @@ int SocketSession<socket_type>::send_iov(std::span<const std::byte> header,
                                          std::span<const std::byte> payload,
                                          int flags) {
     if constexpr (socket_type == TCP || socket_type == UNIX) {
+        if constexpr (socket_type == UNIX) {
+            flags &= ~MSG_ZEROCOPY; // not supported for AF_UNIX
+        }
+
         iovec iov[2] = {
             {const_cast<std::byte*>(header.data()), header.size_bytes()},
             {const_cast<std::byte*>(payload.data()), payload.size_bytes()}

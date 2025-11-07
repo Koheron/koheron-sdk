@@ -5,6 +5,7 @@
 
 #include "server/network/configs/server_definitions.hpp"
 #include "server/network/serializer_deserializer.hpp"
+#include "server/network/configs/config.hpp"
 #include "server/utilities/rate_tracker.hpp"
 #include "server/utilities/metadata.hpp"
 #include "server/utilities/meta_utils.hpp"
@@ -36,8 +37,10 @@ class Session
     template<typename... Args>
     int send(uint16_t class_id, uint16_t func_id, Args&&... args) {
         constexpr auto nargs = sizeof...(Args);
-        constexpr auto sock_flags = MSG_NOSIGNAL | MSG_ZEROCOPY;
-        // constexpr auto sock_flags = MSG_NOSIGNAL;
+
+        constexpr auto sock_flags
+            = config::use_zerocopy ? MSG_NOSIGNAL | MSG_ZEROCOPY
+                                   : MSG_NOSIGNAL;
 
         if constexpr (nargs == 0) {
             return 0;
@@ -151,6 +154,13 @@ class Session
         if (n <= 0) {
             if (n == 0) {
                 status = CLOSED;
+            } else {
+                logf<CRITICAL>("send_payload failed: {} (errno={})\n", strerror(errno), errno);
+
+                if (flags & MSG_ZEROCOPY) {
+                    log("Try without MSG_ZEROCOPY\n");
+                    return send_payload(payload, flags & ~MSG_ZEROCOPY);
+                }
             }
 
             return n;

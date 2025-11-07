@@ -154,22 +154,22 @@ def plot_rates(results, title="get_test_vector throughput"):
 
 if __name__=="__main__":
     host = os.getenv('HOST','192.168.1.98')
-    client = connect(host, name='zero-copy-dma')
+    client = connect(host, name='tests-network')
     driver = AdcDacDma(client)
 
     adc_channel = 0
     driver.select_adc_channel(adc_channel)
 
     # --- Fixed-size ADC recv-only benchmark (64 MiB payload) ---
-    # print(f"Get ADC{adc_channel} data ({driver.n} points)")
-    # driver.start_dma()
+    print(f"Get ADC{adc_channel} data ({driver.n} points)")
+    driver.start_dma()
 
-    # for _ in range(5):
-    #     t0 = time.perf_counter()
-    #     data = driver.get_adc_data()   # recv-only
-    #     t1 = time.perf_counter()
-    #     took = t1 - t0
-    #     print(f"recv_only: {(64 / took):.1f} MiB/s [took {took:.3f} s]")
+    for _ in range(5):
+        t0 = time.perf_counter()
+        data = driver.get_adc_data_span()   # recv-only
+        t1 = time.perf_counter()
+        took = t1 - t0
+        print(f"recv_only: {(64 / took):.1f} MiB/s [took {took:.3f} s]")
 
     # --- Vector size scan to find copy vs iov threshold ---
     sizes_b = sizes_bytes_logspace(min_b=100, max_b=128*1024*1024, per_decade=8)

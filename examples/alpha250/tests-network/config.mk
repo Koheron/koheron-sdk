@@ -1,4 +1,4 @@
-NAME := zero-copy-dma
+NAME := tests-network
 VERSION := 1.0.0
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
@@ -13,6 +13,6 @@ CORES += $(SDK_PATH)/fpga/cores/tlast_gen_v1_0
 CORES += $(SDK_PATH)/fpga/cores/bus_multiplexer_v1_0
 
 include $(SDK_PATH)/boards/alpha250/drivers/drivers.mk
-DRIVERS += $(PROJECT_PATH)/zero-copy-dma.hpp
+DRIVERS += $(PROJECT_PATH)/adc-dac-dma.hpp
 
 WEB_FILES += $(SDK_PATH)/web/index.html
