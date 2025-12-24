@@ -46,7 +46,7 @@ xpr: $(TMP_FPGA_PATH)/$(NAME).xpr
 
 $(TMP_FPGA_PATH)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML) | $(TMP_FPGA_PATH)
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/project.tcl \
-	  -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(BOARD_PATH) $(MODE) $(TMP_FPGA_PATH) $(TMP_FPGA_PATH)/xdc $(PYTHON)
+	  -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(BOARD_PATH) $(MODE) $(TMP_FPGA_PATH) $(TMP_FPGA_PATH)/xdc $(VENV)/bin/$(PYTHON)
 	@echo [$@] OK
 
 .PHONY: fpga
@@ -64,7 +64,7 @@ $(TMP_FPGA_PATH)/$(NAME).hwdef: $(TMP_FPGA_PATH)/$(NAME).xpr | $(TMP_FPGA_PATH)
 .PHONY: block_design
 block_design: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML)
 	$(VIVADO) -source $(FPGA_PATH)/vivado/block_design.tcl \
-	  -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(BOARD_PATH) $(MODE) $(TMP_FPGA_PATH) $(TMP_FPGA_PATH)/xdc $(PYTHON) block_design_
+	  -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(BOARD_PATH) $(MODE) $(TMP_FPGA_PATH) $(TMP_FPGA_PATH)/xdc $(VENV)/bin/$(PYTHON) block_design_
 
 # Open the Vivado project
 .PHONY: open_project
