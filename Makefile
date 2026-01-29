@@ -185,6 +185,10 @@ run: $(INSTRUMENT_ZIP)
 	PYTHONPATH=$(SDK_PATH)/python python3 -m koheron.instrument_runner --host $(HOST) --name $(NAME) $(INSTRUMENT_ZIP)
 	@echo
 
+.PHONY: test
+test:
+	HOST=$(HOST) $(VENV)/bin/python3 $(PROJECT_PATH)/test.py
+
 ###############################################################################
 # C++ CLIENT
 ###############################################################################
