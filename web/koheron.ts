@@ -456,15 +456,19 @@ class Client {
             len = dv.byteLength - 8;
             buffer = new ArrayBuffer(len);
             dvBuff = new DataView(buffer);
-            for (i = 0, end = len-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) { var asc, end;
-            dvBuff.setUint8(i, dv.getUint8(8 + i)); }
+            if (len > 0) {
+                for (i = 0, end = len-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) { var asc, end;
+                dvBuff.setUint8(i, dv.getUint8(8 + i)); }
+            }
         } else { // 'dynamic'
             len = dv.getUint32(8);
             console.assert(dv.byteLength === (len + 12));
             buffer = new ArrayBuffer(len);
             dvBuff = new DataView(buffer);
-            for (i = 0, end1 = len-1, asc1 = 0 <= end1; asc1 ? i <= end1 : i >= end1; asc1 ? i++ : i--) { var asc1, end1;
-            dvBuff.setUint8(i, dv.getUint8(12 + i)); }
+            if (len > 0) {
+                for (i = 0, end1 = len-1, asc1 = 0 <= end1; asc1 ? i <= end1 : i >= end1; asc1 ? i++ : i--) { var asc1, end1;
+                dvBuff.setUint8(i, dv.getUint8(12 + i)); }
+            }
         }
 
         return [dvBuff, classId, funcId];
@@ -481,7 +485,11 @@ class Client {
             websocket.send(cmd.data);
 
             websocket.onmessage = evt => {
-                fn(this.getPayload(mode, evt)[0]);
+                try {
+                    fn(this.getPayload(mode, evt)[0]);
+                } catch (e) {
+                    console.warn('_readBase error, received', evt.data.byteLength, 'bytes, mode:', mode, e);
+                }
 
                 if (this.websockpool !== null && typeof this.websockpool !== 'undefined') {
                     this.websockpool.freeSocket(sockid);
