@@ -478,26 +478,24 @@ class Client {
         if ((this.websockpool === null || typeof(this.websockpool) === 'undefined')) {
             return fn(null);
         }
-
-        this.websockpool.requestSocket( sockid => {
+    
+        this.websockpool.requestSocket(sockid => {
             if (sockid < 0) { return fn(null); }
             let websocket = this.websockpool.getSocket(sockid);
             websocket.send(cmd.data);
-
+    
             websocket.onmessage = evt => {
                 try {
                     fn(this.getPayload(mode, evt)[0]);
-                } catch (e) {
-                    console.warn('_readBase error, received', evt.data.byteLength, 'bytes, mode:', mode, e);
-                }
-
-                if (this.websockpool !== null && typeof this.websockpool !== 'undefined') {
-                    this.websockpool.freeSocket(sockid);
+                } finally {
+                    if (this.websockpool !== null && typeof this.websockpool !== 'undefined') {
+                        this.websockpool.freeSocket(sockid);
+                    }
                 }
             };
         });
     }
-
+    
     readUint32Array(cmd: CmdMessage, fn: (x: Uint32Array) => void): void {
         this._readBase('static', cmd, (data) => {
             fn(new Uint32Array(data.buffer));
