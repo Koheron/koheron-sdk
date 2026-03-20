@@ -1,11 +1,11 @@
 DOCKER :=
 ifeq ($(BUILD_METHOD),docker)
-	UID = $(shell id -u)
-	GID = $(shell id -g)
-	DOCKER = docker run --rm \
-		-v $(SDK_FULL_PATH):/home/containeruser/wkspace:Z \
-		-v $(abspath $(PROJECT_PATH)):/home/containeruser/project:Z \
-		-u $(UID):$(GID) \
-		-w /home/containeruser/wkspace \
-		gnu-gcc-9.5
+    UID = $(shell id -u)
+    GID = $(shell id -g)
+    DOCKER = docker run --rm \
+        -v $(SDK_FULL_PATH):/home/containeruser/wkspace:Z \
+        -v $(abspath $(PROJECT_PATH)):$(abspath $(PROJECT_PATH)):Z \
+        -u $(UID):$(GID) \
+        -w /home/containeruser/wkspace \
+        gnu-gcc-9.5
 endif
