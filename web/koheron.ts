@@ -456,15 +456,19 @@ class Client {
             len = dv.byteLength - 8;
             buffer = new ArrayBuffer(len);
             dvBuff = new DataView(buffer);
-            for (i = 0, end = len-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) { var asc, end;
-            dvBuff.setUint8(i, dv.getUint8(8 + i)); }
+            if (len > 0) {
+                for (i = 0, end = len-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) { var asc, end;
+                dvBuff.setUint8(i, dv.getUint8(8 + i)); }
+            }
         } else { // 'dynamic'
             len = dv.getUint32(8);
             console.assert(dv.byteLength === (len + 12));
             buffer = new ArrayBuffer(len);
             dvBuff = new DataView(buffer);
-            for (i = 0, end1 = len-1, asc1 = 0 <= end1; asc1 ? i <= end1 : i >= end1; asc1 ? i++ : i--) { var asc1, end1;
-            dvBuff.setUint8(i, dv.getUint8(12 + i)); }
+            if (len > 0) {
+                for (i = 0, end1 = len-1, asc1 = 0 <= end1; asc1 ? i <= end1 : i >= end1; asc1 ? i++ : i--) { var asc1, end1;
+                dvBuff.setUint8(i, dv.getUint8(12 + i)); }
+            }
         }
 
         return [dvBuff, classId, funcId];
@@ -474,22 +478,24 @@ class Client {
         if ((this.websockpool === null || typeof(this.websockpool) === 'undefined')) {
             return fn(null);
         }
-
-        this.websockpool.requestSocket( sockid => {
+    
+        this.websockpool.requestSocket(sockid => {
             if (sockid < 0) { return fn(null); }
             let websocket = this.websockpool.getSocket(sockid);
             websocket.send(cmd.data);
-
+    
             websocket.onmessage = evt => {
-                fn(this.getPayload(mode, evt)[0]);
-
-                if (this.websockpool !== null && typeof this.websockpool !== 'undefined') {
-                    this.websockpool.freeSocket(sockid);
+                try {
+                    fn(this.getPayload(mode, evt)[0]);
+                } finally {
+                    if (this.websockpool !== null && typeof this.websockpool !== 'undefined') {
+                        this.websockpool.freeSocket(sockid);
+                    }
                 }
             };
         });
     }
-
+    
     readUint32Array(cmd: CmdMessage, fn: (x: Uint32Array) => void): void {
         this._readBase('static', cmd, (data) => {
             fn(new Uint32Array(data.buffer));
