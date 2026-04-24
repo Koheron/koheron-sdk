@@ -442,4 +442,4 @@ flash:
 	FLASH_ALLOWED_MODELS="$(FLASH_ALLOWED_MODELS)" \
 	FLASH_DEVICES="$(FLASH_DEVICES)" \
 	FLASH_DEVICE="$(FLASH_DEVICE)" \
-	python3 $(OS_PATH)/scripts/flash_all.py $(TMP_PROJECT_PATH)/$(RELEASE_NAME).zip
+	$(VENV)/bin/python3 $(OS_PATH)/scripts/flash_all.py $(TMP_PROJECT_PATH)/$(RELEASE_NAME).zip
