@@ -2,6 +2,7 @@
 #define __ALPHA_DRIVERS_SPI_CONFIG_HPP__
 
 #include "server/hardware/memory_manager.hpp"
+#include "server/runtime/syslog.hpp"
 
 #include <cstdint>
 #include <mutex>
@@ -27,8 +28,12 @@ class SpiConfig {
         auto& ctl = hw::get_memory<mem::ps_control>();
         auto& sts = hw::get_memory<mem::ps_status>();
 
+        logf<INFO>("SpiConfig write_reg<{},{}>\n", cs_id, nbytes);
+
         // Wait for previous write to finish
         while (sts.read<reg::spi_cfg_sts>() == 0);
+
+        log<INFO>("SpiConfig Finished waiting\n");
 
         constexpr uint32_t TVALID_IDX = 8;
         constexpr uint32_t cmd = (1 << TVALID_IDX) + ((nbytes - 1) << 2) + cs_id;

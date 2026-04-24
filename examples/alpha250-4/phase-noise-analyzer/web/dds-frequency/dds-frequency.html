@@ -1,0 +1,29 @@
+<template class="template">
+  <div class="crossed">
+    <span>DDS Frequency (MHz)</span>
+  </div>
+  <table class="full-width">
+    <tr>
+      <td style="width: 60px">
+        OUT 0
+      </td>
+      <td style="width: 120px">
+        <input type="number" value="0" min="0" step="0.000001" max="125.0" class="dds-input0">
+      </td>
+      <td>
+        <button class="default-btn dds-set0">Set LO0</button>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        OUT 1
+      </td>
+      <td>
+        <input type="number" value="0" min="0" step="0.000001" max="125.0" class="dds-input1">
+      </td>
+      <td>
+        <button class="default-btn dds-set1">Set LO1</button>
+      </td>
+    </tr>
+  </table>
+</template>

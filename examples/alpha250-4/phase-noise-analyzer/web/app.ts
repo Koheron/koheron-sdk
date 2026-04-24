@@ -1,0 +1,51 @@
+class App {
+    private imports: Imports;
+    public dds: DDS;
+    private clockGenerator: ClockGenerator;
+    private clockGeneratorApp: ClockGeneratorApp;
+    private phaseNoiseAnalyzer: PhaseNoiseAnalyzer;
+    private phaseNoiseAnalyzerApp: PhaseNoiseAnalyzerApp;
+    public plot: Plot;
+    private plotBasics: PlotBasics;
+    private exportFile: ExportFile;
+
+    private n_pts: number;
+    private x_min: number;
+    private x_max: number;
+    private y_min: number;
+    private y_max: number;
+
+    constructor(window: Window, document: Document,
+                ip: string, plot_placeholder: JQuery) {
+        let sockpoolSize: number = 5;
+        let client = new Client(ip, sockpoolSize);
+
+        window.addEventListener('HTMLImportsLoaded', () => {
+            client.init( async () => {
+                this.imports = new Imports(document);
+                this.dds = new DDS(client);
+                this.clockGenerator = new ClockGenerator(client);
+                this.phaseNoiseAnalyzer = new PhaseNoiseAnalyzer(client);
+
+                this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
+                this.phaseNoiseAnalyzerApp = new PhaseNoiseAnalyzerApp(document, this.phaseNoiseAnalyzer);
+
+                await this.phaseNoiseAnalyzerApp.init();
+                this.n_pts = this.phaseNoiseAnalyzerApp.nPoints;
+                this.x_min = 100;
+                this.x_max = 2E6;
+                this.y_min = -200;
+                this.y_max = 0;
+
+                this.plotBasics = new PlotBasics(document, plot_placeholder, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.phaseNoiseAnalyzer, "", "FREQUENCY OFFSET (Hz)");
+                this.plot = new Plot(document, this.phaseNoiseAnalyzer, this.plotBasics);
+                this.exportFile = new ExportFile(document, this.plot);
+
+            });
+        }, false);
+
+        window.onbeforeunload = () => { client.exit(); };
+    }
+}
+
+let app = new App(window, document, location.hostname, $('#plot-placeholder'));
