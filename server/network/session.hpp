@@ -155,14 +155,12 @@ class Session
             if (n == 0) {
                 status = CLOSED;
             } else {
-                logf<CRITICAL>("send_payload failed: {} (errno={})\n", strerror(errno), errno);
-
                 if (flags & MSG_ZEROCOPY) {
                     // Zynq driver handles zero copy but needs pinnable user pages.
                     // Zero copy may fail with errno 'Bad address' on memories mapped with /dev/mem.
                     // In that case we retry without ZEROCOPY.
 
-                    log("Try without MSG_ZEROCOPY\n");
+                    log<DEBUG>("Try without MSG_ZEROCOPY\n");
                     return send_payload(payload, flags & ~MSG_ZEROCOPY);
                 }
             }

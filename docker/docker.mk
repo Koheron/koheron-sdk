@@ -16,6 +16,8 @@ DOCKER_DEV    = --privileged -v /dev:/dev \
 # Mount your source; :Z keeps SELinux happy on Fedora/RHEL hosts
 DOCKER_VOL    = -v $(SDK_FULL_PATH):$(DOCKER_WD):Z
 
+DOCKER_VOL += -v $(abspath $(PROJECT_PATH)):$(abspath $(PROJECT_PATH)):Z
+
 # Optional: preserve git identity inside the container
 # DOCKER_VOL   += -v $(HOME)/.gitconfig:/etc/gitconfig:ro
 

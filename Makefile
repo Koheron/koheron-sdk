@@ -185,6 +185,10 @@ run: $(INSTRUMENT_ZIP)
 	PYTHONPATH=$(SDK_PATH)/python python3 -m koheron.instrument_runner --host $(HOST) --name $(NAME) $(INSTRUMENT_ZIP)
 	@echo
 
+.PHONY: test
+test:
+	HOST=$(HOST) $(VENV)/bin/python3 $(PROJECT_PATH)/test.py
+
 ###############################################################################
 # C++ CLIENT
 ###############################################################################
@@ -232,7 +236,7 @@ endif
 
 .PHONY: setup
 setup:
-	sudo apt-get install -y curl rsync python3-venv
+	sudo apt-get install -y curl rsync python3-venv qemu-user-static
 	[ -d $(VENV) ] || python3 -m venv $(VENV)
 	$(VENV)/bin/python3 -m ensurepip --upgrade
 	$(VENV)/bin/python3 -m pip install --upgrade pip

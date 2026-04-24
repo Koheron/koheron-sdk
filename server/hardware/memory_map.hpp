@@ -31,10 +31,10 @@ class Memory
   public:
     static_assert(id < mem::count, "Invalid ID");
 
-    static constexpr uintptr_t phys_addr = mem::get_base_addr(id); 
-    static constexpr uint32_t n_blocks = mem::get_n_blocks(id); 
-    static constexpr uint32_t block_size = mem::get_range(id); 
-    static constexpr uint32_t size = mem::get_total_size(id); 
+    static constexpr uintptr_t phys_addr = mem::get_base_addr(id);
+    static constexpr uint32_t n_blocks = mem::get_n_blocks(id);
+    static constexpr uint32_t block_size = mem::get_range(id);
+    static constexpr uint32_t size = mem::get_total_size(id);
     static constexpr int protection = mem::get_protection(id);
     static constexpr auto name = mem::get_name(id);
     static constexpr auto device = mem::get_device_driver(id);
@@ -251,6 +251,23 @@ class Memory
 
         const T* ptr = get_ptr<const T, offset>(block_idx);
         return std::span<const T, N>(ptr, N);
+    }
+
+    template<typename T, uint32_t offset = 0>
+    std::span<const T> read_span(std::size_t n, uint32_t block_idx = 0) {
+        static_assert(mem::is_readable(id), "Not readable");
+
+        const std::size_t total_bytes = mem::get_range(id) * mem::get_n_blocks(id);
+
+        const std::size_t max_elems =
+            (total_bytes > offset)
+                ? (total_bytes - offset) / sizeof(T)
+                : 0;
+
+        const std::size_t clamped_n = std::min(n, max_elems);
+
+        const T* ptr = get_ptr<const T, offset>(block_idx);
+        return std::span<const T>(ptr, clamped_n);
     }
 
     // Read a std::array (offset defined at run-time)

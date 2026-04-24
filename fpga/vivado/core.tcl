@@ -67,8 +67,15 @@ if {[llength $testbench_files] > 0} {
   remove_files $testbench_files
 }
 
-# Package
+# Add .mem files for BRAM initialization (used by XPM_MEMORY)
+set mem_files [glob -nocomplain $core_path/*.mem]
+if {[llength $mem_files] > 0} {
+  add_files -norecurse $mem_files
+  puts "Added [llength $mem_files] .mem file(s) for BRAM initialization"
+}
+
 ipx::package_project -import_files -root_dir $out_dir -force
+
 set core [ipx::current_core]
 
 set_property VERSION  $version      $core

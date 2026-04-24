@@ -56,8 +56,8 @@ if [ ! -x "$root_dir/usr/bin/$(basename "$qemu_path")" ]; then
   exit 1
 fi
 
-# run chroot payload under qemu explicitly (inline path, no qemu_inside var)
-chroot "$root_dir" "/usr/bin/$(basename "$qemu_path")" /bin/bash -lc \
+# Run chroot payload under qemu explicitly (avoid login shell to skip profile scripts).
+chroot "$root_dir" "/usr/bin/$(basename "$qemu_path")" /bin/bash --noprofile --norc -c \
   "export DEBIAN_FRONTEND=noninteractive LANG=C LC_ALL=C TIMEZONE='$TIMEZONE' PASSWD='$PASSWD'; /bin/bash /chroot.sh"
 
 # 3) unmount and pack the base

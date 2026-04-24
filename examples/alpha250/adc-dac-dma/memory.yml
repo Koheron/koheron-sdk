@@ -7,6 +7,9 @@ memory:
     - precision_dac_ctl
     - precision_dac_data[2]
     - channel_select
+    - reset
+    - trig
+    - pkt_count
   - name: ps_control
     offset: 0x5400_0000
     range: 4K

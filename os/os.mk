@@ -268,7 +268,7 @@ define ITS_TEMPLATE
   images {
     kernel {
       description = "Linux kernel";
-      data = /incbin/("$(ABS_TMP_OS_PATH)/$(KERNEL_BIN)");
+      data = /incbin/("$(KERNEL_BIN)");
       type = "kernel";
       arch = "$(ARCH)";
       os = "linux";
@@ -279,7 +279,7 @@ define ITS_TEMPLATE
     };
     fdt {
       description = "Base Device Tree";
-      data = /incbin/("$(ABS_TMP_OS_PATH)/devicetree.dtb");
+      data = /incbin/("devicetree.dtb");
       type = "flat_dt";
       arch = "$(ARCH)";
       compression = "none";
@@ -288,7 +288,7 @@ define ITS_TEMPLATE
     };
     overlay_board {
       description = "Board overlay";
-      data = /incbin/("$(ABS_TMP_OS_PATH)/board-overlay/board.dtbo");
+      data = /incbin/("board-overlay/board.dtbo");
       type = "flat_dt";
       arch = "$(ARCH)";
       compression = "none";
@@ -313,7 +313,7 @@ $(TMP_OS_PATH)/kernel.its: $(TMP_OS_PATH)/$(KERNEL_BIN) $(TMP_OS_PATH)/devicetre
 	$(call ok,$@)
 
 $(TMP_OS_PATH)/kernel.itb: $(TMP_OS_PATH)/kernel.its | $(TMP_OS_PATH)/
-	mkimage -f $< $@
+	$(DOCKER) mkimage -D "-i $(TMP_OS_PATH)" -f $< $@
 	$(call ok,$@)
 
 ###############################################################################
@@ -334,4 +334,3 @@ os: $(OS_FILES)
 .PHONY: clean_os
 clean_os:
 	rm -rf $(TMP_OS_PATH)
-
