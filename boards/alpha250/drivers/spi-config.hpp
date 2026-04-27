@@ -28,8 +28,6 @@ class SpiConfig {
         auto& ctl = hw::get_memory<mem::ps_control>();
         auto& sts = hw::get_memory<mem::ps_status>();
 
-        logf<INFO>("SpiConfig write_reg<{},{}>\n", cs_id, nbytes);
-
         // Wait for previous write to finish
         while (sts.read<reg::spi_cfg_sts>() == 0);
 

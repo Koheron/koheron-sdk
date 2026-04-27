@@ -20,6 +20,7 @@
 
 #include "./dds.hpp"
 #include "./moving_averager.hpp"
+#include "./axis-stream-packet-mux.hpp"
 
 namespace rt { class ConfigManager; }
 class DmaS2MM;
@@ -110,6 +111,8 @@ class PhaseNoiseAnalyzer
 
     std::mutex dma_mtx; // Guard DMA transfer
     mutable std::shared_mutex data_mtx; // protects phase & phase_noise
+
+    AxisStreamPacketMux axis_stream_mux;
 
     // Data acquisition thread
     std::thread acq_thread;

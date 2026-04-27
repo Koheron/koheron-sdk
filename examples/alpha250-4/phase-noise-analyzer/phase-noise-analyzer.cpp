@@ -317,6 +317,7 @@ auto PhaseNoiseAnalyzer::compute_jitter(const PhaseNoiseDensityVector& new_pn) {
 
 void PhaseNoiseAnalyzer::start_acquisition() {
     if (! acquisition_started) {
+        axis_stream_mux.select_input(0);
         acq_thread = std::thread{&PhaseNoiseAnalyzer::acquisition_thread, this};
         acq_thread.detach();
     }

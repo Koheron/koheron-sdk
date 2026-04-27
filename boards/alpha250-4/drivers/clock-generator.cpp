@@ -76,7 +76,6 @@ void ClockGenerator::single_phase_shift(uint32_t incdec) {
 }
 
 void ClockGenerator::write_reg(uint32_t data) {
-    logf<INFO>("ClockGenerator::write_reg {}\n", data);
     constexpr uint8_t cs_clk_gen = 0;
     constexpr uint8_t pack_size = 4; // bytes
     spi_cfg.write_reg<cs_clk_gen, pack_size>(data);
@@ -284,21 +283,13 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
         return -1;
     }
 
-
-    log<INFO>("Clock generator: HERE!!!!!\n");
-
     logf<INFO>("Clock generator: Ref: {}, VCO: {} MHz, ADC0: {} MHz, ADC1: {} MHz\n",
          clock_cfg::clkin_names[clkin_select].data(), f_vco * 1E-6, fs_adc[0] * 1E-6, fs_adc[1] * 1E-6);
-    log<INFO>("Clock generator: HERE0\n");
 
     spi_cfg.lock(); // ?
 
-    logf<INFO>("Clock generator: HERE1. is_clock_generator_initialized = {}\n", is_clock_generator_initialized);
-
     if (!is_clock_generator_initialized) {
-        log<INFO>("Clock generator: Reset...\n");
         write_reg(1 << 17); // Reset
-        log<INFO>("Clock generator: Reset done\n");
     }
 
     if (cfg_mode == SAMPLING_FREQ_SET || cfg_mode == CFG_ALL) {
