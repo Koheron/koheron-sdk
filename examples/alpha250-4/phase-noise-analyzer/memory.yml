@@ -21,6 +21,7 @@ memory:
     registers:
     - adc[n_adc]
     - demod[n_adc]
+    - fifo_wr_data_count[2]
   - name: ps_status
     offset: 0x7000_0000
     range: 4K
@@ -30,8 +31,8 @@ memory:
     offset: 0x43C0_0000
     range: 64K
   - name: ram
-    offset: 0x1E00_0000
-    range: 32M
+    offset: 0x1800_0000
+    range: 128M
     compatible: "koheron,mem-wc-1.0"
     dev: /dev/mem_wc
   - name: dma

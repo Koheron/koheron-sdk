@@ -36,9 +36,22 @@ class PhaseNoiseAnalyzer
                 scicpp::units::quantity_multiply<Phase, Phase>,
                 Frequency>;
 
+    // RAM ring buffers
+    // Acquisition loops continuously fills 2 circular buffers in RAM (One for X data, the other for Y data)
+    // RAM size is 128M so 2 buffers of 8192 * 8192 bytes.
+    static constexpr uint32_t samples_per_chunk = 8192;
+    static constexpr uint32_t bytes_per_sample = sizeof(int32_t);
+    static constexpr uint32_t chunk_bytes = samples_per_chunk * bytes_per_sample;
+    static constexpr uint32_t buffer_size =  8192 * 8192;
+    static constexpr uint32_t n_chunks = buffer_size / chunk_bytes;
+    static constexpr uint32_t x_byte_offset = 0;
+    static constexpr uint32_t y_byte_offset = buffer_size;
+
+    // FFT buffer sizes
     static constexpr uint32_t fft_size = 32768;
     static constexpr uint32_t data_size = 2 * fft_size;
-    static constexpr uint32_t dma_chunk_beats_max = (1u << 14) - 1; // axis-stream-packet-mux length field
+    // static constexpr uint32_t dma_chunk_beats_max = (1u << 14) - 1; // axis-stream-packet-mux length field
+    // static constexpr uint32_t dma_chunk_beats_max = 8192;
     static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2; // Don't use the first transfered points
     static constexpr auto calib_factor = 4.196f * scicpp::pi<Phase> / 8192.0f;
 
@@ -92,7 +105,7 @@ class PhaseNoiseAnalyzer
         };
     }
 
-    PhaseDataArray get_phase_x() const;
+    PhaseDataArray get_phase_x();
     PhaseDataArray get_phase_y() const;
     PhaseNoiseDensityVector get_phase_noise() const;
 
@@ -114,6 +127,8 @@ class PhaseNoiseAnalyzer
     uint32_t fft_navg;
     uint32_t cic_rate;
     std::atomic<int32_t> dirty_cnt = 0;
+    std::atomic<uint32_t> write_idx = 0;
+    std::atomic<uint64_t> write_count = 0;
     Frequency fs_adc, fs;
     Time dma_transfer_duration;
 
@@ -158,9 +173,9 @@ class PhaseNoiseAnalyzer
 
     void load_config();
     void reset_phase_unwrapper();
-    void kick_dma();
-    auto read_dma();
-    auto read_dma_xy();
+    // void kick_dma();
+    // auto read_dma();
+    // auto read_dma_xy();
     void update_interferometer_transfer_function();
     void set_power_conversion_factor();
     auto compute_phase_noise(PhaseDataArray& new_phase);

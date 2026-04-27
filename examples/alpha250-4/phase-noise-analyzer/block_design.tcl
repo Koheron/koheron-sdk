@@ -178,6 +178,7 @@ for {set i 0} {$i < 2} {incr i} {
     IS_ACLK_ASYNC 1
     HAS_PROG_FULL 1
     PROG_FULL_THRESH 16384
+    HAS_WR_DATA_COUNT 1
   } {
     S_AXIS fir$i/M_AXIS_DATA
     s_axis_aresetn rst_adc_clk/peripheral_aresetn
@@ -185,6 +186,7 @@ for {set i 0} {$i < 2} {incr i} {
     m_axis_aclk ps_0/FCLK_CLK1
     M_AXIS axis_stream_packet_m_0/S_AXIS_$i
     prog_full [get_interrupt_pin]
+    axis_wr_data_count [sts_pin fifo_wr_data_count$i]
   }
 }
 

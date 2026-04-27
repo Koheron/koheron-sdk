@@ -6,7 +6,7 @@ class PhaseNoiseAnalyzer(object):
     def __init__(self, client):
         self.client = client
         self.calib_factor = 4.196
-        self.npts = 204800
+        self.npts = 65536
 
     @command(classname="Dds")
     def set_dds_freq(self, channel, freq):
