@@ -38,7 +38,8 @@ class PhaseNoiseAnalyzer
 
     static constexpr uint32_t fft_size = 32768;
     static constexpr uint32_t data_size = 2 * fft_size;
-    static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2; // Do use the first transfered points
+    static constexpr uint32_t dma_chunk_beats_max = (1u << 14) - 1; // axis-stream-packet-mux length field
+    static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2; // Don't use the first transfered points
     static constexpr auto calib_factor = 4.196f * scicpp::pi<Phase> / 8192.0f;
 
     using PhaseDataArray = std::array<Phase, data_size>;

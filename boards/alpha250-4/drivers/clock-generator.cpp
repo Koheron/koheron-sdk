@@ -356,6 +356,6 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
         is_clock_generator_initialized = true;
     }
 
-    log("Clock generator: configured");
+    log("Clock generator: configured\n");
     return 0;
 }

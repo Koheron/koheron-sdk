@@ -16,7 +16,7 @@ Dds::Dds()
 }
 
 void Dds::set_dds_freq(uint32_t channel, double freq_hz) {
-    if (channel >= 2) {
+    if (channel >= 4) {
         log<ERROR>("FFT::set_dds_freq invalid channel\n");
         return;
     }
@@ -26,7 +26,13 @@ void Dds::set_dds_freq(uint32_t channel, double freq_hz) {
         return;
     }
 
-    double fs_adc = clk_gen.get_adc_sampling_freq()[0]; // Assume both ADCs have same frequency
+    double fs_adc;
+
+    if (channel == 0 || channel == 1) {
+        fs_adc = clk_gen.get_adc_sampling_freq()[0];
+    } else { // channel == 2 || channel == 3
+        fs_adc = clk_gen.get_adc_sampling_freq()[1];
+    }
 
     if (freq_hz > fs_adc / 2.0) {
         freq_hz = fs_adc / 2.0;

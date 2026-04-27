@@ -42,7 +42,7 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
     clk_gen.set_sampling_frequency(0); // 200 MHz
     fs_adc = Frequency(clk_gen.get_adc_sampling_freq()[0]); // Assume both ADCs have same frequency
 
-    ctl.write_mask<reg::cordic, 0b11>(0b11); // Phase accumulator on
+    ctl.set_bit<reg::cordic, 0>(); // Phase accumulator on
 
     load_config();
 
@@ -67,7 +67,18 @@ void PhaseNoiseAnalyzer::save_config() {
 
 void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t channel, double freq_hz) {
     dirty_cnt = 4;
-    dds.set_dds_freq(channel, freq_hz);
+
+    if (channel == 0) {
+        dds.set_dds_freq(0, freq_hz);
+        dds.set_dds_freq(1, freq_hz);
+    } else if (channel == 1) {
+        dds.set_dds_freq(2, freq_hz);
+        dds.set_dds_freq(3, freq_hz);
+    } else {
+        // TODO Crossed-channel ch0 x ch1
+        logf<ERROR>("PhaseNoiseAnalyzer::set_local_oscillator: Invalid channel {}", channel);
+    }
+
     averager.clear();
 }
 
@@ -98,10 +109,12 @@ void PhaseNoiseAnalyzer::set_channel(uint32_t chan) {
         return;
     }
 
+    std::scoped_lock lk(dma_mtx);
+
     channel = chan;
+    axis_stream_mux.select_input(channel);
     averager.clear();
     set_power_conversion_factor();
-    ctl.write_mask<reg::cordic, 0b10000>((channel & 1) << 4);
 }
 
 // Carrier power in dBm
@@ -184,14 +197,18 @@ void PhaseNoiseAnalyzer::load_config() {
 
     if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[0]")) {
         dds.set_dds_freq(0, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[0]"));
+        dds.set_dds_freq(1, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[0]"));
     } else {
         dds.set_dds_freq(0, 10E6);
+        dds.set_dds_freq(1, 10E6);
     }
 
     if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[1]")) {
-        dds.set_dds_freq(1, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[1]"));
+        dds.set_dds_freq(2, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[1]"));
+        dds.set_dds_freq(3, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[1]"));
     } else {
-        dds.set_dds_freq(1, 10E6);
+        dds.set_dds_freq(2, 10E6);
+        dds.set_dds_freq(3, 10E6);
     }
 
     if (cfg.has("PhaseNoiseAnalyzer", "analyzer_mode")) {
@@ -208,19 +225,39 @@ void PhaseNoiseAnalyzer::load_config() {
 }
 
 void PhaseNoiseAnalyzer::reset_phase_unwrapper() {
-    ctl.write_mask<reg::cordic, 0b1100>(0b1100);
-    ctl.write_mask<reg::cordic, 0b1100>(0b0000);
+    ctl.set_bit<reg::cordic, 1>();
+    ctl.clear_bit<reg::cordic, 1>();
 }
 
 void PhaseNoiseAnalyzer::kick_dma() {
     std::scoped_lock lk(dma_mtx);
     reset_phase_unwrapper();
-    dma.start_transfer<mem::ram, prm::n_pts, int32_t>();
 }
 
 auto PhaseNoiseAnalyzer::read_dma() {
     std::scoped_lock lk(dma_mtx);
-    dma.wait_for_transfer(dma_transfer_duration);
+
+    constexpr uint32_t bytes_per_sample = sizeof(int32_t);
+    constexpr uint32_t transfer_size = prm::n_pts * bytes_per_sample;
+
+    // logf("PhaseNoiseAnalyzer::read_dma(): bytes_per_sample = {}, transfer_size = {}\n", bytes_per_sample, transfer_size);
+
+    uint32_t byte_offset = 0;
+    while (byte_offset < transfer_size) {
+        const uint32_t remaining_bytes = transfer_size - byte_offset;
+        const uint32_t chunk_samples = std::min(dma_chunk_beats_max, remaining_bytes / bytes_per_sample);
+        const uint32_t chunk_bytes = chunk_samples * bytes_per_sample;
+        const float chunk_duration = static_cast<float>(chunk_samples) / fs.eval();
+
+        axis_stream_mux.set_packet_length(chunk_samples);
+        axis_stream_mux.trigger();
+        dma.start_transfer(hw::Memory<mem::ram>::phys_addr + byte_offset, chunk_bytes);
+        dma.wait_for_transfer(chunk_duration);
+
+        byte_offset += chunk_bytes;
+    }
+
+    // logf("PhaseNoiseAnalyzer::read_dma(): byte_offset = {}\n", byte_offset);
     auto& ram = hw::get_memory<mem::ram>();
     return ram.read_array<int32_t, data_size, read_offset>();
 }
@@ -317,7 +354,7 @@ auto PhaseNoiseAnalyzer::compute_jitter(const PhaseNoiseDensityVector& new_pn) {
 
 void PhaseNoiseAnalyzer::start_acquisition() {
     if (! acquisition_started) {
-        axis_stream_mux.select_input(0);
+        axis_stream_mux.select_input(channel);
         acq_thread = std::thread{&PhaseNoiseAnalyzer::acquisition_thread, this};
         acq_thread.detach();
     }
@@ -325,15 +362,17 @@ void PhaseNoiseAnalyzer::start_acquisition() {
 
 void PhaseNoiseAnalyzer::acquisition_thread() {
     acquisition_started = true;
-    kick_dma();
 
     while (acquisition_started) {
         using namespace sci::operators;
 
+        kick_dma();
         auto samples = read_dma(); // blocking wait
-        auto new_phase = samples * calib_factor;
 
-        kick_dma(); // Immediately kick the next DMA so it runs while we compute
+        // logf("samples.size() = {}, samples[0] = {}, samples[-1] = {}\n",
+        //          samples.size(), samples[0], samples.back());
+
+        auto new_phase = samples * calib_factor;
 
         if (dirty_cnt.load(std::memory_order_relaxed) > 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -348,6 +387,8 @@ void PhaseNoiseAnalyzer::acquisition_thread() {
         {
             std::unique_lock lk(data_mtx);
             phase = std::move(new_phase);
+            // logf("phase.size() = {}, phase[0] = {}, phase[-1] = {}\n",
+            //      phase.size(), phase[0].eval(), phase.back().eval());
             phase_noise = std::move(new_pn);
         }
     }

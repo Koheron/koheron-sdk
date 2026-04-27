@@ -8,7 +8,7 @@ import time
 from koheron import connect, command
 from phase_noise_analyzer import PhaseNoiseAnalyzer
 
-host = os.getenv('HOST','192.168.1.42')
+host = os.getenv('HOST','192.168.1.111')
 freq = 10e6
 cic_rate = 20
 channel = 1
@@ -18,6 +18,8 @@ driver.set_reference_clock(0)
 driver.set_dds_freq(channel, freq)
 driver.set_cic_rate(cic_rate)
 driver.set_channel(channel)
+
+print(driver.get_phase())
 
 f, psd_freq = driver.phase_noise(navg=100, verbose=True)
 
