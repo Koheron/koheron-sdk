@@ -33,7 +33,7 @@ class PhaseNoiseAnalyzer(object):
         return self.client.recv_array(self.npts, dtype='int32')
 
     @command()
-    def get_phase(self):
+    def get_phase_x(self):
         return self.client.recv_array(self.npts, dtype='float32')
 
     def phase_noise(self, navg=1, window='hann', verbose=False):
@@ -47,7 +47,7 @@ class PhaseNoiseAnalyzer(object):
             if verbose:
                 print("Acquiring sample {}/{}".format(i + 1, navg))
 
-            phase = self.get_phase()
+            phase = self.get_phase_x()
             psd += 2.0 * np.abs(np.fft.rfft(win * (phase - np.mean(phase)))) ** 2
             power += self.get_carrier_power(40)
 

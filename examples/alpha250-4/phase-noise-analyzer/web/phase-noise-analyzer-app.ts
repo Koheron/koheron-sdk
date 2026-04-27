@@ -109,7 +109,7 @@ class PhaseNoiseAnalyzerApp {
     for (let i = 0; i < this.channelInputs.length; i++) {
       this.channelInputs[i].addEventListener('change', (event) => {
         this.channel = parseInt((<HTMLInputElement>event.currentTarget).value);
-          this.driver[(<HTMLInputElement>event.currentTarget).dataset.command](this.channel);
+        this.driver[(<HTMLInputElement>event.currentTarget).dataset.command](this.channel);
       })
     }
   }

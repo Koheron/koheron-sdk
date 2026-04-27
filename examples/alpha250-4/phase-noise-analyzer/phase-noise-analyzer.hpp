@@ -160,9 +160,11 @@ class PhaseNoiseAnalyzer
     void reset_phase_unwrapper();
     void kick_dma();
     auto read_dma();
+    auto read_dma_xy();
     void update_interferometer_transfer_function();
     void set_power_conversion_factor();
     auto compute_phase_noise(PhaseDataArray& new_phase);
+    auto compute_crossed_phase_noise(PhaseDataArray& new_phase_x, PhaseDataArray& new_phase_y);
     auto compute_jitter(const PhaseNoiseDensityVector& new_pn);
     void acquisition_thread();
     void start_acquisition();

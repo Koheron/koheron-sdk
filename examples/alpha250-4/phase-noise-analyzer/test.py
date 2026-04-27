@@ -19,7 +19,7 @@ driver.set_dds_freq(channel, freq)
 driver.set_cic_rate(cic_rate)
 driver.set_channel(channel)
 
-print(driver.get_phase())
+print(driver.get_phase_x())
 
 f, psd_freq = driver.phase_noise(navg=100, verbose=True)
 

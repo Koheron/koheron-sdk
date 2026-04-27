@@ -281,6 +281,44 @@ auto PhaseNoiseAnalyzer::read_dma() {
     return ram.read_array<int32_t, data_size, read_offset>();
 }
 
+auto PhaseNoiseAnalyzer::read_dma_xy() {
+    std::scoped_lock lk(dma_mtx);
+
+    constexpr uint32_t bytes_per_sample = sizeof(int32_t);
+    constexpr uint32_t transfer_size = prm::n_pts * bytes_per_sample;
+    constexpr uint32_t x_byte_offset = 0;
+    constexpr uint32_t y_byte_offset = transfer_size;
+    constexpr uint32_t y_read_offset = prm::n_pts + read_offset;
+
+    uint32_t byte_offset = 0;
+    while (byte_offset < transfer_size) {
+        const uint32_t remaining_bytes = transfer_size - byte_offset;
+        const uint32_t chunk_samples = std::min(dma_chunk_beats_max, remaining_bytes / bytes_per_sample);
+        const uint32_t chunk_bytes = chunk_samples * bytes_per_sample;
+        const float chunk_duration = static_cast<float>(chunk_samples) / fs.eval();
+
+        axis_stream_mux.select_input(InputChannel::X);
+        axis_stream_mux.set_packet_length(chunk_samples);
+        axis_stream_mux.trigger();
+        dma.start_transfer(hw::Memory<mem::ram>::phys_addr + x_byte_offset + byte_offset, chunk_bytes);
+        dma.wait_for_transfer(chunk_duration);
+
+        axis_stream_mux.select_input(InputChannel::Y);
+        axis_stream_mux.set_packet_length(chunk_samples);
+        axis_stream_mux.trigger();
+        dma.start_transfer(hw::Memory<mem::ram>::phys_addr + y_byte_offset + byte_offset, chunk_bytes);
+        dma.wait_for_transfer(chunk_duration);
+
+        byte_offset += chunk_bytes;
+    }
+
+    auto& ram = hw::get_memory<mem::ram>();
+    return std::tuple{
+        ram.read_array<int32_t, data_size, read_offset>(),
+        ram.read_array<int32_t, data_size, y_read_offset>()
+    };
+}
+
 void PhaseNoiseAnalyzer::update_interferometer_transfer_function() {
     using namespace sci::operators;
     auto freqs = sig::rfftfreq<fft_size>(1.0f / fs);
@@ -306,6 +344,22 @@ void PhaseNoiseAnalyzer::set_power_conversion_factor() {
 
 auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
     auto phase_psd = spectrum.welch<sig::DENSITY, false>(new_phase);
+
+    if (analyzer_mode == AnalyzerMode::LASER) {
+        using namespace sci::operators;
+        phase_psd = std::move(phase_psd) * interferometer_tf;
+    }
+
+    if (fft_navg > 1) {
+        averager.append(std::move(phase_psd));
+        return averager.average();
+    } else {
+        return phase_psd;
+    }
+}
+
+auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x, PhaseDataArray& new_phase_y) {
+    auto phase_psd = sci::sqrt(sci::norm(spectrum.csd<sig::DENSITY, false>(new_phase_x, new_phase_y)));
 
     if (analyzer_mode == AnalyzerMode::LASER) {
         using namespace sci::operators;
@@ -386,8 +440,17 @@ void PhaseNoiseAnalyzer::acquisition_thread() {
         using namespace sci::operators;
 
         kick_dma();
-        auto samples = read_dma(); // blocking wait
-        auto new_phase = samples * calib_factor;
+        auto new_phase = PhaseDataArray{};
+        auto new_phase_y = PhaseDataArray{};
+
+        if (channel == InputChannel::XY) {
+            auto [samples_x, samples_y] = read_dma_xy(); // blocking wait
+            new_phase = samples_x * calib_factor;
+            new_phase_y = samples_y * calib_factor;
+        } else {
+            auto samples = read_dma(); // blocking wait
+            new_phase = samples * calib_factor;
+        }
 
         {
             std::unique_lock lk(data_mtx);
@@ -397,8 +460,8 @@ void PhaseNoiseAnalyzer::acquisition_thread() {
             } else if (channel == InputChannel::Y) {
                 phase_y = std::move(new_phase);
             } else { // XY
-                // TODO Save both phase_x and phase_y
                 phase_x = std::move(new_phase);
+                phase_y = std::move(new_phase_y);
             }
         }
 
@@ -409,16 +472,19 @@ void PhaseNoiseAnalyzer::acquisition_thread() {
             continue;
         }
 
-        if (channel == InputChannel::X || channel == InputChannel::Y) {
-            auto new_pn = compute_phase_noise(new_phase);
-            compute_jitter(new_pn);
+        auto new_pn = PhaseNoiseDensityVector{};
 
-            {
-                std::unique_lock lk(data_mtx);
-                phase_noise = std::move(new_pn);
-            }
+        if (channel == InputChannel::X || channel == InputChannel::Y) {
+            new_pn = compute_phase_noise(new_phase);
         } else {
-            // TODO Compute cross-spectrum
+            new_pn = compute_crossed_phase_noise(new_phase, new_phase_y);
+        }
+
+        compute_jitter(new_pn);
+
+        {
+            std::unique_lock lk(data_mtx);
+            phase_noise = std::move(new_pn);
         }
     }
 }
