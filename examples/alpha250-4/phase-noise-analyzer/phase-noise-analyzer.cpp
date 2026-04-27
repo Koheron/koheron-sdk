@@ -58,8 +58,9 @@ void PhaseNoiseAnalyzer::save_config() {
     cfg.set("PhaseNoiseAnalyzer", "channel", channel);
     cfg.set("PhaseNoiseAnalyzer", "fft_navg", fft_navg);
     cfg.set("PhaseNoiseAnalyzer", "cic_rate", cic_rate);
-    cfg.set("PhaseNoiseAnalyzer", "dds_freq[0]", dds.get_dds_freq(0));
-    cfg.set("PhaseNoiseAnalyzer", "dds_freq[1]", dds.get_dds_freq(1));
+    cfg.set("PhaseNoiseAnalyzer", "dds_freq[X]", dds.get_dds_freq(0));
+    cfg.set("PhaseNoiseAnalyzer", "dds_freq[Y]", dds.get_dds_freq(2));
+    cfg.set("PhaseNoiseAnalyzer", "dds_freq[XY]", dds.get_dds_freq(0));
     cfg.set("PhaseNoiseAnalyzer", "analyzer_mode", analyzer_mode);
     cfg.set("PhaseNoiseAnalyzer", "interferometer_delay", interferometer_delay.eval());
     cfg.save();
@@ -68,15 +69,20 @@ void PhaseNoiseAnalyzer::save_config() {
 void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t channel, double freq_hz) {
     dirty_cnt = 4;
 
-    if (channel == 0) {
+    if (channel == InputChannel::X) {
         dds.set_dds_freq(0, freq_hz);
         dds.set_dds_freq(1, freq_hz);
-    } else if (channel == 1) {
+    } else if (channel == InputChannel::Y) {
+        dds.set_dds_freq(2, freq_hz);
+        dds.set_dds_freq(3, freq_hz);
+    } else if (channel == InputChannel::XY) {
+        dds.set_dds_freq(0, freq_hz);
+        dds.set_dds_freq(1, freq_hz);
         dds.set_dds_freq(2, freq_hz);
         dds.set_dds_freq(3, freq_hz);
     } else {
         // TODO Crossed-channel ch0 x ch1
-        logf<ERROR>("PhaseNoiseAnalyzer::set_local_oscillator: Invalid channel {}", channel);
+        logf<ERROR>("PhaseNoiseAnalyzer::set_local_oscillator: Invalid channel {}\n", channel);
     }
 
     averager.clear();
@@ -104,7 +110,7 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
 }
 
 void PhaseNoiseAnalyzer::set_channel(uint32_t chan) {
-    if (chan != 0 && chan != 1) {
+    if (chan != InputChannel::X && chan != InputChannel::Y && chan != InputChannel::XY) {
         log<ERROR>("PhaseNoiseAnalyzer: Invalid channel\n");
         return;
     }
@@ -112,7 +118,13 @@ void PhaseNoiseAnalyzer::set_channel(uint32_t chan) {
     std::scoped_lock lk(dma_mtx);
 
     channel = chan;
-    axis_stream_mux.select_input(channel);
+
+    if (chan == InputChannel::X || chan == InputChannel::Y) {
+        axis_stream_mux.select_input(channel);
+    } else { // XY
+        axis_stream_mux.select_input(0);
+    }
+
     averager.clear();
     set_power_conversion_factor();
 }
@@ -138,9 +150,14 @@ double PhaseNoiseAnalyzer::get_carrier_power(uint32_t navg) {
     return 10.0 * sci::log10(conv_factor_dBm * res / double(navg));
 }
 
-PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase() const {
+PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase_x() const {
     std::shared_lock lk(data_mtx);
-    return phase;
+    return phase_x;
+}
+
+PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase_y() const {
+    std::shared_lock lk(data_mtx);
+    return phase_y;
 }
 
 PhaseNoiseAnalyzer::PhaseNoiseDensityVector PhaseNoiseAnalyzer::get_phase_noise() const {
@@ -195,20 +212,22 @@ void PhaseNoiseAnalyzer::load_config() {
         set_cic_rate(prm::cic_decimation_rate_default);
     }
 
-    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[0]")) {
-        dds.set_dds_freq(0, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[0]"));
-        dds.set_dds_freq(1, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[0]"));
+    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[X]")) {
+        set_local_oscillator(InputChannel::X, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freqX]"));
     } else {
-        dds.set_dds_freq(0, 10E6);
-        dds.set_dds_freq(1, 10E6);
+        set_local_oscillator(InputChannel::X, 10E6);
     }
 
-    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[1]")) {
-        dds.set_dds_freq(2, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[1]"));
-        dds.set_dds_freq(3, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[1]"));
+    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[Y]")) {
+        set_local_oscillator(InputChannel::Y, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[Y]"));
     } else {
-        dds.set_dds_freq(2, 10E6);
-        dds.set_dds_freq(3, 10E6);
+        set_local_oscillator(InputChannel::Y, 10E6);
+    }
+
+    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[XY]")) {
+        set_local_oscillator(InputChannel::XY, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[XY]"));
+    } else {
+        set_local_oscillator(InputChannel::XY, 10E6);
     }
 
     if (cfg.has("PhaseNoiseAnalyzer", "analyzer_mode")) {
@@ -368,11 +387,20 @@ void PhaseNoiseAnalyzer::acquisition_thread() {
 
         kick_dma();
         auto samples = read_dma(); // blocking wait
-
-        // logf("samples.size() = {}, samples[0] = {}, samples[-1] = {}\n",
-        //          samples.size(), samples[0], samples.back());
-
         auto new_phase = samples * calib_factor;
+
+        {
+            std::unique_lock lk(data_mtx);
+
+            if (channel == InputChannel::X) {
+                phase_x = std::move(new_phase);
+            } else if (channel == InputChannel::Y) {
+                phase_y = std::move(new_phase);
+            } else { // XY
+                // TODO Save both phase_x and phase_y
+                phase_x = std::move(new_phase);
+            }
+        }
 
         if (dirty_cnt.load(std::memory_order_relaxed) > 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -381,15 +409,16 @@ void PhaseNoiseAnalyzer::acquisition_thread() {
             continue;
         }
 
-        auto new_pn = compute_phase_noise(new_phase);
-        compute_jitter(new_pn);
+        if (channel == InputChannel::X || channel == InputChannel::Y) {
+            auto new_pn = compute_phase_noise(new_phase);
+            compute_jitter(new_pn);
 
-        {
-            std::unique_lock lk(data_mtx);
-            phase = std::move(new_phase);
-            // logf("phase.size() = {}, phase[0] = {}, phase[-1] = {}\n",
-            //      phase.size(), phase[0].eval(), phase.back().eval());
-            phase_noise = std::move(new_pn);
+            {
+                std::unique_lock lk(data_mtx);
+                phase_noise = std::move(new_pn);
+            }
+        } else {
+            // TODO Compute cross-spectrum
         }
     }
 }

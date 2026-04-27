@@ -92,7 +92,8 @@ class PhaseNoiseAnalyzer
         };
     }
 
-    PhaseDataArray get_phase() const;
+    PhaseDataArray get_phase_x() const;
+    PhaseDataArray get_phase_y() const;
     PhaseNoiseDensityVector get_phase_noise() const;
 
   private:
@@ -102,6 +103,12 @@ class PhaseNoiseAnalyzer
     Dds& dds;
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::status>& sts;
+
+    enum InputChannel: uint32_t {
+        X,   // Phase difference between IN0 and IN1
+        Y,   // Phase difference between IN2 and IN3
+        XY,  // Cross-spectrum between X and Y
+    };
 
     uint32_t channel;
     uint32_t fft_navg;
@@ -119,7 +126,8 @@ class PhaseNoiseAnalyzer
     std::thread acq_thread;
     std::atomic<bool> acquisition_started{false};
 
-    PhaseDataArray phase;
+    PhaseDataArray phase_x;
+    PhaseDataArray phase_y;
 
     // Spectrum analyzer
     scicpp::signal::Spectrum<float> spectrum;

@@ -31,8 +31,6 @@ class SpiConfig {
         // Wait for previous write to finish
         while (sts.read<reg::spi_cfg_sts>() == 0);
 
-        log<INFO>("SpiConfig Finished waiting\n");
-
         constexpr uint32_t TVALID_IDX = 8;
         constexpr uint32_t cmd = (1 << TVALID_IDX) + ((nbytes - 1) << 2) + cs_id;
         ctl.write<reg::spi_cfg_data>(data);
