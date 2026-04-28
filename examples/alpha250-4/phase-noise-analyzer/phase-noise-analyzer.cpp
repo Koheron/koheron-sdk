@@ -32,8 +32,6 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
 {
     using namespace sci::units::literals;
 
-    log<INFO>("PhaseNoiseAnalyzer: Starting...");
-
     // TODO Use proper voltage range for ADC 1 (only ADC0 now)
     vrange= { 1_V * ltc2157.get_input_voltage_range(0, 0),
               1_V * ltc2157.get_input_voltage_range(0, 1) };
@@ -211,7 +209,7 @@ void PhaseNoiseAnalyzer::load_config() {
     }
 
     if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[X]")) {
-        set_local_oscillator(InputChannel::X, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freqX]"));
+        set_local_oscillator(InputChannel::X, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[X]"));
     } else {
         set_local_oscillator(InputChannel::X, 10E6);
     }
@@ -324,10 +322,12 @@ void PhaseNoiseAnalyzer::set_power_conversion_factor() {
     constexpr auto load = 50_Ohm;
     constexpr double magic_factor = 22.0;
 
-    // TODO Only ADC0 is used for now. Use proper transfer function for ADC1 also.
-    const double Hinv = sci::polynomial::polyval(dds.get_dds_freq(channel),
-                                                 ltc2157.tf_polynomial<double>(0, channel));
-    const auto power_conv_factor = Hinv * magic_factor * vrange[channel] * vrange[channel] / load;
+    // XY mode has no single ADC channel mapping for carrier-power conversion.
+    // Use channel X calibration to avoid out-of-bounds indexing and keep behavior stable.
+    const uint32_t adc_channel = (channel == InputChannel::Y) ? 1U : 0U;
+    const double Hinv = sci::polynomial::polyval(dds.get_dds_freq(adc_channel),
+                                                 ltc2157.tf_polynomial<double>(0, adc_channel));
+    const auto power_conv_factor = Hinv * magic_factor * vrange[adc_channel] * vrange[adc_channel] / load;
     conv_factor_dBm = power_conv_factor / 1_mW;
 
     // Dimensional analysis checks
@@ -450,6 +450,7 @@ void PhaseNoiseAnalyzer::acquisition_thread() {
     constexpr auto dma_y_start_addr = dma_phys_addr + y_byte_offset;
 
     const float chunk_duration = static_cast<float>(samples_per_chunk) / fs.eval();
+    logf("PhaseNoiseAnalyzer::acquisition_thread: chunk_duration = {} ms\n", 1E3f * chunk_duration);
 
     uint32_t idx = 0;
     while (acquisition_started.load(std::memory_order_acquire)) {
