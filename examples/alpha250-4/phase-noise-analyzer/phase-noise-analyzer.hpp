@@ -20,7 +20,7 @@
 
 #include "./dds.hpp"
 #include "./moving_averager.hpp"
-#include "./axis-stream-packet-mux.hpp"
+#include "./phase-dma.hpp"
 
 namespace rt { class ConfigManager; }
 class DmaS2MM;
@@ -36,23 +36,9 @@ class PhaseNoiseAnalyzer
                 scicpp::units::quantity_multiply<Phase, Phase>,
                 Frequency>;
 
-    // RAM ring buffers
-    // Acquisition loops continuously fills 2 circular buffers in RAM (One for X data, the other for Y data)
-    // RAM size is 128M so 2 buffers of 8192 * 8192 bytes.
-    static constexpr uint32_t samples_per_chunk = 8192;
-    static constexpr uint32_t bytes_per_sample = sizeof(int32_t);
-    static constexpr uint32_t chunk_bytes = samples_per_chunk * bytes_per_sample;
-    static constexpr uint32_t buffer_size =  8192 * 8192;
-    static constexpr uint32_t n_chunks = buffer_size / chunk_bytes;
-    static constexpr uint32_t x_byte_offset = 0;
-    static constexpr uint32_t y_byte_offset = buffer_size;
-
     // FFT buffer sizes
     static constexpr uint32_t fft_size = 32768;
     static constexpr uint32_t data_size = 2 * fft_size;
-    // static constexpr uint32_t dma_chunk_beats_max = (1u << 14) - 1; // axis-stream-packet-mux length field
-    // static constexpr uint32_t dma_chunk_beats_max = 8192;
-    static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2; // Don't use the first transfered points
     static constexpr auto calib_factor = 4.196f * scicpp::pi<Phase> / 8192.0f;
 
     using PhaseDataArray = std::array<Phase, data_size>;
@@ -103,16 +89,17 @@ class PhaseNoiseAnalyzer
     }
 
     PhaseDataArray get_phase_x();
-    PhaseDataArray get_phase_y() const;
+    PhaseDataArray get_phase_y();
     PhaseNoiseDensityVector get_phase_noise() const;
 
   private:
     rt::ConfigManager& cfg;
-    DmaS2MM& dma;
     Ltc2157& ltc2157;
     Dds& dds;
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::status>& sts;
+
+    PhaseDma dma;
 
     enum InputChannel: uint32_t {
         X,   // Phase difference between IN0 and IN1
@@ -124,22 +111,17 @@ class PhaseNoiseAnalyzer
     uint32_t fft_navg;
     uint32_t cic_rate;
     std::atomic<int32_t> dirty_cnt = 0;
-    std::atomic<uint32_t> write_idx = 0;
     Frequency fs_adc, fs;
     Time dma_transfer_duration;
 
     mutable std::shared_mutex data_mtx; // protects phase & phase_noise
 
-    AxisStreamPacketMux axis_stream_mux;
-
-    // Data acquisition thread
-    std::thread acq_thread;
-    std::atomic<bool> acquisition_started{false};
-
     PhaseDataArray phase_x;
     PhaseDataArray phase_y;
 
     // Spectrum analyzer
+    std::thread sa_thread;
+    std::atomic<bool> spectrum_analyzer_started{false};
     scicpp::signal::Spectrum<float> spectrum;
     PhaseNoiseDensityVector phase_noise;
     MovingAverager<PhaseNoiseDensity> averager;
@@ -163,8 +145,9 @@ class PhaseNoiseAnalyzer
     auto compute_phase_noise(PhaseDataArray& new_phase);
     auto compute_crossed_phase_noise(PhaseDataArray& new_phase_x, PhaseDataArray& new_phase_y);
     auto compute_jitter(const PhaseNoiseDensityVector& new_pn);
-    void acquisition_thread();
-    void start_acquisition();
+    void get_phase_xy();
+    void start_spectrum_analyzer();
+    void spectrum_analyzer_thread();
 };
 
 #endif // __PHASE_NOISE_ANALYZER_HPP__

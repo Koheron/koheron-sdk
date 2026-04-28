@@ -7,7 +7,6 @@
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/config_manager.hpp"
-#include "server/drivers/dma-s2mm.hpp"
 #include "boards/alpha250-4/drivers/ltc2157.hpp"
 
 #include <algorithm>
@@ -22,7 +21,6 @@ namespace sig = scicpp::signal;
 
 PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
 : cfg    (services::require<rt::ConfigManager>())
-, dma    (rt::get_driver<DmaS2MM>())
 , ltc2157(rt::get_driver<Ltc2157>())
 , dds    (rt::get_driver<Dds>())
 , ctl    (hw::get_memory<mem::control>())
@@ -49,13 +47,15 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
     spectrum.nthreads(2);
     spectrum.fs(fs);
     phase_noise.reserve(1 + fft_size / 2);
-    start_acquisition();
+    reset_phase_unwrapper();
+    dma.start_acquisition(fs);
+    start_spectrum_analyzer();
 }
 
 PhaseNoiseAnalyzer::~PhaseNoiseAnalyzer() {
-    acquisition_started.store(false, std::memory_order_release);
-    if (acq_thread.joinable()) {
-        acq_thread.join();
+    spectrum_analyzer_started.store(false, std::memory_order_release);
+    if (sa_thread.joinable()) {
+        sa_thread.join();
     }
 }
 
@@ -141,9 +141,23 @@ double PhaseNoiseAnalyzer::get_carrier_power(uint32_t navg) {
     return 10.0 * sci::log10(conv_factor_dBm * res / double(navg));
 }
 
-PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase_y() const {
-    std::shared_lock lk(data_mtx);
+PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase_x() {
+    using namespace sci::operators;
+    phase_x = dma.data_x<data_size>() * calib_factor;
+    return phase_x;
+}
+
+PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase_y() {
+    using namespace sci::operators;
+    phase_y = dma.data_y<data_size>() * calib_factor;
     return phase_y;
+}
+
+void PhaseNoiseAnalyzer::get_phase_xy() {
+    using namespace sci::operators;
+    auto [data_x, data_y] = dma.data_xy<data_size>();
+    phase_x = data_x * calib_factor;
+    phase_y = data_y * calib_factor;
 }
 
 PhaseNoiseAnalyzer::PhaseNoiseDensityVector PhaseNoiseAnalyzer::get_phase_noise() const {
@@ -245,6 +259,32 @@ auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x
     }
 }
 
+void PhaseNoiseAnalyzer::start_spectrum_analyzer() {
+    bool expected = false;
+    if (spectrum_analyzer_started.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+        sa_thread = std::thread{&PhaseNoiseAnalyzer::spectrum_analyzer_thread, this};
+    }
+}
+
+void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
+    while (spectrum_analyzer_started.load(std::memory_order_acquire)) {
+        std::shared_lock lk(data_mtx);
+
+        if (channel == InputChannel::X) {
+            get_phase_x();
+            phase_noise = compute_phase_noise(phase_x);
+        } else if (channel == InputChannel::Y) {
+            get_phase_y();
+            phase_noise = compute_phase_noise(phase_y);
+        } else if (channel == InputChannel::XY) {
+            get_phase_xy();
+            phase_noise = compute_crossed_phase_noise(phase_x, phase_y);
+        } else {
+            logf<ERROR>("PhaseNoiseAnalyzer::spectrum_analyzer_thread: Invalid channel {}\n", channel);
+        }
+    }
+}
+
 auto PhaseNoiseAnalyzer::compute_jitter(const PhaseNoiseDensityVector& new_pn) {
     const auto f_dss = Frequency(dds.get_dds_freq(channel));
 
@@ -293,59 +333,5 @@ auto PhaseNoiseAnalyzer::compute_jitter(const PhaseNoiseDensityVector& new_pn) {
         }
 
         time_jitter = phase_jitter / (2.0f * sci::pi<Phase> * f_dss);
-    }
-}
-
-void PhaseNoiseAnalyzer::start_acquisition() {
-    bool expected = false;
-    if (acquisition_started.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
-        acq_thread = std::thread{&PhaseNoiseAnalyzer::acquisition_thread, this};
-    }
-}
-
-PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase_x() {
-    using namespace sci::operators;
-
-    static constexpr uint32_t n_chunks_to_read = data_size / samples_per_chunk;
-
-    while (write_idx.load(std::memory_order_acquire) < n_chunks_to_read) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-
-    const uint64_t write_count_snapshot = write_idx.load(std::memory_order_acquire);
-    const uint64_t first_chunk = write_count_snapshot - n_chunks_to_read;
-    const uint32_t byte_offset = x_byte_offset + first_chunk * chunk_bytes;
-
-    auto& ram = hw::get_memory<mem::ram>();
-    phase_x = ram.read_reg_array<int32_t, data_size>(byte_offset) * calib_factor;
-    return phase_x;
-}
-
-void PhaseNoiseAnalyzer::acquisition_thread() {
-    constexpr auto dma_phys_addr = hw::Memory<mem::ram>::phys_addr;
-    constexpr auto dma_x_start_addr = dma_phys_addr + x_byte_offset;
-    constexpr auto dma_y_start_addr = dma_phys_addr + y_byte_offset;
-
-    const float chunk_duration = static_cast<float>(samples_per_chunk) / fs.eval();
-    logf("PhaseNoiseAnalyzer::acquisition_thread: chunk_duration = {} ms\n", 1E3f * chunk_duration);
-
-    axis_stream_mux.set_packet_length(samples_per_chunk);
-
-    uint32_t idx = 0;
-    while (acquisition_started.load(std::memory_order_acquire)) {
-        uint32_t byte_offset = idx * chunk_bytes;
-
-        axis_stream_mux.select_input(InputChannel::X);
-        dma.start_transfer(dma_x_start_addr + byte_offset, chunk_bytes);
-        axis_stream_mux.trigger();
-        dma.wait_for_transfer(chunk_duration);
-
-        axis_stream_mux.select_input(InputChannel::Y);
-        dma.start_transfer(dma_y_start_addr + byte_offset, chunk_bytes);
-        axis_stream_mux.trigger();
-        dma.wait_for_transfer(chunk_duration);
-
-        write_idx.store(idx, std::memory_order_release);
-        idx = (idx + 1) % n_chunks;
     }
 }

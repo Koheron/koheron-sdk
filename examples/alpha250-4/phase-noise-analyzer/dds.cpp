@@ -28,7 +28,7 @@ void Dds::set_dds_freq(uint32_t channel, double freq_hz) {
 
     double fs_adc;
 
-    if (channel == 0 || channel == 1) {
+    if (channel < 2) {
         fs_adc = clk_gen.get_adc_sampling_freq()[0];
     } else { // channel == 2 || channel == 3
         fs_adc = clk_gen.get_adc_sampling_freq()[1];

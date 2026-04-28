@@ -160,9 +160,15 @@ class PhaseNoiseAnalyzerApp {
     if (parameters.channel == 0) {
       this.channelInputs[0].checked = true;
       this.channelInputs[1].checked = false;
-    } else {
+      this.channelInputs[2].checked = false;
+    } else if (parameters.channel == 1) {
       this.channelInputs[0].checked = false;
       this.channelInputs[1].checked = true;
+      this.channelInputs[2].checked = false;
+    } else {
+      this.channelInputs[0].checked = false;
+      this.channelInputs[1].checked = false;
+      this.channelInputs[2].checked = true;
     }
 
     if (!this.isEditingCic) {
