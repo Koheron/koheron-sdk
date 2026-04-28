@@ -94,49 +94,6 @@
         </section>
 
         <section style="margin-bottom: 20px;">
-          <details id="laser-section" class="collapsible"><!-- add "open" if you want it expanded by default -->
-            <summary class="collapsible-summary">
-              <span class="chevron" aria-hidden="true"></span>
-              <div class="crossed flex-fill">
-                <span>Laser Phase Noise Analysis</span>
-              </div>
-            </summary>
-
-            <table class="full-width" style="margin-top: 20px;">
-              <tr>
-                <td style="width: 160px">
-                  Enable Laser Mode
-                </td>
-                <td style="width: 120px">
-                  <input type="checkbox" class="laser-mode-input">
-                </td>
-              </tr>
-              <tr>
-                <td style="width: 200px">
-                  Interferometer delay (ns)
-                </td>
-                <td style="width: 120px">
-                  <input type="number" value="1" min="1" step="1" max="1000" disabled=1 class="interferometer-delay">
-                </td>
-              </tr>
-              <tr>
-                <td style="width: 160px">
-                  Plot
-                </td>
-                <td style="width: 250px">
-                  <div class="radio-wrapper">
-                    <input type="radio" name="laser-plot-type" value="phase" checked class="laser-plot-type">Phase Noise (dBc/Hz)
-                  </div>
-                  <div class="radio-wrapper">
-                    <input type="radio" name="laser-plot-type" value="frequency" class="laser-plot-type">Frequency Noise (dB Hz<sup>2</sup>/Hz)
-                  </div>
-                </td>
-              </tr>
-            </table>
-          </details>
-        </section>
-
-        <section style="margin-bottom: 20px;">
           <div class="crossed">
             <span>Measurements</span>
           </div>

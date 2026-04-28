@@ -11,8 +11,6 @@ interface IParameters {
   fft_navg: number;
   fdds0: number;
   fdds1: number;
-  analyzer_mode: string;
-  interferometer_delay: number;
   clkIndex: string;
 }
 
@@ -39,13 +37,11 @@ class PhaseNoiseAnalyzer {
   }
 
   async getParameters(): Promise<IParameters> {
-    const [data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, mode, interferometer_delay, clkin] =
+    const [data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, clkin] =
       await this.client.readTuple<TupleGetParameters>(
         Command(this.id, this.cmds['get_parameters']),
-        'IfIIIddIfI'
+        'IfIIIddI'
       );
-
-    const analyzer_mode = (mode == 0 ?  'rf' : 'laser');
 
     let clkIndex: string = "0";
 
@@ -53,7 +49,7 @@ class PhaseNoiseAnalyzer {
       clkIndex = "2";
     }
 
-    this.parameters = { data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, analyzer_mode, interferometer_delay, clkIndex };
+    this.parameters = { data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, clkIndex };
     return this.parameters;
   }
 
@@ -85,14 +81,6 @@ class PhaseNoiseAnalyzer {
 
   setChannel(channel: number): void {
     this.client.send(Command(this.id, this.cmds['set_channel'], channel));
-  }
-
-  setAnalyzerMode(mode: number): void {
-    this.client.send(Command(this.id, this.cmds['set_analyzer_mode'], mode));
-  }
-
-  setInterferometerDelay(delay_s: number): void {
-    this.client.send(Command(this.id, this.cmds['set_interferometer_delay'], delay_s));
   }
 
   async getCarrierPower(nAverage: number): Promise<number> {

@@ -66,8 +66,6 @@ void PhaseNoiseAnalyzer::save_config() {
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[X]", dds.get_dds_freq(0));
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[Y]", dds.get_dds_freq(2));
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[XY]", dds.get_dds_freq(0));
-    cfg.set("PhaseNoiseAnalyzer", "analyzer_mode", analyzer_mode);
-    cfg.set("PhaseNoiseAnalyzer", "interferometer_delay", interferometer_delay.eval());
     cfg.save();
 }
 
@@ -105,7 +103,6 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
     dma_transfer_duration = prm::n_pts / fs;
     logf("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
 
-    update_interferometer_transfer_function();
     spectrum.fs(fs);
     averager.clear();
     dirty_cnt = 2;
@@ -163,23 +160,6 @@ void PhaseNoiseAnalyzer::set_fft_navg(uint32_t n_avg) {
     averager.set_navg(fft_navg);
 }
 
-void PhaseNoiseAnalyzer::set_analyzer_mode(uint32_t mode) {
-    if (mode != AnalyzerMode::RF && mode != AnalyzerMode::LASER) {
-        logf<WARNING>("PhaseNoiseAnalyzer: Invalid mode {}\n", mode);
-        return;
-    }
-
-    analyzer_mode = mode;
-}
-
-void PhaseNoiseAnalyzer::set_interferometer_delay(float delay_s) {
-    interferometer_delay = Time(delay_s);
-    logf("PhaseNoiseAnalyzer: Interferometer delay set to {} ns\n",
-         interferometer_delay.eval() * 1E9f);
-
-    update_interferometer_transfer_function();
-}
-
 // ----------------- Private functions
 
 void PhaseNoiseAnalyzer::load_config() {
@@ -218,30 +198,11 @@ void PhaseNoiseAnalyzer::load_config() {
     } else {
         set_local_oscillator(InputChannel::XY, 10E6);
     }
-
-    if (cfg.has("PhaseNoiseAnalyzer", "analyzer_mode")) {
-        set_analyzer_mode(cfg.get<uint32_t>("PhaseNoiseAnalyzer", "analyzer_mode"));
-    } else {
-        set_analyzer_mode(AnalyzerMode::RF);
-    }
-
-    if (cfg.has("PhaseNoiseAnalyzer", "interferometer_delay")) {
-        set_interferometer_delay(cfg.get<float>("PhaseNoiseAnalyzer", "interferometer_delay"));
-    } else {
-        set_interferometer_delay(0.0f);
-    }
 }
 
 void PhaseNoiseAnalyzer::reset_phase_unwrapper() {
     ctl.set_bit<reg::cordic, 1>();
     ctl.clear_bit<reg::cordic, 1>();
-}
-
-void PhaseNoiseAnalyzer::update_interferometer_transfer_function() {
-    using namespace sci::operators;
-    auto freqs = sig::rfftfreq<fft_size>(1.0f / fs);
-    interferometer_tf = std::move(sci::pow<2>(
-        0.5f / sci::sin(sci::pi<Phase> * std::move(freqs) * interferometer_delay)));
 }
 
 void PhaseNoiseAnalyzer::set_power_conversion_factor() {
@@ -265,11 +226,6 @@ void PhaseNoiseAnalyzer::set_power_conversion_factor() {
 auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
     auto phase_psd = spectrum.welch<sig::DENSITY, false>(new_phase);
 
-    if (analyzer_mode == AnalyzerMode::LASER) {
-        using namespace sci::operators;
-        phase_psd = std::move(phase_psd) * interferometer_tf;
-    }
-
     if (fft_navg > 1) {
         averager.append(std::move(phase_psd));
         return averager.average();
@@ -280,11 +236,6 @@ auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
 
 auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x, PhaseDataArray& new_phase_y) {
     auto phase_psd = sci::sqrt(sci::norm(spectrum.csd<sig::DENSITY, false>(new_phase_x, new_phase_y)));
-
-    if (analyzer_mode == AnalyzerMode::LASER) {
-        using namespace sci::operators;
-        phase_psd = std::move(phase_psd) * interferometer_tf;
-    }
 
     if (fft_navg > 1) {
         averager.append(std::move(phase_psd));

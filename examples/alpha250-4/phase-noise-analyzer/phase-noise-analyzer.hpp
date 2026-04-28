@@ -67,8 +67,6 @@ class PhaseNoiseAnalyzer
     void set_cic_rate(uint32_t rate);
     void set_channel(uint32_t chan);
     void set_fft_navg(uint32_t n_avg);
-    void set_analyzer_mode(uint32_t mode);
-    void set_interferometer_delay(float delay_s);
 
     auto get_parameters() {
         return std::tuple{
@@ -79,8 +77,6 @@ class PhaseNoiseAnalyzer
             fft_navg,
             dds.get_dds_freq(0),
             dds.get_dds_freq(1),
-            analyzer_mode,
-            interferometer_delay,
             rt::get_driver<ClockGenerator>().get_reference_clock()
         };
     }
@@ -154,16 +150,6 @@ class PhaseNoiseAnalyzer
     Frequency f_lo_used{0.0f}; // Integration interval start
     Frequency f_hi_used{0.0f}; // Integration interval end
 
-    // Laser phase noise
-    enum AnalyzerMode: uint32_t {
-        RF,   // Return the RF signal phase noise
-        LASER // Return the laser phase noise (compensate for interferometer response)
-    };
-
-    uint32_t analyzer_mode = AnalyzerMode::RF;
-    Time interferometer_delay{0.0f};
-    std::array<float, 1 + fft_size / 2> interferometer_tf{}; // Interferometer transfer function
-
     // Carrier power
     scicpp::units::dimensionless<double> conv_factor_dBm;
     std::array<scicpp::units::electric_potential<double>, 2> vrange;
@@ -172,9 +158,6 @@ class PhaseNoiseAnalyzer
 
     void load_config();
     void reset_phase_unwrapper();
-    // void kick_dma();
-    // auto read_dma();
-    // auto read_dma_xy();
     void update_interferometer_transfer_function();
     void set_power_conversion_factor();
     auto compute_phase_noise(PhaseDataArray& new_phase);

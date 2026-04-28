@@ -16,12 +16,15 @@ class Dds
     void set_dds_freq(uint32_t channel, double freq_hz);
 
     auto get_dds_freq(uint32_t channel) {
+        if (channel >= dds_freq.size()) {
+            return 0.0;
+        }
         return dds_freq[channel];
     }
 
   private:
     ClockGenerator& clk_gen;
-    std::array<double, 2> dds_freq = {{0.0, 0.0}};
+    std::array<double, 4> dds_freq = {{0.0, 0.0, 0.0, 0.0}};
 };
 
 #endif // __DRIVERS_DDS_HPP__
