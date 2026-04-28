@@ -50,6 +50,13 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
     start_acquisition();
 }
 
+PhaseNoiseAnalyzer::~PhaseNoiseAnalyzer() {
+    acquisition_started.store(false, std::memory_order_release);
+    if (acq_thread.joinable()) {
+        acq_thread.join();
+    }
+}
+
 void PhaseNoiseAnalyzer::save_config() {
     cfg.set("PhaseNoiseAnalyzer", "channel", channel);
     cfg.set("PhaseNoiseAnalyzer", "fft_navg", fft_navg);
@@ -311,17 +318,16 @@ auto PhaseNoiseAnalyzer::compute_jitter(const PhaseNoiseDensityVector& new_pn) {
 }
 
 void PhaseNoiseAnalyzer::start_acquisition() {
-    if (! acquisition_started) {
+    bool expected = false;
+    if (acquisition_started.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
         acq_thread = std::thread{&PhaseNoiseAnalyzer::acquisition_thread, this};
-        acq_thread.detach();
     }
 }
 
 void PhaseNoiseAnalyzer::acquisition_thread() {
-    acquisition_started = true;
     kick_dma();
 
-    while (acquisition_started) {
+    while (acquisition_started.load(std::memory_order_acquire)) {
         using namespace sci::operators;
 
         auto samples = read_dma(); // blocking wait

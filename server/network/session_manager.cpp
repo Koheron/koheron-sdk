@@ -24,7 +24,7 @@ SessionManager::~SessionManager() {delete_all();}
 
 int SessionManager::number_of_sessions = 0;
 
-bool SessionManager::is_reusable_id(SessionID id) {
+bool SessionManager::is_reusable_id(SessionID id) const {
     for (auto& reusable_id : reusable_ids)
         if (reusable_id == id)
             return true;
@@ -32,17 +32,8 @@ bool SessionManager::is_reusable_id(SessionID id) {
     return false;
 }
 
-bool SessionManager::is_id_in_session_ids(SessionID id) {
-    auto curr_ids = get_session_ids();
-
-    for (auto& curr_id : curr_ids)
-        if (curr_id == id)
-            return true;
-
-    return false;
-}
-
 std::vector<SessionID> SessionManager::get_session_ids() {
+    std::lock_guard lock(mutex);
     std::vector<SessionID> res(0);
 
     for (auto& session : session_pool) {
@@ -56,16 +47,18 @@ std::vector<SessionID> SessionManager::get_session_ids() {
 void SessionManager::delete_session(SessionID id) {
     std::lock_guard lock(mutex);
 
-    if (!is_id_in_session_ids(id)) {
+    const auto it = session_pool.find(id);
+
+    if (it == session_pool.end()) {
         logf("Not allocated session ID: {}\n", id);
         return;
     }
 
-    if (session_pool[id] != nullptr) {
-        session_pool[id]->shutdown();
+    if (it->second != nullptr) {
+        it->second->shutdown();
     }
 
-    session_pool.erase(id);
+    session_pool.erase(it);
     reusable_ids.push_back(id);
     number_of_sessions--;
 }
@@ -87,6 +80,8 @@ void SessionManager::delete_all() {
 }
 
 void SessionManager::exit_comm() {
+    std::lock_guard lock(mutex);
+
     for (auto& session : session_pool) {
         session.second->exit_comm();
     }
@@ -96,6 +91,7 @@ void SessionManager::exit_comm() {
 // Dump data rates to JSON
 
 bool SessionManager::dump_rates(const std::filesystem::path& path) {
+    std::lock_guard lock(mutex);
     std::vector<ut::RateRow> rows;
     rows.reserve(session_pool.size());
 
@@ -118,4 +114,3 @@ bool SessionManager::dump_rates(const std::filesystem::path& path) {
 }
 
 } // namespace net
-

@@ -60,6 +60,7 @@ class PhaseNoiseAnalyzer
 
   public:
     PhaseNoiseAnalyzer();
+    ~PhaseNoiseAnalyzer();
 
     void save_config();
     void set_local_oscillator(uint32_t channel, double freq_hz);
@@ -128,11 +129,9 @@ class PhaseNoiseAnalyzer
     uint32_t cic_rate;
     std::atomic<int32_t> dirty_cnt = 0;
     std::atomic<uint32_t> write_idx = 0;
-    std::atomic<uint64_t> write_count = 0;
     Frequency fs_adc, fs;
     Time dma_transfer_duration;
 
-    std::mutex dma_mtx; // Guard DMA transfer
     mutable std::shared_mutex data_mtx; // protects phase & phase_noise
 
     AxisStreamPacketMux axis_stream_mux;

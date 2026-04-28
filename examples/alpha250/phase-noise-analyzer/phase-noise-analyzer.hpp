@@ -45,6 +45,7 @@ class PhaseNoiseAnalyzer
 
   public:
     PhaseNoiseAnalyzer();
+    ~PhaseNoiseAnalyzer();
 
     void save_config();
     void set_local_oscillator(uint32_t channel, double freq_hz);

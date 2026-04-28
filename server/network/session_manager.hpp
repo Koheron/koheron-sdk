@@ -31,7 +31,10 @@ class SessionManager
 
     static int number_of_sessions;
 
-    size_t get_number_of_sessions() const {return session_pool.size();}
+    size_t get_number_of_sessions() const {
+        std::lock_guard lock(mutex);
+        return session_pool.size();
+    }
 
     template<int socket_type>
     SessionID create_session(int comm_fd);
@@ -51,10 +54,9 @@ class SessionManager
     std::map<SessionID, std::unique_ptr<Session>> session_pool;
     std::vector<SessionID> reusable_ids;
 
-    bool is_reusable_id(SessionID id);
-    bool is_id_in_session_ids(SessionID id);
+    bool is_reusable_id(SessionID id) const;
 
-    std::mutex mutex;
+    mutable std::mutex mutex;
 };
 
 template<int socket_type>
