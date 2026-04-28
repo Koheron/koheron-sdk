@@ -209,15 +209,51 @@ int SocketSession<socket_type>::send_iov(std::span<const std::byte> header,
             flags &= ~MSG_ZEROCOPY; // not supported for AF_UNIX
         }
 
-        iovec iov[2] = {
-            {const_cast<std::byte*>(header.data()), header.size_bytes()},
-            {const_cast<std::byte*>(payload.data()), payload.size_bytes()}
-        };
+        const std::size_t total_bytes = header.size_bytes() + payload.size_bytes();
+        std::size_t header_offset = 0;
+        std::size_t payload_offset = 0;
+        std::size_t bytes_sent = 0;
 
-        msghdr msg{};
-        msg.msg_iov = iov;
-        msg.msg_iovlen = 2;
-        return ::sendmsg(comm_fd, &msg, flags);
+        while (bytes_sent < total_bytes) {
+            iovec iov[2] = {
+                {
+                    const_cast<std::byte*>(header.data() + header_offset),
+                    header.size_bytes() - header_offset
+                },
+                {
+                    const_cast<std::byte*>(payload.data() + payload_offset),
+                    payload.size_bytes() - payload_offset
+                }
+            };
+
+            msghdr msg{};
+            msg.msg_iov = iov;
+            msg.msg_iovlen = 2;
+
+            const auto n = ::sendmsg(comm_fd, &msg, flags);
+
+            if (n <= 0) {
+                return static_cast<int>(n);
+            }
+
+            bytes_sent += static_cast<std::size_t>(n);
+
+            if (header_offset < header.size_bytes()) {
+                const auto remaining_header = header.size_bytes() - header_offset;
+
+                if (static_cast<std::size_t>(n) < remaining_header) {
+                    header_offset += static_cast<std::size_t>(n);
+                    continue;
+                }
+
+                header_offset = header.size_bytes();
+                payload_offset += static_cast<std::size_t>(n) - remaining_header;
+            } else {
+                payload_offset += static_cast<std::size_t>(n);
+            }
+        }
+
+        return static_cast<int>(bytes_sent);
     } else if constexpr (socket_type == WEBSOCK) {
         return websock.send(header, payload);
     } else {

@@ -63,7 +63,10 @@ class Session
             return send_payload(span, sock_flags);
         } else if constexpr (is_std_array_v<first_t> && nargs == 1) {
             auto&& array = std::get<0>(std::forward_as_tuple(args...));
-            return send_payload(std::span{array}, sock_flags);
+            // std::array payloads are often stack-backed temporaries.
+            // With MSG_ZEROCOPY the kernel may still read from those pages after
+            // this function returns, so force a copying send path.
+            return send_payload(std::span{array}, MSG_NOSIGNAL);
         } else if constexpr (is_std_vector_v<first_t> && nargs == 1) {
             using vec_t = std::remove_cvref_t<first_t>;
             using value_t = vec_t::value_type;
