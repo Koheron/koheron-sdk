@@ -8,6 +8,7 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <complex>
 #include <shared_mutex>
 #include <tuple>
 #include <vector>
@@ -35,6 +36,7 @@ class PhaseNoiseAnalyzer
     using PhaseNoiseDensity = scicpp::units::quantity_divide<
                 scicpp::units::quantity_multiply<Phase, Phase>,
                 Frequency>;
+    using ComplexPhaseNoiseDensity = std::complex<PhaseNoiseDensity>;
 
     // FFT buffer sizes
     static constexpr uint32_t fft_size = 32768;
@@ -43,6 +45,7 @@ class PhaseNoiseAnalyzer
 
     using PhaseDataArray = std::array<Phase, data_size>;
     using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
+    using ComplexPhaseNoiseDensityVector = std::vector<std::complex<PhaseNoiseDensity>>;
 
   public:
     PhaseNoiseAnalyzer();
@@ -110,7 +113,6 @@ class PhaseNoiseAnalyzer
     uint32_t channel;
     uint32_t fft_navg;
     uint32_t cic_rate;
-    std::atomic<int32_t> dirty_cnt = 0;
     Frequency fs_adc, fs;
     Time dma_transfer_duration;
 
@@ -125,6 +127,7 @@ class PhaseNoiseAnalyzer
     scicpp::signal::Spectrum<float> spectrum;
     PhaseNoiseDensityVector phase_noise;
     MovingAverager<PhaseNoiseDensity> averager;
+    MovingAverager<ComplexPhaseNoiseDensity> averager_xy;
 
     // Jitter (integrated noise)
     Phase phase_jitter{0.0f};

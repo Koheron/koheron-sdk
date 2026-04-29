@@ -27,6 +27,7 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
 , sts    (hw::get_memory<mem::status>())
 , phase_noise(1 + fft_size / 2)
 , averager(1)
+, averager_xy(1)
 {
     using namespace sci::units::literals;
 
@@ -70,8 +71,6 @@ void PhaseNoiseAnalyzer::save_config() {
 }
 
 void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t channel, double freq_hz) {
-    dirty_cnt = 4;
-
     if (channel == InputChannel::X) {
         dds.set_dds_freq(0, freq_hz);
         dds.set_dds_freq(1, freq_hz);
@@ -84,11 +83,11 @@ void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t channel, double freq_hz) 
         dds.set_dds_freq(2, freq_hz);
         dds.set_dds_freq(3, freq_hz);
     } else {
-        // TODO Crossed-channel ch0 x ch1
         logf<ERROR>("PhaseNoiseAnalyzer::set_local_oscillator: Invalid channel {}\n", channel);
     }
 
     averager.clear();
+    averager_xy.clear();
 }
 
 void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
@@ -105,7 +104,7 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
 
     spectrum.fs(fs);
     averager.clear();
-    dirty_cnt = 2;
+    averager_xy.clear();
     ctl.write<reg::cic_rate>(cic_rate);
 }
 
@@ -117,6 +116,7 @@ void PhaseNoiseAnalyzer::set_channel(uint32_t chan) {
 
     channel = chan;
     averager.clear();
+    averager_xy.clear();
     set_power_conversion_factor();
 }
 
@@ -172,6 +172,7 @@ void PhaseNoiseAnalyzer::set_fft_navg(uint32_t n_avg) {
 
     fft_navg = n_avg;
     averager.set_navg(fft_navg);
+    averager_xy.set_navg(fft_navg);
 }
 
 // ----------------- Private functions
@@ -249,13 +250,15 @@ auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
 }
 
 auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x, PhaseDataArray& new_phase_y) {
-    auto phase_psd = sci::sqrt(sci::norm(spectrum.csd<sig::DENSITY, false>(new_phase_x, new_phase_y)));
+    auto phase_psd = spectrum.csd<sig::DENSITY, false>(new_phase_x, new_phase_y);
 
     if (fft_navg > 1) {
-        averager.append(std::move(phase_psd));
-        return averager.average();
+        averager_xy.append(std::move(phase_psd));
+        // return sci::sqrt(sci::norm(averager_xy.average()));
+        return sci::real(averager_xy.average());
     } else {
-        return phase_psd;
+        // return sci::sqrt(sci::norm(phase_psd));
+        return sci::real(phase_psd);
     }
 }
 

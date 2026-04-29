@@ -43,15 +43,19 @@ class PhaseDma
 
     template<uint32_t data_size>
     uint64_t get_offset_when_ready() {
+        static_assert(data_size % samples_per_chunk == 0);
+        static_assert(data_size <= buffer_size / bytes_per_sample);
+
         static constexpr uint32_t n_chunks_to_read = data_size / samples_per_chunk;
 
-        while (write_idx.load(std::memory_order_acquire) < n_chunks_to_read) {
+        while (write_count.load(std::memory_order_acquire) < n_chunks_to_read) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
-        const uint64_t write_count_snapshot = write_idx.load(std::memory_order_acquire);
-        const uint64_t first_chunk = write_count_snapshot - n_chunks_to_read;
-        return first_chunk * chunk_bytes;
+        const uint64_t count = write_count.load(std::memory_order_acquire);
+        const uint64_t first_chunk = count - n_chunks_to_read;
+        const uint64_t ring_chunk = first_chunk % n_chunks;
+        return ring_chunk * chunk_bytes;
     }
 
     template<uint32_t data_size>
@@ -70,17 +74,17 @@ class PhaseDma
     auto data_xy() {
         const uint64_t data_offset = get_offset_when_ready<data_size>();
 
-        return std::tuple{
+        return std::tie(
             ram.read_reg_array<int32_t, data_size>(x_byte_offset + data_offset),
             ram.read_reg_array<int32_t, data_size>(y_byte_offset + data_offset)
-        };
+        );
     }
 
   private:
     hw::Memory<mem::ram>& ram;
     DmaS2MM& dma;
     Frequency fs;
-    std::atomic<uint32_t> write_idx = 0;
+    std::atomic<uint64_t> write_count{0};
 
     // RAM ring buffers
     // Acquisition loops continuously fills 2 circular buffers in RAM (One for X data, the other for Y data)
@@ -109,9 +113,10 @@ class PhaseDma
 
         axis_stream_mux.set_packet_length(samples_per_chunk);
 
-        uint32_t idx = 0;
+        uint64_t count = 0;
         while (acquisition_started.load(std::memory_order_acquire)) {
-            uint32_t byte_offset = idx * chunk_bytes;
+            const uint32_t idx = count % n_chunks;
+            const uint32_t byte_offset = idx * chunk_bytes;
 
             axis_stream_mux.select_input(0);
             dma.start_transfer(dma_x_start_addr + byte_offset, chunk_bytes);
@@ -123,8 +128,8 @@ class PhaseDma
             axis_stream_mux.trigger();
             dma.wait_for_transfer(chunk_duration);
 
-            write_idx.store(idx, std::memory_order_release);
-            idx = (idx + 1) % n_chunks;
+            write_count.store(count + 1, std::memory_order_release);
+            ++count;
         }
     }
 };
