@@ -53,8 +53,21 @@ class PhaseDma
         }
 
         const uint64_t count = write_count.load(std::memory_order_acquire);
-        const uint64_t first_chunk = count - n_chunks_to_read;
-        const uint64_t ring_chunk = first_chunk % n_chunks;
+        uint64_t first_chunk = count - n_chunks_to_read;
+        uint64_t ring_chunk = first_chunk % n_chunks;
+
+        // `read_reg_array` requires a contiguous memory region.
+        // If the selected chunk window crosses the ring-buffer boundary, move to the
+        // previous contiguous window within the same ring lap to avoid out-of-range access.
+        if (ring_chunk + n_chunks_to_read > n_chunks) {
+            if (first_chunk >= ring_chunk) {
+                first_chunk -= ring_chunk;
+            } else {
+                first_chunk = 0;
+            }
+            ring_chunk = first_chunk % n_chunks;
+        }
+
         return ring_chunk * chunk_bytes;
     }
 
