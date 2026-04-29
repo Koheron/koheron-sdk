@@ -18,6 +18,7 @@
 
 class PhaseDma
 {
+    using Time = scicpp::units::time<float>;
     using Frequency = scicpp::units::frequency<float>;
 
   public:
@@ -33,8 +34,13 @@ class PhaseDma
         }
     }
 
-    void start_acquisition(Frequency fs_) {
+    void set_fs(Frequency fs_) {
         fs = fs_;
+        chunk_duration.store(static_cast<float>(samples_per_chunk) / fs, std::memory_order_release);
+        logf("PhaseDma::set_fs: chunk_duration = {} ms\n", 1E3f * chunk_duration.load(std::memory_order_relaxed).eval());
+    }
+
+    void start_acquisition() {
         bool expected = false;
         if (acquisition_started.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
             acq_thread = std::thread{&PhaseDma::acquisition_thread, this};
@@ -97,6 +103,7 @@ class PhaseDma
     hw::Memory<mem::ram>& ram;
     DmaS2MM& dma;
     Frequency fs;
+    std::atomic<Time> chunk_duration{Time(0.0f)};
     std::atomic<uint64_t> write_count{0};
 
     // RAM ring buffers
@@ -121,9 +128,6 @@ class PhaseDma
         constexpr auto dma_x_start_addr = dma_phys_addr + x_byte_offset;
         constexpr auto dma_y_start_addr = dma_phys_addr + y_byte_offset;
 
-        const float chunk_duration = static_cast<float>(samples_per_chunk) / fs.eval();
-        logf("PhaseDma::acquisition_thread: chunk_duration = {} ms\n", 1E3f * chunk_duration);
-
         axis_stream_mux.set_packet_length(samples_per_chunk);
 
         uint64_t count = 0;
@@ -134,12 +138,12 @@ class PhaseDma
             axis_stream_mux.select_input(0);
             dma.start_transfer(dma_x_start_addr + byte_offset, chunk_bytes);
             axis_stream_mux.trigger();
-            dma.wait_for_transfer(chunk_duration);
+            dma.wait_for_transfer(chunk_duration.load(std::memory_order_acquire));
 
             axis_stream_mux.select_input(1);
             dma.start_transfer(dma_y_start_addr + byte_offset, chunk_bytes);
             axis_stream_mux.trigger();
-            dma.wait_for_transfer(chunk_duration);
+            dma.wait_for_transfer(chunk_duration.load(std::memory_order_acquire));
 
             write_count.store(count + 1, std::memory_order_release);
             ++count;

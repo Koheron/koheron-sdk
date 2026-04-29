@@ -49,7 +49,8 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
     spectrum.fs(fs);
     phase_noise.reserve(1 + fft_size / 2);
     reset_phase_unwrapper();
-    dma.start_acquisition(fs);
+    dma.set_fs(fs);
+    dma.start_acquisition();
     start_spectrum_analyzer();
 }
 
@@ -102,6 +103,7 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
     dma_transfer_duration = prm::n_pts / fs;
     logf("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
 
+    dma.set_fs(fs);
     spectrum.fs(fs);
     averager.clear();
     averager_xy.clear();

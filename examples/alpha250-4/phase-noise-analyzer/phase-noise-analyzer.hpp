@@ -45,7 +45,6 @@ class PhaseNoiseAnalyzer
 
     using PhaseDataArray = std::array<Phase, data_size>;
     using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
-    using ComplexPhaseNoiseDensityVector = std::vector<std::complex<PhaseNoiseDensity>>;
 
   public:
     PhaseNoiseAnalyzer();

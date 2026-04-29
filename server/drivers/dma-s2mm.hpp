@@ -10,6 +10,7 @@
 #include "server/runtime/syslog.hpp"
 #include "server/hardware/memory_manager.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <thread>
 #include <scicpp/core.hpp>
@@ -51,11 +52,13 @@ class DmaS2MM
     }
 
     void wait_for_transfer(float dma_transfer_duration_seconds) {
-        const auto dma_duration = std::chrono::milliseconds(uint32_t(1000 * dma_transfer_duration_seconds));
+        const auto dma_duration = std::chrono::duration<float>(dma_transfer_duration_seconds);
+        const auto sleep_duration = std::max(std::chrono::microseconds(1),
+                                             std::chrono::duration_cast<std::chrono::microseconds>(0.55f * dma_duration));
         uint32_t cnt = 0;
 
         while (! idle()) {
-            std::this_thread::sleep_for(0.55 * dma_duration);
+            std::this_thread::sleep_for(sleep_duration);
             cnt++;
 
             if (cnt > max_sleeps_cnt) {
