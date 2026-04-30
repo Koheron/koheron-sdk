@@ -29,9 +29,9 @@ class PhaseNoiseAnalyzerApp {
     this.phaseJitterSpan = <HTMLElement>document.getElementsByClassName("phase-jitter-span")[0];
     this.timeJitterSpan = <HTMLElement>document.getElementsByClassName("time-jitter-span")[0];
 
-    this.ddsInputs = [0, 1].map(i =>
+    this.ddsInputs = [0, 1, 2, 3].map(i =>
       document.querySelector<HTMLInputElement>(`.dds-input${i}`)!);
-    this.ddsSetButtons = [0, 1].map(i =>
+    this.ddsSetButtons = [0, 1, 2, 3].map(i =>
       document.querySelector<HTMLButtonElement>(`.dds-set${i}`)!);
 
     this.initCicRateInput();
@@ -182,6 +182,8 @@ class PhaseNoiseAnalyzerApp {
     if (!this.isEditingDdsInputs) {
       this.ddsInputs[0].value = (parameters.fdds0 / 1E6).toString();
       this.ddsInputs[1].value = (parameters.fdds1 / 1E6).toString();
+      this.ddsInputs[2].value = (parameters.fdds2 / 1E6).toString();
+      this.ddsInputs[3].value = (parameters.fdds3 / 1E6).toString();
     }
 
     (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock'][value='" + parameters.clkIndex + "']")).checked = true;

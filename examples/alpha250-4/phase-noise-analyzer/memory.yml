@@ -9,6 +9,7 @@ memory:
     - phase_incr[8]
     - cordic
     - cic_rate
+    - scaling[4]
   - name: ps_control
     offset: 0x6000_0000
     range: 4K

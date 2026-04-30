@@ -65,30 +65,46 @@ void PhaseNoiseAnalyzer::save_config() {
     cfg.set("PhaseNoiseAnalyzer", "channel", channel);
     cfg.set("PhaseNoiseAnalyzer", "fft_navg", fft_navg);
     cfg.set("PhaseNoiseAnalyzer", "cic_rate", cic_rate);
-    cfg.set("PhaseNoiseAnalyzer", "dds_freq[X]", dds.get_dds_freq(0));
-    cfg.set("PhaseNoiseAnalyzer", "dds_freq[Y]", dds.get_dds_freq(2));
-    cfg.set("PhaseNoiseAnalyzer", "dds_freq[XY]", dds.get_dds_freq(0));
+    cfg.set("PhaseNoiseAnalyzer", "dds_freq[DUTX]", dds.get_dds_freq(0));
+    cfg.set("PhaseNoiseAnalyzer", "dds_freq[REFX]", dds.get_dds_freq(1));
+    cfg.set("PhaseNoiseAnalyzer", "dds_freq[DUY]", dds.get_dds_freq(2));
+    cfg.set("PhaseNoiseAnalyzer", "dds_freq[REFY]", dds.get_dds_freq(3));
     cfg.save();
 }
 
 void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t channel, double freq_hz) {
-    if (channel == InputChannel::X) {
-        dds.set_dds_freq(0, freq_hz);
-        dds.set_dds_freq(1, freq_hz);
-    } else if (channel == InputChannel::Y) {
-        dds.set_dds_freq(2, freq_hz);
-        dds.set_dds_freq(3, freq_hz);
-    } else if (channel == InputChannel::XY) {
-        dds.set_dds_freq(0, freq_hz);
-        dds.set_dds_freq(1, freq_hz);
-        dds.set_dds_freq(2, freq_hz);
-        dds.set_dds_freq(3, freq_hz);
-    } else {
-        logf<ERROR>("PhaseNoiseAnalyzer::set_local_oscillator: Invalid channel {}\n", channel);
+    if (channel > 3) {
+        logf<ERROR>("PhaseNoiseAnalyzer::set_local_oscillator: Invalid DDS channel {}\n", channel);
     }
 
+    dds.set_dds_freq(channel, freq_hz);
+    set_frequency_scalings();
     averager.clear();
     averager_xy.clear();
+}
+
+// When DUT and REF frequencies are different, the phases at CORDIC outputs
+// are scaled by proper frequency ratio.
+void PhaseNoiseAnalyzer::set_frequency_scalings() {
+    const float ratio_01 = float(dds.get_dds_freq(0)) / float(dds.get_dds_freq(1));
+
+    if (ratio_01 >= 1.0f) {
+        ctl.write<reg::scaling0>(1);
+        ctl.write<reg::scaling1>(int32_t(ratio_01));
+    } else {
+        ctl.write<reg::scaling0>(int32_t(ratio_01));
+        ctl.write<reg::scaling1>(1);
+    }
+
+    const float ratio_23 = float(dds.get_dds_freq(2)) / float(dds.get_dds_freq(3));
+
+    if (ratio_23 >= 1.0f) {
+        ctl.write<reg::scaling2>(1);
+        ctl.write<reg::scaling3>(int32_t(ratio_23));
+    } else {
+        ctl.write<reg::scaling2>(int32_t(ratio_23));
+        ctl.write<reg::scaling3>(1);
+    }
 }
 
 void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
@@ -198,22 +214,28 @@ void PhaseNoiseAnalyzer::load_config() {
         set_cic_rate(prm::cic_decimation_rate_default);
     }
 
-    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[X]")) {
-        set_local_oscillator(InputChannel::X, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[X]"));
+    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[DUTX]")) {
+        set_local_oscillator(DdsChannel::DUTX, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[DUTX]"));
     } else {
-        set_local_oscillator(InputChannel::X, 10E6);
+        set_local_oscillator(DdsChannel::DUTX, 10E6);
     }
 
-    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[Y]")) {
-        set_local_oscillator(InputChannel::Y, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[Y]"));
+    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[REFX]")) {
+        set_local_oscillator(DdsChannel::REFX, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[REFX]"));
     } else {
-        set_local_oscillator(InputChannel::Y, 10E6);
+        set_local_oscillator(DdsChannel::REFX, 10E6);
     }
 
-    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[XY]")) {
-        set_local_oscillator(InputChannel::XY, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[XY]"));
+    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[DUTY]")) {
+        set_local_oscillator(DdsChannel::DUTY, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[DUTY]"));
     } else {
-        set_local_oscillator(InputChannel::XY, 10E6);
+        set_local_oscillator(DdsChannel::DUTY, 10E6);
+    }
+
+    if (cfg.has("PhaseNoiseAnalyzer", "dds_freq[REFY]")) {
+        set_local_oscillator(DdsChannel::REFY, cfg.get<uint32_t>("PhaseNoiseAnalyzer", "dds_freq[REFY]"));
+    } else {
+        set_local_oscillator(DdsChannel::REFY, 10E6);
     }
 }
 
@@ -256,10 +278,8 @@ auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x
 
     if (fft_navg > 1) {
         averager_xy.append(std::move(phase_psd));
-        // return sci::sqrt(sci::norm(averager_xy.average()));
         return sci::real(averager_xy.average());
     } else {
-        // return sci::sqrt(sci::norm(phase_psd));
         return sci::real(phase_psd);
     }
 }
@@ -275,32 +295,38 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
     while (spectrum_analyzer_started.load(std::memory_order_acquire)) {
         std::shared_lock lk(data_mtx);
 
+        double f_dds;
+
         if (channel == InputChannel::X) {
             get_phase_x();
             phase_noise = compute_phase_noise(phase_x);
+            f_dds = dds.get_dds_freq(DdsChannel::DUTX);
         } else if (channel == InputChannel::Y) {
             get_phase_y();
             phase_noise = compute_phase_noise(phase_y);
+            f_dds = dds.get_dds_freq(DdsChannel::DUTY);
         } else if (channel == InputChannel::XY) {
             get_phase_xy();
             phase_noise = compute_crossed_phase_noise(phase_x, phase_y);
+            f_dds = dds.get_dds_freq(DdsChannel::DUTY);
         } else {
             logf<ERROR>("PhaseNoiseAnalyzer::spectrum_analyzer_thread: Invalid channel {}\n", channel);
+            continue;
         }
+
+        compute_jitter(Frequency(f_dds));
     }
 }
 
-auto PhaseNoiseAnalyzer::compute_jitter(const PhaseNoiseDensityVector& new_pn) {
-    const auto f_dss = Frequency(dds.get_dds_freq(channel));
-
-    if (sci::almost_equal(f_dss, Frequency{0.0f})) {
+void PhaseNoiseAnalyzer::compute_jitter(Frequency f_dut) {
+    if (sci::almost_equal(f_dut, Frequency{0.0f})) {
         // No demodulation if DSS frequency is zero
         phase_jitter = std::numeric_limits<Phase>::quiet_NaN();
         time_jitter  = std::numeric_limits<Time>::quiet_NaN();
         f_lo_used    = std::numeric_limits<Frequency>::quiet_NaN();
         f_hi_used    = std::numeric_limits<Frequency>::quiet_NaN();
     } else {
-        const std::size_t n_bins = new_pn.size();
+        const std::size_t n_bins = phase_noise.size();
         const auto df = fs / float(fft_size);
         const auto f_min_avail = df;
         const auto f_max_avail = (n_bins - 1) * df;
@@ -321,7 +347,7 @@ auto PhaseNoiseAnalyzer::compute_jitter(const PhaseNoiseDensityVector& new_pn) {
             // No full decade: integrate whole available band (excluding DC)
             f_lo_used = f_min_avail;
             f_hi_used = f_max_avail;
-            phase_jitter = sci::sqrt(sci::trapz(new_pn.begin() + 1, new_pn.end(), df));
+            phase_jitter = sci::sqrt(sci::trapz(phase_noise.begin() + 1, phase_noise.end(), df));
         } else {
             f_lo_used = pow10f(low_dec);
             f_hi_used = pow10f(high_dec);
@@ -334,9 +360,9 @@ auto PhaseNoiseAnalyzer::compute_jitter(const PhaseNoiseDensityVector& new_pn) {
                 k2 = std::min(n_bins - 1u, std::max(k1 + 1, k2));
             }
 
-            phase_jitter = sci::sqrt(sci::trapz(new_pn.begin() + k1, new_pn.begin() + k2 + 1, df));
+            phase_jitter = sci::sqrt(sci::trapz(phase_noise.begin() + k1, phase_noise.begin() + k2 + 1, df));
         }
 
-        time_jitter = phase_jitter / (2.0f * sci::pi<Phase> * f_dss);
+        time_jitter = phase_jitter / (2.0f * sci::pi<Phase> * f_dut);
     }
 }

@@ -75,6 +75,18 @@ for {set i 0} {$i < 4} {incr i} {
     }
 
     connect_pins cordic$i/demod [sts_pin demod$i]
+
+    cell xilinx.com:ip:mult_gen:12.0 scaler$i {
+      PortAWidth 32
+      PortBWidth 32
+      OutputWidthHigh 31
+      Use_Custom_Output_Width true
+      PipeStages 5
+    } {
+      A cordic$i/phase
+      B [ctl_pin scaling$i]
+      clk adc/adc_clk
+    }
 }
 
 cell xilinx.com:ip:c_addsub:12.0 phase_diff0 {
@@ -84,8 +96,8 @@ cell xilinx.com:ip:c_addsub:12.0 phase_diff0 {
   ADD_MODE Subtract
   CE false
 } {
-  A cordic0/phase
-  B cordic1/phase
+  A scaler0/P
+  B scaler1/P
   clk adc/adc_clk
 }
 
@@ -96,8 +108,8 @@ cell xilinx.com:ip:c_addsub:12.0 phase_diff1 {
   ADD_MODE Subtract
   CE false
 } {
-  A cordic2/phase
-  B cordic3/phase
+  A scaler2/P
+  B scaler3/P
   clk adc/adc_clk
 }
 

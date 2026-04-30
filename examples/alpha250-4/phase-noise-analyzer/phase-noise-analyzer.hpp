@@ -65,6 +65,8 @@ class PhaseNoiseAnalyzer
             fft_navg,
             dds.get_dds_freq(0),
             dds.get_dds_freq(1),
+            dds.get_dds_freq(2),
+            dds.get_dds_freq(3),
             rt::get_driver<ClockGenerator>().get_reference_clock()
         };
     }
@@ -109,6 +111,13 @@ class PhaseNoiseAnalyzer
         XY,  // Cross-spectrum between X and Y
     };
 
+    enum DdsChannel: uint32_t {
+        DUTX, // Frequency of the X channel DUT
+        REFX, // Frequency of the X channel reference
+        DUTY, // Frequency of the Y channel DUT
+        REFY, // Frequency of the Y channel reference
+    };
+
     uint32_t channel;
     uint32_t fft_navg;
     uint32_t cic_rate;
@@ -142,11 +151,12 @@ class PhaseNoiseAnalyzer
 
     void load_config();
     void reset_phase_unwrapper();
+    void set_frequency_scalings();
     void update_interferometer_transfer_function();
     void set_power_conversion_factor();
     auto compute_phase_noise(PhaseDataArray& new_phase);
     auto compute_crossed_phase_noise(PhaseDataArray& new_phase_x, PhaseDataArray& new_phase_y);
-    auto compute_jitter(const PhaseNoiseDensityVector& new_pn);
+    void compute_jitter(Frequency f_dut);
     void get_phase_xy();
     void start_spectrum_analyzer();
     void spectrum_analyzer_thread();
