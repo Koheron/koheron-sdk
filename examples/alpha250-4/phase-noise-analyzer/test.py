@@ -14,27 +14,22 @@ cic_rate = 20
 channel = 0
 
 driver = PhaseNoiseAnalyzer(connect(host, 'phase-noise-analyzer'))
-driver.set_reference_clock(0)
-driver.set_dds_freq(channel, freq)
-driver.set_dds_freq(channel + 1, freq)
-driver.set_cic_rate(cic_rate)
+# driver.set_reference_clock(0)
+# driver.set_dds_freq(0, freq)
+# driver.set_dds_freq(1, freq)
+# driver.set_dds_freq(2, freq)
+# driver.set_dds_freq(3, freq)
+# driver.set_cic_rate(cic_rate)
 driver.set_channel(channel)
 
 time.sleep(1.0)
 
 phase_x = driver.get_phase_x()
+phase_y = driver.get_phase_y()
 
 ax = plt.subplot(111)
 ax.plot(phase_x, linewidth=2)
-# ax.set_ylim(-100.0, 100.0)
-plt.show()
-
-time.sleep(1.0)
-
-phase_x = driver.get_phase_x()
-
-ax = plt.subplot(111)
-ax.plot(phase_x, linewidth=2)
+ax.plot(phase_y, linewidth=2)
 # ax.set_ylim(-100.0, 100.0)
 plt.show()
 

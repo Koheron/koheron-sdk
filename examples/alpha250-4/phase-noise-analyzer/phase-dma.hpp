@@ -36,7 +36,7 @@ class PhaseDma
 
     void set_fs(Frequency fs_) {
         fs = fs_;
-        chunk_duration.store(static_cast<float>(samples_per_chunk) / fs, std::memory_order_release);
+        chunk_duration.store(0.5f * static_cast<float>(samples_per_chunk) / fs, std::memory_order_release);
         logf("PhaseDma::set_fs: chunk_duration = {} ms\n", 1E3f * chunk_duration.load(std::memory_order_relaxed).eval());
     }
 

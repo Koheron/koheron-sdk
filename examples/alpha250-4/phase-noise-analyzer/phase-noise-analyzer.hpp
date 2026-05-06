@@ -21,6 +21,7 @@
 
 #include "./dds.hpp"
 #include "./moving_averager.hpp"
+#include "./cumulative_averager.hpp"
 #include "./phase-dma.hpp"
 
 namespace rt { class ConfigManager; }
@@ -135,7 +136,7 @@ class PhaseNoiseAnalyzer
     scicpp::signal::Spectrum<float> spectrum;
     PhaseNoiseDensityVector phase_noise;
     MovingAverager<PhaseNoiseDensity> averager;
-    MovingAverager<ComplexPhaseNoiseDensity> averager_xy;
+    CumulativeAverager<ComplexPhaseNoiseDensity> averager_xy;
 
     // Jitter (integrated noise)
     Phase phase_jitter{0.0f};

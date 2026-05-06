@@ -27,7 +27,7 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
 , sts    (hw::get_memory<mem::status>())
 , phase_noise(1 + fft_size / 2)
 , averager(1)
-, averager_xy(1)
+// , averager_xy(1)
 {
     using namespace sci::units::literals;
 
@@ -184,13 +184,13 @@ PhaseNoiseAnalyzer::PhaseNoiseDensityVector PhaseNoiseAnalyzer::get_phase_noise(
 }
 
 void PhaseNoiseAnalyzer::set_fft_navg(uint32_t n_avg) {
-    if (n_avg > 100) {
-        n_avg = 100;
+    if (n_avg > 200) {
+        n_avg = 200;
     }
 
     fft_navg = n_avg;
     averager.set_navg(fft_navg);
-    averager_xy.set_navg(fft_navg);
+    // averager_xy.set_navg(fft_navg);
 }
 
 // ----------------- Private functions
@@ -312,6 +312,13 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
         } else {
             logf<ERROR>("PhaseNoiseAnalyzer::spectrum_analyzer_thread: Invalid channel {}\n", channel);
             continue;
+        }
+
+        constexpr auto max_phase = 10.0f * sci::pi<Phase>;
+
+        if (sci::absolute(sci::stats::mean(phase_x)) > max_phase ||
+            sci::absolute(sci::stats::mean(phase_y)) > max_phase) {
+            reset_phase_unwrapper();
         }
 
         compute_jitter(Frequency(f_dds));
