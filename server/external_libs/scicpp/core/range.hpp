@@ -33,7 +33,7 @@ auto empty() {
 //---------------------------------------------------------------------------------
 
 template <std::size_t N, typename T>
-auto full(T fill_value) {
+constexpr auto full(T fill_value) {
     auto a = std::array<T, N>{};
     a.fill(fill_value);
     return a;
@@ -49,7 +49,7 @@ auto full(std::size_t N, T fill_value) {
 //---------------------------------------------------------------------------------
 
 template <std::size_t N, typename T>
-auto zeros() {
+constexpr auto zeros() {
     if constexpr (meta::is_complex_v<T>) {
         using Tp = typename T::value_type;
         return full<N>(std::complex(Tp{0}, Tp{0}));
@@ -73,7 +73,7 @@ auto zeros(std::size_t N) {
 //---------------------------------------------------------------------------------
 
 template <std::size_t N, typename T>
-auto ones() {
+constexpr auto ones() {
     if constexpr (meta::is_complex_v<T>) {
         using Tp = typename T::value_type;
         return full<N>(std::complex(Tp{1}, Tp{0}));
@@ -99,7 +99,7 @@ auto ones(std::size_t N) {
 namespace detail {
 
 template <class Array, typename T = typename Array::value_type>
-auto linspace_filler(Array &&a, T start, T stop) {
+constexpr auto linspace_filler(Array &&a, T start, T stop) {
     using namespace scicpp::operators;
     using raw_t = units::representation_t<T>;
 
@@ -120,7 +120,7 @@ auto linspace_filler(Array &&a, T start, T stop) {
 } // namespace detail
 
 template <std::size_t N, typename T>
-auto linspace(T start, T stop) {
+constexpr auto linspace(T start, T stop) {
     return detail::linspace_filler(std::array<T, N>{}, start, stop);
 }
 

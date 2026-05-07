@@ -5,6 +5,7 @@
 #define SCICPP_SIGNAL_CONVOLVE
 
 #include "scicpp/core/macros.hpp"
+#include "scicpp/core/manips.hpp"
 #include "scicpp/core/maths.hpp"
 #include "scicpp/core/meta.hpp"
 #include "scicpp/core/numeric.hpp"
@@ -20,7 +21,7 @@
 
 namespace scicpp::signal {
 
-enum ConvMethod : int { DIRECT, FFT };
+enum class ConvMethod : int { DIRECT, FFT };
 
 //---------------------------------------------------------------------------------
 // direct_convolve
@@ -65,8 +66,11 @@ constexpr auto direct_convolve(const std::array<T, N> &a,
     return res;
 }
 
-template <typename T>
-auto direct_convolve(const std::vector<T> &a, const std::vector<T> &v) {
+template <typename Array1, typename Array2>
+auto direct_convolve(const Array1 &a, const Array2 &v) {
+    using T = typename Array1::value_type;
+    static_assert(std::is_same_v<T, typename Array2::value_type>);
+
     std::vector<T> res(a.size() + v.size() - 1);
 
     // Same behavior as numpy:
@@ -115,7 +119,7 @@ constexpr auto convolve(const U &a, const V &v) {
     static_assert(
         std::is_same_v<typename U::value_type, typename V::value_type>);
 
-    if constexpr (method == DIRECT) {
+    if constexpr (method == ConvMethod::DIRECT) {
         return detail::direct_convolve(a, v);
     } else {
         return fftconvolve(a, v);
@@ -124,7 +128,7 @@ constexpr auto convolve(const U &a, const V &v) {
 
 template <class U, class V>
 constexpr auto convolve(const U &a, const V &v) {
-    return convolve<DIRECT>(a, v);
+    return convolve<ConvMethod::DIRECT>(a, v);
 }
 
 //---------------------------------------------------------------------------------
@@ -133,19 +137,16 @@ constexpr auto convolve(const U &a, const V &v) {
 
 template <ConvMethod method, class U, class V>
 constexpr auto correlate(const U &a, const V &v) {
-    auto v_rev = utils::set_array(v);
-    std::reverse_copy(v.cbegin(), v.cend(), v_rev.begin());
-
     if constexpr (meta::is_complex_v<typename U::value_type>) {
-        return convolve<method>(a, conj(std::move(v_rev)));
+        return convolve<method>(a, conj(flip(v)));
     } else {
-        return convolve<method>(a, v_rev);
+        return convolve<method>(a, flip(v));
     }
 }
 
 template <class U, class V>
 constexpr auto correlate(const U &a, const V &v) {
-    return correlate<DIRECT>(a, v);
+    return correlate<ConvMethod::DIRECT>(a, v);
 }
 
 } // namespace scicpp::signal

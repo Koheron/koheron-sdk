@@ -18,7 +18,16 @@ namespace scicpp::utils {
 //---------------------------------------------------------------------------------
 
 template <typename OutputType, typename T, std::size_t N>
-auto set_array(const std::array<T, N> & /* unused */) {
+constexpr auto set_array(const std::span<T, N> &s) {
+    if constexpr (N == std::dynamic_extent) {
+        return std::vector<OutputType>(s.size());
+    } else {
+        return std::array<OutputType, N>{};
+    }
+}
+
+template <typename OutputType, typename T, std::size_t N>
+constexpr auto set_array(const std::array<T, N> & /* unused */) {
     return std::array<OutputType, N>{};
 }
 
@@ -28,7 +37,7 @@ auto set_array(std::vector<T> v) {
 }
 
 template <class Array>
-auto set_array(const Array &a) {
+constexpr auto set_array(const Array &a) {
     return set_array<typename Array::value_type>(a);
 }
 
@@ -38,10 +47,10 @@ auto set_array(const Array &a) {
 // C++20 span
 //---------------------------------------------------------------------------------
 
-template <typename Array, typename DiffTp = typename Array::difference_type>
+template <meta::Iterable Array,
+          typename DiffTp = typename Array::difference_type>
 auto subvector(const Array &v, signed_size_t len, DiffTp offset = 0) {
-    using T = typename Array::value_type;
-    static_assert(meta::is_iterable_v<Array>);
+    using T = Array::value_type;
 
     const auto length = std::min(len, signed_size_t(v.size()));
 
@@ -61,7 +70,7 @@ auto subvector(const Array &v, signed_size_t len, DiffTp offset = 0) {
 template <typename T>
 constexpr auto set_zero() {
     if constexpr (meta::is_complex_v<T>) {
-        using U = typename T::value_type;
+        using U = T::value_type;
         return T(U(0), U(0));
     } else {
         return T(0);

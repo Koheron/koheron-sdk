@@ -17,6 +17,7 @@
 #include "scicpp/signal/fft.hpp"
 #include "scicpp/signal/windows.hpp"
 
+#include <array>
 #include <sciplot/sciplot.hpp>
 #include <string>
 #include <tuple>
@@ -49,7 +50,7 @@ auto mainlobe_width(const Freq &f, const Array &winfft) {
 
 } // namespace detail
 
-template <typename... Arrays, meta::enable_if_iterable<Arrays...> = 0>
+template <meta::Iterable... Arrays>
 void winvis(const std::tuple<Arrays...> &windows) {
     using Array0 = std::tuple_element_t<0, std::tuple<Arrays...>>;
     using T = typename Array0::value_type;

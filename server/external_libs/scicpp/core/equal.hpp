@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <ranges>
 #include <string_view>
 
 namespace scicpp {
@@ -52,13 +53,11 @@ bool fp_equal_predicate(T a, T b) {
 
 } // namespace detail
 
-template <int rel_tol = 1,
-          typename T,
-          meta::disable_if_iterable<T> = 0,
-          units::disable_if_is_quantity<T> = 0>
-bool almost_equal(T a, T b) {
-    if constexpr (meta::is_complex_v<T>) {
-        using scal_t = typename T::value_type;
+template <int rel_tol = 1, class T>
+    requires(meta::NonIterable<T>) && (!units::Quantity<T>)
+[[nodiscard]] constexpr bool almost_equal(T a, T b) {
+    if constexpr (meta::is_complex_v<std::remove_cvref_t<T>>) {
+        using scal_t = std::remove_cvref_t<T>::value_type;
 
         if constexpr (units::is_quantity_v<scal_t>) {
             return almost_equal<rel_tol>(a.real().eval(), b.real().eval()) &&
@@ -72,6 +71,8 @@ bool almost_equal(T a, T b) {
     }
 }
 
+#if SCICPP_HAS_UNITS
+
 template <int rel_tol = 1,
           typename T,
           typename Dim,
@@ -79,22 +80,25 @@ template <int rel_tol = 1,
           typename Scale2,
           typename Offset1,
           typename Offset2>
-auto almost_equal(const units::quantity<T, Dim, Scale1, Offset1> &q1,
-                  const units::quantity<T, Dim, Scale2, Offset2> &q2) {
+[[nodiscard]] auto
+almost_equal(const units::quantity<T, Dim, Scale1, Offset1> &q1,
+             const units::quantity<T, Dim, Scale2, Offset2> &q2) {
     return almost_equal<rel_tol>(q1.eval(), q2.eval());
 }
 
-template <int rel_tol = 1, class Array, meta::enable_if_iterable<Array> = 0>
-bool scicpp_pure almost_equal(const Array &f1, const Array &f2) {
-    return std::equal(
-        f1.cbegin(), f1.cend(), f2.cbegin(), f2.cend(), [](auto a, auto b) {
-            return almost_equal<rel_tol>(a, b);
-        });
+#endif // SCICPP_HAS_UNITS
+
+template <int rel_tol = 1, meta::Iterable R>
+[[nodiscard]] constexpr bool scicpp_pure almost_equal(const R &r1,
+                                                      const R &r2) {
+    return std::ranges::equal(r1, r2, [](const auto &a, const auto &b) {
+        return almost_equal<rel_tol>(a, b);
+    });
 }
 
-template <class Array, meta::enable_if_iterable<Array> = 0>
-bool scicpp_pure array_equal(const Array &f1, const Array &f2) {
-    return std::equal(f1.cbegin(), f1.cend(), f2.cbegin(), f2.cend());
+template <meta::Iterable R>
+[[nodiscard]] constexpr bool scicpp_pure array_equal(const R &r1, const R &r2) {
+    return std::ranges::equal(r1, r2);
 }
 
 //---------------------------------------------------------------------------------
@@ -102,7 +106,7 @@ bool scicpp_pure array_equal(const Array &f1, const Array &f2) {
 // https://stackoverflow.com/questions/27490858/how-can-you-compare-two-character-strings-statically-at-compile-time
 //---------------------------------------------------------------------------------
 
-constexpr bool strings_equal(char const *a, char const *b) {
+[[nodiscard]] constexpr bool strings_equal(char const *a, char const *b) {
     return std::string_view(a) == b;
 }
 

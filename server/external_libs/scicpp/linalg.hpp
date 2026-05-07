@@ -4,6 +4,8 @@
 #ifndef SCICPP_LINALG_HEADER
 #define SCICPP_LINALG_HEADER
 
+#include "linalg/matrices.hpp"
 #include "linalg/solve.hpp"
+#include "linalg/utils.hpp"
 
 #endif // SCICPP_LINALG_HEADER

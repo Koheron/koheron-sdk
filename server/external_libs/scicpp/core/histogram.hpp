@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <ranges>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -31,13 +32,13 @@ enum class BinEdgesMethod : int { SCOTT, SQRT, RICE, STURGES, FD, DOANE, AUTO };
 
 namespace detail {
 
-template <BinEdgesMethod method, typename Array>
-auto scicpp_pure bin_width(const Array &x) {
-    scicpp_require(!x.empty());
+template <BinEdgesMethod method, std::ranges::input_range R>
+auto scicpp_pure bin_width(const R &x) {
+    scicpp_require(!std::ranges::empty(x));
 
-    using T = typename Array::value_type;
+    using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
     using ret_t = std::conditional_t<std::is_integral_v<T>, double, T>;
-    using raw_t = typename units::representation_t<ret_t>;
+    using raw_t = units::representation_t<ret_t>;
 
     if constexpr (method == BinEdgesMethod::SQRT) {
         return ptp(x) / sqrt(x.size());

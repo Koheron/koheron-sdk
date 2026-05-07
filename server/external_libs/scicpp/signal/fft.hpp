@@ -12,7 +12,10 @@
 #include <algorithm>
 #include <array>
 #include <complex>
+#include <concepts>
 #include <cstdlib>
+#include <ranges>
+#include <span>
 #include <unsupported/Eigen/FFT>
 #include <utility>
 #include <vector>
@@ -23,42 +26,41 @@ namespace scicpp::signal {
 // FFT helper functions
 //---------------------------------------------------------------------------------
 
-template <class Array>
+template <meta::Iterable Array>
 auto fftshift(Array &&a) {
-    static_assert(meta::is_iterable_v<Array>);
-    std::rotate(
-        a.begin(), a.begin() + signed_size_t(a.size() + 1) / 2, a.end());
+    std::rotate(std::begin(a),
+                std::begin(a) + signed_size_t(a.size() + 1) / 2,
+                std::end(a));
     return std::move(a);
 }
 
-template <class Array>
+template <meta::Iterable Array>
 auto fftshift(const Array &a) {
-    static_assert(meta::is_iterable_v<Array>);
     auto res = utils::set_array(a);
     const auto offset = (signed_size_t(a.size() - 1) / 2) + 1;
-    std::copy(a.cbegin() + offset, a.cend(), res.begin());
-    std::copy(a.cbegin(),
-              a.cbegin() + offset,
-              res.begin() + signed_size_t(a.size()) / 2);
+    std::copy(std::cbegin(a) + offset, std::cend(a), std::begin(res));
+    std::copy(std::cbegin(a),
+              std::cbegin(a) + offset,
+              std::begin(res) + signed_size_t(a.size()) / 2);
     return res;
 }
 
-template <class Array>
+template <meta::Iterable Array>
 auto ifftshift(Array &&a) {
-    static_assert(meta::is_iterable_v<Array>);
-    std::rotate(a.begin(), a.begin() + signed_size_t(a.size()) / 2, a.end());
+    std::rotate(std::begin(a),
+                std::begin(a) + signed_size_t(a.size()) / 2,
+                std::end(a));
     return std::move(a);
 }
 
-template <class Array>
+template <meta::Iterable Array>
 auto ifftshift(const Array &a) {
-    static_assert(meta::is_iterable_v<Array>);
     auto res = utils::set_array(a);
     const auto offset = (signed_size_t(a.size()) / 2);
-    std::copy(a.cbegin() + offset, a.cend(), res.begin());
-    std::copy(a.cbegin(),
-              a.cbegin() + offset,
-              res.begin() + signed_size_t(a.size() + 1) / 2);
+    std::copy(std::cbegin(a) + offset, std::cend(a), std::begin(res));
+    std::copy(std::cbegin(a),
+              std::cbegin(a) + offset,
+              std::begin(res) + signed_size_t(a.size() + 1) / 2);
     return res;
 }
 
@@ -66,18 +68,18 @@ namespace detail {
 
 using namespace scicpp::operators;
 
-template <class Array, typename T = typename Array::value_type>
+template <class Array, typename T = Array::value_type>
 auto fftfreq_impl(Array &&res, T d) {
     scicpp_require(d > T{0});
     const auto N = signed_size_t(res.size());
-    std::iota(res.begin(), res.end(), -T(N / 2));
+    std::iota(std::begin(res), std::end(res), -T(N / 2));
     return ifftshift(std::forward<Array>(res) / (d * T(N)));
 }
 
-template <class Array, typename T = typename Array::value_type>
+template <class Array, typename T = Array::value_type>
 auto rfftfreq_impl(Array &&res, std::size_t N, T d) {
     scicpp_require(d > T{0});
-    std::iota(res.begin(), res.end(), T{0});
+    std::iota(std::begin(res), std::end(res), T{0});
     return std::forward<Array>(res) / (d * T(N));
 }
 
@@ -165,15 +167,14 @@ Integral next_fast_len(Integral n) {
     return detail::next_ugly_number(n);
 }
 
-template <typename Array>
+template <meta::Iterable Array>
 auto zero_padding(const Array &v, std::size_t new_size) {
-    static_assert(meta::is_iterable_v<Array>);
-
-    using T = typename Array::value_type;
+    using InT = typename Array::value_type;
+    using T = std::remove_cv_t<InT>;
     auto res = zeros<T>(new_size);
-    std::copy(v.cbegin(),
-              v.cbegin() + signed_size_t(std::min(new_size, v.size())),
-              res.begin());
+    std::copy(std::begin(v),
+              std::begin(v) + signed_size_t(std::min(new_size, v.size())),
+              std::begin(res));
     return res;
 }
 
@@ -187,43 +188,56 @@ auto zero_padding(std::vector<T> &&v, std::size_t new_size) {
 // FFTs
 //---------------------------------------------------------------------------------
 
-template <class InputIt, class CplxVector>
-void fft_inplace(InputIt first, InputIt last, CplxVector &dst) {
-    using T = typename CplxVector::value_type::value_type;
+namespace detail {
+template <class R>
+concept ResizableContiguousRange =
+    std::ranges::contiguous_range<R> && requires(R r, std::size_t n) {
+        r.resize(n);
+        r.data();
+    };
+} // namespace detail
+
+template <std::contiguous_iterator It,
+          std::sized_sentinel_for<It> S,
+          detail::ResizableContiguousRange CplxVector>
+void fft_into(It first, S last, CplxVector &dst) {
+    using T = std::ranges::range_value_t<CplxVector>::value_type;
 
     const auto src_size = std::distance(first, last);
     scicpp_require(src_size != 0);
 
-    dst.resize(std::size_t(src_size));
+    dst.resize(static_cast<std::size_t>(src_size));
     Eigen::FFT<T> fft_engine;
-    fft_engine.fwd(dst.data(), &*first, src_size);
+    fft_engine.fwd(dst.data(), std::to_address(first), src_size);
 }
 
-template <class Array, class CplxVector>
-void fft_inplace(const Array &x, CplxVector &dst) {
-    fft_inplace(x.cbegin(), x.cend(), dst);
+template <std::ranges::contiguous_range Array,
+          detail::ResizableContiguousRange CplxVector>
+void fft_into(const Array &x, CplxVector &dst) {
+    fft_into(std::cbegin(x), std::cend(x), dst);
 }
 
-template <class Array, class CplxVector>
+template <std::ranges::contiguous_range Array,
+          detail::ResizableContiguousRange CplxVector>
 auto fft(const Array &x, CplxVector &&dst) {
-    scicpp_require(!x.empty());
+    scicpp_require(!std::ranges::empty(x));
 
-    if (x.size() == 1) {
+    if (std::ranges::size(x) == 1) {
         dst.resize(1);
-        dst[0] = x[0];
+        dst[0] = *std::cbegin(x);
     } else {
-        fft_inplace(x, dst);
+        fft_into(x, dst);
     }
 
     return std::move(dst);
 }
 
-template <class Array>
+template <std::ranges::contiguous_range Array>
 auto fft(const Array &x) {
-    using Tarr = typename Array::value_type;
+    using Tarr = std::ranges::range_value_t<Array>;
 
     if constexpr (meta::is_complex_v<Tarr>) {
-        using T = typename Tarr::value_type;
+        using T = Tarr::value_type;
         std::vector<std::complex<T>> y;
         return fft(x, std::move(y));
     } else {
@@ -247,7 +261,7 @@ void rfft_inplace(InputIt first, InputIt last, CplxVector &dst) {
 
 template <class Array, class CplxVector>
 void rfft_inplace(const Array &x, CplxVector &dst) {
-    rfft_inplace(x.cbegin(), x.cend(), dst);
+    rfft_inplace(std::cbegin(x), std::cend(x), dst);
 }
 
 template <class Array, class CplxVector>
@@ -293,9 +307,9 @@ template <typename T>
 auto to_complex(const std::vector<T> &y, std::size_t n) {
     std::vector<std::complex<T>> x(n, std::complex<T>(T{0}, T{0}));
 
-    std::transform(y.cbegin(),
-                   y.cbegin() + int(std::min(n, y.size())),
-                   x.begin(),
+    std::transform(std::cbegin(y),
+                   std::cbegin(y) + int(std::min(n, y.size())),
+                   std::begin(x),
                    [](auto v) { return std::complex(v, T{0}); });
 
     return x;

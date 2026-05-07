@@ -2,7 +2,7 @@
 // (c) Koheron
 
 class PhaseNoiseAnalyzerApp {
-  private cicRateInput: HTMLInputElement;
+  private minFrequencyInput: HTMLInputElement;
   private nAvgInput: HTMLInputElement;
   private resetCumulativeAveragerBtn: HTMLButtonElement;
   private channelInputs: HTMLInputElement[];
@@ -13,7 +13,7 @@ class PhaseNoiseAnalyzerApp {
   private ddsInputs: HTMLInputElement[];
   private ddsSetButtons: HTMLButtonElement[];
 
-  private isEditingCic: boolean;
+  private isEditingMinFrequency: boolean;
   private isEditingNavg: boolean;
   private isEditingDdsInputs: boolean;
   public nPoints: number;
@@ -35,31 +35,31 @@ class PhaseNoiseAnalyzerApp {
     this.ddsSetButtons = [0, 1, 2, 3].map(i =>
       document.querySelector<HTMLButtonElement>(`.dds-set${i}`)!);
 
-    this.initCicRateInput();
+    this.initMinFrequencyInput();
     this.initNavgInput();
     this.initChannelInput();
     this.updateMeasurements();
     this.updateControls();
   }
 
-  initCicRateInput(): void {
-    this.cicRateInput = <HTMLInputElement>document.getElementsByClassName("cic-rate-input")[0];
+  initMinFrequencyInput(): void {
+    this.minFrequencyInput = <HTMLInputElement>document.getElementsByClassName("min-frequency-input")[0];
 
-    this.cicRateInput.addEventListener("focus", () => {
-      this.isEditingCic = true;
+    this.minFrequencyInput.addEventListener("focus", () => {
+      this.isEditingMinFrequency = true;
     });
 
-    this.cicRateInput.addEventListener("blur", () => {
-      this.isEditingCic = false;
+    this.minFrequencyInput.addEventListener("blur", () => {
+      this.isEditingMinFrequency = false;
       this.updateControls();
     });
 
     let events = ['change', 'input'];
     for (let j = 0; j < events.length; j++) {
-      this.cicRateInput.addEventListener(events[j], (event) => {
+      this.minFrequencyInput.addEventListener(events[j], (event) => {
           let command = (<HTMLInputElement>event.currentTarget).dataset.command;
           let value = (<HTMLInputElement>event.currentTarget).value;
-          this.driver[command](value);
+          this.driver[command](parseFloat(value));
       });
     }
 
@@ -178,8 +178,8 @@ class PhaseNoiseAnalyzerApp {
       this.channelInputs[2].checked = true;
     }
 
-    if (!this.isEditingCic) {
-      this.cicRateInput.value = parameters.cic_rate.toString();
+    if (!this.isEditingMinFrequency) {
+      this.minFrequencyInput.value = parameters.cic_rate.toString();
     }
 
     if (!this.isEditingNavg) {

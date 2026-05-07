@@ -54,6 +54,7 @@ class PhaseNoiseAnalyzer
     void save_config();
     void set_local_oscillator(uint32_t channel, double freq_hz);
     void set_cic_rate(uint32_t rate);
+    void set_min_frequency(float min_frequency_hz);
     void set_channel(uint32_t chan);
     void set_fft_navg(uint32_t n_avg);
     void reset_cumulative_averager();

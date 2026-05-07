@@ -78,8 +78,8 @@ class PhaseNoiseAnalyzer {
     return await this.client.readFloat32Array(Command(this.id, this.cmds['get_phase_noise']));
   }
 
-  setCicRate(cic_rate: number): void {
-    this.client.send(Command(this.id, this.cmds['set_cic_rate'], cic_rate));
+  setMinFrequency(minFrequencyHz: number): void {
+    this.client.send(Command(this.id, this.cmds['set_min_frequency'], minFrequencyHz));
   }
 
   setChannel(channel: number): void {

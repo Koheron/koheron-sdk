@@ -4,6 +4,7 @@
 #ifndef SCICPP_LINALG_UTILS
 #define SCICPP_LINALG_UTILS
 
+#include "scicpp/core/macros.hpp"
 #include "scicpp/core/units/quantity.hpp"
 
 #include <Eigen/Dense>
@@ -18,7 +19,7 @@ namespace scicpp::linalg {
 //---------------------------------------------------------------------------------
 
 template <typename T>
-auto to_eigen_matrix(const std::vector<T> &v, int size = -1) {
+scicpp_pure auto to_eigen_matrix(const std::vector<T> &v, int size = -1) {
     using raw_t = units::representation_t<T>;
 
     if (size == -1) {
@@ -31,7 +32,7 @@ auto to_eigen_matrix(const std::vector<T> &v, int size = -1) {
 }
 
 template <typename T>
-auto to_eigen_array(const std::vector<T> &v, int size = -1) {
+scicpp_pure auto to_eigen_array(const std::vector<T> &v, int size = -1) {
     using raw_t = units::representation_t<T>;
 
     if (size == -1) {
@@ -44,7 +45,7 @@ auto to_eigen_array(const std::vector<T> &v, int size = -1) {
 }
 
 template <int size = -1, typename T, std::size_t N>
-auto to_eigen_matrix(const std::array<T, N> &a) {
+scicpp_pure auto to_eigen_matrix(const std::array<T, N> &a) {
     constexpr int M = size == -1 ? int(N) : size;
     using raw_t = units::representation_t<T>;
     return Eigen::Matrix<raw_t, M, 1>(
@@ -52,7 +53,7 @@ auto to_eigen_matrix(const std::array<T, N> &a) {
 }
 
 template <int size = -1, typename T, std::size_t N>
-auto to_eigen_array(const std::array<T, N> &a) {
+scicpp_pure auto to_eigen_array(const std::array<T, N> &a) {
     constexpr int M = size == -1 ? int(N) : size;
     using raw_t = units::representation_t<T>;
     return Eigen::Array<raw_t, M, 1>(reinterpret_cast<const raw_t *>(a.data()));

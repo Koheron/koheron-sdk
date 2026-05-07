@@ -13,6 +13,7 @@
 #include <cmath>
 #include <complex>
 #include <limits>
+#include <span>
 #include <thread>
 #include <scicpp/polynomials.hpp>
 
@@ -124,6 +125,19 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
     averager.clear();
     averager_xy.clear();
     ctl.write<reg::cic_rate>(cic_rate);
+}
+
+void PhaseNoiseAnalyzer::set_min_frequency(float min_frequency_hz) {
+    if (min_frequency_hz <= 0.0f) {
+        log<ERROR>("PhaseNoiseAnalyzer: Minimum frequency must be > 0 Hz\n");
+        return;
+    }
+
+    // Minimum resolvable frequency is approx fs / fft_size with fs = fs_adc / (2 * cic_rate)
+    // => cic_rate ~= fs_adc / (2 * fft_size * fmin)
+    auto rate = static_cast<uint32_t>(std::round((fs_adc / (2.0f * fft_size * Frequency(min_frequency_hz))).eval()));
+    rate = std::max(prm::cic_decimation_rate_min, std::min(prm::cic_decimation_rate_max, rate));
+    set_cic_rate(rate);
 }
 
 void PhaseNoiseAnalyzer::set_channel(uint32_t chan) {
@@ -267,24 +281,57 @@ void PhaseNoiseAnalyzer::set_power_conversion_factor() {
 }
 
 auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
-    auto phase_psd = spectrum.welch<sig::DENSITY, false>(new_phase);
+    constexpr std::size_t half = data_size / 2;
+    const auto phase_hf = std::span<const Phase>(new_phase.data(), half);
+
+    auto phase_psd_hf = spectrum.welch<sig::SpectrumScaling::DENSITY, false>(phase_hf);
+
+    std::array<Phase, half> decimated{};
+    for (std::size_t i = 0; i < half; ++i) {
+        decimated[i] = 0.5 * (new_phase[2 * i] + new_phase[2 * i + 1]);
+    }
+
+    auto phase_psd_lf = spectrum.welch<sig::SpectrumScaling::DENSITY, false>(decimated);
+
+    // Stitch 2-FFT estimate: LF bins from decimated buffer, HF bins from non-decimated buffer
+    for (std::size_t k = phase_psd_hf.size() / 2; k < phase_psd_hf.size(); ++k) {
+        phase_psd_lf[k] = phase_psd_hf[k];
+    }
 
     if (fft_navg > 1) {
-        averager.append(std::move(phase_psd));
+        averager.append(std::move(phase_psd_lf));
         return averager.average();
     } else {
-        return phase_psd;
+        return phase_psd_lf;
     }
 }
 
 auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x, PhaseDataArray& new_phase_y) {
-    auto phase_psd = spectrum.csd<sig::DENSITY, false>(new_phase_x, new_phase_y);
+    constexpr std::size_t half = data_size / 2;
+    const auto phase_x_hf = std::span<const Phase>(new_phase_x.data(), half);
+    const auto phase_y_hf = std::span<const Phase>(new_phase_y.data(), half);
+
+    auto phase_psd_hf = spectrum.csd<sig::SpectrumScaling::DENSITY, false>(phase_x_hf, phase_y_hf);
+
+    std::array<Phase, half> decimated_x{};
+    std::array<Phase, half> decimated_y{};
+    for (std::size_t i = 0; i < half; ++i) {
+        decimated_x[i] = 0.5 * (new_phase_x[2 * i] + new_phase_x[2 * i + 1]);
+        decimated_y[i] = 0.5 * (new_phase_y[2 * i] + new_phase_y[2 * i + 1]);
+    }
+
+    auto phase_psd_lf = spectrum.csd<sig::SpectrumScaling::DENSITY, false>(decimated_x, decimated_y);
+
+    // Stitch 2-FFT estimate: LF bins from decimated buffer, HF bins from non-decimated buffer
+    for (std::size_t k = phase_psd_hf.size() / 2; k < phase_psd_hf.size(); ++k) {
+        phase_psd_lf[k] = phase_psd_hf[k];
+    }
 
     if (fft_navg > 1) {
-        averager_xy.append(std::move(phase_psd));
+        averager_xy.append(std::move(phase_psd_lf));
         return sci::real(averager_xy.average());
     } else {
-        return sci::real(phase_psd);
+        return sci::real(phase_psd_lf);
     }
 }
 

@@ -251,7 +251,7 @@ void PhaseNoiseAnalyzer::set_power_conversion_factor() {
 }
 
 auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
-    auto phase_psd = spectrum.welch<sig::DENSITY, false>(new_phase);
+    auto phase_psd = spectrum.welch<sig::SpectrumScaling::DENSITY, false>(new_phase);
 
     if (analyzer_mode == AnalyzerMode::LASER) {
         using namespace sci::operators;

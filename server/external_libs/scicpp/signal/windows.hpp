@@ -20,7 +20,7 @@
 
 namespace scicpp::signal::windows {
 
-enum Symmetry : int { Symmetric, Periodic };
+enum class Symmetry : int { Symmetric, Periodic };
 
 namespace detail {
 
@@ -38,7 +38,7 @@ void symmetric_filler(Array &w, Func f) {
 
 template <typename T, std::size_t M, Symmetry sym, typename FillerFunc>
 auto build_window_array(FillerFunc f) {
-    if constexpr (sym == Symmetric) {
+    if constexpr (sym == Symmetry::Symmetric) {
         std::array<T, M> w{};
         f(w);
         return w;
@@ -51,7 +51,7 @@ auto build_window_array(FillerFunc f) {
 
 template <typename T, Symmetry sym, typename FillerFunc>
 auto build_window_vector(std::size_t M, FillerFunc f) {
-    if constexpr (sym == Symmetric) {
+    if constexpr (sym == Symmetry::Symmetric) {
         std::vector<T> w(M);
         f(w);
         return w;
@@ -69,12 +69,12 @@ auto build_window_vector(std::size_t M, FillerFunc f) {
 // Polynomial windows
 //---------------------------------------------------------------------------------
 
-template <typename T, std::size_t M, Symmetry = Symmetric>
+template <typename T, std::size_t M, Symmetry = Symmetry::Symmetric>
 auto boxcar() {
     return ones<M, T>();
 }
 
-template <typename T, Symmetry = Symmetric>
+template <typename T, Symmetry = Symmetry::Symmetric>
 auto boxcar(std::size_t M) {
     return ones<T>(M);
 }
@@ -90,13 +90,13 @@ constexpr void bartlett_filler(Array &w) {
 
 } // namespace detail
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 constexpr auto bartlett() {
     return detail::build_window_array<T, M, sym>(
         [](auto &w) { detail::bartlett_filler(w); });
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto bartlett(std::size_t M) {
     return detail::build_window_vector<T, sym>(
         M, [](auto &w) { detail::bartlett_filler(w); });
@@ -113,20 +113,21 @@ void cosine_filler(Array &w) {
     if (!w.empty()) {
         using T = typename Array::value_type;
         const T scaling = pi<T> / T(w.size());
-        symmetric_filler(
-            w, [&](std::size_t i) { return std::sin(scaling * (T(i) + T(0.5))); });
+        symmetric_filler(w, [&](std::size_t i) {
+            return std::sin(scaling * (T(i) + T(0.5)));
+        });
     }
 }
 
 } // namespace detail
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto cosine() {
     return detail::build_window_array<T, M, sym>(
         [](auto &w) { detail::cosine_filler(w); });
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto cosine(std::size_t M) {
     return detail::build_window_vector<T, sym>(
         M, [](auto &w) { detail::cosine_filler(w); });
@@ -149,13 +150,13 @@ void bohman_filler(Array &w) {
 
 } // namespace detail
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto bohman() {
     return detail::build_window_array<T, M, sym>(
         [](auto &w) { detail::bohman_filler(w); });
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto bohman(std::size_t M) {
     return detail::build_window_vector<T, sym>(
         M, [](auto &w) { detail::bohman_filler(w); });
@@ -190,7 +191,7 @@ void general_cosine(Array &w, const std::array<T, n_weights> &a) {
 
 } // namespace detail
 
-template <typename T, Symmetry sym = Symmetric, std::size_t n_weights>
+template <typename T, Symmetry sym = Symmetry::Symmetric, std::size_t n_weights>
 auto general_cosine(std::size_t M, const std::array<T, n_weights> &a) {
     return detail::build_window_vector<T, sym>(
         M, [&](auto &w) { detail::general_cosine(w, a); });
@@ -198,84 +199,84 @@ auto general_cosine(std::size_t M, const std::array<T, n_weights> &a) {
 
 template <typename T,
           std::size_t M,
-          Symmetry sym = Symmetric,
+          Symmetry sym = Symmetry::Symmetric,
           std::size_t n_weights>
 auto general_cosine(const std::array<T, n_weights> &a) {
     return detail::build_window_array<T, M, sym>(
         [&](auto &w) { detail::general_cosine(w, a); });
 }
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto general_hamming(T alpha) {
     return general_cosine<T, M, sym>(std::array{alpha, T{1} - alpha});
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto general_hamming(std::size_t M, T alpha) {
     return general_cosine<T, sym>(M, std::array{alpha, T{1} - alpha});
 }
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto hann() {
     return general_hamming<T, M, sym>(T{0.5});
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto hann(std::size_t M) {
     return general_hamming<T, sym>(M, T{0.5});
 }
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto hamming() {
     return general_hamming<T, M, sym>(T{0.54});
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto hamming(std::size_t M) {
     return general_hamming<T, sym>(M, T{0.54});
 }
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto blackman() {
     return general_cosine<T, M, sym>(std::array{0.42, 0.50, 0.08});
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto blackman(std::size_t M) {
     return general_cosine<T, sym>(M, std::array{0.42, 0.50, 0.08});
 }
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto nuttall() {
     return general_cosine<T, M, sym>(
         std::array{0.3635819, 0.4891775, 0.1365995, 0.0106411});
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto nuttall(std::size_t M) {
     return general_cosine<T, sym>(
         M, std::array{0.3635819, 0.4891775, 0.1365995, 0.0106411});
 }
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto blackmanharris() {
     return general_cosine<T, M, sym>(
         std::array{0.35875, 0.48829, 0.14128, 0.01168});
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto blackmanharris(std::size_t M) {
     return general_cosine<T, sym>(
         M, std::array{0.35875, 0.48829, 0.14128, 0.01168});
 }
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto flattop() {
     return general_cosine<T, M, sym>(std::array{
         0.21557895, 0.41663158, 0.277263158, 0.083578947, 0.006947368});
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto flattop(std::size_t M) {
     return general_cosine<T, sym>(
         M,
@@ -303,13 +304,13 @@ void gaussian_filler(Array &w, T sigma) {
 
 } // namespace detail
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto gaussian(T sigma) {
     return detail::build_window_array<T, M, sym>(
         [&](auto &w) { detail::gaussian_filler(w, sigma); });
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto gaussian(std::size_t M, T sigma) {
     return detail::build_window_vector<T, sym>(
         M, [&](auto &w) { detail::gaussian_filler(w, sigma); });
@@ -334,13 +335,13 @@ void general_gaussian_filler(Array &w, T p, T sigma) {
 
 } // namespace detail
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto general_gaussian(T p, T sigma) {
     return detail::build_window_array<T, M, sym>(
         [&](auto &w) { detail::general_gaussian_filler(w, p, sigma); });
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto general_gaussian(std::size_t M, T p, T sigma) {
     return detail::build_window_vector<T, sym>(
         M, [&](auto &w) { detail::general_gaussian_filler(w, p, sigma); });
@@ -367,13 +368,13 @@ void kaiser_filler(Array &w, T beta) {
 
 } // namespace detail
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto kaiser(T beta) {
     return detail::build_window_array<T, M, sym>(
         [&](auto &w) { detail::kaiser_filler(w, std::abs(beta)); });
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto kaiser(std::size_t M, T beta) {
     return detail::build_window_vector<T, sym>(
         M, [&](auto &w) { detail::kaiser_filler(w, std::abs(beta)); });
@@ -408,13 +409,13 @@ void parzen_filler(Array &w) {
 
 } // namespace detail
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto parzen() {
     return detail::build_window_array<T, M, sym>(
         [&](auto &w) { detail::parzen_filler(w); });
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto parzen(std::size_t M) {
     return detail::build_window_vector<T, sym>(
         M, [&](auto &w) { detail::parzen_filler(w); });
@@ -435,13 +436,13 @@ void lanczos_filler(Array &w) {
 
 } // namespace detail
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto lanczos() {
     return detail::build_window_array<T, M, sym>(
         [&](auto &w) { detail::lanczos_filler(w); });
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto lanczos(std::size_t M) {
     return detail::build_window_vector<T, sym>(
         M, [&](auto &w) { detail::lanczos_filler(w); });
@@ -477,7 +478,7 @@ void tukey_filler(Array &w, T alpha) {
 
 } // namespace detail
 
-template <typename T, std::size_t M, Symmetry sym = Symmetric>
+template <typename T, std::size_t M, Symmetry sym = Symmetry::Symmetric>
 auto tukey(T alpha = 0.5) {
     if (alpha <= T(0)) {
         return boxcar<T, M>();
@@ -491,7 +492,7 @@ auto tukey(T alpha = 0.5) {
         [&](auto &w) { detail::tukey_filler(w, alpha); });
 }
 
-template <typename T, Symmetry sym = Symmetric>
+template <typename T, Symmetry sym = Symmetry::Symmetric>
 auto tukey(std::size_t M, T alpha = 0.5) {
     if (alpha <= T(0)) {
         return boxcar<T>(M);
@@ -509,7 +510,7 @@ auto tukey(std::size_t M, T alpha = 0.5) {
 // get_window
 //---------------------------------------------------------------------------------
 
-enum Window : std::size_t {
+enum class Window : std::size_t {
     Boxcar,
     Bartlett,
     Cosine,
@@ -527,29 +528,29 @@ enum Window : std::size_t {
 template <Window win, std::size_t N, typename T = double>
 auto get_window() {
     switch (win) {
-    case Boxcar:
+    case Window::Boxcar:
         return boxcar<T, N>();
-    case Bartlett:
+    case Window::Bartlett:
         return bartlett<T, N>();
-    case Cosine:
+    case Window::Cosine:
         return cosine<T, N>();
-    case Hann:
+    case Window::Hann:
         return hann<T, N>();
-    case Hamming:
+    case Window::Hamming:
         return hamming<T, N>();
-    case Blackman:
+    case Window::Blackman:
         return blackman<T, N>();
-    case Nuttall:
+    case Window::Nuttall:
         return nuttall<T, N>();
-    case Blackmanharris:
+    case Window::Blackmanharris:
         return blackmanharris<T, N>();
-    case Flattop:
+    case Window::Flattop:
         return flattop<T, N>();
-    case Bohman:
+    case Window::Bohman:
         return bohman<T, N>();
-    case Parzen:
+    case Window::Parzen:
         return parzen<T, N>();
-    case Lanczos:
+    case Window::Lanczos:
         return lanczos<T, N>();
     default:
         scicpp_unreachable;
@@ -559,29 +560,29 @@ auto get_window() {
 template <typename T = double>
 auto get_window(Window win, std::size_t N) {
     switch (win) {
-    case Boxcar:
+    case Window::Boxcar:
         return boxcar<T>(N);
-    case Bartlett:
+    case Window::Bartlett:
         return bartlett<T>(N);
-    case Cosine:
+    case Window::Cosine:
         return cosine<T>(N);
-    case Hann:
+    case Window::Hann:
         return hann<T>(N);
-    case Hamming:
+    case Window::Hamming:
         return hamming<T>(N);
-    case Blackman:
+    case Window::Blackman:
         return blackman<T>(N);
-    case Nuttall:
+    case Window::Nuttall:
         return nuttall<T>(N);
-    case Blackmanharris:
+    case Window::Blackmanharris:
         return blackmanharris<T>(N);
-    case Flattop:
+    case Window::Flattop:
         return flattop<T>(N);
-    case Bohman:
+    case Window::Bohman:
         return bohman<T>(N);
-    case Parzen:
+    case Window::Parzen:
         return parzen<T>(N);
-    case Lanczos:
+    case Window::Lanczos:
         return lanczos<T>(N);
     default:
         scicpp_unreachable;

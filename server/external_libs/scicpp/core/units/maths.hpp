@@ -11,6 +11,7 @@
 #include <cmath>
 #include <complex>
 #include <limits>
+#include <numeric>
 
 // Extend std maths functions that are compatible with units
 // (Mostly comparisons and power functions).
@@ -62,7 +63,7 @@ auto fabs(T x) {
 template <typename T>
 auto abs(T x) {
     if constexpr (meta::is_complex_v<std::decay_t<T>>) {
-        using scal_t = typename T::value_type;
+        using scal_t = T::value_type;
         return scal_t(std::abs(value(x)));
     } else {
         return T(std::abs(value(x)));
@@ -101,7 +102,7 @@ auto fma(T1 x, T2 y, T3 z) {
 template <typename T>
 auto sqrt(T x) {
     if constexpr (is_quantity_v<T>) {
-        using rept_t = typename T::value_type;
+        using rept_t = T::value_type;
         using DimRoot = dimension_root<typename T::dim, 2>;
         using ScalRoot = scale_root<typename T::scal, 2>;
         return quantity<rept_t, DimRoot, ScalRoot>(std::sqrt(value(x)));
@@ -113,7 +114,7 @@ auto sqrt(T x) {
 template <typename T>
 auto cbrt(T x) {
     if constexpr (is_quantity_v<T>) {
-        using rept_t = typename T::value_type;
+        using rept_t = T::value_type;
         using DimRoot = dimension_root<typename T::dim, 3>;
         using ScalRoot = scale_root<typename T::scal, 3>;
         return quantity<rept_t, DimRoot, ScalRoot>(std::cbrt(value(x)));
@@ -122,10 +123,10 @@ auto cbrt(T x) {
     }
 }
 
-template <intmax_t n, typename T, meta::disable_if_iterable<T> = 0>
+template <intmax_t n, meta::NonIterable T>
 constexpr auto pow([[maybe_unused]] T a) {
     if constexpr (is_quantity_v<T>) {
-        using rept_t = typename T::value_type;
+        using rept_t = T::value_type;
         using DimPow = dimension_power<typename T::dim, n>;
         using ScalPow = scale_power<typename T::scal, n>;
         return quantity<rept_t, DimPow, ScalPow>(pow<n>(value(a)));
@@ -155,6 +156,8 @@ auto hypot(T x, T y, T z) {
 
 namespace detail {
 
+#if SCICPP_HAS_UNITS
+
 template <typename T>
 constexpr bool is_dimensionless_like =
     is_dimensionless<T> || std::is_arithmetic_v<T> || meta::is_complex_v<T>;
@@ -172,6 +175,18 @@ constexpr auto to_radian(T x) {
         return quantity_cast<rad>(x).value();
     }
 }
+
+#else // !SCICPP_HAS_UNITS
+
+template <typename T>
+constexpr bool is_dimensionless_like = true;
+
+template <typename T>
+constexpr auto to_radian(T x) {
+    return x;
+}
+
+#endif // SCICPP_HAS_UNITS
 
 } // namespace detail
 
@@ -234,13 +249,33 @@ auto sinc(T x) {
 // Nearest integer floating point operations
 
 template <typename T>
-auto floor(T x) {
-    return T(std::floor(value(x)));
+constexpr auto floor(T x) {
+    if constexpr (std::is_integral_v<representation_t<T>>) {
+        return x;
+    }
+
+    if (std::is_constant_evaluated()) {
+        const auto i = static_cast<long long>(value(x));
+        const auto ti = T(i);
+        return ti > x ? T(i - 1) : ti;
+    } else {
+        return T(std::floor(value(x)));
+    }
 }
 
 template <typename T>
-auto ceil(T x) {
-    return T(std::ceil(value(x)));
+constexpr auto ceil(T x) {
+    if constexpr (std::is_integral_v<representation_t<T>>) {
+        return x;
+    }
+
+    if (std::is_constant_evaluated()) {
+        const auto i = static_cast<long long>(value(x));
+        const auto ti = T(i);
+        return ti < x ? T(i + 1) : ti;
+    } else {
+        return T(std::ceil(value(x)));
+    }
 }
 
 template <typename T>
@@ -253,9 +288,17 @@ auto round(T x) {
     return T(std::round(value(x)));
 }
 
-template <typename T>
-auto nearbyint(T x) {
-    return T(std::nearbyint(value(x)));
+template <class T>
+constexpr T nearbyint(T x) {
+    if constexpr (std::is_integral_v<representation_t<T>>) {
+        return x;
+    }
+
+    if (std::is_constant_evaluated()) {
+        return x >= T{0} ? floor(x + T{0.5}) : ceil(x - T{0.5});
+    } else {
+        return T(std::nearbyint(value(x)));
+    }
 }
 
 template <typename T>
@@ -336,7 +379,7 @@ auto log1p(T x) {
 template <typename T>
 auto norm(T z) {
     if constexpr (meta::is_complex_v<std::decay_t<T>>) {
-        using scal_t = typename T::value_type;
+        using scal_t = T::value_type;
 
         if constexpr (is_quantity_v<scal_t>) {
             using ret_t = quantity_multiply<scal_t, scal_t>;
@@ -357,7 +400,7 @@ auto norm(T z) {
 template <typename T>
 auto arg(T z) {
     if constexpr (meta::is_complex_v<std::decay_t<T>>) {
-        using scal_t = typename T::value_type;
+        using scal_t = T::value_type;
         return radian<representation_t<scal_t>>(std::arg(value(z)));
     } else {
         return radian<representation_t<T>>(std::arg(value(z)));
@@ -373,6 +416,19 @@ auto polar(T1 r, T2 theta) {
 template <typename T>
 auto proj(T z) {
     return T(std::proj(value(z)));
+}
+
+// midpoint
+
+template <typename T1, typename T2>
+constexpr auto midpoint(T1 x, T2 y) {
+    if constexpr (is_quantity_v<T1> || is_quantity_v<T2>) {
+        static_assert(is_same_dimension<T1, T2>);
+
+        return T1(std::midpoint(value(x), value(quantity_cast<T1>(y))));
+    } else {
+        return std::midpoint(x, y);
+    }
 }
 
 } // namespace scicpp::units

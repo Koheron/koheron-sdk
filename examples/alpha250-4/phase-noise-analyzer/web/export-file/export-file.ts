@@ -22,7 +22,7 @@ class ExportFile {
                 let referenceClock: string = (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock']:checked")).dataset.valuestr;
                 let inputChannel: string = (<HTMLInputElement>document.querySelector("[name='channel']:checked")).value;
                 let ddsInputs = <HTMLInputElement[]><any>document.querySelectorAll(".dds-channel-input[type='range']");
-                let decimationRate: string = (<HTMLInputElement>document.querySelector("[class='cic-rate-input']")).value;
+                let decimationRate: string = (<HTMLInputElement>document.querySelector("[class='min-frequency-input']")).value;
                 let nAverages: string = (<HTMLInputElement>document.querySelector("[class='plot-navg-input']")).value;
 
                 csvContent += "Koheron ALPHA250 \n";
@@ -36,7 +36,7 @@ class ExportFile {
                     let channel: string = ddsInputs[i].dataset.channel;
                     csvContent += '"Channel ' + channel + ' DDS frequency (MHz)",' + ddsInputs[i].value + "\n";
                 }
-                csvContent += '"Decimation rate",' + decimationRate + "\n";
+                csvContent += '"Min frequency [Hz]",' + decimationRate + "\n";
                 csvContent += '"Averages",' + nAverages + "\n";
 
                 csvContent += "\n\n";
