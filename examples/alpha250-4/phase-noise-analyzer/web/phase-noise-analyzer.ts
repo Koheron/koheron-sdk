@@ -7,7 +7,7 @@ interface IParameters {
   data_size: number; // fft_size/2
   fs: number;        // Sampling frequency (Hz)
   channel: number;   // Acquired channel
-  cic_rate: number;
+  min_freq: number;
   fft_navg: number;
   fdds0: number;
   fdds1: number;
@@ -40,10 +40,10 @@ class PhaseNoiseAnalyzer {
   }
 
   async getParameters(): Promise<IParameters> {
-    const [data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, fdds2, fdds3, clkin, avgxy_count] =
+    const [data_size, fs, channel, min_freq, fft_navg, fdds0, fdds1, fdds2, fdds3, clkin, avgxy_count] =
       await this.client.readTuple<TupleGetParameters>(
         Command(this.id, this.cmds['get_parameters']),
-        'IfIIIddddII'
+        'IfIfIddddII'
       );
 
     let clkIndex: string = "0";
@@ -52,7 +52,7 @@ class PhaseNoiseAnalyzer {
       clkIndex = "2";
     }
 
-    this.parameters = { data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, fdds2, fdds3, clkIndex, avgxy_count };
+    this.parameters = { data_size, fs, channel, min_freq, fft_navg, fdds0, fdds1, fdds2, fdds3, clkIndex, avgxy_count };
     return this.parameters;
   }
 

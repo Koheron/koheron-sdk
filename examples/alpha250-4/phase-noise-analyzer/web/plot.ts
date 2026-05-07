@@ -92,38 +92,99 @@ class Plot {
   }
 
   getDecadeValues(): Array<Array<number>> {
-    let fmin: number = this.plotBasics.x_min;
-    let fmax: number = this.plotBasics.x_max;
+    const fmin = this.plotBasics.x_min;
+    const fmax = this.plotBasics.x_max;
 
-    let freq_decades: number[] = [1E-1, 1E0, 1E1, 1E2, 1E3, 1E4, 1E5, 1E6, 1E7];
-    let decade_values = [];
+    const freqDecades = [1E-1, 1E0, 1E1, 1E2, 1E3, 1E4, 1E5, 1E6, 1E7];
+    const decadeValues: Array<Array<number>> = [];
 
-    for (const freq of freq_decades) {
+    // Total averaging span = 0.10 decade
+    const halfWidthDecades = 0.05;
+    const scale = Math.pow(10, halfWidthDecades);
+
+    for (const freq of freqDecades) {
       if (freq < fmin || freq > fmax) {
         continue;
       }
 
-      const idxFloat = 2 * freq * this.n_pts / this.samplingFrequency + 1;
-      const i0 = Math.floor(idxFloat);
-      const i1 = Math.min(i0 + 1, this.plot_data.length - 1);
+      const fLow = freq / scale;
+      const fHigh = freq * scale;
 
-      const v0 = this.plot_data[i0]?.[1];
-      const v1 = this.plot_data[i1]?.[1];
+      let sumLinear = 0;
+      let count = 0;
 
-      let v: number;
-      if (Number.isFinite(v0) && Number.isFinite(v1)) {
-        // (Linear interpolation
-        const f0 = this.plot_data[i0][0], f1 = this.plot_data[i1][0];
-        const t = (freq - f0) / (f1 - f0);
-        v = v0 + (v1 - v0) * t;
-      } else {
-        v = Number.isFinite(v0) ? v0 : Number.isFinite(v1) ? v1 : NaN;
+      for (let i = 0; i < this.plot_data.length; i++) {
+        const f = this.plot_data[i][0];
+
+        if (f < fLow) {
+          continue;
+        }
+
+        if (f > fHigh) {
+          break;
+        }
+
+        const db = this.plot_data[i][1];
+
+        if (Number.isFinite(db)) {
+          sumLinear += Math.pow(10, db / 10);
+          count++;
+        }
       }
 
-      decade_values.push([freq, v]);
+      let value: number;
+
+      if (count > 0) {
+        value = 10 * Math.log10(sumLinear / count);
+      } else {
+        value = this.interpolateNearestValid(freq);
+      }
+
+      decadeValues.push([freq, value]);
     }
 
-    return decade_values;
+    return decadeValues;
+  }
+
+  private interpolateNearestValid(freq: number): number {
+    const data = this.plot_data;
+    const N = data.length;
+
+    let i1 = 0;
+
+    while (i1 < N && data[i1][0] < freq) {
+      i1++;
+    }
+
+    let i0 = i1 - 1;
+
+    while (i0 >= 0 && !Number.isFinite(data[i0][1])) {
+      i0--;
+    }
+
+    while (i1 < N && !Number.isFinite(data[i1][1])) {
+      i1++;
+    }
+
+    if (i0 >= 0 && i1 < N) {
+      const f0 = data[i0][0];
+      const f1 = data[i1][0];
+      const v0 = data[i0][1];
+      const v1 = data[i1][1];
+
+      const t = (freq - f0) / (f1 - f0);
+      return v0 + (v1 - v0) * t;
+    }
+
+    if (i0 >= 0) {
+      return data[i0][1];
+    }
+
+    if (i1 < N) {
+      return data[i1][1];
+    }
+
+    return NaN;
   }
 
   private setDecadeValuesTable(): void {
@@ -178,34 +239,67 @@ class Plot {
     }
   }
 
-
   private computeSmoothedPlot(nstart: number): void {
     const src = this.plot_data;
     const dst = this.smooth_plot_data;
     const N = this.n_pts;
-    const halfWindow = 6;
+
+    const halfWidthDecades = 0.05;
+    const scale = Math.pow(10, halfWidthDecades);
 
     for (let i = 0; i < nstart - 1; i++) {
       dst[i][1] = NaN;
     }
 
-    for (let i = nstart - 1; i < N; i++) {
-      let sum = 0;
-      let cnt = 0;
-      const i0 = Math.max(nstart - 1, i - halfWindow);
-      const i1 = Math.min(N - 1, i + halfWindow);
+    let j0 = nstart - 1;
+    let j1 = nstart - 2;
 
-      for (let j = i0; j <= i1; j++) {
-        const v = src[j][1];
-        if (Number.isFinite(v)) {
-          sum += v;
-          cnt++;
-        }
+    let sumLinear = 0;
+    let cnt = 0;
+
+    const add = (j: number) => {
+      const db = src[j][1];
+      if (Number.isFinite(db)) {
+        sumLinear += Math.pow(10, db / 10);
+        cnt++;
+      }
+    };
+
+    const remove = (j: number) => {
+      const db = src[j][1];
+      if (Number.isFinite(db)) {
+        sumLinear -= Math.pow(10, db / 10);
+        cnt--;
+      }
+    };
+
+    for (let i = nstart - 1; i < N; i++) {
+      const fi = src[i][0];
+
+      if (!Number.isFinite(fi) || fi <= 0) {
+        dst[i][1] = NaN;
+        continue;
       }
 
-      dst[i][1] = cnt > 0 ? sum / cnt : NaN;
+      const fMin = fi / scale;
+      const fMax = fi * scale;
+
+      while (j1 + 1 < N && src[j1 + 1][0] <= fMax) {
+        j1++;
+        add(j1);
+      }
+
+      while (j0 < N && src[j0][0] < fMin) {
+        remove(j0);
+        j0++;
+      }
+
+      dst[i][1] = cnt > 0
+        ? 10 * Math.log10(sumLinear / cnt)
+        : NaN;
     }
   }
+
   async updatePlot() {
     if (this._busy) {
       return;

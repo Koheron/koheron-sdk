@@ -186,6 +186,8 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
 
     cic_rate = rate;
     fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
+    min_frequency = fs_adc / static_cast<float>(fft_size * cic_rate);
+    logf("Minimum frequency = {} Hz\n", min_frequency.eval());
     dma_transfer_duration = prm::n_pts / fs;
     logf("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
 
@@ -197,14 +199,16 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
 }
 
 void PhaseNoiseAnalyzer::set_min_frequency(float min_frequency_hz) {
-    if (min_frequency_hz <= 0.0f) {
+    min_frequency = Frequency(min_frequency_hz);
+    
+    if (min_frequency <= sci::units::hertz<float>(0.0f)) {
         log<ERROR>("PhaseNoiseAnalyzer: Minimum frequency must be > 0 Hz\n");
         return;
     }
 
-    // Minimum resolvable frequency is approx fs / fft_size with fs = fs_adc / (2 * cic_rate)
-    // => cic_rate ~= fs_adc / (2 * fft_size * fmin)
-    auto rate = static_cast<uint32_t>(std::round((fs_adc / (2.0f * fft_size * Frequency(min_frequency_hz))).eval()));
+    auto rate_f = sci::around(fs_adc / (fft_size * min_frequency));
+    static_assert(sci::units::is_dimensionless<decltype(rate_f)>);
+    auto rate = static_cast<uint32_t>(rate_f.eval());
     rate = std::max(prm::cic_decimation_rate_min, std::min(prm::cic_decimation_rate_max, rate));
     set_cic_rate(rate);
 }
@@ -389,13 +393,8 @@ auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x
     auto s2 = csd_density(spectrum, dx2, dy2, fs / 100.0f);
 
     auto phase_psd = stitch_segments<fft_decimation_steps>(s0, s1, s2);
-
-    if (fft_navg > 1) {
-        averager_xy.append(phase_psd);
-        return sci::real(averager_xy.average());
-    } else {
-        return sci::real(phase_psd);
-    }
+    averager_xy.append(phase_psd);
+    return sci::real(averager_xy.average());
 }
 
 void PhaseNoiseAnalyzer::start_spectrum_analyzer() {

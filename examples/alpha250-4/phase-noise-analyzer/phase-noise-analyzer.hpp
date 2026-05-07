@@ -64,7 +64,7 @@ class PhaseNoiseAnalyzer
             fft_size / 2,
             fs,
             channel,
-            cic_rate,
+            min_frequency,
             fft_navg,
             dds.get_dds_freq(0),
             dds.get_dds_freq(1),
@@ -125,6 +125,7 @@ class PhaseNoiseAnalyzer
     uint32_t channel;
     uint32_t fft_navg;
     uint32_t cic_rate;
+    Frequency min_frequency;
     Frequency fs_adc, fs;
     Time dma_transfer_duration;
 

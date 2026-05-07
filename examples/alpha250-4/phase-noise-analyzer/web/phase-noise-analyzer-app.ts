@@ -179,7 +179,7 @@ class PhaseNoiseAnalyzerApp {
     }
 
     if (!this.isEditingMinFrequency) {
-      this.minFrequencyInput.value = parameters.cic_rate.toString();
+      this.minFrequencyInput.value = parameters.min_freq.toFixed(2).toString();
     }
 
     if (!this.isEditingNavg) {
