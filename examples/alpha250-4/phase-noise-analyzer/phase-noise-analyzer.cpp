@@ -20,6 +20,75 @@
 namespace sci = scicpp;
 namespace sig = scicpp::signal;
 
+namespace {
+
+constexpr std::size_t fft_decimation_steps = 2; // 0 -> 2 FFT segments, 1 -> 3, 2 -> 4, ...
+
+template <typename T, std::size_t N>
+auto decimate_by_10(const std::array<T, N>& in) {
+    static_assert(N % 10 == 0, "Decimation by 10 requires an input size divisible by 10");
+    std::array<T, N / 10> out{};
+    for (std::size_t i = 0; i < out.size(); ++i) {
+        T acc = T{0};
+        for (std::size_t j = 0; j < 10; ++j) {
+            acc += in[10 * i + j];
+        }
+        out[i] = acc / 10.0f;
+    }
+    return out;
+}
+
+template <std::size_t Steps, typename T, std::size_t N>
+auto build_decimation_chain(const std::array<T, N>& input) {
+    static_assert(Steps <= 2, "Increase decimation chain storage for Steps > 2");
+    std::array<T, N> d0 = input;
+    auto d1 = decimate_by_10(d0);
+    auto d2 = decimate_by_10(d1);
+    return std::tuple{d0, d1, d2};
+}
+
+template <typename Arr>
+auto welch_density(sig::Spectrum<float>& sp, Arr& data, sci::units::frequency<float> fs) {
+    sp.fs(fs);
+    sp.window(sig::windows::hann<float>(data.size()));
+    return sp.welch<sig::SpectrumScaling::DENSITY, false>(data);
+}
+
+template <typename ArrX, typename ArrY>
+auto csd_density(sig::Spectrum<float>& sp, ArrX& x, ArrY& y, sci::units::frequency<float> fs) {
+    sp.fs(fs);
+    sp.window(sig::windows::hann<float>(x.size()));
+    return sp.csd<sig::SpectrumScaling::DENSITY, false>(x, y);
+}
+
+template <std::size_t Steps, typename Spectrum0, typename Spectrum1, typename Spectrum2>
+auto stitch_segments(const Spectrum0& s0, const Spectrum1& s1, const Spectrum2& s2) {
+    constexpr std::size_t n_segments = Steps + 1;
+    auto out = s0;
+    const std::size_t n_bins = out.size();
+
+    for (std::size_t segment = 0; segment < n_segments; ++segment) {
+        const std::size_t start = (segment * n_bins) / n_segments;
+        const std::size_t end = ((segment + 1) * n_bins) / n_segments;
+        const std::size_t level = Steps - segment;
+
+        if (level == 0) {
+            for (std::size_t k = start; k < end; ++k) out[k] = s0[k];
+        } else if (level == 1) {
+            const std::size_t max_k = std::min(end, s1.size());
+            for (std::size_t k = start; k < max_k; ++k) out[k] = s1[k];
+        } else {
+            const std::size_t max_k = std::min(end, s2.size());
+            for (std::size_t k = start; k < max_k; ++k) out[k] = s2[k];
+        }
+    }
+
+    return out;
+}
+
+} // namespace
+
+
 PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
 : cfg    (services::require<rt::ConfigManager>())
 , ltc2157(rt::get_driver<Ltc2157>())
@@ -281,57 +350,51 @@ void PhaseNoiseAnalyzer::set_power_conversion_factor() {
 }
 
 auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
-    constexpr std::size_t half = data_size / 2;
-    const auto phase_hf = std::span<const Phase>(new_phase.data(), half);
-
-    auto phase_psd_hf = spectrum.welch<sig::SpectrumScaling::DENSITY, false>(phase_hf);
-
-    std::array<Phase, half> decimated{};
-    for (std::size_t i = 0; i < half; ++i) {
-        decimated[i] = 0.5 * (new_phase[2 * i] + new_phase[2 * i + 1]);
+    constexpr std::size_t base_size = 32000;
+    static_assert(base_size <= data_size, "base_size must fit acquisition buffer");
+    std::array<Phase, base_size> d0{};
+    for (std::size_t i = 0; i < base_size; ++i) {
+        d0[i] = new_phase[i];
     }
 
-    auto phase_psd_lf = spectrum.welch<sig::SpectrumScaling::DENSITY, false>(decimated);
-
-    // Stitch 2-FFT estimate: LF bins from decimated buffer, HF bins from non-decimated buffer
-    for (std::size_t k = phase_psd_hf.size() / 2; k < phase_psd_hf.size(); ++k) {
-        phase_psd_lf[k] = phase_psd_hf[k];
-    }
+    auto [x0, x1, x2] = build_decimation_chain<fft_decimation_steps>(d0);
+    auto s0 = welch_density(spectrum, x0, fs);
+    auto s1 = welch_density(spectrum, x1, fs / 10.0f);
+    auto s2 = welch_density(spectrum, x2, fs / 100.0f);
+    auto phase_psd = stitch_segments<fft_decimation_steps>(s0, s1, s2);
 
     if (fft_navg > 1) {
-        averager.append(std::move(phase_psd_lf));
+        averager.append(std::move(phase_psd));
         return averager.average();
     } else {
-        return phase_psd_lf;
+        return phase_psd;
     }
 }
 
 auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x, PhaseDataArray& new_phase_y) {
-    constexpr std::size_t half = data_size / 2;
-    const auto phase_x_hf = std::span<const Phase>(new_phase_x.data(), half);
-    const auto phase_y_hf = std::span<const Phase>(new_phase_y.data(), half);
-
-    auto phase_psd_hf = spectrum.csd<sig::SpectrumScaling::DENSITY, false>(phase_x_hf, phase_y_hf);
-
-    std::array<Phase, half> decimated_x{};
-    std::array<Phase, half> decimated_y{};
-    for (std::size_t i = 0; i < half; ++i) {
-        decimated_x[i] = 0.5 * (new_phase_x[2 * i] + new_phase_x[2 * i + 1]);
-        decimated_y[i] = 0.5 * (new_phase_y[2 * i] + new_phase_y[2 * i + 1]);
+    constexpr std::size_t base_size = 32000;
+    static_assert(base_size <= data_size, "base_size must fit acquisition buffer");
+    std::array<Phase, base_size> x0{};
+    std::array<Phase, base_size> y0{};
+    for (std::size_t i = 0; i < base_size; ++i) {
+        x0[i] = new_phase_x[i];
+        y0[i] = new_phase_y[i];
     }
 
-    auto phase_psd_lf = spectrum.csd<sig::SpectrumScaling::DENSITY, false>(decimated_x, decimated_y);
+    auto [dx0, dx1, dx2] = build_decimation_chain<fft_decimation_steps>(x0);
+    auto [dy0, dy1, dy2] = build_decimation_chain<fft_decimation_steps>(y0);
 
-    // Stitch 2-FFT estimate: LF bins from decimated buffer, HF bins from non-decimated buffer
-    for (std::size_t k = phase_psd_hf.size() / 2; k < phase_psd_hf.size(); ++k) {
-        phase_psd_lf[k] = phase_psd_hf[k];
-    }
+    auto s0 = csd_density(spectrum, dx0, dy0, fs);
+    auto s1 = csd_density(spectrum, dx1, dy1, fs / 10.0f);
+    auto s2 = csd_density(spectrum, dx2, dy2, fs / 100.0f);
+
+    auto phase_psd = stitch_segments<fft_decimation_steps>(s0, s1, s2);
 
     if (fft_navg > 1) {
-        averager_xy.append(std::move(phase_psd_lf));
+        averager_xy.append(phase_psd);
         return sci::real(averager_xy.average());
     } else {
-        return sci::real(phase_psd_lf);
+        return sci::real(phase_psd);
     }
 }
 
