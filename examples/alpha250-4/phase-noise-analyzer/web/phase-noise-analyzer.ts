@@ -86,6 +86,10 @@ class PhaseNoiseAnalyzer {
     this.client.send(Command(this.id, this.cmds['set_channel'], channel));
   }
 
+  resetCumulativeAverager(): void {
+    this.client.send(Command(this.id, this.cmds['reset_cumulative_averager']));
+  }
+
   async getCarrierPower(nAverage: number): Promise<number> {
     return await this.client.readFloat64(
       Command(this.id, this.cmds['get_carrier_power'], nAverage)

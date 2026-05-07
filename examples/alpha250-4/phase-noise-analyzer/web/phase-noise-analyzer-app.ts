@@ -4,6 +4,7 @@
 class PhaseNoiseAnalyzerApp {
   private cicRateInput: HTMLInputElement;
   private nAvgInput: HTMLInputElement;
+  private resetCumulativeAveragerBtn: HTMLButtonElement;
   private channelInputs: HTMLInputElement[];
   private carrierPowerSpan: HTMLElement;
   private phaseJitterSpan: HTMLElement;
@@ -81,6 +82,7 @@ class PhaseNoiseAnalyzerApp {
 
   initNavgInput(): void {
     this.nAvgInput = <HTMLInputElement>document.getElementsByClassName("plot-navg-input")[0];
+    this.resetCumulativeAveragerBtn = <HTMLButtonElement>document.getElementsByClassName("reset-cumulative-averager-btn")[0];
 
     this.nAvgInput.addEventListener("focus", () => {
       this.isEditingNavg = true;
@@ -98,6 +100,11 @@ class PhaseNoiseAnalyzerApp {
           this.setNavg(value);
       });
     }
+
+    this.resetCumulativeAveragerBtn.addEventListener("click", () => {
+      this.driver.resetCumulativeAverager();
+      this.updateControls();
+    });
   }
 
   initChannelInput(): void {
@@ -176,10 +183,18 @@ class PhaseNoiseAnalyzerApp {
     }
 
     if (!this.isEditingNavg) {
-      if (this.channel < 2) {
+      if (parameters.channel < 2) {
         this.nAvgInput.value = parameters.fft_navg.toString();
+        this.nAvgInput.readOnly = false;
+        this.nAvgInput.disabled = false;
+        this.resetCumulativeAveragerBtn.style.display = "none";
+        this.resetCumulativeAveragerBtn.disabled = true;
       } else { // XY mode
         this.nAvgInput.value = parameters.avgxy_count.toString();
+        this.nAvgInput.readOnly = true;
+        this.nAvgInput.disabled = true;
+        this.resetCumulativeAveragerBtn.style.display = "";
+        this.resetCumulativeAveragerBtn.disabled = false;
       }
     }
 

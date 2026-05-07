@@ -193,6 +193,10 @@ void PhaseNoiseAnalyzer::set_fft_navg(uint32_t n_avg) {
     // averager_xy.set_navg(fft_navg);
 }
 
+void PhaseNoiseAnalyzer::reset_cumulative_averager() {
+    averager_xy.clear();
+}
+
 // ----------------- Private functions
 
 void PhaseNoiseAnalyzer::load_config() {

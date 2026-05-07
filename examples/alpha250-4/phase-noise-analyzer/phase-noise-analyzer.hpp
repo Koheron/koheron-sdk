@@ -56,6 +56,7 @@ class PhaseNoiseAnalyzer
     void set_cic_rate(uint32_t rate);
     void set_channel(uint32_t chan);
     void set_fft_navg(uint32_t n_avg);
+    void reset_cumulative_averager();
 
     auto get_parameters() {
         return std::tuple{
