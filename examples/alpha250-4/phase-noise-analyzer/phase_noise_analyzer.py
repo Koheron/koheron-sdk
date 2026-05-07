@@ -39,6 +39,11 @@ class PhaseNoiseAnalyzer(object):
     @command()
     def get_phase_y(self):
         return self.client.recv_array(self.npts, dtype='float32')
+    
+    @command()
+    def get_phase_xy_sync(self):
+        arr = self.client.recv_array(2 * self.npts, dtype='float32')
+        return arr[:self.npts], arr[self.npts:-1]
 
     def phase_noise(self, navg=1, window='hann', verbose=False):
         win = signal.get_window(window, Nx=self.npts)

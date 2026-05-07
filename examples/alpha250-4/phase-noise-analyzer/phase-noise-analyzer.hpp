@@ -98,6 +98,7 @@ class PhaseNoiseAnalyzer
 
     PhaseDataArray get_phase_x();
     PhaseDataArray get_phase_y();
+    std::array<Phase, 2 * data_size> get_phase_xy_sync();
     PhaseNoiseDensityVector get_phase_noise() const;
 
   private:

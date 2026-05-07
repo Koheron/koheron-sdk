@@ -258,6 +258,13 @@ PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase_y() {
     return phase_y;
 }
 
+std::array<PhaseNoiseAnalyzer::Phase, 2 * PhaseNoiseAnalyzer::data_size>
+PhaseNoiseAnalyzer::get_phase_xy_sync() {
+    using namespace sci::operators;
+    get_phase_xy();
+    return phase_x | phase_y; // Concatenates
+}
+
 void PhaseNoiseAnalyzer::get_phase_xy() {
     using namespace sci::operators;
     auto [data_x, data_y] = dma.data_xy<data_size>();
@@ -395,6 +402,7 @@ auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x
     auto phase_psd = stitch_segments<fft_decimation_steps>(s0, s1, s2);
     averager_xy.append(phase_psd);
     return sci::real(averager_xy.average());
+    // return sci::sqrt(sci::norm(averager_xy.average()));
 }
 
 void PhaseNoiseAnalyzer::start_spectrum_analyzer() {

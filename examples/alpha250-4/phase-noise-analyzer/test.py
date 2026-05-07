@@ -24,8 +24,9 @@ driver.set_channel(channel)
 
 time.sleep(1.0)
 
-phase_x = driver.get_phase_x()
-phase_y = driver.get_phase_y()
+# phase_x = driver.get_phase_x()
+# phase_y = driver.get_phase_y()
+phase_x, phase_y = driver.get_phase_xy_sync()
 
 ax = plt.subplot(111)
 ax.plot(phase_x, linewidth=2)
