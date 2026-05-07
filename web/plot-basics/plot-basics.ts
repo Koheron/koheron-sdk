@@ -17,6 +17,7 @@ class PlotBasics {
     private options: jquery.flot.plotOptions;
     private plot: jquery.flot.plot;
     private seriesOne: jquery.flot.dataSeries[];
+    private overlaySeries: jquery.flot.dataSeries[];
 
     private isPeakDetection: boolean = true;
     private peakDatapointSpan: HTMLSpanElement;
@@ -47,6 +48,7 @@ class PlotBasics {
 
         this.setPlot(this.range_x.from, this.range_x.to, this.range_y.from, this.range_y.to);
         this.seriesOne = [{ label: '', data: [] }];
+        this.overlaySeries = [{ label: '', data: [] }, { label: '', data: [] }];
         this.rangeSelect(this.rangeFunction);
         this.dblClick(this.rangeFunction);
         this.onWheel(this.rangeFunction);
@@ -363,23 +365,29 @@ class PlotBasics {
         return out;
     }
 
-    redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void) {
+    redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void, overlay_data?: number[][], overlay_label?: string) {
+        const hasOverlay = Array.isArray(overlay_data) && overlay_data.length > 0;
+
         if (!this.plot) {
             this.seriesOne[0].label = ylabel;
             this.seriesOne[0].data  = []; // temporary
-            this.plot = $.plot(this.plot_placeholder, this.seriesOne, this.options);
+            this.plot = $.plot(this.plot_placeholder, hasOverlay ? this.overlaySeries : this.seriesOne, this.options);
         }
 
-        if (this.decimate) {
-            const xMin = this.reset_range ? this.range_x.from : this.plot.getAxes().xaxis.min;
-            const xMax = this.reset_range ? this.range_x.to   : this.plot.getAxes().xaxis.max;
-            const drawData = this.decimateToCanva(plot_data, xMin, xMax);
-            this.seriesOne[0].data  = drawData;
-        } else {
-            this.seriesOne[0].data  = plot_data;
-        }
+        const primaryData = this.decimate
+            ? this.decimateToCanva(plot_data, this.reset_range ? this.range_x.from : this.plot.getAxes().xaxis.min, this.reset_range ? this.range_x.to : this.plot.getAxes().xaxis.max).slice()
+            : plot_data;
 
+        this.seriesOne[0].data  = primaryData;
         this.seriesOne[0].label = ylabel;
+
+        if (hasOverlay) {
+            const secondaryData = this.decimate
+                ? this.decimateToCanva(overlay_data!, this.reset_range ? this.range_x.from : this.plot.getAxes().xaxis.min, this.reset_range ? this.range_x.to : this.plot.getAxes().xaxis.max).slice()
+                : overlay_data!;
+            this.overlaySeries[0] = this.seriesOne[0];
+            this.overlaySeries[1] = { label: overlay_label || 'Smoothed', data: secondaryData };
+        }
 
         if (this.reset_range) {
             if (this.log_y) {
@@ -400,7 +408,7 @@ class PlotBasics {
             this.options.xaxis.max = this.range_x.to;
             this.options.yaxis.min = this.range_y.from;
             this.options.yaxis.max = this.range_y.to;
-            this.plot = $.plot(this.plot_placeholder, this.seriesOne, this.options);
+            this.plot = $.plot(this.plot_placeholder, hasOverlay ? this.overlaySeries : this.seriesOne, this.options);
             this.plot.setupGrid();
 
             this.range_y.from = this.plot.getAxes().yaxis.min;
@@ -408,7 +416,7 @@ class PlotBasics {
 
             this.reset_range = false;
         } else {
-            this.plot.setData(this.seriesOne);
+            this.plot.setData(hasOverlay ? this.overlaySeries : this.seriesOne);
             this.plot.draw();
         }
 

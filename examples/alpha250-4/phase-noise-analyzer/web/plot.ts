@@ -5,10 +5,12 @@ class Plot {
   public n_pts: number;
   public plot: jquery.flot.plot;
   public plot_data: Array<Array<number>>;
+  public smooth_plot_data: Array<Array<number>>;
   private samplingFrequency: number;
   private decadeValuesTable: HTMLTableElement;
 
   private laserPlotTypeInputs: HTMLInputElement[];
+  private showSmoothedInput: HTMLInputElement;
   private laserPlotType: 'phase' | 'frequency' = 'phase';
 
   public yLabel: string = "PHASE NOISE (dBc/Hz)";
@@ -17,6 +19,7 @@ class Plot {
   constructor(document: Document, private driver: PhaseNoiseAnalyzer, public plotBasics: PlotBasics) {
     this.peakDatapoint = [];
     this.plot_data = [];
+    this.smooth_plot_data = [];
     this.init();
     this.decadeValuesTable = <HTMLTableElement>document.getElementById('decade-values-table');
     this.updatePlot();
@@ -30,6 +33,7 @@ class Plot {
     this.plotBasics.enableDecimation();
 
     this.initLaserPlotType();
+    this.initSmoothedToggle();
   }
 
   initLaserPlotType(): void {
@@ -47,6 +51,19 @@ class Plot {
     });
 
     syncPlotType();
+  }
+
+
+  initSmoothedToggle(): void {
+    this.showSmoothedInput = document.getElementById('show-smoothed-trace') as HTMLInputElement;
+
+    if (!this.showSmoothedInput) {
+      return;
+    }
+
+    if (typeof this.showSmoothedInput.checked !== 'boolean') {
+      this.showSmoothedInput.checked = true;
+    }
   }
 
   setFreqAxis(): void {
@@ -151,8 +168,44 @@ class Plot {
     if (!this.plot_data || this.plot_data.length !== this.n_pts) {
       this.plot_data = Array.from({ length: this.n_pts }, () => [0, NaN]);
     }
+
+    if (!this.smooth_plot_data || this.smooth_plot_data.length !== this.n_pts) {
+      this.smooth_plot_data = Array.from({ length: this.n_pts }, () => [0, NaN]);
+    }
+
+    for (let i = 0; i < this.n_pts; i++) {
+      this.smooth_plot_data[i][0] = this.plot_data[i][0];
+    }
   }
 
+
+  private computeSmoothedPlot(nstart: number): void {
+    const src = this.plot_data;
+    const dst = this.smooth_plot_data;
+    const N = this.n_pts;
+    const halfWindow = 6;
+
+    for (let i = 0; i < nstart - 1; i++) {
+      dst[i][1] = NaN;
+    }
+
+    for (let i = nstart - 1; i < N; i++) {
+      let sum = 0;
+      let cnt = 0;
+      const i0 = Math.max(nstart - 1, i - halfWindow);
+      const i1 = Math.min(N - 1, i + halfWindow);
+
+      for (let j = i0; j <= i1; j++) {
+        const v = src[j][1];
+        if (Number.isFinite(v)) {
+          sum += v;
+          cnt++;
+        }
+      }
+
+      dst[i][1] = cnt > 0 ? sum / cnt : NaN;
+    }
+  }
   async updatePlot() {
     if (this._busy) {
       return;
@@ -216,7 +269,10 @@ class Plot {
         }
       }
 
+      this.computeSmoothedPlot(nstart);
       this.setDecadeValuesTable();
+
+      const smoothedVisible = this.showSmoothedInput ? this.showSmoothedInput.checked : true;
 
       this.plotBasics.redraw(
         this.plot_data,
@@ -228,7 +284,9 @@ class Plot {
           const elapsed = performance.now() - now;
           const delay = Math.max(0, Math.ceil(frameBudgetMs - elapsed));
           setTimeout(() => requestAnimationFrame(() => this.updatePlot()), delay);
-        }
+        },
+        smoothedVisible ? this.smooth_plot_data : undefined,
+        `${this.yLabel} (smoothed)`
       );
     } catch (err) {
       console.error('updatePlot error:', err);
