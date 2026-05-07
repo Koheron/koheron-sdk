@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <cstddef>
-#include <cassert>
 #include <algorithm>
 
 #include <scicpp/core.hpp>
@@ -17,16 +16,13 @@ class CumulativeAverager {
     }
 
     void append(const std::vector<T>& v) {
+        using namespace scicpp::operators;
+
         if (sum_.empty()) {
             sum_.assign(v.size(), T{});
         }
 
-        assert(v.size() == sum_.size());
-
-        for (std::size_t i = 0; i < v.size(); ++i) {
-            sum_[i] += v[i];
-        }
-
+        sum_ = std::move(sum_) + v;
         ++count_;
     }
 

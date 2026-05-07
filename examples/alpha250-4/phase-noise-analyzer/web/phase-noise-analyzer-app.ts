@@ -176,7 +176,11 @@ class PhaseNoiseAnalyzerApp {
     }
 
     if (!this.isEditingNavg) {
-      this.nAvgInput.value = parameters.fft_navg.toString();
+      if (this.channel < 2) {
+        this.nAvgInput.value = parameters.fft_navg.toString();
+      } else { // XY mode
+        this.nAvgInput.value = parameters.avgxy_count.toString();
+      }
     }
 
     if (!this.isEditingDdsInputs) {

@@ -1,7 +1,7 @@
 // Interface for the Phase Noise Analyzer driver
 // (c) Koheron
 
-type TupleGetParameters = [number, number, number, number, number, number, number, number, number, number];
+type TupleGetParameters = [number, number, number, number, number, number, number, number, number, number, number];
 
 interface IParameters {
   data_size: number; // fft_size/2
@@ -14,6 +14,7 @@ interface IParameters {
   fdds2: number;
   fdds3: number;
   clkIndex: string;
+  avgxy_count: number;
 }
 
 type TupleGetMeasurements = [number, number, number, number, number];
@@ -39,10 +40,10 @@ class PhaseNoiseAnalyzer {
   }
 
   async getParameters(): Promise<IParameters> {
-    const [data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, fdds2, fdds3, clkin] =
+    const [data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, fdds2, fdds3, clkin, avgxy_count] =
       await this.client.readTuple<TupleGetParameters>(
         Command(this.id, this.cmds['get_parameters']),
-        'IfIIIddddI'
+        'IfIIIddddII'
       );
 
     let clkIndex: string = "0";
@@ -51,7 +52,7 @@ class PhaseNoiseAnalyzer {
       clkIndex = "2";
     }
 
-    this.parameters = { data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, fdds2, fdds3, clkIndex };
+    this.parameters = { data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, fdds2, fdds3, clkIndex, avgxy_count };
     return this.parameters;
   }
 

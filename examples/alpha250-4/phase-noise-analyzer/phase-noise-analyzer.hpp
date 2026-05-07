@@ -68,7 +68,8 @@ class PhaseNoiseAnalyzer
             dds.get_dds_freq(1),
             dds.get_dds_freq(2),
             dds.get_dds_freq(3),
-            rt::get_driver<ClockGenerator>().get_reference_clock()
+            rt::get_driver<ClockGenerator>().get_reference_clock(),
+            averager_xy.count()
         };
     }
 

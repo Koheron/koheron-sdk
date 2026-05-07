@@ -67,7 +67,7 @@ void PhaseNoiseAnalyzer::save_config() {
     cfg.set("PhaseNoiseAnalyzer", "cic_rate", cic_rate);
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[DUTX]", dds.get_dds_freq(0));
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[REFX]", dds.get_dds_freq(1));
-    cfg.set("PhaseNoiseAnalyzer", "dds_freq[DUY]", dds.get_dds_freq(2));
+    cfg.set("PhaseNoiseAnalyzer", "dds_freq[DUTY]", dds.get_dds_freq(2));
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[REFY]", dds.get_dds_freq(3));
     cfg.save();
 }
