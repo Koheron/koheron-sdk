@@ -104,18 +104,6 @@ auto csd_density(sig::Spectrum<float>& sp, ArrX& x, ArrY& y, sci::units::frequen
     return sp.csd<sig::SpectrumScaling::DENSITY, false>(x, y);
 }
 
-template <typename T>
-float smoothstep(T x) {
-    const float xf = std::clamp(float(x), 0.0f, 1.0f);
-    return xf * xf * (3.0f - 2.0f * xf);
-}
-
-template <typename A, typename B>
-auto blend_psd(const A& a, const B& b, float w) {
-    // Blend in linear PSD units, not dB.
-    return (1.0f - w) * a + w * b;
-}
-
 template <std::size_t Ntaps = 161>
 float decimate_by_10_fir_mag2(sci::units::dimensionless<float> f_norm) {
     constexpr auto h = make_lowpass_fir<Ntaps>(0.035f);
