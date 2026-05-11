@@ -90,20 +90,6 @@ auto decimate_by_10_fir(const std::array<T, N>& in) {
     return out;
 }
 
-// template <typename T, std::size_t N>
-// auto decimate_by_10_fir(const std::array<T, N>& in) {
-//     static_assert(N % 10 == 0, "Decimation by 10 requires an input size divisible by 10");
-//     std::array<T, N / 10> out{};
-//     for (std::size_t i = 0; i < out.size(); ++i) {
-//         T acc = T{0};
-//         for (std::size_t j = 0; j < 10; ++j) {
-//             acc += in[10 * i + j];
-//         }
-//         out[i] = acc / 10.0f;
-//     }
-//     return out;
-// }
-
 template <std::size_t Steps, typename T, std::size_t N>
 auto build_decimation_chain(const std::array<T, N>& input) {
     static_assert(Steps <= 2, "Increase decimation chain storage for Steps > 2");
@@ -503,7 +489,7 @@ void PhaseNoiseAnalyzer::start_spectrum_analyzer() {
 
 void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
     while (spectrum_analyzer_started.load(std::memory_order_acquire)) {
-        std::shared_lock lk(data_mtx);
+        std::unique_lock lk(data_mtx);
 
         double f_dds;
 
