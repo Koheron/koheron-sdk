@@ -512,26 +512,64 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
 
         if (channel == InputChannel::X) {
             get_phase_x();
-            phase_noise = compute_phase_noise(phase_x);
             f_dds = dds.get_dds_freq(DdsChannel::DUTX);
         } else if (channel == InputChannel::Y) {
             get_phase_y();
-            phase_noise = compute_phase_noise(phase_y);
             f_dds = dds.get_dds_freq(DdsChannel::DUTY);
         } else if (channel == InputChannel::XY) {
             get_phase_xy();
-            phase_noise = compute_crossed_phase_noise(phase_x, phase_y);
             f_dds = dds.get_dds_freq(DdsChannel::DUTY);
         } else {
             logf<ERROR>("PhaseNoiseAnalyzer::spectrum_analyzer_thread: Invalid channel {}\n", channel);
             continue;
         }
 
-        constexpr auto max_phase = 10.0f * sci::pi<Phase>;
+        constexpr auto max_unwrap_phase = 10.0f * sci::pi<Phase>;
 
-        if (sci::absolute(sci::stats::mean(phase_x)) > max_phase ||
-            sci::absolute(sci::stats::mean(phase_y)) > max_phase) {
+        const auto mean_phase_x = sci::stats::mean(phase_x);
+        const auto mean_phase_y = sci::stats::mean(phase_y);
+
+        const bool unwrap_reset_needed =
+            sci::absolute(mean_phase_x) > max_unwrap_phase ||
+            sci::absolute(mean_phase_y) > max_unwrap_phase;
+
+        if (unwrap_reset_needed) {
+            logf("PhaseNoiseAnalyzer:: reset_phase_unwrapper\n");
             reset_phase_unwrapper();
+
+            discard_after_unwrap_reset = discard_acquisitions_after_reset;
+            continue;
+        }
+
+        if (discard_after_unwrap_reset > 0) {
+            --discard_after_unwrap_reset;
+            continue;
+        }
+
+        constexpr auto max_jump_phase = 0.5f * sci::pi<Phase>;
+        const auto dphi_x = previous_mean_phase_x - mean_phase_x;
+        const auto dphi_y = previous_mean_phase_y - mean_phase_y;
+
+        const bool phase_has_jumped =
+            sci::absolute(dphi_x) > max_jump_phase ||
+            sci::absolute(dphi_y) > max_jump_phase;
+
+        previous_mean_phase_x = mean_phase_x;
+        previous_mean_phase_y = mean_phase_y;
+
+        if (phase_has_jumped) {
+            logf("PhaseNoiseAnalyzer:: phase_has_jumped [X = {} rad, Y = {} rad]\n",
+            dphi_x.eval(),
+            dphi_y.eval());
+            continue;
+        }
+
+        if (channel == InputChannel::X) {
+            phase_noise = compute_phase_noise(phase_x);
+        } else if (channel == InputChannel::Y) {
+            phase_noise = compute_phase_noise(phase_y);
+        } else {
+            phase_noise = compute_crossed_phase_noise(phase_x, phase_y);
         }
 
         compute_jitter(Frequency(f_dds));

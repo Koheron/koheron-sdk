@@ -22,6 +22,8 @@ class PhaseDma
     using Frequency = scicpp::units::frequency<float>;
 
   public:
+    static constexpr uint32_t samples_per_chunk = 8192;
+
     PhaseDma()
     : ram(hw::get_memory<mem::ram>())
     , dma(rt::get_driver<DmaS2MM>())
@@ -36,7 +38,6 @@ class PhaseDma
 
     void set_fs(Frequency fs_) {
         fs = fs_;
-        // chunk_duration.store(static_cast<float>(samples_per_chunk) / fs, std::memory_order_release);
         chunk_duration.store(0.5f * static_cast<float>(samples_per_chunk) / fs, std::memory_order_release);
         logf("PhaseDma::set_fs: chunk_duration = {} ms\n", 1E3f * chunk_duration.load(std::memory_order_relaxed).eval());
     }
@@ -110,7 +111,6 @@ class PhaseDma
     // RAM ring buffers
     // Acquisition loops continuously fills 2 circular buffers in RAM (One for X data, the other for Y data)
     // RAM size is 128M so 2 buffers of 64 * 1024 * 1024 bytes.
-    static constexpr uint32_t samples_per_chunk = 8192;
     static constexpr uint32_t bytes_per_sample = sizeof(int32_t);
     static constexpr uint32_t chunk_bytes = samples_per_chunk * bytes_per_sample;
     static constexpr uint32_t buffer_size = 64 * 1024 * 1024;

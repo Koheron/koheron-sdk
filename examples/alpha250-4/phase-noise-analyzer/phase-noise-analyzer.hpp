@@ -25,7 +25,6 @@
 #include "./phase-dma.hpp"
 
 namespace rt { class ConfigManager; }
-class DmaS2MM;
 class Ltc2157;
 class Dds;
 
@@ -43,6 +42,9 @@ class PhaseNoiseAnalyzer
     static constexpr uint32_t fft_size = 32768;
     static constexpr uint32_t data_size = 2 * fft_size;
     static constexpr auto calib_factor = 4.196f * scicpp::pi<Phase> / 8192.0f;
+
+    static constexpr uint32_t fifo_depth = 32768;
+    static constexpr std::size_t discard_acquisitions_after_reset = 2 * std::ceil(fifo_depth / PhaseDma::samples_per_chunk);
 
     using PhaseDataArray = std::array<Phase, data_size>;
     using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
@@ -134,6 +136,10 @@ class PhaseNoiseAnalyzer
 
     PhaseDataArray phase_x;
     PhaseDataArray phase_y;
+    Phase previous_mean_phase_x;
+    Phase previous_mean_phase_y;
+
+    std::size_t discard_after_unwrap_reset = 0;
 
     // Spectrum analyzer
     std::thread sa_thread;
