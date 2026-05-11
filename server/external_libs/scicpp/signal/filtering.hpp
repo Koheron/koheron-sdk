@@ -173,39 +173,38 @@ constexpr scicpp_pure auto lfilter(const std::array<T, Nb> &b,
     }
 }
 
-template <typename T,
+template <typename Tb,
+          typename Ta,
+          typename Tx,
           std::size_t Nb,
           std::size_t Na,
-          std::size_t Nx,
-          std::size_t Nzi>
-constexpr scicpp_pure auto lfilter(const std::array<T, Nb> &b,
-                                   const std::array<T, Na> &a,
-                                   const std::array<T, Nx> &x,
-                                   const std::array<T, Nzi> &zi) {
+          std::size_t Nx>
+constexpr scicpp_pure auto lfilter(const std::array<Tb, Nb> &b,
+                                   const std::array<Ta, Na> &a,
+                                   const std::array<Tx, Nx> &x) {
     static_assert(Nx > 0);
-    scicpp_require(fabs(std::get<0>(a)) > T(0));
+    scicpp_require(!almost_equal(std::get<0>(a), Ta(0)));
 
     if constexpr (Na == 1) {
         using namespace operators;
+
         auto out = convolve(b, x) / std::get<0>(a);
 
-        std::array<T, Nb - 1> zf{};
-        std::copy(out.end() - signed_size_t(Nb) + 1, out.end(), zf.begin());
+        using Out = typename decltype(out)::value_type;
+        std::array<Out, out.size() - Nb + 1> res{};
 
-        std::array<T, out.size() - Nb + 1> res{};
         std::copy(out.begin(), out.begin() + res.size(), res.begin());
-
-        for (std::size_t k = 0; k < zi.size(); ++k) {
-            res[k] += zi[k];
-        }
-
-        return std::tuple{res, zf};
+        return res;
     } else {
+        static_assert(std::is_same_v<Tb, Ta>);
+        static_assert(std::is_same_v<Tb, Tx>,
+                      "Mixed-type IIR lfilter is not supported yet");
+
         constexpr auto n = std::max(Na, Nb);
-        auto y = zeros<Nx, T>();
-        auto Z = zi;
+        auto y = zeros<Nx, Tb>();
+        auto Z = zeros<n - 1, Tb>();
         detail::lfilter_impl(a, b, x, y, Z, n);
-        return std::tuple{y, Z};
+        return y;
     }
 }
 

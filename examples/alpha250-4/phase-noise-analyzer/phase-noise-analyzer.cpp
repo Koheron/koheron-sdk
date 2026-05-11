@@ -64,27 +64,18 @@ auto decimate_by_10_fir(const std::array<T, N>& in) {
     static_assert(N % 10 == 0);
     static_assert(Ntaps % 2 == 1);
 
-    // New Nyquist after /10 is 0.05 * fs_in.
-    // Use cutoff below that to leave transition band.
-    constexpr auto h = make_lowpass_fir<Ntaps>(0.035f);
+    constexpr auto b = make_lowpass_fir<Ntaps>(0.035f);
+    constexpr std::array<float, 1> a{1.0f};
+
+    const auto filtered = sig::lfilter(b, a, in);
 
     std::array<T, N / 10> out{};
 
-    constexpr int half = int(Ntaps / 2);
+    constexpr std::size_t delay = Ntaps / 2;
 
     for (std::size_t i = 0; i < out.size(); ++i) {
-        const int center = int(10 * i);
-        T acc = T{0};
-
-        for (std::size_t k = 0; k < Ntaps; ++k) {
-            const int idx = center + int(k) - half;
-
-            // Edge handling: clamp.
-            const int idx_clamped = std::clamp(idx, 0, int(N) - 1);
-            acc += in[std::size_t(idx_clamped)] * h[k];
-        }
-
-        out[i] = acc;
+        const std::size_t idx = std::min(10 * i + delay, filtered.size() - 1);
+        out[i] = filtered[idx];
     }
 
     return out;
@@ -125,33 +116,62 @@ auto blend_psd(const A& a, const B& b, float w) {
     return (1.0f - w) * a + w * b;
 }
 
+template <std::size_t Ntaps = 161>
+float decimate_by_10_fir_mag2(sci::units::dimensionless<float> f_norm) {
+    constexpr auto h = make_lowpass_fir<Ntaps>(0.035f);
+    constexpr auto pi = sci::pi<sci::units::radian<float>>;
+
+    std::complex<float> H{0.0f, 0.0f};
+
+    for (std::size_t n = 0; n < Ntaps; ++n) {
+        const auto phi = -2.0f * pi * f_norm * float(n);
+        H += h[n] * std::complex<float>{sci::cos(phi), sci::sin(phi)};
+    }
+
+    return std::norm(H);
+}
+
+template <typename SpectrumLike>
+void compensate_decimated_psd(SpectrumLike& s,
+                              sci::units::frequency<float> fs_segment,
+                              sci::units::frequency<float> fs_original,
+                              std::size_t decimation_level) {
+    const auto df = fs_segment / float(2 * (s.size() - 1));
+
+    for (std::size_t k = 1; k < s.size(); ++k) {
+        const auto f = float(k) * df;
+
+        float H2 = 1.0f;
+
+        // One FIR was applied before /10, another before /100, etc.
+        for (std::size_t stage = 0; stage < decimation_level; ++stage) {
+            const auto fs_stage = fs_original / std::pow(10.0f, float(stage));
+            H2 *= decimate_by_10_fir_mag2(f / fs_stage);
+        }
+
+        // Avoid exploding the transition/stop-band.
+        if (H2 > 0.25f) {
+            s[k] = s[k] / H2;
+        }
+    }
+}
+
 template <typename Spectrum0, typename Spectrum1, typename Spectrum2>
 auto stitch_segments(const Spectrum0& s0, const Spectrum1& s1, const Spectrum2& s2) {
     auto out = s0;
 
-    const std::size_t n2 = s2.size();
-    const std::size_t n1 = s1.size();
-    const std::size_t n0 = s0.size();
+    const auto n2 = s2.size();
+    const auto n1 = s1.size();
+    const auto n0 = s0.size();
 
-    // Use overlap around each decimated spectrum edge.
-    // These are bin indexes in the common df grid.
-    const std::size_t k21_start = std::size_t(0.55f * float(n2));
-    const std::size_t k21_end   = std::size_t(0.85f * float(n2));
-
-    const std::size_t k10_start = std::size_t(0.55f * float(n1));
-    const std::size_t k10_end   = std::size_t(0.85f * float(n1));
+    const auto k21 = std::size_t(0.70f * float(n2));
+    const auto k10 = std::size_t(0.70f * float(n1));
 
     for (std::size_t k = 0; k < n0; ++k) {
-        if (k < k21_start) {
+        if (k < k21) {
             out[k] = s2[k];
-        } else if (k < k21_end) {
-            const float w = smoothstep(float(k - k21_start) / float(k21_end - k21_start));
-            out[k] = blend_psd(s2[k], s1[k], w);
-        } else if (k < k10_start) {
+        } else if (k < k10) {
             out[k] = s1[k];
-        } else if (k < k10_end) {
-            const float w = smoothstep(float(k - k10_start) / float(k10_end - k10_start));
-            out[k] = blend_psd(s1[k], s0[k], w);
         } else {
             out[k] = s0[k];
         }
@@ -162,7 +182,6 @@ auto stitch_segments(const Spectrum0& s0, const Spectrum1& s1, const Spectrum2& 
 
 } // namespace
 
-
 PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
 : cfg    (services::require<rt::ConfigManager>())
 , ltc2157(rt::get_driver<Ltc2157>())
@@ -171,7 +190,6 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
 , sts    (hw::get_memory<mem::status>())
 , phase_noise(1 + fft_size / 2)
 , averager(1)
-// , averager_xy(1)
 {
     using namespace sci::units::literals;
 
@@ -359,7 +377,6 @@ void PhaseNoiseAnalyzer::set_fft_navg(uint32_t n_avg) {
 
     fft_navg = n_avg;
     averager.set_navg(fft_navg);
-    // averager_xy.set_navg(fft_navg);
 }
 
 void PhaseNoiseAnalyzer::reset_cumulative_averager() {
@@ -438,30 +455,39 @@ void PhaseNoiseAnalyzer::set_power_conversion_factor() {
 auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
     constexpr std::size_t base_size = 32000;
     static_assert(base_size <= data_size, "base_size must fit acquisition buffer");
+
     std::array<Phase, base_size> d0{};
     for (std::size_t i = 0; i < base_size; ++i) {
         d0[i] = new_phase[i];
     }
 
     auto [x0, x1, x2] = build_decimation_chain<fft_decimation_steps>(d0);
+
     auto s0 = welch_density(spectrum, x0, fs);
     auto s1 = welch_density(spectrum, x1, fs / 10.0f);
     auto s2 = welch_density(spectrum, x2, fs / 100.0f);
+
+    compensate_decimated_psd(s1, fs / 10.0f,  fs, 1);
+    compensate_decimated_psd(s2, fs / 100.0f, fs, 2);
+
     auto phase_psd = stitch_segments(s0, s1, s2);
 
     if (fft_navg > 1) {
         averager.append(std::move(phase_psd));
         return averager.average();
-    } else {
-        return phase_psd;
     }
+
+    return phase_psd;
 }
 
-auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x, PhaseDataArray& new_phase_y) {
+auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x,
+                                                     PhaseDataArray& new_phase_y) {
     constexpr std::size_t base_size = 32000;
     static_assert(base_size <= data_size, "base_size must fit acquisition buffer");
+
     std::array<Phase, base_size> x0{};
     std::array<Phase, base_size> y0{};
+
     for (std::size_t i = 0; i < base_size; ++i) {
         x0[i] = new_phase_x[i];
         y0[i] = new_phase_y[i];
@@ -474,10 +500,13 @@ auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x
     auto s1 = csd_density(spectrum, dx1, dy1, fs / 10.0f);
     auto s2 = csd_density(spectrum, dx2, dy2, fs / 100.0f);
 
+    compensate_decimated_psd(s1, fs / 10.0f,  fs, 1);
+    compensate_decimated_psd(s2, fs / 100.0f, fs, 2);
+
     auto phase_psd = stitch_segments(s0, s1, s2);
+
     averager_xy.append(phase_psd);
     return sci::real(averager_xy.average());
-    // return sci::sqrt(sci::norm(averager_xy.average()));
 }
 
 void PhaseNoiseAnalyzer::start_spectrum_analyzer() {

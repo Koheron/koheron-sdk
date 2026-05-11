@@ -33,29 +33,29 @@ namespace detail {
 // https://stackoverflow.com/questions/24518989/how-to-perform-1-dimensional-valid-convolution
 template <class U, class V, class W>
 constexpr void direct_convolve_impl(U &res, const V &a, const W &v) {
-    static_assert(
-        std::is_same_v<typename U::value_type, typename V::value_type>);
-    static_assert(
-        std::is_same_v<typename U::value_type, typename W::value_type>);
+    using Out = typename U::value_type;
 
     const auto n = signed_size_t(a.size());
     const auto m = signed_size_t(v.size());
     scicpp_require(signed_size_t(res.size()) == n + m - 1);
 
     for (signed_size_t i = 0; i < n + m - 1; ++i) {
-        res[std::size_t(i)] = 0.0;
+        res[std::size_t(i)] = Out{};
+
         const auto jmn = (i >= m - 1) ? i - (m - 1) : 0;
         const auto jmx = (i < n - 1) ? i : n - 1;
+
         for (auto j = jmn; j <= jmx; ++j) {
-            res[std::size_t(i)] += (a[std::size_t(j)] * v[std::size_t(i - j)]);
+            res[std::size_t(i)] += a[std::size_t(j)] * v[std::size_t(i - j)];
         }
     }
 }
 
-template <typename T, std::size_t N, std::size_t M>
+template <typename T, typename U, std::size_t N, std::size_t M>
 constexpr auto direct_convolve(const std::array<T, N> &a,
-                               const std::array<T, M> &v) {
-    std::array<T, N + M - 1> res{};
+                               const std::array<U, M> &v) {
+    using Out = decltype(std::declval<T>() * std::declval<U>());
+    std::array<Out, N + M - 1> res{};
 
     if constexpr (M <= N) {
         detail::direct_convolve_impl(res, a, v);
@@ -69,12 +69,11 @@ constexpr auto direct_convolve(const std::array<T, N> &a,
 template <typename Array1, typename Array2>
 auto direct_convolve(const Array1 &a, const Array2 &v) {
     using T = typename Array1::value_type;
-    static_assert(std::is_same_v<T, typename Array2::value_type>);
+    using U = typename Array2::value_type;
+    using Out = decltype(std::declval<T>() * std::declval<U>());
 
-    std::vector<T> res(a.size() + v.size() - 1);
+    std::vector<Out> res(a.size() + v.size() - 1);
 
-    // Same behavior as numpy:
-    // If v is longer than a, the arrays are swapped before computation.
     if (v.size() <= a.size()) {
         detail::direct_convolve_impl(res, a, v);
     } else {
@@ -116,9 +115,6 @@ auto fftconvolve(const std::vector<T> &a, const std::vector<T> &v) {
 
 template <ConvMethod method, class U, class V>
 constexpr auto convolve(const U &a, const V &v) {
-    static_assert(
-        std::is_same_v<typename U::value_type, typename V::value_type>);
-
     if constexpr (method == ConvMethod::DIRECT) {
         return detail::direct_convolve(a, v);
     } else {
