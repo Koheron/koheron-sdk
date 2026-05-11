@@ -26,7 +26,7 @@ class Plot {
   }
 
   init() {
-    this.n_pts = this.driver.parameters.data_size;
+    this.n_pts = 0;
     this.samplingFrequency = this.driver.parameters.fs;
     this.setFreqAxis();
     this.plotBasics.setLogX();
@@ -68,15 +68,16 @@ class Plot {
 
   setFreqAxis(): void {
     this.ensurePlotBuffer();
-    const binWidth = this.samplingFrequency / (2 * this.n_pts);
-    let x = -binWidth;
+
+    const fftSize = 2 * (this.n_pts - 1);
+    const df = this.samplingFrequency / fftSize;
 
     for (let i = 0; i < this.n_pts; i++) {
-      this.plot_data[i][0] = x;
-      x += binWidth;
+      this.plot_data[i][0] = i * df;
+      this.smooth_plot_data[i][0] = i * df;
     }
 
-    this.plotBasics.x_min = 2 * binWidth;
+    this.plotBasics.x_min = 2 * df;
     this.plotBasics.x_max = 0.75 * 0.5 * this.samplingFrequency;
     this.plotBasics.setRangeX(this.plotBasics.x_min, this.plotBasics.x_max);
   }
@@ -340,6 +341,12 @@ class Plot {
       }
 
       const phaseNoise: Float32Array = await this.driver.getPhaseNoise();
+
+      if (this.n_pts !== phaseNoise.length) {
+        this.n_pts = phaseNoise.length;
+        this.setFreqAxis();
+      }
+
       this.ensurePlotBuffer();
 
       const plot = this.plot_data;

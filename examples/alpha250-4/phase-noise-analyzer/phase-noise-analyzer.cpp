@@ -24,26 +24,92 @@ namespace {
 
 constexpr std::size_t fft_decimation_steps = 2; // 0 -> 2 FFT segments, 1 -> 3, 2 -> 4, ...
 
-template <typename T, std::size_t N>
-auto decimate_by_10(const std::array<T, N>& in) {
-    static_assert(N % 10 == 0, "Decimation by 10 requires an input size divisible by 10");
-    std::array<T, N / 10> out{};
-    for (std::size_t i = 0; i < out.size(); ++i) {
-        T acc = T{0};
-        for (std::size_t j = 0; j < 10; ++j) {
-            acc += in[10 * i + j];
+template <std::size_t Ntaps>
+constexpr auto make_lowpass_fir(float cutoff) {
+    static_assert(Ntaps % 2 == 1);
+
+    std::array<float, Ntaps> h{};
+
+    constexpr std::size_t center = Ntaps / 2;
+    float sum = 0.0f;
+
+    for (std::size_t n = 0; n < Ntaps; ++n) {
+        const int m = int(n) - int(center);
+
+        float sinc;
+        if (n == center) {
+            sinc = 2.0f * cutoff;
+        } else {
+            sinc = std::sin(2.0f * sci::pi<float> * cutoff * float(m))
+                 / (sci::pi<float> * float(m));
         }
-        out[i] = acc / 10.0f;
+
+        const float w = 0.42f
+                      - 0.5f * std::cos(2.0f * sci::pi<float> * float(n) / float(Ntaps - 1))
+                      + 0.08f * std::cos(4.0f * sci::pi<float> * float(n) / float(Ntaps - 1));
+
+        h[n] = sinc * w;
+        sum += h[n];
     }
+
+    for (auto& v : h) {
+        v /= sum;
+    }
+
+    return h;
+}
+
+template <typename T, std::size_t N, std::size_t Ntaps = 161>
+auto decimate_by_10_fir(const std::array<T, N>& in) {
+    static_assert(N % 10 == 0);
+    static_assert(Ntaps % 2 == 1);
+
+    // New Nyquist after /10 is 0.05 * fs_in.
+    // Use cutoff below that to leave transition band.
+    constexpr auto h = make_lowpass_fir<Ntaps>(0.035f);
+
+    std::array<T, N / 10> out{};
+
+    constexpr int half = int(Ntaps / 2);
+
+    for (std::size_t i = 0; i < out.size(); ++i) {
+        const int center = int(10 * i);
+        T acc = T{0};
+
+        for (std::size_t k = 0; k < Ntaps; ++k) {
+            const int idx = center + int(k) - half;
+
+            // Edge handling: clamp.
+            const int idx_clamped = std::clamp(idx, 0, int(N) - 1);
+            acc += in[std::size_t(idx_clamped)] * h[k];
+        }
+
+        out[i] = acc;
+    }
+
     return out;
 }
+
+// template <typename T, std::size_t N>
+// auto decimate_by_10_fir(const std::array<T, N>& in) {
+//     static_assert(N % 10 == 0, "Decimation by 10 requires an input size divisible by 10");
+//     std::array<T, N / 10> out{};
+//     for (std::size_t i = 0; i < out.size(); ++i) {
+//         T acc = T{0};
+//         for (std::size_t j = 0; j < 10; ++j) {
+//             acc += in[10 * i + j];
+//         }
+//         out[i] = acc / 10.0f;
+//     }
+//     return out;
+// }
 
 template <std::size_t Steps, typename T, std::size_t N>
 auto build_decimation_chain(const std::array<T, N>& input) {
     static_assert(Steps <= 2, "Increase decimation chain storage for Steps > 2");
     std::array<T, N> d0 = input;
-    auto d1 = decimate_by_10(d0);
-    auto d2 = decimate_by_10(d1);
+    auto d1 = decimate_by_10_fir(d0);
+    auto d2 = decimate_by_10_fir(d1);
     return std::tuple{d0, d1, d2};
 }
 
@@ -61,25 +127,47 @@ auto csd_density(sig::Spectrum<float>& sp, ArrX& x, ArrY& y, sci::units::frequen
     return sp.csd<sig::SpectrumScaling::DENSITY, false>(x, y);
 }
 
-template <std::size_t Steps, typename Spectrum0, typename Spectrum1, typename Spectrum2>
+template <typename T>
+float smoothstep(T x) {
+    const float xf = std::clamp(float(x), 0.0f, 1.0f);
+    return xf * xf * (3.0f - 2.0f * xf);
+}
+
+template <typename A, typename B>
+auto blend_psd(const A& a, const B& b, float w) {
+    // Blend in linear PSD units, not dB.
+    return (1.0f - w) * a + w * b;
+}
+
+template <typename Spectrum0, typename Spectrum1, typename Spectrum2>
 auto stitch_segments(const Spectrum0& s0, const Spectrum1& s1, const Spectrum2& s2) {
-    constexpr std::size_t n_segments = Steps + 1;
     auto out = s0;
-    const std::size_t n_bins = out.size();
 
-    for (std::size_t segment = 0; segment < n_segments; ++segment) {
-        const std::size_t start = (segment * n_bins) / n_segments;
-        const std::size_t end = ((segment + 1) * n_bins) / n_segments;
-        const std::size_t level = Steps - segment;
+    const std::size_t n2 = s2.size();
+    const std::size_t n1 = s1.size();
+    const std::size_t n0 = s0.size();
 
-        if (level == 0) {
-            for (std::size_t k = start; k < end; ++k) out[k] = s0[k];
-        } else if (level == 1) {
-            const std::size_t max_k = std::min(end, s1.size());
-            for (std::size_t k = start; k < max_k; ++k) out[k] = s1[k];
+    // Use overlap around each decimated spectrum edge.
+    // These are bin indexes in the common df grid.
+    const std::size_t k21_start = std::size_t(0.55f * float(n2));
+    const std::size_t k21_end   = std::size_t(0.85f * float(n2));
+
+    const std::size_t k10_start = std::size_t(0.55f * float(n1));
+    const std::size_t k10_end   = std::size_t(0.85f * float(n1));
+
+    for (std::size_t k = 0; k < n0; ++k) {
+        if (k < k21_start) {
+            out[k] = s2[k];
+        } else if (k < k21_end) {
+            const float w = smoothstep(float(k - k21_start) / float(k21_end - k21_start));
+            out[k] = blend_psd(s2[k], s1[k], w);
+        } else if (k < k10_start) {
+            out[k] = s1[k];
+        } else if (k < k10_end) {
+            const float w = smoothstep(float(k - k10_start) / float(k10_end - k10_start));
+            out[k] = blend_psd(s1[k], s0[k], w);
         } else {
-            const std::size_t max_k = std::min(end, s2.size());
-            for (std::size_t k = start; k < max_k; ++k) out[k] = s2[k];
+            out[k] = s0[k];
         }
     }
 
@@ -187,7 +275,8 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
     cic_rate = rate;
     fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
     min_frequency = fs_adc / static_cast<float>(fft_size * cic_rate);
-    logf("Minimum frequency = {} Hz\n", min_frequency.eval());
+    logf("Sampling frequency = {} Hz\n", fs.eval());
+    logf("Minimum frequency = {} Hz (cic_rate = {})\n", min_frequency.eval(), cic_rate);
     dma_transfer_duration = prm::n_pts / fs;
     logf("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
 
@@ -372,7 +461,7 @@ auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
     auto s0 = welch_density(spectrum, x0, fs);
     auto s1 = welch_density(spectrum, x1, fs / 10.0f);
     auto s2 = welch_density(spectrum, x2, fs / 100.0f);
-    auto phase_psd = stitch_segments<fft_decimation_steps>(s0, s1, s2);
+    auto phase_psd = stitch_segments(s0, s1, s2);
 
     if (fft_navg > 1) {
         averager.append(std::move(phase_psd));
@@ -399,7 +488,7 @@ auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x
     auto s1 = csd_density(spectrum, dx1, dy1, fs / 10.0f);
     auto s2 = csd_density(spectrum, dx2, dy2, fs / 100.0f);
 
-    auto phase_psd = stitch_segments<fft_decimation_steps>(s0, s1, s2);
+    auto phase_psd = stitch_segments(s0, s1, s2);
     averager_xy.append(phase_psd);
     return sci::real(averager_xy.average());
     // return sci::sqrt(sci::norm(averager_xy.average()));
@@ -455,7 +544,7 @@ void PhaseNoiseAnalyzer::compute_jitter(Frequency f_dut) {
         f_hi_used    = std::numeric_limits<Frequency>::quiet_NaN();
     } else {
         const std::size_t n_bins = phase_noise.size();
-        const auto df = fs / float(fft_size);
+        const auto df = fs / float(2 * (phase_noise.size() - 1));
         const auto f_min_avail = df;
         const auto f_max_avail = (n_bins - 1) * df;
 
