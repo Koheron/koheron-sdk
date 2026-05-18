@@ -22,7 +22,28 @@ namespace sig = scicpp::signal;
 
 namespace {
 
-constexpr std::size_t fft_decimation_steps = 2; // 0 -> 2 FFT segments, 1 -> 3, 2 -> 4, ...
+constexpr std::size_t fft_decimation_steps = 2;
+constexpr float fir_cutoff = 0.030f;
+constexpr std::size_t fir_ntaps = 161;
+constexpr float stitch_fraction = 0.25f;
+constexpr float min_compensation_H2 = 0.80f;
+
+constexpr std::size_t fir_delay = fir_ntaps / 2;
+
+// Choose final /100 length.
+// Needs: 100 * d2_size + 11 * fir_delay <= base_size
+constexpr std::size_t decimated2_size = 300;
+constexpr std::size_t decimated1_size = 10 * decimated2_size;
+constexpr std::size_t decimated0_size = 10 * decimated1_size;
+
+// Temporary d1 must be longer so second decimation can discard FIR delay.
+constexpr std::size_t decimated1_tmp_size = decimated1_size + fir_delay;
+
+// First-stage input needed to produce decimated1_tmp_size.
+constexpr std::size_t decimation_input_size =
+    10 * decimated1_tmp_size + fir_delay;
+
+static_assert(decimation_input_size <= 32000);
 
 template <std::size_t Ntaps>
 constexpr auto make_lowpass_fir(float cutoff) {
@@ -59,23 +80,35 @@ constexpr auto make_lowpass_fir(float cutoff) {
     return h;
 }
 
-template <typename T, std::size_t N, std::size_t Ntaps = 161>
-auto decimate_by_10_fir(const std::array<T, N>& in) {
-    static_assert(N % 10 == 0);
+template <typename T, std::size_t M, std::size_t N, std::size_t Ntaps = fir_ntaps>
+auto decimate_by_10_fir_exact(const std::array<T, N>& in) {
     static_assert(Ntaps % 2 == 1);
 
-    constexpr auto b = make_lowpass_fir<Ntaps>(0.035f);
+    constexpr auto b = make_lowpass_fir<Ntaps>(fir_cutoff);
     constexpr std::array<float, 1> a{1.0f};
+    constexpr std::size_t delay = Ntaps / 2;
+
+    static_assert(10 * M + delay <= N);
 
     const auto filtered = sig::lfilter(b, a, in);
 
-    std::array<T, N / 10> out{};
+    std::array<T, M> out{};
 
-    constexpr std::size_t delay = Ntaps / 2;
+    for (std::size_t i = 0; i < M; ++i) {
+        out[i] = filtered[10 * i + delay];
+    }
 
-    for (std::size_t i = 0; i < out.size(); ++i) {
-        const std::size_t idx = std::min(10 * i + delay, filtered.size() - 1);
-        out[i] = filtered[idx];
+    return out;
+}
+
+template <typename T, std::size_t M, std::size_t N>
+auto take_prefix(const std::array<T, N>& in) {
+    static_assert(M <= N);
+
+    std::array<T, M> out{};
+
+    for (std::size_t i = 0; i < M; ++i) {
+        out[i] = in[i];
     }
 
     return out;
@@ -83,30 +116,46 @@ auto decimate_by_10_fir(const std::array<T, N>& in) {
 
 template <std::size_t Steps, typename T, std::size_t N>
 auto build_decimation_chain(const std::array<T, N>& input) {
-    static_assert(Steps <= 2, "Increase decimation chain storage for Steps > 2");
-    std::array<T, N> d0 = input;
-    auto d1 = decimate_by_10_fir(d0);
-    auto d2 = decimate_by_10_fir(d1);
-    return std::tuple{d0, d1, d2};
+    static_assert(Steps == 2, "This exact-duration chain is currently written for two decimation stages.");
+    static_assert(decimation_input_size <= N);
+
+    // x0, x1, x2 have exactly the same time duration:
+    // x0: 30000 samples @ fs
+    // x1: 3000 samples @ fs / 10
+    // x2: 300 samples @ fs / 100
+    auto x0_for_filter = take_prefix<T, decimation_input_size>(input);
+
+    auto x1_tmp = decimate_by_10_fir_exact<T, decimated1_tmp_size>(x0_for_filter);
+    auto x2     = decimate_by_10_fir_exact<T, decimated2_size>(x1_tmp);
+
+    auto x0 = take_prefix<T, decimated0_size>(input);
+    auto x1 = take_prefix<T, decimated1_size>(x1_tmp);
+
+    return std::tuple{x0, x1, x2};
 }
 
 template <typename Arr>
-auto welch_density(sig::Spectrum<float>& sp, Arr& data, sci::units::frequency<float> fs) {
+auto welch_density(sig::Spectrum<float>& sp,
+                   Arr& data,
+                   sci::units::frequency<float> fs) {
     sp.fs(fs);
     sp.window(sig::windows::hann<float>(data.size()));
     return sp.welch<sig::SpectrumScaling::DENSITY, false>(data);
 }
 
 template <typename ArrX, typename ArrY>
-auto csd_density(sig::Spectrum<float>& sp, ArrX& x, ArrY& y, sci::units::frequency<float> fs) {
+auto csd_density(sig::Spectrum<float>& sp,
+                 ArrX& x,
+                 ArrY& y,
+                 sci::units::frequency<float> fs) {
     sp.fs(fs);
     sp.window(sig::windows::hann<float>(x.size()));
     return sp.csd<sig::SpectrumScaling::DENSITY, false>(x, y);
 }
 
-template <std::size_t Ntaps = 161>
+template <std::size_t Ntaps = fir_ntaps>
 float decimate_by_10_fir_mag2(sci::units::dimensionless<float> f_norm) {
-    constexpr auto h = make_lowpass_fir<Ntaps>(0.035f);
+    constexpr auto h = make_lowpass_fir<Ntaps>(fir_cutoff);
     constexpr auto pi = sci::pi<sci::units::radian<float>>;
 
     std::complex<float> H{0.0f, 0.0f};
@@ -131,31 +180,29 @@ void compensate_decimated_psd(SpectrumLike& s,
 
         float H2 = 1.0f;
 
-        // One FIR was applied before /10, another before /100, etc.
         for (std::size_t stage = 0; stage < decimation_level; ++stage) {
             const auto fs_stage = fs_original / std::pow(10.0f, float(stage));
             H2 *= decimate_by_10_fir_mag2(f / fs_stage);
         }
 
-        // Avoid exploding the transition/stop-band.
-        if (H2 > 0.25f) {
+        if (H2 > min_compensation_H2) {
             s[k] = s[k] / H2;
         }
     }
 }
 
 template <typename Spectrum0, typename Spectrum1, typename Spectrum2>
-auto stitch_segments(const Spectrum0& s0, const Spectrum1& s1, const Spectrum2& s2) {
+auto stitch_segments(const Spectrum0& s0,
+                     const Spectrum1& s1,
+                     const Spectrum2& s2) {
     auto out = s0;
 
-    const auto n2 = s2.size();
-    const auto n1 = s1.size();
-    const auto n0 = s0.size();
+    // Since x0/x1/x2 have exactly equal duration, df is identical.
+    // Therefore bin-index stitching is valid again.
+    const auto k21 = std::size_t(stitch_fraction * float(s2.size()));
+    const auto k10 = std::size_t(stitch_fraction * float(s1.size()));
 
-    const auto k21 = std::size_t(0.70f * float(n2));
-    const auto k10 = std::size_t(0.70f * float(n1));
-
-    for (std::size_t k = 0; k < n0; ++k) {
+    for (std::size_t k = 0; k < out.size(); ++k) {
         if (k < k21) {
             out[k] = s2[k];
         } else if (k < k10) {
