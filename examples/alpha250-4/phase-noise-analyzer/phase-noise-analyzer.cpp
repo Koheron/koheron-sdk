@@ -497,6 +497,31 @@ auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x
     return sci::real(averager_xy.average());
 }
 
+bool PhaseNoiseAnalyzer::phase_block_is_valid(const PhaseDataArray& p) {
+    constexpr std::size_t n = 32000;
+    constexpr auto max_sample_jump = 0.50f * sci::pi<Phase>;
+    constexpr auto max_peak_to_rms = sci::units::dimensionless<float>(12.0f);
+
+    std::array<Phase, n - 1> dphi{};
+
+    for (std::size_t i = 1; i < n; ++i) {
+        dphi[i - 1] = p[i] - p[i - 1];
+
+        if (sci::absolute(dphi[i - 1]) > max_sample_jump) {
+            return false;
+        }
+    }
+
+    const auto rms = sci::stats::std(dphi);
+    const auto max_abs = sci::stats::amax(sci::absolute(dphi));
+
+    if (rms > Phase{0.0f} && max_abs / rms > max_peak_to_rms) {
+        return false;
+    }
+
+    return true;
+}
+
 void PhaseNoiseAnalyzer::start_spectrum_analyzer() {
     bool expected = false;
     if (spectrum_analyzer_started.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
@@ -529,9 +554,15 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
         const auto mean_phase_x = sci::stats::mean(phase_x);
         const auto mean_phase_y = sci::stats::mean(phase_y);
 
-        const bool unwrap_reset_needed =
-            sci::absolute(mean_phase_x) > max_unwrap_phase ||
-            sci::absolute(mean_phase_y) > max_unwrap_phase;
+        bool unwrap_reset_needed = false;
+
+        if (channel == InputChannel::X || channel == InputChannel::XY) {
+            unwrap_reset_needed |= sci::absolute(sci::stats::mean(phase_x)) > max_unwrap_phase;
+        }
+
+        if (channel == InputChannel::Y || channel == InputChannel::XY) {
+            unwrap_reset_needed |= sci::absolute(sci::stats::mean(phase_y)) > max_unwrap_phase;
+        }
 
         if (unwrap_reset_needed) {
             logf("PhaseNoiseAnalyzer:: reset_phase_unwrapper\n");
@@ -546,22 +577,20 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
             continue;
         }
 
-        constexpr auto max_jump_phase = 0.5f * sci::pi<Phase>;
-        const auto dphi_x = previous_mean_phase_x - mean_phase_x;
-        const auto dphi_y = previous_mean_phase_y - mean_phase_y;
+        bool valid = true;
 
-        const bool phase_has_jumped =
-            sci::absolute(dphi_x) > max_jump_phase ||
-            sci::absolute(dphi_y) > max_jump_phase;
+        if (channel == InputChannel::X) {
+            valid = phase_block_is_valid(phase_x);
+        } else if (channel == InputChannel::Y) {
+            valid = phase_block_is_valid(phase_y);
+        } else {
+            valid = phase_block_is_valid(phase_x)
+                && phase_block_is_valid(phase_y);
+        }
 
-        previous_mean_phase_x = mean_phase_x;
-        previous_mean_phase_y = mean_phase_y;
-
-        if (phase_has_jumped) {
-            logf("PhaseNoiseAnalyzer:: phase_has_jumped [X = {} rad, Y = {} rad]\n",
-            dphi_x.eval(),
-            dphi_y.eval());
-            continue;
+        if (!valid) {
+            logf("PhaseNoiseAnalyzer: rejected acquisition with phase discontinuity\n");
+            continue; // Important: do not append, do not clear
         }
 
         if (channel == InputChannel::X) {

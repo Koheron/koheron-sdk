@@ -170,6 +170,7 @@ class PhaseNoiseAnalyzer
     auto compute_crossed_phase_noise(PhaseDataArray& new_phase_x, PhaseDataArray& new_phase_y);
     void compute_jitter(Frequency f_dut);
     void get_phase_xy();
+    bool phase_block_is_valid(const PhaseDataArray& p);
     void start_spectrum_analyzer();
     void spectrum_analyzer_thread();
 };
