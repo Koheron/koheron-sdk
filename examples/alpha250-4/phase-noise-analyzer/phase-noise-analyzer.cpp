@@ -25,7 +25,7 @@ namespace {
 constexpr std::size_t fft_decimation_steps = 2;
 constexpr float fir_cutoff = 0.030f;
 constexpr std::size_t fir_ntaps = 161;
-constexpr float stitch_fraction = 0.25f;
+constexpr float stitch_fraction = 0.2f;
 constexpr float min_compensation_H2 = 0.80f;
 
 constexpr std::size_t fir_delay = fir_ntaps / 2;
