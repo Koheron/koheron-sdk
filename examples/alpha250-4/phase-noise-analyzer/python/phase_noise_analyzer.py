@@ -156,6 +156,10 @@ class PhaseNoiseAnalyzer(object):
     def phase_noise(self, min_count=10, remove_spurs=True, verbose=True):
         self.set_channel(3)  # Cross-correlation
         self.reset_cumulative_averager()
+        time.sleep(2.0)
+        self.reset_cumulative_averager()
+        time.sleep(2.0)
+        self.reset_cumulative_averager()
 
         while True:
             count = self.averager_xy_count()

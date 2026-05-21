@@ -38,6 +38,7 @@ def make_segment_configs(
 
 def acquire_segment(driver, min_frequency, min_count):
     driver.set_min_frequency(min_frequency)
+    time.sleep(1.0)
 
     freqs, f_min, f_max, phase_noise, smoothed = driver.phase_noise(
         min_count=min_count,
@@ -59,7 +60,8 @@ def main():
     host = os.getenv("HOST", "192.168.1.111")
     driver = PhaseNoiseAnalyzer(connect(host, "phase-noise-analyzer"))
 
-    f_dut = 10e6
+    # f_dut = 10e6
+    f_dut = 80e6
     f_ref = 10.000000637e6
 
     driver.set_reference_clock(0)
@@ -71,8 +73,17 @@ def main():
 
     xcorr_factor = 10
 
+    # segment_configs = make_segment_configs(
+    #     f_start=1.0,
+    #     f_stop=1500.0,
+    #     ratio=np.sqrt(10.0),
+    #     base_count=40 * xcorr_factor,
+    #     alpha=0.5,
+    #     max_count=300 * xcorr_factor,
+    # )
+
     segment_configs = make_segment_configs(
-        f_start=1.0,
+        f_start=3.0,
         f_stop=1500.0,
         ratio=np.sqrt(10.0),
         base_count=40 * xcorr_factor,

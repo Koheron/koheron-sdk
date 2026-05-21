@@ -415,6 +415,7 @@ void PhaseNoiseAnalyzer::set_fft_navg(uint32_t n_avg) {
 }
 
 void PhaseNoiseAnalyzer::reset_cumulative_averager() {
+    reset_phase_unwrapper();
     averager_xy.clear();
 }
 
@@ -601,28 +602,28 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
         const auto mean_phase_x = sci::stats::mean(phase_x);
         const auto mean_phase_y = sci::stats::mean(phase_y);
 
-        bool unwrap_reset_needed = false;
+        // bool unwrap_reset_needed = false;
 
-        if (channel == InputChannel::X || channel == InputChannel::XY) {
-            unwrap_reset_needed |= sci::absolute(sci::stats::mean(phase_x)) > max_unwrap_phase;
-        }
+        // if (channel == InputChannel::X || channel == InputChannel::XY) {
+        //     unwrap_reset_needed |= sci::absolute(sci::stats::mean(phase_x)) > max_unwrap_phase;
+        // }
 
-        if (channel == InputChannel::Y || channel == InputChannel::XY) {
-            unwrap_reset_needed |= sci::absolute(sci::stats::mean(phase_y)) > max_unwrap_phase;
-        }
+        // if (channel == InputChannel::Y || channel == InputChannel::XY) {
+        //     unwrap_reset_needed |= sci::absolute(sci::stats::mean(phase_y)) > max_unwrap_phase;
+        // }
 
-        if (unwrap_reset_needed) {
-            logf("PhaseNoiseAnalyzer:: reset_phase_unwrapper\n");
-            reset_phase_unwrapper();
+        // if (unwrap_reset_needed) {
+        //     logf("PhaseNoiseAnalyzer:: reset_phase_unwrapper\n");
+        //     reset_phase_unwrapper();
 
-            discard_after_unwrap_reset = discard_acquisitions_after_reset;
-            continue;
-        }
+        //     discard_after_unwrap_reset = discard_acquisitions_after_reset;
+        //     continue;
+        // }
 
-        if (discard_after_unwrap_reset > 0) {
-            --discard_after_unwrap_reset;
-            continue;
-        }
+        // if (discard_after_unwrap_reset > 0) {
+        //     --discard_after_unwrap_reset;
+        //     continue;
+        // }
 
         bool valid = true;
 
