@@ -15,7 +15,7 @@ Dds::Dds()
     clk_gen.set_sampling_frequency(0);
 }
 
-void Dds::set_dds_freq(uint32_t channel, double freq_hz) {
+void Dds::set_dds_freq(uint32_t channel, double freq_hz, bool verbose) {
     if (channel >= 4) {
         log<ERROR>("FFT::set_dds_freq invalid channel\n");
         return;
@@ -45,8 +45,11 @@ void Dds::set_dds_freq(uint32_t channel, double freq_hz) {
     double factor = (uint64_t(1) << 48) / fs_adc;
 
     auto& ctl= hw::get_memory<mem::control>();
-    ctl.write_reg<uint64_t>(reg::phase_incr0 + 8 * channel, uint64_t(factor * freq_hz));
-    dds_freq[channel] = freq_hz;
+    const auto phase_incr = static_cast<uint64_t>(std::llround(factor * freq_hz));
+    ctl.write_reg<uint64_t>(reg::phase_incr0 + 8 * channel, phase_incr);
+    dds_freq[channel] = static_cast<double>(phase_incr) / factor;
 
-    logf("fs: {}, channel {}, ref. frequency set to {}\n", fs_adc, channel, freq_hz);
+    if (verbose) {
+        logf("fs: {}, channel {}, ref. frequency set to {:.12f}\n", fs_adc, channel, freq_hz);
+    }
 }

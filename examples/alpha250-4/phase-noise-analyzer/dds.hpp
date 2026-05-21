@@ -13,7 +13,7 @@ class Dds
 {
   public:
     Dds();
-    void set_dds_freq(uint32_t channel, double freq_hz);
+    void set_dds_freq(uint32_t channel, double freq_hz, bool verbose);
 
     auto get_dds_freq(uint32_t channel) {
         if (channel >= dds_freq.size()) {

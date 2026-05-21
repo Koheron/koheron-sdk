@@ -31,11 +31,11 @@ class Dds;
 class PhaseNoiseAnalyzer
 {
     using Phase = scicpp::units::radian<float>;
-    using Time = scicpp::units::time<float>;
-    using Frequency = scicpp::units::frequency<float>;
+    using Time = scicpp::units::time<double>;
+    using Frequency = scicpp::units::frequency<double>;
     using PhaseNoiseDensity = scicpp::units::quantity_divide<
                 scicpp::units::quantity_multiply<Phase, Phase>,
-                Frequency>;
+                scicpp::units::frequency<float>>;
     using ComplexPhaseNoiseDensity = std::complex<PhaseNoiseDensity>;
 
     // FFT buffer sizes
@@ -60,6 +60,25 @@ class PhaseNoiseAnalyzer
     void set_channel(uint32_t chan);
     void set_fft_navg(uint32_t n_avg);
     void reset_cumulative_averager();
+    void set_tracking_enabled(bool enabled);
+    void set_tracking_bandwidth(float bandwidth_hz);
+    void set_tracking_max_correction(float max_correction_hz);
+    void set_tracking_max_step(float max_step_hz);
+
+    auto get_tracking_parameters() {
+        std::shared_lock lk(data_mtx);
+
+        return std::tuple{
+            tracking_enabled,
+            tracking_bandwidth,
+            effective_tracking_bandwidth(),
+            tracking_correction[DdsChannel::DUTX],
+            tracking_correction[DdsChannel::DUTY],
+            tracking_last_mean_dphi,
+            tracking_last_error,
+            tracking_locked
+        };
+    }
 
     auto get_parameters() {
         return std::tuple{
@@ -140,6 +159,7 @@ class PhaseNoiseAnalyzer
     Phase previous_mean_phase_y;
 
     std::size_t discard_after_unwrap_reset = 0;
+    float ratio_x, ratio_y;
 
     // Spectrum analyzer
     std::thread sa_thread;
@@ -148,6 +168,7 @@ class PhaseNoiseAnalyzer
     PhaseNoiseDensityVector phase_noise;
     MovingAverager<PhaseNoiseDensity> averager;
     CumulativeAverager<ComplexPhaseNoiseDensity> averager_xy;
+    std::atomic<bool> reset_cumulative_requested{false};
 
     // Jitter (integrated noise)
     Phase phase_jitter{0.0f};
@@ -158,6 +179,23 @@ class PhaseNoiseAnalyzer
     // Carrier power
     scicpp::units::dimensionless<double> conv_factor_dBm;
     std::array<scicpp::units::electric_potential<double>, 2> vrange;
+
+    // Very-slow FLL used only to keep CORDIC unwrap bounded.
+    bool tracking_enabled = true;
+    Frequency tracking_bandwidth{0.1f};
+    Frequency tracking_max_step{0.05f};
+    Frequency tracking_max_correction{100.0f};
+
+    std::array<Frequency, 4> base_dds_freq{
+        Frequency{10.0e6f}, Frequency{10.0e6f}, Frequency{10.0e6f}, Frequency{10.0e6f}
+    };
+
+    std::array<Frequency, 4> tracking_correction{
+        Frequency{0.0f}, Frequency{0.0f}, Frequency{0.0f}, Frequency{0.0f}
+    };
+    Phase tracking_last_mean_dphi{0.0f};
+    Frequency tracking_last_error{0.0f};
+    bool tracking_locked = false;
 
     // ----------------- Private functions
 
@@ -171,6 +209,9 @@ class PhaseNoiseAnalyzer
     void compute_jitter(Frequency f_dut);
     void get_phase_xy();
     bool phase_block_is_valid(const PhaseDataArray& p);
+    Frequency effective_tracking_bandwidth() const;
+    Phase estimate_mean_dphi(const PhaseDataArray& p) const;
+    void apply_tracking_update(Phase mean_dphi, Time block_duration, uint32_t input_channel);
     void start_spectrum_analyzer();
     void spectrum_analyzer_thread();
 };

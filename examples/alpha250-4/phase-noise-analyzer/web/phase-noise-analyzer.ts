@@ -43,7 +43,7 @@ class PhaseNoiseAnalyzer {
     const [data_size, fs, channel, min_freq, fft_navg, fdds0, fdds1, fdds2, fdds3, clkin, avgxy_count] =
       await this.client.readTuple<TupleGetParameters>(
         Command(this.id, this.cmds['get_parameters']),
-        'IfIfIddddII'
+        'IdIdIddddII'
       );
 
     let clkIndex: string = "0";
