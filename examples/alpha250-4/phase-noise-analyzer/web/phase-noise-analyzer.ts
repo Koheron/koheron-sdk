@@ -18,6 +18,7 @@ interface IParameters {
 }
 
 type TupleGetMeasurements = [number, number, number, number, number];
+type TupleGetTrackingParameters = [boolean, number, number, number, number, number, number, boolean];
 
 interface IMeasurements {
   phase_jitter: number; // rad rms
@@ -25,6 +26,17 @@ interface IMeasurements {
   freq_lo: number; // Integration interval start
   freq_hi: number; // Integration interval end
   carrier_power: number;
+}
+
+interface ITrackingParameters {
+  tracking_enabled: boolean;
+  tracking_bandwidth: number;
+  effective_tracking_bandwidth: number;
+  tracking_correction_x: number;
+  tracking_correction_y: number;
+  tracking_last_mean_dphi: number;
+  tracking_last_error: number;
+  tracking_locked: boolean;
 }
 
 class PhaseNoiseAnalyzer {
@@ -72,6 +84,31 @@ class PhaseNoiseAnalyzer {
 
   setLocalOscillator(channel: number, freqHz: number): void {
     this.client.send(Command(this.id, this.cmds['set_local_oscillator'], channel, freqHz));
+  }
+
+  setTrackingEnabled(enabled: boolean): void {
+    this.client.send(Command(this.id, this.cmds['set_tracking_enabled'], enabled));
+  }
+
+  async getTrackingParameters(): Promise<ITrackingParameters> {
+    const [tracking_enabled, tracking_bandwidth, effective_tracking_bandwidth,
+      tracking_correction_x, tracking_correction_y, tracking_last_mean_dphi,
+      tracking_last_error, tracking_locked] =
+      await this.client.readTuple<TupleGetTrackingParameters>(
+        Command(this.id, this.cmds['get_tracking_parameters']),
+        '?ffffff?'
+      );
+
+    return {
+      tracking_enabled,
+      tracking_bandwidth,
+      effective_tracking_bandwidth,
+      tracking_correction_x,
+      tracking_correction_y,
+      tracking_last_mean_dphi,
+      tracking_last_error,
+      tracking_locked
+    };
   }
 
   async getPhaseNoise(): Promise<Float32Array> {

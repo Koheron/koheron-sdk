@@ -107,7 +107,7 @@ class PhaseNoiseAnalyzer(object):
 
     @command()
     def get_parameters(self):
-        return self.client.recv_tuple('IfIfIddddII')
+        return self.client.recv_tuple('IdIdIddddII')
 
     def averager_xy_count(self):
         tup = self.get_parameters()

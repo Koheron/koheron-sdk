@@ -712,7 +712,7 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
     while (spectrum_analyzer_started.load(std::memory_order_acquire)) {
 
         if (reset_cumulative_requested.exchange(false, std::memory_order_acq_rel)) {
-            reset_phase_unwrapper();
+            // reset_phase_unwrapper();
             averager_xy.clear();
             tracking_last_mean_dphi = Phase{0.0f};
             tracking_last_error = Frequency{0.0f};

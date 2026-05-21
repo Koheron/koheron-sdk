@@ -12,6 +12,10 @@ class PhaseNoiseAnalyzerApp {
 
   private ddsInputs: HTMLInputElement[];
   private ddsSetButtons: HTMLButtonElement[];
+  private trackingEnabledInput: HTMLInputElement;
+  private trackingEffectiveBandwidthSpan: HTMLElement;
+  private trackingCorrectionXSpan: HTMLElement;
+  private trackingCorrectionYSpan: HTMLElement;
 
   private isEditingMinFrequency: boolean;
   private isEditingNavg: boolean;
@@ -34,6 +38,10 @@ class PhaseNoiseAnalyzerApp {
       document.querySelector<HTMLInputElement>(`.dds-input${i}`)!);
     this.ddsSetButtons = [0, 1, 2, 3].map(i =>
       document.querySelector<HTMLButtonElement>(`.dds-set${i}`)!);
+    this.trackingEnabledInput = document.querySelector<HTMLInputElement>('.tracking-enabled-input')!;
+    this.trackingEffectiveBandwidthSpan = document.querySelector<HTMLElement>('.tracking-effective-bandwidth')!;
+    this.trackingCorrectionXSpan = document.querySelector<HTMLElement>('.tracking-correction-x')!;
+    this.trackingCorrectionYSpan = document.querySelector<HTMLElement>('.tracking-correction-y')!;
 
     this.initMinFrequencyInput();
     this.initNavgInput();
@@ -78,6 +86,11 @@ class PhaseNoiseAnalyzerApp {
           this.updateControls();
       });
     }
+
+    this.trackingEnabledInput.addEventListener('change', (event) => {
+      const enabled = (event.currentTarget as HTMLInputElement).checked;
+      this.driver.setTrackingEnabled(enabled);
+    });
   }
 
   initNavgInput(): void {
@@ -163,6 +176,7 @@ class PhaseNoiseAnalyzerApp {
 
   private async updateControls(): Promise<void> {
     const parameters = await this.driver.getParameters();
+    const trackingParameters = await this.driver.getTrackingParameters();
 
     if (parameters.channel == 0) {
       this.channelInputs[0].checked = true;
@@ -204,6 +218,11 @@ class PhaseNoiseAnalyzerApp {
       this.ddsInputs[2].value = (parameters.fdds2 / 1E6).toString();
       this.ddsInputs[3].value = (parameters.fdds3 / 1E6).toString();
     }
+
+    this.trackingEnabledInput.checked = trackingParameters.tracking_enabled;
+    this.trackingEffectiveBandwidthSpan.textContent = trackingParameters.effective_tracking_bandwidth.toFixed(6);
+    this.trackingCorrectionXSpan.textContent = trackingParameters.tracking_correction_x.toFixed(6);
+    this.trackingCorrectionYSpan.textContent = trackingParameters.tracking_correction_y.toFixed(6);
 
     (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock'][value='" + parameters.clkIndex + "']")).checked = true;
 
