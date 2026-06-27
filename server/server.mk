@@ -308,7 +308,7 @@ $(DRIVERS_JSON_DUMP_EXE): $(DRIVERS_JSON_DUMP_CPP) $(DRIVERS_JSON_HPP) $(INTERFA
 	$(DOCKER) $(JSON_CXX) $(JSON_CXXFLAGS) $< -o $@
 
 $(DRIVERS_JSON_OUT): $(DRIVERS_JSON_DUMP_EXE)
-	./$< > $@
+	$(DOCKER) ./$< > $@
 	$(call ok,$@)
 
 .PHONY: json_dump
