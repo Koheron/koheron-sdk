@@ -38,7 +38,14 @@ VIVADO_VERSION := 2025.1
 VIVADO_PATH := /tools/Xilinx/$(VIVADO_VERSION)/Vivado
 VITIS_PATH := /tools/Xilinx/$(VIVADO_VERSION)/Vitis
 VENV := .venv
-HSI := source $(VIVADO_PATH)/settings64.sh && xsct
+VIVADO_MAJOR_VER = $(shell echo $(VIVADO_VERSION) | cut -d. -f1)
+ifeq ($(shell test $(VIVADO_MAJOR_VER) -ge 2024 && echo "true"),true)
+    # Vitis 2024+ - Use xsdb (XSCT deprecated)
+    HSI := source $(VIVADO_PATH)/settings64.sh && xsdb 
+else
+    # Legacy versions (2023.2 and earlier) - Use classic xsct
+    HSI := source $(VIVADO_PATH)/settings64.sh && xsct
+endif
 BOOTGEN := source $(VIVADO_PATH)/settings64.sh && bootgen
 GCC_VERSION := 13
 
