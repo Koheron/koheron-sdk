@@ -33,7 +33,7 @@ export BASH_ENV := $(MAKE_BASH_ENV)
 HOST ?= 192.168.1.100
 TMP ?= tmp
 
-PYTHON_VERSION := 3 
+PYTHON_VERSION := 3
 KOHERON_VERSION := 1.0
 VIVADO_VERSION := 2025.1
 VIVADO_PATH := /tools/Xilinx/$(VIVADO_VERSION)/Vivado
@@ -42,7 +42,7 @@ VENV := .venv
 VIVADO_MAJOR_VER = $(shell echo $(VIVADO_VERSION) | cut -d. -f1)
 ifeq ($(shell test $(VIVADO_MAJOR_VER) -ge 2024 && echo "true"),true)
     # Vitis 2024+ - Use xsdb (XSCT deprecated)
-    HSI := source $(VIVADO_PATH)/settings64.sh && xsdb 
+    HSI := source $(VIVADO_PATH)/settings64.sh && xsdb
 else
     # Legacy versions (2023.2 and earlier) - Use classic xsct
     HSI := source $(VIVADO_PATH)/settings64.sh && xsct
@@ -242,7 +242,7 @@ endif
 # PYTHON SETUP
 ###############################################################################
 
-DISTRO := $(shell ./.setup/get_distro.sh)
+DISTRO := $(shell bash ./.setup/get_distro.sh)
 .PHONY: setup
 setup:
 	sudo bash .setup/install_dependencies_$(DISTRO).sh
