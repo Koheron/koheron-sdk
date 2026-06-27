@@ -33,6 +33,7 @@ export BASH_ENV := $(MAKE_BASH_ENV)
 HOST ?= 192.168.1.100
 TMP ?= tmp
 
+PYTHON_VERSION := 3 
 KOHERON_VERSION := 1.0
 VIVADO_VERSION := 2025.1
 VIVADO_PATH := /tools/Xilinx/$(VIVADO_VERSION)/Vivado
@@ -241,12 +242,13 @@ endif
 # PYTHON SETUP
 ###############################################################################
 
+DISTRO := $(shell ./.setup/get_distro.sh)
 .PHONY: setup
 setup:
-	sudo apt-get install -y curl rsync python3-venv qemu-user-static
-	[ -d $(VENV) ] || python3 -m venv $(VENV)
-	$(VENV)/bin/python3 -m ensurepip --upgrade
-	$(VENV)/bin/python3 -m pip install --upgrade pip
+	sudo bash .setup/install_dependencies_$(DISTRO).sh
+	[ -d $(VENV) ] || python$(PYTHON_VERSION) -m venv $(VENV)
+	$(VENV)/bin/python$(PYTHON_VERSION) -m ensurepip --upgrade
+	$(VENV)/bin/python$(PYTHON_VERSION) -m pip install --upgrade pip
 	$(PIP) install -r $(SDK_PATH)/requirements.txt
 	$(PIP) install $(SDK_PATH)/python
 	bash docker/install_docker.sh
