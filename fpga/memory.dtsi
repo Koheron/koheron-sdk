@@ -8,7 +8,11 @@
 {%- for r in regions %}
     kmem_{{ r.name }}: {{ r.name }}@{{ "%08x"|format(r.base) }} {
         compatible = {{ r.compat_str }};
+{% if arch == 'arm64' %}
+        reg = <0x00000000 0x{{ "%08x"|format(r.base) }} 0x00000000 0x{{ "%08x"|format(r.size) }}>;
+{% else %}
         reg = <0x{{ "%08x"|format(r.base) }} 0x{{ "%08x"|format(r.size) }}>;
+{% endif %}
     };
 {%- endfor %}
 };
