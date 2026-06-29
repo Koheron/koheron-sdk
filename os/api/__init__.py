@@ -241,6 +241,7 @@ class KoheronApp(Flask):
 
     def init_instruments(self, instruments_dirname):
         self.instruments_list = []
+        self.live_instrument = None
 
         for filename in (x for x in os.listdir(instruments_dirname) if x.endswith(".zip")):
             instrument_filename = os.path.join(instruments_dirname, filename)
@@ -296,7 +297,7 @@ def get_instruments_status():
     instruments_status_list = []
     for instrument in app.instruments_list:
         instruments_status_list.append(instrument['name'])
-    instrument_status_live = app.live_instrument['name']
+    instrument_status_live = app.live_instrument['name'] if app.live_instrument else None
     return jsonify({'instruments': instruments_status_list, 'live_instrument': instrument_status_live })
 
 @app.route('/api/instruments/details', methods=['GET'])
