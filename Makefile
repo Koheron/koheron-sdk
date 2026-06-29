@@ -59,7 +59,7 @@ FPGA_PATH := $(SDK_PATH)/fpga
 SERVER_PATH := $(SDK_PATH)/server
 WEB_PATH := $(SDK_PATH)/web
 
-CFG_OPTIONAL_GOALS := help setup python_requirements koheron_python $(PYTHON_REQUIREMENTS_STAMP) $(KOHERON_PYTHON_STAMP)
+CFG_OPTIONAL_GOALS := help doctor setup python_requirements koheron_python $(PYTHON_REQUIREMENTS_STAMP) $(KOHERON_PYTHON_STAMP)
 
 ifneq ($(MAKECMDGOALS),)
 CFG_REQUIRED_GOALS := $(filter-out $(CFG_OPTIONAL_GOALS),$(MAKECMDGOALS))
@@ -78,6 +78,7 @@ help:
 	@echo ' - image        : Build the full image'
 	@echo ' - block_design : Build the Vivado block design interactively'
 	@echo ' - open_project : Open the Vivado .xpr project'
+	@echo ' - doctor       : Check host tools and optional CFG before building'
 
 ifneq ($(strip $(CFG_REQUIRED_GOALS)),)
 
@@ -240,6 +241,14 @@ DOCKER_IMAGE ?= cross-armhf:24.04
 WEB_DOCKER_IMAGE ?= koheron-web:node20
 
 endif
+
+.PHONY: doctor
+doctor:
+	python3 "$(SDK_PATH)/python/koheron/doctor.py" \
+		--sdk-path "$(SDK_PATH)" \
+		--xilinx-version "$(VIVADO_VERSION)" \
+		--vivado-path "$(VIVADO_PATH)" \
+		--vitis-path "$(VITIS_PATH)" $(if $(CFG),--cfg "$(CFG)",)
 
 ###############################################################################
 # PYTHON SETUP
