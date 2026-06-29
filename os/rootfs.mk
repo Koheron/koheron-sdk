@@ -244,7 +244,7 @@ MANIFEST_TXT          := $(TMP_PROJECT_PATH)/manifest-$(RELEASE_NAME).txt
 RELEASE_ZIP := $(TMP_PROJECT_PATH)/$(RELEASE_NAME).zip
 
 # ---------- Manifest generation ----------
-$(MANIFEST_TXT):
+$(MANIFEST_TXT): FORCE
 	@mkdir -p $(@D)
 	@{ \
 	  echo "release=$(RELEASE_NAME)"; \
@@ -262,14 +262,16 @@ $(MANIFEST_TXT):
 	  echo "git_describe=$(GIT_DESCRIBE)"; \
 	  echo "git_dirty=$(GIT_DIRTY)"; \
 	  echo "generated_utc=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)"; \
-	} > $@
+	} > $@.tmp
+	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
+	@rm -f $@.tmp
 
 $(OVERLAY_DIR)/usr/local/share/koheron/manifest.txt: $(MANIFEST_TXT) | $(OVERLAY_DIR)/
 	# ensure parents exist and copy
 	install -D -m0644 $< $@
 
 # ---------- /etc/koheron-release ----------
-$(OVERLAY_DIR)/etc/koheron-release :
+$(OVERLAY_DIR)/etc/koheron-release: FORCE
 	@mkdir -p $(dir $@)
 	@{ \
 	  echo "NAME=Koheron"; \
@@ -282,21 +284,23 @@ $(OVERLAY_DIR)/etc/koheron-release :
 	  echo "GIT_TAG=$(GIT_TAG)"; \
 	  echo "GIT_DESCRIBE=$(GIT_DESCRIBE)"; \
 	  echo "GIT_DIRTY=$(GIT_DIRTY)"; \
-	} > $@
+	} > $@.tmp
+	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
+	@rm -f $@.tmp
 	@chmod 0644 $@
 
 # Stage WWW
 $(OVERLAY_DIR)/usr/local/www/.stamp: $(WWW_ASSETS) | $(OVERLAY_DIR)/
 	# ensure destination exists, then stage
 	mkdir -p $(OVERLAY_DIR)/usr/local/www
-	rsync -a $(TMP_WWW_PATH)/ $(OVERLAY_DIR)/usr/local/www/
+	rsync -a --delete $(TMP_WWW_PATH)/ $(OVERLAY_DIR)/usr/local/www/
 	touch $@
 
 # Stage API
 $(OVERLAY_DIR)/usr/local/api/.stamp: $(API_FILES) | $(OVERLAY_DIR)/
 	# ensure destination exists, then stage
 	mkdir -p $(OVERLAY_DIR)/usr/local/api
-	rsync -a $(TMP_API_PATH)/ $(OVERLAY_DIR)/usr/local/api/
+	rsync -a --delete $(TMP_API_PATH)/ $(OVERLAY_DIR)/usr/local/api/
 	touch $@
 
 # Koheron server bits
@@ -339,18 +343,31 @@ $(OVERLAY_DIR)/usr/local/instruments/unzip_default_instrument.sh: $(OS_PATH)/scr
 COPY_INSTRUMENTS ?=
 COPY_INSTR_FILES := $(addprefix $(TMP)/$(BOARD)/instruments/,$(addsuffix .zip,$(COPY_INSTRUMENTS)))
 
-$(OVERLAY_DIR)/usr/local/instruments/.stamp: $(COPY_INSTR_FILES)
+$(OVERLAY_DIR)/usr/local/instruments/.stamp: FORCE $(COPY_INSTR_FILES)
 	@mkdir -p $(OVERLAY_DIR)/usr/local/instruments
-	@if [ -n "$^" ]; then cp -f $^ $(OVERLAY_DIR)/usr/local/instruments/; fi
-	@touch $@
+	@set -e; \
+	  keep='$(NAME).zip $(addsuffix .zip,$(COPY_INSTRUMENTS))'; \
+	  find $(OVERLAY_DIR)/usr/local/instruments -maxdepth 1 -type f -name '*.zip' | while read -r f; do \
+	    b=$$(basename "$$f"); \
+	    case " $$keep " in *" $$b "*) ;; *) rm -f "$$f" ;; esac; \
+	  done; \
+	  if [ -n "$(COPY_INSTR_FILES)" ]; then cp -f $(COPY_INSTR_FILES) $(OVERLAY_DIR)/usr/local/instruments/; fi; \
+	  { \
+	    printf '%s\n' $(addsuffix .zip,$(COPY_INSTRUMENTS)) | LC_ALL=C sort; \
+	    for f in $(COPY_INSTR_FILES); do sha256sum "$$f"; done; \
+	  } > $@.tmp
+	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
+	@rm -f $@.tmp
 
 $(OVERLAY_DIR)/usr/local/instruments/$(NAME).zip: $(TMP_PROJECT_PATH)/$(NAME).zip
 	install -D -m0644 $< $@
 
-$(OVERLAY_DIR)/usr/local/instruments/default: | $(OVERLAY_DIR)/
+$(OVERLAY_DIR)/usr/local/instruments/default: FORCE | $(OVERLAY_DIR)/
 	# ensure parent dir exists and write default name
 	@mkdir -p $(dir $@)
-	echo "$(NAME).zip" > $@
+	@printf '%s\n' '$(NAME).zip' > $@.tmp
+	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
+	@rm -f $@.tmp
 
 # nginx
 $(OVERLAY_DIR)/etc/nginx/nginx.conf: $(OS_PATH)/config/nginx.conf

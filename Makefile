@@ -67,6 +67,9 @@ else
 CFG_REQUIRED_GOALS := all
 endif
 
+.PHONY: FORCE
+FORCE:
+
 .PHONY: help
 help:
 	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
@@ -160,8 +163,10 @@ endif
 
 BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit
 
-$(VERSION_FILE): | $(TMP_PROJECT_PATH)/
-	@printf '%s\n' '$(VERSION)' > $@
+$(VERSION_FILE): $(CONFIG_MK) | $(TMP_PROJECT_PATH)/
+	@printf '%s\n' '$(VERSION)' > $@.tmp
+	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
+	@rm -f $@.tmp
 
 include $(OS_PATH)/$(ZYNQ_TYPE).mk
 include $(OS_PATH)/linux.mk

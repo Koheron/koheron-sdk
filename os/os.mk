@@ -24,7 +24,7 @@ BOOT_MEDIUM ?= mmcblk0
 ifndef FSBL_PATH
 FSBL_PATH := $(BOARD_PATH)/patches/fsbl
 endif
-FSBL_FILES := $(wildcard $(FSBL_PATH)/*.h $(FSBL_PATH)/*.c)
+FSBL_FILES := $(wildcard $(FSBL_PATH)/*.h $(FSBL_PATH)/*.c $(FSBL_PATH)/*.py)
 
 .PHONY: fsbl
 fsbl: $(TMP_OS_PATH)/fsbl/executable.elf
@@ -65,11 +65,12 @@ $(UBOOT_PATH)/.unpacked: $(UBOOT_TAR) | $(UBOOT_PATH)/
 	$(call ok,$@)
 
 UBOOT_PATCH_FILES := $(shell test -d $(PATCHES)/u-boot && find $(PATCHES)/u-boot -type f)
+UBOOT_CONFIG_FILE := $(wildcard $(PATCHES)/$(UBOOT_CONFIG))
 
 # Configure U-Boot once to avoid concurrent defconfig/mrproper races
 UBOOT_CONFIG_STAMP := $(UBOOT_PATH)/.config
 
-$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES)
+$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONFIG_FILE)
 	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $(UBOOT_PATH) mrproper
@@ -92,7 +93,7 @@ $(TMP_OS_PATH)/u-boot.elf: $(TMP_OS_BOARD_PATH)/u-boot.elf | $(TMP_OS_PATH)/
 ###############################################################################
 
 .PHONY: pmufw
-pmufw: $(TMP_OS_PATH)/pmu/pmufw.elf
+pmufw: $(TMP_OS_PATH)/pmu/executable.elf
 
 $(TMP_OS_PATH)/pmu/Makefile: $(TMP_FPGA_PATH)/$(NAME).xsa
 	mkdir -p $(@D)
@@ -210,15 +211,19 @@ $(TMP_OS_PATH)/pl-overlay/override.dtsi: $(OVERRIDE_DTSI) | $(TMP_OS_PATH)/pl-ov
 	$(call ok,$@)
 
 $(TMP_OS_PATH)/pl-overlay/pl_wrap.dts: $(FPGA_PATH)/pl_wrap.dts | $(TMP_OS_PATH)/pl-overlay/
-	cp $< $@
+	sed -E 's|/include/[[:space:]]+"pl\.dtsi"|/include/ "pl-koheron.dtsi"|' $< > $@
 	$(call ok,$@)
 
+$(TMP_OS_PATH)/pl-overlay/pl-koheron.dtsi: $(TMP_OS_PATH)/pl-overlay/pl.dtsi FORCE
+	@sed 's/".bin"/"$(NAME).bit.bin"/g' $< > $@.tmp
+	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
+	@rm -f $@.tmp
+
 $(TMP_OS_PATH)/pl.dtbo: $(DTC_BIN) \
-  $(TMP_OS_PATH)/pl-overlay/pl.dtsi \
+  $(TMP_OS_PATH)/pl-overlay/pl-koheron.dtsi \
   $(TMP_OS_PATH)/pl-overlay/memory.dtsi \
   $(TMP_OS_PATH)/pl-overlay/override.dtsi \
   $(TMP_OS_PATH)/pl-overlay/pl_wrap.dts
-	sed -i 's/".bin"/"$(NAME).bit.bin"/g' $(TMP_OS_PATH)/pl-overlay/pl.dtsi
 	$(DOCKER) $(DTC_BIN) -@ -I dts -O dtb -b 0 \
 	  -i $(TMP_OS_PATH)/pl-overlay \
 	  -o $@ $(TMP_OS_PATH)/pl-overlay/pl_wrap.dts
@@ -260,6 +265,7 @@ $(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_BUILD_STAMP) | $(TMP_OS_PATH)/
 # kernel.itb
 ###############################################################################
 
+
 define ITS_TEMPLATE
 /dts-v1/;
 / {
@@ -283,7 +289,7 @@ define ITS_TEMPLATE
       type = "flat_dt";
       arch = "$(ARCH)";
       compression = "none";
-	  load = <0x07000000>;
+      load = <0x07000000>;
       hash-1 { algo = "sha256"; };
     };
     overlay_board {

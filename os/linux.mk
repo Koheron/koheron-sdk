@@ -28,23 +28,12 @@ $(LINUX_SYNC_STAMP): $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES)
 	# Mirror patches into the kernel tree
 	rsync -a "$(LINUX_PATCH_DIR)/" "$(LINUX_PATH)/"
 	install -d "$(LINUX_PATH)/drivers/koheron"
-	echo 'obj-y += koheron/' >> "$(LINUX_PATH)/drivers/Makefile"
-	@touch $@
-
-$(LINUX_CONFIG): $(LINUX_PATH)/.unpacked $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig \
-                 $(shell find $(OS_PATH)/patches/linux/drivers/koheron -type f)
-	# 1) hook once (no Kconfig)
-	install -d "$(LINUX_PATH)/drivers/koheron"
-	[ -f "$(LINUX_PATH)/drivers/koheron/Makefile" ] || \
-	  printf 'obj-y += bram_wc.o\n' >"$(LINUX_PATH)/drivers/koheron/Makefile"
 	f="$(LINUX_PATH)/drivers/Makefile"; \
 	grep -qxF 'obj-y += koheron/' "$$f" || echo 'obj-y += koheron/' >> "$$f"
+	@touch $@
 
-	# 2) sync only the koheron subtree
-	rsync -a --delete "$(OS_PATH)/patches/linux/drivers/koheron/" \
-	                "$(LINUX_PATH)/drivers/koheron/"
-
-	# 3) configure only if needed (no mrproper on normal edits)
+$(LINUX_CONFIG): $(LINUX_SYNC_STAMP) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
+	# Configure only if needed
 	if [ ! -f "$(LINUX_PATH)/.config" ]; then \
 	  install -d "$(LINUX_PATH)/arch/$(ARCH)/configs"; \
 	  cp "$(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig" \
@@ -55,7 +44,7 @@ $(LINUX_CONFIG): $(LINUX_PATH)/.unpacked $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfi
 	$(call ok,$@)
 
 # normal build
-$(LINUX_BUILD_STAMP): $(LINUX_CONFIG)
+$(LINUX_BUILD_STAMP): $(LINUX_CONFIG) $(LINUX_SYNC_STAMP)
 	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) \
 	  CROSS_COMPILE=$(GCC_ARCH)- --jobs=$(N_CPUS) $(KERNEL_BIN) dtbs
 	@touch $@

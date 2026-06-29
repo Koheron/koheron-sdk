@@ -70,7 +70,7 @@ list_drivers:
 DRIVERS_LIST_FILE := $(TMP_SERVER_PATH)/drivers.list
 
 # Update the list only if content actually changed (keeps timestamp stable)
-$(DRIVERS_LIST_FILE): | $(TMP_SERVER_PATH)
+$(DRIVERS_LIST_FILE): FORCE | $(TMP_SERVER_PATH)/
 	@{ \
 	  printf "%s\n" $(DRIVERS_HPP) | sed 's|^\./||' | LC_ALL=C sort; \
 	} > $@.tmp
@@ -85,7 +85,7 @@ INTERFACE_DRIVERS_HPP := $(addprefix $(TMP_SERVER_PATH)/interface_,$(notdir $(DR
 
 define RENDER_IFACE_RULES
 $(TMP_SERVER_PATH)/interface_$(notdir $(1)): \
-    $(1) $(SERVER_PATH)/templates/interface_driver.hpp | $(TMP_SERVER_PATH) $(PYTHON_REQUIREMENTS_STAMP)
+    $(1) $(SERVER_PATH)/templates/interface_driver.hpp $(MEMORY_YML) | $(TMP_SERVER_PATH)/ $(PYTHON_REQUIREMENTS_STAMP)
 	$$(call echo-cmd,tpl)
 	$$(Q)$$(MAKE_PY) --render_interface $$@ $(MEMORY_YML) $(1)
 endef
@@ -118,7 +118,7 @@ META_TEMPLATES := $(addprefix $(TMP_SERVER_PATH)/, \
 
 # Render rule that depends on the list *only*
 define _render_template_rule_list
-$1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_LIST_FILE) | $(PYTHON_REQUIREMENTS_STAMP)
+$1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_LIST_FILE) $(MEMORY_YML) | $(PYTHON_REQUIREMENTS_STAMP)
 	$(Q)mkdir -p $(dir $$@)
 	$$(call echo-cmd,tpl)
 	$(Q)$(MAKE_PY) --render_template $$@ $(MEMORY_YML) $$<
@@ -126,7 +126,7 @@ endef
 
 # Render rule that depends on the full set of driver headers
 define _render_template_rule_full
-$1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP) | $(PYTHON_REQUIREMENTS_STAMP)
+$1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP) $(MEMORY_YML) | $(PYTHON_REQUIREMENTS_STAMP)
 	$(Q)mkdir -p $(dir $$@)
 	$$(call echo-cmd,tpl)
 	$(Q)$(MAKE_PY) --render_template $$@ $(MEMORY_YML) $$<
@@ -193,7 +193,15 @@ $(PCH_DST): $(PCH_SRC)
 	@mkdir -p $(dir $@)
 	@cp -f $< $@
 
-$(PCH_GCH): $(PCH_DST)
+PCH_FLAGS_STAMP := $(TMP_PROJECT_PATH)/pch/pch.flags
+
+$(PCH_FLAGS_STAMP): FORCE
+	@mkdir -p $(dir $@)
+	@printf '%s\n' '$(PCH_CXXFLAGS)' > $@.tmp
+	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
+	@rm -f $@.tmp
+
+$(PCH_GCH): $(PCH_DST) $(PCH_FLAGS_STAMP)
 	$(PCH_CXX) -x c++-header $(PCH_CXXFLAGS) -o $@ $<
 
 # Use the PCH for all compilations and ensure it’s built first

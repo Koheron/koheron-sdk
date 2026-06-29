@@ -17,7 +17,7 @@ $(TMP_CORES_PATH)/: ; @mkdir -p $@
 
 define make_core_target
 $(TMP_CORES_PATH)/$(notdir $1)/component.xml: \
-    $(wildcard $1/*.v $1/*.sv $1/*.vh $1/*.vhd $1/*.vhdl) $1/core_config.tcl | $(TMP_CORES_PATH)/
+    $(wildcard $1/*.v $1/*.sv $1/*.vh $1/*.vhd $1/*.vhdl) $1/core_config.tcl $(FPGA_PATH)/vivado/core.tcl | $(TMP_CORES_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/core.tcl -tclargs $1 $(PART) $(TMP_CORES_PATH)
 	$(call ok,$$@)
 endef
@@ -53,7 +53,7 @@ export XDC
 export VENV
 export BD_TCL
 
-$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(MEMORY_TCL) $(TCL_FILES) $(CORES_COMPONENT_XML) $(XDC) | $(TMP_FPGA_PATH)/
+$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(MEMORY_TCL) $(TCL_FILES) $(CORES_COMPONENT_XML) $(XDC) $(CONFIG_MK) $(BOARD_MK) $(FPGA_PATH)/vivado/project.tcl | $(TMP_FPGA_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/project.tcl 2>&1 | $(VIVADO_FILTER)
 	touch $@
 	$(call ok,$@)
@@ -61,14 +61,14 @@ $(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(MEMORY_TCL) $(TCL_FILES) $(CORES_COMPONENT
 .PHONY: xsa
 xsa: $(TMP_FPGA_PATH)/$(NAME).xsa
 
-$(TMP_FPGA_PATH)/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xpr.stamp | $(TMP_FPGA_PATH)/
+$(TMP_FPGA_PATH)/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xpr.stamp $(FPGA_PATH)/vivado/hwdef.tcl | $(TMP_FPGA_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/hwdef.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(N_CPUS) 2>&1 | $(VIVADO_FILTER)
 	$(call ok,$@)
 
 .PHONY: fpga
 fpga: $(BITSTREAM)
 
-$(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xsa | $(TMP_FPGA_PATH)/
+$(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xsa $(FPGA_PATH)/vivado/bitstream.tcl | $(TMP_FPGA_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(ZYNQ_TYPE) $(N_CPUS) 2>&1 | $(VIVADO_FILTER)
 	$(call ok,$@)
 
