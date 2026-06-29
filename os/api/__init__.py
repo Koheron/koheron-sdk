@@ -69,7 +69,7 @@ def _detect_invocation_id() -> str | None:
 
 
 def _collect_from_tail(reader: "_sd_journal.Reader", limit: int) -> list:
-    if limit <= 0:
+    if limit <= 0 or limit > MAX_LINES:
         limit = MAX_LINES
     collected = []
     try:
@@ -401,7 +401,11 @@ def download_instrument_commands(name: str):
 
 @app.route("/api/logs/koheron", methods=["GET"])
 def logs_tail():
-    lines = int(request.args.get("lines", 200))
+    try:
+        lines = int(request.args.get("lines", 200))
+    except ValueError:
+        return jsonify({"error": "invalid lines parameter"}), 400
+
     data = _read(cursor=None, n=lines)
     if not data["entries"]:
         return jsonify({"error": f"no logs for {DEFAULT_UNIT}"}), 404
