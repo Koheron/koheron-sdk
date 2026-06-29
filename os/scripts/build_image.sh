@@ -233,6 +233,7 @@ orig_img_bytes=$(stat -c%s "$image" 2>/dev/null || wc -c <"$image")
 echo "[shrink] original image: $(numfmt --to=iec --suffix=B "$orig_img_bytes" 2>/dev/null || echo ${orig_img_bytes}B)"
 
 # 1) fsck -> shrink to minimum -> fsck again
+fsck_ok_once
 resize2fs -f -M "$root_dev"
 fsck_ok_once
 
