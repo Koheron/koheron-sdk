@@ -231,13 +231,13 @@ class KoheronApp(Flask):
         return instrument
 
     def is_default_instrument(self, instrument_filename, instruments_dirname, default_filename):
-        with open(os.path.join(instruments_dirname, default_filename), 'r') as f:
-            default_instrument_filename = os.path.join(instruments_dirname, f.read().rstrip('\n'))
-
-        if instrument_filename == default_instrument_filename:
-            return True
-        else:
+        try:
+            with open(os.path.join(instruments_dirname, default_filename), 'r') as f:
+                default_instrument_filename = os.path.join(instruments_dirname, f.read().rstrip('\n'))
+        except OSError:
             return False
+
+        return instrument_filename == default_instrument_filename
 
     def init_instruments(self, instruments_dirname):
         self.instruments_list = []
