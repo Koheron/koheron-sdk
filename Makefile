@@ -62,7 +62,8 @@ WEB_PATH := $(SDK_PATH)/web
 CFG_OPTIONAL_GOALS := help doctor list examples setup python_requirements koheron_python $(PYTHON_REQUIREMENTS_STAMP) $(KOHERON_PYTHON_STAMP)
 
 ifneq ($(MAKECMDGOALS),)
-CFG_REQUIRED_GOALS := $(filter-out $(CFG_OPTIONAL_GOALS),$(MAKECMDGOALS))
+# validate parses CFG directly without including the full build graph.
+CFG_REQUIRED_GOALS := $(filter-out $(CFG_OPTIONAL_GOALS) validate,$(MAKECMDGOALS))
 else
 CFG_REQUIRED_GOALS := all
 endif
@@ -82,8 +83,15 @@ help:
 	@echo ' - block_design : Build the Vivado block design interactively'
 	@echo ' - open_project : Open the Vivado .xpr project'
 	@echo ' - doctor       : Check host tools and optional CFG before building'
+	@echo ' - validate     : Validate selected CFG and memory.yml'
 	@echo ' - list         : List available example instruments'
 	@echo ' - examples     : Alias for list'
+
+ifneq ($(filter validate,$(MAKECMDGOALS)),)
+ifndef CFG
+$(call fail,CFG is not defined. Please set CFG to the path of a config.mk file, e.g. `make validate CFG=examples/<board>/<instrument>/config.mk`.)
+endif
+endif
 
 ifneq ($(strip $(CFG_REQUIRED_GOALS)),)
 
@@ -262,6 +270,12 @@ doctor:
 		--xilinx-version "$(VIVADO_VERSION)" \
 		--vivado-path "$(VIVADO_PATH)" \
 		--vitis-path "$(VITIS_PATH)" $(if $(CFG),--cfg "$(CFG)",)
+
+.PHONY: validate
+validate: $(PYTHON_REQUIREMENTS_STAMP)
+	"$(VENV)/bin/python$(PYTHON_VERSION)" "$(SDK_PATH)/python/koheron/validate_config.py" \
+		--sdk-path "$(SDK_PATH)" \
+		--cfg "$(CFG)"
 
 ###############################################################################
 # PYTHON SETUP
