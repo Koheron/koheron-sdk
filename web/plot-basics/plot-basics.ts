@@ -1,3 +1,4 @@
+/// <reference path="canvas-plot.ts" />
 // Plot widget
 // (c) Koheron
 
@@ -16,6 +17,9 @@ class PlotBasics {
     private reset_range: boolean;
     private options: jquery.flot.plotOptions;
     private plot: jquery.flot.plot;
+    private canvasPlot: CanvasPlot;
+    private useCanvasPlot: boolean;
+    private currentPlotData: number[][] = [];
     private seriesOne: jquery.flot.dataSeries[];
 
     private isPeakDetection: boolean = true;
@@ -45,14 +49,12 @@ class PlotBasics {
         this.log_y = false;
         this.decimate = false;
 
+        this.useCanvasPlot = window.location.search.indexOf("canvas=1") >= 0;
         this.setPlot(this.range_x.from, this.range_x.to, this.range_y.from, this.range_y.to);
+        if (this.useCanvasPlot) {
+            this.canvasPlot = new CanvasPlot(this.plot_placeholder);
+        }
         this.seriesOne = [{ label: '', data: [] }];
-        this.rangeSelect(this.rangeFunction);
-        this.dblClick(this.rangeFunction);
-        this.onWheel(this.rangeFunction);
-        this.showHoverPoint();
-        this.showClickPoint();
-        this.plotLeave();
         this.reset_range = true;
 
         this.hoverDatapointSpan = <HTMLSpanElement>document.getElementById("hover-datapoint");
@@ -62,9 +64,16 @@ class PlotBasics {
         this.clickDatapoint = [];
 
         this.peakDatapointSpan = <HTMLSpanElement>document.getElementById("peak-datapoint");
+        this.peakDatapoint = [];
 
         this.LogYaxisFormatter = (val, axis) => {};
 
+        this.rangeSelect(this.rangeFunction);
+        this.dblClick(this.rangeFunction);
+        this.onWheel(this.rangeFunction);
+        this.showHoverPoint();
+        this.showClickPoint();
+        this.plotLeave();
         this.initUnitInputs();
         this.initPeakDetection();
     }
@@ -117,6 +126,11 @@ class PlotBasics {
     }
 
     rangeSelect(rangeFunction: string) {
+        if (this.useCanvasPlot) {
+            // Canvas drag selection is not implemented yet; keep this unsupported in the experimental backend.
+            return;
+        }
+
         this.plot_placeholder.bind("plotselected", (event: JQueryEventObject,
                                                     ranges: jquery.flot.ranges) => {
             // Clamp the zooming to prevent external zoom
@@ -250,8 +264,16 @@ class PlotBasics {
     }
 
     updateDatapointSpan(datapoint: number[], datapointSpan: HTMLSpanElement): void {
-        let positionX: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).left;
-        let positionY: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).top;
+        let positionX: number;
+        let positionY: number;
+
+        if (this.useCanvasPlot && this.canvasPlot) {
+            positionX = this.canvasPlot.dataToCanvasX(datapoint[0]);
+            positionY = this.canvasPlot.dataToCanvasY(datapoint[1]);
+        } else {
+            positionX = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).left;
+            positionY = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).top;
+        }
 
         datapointSpan.innerHTML = "(" + (datapoint[0].toFixed(2)).toString() + "," + datapoint[1].toFixed(2).toString() + ")";
 
@@ -298,21 +320,22 @@ class PlotBasics {
     }
 
     // Decimate visible slice by canvas columns (log-x aware)
-    private decimateToCanva(plot_data: number[][], xMin: number, xMax: number): number[][] {
+    private decimateToCanvas(plot_data: number[][], xMin: number, xMax: number): number[][] {
         const out = this._decimated; out.length = 0;
 
         if (!plot_data.length || !(xMax > xMin)) {
             return out;
         }
 
-        const ph = this.plot?.getPlaceholder() ?? this.plot_placeholder;
-        const wAll = ph.width() || 800;
-        const off = this.plot ? this.plot.getPlotOffset() : { left: 0, right: 0 };
-        const innerW = Math.max(1, wAll - (off.left || 0) - (off.right || 0));
-        const axes = this.plot?.getAxes();
+        const innerW = this.useCanvasPlot && this.canvasPlot ? this.canvasPlot.getInnerWidth() : Math.max(1, (<any>this.plot_placeholder).width() || 800);
 
         const colFromX = (x: number) => {
-            const pt = this.plot!.pointOffset({ x, y: axes.yaxis.min });
+            if (this.useCanvasPlot && this.canvasPlot) {
+                return this.canvasPlot.canvasColumnForX(x);
+            }
+            const off = this.plot.getPlotOffset();
+            const axes = this.plot.getAxes();
+            const pt = this.plot.pointOffset({ x, y: axes.yaxis.min });
             return Math.floor(pt.left - off.left);
         };
 
@@ -363,7 +386,126 @@ class PlotBasics {
         return out;
     }
 
+
+    private interpolateAtX(data: number[][], x: number): number[] {
+        if (data.length === 0) { return []; }
+        const i = this.bsLeft(data, x);
+        const p1 = data[Math.max(0, i - 1)];
+        const p2 = data[Math.min(data.length - 1, i)];
+
+        if (!p1) { return [p2[0], p2[1]]; }
+        if (!p2) { return [p1[0], p1[1]]; }
+        if (p1[0] === p2[0]) { return [p1[0], p1[1]]; }
+
+        return [x, p1[1] + (p2[1] - p1[1]) * (x - p1[0]) / (p2[0] - p1[0])];
+    }
+
+    private nearestPoint(data: number[][], x: number): number[] {
+        if (data.length === 0) { return []; }
+        const i = this.bsLeft(data, x);
+        const p1 = data[Math.max(0, i - 1)];
+        const p2 = data[Math.min(data.length - 1, i)];
+        if (!p1) { return [p2[0], p2[1]]; }
+        if (!p2) { return [p1[0], p1[1]]; }
+        return Math.abs(p1[0] - x) <= Math.abs(p2[0] - x) ? [p1[0], p1[1]] : [p2[0], p2[1]];
+    }
+
+    private pointInRange(datapoint: number[]): boolean {
+        return datapoint.length > 0
+            && this.range_x.from < datapoint[0] && datapoint[0] < this.range_x.to
+            && this.range_y.from < datapoint[1] && datapoint[1] < this.range_y.to;
+    }
+
+    private sanitizeCanvasRanges(): void {
+        if (this.range_y.from === undefined) { this.range_y.from = this.log_y ? Math.max(1, this.y_min) : this.y_min; }
+        if (this.range_y.to === undefined) { this.range_y.to = this.y_max; }
+        if (this.log_y && this.range_y.from <= 0) { this.range_y.from = 1; }
+        if (!(this.range_y.to > this.range_y.from)) { this.range_y.to = this.range_y.from * (this.log_y ? 10 : 1) + (this.log_y ? 0 : 1); }
+        if (this.log_x && this.range_x.from <= 0) { this.range_x.from = 1e-300; }
+        if (!(this.range_x.to > this.range_x.from)) { this.range_x.to = this.range_x.from + 1; }
+    }
+
+    private computeCanvasMarkers(): number[][] {
+        const markers: number[][] = [];
+
+        if (this.clickDatapoint.length > 0 && this.pointInRange(this.clickDatapoint)) {
+            markers.push(this.clickDatapoint);
+        }
+
+        if (this.isPeakDetection && this.peakDatapoint.length > 0 && this.pointInRange(this.peakDatapoint)) {
+            markers.push(this.peakDatapoint);
+        }
+
+        return markers;
+    }
+
+    private updateCanvasMarkers(): void {
+        this.canvasPlot.setMarkers(this.computeCanvasMarkers());
+    }
+
+    private updateCanvasPeak(plot_data: number[][], peakDatapoint: number[]): void {
+        this.peakDatapoint = peakDatapoint;
+
+        if (this.isPeakDetection && this.peakDatapoint.length > 0) {
+            for (let i: number = 0; i < plot_data.length; i++) {
+                if (this.peakDatapoint[1] < plot_data[i][1]) {
+                    this.peakDatapoint[0] = plot_data[i][0];
+                    this.peakDatapoint[1] = plot_data[i][1];
+                }
+            }
+
+            if (this.pointInRange(this.peakDatapoint)) {
+                this.updateDatapointSpan(this.peakDatapoint, this.peakDatapointSpan);
+                this.peakDatapointSpan.style.display = "inline-block";
+                return;
+            }
+        }
+
+        this.peakDatapointSpan.style.display = "none";
+    }
+
+    private redrawCanvas(plot_data: number[][], peakDatapoint: number[], ylabel: string, callback: () => void): void {
+        this.sanitizeCanvasRanges();
+        this.options.xaxis.min = this.range_x.from;
+        this.options.xaxis.max = this.range_x.to;
+        this.options.yaxis.min = this.range_y.from;
+        this.options.yaxis.max = this.range_y.to;
+        this.reset_range = false;
+
+        this.currentPlotData = plot_data;
+        this.canvasPlot.setOptions({
+            xaxis: this.range_x,
+            yaxis: this.range_y,
+            logX: this.log_x,
+            logY: this.log_y,
+            ylabel: ylabel,
+            yTickFormatter: <any>this.LogYaxisFormatter
+        });
+        this.canvasPlot.resize();
+
+        const drawData = this.decimate ? this.decimateToCanvas(plot_data, this.range_x.from, this.range_x.to) : plot_data;
+
+        if (this.clickDatapoint.length > 0) {
+            this.clickDatapoint = this.interpolateAtX(plot_data, this.clickDatapoint[0]);
+            if (this.pointInRange(this.clickDatapoint)) {
+                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan);
+                this.clickDatapointSpan.style.display = "inline-block";
+            } else {
+                this.clickDatapointSpan.style.display = "none";
+            }
+        }
+
+        this.updateCanvasPeak(plot_data, peakDatapoint);
+        this.canvasPlot.setDataAndMarkers(drawData, this.computeCanvasMarkers());
+
+        callback();
+    }
+
     redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void) {
+        if (this.useCanvasPlot) {
+            this.redrawCanvas(plot_data, peakDatapoint, ylabel, callback);
+            return;
+        }
         if (!this.plot) {
             this.seriesOne[0].label = ylabel;
             this.seriesOne[0].data  = []; // temporary
@@ -373,7 +515,7 @@ class PlotBasics {
         if (this.decimate) {
             const xMin = this.reset_range ? this.range_x.from : this.plot.getAxes().xaxis.min;
             const xMax = this.reset_range ? this.range_x.to   : this.plot.getAxes().xaxis.max;
-            const drawData = this.decimateToCanva(plot_data, xMin, xMax);
+            const drawData = this.decimateToCanvas(plot_data, xMin, xMax);
             this.seriesOne[0].data  = drawData;
         } else {
             this.seriesOne[0].data  = plot_data;
@@ -474,6 +616,12 @@ class PlotBasics {
     }
 
     redrawRange(data: number[][], range_x: jquery.flot.range, ylabel: string, callback: () => void): void {
+        if (this.useCanvasPlot) {
+            console.warn("CanvasPlot does not implement redrawRange().");
+            callback();
+            return;
+        }
+
         const plt_data: jquery.flot.dataSeries[] = [{label: ylabel, data: data}];
 
         if (data.length == 0) {
@@ -481,7 +629,7 @@ class PlotBasics {
             return;
         }
 
-        if (this.reset_range) {
+        if (this.reset_range || !this.plot) {
             this.options.xaxis.min = range_x.from;
             this.options.xaxis.max = range_x.to;
             this.options.yaxis.min = this.range_y.from;
@@ -505,6 +653,12 @@ class PlotBasics {
                       is_channel_1: boolean,
                       is_channel_2: boolean,
                       callback: () => void): void {
+        if (this.useCanvasPlot) {
+            console.warn("CanvasPlot does not implement redrawTwoChannels().");
+            callback();
+            return;
+        }
+
         if (ch0.length === 0 || ch1.length === 0) {
             callback();
             return;
@@ -530,7 +684,7 @@ class PlotBasics {
 
         const plt_data: jquery.flot.dataSeries[] = [{label: label1, data: plotCh0}, {label: label2, data: plotCh1}];
 
-        if (this.reset_range) {
+        if (this.reset_range || !this.plot) {
             this.options.xaxis.min = range_x.from;
             this.options.xaxis.max = range_x.to;
             this.options.yaxis.min = this.range_y.from;
@@ -552,33 +706,58 @@ class PlotBasics {
         this.plot_placeholder.bind("wheel", (evt: JQueryEventObject) => {
             let delta: number = (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaX
                                 + (<JQueryMousewheel.JQueryMousewheelEventObject>evt.originalEvent).deltaY;
+            if (delta === 0) {
+                return true;
+            }
             delta /= Math.abs(delta);
 
             const zoomRatio: number = 0.2;
+            if (this.useCanvasPlot) {
+                this.sanitizeCanvasRanges();
+                this.canvasPlot.setOptions({
+                    xaxis: this.range_x,
+                    yaxis: this.range_y,
+                    logX: this.log_x,
+                    logY: this.log_y,
+                    ylabel: "",
+                    yTickFormatter: <any>this.LogYaxisFormatter
+                });
+                this.canvasPlot.resize();
+            }
 
             if ((<JQueryInputEventObject>evt.originalEvent).shiftKey) { // Zoom Y
-                const positionY: number = (<JQueryMouseEventObject>evt.originalEvent).pageY - this.plot.offset().top;
-                const y0: any = this.plot.getAxes().yaxis.c2p(<any>positionY);
+                const positionY: number = (<JQueryMouseEventObject>evt.originalEvent).pageY - (<any>this.plot_placeholder).offset().top;
+                const y0: any = this.useCanvasPlot ? this.canvasPlot.canvasToDataY(positionY) : this.plot.getAxes().yaxis.c2p(<any>positionY);
+                const yMin: number = this.useCanvasPlot ? this.range_y.from : this.plot.getAxes().yaxis.min;
+                const yMax: number = this.useCanvasPlot ? this.range_y.to : this.plot.getAxes().yaxis.max;
 
                 this.range_y = {
-                    from: y0 - (1 + zoomRatio * delta) * (y0 - this.plot.getAxes().yaxis.min),
-                    to: y0 - (1 + zoomRatio * delta) * (y0 - this.plot.getAxes().yaxis.max)
+                    from: y0 - (1 + zoomRatio * delta) * (y0 - yMin),
+                    to: y0 - (1 + zoomRatio * delta) * (y0 - yMax)
                 };
+                if (this.useCanvasPlot) {
+                    this.sanitizeCanvasRanges();
+                }
 
                 this.reset_range = true;
                 return false;
             } else if ((<JQueryInputEventObject>evt.originalEvent).altKey) { // Zoom X
-                const positionX: number = (<JQueryMouseEventObject>evt.originalEvent).pageX - this.plot.offset().left;
-                const x0: any = this.plot.getAxes().xaxis.c2p(<any>positionX);
+                const positionX: number = (<JQueryMouseEventObject>evt.originalEvent).pageX - (<any>this.plot_placeholder).offset().left;
+                const x0: any = this.useCanvasPlot ? this.canvasPlot.canvasToDataX(positionX) : this.plot.getAxes().xaxis.c2p(<any>positionX);
+                const xMin: number = this.useCanvasPlot ? this.range_x.from : this.plot.getAxes().xaxis.min;
+                const xMax: number = this.useCanvasPlot ? this.range_x.to : this.plot.getAxes().xaxis.max;
 
                 if (x0 < 0 || x0  > this.x_max) {
                     return;
                 }
 
                 this.range_x = {
-                    from: Math.max(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.min), 0),
-                    to: Math.min(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.max), this.x_max)
+                    from: Math.max(x0 - (1 + zoomRatio * delta) * (x0 - xMin), 0),
+                    to: Math.min(x0 - (1 + zoomRatio * delta) * (x0 - xMax), this.x_max)
                 };
+                if (this.useCanvasPlot) {
+                    this.sanitizeCanvasRanges();
+                }
 
                 if (rangeFunction.length > 0) {
                     this.driver[rangeFunction](this.range_x);
@@ -615,6 +794,22 @@ class PlotBasics {
     }
 
     showHoverPoint(): void {
+        if (this.useCanvasPlot) {
+            this.plot_placeholder.bind("mousemove", (event: JQueryEventObject) => {
+                if (!this.currentPlotData.length) { return; }
+                const x = (<JQueryMouseEventObject>event.originalEvent).pageX - (<any>this.plot_placeholder).offset().left;
+                const y = (<JQueryMouseEventObject>event.originalEvent).pageY - (<any>this.plot_placeholder).offset().top;
+                if (!this.canvasPlot.isInPlot(x, y)) {
+                    this.hoverDatapointSpan.style.display = "none";
+                    return;
+                }
+                this.hoverDatapoint = this.nearestPoint(this.currentPlotData, this.canvasPlot.canvasToDataX(x));
+                this.hoverDatapointSpan.style.display = "inline-block";
+                this.updateDatapointSpan(this.hoverDatapoint, this.hoverDatapointSpan);
+            });
+            return;
+        }
+
         this.plot_placeholder.bind("plothover", (event: JQueryEventObject, pos, item) => {
             if (item) {
                 this.hoverDatapoint[0] = item.datapoint[0];
@@ -629,6 +824,20 @@ class PlotBasics {
     }
 
     showClickPoint(): void {
+        if (this.useCanvasPlot) {
+            this.plot_placeholder.bind("click", (event: JQueryEventObject) => {
+                if (!this.currentPlotData.length) { return; }
+                const x = (<JQueryMouseEventObject>event.originalEvent).pageX - (<any>this.plot_placeholder).offset().left;
+                const y = (<JQueryMouseEventObject>event.originalEvent).pageY - (<any>this.plot_placeholder).offset().top;
+                if (!this.canvasPlot.isInPlot(x, y)) { return; }
+                this.clickDatapoint = this.nearestPoint(this.currentPlotData, this.canvasPlot.canvasToDataX(x));
+                this.clickDatapointSpan.style.display = "inline-block";
+                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan);
+                this.updateCanvasMarkers();
+            });
+            return;
+        }
+
         this.plot_placeholder.bind("plotclick", (event: JQueryEventObject, pos, item) => {
             if (item) {
                 this.clickDatapoint[0] = item.datapoint[0];
