@@ -34,7 +34,7 @@ cores: $(CORES_COMPONENT_XML)
 
 MEMORY_TCL := $(TMP_FPGA_PATH)/memory.tcl
 
-$(MEMORY_TCL): $(MEMORY_YML) $(FPGA_PATH)/memory.tcl
+$(MEMORY_TCL): $(MEMORY_YML) $(FPGA_PATH)/memory.tcl | $(PYTHON_REQUIREMENTS_STAMP)
 	$(MAKE_PY) --memory_tcl $@ $(MEMORY_YML)
 	$(call ok,$@)
 

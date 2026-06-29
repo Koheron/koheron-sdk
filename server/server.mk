@@ -85,7 +85,7 @@ INTERFACE_DRIVERS_HPP := $(addprefix $(TMP_SERVER_PATH)/interface_,$(notdir $(DR
 
 define RENDER_IFACE_RULES
 $(TMP_SERVER_PATH)/interface_$(notdir $(1)): \
-    $(1) $(SERVER_PATH)/templates/interface_driver.hpp | $(TMP_SERVER_PATH)
+    $(1) $(SERVER_PATH)/templates/interface_driver.hpp | $(TMP_SERVER_PATH) $(PYTHON_REQUIREMENTS_STAMP)
 	$$(call echo-cmd,tpl)
 	$$(Q)$$(MAKE_PY) --render_interface $$@ $(MEMORY_YML) $(1)
 endef
@@ -99,7 +99,7 @@ $(TMP_SERVER_PATH)/interface_drivers.hpp: $(INTERFACE_DRIVERS_HPP)
 # Memory header from YAML
 # -----------------------------------------------------------------------------
 
-$(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp
+$(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp | $(PYTHON_REQUIREMENTS_STAMP)
 	$(Q)mkdir -p $(dir $@)
 	@$(call echo-cmd,tpl)
 	$(Q)$(MAKE_PY) --memory_hpp $@ $(MEMORY_YML)
@@ -118,7 +118,7 @@ META_TEMPLATES := $(addprefix $(TMP_SERVER_PATH)/, \
 
 # Render rule that depends on the list *only*
 define _render_template_rule_list
-$1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_LIST_FILE)
+$1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_LIST_FILE) | $(PYTHON_REQUIREMENTS_STAMP)
 	$(Q)mkdir -p $(dir $$@)
 	$$(call echo-cmd,tpl)
 	$(Q)$(MAKE_PY) --render_template $$@ $(MEMORY_YML) $$<
@@ -126,7 +126,7 @@ endef
 
 # Render rule that depends on the full set of driver headers
 define _render_template_rule_full
-$1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP)
+$1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP) | $(PYTHON_REQUIREMENTS_STAMP)
 	$(Q)mkdir -p $(dir $$@)
 	$$(call echo-cmd,tpl)
 	$(Q)$(MAKE_PY) --render_template $$@ $(MEMORY_YML) $$<

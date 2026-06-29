@@ -33,7 +33,7 @@ SERVER_CCXXFLAGS += -std=c++20 -pthread
 # Memory header from YAML
 # -----------------------------------------------------------------------------
 
-$(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp
+$(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp | $(PYTHON_REQUIREMENTS_STAMP)
 	$(MAKE_PY) --memory_hpp $@ $(MEMORY_YML)
 
 # -----------------------------------------------------------------------------

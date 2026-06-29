@@ -199,7 +199,7 @@ $(TMP_OS_PATH)/pl-overlay/pl.dtsi: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/pl-overlay $< $(BOOT_MEDIUM)
 	$(call ok,$@)
 
-$(TMP_OS_PATH)/pl-overlay/memory.dtsi: $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi | $(TMP_OS_PATH)/pl-overlay/
+$(TMP_OS_PATH)/pl-overlay/memory.dtsi: $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi | $(TMP_OS_PATH)/pl-overlay/ $(PYTHON_REQUIREMENTS_STAMP)
 	$(MAKE_PY) --memory_dtsi $@ $<
 	$(call ok,$@)
 

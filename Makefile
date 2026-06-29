@@ -39,6 +39,9 @@ VIVADO_VERSION := 2025.1
 VIVADO_PATH := /tools/Xilinx/$(VIVADO_VERSION)/Vivado
 VITIS_PATH := /tools/Xilinx/$(VIVADO_VERSION)/Vitis
 VENV := .venv
+PIP ?= $(VENV)/bin/pip
+PYTHON_REQUIREMENTS_STAMP := $(VENV)/.requirements.stamp
+KOHERON_PYTHON_STAMP := $(VENV)/.koheron-python.stamp
 VIVADO_MAJOR_VER = $(shell echo $(VIVADO_VERSION) | cut -d. -f1)
 ifeq ($(shell test $(VIVADO_MAJOR_VER) -ge 2024 && echo "true"),true)
     # Vitis 2024+ - Use xsdb (XSCT deprecated)
@@ -56,7 +59,7 @@ FPGA_PATH := $(SDK_PATH)/fpga
 SERVER_PATH := $(SDK_PATH)/server
 WEB_PATH := $(SDK_PATH)/web
 
-CFG_OPTIONAL_GOALS := help setup
+CFG_OPTIONAL_GOALS := help setup python_requirements koheron_python $(PYTHON_REQUIREMENTS_STAMP) $(KOHERON_PYTHON_STAMP)
 
 ifneq ($(MAKECMDGOALS),)
 CFG_REQUIRED_GOALS := $(filter-out $(CFG_OPTIONAL_GOALS),$(MAKECMDGOALS))
@@ -190,12 +193,12 @@ all: $(INSTRUMENT_ZIP)
 # The "run" target launches the instrument on the Zynq board
 # this is done via the HTTP API (see os/api)
 .PHONY: run
-run: $(INSTRUMENT_ZIP)
-	PYTHONPATH=$(SDK_PATH)/python python3 -m koheron.instrument_runner --host $(HOST) --name $(NAME) $(INSTRUMENT_ZIP)
+run: $(INSTRUMENT_ZIP) $(KOHERON_PYTHON_STAMP)
+	$(VENV)/bin/python3 -m koheron.instrument_runner --host $(HOST) --name $(NAME) $(INSTRUMENT_ZIP)
 	@echo
 
 .PHONY: test
-test:
+test: $(KOHERON_PYTHON_STAMP)
 	HOST=$(HOST) $(VENV)/bin/python3 $(PROJECT_PATH)/test.py
 
 ###############################################################################
@@ -233,7 +236,6 @@ clean_all:
 
 else
 
-PIP ?= $(VENV)/bin/pip
 DOCKER_IMAGE ?= cross-armhf:24.04
 WEB_DOCKER_IMAGE ?= koheron-web:node20
 
@@ -243,15 +245,32 @@ endif
 # PYTHON SETUP
 ###############################################################################
 
+PYTHON_PACKAGE_FILES := $(shell find $(SDK_PATH)/python -type f \
+	\( -name '*.py' -o -name 'setup.py' -o -name 'pyproject.toml' -o -name 'setup.cfg' \) 2>/dev/null)
+
+$(PYTHON_REQUIREMENTS_STAMP): $(SDK_PATH)/requirements.txt
+	@mkdir -p $(@D)
+	@[ -x $(VENV)/bin/python$(PYTHON_VERSION) ] || python$(PYTHON_VERSION) -m venv $(VENV)
+	@$(VENV)/bin/python$(PYTHON_VERSION) -m ensurepip --upgrade >/dev/null
+	@$(VENV)/bin/python$(PYTHON_VERSION) -m pip install --upgrade pip
+	@$(VENV)/bin/python$(PYTHON_VERSION) -m pip install -r $(SDK_PATH)/requirements.txt
+	@touch $@
+	$(call ok,python requirements)
+
+$(KOHERON_PYTHON_STAMP): $(PYTHON_REQUIREMENTS_STAMP) $(PYTHON_PACKAGE_FILES)
+	@$(VENV)/bin/python$(PYTHON_VERSION) -m pip install $(SDK_PATH)/python
+	@touch $@
+	$(call ok,koheron python package)
+
+.PHONY: python_requirements koheron_python
+python_requirements: $(PYTHON_REQUIREMENTS_STAMP)
+koheron_python: $(KOHERON_PYTHON_STAMP)
+
 DISTRO := $(shell bash ./.setup/get_distro.sh)
 .PHONY: setup
 setup:
 	sudo bash .setup/install_dependencies_$(DISTRO).sh
-	[ -d $(VENV) ] || python$(PYTHON_VERSION) -m venv $(VENV)
-	$(VENV)/bin/python$(PYTHON_VERSION) -m ensurepip --upgrade
-	$(VENV)/bin/python$(PYTHON_VERSION) -m pip install --upgrade pip
-	$(PIP) install -r $(SDK_PATH)/requirements.txt
-	$(PIP) install $(SDK_PATH)/python
+	$(MAKE) --no-print-directory $(KOHERON_PYTHON_STAMP)
 	bash docker/install_docker.sh
 	sudo usermod -aG docker $(shell whoami)
 	docker build -f $(DOCKER_PATH)/Dockerfile -t $(DOCKER_IMAGE) $(DOCKER_PATH)
