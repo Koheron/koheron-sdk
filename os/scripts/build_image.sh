@@ -203,7 +203,7 @@ if [ -f "$os_path/scripts/chroot_overlay.sh" ]; then
   mount --bind  /run  "$root_dir/run"  || true
 
   install -D -m0755 "$os_path/scripts/chroot_overlay.sh" "$root_dir/chroot_overlay.sh"
-  chroot "$root_dir" "/usr/bin/$(basename "$qemu_path")" /bin/bash -lc "/bin/bash /chroot_overlay.sh || true"
+  chroot "$root_dir" "/usr/bin/$(basename "$qemu_path")" /bin/bash -lc "/bin/bash /chroot_overlay.sh"
 
   umount -l "$root_dir/run" 2>/dev/null || true
   umount -R  "$root_dir/dev" 2>/dev/null || true
