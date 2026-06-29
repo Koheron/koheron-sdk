@@ -47,8 +47,7 @@ class KoheronClient:
         append(cmd, 0, 4)          # RESERVED
         append(cmd, driver_id, 2)  # driver_id
         append(cmd, cmd_id, 2)     # op_id
-        if self.sock.send(cmd) == 0:
-            raise RuntimeError('send_command: Socket connection broken')
+        self.sock.sendall(cmd)
 
     def recv_all(self, n_bytes):
         '''Receive exactly n_bytes bytes.'''
