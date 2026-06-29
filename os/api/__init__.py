@@ -341,10 +341,21 @@ def upload_instrument():
     if request.method == 'POST':
         filename = next((filename for filename in request.files if is_zip(filename)), None)
         if filename is not None:
-            request.files[filename].save(os.path.join(app.instruments_dirname, secure_filename(filename)))
+            safe_filename = secure_filename(filename)
+            instrument_filename = os.path.join(app.instruments_dirname, safe_filename)
 
-            is_default = app.is_default_instrument(os.path.join(app.instruments_dirname, secure_filename(filename)), app.instruments_dirname, app.default_filename)
-            instrument = app.get_instrument_dict(os.path.join(app.instruments_dirname, secure_filename(filename)), is_default, app.version_filename)
+            request.files[filename].save(instrument_filename)
+
+            if not zipfile.is_zipfile(instrument_filename):
+                os.remove(instrument_filename)
+                return make_response('Invalid instrument archive', 400)
+
+            if not zip_has_file(instrument_filename, app.version_filename):
+                os.remove(instrument_filename)
+                return make_response('Instrument archive missing version file', 400)
+
+            is_default = app.is_default_instrument(instrument_filename, app.instruments_dirname, app.default_filename)
+            instrument = app.get_instrument_dict(instrument_filename, is_default, app.version_filename)
 
             is_instrument_in_list = False
 
@@ -358,8 +369,8 @@ def upload_instrument():
             if not (is_instrument_in_list):
                 app.instruments_list.append(instrument)
 
-            return make_response('Instrument ' + filename + ' uploaded.')
-    return make_response('Instrument upload failed.')
+            return make_response('Instrument ' + safe_filename + ' uploaded.')
+    return make_response('Instrument upload failed.', 400)
 
 @app.route('/api/instruments/commands/<name>', methods=['GET'])
 def download_instrument_commands(name: str):
