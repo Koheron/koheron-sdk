@@ -4,12 +4,29 @@ TMP_FPGA_PATH := $(TMP_PROJECT_PATH)/fpga
 $(TMP_FPGA_PATH):
 	@mkdir -p $@
 
+VIVADO_AWK = awk '\
+  BEGIN { \
+    RED="\033[31;1m"; \
+    YELLOW="\033[33;1m"; \
+    GREEN="\033[32;1m"; \
+    MAGENTA="\033[35;1m"; \
+    CYAN="\033[96;1m"; \
+    RESET="\033[0m"; \
+  } \
+  /^\#/               { $$0 = CYAN $$0 RESET } \
+  /ERROR:/            { sub(/ERROR:/, RED "&" RESET) } \
+  /CRITICAL WARNING:/ { sub(/CRITICAL WARNING:/, MAGENTA "&" RESET) } \
+  /WARNING:/          { sub(/WARNING:/, YELLOW "&" RESET) } \
+  /INFO:/             { sub(/INFO:/, GREEN "&" RESET) } \
+  { print } \
+'
+
 VIVADO := source $(VIVADO_PATH)/settings64.sh && vivado -nolog -nojournal -notrace
 VIVADO_BATCH := $(VIVADO) -mode batch
 
 # Cores
 ###############################################################################
-TMP_CORES_PATH := $(TMP)/cores
+TMP_CORES_PATH := $(TMP_PROJECT_PATH)/cores
 $(TMP_CORES_PATH)/: ; @mkdir -p $@
 
 define make_core_target
@@ -51,7 +68,7 @@ export VENV
 export BD_TCL
 
 $(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(MEMORY_TCL) $(TCL_FILES) $(CORES_COMPONENT_XML) $(XDC) | $(TMP_FPGA_PATH)/
-	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/project.tcl
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/project.tcl 2>&1 | $(VIVADO_AWK)
 	touch $@
 	$(call ok,$@)
 
@@ -59,14 +76,14 @@ $(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(MEMORY_TCL) $(TCL_FILES) $(CORES_COMPONENT
 xsa: $(TMP_FPGA_PATH)/$(NAME).xsa
 
 $(TMP_FPGA_PATH)/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xpr.stamp | $(TMP_FPGA_PATH)/
-	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/hwdef.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(N_CPUS)
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/hwdef.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(N_CPUS) 2>&1 | $(VIVADO_AWK)
 	$(call ok,$@)
 
 .PHONY: fpga
 fpga: $(BITSTREAM)
 
 $(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xsa | $(TMP_FPGA_PATH)/
-	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(ZYNQ_TYPE) $(N_CPUS)
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(ZYNQ_TYPE) $(N_CPUS) 2>&1 | $(VIVADO_AWK)
 	$(call ok,$@)
 
 $(BITSTREAM).bin: $(BITSTREAM)
@@ -78,7 +95,7 @@ $(BITSTREAM).bin: $(BITSTREAM)
 .PHONY: block_design
 block_design: $(MEMORY_TCL) $(TCL_FILES) $(CORES_COMPONENT_XML) $(XDC_FILE)
 	$(VIVADO) -source $(FPGA_PATH)/vivado/block_design.tcl \
-	  -tclargs block_design_
+	  -tclargs block_design_ 2>&1 | $(VIVADO_AWK)
 
 # Open the Vivado project
 .PHONY: open_project
@@ -88,13 +105,13 @@ open_project: $(TMP_FPGA_PATH)/$(NAME).xpr
 # Build and test a module in Vivado GUI
 .PHONY: test_module
 test_module: $(MEMORY_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML)
-	$(VIVADO) -source $(FPGA_PATH)/vivado/test_module.tcl
+	$(VIVADO) -source $(FPGA_PATH)/vivado/test_module.tcl 2>&1 | $(VIVADO_AWK)
 
 # Build and test a core in Vivado GUI
 CORE ?= $(FPGA_PATH)/cores/pdm_v1_0
 .PHONY: test_core
 test_core: $(CORE)/core_config.tcl $(wildcard $(CORE)/*.v $(CORE)/*.sv $(CORE)/*.vh $(CORE)/*.vhd $(CORE)/*.vhdl)
-	$(VIVADO) -source $(FPGA_PATH)/vivado/test_core.tcl -tclargs $(CORE)
+	$(VIVADO) -source $(FPGA_PATH)/vivado/test_core.tcl -tclargs $(CORE) 2>&1 | $(VIVADO_AWK)
 
 # Clean targets
 ###############################################################################
