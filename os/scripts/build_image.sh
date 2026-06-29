@@ -298,11 +298,10 @@ current_end=$(parted -sm "$device" unit s print | awk -F: '/^2:/{gsub(/s/,"",$3)
     [ -s "$f" ] || { echo "Missing required artifact: $f" >&2; exit 1; }
   done
 
-  # compute sha in parallel with page cache warm; zip at fast level
-  sha256sum -- "$img" > "$sha" &
+  # Compute the checksum before zipping so the archive cannot capture
+  # an empty or partially written .sha256 file.
+  sha256sum -- "$img" > "$sha"
 
   # -1 is much faster with small ratio loss; keep -X to strip extra attrs
   zip -X -1 "$zipfile" "$img" "$manifest" "$sha"
-
-  wait  # ensure sha finished (already included in zip)
 )
