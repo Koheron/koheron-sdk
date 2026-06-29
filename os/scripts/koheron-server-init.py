@@ -57,12 +57,14 @@ class KoheronClient:
         while n_rcv < n_bytes:
             try:
                 chunk = self.sock.recv(n_bytes - n_rcv)
-                if chunk == '':
-                    break
+                if chunk == b'':
+                    raise RuntimeError('recv_all: Socket connection closed.')
                 n_rcv += len(chunk)
                 data.append(chunk)
-            except:
-                raise RuntimeError('recv_all: Socket connection broken.')
+            except RuntimeError:
+                raise
+            except Exception as exc:
+                raise RuntimeError('recv_all: Socket connection broken.') from exc
         return b''.join(data)
 
     def recv_dynamic_payload(self):
