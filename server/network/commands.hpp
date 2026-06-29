@@ -150,6 +150,11 @@ class Command
                 comm_fd,
                 std::as_writable_bytes(std::span{buff.data(), pack_len})
             );
+            if (err != static_cast<ssize_t>(pack_len)) {
+                log<ERROR>("TCPSocket: Cannot read command arguments\n");
+                return std::tuple_cat(std::tuple{-1}, std::tuple<Tp...>{});
+            }
+
             session->rx_tracker.update(err);
             return std::tuple_cat(std::tuple{err}, buff.template deserialize<Tp...>());
         } else if (socket_type == WEBSOCK) {
@@ -172,7 +177,7 @@ class Command
             std::as_writable_bytes(std::span{buff.data(), sizeof(uint32_t)})
         );
 
-        if (err < 0) {
+        if (err != static_cast<ssize_t>(sizeof(uint32_t))) {
             log<ERROR>("Cannot read pack length\n");
             return -1;
         }

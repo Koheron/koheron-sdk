@@ -338,34 +338,49 @@ int WebSocket::send_request(const std::string& request) {
 }
 
 int WebSocket::send_request(const unsigned char *bits, int64_t len) {
+    if (len < 0) [[unlikely]] {
+        log<ERROR>("WebSocket: negative send request length\n");
+        return -1;
+    }
+
     if (connection_closed) [[unlikely]] {
         return 0;
     }
 
-    int bytes_send = 0;
-    int remaining = len;
-    int offset = 0;
+    int64_t remaining = len;
+    int64_t offset = 0;
 
-    while ((remaining > 0) &&
-           (bytes_send = ::send(comm_fd, &bits[offset], static_cast<uint32_t>(remaining), MSG_NOSIGNAL | MSG_ZEROCOPY)) > 0) {
+    while (remaining > 0) {
+        const ssize_t bytes_send = ::send(
+            comm_fd,
+            &bits[offset],
+            static_cast<uint32_t>(remaining),
+            MSG_NOSIGNAL | MSG_ZEROCOPY
+        );
+
         if (bytes_send > 0) {
             offset += bytes_send;
             remaining -= bytes_send;
-        } else if (bytes_send == 0) {
+            continue;
+        }
+
+        if (bytes_send == 0) {
             connection_closed = true;
             log("WebSocket: Connection closed by client\n");
             return 0;
         }
-    }
 
-    if (bytes_send < 0) {
+        if (errno == EINTR) {
+            continue;
+        }
+
         connection_closed = true;
-        logf<ERROR>("WebSocket: Cannot send request. Error {}\n", bytes_send);
+        logf<ERROR>("WebSocket: Cannot send request. Error {}\n", errno);
         return -1;
     }
 
-    logf<DEBUG>("[S] {} bytes\n", bytes_send);
-    return bytes_send;
+    logf<DEBUG>("[S] {} bytes\n", offset);
+    return static_cast<int>(offset);
 }
 
 void WebSocket::reset_read_buff() {

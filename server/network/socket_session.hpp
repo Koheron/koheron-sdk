@@ -176,21 +176,32 @@ int SocketSession<socket_type>::write(const R& r) {
         constexpr auto sock_name = listen_channel_desc[socket_type];
 
         const auto bytes_send = sizeof(T) * std::size(r);
-        const int n_bytes_send = ::write(comm_fd, std::data(r), bytes_send);
+        const auto* data = reinterpret_cast<const std::byte*>(std::data(r));
+        std::size_t offset = 0;
 
-        if (n_bytes_send == 0) {
-            logf<ERROR>("{}Socket::write: Connection closed by client\n", sock_name);
-            return 0;
-        }
+        while (offset < bytes_send) {
+            const ssize_t n_bytes_send = ::send(
+                comm_fd,
+                data + offset,
+                bytes_send - offset,
+                MSG_NOSIGNAL
+            );
 
-        if (n_bytes_send < 0) {
-            logf<ERROR>("{}Socket::write: Can't write to client\n", sock_name);
-            return -1;
-        }
+            if (n_bytes_send == 0) {
+                logf<ERROR>("{}Socket::write: Connection closed by client\n", sock_name);
+                return 0;
+            }
 
-        if (n_bytes_send != static_cast<int>(bytes_send)) {
-            logf<ERROR>("{}Socket::write: Some bytes have not been sent\n", sock_name);
-            return -1;
+            if (n_bytes_send < 0) {
+                if (errno == EINTR) {
+                    continue;
+                }
+
+                logf<ERROR>("{}Socket::write: Can't write to client\n", sock_name);
+                return -1;
+            }
+
+            offset += static_cast<std::size_t>(n_bytes_send);
         }
 
         logf<DEBUG>("[S] [{} bytes]\n", bytes_send);
@@ -211,15 +222,55 @@ int SocketSession<socket_type>::send_iov(std::span<const std::byte> header,
             flags &= ~MSG_ZEROCOPY; // not supported for AF_UNIX
         }
 
-        iovec iov[2] = {
-            {const_cast<std::byte*>(header.data()), header.size_bytes()},
-            {const_cast<std::byte*>(payload.data()), payload.size_bytes()}
-        };
+        const std::size_t total_bytes = header.size_bytes() + payload.size_bytes();
+        std::size_t offset = 0;
 
-        msghdr msg{};
-        msg.msg_iov = iov;
-        msg.msg_iovlen = 2;
-        return ::sendmsg(comm_fd, &msg, flags);
+        while (offset < total_bytes) {
+            iovec iov[2]{};
+            std::size_t iovlen = 0;
+
+            if (offset < header.size_bytes()) {
+                iov[iovlen++] = {
+                    const_cast<std::byte*>(header.data() + offset),
+                    header.size_bytes() - offset
+                };
+
+                if (!payload.empty()) {
+                    iov[iovlen++] = {
+                        const_cast<std::byte*>(payload.data()),
+                        payload.size_bytes()
+                    };
+                }
+            } else {
+                const std::size_t payload_offset = offset - header.size_bytes();
+                iov[iovlen++] = {
+                    const_cast<std::byte*>(payload.data() + payload_offset),
+                    payload.size_bytes() - payload_offset
+                };
+            }
+
+            msghdr msg{};
+            msg.msg_iov = iov;
+            msg.msg_iovlen = iovlen;
+
+            const ssize_t bytes_sent = ::sendmsg(comm_fd, &msg, flags);
+
+            if (bytes_sent == 0) {
+                return 0;
+            }
+
+            if (bytes_sent < 0) {
+                if (errno == EINTR) {
+                    continue;
+                }
+
+                return -1;
+            }
+
+            offset += static_cast<std::size_t>(bytes_sent);
+        }
+
+        return static_cast<int>(total_bytes);
     } else if constexpr (socket_type == WEBSOCK) {
         return websock.send(header, payload);
     } else {
