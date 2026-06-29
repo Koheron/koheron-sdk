@@ -1,0 +1,34 @@
+#plot-wrap {
+    position: relative;
+    width: 100%;
+    height: 750px;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.plot-empty {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,0.9);
+    z-index: 2;
+}
+.plot-empty.hidden { display: none; }
+
+#plot-placeholder {
+    width: 100%;
+    height: 100%;
+}
+
+.plot-empty-card {
+    max-width: 360px;
+    padding: 16px 18px;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 6px 24px rgba(0,0,0,.08);
+    text-align: center;
+}
+
+.plot-empty-card h4 { margin: 0 0 6px; }
+.plot-empty-card p  { margin: 0 0 12px; color: #555; }
