@@ -125,11 +125,13 @@ int SocketSession<socket_type>::read_command(Command& cmd) {
             return 0;
         }
 
-        if (websock.payload_size() < Command::HEADER_SIZE) {
+        if (websock.payload_size() < Command::header_size) {
             log<ERROR>("WebSocket: Command too small\n");
             return -1;
         }
 
+        cmd.payload_valid_bytes =
+            static_cast<std::size_t>(websock.payload_size()) - Command::header_size;
         cmd.socket_type = WEBSOCK;
     } else { // TCP/UNIX
         // Read and decode header
@@ -162,8 +164,8 @@ int SocketSession<socket_type>::read_command(Command& cmd) {
     logf<DEBUG>("WebSocket: Receive command for driver {}, operation {}\n",
             cmd.driver, cmd.operation);
 
-    rx_tracker.update(Command::HEADER_SIZE);
-    return Command::HEADER_SIZE;
+    rx_tracker.update(Command::header_size);
+    return Command::header_size;
 }
 
 template<int socket_type>

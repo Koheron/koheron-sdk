@@ -14,6 +14,7 @@
 #include <string_view>
 #include <span>
 #include <cstdint>
+#include <cerrno>
 #include <cstring>
 
 #include <sys/socket.h>
@@ -97,37 +98,38 @@ int WebSocket::authenticate() {
 int WebSocket::read_http_packet() {
     reset_read_buff();
 
-    const ssize_t nb_bytes_rcvd = ::read(comm_fd, read_str.data(), read_str.size());
+    while (read_str_len < read_str.size()) {
+        const ssize_t nb_bytes_rcvd = ::read(
+            comm_fd,
+            read_str.data() + read_str_len,
+            read_str.size() - read_str_len
+        );
 
-    // Check reception ...
-    if (nb_bytes_rcvd < 0) {
-        log<CRITICAL>("WebSocket: Read error\n");
-        return -1;
-    }
-
-    if (nb_bytes_rcvd == KOHERON_READ_STR_LEN) {
-        log<CRITICAL>("WebSocket: Read buffer overflow\n");
-        return -1;
-    }
-
-    if (nb_bytes_rcvd == 0) { // Connection closed by client
-        connection_closed = true;
-        return -1;
-    }
-
-    http_packet = std::string_view(read_str.data(), static_cast<size_t>(nb_bytes_rcvd));
-
-    if (http_packet.find("\r\n\r\n") == std::string_view::npos) {
-        if (static_cast<size_t>(nb_bytes_rcvd) == read_str.size()) {
-            log<CRITICAL>("WebSocket: HTTP header too large for buffer\n");
-        } else {
-            log<CRITICAL>("WebSocket: Incomplete HTTP header\n");
+        if (nb_bytes_rcvd == 0) { // Connection closed by client
+            connection_closed = true;
+            return -1;
         }
-        return -1;
+
+        if (nb_bytes_rcvd < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+
+            log<CRITICAL>("WebSocket: Read error\n");
+            return -1;
+        }
+
+        read_str_len += static_cast<uint32_t>(nb_bytes_rcvd);
+        http_packet = std::string_view(read_str.data(), read_str_len);
+
+        if (http_packet.find("\r\n\r\n") != std::string_view::npos) {
+            log<DEBUG>("[R] HTTP header\n");
+            return static_cast<int>(read_str_len);
+        }
     }
 
-    log<DEBUG>("[R] HTTP header\n");
-    return static_cast<int>(nb_bytes_rcvd);
+    log<CRITICAL>("WebSocket: HTTP header too large for buffer\n");
+    return -1;
 }
 
 int WebSocket::set_send_header(int64_t data_len, unsigned int format) {
@@ -284,27 +286,20 @@ int WebSocket::read_header() {
 }
 
 int WebSocket::read_n_bytes(int64_t bytes, int64_t expected) {
+    if (bytes < 0 || expected < 0) {
+        log<CRITICAL>("WebSocket: negative read size\n");
+        return -1;
+    }
+
     int64_t remaining = bytes;
-    int64_t bytes_read = -1;
 
     while (expected > 0) {
-        while ((remaining > 0) && ((bytes_read = ::read(comm_fd, &read_str[read_str_len], remaining)) > 0)) {
-            if (bytes_read > 0) {
-                read_str_len += bytes_read;
-                remaining -= bytes_read;
-                expected -= bytes_read;
-            }
-
-            if (bytes_read < 0) {
-                log<ERROR>("WebSocket: Cannot read data\n");
-                return -1;
-            }
-
-            if (expected < 0) {
-                expected = 0;
-            }
-
+        if (remaining > static_cast<int64_t>(read_str.size() - read_str_len)) {
+            log<CRITICAL>("WebSocket: Read buffer overflow\n");
+            return -1;
         }
+
+        const ssize_t bytes_read = ::read(comm_fd, &read_str[read_str_len], remaining);
 
         if (bytes_read == 0) {
             log("WebSocket: Connection closed by client\n");
@@ -312,7 +307,24 @@ int WebSocket::read_n_bytes(int64_t bytes, int64_t expected) {
             return 1;
         }
 
-        if (read_str_len == KOHERON_READ_STR_LEN) {
+        if (bytes_read < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+
+            log<ERROR>("WebSocket: Cannot read data\n");
+            return -1;
+        }
+
+        read_str_len += static_cast<uint32_t>(bytes_read);
+        remaining -= bytes_read;
+        expected -= bytes_read;
+
+        if (expected < 0) {
+            expected = 0;
+        }
+
+        if (expected > 0 && read_str_len == read_str.size()) {
             log<CRITICAL>("WebSocket: Read buffer overflow\n");
             return -1;
         }

@@ -14,9 +14,11 @@
 #include "server/utilities/meta_utils.hpp"
 
 #include <cstdint>
+#include <cstddef>
 #include <utility>
 #include <tuple>
 #include <initializer_list>
+#include <span>
 
 namespace net {
 
@@ -117,6 +119,9 @@ class Command
     rt::driver_id driver = 0;    // The driver to control
     uint16_t operation = 0; // Operation ID
     SessionID session_id = -1;   // ID of the session emitting the command
+    std::size_t payload_valid_bytes = 0; // Decoded WebSocket payload bytes after the command header
+
+    static constexpr std::size_t header_size = 8;
 
   private:
     Session *session = nullptr;  // Pointer to the session emitting the command
@@ -124,7 +129,7 @@ class Command
     int comm_fd = -1;
 
     enum Header : uint32_t {
-        HEADER_SIZE = 8,
+        HEADER_SIZE = header_size,
         HEADER_START = 4  // First 4 bytes are reserved
     };
 
@@ -148,8 +153,13 @@ class Command
             session->rx_tracker.update(err);
             return std::tuple_cat(std::tuple{err}, buff.template deserialize<Tp...>());
         } else if (socket_type == WEBSOCK) {
-            return std::tuple_cat(std::tuple{0}, payload.deserialize<Tp...>());
+            if (pack_len > payload.remaining(payload_valid_bytes)) {
+                log<ERROR>("WebSocket: malformed command payload\n");
+                return std::tuple_cat(std::tuple{-1}, std::tuple<Tp...>{});
+            }
+
             session->rx_tracker.update(pack_len);
+            return std::tuple_cat(std::tuple{0}, payload.deserialize<Tp...>());
         } else {
             return std::tuple_cat(std::tuple{-1}, std::tuple<Tp...>());
         }
@@ -208,7 +218,12 @@ class Command
             }
 
             if (nbytes_read == 0) {
-                return 0;
+                if (nbytes_expected == 0) {
+                    return 0;
+                }
+
+                log<ERROR>("TCPSocket: incomplete dynamic container payload\n");
+                return -1;
             }
 
             if (nbytes_read != nbytes_expected) {
@@ -222,10 +237,28 @@ class Command
             return nbytes_read;
         } else if (socket_type == WEBSOCK) {
             // Data already stored in payload
+            using T = typename R::value_type;
+
+            if (sizeof(uint32_t) > payload.remaining(payload_valid_bytes)) {
+                log<ERROR>("WebSocket::rcv dynamic container: Missing payload length\n");
+                return -1;
+            }
+
             const auto [length] = payload.deserialize<uint32_t>();
+            const auto remaining = payload.remaining(payload_valid_bytes);
 
             if (length > CMD_PAYLOAD_BUFFER_LEN) {
                 log<ERROR>("WebSocket::rcv dynamic container: Payload size overflow\n");
+                return -1;
+            }
+
+            if (length > remaining) {
+                log<ERROR>("WebSocket::rcv dynamic container: Malformed payload length\n");
+                return -1;
+            }
+
+            if (length % sizeof(T) != 0) {
+                log<ERROR>("WebSocket::rcv dynamic container: Payload size is not element-aligned\n");
                 return -1;
             }
 

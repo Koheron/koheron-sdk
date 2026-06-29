@@ -35,6 +35,12 @@ struct Buffer
 
     // These functions are used by Websocket
 
+    std::size_t position_value() const noexcept { return position; }
+
+    std::size_t remaining(std::size_t valid_bytes) const noexcept {
+        return position <= valid_bytes ? valid_bytes - position : 0;
+    }
+
     template<typename... Tp>
     std::tuple<Tp...> deserialize() {
         static_assert(required_buffer_size<Tp...>() <= len, "Buffer size too small");
