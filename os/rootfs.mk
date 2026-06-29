@@ -424,7 +424,7 @@ $(RELEASE_ZIP): $(BASE_ROOTFS_TAR) \
 		bash $(OS_PATH)/scripts/build_image.sh \
 		"$(TMP_PROJECT_PATH)" "$(OS_PATH)" "$(TMP_OS_PATH)" \
 		"$(ROOT_TAR_PATH)" "$(OVERLAY_TAR)" "$(QEMU_BIN)" \
-		"$(RELEASE_NAME)"
+		"$(RELEASE_NAME)" "$(BOOT_BIN)"
 	$(call ok,$@)
 
 .PHONY: image

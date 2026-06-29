@@ -10,6 +10,7 @@ root_tar_path=$4          # (unused here; base comes from BASE_ROOTFS_TAR)
 overlay_tar=$5
 qemu_path=${6:-/usr/bin/qemu-arm-static}
 release_name=$7
+boot_bin=${8:-boot.bin}
 
 image="$tmp_project_path/${release_name}.img"
 size=1024
@@ -136,7 +137,8 @@ mountpoint -q "$boot_dir" || { echo "Boot partition not mounted"; exit 1; }
 mkdir -p "$boot_dir/extlinux"
 
 # Copy boot artifacts
-cp "$tmp_os_path/boot.bin" "$tmp_os_path/kernel.itb" "$boot_dir"
+cp "$tmp_os_path/$boot_bin" "$boot_dir/boot.bin"
+cp "$tmp_os_path/kernel.itb" "$boot_dir"
 
 ROOTUUID=$(blkid -s PARTUUID -o value "$root_dev")
 BOOTUUID=$(blkid -s PARTUUID -o value "$boot_dev")
