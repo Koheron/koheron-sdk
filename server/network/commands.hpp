@@ -175,25 +175,51 @@ class Command
         if (socket_type == TCP || socket_type == UNIX) {
             // Read data directly from socket
             using T = R::value_type;
-            const auto length = get_pack_length() / sizeof(T);
 
-            if (length < 0) {
+            const auto nbytes_expected = get_pack_length();
+
+            if (nbytes_expected < 0) {
                 return -1;
             }
 
-            c.resize(length);
-            const auto nbytes = read_exact(
-                comm_fd,
-                std::as_writable_bytes(
-                    std::span{c.data(), static_cast<std::size_t>(length)})
-            );
-
-            if (nbytes >= 0) {
-                session->rx_tracker.update(nbytes + sizeof(uint32_t));
-                logf<DEBUG>("TCPSocket: Received a container of {} bytes\n", length);
+            if (nbytes_expected > CMD_PAYLOAD_BUFFER_LEN) {
+                log<ERROR>("TCPSocket: dynamic container payload too large\n");
+                return -1;
             }
 
-            return nbytes;
+            if (nbytes_expected % static_cast<int64_t>(sizeof(T)) != 0) {
+                log<ERROR>("TCPSocket: dynamic container payload size is not element-aligned\n");
+                return -1;
+            }
+
+            const auto length = nbytes_expected / static_cast<int64_t>(sizeof(T));
+
+            c.resize(static_cast<std::size_t>(length));
+
+            const auto nbytes_read = read_exact(
+                comm_fd,
+                std::as_writable_bytes(
+                    std::span{c.data(), static_cast<std::size_t>(length)}
+                )
+            );
+
+            if (nbytes_read < 0) {
+                return -1;
+            }
+
+            if (nbytes_read == 0) {
+                return 0;
+            }
+
+            if (nbytes_read != nbytes_expected) {
+                log<ERROR>("TCPSocket: incomplete dynamic container payload\n");
+                return -1;
+            }
+
+            session->rx_tracker.update(nbytes_read + sizeof(uint32_t));
+            logf<DEBUG>("TCPSocket: Received a container of {} bytes\n", nbytes_read);
+
+            return nbytes_read;
         } else if (socket_type == WEBSOCK) {
             // Data already stored in payload
             const auto [length] = payload.deserialize<uint32_t>();
