@@ -321,18 +321,18 @@ def run_instrument(name):
 @app.route('/api/instruments/delete/<name>', methods=['GET'])
 def delete_instrument(name):
     zip_filename = secure_filename('{}.zip'.format(name))
-
     instrument_filename = os.path.join(app.instruments_dirname, zip_filename)
-    if os.path.exists(instrument_filename):
-        os.remove(instrument_filename)
 
     for instrument in app.instruments_list:
         if instrument["name"] == name:
             if instrument["is_default"]:
                 return make_response('Default instrument cannot be removed')
-            else:
-                app.instruments_list.remove(instrument)
-                return make_response('Instrument ' + zip_filename + ' removed.')
+            if os.path.exists(instrument_filename):
+                os.remove(instrument_filename)
+            app.instruments_list.remove(instrument)
+            return make_response('Instrument ' + zip_filename + ' removed.')
+
+    return make_response('Instrument not found', 404)
 
 @app.route('/api/instruments/upload', methods=['POST'])
 def upload_instrument():
