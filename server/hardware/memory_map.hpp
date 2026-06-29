@@ -258,10 +258,11 @@ class Memory
         static_assert(mem::is_readable(id), "Not readable");
 
         const std::size_t total_bytes = mem::get_range(id) * mem::get_n_blocks(id);
+        const std::size_t start = std::size_t(block_size) * block_idx + offset;
 
         const std::size_t max_elems =
-            (total_bytes > offset)
-                ? (total_bytes - offset) / sizeof(T)
+            (total_bytes > start)
+                ? (total_bytes - start) / sizeof(T)
                 : 0;
 
         const std::size_t clamped_n = std::min(n, max_elems);
