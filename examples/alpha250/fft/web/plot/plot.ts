@@ -2,6 +2,7 @@
 // (c) Koheron
 
 class Plot {
+    private running: boolean = true;
     public n_pts: number;
     public plot: jquery.flot.plot;
     public plot_data: Array<Array<number>>;
@@ -71,6 +72,7 @@ class Plot {
 
     // Main loop
     async updatePlot() {
+        if (!this.running) { return; }
         // prevent overlapping frames
         if (this._busy) return;
         this._busy = true;
@@ -83,7 +85,7 @@ class Plot {
         if (sinceLast < frameBudgetMs) {
             this._busy = false;
             const wait = Math.ceil(frameBudgetMs - sinceLast);
-            setTimeout(() => requestAnimationFrame(() => this.updatePlot()), wait);
+            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updatePlot(); } }), wait);
             return;
         }
         this._lastTick = now;
@@ -91,6 +93,7 @@ class Plot {
         try {
             // grab PSD
             const psd: Float32Array | number[] = await this.fft.read_psd();
+            if (!this.running) { this._busy = false; return; }
 
             // refresh X axis only if needed
             this.setFreqAxis();
@@ -124,14 +127,15 @@ class Plot {
                     // account for redraw time to keep near targetHz
                     const elapsed = performance.now() - now;
                     const delay = Math.max(0, Math.ceil(frameBudgetMs - elapsed));
-                    setTimeout(() => requestAnimationFrame(() => this.updatePlot()), delay);
+                    setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updatePlot(); } }), delay);
                 }
             );
         } catch (err) {
-            console.error("updatePlot error:", err);
             this._busy = false;
+            if (!this.running) { return; }
+            console.error("updatePlot error:", err);
             // backoff a bit on error
-            setTimeout(() => requestAnimationFrame(() => this.updatePlot()), 500);
+            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updatePlot(); } }), 500);
         }
     }
 
@@ -149,4 +153,9 @@ class Plot {
 
         return outValue;
     }
+
+    dispose(): void {
+        this.running = false;
+    }
+
 }

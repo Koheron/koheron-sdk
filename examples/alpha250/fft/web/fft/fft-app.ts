@@ -2,6 +2,7 @@
 // (c) Koheron
 
 class FFTApp {
+    private running: boolean = true;
     private channelNum: number = 2;
     private fftSelects: HTMLSelectElement[];
     private fftInputs: HTMLInputElement[];
@@ -68,6 +69,7 @@ class FFTApp {
     }
 
     private async updateControls() {
+        if (!this.running) { return; }
         // prevent overlap
         if (this._busyControls) return;
         this._busyControls = true;
@@ -80,7 +82,7 @@ class FFTApp {
         if (sinceLast < frameBudgetMs) {
             this._busyControls = false;
             const wait = Math.ceil(frameBudgetMs - sinceLast);
-            setTimeout(() => requestAnimationFrame(() => this.updateControls()), wait);
+            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updateControls(); } }), wait);
             return;
         }
 
@@ -93,6 +95,7 @@ class FFTApp {
                 this.driver.getControlParameters() as Promise<IFFTStatus>,
                 this.driver.getBoardParameters() as Promise<IBoardParameters>,
             ]);
+            if (!this.running) { this._busyControls = false; return; }
 
             // Update DDS inputs per channel, but skip the channel if any of its inputs is focused
             const active = document.activeElement as HTMLElement | null;
@@ -175,11 +178,12 @@ class FFTApp {
             const elapsed = performance.now() - now;
             const delay = Math.max(0, Math.ceil(frameBudgetMs - elapsed));
             this._busyControls = false;
-            setTimeout(() => requestAnimationFrame(() => this.updateControls()), delay);
+            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updateControls(); } }), delay);
         } catch (err) {
-            console.error("updateControls error:", err);
             this._busyControls = false;
-            setTimeout(() => requestAnimationFrame(() => this.updateControls()), 500);
+            if (!this.running) { return; }
+            console.error("updateControls error:", err);
+            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updateControls(); } }), 500);
         }
     }
 
@@ -199,6 +203,11 @@ class FFTApp {
                 this.driver[(<HTMLInputElement>event.currentTarget).dataset.command]((<HTMLInputElement>event.currentTarget).value);
             })
         }
+    }
+
+
+    dispose(): void {
+        this.running = false;
     }
 
 }

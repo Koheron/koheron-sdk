@@ -78,7 +78,9 @@ class WebSocketPool {
                     if (this.socketCounter === 0) { onOpenCallback(); }
                     websocket.ID = this.socketCounter;
                     websocket.onclose = evt => {
-                        setTimeout(function(){ location.reload(); }, 1000);
+                        if (!this.exiting) {
+                            setTimeout(function(){ location.reload(); }, 1000);
+                        }
                     };
                     websocket.onerror = evt => {
                         console.error(`error: ${evt.data}\n`);
@@ -391,7 +393,11 @@ class Client {
 
     private url: string;
     private driversList: Array<Driver>;
-    private websockpool: WebSocketPool;
+    private websockpool?: WebSocketPool;
+    private connected: boolean = false;
+    private initialized: boolean = false;
+    private exiting: boolean = false;
+    private initTimeoutMs: number = 10000;
 
     constructor(private IP: string, private websockPoolSize: number) {
         if (websockPoolSize == null) { websockPoolSize = 5; }
@@ -400,15 +406,65 @@ class Client {
         this.driversList = [];
     }
 
-    init(callback) {
-        return this.websockpool = new WebSocketPool(this.websockPoolSize, this.url, (function() {
-            return this.loadCmds(callback);
-        }.bind(this)));
+    init(callback?: () => void): Promise<void> {
+        this.exiting = false;
+        this.connected = false;
+        this.initialized = false;
+        this.driversList = [];
+
+        return new Promise<void>((resolve, reject) => {
+            let settled = false;
+            const timer = setTimeout(() => {
+                if (settled) { return; }
+                settled = true;
+                clearTimeout(timer);
+                this.closeWebSocketPool();
+                reject(new Error('WebSocket connection timeout'));
+            }, this.initTimeoutMs);
+
+            try {
+                this.websockpool = new WebSocketPool(this.websockPoolSize, this.url, () => {
+                    if (settled) { return; }
+                    this.connected = true;
+                    this.loadCmds()
+                        .then(() => {
+                            if (settled) { return; }
+                            settled = true;
+                            clearTimeout(timer);
+                            this.initialized = true;
+                            if (callback) { callback(); }
+                            resolve();
+                        })
+                        .catch(err => {
+                            if (settled) { return; }
+                            settled = true;
+                            clearTimeout(timer);
+                            this.closeWebSocketPool();
+                            reject(err instanceof Error ? err : new Error(String(err)));
+                        });
+                });
+            } catch (e) {
+                if (settled) { return; }
+                settled = true;
+                clearTimeout(timer);
+                this.closeWebSocketPool();
+                reject(e instanceof Error ? e : new Error(String(e)));
+            }
+        });
+    }
+
+    private closeWebSocketPool(): void {
+        this.connected = false;
+        this.initialized = false;
+        if (this.websockpool) {
+            this.websockpool.exit();
+            this.websockpool = undefined;
+        }
     }
 
     exit() {
-        this.websockpool.exit();
-        return delete this.websockpool;
+        this.exiting = true;
+        this.closeWebSocketPool();
     }
 
     // ------------------------
@@ -416,7 +472,10 @@ class Client {
     // ------------------------
 
     send(cmd: CmdMessage) {
-        if (this.websockpool === null || typeof this.websockpool === 'undefined') { return; }
+        if (this.exiting) { return; }
+        if (!this.websockpool || !this.initialized) {
+            throw new Error('Client is not initialized. Call and await client.init() before send().');
+        }
 
         this.websockpool.requestSocket( (sockid: number) => {
             if (sockid < 0) { return; }
@@ -501,8 +560,12 @@ class Client {
         cmd: CmdMessage
     ): Promise<DataView> {
         return new Promise<DataView>((resolve, reject) => {
-            if (!this.websockpool) {
-                return reject(new Error('No websocket pool'));
+            if (this.exiting) {
+                return reject(new Error('Client is closed'));
+            }
+
+            if (!this.websockpool || !this.connected) {
+                return reject(new Error('Client is not connected. Call and await client.init() before read().'));
             }
 
             let sockid = -1;
@@ -532,7 +595,7 @@ class Client {
 
             this.websockpool.requestSocket((id: number) => {
                 if (id < 0) {
-                    return reject(new Error('Failed to acquire socket'));
+                    return reject(this.exiting ? new Error('Client is closed') : new Error('Failed to acquire socket'));
                 }
 
                 sockid = id;
@@ -553,12 +616,12 @@ class Client {
 
                 const onError = (_e: Event) => {
                     cleanup(websocket, onMessage, onError, onClose);
-                    reject(new Error('WebSocket error'));
+                    reject(this.exiting ? new Error('Client is closed') : new Error('WebSocket error'));
                 };
 
                 const onClose = () => {
                     cleanup(websocket, onMessage, onError, onClose);
-                    reject(new Error('WebSocket closed before response'));
+                    reject(this.exiting ? new Error('Client is closed') : new Error('WebSocket closed before response'));
                 };
 
                 websocket.addEventListener('message', onMessage, { once: true });
@@ -575,10 +638,20 @@ class Client {
         cb?: (x: T) => void
     ): Promise<T> | void {
         if (cb) {
-            producer().then(cb).catch(() => cb(null as any));
+            producer()
+                .then(cb)
+                .catch(err => {
+                    if (!this.isExpectedShutdownError(err)) {
+                        console.error('Koheron client read error:', err);
+                    }
+                });
             return;
         }
         return producer();
+    }
+
+    private isExpectedShutdownError(err: any): boolean {
+        return err instanceof Error && err.message === 'Client is closed';
     }
 
     readUint32Array(cmd: CmdMessage, fn: (x: Uint32Array) => void): void;
@@ -775,15 +848,26 @@ class Client {
     //  Drivers
     // ------------------------
 
-    loadCmds(callback: () => void) {
-        this.readJSON(Command(1, <ICommand>{'id': 1, 'args': []}), data => {
-            for (let driver of data) {
-                let dev = new Driver(driver.class, driver.id, driver.functions);
-                // dev.show()
-                this.driversList.push(dev);
-            }
-            callback();
-        });
+    loadCmds(callback: () => void): void;
+    loadCmds(): Promise<void>;
+    loadCmds(callback?: () => void): Promise<void> | void {
+        const promise = (this.readJSON(Command(1, <ICommand>{'id': 1, 'args': []})) as Promise<any>)
+            .then(data => {
+                for (let driver of data) {
+                    let dev = new Driver(driver.class, driver.id, driver.functions);
+                    // dev.show()
+                    this.driversList.push(dev);
+                }
+            });
+
+        if (callback) {
+            promise
+                .then(callback)
+                .catch(err => console.error('Koheron command loading error:', err));
+            return;
+        }
+
+        return promise;
     }
 
     getDriver(name: string) {
