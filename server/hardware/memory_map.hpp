@@ -189,14 +189,14 @@ class Memory
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
+        *(volatile uint32_t *) addr = (*((volatile uint32_t *) addr) & ~mask) | (value & mask);
     }
 
     void write_reg_mask(uint32_t offset, uint32_t mask, uint32_t value) {
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = (*((volatile uintptr_t *) addr) & ~mask) | (value & mask);
+        *(volatile uint32_t *) addr = (*((volatile uint32_t *) addr) & ~mask) | (value & mask);
     }
 
     ////////////////////////////////////////
@@ -290,7 +290,7 @@ class Memory
         static_assert(mem::is_readable(id), "Not readable");
 
         uintptr_t addr = base_address + offset;
-        return ((*((volatile uintptr_t *) addr) >> index ) & 1U );
+        return ((*((volatile uint32_t *) addr) >> index ) & 1U );
     }
 
     template<uint32_t offset, uint32_t index>
@@ -299,7 +299,7 @@ class Memory
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1U << index);
+        *(volatile uint32_t *) addr = *((volatile uint32_t *) addr) | (1U << index);
     }
 
     // Set a bit (offset and index defined at run-time)
@@ -307,7 +307,7 @@ class Memory
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) | (1U << index);
+        *(volatile uint32_t *) addr = *((volatile uint32_t *) addr) | (1U << index);
     }
 
     // Clear a bit (offset and index defined at compile-time)
@@ -317,7 +317,7 @@ class Memory
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1U << index);
+        *(volatile uint32_t *) addr = *((volatile uint32_t *) addr) & ~(1U << index);
     }
 
     // Clear a bit (offset and index defined at run-time)
@@ -325,7 +325,7 @@ class Memory
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) & ~(1U << index);
+        *(volatile uint32_t *) addr = *((volatile uint32_t *) addr) & ~(1U << index);
     }
 
     // Toggle a bit (offset and index defined at compile-time)
@@ -335,7 +335,7 @@ class Memory
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1U << index);
+        *(volatile uint32_t *) addr = *((volatile uint32_t *) addr) ^ (1U << index);
     }
 
     // Toggle a bit (offset and index defined at run-time)
@@ -343,7 +343,7 @@ class Memory
         static_assert(mem::is_writable(id), "Not writable");
 
         uintptr_t addr = base_address + offset;
-        *(volatile uintptr_t *) addr = *((volatile uintptr_t *) addr) ^ (1U << index);
+        *(volatile uint32_t *) addr = *((volatile uint32_t *) addr) ^ (1U << index);
     }
 
     // Write a bit (offset and index defined at compile-time)

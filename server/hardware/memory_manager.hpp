@@ -25,20 +25,10 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
     : failed_maps(0)
     {}
 
-    ~MemoryManagerImpl() {
-        for (int& fd : fds) {
-            if (fd >= 0) {
-                ::close(fd);
-            }
-        }
-    }
-
     int open() {
         // Expand over all ids...
         ( [&]{
-            const int fd = std::get<ids>(mem_maps).open();
-            std::get<ids>(fds) = fd;
-            if (fd < 0) {
+            if (std::get<ids>(mem_maps).open() < 0) {
                 logf<ERROR>("MemoryManager: Can't open memory map id = {}\n", ids);
                 failed_maps.push_back(ids);
             }
@@ -53,7 +43,6 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
     }
 
   private:
-    std::array<int, N> fds{};
     std::vector<MemID> failed_maps;
     std::tuple<Memory<ids>...> mem_maps;
 };

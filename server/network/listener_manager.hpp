@@ -20,6 +20,7 @@
 #include <thread>
 #include <chrono>
 #include <filesystem>
+#include <unistd.h>
 
 namespace net {
 
@@ -53,7 +54,7 @@ void session_thread_call(int comm_fd, ListeningChannel<socket_type>* listener) {
     listener->number_of_threads++;
     auto& sm = services::require<SessionManager>();
     auto sid = sm.template create_session<socket_type>(comm_fd);
-    auto session = static_cast<SocketSession<socket_type>*>(&sm.get_session(sid));
+    auto session = std::static_pointer_cast<SocketSession<socket_type>>(sm.get_session_shared(sid));
 
     if (session->run() < 0) {
         log<ERROR>("An error occured during session\n");
@@ -81,6 +82,7 @@ void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerMana
 
         if (listener->is_max_threads()) {
             log<WARNING>("Maximum number of workers exceeded\n");
+            ::close(comm_fd);
             continue;
         }
 
