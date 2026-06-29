@@ -63,7 +63,13 @@ proc add_config_register {module_name memory_name mclk mrstn reg_names {num_port
   }
 
   assign_bd_address [get_bd_addr_segs {axi_${module_name}_register/s_axi/reg0 }]
-  set memory_segment [get_bd_addr_segs /${::ps_name}/Data/SEG_axi_${module_name}_register_reg0]
+  set memory_segment 0
+  
+  if {${::dclass} == "xdma"} {
+    set memory_segment [get_bd_addr_segs /${::ps_name}/M_AXI_LITE/SEG_axi_${module_name}_register_reg0]
+  } else {
+    set memory_segment [get_bd_addr_segs /${::ps_name}/Data/SEG_axi_${module_name}_register_reg0]
+  }
   set_property range  [get_memory_range $memory_name]  $memory_segment
   set_property offset [get_memory_offset $memory_name] $memory_segment
 
@@ -86,6 +92,7 @@ proc add_status_register {module_name memory_name mclk mrstn reg_names {num_port
   for {set i 0} {$i < $num_ports} {incr i} {
     create_bd_pin -dir I -from 31 -to 0 $register($i)
   }
+
 
   # Add a new Master Interface to AXI Interconnect
   set idx [add_master_interface $intercon_idx]
@@ -124,7 +131,11 @@ proc add_status_register {module_name memory_name mclk mrstn reg_names {num_port
   }
 
   assign_bd_address [get_bd_addr_segs {axi_${module_name}_register_0/s_axi/reg0 }]
-  set memory_segment [get_bd_addr_segs /${::ps_name}/Data/SEG_axi_${module_name}_register_0_reg0]
+  if {${::dclass} == "xdma"} {
+    set memory_segment [get_bd_addr_segs /${::ps_name}/M_AXI_LITE/SEG_axi_${module_name}_register_0_reg0]
+  } else {
+    set memory_segment [get_bd_addr_segs /${::ps_name}/Data/SEG_axi_${module_name}_register_0_reg0]
+  }
   set_property range  [get_memory_range $memory_name]  $memory_segment
   set_property offset [get_memory_offset $memory_name] $memory_segment
 

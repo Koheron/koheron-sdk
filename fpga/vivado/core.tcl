@@ -19,6 +19,7 @@ set rtl [concat \
   [glob -nocomplain $core_path/*.sv] \
   [glob -nocomplain $core_path/*.vh] \
   [glob -nocomplain $core_path/*.vhd] \
+  [glob -nocomplain $core_path/*.xci] \
   [glob -nocomplain $core_path/*.vhdl]]
 set cfg [glob -nocomplain $core_path/core_config.tcl]
 set inputs [concat $rtl $cfg]
@@ -59,7 +60,14 @@ if {[file exists $proj_root.xpr]} {
 create_project -part $part $project_name $output_path -force
 
 # Add sources
-foreach f $rtl { add_files -norecurse $f }
+if {[file exists $core_path/load_files.tcl]} {
+    source $sdk_path/fpga/lib/utilities.tcl
+    source $output_path/../fpga/config.tcl
+    source $core_path/load_files.tcl
+    load_files $core_path $output_path $project_name
+} else {
+    foreach f $rtl { add_files -norecurse $f }
+}
 
 # Remove testbenches (fix: use $testbench_files and -nocomplain)
 set testbench_files [glob -nocomplain $core_path/*_tb.v $core_path/*_tb.vh $core_path/*_tb.sv $core_path/*_tb.vhd $core_path/*_tb.vhdl]
