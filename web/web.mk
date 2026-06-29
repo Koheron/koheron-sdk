@@ -44,6 +44,11 @@ $(APP_JS): $(TS_FILES_ABS) | $(TMP_WEB_PATH)/
 endif
 
 BASENAMES            := $(notdir $(NON_TS_FILES_ABS))
+DUPLICATE_BASENAMES  := $(strip $(foreach name,$(sort $(BASENAMES)),$(if $(word 2,$(filter $(name),$(BASENAMES))),$(name))))
+ifneq ($(DUPLICATE_BASENAMES),)
+  $(error Duplicate web asset basename(s): $(DUPLICATE_BASENAMES))
+endif
+
 FLAT_ASSET_TARGETS   := $(addprefix $(TMP_WEB_PATH)/,$(BASENAMES))
 
 define COPY_ONE
