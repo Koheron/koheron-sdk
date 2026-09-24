@@ -2,15 +2,18 @@ LINUX_TAG := xilinx-linux-v$(VIVADO_VERSION)
 LINUX_URL := https://github.com/Xilinx/linux-xlnx/archive/refs/tags/xilinx-v$(VIVADO_VERSION).tar.gz
 LINUX_PATH := $(TMP)/linux-xlnx-$(ARCH)-$(LINUX_TAG)
 LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
+SOURCE_CHECKSUMS := $(OS_PATH)/source-checksums.sha256
+DOWNLOAD_VERIFIED := $(OS_PATH)/scripts/download_verified.sh
 
 DTC_BIN := $(LINUX_PATH)/scripts/dtc/dtc
 
-$(LINUX_TAR):
+$(LINUX_TAR): $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED)
 	mkdir -p $(@D)
-	curl -L $(LINUX_URL) -o $@
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $@ $(LINUX_URL)
 	$(call ok,$@)
 
-$(LINUX_PATH)/.unpacked: $(LINUX_TAR) | $(LINUX_PATH)/
+$(LINUX_PATH)/.unpacked: $(LINUX_TAR) $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED) | $(LINUX_PATH)/
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $(LINUX_TAR) $(LINUX_URL)
 	tar -zxf $< --strip-components=1 -C $(@D)
 	@touch $@
 	$(call ok,$@)
