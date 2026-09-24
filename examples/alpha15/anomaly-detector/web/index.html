@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Anomaly detector · Koheron</title>
+    <link rel="stylesheet" href="anomaly.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <img src="brand.svg" alt="Koheron" class="brand" />
+      <span class="top-divider"></span>
+      <span class="product-name">ALPHA15 <span>/</span> Anomaly detector</span>
+      <span id="connection" class="connection">Connecting</span>
+    </header>
+    <div
+      id="banner"
+      class="banner"
+      role="status"
+      aria-live="polite"
+      hidden
+    ></div>
+    <div class="workspace">
+      <aside class="sidebar">
+        <div class="side-heading">
+          <div class="kicker">INSTRUMENT</div>
+          <h1>Anomaly detector</h1>
+          <p>Continuous, sample-by-sample prediction of ADC0.</p>
+        </div>
+        <div class="signal-route">
+          <span>DAC0</span><i>→</i><span>ADC0</span
+          ><small>physical loopback</small>
+        </div>
+        <section class="side-section">
+          <div class="section-title">
+            <span>Adaptive model</span
+            ><span id="learning-indicator" class="mini-status">Idle</span>
+          </div>
+          <p>
+            Fit recent normal measurements in the background. The FPGA keeps
+            scoring all 15 million samples each second.
+          </p>
+          <button id="learn" class="button blue" disabled>
+            Start adaptive learning
+          </button>
+          <button id="pause" class="button quiet" disabled>
+            Pause learning
+          </button>
+          <div class="side-note" id="learning-detail">
+            Waiting for ADC history.
+          </div>
+        </section>
+        <section class="side-section">
+          <div class="section-title">Detection</div>
+          <label for="threshold"
+            >Alert threshold <small>ADC counts</small></label
+          >
+          <div class="field-row">
+            <input
+              id="threshold"
+              type="number"
+              min="8"
+              max="131071"
+              value="3000"
+            /><button id="apply" class="button" disabled>Apply</button>
+          </div>
+          <div class="side-note">
+            Suggested <strong id="suggested">—</strong> · digital alert on J14
+            (3.3 V)
+          </div>
+          <button id="arm" class="button blue" disabled>Prepare capture</button>
+          <button id="inject" class="button accent" disabled>
+            Inject 1 µs pulse
+          </button>
+          <button id="again" class="button quiet" disabled>
+            Replace held capture
+          </button>
+        </section>
+        <div class="sidebar-bottom">
+          128 MiB circular buffer · 18-bit ADC samples<br />Digital output:
+          B35_0_N (J14 / AD6N)
+        </div>
+      </aside>
+      <main class="main">
+        <div class="page-heading">
+          <div>
+            <div class="kicker">LIVE ANALYSIS</div>
+            <h2>Signal and prediction</h2>
+            <p id="detail">Connecting to the board…</p>
+          </div>
+          <div class="state-pill">
+            <span class="state-dot"></span><span id="status">Connecting</span>
+          </div>
+        </div>
+        <div class="metrics">
+          <div class="metric">
+            <span>LIVE ERROR</span><strong id="score">—</strong
+            ><small>ADC counts</small>
+          </div>
+          <div class="metric">
+            <span>HOLDOUT RMSE</span><strong id="rmse">—</strong
+            ><small>ADC counts</small>
+          </div>
+          <div class="metric">
+            <span>99.9% ERROR</span><strong id="p999">—</strong
+            ><small>ADC counts</small>
+          </div>
+          <div class="metric">
+            <span>MODEL UPDATES</span><strong id="updates">0</strong
+            ><small>without FPGA reload</small>
+          </div>
+        </div>
+        <section class="card trace-card">
+          <div class="card-head">
+            <div>
+              <div class="kicker">OSCILLOSCOPE</div>
+              <h3 id="plot-title">Live ADC0 and predictor</h3>
+            </div>
+            <div class="legend">
+              <span><i class="legend-actual"></i>ADC0</span
+              ><span id="predicted-legend"
+                ><i class="legend-predicted"></i>Prediction</span
+              >
+            </div>
+          </div>
+          <canvas id="plot" aria-label="ADC0 and predicted waveform"></canvas>
+          <div class="axis">
+            <span id="left-time">0 ms</span><span id="right-time">17.5 ms</span>
+          </div>
+          <div id="zoom-controls" class="zoom" hidden>
+            <span>CAPTURE WINDOW</span
+            ><button class="selected" data-span="30000000">2 s</button
+            ><button data-span="1500000">100 ms</button
+            ><button data-span="15000">1 ms</button
+            ><button data-span="1500">100 µs</button
+            ><small>Click plot to center · red line marks trigger</small>
+          </div>
+        </section>
+        <section id="error-card" class="card error-card">
+          <div class="card-head">
+            <div>
+              <div class="kicker">RESIDUAL</div>
+              <h3>Prediction error</h3>
+            </div>
+            <span class="small-label">absolute error · ADC counts</span>
+          </div>
+          <canvas
+            id="error-plot"
+            aria-label="Live prediction error and threshold"
+          ></canvas>
+          <div class="error-note">
+            <span>0</span><span id="error-scale">Threshold 200</span>
+          </div>
+        </section>
+        <div class="lower-grid">
+          <section class="card network-card">
+            <div class="card-head">
+              <div>
+                <div class="kicker">MODEL</div>
+                <h3>Inside the predictor</h3>
+              </div>
+              <span id="model-view-label" class="small-label"
+                >updated live</span
+              >
+            </div>
+            <div
+              class="network"
+              role="img"
+              aria-label="Four previous ADC samples split into positive and negative features, weighted and summed into a prediction"
+            >
+              <div class="network-stage">
+                <span class="stage-name">RECENT ADC0</span>
+                <div class="stack inputs">
+                  <span>x[n−1] <b id="input-0">—</b></span>
+                  <span>x[n−2] <b id="input-1">—</b></span>
+                  <span>x[n−3] <b id="input-2">—</b></span>
+                  <span>x[n−4] <b id="input-3">—</b></span>
+                </div>
+              </div>
+              <div class="network-arrow">›</div>
+              <div class="network-stage">
+                <span class="stage-name">8 ReLU FEATURES</span>
+                <div class="stack features">
+                  <span id="feature-0"
+                    >+ <b id="positive-0">—</b> / −
+                    <b id="negative-0">—</b></span
+                  >
+                  <span id="feature-1"
+                    >+ <b id="positive-1">—</b> / −
+                    <b id="negative-1">—</b></span
+                  >
+                  <span id="feature-2"
+                    >+ <b id="positive-2">—</b> / −
+                    <b id="negative-2">—</b></span
+                  >
+                  <span id="feature-3"
+                    >+ <b id="positive-3">—</b> / −
+                    <b id="negative-3">—</b></span
+                  >
+                </div>
+              </div>
+              <div class="network-arrow">›</div>
+              <div class="network-stage">
+                <span class="stage-name">WEIGHTED SUM</span>
+                <div class="sum-node">Σ</div>
+                <small>bias <span id="bias">—</span></small>
+              </div>
+              <div class="network-arrow">›</div>
+              <div class="network-stage">
+                <span class="stage-name">OUTPUT</span>
+                <div class="output-node">x̂[n]</div>
+                <small>next: <strong id="network-output">—</strong></small>
+                <small id="network-error">|ADC − x̂| → alert</small>
+              </div>
+            </div>
+            <p class="explain">
+              Each of the four previous samples becomes a positive and negative
+              feature. Software updates eight weights from measured ADC0; the
+              FPGA applies them to every new sample.
+            </p>
+          </section>
+          <section class="card predictors-card">
+            <div class="card-head">
+              <div>
+                <div class="kicker">PREDICTOR STATISTICS</div>
+                <h3>Feature contributions</h3>
+              </div>
+              <span class="small-label">mean |effect| on holdout</span>
+            </div>
+            <div class="predictor-head">
+              <span>FEATURE</span><span>WEIGHT</span><span>ADC COUNTS</span>
+            </div>
+            <div id="predictors" class="predictors"></div>
+            <div class="model-foot">
+              <span
+                >Training points <strong id="training-points">—</strong></span
+              ><span>Train MAE <strong id="train-mae">—</strong></span
+              ><span>Holdout MAE <strong id="holdout-mae">—</strong></span>
+            </div>
+          </section>
+        </div>
+        <div class="footnote">
+          Capture preserves 1 s before and 1 s after the trigger. All 30 million
+          retained sample tags are checked before an event is marked valid.
+        </div>
+      </main>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,69 @@
+memory:
+  - name: control
+    offset: 0x4000_0000
+    range: 4K
+    registers:
+    - mmcm
+    - precision_dac_ctl
+    - precision_dac_data[2]
+    - rf_adc_ctl[2]
+    - adp5071_sync
+    - capture_enable
+    - capture_arm
+    - model_enable
+    - anomaly_threshold
+    - model_commit
+    - model_weight_packed[4]
+    - model_bias
+    - inject_toggle
+  - name: ps_control
+    offset: 0x5400_0000
+    range: 4K
+    registers:
+    - spi_cfg_data
+    - spi_cfg_cmd
+    - capture_reset_ps
+  - name: status
+    offset: 0x5000_0000
+    range: 4K
+    registers:
+    - mmcm_sts
+    - adc[n_adc]
+    - adc_overflow
+    - anomaly_score
+    - anomaly_trigger
+    - anomaly_triggered
+    - capture_done
+    - capture_sequence
+    - anomaly_alert
+  - name: ps_status
+    offset: 0x5800_0000
+    range: 4K
+    registers:
+    - spi_cfg_sts
+  - name: xadc
+    offset: 0x43C0_0000
+    range: 64K
+  - name: ram_s2mm
+    offset: 0x1800_0000
+    range: 128M
+  - name: dma
+    offset: 0x4040_0000
+    range: 64K
+  - name: axi_hp2
+    offset: 0xF800_A000
+    range: 4K
+  - name: ocm_s2mm
+    offset: 0xFFFF_8000
+    range: 32K
+  - name: sclr
+    offset: 0xF800_0000
+    range: 64K
+
+parameters:
+  fclk0: 130000000
+  adc_clk: 240000000
+  adp5071_clk: 2400000
+  dac_width: 16
+  adc_width: 18
+  n_adc: 2
