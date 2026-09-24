@@ -1,0 +1,39 @@
+name: Legacy SDK CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  python-and-configs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Build and install the Python package
+        run: |
+          python -m pip install -r requirements.txt build
+          python -m build python
+          python -m pip install python/dist/*.whl
+          python -c 'import koheron; print(koheron.__version__)'
+      - name: Check Python sources and instrument configs
+        run: |
+          python -m compileall -q make.py python server
+          count=0
+          while IFS= read -r -d '' config; do
+            SDK_PATH=. python make.py --config_tcl "$config" "$RUNNER_TEMP/koheron/config.tcl"
+            count=$((count + 1))
+          done < <(find examples -name config.yml -print0)
+          test "$count" -gt 0
+          echo "Rendered $count instrument configurations"
