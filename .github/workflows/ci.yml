@@ -33,6 +33,33 @@ jobs:
           test "$count" -gt 0
           echo "Validated $count instrument configurations"
 
+  server:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install ARM cross-compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            g++-13-arm-linux-gnueabihf ccache libeigen3-dev
+      - name: Build Alpha15 and Zedboard servers
+        env:
+          CPLUS_INCLUDE_PATH: /usr/include/eigen3
+        run: |
+          for config in \
+            examples/alpha15/adc-dac-bram/config.mk \
+            examples/zedboard/led-blinker/config.mk; do
+            project="${config%/config.mk}"
+            make -j2 CFG="$config" DOCKER= N_CPUS=2 V=0 "tmp/$project/serverd"
+          done
+
   u-boot:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
