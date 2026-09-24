@@ -82,11 +82,11 @@ jobs:
         env:
           XILINX_VERSION: ${{ matrix.xilinx-version }}
         run: |
-          curl -fL --retry 3 \
-            "https://github.com/Xilinx/u-boot-xlnx/archive/refs/tags/xilinx-v${XILINX_VERSION}.tar.gz" \
-            -o u-boot.tar.gz
+          archive="u-boot-xlnx-xilinx-uboot-v${XILINX_VERSION}.tar.gz"
+          bash os/scripts/download_verified.sh os/source-checksums.sha256 "$archive" \
+            "https://github.com/Xilinx/u-boot-xlnx/archive/refs/tags/xilinx-v${XILINX_VERSION}.tar.gz"
           mkdir u-boot
-          tar -xzf u-boot.tar.gz --strip-components=1 -C u-boot
+          tar -xzf "$archive" --strip-components=1 -C u-boot
           cp -a boards/alpha250/patches/u-boot/. u-boot/
           make -C u-boot ARCH=arm zynq_alpha250_defconfig
           make -C u-boot -j2 ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- all

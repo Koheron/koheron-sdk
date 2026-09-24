@@ -54,12 +54,13 @@ clean_fsbl:
 # u-boot.elf
 ###############################################################################
 
-$(UBOOT_TAR):
+$(UBOOT_TAR): $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED)
 	mkdir -p $(@D)
-	curl -L $(UBOOT_URL) -o $@
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $@ $(UBOOT_URL)
 	$(call ok,$@)
 
-$(UBOOT_PATH)/.unpacked: $(UBOOT_TAR) | $(UBOOT_PATH)/
+$(UBOOT_PATH)/.unpacked: $(UBOOT_TAR) $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED) | $(UBOOT_PATH)/
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $(UBOOT_TAR) $(UBOOT_URL)
 	tar -zxf $< --strip-components=1 -C $(@D)
 	touch $@
 	$(call ok,$@)
@@ -111,12 +112,13 @@ clean_pmufw:
 # bl31.elf
 ###############################################################################
 
-$(ATRUST_TAR):
+$(ATRUST_TAR): $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED)
 	mkdir -p $(@D)
-	curl -L $(ARMTRUST_URL) -o $@
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $@ $(ARMTRUST_URL)
 	$(call ok,$@)
 
-$(ATRUST_PATH)/.unpacked: $(ATRUST_TAR) | $(ATRUST_PATH)/
+$(ATRUST_PATH)/.unpacked: $(ATRUST_TAR) $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED) | $(ATRUST_PATH)/
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $(ATRUST_TAR) $(ARMTRUST_URL)
 	tar -zxf $< --strip-components=1 -C $(@D)
 	@touch $@
 	$(call ok,$@)
@@ -162,12 +164,13 @@ $(TMP_OS_PATH)/bootmp.bin: \
 # devicetree.dtb
 ###############################################################################
 
-$(DTREE_TAR):
+$(DTREE_TAR): $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED)
 	mkdir -p $(@D)
-	curl -L $(DTREE_URL) -o $@
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $@ $(DTREE_URL)
 	$(call ok,$@)
 
-$(DTREE_PATH)/.unpacked: $(DTREE_TAR) | $(DTREE_PATH)/
+$(DTREE_PATH)/.unpacked: $(DTREE_TAR) $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED) | $(DTREE_PATH)/
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $(DTREE_TAR) $(DTREE_URL)
 	tar -zxf $< --strip-components=1 -C $(@D)
 	@touch $@
 	$(call ok,$@)

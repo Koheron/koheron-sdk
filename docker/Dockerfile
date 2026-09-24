@@ -24,8 +24,10 @@ RUN ln -s /usr/include/eigen3/Eigen /usr/include/Eigen && \
 ARG AARCH64_NONE_ELF_VER=14.3.rel1
 ARG AARCH64_NONE_ELF_BASE=arm-gnu-toolchain-${AARCH64_NONE_ELF_VER}-x86_64-aarch64-none-elf
 ARG AARCH64_NONE_ELF_URL=https://developer.arm.com/-/media/Files/downloads/gnu/${AARCH64_NONE_ELF_VER}/binrel/${AARCH64_NONE_ELF_BASE}.tar.xz
+ARG AARCH64_NONE_ELF_SHA256=ebaf2d47f2e7f7b645864c5c8cf839e526daed83a2e675a3525d03f5ba3d2be9
 
 RUN curl -fsSL "${AARCH64_NONE_ELF_URL}" -o /tmp/agt.tar.xz \
+ && echo "${AARCH64_NONE_ELF_SHA256}  /tmp/agt.tar.xz" | sha256sum -c - \
  && mkdir -p /opt \
  && tar -xJf /tmp/agt.tar.xz -C /opt \
  && ln -s /opt/${AARCH64_NONE_ELF_BASE} /opt/aarch64-none-elf \
