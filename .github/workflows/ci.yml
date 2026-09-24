@@ -20,10 +20,18 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-      - name: Validate instrument configurations
+      - name: Validate all instrument configurations
         run: |
-          make validate CFG=examples/alpha15/adc-dac-bram/config.mk
-          make validate CFG=examples/alpha250/adc-dac-bram/config.mk
+          count=0
+          while IFS= read -r config; do
+            if ! make validate CFG="$config" > /tmp/validate.log 2>&1; then
+              cat /tmp/validate.log
+              exit 1
+            fi
+            count=$((count + 1))
+          done < <(find examples -name config.mk | sort)
+          test "$count" -gt 0
+          echo "Validated $count instrument configurations"
 
   u-boot:
     runs-on: ubuntu-24.04

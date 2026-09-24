@@ -16,7 +16,7 @@ CORES += $(SDK_PATH)/fpga/cores/bus_multiplexer_v1_0
 CORES += $(SDK_PATH)/fpga/cores/pulse_generator_v1_0
 CORES += $(SDK_PATH)/fpga/cores/edge_detector_v1_0
 
-DRIVERS += $(SDK_PATH)/server/drivers/common.hpp
+DRIVERS += $(SDK_PATH)/boards/red-pitaya/drivers/common.hpp
 DRIVERS += $(PROJECT_PATH)/cluster.hpp
 
 WEB_FILES += $(SDK_PATH)/web/index.html
