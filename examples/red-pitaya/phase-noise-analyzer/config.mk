@@ -15,7 +15,7 @@ CORES += $(SDK_PATH)/fpga/cores/axis_lfsr_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_unwrapper_v1_0
 CORES += $(SDK_PATH)/fpga/cores/boxcar_filter_v1_0
 
-DRIVERS += $(SDK_PATH)/server/drivers/common.hpp
+DRIVERS += $(SDK_PATH)/boards/red-pitaya/drivers/common.hpp
 DRIVERS += $(PROJECT_PATH)/dds.hpp
 DRIVERS += $(PROJECT_PATH)/dma.hpp
 

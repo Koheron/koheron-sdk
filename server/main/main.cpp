@@ -16,12 +16,23 @@
 
 #include "server/network/listener_manager.hpp"
 #include "server/executor/executor.hpp"
-#include <drivers.hpp> // For call to Common
+#include <drivers.hpp> // For optional Common initialization
 
 #include <atomic>
 #include <cstdlib>
 
 using services::provide;
+
+class Common;
+
+template<class Driver>
+void init_if_present(rt::DriverManager& dm) {
+    if constexpr (drivers::table::has_driver<Driver>) {
+        if constexpr (rt::HasInit<Driver>) {
+            dm.get<Driver>().init();
+        }
+    }
+}
 
 int main() {
     // /!\ Services initialization order matters
@@ -60,12 +71,8 @@ int main() {
 
     auto dm = provide<rt::DriverManager>(on_fail);
 
-    // If there is a Common driver with an init() method we call it
-    if constexpr (drivers::table::has_driver<Common>) {
-        if constexpr (rt::HasInit<Common>) {
-            dm->get<Common>().init();
-        }
-    }
+    // Initialize Common when the instrument provides it.
+    init_if_present<Common>(*dm);
 
     // ---------- Server ----------
 
