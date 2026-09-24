@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [V1, master]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-configs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Validate instrument configurations
+        run: |
+          make validate CFG=examples/alpha15/adc-dac-bram/config.mk
+          make validate CFG=examples/alpha250/adc-dac-bram/config.mk
+
+  u-boot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        xilinx-version: ['2025.1', '2026.1']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install U-Boot build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential bc gcc-arm-linux-gnueabihf bison flex \
+            libssl-dev libgnutls28-dev swig python3-dev python3-setuptools \
+            device-tree-compiler
+      - name: Build Alpha250 U-Boot
+        env:
+          XILINX_VERSION: ${{ matrix.xilinx-version }}
+        run: |
+          curl -fL --retry 3 \
+            "https://github.com/Xilinx/u-boot-xlnx/archive/refs/tags/xilinx-v${XILINX_VERSION}.tar.gz" \
+            -o u-boot.tar.gz
+          mkdir u-boot
+          tar -xzf u-boot.tar.gz --strip-components=1 -C u-boot
+          cp -a boards/alpha250/patches/u-boot/. u-boot/
+          make -C u-boot ARCH=arm zynq_alpha250_defconfig
+          make -C u-boot -j2 ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- all
