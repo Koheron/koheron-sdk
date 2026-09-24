@@ -45,7 +45,7 @@ Run the helper target to prepare the host:
 make setup
 ```
 
-`make setup` installs host dependencies, creates `.venv`, installs the Koheron Python package, prepares Docker, and builds the SDK Docker images. You may need to log out and back in before Docker commands work without `sudo`.
+`make setup` installs host dependencies, the Koheron Python package, Docker, and the SDK Docker images. It prompts for sudo authentication when needed.
 
 Additional board-specific dependencies (Vivado board files, licenses, etc.) should be installed before launching the build.
 

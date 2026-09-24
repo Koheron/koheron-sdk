@@ -307,7 +307,11 @@ DISTRO := $(shell bash ./.setup/get_distro.sh)
 setup:
 	sudo bash .setup/install_dependencies_$(DISTRO).sh
 	$(MAKE) --no-print-directory $(KOHERON_PYTHON_STAMP)
-	bash docker/install_docker.sh
+	bash docker/install_docker_$(DISTRO).sh
 	sudo usermod -aG docker $(shell whoami)
+	@if ! docker info >/dev/null 2>&1; then \
+		sudo setfacl -m u:$(shell id -u):rw /var/run/docker.sock; \
+	fi
 	docker build -f $(DOCKER_PATH)/Dockerfile -t $(DOCKER_IMAGE) $(DOCKER_PATH)
 	docker build -f $(WEB_PATH)/Dockerfile.web -t $(WEB_DOCKER_IMAGE) $(WEB_PATH)
+	@echo 'Setup complete.'
