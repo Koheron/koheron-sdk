@@ -10,6 +10,7 @@
 #include <linux/phy.h>
 #include <linux/of.h>
 #include <linux/bitfield.h>
+#include <linux/version.h>
 
 #define XWAY_MDIO_MIICTRL		0x17	/* mii control */
 #define XWAY_MDIO_IMASK			0x19	/* interrupt mask */
@@ -168,7 +169,9 @@ static const int xway_internal_delay[] = {0, 500, 1000, 1500, 2000, 2500,
 
 static int xway_gphy_rgmii_init(struct phy_device *phydev)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 18, 0)
 	struct device *dev = &phydev->mdio.dev;
+#endif
 	unsigned int delay_size = ARRAY_SIZE(xway_internal_delay);
 	s32 int_delay;
 	int val = 0;
@@ -201,7 +204,11 @@ static int xway_gphy_rgmii_init(struct phy_device *phydev)
 
 	if (phydev->interface == PHY_INTERFACE_MODE_RGMII_ID ||
 	    phydev->interface == PHY_INTERFACE_MODE_RGMII_RXID) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)
+		int_delay = phy_get_internal_delay(phydev,
+#else
 		int_delay = phy_get_internal_delay(phydev, dev,
+#endif
 						   xway_internal_delay,
 						   delay_size, true);
 
@@ -214,7 +221,11 @@ static int xway_gphy_rgmii_init(struct phy_device *phydev)
 
 	if (phydev->interface == PHY_INTERFACE_MODE_RGMII_ID ||
 	    phydev->interface == PHY_INTERFACE_MODE_RGMII_TXID) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)
+		int_delay = phy_get_internal_delay(phydev,
+#else
 		int_delay = phy_get_internal_delay(phydev, dev,
+#endif
 						   xway_internal_delay,
 						   delay_size, false);
 
