@@ -136,7 +136,7 @@ include $(CONFIG_MK)
 
 MEMORY_YML ?= $(PROJECT_PATH)/memory.yml
 BD_TCL ?= $(PROJECT_PATH)/block_design.tcl
-TCL_FILES ?= $(BD_TCL) $(wildcard $(PROJECT_PATH)/tcl/*.tcl)
+TCL_FILES ?= $(BD_TCL) $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(wildcard $(FPGA_PATH)/lib/*.tcl)
 
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
 

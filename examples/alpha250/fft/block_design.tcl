@@ -1,5 +1,9 @@
 source ${board_path}/starting_point.tcl
 
+# Register PS transactions before the AXI address decoder. The direct
+# PS-to-crossbar decode path does not meet the 200 MHz fabric clock.
+set_property CONFIG.S00_HAS_REGSLICE 1 [get_bd_cells axi_mem_intercon_0]
+
 ####################################
 # Direct Digital Synthesis
 ####################################

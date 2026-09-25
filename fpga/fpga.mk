@@ -68,7 +68,7 @@ $(TMP_FPGA_PATH)/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xpr.stamp $(FPGA_PATH)/vi
 .PHONY: fpga
 fpga: $(BITSTREAM)
 
-$(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xsa $(FPGA_PATH)/vivado/bitstream.tcl | $(TMP_FPGA_PATH)/
+$(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xsa $(FPGA_PATH)/vivado/bitstream.tcl $(FPGA_PATH)/vivado/timing_check.tcl | $(TMP_FPGA_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(ZYNQ_TYPE) $(N_CPUS) 2>&1 | $(VIVADO_FILTER)
 	$(call ok,$@)
 
