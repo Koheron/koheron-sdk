@@ -27,8 +27,14 @@ class FFTApp {
 
     private updateFFTWindowInputs() {
         this.fft.getFFTWindowIndex( (windowIndex: number) => {
-            (<HTMLSelectElement>document.querySelector("[data-command='setFFTWindow']")).value = windowIndex.toString();
-            requestAnimationFrame( () => { this.updateFFTWindowInputs(); } )
+            const select = <HTMLSelectElement>document.querySelector("[data-command='setFFTWindow']");
+            const value = windowIndex.toString();
+            // Assigning even the same value resets a native dropdown's pending
+            // selection. Leave it alone while the user is interacting with it.
+            if (document.activeElement !== select && select.value !== value) {
+                select.value = value;
+            }
+            window.setTimeout(() => this.updateFFTWindowInputs(), 250);
         });
     }
 
