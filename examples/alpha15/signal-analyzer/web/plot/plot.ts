@@ -38,6 +38,15 @@ class Plot {
     // axis unit state
     private yunit = "dBV";
 
+    public get displayUnit(): string {
+        return this.yunit;
+    }
+
+    public get unitLabel(): string {
+        return this.yunit === "v-rtHz" ? "V/√Hz" :
+            this.yunit === "dbv-rtHz" ? "dBV/√Hz" : "dBV";
+    }
+
     constructor(
         private document: Document,
         private fft: FFT,
@@ -185,7 +194,8 @@ class Plot {
             ? "Level per FFT bin. Noise levels depend on each frequency band's resolution bandwidth."
             : "Density per √Hz. Use this view to compare noise across frequency bands.";
         if (peak) {
-            this.document.getElementById("peak-frequency").textContent = peak[0] >= 1000
+            this.document.getElementById("peak-frequency").textContent = peak[0] >= 1e6
+                ? (peak[0] / 1e6).toFixed(4) + " MHz" : peak[0] >= 1000
                 ? (peak[0] / 1000).toFixed(3) + " kHz" : peak[0].toFixed(2) + " Hz";
             let level: string;
             if (this.yunit === "v-rtHz") {

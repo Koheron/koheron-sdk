@@ -89,3 +89,9 @@
     .analyzer-controls { display: block; }
     .analyzer .plot-placeholder { min-height: 280px; height: 45vh; }
 }
+
+/* Keep expanded output controls usable within the acquisition sidebar. */
+.analyzer .precision-dac-input[type=number] { width: 86px; min-height: 30px; padding: 4px 6px; border: 1px solid var(--neutral-border); border-radius: var(--border-radius); }
+.analyzer .precision-dac-input[type=range] { width: 100%; min-width: 64px; accent-color: var(--color); }
+#precision-channels table { width: 100%; }
+.measurement-strip output { white-space: nowrap; }
