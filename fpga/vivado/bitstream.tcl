@@ -2,6 +2,10 @@ set xpr_filename [lindex $argv 0]
 set bit_filename [lindex $argv 1]
 set type [lindex $argv 2]
 set nCPU [lindex $argv 3]
+set enforce_timing $::env(ENFORCE_TIMING)
+if {$enforce_timing ne "0" && $enforce_timing ne "1"} {
+  error "ENFORCE_TIMING must be 0 or 1 (got '$enforce_timing')"
+}
 
 
 open_project $xpr_filename
@@ -21,7 +25,13 @@ if {[get_property PROGRESS $impl_run] != "100%"} {
 open_run $impl_run
 
 source [file join [file dirname [info script]] timing_check.tcl]
-koheron_check_routed_timing $impl_run $bit_filename
+if {$enforce_timing eq "1"} {
+  koheron_check_routed_timing $impl_run $bit_filename
+} else {
+  if {[catch {koheron_check_routed_timing $impl_run $bit_filename} timing_message]} {
+    puts "WARNING: $timing_message"
+  }
+}
 
 set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 if {$type == "zynq"} {

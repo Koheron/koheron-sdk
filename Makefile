@@ -76,6 +76,8 @@ help:
 	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
 	@echo ' - run          : Run the instrument'
 	@echo ' - fpga         : Build the FPGA bitstream'
+	@echo ' - timing       : Check routed FPGA timing (fails on violations)'
+	@echo '                  Set ENFORCE_TIMING := 1 in an example config.mk to enforce during builds'
 	@echo ' - server       : Build the server'
 	@echo ' - web          : Build the web interface'
 	@echo ' - os           : Build the operating system'

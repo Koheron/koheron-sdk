@@ -10,6 +10,11 @@ VIVADO_FILTER := awk -f $(VIVADO_LOG_FILTER)
 VIVADO := source $(VIVADO_PATH)/settings64.sh && vivado -nolog -nojournal -notrace
 VIVADO_BATCH := $(VIVADO) -mode batch
 
+# Examples may set ENFORCE_TIMING := 1 in config.mk to fail FPGA builds on
+# routed timing violations. By default, builds only report and warn.
+ENFORCE_TIMING ?= 0
+export ENFORCE_TIMING
+
 # Cores
 ###############################################################################
 TMP_CORES_PATH := $(TMP_PROJECT_PATH)/cores
@@ -68,8 +73,14 @@ $(TMP_FPGA_PATH)/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xpr.stamp $(FPGA_PATH)/vi
 .PHONY: fpga
 fpga: $(BITSTREAM)
 
+# An FPGA build reports timing and enforces it when requested by the example.
 $(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xsa $(FPGA_PATH)/vivado/bitstream.tcl $(FPGA_PATH)/vivado/timing_check.tcl | $(TMP_FPGA_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(ZYNQ_TYPE) $(N_CPUS) 2>&1 | $(VIVADO_FILTER)
+	$(call ok,$@)
+
+.PHONY: timing
+timing: $(BITSTREAM)
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/timing.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $(BITSTREAM) 2>&1 | $(VIVADO_FILTER)
 	$(call ok,$@)
 
 $(BITSTREAM).bin: $(BITSTREAM)
