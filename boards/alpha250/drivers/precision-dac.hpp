@@ -4,7 +4,9 @@
 #include <context.hpp>
 
 #include <array>
+#include <chrono>
 #include <cmath>
+#include <thread>
 
 #include "eeprom.hpp"
 
@@ -35,7 +37,21 @@ class PrecisionDac
     void init() {
         eeprom.read<eeprom_map::precision_dac_calib::offset>(cal_coeffs);
 
-        ctl.write<reg::precision_dac_ctl>((regs::RESET << 1));
+        // Send a real reset, so that init() brings the DAC to a known state
+        // whatever the previously loaded instrument left behind.
+        //
+        // Two things to be careful with. The core only shifts bits out while
+        // valid (bit 0) is set, so the command needs it too, and it has to
+        // stay put long enough for a whole frame to go out (about 4 us with
+        // the default clock divider). And the command must only change while
+        // the core is stopped: the command bits are read from this register
+        // as the frame is being shifted out, so changing them mid-frame puts
+        // two different commands into the same SPI word.
+        ctl.write<reg::precision_dac_ctl>((regs::RESET << 1) + enable);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        ctl.write<reg::precision_dac_ctl>(0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
         ctl.write<reg::precision_dac_ctl>((regs::WRITE_UPDATE << 1) + enable);
         set_dac_value(0, 0);
         set_dac_value(1, 0);
