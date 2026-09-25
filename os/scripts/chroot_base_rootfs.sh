@@ -86,5 +86,5 @@ eatmydata apt-get -yq install -o Dpkg::Use-Pty=0 --no-install-recommends \
 # Clean & hygiene
 eatmydata apt-get clean
 rm -rf /var/lib/apt/lists/*
-echo "root:${PASSWD}" | chpasswd
+printf 'root:%s\n' "$PASSWD" | chpasswd
 rm -f /root/.bash_history /root/.ash_history /root/.python_history /root/.lesshst || true
