@@ -1,32 +1,7 @@
 <template class="template">
-  <label for="input-range">Input Range:</label>
-
-  <table class="full-width">
-    <tr>
-      <td style="width: 60px;">
-        Ch 0
-      </td>
-      <td style="width: 60px;">
-        <td>
-          <input type="radio" name="input-range-ch0" value="0" checked class="adc-range" data-command="setInputRange">2 V
-          <td>
-        <td>
-          <input type="radio" name="input-range-ch0" value="1" class="adc-range" data-command="setInputRange">8 V
-          <td>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        Ch 1
-      </td>
-      <td>
-        <td>
-          <input type="radio" name="input-range-ch1" value="2" checked class="adc-range" data-command="setInputRange">2 V
-          <td>
-        <td>
-          <input type="radio" name="input-range-ch1" value="3" class="adc-range" data-command="setInputRange">8 V
-          <td>
-      </td>
-    </tr>
+  <span class="control-label">Input range</span>
+  <table>
+    <tr><th scope="row">ADC 0</th><td><label><input type="radio" name="input-range-ch0" value="0" class="adc-range" data-command="setInputRange" checked>2 V</label></td><td><label><input type="radio" name="input-range-ch0" value="1" class="adc-range" data-command="setInputRange">8 V</label></td></tr>
+    <tr><th scope="row">ADC 1</th><td><label><input type="radio" name="input-range-ch1" value="2" class="adc-range" data-command="setInputRange" checked>2 V</label></td><td><label><input type="radio" name="input-range-ch1" value="3" class="adc-range" data-command="setInputRange">8 V</label></td></tr>
   </table>
 </template>

@@ -1,15 +1,7 @@
 <template class="template">
-  <label for="input-channel">Input Channel:</label>
-  <div class="radio-wrapper">
-    <input type="radio" name="input-channel" value="0" checked class="fft-input" data-command="setInputChannel">0
-  </div>
-  <div class="radio-wrapper">
-    <input type="radio" name="input-channel" value="1" class="fft-input" data-command="setInputChannel">1
-  </div>
-  <div class="radio-wrapper">
-    <input type="radio" name="input-channel" value="2" class="fft-input" data-command="setInputChannel">0 - 1
-  </div>
-  <div class="radio-wrapper">
-    <input type="radio" name="input-channel" value="3" class="fft-input" data-command="setInputChannel">0 + 1
-  </div>
+ <span class="control-label">Input channel</span>
+ <label class="radio-wrapper"><input type="radio" name="input-channel" value="0" class="fft-input" data-command="setInputChannel" checked>ADC 0</label>
+ <label class="radio-wrapper"><input type="radio" name="input-channel" value="1" class="fft-input" data-command="setInputChannel">ADC 1</label>
+ <label class="radio-wrapper"><input type="radio" name="input-channel" value="2" class="fft-input" data-command="setInputChannel">0 − 1</label>
+ <label class="radio-wrapper"><input type="radio" name="input-channel" value="3" class="fft-input" data-command="setInputChannel">0 + 1</label>
 </template>

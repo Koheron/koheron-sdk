@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>Koheron</title>
+  <title>ALPHA15 · Signal analyzer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Koheron">
   <meta charset="utf-8">
@@ -16,6 +16,7 @@
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
+  <link rel="stylesheet" href="analyzer.css">
 
   <script type="text/javascript" src="html-imports.min.js"></script>
 
@@ -42,38 +43,24 @@
 
 <div id="navigation"></div>
 
-<div id="main" class="container-fluid" style="padding: 10px">
-  <div class="row">
-    <div class="col-md-8">
+<main id="main" class="analyzer">
+  <header class="analyzer-header"><div><p class="eyebrow">KOHERON · ALPHA15</p><h1>Signal analyzer</h1></div><span class="instrument-note">10 Hz – 7.5 MHz</span></header>
+  <div class="analyzer-layout">
+    <section class="panel spectrum-panel" aria-label="Spectrum">
+      <div class="plot-toolbar"><h2>Spectrum</h2><button id="reset-view" class="default-btn" disabled>Reset view</button></div>
       <div id="plot-placeholder" class="plot-placeholder"></div>
       <div id="plot-basics"></div>
-    </div>
-
-    <div class="col-md-4">
-      <section style="margin-bottom: 20px;">
-        <div id="yunit"></div>
-        <div id="fft-window"></div>
-        <div id="input-channel"></div>
-        <div id="input-range"></div>
-        <div id="reference-clock"></div>
-        <div id="sampling-frequency"></div>
-        <div id="peak-detection"></div>
-        <div>
-          <section id="precision-channels"></section>
-        </div>
-        <div>
-          <section id="temperature-sensor"></section>
-        </div>
-        <div>
-          <section id="power-monitor"></section>
-        </div>
-      </section>
-
-      <!-- <section id="dds-frequency"></section> -->
+      <p class="plot-help">Drag to zoom · Double-click to reset · Click a point to mark it</p>
+      <div class="plot-controls"><div id="yunit"></div><div id="peak-detection"></div></div>
       <section id="export-file"></section>
-    </div>
+    </section>
+    <aside class="analyzer-controls">
+      <section class="panel"><h2>Acquisition</h2><div id="input-channel"></div><div id="input-range"></div><div id="fft-window"></div><div id="reference-clock"></div></section>
+      <details class="panel"><summary>Precision DAC outputs</summary><section id="precision-channels"></section></details>
+      <details class="panel" open><summary>Board status</summary><section id="temperature-sensor"></section><section id="power-monitor"></section></details>
+    </aside>
   </div>
-</div>
+</main>
 
 <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
 <script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
@@ -83,8 +70,6 @@
 <script language="javascript" type="text/javascript" src="jquery.flot.canvas.js"></script>
 
 <script src="app.js?random=<?php echo uniqid(); ?>"></script>
-
-</div>
 
 </body>
 
