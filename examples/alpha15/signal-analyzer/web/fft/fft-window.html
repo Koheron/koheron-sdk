@@ -1,9 +1,10 @@
 <template class="template">
-  <label class="control-label" for="window">FFT Window:</label>
-  <select id="window" class="fft-select" data-command="setFFTWindow">
-    <option value="0" selected>Rectangular</option>
-    <option value="1">Hann</option>
-    <option value="2">Flat Top</option>
-    <option value="3">Blackman-Harris</option>
-  </select>
+  <span id="window-label" class="control-label">FFT window</span>
+  <div class="fft-window-buttons" role="group" aria-labelledby="window-label">
+    <button type="button" class="default-btn fft-window-button" value="0" aria-pressed="false" disabled>Rectangular</button>
+    <button type="button" class="default-btn fft-window-button" value="1" aria-pressed="false" disabled>Hann</button>
+    <button type="button" class="default-btn fft-window-button" value="2" aria-pressed="false" disabled>Flat Top</button>
+    <button type="button" class="default-btn fft-window-button" value="3" aria-pressed="false" disabled>Blackman-Harris</button>
+  </div>
+  <span id="window-status" class="control-help" role="status"></span>
 </template>

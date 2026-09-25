@@ -40,6 +40,10 @@ class Plot {
     // axis unit state
     private yunit = "dBV";
 
+    public get windowLabel(): string {
+        return ["Rectangular", "Hann", "Flat Top", "Blackman-Harris"][this.fft.windowIndex];
+    }
+
     public get displayUnit(): string {
         return this.yunit;
     }
@@ -225,9 +229,8 @@ class Plot {
         }
         const channel = this.fft.status.channel;
         const names = ["ADC 0", "ADC 1", "ADC 0 − ADC 1", "ADC 0 + ADC 1"];
-        const windowSelect = <HTMLSelectElement>this.document.getElementById("window");
         this.document.getElementById("measurement-context").textContent =
-            (names[channel] || "ADC") + " · " + windowSelect.options[windowSelect.selectedIndex].text;
+            (names[channel] || "ADC") + " · " + this.windowLabel;
     }
 
     private convertValue(value: number, fs: number): number {

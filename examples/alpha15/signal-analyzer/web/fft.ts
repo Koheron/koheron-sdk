@@ -15,6 +15,7 @@ class FFT {
     private cmds: Commands;
 
     public fft_size: number;
+    public windowIndex = 1;
     public status: IFFTStatus;
 
     constructor (private client: Client) {

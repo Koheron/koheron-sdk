@@ -2,18 +2,38 @@
 // (c) Koheron
 
 class FFTApp {
-    // private channelNum: number = 2;
-    private fftSelects: HTMLSelectElement[];
+    private windowButtons: NodeListOf<HTMLButtonElement>;
     private fftInputs: HTMLInputElement[];
+    private windowRevision = 0;
+    private pendingWindow: number = null;
+    private windowDeadline = 0;
 
-    constructor(document: Document, private fft: FFT, private decimator: Decimator) {
-        this.fftSelects = <HTMLSelectElement[]><any>document.getElementsByClassName("fft-select");
-        this.initFFTSelects();
+    constructor(private document: Document, private fft: FFT, private decimator: Decimator) {
+        this.windowButtons = document.querySelectorAll<HTMLButtonElement>(".fft-window-button");
+        for (let i = 0; i < this.windowButtons.length; i++) {
+            this.windowButtons[i].addEventListener("click", () => {
+                const index = Number(this.windowButtons[i].value);
+                this.windowRevision++;
+                this.pendingWindow = index;
+                this.windowDeadline = performance.now() + 3000;
+                this.showWindow(index);
+                document.getElementById("window-status").textContent = "Applying…";
+                this.fft.setFFTWindow(index);
+                this.decimator.setFFTWindow(index);
+            });
+        }
         this.fftInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-input");
         this.initFFTInputs();
-
         this.updateFFTWindowInputs();
         this.updateControls();
+    }
+
+    private showWindow(index: number): void {
+        this.fft.windowIndex = index;
+        for (let i = 0; i < this.windowButtons.length; i++) {
+            this.windowButtons[i].disabled = false;
+            this.windowButtons[i].setAttribute("aria-pressed", String(Number(this.windowButtons[i].value) === index));
+        }
     }
 
     // Updaters
@@ -26,27 +46,21 @@ class FFTApp {
     }
 
     private updateFFTWindowInputs() {
-        this.fft.getFFTWindowIndex( (windowIndex: number) => {
-            const select = <HTMLSelectElement>document.querySelector("[data-command='setFFTWindow']");
-            const value = windowIndex.toString();
-            // Assigning even the same value resets a native dropdown's pending
-            // selection. Leave it alone while the user is interacting with it.
-            if (document.activeElement !== select && select.value !== value) {
-                select.value = value;
+        const revision = this.windowRevision;
+        this.fft.getFFTWindowIndex((index: number) => {
+            if (revision === this.windowRevision) {
+                const pending = this.pendingWindow !== null;
+                if (!pending || index === this.pendingWindow || performance.now() >= this.windowDeadline) {
+                    if (pending) {
+                        this.document.getElementById("window-status").textContent = index === this.pendingWindow
+                            ? "" : "Window change not confirmed. Please try again.";
+                    }
+                    this.pendingWindow = null;
+                    this.showWindow(index);
+                }
             }
             window.setTimeout(() => this.updateFFTWindowInputs(), 250);
         });
-    }
-
-    // Setters
-
-    initFFTSelects(): void {
-        for (let i = 0; i < this.fftSelects.length; i++) {
-            this.fftSelects[i].addEventListener('change', (event) => {
-                this.fft[(<HTMLSelectElement>event.currentTarget).dataset.command]((<HTMLSelectElement>event.currentTarget).value);
-                this.decimator[(<HTMLSelectElement>event.currentTarget).dataset.command]((<HTMLSelectElement>event.currentTarget).value);
-            })
-        }
     }
 
     initFFTInputs(): void {

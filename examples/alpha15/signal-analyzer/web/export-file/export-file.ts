@@ -42,8 +42,7 @@ class ExportFile {
                 let dateTime = new Date();
                 let referenceClock: string = (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock']:checked")).dataset.valuestr;
 
-                let fftWindowSelect = <HTMLSelectElement>document.querySelector("[data-command='setFFTWindow']");
-                let fftWindowIndex: string = fftWindowSelect.options[fftWindowSelect.selectedIndex].innerHTML;
+                const fftWindowIndex: string = this.plot_.windowLabel;
 
                 let inputChannel: number = parseInt((<HTMLInputElement>document.querySelector("[name='input-channel']:checked")).value);
                 let inputRangeCh0: number = parseInt((<HTMLInputElement>document.querySelector("[name='input-range-ch0']:checked")).value);

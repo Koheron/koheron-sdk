@@ -119,3 +119,8 @@
 #precision-channels td { vertical-align: middle; }
 #precision-channels input[type=range] { display: block; margin: 0; }
 @media (max-width: 600px) { .measurement-strip { gap: 8px 20px; } }
+
+.fft-window-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.analyzer .fft-window-button[aria-pressed=true] { color: white; background: var(--color); border-color: var(--color); }
+#window-status:empty { display: none; }
+#window-status { display: block; }
