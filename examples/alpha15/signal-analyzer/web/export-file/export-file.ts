@@ -58,10 +58,14 @@ class ExportFile {
                 csvContent += "\n\n";
 
                 let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
-                csvContent += '"Frequency (Hz)","' + this.plot_.yLabel + ' (' + yUnit.replace("-", "/") + ')" \n';
+                const unitLabel = yUnit === "v-rtHz" ? "V/√Hz" :
+                    yUnit === "dbv-rtHz" ? "dBV/√Hz" : "dBV";
+                csvContent += '"Frequency (Hz)","' + this.plot_.yLabel + ' (' + unitLabel + ')" \n';
 
                 this.plot_.plot_data.forEach( (rowArray) => {
-                    let row = rowArray.join(",");
+                    // The logarithmic plot stores linear density in nV/√Hz.
+                    const value = yUnit === "v-rtHz" ? rowArray[1] / 1e9 : rowArray[1];
+                    let row = [rowArray[0], value].join(",");
                     csvContent += row + "\n";
                 });
 
