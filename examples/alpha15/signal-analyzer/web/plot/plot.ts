@@ -8,7 +8,8 @@ interface SegmentConfig {
   name: string;
   fetchPsd: PsdProvider; // Fetch PSD data for this segment
   getFs: () => number; // Sampling frequency (Hz)
-  getNBins: () => number; // Number of FFT bins in the PSD array (N/2+1)
+  getNBins: () => number; // Number of bins in the PSD array
+  getBinWidth: () => number; // Frequency spacing between adjacent PSD bins
 
   skipFirst: number;           // how many bins to drop from DC side
   skipLast: number;            // how many bins to drop from Nyquist side
@@ -50,8 +51,9 @@ class Plot {
                     fetchPsd: () => this.decimator.spectralDensityLf(),
                     getFs: () => this.decimator.status.fs_lf,
                     getNBins: () => 1 + this.decimator.status.n_pts / 2,
-                    skipFirst: 0,
-                    skipLast: 550,
+                    getBinWidth: () => this.decimator.status.fs_lf / this.decimator.status.n_pts,
+                    skipFirst: 1, // DC cannot be displayed on a logarithmic axis.
+                    skipLast: 577, // End before the mid-frequency segment begins.
                     markPeak: true,
                 },
                 {
@@ -59,6 +61,7 @@ class Plot {
                     fetchPsd: () => this.decimator.spectralDensity(),
                     getFs: () => this.decimator.status.fs,
                     getNBins: () => 1 + this.decimator.status.n_pts / 2,
+                    getBinWidth: () => this.decimator.status.fs / this.decimator.status.n_pts,
                     skipFirst: 220,
                     skipLast: 600,
                 },
@@ -67,6 +70,7 @@ class Plot {
                     fetchPsd: () => this.fft.readPsd(),
                     getFs: () => this.fft.status.fs,
                     getNBins: () => this.fft.fft_size / 2,
+                    getBinWidth: () => this.fft.status.fs / this.fft.fft_size,
                     skipFirst: 110,
                     skipLast: 0,
                 },
@@ -126,16 +130,15 @@ class Plot {
             const seg = this.segs[si];
             const psd = psds[si];
             const fs  = seg.getFs();
-            const nBins = seg.getNBins();
 
-            const fstep = (fs / 2) / nBins;
+            const fstep = seg.getBinWidth();
             if (!peakSet && seg.markPeak && seg.iStart + 3 <= seg.iEnd) {
-                this.peakDatapoint = [4 * fstep, this.convertValue(psd[seg.iStart + 3], fs)];
+                this.peakDatapoint = [(seg.iStart + 3) * fstep, this.convertValue(psd[seg.iStart + 3], fs)];
                 peakSet = true;
             }
 
             for (let i = seg.iStart, local = 0; i <= seg.iEnd; ++i, ++local) {
-                const freq = (i + 1) * fstep;
+                const freq = i * fstep;
                 const y    = this.convertValue(psd[i], fs);
                 this.plot_data[seg.offset + local] = [freq, y];
             }

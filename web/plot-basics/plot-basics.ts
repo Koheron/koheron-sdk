@@ -321,6 +321,14 @@ class PlotBasics {
     
         let currCol = -2;
         let minY = Infinity, maxY = -Infinity, minI = -1, maxI = -1;
+        const appendExtrema = () => {
+            if (minI < 0) return;
+            if (maxI < 0 || minI === maxI) {
+                out.push(plot_data[minI]);
+            } else {
+                out.push(plot_data[Math.min(minI, maxI)], plot_data[Math.max(minI, maxI)]);
+            }
+        };
 
         for (let i = i0; i <= i1; i++) {
             const x = plot_data[i][0];
@@ -333,13 +341,7 @@ class PlotBasics {
 
             if (col !== currCol) {
                 if (currCol >= 0) {
-                    if (minI >= 0) {
-                        out.push(plot_data[minI]);
-                    }
-
-                    if (maxI >= 0 && maxI !== minI) {
-                        out.push(plot_data[maxI]);
-                    }
+                    appendExtrema();
                 }
                 currCol = col;
                 minY = Infinity; maxY = -Infinity; minI = -1; maxI = -1;
@@ -352,13 +354,7 @@ class PlotBasics {
         }
 
         if (currCol >= 0) {
-            if (minI >= 0) {
-                out.push(plot_data[minI]);
-            }
-
-            if (maxI >= 0 && maxI !== minI) {
-                out.push(plot_data[maxI]);
-            }
+            appendExtrema();
         }
         return out;
     }
@@ -416,16 +412,17 @@ class PlotBasics {
 
         setTimeout(() => {this.plot.unhighlight()}, 100);
 
-        if (this.clickDatapoint.length > 0) {
+        if (this.clickDatapoint.length > 0 && localData[0].data.length > 0) {
+            const displayedData = localData[0].data;
             let i: number;
-            for (i = 0; i < plot_data.length; i++) {
-                if (localData[0]['data'][i][0] > this.clickDatapoint[0]) {
+            for (i = 0; i < displayedData.length; i++) {
+                if (displayedData[i][0] > this.clickDatapoint[0]) {
                     break;
                 }
             }
 
-            let p1 = localData[0]['data'][i-1];
-            let p2 = localData[0]['data'][i];
+            let p1 = displayedData[i-1];
+            let p2 = displayedData[i];
 
             if ((p1 === null) || (p1 === undefined)) {
                 this.clickDatapoint[1] = p2[1];
@@ -443,6 +440,8 @@ class PlotBasics {
             } else {
                 this.clickDatapointSpan.style.display = "none";
             }
+        } else if (this.clickDatapoint.length > 0) {
+            this.clickDatapointSpan.style.display = "none";
         }
 
         if (this.isPeakDetection && peakDatapoint.length > 0) {
