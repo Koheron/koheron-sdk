@@ -11,6 +11,7 @@ class PlotBasics {
     private log_x: boolean;
     private log_y: boolean;
     public LogYaxisFormatter;
+    public datapointFormatter: (datapoint: number[]) => string;
     private decimate: boolean;
 
     private reset_range: boolean;
@@ -64,6 +65,8 @@ class PlotBasics {
         this.peakDatapointSpan = <HTMLSpanElement>document.getElementById("peak-datapoint");
 
         this.LogYaxisFormatter = (val, axis) => {};
+        this.datapointFormatter = (datapoint) =>
+            "(" + datapoint[0].toFixed(2) + "," + datapoint[1].toFixed(2) + ")";
 
         this.initUnitInputs();
         this.initPeakDetection();
@@ -253,7 +256,7 @@ class PlotBasics {
         let positionX: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).left;
         let positionY: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).top;
 
-        datapointSpan.innerHTML = "(" + (datapoint[0].toFixed(2)).toString() + "," + datapoint[1].toFixed(2).toString() + ")";
+        datapointSpan.textContent = this.datapointFormatter(datapoint);
 
         if (datapoint[0] < (this.range_x.from + this.range_x.to) / 2) {
             datapointSpan.style.left = (positionX + 5).toString() + "px";

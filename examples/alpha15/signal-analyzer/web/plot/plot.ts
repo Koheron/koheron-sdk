@@ -86,6 +86,14 @@ class Plot {
                 return val.toFixed(axis.tickDecimals) + "n";
             };
 
+            this.plotBasics.datapointFormatter = ([frequency, value]) => {
+                if (this.yunit === "v-rtHz") {
+                    return `(${frequency.toFixed(2)} Hz, ${(value / 1e9).toPrecision(3)} V/√Hz)`;
+                }
+                const unit = this.yunit === "dbv-rtHz" ? "dBV/√Hz" : "dBV";
+                return `(${frequency.toFixed(2)} Hz, ${value.toFixed(2)} ${unit})`;
+            };
+
             this.plotBasics.x_max = this.fft.status.fs / 2;
             this.plotBasics.setRangeX(10.0, this.plotBasics.x_max);
             this.plotBasics.setLogX();
