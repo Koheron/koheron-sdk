@@ -120,7 +120,16 @@ class Plot {
         // Fetch all PSDs in parallel
         // TODO Update each segment at its acquisition rate
         const psdPromises = this.segs.map(s => s.fetchPsd());
-        const psds = await Promise.all(psdPromises);
+        let psds: PsdArray[];
+        try {
+            psds = await Promise.all(psdPromises);
+        } catch (error) {
+            const status = this.document.getElementById("stream-status");
+            status.textContent = "Disconnected · showing last spectrum";
+            status.className = "stream-error";
+            this.document.getElementById("reconnect").hidden = false;
+            return;
+        }
 
         const yUnit = (this.document.querySelector(".unit-input:checked") as HTMLInputElement).value;
         if (this.yunit !== yUnit) {
@@ -152,6 +161,7 @@ class Plot {
             }
         }
 
+        this.updateReadout();
         this.plotBasics.redraw(
             this.plot_data,
             this.total_pts,
@@ -159,6 +169,41 @@ class Plot {
             this.yLabel,
             () => requestAnimationFrame(() => { this.updatePlot(); })
         );
+    }
+
+    private updateReadout(): void {
+        const status = this.document.getElementById("stream-status");
+        status.textContent = "Live spectrum";
+        status.className = "stream-live";
+        let peak: number[] = null;
+        for (const point of this.plot_data) {
+            if (point[0] >= 10 && isFinite(point[1]) && (!peak || point[1] > peak[1])) peak = point;
+        }
+        const density = this.yunit !== "dBV";
+        this.document.getElementById("peak-level-label").textContent = density ? "Peak density" : "Peak level";
+        this.document.getElementById("unit-description").textContent = this.yunit === "dBV"
+            ? "Level per FFT bin. Noise levels depend on each frequency band's resolution bandwidth."
+            : "Density per √Hz. Use this view to compare noise across frequency bands.";
+        if (peak) {
+            this.document.getElementById("peak-frequency").textContent = peak[0] >= 1000
+                ? (peak[0] / 1000).toFixed(3) + " kHz" : peak[0].toFixed(2) + " Hz";
+            let level: string;
+            if (this.yunit === "v-rtHz") {
+                const volts = peak[1] / 1e9;
+                level = volts >= 1 ? volts.toPrecision(4) + " V/√Hz"
+                    : volts >= 1e-3 ? (volts * 1e3).toPrecision(4) + " mV/√Hz"
+                    : volts >= 1e-6 ? (volts * 1e6).toPrecision(4) + " µV/√Hz"
+                    : (volts * 1e9).toPrecision(4) + " nV/√Hz";
+            } else {
+                level = peak[1].toFixed(2) + (density ? " dBV/√Hz" : " dBV");
+            }
+            this.document.getElementById("peak-level").textContent = level;
+        }
+        const channel = this.fft.status.channel;
+        const names = ["ADC 0", "ADC 1", "ADC 0 − ADC 1", "ADC 0 + ADC 1"];
+        const windowSelect = <HTMLSelectElement>this.document.getElementById("window");
+        this.document.getElementById("measurement-context").textContent =
+            (names[channel] || "ADC") + " · " + windowSelect.options[windowSelect.selectedIndex].text;
     }
 
     private convertValue(value: number, fs: number): number {

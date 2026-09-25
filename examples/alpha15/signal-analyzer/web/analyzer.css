@@ -1,31 +1,91 @@
-body { background: #f5f7fa; color: #243447; }
-.analyzer { max-width: 1920px; }
-.analyzer-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 12px 22px; gap: 16px; }
-.eyebrow { color: #527083; font-size: 11px; letter-spacing: .12em; margin: 0 0 6px; }
-h1 { font-size: 26px; margin: 0; font-weight: 700; }
-.instrument-note, .plot-help { color: #596c7a; font-size: 13px; }
-.analyzer-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; padding: 0 12px; }
-.analyzer .panel { background: white; border: 1px solid #dce3ea; border-radius: 10px; padding: 18px; margin: 0 0 16px; box-shadow: none; }
-.spectrum-panel { min-width: 0; align-self: start; }
-.analyzer h2 { font-size: 16px; font-weight: 700; margin: 0 0 16px; }
-.plot-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+/* Koheron Control reference: base/renderer/css/{variables,buttons}.css
+ * and renderer-device-control/ui/parts/plot/{plot,statistics/plotStats}.css.
+ * Keep these styles local to the ALPHA15 instrument.
+ */
+.analyzer-page {
+    --color: hsl(196, 99%, 42%);
+    --color-dark: hsl(196, 99%, 32%);
+    --color-border: hsl(196, 99%, 70%);
+    --neutral-dark: hsl(0, 0%, 45%);
+    --neutral-darker: hsl(0, 0%, 25%);
+    --neutral-background: hsl(0, 0%, 98%);
+    --neutral-border: hsl(0, 0%, 85%);
+    --border-light: hsl(0, 0%, 90%);
+    --border-radius: 2px;
+    font-family: Lato, sans-serif;
+    font-size: 14px;
+    color: #333;
+    background: white;
+}
+#main.analyzer { padding: 16px; }
+.analyzer-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--border-light); padding-bottom: 12px; margin-bottom: 16px; }
+.analyzer h1 { font-size: 18px; font-weight: 700; margin: 0; }
+.instrument-state { display: flex; flex-wrap: wrap; gap: 16px; color: var(--neutral-dark); font-size: 12px; }
+#stream-status.stream-live::before { content: '●'; margin-right: 6px; color: hsl(106, 100%, 21%); }
+#stream-status.stream-error { color: hsl(16, 100%, 37%); }
+.analyzer-layout { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 24px; }
+.analyzer .panel { border: 0; border-radius: 0; box-shadow: none; margin: 0; padding: 0; background: transparent; }
+.spectrum-panel { min-width: 0; }
+.analyzer h2 { font-size: 14px; font-weight: 700; margin: 0 0 12px; }
+.plot-toolbar, .toolbar-actions, .plot-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
+.plot-toolbar { justify-content: space-between; margin-bottom: 10px; }
 .plot-toolbar h2 { margin: 0; }
-.analyzer .plot-placeholder { height: 55vh; min-height: 320px; max-height: 650px; }
-.plot-help { margin: 12px 0 18px; }
-.plot-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid #e5eaf0; padding-top: 12px; }
-.analyzer .default-btn { opacity: 1; box-shadow: none; border: 1px solid #cbd6df; border-radius: 6px; background: #fff; padding: 8px 12px; color: #243447; }
-.analyzer .default-btn:hover { background: #edf7fb; border-color: #019cd5; }
-.analyzer :focus-visible { outline: 3px solid #019cd5; outline-offset: 3px; }
+.plot-controls { justify-content: space-between; margin: 10px 0; }
+.plot-controls #yunit { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.plot-stage { position: relative; }
+.analyzer .plot-placeholder { height: 55vh; min-height: 330px; max-height: 680px; }
+.plot-help, .control-help { font-size: 12px; color: var(--neutral-dark); line-height: 1.5; margin: 8px 0; }
+.measurement-strip { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px 28px; padding: 12px 0; border-top: 1px solid var(--border-light); }
+.measurement-strip > div { display: flex; align-items: baseline; gap: 12px; }
+.measurement-label { font-size: 12px; color: var(--neutral-dark); }
+.measurement-strip output { padding: 0; font-size: 14px; color: #333; font-weight: 700; font-variant-numeric: tabular-nums; }
+#measurement-context { font-size: 12px; }
+.analyzer-controls { border-left: 1px solid var(--border-light); padding-left: 20px; }
+.analyzer-controls .panel { margin-bottom: 20px; }
+.analyzer-controls details { border-top: 1px solid var(--border-light); padding-top: 12px; }
+.analyzer summary { cursor: pointer; font-size: 13px; font-weight: 700; }
+.detail-hint { color: var(--neutral-dark); font-weight: 400; font-size: 12px; margin-left: 6px; }
+.analyzer .control-label { display: block; font-size: 12px; font-weight: 700; margin: 14px 0 6px; }
+.plot-controls .control-label { margin: 0; font-weight: 400; }
 .analyzer label { font-weight: 400; }
-.analyzer input[type=radio] { vertical-align: middle; margin: 0 5px 0 0 !important; accent-color: #008ab9; }
-.analyzer .radio-wrapper { padding: 6px 4px; margin: 0; cursor: pointer; }
-.control-label { display: block; font-weight: 700; margin-top: 14px; margin-bottom: 5px; }
-.analyzer select { width: 100%; padding: 8px; border: 1px solid #cbd6df; border-radius: 5px; background: white; }
-.analyzer summary { cursor: pointer; font-weight: 700; font-size: 15px; }
-.analyzer .crossed { border: 0; text-align: left; line-height: normal; margin: 12px 0; }
-.analyzer .crossed > span { padding: 0; }
+.analyzer input[type=radio] { vertical-align: middle; margin: 0 5px 0 0 !important; accent-color: var(--color); }
+.analyzer .radio-wrapper { margin: 0 8px 0 0; cursor: pointer; }
+.segmented { display: inline-flex; flex-wrap: wrap; }
+.analyzer .segmented .radio-wrapper { position: relative; padding: 0; margin: 0; }
+.segmented input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.segmented label span { display: block; padding: 5px 10px; border: 1px solid var(--neutral-border); background: var(--neutral-background); color: var(--neutral-darker); font-size: 12px; }
+.segmented label + label span { border-left: 0; }
+.segmented label:first-child span { border-radius: 2px 0 0 2px; }
+.segmented label:last-child span { border-radius: 0 2px 2px 0; }
+.segmented input:checked + span { color: white; background: var(--color); border-color: var(--color); }
+.segmented input:focus-visible + span { outline: 2px solid var(--color-dark); outline-offset: 2px; }
+.analyzer select { width: 100%; min-height: 30px; padding: 4px 7px; border: 1px solid var(--border-light); border-radius: var(--border-radius); background: var(--neutral-background); }
+.analyzer .default-btn { min-height: 30px; padding: 4px 9px; font-size: 12px; background: var(--neutral-background); color: var(--neutral-darker); border: 1px solid var(--neutral-border); border-radius: var(--border-radius); box-shadow: none; opacity: 1; }
+.analyzer .default-btn:hover { background: var(--border-light); border-color: var(--neutral-dark); }
+.analyzer :focus-visible { outline: 2px solid var(--color-border); outline-offset: 2px; }
+.analyzer .default-btn[disabled] { opacity: .5; }
+#export-file { margin: 0; }
+#export-file > div { display: flex; flex-wrap: wrap; }
+#peak-detection { display: flex; align-items: center; gap: 8px; }
+#peak-detection label { font-size: 12px; margin: 0 !important; }
 .analyzer .switch input { display: block; opacity: 0; position: absolute; width: 100%; height: 100%; margin: 0; }
-.analyzer .switch:focus-within { outline: 3px solid #019cd5; outline-offset: 3px; border-radius: 20px; }
+.analyzer .switch:focus-within { outline: 2px solid var(--color-border); outline-offset: 3px; }
 .analyzer td { padding: 5px 8px 5px 0; }
-@media (max-width: 1100px) { .analyzer-layout { grid-template-columns: minmax(0, 1fr); } .analyzer-controls { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; align-items: start; } }
-@media (max-width: 600px) { .analyzer-layout { padding: 0; } .analyzer-controls { display: block; } .analyzer-header { padding: 12px 0 18px; flex-wrap: wrap; } .analyzer .panel { padding: 12px; } h1 { font-size: 22px; } .analyzer .plot-placeholder { min-height: 280px; } }
+.analyzer .crossed { text-align: left; border: 0; line-height: normal; margin: 12px 0; }
+.analyzer .crossed > span { padding: 0; font-size: 12px; }
+@media (max-width: 1000px) {
+    .analyzer-layout { grid-template-columns: minmax(0,1fr); }
+    .analyzer-controls { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; border-left: 0; border-top: 1px solid var(--border-light); padding: 16px 0 0; }
+    .acquisition-panel { grid-row: span 2; }
+}
+@media (max-width: 600px) {
+    .analyzer-page #navigation { position: relative; width: 100% !important; height: auto; border-bottom: 1px solid var(--border-light); }
+    .analyzer-page #navigation-links { display: flex !important; align-items: center; gap: 20px; padding: 10px 12px; }
+    .analyzer-page #navigation-links a { margin: 0; font-size: 12px; }
+    .analyzer-page #navigation-links img { width: 64px; }
+    .analyzer-page #collapse-btn { display: none; }
+    #main.analyzer { margin-left: 0 !important; padding: 12px; }
+    .analyzer-header { flex-wrap: wrap; }
+    .analyzer-controls { display: block; }
+    .analyzer .plot-placeholder { min-height: 280px; height: 45vh; }
+}

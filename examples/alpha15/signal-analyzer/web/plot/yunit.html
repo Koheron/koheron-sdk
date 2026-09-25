@@ -1,6 +1,8 @@
 <template class="template">
  <span class="control-label">Display unit</span>
- <label class="radio-wrapper"><input type="radio" name="unit" value="dBV" class="unit-input">dBV</label>
- <label class="radio-wrapper"><input type="radio" name="unit" value="dbv-rtHz" class="unit-input">dBV/√Hz</label>
- <label class="radio-wrapper"><input type="radio" name="unit" value="v-rtHz" class="unit-input" checked>V/√Hz</label>
+ <div class="segmented">
+ <label class="radio-wrapper"><input type="radio" name="unit" value="dBV" class="unit-input"><span>dBV</span></label>
+ <label class="radio-wrapper"><input type="radio" name="unit" value="dbv-rtHz" class="unit-input"><span>dBV/√Hz</span></label>
+ <label class="radio-wrapper"><input type="radio" name="unit" value="v-rtHz" class="unit-input" checked><span>V/√Hz</span></label>
+ </div>
 </template>
