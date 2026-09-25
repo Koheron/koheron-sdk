@@ -73,6 +73,28 @@ create_bd_pin -dir O clk_gen_out_n
 
 set adc_clk_mhz [expr [get_parameter adc_clk] / 1000000.0]
 
+# Vivado 2026.1 buffers only one of two differential inputs inside clk_wiz.
+# Buffer both inputs here so the MMCM sees matching source types.
+cell xilinx.com:ip:util_ds_buf:2.2 clk_in1_buf {
+    C_BUF_TYPE IBUFDS
+} {
+    CLK_IN_D clk_in2
+}
+cell xilinx.com:ip:util_ds_buf:2.2 clk_in2_buf {
+    C_BUF_TYPE IBUFDS
+} {
+    CLK_IN_D clk_in1
+}
+
+# With No_buffer inputs, clk_wiz leaves clock creation to the top level.
+set input_clock_xdc [file join $output_path alpha250_input_clocks.xdc]
+set input_clock_file [open $input_clock_xdc w]
+set adc_clk_period [expr {1000000000.0 / [get_parameter adc_clk]}]
+puts $input_clock_file [format {create_clock -name clk_gen_in -period %.6f [get_ports clk_gen_in_clk_p]} $adc_clk_period]
+puts $input_clock_file [format {create_clock -name adc_clk_in -period %.6f [get_ports adc_clk_in_clk_p]} $adc_clk_period]
+close $input_clock_file
+add_files -norecurse -fileset constrs_1 $input_clock_xdc
+
 # Mixed-mode clock manager
 cell xilinx.com:ip:clk_wiz:6.0 mmcm {
     PRIMITIVE              MMCM
@@ -80,7 +102,8 @@ cell xilinx.com:ip:clk_wiz:6.0 mmcm {
     PRIM_IN_FREQ $adc_clk_mhz
     USE_INCLK_SWITCHOVER true
     SECONDARY_IN_FREQ      $adc_clk_mhz
-    PRIM_SOURCE            Differential_clock_capable_pin
+    PRIM_SOURCE            No_buffer
+    SECONDARY_SOURCE       No_buffer
     USE_INCLK_SWITCHOVER true
     MMCM_CLKFBOUT_USE_FINE_PS true
     CLKOUT1_USED true CLKOUT1_REQUESTED_OUT_FREQ $adc_clk_mhz CLKOUT1_REQUESTED_PHASE 0 CLK_OUT1_USE_FINE_PS_GUI true
@@ -88,8 +111,8 @@ cell xilinx.com:ip:clk_wiz:6.0 mmcm {
     USE_RESET false
     USE_DYN_PHASE_SHIFT true
 } {
-    CLK_IN1_D clk_in2
-    CLK_IN2_D clk_in1
+    clk_in1 clk_in1_buf/IBUF_OUT
+    clk_in2 clk_in2_buf/IBUF_OUT
     locked pll_locked
     clk_out1 adc_clk
     clk_in_sel [get_not_pin [get_slice_pin ctl 0 0]]

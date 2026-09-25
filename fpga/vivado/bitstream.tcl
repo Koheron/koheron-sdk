@@ -2,16 +2,36 @@ set xpr_filename [lindex $argv 0]
 set bit_filename [lindex $argv 1]
 set type [lindex $argv 2]
 set nCPU [lindex $argv 3]
+set enforce_timing $::env(ENFORCE_TIMING)
+if {$enforce_timing ne "0" && $enforce_timing ne "1"} {
+  error "ENFORCE_TIMING must be 0 or 1 (got '$enforce_timing')"
+}
 
 
 open_project $xpr_filename
 
-if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
-  launch_runs impl_1 -to_step route_design -jobs $nCPU
+set impl_run [get_runs impl_1]
+if {[get_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED $impl_run]} {
+  set final_step {phys_opt_design (Post-Route)}
+} else {
+  set final_step route_design
+}
+
+if {[get_property PROGRESS $impl_run] != "100%"} {
+  launch_runs $impl_run -to_step $final_step -jobs $nCPU
   wait_on_run impl_1
 }
 
-open_run [get_runs impl_1]
+open_run $impl_run
+
+source [file join [file dirname [info script]] timing_check.tcl]
+if {$enforce_timing eq "1"} {
+  koheron_check_routed_timing $impl_run $bit_filename
+} else {
+  if {[catch {koheron_check_routed_timing $impl_run $bit_filename} timing_message]} {
+    puts "WARNING: $timing_message"
+  }
+}
 
 set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 if {$type == "zynq"} {

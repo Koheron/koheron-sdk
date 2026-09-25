@@ -76,6 +76,8 @@ help:
 	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
 	@echo ' - run          : Run the instrument'
 	@echo ' - fpga         : Build the FPGA bitstream'
+	@echo ' - timing       : Check routed FPGA timing (fails on violations)'
+	@echo '                  Set ENFORCE_TIMING := 1 in an example config.mk to enforce during builds'
 	@echo ' - server       : Build the server'
 	@echo ' - web          : Build the web interface'
 	@echo ' - os           : Build the operating system'
@@ -136,7 +138,7 @@ include $(CONFIG_MK)
 
 MEMORY_YML ?= $(PROJECT_PATH)/memory.yml
 BD_TCL ?= $(PROJECT_PATH)/block_design.tcl
-TCL_FILES ?= $(BD_TCL) $(wildcard $(PROJECT_PATH)/tcl/*.tcl)
+TCL_FILES ?= $(BD_TCL) $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(wildcard $(FPGA_PATH)/lib/*.tcl)
 
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
 

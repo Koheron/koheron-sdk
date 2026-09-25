@@ -42,7 +42,7 @@ memory:
     dev: /dev/mem_wc
 
 parameters:
-  fclk0: 200000000
+  fclk0: 143000000
   adc_clk: 250000000
   dac_width: 16
   adc_width: 16
