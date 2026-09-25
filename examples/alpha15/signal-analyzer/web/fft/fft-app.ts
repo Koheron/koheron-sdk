@@ -2,26 +2,28 @@
 // (c) Koheron
 
 class FFTApp {
-    private windowButtons: NodeListOf<HTMLButtonElement>;
+    private windowSelect: HTMLSelectElement;
     private fftInputs: HTMLInputElement[];
     private windowRevision = 0;
     private pendingWindow: number = null;
     private windowDeadline = 0;
 
     constructor(private document: Document, private fft: FFT, private decimator: Decimator) {
-        this.windowButtons = document.querySelectorAll<HTMLButtonElement>(".fft-window-button");
-        for (let i = 0; i < this.windowButtons.length; i++) {
-            this.windowButtons[i].addEventListener("click", () => {
-                const index = Number(this.windowButtons[i].value);
-                this.windowRevision++;
-                this.pendingWindow = index;
-                this.windowDeadline = performance.now() + 3000;
-                this.showWindow(index);
-                document.getElementById("window-status").textContent = "Applying…";
-                this.fft.setFFTWindow(index);
-                this.decimator.setFFTWindow(index);
-            });
-        }
+        this.windowSelect = <HTMLSelectElement>document.getElementById("window");
+        this.windowSelect.addEventListener("change", () => {
+            const index = Number(this.windowSelect.value);
+            this.windowRevision++;
+            this.pendingWindow = index;
+            this.windowDeadline = performance.now() + 3000;
+            document.getElementById("window-status").textContent = "Applying…";
+            this.fft.setFFTWindow(index);
+            this.decimator.setFFTWindow(index);
+        });
+        this.windowSelect.addEventListener("blur", () => {
+            if (this.pendingWindow === null) {
+                this.showWindow(this.fft.windowIndex);
+            }
+        });
         this.fftInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-input");
         this.initFFTInputs();
         this.updateFFTWindowInputs();
@@ -30,9 +32,14 @@ class FFTApp {
 
     private showWindow(index: number): void {
         this.fft.windowIndex = index;
-        for (let i = 0; i < this.windowButtons.length; i++) {
-            this.windowButtons[i].disabled = false;
-            this.windowButtons[i].setAttribute("aria-pressed", String(Number(this.windowButtons[i].value) === index));
+        if (this.windowSelect.disabled) {
+            this.windowSelect.disabled = false;
+        }
+        // Native dropdowns have an uncommitted selection while open. Do not
+        // assign their value while focused, even if the server value matches.
+        const value = String(index);
+        if (this.document.activeElement !== this.windowSelect && this.windowSelect.value !== value) {
+            this.windowSelect.value = value;
         }
     }
 
