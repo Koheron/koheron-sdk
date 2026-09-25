@@ -3,7 +3,7 @@
 # Usage:
 #   build_base_rootfs_tar.sh <root_tar_path> <base_rootfs_tar> <qemu_path>
 # Env (optional):
-#   TIMEZONE=Europe/Paris  PASSWD=changeme
+#   TIMEZONE=Europe/Paris  PASSWORD=changeme (PASSWD also accepted)
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -13,7 +13,11 @@ BASE_ROOTFS_TAR=${2:?usage: build_base_rootfs_tar.sh <root_tar_path> <base_rootf
 qemu_path=${3:?usage: build_base_rootfs_tar.sh <root_tar_path> <base_rootfs_tar> <qemu_path>}
 
 TIMEZONE=${TIMEZONE:-Europe/Paris}
-PASSWD=${PASSWD:-changeme}
+PASSWD=${PASSWORD:-${PASSWD:-changeme}}
+if [[ $PASSWD == *$'\n'* || $PASSWD == *$'\r'* ]]; then
+  echo "Root password must be a single line" >&2
+  exit 1
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHROOT_PAYLOAD="$SCRIPT_DIR/chroot_base_rootfs.sh"
@@ -57,8 +61,8 @@ if [ ! -x "$root_dir/usr/bin/$(basename "$qemu_path")" ]; then
 fi
 
 # Run chroot payload under qemu explicitly (avoid login shell to skip profile scripts).
-chroot "$root_dir" "/usr/bin/$(basename "$qemu_path")" /bin/bash --noprofile --norc -c \
-  "export DEBIAN_FRONTEND=noninteractive LANG=C LC_ALL=C TIMEZONE='$TIMEZONE' PASSWD='$PASSWD'; /bin/bash /chroot.sh"
+DEBIAN_FRONTEND=noninteractive LANG=C LC_ALL=C TIMEZONE="$TIMEZONE" PASSWD="$PASSWD" \
+  chroot "$root_dir" "/usr/bin/$(basename "$qemu_path")" /bin/bash --noprofile --norc /chroot.sh
 
 # 3) unmount and pack the base
 umount -l "$root_dir/run" 2>/dev/null || true

@@ -20,14 +20,17 @@ $(TMP_API_PATH)/app/%: $(OS_PATH)/api/%
 	# create parents and copy
 	install -D -m0644 $< $@
 
-PASSWORD ?= changeme
+PASSWORD ?= $(if $(PASSWD),$(PASSWD),changeme)
+export PASSWORD TIMEZONE
+
+api_sync www_sync: export SSHPASS = $(PASSWORD)
 
 .PHONY: api_sync
 api_sync: $(API_FILES)
-	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" "$(TMP_API_PATH)/." "root@$(HOST):/usr/local/api/"
-	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" "$(OS_PATH)/config/nginx.conf" "root@$(HOST):/etc/nginx/nginx.conf"
-	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" "$(OS_PATH)/config/nginx-server.conf" "root@$(HOST):/etc/nginx/sites-available/koheron.conf"
-	sshpass -p "$(PASSWORD)" ssh -i /ssh-private-key "root@$(HOST)" 'systemctl daemon-reload || true; systemctl reload-or-restart uwsgi || true; systemctl reload nginx || true'
+	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" "$(TMP_API_PATH)/." "root@$(HOST):/usr/local/api/"
+	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" "$(OS_PATH)/config/nginx.conf" "root@$(HOST):/etc/nginx/nginx.conf"
+	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" "$(OS_PATH)/config/nginx-server.conf" "root@$(HOST):/etc/nginx/sites-available/koheron.conf"
+	sshpass -e ssh -i /ssh-private-key "root@$(HOST)" 'systemctl daemon-reload || true; systemctl reload-or-restart uwsgi || true; systemctl reload nginx || true'
 
 .PHONY: api_clean
 api_clean:
@@ -66,7 +69,7 @@ www : $(WWW_ASSETS)
 
 .PHONY: www_sync
 www_sync: www
-	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" "$(TMP_WWW_PATH)/." "root@$(HOST):/usr/local/www/"
+	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" "$(TMP_WWW_PATH)/." "root@$(HOST):/usr/local/www/"
 
 .PHONY: clean_www
 clean_www:
@@ -173,6 +176,7 @@ SHA256SUMS_PATH := $(TMP)/ubuntu-base-$(UBUNTU_VERSION)-SHA256SUMS
 ABS_SHA256SUMS  := $(abspath $(SHA256SUMS_PATH))
 
 BASE_ROOTFS_TAR := $(TMP)/ubuntu-base-$(UBUNTU_VERSION)-base-koheron-$(UBUNTU_ARCH).tgz
+BASE_ROOTFS_SETTINGS := $(BASE_ROOTFS_TAR).settings.sha256
 OVERLAY_TAR     := $(TMP_OS_PATH)/rootfs_overlay.tar
 ABS_ROOT_TAR_PATH := $(abspath $(ROOT_TAR_PATH))
 ABS_OVERLAY_TAR   := $(abspath $(OVERLAY_TAR))
@@ -192,13 +196,18 @@ $(ROOT_TAR_PATH): $(SHA256SUMS_PATH)
 	  if [ $$status -ne 0 ]; then echo "Checksum verification FAILED for $(ROOT_TAR)"; rm -f $(@F); exit $$status; fi
 	$(call ok,$@)
 
+$(BASE_ROOTFS_SETTINGS): FORCE
+	@umask 077; printf '%s\0%s' "$$PASSWORD" "$${TIMEZONE:-Europe/Paris}" | sha256sum > $@.tmp
+	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
+	@rm -f $@.tmp
+
+$(BASE_ROOTFS_TAR): DOCKER_ROOT_EXTRA_ENV += -e PASSWORD -e TIMEZONE
 $(BASE_ROOTFS_TAR): \
   $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
   $(OS_PATH)/scripts/chroot_base_rootfs.sh \
-  $(ROOT_TAR_PATH)
+  $(ROOT_TAR_PATH) $(BASE_ROOTFS_SETTINGS)
 	@mkdir -p $(@D)
 	@test -s "$(ROOT_TAR_PATH)" || { echo "Missing root tar: $(ROOT_TAR_PATH)"; exit 1; }
-	# Optional envs: TIMEZONE, PASSWD
 	$(DOCKER_ROOT) bash $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
 	  "$(ROOT_TAR_PATH)" "$@" "$(QEMU_BIN)"
 	$(call ok,$@)
