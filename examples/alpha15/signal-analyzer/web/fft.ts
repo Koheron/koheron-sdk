@@ -15,13 +15,13 @@ class FFT {
     private cmds: Commands;
 
     public fft_size: number;
+    public windowIndex = 1;
     public status: IFFTStatus;
 
     constructor (private client: Client) {
         this.driver = this.client.getDriver('FFT');
         this.id = this.driver.id;
         this.cmds = this.driver.getCmds();
-        //this.monitor(1000);
 
         this.status = <IFFTStatus>{};
     }
@@ -35,28 +35,9 @@ class FFT {
         });
     }
 
-    monitor(timeout: number): void {
-        this.getCycleIndex( (i) => {
-            setTimeout( () => {
-                this.monitor(timeout);
-            }, timeout);
-        });
-    }
-
-    getCycleIndex(cb: (i: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['get_cycle_index']),
-                                 (i) => {cb(i)});
-    }
-
     getFFTSize(cb: (size: number) => void): void {
         this.client.readUint32(Command(this.id, this.cmds['get_fft_size']),
                                  (size) => {cb(size)});
-    }
-
-    read_psd_raw(cb: (psd: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd_raw']), (psd: Float32Array) => {
-            cb(psd);
-        });
     }
 
     async readPsd(): Promise<Float32Array> {

@@ -31,6 +31,10 @@ class ExportFile {
         }
     }
 
+    private filename(extension: string): string {
+        return "alpha15-spectrum-" + new Date().toISOString().replace(/[:.]/g, "-") + "." + extension;
+    }
+
     initExportData(): void {
         for (let i = 0; i < this.exportDataButtons.length; i++) {
             this.exportDataButtons[i].addEventListener('click', (event) => {
@@ -38,8 +42,7 @@ class ExportFile {
                 let dateTime = new Date();
                 let referenceClock: string = (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock']:checked")).dataset.valuestr;
 
-                let fftWindowSelect = <HTMLSelectElement>document.querySelector("[data-command='setFFTWindow']");
-                let fftWindowIndex: string = fftWindowSelect.options[fftWindowSelect.selectedIndex].innerHTML;
+                const fftWindowIndex: string = this.plot_.windowLabel;
 
                 let inputChannel: number = parseInt((<HTMLInputElement>document.querySelector("[name='input-channel']:checked")).value);
                 let inputRangeCh0: number = parseInt((<HTMLInputElement>document.querySelector("[name='input-range-ch0']:checked")).value);
@@ -57,16 +60,21 @@ class ExportFile {
 
                 csvContent += "\n\n";
 
-                let yUnit: string = (<HTMLInputElement>document.querySelector(".unit-input:checked")).value;
-                csvContent += '"Frequency (Hz)","' + this.plot_.yLabel + ' (' + yUnit.replace("-", "/") + ')" \n';
+                let yUnit: string = this.plot_.displayUnit;
+                const unitLabel = yUnit === "v-rtHz" ? "V/√Hz" :
+                    yUnit === "dbv-rtHz" ? "dBV/√Hz" : "dBV";
+                csvContent += '"Frequency (Hz)","' + this.plot_.yLabel + ' (' + unitLabel + ')" \n';
 
                 this.plot_.plot_data.forEach( (rowArray) => {
-                    let row = rowArray.join(",");
+                    // The logarithmic plot stores linear density in nV/√Hz.
+                    const value = yUnit === "v-rtHz" ? rowArray[1] / 1e9 : rowArray[1];
+                    let row = [rowArray[0], value].join(",");
                     csvContent += row + "\n";
                 });
 
                 let exportGroup = this.exportDataButtons[i].parentElement;
                 let exportLink = <HTMLAnchorElement>(exportGroup.getElementsByTagName("a")[0]);
+                exportLink.download = this.filename("csv");
                 exportLink.href = encodeURI(csvContent);
                 exportLink.click();
             });
@@ -77,9 +85,22 @@ class ExportFile {
         for (let i = 0; i < this.exportPlotButtons.length; i++) {
             this.exportPlotButtons[i].addEventListener('click', async (event) => {
                 let canvas = this.plot_.plotBasics.plot.getCanvas();
-                let imagePng = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+                // Compose a white background and unit caption for standalone viewing.
+                const exportCanvas = document.createElement("canvas");
+                exportCanvas.width = canvas.width;
+                exportCanvas.height = canvas.height + 64;
+                const context = exportCanvas.getContext("2d");
+                context.fillStyle = "white";
+                context.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+                context.fillStyle = "#333";
+                context.font = "14px sans-serif";
+                context.fillText("Koheron ALPHA15 · Power spectrum (" + this.plot_.unitLabel + ")", 12, 22);
+                context.drawImage(canvas, 0, 34);
+                context.fillText("Frequency (Hz)", 12, exportCanvas.height - 10);
+                let imagePng = exportCanvas.toDataURL("image/png");
                 let exportGroup = this.exportPlotButtons[i].parentElement;
                 let exportLink = <HTMLAnchorElement>(exportGroup.getElementsByTagName("a")[0]);
+                exportLink.download = this.filename("png");
                 exportLink.href = imagePng;
                 exportLink.click();
             });

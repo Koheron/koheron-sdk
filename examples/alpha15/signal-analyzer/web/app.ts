@@ -68,6 +68,10 @@ class App {
                                          this.y_min, this.y_max,
                                          this.fft, "", "Frequency (Hz)");
         this.plot = new Plot(document, this.fft, this.decimator, this.plotBasics);
+        const resetView = <HTMLButtonElement>document.getElementById("reset-view");
+        resetView.disabled = false;
+        document.getElementById("reconnect").addEventListener("click", () => window.location.reload());
+        resetView.addEventListener("click", () => plot_placeholder.trigger("dblclick"));
 
         this.temperatureSensorApp = new TemperatureSensorApp(document, this.temperatureSensor);
         this.powerMonitorApp = new PowerMonitorApp(document, this.powerMonitor);

@@ -1,32 +1,11 @@
 <template class="template">
-  <label for="input-range">Input Range:</label>
-
-  <table class="full-width">
-    <tr>
-      <td style="width: 60px;">
-        Ch 0
-      </td>
-      <td style="width: 60px;">
-        <td>
-          <input type="radio" name="input-range-ch0" value="0" checked class="adc-range" data-command="setInputRange">2 V
-          <td>
-        <td>
-          <input type="radio" name="input-range-ch0" value="1" class="adc-range" data-command="setInputRange">8 V
-          <td>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        Ch 1
-      </td>
-      <td>
-        <td>
-          <input type="radio" name="input-range-ch1" value="2" checked class="adc-range" data-command="setInputRange">2 V
-          <td>
-        <td>
-          <input type="radio" name="input-range-ch1" value="3" class="adc-range" data-command="setInputRange">8 V
-          <td>
-      </td>
-    </tr>
-  </table>
+  <span class="control-label">Input range</span>
+  <div class="range-row"><span id="range-label-0">ADC 0</span><div class="segmented" role="radiogroup" aria-labelledby="range-label-0">
+    <label class="radio-wrapper"><input type="radio" name="input-range-ch0" value="0" class="adc-range" data-command="setInputRange" checked><span>2 V</span></label>
+    <label class="radio-wrapper"><input type="radio" name="input-range-ch0" value="1" class="adc-range" data-command="setInputRange"><span>8 V</span></label>
+  </div></div>
+  <div class="range-row"><span id="range-label-1">ADC 1</span><div class="segmented" role="radiogroup" aria-labelledby="range-label-1">
+    <label class="radio-wrapper"><input type="radio" name="input-range-ch1" value="2" class="adc-range" data-command="setInputRange" checked><span>2 V</span></label>
+    <label class="radio-wrapper"><input type="radio" name="input-range-ch1" value="3" class="adc-range" data-command="setInputRange"><span>8 V</span></label>
+  </div></div>
 </template>

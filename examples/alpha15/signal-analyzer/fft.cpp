@@ -22,6 +22,7 @@ FFT::FFT()
     select_adc_channel(0);
     set_operation(0);
     set_scale_sch(0);
+    set_test_tone(false);
     set_fft_window(1);
     start_psd_acquisition();
 }
@@ -66,6 +67,10 @@ void FFT::set_operation(uint32_t operation) {
 void FFT::set_scale_sch(uint32_t scale_sch) {
     // LSB at 1 for forward FFT
     hw::get_memory<mem::ps_control>().write<reg::ctl_fft>(1 + (scale_sch << 1));
+}
+
+void FFT::set_test_tone(bool enabled) {
+    ctl.write<reg::test_tone_enable>(enabled ? 1U : 0U);
 }
 
 void FFT::set_fft_window(uint32_t window_id) {
