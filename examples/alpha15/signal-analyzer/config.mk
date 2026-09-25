@@ -14,6 +14,7 @@ CORES += $(SDK_PATH)/fpga/cores/tlast_gen_v1_0
 CORES += $(SDK_PATH)/fpga/cores/bus_multiplexer_v1_0
 CORES += $(SDK_PATH)/fpga/cores/psd_counter_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
+CORES += $(SDK_PATH)/examples/alpha15/adc-stream-to-disk/cores/dac_test_tone_v1_0
 
 include $(SDK_PATH)/boards/alpha15/drivers/drivers.mk
 DRIVERS += $(PROJECT_PATH)/decimator.hpp
