@@ -95,3 +95,27 @@
 .analyzer .precision-dac-input[type=range] { width: 100%; min-width: 64px; accent-color: var(--color); }
 #precision-channels table { width: 100%; }
 .measurement-strip output { white-space: nowrap; }
+
+/* Align the two column headers and the controls on a shared 30 px row. */
+.plot-toolbar { min-height: 30px; }
+.acquisition-panel > h2 { display: flex; align-items: center; min-height: 30px; margin-bottom: 10px; }
+#input-channel > .control-label { margin-top: 0; }
+.segmented label span { display: flex; align-items: center; justify-content: center; min-height: 30px; line-height: 18px; }
+#input-channel .segmented { display: flex; }
+#input-channel .segmented label { flex: 1; }
+.analyzer #input-range th, .analyzer #input-range td { padding: 5px 12px 5px 0; vertical-align: middle; }
+.analyzer #input-range th { min-width: 64px; font-size: 12px; }
+.analyzer #input-range label, .analyzer #reference-clock .radio-wrapper { display: inline-flex; align-items: center; min-height: 24px; gap: 6px; margin: 0; line-height: 20px; }
+.analyzer #input-range input[type=radio], .analyzer #reference-clock input[type=radio] { margin: 0 !important; flex-shrink: 0; }
+.analyzer #reference-clock .radio-wrapper { margin-right: 12px; }
+#peak-detection { min-height: 30px; }
+#peak-detection .switch { flex-shrink: 0; vertical-align: middle; }
+.measurement-strip > div { min-height: 20px; }
+#peak-frequency { min-width: 90px; text-align: right; }
+#peak-level { min-width: 110px; text-align: right; }
+#export-file .export-actions { gap: 8px; align-items: center; }
+.analyzer-controls summary { line-height: 20px; }
+.analyzer-controls .detail-hint { display: inline-block; margin-left: 4px; }
+#precision-channels td { vertical-align: middle; }
+#precision-channels input[type=range] { display: block; margin: 0; }
+@media (max-width: 600px) { .measurement-strip { gap: 8px 20px; } }
