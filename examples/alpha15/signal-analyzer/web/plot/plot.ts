@@ -34,6 +34,8 @@ class Plot {
     
     private segs: SegmentLayout[] = [];
     private total_pts = 0;
+    private readonly frameInterval = 50; // 20 Hz; status widgets poll independently.
+    private nextReadout = 0;
 
     // axis unit state
     private yunit = "dBV";
@@ -126,6 +128,7 @@ class Plot {
     }
 
     private async updatePlot() {
+        const frameStart = performance.now();
         // Fetch all PSDs in parallel
         // TODO Update each segment at its acquisition rate
         const psdPromises = this.segs.map(s => s.fetchPsd());
@@ -166,17 +169,28 @@ class Plot {
             for (let i = seg.iStart, local = 0; i <= seg.iEnd; ++i, ++local) {
                 const freq = i * fstep;
                 const y    = this.convertValue(psd[i], fs);
-                this.plot_data[seg.offset + local] = [freq, y];
+                const index = seg.offset + local;
+                if (this.plot_data[index]) {
+                    this.plot_data[index][1] = y;
+                } else {
+                    this.plot_data[index] = [freq, y];
+                }
             }
         }
 
-        this.updateReadout();
+        if (frameStart >= this.nextReadout) {
+            this.updateReadout();
+            this.nextReadout = frameStart + 250;
+        }
         this.plotBasics.redraw(
             this.plot_data,
             this.total_pts,
             this.peakDatapoint,
             this.yLabel,
-            () => requestAnimationFrame(() => { this.updatePlot(); })
+            () => window.setTimeout(
+                () => requestAnimationFrame(() => { this.updatePlot(); }),
+                Math.max(0, this.frameInterval - (performance.now() - frameStart))
+            )
         );
     }
 

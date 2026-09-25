@@ -21,7 +21,7 @@ class FFTApp {
     private updateControls() {
         this.fft.getControlParameters( (sts: IFFTStatus) => {
             (<HTMLInputElement>document.querySelector("[data-command='setInputChannel'][value='" + sts.channel.toString() + "']")).checked = true;
-            requestAnimationFrame( () => { this.updateControls(); } )
+            window.setTimeout(() => this.updateControls(), 250)
         });
     }
 

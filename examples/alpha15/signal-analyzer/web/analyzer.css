@@ -103,11 +103,11 @@
 .segmented label span { display: flex; align-items: center; justify-content: center; min-height: 30px; line-height: 18px; }
 #input-channel .segmented { display: flex; }
 #input-channel .segmented label { flex: 1; }
-.analyzer #input-range th, .analyzer #input-range td { padding: 5px 12px 5px 0; vertical-align: middle; }
-.analyzer #input-range th { min-width: 64px; font-size: 12px; }
-.analyzer #input-range label, .analyzer #reference-clock .radio-wrapper { display: inline-flex; align-items: center; min-height: 24px; gap: 6px; margin: 0; line-height: 20px; }
-.analyzer #input-range input[type=radio], .analyzer #reference-clock input[type=radio] { margin: 0 !important; flex-shrink: 0; }
-.analyzer #reference-clock .radio-wrapper { margin-right: 12px; }
+#input-range .range-row { display: flex; align-items: center; gap: 12px; margin: 6px 0; }
+.range-row > span { min-width: 52px; font-size: 12px; font-weight: 700; }
+#input-range .segmented label span { min-width: 54px; }
+#reference-clock .segmented { display: flex; }
+#reference-clock .segmented label { flex: 1; }
 #peak-detection { min-height: 30px; }
 #peak-detection .switch { flex-shrink: 0; vertical-align: middle; }
 .measurement-strip > div { min-height: 20px; }
