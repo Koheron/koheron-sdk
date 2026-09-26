@@ -66,7 +66,9 @@ module axis_packetizer #(
     end
 
     // AXIS passthrough
-    assign s_axis_tready = packet_active & m_axis_tready;
+    // Drain the continuous ADC stream while idle to avoid retaining old samples
+    // in the upstream width converter until the trigger arrives.
+    assign s_axis_tready = aresetn & (~packet_active | m_axis_tready);
     assign m_axis_tvalid = packet_active & s_axis_tvalid;
     assign m_axis_tdata  = s_axis_tdata;
     assign m_axis_tlast  = packet_active & last_beat;
