@@ -7,7 +7,8 @@ TMP_API_PATH := $(TMP)/api
 API_FILES := \
   $(TMP_API_PATH)/wsgi.py \
   $(TMP_API_PATH)/app/__init__.py \
-  $(TMP_API_PATH)/app/install_instrument.sh
+  $(TMP_API_PATH)/app/install_instrument.sh \
+  $(TMP_API_PATH)/app/install_instrument.py
 
 .PHONY: api
 api: $(API_FILES)
