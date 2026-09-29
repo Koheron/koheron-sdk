@@ -7,7 +7,6 @@ ConditionPathExists=!/var/lib/grow-rootfs-done
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/grow-rootfs-once
-ExecStartPost=/bin/sh -c 'install -D -m0644 /dev/null /var/lib/grow-rootfs-done'
 
 [Install]
 WantedBy=multi-user.target

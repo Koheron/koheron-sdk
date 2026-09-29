@@ -20,6 +20,8 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
+      - name: Test first-boot filesystem expansion
+        run: python3 -m unittest discover -s os/tests -p test_grow_rootfs.py -v
       - name: Validate all instrument configurations
         run: |
           count=0
