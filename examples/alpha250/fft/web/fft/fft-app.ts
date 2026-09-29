@@ -18,7 +18,7 @@ class FFTApp {
 
     // Updaters
     private _busyControls = false;
-    private _controlsHz = 10;            // throttle UI refresh rate
+    private _controlsHz = 4;            // throttle UI refresh rate
     private _lastControlsTick = 0;
     private _ddsInputsByChannel?: HTMLInputElement[][];
     private _supplySpans?: HTMLSpanElement[];
@@ -64,8 +64,8 @@ class FFTApp {
       if (el.textContent !== v) el.textContent = v;
     }
 
-    private setRangeMaxIfNeeded(el: HTMLInputElement, v: string) {
-      if (el.type === "range" && el.max !== v) el.max = v;
+    private setMaxIfNeeded(el: HTMLInputElement, v: string) {
+      if (el.max !== v) el.max = v;
     }
 
     private async updateControls() {
@@ -112,7 +112,7 @@ class FFTApp {
 
                 for (const inp of inputs) {
                     this.setValueIfNeeded(inp, freqMHz);
-                    this.setRangeMaxIfNeeded(inp, maxMHz);
+                    this.setMaxIfNeeded(inp, maxMHz);
                 }
             }
 
@@ -131,7 +131,7 @@ class FFTApp {
             // FFT window select
             const winSel = document.querySelector<HTMLSelectElement>("[data-command='setFFTWindow']");
 
-            if (winSel) {
+            if (winSel && document.activeElement !== winSel) {
                 this.setValueIfNeeded(winSel, String(sts.window_index));
             }
 
@@ -153,7 +153,7 @@ class FFTApp {
             }
 
             for (const span of this._temperatureSpans) {
-                span.textContent = brdParams.temperatures[parseInt(span.dataset.index)].toFixed(3);
+                span.textContent = brdParams.temperatures[parseInt(span.dataset.index)].toFixed(1);
             }
 
             for (let i: number = 0; i < 4; i++) {

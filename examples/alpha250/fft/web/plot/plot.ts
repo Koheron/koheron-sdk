@@ -1,161 +1,129 @@
-// Plot widget
 // (c) Koheron
 
+// Spectrum display. Hardware acquisition continues when the display is paused.
 class Plot {
-    private running: boolean = true;
+    private running = true;
+    private paused = false;
+    private busy = false;
+    private timer: number;
+    private animation: number;
+    private samplingFrequency = 0;
+    private peak: number[] = [];
     public n_pts: number;
-    public plot: jquery.flot.plot;
-    public plot_data: Array<Array<number>>;
+    public plot_data: number[][] = [];
+    public yLabel = 'PSD (dBm/Hz)';
+    public unit = 'dBm-Hz';
+    public frameStatus: IFFTStatus;
 
-    public yLabel: string = "Power Spectral Density";
-    private peakDatapoint: number[];
-
-    constructor(document: Document, private fft: FFT, private plotBasics: PlotBasics) {
-        this.n_pts = this.fft.fft_size / 2;
-        this.peakDatapoint = [];
-        this.plot_data = [];
-
-        this.plotBasics.enableDecimation();
+    constructor(private document: Document, private fft: FFT, private plotBasics: PlotBasics) {
+        this.n_pts = fft.fft_size / 2;
+        // Keep every bin for reliable initial auto-scaling and cursor selection.
+        this.plotBasics.disableDecimation();
+        this.plotBasics.setLinY();
+        for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('.unit-input'))) {
+            input.addEventListener('change', () => this.plotBasics.setLinY());
+        }
+        document.querySelector('.peak-input').addEventListener('change', () => {
+            if (this.paused && this.plot_data.length) { this.redraw(); }
+        });
+        $('#plot-placeholder').on('plotselected.fft dblclick.fft wheel.fft', () => {
+            if (this.paused && this.plot_data.length) { this.redraw(); }
+        });
         this.updatePlot();
     }
 
-    private _busy = false;
-    private _targetHz = 60;
-    private _lastTick = 0;
-    private _xAxisReady = false;
-
-    private samplingFrequency = 0;   // cache fs used to build X axis
-    private _axisPts = 0;            // cache n_pts used to build X axis
-
-    // Ensure plot_data is allocated once and reused.
-    // We keep X fixed (when possible) and only update Y per frame.
-    private ensurePlotBuffer() {
-        const N = this.n_pts + 1;
-        if (!this.plot_data || this.plot_data.length !== N) {
-            this.plot_data = new Array(N);
-            for (let i = 0; i < N; i++) this.plot_data[i] = [0, NaN];
-            this._xAxisReady = false; // X needs a rebuild for the new size
+    setPaused(paused: boolean): void {
+        this.paused = paused;
+        for (const input of Array.from(this.document.querySelectorAll<HTMLInputElement>('.unit-input'))) {
+            input.disabled = paused;
         }
+        this.setStatus(paused ? 'paused' : 'connecting', paused ? 'Display paused' : 'Resuming…');
+        if (!paused) { this.updatePlot(); }
     }
 
-    // (Re)build X axis only when fs or N changed.
-    // Also updates plotBasics range and peakDatapoint X.
-    private setFreqAxis() {
-        this.ensurePlotBuffer();
-
-        const fs = this.fft.status.fs;          // Hz
-        const N = this.n_pts;
-        const xMaxMHz = fs / 1e6 / 2;           // MHz
-
-        // Only rebuild if fs or N changed
-        if (fs !== this.samplingFrequency || N !== this._axisPts || !this._xAxisReady) {
-            this.samplingFrequency = fs;
-            this._axisPts = N;
-
-            // update plotBasics and x range
-            this.plotBasics.x_max = xMaxMHz;
-            this.plotBasics.setRangeX(0, xMaxMHz);
-
-            // fill X once: freq_i = (i+1) * xMax / N, keeping your original convention
-            const invN = 1 / N;
-            for (let i = 0; i <= N; i++) {
-                const freq = (i + 1) * xMaxMHz * invN;
-                this.plot_data[i][0] = freq;
-            }
-
-            this._xAxisReady = true;
-        }
-
-        // keep peak X (first bin center in your original code)
-        this.peakDatapoint = [xMaxMHz / this.n_pts, this.peakDatapoint?.[1] ?? NaN];
+    private setStatus(state: string, text: string): void {
+        const status = this.document.getElementById('connection-status');
+        status.dataset.state = state;
+        status.textContent = text;
     }
 
-    // Main loop
-    async updatePlot() {
-        if (!this.running) { return; }
-        // prevent overlapping frames
-        if (this._busy) return;
-        this._busy = true;
+    private schedule(delay: number): void {
+        window.clearTimeout(this.timer);
+        window.cancelAnimationFrame(this.animation);
+        if (!this.running || this.paused) { return; }
+        this.timer = window.setTimeout(() => {
+            this.animation = window.requestAnimationFrame(() => this.updatePlot());
+        }, delay);
+    }
 
-        const frameBudgetMs = 1000 / this._targetHz;
-        const now = performance.now();
-        const sinceLast = now - this._lastTick;
-
-        // throttle
-        if (sinceLast < frameBudgetMs) {
-            this._busy = false;
-            const wait = Math.ceil(frameBudgetMs - sinceLast);
-            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updatePlot(); } }), wait);
-            return;
-        }
-        this._lastTick = now;
-
+    async updatePlot(): Promise<void> {
+        if (!this.running || this.paused || this.busy) { return; }
+        this.busy = true;
+        let delay = 50;
         try {
-            // grab PSD
-            const psd: Float32Array | number[] = await this.fft.read_psd();
-            if (!this.running) { this._busy = false; return; }
-
-            // refresh X axis only if needed
-            this.setFreqAxis();
-
-            // read unit once per frame
-            const unitInput = document.querySelector<HTMLInputElement>(".unit-input:checked");
-            const yUnit = unitInput ? unitInput.value : "";
-
-            // update Y values in-place; keep X as-is
-            const N = Math.min(this.n_pts, psd.length - 1);
-            for (let i = 0; i <= N; i++) {
-                this.plot_data[i][1] = this.convertValue(psd[i], yUnit);
+            const psd = await this.fft.read_psd();
+            if (!this.running || this.paused) { return; }
+            this.frameStatus = {...this.fft.status, dds_freq: this.fft.status.dds_freq.slice()};
+            this.unit = this.document.querySelector<HTMLInputElement>('.unit-input:checked').value;
+            this.yLabel = this.unit === 'dBm-Hz' ? 'PSD (dBm/Hz)' : this.unit === 'dBm' ? 'Power (dBm)' : 'Voltage noise (nV/√Hz)';
+            const fs = this.frameStatus.fs;
+            if (fs !== this.samplingFrequency) {
+                this.samplingFrequency = fs;
+                this.plotBasics.setRangeX(0, fs / 2e6);
             }
-            // if psd shorter than buffer, pad tail with NaN (avoids old data showing)
-            for (let i = N + 1; i <= this.n_pts; i++) {
-                this.plot_data[i][1] = NaN;
-            }
-
-            // update peak point Y (X already set in setFreqAxis)
-            this.peakDatapoint[1] = this.convertValue(psd[0], yUnit);
-
-            // draw; schedule next only after redraw finishes
-            this.plotBasics.redraw(
-                this.plot_data,
-                this.n_pts,
-                this.peakDatapoint,
-                this.yLabel,
-                () => {
-                    this._busy = false;
-
-                    // account for redraw time to keep near targetHz
-                    const elapsed = performance.now() - now;
-                    const delay = Math.max(0, Math.ceil(frameBudgetMs - elapsed));
-                    setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updatePlot(); } }), delay);
+            // Bin k is at k * fs / FFT size. The server returns N/2 bins,
+            // including DC and excluding Nyquist; never add a synthetic tail bin.
+            const length = Math.min(this.n_pts, psd.length);
+            this.plot_data.length = length;
+            let peak: number[] = [];
+            for (let i = 0; i < length; i++) {
+                const row = this.plot_data[i] || (this.plot_data[i] = [0, 0]);
+                row[0] = i * fs / this.fft.fft_size / 1e6;
+                row[1] = this.convertValue(psd[i], this.unit);
+                if (Number.isFinite(row[1]) && (!peak.length || row[1] > peak[1])) {
+                    peak = row.slice();
                 }
-            );
-        } catch (err) {
-            this._busy = false;
-            if (!this.running) { return; }
-            console.error("updatePlot error:", err);
-            // backoff a bit on error
-            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updatePlot(); } }), 500);
+            }
+            this.document.getElementById('peak-frequency').textContent = peak.length ? peak[0].toFixed(6) + ' MHz' : '—';
+            const unitLabel = this.unit === 'dBm-Hz' ? 'dBm/Hz' : this.unit === 'dBm' ? 'dBm' : 'nV/√Hz';
+            this.document.getElementById('peak-level').textContent = peak.length ? peak[1].toFixed(2) + ' ' + unitLabel : '—';
+            this.document.getElementById('bin-spacing').textContent = (fs / this.fft.fft_size / 1000).toFixed(3) + ' kHz';
+            this.document.getElementById('fft-size').textContent = this.fft.fft_size.toLocaleString() + ' points';
+            this.peak = peak;
+            this.redraw();
+            for (const button of Array.from(this.document.querySelectorAll<HTMLButtonElement>('.export-data, .export-plot'))) {
+                button.disabled = length === 0;
+            }
+            this.setStatus('live', 'Live spectrum');
+        } catch (error) {
+            if (!this.running || this.paused) { return; }
+            this.setStatus('error', 'Waiting for spectrum…');
+            console.error('Spectrum update failed:', error);
+            delay = 1000;
+        } finally {
+            this.busy = false;
+            this.schedule(delay);
         }
     }
 
-    convertValue(inValue: number, outUnit: string): number {
-        // inValue in W / Hz
-        let outValue: number = 0;
+    private redraw(): void {
+        this.plotBasics.redraw(this.plot_data, this.plot_data.length, this.peak.slice(), this.yLabel, () => {});
+    }
 
-        if (outUnit === "dBm-Hz") {
-            outValue = 10 * Math.log(inValue / 1E-3) / Math.LN10;
-        } else if (outUnit === "dBm") {
-            outValue = 10 * Math.log(inValue * (this.fft.status.W2 / this.fft.status.W1) * this.fft.status.fs / this.fft.fft_size / 1E-3) / Math.LN10;
-        } else if (outUnit === "nv-rtHz") {
-            outValue = Math.sqrt(50 * inValue) * 1E9;
+    convertValue(value: number, unit: string): number {
+        if (!Number.isFinite(value) || value < 0) { return NaN; }
+        if (unit === 'dBm-Hz') { return 10 * Math.log10(value / 1e-3); }
+        if (unit === 'dBm') {
+            const status = this.frameStatus || this.fft.status;
+            return 10 * Math.log10(value * (status.W2 / status.W1) * status.fs / this.fft.fft_size / 1e-3);
         }
-
-        return outValue;
+        return Math.sqrt(50 * value) * 1e9;
     }
 
     dispose(): void {
         this.running = false;
+        $('#plot-placeholder').off('.fft');
+        window.clearTimeout(this.timer);
+        window.cancelAnimationFrame(this.animation);
     }
-
 }

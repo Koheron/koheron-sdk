@@ -1,9 +1,21 @@
 <template class="template">
-  <label for="reference-clock">Reference Clock (10 MHz):</label>
-  <div class="radio-wrapper">
-    <input type="radio" name="reference-clock" value="2" checked class="clkgen-input" data-valuestr="internal" data-command="setReferenceClock">Internal
-  </div>
-  <div class="radio-wrapper">
-    <input type="radio" name="reference-clock" value="0" class="clkgen-input" data-valuestr="external" data-command="setReferenceClock">External
-  </div>
+  <fieldset class="control-field">
+    <legend>
+      10 MHz reference
+    </legend>
+    <div class="segmented">
+      <label>
+        <input type="radio" name="reference-clock" value="2" class="clkgen-input" data-command="setReferenceClock" data-valuestr="internal" checked>
+        <span>
+          Internal
+        </span>
+      </label>
+      <label>
+        <input type="radio" name="reference-clock" value="0" class="clkgen-input" data-command="setReferenceClock" data-valuestr="external" >
+        <span>
+          External
+        </span>
+      </label>
+    </div>
+  </fieldset>
 </template>

@@ -34,7 +34,7 @@ class App {
                 this.precisionDac = new PrecisionDac(this.client);
                 this.clockGenerator = new ClockGenerator(this.client);
 
-                await new Promise<void>(resolve => this.fft.init(resolve));
+                await this.fft.init();
                 if (this.stopped) { return; }
 
                 this.fftApp = new FFTApp(document, this.fft);
@@ -52,9 +52,26 @@ class App {
                 this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
                 this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionDac);
                 this.exportFile = new ExportFile(document, this.plot);
+                (document.getElementById('instrument-controls') as HTMLFieldSetElement).disabled = false;
+                (document.getElementById('board-controls') as HTMLFieldSetElement).disabled = false;
+                const pause = document.getElementById('pause-display') as HTMLButtonElement;
+                const reset = document.getElementById('reset-view') as HTMLButtonElement;
+                pause.disabled = reset.disabled = false;
+                pause.addEventListener('click', () => {
+                    const paused = pause.getAttribute('aria-pressed') !== 'true';
+                    pause.setAttribute('aria-pressed', String(paused));
+                    pause.textContent = paused ? 'Resume display' : 'Pause display';
+                    this.plot.setPaused(paused);
+                });
+                reset.addEventListener('click', () => plot_placeholder.trigger('dblclick'));
+
 
             } catch (err) {
                 if (this.stopped) { return; }
+                document.getElementById('connection-error').hidden = false;
+                const status = document.getElementById('connection-status');
+                status.textContent = 'Disconnected';
+                status.dataset.state = 'error';
                 console.error('Application initialization failed:', err);
                 this.shutdown();
             }

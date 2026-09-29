@@ -39,12 +39,9 @@ class FFT {
         this.status.dds_freq = [];
     }
 
-    init(cb: () => void): void {
-        this.getFFTSize( async (size: number) => {
-            this.fft_size = size;
-            await this.getControlParameters();
-            cb();
-        });
+    async init(): Promise<void> {
+        this.fft_size = await this.client.readUint32(Command(this.id, this.cmds['get_fft_size']));
+        await this.getControlParameters();
     }
 
     monitor(timeout: number): void {

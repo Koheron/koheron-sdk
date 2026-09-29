@@ -416,16 +416,16 @@ class PlotBasics {
 
         setTimeout(() => {this.plot.unhighlight()}, 100);
 
-        if (this.clickDatapoint.length > 0) {
+        if (this.clickDatapoint.length > 0 && plot_data.length > 0) {
             let i: number;
             for (i = 0; i < plot_data.length; i++) {
-                if (localData[0]['data'][i][0] > this.clickDatapoint[0]) {
+                if (plot_data[i][0] > this.clickDatapoint[0]) {
                     break;
                 }
             }
 
-            let p1 = localData[0]['data'][i-1];
-            let p2 = localData[0]['data'][i];
+            let p1 = plot_data[i-1];
+            let p2 = plot_data[i];
 
             if ((p1 === null) || (p1 === undefined)) {
                 this.clickDatapoint[1] = p2[1];

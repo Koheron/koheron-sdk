@@ -1,0 +1,115 @@
+/* Control app palette and compact instrument workspace; scoped to this example. */
+.fft-workspace {
+    --accent: hsl(196, 99%, 42%);
+    --accent-dark: hsl(196, 99%, 32%);
+    --accent-light: hsl(196, 99%, 95%);
+    --border: hsl(0, 0%, 85%);
+    --border-light: hsl(0, 0%, 90%);
+    --muted: #666;
+    margin: 0;
+    background: #fafafa;
+    color: #333;
+    font: 14px/1.45 Lato, sans-serif;
+}
+.fft-workspace * { box-sizing: border-box; }
+.fft-workspace .app-header { min-height: 56px; display: flex; align-items: center; gap: 16px; padding: 12px 24px; background: white; border-bottom: 1px solid var(--border); }
+.fft-workspace .brand img { width: 112px; display: block; }
+.fft-workspace .app-name { border-left: 1px solid var(--border); padding-left: 16px; }
+.fft-workspace .board-tag { font-size: 11px; letter-spacing: .04em; color: var(--muted); border: 1px solid var(--border); border-radius: 3px; padding: 2px 6px; }
+.fft-workspace nav { margin-left: auto; display: flex; gap: 20px; }
+.fft-workspace a { color: var(--muted); text-decoration: none; }
+.fft-workspace a:hover { color: var(--accent-dark); }
+.fft-workspace #main { margin: 0 auto; padding: 20px 24px; max-width: 1920px; }
+.fft-workspace .workspace-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.fft-workspace .workspace-heading > div { display: flex; align-items: baseline; gap: 12px; }
+.fft-workspace h1 { font-size: 22px; font-weight: 700; margin: 0; }
+.fft-workspace h2 { font-size: 14px; font-weight: 700; margin: 0 0 16px; }
+.fft-workspace .muted, .fft-workspace .readout-label { color: var(--muted); }
+.fft-workspace .connection-status { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; }
+.fft-workspace .connection-status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #aaa; }
+.fft-workspace .connection-status[data-state="live"]::before { background: #39994b; }
+.fft-workspace .connection-status[data-state="paused"]::before { background: #b07816; }
+.fft-workspace .connection-status[data-state="error"]::before { background: #bc4828; }
+.fft-workspace .connection-error { padding: 12px; margin-bottom: 16px; border: 1px solid #ddad9f; background: #fff4ef; }
+.fft-workspace .workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 18px; align-items: start; }
+.fft-workspace section { margin: 0; }
+.fft-workspace .panel-surface { background: white; border: 1px solid var(--border-light); border-radius: 6px; min-width: 0; }
+.fft-workspace .spectrum-toolbar, .fft-workspace .export-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 12px 16px; background: #fafafa; }
+.fft-workspace .spectrum-toolbar { border-bottom: 1px solid var(--border-light); border-radius: 6px 6px 0 0; }
+.fft-workspace .toolbar-actions { display: flex; gap: 8px; }
+.fft-workspace button { font: inherit; color: #333; padding: 6px 12px; border: 1px solid var(--border); border-radius: 3px; background: white; box-shadow: none; cursor: pointer; }
+.fft-workspace button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-dark); }
+.fft-workspace button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-light); color: var(--accent-dark); }
+.fft-workspace button:disabled { opacity: .45; cursor: default; }
+.fft-workspace :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.fft-workspace .spectrum-canvas { position: relative; margin: 22px 18px 10px; }
+.fft-workspace .plot-placeholder { height: clamp(330px, 49vh, 640px); width: 100%; }
+.fft-workspace #plot-title { margin-top: 8px; color: var(--muted); font-size: 12px; }
+.fft-workspace #peak-datapoint, .fft-workspace #hover-datapoint, .fft-workspace #click-datapoint { pointer-events: none; border: 1px solid var(--border); border-radius: 3px; font-size: 12px; padding: 4px 6px !important; z-index: 1; }
+.fft-workspace .spectrum-readouts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); padding: 14px 16px; gap: 16px; }
+.fft-workspace .readout-label { display: block; font-size: 11px; margin-bottom: 4px; }
+.fft-workspace .spectrum-readouts strong { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fft-workspace .spectrum-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; gap: 12px; color: var(--muted); font-size: 12px; }
+.fft-workspace .export-toolbar { border-top: 1px solid var(--border-light); border-radius: 0 0 6px 6px; font-size: 12px; }
+.fft-workspace fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.fft-workspace .control-column { display: grid; gap: 18px; }
+.fft-workspace .control-panel { padding: 16px; }
+.fft-workspace .control-field { margin: 0 0 18px; }
+.fft-workspace .control-field:last-child { margin-bottom: 0; }
+.fft-workspace label, .fft-workspace legend { font-size: 12px; font-weight: 400; margin: 0 0 6px; color: #555; }
+.fft-workspace legend { padding: 0; width: auto; }
+.fft-workspace .segmented { display: flex; }
+.fft-workspace .segmented label { position: relative; flex: 1; margin: 0; cursor: pointer; }
+.fft-workspace .segmented input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.fft-workspace .segmented span { display: block; padding: 7px 12px; text-align: center; border: 1px solid var(--border); background: white; white-space: nowrap; }
+.fft-workspace .segmented label + label span { border-left: 0; }
+.fft-workspace .segmented label:first-child span { border-radius: 3px 0 0 3px; }
+.fft-workspace .segmented label:last-child span { border-radius: 0 3px 3px 0; }
+.fft-workspace .segmented input:checked + span { background: var(--accent-light); color: var(--accent-dark); box-shadow: inset 0 -2px var(--accent); }
+.fft-workspace .segmented input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; position: relative; z-index: 1; }
+.fft-workspace .segmented input:disabled + span { opacity: .5; cursor: default; }
+.fft-workspace #yunit legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.fft-workspace select, .fft-workspace input[type="number"] { font: inherit; border: 1px solid var(--border); border-radius: 3px; background: white; color: #333; height: 34px; padding: 5px 8px; width: 100%; box-shadow: none; }
+.fft-workspace .control-field > label { display: block; }
+.fft-workspace .peak-toggle { display: inline-flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap; }
+.fft-workspace input[type="checkbox"], .fft-workspace input[type="range"] { accent-color: var(--accent); }
+.fft-workspace input[type="checkbox"] { margin: 0; width: auto; height: auto; }
+.fft-workspace .section-hint { font-size: 12px; margin: -8px 0 18px; }
+.fft-workspace .generator-channel { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 8px; align-items: center; margin-top: 18px; }
+.fft-workspace .generator-channel label { margin: 0; font-weight: 700; }
+.fft-workspace .generator-channel input[type="number"] { text-align: right; font-variant-numeric: tabular-nums; }
+.fft-workspace .generator-channel input[type="range"] { grid-column: 1 / -1; width: 100%; }
+.fft-workspace .board-details { margin-top: 18px; }
+.fft-workspace summary { cursor: pointer; padding: 14px 16px; font-weight: 700; }
+.fft-workspace summary .muted { font-size: 12px; font-weight: 400; margin-left: 12px; }
+.fft-workspace .board-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(180px, 1fr) minmax(160px, 1fr); gap: 24px; padding: 20px 16px; border-top: 1px solid var(--border-light); }
+.fft-workspace .crossed { text-align: left; border: 0; line-height: normal; margin: 0 0 12px; }
+.fft-workspace .crossed > span { padding: 0; font-size: 13px; }
+.fft-workspace table { font-size: 12px; width: 100%; font-variant-numeric: tabular-nums; }
+.fft-workspace td { padding: 5px; }
+.fft-workspace td input[type="number"] { min-width: 90px; }
+@media (max-width: 1100px) {
+    .fft-workspace .workspace-grid { grid-template-columns: minmax(0, 1fr) 280px; }
+    .fft-workspace .board-grid { grid-template-columns: 1fr 1fr; }
+    .fft-workspace #precision-channels { grid-column: 1 / -1; }
+    .fft-workspace .spectrum-readouts { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 780px) {
+    .fft-workspace .app-header { flex-wrap: wrap; padding: 12px 16px; gap: 12px; }
+    .fft-workspace .app-name { display: none; }
+    .fft-workspace nav { gap: 12px; font-size: 12px; }
+    .fft-workspace #main { padding: 16px 12px; }
+    .fft-workspace .workspace-grid { grid-template-columns: minmax(0, 1fr); }
+    .fft-workspace .control-column { grid-template-columns: 1fr 1fr; }
+    .fft-workspace .spectrum-footer { flex-wrap: wrap; }
+    .fft-workspace summary .muted { display: block; margin: 4px 0 0; }
+}
+@media (max-width: 500px) {
+    .fft-workspace .control-column, .fft-workspace .board-grid { grid-template-columns: minmax(0, 1fr); }
+    .fft-workspace .spectrum-canvas { margin-left: 8px; margin-right: 8px; }
+    .fft-workspace .workspace-heading .muted { display: none; }
+    .fft-workspace #precision-channels { overflow-x: auto; }
+}
+.fft-workspace .control-panel > div + div { margin-top: 16px; }
+.fft-workspace #plot-placeholder table { width: auto; }
+.fft-workspace #plot-placeholder td { padding: 2px; }

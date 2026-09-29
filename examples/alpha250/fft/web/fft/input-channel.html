@@ -1,9 +1,21 @@
 <template class="template">
-  <label for="input-channel">Input Channel:</label>
-  <div class="radio-wrapper">
-    <input type="radio" name="input-channel" value="0" checked class="fft-input" data-command="setInputChannel">0
-  </div>
-  <div class="radio-wrapper">
-    <input type="radio" name="input-channel" value="1" class="fft-input" data-command="setInputChannel">1
-  </div>
+  <fieldset class="control-field">
+    <legend>
+      Input channel
+    </legend>
+    <div class="segmented">
+      <label>
+        <input type="radio" name="input-channel" value="0" class="fft-input" data-command="setInputChannel" checked>
+        <span>
+          ADC 0
+        </span>
+      </label>
+      <label>
+        <input type="radio" name="input-channel" value="1" class="fft-input" data-command="setInputChannel" >
+        <span>
+          ADC 1
+        </span>
+      </label>
+    </div>
+  </fieldset>
 </template>

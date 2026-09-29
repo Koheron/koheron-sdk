@@ -23,3 +23,13 @@ g++ -std=c++20 -fsyntax-only -DKOHERON_SERVER_BUILD \
 
 These tests do not require or control a board. They do not validate FPGA timing,
 FFT numerical accuracy, or acquisition boundaries after a settings change.
+
+Spectrum display regression:
+
+```sh
+node examples/alpha250/fft/tests/test_web_plot.js
+```
+
+Checks zero-based bin frequencies (including the 40.008544921875 MHz bin), exact
+spectrum length, zero-DC peak handling, pause/resume, displayed-frame metadata,
+and cursor interpolation when a shared plot uses decimation.

@@ -16,7 +16,6 @@ DRIVERS += $(PROJECT_PATH)/fft.hpp
 DRIVERS += $(PROJECT_PATH)/fft.cpp
 
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
-WEB_FILES += $(SDK_PATH)/web/dds-frequency/dds-frequency.html
 WEB_FILES += $(SDK_PATH)/web/dds-frequency/dds-frequency.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
