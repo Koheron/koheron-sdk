@@ -42,21 +42,16 @@ for i, freq in enumerate(freqs):
     psd = driver.read_psd()
     psd_db = 10*np.log10(psd)
 
-    snr[i] = 10*np.log10(psd[n-1] / (np.sum(psd) - psd[n-1]))
+    snr[i] = 10*np.log10(psd[n] / (np.sum(psd) - psd[n]))
 
-    hd1[i] = psd_db[n-1]
+    hd1[i] = psd_db[n]
 
-    if 2*(n-1) < n_pts/2:
-        hd2[i] = psd_db[2*n-1] - hd1[i]
-    else:
-        hd2[i] = psd_db[n_pts - (2*n) - 1] - hd1[i]
-
-    if 3*(n-1) < n_pts/2:
-        hd3[i] = psd_db[3*n-1] - hd1[i]
-    elif 3*(n-1) < n_pts:
-        hd3[i] = psd_db[n_pts - (3*n) - 1] - hd1[i]
-    else:
-        hd3[i] = psd_db[(3*n)%(n_pts/2) - 1] - hd1[i]
+    # Fold harmonics into the one-sided spectrum. Nyquist is not returned.
+    for harmonic, values in ((2, hd2), (3, hd3)):
+        bin_index = (harmonic * int(n)) % n_pts
+        bin_index = min(bin_index, n_pts - bin_index)
+        values[i] = (psd_db[bin_index] - hd1[i]
+                     if bin_index < len(psd_db) else np.nan)
 
     print(i, freq, hd1[i], hd2[i], hd3[i])
 
