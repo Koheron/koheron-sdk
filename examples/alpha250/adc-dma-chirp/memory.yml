@@ -1,0 +1,57 @@
+memory:
+  - name: control
+    offset: 0x4000_0000
+    range: 4K
+    registers:
+      - mmcm
+      - precision_dac_ctl
+      - precision_dac_data[2]
+      - acq_reset
+      - trigger
+      - chirp_samples
+      - chirp_coefficient[2]
+      - seed_data[2]
+      - seed_index
+      - seed_write
+  - name: ps_control
+    offset: 0x5400_0000
+    range: 4K
+    registers:
+      - spi_cfg_data
+      - spi_cfg_cmd
+  - name: status
+    offset: 0x5000_0000
+    range: 4K
+    registers:
+      - adc[n_adc]
+      - capture_status
+  - name: ps_status
+    offset: 0x5800_0000
+    range: 4K
+    registers:
+      - spi_cfg_sts
+  - name: xadc
+    offset: 0x43C0_0000
+    range: 64K
+  - name: ram_s2mm
+    offset: 0x1800_0000
+    range: 128M
+  - name: dma
+    offset: 0x4040_0000
+    range: 64K
+  - name: axi_hp0
+    offset: 0xF800_8000
+    range: 4K
+  - name: ocm_s2mm
+    offset: 0xFFFF_0000
+    range: 32K
+  - name: sclr
+    offset: 0xF800_0000
+    range: 64K
+
+parameters:
+  fclk0: 143000000
+  adc_clk: 250000000
+  dac_width: 16
+  adc_width: 16
+  n_adc: 2
