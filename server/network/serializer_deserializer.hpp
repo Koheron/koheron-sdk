@@ -90,10 +90,12 @@ inline A extract(const std::byte* p) {
     using V = typename A::value_type;
     constexpr std::size_t N = std::tuple_size<A>::value;
     A out{}; // value-initialize
+    // Array payloads use the same raw element representation as vectors and
+    // push_array(), unlike big-endian scalar arguments. Python append_array()
+    // and the browser client both send contiguous native element bytes.
+    static_assert(std::is_trivially_copyable_v<V>);
     if constexpr (N > 0) {
-        for (std::size_t i = 0; i < N; ++i) {
-            out[i] = extract<V>(p + i * sizeof(V));
-        }
+        std::memcpy(out.data(), p, N * sizeof(V));
     }
     return out;
 }
