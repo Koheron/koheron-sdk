@@ -11,8 +11,8 @@ module psd_counter #
   input wire clk,
   input wire s_axis_tvalid,
   input wire [32-1:0] s_axis_tdata,
-  output wire m_axis_tvalid,
-  output wire [32-1:0] m_axis_tdata,
+  output reg m_axis_tvalid = 0,
+  output reg [32-1:0] m_axis_tdata,
   output reg [PERIOD_WIDTH+1:0] addr,
   output reg [N_CYCLES_WIDTH-1:0] cycle_index,
   output reg first_cycle,
@@ -26,10 +26,13 @@ initial cnt = 0;
 initial cycle_index_reg = 0;
 
 always @(posedge clk) begin
+  // Keep each sample in the same pipeline stage as its bin address and flags.
+  m_axis_tvalid <= s_axis_tvalid;
+  m_axis_tdata <= s_axis_tdata;
   addr <= {{cnt}, {2'b0}};
   cycle_index <= cycle_index_reg;
-  first_cycle <= ((cnt < PERIOD) && (cycle_index_reg == 0));
-  last_cycle <= ((cnt < PERIOD) && (cycle_index_reg == N_CYCLES - 1));
+  first_cycle <= s_axis_tvalid && (cycle_index_reg == 0);
+  last_cycle <= s_axis_tvalid && (cycle_index_reg == N_CYCLES - 1);
 end
 
 always @(posedge clk) begin
@@ -38,7 +41,7 @@ always @(posedge clk) begin
       cnt <= cnt + 1;
     end else begin
       cnt <= 0;
-      if (cycle_index < N_CYCLES - 1) begin
+      if (cycle_index_reg < N_CYCLES - 1) begin
         cycle_index_reg <= cycle_index_reg + 1;
       end else begin
         cycle_index_reg <= 0;
@@ -46,8 +49,5 @@ always @(posedge clk) begin
     end
   end
 end
-
-assign m_axis_tvalid = s_axis_tvalid;
-assign m_axis_tdata = s_axis_tdata;
 
 endmodule
