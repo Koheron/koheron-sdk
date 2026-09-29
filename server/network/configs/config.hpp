@@ -20,8 +20,10 @@ namespace net {
         /// Enable/Disable the Nagle algorithm in the TCP buffer
         constexpr bool tcp_nodelay = true;
 
-        /// Set MSG_ZEROCOPY
-        constexpr bool use_zerocopy = true;
+        // Returned arrays and vectors may be temporary. MSG_ZEROCOPY requires
+        // retaining their storage until completion from MSG_ERRQUEUE, which
+        // the synchronous send path does not implement.
+        constexpr bool use_zerocopy = false;
 
         /// TCP listening port
         constexpr unsigned int tcp_port = 36000;
