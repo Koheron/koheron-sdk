@@ -1,12 +1,13 @@
-# ADC/DAC BRAM sampling rate
+# ADC/DAC BRAM clock configurations
 
-Set `parameters.adc_clk` in `memory.yml` to 100000000, 200000000, 240000000,
-or 250000000 Hz, then rebuild and load both the FPGA and server. The clock
-driver starts at that rate. The default remains 250 MHz.
+Build the example at its default 250 MHz. The same loaded FPGA can then run at
+200, 250, 100, or 240 MHz using `set_sampling_frequency(0)`, `(1)`, `(2)`, or `(3)`.
+No bitstream reload is needed between selections. Stop acquisition before
+switching; the sample clock pauses during reconfiguration.
 
-`set_sampling_frequency()` accepts only the rate matching the FPGA build;
-other rates are rejected with a log message. Changing the external clock alone
-does not reconfigure the MMCM or its timing constraints.
+The driver changes the external clock and the MMCM dividers, waits for lock,
+and applies the selected phase from zero. Re-selecting the current rate does
+nothing. Rates above the build's `adc_clk` are rejected.
 
-At 100 MHz, startup applies phase 300 automatically. Build with
-`ENFORCE_TIMING=1` to require passing routed timing before writing the bitstream.
+This change adds PS-domain MMCM control/status registers, so update the FPGA
+and server together once. Build with `ENFORCE_TIMING=1` to enforce routed timing.

@@ -5,3 +5,4 @@ CORES += $(SDK_PATH)/fpga/cores/comparator_v1_0
 CORES += $(SDK_PATH)/fpga/cores/unrandomizer_v1_0
 CORES += $(SDK_PATH)/boards/alpha250/cores/precision_dac_v1_0
 CORES += $(SDK_PATH)/boards/alpha250/cores/spi_cfg_v1_0
+CORES += $(SDK_PATH)/boards/alpha250/cores/mmcm_drp_v1_0
