@@ -211,6 +211,7 @@ class KoheronApp(Flask):
     def __init__(self, *args, **kwargs):
         super(KoheronApp, self).__init__(*args, **kwargs)
         self.init_instruments(KoheronApp.instruments_dirname)
+        self.refresh_live_instrument()
         self.instrument_log_cursor: str | None = None
         self.instrument_log_ts: int | None = None
         initial_invocation = _detect_invocation_id()
@@ -252,9 +253,30 @@ class KoheronApp(Flask):
             if instrument["name"] is not None:
                 self.instruments_list.append(instrument)
 
-            if is_default:
-                self.live_instrument = instrument
-                #self.run_instrument(instrument_filename, KoheronApp.live_instrument_dirname, instrument)
+    def refresh_live_instrument(self):
+        # Boot preference and installed archive versions do not describe the
+        # currently loaded files. Recover their identity even after API restart.
+        self.live_instrument = None
+        try:
+            active = subprocess.run(['/bin/systemctl', 'is-active', '--quiet',
+                                     'koheron-server.service'], timeout=5).returncode == 0
+            if not active:
+                return
+            with open(os.path.join(self.live_instrument_dirname, '.instrument-name')) as f:
+                name = f.read().strip()
+            if not name or secure_filename(name + '.zip') != name + '.zip':
+                return
+            with open(os.path.join(self.live_instrument_dirname, self.version_filename)) as f:
+                version = f.read().strip()
+            filename = os.path.join(self.instruments_dirname, name + '.zip')
+            self.live_instrument = {
+                'name': name, 'version': version,
+                'is_default': self.is_default_instrument(filename, self.instruments_dirname,
+                                                         self.default_filename)
+            }
+        except (OSError, UnicodeError, subprocess.TimeoutExpired):
+            # Unknown/stopped is preferable to advertising an instrument as live.
+            return
 
     def run_instrument(self, instrument_filename, live_instrument_dirname, instrument_dict):
         if not os.path.exists(instrument_filename):
@@ -270,10 +292,12 @@ class KoheronApp(Flask):
             self.instrument_invocation_id = start_invocation
         if start_ts is None:
             start_ts = _now_ts_us()
-        result = subprocess.call(['/bin/bash', 'app/install_instrument.sh', name, live_instrument_dirname])
+        result = subprocess.call(['/bin/bash', os.path.join(os.path.dirname(__file__),
+                                                         'install_instrument.sh'),
+                                  name, live_instrument_dirname])
+        self.refresh_live_instrument()
 
         if result == 0:
-            self.live_instrument = instrument_dict
             post_cursor, post_ts, post_invocation = _bookmark_tail()
             if post_invocation:
                 self.instrument_invocation_id = post_invocation
@@ -294,6 +318,7 @@ app = KoheronApp(__name__)
 
 @app.route('/api/instruments', methods=['GET'])
 def get_instruments_status():
+    app.refresh_live_instrument()
     instruments_status_list = []
     for instrument in app.instruments_list:
         instruments_status_list.append(instrument['name'])
@@ -302,6 +327,7 @@ def get_instruments_status():
 
 @app.route('/api/instruments/details', methods=['GET'])
 def get_instruments_details():
+    app.refresh_live_instrument()
     return jsonify({'instruments': app.instruments_list, 'live_instrument': app.live_instrument })
 
 @app.route('/api/instruments/run/<name>', methods=['GET'])
