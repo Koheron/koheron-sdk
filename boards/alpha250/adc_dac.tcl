@@ -95,13 +95,20 @@ puts $input_clock_file [format {create_clock -name adc_clk_in -period %.6f [get_
 close $input_clock_file
 add_files -norecurse -fileset constrs_1 $input_clock_xdc
 
-# The 250 MS/s driver shifts CLKOUT0 by 56 fine-phase steps (1 ns).
+# The driver shifts CLKOUT0 by 56 steps at 250 MS/s (1 ns), or
+# 300 steps at 100 MS/s (5.357143 ns). Both builds use a 1 GHz MMCM VCO.
 # Reserve that setup time while retaining the phase-0 hold requirement.
 # User uncertainty adds to Vivado's calculated jitter and phase error.
+set dac_phase_budget 0
 if {[get_parameter adc_clk] == 250000000} {
+    set dac_phase_budget 1.000
+} elseif {[get_parameter adc_clk] == 100000000} {
+    set dac_phase_budget 5.358
+}
+if {$dac_phase_budget > 0} {
     set dac_phase_xdc [file join $output_path alpha250_dac_phase.xdc]
     set dac_phase_file [open $dac_phase_xdc w]
-    puts $dac_phase_file {set_clock_uncertainty -setup 1.000 -from [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/CLKOUT0]] -to [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/CLKOUT1]]}
+    puts $dac_phase_file [format {set_clock_uncertainty -setup %.3f -from [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/CLKOUT0]] -to [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/CLKOUT1]]} $dac_phase_budget]
     close $dac_phase_file
     add_files -norecurse -fileset constrs_1 $dac_phase_xdc
     set_property PROCESSING_ORDER LATE [get_files $dac_phase_xdc]

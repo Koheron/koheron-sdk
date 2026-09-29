@@ -47,12 +47,26 @@ int32_t ClockGenerator::set_tcxo_clock(uint8_t value) {
 }
 
 void ClockGenerator::init() {
+    static_assert(prm::adc_clk == 100000000 || prm::adc_clk == 200000000 ||
+                  prm::adc_clk == 240000000 || prm::adc_clk == 250000000,
+                  "Unsupported ALPHA250 adc_clk");
     log("Clock generator: Setting default configuration ...\n");
     std::array<uint8_t, 1> cal_array;
     eeprom.read<eeprom_map::clock_generator_calib::offset>(cal_array);
     logf("Clock generator: TCXO calibration is {}\n", cal_array[0]);
     set_tcxo_clock(cal_array[0]);
-    configure(CFG_ALL, clock_cfg::TCXO_CLOCK, clock_cfg::fs_250MHz);
+    // The MMCM configuration and timing constraints are generated for adc_clk.
+    // Program the external clock to the same frequency before shifting its phase.
+    for (uint32_t i = 0; i < clock_cfg::configs.size(); ++i) {
+        const auto& cfg = clock_cfg::configs[i];
+        if (clock_cfg::sampling_frequency(cfg) == prm::adc_clk) {
+            if (configure(CFG_ALL, clock_cfg::TCXO_CLOCK, cfg) == 0) {
+                fs_selected = i;
+            }
+            return;
+        }
+    }
+    logf<ERROR>("Clock generator: Unsupported build sampling frequency {} Hz\n", prm::adc_clk);
 }
 
 // 0: Ext. clock, 1: FPGA clock, 2: TCXO, 4: Automatic
@@ -64,7 +78,12 @@ void ClockGenerator::set_reference_clock(uint32_t clkin_) {
 
 void ClockGenerator::set_sampling_frequency(uint32_t fs_select) {
     if (fs_select < clock_cfg::configs.size() && fs_select != fs_selected) {
-        if (configure(SAMPLING_FREQ_SET, clkin, clock_cfg::configs[fs_select]) == 0) {
+        const auto& cfg = clock_cfg::configs[fs_select];
+        if (clock_cfg::sampling_frequency(cfg) != prm::adc_clk) {
+            logf<ERROR>("Clock generator: Sampling frequency must match build adc_clk ({} Hz); rebuild the FPGA to change it\n", prm::adc_clk);
+            return;
+        }
+        if (configure(SAMPLING_FREQ_SET, clkin, cfg) == 0) {
             fs_selected = fs_select;
         }
     }

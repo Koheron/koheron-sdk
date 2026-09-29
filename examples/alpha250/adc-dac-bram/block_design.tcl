@@ -37,4 +37,9 @@ connect_pins adc_dac/dac1 [get_slice_pin blk_mem_gen_dac/doutb 31 16]
 
 # The 200 MHz AXI-to-BRAM enable path needs one post-route optimization pass.
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
-set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE Explore [get_runs impl_1]
+if {[get_parameter adc_clk] == 100000000} {
+    # Repair the short phase-0 DAC hold paths as well as the BRAM setup paths.
+    set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE ExploreWithAggressiveHoldFix [get_runs impl_1]
+} else {
+    set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE Explore [get_runs impl_1]
+}
