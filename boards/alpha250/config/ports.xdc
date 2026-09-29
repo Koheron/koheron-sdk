@@ -169,6 +169,12 @@ set_property PACKAGE_PIN H15 [get_ports {dac_1[15]}]
 set_property PACKAGE_PIN K9  [get_ports Vp_Vn_v_p]
 set_property PACKAGE_PIN L10 [get_ports Vp_Vn_v_n]
 
-set_false_path \
+# DAC samples cross from the fine-phase-adjusted ADC processing clock to
+# the fixed DAC launch clock. These clocks have the same frequency; treating
+# the data path as false allowed >5 ns routes at 250 MHz, corrupting samples.
+# Bound the transfer to 2 ns at the normal 250 MHz operating point.
+# This is an implementation budget, not timing closure for arbitrary runtime
+# phase shifts or external DAC I/O. Both primary-clock selections are covered.
+set_max_delay -datapath_only 2.000 \
     -from [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/*CLKOUT0*]] \
     -to [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/*CLKOUT1*]]
