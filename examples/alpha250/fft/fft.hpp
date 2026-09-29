@@ -29,14 +29,14 @@ class FFT
     void set_scale_sch(uint32_t scale_sch);
     void set_fft_window(uint32_t window_id);
 
-    // Read averaged spectrum data
-    const auto& read_psd_raw() {
+    // Return an owned snapshot while holding the acquisition mutex.
+    auto read_psd_raw() {
         std::lock_guard<std::mutex> lock(mutex);
         return psd_buffer_raw;
     }
 
-    // Return the PSD in W/Hz
-    const auto& read_psd() {
+    // Return an owned PSD snapshot in W/Hz.
+    auto read_psd() {
         std::lock_guard<std::mutex> lock(mutex);
         return psd_buffer;
     }
@@ -56,6 +56,7 @@ class FFT
     void set_dds_freq(uint32_t channel, double freq_hz);
 
     auto get_control_parameters() {
+        std::lock_guard<std::mutex> lock(mutex);
         return std::tuple{
             dds_freq[0],
             dds_freq[1],
@@ -93,8 +94,8 @@ class FFT
     uint32_t input_channel = 0;
     std::array<double, 2> dds_freq = {{0.0, 0.0}};
 
-    std::array<float, prm::fft_size/2> psd_buffer_raw;
-    std::array<float, prm::fft_size/2> psd_buffer;
+    std::array<float, prm::fft_size/2> psd_buffer_raw{};
+    std::array<float, prm::fft_size/2> psd_buffer{};
     std::thread psd_thread;
     std::mutex mutex;
     std::atomic<bool> psd_acquisition_started{false};
@@ -102,6 +103,8 @@ class FFT
     void psd_acquisition_thread();
     void start_psd_acquisition();
 
+    // Helpers below require mutex to be held by the caller.
+    void set_dds_freq_unlocked(uint32_t channel, double freq_hz);
     // Vectors to convert PSD raw data into W/Hz
     void set_conversion_vectors();
     void set_window(const std::array<double, prm::fft_size> &window);

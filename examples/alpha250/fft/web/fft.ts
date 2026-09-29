@@ -91,7 +91,7 @@ class FFT {
         const [fdds0, fdds1, fs, channel, W1, W2, window_index, clkin] =
         await this.client.readTuple<TupleGetParameters>(
             Command(this.id, this.cmds['get_control_parameters']),
-            'dddIddI'
+            'dddIddII'
         );
 
         let clkIndex: string = "0";
