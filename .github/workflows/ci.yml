@@ -20,6 +20,8 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
+      - name: Test kernel build dependencies
+        run: python3 -m unittest discover -s os/tests -v
       - name: Validate all instrument configurations
         run: |
           count=0
