@@ -1,6 +1,7 @@
 import os
 import subprocess
 import zipfile
+import tempfile
 from datetime import datetime, timezone
 
 from flask import Flask, jsonify, request, make_response, Response, send_file
@@ -371,15 +372,33 @@ def upload_instrument():
             safe_filename = secure_filename(filename)
             instrument_filename = os.path.join(app.instruments_dirname, safe_filename)
 
-            request.files[filename].save(instrument_filename)
+            if not is_zip(safe_filename):
+                return make_response('Invalid instrument filename', 400)
 
-            if not zipfile.is_zipfile(instrument_filename):
-                os.remove(instrument_filename)
-                return make_response('Invalid instrument archive', 400)
+            # Keep the installed archive intact until the complete upload passes
+            # validation. The temporary file shares its filesystem for replace().
+            temporary_filename = None
+            try:
+                with tempfile.NamedTemporaryFile(dir=app.instruments_dirname,
+                                                 prefix='.upload-', delete=False) as temporary:
+                    temporary_filename = temporary.name
+                    request.files[filename].save(temporary)
+                    temporary.flush()
+                    os.fsync(temporary.fileno())
 
-            if not zip_has_file(instrument_filename, app.version_filename):
-                os.remove(instrument_filename)
-                return make_response('Instrument archive missing version file', 400)
+                try:
+                    with zipfile.ZipFile(temporary_filename) as archive:
+                        if app.version_filename not in archive.namelist():
+                            return make_response('Instrument archive missing version file', 400)
+                        if archive.testzip() is not None:
+                            return make_response('Corrupt instrument archive', 400)
+                except (zipfile.BadZipFile, RuntimeError, NotImplementedError):
+                    return make_response('Invalid instrument archive', 400)
+
+                os.replace(temporary_filename, instrument_filename)
+            finally:
+                if temporary_filename is not None and os.path.exists(temporary_filename):
+                    os.remove(temporary_filename)
 
             is_default = app.is_default_instrument(instrument_filename, app.instruments_dirname, app.default_filename)
             instrument = app.get_instrument_dict(instrument_filename, is_default, app.version_filename)
