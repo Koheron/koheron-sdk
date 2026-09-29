@@ -117,7 +117,7 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
 
     // R2: DAC clock
     uint32_t CLKout2_DIV = clk_cfg[5];  // Clock divisor 2.5 GHz / 10 = 250 MHz
-    uint32_t CLKout2_DDLY = 9;  // Digital delay  (6: fail, 7: pass, ... , 11: pass, 12: fail)
+    uint32_t CLKout2_DDLY = 7;  // DAC clock digital delay (VCO cycles)
     uint32_t CLKout2_PD = 0;    // Power down
 
     // R3: FPGA clock
