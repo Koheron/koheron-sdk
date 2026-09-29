@@ -27,6 +27,7 @@ FFT::FFT()
 }
 
 void FFT::set_input_channel(uint32_t channel) {
+    std::lock_guard<std::mutex> lock(mutex);
     if (channel >= 2) {
         log<ERROR>("FFT::set_input_channel invalid channel\n");
         return;
@@ -42,6 +43,7 @@ void FFT::set_scale_sch(uint32_t scale_sch) {
 }
 
 void FFT::set_fft_window(uint32_t window_id) {
+    std::lock_guard<std::mutex> lock(mutex);
     switch (window_id) {
     case 0:
         set_window(win::boxcar<double, prm::fft_size>());
@@ -82,6 +84,11 @@ std::array<int32_t, prm::n_adc> FFT::get_adc_raw_data(uint32_t n_avg) {
 }
 
 void FFT::set_dds_freq(uint32_t channel, double freq_hz) {
+    std::lock_guard<std::mutex> lock(mutex);
+    set_dds_freq_unlocked(channel, freq_hz);
+}
+
+void FFT::set_dds_freq_unlocked(uint32_t channel, double freq_hz) {
     if (channel >= 2) {
         log<ERROR>("FFT::set_dds_freq invalid channel\n");
         return;
@@ -148,7 +155,6 @@ uint32_t FFT::get_cycle_index() {
 
 void FFT::start_psd_acquisition() {
     if (! psd_acquisition_started) {
-        psd_buffer.fill(0);
         psd_thread = std::thread{&FFT::psd_acquisition_thread, this};
         psd_thread.detach();
     }
@@ -180,8 +186,8 @@ void  FFT::psd_acquisition_thread() {
             if (std::abs(clk_gen.get_adc_sampling_freq() - fs_adc) > std::numeric_limits<double>::round_error()) {
                 // Sampling frequency has changed
                 set_conversion_vectors();
-                set_dds_freq(0, dds_freq[0]);
-                set_dds_freq(1, dds_freq[1]);
+                set_dds_freq_unlocked(0, dds_freq[0]);
+                set_dds_freq_unlocked(1, dds_freq[1]);
             }
 
             for (unsigned int i=0; i<prm::fft_size/2; i++) {

@@ -55,7 +55,7 @@ class FFT(object):
 
     @command()
     def get_control_parameters(self):
-        return self.client.recv_tuple('dddIdd')
+        return self.client.recv_tuple('dddIddII')
 
     @command()
     def get_adc_raw_data(self, n_avg):
