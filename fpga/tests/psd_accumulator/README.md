@@ -13,8 +13,9 @@ bins of three successive averages of three 64-bin frames. Input values differ
 by bin and frame, detecting shifted bins and contamination between averages.
 The test fails Vivado's Tcl command if an assertion fails.
 
-This test checks continuous acquisition. The accumulator's handling of input
-pauses and draining at the end of a finite stream is a separate known issue.
+Both continuous input and input with pauses are checked, including pauses at
+frame boundaries and draining the pipeline after the final input sample.
+Invalid cycles carry NaNs to detect accidental accumulation.
 
 The standalone `fpga/cores/psd_counter_v1_0/psd_counter_tb.v` also checks valid
 pauses, single-sample frames, non-power-of-two frame/average lengths, 8192-bin

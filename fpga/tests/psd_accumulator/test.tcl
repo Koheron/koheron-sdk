@@ -40,8 +40,11 @@ set_property top integration_tb [get_filesets sim_1]
 set_property xsim.simulate.runtime 0ns [get_filesets sim_1]
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
-launch_simulation
-run all
-set passed [get_value -radix bin /integration_tb/passed]
-close_sim
-if {$passed ne "1"} {error "PSD accumulator regression failed"}
+foreach pauses {0 1} {
+  set_property generic PAUSES=$pauses [get_filesets sim_1]
+  launch_simulation
+  run all
+  set passed [get_value -radix bin [get_objects /*/passed]]
+  close_sim
+  if {$passed ne "1"} {error "PSD accumulator regression failed (pauses=$pauses)"}
+}

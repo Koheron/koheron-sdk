@@ -60,6 +60,9 @@ proc create {module_name} {
     SCLR [get_Q_pin first_cycle $bram_latency]
   }
 
+  # Address and write-enable delays advance every clock. Let the adder advance
+  # with them, carrying invalid cycles through the pipeline instead of freezing
+  # it when input pauses (including after the final sample).
   cell xilinx.com:ip:floating_point:7.1 adder {
     A_Precision_Type.VALUE_SRC PROPAGATED
     Add_Sub_Value Add
@@ -69,16 +72,17 @@ proc create {module_name} {
     C_Latency $add_latency
     C_Mult_Usage No_Usage
     C_Rate 1
-    Has_ACLKEN true
+    Has_ACLKEN false
   } {
     aclk clk
-    aclken $ce_pin
+    s_axis_a_tvalid $ce_pin
+    s_axis_b_tvalid $ce_pin
     s_axis_a_tdata shift_reg/Q
     s_axis_b_tdata [get_Q_pin s_axis_tdata $read_latency]
     m_axis_result_tdata accum_bram/dina
   }
 
-  set wen_pin [get_Q_pin last_cycle $total_latency]
+  set wen_pin [get_Q_pin [get_and_pin last_cycle s_axis_tvalid] $total_latency]
 
   cell xilinx.com:ip:xlconcat:2.1 concat_wen {
     NUM_PORTS 4
