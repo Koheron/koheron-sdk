@@ -60,7 +60,7 @@ class App {
                 pause.addEventListener('click', () => {
                     const paused = pause.getAttribute('aria-pressed') !== 'true';
                     pause.setAttribute('aria-pressed', String(paused));
-                    pause.textContent = paused ? 'Resume display' : 'Pause display';
+                    pause.textContent = paused ? 'Resume' : 'Pause';
                     this.plot.setPaused(paused);
                 });
                 reset.addEventListener('click', () => plot_placeholder.trigger('dblclick'));

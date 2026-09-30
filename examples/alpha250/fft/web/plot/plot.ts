@@ -63,6 +63,12 @@ class Plot {
         try {
             const psd = await this.fft.read_psd();
             if (!this.running || this.paused) { return; }
+            // The accumulator can return zeros before its first complete frame.
+            // Do not fix the automatic Y range from an entirely nonfinite dB plot.
+            if (!psd.some(value => Number.isFinite(value) && value > 0)) {
+                this.setStatus('connecting', 'Waiting for spectrum…');
+                return;
+            }
             this.frameStatus = {...this.fft.status, dds_freq: this.fft.status.dds_freq.slice()};
             this.unit = this.document.querySelector<HTMLInputElement>('.unit-input:checked').value;
             this.yLabel = this.unit === 'dBm-Hz' ? 'PSD (dBm/Hz)' : this.unit === 'dBm' ? 'Power (dBm)' : 'Voltage noise (nV/√Hz)';

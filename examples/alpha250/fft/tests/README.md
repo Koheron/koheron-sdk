@@ -32,4 +32,5 @@ node examples/alpha250/fft/tests/test_web_plot.js
 
 Checks zero-based bin frequencies (including the 40.008544921875 MHz bin), exact
 spectrum length, zero-DC peak handling, pause/resume, displayed-frame metadata,
-and cursor interpolation when a shared plot uses decimation.
+startup auto-scaling after an empty accumulator frame, and cursor interpolation
+when a shared plot uses decimation.

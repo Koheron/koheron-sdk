@@ -51,6 +51,22 @@ vm.runInContext(`
     plot.setPaused(false);
     await Promise.resolve();
     assert.equal(reads, 2);
+
+    // A zero startup frame must not lock auto-scaling to the empty [-1, 1] range.
+    let startupDraws = 0;
+    let startupReady = false;
+    const startupFFT = {...fft, async read_psd() {
+        return startupReady ? psd : new Float32Array(4096);
+    }};
+    const startup = new Plot(doc, startupFFT, {...basics, redraw() { startupDraws++; }});
+    await Promise.resolve();
+    assert.equal(startupDraws, 0);
+    assert.equal(fields.get('connection-status').textContent, 'Waiting for spectrum…');
+    startupReady = true;
+    await startup.updatePlot();
+    assert.equal(startupDraws, 1);
+    assert.equal(fields.get('connection-status').textContent, 'Live spectrum');
+    startup.dispose();
     plot.dispose();
     await plot.updatePlot();
     assert.equal(reads, 2);

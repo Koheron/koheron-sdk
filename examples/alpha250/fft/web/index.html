@@ -41,36 +41,32 @@
 <body class="fft-workspace">
 <header class="app-header">
   <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
-  <span class="app-name">Spectrum analyzer</span><span class="board-tag">ALPHA250</span>
+  <h1>FFT</h1><span class="board-tag">ALPHA250</span>
+  <span id="connection-status" class="connection-status" role="status" data-state="connecting">Connecting…</span>
   <nav aria-label="Board navigation"><a href="/koheron">Instruments</a><a href="/koheron/logs_rate.html">Logs &amp; data rates</a></nav>
 </header>
 <main id="main">
-  <div class="workspace-heading"><div><h1>FFT</h1><span class="muted">Power spectral density</span></div>
-    <span id="connection-status" class="connection-status" role="status" data-state="connecting">Connecting…</span>
-  </div>
   <div id="connection-error" class="connection-error" role="alert" hidden>Unable to connect to the FFT instrument. <button type="button" onclick="location.reload()">Retry</button></div>
-  <div class="workspace-grid">
-    <section class="spectrum-panel panel-surface" aria-label="Spectrum">
-      <div class="spectrum-toolbar"><div id="yunit"></div>
-        <div class="toolbar-actions"><button id="pause-display" type="button" disabled aria-pressed="false">Pause display</button><button id="reset-view" type="button" disabled>Reset view</button></div>
-      </div>
-      <div class="spectrum-canvas"><div id="plot-placeholder" class="plot-placeholder" aria-label="Live frequency spectrum"></div><div id="plot-basics"></div></div>
-      <div class="spectrum-readouts">
-        <div><span class="readout-label">Peak frequency</span><strong id="peak-frequency">—</strong></div>
-        <div><span class="readout-label">Peak level</span><strong id="peak-level">—</strong></div>
-        <div><span class="readout-label">Bin spacing</span><strong id="bin-spacing">—</strong></div>
-        <div><span class="readout-label">FFT size</span><strong id="fft-size">—</strong></div>
-      </div>
-      <div class="spectrum-footer"><span>Drag to zoom · Double-click to reset</span><div id="peak-detection"></div></div>
-      <div id="export-file" class="export-toolbar"></div>
-    </section>
-    <fieldset id="instrument-controls" disabled class="control-column">
-      <legend class="sr-only">Instrument controls</legend>
-      <section class="panel-surface control-panel"><h2>Acquisition</h2><div id="input-channel"></div><div id="fft-window"></div><div id="sampling-frequency"></div><div id="reference-clock"></div></section>
-      <section class="panel-surface control-panel"><h2>Signal generator</h2><p class="muted section-hint">DAC output frequency · MHz</p><div id="dds-frequency"></div></section>
-    </fieldset>
-  </div>
-  <details class="board-details panel-surface"><summary>Board monitoring &amp; precision I/O <span class="muted">Temperatures, supplies and DC channels</span></summary>
+  <fieldset id="instrument-controls" disabled class="instrument-toolbar">
+    <legend class="sr-only">Acquisition and signal generator</legend>
+    <div class="acquisition-controls"><div id="input-channel"></div><div id="fft-window"></div><div id="sampling-frequency"></div><div id="reference-clock"></div></div>
+    <div id="dds-frequency" class="generator-controls"></div>
+  </fieldset>
+  <section class="spectrum-panel" aria-label="Spectrum">
+    <div class="spectrum-toolbar">
+      <div class="display-controls"><div id="yunit"></div><div id="peak-detection"></div></div>
+      <div class="plot-actions"><div class="toolbar-actions"><button id="pause-display" type="button" disabled aria-pressed="false">Pause</button><button id="reset-view" type="button" disabled>Reset</button></div><div id="export-file"></div></div>
+    </div>
+    <div class="spectrum-canvas"><div id="plot-placeholder" class="plot-placeholder" aria-label="Live frequency spectrum"></div><div id="plot-basics"></div></div>
+    <div class="spectrum-readouts">
+      <div><span class="readout-label">Peak</span><strong id="peak-frequency">—</strong></div>
+      <div><span class="readout-label">Level</span><strong id="peak-level">—</strong></div>
+      <div><span class="readout-label">Bin</span><strong id="bin-spacing">—</strong></div>
+      <div><span class="readout-label">FFT</span><strong id="fft-size">—</strong></div>
+      <span class="plot-help">Drag to zoom · Double-click to reset</span>
+    </div>
+  </section>
+  <details class="board-details"><summary>Board monitoring &amp; precision I/O</summary>
     <fieldset id="board-controls" disabled class="board-grid"><legend class="sr-only">Board controls</legend><section id="precision-channels"></section><section id="temperature-sensor"></section><section id="power-monitor"></section></fieldset>
   </details>
 </main>

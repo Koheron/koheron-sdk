@@ -1,21 +1,6 @@
 <template class="template">
-  <span class="muted">
-    Export displayed spectrum
-  </span>
-  <div class="toolbar-actions">
-    <span>
-      <button type="button" class="export-data" disabled>
-        Save CSV
-      </button>
-      <a download="koheron_fft.csv" hidden>
-      </a>
-    </span>
-    <span>
-      <button type="button" class="export-plot" disabled>
-        Save PNG
-      </button>
-      <a download="koheron_fft.png" hidden>
-      </a>
-    </span>
+  <div class="toolbar-actions" role="group" aria-label="Export displayed spectrum">
+    <button type="button" class="export-data" disabled>CSV</button>
+    <button type="button" class="export-plot" disabled>PNG</button>
   </div>
 </template>
