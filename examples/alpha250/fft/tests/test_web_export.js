@@ -61,6 +61,22 @@ vm.runInContext(`
         buttons.get('.export-data')();
         assert.ok((await download.blob.text()).includes('Reference clock,External'));
         spectrum.frameStatus.clkIndex = '2';
+        spectrum.referenceStatus = {channel: 0, window_index: 3, fs: 200e6, clkIndex: '0', dds_freq: [10e6, 0]};
+        spectrum.reference_data = [[0, 5], [25, 42]];
+        text.length = 0;
+        buttons.get('.export-plot')();
+        assert.equal(image.height, 298 * density);
+        assert.deepEqual(copied, [canvas, 0, 68, 320, 200]);
+        assert.equal(text[1].value, 'Live · ADC 1 · Hann · 250 MS/s');
+        assert.equal(text[2].value, 'Ref · ADC 0 · Blackman–Harris · 200 MS/s');
+        buttons.get('.export-data')();
+        const comparison = await download.blob.text();
+        const referenceCSV = comparison.split('Reference trace')[1];
+        assert.ok(referenceCSV.includes('Sampling frequency (Hz),200000000'));
+        assert.ok(referenceCSV.includes('Window index,3'));
+        assert.ok(referenceCSV.includes('Input channel,0'));
+        assert.ok(referenceCSV.endsWith('0,5\\n25,42'));
+        spectrum.referenceStatus = spectrum.reference_data = undefined;
     }
 })()
 `, context).then(() => console.log('PNG density, displayed-frame labels and CSV values: PASS'))

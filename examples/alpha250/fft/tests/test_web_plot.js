@@ -18,7 +18,7 @@ vm.runInContext(`
     const unit = {value: 'dBm-Hz', addEventListener(event, cb) { changeUnit = cb; }, disabled: false};
     const doc = {
         getElementById(id) {
-            if (!fields.has(id)) fields.set(id, {dataset: {}, textContent: ''});
+            if (!fields.has(id)) fields.set(id, {dataset: {}, textContent: '', addEventListener() {}});
             return fields.get(id);
         },
         querySelector: selector => selector === '.peak-input' ? {addEventListener() {}} : unit,
@@ -34,7 +34,7 @@ vm.runInContext(`
     const fft = {fft_size: 8192, status: {fs: 250e6, W1: .25, W2: .375, dds_freq: [40e6, 0]},
                  async read_psd() { reads++; return psd; }};
     let drawn;
-    const basics = {disableDecimation() {}, setLinY() {}, setRangeX() {},
+    const basics = {disableDecimation() {}, setLinY() {}, setRangeX() {}, getRangeX() { return {from: 0, to: 125}; },
                     redraw(data, count, peak, label, callback) { drawn = {data, count, peak}; callback(); }};
     const plot = new Plot(doc, fft, basics);
     await Promise.resolve();
@@ -95,7 +95,7 @@ vm.runInContext(`
     const shared = Object.create(PlotBasics.prototype);
     Object.assign(shared, {
         plot: {getData: () => [{data: [[0, 1], [4, 5]]}], setData() {}, draw() {}, unhighlight() {}, highlight() {}},
-        seriesOne: [{}], reset_range: false, decimate: false, isPeakDetection: false,
+        options: {legend: {}}, seriesOne: [{}], reset_range: false, decimate: false, isPeakDetection: false,
         clickDatapoint: [3.5, 0], clickDatapointSpan: {style: {}}, peakDatapointSpan: {style: {}},
         range_x: {from: 0, to: 5}, range_y: {from: 0, to: 10}, updateDatapointSpan() {}
     });

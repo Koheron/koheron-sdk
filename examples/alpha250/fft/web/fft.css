@@ -67,7 +67,10 @@
 .fft-workspace input[type="checkbox"] { margin: 0; width: auto; height: auto; }
 .fft-workspace .spectrum-panel { margin: 0; min-width: 0; }
 .fft-workspace .spectrum-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 6px 0; }
-.fft-workspace .display-controls, .fft-workspace .plot-actions { display: flex; align-items: center; gap: 12px; }
+.fft-workspace .display-controls, .fft-workspace .plot-actions { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
+.fft-workspace .plot-actions { flex-wrap: wrap; }
+.fft-workspace .reference-info strong { color: #8a589d; }
+.fft-workspace .reference-info[hidden] { display: none; }
 .fft-workspace .toolbar-actions { display: flex; align-items: center; gap: 0; }
 .fft-workspace .toolbar-actions button + button { border-left: 0; border-radius: 0 2px 2px 0; }
 .fft-workspace .toolbar-actions button:first-child { border-radius: 2px 0 0 2px; }

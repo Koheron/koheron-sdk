@@ -27,6 +27,7 @@ class PlotBasics {
 
     private clickDatapointSpan: HTMLSpanElement;
     private clickDatapoint: number[];
+    private clickSeriesIndex = 0;
 
     constructor(document: Document, private plot_placeholder: JQuery, private n_pts: number, public x_min, public x_max, public y_min, public y_max,
         private driver, private rangeFunction, private plotTitle: string) {
@@ -163,6 +164,10 @@ class PlotBasics {
         this.reset_range = true;
     }
 
+    getRangeX(): {from: number; to: number} {
+        return {from: this.range_x.from, to: this.range_x.to};
+    }
+
     private static readonly log10T = (v: number) => Math.log(v) * Math.LOG10E;
     private static readonly pow10  = (v: number) => Math.exp(v * Math.LN10);
 
@@ -249,11 +254,11 @@ class PlotBasics {
         this.decimate = false;
     }
 
-    updateDatapointSpan(datapoint: number[], datapointSpan: HTMLSpanElement): void {
+    updateDatapointSpan(datapoint: number[], datapointSpan: HTMLSpanElement, prefix = ''): void {
         let positionX: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).left;
         let positionY: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).top;
 
-        datapointSpan.innerHTML = "(" + (datapoint[0].toFixed(2)).toString() + "," + datapoint[1].toFixed(2).toString() + ")";
+        datapointSpan.innerHTML = prefix + "(" + (datapoint[0].toFixed(2)).toString() + "," + datapoint[1].toFixed(2).toString() + ")";
 
         if (datapoint[0] < (this.range_x.from + this.range_x.to) / 2) {
             datapointSpan.style.left = (positionX + 5).toString() + "px";
@@ -363,9 +368,14 @@ class PlotBasics {
         return out;
     }
 
-    redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void) {
+    redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void, reference?: number[][], peakIsFinal = false) {
+        this.seriesOne.length = reference ? 2 : 1;
+        this.options.legend.noColumns = reference ? 1 : 0;
+        if (reference) {
+            this.seriesOne[1] = {label: "Reference", data: reference, color: "#a178b5", lines: {lineWidth: 1}};
+        }
         if (!this.plot) {
-            this.seriesOne[0].label = ylabel;
+            this.seriesOne[0].label = reference ? "Live · " + ylabel : ylabel;
             this.seriesOne[0].data  = []; // temporary
             this.plot = $.plot(this.plot_placeholder, this.seriesOne, this.options);
         }
@@ -379,7 +389,7 @@ class PlotBasics {
             this.seriesOne[0].data  = plot_data;
         }
 
-        this.seriesOne[0].label = ylabel;
+        this.seriesOne[0].label = reference ? "Live · " + ylabel : ylabel;
 
         if (this.reset_range) {
             if (this.log_y) {
@@ -416,16 +426,22 @@ class PlotBasics {
 
         setTimeout(() => {this.plot.unhighlight()}, 100);
 
-        if (this.clickDatapoint.length > 0 && plot_data.length > 0) {
+        const clickSeries = this.clickSeriesIndex || 0;
+        const cursorData = clickSeries === 1 ? reference : plot_data;
+        if (clickSeries === 1 && !reference) {
+            this.clickDatapoint = [];
+            this.clickDatapointSpan.style.display = "none";
+        }
+        if (this.clickDatapoint.length > 0 && cursorData && cursorData.length > 0) {
             let i: number;
-            for (i = 0; i < plot_data.length; i++) {
-                if (plot_data[i][0] > this.clickDatapoint[0]) {
+            for (i = 0; i < cursorData.length; i++) {
+                if (cursorData[i][0] > this.clickDatapoint[0]) {
                     break;
                 }
             }
 
-            let p1 = plot_data[i-1];
-            let p2 = plot_data[i];
+            let p1 = cursorData[i-1];
+            let p2 = cursorData[i];
 
             if ((p1 === null) || (p1 === undefined)) {
                 this.clickDatapoint[1] = p2[1];
@@ -437,16 +453,16 @@ class PlotBasics {
 
             if (  this.range_x.from < this.clickDatapoint[0] && this.clickDatapoint[0] < this.range_x.to
                 &&this.range_y.from < this.clickDatapoint[1] && this.clickDatapoint[1] < this.range_y.to) {
-                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan);
+                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan, clickSeries === 1 ? "Ref " : "");
                 this.clickDatapointSpan.style.display = "inline-block";
-                this.plot.highlight(localData[0], this.clickDatapoint);
+                this.plot.highlight(localData[clickSeries], this.clickDatapoint);
             } else {
                 this.clickDatapointSpan.style.display = "none";
             }
         }
 
         if (this.isPeakDetection && peakDatapoint.length > 0) {
-            for (let i: number = 0; i < plot_data.length; i++) {
+            for (let i: number = 0; !peakIsFinal && i < plot_data.length; i++) {
                 
                 if (peakDatapoint[1] < plot_data[i][1]) {
                     peakDatapoint[0] = plot_data[i][0];
@@ -621,7 +637,7 @@ class PlotBasics {
                 this.hoverDatapoint[1] = item.datapoint[1];
 
                 this.hoverDatapointSpan.style.display = "inline-block";
-                this.updateDatapointSpan(this.hoverDatapoint, this.hoverDatapointSpan);
+                this.updateDatapointSpan(this.hoverDatapoint, this.hoverDatapointSpan, item.series.label === "Reference" ? "Ref " : "");
             } else {
                 this.hoverDatapointSpan.style.display = "none";
             }
@@ -631,11 +647,12 @@ class PlotBasics {
     showClickPoint(): void {
         this.plot_placeholder.bind("plotclick", (event: JQueryEventObject, pos, item) => {
             if (item) {
+                this.clickSeriesIndex = item.series.label === "Reference" ? 1 : 0;
                 this.clickDatapoint[0] = item.datapoint[0];
                 this.clickDatapoint[1] = item.datapoint[1];
 
                 this.clickDatapointSpan.style.display = "inline-block";
-                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan);
+                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan, item.series.label === "Reference" ? "Ref " : "");
 
                 this.plot.unhighlight();
                 this.plot.highlight(item.series, this.clickDatapoint);

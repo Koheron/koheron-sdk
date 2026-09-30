@@ -57,3 +57,14 @@ node examples/alpha250/fft/tests/test_web_export.js
 
 Checks PNG resolution and annotation scale at pixel densities 1 and 2, frame
 channel/window/sample-rate labels, and CSV metadata, units and sample values.
+
+Comparison regression:
+
+```sh
+node examples/alpha250/fft/tests/test_web_comparison.js
+```
+
+Checks visible-range peak search, DC exclusion, empty-bin ranges, paused updates,
+reference ownership and independent frequency grids/window correction, capture
+and clear, and reference cursor interpolation. Export tests cover both traces
+and their separate acquisition metadata in CSV and PNG output.
