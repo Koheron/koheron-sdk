@@ -45,5 +45,14 @@ node examples/alpha250/fft/tests/test_web_controls.js
 Checks that typed frequencies commit on change, invalid edits do not send
 commands or move the paired slider, sliders send one live command per input,
 and edits respect an updated sample-rate limit. The shared DDS widget uses
-these editing rules across instruments. The three web regressions also run
+these editing rules across instruments. The web regressions also run
 in the `fft-web` CI job.
+
+Export regression:
+
+```sh
+node examples/alpha250/fft/tests/test_web_export.js
+```
+
+Checks PNG resolution and annotation scale at pixel densities 1 and 2, frame
+channel/window/sample-rate labels, and CSV metadata, units and sample values.

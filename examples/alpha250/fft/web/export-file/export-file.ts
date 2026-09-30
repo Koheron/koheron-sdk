@@ -1,30 +1,44 @@
 // (c) Koheron
 
 class ExportFile {
-    constructor(document: Document, private spectrum: Plot) {
+    constructor(private document: Document, private spectrum: Plot) {
         document.querySelector('.export-data').addEventListener('click', () => this.exportData());
-        document.querySelector('.export-plot').addEventListener('click', () => {
-            const canvas = document.querySelector<HTMLCanvasElement>('#plot-placeholder canvas.flot-base');
-            if (!canvas) { return; }
-            const image = document.createElement('canvas');
-            image.width = canvas.width;
-            image.height = canvas.height + 72;
-            const context = image.getContext('2d');
-            context.fillStyle = 'white';
-            context.fillRect(0, 0, image.width, image.height);
-            context.fillStyle = '#333';
-            context.font = '14px sans-serif';
-            context.fillText('Koheron ALPHA250 · ' + this.spectrum.yLabel, 12, 24);
-            context.drawImage(canvas, 0, 38);
-            context.textAlign = 'center';
-            context.fillText('Frequency (MHz)', image.width / 2, image.height - 10);
-            image.toBlob(blob => { if (blob) { this.download(blob, 'koheron_fft.png'); } });
-        });
+        document.querySelector('.export-plot').addEventListener('click', () => this.exportPlot());
+    }
+
+    private exportPlot(): void {
+        const canvas = this.document.querySelector<HTMLCanvasElement>('#plot-placeholder canvas.flot-base');
+        const status = this.spectrum.frameStatus;
+        if (!canvas || !status) { return; }
+        // Flot's backing canvas can be larger than its CSS size on HiDPI screens.
+        // Draw annotations in CSS pixels while retaining every plot image pixel.
+        const width = canvas.clientWidth || canvas.width;
+        const scale = canvas.width / width;
+        const height = canvas.height / scale;
+        const image = this.document.createElement('canvas');
+        image.width = canvas.width;
+        image.height = Math.ceil((height + 82) * scale);
+        const context = image.getContext('2d');
+        if (!context) { return; }
+        context.scale(scale, scale);
+        context.fillStyle = 'white';
+        context.fillRect(0, 0, width, height + 82);
+        context.fillStyle = '#333';
+        context.font = '12px sans-serif';
+        context.fillText('ALPHA250 FFT · ' + this.spectrum.yLabel, 12, 20);
+        const windows = ['Rectangular', 'Hann', 'Flat top', 'Blackman–Harris'];
+        context.font = '11px sans-serif';
+        context.fillText('ADC ' + status.channel + ' · ' + (windows[status.window_index] || 'Window ' + status.window_index)
+            + ' · ' + status.fs / 1e6 + ' MS/s', 12, 38);
+        context.drawImage(canvas, 0, 52, width, height);
+        context.textAlign = 'center';
+        context.fillText('Frequency (MHz)', width / 2, height + 72);
+        image.toBlob(blob => { if (blob) { this.download(blob, 'koheron_fft.png'); } });
     }
 
     private download(blob: Blob, filename: string): void {
         const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
+        const link = this.document.createElement('a');
         link.href = url;
         link.download = filename;
         link.click();
