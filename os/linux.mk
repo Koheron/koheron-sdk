@@ -36,13 +36,12 @@ $(LINUX_SYNC_STAMP): $(LINUX_PATH)/.unpacked $(LINUX_PATCH_FILES)
 	@touch $@
 
 $(LINUX_CONFIG): $(LINUX_SYNC_STAMP) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
-	# Configure only if needed
-	if [ ! -f "$(LINUX_PATH)/.config" ]; then \
-	  install -d "$(LINUX_PATH)/arch/$(ARCH)/configs"; \
-	  cp "$(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig" \
-	     "$(LINUX_PATH)/arch/$(ARCH)/configs"; \
-	  $(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) xilinx_$(ZYNQ_TYPE)_defconfig; \
-	fi
+	# The checked-in defconfig is authoritative when configuration inputs change.
+	install -d "$(LINUX_PATH)/arch/$(ARCH)/configs"
+	cp "$(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig" \
+	   "$(LINUX_PATH)/arch/$(ARCH)/configs"
+	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) \
+	  CROSS_COMPILE=$(GCC_ARCH)- xilinx_$(ZYNQ_TYPE)_defconfig
 	@touch $@
 	$(call ok,$@)
 
