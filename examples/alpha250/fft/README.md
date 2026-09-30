@@ -20,8 +20,12 @@ precision I/O expand below it.
 - Typed DDS and precision DAC values commit on Enter or leaving the field.
   Invalid values do not reach the instrument. Sliders update continuously.
 
-The display follows browser animation frames, up to 60 updates per second,
-with at most one acquisition request in flight. Drawing preserves the minimum
+Acquisition runs independently of drawing, targeting 60 spectra per second
+with at most one request in flight. Each browser animation frame displays the
+newest complete spectrum, up to 60 updates per second; older waiting frames
+are replaced rather than queued. The header shows actual fresh-spectrum FPS.
+Hover over it for the acquisition rate. Pause or hiding the tab suspends host
+requests and drawing; the FPGA continues acquiring. Drawing preserves the minimum
 and maximum in each screen column, retains missing-data gaps, and returns to
 all bins when zoomed in. Board telemetry refreshes once per second; acquisition
 controls continue to refresh four times per second. Captured references are

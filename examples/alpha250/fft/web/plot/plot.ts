@@ -6,8 +6,20 @@ class Plot {
     private paused = false;
     private busy = false;
     private timer: number;
-    private animation: number;
+    private animation = 0;
     private lastFrameTime = -Infinity;
+    private pending: {psd: Float32Array; status: IFFTStatus};
+    private rateStarted = performance.now();
+    private renderedFrames = 0;
+    private acquiredFrames = 0;
+    private visibilityHandler = () => {
+        window.clearTimeout(this.timer);
+        window.cancelAnimationFrame(this.animation);
+        this.animation = 0;
+        this.pending = undefined;
+        this.resetRate();
+        if (!this.document.hidden) { this.updatePlot(); }
+    };
     private samplingFrequency = 0;
     private peak: number[] = [];
     private psd: Float32Array;
@@ -41,6 +53,7 @@ class Plot {
         $('#plot-placeholder').on('plotselected.fft dblclick.fft wheel.fft', () => {
             if (this.plot_data.length) { this.redraw(); }
         });
+        document.addEventListener('visibilitychange', this.visibilityHandler);
         this.updatePlot();
     }
 
@@ -49,7 +62,10 @@ class Plot {
         if (paused) {
             window.clearTimeout(this.timer);
             window.cancelAnimationFrame(this.animation);
+            this.animation = 0;
+            this.pending = undefined;
         }
+        this.resetRate();
         this.setStatus(paused ? 'paused' : 'connecting', paused ? 'Display paused' : 'Resuming…');
         if (!paused) { this.updatePlot(); }
     }
@@ -62,49 +78,88 @@ class Plot {
 
     private schedule(delay: number): void {
         window.clearTimeout(this.timer);
-        window.cancelAnimationFrame(this.animation);
-        if (!this.running || this.paused) { return; }
-        const nextFrame = () => {
-            this.animation = window.requestAnimationFrame(timestamp => {
-                if (!this.running || this.paused) { return; }
-                if (timestamp - this.lastFrameTime < 1000 / 60 - .5) {
-                    nextFrame();
-                    return;
-                }
-                this.lastFrameTime = timestamp;
-                this.updatePlot();
-            });
-        };
-        if (delay > 0) { this.timer = window.setTimeout(nextFrame, delay); }
-        else { nextFrame(); }
+        if (!this.running || this.paused || this.document.hidden) { return; }
+        this.timer = window.setTimeout(() => this.updatePlot(), delay);
+    }
+
+    private requestDraw(): void {
+        if (this.animation || !this.running || this.paused || this.document.hidden) { return; }
+        this.animation = window.requestAnimationFrame(timestamp => {
+            this.animation = 0;
+            if (!this.running || this.paused || this.document.hidden || !this.pending) { return; }
+            if (timestamp - this.lastFrameTime < 1000 / 60 - .5) {
+                this.requestDraw();
+                return;
+            }
+            this.lastFrameTime = timestamp;
+            this.psd = this.pending.psd;
+            this.frameStatus = this.pending.status;
+            this.pending = undefined;
+            try {
+                this.displaySpectrum();
+                this.renderedFrames++;
+                this.setStatus('live', 'Live spectrum');
+            } catch (error) {
+                this.setStatus('error', 'Unable to display spectrum');
+                console.error('Spectrum display failed:', error);
+            }
+        });
+    }
+
+    private resetRate(): void {
+        this.rateStarted = performance.now();
+        this.renderedFrames = this.acquiredFrames = 0;
+        const rate = this.document.getElementById('refresh-rate');
+        if (rate) {
+            rate.textContent = this.paused ? 'Paused' : '— FPS';
+            rate.title = 'Fresh spectra displayed per second';
+        }
+    }
+
+    private updateRate(): void {
+        const elapsed = performance.now() - this.rateStarted;
+        if (elapsed < 1000) { return; }
+        const rate = this.document.getElementById('refresh-rate');
+        if (rate) {
+            rate.textContent = (this.renderedFrames * 1000 / elapsed).toFixed(0) + ' FPS';
+            rate.title = 'Fresh spectra displayed per second; acquisition: '
+                + (this.acquiredFrames * 1000 / elapsed).toFixed(0) + ' spectra/s';
+        }
+        this.rateStarted = performance.now();
+        this.renderedFrames = this.acquiredFrames = 0;
     }
 
     async updatePlot(): Promise<void> {
-        if (!this.running || this.paused || this.busy) { return; }
+        if (!this.running || this.paused || this.document.hidden || this.busy) { return; }
         this.busy = true;
-        let delay = 0;
+        const started = performance.now();
+        let delay = 1000 / 60;
         try {
             const psd = await this.fft.read_psd();
-            if (!this.running || this.paused) { return; }
+            if (!this.running || this.paused || this.document.hidden) { return; }
             // The accumulator can return zeros before its first complete frame.
             // Do not fix the automatic Y range from an entirely nonfinite dB plot.
             if (!psd.some(value => Number.isFinite(value) && value > 0)) {
                 this.setStatus('connecting', 'Waiting for spectrum…');
                 return;
             }
-            this.frameStatus = {...this.fft.status, dds_freq: this.fft.status.dds_freq.slice()};
-            // Own the displayed samples so unit changes also work while paused.
-            this.psd = psd.slice();
-            this.displaySpectrum();
-            this.setStatus('live', 'Live spectrum');
+            // Only the newest complete spectrum waits for paint. Copy the client
+            // buffer now, since it may be reused before the animation callback.
+            this.pending = {psd: psd.slice(), status: {...this.fft.status, dds_freq: this.fft.status.dds_freq.slice()}};
+            this.acquiredFrames++;
+            this.requestDraw();
         } catch (error) {
-            if (!this.running || this.paused) { return; }
+            if (!this.running || this.paused || this.document.hidden) { return; }
+            this.pending = undefined;
+            window.cancelAnimationFrame(this.animation);
+            this.animation = 0;
             this.setStatus('error', 'Waiting for spectrum…');
             console.error('Spectrum update failed:', error);
             delay = 1000;
         } finally {
             this.busy = false;
-            this.schedule(delay);
+            this.updateRate();
+            this.schedule(delay === 1000 ? delay : Math.max(0, delay - (performance.now() - started)));
         }
     }
 
@@ -196,5 +251,7 @@ class Plot {
         $('#plot-placeholder').off('.fft');
         window.clearTimeout(this.timer);
         window.cancelAnimationFrame(this.animation);
+        this.document.removeEventListener('visibilitychange', this.visibilityHandler);
+        this.pending = undefined;
     }
 }

@@ -32,41 +32,60 @@ vm.runInContext(`
     widget.dispose(); now += 1000; await widget.updateControls();
     assert.equal(controls, 5);
 
-    let scheduled, reads = 0, finishRead;
+    let scheduled, reads = 0, finishRead, animation, animationRequests = 0, drawn = [];
+    globalThis.window = {clearTimeout() {}, cancelAnimationFrame() { animation = undefined; },
+        setTimeout() { return 1; },
+        requestAnimationFrame(fn) { animationRequests++; animation = fn; return 1; }};
+    const fields = new Map();
+    const doc = {hidden: false, getElementById(id) {
+        if (!fields.has(id)) fields.set(id, {textContent: '', dataset: {}});
+        return fields.get(id);
+    }};
+    const status = {dds_freq: [10,0], fs: 250e6};
     const plot = Object.assign(Object.create(Plot.prototype), {
-        running: true, paused: false, busy: false,
-        fft: {status: {dds_freq: [0,0]}, read_psd() { reads++; return new Promise(resolve => { finishRead = resolve; }); }},
-        displaySpectrum() { now += 6; }, setStatus() {}, schedule(delay) { scheduled = delay; }
+        document: doc, running: true, paused: false, busy: false, animation: 0,
+        lastFrameTime: -Infinity, rateStarted: 0, acquiredFrames: 0, renderedFrames: 0,
+        fft: {status, read_psd() { reads++; return new Promise(resolve => { finishRead = resolve; }); }},
+        displaySpectrum() { drawn.push({psd: Array.from(this.psd), status: this.frameStatus}); },
+        setStatus() {}, schedule(delay) { scheduled = delay; }
     });
-    now = 0;
-    const frame = plot.updatePlot();
-    await plot.updatePlot();
+    const raw = new Float32Array([1]);
+    now = 0; const frame = plot.updatePlot(); await plot.updatePlot();
     assert.equal(reads, 1); // Only one acquisition can be in flight.
-    now = 4; finishRead(new Float32Array([1])); await frame;
-    assert.equal(scheduled, 0); // Schedule at the next eligible animation frame.
-    now = 100;
-    const slowFrame = plot.updatePlot(); now = 160; finishRead(new Float32Array([1])); await slowFrame;
-    assert.equal(scheduled, 0); // Slow frames do not add another 50 ms.
+    now = 4; finishRead(raw); await frame;
+    assert.ok(Math.abs(scheduled - (1000/60 - 4)) < 1e-9);
+    assert.equal(drawn.length, 0); // Network completion never draws outside an animation frame.
+    assert.equal(animationRequests, 1);
+    raw[0] = 2; status.dds_freq[0] = 20;
+    now = 17; const next = plot.updatePlot(); now = 21; finishRead(raw); await next;
+    assert.equal(reads, 2); // Acquisition progresses while rendering waits.
+    assert.equal(animationRequests, 1); // Only one paint callback can be queued.
+    raw[0] = 3; status.dds_freq[0] = 30;
+    now = 33.4; animation(33.4);
+    assert.equal(drawn.length, 1);
+    assert.deepEqual(drawn[0].psd, [2]); // Only the newest complete sample is painted.
+    assert.equal(drawn[0].status.dds_freq[0], 20); // Own both samples and metadata.
+    assert.equal(plot.pending, undefined);
+    now = 34; const fast = plot.updatePlot(); finishRead(raw); await fast;
+    animation(41.7); assert.equal(drawn.length, 1); // Cap paint at 60 Hz on faster monitors.
+    animation(50.1); assert.equal(drawn.length, 2);
+    now = 100; const slow = plot.updatePlot(); now = 160; finishRead(raw); await slow;
+    assert.equal(scheduled, 0); // Slow reads do not add another idle interval.
+    plot.setPaused(true); assert.equal(plot.pending, undefined);
+    const pausedReads = reads; await plot.updatePlot(); assert.equal(reads, pausedReads);
+    plot.paused = false; doc.hidden = true; await plot.updatePlot(); assert.equal(reads, pausedReads);
+    doc.hidden = false;
     plot.fft.read_psd = async () => { throw new Error('expected acquisition failure'); };
+    plot.pending = {psd: new Float32Array([9]), status};
+    plot.animation = 1;
     const savedError = console.error; console.error = () => {};
     await plot.updatePlot(); console.error = savedError;
     assert.equal(scheduled, 1000); // Preserve retry backoff.
-    plot.paused = true; await plot.updatePlot(); assert.equal(reads, 2);
-
-    let animation, rendered = 0, timers = 0;
-    globalThis.window = {clearTimeout() {}, cancelAnimationFrame() {},
-        setTimeout(fn) { timers++; animation = fn; return 1; },
-        requestAnimationFrame(fn) { animation = fn; return 1; }};
-    const scheduledPlot = Object.assign(Object.create(Plot.prototype), {
-        running: true, paused: false, lastFrameTime: 0,
-        updatePlot() { rendered++; this.lastFrameTime = now; }
-    });
-    now = 8; scheduledPlot.schedule(0); animation(now);
-    assert.equal(rendered, 0); // Do not exceed 60 FPS on a 120 Hz monitor.
-    now = 16.7; animation(now); assert.equal(rendered, 1);
-    assert.equal(timers, 0); // No timer delay between animation frames.
-    scheduledPlot.paused = true; scheduledPlot.schedule(0);
-    assert.equal(timers, 0);
+    assert.equal(plot.pending, undefined); // A stale paint cannot hide an acquisition error.
+    assert.equal(plot.animation, 0);
+    now = 2000; plot.rateStarted = 1000; plot.renderedFrames = 60; plot.acquiredFrames = 61;
+    plot.updateRate(); assert.equal(fields.get('refresh-rate').textContent, '60 FPS');
+    assert.ok(fields.get('refresh-rate').title.includes('61 spectra/s'));
 
     const spectrum = Array.from({length: 4096}, (_, i) => [i, -100]);
     spectrum[511][1] = 20; spectrum[510][1] = -140;
@@ -84,6 +103,6 @@ vm.runInContext(`
     assert.equal(spectrum.length, 4096); // Full samples remain intact for exports/cursors.
 
 })()
-`, context).then(() => console.log('Telemetry cadence, frame budget, overlap and retry backoff: PASS')).catch(error => {
+`, context).then(() => console.log('Independent acquisition/paint, latest-frame ownership, FPS, telemetry and retry backoff: PASS')).catch(error => {
     console.error(error); process.exitCode = 1;
 });

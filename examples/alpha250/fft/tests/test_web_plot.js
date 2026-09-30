@@ -17,6 +17,7 @@ vm.runInContext(`
     let changeUnit;
     const unit = {value: 'dBm-Hz', addEventListener(event, cb) { changeUnit = cb; }, disabled: false};
     const doc = {
+        addEventListener() {}, removeEventListener() {},
         getElementById(id) {
             if (!fields.has(id)) fields.set(id, {dataset: {}, textContent: '', addEventListener() {}});
             return fields.get(id);
@@ -25,7 +26,9 @@ vm.runInContext(`
         querySelectorAll: selector => selector === '.unit-input' ? [unit] : []
     };
     globalThis.$ = () => ({on() {}, off() {}});
-    globalThis.window = {setTimeout: () => 1, clearTimeout() {}, requestAnimationFrame: () => 1, cancelAnimationFrame() {}};
+    let pendingFrame, frameTime = 0;
+    const flushFrame = () => { const frame = pendingFrame; pendingFrame = undefined; if (frame) frame(frameTime += 17); };
+    globalThis.window = {setTimeout: () => 1, clearTimeout() {}, requestAnimationFrame(fn) { pendingFrame = fn; return 1; }, cancelAnimationFrame() { pendingFrame = undefined; }};
     globalThis.setTimeout = window.setTimeout;
     let reads = 0;
     const psd = new Float32Array(4096).fill(1e-16);
@@ -37,7 +40,7 @@ vm.runInContext(`
     const basics = {enableSpectrumReduction() {}, setLinY() {}, setRangeX() {}, getRangeX() { return {from: 0, to: 125}; },
                     redraw(data, count, peak, label, callback) { drawn = {data, count, peak}; callback(); }};
     const plot = new Plot(doc, fft, basics);
-    await Promise.resolve();
+    await Promise.resolve(); flushFrame();
     assert.equal(drawn.count, 4096);
     assert.equal(drawn.data[0][0], 0);
     assert.equal(drawn.data[4095][0], 124.969482421875);
@@ -68,7 +71,7 @@ vm.runInContext(`
     fft.status.dds_freq[0] = 1;
     assert.equal(plot.frameStatus.dds_freq[0], 40e6);
     plot.setPaused(false);
-    await Promise.resolve();
+    await Promise.resolve(); flushFrame();
     assert.equal(reads, 2);
 
     // A zero startup frame must not lock auto-scaling to the empty [-1, 1] range.
@@ -78,11 +81,11 @@ vm.runInContext(`
         return startupReady ? psd : new Float32Array(4096);
     }};
     const startup = new Plot(doc, startupFFT, {...basics, redraw() { startupDraws++; }});
-    await Promise.resolve();
+    await Promise.resolve(); flushFrame();
     assert.equal(startupDraws, 0);
     assert.equal(fields.get('connection-status').textContent, 'Waiting for spectrum…');
     startupReady = true;
-    await startup.updatePlot();
+    await startup.updatePlot(); flushFrame();
     assert.equal(startupDraws, 1);
     assert.equal(fields.get('connection-status').textContent, 'Live spectrum');
     startup.dispose();

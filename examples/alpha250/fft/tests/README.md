@@ -75,9 +75,10 @@ Performance scheduling regression:
 node examples/alpha250/fft/tests/test_web_performance.js
 ```
 
-Checks one-second telemetry polling while controls stay at 4 Hz, frame budgets
-on the animation clock (including the 60 Hz cap on faster monitors), single
-in-flight acquisition, pause, and error retry backoff. Also checks preservation
+Checks one-second telemetry polling while controls stay at 4 Hz, independent
+acquisition pacing, latest-frame replacement, single queued paint, ownership
+of waiting samples and metadata, the 60 Hz paint cap on faster monitors, pause,
+hidden-tab suspension, measured FPS, and error retry backoff. Also checks preservation
 of single-bin peaks, minima, missing-data gaps, boundary neighbours and
 frequency ordering during rendering reduction, plus full-bin rendering when
 zoomed in. Comparison tests check reference-cache reuse and

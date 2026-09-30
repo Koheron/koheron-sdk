@@ -15,6 +15,7 @@ vm.runInContext(`
     const fields = new Map();
     const events = new Map();
     const doc = {
+        addEventListener() {}, removeEventListener() {},
         getElementById(id) {
             if (!fields.has(id)) fields.set(id, {dataset: {}, textContent: '', checked: false,
                 disabled: true, addEventListener(event, fn) { events.set(id, fn); }});
@@ -26,7 +27,9 @@ vm.runInContext(`
     let changeUnit, zoom;
     const unit = {value: 'dBm-Hz', addEventListener(event, fn) { changeUnit = fn; }};
     globalThis.$ = () => ({on(events, fn) { zoom = fn; }, off() {}});
-    globalThis.window = {setTimeout: () => 1, clearTimeout() {}, requestAnimationFrame: () => 1, cancelAnimationFrame() {}};
+    let pendingFrame, frameTime = 0;
+    const flushFrame = () => { const frame = pendingFrame; pendingFrame = undefined; if (frame) frame(frameTime += 17); };
+    globalThis.window = {setTimeout: () => 1, clearTimeout() {}, requestAnimationFrame(fn) { pendingFrame = fn; return 1; }, cancelAnimationFrame() { pendingFrame = undefined; }};
     globalThis.setTimeout = window.setTimeout;
     let range = {from: 0, to: 40}, drawn, reads = 0;
     const psd = new Float32Array([1e-3, 1e-6, NaN, 1e-8]);
@@ -38,7 +41,7 @@ vm.runInContext(`
     const plot = new Plot(doc, fft, basics);
     plot.captureReference();
     assert.equal(plot.referenceStatus, undefined); // No frame yet.
-    await Promise.resolve();
+    await Promise.resolve(); flushFrame();
     assert.equal(drawn.peak[0], 0);
     assert.equal(fields.get('capture-reference').disabled, false);
     plot.setPaused(true);
@@ -72,7 +75,7 @@ vm.runInContext(`
     assert.ok(Math.abs(drawn.reference[1][1] - referencePower) < 1e-9);
     const cachedReference = drawn.reference;
     plot.setPaused(false);
-    await Promise.resolve();
+    await Promise.resolve(); flushFrame();
     assert.equal(reads, 2);
     assert.equal(drawn.data[1][0], 5);
     assert.equal(drawn.reference[1][0], 10); // Each trace retains its frequency grid.
