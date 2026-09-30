@@ -36,7 +36,7 @@ samples while paused, displayed-frame metadata,
 startup auto-scaling after an empty accumulator frame, and cursor interpolation
 when a shared plot uses decimation.
 
-DDS editor regression:
+DDS and precision DAC editor regression:
 
 ```sh
 node examples/alpha250/fft/tests/test_web_controls.js
@@ -44,7 +44,8 @@ node examples/alpha250/fft/tests/test_web_controls.js
 
 Checks that typed frequencies commit on change, invalid edits do not send
 commands or move the paired slider, sliders send one live command per input,
-and edits respect an updated sample-rate limit. The shared DDS widget uses
+DDS edits respect an updated sample-rate limit, and precision DAC values convert
+from millivolts to volts only on valid commits. The shared DDS widget uses
 these editing rules across instruments. The web regressions also run
 in the `fft-web` CI job.
 

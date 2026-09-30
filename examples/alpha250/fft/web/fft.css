@@ -83,11 +83,20 @@
 .fft-workspace .board-details { margin-top: 3px; border-top: 1px solid var(--border-light); }
 .fft-workspace summary { cursor: pointer; padding: 5px 0; color: #555; }
 .fft-workspace .board-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(180px, 1fr) minmax(160px, 1fr); gap: 14px; padding: 6px 0; }
+.fft-workspace .board-grid > section { margin: 0; }
 .fft-workspace .crossed { text-align: left; border: 0; line-height: normal; margin: 0 0 6px; }
 .fft-workspace .crossed > span { padding: 0; font-size: 12px; }
 .fft-workspace table { font-size: 12px; width: 100%; font-variant-numeric: tabular-nums; }
 .fft-workspace td { padding: 3px; }
 .fft-workspace td input[type="number"] { width: 90px; }
+.fft-workspace .precision-table { table-layout: fixed; }
+.fft-workspace .precision-table th { padding: 3px; color: var(--muted); font-weight: 400; }
+.fft-workspace .precision-table thead th { border-bottom: 1px solid var(--border-light); text-align: left; }
+.fft-workspace .precision-table th:first-child { width: 36px; }
+.fft-workspace .precision-table th:nth-child(2) { width: 96px; }
+.fft-workspace .precision-table th:last-child { width: 80px; }
+.fft-workspace .precision-table td:last-child, .fft-workspace .precision-table thead th:last-child { text-align: right; }
+.fft-workspace .precision-table td input[type="number"] { width: 100%; text-align: right; }
 .fft-workspace #plot-placeholder table { width: auto; }
 .fft-workspace #plot-placeholder td { padding: 2px; }
 .fft-workspace #plot-placeholder .legend b { font-size: 12px !important; font-weight: 600; }
@@ -112,5 +121,5 @@
     .fft-workspace .plot-placeholder { height: 46dvh; min-height: 250px; }
     .fft-workspace .spectrum-readouts { gap: 3px 14px; }
     .fft-workspace .board-grid { grid-template-columns: minmax(0, 1fr); }
-    .fft-workspace #precision-channels { overflow-x: auto; }
+
 }
