@@ -12,6 +12,7 @@ class PlotBasics {
     private log_y: boolean;
     public LogYaxisFormatter;
     private decimate: boolean;
+    private spectrumReduction = false;
 
     private reset_range: boolean;
     private options: jquery.flot.plotOptions;
@@ -27,6 +28,8 @@ class PlotBasics {
 
     private clickDatapointSpan: HTMLSpanElement;
     private clickDatapoint: number[];
+    private clickSeriesIndex = 0;
+    private clickTraceLabel: string;
 
     constructor(document: Document, private plot_placeholder: JQuery, private n_pts: number, public x_min, public x_max, public y_min, public y_max,
         private driver, private rangeFunction, private plotTitle: string) {
@@ -163,6 +166,14 @@ class PlotBasics {
         this.reset_range = true;
     }
 
+    setVisibleRangeX(from: number, to: number): void {
+        this.range_x.from = from; this.range_x.to = to; this.reset_range = true;
+    }
+
+    getRangeX(): {from: number; to: number} {
+        return {from: this.range_x.from, to: this.range_x.to};
+    }
+
     private static readonly log10T = (v: number) => Math.log(v) * Math.LOG10E;
     private static readonly pow10  = (v: number) => Math.exp(v * Math.LN10);
 
@@ -249,11 +260,53 @@ class PlotBasics {
         this.decimate = false;
     }
 
-    updateDatapointSpan(datapoint: number[], datapointSpan: HTMLSpanElement): void {
+    enableSpectrumReduction() {
+        this.decimate = false;
+        this.spectrumReduction = true;
+    }
+
+    // Keep both extrema per screen column, in frequency order. Retain NaN gaps
+    // and the boundary neighbours so zooming does not invent connecting lines.
+    static reduceSpectrum(data: number[][], from: number, to: number, width: number): number[][] {
+        if (!data.length || !(to > from)) { return data; }
+        width = Math.max(1, Math.floor(width));
+        let first = 0, last = data.length - 1;
+        while (first < last && data[first][0] < from) { first++; }
+        first = Math.max(0, first - 1);
+        while (last > first && data[last][0] > to) { last--; }
+        last = Math.min(data.length - 1, last + 1);
+        if (last - first + 1 <= 2 * width) {
+            return first === 0 && last === data.length - 1 ? data : data.slice(first, last + 1);
+        }
+        const out: number[][] = [];
+        let column = -Infinity, min = -1, max = -1, previous = -1;
+        const push = (index: number) => {
+            if (index >= 0 && index !== previous) { out.push(data[index]); previous = index; }
+        };
+        const flush = () => {
+            if (min <= max) { push(min); push(max); }
+            else { push(max); push(min); }
+            min = max = -1;
+        };
+        push(first);
+        for (let i = first; i <= last; i++) {
+            const nextColumn = Math.floor((data[i][0] - from) * width / (to - from));
+            if (nextColumn !== column || !Number.isFinite(data[i][1])) {
+                flush(); column = nextColumn;
+            }
+            if (!Number.isFinite(data[i][1])) { push(i); continue; }
+            if (min < 0 || data[i][1] < data[min][1]) { min = i; }
+            if (max < 0 || data[i][1] > data[max][1]) { max = i; }
+        }
+        flush(); push(last);
+        return out;
+    }
+
+    updateDatapointSpan(datapoint: number[], datapointSpan: HTMLSpanElement, prefix = ''): void {
         let positionX: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).left;
         let positionY: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).top;
 
-        datapointSpan.innerHTML = "(" + (datapoint[0].toFixed(2)).toString() + "," + datapoint[1].toFixed(2).toString() + ")";
+        datapointSpan.innerHTML = prefix + "(" + (datapoint[0].toFixed(2)).toString() + "," + datapoint[1].toFixed(2).toString() + ")";
 
         if (datapoint[0] < (this.range_x.from + this.range_x.to) / 2) {
             datapointSpan.style.left = (positionX + 5).toString() + "px";
@@ -363,14 +416,30 @@ class PlotBasics {
         return out;
     }
 
-    redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void) {
+    redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void, reference?: number[][], peakIsFinal = false, traces: {label: string; color: string; data: number[][]}[] = []) {
+        this.seriesOne.length = (reference ? 2 : 1) + traces.length;
+        this.options.legend.noColumns = reference || traces.length ? 1 : 0;
+        if (reference) {
+            this.seriesOne[1] = {label: "Reference", data: reference, color: "#a178b5", lines: {lineWidth: 1}};
+        }
+        traces.forEach((trace, i) => { this.seriesOne[(reference ? 2 : 1) + i] = {...trace, lines: {lineWidth: 1}}; });
         if (!this.plot) {
-            this.seriesOne[0].label = ylabel;
+            this.seriesOne[0].label = reference || traces.length ? "Live · " + ylabel : ylabel;
             this.seriesOne[0].data  = []; // temporary
             this.plot = $.plot(this.plot_placeholder, this.seriesOne, this.options);
         }
 
-        if (this.decimate) {
+        if (this.spectrumReduction) {
+            const offsets = this.plot.getPlotOffset();
+            const width = Math.max(1, (this.plot_placeholder.width() || 800) - offsets.left - offsets.right);
+            this.seriesOne[0].data = PlotBasics.reduceSpectrum(plot_data, this.range_x.from, this.range_x.to, width);
+            if (reference) {
+                this.seriesOne[1].data = PlotBasics.reduceSpectrum(reference, this.range_x.from, this.range_x.to, width);
+            }
+            traces.forEach((trace, i) => {
+                this.seriesOne[(reference ? 2 : 1) + i].data = PlotBasics.reduceSpectrum(trace.data, this.range_x.from, this.range_x.to, width);
+            });
+        } else if (this.decimate) {
             const xMin = this.reset_range ? this.range_x.from : this.plot.getAxes().xaxis.min;
             const xMax = this.reset_range ? this.range_x.to   : this.plot.getAxes().xaxis.max;
             const drawData = this.decimateToCanva(plot_data, xMin, xMax);
@@ -379,7 +448,7 @@ class PlotBasics {
             this.seriesOne[0].data  = plot_data;
         }
 
-        this.seriesOne[0].label = ylabel;
+        this.seriesOne[0].label = reference || traces.length ? "Live · " + ylabel : ylabel;
 
         if (this.reset_range) {
             if (this.log_y) {
@@ -414,18 +483,26 @@ class PlotBasics {
 
         let localData: jquery.flot.dataSeries[] = this.plot.getData();
 
-        setTimeout(() => {this.plot.unhighlight()}, 100);
+        if (this.spectrumReduction) { this.plot.unhighlight(); }
+        else { setTimeout(() => {this.plot.unhighlight()}, 100); }
 
-        if (this.clickDatapoint.length > 0) {
+        const extra = traces.findIndex(trace => trace.label === this.clickTraceLabel);
+        const clickSeries = this.clickTraceLabel ? (reference ? 2 : 1) + extra : this.clickSeriesIndex || 0;
+        const cursorData = this.clickTraceLabel ? (extra >= 0 ? traces[extra].data : undefined) : clickSeries === 1 ? reference : plot_data;
+        if (!cursorData) {
+            this.clickDatapoint = [];
+            this.clickDatapointSpan.style.display = "none";
+        }
+        if (this.clickDatapoint.length > 0 && cursorData && cursorData.length > 0) {
             let i: number;
-            for (i = 0; i < plot_data.length; i++) {
-                if (localData[0]['data'][i][0] > this.clickDatapoint[0]) {
+            for (i = 0; i < cursorData.length; i++) {
+                if (cursorData[i][0] > this.clickDatapoint[0]) {
                     break;
                 }
             }
 
-            let p1 = localData[0]['data'][i-1];
-            let p2 = localData[0]['data'][i];
+            let p1 = cursorData[i-1];
+            let p2 = cursorData[i];
 
             if ((p1 === null) || (p1 === undefined)) {
                 this.clickDatapoint[1] = p2[1];
@@ -437,16 +514,16 @@ class PlotBasics {
 
             if (  this.range_x.from < this.clickDatapoint[0] && this.clickDatapoint[0] < this.range_x.to
                 &&this.range_y.from < this.clickDatapoint[1] && this.clickDatapoint[1] < this.range_y.to) {
-                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan);
+                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan, this.clickTraceLabel ? this.clickTraceLabel + " " : clickSeries === 1 ? "Ref " : "");
                 this.clickDatapointSpan.style.display = "inline-block";
-                this.plot.highlight(localData[0], this.clickDatapoint);
+                this.plot.highlight(localData[clickSeries], this.clickDatapoint);
             } else {
                 this.clickDatapointSpan.style.display = "none";
             }
         }
 
         if (this.isPeakDetection && peakDatapoint.length > 0) {
-            for (let i: number = 0; i < plot_data.length; i++) {
+            for (let i: number = 0; !peakIsFinal && i < plot_data.length; i++) {
                 
                 if (peakDatapoint[1] < plot_data[i][1]) {
                     peakDatapoint[0] = plot_data[i][0];
@@ -621,7 +698,7 @@ class PlotBasics {
                 this.hoverDatapoint[1] = item.datapoint[1];
 
                 this.hoverDatapointSpan.style.display = "inline-block";
-                this.updateDatapointSpan(this.hoverDatapoint, this.hoverDatapointSpan);
+                this.updateDatapointSpan(this.hoverDatapoint, this.hoverDatapointSpan, item.series.label === "Reference" ? "Ref " : ["Average", "Max hold"].includes(item.series.label) ? item.series.label + " " : "");
             } else {
                 this.hoverDatapointSpan.style.display = "none";
             }
@@ -631,11 +708,13 @@ class PlotBasics {
     showClickPoint(): void {
         this.plot_placeholder.bind("plotclick", (event: JQueryEventObject, pos, item) => {
             if (item) {
+                this.clickTraceLabel = ["Average", "Max hold"].includes(item.series.label) ? item.series.label : undefined;
+                this.clickSeriesIndex = item.series.label === "Reference" ? 1 : 0;
                 this.clickDatapoint[0] = item.datapoint[0];
                 this.clickDatapoint[1] = item.datapoint[1];
 
                 this.clickDatapointSpan.style.display = "inline-block";
-                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan);
+                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan, item.series.label === "Reference" ? "Ref " : ["Average", "Max hold"].includes(item.series.label) ? item.series.label + " " : "");
 
                 this.plot.unhighlight();
                 this.plot.highlight(item.series, this.clickDatapoint);

@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>Koheron</title>
+  <title>FFT · ALPHA250 · Koheron</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Koheron">
   <meta charset="utf-8">
@@ -16,13 +16,13 @@
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
+  <link rel="stylesheet" href="fft.css">
 
   <script type="text/javascript" src="html-imports.min.js"></script>
 
   <script type="text/javascript" src="jquery.min.js"></script>
   <script type="text/javascript" src="bootstrap.min.js"></script>
 
-  <link rel="import" href="navigation.html" data-parent="navigation">
   <link rel="import" href="plot-basics.html" data-parent="plot-basics">
   <link rel="import" href="yunit.html" data-parent="yunit">
   <link rel="import" href="fft-window.html" data-parent="fft-window">
@@ -38,50 +38,46 @@
 
 </head>
 
-<body>
-
-<div id="navigation"></div>
-
-<div id="main" class="container-fluid" style="padding: 10px">
-
-  <div class="row">
-
-    <div class="col-md-8">
-      <div id="plot-placeholder" class="plot-placeholder"></div>
-      <div id="plot-basics"></div>
+<body class="fft-workspace">
+<header class="app-header">
+  <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
+  <h1>FFT</h1><span class="board-tag">ALPHA250</span>
+  <span id="connection-status" class="connection-status" role="status" data-state="connecting">Connecting…</span>
+  <span id="refresh-rate" class="board-tag" title="Fresh spectra displayed per second">— FPS</span>
+  <nav aria-label="Board navigation"><a href="/koheron">Instruments</a><a href="/koheron/logs_rate.html">Logs &amp; data rates</a></nav>
+</header>
+<main id="main">
+  <div id="connection-error" class="connection-error" role="alert" hidden>Unable to connect to the FFT instrument. <button type="button" onclick="location.reload()">Retry</button></div>
+  <fieldset id="instrument-controls" disabled class="instrument-toolbar">
+    <legend class="sr-only">Acquisition and signal generator</legend>
+    <div class="acquisition-controls"><div id="input-channel"></div><div id="fft-window"></div><div id="sampling-frequency"></div><div id="reference-clock"></div></div>
+    <div id="dds-frequency" class="generator-controls"></div>
+  </fieldset>
+  <section class="spectrum-panel" aria-label="Spectrum">
+    <div class="spectrum-toolbar">
+      <div class="display-controls"><label class="view-selector"><span class="sr-only">View</span><select id="spectrum-view" aria-label="View" disabled><option value="spectrum">Spectrum</option><option value="spectrogram">Spectrogram</option><option value="density">Density</option></select></label><div id="yunit"></div><div id="peak-detection"></div><label class="peak-toggle"><input id="exclude-dc" type="checkbox">Exclude DC</label></div>
+      <div class="plot-actions"><div class="toolbar-actions"><button id="pause-display" type="button" disabled aria-pressed="false">Pause</button><button id="reset-view" type="button" disabled>Reset</button></div><div id="reference-actions" class="toolbar-actions"><button id="capture-reference" type="button" disabled title="Capture the displayed spectrum as a reference">Capture ref</button><button id="clear-reference" type="button" disabled title="Clear the reference spectrum">Clear ref</button></div><div id="export-file"></div></div>
     </div>
-
-    <div class="col-md-4">
-
-      <section style="margin-bottom: 20px;">
-        <div id="yunit"></div>
-        <div id="fft-window"></div>
-        <div id="input-channel"></div>
-        <div id="reference-clock"></div>
-        <div id="sampling-frequency"></div>
-        <div id="peak-detection"></div>
-      </section>
-
-      <section id="dds-frequency"></section>
-      <section id="export-file"></section>
+    <div class="history-toolbar">
+      <div id="trace-controls"><label class="peak-toggle" title="One-second exponential average of linear power"><input id="average-trace" type="checkbox">Average · 1 s</label><label class="peak-toggle" title="Maximum received power in each bin since history was cleared"><input id="max-hold-trace" type="checkbox">Max hold</label></div>
+      <div id="history-controls" hidden><label>History <select id="history-duration" aria-label="History duration"><option value="5">5 s</option><option value="15" selected>15 s</option><option value="30">30 s</option></select></label><label class="peak-toggle"><input id="auto-level" type="checkbox" checked>Auto level</label><label>Low <input id="color-low" aria-label="Low level" type="number" step="any" required disabled></label><label>High <input id="color-high" aria-label="High level" type="number" step="any" required disabled></label><span id="history-level-unit" class="muted"></span></div>
+      <button id="clear-history" type="button" title="Clear average, max hold and received spectrum history">Clear history</button>
     </div>
-
-  </div>
-
-  <div class="row">
-    <div class="col-md-8">
-      <section id="precision-channels"></section>
+    <div class="spectrum-canvas"><div id="plot-placeholder" class="plot-placeholder" aria-label="Live frequency spectrum"></div><div id="plot-basics"></div><div id="history-view" hidden><canvas id="history-canvas" aria-label="Received spectrum history"></canvas><canvas id="history-overlay" aria-hidden="true"></canvas></div></div>
+    <div class="spectrum-readouts">
+      <div><span class="readout-label" title="Strongest live spectrum bin in the visible frequency range">Peak in view</span><strong id="peak-frequency">—</strong></div>
+      <div><span class="readout-label">Level</span><strong id="peak-level">—</strong></div>
+      <div><span class="readout-label">Bin</span><strong id="bin-spacing">—</strong></div>
+      <div><span class="readout-label">FFT</span><strong id="fft-size">—</strong></div>
+      <div id="reference-info" class="reference-info" hidden><span class="readout-label">Reference</span><strong id="reference-status"></strong></div>
+      <span id="history-cursor" hidden aria-live="off"></span>
+      <span class="plot-help">Drag to zoom · Double-click to reset</span>
     </div>
-    <div class="col-md-2">
-      <section id="temperature-sensor"></section>
-    </div>
-    <div class="col-md-2">
-      <section id="power-monitor"></section>
-    </div>
-  </div>
-
-</div>
-
+  </section>
+  <details class="board-details"><summary>Board monitoring &amp; precision I/O</summary>
+    <fieldset id="board-controls" disabled class="board-grid"><legend class="sr-only">Board controls</legend><section id="precision-channels"></section><section id="temperature-sensor"></section><section id="power-monitor"></section></fieldset>
+  </details>
+</main>
   <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.selection.js"></script>
@@ -89,9 +85,7 @@
   <script language="javascript" type="text/javascript" src="jquery.flot.axislabels.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.canvas.js"></script>
 
-  <script src="app.js?random=<?php echo uniqid(); ?>"></script>
-
-</div>
+  <script src="app.js"></script>
 
 </body>
 

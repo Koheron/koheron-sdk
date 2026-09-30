@@ -1,12 +1,27 @@
 <template class="template">
-  <label for="unit">Unit:</label>
-  <div class="radio-wrapper">
-    <input type="radio" name="unit" value="dBm-Hz" checked class="unit-input">dBm / Hz
-  </div>
-  <div class="radio-wrapper">
-    <input type="radio" name="unit" value="dBm" class="unit-input">dBm
-  </div>
-  <div class="radio-wrapper">
-    <input type="radio" name="unit" value="nv-rtHz" class="unit-input">nV / rtHz
+  <div class="control-field" role="group" aria-label="Spectrum unit">
+    <span class="control-label">
+      Spectrum unit
+    </span>
+    <div class="segmented">
+      <label>
+        <input type="radio" name="unit" value="dBm-Hz" class="unit-input"  checked>
+        <span>
+          dBm/Hz
+        </span>
+      </label>
+      <label>
+        <input type="radio" name="unit" value="dBm" class="unit-input"  >
+        <span>
+          dBm
+        </span>
+      </label>
+      <label>
+        <input type="radio" name="unit" value="nv-rtHz" class="unit-input"  >
+        <span>
+          nV/√Hz
+        </span>
+      </label>
+    </div>
   </div>
 </template>
