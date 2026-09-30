@@ -22,6 +22,15 @@ class SpectrumHistory {
     private signature = '';
     private frames: {time: number; codes: Uint8Array; included: boolean}[] = [];
 
+    get currentBucket(): number {
+        const position = this.now / this.interval, nearest = Math.round(position);
+        // Decimal 50 ms boundaries can divide just below their integer bucket.
+        // Snap only floating-point roundoff, preserving actual fractional time.
+        return Math.abs(position - nearest) <= 4 * Number.EPSILON * Math.max(1, Math.abs(position))
+            ? nearest : Math.floor(position);
+    }
+    get bucketPhase(): number { return Math.max(0, Math.min(1, this.now / this.interval - this.currentBucket)); }
+
     reset(): void {
         this.rows = []; this.frames = [];
         this.average = this.maximum = this.density = this.densityLow = this.densityHigh = undefined;
@@ -81,7 +90,7 @@ class SpectrumHistory {
         // One-second exponential averaging of linear PSD, never of dB values.
         const weight = this.samples ? 1 - Math.exp(-Math.max(0, time - this.now)) : 1;
         this.now = time; this.samples++;
-        const bucket = Math.floor(time / this.interval);
+        const bucket = this.currentBucket;
         let row = this.rows[this.rows.length - 1];
         if (!row || row.bucket !== bucket) {
             row = {bucket, psd: new Float32Array(psd.length).fill(NaN), version: 0};

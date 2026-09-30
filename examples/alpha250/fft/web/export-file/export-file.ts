@@ -94,13 +94,21 @@ class ExportFile {
         const rows = ['Koheron ALPHA250 FFT ' + this.spectrum.view, 'Exported at,' + new Date().toISOString(),
             'Acquisition metadata,At history start', ...this.frameRows(history.status).slice(0, -2), 'History duration (s),' + history.duration];
         if (this.spectrum.view === 'spectrogram') {
-            rows.push('Time row (s),' + history.interval, 'Values,' + this.spectrum.yLabel, '', 'Age (s) / Frequency (MHz),' + frequencies.join(','));
-            const latest = Math.floor(history.now / history.interval);
-            // Missing time slots are explicit empty CSV cells, never compressed time.
+            rows.push('Time row (s),' + history.interval,
+                'Age convention,Younger edge of each visible interval; final interval ends at history duration',
+                'Values,' + this.spectrum.yLabel, '', 'Age (s) / Frequency (MHz),' + frequencies.join(','));
+            const latest = history.currentBucket;
+            const phase = history.bucketPhase;
+            // Match the fractional viewport: omit a newest bucket with no elapsed
+            // time, and include the partially visible oldest bucket. Blank slots
+            // retain their actual ages rather than compressing missing time.
+            const first = phase > 0 ? latest : latest - 1;
+            const oldest = latest - Math.round(history.duration / history.interval);
             const byBucket = new Map(history.rows.map(row => [row.bucket, row] as [number, HistoryRow]));
-            for (let age = 0; age < history.duration / history.interval; age++) {
-                const row = byBucket.get(latest - age);
-                rows.push((age * history.interval).toFixed(2) + ',' + (row ? Array.from(row.psd, power => {
+            for (let bucket = first; bucket >= oldest; bucket--) {
+                const row = byBucket.get(bucket);
+                const age = Math.max(0, history.now - (bucket + 1) * history.interval);
+                rows.push(Number(age.toFixed(6)) + ',' + (row ? Array.from(row.psd, power => {
                     const value = this.spectrum.convertValue(power, this.spectrum.unit, history.status);
                     return Number.isNaN(value) ? '' : String(value);
                 }) : frequencies.map(() => '')).join(','));

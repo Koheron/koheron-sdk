@@ -50,6 +50,10 @@ precision I/O expand below it.
   appear in spectrum CSV files. History PNG exports show the selected view;
   history CSV exports contain all frequency bins, time rows with explicit
   missing slots for Spectrogram, or per-level occurrence counts for Density.
+  Spectrogram ages mark the younger edge of each visible interval, relative
+  to the latest received spectrum. Partial rows at both ends are included;
+  the final interval ends at the selected history duration. A 5-second export
+  therefore has 100 rows at a time boundary or 101 between boundaries.
 - Typed DDS and precision DAC values commit on Enter or leaving the field.
   Invalid values do not reach the instrument. Sliders update continuously.
 

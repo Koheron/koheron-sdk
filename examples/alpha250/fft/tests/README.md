@@ -95,7 +95,9 @@ metadata, reset on incompatible settings, history retention across DDS changes,
 50 ms peak rows and real time gaps, density expiry and duration expansion,
 bounded frame counts, occupied level ranges, circular heatmap placement,
 fractional scrolling between 50 ms rows, frozen pause position,
-HiDPI canvas sizing, and full-bin spectrogram/density CSV exports.
+HiDPI canvas sizing, full-bin spectrogram/density CSV exports, decimal time
+boundary stability, fractional interval ages, partial edge rows and frozen
+paused export timing.
 
 History interaction checks cover invalid level edits surviving redraw and blur,
 Escape recovery, unit labels, plot-only primary-button zoom, selection preview,

@@ -56,6 +56,15 @@ vm.runInContext(`
     assert.equal(history.densityLow[0], SpectrumHistory.code(1e-9));
     assert.equal(history.densityHigh[0], SpectrumHistory.code(1e-9));
 
+    const boundaryHistory = new SpectrumHistory();
+    for (const time of [.15, .3, 5.05, 5.1, 10000.1]) {
+        boundaryHistory.add(new Float32Array([1e-12]), status, time);
+        assert.equal(boundaryHistory.currentBucket, Math.round(time / .05));
+        assert.equal(boundaryHistory.bucketPhase, 0);
+        assert.equal(boundaryHistory.rows.at(-1).bucket, boundaryHistory.currentBucket);
+    }
+    boundaryHistory.add(new Float32Array([1e-12]), status, 10000.125);
+    assert.ok(Math.abs(boundaryHistory.bucketPhase - .5) < 1e-9);
     const elements = new Map();
     const events = new Map();
     const drawing = [];
@@ -152,7 +161,7 @@ vm.runInContext(`
     assert.equal(download.name, 'koheron_fft_spectrogram.csv');
     assert.ok(csv.includes('Age (s) / Frequency (MHz),0,1,2,3'));
     assert.ok(csv.includes('0.05,,,,')); // Missing row explicitly exported.
-    assert.equal(csv.split('\\n').filter(line => /^\\d+\\.\\d+,/.test(line)).length, 100);
+    assert.equal(csv.split('\\n').filter(line => /^\\d+(?:\\.\\d+)?,/.test(line)).length, 100);
     spectrum.view = 'density'; exporter.exportData();
     const densityCSV = await download.blob.text();
     assert.equal(download.name, 'koheron_fft_density.csv');
@@ -166,7 +175,7 @@ vm.runInContext(`
     rollingViews.render('dBm-Hz', 'PSD (dBm/Hz)');
     const before = drawing.at(-1)[2];
     assert.ok(Math.abs(before - .5) < 1e-12);
-    rollingHistory.add(marker, status, 5.05 + 1e-14); // Ring slot wraps from 100 to 0.
+    rollingHistory.add(marker, status, 5.05); // Ring slot wraps from 100 to 0.
     rollingViews.render('dBm-Hz', 'PSD (dBm/Hz)');
     assert.equal(rollingViews.lastBucket, 101);
     assert.ok(Math.abs((1 - drawing.at(-1)[2]) - (0 - before) - .5) < 1e-12);
@@ -180,6 +189,38 @@ vm.runInContext(`
     rollingHistory.add(new Float32Array([1e-6, 1e-12, 1e-12, 1e-12]), status, 5.085);
     rollingViews.render('dBm-Hz', 'PSD (dBm/Hz)');
     assert.notEqual(elements.get('history-cursor').textContent, hoverBefore); // Stationary hover tracks the live data.
+    const timedSpectrum = {...spectrum, history: rollingHistory, view: 'spectrogram'};
+    const timedExporter = new ExportFile(doc, timedSpectrum);
+    timedExporter.download = (blob, name) => { download = {blob, name}; };
+    const exportedRows = async () => {
+        timedExporter.exportData();
+        const lines = (await download.blob.text()).split('\\n');
+        return lines.slice(lines.findIndex(line => line.startsWith('Age (s) / Frequency (MHz),')) + 1)
+            .map(line => line.split(','));
+    };
+    let timedRows = await exportedRows();
+    assert.equal(timedRows.length, 101); // Both partial edge intervals are visible.
+    assert.equal(timedRows[0][0], '0');
+    assert.equal(timedRows[1][0], '0.035');
+    assert.equal(timedRows.at(-1)[0], '4.985');
+    assert.ok(Math.abs(Number(timedRows[0][1]) - (-30)) < 1e-5);
+    assert.ok(Math.abs(Number(timedRows[1][1]) - (-60)) < 1e-5);
+    assert.ok(timedRows[2].slice(1).every(value => value === '')); // Gaps keep their place.
+    assert.deepEqual(await exportedRows(), timedRows); // Paused re-export has identical time labels/data.
+    rollingHistory.add(marker, status, 5.1);
+    timedRows = await exportedRows();
+    assert.equal(timedRows.length, 100); // Zero-width newest interval is not exported.
+    assert.equal(timedRows[0][0], '0');
+    assert.equal(timedRows.at(-1)[0], '4.95');
+    assert.ok(Math.abs(Number(timedRows[0][1]) - (-30)) < 1e-5); // Most recent completed peak row.
+    const edgeHistory = new SpectrumHistory(); edgeHistory.setDuration(5);
+    edgeHistory.add(marker, status, .025);
+    edgeHistory.add(marker, status, 5.025);
+    timedSpectrum.history = edgeHistory;
+    timedRows = await exportedRows();
+    assert.equal(timedRows.length, 101);
+    assert.equal(timedRows.at(-1)[0], '4.975');
+    assert.ok(Math.abs(Number(timedRows.at(-1)[1]) - (-60)) < 1e-5); // Oldest partial row retains its received values.
     // A narrow canvas merges FFT bins: hover must describe the colored cell,
     // including quantized levels collapsed onto the same density row.
     const mergedHistory = new SpectrumHistory();

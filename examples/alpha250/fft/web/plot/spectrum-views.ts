@@ -228,7 +228,7 @@ class SpectrumViews {
         }
         const bins = this.bins;
         if (this.mode === 'spectrogram') {
-            const bucket = Math.floor(this.history.now / this.history.interval);
+            const bucket = this.history.currentBucket;
             if (!changed && bucket > this.lastBucket) {
                 for (let k = Math.max(this.lastBucket + 1, bucket - rows + 1); k <= bucket; k++) {
                     this.pixels.fill(this.palette[0], (k % rows) * columns, (k % rows + 1) * columns);
@@ -278,7 +278,7 @@ class SpectrumViews {
         if (this.mode === 'spectrogram') {
             // The newest bucket is only partly elapsed. Crop its future portion
             // and move the past rows continuously on every received frame.
-            const phase = this.history.now / this.history.interval - this.lastBucket;
+            const phase = this.history.bucketPhase;
             ctx.drawImage(this.texture, 0, 1 - phase, columns, rows - 1,
                 b.left, b.top, b.width, b.height);
         } else { ctx.drawImage(this.texture, b.left, b.top, b.width, b.height); }
@@ -348,8 +348,8 @@ class SpectrumViews {
         let bin = Math.min(span.last, Math.max(span.first, Math.round(frequency / step)));
         let detail: string;
         if (this.mode === 'spectrogram') {
-            const latest = Math.floor(this.history.now / this.history.interval);
-            const phase = this.history.now / this.history.interval - latest;
+            const latest = this.history.currentBucket;
+            const phase = this.history.bucketPhase;
             const bucket = latest - Math.floor(1 - phase + y * this.history.duration / this.history.interval);
             const row = this.history.rows.find(r => r.bucket === bucket);
             let power = NaN;
