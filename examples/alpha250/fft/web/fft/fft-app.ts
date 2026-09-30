@@ -104,16 +104,14 @@ class FFTApp {
                 const inputs = this._ddsInputsByChannel![ch] || [];
                 if (!inputs.length) continue;
 
-                // If the active element is one of this channel's inputs, skip updating this channel
+                const maxMHz = (sts.fs / 1e6 / 2).toFixed(1);
+                for (const inp of inputs) { this.setMaxIfNeeded(inp, maxMHz); }
+
+                // Keep an edit intact, but always refresh its hardware limit.
                 if (active && inputs.includes(active as HTMLInputElement)) continue;
 
                 const freqMHz = (sts.dds_freq[ch] / 1e6).toFixed(6);
-                const maxMHz = (sts.fs / 1e6 / 2).toFixed(1);
-
-                for (const inp of inputs) {
-                    this.setValueIfNeeded(inp, freqMHz);
-                    this.setMaxIfNeeded(inp, maxMHz);
-                }
+                for (const inp of inputs) { this.setValueIfNeeded(inp, freqMHz); }
             }
 
             // Sampling frequency radio

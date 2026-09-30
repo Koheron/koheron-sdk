@@ -54,6 +54,7 @@
 .fft-workspace select { width: 148px; }
 .fft-workspace .generator-channel { display: grid; grid-template-columns: auto 94px 92px; gap: 6px; align-items: center; }
 .fft-workspace .generator-channel input[type="number"] { width: 100%; text-align: right; font-variant-numeric: tabular-nums; }
+.fft-workspace input[type="number"]:invalid { border-color: #bc4828; }
 .fft-workspace input[type="range"] { width: 100%; margin: 0; }
 .fft-workspace input[type="checkbox"], .fft-workspace input[type="range"] { accent-color: var(--accent); }
 .fft-workspace input[type="checkbox"] { margin: 0; width: auto; height: auto; }

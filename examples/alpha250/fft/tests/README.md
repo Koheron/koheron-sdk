@@ -35,3 +35,15 @@ spectrum length, zero-DC peak handling, pause/resume, unit conversion of retaine
 samples while paused, displayed-frame metadata,
 startup auto-scaling after an empty accumulator frame, and cursor interpolation
 when a shared plot uses decimation.
+
+DDS editor regression:
+
+```sh
+node examples/alpha250/fft/tests/test_web_controls.js
+```
+
+Checks that typed frequencies commit on change, invalid edits do not send
+commands or move the paired slider, sliders send one live command per input,
+and edits respect an updated sample-rate limit. The shared DDS widget uses
+these editing rules across instruments. The three web regressions also run
+in the `fft-web` CI job.

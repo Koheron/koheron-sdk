@@ -9,6 +9,26 @@ permissions:
   contents: read
 
 jobs:
+  fft-web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install web dependencies
+        run: npm install --prefix web --ignore-scripts --no-package-lock
+      - name: Test FFT web controls and spectrum
+        env:
+          NODE_PATH: ${{ github.workspace }}/web/node_modules
+        run: |
+          node examples/alpha250/fft/tests/test_web_protocol.js
+          node examples/alpha250/fft/tests/test_web_plot.js
+          node examples/alpha250/fft/tests/test_web_controls.js
+
   server-stop:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
