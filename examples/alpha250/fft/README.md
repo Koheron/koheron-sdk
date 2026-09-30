@@ -10,7 +10,8 @@ precision I/O expand below it.
   one-second time constant. **Max hold** overlays the highest received power
   in each bin in amber. Both include received frames skipped by browser paint.
 - **Spectrogram** shows frequency against age, with the newest row at the top.
-  Each 50 ms row holds the strongest received power in each bin. Missing time
+  The waterfall scrolls continuously with each received frame, including
+  fractional time-row movement; pause freezes that position. Each 50 ms row holds the strongest received power in each bin. Missing time
   slots stay blank, including pauses and hidden-tab gaps.
 - **Density** shows frequency against level. Its color is the fraction of
   received spectra at that level, with a logarithmic occurrence scale that
@@ -59,7 +60,7 @@ converted only on capture or unit changes. Measurements and exports retain
 all FFT bins.
 
 History describes spectra received by this browser, rather than continuous RF
-capture. It retains at most 600 time rows and 2048 quantized spectra (30 seconds
+capture. It retains at most 601 time rows (including the oldest partial row) and 2048 quantized spectra (30 seconds
 at the target 60 Hz rate); older entries expire. Acquisition settings come from
 the client's latest status, so this interface does not certify the exact FPGA
 frame boundary of a hardware setting change.

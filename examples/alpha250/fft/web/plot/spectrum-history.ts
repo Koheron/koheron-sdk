@@ -2,7 +2,8 @@
 interface HistoryRow { bucket: number; psd: Float32Array; version: number; }
 class SpectrumHistory {
     readonly interval = .05;
-    readonly maxRows = 600;
+    // Keep the partially visible oldest row as the 30-second window scrolls.
+    readonly maxRows = 601;
     readonly maxDensityFrames = 2048;
     rows: HistoryRow[] = [];
     average: Float32Array;

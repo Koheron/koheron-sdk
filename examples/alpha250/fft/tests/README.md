@@ -94,4 +94,5 @@ Checks linear-power exponential averaging, max hold, owned history samples and
 metadata, reset on incompatible settings, history retention across DDS changes,
 50 ms peak rows and real time gaps, density expiry and duration expansion,
 bounded frame counts, occupied level ranges, circular heatmap placement,
+fractional scrolling between 50 ms rows, frozen pause position,
 HiDPI canvas sizing, and full-bin spectrogram/density CSV exports.

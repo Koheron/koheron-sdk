@@ -45,7 +45,7 @@ vm.runInContext(`
     assert.equal(history.rows.length, 1);
     for (let i = 0; i < 2100; i++) history.add(new Float32Array([1e-12]), status, 7 + i/100);
     assert.equal(history.frames.length, 2048);
-    assert.ok(history.rows.length <= 600);
+    assert.ok(history.rows.length <= 601);
     history.setDuration(30);
     assert.equal(history.densityFrames, 2048);
     assert.equal(history.density[SpectrumHistory.code(1e-12)], 2048);
@@ -62,7 +62,7 @@ vm.runInContext(`
     const ctx = {setTransform() {}, clearRect() {}, fillRect() {}, strokeRect() {}, fillText() {}, save() {}, restore() {}, translate() {}, scale() {}, rotate() {},
         createImageData(w, h) { return {data: new Uint8ClampedArray(w*h*4)}; }, putImageData() {}, drawImage(...args) { drawing.push(args); }};
     const doc = {activeElement: null, getElementById(id) {
-        if (!elements.has(id)) elements.set(id, {value: '', checked: true, setAttribute() {}, setCustomValidity(message) { this.validationMessage = message; }, addEventListener(event, fn) { events.set(id + '/' + event, fn); }, getContext() { return ctx; }, clientWidth: 300, clientHeight: 200});
+        if (!elements.has(id)) elements.set(id, {value: '', checked: true, setAttribute() {}, setCustomValidity(message) { this.validationMessage = message; }, addEventListener(event, fn) { events.set(id + '/' + event, fn); }, getContext() { return ctx; }, getBoundingClientRect() { return {left: 0, top: 0}; }, clientWidth: 300, clientHeight: 200});
         return elements.get(id);
     }, createElement() { return {getContext() { return ctx; }}; }, querySelector() { return {addEventListener() {}}; }};
     globalThis.window = {devicePixelRatio: 2};
@@ -78,6 +78,20 @@ vm.runInContext(`
     assert.equal(drawing.length, 1); // One scaled image prevents fractional canvas seams.
     assert.equal(views.orderedPixels[0], views.pixels[columns]); // Newest row at the top.
     assert.equal(views.orderedPixels[columns], views.palette[0]); // Missing earlier row below it.
+    assert.equal(views.texture.height, 101); // Extra row covers fractional scrolling at the bottom.
+    assert.equal(drawing.at(-1)[2], 1); // At a bucket boundary its future portion is cropped.
+    history.add(new Float32Array([1e-12, 1e-9, 1e-12, 1e-12]), status, .05 + 1/60);
+    views.render('dBm-Hz', 'PSD (dBm/Hz)');
+    const firstOffset = drawing.at(-1)[2];
+    assert.ok(Math.abs(firstOffset - 2/3) < 1e-12);
+    history.add(new Float32Array([1e-12, 1e-9, 1e-12, 1e-12]), status, .05 + 2/60);
+    views.render('dBm-Hz', 'PSD (dBm/Hz)');
+    assert.ok(Math.abs(drawing.at(-1)[2] - 1/3) < 1e-12);
+    assert.equal(drawing.at(-1)[4], 100); // The exact five-second window keeps its height.
+    assert.equal(history.rows.length, 1); // Motion changes within a row, rather than only at 20 Hz.
+    const frozenOffset = drawing.at(-1)[2];
+    views.render('dBm-Hz', 'PSD (dBm/Hz)');
+    assert.equal(drawing.at(-1)[2], frozenOffset); // Paused redraw does not advance history time.
     history.add(new Float32Array([1e-11, 1e-9, 1e-12, 1e-12]), status, .2);
     views.render('dBm-Hz', 'PSD (dBm/Hz)');
     assert.equal(views.pixels[2*columns], views.palette[0]); // Real time gap remains blank.
@@ -85,6 +99,8 @@ vm.runInContext(`
     assert.equal(views.orderedPixels[columns], views.palette[0]);
     assert.equal(views.orderedPixels[2*columns], views.palette[0]);
     assert.equal(views.orderedPixels[3*columns], views.pixels[columns]); // Older received row keeps its true age.
+    views.inspect({clientX: views.bounds.left + 1, clientY: views.bounds.top + .025 / 5 * views.bounds.height});
+    assert.ok(elements.get('history-cursor').textContent.includes('No received data')); // Cursor follows fractional time position.
     views.mode = 'density'; views.render('dBm-Hz', 'PSD (dBm/Hz)');
     assert.ok(views.pixels.some(pixel => pixel !== views.palette[0]));
     elements.get('auto-level').checked = false; events.get('auto-level/change')();
@@ -114,8 +130,24 @@ vm.runInContext(`
     spectrum.view = 'density'; exporter.exportData();
     const densityCSV = await download.blob.text();
     assert.equal(download.name, 'koheron_fft_density.csv');
-    assert.ok(densityCSV.includes('Received spectra,2'));
+    assert.ok(densityCSV.includes('Received spectra,4'));
     assert.ok(densityCSV.includes('Values,Occurrence count'));
+    const rollingHistory = new SpectrumHistory(); rollingHistory.setDuration(5);
+    const rollingViews = new SpectrumViews(doc, rollingHistory, () => ({from: 0, to: 4}), convert, () => {}, () => {});
+    rollingViews.mode = 'spectrogram';
+    const marker = new Float32Array([1e-9, 1e-12, 1e-12, 1e-12]);
+    rollingHistory.add(marker, status, 5.025);
+    rollingViews.render('dBm-Hz', 'PSD (dBm/Hz)');
+    const before = drawing.at(-1)[2];
+    assert.ok(Math.abs(before - .5) < 1e-12);
+    rollingHistory.add(marker, status, 5.05 + 1e-14); // Ring slot wraps from 100 to 0.
+    rollingViews.render('dBm-Hz', 'PSD (dBm/Hz)');
+    assert.equal(rollingViews.lastBucket, 101);
+    assert.ok(Math.abs((1 - drawing.at(-1)[2]) - (0 - before) - .5) < 1e-12);
+    assert.equal(rollingViews.orderedPixels[rollingViews.texture.width], rollingViews.rowPixels[100][0]);
+    rollingHistory.add(marker, status, 5.075);
+    rollingViews.render('dBm-Hz', 'PSD (dBm/Hz)');
+    assert.ok(Math.abs(drawing.at(-1)[2] - .5) < 1e-12); // No jump on the frame after wrap.
     history.reset(); views.render('dBm-Hz', 'PSD (dBm/Hz)');
     assert.equal(elements.get('history-cursor').textContent, 'Waiting for received spectra…');
 })()

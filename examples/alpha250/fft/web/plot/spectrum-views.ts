@@ -153,7 +153,7 @@ class SpectrumViews {
         const ctx = this.canvas.getContext('2d'); ctx.setTransform(scale, 0, 0, scale, 0, 0);
         const b = this.bounds = {left: 54, top: 22, width: Math.max(1, width - 132), height: Math.max(1, height - 60)};
         const range = this.range(), columns = Math.min(1024, Math.ceil(b.width * scale));
-        const rows = this.mode === 'spectrogram' ? Math.round(this.history.duration / this.history.interval) : 256;
+        const rows = this.mode === 'spectrogram' ? Math.round(this.history.duration / this.history.interval) + 1 : 256;
         const key = [this.mode, this.history.epoch, unit, this.low, this.high, range.from, range.to, columns, rows].join('/');
         const changed = key !== this.key;
         if (changed) {
@@ -219,7 +219,13 @@ class SpectrumViews {
         this.texture.getContext('2d').putImageData(this.ordered || this.image, 0, 0);
         ctx.fillStyle = 'white'; ctx.fillRect(0, 0, width, height);
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(this.texture, b.left, b.top, b.width, b.height);
+        if (this.mode === 'spectrogram') {
+            // The newest bucket is only partly elapsed. Crop its future portion
+            // and move the past rows continuously on every received frame.
+            const phase = this.history.now / this.history.interval - this.lastBucket;
+            ctx.drawImage(this.texture, 0, 1 - phase, columns, rows - 1,
+                b.left, b.top, b.width, b.height);
+        } else { ctx.drawImage(this.texture, b.left, b.top, b.width, b.height); }
         ctx.font = '11px sans-serif'; ctx.fillStyle = '#555'; ctx.strokeStyle = '#d5d5d5'; ctx.lineWidth = 1;
         ctx.strokeRect(b.left, b.top, b.width, b.height);
         ctx.textAlign = 'center'; ctx.fillText('Frequency (MHz)', b.left + b.width / 2, height - 6);
@@ -255,7 +261,9 @@ class SpectrumViews {
         const bin = Math.min(this.history.average.length - 1, Math.max(0, Math.round(frequency / step)));
         let text = (bin * step).toFixed(6) + ' MHz · ';
         if (this.mode === 'spectrogram') {
-            const bucket = Math.floor(this.history.now / this.history.interval) - Math.floor(y * this.history.duration / this.history.interval);
+            const latest = Math.floor(this.history.now / this.history.interval);
+            const phase = this.history.now / this.history.interval - latest;
+            const bucket = latest - Math.floor(1 - phase + y * this.history.duration / this.history.interval);
             const row = this.history.rows.find(r => r.bucket === bucket);
             text += (y * this.history.duration).toFixed(2) + ' s ago · ' + (row ? this.format(this.convert(row.psd[bin], this.unit)) + ' ' + this.label : 'No received data');
         } else {
