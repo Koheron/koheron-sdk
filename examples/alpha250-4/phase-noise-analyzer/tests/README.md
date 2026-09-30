@@ -23,6 +23,7 @@ Coverage includes:
 - Actual DMA copying across the ring boundary, synchronized X/Y data, cancellation, and configuration between complete transfer pairs.
 - Fractional phase scaling above and below unity, including sub-hertz carrier offsets.
 - Phase validation accepts steady frequency offsets and rejects impulses/discontinuities.
+- Shared DMA API compatibility, successful completion, timeout and error status.
 - DDS frequency precision, concurrent reads/writes, and nonfinite input rejection.
 - Python command dispatch, cross-correlation selection, complete phase arrays and frequency axes.
 - Web measurement and tracking decoders against C++ serialized quantities.

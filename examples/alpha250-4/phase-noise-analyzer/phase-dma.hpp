@@ -146,7 +146,7 @@ class PhaseDma
             axis_stream_mux.select_input(0);
             dma.start_transfer(dma_x_start_addr + byte_offset, chunk_bytes);
             axis_stream_mux.trigger();
-            if (!dma.wait_for_transfer(chunk_duration.load(std::memory_order_acquire))) {
+            if (!dma.wait_for_transfer_checked(chunk_duration.load(std::memory_order_acquire))) {
                 acquisition_started.store(false, std::memory_order_release);
                 return;
             }
@@ -154,7 +154,7 @@ class PhaseDma
             axis_stream_mux.select_input(1);
             dma.start_transfer(dma_y_start_addr + byte_offset, chunk_bytes);
             axis_stream_mux.trigger();
-            if (!dma.wait_for_transfer(chunk_duration.load(std::memory_order_acquire))) {
+            if (!dma.wait_for_transfer_checked(chunk_duration.load(std::memory_order_acquire))) {
                 acquisition_started.store(false, std::memory_order_release);
                 return;
             }

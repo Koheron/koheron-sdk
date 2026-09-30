@@ -46,12 +46,22 @@ class DmaS2MM
         start_transfer(memory::phys_addr, transfer_size);
     }
 
+    // Preserve the existing RPC and C++ interface for other instruments.
     template<typename T>
-    bool wait_for_transfer(scicpp::units::time<T> dma_transfer_duration) {
-        return wait_for_transfer(dma_transfer_duration.eval());
+    void wait_for_transfer(scicpp::units::time<T> duration) {
+        wait_for_transfer(duration.eval());
     }
 
-    bool wait_for_transfer(float dma_transfer_duration_seconds) {
+    void wait_for_transfer(float duration_seconds) {
+        (void)wait_for_transfer_checked(duration_seconds);
+    }
+
+    template<typename T>
+    bool wait_for_transfer_checked(scicpp::units::time<T> dma_transfer_duration) {
+        return wait_for_transfer_checked(dma_transfer_duration.eval());
+    }
+
+    bool wait_for_transfer_checked(float dma_transfer_duration_seconds) {
         const auto dma_duration = std::chrono::duration<float>(dma_transfer_duration_seconds);
         const auto sleep_duration = std::max(std::chrono::microseconds(1),
                                              std::chrono::duration_cast<std::chrono::microseconds>(0.55f * dma_duration));
