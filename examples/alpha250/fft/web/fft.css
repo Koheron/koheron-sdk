@@ -55,7 +55,14 @@
 .fft-workspace .generator-channel { display: grid; grid-template-columns: auto 94px 92px; gap: 6px; align-items: center; }
 .fft-workspace .generator-channel input[type="number"] { width: 100%; text-align: right; font-variant-numeric: tabular-nums; }
 .fft-workspace input[type="number"]:invalid { border-color: #bc4828; }
-.fft-workspace input[type="range"] { width: 100%; margin: 0; }
+.fft-workspace input[type="range"] { appearance: none; -webkit-appearance: none; width: 100%; height: var(--control-height); margin: 0; padding: 0; background: transparent; cursor: pointer; }
+.fft-workspace input[type="range"]::-webkit-slider-runnable-track { height: 3px; background: var(--border); border: 0; border-radius: 2px; }
+.fft-workspace input[type="range"]::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 12px; height: 12px; margin-top: -4.5px; background: var(--accent); border: 1px solid var(--accent-dark); border-radius: 50%; box-shadow: none; }
+.fft-workspace input[type="range"]::-moz-range-track { height: 3px; background: var(--border); border: 0; border-radius: 2px; }
+.fft-workspace input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; background: var(--accent); border: 1px solid var(--accent-dark); border-radius: 50%; box-shadow: none; }
+.fft-workspace input[type="range"]:hover::-webkit-slider-thumb { background: var(--accent-dark); }
+.fft-workspace input[type="range"]:hover::-moz-range-thumb { background: var(--accent-dark); }
+.fft-workspace input[type="range"]:disabled { opacity: .45; cursor: default; }
 .fft-workspace input[type="checkbox"], .fft-workspace input[type="range"] { accent-color: var(--accent); }
 .fft-workspace input[type="checkbox"] { margin: 0; width: auto; height: auto; }
 .fft-workspace .spectrum-panel { margin: 0; min-width: 0; }
