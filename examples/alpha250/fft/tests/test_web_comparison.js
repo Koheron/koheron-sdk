@@ -4,7 +4,7 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const ts = require('typescript');
 const root = path.resolve(__dirname, '../../../..');
-const context = vm.createContext({console, assert});
+const context = vm.createContext({console, assert, performance});
 for (const file of ['examples/alpha250/fft/web/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {
     vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
         compilerOptions: {target: ts.ScriptTarget.ES2020}
@@ -70,15 +70,25 @@ vm.runInContext(`
     changeUnit();
     const referencePower = 10 * Math.log10(referenceRaw * 2 * 80e6 / 8 / 1e-3);
     assert.ok(Math.abs(drawn.reference[1][1] - referencePower) < 1e-9);
+    const cachedReference = drawn.reference;
     plot.setPaused(false);
     await Promise.resolve();
     assert.equal(reads, 2);
     assert.equal(drawn.data[1][0], 5);
     assert.equal(drawn.reference[1][0], 10); // Each trace retains its frequency grid.
     assert.ok(Math.abs(drawn.reference[1][1] - referencePower) < 1e-9);
+    assert.equal(drawn.reference, cachedReference); // Live frames reuse the converted reference.
     assert.equal(plot.referenceStatus.fs, 80e6);
     assert.equal(plot.referenceStatus.dds_freq[0], 10e6);
     assert.ok(drawn.data[1][1] < drawn.reference[1][1]);
+    unit.value = 'nV-rtHz';
+    changeUnit();
+    assert.notEqual(drawn.reference, cachedReference);
+    const convertedReference = drawn.reference;
+    plot.captureReference();
+    assert.notEqual(drawn.reference, convertedReference); // Replacing a capture invalidates the cache.
+    assert.equal(plot.referenceStatus.fs, 40e6);
+    assert.equal(plot.referenceStatus.dds_freq[0], 5e6);
     events.get('clear-reference')();
     assert.equal(drawn.reference, undefined);
     assert.equal(plot.referenceStatus, undefined);

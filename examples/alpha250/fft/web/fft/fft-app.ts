@@ -20,6 +20,7 @@ class FFTApp {
     private _busyControls = false;
     private _controlsHz = 4;            // throttle UI refresh rate
     private _lastControlsTick = 0;
+    private _lastBoardTick = -Infinity;
     private _ddsInputsByChannel?: HTMLInputElement[][];
     private _supplySpans?: HTMLSpanElement[];
     private _temperatureSpans?: HTMLSpanElement[];
@@ -93,7 +94,10 @@ class FFTApp {
 
             const [sts, brdParams] = await Promise.all([
                 this.driver.getControlParameters() as Promise<IFFTStatus>,
-                this.driver.getBoardParameters() as Promise<IBoardParameters>,
+                // Slow board telemetry must not compete with spectrum/control requests.
+                now - this._lastBoardTick >= 1000
+                    ? this.driver.getBoardParameters() as Promise<IBoardParameters>
+                    : Promise.resolve(undefined),
             ]);
             if (!this.running) { this._busyControls = false; return; }
 
@@ -138,36 +142,39 @@ class FFTApp {
                 `[data-command='setReferenceClock'][value='${sts.clkIndex}']`
             );
 
-            for (const span of this._supplySpans) {
-                const idx = Number(span.dataset.index || "0");
-                const val = brdParams.supplyValues[idx];
-                const out =
-                    span.dataset.type === "voltage"
-                    ? val.toFixed(3)
-                    : span.dataset.type === "current"
-                    ? (val * 1e3).toFixed(1)
-                    : "";
-                this.setTextIfNeeded(span, out);
-            }
-
-            for (const span of this._temperatureSpans) {
-                span.textContent = brdParams.temperatures[parseInt(span.dataset.index)].toFixed(1);
-            }
-
-            for (let i: number = 0; i < 4; i++) {
-                (<HTMLSpanElement>document.querySelector(".precision-adc-span[data-channel='" + i.toString() + "']")).textContent = (brdParams.adcValues[i] * 1000).toFixed(4);
-            }
-
-            for (let i = 0; i < 4; i++) {
-                let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".precision-dac-input[data-command='setDac'][data-channel='" + i.toString() + "']");
-                let inputsArray = [];
-                for (let j = 0; j < inputs.length; j++) {
-                    inputsArray.push(inputs[j]);
+            if (brdParams) {
+                this._lastBoardTick = now;
+                for (const span of this._supplySpans) {
+                    const idx = Number(span.dataset.index || "0");
+                    const val = brdParams.supplyValues[idx];
+                    const out =
+                        span.dataset.type === "voltage"
+                        ? val.toFixed(3)
+                        : span.dataset.type === "current"
+                        ? (val * 1e3).toFixed(1)
+                        : "";
+                    this.setTextIfNeeded(span, out);
                 }
 
-                if (inputsArray.indexOf(<HTMLInputElement>document.activeElement) == -1) {
+                for (const span of this._temperatureSpans) {
+                    span.textContent = brdParams.temperatures[parseInt(span.dataset.index)].toFixed(1);
+                }
+
+                for (let i: number = 0; i < 4; i++) {
+                    (<HTMLSpanElement>document.querySelector(".precision-adc-span[data-channel='" + i.toString() + "']")).textContent = (brdParams.adcValues[i] * 1000).toFixed(4);
+                }
+
+                for (let i = 0; i < 4; i++) {
+                    let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".precision-dac-input[data-command='setDac'][data-channel='" + i.toString() + "']");
+                    let inputsArray = [];
                     for (let j = 0; j < inputs.length; j++) {
-                      inputs[j].value = (brdParams.dacValues[i] * 1000).toFixed(3).toString();
+                        inputsArray.push(inputs[j]);
+                    }
+
+                    if (inputsArray.indexOf(<HTMLInputElement>document.activeElement) == -1) {
+                        for (let j = 0; j < inputs.length; j++) {
+                          inputs[j].value = (brdParams.dacValues[i] * 1000).toFixed(3).toString();
+                        }
                     }
                 }
             }

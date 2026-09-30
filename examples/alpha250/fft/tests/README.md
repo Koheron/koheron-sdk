@@ -68,3 +68,14 @@ Checks visible-range peak search, DC exclusion, empty-bin ranges, paused updates
 reference ownership and independent frequency grids/window correction, capture
 and clear, and reference cursor interpolation. Export tests cover both traces
 and their separate acquisition metadata in CSV and PNG output.
+
+Performance scheduling regression:
+
+```sh
+node examples/alpha250/fft/tests/test_web_performance.js
+```
+
+Checks one-second telemetry polling while controls stay at 4 Hz, frame budgets
+including acquisition and drawing, single in-flight acquisition, pause, and
+error retry backoff. Comparison tests check reference-cache reuse and
+invalidation after unit changes or replacement.

@@ -11,6 +11,7 @@ class Plot {
     private peak: number[] = [];
     private psd: Float32Array;
     private reference: {psd: Float32Array; status: IFFTStatus};
+    private referenceUnit: string;
     public reference_data: number[][];
     public get referenceStatus(): IFFTStatus { return this.reference && this.reference.status; }
     public n_pts: number;
@@ -66,6 +67,7 @@ class Plot {
     async updatePlot(): Promise<void> {
         if (!this.running || this.paused || this.busy) { return; }
         this.busy = true;
+        const started = performance.now();
         let delay = 50;
         try {
             const psd = await this.fft.read_psd();
@@ -88,7 +90,9 @@ class Plot {
             delay = 1000;
         } finally {
             this.busy = false;
-            this.schedule(delay);
+            // Include acquisition and drawing in the normal 20 Hz frame budget.
+            // Keep the full retry delay after errors and avoid overlapping reads.
+            this.schedule(delay === 50 ? Math.max(0, 50 - (performance.now() - started)) : delay);
         }
     }
 
@@ -111,10 +115,14 @@ class Plot {
         }
         this.document.getElementById('bin-spacing').textContent = (fs / this.fft.fft_size / 1000).toFixed(3) + ' kHz';
         this.document.getElementById('fft-size').textContent = this.fft.fft_size.toLocaleString() + ' points';
-        this.reference_data = this.reference && Array.from(this.reference.psd, (value, index) => [
-            index * this.reference.status.fs / this.fft.fft_size / 1e6,
-            this.convertValue(value, this.unit, this.reference.status)
-        ]);
+        // A captured frame is immutable: convert it only after capture or a unit change.
+        if (this.reference && (!this.reference_data || this.referenceUnit !== this.unit)) {
+            this.reference_data = Array.from(this.reference.psd, (value, index) => [
+                index * this.reference.status.fs / this.fft.fft_size / 1e6,
+                this.convertValue(value, this.unit, this.reference.status)
+            ]);
+            this.referenceUnit = this.unit;
+        }
         this.redraw();
         (this.document.getElementById('capture-reference') as HTMLButtonElement).disabled = length === 0;
         for (const button of Array.from(this.document.querySelectorAll<HTMLButtonElement>('.export-data, .export-plot'))) {
@@ -125,6 +133,7 @@ class Plot {
     captureReference(): void {
         if (!this.psd || !this.frameStatus) { return; }
         this.reference = {psd: this.psd.slice(0, this.plot_data.length), status: {...this.frameStatus, dds_freq: this.frameStatus.dds_freq.slice()}};
+        this.reference_data = undefined;
         this.document.getElementById('capture-reference').textContent = 'Replace ref';
         (this.document.getElementById('clear-reference') as HTMLButtonElement).disabled = false;
         this.document.getElementById('reference-info').hidden = false;
