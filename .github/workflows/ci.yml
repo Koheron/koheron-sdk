@@ -9,6 +9,22 @@ permissions:
   contents: read
 
 jobs:
+  server-stop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Test instrument service shutdown
+        run: |
+          test_uid=$(id -u)
+          sudo systemctl start "user@${test_uid}.service"
+          export XDG_RUNTIME_DIR="/run/user/${test_uid}"
+          export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+          systemctl --user show-environment > /dev/null
+          python3 -m unittest discover -s os/tests -p test_server_stop.py -v
+
   validate-configs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -20,6 +36,10 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
+      - name: Test kernel build dependencies
+        run: python3 -m unittest discover -s os/tests -p test_linux_make.py -v
+      - name: Test first-boot filesystem expansion
+        run: python3 -m unittest discover -s os/tests -p test_grow_rootfs.py -v
       - name: Validate all instrument configurations
         run: |
           count=0
