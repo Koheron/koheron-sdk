@@ -83,3 +83,15 @@ of single-bin peaks, minima, missing-data gaps, boundary neighbours and
 frequency ordering during rendering reduction, plus full-bin rendering when
 zoomed in. Comparison tests check reference-cache reuse and
 invalidation after unit changes or replacement.
+
+Received history regression:
+
+```sh
+node examples/alpha250/fft/tests/test_web_history.js
+```
+
+Checks linear-power exponential averaging, max hold, owned history samples and
+metadata, reset on incompatible settings, history retention across DDS changes,
+50 ms peak rows and real time gaps, density expiry and duration expansion,
+bounded frame counts, occupied level ranges, circular heatmap placement,
+HiDPI canvas sizing, and full-bin spectrogram/density CSV exports.

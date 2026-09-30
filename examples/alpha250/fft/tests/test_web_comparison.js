@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const ts = require('typescript');
 const root = path.resolve(__dirname, '../../../..');
 const context = vm.createContext({console, assert, performance});
-for (const file of ['examples/alpha250/fft/web/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {
+for (const file of ['examples/alpha250/fft/web/plot/spectrum-history.ts', 'examples/alpha250/fft/web/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {
     vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
         compilerOptions: {target: ts.ScriptTarget.ES2020}
     }).outputText, context);
@@ -136,6 +136,17 @@ vm.runInContext(`
     markerEvents.get('plotclick')({}, {}, {datapoint: [10, 4], seriesIndex: 1, series: {label: 'Reference'}});
     assert.equal(prefix, 'Ref ');
     assert.equal(shared.clickSeriesIndex, 1);
+    markerEvents.get('plotclick')({}, {}, {datapoint: [15, 0], seriesIndex: 2, series: {label: 'Average'}});
+    assert.equal(prefix, 'Average ');
+    shared.redraw([[0, 90], [30, 4]], 2, [], 'PSD', () => {}, [[0, 10], [30, 40]], true,
+        [{label: 'Average', color: 'green', data: [[0, 20], [30, 60]]}, {label: 'Max hold', color: 'gold', data: [[0, 70], [30, 80]]}]);
+    assert.equal(shared.clickDatapoint[1], 40);
+    assert.equal(shared.seriesOne.length, 4);
+    shared.redraw([[0, 90], [30, 4]], 2, [], 'PSD', () => {}, undefined, true,
+        [{label: 'Average', color: 'green', data: [[0, 20], [30, 60]]}]);
+    assert.equal(shared.clickDatapoint[1], 40); // Cursor survives removal of the preceding reference.
+    shared.redraw([[0, 90], [30, 4]], 2, [], 'PSD', () => {});
+    assert.equal(shared.clickDatapoint.length, 0);
 })()
 `, context).then(() => console.log('Visible peak search, DC exclusion and independent reference traces: PASS'))
 .catch(error => { console.error(error); process.exitCode = 1; });

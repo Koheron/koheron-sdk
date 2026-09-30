@@ -27,6 +27,11 @@ class Plot {
     private referenceUnit: string;
     public reference_data: number[][];
     public get referenceStatus(): IFFTStatus { return this.reference && this.reference.status; }
+    public history = new SpectrumHistory();
+    private views: SpectrumViews;
+    public average_data: number[][];
+    public maximum_data: number[][];
+    public get view(): string { return this.views ? this.views.mode : 'spectrum'; }
     public n_pts: number;
     public plot_data: number[][] = [];
     public yLabel = 'PSD (dBm/Hz)';
@@ -44,6 +49,22 @@ class Plot {
                 if (this.psd) { this.displaySpectrum(); }
             });
         }
+        const canvas = document.getElementById('history-canvas') as HTMLCanvasElement;
+        if (canvas && typeof canvas.getContext === 'function') {
+            this.views = new SpectrumViews(document, this.history, () => this.plotBasics.getRangeX(),
+                (power, unit) => this.convertValue(power, unit, this.history.status),
+                (from, to) => { this.plotBasics.setVisibleRangeX(from, to); this.redraw(); },
+                () => { this.plotBasics.setLinY(); if (this.psd) { this.displaySpectrum(); } });
+        }
+        for (const id of ['average-trace', 'max-hold-trace']) {
+            document.getElementById(id).addEventListener('change', () => {
+                this.plotBasics.setLinY(); if (this.psd) { this.displaySpectrum(); }
+            });
+        }
+        document.getElementById('clear-history').addEventListener('click', () => {
+            this.history.reset(); this.average_data = this.maximum_data = undefined;
+            this.plotBasics.setLinY(); this.redraw();
+        });
         document.getElementById('exclude-dc').addEventListener('change', () => this.redraw());
         document.getElementById('capture-reference').addEventListener('click', () => this.captureReference());
         document.getElementById('clear-reference').addEventListener('click', () => this.clearReference());
@@ -146,6 +167,7 @@ class Plot {
             // Only the newest complete spectrum waits for paint. Copy the client
             // buffer now, since it may be reused before the animation callback.
             this.pending = {psd: psd.slice(), status: {...this.fft.status, dds_freq: this.fft.status.dds_freq.slice()}};
+            if (this.history) { this.history.add(psd, this.pending.status, performance.now() / 1000); }
             this.acquiredFrames++;
             this.requestDraw();
         } catch (error) {
@@ -190,8 +212,21 @@ class Plot {
             ]);
             this.referenceUnit = this.unit;
         }
+        const convertTrace = (values: Float32Array, data: number[][]): number[][] => {
+            if (!values) { return undefined; }
+            data = data || []; data.length = values.length;
+            for (let i = 0; i < values.length; i++) {
+                const row = data[i] || (data[i] = [0, 0]);
+                row[0] = i * this.history.status.fs / this.fft.fft_size / 1e6;
+                row[1] = this.convertValue(values[i], this.unit, this.history.status);
+            }
+            return data;
+        };
+        this.average_data = (this.document.getElementById('average-trace') as HTMLInputElement).checked && this.view === 'spectrum' ? convertTrace(this.history.average, this.average_data) : undefined;
+        this.maximum_data = (this.document.getElementById('max-hold-trace') as HTMLInputElement).checked && this.view === 'spectrum' ? convertTrace(this.history.maximum, this.maximum_data) : undefined;
+        this.document.getElementById('reference-info').hidden = !this.reference || this.view !== 'spectrum';
         this.redraw();
-        (this.document.getElementById('capture-reference') as HTMLButtonElement).disabled = length === 0;
+        (this.document.getElementById('capture-reference') as HTMLButtonElement).disabled = length === 0 || this.view !== 'spectrum';
         for (const button of Array.from(this.document.querySelectorAll<HTMLButtonElement>('.export-data, .export-plot'))) {
             button.disabled = length === 0;
         }
@@ -234,7 +269,11 @@ class Plot {
         const unitLabel = this.unit === 'dBm-Hz' ? 'dBm/Hz' : this.unit === 'dBm' ? 'dBm' : 'nV/√Hz';
         this.document.getElementById('peak-level').textContent = peak.length ? peak[1].toFixed(2) + ' ' + unitLabel : '—';
         this.peak = peak;
-        this.plotBasics.redraw(this.plot_data, this.plot_data.length, this.peak.slice(), this.yLabel, () => {}, this.reference_data, true);
+        if (this.view !== 'spectrum') { this.views.render(this.unit, this.yLabel); return; }
+        const traces: {label: string; color: string; data: number[][]}[] = [];
+        if (this.average_data) { traces.push({label: 'Average', color: '#389168', data: this.average_data}); }
+        if (this.maximum_data) { traces.push({label: 'Max hold', color: '#ba861a', data: this.maximum_data}); }
+        this.plotBasics.redraw(this.plot_data, this.plot_data.length, this.peak.slice(), this.yLabel, () => {}, this.reference_data, true, traces);
     }
 
     convertValue(value: number, unit: string, status: IFFTStatus = this.frameStatus || this.fft.status): number {
@@ -248,6 +287,7 @@ class Plot {
 
     dispose(): void {
         this.running = false;
+        if (this.views) { this.views.dispose(); }
         $('#plot-placeholder').off('.fft');
         window.clearTimeout(this.timer);
         window.cancelAnimationFrame(this.animation);

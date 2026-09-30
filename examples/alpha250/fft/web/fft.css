@@ -126,3 +126,17 @@
     .fft-workspace .board-grid { grid-template-columns: minmax(0, 1fr); }
 
 }
+
+.fft-workspace [hidden] { display: none !important; }
+.fft-workspace .history-toolbar, .fft-workspace #trace-controls, .fft-workspace #history-controls { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
+.fft-workspace .history-toolbar { padding-bottom: 3px; }
+.fft-workspace #clear-history { margin-left: auto; }
+.fft-workspace #spectrum-view { width: 124px; }
+.fft-workspace #history-controls label { display: inline-flex; align-items: center; gap: 5px; }
+.fft-workspace #history-duration { width: 62px; }
+.fft-workspace #history-controls input[type="number"] { width: 82px; }
+.fft-workspace #history-canvas { display: block; width: 100%; height: clamp(260px, calc(100dvh - 270px), 1000px); touch-action: none; }
+.fft-workspace #history-cursor { color: var(--muted); font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) {
+    .fft-workspace #history-canvas { height: 46dvh; min-height: 250px; }
+}

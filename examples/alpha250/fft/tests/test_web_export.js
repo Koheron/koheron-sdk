@@ -32,6 +32,7 @@ vm.runInContext(`
                 if (selector.includes('canvas')) return canvas;
                 return {addEventListener(event, cb) { buttons.set(selector, cb); }};
             },
+            getElementById() { return canvas; },
             createElement() { return image = {
                 getContext() { return ctx; },
                 toBlob(cb) { cb(new Blob(['image'], {type: 'image/png'})); }
@@ -76,6 +77,17 @@ vm.runInContext(`
         assert.ok(referenceCSV.includes('Window index,3'));
         assert.ok(referenceCSV.includes('Input channel,0'));
         assert.ok(referenceCSV.endsWith('0,5\\n25,42'));
+        spectrum.view = 'density'; spectrum.history = {status: spectrum.frameStatus}; text.length = 0;
+        buttons.get('.export-plot')();
+        assert.equal(image.height, 282 * density);
+        assert.deepEqual(copied, [canvas, 0, 52, 320, 200]);
+        assert.equal(text.length, 2); // Heatmap already contains axes and has no reference overlay.
+        assert.equal(text[0].value, 'ALPHA250 FFT · density · Voltage noise (nV/√Hz)');
+        spectrum.view = 'spectrum';
+        spectrum.average_data = [[0, 7], [40, 8]];
+        buttons.get('.export-data')();
+        assert.ok((await download.blob.text()).includes('Average (1 s linear power EMA)'));
+        spectrum.average_data = undefined;
         spectrum.referenceStatus = spectrum.reference_data = undefined;
     }
 })()

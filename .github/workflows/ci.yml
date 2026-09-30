@@ -31,6 +31,7 @@ jobs:
           node examples/alpha250/fft/tests/test_web_export.js
           node examples/alpha250/fft/tests/test_web_comparison.js
           node examples/alpha250/fft/tests/test_web_performance.js
+          node examples/alpha250/fft/tests/test_web_history.js
 
   server-stop:
     runs-on: ubuntu-24.04

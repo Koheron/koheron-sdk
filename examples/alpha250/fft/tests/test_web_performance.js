@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const ts = require('typescript');
 const root = path.resolve(__dirname, '../../../..');
 const context = vm.createContext({console, assert});
-for (const file of ['examples/alpha250/fft/web/fft/fft-app.ts', 'examples/alpha250/fft/web/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {
+for (const file of ['examples/alpha250/fft/web/fft/fft-app.ts', 'examples/alpha250/fft/web/plot/spectrum-history.ts', 'examples/alpha250/fft/web/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {
     vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
         compilerOptions: {target: ts.ScriptTarget.ES2020}
     }).outputText, context);
@@ -43,7 +43,7 @@ vm.runInContext(`
     }};
     const status = {dds_freq: [10,0], fs: 250e6};
     const plot = Object.assign(Object.create(Plot.prototype), {
-        document: doc, running: true, paused: false, busy: false, animation: 0,
+        document: doc, history: new SpectrumHistory(), running: true, paused: false, busy: false, animation: 0,
         lastFrameTime: -Infinity, rateStarted: 0, acquiredFrames: 0, renderedFrames: 0,
         fft: {status, read_psd() { reads++; return new Promise(resolve => { finishRead = resolve; }); }},
         displaySpectrum() { drawn.push({psd: Array.from(this.psd), status: this.frameStatus}); },
@@ -56,8 +56,10 @@ vm.runInContext(`
     assert.ok(Math.abs(scheduled - (1000/60 - 4)) < 1e-9);
     assert.equal(drawn.length, 0); // Network completion never draws outside an animation frame.
     assert.equal(animationRequests, 1);
+    assert.equal(plot.history.samples, 1);
     raw[0] = 2; status.dds_freq[0] = 20;
     now = 17; const next = plot.updatePlot(); now = 21; finishRead(raw); await next;
+    assert.equal(plot.history.samples, 2); // History consumes every received frame before paint.
     assert.equal(reads, 2); // Acquisition progresses while rendering waits.
     assert.equal(animationRequests, 1); // Only one paint callback can be queued.
     raw[0] = 3; status.dds_freq[0] = 30;
