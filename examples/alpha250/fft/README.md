@@ -21,12 +21,16 @@ precision I/O expand below it.
   occurrence count, preserving narrow signals.
 - **History** selects 5, 15 or 30 seconds for either history view. **Auto level**
   sets the color range in Spectrogram and level axis in Density; turn it off
-  to enter Low and High in the selected unit. Changing units restores Auto
-  level. Hover over either view to inspect its received data.
+  to enter Low and High in the selected unit, shown beside the fields. Invalid
+  edits remain visible for correction; Escape restores the accepted range.
+  Dragging shows a cyan zoom preview, and a crosshair follows hover readings.
+  Changing units restores Auto level. Hover readings update as data arrives.
 - **Clear history** resets both history views, average and max hold. Channel,
   window, sampling rate and reference clock changes also reset them. DDS
   changes retain history, so frequency changes remain visible. A captured
-  reference is retained separately.
+  reference is retained separately. An empty history shows a waiting message
+  and disables history exports until spectra arrive. If paused, it prompts you
+  to Resume. On touch screens, vertical gestures still scroll the page.
 - **Peak in view** reports the strongest finite bin in the live trace within
   the visible frequency range. Drag to zoom; Reset restores the full span.
   **Exclude DC** skips the zero-frequency bin, leaving other bins unchanged.

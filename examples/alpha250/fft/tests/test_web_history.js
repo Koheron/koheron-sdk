@@ -59,10 +59,11 @@ vm.runInContext(`
     const elements = new Map();
     const events = new Map();
     const drawing = [];
-    const ctx = {setTransform() {}, clearRect() {}, fillRect() {}, strokeRect() {}, fillText() {}, save() {}, restore() {}, translate() {}, scale() {}, rotate() {},
+    const selectionBoxes = [];
+    const ctx = {beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, setTransform() {}, clearRect() {}, fillRect() {}, strokeRect(...args) { selectionBoxes.push(args); }, fillText() {}, save() {}, restore() {}, translate() {}, scale() {}, rotate() {},
         createImageData(w, h) { return {data: new Uint8ClampedArray(w*h*4)}; }, putImageData() {}, drawImage(...args) { drawing.push(args); }};
     const doc = {activeElement: null, getElementById(id) {
-        if (!elements.has(id)) elements.set(id, {value: '', checked: true, setAttribute() {}, setCustomValidity(message) { this.validationMessage = message; }, addEventListener(event, fn) { events.set(id + '/' + event, fn); }, getContext() { return ctx; }, getBoundingClientRect() { return {left: 0, top: 0}; }, clientWidth: 300, clientHeight: 200});
+        if (!elements.has(id)) elements.set(id, {value: '', checked: true, setAttribute() {}, setCustomValidity(message) { this.validationMessage = message; }, addEventListener(event, fn) { events.set(id + '/' + event, fn); }, getContext() { return ctx; }, setPointerCapture() {}, reportValidity() {}, getBoundingClientRect() { return {left: 0, top: 0}; }, clientWidth: 300, clientHeight: 200});
         return elements.get(id);
     }, createElement() { return {getContext() { return ctx; }}; }, querySelector() { return {addEventListener() {}}; }};
     globalThis.window = {devicePixelRatio: 2};
@@ -116,6 +117,31 @@ vm.runInContext(`
     events.get('color-low/change')();
     assert.equal(elements.get('color-low').validationMessage, '');
     assert.equal(views.low, -140);
+    elements.get('color-low').valueAsNumber = -20; elements.get('color-low').value = '-20';
+    events.get('color-low/input')();
+    views.render('dBm-Hz', 'PSD (dBm/Hz)');
+    assert.equal(elements.get('color-low').value, '-20'); // Invalid edit survives blur/live redraw for correction.
+    events.get('color-low/keydown')({key: 'Escape'});
+    assert.equal(elements.get('color-low').value, '-140');
+    assert.equal(elements.get('color-low').validationMessage, '');
+    elements.get('color-low').valueAsNumber = -140;
+    assert.equal(elements.get('history-level-unit').textContent, 'dBm/Hz');
+    events.get('history-canvas/pointerdown')({button: 0, clientX: 1, clientY: 1, pointerId: 1});
+    assert.equal(views.drag, undefined); // Axes and color scale do not start a zoom.
+    events.get('history-canvas/pointerdown')({button: 2, clientX: 80, clientY: 60, pointerId: 1});
+    assert.equal(views.drag, undefined);
+    events.get('history-canvas/pointerdown')({button: 0, clientX: 80, clientY: 60, pointerId: 1});
+    assert.equal(views.drag, 80);
+    events.get('history-canvas/pointermove')({clientX: 120, clientY: 60});
+    assert.equal(views.pointer.clientX, 120);
+    assert.deepEqual(selectionBoxes.at(-1), [80, views.bounds.top, 40, views.bounds.height]); // Visible drag preview spans the selected frequencies.
+    events.get('history-canvas/pointercancel')();
+    assert.equal(views.pointer, undefined);
+    assert.equal(views.drag, undefined);
+    views.inspect({clientX: 90, clientY: 60});
+    views.inspect({clientX: 1, clientY: 1});
+    assert.equal(elements.get('history-cursor').textContent, ''); // Moving to the scale clears the old reading.
+
 
     let download;
     const spectrum = {history, view: 'spectrogram', unit: 'dBm-Hz', yLabel: 'PSD (dBm/Hz)', frameStatus: status, convertValue: convert};
@@ -148,8 +174,16 @@ vm.runInContext(`
     rollingHistory.add(marker, status, 5.075);
     rollingViews.render('dBm-Hz', 'PSD (dBm/Hz)');
     assert.ok(Math.abs(drawing.at(-1)[2] - .5) < 1e-12); // No jump on the frame after wrap.
+    rollingViews.pointer = {clientX: rollingViews.bounds.left + 1, clientY: rollingViews.bounds.top + .001 / 5 * rollingViews.bounds.height};
+    rollingViews.render('dBm-Hz', 'PSD (dBm/Hz)');
+    const hoverBefore = elements.get('history-cursor').textContent;
+    rollingHistory.add(new Float32Array([1e-6, 1e-12, 1e-12, 1e-12]), status, 5.085);
+    rollingViews.render('dBm-Hz', 'PSD (dBm/Hz)');
+    assert.notEqual(elements.get('history-cursor').textContent, hoverBefore); // Stationary hover tracks the live data.
     history.reset(); views.render('dBm-Hz', 'PSD (dBm/Hz)');
     assert.equal(elements.get('history-cursor').textContent, 'Waiting for received spectra…');
+    views.render('dBm-Hz', 'PSD (dBm/Hz)', true);
+    assert.equal(elements.get('history-cursor').textContent, 'History cleared · Resume to collect spectra');
 })()
 `, context).then(() => console.log('Linear averages, max hold, history bounds, density expiry, time gaps, heatmaps and CSV: PASS'))
 .catch(error => { console.error(error); process.exitCode = 1; });

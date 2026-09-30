@@ -226,10 +226,7 @@ class Plot {
         this.maximum_data = (this.document.getElementById('max-hold-trace') as HTMLInputElement).checked && this.view === 'spectrum' ? convertTrace(this.history.maximum, this.maximum_data) : undefined;
         this.document.getElementById('reference-info').hidden = !this.reference || this.view !== 'spectrum';
         this.redraw();
-        (this.document.getElementById('capture-reference') as HTMLButtonElement).disabled = length === 0 || this.view !== 'spectrum';
-        for (const button of Array.from(this.document.querySelectorAll<HTMLButtonElement>('.export-data, .export-plot'))) {
-            button.disabled = length === 0;
-        }
+
     }
 
     captureReference(): void {
@@ -257,6 +254,11 @@ class Plot {
     }
 
     private redraw(): void {
+        const ready = this.plot_data.length > 0;
+        (this.document.getElementById('capture-reference') as HTMLButtonElement).disabled = !ready || this.view !== 'spectrum';
+        for (const button of Array.from(this.document.querySelectorAll<HTMLButtonElement>('.export-data, .export-plot'))) {
+            button.disabled = !ready || (this.view !== 'spectrum' && !this.history.samples);
+        }
         if (!this.plot_data.length) { return; }
         const range = this.plotBasics.getRangeX();
         const excludeDC = (this.document.getElementById('exclude-dc') as HTMLInputElement).checked;
@@ -269,7 +271,7 @@ class Plot {
         const unitLabel = this.unit === 'dBm-Hz' ? 'dBm/Hz' : this.unit === 'dBm' ? 'dBm' : 'nV/√Hz';
         this.document.getElementById('peak-level').textContent = peak.length ? peak[1].toFixed(2) + ' ' + unitLabel : '—';
         this.peak = peak;
-        if (this.view !== 'spectrum') { this.views.render(this.unit, this.yLabel); return; }
+        if (this.view !== 'spectrum') { this.views.render(this.unit, this.yLabel, this.paused); return; }
         const traces: {label: string; color: string; data: number[][]}[] = [];
         if (this.average_data) { traces.push({label: 'Average', color: '#389168', data: this.average_data}); }
         if (this.maximum_data) { traces.push({label: 'Max hold', color: '#ba861a', data: this.maximum_data}); }

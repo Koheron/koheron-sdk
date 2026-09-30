@@ -3,6 +3,8 @@ class SpectrumViews {
     mode = 'spectrum';
     private canvas: HTMLCanvasElement;
     private texture: HTMLCanvasElement;
+    private overlay: HTMLCanvasElement;
+    private pointer: {clientX: number; clientY: number};
     private image: ImageData;
     private pixels: Uint32Array;
     private ordered: ImageData;
@@ -32,6 +34,7 @@ class SpectrumViews {
         private redraw: () => void) {
         this.canvas = document.getElementById('history-canvas') as HTMLCanvasElement;
         this.texture = document.createElement('canvas');
+        this.overlay = document.getElementById('history-overlay') as HTMLCanvasElement;
         const bytes = new Uint8Array(256 * 4);
         const stops = [[0, 22, 38, 95], [.3, 0, 125, 185], [.55, 45, 200, 180], [.8, 245, 215, 55], [1, 225, 55, 45]];
         bytes.set([247, 250, 252, 255], 0);
@@ -51,11 +54,13 @@ class SpectrumViews {
             document.getElementById('plot-basics').hidden = this.mode !== 'spectrum';
             document.getElementById('history-view').hidden = this.mode === 'spectrum';
             document.getElementById('history-controls').hidden = this.mode === 'spectrum';
+            document.getElementById('reference-actions').hidden = this.mode !== 'spectrum';
             document.getElementById('trace-controls').hidden = this.mode !== 'spectrum';
             document.getElementById('peak-detection').hidden = this.mode !== 'spectrum';
             this.canvas.setAttribute('aria-label', this.mode === 'spectrogram' ? 'Frequency versus time spectrogram' : 'Frequency versus level occurrence density');
             document.getElementById('history-cursor').hidden = this.mode === 'spectrum';
             document.getElementById('history-cursor').textContent = '';
+            this.pointer = undefined; this.drag = undefined; this.drawOverlay();
             this.key = ''; this.redraw();
         };
         selector.addEventListener('change', setView);
@@ -74,16 +79,33 @@ class SpectrumViews {
                 const lo = document.getElementById('color-low') as HTMLInputElement;
                 const hi = document.getElementById('color-high') as HTMLInputElement;
                 lo.setCustomValidity(''); hi.setCustomValidity('');
-                if (!Number.isFinite(lo.valueAsNumber) || !Number.isFinite(hi.valueAsNumber)) { return; }
+                if (!Number.isFinite(lo.valueAsNumber) || !Number.isFinite(hi.valueAsNumber)) {
+                    if (!Number.isFinite(lo.valueAsNumber)) { lo.setCustomValidity('Enter a finite level'); }
+                    if (!Number.isFinite(hi.valueAsNumber)) { hi.setCustomValidity('Enter a finite level'); }
+                    return;
+                }
                 if (lo.valueAsNumber >= hi.valueAsNumber) { lo.setCustomValidity('Low must be below High'); return; }
                 this.low = lo.valueAsNumber; this.high = hi.valueAsNumber; this.key = ''; this.redraw();
             };
             document.getElementById(id).addEventListener('input', updateLevels);
             document.getElementById(id).addEventListener('change', updateLevels);
+            document.getElementById(id).addEventListener('keydown', (event: KeyboardEvent) => {
+                if (event.key === 'Enter') {
+                    updateLevels(); (document.getElementById(id) as HTMLInputElement).reportValidity();
+                } else if (event.key === 'Escape') {
+                    for (const [field, value] of [['color-low', this.low], ['color-high', this.high]] as [string, number][]) {
+                        const input = document.getElementById(field) as HTMLInputElement;
+                        input.value = String(value); input.setCustomValidity('');
+                    }
+                    this.redraw();
+                }
+            });
         }
         this.canvas.addEventListener('pointerdown', e => {
+            if (e.button !== 0 || !this.inside(e)) { return; }
+            this.pointer = {clientX: e.clientX, clientY: e.clientY};
             this.drag = e.clientX - this.canvas.getBoundingClientRect().left;
-            this.canvas.setPointerCapture(e.pointerId);
+            this.canvas.setPointerCapture(e.pointerId); this.drawOverlay();
         });
         this.canvas.addEventListener('pointerup', e => {
             const end = e.clientX - this.canvas.getBoundingClientRect().left;
@@ -94,11 +116,20 @@ class SpectrumViews {
                 if (to > from) { this.selectRange(from, to); }
             }
             this.drag = undefined;
+            this.pointer = this.inside(e) ? {clientX: e.clientX, clientY: e.clientY} : undefined;
+            if (this.pointer) { this.inspect(this.pointer); }
+            this.drawOverlay();
         });
-        this.canvas.addEventListener('pointercancel', () => { this.drag = undefined; });
+        this.canvas.addEventListener('pointercancel', () => { this.drag = undefined; this.pointer = undefined; this.drawOverlay(); });
         this.canvas.addEventListener('dblclick', () => $('#plot-placeholder').trigger('dblclick'));
-        this.canvas.addEventListener('pointermove', e => this.inspect(e));
-        this.canvas.addEventListener('pointerleave', () => { document.getElementById('history-cursor').textContent = ''; });
+        this.canvas.addEventListener('pointermove', e => {
+            this.pointer = this.inside(e) || this.drag !== undefined ? {clientX: e.clientX, clientY: e.clientY} : undefined;
+            this.inspect(e); this.drawOverlay();
+        });
+        this.canvas.addEventListener('pointerleave', () => {
+            if (this.drag === undefined) { this.pointer = undefined; this.drawOverlay(); }
+            document.getElementById('history-cursor').textContent = '';
+        });
         if (typeof ResizeObserver !== 'undefined') {
             this.resize = new ResizeObserver(() => { if (this.mode !== 'spectrum') { this.redraw(); } });
             this.resize.observe(this.canvas);
@@ -118,19 +149,48 @@ class SpectrumViews {
         }));
     }
 
-    render(unit: string, label: string): void {
+    render(unit: string, label: string, paused = false): void {
         if (this.mode === 'spectrum') { return; }
         this.label = label.replace(/^.*\(/, '').replace(/\)/, '');
-        if (!this.history.samples) {
-            const ctx = this.canvas.getContext('2d'); ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            this.document.getElementById('history-cursor').textContent = 'Waiting for received spectra…'; return;
-        }
-        const cursor = this.document.getElementById('history-cursor');
-        if (cursor.textContent === 'Waiting for received spectra…') { cursor.textContent = ''; }
+        const unitLabel = this.document.getElementById('history-level-unit');
+        if (unitLabel.textContent !== this.label) { unitLabel.textContent = this.label; }
         if (unit !== this.unit) {
             this.unit = unit; this.manual = false;
             (this.document.getElementById('auto-level') as HTMLInputElement).checked = true;
         }
+
+        const width = this.canvas.clientWidth, height = this.canvas.clientHeight;
+        if (!width || !height) { return; }
+        const scale = window.devicePixelRatio || 1;
+        if (this.canvas.width !== Math.round(width * scale) || this.canvas.height !== Math.round(height * scale)) {
+            this.canvas.width = Math.round(width * scale); this.canvas.height = Math.round(height * scale);
+        }
+        const ctx = this.canvas.getContext('2d'); ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        const b = this.bounds = {left: 54, top: 22, width: Math.max(1, width - 132), height: Math.max(1, height - 60)};
+        if (this.overlay.width !== this.canvas.width || this.overlay.height !== this.canvas.height) {
+            this.overlay.width = this.canvas.width; this.overlay.height = this.canvas.height; this.drawOverlay();
+        }
+        if (!this.history.samples) {
+            const message = paused ? 'History cleared · Resume to collect spectra' : 'Waiting for received spectra…';
+            ctx.fillStyle = 'white'; ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = '#f7fafc'; ctx.fillRect(b.left, b.top, b.width, b.height);
+            ctx.strokeStyle = '#d5d5d5'; ctx.strokeRect(b.left, b.top, b.width, b.height);
+            ctx.font = '12px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#666';
+            ctx.fillText(paused ? 'History cleared' : 'Waiting for spectra…', b.left + b.width / 2, b.top + b.height / 2);
+            if (paused) {
+                ctx.font = '11px sans-serif';
+                ctx.fillText('Resume to collect spectra', b.left + b.width / 2, b.top + b.height / 2 + 18);
+            }
+            this.document.getElementById('history-cursor').textContent = message;
+            for (const id of ['color-low', 'color-high']) {
+                const input = this.document.getElementById(id) as HTMLInputElement;
+                input.disabled = true; input.setCustomValidity('');
+                if (!this.manual) { input.value = ''; }
+            }
+            this.pointer = undefined; this.drag = undefined; this.drawOverlay(); return;
+        }
+        const cursor = this.document.getElementById('history-cursor');
+        if (cursor.textContent === 'Waiting for received spectra…' || cursor.textContent === 'History cleared · Resume to collect spectra') { cursor.textContent = ''; }
         if (!this.manual) {
             const min = this.convert(this.history.minPower, unit), max = this.convert(this.history.maxPower, unit);
             if (unit === 'dBm-Hz' || unit === 'dBm') {
@@ -142,16 +202,12 @@ class SpectrumViews {
         for (const [id, value] of [['color-low', this.low], ['color-high', this.high]] as [string, number][]) {
             const input = this.document.getElementById(id) as HTMLInputElement;
             input.disabled = !this.manual;
-            if (this.document.activeElement !== input) { input.value = String(Number(value.toPrecision(5))); }
+            if (!this.manual) {
+                input.setCustomValidity('');
+                const formatted = String(Number(value.toPrecision(5)));
+                if (input.value !== formatted) { input.value = formatted; }
+            }
         }
-        const width = this.canvas.clientWidth, height = this.canvas.clientHeight;
-        if (!width || !height) { return; }
-        const scale = window.devicePixelRatio || 1;
-        if (this.canvas.width !== Math.round(width * scale) || this.canvas.height !== Math.round(height * scale)) {
-            this.canvas.width = Math.round(width * scale); this.canvas.height = Math.round(height * scale);
-        }
-        const ctx = this.canvas.getContext('2d'); ctx.setTransform(scale, 0, 0, scale, 0, 0);
-        const b = this.bounds = {left: 54, top: 22, width: Math.max(1, width - 132), height: Math.max(1, height - 60)};
         const range = this.range(), columns = Math.min(1024, Math.ceil(b.width * scale));
         const rows = this.mode === 'spectrogram' ? Math.round(this.history.duration / this.history.interval) + 1 : 256;
         const key = [this.mode, this.history.epoch, unit, this.low, this.high, range.from, range.to, columns, rows].join('/');
@@ -248,15 +304,41 @@ class SpectrumViews {
             ctx.fillText(label.replace(/^.*\(/, '').replace(/\)/, ''), barX, 13);
             for (let i = 0; i <= 4; i++) { ctx.fillText(this.format(this.high - i * (this.high - this.low) / 4), barX + 12, b.top + i * b.height / 4 + 4); }
         }
+        if (this.pointer && this.drag === undefined) { this.inspect(this.pointer); }
     }
 
     dispose(): void { if (this.resize) { this.resize.disconnect(); } }
 
-    private inspect(e: PointerEvent): void {
+    private inside(e: {clientX: number; clientY: number}): boolean {
+        const rect = this.canvas.getBoundingClientRect(), b = this.bounds;
+        const x = e.clientX - rect.left, y = e.clientY - rect.top;
+        return x >= b.left && x <= b.left + b.width && y >= b.top && y <= b.top + b.height;
+    }
+
+    private drawOverlay(): void {
+        const ctx = this.overlay.getContext('2d'), scale = window.devicePixelRatio || 1;
+        ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        ctx.clearRect(0, 0, this.overlay.width / scale, this.overlay.height / scale);
+        if (!this.pointer) { return; }
+        const rect = this.canvas.getBoundingClientRect(), b = this.bounds;
+        const x = Math.max(b.left, Math.min(b.left + b.width, this.pointer.clientX - rect.left));
+        const y = Math.max(b.top, Math.min(b.top + b.height, this.pointer.clientY - rect.top));
+        ctx.strokeStyle = 'rgba(1,156,213,.55)'; ctx.lineWidth = 1;
+        if (this.drag !== undefined) {
+            const start = Math.max(b.left, Math.min(b.left + b.width, this.drag));
+            ctx.fillStyle = 'rgba(1,156,213,.12)'; ctx.fillRect(Math.min(start, x), b.top, Math.abs(x - start), b.height);
+            ctx.strokeRect(Math.min(start, x), b.top, Math.abs(x - start), b.height);
+        } else {
+            ctx.beginPath(); ctx.moveTo(x, b.top); ctx.lineTo(x, b.top + b.height);
+            ctx.moveTo(b.left, y); ctx.lineTo(b.left + b.width, y); ctx.stroke();
+        }
+    }
+
+    private inspect(e: {clientX: number; clientY: number}): void {
         if (!this.history.samples) { return; }
         const rect = this.canvas.getBoundingClientRect(), b = this.bounds, range = this.range();
         const x = (e.clientX - rect.left - b.left) / b.width, y = (e.clientY - rect.top - b.top) / b.height;
-        if (x < 0 || x > 1 || y < 0 || y > 1) { return; }
+        if (x < 0 || x > 1 || y < 0 || y > 1) { this.document.getElementById('history-cursor').textContent = ''; return; }
         const frequency = range.from + x * (range.to - range.from), step = this.history.status.fs / (this.history.average.length * 2) / 1e6;
         const bin = Math.min(this.history.average.length - 1, Math.max(0, Math.round(frequency / step)));
         let text = (bin * step).toFixed(6) + ' MHz · ';
@@ -265,7 +347,7 @@ class SpectrumViews {
             const phase = this.history.now / this.history.interval - latest;
             const bucket = latest - Math.floor(1 - phase + y * this.history.duration / this.history.interval);
             const row = this.history.rows.find(r => r.bucket === bucket);
-            text += (y * this.history.duration).toFixed(2) + ' s ago · ' + (row ? this.format(this.convert(row.psd[bin], this.unit)) + ' ' + this.label : 'No received data');
+            text += (y * this.history.duration).toFixed(2) + ' s ago · ' + (row && Number.isFinite(row.psd[bin]) ? this.format(this.convert(row.psd[bin], this.unit)) + ' ' + this.label : 'No received data');
         } else {
             const level = this.high - y * (this.high - this.low);
             let code = 1, distance = Infinity;
@@ -273,6 +355,7 @@ class SpectrumViews {
             const hits = this.history.density[bin * 256 + code];
             text += this.format(this.convert(SpectrumHistory.power(code), this.unit)) + ' ' + this.label + ' · ' + hits + '/' + this.history.densityFrames + ' hits (' + (100 * hits / Math.max(1, this.history.densityFrames)).toFixed(2) + '%)';
         }
-        this.document.getElementById('history-cursor').textContent = text;
+        const cursor = this.document.getElementById('history-cursor');
+        if (cursor.textContent !== text) { cursor.textContent = text; }
     }
 }

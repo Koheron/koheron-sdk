@@ -135,8 +135,11 @@
 .fft-workspace #history-controls label { display: inline-flex; align-items: center; gap: 5px; }
 .fft-workspace #history-duration { width: 62px; }
 .fft-workspace #history-controls input[type="number"] { width: 82px; }
-.fft-workspace #history-canvas { display: block; width: 100%; height: clamp(260px, calc(100dvh - 270px), 1000px); touch-action: none; }
+.fft-workspace #history-canvas { display: block; width: 100%; height: clamp(260px, calc(100dvh - 270px), 1000px); touch-action: pan-y pinch-zoom; }
 .fft-workspace #history-cursor { color: var(--muted); font-variant-numeric: tabular-nums; }
 @media (max-width: 600px) {
     .fft-workspace #history-canvas { height: 46dvh; min-height: 250px; }
 }
+
+.fft-workspace #history-view { position: relative; }
+.fft-workspace #history-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }

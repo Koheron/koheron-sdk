@@ -15,6 +15,7 @@ vm.runInContext(`
 (async () => {
     const fields = new Map();
     let changeUnit;
+    const exportButtons = [{disabled: true}, {disabled: true}];
     const unit = {value: 'dBm-Hz', addEventListener(event, cb) { changeUnit = cb; }, disabled: false};
     const doc = {
         addEventListener() {}, removeEventListener() {},
@@ -23,7 +24,7 @@ vm.runInContext(`
             return fields.get(id);
         },
         querySelector: selector => selector === '.peak-input' ? {addEventListener() {}} : unit,
-        querySelectorAll: selector => selector === '.unit-input' ? [unit] : []
+        querySelectorAll: selector => selector === '.unit-input' ? [unit] : selector === '.export-data, .export-plot' ? exportButtons : []
     };
     globalThis.$ = () => ({on() {}, off() {}});
     let pendingFrame, frameTime = 0;
@@ -89,6 +90,12 @@ vm.runInContext(`
     assert.equal(startupDraws, 1);
     assert.equal(fields.get('connection-status').textContent, 'Live spectrum');
     startup.dispose();
+    plot.setPaused(true);
+    plot.views = {mode: 'density', render() {}, dispose() {}};
+    plot.history.reset(); plot.redraw();
+    assert.ok(exportButtons.every(button => button.disabled)); // Empty history cannot silently export nothing.
+    plot.views.mode = 'spectrum'; plot.redraw();
+    assert.ok(exportButtons.every(button => !button.disabled)); // Retained live spectrum remains exportable.
     plot.dispose();
     await plot.updatePlot();
     assert.equal(reads, 2);
