@@ -13,6 +13,6 @@ class TemperatureSensorApp {
             this.temperatureSpans[i].textContent = temperatures[parseInt(this.temperatureSpans[i].dataset.index)].toFixed(3);
         }
 
-        requestAnimationFrame( () => { this.updateTemperatures(); } );
+        window.setTimeout(() => this.updateTemperatures(), 1000);
     }
 }

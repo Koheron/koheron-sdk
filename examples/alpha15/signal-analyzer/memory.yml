@@ -12,6 +12,7 @@ memory:
     - adp5071_sync
     - channel_select
     - channel_offset[2]
+    - test_tone_enable
   - name: ps_control
     offset: 0x6400_0000
     range: 4K

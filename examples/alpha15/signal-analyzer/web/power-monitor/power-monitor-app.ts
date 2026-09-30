@@ -19,6 +19,6 @@ class PowerMonitorApp {
             this.supplySpans[i].textContent = value;
         }
 
-        requestAnimationFrame( () => { this.updateSupplies(); });
+        window.setTimeout(() => this.updateSupplies(), 1000);
     }
 }

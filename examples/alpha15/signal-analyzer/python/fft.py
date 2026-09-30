@@ -17,10 +17,6 @@ class FFT(object):
         return self.client.recv_uint32()
 
     @command()
-    def get_cycle_index(self):
-        return self.client.recv_uint32()
-
-    @command()
     def select_adc_channel(self, channel):
         pass
 
@@ -29,11 +25,15 @@ class FFT(object):
         pass
 
     @command()
+    def set_test_tone(self, enabled):
+        pass
+
+    @command()
     def read_psd(self):
         return self.client.recv_array(self.n_pts//2, dtype='float32')
 
     @command()
-    def set_fft_window(self, window_name):
+    def set_fft_window(self, window_index):
         pass
 
     # LTC2387

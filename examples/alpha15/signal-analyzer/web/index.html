@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>Koheron</title>
+  <title>ALPHA15 · Signal analyzer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Koheron">
   <meta charset="utf-8">
@@ -16,6 +16,7 @@
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
+  <link rel="stylesheet" href="analyzer.css">
 
   <script type="text/javascript" src="html-imports.min.js"></script>
 
@@ -38,42 +39,31 @@
 
 </head>
 
-<body>
+<body class="analyzer-page">
 
 <div id="navigation"></div>
 
-<div id="main" class="container-fluid" style="padding: 10px">
-  <div class="row">
-    <div class="col-md-8">
-      <div id="plot-placeholder" class="plot-placeholder"></div>
-      <div id="plot-basics"></div>
-    </div>
+<main id="main" class="analyzer">
+  <header class="analyzer-header"><div><h1>ALPHA15 · Signal analyzer</h1></div><div class="instrument-state"><span id="stream-status" role="status">Connecting…</span><span class="instrument-note">10 Hz – 7.5 MHz</span></div></header>
+  <div class="analyzer-layout">
+    <section class="panel spectrum-panel" aria-label="Spectrum">
+      <div class="plot-toolbar"><div><h2>Power spectrum</h2></div><div class="toolbar-actions"><button id="reset-view" title="Restore the full frequency span and automatic vertical scale" class="default-btn" disabled>Reset view</button><button id="reconnect" class="default-btn" hidden>Reconnect</button></div></div>
 
-    <div class="col-md-4">
-      <section style="margin-bottom: 20px;">
-        <div id="yunit"></div>
-        <div id="fft-window"></div>
-        <div id="input-channel"></div>
-        <div id="input-range"></div>
-        <div id="reference-clock"></div>
-        <div id="sampling-frequency"></div>
-        <div id="peak-detection"></div>
-        <div>
-          <section id="precision-channels"></section>
-        </div>
-        <div>
-          <section id="temperature-sensor"></section>
-        </div>
-        <div>
-          <section id="power-monitor"></section>
-        </div>
-      </section>
+      <div class="plot-controls"><div id="yunit"></div><div id="peak-detection"></div></div><p id="unit-description" class="control-help">Amplitude density per √Hz; useful for comparing noise across frequency bands.</p>
+      <div class="plot-stage"><div id="plot-placeholder" class="plot-placeholder"></div>
+      <div id="plot-basics"></div></div>
+      <p class="plot-help">Drag to zoom · Double-click to reset · Click a point to mark it</p>
 
-      <!-- <section id="dds-frequency"></section> -->
+      <div class="measurement-strip"><div><span class="measurement-label">Full-span peak</span><output aria-live="off" id="peak-frequency">—</output></div><div><span class="measurement-label" id="peak-level-label">Amplitude density</span><output aria-live="off" id="peak-level">—</output></div><div class="measurement-context"><span class="measurement-label">Measurement</span><span id="measurement-context">Waiting for data</span></div></div>
       <section id="export-file"></section>
-    </div>
+    </section>
+    <aside class="analyzer-controls">
+      <section class="panel acquisition-panel"><h2>Acquisition</h2><div id="input-channel"></div><div id="input-range"></div><div id="fft-window"></div><div id="reference-clock"></div><p class="control-help">External clock requires a connected 10 MHz reference.</p></section>
+      <details class="panel"><summary>Precision DAC outputs <span class="detail-hint">4 channels</span></summary><section id="precision-channels"></section></details>
+      <details class="panel"><summary>Board status <span class="detail-hint">Temperature &amp; supply</span></summary><section id="temperature-sensor"></section><section id="power-monitor"></section></details>
+    </aside>
   </div>
-</div>
+</main>
 
 <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
 <script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
@@ -82,9 +72,7 @@
 <script language="javascript" type="text/javascript" src="jquery.flot.axislabels.js"></script>
 <script language="javascript" type="text/javascript" src="jquery.flot.canvas.js"></script>
 
-<script src="app.js?random=<?php echo uniqid(); ?>"></script>
-
-</div>
+<script src="app.js?v=fft-window-dropdown-2"></script>
 
 </body>
 

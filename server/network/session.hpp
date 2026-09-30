@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <tuple>
+#include <type_traits>
 #include <span>
 #include <memory_resource>
 #include <sys/socket.h>
@@ -51,6 +52,8 @@ class Session
         builder.write_header(class_id, func_id);
 
         using first_t = std::tuple_element_t<0, std::tuple<Args...>>;
+        constexpr auto container_flags = std::is_lvalue_reference_v<first_t>
+            ? sock_flags : (sock_flags & ~MSG_ZEROCOPY);
 
         if constexpr (is_std_span_v<first_t>) {
             auto&& span = std::get<0>(std::forward_as_tuple(args...));
@@ -63,14 +66,15 @@ class Session
             return send_payload(span, sock_flags);
         } else if constexpr (is_std_array_v<first_t> && nargs == 1) {
             auto&& array = std::get<0>(std::forward_as_tuple(args...));
-            return send_payload(std::span{array}, sock_flags);
+            // Zero-copy transmission can outlive a temporary driver result.
+            return send_payload(std::span{array}, container_flags);
         } else if constexpr (is_std_vector_v<first_t> && nargs == 1) {
             using vec_t = std::remove_cvref_t<first_t>;
             using value_t = vec_t::value_type;
 
             auto&& vect = std::get<0>(std::forward_as_tuple(args...));
             builder.push(vect.size() * sizeof(value_t));
-            return send_payload(std::span{vect}, sock_flags);
+            return send_payload(std::span{vect}, container_flags);
         } else {
             // Small/heterogeneous payload: serialize all and single send payload, serialize everything + single send
             builder.push(std::forward<Args>(args)...);

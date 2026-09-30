@@ -8,6 +8,15 @@ connect_pins [get_slice_pin [ctl_pin rf_adc_ctl0] 3 3] adc_dac/adc_clkout_dec
 connect_pins [get_slice_pin [ctl_pin adp5071_sync] 0 0] adc_dac/adp5071_sync_en
 connect_pins [get_slice_pin [ctl_pin adp5071_sync] 1 1] adc_dac/adp5071_sync_state
 
+# Optional DAC0 to ADC0 loopback signal (7.324 kHz triangle).
+cell koheron:user:dac_test_tone:1.0 dac_test_tone_0 {} {
+  clk adc_dac/adc_clk
+  resetn rst_adc_clk/peripheral_aresetn
+  enable [get_slice_pin [ctl_pin test_tone_enable] 0 0]
+  dac_data adc_dac/dac0
+}
+connect_pins adc_dac/dac1 [get_constant_pin 0 16]
+
 for {set i 0} {$i < 2} {incr i} {
   connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 0 0] adc${i}_ctl_range_sel
   connect_pins [get_slice_pin [ctl_pin rf_adc_ctl$i] 1 1] adc${i}_ctl_testpat

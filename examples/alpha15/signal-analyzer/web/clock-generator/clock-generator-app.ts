@@ -24,6 +24,6 @@ class ClockGeneratorApp {
         }
 
         (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock'][value='" + clkIndex + "']")).checked = true;
-        requestAnimationFrame( () => { this.updateReferenceClock(); } )
+        window.setTimeout(() => this.updateReferenceClock(), 1000)
     }
 }

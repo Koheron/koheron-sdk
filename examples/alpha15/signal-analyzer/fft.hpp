@@ -22,6 +22,7 @@ class FFT
     void select_adc_channel(uint32_t channel);
     void set_operation(uint32_t operation);
     void set_scale_sch(uint32_t scale_sch);
+    void set_test_tone(bool enabled);
     void set_fft_window(uint32_t window_id);
 
     // Return the PSD in W/Hz

@@ -25,7 +25,7 @@ class PrecisionChannelsApp {
                 }
             }
 
-            requestAnimationFrame( () => { this.updatePrecisionDac(); } )
+            window.setTimeout(() => this.updatePrecisionDac(), 500)
         });
     }
 

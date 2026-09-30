@@ -1,0 +1,124 @@
+/* Koheron Control reference: base/renderer/css/{variables,buttons}.css
+ * and renderer-device-control/ui/parts/plot/{plot,statistics/plotStats}.css.
+ * Keep these styles local to the ALPHA15 instrument.
+ */
+.analyzer-page {
+    --color: hsl(196, 99%, 42%);
+    --color-dark: hsl(196, 99%, 32%);
+    --color-border: hsl(196, 99%, 70%);
+    --neutral-dark: hsl(0, 0%, 45%);
+    --neutral-darker: hsl(0, 0%, 25%);
+    --neutral-background: hsl(0, 0%, 98%);
+    --neutral-border: hsl(0, 0%, 85%);
+    --border-light: hsl(0, 0%, 90%);
+    --border-radius: 2px;
+    font-family: Lato, sans-serif;
+    font-size: 14px;
+    color: #333;
+    background: white;
+}
+#main.analyzer { padding: 16px; }
+.analyzer-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--border-light); padding-bottom: 12px; margin-bottom: 16px; }
+.analyzer h1 { font-size: 18px; font-weight: 700; margin: 0; }
+.instrument-state { display: flex; flex-wrap: wrap; gap: 16px; color: var(--neutral-dark); font-size: 12px; }
+#stream-status.stream-live::before { content: '●'; margin-right: 6px; color: hsl(106, 100%, 21%); }
+#stream-status.stream-error { color: hsl(16, 100%, 37%); }
+.analyzer-layout { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 24px; }
+.analyzer .panel { border: 0; border-radius: 0; box-shadow: none; margin: 0; padding: 0; background: transparent; }
+.spectrum-panel { min-width: 0; }
+.analyzer h2 { font-size: 14px; font-weight: 700; margin: 0 0 12px; }
+.plot-toolbar, .toolbar-actions, .plot-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
+.plot-toolbar { justify-content: space-between; margin-bottom: 10px; }
+.plot-toolbar h2 { margin: 0; }
+.plot-controls { justify-content: space-between; margin: 10px 0; }
+.plot-controls #yunit { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.plot-stage { position: relative; }
+.analyzer .plot-placeholder { height: 55vh; min-height: 330px; max-height: 680px; }
+.plot-help, .control-help { font-size: 12px; color: var(--neutral-dark); line-height: 1.5; margin: 8px 0; }
+.measurement-strip { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px 28px; padding: 12px 0; border-top: 1px solid var(--border-light); }
+.measurement-strip > div { display: flex; align-items: baseline; gap: 12px; }
+.measurement-label { font-size: 12px; color: var(--neutral-dark); }
+.measurement-strip output { padding: 0; font-size: 14px; color: #333; font-weight: 700; font-variant-numeric: tabular-nums; }
+#measurement-context { font-size: 12px; }
+.analyzer-controls { border-left: 1px solid var(--border-light); padding-left: 20px; }
+.analyzer-controls .panel { margin-bottom: 20px; }
+.analyzer-controls details { border-top: 1px solid var(--border-light); padding-top: 12px; }
+.analyzer summary { cursor: pointer; font-size: 13px; font-weight: 700; }
+.detail-hint { color: var(--neutral-dark); font-weight: 400; font-size: 12px; margin-left: 6px; }
+.analyzer .control-label { display: block; font-size: 12px; font-weight: 700; margin: 14px 0 6px; }
+.plot-controls .control-label { margin: 0; font-weight: 400; }
+.analyzer label { font-weight: 400; }
+.analyzer input[type=radio] { vertical-align: middle; margin: 0 5px 0 0 !important; accent-color: var(--color); }
+.analyzer .radio-wrapper { margin: 0 8px 0 0; cursor: pointer; }
+.segmented { display: inline-flex; flex-wrap: wrap; }
+.analyzer .segmented .radio-wrapper { position: relative; padding: 0; margin: 0; }
+.segmented input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.segmented label span { display: block; padding: 5px 10px; border: 1px solid var(--neutral-border); background: var(--neutral-background); color: var(--neutral-darker); font-size: 12px; }
+.segmented label + label span { border-left: 0; }
+.segmented label:first-child span { border-radius: 2px 0 0 2px; }
+.segmented label:last-child span { border-radius: 0 2px 2px 0; }
+.segmented input:checked + span { color: white; background: var(--color); border-color: var(--color); }
+.segmented input:focus-visible + span { outline: 2px solid var(--color-dark); outline-offset: 2px; }
+.analyzer select { width: 100%; min-height: 30px; padding: 4px 7px; border: 1px solid var(--border-light); border-radius: var(--border-radius); background: var(--neutral-background); }
+.analyzer .default-btn { min-height: 30px; padding: 4px 9px; font-size: 12px; background: var(--neutral-background); color: var(--neutral-darker); border: 1px solid var(--neutral-border); border-radius: var(--border-radius); box-shadow: none; opacity: 1; }
+.analyzer .default-btn:hover { background: var(--border-light); border-color: var(--neutral-dark); }
+.analyzer :focus-visible { outline: 2px solid var(--color-border); outline-offset: 2px; }
+.analyzer .default-btn[disabled] { opacity: .5; }
+#export-file { margin: 0; }
+#export-file > div { display: flex; flex-wrap: wrap; }
+#peak-detection { display: flex; align-items: center; gap: 8px; }
+#peak-detection label { font-size: 12px; margin: 0 !important; }
+.analyzer .switch input { display: block; opacity: 0; position: absolute; width: 100%; height: 100%; margin: 0; }
+.analyzer .switch:focus-within { outline: 2px solid var(--color-border); outline-offset: 3px; }
+.analyzer td { padding: 5px 8px 5px 0; }
+.analyzer .crossed { text-align: left; border: 0; line-height: normal; margin: 12px 0; }
+.analyzer .crossed > span { padding: 0; font-size: 12px; }
+@media (max-width: 1000px) {
+    .analyzer-layout { grid-template-columns: minmax(0,1fr); }
+    .analyzer-controls { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; border-left: 0; border-top: 1px solid var(--border-light); padding: 16px 0 0; }
+    .acquisition-panel { grid-row: span 2; }
+}
+@media (max-width: 600px) {
+    .analyzer-page #navigation { position: relative; width: 100% !important; height: auto; border-bottom: 1px solid var(--border-light); }
+    .analyzer-page #navigation-links { display: flex !important; align-items: center; gap: 20px; padding: 10px 12px; }
+    .analyzer-page #navigation-links a { margin: 0; font-size: 12px; }
+    .analyzer-page #navigation-links img { width: 64px; }
+    .analyzer-page #collapse-btn { display: none; }
+    #main.analyzer { margin-left: 0 !important; padding: 12px; }
+    .analyzer-header { flex-wrap: wrap; }
+    .analyzer-controls { display: block; }
+    .analyzer .plot-placeholder { min-height: 280px; height: 45vh; }
+}
+
+/* Keep expanded output controls usable within the acquisition sidebar. */
+.analyzer .precision-dac-input[type=number] { width: 86px; min-height: 30px; padding: 4px 6px; border: 1px solid var(--neutral-border); border-radius: var(--border-radius); }
+.analyzer .precision-dac-input[type=range] { width: 100%; min-width: 64px; accent-color: var(--color); }
+#precision-channels table { width: 100%; }
+.measurement-strip output { white-space: nowrap; }
+
+/* Align the two column headers and the controls on a shared 30 px row. */
+.plot-toolbar { min-height: 30px; }
+.acquisition-panel > h2 { display: flex; align-items: center; min-height: 30px; margin-bottom: 10px; }
+#input-channel > .control-label { margin-top: 0; }
+.segmented label span { display: flex; align-items: center; justify-content: center; min-height: 30px; line-height: 18px; }
+#input-channel .segmented { display: flex; }
+#input-channel .segmented label { flex: 1; }
+#input-range .range-row { display: flex; align-items: center; gap: 12px; margin: 6px 0; }
+.range-row > span { min-width: 52px; font-size: 12px; font-weight: 700; }
+#input-range .segmented label span { min-width: 54px; }
+#reference-clock .segmented { display: flex; }
+#reference-clock .segmented label { flex: 1; }
+#peak-detection { min-height: 30px; }
+#peak-detection .switch { flex-shrink: 0; vertical-align: middle; }
+.measurement-strip > div { min-height: 20px; }
+#peak-frequency { min-width: 90px; text-align: right; }
+#peak-level { min-width: 110px; text-align: right; }
+#export-file .export-actions { gap: 8px; align-items: center; }
+.analyzer-controls summary { line-height: 20px; }
+.analyzer-controls .detail-hint { display: inline-block; margin-left: 4px; }
+#precision-channels td { vertical-align: middle; }
+#precision-channels input[type=range] { display: block; margin: 0; }
+@media (max-width: 600px) { .measurement-strip { gap: 8px 20px; } }
+
+#window-status:empty { display: none; }
+#window-status { display: block; }

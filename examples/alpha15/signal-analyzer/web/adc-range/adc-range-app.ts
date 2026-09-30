@@ -17,7 +17,7 @@ class AdcRangeApp {
         const ch1_range = await this.driver.inputRange(1);
         (<HTMLInputElement>document.querySelector("[data-command='setInputRange'][value='" + ch0_range.toString() + "']")).checked = true;
         (<HTMLInputElement>document.querySelector("[data-command='setInputRange'][value='" + (2 + ch1_range).toString() + "']")).checked = true;
-        requestAnimationFrame( () => { this.updateControls(); } )
+        window.setTimeout(() => this.updateControls(), 500)
     }
 
     // Setters
