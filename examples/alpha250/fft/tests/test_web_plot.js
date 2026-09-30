@@ -14,13 +14,14 @@ for (const file of ['examples/alpha250/fft/web/plot/plot.ts', 'web/plot-basics/p
 vm.runInContext(`
 (async () => {
     const fields = new Map();
-    const unit = {value: 'dBm-Hz', addEventListener() {}, disabled: false};
+    let changeUnit;
+    const unit = {value: 'dBm-Hz', addEventListener(event, cb) { changeUnit = cb; }, disabled: false};
     const doc = {
         getElementById(id) {
             if (!fields.has(id)) fields.set(id, {dataset: {}, textContent: ''});
             return fields.get(id);
         },
-        querySelector: () => unit,
+        querySelector: selector => selector === '.peak-input' ? {addEventListener() {}} : unit,
         querySelectorAll: selector => selector === '.unit-input' ? [unit] : []
     };
     globalThis.$ = () => ({on() {}, off() {}});
@@ -45,7 +46,25 @@ vm.runInContext(`
     plot.setPaused(true);
     await plot.updatePlot();
     assert.equal(reads, 1);
-    assert.equal(unit.disabled, true);
+    assert.equal(unit.disabled, false);
+    const retainedPSD = psd[1311];
+    psd[1311] = 1e-5; // The client may reuse its response buffer.
+    fft.status.fs = 200e6;
+    fft.status.W2 = 1; // Hardware controls can change while the display is paused.
+    unit.value = 'dBm';
+    changeUnit();
+    assert.equal(reads, 1);
+    assert.equal(plot.unit, 'dBm');
+    assert.ok(Math.abs(plot.plot_data[1311][1] - 10 * Math.log10(retainedPSD * 1.5 * 250e6 / 8192 / 1e-3)) < 1e-9);
+    assert.equal(fields.get('connection-status').textContent, 'Display paused');
+    unit.value = 'nV-Hz';
+    changeUnit();
+    assert.ok(Math.abs(plot.plot_data[1311][1] - Math.sqrt(50 * retainedPSD) * 1e9) < 1e-6);
+    unit.value = 'dBm-Hz';
+    changeUnit();
+    psd[1311] = retainedPSD;
+    fft.status.fs = 250e6;
+    fft.status.W2 = .375;
     fft.status.dds_freq[0] = 1;
     assert.equal(plot.frameStatus.dds_freq[0], 40e6);
     plot.setPaused(false);

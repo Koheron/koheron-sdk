@@ -82,6 +82,7 @@
 .fft-workspace td input[type="number"] { width: 90px; }
 .fft-workspace #plot-placeholder table { width: auto; }
 .fft-workspace #plot-placeholder td { padding: 2px; }
+.fft-workspace #plot-placeholder .legend b { font-size: 12px !important; font-weight: 600; }
 @media (max-width: 900px) {
     .fft-workspace .board-grid { grid-template-columns: 1fr 1fr; }
     .fft-workspace #precision-channels { grid-column: 1 / -1; }
@@ -91,10 +92,12 @@
     .fft-workspace .app-header { flex-wrap: wrap; gap: 4px 10px; }
     .fft-workspace nav { font-size: 11px; }
     .fft-workspace #main { padding: 6px 8px; }
-    .fft-workspace .acquisition-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
-    .fft-workspace .control-field { flex-direction: column; align-items: start; gap: 3px; }
+    .fft-workspace .acquisition-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 12px; }
+    .fft-workspace .control-field { min-width: 0; flex-direction: column; align-items: start; gap: 3px; }
     .fft-workspace #yunit .control-field { flex-direction: row; }
-    .fft-workspace .display-controls { gap: 8px; }
+    .fft-workspace .display-controls { gap: 6px 8px; flex-wrap: wrap; }
+    .fft-workspace select { max-width: 100%; }
+    .fft-workspace .segmented span { padding: 2px 7px; }
     .fft-workspace .generator-controls { gap: 6px; }
     .fft-workspace .generator-channel { grid-template-columns: 76px 94px minmax(70px, 1fr); width: 100%; }
     .fft-workspace .generator-controls, .fft-workspace .acquisition-controls { width: 100%; }

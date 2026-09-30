@@ -9,6 +9,7 @@ class Plot {
     private animation: number;
     private samplingFrequency = 0;
     private peak: number[] = [];
+    private psd: Float32Array;
     public n_pts: number;
     public plot_data: number[][] = [];
     public yLabel = 'PSD (dBm/Hz)';
@@ -21,7 +22,10 @@ class Plot {
         this.plotBasics.disableDecimation();
         this.plotBasics.setLinY();
         for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('.unit-input'))) {
-            input.addEventListener('change', () => this.plotBasics.setLinY());
+            input.addEventListener('change', () => {
+                this.plotBasics.setLinY();
+                if (this.psd) { this.displaySpectrum(); }
+            });
         }
         document.querySelector('.peak-input').addEventListener('change', () => {
             if (this.paused && this.plot_data.length) { this.redraw(); }
@@ -34,9 +38,6 @@ class Plot {
 
     setPaused(paused: boolean): void {
         this.paused = paused;
-        for (const input of Array.from(this.document.querySelectorAll<HTMLInputElement>('.unit-input'))) {
-            input.disabled = paused;
-        }
         this.setStatus(paused ? 'paused' : 'connecting', paused ? 'Display paused' : 'Resuming…');
         if (!paused) { this.updatePlot(); }
     }
@@ -70,36 +71,9 @@ class Plot {
                 return;
             }
             this.frameStatus = {...this.fft.status, dds_freq: this.fft.status.dds_freq.slice()};
-            this.unit = this.document.querySelector<HTMLInputElement>('.unit-input:checked').value;
-            this.yLabel = this.unit === 'dBm-Hz' ? 'PSD (dBm/Hz)' : this.unit === 'dBm' ? 'Power (dBm)' : 'Voltage noise (nV/√Hz)';
-            const fs = this.frameStatus.fs;
-            if (fs !== this.samplingFrequency) {
-                this.samplingFrequency = fs;
-                this.plotBasics.setRangeX(0, fs / 2e6);
-            }
-            // Bin k is at k * fs / FFT size. The server returns N/2 bins,
-            // including DC and excluding Nyquist; never add a synthetic tail bin.
-            const length = Math.min(this.n_pts, psd.length);
-            this.plot_data.length = length;
-            let peak: number[] = [];
-            for (let i = 0; i < length; i++) {
-                const row = this.plot_data[i] || (this.plot_data[i] = [0, 0]);
-                row[0] = i * fs / this.fft.fft_size / 1e6;
-                row[1] = this.convertValue(psd[i], this.unit);
-                if (Number.isFinite(row[1]) && (!peak.length || row[1] > peak[1])) {
-                    peak = row.slice();
-                }
-            }
-            this.document.getElementById('peak-frequency').textContent = peak.length ? peak[0].toFixed(6) + ' MHz' : '—';
-            const unitLabel = this.unit === 'dBm-Hz' ? 'dBm/Hz' : this.unit === 'dBm' ? 'dBm' : 'nV/√Hz';
-            this.document.getElementById('peak-level').textContent = peak.length ? peak[1].toFixed(2) + ' ' + unitLabel : '—';
-            this.document.getElementById('bin-spacing').textContent = (fs / this.fft.fft_size / 1000).toFixed(3) + ' kHz';
-            this.document.getElementById('fft-size').textContent = this.fft.fft_size.toLocaleString() + ' points';
-            this.peak = peak;
-            this.redraw();
-            for (const button of Array.from(this.document.querySelectorAll<HTMLButtonElement>('.export-data, .export-plot'))) {
-                button.disabled = length === 0;
-            }
+            // Own the displayed samples so unit changes also work while paused.
+            this.psd = psd.slice();
+            this.displaySpectrum();
             this.setStatus('live', 'Live spectrum');
         } catch (error) {
             if (!this.running || this.paused) { return; }
@@ -109,6 +83,39 @@ class Plot {
         } finally {
             this.busy = false;
             this.schedule(delay);
+        }
+    }
+
+    private displaySpectrum(): void {
+        this.unit = this.document.querySelector<HTMLInputElement>('.unit-input:checked').value;
+        this.yLabel = this.unit === 'dBm-Hz' ? 'PSD (dBm/Hz)' : this.unit === 'dBm' ? 'Power (dBm)' : 'Voltage noise (nV/√Hz)';
+        const fs = this.frameStatus.fs;
+        if (fs !== this.samplingFrequency) {
+            this.samplingFrequency = fs;
+            this.plotBasics.setRangeX(0, fs / 2e6);
+        }
+        // Bin k is at k * fs / FFT size. The server returns N/2 bins,
+        // including DC and excluding Nyquist; never add a synthetic tail bin.
+        const length = Math.min(this.n_pts, this.psd.length);
+        this.plot_data.length = length;
+        let peak: number[] = [];
+        for (let i = 0; i < length; i++) {
+            const row = this.plot_data[i] || (this.plot_data[i] = [0, 0]);
+            row[0] = i * fs / this.fft.fft_size / 1e6;
+            row[1] = this.convertValue(this.psd[i], this.unit);
+            if (Number.isFinite(row[1]) && (!peak.length || row[1] > peak[1])) {
+                peak = row.slice();
+            }
+        }
+        this.document.getElementById('peak-frequency').textContent = peak.length ? peak[0].toFixed(6) + ' MHz' : '—';
+        const unitLabel = this.unit === 'dBm-Hz' ? 'dBm/Hz' : this.unit === 'dBm' ? 'dBm' : 'nV/√Hz';
+        this.document.getElementById('peak-level').textContent = peak.length ? peak[1].toFixed(2) + ' ' + unitLabel : '—';
+        this.document.getElementById('bin-spacing').textContent = (fs / this.fft.fft_size / 1000).toFixed(3) + ' kHz';
+        this.document.getElementById('fft-size').textContent = this.fft.fft_size.toLocaleString() + ' points';
+        this.peak = peak;
+        this.redraw();
+        for (const button of Array.from(this.document.querySelectorAll<HTMLButtonElement>('.export-data, .export-plot'))) {
+            button.disabled = length === 0;
         }
     }
 
