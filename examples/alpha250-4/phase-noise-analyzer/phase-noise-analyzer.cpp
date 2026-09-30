@@ -225,14 +225,13 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
 , dds    (rt::get_driver<Dds>())
 , ctl    (hw::get_memory<mem::control>())
 , sts    (hw::get_memory<mem::status>())
-, phase_noise(1 + fft_size / 2)
+, phase_noise(spectrum_bins)
 , averager(1)
 {
     using namespace sci::units::literals;
 
-    // TODO Use proper voltage range for ADC 1 (only ADC0 now)
     vrange= { 1_V * ltc2157.get_input_voltage_range(0, 0),
-              1_V * ltc2157.get_input_voltage_range(0, 1) };
+              1_V * ltc2157.get_input_voltage_range(1, 0) };
 
     auto& clk_gen = rt::get_driver<ClockGenerator>();
     clk_gen.set_sampling_frequency(0); // 200 MHz
@@ -246,7 +245,7 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
     spectrum.window(sig::windows::hann<float>(fft_size));
     spectrum.nthreads(2);
     spectrum.fs(fs);
-    phase_noise.reserve(1 + fft_size / 2);
+    phase_noise.reserve(spectrum_bins);
     reset_phase_unwrapper();
     dma.set_fs(fs);
     dma.start_acquisition();
@@ -277,63 +276,63 @@ void PhaseNoiseAnalyzer::save_config() {
 }
 
 void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t channel, double freq_hz) {
+    std::unique_lock lk(data_mtx);
     if (channel > 3) {
         logf<ERROR>("PhaseNoiseAnalyzer::set_local_oscillator: Invalid DDS channel {}\n", channel);
         return;
     }
 
-    base_dds_freq[channel] = Frequency(static_cast<float>(freq_hz));
+    if (!std::isfinite(freq_hz) || freq_hz < 0.0 || freq_hz > fs_adc.eval() / 2.0) {
+        log<ERROR>("PhaseNoiseAnalyzer::set_local_oscillator: Invalid frequency\n");
+        return;
+    }
+    base_dds_freq[channel] = Frequency(freq_hz);
     tracking_correction[channel] = Frequency{0.0f};
     dds.set_dds_freq(channel, base_dds_freq[channel].eval(), true);
     set_frequency_scalings();
-    averager.clear();
-    averager_xy.clear();
+    set_power_conversion_factor();
+    invalidate_acquisition();
 }
 
 void PhaseNoiseAnalyzer::set_tracking_enabled(bool enabled) {
+    std::unique_lock lk(data_mtx);
     tracking_enabled = enabled;
 }
 
 void PhaseNoiseAnalyzer::set_tracking_bandwidth(float bandwidth_hz) {
+    std::unique_lock lk(data_mtx);
     tracking_bandwidth = Frequency(std::max(0.0f, bandwidth_hz));
 }
 
 void PhaseNoiseAnalyzer::set_tracking_max_correction(float max_correction_hz) {
+    std::unique_lock lk(data_mtx);
     tracking_max_correction = Frequency(std::max(0.0f, max_correction_hz));
 }
 
 void PhaseNoiseAnalyzer::set_tracking_max_step(float max_step_hz) {
+    std::unique_lock lk(data_mtx);
     tracking_max_step = Frequency(std::max(0.0f, max_step_hz));
 }
 
 // When DUT and REF frequencies are different, the phases at CORDIC outputs
 // are scaled by proper frequency ratio.
 void PhaseNoiseAnalyzer::set_frequency_scalings() {
-    // Keep FPGA phase scaling tied to user-requested nominal frequencies.
-    // Tracking applies only a very slow DUT demod correction and should not
-    // continuously perturb the unwrap scaling transfer function.
-    ratio_x = (base_dds_freq[DdsChannel::DUTX] / base_dds_freq[DdsChannel::REFX]).eval();
-
-    if (ratio_x >= 1.0f) {
-        ctl.write<reg::scaling0>(1);
-        ctl.write<reg::scaling1>(int32_t(ratio_x));
-    } else {
-        ctl.write<reg::scaling0>(int32_t(ratio_x));
-        ctl.write<reg::scaling1>(1);
-    }
-
-    ratio_y = (base_dds_freq[DdsChannel::DUTY] / base_dds_freq[DdsChannel::REFY]).eval();
-
-    if (ratio_y >= 1.0f) {
-        ctl.write<reg::scaling2>(1);
-        ctl.write<reg::scaling3>(int32_t(ratio_y));
-    } else {
-        ctl.write<reg::scaling2>(int32_t(ratio_y));
-        ctl.write<reg::scaling3>(1);
-    }
+    const auto x = phase_scaling(base_dds_freq[DUTX].eval(), base_dds_freq[REFX].eval());
+    const auto y = phase_scaling(base_dds_freq[DUTY].eval(), base_dds_freq[REFY].eval());
+    ctl.write<reg::scaling0>(x.dut);
+    ctl.write<reg::scaling1>(x.reference);
+    ctl.write<reg::scaling2>(y.dut);
+    ctl.write<reg::scaling3>(y.reference);
+    phase_scale_x = x.output_scale;
+    phase_scale_y = y.output_scale;
 }
 
 void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
+    std::unique_lock lk(data_mtx);
+    configure_cic_rate(rate);
+}
+
+void PhaseNoiseAnalyzer::configure_cic_rate(uint32_t rate) {
     if (rate < prm::cic_decimation_rate_min ||
         rate > prm::cic_decimation_rate_max) {
         log<ERROR>("PhaseNoiseAnalyzer: CIC rate out of range\n");
@@ -342,48 +341,49 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
 
     cic_rate = rate;
     fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
-    min_frequency = fs_adc / static_cast<float>(fft_size * cic_rate);
+    min_frequency = 2.0 * fs / spectrum_samples;
     logf("Sampling frequency = {} Hz\n", fs.eval());
     logf("Minimum frequency = {} Hz (cic_rate = {})\n", min_frequency.eval(), cic_rate);
-    dma_transfer_duration = prm::n_pts / fs;
+    dma_transfer_duration = data_size / fs;
     logf("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
 
-    dma.set_fs(fs);
+    dma.configure_sampling(fs, [this] { ctl.write<reg::cic_rate>(cic_rate); });
     spectrum.fs(fs);
-    averager.clear();
-    averager_xy.clear();
-    ctl.write<reg::cic_rate>(cic_rate);
+    invalidate_acquisition();
 }
 
 void PhaseNoiseAnalyzer::set_min_frequency(float min_frequency_hz) {
-    min_frequency = Frequency(min_frequency_hz);
-    
-    if (min_frequency <= sci::units::hertz<double>(0.0f)) {
-        log<ERROR>("PhaseNoiseAnalyzer: Minimum frequency must be > 0 Hz\n");
+    if (!std::isfinite(min_frequency_hz) || min_frequency_hz <= 0.0f) {
+        log<ERROR>("PhaseNoiseAnalyzer: Minimum frequency must be finite and > 0 Hz\n");
         return;
     }
-
-    auto rate_f = sci::around(fs_adc / (fft_size * min_frequency));
-    static_assert(sci::units::is_dimensionless<decltype(rate_f)>);
-    auto rate = static_cast<uint32_t>(rate_f.eval());
-    rate = std::max(prm::cic_decimation_rate_min, std::min(prm::cic_decimation_rate_max, rate));
-    set_cic_rate(rate);
+    std::unique_lock lk(data_mtx);
+    const double rate_f = std::clamp(
+        std::round(fs_adc.eval() / (spectrum_samples * double(min_frequency_hz))),
+        double(prm::cic_decimation_rate_min), double(prm::cic_decimation_rate_max));
+    configure_cic_rate(static_cast<uint32_t>(rate_f));
 }
 
 void PhaseNoiseAnalyzer::set_channel(uint32_t chan) {
+    std::unique_lock lk(data_mtx);
     if (chan != InputChannel::X && chan != InputChannel::Y && chan != InputChannel::XY) {
         log<ERROR>("PhaseNoiseAnalyzer: Invalid channel\n");
         return;
     }
 
     channel = chan;
-    averager.clear();
-    averager_xy.clear();
+    invalidate_acquisition();
     set_power_conversion_factor();
 }
 
 // Carrier power in dBm
 double PhaseNoiseAnalyzer::get_carrier_power(uint32_t navg) {
+    std::shared_lock lk(data_mtx);
+    return carrier_power(navg);
+}
+
+double PhaseNoiseAnalyzer::carrier_power(uint32_t navg) {
+    if (navg == 0) return std::numeric_limits<double>::quiet_NaN();
     uint32_t demod_raw;
     double res = 0.0;
 
@@ -391,7 +391,7 @@ double PhaseNoiseAnalyzer::get_carrier_power(uint32_t navg) {
         if (channel == 0) {
             demod_raw = sts.read<reg::demod0, uint32_t>();
         } else {
-            demod_raw = sts.read<reg::demod1, uint32_t>();
+            demod_raw = sts.read<reg::demod2, uint32_t>();
         }
 
         // Extract real and imaginary parts and convert fix16_0 to float to obtain complex IQ signal
@@ -404,29 +404,20 @@ double PhaseNoiseAnalyzer::get_carrier_power(uint32_t navg) {
 }
 
 PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase_x() {
-    using namespace sci::operators;
-    phase_x = dma.data_x<data_size>() * calib_factor;
+    std::shared_lock lk(data_mtx);
     return phase_x;
 }
 
 PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase_y() {
-    using namespace sci::operators;
-    phase_y = dma.data_y<data_size>() * calib_factor;
+    std::shared_lock lk(data_mtx);
     return phase_y;
 }
 
 std::array<PhaseNoiseAnalyzer::Phase, 2 * PhaseNoiseAnalyzer::data_size>
 PhaseNoiseAnalyzer::get_phase_xy_sync() {
     using namespace sci::operators;
-    get_phase_xy();
-    return phase_x | phase_y; // Concatenates
-}
-
-void PhaseNoiseAnalyzer::get_phase_xy() {
-    using namespace sci::operators;
-    auto [data_x, data_y] = dma.data_xy<data_size>();
-    phase_x = data_x * calib_factor;
-    phase_y = data_y * calib_factor;
+    std::shared_lock lk(data_mtx);
+    return phase_x | phase_y;
 }
 
 PhaseNoiseAnalyzer::PhaseNoiseDensityVector PhaseNoiseAnalyzer::get_phase_noise() const {
@@ -435,11 +426,8 @@ PhaseNoiseAnalyzer::PhaseNoiseDensityVector PhaseNoiseAnalyzer::get_phase_noise(
 }
 
 void PhaseNoiseAnalyzer::set_fft_navg(uint32_t n_avg) {
-    if (n_avg > 200) {
-        n_avg = 200;
-    }
-
-    fft_navg = n_avg;
+    std::unique_lock lk(data_mtx);
+    fft_navg = std::clamp(n_avg, 1u, 200u);
     averager.set_navg(fft_navg);
 }
 
@@ -492,18 +480,18 @@ void PhaseNoiseAnalyzer::load_config() {
         set_local_oscillator(DdsChannel::REFY, 10E6);
     }
 
-    // if (cfg.has("PhaseNoiseAnalyzer", "tracking_enabled")) {
-    //     set_tracking_enabled(cfg.get<bool>("PhaseNoiseAnalyzer", "tracking_enabled"));
-    // }
-    // if (cfg.has("PhaseNoiseAnalyzer", "tracking_bandwidth")) {
-    //     set_tracking_bandwidth(cfg.get<float>("PhaseNoiseAnalyzer", "tracking_bandwidth"));
-    // }
-    // if (cfg.has("PhaseNoiseAnalyzer", "tracking_max_correction")) {
-    //     set_tracking_max_correction(cfg.get<float>("PhaseNoiseAnalyzer", "tracking_max_correction"));
-    // }
-    // if (cfg.has("PhaseNoiseAnalyzer", "tracking_max_step")) {
-    //     set_tracking_max_step(cfg.get<float>("PhaseNoiseAnalyzer", "tracking_max_step"));
-    // }
+    if (cfg.has("PhaseNoiseAnalyzer", "tracking_enabled")) {
+        set_tracking_enabled(cfg.get<bool>("PhaseNoiseAnalyzer", "tracking_enabled"));
+    }
+    if (cfg.has("PhaseNoiseAnalyzer", "tracking_bandwidth")) {
+        set_tracking_bandwidth(cfg.get<float>("PhaseNoiseAnalyzer", "tracking_bandwidth"));
+    }
+    if (cfg.has("PhaseNoiseAnalyzer", "tracking_max_correction")) {
+        set_tracking_max_correction(cfg.get<float>("PhaseNoiseAnalyzer", "tracking_max_correction"));
+    }
+    if (cfg.has("PhaseNoiseAnalyzer", "tracking_max_step")) {
+        set_tracking_max_step(cfg.get<float>("PhaseNoiseAnalyzer", "tracking_max_step"));
+    }
 }
 
 void PhaseNoiseAnalyzer::reset_phase_unwrapper() {
@@ -516,12 +504,12 @@ void PhaseNoiseAnalyzer::set_power_conversion_factor() {
     constexpr auto load = 50_Ohm;
     constexpr double magic_factor = 22.0;
 
-    // XY mode has no single ADC channel mapping for carrier-power conversion.
-    // Use channel X calibration to avoid out-of-bounds indexing and keep behavior stable.
-    const uint32_t adc_channel = (channel == InputChannel::Y) ? 1U : 0U;
-    const double Hinv = sci::polynomial::polyval(dds.get_dds_freq(adc_channel),
-                                                 ltc2157.tf_polynomial<double>(0, adc_channel));
-    const auto power_conv_factor = Hinv * magic_factor * vrange[adc_channel] * vrange[adc_channel] / load;
+    // Report the DUT on X in XY mode, and the DUT on Y in Y mode.
+    const uint32_t adc = (channel == InputChannel::Y) ? 1U : 0U;
+    const uint32_t dds_channel = adc == 0 ? DUTX : DUTY;
+    const double Hinv = sci::polynomial::polyval(dds.get_dds_freq(dds_channel),
+                                                 ltc2157.tf_polynomial<double>(adc, 0));
+    const auto power_conv_factor = Hinv * magic_factor * vrange[adc] * vrange[adc] / load;
     conv_factor_dBm = power_conv_factor / 1_mW;
 
     // Dimensional analysis checks
@@ -587,28 +575,7 @@ auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x
 }
 
 bool PhaseNoiseAnalyzer::phase_block_is_valid(const PhaseDataArray& p) {
-    constexpr std::size_t n = 32000;
-    constexpr auto max_sample_jump = 0.50f * sci::pi<Phase>;
-    constexpr auto max_peak_to_rms = sci::units::dimensionless<float>(12.0f);
-
-    std::array<Phase, n - 1> dphi{};
-
-    for (std::size_t i = 1; i < n; ++i) {
-        dphi[i - 1] = p[i] - p[i - 1];
-
-        if (sci::absolute(dphi[i - 1]) > max_sample_jump) {
-            return false;
-        }
-    }
-
-    const auto rms = sci::stats::std(dphi);
-    const auto max_abs = sci::stats::amax(sci::absolute(dphi));
-
-    if (rms > Phase{0.0f} && max_abs / rms > max_peak_to_rms) {
-        return false;
-    }
-
-    return true;
+    return phase_block_valid<32000>(p);
 }
 
 PhaseNoiseAnalyzer::Phase PhaseNoiseAnalyzer::estimate_mean_dphi(const PhaseDataArray& p) const {
@@ -632,7 +599,11 @@ void PhaseNoiseAnalyzer::apply_tracking_update(Phase mean_dphi, Time block_durat
         return sci::units::fmin(hi, sci::units::fmax(lo, v));
     };
 
-    if (!tracking_enabled) {
+    if (!tracking_enabled ||
+        (input_channel != Y && (base_dds_freq[DUTX] <= Frequency{0.0} ||
+                                base_dds_freq[REFX] <= Frequency{0.0})) ||
+        (input_channel != X && (base_dds_freq[DUTY] <= Frequency{0.0} ||
+                                base_dds_freq[REFY] <= Frequency{0.0}))) {
         return;
     }
 
@@ -654,17 +625,8 @@ void PhaseNoiseAnalyzer::apply_tracking_update(Phase mean_dphi, Time block_durat
                                     -tracking_max_step / alpha,
                                     tracking_max_step / alpha);
 
-    float ratio;
-
-    if (input_channel == InputChannel::X) {
-        ratio = ratio_x;
-    } else if (input_channel == InputChannel::Y) {
-        ratio = ratio_y;
-    } else {
-        ratio = ratio_x;
-    }
-
-    const auto step = clamp_freq(alpha * f_error, -tracking_max_step, tracking_max_step) / ratio;
+    // Phase samples have already been restored to DUT radians after FPGA scaling.
+    const auto step = clamp_freq(alpha * f_error, -tracking_max_step, tracking_max_step);
 
     tracking_last_mean_dphi = mean_dphi;
     tracking_last_error = f_error;
@@ -708,75 +670,76 @@ void PhaseNoiseAnalyzer::start_spectrum_analyzer() {
     }
 }
 
-void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
-    while (spectrum_analyzer_started.load(std::memory_order_acquire)) {
+void PhaseNoiseAnalyzer::invalidate_acquisition() {
+    averager.clear();
+    averager_xy.clear();
+    phase_noise.assign(spectrum_bins, PhaseNoiseDensity{});
+    phase_jitter = std::numeric_limits<Phase>::quiet_NaN();
+    time_jitter = std::numeric_limits<Time>::quiet_NaN();
+    f_lo_used = std::numeric_limits<Frequency>::quiet_NaN();
+    f_hi_used = std::numeric_limits<Frequency>::quiet_NaN();
+    ++acquisition_epoch;
+}
 
-        if (reset_cumulative_requested.exchange(false, std::memory_order_acq_rel)) {
-            // reset_phase_unwrapper();
-            averager_xy.clear();
-            tracking_last_mean_dphi = Phase{0.0f};
-            tracking_last_error = Frequency{0.0f};
-            tracking_locked = false;
-            continue; // discard first block after reset
+void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
+    uint64_t consumed = 0;
+    uint64_t epoch;
+    {
+        std::shared_lock lk(data_mtx);
+        epoch = acquisition_epoch;
+    }
+    while (spectrum_analyzer_started.load(std::memory_order_acquire)) {
+        {
+            std::unique_lock lk(data_mtx);
+            if (epoch != acquisition_epoch) {
+                epoch = acquisition_epoch;
+                // Drain queued samples generated under the previous configuration.
+                consumed = dma.completed_chunks() + discard_acquisitions_after_reset;
+            }
+            if (reset_cumulative_requested.exchange(false, std::memory_order_acq_rel)) {
+                averager_xy.clear();
+                consumed = std::max(consumed, dma.completed_chunks());
+                tracking_last_mean_dphi = Phase{0.0f};
+                tracking_last_error = Frequency{0.0f};
+                tracking_locked = false;
+            }
         }
 
-        double f_dds;
+        auto snapshot = dma.read_xy<data_size>(consumed, spectrum_analyzer_started);
+        if (!snapshot) return;
 
-        if (channel == InputChannel::X) {
-            get_phase_x();
-            f_dds = dds.get_dds_freq(DdsChannel::DUTX);
-        } else if (channel == InputChannel::Y) {
-            get_phase_y();
-            f_dds = dds.get_dds_freq(DdsChannel::DUTY);
-        } else if (channel == InputChannel::XY) {
-            get_phase_xy();
-            f_dds = dds.get_dds_freq(DdsChannel::DUTY);
-        } else {
-            logf<ERROR>("PhaseNoiseAnalyzer::spectrum_analyzer_thread: Invalid channel {}\n", channel);
+        std::unique_lock lk(data_mtx);
+        if (epoch != acquisition_epoch || reset_cumulative_requested.load(std::memory_order_acquire)) {
+            continue;
+        }
+        const Time block_duration = double(snapshot->end_chunk - consumed) * PhaseDma::samples_per_chunk / fs;
+        consumed = snapshot->end_chunk;
+        for (std::size_t i = 0; i < data_size; ++i) {
+            phase_x[i] = calib_factor * float(snapshot->x[i]) * float(phase_scale_x);
+            phase_y[i] = calib_factor * float(snapshot->y[i]) * float(phase_scale_y);
+        }
+
+        const bool valid_x = channel == Y || phase_block_is_valid(phase_x);
+        const bool valid_y = channel == X || phase_block_is_valid(phase_y);
+        if (!valid_x || !valid_y) {
+            logf("PhaseNoiseAnalyzer: rejected acquisition with phase discontinuity\n");
             continue;
         }
 
-        if (channel == InputChannel::X) {
-            apply_tracking_update(tracking_sign_x * estimate_mean_dphi(phase_x), 32000.0f / fs, channel);
-        } else if (channel == InputChannel::Y) {
-            apply_tracking_update(tracking_sign_y * estimate_mean_dphi(phase_y), 32000.0f / fs, channel);
+        const double f_dds = dds.get_dds_freq(channel == Y ? DUTY : DUTX);
+        if (channel == X) {
+            phase_noise = compute_phase_noise(phase_x);
+            apply_tracking_update(tracking_sign_x * estimate_mean_dphi(phase_x), block_duration, X);
+        } else if (channel == Y) {
+            phase_noise = compute_phase_noise(phase_y);
+            apply_tracking_update(tracking_sign_y * estimate_mean_dphi(phase_y), block_duration, Y);
         } else {
-            // XY mode uses one common slow correction to preserve cross-correlation coherence.
-            // X and Y are sign-normalized before averaging; no independent XY tracking loops.
+            phase_noise = compute_crossed_phase_noise(phase_x, phase_y);
             const auto mean_dphi = 0.5f * (tracking_sign_x * estimate_mean_dphi(phase_x)
                                          + tracking_sign_y * estimate_mean_dphi(phase_y));
-            apply_tracking_update(mean_dphi, 32000.0f / fs, channel);
+            apply_tracking_update(mean_dphi, block_duration, XY);
         }
-
-        bool valid = true;
-
-        if (channel == InputChannel::X) {
-            valid = phase_block_is_valid(phase_x);
-        } else if (channel == InputChannel::Y) {
-            valid = phase_block_is_valid(phase_y);
-        } else {
-            valid = phase_block_is_valid(phase_x)
-                && phase_block_is_valid(phase_y);
-        }
-
-        if (!valid) {
-            logf("PhaseNoiseAnalyzer: rejected acquisition with phase discontinuity\n");
-            continue; // Important: do not append, do not clear
-        }
-
-        {
-            std::unique_lock lk(data_mtx);
-    
-            if (channel == InputChannel::X) {
-                phase_noise = compute_phase_noise(phase_x);
-            } else if (channel == InputChannel::Y) {
-                phase_noise = compute_phase_noise(phase_y);
-            } else {
-                phase_noise = compute_crossed_phase_noise(phase_x, phase_y);
-            }
-
-            compute_jitter(Frequency(f_dds));
-        }
+        compute_jitter(Frequency(f_dds));
     }
 }
 

@@ -23,6 +23,8 @@
 #include "./moving_averager.hpp"
 #include "./cumulative_averager.hpp"
 #include "./phase-dma.hpp"
+#include "./phase_scaling.hpp"
+#include "./phase_validation.hpp"
 
 namespace rt { class ConfigManager; }
 class Ltc2157;
@@ -41,10 +43,12 @@ class PhaseNoiseAnalyzer
     // FFT buffer sizes
     static constexpr uint32_t fft_size = 32768;
     static constexpr uint32_t data_size = 2 * fft_size;
+    static constexpr uint32_t spectrum_samples = 30000;
+    static constexpr uint32_t spectrum_bins = spectrum_samples / 2 + 1;
     static constexpr auto calib_factor = 4.196f * scicpp::pi<Phase> / 8192.0f;
 
     static constexpr uint32_t fifo_depth = 32768;
-    static constexpr std::size_t discard_acquisitions_after_reset = 2 * std::ceil(fifo_depth / PhaseDma::samples_per_chunk);
+    static constexpr std::size_t discard_acquisitions_after_reset = 2 * ((fifo_depth + PhaseDma::samples_per_chunk - 1) / PhaseDma::samples_per_chunk);
 
     using PhaseDataArray = std::array<Phase, data_size>;
     using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
@@ -81,8 +85,9 @@ class PhaseNoiseAnalyzer
     }
 
     auto get_parameters() {
+        std::shared_lock lk(data_mtx);
         return std::tuple{
-            fft_size / 2,
+            spectrum_bins,
             fs,
             channel,
             min_frequency,
@@ -99,6 +104,7 @@ class PhaseNoiseAnalyzer
     double get_carrier_power(uint32_t navg); // Carrier power in dBm
 
     auto get_jitter() {
+        std::shared_lock lk(data_mtx);
         return std::tuple{
             phase_jitter,
             time_jitter,
@@ -108,12 +114,13 @@ class PhaseNoiseAnalyzer
     }
 
     auto get_measurements(uint32_t navg) {
+        std::shared_lock lk(data_mtx);
         return std::tuple{
             phase_jitter,
             time_jitter,
             f_lo_used,
             f_hi_used,
-            get_carrier_power(navg)
+            carrier_power(navg)
         };
     }
 
@@ -144,22 +151,19 @@ class PhaseNoiseAnalyzer
         REFY, // Frequency of the Y channel reference
     };
 
-    uint32_t channel;
-    uint32_t fft_navg;
-    uint32_t cic_rate;
+    uint32_t channel = X;
+    uint32_t fft_navg = 1;
+    uint32_t cic_rate = prm::cic_decimation_rate_default;
     Frequency min_frequency;
     Frequency fs_adc, fs;
     Time dma_transfer_duration;
 
-    mutable std::shared_mutex data_mtx; // protects phase & phase_noise
+    mutable std::shared_mutex data_mtx; // protects settings, snapshots and spectral state
 
-    PhaseDataArray phase_x;
-    PhaseDataArray phase_y;
-    Phase previous_mean_phase_x;
-    Phase previous_mean_phase_y;
-
-    std::size_t discard_after_unwrap_reset = 0;
-    float ratio_x, ratio_y;
+    PhaseDataArray phase_x{};
+    PhaseDataArray phase_y{};
+    double phase_scale_x = 1.0, phase_scale_y = 1.0;
+    uint64_t acquisition_epoch = 0;
 
     // Spectrum analyzer
     std::thread sa_thread;
@@ -207,7 +211,9 @@ class PhaseNoiseAnalyzer
     auto compute_phase_noise(PhaseDataArray& new_phase);
     auto compute_crossed_phase_noise(PhaseDataArray& new_phase_x, PhaseDataArray& new_phase_y);
     void compute_jitter(Frequency f_dut);
-    void get_phase_xy();
+    double carrier_power(uint32_t navg);
+    void configure_cic_rate(uint32_t rate);
+    void invalidate_acquisition();
     bool phase_block_is_valid(const PhaseDataArray& p);
     Frequency effective_tracking_bandwidth() const;
     Phase estimate_mean_dphi(const PhaseDataArray& p) const;

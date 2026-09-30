@@ -79,7 +79,10 @@ for {set i 0} {$i < 4} {incr i} {
     cell xilinx.com:ip:mult_gen:12.0 scaler$i {
       PortAWidth 32
       PortBWidth 32
-      OutputWidthHigh 31
+      PortAType Signed
+      PortBType Signed
+      OutputWidthHigh 61
+      OutputWidthLow 30
       Use_Custom_Output_Width true
       PipeStages 5
     } {

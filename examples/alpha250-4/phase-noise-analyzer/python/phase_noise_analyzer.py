@@ -86,6 +86,7 @@ class PhaseNoiseAnalyzer(object):
         self.calib_factor = 4.196
         self.npts = 65536
 
+    @command()
     def set_local_oscillator(self, channel, freq):
         pass
 
@@ -115,7 +116,7 @@ class PhaseNoiseAnalyzer(object):
     
     def get_freqs(self, npts):
         tup = self.get_parameters()
-        fft_size = 2 * (tup[0] - 1)
+        fft_size = 2 * (npts - 1)
         fs = tup[1]
         df = fs / fft_size
         f_min = 2 * df
@@ -146,7 +147,7 @@ class PhaseNoiseAnalyzer(object):
     @command()
     def get_phase_xy_sync(self):
         arr = self.client.recv_array(2 * self.npts, dtype='float32')
-        return arr[:self.npts], arr[self.npts:-1]
+        return arr[:self.npts], arr[self.npts:]
 
     @command()
     def get_phase_noise(self):
@@ -154,7 +155,7 @@ class PhaseNoiseAnalyzer(object):
 
     # Phase noise in dBc/Hz
     def phase_noise(self, min_count=10, remove_spurs=True, verbose=True):
-        self.set_channel(3)  # Cross-correlation
+        self.set_channel(2)  # Cross-correlation
         self.reset_cumulative_averager()
         time.sleep(2.0)
         self.reset_cumulative_averager()

@@ -47,27 +47,32 @@ class DmaS2MM
     }
 
     template<typename T>
-    void wait_for_transfer(scicpp::units::time<T> dma_transfer_duration) {
-        wait_for_transfer(dma_transfer_duration.eval());
+    bool wait_for_transfer(scicpp::units::time<T> dma_transfer_duration) {
+        return wait_for_transfer(dma_transfer_duration.eval());
     }
 
-    void wait_for_transfer(float dma_transfer_duration_seconds) {
+    bool wait_for_transfer(float dma_transfer_duration_seconds) {
         const auto dma_duration = std::chrono::duration<float>(dma_transfer_duration_seconds);
         const auto sleep_duration = std::max(std::chrono::microseconds(1),
                                              std::chrono::duration_cast<std::chrono::microseconds>(0.55f * dma_duration));
         uint32_t cnt = 0;
 
         while (! idle()) {
+            if (dma.read<s2mm_dmasr>() & 0x70u) {
+                log<ERROR>("DmaS2MM::wait_for_transfer: DMA transfer error\n");
+                return false;
+            }
             std::this_thread::sleep_for(sleep_duration);
             cnt++;
 
-            if (cnt > max_sleeps_cnt) {
+            if (cnt > max_sleeps_cnt && !idle()) {
                 logf<ERROR>(
                     "DmaS2MM::wait_for_transfer: Max number of sleeps exceeded. [set duration {} s]\n",
                     dma_transfer_duration_seconds);
-                break;
+                return false;
             }
         }
+        return (dma.read<s2mm_dmasr>() & 0x70u) == 0;
     }
 
   private:

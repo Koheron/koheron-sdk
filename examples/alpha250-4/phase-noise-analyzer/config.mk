@@ -30,4 +30,7 @@ WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
 WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
 
+# Board Tcl changes must invalidate the generated Vivado project as well.
+TCL_FILES = $(BD_TCL) $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(BOARD_PATH)/config/board_preset.tcl
+
 OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi

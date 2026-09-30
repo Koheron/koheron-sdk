@@ -322,7 +322,7 @@ class Plot {
     this._lastTick = now;
 
     try {
-      const ddsFreq = await app.dds.getDDSFreq(this.driver.parameters.channel);
+      const ddsFreq = await app.dds.getDDSFreq(this.driver.parameters.channel === 1 ? 2 : 0);
 
       const plotEmptyDiv: HTMLElement = document.getElementById('plot-empty')!;
 

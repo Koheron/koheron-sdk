@@ -6,6 +6,10 @@
 #define __PHASE_DMA_HPP__
 
 #include <atomic>
+#include <array>
+#include <optional>
+#include <mutex>
+#include <algorithm>
 #include <thread>
 #include <tuple>
 #include <scicpp/core.hpp>
@@ -15,6 +19,7 @@
 #include "server/drivers/dma-s2mm.hpp"
 
 #include "./axis-stream-packet-mux.hpp"
+#include "./acquisition_window.hpp"
 
 class PhaseDma
 {
@@ -37,9 +42,18 @@ class PhaseDma
     }
 
     void set_fs(Frequency fs_) {
-        fs = fs_;
-        chunk_duration.store(0.5f * static_cast<float>(samples_per_chunk) / fs, std::memory_order_release);
+        // Share the polling budget between X and Y to sustain the pair rate.
+        chunk_duration.store(0.5f * static_cast<float>(samples_per_chunk) / fs_, std::memory_order_release);
         logf("PhaseDma::set_fs: chunk_duration = {} ms\n", 1E3f * chunk_duration.load(std::memory_order_relaxed).eval());
+    }
+
+    template<typename Apply>
+    void configure_sampling(Frequency sampling, Apply&& apply) {
+        // Keep a live rate change between complete X/Y transfers so a transfer
+        // cannot use the old timeout while the FPGA is producing at the new rate.
+        std::lock_guard lock(transfer_mtx);
+        set_fs(sampling);
+        apply();
     }
 
     void start_acquisition() {
@@ -49,62 +63,54 @@ class PhaseDma
         }
     }
 
+    uint64_t completed_chunks() const {
+        return write_count.load(std::memory_order_acquire);
+    }
+
     template<uint32_t data_size>
-    uint64_t get_offset_when_ready() {
-        static_assert(data_size % samples_per_chunk == 0);
-        static_assert(data_size <= buffer_size / bytes_per_sample);
+    struct Snapshot {
+        std::array<int32_t, data_size> x;
+        std::array<int32_t, data_size> y;
+        uint64_t end_chunk;
+    };
 
-        static constexpr uint32_t n_chunks_to_read = data_size / samples_per_chunk;
+    template<uint32_t data_size>
+    std::optional<Snapshot<data_size>> read_xy(
+        uint64_t consumed, const std::atomic<bool>& keep_running) {
+        static_assert(data_size > 0 && data_size % samples_per_chunk == 0);
+        static_assert(data_size < buffer_size / bytes_per_sample);
+        constexpr uint32_t chunks = data_size / samples_per_chunk;
 
-        while (write_count.load(std::memory_order_acquire) < n_chunks_to_read) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-
-        const uint64_t count = write_count.load(std::memory_order_acquire);
-        uint64_t first_chunk = count - n_chunks_to_read;
-        uint64_t ring_chunk = first_chunk % n_chunks;
-
-        // `read_reg_array` requires a contiguous memory region.
-        // If the selected chunk window crosses the ring-buffer boundary, move to the
-        // previous contiguous window within the same ring lap to avoid out-of-range access.
-        if (ring_chunk + n_chunks_to_read > n_chunks) {
-            if (first_chunk >= ring_chunk) {
-                first_chunk -= ring_chunk;
-            } else {
-                first_chunk = 0;
+        while (keep_running.load(std::memory_order_acquire) &&
+               acquisition_started.load(std::memory_order_acquire)) {
+            auto window = acquisition_window(completed_chunks(), consumed, chunks);
+            if (!window) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                continue;
             }
-            ring_chunk = first_chunk % n_chunks;
+
+            Snapshot<data_size> snapshot;
+            snapshot.end_chunk = window->end_chunk;
+            for (uint32_t j = 0; j < chunks; ++j) {
+                const uint32_t offset = ((window->first_chunk + j) % n_chunks) * chunk_bytes;
+                const auto& x = ram.read_reg_array<int32_t, samples_per_chunk>(x_byte_offset + offset);
+                const auto& y = ram.read_reg_array<int32_t, samples_per_chunk>(y_byte_offset + offset);
+                std::copy(x.begin(), x.end(), snapshot.x.begin() + j * samples_per_chunk);
+                std::copy(y.begin(), y.end(), snapshot.y.begin() + j * samples_per_chunk);
+            }
+
+            if (acquisition_window_is_intact(*window, completed_chunks(), n_chunks)) {
+                return snapshot;
+            }
+            // The producer overtook the copy. Retry using the newest complete window.
         }
-
-        return ring_chunk * chunk_bytes;
-    }
-
-    template<uint32_t data_size>
-    auto& data_x() {
-        const uint64_t data_offset = get_offset_when_ready<data_size>();
-        return ram.read_reg_array<int32_t, data_size>(x_byte_offset + data_offset);
-    }
-
-    template<uint32_t data_size>
-    auto& data_y() {
-        const uint64_t data_offset = get_offset_when_ready<data_size>();
-        return ram.read_reg_array<int32_t, data_size>(y_byte_offset + data_offset);
-    }
-
-    template<uint32_t data_size>
-    auto data_xy() {
-        const uint64_t data_offset = get_offset_when_ready<data_size>();
-
-        return std::tie(
-            ram.read_reg_array<int32_t, data_size>(x_byte_offset + data_offset),
-            ram.read_reg_array<int32_t, data_size>(y_byte_offset + data_offset)
-        );
+        return std::nullopt;
     }
 
   private:
     hw::Memory<mem::ram>& ram;
     DmaS2MM& dma;
-    Frequency fs;
+    std::mutex transfer_mtx;
     std::atomic<Time> chunk_duration{Time(0.0f)};
     std::atomic<uint64_t> write_count{0};
 
@@ -133,18 +139,25 @@ class PhaseDma
 
         uint64_t count = 0;
         while (acquisition_started.load(std::memory_order_acquire)) {
+            std::lock_guard lock(transfer_mtx);
             const uint32_t idx = count % n_chunks;
             const uint32_t byte_offset = idx * chunk_bytes;
 
             axis_stream_mux.select_input(0);
             dma.start_transfer(dma_x_start_addr + byte_offset, chunk_bytes);
             axis_stream_mux.trigger();
-            dma.wait_for_transfer(chunk_duration.load(std::memory_order_acquire));
+            if (!dma.wait_for_transfer(chunk_duration.load(std::memory_order_acquire))) {
+                acquisition_started.store(false, std::memory_order_release);
+                return;
+            }
 
             axis_stream_mux.select_input(1);
             dma.start_transfer(dma_y_start_addr + byte_offset, chunk_bytes);
             axis_stream_mux.trigger();
-            dma.wait_for_transfer(chunk_duration.load(std::memory_order_acquire));
+            if (!dma.wait_for_transfer(chunk_duration.load(std::memory_order_acquire))) {
+                acquisition_started.store(false, std::memory_order_release);
+                return;
+            }
 
             write_count.store(count + 1, std::memory_order_release);
             ++count;

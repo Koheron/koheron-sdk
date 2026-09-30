@@ -81,20 +81,7 @@ class MovingAverager {
             return;
         }
 
-        if (new_navg > navg_) {
-            // GROW: keep state; extend ring with empty, reserved slots
-            const auto old_n = navg_;
-            navg_ = new_navg;
-            ring_.resize(navg_);
-
-            for (std::size_t i = old_n; i < navg_; ++i) {
-                ring_[i].reserve(width_);
-            }
-            // sum_, head_, filled_ remain valid
-            return;
-        }
-
-        // SHRINK: keep most recent 'kept' samples, then rebuild sum
+        // Repack in chronological order for both growth and shrinkage.
         const std::size_t kept = std::min(filled_, new_navg);
         const std::size_t oldest = (head_ + navg_ - filled_) % navg_;
 
