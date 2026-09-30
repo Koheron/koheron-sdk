@@ -12,6 +12,7 @@ class PlotBasics {
     private log_y: boolean;
     public LogYaxisFormatter;
     private decimate: boolean;
+    private spectrumReduction = false;
 
     private reset_range: boolean;
     private options: jquery.flot.plotOptions;
@@ -254,6 +255,48 @@ class PlotBasics {
         this.decimate = false;
     }
 
+    enableSpectrumReduction() {
+        this.decimate = false;
+        this.spectrumReduction = true;
+    }
+
+    // Keep both extrema per screen column, in frequency order. Retain NaN gaps
+    // and the boundary neighbours so zooming does not invent connecting lines.
+    static reduceSpectrum(data: number[][], from: number, to: number, width: number): number[][] {
+        if (!data.length || !(to > from)) { return data; }
+        width = Math.max(1, Math.floor(width));
+        let first = 0, last = data.length - 1;
+        while (first < last && data[first][0] < from) { first++; }
+        first = Math.max(0, first - 1);
+        while (last > first && data[last][0] > to) { last--; }
+        last = Math.min(data.length - 1, last + 1);
+        if (last - first + 1 <= 2 * width) {
+            return first === 0 && last === data.length - 1 ? data : data.slice(first, last + 1);
+        }
+        const out: number[][] = [];
+        let column = -Infinity, min = -1, max = -1, previous = -1;
+        const push = (index: number) => {
+            if (index >= 0 && index !== previous) { out.push(data[index]); previous = index; }
+        };
+        const flush = () => {
+            if (min <= max) { push(min); push(max); }
+            else { push(max); push(min); }
+            min = max = -1;
+        };
+        push(first);
+        for (let i = first; i <= last; i++) {
+            const nextColumn = Math.floor((data[i][0] - from) * width / (to - from));
+            if (nextColumn !== column || !Number.isFinite(data[i][1])) {
+                flush(); column = nextColumn;
+            }
+            if (!Number.isFinite(data[i][1])) { push(i); continue; }
+            if (min < 0 || data[i][1] < data[min][1]) { min = i; }
+            if (max < 0 || data[i][1] > data[max][1]) { max = i; }
+        }
+        flush(); push(last);
+        return out;
+    }
+
     updateDatapointSpan(datapoint: number[], datapointSpan: HTMLSpanElement, prefix = ''): void {
         let positionX: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).left;
         let positionY: number = (this.plot.pointOffset({x: datapoint[0], y: datapoint[1] })).top;
@@ -380,7 +423,14 @@ class PlotBasics {
             this.plot = $.plot(this.plot_placeholder, this.seriesOne, this.options);
         }
 
-        if (this.decimate) {
+        if (this.spectrumReduction) {
+            const offsets = this.plot.getPlotOffset();
+            const width = Math.max(1, (this.plot_placeholder.width() || 800) - offsets.left - offsets.right);
+            this.seriesOne[0].data = PlotBasics.reduceSpectrum(plot_data, this.range_x.from, this.range_x.to, width);
+            if (reference) {
+                this.seriesOne[1].data = PlotBasics.reduceSpectrum(reference, this.range_x.from, this.range_x.to, width);
+            }
+        } else if (this.decimate) {
             const xMin = this.reset_range ? this.range_x.from : this.plot.getAxes().xaxis.min;
             const xMax = this.reset_range ? this.range_x.to   : this.plot.getAxes().xaxis.max;
             const drawData = this.decimateToCanva(plot_data, xMin, xMax);
@@ -424,7 +474,8 @@ class PlotBasics {
 
         let localData: jquery.flot.dataSeries[] = this.plot.getData();
 
-        setTimeout(() => {this.plot.unhighlight()}, 100);
+        if (this.spectrumReduction) { this.plot.unhighlight(); }
+        else { setTimeout(() => {this.plot.unhighlight()}, 100); }
 
         const clickSeries = this.clickSeriesIndex || 0;
         const cursorData = clickSeries === 1 ? reference : plot_data;

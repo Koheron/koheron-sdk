@@ -32,7 +32,7 @@ vm.runInContext(`
     const psd = new Float32Array([1e-3, 1e-6, NaN, 1e-8]);
     const fft = {fft_size: 8, status: {fs: 80e6, W1: .25, W2: .5, dds_freq: [10e6, 0], channel: 1, window_index: 1},
         async read_psd() { reads++; return psd; }};
-    const basics = {disableDecimation() {}, setLinY() {}, setRangeX(from, to) { range = {from, to}; },
+    const basics = {enableSpectrumReduction() {}, setLinY() {}, setRangeX(from, to) { range = {from, to}; },
         getRangeX() { return {...range}; },
         redraw(data, count, peak, label, cb, reference, peakIsFinal) { drawn = {data, peak, reference, peakIsFinal}; }};
     const plot = new Plot(doc, fft, basics);

@@ -34,7 +34,7 @@ vm.runInContext(`
     const fft = {fft_size: 8192, status: {fs: 250e6, W1: .25, W2: .375, dds_freq: [40e6, 0]},
                  async read_psd() { reads++; return psd; }};
     let drawn;
-    const basics = {disableDecimation() {}, setLinY() {}, setRangeX() {}, getRangeX() { return {from: 0, to: 125}; },
+    const basics = {enableSpectrumReduction() {}, setLinY() {}, setRangeX() {}, getRangeX() { return {from: 0, to: 125}; },
                     redraw(data, count, peak, label, callback) { drawn = {data, count, peak}; callback(); }};
     const plot = new Plot(doc, fft, basics);
     await Promise.resolve();

@@ -7,6 +7,7 @@ class Plot {
     private busy = false;
     private timer: number;
     private animation: number;
+    private lastFrameTime = -Infinity;
     private samplingFrequency = 0;
     private peak: number[] = [];
     private psd: Float32Array;
@@ -22,8 +23,8 @@ class Plot {
 
     constructor(private document: Document, private fft: FFT, private plotBasics: PlotBasics) {
         this.n_pts = fft.fft_size / 2;
-        // Keep every bin for reliable initial auto-scaling and cursor selection.
-        this.plotBasics.disableDecimation();
+        // Reduce only the drawn curves; measurements and exports retain every bin.
+        this.plotBasics.enableSpectrumReduction();
         this.plotBasics.setLinY();
         for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('.unit-input'))) {
             input.addEventListener('change', () => {
@@ -45,6 +46,10 @@ class Plot {
 
     setPaused(paused: boolean): void {
         this.paused = paused;
+        if (paused) {
+            window.clearTimeout(this.timer);
+            window.cancelAnimationFrame(this.animation);
+        }
         this.setStatus(paused ? 'paused' : 'connecting', paused ? 'Display paused' : 'Resuming…');
         if (!paused) { this.updatePlot(); }
     }
@@ -59,16 +64,25 @@ class Plot {
         window.clearTimeout(this.timer);
         window.cancelAnimationFrame(this.animation);
         if (!this.running || this.paused) { return; }
-        this.timer = window.setTimeout(() => {
-            this.animation = window.requestAnimationFrame(() => this.updatePlot());
-        }, delay);
+        const nextFrame = () => {
+            this.animation = window.requestAnimationFrame(timestamp => {
+                if (!this.running || this.paused) { return; }
+                if (timestamp - this.lastFrameTime < 1000 / 60 - .5) {
+                    nextFrame();
+                    return;
+                }
+                this.lastFrameTime = timestamp;
+                this.updatePlot();
+            });
+        };
+        if (delay > 0) { this.timer = window.setTimeout(nextFrame, delay); }
+        else { nextFrame(); }
     }
 
     async updatePlot(): Promise<void> {
         if (!this.running || this.paused || this.busy) { return; }
         this.busy = true;
-        const started = performance.now();
-        let delay = 50;
+        let delay = 0;
         try {
             const psd = await this.fft.read_psd();
             if (!this.running || this.paused) { return; }
@@ -90,9 +104,7 @@ class Plot {
             delay = 1000;
         } finally {
             this.busy = false;
-            // Include acquisition and drawing in the normal 20 Hz frame budget.
-            // Keep the full retry delay after errors and avoid overlapping reads.
-            this.schedule(delay === 50 ? Math.max(0, 50 - (performance.now() - started)) : delay);
+            this.schedule(delay);
         }
     }
 

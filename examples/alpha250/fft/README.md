@@ -20,8 +20,10 @@ precision I/O expand below it.
 - Typed DDS and precision DAC values commit on Enter or leaving the field.
   Invalid values do not reach the instrument. Sliders update continuously.
 
-The display targets 20 updates per second, including acquisition and drawing
-in its frame budget. Board telemetry refreshes once per second; acquisition
+The display follows browser animation frames, up to 60 updates per second,
+with at most one acquisition request in flight. Drawing preserves the minimum
+and maximum in each screen column, retains missing-data gaps, and returns to
+all bins when zoomed in. Board telemetry refreshes once per second; acquisition
 controls continue to refresh four times per second. Captured references are
 converted only on capture or unit changes. Measurements and exports retain
 all FFT bins.
