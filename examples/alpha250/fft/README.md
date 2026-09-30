@@ -24,7 +24,9 @@ precision I/O expand below it.
   to enter Low and High in the selected unit, shown beside the fields. Invalid
   edits remain visible for correction; Escape restores the accepted range.
   Dragging shows a cyan zoom preview, and a crosshair follows hover readings.
-  Changing units restores Auto level. Hover readings update as data arrives.
+  Changing units restores Auto level. Hover readings update as data arrives
+  and report the strongest contributor to the displayed heatmap cell. Empty
+  density cells show “No occurrences.”
 - **Clear history** resets both history views, average and max hold. Channel,
   window, sampling rate and reference clock changes also reset them. DDS
   changes retain history, so frequency changes remain visible. A captured

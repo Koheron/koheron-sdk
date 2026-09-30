@@ -319,7 +319,7 @@ class SpectrumViews {
         const ctx = this.overlay.getContext('2d'), scale = window.devicePixelRatio || 1;
         ctx.setTransform(scale, 0, 0, scale, 0, 0);
         ctx.clearRect(0, 0, this.overlay.width / scale, this.overlay.height / scale);
-        if (!this.pointer) { return; }
+        if (!this.pointer || (this.drag === undefined && !this.inside(this.pointer))) { return; }
         const rect = this.canvas.getBoundingClientRect(), b = this.bounds;
         const x = Math.max(b.left, Math.min(b.left + b.width, this.pointer.clientX - rect.left));
         const y = Math.max(b.top, Math.min(b.top + b.height, this.pointer.clientY - rect.top));
@@ -340,21 +340,42 @@ class SpectrumViews {
         const x = (e.clientX - rect.left - b.left) / b.width, y = (e.clientY - rect.top - b.top) / b.height;
         if (x < 0 || x > 1 || y < 0 || y > 1) { this.document.getElementById('history-cursor').textContent = ''; return; }
         const frequency = range.from + x * (range.to - range.from), step = this.history.status.fs / (this.history.average.length * 2) / 1e6;
-        const bin = Math.min(this.history.average.length - 1, Math.max(0, Math.round(frequency / step)));
-        let text = (bin * step).toFixed(6) + ' MHz · ';
+        // Inspect the same texture cell used to draw the heatmap. A display
+        // column can merge several FFT bins; report its strongest contributor.
+        if (!this.bins || !this.texture.width) { return; }
+        const column = Math.min(this.texture.width - 1, Math.floor(x * this.texture.width));
+        const span = this.bins[column];
+        let bin = Math.min(span.last, Math.max(span.first, Math.round(frequency / step)));
+        let detail: string;
         if (this.mode === 'spectrogram') {
             const latest = Math.floor(this.history.now / this.history.interval);
             const phase = this.history.now / this.history.interval - latest;
             const bucket = latest - Math.floor(1 - phase + y * this.history.duration / this.history.interval);
             const row = this.history.rows.find(r => r.bucket === bucket);
-            text += (y * this.history.duration).toFixed(2) + ' s ago · ' + (row && Number.isFinite(row.psd[bin]) ? this.format(this.convert(row.psd[bin], this.unit)) + ' ' + this.label : 'No received data');
+            let power = NaN;
+            if (row) {
+                for (let i = span.first; i <= span.last; i++) {
+                    const value = row.psd[i];
+                    if (Number.isFinite(value) && (!Number.isFinite(power) || value > power)) { power = value; bin = i; }
+                }
+            }
+            detail = (y * this.history.duration).toFixed(2) + ' s ago · ' +
+                (Number.isFinite(power) ? this.format(this.convert(power, this.unit)) + ' ' + this.label : 'No received data');
         } else {
-            const level = this.high - y * (this.high - this.low);
-            let code = 1, distance = Infinity;
-            for (let k = 1; k < 256; k++) { const d = Math.abs(this.convert(SpectrumHistory.power(k), this.unit) - level); if (d < distance) { distance = d; code = k; } }
-            const hits = this.history.density[bin * 256 + code];
-            text += this.format(this.convert(SpectrumHistory.power(code), this.unit)) + ' ' + this.label + ' · ' + hits + '/' + this.history.densityFrames + ' hits (' + (100 * hits / Math.max(1, this.history.densityFrames)).toFixed(2) + '%)';
+            const pixelY = Math.min(this.texture.height - 1, Math.floor(y * this.texture.height));
+            let hits = 0, code = 0;
+            for (let i = span.first; i <= span.last; i++) {
+                for (let k = this.history.densityLow[i]; k <= this.history.densityHigh[i]; k++) {
+                    const count = this.history.density[i * 256 + k];
+                    if (this.densityY[k] === pixelY && count > hits) { hits = count; bin = i; code = k; }
+                }
+            }
+            detail = hits ? this.format(this.convert(SpectrumHistory.power(code), this.unit)) + ' ' + this.label +
+                ' · ' + hits + '/' + this.history.densityFrames + ' hits (' +
+                (100 * hits / Math.max(1, this.history.densityFrames)).toFixed(2) + '%)' :
+                this.format(this.high - y * (this.high - this.low)) + ' ' + this.label + ' · No occurrences';
         }
+        const text = (bin * step).toFixed(6) + ' MHz · ' + detail;
         const cursor = this.document.getElementById('history-cursor');
         if (cursor.textContent !== text) { cursor.textContent = text; }
     }

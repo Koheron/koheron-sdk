@@ -180,6 +180,41 @@ vm.runInContext(`
     rollingHistory.add(new Float32Array([1e-6, 1e-12, 1e-12, 1e-12]), status, 5.085);
     rollingViews.render('dBm-Hz', 'PSD (dBm/Hz)');
     assert.notEqual(elements.get('history-cursor').textContent, hoverBefore); // Stationary hover tracks the live data.
+    // A narrow canvas merges FFT bins: hover must describe the colored cell,
+    // including quantized levels collapsed onto the same density row.
+    const mergedHistory = new SpectrumHistory();
+    const mergedFrame = new Float32Array(1024); mergedFrame.fill(1e-12); mergedFrame[2] = 1e-6;
+    mergedHistory.add(mergedFrame, { ...status, fs: 2048e6 }, .025);
+    const mergedViews = new SpectrumViews(doc, mergedHistory, () => ({from: 0, to: 1024}), convert, () => {}, () => {});
+    mergedViews.mode = 'spectrogram'; mergedViews.render('dBm-Hz', 'PSD (dBm/Hz)');
+    const point = {clientX: mergedViews.bounds.left + .1 / mergedViews.texture.width * mergedViews.bounds.width,
+        clientY: mergedViews.bounds.top + .001 / 5 * mergedViews.bounds.height};
+    mergedViews.inspect(point);
+    assert.ok(elements.get('history-cursor').textContent.startsWith('2.000000 MHz'));
+    assert.ok(elements.get('history-cursor').textContent.includes('-30 dBm/Hz'));
+    mergedViews.mode = 'density'; mergedViews.render('dBm-Hz', 'PSD (dBm/Hz)');
+    const code = SpectrumHistory.code(1e-6), pixelY = mergedViews.densityY[code];
+    point.clientY = mergedViews.bounds.top + (pixelY + .5) / 256 * mergedViews.bounds.height;
+    mergedViews.inspect(point);
+    assert.ok(elements.get('history-cursor').textContent.startsWith('2.000000 MHz'));
+    assert.ok(elements.get('history-cursor').textContent.includes('1/1 hits (100.00%)'));
+    assert.equal(mergedViews.hits[pixelY * mergedViews.texture.width], 1);
+    point.clientY = mergedViews.bounds.top;
+    mergedViews.inspect(point);
+    assert.ok(elements.get('history-cursor').textContent.includes('No occurrences'));
+    mergedViews.manual = true; mergedViews.low = -1000; mergedViews.high = 1000;
+    mergedHistory.add(mergedFrame, { ...status, fs: 2048e6 }, .035);
+    mergedViews.render('dBm-Hz', 'PSD (dBm/Hz)');
+    const collapsedY = mergedViews.densityY[code];
+    const neighboringCode = [code - 1, code + 1].find(k => mergedViews.densityY[k] === collapsedY);
+    assert.ok(neighboringCode);
+    mergedFrame[1] = SpectrumHistory.power(neighboringCode);
+    mergedHistory.add(mergedFrame, { ...status, fs: 2048e6 }, .045);
+    mergedViews.render('dBm-Hz', 'PSD (dBm/Hz)');
+    point.clientY = mergedViews.bounds.top + (collapsedY + .5) / 256 * mergedViews.bounds.height;
+    mergedViews.inspect(point);
+    assert.ok(elements.get('history-cursor').textContent.includes('3/3 hits (100.00%)'));
+    assert.equal(mergedViews.hits[collapsedY * mergedViews.texture.width], 3);
     history.reset(); views.render('dBm-Hz', 'PSD (dBm/Hz)');
     assert.equal(elements.get('history-cursor').textContent, 'Waiting for received spectra…');
     views.render('dBm-Hz', 'PSD (dBm/Hz)', true);
