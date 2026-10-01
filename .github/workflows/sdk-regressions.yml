@@ -1,0 +1,45 @@
+name: SDK regressions
+
+on:
+  pull_request:
+  push:
+    branches: [V1, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-regressions-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sdk-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libeigen3-dev tcl
+          npm --prefix web install --ignore-scripts --no-package-lock
+      - name: Shared FFT acquisition
+        run: bash server/drivers/fft/tests/run.sh
+      - name: FPGA elaboration and bus-skew handling
+        run: |
+          python3 fpga/tests/fft/test_psd.py
+          tclsh fpga/vivado/tests/single_bit_skew.tcl
+      - name: Browser scheduling and worker streaming
+        run: |
+          export NODE_PATH="$PWD/web/node_modules"
+          node examples/alpha250/fft/tests/test_web_scheduler.js
+          node examples/alpha250/fft/tests/test_web_stream.js
+      - name: Boot helper and image-builder syntax
+        run: |
+          python3 os/tests/test_server_init.py
+          bash -n os/scripts/build_image.sh
