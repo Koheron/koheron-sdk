@@ -29,8 +29,13 @@ vm.runInContext(`
     for (const time of [250, 500, 750, 1000, 1250]) { now = time; await widget.updateControls(); }
     assert.equal(controls, 5);
     assert.equal(board, 2); // Initial telemetry, then at one second; controls remain 4 Hz.
+    // Red Pitaya has no ALPHA250 precision-I/O telemetry endpoint.
+    delete widget.driver.getBoardParameters;
+    now += 1000; await widget.updateControls();
+    assert.equal(controls, 6);
+    assert.equal(board, 2);
     widget.dispose(); now += 1000; await widget.updateControls();
-    assert.equal(controls, 5);
+    assert.equal(controls, 6);
 
     let scheduled, reads = 0, finishRead, animation, animationRequests = 0, drawn = [];
     globalThis.window = {clearTimeout() {}, cancelAnimationFrame() { animation = undefined; },

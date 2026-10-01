@@ -1,7 +1,7 @@
 // (c) Koheron
 
 class ExportFile {
-    constructor(private document: Document, private spectrum: Plot) {
+    constructor(private document: Document, private spectrum: Plot, private boardName: string = 'ALPHA250') {
         document.querySelector('.export-data').addEventListener('click', () => this.exportData());
         document.querySelector('.export-plot').addEventListener('click', () => this.exportPlot());
     }
@@ -28,7 +28,7 @@ class ExportFile {
         context.fillRect(0, 0, width, height + headerHeight + 30);
         context.fillStyle = '#333';
         context.font = '12px sans-serif';
-        context.fillText('ALPHA250 FFT · ' + (historyView ? this.spectrum.view + ' · ' : '') + this.spectrum.yLabel, 12, 20);
+        context.fillText(this.boardName + ' FFT · ' + (historyView ? this.spectrum.view + ' · ' : '') + this.spectrum.yLabel, 12, 20);
         context.font = '11px sans-serif';
         context.fillText((reference ? 'Live · ' : '') + this.frameLabel(status), 12, 38);
         if (reference) {
@@ -53,7 +53,7 @@ class ExportFile {
             'Window index,' + status.window_index,
             'Input channel,' + status.channel,
             'Sampling frequency (Hz),' + status.fs,
-            'Reference clock,' + (status.clkIndex === '0' ? 'External' : 'Internal'),
+            'Reference clock,' + (status.clkIndex === 'fixed' ? 'Fixed onboard' : status.clkIndex === '0' ? 'External' : 'Internal'),
             'DDS 0 (Hz),' + status.dds_freq[0],
             'DDS 1 (Hz),' + status.dds_freq[1],
             '',
@@ -75,7 +75,7 @@ class ExportFile {
         if (!status) { return; }
         if (this.spectrum.view && this.spectrum.view !== 'spectrum') { this.exportHistory(); return; }
         // Use the displayed frame's metadata, including while the plot is paused.
-        const rows = ['Koheron ALPHA250 FFT', 'Exported at,' + new Date().toISOString(), ...this.frameRows(status)];
+        const rows = ['Koheron ' + this.boardName + ' FFT', 'Exported at,' + new Date().toISOString(), ...this.frameRows(status)];
         for (const row of this.spectrum.plot_data) { rows.push(row.join(',')); }
         if (this.spectrum.referenceStatus) {
             rows.push('', 'Reference trace', ...this.frameRows(this.spectrum.referenceStatus));
@@ -91,7 +91,7 @@ class ExportFile {
         if (!history.samples) { return; }
         const step = history.status.fs / (history.average.length * 2) / 1e6;
         const frequencies = Array.from(history.average, (_, i) => i * step);
-        const rows = ['Koheron ALPHA250 FFT ' + this.spectrum.view, 'Exported at,' + new Date().toISOString(),
+        const rows = ['Koheron ' + this.boardName + ' FFT ' + this.spectrum.view, 'Exported at,' + new Date().toISOString(),
             'Acquisition metadata,At history start', ...this.frameRows(history.status).slice(0, -2), 'History duration (s),' + history.duration];
         if (this.spectrum.view === 'spectrogram') {
             rows.push('Time row (s),' + history.interval,

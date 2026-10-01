@@ -7,18 +7,25 @@ class Plot {
     private busy = false;
     private timer: number;
     private animation = 0;
+    private drawTimer: number;
+    private stream: PSDStream;
     private lastFrameTime = -Infinity;
     private pending: {psd: Float32Array; status: IFFTStatus};
     private rateStarted = performance.now();
     private renderedFrames = 0;
     private acquiredFrames = 0;
+    private renderMs = 0;
+    private historyMs = 0;
+    private waitMs = 0;
     private visibilityHandler = () => {
         window.clearTimeout(this.timer);
         window.cancelAnimationFrame(this.animation);
+        window.clearTimeout(this.drawTimer);
         this.animation = 0;
         this.pending = undefined;
         this.resetRate();
-        if (!this.document.hidden) { this.updatePlot(); }
+        if (this.stream) { this.stream.setActive(!this.document.hidden && !this.paused); }
+        else if (!this.document.hidden) { this.updatePlot(); }
     };
     private samplingFrequency = 0;
     private peak: number[] = [];
@@ -75,7 +82,26 @@ class Plot {
             if (this.plot_data.length) { this.redraw(); }
         });
         document.addEventListener('visibilitychange', this.visibilityHandler);
-        this.updatePlot();
+        if (typeof Worker !== 'undefined' && typeof fft.startPSDStream === 'function') {
+            try {
+                this.stream = fft.startPSDStream((psd, time) => {
+                    if (!this.running || this.paused || this.document.hidden) { return; }
+                    this.acceptSpectrum(psd, time); this.updateRate();
+                }, message => {
+                    if (this.running && !this.paused && !this.document.hidden) {
+                        this.pending = undefined;
+                        window.cancelAnimationFrame(this.animation);
+                        window.clearTimeout(this.drawTimer);
+                        this.animation = 0;
+                        this.setStatus('error', message);
+                    }
+                });
+                if (document.hidden) { this.stream.setActive(false); }
+            } catch (error) {
+                console.warn('Using main-thread spectrum polling:', error);
+                this.updatePlot();
+            }
+        } else { this.updatePlot(); }
     }
 
     setPaused(paused: boolean): void {
@@ -83,12 +109,14 @@ class Plot {
         if (paused) {
             window.clearTimeout(this.timer);
             window.cancelAnimationFrame(this.animation);
+            window.clearTimeout(this.drawTimer);
             this.animation = 0;
             this.pending = undefined;
         }
         this.resetRate();
         this.setStatus(paused ? 'paused' : 'connecting', paused ? 'Display paused' : 'Resuming…');
-        if (!paused) { this.updatePlot(); }
+        if (this.stream) { this.stream.setActive(!paused && !this.document.hidden); }
+        else if (!paused) { this.updatePlot(); }
     }
 
     private setStatus(state: string, text: string): void {
@@ -105,8 +133,12 @@ class Plot {
 
     private requestDraw(): void {
         if (this.animation || !this.running || this.paused || this.document.hidden) { return; }
-        this.animation = window.requestAnimationFrame(timestamp => {
+        const requested = performance.now();
+        const draw = (timestamp: number) => {
+            window.cancelAnimationFrame(this.animation);
+            window.clearTimeout(this.drawTimer);
             this.animation = 0;
+            this.waitMs += performance.now() - requested;
             if (!this.running || this.paused || this.document.hidden || !this.pending) { return; }
             if (timestamp - this.lastFrameTime < 1000 / 60 - .5) {
                 this.requestDraw();
@@ -117,19 +149,28 @@ class Plot {
             this.frameStatus = this.pending.status;
             this.pending = undefined;
             try {
+                const started = performance.now();
                 this.displaySpectrum();
+                this.renderMs += performance.now() - started;
                 this.renderedFrames++;
                 this.setStatus('live', 'Live spectrum');
             } catch (error) {
                 this.setStatus('error', 'Unable to display spectrum');
                 console.error('Spectrum display failed:', error);
             }
-        });
+        };
+        this.animation = window.requestAnimationFrame(draw);
+        // Some visible browser windows delay animation callbacks despite fast
+        // acquisition. Keep the latest frame responsive, without a second loop
+        // or an accumulating queue. Whichever callback wins cancels the other.
+        const delay = Math.max(1, Math.ceil(1000 / 60 - (requested - this.lastFrameTime)));
+        this.drawTimer = window.setTimeout(() => draw(performance.now()), delay);
     }
 
     private resetRate(): void {
         this.rateStarted = performance.now();
         this.renderedFrames = this.acquiredFrames = 0;
+        this.renderMs = this.historyMs = this.waitMs = 0;
         const rate = this.document.getElementById('refresh-rate');
         if (rate) {
             rate.textContent = this.paused ? 'Paused' : '— FPS';
@@ -144,10 +185,14 @@ class Plot {
         if (rate) {
             rate.textContent = (this.renderedFrames * 1000 / elapsed).toFixed(0) + ' FPS';
             rate.title = 'Fresh spectra displayed per second; acquisition: '
-                + (this.acquiredFrames * 1000 / elapsed).toFixed(0) + ' spectra/s';
+                + (this.acquiredFrames * 1000 / elapsed).toFixed(0) + ' spectra/s'
+                + '; render ' + (this.renderMs / Math.max(1, this.renderedFrames)).toFixed(2) + ' ms'
+                + '; history ' + (this.historyMs / Math.max(1, this.acquiredFrames)).toFixed(2) + ' ms'
+                + '; frame wait ' + (this.waitMs / Math.max(1, this.renderedFrames)).toFixed(1) + ' ms';
         }
         this.rateStarted = performance.now();
         this.renderedFrames = this.acquiredFrames = 0;
+        this.renderMs = this.historyMs = this.waitMs = 0;
     }
 
     async updatePlot(): Promise<void> {
@@ -158,22 +203,12 @@ class Plot {
         try {
             const psd = await this.fft.read_psd();
             if (!this.running || this.paused || this.document.hidden) { return; }
-            // The accumulator can return zeros before its first complete frame.
-            // Do not fix the automatic Y range from an entirely nonfinite dB plot.
-            if (!psd.some(value => Number.isFinite(value) && value > 0)) {
-                this.setStatus('connecting', 'Waiting for spectrum…');
-                return;
-            }
-            // Only the newest complete spectrum waits for paint. Copy the client
-            // buffer now, since it may be reused before the animation callback.
-            this.pending = {psd: psd.slice(), status: {...this.fft.status, dds_freq: this.fft.status.dds_freq.slice()}};
-            if (this.history) { this.history.add(psd, this.pending.status, performance.now() / 1000); }
-            this.acquiredFrames++;
-            this.requestDraw();
+            this.acceptSpectrum(psd, performance.now() / 1000);
         } catch (error) {
             if (!this.running || this.paused || this.document.hidden) { return; }
             this.pending = undefined;
             window.cancelAnimationFrame(this.animation);
+            window.clearTimeout(this.drawTimer);
             this.animation = 0;
             this.setStatus('error', 'Waiting for spectrum…');
             console.error('Spectrum update failed:', error);
@@ -183,6 +218,18 @@ class Plot {
             this.updateRate();
             this.schedule(delay === 1000 ? delay : Math.max(0, delay - (performance.now() - started)));
         }
+    }
+
+    private acceptSpectrum(psd: Float32Array, time: number): void {
+        if (!psd.some(value => Number.isFinite(value) && value > 0)) {
+            this.setStatus('connecting', 'Waiting for spectrum…'); return;
+        }
+        this.pending = {psd: psd.slice(), status: {...this.fft.status, dds_freq: this.fft.status.dds_freq.slice()}};
+        const historyStarted = performance.now();
+        if (this.history) { this.history.add(psd, this.pending.status, time); }
+        this.historyMs += performance.now() - historyStarted;
+        this.acquiredFrames++;
+        this.requestDraw();
     }
 
     private displaySpectrum(): void {
@@ -289,10 +336,12 @@ class Plot {
 
     dispose(): void {
         this.running = false;
+        if (this.stream) { this.stream.dispose(); }
         if (this.views) { this.views.dispose(); }
         $('#plot-placeholder').off('.fft');
         window.clearTimeout(this.timer);
         window.cancelAnimationFrame(this.animation);
+        window.clearTimeout(this.drawTimer);
         this.document.removeEventListener('visibilitychange', this.visibilityHandler);
         this.pending = undefined;
     }
