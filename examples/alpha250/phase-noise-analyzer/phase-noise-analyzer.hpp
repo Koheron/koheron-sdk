@@ -20,6 +20,7 @@
 
 #include "./dds.hpp"
 #include "./moving_averager.hpp"
+#include "./phase_calibration.hpp"
 
 namespace rt { class ConfigManager; }
 class DmaS2MM;
@@ -38,7 +39,6 @@ class PhaseNoiseAnalyzer
     static constexpr uint32_t fft_size = 32768;
     static constexpr uint32_t data_size = 2 * fft_size;
     static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2; // Do use the first transfered points
-    static constexpr auto calib_factor = 4.196f * scicpp::pi<Phase> / 8192.0f;
 
     using PhaseDataArray = std::array<Phase, data_size>;
     using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
@@ -104,11 +104,12 @@ class PhaseNoiseAnalyzer
     uint32_t channel;
     uint32_t fft_navg;
     uint32_t cic_rate;
+    Phase phase_conversion_factor{0.0f}; // Radians per filtered DMA count
     std::atomic<int32_t> dirty_cnt = 0;
     Frequency fs_adc, fs;
     Time dma_transfer_duration;
 
-    std::mutex dma_mtx; // Guard DMA transfer
+    std::mutex dma_mtx; // Guard DMA transfer, rate changes and phase processing
     mutable std::shared_mutex data_mtx; // protects phase & phase_noise
 
     // Data acquisition thread
@@ -146,6 +147,7 @@ class PhaseNoiseAnalyzer
 
     void load_config();
     void reset_phase_unwrapper();
+    // Caller must hold dma_mtx for DMA operations.
     void kick_dma();
     auto read_dma();
     void update_interferometer_transfer_function();

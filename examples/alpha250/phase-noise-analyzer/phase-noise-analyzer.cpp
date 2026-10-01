@@ -77,6 +77,8 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
     std::scoped_lock lk(dma_mtx); // block until any DMA transfer finishes
 
     cic_rate = rate;
+    phase_conversion_factor = float(phase_calibration::filter_correction(
+        rate, prm::cic_n_stages, prm::cic_differential_delay)) * sci::pi<Phase> / 8192.0f;
     fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
     dma_transfer_duration = prm::n_pts / fs;
     logf("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
@@ -209,13 +211,11 @@ void PhaseNoiseAnalyzer::reset_phase_unwrapper() {
 }
 
 void PhaseNoiseAnalyzer::kick_dma() {
-    std::scoped_lock lk(dma_mtx);
     reset_phase_unwrapper();
     dma.start_transfer<mem::ram, prm::n_pts, int32_t>();
 }
 
 auto PhaseNoiseAnalyzer::read_dma() {
-    std::scoped_lock lk(dma_mtx);
     dma.wait_for_transfer(dma_transfer_duration);
     auto& ram = hw::get_memory<mem::ram>();
     return ram.read_array<int32_t, data_size, read_offset>();
@@ -319,20 +319,27 @@ void PhaseNoiseAnalyzer::start_acquisition() {
 
 void PhaseNoiseAnalyzer::acquisition_thread() {
     acquisition_started = true;
-    kick_dma();
+    {
+        std::scoped_lock lk(dma_mtx);
+        kick_dma();
+    }
 
     while (acquisition_started) {
         using namespace sci::operators;
 
+        // Keep calibration and spectrum settings consistent with the rate.
+        // Rate changes mark potentially mixed-rate transfers dirty below.
+        std::unique_lock lk(dma_mtx);
         auto samples = read_dma(); // blocking wait
-        auto new_phase = samples * calib_factor;
+        auto new_phase = samples * phase_conversion_factor;
 
         kick_dma(); // Immediately kick the next DMA so it runs while we compute
 
         if (dirty_cnt.load(std::memory_order_relaxed) > 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             --dirty_cnt;
             averager.clear();
+            lk.unlock();
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
 
