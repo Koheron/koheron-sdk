@@ -157,6 +157,10 @@ class PlotBasics {
         });
     }
 
+    refreshLegend() {
+        this.reset_range = true;
+    }
+
     setRangeX(from: number, to: number) {
         this.x_min = from;
         this.x_max = to;
@@ -311,61 +315,53 @@ class PlotBasics {
         const wAll = ph.width() || 800;
         const off = this.plot ? this.plot.getPlotOffset() : { left: 0, right: 0 };
         const innerW = Math.max(1, wAll - (off.left || 0) - (off.right || 0));
-        const axes = this.plot?.getAxes();
-
-        const colFromX = (x: number) => {
-            const pt = this.plot!.pointOffset({ x, y: axes.yaxis.min });
-            return Math.floor(pt.left - off.left);
-        };
+        // Use the requested range, rather than the previous Flot axes. During
+        // startup or zoom, old axes can otherwise discard boundary bins and
+        // omit their extrema from the new automatic Y range.
+        const transform = this.log_x ? Math.log10 : (x: number) => x;
+        const lower = transform(xMin);
+        const span = transform(xMax) - lower;
+        const colFromX = (x: number) => Math.min(innerW - 1,
+            Math.floor(innerW * (transform(x) - lower) / span));
 
         const i0 = this.bsLeft(plot_data, xMin);
         const i1 = this.bsRight(plot_data, xMax);
     
         let currCol = -2;
         let minY = Infinity, maxY = -Infinity, minI = -1, maxI = -1;
+        const flush = () => {
+            // Extrema must retain their original frequency order.
+            if (minI >= 0 && maxI >= 0) {
+                out.push(plot_data[Math.min(minI, maxI)]);
+                if (maxI !== minI) out.push(plot_data[Math.max(minI, maxI)]);
+            }
+            minY = Infinity; maxY = -Infinity; minI = -1; maxI = -1;
+        };
 
         for (let i = i0; i <= i1; i++) {
             const x = plot_data[i][0];
             const y = plot_data[i][1];
             const col = colFromX(x);
-
-            if (col < 0 || col >= innerW) {
+            if (col < 0 || col >= innerW) continue;
+            if (col !== currCol) {
+                flush();
+                currCol = col;
+            }
+            if (!Number.isFinite(y)) {
+                flush();
+                // Keep a gap marker even when its neighbors share one pixel.
+                if (!out.length || Number.isFinite(out[out.length - 1][1]))
+                    out.push([x, NaN]);
                 continue;
             }
-
-            if (col !== currCol) {
-                if (currCol >= 0) {
-                    if (minI >= 0) {
-                        out.push(plot_data[minI]);
-                    }
-
-                    if (maxI >= 0 && maxI !== minI) {
-                        out.push(plot_data[maxI]);
-                    }
-                }
-                currCol = col;
-                minY = Infinity; maxY = -Infinity; minI = -1; maxI = -1;
-            }
-
-            if (Number.isFinite(y)) {
-                if (y < minY) { minY = y; minI = i; }
-                if (y > maxY) { maxY = y; maxI = i; }
-            }
+            if (y < minY) { minY = y; minI = i; }
+            if (y > maxY) { maxY = y; maxI = i; }
         }
-
-        if (currCol >= 0) {
-            if (minI >= 0) {
-                out.push(plot_data[minI]);
-            }
-
-            if (maxI >= 0 && maxI !== minI) {
-                out.push(plot_data[maxI]);
-            }
-        }
+        flush();
         return out;
     }
 
-    redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void, overlay_data?: number[][], overlay_label?: string) {
+    redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void, overlay_data?: number[][], overlay_label?: string, extra_series: jquery.flot.dataSeries[] = []) {
         const hasOverlay = Array.isArray(overlay_data) && overlay_data.length > 0;
 
         if (!this.plot) {
@@ -389,6 +385,14 @@ class PlotBasics {
             this.overlaySeries[1] = { label: overlay_label || 'Smoothed', data: secondaryData };
         }
 
+        // Extra series can mark the sign of estimates displayed as dB magnitudes.
+        const displaySeries = (hasOverlay ? this.overlaySeries : this.seriesOne).concat(
+            extra_series.map(series => ({ ...series, data: this.decimate
+                ? this.decimateToCanva(series.data as number[][],
+                    this.reset_range ? this.range_x.from : this.plot.getAxes().xaxis.min,
+                    this.reset_range ? this.range_x.to : this.plot.getAxes().xaxis.max).slice()
+                : series.data })));
+
         if (this.reset_range) {
             if (this.log_y) {
                 // /!\ Cannot set ticks lower than 1 /!\
@@ -408,7 +412,7 @@ class PlotBasics {
             this.options.xaxis.max = this.range_x.to;
             this.options.yaxis.min = this.range_y.from;
             this.options.yaxis.max = this.range_y.to;
-            this.plot = $.plot(this.plot_placeholder, hasOverlay ? this.overlaySeries : this.seriesOne, this.options);
+            this.plot = $.plot(this.plot_placeholder, displaySeries, this.options);
             this.plot.setupGrid();
 
             this.range_y.from = this.plot.getAxes().yaxis.min;
@@ -416,7 +420,7 @@ class PlotBasics {
 
             this.reset_range = false;
         } else {
-            this.plot.setData(hasOverlay ? this.overlaySeries : this.seriesOne);
+            this.plot.setData(displaySeries);
             this.plot.draw();
         }
 

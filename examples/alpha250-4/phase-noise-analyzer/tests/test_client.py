@@ -7,7 +7,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[4]
 sys.path[:0] = [str(ROOT / 'python'), str(Path(__file__).resolve().parents[1] / 'python')]
-from phase_noise_analyzer import PhaseNoiseAnalyzer
+from phase_noise_analyzer import PhaseNoiseAnalyzer, smooth_phase_psd_logfreq
 
 
 class FakeClient:
@@ -65,6 +65,36 @@ class ClientTests(unittest.TestCase):
         self.assertAlmostEqual(f[-1], 2.5e6)
         self.assertAlmostEqual(raw[100], 10 * np.log10(0.5), places=6)
         self.assertAlmostEqual(smooth[100], raw[100])
+
+    def test_signed_smoothing_keeps_cancellation(self):
+        freqs = np.array([0., 99., 100., 101.])
+        psd = np.array([0., 3., -2., 1.])
+        result = smooth_phase_psd_logfreq(freqs, psd, nstart=1)
+        expected = 10 * np.log10((3 - 2 + 1) / 3 / 2)
+        self.assertAlmostEqual(result[2], expected)
+        # A negative mean cannot be displayed as positive phase-noise power.
+        result = smooth_phase_psd_logfreq(freqs, np.array([0., 1., -4., 1.]), nstart=1)
+        self.assertTrue(np.isnan(result[2]))
+
+    def test_smoothing_respects_first_valid_bin(self):
+        result = smooth_phase_psd_logfreq(np.array([0., 99., 100., 101.]),
+                                         np.array([0., 1000., 2., 2.]), nstart=2)
+        self.assertTrue(np.isnan(result[1]))
+        self.assertAlmostEqual(result[2], 0.)
+
+    def test_frequency_noise_uses_linear_phase_psd(self):
+        self.client.recv_vector = lambda dtype: np.array([2., 2., -1., 0.], dtype=dtype)
+        freqs, density = self.driver.frequency_noise()
+        self.assertAlmostEqual(density[1], 10 * np.log10(2 * freqs[1] ** 2))
+        self.assertTrue(np.isnan(density[[0, 2, 3]]).all())
+
+    @patch('phase_noise_analyzer.time.sleep')
+    def test_acquisition_preserves_signed_spectrum(self, sleep):
+        values = np.ones(15001, dtype='float32')
+        values[100] = -2
+        self.client.recv_vector = lambda dtype: values
+        self.driver.phase_noise(min_count=1, verbose=False)
+        np.testing.assert_array_equal(self.driver.last_phase_psd, values)
 
 
 if __name__ == '__main__':

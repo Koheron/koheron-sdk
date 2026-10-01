@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>Koheron</title>
+  <title>Phase noise · ALPHA250-4 · Koheron</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Koheron">
   <meta charset="utf-8">
@@ -16,135 +16,73 @@
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
-  <link rel="stylesheet" type="text/css" href="phase-noise.css">
   <link rel="stylesheet" type="text/css" href="phase-noise-plot.css">
+  <link rel="stylesheet" type="text/css" href="phase-noise.css">
 
   <script type="text/javascript" src="html-imports.min.js"></script>
 
   <script type="text/javascript" src="jquery.min.js"></script>
   <script type="text/javascript" src="bootstrap.min.js"></script>
 
-  <link rel="import" href="navigation.html" data-parent="navigation">
   <link rel="import" href="dds-frequency.html" data-parent="dds-frequency">
   <link rel="import" href="reference-clock.html" data-parent="reference-clock">
   <link rel="import" href="plot-basics.html" data-parent="plot-basics">
   <link rel="import" href="export-file.html" data-parent="export-file">
 </head>
 
-<body>
-
-<div id="navigation"></div>
-  <div id="main" class="container-fluid" style="padding: 10px">
-    <div class="row">
-      <div class="col-md-8">
-        <div id="plot-wrap">
-          <div id="plot-placeholder" class="plot-placeholder"></div>
-          <div id="plot-empty" class="plot-empty hidden">
-            <div class="plot-empty-card">
-              <h4>Local oscillator not set</h4>
-              <p>Set the DDS frequency to start measurement.</p>
-            </div>
-          </div>
-        </div>
-
-
-        <div class="plot-controls" style="margin-top: 8px;">
-          <label class="checkbox-inline" for="show-smoothed-trace">
-            <input type="checkbox" id="show-smoothed-trace" checked>
-            Show smoothed trace
-          </label>
-        </div>
-
-        <div id="plot-basics"></div>
-      </div>
-
-      <div class="col-md-3">
-        <section style="margin-bottom: 20px;">
-          <div id="reference-clock"></div>
-        </section>
-
-        <section id="dds-frequency"></section>
-
-        <section style="margin-bottom: 20px;">
-          <div class="crossed">
-            <span>Acquisition</span>
-          </div>
-
-          <div>
-          X = FFT{ Φ(DUT X) - Φ(REF X) }
-          </div>
-          <div>
-          Y = FFT{ Φ(DUT Y) - Φ(REF Y) }
-          </div>
-
-          <label for="channel-clock">Channel:</label>
-          <div class="radio-wrapper">
-            <input type="radio" name="channel" value="0" checked class="channel-input" data-valuestr="0" data-command="setChannel">|X|<sup>2</sup>
-          </div>
-          <div class="radio-wrapper">
-            <input type="radio" name="channel" value="1" class="channel-input" data-valuestr="1" data-command="setChannel">|Y|<sup>2</sup>
-          </div>
-          <div class="radio-wrapper">
-            <input type="radio" name="channel" value="2" class="channel-input" data-valuestr="2" data-command="setChannel">X•Y*
-          </div>
-
-          <table class="full-width" style="margin-top: 20px;">
-            <tr>
-              <td style="width: 160px">
-                Min Frequency (Hz)
-              </td>
-              <td style="width: 120px">
-                <input type="number" value="100" min="0.1" step="0.1" data-command="setMinFrequency" class="min-frequency-input">
-              </td>
-            </tr>
-            <tr>
-              <td style="width: 160px">
-                Averages
-              </td>
-              <td style="width: 120px">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <input type="number" value="1" min="1" step="1" max="1000" class="plot-navg-input">
-                  <button type="button" class="default-btn reset-cumulative-averager-btn">Reset</button>
-                </div>
-              </td>
-            </tr>
-          </table>
-        </section>
-
-        <section style="margin-bottom: 20px;">
-          <div class="crossed">
-            <span>Measurements</span>
-          </div>
-          <table class="full-width">
-            <tr>
-              <td>Carrier Power</td>
-              <td style="text-align: right">
-                <span class="carrier-power-span"></span>
-              </td>
-            </tr>
-            <tr>
-              <td>Phase Jitter</td>
-              <td style="text-align: right">
-                <span class="phase-jitter-span"></span>
-              </td>
-            </tr>
-            <tr>
-              <td>Time Jitter</td>
-              <td style="text-align: right">
-                <span class="time-jitter-span"></span>
-              </td>
-            </tr>
-          </table>
-          <table id="decade-values-table" class="table">
-          </table>
-        </section>
-        <section id="export-file"></section>
-        <section style="margin-bottom: 20px;"></section>
-        <button class="default-btn save-cfg" onclick="app.phaseNoiseAnalyzer.saveConfig()">Save Config</button>
-      </section>
-      </div>
+<body class="pna-workspace">
+<header class="app-header">
+  <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
+  <h1>Phase noise</h1><span class="board-tag">ALPHA250-4</span>
+  <nav aria-label="Board navigation"><a href="/koheron">Instruments</a><a href="/koheron/logs_rate.html">Logs &amp; data rates</a></nav>
+</header>
+<main id="main">
+  <section class="instrument-toolbar" aria-label="Acquisition settings">
+    <div class="acquisition-controls">
+      <div class="control-field"><span class="control-label">Channel</span><div class="segmented">
+        <label><input type="radio" name="channel" value="0" checked class="channel-input" data-valuestr="0" data-command="setChannel"><span>|X|²</span></label>
+        <label><input type="radio" name="channel" value="1" class="channel-input" data-valuestr="1" data-command="setChannel"><span>|Y|²</span></label>
+        <label><input type="radio" name="channel" value="2" class="channel-input" data-valuestr="2" data-command="setChannel"><span>X·Y*</span></label>
+      </div></div>
+      <label class="control-field">Min offset (Hz)<input type="number" value="100" min="0.1" step="any" data-command="setMinFrequency" class="min-frequency-input"></label>
+      <label class="control-field">Averages<input type="number" value="1" min="1" step="1" max="200" class="plot-navg-input"></label>
+      <button type="button" class="reset-cumulative-averager-btn" title="Clear the cumulative cross-spectrum average">Reset average</button>
+      <div id="reference-clock"></div>
     </div>
+    <div id="dds-frequency" class="oscillator-controls"></div>
+  </section>
+  <section class="spectrum-panel" aria-label="Noise spectrum">
+    <div class="spectrum-toolbar">
+      <div class="display-controls">
+        <div class="segmented">
+          <label><input type="radio" name="noise-plot-type" class="laser-plot-type" value="phase" checked><span>Phase noise</span></label>
+          <label><input type="radio" name="noise-plot-type" class="laser-plot-type" value="frequency"><span>Frequency noise</span></label>
+        </div>
+        <label class="toggle"><input type="checkbox" id="show-smoothed-trace" checked>Smoothed · 0.1 decade</label>
+      </div>
+      <div class="plot-actions"><div id="export-file"></div><button class="save-cfg" onclick="app.phaseNoiseAnalyzer.saveConfig()">Save config</button></div>
+    </div>
+    <div id="plot-wrap">
+      <div id="plot-placeholder" class="plot-placeholder" aria-label="Live noise spectrum"></div>
+      <div id="plot-basics"></div>
+      <div id="plot-empty" class="plot-empty hidden"><div class="plot-empty-card"><h4>Local oscillator not set</h4><p>Set the DDS frequency to start measurement.</p></div></div>
+    </div>
+    <div class="spectrum-readouts">
+      <div><span class="readout-label">Carrier</span><strong class="carrier-power-span">—</strong></div>
+      <div><span class="readout-label">Phase jitter</span><strong class="phase-jitter-span">—</strong></div>
+      <div><span class="readout-label">Time jitter</span><strong class="time-jitter-span">—</strong></div>
+      <span class="plot-help">Drag to zoom · Double-click to reset</span>
+    </div>
+    <p class="spectrum-note">Magnitude in dB · Red markers: negative estimates · Smoothing averages signed values first.</p>
+  </section>
+  <div class="measurement-details">
+    <section aria-label="Noise at decade offsets"><table id="decade-values-table"></table></section>
+    <details class="signal-details"><summary>Signal paths &amp; interpretation</summary>
+      <p>X = FFT{ Φ(DUT X) − Φ(REF X) }<br>Y = FFT{ Φ(DUT Y) − Φ(REF Y) }</p>
+      <p>Red markers identify negative cross-spectrum estimates. Their displayed magnitude is not a positive noise-power measurement. Nonpositive signed averages are unavailable in the decade table.</p>
+    </details>
   </div>
+</main>
 
   <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
@@ -153,9 +91,7 @@
   <script language="javascript" type="text/javascript" src="jquery.flot.axislabels.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.canvas.js"></script>
 
-  <script src="app.js?random=<?php echo uniqid(); ?>"></script>
-</div>
-
+  <script src="app.js"></script>
 </body>
 
 </html>

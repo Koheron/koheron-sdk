@@ -32,32 +32,33 @@ def remove_spurs_db(phase_noise, kernel_size=31, threshold_db=8.0):
 
     return cleaned
 
-def smooth_phase_noise_logfreq(freqs, phase_noise, nstart=1, half_width_decades=0.05):
+def smooth_phase_psd_logfreq(freqs, psd, nstart=0, half_width_decades=0.05):
+    """Average signed phase PSD before conversion to single-sideband dB."""
     N = len(freqs)
-    smoothed = np.full_like(phase_noise, np.nan, dtype=float)
+    smoothed = np.full_like(psd, np.nan, dtype=float)
     scale = 10.0 ** half_width_decades
 
-    j0 = nstart - 1
-    j1 = nstart - 2
+    j0 = nstart
+    j1 = nstart - 1
 
     sum_linear = 0.0
     cnt = 0
 
     def add(j):
         nonlocal sum_linear, cnt
-        db = phase_noise[j]
-        if np.isfinite(db):
-            sum_linear += 10.0 ** (db / 10.0)
+        value = float(psd[j])
+        if np.isfinite(value):
+            sum_linear += value
             cnt += 1
 
     def remove(j):
         nonlocal sum_linear, cnt
-        db = phase_noise[j]
-        if np.isfinite(db):
-            sum_linear -= 10.0 ** (db / 10.0)
+        value = float(psd[j])
+        if np.isfinite(value):
+            sum_linear -= value
             cnt -= 1
 
-    for i in range(nstart - 1, N):
+    for i in range(nstart, N):
         fi = freqs[i]
 
         if not np.isfinite(fi) or fi <= 0:
@@ -75,15 +76,20 @@ def smooth_phase_noise_logfreq(freqs, phase_noise, nstart=1, half_width_decades=
             remove(j0)
             j0 += 1
 
-        if cnt > 0:
-            smoothed[i] = 10.0 * np.log10(sum_linear / cnt)
+        if cnt > 0 and sum_linear > 0:
+            smoothed[i] = 10.0 * np.log10(0.5 * sum_linear / cnt)
 
     return smoothed
+
+def smooth_phase_noise_logfreq(freqs, phase_noise, nstart=1, half_width_decades=0.05):
+    """Compatibility wrapper for positive dB traces (one-based nstart)."""
+    psd = 2.0 * 10.0 ** (np.asarray(phase_noise) / 10.0)
+    return smooth_phase_psd_logfreq(freqs, psd, max(0, nstart - 1), half_width_decades)
+
 
 class PhaseNoiseAnalyzer(object):
     def __init__(self, client):
         self.client = client
-        self.calib_factor = 4.196
         self.npts = 65536
 
     @command()
@@ -154,7 +160,7 @@ class PhaseNoiseAnalyzer(object):
         return self.client.recv_vector(dtype='float32')
 
     # Phase noise in dBc/Hz
-    def phase_noise(self, min_count=10, remove_spurs=True, verbose=True):
+    def phase_noise(self, min_count=10, remove_spurs=False, verbose=True):
         self.set_channel(2)  # Cross-correlation
         self.reset_cumulative_averager()
         time.sleep(2.0)
@@ -176,27 +182,31 @@ class PhaseNoiseAnalyzer(object):
         if verbose:
             print(f"\r{min_count} / {min_count}")
 
-        psd = self.get_phase_noise()  # rad²/Hz
+        psd = self.get_phase_noise()  # signed rad²/Hz
+        self.last_phase_psd = psd.copy()
         freqs, f_min, f_max = self.get_freqs(psd.size)
 
         phase_noise = np.full(psd.shape, np.nan, dtype=float)
         mask = psd > 0
-        phase_noise[mask] = 10.0 * np.log10(0.5 * psd[mask])
+        phase_noise[mask] = 10.0 * np.log10(0.5 * psd[mask].astype(float))
 
         if remove_spurs:
-            phase_noise_for_smoothing = remove_spurs_db(
+            spur_filtered = remove_spurs_db(
                 phase_noise,
                 kernel_size=31,
                 threshold_db=8.0,
             )
+            psd_for_smoothing = psd.copy()
+            # Retain negative estimates; discard only explicitly identified spurs.
+            psd_for_smoothing[np.isfinite(phase_noise) & ~np.isfinite(spur_filtered)] = np.nan
         else:
-            phase_noise_for_smoothing = phase_noise
+            psd_for_smoothing = psd
 
         nstart = np.searchsorted(freqs, f_min)
 
-        smoothed = smooth_phase_noise_logfreq(
+        smoothed = smooth_phase_psd_logfreq(
             freqs,
-            phase_noise_for_smoothing,
+            psd_for_smoothing,
             nstart=nstart,
             half_width_decades=0.05
         )
@@ -204,6 +214,11 @@ class PhaseNoiseAnalyzer(object):
         return freqs, f_min, f_max, phase_noise, smoothed
 
     def frequency_noise(self):
-        f, psd_dB = self.get_phase_noise()
-        psd_freq = psd_dB + 3.0 + 20.0 * np.log10(f)
-        return f, psd_freq
+        """Return frequency-noise density in dB Hz²/Hz from the current spectrum."""
+        psd = self.get_phase_noise()
+        freqs, _, _ = self.get_freqs(psd.size)
+        density = psd.astype(float) * freqs**2
+        result = np.full(psd.shape, np.nan, dtype=float)
+        valid = np.isfinite(density) & (density > 0)
+        result[valid] = 10.0 * np.log10(density[valid])
+        return freqs, result

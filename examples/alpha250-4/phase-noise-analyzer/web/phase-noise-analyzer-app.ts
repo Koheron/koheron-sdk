@@ -17,6 +17,8 @@ class PhaseNoiseAnalyzerApp {
   private trackingCorrectionXSpan: HTMLElement;
   private trackingCorrectionYSpan: HTMLElement;
 
+  private updatingControls = false;
+
   private isEditingMinFrequency: boolean;
   private isEditingNavg: boolean;
   private isEditingDdsInputs: boolean;
@@ -62,29 +64,58 @@ class PhaseNoiseAnalyzerApp {
       this.updateControls();
     });
 
-    let events = ['change', 'input'];
+    let events = ['change'];
     for (let j = 0; j < events.length; j++) {
       this.minFrequencyInput.addEventListener(events[j], (event) => {
           let command = (<HTMLInputElement>event.currentTarget).dataset.command;
           let value = (<HTMLInputElement>event.currentTarget).value;
-          this.driver[command](parseFloat(value));
+          const frequency = parseFloat(value);
+          if (Number.isFinite(frequency) && frequency > 0) this.driver[command](frequency);
       });
     }
 
+    const editingChannels = new Set<number>();
     for (let channel = 0; channel < this.ddsInputs.length; channel++) {
-      this.ddsInputs[channel].addEventListener("focus", () => {
+      const input = this.ddsInputs[channel];
+      let dirty = false;
+      let acceptedValue = input.value;
+      const finishEditing = () => {
+        editingChannels.delete(channel);
+        this.isEditingDdsInputs = editingChannels.size > 0;
+      };
+      const commit = () => {
+        if (!dirty) { finishEditing(); return; }
+        const frequency = 1E6 * Number(input.value);
+        if (input.value.trim() === '' || !input.checkValidity() ||
+            !Number.isFinite(frequency) || frequency < 0 || frequency > 100E6) return;
+        this.driver.setLocalOscillator(channel, frequency);
+        acceptedValue = input.value;
+        dirty = false;
+        finishEditing();
+        this.updateControls();
+      };
+      input.addEventListener('focus', () => {
+        if (!dirty) acceptedValue = input.value;
+        editingChannels.add(channel);
         this.isEditingDdsInputs = true;
       });
-
-      this.ddsInputs[channel].addEventListener("change", () => {
+      input.addEventListener('input', () => {
+        dirty = true;
+        editingChannels.add(channel);
         this.isEditingDdsInputs = true;
       });
-
-      this.ddsSetButtons[channel].addEventListener('click', (event) => {
-          this.driver.setLocalOscillator(channel, 1E6 * parseFloat(this.ddsInputs[channel].value));
-          this.isEditingDdsInputs = false;
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', (event: KeyboardEvent) => {
+        if (event.key === 'Enter') { event.preventDefault(); commit(); }
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          input.value = acceptedValue;
+          dirty = false;
+          finishEditing();
           this.updateControls();
+        }
       });
+      this.ddsSetButtons[channel].addEventListener('click', commit);
     }
 
     this.trackingEnabledInput.addEventListener('change', (event) => {
@@ -106,11 +137,11 @@ class PhaseNoiseAnalyzerApp {
       this.updateControls();
     });
 
-    let events = ['change', 'input'];
+    let events = ['change'];
     for (let j = 0; j < events.length; j++) {
       this.nAvgInput.addEventListener(events[j], (event) => {
           let value = parseInt((<HTMLInputElement>event.currentTarget).value);
-          this.setNavg(value);
+          if (Number.isFinite(value) && value >= 1 && value <= 200) this.setNavg(value);
       });
     }
 
@@ -134,7 +165,7 @@ class PhaseNoiseAnalyzerApp {
   }
 
   private formatFrequency(freq: number): string {
-    if (Number.isNaN(freq)) {
+    if (!Number.isFinite(freq)) {
       return "---";
     }
 
@@ -152,7 +183,7 @@ class PhaseNoiseAnalyzerApp {
   }
 
   private formatMeasurement(value: number, unit: string, digits: number = 2): string {
-    if (Number.isNaN(value)) {
+    if (!Number.isFinite(value)) {
       return "---";
     } else {
       return `${value.toFixed(digits)}  ${unit}`;
@@ -160,72 +191,88 @@ class PhaseNoiseAnalyzerApp {
   }
 
   private async updateMeasurements() {
-    const navg: number = 400;
-    const meas = await this.driver.getMeasurements(navg);
+    try {
+      const navg: number = 400;
+      const meas = await this.driver.getMeasurements(navg);
 
-    this.carrierPowerSpan.innerHTML = this.formatMeasurement(meas.carrier_power, "dBm");
-    const freqRange = `(${this.formatFrequency(meas.freq_lo)} - ${this.formatFrequency(meas.freq_hi)})`;
+      this.carrierPowerSpan.innerHTML = this.formatMeasurement(meas.carrier_power, "dBm");
+      const freqRange = `(${this.formatFrequency(meas.freq_lo)} - ${this.formatFrequency(meas.freq_hi)})`;
 
-    this.phaseJitterSpan.innerHTML =
-      this.formatMeasurement(meas.phase_jitter * 1E3, `mrad<sub>rms</sub> ${freqRange}`);
-    this.timeJitterSpan.innerHTML =
-      this.formatMeasurement(meas.time_jitter * 1E12, `ps<sub>rms</sub> ${freqRange}`);
+      this.phaseJitterSpan.innerHTML =
+        this.formatMeasurement(meas.phase_jitter * 1E3, `mrad<sub>rms</sub> ${freqRange}`);
+      this.timeJitterSpan.innerHTML =
+        this.formatMeasurement(meas.time_jitter * 1E12, `ps<sub>rms</sub> ${freqRange}`);
 
-    requestAnimationFrame(() => { this.updateMeasurements(); });
+    } catch (error) {
+      console.error('updateMeasurements error:', error);
+    } finally {
+      setTimeout(() => { this.updateMeasurements(); }, 250);
+    }
   }
 
   private async updateControls(): Promise<void> {
-    const parameters = await this.driver.getParameters();
-    const trackingParameters = await this.driver.getTrackingParameters();
+    if (this.updatingControls) return;
+    this.updatingControls = true;
+    try {
+      const parameters = await this.driver.getParameters();
+      const trackingParameters = await this.driver.getTrackingParameters();
 
-    if (parameters.channel == 0) {
-      this.channelInputs[0].checked = true;
-      this.channelInputs[1].checked = false;
-      this.channelInputs[2].checked = false;
-    } else if (parameters.channel == 1) {
-      this.channelInputs[0].checked = false;
-      this.channelInputs[1].checked = true;
-      this.channelInputs[2].checked = false;
-    } else {
-      this.channelInputs[0].checked = false;
-      this.channelInputs[1].checked = false;
-      this.channelInputs[2].checked = true;
-    }
-
-    if (!this.isEditingMinFrequency) {
-      this.minFrequencyInput.value = parameters.min_freq.toFixed(2).toString();
-    }
-
-    if (!this.isEditingNavg) {
-      if (parameters.channel < 2) {
-        this.nAvgInput.value = parameters.fft_navg.toString();
-        this.nAvgInput.readOnly = false;
-        this.nAvgInput.disabled = false;
-        this.resetCumulativeAveragerBtn.style.display = "none";
-        this.resetCumulativeAveragerBtn.disabled = true;
-      } else { // XY mode
-        this.nAvgInput.value = parameters.avgxy_count.toString();
-        this.nAvgInput.readOnly = true;
-        this.nAvgInput.disabled = true;
-        this.resetCumulativeAveragerBtn.style.display = "";
-        this.resetCumulativeAveragerBtn.disabled = false;
+      if (parameters.channel == 0) {
+        this.channelInputs[0].checked = true;
+        this.channelInputs[1].checked = false;
+        this.channelInputs[2].checked = false;
+      } else if (parameters.channel == 1) {
+        this.channelInputs[0].checked = false;
+        this.channelInputs[1].checked = true;
+        this.channelInputs[2].checked = false;
+      } else {
+        this.channelInputs[0].checked = false;
+        this.channelInputs[1].checked = false;
+        this.channelInputs[2].checked = true;
       }
+
+      if (!this.isEditingMinFrequency) {
+        this.minFrequencyInput.value = parameters.min_freq.toFixed(2).toString();
+      }
+
+      if (!this.isEditingNavg) {
+        if (parameters.channel < 2) {
+          this.nAvgInput.value = parameters.fft_navg.toString();
+          this.nAvgInput.readOnly = false;
+          this.nAvgInput.disabled = false;
+          this.resetCumulativeAveragerBtn.style.display = "none";
+          this.resetCumulativeAveragerBtn.disabled = true;
+        } else { // XY mode
+          this.nAvgInput.value = parameters.avgxy_count.toString();
+          this.nAvgInput.readOnly = true;
+          this.nAvgInput.disabled = true;
+          this.resetCumulativeAveragerBtn.style.display = "";
+          this.resetCumulativeAveragerBtn.disabled = false;
+        }
+      }
+
+      if (!this.isEditingDdsInputs) {
+        this.ddsInputs[0].value = (parameters.fdds0 / 1E6).toFixed(9);
+        this.ddsInputs[1].value = (parameters.fdds1 / 1E6).toFixed(9);
+        this.ddsInputs[2].value = (parameters.fdds2 / 1E6).toFixed(9);
+        this.ddsInputs[3].value = (parameters.fdds3 / 1E6).toFixed(9);
+      }
+
+      this.trackingEnabledInput.checked = trackingParameters.tracking_enabled;
+      this.trackingEffectiveBandwidthSpan.textContent = trackingParameters.effective_tracking_bandwidth.toFixed(6);
+      this.trackingCorrectionXSpan.textContent = trackingParameters.tracking_correction_x.toFixed(6);
+      this.trackingCorrectionYSpan.textContent = trackingParameters.tracking_correction_y.toFixed(6);
+
+      (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock'][value='" + parameters.clkIndex + "']")).checked = true;
+
+    } catch (error) {
+      console.error('updateControls error:', error);
+    } finally {
+      // Keep the guard set while waiting so edits cannot create another loop.
+      setTimeout(() => {
+        this.updatingControls = false;
+        this.updateControls();
+      }, 250);
     }
-
-    if (!this.isEditingDdsInputs) {
-      this.ddsInputs[0].value = (parameters.fdds0 / 1E6).toString();
-      this.ddsInputs[1].value = (parameters.fdds1 / 1E6).toString();
-      this.ddsInputs[2].value = (parameters.fdds2 / 1E6).toString();
-      this.ddsInputs[3].value = (parameters.fdds3 / 1E6).toString();
-    }
-
-    this.trackingEnabledInput.checked = trackingParameters.tracking_enabled;
-    this.trackingEffectiveBandwidthSpan.textContent = trackingParameters.effective_tracking_bandwidth.toFixed(6);
-    this.trackingCorrectionXSpan.textContent = trackingParameters.tracking_correction_x.toFixed(6);
-    this.trackingCorrectionYSpan.textContent = trackingParameters.tracking_correction_y.toFixed(6);
-
-    (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock'][value='" + parameters.clkIndex + "']")).checked = true;
-
-    requestAnimationFrame( () => { this.updateControls(); } )
   }
 }
