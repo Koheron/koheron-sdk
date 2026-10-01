@@ -1,0 +1,15 @@
+pin -dir I -from 15 -to 0 data
+pin -dir I -from 31 -to 0 ctl_fft
+pin -dir I -from 0 -to 0 tvalid
+pin -dir O -from 31 -to 0 m_axis_result_tdata
+pin -dir O -from 0 -to 0 m_axis_result_tvalid
+pin -dir I -type clk clk
+cell xilinx.com:ip:c_counter_binary:12.0 demod_address {CE true Output_Width 15 Increment_Value 4} {CLK clk CE tvalid}
+connect demod_bram {clkb clk addrb demod_address/Q dinb get_constant_pin_0_32 enb get_Q_pin_tvalid_1 web get_constant_pin_0_4}
+cell xilinx.com:ip:cmpy:6.0 complex_mult {APortWidth 16 BPortWidth 16 OutputWidth 33 LatencyConfig Manual MinimumLatency 7} {aclk clk s_axis_a_tdata get_concat_pin_{get_Q_pin_data_3_get_constant_pin_0_16} s_axis_b_tdata get_Q_pin_demod_bram/doutb_1 s_axis_a_tvalid get_Q_pin_tvalid_3 s_axis_b_tvalid get_Q_pin_tvalid_3}
+cell xilinx.com:ip:floating_point:7.1 float_0 {Operation_Type Fixed_to_float A_Precision_Type Custom C_A_Exponent_Width 17 C_A_Fraction_Width 16 Flow_Control NonBlocking Maximum_Latency True} {aclk clk s_axis_a_tdata get_slice_pin_complex_mult/m_axis_dout_tdata_32_0 s_axis_a_tvalid complex_mult/m_axis_dout_tvalid}
+cell xilinx.com:ip:floating_point:7.1 float_1 {Operation_Type Fixed_to_float A_Precision_Type Custom C_A_Exponent_Width 17 C_A_Fraction_Width 16 Flow_Control NonBlocking Maximum_Latency True} {aclk clk s_axis_a_tdata get_slice_pin_complex_mult/m_axis_dout_tdata_72_40 s_axis_a_tvalid complex_mult/m_axis_dout_tvalid}
+cell xilinx.com:ip:xfft:9.1 fft_0 {transform_length 8192 target_clock_frequency 250.0 implementation_options pipelined_streaming_io data_format floating_point phase_factor_width 24 throttle_scheme realtime output_ordering natural_order complex_mult_type use_mults_performance number_of_stages_using_block_ram_for_data_and_phase_factors 5 butterfly_type use_xtremedsp_slices} {aclk clk s_axis_data_tdata get_concat_pin_{___________________________float_0/m_axis_result_tdata___________________________float_1/m_axis_result_tdata_________________________} s_axis_data_tvalid get_and_pin_float_0/m_axis_result_tvalid_float_1/m_axis_result_tvalid s_axis_data_tlast get_constant_pin_0_1 s_axis_config_tdata get_slice_pin_ctl_fft_15_0 s_axis_config_tvalid get_constant_pin_1_1}
+cell xilinx.com:ip:floating_point:7.1 mult_0 {Operation_Type Multiply Flow_Control NonBlocking Maximum_Latency True} {aclk clk s_axis_a_tdata get_slice_pin_fft_0/m_axis_data_tdata_31_0 s_axis_b_tdata get_slice_pin_fft_0/m_axis_data_tdata_31_0 s_axis_a_tvalid fft_0/m_axis_data_tvalid s_axis_b_tvalid fft_0/m_axis_data_tvalid}
+cell xilinx.com:ip:floating_point:7.1 mult_1 {Operation_Type Multiply Flow_Control NonBlocking Maximum_Latency True} {aclk clk s_axis_a_tdata get_slice_pin_fft_0/m_axis_data_tdata_63_32 s_axis_b_tdata get_slice_pin_fft_0/m_axis_data_tdata_63_32 s_axis_a_tvalid fft_0/m_axis_data_tvalid s_axis_b_tvalid fft_0/m_axis_data_tvalid}
+cell xilinx.com:ip:floating_point:7.1 add_0 {Flow_Control NonBlocking Add_Sub_Value Add C_Mult_Usage No_Usage Maximum_Latency True} {aclk clk S_AXIS_A mult_0/M_AXIS_RESULT S_AXIS_B mult_1/M_AXIS_RESULT m_axis_result_tdata m_axis_result_tdata m_axis_result_tvalid m_axis_result_tvalid}
