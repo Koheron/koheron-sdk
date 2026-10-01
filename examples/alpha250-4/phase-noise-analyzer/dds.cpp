@@ -16,13 +16,14 @@ Dds::Dds()
 }
 
 void Dds::set_dds_freq(uint32_t channel, double freq_hz, bool verbose) {
+    std::lock_guard lock(mutex);
     if (channel >= 4) {
         log<ERROR>("FFT::set_dds_freq invalid channel\n");
         return;
     }
 
-    if (std::isnan(freq_hz)) {
-        log<ERROR>("FFT::set_dds_freq Frequency is NaN\n");
+    if (!std::isfinite(freq_hz)) {
+        log<ERROR>("FFT::set_dds_freq Frequency is not finite\n");
         return;
     }
 

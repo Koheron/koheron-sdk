@@ -1,4 +1,8 @@
 # Add PS and AXI Interconnect
+# Optimize the routed AXI BRAM paths before Vivado saves the routed checkpoint.
+# The SDK stops implementation at route_design, so use its post-step hook.
+set_property STEPS.ROUTE_DESIGN.TCL.POST [file normalize $project_path/tcl/post_route.tcl] [get_runs impl_1]
+
 set board_preset $board_path/config/board_preset.tcl
 source $sdk_path/fpga/lib/starting_point.tcl
 

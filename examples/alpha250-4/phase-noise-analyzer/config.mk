@@ -13,7 +13,7 @@ CORES += $(SDK_PATH)/fpga/cores/latched_mux_v1_0
 CORES += $(SDK_PATH)/fpga/cores/tlast_gen_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_lfsr_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_unwrapper_v1_0
-CORES += $(SDK_PATH)/fpga/cores/boxcar_filter_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_prefilter_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
 CORES += $(PROJECT_PATH)/axis_stream_packet_mux_v1_0
 
@@ -29,5 +29,8 @@ WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
 WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
+
+# Board Tcl changes must invalidate the generated Vivado project as well.
+TCL_FILES = $(BD_TCL) $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(BOARD_PATH)/config/board_preset.tcl
 
 OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi

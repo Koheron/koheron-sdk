@@ -62,7 +62,9 @@ set adc_chans {00 01 10 11}
 for {set i 0} {$i < 4} {incr i} {
     set adc_chan [lindex $adc_chans $i]
 
-    cordic::create cordic$i
+    # Separate initial states for mixer and prefilter rounding in each channel.
+    set rounding_seeds {0x9e3779b97f4a7c15 0xd1b54a32d192ed03 0x94d049bb133111eb 0x8538ecb5bd456ea3}
+    cordic::create cordic$i [lindex $rounding_seeds $i]
 
     connect_cell cordic$i {
         s_axis_data_a [get_concat_pin [list adc/adc$adc_chan [get_constant_pin 0 16]]]
@@ -79,7 +81,10 @@ for {set i 0} {$i < 4} {incr i} {
     cell xilinx.com:ip:mult_gen:12.0 scaler$i {
       PortAWidth 32
       PortBWidth 32
-      OutputWidthHigh 31
+      PortAType Signed
+      PortBType Signed
+      OutputWidthHigh 61
+      OutputWidthLow 30
       Use_Custom_Output_Width true
       PipeStages 5
     } {

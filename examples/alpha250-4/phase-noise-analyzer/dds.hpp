@@ -6,6 +6,7 @@
 #define __DRIVERS_DDS_HPP__
 
 #include <array>
+#include <mutex>
 
 class ClockGenerator;
 
@@ -16,6 +17,7 @@ class Dds
     void set_dds_freq(uint32_t channel, double freq_hz, bool verbose);
 
     auto get_dds_freq(uint32_t channel) {
+        std::lock_guard lock(mutex);
         if (channel >= dds_freq.size()) {
             return 0.0;
         }
@@ -23,6 +25,7 @@ class Dds
     }
 
   private:
+    std::mutex mutex;
     ClockGenerator& clk_gen;
     std::array<double, 4> dds_freq = {{0.0, 0.0, 0.0, 0.0}};
 };

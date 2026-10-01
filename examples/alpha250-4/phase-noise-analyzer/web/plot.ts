@@ -5,21 +5,27 @@ class Plot {
   public n_pts: number;
   public plot: jquery.flot.plot;
   public plot_data: Array<Array<number>>;
+  public signed_phase_psd: Float32Array = new Float32Array(0);
   public smooth_plot_data: Array<Array<number>>;
+  private negative_plot_data: number[][] = [];
+  private negative_smooth_data: number[][] = [];
+  private linear_plot_data: Array<Array<number>>;
   private samplingFrequency: number;
   private decadeValuesTable: HTMLTableElement;
 
   private laserPlotTypeInputs: HTMLInputElement[];
   private showSmoothedInput: HTMLInputElement;
   private laserPlotType: 'phase' | 'frequency' = 'phase';
+  private displayedChannel: number;
 
-  public yLabel: string = "PHASE NOISE (dBc/Hz)";
+  public yLabel: string = "PHASE NOISE MAGNITUDE (dBc/Hz)";
   private peakDatapoint: number[];
 
   constructor(document: Document, private driver: PhaseNoiseAnalyzer, public plotBasics: PlotBasics) {
     this.peakDatapoint = [];
     this.plot_data = [];
     this.smooth_plot_data = [];
+    this.linear_plot_data = [];
     this.init();
     this.decadeValuesTable = <HTMLTableElement>document.getElementById('decade-values-table');
     this.updatePlot();
@@ -30,6 +36,7 @@ class Plot {
     this.samplingFrequency = this.driver.parameters.fs;
     this.setFreqAxis();
     this.plotBasics.setLogX();
+    this.plotBasics.setLinY(); // Autoscale the first spectrum, then retain user zoom.
     this.plotBasics.enableDecimation();
 
     this.initLaserPlotType();
@@ -43,7 +50,13 @@ class Plot {
 
     const syncPlotType = () => {
       const selected = this.laserPlotTypeInputs.find(i => i.checked);
-      this.laserPlotType = (selected?.value as 'phase' | 'frequency') ?? 'phase';
+      const nextType = (selected?.value as 'phase' | 'frequency') ?? 'phase';
+      if (nextType !== this.laserPlotType) {
+        this.laserPlotType = nextType;
+        // Flot rebuilds its legend on setupGrid, rather than setData/draw.
+        // Recompute the Y range when changing units and retain the X range.
+        this.plotBasics.setLinY();
+      }
     };
 
     this.laserPlotTypeInputs.forEach(input => {
@@ -61,9 +74,10 @@ class Plot {
       return;
     }
 
-    if (typeof this.showSmoothedInput.checked !== 'boolean') {
-      this.showSmoothedInput.checked = true;
-    }
+    this.showSmoothedInput.addEventListener('change', () => {
+      // Rebuild the legend without resetting the user's axis ranges.
+      this.plotBasics.refreshLegend();
+    });
   }
 
   setFreqAxis(): void {
@@ -74,6 +88,7 @@ class Plot {
 
     for (let i = 0; i < this.n_pts; i++) {
       this.plot_data[i][0] = i * df;
+      this.linear_plot_data[i][0] = i * df;
       this.smooth_plot_data[i][0] = i * df;
     }
 
@@ -125,21 +140,17 @@ class Plot {
           break;
         }
 
-        const db = this.plot_data[i][1];
+        const value = this.linear_plot_data[i][1];
 
-        if (Number.isFinite(db)) {
-          sumLinear += Math.pow(10, db / 10);
+        if (Number.isFinite(value)) {
+          sumLinear += value;
           count++;
         }
       }
 
       let value: number;
 
-      if (count > 0) {
-        value = 10 * Math.log10(sumLinear / count);
-      } else {
-        value = this.interpolateNearestValid(freq);
-      }
+      value = count > 0 && sumLinear > 0 ? 10 * Math.log10(sumLinear / count) : NaN;
 
       decadeValues.push([freq, value]);
     }
@@ -147,59 +158,18 @@ class Plot {
     return decadeValues;
   }
 
-  private interpolateNearestValid(freq: number): number {
-    const data = this.plot_data;
-    const N = data.length;
-
-    let i1 = 0;
-
-    while (i1 < N && data[i1][0] < freq) {
-      i1++;
-    }
-
-    let i0 = i1 - 1;
-
-    while (i0 >= 0 && !Number.isFinite(data[i0][1])) {
-      i0--;
-    }
-
-    while (i1 < N && !Number.isFinite(data[i1][1])) {
-      i1++;
-    }
-
-    if (i0 >= 0 && i1 < N) {
-      const f0 = data[i0][0];
-      const f1 = data[i1][0];
-      const v0 = data[i0][1];
-      const v1 = data[i1][1];
-
-      const t = (freq - f0) / (f1 - f0);
-      return v0 + (v1 - v0) * t;
-    }
-
-    if (i0 >= 0) {
-      return data[i0][1];
-    }
-
-    if (i1 < N) {
-      return data[i1][1];
-    }
-
-    return NaN;
-  }
-
   private setDecadeValuesTable(): void {
     const decade_values = this.getDecadeValues();
 
     this.decadeValuesTable.innerHTML = `
       <colgroup>
-        <col style="width:250px">
+        <col style="width:50%">
         <col>
       </colgroup>
       <thead>
         <tr>
           <th>Carrier Offset Frequency</th>
-          <th>Phase Noise</th>
+          <th>${this.laserPlotType === 'phase' ? 'Phase Noise' : 'Frequency Noise'}</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -213,7 +183,7 @@ class Plot {
       freqCell.innerHTML = this.frequencyFormater(value[0]);
 
       const valueCell = row.insertCell(1);
-      valueCell.innerHTML = Number.isFinite(value[1]) ? `${value[1].toFixed(2)} dBc/Hz` : '---';
+      valueCell.innerHTML = Number.isFinite(value[1]) ? `${value[1].toFixed(2)} ${this.laserPlotType === 'phase' ? 'dBc/Hz' : 'dB Hz²/Hz'}` : 'Nonpositive estimate';
     }
   }
 
@@ -222,13 +192,17 @@ class Plot {
   }
 
   private _busy = false;
-  private _targetHz = 60; // plot update cadence
+  private _targetHz = 10; // plot update cadence
   private _lastTick = 0;
   private _loBackoffMs = 250; // slower polling when LO is off
 
   private ensurePlotBuffer() {
     if (!this.plot_data || this.plot_data.length !== this.n_pts) {
       this.plot_data = Array.from({ length: this.n_pts }, () => [0, NaN]);
+    }
+
+    if (!this.linear_plot_data || this.linear_plot_data.length !== this.n_pts) {
+      this.linear_plot_data = Array.from({ length: this.n_pts }, () => [0, NaN]);
     }
 
     if (!this.smooth_plot_data || this.smooth_plot_data.length !== this.n_pts) {
@@ -241,9 +215,10 @@ class Plot {
   }
 
   private computeSmoothedPlot(nstart: number): void {
-    const src = this.plot_data;
+    const src = this.linear_plot_data;
     const dst = this.smooth_plot_data;
     const N = this.n_pts;
+    this.negative_smooth_data = [];
 
     const halfWidthDecades = 0.05;
     const scale = Math.pow(10, halfWidthDecades);
@@ -259,17 +234,17 @@ class Plot {
     let cnt = 0;
 
     const add = (j: number) => {
-      const db = src[j][1];
-      if (Number.isFinite(db)) {
-        sumLinear += Math.pow(10, db / 10);
+      const value = src[j][1];
+      if (Number.isFinite(value)) {
+        sumLinear += value;
         cnt++;
       }
     };
 
     const remove = (j: number) => {
-      const db = src[j][1];
-      if (Number.isFinite(db)) {
-        sumLinear -= Math.pow(10, db / 10);
+      const value = src[j][1];
+      if (Number.isFinite(value)) {
+        sumLinear -= value;
         cnt--;
       }
     };
@@ -295,9 +270,23 @@ class Plot {
         j0++;
       }
 
-      dst[i][1] = cnt > 0
-        ? 10 * Math.log10(sumLinear / cnt)
-        : NaN;
+      // Average signed estimates BEFORE taking the magnitude for display.
+      const mean = cnt > 0 ? sumLinear / cnt : NaN;
+      dst[i][1] = Number.isFinite(mean) && mean !== 0
+        ? 10 * Math.log10(Math.abs(mean)) : NaN;
+      if (mean < 0) this.negative_smooth_data.push([fi, dst[i][1]]);
+    }
+  }
+
+  private computeDisplaySpectrum(phaseNoise: Float32Array, nstart: number): void {
+    this.negative_plot_data = [];
+    for (let i = 0; i < this.n_pts; i++) {
+      const f = this.plot_data[i][0];
+      const value = phaseNoise[i] * (this.laserPlotType === 'phase' ? 0.5 : f ** 2);
+      this.linear_plot_data[i][1] = i >= nstart - 1 ? value : NaN;
+      this.plot_data[i][1] = i >= nstart - 1 && Number.isFinite(value) && value !== 0
+        ? 10 * Math.log10(Math.abs(value)) : NaN;
+      if (i >= nstart - 1 && value < 0) this.negative_plot_data.push([f, this.plot_data[i][1]]);
     }
   }
 
@@ -322,7 +311,7 @@ class Plot {
     this._lastTick = now;
 
     try {
-      const ddsFreq = await app.dds.getDDSFreq(this.driver.parameters.channel);
+      const ddsFreq = await app.dds.getDDSFreq(this.driver.parameters.channel === 1 ? 2 : 0);
 
       const plotEmptyDiv: HTMLElement = document.getElementById('plot-empty')!;
 
@@ -341,6 +330,7 @@ class Plot {
       }
 
       const phaseNoise: Float32Array = await this.driver.getPhaseNoise();
+      this.signed_phase_psd = phaseNoise;
 
       if (this.n_pts !== phaseNoise.length) {
         this.n_pts = phaseNoise.length;
@@ -349,26 +339,14 @@ class Plot {
 
       this.ensurePlotBuffer();
 
-      const plot = this.plot_data;
-      const N = this.n_pts;
       const nstart = 3;
-      const DB10 = 10 * Math.LOG10E;
-      const SHIFT = DB10 * Math.log(0.5);
-
-      for (let i = 0; i < nstart - 1; i++) {
-        plot[i][1] = NaN;
+      if (this.displayedChannel !== this.driver.parameters.channel) {
+        this.displayedChannel = this.driver.parameters.channel;
+        this.plotBasics.setLinY();
       }
-
-      if (this.laserPlotType === 'phase') {
-        for (let i = nstart - 1; i < N; i++) {
-          plot[i][1] = DB10 * Math.log(phaseNoise[i]) + SHIFT; // rad²/Hz => dBc/Hz
-        }
-      } else { // Frequency noise
-        for (let i = nstart - 1; i < N; i++) {
-          // plot[i][1] = DB10 * (2 * Math.log(plot[i][0]) + Math.log(phaseNoise[i])) + SHIFT; // rad²/Hz => dBc/Hz
-          plot[i][1] = 10 * Math.log10(phaseNoise[i]) + 20 * Math.log10(plot[i][0]); // dB Hz²/Hz
-        }
-      }
+      this.yLabel = this.laserPlotType === 'phase'
+        ? "PHASE NOISE MAGNITUDE (dBc/Hz)" : "FREQUENCY NOISE MAGNITUDE (dB Hz²/Hz)";
+      this.computeDisplaySpectrum(phaseNoise, nstart);
 
       this.computeSmoothedPlot(nstart);
       this.setDecadeValuesTable();
@@ -387,7 +365,11 @@ class Plot {
           setTimeout(() => requestAnimationFrame(() => this.updatePlot()), delay);
         },
         smoothedVisible ? this.smooth_plot_data : undefined,
-        `${this.yLabel} (smoothed)`
+        `${this.yLabel} (smoothed)`,
+        this.displayedChannel === 2 ? [{ label: 'Negative estimate', data: this.negative_plot_data, color: '#c43b36',
+           lines: { show: false }, points: { show: true, radius: 1.5, lineWidth: 1 } },
+         ...(smoothedVisible ? [{ label: 'Negative smoothed estimate', data: this.negative_smooth_data,
+           color: '#c43b36', lines: { show: false }, points: { show: true, radius: 3, lineWidth: 1 } }] : [])] : []
       );
     } catch (err) {
       console.error('updatePlot error:', err);

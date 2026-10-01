@@ -52,6 +52,7 @@ def acquire_segment(driver, min_frequency, min_count):
         "f_min": f_min,
         "f_max": f_max,
         "phase_noise": phase_noise,
+        "phase_psd": driver.last_phase_psd.copy(),
         "smoothed": smoothed,
     }
 

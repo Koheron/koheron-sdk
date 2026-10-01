@@ -18,14 +18,14 @@ module phase_unwrapper #
   localparam PI = 2**(DIN_WIDTH-3);
   localparam TWOPI = 2**(DIN_WIDTH-2);
 
+  reg signed [DIN_WIDTH-1:0] phase_in0;
+  reg signed [DIN_WIDTH+1-1:0] diff;
+  reg signed [DIN_WIDTH+1-1:0] unwrapped_diff;
+
   initial phase_out = 0;
   initial unwrapped_diff = 0;
   initial phase_in0 = 0;
   initial diff = 0;
-
-  reg signed [DIN_WIDTH-1:0] phase_in0;
-  reg signed [DIN_WIDTH+1-1:0] diff;
-  reg signed [DIN_WIDTH+1-1:0] unwrapped_diff;
 
   // Compute phase difference
   always @(posedge clk) begin

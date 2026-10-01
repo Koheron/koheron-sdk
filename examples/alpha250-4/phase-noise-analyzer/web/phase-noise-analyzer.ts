@@ -4,7 +4,7 @@
 type TupleGetParameters = [number, number, number, number, number, number, number, number, number, number, number];
 
 interface IParameters {
-  data_size: number; // fft_size/2
+  data_size: number; // spectrum bin count
   fs: number;        // Sampling frequency (Hz)
   channel: number;   // Acquired channel
   min_freq: number;
@@ -72,7 +72,7 @@ class PhaseNoiseAnalyzer {
     const [phase_jitter, time_jitter, freq_lo, freq_hi, carrier_power] =
       await this.client.readTuple<TupleGetMeasurements>(
         Command(this.id, this.cmds['get_measurements'], nAverage),
-        'ffffd'
+        'fdddd'
       );
 
     return { phase_jitter, time_jitter, freq_lo, freq_hi, carrier_power };
@@ -96,7 +96,7 @@ class PhaseNoiseAnalyzer {
       tracking_last_error, tracking_locked] =
       await this.client.readTuple<TupleGetTrackingParameters>(
         Command(this.id, this.cmds['get_tracking_parameters']),
-        '?ffffff?'
+        '?ddddfd?'
       );
 
     return {
