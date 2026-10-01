@@ -104,7 +104,7 @@ class FifoSpectralAnalyzer {
             if (seg_cnt == Cfg::n_pts) {
                 seg_cnt = 0;
                 std::lock_guard lock(mutex);
-                averager.append(spectrum.periodogram<sig::DENSITY, false>(seg_data));
+                averager.append(spectrum.periodogram<sig::SpectrumScaling::DENSITY, false>(seg_data));
 
                 if (averager.full()) {
                     psd = averager.average();

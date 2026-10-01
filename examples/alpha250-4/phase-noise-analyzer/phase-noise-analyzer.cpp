@@ -347,12 +347,10 @@ auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
 
     auto phase_psd = stitch_segments(s0, s1, s2);
 
-    if (fft_navg > 1) {
-        averager.append(std::move(phase_psd));
-        return averager.average();
-    }
-
-    return phase_psd;
+    // Keep the one-window history current when averaging is disabled so growing
+    // the window cannot bring back spectra from before the unaveraged interval.
+    averager.append(std::move(phase_psd));
+    return averager.average();
 }
 
 auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x,
