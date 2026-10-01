@@ -214,7 +214,7 @@ if [ -f "$os_path/scripts/chroot_overlay.sh" ]; then
 fi
 
 # Remove qemu helper from the target rootfs
-rm -f "$root_dir/usr/bin/qemu-a*" 2>/dev/null || true
+rm -f "$root_dir/usr/bin/$(basename "$qemu_path")"
 
 # --- Unmount file systems ---
 umount "$boot_dir"
