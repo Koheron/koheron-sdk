@@ -183,7 +183,7 @@ set_property -dict [list \
     CONFIG.PCW_MIO_18_DIRECTION {out}  \
     CONFIG.PCW_MIO_18_SLEW {fast}  \
     CONFIG.PCW_MIO_19_PULLUP {disabled}  \
-    CONFIG.PCW_MIO_19_IOTYPE {out}  \
+    CONFIG.PCW_MIO_19_IOTYPE {LVCMOS 2.5V}  \
     CONFIG.PCW_MIO_19_DIRECTION {out}  \
     CONFIG.PCW_MIO_19_SLEW {fast}  \
     CONFIG.PCW_MIO_20_PULLUP {disabled}  \
