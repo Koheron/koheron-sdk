@@ -9,6 +9,7 @@
 #include <array>
 #include <optional>
 #include <mutex>
+#include <condition_variable>
 #include <algorithm>
 #include <thread>
 #include <tuple>
@@ -36,6 +37,7 @@ class PhaseDma
 
     ~PhaseDma() {
         acquisition_started.store(false, std::memory_order_release);
+        configuration_ready.notify_all();
         if (acq_thread.joinable()) {
             acq_thread.join();
         }
@@ -51,7 +53,7 @@ class PhaseDma
     void configure_sampling(Frequency sampling, Apply&& apply) {
         // Keep a live rate change between complete X/Y transfers so a transfer
         // cannot use the old timeout while the FPGA is producing at the new rate.
-        std::lock_guard lock(transfer_mtx);
+        ConfigurationRequest request{configuration_requests, configuration_ready, transfer_mtx};
         set_fs(sampling);
         apply();
     }
@@ -111,6 +113,24 @@ class PhaseDma
     hw::Memory<mem::ram>& ram;
     DmaS2MM& dma;
     std::mutex transfer_mtx;
+    std::atomic<uint32_t> configuration_requests{0};
+    std::condition_variable configuration_ready;
+
+    struct ConfigurationRequest {
+        std::atomic<uint32_t>& pending;
+        std::condition_variable& ready;
+        std::unique_lock<std::mutex> lock;
+        ConfigurationRequest(std::atomic<uint32_t>& pending_, std::condition_variable& ready_,
+                             std::mutex& mutex)
+        : pending(pending_), ready(ready_), lock(mutex, std::defer_lock) {
+            pending.fetch_add(1, std::memory_order_acq_rel);
+            lock.lock();
+        }
+        ~ConfigurationRequest() {
+            pending.fetch_sub(1, std::memory_order_acq_rel);
+            ready.notify_all();
+        }
+    };
     std::atomic<Time> chunk_duration{Time(0.0f)};
     std::atomic<uint64_t> write_count{0};
 
@@ -139,7 +159,14 @@ class PhaseDma
 
         uint64_t count = 0;
         while (acquisition_started.load(std::memory_order_acquire)) {
-            std::lock_guard lock(transfer_mtx);
+            std::unique_lock lock(transfer_mtx);
+            // Give queued configuration calls the next complete-pair boundary.
+            // Mutex acquisition alone does not guarantee a waiting caller a turn.
+            configuration_ready.wait(lock, [this] {
+                return configuration_requests.load(std::memory_order_acquire) == 0 ||
+                       !acquisition_started.load(std::memory_order_acquire);
+            });
+            if (!acquisition_started.load(std::memory_order_acquire)) break;
             const uint32_t idx = count % n_chunks;
             const uint32_t byte_offset = idx * chunk_bytes;
 

@@ -3,6 +3,7 @@
 /// (c) Koheron
 
 #include "./phase-noise-analyzer.hpp"
+#include "./phase-spectrum.hpp"
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
@@ -21,202 +22,9 @@ namespace sci = scicpp;
 namespace sig = scicpp::signal;
 
 namespace {
-
-constexpr std::size_t fft_decimation_steps = 2;
-constexpr float fir_cutoff = 0.030f;
-constexpr std::size_t fir_ntaps = 161;
-constexpr float stitch_fraction = 0.2f;
-constexpr float min_compensation_H2 = 0.80f;
+using namespace pna_spectrum;
 constexpr float tracking_sign_x = +1.0f;
 constexpr float tracking_sign_y = +1.0f;
-
-constexpr std::size_t fir_delay = fir_ntaps / 2;
-
-// Choose final /100 length.
-// Needs: 100 * d2_size + 11 * fir_delay <= base_size
-constexpr std::size_t decimated2_size = 300;
-constexpr std::size_t decimated1_size = 10 * decimated2_size;
-constexpr std::size_t decimated0_size = 10 * decimated1_size;
-
-// Temporary d1 must be longer so second decimation can discard FIR delay.
-constexpr std::size_t decimated1_tmp_size = decimated1_size + fir_delay;
-
-// First-stage input needed to produce decimated1_tmp_size.
-constexpr std::size_t decimation_input_size =
-    10 * decimated1_tmp_size + fir_delay;
-
-static_assert(decimation_input_size <= 32000);
-
-template <std::size_t Ntaps>
-constexpr auto make_lowpass_fir(float cutoff) {
-    static_assert(Ntaps % 2 == 1);
-
-    std::array<float, Ntaps> h{};
-
-    constexpr std::size_t center = Ntaps / 2;
-    float sum = 0.0f;
-
-    for (std::size_t n = 0; n < Ntaps; ++n) {
-        const int m = int(n) - int(center);
-
-        float sinc;
-        if (n == center) {
-            sinc = 2.0f * cutoff;
-        } else {
-            sinc = std::sin(2.0f * sci::pi<float> * cutoff * float(m))
-                 / (sci::pi<float> * float(m));
-        }
-
-        const float w = 0.42f
-                      - 0.5f * std::cos(2.0f * sci::pi<float> * float(n) / float(Ntaps - 1))
-                      + 0.08f * std::cos(4.0f * sci::pi<float> * float(n) / float(Ntaps - 1));
-
-        h[n] = sinc * w;
-        sum += h[n];
-    }
-
-    for (auto& v : h) {
-        v /= sum;
-    }
-
-    return h;
-}
-
-template <typename T, std::size_t M, std::size_t N, std::size_t Ntaps = fir_ntaps>
-auto decimate_by_10_fir_exact(const std::array<T, N>& in) {
-    static_assert(Ntaps % 2 == 1);
-
-    constexpr auto b = make_lowpass_fir<Ntaps>(fir_cutoff);
-    constexpr std::array<float, 1> a{1.0f};
-    constexpr std::size_t delay = Ntaps / 2;
-
-    static_assert(10 * M + delay <= N);
-
-    const auto filtered = sig::lfilter(b, a, in);
-
-    std::array<T, M> out{};
-
-    for (std::size_t i = 0; i < M; ++i) {
-        out[i] = filtered[10 * i + delay];
-    }
-
-    return out;
-}
-
-template <typename T, std::size_t M, std::size_t N>
-auto take_prefix(const std::array<T, N>& in) {
-    static_assert(M <= N);
-
-    std::array<T, M> out{};
-
-    for (std::size_t i = 0; i < M; ++i) {
-        out[i] = in[i];
-    }
-
-    return out;
-}
-
-template <std::size_t Steps, typename T, std::size_t N>
-auto build_decimation_chain(const std::array<T, N>& input) {
-    static_assert(Steps == 2, "This exact-duration chain is currently written for two decimation stages.");
-    static_assert(decimation_input_size <= N);
-
-    // x0, x1, x2 have exactly the same time duration:
-    // x0: 30000 samples @ fs
-    // x1: 3000 samples @ fs / 10
-    // x2: 300 samples @ fs / 100
-    auto x0_for_filter = take_prefix<T, decimation_input_size>(input);
-
-    auto x1_tmp = decimate_by_10_fir_exact<T, decimated1_tmp_size>(x0_for_filter);
-    auto x2     = decimate_by_10_fir_exact<T, decimated2_size>(x1_tmp);
-
-    auto x0 = take_prefix<T, decimated0_size>(input);
-    auto x1 = take_prefix<T, decimated1_size>(x1_tmp);
-
-    return std::tuple{x0, x1, x2};
-}
-
-template <typename Arr>
-auto welch_density(sig::Spectrum<float>& sp,
-                   Arr& data,
-                   sci::units::frequency<float> fs) {
-    sp.fs(fs);
-    sp.window(sig::windows::hann<float>(data.size()));
-    return sp.welch<sig::SpectrumScaling::DENSITY, false>(data);
-}
-
-template <typename ArrX, typename ArrY>
-auto csd_density(sig::Spectrum<float>& sp,
-                 ArrX& x,
-                 ArrY& y,
-                 sci::units::frequency<float> fs) {
-    sp.fs(fs);
-    sp.window(sig::windows::hann<float>(x.size()));
-    return sp.csd<sig::SpectrumScaling::DENSITY, false>(x, y);
-}
-
-template <std::size_t Ntaps = fir_ntaps>
-float decimate_by_10_fir_mag2(sci::units::dimensionless<float> f_norm) {
-    constexpr auto h = make_lowpass_fir<Ntaps>(fir_cutoff);
-    constexpr auto pi = sci::pi<sci::units::radian<float>>;
-
-    std::complex<float> H{0.0f, 0.0f};
-
-    for (std::size_t n = 0; n < Ntaps; ++n) {
-        const auto phi = -2.0f * pi * f_norm * float(n);
-        H += h[n] * std::complex<float>{sci::cos(phi), sci::sin(phi)};
-    }
-
-    return std::norm(H);
-}
-
-template <typename SpectrumLike>
-void compensate_decimated_psd(SpectrumLike& s,
-                              sci::units::frequency<float> fs_segment,
-                              sci::units::frequency<float> fs_original,
-                              std::size_t decimation_level) {
-    const auto df = fs_segment / float(2 * (s.size() - 1));
-
-    for (std::size_t k = 1; k < s.size(); ++k) {
-        const auto f = float(k) * df;
-
-        float H2 = 1.0f;
-
-        for (std::size_t stage = 0; stage < decimation_level; ++stage) {
-            const auto fs_stage = fs_original / std::pow(10.0f, float(stage));
-            H2 *= decimate_by_10_fir_mag2(f / fs_stage);
-        }
-
-        if (H2 > min_compensation_H2) {
-            s[k] = s[k] / H2;
-        }
-    }
-}
-
-template <typename Spectrum0, typename Spectrum1, typename Spectrum2>
-auto stitch_segments(const Spectrum0& s0,
-                     const Spectrum1& s1,
-                     const Spectrum2& s2) {
-    auto out = s0;
-
-    // Since x0/x1/x2 have exactly equal duration, df is identical.
-    // Therefore bin-index stitching is valid again.
-    const auto k21 = std::size_t(stitch_fraction * float(s2.size()));
-    const auto k10 = std::size_t(stitch_fraction * float(s1.size()));
-
-    for (std::size_t k = 0; k < out.size(); ++k) {
-        if (k < k21) {
-            out[k] = s2[k];
-        } else if (k < k10) {
-            out[k] = s1[k];
-        } else {
-            out[k] = s0[k];
-        }
-    }
-
-    return out;
-}
-
 } // namespace
 
 PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
@@ -296,6 +104,10 @@ void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t channel, double freq_hz) 
 
 void PhaseNoiseAnalyzer::set_tracking_enabled(bool enabled) {
     std::unique_lock lk(data_mtx);
+    if (tracking_enabled != enabled) {
+        tracking_locks = {};
+        tracking_locked = false;
+    }
     tracking_enabled = enabled;
 }
 
@@ -340,8 +152,9 @@ void PhaseNoiseAnalyzer::configure_cic_rate(uint32_t rate) {
     }
 
     cic_rate = rate;
+    cic_output_scale = cic_gain_compensation(rate, prm::cic_n_stages, prm::cic_differential_delay);
     fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
-    min_frequency = 2.0 * fs / spectrum_samples;
+    min_frequency = 2.0 * fs / double(spectrum_samples);
     logf("Sampling frequency = {} Hz\n", fs.eval());
     logf("Minimum frequency = {} Hz (cic_rate = {})\n", min_frequency.eval(), cic_rate);
     dma_transfer_duration = data_size / fs;
@@ -388,7 +201,7 @@ double PhaseNoiseAnalyzer::carrier_power(uint32_t navg) {
     double res = 0.0;
 
     for (uint32_t i=0; i<navg; ++i) {
-        if (channel == 0) {
+        if (channel != InputChannel::Y) {
             demod_raw = sts.read<reg::demod0, uint32_t>();
         } else {
             demod_raw = sts.read<reg::demod2, uint32_t>();
@@ -521,10 +334,7 @@ auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
     constexpr std::size_t base_size = 32000;
     static_assert(base_size <= data_size, "base_size must fit acquisition buffer");
 
-    std::array<Phase, base_size> d0{};
-    for (std::size_t i = 0; i < base_size; ++i) {
-        d0[i] = new_phase[i];
-    }
+    auto d0 = detrended_phase_prefix<base_size>(new_phase);
 
     auto [x0, x1, x2] = build_decimation_chain<fft_decimation_steps>(d0);
 
@@ -532,8 +342,8 @@ auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
     auto s1 = welch_density(spectrum, x1, fs / 10.0f);
     auto s2 = welch_density(spectrum, x2, fs / 100.0f);
 
-    compensate_decimated_psd(s1, fs / 10.0f,  fs, 1);
-    compensate_decimated_psd(s2, fs / 100.0f, fs, 2);
+    compensate_decimated_psd<1>(s1);
+    compensate_decimated_psd<2>(s2);
 
     auto phase_psd = stitch_segments(s0, s1, s2);
 
@@ -547,44 +357,15 @@ auto PhaseNoiseAnalyzer::compute_phase_noise(PhaseDataArray& new_phase) {
 
 auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(PhaseDataArray& new_phase_x,
                                                      PhaseDataArray& new_phase_y) {
-    constexpr std::size_t base_size = 32000;
-    static_assert(base_size <= data_size, "base_size must fit acquisition buffer");
-
-    std::array<Phase, base_size> x0{};
-    std::array<Phase, base_size> y0{};
-
-    for (std::size_t i = 0; i < base_size; ++i) {
-        x0[i] = new_phase_x[i];
-        y0[i] = new_phase_y[i];
-    }
-
-    auto [dx0, dx1, dx2] = build_decimation_chain<fft_decimation_steps>(x0);
-    auto [dy0, dy1, dy2] = build_decimation_chain<fft_decimation_steps>(y0);
-
-    auto s0 = csd_density(spectrum, dx0, dy0, fs);
-    auto s1 = csd_density(spectrum, dx1, dy1, fs / 10.0f);
-    auto s2 = csd_density(spectrum, dx2, dy2, fs / 100.0f);
-
-    compensate_decimated_psd(s1, fs / 10.0f,  fs, 1);
-    compensate_decimated_psd(s2, fs / 100.0f, fs, 2);
-
-    auto phase_psd = stitch_segments(s0, s1, s2);
+    auto phase_psd = pna_spectrum::cross_density(new_phase_x, new_phase_y,
+        sci::units::frequency<float>{float(fs.eval())}, spectrum);
 
     averager_xy.append(phase_psd);
     return sci::real(averager_xy.average());
 }
 
-bool PhaseNoiseAnalyzer::phase_block_is_valid(const PhaseDataArray& p) {
-    return phase_block_valid<32000>(p);
-}
-
 PhaseNoiseAnalyzer::Phase PhaseNoiseAnalyzer::estimate_mean_dphi(const PhaseDataArray& p) const {
-    constexpr std::size_t n = 32000;
-    std::array<Phase, n - 1> dphi{};
-    for (std::size_t i = 1; i < n; ++i) {
-        dphi[i - 1] = p[i] - p[i - 1];
-    }
-    return sci::stats::mean(dphi);
+    return phase_slope_per_sample<32000>(p);
 }
 
 PhaseNoiseAnalyzer::Frequency PhaseNoiseAnalyzer::effective_tracking_bandwidth() const {
@@ -638,8 +419,6 @@ void PhaseNoiseAnalyzer::apply_tracking_update(Phase mean_dphi, Time block_durat
             tracking_max_correction
         );
         const auto corrected = base_dds_freq[dds_channel] - tracking_correction[dds_channel];
-        // logf("base_dds_freq = {:.12f}, tracking_correction = {:.12f}, corrected = {:.12f}\n",
-        //      base_dds_freq[dds_channel].eval(), tracking_correction[dds_channel].eval(), corrected.eval());
         dds.set_dds_freq(dds_channel, corrected.eval(), false);
     };
 
@@ -652,15 +431,7 @@ void PhaseNoiseAnalyzer::apply_tracking_update(Phase mean_dphi, Time block_durat
         apply_to_dut(DdsChannel::DUTY);
     }
 
-    // logf("tracking: dphi={:.6e}, raw_error={:.6e} Hz, clipped_error={:.6e} Hz, step={:.6e} Hz, corrX={:.9f} Hz, bw={:.6e} Hz\n",
-    //     mean_dphi.eval(),
-    //     raw_f_error.eval(),
-    //     f_error.eval(),
-    //     step.eval(),
-    //     tracking_correction[DdsChannel::DUTX].eval(),
-    //     bw.eval());
-
-    tracking_locked = sci::absolute(f_error) < 0.1f * tracking_max_step;
+    tracking_locked = tracking_locks[input_channel == Y ? 1 : 0].update(f_error.eval(), alpha, 0.1 * tracking_max_step.eval());
 }
 
 void PhaseNoiseAnalyzer::start_spectrum_analyzer() {
@@ -671,6 +442,8 @@ void PhaseNoiseAnalyzer::start_spectrum_analyzer() {
 }
 
 void PhaseNoiseAnalyzer::invalidate_acquisition() {
+    tracking_locks = {};
+    tracking_locked = false;
     averager.clear();
     averager_xy.clear();
     phase_noise.assign(spectrum_bins, PhaseNoiseDensity{});
@@ -702,11 +475,17 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
                 tracking_last_mean_dphi = Phase{0.0f};
                 tracking_last_error = Frequency{0.0f};
                 tracking_locked = false;
+                tracking_locks = {};
             }
         }
 
         auto snapshot = dma.read_xy<data_size>(consumed, spectrum_analyzer_started);
-        if (!snapshot) return;
+        if (!snapshot) {
+            std::unique_lock lk(data_mtx);
+            tracking_locked = false;
+            tracking_locks = {};
+            return;
+        }
 
         std::unique_lock lk(data_mtx);
         if (epoch != acquisition_epoch || reset_cumulative_requested.load(std::memory_order_acquire)) {
@@ -714,17 +493,8 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
         }
         const Time block_duration = double(snapshot->end_chunk - consumed) * PhaseDma::samples_per_chunk / fs;
         consumed = snapshot->end_chunk;
-        for (std::size_t i = 0; i < data_size; ++i) {
-            phase_x[i] = calib_factor * float(snapshot->x[i]) * float(phase_scale_x);
-            phase_y[i] = calib_factor * float(snapshot->y[i]) * float(phase_scale_y);
-        }
-
-        const bool valid_x = channel == Y || phase_block_is_valid(phase_x);
-        const bool valid_y = channel == X || phase_block_is_valid(phase_y);
-        if (!valid_x || !valid_y) {
-            logf("PhaseNoiseAnalyzer: rejected acquisition with phase discontinuity\n");
-            continue;
-        }
+        convert_relative_phase(snapshot->x, phase_x, calib_factor * float(cic_output_scale * phase_scale_x));
+        convert_relative_phase(snapshot->y, phase_y, calib_factor * float(cic_output_scale * phase_scale_y));
 
         const double f_dds = dds.get_dds_freq(channel == Y ? DUTY : DUTX);
         if (channel == X) {
@@ -735,9 +505,14 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
             apply_tracking_update(tracking_sign_y * estimate_mean_dphi(phase_y), block_duration, Y);
         } else {
             phase_noise = compute_crossed_phase_noise(phase_x, phase_y);
-            const auto mean_dphi = 0.5f * (tracking_sign_x * estimate_mean_dphi(phase_x)
-                                         + tracking_sign_y * estimate_mean_dphi(phase_y));
-            apply_tracking_update(mean_dphi, block_duration, XY);
+            apply_tracking_update(tracking_sign_x * estimate_mean_dphi(phase_x), block_duration, X);
+            const auto x_dphi = tracking_last_mean_dphi;
+            const auto x_error = tracking_last_error;
+            const bool x_locked = tracking_locked;
+            apply_tracking_update(tracking_sign_y * estimate_mean_dphi(phase_y), block_duration, Y);
+            tracking_last_mean_dphi = 0.5f * (x_dphi + tracking_last_mean_dphi);
+            tracking_last_error = 0.5 * (x_error + tracking_last_error);
+            tracking_locked = x_locked && tracking_locked;
         }
         compute_jitter(Frequency(f_dds));
     }
@@ -753,8 +528,8 @@ void PhaseNoiseAnalyzer::compute_jitter(Frequency f_dut) {
     } else {
         const std::size_t n_bins = phase_noise.size();
         const auto df = fs / float(2 * (phase_noise.size() - 1));
-        const auto f_min_avail = df;
-        const auto f_max_avail = (n_bins - 1) * df;
+        const auto f_min_avail = 2.0 * df;
+        const auto f_max_avail = 0.75 * (n_bins - 1) * df;
 
         auto log10f = [](Frequency f) {
             const auto fmin = std::numeric_limits<Frequency>::min();

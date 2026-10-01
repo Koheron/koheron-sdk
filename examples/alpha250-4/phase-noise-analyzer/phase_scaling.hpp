@@ -11,6 +11,15 @@ struct PhaseScaling {
     double output_scale;
 };
 
+inline double cic_gain_compensation(uint32_t rate, uint32_t stages, uint32_t delay) {
+    // PG140: programmable truncated output shifts by the current rate's bit growth.
+    // Input and output are both 32 bits, so DC gain is (R*M)^N / 2^ceil(log2((R*M)^N)).
+    const double gain = std::pow(double(rate) * delay, stages);
+    int exponent = 0;
+    const double fraction = std::frexp(gain, &exponent);
+    return std::ldexp(1.0, fraction <= 0.5 ? exponent - 1 : exponent) / gain;
+}
+
 inline PhaseScaling phase_scaling(double dut_hz, double reference_hz) {
     constexpr double unity = uint32_t{1} << 30;
     // A disabled oscillator has no meaningful frequency ratio.

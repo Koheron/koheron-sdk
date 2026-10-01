@@ -24,7 +24,8 @@
 #include "./cumulative_averager.hpp"
 #include "./phase-dma.hpp"
 #include "./phase_scaling.hpp"
-#include "./phase_validation.hpp"
+#include "./phase-processing.hpp"
+#include "./tracking_lock.hpp"
 
 namespace rt { class ConfigManager; }
 class Ltc2157;
@@ -45,7 +46,9 @@ class PhaseNoiseAnalyzer
     static constexpr uint32_t data_size = 2 * fft_size;
     static constexpr uint32_t spectrum_samples = 30000;
     static constexpr uint32_t spectrum_bins = spectrum_samples / 2 + 1;
-    static constexpr auto calib_factor = 4.196f * scicpp::pi<Phase> / 8192.0f;
+    // CORDIC uses pi/8192 radians/count. The normalized FPGA FIR's 32-bit
+    // output drops two additional accumulator bits, giving a DC gain of 1/4.
+    static constexpr auto calib_factor = 4.0f * scicpp::pi<Phase> / 8192.0f;
 
     static constexpr uint32_t fifo_depth = 32768;
     static constexpr std::size_t discard_acquisitions_after_reset = 2 * ((fifo_depth + PhaseDma::samples_per_chunk - 1) / PhaseDma::samples_per_chunk);
@@ -163,6 +166,7 @@ class PhaseNoiseAnalyzer
     PhaseDataArray phase_x{};
     PhaseDataArray phase_y{};
     double phase_scale_x = 1.0, phase_scale_y = 1.0;
+    double cic_output_scale = 1.0;
     uint64_t acquisition_epoch = 0;
 
     // Spectrum analyzer
@@ -200,6 +204,7 @@ class PhaseNoiseAnalyzer
     Phase tracking_last_mean_dphi{0.0f};
     Frequency tracking_last_error{0.0f};
     bool tracking_locked = false;
+    std::array<TrackingLock, 2> tracking_locks;
 
     // ----------------- Private functions
 
@@ -214,7 +219,6 @@ class PhaseNoiseAnalyzer
     double carrier_power(uint32_t navg);
     void configure_cic_rate(uint32_t rate);
     void invalidate_acquisition();
-    bool phase_block_is_valid(const PhaseDataArray& p);
     Frequency effective_tracking_bandwidth() const;
     Phase estimate_mean_dphi(const PhaseDataArray& p) const;
     void apply_tracking_update(Phase mean_dphi, Time block_duration, uint32_t input_channel);

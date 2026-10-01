@@ -26,11 +26,14 @@ int main() {
     auto wrap = dma.read_xy<65536>(2044, running);
     check(wrap);
     assert(wrap->end_chunk >= 2052);
+    const auto configuration_start = std::chrono::steady_clock::now();
     dma.configure_sampling(scicpp::units::frequency<float>{1e6f}, [&] {
         const auto completed = dma.completed_chunks();
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         assert(dma.completed_chunks() == completed);
     });
+    // Continuous acquisition must give a waiting configuration call a turn.
+    assert(std::chrono::steady_clock::now() - configuration_start < std::chrono::seconds(1));
     running.store(false);
     const auto before = std::chrono::steady_clock::now();
     assert(!dma.read_xy<65536>(UINT64_MAX, running));

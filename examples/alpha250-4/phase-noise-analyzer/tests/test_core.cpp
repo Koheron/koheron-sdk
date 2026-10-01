@@ -1,7 +1,8 @@
 #include "../moving_averager.hpp"
 #include "../acquisition_window.hpp"
 #include "../phase_scaling.hpp"
-#include "../phase_validation.hpp"
+#include "../phase-processing.hpp"
+#include "../tracking_lock.hpp"
 #include "server/network/serializer_deserializer.hpp"
 
 #include <cassert>
@@ -54,6 +55,14 @@ void test_windows() {
 }
 
 void test_scaling() {
+    for (uint32_t rate : {4u, 8u, 16u, 32u, 64u, 8192u})
+        assert(cic_gain_compensation(rate, 6, 1) == 1.0);
+    assert(std::abs(cic_gain_compensation(20, 6, 1) - 1.048576) < 1e-12);
+    assert(std::abs(cic_gain_compensation(100, 6, 1) - 1.099511627776) < 1e-12);
+    for (uint32_t rate = 4; rate <= 8192; ++rate) {
+        const double compensation = cic_gain_compensation(rate, 6, 1);
+        assert(compensation >= 1.0 && compensation < 2.0);
+    }
     const double unity = uint32_t{1} << 30;
     for (double ref : {10e6, 10e6 + 0.637, 80e6, 31e6}) {
         for (double dut : {1e6, 10e6, 25e6, 80e6}) {
@@ -76,19 +85,30 @@ void test_scaling() {
     assert(phase_scaling(10e6, 0.).reference == unity);
 }
 
-void test_phase_validation() {
+void test_phase_conversion_and_slope() {
     using Phase = scicpp::units::radian<float>;
     std::array<Phase, 32000> ramp{};
     for (std::size_t i = 0; i < ramp.size(); ++i) {
         ramp[i] = Phase{float(i) * 1e-4f + (i % 2 ? 1e-6f : -1e-6f)};
     }
-    assert(phase_block_valid<32000>(ramp));
-    ramp[16000] += Phase{0.1f};
-    assert(!phase_block_valid<32000>(ramp));
-    ramp[16000] += Phase{2.0f};
-    assert(!phase_block_valid<32000>(ramp));
+    assert(std::abs(phase_slope_per_sample<32000>(ramp).eval() - 1e-4f) < 1e-9f);
     ramp.fill(Phase{});
-    assert(phase_block_valid<32000>(ramp));
+    assert(phase_slope_per_sample<32000>(ramp).eval() == 0.0f);
+    std::mt19937 random(23);
+    std::normal_distribution<float> noise(0.0f, 0.001f);
+    for (std::size_t i = 0; i < ramp.size(); ++i)
+        ramp[i] = Phase{5.0f + float(i) * 1e-4f + noise(random)};
+    assert(std::abs(phase_slope_per_sample<32000>(ramp).eval() - 1e-4f) < 2e-8f);
+    // Preserve small increments despite large unwrap offsets.
+    std::array<int32_t, 32000> raw{};
+    for (std::size_t i = 0; i < raw.size(); ++i) raw[i] = 2000000000 + int32_t(i / 17);
+    convert_relative_phase(raw, ramp, Phase{0.0015f});
+    assert(ramp.front().eval() == 0.0f);
+    assert(std::abs(phase_slope_per_sample<32000>(ramp).eval() - 0.0015f / 17.f) < 1e-9f);
+    raw.fill(INT32_MIN);
+    raw.back() = INT32_MAX;
+    convert_relative_phase(raw, ramp, Phase{1.0f});
+    assert(ramp.back().eval() > 4e9f); // subtraction must not overflow int32_t
 }
 
 template<class Tuple>
@@ -101,10 +121,19 @@ void write_tuple(const char* path, Tuple tuple) {
 }
 
 int main(int argc, char** argv) {
+    TrackingLock lock;
+    assert(!lock.update(1.0, 0.02, 0.005));
+    for (int i = 0; i < 500; ++i) lock.update(i % 2 ? 0.03 : -0.03, 0.02, 0.005);
+    assert(lock.update(0.0, 0.02, 0.005));
+    assert(lock.update(0.05, 0.02, 0.005)); // an isolated noisy block is not unlock
+    for (int i = 0; i < 50; ++i) lock.update(0.2, 0.02, 0.005);
+    assert(!lock.update(0.2, 0.02, 0.005));
+    lock.reset();
+    assert(!lock.update(0.008, 0.02, 0.005)); // reset restores the tighter entry tolerance
     test_averager();
     test_windows();
     test_scaling();
-    test_phase_validation();
+    test_phase_conversion_and_slope();
     if (argc == 3) {
         using Phase = scicpp::units::radian<float>;
         using Time = scicpp::units::time<double>;
