@@ -4,12 +4,16 @@
 #ifndef SCICPP_CORE_META
 #define SCICPP_CORE_META
 
+#include "scicpp/core/macros.hpp"
+
 #include <Eigen/Dense>
 #include <array>
 #include <complex>
+#include <concepts>
 #include <cstdint>
 #include <cstdlib>
 #include <ratio>
+#include <span>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -41,43 +45,14 @@ template <typename T>
 using disable_if_complex = std::enable_if_t<!is_complex_v<T>, int>;
 
 //---------------------------------------------------------------------------------
-// is_iterable
+// concept Iterable
 //---------------------------------------------------------------------------------
 
-// https://stackoverflow.com/questions/13830158/check-if-a-variable-is-iterable
+template <class T>
+concept Iterable = std::ranges::input_range<std::remove_cvref_t<T>>;
 
-namespace detail {
-
-// To allow ADL with custom begin/end
-using std::begin;
-using std::end;
-
-template <typename T>
-auto is_iterable_impl(int)
-    -> decltype(begin(std::declval<T &>()) !=
-                    end(std::declval<T &>()), // begin/end and operator !=
-                void(),                       // Handle evil operator ,
-                ++std::declval<
-                    decltype(begin(std::declval<T &>())) &>(), // operator ++
-                void(*begin(std::declval<T &>())),             // operator*
-                std::true_type{});
-
-template <typename T>
-std::false_type is_iterable_impl(...);
-
-template <typename T>
-using is_iterable = decltype(detail::is_iterable_impl<T>(0));
-
-} // namespace detail
-
-template <typename T>
-constexpr bool is_iterable_v = detail::is_iterable<T>::value;
-
-template <typename... T>
-using disable_if_iterable = std::enable_if_t<(!is_iterable_v<T> || ...), int>;
-
-template <typename... T>
-using enable_if_iterable = std::enable_if_t<(is_iterable_v<T> && ...), int>;
+template <class T>
+concept NonIterable = !Iterable<T>;
 
 //---------------------------------------------------------------------------------
 // std::vector traits
@@ -110,6 +85,22 @@ struct is_std_array<std::array<Scalar, N>> : std::true_type {};
 
 template <class T>
 constexpr bool is_std_array_v = detail::is_std_array<T>::value;
+
+//---------------------------------------------------------------------------------
+// std::span traits
+//---------------------------------------------------------------------------------
+
+namespace detail {
+
+template <class T>
+struct is_std_span : std::false_type {};
+template <typename Scalar, std::size_t N>
+struct is_std_span<std::span<Scalar, N>> : std::true_type {};
+
+} // namespace detail
+
+template <class T>
+constexpr bool is_std_span_v = detail::is_std_span<T>::value;
 
 //---------------------------------------------------------------------------------
 // std::tuple traits
@@ -276,7 +267,8 @@ namespace detail {
 
 template <class From, class To>
 auto test_implicitly_convertible(int)
-    -> decltype(void(std::declval<void (&)(To)>()(std::declval<From>())),
+    -> decltype(static_cast<void>(
+                    (std::declval<void (&)(To)>()(std::declval<From>()))),
                 std::true_type{});
 
 template <class, class>
@@ -287,6 +279,27 @@ auto test_implicitly_convertible(...) -> std::false_type;
 template <class From, class To>
 constexpr bool is_implicitly_convertible_v =
     decltype(detail::test_implicitly_convertible<From, To>(0))::value;
+
+//---------------------------------------------------------------------------------
+// range_size
+//---------------------------------------------------------------------------------
+
+namespace detail {
+
+template <class R>
+struct range_size : std::integral_constant<std::size_t, std::dynamic_extent> {};
+
+template <class T, std::size_t N>
+struct range_size<std::array<T, N>> : std::integral_constant<std::size_t, N> {};
+
+template <class T, std::size_t N>
+struct range_size<std::span<T, N>> : std::integral_constant<std::size_t, N> {};
+
+} // namespace detail
+
+template <class T>
+constexpr std::size_t range_size_v =
+    detail::range_size<std::remove_cvref_t<T>>::value;
 
 } // namespace scicpp::meta
 

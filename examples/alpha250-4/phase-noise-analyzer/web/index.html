@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Phase noise · ALPHA250-4 · Koheron</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Koheron">
+  <meta charset="utf-8">
+
+  <!--http://stackoverflow.com/questions/49547/making-sure-a-web-page-is-not-cached-across-all-browsers-->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <link rel="shortcut icon" href="kbird.ico">
+  <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="_koheron.css">
+  <link rel="stylesheet" type="text/css" href="main.css">
+  <link rel="stylesheet" type="text/css" href="phase-noise-plot.css">
+  <link rel="stylesheet" type="text/css" href="phase-noise.css">
+
+  <script type="text/javascript" src="html-imports.min.js"></script>
+
+  <script type="text/javascript" src="jquery.min.js"></script>
+  <script type="text/javascript" src="bootstrap.min.js"></script>
+
+  <link rel="import" href="dds-frequency.html" data-parent="dds-frequency">
+  <link rel="import" href="reference-clock.html" data-parent="reference-clock">
+  <link rel="import" href="plot-basics.html" data-parent="plot-basics">
+  <link rel="import" href="export-file.html" data-parent="export-file">
+</head>
+
+<body class="pna-workspace">
+<header class="app-header">
+  <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
+  <h1>Phase noise</h1><span class="board-tag">ALPHA250-4</span>
+  <nav aria-label="Board navigation"><a href="/koheron">Instruments</a><a href="/koheron/logs_rate.html">Logs &amp; data rates</a></nav>
+</header>
+<main id="main">
+  <section class="instrument-toolbar" aria-label="Acquisition settings">
+    <div class="acquisition-controls">
+      <div class="control-field"><span class="control-label">Channel</span><div class="segmented">
+        <label><input type="radio" name="channel" value="0" checked class="channel-input" data-valuestr="0" data-command="setChannel"><span>|X|²</span></label>
+        <label><input type="radio" name="channel" value="1" class="channel-input" data-valuestr="1" data-command="setChannel"><span>|Y|²</span></label>
+        <label><input type="radio" name="channel" value="2" class="channel-input" data-valuestr="2" data-command="setChannel"><span>X·Y*</span></label>
+      </div></div>
+      <label class="control-field">Min offset (Hz)<input type="number" value="100" min="0.1" step="any" data-command="setMinFrequency" class="min-frequency-input"></label>
+      <label class="control-field">Averages<input type="number" value="1" min="1" step="1" max="200" class="plot-navg-input"></label>
+      <button type="button" class="reset-cumulative-averager-btn" title="Clear the cumulative cross-spectrum average">Reset average</button>
+      <div id="reference-clock"></div>
+    </div>
+    <div id="dds-frequency" class="oscillator-controls"></div>
+  </section>
+  <section class="spectrum-panel" aria-label="Noise spectrum">
+    <div class="spectrum-toolbar">
+      <div class="display-controls">
+        <div class="segmented">
+          <label><input type="radio" name="noise-plot-type" class="laser-plot-type" value="phase" checked><span>Phase noise</span></label>
+          <label><input type="radio" name="noise-plot-type" class="laser-plot-type" value="frequency"><span>Frequency noise</span></label>
+        </div>
+        <label class="toggle"><input type="checkbox" id="show-smoothed-trace" checked>Smoothed · 0.1 decade</label>
+      </div>
+      <div class="plot-actions"><div id="export-file"></div><button class="save-cfg" onclick="app.phaseNoiseAnalyzer.saveConfig()">Save config</button></div>
+    </div>
+    <div id="plot-wrap">
+      <div id="plot-placeholder" class="plot-placeholder" aria-label="Live noise spectrum"></div>
+      <div id="plot-basics"></div>
+      <div id="plot-empty" class="plot-empty hidden"><div class="plot-empty-card"><h4>Local oscillator not set</h4><p>Set the DDS frequency to start measurement.</p></div></div>
+    </div>
+    <div class="spectrum-readouts">
+      <div><span class="readout-label">Carrier</span><strong class="carrier-power-span">—</strong></div>
+      <div><span class="readout-label">Phase jitter</span><strong class="phase-jitter-span">—</strong></div>
+      <div><span class="readout-label">Time jitter</span><strong class="time-jitter-span">—</strong></div>
+      <span class="plot-help">Drag to zoom · Double-click to reset</span>
+    </div>
+    <p class="spectrum-note">Magnitude in dB · Red markers: negative estimates · Smoothing averages signed values first.</p>
+  </section>
+  <div class="measurement-details">
+    <section aria-label="Noise at decade offsets"><table id="decade-values-table"></table></section>
+    <details class="signal-details"><summary>Signal paths &amp; interpretation</summary>
+      <p>X = FFT{ Φ(DUT X) − Φ(REF X) }<br>Y = FFT{ Φ(DUT Y) − Φ(REF Y) }</p>
+      <p>Red markers identify negative cross-spectrum estimates. Their displayed magnitude is not a positive noise-power measurement. Nonpositive signed averages are unavailable in the decade table.</p>
+    </details>
+  </div>
+</main>
+
+  <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.selection.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.time.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.axislabels.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.canvas.js"></script>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

@@ -82,7 +82,8 @@ template<class T>
 inline bool parse_to(std::string_view s, T& out)
 requires(std::is_integral_v<T> && !std::is_same_v<T,bool>)
 {
-    s = trim(s);
+    const auto trimmed = trim(s);
+    s = trimmed;
     auto* b = s.data();
     auto* e = b + s.size();
     auto [p, ec] = std::from_chars(b, e, out, 10);
@@ -94,7 +95,8 @@ template<class T>
 inline bool parse_to(std::string_view s, T& out)
 requires(std::is_floating_point_v<T>)
 {
-    s = trim(s);
+    const auto trimmed = trim(s);
+    s = trimmed;
     auto* b = s.data();
     auto* e = b + s.size();
     auto [p, ec] = std::from_chars(b, e, out, std::chars_format::general);
@@ -105,7 +107,8 @@ requires(std::is_floating_point_v<T>)
 template<>
 inline bool parse_to<bool>(std::string_view s, bool& out)
 {
-    s = trim(s);
+    const auto trimmed = trim(s);
+    s = trimmed;
     int tmp{};
     if (parse_to<int>(s, tmp)) {
         if (tmp==0||tmp==1){
