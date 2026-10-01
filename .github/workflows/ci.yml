@@ -1,4 +1,4 @@
-name: Red Pitaya preset
+name: Configuration check
 
 on:
   pull_request:
@@ -9,16 +9,31 @@ permissions:
   contents: read
 
 concurrency:
-  group: red-pitaya-preset-${{ github.ref }}
+  group: configuration-check-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  red-pitaya-preset:
+  configurations:
     runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Check MIO electrical settings
-        run: tclsh boards/red-pitaya/tests/check_mio.tcl
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install YAML parser
+        run: python3 -m pip install --disable-pip-version-check PyYAML
+      - name: Validate instrument configurations
+        run: |
+          count=0
+          while IFS= read -r config; do
+            if ! python3 python/koheron/validate_config.py --cfg "$config" --no-color > /tmp/validate.log 2>&1; then
+              cat /tmp/validate.log
+              exit 1
+            fi
+            count=$((count + 1))
+          done < <(find examples -name config.mk | sort)
+          test "$count" -gt 0
+          echo "Validated $count instrument configurations"
