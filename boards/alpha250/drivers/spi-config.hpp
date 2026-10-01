@@ -2,6 +2,7 @@
 #define __ALPHA_DRIVERS_SPI_CONFIG_HPP__
 
 #include "server/hardware/memory_manager.hpp"
+#include "server/runtime/syslog.hpp"
 
 #include <cstdint>
 #include <mutex>

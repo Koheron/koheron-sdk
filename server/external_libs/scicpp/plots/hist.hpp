@@ -15,7 +15,7 @@
 
 namespace scicpp::plots {
 
-enum HistType : int { BAR, BARSTACKED, STEP, STEPFILLED };
+enum class HistType : int { BAR, BARSTACKED, STEP, STEPFILLED };
 
 namespace detail {
 
@@ -78,7 +78,7 @@ struct histplot : sciplot::Plot2D {
     HistVector m_hist;
     sciplot::Vec m_bins;
     bool m_logscale = false;
-    HistType m_hist_type = BAR;
+    HistType m_hist_type = HistType::BAR;
     double m_rwidth = 1.0;
 
     void redraw() {
@@ -87,7 +87,7 @@ struct histplot : sciplot::Plot2D {
         using HistTp = typename HistVector::value_type;
         using RepTp = units::representation_t<HistTp>;
 
-        if (m_hist_type == BAR) {
+        if (m_hist_type == HistType::BAR) {
             if constexpr (units::is_quantity_v<HistTp>) {
                 drawBoxes(
                     m_bins,
@@ -99,7 +99,7 @@ struct histplot : sciplot::Plot2D {
                 drawBoxes(m_bins, m_hist).fillColor(m_fill_color).labelNone();
             }
             boxWidthRelative(m_rwidth);
-        } else if (m_hist_type == STEPFILLED) {
+        } else if (m_hist_type == HistType::STEPFILLED) {
             if constexpr (units::is_quantity_v<HistTp>) {
                 drawStepsFilled(
                     m_bins,

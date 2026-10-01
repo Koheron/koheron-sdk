@@ -1,0 +1,33 @@
+/// DDS driver
+///
+/// (c) Koheron
+
+#ifndef __DRIVERS_DDS_HPP__
+#define __DRIVERS_DDS_HPP__
+
+#include <array>
+#include <mutex>
+
+class ClockGenerator;
+
+class Dds
+{
+  public:
+    Dds();
+    void set_dds_freq(uint32_t channel, double freq_hz, bool verbose);
+
+    auto get_dds_freq(uint32_t channel) {
+        std::lock_guard lock(mutex);
+        if (channel >= dds_freq.size()) {
+            return 0.0;
+        }
+        return dds_freq[channel];
+    }
+
+  private:
+    std::mutex mutex;
+    ClockGenerator& clk_gen;
+    std::array<double, 4> dds_freq = {{0.0, 0.0, 0.0, 0.0}};
+};
+
+#endif // __DRIVERS_DDS_HPP__

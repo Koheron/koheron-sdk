@@ -11,17 +11,16 @@
 #include <chrono>
 
 ClockGenerator::ClockGenerator()
-: ctl(hw::get_memory<mem::control>())
-, eeprom(rt::get_driver<Eeprom>())
+: eeprom(rt::get_driver<Eeprom>())
 , spi_cfg(services::require<SpiConfig>())
 {
-    std::ifstream ifile(filename);
+    std::ifstream ifile(filename.data());
 
     if (!ifile.good()) {
-        log("Clock generator: Not initialized");
+        log("Clock generator: Not initialized\n");
         is_clock_generator_initialized = false;
     } else {
-        log("Clock generator: Already initialized");
+        log("Clock generator: Already initialized\n");
     }
 }
 
@@ -45,10 +44,10 @@ int32_t ClockGenerator::set_tcxo_clock(uint8_t value) {
 }
 
 void ClockGenerator::init() {
-    log("Clock generator: Setting default configuration ...");
+    log("Clock generator: Setting default configuration ...\n");
     std::array<uint8_t, 1> cal_array;
     eeprom.read<eeprom_map::clock_generator_calib::offset>(cal_array);
-    logf("Clock generator: TCXO calibration is {}", cal_array[0]);
+    logf("Clock generator: TCXO calibration is {}\n", cal_array[0]);
     set_tcxo_clock(cal_array[0]);
     configure(CFG_ALL, clock_cfg::TCXO_CLOCK, clock_cfg::fs_250MHz);
 }
@@ -71,6 +70,7 @@ void ClockGenerator::set_sampling_frequency(uint32_t fs_select) {
 void ClockGenerator::single_phase_shift(uint32_t incdec) {
     constexpr uint32_t psen_bit = 2;
     constexpr uint32_t psincdec_bit = 3;
+    auto& ctl = hw::get_memory<mem::control>();
     ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));
     ctl.clear_bit<reg::mmcm, psen_bit>();
 }
@@ -83,7 +83,7 @@ void ClockGenerator::write_reg(uint32_t data) {
 
 int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const std::array<uint32_t, clock_cfg::num_params>& clk_cfg_) {
     if (clkin_select > 4) {
-        log<ERROR>("Clock generator: Invalid reference clock source");
+        log<ERROR>("Clock generator: Invalid reference clock source\n");
         return -1;
     }
 
@@ -258,7 +258,7 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
     }
 
     if (f_vco < 2.37E9 || f_vco > 2.6E9) {
-        logf<ERROR>("Clock generator: VCO frequency at {} MHz is out of range (2370 to 2600 MHz)", f_vco * 1E-6);
+        logf<ERROR>("Clock generator: VCO frequency at {} MHz is out of range (2370 to 2600 MHz)\n", f_vco * 1E-6);
         return -1;
     }
 
@@ -283,10 +283,10 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
         return -1;
     }
 
-    logf("Clock generator: Ref: {}, VCO: {} MHz, ADC0: {} MHz, ADC1: {} MHz\n",
+    logf<INFO>("Clock generator: Ref: {}, VCO: {} MHz, ADC0: {} MHz, ADC1: {} MHz\n",
          clock_cfg::clkin_names[clkin_select].data(), f_vco * 1E-6, fs_adc[0] * 1E-6, fs_adc[1] * 1E-6);
 
-    spi_cfg.lock();
+    spi_cfg.lock(); // ?
 
     if (!is_clock_generator_initialized) {
         write_reg(1 << 17); // Reset
@@ -352,9 +352,10 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
     }
 
     if (!is_clock_generator_initialized) {
-        std::ofstream ofile(filename);
+        std::ofstream ofile(filename.data());
         is_clock_generator_initialized = true;
     }
 
+    log("Clock generator: configured\n");
     return 0;
 }

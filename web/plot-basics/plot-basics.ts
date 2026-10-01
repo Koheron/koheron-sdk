@@ -158,6 +158,10 @@ class PlotBasics {
         });
     }
 
+    refreshLegend() {
+        this.reset_range = true;
+    }
+
     setRangeX(from: number, to: number) {
         this.x_min = from;
         this.x_max = to;
@@ -362,69 +366,61 @@ class PlotBasics {
         const wAll = ph.width() || 800;
         const off = this.plot ? this.plot.getPlotOffset() : { left: 0, right: 0 };
         const innerW = Math.max(1, wAll - (off.left || 0) - (off.right || 0));
-        const axes = this.plot?.getAxes();
-
-        const colFromX = (x: number) => {
-            const pt = this.plot!.pointOffset({ x, y: axes.yaxis.min });
-            return Math.floor(pt.left - off.left);
-        };
+        // Use the requested range, rather than the previous Flot axes. During
+        // startup or zoom, old axes can otherwise discard boundary bins and
+        // omit their extrema from the new automatic Y range.
+        const transform = this.log_x ? Math.log10 : (x: number) => x;
+        const lower = transform(xMin);
+        const span = transform(xMax) - lower;
+        const colFromX = (x: number) => Math.min(innerW - 1,
+            Math.floor(innerW * (transform(x) - lower) / span));
 
         const i0 = this.bsLeft(plot_data, xMin);
         const i1 = this.bsRight(plot_data, xMax);
     
         let currCol = -2;
         let minY = Infinity, maxY = -Infinity, minI = -1, maxI = -1;
+        const flush = () => {
+            // Extrema must retain their original frequency order.
+            if (minI >= 0 && maxI >= 0) {
+                out.push(plot_data[Math.min(minI, maxI)]);
+                if (maxI !== minI) out.push(plot_data[Math.max(minI, maxI)]);
+            }
+            minY = Infinity; maxY = -Infinity; minI = -1; maxI = -1;
+        };
 
         for (let i = i0; i <= i1; i++) {
             const x = plot_data[i][0];
             const y = plot_data[i][1];
             const col = colFromX(x);
-
-            if (col < 0 || col >= innerW) {
+            if (col < 0 || col >= innerW) continue;
+            if (col !== currCol) {
+                flush();
+                currCol = col;
+            }
+            if (!Number.isFinite(y)) {
+                flush();
+                // Keep a gap marker even when its neighbors share one pixel.
+                if (!out.length || Number.isFinite(out[out.length - 1][1]))
+                    out.push([x, NaN]);
                 continue;
             }
-
-            if (col !== currCol) {
-                if (currCol >= 0) {
-                    if (minI >= 0) {
-                        out.push(plot_data[minI]);
-                    }
-
-                    if (maxI >= 0 && maxI !== minI) {
-                        out.push(plot_data[maxI]);
-                    }
-                }
-                currCol = col;
-                minY = Infinity; maxY = -Infinity; minI = -1; maxI = -1;
-            }
-
-            if (Number.isFinite(y)) {
-                if (y < minY) { minY = y; minI = i; }
-                if (y > maxY) { maxY = y; maxI = i; }
-            }
+            if (y < minY) { minY = y; minI = i; }
+            if (y > maxY) { maxY = y; maxI = i; }
         }
-
-        if (currCol >= 0) {
-            if (minI >= 0) {
-                out.push(plot_data[minI]);
-            }
-
-            if (maxI >= 0 && maxI !== minI) {
-                out.push(plot_data[maxI]);
-            }
-        }
+        flush();
         return out;
     }
 
-    redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void, reference?: number[][], peakIsFinal = false, traces: {label: string; color: string; data: number[][]}[] = []) {
+    redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void, reference?: number[][], peakIsFinal = false, traces: jquery.flot.dataSeries[] = [], overlayLabel?: string) {
         this.seriesOne.length = (reference ? 2 : 1) + traces.length;
-        this.options.legend.noColumns = reference || traces.length ? 1 : 0;
+        this.options.legend.noColumns = overlayLabel ? 0 : reference || traces.length ? 1 : 0;
         if (reference) {
-            this.seriesOne[1] = {label: "Reference", data: reference, color: "#a178b5", lines: {lineWidth: 1}};
+            this.seriesOne[1] = {label: overlayLabel || "Reference", data: reference, color: overlayLabel ? "#006400" : "#a178b5", lines: {lineWidth: 1}};
         }
-        traces.forEach((trace, i) => { this.seriesOne[(reference ? 2 : 1) + i] = {...trace, lines: {lineWidth: 1}}; });
+        traces.forEach((trace, i) => { this.seriesOne[(reference ? 2 : 1) + i] = {...trace, lines: {lineWidth: 1, ...trace.lines}}; });
         if (!this.plot) {
-            this.seriesOne[0].label = reference || traces.length ? "Live · " + ylabel : ylabel;
+            this.seriesOne[0].label = !overlayLabel && (reference || traces.length) ? "Live · " + ylabel : ylabel;
             this.seriesOne[0].data  = []; // temporary
             this.plot = $.plot(this.plot_placeholder, this.seriesOne, this.options);
         }
@@ -437,18 +433,21 @@ class PlotBasics {
                 this.seriesOne[1].data = PlotBasics.reduceSpectrum(reference, this.range_x.from, this.range_x.to, width);
             }
             traces.forEach((trace, i) => {
-                this.seriesOne[(reference ? 2 : 1) + i].data = PlotBasics.reduceSpectrum(trace.data, this.range_x.from, this.range_x.to, width);
+                this.seriesOne[(reference ? 2 : 1) + i].data = PlotBasics.reduceSpectrum(trace.data as number[][], this.range_x.from, this.range_x.to, width);
             });
         } else if (this.decimate) {
             const xMin = this.reset_range ? this.range_x.from : this.plot.getAxes().xaxis.min;
             const xMax = this.reset_range ? this.range_x.to   : this.plot.getAxes().xaxis.max;
-            const drawData = this.decimateToCanva(plot_data, xMin, xMax);
-            this.seriesOne[0].data  = drawData;
+            this.seriesOne[0].data = this.decimateToCanva(plot_data, xMin, xMax).slice();
+            if (reference) this.seriesOne[1].data = this.decimateToCanva(reference, xMin, xMax).slice();
+            traces.forEach((trace, i) => {
+                this.seriesOne[(reference ? 2 : 1) + i].data = this.decimateToCanva(trace.data as number[][], xMin, xMax).slice();
+            });
         } else {
             this.seriesOne[0].data  = plot_data;
         }
 
-        this.seriesOne[0].label = reference || traces.length ? "Live · " + ylabel : ylabel;
+        this.seriesOne[0].label = !overlayLabel && (reference || traces.length) ? "Live · " + ylabel : ylabel;
 
         if (this.reset_range) {
             if (this.log_y) {
