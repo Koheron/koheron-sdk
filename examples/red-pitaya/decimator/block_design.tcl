@@ -68,7 +68,7 @@ cell xilinx.com:ip:cic_compiler:4.0 cic {
   S_AXIS_DATA adc_clock_converter/M_AXIS
 }
 
-set fir_coeffs [exec python $project_path/fir.py $n_stages $dec_rate $diff_delay print]
+set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rate $diff_delay print]
 
 cell xilinx.com:ip:fir_compiler:7.2 fir {
   Filter_Type Decimation
@@ -87,7 +87,7 @@ cell xilinx.com:ip:fir_compiler:7.2 fir {
 }
 
 # Add AXI stream FIFO
-cell xilinx.com:ip:axi_fifo_mm_s:4.1 adc_axis_fifo {
+cell xilinx.com:ip:axi_fifo_mm_s:4.3 adc_axis_fifo {
   C_USE_TX_DATA 0
   C_USE_TX_CTRL 0
   C_USE_RX_CUT_THROUGH true

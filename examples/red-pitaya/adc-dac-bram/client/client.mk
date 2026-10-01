@@ -17,8 +17,9 @@ CLIENT_CCXX := g++ -flto
 # Common flags
 CLIENT_CCXXFLAGS := -march=native -O3
 CLIENT_CCXXFLAGS += -MMD -MP -Wall -Werror
-CLIENT_CCXXFLAGS += -std=c++14 -pthread
-CLIENT_CCXXFLAGS += -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/core -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/client
+CLIENT_CCXXFLAGS += -std=c++20 -pthread
+CLIENT_CCXXFLAGS += -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/external_libs -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/client
+CLIENT_CCXXFLAGS += -DKOHERON_SERVER_BUILD
 
 # GCC flags
 CLIENT_CCXXFLAGS += -lm -static-libgcc -static-libstdc++
@@ -41,14 +42,14 @@ CLIENT_DEP=$(subst .o,.d,$(OBJ))
 $(TMP_CLIENT_PATH)/%.o: $(CLIENT_PATH)/%.cpp $(OPERATIONS_HPP) | $(TMP_CLIENT_PATH)
 	$(CLIENT_CCXX) -c $(CLIENT_CCXXFLAGS) -o $@ $<
 
-PHONY: client
+.PHONY: client
 client: server | $(CLIENT_OBJ)
 	$(CLIENT_CCXX) -o $(CLIENT) $(CLIENT_OBJ) $(CLIENT_CCXXFLAGS) $(CLIENT_LD_FLAGS)
 
-PHONY: run_client
+.PHONY: run_client
 run_client: client
 	$(CLIENT) $(HOST)
 
-PHONY: clean_client
+.PHONY: clean_client
 clean_client:
 	rm -rf $(TMP_CLIENT_PATH)

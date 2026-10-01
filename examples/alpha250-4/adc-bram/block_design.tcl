@@ -1,4 +1,8 @@
 # Add PS and AXI Interconnect
+# Optimize the routed AXI BRAM paths before Vivado saves the routed checkpoint.
+# The SDK stops implementation at route_design, so use its post-step hook.
+set_property STEPS.ROUTE_DESIGN.TCL.POST [file normalize $project_path/tcl/post_route.tcl] [get_runs impl_1]
+
 set board_preset $board_path/config/board_preset.tcl
 source $sdk_path/fpga/lib/starting_point.tcl
 
@@ -28,6 +32,7 @@ cell xilinx.com:ip:xadc_wiz:3.3 xadc_wiz_0 {
   s_axi_aresetn proc_sys_reset_0/peripheral_aresetn
 }
 assign_bd_address [get_bd_addr_segs xadc_wiz_0/s_axi_lite/Reg]
+set_property offset [get_memory_offset xadc] [get_bd_addr_segs {ps_0/Data/SEG_xadc_wiz_0_Reg}]
 
 # Expansion connector IOs
 
@@ -43,7 +48,7 @@ connect_pins ps_0/SDIO0_CDN [get_constant_pin 0 1]
 connect_pins ps_0/SDIO0_WP [get_constant_pin 0 1]
 
 # Add BRAMs for ADC and DAC
-# "adc" and "dac" BRAM ranges and offsets are defined in the "memory" part of config.yml
+# "adc" and "dac" BRAM ranges and offsets are defined in the "memory" part of memory.yml
 source $sdk_path/fpga/lib/bram.tcl
 
 # Add a counter for BRAM addressing

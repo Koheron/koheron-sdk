@@ -1,0 +1,16 @@
+&axi_uartlite_0  { port-number = <0>;  };  /* a0010000 */
+&axi_uartlite_1  { port-number = <1>;  };  /* a0020000 */
+&axi_uartlite_2  { port-number = <2>;  };  /* a0030000 */
+&axi_uartlite_3  { port-number = <3>;  };  /* a0040000 */
+&axi_uartlite_4  { port-number = <4>;  };  /* a0050000 */
+&axi_uartlite_5  { port-number = <5>;  };  /* a0060000 */
+&axi_uartlite_6  { port-number = <6>;  };  /* a0070000 */
+&axi_uartlite_7  { port-number = <7>;  };  /* a0080000 */
+&axi_uartlite_8  { port-number = <8>;  };  /* a0090000 */
+&axi_uartlite_9  { port-number = <9>;  };  /* a00a0000 */
+&axi_uartlite_10 { port-number = <10>; };  /* a00b0000 */
+&axi_uartlite_11 { port-number = <11>; };  /* a00c0000 */
+&axi_uartlite_12 { port-number = <12>; };  /* a00d0000 */
+&axi_uartlite_13 { port-number = <13>; };  /* a00e0000 */
+&axi_uartlite_14 { port-number = <14>; };  /* a00f0000 */
+&axi_uartlite_15 { port-number = <15>; };  /* a0100000 */

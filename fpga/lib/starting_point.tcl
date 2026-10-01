@@ -1,4 +1,5 @@
 set ps_name ps_0
+variable dclass "zynq"
 
 # Find the number of interconnects
 set i 0
@@ -19,7 +20,7 @@ source $board_preset
 
 for {set i 0} {$i < $n_interconnects} {incr i} {
     set_property -dict [list CONFIG.PCW_USE_M_AXI_GP${i} 1] [get_bd_cells $ps_name]
-    set_property -dict [list CONFIG.PCW_FPGA${i}_PERIPHERAL_FREQMHZ [expr [set config::fclk$i] / 1000000]] [get_bd_cells $ps_name]
+    set_property -dict [list CONFIG.PCW_FPGA${i}_PERIPHERAL_FREQMHZ [expr [set config::fclk$i] / 1000000.0]] [get_bd_cells $ps_name]
     connect_pins $ps_name/M_AXI_GP${i}_ACLK [set ps_clk$i]
 }
 

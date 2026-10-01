@@ -1,0 +1,19 @@
+memory:
+  - name: control
+    offset: 0x6000_0000
+    range: 4K
+    registers:
+    - led
+    - dac[n_dac]
+  - name: status
+    offset: 0x5000_0000
+    range: 4K
+    registers:
+    - adc[n_adc]
+
+parameters:
+  fclk0: 200000000
+  dac_width: 14
+  adc_width: 14
+  n_dac: 2
+  n_adc: 2

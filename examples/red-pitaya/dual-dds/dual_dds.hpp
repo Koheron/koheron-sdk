@@ -34,8 +34,8 @@ class DualDDS
 
 
   private:
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
 
     std::array<double, 2> dds_freq = {{0, 0}};
 

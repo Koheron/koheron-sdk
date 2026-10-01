@@ -1,8 +1,8 @@
 source $board_path/starting_point.tcl
-
 ##################################################
 # DMA
 ##################################################
+#
 
 # Configure Zynq Processing System
 set_cell_props ps_0 {
@@ -53,33 +53,43 @@ cell koheron:user:bus_multiplexer:1.0 adc_mux {
   sel [get_slice_pin [ctl_pin channel_select] 0 0]
 }
 
+cell koheron:user:reset_pulser:1.0 acq_reset_pulser {
+  RESET_LEN 8
+} {
+  clk adc_dac/adc_clk
+  global_aresetn rst_adc_clk/peripheral_aresetn
+  pulse_req [ctl_pin reset]
+}
+
 cell xilinx.com:ip:axis_dwidth_converter:1.1 axis_dwidth_converter_0 {
   S_TDATA_NUM_BYTES 2
   M_TDATA_NUM_BYTES 8
 } {
   aclk adc_dac/adc_clk
-  aresetn rst_adc_clk/peripheral_aresetn
+  aresetn acq_reset_pulser/local_aresetn
   s_axis_tdata adc_mux/dout
   s_axis_tvalid axis_dwidth_converter_0/s_axis_tready
+}
+
+cell koheron:user:axis_packetizer:1.0 axis_packetizer_0 {
+  TDATA_WIDTH 64
+  PKT_LENGTH [expr 32 * 1024]
+} {
+  aclk adc_dac/adc_clk
+  aresetn acq_reset_pulser/local_aresetn
+  S_AXIS axis_dwidth_converter_0/M_AXIS
+  trig [ctl_pin trig]
+  pkt_count [ctl_pin pkt_count]
 }
 
 cell xilinx.com:ip:axis_clock_converter:1.1 axis_clock_converter_0 {
   TDATA_NUM_BYTES 8
 } {
   s_axis_aclk adc_dac/adc_clk
-  s_axis_aresetn rst_adc_clk/peripheral_aresetn
+  s_axis_aresetn acq_reset_pulser/local_aresetn
   m_axis_aclk ps_0/FCLK_CLK0
   m_axis_aresetn proc_sys_reset_0/peripheral_aresetn
-  S_AXIS axis_dwidth_converter_0/M_AXIS
-}
-
-cell koheron:user:tlast_gen:1.0 tlast_gen_0 {
-  TDATA_WIDTH 64
-  PKT_LENGTH [expr 1024 * 1024]
-} {
-  aclk ps_0/FCLK_CLK0
-  resetn proc_sys_reset_0/peripheral_aresetn
-  s_axis axis_clock_converter_0/M_AXIS
+  S_AXIS axis_packetizer_0/M_AXIS
 }
 
 # DMA
@@ -102,7 +112,7 @@ cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
   m_axi_mm2s_aclk ps_0/FCLK_CLK0
   M_AXI_S2MM dma_interconnect/S02_AXI
   m_axi_s2mm_aclk ps_0/FCLK_CLK0
-  S_AXIS_S2MM tlast_gen_0/m_axis
+  S_AXIS_S2MM axis_clock_converter_0/M_AXIS
   axi_resetn proc_sys_reset_0/peripheral_aresetn
   mm2s_introut [get_interrupt_pin]
   s2mm_introut [get_interrupt_pin]
@@ -117,7 +127,25 @@ cell xilinx.com:ip:axis_clock_converter:1.1 axis_clock_converter_1 {
   s_axis_aclk ps_0/FCLK_CLK0
   s_axis_aresetn proc_sys_reset_0/peripheral_aresetn
   m_axis_aclk adc_dac/adc_clk
-  m_axis_aresetn rst_adc_clk/peripheral_aresetn
+  m_axis_aresetn acq_reset_pulser/local_aresetn
+}
+
+cell xilinx.com:ip:axis_data_fifo:2.0 axis_data_fifo_1 {
+  FIFO_DEPTH 512
+} {
+  S_AXIS axis_clock_converter_1/M_AXIS
+  s_axis_aclk adc_dac/adc_clk
+  s_axis_aresetn acq_reset_pulser/local_aresetn
+}
+
+
+cell koheron:user:axis_trig_gate:1.0 axis_trig_gate_0 {
+  TDATA_WIDTH 64
+} {
+  aclk adc_dac/adc_clk
+  aresetn acq_reset_pulser/local_aresetn
+  trig [ctl_pin trig]
+  S_AXIS axis_data_fifo_1/M_AXIS
 }
 
 cell xilinx.com:ip:axis_dwidth_converter:1.1 axis_dwidth_converter_1 {
@@ -126,7 +154,7 @@ cell xilinx.com:ip:axis_dwidth_converter:1.1 axis_dwidth_converter_1 {
 } {
   aclk adc_dac/adc_clk
   aresetn rst_adc_clk/peripheral_aresetn
-  S_AXIS axis_clock_converter_1/M_AXIS
+  S_AXIS axis_trig_gate_0/M_AXIS
   m_axis_tvalid axis_dwidth_converter_1/m_axis_tready
 }
 
@@ -142,24 +170,31 @@ set_property offset [get_memory_offset dma] [get_bd_addr_segs {ps_0/Data/SEG_axi
 assign_bd_address [get_bd_addr_segs {ps_0/S_AXI_GP0/GP0_HIGH_OCM }]
 set_property range 64K [get_bd_addr_segs {axi_dma_0/Data_SG/SEG_ps_0_GP0_HIGH_OCM}]
 set_property offset [get_memory_offset ocm_mm2s] [get_bd_addr_segs {axi_dma_0/Data_SG/SEG_ps_0_GP0_HIGH_OCM}]
+exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_MM2S/SEG_ps_0_GP0_HIGH_OCM]
+exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_S2MM/SEG_ps_0_GP0_HIGH_OCM]
 
 # MM2S on HP2
 assign_bd_address [get_bd_addr_segs {ps_0/S_AXI_HP0/HP0_DDR_LOWOCM }]
 set_property range [get_memory_range ram_mm2s] [get_bd_addr_segs {axi_dma_0/Data_MM2S/SEG_ps_0_HP0_DDR_LOWOCM}]
 set_property offset [get_memory_offset ram_mm2s] [get_bd_addr_segs {axi_dma_0/Data_MM2S/SEG_ps_0_HP0_DDR_LOWOCM}]
+exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_SG/SEG_ps_0_HP0_DDR_LOWOCM]
+exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM]
 
 # S2MM on HP0
 assign_bd_address [get_bd_addr_segs {ps_0/S_AXI_HP2/HP2_DDR_LOWOCM }]
+assign_bd_address -target_address_space /axi_dma_0/Data_S2MM [get_bd_addr_segs ps_0/S_AXI_HP2/HP2_DDR_LOWOCM] -force
 set_property range [get_memory_range ram_s2mm] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP2_DDR_LOWOCM}]
 set_property offset [get_memory_offset ram_s2mm] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP2_DDR_LOWOCM}]
+exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_SG/SEG_ps_0_HP2_DDR_LOWOCM]
+exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_MM2S/SEG_ps_0_HP2_DDR_LOWOCM]
 
 # Unmap unused segments
-delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_SG/SEG_ps_0_HP0_DDR_LOWOCM]
-delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_SG/SEG_ps_0_HP2_DDR_LOWOCM]
-delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_MM2S/SEG_ps_0_GP0_HIGH_OCM]
-delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_MM2S/SEG_ps_0_HP2_DDR_LOWOCM]
-delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_S2MM/SEG_ps_0_GP0_HIGH_OCM]
-delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM]
+#delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_SG/SEG_ps_0_HP0_DDR_LOWOCM]
+#delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_SG/SEG_ps_0_HP2_DDR_LOWOCM]
+#delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_MM2S/SEG_ps_0_GP0_HIGH_OCM]
+#delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_MM2S/SEG_ps_0_HP2_DDR_LOWOCM]
+#delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_S2MM/SEG_ps_0_GP0_HIGH_OCM]
+#delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM]
 
 # Hack to change the 32 bit auto width in AXI_DMA S_AXI_S2MM
 validate_bd_design

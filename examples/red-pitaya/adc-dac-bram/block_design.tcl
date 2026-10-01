@@ -2,7 +2,7 @@ source $board_path/config/ports.tcl
 source $board_path/base_system.tcl
 
 # Add BRAMs for ADC and DAC
-# "adc" and "dac" BRAM ranges and offsets are defined in the "memory" part of config.yml
+# "adc" and "dac" BRAM ranges and offsets are defined in the "memory" part of memory.yml
 source $sdk_path/fpga/lib/bram.tcl
 add_bram adc
 add_bram dac
@@ -35,3 +35,5 @@ connect_cell blk_mem_gen_dac {
 
 connect_pins adc_dac/dac1 [get_slice_pin blk_mem_gen_dac/doutb 13 0]
 connect_pins adc_dac/dac2 [get_slice_pin blk_mem_gen_dac/doutb 29 16]
+
+set_property CONFIG.PROTOCOL {AXI4} [get_bd_cells axi_bram_ctrl_dac]

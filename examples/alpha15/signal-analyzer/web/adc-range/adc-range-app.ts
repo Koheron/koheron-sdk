@@ -12,15 +12,12 @@ class AdcRangeApp {
 
     // Updaters
 
-    private updateControls() {
-        this.driver.inputRange(0, (ch0_range: number) => {
-            (<HTMLInputElement>document.querySelector("[data-command='setInputRange'][value='" + ch0_range.toString() + "']")).checked = true;
-    
-            this.driver.inputRange(1, (ch1_range: number) => {
-                (<HTMLInputElement>document.querySelector("[data-command='setInputRange'][value='" + (2 + ch1_range).toString() + "']")).checked = true;
-                requestAnimationFrame( () => { this.updateControls(); } )
-            });
-        });
+    private async updateControls() {
+        const ch0_range = await this.driver.inputRange(0);
+        const ch1_range = await this.driver.inputRange(1);
+        (<HTMLInputElement>document.querySelector("[data-command='setInputRange'][value='" + ch0_range.toString() + "']")).checked = true;
+        (<HTMLInputElement>document.querySelector("[data-command='setInputRange'][value='" + (2 + ch1_range).toString() + "']")).checked = true;
+        requestAnimationFrame( () => { this.updateControls(); } )
     }
 
     // Setters

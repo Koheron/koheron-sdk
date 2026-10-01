@@ -4,67 +4,95 @@ TMP_FPGA_PATH := $(TMP_PROJECT_PATH)/fpga
 $(TMP_FPGA_PATH):
 	@mkdir -p $@
 
-BOARD_PATH := $(shell $(MAKE_PY) --board $(CONFIG) $(TMP_FPGA_PATH)/board && cat $(TMP_FPGA_PATH)/board)
-PART := $(shell cat $(BOARD_PATH)/PART)
+VIVADO_LOG_FILTER := $(FPGA_PATH)/vivado/vivado-log-filter.awk
+VIVADO_FILTER := awk -f $(VIVADO_LOG_FILTER)
 
-VIVADO := source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && vivado -nolog -nojournal
+VIVADO := source $(VIVADO_PATH)/settings64.sh && vivado -nolog -nojournal -notrace
 VIVADO_BATCH := $(VIVADO) -mode batch
 
-$(MEMORY_YML): $(CONFIG)
-	$(MAKE_PY) --memory_yml $(CONFIG) $@
+# Examples may set ENFORCE_TIMING := 1 in config.mk to fail FPGA builds on
+# routed timing violations. By default, builds only report and warn.
+ENFORCE_TIMING ?= 0
+export ENFORCE_TIMING
 
 # Cores
 ###############################################################################
 TMP_CORES_PATH := $(TMP_PROJECT_PATH)/cores
-
-$(TMP_CORES_PATH):
-	@mkdir -p $@
-
-CORES := $(shell $(MAKE_PY) --cores $(CONFIG) $(TMP_CORES_PATH)/core_list && cat $(TMP_CORES_PATH)/core_list)
-CORES_COMPONENT_XML := $(addsuffix /component.xml, $(addprefix $(TMP_CORES_PATH)/, $(notdir $(CORES))))
+$(TMP_CORES_PATH)/: ; @mkdir -p $@
 
 define make_core_target
-$(TMP_CORES_PATH)/$(notdir $1)/component.xml: $1/core_config.tcl $1/*.v* | $(TMP_CORES_PATH)
+$(TMP_CORES_PATH)/$(notdir $1)/component.xml: \
+    $(wildcard $1/*.v $1/*.sv $1/*.vh $1/*.vhd $1/*.vhdl) $1/core_config.tcl $(FPGA_PATH)/vivado/core.tcl | $(TMP_CORES_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/core.tcl -tclargs $1 $(PART) $(TMP_CORES_PATH)
-	@echo [$1] OK
+	$(call ok,$$@)
 endef
 $(foreach core,$(CORES),$(eval $(call make_core_target,$(core))))
+
+CORES_COMPONENT_XML := $(addsuffix /component.xml,$(addprefix $(TMP_CORES_PATH)/,$(notdir $(CORES))))
+
+.PHONY: cores
+cores: $(CORES_COMPONENT_XML)
+	$(call ok,$@)
 
 # Vivado project
 ###############################################################################
 
-XDC := $(shell $(MAKE_PY) --xdc $(CONFIG) $(TMP_FPGA_PATH)/xdc && cat $(TMP_FPGA_PATH)/xdc)
+MEMORY_TCL := $(TMP_FPGA_PATH)/memory.tcl
 
-CONFIG_TCL := $(TMP_FPGA_PATH)/config.tcl
-
-$(CONFIG_TCL): $(MEMORY_YML) $(FPGA_PATH)/config.tcl
-	$(MAKE_PY) --config_tcl $(CONFIG) $@
-	@echo [$@] OK
+$(MEMORY_TCL): $(MEMORY_YML) $(FPGA_PATH)/memory.tcl | $(PYTHON_REQUIREMENTS_STAMP)
+	$(MAKE_PY) --memory_tcl $@ $(MEMORY_YML)
+	$(call ok,$@)
 
 .PHONY: xpr
-xpr: $(TMP_FPGA_PATH)/$(NAME).xpr
+xpr: $(TMP_FPGA_PATH)/$(NAME).xpr.stamp
 
-$(TMP_FPGA_PATH)/$(NAME).xpr: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML) | $(TMP_FPGA_PATH)
-	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/project.tcl \
-	  -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(BOARD_PATH) $(MODE) $(TMP_FPGA_PATH) $(TMP_FPGA_PATH)/xdc $(VENV)/bin/$(PYTHON)
-	@echo [$@] OK
+export SDK_PATH
+export NAME
+export PROJECT_PATH
+export PART
+export BOARD_PATH
+export MODE
+export TMP_FPGA_PATH
+export TMP_CORES_PATH
+export XDC
+export VENV
+export BD_TCL
+
+$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(MEMORY_TCL) $(TCL_FILES) $(CORES_COMPONENT_XML) $(XDC) $(CONFIG_MK) $(BOARD_MK) $(FPGA_PATH)/vivado/project.tcl | $(TMP_FPGA_PATH)/
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/project.tcl 2>&1 | $(VIVADO_FILTER)
+	touch $@
+	$(call ok,$@)
+
+.PHONY: xsa
+xsa: $(TMP_FPGA_PATH)/$(NAME).xsa
+
+$(TMP_FPGA_PATH)/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xpr.stamp $(FPGA_PATH)/vivado/hwdef.tcl | $(TMP_FPGA_PATH)/
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/hwdef.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(N_CPUS) 2>&1 | $(VIVADO_FILTER)
+	$(call ok,$@)
 
 .PHONY: fpga
 fpga: $(BITSTREAM)
 
-$(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xpr | $(TMP_FPGA_PATH)
-	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $< $@ $(N_CPUS)
-	@echo [$@] OK
+# An FPGA build reports timing and enforces it when requested by the example.
+$(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xsa $(FPGA_PATH)/vivado/bitstream.tcl $(FPGA_PATH)/vivado/timing_check.tcl | $(TMP_FPGA_PATH)/
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(ZYNQ_TYPE) $(N_CPUS) 2>&1 | $(VIVADO_FILTER)
+	$(call ok,$@)
 
-$(TMP_FPGA_PATH)/$(NAME).hwdef: $(TMP_FPGA_PATH)/$(NAME).xpr | $(TMP_FPGA_PATH)
-	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/hwdef.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $(TMP_FPGA_PATH)/$(NAME).hwdef $(N_CPUS)
-	@echo [$@] OK
+.PHONY: timing
+timing: $(BITSTREAM)
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/timing.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $(BITSTREAM) 2>&1 | $(VIVADO_FILTER)
+	$(call ok,$@)
+
+$(BITSTREAM).bin: $(BITSTREAM)
+	echo "all:{$(BITSTREAM)}" > $(TMP_FPGA_PATH)/overlay.bif
+	$(BOOTGEN) -image $(TMP_FPGA_PATH)/overlay.bif -arch $(ZYNQ_TYPE) -process_bitstream bin -w on -o $(BITSTREAM).bin
+	$(call ok,$@)
 
 # Build the block design in Vivado GUI
 .PHONY: block_design
-block_design: $(CONFIG_TCL) $(XDC) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML)
+block_design: $(MEMORY_TCL) $(TCL_FILES) $(CORES_COMPONENT_XML) $(XDC_FILE)
 	$(VIVADO) -source $(FPGA_PATH)/vivado/block_design.tcl \
-	  -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(BOARD_PATH) $(MODE) $(TMP_FPGA_PATH) $(TMP_FPGA_PATH)/xdc $(VENV)/bin/$(PYTHON) block_design_
+	  -tclargs block_design_ 2>&1 | $(VIVADO_FILTER)
 
 # Open the Vivado project
 .PHONY: open_project
@@ -73,26 +101,25 @@ open_project: $(TMP_FPGA_PATH)/$(NAME).xpr
 
 # Build and test a module in Vivado GUI
 .PHONY: test_module
-test_module: $(CONFIG_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML)
-	$(VIVADO) -source $(FPGA_PATH)/vivado/test_module.tcl -tclargs $(SDK_PATH) $(NAME) $(PROJECT_PATH) $(PART) $(TMP_FPGA_PATH)
+test_module: $(MEMORY_TCL) $(PROJECT_PATH)/*.tcl $(CORES_COMPONENT_XML)
+	$(VIVADO) -source $(FPGA_PATH)/vivado/test_module.tcl 2>&1 | $(VIVADO_FILTER)
 
 # Build and test a core in Vivado GUI
 CORE ?= $(FPGA_PATH)/cores/pdm_v1_0
 .PHONY: test_core
-test_core: $(CORE)/core_config.tcl $(CORE)/*.v*
-	$(VIVADO) -source $(FPGA_PATH)/vivado/test_core.tcl -tclargs $(CORE) $(PART) $(TMP_FPGA_PATH)
+test_core: $(CORE)/core_config.tcl $(wildcard $(CORE)/*.v $(CORE)/*.sv $(CORE)/*.vh $(CORE)/*.vhd $(CORE)/*.vhdl)
+	$(VIVADO) -source $(FPGA_PATH)/vivado/test_core.tcl -tclargs $(CORE) 2>&1 | $(VIVADO_FILTER)
 
 # Clean targets
 ###############################################################################
-
 .PHONY: clean_fpga
 clean_fpga:
 	rm -rf $(TMP_FPGA_PATH)
 
 .PHONY: clean_cores
 clean_cores:
-	rm -rf $(TMP_PROJECT_PATH)/cores
+	rm -rf $(TMP_CORES_PATH)
 
 .PHONY: clean_core
 clean_core:
-	rm -rf $(TMP_PROJECT_PATH)/cores/$(CORE)*
+	rm -rf $(TMP_CORES_PATH)/$(notdir $(CORE))*

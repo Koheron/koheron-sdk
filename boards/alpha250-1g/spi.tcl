@@ -8,6 +8,7 @@ create_bd_port -dir O spi_precision_adc_sdi
 create_bd_port -dir I spi_precision_adc_sdo
 
 connect_bd_net [get_bd_ports spi_precision_adc_cs] [get_bd_pins ps_0/SPI0_SS_O]
+connect_bd_net [get_constant_pin 1 1 ] [get_bd_pins ps_0/SPI0_SS_I]
 connect_bd_net [get_bd_ports spi_precision_adc_sck] [get_bd_pins ps_0/SPI0_SCLK_O]
 connect_bd_net [get_bd_ports spi_precision_adc_sdi] [get_bd_pins ps_0/SPI0_MOSI_O]
 connect_bd_net [get_bd_ports spi_precision_adc_sdo] [get_bd_pins ps_0/SPI0_MISO_I]

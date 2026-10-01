@@ -142,7 +142,7 @@ struct prime_factors {
 // - Q and P are not perfect Rth power
 
 template <typename Ratio, intmax_t Root = 1>
-struct root_ratio {
+struct root_ratio : std::ratio<Ratio::num, Ratio::den> {
     static_assert(meta::is_ratio_v<Ratio>);
     static_assert(Ratio::num > 0);
     static_assert(Ratio::den > 0);

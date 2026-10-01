@@ -1,7 +1,16 @@
 PROC := ps7_cortexa9_0
-GCC_FLAGS := -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard
+# Arch flags obtain by running on the Zynq:
+# gcc -march=native -Q --help=target
+GCC_FLAGS := -march=armv7-a -mfpu=vfpv3-d16 -mvectorize-with-neon-quad -mfloat-abi=hard
 GCC_ARCH := arm-linux-gnueabihf
-LINUX_IMAGE := uImage
 ARCH := arm
 
-BOOTCALL := boot.bin
+UBOOT_ARCH := $(ARCH)
+UBOOT_CFLAGS := -O2 -march=armv7-a -mfpu=neon -mfloat-abi=hard
+
+BOOT_BIN := boot.bin
+
+KERNEL_BIN := zImage
+
+UBUNTU_ARCH := armhf
+QEMU_BIN    := /usr/bin/qemu-arm-static

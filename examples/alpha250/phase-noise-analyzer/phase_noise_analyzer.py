@@ -5,8 +5,7 @@ from koheron import command
 class PhaseNoiseAnalyzer(object):
     def __init__(self, client):
         self.client = client
-        self.calib_factor = 4.196
-        self.npts = 200000
+        self.npts = 204800
 
     @command(classname="Dds")
     def set_dds_freq(self, channel, freq):
@@ -26,7 +25,7 @@ class PhaseNoiseAnalyzer(object):
 
     @command()
     def get_carrier_power(self, navg):
-        return self.client.recv_float()
+        return self.client.recv_double()
 
     @command()
     def get_data(self):
@@ -34,6 +33,7 @@ class PhaseNoiseAnalyzer(object):
 
     @command()
     def get_phase(self):
+        # The server returns radians with CIC/FIR gain correction applied.
         return self.client.recv_array(self.npts, dtype='float32')
 
     def phase_noise(self, navg=1, window='hann', verbose=False):

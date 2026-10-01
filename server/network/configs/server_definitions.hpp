@@ -1,0 +1,82 @@
+/// Server definitions and static configurations
+///
+/// (c) Koheron
+
+#ifndef __SERVER_DEFINITIONS_HPP__
+#define __SERVER_DEFINITIONS_HPP__
+
+#include <cstdint>
+#include <array>
+#include <string_view>
+
+using namespace std::string_view_literals;
+
+namespace net {
+
+// ------------------------------------------
+// Connections
+// ------------------------------------------
+
+/// Pending connections queue size
+constexpr int NUMBER_OF_PENDING_CONNECTIONS = 10;
+
+// ------------------------------------------
+// Buffer sizes
+// ------------------------------------------
+
+/// Command payload buffer length
+constexpr int64_t CMD_PAYLOAD_BUFFER_LEN = 16384 * 16;
+
+/// Read string length
+constexpr int KOHERON_READ_STR_LEN = 16384;
+
+/// Send string length
+constexpr int KOHERON_SEND_STR_LEN = 16384;
+
+/// Receive data buffer length
+constexpr int KOHERON_RECV_DATA_BUFF_LEN = 16384 * 16;
+
+/// Websocket receive buffer size
+constexpr int WEBSOCK_READ_STR_LEN = KOHERON_RECV_DATA_BUFF_LEN;
+
+/// Websocket send buffer size (bytes)
+constexpr int WEBSOCK_SEND_BUF_LEN = 16384 * 16;
+
+// ------------------------------------------
+// Debugging
+// ------------------------------------------
+
+#ifndef DEBUG_KOHERON
+# define NDEBUG
+#endif
+
+// ------------------------------------------
+// Misc
+// ------------------------------------------
+
+using SessionID = int;
+
+/// Listening channel types
+enum SockType {
+    NONE,
+    TCP,
+    WEBSOCK,
+    UNIX,
+    socket_type_num
+};
+
+/// Listening channel descriptions
+constexpr auto listen_channel_desc = std::array{
+    "NONE"sv,
+    "TCP"sv,
+    "WebSocket"sv,
+    "Unix socket"sv
+};
+
+static_assert(listen_channel_desc.size() == socket_type_num);
+
+} // namespace net
+
+#endif // __SERVER_DEFINITIONS_HPP__
+
+

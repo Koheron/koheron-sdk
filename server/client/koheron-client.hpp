@@ -36,16 +36,15 @@
   #include <winsock2.h>
   #include <ws2tcpip.h>
 #else
-extern "C" {
   #include <sys/socket.h>   // socket definitions
   #include <sys/types.h>    // socket types
   #include <arpa/inet.h>    // inet (3) functions
   #include <netinet/tcp.h>
   #include <netdb.h>
   #include <unistd.h>
-}
 #endif
 
+// #include "server/network/serializer_deserializer.hpp"
 #include <operations.hpp>
 
 #ifdef _WIN32
@@ -756,7 +755,11 @@ inline void close_socket(socket_t fd) {
 #endif
 }
 
-constexpr socket_t invalid_socket = static_cast<socket_t>(-1);
+#ifdef _WIN32
+constexpr socket_t invalid_socket = INVALID_SOCKET;
+#else
+constexpr socket_t invalid_socket = -1;
+#endif
 
 inline void set_socket_timeout(socket_t fd, int timeout_ms) {
 #ifdef _WIN32
@@ -1520,9 +1523,9 @@ class KoheronClient
     , rcv_buffer(0)
     , send_buffer(0)
     {
-        memset(&serveraddr, 0, sizeof(serveraddr));
+        std::memset(&serveraddr, 0, sizeof(serveraddr));
         serveraddr.sin_family = AF_INET;
-        serveraddr.sin_addr.s_addr = inet_addr(host);
+        serveraddr.sin_addr.s_addr = inet_addr(host.c_str());
         serveraddr.sin_port = htons(port);
     }
 
@@ -1773,6 +1776,7 @@ class KoheronClient
     template<typename... Args>
     void call_rt(uint16_t class_id, uint16_t func_id, Args&&... args) {
         check_served(class_id, func_id);
+        check_arg_types<Args...>((static_cast<uint32_t>(class_id) << 16) | func_id);
 
         last_class_id = class_id;
         last_func_id = func_id;
@@ -1811,7 +1815,7 @@ class KoheronClient
     socket_t sockfd;
     sockaddr_in_t serveraddr;
 
-    const char *host;
+    std::string host;
     int port;
 
     int http_port = 80;         ///< HTTP API port used for firmware validation
@@ -2283,7 +2287,7 @@ inline bool context_has_class(const ServerContext& ctx, const std::string& class
         if (k == 0 || ctx.context[k - 1] != ':') continue;
         k--;
         while (k > 0 && koheron_json::is_ws(ctx.context[k - 1])) k--;
-        if (k >= 6 && ctx.context.compare(k - 6, 6, "class") == 0) return true;
+        if (k >= 7 && ctx.context.compare(k - 7, 7, "\"class\"") == 0) return true;
     }
     return false;
 }
@@ -2332,5 +2336,3 @@ inline std::unique_ptr<KoheronClient> connect_instrument(const std::string& host
 }
 
 #endif // __KOHERON_CLIENT_HPP__
-
-

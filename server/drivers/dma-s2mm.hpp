@@ -7,17 +7,20 @@
 #ifndef __SERVER_DRIVERS_DMA_S2MM_HPP__
 #define __SERVER_DRIVERS_DMA_S2MM_HPP__
 
-#include <context.hpp>
+#include "server/runtime/syslog.hpp"
+#include "server/hardware/memory_manager.hpp"
 
+#include <algorithm>
 #include <chrono>
+#include <thread>
+#include <scicpp/core.hpp>
 
 class DmaS2MM
 {
   public:
-    DmaS2MM(Context& ctx_)
-    : ctx(ctx_)
-    , dma(ctx.mm.get<mem::dma>())
-    , axi_hp0(ctx.mm.get<mem::axi_hp0>())
+    DmaS2MM()
+    : dma(hw::get_memory<mem::dma>())
+    , axi_hp0(hw::get_memory<mem::axi_hp0>())
     {
         // Set AXI_HP0 to 32 bits
         axi_hp0.set_bit<0x0, 0>();
@@ -31,21 +34,55 @@ class DmaS2MM
         set_length(length);
     }
 
-    // Ideally would take a std::chrono::duration as an argument
-    void wait_for_transfer(float dma_transfer_duration_seconds) {
-        const auto dma_duration = std::chrono::milliseconds(uint32_t(1000 * dma_transfer_duration_seconds));
+    template<MemID id, std::size_t n_elems, class T>
+    void start_transfer() {
+        using memory = hw::Memory<id>;
+        constexpr auto transfer_size = n_elems * sizeof(T);
+
+        static_assert(n_elems > 0);
+        static_assert(std::is_trivially_copyable_v<T>); // Trivial types avoid surprises in sizeof(T)
+        static_assert(transfer_size <= memory::size);
+
+        start_transfer(memory::phys_addr, transfer_size);
+    }
+
+    // Preserve the existing RPC and C++ interface for other instruments.
+    template<typename T>
+    void wait_for_transfer(scicpp::units::time<T> duration) {
+        wait_for_transfer(duration.eval());
+    }
+
+    void wait_for_transfer(float duration_seconds) {
+        (void)wait_for_transfer_checked(duration_seconds);
+    }
+
+    template<typename T>
+    bool wait_for_transfer_checked(scicpp::units::time<T> dma_transfer_duration) {
+        return wait_for_transfer_checked(dma_transfer_duration.eval());
+    }
+
+    bool wait_for_transfer_checked(float dma_transfer_duration_seconds) {
+        const auto dma_duration = std::chrono::duration<float>(dma_transfer_duration_seconds);
+        const auto sleep_duration = std::max(std::chrono::microseconds(1),
+                                             std::chrono::duration_cast<std::chrono::microseconds>(0.55f * dma_duration));
         uint32_t cnt = 0;
 
         while (! idle()) {
-            std::this_thread::sleep_for(0.55 * dma_duration);
+            if (dma.read<s2mm_dmasr>() & 0x70u) {
+                log<ERROR>("DmaS2MM::wait_for_transfer: DMA transfer error\n");
+                return false;
+            }
+            std::this_thread::sleep_for(sleep_duration);
             cnt++;
 
-            if (cnt > max_sleeps_cnt) {
-                ctx.log<ERROR>("DmaS2MM::wait_for_transfer: Max number of sleeps exceeded. [set duration %f s]\n",
-                               double(dma_transfer_duration_seconds));
-                break;
+            if (cnt > max_sleeps_cnt && !idle()) {
+                logf<ERROR>(
+                    "DmaS2MM::wait_for_transfer: Max number of sleeps exceeded. [set duration {} s]\n",
+                    dma_transfer_duration_seconds);
+                return false;
             }
         }
+        return (dma.read<s2mm_dmasr>() & 0x70u) == 0;
     }
 
   private:
@@ -56,9 +93,8 @@ class DmaS2MM
 
     static constexpr uint32_t max_sleeps_cnt = 4;
 
-    Context& ctx;
-    Memory<mem::dma>& dma;
-    Memory<mem::axi_hp0>& axi_hp0;
+    hw::Memory<mem::dma>& dma;
+    hw::Memory<mem::axi_hp0>& axi_hp0;
 
     void reset() {
         dma.set_bit<s2mm_dmacr, 2>();
@@ -71,7 +107,7 @@ class DmaS2MM
             cnt++;
 
             if (cnt > max_sleeps_cnt) {
-                ctx.log<ERROR>("DmaS2MM::reset: Max number of sleeps exceeded.\n");
+                log<ERROR>("DmaS2MM::reset: Max number of sleeps exceeded.\n");
                 break;
             }
         }
@@ -88,7 +124,7 @@ class DmaS2MM
             cnt++;
 
             if (cnt > max_sleeps_cnt) {
-                ctx.log<ERROR>("DmaS2MM::start: Max number of sleeps exceeded.\n");
+                log<ERROR>("DmaS2MM::start: Max number of sleeps exceeded.\n");
                 break;
             }
         }

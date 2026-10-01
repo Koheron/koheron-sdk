@@ -1,0 +1,3 @@
+#!/bin/sh
+# Koheron: suppress Ubuntu help text in the login banner.
+exit 0

@@ -5,14 +5,14 @@
 #ifndef __DRIVERS_LED_BLINKER_HPP__
 #define __DRIVERS_LED_BLINKER_HPP__
 
-#include <context.hpp>
+#include "server/hardware/memory_manager.hpp"
 
 class LedBlinker
 {
   public:
-    LedBlinker(Context& ctx)
-    : ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
+    LedBlinker()
+    : ctl(hw::get_memory<mem::control>())
+    , sts(hw::get_memory<mem::status>())
     {}
 
     void set_leds(uint32_t led_value) {
@@ -32,8 +32,8 @@ class LedBlinker
     }
 
   private:
-    Memory<mem::control>& ctl;
-    Memory<mem::status>& sts;
+    hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
 };
 
 #endif // __DRIVERS_LED_BLINKER_HPP__

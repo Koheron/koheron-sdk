@@ -4,7 +4,10 @@
 module axis_lfsr #
 (
   parameter integer AXIS_TDATA_WIDTH = 64,
-  parameter         HAS_TREADY = "FALSE"
+  parameter         HAS_TREADY = "FALSE",
+  parameter [63:0] SEED = 64'h5555555555555555,
+  parameter [63:0] FEEDBACK_MASK = 64'h6000000000000000,
+  parameter [0:0] FEEDBACK_XNOR = 1'b1
 )
 (
   // System signals
@@ -24,7 +27,7 @@ module axis_lfsr #
   begin
     if(~aresetn)
     begin
-      int_lfsr_reg <= 64'h5555555555555555;
+      int_lfsr_reg <= SEED;
       int_enbl_reg <= 1'b0;
     end
     else
@@ -36,7 +39,7 @@ module axis_lfsr #
 
   generate
     if(HAS_TREADY == "TRUE")
-    begin : HAS_TREADY
+    begin : WITH_TREADY
       always @*
       begin
         int_lfsr_next = int_lfsr_reg;
@@ -49,7 +52,7 @@ module axis_lfsr #
 
         if(int_enbl_reg & m_axis_tready)
         begin
-          int_lfsr_next = {int_lfsr_reg[62:0], int_lfsr_reg[62] ~^ int_lfsr_reg[61]};
+          int_lfsr_next = {int_lfsr_reg[62:0], (^(int_lfsr_reg & FEEDBACK_MASK)) ^ FEEDBACK_XNOR};
         end
       end
     end
@@ -67,7 +70,7 @@ module axis_lfsr #
 
         if(int_enbl_reg)
         begin
-          int_lfsr_next = {int_lfsr_reg[62:0], int_lfsr_reg[62] ~^ int_lfsr_reg[61]};
+          int_lfsr_next = {int_lfsr_reg[62:0], (^(int_lfsr_reg & FEEDBACK_MASK)) ^ FEEDBACK_XNOR};
         end
       end
     end

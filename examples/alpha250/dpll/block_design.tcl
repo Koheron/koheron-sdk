@@ -36,6 +36,7 @@ cell xilinx.com:ip:xadc_wiz:3.3 xadc_wiz_0 {
   ip2intc_irpt concat_interrupts/In0
 }
 assign_bd_address [get_bd_addr_segs xadc_wiz_0/s_axi_lite/Reg]
+set_property offset [get_memory_offset xadc] [get_bd_addr_segs {ps_0/Data/SEG_xadc_wiz_0_Reg}]
 
 # Expansion connector IOs
 
@@ -58,7 +59,7 @@ for {set i 0} {$i < 2} {incr i} {
 
   cell xilinx.com:ip:dds_compiler:6.0 dds$i {
     PartsPresent Phase_Generator_and_SIN_COS_LUT
-    DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000]
+    DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000.0]
     Parameter_Entry Hardware_Parameters
     Phase_Width 48
     Output_Width 16
@@ -206,7 +207,7 @@ cell pavel-demin:user:axis_variable:1.0 cic_rate {
   M_AXIS cic/S_AXIS_CONFIG
 }
 
-set fir_coeffs [exec python $project_path/fir.py $n_stages $dec_rate_default $diff_delay print]
+set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rate_default $diff_delay print]
 
 cell xilinx.com:ip:fir_compiler:7.2 fir {
   Filter_Type Decimation

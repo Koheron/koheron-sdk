@@ -1,0 +1,5 @@
+/dts-v1/;
+/plugin/;
+/include/ "pl.dtsi"
+/include/ "memory.dtsi"
+/include/ "override.dtsi"

@@ -40,9 +40,9 @@ for i, freq in enumerate(freqs):
     psd = driver.read_psd()
     psd_db = 10*np.log10(psd)
 
-    hd1[i] = psd_db[n-1]
-    hd2[i] = psd_db[2*n-1] - hd1[i]
-    hd3[i] = psd_db[3*n-1] - hd1[i]
+    hd1[i] = psd_db[n]
+    hd2[i] = psd_db[2*n] - hd1[i]
+    hd3[i] = psd_db[3*n] - hd1[i]
 
     print(freq, hd1[i], hd2[i], hd3[i])
 

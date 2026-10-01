@@ -1,0 +1,54 @@
+/*
+    * Koheron Alpha250 devicetree
+     *
+      * Copyright (C) 2015 Antmicro Ltd
+       * Copyright (C) 2025 Koheron SAS
+        *
+         * SPDX-License-Identifier: GPL-2.0+
+          */
+/dts-v1/;
+#include "zynq-7000.dtsi"
+/ {
+  model = "Koheron Alpha250";
+  compatible = "xlnx,zynq-red-pitaya","xlnx,zynq-7000";
+  aliases {
+    serial0 = &uart0;
+    mmc0 = &sdhci0;
+  };
+  memory@0 {
+      device_type = "memory";
+      reg = <0 0x18000000>;
+    };
+  chosen {
+      bootargs = "";
+      stdout-path = "serial0:115200n8";
+    };
+  usb_phy0: phy0@e0002000 {
+    compatible = "ulpi-phy";
+    #phy-cells = <0>;
+    reg = <0xe0002000 0x1000>;
+    view-port = <0x0170>;
+    drv-vbus;
+ };
+};
+&i2c0 {
+  status = "okay";
+  eeprom@50 {
+      compatible = "atmel,24c64";   // 8 KiB, 16-bit addressing
+      reg = <0x50>;
+      pagesize = <32>;
+  };
+};
+&sdhci0 {
+  bootph-pre-ram;
+  status = "okay";
+};
+&uart0 {
+  bootph-pre-ram;
+  status = "okay";
+};
+&usb0 {
+  status = "okay";
+  dr_mode = "host";
+  usb-phy = <&usb_phy0>;
+};

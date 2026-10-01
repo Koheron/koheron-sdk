@@ -2,9 +2,12 @@
 // (c) Koheron
 
 interface IDecimatorStatus {
-    fs: number; // Sampling frequency (Hz)
+    fs: number;          // Sampling frequency (Hz)
+    fs_lf: number;          // Sampling frequency (Hz)
     tx_duration: number; // FIFO transfer duration (s)
+    tx_duration_lf: number; // FIFO transfer duration (s)
     cic_rate: number;
+    cic_rate_lf: number;
     n_pts: number;
 }
 
@@ -33,28 +36,24 @@ class Decimator {
         this.client.send(Command(this.id, this.cmds['set_fft_window'], windowIndex));
     }
 
-    read_adc(cb: (data: Float64Array) => void): void {
-        this.client.readFloat64Array(Command(this.id, this.cmds['read_adc']),
-            (data: Float64Array) => {
-                cb(data);
-            });
+    async spectralDensity(): Promise<Float64Array> {
+        return await this.client.readFloat64Vector(Command(this.id, this.cmds['spectral_density0']));
     }
 
-    spectral_density(cb: (data: Float64Array) => void): void {
-        this.client.readFloat64Vector(Command(this.id, this.cmds['spectral_density']),
-            (data: Float64Array) => {
-                cb(data);
-            });
+    async spectralDensityLf(): Promise<Float64Array> {
+        return await this.client.readFloat64Vector(Command(this.id, this.cmds['spectral_density1']));
     }
 
     getControlParameters(cb: (status: IDecimatorStatus) => void): void {
-        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'ffII',
-                               (tup: [number, number, number, number]) => {
+        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'ffffIII',
+                               (tup: [number, number, number, number, number, number, number]) => {
             this.status.fs = tup[0];
-            this.status.tx_duration = tup[1];
-            this.status.cic_rate = tup[2];
-            this.status.n_pts = tup[3];
-
+            this.status.fs_lf = tup[1];
+            this.status.tx_duration = tup[2];
+            this.status.tx_duration_lf = tup[3];
+            this.status.cic_rate = tup[4];
+            this.status.cic_rate_lf = tup[5];
+            this.status.n_pts = tup[6];
             cb(this.status);
         });
     }

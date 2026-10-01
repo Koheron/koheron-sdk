@@ -1,0 +1,10 @@
+# SHA-256 of the Xilinx source archives used by Vivado 2025.1 and 2026.1.
+# Update these entries when adding support for a new Vivado release.
+3239c58e521c57f33e8471ad55e7d569a14f33fdeb07478d6d5043640184392f  linux-xlnx-xilinx-linux-v2025.1.tar.gz
+b674cb9da8e8bd8d4300749eefc1c4cadc529acc69d2c98f48a4ba3f47479018  u-boot-xlnx-xilinx-uboot-v2025.1.tar.gz
+a287291a804ae18ff14e6d8c1ac6dfae5e79be4f4d1e4bbbf8981e20783931b7  device-tree-xlnx-xilinx_v2025.1.tar.gz
+6b92979e7d931c4f715f43f7068574f8ff5dae66c62f54d6eec494e9328844da  arm-trust-xlnx-arm-trust-v2025.1.tar.gz
+1895d62fd0f57775d763d539a0d46def645d970c6da884fce61a26909603c490  linux-xlnx-xilinx-linux-v2026.1.tar.gz
+a48b6b05ae9f317c91bf185f78e7a22cbdcf19e8675a947b5552a127b0e05e83  u-boot-xlnx-xilinx-uboot-v2026.1.tar.gz
+eeb46eeb0c63bb6072b6e1463d0922cedd95741875150f80735dbb0d69964cab  device-tree-xlnx-xilinx_v2026.1.tar.gz
+ad848ca408e3ce90b9647255809feb45e431b54bf62351b8a9bdabc6054860ea  arm-trust-xlnx-arm-trust-v2026.1.tar.gz

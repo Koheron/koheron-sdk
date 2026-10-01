@@ -1,46 +1,42 @@
-FROM gcc:9.5
-ARG GCC_VERSION=9
-RUN apt update
-RUN apt install -y binutils-aarch64-linux-gnu \
-  binutils-arm-linux-gnueabi \
-  gcc-${GCC_VERSION}-arm-linux-gnueabihf \
-  g++-${GCC_VERSION}-arm-linux-gnueabihf \
-  gcc-${GCC_VERSION}-aarch64-linux-gnu \
-  g++-${GCC_VERSION}-aarch64-linux-gnu \
-  gcc-arm-none-eabi \
-  flex \
-  bison \
-  bc \
-  qemu-user-static \
-  zerofree \
-  u-boot-tools \
-  libgnutls28-dev
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN update-alternatives --install /usr/bin/arm-linux-gnueabihf-g++ arm-linux-gnueabihf-g++ /usr/bin/arm-linux-gnueabihf-g++-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcc arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-gcc-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcc-ar arm-linux-gnueabihf-gcc-ar /usr/bin/arm-linux-gnueabihf-gcc-ar-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcov arm-linux-gnueabihf-gcov /usr/bin/arm-linux-gnueabihf-gcov-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/arm-linux-gnueabihf-cpp arm-linux-gnueabihf-cpp /usr/bin/arm-linux-gnueabihf-cpp-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcc-nm arm-linux-gnueabihf-gcc-nm /usr/bin/arm-linux-gnueabihf-gcc-nm-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcc-runlib arm-linux-gnueabihf-gcc-ranlib /usr/bin/arm-linux-gnueabihf-gcc-ranlib-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcc-ranlib arm-linux-gnueabihf-gcc-ranlib /usr/bin/arm-linux-gnueabihf-gcc-ranlib-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcov-dump arm-linux-gnueabihf-gcov-dump /usr/bin/arm-linux-gnueabihf-gcov-dump-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcov-tool arm-linux-gnueabihf-gcov-tool /usr/bin/arm-linux-gnueabihf-gcov-tool-${GCC_VERSION}  100
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential ca-certificates wget unzip xz-utils curl \
+    binutils-aarch64-linux-gnu binutils-arm-linux-gnueabihf \
+    gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
+    gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+    gcc-arm-none-eabi \
+    flex bison bc qemu-user-static zerofree u-boot-tools libgnutls28-dev \
+    libeigen3-dev \
+    libnewlib-arm-none-eabi \
+    libssl-dev zlib1g-dev pkg-config \
+    swig python3 python3-dev python3-setuptools device-tree-compiler \
+    fdisk util-linux parted udev dosfstools e2fsprogs zip eatmydata \
+    ccache gettext-base \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN update-alternatives --install /usr/bin/aarch64-linux-gnu-g++ aarch64-linux-gnu-g++ /usr/bin/aarch64-linux-gnu-g++-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/aarch64-linux-gnu-gcc aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/aarch64-linux-gnu-gcc-ar aarch64-linux-gnu-gcc-ar /usr/bin/aarch64-linux-gnu-gcc-ar-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/aarch64-linux-gnu-gcov aarch64-linux-gnu-gcov /usr/bin/aarch64-linux-gnu-gcov-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/aarch64-linux-gnu-cpp aarch64-linux-gnu-cpp /usr/bin/aarch64-linux-gnu-cpp-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/aarch64-linux-gnu-gcc-nm arm-linux-gnueabihf-gcc-nm /usr/bin/arm-linux-gnueabihf-gcc-nm-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/aarch64-linux-gnu-gcc-runlib aarch64-linux-gnu-gcc-ranlib /usr/bin/aarch64-linux-gnu-gcc-ranlib-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/aarch64-linux-gnu-gcc-ranlib aarch64-linux-gnu-gcc-ranlib /usr/bin/aarch64-linux-gnu-gcc-ranlib-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/aarch64-linux-gnu-gcov-dump aarch64-linux-gnu-gcov-dump /usr/bin/aarch64-linux-gnu-gcov-dump-${GCC_VERSION}  100
-RUN update-alternatives --install /usr/bin/aarch64-linux-gnu-gcov-tool aarch64-linux-gnu-gcov-tool /usr/bin/aarch64-linux-gnu-gcov-tool-${GCC_VERSION}  100
-RUN wget -P /tmp https://gitlab.com/libeigen/eigen/-/archive/3.3.9/eigen-3.3.9.zip
-RUN unzip -o /tmp/eigen-3.3.9.zip -d /tmp
-RUN cp -r /tmp/eigen-3.3.9/unsupported /usr/include
-RUN cp -r /tmp/eigen-3.3.9/Eigen /usr/include
-RUN apt-get clean
+# Optional Eigen shim (see above)
+RUN ln -s /usr/include/eigen3/Eigen /usr/include/Eigen && \
+    ln -s /usr/include/eigen3/unsupported /usr/include/unsupported
+
+# ---- aarch64-none-elf (bare-metal) toolchain from Arm ----
+ARG AARCH64_NONE_ELF_VER=14.3.rel1
+ARG AARCH64_NONE_ELF_BASE=arm-gnu-toolchain-${AARCH64_NONE_ELF_VER}-x86_64-aarch64-none-elf
+ARG AARCH64_NONE_ELF_URL=https://developer.arm.com/-/media/Files/downloads/gnu/${AARCH64_NONE_ELF_VER}/binrel/${AARCH64_NONE_ELF_BASE}.tar.xz
+ARG AARCH64_NONE_ELF_SHA256=ebaf2d47f2e7f7b645864c5c8cf839e526daed83a2e675a3525d03f5ba3d2be9
+
+RUN curl -fsSL "${AARCH64_NONE_ELF_URL}" -o /tmp/agt.tar.xz \
+ && echo "${AARCH64_NONE_ELF_SHA256}  /tmp/agt.tar.xz" | sha256sum -c - \
+ && mkdir -p /opt \
+ && tar -xJf /tmp/agt.tar.xz -C /opt \
+ && ln -s /opt/${AARCH64_NONE_ELF_BASE} /opt/aarch64-none-elf \
+ && rm -f /tmp/agt.tar.xz
+
+# Put it on PATH for all subsequent stages
+ENV PATH="/opt/aarch64-none-elf/bin:${PATH}"
+
+# Quick sanity check (optional)
+RUN aarch64-none-elf-gcc --version
+
 ENV TERM=xterm-256color
-USER containeruser

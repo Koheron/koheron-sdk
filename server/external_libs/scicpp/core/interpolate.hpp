@@ -17,7 +17,9 @@
 namespace scicpp::interpolate {
 
 // Interpolation with degree zero doesn't work
-enum InterpKind : int { /* ZERO = 0, */ SLINEAR = 1, QUADRATIC = 2, CUBIC = 3 };
+enum class InterpKind : int { /* ZERO = 0, */ SLINEAR = 1,
+                              QUADRATIC = 2,
+                              CUBIC = 3 };
 
 namespace detail {
 
@@ -32,7 +34,7 @@ class SplineFunction {
           // Spline fitting here. X values are scaled down to [0, 1] for this.
           m_spline(Eigen::SplineFitting<Eigen::Spline<double, 1>>::Interpolate(
               y.transpose(),
-              std::min<int>(int(x.rows() - 1), kind),
+              std::min(int(x.rows() - 1), int(kind)),
               scaled_values(x))) {
         scicpp_require(x.size() == y.size());
         scicpp_require(x_max > x_min);
@@ -62,7 +64,7 @@ class SplineFunction {
 
 } // namespace detail
 
-template <InterpKind kind = SLINEAR>
+template <InterpKind kind = InterpKind::SLINEAR>
 struct interp1d {
     template <typename Array1, typename Array2>
     interp1d(const Array1 &x, const Array2 &y)
@@ -70,7 +72,7 @@ struct interp1d {
 
     template <typename T>
     auto operator()(T &&x) const {
-        if constexpr (meta::is_iterable_v<T>) {
+        if constexpr (meta::Iterable<T>) {
             return map(s, std::forward<T>(x));
         } else {
             return s(x);

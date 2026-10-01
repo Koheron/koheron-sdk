@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from pprint import pprint
 import numpy as np
 import os
 from adc_dac_bram import AdcDacBram
 from koheron import connect
 
-import matplotlib
-matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
 host = os.getenv('HOST', '192.168.1.42')
 client = connect(host, 'adc-dac-bram', restart=True)
+pprint(client.commands)
 driver = AdcDacBram(client)
 
 print('DAC size = {}'.format(driver.dac_size))

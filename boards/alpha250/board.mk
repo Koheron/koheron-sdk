@@ -1,11 +1,12 @@
+BOARD := alpha250
+PART := xc7z020clg400-2
+ZYNQ_TYPE := zynq
+
 # Linux and U-boot
-ZYNQ_TYPE ?= zynq
-UBOOT_TAG := koheron-v$(VIVADO_VERSION)
-LINUX_TAG := koheron-v$(VIVADO_VERSION)-kernel-module-fix-dma
-DTREE_TAG := xilinx-v$(VIVADO_VERSION)
+TMP_OS_BOARD_PATH := $(TMP)/alpha250
 
-UBOOT_URL := https://github.com/Koheron/u-boot-xlnx/archive/$(UBOOT_TAG).tar.gz
-LINUX_URL := https://github.com/Koheron/linux-xlnx/archive/$(LINUX_TAG).tar.gz
-DTREE_URL := https://github.com/Xilinx/device-tree-xlnx/archive/$(DTREE_TAG).tar.gz
+UBOOT_CONFIG = zynq_alpha250_defconfig
+FSBL_PATH := boards/alpha250/patches/fsbl
+PATCHES := boards/alpha250/patches
 
-FSBL_PATH := $(OS_PATH)/alpha/fsbl
+BOARD_DTSO := boards/alpha250/config/board.dtso

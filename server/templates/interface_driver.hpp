@@ -7,55 +7,53 @@
 #ifndef __{{ driver.class_name|upper }}_HPP__
 #define __{{ driver.class_name|upper }}_HPP__
 
-#include <memory>
-#include <mutex>
-
-#include <driver.hpp>
-
 {% for include in driver.includes -%}
 #include "{{ include }}"
 {% endfor -%}
 
+#include "server/executor/driver_adapter.hpp"
+
 namespace koheron {
 
-template<>
-class Driver<driver_id_of<{{ driver.objects[0]["type"] }}>> : public DriverAbstract
-{
-  public:
-    int execute(Command& cmd);
-    template<int op> int execute_operation(Command& cmd);
-
-    Driver(Server *server_, {{ driver.objects[0]["type"] }}& {{ driver.objects[0]["name"] }}_)
-    : DriverAbstract(driver_id_of<{{ driver.objects[0]["type"] }}>, server_)
-    , {{ driver.objects[0]["name"] }}({{ driver.objects[0]["name"] }}_)
-    {}
-
-    enum Operation {
-        {% for operation in driver.operations -%}
-        {{ operation['tag'] }} = {{ operation['id'] }},
-        {% endfor -%}
-        {{ driver.tag|lower }}_op_num
-    };
-
-    std::mutex mutex;
-
-    {{ driver.objects[0]["type"] }}& {{ driver.objects[0]["name"] }};
-
-{% for operation in driver.operations -%}
-struct Argument_{{ operation['name'] }} {
-{%- macro print_param_line(arg) %}
-        {{ arg["type"] }} {{ arg["name"]}};
+{# ---------- helpers ---------- #}
+{# Build the full PMF expression (with static_cast when needed) #}
+{%- macro full_arg_type(a) -%}
+{{ 'const ' if a.get('is_const') }}{{ a['type'] }}{{ '&' if a.get('by_reference') }}
 {%- endmacro -%}
-{% for arg in operation["arguments"] -%}
-    {{ arg["type"] }} {{ arg["name"]}};
-{% endfor -%}
-} args_{{ operation['name'] }};
+{%- macro arg_type_list(args) -%}
+{%- for a in args -%}
+{{ full_arg_type(a) }}{{ ", " if not loop.last }}
+{%- endfor -%}
+{%- endmacro -%}
 
-{% endfor -%}
+constexpr int {{ driver.name }}Id = {{ driver.id }};
 
-}; // class Interface_{{ driver.tag|capitalize }}
+using {{ driver.name }}Adapter = DriverAdapter<
+        {{ driver.name }}Id,
+        {{ driver.name }},
+{% set SEP = joiner(',\n') -%}
+{%- for op in driver.operations -%}
+{{ SEP() }}        Op<
+        {%- if op.needs_cast -%}
+            static_cast<{{ op.ret_expr }} ({{ driver.name }}::*)({{ arg_type_list(op.get('arguments', [])) }})>
+            (&{{ driver.name }}::{{ op['name'] }})
+        {%- else -%}
+            &{{ driver.name }}::{{ op['name'] }}
+        {%- endif -%}
+        {%- set args = op.get('arguments', []) -%}
+        {%- if args|length > 0 -%}
+        {%- for a in args -%}, "{{ a['name'] }}"{% endfor -%}
+        {%- endif -%}
+        >
+{%- endfor %}
+>;
+
+template<>
+class Driver<{{ driver.name }}Id> : public {{ driver.name }}Adapter {
+  public:
+    using {{ driver.name }}Adapter::{{ driver.name }}Adapter; // inherit constructors
+};
 
 } // namespace koheron
 
 #endif //__{{ driver.class_name|upper }}_HPP__
-

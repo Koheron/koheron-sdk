@@ -47,8 +47,7 @@ class KoheronClient:
         append(cmd, 0, 4)          # RESERVED
         append(cmd, driver_id, 2)  # driver_id
         append(cmd, cmd_id, 2)     # op_id
-        if self.sock.send(cmd) == 0:
-            raise RuntimeError('send_command: Socket connection broken')
+        self.sock.sendall(cmd)
 
     def recv_all(self, n_bytes):
         '''Receive exactly n_bytes bytes.'''
@@ -57,12 +56,14 @@ class KoheronClient:
         while n_rcv < n_bytes:
             try:
                 chunk = self.sock.recv(n_bytes - n_rcv)
-                if chunk == '':
-                    break
+                if chunk == b'':
+                    raise RuntimeError('recv_all: Socket connection closed.')
                 n_rcv += len(chunk)
                 data.append(chunk)
-            except:
-                raise RuntimeError('recv_all: Socket connection broken.')
+            except RuntimeError:
+                raise
+            except Exception as exc:
+                raise RuntimeError('recv_all: Socket connection broken.') from exc
         return b''.join(data)
 
     def recv_dynamic_payload(self):

@@ -3,12 +3,13 @@
 #ifndef __ALPHA_DRIVERS_EEPROM_HPP__
 #define __ALPHA_DRIVERS_EEPROM_HPP__
 
+#include "server/runtime/services.hpp"
+#include "server/hardware/i2c_manager.hpp"
+
 #include <thread>
 #include <chrono>
 #include <cstring>
 #include <array>
-
-#include <context.hpp>
 
 // http://ww1.microchip.com/downloads/en/DeviceDoc/21189K.pdf
 
@@ -105,9 +106,8 @@ namespace eeprom_map_alpha250_4 {
 class Eeprom
 {
   public:
-    Eeprom(Context& ctx_)
-    : ctx(ctx_)
-    , i2c(ctx.i2c.get("i2c-0"))
+    Eeprom()
+    : i2c(services::require<hw::I2cManager>().get("i2c-0"))
     {}
 
     int32_t set_serial_number(uint32_t sn) {
@@ -121,9 +121,8 @@ class Eeprom
         return data[0];
     }
 
-    template<int32_t offset, typename T, uint32_t N>
-    int32_t write(const std::array<T, N>& data)
-    {
+    template<int32_t offset, typename T, std::size_t N>
+    int32_t write(const std::array<T, N>& data) {
         constexpr uint32_t n_bytes = N * sizeof(T);
         static_assert(offset + n_bytes <= EEPROM_SIZE, "Write out of EEPROM");
 
@@ -143,9 +142,8 @@ class Eeprom
         return n_bytes;
     }
 
-    template<int32_t offset, typename T, uint32_t N>
-    int32_t read(std::array<T, N>& data)
-    {
+    template<int32_t offset, typename T, std::size_t N>
+    int32_t read(std::array<T, N>& data) {
         constexpr uint32_t n_bytes = N * sizeof(T);
         static_assert(offset + n_bytes <= EEPROM_SIZE, "Read out of EEPROM");
 
@@ -160,6 +158,7 @@ class Eeprom
         if (i2c.read(EEPROM_ADDR, data) != n_bytes) {
             return -1;
         }
+
         return n_bytes;
     }
 
@@ -168,11 +167,9 @@ class Eeprom
     static constexpr uint32_t PAGESIZE = 32;
     static constexpr uint32_t EEPROM_SIZE = 64 * 1024 / 8;
 
-    Context& ctx;
-    I2cDev& i2c;
+    hw::I2cDev& i2c;
 
-    int __write(const uint8_t *buffer, int32_t n_bytes)
-    {
+    int __write(const uint8_t *buffer, int32_t n_bytes) {
         using namespace std::chrono_literals;
         constexpr int32_t max_retries = 5;
 
@@ -199,10 +196,9 @@ class Eeprom
         return -1;
     }
 
-    int32_t __write_packet(int32_t offset, const uint8_t *packet, int32_t len)
-    {
+    int32_t __write_packet(int32_t offset, const uint8_t *packet, int32_t len) {
         int32_t packet_len = len + 2;
-        assert(packet_len <= PAGESIZE + 2);
+        assert(packet_len <= int32_t(PAGESIZE) + 2);
         uint8_t buffer[PAGESIZE + 2];
 
         buffer[0] = static_cast<uint8_t>(offset >> 8);

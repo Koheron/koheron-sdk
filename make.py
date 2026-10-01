@@ -8,18 +8,28 @@ import jinja2
 import yaml
 import server
 
+def write_if_changed(path, text):
+    old = None
+    if os.path.isfile(path):
+        with open(path, 'r') as f:
+            old = f.read()
+    if old != text:
+        with open(path, 'w') as f:
+            f.write(text)
+        return True
+    return False
+
 def append_path(filename, file_path):
-    ''' If a filename starts with './' then it is relative to the config.yml path.
-    '''
     if filename.startswith('./'):
-        filename = os.path.join(file_path, filename)
-    else:
-        filename = os.path.join(SDK_PATH, filename)
+        return os.path.join(file_path, filename[2:])
+    if os.path.isabs(filename):          # <-- keep absolute paths
+        return filename
+    return os.path.join(SDK_PATH, filename)
 
     return filename
 
 def load_config(config_filename):
-    ''' Get the config dictionary from the file 'config.yml' '''
+    ''' Get the config dictionary from the file 'memory.yml' '''
 
     with open(config_filename) as f:
         config = yaml.safe_load(f)
@@ -45,10 +55,41 @@ def read_parameters(string, parameters):
 
     return string, parameter
 
+def _normalize_int_literal(value):
+    """Return a string literal without numeric separators."""
+    if isinstance(value, str):
+        cleaned = value.replace('_', '')
+        try:
+            parsed = int(cleaned, 0)
+        except ValueError:
+            return value
+
+        lowered = cleaned.lower()
+        if lowered.startswith('0x'):
+            return f'0x{parsed:X}'
+        if lowered.startswith('0o'):
+            return f'0o{parsed:o}'
+        if lowered.startswith('0b'):
+            return f'0b{parsed:b}'
+        return str(parsed)
+
+    if isinstance(value, int):
+        # Preserve hexadecimal formatting for integer literals that may have
+        # been parsed by YAML (e.g. ``0x5400_0000``). Represent them in
+        # uppercase hexadecimal so downstream templates still receive an
+        # address-like string instead of a decimal representation.
+        return f'0x{value:X}'
+
+    return value
+
+
 def build_memory(memory, parameters):
     for address in memory:
         address['name'], address['n_blocks'] = read_parameters(address['name'], parameters)
         assert (address['n_blocks'] > 0)
+
+        if 'offset' in address:
+            address['offset'] = _normalize_int_literal(address['offset'])
 
         # Protection
         if not 'protection' in address:
@@ -57,6 +98,18 @@ def build_memory(memory, parameters):
             address['prot_flag'] = 'PROT_READ'
         elif address['protection'] == 'write':
             address['prot_flag'] = 'PROT_WRITE'
+
+        if not 'dev' in address:
+            address['dev'] = '/dev/mem'
+        else:
+            address['dev'] = str(address['dev'])
+        if address['dev'] == '/dev/mem_wc':
+            address['dev'] = address['dev'] + address['offset']
+
+        registers = address.get('registers', []) or []
+        registers = build_registers(registers, parameters) if registers else []
+        address['registers'] = registers
+        address['register_count'] = len(registers)
 
     return memory
 
@@ -78,10 +131,6 @@ def build_registers(registers, parameters):
 def append_memory_to_config(config):
     parameters = config.get('parameters', {})
     config['memory'] = build_memory(config.get('memory', {}), parameters)
-    config['control_registers'] = build_registers(config.get('control_registers', {}), parameters)
-    config['ps_control_registers'] = build_registers(config.get('ps_control_registers', {}), parameters)
-    config['status_registers'] = build_registers(config.get('status_registers', {}), parameters)
-    config['ps_status_registers'] = build_registers(config.get('ps_status_registers', {}), parameters)
     return config
 
 def build_json(dict):
@@ -99,6 +148,44 @@ def dump_if_changed(filename, new_dict):
     if not os.path.isfile(filename) or changed:
         with open(filename, 'w') as yml_file:
             yaml.dump(new_dict, yml_file)
+
+def render_template_to_string(config, template_filename):
+    tpl = get_renderer().get_template(template_filename)
+    return tpl.render(config=config)
+
+def _parse_size_bytes(s):
+    s = str(s).strip()
+    if s.endswith(('K','M','G')):
+        num = int(s[:-1], 0) if s[:-1].startswith('0x') else int(s[:-1])
+        mul = {'K':1024, 'M':1024*1024, 'G':1024*1024*1024}[s[-1]]
+        return num * mul
+    return int(s, 0)
+
+def _compat_to_dt(val):
+    # Accept string or list; return a DTS-compatible string list
+    if isinstance(val, (list, tuple)):
+        return ", ".join(f'"{s}"' for s in val)
+    return f'"{str(val)}"'  # single string
+
+def build_mem_simple_context(cfg):
+    regions = []
+    for e in cfg.get('memory', []):
+        # Only include entries that explicitly set a compatible
+        if 'compatible' not in e:
+            continue
+        base = int(str(e['offset']), 0)
+        size = _parse_size_bytes(e['range'])
+        regions.append({
+            'name': e['name'],
+            'base': base,
+            'size': size,
+            'compat_str': _compat_to_dt(e['compatible']),
+        })
+    arch = os.getenv('ARCH', '').strip()
+    return {
+        'regions': regions,
+        'arch': arch,
+    }
 
 #########################
 # Jinja2 template engine
@@ -142,13 +229,13 @@ SDK_PATH = os.getenv('SDK_PATH', '')
 if __name__ == "__main__":
 
     cmd = sys.argv[1]
-    config_filename = sys.argv[2]
-    output_filename = sys.argv[3]
+    output_filename = sys.argv[2]
 
     output_dirname = os.path.dirname(output_filename)
     if not os.path.exists(output_dirname):
         os.makedirs(output_dirname)
 
+    config_filename = sys.argv[3]
     config = load_config(config_filename)
     config_path = os.path.dirname(config_filename)
 
@@ -156,77 +243,36 @@ if __name__ == "__main__":
         reload(sys)
         sys.setdefaultencoding('utf-8')
 
-    if cmd == '--name':
-        with open(output_filename, 'w') as f:
-            f.write(config['name'])
+    elif cmd == '--memory_tcl':
+        text = render_template_to_string(append_memory_to_config(config), 'memory.tcl')
+        write_if_changed(output_filename, text)
 
-    elif cmd == '--memory_yml':
-        for field in ['drivers', 'web', 'cores', 'modules', 'name', 'board', 'version']:
-            config.pop(field, None)
-        dump_if_changed(output_filename, config)
-
-    elif cmd == '--config_tcl':
-        fill_template(append_memory_to_config(config), 'config.tcl', output_filename)
-
-    elif cmd == '--cores':
-        for module in config.get('modules', []):
-            module_path = os.path.dirname(module)
-            module = append_path(module, module_path)
-            module_config = load_config(module)
-            module_cores = module_config.get('cores')
-            if module_cores is not None:
-                config['cores'].extend(module_cores)
-            config['cores'] = list(set(config['cores']))
-
-        for i in range(len(config['cores'])):
-            config['cores'][i] = append_path(config['cores'][i], config_path)
-
-        with open(output_filename, 'w') as f:
-            f.write(' '.join(config.get('cores', [])))
-
-    elif cmd == '--board':
-        config['board'] = append_path(config['board'], config_path)
-        with open(output_filename, 'w') as f:
-            f.write(config['board'])
-
-    elif cmd == '--drivers':
-        for i, path in enumerate(config.get('drivers', [])):
-            config['drivers'][i] = append_path(path, config_path)
-        with open(output_filename, 'w') as f:
-            f.write(' '.join(config.get('drivers', [])))
-
-    elif cmd == '--xdc':
-        for i, path in enumerate(config.get('xdc', [])):
-            config['xdc'][i] = append_path(path, config_path)
-        with open(output_filename, 'w') as f:
-            f.write(' '.join(config.get('xdc', [])))
+    elif cmd == '--memory_dtsi':
+        ctx = build_mem_simple_context(config)
+        text = get_renderer().get_template('memory.dtsi').render(**ctx)
+        write_if_changed(output_filename, text)
 
     elif cmd == '--memory_hpp':
-        config = append_memory_to_config(config)
-        config['json'] = build_json(config)
-        fill_template(config, 'memory.hpp', output_filename)
+        cfg = append_memory_to_config(config)
+        cfg['json'] = build_json(cfg)
+        text = render_template_to_string(cfg, 'memory.hpp')
+        write_if_changed(output_filename, text)
 
     elif cmd == '--render_template':
         template_filename = sys.argv[4]
-        for i in range(len(config['drivers'])):
-            config['drivers'][i] = append_path(config['drivers'][i], config_path)
-        server.render_template(template_filename, output_filename, server.get_drivers(config['drivers']))
+        drivers = os.getenv('DRIVERS_HPP','').split()
+
+        server.render_template(
+            template_filename,
+            output_filename,
+            server.get_drivers(drivers)
+        )
 
     elif cmd == '--render_interface':
         driver_filename_hpp = sys.argv[4]
-        id_ = server.get_driver_id(config['drivers'], driver_filename_hpp)
+        drivers = os.getenv('DRIVERS_HPP','').split()
+        id_ = server.get_driver_id(drivers, driver_filename_hpp)
         server.render_driver(server.get_driver(driver_filename_hpp, id_), output_filename)
 
-    elif cmd == '--web':
-        for i, path in enumerate(config.get('web', [])):
-            config['web'][i] = append_path(path, config_path)
-        with open(output_filename, 'w') as f:
-            f.write(' '.join(config.get('web', [])))
-
-    elif cmd == '--version':
-        config['version'] = config.get('version', '0.0.0')
-        with open(output_filename, 'w') as f:
-            f.write(config['version'])
-
     else:
-        raise ValueError('Unknown command')
+        raise ValueError('make.py unknown command')

@@ -33,7 +33,6 @@ set_property -dict [list \
     CONFIG.PCW_UART_PERIPHERAL_VALID {1}  \
     CONFIG.PCW_EN_EMIO_SPI0 {1}  \
     CONFIG.PCW_EN_EMIO_TTC0 {1}  \
-    CONFIG.PCW_M_AXI_GP0_FREQMHZ {125}  \
     CONFIG.PCW_FTM_CTI_IN0 {<Select>}  \
     CONFIG.PCW_FTM_CTI_IN1 {<Select>}  \
     CONFIG.PCW_FTM_CTI_IN2 {<Select>}  \

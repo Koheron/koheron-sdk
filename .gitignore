@@ -8,7 +8,7 @@ dist/
 build/
 
 # Folders
-tmp
+tmp*
 .Xil
 .vscode
 node_modules/
@@ -17,6 +17,7 @@ node_modules/
 *.jou
 *.log
 vivado_*.str
+vivado_*.zip
 
 \.vscode/
 .cache/
@@ -24,4 +25,4 @@ vivado_*.str
 
 .venv/
 package-lock.json
-package.json
+.ccache/

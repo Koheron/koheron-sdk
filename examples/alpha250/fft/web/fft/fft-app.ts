@@ -2,6 +2,7 @@
 // (c) Koheron
 
 class FFTApp {
+    private running: boolean = true;
     private channelNum: number = 2;
     private fftSelects: HTMLSelectElement[];
     private fftInputs: HTMLInputElement[];
@@ -12,49 +13,183 @@ class FFTApp {
         this.fftInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-input");
         this.initFFTInputs();
 
-        this.updateFFTWindowInputs();
         this.updateControls();
     }
 
     // Updaters
+    private _busyControls = false;
+    private _controlsHz = 4;            // throttle UI refresh rate
+    private _lastControlsTick = 0;
+    private _lastBoardTick = -Infinity;
+    private _ddsInputsByChannel?: HTMLInputElement[][];
+    private _supplySpans?: HTMLSpanElement[];
+    private _temperatureSpans?: HTMLSpanElement[];
 
-    private updateControls() {
-        this.driver.getControlParameters( (sts: IFFTStatus) => {
+    // Build & cache DOM references once
+    private ensureControlsCache() {
+        if (!this._ddsInputsByChannel) {
+            const all = Array.from(document.querySelectorAll<HTMLInputElement>(
+                ".dds-channel-input[data-command='setDDSFreq']"
+            ));
 
-            for (let i = 0; i < this.channelNum; i++) {
-                let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".dds-channel-input[data-command='setDDSFreq'][data-channel='" + i.toString() + "']");
-                let inputsArray = [];
-                for (let j = 0; j < inputs.length; j++) {
-                    inputsArray.push(inputs[j]);
+            const byChan: Record<string, HTMLInputElement[]> = {};
+
+            for (const el of all) {
+                const ch = el.dataset.channel!;
+                (byChan[ch] ||= []).push(el);
+            }
+
+            const maxChan = Math.max(...Object.keys(byChan).map(Number), this.channelNum - 1);
+            this._ddsInputsByChannel = Array.from({ length: maxChan + 1 }, (_, i) => byChan[String(i)] || []);
+        }
+
+        if (!this._supplySpans) {
+            this._supplySpans = Array.from(document.getElementsByClassName("supply-span")) as HTMLSpanElement[];
+        }
+
+        if (!this._temperatureSpans) {
+            this._temperatureSpans = Array.from(document.getElementsByClassName("temperature-span")) as HTMLSpanElement[];
+        }
+    }
+
+    private setCheckedIfNeeded(sel: string) {
+      const input = document.querySelector<HTMLInputElement>(sel);
+      if (input && !input.checked) input.checked = true;
+    }
+
+    private setValueIfNeeded(el: HTMLInputElement | HTMLSelectElement, v: string) {
+      if (el.value !== v) el.value = v;
+    }
+
+    private setTextIfNeeded(el: HTMLElement, v: string) {
+      if (el.textContent !== v) el.textContent = v;
+    }
+
+    private setMaxIfNeeded(el: HTMLInputElement, v: string) {
+      if (el.max !== v) el.max = v;
+    }
+
+    private async updateControls() {
+        if (!this.running) { return; }
+        // prevent overlap
+        if (this._busyControls) return;
+        this._busyControls = true;
+
+        // throttle
+        const frameBudgetMs = 1000 / this._controlsHz;
+        const now = performance.now();
+        const sinceLast = now - this._lastControlsTick;
+
+        if (sinceLast < frameBudgetMs) {
+            this._busyControls = false;
+            const wait = Math.ceil(frameBudgetMs - sinceLast);
+            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updateControls(); } }), wait);
+            return;
+        }
+
+        this._lastControlsTick = now;
+
+        try {
+            this.ensureControlsCache();
+
+            const [sts, brdParams] = await Promise.all([
+                this.driver.getControlParameters() as Promise<IFFTStatus>,
+                // Slow board telemetry must not compete with spectrum/control requests.
+                now - this._lastBoardTick >= 1000
+                    ? this.driver.getBoardParameters() as Promise<IBoardParameters>
+                    : Promise.resolve(undefined),
+            ]);
+            if (!this.running) { this._busyControls = false; return; }
+
+            // Update DDS inputs per channel, but skip the channel if any of its inputs is focused
+            const active = document.activeElement as HTMLElement | null;
+
+            for (let ch = 0; ch < this.channelNum; ch++) {
+                const inputs = this._ddsInputsByChannel![ch] || [];
+                if (!inputs.length) continue;
+
+                const maxMHz = (sts.fs / 1e6 / 2).toFixed(1);
+                for (const inp of inputs) { this.setMaxIfNeeded(inp, maxMHz); }
+
+                // Keep an edit intact, but always refresh its hardware limit.
+                if (active && inputs.includes(active as HTMLInputElement)) continue;
+
+                const freqMHz = (sts.dds_freq[ch] / 1e6).toFixed(6);
+                for (const inp of inputs) { this.setValueIfNeeded(inp, freqMHz); }
+            }
+
+            // Sampling frequency radio
+            this.setCheckedIfNeeded(
+                sts.fs === 200e6
+                    ? "[data-command='setSamplingFrequency'][value='0']"
+                    : "[data-command='setSamplingFrequency'][value='1']"
+            );
+
+            // Input channel radio
+            this.setCheckedIfNeeded(
+                `[data-command='setInputChannel'][value='${sts.channel}']`
+            );
+
+            // FFT window select
+            const winSel = document.querySelector<HTMLSelectElement>("[data-command='setFFTWindow']");
+
+            if (winSel && document.activeElement !== winSel) {
+                this.setValueIfNeeded(winSel, String(sts.window_index));
+            }
+
+            // Reference clock radio
+            this.setCheckedIfNeeded(
+                `[data-command='setReferenceClock'][value='${sts.clkIndex}']`
+            );
+
+            if (brdParams) {
+                this._lastBoardTick = now;
+                for (const span of this._supplySpans) {
+                    const idx = Number(span.dataset.index || "0");
+                    const val = brdParams.supplyValues[idx];
+                    const out =
+                        span.dataset.type === "voltage"
+                        ? val.toFixed(3)
+                        : span.dataset.type === "current"
+                        ? (val * 1e3).toFixed(1)
+                        : "";
+                    this.setTextIfNeeded(span, out);
                 }
 
-                if (inputsArray.indexOf(<HTMLInputElement>document.activeElement) == -1) {
+                for (const span of this._temperatureSpans) {
+                    span.textContent = brdParams.temperatures[parseInt(span.dataset.index)].toFixed(1);
+                }
+
+                for (let i: number = 0; i < 4; i++) {
+                    (<HTMLSpanElement>document.querySelector(".precision-adc-span[data-channel='" + i.toString() + "']")).textContent = (brdParams.adcValues[i] * 1000).toFixed(4);
+                }
+
+                for (let i = 0; i < 4; i++) {
+                    let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".precision-dac-input[data-command='setDac'][data-channel='" + i.toString() + "']");
+                    let inputsArray = [];
                     for (let j = 0; j < inputs.length; j++) {
-                      inputs[j].value = (sts.dds_freq[i] / 1e6).toFixed(6);
-                      if (inputs[j].type == "range") {
-                        inputs[j].max = (sts.fs / 1e6 / 2).toFixed(1);
-                      }
+                        inputsArray.push(inputs[j]);
+                    }
+
+                    if (inputsArray.indexOf(<HTMLInputElement>document.activeElement) == -1) {
+                        for (let j = 0; j < inputs.length; j++) {
+                          inputs[j].value = (brdParams.dacValues[i] * 1000).toFixed(3).toString();
+                        }
                     }
                 }
             }
 
-            if (sts.fs === 200E6) {
-                (<HTMLInputElement>document.querySelector("[data-command='setSamplingFrequency'][value='0']")).checked = true;
-            } else {
-                (<HTMLInputElement>document.querySelector("[data-command='setSamplingFrequency'][value='1']")).checked = true;
-            }
-
-            (<HTMLInputElement>document.querySelector("[data-command='setInputChannel'][value='" + sts.channel.toString() + "']")).checked = true;
-
-            requestAnimationFrame( () => { this.updateControls(); } )
-        });
-    }
-
-    private updateFFTWindowInputs() {
-        this.driver.getFFTWindowIndex( (windowIndex: number) => {
-            (<HTMLSelectElement>document.querySelector("[data-command='setFFTWindow']")).value = windowIndex.toString();
-            requestAnimationFrame( () => { this.updateFFTWindowInputs(); } )
-        });
+            // schedule next tick after work is done; keep throttling stable
+            const elapsed = performance.now() - now;
+            const delay = Math.max(0, Math.ceil(frameBudgetMs - elapsed));
+            this._busyControls = false;
+            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updateControls(); } }), delay);
+        } catch (err) {
+            this._busyControls = false;
+            if (!this.running) { return; }
+            console.error("updateControls error:", err);
+            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updateControls(); } }), 500);
+        }
     }
 
     // Setters
@@ -73,6 +208,11 @@ class FFTApp {
                 this.driver[(<HTMLInputElement>event.currentTarget).dataset.command]((<HTMLInputElement>event.currentTarget).value);
             })
         }
+    }
+
+
+    dispose(): void {
+        this.running = false;
     }
 
 }

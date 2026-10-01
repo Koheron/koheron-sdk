@@ -1,0 +1,3 @@
+#!/bin/sh
+# Koheron: disable Ubuntu motd news snippets.
+exit 0

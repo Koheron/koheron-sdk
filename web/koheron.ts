@@ -78,7 +78,9 @@ class WebSocketPool {
                     if (this.socketCounter === 0) { onOpenCallback(); }
                     websocket.ID = this.socketCounter;
                     websocket.onclose = evt => {
-                        setTimeout(function(){ location.reload(); }, 1000);
+                        if (!this.exiting) {
+                            setTimeout(function(){ location.reload(); }, 1000);
+                        }
                     };
                     websocket.onerror = evt => {
                         console.error(`error: ${evt.data}\n`);
@@ -391,7 +393,11 @@ class Client {
 
     private url: string;
     private driversList: Array<Driver>;
-    private websockpool: WebSocketPool;
+    private websockpool?: WebSocketPool;
+    private connected: boolean = false;
+    private initialized: boolean = false;
+    private exiting: boolean = false;
+    private initTimeoutMs: number = 10000;
 
     constructor(private IP: string, private websockPoolSize: number) {
         if (websockPoolSize == null) { websockPoolSize = 5; }
@@ -400,33 +406,85 @@ class Client {
         this.driversList = [];
     }
 
-    init(callback) {
-        return this.websockpool = new WebSocketPool(this.websockPoolSize, this.url, (function() {
-            return this.loadCmds(callback);
-        }.bind(this)));
+    init(callback?: () => void): Promise<void> {
+        this.exiting = false;
+        this.connected = false;
+        this.initialized = false;
+        this.driversList = [];
+
+        return new Promise<void>((resolve, reject) => {
+            let settled = false;
+            const timer = setTimeout(() => {
+                if (settled) { return; }
+                settled = true;
+                clearTimeout(timer);
+                this.closeWebSocketPool();
+                reject(new Error('WebSocket connection timeout'));
+            }, this.initTimeoutMs);
+
+            try {
+                this.websockpool = new WebSocketPool(this.websockPoolSize, this.url, () => {
+                    if (settled) { return; }
+                    this.connected = true;
+                    this.loadCmds()
+                        .then(() => {
+                            if (settled) { return; }
+                            settled = true;
+                            clearTimeout(timer);
+                            this.initialized = true;
+                            if (callback) { callback(); }
+                            resolve();
+                        })
+                        .catch(err => {
+                            if (settled) { return; }
+                            settled = true;
+                            clearTimeout(timer);
+                            this.closeWebSocketPool();
+                            reject(err instanceof Error ? err : new Error(String(err)));
+                        });
+                });
+            } catch (e) {
+                if (settled) { return; }
+                settled = true;
+                clearTimeout(timer);
+                this.closeWebSocketPool();
+                reject(e instanceof Error ? e : new Error(String(e)));
+            }
+        });
+    }
+
+    private closeWebSocketPool(): void {
+        this.connected = false;
+        this.initialized = false;
+        if (this.websockpool) {
+            this.websockpool.exit();
+            this.websockpool = undefined;
+        }
     }
 
     exit() {
-        this.websockpool.exit();
-        return delete this.websockpool;
+        this.exiting = true;
+        this.closeWebSocketPool();
     }
 
     // ------------------------
     //  Send
     // ------------------------
 
-    send(cmd) {
-        if (this.websockpool === null || typeof this.websockpool === 'undefined') { return; }
+    send(cmd: CmdMessage) {
+        if (this.exiting) { return; }
+        if (!this.websockpool || !this.initialized) {
+            throw new Error('Client is not initialized. Call and await client.init() before send().');
+        }
 
-        this.websockpool.requestSocket( sockid => {
+        this.websockpool.requestSocket( (sockid: number) => {
             if (sockid < 0) { return; }
             let websocket = this.websockpool.getSocket(sockid);
             websocket.send(cmd.data);
             if (this.websockpool !== null && typeof this.websockpool !== 'undefined') {
                  this.websockpool.freeSocket(sockid);
             }
-        }
-        );
+        });
     }
 
     // ------------------------
@@ -445,188 +503,321 @@ class Client {
         }
     }
 
-    getPayload(mode, evt) {
-        let buffer, dvBuff, i, len;
-        let dv = new DataView(evt.data);
-        let reserved = dv.getUint32(0);
-        let classId = dv.getUint16(4);
-        let funcId = dv.getUint16(6);
+    getPayload(
+        mode: 'static' | 'dynamic',
+        evt: MessageEvent<ArrayBuffer>
+    ): Payload {
+        const STATIC_HEADER_BYTES  = 8;   // reserved(4) + classId(2) + funcId(2)
+        const DYNAMIC_HEADER_BYTES = 12;  // + length(4) at offset 8
+
+        const buf = evt.data;
+        if (!(buf instanceof ArrayBuffer)) {
+            // If this ever triggers, ensure: websocket.binaryType = 'arraybuffer'
+            throw new Error('Expected ArrayBuffer in MessageEvent.data');
+        }
+
+        const dv = new DataView(buf);
+        if (dv.byteLength < STATIC_HEADER_BYTES) {
+            throw new Error(`Frame too small: ${dv.byteLength} < ${STATIC_HEADER_BYTES}`);
+        }
+
+        // Header
+        // reserved is available if you need it later:
+        // const reserved = dv.getUint32(0);
+        const classId = dv.getUint16(4);
+        const funcId  = dv.getUint16(6);
+
+        let offset: number;
+        let len: number;
 
         if (mode === 'static') {
-            len = dv.byteLength - 8;
-            buffer = new ArrayBuffer(len);
-            dvBuff = new DataView(buffer);
-            if (len > 0) {
-                for (i = 0, end = len-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) { var asc, end;
-                dvBuff.setUint8(i, dv.getUint8(8 + i)); }
+            offset = STATIC_HEADER_BYTES;
+            len = dv.byteLength - STATIC_HEADER_BYTES;
+
+            if (len < 0) {
+                throw new Error('Negative payload length (static).');
             }
-        } else { // 'dynamic'
+        } else {
+            if (dv.byteLength < DYNAMIC_HEADER_BYTES) {
+                throw new Error(`Frame too small for dynamic header: ${dv.byteLength} < ${DYNAMIC_HEADER_BYTES}`);
+            }
+
             len = dv.getUint32(8);
-            console.assert(dv.byteLength === (len + 12));
-            buffer = new ArrayBuffer(len);
-            dvBuff = new DataView(buffer);
-            if (len > 0) {
-                for (i = 0, end1 = len-1, asc1 = 0 <= end1; asc1 ? i <= end1 : i >= end1; asc1 ? i++ : i--) { var asc1, end1;
-                dvBuff.setUint8(i, dv.getUint8(12 + i)); }
+
+            if (dv.byteLength !== len + DYNAMIC_HEADER_BYTES) {
+                throw new Error(`Bad dynamic length: expected ${len + DYNAMIC_HEADER_BYTES}, got ${dv.byteLength}`);
             }
+
+            offset = DYNAMIC_HEADER_BYTES;
         }
 
-        return [dvBuff, classId, funcId];
+        const payloadView = new DataView(buf, offset, len);
+        return { dv: payloadView, classId, funcId };
     }
 
-    _readBase(mode: string, cmd: CmdMessage, fn: (x: DataView) => void): void {
-        if ((this.websockpool === null || typeof(this.websockpool) === 'undefined')) {
-            return fn(null);
-        }
-    
-        this.websockpool.requestSocket(sockid => {
-            if (sockid < 0) { return fn(null); }
-            let websocket = this.websockpool.getSocket(sockid);
-            websocket.send(cmd.data);
-    
-            websocket.onmessage = evt => {
-                try {
-                    fn(this.getPayload(mode, evt)[0]);
-                } finally {
-                    if (this.websockpool !== null && typeof this.websockpool !== 'undefined') {
-                        this.websockpool.freeSocket(sockid);
-                    }
+    private _readBaseAsync(
+        mode: 'static' | 'dynamic',
+        cmd: CmdMessage
+    ): Promise<DataView> {
+        return new Promise<DataView>((resolve, reject) => {
+            if (this.exiting) {
+                return reject(new Error('Client is closed'));
+            }
+
+            if (!this.websockpool || !this.connected) {
+                return reject(new Error('Client is not connected. Call and await client.init() before read().'));
+            }
+
+            let sockid = -1;
+
+            const cleanup = (
+                websocket?: WebSocket,
+                onMessage?: (ev: MessageEvent) => void,
+                onError?: (ev: Event) => void,
+                onClose?: () => void
+            ) => {
+                if (websocket && onMessage) {
+                    websocket.removeEventListener('message', onMessage);
+                }
+
+                if (websocket && onError) {
+                    websocket.removeEventListener('error', onError);
+                }
+
+                if (websocket && onClose) {
+                    websocket.removeEventListener('close', onClose);
+                }
+
+                if (sockid >= 0 && this.websockpool) {
+                    this.websockpool.freeSocket(sockid);
                 }
             };
+
+            this.websockpool.requestSocket((id: number) => {
+                if (id < 0) {
+                    return reject(this.exiting ? new Error('Client is closed') : new Error('Failed to acquire socket'));
+                }
+
+                sockid = id;
+
+                const websocket: WebSocket = this.websockpool.getSocket(sockid);
+                try { (websocket as any).binaryType = 'arraybuffer'; } catch {}
+
+                const onMessage = (evt: MessageEvent) => {
+                    try {
+                        const payload = this.getPayload(mode, evt);
+                        cleanup(websocket, onMessage, onError, onClose);
+                        resolve(payload.dv);
+                    } catch (e) {
+                        cleanup(websocket, onMessage, onError, onClose);
+                        reject(e instanceof Error ? e : new Error(String(e)));
+                    }
+                };
+
+                const onError = (_e: Event) => {
+                    cleanup(websocket, onMessage, onError, onClose);
+                    reject(this.exiting ? new Error('Client is closed') : new Error('WebSocket error'));
+                };
+
+                const onClose = () => {
+                    cleanup(websocket, onMessage, onError, onClose);
+                    reject(this.exiting ? new Error('Client is closed') : new Error('WebSocket closed before response'));
+                };
+
+                websocket.addEventListener('message', onMessage, { once: true });
+                websocket.addEventListener('error', onError, { once: true });
+                websocket.addEventListener('close', onClose, { once: true });
+                websocket.send(cmd.data);
+            });
         });
     }
     
-    readUint32Array(cmd: CmdMessage, fn: (x: Uint32Array) => void): void {
-        this._readBase('static', cmd, (data) => {
-            fn(new Uint32Array(data.buffer));
-        });
-    }
-
-    readInt32Array(cmd: CmdMessage, fn: (x: Int32Array) => void): void {
-        this._readBase('static', cmd, (data) => {
-            fn(new Int32Array(data.buffer));
-        });
-    }
-
-    readFloat32Array(cmd: CmdMessage, fn: (x: Float32Array) => void): void {
-        this._readBase('static', cmd, (data) => {
-            fn(new Float32Array(data.buffer));
-        });
-    }
-
-    readFloat64Array(cmd: CmdMessage, fn: (x: Float64Array) => void): void {
-        this._readBase('static', cmd, (data) => {
-            fn(new Float64Array(data.buffer));
-        });
-    }
-
-    readUint32Vector(cmd: CmdMessage, fn: (x: Uint32Array) => void): void {
-        this._readBase('dynamic', cmd, (data) => {
-                fn(new Uint32Array(data.buffer));
-        });
-    }
-
-    readFloat32Vector(cmd: CmdMessage, fn: (x: Float32Array) => void): void {
-        this._readBase('dynamic', cmd, (data) => {
-            fn(new Float32Array(data.buffer));
-        });
-    }
-
-    readFloat64Vector(cmd: CmdMessage, fn: (x: Float64Array) => void): void {
-        this._readBase('dynamic', cmd, (data) => {
-            fn(new Float64Array(data.buffer));
-        });
-    }
-
-    readUint32(cmd: CmdMessage, fn: (x: number) => void): void {
-        this._readBase('static', cmd, data => {
-                fn(data.getUint32(0));
-        });
-    }
-
-    readInt32(cmd: CmdMessage, fn: (x: number) => void): void {
-        this._readBase('static', cmd, (data) => {
-            fn(data.getInt32(0));
-        });
-    }
-
-    readFloat32(cmd: CmdMessage, fn: (x: number) => void): void {
-        this._readBase('static', cmd, data => {
-            fn(data.getFloat32(0));
-        });
-    }
-
-    readFloat64(cmd: CmdMessage, fn: (x: number) => void): void {
-        this._readBase('static', cmd, data => {
-            fn(data.getFloat64(0));
-        });
-    }
-
-    readBool(cmd: CmdMessage, fn: (x: boolean) => void): void {
-        this._readBase('static', cmd, data => {
-            fn(data.getUint8(0) === 1);
-        });
-    }
-
-    readTuple(cmd: CmdMessage, fmt: string, fn: (x: any[]) => void): void {
-        this._readBase('static', cmd, data => {
-            fn(this.deserialize(fmt, data));
-        });
-    }
-
-    deserialize(fmt: string, dv: DataView, onError?: any) {
-        if (onError == null) { onError = null; }
-        let tuple = [];
-        let offset = 0;
-
-        for (let i = 0, end = fmt.length-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) {
-            switch (fmt[i]) {
-                case 'B':
-                    tuple.push(dv.getUint8(offset));
-                    offset += 1;
-                    break;
-                case 'b':
-                    tuple.push(dv.getInt8(offset));
-                    offset += 1;
-                    break;
-                case 'H':
-                    tuple.push(dv.getUint16(offset));
-                    offset += 2;
-                    break;
-                case 'h':
-                    tuple.push(dv.getInt16(offset));
-                    offset += 2;
-                    break;
-                case 'I':
-                    tuple.push(dv.getUint32(offset));
-                    offset += 4;
-                    break;
-                case 'i':
-                    tuple.push(dv.getInt32(offset));
-                    offset += 4;
-                    break;
-                case 'f':
-                    tuple.push(dv.getFloat32(offset));
-                    offset += 4;
-                    break;
-                case 'd':
-                    tuple.push(dv.getFloat64(offset));
-                    offset += 8;
-                    break;
-                case '?':
-                    if (dv.getUint8(offset) === 0) {
-                        tuple.push(false);
-                    } else {
-                        tuple.push(true);
+    // ---- tiny helper to support both callback and Promise APIs ----
+    private _dual<T>(
+        producer: () => Promise<T>,
+        cb?: (x: T) => void
+    ): Promise<T> | void {
+        if (cb) {
+            producer()
+                .then(cb)
+                .catch(err => {
+                    if (!this.isExpectedShutdownError(err)) {
+                        console.error('Koheron client read error:', err);
                     }
-                    offset += 1;
-                    break;
-                default:
-                    this.redirectError(true, `Unknown or unsupported type ${fmt[i]}`, (function() {}), onError);
+                });
+            return;
+        }
+        return producer();
+    }
+
+    private isExpectedShutdownError(err: any): boolean {
+        return err instanceof Error && err.message === 'Client is closed';
+    }
+
+    readUint32Array(cmd: CmdMessage, fn: (x: Uint32Array) => void): void;
+    readUint32Array(cmd: CmdMessage): Promise<Uint32Array>;
+    readUint32Array(cmd: CmdMessage, fn?: (x: Uint32Array) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('static', cmd);
+            return new Uint32Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
+        }, fn);
+    }
+
+    readInt32Array(cmd: CmdMessage, fn: (x: Int32Array) => void): void;
+    readInt32Array(cmd: CmdMessage): Promise<Int32Array>;
+    readInt32Array(cmd: CmdMessage, fn?: (x: Int32Array) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('static', cmd);
+            return new Int32Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
+        }, fn);
+    }
+
+    readFloat32Array(cmd: CmdMessage, fn: (x: Float32Array) => void): void;
+    readFloat32Array(cmd: CmdMessage): Promise<Float32Array>;
+    readFloat32Array(cmd: CmdMessage, fn?: (x: Float32Array) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('static', cmd);
+            return new Float32Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
+        }, fn);
+    }
+
+    readFloat64Array(cmd: CmdMessage, fn: (x: Float64Array) => void): void;
+    readFloat64Array(cmd: CmdMessage): Promise<Float64Array>;
+    readFloat64Array(cmd: CmdMessage, fn?: (x: Float64Array) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('static', cmd);
+            return new Float64Array(dv.buffer.slice(dv.byteOffset, dv.byteOffset + dv.byteLength));
+        }, fn);
+    }
+
+    readUint32Vector(cmd: CmdMessage, fn: (x: Uint32Array) => void): void;
+    readUint32Vector(cmd: CmdMessage): Promise<Uint32Array>;
+    readUint32Vector(cmd: CmdMessage, fn?: (x: Uint32Array) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('dynamic', cmd);
+            return new Uint32Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
+        }, fn);
+    }
+
+    readFloat32Vector(cmd: CmdMessage, fn: (x: Float32Array) => void): void;
+    readFloat32Vector(cmd: CmdMessage): Promise<Float32Array>;
+    readFloat32Vector(cmd: CmdMessage, fn?: (x: Float32Array) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('dynamic', cmd);
+            return new Float32Array(dv.buffer, dv.byteOffset, dv.byteLength / 4);
+        }, fn);
+    }
+
+    readFloat64Vector(cmd: CmdMessage, fn: (x: Float64Array) => void): void;
+    readFloat64Vector(cmd: CmdMessage): Promise<Float64Array>;
+    readFloat64Vector(cmd: CmdMessage, fn?: (x: Float64Array) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('dynamic', cmd);
+            return new Float64Array(dv.buffer.slice(dv.byteOffset, dv.byteOffset + dv.byteLength));
+        }, fn);
+    }
+
+    readUint32(cmd: CmdMessage, fn: (x: number) => void): void;
+    readUint32(cmd: CmdMessage): Promise<number>;
+    readUint32(cmd: CmdMessage, fn?: (x: number) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('static', cmd);
+            return dv.getUint32(0);
+        }, fn);
+    }
+
+    readInt32(cmd: CmdMessage, fn: (x: number) => void): void;
+    readInt32(cmd: CmdMessage): Promise<number>;
+    readInt32(cmd: CmdMessage, fn?: (x: number) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('static', cmd);
+            return dv.getInt32(0);
+        }, fn);
+    }
+
+    readFloat32(cmd: CmdMessage, fn: (x: number) => void): void;
+    readFloat32(cmd: CmdMessage): Promise<number>;
+    readFloat32(cmd: CmdMessage, fn?: (x: number) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('static', cmd);
+            return dv.getFloat32(0);
+        }, fn);
+    }
+
+    readFloat64(cmd: CmdMessage, fn: (x: number) => void): void;
+    readFloat64(cmd: CmdMessage): Promise<number>;
+    readFloat64(cmd: CmdMessage, fn?: (x: number) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('static', cmd);
+            return dv.getFloat64(0);
+        }, fn);
+    }
+
+    readBool(cmd: CmdMessage, fn: (x: boolean) => void): void;
+    readBool(cmd: CmdMessage): Promise<boolean>;
+    readBool(cmd: CmdMessage, fn?: (x: boolean) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('static', cmd);
+            return dv.getUint8(0) === 1;
+        }, fn);
+    }
+
+    readTuple(cmd: CmdMessage, fmt: string, fn: (x: any[]) => void): void;
+    readTuple(cmd: CmdMessage, fmt: string): Promise<any[]>;
+    readTuple<T extends any[]>(cmd: CmdMessage, fmt: string): Promise<T>;
+    readTuple(cmd: CmdMessage, fmt: string, fn?: (x: any[]) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('static', cmd);
+            return this.deserialize(fmt, dv);
+        }, fn);
+    }
+
+    deserialize(fmt, dv, onError = null) {
+        // Parse optional endianness prefix (Python struct style)
+        let i = 0;
+        let little = false; // default big-endian (network order)
+
+        if (fmt.length) {
+            const c = fmt[0];
+            if (c === '<') {
+                little = true;
+                i = 1;
+            } else if (c === '>' || c === '!') {
+                little = false; i = 1;
+            } else if (c === '@' || c === '=') {
+                // Native; in JS we can only choose LE/BE. Assume little on most hosts.
+                little = true; // change if you truly want host-endian detection.
+                i = 1;
             }
         }
 
+        const tuple = [];
+        let offset = 0;
 
+        for (; i < fmt.length; ++i) {
+            switch (fmt[i]) {
+                case 'B': tuple.push(dv.getUint8(offset));  offset += 1; break;
+                case 'b': tuple.push(dv.getInt8(offset));   offset += 1; break;
+
+                case 'H': tuple.push(dv.getUint16(offset, little)); offset += 2; break;
+                case 'h': tuple.push(dv.getInt16(offset,  little)); offset += 2; break;
+
+                case 'I': tuple.push(dv.getUint32(offset, little)); offset += 4; break;
+                case 'i': tuple.push(dv.getInt32(offset,  little)); offset += 4; break;
+
+                case 'f': tuple.push(dv.getFloat32(offset, little)); offset += 4; break;
+                case 'd': tuple.push(dv.getFloat64(offset, little)); offset += 8; break;
+
+                case '?':
+                    tuple.push(dv.getUint8(offset) !== 0);
+                    offset += 1;
+                    break;
+
+                default:
+                    this.redirectError(true, `Unknown or unsupported type ${fmt[i]}`, () => {}, onError);
+                    return tuple;
+            }
+        }
         return tuple;
     }
 
@@ -635,31 +826,48 @@ class Client {
         return (__range__(0, data.byteLength - offset - 1, true).map((i) => (String.fromCharCode(data.getUint8(offset + i))))).join('');
     }
 
-    readString(cmd: CmdMessage, fn: (str: string) => void): void {
-        this._readBase('dynamic', cmd, data => {
-            fn(this.parseString(data))
-        });
+    readString(cmd: CmdMessage, fn: (str: string) => void): void;
+    readString(cmd: CmdMessage): Promise<string>;
+    readString(cmd: CmdMessage, fn?: (str: string) => void) {
+        return this._dual(async () => {
+            const dv = await this._readBaseAsync('dynamic', cmd);
+            return this.parseString(dv);
+        }, fn);
     }
 
-    readJSON(cmd: CmdMessage, fn: (json: any) => void): void {
-        this.readString(cmd, str => {
-            fn(JSON.parse(str));
-        });
+    readJSON(cmd: CmdMessage, fn: (json: any) => void): void;
+    readJSON(cmd: CmdMessage): Promise<any>;
+    readJSON(cmd: CmdMessage, fn?: (json: any) => void) {
+        return this._dual(async () => {
+            const str = await this.readString(cmd) as string;
+            return JSON.parse(str);
+        }, fn);
     }
 
     // ------------------------
     //  Drivers
     // ------------------------
 
-    loadCmds(callback: () => void) {
-        this.readJSON(Command(1, <ICommand>{'id': 1, 'args': []}), data => {
-            for (let driver of data) {
-                let dev = new Driver(driver.class, driver.id, driver.functions);
-                // dev.show()
-                this.driversList.push(dev);
-            }
-            callback();
-        });
+    loadCmds(callback: () => void): void;
+    loadCmds(): Promise<void>;
+    loadCmds(callback?: () => void): Promise<void> | void {
+        const promise = (this.readJSON(Command(1, <ICommand>{'id': 1, 'args': []})) as Promise<any>)
+            .then(data => {
+                for (let driver of data) {
+                    let dev = new Driver(driver.class, driver.id, driver.functions);
+                    // dev.show()
+                    this.driversList.push(dev);
+                }
+            });
+
+        if (callback) {
+            promise
+                .then(callback)
+                .catch(err => console.error('Koheron command loading error:', err));
+            return;
+        }
+
+        return promise;
     }
 
     getDriver(name: string) {
@@ -694,12 +902,12 @@ class Imports {
     private importLinks: HTMLLinkElement[];
 
     constructor (document: Document) {
-      this.importLinks = <HTMLLinkElement[]><any>document.querySelectorAll('link[rel="import"]');
-      for (let i = 0; i < this.importLinks.length ; i++) {
-        let template = (this.importLinks[i] as any).import.querySelector('.template');
-        let clone = document.importNode(template.content, true);
-        let parentId = this.importLinks[i].dataset.parent;
-        document.getElementById(parentId).appendChild(clone);
-      }
+        this.importLinks = <HTMLLinkElement[]><any>document.querySelectorAll('link[rel="import"]');
+        for (let i = 0; i < this.importLinks.length ; i++) {
+            let template = (this.importLinks[i] as any).import.querySelector('.template');
+            let clone = document.importNode(template.content, true);
+            let parentId = this.importLinks[i].dataset.parent;
+            document.getElementById(parentId).appendChild(clone);
+        }
     }
-  }
+}

@@ -78,7 +78,7 @@ cell xilinx.com:ip:cic_compiler:4.0 cic {
   Fixed_Or_Initial_Rate $dec_rate
   Differential_Delay $diff_delay
   Input_Sample_Frequency 15
-  Clock_Frequency [expr [get_parameter fclk0] / 1000000.]
+  Clock_Frequency [expr [get_parameter fclk0] / 1000000.0]
   Input_Data_Width [get_parameter adc_width]
   Quantization Truncation
   Output_Data_Width 32
@@ -88,12 +88,12 @@ cell xilinx.com:ip:cic_compiler:4.0 cic {
   S_AXIS_DATA adc_clock_converter/M_AXIS
 }
 
-set fir_coeffs [exec $python $project_path/fir.py $n_stages $dec_rate $diff_delay print]
+set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rate $diff_delay print]
 
 cell xilinx.com:ip:fir_compiler:7.2 fir {
   Filter_Type Decimation
   Sample_Frequency [expr 15.0 / $dec_rate]
-  Clock_Frequency [expr [get_parameter fclk0] / 1000000.]
+  Clock_Frequency [expr [get_parameter fclk0] / 1000000.0]
   Coefficient_Width 32
   Data_Width 32
   Output_Rounding_Mode Convergent_Rounding_to_Even
@@ -107,7 +107,7 @@ cell xilinx.com:ip:fir_compiler:7.2 fir {
 }
 
 # Add AXI stream FIFO
-cell xilinx.com:ip:axi_fifo_mm_s:4.1 adc_axis_fifo {
+cell xilinx.com:ip:axi_fifo_mm_s:4.3 adc_axis_fifo {
   C_USE_TX_DATA 0
   C_USE_TX_CTRL 0
   C_USE_RX_CUT_THROUGH true

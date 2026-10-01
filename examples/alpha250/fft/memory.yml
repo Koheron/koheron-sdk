@@ -1,0 +1,54 @@
+memory:
+  - name: control
+    offset: 0x4000_0000
+    range: 4K
+    registers:
+    - mmcm
+    - precision_dac_ctl
+    - precision_dac_data[2]
+    - ctl_fft
+    - psd_valid
+    - psd_input_sel
+    - phase_incr[2]
+    - digital_outputs
+  - name: ps_control
+    offset: 0x4400_0000
+    range: 4K
+    registers:
+    - spi_cfg_data
+    - spi_cfg_cmd
+  - name: status
+    offset: 0x5000_0000
+    range: 4K
+    registers:
+    - adc[n_adc]
+    - cycle_index
+    - digital_inputs
+  - name: ps_status
+    offset: 0x5500_0000
+    range: 4K
+    registers:
+    - spi_cfg_sts
+  - name: xadc
+    offset: 0x43C0_0000
+    range: 64K
+  - name: demod
+    offset: 0x6000_0000
+    range: 32K
+    dev: /dev/mem_wc
+  - name: psd
+    offset: 0x7000_0000
+    range: 32K
+    dev: /dev/mem_wc
+
+parameters:
+  fclk0: 143000000
+  adc_clk: 250000000
+  dac_width: 16
+  adc_width: 16
+  n_adc: 2
+  fft_size: 8192
+  n_cycles: 1023
+  cic_differential_delay: 1
+  cic_decimation_rate: 500
+  cic_n_stages: 6

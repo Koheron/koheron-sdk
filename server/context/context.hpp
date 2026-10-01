@@ -1,51 +1,53 @@
 /// (c) Koheron
 
-#ifndef __CONTEXT_HPP__
-#define __CONTEXT_HPP__
+#ifndef __SERVER_CONTEXT_CONTEXT_HPP__
+#define __SERVER_CONTEXT_CONTEXT_HPP__
 
-#include <context_base.hpp>
+#include "server/runtime/syslog.hpp"
+#include "server/runtime/services.hpp"
 
-#include <memory_manager.hpp>
-#include <spi_dev.hpp>
-#include <i2c_dev.hpp>
-#include <zynq_fclk.hpp>
-#include <fpga_manager.hpp>
+#include "server/hardware/memory_manager.hpp"
+#include "server/hardware/spi_manager.hpp"
+#include "server/hardware/i2c_manager.hpp"
+#include "server/hardware/zynq_fclk.hpp"
+#include "server/hardware/fpga_manager.hpp"
 
-#include "memory.hpp"
+// Forward declarations
 
-class Context : public ContextBase
-{
+namespace rt {
+template<class Driver> Driver& get_driver();
+}
+
+class Context {
   public:
     Context()
-    : mm()
-    , spi(*this)
-    , i2c(*this)
-    , fclk(*this)
-    , fpga(*this)
-    {
-        if (fpga.load_bitstream(instrument_name) < 0) {
-            log<PANIC>("Failed to load bitstream. Exiting server...\n");
-            exit(EXIT_FAILURE);
-        }
+    : mm(services::require<hw::MemoryManager>())
+    , spi(services::require<hw::SpiManager>())
+    , i2c(services::require<hw::I2cManager>())
+    , fclk(services::require<hw::ZynqFclk>())
+    , fpga(services::require<hw::FpgaManager>())
+    {}
 
-        // We set all the Zynq clocks before starting the drivers
-        zynq_clocks::set_clocks(fclk);
+    template<class Driver>
+    Driver& get() const {
+        return rt::get_driver<Driver>();
     }
 
-    int init() {
-        if (mm.open() < 0  ||
-            spi.init() < 0 ||
-            i2c.init() < 0)
-            return -1;
-
-        return 0;
+    template<int severity=INFO, typename... Args>
+    void log(const char *msg, Args&&... args) {
+        ::log<severity>(msg, std::forward<Args>(args)...);
     }
 
-    MemoryManager mm;
-    SpiManager spi;
-    I2cManager i2c;
-    ZynqFclk fclk;
-    FpgaManager fpga;
+    template<int severity=INFO, typename... Args>
+    void logf(std::format_string<Args...> fmt, Args&&... args) {
+        ::logf<severity>(fmt, std::forward<Args>(args)...);
+    }
+
+    hw::MemoryManager& mm;
+    hw::SpiManager&    spi;
+    hw::I2cManager&    i2c;
+    hw::ZynqFclk&      fclk;
+    hw::FpgaManager&   fpga;
 };
 
-#endif // __CONTEXT_HPP__
+#endif // __SERVER_CONTEXT_CONTEXT_HPP__

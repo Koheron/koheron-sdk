@@ -1,0 +1,12 @@
+# /etc/systemd/system/uwsgi.socket
+[Unit]
+Description=uWSGI socket
+
+[Socket]
+ListenStream=/run/uwsgi/app.sock
+SocketUser=www-data
+SocketGroup=www-data
+SocketMode=0660
+
+[Install]
+WantedBy=sockets.target

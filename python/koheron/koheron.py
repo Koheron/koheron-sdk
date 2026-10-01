@@ -6,8 +6,17 @@ import struct
 import numpy as np
 import string
 import json
+import re
 import requests
 import time
+import sys
+import os
+from urllib.parse import quote
+
+BLUE = "\033[94m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
+RESET = "\033[0m"
 
 from .version import __version__
 
@@ -18,16 +27,27 @@ ConnectionError = requests.ConnectionError
 # --------------------------------------------
 
 def instrument_status(host):
-    status = requests.get('http://{}/api/instruments'.format(host)).json()
-    return status
+    response = requests.get('http://{}/api/instruments'.format(host))
+    response.raise_for_status()
+    return response.json()
 
-def upload_instrument(host, filename, run=False):
-    with open(filename, 'rb') as fileobj:
-        url = 'http://{}/api/instruments/upload'.format(host)
-        r = requests.post(url, files={filename: fileobj})
+def upload_instrument(host, zip_path, run=False):
+    field_name = os.path.basename(zip_path)
+    upload_name = field_name
+
+    with open(zip_path, 'rb') as f:
+        files = {field_name: (upload_name, f, 'application/zip')}
+        r = requests.post(f'http://{host}/api/instruments/upload', files=files)
+        r.raise_for_status()
+
     if run:
-        name = get_name_version(filename)
-        r = requests.get('http://{}/api/instruments/run/{}'.format(host, name))
+        # The API sanitizes this basename in both upload and run routes.
+        name = quote(os.path.splitext(field_name)[0], safe='')
+        rr = requests.get(f'http://{host}/api/instruments/run/{name}')
+        rr.raise_for_status()
+        return rr
+
+    return r
 
 def run_instrument(host, name=None, restart=False):
     instrument_running = False
@@ -35,6 +55,9 @@ def run_instrument(host, name=None, restart=False):
     status = instrument_status(host)
     instruments = status['instruments']
     live_instrument = status['live_instrument']
+
+    if name is None and live_instrument is None:
+        raise ValueError('No instrument is running; specify an instrument name')
 
     if (name is None) or (live_instrument == name): # Instrument already running
         name = live_instrument
@@ -51,7 +74,102 @@ def run_instrument(host, name=None, restart=False):
             raise ValueError('Instrument {} not found'.format(name))
 
     if instrument_in_store or (instrument_running and restart):
-        r = requests.get('http://{}/api/instruments/run/{}'.format(host, name))
+        r = requests.get('http://{}/api/instruments/run/{}'.format(host, quote(name, safe='')))
+        r.raise_for_status()
+
+
+def _logs_base_url(host, endpoint: str) -> str:
+    endpoint = endpoint.strip("/")
+    return f'http://{host}/api/logs/{endpoint}'
+
+
+def logs_bookmark(host, endpoint: str = 'koheron'):
+    """Return the latest log cursor for koheron-server."""
+
+    url = _logs_base_url(host, endpoint) + '/bookmark'
+    response = requests.get(url)
+    response.raise_for_status()
+    data = response.json()
+    return data.get('cursor')
+
+
+def stream_logs(host, cursor=None, poll_interval=1.0, stream=None, endpoint: str = 'koheron'):
+    """Stream koheron-server logs starting from the given cursor."""
+
+    stream = stream or sys.stdout
+    session = requests.Session()
+    params = {}
+    if cursor:
+        params['cursor'] = cursor
+
+    url = _logs_base_url(host, endpoint) + '/incr'
+    start_timestamp_us = None
+
+    def format_elapsed(ts_us):
+        nonlocal start_timestamp_us
+        if ts_us is None:
+            return None
+        try:
+            ts_us = int(ts_us)
+        except (TypeError, ValueError):
+            return None
+        if start_timestamp_us is None:
+            start_timestamp_us = ts_us
+        elapsed_seconds = (ts_us - start_timestamp_us) / 1_000_000
+        return f"{elapsed_seconds:.6f}s"
+
+    # Keep the severity labels in sync with server/runtime/syslog.hpp so we
+    # strip exactly the prefixes emitted by koheron-server before coloring.
+    severity_colors = {
+        "PANIC": RED,
+        "CRITICAL": RED,
+        "ERROR": RED,
+        "WARNING": YELLOW,
+    }
+    severity_pattern = re.compile(
+        r"^(?P<label>" + "|".join(severity_colors.keys()) + r"):\s*"
+    )
+
+    while True:
+        try:
+            response = session.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+        except (requests.RequestException, ValueError) as exc:
+            print('[log-stream] {}: {}'.format(type(exc).__name__, exc), file=sys.stderr)
+            time.sleep(poll_interval)
+            continue
+
+        new_cursor = data.get('cursor')
+        if new_cursor:
+            params['cursor'] = new_cursor
+
+        entries = data.get('entries', [])
+        for entry in entries:
+            timestamp = format_elapsed(entry.get('ts'))
+            message = (entry.get('msg') or '').rstrip('\n')
+
+            match = severity_pattern.match(message)
+            if match:
+                label = match.group('label')
+                color = severity_colors[label]
+                message = f"{color}{message[match.end():]}{RESET}"
+            if timestamp:
+                colored_timestamp = f"{BLUE}[{timestamp}]{RESET}"
+                print(f"{colored_timestamp} {message}", file=stream)
+            else:
+                print(message, file=stream)
+            stream.flush()
+
+        time.sleep(poll_interval)
+
+
+def instrument_logs_bookmark(host):
+    return logs_bookmark(host, endpoint='koheron/instrument')
+
+
+def stream_instrument_logs(host, cursor=None, poll_interval=1.0, stream=None):
+    return stream_logs(host, cursor=cursor, poll_interval=poll_interval, stream=stream, endpoint='koheron/instrument')
 
 def connect(host, *args, **kwargs):
     run_instrument(host, *args, **kwargs)
@@ -205,6 +323,7 @@ cpp_to_np_types = {
   'uint32_t': 'uint32', 'unsigned int': 'uint32',
   'int32_t': 'int32', 'int': 'int32',
   'uint64_t': 'uint64', 'int64_t': 'int64',
+  'unsigned long long': 'uint64', 'long long': 'int64',
   'float': 'float32',
   'double': 'float64'
 }
@@ -237,7 +356,7 @@ class KoheronClient:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
                 # Prevent delayed ACK on Ubuntu
-                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 16384)
+                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 * 1024 * 1024)
                 so_rcvbuf = self.sock.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
 
                 #   Disable Nagle algorithm for real-time response:
@@ -349,24 +468,22 @@ class KoheronClient:
 
     def send_command(self, device_id, cmd_id, cmd_args=[], *args):
         cmd = make_command(device_id, cmd_id, cmd_args, *args)
-        if self.sock.send(cmd) == 0:
+        try:
+            self.sock.sendall(cmd)
+        except OSError as e:
             raise ConnectionError('send_command: Socket connection broken')
 
-    def recv_all(self, n_bytes):
-        '''Receive exactly n_bytes bytes.'''
-        data = []
-        BUFF_SIZE = 65535
-        n_rcv = 0
-        while n_rcv < n_bytes:
-            try:
-                chunk = self.sock.recv(min(n_bytes - n_rcv, BUFF_SIZE))
-                if not chunk:
-                    raise ConnectionError('recv_all: Socket connection broken.')
-                n_rcv += len(chunk)
-                data.append(chunk)
-            except Exception:
+    def recv_all(self, n_bytes: int) -> bytes:
+        """Receive exactly n_bytes bytes or raise ConnectionError."""
+        buf = bytearray(n_bytes)
+        view = memoryview(buf)
+        recv_into = self.sock.recv_into
+        while view:
+            n = recv_into(view)
+            if n == 0:
                 raise ConnectionError('recv_all: Socket connection broken.')
-        return b''.join(data)
+            view = view[n:]
+        return bytes(buf)
 
     def recv_dynamic_payload(self):
         reserved, class_id, func_id, length = struct.unpack('>IHHI', self.recv_all(struct.calcsize('>IHHI')))
@@ -384,19 +501,19 @@ class KoheronClient:
     def recv_int8(self):
         self.check_ret_type(['int8_t', 'char', 'signed char'])
         return self.recv(fmt='b')
-        
+
     def recv_uint8(self):
         self.check_ret_type(['uint8_t', 'unsigned char'])
         return self.recv(fmt='B')
-        
+
     def recv_int16(self):
         self.check_ret_type(['int16_t', 'short'])
         return self.recv(fmt='h')
-        
+
     def recv_uint16(self):
         self.check_ret_type(['uint16_t'])
         return self.recv(fmt='H')
-        
+
     def recv_uint32(self):
         self.check_ret_type(['uint32_t', 'unsigned int'])
         return self.recv()

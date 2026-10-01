@@ -1,5 +1,9 @@
 source ${board_path}/starting_point.tcl
 
+# Register PS transactions before the AXI address decoder. The direct
+# PS-to-crossbar decode path does not meet the 200 MHz fabric clock.
+set_property CONFIG.S00_HAS_REGSLICE 1 [get_bd_cells axi_mem_intercon_0]
+
 ####################################
 # Direct Digital Synthesis
 ####################################
@@ -8,7 +12,7 @@ for {set i 0} {$i < 2} {incr i} {
 
   cell xilinx.com:ip:dds_compiler:6.0 dds$i {
     PartsPresent Phase_Generator_and_SIN_COS_LUT
-    DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000]
+    DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000.0]
     Parameter_Entry Hardware_Parameters
     Phase_Width 32
     Output_Width 16
@@ -93,6 +97,8 @@ connect_cell psd_bram {
   adc bram_accum/m_axis_tdata
 }
 
+set_property CONFIG.PROTOCOL {AXI4} [get_bd_cells psd_bram/axi_bram_ctrl_psd]
+
 # Test IOs
 
 connect_pins [sts_pin digital_inputs] [get_concat_pin [list exp_io_0_p exp_io_1_p exp_io_2_p exp_io_3_p exp_io_4_p exp_io_5_p exp_io_6_p exp_io_7_p]]
@@ -100,3 +106,7 @@ connect_pins [sts_pin digital_inputs] [get_concat_pin [list exp_io_0_p exp_io_1_
 for {set i 0} {$i < 8} {incr i} {
     connect_pins  [get_slice_pin [ctl_pin digital_outputs] $i $i] exp_io_${i}_n
 }
+
+# Repair short DDS-to-DAC hold paths after routing.
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE ExploreWithAggressiveHoldFix [get_runs impl_1]

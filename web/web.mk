@@ -1,40 +1,66 @@
+WEB_DOCKER_IMAGE ?= koheron-web:node20
+CURRENT_DIR := $(shell pwd -P)
+WEB_DOCKER_RUN := docker run --rm -t \
+                  -u $$(id -u):$$(id -g) \
+                  -v $(CURRENT_DIR):$(CURRENT_DIR) \
+                  -w $(CURRENT_DIR) \
+                  $(WEB_DOCKER_IMAGE)
+
+# Typescript compiler
+###############################################################################
+
+TSC_FLAGS ?= -pretty \
+             --target ES5 \
+             --lib es6,dom \
+             --alwaysStrict \
+             --skipLibCheck \
+             --module system \
+             --incremental \
+             --typeRoots /opt/app/node_modules/@types
+
+TSC ?= $(WEB_DOCKER_RUN) tsc $(TSC_FLAGS)
+
+# Build webpage
+###############################################################################
+
 TMP_WEB_PATH := $(TMP_PROJECT_PATH)/web
 
 WEB_DOWNLOADS_MK ?= $(WEB_PATH)/downloads.mk
 include $(WEB_DOWNLOADS_MK)
 
-# Typescript compiler
-TSC_BIN := node_modules/typescript/bin/tsc
-TSC ?= $(TSC_BIN) --pretty --target ES5 --lib es6,dom --alwaysStrict
+WEB_FILES_ABS     := $(abspath $(WEB_FILES))
+TS_FILES_ABS      := $(filter %.ts,$(WEB_FILES_ABS))
+NON_TS_FILES_ABS  := $(filter-out %.ts,$(WEB_FILES_ABS))
 
-WEB_FILES := $(shell $(MAKE_PY) --web $(CONFIG) $(TMP_WEB_PATH)/web_files && cat $(TMP_WEB_PATH)/web_files)
+TMP_WEB_PATH := $(TMP_PROJECT_PATH)/web
 
-TS_FILES := $(filter %.ts,$(WEB_FILES))
-NO_TS_FILES := $(filter-out $(TS_FILES),$(WEB_FILES))
-TMP_NO_TS_FILES := $(addprefix $(TMP_WEB_PATH)/, $(notdir $(NO_TS_FILES)))
-
-ifeq ($(TS_FILES),)
-APP_JS :=
+ifeq ($(TS_FILES_ABS),)
+  APP_JS :=
 else
-APP_JS := $(TMP_WEB_PATH)/app.js
-$(APP_JS): $(TS_FILES)
+  APP_JS := $(TMP_WEB_PATH)/app.js
+$(APP_JS): $(TS_FILES_ABS) | $(TMP_WEB_PATH)/
 	mkdir -p $(@D)
 	$(TSC) $^ --outFile $@
 endif
 
-define copy_no_ts_file
-$(TMP_WEB_PATH)/$(notdir $1): $1
+BASENAMES            := $(notdir $(NON_TS_FILES_ABS))
+DUPLICATE_BASENAMES  := $(strip $(foreach name,$(sort $(BASENAMES)),$(if $(word 2,$(filter $(name),$(BASENAMES))),$(name))))
+ifneq ($(DUPLICATE_BASENAMES),)
+  $(error Duplicate web asset basename(s): $(DUPLICATE_BASENAMES))
+endif
+
+FLAT_ASSET_TARGETS   := $(addprefix $(TMP_WEB_PATH)/,$(BASENAMES))
+
+define COPY_ONE
+$(TMP_WEB_PATH)/$(notdir $1): $1 | $(TMP_WEB_PATH)/
 	cp $$< $$@
 endef
-$(foreach file,$(NO_TS_FILES),$(eval $(call copy_no_ts_file,$(file))))
+$(foreach f,$(NON_TS_FILES_ABS),$(eval $(call COPY_ONE,$(f))))
 
-WEB_ASSETS := $(WEB_DOWNLOADS) $(APP_JS) $(TMP_NO_TS_FILES)
+WEB_ASSETS := $(WEB_DOWNLOADS) $(APP_JS) $(FLAT_ASSET_TARGETS)
 
 .PHONY: web
 web: $(WEB_ASSETS)
-
-# Clean targets
-###############################################################################
 
 .PHONY: clean_web
 clean_web:

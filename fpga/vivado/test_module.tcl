@@ -1,8 +1,7 @@
-set sdk_path [lindex $argv 0]
-set project_name [lindex $argv 1]
-set project_path [lindex $argv 2]
-set part [lindex $argv 3]
-set output_path [lindex $argv 4]
+set sdk_path $::env(SDK_PATH)
+set project_name $::env(NAME)
+set project_path $::env(PROJECT_PATH)
+set output_path $::env(TMP_FPGA_PATH)
 
 set $sdk_path/fpga/lib $sdk_path/fpga/lib
 
@@ -14,7 +13,7 @@ file delete -force \
   $output_path/$project_name.xpr \
   $output_path/$project_name.sim
 
-create_project -force -part $part $project_name $output_path
+create_project -force -part $::env(PART) $project_name $output_path
 
 set_property IP_REPO_PATHS $output_path/../cores [current_project]
 update_ip_catalog -rebuild -scan_changes

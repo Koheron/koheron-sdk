@@ -87,7 +87,7 @@ cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
 }
 
 # Add AXI stream FIFO to read pulse data from the PS
-cell xilinx.com:ip:axi_fifo_mm_s:4.1 adc_axis_fifo {
+cell xilinx.com:ip:axi_fifo_mm_s:4.3 adc_axis_fifo {
   C_USE_TX_DATA 0
   C_USE_TX_CTRL 0
   C_USE_RX_CUT_THROUGH true

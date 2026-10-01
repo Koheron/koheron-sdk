@@ -1,0 +1,11 @@
+set -o errtrace
+
+__koheron_make_error() {
+    local status="$1"
+    local cmd="$2"
+    if [ "$status" -ne 0 ]; then
+        printf '\033[1;31m[ERROR] Command failed (exit code %s): %s\033[0m\n' "$status" "$cmd" >&2
+    fi
+}
+
+trap '__koheron_make_error "$?" "$BASH_COMMAND"' ERR

@@ -3,60 +3,25 @@
 #ifndef __ALPHA_DRIVERS_POWER_MONITOR_HPP__
 #define __ALPHA_DRIVERS_POWER_MONITOR_HPP__
 
-#include <context.hpp>
-
+#include <cstdint>
 #include <array>
+
+namespace hw { class I2cDev; }
 
 class PowerMonitor
 {
   public:
-    PowerMonitor(Context& ctx)
-    : i2c(ctx.i2c.get("i2c-0"))
-    {
-        // Averages = 4. Conversion time = 8.244 ms
-        std::array<uint8_t, 3> buff {reg_configuration, 0x43, 0xFF};
-        i2c.write(i2c_address[0], buff);
-        i2c.write(i2c_address[1], buff);
-    }
+    PowerMonitor();
 
-    std::array<float, 4> get_supplies_ui() {
-        return {
-            100 * get_shunt_voltage(0), // VCC main current (A)
-            get_bus_voltage(0),         // VCC main voltage (V)
-            100 * get_shunt_voltage(1), // Clock current (A)
-            get_bus_voltage(1)          // Clock voltage (V)
-        };
-    }
-
-    float get_shunt_voltage(uint32_t index) {
-        uint16_t voltage;
-        if (i2c.write(i2c_address[index], reg_shunt_voltage) < 0) {
-            return -1.0;
-        }
-        if (i2c.read(i2c_address[index], voltage) < 0) {
-            return -1.0;
-        }
-        voltage = ((voltage & 0xFF) << 8) + (voltage >> 8);
-        return ((voltage - 32768) % 65536 + 32768) / 32768.0 * 81.9175 / 1000; // V
-    }
-
-    float get_bus_voltage(uint32_t index) {
-        uint16_t voltage;
-        if (i2c.write(i2c_address[index], reg_bus_voltage) < 0) {
-            return -1.0;
-        }
-        if (i2c.read(i2c_address[index], voltage) < 0) {
-            return -1.0;
-        }
-        voltage = ((voltage & 0xFF) << 8) + (voltage >> 8);
-        return ((voltage - 32768) % 65536 + 32768) / 32768.0 *  40.95875; // V
-    }
+    std::array<float, 4> get_supplies_ui();
+    float get_shunt_voltage(uint32_t index);
+    float get_bus_voltage(uint32_t index);
 
   private:
     // index = 0: VCC main supply
     // index = 1: Clocking subsystem supply
     const std::array<uint8_t, 2> i2c_address = {{0b1000001, 0b1000101}};
-    I2cDev& i2c;
+    hw::I2cDev& i2c;
 
     // http://www.ti.com/lit/ds/symlink/ina230.pdf
     static constexpr uint8_t reg_configuration = 0;

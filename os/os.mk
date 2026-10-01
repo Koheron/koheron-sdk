@@ -1,307 +1,345 @@
-# Build:
-# - First-stage boot loader
-# - Device tree
-# - U-boot
-# - Linux kernel
-include $(OS_PATH)/toolchain.mk
+ABS_TMP_OS_PATH := $(abspath $(TMP_OS_PATH))
 
-BOARD := $(shell basename $(BOARD_PATH))
+TMP_OS_BOARD_PATH ?= $(TMP_PROJECT_PATH)/os
 
-TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
+UBOOT_TAG ?= xilinx-uboot-v$(VIVADO_VERSION)
+DTREE_TAG ?= xilinx_v$(VIVADO_VERSION)
 
-UBOOT_PATH := $(TMP_OS_PATH)/u-boot-xlnx-$(UBOOT_TAG)
-LINUX_PATH := $(TMP_OS_PATH)/linux-xlnx-$(LINUX_TAG)
+UBOOT_URL := https://github.com/Xilinx/u-boot-xlnx/archive/xilinx-v$(VIVADO_VERSION).tar.gz
+DTREE_URL := https://github.com/Xilinx/device-tree-xlnx/archive/refs/tags/$(DTREE_TAG).tar.gz
+
+UBOOT_PATH ?= $(TMP_OS_BOARD_PATH)/u-boot-xlnx-$(UBOOT_TAG)
 DTREE_PATH := $(TMP_OS_PATH)/device-tree-xlnx-$(DTREE_TAG)
 
 UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
-LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
-
-FSBL_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard"
-LINUX_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
-UBOOT_CFLAGS := "-O2 -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard"
-
-TMP_OS_VERSION_FILE := $(TMP_OS_PATH)/version.json
-
-$(TMP_OS_VERSION_FILE): $(KOHERON_VERSION_FILE)
-	echo '{ "version": "$(KOHERON_VERSION)" }' > $@
 
 BOOT_MEDIUM ?= mmcblk0
 
-.PHONY: os
-os: $(INSTRUMENT_ZIP) www api $(TMP_OS_PATH)/$(BOOTCALL) $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_VERSION_FILE)
-
-# Build image (run as root)
-.PHONY: image
-image:
-	bash $(OS_PATH)/scripts/ubuntu-$(MODE).sh $(TMP_PROJECT_PATH) $(OS_PATH) $(TMP_OS_PATH) $(NAME) $(TMP_OS_VERSION_FILE) $(ZYNQ_TYPE) $(BOOT_MEDIUM)
-
-.PHONY: clean_os
-clean_os:
-	rm -rf $(TMP_OS_PATH)
-
 ###############################################################################
-# First-stage boot loader
+# fsbl/executable.elf
 ###############################################################################
 
 # Additional files (including fsbl_hooks.c) can be added to the FSBL in $(BOARD_PATH)/patches/fsbl
 ifndef FSBL_PATH
 FSBL_PATH := $(BOARD_PATH)/patches/fsbl
 endif
-FSBL_FILES := $(wildcard $(FSBL_PATH)/*.h $(FSBL_PATH)/*.c)
+FSBL_FILES := $(wildcard $(FSBL_PATH)/*.h $(FSBL_PATH)/*.c $(FSBL_PATH)/*.py)
 
 .PHONY: fsbl
 fsbl: $(TMP_OS_PATH)/fsbl/executable.elf
 
-$(TMP_OS_PATH)/fsbl/Makefile: $(TMP_FPGA_PATH)/$(NAME).hwdef
-	mkdir -p $(@D)
-	$(HSI) -source $(FPGA_PATH)/hsi/fsbl.tcl -tclargs $(NAME) $(PROC) $(TMP_OS_PATH)/hard $(@D) $<
-	@echo [$@] OK
+$(TMP_OS_PATH)/hard/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xsa | $(TMP_OS_PATH)/hard/
+	cp $< $@
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/fsbl/Makefile:  $(TMP_OS_PATH)/hard/$(NAME).xsa | $(TMP_OS_PATH)/fsbl/
+	$(HSI) $(FPGA_PATH)/hsi/fsbl.tcl $(NAME) $(PROC) $(TMP_OS_PATH)/hard $(@D) $< $(ZYNQ_TYPE)
+	$(call ok,$@)
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
 	cp -a $(FSBL_PATH)/. $(TMP_OS_PATH)/fsbl/ 2>/dev/null || true
 	@if test -f $(FSBL_PATH)/apply_ps7_init_patch.py; then \
 		echo "Patching ps7_init.c ..."; \
-		$(PYTHON) $(FSBL_PATH)/apply_ps7_init_patch.py $(TMP_OS_PATH)/fsbl; \
+		python3 $(FSBL_PATH)/apply_ps7_init_patch.py $(TMP_OS_PATH)/fsbl; \
 	fi
-	source $(VIVADO_PATH)/$(VIVADO_VERSION)/settings64.sh && $(DOCKER) make -C $(@D) CFLAGS=$(FSBL_CFLAGS) all
-	@echo [$@] OK
+	source $(VIVADO_PATH)/settings64.sh && $(DOCKER) make -C $(@D) all
+	$(call ok,$@)
 
 .PHONY: clean_fsbl
 clean_fsbl:
 	rm -rf $(TMP_OS_PATH)/fsbl
 
 ###############################################################################
-# U-Boot
+# u-boot.elf
 ###############################################################################
 
-$(UBOOT_TAR):
+$(UBOOT_TAR): $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED)
 	mkdir -p $(@D)
-	curl -L $(UBOOT_URL) -o $@
-	@echo [$@] OK
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $@ $(UBOOT_URL)
+	$(call ok,$@)
 
-$(UBOOT_PATH): $(UBOOT_TAR)
-	mkdir -p $@
-	tar -zxf $< --strip-components=1 --directory=$@
-	@echo [$@] OK
+$(UBOOT_PATH)/.unpacked: $(UBOOT_TAR) $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED) | $(UBOOT_PATH)/
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $(UBOOT_TAR) $(UBOOT_URL)
+	tar -zxf $< --strip-components=1 -C $(@D)
+	touch $@
+	$(call ok,$@)
 
-$(TMP_OS_PATH)/u-boot.elf: $(UBOOT_PATH)
+UBOOT_PATCH_FILES := $(shell test -d $(PATCHES)/u-boot && find $(PATCHES)/u-boot -type f)
+UBOOT_CONFIG_FILE := $(wildcard $(PATCHES)/$(UBOOT_CONFIG))
+
+# Configure U-Boot once to avoid concurrent defconfig/mrproper races
+UBOOT_CONFIG_STAMP := $(UBOOT_PATH)/.config
+
+$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONFIG_FILE)
+	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
+	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
+	$(DOCKER) make -C $(UBOOT_PATH) mrproper
+	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) $(UBOOT_CONFIG)
+	@touch $@
+	$(call ok,$@)
+
+$(TMP_OS_BOARD_PATH)/u-boot.elf: $(UBOOT_CONFIG_STAMP) | $(TMP_BOARD_PATH)/
+	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) CFLAGS="$(UBOOT_CFLAGS) $(GCC_FLAGS)" \
+	  CROSS_COMPILE=$(GCC_ARCH)- all
+	if [ -f $(UBOOT_PATH)/u-boot.elf ]; then cp $(UBOOT_PATH)/u-boot.elf $@; else cp $(UBOOT_PATH)/u-boot $@; fi
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/u-boot.elf: $(TMP_OS_BOARD_PATH)/u-boot.elf | $(TMP_OS_PATH)/
+	cp $< $@
+	$(call ok,$@)
+
+###############################################################################
+# pmu/executable.elf
+###############################################################################
+
+.PHONY: pmufw
+pmufw: $(TMP_OS_PATH)/pmu/executable.elf
+
+$(TMP_OS_PATH)/pmu/Makefile: $(TMP_FPGA_PATH)/$(NAME).xsa
 	mkdir -p $(@D)
-	$(DOCKER) make -C $< mrproper
-	$(DOCKER) make -C $< arch=arm `find $(PATCHES) -name '*_defconfig' -exec basename {} \;`
-	$(DOCKER) make -C $< arch=arm CFLAGS=$(UBOOT_CFLAGS) \
-	  CROSS_COMPILE=arm-linux-gnueabihf- all
-	cp $</u-boot $@
-	@echo [$@] OK
+	$(HSI) $(FPGA_PATH)/hsi/pmufw.tcl $(NAME) $(TMP_OS_PATH)/hard $(@D) $<
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/pmu/executable.elf: $(TMP_OS_PATH)/pmu/Makefile
+	source $(VITIS_PATH)/settings64.sh && $(DOCKER) make -C $(@D) all
+
+.PHONY: clean_pmufw
+clean_pmufw:
+	rm -rf $(TMP_OS_PATH)/pmu
+
+###############################################################################
+# bl31.elf
+###############################################################################
+
+$(ATRUST_TAR): $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED)
+	mkdir -p $(@D)
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $@ $(ARMTRUST_URL)
+	$(call ok,$@)
+
+$(ATRUST_PATH)/.unpacked: $(ATRUST_TAR) $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED) | $(ATRUST_PATH)/
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $(ATRUST_TAR) $(ARMTRUST_URL)
+	tar -zxf $< --strip-components=1 -C $(@D)
+	@touch $@
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/bl31.elf: $(ATRUST_PATH)/.unpacked
+	$(DOCKER) make CROSS_COMPILE=$(GCC_ARCH)- PLAT=zynqmp bl31 ZYNQMP_ATF_MEM_BASE=0x10000 ZYNQMP_ATF_MEM_SIZE=0x40000 -C $(ATRUST_PATH)
+	cp $(ATRUST_PATH)/build/zynqmp/release/bl31/bl31.elf $@
+	$(call ok,$@)
 
 ###############################################################################
 # boot.bin
 ###############################################################################
 
-$(TMP_OS_PATH)/boot.bin: $(TMP_OS_PATH)/fsbl/executable.elf $(BITSTREAM) $(TMP_OS_PATH)/u-boot.elf
-	echo "img:{[bootloader] $^}" > $(TMP_OS_PATH)/boot.bif
-	$(BOOTGEN) -image $(TMP_OS_PATH)/boot.bif -w -o i $@
-	@echo [$@] OK
+$(TMP_OS_PATH)/boot.bin: \
+  $(TMP_OS_PATH)/fsbl/executable.elf \
+  $(BITSTREAM) \
+  $(TMP_OS_PATH)/u-boot.elf
+	echo "img:{[bootloader] $(TMP_OS_PATH)/fsbl/executable.elf" > $(TMP_OS_PATH)/boot.bif
+	echo " $(BITSTREAM)" >> $(TMP_OS_PATH)/boot.bif
+	echo " $(TMP_OS_PATH)/u-boot.elf" >> $(TMP_OS_PATH)/boot.bif
+	echo " }" >> $(TMP_OS_PATH)/boot.bif
+	$(BOOTGEN) -image $(TMP_OS_PATH)/boot.bif -arch $(ZYNQ_TYPE) -w -o i $@
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/bootmp.bin: \
+  $(TMP_OS_PATH)/pmu/executable.elf \
+  $(TMP_OS_PATH)/bl31.elf \
+  $(TMP_OS_PATH)/fsbl/executable.elf \
+  $(BITSTREAM) \
+  $(TMP_OS_PATH)/u-boot.elf
+	echo "img:{ [fsbl_config] a53_x64" > $(TMP_OS_PATH)/boot.bif
+	echo "[pmufw_image] $(TMP_OS_PATH)/pmu/executable.elf" >> $(TMP_OS_PATH)/boot.bif
+	echo "[bootloader] $(TMP_OS_PATH)/fsbl/executable.elf" >> $(TMP_OS_PATH)/boot.bif
+	echo "[destination_device=pl] $(BITSTREAM)" >> $(TMP_OS_PATH)/boot.bif
+	echo "[destination_cpu=a53-0,exception_level=el-3] $(TMP_OS_PATH)/bl31.elf" >> $(TMP_OS_PATH)/boot.bif
+	echo "[destination_cpu=a53-0,exception_level=el-2] $(TMP_OS_PATH)/u-boot.elf" >> $(TMP_OS_PATH)/boot.bif
+	echo "}" >> $(TMP_OS_PATH)/boot.bif
+	$(BOOTGEN) -image $(TMP_OS_PATH)/boot.bif -arch $(ZYNQ_TYPE) -w -o i $@
+	cp $(TMP_OS_PATH)/bootmp.bin $(TMP_OS_PATH)/boot.bin
+	$(call ok,$@)
 
 ###############################################################################
-# DEVICE TREE
+# devicetree.dtb
 ###############################################################################
 
-$(DTREE_TAR):
+$(DTREE_TAR): $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED)
 	mkdir -p $(@D)
-	curl -L $(DTREE_URL) -o $@
-	@echo [$@] OK
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $@ $(DTREE_URL)
+	$(call ok,$@)
 
-$(DTREE_PATH): $(DTREE_TAR)
-	mkdir -p $@
-	tar -zxf $< --strip-components=1 --directory=$@
-	@echo [$@] OK
+$(DTREE_PATH)/.unpacked: $(DTREE_TAR) $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED) | $(DTREE_PATH)/
+	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $(DTREE_TAR) $(DTREE_URL)
+	tar -zxf $< --strip-components=1 -C $(@D)
+	@touch $@
+	$(call ok,$@)
 
 .PHONY: devicetree
 devicetree: $(TMP_OS_PATH)/devicetree/system-top.dts
 
-$(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_FPGA_PATH)/$(NAME).hwdef $(DTREE_PATH) $(PATCHES)/devicetree.patch
+$(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.unpacked
 	mkdir -p $(@D)
-	$(HSI) -source $(FPGA_PATH)/hsi/devicetree.tcl -tclargs $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) \
-	  $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/devicetree $(TMP_FPGA_PATH)/$(NAME).hwdef
-	cp -R $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig
-	patch -d $(TMP_OS_PATH) -p -0 < $(PATCHES)/devicetree.patch
-	@echo [$@] OK
+	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/devicetree $< $(BOOT_MEDIUM)
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/devicetree.dtb: $(DTC_BIN)  $(TMP_OS_PATH)/devicetree/system-top.dts
+	$(DOCKER) gcc -I $(TMP_OS_PATH)/devicetree/ -I $(TMP_OS_PATH)/devicetree/include/ -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
+		$(TMP_OS_PATH)/devicetree/system-top.dts.tmp $(TMP_OS_PATH)/devicetree/system-top.dts
+	$(DOCKER) $(DTC_BIN) -I dts -O dtb -o $@ \
+	  -i $(TMP_OS_PATH)/devicetree -b 0 -@ $(TMP_OS_PATH)/devicetree/system-top.dts.tmp
+	$(call ok,$@)
 
 .PHONY: clean_devicetree
 clean_devicetree:
-	rm -rf $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree.orig
-
-.PHONY: patch_devicetree
-patch_devicetree:
-	bash os/scripts/patch_devicetree.sh $(TMP_OS_PATH) $(BOARD_PATH)
+	rm -rf $(TMP_OS_PATH)/devicetree
 
 ###############################################################################
-# LINUX
+# pl.dtbo
 ###############################################################################
 
-$(LINUX_TAR):
+$(TMP_OS_PATH)/pl-overlay/pl.dtsi: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)/.unpacked | $(TMP_OS_PATH)/pl-overlay/
 	mkdir -p $(@D)
-	curl -L $(LINUX_URL) -o $@
-	@echo [$@] OK
+	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/pl-overlay $< $(BOOT_MEDIUM)
+	$(call ok,$@)
 
-$(LINUX_PATH): $(LINUX_TAR)
-	mkdir -p $@
-	tar -zxf $< --strip-components=1 --directory=$@
-	@echo [$@] OK
+$(TMP_OS_PATH)/pl-overlay/memory.dtsi: $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi | $(TMP_OS_PATH)/pl-overlay/ $(PYTHON_REQUIREMENTS_STAMP)
+	$(MAKE_PY) --memory_dtsi $@ $<
+	$(call ok,$@)
 
-$(TMP_OS_PATH)/uImage: $(LINUX_PATH)
-	$(DOCKER) make -C $< mrproper
-	$(DOCKER) make -C $< ARCH=arm xilinx_zynq_defconfig
-	$(DOCKER) make -C $< ARCH=arm CFLAGS=$(LINUX_CFLAGS) \
-	  --jobs=$(N_CPUS) \
-	  CROSS_COMPILE=$(GCC_ARCH)- UIMAGE_LOADADDR=0x8000 $(LINUX_IMAGE)
-	cp $</arch/arm/boot/$(LINUX_IMAGE) $@
-	@echo [$@] OK
+OVERRIDE_DTSI ?= $(FPGA_PATH)/override.dtsi
 
-$(TMP_OS_PATH)/devicetree.dtb: $(TMP_OS_PATH)/uImage $(TMP_OS_PATH)/devicetree/system-top.dts
-	$(LINUX_PATH)/scripts/dtc/dtc -I dts -O dtb -o $@ \
-	  -i $(TMP_OS_PATH)/devicetree $(TMP_OS_PATH)/devicetree/system-top.dts
-	@echo [$@] OK
-
-###############################################################################
-# HTTP API
-###############################################################################
-
-TMP_API_PATH := $(TMP)/api
-
-.PHONY:
-api: $(TMP_API_PATH)/wsgi.py \
-        $(TMP_API_PATH)/app/__init__.py \
-        $(TMP_API_PATH)/app/install_instrument.sh
-
-$(TMP_API_PATH)/wsgi.py: $(OS_PATH)/api/wsgi.py
-	mkdir -p $(@D)
+$(TMP_OS_PATH)/pl-overlay/override.dtsi: $(OVERRIDE_DTSI) | $(TMP_OS_PATH)/pl-overlay/
 	cp $< $@
+	$(call ok,$@)
 
-$(TMP_API_PATH)/app/%: $(OS_PATH)/api/%
-	mkdir -p $(@D)
-	cp $< $@
+$(TMP_OS_PATH)/pl-overlay/pl_wrap.dts: $(FPGA_PATH)/pl_wrap.dts | $(TMP_OS_PATH)/pl-overlay/
+	sed -E 's|/include/[[:space:]]+"pl\.dtsi"|/include/ "pl-koheron.dtsi"|' $< > $@
+	$(call ok,$@)
 
-# run `systemctl restart uwsgi` on the board
-.PHONY:
-api_sync: api
-	rsync -avz -e "ssh -i /ssh-private-key" $(TMP_API_PATH)/. root@$(HOST):/usr/local/api/
+$(TMP_OS_PATH)/pl-overlay/pl-koheron.dtsi: $(TMP_OS_PATH)/pl-overlay/pl.dtsi FORCE
+	@sed 's/".bin"/"$(NAME).bit.bin"/g' $< > $@.tmp
+	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
+	@rm -f $@.tmp
 
-.PHONY:
-api_clean:
-	rm -rf $(TMP_API_PATH)
+$(TMP_OS_PATH)/pl.dtbo: $(DTC_BIN) \
+  $(TMP_OS_PATH)/pl-overlay/pl-koheron.dtsi \
+  $(TMP_OS_PATH)/pl-overlay/memory.dtsi \
+  $(TMP_OS_PATH)/pl-overlay/override.dtsi \
+  $(TMP_OS_PATH)/pl-overlay/pl_wrap.dts
+	$(DOCKER) $(DTC_BIN) -@ -I dts -O dtb -b 0 \
+	  -i $(TMP_OS_PATH)/pl-overlay \
+	  -o $@ $(TMP_OS_PATH)/pl-overlay/pl_wrap.dts
+	$(call ok,$@)
 
-###############################################################################
-# WWW
-###############################################################################
-
-WWW_PATH:= $(OS_PATH)/www
-TMP_WWW_PATH:= $(TMP)/www
-
-.PHONY: www
-www : $(TMP_WWW_PATH)/koheron.css \
-		$(TMP_WWW_PATH)/instruments.js \
-		$(TMP_WWW_PATH)/index.html \
-		$(TMP_WWW_PATH)/main.css \
-		$(TMP_WWW_PATH)/bootstrap.min.js \
-		$(TMP_WWW_PATH)/bootstrap.min.css \
-		$(TMP_WWW_PATH)/jquery.min.js \
-		$(TMP_WWW_PATH)/koheron.svg \
-		$(TMP_WWW_PATH)/koheron_logo.svg \
-		$(TMP_WWW_PATH)/kbird.ico \
-		$(TMP_WWW_PATH)/lato-v11-latin-400.woff2 \
-		$(TMP_WWW_PATH)/lato-v11-latin-700.woff2 \
-		$(TMP_WWW_PATH)/lato-v11-latin-900.woff2 \
-		$(TMP_WWW_PATH)/glyphicons-halflings-regular.woff2 \
-		$(TMP_WWW_PATH)/navigation.html \
-		$(TMP_WWW_PATH)/html-imports.min.js \
-		$(TMP_WWW_PATH)/html-imports.min.js.map
-
-.PHONY: www_sync
-www_sync: www
-	rsync -avz -e "ssh -i /ssh-private-key" $(TMP_WWW_PATH)/. root@$(HOST):/usr/local/www/
-
-.PHONY: clean_www
-clean_www:
-	rm -rf $(TMP_WWW_PATH)
-
-WWW_TS_FILES := $(WEB_PATH)/koheron.ts
-WWW_TS_FILES += $(WWW_PATH)/instruments.ts
-WWW_TS_FILES += $(WWW_PATH)/instruments_widget.ts
-
-$(TMP_WWW_PATH)/instruments.js: $(WWW_TS_FILES)
-	mkdir -p $(@D)
-	$(TSC) $^ --outFile $@
-
-$(TMP_WWW_PATH)/koheron.css:
-	mkdir -p $(@D)
-	curl https://assets.koheron.com/css/main.css -o $@
-
-$(TMP_WWW_PATH)/index.html: $(WWW_PATH)/index.html
-	mkdir -p $(@D)
-	cp $< $@
-
-$(TMP_WWW_PATH)/navigation.html: $(WEB_PATH)/navigation.html
-	mkdir -p $(@D)
-	cp $< $@
-
-$(TMP_WWW_PATH)/main.css: $(WEB_PATH)/main.css
-	mkdir -p $(@D)
-	cp $< $@
-
-$(TMP_WWW_PATH)/bootstrap.min.js:
-	mkdir -p $(@D)
-	curl http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js -o $@
-
-$(TMP_WWW_PATH)/bootstrap.min.css:
-	mkdir -p $(@D)
-	curl http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css -o $@
-
-$(TMP_WWW_PATH)/jquery.min.js:
-	mkdir -p $(@D)
-	curl https://code.jquery.com/jquery-1.12.4.min.js -o $@
-
-$(TMP_WWW_PATH)/koheron.svg:
-	mkdir -p $(@D)
-	curl https://assets.koheron.com/images/logo/koheron.svg -o $@
-
-$(TMP_WWW_PATH)/koheron_logo.svg:
-	mkdir -p $(@D)
-	curl https://assets.koheron.com/images/logo/koheron_logo.svg -o $@
-
-$(TMP_WWW_PATH)/kbird.ico:
-	mkdir -p $(@D)
-	curl https://assets.koheron.com/images/logo/koheron.ico -o $@
-
-$(TMP_WWW_PATH)/lato-v11-latin-400.woff2:
-	mkdir -p $(@D)
-	curl https://fonts.gstatic.com/s/lato/v13/1YwB1sO8YE1Lyjf12WNiUA.woff2 -o $@
-
-$(TMP_WWW_PATH)/lato-v11-latin-700.woff2:
-	mkdir -p $(@D)
-	curl https://fonts.gstatic.com/s/lato/v13/H2DMvhDLycM56KNuAtbJYA.woff2 -o $@
-
-$(TMP_WWW_PATH)/lato-v11-latin-900.woff2:
-	mkdir -p $(@D)
-	curl https://fonts.gstatic.com/s/lato/v13/tI4j516nok_GrVf4dhunkg.woff2 -o $@
-
-$(TMP_WWW_PATH)/glyphicons-halflings-regular.woff2:
-	mkdir -p $(@D)
-	curl https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/fonts/glyphicons-halflings-regular.woff2 -o $@
-
-$(TMP_WWW_PATH)/html-imports.min.js:
-	mkdir -p $(@D)
-	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js -o $@
-
-$(TMP_WWW_PATH)/html-imports.min.js.map:
-	mkdir -p $(@D)
-	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js.map -o $@
+$(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
+	cp $(TMP_OS_PATH)/pl.dtbo  $(TMP_PROJECT_PATH)/pl.dtbo
 
 ###############################################################################
-# TEST
+# board.dtbo
 ###############################################################################
 
-.PHONY: test_os
-test_os:
-	$(PYTHON) $(OS_PATH)/test_os.py $(HOST)
+BOARD_DTSO ?= $(OS_PATH)/board.dtso
+
+$(TMP_OS_PATH)/board-overlay/board.dtso: $(BOARD_DTSO) | $(TMP_OS_PATH)/board-overlay/
+	cp $< $@
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso $(LINUX_BUILD_STAMP)
+	# Preprocess so #include <dt-bindings/...> works
+	$(DOCKER) gcc -E -P -x assembler-with-cpp -nostdinc -undef -D__DTS__ \
+	  -I $(LINUX_PATH)/include \
+	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts \
+	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts/xilinx \
+	  -o $(TMP_OS_PATH)/board-overlay/board.pp $(TMP_OS_PATH)/board-overlay/board.dtso
+	$(DOCKER) $(DTC_BIN) -@ -I dts -O dtb -b 0 \
+	  -i $(LINUX_PATH)/arch/$(ARCH)/boot/dts -i $(LINUX_PATH)/arch/$(ARCH)/boot/dts/xilinx \
+	  -o $@ $(TMP_OS_PATH)/board-overlay/board.pp
+	$(call ok,$@)
+
+###############################################################################
+# uImage / Image
+###############################################################################
+
+$(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_BUILD_STAMP) | $(TMP_OS_PATH)/
+	cp "$(LINUX_PATH)/arch/$(ARCH)/boot/$(KERNEL_BIN)" "$@"
+
+###############################################################################
+# kernel.itb
+###############################################################################
+
+
+define ITS_TEMPLATE
+/dts-v1/;
+/ {
+  description = "Linux + DTB (FIT)";
+  #address-cells = <1>;
+  images {
+    kernel {
+      description = "Linux kernel";
+      data = /incbin/("$(KERNEL_BIN)");
+      type = "kernel";
+      arch = "$(ARCH)";
+      os = "linux";
+      compression = "none";
+      load = <0x03000000>;
+      entry = <0x03000000>;
+      hash-1 { algo = "sha256"; };
+    };
+    fdt {
+      description = "Base Device Tree";
+      data = /incbin/("devicetree.dtb");
+      type = "flat_dt";
+      arch = "$(ARCH)";
+      compression = "none";
+      load = <0x07000000>;
+      hash-1 { algo = "sha256"; };
+    };
+    overlay_board {
+      description = "Board overlay";
+      data = /incbin/("board-overlay/board.dtbo");
+      type = "flat_dt";
+      arch = "$(ARCH)";
+      compression = "none";
+      load = <0x07100000>;
+      hash-1 { algo = "sha256"; };
+    };
+  };
+  configurations {
+    default = "conf";
+    conf {
+      description = "Boot Linux kernel";
+      kernel = "kernel";
+      fdt = "fdt", "overlay_board";
+      hash-1 { algo = "sha256"; };
+    };
+  };
+};
+endef
+
+$(TMP_OS_PATH)/kernel.its: $(TMP_OS_PATH)/$(KERNEL_BIN) $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_PATH)/board-overlay/board.dtbo | $(TMP_OS_PATH)/
+	@$(file >$@,$(ITS_TEMPLATE))
+	$(call ok,$@)
+
+$(TMP_OS_PATH)/kernel.itb: $(TMP_OS_PATH)/kernel.its | $(TMP_OS_PATH)/
+	$(DOCKER) mkimage -D "-i $(TMP_OS_PATH)" -f $< $@
+	$(call ok,$@)
+
+###############################################################################
+#
+###############################################################################
+
+OS_FILES := \
+  $(INSTRUMENT_ZIP) \
+  $(API_FILES) \
+  $(WWW_ASSETS) \
+  $(TMP_OS_PATH)/$(BOOT_BIN) \
+  $(TMP_OS_PATH)/kernel.itb \
+  $(TMP_OS_PATH)/devicetree.dtb
+
+.PHONY: os
+os: $(OS_FILES)
+
+.PHONY: clean_os
+clean_os:
+	rm -rf $(TMP_OS_PATH)

@@ -56,9 +56,9 @@ class Dma
     }
 
   private:
-    Memory<mem::dma>& dma;
-    Memory<mem::ram>& ram;
-    Memory<mem::axi_hp0>& axi_hp0;
+    hw::Memory<mem::dma>& dma;
+    hw::Memory<mem::ram>& ram;
+    hw::Memory<mem::axi_hp0>& axi_hp0;
 
     std::array<int32_t, 1000000> data;
 

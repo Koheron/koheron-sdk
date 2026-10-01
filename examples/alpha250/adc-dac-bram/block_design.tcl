@@ -1,7 +1,7 @@
 source $board_path/starting_point.tcl
 
 # Add BRAMs for ADC and DAC
-# "adc" and "dac" BRAM ranges and offsets are defined in the "memory" part of config.yml
+# "adc" and "dac" BRAM ranges and offsets are defined in the "memory" part of memory.yml
 source $sdk_path/fpga/lib/bram.tcl
 add_bram adc
 add_bram dac
@@ -34,3 +34,7 @@ connect_cell blk_mem_gen_dac {
 
 connect_pins adc_dac/dac0 [get_slice_pin blk_mem_gen_dac/doutb 15 0]
 connect_pins adc_dac/dac1 [get_slice_pin blk_mem_gen_dac/doutb 31 16]
+
+# The 200 MHz AXI-to-BRAM enable path needs one post-route optimization pass.
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE Explore [get_runs impl_1]

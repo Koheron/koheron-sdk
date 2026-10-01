@@ -47,7 +47,7 @@ def calibrate_transfer_function(gene, driver):
 
         time.sleep(0.5)
         psd = driver.read_psd_raw()
-        peak_power[i] = psd[n-1]
+        peak_power[i] = psd[n]
         #peak_power[i] = np.max(psd)
         print(i, freq, peak_power[i])
 

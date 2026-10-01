@@ -8,8 +8,6 @@ from scipy import signal
 from adc_dac_bram import AdcDacBram
 from koheron import connect
 
-import matplotlib
-matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 

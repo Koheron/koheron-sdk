@@ -1,0 +1,7 @@
+memory:
+  - name: gpio
+    range: 64K
+    offset: 0xA000_0000
+
+parameters:
+  id: 123456

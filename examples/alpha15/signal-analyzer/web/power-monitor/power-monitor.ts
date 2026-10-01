@@ -9,8 +9,7 @@ class PowerMonitor {
         this.cmds = this.driver.getCmds();
     }
 
-    getSuppliesUI(cb: (values: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['get_supplies_ui']),
-                                 (values: Float32Array) => {cb(values)});
+    async getSuppliesUI(): Promise<Float32Array> {
+        return await this.client.readFloat32Array(Command(this.id, this.cmds['get_supplies_ui']));
     }
 }

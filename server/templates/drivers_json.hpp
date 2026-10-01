@@ -5,43 +5,19 @@
 #ifndef __DRIVERS_JSON_HPP__
 #define __DRIVERS_JSON_HPP__
 
-#include <array>
-#include <sstream>
-#include <string>
-#include <typeinfo>
-#include <cxxabi.h>
+#include "server/executor/drivers_json.hpp"
+#include <interface_drivers.hpp>
 
-{% for driver in drivers -%}
-{% for include in driver.includes -%}
-#include "{{ include }}"
-{% endfor -%}
-{% endfor %}
+namespace koheron {
 
-// http://stackoverflow.com/questions/4484982/how-to-convert-typename-t-to-string-in-c
-template<typename T>
-inline auto get_type_str()
-{
-    std::string res;
-    char *name = nullptr;
-    int status;
-    name = abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, &status);
-
-    if (name != nullptr) {
-        res = std::string(name);
-    }
-    else {
-        res = std::string(typeid(T).name());
-    }
-
-    free(name);
-    return res;
+inline auto build_drivers_json() {
+    return build_drivers_json<
+        {%- for d in drivers -%}
+        {{ d.name }}Adapter{{ ", " if not loop.last }}
+        {%- endfor -%}
+    >();
 }
 
-inline auto build_drivers_json()
-{
-    std::stringstream ss;
-    ss << "{{ json }}";
-    return ss.str();
-}
+} // namespace koheron
 
 #endif // __DRIVERS_JSON_HPP__

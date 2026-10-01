@@ -59,10 +59,8 @@ class FFT {
         });
     }
 
-    read_psd(cb: (psd: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd']), (psd: Float32Array) => {
-            cb(psd);
-        });
+    async readPsd(): Promise<Float32Array> {
+        return await this.client.readFloat32Array(Command(this.id, this.cmds['read_psd']));
     }
 
     setInputChannel(channel: number): void {

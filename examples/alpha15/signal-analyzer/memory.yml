@@ -1,0 +1,86 @@
+memory:
+  - name: control
+    offset: 0x6000_0000
+    range: 4K
+    registers:
+    - mmcm
+    - precision_dac_ctl
+    - precision_dac_data[2]
+    - trig
+    - rf_adc_ctl[2]
+    - digital_outputs
+    - adp5071_sync
+    - channel_select
+    - channel_offset[2]
+  - name: ps_control
+    offset: 0x6400_0000
+    range: 4K
+    registers:
+    - spi_cfg_data
+    - spi_cfg_cmd
+    - ctl_fft
+    - cic_rate[n_fifos]
+  - name: status
+    offset: 0x5000_0000
+    range: 4K
+    registers:
+    - mmcm_sts
+    - adc[n_adc]
+    - digital_inputs
+  - name: ps_status
+    offset: 0x5400_0000
+    range: 4K
+    registers:
+    - spi_cfg_sts
+    - cycle_index
+  - name: xadc
+    offset: 0x43C0_0000
+    range: 64K
+  - name: adc_fifo0
+    offset: 0x43C1_0000
+    range: 64K
+    dev: /dev/uio
+  - name: adc_fifo1
+    offset: 0x43C2_0000
+    range: 64K
+    dev: /dev/uio
+  - name: adc_fifo2
+    offset: 0x43C3_0000
+    range: 64K
+    dev: /dev/uio
+  - name: demod
+    offset: 0x7000_0000
+    range: 32K
+    dev: /dev/mem_wc
+  - name: psd
+    offset: 0x7400_0000
+    range: 32K
+    dev: /dev/mem_wc
+  - name: ram
+    offset: 0x1E00_0000
+    range: 32M
+    compatible: "koheron,mem-wc-1.0"
+    dev: /dev/mem_wc
+  - name: dma
+    offset: 0x8000_0000
+    range: 64K
+  - name: axi_hp0
+    offset: 0xF800_8000
+    range: 4K
+
+parameters:
+  fclk0: 166666667 # CPU clock speed in Hz
+  fclk1: 143000000
+  adc_clk: 240000000
+  adp5071_clk: 2400000
+  n_adc: 2
+  adc_width: 18
+  cic_differential_delay: 1
+  cic_decimation_rate_min: 4
+  cic_decimation_rate_max: 8192
+  cic_decimation_rate_default: 512
+  cic_n_stages: 6
+  fft_size: 8192
+  n_cycles: 63
+  n_fifos: 3
+  fifo_depth: 8192

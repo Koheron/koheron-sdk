@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Data rate monitor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Koheron">
+    <meta charset="utf-8">
+
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <link rel="shortcut icon" href="/koheron/kbird.ico">
+    <link rel="stylesheet" type="text/css" href="/koheron/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/koheron/koheron.css">
+    <link rel="stylesheet" type="text/css" href="main.css">
+
+    <script type="text/javascript" src="html-imports.min.js"></script>
+    <link rel="import" href="/koheron/navigation.html" data-parent="navigation">
+
+    <script type="text/javascript" src="/koheron/jquery.min.js"></script>
+    <script type="text/javascript" src="/koheron/bootstrap.min.js"></script>
+
+    <style>
+      .rate-card {
+        margin-top: 20px;
+        max-width: 960px;
+      }
+
+      #logs-rate-chart {
+        width: 100%;
+        height: 260px;
+        display: block;
+      }
+
+      .rate-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 90%;
+        margin-top: 12px;
+      }
+
+      .rate-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .rate-legend-swatch {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        display: inline-block;
+      }
+
+      #logs-rate-summary {
+        color: #333333;
+        font-weight: 500;
+        margin-top: 18px;
+      }
+
+      #logs-rate-status {
+        margin-top: 12px;
+        font-size: 90%;
+      }
+
+      #logs-rate-table {
+        font-size: 90%;
+      }
+
+      #logs-rate-table th,
+      #logs-rate-table td {
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="navigation"></div>
+
+    <div id="main" class="container-fluid" style="padding: 20px;">
+      <a href="/koheron" style="display: inline-flex; align-items: center; gap: 4px; font-size: 90%; text-decoration: none;">← Back to settings</a>
+      <h1 style="font-size: 140%; margin-top: 20px;">Data rate monitor</h1>
+
+      <p id="logs-rate-summary">Loading…</p>
+
+      <div class="card rate-card">
+        <div class="card-body" style="padding: 16px;">
+          <canvas id="logs-rate-chart"></canvas>
+          <div class="rate-legend">
+            <span class="rate-legend-item"><span class="rate-legend-swatch" style="background: #ff7f0e;"></span>TX instantaneous</span>
+            <span class="rate-legend-item"><span class="rate-legend-swatch" style="background: #1f77b4;"></span>RX instantaneous</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card rate-card" style="margin-top: 24px;">
+        <div class="card-body" style="padding: 16px;">
+          <div class="table-responsive" style="margin-bottom: 0;">
+            <table id="logs-rate-table" class="table table-striped table-condensed"></table>
+          </div>
+        </div>
+      </div>
+
+      <p id="logs-rate-status" style="color: #737373;">Waiting for data…</p>
+    </div>
+
+    <script src="/koheron/instruments.js"></script>
+    <script>
+      window.addEventListener('HTMLImportsLoaded', () => {
+        new Imports(document);
+        new LogsRatePage(document);
+      }, false);
+    </script>
+  </body>
+</html>

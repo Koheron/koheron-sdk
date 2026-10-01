@@ -1,29 +1,24 @@
 class InstrumentsWidget {
-
-    private imageVersionSpan: HTMLSpanElement;
-
     private instrumentsTable: HTMLTableElement;
     private isUpdate: boolean;
 
     private uploadInput: HTMLInputElement;
     private uploadStatus: HTMLSpanElement;
 
-    constructor (document: Document, private driver: Instruments) {
+    private driver: Instruments;
 
-        this.writeImageVersion();
-
+    constructor (document: Document) {
+        this.driver = new Instruments();
         this.instrumentsTable = <HTMLTableElement>document.getElementById('instruments-table');
         this.isUpdate = true;
         this.update();
 
         this.uploadInput = <HTMLInputElement>document.getElementById("upload-input");
         this.uploadStatus = <HTMLSpanElement>document.getElementById("upload-status");
-
     }
 
     update() {
         if (this.isUpdate) {
-
             this.driver.getInstrumentsStatus( (status) => {
                 let instruments = status['instruments'];
                 let liveInstrument = status['live_instrument'];
@@ -31,7 +26,6 @@ class InstrumentsWidget {
                 this.instrumentsTable.innerHTML = '<thead><tr><th>Name</th><th>Status</th><th colspan="2">Action</th><th>Version</th></tr></thead>';
 
                 for (let instrument of instruments) {
-
                     let row = this.instrumentsTable.insertRow(-1);
 
                     let nameCell = row.insertCell(0);
@@ -53,7 +47,7 @@ class InstrumentsWidget {
 
                     if (instrument["name"] == liveInstrument["name"]) {
                         isLive = true;
-                    };
+                    }
 
                     if (instrument["is_default"]) {
                         isDefault = true;
@@ -62,26 +56,22 @@ class InstrumentsWidget {
                     this.setStatusCell(statusCell, isLive);
                     this.setRunCell(runCell, instrument["name"], isLive);
                     this.setDeleteCell(deleteCell, instrument["name"], isLive, isDefault);
-                    nameCell.innerHTML = instrument["name"];
+                    nameCell.innerHTML = '';
+                    const link = document.createElement("a");
+                    link.href = `/koheron/instrument_summary.html?name=${encodeURIComponent(instrument["name"])}`;
+                    link.textContent = instrument["name"];
+                    nameCell.appendChild(link);
                     versionCell.innerHTML = instrument["version"];
-
                 }
+
                 this.isUpdate = false;
                 document.body.style.cursor = "default";
-
             });
         };
 
-        setTimeout( () => {
+        setTimeout(() => {
             this.update(), 200
         });
-    }
-
-    writeImageVersion(): void {
-        $.getJSON("version.json", function (data) {
-            this.imageVersionSpan = <HTMLSpanElement>document.getElementById("image-version");
-            this.imageVersionSpan.innerHTML = data["version"];
-        })
     }
 
     setStatusCell(cell: any, isLive: boolean): void {
@@ -92,11 +82,17 @@ class InstrumentsWidget {
         }
     }
 
-    setRunCell(cell: any, name: string, isLive: boolean): void {
-        if (isLive) {
-            cell.innerHTML = '';
-        } else {
-            cell.innerHTML = '<a onclick="instruments_widget.runClick(this.parentNode, \'' + name + '\'); return false;" href="#">Run</a>';
+    setRunCell(cell: HTMLTableCellElement, name: string, isLive: boolean): void {
+        cell.innerHTML = '';
+        if (!isLive) {
+            const link = document.createElement("a");
+            link.href = "#";
+            link.textContent = "Run";
+            link.addEventListener("click", (ev) => {
+                ev.preventDefault();
+                this.runClick(cell, name);
+            });
+            cell.appendChild(link);
         }
     }
 
@@ -108,15 +104,23 @@ class InstrumentsWidget {
         })
     }
 
-    setDeleteCell(cell: any, name: string, isLive: boolean, isDefault: boolean): void {
+    setDeleteCell(cell: HTMLTableCellElement, name: string, isLive: boolean, isDefault: boolean): void {
+        cell.innerHTML = '';
         if (isLive) {
-            cell.innerHTML = "Live";
+            cell.textContent = "Live";
             cell.style.color = "#737373";
-        } else if (isDefault ) {
-            cell.innerHTML = "Default";
+        } else if (isDefault) {
+            cell.textContent = "Default";
             cell.style.color = "#737373";
         } else {
-            cell.innerHTML = '<a onclick="instruments_widget.deleteClick(this.parentNode, \'' + name + '\'); return false;" href="#">Remove</a>';
+            const link = document.createElement("a");
+            link.href = "#";
+            link.textContent = "Remove";
+            link.addEventListener("click", (ev) => {
+                ev.preventDefault();
+                this.deleteClick(cell, name);
+            });
+            cell.appendChild(link);
         }
     }
 
@@ -129,6 +133,7 @@ class InstrumentsWidget {
     uploadInstrumentClick() {
         this.uploadStatus.innerHTML = "";
         let file = this.uploadInput.files[0];
+
         if ((file.name).indexOf(".zip") !== -1) {
             this.driver.uploadInstrument(file, (status) => {
                 this.isUpdate = status;
@@ -136,7 +141,5 @@ class InstrumentsWidget {
         } else {
             this.uploadStatus.innerHTML = "Select ZIP file";
         }
-
     }
-
 }
