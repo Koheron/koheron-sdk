@@ -1,12 +1,23 @@
 // Interface for the FFT driver
 // (c) Koheron
 
+type TupleGetParameters = [number, number, number, number, number, number];
+
 interface IFFTStatus {
     dds_freq: number[];
     fs: number; // Sampling frequency (Hz)
     channel: number; // Input channel
     W1: number; // FFT window correction (sum w)^2
     W2: number; // FFT window correction (sum w^2)
+    window_index: number;
+    clkIndex: string;
+}
+
+interface IBoardParameters {
+    supplyValues: Float32Array;
+    adcValues: Float32Array;
+    dacValues: Float32Array;
+    temperatures: Float32Array;
 }
 
 class FFT {
@@ -21,32 +32,13 @@ class FFT {
         this.driver = this.client.getDriver('FFT');
         this.id = this.driver.id;
         this.cmds = this.driver.getCmds();
-        //this.monitor(1000);
-
         this.status = <IFFTStatus>{};
         this.status.dds_freq = [];
     }
 
-    init(cb: () => void): void {
-        this.getFFTSize( (size: number) => {
-            this.fft_size = size;
-            this.getControlParameters( () => {
-                cb();
-            });
-        });
-    }
-
-    monitor(timeout: number): void {
-        this.getCycleIndex( (i) => {
-            setTimeout( () => {
-                this.monitor(timeout);
-            }, timeout);
-        });
-    }
-
-    getCycleIndex(cb: (i: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['get_cycle_index']),
-                                 (i) => {cb(i)});
+    async init(): Promise<void> {
+        this.fft_size = await this.client.readUint32(Command(this.id, this.cmds['get_fft_size']));
+        await this.getControlParameters();
     }
 
     getFFTSize(cb: (size: number) => void): void {
@@ -60,10 +52,14 @@ class FFT {
         });
     }
 
-    read_psd(cb: (psd: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd']), (psd: Float32Array) => {
-            cb(psd);
-        });
+    startPSDStream(frame: (psd: Float32Array, time: number) => void,
+                   error: (message: string) => void): PSDStream {
+        return new PSDStream(location.hostname, Command(this.id, this.cmds['read_psd']).data,
+                             this.fft_size / 2, frame, error);
+    }
+
+    async read_psd(): Promise<Float32Array> {
+        return await this.client.readFloat32Array(Command(this.id, this.cmds['read_psd']));
     }
 
     setDDSFreq(channel: number, freq_hz: number): void {
@@ -78,23 +74,14 @@ class FFT {
         this.client.send(Command(this.id, this.cmds['set_fft_window'], windowIndex));
     }
 
-    getControlParameters(cb: (status: IFFTStatus) => void): void {
-        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'dddIdd',
-                               (tup: [number, number, number, number, number, number]) => {
-            this.status.dds_freq[0] = tup[0];
-            this.status.dds_freq[1] = tup[1];
-            this.status.fs = tup[2];
-            this.status.channel = tup[3];
-            this.status.W1 = tup[4];
-            this.status.W2 = tup[5];
-            cb(this.status);
-        });
-    }
-
-    getFFTWindowIndex(cb: (windowIndex: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['get_window_index']),
-                               (windowIndex: number) => {
-            cb(windowIndex);
-        });
+    async getControlParameters(): Promise<IFFTStatus> {
+        const [fdds0, fdds1, fs, channel, W1, W2] =
+            await this.client.readTuple<TupleGetParameters>(
+                Command(this.id, this.cmds['get_control_parameters']), 'dddIdd');
+        const window_index = await this.client.readUint32(
+            Command(this.id, this.cmds['get_window_index']));
+        this.status = {dds_freq: [fdds0, fdds1], fs, channel, W1, W2,
+                       window_index, clkIndex: 'fixed'};
+        return this.status;
     }
 }

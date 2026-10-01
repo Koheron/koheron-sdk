@@ -89,6 +89,20 @@ vm.runInContext(`
         assert.ok((await download.blob.text()).includes('Average (1 s linear power EMA)'));
         spectrum.average_data = undefined;
         spectrum.referenceStatus = spectrum.reference_data = undefined;
+        const rpExporter = new ExportFile(doc, spectrum, 'Red Pitaya');
+        rpExporter.download = (blob, name) => { download = {blob, name}; };
+        spectrum.frameStatus.clkIndex = 'fixed';
+        spectrum.frameStatus.fs = 125e6;
+        text.length = 0;
+        buttons.get('.export-plot')();
+        assert.equal(text[0].value, 'Red Pitaya FFT · Voltage noise (nV/√Hz)');
+        buttons.get('.export-data')();
+        const rpCsv = await download.blob.text();
+        assert.ok(rpCsv.startsWith('Koheron Red Pitaya FFT'));
+        assert.ok(rpCsv.includes('Reference clock,Fixed onboard'));
+        assert.ok(rpCsv.includes('Sampling frequency (Hz),125000000'));
+        spectrum.frameStatus.clkIndex = '2';
+        spectrum.frameStatus.fs = 250e6;
     }
 })()
 `, context).then(() => console.log('PNG density, displayed-frame labels and CSV values: PASS'))

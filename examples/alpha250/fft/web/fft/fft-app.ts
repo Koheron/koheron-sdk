@@ -83,7 +83,7 @@ class FFTApp {
         if (sinceLast < frameBudgetMs) {
             this._busyControls = false;
             const wait = Math.ceil(frameBudgetMs - sinceLast);
-            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updateControls(); } }), wait);
+            setTimeout(() => { if (this.running) { this.updateControls(); } }, wait);
             return;
         }
 
@@ -95,7 +95,7 @@ class FFTApp {
             const [sts, brdParams] = await Promise.all([
                 this.driver.getControlParameters() as Promise<IFFTStatus>,
                 // Slow board telemetry must not compete with spectrum/control requests.
-                now - this._lastBoardTick >= 1000
+                typeof this.driver.getBoardParameters === 'function' && now - this._lastBoardTick >= 1000
                     ? this.driver.getBoardParameters() as Promise<IBoardParameters>
                     : Promise.resolve(undefined),
             ]);
@@ -183,12 +183,12 @@ class FFTApp {
             const elapsed = performance.now() - now;
             const delay = Math.max(0, Math.ceil(frameBudgetMs - elapsed));
             this._busyControls = false;
-            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updateControls(); } }), delay);
+            setTimeout(() => { if (this.running) { this.updateControls(); } }, delay);
         } catch (err) {
             this._busyControls = false;
             if (!this.running) { return; }
             console.error("updateControls error:", err);
-            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updateControls(); } }), 500);
+            setTimeout(() => { if (this.running) { this.updateControls(); } }, 500);
         }
     }
 

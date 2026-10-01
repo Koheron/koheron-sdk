@@ -8,12 +8,8 @@ from scipy import stats
 from fft import FFT, Window
 from koheron import connect
 
-# Both the Koheron Alpha and the Keysight 33600A must be
-# disciplined on the Tektronix MCA3027 OCXO 10 MHz output.
-
 class Keysight33600A:
     def __init__(self):
-        import visa
         rm = visa.ResourceManager('@py')
         self.inst = rm.open_resource('TCPIP::A-33600-00000.local::inst0::INSTR')
         self.inst.write('OUTP1:LOAD INF') # High impedance output
@@ -48,7 +44,6 @@ def calibrate_transfer_function(gene, driver):
         time.sleep(0.5)
         psd = driver.read_psd_raw()
         peak_power[i] = psd[n]
-        #peak_power[i] = np.max(psd)
         print(i, freq, peak_power[i])
 
     H = peak_power / peak_power[0] # Power transfer function
@@ -111,7 +106,7 @@ if __name__=="__main__":
 
     for channel_under_test in range(2):
         gene.set_channel(channel_under_test + 1)
-        driver.set_in_channel(channel_under_test)
+        driver.set_input_channel(channel_under_test)
         time.sleep(1)
 
         gain, offset = calibrate_offset_gain(gene, driver, channel_under_test)

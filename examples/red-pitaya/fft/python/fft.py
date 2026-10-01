@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import time
-import math
-import numpy as np
 from enum import IntEnum
 
 from koheron import command
@@ -27,12 +24,12 @@ class FFT(object):
         return self.client.recv_uint32()
 
     @command()
-    def get_cycle_index(self):
-        return self.client.recv_tuple('II')
+    def get_number_averages(self):
+        return self.client.recv_uint32()
 
     @command()
-    def set_offset(self, offset_real, offset_imag):
-        pass
+    def get_window_index(self):
+        return self.client.recv_uint32()
 
     @command()
     def set_input_channel(self, channel):
@@ -63,13 +60,3 @@ class FFT(object):
     @command()
     def get_adc_raw_data(self, n_avg):
         return self.client.recv_array(2, dtype='int32')
-
-    # Demodulation
-
-    @command(classname='Demodulator')
-    def get_fifo_length(self):
-        return self.client.recv_uint32()
-
-    @command(classname='Demodulator')
-    def get_vector(self, n_pts):
-        return self.client.recv_vector(dtype='int32')

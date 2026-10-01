@@ -58,9 +58,12 @@ precision I/O expand below it.
   Invalid values do not reach the instrument. Sliders update continuously.
 
 Acquisition runs independently of drawing, targeting 60 spectra per second
-with at most one request in flight. Each browser animation frame displays the
-newest complete spectrum, up to 60 updates per second; older waiting frames
-are replaced rather than queued. The header shows actual fresh-spectrum FPS.
+with at most one request in flight. A dedicated worker polls independently of
+UI work, timestamps replies at receipt, and transfers batches with acknowledgement
+backpressure. At most 256 frames wait for a busy UI; older frames expire with their
+original time gaps. Browsers without worker support use main-thread polling.
+The newest spectrum is drawn up to 60 times per second, with a bounded timer
+fallback when a visible window delays animation callbacks. The header shows actual fresh-spectrum FPS.
 Hover over it for the acquisition rate. Pause or hiding the tab suspends host
 requests and drawing; the FPGA continues acquiring. Drawing preserves the minimum
 and maximum in each screen column, retains missing-data gaps, and returns to
@@ -76,3 +79,17 @@ the client's latest status, so this interface does not certify the exact FPGA
 frame boundary of a hardware setting change.
 
 Host regression instructions are in [tests/README.md](tests/README.md).
+
+## Red Pitaya reuse
+
+`examples/red-pitaya/fft/config.mk` builds the spectrum controls, plotting,
+history views, exports, DDS controls and CSS directly from this workspace's
+sources. Red Pitaya keeps its board entry page and a protocol adapter for its
+six-field control tuple plus window-index command. Its exports identify the
+board and fixed onboard clock; ALPHA250 exports retain their existing labels.
+ALPHA250-only clock selection and precision-I/O controls are omitted.
+
+The Red Pitaya implementation uses the shared FPGA PSD pipeline and C++ FFT
+core with a 14-bit ADC at 125 MS/s, a 2048-point FFT and LUT butterflies to fit
+the Zynq-7010. Its AXI fabric requests 143 MHz (142.857 MHz with the standard 1 GHz IO PLL). The ALPHA250 configuration retains
+its reference parameters and DSP butterflies.

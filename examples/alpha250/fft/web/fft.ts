@@ -68,6 +68,12 @@ class FFT {
         });
     }
 
+    startPSDStream(frame: (psd: Float32Array, time: number) => void,
+                   error: (message: string) => void): PSDStream {
+        return new PSDStream(location.hostname, Command(this.id, this.cmds['read_psd']).data,
+                             this.fft_size / 2, frame, error);
+    }
+
     async read_psd(): Promise<Float32Array> {
         return await this.client.readFloat32Array(Command(this.id, this.cmds['read_psd']));
     }
