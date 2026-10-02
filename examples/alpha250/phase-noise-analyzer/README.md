@@ -1,5 +1,42 @@
 # ALPHA250 phase-noise analyzer
 
+## FPGA phase-extraction filter
+
+Version 1.2.0 carries over the ALPHA250-4 analyzer's mixer prefilter. Each
+ADC's I/Q mixer outputs pass through four cascaded 16-sample moving sums before
+the CORDIC, replacing the four-sample boxcar. The equivalent 61-tap FIR has
+unity DC gain. Intermediate sums retain full precision; the final 16-bit
+output uses stochastic rounding. Each ADC channel selects a distinct nonzero
+seed for the shared 64-bit XOR LFSR; mixer and I/Q filter rounding use separate
+bits of that channel's sequence.
+
+At the existing 200 MS/s sample clock and a 10 MHz carrier, the filter
+attenuates the 20 MHz mixing image by 57.27 dB, versus 2.28 dB for the old
+boxcar. Its passband loss is 0.091 dB at 500 kHz, 0.365 dB at 1 MHz and
+1.470 dB at 2 MHz. Software does not invert this response. The filter is
+intended for 10 MHz carriers and sub-MHz offsets; lower carriers and wider
+offsets need the filter response taken into account. These filter calculations
+do not establish an absolute instrument noise floor.
+
+The two ADC phases still feed the existing channel selector and single
+CIC/FIR/DMA path. The ALPHA250-4's paired-CIC controller serves its two
+simultaneous phase-difference streams and is not needed for this topology.
+Phase conversion retains the existing CIC/FIR correction below, since the
+new mixer prefilter has unity DC gain. The independent DAC stimulus and
+analyzer register map are retained.
+
+Run the FPGA regressions and build from the SDK root:
+
+```sh
+PNA_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh \
+    bash examples/alpha250/phase-noise-analyzer/tests/run-fpga.sh
+make CFG=examples/alpha250/phase-noise-analyzer/config.mk fpga N_CPUS=4
+```
+
+The simulation and ideal mixer model reuse the ALPHA250-4 regressions for the
+same shared RTL. See [tests/README.md](tests/README.md) for block-design checks
+and a board validation procedure.
+
 ## DAC phase-modulated stimulus
 
 The design includes the shared two-channel [DDS phase-modulator IP](../../../fpga/ip/awg_v1_0/)
