@@ -129,6 +129,13 @@ LD_LIBRARY_PATH="$pna_model" "$pna_model/check-cordic-bias" \
     "$pna_model/angle-bias.bin"
 ```
 
+`test_mixer_round.sv` exhausts all 131,072 random words for 24 signed full
+products, including both product extrema, zero, and values around half and
+whole output counts. The sum of all outputs must equal the input product,
+which checks the conditional mean exactly rather than with a statistical
+tolerance. It also checks adjacent output counts, sign extension and reset.
+The existing phase-rounding regression retains modulo-counter boundary checks.
+
 `test_prefilter_response.py` verifies unity gain, symmetry, 20 MHz rejection
 and known small phase modulation through an ideal real mixer, the new filter
 and atan at 100 kHz, 500 kHz and 1 MHz. It excludes vendor IP quantization.
