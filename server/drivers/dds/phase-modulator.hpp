@@ -267,6 +267,27 @@ public:
             return deviation_word(degrees, full_turn(channel), settings.deviation);
         });
     }
+    Result set_waveform(uint32_t channel, Waveform waveform) {
+        return update(channel, [waveform](Settings& settings) {
+            settings.waveform = waveform;
+            return Result{};
+        });
+    }
+    Result set_duty(uint32_t channel, long double duty_fraction) {
+        return update(channel, [&](Settings& settings) {
+            if (!std::isfinite(duty_fraction) || duty_fraction < 0.0L || duty_fraction > 1.0L) {
+                return Result{Error::invalid_duty};
+            }
+            settings.duty = static_cast<uint64_t>(std::round(duty_fraction * static_cast<long double>(full_turn(channel))));
+            return Result{};
+        });
+    }
+    Result set_seed(uint32_t channel, uint32_t value) {
+        return update(channel, [value](Settings& settings) {
+            settings.seed = value;
+            return Result{};
+        });
+    }
 
 private:
     static Result frequency_word(long double hz, long double sample_rate, uint64_t turn, uint64_t& word) {

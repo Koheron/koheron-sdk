@@ -118,6 +118,15 @@ public:
     std::string set_deviation(uint32_t channel, double degrees) {
         return response(channel, controller.set_deviation(channel, static_cast<long double>(degrees)));
     }
+    std::string set_waveform(uint32_t channel, uint32_t waveform) {
+        return response(channel, controller.set_waveform(channel, static_cast<dds_pm::Waveform>(waveform)));
+    }
+    std::string set_duty(uint32_t channel, double fraction) {
+        return response(channel, controller.set_duty(channel, static_cast<long double>(fraction)));
+    }
+    std::string set_seed(uint32_t channel, uint32_t seed) {
+        return response(channel, controller.set_seed(channel, seed));
+    }
 
 private:
     std::string response(uint32_t channel, dds_pm::Result result) {

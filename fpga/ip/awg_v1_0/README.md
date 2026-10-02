@@ -161,7 +161,8 @@ explicitly to `configure_signal` and the frequency setters. The controller
 does not program the board clock.
 
 `set_carrier_frequency`, `set_modulation_frequency`, `set_phase`,
-`set_deviation`, `set_pm_enabled` and `set_output_enabled` change one setting
+`set_deviation`, `set_waveform`, `set_duty`, `set_seed`, `set_pm_enabled`
+and `set_output_enabled` change one setting
 while preserving the others and the running oscillator state. `mute(channel)`
 disables the output; `set_output_enabled(channel, true)` resumes it with the
 same settings. `restart(channel)` explicitly restarts both oscillators.

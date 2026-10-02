@@ -23,6 +23,14 @@ and install it separately before using the client.
 
 ## Generate a modulated carrier
 
+After installing the instrument, open the board's IP address in a browser.
+The web interface reads the current configuration without changing outputs.
+It provides one compact row per DAC, with extra settings behind **More**;
+normal edits preserve oscillator phase. The interface uses the same visual
+style as the ALPHA250 FFT workspace and adapts to narrow dashboard panels.
+Its [shared widget](../../../web/phase-modulator/README.md) can be mounted in
+other instrument pages with their existing Koheron client.
+
 ```sh
 .venv/bin/python examples/alpha250/phase-modulator/phase_modulator.py BOARD_IP
 ```
@@ -105,3 +113,10 @@ a 10 MHz carrier with 10 kHz sine PM and 1 degree deviation; settings readback
 confirmed output and PM enabled, with DAC1 muted. This verifies deployment,
 metadata discovery and the live configuration/acknowledgement path. Analog PM
 amplitude and spectrum have not yet been measured.
+
+The web widget was checked in Chrome at desktop, dashboard-column and phone
+widths. Live browser edits on muted DAC1 verified source selection, pulse duty
+and carrier frequency; Enter commits retained keyboard focus. Exact native
+readback confirmed DAC0 was unchanged, and the original DAC1 settings were
+restored after the checks. Eight DOM/protocol tests cover widget behavior and
+the shared client's empty-success response decoding.

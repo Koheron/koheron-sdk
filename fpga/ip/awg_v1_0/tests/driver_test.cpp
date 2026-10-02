@@ -264,7 +264,14 @@ static void test_engineering_units_and_updates() {
     expected.deviation = 1;
     assert(controller.set_pm_enabled(1, false));
     expected.pm_enabled = false;
+    assert(controller.set_waveform(1, dds_pm::Waveform::pulse));
+    expected.waveform = dds_pm::Waveform::pulse;
+    assert(controller.set_duty(1, 0.25L));
+    expected.duty = controller.full_turn()/4;
+    assert(controller.set_seed(1, 123));
+    expected.seed = 123;
     assert(controller.get_settings(1, settings) && settings == expected);
+    assert(memory.commits.back().command == 1); // Widget edits preserve phases.
     assert(controller.restart(1));
     assert(memory.commits.back().command == 7);
     assert(controller.get_settings(1, settings) && settings == expected);
@@ -299,7 +306,14 @@ static void test_engineering_units_and_updates() {
     assert(controller.set_deviation(0, -1.0L).code == Error::invalid_deviation);
     assert(controller.set_phase(0, std::numeric_limits<long double>::infinity()).code == Error::invalid_phase);
     assert(controller.set_carrier_frequency(0, -1.0L, 250'000'000.0L).code == Error::invalid_frequency);
+    assert(controller.set_duty(0, 1.01L).code == Error::invalid_duty);
+    assert(controller.set_duty(0, std::numeric_limits<long double>::quiet_NaN()).code == Error::invalid_duty);
+    assert(controller.set_waveform(0, static_cast<dds_pm::Waveform>(10)).code == Error::out_of_range);
     assert(memory.writes.size() == before);
+    assert(controller.set_waveform(0, dds_pm::Waveform::prbs));
+    const auto seed_before = memory.writes.size();
+    assert(controller.set_seed(0, 0).code == Error::invalid_prbs_seed);
+    assert(memory.writes.size() == seed_before);
 }
 
 static void test_concurrent_partial_updates() {
