@@ -19,12 +19,17 @@ async function fixture(t) {
     }
     const parameters = {data_size: 16384, fs: 5e6, channel: 0, cic_rate: 20, fft_navg: 1, fdds0: 10e6, fdds1: 10e6, analyzer_mode: 'RF', interferometer_delay: 1e-9, clkIndex: 2};
     const calls = [];
+    const tracking = {enabled: false, bandwidth: .1, effectiveBandwidth: .1, maxStep: .05, maxCorrection: 100,
+        nominal0: 10e6, nominal1: 10e6, correction0: 0, correction1: 0,
+        error0: NaN, error1: NaN, locked0: false, locked1: false};
     const driver = {
         async getParameters() { return {...parameters}; },
+        async getTrackingParameters() { return {...tracking}; },
+        setTrackingEnabled(value) { calls.push(['tracking', value]); tracking.enabled = value; },
         async getMeasurements() { return {carrier_power: 0, phase_jitter: 0, time_jitter: 0, freq_lo: 1e3, freq_hi: 1e6}; },
         setCicRate(value) { calls.push(['cic', value]); parameters.cic_rate = value; },
         setFFTNavg(value) { calls.push(['navg', value]); parameters.fft_navg = Math.min(value, 100); },
-        setLocalOscillator(channel, value) { calls.push(['lo', channel, value]); parameters['fdds' + channel] = value; },
+        setLocalOscillator(channel, value) { calls.push(['lo', channel, value]); parameters['fdds' + channel] = value; tracking['nominal' + channel] = value; },
         setInterferometerDelay(value) { calls.push(['delay', value]); parameters.interferometer_delay = value; },
         setAnalyzerMode(value) { calls.push(['laser', value]); parameters.analyzer_mode = value ? 'laser' : 'RF'; }
     };
@@ -35,7 +40,7 @@ async function fixture(t) {
     w.document.querySelector('#plot-controls').disabled = false;
     const key = (input, key) => input.dispatchEvent(new w.KeyboardEvent('keydown', {key, bubbles: true}));
     const enter = (input, value) => { input.value = value; input.dispatchEvent(new w.Event('input', {bubbles: true})); key(input, 'Enter'); };
-    return {w, app, parameters, calls, key, enter};
+    return {w, app, parameters, tracking, calls, key, enter};
 }
 
 test('analyzer numbers select a digit by default and wheel works anywhere on the page', async t => {
@@ -54,6 +59,27 @@ test('analyzer numbers select a digit by default and wheel works anywhere on the
     const count = calls.length; h.app.dispose();
     w.document.body.dispatchEvent(new w.WheelEvent('wheel', {deltaY: -40, bubbles: true, cancelable: true})); await settle();
     assert.equal(calls.length, count);
+});
+
+test('tracking is opt-in and telemetry does not overwrite nominal LO edits', async t => {
+    const h = await fixture(t);
+    const toggle = h.w.document.querySelector('.tracking-enabled-input');
+    assert.equal(toggle.checked, false);
+    assert.equal(h.calls.length, 0);
+    toggle.checked = true; toggle.dispatchEvent(new h.w.Event('change'));
+    assert.deepEqual(h.calls, [['tracking', true]]);
+    h.tracking.correction0 = -.037;
+    h.parameters.fdds0 = 10e6 - .037;
+    await h.app.updateControls();
+    assert.equal(Number(h.w.document.querySelector('.dds-input0').value.replace(/\s/g, '')), 10);
+    const input = h.w.document.querySelector('.dds-input0'); input.focus();
+    input.value = '10.000001'; input.dispatchEvent(new h.w.Event('input', {bubbles: true}));
+    h.tracking.correction0 = -.045;
+    await h.app.updateControls();
+    assert.equal(input.value, '10.000001');
+    h.key(input, 'Enter'); await settle();
+    assert.deepEqual(h.calls.at(-1), ['lo', 0, 10e6 + 1]);
+
 });
 
 test('integer entry applies once, rejects incomplete/invalid values, and Escape restores accepted value', async t => {

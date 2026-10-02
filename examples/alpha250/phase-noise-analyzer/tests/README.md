@@ -35,6 +35,22 @@ linear smoothing with invalid bins, display units, raw/smoothed/PSD export
 and existing numeric/DAC controls. No host test establishes analog
 noise-floor accuracy. The hardware PM validation below remains necessary.
 
+The tracking test runs the production analyzer and DDS in a simulated loop.
+It checks convergence in both directions and channels, correction bounds,
+PM power preservation, DMA timing, setting handoff and nominal LO restoration.
+One browser regression checks that tracking telemetry preserves nominal LO edits.
+The simulation excludes vendor IP, analog effects and real FIFO timing.
+
+For board tracking validation, first disable tracking and offset the selected
+LO above and below the carrier by a small known amount (for example 0.05 Hz).
+Enable tracking and check that the implemented LO converges in the correct
+direction within the configured bounds, with no change to the other channel.
+Repeat on ADC1, toggle tracking off to verify nominal-frequency restoration,
+and change CIC rate while tracking. Inject the PM tone described below and
+compare integrated tone power with tracking off/on after settling. Check
+close-offset spectra separately for effects of the tracking loop and tuning
+steps; a converged lock indicator is not a noise-floor calibration.
+
 ## FPGA prefilter
 
 From the SDK root:

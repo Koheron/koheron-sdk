@@ -11,6 +11,7 @@
 #include <shared_mutex>
 #include <mutex>
 #include <thread>
+#include <chrono>
 #include <tuple>
 #include <vector>
 #include <scicpp/core.hpp>
@@ -23,6 +24,7 @@
 #include "./dds.hpp"
 #include "./moving_averager.hpp"
 #include "./phase_calibration.hpp"
+#include "server/drivers/phase-noise/tracking-lock.hpp"
 
 namespace rt { class ConfigManager; }
 class DmaS2MM;
@@ -56,6 +58,18 @@ class PhaseNoiseAnalyzer
     void set_fft_navg(uint32_t n_avg);
     void set_analyzer_mode(uint32_t mode);
     void set_interferometer_delay(float delay_s);
+    void set_tracking_enabled(bool enabled);
+    void set_tracking_bandwidth(float bandwidth_hz);
+    void set_tracking_max_step(float max_step_hz);
+    void set_tracking_max_correction(float max_correction_hz);
+
+    auto get_tracking_parameters() {
+        std::shared_lock lk(data_mtx);
+        return std::tuple{tracking_enabled, tracking_bandwidth,
+            effective_tracking_bandwidth(), tracking_max_step, tracking_max_correction,
+            base_dds_freq[0], base_dds_freq[1], tracking_correction[0], tracking_correction[1],
+            tracking_error[0], tracking_error[1], tracking_locked[0], tracking_locked[1]};
+    }
 
     auto get_parameters() {
         std::shared_lock lk(data_mtx);
@@ -117,6 +131,7 @@ class PhaseNoiseAnalyzer
 
     // Always acquire dma_mtx before data_mtx when both are needed.
     std::mutex dma_mtx; // serializes DMA operations and CIC rate changes
+    std::atomic<uint32_t> dma_settings_pending{0}; // give queued setters the next DMA lock
     mutable std::shared_mutex data_mtx; // settings, processing and published results
 
     // Data acquisition thread
@@ -150,11 +165,26 @@ class PhaseNoiseAnalyzer
     scicpp::units::dimensionless<double> conv_factor_dBm;
     std::array<scicpp::units::electric_potential<double>, 2> vrange;
 
+    // Slow frequency tracking is opt-in; all frequencies here are double Hz.
+    bool tracking_enabled = false;
+    double tracking_bandwidth = 0.1;
+    double tracking_max_step = 0.05;
+    double tracking_max_correction = 100.0;
+    std::array<double, 2> base_dds_freq{};
+    std::array<double, 2> tracking_correction{};
+    std::array<double, 2> tracking_error{};
+    std::array<bool, 2> tracking_locked{};
+    std::array<TrackingLock, 2> tracking_locks;
+    std::array<std::chrono::steady_clock::time_point, 2> tracking_last_update{};
+
     // ----------------- Private functions
 
     void load_config();
     void invalidate_results(); // caller holds data_mtx
     double carrier_power(uint32_t navg); // caller holds data_mtx
+    double effective_tracking_bandwidth() const;
+    void reset_tracking_observations(); // caller holds data_mtx
+    void update_tracking(const PhaseDataArray& new_phase); // caller holds both mutexes when enabled
     void reset_phase_unwrapper();
     // Caller must hold dma_mtx for DMA operations.
     void kick_dma();

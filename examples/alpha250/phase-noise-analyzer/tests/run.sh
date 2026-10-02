@@ -18,6 +18,10 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
         examples/alpha250/phase-noise-analyzer/phase-noise-analyzer.cpp \
         examples/alpha250/phase-noise-analyzer/dds.cpp -o "$output/acquisition"
     "$output/acquisition"
+    g++-13 -I"$tests/stubs" "${flags[@]}" "$tests/test_tracking.cpp" \
+        examples/alpha250/phase-noise-analyzer/phase-noise-analyzer.cpp \
+        examples/alpha250/phase-noise-analyzer/dds.cpp -o "$output/tracking"
+    "$output/tracking"
     g++-13 -I"$tests/stubs" "${flags[@]}" "$tests/test_dds.cpp" \
         examples/alpha250/phase-noise-analyzer/dds.cpp -o "$output/dds"
     "$output/dds"
