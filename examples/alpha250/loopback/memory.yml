@@ -12,6 +12,7 @@ memory:
     registers:
     - spi_cfg_data
     - spi_cfg_cmd
+    - mmcm_drp_ctl
   - name: status
     offset: 0x5000_0000
     range: 4K
@@ -22,6 +23,7 @@ memory:
     range: 4K
     registers:
     - spi_cfg_sts
+    - mmcm_drp_sts
   - name: xadc
     offset: 0x43C0_0000
     range: 64K

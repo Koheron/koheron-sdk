@@ -65,7 +65,7 @@ namespace clock_cfg {
         24,  // CLKout3_DIV (FPGA clock)
         240, // CLKout4_DIV (EXP_CLK0 clock)
         240, // CLKout5_DIV (EXP_CLK1 clock)
-        120  // MMCM phase shift
+        300  // MMCM phase shift: 5.357 ns at 100 MHz (1 GHz MMCM VCO)
     });
 
     // Sampling frequency 240 MHz (f_vco = 2400 MHz)
@@ -84,6 +84,15 @@ namespace clock_cfg {
     
     constexpr auto configs = std::array{fs_200MHz, fs_250MHz, fs_100MHz, fs_240MHz};
     constexpr size_t num_params = configs[0].size();
+
+    constexpr uint32_t sampling_frequency(const std::array<uint32_t, num_params>& cfg) {
+        // PLL2 uses the doubled 100 MHz VCXO reference (EN_PLL2_REF_2X = 1).
+        return 200000000ULL * cfg[0] * cfg[1] / cfg[2] / cfg[4];
+    }
+    static_assert(sampling_frequency(fs_100MHz) == 100000000);
+    static_assert(sampling_frequency(fs_200MHz) == 200000000);
+    static_assert(sampling_frequency(fs_240MHz) == 240000000);
+    static_assert(sampling_frequency(fs_250MHz) == 250000000);
 }
 
 class ClockGenerator
@@ -98,6 +107,7 @@ class ClockGenerator
     // 0: Ext. clock, 1: FPGA clock, 2: TCXO, 4: Automatic
     void set_reference_clock(uint32_t clkin_);
 
+    // Runtime rates up to the FPGA build adc_clk are supported.
     void set_sampling_frequency(uint32_t fs_select);
     double get_adc_sampling_freq() const;
     double get_dac_sampling_freq() const;
@@ -130,6 +140,10 @@ class ClockGenerator
     };
 
     void single_phase_shift(uint32_t incdec);
+    void reset_mmcm(bool reset);
+    bool transfer_mmcm(uint8_t address, uint16_t& value, bool write);
+    bool configure_mmcm(bool slow);
+    bool wait_mmcm_locked();
     void write_reg(uint32_t data);
     int configure(uint32_t cfg_mode, uint32_t clkin_select, const std::array<uint32_t, clock_cfg::num_params>& clk_cfg_);
 };

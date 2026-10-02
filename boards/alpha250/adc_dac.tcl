@@ -47,6 +47,8 @@ for {set i 0} {$i < 2} {incr i} {
 # Control pin
 create_bd_pin -dir I -from 31 -to 0 ctl
 create_bd_pin -dir O pll_locked
+create_bd_pin -dir I -from 31 -to 0 drp_ctl
+create_bd_pin -dir O -from 31 -to 0 drp_sts
 
 # Config SPI
 create_bd_pin -dir I -from 31 -to 0 cfg_data
@@ -95,19 +97,40 @@ puts $input_clock_file [format {create_clock -name adc_clk_in -period %.6f [get_
 close $input_clock_file
 add_files -norecurse -fileset constrs_1 $input_clock_xdc
 
-# The 250 MS/s driver shifts CLKOUT0 by 56 fine-phase steps (1 ns).
-# Reserve that setup time while retaining the phase-0 hold requirement.
-# User uncertainty adds to Vivado's calculated jitter and phase error.
-if {[get_parameter adc_clk] == 250000000} {
+# Reserve the worst DAC setup separation over the supported runtime rates.
+# Keep the phase-zero hold requirement. Match the driver's MMCM divisors/phases.
+set dac_phase_budget 0
+set build_period [expr {1000000000.0 / [get_parameter adc_clk]}]
+foreach {rate divide steps} {100000000 10 300 200000000 4 0 240000000 4 40 250000000 4 56} {
+    if {$rate <= [get_parameter adc_clk]} {
+        set phase_ns [expr {1000000000.0 * $steps / (56 * $rate * $divide)}]
+        set budget [expr {$build_period - 1000000000.0 / $rate + $phase_ns}]
+        set dac_phase_budget [expr {max($dac_phase_budget, ceil($budget * 1000) / 1000)}]
+    }
+}
+if {$dac_phase_budget > 0} {
     set dac_phase_xdc [file join $output_path alpha250_dac_phase.xdc]
     set dac_phase_file [open $dac_phase_xdc w]
-    puts $dac_phase_file {set_clock_uncertainty -setup 1.000 -from [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/CLKOUT0]] -to [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/CLKOUT1]]}
+    puts $dac_phase_file [format {set_clock_uncertainty -setup %.3f -from [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/CLKOUT0]] -to [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/CLKOUT1]]} $dac_phase_budget]
+    # Lower-rate clock models increase the DAC hold uncertainty by up to 17 ps.
+    # Reserve 20 ps here, then check each runtime mode on the routed design.
+    puts $dac_phase_file {set_clock_uncertainty -hold 0.020 -from [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/CLKOUT0]] -to [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/CLKOUT1]]}
     close $dac_phase_file
     add_files -norecurse -fileset constrs_1 $dac_phase_xdc
     set_property PROCESSING_ORDER LATE [get_files $dac_phase_xdc]
 }
 
+# The mailbox remains accessible while the sample clock is stopped/reset.
+if {[get_parameter fclk0] > 200000000} {error "MMCM DRP requires fclk0 <= 200 MHz"}
+cell koheron:user:mmcm_drp:1.0 drp {
+} {
+    aclk ps_clk
+    ctl drp_ctl
+    sts drp_sts
+}
+
 # Mixed-mode clock manager
+set mmcm_divide [expr {[get_parameter adc_clk] == 100000000 ? 10 : 4}]
 cell xilinx.com:ip:clk_wiz:6.0 mmcm {
     PRIMITIVE              MMCM
     PRIM_IN_FREQ.VALUE_SRC USER
@@ -117,22 +140,38 @@ cell xilinx.com:ip:clk_wiz:6.0 mmcm {
     PRIM_SOURCE            No_buffer
     SECONDARY_SOURCE       No_buffer
     USE_INCLK_SWITCHOVER true
-    MMCM_CLKFBOUT_USE_FINE_PS true
+    OVERRIDE_MMCM true
+    MMCM_DIVCLK_DIVIDE 1
+    MMCM_CLKFBOUT_MULT_F $mmcm_divide
+    MMCM_CLKOUT0_DIVIDE_F $mmcm_divide
+    MMCM_CLKOUT1_DIVIDE $mmcm_divide
+    MMCM_CLKFBOUT_USE_FINE_PS false
     CLKOUT1_USED true CLKOUT1_REQUESTED_OUT_FREQ $adc_clk_mhz CLKOUT1_REQUESTED_PHASE 0 CLK_OUT1_USE_FINE_PS_GUI true
     CLKOUT2_USED true CLKOUT2_REQUESTED_OUT_FREQ $adc_clk_mhz CLKOUT2_REQUESTED_PHASE 0
-    USE_RESET false
+    USE_RESET true
+    USE_DYN_RECONFIG true
+    INTERFACE_SELECTION Enable_DRP
     USE_DYN_PHASE_SHIFT true
 } {
     clk_in1 clk_in1_buf/IBUF_OUT
     clk_in2 clk_in2_buf/IBUF_OUT
-    locked pll_locked
+    locked drp/locked
     clk_out1 adc_clk
     clk_in_sel [get_not_pin [get_slice_pin ctl 0 0]]
-    reset [get_slice_pin ctl 1 1]
+    reset drp/reset
+    dclk ps_clk
+    daddr drp/daddr
+    den drp/den
+    dwe drp/dwe
+    din drp/di
+    dout drp/dout
+    drdy drp/drdy
     psclk mmcm/clk_out1
     psen [get_edge_detector_pin [get_slice_pin ctl 2 2] mmcm/clk_out1]
     psincdec [get_slice_pin ctl 3 3]
 }
+
+connect_pins pll_locked mmcm/locked
 
 cell xilinx.com:ip:util_ds_buf:2.2 util_ds_buf_0 {
     C_BUF_TYPE OBUFDS

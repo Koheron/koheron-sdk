@@ -47,12 +47,25 @@ int32_t ClockGenerator::set_tcxo_clock(uint8_t value) {
 }
 
 void ClockGenerator::init() {
+    static_assert(prm::adc_clk == 100000000 || prm::adc_clk == 200000000 ||
+                  prm::adc_clk == 240000000 || prm::adc_clk == 250000000,
+                  "Unsupported ALPHA250 adc_clk");
     log("Clock generator: Setting default configuration ...\n");
     std::array<uint8_t, 1> cal_array;
     eeprom.read<eeprom_map::clock_generator_calib::offset>(cal_array);
     logf("Clock generator: TCXO calibration is {}\n", cal_array[0]);
     set_tcxo_clock(cal_array[0]);
-    configure(CFG_ALL, clock_cfg::TCXO_CLOCK, clock_cfg::fs_250MHz);
+    // Start at the build's rated frequency; runtime selections can reduce it.
+    for (uint32_t i = 0; i < clock_cfg::configs.size(); ++i) {
+        const auto& cfg = clock_cfg::configs[i];
+        if (clock_cfg::sampling_frequency(cfg) == prm::adc_clk) {
+            if (configure(CFG_ALL, clock_cfg::TCXO_CLOCK, cfg) == 0) {
+                fs_selected = i;
+            }
+            return;
+        }
+    }
+    logf<ERROR>("Clock generator: Unsupported build sampling frequency {} Hz\n", prm::adc_clk);
 }
 
 // 0: Ext. clock, 1: FPGA clock, 2: TCXO, 4: Automatic
@@ -64,7 +77,12 @@ void ClockGenerator::set_reference_clock(uint32_t clkin_) {
 
 void ClockGenerator::set_sampling_frequency(uint32_t fs_select) {
     if (fs_select < clock_cfg::configs.size() && fs_select != fs_selected) {
-        if (configure(SAMPLING_FREQ_SET, clkin, clock_cfg::configs[fs_select]) == 0) {
+        const auto& cfg = clock_cfg::configs[fs_select];
+        if (clock_cfg::sampling_frequency(cfg) > prm::adc_clk) {
+            logf<ERROR>("Clock generator: Sampling frequency exceeds build maximum ({} Hz)\n", prm::adc_clk);
+            return;
+        }
+        if (configure(SAMPLING_FREQ_SET, clkin, cfg) == 0) {
             fs_selected = fs_select;
         }
     }
@@ -88,6 +106,74 @@ void ClockGenerator::single_phase_shift(uint32_t incdec) {
     auto& ctl = hw::get_memory<mem::control>();
     ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));
     ctl.clear_bit<reg::mmcm, psen_bit>();
+}
+
+void ClockGenerator::reset_mmcm(bool reset) {
+    auto& ctl = hw::get_memory<mem::ps_control>();
+    if (reset) ctl.set_bit<reg::mmcm_drp_ctl, 31>();
+    else ctl.clear_bit<reg::mmcm_drp_ctl, 31>();
+}
+
+bool ClockGenerator::transfer_mmcm(uint8_t address, uint16_t& value, bool write) {
+    auto& ctl = hw::get_memory<mem::ps_control>();
+    auto& sts = hw::get_memory<mem::ps_status>();
+    constexpr uint32_t tag = 1U << 24;
+    const uint32_t previous = ctl.read<reg::mmcm_drp_ctl>();
+    if ((previous ^ sts.read<reg::mmcm_drp_sts>()) & tag) {
+        log<ERROR>("Clock generator: Previous MMCM DRP transaction is still pending\n");
+        return false;
+    }
+    const uint32_t command = ((previous ^ tag) & ((1U << 31) | tag)) |
+        (uint32_t(write) << 23) | (uint32_t(address) << 16) | value;
+    ctl.write<reg::mmcm_drp_ctl>(command);
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+    do {
+        const uint32_t status = sts.read<reg::mmcm_drp_sts>();
+        if ((status & tag) == (command & tag)) {
+            value = status & 0xFFFF;
+            return true;
+        }
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
+    } while (std::chrono::steady_clock::now() < deadline);
+    log<ERROR>("Clock generator: MMCM DRP timeout\n");
+    return false;
+}
+
+bool ClockGenerator::configure_mmcm(bool slow) {
+    // Divide and multiply by 10 at 100 MHz, or by 4 at 200/240/250 MHz.
+    // The VCO consequently runs at 1000/800/960/1000 MHz, respectively.
+    // Preserve the phase-mux/fine-phase bits: a full XAPP888 counter rewrite
+    // would also change those bits. Both supported divisors are even.
+    const uint16_t count = slow ? 0x0145 : 0x0082; // equal high/low counts 5 or 2
+    struct Register { uint8_t address; uint16_t preserve; uint16_t value; };
+    // Lock/filter settings from AMD XAPP888, optimized bandwidth, M=10 or M=4.
+    const std::array<Register, 11> registers {{
+        {0x08, 0xF000, count}, {0x0A, 0xF000, count}, {0x14, 0xF000, count},
+        {0x09, 0xFF3F, 0}, {0x0B, 0xFF3F, 0}, {0x15, 0xFF3F, 0},
+        {0x18, 0xFC00, 0x03E8},
+        {0x19, 0x8000, uint16_t(slow ? 0x7001 : 0x2C01)},
+        {0x1A, 0x8000, uint16_t(slow ? 0x73E9 : 0x2FE9)},
+        {0x4E, 0x66FF, uint16_t(slow ? 0x9900 : 0x1900)},
+        {0x4F, 0x666F, uint16_t(slow ? 0x1100 : 0x1900)}
+    }};
+    for (const auto& reg : registers) {
+        uint16_t value = 0;
+        if (!transfer_mmcm(reg.address, value, false)) return false;
+        value = (value & reg.preserve) | reg.value;
+        if (!transfer_mmcm(reg.address, value, true)) return false;
+    }
+    return true;
+}
+
+bool ClockGenerator::wait_mmcm_locked() {
+    auto& sts = hw::get_memory<mem::ps_status>();
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+    do {
+        if (sts.read<reg::mmcm_drp_sts>() & (1U << 16)) return true;
+        std::this_thread::sleep_for(std::chrono::microseconds(50));
+    } while (std::chrono::steady_clock::now() < deadline);
+    log<ERROR>("Clock generator: MMCM failed to lock\n");
+    return false;
 }
 
 void ClockGenerator::write_reg(uint32_t data) {
@@ -301,6 +387,9 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
     logf("Clock generator - Ref: {}, VCO: {} MHz, ADC: {} MHz, DAC: {} MHz\n",
          clock_cfg::clkin_names[clkin_select].data(), f_vco * 1E-6, fs_adc * 1E-6, fs_dac * 1E-6);
 
+    // Stop the MMCM before changing its input frequency. The DRP mailbox and
+    // configuration SPI use the independent PS clock and remain accessible.
+    if (cfg_mode == SAMPLING_FREQ_SET || cfg_mode == CFG_ALL) reset_mmcm(true);
     spi_cfg.lock();
 
     if (!is_clock_generator_initialized) {
@@ -362,7 +451,17 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
     if (cfg_mode == SAMPLING_FREQ_SET || cfg_mode == CFG_ALL) {
         // Wait for the clock to stabilize before sending commands
         // to the FPGA for MMCM phase-shift
-        std::this_thread::sleep_for(std::chrono::microseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        const bool configured = configure_mmcm(clock_cfg::sampling_frequency(clk_cfg) == 100000000);
+        if (configured) reset_mmcm(false);
+        if (!configured || !wait_mmcm_locked()) {
+            reset_mmcm(true);
+            fs_adc = fs_dac = 0;
+            fs_selected = clock_cfg::configs.size();
+            return -1;
+        }
+        // MMCM reset clears the previous fine phase, so transitions do not
+        // accumulate shifts and repeated selections are stable.
         phase_shift(clk_cfg[9]);
     }
 
