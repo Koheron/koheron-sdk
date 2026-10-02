@@ -46,7 +46,6 @@ for {set i 0} {$i < 2} {incr i} {
 ####################################
 
 source $project_path/tcl/power_spectral_density.tcl
-source $sdk_path/fpga/lib/axis_accumulator.tcl
 source $sdk_path/fpga/lib/bram_recorder.tcl
 
 # The reference needs 89 DSPs here (80 available). Map butterfly arithmetic
@@ -72,13 +71,22 @@ connect_cell psd {
 }
 
 # Accumulator
-axis_accumulator::create bram_accum [get_parameter fft_size] [get_parameter n_cycles]
-connect_cell bram_accum {
-  clk adc_dac/adc_clk
-  resetn proc_sys_reset_adc_clk/peripheral_aresetn
+# The real-time PSD producer cannot stall; allow a bank to drain before reuse.
+if {[get_parameter fft_size] < 16 || [get_parameter n_cycles] < 3} {
+  error {Real-time PSD accumulation requires at least 16 bins and 3 frames}
+}
+cell koheron:user:axis_accumulator:1.0 bram_accum {
+  FRAME_LENGTH [get_parameter fft_size]
+  N_FRAMES [get_parameter n_cycles]
+  CHECK_TLAST 1
+  SYNC_ON_RESET 1
+} {
+  aclk adc_dac/adc_clk
+  aresetn proc_sys_reset_adc_clk/peripheral_aresetn
   s_axis_tdata psd/m_axis_result_tdata
   s_axis_tvalid psd/m_axis_result_tvalid
   s_axis_tlast psd/m_axis_result_tlast
+  m_axis_tready [get_constant_pin 1 1]
   cycle_index [sts_pin cycle_index]
 }
 
@@ -88,8 +96,8 @@ add_bram_recorder psd_bram psd
 connect_cell psd_bram {
   clk adc_dac/adc_clk
   rst proc_sys_reset_adc_clk/peripheral_reset
-  addr bram_accum/addr_out
-  wen bram_accum/wen
+  addr [get_concat_pin [list [get_constant_pin 0 2] [get_slice_pin bram_accum/m_axis_tuser 29 0]]]
+  wen [get_concat_pin [lrepeat 4 bram_accum/m_axis_tvalid]]
   adc bram_accum/m_axis_tdata
 }
 

@@ -8,7 +8,6 @@ set_property ip_repo_paths $repo [current_project]
 update_ip_catalog
 create_bd_design system
 source $root/fpga/lib/utilities.tcl
-source $root/fpga/lib/axis_accumulator.tcl
 foreach {name dir width type} {
     clk I 1 clk resetn I 1 rst data I 32 data valid I 1 data last I 1 data
     sum O 32 data addr O 32 data cycle O 32 data wen O 4 data
@@ -24,11 +23,17 @@ foreach {name dir width type} {
 set_property CONFIG.FREQ_HZ 250000000 [get_bd_ports clk]
 set_property CONFIG.ASSOCIATED_RESET resetn [get_bd_ports clk]
 set_property CONFIG.POLARITY ACTIVE_LOW [get_bd_ports resetn]
-axis_accumulator::create accum 64 3
+cell koheron:user:axis_accumulator:1.0 accum {
+    FRAME_LENGTH 64 N_FRAMES 3 CHECK_TLAST 1 SYNC_ON_RESET 1
+} {
+    m_axis_tready [get_constant_pin 1 1]
+}
 foreach {port pin} {
-    clk clk resetn resetn data s_axis_tdata valid s_axis_tvalid last s_axis_tlast
-    sum m_axis_tdata addr addr_out cycle cycle_index wen wen
+    clk aclk resetn aresetn data s_axis_tdata valid s_axis_tvalid last s_axis_tlast
+    sum m_axis_tdata cycle cycle_index
 } {connect_port_pin $port accum/$pin}
+connect_pins addr [get_concat_pin [list [get_constant_pin 0 2] [get_slice_pin accum/m_axis_tuser 29 0]]]
+connect_pins wen [get_concat_pin [lrepeat 4 accum/m_axis_tvalid]]
 validate_bd_design
 save_bd_design
 set_property synth_checkpoint_mode None [get_files system.bd]

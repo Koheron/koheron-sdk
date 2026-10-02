@@ -114,27 +114,29 @@ backpressure or indefinitely sustain single-frame groups at one input per clock.
 
 ## Existing PSD examples
 
-`fpga/lib/axis_accumulator.tcl` adapts the IP to the existing real-time PSD
-streams and byte-addressed BRAM recorders. The PSD pipelines now preserve the
-FFT's TLAST through their vendor floating-point multipliers and adder. The
-adapter selects `CHECK_TLAST=1` and `SYNC_ON_RESET=1`, holds output TREADY high,
-converts TUSER to a byte address and TVALID to four write
-strobes. It requires at least 16 bins and three frames per sum: with that
-contract, banks drain before reuse and the producer need not honor TREADY.
+Each example directly instantiates `koheron:user:axis_accumulator:1.0` with
+the SDK's normal `cell` command, just as it instantiates Xilinx catalog IPs.
+There is no accumulator adapter or wrapper hierarchy. The PSD pipelines preserve
+the FFT's TLAST through their vendor floating-point multipliers and adder.
+The examples select `CHECK_TLAST=1` and `SYNC_ON_RESET=1` and hold output TREADY
+high. Their recorder connections convert TUSER to a byte address (`bin << 2`)
+and TVALID to four write strobes. The examples enforce at least 16 bins and
+three frames per sum: with that contract, banks drain before reuse and the
+producer need not honor TREADY.
 The four migrated examples retain their memory maps and software normalization.
 
 The old counter wrapped before the adder pipeline had drained. `cycle_index`
 now holds at `N_FRAMES-1` while a completed input group awaits output, and then
 returns to input progress once its last result has been written to the recorder.
 Existing software can continue detecting progress wrap, with complete results
-already in BRAM. This compatibility indicator is for the adapter's dimensions
+already in BRAM. This compatibility indicator is for the examples' dimensions
 and always-ready consumer. Native stream consumers should use the output
 handshake/TLAST and `result_count`; `cycle_index` is not a general completion
 counter for one/two-frame groups or prolonged backpressure. BRAM readout still
 requires the reader to finish before a later result overwrites the recorder.
 
-The ALPHA250, ALPHA250-4, ALPHA15 and Red Pitaya FFT paths instantiate this
-adapter. The former Tcl accumulator and PSD counter remain available for other
+The ALPHA250, ALPHA250-4, ALPHA15 and Red Pitaya FFT paths use these direct
+instances. The former Tcl accumulator and PSD counter remain available for other
 projects and their existing regressions.
 
 ## Build and verification
@@ -157,7 +159,7 @@ vivado -mode batch -source fpga/ip/axis_accumulator_v1_0/tests/synth.tcl \
 The stream simulations use the actual vendor floating-point adder, checking
 signed/fractional sums, bin indices, TLAST, pauses, output backpressure, bank
 turnover, early/late TLAST recovery, reset and one-bin/short frames. The catalog
-test builds the actual adapter and verifies continuous real-time input, output
+test instantiates the catalog IP directly and verifies continuous real-time input, output
 addresses and complete BRAM writes before progress wrap, then synthesizes it
 without unresolved black boxes. The route script checks internal setup/hold at
 250 MHz for 2048- and 8192-bin packages; it is an out-of-context check without
@@ -179,7 +181,7 @@ integration and changed configurations require their own timing checks.
 
 All twelve stream simulation profiles passed, including production-size 8192-bin
 frames, the ten/eleven-bin pipeline boundary, reset during a partial group and
-while a completed output is stalled. The packaged adapter simulation and
+while a completed output is stalled. The direct catalog-to-recorder simulation and
 synthesis passed without vendor black boxes. The vendor PSD arithmetic
 regressions cover TLAST/data alignment through pauses in both blocking and
 nonblocking pipelines. All four migrated instrument configurations validated,
@@ -187,17 +189,17 @@ generated their full block designs and built bitstreams with `ENFORCE_TIMING=1`:
 
 | Instrument | Setup slack | Hold slack | Bus-skew constraints checked |
 | --- | ---: | ---: | ---: |
-| ALPHA250 FFT | +0.179 ns | +0.004 ns | 6 |
-| ALPHA250-4 FFT | +0.129 ns | +0.018 ns | 6 |
-| ALPHA15 signal analyzer | +0.366 ns | +0.027 ns | 16 |
-| Red Pitaya FFT | 0.000 ns | +0.007 ns | 11 |
+| ALPHA250 FFT | +0.043 ns | +0.002 ns | 6 |
+| ALPHA250-4 FFT | +0.192 ns | +0.030 ns | 6 |
+| ALPHA15 signal analyzer | +0.115 ns | +0.037 ns | 16 |
+| Red Pitaya FFT | +0.008 ns | +0.007 ns | 11 |
 
 These are whole-design margins at the examples' existing clocks. Red Pitaya
 uses `Performance_NetDelay_high`; it and both ALPHA250 examples enable
 post-route physical optimization with `ExploreWithAggressiveHoldFix`. No
-clock periods or timing exceptions were relaxed. Red Pitaya has no setup
-margin at the reported precision, so changed placement or configurations need
-another strict timing check. The SDK reports existing incomplete external
+clock periods or timing exceptions were relaxed. The ALPHA250 hold and Red
+Pitaya setup margins are especially narrow, so changed placement or
+configurations need another strict timing check. The SDK reports existing incomplete external
 I/O delay constraints; the passing checks cover constrained paths, pulse width
 and bus skew. Live board operation and analog measurements remain unverified.
 

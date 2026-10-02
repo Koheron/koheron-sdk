@@ -71,7 +71,7 @@ module legacy_tb;
         if (received != 384 || wraps != 6)
             $fatal(1, "Mid-frame reset lost alignment: bins=%0d wraps=%0d", received, wraps);
         passed = 1;
-        $display("PASS: packaged adapter, TLAST reset alignment and complete BRAM write before progress wrap");
+        $display("PASS: direct catalog IP, TLAST reset alignment and complete BRAM write before progress wrap");
         $finish;
     end
     initial begin #100000; $fatal(1, "Timeout"); end
