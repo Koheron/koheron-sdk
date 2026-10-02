@@ -26,6 +26,14 @@ rg -q 'Phase rounding checks passed' phase-round.log
 if rg -q 'Fatal:|ERROR:|FATAL:' phase-round.log; then
     exit 1
 fi
+xvlog --sv "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_mixer_round.sv"
+xelab work.test_mixer_round -s mixer_round
+xsim mixer_round -runall > mixer-round.log 2>&1
+cat mixer-round.log
+rg -q 'Mixer rounding checks passed' mixer-round.log
+if rg -q 'Fatal:|ERROR:|FATAL:' mixer-round.log; then
+    exit 1
+fi
 xvlog --sv "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_paired_cic_control.sv"
 xelab work.test_paired_cic_control -s paired_cic_control
 xsim paired_cic_control -runall > paired-cic-control.log 2>&1

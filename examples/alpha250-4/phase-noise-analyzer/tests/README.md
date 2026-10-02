@@ -129,11 +129,32 @@ LD_LIBRARY_PATH="$pna_model" "$pna_model/check-cordic-bias" \
     "$pna_model/angle-bias.bin"
 ```
 
+`test_mixer_round.sv` exhausts all 131,072 random words for 24 signed full
+products, including both product extrema, zero, and values around half and
+whole output counts. The sum of all outputs must equal the input product,
+which checks the conditional mean exactly rather than with a statistical
+tolerance. It also checks adjacent output counts, sign extension and reset.
+The existing phase-rounding regression retains modulo-counter boundary checks.
+
 `test_prefilter_response.py` verifies unity gain, symmetry, 20 MHz rejection
 and known small phase modulation through an ideal real mixer, the new filter
 and atan at 100 kHz, 500 kHz and 1 MHz. It excludes vendor IP quantization.
 
-This does not simulate the vendor DDS, multiplier, CORDIC, CIC, FIR or complete
+After generating the FPGA project, the separate optional vendor mixer test uses
+the actual full-product CMPY simulation wrapper (Vivado 2025.1):
+
+```sh
+PNA_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh \
+    bash examples/alpha250-4/phase-noise-analyzer/tests/run-mixer-vendor.sh
+```
+
+It checks 1,008 complex products, including signed input extrema, against wide
+integer multiplication. Both byte-padded components then pass through the
+actual 33-to-16-bit rounding RTL. The test verifies packing, sign extension,
+scaling and delivery of every product and rounded output. The model path can
+be overridden with `PNA_VENDOR_MIXER_MODEL` for another build layout.
+
+These tests do not simulate the vendor DDS, CORDIC, CIC, FIR or complete
 DMA path. The initial FPGA review found three measurement concerns:
 
 - The mixer rounding controls are identical across channels. Their effect on
@@ -155,3 +176,6 @@ DMA path. The initial FPGA review found three measurement concerns:
   now preserve alignment across rate changes. Shared stalls can still discard
   ADC-time samples; these regressions do not establish lossless sampling under
   arbitrary FIFO pressure.
+
+The full-product mixer hardware comparison and its remaining low-offset
+limit are recorded in [mixer rounding validation](mixer-rounding-validation.md).

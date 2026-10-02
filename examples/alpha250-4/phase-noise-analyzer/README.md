@@ -43,11 +43,22 @@ linear phase trend is removed before spectral processing; raw phase snapshots
 and tracking telemetry retain the original samples. Tracking estimates slope
 from 32000 samples and controls X and Y independently in XY mode.
 
+The mixer retains the full 33-bit signed complex products before returning to
+16-bit I/Q counts. Each component adds an independent uniform 17-bit rounding
+word before the signed right shift. This preserves the mean of every product;
+CMPY's `Random_Rounding` setting only randomizes exact halfway ties and leaves
+other fractions deterministically rounded. Product components are sliced at
+the vendor's 40-bit byte-padded stride. Separate I/Q generators add one equal
+pipeline stage in all four channels, preserving alignment and carrier scale.
+
+The controlled hardware comparison is recorded in
+[the mixer validation notes](tests/mixer-rounding-validation.md).
+
 The FPGA prefilter is four cascaded 16-sample moving averages, equivalent to a
-61-tap FIR with unity DC gain. Intermediate sums retain full precision; the
-final 16-bit output uses stochastic rounding. Each channel uses a separately
-seeded 64-bit XOR LFSR for mixer and filter rounding. Shared LFSR defaults keep
-other instruments' previous recurrence.
+61-tap FIR with unity DC gain. Intermediate sums retain full precision, with
+stochastic rounding at the output. Mixer components, channel prefilters and
+pair phase conversion use 14 separately seeded 64-bit XOR LFSRs. Shared LFSR
+defaults keep other instruments' previous recurrence.
 
 At 200 MS/s, the filter attenuates the 20 MHz mixing image by 57.27 dB, versus
 2.28 dB for the former boxcar. Its passband loss is 0.091 dB at 500 kHz,
