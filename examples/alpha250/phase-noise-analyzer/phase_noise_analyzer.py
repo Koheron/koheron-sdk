@@ -5,11 +5,11 @@ from koheron import command
 class PhaseNoiseAnalyzer(object):
     def __init__(self, client):
         self.client = client
-        self.npts = 204800
+        self.npts = 65536
 
-    @command(classname="Dds")
     def set_dds_freq(self, channel, freq):
-        pass
+        """Compatibility alias that also invalidates analyzer acquisitions."""
+        return self.set_local_oscillator(channel, freq)
 
     @command()
     def set_local_oscillator(self, channel, freq_hz):
@@ -23,6 +23,15 @@ class PhaseNoiseAnalyzer(object):
     @command()
     def set_cic_rate(self, rate):
         self.fs = 200E6 / (2.0 * rate)
+
+    @command()
+    def get_parameters(self):
+        return self.client.recv_tuple('IfIIIddIfI')
+
+    @command()
+    def get_phase_noise(self):
+        """Current server spectrum in rad²/Hz, including DC and Nyquist."""
+        return self.client.recv_vector(dtype='float32')
 
     @command()
     def set_channel(self, channel):
@@ -42,6 +51,9 @@ class PhaseNoiseAnalyzer(object):
         return self.client.recv_array(self.npts, dtype='float32')
 
     def phase_noise(self, navg=1, window='hann', verbose=False):
+        if not isinstance(navg, (int, np.integer)) or navg < 1:
+            raise ValueError("navg must be a positive integer")
+        self.fs = self.get_parameters()[1]
         win = signal.get_window(window, Nx=self.npts)
         f = np.arange((self.npts // 2 + 1)) * self.fs / self.npts
         psd = np.zeros(f.size)
@@ -53,20 +65,24 @@ class PhaseNoiseAnalyzer(object):
                 print("Acquiring sample {}/{}".format(i + 1, navg))
 
             phase = self.get_phase()
-            psd += 2.0 * np.abs(np.fft.rfft(win * (phase - np.mean(phase)))) ** 2
+            psd += np.abs(np.fft.rfft(win * signal.detrend(phase, type="linear"))) ** 2
             power += self.get_carrier_power(40)
 
-        print(power / navg)
+        if verbose:
+            print(power / navg)
 
         psd /= navg
         psd /= (self.fs * np.sum(win ** 2)) # rad^2/Hz
+        psd[1:-1] *= 2.0 # One-sided density; do not double DC or Nyquist
 
         # Divide by 2 because phase noise in dBc/Hz is defined as L = S_phi / 2 
         # https://en.wikipedia.org/wiki/Phase_noise
-        psd_dB = 10.0 * np.log10(psd / 2.0) # dBc/Hz
+        with np.errstate(divide="ignore"):
+            psd_dB = 10.0 * np.log10(psd / 2.0) # dBc/Hz
         return f, psd_dB
 
     def frequency_noise(self, navg=1, window='hann', verbose=False):
         f, psd_dB = self.phase_noise(navg, window, verbose)
-        psd_freq = psd_dB + 3.0 + 20.0 * np.log10(f)
+        with np.errstate(divide="ignore"):
+            psd_freq = psd_dB + 10.0 * np.log10(2.0) + 20.0 * np.log10(f)
         return f, psd_freq

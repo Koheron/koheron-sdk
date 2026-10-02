@@ -84,7 +84,7 @@ generator.mute(0)
 ```
 
 The DAC subsystem occupies `0x44000000`–`0x44001fff`; existing analyzer register
-addresses and acquisition processing remain unchanged. The reusable ALPHA250
+addresses remain unchanged. The reusable ALPHA250
 RPC driver lives in `boards/alpha250/drivers/phase-modulator.hpp` and selects the
 host instrument's sample clock, including 200 MS/s here and 250 MS/s in the
 standalone example.
@@ -101,7 +101,7 @@ low-frequency filter correction at CIC rate `R` is:
 
 ```text
 C(R) = 4 * 2^ceil(log2(R^6)) / R^6
-phase_radians = filtered_DMA_counts * C(R) * pi / 8192
+phase_radians = (filtered_DMA_counts - first_count) * C(R) * pi / 8192
 ```
 
 The factor 4 compensates the FIR's fixed-point scaling: 32 fractional coefficient
@@ -113,8 +113,49 @@ and [PG149](https://docs.amd.com/r/en-US/pg149-fir-compiler/Output-Width-and-Bit
 At rate 20, the correction is 4.194304, replacing the former fixed 4.196 value
 (about -0.0404% in phase amplitude and -0.00351 dB in phase PSD). At power-of-two
 rates the correction is 4. Phase PSD scales with the square of this correction;
-phase and time jitter scale linearly. Rate changes and phase processing share
-the acquisition mutex, and the existing two-transfer settling discard is retained.
+phase and time jitter scale linearly. The first DMA count is subtracted in
+64-bit integer arithmetic before conversion to float. `get_phase()` therefore
+starts at zero and retains the phase drift and modulation, while avoiding
+loss of small increments when the unwrap accumulator has a large offset.
+
+Before the existing 32768-point Hann Welch calculation, the server removes a
+least-squares constant and linear trend from the 65536-sample phase block.
+This suppresses leakage from carrier/reference frequency mismatch without
+modifying the phase snapshot. Detrending changes the response at the lowest
+offsets; the plot continues to start at FFT bin 2. It does not correct the
+FPGA filter's passband response.
+
+Settings, spectral processing and publication share a lock. DMA waits use a
+separate lock so snapshot getters remain available during acquisition. Rate
+changes wait for the current DMA transfer. Channel and rate changes discard
+two transfers, and LO changes discard four. Failed or timed-out transfers
+clear the published data and averages and discard two successful transfers
+before publishing again. While results are invalid, phase and PSD are zero
+and jitter/integration bounds are NaN. Shutdown still waits for an in-flight
+DMA transfer to finish or time out.
+
+The LO driver rounds to the nearest 48-bit DDS tuning word using the ADC clock,
+reports the implemented frequency, and saves/loads frequencies as doubles.
+Use the analyzer's `set_local_oscillator()` command for changes during
+acquisition; the Python `set_dds_freq()` compatibility alias now calls it.
+Changing channel, LO, CIC rate, RF/laser mode or interferometer delay clears
+averages. Averaging retains the most recent spectrum even with a window of
+one, so later growth cannot restore an old spectrum.
+
+`get_parameters()` reports all 16385 PSD bins, including DC and Nyquist.
+The web axis uses their actual bin centers. The Python client reads 65536
+phase samples, uses the server's sample rate, detrends before its Hann FFT,
+and applies one-sided PSD scaling without doubling DC or Nyquist. Its
+`get_phase_noise()` returns the current server spectrum in rad²/Hz; the
+existing `phase_noise()` method computes a separate client spectrum with a
+65536-point FFT.
+
+The plot and decade readouts average linear density over 0.1-decade frequency
+windows before converting to dB. The **Smoothed trace** checkbox controls the
+overlay; raw PSD, server averaging and jitter are unchanged by display
+smoothing. CSV exports include raw and smoothed display values plus the
+original server PSD in rad²/Hz, including DC and Nyquist. Plot updates run at
+up to 10 Hz, measurement readouts at 4 Hz and settings polling at 2 Hz.
 
 This correction assumes the current CIC/FIR configuration and concerns gain near
 DC. It does not compensate passband frequency response or the optical delay-line
@@ -123,6 +164,13 @@ in Vivado 2026.1; verification with a known electrical phase modulation on hardw
 remains necessary. See [issue #711](https://github.com/Koheron/koheron-sdk/issues/711).
 
 ## Validation
+
+Run the software integration regressions (Docker C++/web images and a Python
+environment with the Koheron client, NumPy and SciPy):
+
+```sh
+bash examples/alpha250/phase-noise-analyzer/tests/run.sh
+```
 
 Run the host regression from the repository root (Python 3 and a C++20 compiler):
 

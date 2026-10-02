@@ -65,6 +65,7 @@ public:
     uint32_t selection = 99;
     void set_sampling_frequency(uint32_t value) { selection = value; }
     double get_dac_sampling_freq() { return TEST_SAMPLE_RATE; }
+    double get_adc_sampling_freq() { return TEST_SAMPLE_RATE; }
 };
 namespace rt {
 template<class T> T& get_driver() { static T value; return value; }
@@ -110,7 +111,7 @@ int main() {
         assert(pm.set_modulation_frequency(0, 12e3).empty());
         assert(hw::get_memory<mem::control>().words == references);
         assert(std::get<1>(pm.get_settings_words(0)) == std::get<1>(settings));
-        assert(lo.get_dds_freq(0) == 12e6);
+        assert(std::abs(lo.get_dds_freq(0) - 12e6) < 1e-6);
     }
     const auto count = awg.writes.size();
     assert(!pm.set_carrier_frequency(0, TEST_SAMPLE_RATE / 2.0).empty());
