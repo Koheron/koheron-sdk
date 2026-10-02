@@ -1,0 +1,8 @@
+[Unit]
+Description=Generate missing SSH host keys
+Before=ssh.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ssh-keygen -A
+RemainAfterExit=yes

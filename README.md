@@ -168,6 +168,8 @@ Generated SD card images boot **Ubuntu 24.04.5** with the **`xilinx-linux-v2025.
 - **nginx** serving static files and proxying **WebSocket** traffic.
 - An HTTP API (powered by **uWSGI**) to upload, start and stop instruments.
 
+Each board generates its own machine ID and SSH host keys on first boot. Build-only QEMU helpers, chroot scripts and the temporary dpkg `force-unsafe-io` setting are removed before packaging. Base-rootfs builds replace the cached tarball only after a successful build and archive operation.
+
 This setup lets you iterate rapidly without having to rebuild the entire OS for every code change.
 
 ---

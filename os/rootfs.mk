@@ -196,6 +196,7 @@ $(ROOT_TAR_PATH): $(SHA256SUMS_PATH)
 $(BASE_ROOTFS_TAR): \
   $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
   $(OS_PATH)/scripts/chroot_base_rootfs.sh \
+  $(OS_PATH)/scripts/finalize_rootfs.sh \
   $(ROOT_TAR_PATH)
 	@mkdir -p $(@D)
 	@test -s "$(ROOT_TAR_PATH)" || { echo "Missing root tar: $(ROOT_TAR_PATH)"; exit 1; }
@@ -388,6 +389,8 @@ OVERLAY_FILES := \
   $(OVERLAY_DIR)/etc/systemd/system/unzip-default-instrument.service \
   $(OVERLAY_DIR)/etc/systemd/system/koheron-server.service \
   $(OVERLAY_DIR)/etc/systemd/system/koheron-server-init.service \
+  $(OVERLAY_DIR)/etc/systemd/system/ssh-host-keys.service \
+  $(OVERLAY_DIR)/etc/systemd/system/ssh.service.d/host-keys.conf \
   $(OVERLAY_DIR)/etc/uwsgi/uwsgi.ini \
   $(OVERLAY_DIR)/etc/systemd/system/uwsgi.service \
   $(OVERLAY_DIR)/etc/systemd/system/uwsgi.socket \
@@ -433,6 +436,7 @@ EXTLINUX_CONF ?= $(OS_PATH)/extlinux.conf
 $(RELEASE_ZIP): $(BASE_ROOTFS_TAR) \
   $(OS_FILES) \
   $(OS_PATH)/scripts/build_image.sh \
+  $(OS_PATH)/scripts/finalize_rootfs.sh \
   $(OVERLAY_TAR) $(MANIFEST_TXT) $(EXTLINUX_CONF) \
   $(OS_PATH)/scripts/chroot_overlay.sh
 	@mkdir -p $(@D)
