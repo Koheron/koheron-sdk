@@ -74,16 +74,18 @@ identify negative estimates. Nonpositive decade averages and integrated jitter
 remain unavailable. CSV exports retain signed phase PSD and all four DDS
 frequencies. Python captures also retain `phase_psd`; spur removal is opt-in.
 
-With equal 10 MHz carriers, CW tests still found narrow negative estimates
+Earlier equal-10-MHz CW tests found narrow negative estimates
 around 1–2 kHz at the original LO settings. Setting all four base local
 oscillators to 10.001 MHz, with tracking enabled, removed negative bins from
 500 Hz to 2.5 kHz in the tested captures; restoring 10 MHz brought them back.
 This detuning is a measured workaround for a demodulation-dependent residual.
-With the detuning, a 1° peak modulation at 10 kHz recovered 0.99752° in the
-cross spectrum, and paired acquisition passed CIC rates 20, 67, 100 and 133
-including repeated changes. Negative estimates remain at some other offsets;
-the absolute noise floor still needs calibration. See the hardware notes for
-the controlled comparisons.
+The subsequent wider phase-extraction image removed the high-offset negative
+features in controlled new/old/new image comparisons with an ALPHA250 PM
+source. PM-on/off checks with 10 MHz and 10.001 MHz base LOs found no negative
+bins from 10 kHz to the usable upper offset, and the known 1° PM recovered
+1.000035°. Rate changes at CIC 20, 67, 100 and 133 passed. A PM-dependent
+negative feature near 551 Hz remains; the absolute noise floor still needs
+calibration. See the hardware notes for the controlled comparisons and limits.
 
 The workspace follows the compact FFT interface: acquisition and local
 oscillators above a full-width spectrum, phase/frequency controls, CSV/PNG
@@ -96,8 +98,8 @@ restoring numeric and boolean settings.
 Run the software and FPGA regressions described in [tests/README.md](tests/README.md).
 The calculation audit compares the production C++ pipeline with independent
 SciPy calculations, including signed cross spectra and known modulation power.
-The final prefilter bitstream passed Vivado 2025.1 routing at 200 MHz with
-setup slack +0.149 ns and hold slack +0.024 ns, using 18,227 LUTs, 23,636 registers
+The phase-extraction bitstream passed Vivado 2025.1 routing at 200 MHz with
+setup slack +0.098644 ns and hold slack +0.027840 ns, using 24,178 LUTs, 31,577 registers
 and 94 DSPs. Board operation and the browser were checked with a shared 10 MHz
 oscillator on IN0/IN2 and ALPHA250 DAC0 on IN1/IN3. Detailed measurements and
 prior implementation results are in [hardware validation notes](tests/hardware-validation.md).
