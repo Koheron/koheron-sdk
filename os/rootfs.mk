@@ -162,7 +162,7 @@ $(TMP_WWW_PATH)/html-imports.min.js.map:
 # BASE ROOTFS
 ###############################################################################
 
-UBUNTU_VERSION ?= 24.04.3
+UBUNTU_VERSION ?= 24.04.5
 
 ROOT_TAR      := ubuntu-base-$(UBUNTU_VERSION)-base-$(UBUNTU_ARCH).tar.gz
 ROOT_TAR_URL  := https://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/$(ROOT_TAR)

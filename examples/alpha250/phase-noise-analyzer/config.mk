@@ -1,5 +1,5 @@
 NAME := phase-noise-analyzer
-VERSION := 1.1.0
+VERSION := 1.2.0
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
@@ -14,11 +14,11 @@ CORES += $(SDK_PATH)/fpga/cores/latched_mux_v1_0
 CORES += $(SDK_PATH)/fpga/cores/tlast_gen_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_lfsr_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_unwrapper_v1_0
-CORES += $(SDK_PATH)/fpga/cores/boxcar_filter_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_prefilter_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
 
 CORES += $(SDK_PATH)/fpga/ip/awg_v1_0
-TCL_FILES = $(BD_TCL) $(PROJECT_PATH)/post_route.tcl $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(wildcard $(FPGA_PATH)/lib/*.tcl) $(SDK_PATH)/fpga/ip/awg_v1_0/integration.tcl
+TCL_FILES = $(BD_TCL) $(PROJECT_PATH)/post_route.tcl $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(BOARD_PATH)/config/board_preset.tcl $(wildcard $(FPGA_PATH)/lib/*.tcl) $(SDK_PATH)/fpga/ip/awg_v1_0/integration.tcl
 
 include $(BOARD_PATH)/drivers/drivers.mk
 DRIVERS += $(BOARD_PATH)/drivers/phase-modulator.hpp

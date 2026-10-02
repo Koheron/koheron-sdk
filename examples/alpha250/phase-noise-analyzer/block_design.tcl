@@ -47,9 +47,11 @@ for {set channel 0} {$channel < [llength $outputs]} {incr channel} {
 
 source $project_path/tcl/cordic.tcl
 
+set rounding_seeds {0x9e3779b97f4a7c15 0xd1b54a32d192ed03}
 for {set i 0} {$i < 2} {incr i} {
 
-    cordic::create cordic$i
+    # Separate mixer and prefilter rounding sequences for the two ADC channels.
+    cordic::create cordic$i [lindex $rounding_seeds $i]
 
     connect_cell cordic$i {
         s_axis_data_a [get_concat_pin [list adc_dac/adc$i [get_constant_pin 0 16]]]
