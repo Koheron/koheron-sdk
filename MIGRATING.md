@@ -4,6 +4,8 @@ V1 changes both the build configuration model and the runtime FPGA-loading path.
 
 ## Runtime compatibility
 
+Boards currently ship with a V0 image. For V1 development, build a V1 OS image with `make -j CFG=<path-to-config.mk> image`, write it to an SD card and boot the board from that card before uploading V1 instruments. Keep the supplied V0 card if you want to return to your existing instruments. See the [quick start](./README.md#quick-start) for an ALPHA250 example.
+
 - V1 instruments may still run on some V0 OS images through the legacy `/dev/xdevcfg` path.
 - V1 OS images use Linux FPGA Manager and device-tree overlays to load the programmable logic.
 - V1 OS images do not support legacy V0 instruments.
