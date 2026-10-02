@@ -355,7 +355,7 @@ int WebSocket::send_request(const unsigned char *bits, int64_t len) {
             comm_fd,
             &bits[offset],
             static_cast<uint32_t>(remaining),
-            MSG_NOSIGNAL | MSG_ZEROCOPY
+            MSG_NOSIGNAL
         );
 
         if (bytes_send > 0) {

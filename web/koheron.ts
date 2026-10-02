@@ -823,6 +823,7 @@ class Client {
 
     parseString(data: DataView, offset?: number) {
         if (offset == null) { offset = 0; }
+        if (offset === data.byteLength) { return ''; }
         return (__range__(0, data.byteLength - offset - 1, true).map((i) => (String.fromCharCode(data.getUint8(offset + i))))).join('');
     }
 

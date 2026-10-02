@@ -39,12 +39,9 @@ class FFT {
         this.status.dds_freq = [];
     }
 
-    init(cb: () => void): void {
-        this.getFFTSize( async (size: number) => {
-            this.fft_size = size;
-            await this.getControlParameters();
-            cb();
-        });
+    async init(): Promise<void> {
+        this.fft_size = await this.client.readUint32(Command(this.id, this.cmds['get_fft_size']));
+        await this.getControlParameters();
     }
 
     monitor(timeout: number): void {
@@ -71,6 +68,12 @@ class FFT {
         });
     }
 
+    startPSDStream(frame: (psd: Float32Array, time: number) => void,
+                   error: (message: string) => void): PSDStream {
+        return new PSDStream(location.hostname, Command(this.id, this.cmds['read_psd']).data,
+                             this.fft_size / 2, frame, error);
+    }
+
     async read_psd(): Promise<Float32Array> {
         return await this.client.readFloat32Array(Command(this.id, this.cmds['read_psd']));
     }
@@ -91,7 +94,7 @@ class FFT {
         const [fdds0, fdds1, fs, channel, W1, W2, window_index, clkin] =
         await this.client.readTuple<TupleGetParameters>(
             Command(this.id, this.cmds['get_control_parameters']),
-            'dddIddI'
+            'dddIddII'
         );
 
         let clkIndex: string = "0";

@@ -1,7 +1,8 @@
 source ${board_path}/starting_point.tcl
+source $sdk_path/fpga/ip/awg_v1_0/integration.tcl
 
 ####################################
-# Direct Digital Synthesis
+# Unmodulated local oscillators for phase extraction
 ####################################
 
 for {set i 0} {$i < 2} {incr i} {
@@ -30,7 +31,14 @@ for {set i 0} {$i < 2} {incr i} {
     M_AXIS dds$i/S_AXIS_CONFIG
   }
 
-  connect_pins adc_dac/dac$i [get_slice_pin dds$i/m_axis_data_tdata [expr [get_parameter dds_output_width] - 1] [expr [get_parameter dds_output_width] - 16]]
+}
+
+# The DAC stimulus must have an independent phase path. Feeding its modulated
+# carrier into the reference mixers would cancel the PM in a loopback test.
+set outputs [dds_pm::add awg awg adc_dac/adc_clk [get_parameter adc_clk] \
+    [dict create CHANNELS 2 OUTPUT_WIDTH [get_parameter dac_width]]]
+for {set channel 0} {$channel < [llength $outputs]} {incr channel} {
+    connect_pins adc_dac/dac$channel [lindex $outputs $channel]
 }
 
 ####################################
@@ -39,9 +47,11 @@ for {set i 0} {$i < 2} {incr i} {
 
 source $project_path/tcl/cordic.tcl
 
+set rounding_seeds {0x9e3779b97f4a7c15 0xd1b54a32d192ed03}
 for {set i 0} {$i < 2} {incr i} {
 
-    cordic::create cordic$i
+    # Separate mixer and prefilter rounding sequences for the two ADC channels.
+    cordic::create cordic$i [lindex $rounding_seeds $i]
 
     connect_cell cordic$i {
         s_axis_data_a [get_concat_pin [list adc_dac/adc$i [get_constant_pin 0 16]]]
@@ -193,3 +203,7 @@ set_property offset [get_memory_offset ram] [get_bd_addr_segs {axi_dma_0/Data_S2
 
 delete_bd_objs [get_bd_addr_segs -excluded axi_dma_0/Data_S2MM/SEG_axi_dma_0_Reg]
 delete_bd_objs [get_bd_addr_segs ps_0/Data/SEG_ps_0_HP0_DDR_LOWOCM]
+
+# Repair short DAC paths after routing; refresh reports for strict timing checks.
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize [file join [file dirname [info script]] post_route.tcl]] [get_runs impl_1]

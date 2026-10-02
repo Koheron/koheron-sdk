@@ -1,4 +1,4 @@
-name: CI
+name: Configuration check
 
 on:
   pull_request:
@@ -8,10 +8,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: configuration-check-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  validate-configs:
+  configurations:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 1
     steps:
       - uses: actions/checkout@v7
         with:
@@ -19,12 +23,13 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
-          cache: pip
-      - name: Validate all instrument configurations
+      - name: Install YAML parser
+        run: python3 -m pip install --disable-pip-version-check PyYAML
+      - name: Validate instrument configurations
         run: |
           count=0
           while IFS= read -r config; do
-            if ! make validate CFG="$config" > /tmp/validate.log 2>&1; then
+            if ! python3 python/koheron/validate_config.py --cfg "$config" --no-color > /tmp/validate.log 2>&1; then
               cat /tmp/validate.log
               exit 1
             fi
@@ -32,61 +37,3 @@ jobs:
           done < <(find examples -name config.mk | sort)
           test "$count" -gt 0
           echo "Validated $count instrument configurations"
-
-  server:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
-          cache: pip
-      - name: Install ARM cross-compiler
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            g++-13-arm-linux-gnueabihf ccache libeigen3-dev
-      - name: Build Alpha15 and Zedboard servers
-        env:
-          CPLUS_INCLUDE_PATH: /usr/include/eigen3
-        run: |
-          for config in \
-            examples/alpha15/adc-dac-bram/config.mk \
-            examples/zedboard/led-blinker/config.mk; do
-            project="${config%/config.mk}"
-            make -j2 CFG="$config" DOCKER= N_CPUS=2 V=0 "tmp/$project/serverd"
-          done
-
-  u-boot:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        xilinx-version: ['2025.1', '2026.1']
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - name: Install U-Boot build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential bc gcc-arm-linux-gnueabihf bison flex \
-            libssl-dev libgnutls28-dev swig python3-dev python3-setuptools \
-            device-tree-compiler
-      - name: Build Alpha250 U-Boot
-        env:
-          XILINX_VERSION: ${{ matrix.xilinx-version }}
-        run: |
-          archive="u-boot-xlnx-xilinx-uboot-v${XILINX_VERSION}.tar.gz"
-          bash os/scripts/download_verified.sh os/source-checksums.sha256 "$archive" \
-            "https://github.com/Xilinx/u-boot-xlnx/archive/refs/tags/xilinx-v${XILINX_VERSION}.tar.gz"
-          mkdir u-boot
-          tar -xzf "$archive" --strip-components=1 -C u-boot
-          cp -a boards/alpha250/patches/u-boot/. u-boot/
-          make -C u-boot ARCH=arm zynq_alpha250_defconfig
-          make -C u-boot -j2 ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- all

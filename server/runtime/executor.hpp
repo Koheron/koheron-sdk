@@ -29,7 +29,7 @@ struct IExecutor {
     void set_drivers_json(std::string json) { drivers_json_storage_ = std::move(json); }
 
   private:
-    std::string drivers_json_storage_;
+    std::string drivers_json_storage_ = "[]";
 };
 
 inline std::string build_drivers_json_from_chunks(std::span<const std::string_view> chunks) {

@@ -4,7 +4,7 @@
 type TupleGetParameters = [number, number, number, number, number, number, number, number, number, number];
 
 interface IParameters {
-  data_size: number; // fft_size/2
+  data_size: number; // fft_size/2 + 1 (includes DC and Nyquist)
   fs: number;        // Sampling frequency (Hz)
   channel: number;   // Acquired channel
   cic_rate: number;

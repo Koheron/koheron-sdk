@@ -4,45 +4,33 @@ memory:
     range: 4K
     registers:
     - led
-    - mmcm
+    - mmcm # Reserved to preserve FFT register offsets.
     - ctl_fft
     - psd_valid
     - psd_input_sel
     - phase_incr[2]
-    - laser_current
-    - laser_control
-    - power_setpoint
-    - eeprom_ctl
   - name: status
     offset: 0x5000_0000
     range: 4K
     registers:
     - adc[n_adc]
     - cycle_index
-    - eeprom_sts
-    - pid_control
   - name: xadc
     offset: 0x43C0_0000
     range: 64K
+  # Window coefficient BRAM used by the shared FFT core.
   - name: demod
     offset: 0x6000_0000
     range: 8K
   - name: psd
     offset: 0x7000_0000
     range: 8K
-  - name: adc_fifo
-    offset: 0x43C1_0000
-    range: 32K
 
 parameters:
-  fclk0: 187500000
+  fclk0: 143000000 # 1 GHz I/O PLL / 7 generates 142.857 MHz.
   adc_clk: 125000000
   dac_width: 14
   adc_width: 14
-  pwm_width: 12
   n_adc: 2
   fft_size: 2048
   n_cycles: 1023
-  cic_differential_delay: 1
-  cic_decimation_rate: 250
-  cic_n_stages: 6

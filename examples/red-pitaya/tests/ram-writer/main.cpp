@@ -44,8 +44,10 @@ int main() {
 
     volatile uint64_t *ram = reinterpret_cast<uint64_t*>(mmap(NULL, 2048*sysconf(_SC_PAGESIZE), PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0));
 
-    if (ram == nullptr) {
-        log("ram == nullptr");
+    if (ram == MAP_FAILED) {
+        perror("mmap");
+        close(fd);
+        return EXIT_FAILURE;
     }
 
     auto& ctl = hw::get_memory<mem::control>();

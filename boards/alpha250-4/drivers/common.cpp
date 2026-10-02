@@ -30,7 +30,7 @@ void Common::set_led(uint32_t value) {
 }
 
 void Common::init() {
-    log("Common: Initializing ...");
+    log("Common: Initializing ...\n");
     leds->start_blink();
 
     services::provide<SpiConfig>();

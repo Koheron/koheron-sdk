@@ -95,6 +95,18 @@ puts $input_clock_file [format {create_clock -name adc_clk_in -period %.6f [get_
 close $input_clock_file
 add_files -norecurse -fileset constrs_1 $input_clock_xdc
 
+# The 250 MS/s driver shifts CLKOUT0 by 56 fine-phase steps (1 ns).
+# Reserve that setup time while retaining the phase-0 hold requirement.
+# User uncertainty adds to Vivado's calculated jitter and phase error.
+if {[get_parameter adc_clk] == 250000000} {
+    set dac_phase_xdc [file join $output_path alpha250_dac_phase.xdc]
+    set dac_phase_file [open $dac_phase_xdc w]
+    puts $dac_phase_file {set_clock_uncertainty -setup 1.000 -from [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/CLKOUT0]] -to [get_clocks -include_generated_clocks -of_objects [get_pins -hier *mmcm_adv*/CLKOUT1]]}
+    close $dac_phase_file
+    add_files -norecurse -fileset constrs_1 $dac_phase_xdc
+    set_property PROCESSING_ORDER LATE [get_files $dac_phase_xdc]
+}
+
 # Mixed-mode clock manager
 cell xilinx.com:ip:clk_wiz:6.0 mmcm {
     PRIMITIVE              MMCM
@@ -161,9 +173,11 @@ for {set i 0} {$i < 2} {incr i} {
 }
 
 # DAC SelectIO
+# CLKOUT1 is already globally buffered; avoid a second regional clock buffer.
 for {set i 0} {$i < 2} {incr i} {
     cell xilinx.com:ip:selectio_wiz:5.1 selectio_dac$i {
         BUS_DIR OUTPUTS
+        SELIO_CLK_BUF MMCM
         BUS_IO_STD LVCMOS33
         SYSTEM_DATA_WIDTH 16
     } {

@@ -9,6 +9,8 @@
 #include <atomic>
 #include <cstdint>
 #include <shared_mutex>
+#include <mutex>
+#include <thread>
 #include <tuple>
 #include <vector>
 #include <scicpp/core.hpp>
@@ -20,6 +22,7 @@
 
 #include "./dds.hpp"
 #include "./moving_averager.hpp"
+#include "./phase_calibration.hpp"
 
 namespace rt { class ConfigManager; }
 class DmaS2MM;
@@ -37,14 +40,14 @@ class PhaseNoiseAnalyzer
 
     static constexpr uint32_t fft_size = 32768;
     static constexpr uint32_t data_size = 2 * fft_size;
-    static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2; // Do use the first transfered points
-    static constexpr auto calib_factor = 4.196f * scicpp::pi<Phase> / 8192.0f;
+    static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2; // Skip DMA startup settling samples
 
     using PhaseDataArray = std::array<Phase, data_size>;
     using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
 
   public:
     PhaseNoiseAnalyzer();
+    ~PhaseNoiseAnalyzer();
 
     void save_config();
     void set_local_oscillator(uint32_t channel, double freq_hz);
@@ -55,8 +58,9 @@ class PhaseNoiseAnalyzer
     void set_interferometer_delay(float delay_s);
 
     auto get_parameters() {
+        std::shared_lock lk(data_mtx);
         return std::tuple{
-            fft_size / 2,
+            1u + fft_size / 2,
             fs,
             channel,
             cic_rate,
@@ -72,6 +76,7 @@ class PhaseNoiseAnalyzer
     double get_carrier_power(uint32_t navg); // Carrier power in dBm
 
     auto get_jitter() {
+        std::shared_lock lk(data_mtx);
         return std::tuple{
             phase_jitter,
             time_jitter,
@@ -81,12 +86,13 @@ class PhaseNoiseAnalyzer
     }
 
     auto get_measurements(uint32_t navg) {
+        std::shared_lock lk(data_mtx);
         return std::tuple{
             phase_jitter,
             time_jitter,
             f_lo_used,
             f_hi_used,
-            get_carrier_power(navg)
+            carrier_power(navg)
         };
     }
 
@@ -101,21 +107,23 @@ class PhaseNoiseAnalyzer
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::status>& sts;
 
-    uint32_t channel;
-    uint32_t fft_navg;
-    uint32_t cic_rate;
-    std::atomic<int32_t> dirty_cnt = 0;
+    uint32_t channel = 0;
+    uint32_t fft_navg = 1;
+    uint32_t cic_rate = prm::cic_decimation_rate_default;
+    Phase phase_conversion_factor{0.0f}; // Radians per filtered DMA count
+    uint32_t dirty_cnt = 0; // guarded by data_mtx
     Frequency fs_adc, fs;
     Time dma_transfer_duration;
 
-    std::mutex dma_mtx; // Guard DMA transfer
-    mutable std::shared_mutex data_mtx; // protects phase & phase_noise
+    // Always acquire dma_mtx before data_mtx when both are needed.
+    std::mutex dma_mtx; // serializes DMA operations and CIC rate changes
+    mutable std::shared_mutex data_mtx; // settings, processing and published results
 
     // Data acquisition thread
     std::thread acq_thread;
     std::atomic<bool> acquisition_started{false};
 
-    PhaseDataArray phase;
+    PhaseDataArray phase{};
 
     // Spectrum analyzer
     scicpp::signal::Spectrum<float> spectrum;
@@ -145,7 +153,10 @@ class PhaseNoiseAnalyzer
     // ----------------- Private functions
 
     void load_config();
+    void invalidate_results(); // caller holds data_mtx
+    double carrier_power(uint32_t navg); // caller holds data_mtx
     void reset_phase_unwrapper();
+    // Caller must hold dma_mtx for DMA operations.
     void kick_dma();
     auto read_dma();
     void update_interferometer_transfer_function();

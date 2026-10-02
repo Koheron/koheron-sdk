@@ -1,9 +1,21 @@
 <template class="template">
-  <label for="sampling-frequency">Sampling Frequency:</label>
-  <div class="radio-wrapper">
-    <input type="radio" name="sampling-frequency" value="0" checked class="clkgen-input" data-command="setSamplingFrequency" data-valuestr="200">200 MHz
-  </div>
-  <div class="radio-wrapper">
-    <input type="radio" name="sampling-frequency" value="1" class="clkgen-input" data-command="setSamplingFrequency" data-valuestr="250">250 MHz
+  <div class="control-field" role="group" aria-label="Sampling rate">
+    <span class="control-label">
+      Rate
+    </span>
+    <div class="segmented">
+      <label>
+        <input type="radio" name="sampling-frequency" value="0" class="clkgen-input" data-command="setSamplingFrequency" data-valuestr="200" checked>
+        <span>
+          200 MHz
+        </span>
+      </label>
+      <label>
+        <input type="radio" name="sampling-frequency" value="1" class="clkgen-input" data-command="setSamplingFrequency" data-valuestr="250" >
+        <span>
+          250 MHz
+        </span>
+      </label>
+    </div>
   </div>
 </template>

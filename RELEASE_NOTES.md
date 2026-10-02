@@ -9,7 +9,7 @@ V1 is a breaking update of the Koheron SDK. Main changes introduced or substanti
 - Added `memory.dtsi` generation from `memory.yml` for selected Linux-visible memory regions.
 - Added support for memory mappings through devices such as `/dev/mem`, `/dev/mem_wc` and `/dev/uio`.
 - Updated the development environment to Ubuntu 24.04 and Vivado/Vitis 2025.1.
-- Updated generated OS images to Ubuntu 24.04.3 with Xilinx 2025.1 components.
+- Updated generated OS images to Ubuntu 24.04.5 with Xilinx 2025.1 components.
 - Added FIT image generation with kernel, base device tree and board overlay.
 - Reworked board support around `board.mk`, board overlays, board-local drivers, board-local cores, FSBL hooks and U-Boot patches.
 - Modernized the C++ server build with C++20, GCC 13, ccache, LTO and precompiled headers.

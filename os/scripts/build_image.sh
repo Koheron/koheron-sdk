@@ -223,8 +223,8 @@ if [ -f "$os_path/scripts/chroot_overlay.sh" ]; then
   umount -l  "$root_dir/proc" 2>/dev/null || true
 fi
 
-# Remove qemu helper from the target rootfs
-rm -f "$root_dir/usr/bin/qemu-a*" 2>/dev/null || true
+# Reset identity even when an older base-rootfs cache is reused.
+bash "$os_path/scripts/finalize_rootfs.sh" "$root_dir" "$(basename "$qemu_path")"
 
 # --- Unmount file systems ---
 umount "$boot_dir"

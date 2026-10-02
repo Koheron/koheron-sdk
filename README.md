@@ -139,6 +139,10 @@ web/       # Front-end assets shared across instruments
 
 Exploring these directories is the best way to learn how to assemble your own instrument configuration.
 
+Within `fpga/`, `cores/` contains reusable RTL primitives, `modules/` contains
+Tcl assemblies, and [`ip/`](./fpga/ip/) contains configurable Vivado IP
+subsystems, starting with the AXI DDS phase modulator.
+
 ---
 
 ## Instrument packaging
@@ -159,10 +163,12 @@ The instrument archive can be uploaded with `make run` or the HTTP API directly,
 
 ## Image contents
 
-Generated SD card images boot **Ubuntu 24.04.3** with the **`xilinx-linux-v2025.1`** kernel. The runtime environment includes:
+Generated SD card images boot **Ubuntu 24.04.5** with the **`xilinx-linux-v2025.1`** kernel. The runtime environment includes:
 
 - **nginx** serving static files and proxying **WebSocket** traffic.
 - An HTTP API (powered by **uWSGI**) to upload, start and stop instruments.
+
+Each board generates its own machine ID and SSH host keys on first boot. Build-only QEMU helpers, chroot scripts and the temporary dpkg `force-unsafe-io` setting are removed before packaging. Base-rootfs builds replace the cached tarball only after a successful build and archive operation.
 
 This setup lets you iterate rapidly without having to rebuild the entire OS for every code change.
 

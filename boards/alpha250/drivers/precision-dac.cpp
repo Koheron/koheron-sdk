@@ -5,7 +5,9 @@
 #include "server/runtime/driver_manager.hpp"
 #include "server/hardware/memory_manager.hpp"
 
+#include <chrono>
 #include <cmath>
+#include <thread>
 
 PrecisionDac::PrecisionDac()
 : eeprom(rt::get_driver<Eeprom>())
@@ -14,7 +16,12 @@ PrecisionDac::PrecisionDac()
 void PrecisionDac::init() {
     eeprom.read<eeprom_map::precision_dac_calib::offset>(cal_coeffs);
     auto& ctl = hw::get_memory<mem::control>();
-    ctl.write<reg::precision_dac_ctl>((regs::RESET << 1));
+    // Keep valid high long enough to transmit RESET, then stop the SPI core
+    // before changing commands. The core reads cmd throughout each frame.
+    ctl.write<reg::precision_dac_ctl>((regs::RESET << 1) + enable);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    ctl.write<reg::precision_dac_ctl>(0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
     ctl.write<reg::precision_dac_ctl>((regs::WRITE_UPDATE << 1) + enable);
     set_dac_value(0, 0);
     set_dac_value(1, 0);

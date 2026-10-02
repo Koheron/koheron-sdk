@@ -23,6 +23,7 @@
 #include "core/units/maths.hpp"
 #include "core/units/quantity.hpp"
 #include "core/units/units.hpp"
+#include "core/units/utilities.hpp"
 #include "core/utils.hpp"
 
 #endif // SCICPP_CORE_HEADER

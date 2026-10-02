@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     flex bison bc qemu-user-static zerofree u-boot-tools libgnutls28-dev \
     libeigen3-dev \
     libnewlib-arm-none-eabi \
-    libssl-dev zlib1g-dev pkg-config \
+    libssl-dev zlib1g-dev uuid-dev pkg-config \
     swig python3 python3-dev python3-setuptools device-tree-compiler \
     fdisk util-linux parted udev dosfstools e2fsprogs zip eatmydata \
     ccache gettext-base \

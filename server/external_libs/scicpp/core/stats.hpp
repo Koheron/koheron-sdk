@@ -8,6 +8,7 @@
 #include "scicpp/core/functional.hpp"
 #include "scicpp/core/macros.hpp"
 #include "scicpp/core/maths.hpp"
+#include "scicpp/core/meta.hpp"
 #include "scicpp/core/numeric.hpp"
 #include "scicpp/core/units/quantity.hpp"
 
@@ -18,58 +19,63 @@
 #include <cstdint>
 #include <iterator>
 #include <limits>
+#include <numeric>
 #include <tuple>
 #include <type_traits>
 #include <vector>
 
 namespace scicpp::stats {
 
-namespace detail {
-
-template <class Array>
-auto quiet_nan() {
-    return std::numeric_limits<typename Array::value_type>::quiet_NaN();
-}
-
-} // namespace detail
-
 //---------------------------------------------------------------------------------
 // amax
 //---------------------------------------------------------------------------------
 
-template <class Array>
-constexpr scicpp_pure auto amax(const Array &f) {
-    if (unlikely(f.empty())) {
-        return detail::quiet_nan<Array>();
+template <std::ranges::input_range R, class Proj = std::identity>
+    requires std::indirect_strict_weak_order<
+        std::less<>,
+        std::projected<std::ranges::iterator_t<R>, Proj>>
+[[nodiscard]] constexpr scicpp_pure auto amax(R &&r, Proj proj = {}) {
+    using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
+
+    if (unlikely(std::ranges::empty(r))) {
+        return std::numeric_limits<T>::quiet_NaN();
     }
 
-    return *std::max_element(f.cbegin(), f.cend());
+    return *std::ranges::max_element(r, std::less<>{}, proj);
 }
 
 //---------------------------------------------------------------------------------
 // amin
 //---------------------------------------------------------------------------------
 
-template <class Array>
-constexpr scicpp_pure auto amin(const Array &f) {
-    if (unlikely(f.empty())) {
-        return detail::quiet_nan<Array>();
+template <std::ranges::input_range R, class Proj = std::identity>
+    requires std::indirect_strict_weak_order<
+        std::less<>,
+        std::projected<std::ranges::iterator_t<R>, Proj>>
+[[nodiscard]] constexpr scicpp_pure auto amin(R &&r, Proj proj = {}) {
+    using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
+
+    if (unlikely(std::ranges::empty(r))) {
+        return std::numeric_limits<T>::quiet_NaN();
     }
 
-    return *std::min_element(f.cbegin(), f.cend());
+    return *std::ranges::min_element(r, std::less<>{}, proj);
 }
 
 //---------------------------------------------------------------------------------
 // ptp
 //---------------------------------------------------------------------------------
 
-template <class Array>
-constexpr scicpp_pure auto ptp(const Array &f) {
-    if (unlikely(f.empty())) {
-        return detail::quiet_nan<Array>();
+template <std::ranges::input_range R>
+    requires requires(const std::ranges::range_value_t<R> &x) { x - x; }
+[[nodiscard]] constexpr scicpp_pure auto ptp(R &&r) {
+    using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
+
+    if (unlikely(std::ranges::empty(r))) {
+        return std::numeric_limits<T>::quiet_NaN();
     }
 
-    const auto [it_min, it_max] = std::minmax_element(f.cbegin(), f.cend());
+    auto [it_min, it_max] = std::ranges::minmax_element(r, std::less<>{});
     return *it_max - *it_min;
 }
 
@@ -77,13 +83,17 @@ constexpr scicpp_pure auto ptp(const Array &f) {
 // average
 //---------------------------------------------------------------------------------
 
-template <class Array1, class Array2>
-constexpr auto average(const Array1 &f, const Array2 &weights) {
-    if (unlikely(f.empty() || (f.size() != weights.size()))) {
-        return detail::quiet_nan<Array1>();
+template <std::ranges::input_range R, std::ranges::input_range Weights>
+[[nodiscard]] constexpr auto average(R &&r, Weights &&weights) {
+    using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
+
+    if (unlikely(std::ranges::empty(r) ||
+                 (std::ranges::size(r) != std::ranges::size(weights)))) {
+        return std::numeric_limits<T>::quiet_NaN();
     }
 
-    return inner(f, weights) / sum(weights);
+    return inner(std::forward<R>(r), std::forward<Weights>(weights)) /
+           sum(std::forward<Weights>(weights));
 }
 
 //---------------------------------------------------------------------------------
@@ -93,10 +103,9 @@ constexpr auto average(const Array1 &f, const Array2 &weights) {
 namespace detail {
 
 // https://stackoverflow.com/questions/1719070/what-is-the-right-approach-when-using-stl-container-for-median-calculation
-template <class InputIt>
-auto median_inplace(InputIt first, InputIt last) {
-    using T = typename std::iterator_traits<InputIt>::value_type;
-    using raw_t = units::representation_t<T>;
+template <std::random_access_iterator It, std::sized_sentinel_for<It> S>
+[[nodiscard]] constexpr auto median_inplace(It first, S last) {
+    using T = std::iter_value_t<It>;
     const auto size = std::distance(first, last);
 
     if (unlikely(size == 0)) {
@@ -111,36 +120,56 @@ auto median_inplace(InputIt first, InputIt last) {
         return *target;
     } else {
         const auto max_it = std::max_element(first, first + half);
-        return (*max_it + *target) / raw_t{2}; // cf. std::midpoint (C++20)
+        return midpoint(*max_it, *target);
     }
 }
 
 } // namespace detail
 
-template <class InputIt, class Predicate>
-auto median(InputIt first, InputIt last, Predicate p) {
-    auto v = filter(std::vector(first, last), p);
+template <std::input_iterator It, std::sentinel_for<It> S, class Predicate>
+[[nodiscard]] auto median(It first, S last, Predicate &&pred) {
+    using T = std::iter_value_t<It>;
+    auto v = filter(std::vector<T>(first, last), std::forward<Predicate>(pred));
     return detail::median_inplace(v.begin(), v.end());
 }
 
-template <class Array, class Predicate>
-auto median(const Array &f, Predicate filter) {
-    return median(f.cbegin(), f.cend(), filter);
+template <std::ranges::input_range R, class Predicate>
+[[nodiscard]] auto median(R &&r, Predicate &&pred) {
+    using T = std::ranges::range_value_t<R>;
+    auto v = filter(std::vector<T>(std::begin(r), std::end(r)),
+                    std::forward<Predicate>(pred));
+    return detail::median_inplace(v.begin(), v.end());
 }
 
-template <class Array>
-auto median(Array &&f) {
-    if constexpr (std::is_lvalue_reference_v<Array>) {
-        auto tmp = f;
-        return detail::median_inplace(tmp.begin(), tmp.end());
+template <std::ranges::input_range R>
+[[nodiscard]] constexpr auto median(R &&r) {
+    constexpr bool can_be_done_inplace =
+        std::ranges::random_access_range<R> && !std::is_lvalue_reference_v<R> &&
+        !std::is_const_v<
+            std::remove_reference_t<std::ranges::range_reference_t<R>>>;
+
+    if constexpr (can_be_done_inplace) {
+        return detail::median_inplace(std::begin(r), std::end(r));
     } else {
-        return detail::median_inplace(f.begin(), f.end());
+        using T = std::ranges::range_value_t<R>;
+        constexpr std::size_t N = meta::range_size_v<R>;
+
+        // If size known at compile-time copy in std::array else use std::vector
+        if constexpr (N != std::dynamic_extent &&
+                      std::is_default_constructible_v<T>) {
+            std::array<T, N> buf{}; // requires T default-constructible
+            std::ranges::copy(r, buf.begin());
+            return detail::median_inplace(buf.begin(), buf.end());
+        } else {
+            std::vector<T> v(std::begin(r), std::end(r));
+            return detail::median_inplace(v.begin(), v.end());
+        }
     }
 }
 
-template <class Array>
-auto nanmedian(const Array &f) {
-    return median(f, filters::not_nan);
+template <std::ranges::input_range R>
+[[nodiscard]] auto nanmedian(R &&r) {
+    return median(std::forward<R>(r), filters::not_nan);
 }
 
 //---------------------------------------------------------------------------------
@@ -151,28 +180,38 @@ enum class QuantileInterp : int { LOWER, HIGHER, NEAREST, MIDPOINT, LINEAR };
 
 namespace detail {
 
-template <QuantileInterp interpolation, typename T>
-auto quantile_interp_index(T h) {
+template <QuantileInterp interpolation, class T>
+[[nodiscard]] constexpr T quantile_interp_index(T h) {
     if constexpr (interpolation == QuantileInterp::LOWER) {
-        return std::floor(h);
+        return floor(h);
     } else if constexpr (interpolation == QuantileInterp::HIGHER) {
-        return std::ceil(h);
+        return ceil(h);
     } else if constexpr (interpolation == QuantileInterp::NEAREST) {
-        return std::nearbyint(h);
+        return nearbyint(h);
     } else if constexpr (interpolation == QuantileInterp::MIDPOINT) {
-        // cf. std::midpoint (C++20)
-        return T{0.5} * (std::floor(h) + std::ceil(h));
-    } else { // interpolation == LINEAR
+        return midpoint(floor(h), ceil(h));
+    } else { // LINEAR
         return h;
     }
 }
 
+// nearbyint(h) == h not triggering -Werror=float-equal
+template <typename T>
+constexpr bool is_integer(T h) {
+    constexpr auto eps = std::numeric_limits<double>::epsilon();
+    return fabs(nearbyint(h) - h) <=
+           eps * std::max(fabs(nearbyint(h)), fabs(h));
+}
+
 // https://stackoverflow.com/questions/28548703/why-does-stdnth-element-return-sorted-vectors-for-input-vectors-with-n-33-el
-template <QuantileInterp interpolation, class InputIt, typename T>
-auto quantile_inplace(InputIt first, InputIt last, T q) {
+template <QuantileInterp interpolation,
+          std::random_access_iterator It,
+          std::sized_sentinel_for<It> S,
+          typename T>
+[[nodiscard]] constexpr auto quantile_inplace(It first, S last, T q) {
     scicpp_require(q >= T{0} && q <= T{1});
 
-    using ItTp = typename std::iterator_traits<InputIt>::value_type;
+    using ItTp = std::iter_value_t<It>;
     using RetTp = std::conditional_t<std::is_integral_v<ItTp>, double, ItTp>;
 
     const auto size = std::distance(first, last);
@@ -182,19 +221,22 @@ auto quantile_inplace(InputIt first, InputIt last, T q) {
     }
 
     if (size == 1) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnull-dereference"
         return RetTp(*first);
+#pragma GCC diagnostic pop
     }
 
     const auto h0 =
         quantile_interp_index<interpolation>(q * static_cast<T>(size - 1));
 
-    if (almost_equal(std::nearbyint(h0), h0)) { // h0 is an integer
+    if (is_integer(h0)) {
         const auto n0 = std::min(first + signed_size_t(h0), last);
         std::nth_element(first, n0, last);
         return RetTp(*n0);
     } else { // h0 not an integral index
         const auto h_low = signed_size_t(h0);
-        const auto n_high = std::min(first + h_low + 1, last);
+        const auto n_high = first + std::min(h_low + 1, size - 1);
         std::nth_element(first, n_high, last);
         const auto x_low = *std::max_element(first, n_high);
         const auto x_high = *n_high;
@@ -205,99 +247,112 @@ auto quantile_inplace(InputIt first, InputIt last, T q) {
 } // namespace detail
 
 template <QuantileInterp interpolation = QuantileInterp::LINEAR,
-          class InputIt,
+          std::input_iterator It,
+          std::sentinel_for<It> S,
           class Predicate,
           typename T>
-auto quantile(InputIt first, InputIt last, T q, Predicate p) {
-    auto v = filter(std::vector(first, last), p);
+[[nodiscard]] auto quantile(It first, S last, T q, Predicate &&p) {
+    using ItTp = std::iter_value_t<It>;
+    auto v = filter(std::vector<ItTp>(first, last), std::forward<Predicate>(p));
     return detail::quantile_inplace<interpolation>(v.begin(), v.end(), q);
 }
 
 template <QuantileInterp interpolation = QuantileInterp::LINEAR,
-          class Array,
+          std::ranges::input_range R,
           class Predicate,
           typename T>
-auto quantile(const Array &f, T q, Predicate filter) {
-    return quantile<interpolation>(f.cbegin(), f.cend(), q, filter);
+[[nodiscard]] auto quantile(const R &r, T q, Predicate &&filter) {
+    return quantile<interpolation>(
+        std::cbegin(r), std::cend(r), q, std::forward<Predicate>(filter));
 }
 
 template <QuantileInterp interpolation = QuantileInterp::LINEAR,
-          class Array,
+          std::ranges::input_range R,
           typename T>
-auto quantile(Array &&f, T q) {
-    if constexpr (std::is_lvalue_reference_v<Array>) {
-        auto tmp = f;
+[[nodiscard]] constexpr auto quantile(R &&r, T q) {
+    constexpr bool can_be_done_inplace =
+        std::ranges::random_access_range<R> && !std::is_lvalue_reference_v<R> &&
+        !std::is_const_v<
+            std::remove_reference_t<std::ranges::range_reference_t<R>>>;
+
+    if constexpr (can_be_done_inplace) {
         return detail::quantile_inplace<interpolation>(
-            tmp.begin(), tmp.end(), q);
+            std::begin(r), std::end(r), q);
     } else {
-        return detail::quantile_inplace<interpolation>(f.begin(), f.end(), q);
+        using RTp = std::ranges::range_value_t<R>;
+        constexpr std::size_t N = meta::range_size_v<R>;
+
+        // If size known at compile-time copy in std::array else use std::vector
+        if constexpr (N != std::dynamic_extent &&
+                      std::is_default_constructible_v<RTp>) {
+            std::array<RTp, N> buf{}; // requires T default-constructible
+            std::ranges::copy(r, buf.begin());
+            return detail::quantile_inplace<interpolation>(
+                buf.begin(), buf.end(), q);
+        } else {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnull-dereference"
+            std::vector<RTp> v(std::begin(r), std::end(r));
+#pragma GCC diagnostic pop
+            return detail::quantile_inplace<interpolation>(
+                v.begin(), v.end(), q);
+        }
     }
 }
 
 template <QuantileInterp interpolation = QuantileInterp::LINEAR,
-          class Array,
+          std::ranges::input_range R,
           typename T>
-auto nanquantile(const Array &f, T q) {
-    return quantile<interpolation>(f, q, filters::not_nan);
+[[nodiscard]] auto nanquantile(R &&r, T q) {
+    return quantile<interpolation>(std::forward<R>(r), q, filters::not_nan);
 }
 
 template <QuantileInterp interpolation = QuantileInterp::LINEAR,
-          class InputIt,
+          std::input_iterator It,
+          std::sentinel_for<It> S,
           class Predicate,
           typename T>
-auto percentile(InputIt first, InputIt last, T p, Predicate filter) {
-    return quantile<interpolation>(first, last, p / 100., filter);
+[[nodiscard]] auto percentile(It first, S last, T p, Predicate &&filter) {
+    return quantile<interpolation>(
+        first, last, p / 100., std::forward<Predicate>(filter));
 }
 
 template <QuantileInterp interpolation = QuantileInterp::LINEAR,
-          class Array,
+          std::ranges::input_range R,
           class Predicate,
           typename T>
-auto percentile(const Array &f, T p, Predicate filter) {
-    return quantile<interpolation>(f, p / 100., filter);
+[[nodiscard]] auto percentile(const R &r, T p, Predicate &&filter) {
+    return quantile<interpolation>(
+        r, p / 100., std::forward<Predicate>(filter));
 }
 
 template <QuantileInterp interpolation = QuantileInterp::LINEAR,
-          class Array,
+          std::ranges::input_range R,
           typename T>
-auto percentile(Array &&f, T p) {
-    return quantile<interpolation>(std::forward<Array>(f), p / 100.);
+[[nodiscard]] constexpr auto percentile(R &&r, T p) {
+    return quantile<interpolation>(std::forward<R>(r), p / 100.);
 }
 
 template <QuantileInterp interpolation = QuantileInterp::LINEAR,
-          class Array,
+          std::ranges::input_range R,
           typename T>
-auto nanpercentile(const Array &f, T p) {
-    return nanquantile<interpolation>(f, p / 100.);
+[[nodiscard]] auto nanpercentile(R &&r, T p) {
+    return nanquantile<interpolation>(std::forward<R>(r), p / 100.);
 }
 
-template <QuantileInterp interpolation = QuantileInterp::LINEAR, class Array>
-auto iqr(Array &&f, double rng0 = 25., double rng1 = 75.) {
-    const auto pct0 = percentile<interpolation>(std::forward<Array>(f), rng0);
-    const auto pct1 = percentile<interpolation>(std::forward<Array>(f), rng1);
+template <QuantileInterp interpolation = QuantileInterp::LINEAR,
+          std::ranges::input_range R>
+[[nodiscard]] constexpr auto iqr(R &&r, double rng0 = 25., double rng1 = 75.) {
+    const auto pct0 = percentile<interpolation>(std::forward<R>(r), rng0);
+    const auto pct1 = percentile<interpolation>(std::forward<R>(r), rng1);
     return pct1 - pct0;
 }
 
-template <QuantileInterp interpolation = QuantileInterp::LINEAR, class Array>
-auto iqr(const Array &f, double rng0 = 25., double rng1 = 75.) {
-    const auto pct0 = percentile<interpolation>(f, rng0);
-    const auto pct1 = percentile<interpolation>(f, rng1);
-    return pct1 - pct0;
-}
-
-template <QuantileInterp interpolation = QuantileInterp::LINEAR, class Array>
-auto naniqr(Array &&f, double rng0 = 25., double rng1 = 75.) {
-    const auto pct0 =
-        nanpercentile<interpolation>(std::forward<Array>(f), rng0);
-    const auto pct1 =
-        nanpercentile<interpolation>(std::forward<Array>(f), rng1);
-    return pct1 - pct0;
-}
-
-template <QuantileInterp interpolation = QuantileInterp::LINEAR, class Array>
-auto naniqr(const Array &f, double rng0 = 25., double rng1 = 75.) {
-    const auto pct0 = nanpercentile<interpolation>(f, rng0);
-    const auto pct1 = nanpercentile<interpolation>(f, rng1);
+template <QuantileInterp interpolation = QuantileInterp::LINEAR,
+          std::ranges::input_range R>
+[[nodiscard]] auto naniqr(R &&r, double rng0 = 25., double rng1 = 75.) {
+    const auto pct0 = nanpercentile<interpolation>(std::forward<R>(r), rng0);
+    const auto pct1 = nanpercentile<interpolation>(std::forward<R>(r), rng1);
     return pct1 - pct0;
 }
 
@@ -305,82 +360,88 @@ auto naniqr(const Array &f, double rng0 = 25., double rng1 = 75.) {
 // mean
 //---------------------------------------------------------------------------------
 
-template <class InputIt, class Predicate>
-constexpr auto mean(InputIt first, InputIt last, Predicate filter) {
-    using T = typename std::iterator_traits<InputIt>::value_type;
+template <std::input_iterator It,
+          std::sized_sentinel_for<It> S,
+          class Predicate>
+[[nodiscard]] constexpr auto mean(It first, S last, Predicate &&filter) {
+    using T = std::iter_value_t<It>;
 
     if (unlikely(std::distance(first, last) == 0)) {
         return std::numeric_limits<T>::quiet_NaN();
     }
 
-    const auto [res, cnt] = sum(first, last, filter);
+    const auto [res, cnt] = sum(first, last, std::forward<Predicate>(filter));
     return res / units::representation_t<T>(static_cast<int>(cnt));
 }
 
-template <class Array, class Predicate>
-constexpr auto mean(const Array &f, Predicate filter) {
-    return mean(f.cbegin(), f.cend(), filter);
+template <std::ranges::input_range R, class Predicate>
+[[nodiscard]] constexpr auto mean(const R &r, Predicate &&filter) {
+    return mean(std::cbegin(r), std::cend(r), std::forward<Predicate>(filter));
 }
 
-template <class Array>
-constexpr auto mean(const Array &f) {
-    return mean(f, filters::all);
+template <std::ranges::input_range R>
+[[nodiscard]] constexpr auto mean(const R &r) {
+    return mean(r, filters::all);
 }
 
-template <class Array>
-auto nanmean(const Array &f) {
-    return mean(f, filters::not_nan);
+template <std::ranges::input_range R>
+[[nodiscard]] auto nanmean(const R &r) {
+    return mean(r, filters::not_nan);
 }
 
-template <class Array, typename T = typename Array::value_type>
-constexpr auto tmean(const Array &f,
-                     const std::array<T, 2> &limits,
-                     const std::array<bool, 2> &inclusive = {true, true}) {
-    return mean(f, filters::Trim<T>(limits, inclusive));
+template <std::ranges::input_range R,
+          typename T = std::remove_cvref_t<std::ranges::range_value_t<R>>>
+[[nodiscard]] constexpr auto
+tmean(const R &r,
+      const std::array<T, 2> &limits,
+      const std::array<bool, 2> &inclusive = {true, true}) {
+    return mean(r, filters::Trim<T>(limits, inclusive));
 }
 
 //---------------------------------------------------------------------------------
 // gmean
 //---------------------------------------------------------------------------------
 
-template <class Array>
-auto gmean(Array &&f) {
-    using T = typename std::decay_t<Array>::value_type;
+template <std::ranges::input_range R>
+[[nodiscard]] auto gmean(R &&r) {
+    using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
 
-    if (unlikely(f.empty())) {
+    if (unlikely(std::ranges::empty(r))) {
         return std::numeric_limits<T>::quiet_NaN();
     }
 
     if constexpr (units::is_quantity_v<T>) {
         using namespace operators;
-        return T(std::exp(mean(log(std::forward<Array>(f) / T(1)))));
+        return T(std::exp(mean(log(std::forward<R>(r) / T(1)))));
     } else {
-        return std::exp(mean(log(std::forward<Array>(f))));
+        return std::exp(mean(log(std::forward<R>(r))));
     }
 }
 
-template <class Array, class Predicate>
-auto gmean(Array &&f, Predicate p) {
-    return gmean(filter(std::forward<Array>(f), p));
+template <std::ranges::input_range R, class Predicate>
+[[nodiscard]] auto gmean(R &&r, Predicate &&p) {
+    return gmean(filter(std::forward<R>(r), std::forward<Predicate>(p)));
 }
 
-template <class Array>
-auto nangmean(Array &&f) {
-    return gmean(std::forward<Array>(f), filters::not_nan);
+template <std::ranges::input_range R>
+[[nodiscard]] auto nangmean(R &&r) {
+    return gmean(std::forward<R>(r), filters::not_nan);
 }
 
 //---------------------------------------------------------------------------------
 // covariance
 //---------------------------------------------------------------------------------
 
-template <int ddof = 0, class InputIt1, class InputIt2, class Predicate>
-constexpr auto covariance(InputIt1 first1,
-                          InputIt1 last1,
-                          InputIt2 first2,
-                          InputIt2 last2,
-                          Predicate filter) {
-    using T1 = typename std::iterator_traits<InputIt1>::value_type;
-    using T2 = typename std::iterator_traits<InputIt2>::value_type;
+template <int ddof = 0,
+          std::input_iterator It1,
+          std::sized_sentinel_for<It1> S1,
+          std::input_iterator It2,
+          std::sized_sentinel_for<It2> S2,
+          class Predicate>
+[[nodiscard]] constexpr scicpp_pure auto
+covariance(It1 first1, S1 last1, It2 first2, S2 last2, Predicate &&filter) {
+    using T1 = std::iter_value_t<It1>;
+    using T2 = std::iter_value_t<It2>;
     using raw_t1 = units::representation_t<T1>;
     using raw_t2 = units::representation_t<T2>;
     using raw_t = std::common_type_t<raw_t1, raw_t2>;
@@ -404,8 +465,8 @@ constexpr auto covariance(InputIt1 first1,
         first2,
         last2,
         [&](auto f1, auto l1, auto f2, auto l2) {
-            const auto m1 = mean(f1, l1, filter);
-            const auto m2 = mean(f2, l2, filter);
+            const auto m1 = mean(f1, l1, std::forward<Predicate>(filter));
+            const auto m2 = mean(f2, l2, std::forward<Predicate>(filter));
 
             auto res = utils::set_zero<prod_t>();
             signed_size_t cnt = 0;
@@ -451,21 +512,31 @@ constexpr auto covariance(InputIt1 first1,
     }
 }
 
-template <int ddof = 0, class Array1, class Array2, class Predicate>
-constexpr auto
-covariance(const Array1 &f1, const Array2 &f2, Predicate filter) {
-    return std::get<0>(covariance<ddof>(
-        f1.cbegin(), f1.cend(), f2.cbegin(), f2.cend(), filter));
+template <int ddof = 0,
+          std::ranges::input_range R1,
+          std::ranges::input_range R2,
+          class Predicate>
+[[nodiscard]] constexpr scicpp_pure auto
+covariance(const R1 &r1, const R2 &r2, Predicate &&filter) {
+    return std::get<0>(covariance<ddof>(std::cbegin(r1),
+                                        std::cend(r1),
+                                        std::cbegin(r2),
+                                        std::cend(r2),
+                                        std::forward<Predicate>(filter)));
 }
 
-template <int ddof = 0, class Array1, class Array2>
-constexpr auto covariance(const Array1 &f1, const Array2 &f2) {
-    return covariance<ddof>(f1, f2, filters::all);
+template <int ddof = 0,
+          std::ranges::input_range R1,
+          std::ranges::input_range R2>
+[[nodiscard]] constexpr auto covariance(const R1 &r1, const R2 &r2) {
+    return covariance<ddof>(r1, r2, filters::all);
 }
 
-template <int ddof = 0, class Array1, class Array2>
-auto nancovariance(const Array1 &f1, const Array2 &f2) {
-    return covariance<ddof>(f1, f2, filters::not_nan);
+template <int ddof = 0,
+          std::ranges::input_range R1,
+          std::ranges::input_range R2>
+[[nodiscard]] scicpp_pure auto nancovariance(const R1 &r1, const R2 &r2) {
+    return covariance<ddof>(r1, r2, filters::not_nan);
 }
 
 //---------------------------------------------------------------------------------
@@ -486,12 +557,12 @@ constexpr auto var(InputIt first, InputIt last, Predicate filter) {
 }
 
 template <int ddof = 0, class Array, class Predicate>
-constexpr auto var(const Array &f, Predicate filter) {
+constexpr scicpp_pure auto var(const Array &f, Predicate filter) {
     return std::get<0>(var<ddof>(f.cbegin(), f.cend(), filter));
 }
 
 template <int ddof = 0, class Array>
-constexpr auto var(const Array &f) {
+constexpr scicpp_pure auto var(const Array &f) {
     return var<ddof>(f, filters::all);
 }
 
@@ -500,7 +571,7 @@ auto nanvar(const Array &f) {
     return var<ddof>(f, filters::not_nan);
 }
 
-template <int ddof = 1, class Array, typename T = typename Array::value_type>
+template <int ddof = 1, class Array, typename T = Array::value_type>
 constexpr auto tvar(const Array &f,
                     const std::array<T, 2> &limits,
                     const std::array<bool, 2> &inclusive = {true, true}) {
@@ -512,12 +583,12 @@ constexpr auto tvar(const Array &f,
 //---------------------------------------------------------------------------------
 
 template <int ddof = 0, class Array, class Predicate>
-auto std(const Array &a, Predicate filter) {
+scicpp_pure auto std(const Array &a, Predicate filter) {
     return units::sqrt(var<ddof>(a, filter));
 }
 
 template <int ddof = 0, class Array>
-auto std(const Array &a) {
+scicpp_pure auto std(const Array &a) {
     return units::sqrt(var<ddof>(a));
 }
 
@@ -526,7 +597,7 @@ auto nanstd(const Array &a) {
     return units::sqrt(nanvar<ddof>(a));
 }
 
-template <int ddof = 1, class Array, typename T = typename Array::value_type>
+template <int ddof = 1, class Array, typename T = Array::value_type>
 auto tstd(const Array &a,
           const std::array<T, 2> &limits,
           const std::array<bool, 2> &inclusive = {true, true}) {
@@ -558,7 +629,7 @@ auto nansem(const Array &a) {
     return sem<ddof>(a, filters::not_nan);
 }
 
-template <int ddof = 1, class Array, typename T = typename Array::value_type>
+template <int ddof = 1, class Array, typename T = Array::value_type>
 constexpr auto tsem(const Array &f,
                     const std::array<T, 2> &limits,
                     const std::array<bool, 2> &inclusive = {true, true}) {
@@ -570,9 +641,9 @@ constexpr auto tsem(const Array &f,
 //---------------------------------------------------------------------------------
 
 template <intmax_t n, class Array, class Predicate>
-auto moment(const Array &f, [[maybe_unused]] Predicate filter) {
+scicpp_pure auto moment(const Array &f, [[maybe_unused]] Predicate filter) {
     using namespace operators;
-    using T = typename Array::value_type;
+    using T = Array::value_type;
 
     if constexpr (n == 0) {
         return T{1};
@@ -590,7 +661,7 @@ auto moment(const Array &f, [[maybe_unused]] Predicate filter) {
 }
 
 template <intmax_t n, class Array>
-auto moment(const Array &f) {
+scicpp_pure auto moment(const Array &f) {
     return moment<n>(f, filters::all);
 }
 
@@ -620,12 +691,12 @@ auto kurtosis(const Array &f, Predicate filter) {
 }
 
 template <KurtosisDef def = KurtosisDef::Fisher, class Array>
-auto kurtosis(const Array &f) {
+scicpp_pure auto kurtosis(const Array &f) {
     return kurtosis<def>(f, filters::all);
 }
 
 template <KurtosisDef def = KurtosisDef::Fisher, class Array>
-auto nankurtosis(const Array &f) {
+scicpp_pure auto nankurtosis(const Array &f) {
     return kurtosis<def>(f, filters::not_nan);
 }
 
@@ -634,14 +705,14 @@ auto nankurtosis(const Array &f) {
 //---------------------------------------------------------------------------------
 
 template <class Array, class Predicate>
-auto skew(const Array &f, Predicate filter) {
+scicpp_pure auto skew(const Array &f, Predicate filter) {
     const auto m2 = moment<2>(f, filter);
     const auto m3 = moment<3>(f, filter);
     return m3 / units::sqrt(m2 * m2 * m2);
 }
 
 template <class Array>
-auto skew(const Array &f) {
+scicpp_pure auto skew(const Array &f) {
     return skew(f, filters::all);
 }
 
@@ -655,7 +726,7 @@ auto nanskew(const Array &f) {
 //---------------------------------------------------------------------------------
 
 template <int ddof = 1, class Array1, class Array2, class Predicate>
-auto cov(const Array1 &f1, const Array2 &f2, Predicate filter) {
+scicpp_pure auto cov(const Array1 &f1, const Array2 &f2, Predicate filter) {
     const auto covar = covariance<ddof>(f1, f2, filter);
     using T = std::decay_t<decltype(covar)>;
 
@@ -668,7 +739,7 @@ auto cov(const Array1 &f1, const Array2 &f2, Predicate filter) {
 }
 
 template <int ddof = 1, class Array1, class Array2>
-auto cov(const Array1 &f1, const Array2 &f2) {
+scicpp_pure auto cov(const Array1 &f1, const Array2 &f2) {
     return cov<ddof>(f1, f2, filters::all);
 }
 
