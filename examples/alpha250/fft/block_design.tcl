@@ -40,7 +40,7 @@ for {set i 0} {$i < 2} {incr i} {
 ####################################
 
 source $project_path/tcl/power_spectral_density.tcl
-source $sdk_path/fpga/modules/bram_accumulator/bram_accumulator.tcl
+source $sdk_path/fpga/lib/axis_accumulator.tcl
 source $sdk_path/fpga/lib/bram_recorder.tcl
 
 power_spectral_density::create psd [get_parameter fft_size]
@@ -64,26 +64,14 @@ connect_cell psd {
 }
 
 # Accumulator
-cell koheron:user:psd_counter:1.0 psd_counter {
-  PERIOD [get_parameter fft_size]
-  PERIOD_WIDTH [expr int(ceil(log([get_parameter fft_size]))/log(2))]
-  N_CYCLES [get_parameter n_cycles]
-  N_CYCLES_WIDTH [expr int(ceil(log([get_parameter n_cycles]))/log(2))]
-} {
-  clk           adc_dac/adc_clk
-  s_axis_tvalid psd/m_axis_result_tvalid
-  s_axis_tdata  psd/m_axis_result_tdata
-  cycle_index   [sts_pin cycle_index]
-}
-
-bram_accumulator::create bram_accum
+axis_accumulator::create bram_accum [get_parameter fft_size] [get_parameter n_cycles]
 connect_cell bram_accum {
   clk adc_dac/adc_clk
-  s_axis_tdata psd_counter/m_axis_tdata
-  s_axis_tvalid psd_counter/m_axis_tvalid
-  addr_in psd_counter/addr
-  first_cycle psd_counter/first_cycle
-  last_cycle psd_counter/last_cycle
+  resetn rst_adc_clk/peripheral_aresetn
+  s_axis_tdata psd/m_axis_result_tdata
+  s_axis_tvalid psd/m_axis_result_tvalid
+  s_axis_tlast psd/m_axis_result_tlast
+  cycle_index [sts_pin cycle_index]
 }
 
 # Record spectrum data in BRAM

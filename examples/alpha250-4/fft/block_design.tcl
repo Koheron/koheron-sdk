@@ -51,7 +51,7 @@ connect_pins ps_0/SDIO0_WP [get_constant_pin 0 1]
 ####################################
 
 source $project_path/tcl/power_spectral_density.tcl
-source $sdk_path/fpga/modules/bram_accumulator/bram_accumulator.tcl
+source $sdk_path/fpga/lib/axis_accumulator.tcl
 source $sdk_path/fpga/lib/bram_recorder.tcl
 
 for {set j 0} {$j < 2} {incr j} { # ADC index
@@ -77,26 +77,14 @@ for {set j 0} {$j < 2} {incr j} { # ADC index
   }
 
   # Accumulator
-  cell koheron:user:psd_counter:1.0 psd_counter$j {
-    PERIOD [get_parameter fft_size]
-    PERIOD_WIDTH [expr int(ceil(log([get_parameter fft_size]))/log(2))]
-    N_CYCLES [get_parameter n_cycles]
-    N_CYCLES_WIDTH [expr int(ceil(log([get_parameter n_cycles]))/log(2))]
-  } {
-    clk           adc/adc_clk
-    s_axis_tvalid psd$j/m_axis_result_tvalid
-    s_axis_tdata  psd$j/m_axis_result_tdata
-    cycle_index   [sts_pin cycle_index$j]
-  }
-
-  bram_accumulator::create bram_accum$j
+  axis_accumulator::create bram_accum$j [get_parameter fft_size] [get_parameter n_cycles]
   connect_cell bram_accum$j {
     clk adc/adc_clk
-    s_axis_tdata psd_counter$j/m_axis_tdata
-    s_axis_tvalid psd_counter$j/m_axis_tvalid
-    addr_in psd_counter$j/addr
-    first_cycle psd_counter$j/first_cycle
-    last_cycle psd_counter$j/last_cycle
+    resetn rst_adc_clk/peripheral_aresetn
+    s_axis_tdata psd$j/m_axis_result_tdata
+    s_axis_tvalid psd$j/m_axis_result_tvalid
+    s_axis_tlast psd$j/m_axis_result_tlast
+    cycle_index [sts_pin cycle_index$j]
   }
 
   # Record spectrum data in BRAM
@@ -118,3 +106,8 @@ connect_pins [sts_pin digital_inputs] [get_concat_pin [list exp_io_0_p exp_io_1_
 for {set i 0} {$i < 8} {incr i} {
     connect_pins  [get_slice_pin [ctl_pin digital_outputs] $i $i] exp_io_${i}_n
 }
+
+# Repair hold paths introduced by post-route setup optimization at the
+# existing sample clock, as in the ALPHA250 FFT implementation.
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE ExploreWithAggressiveHoldFix [get_runs impl_1]

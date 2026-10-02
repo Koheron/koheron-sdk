@@ -10,7 +10,7 @@ XDC += $(SDK_PATH)/boards/alpha250-4/config/ports.xdc
 include $(SDK_PATH)/boards/alpha250/cores/cores.mk
 CORES += $(SDK_PATH)/fpga/cores/axis_constant_v1_0
 CORES += $(SDK_PATH)/fpga/cores/latched_mux_v1_0
-CORES += $(SDK_PATH)/fpga/cores/psd_counter_v1_0
+CORES += $(SDK_PATH)/fpga/ip/axis_accumulator_v1_0
 
 include $(SDK_PATH)/boards/alpha250-4/drivers/drivers.mk
 DRIVERS += $(PROJECT_PATH)/fft.hpp

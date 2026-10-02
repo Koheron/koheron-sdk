@@ -22,7 +22,7 @@ set rtl [concat \
   [glob -nocomplain $core_path/*.xci] \
   [glob -nocomplain $core_path/*.vhdl]]
 set cfg [glob -nocomplain $core_path/core_config.tcl]
-set inputs [concat $rtl $cfg]
+set inputs [concat $rtl $cfg [glob -nocomplain $core_path/*.tcl $core_path/*.xdc $core_path/*.mem] [list [info script]]]
 
 # Helper: latest mtime in a list (0 if empty)
 proc latest_mtime {files} {
@@ -82,6 +82,10 @@ if {[llength $mem_files] > 0} {
   puts "Added [llength $mem_files] .mem file(s) for BRAM initialization"
 }
 
+# Subsystems can generate their embedded vendor IP before packaging.
+if {[file exists $core_path/package_ip.tcl]} {
+  source $core_path/package_ip.tcl
+}
 ipx::package_project -import_files -root_dir $out_dir -force
 
 set core [ipx::current_core]
