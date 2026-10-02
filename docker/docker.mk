@@ -38,6 +38,8 @@ DOCKER_CCACHE_FLAGS = \
   -e CCACHE_NOHARDLINK=true \
   -e CCACHE_NOFILECLONE=true
 
+DOCKER_ROOT_EXTRA_ENV ?=
+
 DOCKER ?= docker run --rm $(DOCKER_DEV) $(DOCKER_ENV) \
          -u $(DOCKER_UID):$(DOCKER_GID) -w $(DOCKER_WD) \
          $(DOCKER_VOL) $(DOCKER_CCACHE_FLAGS) $(DOCKER_FLAGS) $(DOCKER_IMAGE)
@@ -50,7 +52,7 @@ DOCKER_ENV  += -e HOST_UID=$(DOCKER_UID) -e HOST_GID=$(DOCKER_GID)
 # root-runner: same flags, but run as root (no -u)
 # Reuse DOCKER_ENV (HOME/proxies/TZ + HOST_UID/GID), keep exec tmpfs
 DOCKER_ROOT = docker run --rm -t $(DOCKER_DEV) \
-               $(DOCKER_ENV) \
+               $(DOCKER_ENV) $(DOCKER_ROOT_EXTRA_ENV) \
                -w $(DOCKER_WD) $(DOCKER_VOL) $(DOCKER_CCACHE_FLAGS) \
                --cpus=$(N_CPUS) $(DOCKER_FLAGS) $(DOCKER_IMAGE)
 
