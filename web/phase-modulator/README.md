@@ -12,6 +12,7 @@ Add these shared assets to the instrument's `config.mk`:
 
 ```make
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.ts
+WEB_FILES += $(SDK_PATH)/web/phase-modulator/frequency-input.ts
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator-widget.ts
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.css
 ```
@@ -56,19 +57,42 @@ toggles and source selection apply immediately. Rate and amplitude can be
 prepared while PM is off. Pulse duty and seed controls follow the selected
 source and hardware capabilities.
 
+Carrier and PM rate use a reusable digit editor:
+
+- Type a number in the selected unit, or include a suffix such as `12.5 MHz`,
+  `10000 Hz` or `15k`. Scientific notation is accepted. Enter or leaving the
+  control applies the value; Escape discards typed entry and unsent tuning.
+- Click a digit, then scroll or press Up/Down to change that place value.
+  Left/Right selects the adjacent place, skipping separators. Right can reveal
+  finer decimal places down to the hardware's resolution.
+- The highlighted place and tuning step survive carries, borrows and unit
+  changes: a 1 kHz step takes `9.999 MHz` to `10.000 MHz`.
+- The unit selector changes display units without a hardware write. For typed
+  entry, selecting a unit finishes the number in that unit.
+- Wheel tuning requires a focused input with one digit selected. Hovering
+  leaves page scrolling alone; small trackpad deltas accumulate into a step.
+
+The focused editor shows its tuning step without adding a permanent toolbar.
+Fast tuning coalesces unsent values and sends at most ten tuning requests per
+second. Carrier and rate operations serialize within each channel. Failed or
+ambiguous commits cancel queued tuning; they are never retried automatically.
+Escape and disposal cannot retract a command already sent to hardware.
+
 Every edit uses a checked server setter that reads/modifies/commits under the
 channel lock. Other settings, including native phase words, are preserved.
 Oscillators keep running through edits and mute; **Restart phase** is explicit.
-Only the channel being updated is locked while awaiting acknowledgement.
+Other controls on the channel wait for acknowledgement; frequency editors
+remain responsive and accumulate tuning while the request is pending.
 The widget reads accepted settings after each operation and displays failures
 inline. Refresh never retries a failed write. Closing the widget removes its
 listeners and ignores late responses; an already-issued command can still
 complete in hardware.
 
 The adapter decodes 48-bit native readback exactly as pairs of uint32 words.
-The UI displays Hz-derived MHz/kHz, degrees and percent duty; the shortest
-displayed number within half a hardware LSB hides quantization artifacts such
-as `9.9999999996 kHz`. Hover over a numeric field for its accepted value.
+The UI displays selectable Hz/kHz/MHz/GHz, degrees and percent duty. Frequency
+digits are grouped and retain decimal places for tuning; values within half a
+hardware LSB are normalized to hide quantization artifacts such as
+`9.9999999996 kHz`. Hover over a numeric field for its accepted value.
 The Python native-word/Decimal API remains available for exact scripted work.
 Output amplitude is full scale; the amplitude field controls phase in degrees.
 
@@ -86,4 +110,6 @@ make web CFG=examples/alpha250/phase-modulator/config.mk
 The tests exercise real DOM events and the SDK tuple decoder: read-only opening,
 multiple instances, one-channel/reduced-source builds, range and seed checks,
 unit conversion, partial edits, mute/resume/restart, pending-operation locking,
-timeouts, retry, disposal and 48-bit native readback.
+timeouts, retry, disposal and 48-bit native readback. Frequency checks cover
+keyboard entry, digit carry/borrow, unit selection, focused wheel tuning,
+trackpad accumulation, coalescing and serialized channel edits.

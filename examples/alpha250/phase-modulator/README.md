@@ -31,6 +31,11 @@ style as the ALPHA250 FFT workspace and adapts to narrow dashboard panels.
 Its [shared widget](../../../web/phase-modulator/README.md) can be mounted in
 other instrument pages with their existing Koheron client.
 
+For carrier and PM rate, type a value such as `10 MHz` and press Enter, or click
+a digit and scroll to tune that place. Left/Right selects a different digit;
+Up/Down tunes it. Escape cancels typed entry and unsent tuning. The separate
+unit selector also accepts Hz, kHz, MHz and GHz without changing the signal.
+
 ```sh
 .venv/bin/python examples/alpha250/phase-modulator/phase_modulator.py BOARD_IP
 ```
@@ -118,5 +123,7 @@ The web widget was checked in Chrome at desktop, dashboard-column and phone
 widths. Live browser edits on muted DAC1 verified source selection, pulse duty
 and carrier frequency; Enter commits retained keyboard focus. Exact native
 readback confirmed DAC0 was unchanged, and the original DAC1 settings were
-restored after the checks. Eight DOM/protocol tests cover widget behavior and
-the shared client's empty-success response decoding.
+restored after the checks. Live frequency editing also verified direct unit
+entry, selected-digit carry/borrow, wheel tuning, Escape cancellation and
+display-only unit changes on muted DAC1. Fifteen DOM/protocol tests cover
+widget behavior, digit tuning and empty-success response decoding.

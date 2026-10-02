@@ -10,11 +10,12 @@ const root = path.resolve(__dirname, '../../../..');
 function environment(t) {
     const dom = new JSDOM('<div id="first"></div><div id="second"></div>', {runScripts: 'outside-only'});
     t.after(() => dom.window.close());
-    for (const file of ['web/koheron.ts', 'web/phase-modulator/phase-modulator.ts', 'web/phase-modulator/phase-modulator-widget.ts']) {
+    for (const file of ['web/koheron.ts', 'web/phase-modulator/frequency-input.ts', 'web/phase-modulator/phase-modulator.ts', 'web/phase-modulator/phase-modulator-widget.ts']) {
         dom.window.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
             compilerOptions: {target: ts.ScriptTarget.ES2020}
         }).outputText + '\nwindow.TestDriver = typeof PhaseModulatorDriver !== "undefined" ? PhaseModulatorDriver : window.TestDriver;' +
             '\nwindow.TestWidget = typeof PhaseModulatorWidget !== "undefined" ? PhaseModulatorWidget : window.TestWidget;' +
+            '\nif (typeof FrequencyInput !== "undefined") window.FrequencyInput = FrequencyInput;' +
             '\nwindow.TestClient = typeof Client !== "undefined" ? Client : window.TestClient;');
     }
     return dom.window;
@@ -36,7 +37,7 @@ function change(window, root, channel, field, value) {
     input.dispatchEvent(new window.Event('change', {bubbles: true}));
     return input;
 }
-const settle = () => new Promise(resolve => setImmediate(resolve));
+const settle = () => new Promise(resolve => setTimeout(resolve, 10));
 
 test('opening reads current hardware without writes; widget instances are isolated', async t => {
     const window = environment(t);
@@ -46,8 +47,8 @@ test('opening reads current hardware without writes; widget instances are isolat
     const widget = new window.TestWidget(first, a);
     await widget.init();
     await new window.TestWidget(second, b).init();
-    assert.equal(first.querySelector('[data-field="carrier"]').value, '10');
-    assert.equal(first.querySelector('[data-field="modulation"]').value, '10');
+    assert.equal(first.querySelector('[data-field="carrier"]').value, '10.000\u2009000');
+    assert.equal(first.querySelector('[data-field="modulation"]').value, '10.000');
     assert.equal(first.querySelector('[data-field="deviation"]').value, '1');
     assert.equal(first.querySelectorAll('.pm-channel').length, 2);
     assert.equal(second.querySelectorAll('.pm-channel').length, 1);
@@ -56,7 +57,7 @@ test('opening reads current hardware without writes; widget instances are isolat
     await settle();
     assert.deepEqual(a.calls, [[0, 'carrier', 12e6]]);
     assert.equal(b.calls.length, 0);
-    assert.equal(second.querySelector('[data-field="carrier"]').value, '10');
+    assert.equal(second.querySelector('[data-field="carrier"]').value, '10.000\u2009000');
     assert.equal(a.values[0].phase, 17);
     assert.equal(a.values[1].carrier, 10e6);
     widget.dispose();
@@ -91,8 +92,8 @@ test('display hides DDS quantization artifacts but retains tiny phase settings',
     driver.values[0].deviation = Math.round(turn / 360) / turn * 360;
     driver.values[0].phase = 360 / turn;
     await new window.TestWidget(target, driver).init();
-    assert.equal(target.querySelector('[data-field="carrier"]').value, '10');
-    assert.equal(target.querySelector('[data-field="modulation"]').value, '10');
+    assert.equal(target.querySelector('[data-field="carrier"]').value, '10.000\u2009000');
+    assert.equal(target.querySelector('[data-field="modulation"]').value, '10.000');
     assert.equal(target.querySelector('[data-field="deviation"]').value, '1');
     const tiny = Number(target.querySelector('[data-field="phase"]').value);
     assert(tiny > 0 && Math.abs(tiny - 360 / turn) <= 180 / turn);
@@ -138,15 +139,17 @@ test('pending commands lock only their channel; failures show accepted hardware 
     const input = target.querySelector('[data-field="carrier"]');
     input.focus();
     change(window, target, 0, 'carrier', 12);
+    await settle();
     assert.equal(target.querySelector('[data-channel="0"] fieldset').getAttribute('aria-busy'), 'true');
-    assert.equal(input.readOnly, true);
+    assert.equal(target.querySelector('[data-field="phase"]').readOnly, true);
+    assert.equal(input.readOnly, false); // Digit tuning can accumulate while a request is pending.
     assert.equal(window.document.activeElement, input); // Pending commits retain keyboard focus.
     assert.equal(target.querySelector('[data-channel="1"] fieldset').disabled, false);
     assert.equal(target.querySelector('[data-channel="1"] [data-field="carrier"]').readOnly, false);
     change(window, target, 0, 'pm', false); // A second edit cannot overtake the pending one.
     assert.equal(driver.calls.length, 1);
     release(); await settle();
-    assert.equal(target.querySelector('[data-field="carrier"]').value, '10');
+    assert.equal(target.querySelector('[data-field="carrier"]').value, '10.000\u2009000');
     assert.match(target.querySelector('.pm-status').textContent, /timed out/);
     assert.equal(target.querySelector('[data-channel="0"] fieldset').disabled, false);
     assert.equal(input.readOnly, false);
@@ -224,4 +227,150 @@ test('SDK string decoder accepts empty success responses and respects payload vi
     assert.equal(client.parseString(view, 2), '');
     client._readBaseAsync = async () => new window.DataView(new window.ArrayBuffer(0));
     assert.equal(await client.readString({}), ''); // Exercise the real checked-RPC path.
+});
+
+function frequency(t, commit, value = 10e6) {
+    const window = environment(t);
+    const root = window.document.getElementById('first');
+    root.innerHTML = '<span><input type="text"><select><option>Hz</option><option>kHz</option><option selected>MHz</option><option>GHz</option></select><span class="pm-frequency-help"></span></span>';
+    const input = root.querySelector('input'); const unit = root.querySelector('select');
+    const calls = [];
+    const control = new window.FrequencyInput(input, unit, {value, maximum: 125e6, resolution: 250e6 / 2 ** 48,
+        commit: commit || (async value => { calls.push(value); return value; })});
+    t.after(() => control.dispose());
+    const key = name => input.dispatchEvent(new window.KeyboardEvent('keydown', {key: name, bubbles: true, cancelable: true}));
+    const digit = position => {
+        input.focus(); input.setSelectionRange(position, position);
+        input.dispatchEvent(new window.MouseEvent('click', {detail: 1, bubbles: true}));
+    };
+    const type = value => { input.value = value; input.dispatchEvent(new window.Event('input', {bubbles: true})); };
+    return {window, input, unit, calls, control, key, digit, type};
+}
+
+test('direct frequency entry supports units/exponents, Enter, Escape and invalid ranges', async t => {
+    const f = frequency(t);
+    for (const [text, hz] of [['12.5 MHz', 12.5e6], ['2.5e4 Hz', 25e3], ['.01 GHz', 10e6], ['15k', 15e3]]) {
+        f.type(text); assert.equal(f.calls.length, 0);
+        f.key('Enter'); await settle();
+        assert.deepEqual(f.calls.splice(0), [hz]);
+    }
+    for (const text of ['', 'NaN', 'Infinity', '-1 Hz', '125 MHz', '1000 GHz', '10 apples']) {
+        f.type(text); f.key('Enter'); await settle();
+        assert.equal(f.calls.length, 0); assert.equal(f.input.getAttribute('aria-invalid'), 'true');
+    }
+    f.type('25 MHz'); f.key('Escape'); await settle();
+    assert.equal(f.calls.length, 0);
+    assert.equal(Number(f.input.value.replace(/\s/g, '')) * 1e3, 15e3); // Last accepted value and unit.
+    assert.equal(f.input.hasAttribute('aria-invalid'), false);
+});
+
+test('digit tuning preserves place value through carry/borrow and skips separators', async t => {
+    const f = frequency(t, undefined, 9.999e6);
+    f.digit(4); // 1 kHz place in 9.999 000 MHz.
+    assert.equal(f.input.selectionStart, 4);
+    f.key('ArrowUp'); await settle();
+    assert.deepEqual(f.calls, [10e6]);
+    assert.equal(f.input.value, '10.000\u2009000');
+    assert.equal(f.input.selectionStart, 5); // Same physical step after another integer digit appears.
+    f.key('ArrowRight');
+    assert.equal(f.input.selectionStart, 7); // Skip the thin-space group separator.
+    f.key('ArrowLeft');
+    assert.equal(f.input.selectionStart, 5);
+    f.key('ArrowDown'); await new Promise(resolve => setTimeout(resolve, 120));
+    assert.equal(f.calls.at(-1), 9.999e6);
+    assert.equal(f.input.selectionStart, 4);
+    f.digit(0); f.key('ArrowRight');
+    assert.equal(f.input.selectionStart, 2); // Skip the decimal point.
+});
+
+test('wheel tunes only a focused selected digit, preserves page scrolling and accumulates trackpad deltas', async t => {
+    const f = frequency(t);
+    const wheel = delta => {
+        const event = new f.window.WheelEvent('wheel', {deltaY: delta, bubbles: true, cancelable: true});
+        f.input.dispatchEvent(event); return event;
+    };
+    assert.equal(wheel(-100).defaultPrevented, false); // Hovering never changes hardware or captures page scroll.
+    f.digit(5); // 1 kHz.
+    for (let i = 0; i < 3; i++) { assert.equal(wheel(-10).defaultPrevented, true); }
+    await settle(); assert.equal(f.calls.length, 0);
+    wheel(-10); await settle();
+    assert.deepEqual(f.calls, [10.001e6]);
+    f.input.setSelectionRange(0, f.input.value.length);
+    assert.equal(wheel(-100).defaultPrevented, false); // Ctrl+A is not a digit selection.
+    f.digit(5);
+    const zoom = new f.window.WheelEvent('wheel', {deltaY: -100, ctrlKey: true, cancelable: true});
+    f.input.dispatchEvent(zoom); assert.equal(zoom.defaultPrevented, false);
+    assert.equal(f.calls.length, 1);
+});
+
+test('unit changes only reformat accepted values; unit selection finishes typed entry once', async t => {
+    const f = frequency(t);
+    f.unit.value = 'Hz'; f.unit.dispatchEvent(new f.window.Event('change'));
+    await settle(); assert.equal(f.calls.length, 0);
+    assert.equal(f.input.value, '10\u2009000\u2009000');
+    f.input.focus(); f.type('20');
+    f.input.dispatchEvent(new f.window.Event('change'));
+    f.unit.focus(); // Typed number waits for the unit choice instead of briefly applying 20 Hz.
+    await settle(); assert.equal(f.calls.length, 0);
+    f.unit.value = 'kHz'; f.unit.dispatchEvent(new f.window.Event('change'));
+    await settle(); assert.deepEqual(f.calls, [20e3]);
+    f.input.dispatchEvent(new f.window.Event('change')); // A later native blur/change must not duplicate it.
+    await settle(); assert.equal(f.calls.length, 1);
+});
+
+test('rapid tuning coalesces latest targets, retains selection and has no overlapping requests', async t => {
+    let release; let active = 0; let maximum = 0; const calls = [];
+    const f = frequency(t, async value => {
+        calls.push(value); maximum = Math.max(maximum, ++active);
+        await new Promise(resolve => { release = resolve; });
+        active--; return value;
+    });
+    f.digit(5);
+    f.key('ArrowUp'); f.key('ArrowUp'); f.key('ArrowUp');
+    await settle(); assert.deepEqual(calls, [10.003e6]);
+    f.key('ArrowUp'); f.key('ArrowUp');
+    assert.equal(f.input.value, '10.005\u2009000');
+    release(); await new Promise(resolve => setTimeout(resolve, 120));
+    assert.deepEqual(calls, [10.003e6, 10.005e6]);
+    release(); await settle();
+    assert.equal(maximum, 1);
+    assert.equal(f.input.value, '10.005\u2009000');
+    assert.equal(f.input.selectionStart, 5);
+});
+
+test('failed digit commits cancel queued tuning; disposed controls issue no delayed writes', async t => {
+    let reject; const calls = [];
+    const f = frequency(t, async value => {
+        calls.push(value); await new Promise((_, fail) => { reject = fail; }); return value;
+    });
+    f.digit(5); f.key('ArrowUp'); await settle();
+    f.key('ArrowUp'); f.key('ArrowUp');
+    reject(new Error('Commit acknowledgement timed out'));
+    await new Promise(resolve => setTimeout(resolve, 120));
+    assert.deepEqual(calls, [10.001e6]);
+    assert.equal(f.input.value, '10.000\u2009000');
+    assert.equal(f.input.getAttribute('aria-invalid'), 'true');
+    f.key('ArrowUp'); f.control.dispose(); await new Promise(resolve => setTimeout(resolve, 120));
+    assert.equal(calls.length, 1);
+});
+
+test('carrier and modulation edits queue coherently on one channel while preserving other settings', async t => {
+    const window = environment(t); const target = window.document.getElementById('first'); const driver = port(1);
+    let active = 0; let maximum = 0;
+    const original = driver.set.bind(driver);
+    driver.set = async (...args) => {
+        maximum = Math.max(maximum, ++active);
+        await new Promise(resolve => setTimeout(resolve, 25));
+        await original(...args); active--;
+    };
+    await new window.TestWidget(target, driver).init();
+    change(window, target, 0, 'carrier', '12 MHz');
+    change(window, target, 0, 'modulation', '20 kHz');
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert.equal(maximum, 1);
+    assert.deepEqual(driver.calls, [[0, 'carrier', 12e6], [0, 'modulation', 20e3]]);
+    assert.equal(driver.values[0].carrier, 12e6);
+    assert.equal(driver.values[0].modulation, 20e3);
+    assert.equal(driver.values[0].phase, 17);
+    assert.equal(driver.values[0].deviation, 1);
 });

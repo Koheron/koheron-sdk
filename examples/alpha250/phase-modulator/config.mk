@@ -11,6 +11,7 @@ TCL_FILES = $(BD_TCL) $(PROJECT_PATH)/post_route.tcl $(wildcard $(BOARD_PATH)/*.
 include $(BOARD_PATH)/drivers/drivers.mk
 DRIVERS += $(PROJECT_PATH)/phase_modulator.hpp
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.ts
+WEB_FILES += $(SDK_PATH)/web/phase-modulator/frequency-input.ts
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator-widget.ts
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.css
 WEB_FILES += $(wildcard $(PROJECT_PATH)/web/*.ts $(PROJECT_PATH)/web/*.html $(PROJECT_PATH)/web/*.css)
