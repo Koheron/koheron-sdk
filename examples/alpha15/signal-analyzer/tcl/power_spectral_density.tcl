@@ -6,6 +6,7 @@ proc pins {cmd} {
   $cmd -dir I -from 0   -to 0 tvalid
   $cmd -dir O -from 31  -to 0 m_axis_result_tdata
   $cmd -dir O -from 0   -to 0 m_axis_result_tvalid
+  $cmd -dir O                m_axis_result_tlast
   $cmd -dir I -type clk       clk
 }
 
@@ -108,6 +109,8 @@ proc create {module_name fft_size} {
     set slice_tdata [get_slice_pin fft_0/m_axis_data_tdata [expr 31+32*$i] [expr 32*$i]]
     cell xilinx.com:ip:floating_point:7.1 mult_$i {
       Operation_Type Multiply
+      Has_A_TLAST true
+      RESULT_TLAST_Behv Pass_A_TLAST
       Flow_Control Blocking
       Maximum_Latency True
     } {
@@ -115,6 +118,7 @@ proc create {module_name fft_size} {
       s_axis_a_tdata  $slice_tdata
       s_axis_b_tdata  $slice_tdata
       s_axis_a_tvalid fft_0/m_axis_data_tvalid
+      s_axis_a_tlast fft_0/m_axis_data_tlast
       s_axis_b_tvalid fft_0/m_axis_data_tvalid
     }
   }
@@ -124,6 +128,8 @@ proc create {module_name fft_size} {
   cell xilinx.com:ip:floating_point:7.1 add_0 {
     Flow_Control Blocking
     Add_Sub_Value Add
+    Has_A_TLAST true
+    RESULT_TLAST_Behv Pass_A_TLAST
     C_Mult_Usage No_Usage
     Maximum_Latency True
     Has_RESULT_TREADY false
@@ -133,6 +139,7 @@ proc create {module_name fft_size} {
     S_AXIS_B mult_1/M_AXIS_RESULT
     m_axis_result_tdata m_axis_result_tdata
     m_axis_result_tvalid m_axis_result_tvalid
+    m_axis_result_tlast m_axis_result_tlast
   }
 
   current_bd_instance $bd

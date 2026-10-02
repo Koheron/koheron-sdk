@@ -12,7 +12,7 @@ OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi
 include $(SDK_PATH)/boards/alpha15/cores/cores.mk
 CORES += $(SDK_PATH)/fpga/cores/tlast_gen_v1_0
 CORES += $(SDK_PATH)/fpga/cores/bus_multiplexer_v1_0
-CORES += $(SDK_PATH)/fpga/cores/psd_counter_v1_0
+CORES += $(SDK_PATH)/fpga/ip/axis_accumulator_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
 
 include $(SDK_PATH)/boards/alpha15/drivers/drivers.mk
