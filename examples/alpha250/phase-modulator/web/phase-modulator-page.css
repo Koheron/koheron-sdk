@@ -1,8 +1,9 @@
-.pm-workspace { margin: 0; background: white; color: #333; font: 12px/1.4 Lato, sans-serif; }
+.pm-workspace { margin: 0; background: white; color: #333; font: 12px/1.4 'DDS PM Lato', Arial, sans-serif; }
 .pm-workspace .app-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 38px; padding: 4px 12px; border-bottom: 1px solid #e6e6e6; }
-.pm-workspace .brand img { width: 88px; display: block; }
+.pm-workspace .brand img { width: 88px; height: auto; aspect-ratio: 350 / 120; display: block; }
 .pm-workspace h1 { margin: 0; padding-left: 12px; border-left: 1px solid #ddd; font-size: 14px; font-weight: 700; }
 .pm-workspace .board-tag, .pm-workspace #connection-status { color: #777; font-size: 11px; }
+.pm-workspace #connection-status { width: 74px; flex: 0 0 74px; white-space: nowrap; }
 .pm-workspace #connection-status::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: #aaa; }
 .pm-workspace #connection-status[data-state="live"]::before { background: #39994b; }
 .pm-workspace #connection-status[data-state="error"]::before { background: #bc4828; }

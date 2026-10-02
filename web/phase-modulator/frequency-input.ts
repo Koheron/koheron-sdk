@@ -21,6 +21,16 @@ class FrequencyInput {
     private lastSent = 0;
     private removers: Array<() => void> = [];
     private hint: HTMLElement;
+    private wheelHandler = (event: Event) => this.wheel(event as WheelEvent);
+
+    private captureWheel(): void {
+        this.input.ownerDocument.addEventListener('wheel', this.wheelHandler, {passive: false, capture: true});
+    }
+
+    private releaseWheel(): void {
+        this.input.ownerDocument.removeEventListener('wheel', this.wheelHandler, true);
+        this.wheelDelta = 0;
+    }
 
     constructor(private input: HTMLInputElement, private unit: HTMLSelectElement,
                 private options: FrequencyInputOptions) {
@@ -43,12 +53,13 @@ class FrequencyInput {
             }, 0);
         });
         this.listen(input, 'blur', event => {
+            this.releaseWheel();
             if ((event as FocusEvent).relatedTarget !== unit) { this.commitEntry(); }
         });
         this.listen(unit, 'blur', event => {
             if ((event as FocusEvent).relatedTarget !== input) { this.commitEntry(); }
         });
-        this.listen(input, 'focus', () => this.help());
+        this.listen(input, 'focus', () => { this.captureWheel(); this.help(); });
         this.listen(input, 'click', event => {
             if ((event as MouseEvent).detail > 1 || this.dirty) { return; }
             const start = this.clickedIndex(event as MouseEvent);
@@ -60,7 +71,6 @@ class FrequencyInput {
             this.help();
         });
         this.listen(input, 'keydown', event => this.key(event as KeyboardEvent));
-        this.listen(input, 'wheel', event => this.wheel(event as WheelEvent), {passive: false});
         this.listen(unit, 'change', () => {
             if (this.dirty) { this.commitEntry(true); }
             else { this.paint(); } // Display units never issue a command.
@@ -311,5 +321,6 @@ class FrequencyInput {
         this.disposed = true;
         this.cancelQueued();
         this.removers.forEach(remove => remove());
+        this.releaseWheel();
     }
 }

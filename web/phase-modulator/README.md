@@ -21,14 +21,17 @@ Load `phase-modulator.css` in the host page and provide a mount element:
 
 ```html
 <link rel="stylesheet" href="phase-modulator.css">
-<div id="generator"></div>
+<div id="generator" class="dds-pm-widget" style="--pm-loading-channels: 2">
+  <div class="pm-initial-layout" aria-hidden="true"></div>
+</div>
 ```
 
 After the host application's shared Koheron `Client` is initialized:
 
 ```typescript
 const driver = new PhaseModulatorDriver(client);
-const generator = new PhaseModulatorWidget(document.getElementById('generator'), driver);
+const generator = new PhaseModulatorWidget(document.getElementById('generator'), driver,
+    {expectedChannels: 2});
 await generator.init();
 
 // During host teardown:
@@ -38,9 +41,21 @@ generator.dispose();
 The widget owns neither the socket pool nor the page lifecycle. The host calls
 `client.exit()` when its application closes. All DOM access stays inside the
 mount element, CSS is scoped to `.dds-pm-widget`, and there are no generated
-global IDs, imports, polling loops or page-level event listeners. Multiple
+global IDs, imports or polling loops. A frequency editor temporarily captures
+page wheel events while focused, and releases that listener on blur or disposal. Multiple
 widgets can share a client and transport adapter. The host can listen for the
 bubbling `dds-pm-ready` event to update its connection indicator.
+
+The loading placeholder reserves the same responsive layout as the controls.
+Set `expectedChannels: 1` and `--pm-loading-channels: 1` when embedding a
+single-channel build (default: two);
+hardware discovery still determines which channels are available. For a host
+that connects before constructing the widget, render
+`PhaseModulatorWidget.loadingMarkup(2)` inside a `.dds-pm-widget` mount first.
+Acknowledgement/error messages use a reserved status line, and focus hints
+are positioned without changing row height. Long status messages scroll
+horizontally inside that line. The supplied Lato font faces use optional font
+loading to avoid a late swap; hosts may preload the two supplied WOFF2 weights.
 
 The supplied adapter uses the example's `PhaseModulator` RPC interface;
 its optional second constructor argument selects another RPC class name.
@@ -69,8 +84,10 @@ Carrier and PM rate use a reusable digit editor:
   changes: a 1 kHz step takes `9.999 MHz` to `10.000 MHz`.
 - The unit selector changes display units without a hardware write. For typed
   entry, selecting a unit finishes the number in that unit.
-- Wheel tuning requires a focused input with one digit selected. Hovering
-  leaves page scrolling alone; small trackpad deltas accumulate into a step.
+- Wheel tuning follows the focused input with one digit selected, even when
+  the pointer is elsewhere on the page. Clicking another control ends tuning.
+  Without an active digit, wheel events scroll normally; small trackpad deltas
+  accumulate into a step. Ctrl/Command-wheel remains available for browser zoom.
 
 The focused editor shows its tuning step without adding a permanent toolbar.
 Fast tuning coalesces unsent values and sends at most ten tuning requests per

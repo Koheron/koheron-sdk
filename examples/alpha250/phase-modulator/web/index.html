@@ -5,18 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Phase modulator · ALPHA250 · Koheron</title>
   <link rel="icon" href="kbird.ico">
+  <link rel="preload" href="lato-v11-latin-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="lato-v11-latin-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="main.css">
   <link rel="stylesheet" href="phase-modulator.css">
   <link rel="stylesheet" href="phase-modulator-page.css">
 </head>
 <body class="pm-workspace">
   <header class="app-header">
-    <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
+    <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" width="350" height="120" alt="Koheron"></a>
     <h1>Phase modulator</h1><span class="board-tag">ALPHA250</span>
     <span id="connection-status" role="status" data-state="connecting">Connecting…</span>
     <nav aria-label="Board navigation"><a href="/koheron">Instruments</a><a href="/koheron/logs_rate.html">Logs &amp; data rates</a></nav>
   </header>
-  <main><div id="phase-modulator" aria-label="DDS signal generator"></div></main>
+  <main><div id="phase-modulator" class="dds-pm-widget" aria-label="DDS signal generator"><div class="pm-initial-layout" aria-hidden="true"></div></div></main>
   <script src="app.js"></script>
 </body>
 </html>

@@ -12,14 +12,16 @@ class PhaseModulatorWidget {
     private shapes = ['Sine', 'Square', 'Pulse', 'Triangle', 'Up ramp', 'Down ramp',
                       'Uniform noise', 'Gaussian noise', 'PRBS', 'BPSK'];
 
-    constructor(private root: HTMLElement, private driver: PhaseModulatorPort) {
+    constructor(private root: HTMLElement, private driver: PhaseModulatorPort,
+                private options: {expectedChannels?: 1 | 2} = {}) {
         root.classList.add('dds-pm-widget');
-        root.innerHTML = `<div class="pm-loading" role="status">Reading signal generator…</div>`;
+        root.innerHTML = PhaseModulatorWidget.loadingMarkup(options.expectedChannels);
         root.addEventListener('change', this.changeHandler);
         root.addEventListener('click', this.clickHandler);
     }
 
     async init(): Promise<void> {
+        if (!this.values.length) { this.root.innerHTML = PhaseModulatorWidget.loadingMarkup(this.options.expectedChannels); }
         try {
             const info = await this.driver.init();
             const values = await Promise.all(info.map((_, channel) => this.driver.settings(channel)));
@@ -55,12 +57,29 @@ class PhaseModulatorWidget {
             this.root.dispatchEvent(new CustomEvent('dds-pm-ready', {bubbles: true}));
         } catch (error) {
             if (!this.disposed) {
-                this.root.innerHTML = `<div class="pm-load-error" role="alert"><span></span>
-                    <button type="button" data-action="retry">Retry</button></div>`;
-                this.root.querySelector('span').textContent = this.message(error);
+                const previous = this.root.querySelector('.pm-load-error');
+                if (previous) { previous.remove(); }
+                this.root.insertAdjacentHTML('beforeend', `<div class="pm-load-error" role="alert"><span></span>
+                    <button type="button" data-action="retry">Retry</button></div>`);
+                this.root.querySelector('.pm-load-error span').textContent = this.message(error);
             }
             throw error;
         }
+    }
+
+    static loadingMarkup(expectedChannels: 1 | 2 = 2): string {
+        const placeholder = '<span class="pm-placeholder"></span>';
+        const field = (name: string, title: string) => `<label class="pm-field pm-${name}"><span>${title}</span>${placeholder}</label>`;
+        const channels = Array.from({length: expectedChannels}, (_, channel) =>
+            `<section class="pm-channel"><div class="pm-row">
+                <div class="pm-output"><strong>DAC ${channel}</strong>${placeholder}</div>
+                ${field('carrier', 'Carrier')}<span class="pm-pm"></span>
+                ${field('waveform', 'Source')}${field('modulation', 'Rate')}${field('deviation', 'Amplitude')}
+                <span class="pm-more pm-placeholder"></span></div><div class="pm-status-slot"></div></section>`).join('');
+        return `<div class="pm-skeleton" aria-hidden="true"><div class="pm-toolbar"><strong>Signal generator</strong>
+            <span class="pm-clock">Reading…</span><button type="button" disabled>Refresh</button></div>${channels}
+            <p class="pm-footnote">Edits preserve oscillator phase · Output amplitude is full scale</p></div>
+            <span class="pm-loading pm-sr-only" role="status">Reading signal generator…</span>`;
     }
 
     private input(field: string, title: string, unit: string, min: string, max: string, step: string = 'any'): string {
@@ -99,7 +118,7 @@ class PhaseModulatorWidget {
                 ${this.input('seed', 'Seed', '', '1', '4294967295', '1')}
                 <button type="button" data-action="restart" title="Restart carrier and modulation phase; reseed noise and PRBS">Restart phase</button>
                 <span class="pm-source-note"></span>
-            </div></fieldset><div class="pm-status" role="status" aria-live="polite" hidden></div>
+            </div></fieldset><div class="pm-status-slot"><div class="pm-status" role="status" aria-live="polite" hidden></div></div>
         </section>`;
     }
 
@@ -172,6 +191,7 @@ class PhaseModulatorWidget {
     private status(channel: number, text: string, error: boolean = false): void {
         const node = this.channel(channel).querySelector<HTMLElement>('.pm-status');
         node.textContent = text;
+        node.title = text;
         node.hidden = !text;
         node.dataset.state = error ? 'error' : 'busy';
         node.setAttribute('role', error ? 'alert' : 'status');

@@ -1,11 +1,15 @@
 /* Scoped widget styles; match the compact ALPHA250 FFT controls. */
+@font-face { font-family: 'DDS PM Lato'; font-style: normal; font-weight: 400; font-display: optional; src: local('Lato Regular'), local('Lato-Regular'), url('./lato-v11-latin-400.woff2') format('woff2'); }
+@font-face { font-family: 'DDS PM Lato'; font-style: normal; font-weight: 700; font-display: optional; src: local('Lato Bold'), local('Lato-Bold'), url('./lato-v11-latin-700.woff2') format('woff2'); }
 .dds-pm-widget {
     --pm-accent: hsl(196, 99%, 42%);
     --pm-accent-dark: hsl(196, 99%, 32%);
     --pm-accent-light: hsl(196, 99%, 90%);
     --pm-border: #ddd;
+    --pm-loading-channels: 2;
     color: #333;
-    font: 12px/1.4 Lato, sans-serif;
+    font: 12px/1.4 'DDS PM Lato', Arial, sans-serif;
+    position: relative;
     container-type: inline-size;
     width: 100%;
 }
@@ -15,12 +19,12 @@
 .dds-pm-widget .pm-toolbar strong { font-size: 12px; }
 .dds-pm-widget .pm-clock { color: #777; font-size: 11px; }
 .dds-pm-widget .pm-toolbar button { margin-left: auto; }
-.dds-pm-widget .pm-channel { margin: 0; padding: 7px 0; border-top: 1px solid #e6e6e6; }
+.dds-pm-widget .pm-channel { margin: 0; padding: 4px 0; border-top: 1px solid #e6e6e6; }
 .dds-pm-widget fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .dds-pm-widget .pm-row { display: grid; grid-template-columns: 104px minmax(160px, 1.3fr) 38px minmax(115px, 1fr) minmax(146px, 1.1fr) minmax(78px, .7fr) 54px; gap: 10px; align-items: end; }
 .dds-pm-widget label { margin: 0; font-weight: 400; color: #666; }
 .dds-pm-widget .pm-field { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
-.dds-pm-widget .pm-field > span:first-child { font-size: 11px; }
+.dds-pm-widget .pm-field > span:first-child { font-size: 11px; line-height: 14px; }
 .dds-pm-widget .pm-input-unit { position: relative; display: flex; align-items: center; }
 .dds-pm-widget .pm-input-unit > span { position: absolute; right: 7px; color: #777; pointer-events: none; font-size: 11px; }
 .dds-pm-widget input[type="number"], .dds-pm-widget select, .dds-pm-widget button { font: inherit; color: #333; height: 28px; border: 1px solid var(--pm-border); border-radius: 2px; background: #fafafa; padding: 3px 7px; box-shadow: none; }
@@ -34,7 +38,7 @@
 .dds-pm-widget .pm-frequency-control select { padding: 3px 2px; border-left: 0; border-radius: 0 2px 2px 0; color: #666; font-size: 11px; }
 .dds-pm-widget .pm-frequency-control:focus-within { outline: 1px solid var(--pm-accent); outline-offset: 1px; }
 .dds-pm-widget .pm-frequency-control :focus-visible { outline: none; }
-.dds-pm-widget .pm-frequency-help { display: none; position: absolute; top: -19px; right: 0; padding: 0; background: white; color: var(--pm-accent-dark); font: 10px/1.3 Lato, sans-serif; white-space: nowrap; z-index: 5; pointer-events: none; }
+.dds-pm-widget .pm-frequency-help { display: none; position: absolute; top: -19px; right: 0; padding: 0; background: white; color: var(--pm-accent-dark); font-size: 10px; line-height: 1.3; white-space: nowrap; z-index: 5; pointer-events: none; }
 .dds-pm-widget .pm-frequency-control:focus-within .pm-frequency-help { display: block; }
 .dds-pm-widget .pm-frequency-help[data-state="error"] { top: 29px; left: 0; right: auto; padding: 3px 6px; border: 1px solid #ddad9f; border-radius: 2px; color: #a53e25; white-space: normal; min-width: 180px; max-width: 260px; }
 .dds-pm-widget .pm-phase input, .dds-pm-widget .pm-deviation input, .dds-pm-widget .pm-duty input { padding-right: 22px; }
@@ -59,12 +63,18 @@
 .dds-pm-widget .pm-advanced .pm-field { width: 114px; }
 .dds-pm-widget .pm-advanced .pm-seed { width: 128px; }
 .dds-pm-widget .pm-source-note { font-size: 11px; color: #777; align-self: center; }
-.dds-pm-widget .pm-status { margin-top: 5px; font-size: 11px; color: #777; }
+.dds-pm-widget .pm-status-slot { height: 16px; padding-top: 2px; }
+.dds-pm-widget .pm-status { height: 14px; font-size: 11px; line-height: 14px; color: #777; white-space: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
 .dds-pm-widget .pm-status[data-state="error"], .dds-pm-widget .pm-load-error { color: #a53e25; }
-.dds-pm-widget .pm-load-error { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
-.dds-pm-widget .pm-footnote { font-size: 11px; color: #777; margin: 4px 0 0; }
+.dds-pm-widget .pm-load-error { position: absolute; inset: 0; background: white; display: flex; align-items: start; gap: 10px; padding: 8px 0; }
+.dds-pm-widget .pm-load-error span { flex: 1; overflow-wrap: anywhere; }
+.dds-pm-widget .pm-placeholder { display: block; height: 28px; border: 1px solid var(--pm-border); background: #fafafa; border-radius: 2px; }
+.dds-pm-widget .pm-output .pm-placeholder { width: 51px; }
+.dds-pm-widget .pm-footnote { font-size: 11px; line-height: 14px; color: #777; margin: 4px 0 0; }
+.dds-pm-widget .pm-initial-layout { height: calc(55px + var(--pm-loading-channels) * 70px); }
 .dds-pm-widget .pm-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @container (max-width: 760px) {
+    .dds-pm-widget .pm-initial-layout { height: calc(55px + var(--pm-loading-channels) * 123px); }
     .dds-pm-widget .pm-row { grid-template-columns: 104px minmax(160px, 1fr) 38px minmax(120px, 1fr) 54px; gap: 8px; }
     .dds-pm-widget .pm-modulation { grid-column: 2; }
     .dds-pm-widget .pm-deviation { grid-column: 4; }
@@ -72,6 +82,7 @@
     .dds-pm-widget .pm-advanced { padding-left: 112px; }
 }
 @container (max-width: 560px) {
+    .dds-pm-widget .pm-initial-layout { height: calc(55px + var(--pm-loading-channels) * 212px); }
     .dds-pm-widget .pm-row { grid-template-columns: minmax(100px, 1fr) minmax(100px, 1fr); gap: 8px 12px; }
     .dds-pm-widget .pm-output { grid-column: 1; grid-row: 1; }
     .dds-pm-widget .pm-more { grid-column: 2; grid-row: 1; justify-self: end; }

@@ -12,6 +12,8 @@ class PhaseModulatorApp {
     private async init(): Promise<void> {
         const status = document.getElementById('connection-status');
         const root = document.getElementById('phase-modulator');
+        root.classList.add('dds-pm-widget');
+        root.innerHTML = PhaseModulatorWidget.loadingMarkup(2);
         root.addEventListener('dds-pm-ready', () => {
             status.textContent = 'Connected';
             status.dataset.state = 'live';
@@ -29,11 +31,17 @@ class PhaseModulatorApp {
             status.textContent = 'Disconnected';
             status.dataset.state = 'error';
             if (!this.widget) {
-                root.textContent = 'Unable to connect to the instrument. ';
+                const error = document.createElement('div');
+                error.className = 'pm-load-error';
+                error.setAttribute('role', 'alert');
+                const message = document.createElement('span');
+                message.textContent = 'Unable to connect to the instrument.';
+                error.appendChild(message);
                 const retry = document.createElement('button');
                 retry.textContent = 'Retry';
                 retry.addEventListener('click', () => location.reload());
-                root.appendChild(retry);
+                error.appendChild(retry);
+                root.appendChild(error);
                 this.client.exit();
             }
         }

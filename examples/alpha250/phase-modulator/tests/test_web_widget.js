@@ -164,9 +164,11 @@ test('reduced source capabilities and initialization retry', async t => {
     let fail = true;
     const init = driver.init;
     driver.init = async () => { if (fail) { throw new Error('Previous commit is still pending'); } return init(); };
-    const widget = new window.TestWidget(target, driver);
+    const widget = new window.TestWidget(target, driver, {expectedChannels: 1});
+    assert.equal(target.querySelectorAll('.pm-skeleton .pm-channel').length, 1);
     await assert.rejects(widget.init(), /still pending/);
     assert.match(target.querySelector('[role="alert"]').textContent, /still pending/);
+    assert.equal(target.querySelectorAll('.pm-skeleton .pm-channel').length, 1); // Failure retains the reserved layout.
     fail = false; target.querySelector('[data-action="retry"]').click(); await settle();
     assert.equal(target.querySelectorAll('.pm-channel').length, 1);
     const options = [...target.querySelector('[data-field="waveform"]').options];
@@ -284,7 +286,7 @@ test('digit tuning preserves place value through carry/borrow and skips separato
     assert.equal(f.input.selectionStart, 2); // Skip the decimal point.
 });
 
-test('wheel tunes only a focused selected digit, preserves page scrolling and accumulates trackpad deltas', async t => {
+test('wheel follows the focused selected digit across the page, releases on blur and accumulates trackpad deltas', async t => {
     const f = frequency(t);
     const wheel = delta => {
         const event = new f.window.WheelEvent('wheel', {deltaY: delta, bubbles: true, cancelable: true});
@@ -296,12 +298,24 @@ test('wheel tunes only a focused selected digit, preserves page scrolling and ac
     await settle(); assert.equal(f.calls.length, 0);
     wheel(-10); await settle();
     assert.deepEqual(f.calls, [10.001e6]);
+    const elsewhere = f.window.document.getElementById('second');
+    const pageWheel = () => {
+        const event = new f.window.WheelEvent('wheel', {deltaY: -100, bubbles: true, cancelable: true});
+        elsewhere.dispatchEvent(event); return event;
+    };
+    assert.equal(pageWheel().defaultPrevented, true);
+    await new Promise(resolve => setTimeout(resolve, 120));
+    assert.equal(f.calls.at(-1), 10.002e6);
     f.input.setSelectionRange(0, f.input.value.length);
     assert.equal(wheel(-100).defaultPrevented, false); // Ctrl+A is not a digit selection.
     f.digit(5);
     const zoom = new f.window.WheelEvent('wheel', {deltaY: -100, ctrlKey: true, cancelable: true});
     f.input.dispatchEvent(zoom); assert.equal(zoom.defaultPrevented, false);
-    assert.equal(f.calls.length, 1);
+    assert.equal(f.calls.length, 2);
+    f.unit.focus();
+    assert.equal(pageWheel().defaultPrevented, false);
+    f.digit(5); f.control.dispose();
+    assert.equal(pageWheel().defaultPrevented, false);
 });
 
 test('unit changes only reformat accepted values; unit selection finishes typed entry once', async t => {
