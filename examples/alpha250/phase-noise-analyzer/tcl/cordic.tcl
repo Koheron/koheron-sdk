@@ -15,7 +15,7 @@ proc pins {cmd} {
     $cmd -dir O -from 31 -to 0 demod
 }
 
-proc create {module_name} {
+proc create {module_name rounding_seed} {
 
     set bd [current_bd_instance .]
     current_bd_instance [create_bd_cell -type hier $module_name]
@@ -24,7 +24,13 @@ proc create {module_name} {
 
     # Complex multiplier, rounded with a linear feedback shift register
 
-    cell pavel-demin:user:axis_lfsr:1.0 lfsr {} {
+    # XAPP052 taps 64,63,61,60; XOR form excludes the zero state.
+    # Legacy LFSR defaults remain unchanged for other instruments.
+    cell pavel-demin:user:axis_lfsr:1.0 lfsr {
+        SEED $rounding_seed
+        FEEDBACK_MASK 0xd800000000000000
+        FEEDBACK_XNOR 0
+    } {
         aclk aclk
         aresetn aresetn
     }
@@ -45,14 +51,14 @@ proc create {module_name} {
         s_axis_ctrl_tvalid lfsr/m_axis_tvalid
     }
 
-    # Filter the multiplier output with a boxcar filter
+    # Suppress the mixing image before nonlinear phase extraction.
 
     for {set i 0} {$i < 2} {incr i} {
-        cell koheron:user:boxcar_filter:1.0 boxcar$i {
-            DATA_WIDTH 16
-        } {
+        cell koheron:user:phase_prefilter:1.0 prefilter$i {} {
             clk aclk
+            aresetn aresetn
             din [get_slice_pin complex_mult/m_axis_dout_tdata [expr 15 + 16 * $i] [expr 16 * $i]]
+            random_round [get_slice_pin lfsr/m_axis_tdata [expr 31 + 16 * $i] [expr 16 + 16 * $i]]
         }
     }
 
@@ -68,7 +74,7 @@ proc create {module_name} {
     } {
         aclk aclk
         s_axis_cartesian_tvalid [get_constant_pin 1 1]
-        s_axis_cartesian_tdata [get_concat_pin [list boxcar0/dout boxcar1/dout]]
+        s_axis_cartesian_tdata [get_concat_pin [list prefilter0/dout prefilter1/dout]]
         m_axis_dout_tvalid m_axis_tvalid
     }
 
