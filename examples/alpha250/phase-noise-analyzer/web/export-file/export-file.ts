@@ -42,10 +42,12 @@ class ExportFile {
                 csvContent += '"Averages",' + nAverages + "\n";
 
                 csvContent += "\n\n";
-                csvContent += '"CARRIER OFFSET FREQUENCY (Hz)","' + this.plot_.yLabel + '"\n';
+                csvContent += '"CARRIER OFFSET FREQUENCY (Hz)","' + this.plot_.yLabel +
+                    '","' + this.plot_.yLabel + ' (smoothed)","PHASE PSD (rad^2/Hz)"\n';
 
-                this.plot_.plot_data.forEach( (rowArray) => {
-                    let row = rowArray.join(",");
+                this.plot_.plot_data.forEach( (rowArray, index) => {
+                    let row = rowArray.join(",") + "," + this.plot_.smooth_plot_data[index][1] +
+                        "," + this.plot_.phase_psd[index];
                     csvContent += row + "\n";
                 });
 

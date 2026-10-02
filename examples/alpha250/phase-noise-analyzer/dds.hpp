@@ -7,6 +7,7 @@
 
 #include <array>
 #include <cstdint>
+#include <mutex>
 
 class ClockGenerator;
 
@@ -17,10 +18,12 @@ class Dds
     void set_dds_freq(uint32_t channel, double freq_hz);
 
     auto get_dds_freq(uint32_t channel) {
-        return dds_freq[channel];
+        std::lock_guard lock(mutex);
+        return channel < dds_freq.size() ? dds_freq[channel] : 0.0;
     }
 
   private:
+    std::mutex mutex;
     ClockGenerator& clk_gen;
     std::array<double, 2> dds_freq = {{0.0, 0.0}};
 };

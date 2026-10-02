@@ -46,7 +46,7 @@
       <div class="control-field"><span class="control-label">Input</span><div class="segmented">
         <label><input type="radio" name="channel" value="0" checked class="channel-input" data-valuestr="0" data-command="setChannel"><span>ADC 0</span></label>
         <label><input type="radio" name="channel" value="1" class="channel-input" data-valuestr="1" data-command="setChannel"><span>ADC 1</span></label>
-      </div></div>
+      </div><label class="toggle"><input type="checkbox" id="show-smoothed-trace" checked>Smoothed trace</label></div>
       <label class="control-field" title="CIC decimation rate">Decimation<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="20" min="4" step="1" max="8192" required data-command="setCicRate" class="cic-rate-input"></span></label>
       <label class="control-field">Averages<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1" min="1" step="1" max="100" required class="plot-navg-input"></span></label>
       <div id="reference-clock"></div>

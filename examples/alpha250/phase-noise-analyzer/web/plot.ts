@@ -6,10 +6,14 @@ class Plot {
   public n_pts: number;
   public plot: jquery.flot.plot;
   public plot_data: Array<Array<number>>;
+  public phase_psd: Float32Array = new Float32Array(0);
+  public smooth_plot_data: Array<Array<number>>;
+  private linear_plot_data: Array<Array<number>>;
   private samplingFrequency: number;
   private decadeValuesTable: HTMLTableElement;
 
   private laserPlotTypeInputs: HTMLInputElement[];
+  private showSmoothedInput: HTMLInputElement;
   private laserPlotType: 'phase' | 'frequency' = 'phase';
 
   public yLabel: string = "PHASE NOISE (dBc/Hz)";
@@ -18,6 +22,8 @@ class Plot {
   constructor(document: Document, private driver: PhaseNoiseAnalyzer, public plotBasics: PlotBasics) {
     this.peakDatapoint = [];
     this.plot_data = [];
+    this.smooth_plot_data = [];
+    this.linear_plot_data = [];
     this.init();
     this.decadeValuesTable = <HTMLTableElement>document.getElementById('decade-values-table');
     this.updatePlot();
@@ -31,6 +37,8 @@ class Plot {
     this.plotBasics.enableDecimation();
 
     this.initLaserPlotType();
+    this.showSmoothedInput = document.getElementById('show-smoothed-trace') as HTMLInputElement;
+    this.showSmoothedInput?.addEventListener('change', () => this.plotBasics.refreshLegend());
   }
 
   initLaserPlotType(): void {
@@ -58,12 +66,12 @@ class Plot {
 
   setFreqAxis(): void {
     this.ensurePlotBuffer();
-    const binWidth = this.samplingFrequency / (2 * this.n_pts);
-    let x = -binWidth;
+    const binWidth = this.samplingFrequency / (2 * (this.n_pts - 1));
 
     for (let i = 0; i < this.n_pts; i++) {
-      this.plot_data[i][0] = x;
-      x += binWidth;
+      this.plot_data[i][0] = i * binWidth;
+      this.linear_plot_data[i][0] = i * binWidth;
+      this.smooth_plot_data[i][0] = i * binWidth;
     }
 
     this.plotBasics.x_min = 2 * binWidth;
@@ -93,24 +101,16 @@ class Plot {
         continue;
       }
 
-      const idxFloat = 2 * freq * this.n_pts / this.samplingFrequency + 1;
-      const i0 = Math.floor(idxFloat);
-      const i1 = Math.min(i0 + 1, this.plot_data.length - 1);
-
-      const v0 = this.plot_data[i0]?.[1];
-      const v1 = this.plot_data[i1]?.[1];
-
-      let v: number;
-      if (Number.isFinite(v0) && Number.isFinite(v1)) {
-        // (Linear interpolation
-        const f0 = this.plot_data[i0][0], f1 = this.plot_data[i1][0];
-        const t = (freq - f0) / (f1 - f0);
-        v = v0 + (v1 - v0) * t;
-      } else {
-        v = Number.isFinite(v0) ? v0 : Number.isFinite(v1) ? v1 : NaN;
+      const scale = Math.pow(10, 0.05);
+      const binsPerHz = 2 * (this.n_pts - 1) / this.samplingFrequency;
+      const i0 = Math.max(2, Math.ceil(freq / scale * binsPerHz));
+      const i1 = Math.min(this.n_pts - 1, Math.floor(freq * scale * binsPerHz));
+      let sum = 0, count = 0;
+      for (let i = i0; i <= i1; i++) {
+        const value = this.linear_plot_data[i][1];
+        if (Number.isFinite(value)) { sum += value; count++; }
       }
-
-      decade_values.push([freq, v]);
+      decade_values.push([freq, count > 0 && sum > 0 ? 10 * Math.log10(sum / count) : NaN]);
     }
 
     return decade_values;
@@ -151,13 +151,52 @@ class Plot {
   }
 
   private _busy = false;
-  private _targetHz = 60; // plot update cadence
+  private _targetHz = 10; // plot update cadence
   private _lastTick = 0;
   private _loBackoffMs = 250; // slower polling when LO is off
 
   private ensurePlotBuffer() {
     if (!this.plot_data || this.plot_data.length !== this.n_pts) {
       this.plot_data = Array.from({ length: this.n_pts }, () => [0, NaN]);
+    }
+    if (!this.linear_plot_data || this.linear_plot_data.length !== this.n_pts) {
+      this.linear_plot_data = Array.from({ length: this.n_pts }, () => [0, NaN]);
+    }
+    if (!this.smooth_plot_data || this.smooth_plot_data.length !== this.n_pts) {
+      this.smooth_plot_data = Array.from({ length: this.n_pts }, () => [0, NaN]);
+    }
+  }
+
+  private computeDisplaySpectrum(phaseNoise: Float32Array, firstBin: number): void {
+    for (let i = 0; i < this.n_pts; i++) {
+      const f = this.plot_data[i][0];
+      const value = phaseNoise[i] * (this.laserPlotType === 'phase' ? 0.5 : f * f);
+      this.linear_plot_data[i][1] = i >= firstBin && Number.isFinite(value) && value >= 0 ? value : NaN;
+      this.plot_data[i][1] = i >= firstBin && Number.isFinite(value) && value > 0
+        ? 10 * Math.log10(value) : NaN;
+    }
+  }
+
+  private computeSmoothedPlot(firstBin: number): void {
+    // ALPHA250-4 display smoothing: average linear density in a 0.1-decade
+    // frequency window, then convert to dB. Keep raw data and jitter unchanged.
+    const src = this.linear_plot_data;
+    const dst = this.smooth_plot_data;
+    const scale = Math.pow(10, 0.05);
+    let j0 = firstBin, j1 = firstBin - 1, sum = 0, count = 0;
+    for (let i = 0; i < firstBin; i++) dst[i][1] = NaN;
+    for (let i = firstBin; i < this.n_pts; i++) {
+      const f = src[i][0];
+      while (j1 + 1 < this.n_pts && src[j1 + 1][0] <= f * scale) {
+        const value = src[++j1][1];
+        if (Number.isFinite(value)) { sum += value; count++; }
+      }
+      while (j0 <= j1 && src[j0][0] < f / scale) {
+        const value = src[j0++][1];
+        if (Number.isFinite(value)) { sum -= value; count--; }
+      }
+      const mean = count > 0 ? sum / count : NaN;
+      dst[i][1] = Number.isFinite(mean) && mean > 0 ? 10 * Math.log10(mean) : NaN;
     }
   }
 
@@ -203,28 +242,15 @@ class Plot {
 
       const phaseNoise: Float32Array = await this.driver.getPhaseNoise();
       if (this.disposed) { return; }
+      this.phase_psd = phaseNoise;
+      if (this.n_pts !== phaseNoise.length) {
+        this.n_pts = phaseNoise.length;
+        this.setFreqAxis();
+      }
       this.ensurePlotBuffer();
 
-      const plot = this.plot_data;
-      const N = this.n_pts;
-      const nstart = 3;
-      const DB10 = 10 * Math.LOG10E;
-      const SHIFT = DB10 * Math.log(0.5);
-
-      for (let i = 0; i < nstart - 1; i++) {
-        plot[i][1] = NaN;
-      }
-
-      if (this.laserPlotType === 'phase') {
-        for (let i = nstart - 1; i < N; i++) {
-          plot[i][1] = DB10 * Math.log(phaseNoise[i]) + SHIFT; // rad²/Hz => dBc/Hz
-        }
-      } else { // Frequency noise
-        for (let i = nstart - 1; i < N; i++) {
-          // plot[i][1] = DB10 * (2 * Math.log(plot[i][0]) + Math.log(phaseNoise[i])) + SHIFT; // rad²/Hz => dBc/Hz
-          plot[i][1] = 10 * Math.log10(phaseNoise[i]) + 20 * Math.log10(plot[i][0]); // dB Hz²/Hz
-        }
-      }
+      this.computeDisplaySpectrum(phaseNoise, 2);
+      this.computeSmoothedPlot(2);
 
       this.setDecadeValuesTable();
 
@@ -238,7 +264,11 @@ class Plot {
           const elapsed = performance.now() - now;
           const delay = Math.max(0, Math.ceil(frameBudgetMs - elapsed));
           setTimeout(() => requestAnimationFrame(() => this.updatePlot()), delay);
-        }
+        },
+        this.showSmoothedInput?.checked ? this.smooth_plot_data : undefined,
+        false,
+        [],
+        `${this.yLabel} (smoothed)`
       );
     } catch (err) {
       if (this.disposed) { return; }

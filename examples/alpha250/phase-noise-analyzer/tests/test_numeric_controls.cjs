@@ -87,7 +87,8 @@ test('CSV metadata preserves grouped LO digits and selected display units', asyn
     const file = 'examples/alpha250/phase-noise-analyzer/web/export-file/';
     w.document.querySelector('#export-file').innerHTML = fs.readFileSync(path.join(root, file + 'export-file.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
     w.eval(ts.transpileModule(fs.readFileSync(path.join(root, file + 'export-file.ts'), 'utf8'), {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.ExportFile = ExportFile;');
-    new w.ExportFile(w.document, {yLabel: 'PHASE NOISE (dBc/Hz)', plot_data: [[1e3, -130]]});
+    new w.ExportFile(w.document, {yLabel: 'PHASE NOISE (dBc/Hz)', plot_data: [[1e3, -130]],
+        smooth_plot_data: [[1e3, -130]], phase_psd: new Float32Array([2e-13])});
     h.enter(w.document.querySelector('.dds-input0'), '10.000123 MHz'); await settle();
     h.enter(w.document.querySelector('.dds-input1'), '12 kHz'); await settle();
     const link = w.document.querySelector('.export-data').parentElement.querySelector('a'); link.click = () => {};

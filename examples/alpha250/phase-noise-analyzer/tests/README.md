@@ -1,5 +1,40 @@
 # ALPHA250 phase-noise analyzer regressions
 
+## Acquisition and spectral processing
+
+From the SDK root:
+
+```sh
+bash examples/alpha250/phase-noise-analyzer/tests/run.sh
+make CFG=examples/alpha250/phase-noise-analyzer/config.mk server web N_CPUS=4
+```
+
+The runner defaults to `.venv/bin/python3`, `cross-armhf:24.04` and
+`koheron-web:node20`; override with `PNA_PYTHON`, `PNA_CPP_IMAGE` and
+`PNA_WEB_IMAGE`. The Python environment needs NumPy, SciPy and the Koheron
+client dependencies. The C++ image needs g++-13 and Eigen; the web image needs
+Node.js and npm. If TypeScript or jsdom are missing, the runner caches the
+versions specified for these tests under `tmp/tests/alpha250-phase-noise-analyzer/web-deps`.
+
+The production analyzer and DDS are compiled against controlled DMA, MMIO,
+clock, ADC and in-memory configuration dependencies. Address and undefined
+behavior sanitizers check the execution. The tests cover snapshot access
+during a blocked DMA wait, 48-bit DDS rounding with distinct ADC/DAC clocks,
+fractional LO configuration round-tripping, large phase-count offsets,
+drift rejection and known PM power, settings validation, settling discards,
+failed-transfer rejection without a RAM read, rate changes during acquisition,
+RF/laser average invalidation and averaging-window growth after unaveraged
+acquisition. DMA failures are injected; the DMA hardware driver itself is
+not simulated by this fixture.
+
+The shared phase helper is also checked through the existing ALPHA250-4 core
+and spectral regressions, including int32 subtraction extremes and near-carrier
+detrending response. Python spectra are compared with SciPy's periodogram;
+web checks cover exact FFT bin centers, Nyquist, decade density averaging,
+linear smoothing with invalid bins, display units, raw/smoothed/PSD export
+and existing numeric/DAC controls. No host test establishes analog
+noise-floor accuracy. The hardware PM validation below remains necessary.
+
 ## FPGA prefilter
 
 From the SDK root:

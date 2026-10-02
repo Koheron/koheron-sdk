@@ -130,7 +130,7 @@ class PhaseNoiseAnalyzerApp {
     this.timeJitterSpan.innerHTML =
       this.formatMeasurement(meas.time_jitter * 1E12, `ps<sub>rms</sub> ${freqRange}`);
 
-    requestAnimationFrame(() => { this.updateMeasurements(); });
+    setTimeout(() => { this.updateMeasurements(); }, 250);
   }
 
   private async updateControls(): Promise<void> {
@@ -159,6 +159,6 @@ class PhaseNoiseAnalyzerApp {
 
     (<HTMLInputElement>this.document.querySelector("[data-command='setReferenceClock'][value='" + parameters.clkIndex + "']")).checked = true;
 
-    requestAnimationFrame( () => { this.updateControls(); } )
+    setTimeout(() => { this.updateControls(); }, 500);
   }
 }
