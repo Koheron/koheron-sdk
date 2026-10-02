@@ -1,9 +1,14 @@
 set core [ipx::current_core]
-set_property DISPLAY_NAME {AXI Stream float accumulator} $core
+set_property DISPLAY_NAME {AXI4-Stream Float Accumulator} $core
+set_property TAXONOMY /DSP/Math_Functions $core
 set_property DESCRIPTION {Double-buffered float32 frame sums with backpressure and frame validation} $core
 set_property VENDOR koheron $core
 set_property VENDOR_DISPLAY_NAME Koheron $core
 set_property COMPANY_URL {https://www.koheron.com} $core
+# Ship the usage guide inside the catalog package and exported ZIP.
+file copy -force $core_path/README.md $out_dir/README.md
+set guide [ipx::add_file_group -type xilinx_productguide xilinx_productguide $core]
+ipx::add_file README.md $guide
 foreach {name title description} {
     FRAME_LENGTH {Bins per frame} {Number of float32 bins between TLAST markers.}
     N_FRAMES {Frames per sum} {Number of input frames accumulated into one output frame.}

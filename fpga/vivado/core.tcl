@@ -22,7 +22,7 @@ set rtl [concat \
   [glob -nocomplain $core_path/*.xci] \
   [glob -nocomplain $core_path/*.vhdl]]
 set cfg [glob -nocomplain $core_path/core_config.tcl]
-set inputs [concat $rtl $cfg [glob -nocomplain $core_path/*.tcl $core_path/*.xdc $core_path/*.mem] [list [info script]]]
+set inputs [concat $rtl $cfg [glob -nocomplain $core_path/*.tcl $core_path/*.xdc $core_path/*.mem $core_path/*.md] [list [info script]]]
 
 # Helper: latest mtime in a list (0 if empty)
 proc latest_mtime {files} {
@@ -42,7 +42,7 @@ if {[file exists $comp_xml]} {
   set out_mtime [file mtime $comp_xml]
   if {$in_mtime != 0 && $in_mtime <= $out_mtime} {
     puts "$core_name up-to-date"
-    exit 0
+    return
   }
 }
 

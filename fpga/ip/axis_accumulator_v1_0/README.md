@@ -5,6 +5,47 @@
 two accumulation BRAM banks and a Xilinx Floating-Point 7.1 adder behind
 standard slave/master AXI4-Stream interfaces. Normalization remains in software.
 
+## Use in any Vivado project
+
+Export the IP once from the SDK root, after sourcing Vivado's `settings64.sh`:
+
+```sh
+vivado -mode batch -source fpga/vivado/export_ip.tcl \
+  -tclargs fpga/ip/axis_accumulator_v1_0 xc7z020clg400-2 tmp/ip-export
+```
+
+This produces `tmp/ip-export/axis_accumulator_v1_0.zip`, containing
+`component.xml`, the configuration GUI, both RTL modules, the embedded
+floating-point XCI and this guide. Extract it into a directory such as
+`ip_repo/axis_accumulator_v1_0`; the extracted package can be moved independently
+of the SDK. The ZIP is a catalog package, not a board bitstream.
+
+1. In your Vivado project, open **Settings → IP → Repository**, add the extracted
+   package directory and apply the change.
+2. In the IP Catalog or a block design's **Add IP** dialog, search for
+   **AXI4-Stream Float Accumulator** (`koheron:user:axis_accumulator:1.0`).
+3. Double-click the IP to set **Bins per frame**, **Frames per sum**,
+   **Validate TLAST** and **Synchronize after reset**.
+4. Connect `aclk`, active-low `aresetn`, `S_AXIS` and `M_AXIS`. Honor both streams'
+   ready/valid handshakes. Status outputs are optional.
+5. Generate output products and synthesize normally. Vivado regenerates the
+   embedded vendor adder for the project's device; each instance can have its
+   own accumulator parameters. No SDK Tcl helpers or external adder instance
+   are required by the consumer.
+
+The equivalent standard Vivado Tcl is:
+
+```tcl
+set_property ip_repo_paths /path/to/ip_repo [current_project]
+update_ip_catalog
+create_bd_cell -type ip -vlnv koheron:user:axis_accumulator:1.0 accum_0
+set_property -dict {CONFIG.FRAME_LENGTH 8192 CONFIG.N_FRAMES 1023} [get_bd_cells accum_0]
+```
+
+The export was verified with Vivado 2026.1. The package depends on the installed
+Xilinx Floating-Point 7.1 core; other Vivado releases need their own compatibility
+check or IP upgrade.
+
 ## Interface
 
 All ports use `aclk`. `aresetn` is a synchronous active-low reset; assert it for
@@ -159,6 +200,18 @@ margin at the reported precision, so changed placement or configurations need
 another strict timing check. The SDK reports existing incomplete external
 I/O delay constraints; the passing checks cover constrained paths, pulse width
 and bus skew. Live board operation and analog measurements remain unverified.
+
+The exported ZIP was also extracted into a separate directory and consumed by
+a fresh `xc7z010clg400-1` project using only standard Vivado commands. Two native
+AXIS instances with different frame lengths, frame counts and reset options
+validated and synthesized without black boxes. The export itself was built
+for `xc7z020clg400-2`, verifying device regeneration on import. Reproduce that
+consumer check after extracting the archive:
+
+```sh
+vivado -mode batch -source fpga/ip/axis_accumulator_v1_0/tests/standalone_catalog.tcl \
+  -tclargs /path/to/extracted/ip_repo tmp/standalone-accumulator
+```
 
 To reproduce the full builds with Vivado 2026.1:
 
