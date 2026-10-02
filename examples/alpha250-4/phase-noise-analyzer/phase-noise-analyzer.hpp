@@ -46,7 +46,8 @@ class PhaseNoiseAnalyzer
     static constexpr uint32_t data_size = 2 * fft_size;
     static constexpr uint32_t spectrum_samples = 30000;
     static constexpr uint32_t spectrum_bins = spectrum_samples / 2 + 1;
-    // CORDIC uses pi/8192 radians/count. The normalized FPGA FIR contributes
+    // Wide CORDIC phase is stochastically rounded to pi/8192 input counts
+    // before the CIC. The normalized FPGA FIR contributes
     // a DC gain of 1/4 after its accumulator scaling.
     // Wider CIC/FIR outputs retain fractional phase counts. DMA carries the
     // low 32 bits; relative phase conversion handles their modulo wrap.

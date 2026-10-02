@@ -1,5 +1,82 @@
 Hardware validation notes — 2026-09-30 to 2026-10-02
 
+Phase-extraction investigation — 2026-10-02: the source was changed to an
+ALPHA250 at 192.168.1.105 running phase-modulator. Readback confirmed DAC0
+at nominal 10 MHz with 1° peak sine PM at 10 kHz, and DAC1 muted. Initial
+captures had no usable ADC1/3 carrier (demodulated magnitude approximately
+3 counts versus 3084/3066 counts on ADC0/2). Those spectra and the apparent
+tracking offset are invalid noise/frequency measurements. After the source
+DAC was reinitialized, ADC1/3 magnitudes were approximately 2724/2742 counts.
+The four analyzer base LOs were reset to 10.001 MHz, with the original 100 Hz
+tracking limit restored. No source settings or INI were saved.
+
+On the precision image, separate 128-pair PM-on/off/on captures with tracking
+locked found 23/3/24 negative bins exceeding five estimated standard errors
+from 10 kHz to 100 kHz. PM-on features near 90.2 and 94.2 kHz returned after
+restoring modulation. The final PM-on capture recovered 0.999979° peak in
+the real cross spectrum and -41.18324 dBc integrated SSB tone power; mean
+X/Y modulation-phase difference was +0.000275°. This reproduces the residual
+with a different source while preserving correct 10 kHz transfer.
+
+A bit-accurate AMD CORDIC model evaluated all four independently rounded I/Q
+outcomes at 16384 phase angles, at the measured reference magnitude of
+3084.5 counts. Even with unbiased Cartesian rounding, 16-bit phase extraction
+had periodic mean angle errors, including multiples of four times the beat
+frequency. Expected error RMS was 92.189 µrad at 16 bits versus 0.336524 µrad
+with fractional I/Q and 24-bit phase extraction, a 48.75 dB reduction in this
+model. The model excludes DDS/ADC errors, filtering and rounding noise variance.
+
+The candidate retains eight fractional I/Q bits, uses 24-bit phase extraction
+and 40-bit unwrapping/scaling, then independently stochastically rounds each
+pair's difference back to the existing pi/8192 input-count scale. The wider
+extraction and unbiased rounding are tested without changing CIC calibration
+or the signed cross-spectrum calculation. RTL checks pass full-precision
+16/24-bit prefilter convolution, six rounding generators, wide unwrapping,
+all 256 rounding values for positive/negative fractions and modulo boundaries,
+reset and paired acquisition. ARM compilation and the C-model check pass.
+The image passed Vivado 2025.1 strict routed timing at 200 MHz: setup slack
++0.098644 ns, hold slack +0.027840 ns and all 12 bus-skew checks. Resource
+usage is 24178 LUTs, 31577 registers and 94 DSPs. Deployed FPGA SHA256:
+`70d8f95d7ca11c89261302c2e892665466a45ce1c33d1cb50e4434d27ff15910`.
+Matching server SHA256:
+`700bdd5c843a15c58c3c60fdd914cd5c6e51af1a668d3dd473d1d7872cc79305`.
+The live image hashes and HTTP assets were verified after deployment.
+
+With the ALPHA250 source unchanged and base LOs at 10.001 MHz, a new-image
+192-pair capture had zero negative bins from 10 kHz to 100 kHz. Restoring
+the previous precision image brought back 42 negative bins in another
+192-pair capture, 25 exceeding five estimated standard errors. Reloading
+the new image gave zero again in a third 192-pair capture. Tracking was
+locked before and after every capture. At approximately 90.2/94.2 kHz,
+individual X/Y peak densities fell by 13.75–15.30 dB from the restored
+old image to the restored new one. This is reduced extraction error,
+not solely a change in cross-spectrum sign. The final capture recovered
+1.000035° peak and -41.18275 dBc integrated SSB power at 10 kHz, with mean
+X/Y modulation-phase difference +0.000192° (maximum snapshot 0.006053°).
+It does not establish a 48.75 dB improvement in hardware noise floor.
+
+Three further 128-pair checks used CW with 10.001 MHz base LOs, CW with
+the original 10 MHz LOs, and PM with the original 10 MHz LOs. Each had
+zero negative bins from 10 kHz to the usable 281.95 kHz upper offset.
+CW had no negative bins exceeding five estimated standard errors from
+500 Hz to 2.5 kHz at either LO setting, though finite negative estimates
+remained. PM retained a negative feature near 551 Hz at both LO settings;
+this lower-offset residual remains open. With PM and the original LOs,
+the measured cross-tone amplitude was 1.000024°.
+
+The hardware rate regression passed CIC 20, 67, 100, 133, 67 and 133, each
+with 12 fresh pairs and at least 100 live windows. Cross-tone amplitudes
+were 1.000030°–1.000092°; the largest individual modulation-phase difference
+was 0.006667°. The test restored CIC 133, XY and navg 1, with the 10.001 MHz
+base LOs and original source PM settings active. Those settings remain unsaved.
+
+A final live average observed the asynchronous cumulative reset before
+collecting 1003 new windows in 87.51 seconds. Tracking remained enabled and
+locked. The live cross spectrum recovered 1.000016° peak and -41.18292 dBc
+SSB power, with zero negative bins from 10 kHz to 281.95 kHz. Two lower-offset
+bins, at 526.32 and 551.38 Hz, remained negative. A final source readback
+confirmed DAC0 output and sine PM enabled at 10 MHz, 1° and 10 kHz.
+
 Precision investigation — 2026-10-02: with the split AWG still at 10 MHz and
 1° PM at 10 kHz, the live 592,499-window spectrum contained 38 negative bins
 among 11,248 usable bins. Independent SciPy processing of 192 fresh phase

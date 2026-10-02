@@ -3,12 +3,16 @@
 // H(z) = ((1 + z^-1 + ... + z^-15)/16)^4.
 // No interstage truncation: four sums add 16 bits of precision.
 // One sample per clock, five pipeline clocks, unity DC gain.
-module phase_prefilter (
+module phase_prefilter #(
+  // Keep fractional I/Q counts for a wider CORDIC. The default preserves
+  // the existing 16-bit output used by other instruments.
+  parameter integer OUTPUT_WIDTH = 16
+) (
   input wire clk,
   input wire aresetn,
   input wire signed [15:0] din,
   input wire [15:0] random_round,
-  output reg signed [15:0] dout
+  output reg signed [OUTPUT_WIDTH-1:0] dout
 );
   wire signed [15:0] stage0 = din;
   wire signed [19:0] stage1;
@@ -21,13 +25,14 @@ module phase_prefilter (
   phase_moving_sum #(.WIDTH(24)) s2(clk, aresetn, stage2, stage3);
   phase_moving_sum #(.WIDTH(28)) s3(clk, aresetn, stage3, stage4);
 
-  // Uniform [0, 65535] rounding makes either sign unbiased. Extend before
+  localparam integer SHIFT = 32 - OUTPUT_WIDTH;
+  // Uniform [0, 2^SHIFT-1] rounding makes either sign unbiased. Extend before
   // adding, so a positive full-scale input cannot overflow the signed sum.
   wire signed [32:0] rounded = $signed({stage4[31], stage4})
-                            + $signed({17'b0, random_round});
+                            + $signed({17'b0, random_round} & ((33'd1 << SHIFT) - 1));
   always @(posedge clk)
     if (!aresetn) dout <= 0;
-    else dout <= rounded >>> 16;
+    else dout <= rounded >>> SHIFT;
 endmodule
 
 module phase_moving_sum #(
