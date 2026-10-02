@@ -54,12 +54,11 @@
 				#size-cells = <1>;
 				ranges;
 
-				cma_pool_ddr: cma@18000000 {
-					compatible = "shared-dma-pool";
-					reg = <0x18000000 0x08000000>;   // 128 MiB example
-					linux,cma;
-					reusable;
-					alignment = <0x100000>;          // (optional) 1 MiB alignment
+				// Instruments address this DMA ring directly, without a CMA
+				// allocation. Linux must never allocate or cache these pages.
+				dma_buffer: dma-buffer@18000000 {
+					reg = <0x18000000 0x08000000>; // 128 MiB
+					no-map;
 				};
 			};
 		};
