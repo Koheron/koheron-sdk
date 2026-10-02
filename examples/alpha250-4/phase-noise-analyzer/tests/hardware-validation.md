@@ -42,6 +42,31 @@ Measured code spacing decreased from 0.139676° to 0.000545610°, a factor of
 contained 66 distinct phase codes. These checks establish retained fractional
 counts and conversion scale, rather than an absolute instrument noise floor.
 
+The precision image still showed narrow negative CW components around 1–2 kHz
+with PM off. A 256-pair capture found near-opposite X/Y cross phases at
+977 Hz, 1253 Hz and 1729 Hz, with the strongest negative bin approximately
+-125.47 dBc/Hz in displayed magnitude. The actual signed phase PSD was
+negative; this magnitude is not a positive noise measurement.
+
+An oscillator comparison kept the physical sources unchanged and temporarily
+disabled tracking. Shifting all four actual DDS frequencies by +1 kHz gave
+zero negative bins from 500 Hz to 2.5 kHz in 256 fresh pairs, compared with
+25 before the shift. Restoring the original frequencies brought back 31
+negative bins in another 256-pair capture. This demonstrates dependence on
+the demodulation condition, but does not isolate the responsible vendor IP,
+ADC distortion, or other mechanism.
+
+The same detuning was then applied through the normal local-oscillator settings:
+all four base frequencies approximately 10.001 MHz, with tracking enabled
+and locked. Another 256-pair capture and a 4370-window live average each had
+zero negative bins in the 500 Hz–2.5 kHz band. The ADC0/2 DDS frequencies
+tracked approximately 10.00100637 MHz; ADC1/3 remained at 10.001 MHz.
+These settings were left active for the next measurement and were not saved
+to INI. The earlier spectra and initial frequencies were retained locally.
+This is a measured workaround for this equal-10-MHz-carrier setup, not an
+absolute noise-floor calibration. The 1°/10 kHz PM check with this detuning
+is still pending; PM remained off during these comparisons.
+
 These notes preserve measurements taken during development. Results preceding
 the prefilter section used the old four-sample boxcar and, where stated, the
 former phase-block rejection rule. They are historical evidence, not a
