@@ -18,8 +18,9 @@ class FFTApp {
 
     // Updaters
     private _busyControls = false;
-    private _controlsHz = 10;            // throttle UI refresh rate
+    private _controlsHz = 4;            // throttle UI refresh rate
     private _lastControlsTick = 0;
+    private _lastBoardTick = -Infinity;
     private _ddsInputsByChannel?: HTMLInputElement[][];
     private _supplySpans?: HTMLSpanElement[];
     private _temperatureSpans?: HTMLSpanElement[];
@@ -64,8 +65,8 @@ class FFTApp {
       if (el.textContent !== v) el.textContent = v;
     }
 
-    private setRangeMaxIfNeeded(el: HTMLInputElement, v: string) {
-      if (el.type === "range" && el.max !== v) el.max = v;
+    private setMaxIfNeeded(el: HTMLInputElement, v: string) {
+      if (el.max !== v) el.max = v;
     }
 
     private async updateControls() {
@@ -82,7 +83,7 @@ class FFTApp {
         if (sinceLast < frameBudgetMs) {
             this._busyControls = false;
             const wait = Math.ceil(frameBudgetMs - sinceLast);
-            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updateControls(); } }), wait);
+            setTimeout(() => { if (this.running) { this.updateControls(); } }, wait);
             return;
         }
 
@@ -93,7 +94,10 @@ class FFTApp {
 
             const [sts, brdParams] = await Promise.all([
                 this.driver.getControlParameters() as Promise<IFFTStatus>,
-                this.driver.getBoardParameters() as Promise<IBoardParameters>,
+                // Slow board telemetry must not compete with spectrum/control requests.
+                typeof this.driver.getBoardParameters === 'function' && now - this._lastBoardTick >= 1000
+                    ? this.driver.getBoardParameters() as Promise<IBoardParameters>
+                    : Promise.resolve(undefined),
             ]);
             if (!this.running) { this._busyControls = false; return; }
 
@@ -104,16 +108,14 @@ class FFTApp {
                 const inputs = this._ddsInputsByChannel![ch] || [];
                 if (!inputs.length) continue;
 
-                // If the active element is one of this channel's inputs, skip updating this channel
+                const maxMHz = (sts.fs / 1e6 / 2).toFixed(1);
+                for (const inp of inputs) { this.setMaxIfNeeded(inp, maxMHz); }
+
+                // Keep an edit intact, but always refresh its hardware limit.
                 if (active && inputs.includes(active as HTMLInputElement)) continue;
 
                 const freqMHz = (sts.dds_freq[ch] / 1e6).toFixed(6);
-                const maxMHz = (sts.fs / 1e6 / 2).toFixed(1);
-
-                for (const inp of inputs) {
-                    this.setValueIfNeeded(inp, freqMHz);
-                    this.setRangeMaxIfNeeded(inp, maxMHz);
-                }
+                for (const inp of inputs) { this.setValueIfNeeded(inp, freqMHz); }
             }
 
             // Sampling frequency radio
@@ -131,7 +133,7 @@ class FFTApp {
             // FFT window select
             const winSel = document.querySelector<HTMLSelectElement>("[data-command='setFFTWindow']");
 
-            if (winSel) {
+            if (winSel && document.activeElement !== winSel) {
                 this.setValueIfNeeded(winSel, String(sts.window_index));
             }
 
@@ -140,36 +142,39 @@ class FFTApp {
                 `[data-command='setReferenceClock'][value='${sts.clkIndex}']`
             );
 
-            for (const span of this._supplySpans) {
-                const idx = Number(span.dataset.index || "0");
-                const val = brdParams.supplyValues[idx];
-                const out =
-                    span.dataset.type === "voltage"
-                    ? val.toFixed(3)
-                    : span.dataset.type === "current"
-                    ? (val * 1e3).toFixed(1)
-                    : "";
-                this.setTextIfNeeded(span, out);
-            }
-
-            for (const span of this._temperatureSpans) {
-                span.textContent = brdParams.temperatures[parseInt(span.dataset.index)].toFixed(3);
-            }
-
-            for (let i: number = 0; i < 4; i++) {
-                (<HTMLSpanElement>document.querySelector(".precision-adc-span[data-channel='" + i.toString() + "']")).textContent = (brdParams.adcValues[i] * 1000).toFixed(4);
-            }
-
-            for (let i = 0; i < 4; i++) {
-                let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".precision-dac-input[data-command='setDac'][data-channel='" + i.toString() + "']");
-                let inputsArray = [];
-                for (let j = 0; j < inputs.length; j++) {
-                    inputsArray.push(inputs[j]);
+            if (brdParams) {
+                this._lastBoardTick = now;
+                for (const span of this._supplySpans) {
+                    const idx = Number(span.dataset.index || "0");
+                    const val = brdParams.supplyValues[idx];
+                    const out =
+                        span.dataset.type === "voltage"
+                        ? val.toFixed(3)
+                        : span.dataset.type === "current"
+                        ? (val * 1e3).toFixed(1)
+                        : "";
+                    this.setTextIfNeeded(span, out);
                 }
 
-                if (inputsArray.indexOf(<HTMLInputElement>document.activeElement) == -1) {
+                for (const span of this._temperatureSpans) {
+                    span.textContent = brdParams.temperatures[parseInt(span.dataset.index)].toFixed(1);
+                }
+
+                for (let i: number = 0; i < 4; i++) {
+                    (<HTMLSpanElement>document.querySelector(".precision-adc-span[data-channel='" + i.toString() + "']")).textContent = (brdParams.adcValues[i] * 1000).toFixed(4);
+                }
+
+                for (let i = 0; i < 4; i++) {
+                    let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".precision-dac-input[data-command='setDac'][data-channel='" + i.toString() + "']");
+                    let inputsArray = [];
                     for (let j = 0; j < inputs.length; j++) {
-                      inputs[j].value = (brdParams.dacValues[i] * 1000).toFixed(3).toString();
+                        inputsArray.push(inputs[j]);
+                    }
+
+                    if (inputsArray.indexOf(<HTMLInputElement>document.activeElement) == -1) {
+                        for (let j = 0; j < inputs.length; j++) {
+                          inputs[j].value = (brdParams.dacValues[i] * 1000).toFixed(3).toString();
+                        }
                     }
                 }
             }
@@ -178,12 +183,12 @@ class FFTApp {
             const elapsed = performance.now() - now;
             const delay = Math.max(0, Math.ceil(frameBudgetMs - elapsed));
             this._busyControls = false;
-            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updateControls(); } }), delay);
+            setTimeout(() => { if (this.running) { this.updateControls(); } }, delay);
         } catch (err) {
             this._busyControls = false;
             if (!this.running) { return; }
             console.error("updateControls error:", err);
-            setTimeout(() => requestAnimationFrame(() => { if (this.running) { this.updateControls(); } }), 500);
+            setTimeout(() => { if (this.running) { this.updateControls(); } }, 500);
         }
     }
 

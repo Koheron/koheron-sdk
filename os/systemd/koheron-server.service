@@ -10,8 +10,9 @@ Requires=unzip-default-instrument.service
 Type=notify
 NotifyAccess=all
 ExecStart=/tmp/live-instrument/serverd
-ExecStop=/usr/bin/pkill -SIGINT serverd
-KillSignal=SIGKILL
+# Let the server finish its normal shutdown before escalating to SIGKILL.
+KillSignal=SIGINT
+TimeoutStopSec=30s
 StartLimitInterval=0
 
 [Install]

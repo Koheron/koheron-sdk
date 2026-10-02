@@ -1,0 +1,10 @@
+<template class="template">
+  <div class="oscillator-label">Local oscillators · MHz</div>
+  <div class="oscillator-grid">
+    <div class="oscillator-field"><label for="lo-0">DUT X</label><input id="lo-0" type="number" value="0" min="0" step="0.000000001" max="100.0" required class="dds-input dds-input0" title="Frequency in MHz; Enter or leave the field to apply"><button type="button" class="dds-set0" aria-label="Set DUT X frequency">Set</button></div>
+    <div class="oscillator-field"><label for="lo-1">REF X</label><input id="lo-1" type="number" value="0" min="0" step="0.000000001" max="100.0" required class="dds-input dds-input1" title="Frequency in MHz; Enter or leave the field to apply"><button type="button" class="dds-set1" aria-label="Set REF X frequency">Set</button></div>
+    <div class="oscillator-field"><label for="lo-2">DUT Y</label><input id="lo-2" type="number" value="0" min="0" step="0.000000001" max="100.0" required class="dds-input dds-input2" title="Frequency in MHz; Enter or leave the field to apply"><button type="button" class="dds-set2" aria-label="Set DUT Y frequency">Set</button></div>
+    <div class="oscillator-field"><label for="lo-3">REF Y</label><input id="lo-3" type="number" value="0" min="0" step="0.000000001" max="100.0" required class="dds-input dds-input3" title="Frequency in MHz; Enter or leave the field to apply"><button type="button" class="dds-set3" aria-label="Set REF Y frequency">Set</button></div>
+  </div>
+  <div class="tracking-controls"><label class="toggle"><input type="checkbox" class="tracking-enabled-input">Tracking</label><span class="tracking-readout">BW: <span class="tracking-effective-bandwidth">---</span> Hz · X: <span class="tracking-correction-x">---</span> Hz · Y: <span class="tracking-correction-y">---</span> Hz</span></div>
+</template>

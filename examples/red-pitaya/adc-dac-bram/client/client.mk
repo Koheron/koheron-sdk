@@ -17,8 +17,9 @@ CLIENT_CCXX := g++ -flto
 # Common flags
 CLIENT_CCXXFLAGS := -march=native -O3
 CLIENT_CCXXFLAGS += -MMD -MP -Wall -Werror
-CLIENT_CCXXFLAGS += -std=c++14 -pthread
-CLIENT_CCXXFLAGS += -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/core -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/client
+CLIENT_CCXXFLAGS += -std=c++20 -pthread
+CLIENT_CCXXFLAGS += -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/external_libs -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/client
+CLIENT_CCXXFLAGS += -DKOHERON_SERVER_BUILD
 
 # GCC flags
 CLIENT_CCXXFLAGS += -lm -static-libgcc -static-libstdc++

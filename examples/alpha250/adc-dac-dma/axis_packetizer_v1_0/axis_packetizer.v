@@ -66,7 +66,9 @@ module axis_packetizer #(
     end
 
     // AXIS passthrough
-    assign s_axis_tready = packet_active & m_axis_tready;
+    // Keep the upstream width converter current while waiting for a trigger.
+    // Idle input beats are discarded; active beats still follow downstream TREADY.
+    assign s_axis_tready = aresetn & (~packet_active | m_axis_tready);
     assign m_axis_tvalid = packet_active & s_axis_tvalid;
     assign m_axis_tdata  = s_axis_tdata;
     assign m_axis_tlast  = packet_active & last_beat;

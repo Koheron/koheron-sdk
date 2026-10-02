@@ -106,3 +106,7 @@ connect_pins [sts_pin digital_inputs] [get_concat_pin [list exp_io_0_p exp_io_1_
 for {set i 0} {$i < 8} {incr i} {
     connect_pins  [get_slice_pin [ctl_pin digital_outputs] $i $i] exp_io_${i}_n
 }
+
+# Repair short DDS-to-DAC hold paths after routing.
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE ExploreWithAggressiveHoldFix [get_runs impl_1]

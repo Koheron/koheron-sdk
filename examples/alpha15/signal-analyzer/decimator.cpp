@@ -21,20 +21,20 @@ Decimator::Decimator()
 void Decimator::set_fft_window(uint32_t window_id) {
     switch (window_id) {
       case 0:
-        analyzer0.set_window<win::Boxcar>();
-        analyzer1.set_window<win::Boxcar>();
+        analyzer0.set_window<win::Window::Boxcar>();
+        analyzer1.set_window<win::Window::Boxcar>();
         break;
       case 1:
-        analyzer0.set_window<win::Hann>();
-        analyzer1.set_window<win::Hann>();
+        analyzer0.set_window<win::Window::Hann>();
+        analyzer1.set_window<win::Window::Hann>();
         break;
       case 2:
-        analyzer0.set_window<win::Flattop>();
-        analyzer1.set_window<win::Flattop>();
+        analyzer0.set_window<win::Window::Flattop>();
+        analyzer1.set_window<win::Window::Flattop>();
         break;
       case 3:
-        analyzer0.set_window<win::Blackmanharris>();
-        analyzer1.set_window<win::Blackmanharris>();
+        analyzer0.set_window<win::Window::Blackmanharris>();
+        analyzer1.set_window<win::Window::Blackmanharris>();
         break;
       default:
         log<ERROR>("Decimator: Invalid window index\n");

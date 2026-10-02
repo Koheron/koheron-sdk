@@ -6,6 +6,7 @@
 #define __SERVER_CONTEXT_MEMORY_MAP_HPP__
 
 #include "server/hardware/memory_catalog.hpp"
+#include "server/hardware/system_ram.hpp"
 #include "server/drivers/uio.hpp"
 
 #include <cstdio>
@@ -17,6 +18,7 @@
 #include <atomic>
 #include <string_view>
 #include <optional>
+#include <fstream>
 
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -69,6 +71,15 @@ class Memory
 
     int open() {
         logf("Memory[{}]: Opening {}\n", name, device);
+
+        if constexpr (device.starts_with("/dev/mem_wc")) {
+            std::ifstream iomem{"/proc/iomem"};
+            if (!outside_system_ram(iomem, phys_addr, size)) {
+                logf<ERROR>("Memory[{}]: Fixed DMA window is not excluded from System RAM. "
+                            "Install a boot device tree with an exclusive no-map reservation.\n", name);
+                return -1;
+            }
+        }
 
         if constexpr (is_uio) {
             uio_.emplace();

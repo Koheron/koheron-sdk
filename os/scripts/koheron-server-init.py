@@ -77,7 +77,14 @@ class KoheronClient:
         if hasattr(self, 'sock'):
             self.sock.close()
 
-if __name__ == "__main__":
+def main():
     client = KoheronClient('/var/run/koheron-server.sock')
+    driver_id = client.drivers_idx.get('Common')
+    if driver_id is None or 'ip_on_leds' not in client.cmds_idx_list[driver_id]:
+        return
     driver_id, cmd_id = client.get_ids('Common', 'ip_on_leds')
     client.send_command(driver_id, cmd_id)
+
+
+if __name__ == "__main__":
+    main()

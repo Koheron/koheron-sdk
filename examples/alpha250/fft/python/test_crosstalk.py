@@ -55,7 +55,7 @@ for j in range(2):
 	    time.sleep(0.5)
 	    psd1 = driver.read_psd()
 
-	    crosstalk[j,i] = 10 * np.log10(psd1[n-1] / psd0[n-1])
+	    crosstalk[j,i] = 10 * np.log10(psd1[n] / psd0[n])
 
 	    print(freq, crosstalk[j,i])
 

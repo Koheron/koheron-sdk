@@ -11,6 +11,7 @@ import requests
 import time
 import sys
 import os
+from urllib.parse import quote
 
 BLUE = "\033[94m"
 YELLOW = "\033[93m"
@@ -26,8 +27,9 @@ ConnectionError = requests.ConnectionError
 # --------------------------------------------
 
 def instrument_status(host):
-    status = requests.get('http://{}/api/instruments'.format(host)).json()
-    return status
+    response = requests.get('http://{}/api/instruments'.format(host))
+    response.raise_for_status()
+    return response.json()
 
 def upload_instrument(host, zip_path, run=False):
     field_name = os.path.basename(zip_path)
@@ -39,7 +41,8 @@ def upload_instrument(host, zip_path, run=False):
         r.raise_for_status()
 
     if run:
-        name = get_name_version(zip_path)
+        # The API sanitizes this basename in both upload and run routes.
+        name = quote(os.path.splitext(field_name)[0], safe='')
         rr = requests.get(f'http://{host}/api/instruments/run/{name}')
         rr.raise_for_status()
         return rr
@@ -52,6 +55,9 @@ def run_instrument(host, name=None, restart=False):
     status = instrument_status(host)
     instruments = status['instruments']
     live_instrument = status['live_instrument']
+
+    if name is None and live_instrument is None:
+        raise ValueError('No instrument is running; specify an instrument name')
 
     if (name is None) or (live_instrument == name): # Instrument already running
         name = live_instrument
@@ -68,7 +74,8 @@ def run_instrument(host, name=None, restart=False):
             raise ValueError('Instrument {} not found'.format(name))
 
     if instrument_in_store or (instrument_running and restart):
-        r = requests.get('http://{}/api/instruments/run/{}'.format(host, name))
+        r = requests.get('http://{}/api/instruments/run/{}'.format(host, quote(name, safe='')))
+        r.raise_for_status()
 
 
 def _logs_base_url(host, endpoint: str) -> str:
@@ -316,6 +323,7 @@ cpp_to_np_types = {
   'uint32_t': 'uint32', 'unsigned int': 'uint32',
   'int32_t': 'int32', 'int': 'int32',
   'uint64_t': 'uint64', 'int64_t': 'int64',
+  'unsigned long long': 'uint64', 'long long': 'int64',
   'float': 'float32',
   'double': 'float64'
 }

@@ -2,10 +2,10 @@
 
 Build high-performance instruments for Xilinx Zynq-based boards with a Make-based toolchain that coordinates FPGA, embedded Linux, C++ servers and web front-ends.
 
-> **Breaking change in V1**
-> **TL;DR:** V1 is not backward-compatible with 0.x.
-> - Starting a V1 project? Clone and build the `V1` branch explicitly.
-> - Upgrading from 0.x? Follow **[MIGRATING.md](./MIGRATING.md)**.
+> **V1 is recommended for new instrument development.**
+> V1 remains under active development ahead of the major release.
+> Boards currently ship with a V0 image. Build and install a V1 OS image before following the V1 instrument workflow below.
+> V1 OS images do not support legacy V0 instruments. Follow **[MIGRATING.md](./MIGRATING.md)** when porting an existing instrument, or see **[Staying on 0.x](#staying-on-0x)** to keep using the supplied image.
 
 ---
 
@@ -63,7 +63,15 @@ make -j CFG=examples/alpha250/fft/config.mk
 
 # Build a bootable SD card image
 make -j CFG=examples/alpha250/fft/config.mk image
+```
 
+For this example, the image archive is `tmp/examples/alpha250/fft/alpha250-fft.zip`. Extract its `.img` file and write it to an SD card using an image-writing tool. Writing the image erases the selected card; keep the supplied V0 card if you want to return to V0.
+
+With the board powered off, install the V1 SD card, then power up and find the board's IP address. The image boots with the selected FFT instrument installed.
+
+For subsequent instrument changes, rebuild and deploy without rebuilding the OS:
+
+```bash
 # Deploy the instrument to a board via HTTP
 make -j CFG=examples/alpha250/fft/config.mk HOST=192.168.1.100 run
 ```
@@ -139,6 +147,10 @@ web/       # Front-end assets shared across instruments
 
 Exploring these directories is the best way to learn how to assemble your own instrument configuration.
 
+Within `fpga/`, `cores/` contains reusable RTL primitives, `modules/` contains
+Tcl assemblies, and [`ip/`](./fpga/ip/) contains configurable Vivado IP
+subsystems, starting with the AXI DDS phase modulator.
+
 ---
 
 ## Instrument packaging
@@ -159,10 +171,14 @@ The instrument archive can be uploaded with `make run` or the HTTP API directly,
 
 ## Image contents
 
-Generated SD card images boot **Ubuntu 24.04.3** with the **`xilinx-linux-v2025.1`** kernel. The runtime environment includes:
+Generated SD card images boot **Ubuntu 24.04.5** with the **`xilinx-linux-v2025.1`** kernel. The runtime environment includes:
 
 - **nginx** serving static files and proxying **WebSocket** traffic.
 - An HTTP API (powered by **uWSGI**) to upload, start and stop instruments.
+
+Each board generates its own machine ID and SSH host keys on first boot. Build-only QEMU helpers, chroot scripts and the temporary dpkg `force-unsafe-io` setting are removed before packaging. Base-rootfs builds replace the cached tarball only after a successful build and archive operation.
+
+Image builds verify the resized partition before truncating and release chroot mounts before packaging. If a mount cannot be released, the build fails and reports the loop device retained for recovery. Run the disk-free build regression tests with `python3 -m unittest discover -s os/tests -p 'test_*build.py'`.
 
 This setup lets you iterate rapidly without having to rebuild the entire OS for every code change.
 
@@ -170,7 +186,13 @@ This setup lets you iterate rapidly without having to rebuild the entire OS for 
 
 ## Staying on 0.x
 
-If you rely on the 0.x toolchain, use a published 0.x release such as **V0.24** from the GitHub releases page. A dedicated `v0-maintenance` branch is not referenced here until it is published.
+Use the [`master` branch](https://github.com/Koheron/koheron-sdk/tree/master) with the V0 image supplied with your board:
+
+```bash
+git clone -b master https://github.com/Koheron/koheron-sdk.git
+```
+
+Follow the [V0 documentation](https://www.koheron.com/software-development-kit/documentation/) and use `CONFIG=.../config.yml`. [V0 images](https://www.koheron.com/software-development-kit/documentation/ubuntu-zynq/) remain available. For a fixed SDK revision, use a published 0.x release such as [V0.24](https://github.com/Koheron/koheron-sdk/releases/tag/V0.24).
 
 ---
 

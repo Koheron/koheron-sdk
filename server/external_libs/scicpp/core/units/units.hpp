@@ -4,6 +4,10 @@
 #ifndef SCICPP_CORE_UNITS_UNITS
 #define SCICPP_CORE_UNITS_UNITS
 
+#include "scicpp/core/macros.hpp"
+
+#if SCICPP_HAS_UNITS
+
 #include "scicpp/core/units/quantity.hpp"
 
 #include <cmath>
@@ -1094,5 +1098,19 @@ SCICPP_CORE_UNITS_SET_LITERAL(data_rate, _Ebps, std::exa)
 #undef SCICPP_CORE_UNITS_DEFINE_PREFIXES_ALIAS
 
 } // namespace scicpp::units
+
+#else // !SCICPP_HAS_UNITS
+
+namespace scicpp::units {
+
+template <class T>
+using radian = T;
+
+template <class T>
+constexpr bool is_planar_angle = true;
+
+} // namespace scicpp::units
+
+#endif // SCICPP_HAS_UNITS
 
 #endif // SCICPP_CORE_UNITS_UNITS

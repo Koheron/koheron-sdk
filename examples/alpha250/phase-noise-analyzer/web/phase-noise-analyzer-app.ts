@@ -2,6 +2,7 @@
 // (c) Koheron
 
 class PhaseNoiseAnalyzerApp {
+  private disposed = false;
   private cicRateInput: HTMLInputElement;
   private nAvgInput: HTMLInputElement;
   private channelInputs: HTMLInputElement[];
@@ -15,94 +16,57 @@ class PhaseNoiseAnalyzerApp {
   private ddsInputs: HTMLInputElement[];
   private ddsSetButtons: HTMLButtonElement[];
 
-  private isEditingCic: boolean;
-  private isEditingNavg: boolean;
-  private isEditingDdsInputs: boolean;
-  private isEditingDelay: boolean;
+  private numbers: {[field: string]: DigitInput} = {};
   public nPoints: number;
   public channel: number;
 
-  constructor(document: Document, private driver: PhaseNoiseAnalyzer) {}
+  constructor(private document: Document, private driver: PhaseNoiseAnalyzer) {}
+
+  dispose(): void { this.disposed = true; Object.keys(this.numbers).forEach(key => this.numbers[key].dispose()); }
 
   async init(): Promise<void> {
     const parameters = await this.driver.getParameters();
+    if (this.disposed) { return; }
     this.nPoints = parameters.data_size;
 
-    this.channelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("channel-input");
-    this.carrierPowerSpan = <HTMLElement>document.getElementsByClassName("carrier-power-span")[0];
-    this.phaseJitterSpan = <HTMLElement>document.getElementsByClassName("phase-jitter-span")[0];
-    this.timeJitterSpan = <HTMLElement>document.getElementsByClassName("time-jitter-span")[0];
+    this.channelInputs = <HTMLInputElement[]><any>this.document.getElementsByClassName("channel-input");
+    this.carrierPowerSpan = <HTMLElement>this.document.getElementsByClassName("carrier-power-span")[0];
+    this.phaseJitterSpan = <HTMLElement>this.document.getElementsByClassName("phase-jitter-span")[0];
+    this.timeJitterSpan = <HTMLElement>this.document.getElementsByClassName("time-jitter-span")[0];
 
     this.ddsInputs = [0, 1].map(i =>
-      document.querySelector<HTMLInputElement>(`.dds-input${i}`)!);
+      this.document.querySelector<HTMLInputElement>(`.dds-input${i}`)!);
     this.ddsSetButtons = [0, 1].map(i =>
-      document.querySelector<HTMLButtonElement>(`.dds-set${i}`)!);
+      this.document.querySelector<HTMLButtonElement>(`.dds-set${i}`)!);
 
-    this.initCicRateInput();
-    this.initNavgInput();
+    this.initNumbers(parameters);
     this.initChannelInput();
     this.initLaserMode();
     this.updateMeasurements();
     this.updateControls();
   }
 
-  initCicRateInput(): void {
-    this.cicRateInput = <HTMLInputElement>document.getElementsByClassName("cic-rate-input")[0];
-
-    this.cicRateInput.addEventListener("focus", () => {
-      this.isEditingCic = true;
+  private initNumbers(parameters: IParameters): void {
+    this.cicRateInput = this.document.querySelector('.cic-rate-input');
+    this.nAvgInput = this.document.querySelector('.plot-navg-input');
+    this.interferometerDelayInput = this.document.querySelector('.interferometer-delay');
+    const number = (input: HTMLInputElement, value: number, unitLabel: string, commit: (value: number) => void, read: (parameters: IParameters) => number) =>
+      new NumberInput(input, {
+        value, minimum: Number(input.min), maximum: Number(input.max), resolution: 1, integer: true, unitLabel,
+        commit: async value => { commit(value); return read(await this.driver.getParameters()); }
+      });
+    this.numbers.cic = number(this.cicRateInput, parameters.cic_rate, '', value => this.driver.setCicRate(value), p => p.cic_rate);
+    this.numbers.navg = number(this.nAvgInput, parameters.fft_navg, '', value => this.driver.setFFTNavg(value), p => p.fft_navg);
+    this.numbers.delay = number(this.interferometerDelayInput, parameters.interferometer_delay * 1e9, 'ns',
+      value => this.driver.setInterferometerDelay(value * 1e-9), p => p.interferometer_delay * 1e9);
+    [parameters.fdds0, parameters.fdds1].forEach((value, channel) => {
+      const input = this.ddsInputs[channel];
+      this.numbers['lo' + channel] = new FrequencyInput(input, input.parentElement.querySelector('.lo-unit'), {
+        value, maximum: 100e6, inclusiveMaximum: true, resolution: 200e6 / Math.pow(2, 48),
+        commit: async frequency => { this.driver.setLocalOscillator(channel, frequency); const p = await this.driver.getParameters(); return channel === 0 ? p.fdds0 : p.fdds1; }
+      });
+      this.ddsSetButtons[channel].addEventListener('click', () => this.numbers['lo' + channel].commit());
     });
-
-    this.cicRateInput.addEventListener("blur", () => {
-      this.isEditingCic = false;
-      this.updateControls();
-    });
-
-    let events = ['change', 'input'];
-    for (let j = 0; j < events.length; j++) {
-      this.cicRateInput.addEventListener(events[j], (event) => {
-          let command = (<HTMLInputElement>event.currentTarget).dataset.command;
-          let value = (<HTMLInputElement>event.currentTarget).value;
-          this.driver[command](value);
-      });
-    }
-
-    for (let channel = 0; channel < this.ddsInputs.length; channel++) {
-      this.ddsInputs[channel].addEventListener("focus", () => {
-        this.isEditingDdsInputs = true;
-      });
-
-      this.ddsInputs[channel].addEventListener("change", () => {
-        this.isEditingDdsInputs = true;
-      });
-
-      this.ddsSetButtons[channel].addEventListener('click', (event) => {
-          this.driver.setLocalOscillator(channel, 1E6 * parseFloat(this.ddsInputs[channel].value));
-          this.isEditingDdsInputs = false;
-          this.updateControls();
-      });
-    }
-  }
-
-  initNavgInput(): void {
-    this.nAvgInput = <HTMLInputElement>document.getElementsByClassName("plot-navg-input")[0];
-
-    this.nAvgInput.addEventListener("focus", () => {
-      this.isEditingNavg = true;
-    });
-
-    this.nAvgInput.addEventListener("blur", () => {
-      this.isEditingNavg = false;
-      this.updateControls();
-    });
-
-    let events = ['change', 'input'];
-    for (let j = 0; j < events.length; j++) {
-      this.nAvgInput.addEventListener(events[j], (event) => {
-          let value = parseInt((<HTMLInputElement>event.currentTarget).value);
-          this.setNavg(value);
-      });
-    }
   }
 
   initChannelInput(): void {
@@ -115,8 +79,8 @@ class PhaseNoiseAnalyzerApp {
   }
 
   initLaserMode(): void {
-    this.laserModeEnableCheckbox = <HTMLInputElement>document.getElementsByClassName("laser-mode-input")[0];
-    this.interferometerDelayInput = <HTMLInputElement>document.getElementsByClassName("interferometer-delay")[0];
+    this.laserModeEnableCheckbox = <HTMLInputElement>this.document.getElementsByClassName("laser-mode-input")[0];
+    this.interferometerDelayInput = <HTMLInputElement>this.document.getElementsByClassName("interferometer-delay")[0];
 
     this.laserModeEnableCheckbox.addEventListener("change", () => {
       const enabled: 0 | 1 = this.laserModeEnableCheckbox.checked ? 1 : 0;
@@ -124,26 +88,6 @@ class PhaseNoiseAnalyzerApp {
       this.interferometerDelayInput.disabled = !enabled;
     });
 
-    this.interferometerDelayInput.addEventListener("focus", () => {
-      this.isEditingDelay = true;
-    });
-
-    this.interferometerDelayInput.addEventListener("blur", () => {
-      this.isEditingDelay = false;
-      this.updateControls();
-    });
-
-    let events = ['change', 'input'];
-    for (let j = 0; j < events.length; j++) {
-      this.interferometerDelayInput.addEventListener(events[j], (event) => {
-        let value = parseInt((<HTMLInputElement>event.currentTarget).value);
-        this.driver.setInterferometerDelay(value * 1E-9);
-      });
-    }
-  }
-
-  private setNavg(navg: number) {
-    this.driver.setFFTNavg(navg);
   }
 
   private formatFrequency(freq: number): string {
@@ -173,8 +117,10 @@ class PhaseNoiseAnalyzerApp {
   }
 
   private async updateMeasurements() {
+    if (this.disposed) { return; }
     const navg: number = 400;
     const meas = await this.driver.getMeasurements(navg);
+    if (this.disposed) { return; }
 
     this.carrierPowerSpan.innerHTML = this.formatMeasurement(meas.carrier_power, "dBm");
     const freqRange = `(${this.formatFrequency(meas.freq_lo)} - ${this.formatFrequency(meas.freq_hi)})`;
@@ -184,11 +130,13 @@ class PhaseNoiseAnalyzerApp {
     this.timeJitterSpan.innerHTML =
       this.formatMeasurement(meas.time_jitter * 1E12, `ps<sub>rms</sub> ${freqRange}`);
 
-    requestAnimationFrame(() => { this.updateMeasurements(); });
+    setTimeout(() => { this.updateMeasurements(); }, 250);
   }
 
   private async updateControls(): Promise<void> {
+    if (this.disposed) { return; }
     const parameters = await this.driver.getParameters();
+    if (this.disposed) { return; }
 
     if (parameters.channel == 0) {
       this.channelInputs[0].checked = true;
@@ -198,29 +146,19 @@ class PhaseNoiseAnalyzerApp {
       this.channelInputs[1].checked = true;
     }
 
-    if (!this.isEditingCic) {
-      this.cicRateInput.value = parameters.cic_rate.toString();
-    }
-
-    if (!this.isEditingNavg) {
-      this.nAvgInput.value = parameters.fft_navg.toString();
-    }
-
-    if (!this.isEditingDdsInputs) {
-      this.ddsInputs[0].value = (parameters.fdds0 / 1E6).toString();
-      this.ddsInputs[1].value = (parameters.fdds1 / 1E6).toString();
-    }
+    this.numbers.cic.setValue(parameters.cic_rate);
+    this.numbers.navg.setValue(parameters.fft_navg);
+    this.numbers.lo0.setValue(parameters.fdds0);
+    this.numbers.lo1.setValue(parameters.fdds1);
 
     const laserModeEnabled: boolean = parameters.analyzer_mode === 'laser';
     this.laserModeEnableCheckbox.checked = laserModeEnabled;
     this.interferometerDelayInput.disabled = !laserModeEnabled;
 
-    if (!this.isEditingDelay) {
-      this.interferometerDelayInput.value = (parameters.interferometer_delay * 1E9).toFixed(2);
-    }
+    this.numbers.delay.setValue(parameters.interferometer_delay * 1e9);
 
-    (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock'][value='" + parameters.clkIndex + "']")).checked = true;
+    (<HTMLInputElement>this.document.querySelector("[data-command='setReferenceClock'][value='" + parameters.clkIndex + "']")).checked = true;
 
-    requestAnimationFrame( () => { this.updateControls(); } )
+    setTimeout(() => { this.updateControls(); }, 500);
   }
 }

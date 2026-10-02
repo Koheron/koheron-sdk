@@ -75,7 +75,7 @@ $(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONF
 	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $(UBOOT_PATH) mrproper
-	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) $(UBOOT_CONFIG)
+	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) CROSS_COMPILE=$(GCC_ARCH)- $(UBOOT_CONFIG)
 	@touch $@
 	$(call ok,$@)
 
@@ -96,9 +96,10 @@ $(TMP_OS_PATH)/u-boot.elf: $(TMP_OS_BOARD_PATH)/u-boot.elf | $(TMP_OS_PATH)/
 .PHONY: pmufw
 pmufw: $(TMP_OS_PATH)/pmu/executable.elf
 
-$(TMP_OS_PATH)/pmu/Makefile: $(TMP_FPGA_PATH)/$(NAME).xsa
+$(TMP_OS_PATH)/pmu/Makefile: $(TMP_OS_PATH)/hard/$(NAME).xsa
 	mkdir -p $(@D)
-	$(HSI) $(FPGA_PATH)/hsi/pmufw.tcl $(NAME) $(TMP_OS_PATH)/hard $(@D) $<
+	# Vendor BSP library recipes run clean alongside compilation under -j.
+	export MAKEFLAGS=-j1; $(HSI) $(FPGA_PATH)/hsi/pmufw.tcl $(NAME) $(TMP_OS_PATH)/hard $(@D) $<
 	$(call ok,$@)
 
 $(TMP_OS_PATH)/pmu/executable.elf: $(TMP_OS_PATH)/pmu/Makefile
@@ -244,6 +245,15 @@ BOARD_DTSO ?= $(OS_PATH)/board.dtso
 $(TMP_OS_PATH)/board-overlay/board.dtso: $(BOARD_DTSO) | $(TMP_OS_PATH)/board-overlay/
 	cp $< $@
 	$(call ok,$@)
+
+# Some boards select an overlay shipped inside the kernel archive. Make must
+# unpack it before resolving that source, and restage it after a new unpack.
+ifneq ($(filter $(LINUX_PATH)/%,$(BOARD_DTSO)),)
+$(BOARD_DTSO): | $(LINUX_PATH)/.unpacked
+	@test -f "$@" || { echo "Missing board overlay after kernel unpack: $@" >&2; exit 1; }
+
+$(TMP_OS_PATH)/board-overlay/board.dtso: $(LINUX_PATH)/.unpacked
+endif
 
 $(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso $(LINUX_BUILD_STAMP)
 	# Preprocess so #include <dt-bindings/...> works

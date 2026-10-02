@@ -1,3 +1,32 @@
+# Vivado reports NA for bus skew when optimization leaves only one data bit.
+# Accept that case only after checking the routed connectivity and its timing.
+proc koheron_single_bit_skew {entry} {
+  if {![regexp {^[0-9]+[[:space:]]+[0-9]+[[:space:]]+\[get_cells \{([^{}]+)\}\]} $entry -> source]} {
+    return 0
+  }
+  set cells [regexp -all -inline {\{([^{}]+)\}} $entry]
+  set source_cell [get_cells -quiet $source]
+  if {[llength $source_cell] != 1} { return 0 }
+  set active {}
+  foreach {match name} [lrange $cells 2 end] {
+    set cell [get_cells -quiet $name]
+    if {[llength $cell] != 1} { return 0 }
+    set data [get_pins -quiet -of_objects $cell -filter {REF_PIN_NAME == D}]
+    if {[llength $data] != 1} { return 0 }
+    set drivers [get_pins -quiet -of_objects [get_nets -of_objects $data] -filter {DIRECTION == OUT}]
+    if {[llength $drivers] != 1} { return 0 }
+    set driver_cell [get_cells -of_objects $drivers]
+    if {[get_property REF_NAME $driver_cell] in {GND VCC}} { continue }
+    if {$driver_cell ne $source_cell} { return 0 }
+    lappend active $cell
+  }
+  if {[llength $active] != 1} { return 0 }
+  set paths [get_timing_paths -from $source_cell -to $active -max_paths 1 -no_report_unconstrained]
+  if {[llength $paths] != 1} { return 0 }
+  set slack [get_property SLACK $paths]
+  return [expr {[string is double -strict $slack] && $slack >= 0}]
+}
+
 proc koheron_check_routed_timing {run bit_filename} {
   set report_file "[file rootname $bit_filename]_timing_summary.rpt"
   set bus_skew_file "[file rootname $bit_filename]_bus_skew.rpt"
@@ -49,6 +78,8 @@ proc koheron_check_routed_timing {run bit_filename} {
   close $file
   set constraints 0
   set slacks 0
+  set single_bits 0
+  set entry ""
   if {![string match {*No bus skew constraints*} $bus_skew_report]} {
     if {![string match {*Slack(ns)*} $bus_skew_report]} {
       error "Bus skew report has no summary table. See $bus_skew_file"
@@ -56,9 +87,16 @@ proc koheron_check_routed_timing {run bit_filename} {
     foreach line [split $bus_skew_report "\n"] {
       if {[regexp {^[0-9]+[[:space:]]+[0-9]+[[:space:]]+} $line]} {
         incr constraints
+        set entry ""
       }
+      append entry $line "\n"
       if {[regexp {^[[:space:]]*(Slow|Fast|NA)[[:space:]]+\S+[[:space:]]+\S+[[:space:]]+(\S+)[[:space:]]*$} $line -> corner slack]} {
         if {$corner eq "NA" || ![string is double -strict $slack]} {
+          if {$corner eq "NA" && [koheron_single_bit_skew $entry]} {
+            incr single_bits
+            incr slacks
+            continue
+          }
           error "Bus skew could not be analyzed; check clock constraints. See $bus_skew_file"
         }
         incr slacks
@@ -75,5 +113,5 @@ proc koheron_check_routed_timing {run bit_filename} {
   if {[llength $violations] > 0} {
     error "Routed timing failed: [join $violations {, }]. See $report_file and $bus_skew_file"
   }
-  puts "Routed timing met: WNS=$timing(WNS) ns, WHS=$timing(WHS) ns, TPWS=$timing(TPWS) ns; $constraints bus skew constraints met. Reports: $report_file, $bus_skew_file"
+  puts "Routed timing met: WNS=$timing(WNS) ns, WHS=$timing(WHS) ns, TPWS=$timing(TPWS) ns; $constraints bus skew constraints checked ($single_bits reduced to one timed bit). Reports: $report_file, $bus_skew_file"
 }

@@ -7,7 +7,8 @@ TMP_API_PATH := $(TMP)/api
 API_FILES := \
   $(TMP_API_PATH)/wsgi.py \
   $(TMP_API_PATH)/app/__init__.py \
-  $(TMP_API_PATH)/app/install_instrument.sh
+  $(TMP_API_PATH)/app/install_instrument.sh \
+  $(TMP_API_PATH)/app/install_instrument.py
 
 .PHONY: api
 api: $(API_FILES)
@@ -164,7 +165,7 @@ $(TMP_WWW_PATH)/html-imports.min.js.map:
 # BASE ROOTFS
 ###############################################################################
 
-UBUNTU_VERSION ?= 24.04.3
+UBUNTU_VERSION ?= 24.04.5
 
 ROOT_TAR      := ubuntu-base-$(UBUNTU_VERSION)-base-$(UBUNTU_ARCH).tar.gz
 ROOT_TAR_URL  := https://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/$(ROOT_TAR)
@@ -205,6 +206,7 @@ $(BASE_ROOTFS_TAR): DOCKER_ROOT_EXTRA_ENV += -e PASSWORD -e TIMEZONE
 $(BASE_ROOTFS_TAR): \
   $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
   $(OS_PATH)/scripts/chroot_base_rootfs.sh \
+  $(OS_PATH)/scripts/finalize_rootfs.sh \
   $(ROOT_TAR_PATH) $(BASE_ROOTFS_SETTINGS)
 	@mkdir -p $(@D)
 	@test -s "$(ROOT_TAR_PATH)" || { echo "Missing root tar: $(ROOT_TAR_PATH)"; exit 1; }
@@ -396,6 +398,8 @@ OVERLAY_FILES := \
   $(OVERLAY_DIR)/etc/systemd/system/unzip-default-instrument.service \
   $(OVERLAY_DIR)/etc/systemd/system/koheron-server.service \
   $(OVERLAY_DIR)/etc/systemd/system/koheron-server-init.service \
+  $(OVERLAY_DIR)/etc/systemd/system/ssh-host-keys.service \
+  $(OVERLAY_DIR)/etc/systemd/system/ssh.service.d/host-keys.conf \
   $(OVERLAY_DIR)/etc/uwsgi/uwsgi.ini \
   $(OVERLAY_DIR)/etc/systemd/system/uwsgi.service \
   $(OVERLAY_DIR)/etc/systemd/system/uwsgi.socket \
@@ -441,6 +445,7 @@ EXTLINUX_CONF ?= $(OS_PATH)/extlinux.conf
 $(RELEASE_ZIP): $(BASE_ROOTFS_TAR) \
   $(OS_FILES) \
   $(OS_PATH)/scripts/build_image.sh \
+  $(OS_PATH)/scripts/finalize_rootfs.sh \
   $(OVERLAY_TAR) $(MANIFEST_TXT) $(EXTLINUX_CONF) \
   $(OS_PATH)/scripts/chroot_overlay.sh
 	@mkdir -p $(@D)

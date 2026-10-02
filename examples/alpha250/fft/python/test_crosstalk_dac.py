@@ -56,7 +56,7 @@ for i, freq in enumerate(freqs):
     time.sleep(0.5)
     psd1 = driver.read_psd()
 
-    crosstalk[0, i] = 10 * np.log10(psd1[n-1] / psd0[n-1])
+    crosstalk[0, i] = 10 * np.log10(psd1[n] / psd0[n])
 
     print(freq, crosstalk[0, i])
 
@@ -74,7 +74,7 @@ for i, freq in enumerate(freqs):
     time.sleep(0.5)
     psd1 = driver.read_psd()
 
-    crosstalk[1, i] = 10 * np.log10(psd0[n-1] / psd1[n-1])
+    crosstalk[1, i] = 10 * np.log10(psd0[n] / psd1[n])
 
     print(freq, crosstalk[1, i])
 

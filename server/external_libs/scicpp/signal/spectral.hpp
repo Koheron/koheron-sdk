@@ -26,9 +26,9 @@
 
 namespace scicpp::signal {
 
-enum SpectrumScaling : int { NONE, DENSITY, SPECTRUM };
+enum class SpectrumScaling : int { NONE, DENSITY, SPECTRUM };
 
-enum SpectrumSides : int { ONESIDED, TWOSIDED };
+enum class SpectrumSides : int { ONESIDED, TWOSIDED };
 
 namespace detail {
 
@@ -45,13 +45,13 @@ template <class Array>
 using element_type_t = typename element_type<Array>::type;
 
 // Convert vector of quantity to values
-template <typename Array, meta::enable_if_iterable<Array> = 0>
+template <meta::Iterable Array>
 constexpr auto value(Array &&x) {
     return map([&](auto a) { return units::value(a); }, std::forward<Array>(x));
 }
 
 // Convert vector of values to quantities
-template <typename Qty, typename Array, meta::enable_if_iterable<Array> = 0>
+template <typename Qty, meta::Iterable Array>
 constexpr auto to_quantity(Array &&x) {
     return map([&](auto a) { return Qty(a); }, std::forward<Array>(x));
 }
@@ -113,7 +113,7 @@ class Spectrum {
     // Spectrum computations
     // -------------------------------------------------------------------------
 
-    template <SpectrumScaling scaling = DENSITY,
+    template <SpectrumScaling scaling = SpectrumScaling::DENSITY,
               bool return_freqs = true,
               typename Array>
     auto periodogram(const Array &x) {
@@ -122,15 +122,14 @@ class Spectrum {
         return welch<scaling, return_freqs>(x);
     }
 
-    template <SpectrumScaling scaling = DENSITY,
+    template <SpectrumScaling scaling = SpectrumScaling::DENSITY,
               bool return_freqs = true,
-              typename Array>
+              meta::Iterable Array>
     auto welch(const Array &x) {
-        using namespace scicpp::operators;
+        using namespace operators;
 
         using EltTp = detail::element_type_t<Array>;
 
-        static_assert(meta::is_iterable_v<Array>);
         static_assert(std::is_same_v<EltTp, T> ||
                       std::is_same_v<EltTp, std::complex<T>>);
 
@@ -144,7 +143,7 @@ class Spectrum {
                                            ArrayValueTp>;
         using RetTp = std::conditional_t<
             units::is_quantity_v<ArrayTp>,
-            std::conditional_t<scaling == DENSITY,
+            std::conditional_t<scaling == SpectrumScaling::DENSITY,
                                units::quantity_divide<
                                    units::quantity_multiply<ArrayTp, ArrayTp>,
                                    units::frequency<T>>,
@@ -162,11 +161,13 @@ class Spectrum {
         std::vector<RetTp> psd;
 
         if constexpr (meta::is_complex_v<EltTp>) {
-            psd = detail::to_quantity<RetTp>(normalize<scaling, TWOSIDED>(
-                welch_impl(std::size_t(m_nperseg), x, fft_func)));
+            psd = detail::to_quantity<RetTp>(
+                normalize<scaling, SpectrumSides::TWOSIDED>(
+                    welch_impl(std::size_t(m_nperseg), x, fft_func)));
         } else {
-            psd = detail::to_quantity<RetTp>(normalize<scaling, ONESIDED>(
-                welch_impl(std::size_t(m_nperseg) / 2 + 1, x, rfft_func)));
+            psd = detail::to_quantity<RetTp>(
+                normalize<scaling, SpectrumSides::ONESIDED>(
+                    welch_impl(std::size_t(m_nperseg) / 2 + 1, x, rfft_func)));
         }
 
         if constexpr (return_freqs) {
@@ -176,18 +177,16 @@ class Spectrum {
         }
     }
 
-    template <SpectrumScaling scaling = DENSITY,
+    template <SpectrumScaling scaling = SpectrumScaling::DENSITY,
               bool return_freqs = true,
-              typename Array1,
-              typename Array2>
+              meta::Iterable Array1,
+              meta::Iterable Array2>
     auto csd(const Array1 &x, const Array2 &y) {
-        using namespace scicpp::operators;
+        using namespace operators;
 
         using EltTp1 = detail::element_type_t<Array1>;
         using EltTp2 = detail::element_type_t<Array2>;
 
-        static_assert(meta::is_iterable_v<Array1>);
-        static_assert(meta::is_iterable_v<Array2>);
         static_assert(std::is_same_v<EltTp1, T> ||
                       std::is_same_v<EltTp1, std::complex<T>>);
         static_assert(std::is_same_v<EltTp2, T> ||
@@ -213,7 +212,7 @@ class Spectrum {
 
         using RetTp = std::conditional_t<
             units::is_quantity_v<Array1Tp> || units::is_quantity_v<Array2Tp>,
-            std::conditional_t<scaling == DENSITY,
+            std::conditional_t<scaling == SpectrumScaling::DENSITY,
                                units::quantity_divide<
                                    units::quantity_multiply<Array1Tp, Array2Tp>,
                                    units::frequency<T>>,
@@ -233,11 +232,11 @@ class Spectrum {
 
             if constexpr (meta::is_complex_v<EltTp>) {
                 csd = detail::to_quantity<std::complex<RetTp>>(
-                    normalize<scaling, TWOSIDED>(
+                    normalize<scaling, SpectrumSides::TWOSIDED>(
                         welch2_impl(std::size_t(m_nperseg), x, y, fft_func)));
             } else {
                 csd = detail::to_quantity<std::complex<RetTp>>(
-                    normalize<scaling, ONESIDED>(welch2_impl(
+                    normalize<scaling, SpectrumSides::ONESIDED>(welch2_impl(
                         std::size_t(m_nperseg) / 2 + 1, x, y, rfft_func)));
             }
 
@@ -257,12 +256,12 @@ class Spectrum {
 
     template <typename Array1, typename Array2>
     auto coherence(const Array1 &x, const Array2 &y) {
-        using namespace scicpp::operators;
+        using namespace operators;
         scicpp_require(x.size() == y.size());
 
-        auto [freqs, Pxy] = csd<NONE>(x, y);
-        auto Pxx = std::get<1>(welch<NONE>(x));
-        auto Pyy = std::get<1>(welch<NONE>(y));
+        auto [freqs, Pxy] = csd<SpectrumScaling::NONE>(x, y);
+        auto Pxx = std::get<1>(welch<SpectrumScaling::NONE>(x));
+        auto Pyy = std::get<1>(welch<SpectrumScaling::NONE>(y));
 
         scicpp_require(Pxy.size() == Pxx.size());
         scicpp_require(Pxy.size() == Pyy.size());
@@ -273,11 +272,11 @@ class Spectrum {
 
     template <typename Array1, typename Array2>
     auto tfestimate(const Array1 &x, const Array2 &y) {
-        using namespace scicpp::operators;
+        using namespace operators;
         scicpp_require(x.size() == y.size());
 
-        auto [freqs, Pyx] = csd<NONE>(y, x);
-        auto Pxx = welch<NONE, false>(x);
+        auto [freqs, Pyx] = csd<SpectrumScaling::NONE>(y, x);
+        auto Pxx = welch<SpectrumScaling::NONE, false>(x);
         return std::tuple{freqs, std::move(Pyx) / std::move(Pxx)};
     }
 
@@ -288,7 +287,7 @@ class Spectrum {
 
     // detrend = "constant" => Substract mean
     static constexpr auto detrend = [](auto &&x) {
-        using namespace scicpp::operators;
+        using namespace operators;
         return std::move(x) - stats::mean(x);
     };
 
@@ -351,7 +350,7 @@ class Spectrum {
     auto compute_spectrum(std::size_t nfft,
                           signed_size_t nseg,
                           SegPsdFunc get_segment_psd) {
-        using namespace scicpp::operators;
+        using namespace operators;
 
         auto res = zeros<Tp>(nfft);
 
@@ -381,7 +380,7 @@ class Spectrum {
         const auto nseg = 1 + (asize - m_nperseg) / nstep;
 
         return compute_spectrum<T>(nfft, nseg, [&](auto i) {
-            using namespace scicpp::operators;
+            using namespace operators;
 
             auto seg = utils::subvector(a, m_nperseg, i * nstep);
             scicpp_require(seg.size() == m_window.size());
@@ -395,7 +394,7 @@ class Spectrum {
                      const Array1 &x,
                      const Array2 &y,
                      FFTFunc &&fftfunc) {
-        using namespace scicpp::operators;
+        using namespace operators;
         scicpp_require(x.size() == y.size());
 
         const auto asize = signed_size_t(x.size());
@@ -403,7 +402,7 @@ class Spectrum {
         const auto nseg = 1 + (asize - m_nperseg) / nstep;
 
         return compute_spectrum<std::complex<T>>(nfft, nseg, [&](auto i) {
-            using namespace scicpp::operators;
+            using namespace operators;
 
             auto seg_x = utils::subvector(x, m_nperseg, i * nstep);
             scicpp_require(seg_x.size() == m_window.size());
@@ -417,9 +416,9 @@ class Spectrum {
 
     template <SpectrumScaling scaling, SpectrumSides sides, typename SpecTp>
     auto normalize(std::vector<SpecTp> &&v) {
-        using namespace scicpp::operators;
+        using namespace operators;
 
-        if constexpr (sides == ONESIDED) {
+        if constexpr (sides == SpectrumSides::ONESIDED) {
             v = T(2) * std::move(v);
             // Don't find why in scipy code, but need it to match scipy result
             v.front() *= T(0.5);
@@ -430,11 +429,11 @@ class Spectrum {
             }
         }
 
-        if constexpr (scaling == DENSITY) {
+        if constexpr (scaling == SpectrumScaling::DENSITY) {
             return std::move(v) / (m_fs * m_s2);
-        } else if constexpr (scaling == SPECTRUM) {
+        } else if constexpr (scaling == SpectrumScaling::SPECTRUM) {
             return std::move(v) / m_s1;
-        } else { // scaling == NONE
+        } else { // scaling == SpectrumScaling::NONE
             return std::move(v);
         }
     }

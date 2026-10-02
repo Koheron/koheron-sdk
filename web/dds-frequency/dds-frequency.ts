@@ -1,31 +1,29 @@
-// DDS Frequency wiget
+// DDS frequency widget
 // (c) Koheron
 
 class DDSFrequency {
     private ddsChannelInputs: HTMLInputElement[];
 
-    constructor(document, private driver) {
-        this.ddsChannelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("dds-channel-input");
+    constructor(private document: Document, private driver) {
+        this.ddsChannelInputs = Array.from(document.getElementsByClassName("dds-channel-input")) as HTMLInputElement[];
         this.initDDSChannelInputs();
     }
 
     initDDSChannelInputs(): void {
-        let events = ['change', 'input'];
-        for (let j = 0; j < events.length; j++) {
-            for (let i = 0; i < this.ddsChannelInputs.length; i++) {
-                this.ddsChannelInputs[i].addEventListener(events[j], (event) => {
-                    let counterType: string = "number";
-                    if ((<HTMLInputElement>event.currentTarget).type == "number") {
-                        counterType = "range";
-                    }
-                    let command = (<HTMLInputElement>event.currentTarget).dataset.command;
-                    let channel = (<HTMLInputElement>event.currentTarget).dataset.channel;
-                    let value = (<HTMLInputElement>event.currentTarget).value;
-                    (<HTMLInputElement>document.querySelector("[data-command='" + command + "'][data-channel='" + channel +"'][type='" + counterType + "']")).value = value ;
-                    this.driver[command](channel, 1e6 * parseFloat(value));
-                })
-            }
+        for (const input of this.ddsChannelInputs) {
+            // Commit typed numbers when editing finishes; sliders stay live.
+            input.addEventListener(input.type === 'range' ? 'input' : 'change', () => {
+                const frequency = input.valueAsNumber;
+                if (!Number.isFinite(frequency) || !input.checkValidity()) { return; }
+                const command = input.dataset.command;
+                const channel = input.dataset.channel;
+                const counterpartType = input.type === 'number' ? 'range' : 'number';
+                const counterpart = this.document.querySelector<HTMLInputElement>(
+                    `[data-command='${command}'][data-channel='${channel}'][type='${counterpartType}']`
+                );
+                if (counterpart) { counterpart.value = input.value; }
+                this.driver[command](channel, 1e6 * frequency);
+            });
         }
     }
-
 }
