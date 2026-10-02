@@ -58,6 +58,16 @@ cleanup() {
   rc=$?
   set +e
 
+  # A failed post-overlay chroot can leave these bind mounts below root_dir.
+  # Unmount them before the root filesystem so the loop device can detach.
+  if [ -n "$root_dir" ]; then
+    for mount_path in "$root_dir/run" "$root_dir/dev" "$root_dir/sys" "$root_dir/proc"; do
+      if mountpoint -q "$mount_path"; then
+        umount -R "$mount_path" || echo "[cleanup] Could not unmount $mount_path" >&2
+      fi
+    done
+  fi
+
   # Unmount filesystems if mounted
   [ -n "$boot_dir" ] && mountpoint -q "$boot_dir" && umount "$boot_dir"
   [ -n "$root_dir" ] && mountpoint -q "$root_dir" && umount "$root_dir"
@@ -267,6 +277,14 @@ else
   parted -s "$device" unit s resizepart 2 "${new_p2_end}" >/dev/null 2>&1 || true
 fi
 
+# Check the on-disk partition table before truncating the image. A resize
+# command can fail while the script is still able to create a ZIP archive.
+current_end=$(parted -sm "$device" unit s print | awk -F: '/^2:/{gsub(/s/,"",$3); print $3+0}')
+if [ -z "$current_end" ] || [ "$current_end" -ne "$new_p2_end" ]; then
+  echo "[shrink] ERROR: p2 end mismatch (${current_end:-missing} != $new_p2_end); keeping the untruncated image" >&2
+  exit 1
+fi
+
 # 5) truncate the image to the end of p2
 new_img_bytes=$(( (new_p2_end + 1) * 512 ))
 truncate -s "$new_img_bytes" "$image"
@@ -280,10 +298,6 @@ losetup -c "$device" 2>/dev/null || true
 # recompute p1/p2 nodes after table change
 boot_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '2!d')"
 root_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '3!d')"
-
-# sanity: verify the new end
-current_end=$(parted -sm "$device" unit s print | awk -F: '/^2:/{gsub(/s/,"",$3); print $3+0}')
-[ "$current_end" -eq "$new_p2_end" ] || echo "[shrink] WARN: p2 end mismatch ($current_end != $new_p2_end)"
 
 # zerofree "$root_dev" >/dev/null 2>&1 || true
 
