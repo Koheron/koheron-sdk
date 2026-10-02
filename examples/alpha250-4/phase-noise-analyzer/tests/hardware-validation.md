@@ -64,8 +64,38 @@ tracked approximately 10.00100637 MHz; ADC1/3 remained at 10.001 MHz.
 These settings were left active for the next measurement and were not saved
 to INI. The earlier spectra and initial frequencies were retained locally.
 This is a measured workaround for this equal-10-MHz-carrier setup, not an
-absolute noise-floor calibration. The 1°/10 kHz PM check with this detuning
-is still pending; PM remained off during these comparisons.
+absolute noise-floor calibration. PM remained off during these comparisons.
+
+The AWG's 1° peak PM at 10 kHz was then enabled without changing the carrier,
+splitter or LO settings. With tracking locked, 256 fresh phase pairs at CIC
+133 gave X = 0.997516° and Y = 0.997517° by sinusoidal fitting. The mean
+X/Y modulation-phase difference was +0.000262° and the largest absolute
+snapshot difference was 0.006077°. Independent SciPy integration of the
+signed real cross spectrum over 10 kHz ±250 Hz recovered 0.997519° peak,
+or -41.20463 dBc integrated SSB power. The ideal 1° value is -41.183 dBc.
+There were zero negative bins from 500 Hz to 2.5 kHz in this fresh capture;
+integrated components near 19, 21 and 29 kHz were positive. There were still
+161 negative bins over the usable spectrum, including features near 24.1
+and 48.2 kHz. Eighty negative bins exceeded five estimated standard errors
+of their frame means; these higher-offset residuals should not be dismissed
+as averaging fluctuations. This does not establish a calibrated instrument
+floor or eliminate every residual.
+Production C++ processing of the same 256 pairs agreed with independent
+SciPy processing within 0.001105% complex RMS from 500 Hz to 2.5 kHz and
+within 0.00070% around the 10 kHz tone and negative 24.1/48.2 kHz features.
+
+The board regression passed CIC rates 20, 67, 100, 133, 67 and 133 on the
+precision image with the detuning active. Each case used 12 fresh phase pairs
+and at least 100 live cumulative windows. Recovered cross-tone amplitudes
+were 0.997545°–0.997614°, and the largest individual X/Y modulation-phase
+difference across the entire run was 0.012423°. Acquisition settings returned
+to CIC 133, XY and navg 1; the base LOs remained at 10.001 MHz.
+
+After the rate regression, a separately reset live average accumulated 1003
+windows with tracking locked. It recovered 0.997526° peak and -41.20457 dBc
+integrated SSB power at 10 kHz, with zero negative bins from 500 Hz to
+2.5 kHz. Its integrated components near 19, 21 and 29 kHz were positive.
+The LO detuning remains active and is not saved to INI.
 
 These notes preserve measurements taken during development. Results preceding
 the prefilter section used the old four-sample boxcar and, where stated, the

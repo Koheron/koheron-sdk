@@ -73,8 +73,11 @@ around 1–2 kHz at the original LO settings. Setting all four base local
 oscillators to 10.001 MHz, with tracking enabled, removed negative bins from
 500 Hz to 2.5 kHz in the tested captures; restoring 10 MHz brought them back.
 This detuning is a measured workaround for a demodulation-dependent residual.
-Its response to the known phase modulation and an absolute noise floor still
-need validation. See the hardware notes for the controlled comparisons.
+With the detuning, a 1° peak modulation at 10 kHz recovered 0.99752° in the
+cross spectrum, and paired acquisition passed CIC rates 20, 67, 100 and 133
+including repeated changes. Negative estimates remain at some other offsets;
+the absolute noise floor still needs calibration. See the hardware notes for
+the controlled comparisons.
 
 The workspace follows the compact FFT interface: acquisition and local
 oscillators above a full-width spectrum, phase/frequency controls, CSV/PNG
