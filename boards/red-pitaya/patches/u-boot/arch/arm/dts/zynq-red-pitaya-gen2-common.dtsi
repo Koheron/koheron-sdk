@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0+
+#include "zynq-red-pitaya.dts"
+
+&gem0 {
+    status = "okay";
+    phy-mode = "rgmii-id";
+    phy-handle = <&gen2_ethernet_phy>;
+    gen2_ethernet_phy: ethernet-phy@1 {
+        reg = <1>;
+    };
+};

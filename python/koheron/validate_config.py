@@ -239,7 +239,7 @@ def validate_config(reporter: Reporter, cfg: MakeConfig) -> None:
 
 def validate_memory(reporter: Reporter, memory_yml: Path) -> None:
     if not memory_yml.exists():
-        reporter.err(f"memory.yml missing next to config.mk: {memory_yml}")
+        reporter.err(f"memory.yml does not exist: {memory_yml}")
         return
     reporter.ok(f"memory.yml exists: {memory_yml}")
     if yaml is None:
@@ -355,7 +355,12 @@ def main(argv: list[str] | None = None) -> int:
     cfg = MakeConfig(sdk_path, config_mk)
     cfg.parse()
     validate_config(reporter, cfg)
-    validate_memory(reporter, config_mk.parent / "memory.yml")
+    memory_value = cfg.variables.get("MEMORY_YML", str(config_mk.parent / "memory.yml"))
+    memory_yml = cfg.resolve_path(memory_value)
+    if memory_yml is None:
+        reporter.err(f"Cannot resolve MEMORY_YML: {memory_value}")
+    else:
+        validate_memory(reporter, memory_yml)
     return 1 if reporter.errors else 0
 
 

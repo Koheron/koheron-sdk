@@ -71,11 +71,15 @@ UBOOT_CONFIG_FILE := $(wildcard $(PATCHES)/$(UBOOT_CONFIG))
 # Configure U-Boot once to avoid concurrent defconfig/mrproper races
 UBOOT_CONFIG_STAMP := $(UBOOT_PATH)/.config
 
-$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONFIG_FILE)
+$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONFIG_FILE) $(UBOOT_CONFIG_FRAGMENTS)
 	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $(UBOOT_PATH) mrproper
-	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) $(UBOOT_CONFIG)
+	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) CROSS_COMPILE=$(GCC_ARCH)- $(UBOOT_CONFIG)
+ifneq ($(strip $(UBOOT_CONFIG_FRAGMENTS)),)
+	cd $(UBOOT_PATH) && scripts/kconfig/merge_config.sh -m .config $(abspath $(UBOOT_CONFIG_FRAGMENTS))
+	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) CROSS_COMPILE=$(GCC_ARCH)- olddefconfig
+endif
 	@touch $@
 	$(call ok,$@)
 
@@ -241,13 +245,14 @@ $(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
 
 BOARD_DTSO ?= $(OS_PATH)/board.dtso
 
-$(TMP_OS_PATH)/board-overlay/board.dtso: $(BOARD_DTSO) | $(TMP_OS_PATH)/board-overlay/
+$(TMP_OS_PATH)/board-overlay/board.dtso: $(BOARD_DTSO) $(BOARD_DTSO_DEPS) | $(TMP_OS_PATH)/board-overlay/
 	cp $< $@
 	$(call ok,$@)
 
 $(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso $(LINUX_BUILD_STAMP)
 	# Preprocess so #include <dt-bindings/...> works
 	$(DOCKER) gcc -E -P -x assembler-with-cpp -nostdinc -undef -D__DTS__ \
+	  -I $(SDK_PATH) \
 	  -I $(LINUX_PATH)/include \
 	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts \
 	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts/xilinx \
