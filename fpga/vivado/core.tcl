@@ -22,7 +22,11 @@ set rtl [concat \
   [glob -nocomplain $core_path/*.xci] \
   [glob -nocomplain $core_path/*.vhdl]]
 set cfg [glob -nocomplain $core_path/core_config.tcl]
-set inputs [concat $rtl $cfg]
+set inputs [concat $rtl $cfg \
+  [glob -nocomplain $core_path/*.tcl] \
+  [glob -nocomplain $core_path/*.xdc] \
+  [glob -nocomplain $core_path/*.mem] \
+  [list [info script]]]
 
 # Helper: latest mtime in a list (0 if empty)
 proc latest_mtime {files} {
@@ -82,6 +86,10 @@ if {[llength $mem_files] > 0} {
   puts "Added [llength $mem_files] .mem file(s) for BRAM initialization"
 }
 
+# Optional subsystem hook: generate configured vendor IP before importing files.
+if {[file exists $core_path/package_ip.tcl]} {
+  source $core_path/package_ip.tcl
+}
 ipx::package_project -import_files -root_dir $out_dir -force
 
 set core [ipx::current_core]
@@ -112,6 +120,13 @@ rename core_parameter {}
 
 # Finalize
 ipx::create_xgui_files $core
+# Subsystems may supply a grouped customization UI with parameter validation.
+if {[file exists $core_path/custom_gui.tcl]} {
+  set gui_group [ipx::get_file_groups xilinx_xpgui -of_objects $core]
+  foreach gui [ipx::get_files -of_objects $gui_group] {
+    file copy -force $core_path/custom_gui.tcl $out_dir/[get_property NAME $gui]
+  }
+}
 ipx::update_checksums  $core
 ipx::save_core         $core
 

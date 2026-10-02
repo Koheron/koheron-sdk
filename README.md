@@ -139,6 +139,10 @@ web/       # Front-end assets shared across instruments
 
 Exploring these directories is the best way to learn how to assemble your own instrument configuration.
 
+Within `fpga/`, `cores/` contains reusable RTL primitives, `modules/` contains
+Tcl assemblies, and [`ip/`](./fpga/ip/) contains configurable Vivado IP
+subsystems, starting with the AXI DDS phase modulator.
+
 ---
 
 ## Instrument packaging
