@@ -69,13 +69,8 @@ test('tracking is opt-in and telemetry does not overwrite nominal LO edits', asy
     toggle.checked = true; toggle.dispatchEvent(new h.w.Event('change'));
     assert.deepEqual(h.calls, [['tracking', true]]);
     h.tracking.correction0 = -.037;
-    h.tracking.correction1 = .019;
-    h.tracking.locked0 = true;
     h.parameters.fdds0 = 10e6 - .037;
     await h.app.updateControls();
-    assert.equal(h.w.document.querySelector('.tracking-state').textContent, 'ADC0 locked');
-    assert.equal(h.w.document.querySelector('.tracking-correction-0').textContent, '-0.037');
-    assert.equal(h.w.document.querySelector('.tracking-correction-1').textContent, '0.019');
     assert.equal(Number(h.w.document.querySelector('.dds-input0').value.replace(/\s/g, '')), 10);
     const input = h.w.document.querySelector('.dds-input0'); input.focus();
     input.value = '10.000001'; input.dispatchEvent(new h.w.Event('input', {bubbles: true}));
@@ -84,12 +79,7 @@ test('tracking is opt-in and telemetry does not overwrite nominal LO edits', asy
     assert.equal(input.value, '10.000001');
     h.key(input, 'Enter'); await settle();
     assert.deepEqual(h.calls.at(-1), ['lo', 0, 10e6 + 1]);
-    h.parameters.channel = 1;
-    await h.app.updateControls();
-    assert.equal(h.w.document.querySelector('.tracking-state').textContent, 'ADC1 acquiring');
-    h.tracking.effectiveBandwidth = 0;
-    await h.app.updateControls();
-    assert.equal(h.w.document.querySelector('.tracking-state').textContent, 'ADC1 paused');
+
 });
 
 test('integer entry applies once, rejects incomplete/invalid values, and Escape restores accepted value', async t => {

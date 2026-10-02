@@ -35,18 +35,11 @@ linear smoothing with invalid bins, display units, raw/smoothed/PSD export
 and existing numeric/DAC controls. No host test establishes analog
 noise-floor accuracy. The hardware PM validation below remains necessary.
 
-The tracking regression closes a simulated frequency loop around the production
-analyzer, including the actual DDS tuning words and phase-count quantization.
-It checks both offset signs and ADC selections, per-update/total bounds,
-zero-bandwidth pause, nominal-frequency restoration, lock hysteresis and
-saturation, failed-transfer invalidation and PM power preservation. Automatic
-DDS writes are checked against the fake DMA's in-flight flag. A setting-change
-test exercises DMA lock handoff during tracking. The production C++ telemetry
-tuple is serialized and decoded through the compiled browser RPC client;
-Python command dispatch and browser controls also check nominal/corrected
-frequency separation. The existing ALPHA250-4 core tests cover the shared
-lock detector. This simulation excludes vendor IP, analog effects and real
-FIFO/backpressure timing.
+The tracking test runs the production analyzer and DDS in a simulated loop.
+It checks convergence in both directions and channels, correction bounds,
+PM power preservation, DMA timing, setting handoff and nominal LO restoration.
+One browser regression checks that tracking telemetry preserves nominal LO edits.
+The simulation excludes vendor IP, analog effects and real FIFO timing.
 
 For board tracking validation, first disable tracking and offset the selected
 LO above and below the carrier by a small known amount (for example 0.05 Hz).
