@@ -76,7 +76,9 @@ Carrier and PM rate use a reusable digit editor:
 
 - Type a number in the selected unit, or include a suffix such as `12.5 MHz`,
   `10000 Hz` or `15k`. Scientific notation is accepted. Enter or leaving the
-  control applies the value; Escape discards typed entry and unsent tuning.
+  control applies the value. F2 or Ctrl/Command+A selects the whole value.
+  Escape discards typed entry and unsent tuning, clears digit selection and
+  restores normal page scrolling while retaining keyboard focus.
 - Click a digit, then scroll or press Up/Down to change that place value.
   Left/Right selects the adjacent place, skipping separators. Right can reveal
   finer decimal places down to the hardware's resolution.
@@ -88,12 +90,16 @@ Carrier and PM rate use a reusable digit editor:
   the pointer is elsewhere on the page. Clicking another control ends tuning.
   Without an active digit, wheel events scroll normally; small trackpad deltas
   accumulate into a step. Ctrl/Command-wheel remains available for browser zoom.
+  Unfinished trackpad gestures reset when selecting another digit or pausing.
 
 The focused editor shows its tuning step without adding a permanent toolbar.
 Fast tuning coalesces unsent values and sends at most ten tuning requests per
 second. Carrier and rate operations serialize within each channel. Failed or
 ambiguous commits cancel queued tuning; they are never retried automatically.
 Escape and disposal cannot retract a command already sent to hardware.
+Acknowledgements preserve whole-value selection and the caret, and frequency
+readouts retain full contrast during continuous tuning. Fractional tuning steps
+use mHz/µHz in the focus hint.
 
 Every edit uses a checked server setter that reads/modifies/commits under the
 channel lock. Other settings, including native phase words, are preserved.

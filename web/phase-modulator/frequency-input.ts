@@ -11,6 +11,7 @@ class FrequencyInput {
     private accepted: number;
     private desired: number;
     private dirty = false;
+    private tuning = false;
     private queued = false;
     private inFlight = false;
     private disposed = false;
@@ -18,6 +19,7 @@ class FrequencyInput {
     private minimumExponent: number;
     private timer: number;
     private wheelDelta = 0;
+    private lastWheel = 0;
     private lastSent = 0;
     private removers: Array<() => void> = [];
     private hint: HTMLElement;
@@ -42,6 +44,8 @@ class FrequencyInput {
         input.setAttribute('aria-valuemax', String(options.maximum - options.resolution));
         this.listen(input, 'input', () => {
             this.dirty = true;
+            this.tuning = false;
+            this.wheelDelta = 0;
             this.cancelQueued();
             this.clearError();
             this.help();
@@ -59,14 +63,27 @@ class FrequencyInput {
         this.listen(unit, 'blur', event => {
             if ((event as FocusEvent).relatedTarget !== input) { this.commitEntry(); }
         });
-        this.listen(input, 'focus', () => { this.captureWheel(); this.help(); });
+        this.listen(input, 'focus', () => {
+            this.tuning = !this.dirty;
+            this.wheelDelta = 0;
+            this.captureWheel();
+            this.selectDigit();
+            this.help();
+        });
         this.listen(input, 'click', event => {
-            if ((event as MouseEvent).detail > 1 || this.dirty) { return; }
+            if ((event as MouseEvent).detail > 1 || input.selectionEnd - input.selectionStart > 1) {
+                this.tuning = false;
+                this.wheelDelta = 0;
+                this.help();
+                return;
+            }
+            if (this.dirty) { return; }
             const start = this.clickedIndex(event as MouseEvent);
-            if (input.selectionEnd - input.selectionStart > 1) { return; } // Keep range selection/Ctrl+A.
             const digits = this.digits();
             const nearest = digits.find(index => index >= start);
             this.exponent = Math.max(this.minimumExponent, this.power(nearest === undefined ? digits[digits.length - 1] : nearest));
+            this.tuning = true;
+            this.wheelDelta = 0;
             this.selectDigit();
             this.help();
         });
@@ -154,11 +171,22 @@ class FrequencyInput {
     private key(event: KeyboardEvent): void {
         if (event.key === 'Escape') {
             event.preventDefault();
+            this.tuning = false;
+            this.wheelDelta = 0;
             this.cancelQueued();
             this.dirty = false;
             this.desired = this.accepted;
             this.clearError();
             this.paint();
+            this.input.setSelectionRange(this.input.value.length, this.input.value.length);
+        } else if (event.key === 'F2' || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a')) {
+            this.tuning = false;
+            this.wheelDelta = 0;
+            if (event.key === 'F2') {
+                event.preventDefault();
+                this.input.select();
+            }
+            this.help();
         } else if (event.key === 'Enter') {
             event.preventDefault();
             this.commitEntry();
@@ -171,14 +199,24 @@ class FrequencyInput {
             const change = event.key === 'ArrowLeft' ? 1 : -1;
             const highest = Math.floor(Math.log(Math.max(this.desired, this.scale())) / Math.LN10 + 1e-12);
             this.exponent = Math.max(this.minimumExponent, Math.min(highest, this.exponent + change));
+            this.tuning = true;
+            this.wheelDelta = 0;
             this.paint(); // Right can reveal another decimal digit.
+        } else if (event.key === 'Home' || event.key === 'End' ||
+                   ((event.shiftKey || event.ctrlKey || event.metaKey) &&
+                    (event.key === 'ArrowLeft' || event.key === 'ArrowRight'))) {
+            this.tuning = false;
+            this.wheelDelta = 0;
+            this.help();
         }
     }
 
     private wheel(event: WheelEvent): void {
-        if (this.input.ownerDocument.activeElement !== this.input || this.dirty || event.ctrlKey || event.metaKey ||
+        if (this.input.ownerDocument.activeElement !== this.input || !this.tuning || this.dirty || event.ctrlKey || event.metaKey ||
             this.input.selectionEnd - this.input.selectionStart !== 1 || !event.deltaY) { return; }
         event.preventDefault();
+        if (Date.now() - this.lastWheel > 250) { this.wheelDelta = 0; }
+        this.lastWheel = Date.now();
         if (Math.sign(event.deltaY) !== Math.sign(this.wheelDelta)) { this.wheelDelta = 0; }
         this.wheelDelta += event.deltaY;
         // One normal mouse notch; accumulate small trackpad deltas instead of
@@ -202,6 +240,7 @@ class FrequencyInput {
             const value = Number((this.desired + direction * step).toPrecision(15));
             this.validate(value);
             this.desired = value;
+            this.tuning = true;
             this.clearError();
             this.paint();
             this.schedule(false);
@@ -265,7 +304,10 @@ class FrequencyInput {
     }
 
     private paint(): void {
-        this.input.value = this.formatted(this.desired);
+        const text = this.formatted(this.desired);
+        // An acknowledgement must not disturb Ctrl+A, drag selection or the
+        // caret when the displayed value is already correct.
+        if (this.input.value !== text) { this.input.value = text; }
         this.input.setAttribute('aria-valuenow', String(this.desired));
         this.input.setAttribute('aria-valuetext', `${this.desired / this.scale()} ${this.unit.value}`);
         this.input.title = `Accepted: ${this.accepted} Hz. Click a digit; scroll or use ↑/↓ to tune. Type a value with optional units; Enter applies, Escape cancels.`;
@@ -290,7 +332,7 @@ class FrequencyInput {
     }
 
     private selectDigit(): void {
-        if (this.input.ownerDocument.activeElement !== this.input || this.dirty) { return; }
+        if (this.input.ownerDocument.activeElement !== this.input || !this.tuning || this.dirty) { return; }
         const positions = this.digits();
         const index = positions.find(position => this.power(position) === this.exponent);
         if (index !== undefined) { this.input.setSelectionRange(index, index + 1); }
@@ -299,9 +341,10 @@ class FrequencyInput {
     private help(): void {
         if (this.input.hasAttribute('aria-invalid')) { return; }
         const step = Math.pow(10, this.exponent);
-        const scale = step >= 1e6 ? 1e6 : step >= 1e3 ? 1e3 : 1;
-        this.hint.textContent = this.dirty ? 'Enter applies · Esc cancels' :
-            `Step ${Number((step / scale).toPrecision(8))} ${scale === 1e6 ? 'MHz' : scale === 1e3 ? 'kHz' : 'Hz'} · ↑ ↓ or wheel`;
+        const scale = step >= 1e6 ? 1e6 : step >= 1e3 ? 1e3 : step >= 1 ? 1 : step >= .001 ? .001 : .000001;
+        const unit = scale === 1e6 ? 'MHz' : scale === 1e3 ? 'kHz' : scale === 1 ? 'Hz' : scale === .001 ? 'mHz' : 'µHz';
+        this.hint.textContent = this.dirty ? 'Enter applies · Esc cancels' : !this.tuning ? 'Click a digit · F2 to enter' :
+            `Step ${Number((step / scale).toPrecision(8))} ${unit} · ↑ ↓ or wheel`;
     }
 
     setValue(hz: number): void {

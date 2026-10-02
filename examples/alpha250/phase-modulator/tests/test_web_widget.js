@@ -240,7 +240,7 @@ function frequency(t, commit, value = 10e6) {
     const control = new window.FrequencyInput(input, unit, {value, maximum: 125e6, resolution: 250e6 / 2 ** 48,
         commit: commit || (async value => { calls.push(value); return value; })});
     t.after(() => control.dispose());
-    const key = name => input.dispatchEvent(new window.KeyboardEvent('keydown', {key: name, bubbles: true, cancelable: true}));
+    const key = (name, options = {}) => input.dispatchEvent(new window.KeyboardEvent('keydown', {key: name, bubbles: true, cancelable: true, ...options}));
     const digit = position => {
         input.focus(); input.setSelectionRange(position, position);
         input.dispatchEvent(new window.MouseEvent('click', {detail: 1, bubbles: true}));
@@ -388,4 +388,51 @@ test('carrier and modulation edits queue coherently on one channel while preserv
     assert.equal(driver.values[0].modulation, 20e3);
     assert.equal(driver.values[0].phase, 17);
     assert.equal(driver.values[0].deviation, 1);
+});
+
+test('acknowledgements preserve whole-value selection; Escape exits wheel tuning even after late replies', async t => {
+    let release;
+    const f = frequency(t, value => new Promise(resolve => { release = () => resolve(value); }));
+    const pageWheel = () => {
+        const event = new f.window.WheelEvent('wheel', {deltaY: -100, bubbles: true, cancelable: true});
+        f.window.document.getElementById('second').dispatchEvent(event);
+        return event;
+    };
+    f.digit(5); f.key('ArrowUp'); await settle();
+    f.key('a', {ctrlKey: true}); f.input.select();
+    release(); await settle();
+    assert.equal(f.input.selectionStart, 0);
+    assert.equal(f.input.selectionEnd, f.input.value.length);
+    assert.equal(pageWheel().defaultPrevented, false);
+
+    f.digit(5); f.key('ArrowUp');
+    await new Promise(resolve => setTimeout(resolve, 120));
+    f.key('Escape');
+    assert.equal(f.input.selectionStart, f.input.selectionEnd);
+    assert.equal(pageWheel().defaultPrevented, false);
+    release(); await settle(); // The already-issued command can complete.
+    assert.equal(f.input.value, '10.002\u2009000');
+    assert.equal(f.input.selectionStart, f.input.selectionEnd);
+    assert.equal(pageWheel().defaultPrevented, false);
+
+    f.key('F2');
+    assert.equal(f.input.selectionStart, 0);
+    assert.equal(f.input.selectionEnd, f.input.value.length);
+    assert.equal(pageWheel().defaultPrevented, false);
+    f.key('ArrowLeft');
+    assert.equal(f.input.selectionEnd - f.input.selectionStart, 1);
+    assert.equal(pageWheel().defaultPrevented, true);
+});
+
+test('trackpad accumulation resets between gestures and selected digits', async t => {
+    const f = frequency(t);
+    const wheel = () => f.input.dispatchEvent(new f.window.WheelEvent('wheel', {deltaY: -10, bubbles: true, cancelable: true}));
+    f.digit(5);
+    wheel(); wheel(); wheel();
+    f.key('ArrowRight'); // Move from 1 kHz to 100 Hz; discard the unfinished gesture.
+    wheel(); await settle(); assert.equal(f.calls.length, 0);
+    await new Promise(resolve => setTimeout(resolve, 270));
+    wheel(); wheel(); wheel(); await settle(); assert.equal(f.calls.length, 0);
+    wheel(); await settle();
+    assert.deepEqual(f.calls, [10.0001e6]);
 });

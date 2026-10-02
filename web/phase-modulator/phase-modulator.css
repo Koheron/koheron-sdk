@@ -48,8 +48,8 @@
 .dds-pm-widget :focus-visible { outline: 2px solid var(--pm-accent); outline-offset: 2px; }
 .dds-pm-widget input[aria-invalid="true"] { border-color: #bc4828; }
 .dds-pm-widget :disabled { opacity: .45; cursor: default; }
-.dds-pm-widget [aria-disabled="true"], .dds-pm-widget fieldset[aria-busy="true"] .pm-row,
-.dds-pm-widget fieldset[aria-busy="true"] .pm-advanced { opacity: .6; }
+.dds-pm-widget [aria-disabled="true"] { opacity: .6; }
+.dds-pm-widget input[readonly] { color: #777; }
 .dds-pm-widget .pm-output { display: flex; align-items: center; gap: 8px; height: 28px; }
 .dds-pm-widget .pm-output strong { white-space: nowrap; font-size: 12px; }
 .dds-pm-widget .pm-output button { min-width: 51px; padding: 3px 6px; }

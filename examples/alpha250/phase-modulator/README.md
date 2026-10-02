@@ -35,7 +35,8 @@ For carrier and PM rate, type a value such as `10 MHz` and press Enter, or click
 a digit and scroll to tune that place. Left/Right selects a different digit;
 Up/Down tunes it. Scrolling follows the focused digit even with the pointer
 elsewhere on the page; clicking another control ends tuning. Escape cancels
-typed entry and unsent tuning. The separate
+typed entry and unsent tuning, and returns the wheel to normal page scrolling.
+F2 or Ctrl/Command+A selects the whole value for keyboard entry. The separate
 unit selector also accepts Hz, kHz, MHz and GHz without changing the signal.
 
 ```sh
@@ -127,7 +128,7 @@ and carrier frequency; Enter commits retained keyboard focus. Exact native
 readback confirmed DAC0 was unchanged, and the original DAC1 settings were
 restored after the checks. Live frequency editing also verified direct unit
 entry, selected-digit carry/borrow, wheel tuning, Escape cancellation and
-display-only unit changes on muted DAC1. Fifteen DOM/protocol tests cover
+display-only unit changes on muted DAC1. Seventeen DOM/protocol tests cover
 widget behavior, digit tuning and empty-success response decoding.
 Local integration previews with delayed discovery and acknowledgements check
 the loading placeholder and reserved status line against content below the
