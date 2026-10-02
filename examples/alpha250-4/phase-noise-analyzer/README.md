@@ -53,7 +53,13 @@ At 200 MS/s, the filter attenuates the 20 MHz mixing image by 57.27 dB, versus
 2.28 dB for the former boxcar. Its passband loss is 0.091 dB at 500 kHz,
 0.365 dB at 1 MHz and 1.470 dB at 2 MHz. Software does not invert this response.
 The filter is intended for 10 MHz carriers and sub-MHz offsets; wider offsets
-or low carriers need the response taken into account. The CIC and FIR retain
+or low carriers need the response taken into account. Its I/Q outputs retain
+eight fractional counts in 24 bits, and phase extraction uses a 24-bit CORDIC
+and 40-bit unwrapping/scaling. Each pair's phase difference is independently
+stochastically rounded to the existing pi/8192-radian input-count scale before
+the CIC. This avoids deterministic coarse-angle rounding while preserving
+the counter range, filter calibration, DMA layout and RPC phase units.
+The CIC and FIR retain
 eight fractional phase-count bits in 40-bit outputs. DMA carries their low
 32 bits, and the server converts signed modulo offsets within each snapshot.
 At CIC 133, one output code is approximately 9.523 µrad (0.000546°), rather

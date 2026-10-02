@@ -1,5 +1,41 @@
 Hardware validation notes — 2026-09-30 to 2026-10-02
 
+Phase-extraction investigation — 2026-10-02: the source was changed to an
+ALPHA250 at 192.168.1.105 running phase-modulator. Readback confirmed DAC0
+at nominal 10 MHz with 1° peak sine PM at 10 kHz, and DAC1 muted. Initial
+captures had no usable ADC1/3 carrier (demodulated magnitude approximately
+3 counts versus 3084/3066 counts on ADC0/2). Those spectra and the apparent
+tracking offset are invalid noise/frequency measurements. After the source
+DAC was reinitialized, ADC1/3 magnitudes were approximately 2724/2742 counts.
+The four analyzer base LOs were reset to 10.001 MHz, with the original 100 Hz
+tracking limit restored. No source settings or INI were saved.
+
+On the precision image, separate 128-pair PM-on/off/on captures with tracking
+locked found 23/3/24 negative bins exceeding five estimated standard errors
+from 10 kHz to 100 kHz. PM-on features near 90.2 and 94.2 kHz returned after
+restoring modulation. The final PM-on capture recovered 0.999979° peak in
+the real cross spectrum and -41.18324 dBc integrated SSB tone power; mean
+X/Y modulation-phase difference was +0.000275°. This reproduces the residual
+with a different source while preserving correct 10 kHz transfer.
+
+A bit-accurate AMD CORDIC model evaluated all four independently rounded I/Q
+outcomes at 16384 phase angles, at the measured reference magnitude of
+3084.5 counts. Even with unbiased Cartesian rounding, 16-bit phase extraction
+had periodic mean angle errors, including multiples of four times the beat
+frequency. Expected error RMS was 92.189 µrad at 16 bits versus 0.336524 µrad
+with fractional I/Q and 24-bit phase extraction, a 48.75 dB reduction in this
+model. The model excludes DDS/ADC errors, filtering and rounding noise variance.
+
+The candidate retains eight fractional I/Q bits, uses 24-bit phase extraction
+and 40-bit unwrapping/scaling, then independently stochastically rounds each
+pair's difference back to the existing pi/8192 input-count scale. The wider
+extraction and unbiased rounding are tested without changing CIC calibration
+or the signed cross-spectrum calculation. RTL checks pass full-precision
+16/24-bit prefilter convolution, six rounding generators, wide unwrapping,
+all 256 rounding values for positive/negative fractions and modulo boundaries,
+reset and paired acquisition. ARM compilation and the C-model check pass.
+Routed timing and board comparison are pending for this candidate.
+
 Precision investigation — 2026-10-02: with the split AWG still at 10 MHz and
 1° PM at 10 kHz, the live 592,499-window spectrum contained 38 negative bins
 among 11,248 usable bins. Independent SciPy processing of 192 fresh phase

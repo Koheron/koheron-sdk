@@ -6,12 +6,12 @@ proc pins {cmd} {
     $cmd -dir I -from 31 -to 0 s_axis_data_a
     $cmd -dir I -from [expr (1 + 2 * ([get_parameter dds_output_width] - 1) / 16) * 16 - 1] -to 0 s_axis_data_b
     $cmd -dir I -from 0  -to 0 s_axis_tvalid
-    $cmd -dir O -from 31 -to 0 m_axis_tdata
+    $cmd -dir O -from [expr [get_parameter phase_accumulator_width] - 1] -to 0 m_axis_tdata
     $cmd -dir O -from 0  -to 0 m_axis_tvalid
     $cmd -dir I -from 0  -to 0 acc_on
     $cmd -dir I -from 0  -to 0 rst_phase
-    $cmd -dir O -from 16 -to 0 freq
-    $cmd -dir O -from 31 -to 0 phase
+    $cmd -dir O -from [get_parameter cordic_width] -to 0 freq
+    $cmd -dir O -from [expr [get_parameter phase_accumulator_width] - 1] -to 0 phase
     $cmd -dir O -from 31 -to 0 demod
 }
 
@@ -54,7 +54,9 @@ proc create {module_name rounding_seed} {
     # Suppress the mixing image before nonlinear phase extraction.
 
     for {set i 0} {$i < 2} {incr i} {
-        cell koheron:user:phase_prefilter:1.0 prefilter$i {} {
+        cell koheron:user:phase_prefilter:1.0 prefilter$i {
+            OUTPUT_WIDTH [get_parameter cordic_width]
+        } {
             clk aclk
             aresetn aresetn
             din [get_slice_pin complex_mult/m_axis_dout_tdata [expr 15 + 16 * $i] [expr 16 * $i]]
@@ -68,8 +70,8 @@ proc create {module_name rounding_seed} {
         Functional_Selection Translate
         Pipelining_Mode Maximum
         Phase_Format Scaled_Radians
-        Input_Width 16
-        Output_Width 16
+        Input_Width [get_parameter cordic_width]
+        Output_Width [get_parameter cordic_width]
         Round_Mode Round_Pos_Neg_Inf
     } {
         aclk aclk
@@ -78,18 +80,28 @@ proc create {module_name rounding_seed} {
         m_axis_dout_tvalid m_axis_tvalid
     }
 
-    connect_bd_net [get_bd_pins demod] [get_bd_pins concat_dout_dout/dout]
+    # Keep the existing signed 16-bit I/Q telemetry and power-readout scale.
+    set iq_shift [expr [get_parameter cordic_width] - 16]
+    cell xilinx.com:ip:xlconcat:2.1 demod_data {
+        NUM_PORTS 2
+        IN0_WIDTH 16
+        IN1_WIDTH 16
+    } {
+        In0 [get_slice_pin prefilter0/dout [expr [get_parameter cordic_width] - 1] $iq_shift]
+        In1 [get_slice_pin prefilter1/dout [expr [get_parameter cordic_width] - 1] $iq_shift]
+        dout demod
+    }
 
     # Phase unwrapping
 
     cell koheron:user:phase_unwrapper:1.0 phase_unwrapper {
-        DIN_WIDTH 16
-        DOUT_WIDTH 32
+        DIN_WIDTH [get_parameter cordic_width]
+        DOUT_WIDTH [get_parameter phase_accumulator_width]
     } {
         clk aclk
         acc_on acc_on
         rst rst_phase
-        phase_in [get_slice_pin cordic/m_axis_dout_tdata 31 16]
+        phase_in [get_slice_pin cordic/m_axis_dout_tdata [expr 2 * [get_parameter cordic_width] - 1] [get_parameter cordic_width]]
         phase_out m_axis_tdata
         freq_out freq
         phase_out phase

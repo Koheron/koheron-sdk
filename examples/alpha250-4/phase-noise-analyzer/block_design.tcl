@@ -79,11 +79,11 @@ for {set i 0} {$i < 4} {incr i} {
     connect_pins cordic$i/demod [sts_pin demod$i]
 
     cell xilinx.com:ip:mult_gen:12.0 scaler$i {
-      PortAWidth 32
+      PortAWidth [get_parameter phase_accumulator_width]
       PortBWidth 32
       PortAType Signed
       PortBType Signed
-      OutputWidthHigh 61
+      OutputWidthHigh [expr [get_parameter phase_accumulator_width] + 29]
       OutputWidthLow 30
       Use_Custom_Output_Width true
       PipeStages 5
@@ -95,9 +95,9 @@ for {set i 0} {$i < 4} {incr i} {
 }
 
 cell xilinx.com:ip:c_addsub:12.0 phase_diff0 {
-  A_WIDTH 32
-  B_WIDTH 32
-  OUT_WIDTH 32
+  A_WIDTH [get_parameter phase_accumulator_width]
+  B_WIDTH [get_parameter phase_accumulator_width]
+  OUT_WIDTH [get_parameter phase_accumulator_width]
   ADD_MODE Subtract
   CE false
 } {
@@ -107,9 +107,9 @@ cell xilinx.com:ip:c_addsub:12.0 phase_diff0 {
 }
 
 cell xilinx.com:ip:c_addsub:12.0 phase_diff1 {
-  A_WIDTH 32
-  B_WIDTH 32
-  OUT_WIDTH 32
+  A_WIDTH [get_parameter phase_accumulator_width]
+  B_WIDTH [get_parameter phase_accumulator_width]
+  OUT_WIDTH [get_parameter phase_accumulator_width]
   ADD_MODE Subtract
   CE false
 } {
@@ -143,6 +143,24 @@ cell koheron:user:axis_stream_packet_mux:1.0 axis_stream_packet_m_0 {
 }
 
 for {set i 0} {$i < 2} {incr i} {
+  # Extract phase at 24 bits before reducing it to the existing pi/8192
+  # input-count scale. Independent stochastic rounding removes a periodic
+  # phase-code bias instead of presenting it as correlated noise to the CIC.
+  set phase_rounding_seeds {0x2545f4914f6cdd1d 0x6a09e667f3bcc909}
+  cell pavel-demin:user:axis_lfsr:1.0 phase_lfsr$i {
+    SEED [lindex $phase_rounding_seeds $i]
+    FEEDBACK_MASK 0xd800000000000000
+    FEEDBACK_XNOR 0
+  } {
+    aclk adc/adc_clk
+    aresetn rst_adc_clk/peripheral_aresetn
+  }
+  cell koheron:user:phase_round:1.0 phase_round$i {} {
+    clk adc/adc_clk
+    aresetn rst_adc_clk/peripheral_aresetn
+    phase phase_diff$i/S
+    random_round [get_slice_pin phase_lfsr$i/m_axis_tdata 7 0]
+  }
   cell xilinx.com:ip:cic_compiler:4.0 cic$i {
     Filter_Type Decimation
     Number_Of_Stages $n_stages
@@ -161,7 +179,7 @@ for {set i 0} {$i < 2} {incr i} {
     HAS_ARESETN true
   } {
     aclk adc/adc_clk
-    s_axis_data_tdata phase_diff$i/S
+    s_axis_data_tdata phase_round$i/rounded_phase
   }
 
   cell xilinx.com:ip:fir_compiler:7.2 fir$i {

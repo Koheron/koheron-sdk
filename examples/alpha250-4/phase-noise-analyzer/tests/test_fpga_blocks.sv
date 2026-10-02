@@ -5,10 +5,15 @@ module test_fpga_blocks;
  reg signed [15:0] phase_in=0, data_in=0;
  wire signed [31:0] phase_out;
  wire signed [16:0] frequency;
+ wire signed [39:0] wide_phase_out;
+ wire signed [24:0] wide_frequency;
+ wire signed [23:0] wide_phase_in={phase_in,8'b0};
  wire signed [15:0] data_out;
  wire [63:0] random0,random1,random2,random3;
  wire valid0,valid1,valid2,valid3;
  phase_unwrapper unwrap(clk,accumulate,phase_reset,phase_in,frequency,phase_out);
+ phase_unwrapper #(.DIN_WIDTH(24),.DOUT_WIDTH(40)) wide_unwrap(
+   clk,accumulate,phase_reset,wide_phase_in,wide_frequency,wide_phase_out);
  boxcar_filter boxcar(clk,data_in,data_out);
  axis_lfsr r0(.aclk(clk),.aresetn(reset_n),.m_axis_tready(1'b1),.m_axis_tdata(random0),.m_axis_tvalid(valid0));
  axis_lfsr r1(.aclk(clk),.aresetn(reset_n),.m_axis_tready(1'b1),.m_axis_tdata(random1),.m_axis_tvalid(valid1));
@@ -35,6 +40,7 @@ module test_fpga_blocks;
    if(i>=3)begin
     j=i-2;expected=j<10000 ? j*13 : 9999*13-(j-9999)*13;
     if(phase_out!==expected)$fatal(1,"phase unwrap/delay failed: %d %d at %d",phase_out,expected,i);
+    if(wide_phase_out!==(longint'(expected)*256))$fatal(1,"wide phase unwrap scale/delay failed at %d",i);
    end
    if(valid0 && (random0!==random1 || random0!==random2 || random0!==random3))
     $fatal(1,"Expected current shared-seed sequence equality");

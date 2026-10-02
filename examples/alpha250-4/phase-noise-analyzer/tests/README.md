@@ -97,11 +97,37 @@ The new prefilter test compares the actual RTL to direct integer convolution
 of four 16-sample rectangular kernels. Signed extremes, impulses, alternating
 values and random inputs exercise all stages without intermediate truncation.
 The reference includes the exact sampled random rounding value and pipeline
-delay. Four separately seeded 64-bit XOR LFSRs use taps 64,63,61,60 from
-AMD/Xilinx XAPP052. Tests check balance and all six pair correlations over
+delay, for both 16-bit and 24-bit I/Q outputs. Six separately seeded 64-bit
+XOR LFSRs use taps 64,63,61,60 from AMD/Xilinx XAPP052. Tests check balance
+and all 15 pair correlations over
 100,000 clocks, nonzero states and deterministic reset. These are finite
 sequence checks, not proof of statistical independence at arbitrary lags.
 The shared LFSR's defaults preserve other instruments' previous recurrence.
+
+The phase-count rounding test exhausts all 256 random words at every signed
+fraction from -512 to 511 counts. It checks the exact mean, signed extremes,
+both modulo boundaries and reset. The unwrap test covers 16-bit/32-bit and
+24-bit/40-bit configurations with the same physical phase trajectory.
+
+An optional vendor C-model check evaluates the mean angle error after unbiased
+Cartesian rounding. It compares the actual 16-bit and 24-bit CORDIC algorithms
+at the same physical I/Q amplitude, including all four possible rounding
+outcomes at each angle. It writes two 16384-element arrays of doubles (old and
+new expected errors in radians) for Fourier analysis. This is a deterministic
+extraction-bias check, not a complete instrument noise-floor model.
+
+Extract Vivado's `cordic_v6_0_bitacc_cmodel_lin64.zip` into a temporary directory,
+then compile and run using its headers and libraries:
+
+```sh
+pna_model=/tmp/pna-cordic-model
+g++ -O2 -std=c++17 -I"$pna_model" \
+    examples/alpha250-4/phase-noise-analyzer/tests/check_cordic_bias.cpp \
+    -L"$pna_model" -lIp_cordic_v6_0_bitacc_cmodel -l:libgmp.so.11 \
+    -o "$pna_model/check-cordic-bias"
+LD_LIBRARY_PATH="$pna_model" "$pna_model/check-cordic-bias" \
+    "$pna_model/angle-bias.bin"
+```
 
 `test_prefilter_response.py` verifies unity gain, symmetry, 20 MHz rejection
 and known small phase modulation through an ideal real mixer, the new filter

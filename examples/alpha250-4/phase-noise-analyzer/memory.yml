@@ -54,6 +54,8 @@ parameters:
   dac_width: 16
   adc_width: 16
   dds_output_width: 16
+  cordic_width: 24
+  phase_accumulator_width: 40
   n_adc: 4
   cic_differential_delay: 1
   cic_decimation_rate_default: 20
