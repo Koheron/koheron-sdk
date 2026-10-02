@@ -1,5 +1,7 @@
 class App {
     private imports: Imports;
+    private signalGenerator: PhaseModulatorWidget;
+    private stopped = false;
     public dds: DDS;
     private clockGenerator: ClockGenerator;
     private clockGeneratorApp: ClockGeneratorApp;
@@ -17,11 +19,12 @@ class App {
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
-        let sockpoolSize: number = 5;
+        let sockpoolSize: number = 7;
         let client = new Client(ip, sockpoolSize);
 
         window.addEventListener('HTMLImportsLoaded', () => {
             client.init( async () => {
+                if (this.stopped) { return; }
                 this.imports = new Imports(document);
                 this.dds = new DDS(client);
                 this.clockGenerator = new ClockGenerator(client);
@@ -31,6 +34,7 @@ class App {
                 this.phaseNoiseAnalyzerApp = new PhaseNoiseAnalyzerApp(document, this.phaseNoiseAnalyzer);
 
                 await this.phaseNoiseAnalyzerApp.init();
+                if (this.stopped) { return; }
                 this.n_pts = this.phaseNoiseAnalyzerApp.nPoints;
                 this.x_min = 100;
                 this.x_max = 2E6;
@@ -41,10 +45,22 @@ class App {
                 this.plot = new Plot(document, this.phaseNoiseAnalyzer, this.plotBasics);
                 this.exportFile = new ExportFile(document, this.plot);
 
+                // The analyzer establishes its 200 MS/s clock before the
+                // generator reads metadata. Generator errors retain their own
+                // retry control and leave acquisition available.
+                this.signalGenerator = new PhaseModulatorWidget(
+                    document.getElementById('phase-modulator'),
+                    new PhaseModulatorDriver(client), {expectedChannels: 2});
+                void this.signalGenerator.init().catch(() => {});
+
             });
         }, false);
 
-        window.onbeforeunload = () => { client.exit(); };
+        window.addEventListener('pagehide', () => {
+            this.stopped = true;
+            if (this.signalGenerator) { this.signalGenerator.dispose(); }
+            client.exit();
+        });
     }
 }
 

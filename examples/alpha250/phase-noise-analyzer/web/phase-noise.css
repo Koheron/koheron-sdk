@@ -51,3 +51,11 @@
     position: relative;
     z-index: 1;
   }
+/* The stimulus occupies one disclosure row until explicitly opened. */
+#main { width: auto; margin-right: 0; min-width: 0; }
+.pna-generator { margin-bottom: 10px; }
+.pna-generator > .dds-pm-widget { max-width: 1100px; }
+.pna-generator > summary { cursor: pointer; padding: 5px 0; border-bottom: 1px solid #ddd; font-size: 12px; }
+.pna-generator > summary > span { color: #777; margin-left: 10px; font-weight: normal; }
+.pna-generator[open] > summary { margin-bottom: 8px; }
+.pna-generator-note { margin: 6px 0; color: #777; font-size: 11px; }

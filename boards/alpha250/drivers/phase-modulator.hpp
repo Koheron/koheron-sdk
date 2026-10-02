@@ -12,7 +12,13 @@ class PhaseModulator {
 public:
     PhaseModulator() : controller(hw::get_memory<mem::awg>(), static_cast<long double>(prm::adc_clk)) {
         if (!controller.valid()) logf<ERROR>("PhaseModulator: {}\n", controller.initialization_result().message());
-        rt::get_driver<ClockGenerator>().set_sampling_frequency(1); // 250 MS/s
+        // Match the host instrument's clock; the analyzer uses 200 MS/s.
+        static_assert(prm::adc_clk == 200000000 || prm::adc_clk == 250000000 ||
+                      prm::adc_clk == 100000000 || prm::adc_clk == 240000000,
+                      "Unsupported ALPHA250 phase-modulator sample rate");
+        constexpr uint32_t clock_selection = prm::adc_clk == 200000000 ? 0 :
+            prm::adc_clk == 250000000 ? 1 : prm::adc_clk == 100000000 ? 2 : 3;
+        rt::get_driver<ClockGenerator>().set_sampling_frequency(clock_selection);
     }
 
     uint32_t get_channel_count() { return controller.channel_count(); }

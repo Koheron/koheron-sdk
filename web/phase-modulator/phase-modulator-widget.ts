@@ -88,11 +88,11 @@ class PhaseModulatorWidget {
         const placeholder = '<span class="pm-placeholder"></span>';
         const field = (name: string, title: string) => `<label class="pm-field pm-${name}"><span>${title}</span>${placeholder}</label>`;
         const channels = Array.from({length: expectedChannels}, (_, channel) =>
-            `<section class="pm-channel"><div class="pm-row">
+            `<div class="pm-channel"><div class="pm-row">
                 <div class="pm-output"><strong>DAC ${channel}</strong>${placeholder}</div>
                 ${field('carrier', 'Carrier')}<span class="pm-pm"></span>
                 ${field('waveform', 'Source')}${field('modulation', 'Rate')}${field('deviation', 'Amplitude')}
-                <span class="pm-more pm-placeholder"></span></div><div class="pm-status-slot"></div></section>`).join('');
+                <span class="pm-more pm-placeholder"></span></div><div class="pm-status-slot"></div></div>`).join('');
         return `<div class="pm-skeleton" aria-hidden="true"><div class="pm-toolbar"><strong>Signal generator</strong>
             <span class="pm-clock">Reading…</span><button type="button" disabled>Refresh</button></div>${channels}
             <p class="pm-footnote">Edits preserve oscillator phase · Output amplitude is full scale</p></div>
@@ -118,7 +118,7 @@ class PhaseModulatorWidget {
         const info = this.info[channel];
         const options = this.shapes.map((name, code) => info.capabilities & (1 << code) ? `<option value="${code}">${name}</option>` : '').join('');
         const nyquist = info.sampleRate / 2;
-        return `<section class="pm-channel" data-channel="${channel}" aria-label="DAC ${channel}">
+        return `<div class="pm-channel" data-channel="${channel}" role="group" aria-label="DAC ${channel}">
             <fieldset><legend class="pm-sr-only">DAC ${channel} settings</legend><div class="pm-row">
                 <div class="pm-output"><strong>DAC ${channel}</strong><button type="button" data-action="output"
                     aria-pressed="false" aria-label="Enable DAC ${channel} output">Muted</button></div>
@@ -136,7 +136,7 @@ class PhaseModulatorWidget {
                 <button type="button" data-action="restart" title="Restart carrier and modulation phase; reseed noise and PRBS">Restart phase</button>
                 <span class="pm-source-note"></span>
             </div></fieldset><div class="pm-status-slot"><div class="pm-status" role="status" aria-live="polite" hidden></div></div>
-        </section>`;
+        </div>`;
     }
 
     private channel(channel: number): HTMLElement {

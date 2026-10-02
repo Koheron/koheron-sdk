@@ -17,6 +17,7 @@
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
   <link rel="stylesheet" type="text/css" href="phase-noise.css">
+  <link rel="stylesheet" type="text/css" href="phase-modulator.css">
   <link rel="stylesheet" type="text/css" href="phase-noise-plot.css">
 
   <script type="text/javascript" src="html-imports.min.js"></script>
@@ -35,6 +36,13 @@
 
 <div id="navigation"></div>
   <div id="main" class="container-fluid" style="padding: 10px">
+    <details class="pna-generator">
+      <summary>DAC signal generator <span>Independent stimulus</span></summary>
+      <div id="phase-modulator" class="dds-pm-widget" aria-label="DAC signal generator" style="--pm-loading-channels: 2">
+        <div class="pm-initial-layout" aria-hidden="true"></div>
+      </div>
+      <p class="pna-generator-note">For loopback, connect a DAC to the matching ADC and set its carrier to that channel's local oscillator.</p>
+    </details>
     <div class="row">
       <div class="col-md-8">
         <div id="plot-wrap">
@@ -42,7 +50,7 @@
           <div id="plot-empty" class="plot-empty hidden">
             <div class="plot-empty-card">
               <h4>Local oscillator not set</h4>
-              <p>Set the DDS frequency to start measurement.</p>
+              <p>Set the local oscillator frequency to start measurement.</p>
             </div>
           </div>
         </div>
@@ -162,7 +170,7 @@
         </section>
         <section id="export-file"></section>
         <section style="margin-bottom: 20px;"></section>
-        <button class="default-btn save-cfg" onclick="app.phaseNoiseAnalyzer.saveConfig()">Save Config</button>
+        <button class="default-btn save-cfg" onclick="app.phaseNoiseAnalyzer.saveConfig()">Save Analyzer Config</button>
       </section>
       </div>
     </div>

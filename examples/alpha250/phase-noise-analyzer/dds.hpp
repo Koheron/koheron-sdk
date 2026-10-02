@@ -6,6 +6,7 @@
 #define __DRIVERS_DDS_HPP__
 
 #include <array>
+#include <cstdint>
 
 class ClockGenerator;
 
