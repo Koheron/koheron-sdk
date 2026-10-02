@@ -21,19 +21,19 @@
 .dds-pm-widget .pm-toolbar button { margin-left: auto; }
 .dds-pm-widget .pm-channel { margin: 0; padding: 4px 0; border-top: 1px solid #e6e6e6; }
 .dds-pm-widget fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-.dds-pm-widget .pm-row { display: grid; grid-template-columns: 104px minmax(160px, 1.3fr) 38px minmax(115px, 1fr) minmax(146px, 1.1fr) minmax(78px, .7fr) 54px; gap: 10px; align-items: end; }
+.dds-pm-widget .pm-row { display: grid; grid-template-columns: 104px minmax(160px, 1.3fr) 38px minmax(115px, 1fr) minmax(156px, 1.1fr) minmax(78px, .7fr) 54px; gap: 10px; align-items: end; }
 .dds-pm-widget label { margin: 0; font-weight: 400; color: #666; }
 .dds-pm-widget .pm-field { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
 .dds-pm-widget .pm-field > span:first-child { font-size: 11px; line-height: 14px; }
 .dds-pm-widget .pm-input-unit { position: relative; display: flex; align-items: center; }
 .dds-pm-widget .pm-input-unit > span { position: absolute; right: 7px; color: #777; pointer-events: none; font-size: 11px; }
 .dds-pm-widget input[type="number"], .dds-pm-widget select, .dds-pm-widget button { font: inherit; color: #333; height: 28px; border: 1px solid var(--pm-border); border-radius: 2px; background: #fafafa; padding: 3px 7px; box-shadow: none; }
-.dds-pm-widget input[type="number"] { width: 100%; min-width: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.dds-pm-widget input[type="number"] { width: 100%; min-width: 0; font-size: 16px; line-height: 20px; text-align: right; font-variant-numeric: tabular-nums; }
 .dds-pm-widget .pm-carrier input { padding-right: 35px; }
 .dds-pm-widget .pm-modulation input { padding-right: 31px; }
 .dds-pm-widget .pm-frequency-control { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 47px; }
-.dds-pm-widget .pm-frequency-number { width: 100%; min-width: 0; height: 28px; margin: 0; padding: 3px 6px; border: 1px solid var(--pm-border); border-right: 0; border-radius: 2px 0 0 2px; background: #fafafa; color: #333; font: 12px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; text-align: right; font-variant-numeric: tabular-nums; }
-.dds-pm-widget .pm-carrier .pm-frequency-number, .dds-pm-widget .pm-modulation .pm-frequency-number { padding: 3px 6px; }
+.dds-pm-widget .pm-frequency-number { width: 100%; min-width: 0; height: 28px; margin: 0; padding: 3px 4px; border: 1px solid var(--pm-border); border-right: 0; border-radius: 2px 0 0 2px; background: #fafafa; color: #333; font: 16px/20px ui-monospace, SFMono-Regular, Consolas, monospace; text-align: right; font-variant-numeric: tabular-nums; }
+.dds-pm-widget .pm-carrier .pm-frequency-number, .dds-pm-widget .pm-modulation .pm-frequency-number { padding: 3px 4px; }
 .dds-pm-widget .pm-frequency-number::selection { background: var(--pm-accent); color: white; }
 .dds-pm-widget .pm-frequency-control select { padding: 3px 2px; border-left: 0; border-radius: 0 2px 2px 0; color: #666; font-size: 11px; }
 .dds-pm-widget .pm-frequency-control:focus-within { outline: 1px solid var(--pm-accent); outline-offset: 1px; }
@@ -73,7 +73,7 @@
 .dds-pm-widget .pm-footnote { font-size: 11px; line-height: 14px; color: #777; margin: 4px 0 0; }
 .dds-pm-widget .pm-initial-layout { height: calc(55px + var(--pm-loading-channels) * 70px); }
 .dds-pm-widget .pm-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-@container (max-width: 760px) {
+@container (max-width: 864px) {
     .dds-pm-widget .pm-initial-layout { height: calc(55px + var(--pm-loading-channels) * 123px); }
     .dds-pm-widget .pm-row { grid-template-columns: 104px minmax(160px, 1fr) 38px minmax(120px, 1fr) 54px; gap: 8px; }
     .dds-pm-widget .pm-modulation { grid-column: 2; }
@@ -92,4 +92,10 @@
     .dds-pm-widget .pm-modulation { grid-column: 1; grid-row: 4; }
     .dds-pm-widget .pm-deviation { grid-column: 2; grid-row: 4; }
     .dds-pm-widget .pm-advanced { padding-left: 0; }
+}
+@container (max-width: 360px) {
+    .dds-pm-widget .pm-carrier { grid-column: 1 / -1; padding-right: 50px; }
+    .dds-pm-widget .pm-pm { justify-self: end; }
+    .dds-pm-widget .pm-modulation { grid-column: 1 / -1; padding-right: 90px; }
+    .dds-pm-widget .pm-deviation { width: 78px; justify-self: end; }
 }
