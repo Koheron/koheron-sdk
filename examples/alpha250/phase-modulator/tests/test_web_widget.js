@@ -81,7 +81,107 @@ test('number edits validate before commands; typing alone does not commit', asyn
     input.dispatchEvent(new window.Event('change', {bubbles: true}));
     await settle();
     assert.deepEqual(driver.calls, [[0, 'carrier', 11e6]]);
+    assert.match(target.querySelector('.pm-status').textContent, /Amplitude:/); // An unrelated acknowledgement preserves invalid entry.
+    target.querySelector('[data-field="deviation"]').dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
     assert.equal(target.querySelector('.pm-status').hidden, true);
+});
+
+test('angle entry applies once on Enter, keeps focus and cancels with Escape', async t => {
+    const window = environment(t); const target = window.document.getElementById('first'); const driver = port(1);
+    await new window.TestWidget(target, driver).init();
+    const input = target.querySelector('[data-field="deviation"]');
+    input.focus(); input.value = '2.5';
+    input.dispatchEvent(new window.Event('input', {bubbles: true}));
+    assert.equal(driver.calls.length, 0);
+    input.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
+    input.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
+    await settle();
+    assert.deepEqual(driver.calls, [[0, 'deviation', 2.5]]);
+    assert.equal(window.document.activeElement, input);
+    input.dispatchEvent(new window.Event('change', {bubbles: true})); // Native change can follow Enter on blur.
+    await settle(); assert.equal(driver.calls.length, 1);
+    input.value = '3'; input.dispatchEvent(new window.Event('input', {bubbles: true}));
+    input.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+    assert.equal(input.value, '2.5');
+    assert.equal(window.document.activeElement, input);
+    input.dispatchEvent(new window.Event('change', {bubbles: true}));
+    await settle(); assert.equal(driver.calls.length, 1);
+    input.value = '3'; input.dispatchEvent(new window.Event('input', {bubbles: true}));
+    input.blur(); await settle();
+    assert.deepEqual(driver.calls, [[0, 'deviation', 2.5], [0, 'deviation', 3]]);
+});
+
+test('readbacks preserve numeric drafts and their validation until correction or Escape', async t => {
+    const window = environment(t); const target = window.document.getElementById('first'); const driver = port(1);
+    await new window.TestWidget(target, driver).init();
+    const input = target.querySelector('[data-field="deviation"]');
+    input.value = '2.75'; input.dispatchEvent(new window.Event('input', {bubbles: true}));
+    target.querySelector('[data-action="refresh"]').click(); await settle();
+    assert.equal(input.value, '2.75');
+    assert.equal(driver.values[0].deviation, 1);
+    input.value = '361'; input.dispatchEvent(new window.Event('input', {bubbles: true}));
+    input.dispatchEvent(new window.Event('change', {bubbles: true}));
+    target.querySelector('[data-action="output"]').click(); await settle();
+    assert.equal(input.value, '361');
+    assert.equal(input.getAttribute('aria-invalid'), 'true');
+    assert(input.getAttribute('aria-description'));
+    assert.match(target.querySelector('.pm-status').textContent, /Amplitude:/);
+    assert.equal(target.querySelector('.pm-status').getAttribute('role'), 'alert');
+    input.value = '2'; input.dispatchEvent(new window.Event('input', {bubbles: true}));
+    assert.equal(input.hasAttribute('aria-invalid'), false);
+    assert.equal(target.querySelector('.pm-status').hidden, true);
+    input.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+    assert.equal(input.value, '1');
+    assert.deepEqual(driver.calls, [[0, 'output', false]]);
+    input.value = '361'; input.dispatchEvent(new window.Event('input', {bubbles: true}));
+    input.dispatchEvent(new window.Event('change', {bubbles: true}));
+    driver.set = async () => { throw new Error('Sample clock stopped'); };
+    target.querySelector('[data-action="output"]').click(); await settle();
+    assert.match(target.querySelector('.pm-status').textContent, /Sample clock stopped.*Amplitude:/);
+    input.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+    assert.match(target.querySelector('.pm-status').textContent, /^(?:Error: )?Sample clock stopped$/);
+});
+
+test('committing an existing numeric draft waits behind the channel operation', async t => {
+    const window = environment(t); const target = window.document.getElementById('first'); const driver = port(1);
+    await new window.TestWidget(target, driver).init();
+    const input = target.querySelector('[data-field="deviation"]');
+    input.value = '2'; input.dispatchEvent(new window.Event('input', {bubbles: true}));
+    let release;
+    driver.set = async (channel, field, value) => {
+        driver.calls.push([channel, field, value]);
+        if (field === 'output') { await new Promise(resolve => { release = resolve; }); }
+        driver.values[channel][field] = value;
+    };
+    target.querySelector('[data-action="output"]').click();
+    input.dispatchEvent(new window.Event('change', {bubbles: true}));
+    input.dispatchEvent(new window.Event('change', {bubbles: true}));
+    assert.equal(driver.calls.length, 1);
+    assert.equal(input.value, '2');
+    release(); await settle();
+    assert.deepEqual(driver.calls, [[0, 'output', false], [0, 'deviation', 2]]);
+    assert.equal(driver.values[0].deviation, 2);
+    assert.equal(input.value, '2');
+});
+
+test('frequency validation stays visible after blur and unrelated readbacks', async t => {
+    const window = environment(t); const target = window.document.getElementById('first'); const driver = port(1);
+    await new window.TestWidget(target, driver).init();
+    const input = target.querySelector('[data-field="carrier"]');
+    input.focus(); input.value = '125 MHz'; input.dispatchEvent(new window.Event('input', {bubbles: true}));
+    target.querySelector('[data-field="deviation"]').focus();
+    await settle();
+    const status = target.querySelector('.pm-status');
+    assert.match(status.textContent, /Carrier:.*below 125 MHz/);
+    assert.equal(status.hidden, false);
+    assert.match(input.getAttribute('aria-description'), /below 125 MHz/);
+    target.querySelector('[data-action="refresh"]').click(); await settle();
+    assert.match(status.textContent, /Carrier:.*below 125 MHz/);
+    assert.equal(input.value, '125 MHz');
+    input.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+    assert.equal(status.hidden, true);
+    assert.equal(input.value, '10.000\u2009000');
+    assert.equal(driver.calls.length, 0);
 });
 
 test('display hides DDS quantization artifacts but retains tiny phase settings', async t => {

@@ -3,6 +3,7 @@ interface FrequencyInputOptions {
     maximum: number; // Exclusive, in Hz.
     resolution: number; // Hardware frequency LSB, in Hz.
     commit: (frequency: number) => Promise<number>; // Returns acknowledged Hz.
+    validation?: (message: string) => void; // Empty when the entry is corrected/cancelled.
 }
 
 // Text entry and digit tuning share one small control. It owns no transport.
@@ -140,18 +141,22 @@ class FrequencyInput {
         }
     }
 
-    private error(error: any): void {
+    private error(error: any, validation = false): void {
         const message = error instanceof Error ? error.message : String(error);
         this.input.setCustomValidity(message);
         this.input.setAttribute('aria-invalid', 'true');
+        this.input.setAttribute('aria-description', message);
         this.hint.textContent = message;
         this.hint.dataset.state = 'error';
+        if (validation && this.options.validation) { this.options.validation(message); }
     }
 
     private clearError(): void {
         this.input.setCustomValidity('');
         this.input.removeAttribute('aria-invalid');
+        this.input.removeAttribute('aria-description');
         delete this.hint.dataset.state;
+        if (this.options.validation) { this.options.validation(''); }
     }
 
     private commitEntry(forceUnit = false): void {
@@ -165,7 +170,7 @@ class FrequencyInput {
             this.clearError();
             this.paint();
             this.schedule(true);
-        } catch (error) { this.error(error); }
+        } catch (error) { this.error(error, true); }
     }
 
     private key(event: KeyboardEvent): void {
@@ -244,7 +249,7 @@ class FrequencyInput {
             this.clearError();
             this.paint();
             this.schedule(false);
-        } catch (error) { this.error(error); }
+        } catch (error) { this.error(error, true); }
     }
 
     private schedule(immediate: boolean): void {

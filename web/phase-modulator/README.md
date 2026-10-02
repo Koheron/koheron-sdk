@@ -72,6 +72,13 @@ toggles and source selection apply immediately. Rate and amplitude can be
 prepared while PM is off. Pulse duty and seed controls follow the selected
 source and hardware capabilities.
 
+Amplitude, carrier phase, duty and seed also support F2 to select the value and
+Escape to restore the last accepted setting while retaining focus. Enter applies
+once; a subsequent blur does not repeat the write. Readbacks preserve unfinished
+entries. Validation messages remain in the reserved channel status line after
+focus moves, and clear when that entry is corrected or cancelled; unrelated
+edits cannot hide them. Transport failures remain visible alongside draft errors.
+
 Carrier and PM rate use a reusable digit editor:
 
 - Type a number in the selected unit, or include a suffix such as `12.5 MHz`,
