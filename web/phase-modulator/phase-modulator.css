@@ -38,9 +38,10 @@
 .dds-pm-widget .pm-frequency-control select { padding: 3px 2px; border-left: 0; border-radius: 0 2px 2px 0; color: #666; font-size: 11px; }
 .dds-pm-widget .pm-frequency-control:focus-within { outline: 1px solid var(--pm-accent); outline-offset: 1px; }
 .dds-pm-widget .pm-frequency-control :focus-visible { outline: none; }
-.dds-pm-widget .pm-frequency-help { display: none; position: absolute; top: -19px; right: 0; padding: 0; background: white; color: var(--pm-accent-dark); font-size: 10px; line-height: 1.3; white-space: nowrap; z-index: 5; pointer-events: none; }
+.dds-pm-widget .pm-frequency-help { display: none; position: absolute; top: -19px; left: 0; right: 0; padding: 0; color: var(--pm-accent-dark); font-size: 10px; line-height: 1.3; text-align: right; white-space: nowrap; z-index: 5; pointer-events: none; }
 .dds-pm-widget .pm-frequency-control:focus-within .pm-frequency-help { display: block; }
-.dds-pm-widget .pm-frequency-help[data-state="error"] { top: 29px; left: 0; right: auto; padding: 3px 6px; border: 1px solid #ddad9f; border-radius: 2px; color: #a53e25; white-space: normal; min-width: 180px; max-width: 260px; }
+.dds-pm-widget .pm-frequency-help[data-state="error"] { top: 29px; left: 0; right: auto; padding: 3px 6px; border: 1px solid #ddad9f; border-radius: 2px; background: white; color: #a53e25; text-align: left; white-space: normal; min-width: 180px; max-width: 260px; }
+.dds-pm-widget .pm-frequency-help[data-validation="inline"][data-state="error"] { display: none; }
 .dds-pm-widget .pm-phase input, .dds-pm-widget .pm-deviation input, .dds-pm-widget .pm-duty input { padding-right: 22px; }
 .dds-pm-widget select { width: 100%; }
 .dds-pm-widget button { cursor: pointer; white-space: nowrap; }

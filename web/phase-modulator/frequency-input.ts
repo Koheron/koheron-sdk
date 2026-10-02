@@ -40,6 +40,7 @@ class FrequencyInput {
         this.accepted = this.desired = options.value;
         this.minimumExponent = Math.ceil(Math.log(options.resolution) / Math.LN10);
         this.hint = input.parentElement.querySelector('.pm-frequency-help');
+        if (options.validation) { this.hint.dataset.validation = 'inline'; }
         input.setAttribute('role', 'spinbutton');
         input.setAttribute('aria-valuemin', '0');
         input.setAttribute('aria-valuemax', String(options.maximum - options.resolution));
