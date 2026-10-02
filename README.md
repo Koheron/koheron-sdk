@@ -70,6 +70,9 @@ make -j CFG=examples/alpha250/fft/config.mk HOST=192.168.1.100 run
 
 Replace `CFG` with the path to another `config.mk` to target a different instrument or board.
 
+Red Pitaya STEMlab 125-14 Gen2, PRO Gen2 and PRO Z7020 Gen2 packages are described
+in the [Gen2 board support guide](boards/red-pitaya-gen2/README.md).
+
 ---
 
 ## Configuration model
@@ -77,7 +80,7 @@ Replace `CFG` with the path to another `config.mk` to target a different instrum
 V1 no longer uses the old `CONFIG=.../config.yml` flow. Each instrument is selected with `CFG=.../config.mk`:
 
 - `config.mk` contains build settings such as the instrument name, board path, Vivado cores, drivers and web assets.
-- `memory.yml` lives next to `config.mk` and defines the memory map, registers, Linux devices and build-time parameters used to generate FPGA, C++ and device-tree artefacts.
+- `memory.yml` defines the memory map, registers, Linux devices and build-time parameters used to generate FPGA, C++ and device-tree artefacts. It defaults to the file next to `config.mk`; `MEMORY_YML` can select a shared map.
 
 For example, `examples/alpha250/fft/config.mk` selects the Alpha250 board, FFT drivers and web files, while `examples/alpha250/fft/memory.yml` defines register regions, `/dev/mem_wc` mappings and parameters such as `fft_size`.
 

@@ -135,6 +135,8 @@ SERVER := $(TMP_PROJECT_PATH)/serverd
 VERSION_FILE := $(TMP_PROJECT_PATH)/version
 
 include $(CONFIG_MK)
+# Included config fragments participate in project and version rebuilds.
+CONFIG_MK_DEPS := $(MAKEFILE_LIST)
 
 MEMORY_YML ?= $(PROJECT_PATH)/memory.yml
 BD_TCL ?= $(PROJECT_PATH)/block_design.tcl
@@ -173,7 +175,7 @@ endif
 
 BITSTREAM := $(TMP_PROJECT_PATH)/$(NAME).bit
 
-$(VERSION_FILE): $(CONFIG_MK) | $(TMP_PROJECT_PATH)/
+$(VERSION_FILE): $(CONFIG_MK_DEPS) | $(TMP_PROJECT_PATH)/
 	@printf '%s\n' '$(VERSION)' > $@.tmp
 	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
 	@rm -f $@.tmp
