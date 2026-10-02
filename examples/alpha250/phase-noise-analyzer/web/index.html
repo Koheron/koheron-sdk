@@ -47,8 +47,8 @@
         <label><input type="radio" name="channel" value="0" checked class="channel-input" data-valuestr="0" data-command="setChannel"><span>ADC 0</span></label>
         <label><input type="radio" name="channel" value="1" class="channel-input" data-valuestr="1" data-command="setChannel"><span>ADC 1</span></label>
       </div></div>
-      <label class="control-field" title="CIC decimation rate">Decimation<input type="number" value="20" min="4" step="1" max="8192" required data-command="setCicRate" class="cic-rate-input"></label>
-      <label class="control-field">Averages<input type="number" value="1" min="1" step="1" max="1000" required class="plot-navg-input"></label>
+      <label class="control-field" title="CIC decimation rate">Decimation<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="20" min="4" step="1" max="8192" required data-command="setCicRate" class="cic-rate-input"></span></label>
+      <label class="control-field">Averages<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1" min="1" step="1" max="100" required class="plot-navg-input"></span></label>
       <div id="reference-clock"></div>
     </div>
     <div id="dds-frequency" class="oscillator-controls"></div>
@@ -89,7 +89,7 @@
         <legend class="sr-only">Laser interferometer settings</legend>
         <div class="laser-controls">
           <label class="toggle"><input type="checkbox" class="laser-mode-input">Enable laser mode</label>
-          <label class="control-field">Interferometer delay (ns)<input type="number" value="1" min="1" step="1" max="1000" required disabled class="interferometer-delay"></label>
+          <label class="control-field">Interferometer delay (ns)<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1" min="1" step="1" max="1000" required disabled class="interferometer-delay"></span></label>
         </div>
       </fieldset>
       <p>Enable laser mode to apply the interferometer transfer-function correction. The plot selector above switches between phase and frequency noise.</p>

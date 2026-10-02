@@ -117,3 +117,5 @@ On a board, apply a known low-frequency electrical phase modulation, compare
 phase amplitude at rates 16, 20, and 32, and switch rates during acquisition.
 Check that settled phase, PSD, and jitter agree with the expected modulation.
 Sweep modulation frequency separately to assess the measurement passband.
+
+All numeric web controls use selected-digit tuning by default, including local oscillators, acquisition settings, delay, and DAC angles, duty cycle and seed. Click a digit and scroll anywhere while the input retains focus; Left/Right selects its place, Up/Down tunes it. F2 or Ctrl+A selects the complete value for keyboard entry; Enter applies and Escape cancels. Integer fields reject fractions and out-of-range values. Local-oscillator display units can be changed without writing hardware.

@@ -5,19 +5,12 @@ class PhaseModulatorWidget {
     private values: PhaseModulatorSettings[] = [];
     private busy: boolean[] = [];
     private disposed = false;
-    private frequencies: Array<{carrier: FrequencyInput; modulation: FrequencyInput}> = [];
+    private numbers: Array<{[field: string]: DigitInput}> = [];
     private operations: Array<Promise<void>> = [];
-    private drafts: Array<Set<string>> = [];
-    private numericPending: Array<Set<string>> = [];
     private validation: Array<Map<string, string>> = [];
     private feedback: Array<{text: string; error: boolean}> = [];
     private changeHandler = (event: Event) => this.change(event);
     private clickHandler = (event: Event) => this.click(event);
-    private inputHandler = (event: Event) => this.edit(event);
-    private keyHandler = (event: Event) => this.key(event as KeyboardEvent);
-    private blurHandler = (event: Event) => {
-        if ((event.target as HTMLInputElement).type === 'number') { this.change(event); }
-    };
     private shapes = ['Sine', 'Square', 'Pulse', 'Triangle', 'Up ramp', 'Down ramp',
                       'Uniform noise', 'Gaussian noise', 'PRBS', 'BPSK'];
 
@@ -27,9 +20,6 @@ class PhaseModulatorWidget {
         root.innerHTML = PhaseModulatorWidget.loadingMarkup(options.expectedChannels);
         root.addEventListener('change', this.changeHandler);
         root.addEventListener('click', this.clickHandler);
-        root.addEventListener('input', this.inputHandler);
-        root.addEventListener('keydown', this.keyHandler);
-        root.addEventListener('focusout', this.blurHandler);
     }
 
     async init(): Promise<void> {
@@ -42,18 +32,16 @@ class PhaseModulatorWidget {
             this.values = values;
             this.busy = info.map(() => false);
             this.operations = info.map(() => Promise.resolve());
-            this.drafts = info.map(() => new Set<string>());
-            this.numericPending = info.map(() => new Set<string>());
             this.validation = info.map(() => new Map<string, string>());
             this.feedback = info.map(() => ({text: '', error: false}));
-            this.frequencies.forEach(controls => { controls.carrier.dispose(); controls.modulation.dispose(); });
+            this.numbers.forEach(controls => { Object.keys(controls).forEach(field => controls[field].dispose()); });
             this.root.innerHTML = `<div class="pm-toolbar"><strong>Signal generator</strong>
                 <span class="pm-clock">${info[0].sampleRate / 1e6} MS/s</span>
                 <button type="button" data-action="refresh" title="Read settings from hardware">Refresh</button></div>
                 <div class="pm-channels">${info.map((_, channel) => this.channelMarkup(channel)).join('')}</div>
                 <p class="pm-footnote">Edits preserve oscillator phase · Output amplitude is full scale</p>`;
-            this.frequencies = info.map((metadata, channel) => {
-                const controls = {} as {carrier: FrequencyInput; modulation: FrequencyInput};
+            this.numbers = info.map((metadata, channel) => {
+                const controls: {[field: string]: DigitInput} = {};
                 for (const field of ['carrier', 'modulation']) {
                     const section = this.channel(channel);
                     controls[field] = new FrequencyInput(section.querySelector(`[data-field="${field}"]`),
@@ -67,6 +55,28 @@ class PhaseModulatorWidget {
                                 return result.settings[field];
                             }
                         });
+                }
+                const turn = Math.pow(2, metadata.phaseWidth);
+                for (const field of ['deviation', 'phase', 'duty', 'seed']) {
+                    const scale = field === 'duty' ? .01 : 1;
+                    const minimum = field === 'phase' ? -Infinity : field === 'seed' ? 1 : 0;
+                    const maximum = field === 'phase' ? Infinity : field === 'seed' ? 4294967295 : field === 'duty' ? 100 : 360;
+                    controls[field] = new NumberInput(this.channel(channel).querySelector(`[data-field="${field}"]`), {
+                        value: values[channel][field] / scale, minimum, maximum,
+                        resolution: field === 'seed' ? 1 : (field === 'duty' ? 100 : 360) / turn,
+                        integer: field === 'seed', unitLabel: field === 'seed' ? '' : field === 'duty' ? '%' : '°',
+                        validation: message => this.entryStatus(channel, field, message),
+                        validate: value => {
+                            if (field === 'seed' && this.values[channel].waveform === 8 && value % Math.pow(2, metadata.prbsWidth) === 0) {
+                                throw new Error(`Seed must be nonzero within PN${metadata.prbsWidth}.`);
+                            }
+                        },
+                        commit: async value => {
+                            const result = await this.perform(channel, () => this.driver.set(channel, field as PhaseModulatorField, value * scale), 'Applying…', true);
+                            if (result.error) { throw new Error(result.error); }
+                            return result.settings[field] / scale;
+                        }
+                    });
                 }
                 return controls;
             });
@@ -109,7 +119,7 @@ class PhaseModulatorWidget {
                 </select><span class="pm-frequency-help" role="status"></span></span></label>`;
         }
         return `<label class="pm-field pm-${field}"><span>${title}</span><span class="pm-input-unit">
-            <input type="number" data-field="${field}" aria-label="${title}${unit ? ' in ' + unit : ''}"
+            <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" class="pm-number" data-field="${field}" aria-label="${title}${unit ? ' in ' + unit : ''}"
                 required min="${min}" ${max ? 'max="' + max + '"' : ''} step="${step}">
             ${unit ? '<span>' + unit + '</span>' : ''}</span></label>`;
     }
@@ -146,31 +156,8 @@ class PhaseModulatorWidget {
     private render(channel: number): void {
         const section = this.channel(channel);
         const settings = this.values[channel];
-        const scales = {carrier: 1e6, modulation: 1e3, duty: .01};
         for (const field of ['carrier', 'phase', 'modulation', 'deviation', 'duty', 'seed']) {
-            if (field === 'carrier' || field === 'modulation') {
-                this.frequencies[channel][field].setValue(settings[field]);
-                continue;
-            }
-            const input = section.querySelector<HTMLInputElement>(`[data-field="${field}"]`);
-            const value = settings[field] / (scales[field] || 1);
-            const turn = Math.pow(2, this.info[channel].phaseWidth);
-            const resolution = field === 'seed' ? 0 : field === 'duty' ? 100 / turn : 360 / turn;
-            // Display the shortest value consistent with half a hardware LSB.
-            // A requested 10 kHz or 1° stays readable after DDS quantization.
-            let displayed = value;
-            for (let digits = 1; digits <= 15; digits++) {
-                const candidate = Number(value.toPrecision(digits));
-                if (Math.abs(candidate - value) <= resolution / 2) { displayed = candidate; break; }
-            }
-            input.dataset.acceptedValue = String(displayed);
-            input.title = `Accepted: ${value}. Enter applies; Escape cancels; F2 selects the value.`;
-            if (!this.drafts[channel].has(field)) {
-                if (input.value !== String(displayed)) { input.value = String(displayed); }
-                input.setCustomValidity('');
-                input.removeAttribute('aria-invalid');
-                input.removeAttribute('aria-description');
-            }
+            this.numbers[channel][field].setValue(settings[field] / (field === 'duty' ? .01 : 1));
         }
         const pm = section.querySelector<HTMLInputElement>('[data-field="pm"]');
         pm.checked = settings.pm;
@@ -240,36 +227,6 @@ class PhaseModulatorWidget {
 
     private message(error: any): string { return error instanceof Error ? error.message : String(error); }
 
-    private edit(event: Event): void {
-        const input = event.target as HTMLInputElement;
-        if (input.type !== 'number' || !input.dataset.field || input.readOnly) { return; }
-        const channel = Number(input.closest('[data-channel]').getAttribute('data-channel'));
-        this.drafts[channel].add(input.dataset.field);
-        input.setCustomValidity('');
-        input.removeAttribute('aria-invalid');
-        input.removeAttribute('aria-description');
-        this.entryStatus(channel, input.dataset.field, '');
-    }
-
-    private key(event: KeyboardEvent): void {
-        const input = event.target as HTMLInputElement;
-        if (input.type !== 'number' || !input.dataset.field) { return; }
-        const channel = Number(input.closest('[data-channel]').getAttribute('data-channel'));
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            this.change(event);
-        } else if (event.key === 'Escape') {
-            event.preventDefault();
-            if (this.numericPending[channel].has(input.dataset.field)) { return; }
-            this.drafts[channel].delete(input.dataset.field);
-            this.entryStatus(channel, input.dataset.field, '');
-            this.render(channel);
-        } else if (event.key === 'F2') {
-            event.preventDefault();
-            input.select();
-        }
-    }
-
     private perform(channel: number, action: () => Promise<void>, pendingText: string = 'Applying…', queue = false): Promise<{settings?: PhaseModulatorSettings; error: string}> {
         if (this.disposed || (this.busy[channel] && !queue)) { return Promise.resolve({error: 'Control is unavailable.'}); }
         const operation = this.busy[channel] ? this.operations[channel].then(() => this.apply(channel, action, pendingText)) :
@@ -285,7 +242,6 @@ class PhaseModulatorWidget {
         // Readonly retains focus and tab order while an acknowledgement arrives.
         // Disabling the entire fieldset would drop keyboard focus on each edit.
         section.querySelector('fieldset').setAttribute('aria-busy', 'true');
-        section.querySelectorAll<HTMLInputElement>('input[type="number"]').forEach(input => { input.readOnly = true; });
         this.root.querySelector('[data-action="refresh"]').setAttribute('aria-disabled', 'true');
         this.status(channel, pendingText);
         let failure = '';
@@ -302,7 +258,6 @@ class PhaseModulatorWidget {
         if (this.disposed) { return {error: 'Control is closed.'}; }
         this.busy[channel] = false;
         section.querySelector('fieldset').setAttribute('aria-busy', 'false');
-        section.querySelectorAll<HTMLInputElement>('input[type="number"]').forEach(input => { input.readOnly = false; });
         this.root.querySelector('[data-action="refresh"]').setAttribute('aria-disabled', String(this.busy.some(Boolean)));
         this.status(channel, failure, !!failure);
         return {settings, error: failure};
@@ -312,49 +267,14 @@ class PhaseModulatorWidget {
         const input = event.target as HTMLInputElement;
         const field = input.dataset.field as PhaseModulatorField;
         if (!field) { return; }
-        if (field === 'carrier' || field === 'modulation') { return; } // FrequencyInput owns editing and tuning.
+        if (this.numbers[Number(input.closest('[data-channel]').getAttribute('data-channel'))][field]) { return; }
         const channel = Number(input.closest('[data-channel]').getAttribute('data-channel'));
-        if (this.busy[channel] && input.type !== 'number') {
+        if (this.busy[channel]) {
             event.preventDefault();
             this.render(channel);
             return;
         }
-        let value: number | boolean = input.type === 'checkbox' ? input.checked : Number(input.value);
-        if (input.type === 'number') {
-            if (this.numericPending[channel].has(field)) { return; }
-            if (input.value === input.dataset.acceptedValue) {
-                this.drafts[channel].delete(field);
-                this.entryStatus(channel, field, '');
-                input.setCustomValidity('');
-                input.removeAttribute('aria-invalid');
-                input.removeAttribute('aria-description');
-                return;
-            }
-            this.drafts[channel].add(field);
-            input.setCustomValidity('');
-            const scales = {carrier: 1e6, modulation: 1e3, duty: .01};
-            value = input.valueAsNumber * (scales[field] || 1);
-            if (field === 'seed' && this.values[channel].waveform === 8 &&
-                Number.isInteger(value) && (value % Math.pow(2, this.info[channel].prbsWidth)) === 0) {
-                input.setCustomValidity(`Seed must be nonzero within PN${this.info[channel].prbsWidth}.`);
-            }
-            if (!Number.isFinite(value) || !input.checkValidity()) {
-                input.setAttribute('aria-invalid', 'true');
-                const message = input.validationMessage || 'Enter a valid value.';
-                input.setAttribute('aria-description', message);
-                this.entryStatus(channel, field, message);
-                return;
-            }
-            input.removeAttribute('aria-invalid');
-            input.removeAttribute('aria-description');
-            this.entryStatus(channel, field, '');
-            this.numericPending[channel].add(field);
-            void this.perform(channel, async () => {
-                try { await this.driver.set(channel, field, value); }
-                finally { this.drafts[channel].delete(field); }
-            }, 'Applying…', true).then(() => { this.numericPending[channel].delete(field); });
-            return;
-        }
+        const value = input.type === 'checkbox' ? input.checked : Number(input.value);
         void this.perform(channel, () => this.driver.set(channel, field, value));
     }
 
@@ -386,10 +306,7 @@ class PhaseModulatorWidget {
         this.disposed = true;
         this.root.removeEventListener('change', this.changeHandler);
         this.root.removeEventListener('click', this.clickHandler);
-        this.root.removeEventListener('input', this.inputHandler);
-        this.root.removeEventListener('keydown', this.keyHandler);
-        this.root.removeEventListener('focusout', this.blurHandler);
-        this.frequencies.forEach(controls => { controls.carrier.dispose(); controls.modulation.dispose(); });
+        this.numbers.forEach(controls => { Object.keys(controls).forEach(field => controls[field].dispose()); });
         this.root.querySelectorAll('fieldset').forEach(fieldset => { fieldset.disabled = true; });
     }
 }

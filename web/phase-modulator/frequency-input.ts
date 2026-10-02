@@ -1,14 +1,20 @@
-interface FrequencyInputOptions {
+interface DigitInputOptions {
     value: number;
-    maximum: number; // Exclusive, in Hz.
-    resolution: number; // Hardware frequency LSB, in Hz.
-    commit: (frequency: number) => Promise<number>; // Returns acknowledged Hz.
+    maximum: number;
+    minimum?: number;
+    inclusiveMaximum?: boolean;
+    integer?: boolean;
+    unitLabel?: string;
+    units?: {[name: string]: number};
+    frequency?: boolean;
+    validate?: (value: number) => void;
+    resolution: number; // Hardware LSB in the stored unit.
+    commit: (value: number) => Promise<number>; // Returns the accepted value.
     validation?: (message: string) => void; // Empty when the entry is corrected/cancelled.
 }
 
 // Text entry and digit tuning share one small control. It owns no transport.
-class FrequencyInput {
-    private static units = {Hz: 1, kHz: 1e3, MHz: 1e6, GHz: 1e9};
+class DigitInput {
     private accepted: number;
     private desired: number;
     private dirty = false;
@@ -16,7 +22,7 @@ class FrequencyInput {
     private queued = false;
     private inFlight = false;
     private disposed = false;
-    private exponent: number = 0; // Selected place value in Hz, survives carries.
+    private exponent: number = 0; // Selected stored place value, survives carries.
     private minimumExponent: number;
     private timer: number;
     private wheelDelta = 0;
@@ -36,14 +42,25 @@ class FrequencyInput {
     }
 
     constructor(private input: HTMLInputElement, private unit: HTMLSelectElement,
-                private options: FrequencyInputOptions) {
+                private options: DigitInputOptions) {
         this.accepted = this.desired = options.value;
         this.minimumExponent = Math.ceil(Math.log(options.resolution) / Math.LN10);
         this.hint = input.parentElement.querySelector('.pm-frequency-help');
+        if (!this.hint) {
+            this.hint = input.ownerDocument.createElement('span');
+            this.hint.className = 'pm-frequency-help';
+            this.hint.setAttribute('role', 'status');
+            input.parentElement.appendChild(this.hint);
+        }
+        input.classList.add('digit-input');
         if (options.validation) { this.hint.dataset.validation = 'inline'; }
         input.setAttribute('role', 'spinbutton');
-        input.setAttribute('aria-valuemin', '0');
-        input.setAttribute('aria-valuemax', String(options.maximum - options.resolution));
+        if (Number.isFinite(options.minimum === undefined ? 0 : options.minimum)) {
+            input.setAttribute('aria-valuemin', String(options.minimum === undefined ? 0 : options.minimum));
+        }
+        if (Number.isFinite(options.maximum)) {
+            input.setAttribute('aria-valuemax', String(options.maximum - (options.inclusiveMaximum ? 0 : options.resolution)));
+        }
         this.listen(input, 'input', () => {
             this.dirty = true;
             this.tuning = false;
@@ -94,7 +111,7 @@ class FrequencyInput {
             if (this.dirty) { this.commitEntry(true); }
             else { this.paint(); } // Display units never issue a command.
         });
-        this.paint();
+        this.setValue(options.value);
     }
 
     private listen(target: HTMLElement, name: string, listener: EventListener, options?: AddEventListenerOptions): void {
@@ -102,7 +119,7 @@ class FrequencyInput {
         this.removers.push(() => target.removeEventListener(name, listener, options));
     }
 
-    private scale(): number { return FrequencyInput.units[this.unit.value]; }
+    private scale(): number { return (this.options.units || {[this.options.unitLabel || '']: 1})[this.unit.value]; }
 
     private clickedIndex(event: MouseEvent): number {
         const rect = this.input.getBoundingClientRect();
@@ -125,21 +142,36 @@ class FrequencyInput {
     }
 
     private parse(forceUnit = false): {value: number; unit: string} {
-        const entry = this.input.value.replace(/[\s_]/g, '');
+        let entry = this.input.value.replace(/[\s_]/g, '');
+        if (!this.options.frequency) {
+            const suffix = this.options.unitLabel || '';
+            if (suffix && entry.toLowerCase().endsWith(suffix.toLowerCase())) { entry = entry.slice(0, -suffix.length); }
+            if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(entry)) { throw new Error('Enter a number.'); }
+            const value = Number(entry);
+            this.validate(value);
+            return {value, unit: this.unit.value};
+        }
         const match = /^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)(GHz|MHz|kHz|Hz|G|M|k)?$/i.exec(entry);
         if (!match) { throw new Error('Enter a number, optionally followed by Hz, kHz, MHz or GHz.'); }
         const suffix = (match[2] || '').toLowerCase();
         const names = {hz: 'Hz', khz: 'kHz', k: 'kHz', mhz: 'MHz', m: 'MHz', ghz: 'GHz', g: 'GHz'};
         const unit = forceUnit ? this.unit.value : names[suffix] || this.unit.value;
-        const value = Number(match[1]) * FrequencyInput.units[unit];
+        const value = Number(match[1]) * this.options.units[unit];
         this.validate(value);
         return {value, unit};
     }
 
     private validate(value: number): void {
-        if (!Number.isFinite(value) || value < 0 || value >= this.options.maximum) {
-            throw new Error(`Frequency must be nonnegative and below ${this.options.maximum / 1e6} MHz.`);
+        const minimum = this.options.minimum === undefined ? 0 : this.options.minimum;
+        if (!Number.isFinite(value) || value < minimum ||
+            (this.options.inclusiveMaximum ? value > this.options.maximum : value >= this.options.maximum)) {
+            if (this.options.frequency) {
+                throw new Error(`Frequency must be nonnegative and ${this.options.inclusiveMaximum ? 'at most' : 'below'} ${this.options.maximum / 1e6} MHz.`);
+            }
+            throw new Error(`Enter a value from ${minimum} to ${this.options.maximum}${this.options.unitLabel ? ' ' + this.options.unitLabel : ''}.`);
         }
+        if (this.options.integer && !Number.isInteger(value)) { throw new Error('Enter a whole number.'); }
+        if (this.options.validate) { this.options.validate(value); }
     }
 
     private error(error: any, validation = false): void {
@@ -161,6 +193,7 @@ class FrequencyInput {
     }
 
     private commitEntry(forceUnit = false): void {
+        if (this.disposed || this.input.matches(':disabled') || this.input.readOnly) { return; }
         // Browser change events can also follow a digit step; avoid duplicate writes.
         if (!this.dirty && this.input.value === this.formatted(this.desired)) { return; }
         try {
@@ -171,8 +204,10 @@ class FrequencyInput {
             this.clearError();
             this.paint();
             this.schedule(true);
-        } catch (error) { this.error(error, true); }
+        } catch (error) { this.dirty = true; this.error(error, true); }
     }
+
+    commit(): void { this.commitEntry(); }
 
     private key(event: KeyboardEvent): void {
         if (event.key === 'Escape') {
@@ -203,7 +238,7 @@ class FrequencyInput {
                    (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
             event.preventDefault();
             const change = event.key === 'ArrowLeft' ? 1 : -1;
-            const highest = Math.floor(Math.log(Math.max(this.desired, this.scale())) / Math.LN10 + 1e-12);
+            const highest = Math.floor(Math.log(Math.max(Math.abs(this.desired), this.scale())) / Math.LN10 + 1e-12);
             this.exponent = Math.max(this.minimumExponent, Math.min(highest, this.exponent + change));
             this.tuning = true;
             this.wheelDelta = 0;
@@ -233,7 +268,7 @@ class FrequencyInput {
     }
 
     private step(direction: number): void {
-        if (this.input.disabled || this.input.readOnly || this.disposed) { return; }
+        if (this.input.matches(':disabled') || this.input.readOnly || this.disposed) { return; }
         try {
             if (this.dirty) {
                 const parsed = this.parse();
@@ -295,6 +330,15 @@ class FrequencyInput {
     private formatted(hz: number): string {
         const scale = this.scale();
         const unitExponent = Math.round(Math.log(scale) / Math.LN10);
+        if (!this.options.frequency) {
+            const rounded = Number((hz).toPrecision(15));
+            // Keep plain decimal text so every visible digit can be tuned.
+            const decimals = Math.max(0, -this.exponent, -this.minimumExponent + 1);
+            const text = rounded.toFixed(Math.min(15, decimals)).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+            if (!this.tuning || this.exponent >= 0) { return text; }
+            const parts = text.split('.');
+            return parts[0] + '.' + ((parts[1] || '') + '000000000000000').slice(0, Math.max((parts[1] || '').length, Math.min(15, -this.exponent)));
+        }
         const base = this.unit.value === 'MHz' ? 6 : this.unit.value === 'kHz' ? 3 : this.unit.value === 'GHz' ? 9 : 0;
         let decimals = Math.max(base, unitExponent - this.exponent, 0);
         let text: string;
@@ -315,8 +359,8 @@ class FrequencyInput {
         // caret when the displayed value is already correct.
         if (this.input.value !== text) { this.input.value = text; }
         this.input.setAttribute('aria-valuenow', String(this.desired));
-        this.input.setAttribute('aria-valuetext', `${this.desired / this.scale()} ${this.unit.value}`);
-        this.input.title = `Accepted: ${this.accepted} Hz. Click a digit; scroll or use ↑/↓ to tune. Type a value with optional units; Enter applies, Escape cancels.`;
+        this.input.setAttribute('aria-valuetext', `${this.desired / this.scale()} ${this.unit.value}`.trim());
+        this.input.title = `Accepted: ${this.accepted} ${this.options.frequency ? 'Hz' : this.options.unitLabel || ''}. Click a digit; scroll or use ↑/↓ to tune. ${this.options.frequency ? 'Type a value with optional units' : 'Type a value'}; Enter applies, Escape cancels.`;
         this.selectDigit();
         this.help();
     }
@@ -348,6 +392,11 @@ class FrequencyInput {
         if (this.input.hasAttribute('aria-invalid')) { return; }
         const step = Math.pow(10, this.exponent);
         const scale = step >= 1e6 ? 1e6 : step >= 1e3 ? 1e3 : step >= 1 ? 1 : step >= .001 ? .001 : .000001;
+        if (!this.options.frequency) {
+            this.hint.textContent = this.dirty ? 'Enter applies · Esc cancels' : !this.tuning ? 'Click a digit · F2 to enter' :
+                `Step ${step} ${this.options.unitLabel || ''} · ↑ ↓ or wheel`;
+            return;
+        }
         const unit = scale === 1e6 ? 'MHz' : scale === 1e3 ? 'kHz' : scale === 1 ? 'Hz' : scale === .001 ? 'mHz' : 'µHz';
         this.hint.textContent = this.dirty ? 'Enter applies · Esc cancels' : !this.tuning ? 'Click a digit · F2 to enter' :
             `Step ${Number((step / scale).toPrecision(8))} ${unit} · ↑ ↓ or wheel`;
@@ -371,5 +420,29 @@ class FrequencyInput {
         this.cancelQueued();
         this.removers.forEach(remove => remove());
         this.releaseWheel();
+    }
+}
+
+// Frequency controls share exactly the same editing and tuning behavior.
+interface FrequencyInputOptions {
+    value: number;
+    maximum: number;
+    resolution: number;
+    inclusiveMaximum?: boolean;
+    commit: (frequency: number) => Promise<number>;
+    validation?: (message: string) => void;
+}
+class FrequencyInput extends DigitInput {
+    constructor(input: HTMLInputElement, unit: HTMLSelectElement, options: FrequencyInputOptions) {
+        super(input, unit, {...options, frequency: true, units: {Hz: 1, kHz: 1e3, MHz: 1e6, GHz: 1e9}});
+    }
+}
+class NumberInput extends DigitInput {
+    constructor(input: HTMLInputElement, options: DigitInputOptions) {
+        const unit = input.ownerDocument.createElement('select');
+        const option = input.ownerDocument.createElement('option');
+        option.value = option.textContent = options.unitLabel || '';
+        unit.appendChild(option);
+        super(input, unit, {...options, inclusiveMaximum: true});
     }
 }

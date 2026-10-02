@@ -22,8 +22,8 @@ class ExportFile {
                 let referenceClock: string = (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock']:checked")).dataset.valuestr;
                 let inputChannel: string = (<HTMLInputElement>document.querySelector("[name='channel']:checked")).value;
                 let ddsInputs = <HTMLInputElement[]><any>document.querySelectorAll(".dds-input");
-                let decimationRate: string = (<HTMLInputElement>document.querySelector("[class='cic-rate-input']")).value;
-                let nAverages: string = (<HTMLInputElement>document.querySelector("[class='plot-navg-input']")).value;
+                let decimationRate: string = (<HTMLInputElement>document.querySelector(".cic-rate-input")).value;
+                let nAverages: string = (<HTMLInputElement>document.querySelector(".plot-navg-input")).value;
 
                 csvContent += "Koheron ALPHA250 \n";
                 csvContent += "Phase Noise Analyzer \n";
@@ -33,7 +33,10 @@ class ExportFile {
                 csvContent += '"Input channel",' + inputChannel + "\n";
                 csvContent += '"Reference clock (10 MHz)",' + referenceClock + "\n";
                 for (let i: number = 0; i < ddsInputs.length; i++) {
-                    csvContent += '"LO ' + i + ' frequency (MHz)",' + ddsInputs[i].value + "\n";
+                    const units = {Hz: 1e-6, kHz: 1e-3, MHz: 1, GHz: 1e3};
+                    const unit = (ddsInputs[i].parentElement.querySelector('.lo-unit') as HTMLSelectElement).value;
+                    const frequencyMHz = Number(ddsInputs[i].value.replace(/\s/g, '')) * units[unit];
+                    csvContent += '"LO ' + i + ' frequency (MHz)",' + frequencyMHz + "\n";
                 }
                 csvContent += '"Decimation rate",' + decimationRate + "\n";
                 csvContent += '"Averages",' + nAverages + "\n";

@@ -61,7 +61,7 @@ async function host(t, failGenerator = false, failConnection = false) {
     ]) {
         window.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
             compilerOptions: {target: ts.ScriptTarget.ES2020}
-        }).outputText + (exported ? `\nwindow.${exported} = ${exported};` : ''));
+        }).outputText + (exported ? `\nwindow.${exported} = ${exported};` + (exported === 'FrequencyInput' ? '\nwindow.NumberInput = NumberInput;' : '') : ''));
     }
     window.dispatchEvent(new window.Event('HTMLImportsLoaded'));
     await initialized.catch(() => {}); await settle();

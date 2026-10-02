@@ -104,3 +104,15 @@
 .pna-workspace .plot-empty-card { border: 1px solid var(--border-light); border-radius: 2px; box-shadow: none; }
 .pna-workspace #decade-values-table { table-layout: fixed; }
 .pna-workspace #decade-values-table col:first-child { width: 50%; }
+
+/* One digit tuner for every numeric setting, without adding toolbar height. */
+.pna-workspace .pna-digit-control { position: relative; display: inline-flex; min-width: 0; }
+.pna-workspace .pna-digit-control .digit-input { height: var(--control-height); width: 90px; min-width: 0; padding: 2px 6px; border: 1px solid var(--border-light); border-radius: 2px; background: #fafafa; color: #333; font: 15px/20px ui-monospace, SFMono-Regular, Consolas, monospace; text-align: right; font-variant-numeric: tabular-nums; }
+.pna-workspace .pna-digit-control .dds-input { width: 136px; }
+.pna-workspace .digit-input::selection { background: var(--accent); color: white; }
+.pna-workspace .pna-digit-control .digit-input[aria-invalid="true"] { border-color: #bc4828; }
+.pna-workspace .pna-digit-control .pm-frequency-help { display: none; position: absolute; top: calc(100% + 3px); right: 0; z-index: 10; width: max-content; max-width: 240px; padding: 3px 6px; border: 1px solid var(--border-light); border-radius: 2px; background: white; color: var(--accent-dark); font: 10px/1.3 Lato, sans-serif; pointer-events: none; }
+.pna-workspace .pna-digit-control:focus-within .pm-frequency-help, .pna-workspace .pna-digit-control .pm-frequency-help[data-state="error"] { display: block; }
+.pna-workspace .pna-digit-control .pm-frequency-help[data-state="error"] { color: #a53e25; border-color: #ddad9f; width: 200px; }
+.pna-workspace .pna-digit-control .lo-unit { width: 45px; padding: 2px 1px; font-size: 11px; border-left: 0; border-radius: 0 2px 2px 0; color: var(--muted); }
+.pna-workspace .pna-digit-control:has(.lo-unit) .digit-input { border-right: 0; border-radius: 2px 0 0 2px; }
