@@ -1,4 +1,101 @@
-Hardware validation notes — 2026-09-30 to 2026-10-01
+Hardware validation notes — 2026-09-30 to 2026-10-02
+
+Precision investigation — 2026-10-02: with the split AWG still at 10 MHz and
+1° PM at 10 kHz, the live 592,499-window spectrum contained 38 negative bins
+among 11,248 usable bins. Independent SciPy processing of 192 fresh phase
+pairs reproduced negative features near 19, 21 and 29 kHz. The production C++
+calculation agreed with SciPy within 0.00071% complex RMS in the audited
+negative-spur bands. The 10 kHz tone remained aligned and recovered 0.99769°.
+
+Turning PM off without changing the carrier or amplitude removed the negative
+19/21/29 kHz features from a separate 256-pair average; the lower-offset
+features were inconclusive over this shorter capture. No settings or averages
+were reset for these comparisons. The accumulated spectrum therefore still
+contained the earlier modulation and is not a PM-off spectrum.
+
+The phase snapshots had 0.139676° code spacing at CIC 133, with roughly 16
+levels across the modulated waveform. With PM off, 122 X snapshots and 107 Y
+snapshots out of 256 were constant. The final integer CIC/FIR outputs discarded
+fractional phase counts. Wider 40-bit filter outputs retain eight fractional
+bits, with their low 32 bits carried through the existing DMA path and
+corresponding server scale and modulo-relative conversion. The filter gain
+remains programmable-rate compensated. Modulation dependence alone does not
+identify the source of every remaining spur.
+
+The precision image was built with Vivado 2025.1 and passed strict routed
+timing at 200 MHz: setup slack +0.159 ns and hold slack +0.039 ns, with no
+failing timing endpoints. Its bitstream SHA256 is
+`28e03814e3874c79ccb32ae2dbf93a9165bef68a9cf979c6b960f7ad1b9fffd4`.
+The matching ARM server SHA256 is
+`3351397f0b14b486e41184092db4df37b3b2aefb0627c4429a108120844a8e52`.
+Software regressions, including positive, negative and repeated counter wraps,
+passed with ASan/UBSan. The complete instrument package was loaded on the
+board; server/FPGA hashes and HTTP asset responses were checked.
+
+At CIC 133, increasing DDS1 by 1 kHz with tracking temporarily disabled
+changed X's phase slope by -1000.000045 Hz and Y's by +0.000017 Hz over
+70 snapshots. The negative X sign follows subtraction of the second mixer
+phase. DDS frequency and tracking were restored afterward.
+The PM-off precision capture contained 256 fresh pairs with tracking locked.
+Measured code spacing decreased from 0.139676° to 0.000545610°, a factor of
+256. No snapshot was constant on either channel; the first X snapshot
+contained 66 distinct phase codes. These checks establish retained fractional
+counts and conversion scale, rather than an absolute instrument noise floor.
+
+The precision image still showed narrow negative CW components around 1–2 kHz
+with PM off. A 256-pair capture found near-opposite X/Y cross phases at
+977 Hz, 1253 Hz and 1729 Hz, with the strongest negative bin approximately
+-125.47 dBc/Hz in displayed magnitude. The actual signed phase PSD was
+negative; this magnitude is not a positive noise measurement.
+
+An oscillator comparison kept the physical sources unchanged and temporarily
+disabled tracking. Shifting all four actual DDS frequencies by +1 kHz gave
+zero negative bins from 500 Hz to 2.5 kHz in 256 fresh pairs, compared with
+25 before the shift. Restoring the original frequencies brought back 31
+negative bins in another 256-pair capture. This demonstrates dependence on
+the demodulation condition, but does not isolate the responsible vendor IP,
+ADC distortion, or other mechanism.
+
+The same detuning was then applied through the normal local-oscillator settings:
+all four base frequencies approximately 10.001 MHz, with tracking enabled
+and locked. Another 256-pair capture and a 4370-window live average each had
+zero negative bins in the 500 Hz–2.5 kHz band. The ADC0/2 DDS frequencies
+tracked approximately 10.00100637 MHz; ADC1/3 remained at 10.001 MHz.
+These settings were left active for the next measurement and were not saved
+to INI. The earlier spectra and initial frequencies were retained locally.
+This is a measured workaround for this equal-10-MHz-carrier setup, not an
+absolute noise-floor calibration. PM remained off during these comparisons.
+
+The AWG's 1° peak PM at 10 kHz was then enabled without changing the carrier,
+splitter or LO settings. With tracking locked, 256 fresh phase pairs at CIC
+133 gave X = 0.997516° and Y = 0.997517° by sinusoidal fitting. The mean
+X/Y modulation-phase difference was +0.000262° and the largest absolute
+snapshot difference was 0.006077°. Independent SciPy integration of the
+signed real cross spectrum over 10 kHz ±250 Hz recovered 0.997519° peak,
+or -41.20463 dBc integrated SSB power. The ideal 1° value is -41.183 dBc.
+There were zero negative bins from 500 Hz to 2.5 kHz in this fresh capture;
+integrated components near 19, 21 and 29 kHz were positive. There were still
+161 negative bins over the usable spectrum, including features near 24.1
+and 48.2 kHz. Eighty negative bins exceeded five estimated standard errors
+of their frame means; these higher-offset residuals should not be dismissed
+as averaging fluctuations. This does not establish a calibrated instrument
+floor or eliminate every residual.
+Production C++ processing of the same 256 pairs agreed with independent
+SciPy processing within 0.001105% complex RMS from 500 Hz to 2.5 kHz and
+within 0.00070% around the 10 kHz tone and negative 24.1/48.2 kHz features.
+
+The board regression passed CIC rates 20, 67, 100, 133, 67 and 133 on the
+precision image with the detuning active. Each case used 12 fresh phase pairs
+and at least 100 live cumulative windows. Recovered cross-tone amplitudes
+were 0.997545°–0.997614°, and the largest individual X/Y modulation-phase
+difference across the entire run was 0.012423°. Acquisition settings returned
+to CIC 133, XY and navg 1; the base LOs remained at 10.001 MHz.
+
+After the rate regression, a separately reset live average accumulated 1003
+windows with tracking locked. It recovered 0.997526° peak and -41.20457 dBc
+integrated SSB power at 10 kHz, with zero negative bins from 500 Hz to
+2.5 kHz. Its integrated components near 19, 21 and 29 kHz were positive.
+The LO detuning remains active and is not saved to INI.
 
 These notes preserve measurements taken during development. Results preceding
 the prefilter section used the old four-sample boxcar and, where stated, the

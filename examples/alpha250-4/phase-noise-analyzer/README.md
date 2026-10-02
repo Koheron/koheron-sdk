@@ -53,14 +53,31 @@ At 200 MS/s, the filter attenuates the 20 MHz mixing image by 57.27 dB, versus
 2.28 dB for the former boxcar. Its passband loss is 0.091 dB at 500 kHz,
 0.365 dB at 1 MHz and 1.470 dB at 2 MHz. Software does not invert this response.
 The filter is intended for 10 MHz carriers and sub-MHz offsets; wider offsets
-or low carriers need the response taken into account. At CIC 67, one final
-FPGA phase output code is approximately 2.331 mrad.
+or low carriers need the response taken into account. The CIC and FIR retain
+eight fractional phase-count bits in 40-bit outputs. DMA carries their low
+32 bits, and the server converts signed modulo offsets within each snapshot.
+At CIC 133, one output code is approximately 9.523 µrad (0.000546°), rather
+than the former 2.438 mrad (0.140°). Server and FPGA images must be deployed
+together because this changes the phase-count scale. Adjacent sample steps
+must be less than half the 32-bit phase-counter range; snapshots may cross
+the boundary repeatedly.
 
 The browser provides one selected spectrum, with optional 0.1-decade smoothing.
 It averages signed linear values before displaying magnitude in dB; red markers
 identify negative estimates. Nonpositive decade averages and integrated jitter
 remain unavailable. CSV exports retain signed phase PSD and all four DDS
 frequencies. Python captures also retain `phase_psd`; spur removal is opt-in.
+
+With equal 10 MHz carriers, CW tests still found narrow negative estimates
+around 1–2 kHz at the original LO settings. Setting all four base local
+oscillators to 10.001 MHz, with tracking enabled, removed negative bins from
+500 Hz to 2.5 kHz in the tested captures; restoring 10 MHz brought them back.
+This detuning is a measured workaround for a demodulation-dependent residual.
+With the detuning, a 1° peak modulation at 10 kHz recovered 0.99752° in the
+cross spectrum, and paired acquisition passed CIC rates 20, 67, 100 and 133
+including repeated changes. Negative estimates remain at some other offsets;
+the absolute noise floor still needs calibration. See the hardware notes for
+the controlled comparisons.
 
 The workspace follows the compact FFT interface: acquisition and local
 oscillators above a full-width spectrum, phase/frequency controls, CSV/PNG

@@ -108,7 +108,31 @@ void test_phase_conversion_and_slope() {
     raw.fill(INT32_MIN);
     raw.back() = INT32_MAX;
     convert_relative_phase(raw, ramp, Phase{1.0f});
-    assert(ramp.back().eval() > 4e9f); // subtraction must not overflow int32_t
+    assert(ramp.back().eval() == -1.0f); // low-word phase wraps modulo 2^32
+    raw.fill(INT32_MAX - 2);
+    raw[1] = INT32_MAX;
+    raw[2] = INT32_MIN;
+    raw[3] = INT32_MIN + 1;
+    convert_relative_phase(raw, ramp, Phase{0.001f});
+    assert(std::abs(ramp[1].eval() - 0.002f) < 1e-9f);
+    assert(std::abs(ramp[2].eval() - 0.003f) < 1e-9f);
+    assert(std::abs(ramp[3].eval() - 0.004f) < 1e-9f);
+    raw.fill(INT32_MIN + 2);
+    raw[1] = INT32_MIN;
+    raw[2] = INT32_MAX;
+    raw[3] = INT32_MAX - 1;
+    convert_relative_phase(raw, ramp, Phase{0.001f});
+    assert(std::abs(ramp[1].eval() + 0.002f) < 1e-9f);
+    assert(std::abs(ramp[2].eval() + 0.003f) < 1e-9f);
+    assert(std::abs(ramp[3].eval() + 0.004f) < 1e-9f);
+    // Repeated counter wraps must not turn a carrier offset into phase jumps.
+    for (std::size_t i = 0; i < raw.size(); ++i) {
+        const uint32_t word = uint32_t{INT32_MAX} + uint32_t(i) * (uint32_t{1} << 28);
+        raw[i] = word <= uint32_t{INT32_MAX} ? int32_t(word)
+            : int32_t(int64_t(word) - (int64_t{1} << 32));
+    }
+    convert_relative_phase(raw, ramp, Phase{1.0f / float(uint32_t{1} << 28)});
+    for (std::size_t i = 0; i < ramp.size(); ++i) assert(ramp[i].eval() == float(i));
 }
 
 template<class Tuple>

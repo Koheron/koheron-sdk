@@ -24,7 +24,7 @@ Coverage includes:
 - Fractional phase scaling above and below unity, including sub-hertz carrier offsets.
 - CIC gain compensation at power-of-two and arbitrary rates.
 - Retained FIR outputs against the original filter for impulses, ramps, noise and tones; cached response corrections across sample rates.
-- Phase conversion with large unwrap offsets, safe integer subtraction, and slope estimation with noise.
+- Phase conversion with large unwrap offsets, positive and negative low-word wraps, and slope estimation with noise.
 - Linear phase-drift rejection, spectral tone preservation, and the near-carrier detrending response.
 - Tracking lock detection through acquisition, noisy blocks, sustained detuning, and reset.
 - Shared INI settings parsing preserves trimmed storage for bool, integer and floating values, including saved tracking settings and long decimal strings, under AddressSanitizer.

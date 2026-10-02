@@ -60,4 +60,5 @@ parameters:
   cic_decimation_rate_min: 4
   cic_decimation_rate_max: 8192
   cic_n_stages: 6
+  phase_fractional_bits: 8
   n_pts: 262144

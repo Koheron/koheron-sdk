@@ -9,9 +9,21 @@ template<typename Phase, std::size_t N>
 void convert_relative_phase(const std::array<int32_t, N>& raw,
                             std::array<Phase, N>& phase, Phase radians_per_count) {
     static_assert(N > 0);
-    const int64_t origin = raw.front();
-    for (std::size_t i = 0; i < N; ++i)
-        phase[i] = radians_per_count * float(int64_t(raw[i]) - origin);
+    uint32_t previous = static_cast<uint32_t>(raw.front());
+    int64_t relative = 0;
+    for (std::size_t i = 0; i < N; ++i) {
+        // DMA contains the low 32 bits of the wider fixed-point phase. Choose
+        // adjacent signed displacements modulo 2^32, then accumulate in 64
+        // bits so a snapshot may cross the phase-counter boundary repeatedly.
+        // Each sample step must be less than half the phase-counter range.
+        const uint32_t current = static_cast<uint32_t>(raw[i]);
+        const uint32_t delta = current - previous;
+        const int64_t displacement = delta <= uint32_t{INT32_MAX}
+            ? int64_t(delta) : int64_t(delta) - (int64_t{1} << 32);
+        relative += displacement;
+        phase[i] = radians_per_count * float(relative);
+        previous = current;
+    }
 }
 
 template<std::size_t Samples, typename Phase, std::size_t N>
