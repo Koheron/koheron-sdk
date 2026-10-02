@@ -176,3 +176,6 @@ DMA path. The initial FPGA review found three measurement concerns:
   now preserve alignment across rate changes. Shared stalls can still discard
   ADC-time samples; these regressions do not establish lossless sampling under
   arbitrary FIFO pressure.
+
+The full-product mixer hardware comparison and its remaining low-offset
+limit are recorded in [mixer rounding validation](mixer-rounding-validation.md).

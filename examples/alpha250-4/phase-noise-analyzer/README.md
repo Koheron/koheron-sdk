@@ -51,6 +51,9 @@ other fractions deterministically rounded. Product components are sliced at
 the vendor's 40-bit byte-padded stride. Separate I/Q generators add one equal
 pipeline stage in all four channels, preserving alignment and carrier scale.
 
+The controlled hardware comparison is recorded in
+[the mixer validation notes](tests/mixer-rounding-validation.md).
+
 The FPGA prefilter is four cascaded 16-sample moving averages, equivalent to a
 61-tap FIR with unity DC gain. Intermediate sums retain full precision, with
 stochastic rounding at the output. Mixer components, channel prefilters and
