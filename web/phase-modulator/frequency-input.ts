@@ -57,6 +57,7 @@ class FrequencyInput {
             const nearest = digits.find(index => index >= start);
             this.exponent = Math.max(this.minimumExponent, this.power(nearest === undefined ? digits[digits.length - 1] : nearest));
             this.selectDigit();
+            this.help();
         });
         this.listen(input, 'keydown', event => this.key(event as KeyboardEvent));
         this.listen(input, 'wheel', event => this.wheel(event as WheelEvent), {passive: false});

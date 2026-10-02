@@ -268,6 +268,7 @@ test('digit tuning preserves place value through carry/borrow and skips separato
     const f = frequency(t, undefined, 9.999e6);
     f.digit(4); // 1 kHz place in 9.999 000 MHz.
     assert.equal(f.input.selectionStart, 4);
+    assert.match(f.input.parentElement.querySelector('.pm-frequency-help').textContent, /Step 1 kHz/);
     f.key('ArrowUp'); await settle();
     assert.deepEqual(f.calls, [10e6]);
     assert.equal(f.input.value, '10.000\u2009000');
