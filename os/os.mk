@@ -71,11 +71,15 @@ UBOOT_CONFIG_FILE := $(wildcard $(PATCHES)/$(UBOOT_CONFIG))
 # Configure U-Boot once to avoid concurrent defconfig/mrproper races
 UBOOT_CONFIG_STAMP := $(UBOOT_PATH)/.config
 
-$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONFIG_FILE)
+$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONFIG_FILE) $(UBOOT_CONFIG_FRAGMENTS)
 	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	$(DOCKER) make -C $(UBOOT_PATH) mrproper
 	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) CROSS_COMPILE=$(GCC_ARCH)- $(UBOOT_CONFIG)
+ifneq ($(strip $(UBOOT_CONFIG_FRAGMENTS)),)
+	cd $(UBOOT_PATH) && scripts/kconfig/merge_config.sh -m .config $(abspath $(UBOOT_CONFIG_FRAGMENTS))
+	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) CROSS_COMPILE=$(GCC_ARCH)- olddefconfig
+endif
 	@touch $@
 	$(call ok,$@)
 

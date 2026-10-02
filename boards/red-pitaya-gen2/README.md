@@ -12,6 +12,11 @@ constraints, Linux board overlay, U-Boot configuration and an image build
 configuration. The ADC/DAC cores and board drivers are shared with the original
 Red Pitaya.
 
+The packages share the original Red Pitaya U-Boot defconfig, one Gen2 config
+fragment and the Gen2 PS preset. Each board adds only its device-tree selection
+and hardware differences. Thin Tcl/XDC and core/driver includes preserve the
+board paths used by existing SDK instruments.
+
 ## Build and use
 
 Start with the LED/register bring-up instrument:
