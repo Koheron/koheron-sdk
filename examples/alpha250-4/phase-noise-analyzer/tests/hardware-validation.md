@@ -1,4 +1,46 @@
-Hardware validation notes — 2026-09-30 to 2026-10-01
+Hardware validation notes — 2026-09-30 to 2026-10-02
+
+Precision investigation — 2026-10-02: with the split AWG still at 10 MHz and
+1° PM at 10 kHz, the live 592,499-window spectrum contained 38 negative bins
+among 11,248 usable bins. Independent SciPy processing of 192 fresh phase
+pairs reproduced negative features near 19, 21 and 29 kHz. The production C++
+calculation agreed with SciPy within 0.00071% complex RMS in the audited
+negative-spur bands. The 10 kHz tone remained aligned and recovered 0.99769°.
+
+Turning PM off without changing the carrier or amplitude removed the negative
+19/21/29 kHz features from a separate 256-pair average; the lower-offset
+features were inconclusive over this shorter capture. No settings or averages
+were reset for these comparisons. The accumulated spectrum therefore still
+contained the earlier modulation and is not a PM-off spectrum.
+
+The phase snapshots had 0.139676° code spacing at CIC 133, with roughly 16
+levels across the modulated waveform. With PM off, 122 X snapshots and 107 Y
+snapshots out of 256 were constant. The final integer CIC/FIR outputs discarded
+fractional phase counts. Wider 40-bit filter outputs retain eight fractional
+bits, with their low 32 bits carried through the existing DMA path and
+corresponding server scale and modulo-relative conversion. The filter gain
+remains programmable-rate compensated. Modulation dependence alone does not
+identify the source of every remaining spur.
+
+The precision image was built with Vivado 2025.1 and passed strict routed
+timing at 200 MHz: setup slack +0.159 ns and hold slack +0.039 ns, with no
+failing timing endpoints. Its bitstream SHA256 is
+`28e03814e3874c79ccb32ae2dbf93a9165bef68a9cf979c6b960f7ad1b9fffd4`.
+The matching ARM server SHA256 is
+`3351397f0b14b486e41184092db4df37b3b2aefb0627c4429a108120844a8e52`.
+Software regressions, including positive, negative and repeated counter wraps,
+passed with ASan/UBSan. The complete instrument package was loaded on the
+board; server/FPGA hashes and HTTP asset responses were checked.
+
+At CIC 133, increasing DDS1 by 1 kHz with tracking temporarily disabled
+changed X's phase slope by -1000.000045 Hz and Y's by +0.000017 Hz over
+70 snapshots. The negative X sign follows subtraction of the second mixer
+phase. DDS frequency and tracking were restored afterward.
+The PM-off precision capture contained 256 fresh pairs with tracking locked.
+Measured code spacing decreased from 0.139676° to 0.000545610°, a factor of
+256. No snapshot was constant on either channel; the first X snapshot
+contained 66 distinct phase codes. These checks establish retained fractional
+counts and conversion scale, rather than an absolute instrument noise floor.
 
 These notes preserve measurements taken during development. Results preceding
 the prefilter section used the old four-sample boxcar and, where stated, the

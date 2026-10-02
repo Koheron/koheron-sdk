@@ -129,6 +129,7 @@ set dec_rate_default [get_parameter cic_decimation_rate_default]
 set dec_rate_min [get_parameter cic_decimation_rate_min]
 set dec_rate_max [get_parameter cic_decimation_rate_max]
 set n_stages [get_parameter cic_n_stages]
+set phase_filter_width [expr 32 + [get_parameter phase_fractional_bits]]
 
 set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rate_min $diff_delay print]
 
@@ -154,7 +155,7 @@ for {set i 0} {$i < 2} {incr i} {
     Clock_Frequency [expr [get_parameter adc_clk] / 1000000.0]
     Input_Data_Width 32
     Quantization Truncation
-    Output_Data_Width 32
+    Output_Data_Width $phase_filter_width
     Use_Xtreme_DSP_Slice false
     HAS_DOUT_TREADY true
     HAS_ARESETN true
@@ -168,9 +169,9 @@ for {set i 0} {$i < 2} {incr i} {
     Sample_Frequency [expr [get_parameter adc_clk] / 1000000. / $dec_rate_min]
     Clock_Frequency [expr [get_parameter adc_clk] / 1000000.]
     Coefficient_Width 32
-    Data_Width 32
+    Data_Width $phase_filter_width
     Output_Rounding_Mode Convergent_Rounding_to_Even
-    Output_Width 32
+    Output_Width $phase_filter_width
     Decimation_Rate 2
     BestPrecision true
     CoefficientVector [subst {{$fir_coeffs}}]
@@ -182,6 +183,8 @@ for {set i 0} {$i < 2} {incr i} {
     S_AXIS_DATA cic$i/M_AXIS_DATA
   }
 
+  # Keep the filter's fractional LSBs. DMA transports the phase modulo 2^32;
+  # the server removes the common origin with signed modulo subtraction.
   cell xilinx.com:ip:axis_data_fifo:2.0 axis_data_fifo_$i {
     FIFO_DEPTH 32768
     TDATA_NUM_BYTES 4
@@ -190,7 +193,9 @@ for {set i 0} {$i < 2} {incr i} {
     PROG_FULL_THRESH 16384
     HAS_WR_DATA_COUNT 1
   } {
-    S_AXIS fir$i/M_AXIS_DATA
+    s_axis_tdata [get_slice_pin fir$i/m_axis_data_tdata 31 0]
+    s_axis_tvalid fir$i/m_axis_data_tvalid
+    s_axis_tready fir$i/m_axis_data_tready
     s_axis_aclk adc/adc_clk
     m_axis_aclk ps_0/FCLK_CLK1
     M_AXIS axis_stream_packet_m_0/S_AXIS_$i
