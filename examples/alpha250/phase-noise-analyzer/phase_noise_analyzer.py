@@ -11,6 +11,11 @@ class PhaseNoiseAnalyzer(object):
     def set_dds_freq(self, channel, freq):
         pass
 
+    @command()
+    def set_local_oscillator(self, channel, freq_hz):
+        """Set the analyzer reference and discard settling data; DAC settings stay independent."""
+        pass
+
     @command(classname="ClockGenerator")
     def set_reference_clock(self, val):
         pass

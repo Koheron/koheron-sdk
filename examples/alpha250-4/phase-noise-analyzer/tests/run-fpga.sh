@@ -16,6 +16,15 @@ xvlog "$repo/fpga/cores/phase_unwrapper_v1_0/phase_unwrapper.v" \
       "$repo/fpga/cores/boxcar_filter_v1_0/boxcar_filter.v" \
       "$repo/fpga/cores/axis_lfsr_v1_0/axis_lfsr.v" \
       "$repo/fpga/cores/phase_prefilter_v1_0/phase_prefilter.v"
+xvlog "$repo/examples/alpha250-4/phase-noise-analyzer/paired_cic_control_v1_0/paired_cic_control.v"
+xvlog --sv "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_paired_cic_control.sv"
+xelab work.test_paired_cic_control -s paired_cic_control
+xsim paired_cic_control -runall > paired-cic-control.log 2>&1
+cat paired-cic-control.log
+rg -q 'Paired CIC control checks passed' paired-cic-control.log
+if rg -q 'Fatal:|ERROR:|FATAL:' paired-cic-control.log; then
+    exit 1
+fi
 xvlog --sv "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_fpga_blocks.sv"
 xelab work.test_fpga_blocks -s audit_fpga
 xsim audit_fpga -runall > simulation.log 2>&1

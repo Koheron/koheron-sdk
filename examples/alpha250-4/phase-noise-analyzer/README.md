@@ -21,6 +21,16 @@ drain queued samples; DMA configuration is applied between complete X/Y pairs.
 Phase getters return the latest synchronized pair, with the integer unwrap
 offset removed before float conversion. They return zeros before acquisition.
 
+The two CICs admit live ADC-clock samples together. If either input is stalled
+by its downstream FIFO, neither accepts the next live sample. One shared rate
+source commits configuration to both CICs on the same clock. This prevents
+independent FIFO draining from shifting the X/Y time axes and attenuating or
+reversing the real cross spectrum of a shared phase-modulated signal.
+On a rate change, the controller resets both CIC/FIR histories and FIFO queues
+for 32 ADC clocks, configures both CICs together, then resumes paired sampling.
+Backpressure can still discard shared ADC-clock instants; paired acceptance
+preserves X/Y alignment rather than guaranteeing lossless sampling.
+
 Phase-based block rejection is removed: quiet blocks, sparse quantized steps,
 spikes and discontinuities all contribute to the spectrum. There are no jump,
 peak/RMS or output-code rejection thresholds. DMA completeness and acquisition
@@ -72,6 +82,6 @@ prior implementation results are in [hardware validation notes](tests/hardware-v
 Remaining limitations include absolute ADC/DAC phase-noise and carrier-power
 calibration, close-offset detrending response, the CIC 4 scaling discrepancy,
 frequency-dependent residuals, shutdown hangs observed during testing, and
-sample alignment if downstream FIFOs stall. Spectrum and settings are separate
+sample timing if downstream FIFOs stall. Spectrum and settings are separate
 RPC reads and can disagree during a configuration change. Existing checks
 establish calculation consistency, not an absolute instrument noise floor.

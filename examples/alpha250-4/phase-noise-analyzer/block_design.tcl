@@ -157,19 +157,10 @@ for {set i 0} {$i < 2} {incr i} {
     Output_Data_Width 32
     Use_Xtreme_DSP_Slice false
     HAS_DOUT_TREADY true
+    HAS_ARESETN true
   } {
     aclk adc/adc_clk
     s_axis_data_tdata phase_diff$i/S
-    s_axis_data_tvalid [get_constant_pin 1 1]
-  }
-
-  cell pavel-demin:user:axis_variable:1.0 cic_rate$i {
-    AXIS_TDATA_WIDTH 16
-  } {
-    cfg_data [ctl_pin cic_rate]
-    aclk adc/adc_clk
-    aresetn rst_adc_clk/peripheral_aresetn
-    M_AXIS cic$i/S_AXIS_CONFIG
   }
 
   cell xilinx.com:ip:fir_compiler:7.2 fir$i {
@@ -184,6 +175,8 @@ for {set i 0} {$i < 2} {incr i} {
     BestPrecision true
     CoefficientVector [subst {{$fir_coeffs}}]
     M_DATA_Has_TREADY true
+    Has_ARESETn true
+    Reset_Data_Vector true
   } {
     aclk adc/adc_clk
     S_AXIS_DATA cic$i/M_AXIS_DATA
@@ -198,13 +191,35 @@ for {set i 0} {$i < 2} {incr i} {
     HAS_WR_DATA_COUNT 1
   } {
     S_AXIS fir$i/M_AXIS_DATA
-    s_axis_aresetn rst_adc_clk/peripheral_aresetn
     s_axis_aclk adc/adc_clk
     m_axis_aclk ps_0/FCLK_CLK1
     M_AXIS axis_stream_packet_m_0/S_AXIS_$i
     prog_full [get_interrupt_pin]
     axis_wr_data_count [sts_pin fifo_wr_data_count$i]
   }
+}
+
+# Separate FIFO drains must not let X/Y accept different live ADC samples.
+# A shared rate source also keeps a runtime rate change on one sample epoch.
+cell koheron:user:paired_cic_control:1.0 paired_cic_control {} {
+  aclk adc/adc_clk
+  aresetn rst_adc_clk/peripheral_aresetn
+  requested_rate [ctl_pin cic_rate]
+  data_ready_x cic0/s_axis_data_tready
+  data_ready_y cic1/s_axis_data_tready
+  data_valid cic0/s_axis_data_tvalid
+  config_ready_x cic0/s_axis_config_tready
+  config_ready_y cic1/s_axis_config_tready
+  config_valid cic0/s_axis_config_tvalid
+}
+connect_pins paired_cic_control/data_valid cic1/s_axis_data_tvalid
+connect_pins paired_cic_control/config_valid cic1/s_axis_config_tvalid
+connect_pins paired_cic_control/config_rate cic0/s_axis_config_tdata
+connect_pins paired_cic_control/config_rate cic1/s_axis_config_tdata
+for {set i 0} {$i < 2} {incr i} {
+  connect_pins paired_cic_control/filter_resetn cic$i/aresetn
+  connect_pins paired_cic_control/filter_resetn fir$i/aresetn
+  connect_pins paired_cic_control/filter_resetn axis_data_fifo_$i/s_axis_aresetn
 }
 
 # set idx_dma [add_master_interface $intercon_idx]

@@ -9,7 +9,7 @@ CORES += $(SDK_PATH)/fpga/ip/awg_v1_0
 TCL_FILES = $(BD_TCL) $(PROJECT_PATH)/post_route.tcl $(wildcard $(BOARD_PATH)/*.tcl) $(wildcard $(FPGA_PATH)/lib/*.tcl) $(SDK_PATH)/fpga/ip/awg_v1_0/integration.tcl
 
 include $(BOARD_PATH)/drivers/drivers.mk
-DRIVERS += $(PROJECT_PATH)/phase_modulator.hpp
+DRIVERS += $(BOARD_PATH)/drivers/phase-modulator.hpp
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.ts
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/frequency-input.ts
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator-widget.ts
