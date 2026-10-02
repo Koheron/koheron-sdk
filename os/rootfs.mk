@@ -21,10 +21,12 @@ $(TMP_API_PATH)/app/%: $(OS_PATH)/api/%
 	# create parents and copy
 	install -D -m0644 $< $@
 
-PASSWORD ?= $(if $(PASSWD),$(PASSWD),changeme)
+ifeq ($(origin PASSWORD),undefined)
+PASSWORD := $(if $(value PASSWD),$(value PASSWD),changeme)
+endif
 export PASSWORD TIMEZONE
 
-api_sync www_sync: export SSHPASS = $(PASSWORD)
+api_sync www_sync: export SSHPASS = $(value PASSWORD)
 
 .PHONY: api_sync
 api_sync: $(API_FILES)
@@ -198,6 +200,7 @@ $(ROOT_TAR_PATH): $(SHA256SUMS_PATH)
 	$(call ok,$@)
 
 $(BASE_ROOTFS_SETTINGS): FORCE
+	@mkdir -p $(@D)
 	@umask 077; printf '%s\0%s' "$$PASSWORD" "$${TIMEZONE:-Europe/Paris}" | sha256sum > $@.tmp
 	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
 	@rm -f $@.tmp

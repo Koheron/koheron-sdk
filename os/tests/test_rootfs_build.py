@@ -1,4 +1,5 @@
 """Exercise offline image hygiene and build failure paths without real mounts."""
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -98,12 +99,19 @@ class BaseRootfsBuildTest(unittest.TestCase):
 #!/usr/bin/python3
 import os
 from pathlib import Path
+import shlex
+import subprocess
+import json
 import sys
 command = Path(sys.argv[0]).name
 args = sys.argv[1:]
 if command == 'mount':
     if args[0] != '--make-rslave':
         (Path(args[-1]) / '.test-mounted').touch()
+        if args[-1].endswith('/sys'):
+            sys.exit(int(os.environ.get('SYS_MOUNT_RESULT', '0')))
+        if args[-1].endswith('/dev'):
+            sys.exit(int(os.environ.get('DEV_MOUNT_RESULT', '0')))
 elif command == 'mountpoint':
     sys.exit(0 if (Path(args[-1]) / '.test-mounted').exists() else 1)
 elif command == 'umount':
@@ -112,6 +120,20 @@ elif command == 'umount':
     (Path(args[-1]) / '.test-mounted').unlink()
 elif command == 'chroot':
     root = Path(args[0])
+    # Run the payload's shell wrapper, substituting only its absolute path.
+    payload = root / 'test-payload.py'
+    payload.write_text("import json, os\\nfrom pathlib import Path\\n"
+                       + "Path(" + repr(str(root / 'chroot-environment'))
+                       + ").write_text(json.dumps({k: os.environ[k] for k in ('TIMEZONE', 'PASSWD')}))\\n")
+    invocation = args[2:]
+    if invocation[-1] == '/chroot.sh':
+        invocation = ['/usr/bin/python3', str(payload)]
+    else:
+        invocation[-1] = invocation[-1].replace('/bin/bash /chroot.sh',
+                                               '/usr/bin/python3 ' + shlex.quote(str(payload)))
+    result = subprocess.run(invocation)
+    if result.returncode:
+        sys.exit(result.returncode)
     (root / 'etc/machine-id').write_text('builder-id\\n')
     (root / 'payload-ran').touch()
     sys.exit(int(os.environ.get('CHROOT_RESULT', '0')))
@@ -168,6 +190,32 @@ elif command != 'chown':
         trees = list(self.work.iterdir())
         self.assertEqual(len(trees), 1)
         self.assertTrue((trees[0] / 'dev/.test-mounted').exists())
+
+    def test_sys_mount_failure_keeps_previous_cache_and_cleans_tree(self):
+        self.assert_clean_failure(self.build(SYS_MOUNT_RESULT='17'), 17)
+
+    def test_dev_mount_failure_keeps_previous_cache_and_cleans_tree(self):
+        self.assert_clean_failure(self.build(DEV_MOUNT_RESULT='19'), 19)
+
+    def test_password_is_passed_literally_to_payload(self):
+        password = "spaces ' dollars $ backslash \\ and quotes \""
+        result = self.build(PASSWD=password, TIMEZONE='Europe/Paris')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        with tarfile.open(self.output) as archive:
+            environment = json.loads(archive.extractfile('./chroot-environment').read())
+        self.assertEqual(environment, {'PASSWD': password, 'TIMEZONE': 'Europe/Paris'})
+
+    def test_password_takes_precedence_over_legacy_alias(self):
+        result = self.build(PASSWORD="primary ' $ password", PASSWD='legacy', TIMEZONE='UTC')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        with tarfile.open(self.output) as archive:
+            environment = json.loads(archive.extractfile('./chroot-environment').read())
+        self.assertEqual(environment, {'PASSWD': "primary ' $ password", 'TIMEZONE': 'UTC'})
+
+    def test_multiline_password_is_rejected_before_mounting(self):
+        for password in ('first\nsecond', 'first\rsecond'):
+            with self.subTest(password=password):
+                self.assert_clean_failure(self.build(PASSWORD=password), 1)
 
 
 if __name__ == '__main__':

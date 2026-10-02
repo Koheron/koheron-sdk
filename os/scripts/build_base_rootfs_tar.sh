@@ -69,8 +69,10 @@ install -D -m0755 "$qemu_path" "$root_dir/usr/bin/$(basename "$qemu_path")"
 
 # 2) mount pseudo-fs and run chroot via qemu (no binfmt needed)
 mount -t proc proc "$root_dir/proc"
-mount --rbind /sys "$root_dir/sys" && mount --make-rslave "$root_dir/sys"
-mount --rbind /dev "$root_dir/dev" && mount --make-rslave "$root_dir/dev"
+mount --rbind /sys "$root_dir/sys"
+mount --make-rslave "$root_dir/sys"
+mount --rbind /dev "$root_dir/dev"
+mount --make-rslave "$root_dir/dev"
 mount --bind  /run "$root_dir/run" || true
 
 install -D -m0755 "$CHROOT_PAYLOAD" "$root_dir/chroot.sh"
