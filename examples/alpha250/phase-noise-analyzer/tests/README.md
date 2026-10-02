@@ -35,6 +35,29 @@ linear smoothing with invalid bins, display units, raw/smoothed/PSD export
 and existing numeric/DAC controls. No host test establishes analog
 noise-floor accuracy. The hardware PM validation below remains necessary.
 
+The tracking regression closes a simulated frequency loop around the production
+analyzer, including the actual DDS tuning words and phase-count quantization.
+It checks both offset signs and ADC selections, per-update/total bounds,
+zero-bandwidth pause, nominal-frequency restoration, lock hysteresis and
+saturation, failed-transfer invalidation and PM power preservation. Automatic
+DDS writes are checked against the fake DMA's in-flight flag. A setting-change
+test exercises DMA lock handoff during tracking. The production C++ telemetry
+tuple is serialized and decoded through the compiled browser RPC client;
+Python command dispatch and browser controls also check nominal/corrected
+frequency separation. The existing ALPHA250-4 core tests cover the shared
+lock detector. This simulation excludes vendor IP, analog effects and real
+FIFO/backpressure timing.
+
+For board tracking validation, first disable tracking and offset the selected
+LO above and below the carrier by a small known amount (for example 0.05 Hz).
+Enable tracking and check that the implemented LO converges in the correct
+direction within the configured bounds, with no change to the other channel.
+Repeat on ADC1, toggle tracking off to verify nominal-frequency restoration,
+and change CIC rate while tracking. Inject the PM tone described below and
+compare integrated tone power with tracking off/on after settling. Check
+close-offset spectra separately for effects of the tracking loop and tuning
+steps; a converged lock indicator is not a noise-floor calibration.
+
 ## FPGA prefilter
 
 From the SDK root:

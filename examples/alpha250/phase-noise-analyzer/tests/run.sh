@@ -18,6 +18,10 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
         examples/alpha250/phase-noise-analyzer/phase-noise-analyzer.cpp \
         examples/alpha250/phase-noise-analyzer/dds.cpp -o "$output/acquisition"
     "$output/acquisition"
+    g++-13 -I"$tests/stubs" "${flags[@]}" "$tests/test_tracking.cpp" \
+        examples/alpha250/phase-noise-analyzer/phase-noise-analyzer.cpp \
+        examples/alpha250/phase-noise-analyzer/dds.cpp -o "$output/tracking"
+    "$output/tracking" "$output/tracking.bin"
     g++-13 -I"$tests/stubs" "${flags[@]}" "$tests/test_dds.cpp" \
         examples/alpha250/phase-noise-analyzer/dds.cpp -o "$output/dds"
     "$output/dds"
@@ -39,4 +43,6 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
         npm install --prefix "$deps" --no-save --package-lock=false typescript@5.6.3 jsdom@26.1.0
     fi
     node --test "$tests/test_plot.cjs" "$tests/test_numeric_controls.cjs" "$tests/test_signal_generator.cjs"
+    node "$tests/test_tracking_wire.cjs" tmp/examples/alpha250/phase-noise-analyzer/web/app.js \
+        tmp/tests/alpha250-phase-noise-analyzer/tracking.bin
 '

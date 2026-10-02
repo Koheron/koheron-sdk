@@ -34,6 +34,31 @@ class PhaseNoiseAnalyzer(object):
         return self.client.recv_vector(dtype='float32')
 
     @command()
+    def set_tracking_enabled(self, enabled):
+        """Track the selected ADC; disabling restores both nominal LO settings."""
+        pass
+
+    @command()
+    def set_tracking_bandwidth(self, bandwidth_hz):
+        pass
+
+    @command()
+    def set_tracking_max_step(self, max_step_hz):
+        pass
+
+    @command()
+    def set_tracking_max_correction(self, max_correction_hz):
+        pass
+
+    @command()
+    def get_tracking_parameters(self):
+        """enabled, requested/effective BW, step/total limits, nominal LOs,
+        applied corrections, measured LO-minus-input offsets, lock flags.
+        Frequencies are Hz; the two-channel fields are ordered ADC0, ADC1.
+        """
+        return self.client.recv_tuple('?dddddddddd??')
+
+    @command()
     def set_channel(self, channel):
         pass
 

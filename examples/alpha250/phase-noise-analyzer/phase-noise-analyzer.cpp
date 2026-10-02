@@ -22,6 +22,20 @@
 namespace sci = scicpp;
 namespace sig = scicpp::signal;
 
+namespace {
+class DmaSettingsGuard {
+    std::atomic<uint32_t>& pending;
+  public:
+    explicit DmaSettingsGuard(std::atomic<uint32_t>& value) : pending(value) {
+        pending.fetch_add(1, std::memory_order_acq_rel);
+    }
+    ~DmaSettingsGuard() {
+        pending.fetch_sub(1, std::memory_order_acq_rel);
+        pending.notify_all();
+    }
+};
+}
+
 PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
 : cfg    (services::require<rt::ConfigManager>())
 , dma    (rt::get_driver<DmaS2MM>())
@@ -64,10 +78,14 @@ void PhaseNoiseAnalyzer::save_config() {
     cfg.set("PhaseNoiseAnalyzer", "channel", channel);
     cfg.set("PhaseNoiseAnalyzer", "fft_navg", fft_navg);
     cfg.set("PhaseNoiseAnalyzer", "cic_rate", cic_rate);
-    cfg.set("PhaseNoiseAnalyzer", "dds_freq[0]", dds.get_dds_freq(0));
-    cfg.set("PhaseNoiseAnalyzer", "dds_freq[1]", dds.get_dds_freq(1));
+    cfg.set("PhaseNoiseAnalyzer", "dds_freq[0]", base_dds_freq[0]);
+    cfg.set("PhaseNoiseAnalyzer", "dds_freq[1]", base_dds_freq[1]);
     cfg.set("PhaseNoiseAnalyzer", "analyzer_mode", analyzer_mode);
     cfg.set("PhaseNoiseAnalyzer", "interferometer_delay", interferometer_delay.eval());
+    cfg.set("PhaseNoiseAnalyzer", "tracking_enabled", tracking_enabled);
+    cfg.set("PhaseNoiseAnalyzer", "tracking_bandwidth", tracking_bandwidth);
+    cfg.set("PhaseNoiseAnalyzer", "tracking_max_step", tracking_max_step);
+    cfg.set("PhaseNoiseAnalyzer", "tracking_max_correction", tracking_max_correction);
     cfg.save();
 }
 
@@ -79,6 +97,8 @@ void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t lo_channel, double freq_h
         return;
     }
     dds.set_dds_freq(lo_channel, freq_hz);
+    base_dds_freq[lo_channel] = dds.get_dds_freq(lo_channel);
+    tracking_correction[lo_channel] = 0.0;
     set_power_conversion_factor();
     dirty_cnt = 4;
     invalidate_results();
@@ -91,6 +111,7 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
         return;
     }
 
+    DmaSettingsGuard pending(dma_settings_pending);
     std::unique_lock dma_lk(dma_mtx); // block until any DMA transfer finishes
     std::unique_lock lk(data_mtx);
 
@@ -192,6 +213,73 @@ void PhaseNoiseAnalyzer::set_interferometer_delay(float delay_s) {
     invalidate_results();
 }
 
+void PhaseNoiseAnalyzer::set_tracking_enabled(bool enabled) {
+    // Disabling restores nominal frequencies and discards settling captures.
+    DmaSettingsGuard pending(dma_settings_pending);
+    std::unique_lock dma_lk(dma_mtx);
+    std::unique_lock lk(data_mtx);
+    if (tracking_enabled == enabled) return;
+    tracking_enabled = enabled;
+    if (!enabled) {
+        for (uint32_t i = 0; i < 2; ++i) {
+            dds.set_dds_freq(i, base_dds_freq[i]);
+            tracking_correction[i] = 0.0;
+        }
+        set_power_conversion_factor();
+    }
+    dirty_cnt = std::max(dirty_cnt, 4u);
+    invalidate_results();
+}
+
+void PhaseNoiseAnalyzer::set_tracking_bandwidth(float bandwidth_hz) {
+    if (!std::isfinite(bandwidth_hz) || bandwidth_hz < 0.0f) {
+        log<ERROR>("PhaseNoiseAnalyzer: Invalid tracking bandwidth\n");
+        return;
+    }
+    std::unique_lock lk(data_mtx);
+    tracking_bandwidth = static_cast<double>(bandwidth_hz);
+    reset_tracking_observations();
+}
+
+void PhaseNoiseAnalyzer::set_tracking_max_step(float max_step_hz) {
+    if (!std::isfinite(max_step_hz) || max_step_hz < 0.0f) {
+        log<ERROR>("PhaseNoiseAnalyzer: Invalid tracking step limit\n");
+        return;
+    }
+    std::unique_lock lk(data_mtx);
+    tracking_max_step = static_cast<double>(max_step_hz);
+    reset_tracking_observations();
+}
+
+void PhaseNoiseAnalyzer::set_tracking_max_correction(float max_correction_hz) {
+    if (!std::isfinite(max_correction_hz) || max_correction_hz < 0.0f) {
+        log<ERROR>("PhaseNoiseAnalyzer: Invalid tracking correction limit\n");
+        return;
+    }
+    DmaSettingsGuard pending(dma_settings_pending);
+    std::unique_lock dma_lk(dma_mtx);
+    std::unique_lock lk(data_mtx);
+    tracking_max_correction = static_cast<double>(max_correction_hz);
+    // Apply a tighter bound immediately, treating it as a manual retune.
+    bool retuned = false;
+    for (uint32_t i = 0; i < 2; ++i) {
+        if (std::abs(tracking_correction[i]) > tracking_max_correction) {
+            const double correction = std::clamp(tracking_correction[i],
+                -tracking_max_correction, tracking_max_correction);
+            dds.set_dds_freq(i, base_dds_freq[i] + correction);
+            tracking_correction[i] = dds.get_dds_freq(i) - base_dds_freq[i];
+            retuned = true;
+        }
+    }
+    if (retuned) {
+        set_power_conversion_factor();
+        dirty_cnt = std::max(dirty_cnt, 4u);
+        invalidate_results();
+    } else {
+        reset_tracking_observations();
+    }
+}
+
 // ----------------- Private functions
 
 void PhaseNoiseAnalyzer::load_config() {
@@ -236,6 +324,15 @@ void PhaseNoiseAnalyzer::load_config() {
     } else {
         set_interferometer_delay(0.0f);
     }
+
+    if (cfg.has("PhaseNoiseAnalyzer", "tracking_bandwidth"))
+        set_tracking_bandwidth(cfg.get<float>("PhaseNoiseAnalyzer", "tracking_bandwidth"));
+    if (cfg.has("PhaseNoiseAnalyzer", "tracking_max_step"))
+        set_tracking_max_step(cfg.get<float>("PhaseNoiseAnalyzer", "tracking_max_step"));
+    if (cfg.has("PhaseNoiseAnalyzer", "tracking_max_correction"))
+        set_tracking_max_correction(cfg.get<float>("PhaseNoiseAnalyzer", "tracking_max_correction"));
+    if (cfg.has("PhaseNoiseAnalyzer", "tracking_enabled"))
+        set_tracking_enabled(cfg.get<bool>("PhaseNoiseAnalyzer", "tracking_enabled"));
 }
 
 void PhaseNoiseAnalyzer::reset_phase_unwrapper() {
@@ -356,6 +453,7 @@ void PhaseNoiseAnalyzer::start_acquisition() {
 }
 
 void PhaseNoiseAnalyzer::invalidate_results() {
+    reset_tracking_observations();
     averager.clear();
     phase.fill(Phase{});
     phase_noise.assign(1 + fft_size / 2, PhaseNoiseDensity{});
@@ -363,6 +461,54 @@ void PhaseNoiseAnalyzer::invalidate_results() {
     time_jitter = std::numeric_limits<Time>::quiet_NaN();
     f_lo_used = std::numeric_limits<Frequency>::quiet_NaN();
     f_hi_used = std::numeric_limits<Frequency>::quiet_NaN();
+}
+
+double PhaseNoiseAnalyzer::effective_tracking_bandwidth() const {
+    // Keep the loop at least 100 times below the first displayed offset (2 bins).
+    return std::min({tracking_bandwidth, 0.1,
+                     static_cast<double>(fs.eval()) / (50.0 * fft_size)});
+}
+
+void PhaseNoiseAnalyzer::reset_tracking_observations() {
+    tracking_locks = {};
+    tracking_locked.fill(false);
+    tracking_error.fill(std::numeric_limits<double>::quiet_NaN());
+    tracking_last_update = {};
+}
+
+void PhaseNoiseAnalyzer::update_tracking(const PhaseDataArray& new_phase) {
+    const double error = static_cast<double>(phase_slope_per_sample<data_size>(new_phase).eval()) *
+                         static_cast<double>(fs.eval()) / (2.0 * sci::pi<double>);
+    tracking_error[channel] = error;
+    const double bandwidth = effective_tracking_bandwidth();
+    if (!tracking_enabled || bandwidth <= 0.0 || tracking_max_step <= 0.0 ||
+        tracking_max_correction <= 0.0 || base_dds_freq[channel] <= 0.0 || !std::isfinite(error)) {
+        tracking_locked[channel] = false;
+        return;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+    double elapsed = static_cast<double>(dma_transfer_duration.eval());
+    if (tracking_last_update[channel] != std::chrono::steady_clock::time_point{})
+        elapsed = std::max(elapsed, std::chrono::duration<double>(now - tracking_last_update[channel]).count());
+    tracking_last_update[channel] = now;
+    const double alpha = std::min(-std::expm1(-2.0 * sci::pi<double> * bandwidth * elapsed), 0.2);
+    const double step = std::clamp(-alpha * error, -tracking_max_step, tracking_max_step);
+    const double correction = std::clamp(tracking_correction[channel] + step,
+                                          -tracking_max_correction, tracking_max_correction);
+    const double requested = std::clamp(base_dds_freq[channel] + correction,
+        0.0, static_cast<double>(fs_adc.eval()) / 2.0);
+    // The mixer uses cos(LO) + j*sin(LO): measured slope is LO minus input.
+    // Change the selected LO only after its complete spectrum is computed.
+    if (std::abs(requested - dds.get_dds_freq(channel)) >=
+        rt::get_driver<ClockGenerator>().get_adc_sampling_freq() / std::pow(2.0, 49)) {
+        dds.set_dds_freq(channel, requested);
+        tracking_correction[channel] = dds.get_dds_freq(channel) - base_dds_freq[channel];
+        set_power_conversion_factor();
+    }
+    const bool saturated = std::abs(correction) >= tracking_max_correction ||
+        requested <= 0.0 || requested >= static_cast<double>(fs_adc.eval()) / 2.0;
+    tracking_locked[channel] = tracking_locks[channel].update(error, alpha, 0.1 * tracking_max_step) && !saturated;
 }
 
 void PhaseNoiseAnalyzer::acquisition_thread() {
@@ -373,31 +519,46 @@ void PhaseNoiseAnalyzer::acquisition_thread() {
     }
 
     while (acquisition_started.load(std::memory_order_acquire)) {
+        auto pending = dma_settings_pending.load(std::memory_order_acquire);
+        while (pending > 0) {
+            dma_settings_pending.wait(pending, std::memory_order_acquire);
+            pending = dma_settings_pending.load(std::memory_order_acquire);
+        }
+        if (!acquisition_started.load(std::memory_order_acquire)) break;
         std::unique_lock dma_lk(dma_mtx);
         auto samples = read_dma(); // wait without blocking snapshot getters
         std::unique_lock lk(data_mtx);
         if (!acquisition_started.load(std::memory_order_acquire)) break;
 
-        kick_dma(); // run the next transfer while computing this spectrum
-        dma_lk.unlock();
+        // Tracking changes the LO only between complete captures. Otherwise keep
+        // the existing overlap of acquisition and spectral processing.
+        const bool tracking_capture = tracking_enabled;
+        if (!tracking_capture) {
+            kick_dma();
+            dma_lk.unlock();
+        }
 
         if (!samples) {
             dirty_cnt = std::max(dirty_cnt, 2u);
             invalidate_results();
+        } else if (dirty_cnt > 0) {
+            --dirty_cnt;
+        } else {
+            PhaseDataArray new_phase{};
+            convert_relative_phase(*samples, new_phase, phase_conversion_factor);
+            auto new_pn = compute_phase_noise(new_phase);
+            compute_jitter(new_pn); // jitter uses the LO that acquired this spectrum
+            update_tracking(new_phase);
+            phase = std::move(new_phase);
+            phase_noise = std::move(new_pn);
+        }
+        if (tracking_capture) {
+            kick_dma();
+            dma_lk.unlock();
+        }
+        if (!samples) {
             lk.unlock();
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            continue;
         }
-        if (dirty_cnt > 0) {
-            --dirty_cnt;
-            continue;
-        }
-
-        PhaseDataArray new_phase{};
-        convert_relative_phase(*samples, new_phase, phase_conversion_factor);
-        auto new_pn = compute_phase_noise(new_phase);
-        compute_jitter(new_pn);
-        phase = std::move(new_phase);
-        phase_noise = std::move(new_pn);
     }
 }

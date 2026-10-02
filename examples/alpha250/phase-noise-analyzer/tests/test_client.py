@@ -25,6 +25,8 @@ class FakeClient:
         self.commands.append((device, name, args))
 
     def recv_tuple(self, fmt):
+        if fmt == '?dddddddddd??':
+            return True, .1, .1, .05, 100., 10e6 + .637, 12e6, -.04, .02, 0., .01, True, False
         assert fmt == "IfIIIddIfI"
         return 16385, self.sample_rate, 0, 32, 1, 10e6 + .637, 10e6, 0, 0., 0
 
@@ -47,6 +49,20 @@ class ClientTests(unittest.TestCase):
     def test_compatibility_dds_setter_uses_analyzer_invalidation(self):
         self.driver.set_dds_freq(1, 10e6 + .637)
         self.assertEqual(self.client.commands, [(1, "set_local_oscillator", (1, 10e6 + .637))])
+
+    def test_tracking_controls_and_precise_telemetry(self):
+        self.driver.set_tracking_enabled(True)
+        self.driver.set_tracking_bandwidth(.02)
+        self.driver.set_tracking_max_step(.01)
+        self.driver.set_tracking_max_correction(1.)
+        state = self.driver.get_tracking_parameters()
+        self.assertEqual(self.client.commands, [
+            (1, 'set_tracking_enabled', (True,)), (1, 'set_tracking_bandwidth', (.02,)),
+            (1, 'set_tracking_max_step', (.01,)), (1, 'set_tracking_max_correction', (1.,)),
+            (1, 'get_tracking_parameters', ())])
+        self.assertEqual(state[5], 10e6 + .637)
+        self.assertEqual(state[7], -.04)
+        self.assertEqual(state[11:], (True, False))
 
     def test_snapshot_sizes_and_fractional_reference(self):
         self.assertEqual(self.driver.get_phase().shape, (65536,))

@@ -163,6 +163,67 @@ transfer function. The fixed-point widths were checked with isolated IP generate
 in Vivado 2026.1; verification with a known electrical phase modulation on hardware
 remains necessary. See [issue #711](https://github.com/Koheron/koheron-sdk/issues/711).
 
+## Slow local-oscillator tracking
+
+**Slow tracking** is off by default for existing configurations. Enabling it
+tracks only the selected ADC's LO; the other LO retains its last correction.
+Each channel has a separate correction and lock history. Editing a nominal LO
+resets that channel's correction. Turning tracking off restores both nominal
+frequencies and discards four transfers. Saving analyzer configuration stores
+the nominal frequencies and tracking settings; acquired corrections are not
+persisted. A saved enabled setting resumes tracking after instrument startup.
+
+The frequency-error estimate fits the whole 65536-sample phase snapshot before
+detrending. In this design, the DDS outputs cosine in the low half and sine in
+the high half, as specified in [AMD PG141](https://docs.amd.com/r/en-US/pg141-dds-compiler/Output-DATA-Channel-TDATA-Structure).
+Multiplying the real ADC signal by that complex LO gives a measured phase slope
+of LO frequency minus input frequency. The loop therefore lowers the LO for a
+positive slope and raises it for a negative slope.
+
+Default limits are 0.1 Hz requested bandwidth, 0.05 Hz per update and 100 Hz
+total correction from the nominal LO. The bandwidth ceiling is the smaller of
+the requested value, 0.1 Hz and one hundredth of the first displayed offset
+(`2 * fs / 32768`). The update gain is capped at 0.2 and includes capture and
+processing time. Per-step and total bounds apply within DDS tuning-word
+rounding. A zero bandwidth, step limit, total limit or nominal LO stops updates.
+Lock requires the filtered frequency error to fall below 10% of the step
+limit, with a doubled exit threshold; correction saturation clears lock.
+The reported effective bandwidth is a configured ceiling. Capture cadence
+and correction limits also determine actual convergence.
+
+Automatic LO updates happen after a complete spectrum is computed and before
+the next DMA starts. The existing startup prefix is skipped to allow the
+pipeline to settle. Tracking serializes acquisition and spectral processing,
+which can lower capture throughput. Queued DMA setting changes receive the
+next lock handoff; toggling tracking or changing the total bound can still
+wait for the current transfer. Phase-noise averaging continues through small
+automatic corrections; manual retunes, failures and acquisition changes clear
+results and lock history. Jitter uses the LO that acquired the spectrum.
+
+Tracking can suppress frequency fluctuations near its loop bandwidth. Disable
+it when studying those fluctuations. Lock indicates frequency convergence;
+it does not establish carrier presence or calibrate phase-noise accuracy.
+Board validation of tracking direction, settling and noise-floor effects is
+still pending. The numerical regressions retain known PM while converging
+with both positive and negative carrier offsets.
+
+The LO fields and CSV LO metadata show nominal settings. Applied frequencies
+remain available through `get_parameters()`; `get_tracking_parameters()` returns
+enabled, requested/effective bandwidth, step/total bounds, nominal LO0/LO1,
+applied corrections 0/1, measured LO-minus-input offsets 0/1, and lock flags 0/1.
+Frequency values are double-precision Hz. Settings and spectra are separate
+RPC reads and can differ during a configuration change.
+
+```python
+analyzer.set_tracking_bandwidth(0.1)
+analyzer.set_tracking_max_step(0.05)
+analyzer.set_tracking_max_correction(100.0)
+analyzer.set_tracking_enabled(True)
+print(analyzer.get_tracking_parameters())
+# Restore both manually configured LO frequencies:
+analyzer.set_tracking_enabled(False)
+```
+
 ## Validation
 
 Run the software integration regressions (Docker C++/web images and a Python

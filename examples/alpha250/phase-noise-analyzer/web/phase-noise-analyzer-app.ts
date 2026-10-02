@@ -15,6 +15,7 @@ class PhaseNoiseAnalyzerApp {
 
   private ddsInputs: HTMLInputElement[];
   private ddsSetButtons: HTMLButtonElement[];
+  private trackingEnabledInput: HTMLInputElement;
 
   private numbers: {[field: string]: DigitInput} = {};
   public nPoints: number;
@@ -26,6 +27,8 @@ class PhaseNoiseAnalyzerApp {
 
   async init(): Promise<void> {
     const parameters = await this.driver.getParameters();
+    if (this.disposed) { return; }
+    const tracking = await this.driver.getTrackingParameters();
     if (this.disposed) { return; }
     this.nPoints = parameters.data_size;
 
@@ -39,14 +42,18 @@ class PhaseNoiseAnalyzerApp {
     this.ddsSetButtons = [0, 1].map(i =>
       this.document.querySelector<HTMLButtonElement>(`.dds-set${i}`)!);
 
-    this.initNumbers(parameters);
+    this.initNumbers(parameters, tracking);
+    this.trackingEnabledInput = this.document.querySelector('.tracking-enabled-input');
+    this.trackingEnabledInput.checked = tracking.enabled;
+    this.trackingEnabledInput.addEventListener('change', () =>
+      this.driver.setTrackingEnabled(this.trackingEnabledInput.checked));
     this.initChannelInput();
     this.initLaserMode();
     this.updateMeasurements();
     this.updateControls();
   }
 
-  private initNumbers(parameters: IParameters): void {
+  private initNumbers(parameters: IParameters, tracking: ITrackingParameters): void {
     this.cicRateInput = this.document.querySelector('.cic-rate-input');
     this.nAvgInput = this.document.querySelector('.plot-navg-input');
     this.interferometerDelayInput = this.document.querySelector('.interferometer-delay');
@@ -59,11 +66,16 @@ class PhaseNoiseAnalyzerApp {
     this.numbers.navg = number(this.nAvgInput, parameters.fft_navg, '', value => this.driver.setFFTNavg(value), p => p.fft_navg);
     this.numbers.delay = number(this.interferometerDelayInput, parameters.interferometer_delay * 1e9, 'ns',
       value => this.driver.setInterferometerDelay(value * 1e-9), p => p.interferometer_delay * 1e9);
-    [parameters.fdds0, parameters.fdds1].forEach((value, channel) => {
+    [tracking.nominal0, tracking.nominal1].forEach((value, channel) => {
       const input = this.ddsInputs[channel];
       this.numbers['lo' + channel] = new FrequencyInput(input, input.parentElement.querySelector('.lo-unit'), {
         value, maximum: 100e6, inclusiveMaximum: true, resolution: 200e6 / Math.pow(2, 48),
-        commit: async frequency => { this.driver.setLocalOscillator(channel, frequency); const p = await this.driver.getParameters(); return channel === 0 ? p.fdds0 : p.fdds1; }
+        commit: async frequency => {
+          this.driver.setLocalOscillator(channel, frequency);
+          await this.driver.getParameters();
+          const t = await this.driver.getTrackingParameters();
+          return channel === 0 ? t.nominal0 : t.nominal1;
+        }
       });
       this.ddsSetButtons[channel].addEventListener('click', () => this.numbers['lo' + channel].commit());
     });
@@ -137,6 +149,8 @@ class PhaseNoiseAnalyzerApp {
     if (this.disposed) { return; }
     const parameters = await this.driver.getParameters();
     if (this.disposed) { return; }
+    const tracking = await this.driver.getTrackingParameters();
+    if (this.disposed) { return; }
 
     if (parameters.channel == 0) {
       this.channelInputs[0].checked = true;
@@ -148,8 +162,20 @@ class PhaseNoiseAnalyzerApp {
 
     this.numbers.cic.setValue(parameters.cic_rate);
     this.numbers.navg.setValue(parameters.fft_navg);
-    this.numbers.lo0.setValue(parameters.fdds0);
-    this.numbers.lo1.setValue(parameters.fdds1);
+    this.numbers.lo0.setValue(tracking.nominal0);
+    this.numbers.lo1.setValue(tracking.nominal1);
+    this.trackingEnabledInput.checked = tracking.enabled;
+    const fixed = (value: number) => Number.isFinite(value) ? value.toFixed(3) : '---';
+    this.document.querySelector('.tracking-effective-bandwidth').textContent = fixed(tracking.effectiveBandwidth);
+    this.document.querySelector('.tracking-correction-0').textContent = fixed(tracking.correction0);
+    this.document.querySelector('.tracking-correction-1').textContent = fixed(tracking.correction1);
+    const locked = parameters.channel === 0 ? tracking.locked0 : tracking.locked1;
+    const nominal = parameters.channel === 0 ? tracking.nominal0 : tracking.nominal1;
+    const paused = tracking.effectiveBandwidth <= 0 || tracking.maxStep <= 0 ||
+      tracking.maxCorrection <= 0 || nominal <= 0;
+    this.document.querySelector('.tracking-state').textContent =
+      !tracking.enabled ? 'Off' : paused ? `ADC${parameters.channel} paused` :
+      locked ? `ADC${parameters.channel} locked` : `ADC${parameters.channel} acquiring`;
 
     const laserModeEnabled: boolean = parameters.analyzer_mode === 'laser';
     this.laserModeEnableCheckbox.checked = laserModeEnabled;

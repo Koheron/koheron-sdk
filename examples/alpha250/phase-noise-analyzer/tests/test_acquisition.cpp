@@ -25,6 +25,7 @@ int main() {
         dma.wait_until(++waits); // next wait starts after processing/publication
     };
     auto parameters = analyzer.get_parameters();
+    assert(!std::get<0>(analyzer.get_tracking_parameters())); // legacy configs remain opt-in
     assert(std::get<0>(parameters) == 16385);
     assert(std::get<1>(parameters).eval() == 6250000.f);
     constexpr double lsb = 200e6 / (uint64_t{1} << 48);
