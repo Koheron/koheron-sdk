@@ -116,8 +116,8 @@ backpressure or indefinitely sustain single-frame groups at one input per clock.
 
 Each example directly instantiates `koheron:user:axis_accumulator:1.0` with
 the SDK's normal `cell` command, just as it instantiates Xilinx catalog IPs.
-There is no accumulator adapter or wrapper hierarchy. The PSD pipelines preserve
-the FFT's TLAST through their vendor floating-point multipliers and adder.
+The PSD pipelines preserve the FFT's TLAST through their vendor floating-point
+multipliers and adder.
 The examples select `CHECK_TLAST=1` and `SYNC_ON_RESET=1` and hold output TREADY
 high. Their recorder connections convert TUSER to a byte address (`bin << 2`)
 and TVALID to four write strobes. The examples enforce at least 16 bins and
@@ -159,8 +159,8 @@ vivado -mode batch -source fpga/ip/axis_accumulator_v1_0/tests/synth.tcl \
 The stream simulations use the actual vendor floating-point adder, checking
 signed/fractional sums, bin indices, TLAST, pauses, output backpressure, bank
 turnover, early/late TLAST recovery, reset and one-bin/short frames. The catalog
-test instantiates the catalog IP directly and verifies continuous real-time input, output
-addresses and complete BRAM writes before progress wrap, then synthesizes it
+test instantiates the catalog IP directly and verifies continuous real-time input,
+output addresses and complete BRAM writes before progress wrap, then synthesizes it
 without unresolved black boxes. The route script checks internal setup/hold at
 250 MHz for 2048- and 8192-bin packages; it is an out-of-context check without
 board I/O constraints. Board-level routing and analog measurements are separate.
@@ -199,9 +199,10 @@ uses `Performance_NetDelay_high`; it and both ALPHA250 examples enable
 post-route physical optimization with `ExploreWithAggressiveHoldFix`. No
 clock periods or timing exceptions were relaxed. The ALPHA250 hold and Red
 Pitaya setup margins are especially narrow, so changed placement or
-configurations need another strict timing check. The SDK reports existing incomplete external
-I/O delay constraints; the passing checks cover constrained paths, pulse width
-and bus skew. Live board operation and analog measurements remain unverified.
+configurations need another strict timing check. The SDK reports existing
+incomplete external I/O delay constraints; the passing checks cover constrained
+paths, pulse width and bus skew. Live board operation and analog measurements
+remain unverified.
 
 The exported ZIP was also extracted into a separate directory and consumed by
 a fresh `xc7z010clg400-1` project using only standard Vivado commands. Two native

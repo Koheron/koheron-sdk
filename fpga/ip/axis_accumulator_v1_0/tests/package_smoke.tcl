@@ -39,19 +39,19 @@ save_bd_design
 set_property synth_checkpoint_mode None [get_files system.bd]
 generate_target all [get_files system.bd]
 add_files [make_wrapper -files [get_files system.bd] -top]
-add_files -fileset sim_1 $root/fpga/ip/axis_accumulator_v1_0/tests/legacy_tb.sv
-set_property top legacy_tb [get_filesets sim_1]
+add_files -fileset sim_1 $root/fpga/ip/axis_accumulator_v1_0/tests/recorder_tb.sv
+set_property top recorder_tb [get_filesets sim_1]
 set_property xsim.simulate.runtime 0ns [get_filesets sim_1]
 set_property xsim.elaborate.debug_level all [get_filesets sim_1]
 launch_simulation
 run all
 set passed [get_value -radix bin [get_objects /*/passed]]
 close_sim
-if {$passed ne "1"} {error {Packaged accumulator legacy regression failed}}
+if {$passed ne "1"} {error {Packaged accumulator recorder regression failed}}
 set_property top system_wrapper [current_fileset]
 update_compile_order -fileset sources_1
 synth_design -top system_wrapper -mode out_of_context -part xc7z020clg400-2
-if {[llength [get_cells -hier -filter {IS_BLACKBOX == 1}]]} {error {Unresolved black boxes in packaged accumulator}}
+if {[llength [get_cells -quiet -hier -filter {IS_BLACKBOX == 1}]]} {error {Unresolved black boxes in packaged accumulator}}
 report_utilization -file $out/utilization.rpt
 write_checkpoint -force $out/accumulator.dcp
 close_project

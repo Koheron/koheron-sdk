@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-module legacy_tb;
+module recorder_tb;
     reg passed = 0;
     reg clk = 0;
     always #2 clk = !clk;
@@ -19,7 +19,7 @@ module legacy_tb;
             expected = 3*(bin+1) + 100*(9*group_index+6);
             expected_bits = $shortrealtobits(expected);
             if (sum !== expected_bits || addr !== 4*bin)
-                $fatal(1, "Legacy recorder mismatch output=%0d addr=%0d", received, addr);
+                $fatal(1, "Recorder mismatch output=%0d addr=%0d", received, addr);
             received = received + 1;
         end
         if (resetn && cycle < previous_cycle) begin
@@ -48,7 +48,7 @@ module legacy_tb;
         valid = 0; last = 0; data = 32'h7fc00000;
         repeat (200) @(negedge clk);
         if (received != 192 || wraps != 3)
-            $fatal(1, "Missing legacy results/progress: bins=%0d wraps=%0d", received, wraps);
+            $fatal(1, "Missing recorder results/progress: bins=%0d wraps=%0d", received, wraps);
         // Reset only the accumulator midway through the next input frame.
         for (sent=0; sent<14; sent=sent+1) begin
             valid = 1; value = 9999; data = $shortrealtobits(value);

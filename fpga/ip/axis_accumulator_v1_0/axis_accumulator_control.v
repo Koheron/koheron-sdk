@@ -1,6 +1,7 @@
 `timescale 1ns / 1ps
 
-// Each bank is owned from the first input beat to the last output handshake.
+// Each bank is owned from the first input beat until its final output beat
+// is copied into the wrapper's elastic register.
 // A bank is published only after its entire validated sum has been written.
 module axis_accumulator_control #(
     parameter integer FRAME_LENGTH = 8192,

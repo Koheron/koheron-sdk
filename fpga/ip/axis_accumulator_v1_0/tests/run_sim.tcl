@@ -12,8 +12,14 @@ set_property xsim.simulate.runtime 0ns [get_filesets sim_1]
 set_property xsim.elaborate.debug_level all [get_filesets sim_1]
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
-set profiles {{64 3 0 1} {64 3 1 1} {16 1 1 1} {64 2 1 1} {3 3 1 1} {1 1 1 1} {1 3 1 1} {64 3 0 0} {64 3 1 0} {10 3 1 1} {11 3 0 1} {8192 3 0 1}}
-if {[lindex $argv 1] eq "extended"} {set profiles {{10 3 1 1} {11 3 0 1} {8192 3 0 1}}}
+# Bins, frames per sum, pauses/backpressure, TLAST validation.
+set profiles {
+    {64 3 0 1} {64 3 1 1}
+    {16 1 1 1} {64 2 1 1}
+    {3 3 1 1} {1 1 1 1} {1 3 1 1}
+    {64 3 0 0} {64 3 1 0}
+    {10 3 1 1} {11 3 0 1} {8192 3 0 1}
+}
 foreach profile $profiles {
     lassign $profile bins frames stalls check_last
     set_property generic "FRAME_LENGTH=$bins N_FRAMES=$frames STALLS=$stalls CHECK_TLAST=$check_last" [get_filesets sim_1]
