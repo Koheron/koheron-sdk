@@ -53,6 +53,21 @@ device=""            # will be set later by losetup
 boot_dir=""          # set by mktemp
 root_dir=""          # set by mktemp
 
+unmount_chroot() {
+  local failed=0 mount_path
+  if [ -n "$root_dir" ]; then
+    for mount_path in "$root_dir/run" "$root_dir/dev" "$root_dir/sys" "$root_dir/proc"; do
+      if mountpoint -q "$mount_path"; then
+        if ! umount -R "$mount_path"; then
+          echo "[cleanup] Could not unmount $mount_path" >&2
+          failed=1
+        fi
+      fi
+    done
+  fi
+  return "$failed"
+}
+
 cleanup() {
   # preserve original exit code
   rc=$?
@@ -60,21 +75,27 @@ cleanup() {
 
   # A failed post-overlay chroot can leave these bind mounts below root_dir.
   # Unmount them before the root filesystem so the loop device can detach.
-  if [ -n "$root_dir" ]; then
-    for mount_path in "$root_dir/run" "$root_dir/dev" "$root_dir/sys" "$root_dir/proc"; do
-      if mountpoint -q "$mount_path"; then
-        umount -R "$mount_path" || echo "[cleanup] Could not unmount $mount_path" >&2
-      fi
-    done
-  fi
+  mounts_remain=0
+  unmount_chroot || { mounts_remain=1; [ "$rc" -ne 0 ] || rc=1; }
 
   # Unmount filesystems if mounted
-  [ -n "$boot_dir" ] && mountpoint -q "$boot_dir" && umount "$boot_dir"
-  [ -n "$root_dir" ] && mountpoint -q "$root_dir" && umount "$root_dir"
+  for mount_path in "$boot_dir" "$root_dir"; do
+    if [ -n "$mount_path" ] && mountpoint -q "$mount_path"; then
+      if ! umount "$mount_path"; then
+        echo "[cleanup] Could not unmount $mount_path" >&2
+        mounts_remain=1
+        [ "$rc" -ne 0 ] || rc=1
+      fi
+    fi
+  done
 
-  # Detach loop if set
+  # Keep the loop attached if unmounting failed so it can be recovered safely.
   if [ -n "$device" ]; then
-    losetup -d "$device" 2>/dev/null || true
+    if [ "$mounts_remain" -eq 0 ]; then
+      losetup -d "$device" || { [ "$rc" -ne 0 ] || rc=1; }
+    else
+      echo "[cleanup] Mounts remain; keeping $device attached" >&2
+    fi
   fi
 
   # Remove temp dirs
@@ -99,7 +120,8 @@ cleanup() {
 
 # Fire cleanup on any exit and on Ctrl-C/TERM
 trap 'cleanup' EXIT
-trap 'exit 130' INT TERM
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 # --- create raw image & loop device ---
 dd if=/dev/zero of="$image" bs=1M count=0 seek="${size}"
@@ -210,17 +232,16 @@ install -D -m0644 "$os_path/systemd/nginx.service" \
 if [ -f "$os_path/scripts/chroot_overlay.sh" ]; then
   # Minimal pseudo-fs mounts (short-lived, just for overlay tasks)
   mount -t proc proc "$root_dir/proc"
-  mount --rbind /sys  "$root_dir/sys"  && mount --make-rslave "$root_dir/sys"
-  mount --rbind /dev  "$root_dir/dev"  && mount --make-rslave "$root_dir/dev"
+  mount --rbind /sys "$root_dir/sys"
+  mount --make-rslave "$root_dir/sys"
+  mount --rbind /dev "$root_dir/dev"
+  mount --make-rslave "$root_dir/dev"
   mount --bind  /run  "$root_dir/run"  || true
 
   install -D -m0755 "$os_path/scripts/chroot_overlay.sh" "$root_dir/chroot_overlay.sh"
   chroot "$root_dir" "/usr/bin/$(basename "$qemu_path")" /bin/bash -lc "/bin/bash /chroot_overlay.sh"
 
-  umount -l "$root_dir/run" 2>/dev/null || true
-  umount -R  "$root_dir/dev" 2>/dev/null || true
-  umount -R  "$root_dir/sys" 2>/dev/null || true
-  umount -l  "$root_dir/proc" 2>/dev/null || true
+  unmount_chroot
 fi
 
 # Reset identity even when an older base-rootfs cache is reused.

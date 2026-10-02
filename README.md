@@ -170,6 +170,8 @@ Generated SD card images boot **Ubuntu 24.04.5** with the **`xilinx-linux-v2025.
 
 Each board generates its own machine ID and SSH host keys on first boot. Build-only QEMU helpers, chroot scripts and the temporary dpkg `force-unsafe-io` setting are removed before packaging. Base-rootfs builds replace the cached tarball only after a successful build and archive operation.
 
+Image builds verify the resized partition before truncating and release chroot mounts before packaging. If a mount cannot be released, the build fails and reports the loop device retained for recovery. Run the disk-free build regression tests with `python3 -m unittest discover -s os/tests -p 'test_*build.py'`.
+
 This setup lets you iterate rapidly without having to rebuild the entire OS for every code change.
 
 ---
