@@ -163,7 +163,7 @@ The instrument archive can be uploaded with `make run` or the HTTP API directly,
 
 ## Image contents
 
-Generated SD card images boot **Ubuntu 24.04.3** with the **`xilinx-linux-v2025.1`** kernel. The runtime environment includes:
+Generated SD card images boot **Ubuntu 24.04.5** with the **`xilinx-linux-v2025.1`** kernel. The runtime environment includes:
 
 - **nginx** serving static files and proxying **WebSocket** traffic.
 - An HTTP API (powered by **uWSGI**) to upload, start and stop instruments.
