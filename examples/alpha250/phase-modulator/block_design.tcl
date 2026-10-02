@@ -1,12 +1,11 @@
 source $board_path/starting_point.tcl
 source $sdk_path/fpga/ip/awg_v1_0/integration.tcl
 
-# Each channel has its own 48-bit carrier and internal PM generator.
-# Pass a dictionary of ENABLE_* switches to omit unused sources in an example.
-for {set channel 0} {$channel < 2} {incr channel} {
-    set output [dds_pm::add awg$channel awg$channel adc_dac/adc_clk \
-        [get_parameter adc_clk] [dict create OUTPUT_WIDTH [get_parameter dac_width]]]
-    connect_pins $output adc_dac/dac$channel
+# A single catalog IP contains both controllers and all four vendor DDS cores.
+set outputs [dds_pm::add awg awg adc_dac/adc_clk [get_parameter adc_clk] \
+    [dict create CHANNELS 2 OUTPUT_WIDTH [get_parameter dac_width]]]
+for {set channel 0} {$channel < [llength $outputs]} {incr channel} {
+    connect_pins [lindex $outputs $channel] adc_dac/dac$channel
 }
 
 set_property STEPS.PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]

@@ -16,7 +16,7 @@ module control_tb;
     wire [31:0] rdata;
     wire [2*B*8+7:0] phase;
     wire valid;
-    awg #(.PHASE_WIDTH(P), .MOD_WIDTH(16), .ENABLE_SINE(0),
+    awg_control #(.PHASE_WIDTH(P), .MOD_WIDTH(16), .ENABLE_SINE(0),
         .ENABLE_SQUARE(1), .ENABLE_PULSE(0), .ENABLE_TRIANGLE(0),
         .ENABLE_UP_RAMP(0), .ENABLE_DOWN_RAMP(0), .ENABLE_UNIFORM(0),
         .ENABLE_GAUSSIAN(0), .ENABLE_PRBS(0), .ENABLE_BPSK(1)) dut (

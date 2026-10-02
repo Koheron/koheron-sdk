@@ -1,9 +1,11 @@
 # ALPHA250 internal phase modulation
 
 Two independent sine carriers with AXI-controlled internal phase modulation,
-using the reusable [DDS PM IP](../../../fpga/ip/awg_v1_0/). Both channels use
-48-bit phase accumulators, 16-bit DAC samples and the 250 MS/s board clock.
-All internal PM sources are enabled in this demonstration. Outputs start muted.
+contained in a single reusable [DDS PM IP](../../../fpga/ip/awg_v1_0/). Both
+channels use 48-bit phase accumulators, 16-bit DAC samples and the 250 MS/s board clock.
+The catalog instance uses `CHANNELS=2`; all internal PM sources are enabled
+in this demonstration. Outputs start muted. Its single 8 KiB AXI region
+contains channel banks at offsets `0x0000` and `0x1000`.
 
 ## Build
 
@@ -33,27 +35,73 @@ For other settings, import the client next to your script:
 
 ```python
 from koheron import connect
-from phase_modulator import PhaseModulator, Waveform
+from phase_modulator import PhaseModulator
 
 pm = PhaseModulator(connect("BOARD_IP", name="phase-modulator"))
-pm.configure(channel=0, carrier_hz=10_000_000, waveform=Waveform.SINE,
-             modulation_hz=1_000, deviation="0.000001", restart=True)
-pm.configure(channel=1, carrier_hz=5_000_000, waveform=Waveform.BPSK,
-             modulation_hz=100_000, deviation=180, restart=True)
+pm.tone(10_000_000)
+pm.configure(waveform="sine", modulation_hz=1_000, deviation=30)
+pm.set_frequency(12_000_000)
+pm.set_deviation("0.000001")
+print(pm.settings())
+pm.mute()
+pm.enable_output()             # Resume the same configuration
+pm.restart()                   # Explicitly restart both oscillators
+
+pm.configure(channel=1, carrier_hz=5_000_000, waveform="bpsk",
+             modulation_hz=100_000, deviation=180)
+print(pm.info(1))              # Precision, sample rate and available waveforms
 ```
 
 `deviation` and phase offsets accept strings or Decimal for precise conversion.
-`configure_words` also accepts native phase words directly. BPSK alternates
-two phase states at the symbol rate; PRBS is a separate bipolar PM source.
-Set `pm_enabled=False` for an unmodulated tone or `output_enabled=False` to mute.
-Changes with `restart=False` preserve oscillator state.
+Frequencies also accept strings or Decimal. Waveforms accept names or the
+`Waveform` enum. Full `configure` enables output and PM and restarts both
+oscillators by default; `tone` disables PM. Use `restart=False` to preserve
+oscillator state during full configuration. Individual setters, mute and
+enable operations preserve all other settings and do not restart oscillators.
+They return the client object for chaining and raise a descriptive exception
+when validation or a hardware commit fails.
+
+`settings()` reads acknowledged native hardware settings and converts them
+back to Decimal Hz, degrees and duty fraction. It can be passed to
+`pm.configure(**pm.settings(), restart=False)` without losing native-word
+precision. Capabilities are discovered once on connection; settings are read
+from hardware. `configure_words` remains available for Boolean native-word
+clients, and `configure_words_checked` returns an error message (empty on
+success). BPSK alternates two phase states at the symbol rate; PRBS is a
+separate bipolar PM source.
+
+The command-line client also supports direct control and inspection:
+
+```sh
+.venv/bin/python examples/alpha250/phase-modulator/phase_modulator.py BOARD_IP --tone --carrier-hz 12000000
+.venv/bin/python examples/alpha250/phase-modulator/phase_modulator.py BOARD_IP --channel 1 --waveform bpsk --modulation-hz 100000 --deviation 180
+.venv/bin/python examples/alpha250/phase-modulator/phase_modulator.py BOARD_IP --mute
+.venv/bin/python examples/alpha250/phase-modulator/phase_modulator.py BOARD_IP --status
+.venv/bin/python examples/alpha250/phase-modulator/phase_modulator.py BOARD_IP --info
+```
+
+`--status` and `--info` leave the output untouched. `--no-restart` preserves
+oscillator state during configuration. Rebuild and install the updated server
+alongside this client to use the new RPC methods. The shared C++ driver offers
+the same engineering-unit configuration, partial updates, mute, restart and
+native settings readback; see the [IP driver example](../../../fpga/ip/awg_v1_0/README.md).
 
 The example selects 250 MS/s through the ALPHA250 clock driver. If you change
 the sampling clock through another driver, restore it before using this client;
 the frequency conversion uses the example's configured sample rate.
 Two independent commits do not synchronize channel start to the same sample.
+The server reads the FPGA channel count and the Python client rejects absent
+channels. For a single-channel instrument, set `CHANNELS 1` in the block design
+and tie the unused board DAC input to zero. The IP then omits the second signal
+path, and exposes only `dac0_data`.
 
-The default design passes the SDK's strict constrained timing check at 250 MHz
-with Vivado 2025.1 (setup margin 0.100 ns, hold margin 0.017 ns). See the IP
-README for resource figures and the limits of the board I/O constraints.
-No board deployment or physical PM measurement is included in offline tests.
+The integrated two-channel design passes the SDK's strict constrained timing
+check at 250 MHz with Vivado 2025.1: setup margin 0.000620 ns, hold margin
+0.044454 ns, and eight checked bus-skew constraints. The setup margin is very
+narrow; reroute and recheck after changing precision or included sources. See
+the IP README for resource figures and the limits of the board I/O constraints.
+The instrument was also installed and started on an ALPHA250. DAC0 accepted
+a 10 MHz carrier with 10 kHz sine PM and 1 degree deviation; settings readback
+confirmed output and PM enabled, with DAC1 muted. This verifies deployment,
+metadata discovery and the live configuration/acknowledgement path. Analog PM
+amplitude and spectrum have not yet been measured.

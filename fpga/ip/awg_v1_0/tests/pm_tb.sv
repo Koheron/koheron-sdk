@@ -22,7 +22,7 @@ module pm_tb;
     wire carrier_valid, carrier_enable;
     wire [47:0] vendor_phase;
     wire vendor_phase_valid;
-    awg dut (
+    awg_control dut (
         .s_axi_aclk(aclk), .s_axi_aresetn(resetn),
         .s_axi_awaddr(awaddr), .s_axi_awprot(3'b0), .s_axi_awvalid(awvalid), .s_axi_awready(awready),
         .s_axi_wdata(wdata), .s_axi_wstrb(wstrb), .s_axi_wvalid(wvalid), .s_axi_wready(wready),

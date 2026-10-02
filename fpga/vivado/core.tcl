@@ -86,6 +86,10 @@ if {[llength $mem_files] > 0} {
   puts "Added [llength $mem_files] .mem file(s) for BRAM initialization"
 }
 
+# Optional subsystem hook: generate configured vendor IP before importing files.
+if {[file exists $core_path/package_ip.tcl]} {
+  source $core_path/package_ip.tcl
+}
 ipx::package_project -import_files -root_dir $out_dir -force
 
 set core [ipx::current_core]

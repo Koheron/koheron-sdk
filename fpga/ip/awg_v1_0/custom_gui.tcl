@@ -2,6 +2,8 @@
 # IP validation callbacks require the literal strings true/false, not Tcl 1/0.
 proc init_gui {IPINST} {
     ipgui::add_param $IPINST -name Component_Name
+    set widget [ipgui::add_param $IPINST -name CHANNELS -widget comboBox]
+    set_property display_name {Output channels (1/2)} $widget
     set precision [ipgui::add_page $IPINST -name Precision]
     foreach {name label tooltip} {
         PHASE_WIDTH {DDS phase width} {Carrier and modulation phase accumulators; default 48 bits.}
@@ -11,7 +13,8 @@ proc init_gui {IPINST} {
     } {
         set widget [ipgui::add_param $IPINST -name $name -parent $precision]
         set_property display_name $label $widget
-        set_property tooltip $tooltip $widget
+        set_property tooltip "$tooltip Configured when generating the package." $widget
+        set_property enabled false $widget
     }
     set sources [ipgui::add_page $IPINST -name {Internal PM sources}]
     foreach {name label} {
@@ -75,7 +78,7 @@ proc validate_PARAM_VALUE.LUT_BITS {PARAM_VALUE.LUT_BITS} {
     return true
 }
 proc update_PARAM_VALUE.LUT_BITS {PARAM_VALUE.LUT_BITS PARAM_VALUE.ENABLE_SINE} {
-    set_property enabled [get_property value ${PARAM_VALUE.ENABLE_SINE}] ${PARAM_VALUE.LUT_BITS}
+    set_property enabled false ${PARAM_VALUE.LUT_BITS}
 }
 proc update_MODELPARAM_VALUE.LUT_BITS {MODELPARAM_VALUE.LUT_BITS PARAM_VALUE.LUT_BITS} {
     set_property value [get_property value ${PARAM_VALUE.LUT_BITS}] ${MODELPARAM_VALUE.LUT_BITS}
@@ -84,7 +87,7 @@ proc update_MODELPARAM_VALUE.LUT_BITS {MODELPARAM_VALUE.LUT_BITS PARAM_VALUE.LUT
 proc validate_PARAM_VALUE.AXI_ADDR_WIDTH {PARAM_VALUE.AXI_ADDR_WIDTH} {
     set value [get_property value ${PARAM_VALUE.AXI_ADDR_WIDTH}]
     if {![string is integer -strict $value]} { return false }
-    if {$value < 12 || $value > 12} { return false }
+    if {$value < 13 || $value > 13} { return false }
     return true
 }
 proc update_PARAM_VALUE.AXI_ADDR_WIDTH {PARAM_VALUE.AXI_ADDR_WIDTH} {
@@ -202,4 +205,13 @@ proc update_PARAM_VALUE.ENABLE_BPSK {PARAM_VALUE.ENABLE_BPSK} {
 }
 proc update_MODELPARAM_VALUE.ENABLE_BPSK {MODELPARAM_VALUE.ENABLE_BPSK PARAM_VALUE.ENABLE_BPSK} {
     set_property value [get_property value ${PARAM_VALUE.ENABLE_BPSK}] ${MODELPARAM_VALUE.ENABLE_BPSK}
+}
+
+proc validate_PARAM_VALUE.CHANNELS {PARAM_VALUE.CHANNELS} {
+    if {[get_property value ${PARAM_VALUE.CHANNELS}] ni {1 2}} {return false}
+    return true
+}
+proc update_PARAM_VALUE.CHANNELS {PARAM_VALUE.CHANNELS} {}
+proc update_MODELPARAM_VALUE.CHANNELS {MODELPARAM_VALUE.CHANNELS PARAM_VALUE.CHANNELS} {
+    set_property value [get_property value ${PARAM_VALUE.CHANNELS}] ${MODELPARAM_VALUE.CHANNELS}
 }

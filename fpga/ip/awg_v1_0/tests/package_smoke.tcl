@@ -1,6 +1,6 @@
 # Supply a packaged SDK core directory as the first argument.
 set root [file normalize [file join [file dirname [info script]] ../../../..]]
-create_project -in_memory -part xc7z020clg400-2
+create_project smoke_tests [file normalize tmp/dds-pm-smoke] -part xc7z020clg400-2 -force
 set_property ip_repo_paths [file normalize [lindex $argv 0]] [current_project]
 update_ip_catalog
 source $root/fpga/lib/utilities.tcl
@@ -18,13 +18,15 @@ connect_pins ps/M_AXI_GP0_ACLK ps/FCLK_CLK0
 connect_cell reset [list ext_reset_in [get_constant_pin 0 1]]
 namespace eval config {
     set memory_test_offset 0x60000000
-    set memory_test_range 4K
+    set memory_test_range 8K
 }
-set output [dds_pm::add reduced test ps/FCLK_CLK0 125000000 {
-    PHASE_WIDTH 33 OUTPUT_WIDTH 14 MOD_WIDTH 16 ENABLE_SINE 0 ENABLE_GAUSSIAN 0
+set outputs [dds_pm::add combined test ps/FCLK_CLK0 125000000 {
+    CHANNELS 2 ENABLE_SINE 0 ENABLE_GAUSSIAN 0
 }]
-if {[llength [get_bd_cells -quiet reduced_modulation]]} {error {Disabled sine LUT was instantiated}}
-if {[get_property CONFIG.PHASE_WIDTH [get_bd_cells reduced]] != 33} {error {Controller phase width mismatch}}
-if {[get_property CONFIG.Phase_Width [get_bd_cells reduced_carrier]] != 33} {error {Carrier phase width mismatch}}
+if {[llength $outputs] != 2} {error {Wrong DAC output count}}
+if {[llength [get_bd_cells -quiet combined_carrier]]} {error {Carrier escaped the parent IP}}
+if {[llength [get_bd_cells -quiet combined_modulation]]} {error {Modulation LUT escaped the parent IP}}
+if {[get_property CONFIG.CHANNELS [get_bd_cells combined]] != 2} {error {Channel count mismatch}}
+if {[llength [get_bd_intf_pins combined/*]] != 1} {error {Internal stream interfaces exposed}}
 validate_bd_design
-puts {PASS: reduced packaged DDS PM integration}
+puts {PASS: integrated packaged DDS PM block design}

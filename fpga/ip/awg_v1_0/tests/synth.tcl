@@ -5,7 +5,7 @@ set profiles [dict create full {} basic {ENABLE_GAUSSIAN=0 ENABLE_UNIFORM=0 ENAB
 dict for {name parameters} $profiles {
     create_project -in_memory -part xc7z020clg400-2
     add_files [glob $root/*.v]
-    synth_design -top awg -mode out_of_context -part xc7z020clg400-2 -generic $parameters
+    synth_design -top awg_control -mode out_of_context -part xc7z020clg400-2 -generic $parameters
     report_utilization -file tmp/dds-pm-resources/$name.txt
     close_project
 }
