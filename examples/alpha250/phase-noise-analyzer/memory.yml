@@ -29,6 +29,9 @@ memory:
   - name: xadc
     offset: 0x43C0_0000
     range: 64K
+  - name: awg
+    offset: 0x4400_0000
+    range: 8K
   - name: ram
     offset: 0x1E00_0000
     range: 32M
