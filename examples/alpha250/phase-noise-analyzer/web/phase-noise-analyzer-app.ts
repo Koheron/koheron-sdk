@@ -2,6 +2,7 @@
 // (c) Koheron
 
 class PhaseNoiseAnalyzerApp {
+  private disposed = false;
   private cicRateInput: HTMLInputElement;
   private nAvgInput: HTMLInputElement;
   private channelInputs: HTMLInputElement[];
@@ -24,8 +25,11 @@ class PhaseNoiseAnalyzerApp {
 
   constructor(document: Document, private driver: PhaseNoiseAnalyzer) {}
 
+  dispose(): void { this.disposed = true; }
+
   async init(): Promise<void> {
     const parameters = await this.driver.getParameters();
+    if (this.disposed) { return; }
     this.nPoints = parameters.data_size;
 
     this.channelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("channel-input");
@@ -173,8 +177,10 @@ class PhaseNoiseAnalyzerApp {
   }
 
   private async updateMeasurements() {
+    if (this.disposed) { return; }
     const navg: number = 400;
     const meas = await this.driver.getMeasurements(navg);
+    if (this.disposed) { return; }
 
     this.carrierPowerSpan.innerHTML = this.formatMeasurement(meas.carrier_power, "dBm");
     const freqRange = `(${this.formatFrequency(meas.freq_lo)} - ${this.formatFrequency(meas.freq_hi)})`;
@@ -188,7 +194,9 @@ class PhaseNoiseAnalyzerApp {
   }
 
   private async updateControls(): Promise<void> {
+    if (this.disposed) { return; }
     const parameters = await this.driver.getParameters();
+    if (this.disposed) { return; }
 
     if (parameters.channel == 0) {
       this.channelInputs[0].checked = true;

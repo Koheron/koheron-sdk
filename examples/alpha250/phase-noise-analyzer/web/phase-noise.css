@@ -1,61 +1,106 @@
-/* Summary: no default marker, flex layout */
-.collapsible-summary {
-    list-style: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 0;
-    user-select: none;
-  }
-  .collapsible-summary::-webkit-details-marker { display: none; }
-  
-  /* Custom chevron on the left */
-  .chevron::before {
-    content: "▸";
-    display: inline-block;
-    transition: transform 0.15s ease;
-    font-size: 1.4em;
-    line-height: 1;
-  }
-  details[open] .chevron::before {
-    content: "▾";
-  }
-  
-  /* Make the crossed title take available width (so text can be centered) */
-  .flex-fill { flex: 1; }
-  
-  /* Single centered line behind the title text */
-  .crossed {
-    width: 100%;
-    text-align: center;
-    margin: 20px 0;
-    position: relative;
-  }
-  
-  .crossed::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    border-top: 1px solid #d5d5d5;
-    transform: translateY(-50%);
-    z-index: 0;
-  }
-  
-  .crossed > span {
-    background: white;
-    padding: 0 10px;
-    font-weight: bold;
-    position: relative;
-    z-index: 1;
-  }
-/* The stimulus occupies one disclosure row until explicitly opened. */
-#main { width: auto; margin-right: 0; min-width: 0; }
-.pna-generator { margin-bottom: 10px; }
-.pna-generator > .dds-pm-widget { max-width: 1100px; }
-.pna-generator > summary { cursor: pointer; padding: 5px 0; border-bottom: 1px solid #ddd; font-size: 12px; }
-.pna-generator > summary > span { color: #777; margin-left: 10px; font-weight: normal; }
-.pna-generator[open] > summary { margin-bottom: 8px; }
-.pna-generator-note { margin: 6px 0; color: #777; font-size: 11px; }
+/* Same compact workspace conventions as the ALPHA250 FFT interface (#700). */
+.pna-workspace {
+  --accent: hsl(196, 99%, 42%); --accent-dark: hsl(196, 99%, 32%);
+  --accent-light: hsl(196, 99%, 90%); --border: #d9d9d9; --border-light: #e6e6e6;
+  --muted: #666; --control-height: 26px;
+  min-height: 100dvh; display: flex; flex-direction: column;
+  container: pna / inline-size;
+  margin: 0; background: white; color: #333; font: 12px/1.4 Lato, sans-serif;
+}
+.pna-workspace * { box-sizing: border-box; }
+.pna-workspace [hidden] { display: none !important; }
+.pna-workspace .app-header { min-height: 38px; display: flex; align-items: center; gap: 12px; padding: 4px 12px; border-bottom: 1px solid var(--border-light); }
+.pna-workspace .brand img { width: 88px; display: block; }
+.pna-workspace h1 { font-size: 14px; font-weight: 700; margin: 0; border-left: 1px solid var(--border); padding-left: 12px; }
+.pna-workspace .board-tag, .pna-workspace .readout-label { color: var(--muted); }
+.pna-workspace .board-tag { font-size: 11px; }
+.pna-workspace nav { margin-left: auto; display: flex; gap: 14px; }
+.pna-workspace a { color: var(--muted); text-decoration: none; }
+.pna-workspace a:hover { color: var(--accent-dark); }
+.pna-workspace #main { flex: 1; display: flex; flex-direction: column; margin: 0; padding: 6px 12px; width: 100%; max-width: none; }
+.pna-workspace .instrument-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; padding-bottom: 6px; border-bottom: 1px solid var(--border-light); }
+.pna-workspace .acquisition-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.pna-workspace .control-field { display: flex; align-items: center; gap: 6px; }
+.pna-workspace label, .pna-workspace .control-label { margin: 0; color: #555; font-weight: 400; white-space: nowrap; }
+.pna-workspace .segmented { display: flex; }
+.pna-workspace .segmented label { position: relative; margin: 0; cursor: pointer; }
+.pna-workspace .segmented input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.pna-workspace .segmented span { display: flex; align-items: center; justify-content: center; height: var(--control-height); padding: 2px 9px; border: 1px solid var(--border-light); background: #fafafa; white-space: nowrap; }
+.pna-workspace .segmented label + label span { border-left: 0; }
+.pna-workspace .segmented label:first-child span { border-radius: 2px 0 0 2px; }
+.pna-workspace .segmented label:last-child span { border-radius: 0 2px 2px 0; }
+.pna-workspace .segmented input:checked + span { background: var(--accent-light); color: var(--accent-dark); }
+.pna-workspace .segmented input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; position: relative; z-index: 1; }
+.pna-workspace :where(button, select, input[type="number"]) { font: inherit; color: #333; height: var(--control-height); padding: 2px 8px; border: 1px solid var(--border-light); border-radius: 2px; background: #fafafa; box-shadow: none; }
+.pna-workspace button { cursor: pointer; white-space: nowrap; }
+.pna-workspace button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-dark); }
+.pna-workspace :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pna-workspace input[type="number"] { text-align: right; font-variant-numeric: tabular-nums; width: 90px; }
+.pna-workspace input[type="number"]:invalid { border-color: #bc4828; }
+.pna-workspace input[type="checkbox"] { accent-color: var(--accent); margin: 0; width: auto; height: auto; }
+.pna-workspace .toggle { display: inline-flex; align-items: center; gap: 5px; }
+.pna-workspace .oscillator-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 12px; }
+.pna-workspace .oscillator-label { color: var(--muted); }
+.pna-workspace .oscillator-grid { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.pna-workspace .oscillator-field { display: flex; align-items: center; gap: 5px; }
+.pna-workspace .oscillator-field .dds-input { width: 136px; }
+.pna-workspace .tracking-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pna-workspace .tracking-readout { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.pna-workspace .spectrum-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 6px 0; }
+.pna-workspace .display-controls, .pna-workspace .plot-actions { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
+.pna-workspace .toolbar-actions { display: flex; align-items: center; gap: 0; }
+.pna-workspace .toolbar-actions span + span button { border-left: 0; }
+.pna-workspace .spectrum-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; margin: 0; }
+.pna-workspace #plot-wrap { flex: 1; min-height: 260px; height: clamp(260px, calc(100dvh - 280px), 1000px); overflow: visible; }
+.pna-workspace:has(.pna-generator[open]) #plot-wrap { height: clamp(260px, calc(100dvh - 500px), 1000px); }
+.pna-workspace #plot-title { position: absolute; bottom: -22px; width: 100%; color: var(--muted); font-size: 11px; }
+.pna-workspace #hover-datapoint, .pna-workspace #click-datapoint, .pna-workspace #peak-datapoint { pointer-events: none; border: 1px solid var(--border); border-radius: 2px; font-size: 11px; padding: 2px 4px !important; z-index: 1; }
+.pna-workspace .spectrum-readouts { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 20px; padding: 26px 0 5px; }
+.pna-workspace .spectrum-readouts > div { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.pna-workspace .spectrum-readouts strong { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pna-workspace .plot-help { margin-left: auto; color: var(--muted); font-size: 11px; }
+.pna-workspace .spectrum-note { color: var(--muted); font-size: 11px; margin: 0 0 6px; }
+.pna-workspace .measurement-details { display: grid; grid-template-columns: minmax(280px, 500px) minmax(0, 1fr); gap: 24px; border-top: 1px solid var(--border-light); padding-top: 6px; }
+.pna-workspace table { font-size: 12px; width: 100%; font-variant-numeric: tabular-nums; }
+.pna-workspace #decade-values-table th { color: var(--muted); font-weight: 400; border-bottom: 1px solid var(--border-light); }
+.pna-workspace #decade-values-table td, .pna-workspace #decade-values-table th { padding: 3px; }
+.pna-workspace summary { cursor: pointer; padding: 3px 0; color: #555; }
+.pna-workspace .signal-details p { margin: 6px 0; max-width: 650px; color: var(--muted); }
+.pna-workspace #plot-placeholder table { width: auto; }
+.pna-workspace #plot-placeholder td { padding: 2px; }
+.pna-workspace #plot-placeholder .legend b { font-size: 12px !important; font-weight: 600; }
+@container pna (max-width: 900px) { .pna-workspace .plot-help { display: none; } }
+@container pna (max-width: 600px) {
+  .pna-workspace .app-header { flex-wrap: wrap; gap: 4px 10px; }
+  .pna-workspace nav { font-size: 11px; }
+  .pna-workspace #main { padding: 6px 8px; }
+  .pna-workspace .oscillator-grid { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .pna-workspace .oscillator-field { flex-wrap: wrap; }
+  .pna-workspace .oscillator-field label { width: 100%; }
+  .pna-workspace .oscillator-field .dds-input { width: 124px; }
+  .pna-workspace .tracking-readout { font-size: 10px; }
+  .pna-workspace #plot-wrap, .pna-workspace:has(.pna-generator[open]) #plot-wrap { height: 46dvh; min-height: 250px; }
+  .pna-workspace .measurement-details { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .pna-workspace .spectrum-readouts { gap: 3px 14px; }
+}
+
+.pna-workspace fieldset { min-width: 0; margin: 0; border: 0; padding: 0; }
+.pna-workspace .instrument-toolbar { padding-bottom: 6px; }
+.pna-workspace .spectrum-toolbar { padding: 6px 0; }
+.pna-workspace .connection-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; }
+.pna-workspace .connection-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #aaa; }
+.pna-workspace .connection-status[data-state="live"]::before { background: #39994b; }
+.pna-workspace .connection-status[data-state="error"]::before { background: #bc4828; }
+.pna-workspace .connection-error { padding: 6px 8px; margin-bottom: 6px; border: 1px solid #ddad9f; background: #fff4ef; }
+.pna-workspace button:disabled { opacity: .45; cursor: default; }
+.pna-workspace .segmented input:disabled + span { opacity: .5; cursor: default; }
+.pna-workspace .pna-generator { margin: 0; border-bottom: 1px solid var(--border-light); }
+.pna-workspace .pna-generator > summary { padding: 5px 0; }
+.pna-workspace .pna-generator > summary > span { color: var(--muted); margin-left: 10px; font-size: 11px; }
+.pna-workspace .pna-generator[open] > summary { margin-bottom: 4px; }
+.pna-workspace .pna-generator > .dds-pm-widget { max-width: 1100px; }
+.pna-workspace .pna-generator-note { margin: 4px 0 6px; color: var(--muted); font-size: 11px; }
+.pna-workspace .laser-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 6px 0; }
+.pna-workspace .plot-empty-card { border: 1px solid var(--border-light); border-radius: 2px; box-shadow: none; }
+.pna-workspace #decade-values-table { table-layout: fixed; }
+.pna-workspace #decade-values-table col:first-child { width: 50%; }

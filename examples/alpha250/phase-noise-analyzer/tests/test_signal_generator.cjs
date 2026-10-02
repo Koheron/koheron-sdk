@@ -8,7 +8,7 @@ const {JSDOM} = require('jsdom');
 const root = path.resolve(__dirname, '../../../..');
 const settle = () => new Promise(resolve => setTimeout(resolve, 10));
 
-async function host(t, failGenerator = false) {
+async function host(t, failGenerator = false, failConnection = false) {
     const html = fs.readFileSync(path.join(root, 'examples/alpha250/phase-noise-analyzer/web/index.html'), 'utf8');
     const dom = new JSDOM(html, {runScripts: 'outside-only'});
     t.after(() => dom.window.close());
@@ -31,7 +31,10 @@ async function host(t, failGenerator = false) {
     const client = {exits: 0};
     window.Client = class {
         constructor(ip, count) { client.ip = ip; client.count = count; }
-        init(callback) { initialized = callback(); }
+        init() {
+            initialized = failConnection ? Promise.reject(new Error('Connection unavailable')) : Promise.resolve();
+            return initialized;
+        }
         exit() { client.exits++; }
     };
     window.Imports = class {};
@@ -41,9 +44,13 @@ async function host(t, failGenerator = false) {
     window.PhaseNoiseAnalyzer = class {};
     window.PhaseNoiseAnalyzerApp = class {
         async init() { trace.push('analyzer-init'); this.nPoints = 16384; }
+        dispose() { trace.push('analyzer-disposed'); }
     };
     window.PlotBasics = class {};
-    window.Plot = class { constructor() { trace.push('plot-ready'); } };
+    window.Plot = class {
+        constructor() { trace.push('plot-ready'); }
+        dispose() { trace.push('plot-disposed'); }
+    };
     window.ExportFile = class {};
     window.PhaseModulatorDriver = class { constructor() { return port; } };
     window.$ = () => ({});
@@ -57,7 +64,7 @@ async function host(t, failGenerator = false) {
         }).outputText + (exported ? `\nwindow.${exported} = ${exported};` : ''));
     }
     window.dispatchEvent(new window.Event('HTMLImportsLoaded'));
-    await initialized; await settle();
+    await initialized.catch(() => {}); await settle();
     return {window, target: window.document.getElementById('phase-modulator'), port, client, trace};
 }
 
@@ -68,6 +75,8 @@ test('analyzer starts before generator discovery; collapsed panel reads without 
     assert.equal(h.target.querySelectorAll('[data-channel]').length, 2);
     assert.match(h.target.querySelector('.pm-clock').textContent, /200 MS\/s/);
     assert.equal(h.port.calls.length, 0);
+    assert.equal(h.window.document.getElementById('instrument-controls').disabled, false);
+    assert.equal(h.window.document.getElementById('connection-status').textContent, 'Connected');
     h.target.querySelector('[data-action="refresh"]').click(); await settle();
     assert.equal(h.port.calls.length, 0);
 });
@@ -89,9 +98,25 @@ test('embedded controls use DAC setters and the 200 MS/s Nyquist limit', async t
     assert.deepEqual(h.port.calls.at(-1), [0, 'output', true]);
     h.window.dispatchEvent(new h.window.Event('pagehide'));
     assert.equal(h.client.exits, 1);
+    assert(h.trace.includes('plot-disposed') && h.trace.includes('analyzer-disposed'));
+    assert.equal(h.window.document.getElementById('instrument-controls').disabled, true);
+    h.window.dispatchEvent(new h.window.Event('pagehide'));
+    assert.equal(h.client.exits, 1);
     assert.equal(h.target.querySelector('fieldset').disabled, true);
     enter('13 MHz'); await settle();
     assert.equal(h.port.calls.length, 2);
+});
+
+test('connection failure retains locked controls and shows a retry without DAC writes', async t => {
+    const h = await host(t, false, true);
+    assert.deepEqual(h.trace, []);
+    assert.equal(h.port.calls.length, 0);
+    assert.equal(h.client.exits, 1);
+    for (const id of ['instrument-controls', 'plot-controls', 'laser-controls']) {
+        assert.equal(h.window.document.getElementById(id).disabled, true);
+    }
+    assert.equal(h.window.document.getElementById('connection-error').hidden, false);
+    assert.equal(h.window.document.getElementById('connection-status').textContent, 'Disconnected');
 });
 
 test('generator failure has its own retry while the analyzer plot remains available', async t => {

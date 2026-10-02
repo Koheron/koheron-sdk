@@ -1,29 +1,7 @@
 <template class="template">
-  <div class="crossed">
-    <span>Local Oscillators (MHz)</span>
+  <span class="oscillator-label">Local oscillators · MHz</span>
+  <div class="oscillator-grid">
+    <div class="oscillator-field"><label for="lo-0">LO 0</label><input id="lo-0" type="number" value="0" min="0" step="0.000001" max="100" required class="dds-input dds-input0" title="Analyzer reference frequency in MHz"><button type="button" class="dds-set0" aria-label="Set LO 0 frequency">Set</button></div>
+    <div class="oscillator-field"><label for="lo-1">LO 1</label><input id="lo-1" type="number" value="0" min="0" step="0.000001" max="100" required class="dds-input dds-input1" title="Analyzer reference frequency in MHz"><button type="button" class="dds-set1" aria-label="Set LO 1 frequency">Set</button></div>
   </div>
-  <table class="full-width">
-    <tr>
-      <td style="width: 60px">
-        LO 0
-      </td>
-      <td style="width: 120px">
-        <input type="number" value="0" min="0" step="0.000001" max="100.0" class="dds-input0">
-      </td>
-      <td>
-        <button class="default-btn dds-set0">Set LO0</button>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        LO 1
-      </td>
-      <td>
-        <input type="number" value="0" min="0" step="0.000001" max="100.0" class="dds-input1">
-      </td>
-      <td>
-        <button class="default-btn dds-set1">Set LO1</button>
-      </td>
-    </tr>
-  </table>
 </template>

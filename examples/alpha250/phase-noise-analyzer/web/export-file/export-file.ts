@@ -21,7 +21,7 @@ class ExportFile {
                 let dateTime = new Date();
                 let referenceClock: string = (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock']:checked")).dataset.valuestr;
                 let inputChannel: string = (<HTMLInputElement>document.querySelector("[name='channel']:checked")).value;
-                let ddsInputs = <HTMLInputElement[]><any>document.querySelectorAll(".dds-channel-input[type='range']");
+                let ddsInputs = <HTMLInputElement[]><any>document.querySelectorAll(".dds-input");
                 let decimationRate: string = (<HTMLInputElement>document.querySelector("[class='cic-rate-input']")).value;
                 let nAverages: string = (<HTMLInputElement>document.querySelector("[class='plot-navg-input']")).value;
 
@@ -33,8 +33,7 @@ class ExportFile {
                 csvContent += '"Input channel",' + inputChannel + "\n";
                 csvContent += '"Reference clock (10 MHz)",' + referenceClock + "\n";
                 for (let i: number = 0; i < ddsInputs.length; i++) {
-                    let channel: string = ddsInputs[i].dataset.channel;
-                    csvContent += '"Channel ' + channel + ' DDS frequency (MHz)",' + ddsInputs[i].value + "\n";
+                    csvContent += '"LO ' + i + ' frequency (MHz)",' + ddsInputs[i].value + "\n";
                 }
                 csvContent += '"Decimation rate",' + decimationRate + "\n";
                 csvContent += '"Averages",' + nAverages + "\n";

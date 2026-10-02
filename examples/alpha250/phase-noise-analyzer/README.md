@@ -9,6 +9,10 @@ lets an electrical loopback retain the injected PM in the measured phase.
 Changing a local oscillator no longer changes a DAC output.
 
 Open **DAC signal generator** above the plot to use the shared compact widget.
+The page follows the ALPHA250 FFT and ALPHA250-4 analyzer workspace: a slim
+header, horizontal acquisition/reference controls, a full-width plot, inline
+jitter readouts and secondary laser settings. Phase/frequency display and
+CSV/PNG export stay beside the plot; controls remain disabled until connected.
 It starts collapsed to preserve plot space. The generator reads existing settings
 when the page loads and on Refresh, supports keyboard/digit/wheel editing, and uses the same
 checked `PhaseModulator` RPC as the standalone example. Outputs start muted after

@@ -2,6 +2,7 @@
 // (c) Koheron
 
 class Plot {
+  private disposed = false;
   public n_pts: number;
   public plot: jquery.flot.plot;
   public plot_data: Array<Array<number>>;
@@ -39,7 +40,13 @@ class Plot {
 
     const syncPlotType = () => {
       const selected = this.laserPlotTypeInputs.find(i => i.checked);
-      this.laserPlotType = (selected?.value as 'phase' | 'frequency') ?? 'phase';
+      const nextType = (selected?.value as 'phase' | 'frequency') ?? 'phase';
+      if (nextType !== this.laserPlotType) {
+        this.laserPlotType = nextType;
+        // Rebuild the legend and fit the new units while retaining the X zoom.
+        this.plotBasics.setLinY();
+      }
+      this.yLabel = this.laserPlotType === 'phase' ? 'PHASE NOISE (dBc/Hz)' : 'FREQUENCY NOISE (dB Hz²/Hz)';
     };
 
     this.laserPlotTypeInputs.forEach(input => {
@@ -114,13 +121,13 @@ class Plot {
 
     this.decadeValuesTable.innerHTML = `
       <colgroup>
-        <col style="width:250px">
+        <col>
         <col>
       </colgroup>
       <thead>
         <tr>
-          <th>Carrier Offset Frequency</th>
-          <th>Phase Noise</th>
+          <th>Offset</th>
+          <th>${this.laserPlotType === 'phase' ? 'Phase noise' : 'Frequency noise'}</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -134,7 +141,8 @@ class Plot {
       freqCell.innerHTML = this.frequencyFormater(value[0]);
 
       const valueCell = row.insertCell(1);
-      valueCell.innerHTML = Number.isFinite(value[1]) ? `${value[1].toFixed(2)} dBc/Hz` : '---';
+      const unit = this.laserPlotType === 'phase' ? 'dBc/Hz' : 'dB Hz²/Hz';
+      valueCell.innerHTML = Number.isFinite(value[1]) ? `${value[1].toFixed(2)} ${unit}` : '---';
     }
   }
 
@@ -154,7 +162,7 @@ class Plot {
   }
 
   async updatePlot() {
-    if (this._busy) {
+    if (this.disposed || this._busy) {
       return;
     }
 
@@ -175,6 +183,7 @@ class Plot {
 
     try {
       const ddsFreq = await app.dds.getDDSFreq(this.driver.parameters.channel);
+      if (this.disposed) { return; }
 
       const plotEmptyDiv: HTMLElement = document.getElementById('plot-empty')!;
 
@@ -193,6 +202,7 @@ class Plot {
       }
 
       const phaseNoise: Float32Array = await this.driver.getPhaseNoise();
+      if (this.disposed) { return; }
       this.ensurePlotBuffer();
 
       const plot = this.plot_data;
@@ -231,9 +241,12 @@ class Plot {
         }
       );
     } catch (err) {
+      if (this.disposed) { return; }
       console.error('updatePlot error:', err);
       this._busy = false;
       setTimeout(() => requestAnimationFrame(() => this.updatePlot()), 500);
     }
   }
+
+  dispose(): void { this.disposed = true; }
 }
