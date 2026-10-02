@@ -62,6 +62,29 @@ PNA_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh \
 ```
 
 It checks the actual signed four-sample boxcar arithmetic with extreme and
+random inputs, and paired CIC control under asymmetric downstream stalls.
+The paired-control regression checks accepted ADC-clock sample identities,
+decimated output timestamps, reset duration and simultaneous configuration
+epochs; a negative control reproduces unequal sample counts with the former
+always-valid inputs.
+
+For a board alignment regression, split one phase-modulated 10 MHz AWG output
+into IN1/IN3 and one reference into IN0/IN2. Set sinusoidal PM to 1° peak at
+10 kHz, then run:
+
+```sh
+.venv/bin/python3 examples/alpha250-4/phase-noise-analyzer/tests/check_phase_alignment.py 192.168.1.12
+```
+
+This measures X/Y phase fits and the signed live cross-spectrum tone over
+multiple CIC changes, including repeated rates. It checks phase alignment
+within 1°, phase amplitude within 2%, and integrated cross-spectrum power
+within 4%. It restores the previous acquisition rate, selected channel and
+moving-average count. `--modulation-hz`, `--peak-deg`, `--cic-rates` and
+`--output` allow a different known modulation and result location. Repeat the
+check after reloading the instrument to cover startup alignment.
+
+The other block regressions check the signed four-sample boxcar with extreme and
 random inputs, phase wrapping in both directions, and the two-cycle unwrap
 latency. It also confirms that four default LFSRs produce identical rounding
 control sequences over 20,000 clocks. That last check documents the legacy-default
@@ -101,5 +124,8 @@ DMA path. The initial FPGA review found three measurement concerns:
   giving 57.27 dB of image rejection at 20 MHz.
 - The CIC input phase stream advances even when input ready is low. A full
   downstream FIFO can therefore lose ADC-time samples. Independent X/Y
-  stalls could break physical alignment despite correctly paired DMA chunks.
-  Live sample loss has not been established by this review.
+  stalls broke physical alignment on the split-AWG PM check despite correctly
+  paired DMA chunks. Paired sample admission and a common CIC/FIR/FIFO reset
+  now preserve alignment across rate changes. Shared stalls can still discard
+  ADC-time samples; these regressions do not establish lossless sampling under
+  arbitrary FIFO pressure.
