@@ -6,6 +6,39 @@ former phase-block rejection rule. They are historical evidence, not a
 calibration of the final instrument. See [the instrument README](../README.md)
 for current behavior and limitations.
 
+Paired acquisition validation — 2026-10-01 after the V1 integration:
+one AWG output with a 10 MHz carrier and 1° peak sinusoidal PM at 10 kHz was
+split into IN1/IN3; the shared crystal remained on IN0/IN2. The raw ADC PM
+phases agreed within 0.0124°, and no input clipped. The former acquisition
+nevertheless shifted the phase streams by 54.33°, changing to 94.33° after
+an instrument reload. A 302-window real cross spectrum consequently recovered
+only 0.7616° peak and -43.55 dBc integrated tone power, while X/Y individually
+recovered approximately 0.998°.
+
+The paired controller now admits the same ADC-clock instants to both CICs.
+It also resets both CICs, FIR data vectors and FIFO queues on rate changes,
+holds reset for 32 ADC clocks, configures both rates together and resumes
+sampling only afterward. This removes both independent-input drift and the
+remaining half-output-sample offset seen without a common filter reset.
+The DMA register layout, RPCs and signed cross-spectrum calculation are unchanged.
+
+The hardware regression passed CIC 20, 67, 100 and 133, repeated rate changes,
+and two instrument reloads. Mean X/Y modulation-phase differences were below
+0.04° across the sweep; the largest individual snapshot difference was 0.324°.
+At CIC 133, 64 fresh phase pairs gave X = 0.99767°, Y = 0.99765° and
+XY = 0.99766° peak by integrated tone power. A separate live 302-window XY
+average recovered 0.99769° and -41.203 dBc, versus -41.183 dBc for an ideal
+1° modulation. Tracking stayed locked throughout that capture. Production
+C++ and independent SciPy processing differed by at most 0.0031% complex RMS
+on these same pairs. These checks validate this modulation's alignment and
+scale; shared backpressure can still discard ADC-time samples.
+
+Vivado 2025.1 strict routed timing and all 12 bus-skew constraints passed at
+200 MHz: setup slack +0.135794 ns, hold slack +0.039732 ns. RTL regressions
+passed asymmetric stalls, four reset/configuration epochs, a rate superseded
+during reset and the prior block/prefilter tests. The deployed bitstream SHA256
+is `c7d56a5b9882c97a05d047a5195ba9dbe548de4ee3fa4ef9cfa95ffd8a27c0dc`.
+
 Validation on 2026-09-30: ARM server and TypeScript builds passed; software
 regressions passed with ASan/UBSan; the Vivado 2026.1 bitstream build completed
 for `xc7z020clg400-2`, with routed setup slack +0.156 ns and hold slack +0.025 ns.
