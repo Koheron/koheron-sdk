@@ -3,7 +3,7 @@
 Build high-performance instruments for Xilinx Zynq-based boards with a Make-based toolchain that coordinates FPGA, embedded Linux, C++ servers and web front-ends.
 
 > **V1 is recommended for new instrument development.**
-> V1 remains under active development ahead of the major release.
+> V1 is the default branch and remains under active development ahead of the major release.
 > Boards currently ship with a V0 image. Build and install a V1 OS image before following the V1 instrument workflow below.
 > V1 OS images do not support legacy V0 instruments. Follow **[MIGRATING.md](./MIGRATING.md)** when porting an existing instrument, or see **[Staying on 0.x](#staying-on-0x)** to keep using the supplied image.
 
@@ -11,18 +11,40 @@ Build high-performance instruments for Xilinx Zynq-based boards with a Make-base
 
 ## Table of contents
 
-1. [Features](#features)
-2. [Requirements](#requirements)
-3. [Quick start](#quick-start)
-4. [Configuration model](#configuration-model)
-5. [Development workflow](#development-workflow)
-6. [Creating a new instrument](#creating-a-new-instrument)
-7. [Repository layout](#repository-layout)
-8. [Instrument packaging](#instrument-packaging)
-9. [Image contents](#image-contents)
-10. [Staying on 0.x](#staying-on-0x)
-11. [Further resources](#further-resources)
-12. [Acknowledgments](#acknowledgments)
+1. [Develop with a coding agent](#develop-with-a-coding-agent)
+2. [Features](#features)
+3. [Requirements](#requirements)
+4. [Quick start](#quick-start)
+5. [Configuration model](#configuration-model)
+6. [Development workflow](#development-workflow)
+7. [Creating a new instrument](#creating-a-new-instrument)
+8. [Repository layout](#repository-layout)
+9. [Instrument packaging](#instrument-packaging)
+10. [Image contents](#image-contents)
+11. [Staying on 0.x](#staying-on-0x)
+12. [Further resources](#further-resources)
+13. [Acknowledgments](#acknowledgments)
+
+---
+
+## Develop with a coding agent
+
+Give your agent access to this checkout and ask it to read [AGENTS.md](./AGENTS.md). Describe the board, the instrument behavior you want, the existing project to extend and how to check the result. Include the board address and OS version when the task includes deployment.
+
+For example, to start a separate ALPHA250 instrument from FFT:
+
+```text
+Read AGENTS.md. Create examples/alpha250/my-fft from the ALPHA250 FFT example.
+Use NAME=my-fft and VERSION=0.1.0, and keep the reference FFT example intact.
+Keep the FFT behavior for this first step and add a Python check that queries
+the FFT size and reads a PSD using the generated command API.
+Validate the configuration, build the instrument archive and check routed timing.
+Report the archive path, checks passed and anything not yet verified on a board.
+```
+
+For a deployment task, add the intended board IP and whether it already runs V1. An existing V1 image usually lets the agent build and upload just the instrument archive. A board still running the supplied V0 image needs initial V1 OS setup.
+
+For your own instrument, replace the FFT goal with the required inputs, processing, outputs, client controls and a measurable acceptance check. The agent instructions explain configuration, generated outputs, incremental builds, tests and deployment.
 
 ---
 
@@ -53,6 +75,8 @@ Additional board-specific dependencies (Vivado board files, licenses, etc.) shou
 
 ## Quick start
 
+For agent-assisted work, start with the [agent brief](#develop-with-a-coding-agent). The commands in this section are also a reference for the agent's build and deployment workflow.
+
 ```bash
 git clone -b V1 https://github.com/Koheron/koheron-sdk.git
 cd koheron-sdk
@@ -77,6 +101,8 @@ make -j CFG=examples/alpha250/fft/config.mk HOST=192.168.1.100 run
 ```
 
 Replace `CFG` with the path to another `config.mk` to target a different instrument or board.
+
+`make run` streams logs after starting the instrument. Press `Ctrl+C` to stop following the logs; the instrument keeps running on the board. Agents can use the Python upload/run API for a deployment command that finishes.
 
 ---
 
@@ -127,6 +153,12 @@ For example:
 
 ```bash
 cp -r examples/alpha250/fft examples/alpha250/my-instrument
+```
+
+Set `NAME := my-instrument` and `VERSION := 0.1.0` in the copied `config.mk` before building, so uploads do not replace the stored FFT instrument.
+
+```bash
+make validate CFG=examples/alpha250/my-instrument/config.mk
 make -j CFG=examples/alpha250/my-instrument/config.mk
 ```
 
