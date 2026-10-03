@@ -1,0 +1,2 @@
+.pna-workspace .precision-status { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.pna-workspace .precision-status[data-state="error"] { color: #a53e25; }

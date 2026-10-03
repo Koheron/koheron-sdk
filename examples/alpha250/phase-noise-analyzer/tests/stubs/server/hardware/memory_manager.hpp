@@ -44,7 +44,7 @@ public:
         ++writes;
     }
     template<class T, uint32_t N, uint32_t offset> auto read_array() {
-        static_assert(id == mem::ram && offset == 98304);
+        static_assert(id == mem::ram && offset == 98304 * sizeof(T));
         ++reads;
         std::array<T, N> result{};
         double slope = drift;

@@ -7,6 +7,7 @@
 
 struct Alpha250PhaseNoiseBoard {
     using Oscillator = Dds;
+    static constexpr uint32_t max_phase_precision = 0;
     auto& clock() { return rt::get_driver<ClockGenerator>(); }
     Alpha250PhaseNoiseBoard() { clock().set_sampling_frequency(0); }
     double sampling_frequency() { return clock().get_adc_sampling_freq(); }

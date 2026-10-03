@@ -7,12 +7,14 @@ memory:
     - phase_incr[4]
     - cordic
     - cic_rate
+    - phase_precision
   - name: status
     offset: 0x5000_0000
     range: 4K
     registers:
     - adc[n_adc]
     - demod[n_adc]
+    - phase_packet
   - name: xadc
     offset: 0x43C0_0000
     range: 64K
@@ -38,6 +40,7 @@ parameters:
   dac_width: 14
   adc_width: 14
   dds_output_width: 16
+  phase_filter_width: 40
   n_adc: 2
   cic_differential_delay: 1
   cic_decimation_rate_default: 20

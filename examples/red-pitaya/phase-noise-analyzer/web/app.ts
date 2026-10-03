@@ -6,6 +6,7 @@ class App {
     public dds: DDS;
     private phaseNoiseAnalyzer: PhaseNoiseAnalyzer;
     private phaseNoiseAnalyzerApp: PhaseNoiseAnalyzerApp;
+    private phasePrecision: PhasePrecision;
     public plot: Plot;
     private plotBasics: PlotBasics;
     private exportFile: ExportFile;
@@ -32,6 +33,8 @@ class App {
                 this.phaseNoiseAnalyzerApp = new PhaseNoiseAnalyzerApp(document, this.phaseNoiseAnalyzer);
 
                 await this.phaseNoiseAnalyzerApp.init();
+                this.phasePrecision = new PhasePrecision(client, document);
+                await this.phasePrecision.init();
                 if (this.stopped) { return; }
                 this.n_pts = this.phaseNoiseAnalyzerApp.nPoints;
                 this.x_min = 100;
@@ -76,6 +79,7 @@ class App {
         if (this.signalGenerator) { this.signalGenerator.dispose(); }
         if (this.plot) { this.plot.dispose(); }
         if (this.phaseNoiseAnalyzerApp) { this.phaseNoiseAnalyzerApp.dispose(); }
+        if (this.phasePrecision) { this.phasePrecision.dispose(); }
         for (const id of ['instrument-controls', 'plot-controls', 'laser-controls']) {
             (document.getElementById(id) as HTMLFieldSetElement).disabled = true;
         }
