@@ -1,101 +1,52 @@
 # koheron-sdk
 
-Build high-performance instruments for Xilinx Zynq-based boards with a Make-based toolchain that coordinates FPGA, embedded Linux, C++ servers and web front-ends.
+Build instruments for Xilinx Zynq boards: FPGA designs, Linux images, C++ servers and web interfaces.
 
-> **V1 is recommended for new instrument development.**
-> V1 is the default branch and remains under active development ahead of the major release.
-> Boards currently ship with a V0 image. Build and install a V1 OS image before following the V1 instrument workflow below.
-> V1 OS images do not support legacy V0 instruments. Follow **[MIGRATING.md](./MIGRATING.md)** when porting an existing instrument, or see **[Staying on 0.x](#staying-on-0x)** to keep using the supplied image.
-
----
-
-## Table of contents
-
-1. [Features](#features)
-2. [Requirements](#requirements)
-3. [Quick start](#quick-start)
-4. [Configuration model](#configuration-model)
-5. [Development workflow](#development-workflow)
-6. [Creating a new instrument](#creating-a-new-instrument)
-7. [Repository layout](#repository-layout)
-8. [Instrument packaging](#instrument-packaging)
-9. [Image contents](#image-contents)
-10. [Staying on 0.x](#staying-on-0x)
-11. [Further resources](#further-resources)
-12. [Acknowledgments](#acknowledgments)
-
----
-
-## Features
-
-- Unified `make` flow to build FPGA bitstreams, Linux images, TCP/WebSocket servers and web interfaces.
-- Optimized for rapid iteration on Zynq-7000 and Zynq UltraScale+ instruments.
-- Generates deployable instrument archives that can be pushed to boards over HTTP.
-- Supports per-project Vivado block designs, memory maps and driver customisation via modular makefiles.
-
----
+> **V1 is the default branch and recommended for new instrument development.** It remains under development ahead of the major release.
+> Boards ship with V0; use a V1 OS image for V1 development. V1 images do not support V0 instruments.
+> See [MIGRATING.md](./MIGRATING.md) for porting or [Staying on 0.x](#staying-on-0x) for the supplied image.
 
 ## Requirements
 
-The SDK is developed and tested on **Ubuntu 24.04** with **Vivado/Vitis 2025.1** installed in `/tools/Xilinx`.
+Reference host: **Ubuntu 24.04** with **Vivado/Vitis 2025.1** under `/tools/Xilinx/2025.1`. Override `VIVADO_PATH` and `VITIS_PATH` on the Make command line for other installation paths.
 
-Run the helper target to prepare the host:
-
-```bash
-make setup
-```
-
-`make setup` installs host dependencies, the Koheron Python package, Docker, and the SDK Docker images. It prompts for sudo authentication when needed.
-
-Additional board-specific dependencies (Vivado board files, licenses, etc.) should be installed before launching the build.
-
----
+Install Vivado/Vitis and any required board files or licenses separately. `make setup` installs host dependencies, the Python environment and Koheron package, Docker and SDK Docker images.
 
 ## Quick start
 
 ```bash
-git clone -b V1 https://github.com/Koheron/koheron-sdk.git
+git clone https://github.com/Koheron/koheron-sdk.git
 cd koheron-sdk
 make setup
 
-# Build an example instrument archive
-make -j CFG=examples/alpha250/fft/config.mk
-
-# Build a bootable SD card image
+# Build an ALPHA250 image with the FFT instrument
 make -j CFG=examples/alpha250/fft/config.mk image
 ```
 
-For this example, the image archive is `tmp/examples/alpha250/fft/alpha250-fft.zip`. Extract its `.img` file and write it to an SD card using an image-writing tool. Writing the image erases the selected card; keep the supplied V0 card if you want to return to V0.
+Extract the `.img` from `tmp/examples/alpha250/fft/alpha250-fft.zip` and write it to an SD card. Writing erases the card; keep the supplied V0 card to return to V0.
 
-With the board powered off, install the V1 SD card, then power up and find the board's IP address. The image boots with the selected FFT instrument installed.
+Insert the card with the board powered off, then boot and find its IP address. The image includes the FFT instrument. Use an example for your board when setting `CFG`.
 
-For subsequent instrument changes, rebuild and deploy without rebuilding the OS:
+Build and deploy subsequent instrument changes:
 
 ```bash
-# Deploy the instrument to a board via HTTP
 make -j CFG=examples/alpha250/fft/config.mk HOST=192.168.1.100 run
 ```
 
-Replace `CFG` with the path to another `config.mk` to target a different instrument or board.
-
-`make run` streams logs after starting the instrument. Press `Ctrl+C` to stop following the logs; the instrument keeps running on the board. The Python upload/run API can deploy without following the log stream.
-
----
+`run` streams logs after starting the instrument. `Ctrl+C` stops the stream and leaves it running. The [Python upload/run API](https://www.koheron.com/software-development-kit/documentation/v1/python-api/#upload-and-run-an-instrument) returns after deployment for scripts and agents. Rebuild the image for OS, kernel, boot, board support or default instrument changes.
 
 ## Configuration model
 
-V1 no longer uses the old `CONFIG=.../config.yml` flow. Each instrument is selected with `CFG=.../config.mk`:
+`CFG` selects the instrument's `config.mk`:
 
-- `config.mk` contains build settings such as the instrument name, board path, Vivado cores, drivers and web assets.
-- `memory.yml` lives next to `config.mk` and defines the memory map, registers, Linux devices and build-time parameters used to generate FPGA, C++ and device-tree artefacts.
+- `config.mk`: name, board, FPGA cores, constraints, drivers and web assets.
+- `memory.yml`: memory map, registers, Linux mappings and parameters; generates Tcl, C++ and device-tree definitions.
 
-For example, `examples/alpha250/fft/config.mk` selects the Alpha250 board, FFT drivers and web files, while `examples/alpha250/fft/memory.yml` defines register regions, `/dev/mem_wc` mappings and parameters such as `fft_size`.
-
----
+`SDK_PATH` is the SDK root; `PROJECT_PATH` is the directory containing `config.mk`.
 
 ## Development workflow
 
-Common targets provided by the top-level `Makefile`:
+Pass `CFG=.../config.mk` to build and deployment targets. `make help` lists targets; `VERBOSE=1` adds build details.
 
 | Command | Description |
 | --- | --- |
@@ -105,43 +56,26 @@ Common targets provided by the top-level `Makefile`:
 | `make web` | Builds the TypeScript/CSS assets for the web UI. |
 | `make os` | Builds the Linux root filesystem for the selected board. |
 | `make image` | Produces a bootable SD card image combining OS, boot files and instrument artefacts. |
-| `make run` | Uploads and starts the instrument on a remote board through the HTTP API. |
+| `make run` | Builds, uploads and starts the instrument, then streams logs. |
 | `make copy CFG=... DEST=...` | Copies an instrument's sources and sets its package name from the destination directory. |
-
-Verbose logs are available by passing `VERBOSE=1`, and the active board/instrument configuration is controlled through the `CFG` variable.
-
----
+| `make doctor` | Checks host tools and an optional `CFG`. |
+| `make list` | Lists example instruments. |
+| `make validate CFG=...` | Validates `config.mk` and `memory.yml`. |
 
 ## Creating a new instrument
-
-Start by copying a nearby example, then edit the build settings, memory map, drivers and web UI for your hardware design. The copy command needs only Python 3; it works before `make setup`.
-
-```text
-examples/<board>/<instrument>/
-  config.mk
-  memory.yml
-  block_design.tcl
-  <driver>.hpp
-  <driver>.cpp
-  web/
-```
-
-For example:
 
 ```bash
 make copy CFG=examples/alpha250/fft/config.mk DEST=examples/alpha250/my-instrument
 ```
 
-This sets `NAME := my-instrument` in the copied `config.mk`, so uploads do not replace the stored FFT instrument. It refuses an existing destination or the original instrument name, and skips Git metadata, Python caches, virtual environments and generated dependency caches.
+`copy` sets `NAME := my-instrument`; the archive and stored instrument use this name. It refuses an existing destination or the source name. Metadata and dependency caches are skipped.
 
-The board settings, `VERSION`, driver names and shared SDK references are preserved. Set your own version in `config.mk` and update any copied client scripts that hard-code the original instrument name (for example, `connect(host, 'fft')`).
+Board settings, `VERSION`, driver names and shared SDK references are preserved. The API class remains `FFT`. Change hard-coded client instrument names, such as `connect(host, 'fft')`, to `my-instrument`.
 
 ```bash
 make validate CFG=examples/alpha250/my-instrument/config.mk
 make -j CFG=examples/alpha250/my-instrument/config.mk
 ```
-
----
 
 ## Repository layout
 
@@ -156,54 +90,30 @@ server/    # C++ server sources and build rules
 web/       # Front-end assets shared across instruments
 ```
 
-Exploring these directories is the best way to learn how to assemble your own instrument configuration.
-
 Within `fpga/`, `cores/` contains reusable RTL primitives, `modules/` contains
 Tcl assemblies, and [`ip/`](./fpga/ip/) contains configurable Vivado IP
 subsystems, starting with the AXI DDS phase modulator.
 
----
-
 ## Instrument packaging
 
-Running `make` with `CFG` set produces `<instrument>.zip` in `tmp/<board>/instruments/`. Each archive contains:
+Instrument ZIP: `tmp/<project>/<NAME>.zip`, also copied to `tmp/<board>/instruments/<NAME>.zip`. Contents:
 
 - Runtime FPGA bitstream binary loaded by FPGA Manager (`.bit.bin`).
 - Device-tree overlay (`pl.dtbo`).
 - Original Vivado bitstream kept for debugging/reference (`.bit`).
 - Compiled server executable (`serverd`).
-- Driver JSON generated from the selected drivers.
+- Driver metadata (`drivers.json`).
 - Built web assets referenced by the server.
 - A `version` file tying the artefacts together.
-
-The instrument archive can be uploaded with `make run` or the HTTP API directly, and is consumable by the Python client utilities located in [`python/`](./python).
-
----
 
 ## Image contents
 
 Generated SD card images boot **Ubuntu 24.04.5** with the **`xilinx-linux-v2025.1`** kernel. The runtime environment includes:
 
 - **nginx** serving static files and proxying **WebSocket** traffic.
-- An HTTP API (powered by **uWSGI**) to upload, start and stop instruments.
+- An HTTP API (powered by **uWSGI**) for uploads and instrument management.
 
-Each board generates its own machine ID and SSH host keys on first boot. Build-only QEMU helpers, chroot scripts and the temporary dpkg `force-unsafe-io` setting are removed before packaging. Base-rootfs builds replace the cached tarball only after a successful build and archive operation.
-
-Base-rootfs builds stop if any APT repository refresh fails after the configured retries. Run the isolated APT tests with `python3 os/tests/test_rootfs_apt_update.py`; they use private APT state and a local HTTP repository without installing packages.
-
-Make verifies the Ubuntu source tarball against the release checksums before reusing it. Downloads replace cached inputs only after successful validation; failed or interrupted downloads leave the previous files intact. A valid cached source can be reused offline without rebuilding the configured base rootfs. Run the download regression tests with `python3 os/tests/test_rootfs_download_make.py`.
-
-Set `PASSWORD` in the environment before `make image` to customize the image's root password; `PASSWD` is accepted as a legacy alias. Changes to `PASSWORD` or `TIMEZONE` rebuild the cached base rootfs. The default password is `changeme` and the default timezone is `Europe/Paris`.
-
-Image builds check required input files before overwriting the loose image or allocating a loop device. They verify the resized partition before truncating and release chroot mounts and the loop device before packaging. If a mount cannot be released, the build fails and reports the loop device retained for recovery.
-
-Overlay configuration fails if a required service cannot be enabled, so the build cannot publish a ZIP with incomplete service setup. Run the isolated chroot tests with `docker run --rm -v "$PWD":/sdk:ro -w /sdk cross-armhf:24.04 python3 os/tests/test_rootfs_overlay.py`; these tests do not mount disks or start services.
-
-Each ZIP is built from scratch and atomically replaces the previous archive after successful packaging; failed builds preserve the previous ZIP. The loose image and checksum files are build outputs and may change during a failed rebuild. Run the disk-free build regression tests with `python3 -m unittest discover -s os/tests -p 'test_*build.py'`.
-
-This setup lets you iterate rapidly without having to rebuild the entire OS for every code change.
-
----
+See [OS image build notes](./os/README.md) for image settings, cache behavior, build failures and regression commands.
 
 ## Staying on 0.x
 
@@ -215,16 +125,12 @@ git clone -b master https://github.com/Koheron/koheron-sdk.git
 
 Follow the [V0 documentation](https://www.koheron.com/software-development-kit/documentation/) and use `CONFIG=.../config.yml`. [V0 images](https://www.koheron.com/software-development-kit/documentation/ubuntu-zynq/) remain available. For a fixed SDK revision, use a published 0.x release such as [V0.24](https://github.com/Koheron/koheron-sdk/releases/tag/V0.24).
 
----
-
 ## Further resources
 
 - [AGENTS.md](./AGENTS.md) — short SDK hints for coding agents.
 - [MIGRATING.md](./MIGRATING.md) — guidance for upgrading existing instruments to V1.
 - [boards/](./boards) — board definitions and bootloader settings.
 - [examples/](./examples) — complete reference designs you can adapt for your projects.
-
----
 
 ## Acknowledgments
 
