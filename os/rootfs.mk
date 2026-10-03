@@ -173,10 +173,9 @@ ROOT_TAR      := ubuntu-base-$(UBUNTU_VERSION)-base-$(UBUNTU_ARCH).tar.gz
 ROOT_TAR_URL  := https://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/$(ROOT_TAR)
 ROOT_TAR_PATH := $(TMP)/$(ROOT_TAR)
 
-# NEW: versioned SHA256SUMS
+# Versioned checksum list shared by Ubuntu architectures.
 SHA256SUMS_URL  := https://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/SHA256SUMS
 SHA256SUMS_PATH := $(TMP)/ubuntu-base-$(UBUNTU_VERSION)-SHA256SUMS
-ABS_SHA256SUMS  := $(abspath $(SHA256SUMS_PATH))
 
 BASE_ROOTFS_TAR := $(TMP)/ubuntu-base-$(UBUNTU_VERSION)-base-koheron-$(UBUNTU_ARCH).tgz
 BASE_ROOTFS_SETTINGS := $(BASE_ROOTFS_TAR).settings.sha256
@@ -187,16 +186,23 @@ OVERLAY_DIR       := $(TMP_OS_PATH)/rootfs_overlay
 
 $(SHA256SUMS_PATH):
 	mkdir -p $(@D)
-	curl -fL $(SHA256SUMS_URL) -o $@
+	@download=$$(mktemp "$@.download.XXXXXX"); \
+	  trap 'rm -f -- "$$download"' EXIT; \
+	  trap 'exit 130' INT; trap 'exit 143' TERM; \
+	  curl -fsSL --retry 3 "$(SHA256SUMS_URL)" -o "$$download"; \
+	  if ! awk -v archive="$(ROOT_TAR)" \
+	    '{ name=$$2; sub(/^\*/, "", name); if (name == archive) { count++; if (NF != 2 || length($$1) != 64 || $$1 ~ /[^0-9a-f]/) bad=1; } } END { exit (count != 1 || bad) }' \
+	    "$$download"; then \
+	    echo "No unique valid SHA-256 checksum for $(ROOT_TAR)" >&2; exit 1; \
+	  fi; \
+	  chmod 0644 "$$download"; \
+	  mv -f -- "$$download" "$@"
 	$(call ok,$@)
 
-$(ROOT_TAR_PATH): $(SHA256SUMS_PATH)
-	mkdir -p $(@D)
-	curl -fL $(ROOT_TAR_URL) -o $@
-	@cd $(@D); \
-	  grep -E "^[0-9a-f]{64}[[:space:]]+\\*?$(ROOT_TAR)$$" $(ABS_SHA256SUMS) | sha256sum -c -; \
-	  status=$$?; \
-	  if [ $$status -ne 0 ]; then echo "Checksum verification FAILED for $(ROOT_TAR)"; rm -f $(@F); exit $$status; fi
+# Recheck cached source archives before reuse, without changing their timestamps
+# or rebuilding the configured base when the contents are still valid.
+$(ROOT_TAR_PATH): $(SHA256SUMS_PATH) $(OS_PATH)/scripts/download_verified.sh FORCE
+	bash "$(OS_PATH)/scripts/download_verified.sh" "$(SHA256SUMS_PATH)" "$@" "$(ROOT_TAR_URL)"
 	$(call ok,$@)
 
 $(BASE_ROOTFS_SETTINGS): FORCE

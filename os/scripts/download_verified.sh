@@ -11,7 +11,7 @@ destination=$2
 url=$3
 archive=${destination##*/}
 
-mapfile -t matches < <(awk -v archive="$archive" '$2 == archive { print $1 }' "$checksums")
+mapfile -t matches < <(awk -v archive="$archive" '$2 == archive || $2 == "*" archive { print $1 }' "$checksums")
 if [ "${#matches[@]}" -ne 1 ] || [[ ! ${matches[0]} =~ ^[0-9a-f]{64}$ ]]; then
   echo "No unique SHA-256 checksum for $archive in $checksums" >&2
   exit 1
@@ -33,6 +33,8 @@ fi
 mkdir -p "$(dirname "$destination")"
 download=$(mktemp "${destination}.download.XXXXXX")
 trap 'rm -f "$download"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 curl -fsSL --retry 3 "$url" -o "$download"
 if ! verify "$download"; then
   echo "SHA-256 mismatch for $archive (expected $expected)" >&2

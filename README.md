@@ -178,6 +178,8 @@ Generated SD card images boot **Ubuntu 24.04.5** with the **`xilinx-linux-v2025.
 
 Each board generates its own machine ID and SSH host keys on first boot. Build-only QEMU helpers, chroot scripts and the temporary dpkg `force-unsafe-io` setting are removed before packaging. Base-rootfs builds replace the cached tarball only after a successful build and archive operation.
 
+Make verifies the Ubuntu source tarball against the release checksums before reusing it. Downloads replace cached inputs only after successful validation; failed or interrupted downloads leave the previous files intact. A valid cached source can be reused offline without rebuilding the configured base rootfs. Run the download regression tests with `python3 os/tests/test_rootfs_download_make.py`.
+
 Set `PASSWORD` in the environment before `make image` to customize the image's root password; `PASSWD` is accepted as a legacy alias. Changes to `PASSWORD` or `TIMEZONE` rebuild the cached base rootfs. The default password is `changeme` and the default timezone is `Europe/Paris`.
 
 Image builds verify the resized partition before truncating and release chroot mounts and the loop device before packaging. If a mount cannot be released, the build fails and reports the loop device retained for recovery.
