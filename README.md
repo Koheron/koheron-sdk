@@ -3,7 +3,7 @@
 Build high-performance instruments for Xilinx Zynq-based boards with a Make-based toolchain that coordinates FPGA, embedded Linux, C++ servers and web front-ends.
 
 > **V1 is recommended for new instrument development.**
-> V1 remains under active development ahead of the major release.
+> V1 is the default branch and remains under active development ahead of the major release.
 > Boards currently ship with a V0 image. Build and install a V1 OS image before following the V1 instrument workflow below.
 > V1 OS images do not support legacy V0 instruments. Follow **[MIGRATING.md](./MIGRATING.md)** when porting an existing instrument, or see **[Staying on 0.x](#staying-on-0x)** to keep using the supplied image.
 
@@ -78,6 +78,8 @@ make -j CFG=examples/alpha250/fft/config.mk HOST=192.168.1.100 run
 
 Replace `CFG` with the path to another `config.mk` to target a different instrument or board.
 
+`make run` streams logs after starting the instrument. Press `Ctrl+C` to stop following the logs; the instrument keeps running on the board. The Python upload/run API can deploy without following the log stream.
+
 ---
 
 ## Configuration model
@@ -127,6 +129,12 @@ For example:
 
 ```bash
 cp -r examples/alpha250/fft examples/alpha250/my-instrument
+```
+
+Set `NAME := my-instrument` and `VERSION := 0.1.0` in the copied `config.mk` before building, so uploads do not replace the stored FFT instrument.
+
+```bash
+make validate CFG=examples/alpha250/my-instrument/config.mk
 make -j CFG=examples/alpha250/my-instrument/config.mk
 ```
 
@@ -204,6 +212,7 @@ Follow the [V0 documentation](https://www.koheron.com/software-development-kit/d
 
 ## Further resources
 
+- [AGENTS.md](./AGENTS.md) — short SDK hints for coding agents.
 - [MIGRATING.md](./MIGRATING.md) — guidance for upgrading existing instruments to V1.
 - [boards/](./boards) — board definitions and bootloader settings.
 - [examples/](./examples) — complete reference designs you can adapt for your projects.
