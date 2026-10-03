@@ -184,6 +184,8 @@ Set `PASSWORD` in the environment before `make image` to customize the image's r
 
 Image builds verify the resized partition before truncating and release chroot mounts and the loop device before packaging. If a mount cannot be released, the build fails and reports the loop device retained for recovery.
 
+Overlay configuration fails if a required service cannot be enabled, so the build cannot publish a ZIP with incomplete service setup. Run the isolated chroot tests with `docker run --rm -v "$PWD":/sdk:ro -w /sdk cross-armhf:24.04 python3 os/tests/test_rootfs_overlay.py`; these tests do not mount disks or start services.
+
 Each ZIP is built from scratch and atomically replaces the previous archive after successful packaging; failed builds preserve the previous ZIP. The loose image and checksum files are build outputs and may change during a failed rebuild. Run the disk-free build regression tests with `python3 -m unittest discover -s os/tests -p 'test_*build.py'`.
 
 This setup lets you iterate rapidly without having to rebuild the entire OS for every code change.
