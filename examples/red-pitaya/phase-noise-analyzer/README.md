@@ -138,25 +138,28 @@ Phase snapshots convert a signed difference using an unsigned 32-bit magnitude,
 avoiding ARM's software 64-bit-to-float helper without overflowing at the
 signed-input endpoints. When tracking is enabled, the next DMA starts after
 the drift fit and overlaps snapshot conversion as well as spectral processing.
+The sample preparation loop is unrolled fourfold to pipeline independent
+Cortex-A9 VFP operations. Its double-precision arithmetic and rounding order
+are unchanged; a board benchmark with a large signed-count ramp and small PM
+produced identical PSD bins before and after this change.
 With tracking off and one spectrum per average, measured rates were:
 
-| CIC rate | NEON FFT baseline | With fused sample preparation |
+| CIC rate | Fused preparation baseline | With unrolled preparation |
 | --- | --- | --- |
-| 4 | 35.0 spectra/s | 42.4 spectra/s |
+| 4 | 41.1 spectra/s | 44.8 spectra/s |
 | 20 | 23.1 spectra/s | 23.1 spectra/s |
-| 100 | 4.70 spectra/s | 4.70 spectra/s |
 
 These are ten-second measurements on the loopback board with the web page
-closed; the baseline comparisons at CIC 4 and 20 were repeated in the same
-session. The CIC 100 baseline is from the preceding NEON FFT validation.
-CPU load at CIC 20 fell from about 76% to 69% across the two CPU cores.
-The fastest rate is limited by phase and FFT processing; CIC 20 and 100 are
-capture-limited. Snapshot RPCs can still wait for processing, now about 22 ms
-at CIC 20 instead of 27 ms. No DMA errors or overrange packets were observed
+closed; both baseline comparisons were repeated in the same session.
+CPU load at CIC 20 fell from about 69% to 62% across the two CPU cores.
+The fastest rate is limited by phase and FFT processing; CIC 20 is
+capture-limited. Snapshot RPCs can still wait for processing, now about 21 ms
+at CIC 20 instead of 23 ms. No DMA errors or overrange packets were observed
 during these benchmarks.
 With slow tracking enabled at CIC 20, the analyzer delivered 22.7 spectra/s
-with a 0.00205 Hz residual LO error. A comparison with SciPy's Welch estimator
-on coherent live phase captures also checked spectrum normalization.
+with a 0.00181 Hz residual LO error. Five coherent live phase captures agreed
+with SciPy's Welch estimator to below 7 parts per million of the peak density
+in maximum absolute PSD difference.
 
 Vivado 2025.1 implementation passed the configured setup/hold/pulse-width and
 bus-skew checks (WNS 0.175 ns, WHS 0.012 ns), with no unconstrained internal
