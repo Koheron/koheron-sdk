@@ -106,6 +106,7 @@ Common targets provided by the top-level `Makefile`:
 | `make os` | Builds the Linux root filesystem for the selected board. |
 | `make image` | Produces a bootable SD card image combining OS, boot files and instrument artefacts. |
 | `make run` | Uploads and starts the instrument on a remote board through the HTTP API. |
+| `make copy CFG=... DEST=...` | Copies an instrument's sources and sets its package name from the destination directory. |
 
 Verbose logs are available by passing `VERBOSE=1`, and the active board/instrument configuration is controlled through the `CFG` variable.
 
@@ -113,7 +114,7 @@ Verbose logs are available by passing `VERBOSE=1`, and the active board/instrume
 
 ## Creating a new instrument
 
-Start by copying a nearby example, then edit the build settings, memory map, drivers and web UI for your hardware design.
+Start by copying a nearby example, then edit the build settings, memory map, drivers and web UI for your hardware design. The copy command needs only Python 3; it works before `make setup`.
 
 ```text
 examples/<board>/<instrument>/
@@ -128,10 +129,12 @@ examples/<board>/<instrument>/
 For example:
 
 ```bash
-cp -r examples/alpha250/fft examples/alpha250/my-instrument
+make copy CFG=examples/alpha250/fft/config.mk DEST=examples/alpha250/my-instrument
 ```
 
-Set `NAME := my-instrument` and `VERSION := 0.1.0` in the copied `config.mk` before building, so uploads do not replace the stored FFT instrument.
+This sets `NAME := my-instrument` in the copied `config.mk`, so uploads do not replace the stored FFT instrument. It refuses an existing destination or the original instrument name, and skips Git metadata, Python caches, virtual environments and generated dependency caches.
+
+The board settings, `VERSION`, driver names and shared SDK references are preserved. Set your own version in `config.mk` and update any copied client scripts that hard-code the original instrument name (for example, `connect(host, 'fft')`).
 
 ```bash
 make validate CFG=examples/alpha250/my-instrument/config.mk

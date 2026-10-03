@@ -62,8 +62,8 @@ WEB_PATH := $(SDK_PATH)/web
 CFG_OPTIONAL_GOALS := help doctor list examples setup python_requirements koheron_python $(PYTHON_REQUIREMENTS_STAMP) $(KOHERON_PYTHON_STAMP)
 
 ifneq ($(MAKECMDGOALS),)
-# validate parses CFG directly without including the full build graph.
-CFG_REQUIRED_GOALS := $(filter-out $(CFG_OPTIONAL_GOALS) validate,$(MAKECMDGOALS))
+# validate and copy read CFG without including the full build graph.
+CFG_REQUIRED_GOALS := $(filter-out $(CFG_OPTIONAL_GOALS) validate copy,$(MAKECMDGOALS))
 else
 CFG_REQUIRED_GOALS := all
 endif
@@ -87,12 +87,22 @@ help:
 	@echo ' - open_project : Open the Vivado .xpr project'
 	@echo ' - doctor       : Check host tools and optional CFG before building'
 	@echo ' - validate     : Validate selected CFG and memory.yml'
+	@echo ' - copy         : Copy selected CFG instrument to DEST and set its NAME'
 	@echo ' - list         : List available example instruments'
 	@echo ' - examples     : Alias for list'
 
 ifneq ($(filter validate,$(MAKECMDGOALS)),)
 ifndef CFG
 $(call fail,CFG is not defined. Please set CFG to the path of a config.mk file, e.g. `make validate CFG=examples/<board>/<instrument>/config.mk`.)
+endif
+endif
+
+ifneq ($(filter copy,$(MAKECMDGOALS)),)
+ifndef CFG
+$(call fail,Use `make copy CFG=examples/<board>/<instrument>/config.mk DEST=examples/<board>/<new-name>`.)
+endif
+ifndef DEST
+$(call fail,DEST is not defined. Set DEST to the new instrument directory.)
 endif
 endif
 
@@ -265,6 +275,11 @@ list:
 	@python3 "$(SDK_PATH)/python/koheron/list_examples.py" --sdk-path "$(SDK_PATH)"
 
 examples: list
+
+.PHONY: copy
+copy:
+	@python3 "$(SDK_PATH)/python/koheron/copy_instrument.py" \
+		--sdk-path "$(SDK_PATH)" --cfg "$(CFG)" --destination "$(DEST)"
 
 .PHONY: doctor
 doctor:
