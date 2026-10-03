@@ -1,4 +1,5 @@
 """Run the image builder with fake disk tools; never attach or mount real disks."""
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -6,6 +7,7 @@ import subprocess
 import tarfile
 import tempfile
 import unittest
+import zipfile
 
 
 OS_PATH = Path(__file__).resolve().parents[1]
@@ -47,6 +49,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import subprocess
 import sys
 import tempfile
 
@@ -67,8 +70,10 @@ elif command == 'losetup':
         assert not state['mounted'], state['mounted']
         result = int(os.environ.get('DETACH_RESULT', '0'))
 elif command == 'mktemp':
-    print(tempfile.mkdtemp(prefix=Path(args[-1]).name.split('.')[0] + '.',
-                           dir=os.environ['MOCK_MOUNTS']))
+    template = Path(args[-1])
+    packaging = template.name.startswith('.package.')
+    print(tempfile.mkdtemp(prefix='.package.' if packaging else template.name.split('.')[0] + '.',
+                           dir=template.parent if packaging else os.environ['MOCK_MOUNTS']))
 elif command == 'lsblk':
     print('mockloop\\nmockloopp1\\nmockloopp2')
 elif command == 'mount':
@@ -115,6 +120,15 @@ elif command == 'truncate':
         output.truncate(int(args[1]))
 elif command == 'zip':
     Path(args[2]).write_bytes(b'packaged image')
+    result = int(os.environ.get('ZIP_RESULT', '0'))
+    if result or os.environ.get('ZIP_SEND_TERM'):
+        Path(args[2]).with_name('.zip-scratch').write_bytes(b'partial output')
+    if os.environ.get('ZIP_SEND_TERM'):
+        os.kill(os.getppid(), signal.SIGTERM)
+elif command == 'mv':
+    result = int(os.environ.get('PUBLISH_RESULT', '0'))
+    if result == 0:
+        result = subprocess.run(['/bin/mv', *args]).returncode
 elif command not in ('parted', 'partprobe', 'udevadm', 'sleep', 'mkfs.vfat',
                      'mkfs.ext4', 'tune2fs', 'chown', 'resize2fs', 'blockdev'):
     raise RuntimeError(command)
@@ -125,7 +139,7 @@ sys.exit(result)
         for name in ('dd', 'losetup', 'mktemp', 'lsblk', 'mount', 'mountpoint',
                      'umount', 'chroot', 'blkid', 'envsubst', 'e2fsck', 'tune2fs',
                      'parted', 'sfdisk', 'truncate', 'zip', 'partprobe', 'udevadm',
-                     'sleep', 'mkfs.vfat', 'mkfs.ext4', 'chown', 'resize2fs', 'blockdev'):
+                     'sleep', 'mkfs.vfat', 'mkfs.ext4', 'chown', 'resize2fs', 'blockdev', 'mv'):
             (self.bin / name).symlink_to(mock)
         self.environment = {
             **os.environ, 'PATH': str(self.bin) + ':' + os.environ['PATH'],
@@ -174,6 +188,10 @@ source "$@"
         resize = next(i for i, c in enumerate(commands) if c[0] == 'sfdisk')
         self.assertTrue(any(c[0] == 'parted' and 'print' in c for c in commands[resize:truncate]))
         self.assertTrue((self.project / 'test.zip').exists())
+        detach = commands.index(['losetup', '-d', '/dev/mockloop'])
+        package = next(i for i, c in enumerate(commands) if c[0] == 'zip')
+        self.assertLess(detach, package)
+        self.assertEqual(list(self.project.glob('.package.*')), [])
         self.assert_detached()
 
     def test_resize_failure_keeps_untruncated_image(self):
@@ -211,8 +229,61 @@ source "$@"
         self.assert_detached()
 
     def test_loop_detach_failure_is_reported(self):
+        previous = self.project / 'test.zip'
+        previous.write_bytes(b'previous archive')
         result = self.build(DETACH_RESULT='5')
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertFalse(any(c[0] == 'zip' for c in self.commands()))
+        self.assertEqual(previous.read_bytes(), b'previous archive')
+
+    def assert_previous_zip_survives(self, **overrides):
+        previous = self.project / 'test.zip'
+        previous.write_bytes(b'previous archive')
+        timestamp = previous.stat().st_mtime_ns
+        result = self.build(**overrides)
+        self.assertEqual(previous.read_bytes(), b'previous archive')
+        self.assertEqual(previous.stat().st_mtime_ns, timestamp)
+        self.assertEqual(list(self.project.glob('.package.*')), [])
+        self.assert_detached()
+        return result
+
+    def test_zip_failure_preserves_previous_archive_and_cleans_staging(self):
+        result = self.assert_previous_zip_survives(ZIP_RESULT='12')
+        self.assertEqual(result.returncode, 12, result.stdout + result.stderr)
+
+    def test_zip_failure_does_not_publish_first_archive(self):
+        result = self.build(ZIP_RESULT='12')
+        self.assertEqual(result.returncode, 12, result.stdout + result.stderr)
+        self.assertFalse((self.project / 'test.zip').exists())
+        self.assertEqual(list(self.project.glob('.package.*')), [])
+        self.assert_detached()
+
+    def test_termination_during_zip_preserves_previous_archive(self):
+        result = self.assert_previous_zip_survives(ZIP_SEND_TERM='1')
+        self.assertEqual(result.returncode, 143, result.stdout + result.stderr)
+
+    def test_publish_failure_preserves_previous_archive(self):
+        result = self.assert_previous_zip_survives(PUBLISH_RESULT='13')
+        self.assertEqual(result.returncode, 13, result.stdout + result.stderr)
+
+    def test_real_zip_replaces_archive_without_obsolete_entries(self):
+        # Use the real ZIP tool to exercise its update behavior and verify the
+        # consumer receives exactly one image and its matching checksum.
+        (self.bin / 'zip').unlink()
+        with zipfile.ZipFile(self.project / 'test.zip', 'w') as archive:
+            archive.writestr('obsolete.img', b'old image')
+            archive.writestr('obsolete.txt', b'old manifest')
+        result = self.build()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        with zipfile.ZipFile(self.project / 'test.zip') as archive:
+            self.assertIsNone(archive.testzip())
+            self.assertEqual(set(archive.namelist()),
+                             {'test.img', 'test.img.sha256', 'manifest-test.txt'})
+            expected = hashlib.sha256(archive.read('test.img')).hexdigest()
+            self.assertEqual(archive.read('test.img.sha256').decode(), f'{expected}  test.img\n')
+            self.assertEqual(archive.read('manifest-test.txt'), b'test manifest\n')
+        self.assertEqual(list(self.project.glob('.package.*')), [])
+        self.assert_detached()
 
 
 if __name__ == '__main__':

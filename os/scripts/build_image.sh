@@ -52,6 +52,7 @@ timezone=Europe/Paris
 device=""            # will be set later by losetup
 boot_dir=""          # set by mktemp
 root_dir=""          # set by mktemp
+package_dir=""       # fresh ZIP staging directory, on the output filesystem
 
 unmount_chroot() {
   local failed=0 mount_path
@@ -101,6 +102,11 @@ cleanup() {
   # Remove temp dirs
   [ -n "$boot_dir" ] && rmdir "$boot_dir" 2>/dev/null || true
   [ -n "$root_dir" ] && rmdir "$root_dir" 2>/dev/null || true
+  if [ -n "$package_dir" ]; then
+    # This directory contains only packaging outputs, including any scratch
+    # files left by an interrupted zip command. No filesystems are mounted here.
+    rm -rf -- "$package_dir"
+  fi
 
   # Make outputs owned by host user even on interruption
   if [ -n "${HOST_UID:-}" ] && [ -n "${HOST_GID:-}" ]; then
@@ -322,7 +328,18 @@ root_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '3!d')"
 
 # zerofree "$root_dev" >/dev/null 2>&1 || true
 
+# Release the loop before publishing an archive. A detach failure must not
+# replace a previously successful release ZIP.
+if ! losetup -d "$device"; then
+  echo "[cleanup] Could not detach $device; refusing to package" >&2
+  exit 1
+fi
+device=""
+
 # --- package (sha + zip) ---
+# Stage on the output filesystem so the final rename is atomic. Starting with
+# a fresh archive also prevents zip from retaining obsolete entries.
+package_dir=$(mktemp -d "$(cd "$tmp_project_path" && pwd)/.package.XXXXXXXXXX")
 (
   set -Eeuo pipefail
   cd "$tmp_project_path"
@@ -341,5 +358,6 @@ root_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '3!d')"
   sha256sum -- "$img" > "$sha"
 
   # -1 is much faster with small ratio loss; keep -X to strip extra attrs
-  zip -X -1 "$zipfile" "$img" "$manifest" "$sha"
+  zip -X -1 "$package_dir/$zipfile" "$img" "$manifest" "$sha"
+  mv -f -- "$package_dir/$zipfile" "$zipfile"
 )
