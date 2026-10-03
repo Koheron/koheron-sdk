@@ -83,6 +83,17 @@ cell koheron:user:latched_mux:1.0 phase_mux {
     sel [get_slice_pin [ctl_pin cordic] 4 4]
 }
 
+cell koheron:user:latched_mux:1.0 phase_overflow_mux {
+    WIDTH 1
+    N_INPUTS 2
+    SEL_WIDTH 1
+} {
+    clk adc_dac/adc_clk
+    clken [get_constant_pin 1 1]
+    din [get_concat_pin [list cordic0/overflow cordic1/overflow]]
+    sel [get_slice_pin [ctl_pin cordic] 4 4]
+}
+
 # Define CIC parameters
 
 set diff_delay [get_parameter cic_differential_delay]
@@ -164,6 +175,7 @@ cell koheron:user:phase_quantizer:1.0 phase_quantizer {
   aclk adc_dac/adc_clk
   aresetn proc_sys_reset_adc_clk/peripheral_aresetn
   requested_bits [get_slice_pin [ctl_pin phase_precision] 3 0]
+  upstream_overflow phase_overflow_mux/dout
   s_axis_tdata [get_slice_pin fir/m_axis_data_tdata 39 0]
   s_axis_tvalid fir/m_axis_data_tvalid
   s_axis_tready fir/m_axis_data_tready

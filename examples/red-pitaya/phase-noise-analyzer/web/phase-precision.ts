@@ -52,7 +52,8 @@ class PhasePrecision {
         const resolution = step >= 1e-3 ? `${(step * 1e3).toPrecision(4)} mrad`
                                      : `${(step * 1e6).toPrecision(4)} µrad`;
         const messages = [ 'Settling…', 'Live',
-            'Phase overrange: reduce precision or bring the LO closer to the carrier.',
+            requested > 0 ? 'Phase overrange: reduce precision or bring the LO closer to the carrier.'
+                          : 'Phase overrange: bring the LO closer to the carrier.',
             'Acquisition error; retrying…' ];
         this.status.textContent = `${resolution} / count · ${messages[state] || 'Waiting…'}`;
         this.status.dataset.state = state > 1 ? 'error' : 'live';

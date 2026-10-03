@@ -1,14 +1,16 @@
 `timescale 1 ns / 1 ps
 
-// Forty-bit filter output has eight more fractional bits than the original
-// phase format. Latch precision at packet start, round to even, then saturate
+// BASE_SHIFT accounts for extra CORDIC and filter fractional bits relative to
+// the original phase scale. Latch precision, round to even, then saturate
 // into a signed 32-bit sample. Metadata describes the last completed packet.
 module phase_quantizer #(
-    parameter integer PKT_LENGTH = 262144
+    parameter integer PKT_LENGTH = 262144,
+    parameter integer BASE_SHIFT = 8
 ) (
     input wire aclk,
     input wire aresetn,
     input wire [3:0] requested_bits,
+    input wire upstream_overflow,
     input wire [39:0] s_axis_tdata,
     input wire s_axis_tvalid,
     output wire s_axis_tready,
@@ -23,17 +25,28 @@ module phase_quantizer #(
     reg [3:0] active_bits;
     wire [3:0] new_bits = requested_bits <= 8 ? requested_bits : 4'd0;
     wire [3:0] bits = input_count == 0 ? new_bits : active_bits;
-    wire [3:0] shift = 4'd8 - bits;
-    wire signed [39:0] quotient = $signed(s_axis_tdata) >>> shift;
-    wire [8:0] mask = (9'd1 << shift) - 9'd1;
-    wire [8:0] remainder = {1'b0, s_axis_tdata[7:0]} & mask;
-    wire [8:0] half = (9'd1 << shift) >> 1;
-    wire increment = shift != 0 &&
-        (remainder > half || (remainder == half && quotient[0]));
+    // Register packet selection before the shift/rounding logic. This keeps
+    // the packet counter and live control bus out of the arithmetic path.
+    reg [39:0] input_data;
+    reg [3:0] input_bits;
+    reg input_last, input_valid, input_overflow;
+    wire [$clog2(BASE_SHIFT+1)-1:0] shift = BASE_SHIFT - input_bits;
+    wire signed [39:0] quotient = $signed(input_data) >>> shift;
+    wire [8:0] increments;
+    genvar extra;
+    generate for (extra = 0; extra <= 8; extra = extra + 1) begin : rounding
+        localparam DROP = BASE_SHIFT - extra;
+        if (DROP == 0) assign increments[extra] = 1'b0;
+        else if (DROP == 1)
+            assign increments[extra] = input_data[0] && input_data[1];
+        else
+            assign increments[extra] = input_data[DROP-1] &&
+                ((|input_data[DROP-2:0]) || input_data[DROP]);
+    end endgenerate
 
-    // Two elastic pipeline stages separate variable shifting from rounding.
+    // Three pipeline stages: packet selection, shift/round decision, saturation.
     reg signed [39:0] quotient_reg;
-    reg increment_reg, last_reg, valid_reg;
+    reg increment_reg, last_reg, valid_reg, upstream_overflow_reg;
     reg [3:0] bits_reg, output_bits;
     reg output_overflow, packet_overflow;
     reg [23:0] packet_sequence;
@@ -47,6 +60,7 @@ module phase_quantizer #(
         if (!aresetn) begin
             input_count <= 0;
             active_bits <= 0;
+            input_valid <= 0;
             valid_reg <= 0;
             m_axis_tvalid <= 0;
             m_axis_tdata <= 0;
@@ -70,15 +84,21 @@ module phase_quantizer #(
                 m_axis_tvalid <= valid_reg;
                 m_axis_tlast <= last_reg;
                 output_bits <= bits_reg;
-                output_overflow <= overflow;
+                output_overflow <= overflow | upstream_overflow_reg;
                 m_axis_tdata <= overflow ? (rounded[40] ? 32'h80000000 : 32'h7fffffff)
                                         : rounded[31:0];
-                valid_reg <= s_axis_tvalid;
+                valid_reg <= input_valid;
+                quotient_reg <= quotient;
+                increment_reg <= increments[input_bits];
+                last_reg <= input_last;
+                bits_reg <= input_bits;
+                upstream_overflow_reg <= input_overflow;
+                input_valid <= s_axis_tvalid;
                 if (s_axis_tvalid) begin
-                    quotient_reg <= quotient;
-                    increment_reg <= increment;
-                    last_reg <= input_count == PKT_LENGTH - 1;
-                    bits_reg <= bits;
+                    input_data <= s_axis_tdata;
+                    input_last <= input_count == PKT_LENGTH - 1;
+                    input_bits <= bits;
+                    input_overflow <= upstream_overflow;
                     if (input_count == 0) active_bits <= new_bits;
                     input_count <= input_count == PKT_LENGTH - 1 ? 0 : input_count + 1'b1;
                 end
