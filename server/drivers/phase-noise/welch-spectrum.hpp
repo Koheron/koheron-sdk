@@ -3,6 +3,7 @@
 #include <scicpp/core.hpp>
 #include <scicpp/signal/windows.hpp>
 #include "server/external_libs/pffft/pffft.h"
+#include "phase-processing.hpp"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -39,33 +40,21 @@ class WelchSpectrum {
     std::array<Workspace, 2> workspaces;
     double window_power = 0.0;
 
-  public:
-    WelchSpectrum() {
-        assert(setup);
-        for (const auto value : window)
-            window_power += double(value) * double(value);
-    }
-
-    template<class Array>
-    auto density(const Array& input, scicpp::units::frequency<float> fs) {
-        using Phase = typename Array::value_type;
+    template<typename Phase, typename Prepare>
+    auto density_impl(std::size_t input_size, scicpp::units::frequency<float> fs,
+                      const Prepare& prepare) {
         using Density = scicpp::units::quantity_divide<
             scicpp::units::quantity_multiply<Phase, Phase>,
             scicpp::units::frequency<float>>;
-        assert(input.size() >= FftSize && fs.eval() > 0.0f);
-        const auto segments = 1 + (input.size() - FftSize) / (FftSize / 2);
+        assert(input_size >= FftSize && fs.eval() > 0.0f);
+        const auto segments = 1 + (input_size - FftSize) / (FftSize / 2);
         for (auto& workspace : workspaces)
             std::fill(workspace.power.begin(), workspace.power.end(), 0.0f);
         const auto process = [&](std::size_t worker) {
             auto& workspace = workspaces[worker];
             for (std::size_t segment = worker; segment < segments; segment += 2) {
                 const auto offset = segment * (FftSize / 2);
-                double mean = 0.0;
-                for (std::size_t i = 0; i < FftSize; ++i)
-                    mean += double(input[offset + i].eval());
-                const float center = float(mean / double(FftSize));
-                for (std::size_t i = 0; i < FftSize; ++i)
-                    workspace.weighted.get()[i] = (input[offset + i].eval() - center) * window[i];
+                prepare(offset, workspace.weighted.get());
                 pffft_transform_ordered(setup.get(), workspace.weighted.get(),
                     workspace.transformed.get(), workspace.scratch.get(), PFFFT_FORWARD);
                 const auto* transformed = workspace.transformed.get();
@@ -87,6 +76,46 @@ class WelchSpectrum {
             result[i] = Density{(workspaces[0].power[i] + workspaces[1].power[i]) * scale *
                 (i == 0 || i == bins - 1 ? 1.0f : 2.0f)};
         return result;
+    }
+
+  public:
+    WelchSpectrum() {
+        assert(setup);
+        for (const auto value : window)
+            window_power += double(value) * double(value);
+    }
+
+    template<class Array>
+    auto density(const Array& input, scicpp::units::frequency<float> fs) {
+        using Phase = typename Array::value_type;
+        return density_impl<Phase>(input.size(), fs, [&](std::size_t offset, float* weighted) {
+            double mean = 0.0;
+            for (std::size_t i = 0; i < FftSize; ++i)
+                mean += double(input[offset + i].eval());
+            const float center = float(mean / double(FftSize));
+            for (std::size_t i = 0; i < FftSize; ++i)
+                weighted[i] = (input[offset + i].eval() - center) * window[i];
+        });
+    }
+
+    template<typename Phase, std::size_t N>
+    auto density(const std::array<int32_t, N>& raw, const RawPhaseTrend& trend,
+                 Phase radians_per_count, scicpp::units::frequency<float> fs) {
+        static_assert(N >= FftSize && FftSize <= 65536);
+        const double center = double(FftSize - 1) / 2.0;
+        const double scale = double(radians_per_count.eval());
+        return density_impl<Phase>(N, fs, [&](std::size_t offset, float* weighted) {
+            // Welch removes each segment's mean. Accumulate that mean exactly
+            // in raw counts; the global fit's constant cancels. Preparing
+            // segments here overlaps detrending with the other FFT worker.
+            int64_t sum = 0;
+            for (std::size_t i = 0; i < FftSize; ++i)
+                sum += int64_t(raw[offset + i]);
+            const double mean = double(sum) / double(FftSize);
+            for (std::size_t i = 0; i < FftSize; ++i)
+                weighted[i] = float((double(raw[offset + i]) - mean -
+                    trend.slope * (double(i) - center)) * scale) * window[i];
+        });
     }
 };
 

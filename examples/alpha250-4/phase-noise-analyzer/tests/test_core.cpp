@@ -109,6 +109,14 @@ void test_phase_conversion_and_slope() {
     raw.back() = INT32_MAX;
     convert_relative_phase(raw, ramp, Phase{1.0f});
     assert(ramp.back().eval() > 4e9f); // subtraction must not overflow int32_t
+    // The unsigned-magnitude path retains the original signed-difference result.
+    for (auto& value : raw) value = int32_t(random());
+    for (const int32_t origin : {INT32_MIN, 0, INT32_MAX}) {
+        raw.front() = origin;
+        convert_relative_phase(raw, ramp, Phase{1.0f});
+        for (std::size_t i = 0; i < raw.size(); ++i)
+            assert(ramp[i].eval() == float(int64_t(raw[i]) - int64_t(origin)));
+    }
 }
 
 template<class Tuple>
