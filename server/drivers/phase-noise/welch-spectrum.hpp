@@ -112,6 +112,9 @@ class WelchSpectrum {
             for (std::size_t i = 0; i < FftSize; ++i)
                 sum += int64_t(raw[offset + i]);
             const double mean = double(sum) / double(FftSize);
+            // Pipeline independent VFP operations on Cortex-A9 while keeping
+            // each sample's double-precision subtraction and rounding order.
+#pragma GCC unroll 4
             for (std::size_t i = 0; i < FftSize; ++i)
                 weighted[i] = float((double(raw[offset + i]) - mean -
                     trend.slope * (double(i) - center)) * scale) * window[i];

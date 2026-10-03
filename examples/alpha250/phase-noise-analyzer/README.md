@@ -132,6 +132,8 @@ modifying the phase snapshot. Detrending changes the response at the lowest
 offsets; the plot continues to start at FFT bin 2. It does not correct the
 FPGA filter's passband response.
 
+The sample loop is unrolled fourfold to pipeline independent Cortex-A9 VFP
+operations while preserving each sample's arithmetic and rounding order.
 The Welch estimator uses a cached PFFFT plan and aligned buffers with ARM NEON
 on the Cortex-A9. Two workers process alternate 50%-overlapped segments. The
 Hann window and one-sided density normalization, including DC and Nyquist,
