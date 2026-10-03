@@ -54,13 +54,21 @@ Higher precision reduces the available output range by the same factor. The
 unwrapper resets between acquisitions, so a large LO-to-carrier offset can
 overflow at high precision. A packet overflow invalidates its phase, spectrum
 and jitter rather than publishing wrapped values. Reduce precision or bring the
-LO closer to the carrier to recover. Other CIC rates have different filter gains.
+LO closer to the carrier to recover. The upstream 32-bit phase accumulator has
+a separate limit of approximately ±823550 rad (131072 turns) between resets,
+at every output precision. Its overflow also invalidates the entire packet;
+bring the LO closer to the carrier in that case. Other CIC rates have different
+filter gains.
 
 `get_precision_status()` returns requested/captured extra bits, radians/count,
 state (0 settling, 1 valid, 2 overrange, 3 DMA error), valid/overflow/error counts,
 processing time and capture period in milliseconds. `get_phase_snapshot()`
 returns one coherent capture count, scale and validity flag alongside the phase
 array in radians. Existing phase and spectrum commands keep their formats.
+Spectra remove drift in double precision directly from the integer samples
+before converting to float radians. This retains fine phase increments even
+with a large carrier offset, and reuses the same fit for tracking. Phase snapshots
+retain the original float-radian representation of the relative phase ramp.
 
 ## DMA memory
 
@@ -100,40 +108,46 @@ an external carrier is needed to characterize independent source phase noise.
 
 Validated on a Red Pitaya with DAC0 connected to ADC0 (LV): all nine precision
 settings measured the 0.1 rad PM tone at 6103.515625 Hz within 0.16% of the
-expected 0.005 rad². At CIC 67 and maximum precision, the error was +0.17%.
+expected 0.005 rad². At CIC 67 and maximum precision, the error was +0.16%.
 Both signs of a 100 kHz LO offset caused reported overrange at +8 bits; reducing
 precision recovered acquisition without a DMA error. Rapid precision changes
-kept snapshot validity and scale consistent.
+kept snapshot validity and scale consistent. Both signs of a 4 MHz LO offset
+also triggered the upstream accumulator guard at the default precision and
+recovered without a DMA error. With maximum precision, a 10 mrad PM tone
+measured within 0.8% of expected power at LO offsets of 0 and ±40 kHz.
 Slow tracking reduced initial LO offsets of +0.25 Hz and −0.25 Hz to below
 0.025 Hz in about five seconds, and disabling tracking restored the nominal LO.
 
 The selectable output step does not establish a calibrated noise floor or
-small-signal accuracy. A 1 mrad PM tone at maximum precision measured 7–15% below
-its expected power, depending on carrier phase; a 10 mrad tone was within 1.3%.
-This is consistent with quantization earlier in the signal path, including the
-383.5 µrad CORDIC step, but the responsible stage has not been isolated.
+small-signal accuracy. The final image’s carrier-phase sweep measured a 1 mrad
+PM tone with power errors of −29% to +22%; other alignments in earlier sweeps
+produced still larger errors. A 10 mrad tone was much more accurate. The
+responsible stage has not been isolated; increasing the CORDIC width alone
+did not remove the weak-tone bias.
 
-Cached FFT plans and buffers, overlapped tracking and DMA, and shorter capture
-packets improve acquisition throughput without changing the Welch window,
-overlap, bin spacing or phase-noise density normalization. With tracking off
+Cached FFT plans and buffers, overlapped tracking and DMA, shorter capture
+packets and reuse of the drift fit improve acquisition throughput without
+changing the Welch window, overlap, bin spacing or phase-noise density
+normalization. With tracking off
 and one spectrum per average, measured rates were:
 
 | CIC rate | Before optimization | After optimization |
 | --- | --- | --- |
-| 4 | 16.7 spectra/s | 25.4 spectra/s |
-| 20 | 9.48 spectra/s | 23.1 spectra/s |
+| 4 | 16.7 spectra/s | 28.4 spectra/s |
+| 20 | 9.48 spectra/s | 23.2 spectra/s |
 | 100 | 1.90 spectra/s | 4.70 spectra/s |
 
 These are ten-second measurements on the loopback board with the web page
-closed. CPU load at CIC 20 was about 111% across the two CPU cores; the fastest
+closed. CPU load at CIC 20 was about 106% across the two CPU cores; the fastest
 rate is limited by phase and FFT processing. Snapshot RPCs can still wait for
 that processing (about 35 ms at CIC 20). No DMA errors or overrange packets were
 observed during these benchmarks.
-With slow tracking enabled at CIC 20, the analyzer delivered 20.3 spectra/s
-with a 0.0024 Hz residual LO error. Precision requests during a CIC 400 capture
+With slow tracking enabled at CIC 20, the analyzer delivered 20.4 spectra/s
+with a 0.00075 Hz residual LO error. Precision requests during a CIC 400 capture
 returned in less than 1 ms; changing CIC 400 to 4 caused no DMA error.
 
 Vivado 2025.1 implementation passed the configured setup/hold/pulse-width and
-bus-skew checks (WNS 0.550 ns, WHS 0.024 ns), with no unconstrained internal
+bus-skew checks (WNS 0.175 ns, WHS 0.012 ns), with no unconstrained internal
 endpoints. The inherited board constraints still omit some external I/O delays.
-At placement the design uses 13131 LUTs, 26 block RAMs and 53 DSP slices.
+At placement the design uses 13122 LUTs, 18734 registers, 26 block RAMs and
+53 DSP slices.
