@@ -120,10 +120,19 @@ loss of small increments when the unwrap accumulator has a large offset.
 
 Before the existing 32768-point Hann Welch calculation, the server removes a
 least-squares constant and linear trend from the 65536-sample phase block.
-This suppresses leakage from carrier/reference frequency mismatch without
+The fit accumulates exact 64-bit integer sums from the raw DMA counts, then
+removes the trend in double precision before converting to float radians.
+This preserves small phase increments on a large carrier-frequency ramp
+and suppresses leakage from carrier/reference frequency mismatch without
 modifying the phase snapshot. Detrending changes the response at the lowest
 offsets; the plot continues to start at FFT bin 2. It does not correct the
 FPGA filter's passband response.
+
+The Welch estimator uses a cached PFFFT plan and aligned buffers with ARM NEON
+on the Cortex-A9. Two workers process alternate 50%-overlapped segments. The
+Hann window and one-sided density normalization, including DC and Nyquist,
+are unchanged. PFFFT is vendored with its license in the instrument archive;
+no FFT runtime package is required on the board.
 
 Settings, spectral processing and publication share a lock. DMA waits use a
 separate lock so snapshot getters remain available during acquisition. Rate
@@ -191,11 +200,11 @@ limit, with a doubled exit threshold; correction saturation clears lock.
 The reported effective bandwidth is a configured ceiling. Capture cadence
 and correction limits also determine actual convergence.
 
-Automatic LO updates happen after a complete spectrum is computed and before
-the next DMA starts. The existing startup prefix is skipped to allow the
-pipeline to settle. Tracking serializes acquisition and spectral processing,
-which can lower capture throughput. Queued DMA setting changes receive the
-next lock handoff; toggling tracking or changing the total bound can still
+Automatic LO updates use the raw-count drift fit, before the next DMA starts.
+The next capture overlaps the current spectrum calculation. The existing
+startup prefix is skipped to allow the pipeline to settle. Queued DMA
+setting changes receive the next lock handoff; toggling tracking or changing
+the total bound can still
 wait for the current transfer. Phase-noise averaging continues through small
 automatic corrections; manual retunes, failures and acquisition changes clear
 results and lock history. Jitter uses the LO that acquired the spectrum.

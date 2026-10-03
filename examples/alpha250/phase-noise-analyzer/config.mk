@@ -27,6 +27,7 @@ DRIVERS += $(PROJECT_PATH)/dds.hpp
 DRIVERS += $(PROJECT_PATH)/dds.cpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.hpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.cpp
+include $(SDK_PATH)/server/drivers/phase-noise/fft.mk
 
 # Web assets
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.ts

@@ -162,6 +162,7 @@ SERVER_CCXXFLAGS += $(SERVER_INCLUDE_DIRS)
 SERVER_CCXXFLAGS += -DKOHERON_VERSION=\"$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)\" -DINSTRUMENT_NAME=\"$(NAME)\" -DKOHERON_SERVER_BUILD
 SERVER_CCXXFLAGS += -O3 -fno-math-errno -fno-exceptions
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
+SERVER_CCXXFLAGS += $(SERVER_EXTRA_CCXXFLAGS)
 SERVER_CCXXFLAGS += -std=c++20 -pthread -fdiagnostics-color=always
 
 .PHONY: gcc_flags
