@@ -66,11 +66,11 @@ an external carrier is needed to characterize independent source phase noise.
 ## Hardware results
 
 Validated on a Red Pitaya with DAC0 connected to ADC0 (LV): the 0.1 rad PM
-tone at 6103.515625 Hz integrated to 0.00506183 rad², a +1.24% error.
+tone at 6103.515625 Hz integrated to 0.00500586 rad², a +0.12% error.
 Slow tracking reduced initial LO offsets of +0.25 Hz and −0.25 Hz to below
-0.02 Hz in about five seconds, and disabling tracking restored the nominal LO.
+0.025 Hz in about five seconds, and disabling tracking restored the nominal LO.
 
 Vivado 2025.1 implementation passed the configured setup/hold/pulse-width and
-bus-skew checks (WNS 0.149 ns, WHS 0.013 ns), with no unconstrained internal
+bus-skew checks (WNS 0.319 ns, WHS 0.013 ns), with no unconstrained internal
 endpoints. The inherited board constraints still omit some external I/O delays.
-The design uses 14697 LUTs, 26 block RAMs and 53 DSP slices.
+At placement the design uses 12533 LUTs, 26 block RAMs and 53 DSP slices.

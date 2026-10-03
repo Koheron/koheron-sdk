@@ -40,7 +40,7 @@ set outputs [dds_pm::add awg awg adc_dac/adc_clk [get_parameter adc_clk] \
     [dict create CHANNELS 2]]
 # Scale the 16-bit DAC stimulus to signed 14-bit at half amplitude (analog voltage depends on the load).
 for {set channel 0} {$channel < [llength $outputs]} {incr channel} {
-    connect_pins adc_dac/dac[expr {$channel+1}] [get_concat_pin [list [get_slice_pin [lindex $outputs $channel] 15 3] [get_slice_pin [lindex $outputs $channel] 15 15]]]
+    connect_pins adc_dac/dac[expr {$channel+1}] [get_concat_pin [list [get_slice_pin [lindex $outputs $channel] 15 3] [get_slice_pin [lindex $outputs $channel] 15 15]] dac_scale$channel]
 }
 
 ####################################
