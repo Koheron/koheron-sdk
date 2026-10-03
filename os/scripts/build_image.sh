@@ -45,6 +45,24 @@ boot_part_end_mib=$((boot_part_start_mib + boot_part_required_mib))
 # Build it with build_base_rootfs_tar.sh first, then pass via env from Make:
 #   env BASE_ROOTFS_TAR=".../.cache/base-rootfs-<mode>.tgz"
 BASE_ROOTFS_TAR="${BASE_ROOTFS_TAR:?BASE_ROOTFS_TAR must be set (run: make base-rootfs)}"
+EXTLINUX_CONF="${EXTLINUX_CONF:?EXTLINUX_CONF must be set}"
+
+# Check inputs before overwriting the loose image or attaching a loop device.
+for input in "$BASE_ROOTFS_TAR" "$overlay_tar" "$qemu_path" \
+  "$tmp_os_path/$boot_bin" "$tmp_os_path/kernel.itb" "$EXTLINUX_CONF" \
+  "$tmp_project_path/manifest-${release_name}.txt" \
+  "$os_path/config/nginx.conf" "$os_path/config/nginx-server.conf" \
+  "$os_path/systemd/nginx.service" "$os_path/scripts/finalize_rootfs.sh"; do
+  if [ ! -f "$input" ] || [ ! -r "$input" ] || [ ! -s "$input" ]; then
+    echo "Missing, unreadable or empty required input: $input" >&2
+    exit 1
+  fi
+done
+case "$(basename "$qemu_path")" in
+  qemu-arm-static|qemu-aarch64-static) ;;
+  *) echo "Unexpected QEMU helper: $qemu_path" >&2; exit 1 ;;
+esac
+
 passwd=changeme
 timezone=Europe/Paris
 
