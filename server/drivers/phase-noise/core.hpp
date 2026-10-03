@@ -618,8 +618,7 @@ void Core<Board>::set_power_conversion_factor() {
 
 template<class Board>
 auto Core<Board>::compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend) {
-    auto detrended = detrended_raw_phase_prefix<data_size>(raw, trend, phase_conversion_factor);
-    auto phase_psd = spectrum.density(detrended, fs);
+    auto phase_psd = spectrum.density(raw, trend, phase_conversion_factor, fs);
 
     if (analyzer_mode == AnalyzerMode::LASER) {
         using namespace sci::operators;
@@ -743,7 +742,7 @@ void Core<Board>::update_tracking(double slope_radians_per_sample) {
     const double requested = std::clamp(base_dds_freq[channel] + correction,
         0.0, static_cast<double>(fs_adc.eval()) / 2.0);
     // The mixer uses cos(LO) + j*sin(LO): measured slope is LO minus input.
-    // Change the selected LO after phase conversion and before the next packet.
+    // Change the selected LO after the drift fit and before the next packet.
     if (std::abs(requested - dds.get_dds_freq(channel)) >=
         board.sampling_frequency() / std::pow(2.0, 49)) {
         dds.set_dds_freq(channel, requested);
@@ -808,14 +807,14 @@ void Core<Board>::acquisition_thread() {
         } else {
             const auto process_start = std::chrono::steady_clock::now();
             const auto acquired_lo = Frequency(dds.get_dds_freq(channel));
-            PhaseDataArray new_phase{};
-            convert_relative_phase(*samples, new_phase, phase_conversion_factor);
             const auto trend = fit_raw_phase_prefix<data_size>(*samples);
             update_tracking(trend.slope * double(phase_conversion_factor.eval()));
             if (tracking_capture) {
                 kick_dma();
                 dma_lk.unlock();
             }
+            PhaseDataArray new_phase{};
+            convert_relative_phase(*samples, new_phase, phase_conversion_factor);
             auto new_pn = compute_phase_noise(*samples, trend);
             compute_jitter(new_pn, acquired_lo);
             phase = std::move(new_phase);

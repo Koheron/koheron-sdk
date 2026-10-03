@@ -113,15 +113,19 @@ and [PG149](https://docs.amd.com/r/en-US/pg149-fir-compiler/Output-Width-and-Bit
 At rate 20, the correction is 4.194304, replacing the former fixed 4.196 value
 (about -0.0404% in phase amplitude and -0.00351 dB in phase PSD). At power-of-two
 rates the correction is 4. Phase PSD scales with the square of this correction;
-phase and time jitter scale linearly. The first DMA count is subtracted in
-64-bit integer arithmetic before conversion to float. `get_phase()` therefore
-starts at zero and retains the phase drift and modulation, while avoiding
+phase and time jitter scale linearly. The difference from the first DMA count
+uses an unsigned integer magnitude before conversion to float, preserving the
+full signed-input range without overflow. `get_phase()` therefore starts at
+zero and retains the phase drift and modulation, while avoiding
 loss of small increments when the unwrap accumulator has a large offset.
 
 Before the existing 32768-point Hann Welch calculation, the server removes a
 least-squares constant and linear trend from the 65536-sample phase block.
-The fit accumulates exact 64-bit integer sums from the raw DMA counts, then
-removes the trend in double precision before converting to float radians.
+The fit accumulates exact 64-bit integer sums from the raw DMA counts. Each
+FFT worker removes the fitted slope and its segment's mean in double precision
+while preparing the Hann-windowed float-radian samples. Segment means are
+also accumulated exactly in integer counts. This avoids a separate detrended
+array and overlaps sample preparation with the other worker's FFT.
 This preserves small phase increments on a large carrier-frequency ramp
 and suppresses leakage from carrier/reference frequency mismatch without
 modifying the phase snapshot. Detrending changes the response at the lowest
@@ -201,9 +205,9 @@ The reported effective bandwidth is a configured ceiling. Capture cadence
 and correction limits also determine actual convergence.
 
 Automatic LO updates use the raw-count drift fit, before the next DMA starts.
-The next capture overlaps the current spectrum calculation. The existing
-startup prefix is skipped to allow the pipeline to settle. Queued DMA
-setting changes receive the next lock handoff; toggling tracking or changing
+The next capture overlaps phase snapshot conversion and spectrum calculation.
+The existing startup prefix is skipped to allow the pipeline to settle. Queued
+DMA setting changes receive the next lock handoff; toggling tracking or changing
 the total bound can still
 wait for the current transfer. Phase-noise averaging continues through small
 automatic corrections; manual retunes, failures and acquisition changes clear

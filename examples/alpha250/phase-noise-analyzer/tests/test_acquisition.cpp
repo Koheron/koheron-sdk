@@ -55,6 +55,11 @@ int main() {
     phase_noise::WelchSpectrum<32768> cached;
     scicpp::signal::Spectrum<float> reference;
     reference.window(scicpp::signal::windows::hann<float>(32768));
+    for (std::size_t i = 0; i < raw.size(); ++i)
+        raw[i] = int32_t(int64_t(i) * 16000 - 524288000 +
+                         int32_t(std::lrint(signal[i].eval() / fine_step.eval())));
+    const auto raw_trend = phase_noise::fit_raw_phase_prefix<65536>(raw);
+    const auto raw_residual = phase_noise::detrended_raw_phase_prefix<65536>(raw, raw_trend, fine_step);
     for (float frequency : {3125000.f, 6250000.f, 3125000.f}) {
         reference.fs(frequency);
         const auto expected = reference.welch<scicpp::signal::SpectrumScaling::DENSITY, false>(signal);
@@ -63,6 +68,13 @@ int main() {
         assert(actual.size() == expected.size());
         for (std::size_t i = 0; i < actual.size(); ++i)
             assert(std::abs(actual[i].eval() - expected[i].eval()) < 2e-5f * peak);
+        const auto raw_expected =
+            reference.welch<scicpp::signal::SpectrumScaling::DENSITY, false>(raw_residual);
+        const auto raw_actual = cached.density(raw, raw_trend, fine_step,
+                                              scicpp::units::frequency<float>{frequency});
+        const auto raw_peak = std::max_element(raw_expected.begin(), raw_expected.end())->eval();
+        for (std::size_t i = 0; i < raw_actual.size(); ++i)
+            assert(std::abs(raw_actual[i].eval() - raw_expected[i].eval()) < 2e-5f * raw_peak);
     }
 
     auto& cfg = services::require<rt::ConfigManager>();
