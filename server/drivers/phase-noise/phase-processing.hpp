@@ -9,9 +9,16 @@ template<typename Phase, std::size_t N>
 void convert_relative_phase(const std::array<int32_t, N>& raw,
                             std::array<Phase, N>& phase, Phase radians_per_count) {
     static_assert(N > 0);
-    const int64_t origin = raw.front();
-    for (std::size_t i = 0; i < N; ++i)
-        phase[i] = radians_per_count * float(int64_t(raw[i]) - origin);
+    const int32_t origin = raw.front();
+    for (std::size_t i = 0; i < N; ++i) {
+        // The full difference fits an unsigned 32-bit magnitude. Unsigned
+        // subtraction is defined across the signed endpoints and avoids
+        // the ARM software helper for int64_t-to-float conversion.
+        const float difference = raw[i] >= origin ?
+            float(uint32_t(raw[i]) - uint32_t(origin)) :
+            -float(uint32_t(origin) - uint32_t(raw[i]));
+        phase[i] = radians_per_count * difference;
+    }
 }
 
 namespace phase_noise {
