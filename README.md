@@ -113,7 +113,7 @@ Generated SD card images boot **Ubuntu 24.04.5** with the **`xilinx-linux-v2025.
 - **nginx** serving static files and proxying **WebSocket** traffic.
 - An HTTP API (powered by **uWSGI**) for uploads and instrument management.
 
-See [OS image build notes](./os/README.md) for image settings, cache behavior, build failures and regression commands.
+See [OS image build notes](./os/README.md) for settings and tests.
 
 ## Staying on 0.x
 

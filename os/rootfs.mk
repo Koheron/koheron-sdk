@@ -207,9 +207,11 @@ $(ROOT_TAR_PATH): $(SHA256SUMS_PATH) $(OS_PATH)/scripts/download_verified.sh FOR
 
 $(BASE_ROOTFS_SETTINGS): FORCE
 	@mkdir -p $(@D)
-	@umask 077; printf '%s\0%s' "$$PASSWORD" "$${TIMEZONE:-Europe/Paris}" | sha256sum > $@.tmp
-	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
-	@rm -f $@.tmp
+	@umask 077; fingerprint=$$(mktemp "$@.tmp.XXXXXXXX"); \
+	  trap 'rm -f -- "$$fingerprint"' EXIT; \
+	  trap 'exit 130' INT; trap 'exit 143' TERM; \
+	  printf '%s\0%s' "$$PASSWORD" "$${TIMEZONE:-Europe/Paris}" | sha256sum > "$$fingerprint"; \
+	  cmp -s "$$fingerprint" "$@" || mv -f -- "$$fingerprint" "$@"
 
 $(BASE_ROOTFS_TAR): DOCKER_ROOT_EXTRA_ENV += -e PASSWORD -e TIMEZONE
 $(BASE_ROOTFS_TAR): \
