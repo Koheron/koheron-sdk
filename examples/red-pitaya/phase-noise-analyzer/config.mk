@@ -28,6 +28,7 @@ DRIVERS += $(PROJECT_PATH)/dds.hpp
 DRIVERS += $(PROJECT_PATH)/dds.cpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.hpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.cpp
+include $(SDK_PATH)/server/drivers/phase-noise/fft.mk
 
 # Share the ALPHA250 analyzer workspace, with board-specific entry points.
 PNA_WEB_REFERENCE := $(SDK_PATH)/examples/alpha250/phase-noise-analyzer/web

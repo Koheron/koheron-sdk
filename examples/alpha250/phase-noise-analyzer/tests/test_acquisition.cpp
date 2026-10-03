@@ -36,6 +36,15 @@ int main() {
         old_error += std::pow(double(float_first[i].eval() - expected_residual[i].eval()), 2);
     }
     assert(std::sqrt(old_error / double(raw.size())) > 1e-4);
+    // Extreme half-block steps exercise the integer fit's accumulation bound.
+    std::fill(raw.begin(), raw.begin() + 32768, std::numeric_limits<int32_t>::min());
+    std::fill(raw.begin() + 32768, raw.end(), std::numeric_limits<int32_t>::max());
+    for (const double slope : {98304.0, -98304.0}) {
+        const auto extreme = phase_noise::fit_raw_phase_prefix<65536>(raw);
+        assert(extreme.anchor + extreme.mean == -0.5);
+        assert(std::abs(extreme.slope - slope) < 1e-9);
+        for (auto& value : raw) value = int32_t(-int64_t(value) - 1);
+    }
     std::array<Phase, 65536> signal{};
     uint32_t random = 1;
     for (std::size_t i = 0; i < signal.size(); ++i) {

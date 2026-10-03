@@ -16,11 +16,13 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     flags=(-std=c++20 -g -Wall -Wextra -Werror -pthread -fsanitize=address,undefined -I. -Iserver/external_libs)
     g++-13 -I"$tests/stubs" "${flags[@]}" "$tests/test_acquisition.cpp" \
         examples/alpha250/phase-noise-analyzer/phase-noise-analyzer.cpp \
-        examples/alpha250/phase-noise-analyzer/dds.cpp -o "$output/acquisition"
+        examples/alpha250/phase-noise-analyzer/dds.cpp \
+        server/external_libs/pffft/pffft.cpp -o "$output/acquisition"
     "$output/acquisition"
     g++-13 -I"$tests/stubs" "${flags[@]}" "$tests/test_tracking.cpp" \
         examples/alpha250/phase-noise-analyzer/phase-noise-analyzer.cpp \
-        examples/alpha250/phase-noise-analyzer/dds.cpp -o "$output/tracking"
+        examples/alpha250/phase-noise-analyzer/dds.cpp \
+        server/external_libs/pffft/pffft.cpp -o "$output/tracking"
     "$output/tracking"
     g++-13 -I"$tests/stubs" "${flags[@]}" "$tests/test_dds.cpp" \
         examples/alpha250/phase-noise-analyzer/dds.cpp -o "$output/dds"

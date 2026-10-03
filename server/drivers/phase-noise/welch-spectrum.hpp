@@ -2,35 +2,46 @@
 
 #include <scicpp/core.hpp>
 #include <scicpp/signal/windows.hpp>
-#include <unsupported/Eigen/FFT>
+#include "server/external_libs/pffft/pffft.h"
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <complex>
 #include <future>
+#include <memory>
 #include <vector>
 
 namespace phase_noise {
 
-// Acquisition owns this estimator. Two independent plans/buffer sets survive
+// Acquisition owns this estimator. A read-only plan and two buffer sets survive
 // across captures; one background task processes alternate Welch segments.
 template<std::size_t FftSize>
 class WelchSpectrum {
-    static_assert(FftSize > 1 && FftSize % 2 == 0);
+    static_assert(FftSize >= 32 && (FftSize & (FftSize - 1)) == 0);
     static constexpr std::size_t bins = FftSize / 2 + 1;
     std::vector<float> window = scicpp::signal::windows::hann<float>(FftSize);
+    struct AlignedFree {
+        void operator()(float* pointer) const { pffft_aligned_free(pointer); }
+    };
+    using Buffer = std::unique_ptr<float, AlignedFree>;
+    static Buffer make_buffer() {
+        Buffer result{static_cast<float*>(pffft_aligned_malloc(FftSize * sizeof(float)))};
+        assert(result);
+        return result;
+    }
+    std::unique_ptr<PFFFT_Setup, decltype(&pffft_destroy_setup)> setup{
+        pffft_new_setup(int(FftSize), PFFFT_REAL), pffft_destroy_setup};
     struct Workspace {
-        std::vector<float> weighted = std::vector<float>(FftSize);
-        std::vector<std::complex<float>> transformed = std::vector<std::complex<float>>(bins);
+        Buffer weighted = make_buffer();
+        Buffer transformed = make_buffer();
+        Buffer scratch = make_buffer();
         std::vector<float> power = std::vector<float>(bins);
-        Eigen::FFT<float> fft;
-        Workspace() { fft.SetFlag(Eigen::FFT<float>::HalfSpectrum); }
     };
     std::array<Workspace, 2> workspaces;
     double window_power = 0.0;
 
   public:
     WelchSpectrum() {
+        assert(setup);
         for (const auto value : window)
             window_power += double(value) * double(value);
     }
@@ -54,10 +65,16 @@ class WelchSpectrum {
                     mean += double(input[offset + i].eval());
                 const float center = float(mean / double(FftSize));
                 for (std::size_t i = 0; i < FftSize; ++i)
-                    workspace.weighted[i] = (input[offset + i].eval() - center) * window[i];
-                workspace.fft.fwd(workspace.transformed.data(), workspace.weighted.data(), FftSize);
-                for (std::size_t i = 0; i < bins; ++i)
-                    workspace.power[i] += std::norm(workspace.transformed[i]);
+                    workspace.weighted.get()[i] = (input[offset + i].eval() - center) * window[i];
+                pffft_transform_ordered(setup.get(), workspace.weighted.get(),
+                    workspace.transformed.get(), workspace.scratch.get(), PFFFT_FORWARD);
+                const auto* transformed = workspace.transformed.get();
+                // Real transforms pack DC and Nyquist into the first pair.
+                workspace.power[0] += transformed[0] * transformed[0];
+                workspace.power[bins - 1] += transformed[1] * transformed[1];
+                for (std::size_t i = 1; i < bins - 1; ++i)
+                    workspace.power[i] += transformed[2 * i] * transformed[2 * i] +
+                                          transformed[2 * i + 1] * transformed[2 * i + 1];
             }
         };
         std::future<void> background;

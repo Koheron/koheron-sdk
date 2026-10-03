@@ -26,17 +26,19 @@ struct RawPhaseTrend {
 
 template<std::size_t Samples, std::size_t N>
 RawPhaseTrend fit_raw_phase_prefix(const std::array<int32_t, N>& raw) {
-    static_assert(Samples > 1 && Samples <= N);
-    const double center = double(Samples - 1) / 2.0;
+    // Centered weights sum to zero. At up to 65536 samples, both exact
+    // integer sums fit int64_t even for the full signed 32-bit input range.
+    static_assert(Samples > 1 && Samples <= N && Samples <= 65536);
     const double anchor = double(raw[Samples / 2]);
-    double sum = 0.0, covariance = 0.0;
+    int64_t sum = 0, twice_covariance = 0;
     for (std::size_t i = 0; i < Samples; ++i) {
-        const double value = double(raw[i]) - anchor;
-        sum += value;
-        covariance += (double(i) - center) * value;
+        const auto weight = int32_t(2 * i) - int32_t(Samples - 1);
+        sum += int64_t(raw[i]);
+        twice_covariance += int64_t(weight) * int64_t(raw[i]);
     }
     const double n = double(Samples);
-    return {anchor, sum / n, covariance / (n * (n * n - 1.0) / 12.0)};
+    return {anchor, double(sum) / n - anchor,
+            double(twice_covariance) / (n * (n * n - 1.0) / 6.0)};
 }
 
 template<std::size_t Samples, typename Phase, std::size_t N>
