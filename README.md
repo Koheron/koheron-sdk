@@ -11,40 +11,18 @@ Build high-performance instruments for Xilinx Zynq-based boards with a Make-base
 
 ## Table of contents
 
-1. [Develop with a coding agent](#develop-with-a-coding-agent)
-2. [Features](#features)
-3. [Requirements](#requirements)
-4. [Quick start](#quick-start)
-5. [Configuration model](#configuration-model)
-6. [Development workflow](#development-workflow)
-7. [Creating a new instrument](#creating-a-new-instrument)
-8. [Repository layout](#repository-layout)
-9. [Instrument packaging](#instrument-packaging)
-10. [Image contents](#image-contents)
-11. [Staying on 0.x](#staying-on-0x)
-12. [Further resources](#further-resources)
-13. [Acknowledgments](#acknowledgments)
-
----
-
-## Develop with a coding agent
-
-Give your agent access to this checkout and ask it to read [AGENTS.md](./AGENTS.md). Describe the board, the instrument behavior you want, the existing project to extend and how to check the result. Include the board address and OS version when the task includes deployment.
-
-For example, to start a separate ALPHA250 instrument from FFT:
-
-```text
-Read AGENTS.md. Create examples/alpha250/my-fft from the ALPHA250 FFT example.
-Use NAME=my-fft and VERSION=0.1.0, and keep the reference FFT example intact.
-Keep the FFT behavior for this first step and add a Python check that queries
-the FFT size and reads a PSD using the generated command API.
-Validate the configuration, build the instrument archive and check routed timing.
-Report the archive path, checks passed and anything not yet verified on a board.
-```
-
-For a deployment task, add the intended board IP and whether it already runs V1. An existing V1 image usually lets the agent build and upload just the instrument archive. A board still running the supplied V0 image needs initial V1 OS setup.
-
-For your own instrument, replace the FFT goal with the required inputs, processing, outputs, client controls and a measurable acceptance check. The README and example projects provide the build and API references.
+1. [Features](#features)
+2. [Requirements](#requirements)
+3. [Quick start](#quick-start)
+4. [Configuration model](#configuration-model)
+5. [Development workflow](#development-workflow)
+6. [Creating a new instrument](#creating-a-new-instrument)
+7. [Repository layout](#repository-layout)
+8. [Instrument packaging](#instrument-packaging)
+9. [Image contents](#image-contents)
+10. [Staying on 0.x](#staying-on-0x)
+11. [Further resources](#further-resources)
+12. [Acknowledgments](#acknowledgments)
 
 ---
 
@@ -75,8 +53,6 @@ Additional board-specific dependencies (Vivado board files, licenses, etc.) shou
 
 ## Quick start
 
-For agent-assisted work, start with the [agent brief](#develop-with-a-coding-agent). The commands in this section are also a reference for the agent's build and deployment workflow.
-
 ```bash
 git clone -b V1 https://github.com/Koheron/koheron-sdk.git
 cd koheron-sdk
@@ -102,7 +78,7 @@ make -j CFG=examples/alpha250/fft/config.mk HOST=192.168.1.100 run
 
 Replace `CFG` with the path to another `config.mk` to target a different instrument or board.
 
-`make run` streams logs after starting the instrument. Press `Ctrl+C` to stop following the logs; the instrument keeps running on the board. Agents can use the Python upload/run API for a deployment command that finishes.
+`make run` streams logs after starting the instrument. Press `Ctrl+C` to stop following the logs; the instrument keeps running on the board. The Python upload/run API can deploy without following the log stream.
 
 ---
 
@@ -232,6 +208,7 @@ Follow the [V0 documentation](https://www.koheron.com/software-development-kit/d
 
 ## Further resources
 
+- [AGENTS.md](./AGENTS.md) — short SDK hints for coding agents.
 - [MIGRATING.md](./MIGRATING.md) — guidance for upgrading existing instruments to V1.
 - [boards/](./boards) — board definitions and bootloader settings.
 - [examples/](./examples) — complete reference designs you can adapt for your projects.
