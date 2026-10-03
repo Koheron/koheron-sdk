@@ -195,6 +195,8 @@ Make verifies the Ubuntu source tarball against the release checksums before reu
 
 Set `PASSWORD` in the environment before `make image` to customize the image's root password; `PASSWD` is accepted as a legacy alias. Changes to `PASSWORD` or `TIMEZONE` rebuild the cached base rootfs. The default password is `changeme` and the default timezone is `Europe/Paris`.
 
+Settings checks use private temporary files, so simultaneous checks with identical settings do not interfere with one another. Run the manual settings tests with `python3 os/tests/test_rootfs_settings_make.py`.
+
 Image builds check required input files before overwriting the loose image or allocating a loop device. They verify the resized partition before truncating and release chroot mounts and the loop device before packaging. If a mount cannot be released, the build fails and reports the loop device retained for recovery.
 
 Overlay configuration fails if a required service cannot be enabled, so the build cannot publish a ZIP with incomplete service setup. Run the isolated chroot tests with `docker run --rm -v "$PWD":/sdk:ro -w /sdk cross-armhf:24.04 python3 os/tests/test_rootfs_overlay.py`; these tests do not mount disks or start services.
