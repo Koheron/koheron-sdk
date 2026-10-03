@@ -50,6 +50,7 @@ class Core
     static constexpr uint32_t read_offset = ((prm::n_pts - data_size) / 2) * sizeof(int32_t);
 
     using PhaseDataArray = std::array<Phase, data_size>;
+    using RawPhaseDataArray = std::array<int32_t, data_size>;
     using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
 
   public:
@@ -205,14 +206,14 @@ class Core
     double carrier_power(uint32_t navg); // caller holds data_mtx
     double effective_tracking_bandwidth() const;
     void reset_tracking_observations(); // caller holds data_mtx
-    void update_tracking(const PhaseDataArray& new_phase); // caller holds both mutexes when enabled
+    void update_tracking(double slope_radians_per_sample); // caller holds both mutexes when enabled
     void reset_phase_unwrapper();
     // Caller must hold dma_mtx for DMA operations.
     void kick_dma();
     auto read_dma();
     void update_interferometer_transfer_function();
     void set_power_conversion_factor();
-    auto compute_phase_noise(PhaseDataArray& new_phase);
+    auto compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend);
     auto compute_jitter(const PhaseNoiseDensityVector& new_pn, Frequency acquired_lo);
     void acquisition_thread();
     void start_acquisition();
@@ -616,8 +617,8 @@ void Core<Board>::set_power_conversion_factor() {
 }
 
 template<class Board>
-auto Core<Board>::compute_phase_noise(PhaseDataArray& new_phase) {
-    auto detrended = detrended_phase_prefix<data_size>(new_phase);
+auto Core<Board>::compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend) {
+    auto detrended = detrended_raw_phase_prefix<data_size>(raw, trend, phase_conversion_factor);
     auto phase_psd = spectrum.density(detrended, fs);
 
     if (analyzer_mode == AnalyzerMode::LASER) {
@@ -719,8 +720,8 @@ void Core<Board>::reset_tracking_observations() {
 }
 
 template<class Board>
-void Core<Board>::update_tracking(const PhaseDataArray& new_phase) {
-    const double error = static_cast<double>(phase_slope_per_sample<data_size>(new_phase).eval()) *
+void Core<Board>::update_tracking(double slope_radians_per_sample) {
+    const double error = slope_radians_per_sample *
                          static_cast<double>(fs.eval()) / (2.0 * sci::pi<double>);
     tracking_error[channel] = error;
     const double bandwidth = effective_tracking_bandwidth();
@@ -809,12 +810,13 @@ void Core<Board>::acquisition_thread() {
             const auto acquired_lo = Frequency(dds.get_dds_freq(channel));
             PhaseDataArray new_phase{};
             convert_relative_phase(*samples, new_phase, phase_conversion_factor);
-            update_tracking(new_phase);
+            const auto trend = fit_raw_phase_prefix<data_size>(*samples);
+            update_tracking(trend.slope * double(phase_conversion_factor.eval()));
             if (tracking_capture) {
                 kick_dma();
                 dma_lk.unlock();
             }
-            auto new_pn = compute_phase_noise(new_phase);
+            auto new_pn = compute_phase_noise(*samples, trend);
             compute_jitter(new_pn, acquired_lo);
             phase = std::move(new_phase);
             phase_noise = std::move(new_pn);

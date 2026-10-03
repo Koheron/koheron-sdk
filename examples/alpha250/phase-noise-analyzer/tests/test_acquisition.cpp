@@ -13,6 +13,29 @@ int main() {
     // Compare the cached production estimator with the independent library
     // implementation, including DC, Nyquist, broadband noise and plan reuse.
     using Phase = scicpp::units::radian<float>;
+    // A large integer drift ramp must not discard its small PM before FFT.
+    // Compare with the same quantized PM without the ramp, using the original
+    // independent float detrending helper as the reference.
+    std::array<int32_t, 65536> raw{};
+    std::array<Phase, 65536> truth{}, converted{};
+    const Phase fine_step{float(scicpp::pi<double> / 500000)};
+    for (std::size_t i = 0; i < raw.size(); ++i) {
+        const int32_t pm = int32_t(std::lrint(.001 / double(fine_step.eval()) *
+            std::sin(2 * scicpp::pi<double> * 64 * double(i) / 32768)));
+        raw[i] = int32_t(int64_t(i) * 16000 - 524288000 + pm);
+        truth[i] = fine_step * float(pm);
+    }
+    const auto expected_residual = detrended_phase_prefix<65536>(truth);
+    const auto trend = phase_noise::fit_raw_phase_prefix<65536>(raw);
+    const auto residual = phase_noise::detrended_raw_phase_prefix<65536>(raw, trend, fine_step);
+    convert_relative_phase(raw, converted, fine_step);
+    const auto float_first = detrended_phase_prefix<65536>(converted);
+    double old_error = 0;
+    for (std::size_t i = 0; i < raw.size(); ++i) {
+        assert(std::abs(residual[i].eval() - expected_residual[i].eval()) < 1e-8f);
+        old_error += std::pow(double(float_first[i].eval() - expected_residual[i].eval()), 2);
+    }
+    assert(std::sqrt(old_error / double(raw.size())) > 1e-4);
     std::array<Phase, 65536> signal{};
     uint32_t random = 1;
     for (std::size_t i = 0; i < signal.size(); ++i) {
