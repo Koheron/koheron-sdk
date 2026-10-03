@@ -32,7 +32,7 @@ int main() {
             compiler = shlex.split(os.environ.get("CXX", "g++"))
             subprocess.run(compiler + [
                 "-std=c++20", "-Wall", "-Wextra", "-Werror", "-Wpedantic",
-                "-I", str(instrument), str(source), "-o", str(executable),
+                "-I", str(instrument), "-I", str(instrument.parents[2]), str(source), "-o", str(executable),
             ], check=True)
             output = subprocess.check_output([str(executable)], text=True)
         cls.corrections = {

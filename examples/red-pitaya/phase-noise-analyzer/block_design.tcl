@@ -1,18 +1,22 @@
 source $board_path/config/ports.tcl
 source $board_path/base_system.tcl
+source $sdk_path/fpga/ip/awg_v1_0/integration.tcl
 
 ####################################
-# Direct Digital Synthesis
+# Unmodulated local oscillators for phase extraction
 ####################################
 
 for {set i 0} {$i < 2} {incr i} {
+
+  # Noise_Shaping Taylor_Series_Corrected
 
   cell xilinx.com:ip:dds_compiler:6.0 dds$i {
     PartsPresent Phase_Generator_and_SIN_COS_LUT
     DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000.0]
     Parameter_Entry Hardware_Parameters
+    Noise_Shaping None
     Phase_Width 48
-    Output_Width 16
+    Output_Width [get_parameter dds_output_width]
     Phase_Increment Programmable
     Latency_Configuration Configurable
     Latency 9
@@ -28,8 +32,15 @@ for {set i 0} {$i < 2} {incr i} {
     M_AXIS dds$i/S_AXIS_CONFIG
   }
 
-  connect_pins adc_dac/dac[expr $i+1] [get_slice_pin dds$i/m_axis_data_tdata 15 2]
+}
 
+# The DAC stimulus must have an independent phase path. Feeding its modulated
+# carrier into the reference mixers would cancel the PM in a loopback test.
+set outputs [dds_pm::add awg awg adc_dac/adc_clk [get_parameter adc_clk] \
+    [dict create CHANNELS 2]]
+# Scale the 16-bit DAC stimulus to signed 14-bit at half amplitude (analog voltage depends on the load).
+for {set channel 0} {$channel < [llength $outputs]} {incr channel} {
+    connect_pins adc_dac/dac[expr {$channel+1}] [get_concat_pin [list [get_slice_pin [lindex $outputs $channel] 15 3] [get_slice_pin [lindex $outputs $channel] 15 15]] dac_scale$channel]
 }
 
 ####################################
@@ -38,19 +49,23 @@ for {set i 0} {$i < 2} {incr i} {
 
 source $project_path/tcl/cordic.tcl
 
+set rounding_seeds {0x9e3779b97f4a7c15 0xd1b54a32d192ed03}
 for {set i 0} {$i < 2} {incr i} {
 
-    cordic::create cordic$i
+    # Separate mixer and prefilter rounding sequences for the two ADC channels.
+    cordic::create cordic$i [lindex $rounding_seeds $i]
 
     connect_cell cordic$i {
-        s_axis_data_a [get_concat_pin [list [get_constant_pin 0 2] adc_dac/adc[expr $i+1] [get_constant_pin 0 16]]]
+        s_axis_data_a [get_concat_pin [list [get_constant_pin 0 2] adc_dac/adc[expr {$i+1}] [get_constant_pin 0 16]]]
         s_axis_data_b dds$i/m_axis_data_tdata
         s_axis_tvalid dds$i/m_axis_data_tvalid
         aclk adc_dac/adc_clk
         aresetn proc_sys_reset_adc_clk/peripheral_aresetn
         acc_on [get_slice_pin [ctl_pin cordic] $i $i]
+        rst_phase [get_slice_pin [ctl_pin cordic] [expr $i+2] [expr $i+2]]
     }
 
+  connect_pins cordic$i/demod [sts_pin demod$i]
 }
 
 ####################################
@@ -65,22 +80,27 @@ cell koheron:user:latched_mux:1.0 phase_mux {
     clk adc_dac/adc_clk
     clken [get_constant_pin 1 1]
     din [get_concat_pin [list cordic0/phase cordic1/phase]]
-    sel [get_slice_pin [ctl_pin cordic] 2 2]
+    sel [get_slice_pin [ctl_pin cordic] 4 4]
 }
 
 # Define CIC parameters
 
 set diff_delay [get_parameter cic_differential_delay]
-set dec_rate [get_parameter cic_decimation_rate]
+set dec_rate_default [get_parameter cic_decimation_rate_default]
+set dec_rate_min [get_parameter cic_decimation_rate_min]
+set dec_rate_max [get_parameter cic_decimation_rate_max]
 set n_stages [get_parameter cic_n_stages]
 
 cell xilinx.com:ip:cic_compiler:4.0 cic {
   Filter_Type Decimation
   Number_Of_Stages $n_stages
-  Fixed_Or_Initial_Rate $dec_rate
+  Fixed_Or_Initial_Rate $dec_rate_default
+  Sample_Rate_Changes Programmable
+  Minimum_Rate $dec_rate_min
+  Maximum_Rate $dec_rate_max
   Differential_Delay $diff_delay
-  Input_Sample_Frequency [expr [get_parameter adc_clk] / 1000000.]
-  Clock_Frequency [expr [get_parameter adc_clk] / 1000000.]
+  Input_Sample_Frequency [expr [get_parameter adc_clk] / 1000000.0]
+  Clock_Frequency [expr [get_parameter adc_clk] / 1000000.0]
   Input_Data_Width 32
   Quantization Truncation
   Output_Data_Width 32
@@ -92,12 +112,21 @@ cell xilinx.com:ip:cic_compiler:4.0 cic {
   s_axis_data_tvalid [get_constant_pin 1 1]
 }
 
-set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rate $diff_delay print]
+cell pavel-demin:user:axis_variable:1.0 cic_rate {
+  AXIS_TDATA_WIDTH 16
+} {
+  cfg_data [ctl_pin cic_rate]
+  aclk adc_dac/adc_clk
+  aresetn proc_sys_reset_adc_clk/peripheral_aresetn
+  M_AXIS cic/S_AXIS_CONFIG
+}
+
+set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rate_min $diff_delay print]
 
 cell xilinx.com:ip:fir_compiler:7.2 fir {
   Filter_Type Decimation
-  Sample_Frequency [expr [get_parameter adc_clk] / 1000000. / $dec_rate]
-  Clock_Frequency [expr [get_parameter fclk1] / 1000000.0.]
+  Sample_Frequency [expr [get_parameter adc_clk] / 1000000. / $dec_rate_min]
+  Clock_Frequency [expr [get_parameter adc_clk] / 1000000.]
   Coefficient_Width 32
   Data_Width 32
   Output_Rounding_Mode Convergent_Rounding_to_Even
@@ -140,7 +169,7 @@ cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
 
 cell koheron:user:tlast_gen:1.0 tlast_gen_0 {
   TDATA_WIDTH 32
-  PKT_LENGTH [expr 1024*1024]
+  PKT_LENGTH [expr [get_parameter n_pts]]
 } {
   aclk ps_0/FCLK_CLK1
   resetn proc_sys_reset_1/peripheral_aresetn
@@ -159,6 +188,7 @@ cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
   s_axi_lite_aclk ps_0/FCLK_CLK1
   M_AXI_S2MM axi_mem_intercon_1/S01_AXI
   m_axi_s2mm_aclk ps_0/FCLK_CLK1
+  axi_resetn proc_sys_reset_1/peripheral_aresetn
   s2mm_introut [get_interrupt_pin]
 }
 
@@ -170,10 +200,12 @@ set_property range [get_memory_range dma] [get_bd_addr_segs {ps_0/Data/SEG_axi_d
 set_property offset [get_memory_offset dma] [get_bd_addr_segs {ps_0/Data/SEG_axi_dma_0_Reg}]
 
 assign_bd_address [get_bd_addr_segs {ps_0/S_AXI_HP0/HP0_DDR_LOWOCM }]
-set_property offset [get_memory_offset ram] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM}]
 set_property range [get_memory_range ram] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM}]
+set_property offset [get_memory_offset ram] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM}]
 
 delete_bd_objs [get_bd_addr_segs -excluded axi_dma_0/Data_S2MM/SEG_axi_dma_0_Reg]
 delete_bd_objs [get_bd_addr_segs ps_0/Data/SEG_ps_0_HP0_DDR_LOWOCM]
 
-#set_property -dict [list CONFIG.JITTER_SEL {Max_I_Jitter}] [get_bd_cells adc_dac/pll]
+# Repair short DAC paths after routing; refresh reports for strict timing checks.
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize [file join [file dirname [info script]] post_route.tcl]] [get_runs impl_1]

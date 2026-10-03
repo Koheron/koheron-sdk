@@ -15,15 +15,15 @@ class PhaseModulatorWidget {
                       'Uniform noise', 'Gaussian noise', 'PRBS', 'BPSK'];
 
     constructor(private root: HTMLElement, private driver: PhaseModulatorPort,
-                private options: {expectedChannels?: 1 | 2} = {}) {
+                private options: {expectedChannels?: 1 | 2; halfScaleOutput?: boolean} = {}) {
         root.classList.add('dds-pm-widget');
-        root.innerHTML = PhaseModulatorWidget.loadingMarkup(options.expectedChannels);
+        root.innerHTML = PhaseModulatorWidget.loadingMarkup(options.expectedChannels, options.halfScaleOutput);
         root.addEventListener('change', this.changeHandler);
         root.addEventListener('click', this.clickHandler);
     }
 
     async init(): Promise<void> {
-        if (!this.values.length) { this.root.innerHTML = PhaseModulatorWidget.loadingMarkup(this.options.expectedChannels); }
+        if (!this.values.length) { this.root.innerHTML = PhaseModulatorWidget.loadingMarkup(this.options.expectedChannels, this.options.halfScaleOutput); }
         try {
             const info = await this.driver.init();
             const values = await Promise.all(info.map((_, channel) => this.driver.settings(channel)));
@@ -39,7 +39,7 @@ class PhaseModulatorWidget {
                 <span class="pm-clock">${info[0].sampleRate / 1e6} MS/s</span>
                 <button type="button" data-action="refresh" title="Read settings from hardware">Refresh</button></div>
                 <div class="pm-channels">${info.map((_, channel) => this.channelMarkup(channel)).join('')}</div>
-                <p class="pm-footnote">Edits preserve oscillator phase · Output amplitude is full scale</p>`;
+                <p class="pm-footnote">Edits preserve oscillator phase · Output amplitude is ${this.options.halfScaleOutput ? 'half' : 'full'} scale</p>`;
             this.numbers = info.map((metadata, channel) => {
                 const controls: {[field: string]: DigitInput} = {};
                 for (const field of ['carrier', 'modulation']) {
@@ -94,7 +94,7 @@ class PhaseModulatorWidget {
         }
     }
 
-    static loadingMarkup(expectedChannels: 1 | 2 = 2): string {
+    static loadingMarkup(expectedChannels: 1 | 2 = 2, halfScaleOutput = false): string {
         const placeholder = '<span class="pm-placeholder"></span>';
         const field = (name: string, title: string) => `<label class="pm-field pm-${name}"><span>${title}</span>${placeholder}</label>`;
         const channels = Array.from({length: expectedChannels}, (_, channel) =>
@@ -105,7 +105,7 @@ class PhaseModulatorWidget {
                 <span class="pm-more pm-placeholder"></span></div><div class="pm-status-slot"></div></div>`).join('');
         return `<div class="pm-skeleton" aria-hidden="true"><div class="pm-toolbar"><strong>Signal generator</strong>
             <span class="pm-clock">Reading…</span><button type="button" disabled>Refresh</button></div>${channels}
-            <p class="pm-footnote">Edits preserve oscillator phase · Output amplitude is full scale</p></div>
+            <p class="pm-footnote">Edits preserve oscillator phase · Output amplitude is ${halfScaleOutput ? 'half' : 'full'} scale</p></div>
             <span class="pm-loading pm-sr-only" role="status">Reading signal generator…</span>`;
     }
 

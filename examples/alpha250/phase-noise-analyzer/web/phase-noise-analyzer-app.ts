@@ -66,10 +66,11 @@ class PhaseNoiseAnalyzerApp {
     this.numbers.navg = number(this.nAvgInput, parameters.fft_navg, '', value => this.driver.setFFTNavg(value), p => p.fft_navg);
     this.numbers.delay = number(this.interferometerDelayInput, parameters.interferometer_delay * 1e9, 'ns',
       value => this.driver.setInterferometerDelay(value * 1e-9), p => p.interferometer_delay * 1e9);
+    const adcSampleRate = parameters.fs * 2 * parameters.cic_rate;
     [tracking.nominal0, tracking.nominal1].forEach((value, channel) => {
       const input = this.ddsInputs[channel];
       this.numbers['lo' + channel] = new FrequencyInput(input, input.parentElement.querySelector('.lo-unit'), {
-        value, maximum: 100e6, inclusiveMaximum: true, resolution: 200e6 / Math.pow(2, 48),
+        value, maximum: adcSampleRate / 2, inclusiveMaximum: true, resolution: adcSampleRate / Math.pow(2, 48),
         commit: async frequency => {
           this.driver.setLocalOscillator(channel, frequency);
           await this.driver.getParameters();
@@ -183,7 +184,9 @@ class PhaseNoiseAnalyzerApp {
 
     this.numbers.delay.setValue(parameters.interferometer_delay * 1e9);
 
-    (<HTMLInputElement>this.document.querySelector("[data-command='setReferenceClock'][value='" + parameters.clkIndex + "']")).checked = true;
+    const referenceClock = this.document.querySelector<HTMLInputElement>(
+      "[data-command='setReferenceClock'][value='" + parameters.clkIndex + "']");
+    if (referenceClock) { referenceClock.checked = true; }
 
     setTimeout(() => { this.updateControls(); }, 500);
   }
