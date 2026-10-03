@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -21,6 +22,12 @@ class SDImageBuildTest(unittest.TestCase):
         self.root = Path(temporary.name)
         self.project = self.root / 'project'
         self.project.mkdir()
+        self.os_path = self.root / 'os'
+        for name in ('extlinux.conf', 'config/nginx.conf', 'config/nginx-server.conf',
+                     'systemd/nginx.service', 'scripts/finalize_rootfs.sh', 'scripts/chroot_overlay.sh'):
+            target = self.os_path / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(OS_PATH / name, target)
         self.artifacts = self.root / 'artifacts'
         self.artifacts.mkdir()
         for name in ('boot.bin', 'kernel.itb'):
@@ -143,12 +150,12 @@ sys.exit(result)
             (self.bin / name).symlink_to(mock)
         self.environment = {
             **os.environ, 'PATH': str(self.bin) + ':' + os.environ['PATH'],
-            'BASE_ROOTFS_TAR': str(self.base), 'EXTLINUX_CONF': str(OS_PATH / 'extlinux.conf'),
+            'BASE_ROOTFS_TAR': str(self.base), 'EXTLINUX_CONF': str(self.os_path / 'extlinux.conf'),
             'MOCK_STATE': str(self.root / 'state'), 'MOCK_EVENTS': str(self.events),
             'MOCK_MOUNTS': str(self.mounts),
         }
 
-    def build(self, **overrides):
+    def build(self, boot_bin='boot.bin', **overrides):
         # Only the fake device's block-node predicate is overridden. Every
         # real disk operation is replaced by a mock executable above.
         harness = '''\
@@ -162,12 +169,75 @@ source "$@"
 '''
         return subprocess.run(
             ['bash', '-c', harness, 'image-test', str(BUILD), str(self.project),
-             str(OS_PATH), str(self.artifacts), 'unused', str(self.overlay),
-             str(self.qemu), 'test'], capture_output=True, text=True, timeout=15,
+             str(self.os_path), str(self.artifacts), 'unused', str(self.overlay),
+             str(self.qemu), 'test', boot_bin], capture_output=True, text=True, timeout=15,
             env={**self.environment, **overrides})
 
     def commands(self):
+        if not self.events.exists():
+            return []
         return [json.loads(line) for line in self.events.read_text().splitlines()]
+
+    def assert_rejected_before_disk_operations(self, result):
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(self.commands(), [])
+        for name in ('test.img', 'test.img.sha256', 'test.zip'):
+            self.assertEqual((self.project / name).read_bytes(), b'previous output')
+        self.assertEqual(list(self.mounts.iterdir()), [])
+
+    def preserve_outputs(self):
+        for name in ('test.img', 'test.img.sha256', 'test.zip'):
+            (self.project / name).write_bytes(b'previous output')
+
+    def test_missing_required_inputs_preserve_previous_outputs_without_disk_operations(self):
+        self.preserve_outputs()
+        for path in (self.base, self.overlay, self.qemu, self.artifacts / 'boot.bin',
+                     self.artifacts / 'kernel.itb', self.project / 'manifest-test.txt',
+                     *(self.os_path / name for name in ('extlinux.conf', 'config/nginx.conf',
+                       'config/nginx-server.conf', 'systemd/nginx.service', 'scripts/finalize_rootfs.sh'))):
+            with self.subTest(path=path.name):
+                original = path.read_bytes()
+                path.unlink()
+                result = self.build()
+                self.assert_rejected_before_disk_operations(result)
+                self.assertIn(str(path), result.stderr)
+                path.write_bytes(original)
+
+    @unittest.skipIf(os.geteuid() == 0, 'Root can read permission-denied files')
+    def test_unreadable_input_is_rejected_before_disk_operations(self):
+        self.preserve_outputs()
+        self.base.chmod(0)
+        try:
+            self.assert_rejected_before_disk_operations(self.build())
+        finally:
+            self.base.chmod(0o644)
+
+    def test_empty_or_directory_inputs_are_rejected_before_disk_operations(self):
+        self.preserve_outputs()
+        self.base.write_bytes(b'')
+        self.assert_rejected_before_disk_operations(self.build())
+        self.base.unlink()
+        self.base.mkdir()
+        self.assert_rejected_before_disk_operations(self.build())
+
+    def test_unsupported_qemu_helper_is_rejected_before_disk_operations(self):
+        self.preserve_outputs()
+        renamed = self.qemu.with_name('qemu-other-static')
+        self.qemu.rename(renamed)
+        self.qemu = renamed
+        result = self.build()
+        self.assert_rejected_before_disk_operations(result)
+        self.assertIn('Unexpected QEMU helper', result.stderr)
+
+    def test_aarch64_helper_and_selected_boot_artifact_are_accepted(self):
+        renamed = self.qemu.with_name('qemu-aarch64-static')
+        self.qemu.rename(renamed)
+        self.qemu = renamed
+        (self.artifacts / 'boot.bin').rename(self.artifacts / 'bootmp.bin')
+        result = self.build(boot_bin='bootmp.bin')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue((self.project / 'test.zip').exists())
+        self.assert_detached()
 
     def assert_failed_before_packaging(self, result, code):
         self.assertEqual(result.returncode, code, result.stdout + result.stderr)
