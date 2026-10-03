@@ -1,5 +1,5 @@
 NAME := phase-noise-analyzer
-VERSION := 1.0.0
+VERSION := 1.1.0
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya
@@ -12,7 +12,7 @@ XDC += $(SDK_PATH)/boards/red-pitaya/config/clocks.xdc
 include $(BOARD_PATH)/cores/cores.mk
 CORES += $(SDK_PATH)/fpga/cores/axis_constant_v1_0
 CORES += $(SDK_PATH)/fpga/cores/latched_mux_v1_0
-CORES += $(SDK_PATH)/fpga/cores/tlast_gen_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_quantizer_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_lfsr_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_unwrapper_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_prefilter_v1_0

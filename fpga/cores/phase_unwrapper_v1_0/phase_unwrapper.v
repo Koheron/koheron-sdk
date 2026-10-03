@@ -11,7 +11,8 @@ module phase_unwrapper #
   input  wire rst,
   input  wire signed [DIN_WIDTH-1:0] phase_in,
   output wire signed [DIN_WIDTH+1-1:0] freq_out,
-  output reg signed [DOUT_WIDTH-1:0] phase_out
+  output reg signed [DOUT_WIDTH-1:0] phase_out,
+  output reg overflow
 );
 
   // Value of Pi in scaled radians representation
@@ -26,6 +27,11 @@ module phase_unwrapper #
   initial unwrapped_diff = 0;
   initial phase_in0 = 0;
   initial diff = 0;
+  initial overflow = 0;
+
+  wire signed [DOUT_WIDTH:0] next_phase =
+      {phase_out[DOUT_WIDTH-1], phase_out} +
+      {{(DOUT_WIDTH-DIN_WIDTH){unwrapped_diff[DIN_WIDTH]}}, unwrapped_diff};
 
   // Compute phase difference
   always @(posedge clk) begin
@@ -48,9 +54,12 @@ module phase_unwrapper #
   always @(posedge clk) begin
     if (rst) begin
       phase_out <= 0;
+      overflow <= 0;
     end else begin
       if (acc_on) begin
-        phase_out <= phase_out + unwrapped_diff;
+        phase_out <= next_phase[DOUT_WIDTH-1:0];
+        // Sticky until the packet's phase reset, even if phase wraps back.
+        overflow <= overflow | (next_phase[DOUT_WIDTH] != next_phase[DOUT_WIDTH-1]);
       end else begin
         phase_out <= phase_out;
       end

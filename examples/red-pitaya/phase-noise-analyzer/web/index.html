@@ -18,6 +18,7 @@
   <link rel="stylesheet" type="text/css" href="main.css">
   <link rel="stylesheet" href="phase-noise-plot.css">
   <link rel="stylesheet" href="phase-noise.css">
+  <link rel="stylesheet" href="phase-precision.css">
   <link rel="stylesheet" href="phase-modulator.css">
 
   <script type="text/javascript" src="html-imports.min.js"></script>
@@ -48,6 +49,16 @@
       </div><label class="toggle"><input type="checkbox" id="show-smoothed-trace" checked>Smoothed trace</label></div>
       <label class="control-field" title="CIC decimation rate">Decimation<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="20" min="4" step="1" max="8192" required data-command="setCicRate" class="cic-rate-input"></span></label>
       <label class="control-field">Averages<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1" min="1" step="1" max="100" required class="plot-navg-input"></span></label>
+      <label class="control-field" title="Extra fractional bits preserve smaller phase changes, at the cost of phase range.">Phase precision
+        <select id="phase-precision">
+          <option value="0">Standard</option>
+          <option value="1">+1 bit</option><option value="2">+2 bits</option>
+          <option value="3">+3 bits</option><option value="4">+4 bits</option>
+          <option value="5">+5 bits</option><option value="6">+6 bits</option>
+          <option value="7">+7 bits</option><option value="8">+8 bits</option>
+        </select>
+      </label>
+      <span id="precision-status" class="precision-status" role="status">Waiting…</span>
       <span class="board-tag">Fixed on-board clock</span>
     </div>
     <div id="dds-frequency" class="oscillator-controls"></div>

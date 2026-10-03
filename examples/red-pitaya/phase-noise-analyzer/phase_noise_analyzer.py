@@ -75,6 +75,29 @@ class PhaseNoiseAnalyzer(object):
         # The server returns radians with CIC/FIR gain correction applied.
         return self.client.recv_array(self.npts, dtype='float32')
 
+    @command()
+    def set_phase_precision(self, bits):
+        """Request 0–8 extra fractional bits, applied between complete packets."""
+        return self.client.recv_bool()
+
+    @command()
+    def get_precision_status(self):
+        """Requested/captured bits, rad/count, state (0 settling, 1 valid,
+        2 overrange, 3 DMA error), valid captures, overranges, DMA errors,
+        processing ms and capture period ms.
+        """
+        return self.client.recv_tuple('IIdIQQQdd')
+
+    @command()
+    def get_phase_snapshot(self):
+        """One coherent snapshot: valid-capture count, precision, rad/count,
+        validity and phase samples in radians.
+        """
+        metadata = self.client.recv_tuple('QIf?')
+        # The tuple has one response header; its fixed array follows the scalars.
+        samples = np.frombuffer(self.client.recv_all(4 * self.npts), dtype='<f4')
+        return metadata, samples
+
     def phase_noise(self, navg=1, window='hann', verbose=False):
         if not isinstance(navg, (int, np.integer)) or navg < 1:
             raise ValueError("navg must be a positive integer")

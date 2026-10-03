@@ -10,6 +10,52 @@
 #include <limits>
 
 int main() {
+    // Compare the cached production estimator with the independent library
+    // implementation, including DC, Nyquist, broadband noise and plan reuse.
+    using Phase = scicpp::units::radian<float>;
+    // A large integer drift ramp must not discard its small PM before FFT.
+    // Compare with the same quantized PM without the ramp, using the original
+    // independent float detrending helper as the reference.
+    std::array<int32_t, 65536> raw{};
+    std::array<Phase, 65536> truth{}, converted{};
+    const Phase fine_step{float(scicpp::pi<double> / 500000)};
+    for (std::size_t i = 0; i < raw.size(); ++i) {
+        const int32_t pm = int32_t(std::lrint(.001 / double(fine_step.eval()) *
+            std::sin(2 * scicpp::pi<double> * 64 * double(i) / 32768)));
+        raw[i] = int32_t(int64_t(i) * 16000 - 524288000 + pm);
+        truth[i] = fine_step * float(pm);
+    }
+    const auto expected_residual = detrended_phase_prefix<65536>(truth);
+    const auto trend = phase_noise::fit_raw_phase_prefix<65536>(raw);
+    const auto residual = phase_noise::detrended_raw_phase_prefix<65536>(raw, trend, fine_step);
+    convert_relative_phase(raw, converted, fine_step);
+    const auto float_first = detrended_phase_prefix<65536>(converted);
+    double old_error = 0;
+    for (std::size_t i = 0; i < raw.size(); ++i) {
+        assert(std::abs(residual[i].eval() - expected_residual[i].eval()) < 1e-8f);
+        old_error += std::pow(double(float_first[i].eval() - expected_residual[i].eval()), 2);
+    }
+    assert(std::sqrt(old_error / double(raw.size())) > 1e-4);
+    std::array<Phase, 65536> signal{};
+    uint32_t random = 1;
+    for (std::size_t i = 0; i < signal.size(); ++i) {
+        random = 1664525u * random + 1013904223u;
+        signal[i] = Phase{float(.1 * std::sin(2 * scicpp::pi<double> * 64 * double(i) / 32768) +
+            .01 * double(random) / double(UINT32_MAX) + (i % 2 ? -.02 : .02))};
+    }
+    phase_noise::WelchSpectrum<32768> cached;
+    scicpp::signal::Spectrum<float> reference;
+    reference.window(scicpp::signal::windows::hann<float>(32768));
+    for (float frequency : {3125000.f, 6250000.f, 3125000.f}) {
+        reference.fs(frequency);
+        const auto expected = reference.welch<scicpp::signal::SpectrumScaling::DENSITY, false>(signal);
+        const auto actual = cached.density(signal, scicpp::units::frequency<float>{frequency});
+        const auto peak = std::max_element(expected.begin(), expected.end())->eval();
+        assert(actual.size() == expected.size());
+        for (std::size_t i = 0; i < actual.size(); ++i)
+            assert(std::abs(actual[i].eval() - expected[i].eval()) < 2e-5f * peak);
+    }
+
     auto& cfg = services::require<rt::ConfigManager>();
     cfg.set("PhaseNoiseAnalyzer", "cic_rate", 16u);
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[0]", 10e6 + 0.637);

@@ -1,5 +1,6 @@
 #pragma once
 #include "phase-processing.hpp"
+#include "welch-spectrum.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/config_manager.hpp"
@@ -45,9 +46,11 @@ class Core
 
     static constexpr uint32_t fft_size = 32768;
     static constexpr uint32_t data_size = 2 * fft_size;
-    static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2; // Skip DMA startup settling samples
+    // Memory offsets are bytes; take the middle of the packet after settling.
+    static constexpr uint32_t read_offset = ((prm::n_pts - data_size) / 2) * sizeof(int32_t);
 
     using PhaseDataArray = std::array<Phase, data_size>;
+    using RawPhaseDataArray = std::array<int32_t, data_size>;
     using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
 
   public:
@@ -65,6 +68,17 @@ class Core
     void set_tracking_bandwidth(float bandwidth_hz);
     void set_tracking_max_step(float max_step_hz);
     void set_tracking_max_correction(float max_correction_hz);
+    bool set_phase_precision(uint32_t bits);
+    auto get_precision_status() {
+        std::shared_lock lk(data_mtx);
+        return std::tuple{phase_precision, captured_precision, double(phase_conversion_factor.eval()),
+            capture_state, accepted_captures, overflow_captures, dma_errors, processing_ms, capture_period_ms};
+    }
+    auto get_phase_snapshot() const {
+        std::shared_lock lk(data_mtx);
+        return std::tuple{accepted_captures, captured_precision, phase_conversion_factor,
+                          capture_state == Valid, phase};
+    }
 
     auto get_tracking_parameters() {
         std::shared_lock lk(data_mtx);
@@ -129,6 +143,12 @@ class Core
     uint32_t cic_rate = prm::cic_decimation_rate_default;
     Phase phase_conversion_factor{0.0f}; // Radians per filtered DMA count
     uint32_t dirty_cnt = 0; // guarded by data_mtx
+    uint32_t phase_precision = 0, captured_precision = 0;
+    enum CaptureState : uint32_t { Settling, Valid, Overrange, DmaError };
+    uint32_t capture_state = Settling;
+    uint64_t accepted_captures = 0, overflow_captures = 0, dma_errors = 0;
+    double processing_ms = 0.0, capture_period_ms = 0.0;
+    std::chrono::steady_clock::time_point last_capture_time{};
     Frequency fs_adc, fs;
     Time dma_transfer_duration;
 
@@ -144,7 +164,7 @@ class Core
     PhaseDataArray phase{};
 
     // Spectrum analyzer
-    scicpp::signal::Spectrum<float> spectrum;
+    WelchSpectrum<fft_size> spectrum;
     PhaseNoiseDensityVector phase_noise;
     MovingAverager<PhaseNoiseDensity> averager;
 
@@ -186,15 +206,15 @@ class Core
     double carrier_power(uint32_t navg); // caller holds data_mtx
     double effective_tracking_bandwidth() const;
     void reset_tracking_observations(); // caller holds data_mtx
-    void update_tracking(const PhaseDataArray& new_phase); // caller holds both mutexes when enabled
+    void update_tracking(double slope_radians_per_sample); // caller holds both mutexes when enabled
     void reset_phase_unwrapper();
     // Caller must hold dma_mtx for DMA operations.
     void kick_dma();
     auto read_dma();
     void update_interferometer_transfer_function();
     void set_power_conversion_factor();
-    auto compute_phase_noise(PhaseDataArray& new_phase);
-    auto compute_jitter(const PhaseNoiseDensityVector& new_pn);
+    auto compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend);
+    auto compute_jitter(const PhaseNoiseDensityVector& new_pn, Frequency acquired_lo);
     void acquisition_thread();
     void start_acquisition();
 };
@@ -233,10 +253,6 @@ Core<Board>::Core()
 
     load_config();
 
-    // Configure the spectrum analyzer
-    spectrum.window(sig::windows::hann<float>(fft_size));
-    spectrum.nthreads(2);
-    spectrum.fs(fs);
     phase_noise.reserve(1 + fft_size / 2);
     start_acquisition();
 }
@@ -255,6 +271,8 @@ void Core<Board>::save_config() {
     cfg.set("PhaseNoiseAnalyzer", "channel", channel);
     cfg.set("PhaseNoiseAnalyzer", "fft_navg", fft_navg);
     cfg.set("PhaseNoiseAnalyzer", "cic_rate", cic_rate);
+    if constexpr (Board::max_phase_precision > 0)
+        cfg.set("PhaseNoiseAnalyzer", "phase_precision", phase_precision);
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[0]", base_dds_freq[0]);
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[1]", base_dds_freq[1]);
     cfg.set("PhaseNoiseAnalyzer", "analyzer_mode", analyzer_mode);
@@ -292,20 +310,46 @@ void Core<Board>::set_cic_rate(uint32_t rate) {
 
     detail::DmaSettingsGuard pending(dma_settings_pending);
     std::unique_lock dma_lk(dma_mtx); // block until any DMA transfer finishes
+    if (acquisition_started.load(std::memory_order_acquire)) {
+        Time duration;
+        bool changing;
+        {
+            std::shared_lock lk(data_mtx);
+            duration = dma_transfer_duration;
+            changing = rate != cic_rate;
+        }
+        // Processing may already have started the next transfer. Finish it at
+        // its original rate before changing the expected DMA duration.
+        if (changing) (void)dma.wait_for_transfer_checked(duration);
+    }
     std::unique_lock lk(data_mtx);
 
     cic_rate = rate;
     phase_conversion_factor = float(phase_calibration::filter_correction(
-        rate, prm::cic_n_stages, prm::cic_differential_delay)) * sci::pi<Phase> / 8192.0f;
+        rate, prm::cic_n_stages, prm::cic_differential_delay) * std::exp2(-double(phase_precision))) * sci::pi<Phase> / 8192.0f;
     fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
     dma_transfer_duration = prm::n_pts / fs;
     logf("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
 
     update_interferometer_transfer_function();
-    spectrum.fs(fs);
     invalidate_results();
     dirty_cnt = 2;
     ctl.write<reg::cic_rate>(cic_rate);
+}
+
+template<class Board>
+bool Core<Board>::set_phase_precision(uint32_t bits) {
+    if (bits > Board::max_phase_precision) return false;
+    std::unique_lock lk(data_mtx);
+    // The FPGA latches this at packet start. Packet metadata lets acquisition
+    // reject the old scale, so a precision request need not wait for slow DMA.
+    if constexpr (Board::max_phase_precision > 0) board.set_phase_precision(bits);
+    phase_precision = bits;
+    phase_conversion_factor = float(phase_calibration::filter_correction(
+        cic_rate, prm::cic_n_stages, prm::cic_differential_delay) * std::exp2(-double(bits))) * sci::pi<Phase> / 8192.0f;
+    dirty_cnt = 2;
+    invalidate_results();
+    return true;
 }
 
 template<class Board>
@@ -525,6 +569,11 @@ void Core<Board>::load_config() {
         set_tracking_max_correction(cfg.get<float>("PhaseNoiseAnalyzer", "tracking_max_correction"));
     if (cfg.has("PhaseNoiseAnalyzer", "tracking_enabled"))
         set_tracking_enabled(cfg.get<bool>("PhaseNoiseAnalyzer", "tracking_enabled"));
+    if constexpr (Board::max_phase_precision > 0) {
+        const auto bits = cfg.has("PhaseNoiseAnalyzer", "phase_precision")
+            ? cfg.get<uint32_t>("PhaseNoiseAnalyzer", "phase_precision") : 0u;
+        if (!set_phase_precision(bits)) set_phase_precision(0);
+    }
 }
 
 template<class Board>
@@ -568,9 +617,9 @@ void Core<Board>::set_power_conversion_factor() {
 }
 
 template<class Board>
-auto Core<Board>::compute_phase_noise(PhaseDataArray& new_phase) {
-    auto detrended = detrended_phase_prefix<data_size>(new_phase);
-    auto phase_psd = spectrum.welch<sig::SpectrumScaling::DENSITY, false>(detrended);
+auto Core<Board>::compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend) {
+    auto detrended = detrended_raw_phase_prefix<data_size>(raw, trend, phase_conversion_factor);
+    auto phase_psd = spectrum.density(detrended, fs);
 
     if (analyzer_mode == AnalyzerMode::LASER) {
         using namespace sci::operators;
@@ -583,8 +632,8 @@ auto Core<Board>::compute_phase_noise(PhaseDataArray& new_phase) {
 }
 
 template<class Board>
-auto Core<Board>::compute_jitter(const PhaseNoiseDensityVector& new_pn) {
-    const auto f_dss = Frequency(dds.get_dds_freq(channel));
+auto Core<Board>::compute_jitter(const PhaseNoiseDensityVector& new_pn, Frequency acquired_lo) {
+    const auto f_dss = acquired_lo;
 
     if (sci::almost_equal(f_dss, Frequency{0.0f})) {
         // No demodulation if DSS frequency is zero
@@ -644,6 +693,7 @@ void Core<Board>::start_acquisition() {
 
 template<class Board>
 void Core<Board>::invalidate_results() {
+    capture_state = Settling;
     reset_tracking_observations();
     averager.clear();
     phase.fill(Phase{});
@@ -670,8 +720,8 @@ void Core<Board>::reset_tracking_observations() {
 }
 
 template<class Board>
-void Core<Board>::update_tracking(const PhaseDataArray& new_phase) {
-    const double error = static_cast<double>(phase_slope_per_sample<data_size>(new_phase).eval()) *
+void Core<Board>::update_tracking(double slope_radians_per_sample) {
+    const double error = slope_radians_per_sample *
                          static_cast<double>(fs.eval()) / (2.0 * sci::pi<double>);
     tracking_error[channel] = error;
     const double bandwidth = effective_tracking_bandwidth();
@@ -693,7 +743,7 @@ void Core<Board>::update_tracking(const PhaseDataArray& new_phase) {
     const double requested = std::clamp(base_dds_freq[channel] + correction,
         0.0, static_cast<double>(fs_adc.eval()) / 2.0);
     // The mixer uses cos(LO) + j*sin(LO): measured slope is LO minus input.
-    // Change the selected LO only after its complete spectrum is computed.
+    // Change the selected LO after phase conversion and before the next packet.
     if (std::abs(requested - dds.get_dds_freq(channel)) >=
         board.sampling_frequency() / std::pow(2.0, 49)) {
         dds.set_dds_freq(channel, requested);
@@ -722,11 +772,19 @@ void Core<Board>::acquisition_thread() {
         if (!acquisition_started.load(std::memory_order_acquire)) break;
         std::unique_lock dma_lk(dma_mtx);
         auto samples = read_dma(); // wait without blocking snapshot getters
+        uint32_t packet_status = 0;
+        if constexpr (Board::max_phase_precision > 0)
+            packet_status = board.phase_packet_status();
         std::unique_lock lk(data_mtx);
         if (!acquisition_started.load(std::memory_order_acquire)) break;
+        const auto now = std::chrono::steady_clock::now();
+        if (last_capture_time != std::chrono::steady_clock::time_point{})
+            capture_period_ms = std::chrono::duration<double, std::milli>(now - last_capture_time).count();
+        last_capture_time = now;
+        captured_precision = packet_status & 0xfu;
 
-        // Tracking changes the LO only between complete captures. Otherwise keep
-        // the existing overlap of acquisition and spectral processing.
+        // Tracking must update the LO between packets. Do that before spectral
+        // processing so the next transfer can run while the FFT is computed.
         const bool tracking_capture = tracking_enabled;
         if (!tracking_capture) {
             kick_dma();
@@ -734,20 +792,40 @@ void Core<Board>::acquisition_thread() {
         }
 
         if (!samples) {
+            ++dma_errors;
             dirty_cnt = std::max(dirty_cnt, 2u);
+            invalidate_results();
+            capture_state = DmaError;
+        } else if (packet_status & 0x10u) {
+            ++overflow_captures;
+            invalidate_results();
+            capture_state = Overrange;
+        } else if (captured_precision != phase_precision) {
             invalidate_results();
         } else if (dirty_cnt > 0) {
             --dirty_cnt;
+            capture_state = Settling;
         } else {
+            const auto process_start = std::chrono::steady_clock::now();
+            const auto acquired_lo = Frequency(dds.get_dds_freq(channel));
             PhaseDataArray new_phase{};
             convert_relative_phase(*samples, new_phase, phase_conversion_factor);
-            auto new_pn = compute_phase_noise(new_phase);
-            compute_jitter(new_pn); // jitter uses the LO that acquired this spectrum
-            update_tracking(new_phase);
+            const auto trend = fit_raw_phase_prefix<data_size>(*samples);
+            update_tracking(trend.slope * double(phase_conversion_factor.eval()));
+            if (tracking_capture) {
+                kick_dma();
+                dma_lk.unlock();
+            }
+            auto new_pn = compute_phase_noise(*samples, trend);
+            compute_jitter(new_pn, acquired_lo);
             phase = std::move(new_phase);
             phase_noise = std::move(new_pn);
+            ++accepted_captures;
+            capture_state = Valid;
+            processing_ms = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - process_start).count();
         }
-        if (tracking_capture) {
+        if (dma_lk.owns_lock()) {
             kick_dma();
             dma_lk.unlock();
         }
