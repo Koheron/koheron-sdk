@@ -75,7 +75,8 @@ test -c /dev/null
 # Minimal modules file for dpkg triggers’ sanity
 install -D -m0644 /dev/null /etc/modules
 
-apt-get update
+# Do not build from stale indexes when a repository refresh only partly succeeds.
+apt-get update --error-on=any
 apt-get -yq -o Dpkg::Use-Pty=0 install --no-install-recommends locales eatmydata tzdata
 
 # systemd-related system users (tmpfiles expects them)
