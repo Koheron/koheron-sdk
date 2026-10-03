@@ -180,7 +180,9 @@ Each board generates its own machine ID and SSH host keys on first boot. Build-o
 
 Set `PASSWORD` in the environment before `make image` to customize the image's root password; `PASSWD` is accepted as a legacy alias. Changes to `PASSWORD` or `TIMEZONE` rebuild the cached base rootfs. The default password is `changeme` and the default timezone is `Europe/Paris`.
 
-Image builds verify the resized partition before truncating and release chroot mounts before packaging. If a mount cannot be released, the build fails and reports the loop device retained for recovery. Run the disk-free build regression tests with `python3 -m unittest discover -s os/tests -p 'test_*build.py'`.
+Image builds verify the resized partition before truncating and release chroot mounts and the loop device before packaging. If a mount cannot be released, the build fails and reports the loop device retained for recovery.
+
+Each ZIP is built from scratch and atomically replaces the previous archive after successful packaging; failed builds preserve the previous ZIP. The loose image and checksum files are build outputs and may change during a failed rebuild. Run the disk-free build regression tests with `python3 -m unittest discover -s os/tests -p 'test_*build.py'`.
 
 This setup lets you iterate rapidly without having to rebuild the entire OS for every code change.
 
