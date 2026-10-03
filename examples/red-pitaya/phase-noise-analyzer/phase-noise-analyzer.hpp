@@ -26,5 +26,5 @@ class PhaseNoiseAnalyzer {
     auto get_phase_noise() const { return core.get_phase_noise(); }
 
  private:
-    phase_noise::Core<Alpha250PhaseNoiseBoard> core;
+    phase_noise::Core<RedPitayaPhaseNoiseBoard> core;
 };
