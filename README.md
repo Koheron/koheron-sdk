@@ -44,7 +44,7 @@ Report the archive path, checks passed and anything not yet verified on a board.
 
 For a deployment task, add the intended board IP and whether it already runs V1. An existing V1 image usually lets the agent build and upload just the instrument archive. A board still running the supplied V0 image needs initial V1 OS setup.
 
-For your own instrument, replace the FFT goal with the required inputs, processing, outputs, client controls and a measurable acceptance check. The agent instructions explain configuration, generated outputs, incremental builds, tests and deployment.
+For your own instrument, replace the FFT goal with the required inputs, processing, outputs, client controls and a measurable acceptance check. The README and example projects provide the build and API references.
 
 ---
 
