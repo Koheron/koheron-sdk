@@ -27,7 +27,7 @@ assert beta > 0 and np.isfinite(beta)
 
 def wait_captures(count):
     first = analyzer.get_precision_status()[4]
-    deadline = time.monotonic() + max(10, (count + 6) * 3 * 262144 / fs)
+    deadline = time.monotonic() + max(10, (count + 6) * 3 * 131072 / fs)
     while time.monotonic() < deadline:
         status = analyzer.get_precision_status()
         assert status[3] != 2, "Phase overrange: reduce precision or LO offset"

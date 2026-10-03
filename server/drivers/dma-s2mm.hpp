@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <thread>
 #include <scicpp/core.hpp>
 
@@ -32,6 +33,7 @@ class DmaS2MM
         start();
         set_destination_address(dest_addr);
         set_length(length);
+        transfer_started = std::chrono::steady_clock::now();
     }
 
     template<MemID id, std::size_t n_elems, class T>
@@ -62,30 +64,40 @@ class DmaS2MM
     }
 
     bool wait_for_transfer_checked(float dma_transfer_duration_seconds) {
-        const auto dma_duration = std::chrono::duration<float>(dma_transfer_duration_seconds);
-        const auto sleep_duration = std::max(std::chrono::microseconds(1),
-                                             std::chrono::duration_cast<std::chrono::microseconds>(0.55f * dma_duration));
-        uint32_t cnt = 0;
+        if (idle()) return (dma.read<s2mm_dmasr>() & 0x70u) == 0;
+        if (!std::isfinite(dma_transfer_duration_seconds) || dma_transfer_duration_seconds <= 0.0f)
+            return false;
+        using Clock = std::chrono::steady_clock;
+        const auto duration = std::chrono::duration_cast<Clock::duration>(
+            std::chrono::duration<float>(dma_transfer_duration_seconds));
+        const auto margin = std::min(duration / 20,
+            std::chrono::duration_cast<Clock::duration>(std::chrono::milliseconds(1)));
+        const auto poll_start = transfer_started + duration - margin;
+        const auto deadline = transfer_started + std::max(3 * duration,
+            std::chrono::duration_cast<Clock::duration>(std::chrono::milliseconds(5)));
 
         while (! idle()) {
             if (dma.read<s2mm_dmasr>() & 0x70u) {
                 log<ERROR>("DmaS2MM::wait_for_transfer: DMA transfer error\n");
                 return false;
             }
-            std::this_thread::sleep_for(sleep_duration);
-            cnt++;
-
-            if (cnt > max_sleeps_cnt && !idle()) {
+            const auto now = Clock::now();
+            if (now >= deadline) {
                 logf<ERROR>(
-                    "DmaS2MM::wait_for_transfer: Max number of sleeps exceeded. [set duration {} s]\n",
+                    "DmaS2MM::wait_for_transfer: Deadline exceeded. [set duration {} s]\n",
                     dma_transfer_duration_seconds);
                 return false;
             }
+            // Account for processing overlapped with DMA. Sleep near completion,
+            // then poll briefly instead of rounding up by half a whole capture.
+            std::this_thread::sleep_until(std::min(deadline,
+                std::max(poll_start, now + std::chrono::microseconds(200))));
         }
         return (dma.read<s2mm_dmasr>() & 0x70u) == 0;
     }
 
   private:
+    std::chrono::steady_clock::time_point transfer_started{};
     static constexpr uint32_t s2mm_dmacr  = 0x30;  // S2MM DMA Control register
     static constexpr uint32_t s2mm_dmasr  = 0x34;  // S2MM DMA Status register
     static constexpr uint32_t s2mm_da     = 0x48;  // S2MM Destination Address

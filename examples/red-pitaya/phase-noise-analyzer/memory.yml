@@ -47,4 +47,4 @@ parameters:
   cic_decimation_rate_min: 4
   cic_decimation_rate_max: 8192
   cic_n_stages: 6
-  n_pts: 262144
+  n_pts: 131072

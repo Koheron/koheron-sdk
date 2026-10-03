@@ -10,6 +10,29 @@
 #include <limits>
 
 int main() {
+    // Compare the cached production estimator with the independent library
+    // implementation, including DC, Nyquist, broadband noise and plan reuse.
+    using Phase = scicpp::units::radian<float>;
+    std::array<Phase, 65536> signal{};
+    uint32_t random = 1;
+    for (std::size_t i = 0; i < signal.size(); ++i) {
+        random = 1664525u * random + 1013904223u;
+        signal[i] = Phase{float(.1 * std::sin(2 * scicpp::pi<double> * 64 * double(i) / 32768) +
+            .01 * double(random) / double(UINT32_MAX) + (i % 2 ? -.02 : .02))};
+    }
+    phase_noise::WelchSpectrum<32768> cached;
+    scicpp::signal::Spectrum<float> reference;
+    reference.window(scicpp::signal::windows::hann<float>(32768));
+    for (float frequency : {3125000.f, 6250000.f, 3125000.f}) {
+        reference.fs(frequency);
+        const auto expected = reference.welch<scicpp::signal::SpectrumScaling::DENSITY, false>(signal);
+        const auto actual = cached.density(signal, scicpp::units::frequency<float>{frequency});
+        const auto peak = std::max_element(expected.begin(), expected.end())->eval();
+        assert(actual.size() == expected.size());
+        for (std::size_t i = 0; i < actual.size(); ++i)
+            assert(std::abs(actual[i].eval() - expected[i].eval()) < 2e-5f * peak);
+    }
+
     auto& cfg = services::require<rt::ConfigManager>();
     cfg.set("PhaseNoiseAnalyzer", "cic_rate", 16u);
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[0]", 10e6 + 0.637);

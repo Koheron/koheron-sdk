@@ -26,10 +26,12 @@ steps and a bandwidth well below the plotted offset range. Disabling it restores
 both nominal LOs. For details see the ALPHA250 analyzer README.
 
 The CIC range is 4–8192. The output rate is `125e6 / (2 * CIC rate)`.
-Each DMA transfer contains 262144 signed phase samples. The server processes
+Each DMA transfer contains 131072 signed phase samples. The server processes
 65536 samples with a 32768-point Hann Welch estimator, yielding 16385 bins in
 rad²/Hz. The plotted single-sideband phase noise is `10 log10(S_phi / 2)` dBc/Hz.
 Changing acquisition settings discards settling data and clears averages.
+The analyzed block starts 32768 samples into each packet, leaving ample settling
+time while halving the unused capture data from the original design.
 
 ## Runtime phase precision
 
@@ -81,7 +83,7 @@ HOST=192.168.1.84 .venv/bin/python3 examples/red-pitaya/phase-noise-analyzer/tes
 
 The script compares an unmodulated carrier with a 0.1 rad peak sine PM tone at
 FFT bin 64. Its expected integrated phase power is 0.005 rad². It saves both
-spectra in `tmp/tests/red-pitaya-phase-noise-analyzer/loopback.npz` and checks
+spectra in `tmp/tests/red-pitaya-phase-noise-analyzer/loopback-r*-b*-pm*.npz` and checks
 agreement within 5%. It restores the previous analyzer and DAC settings, including
 the nominal LOs and tracking state. Set `PHASE_BITS`, `CIC_RATE` and `PM_RADIANS`
 to exercise other precision settings, decimation rates and PM amplitudes.
@@ -97,15 +99,41 @@ an external carrier is needed to characterize independent source phase noise.
 ## Hardware results
 
 Validated on a Red Pitaya with DAC0 connected to ADC0 (LV): all nine precision
-settings measured the 0.1 rad PM tone at 6103.515625 Hz within +0.15% of the
-expected 0.005 rad². At CIC 67 and maximum precision, the error was +0.13%.
+settings measured the 0.1 rad PM tone at 6103.515625 Hz within 0.16% of the
+expected 0.005 rad². At CIC 67 and maximum precision, the error was +0.17%.
 Both signs of a 100 kHz LO offset caused reported overrange at +8 bits; reducing
 precision recovered acquisition without a DMA error. Rapid precision changes
 kept snapshot validity and scale consistent.
 Slow tracking reduced initial LO offsets of +0.25 Hz and −0.25 Hz to below
 0.025 Hz in about five seconds, and disabling tracking restored the nominal LO.
 
+The selectable output step does not establish a calibrated noise floor or
+small-signal accuracy. A 1 mrad PM tone at maximum precision measured 7–15% below
+its expected power, depending on carrier phase; a 10 mrad tone was within 1.3%.
+This is consistent with quantization earlier in the signal path, including the
+383.5 µrad CORDIC step, but the responsible stage has not been isolated.
+
+Cached FFT plans and buffers, overlapped tracking and DMA, and shorter capture
+packets improve acquisition throughput without changing the Welch window,
+overlap, bin spacing or phase-noise density normalization. With tracking off
+and one spectrum per average, measured rates were:
+
+| CIC rate | Before optimization | After optimization |
+| --- | --- | --- |
+| 4 | 16.7 spectra/s | 25.4 spectra/s |
+| 20 | 9.48 spectra/s | 23.1 spectra/s |
+| 100 | 1.90 spectra/s | 4.70 spectra/s |
+
+These are ten-second measurements on the loopback board with the web page
+closed. CPU load at CIC 20 was about 111% across the two CPU cores; the fastest
+rate is limited by phase and FFT processing. Snapshot RPCs can still wait for
+that processing (about 35 ms at CIC 20). No DMA errors or overrange packets were
+observed during these benchmarks.
+With slow tracking enabled at CIC 20, the analyzer delivered 20.3 spectra/s
+with a 0.0024 Hz residual LO error. Precision requests during a CIC 400 capture
+returned in less than 1 ms; changing CIC 400 to 4 caused no DMA error.
+
 Vivado 2025.1 implementation passed the configured setup/hold/pulse-width and
-bus-skew checks (WNS 0.250 ns, WHS 0.023 ns), with no unconstrained internal
+bus-skew checks (WNS 0.550 ns, WHS 0.024 ns), with no unconstrained internal
 endpoints. The inherited board constraints still omit some external I/O delays.
-At placement the design uses 13135 LUTs, 26 block RAMs and 53 DSP slices.
+At placement the design uses 13131 LUTs, 26 block RAMs and 53 DSP slices.
