@@ -31,8 +31,7 @@ def stage_archive(filename, destination):
         required = {'version', 'serverd'}
         if not required <= names:
             raise ValueError('Instrument archive requires version and serverd')
-        if archive.testzip() is not None:
-            raise ValueError('Corrupt instrument archive')
+        # Extraction checks member CRCs in staging before any service changes.
         archive.extractall(destination)
         for member in archive.infolist():
             if not member.is_dir():

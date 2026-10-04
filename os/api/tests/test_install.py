@@ -2,6 +2,7 @@
 import importlib.util
 from pathlib import Path
 import stat
+import struct
 import subprocess
 import tempfile
 import unittest
@@ -84,6 +85,29 @@ class InstallTest(unittest.TestCase):
             installer.install(self.archive, self.live)
         self.assert_old()
         self.assertEqual(self.operations, [])
+
+    def test_corrupt_member_does_not_stop_service(self):
+        # Keep the ZIP readable but corrupt its last payload, so extraction has
+        # already staged other files when the CRC check fails.
+        with zipfile.ZipFile(self.archive) as archive:
+            member = archive.getinfo('new.bit.bin')
+            self.assertEqual(member.compress_type, zipfile.ZIP_STORED)
+        with self.archive.open('r+b') as archive:
+            archive.seek(member.header_offset)
+            header = archive.read(30)
+            name_size, extra_size = struct.unpack_from('<HH', header, 26)
+            archive.seek(member.header_offset + 30 + name_size + extra_size)
+            byte = archive.read(1)
+            archive.seek(-1, 1)
+            archive.write(bytes([byte[0] ^ 1]))
+
+        with self.assertRaisesRegex(zipfile.BadZipFile, 'Bad CRC-32'):
+            installer.install(self.archive, self.live)
+        self.assert_old()
+        self.assertEqual((self.live / 'version').read_text(), '1')
+        self.assertTrue(self.active)
+        self.assertEqual(self.operations, [])
+        self.assertEqual(list(self.root.glob('.instrument-*')), [])
 
     def test_missing_payload_does_not_stop_service(self):
         with zipfile.ZipFile(self.archive, 'w') as z:
