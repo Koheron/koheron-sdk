@@ -18,10 +18,12 @@ function fixture(t) {
     plot.lastStarted = -Infinity;
     plot.readMs = plot.processMs = plot.drawMs = plot.schedulerMs = 0;
     plot.rateStarted = 0; plot.displayedFrames = 0; plot.lastTableUpdate = -Infinity;
+    plot.receivedFrames = 0;
     w.setTimeout = () => 0;
     plot.n_pts = 16385; plot.samplingFrequency = 5e6;
     plot.plot_data = []; plot.laserPlotType = 'phase'; plot.yLabel = 'Phase noise (dBc/Hz)';
     plot.plotBasics = {
+        needsRedraw() { return false; },
         setRangeX(low, high) { state.range = [low, high]; },
         setLinY() { state.fits++; },
         refreshLegend() { state.legendRefreshes++; },
@@ -387,7 +389,7 @@ test('analyzer can retain its page on socket loss while other SDK clients retain
 
 test('plot defaults to a 60 FPS target and disposal cancels the pending update', t => {
     const {plot, window: w} = fixture(t);
-    Object.assign(plot.plotBasics, {setLogX() {}, enableDecimation() {}, setPrimaryTraceLabel() {}});
+    Object.assign(plot.plotBasics, {setLogX() {}, enableDecimation() {}, enableBatchedLines() {}, setPrimaryTraceLabel() {}});
     const live = new w.Plot(w.document, plot.driver, plot.plotBasics);
     assert.equal(live._targetHz, 60);
     const cancelled = [];
@@ -423,12 +425,14 @@ test('polling respects the target, permits only one in-flight read, and pauses w
     const {plot, window: w} = fixture(t);
     const frames = [];
     w.requestAnimationFrame = callback => { frames.push(callback); return frames.length; };
-    w.setTimeout = () => { throw new Error('normal display pacing must not introduce a timer wait'); };
+    const timers = [];
+    w.setTimeout = (callback, delay) => { timers.push({callback, delay}); return timers.length; };
     let now = 1000;
     Object.defineProperty(w.performance, 'now', {value: () => now});
     plot._lastTick = now - 5;
     await plot.updatePlot();
     assert.equal(frames.length, 1);
+    assert.equal(timers[0].delay, 12);
     let finish, reads = 0;
     plot.driver.getPhaseNoise = () => { reads++; return new Promise(resolve => { finish = resolve; }); };
     now += 12;
@@ -441,6 +445,7 @@ test('polling respects the target, permits only one in-flight read, and pauses w
     finish(new Float32Array(16385).fill(2));
     await pending;
     assert.equal(frames.length, 1, 'hidden page must not schedule another read');
+    assert.equal(timers.length, 1, 'hidden page must not schedule a fallback timer');
     await plot.updatePlot();
     assert.equal(reads, 1);
 });
@@ -480,4 +485,97 @@ test('a late frame retains the cadence deadline and reports its timing', async t
     assert.match(w.document.getElementById('refresh-rate').title, /read 3\.0 ms; process 0\.0 ms; draw 2\.0 ms; scheduling delay 2\.0 ms/);
     plot.markUnavailable('Disconnected');
     assert.doesNotMatch(w.document.getElementById('refresh-rate').title, /read .* ms/, 'unavailable data clears the previous timing sample');
+});
+
+test('FPS excludes repeated cached PSDs, including laser-mode NaNs', async t => {
+    const {plot, window: w} = fixture(t);
+    let now = 1000, draws = 0;
+    const psd = new Float32Array(16385).fill(2);
+    psd[0] = NaN;
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    plot.driver.getPhaseNoise = async () => psd.slice();
+    plot.plotBasics.redraw = (data, size, peak, label, done) => { draws++; done(); };
+    await plot.updatePlot();
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '1 FPS');
+    plot.frameReceivedAt = 'first-frame';
+    now += 1000;
+    await plot.updatePlot();
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '0 FPS', 'an identical owned reply is not new spectrum data');
+    assert.equal(draws, 1, 'cached replies do not repaint the canvas');
+    assert.equal(plot.frameReceivedAt, 'first-frame');
+    assert.match(w.document.getElementById('refresh-rate').title, /polling 1\/s/);
+    psd[64] = 3;
+    now += 1000;
+    await plot.updatePlot();
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '1 FPS');
+    assert.equal(plot.phase_psd[64], 3);
+    assert.equal(draws, 2);
+});
+
+test('a stalled screen callback has a timer fallback and the winner cancels its counterpart', t => {
+    const {plot, window: w} = fixture(t);
+    let now = 1000, id = 0, updates = 0;
+    const timers = new Map(), animations = new Map();
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    w.setTimeout = callback => { timers.set(++id, callback); return id; };
+    w.requestAnimationFrame = callback => { animations.set(++id, callback); return id; };
+    w.clearTimeout = id => timers.delete(id);
+    w.cancelAnimationFrame = id => animations.delete(id);
+    plot.updatePlot = () => { updates++; };
+    plot._lastTick = now;
+    const fire = callbacks => {
+        const [id, callback] = callbacks.entries().next().value;
+        callbacks.delete(id); callback();
+    };
+    plot.schedule(1000 / 60);
+    now += 8;
+    fire(animations);
+    assert.equal(updates, 0, 'an early screen callback leaves the deadline timer intact');
+    assert.equal(timers.size, 1);
+    now += 9;
+    fire(timers);
+    assert.equal(updates, 1, 'the timer proceeds even if the next screen callback never arrives');
+    plot.schedule(0);
+    fire(animations);
+    assert.equal(updates, 2);
+    assert.equal(timers.size, 0, 'a screen callback that wins cancels the timer');
+    assert.equal(animations.size, 0);
+});
+
+test('cached PSDs still honor zoom requests without changing frame metadata or FPS', async t => {
+    const {plot, window: w} = fixture(t);
+    let now = 1000, draws = 0;
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    plot.plotBasics.redraw = (data, size, peak, label, done) => { draws++; done(); };
+    await plot.updatePlot();
+    plot.frameReceivedAt = 'original-capture';
+    plot.plotBasics.needsRedraw = () => true;
+    now += 1000;
+    await plot.updatePlot();
+    assert.equal(draws, 2, 'zoom applies to a stationary spectrum');
+    assert.equal(plot.frameReceivedAt, 'original-capture');
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '0 FPS');
+    const oldFrequency = plot.plot_data[64][0];
+    plot.driver.parameters.fs *= 2;
+    now += 1000; await plot.updatePlot();
+    assert.equal(plot.plot_data[64][0], oldFrequency * 2, 'settings changes rebuild the axis even for identical PSD bytes');
+    assert.equal(draws, 3);
+});
+
+test('an empty or truncated spectrum cannot corrupt the retained axis or reference', async t => {
+    const {plot} = fixture(t);
+    plot.plotBasics.redraw = (data, size, peak, label, done) => done();
+    await plot.updatePlot(); plot.captureReference();
+    const points = plot.n_pts, frequency = plot.plot_data[64][0], reference = plot.referencePSD;
+    let delay;
+    plot.schedule = value => { delay = value; };
+    for (const length of [0, 1, 2]) {
+        plot.driver.getPhaseNoise = async () => new Float32Array(length);
+        plot._lastTick = -1000; await plot.updatePlot();
+        assert.equal(plot.n_pts, points);
+        assert.equal(plot.plot_data[64][0], frequency);
+        assert.equal(plot.referencePSD, reference);
+        assert.equal(plot.frameStatus, undefined);
+        assert.equal(delay, 500, 'invalid frames back off instead of spinning');
+    }
 });

@@ -259,12 +259,16 @@ stale and provides a Retry button.
 
 ## Spectrum display and reference trace
 
-The header shows measured display FPS, with a default target of 60 updates/s.
-Hover over it for average read, processing, drawing and scheduling times.
-Polling pauses while the tab is hidden. This measures displayed spectrum updates;
-hardware acquisition cadence remains independent and may be lower.
+The header counts changed spectra displayed per second; repeated cached replies
+are excluded. The polling target defaults to 60 reads/s and pauses while the tab
+is hidden. Hover over FPS for the measured polling rate and average read,
+processing, drawing and scheduling times. Hardware acquisition cadence may be
+lower than the polling target, so the noise trace and FPS follow new PSD data.
 Spectrum reads return the latest completed result without waiting for the next
 FFT calculation. Retuning still clears the published spectrum while settling.
+Dense noise traces use short canvas strokes to keep magnified plots responsive.
+Logarithmic column reduction retains extrema and gaps; sparse zooms restore all
+visible bins. References, capture and CSV retain the full spectrum.
 
 Use **Capture ref** beside the plot to freeze the displayed spectrum, as in
 the FFT workspace. The button becomes **Replace ref**; **Clear ref** removes

@@ -12,6 +12,7 @@ class Plot {
   private samplingFrequency: number;
   private decadeValuesTable: HTMLTableElement;
   private frameParameters: IParameters;
+  private renderedPlotType: 'phase' | 'frequency';
   public frameReceivedAt: string;
   private reference: {psd: Float32Array; parameters: IParameters; receivedAt: string};
   private hasInitialFit = false;
@@ -48,6 +49,7 @@ class Plot {
     this.setFreqAxis();
     this.plotBasics.setLogX(true);
     this.plotBasics.enableDecimation();
+    this.plotBasics.enableBatchedLines();
     this.plotBasics.setPrimaryTraceLabel('Raw');
 
     this.initLaserPlotType();
@@ -84,6 +86,7 @@ class Plot {
       if (this.frameParameters) {
         this.computeDisplaySpectrum(this.phase_psd, 2);
         this.computeSmoothedPlot(2);
+        this.renderedPlotType = this.laserPlotType;
         this.updateReferenceDisplay();
         this.setDecadeValuesTable();
         this.redraw(() => {});
@@ -184,13 +187,14 @@ class Plot {
   }
 
   private _busy = false;
-  private _targetHz = 60; // displayed spectrum updates per second
+  private _targetHz = 60; // spectrum polls per second
   private _lastTick = -Infinity;
   private lastStarted = -Infinity;
   private timer: number;
   private animation: number;
   private rateStarted = performance.now();
   private displayedFrames = 0;
+  private receivedFrames = 0;
   private readMs = 0;
   private processMs = 0;
   private drawMs = 0;
@@ -323,6 +327,15 @@ class Plot {
       this.showSmoothedInput?.checked ? [{label: 'Smoothed', data: this.smooth_plot_data, color: '#006400'}] : []);
   }
 
+  private spectrumChanged(next: Float32Array): boolean {
+    if (!this.phase_psd || next.length !== this.phase_psd.length) { return true; }
+    for (let i = 0; i < next.length; i++) {
+      // Laser-mode DC can be NaN; identical nonfinite bins are not a new frame.
+      if (!Object.is(next[i], this.phase_psd[i])) { return true; }
+    }
+    return false;
+  }
+
   async updatePlot() {
     if (this.disposed || this.document.hidden || this._busy) {
       return;
@@ -372,6 +385,29 @@ class Plot {
       const phaseNoise: Float32Array = await this.driver.getPhaseNoise();
       const received = performance.now();
       if (this.disposed) { return; }
+      if (this.document.hidden) { this._busy = false; return; }
+      if (phaseNoise.length < 3) {
+        this.markUnavailable('Measurement unavailable');
+        this._busy = false;
+        this.schedule(500);
+        return;
+      }
+      const changed = this.spectrumChanged(phaseNoise);
+      if (!changed && this.frameParameters && this.renderedPlotType === this.laserPlotType &&
+          (Object.keys(frameParameters) as (keyof IParameters)[]).every(key => Object.is(frameParameters[key], this.frameParameters[key]))) {
+        // The server returns its last published PSD between acquisitions.
+        // A zoom/resize still needs a redraw, but keeps the capture timestamp.
+        const drawStarted = performance.now();
+        const complete = () => {
+          this._busy = false;
+          if (this.disposed) { return; }
+          this.recordFrame(received - readStarted, 0, performance.now() - drawStarted, frameDelay, false);
+          this.schedule(Math.max(0, this._lastTick + frameBudgetMs - performance.now()));
+        };
+        if (this.plotBasics.needsRedraw()) { this.redraw(complete); }
+        else { complete(); }
+        return;
+      }
       this.phase_psd = phaseNoise;
       if (this.n_pts !== phaseNoise.length) {
         this.n_pts = phaseNoise.length;
@@ -381,6 +417,7 @@ class Plot {
 
       this.computeDisplaySpectrum(phaseNoise, 2);
       this.computeSmoothedPlot(2);
+      this.renderedPlotType = this.laserPlotType;
       this.frameParameters = {...frameParameters, fs: this.samplingFrequency, data_size: phaseNoise.length};
       this.frameReceivedAt = new Date().toISOString();
       const ready = phaseNoise.subarray(2).some(v => Number.isFinite(v) && v > 0);
@@ -407,7 +444,7 @@ class Plot {
           if (this.disposed) { return; }
           const drawn = performance.now();
           if (ready) { this.recordFrame(received - readStarted, drawStarted - received, drawn - drawStarted,
-            frameDelay); }
+            frameDelay, changed); }
           this.schedule(Math.max(0, this._lastTick + frameBudgetMs - drawn));
         });
     } catch (err) {
@@ -426,33 +463,37 @@ class Plot {
     if (this.disposed || this.document.hidden) { return; }
     const update = () => {
       window.clearTimeout(this.timer);
+      window.cancelAnimationFrame(this.animation);
       void this.updatePlot();
     };
-    // Pace normal reads directly with the screen. A timer followed by a screen
-    // callback adds two waits; keep a single serial loop and use timers only
-    // for the slower unavailable/LO polling.
+    // Some visible/occluded browser windows throttle screen callbacks to 1 Hz.
+    // Race a deadline timer against the screen callback, as in the FFT display;
+    // whichever wins cancels the other, keeping only one serial read loop.
+    this.timer = window.setTimeout(update, Math.ceil(delay));
     if (delay <= 1000 / this._targetHz) {
-      this.animation = window.requestAnimationFrame(update);
-    } else {
-      this.timer = window.setTimeout(update, Math.ceil(delay));
+      this.animation = window.requestAnimationFrame(() => {
+        if (performance.now() + 1 >= this._lastTick + 1000 / this._targetHz) { update(); }
+      });
     }
   }
 
   private resetRate(): void {
     this.rateStarted = performance.now();
     this.displayedFrames = 0;
+    this.receivedFrames = 0;
     this.lastStarted = -Infinity;
     this.readMs = this.processMs = this.drawMs = this.schedulerMs = 0;
     const rate = this.document.getElementById('refresh-rate');
     if (rate) {
       rate.textContent = '— FPS';
-      rate.title = `Displayed spectrum updates per second; target ${this._targetHz} FPS`;
+      rate.title = `New spectra displayed per second; polling target ${this._targetHz}/s; cached replies excluded`;
     }
   }
 
-  private recordFrame(readMs = 0, processMs = 0, drawMs = 0, schedulerMs = 0): void {
+  private recordFrame(readMs = 0, processMs = 0, drawMs = 0, schedulerMs = 0, changed = true): void {
     if (this.document.hidden) { return; }
-    this.displayedFrames++;
+    if (changed) { this.displayedFrames++; }
+    this.receivedFrames++;
     this.readMs += readMs;
     this.processMs += processMs;
     this.drawMs += drawMs;
@@ -462,13 +503,14 @@ class Plot {
     const rate = this.document.getElementById('refresh-rate');
     if (rate) {
       rate.textContent = (this.displayedFrames * 1000 / elapsed).toFixed(0) + ' FPS';
-      const mean = (time: number) => (time / this.displayedFrames).toFixed(1);
-      rate.title = `Displayed spectrum updates per second; target ${this._targetHz} FPS`
+      const mean = (time: number) => (time / this.receivedFrames).toFixed(1);
+      rate.title = `New spectra displayed per second; polling ${(this.receivedFrames * 1000 / elapsed).toFixed(0)}/s (target ${this._targetHz}/s)`
         + `; read ${mean(this.readMs)} ms; process ${mean(this.processMs)} ms`
         + `; draw ${mean(this.drawMs)} ms; scheduling delay ${mean(this.schedulerMs)} ms`;
     }
     this.rateStarted = performance.now();
     this.displayedFrames = 0;
+    this.receivedFrames = 0;
     this.readMs = this.processMs = this.drawMs = this.schedulerMs = 0;
   }
 
