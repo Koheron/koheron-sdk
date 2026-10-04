@@ -1,6 +1,6 @@
 # /etc/systemd/system/uwsgi.service
 [Unit]
-Description=uWSGI (socket-activated, runs as root)
+Description=uWSGI HTTP API (started at boot, runs as root)
 DefaultDependencies=no
 After=sysinit.target local-fs.target systemd-tmpfiles-setup.service
 Before=basic.target
@@ -10,6 +10,7 @@ Type=notify
 NotifyAccess=all
 User=root
 Group=root
+Sockets=uwsgi.socket
 # inherit the systemd socket on fd 3
 ExecStart=/usr/bin/uwsgi --ini /etc/uwsgi/uwsgi.ini --plugin python3 --socket fd://0
 Restart=always
