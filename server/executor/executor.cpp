@@ -9,22 +9,22 @@
 #include <drivers_json.hpp>
 
 #include <cassert>
+#include <mutex>
 
 namespace koheron {
 
 struct Executor::Impl {
     std::array<std::unique_ptr<DriverAbstract>, drivers::table::size - drivers::table::offset> wrappers{};
+    std::array<std::once_flag, drivers::table::size - drivers::table::offset> wrapper_init{};
 
     template<driver_id id>
     void ensure_wrapper() {
-        auto& slot = wrappers[id - 2];
-
-        if (slot) {
-            return;
-        }
-
-        auto& dm = services::require<rt::DriverManager>();
-        slot = std::make_unique<Driver<id>>(dm.get<id>());
+        constexpr auto index = id - drivers::table::offset;
+        // Publish exactly one adapter (and mutex) even for simultaneous first requests.
+        std::call_once(wrapper_init[index], [this] {
+            auto& dm = services::require<rt::DriverManager>();
+            wrappers[index] = std::make_unique<Driver<id>>(dm.get<id>());
+        });
     }
 
     void ensure_wrapper_runtime(driver_id id) {

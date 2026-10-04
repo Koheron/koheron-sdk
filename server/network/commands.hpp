@@ -19,6 +19,7 @@
 #include <tuple>
 #include <initializer_list>
 #include <span>
+#include <mutex>
 
 namespace net {
 
@@ -85,14 +86,14 @@ class Command
 
     // Non-const member functions
     template<class C, class Ret, class... Args>
-    int op_invoke(C& obj, Ret (C::*pmf)(Args...)) {
-        return op_invoke_impl(obj, pmf);
+    int op_invoke(C& obj, Ret (C::*pmf)(Args...), std::mutex* mutex = nullptr) {
+        return op_invoke_impl(obj, pmf, mutex);
     }
 
     // const member functions
     template<class C, class Ret, class... Args>
-    int op_invoke(const C& obj, Ret (C::*pmf)(Args...) const) {
-        return op_invoke_impl(obj, pmf);
+    int op_invoke(const C& obj, Ret (C::*pmf)(Args...) const, std::mutex* mutex = nullptr) {
+        return op_invoke_impl(obj, pmf, mutex);
     }
 
     template<typename... Args>
@@ -283,7 +284,7 @@ class Command
     }
 
     template<class Obj, class PMF>
-    int op_invoke_impl(Obj&& obj, PMF pmf) {
+    int op_invoke_impl(Obj&& obj, PMF pmf, std::mutex* mutex) {
         using traits     = pmf_traits<PMF>;
         using Ret        = typename traits::ret;
         using ArgsTuple  = typename traits::args;
@@ -296,35 +297,40 @@ class Command
             static_assert(need <= CMD_PAYLOAD_BUFFER_LEN, "Buffer size too small");
         }
 
-        if constexpr (N == 0) {
-            // No payload to read
-            if constexpr (std::is_void_v<Ret>) {
-                std::invoke(pmf, std::forward<Obj>(obj));
-                return 0;
-            } else {
-                decltype(auto) r = std::invoke(pmf, std::forward<Obj>(obj));
-                return send(std::forward<decltype(r)>(r));
-            }
+        using IS = std::make_index_sequence<N>;
+        using DecayedArgsTuple = typename decayed_tuple_from_seq<ArgsTuple, IS>::type;
+        DecayedArgsTuple args{};
+        // A client waiting to finish a request must not hold the driver lock.
+        if (!read_arguments(args, IS{})) {
+            return -1;
+        }
+
+        std::unique_lock<std::mutex> lock;
+        if (mutex) {
+            lock = std::unique_lock<std::mutex>(*mutex);
+        }
+        auto invoke = [&]() -> decltype(auto) {
+            return std::apply([&](auto&... a) -> decltype(auto) {
+                return std::invoke(pmf, std::forward<Obj>(obj), a...);
+            }, args);
+        };
+
+        if constexpr (std::is_void_v<Ret>) {
+            invoke();
+            return 0;
         } else {
-            using IS = std::make_index_sequence<N>;
-            using DecayedArgsTuple = typename decayed_tuple_from_seq<ArgsTuple, IS>::type;
-
-            DecayedArgsTuple args{};
-            if (!read_arguments(args, IS{})) {
-                return -1;
-            }
-
-            if constexpr (std::is_void_v<Ret>) {
-                std::apply([&](auto&... a) {
-                    std::invoke(pmf, std::forward<Obj>(obj), a...);
-                }, args);
-                return 0;
-            } else {
-                decltype(auto) r = std::apply([&](auto&... a) -> decltype(auto) {
-                    return std::invoke(pmf, std::forward<Obj>(obj), a...);
-                }, args);
+            if (!mutex) {
+                decltype(auto) r = invoke();
                 return send(std::forward<decltype(r)>(r));
             }
+            // Serialize while locked: returned references, spans, pointers and
+            // nested views may otherwise be invalidated by the next command.
+            auto response = [&] {
+                decltype(auto) r = invoke();
+                return session->prepare_response(driver, operation, std::forward<decltype(r)>(r));
+            }();
+            lock.unlock();
+            return session->send_prepared_response(response);
         }
     }
 

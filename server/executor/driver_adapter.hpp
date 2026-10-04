@@ -70,8 +70,8 @@ struct Op {
 
 template<class C, auto PMF>
 struct OpThunk {
-    static int call(C& obj, net::Command& cmd) {
-        return cmd.op_invoke(obj, PMF);
+    static int call(C& obj, net::Command& cmd, std::mutex& mutex) {
+        return cmd.op_invoke(obj, PMF, &mutex);
     }
 };
 
@@ -81,7 +81,6 @@ class DriverAdapter : public DriverAbstract {
     explicit DriverAdapter(C& impl) : DriverAbstract(DriverID), obj(impl) {}
 
     int execute(net::Command& cmd) {
-        std::lock_guard lock(mutex_);
         const int op = static_cast<int>(cmd.operation);
 
         if (op < 0 || op >= static_cast<int>(table_.size())) {
@@ -89,14 +88,14 @@ class DriverAdapter : public DriverAbstract {
         }
 
         auto* fn = table_[op];
-        return fn ? fn(obj, cmd) : -1;
+        return fn ? fn(obj, cmd, mutex_) : -1;
     }
 
   private:
     C& obj;
     std::mutex mutex_;
 
-    using Entry = int(*)(C&, net::Command&);
+    using Entry = int(*)(C&, net::Command&, std::mutex&);
 
     template<std::size_t I>
     static constexpr int op_id_for() {

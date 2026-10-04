@@ -6,6 +6,7 @@
 #define __SERVER_RUNTIME_DRIVER_MANAGER_HPP__
 
 #include <array>
+#include <atomic>
 #include <mutex>
 #include <functional>
 
@@ -56,7 +57,7 @@ class DriverManager
 
     template<driver_id id>
     auto& get() {
-        const bool is_core_started = std::get<id - drivers::table::offset>(is_started);
+        const bool is_core_started = std::get<id - drivers::table::offset>(is_started).load(std::memory_order_acquire);
 
         if (!is_core_started) {
             alloc_core(id);
@@ -72,7 +73,7 @@ class DriverManager
 
   private:
     DriverContainer driver_container;
-    std::array<bool, drivers::table::size - drivers::table::offset> is_started{};
+    std::array<std::atomic<bool>, drivers::table::size - drivers::table::offset> is_started{};
     std::recursive_mutex mutex;
     alloc_fail_cb on_alloc_fail_;
 
