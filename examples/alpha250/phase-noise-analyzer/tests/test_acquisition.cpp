@@ -199,6 +199,21 @@ int main() {
     assert(std::get<1>(analyzer.get_parameters()).eval() == 3125000.f);
     assert(analyzer.get_phase()[100].eval() == 0.f);
 
+    // Spectrum snapshots must also finish while an exclusive settings/processing
+    // lock is held. A blocked calibration gives this test a deterministic writer.
+    auto& adc = rt::get_driver<Ltc2157>();
+    adc.block_conversion();
+    auto channel_change = std::async(std::launch::async, [&] { analyzer.set_channel(1); });
+    adc.wait_for_conversion();
+    auto spectrum_read = std::async(std::launch::async, [&] { return analyzer.get_phase_noise(); });
+    const auto snapshot_status = spectrum_read.wait_for(std::chrono::seconds(1));
+    adc.release_conversion();
+    channel_change.get();
+    const auto invalidated = spectrum_read.get();
+    assert(snapshot_status == std::future_status::ready);
+    assert(invalidated.size() == 16385);
+    assert(std::all_of(invalidated.begin(), invalidated.end(), [](auto value) { return value.eval() == 0.f; }));
+
     // Stop the simulated DMA before the analyzer's destructor joins acquisition.
     dma.cancel();
     std::cout << "Production acquisition, precision, drift, settling, failure and averaging checks passed\n";

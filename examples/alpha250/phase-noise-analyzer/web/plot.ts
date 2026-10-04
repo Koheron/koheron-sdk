@@ -186,12 +186,19 @@ class Plot {
   private _busy = false;
   private _targetHz = 60; // displayed spectrum updates per second
   private _lastTick = -Infinity;
+  private lastStarted = -Infinity;
   private timer: number;
+  private animation: number;
   private rateStarted = performance.now();
   private displayedFrames = 0;
+  private readMs = 0;
+  private processMs = 0;
+  private drawMs = 0;
+  private schedulerMs = 0;
   private lastTableUpdate = -Infinity;
   private visibilityHandler = () => {
     window.clearTimeout(this.timer);
+    window.cancelAnimationFrame(this.animation);
     this.resetRate();
     if (!this.document.hidden) { void this.updatePlot(); }
   };
@@ -281,7 +288,13 @@ class Plot {
     this.referencePlotType = this.laserPlotType;
   }
 
+  private captureReady: boolean;
   private setCaptureReady(ready: boolean): void {
+    if (!ready) { this.frameParameters = undefined; }
+    // Readiness rarely changes. Rewriting titles, disabled states and ARIA on
+    // every frame also wakes browser/extension observers at the display rate.
+    if (this.captureReady === ready) { return; }
+    this.captureReady = ready;
     const button = document.getElementById('capture-reference') as HTMLButtonElement;
     if (button) { button.disabled = !ready; }
     const fit = document.getElementById('fit-view') as HTMLButtonElement;
@@ -293,7 +306,6 @@ class Plot {
     });
     this.document.getElementById('plot-placeholder')?.setAttribute('aria-label',
       ready ? 'Live noise spectrum' : 'Noise spectrum; no live data');
-    if (!ready) { this.frameParameters = undefined; }
   }
 
   public markUnavailable(reason: string): void {
@@ -323,13 +335,19 @@ class Plot {
     const sinceLast = now - this._lastTick;
 
     // Throttle to targetHz
-    if (sinceLast < frameBudgetMs) {
+    // Allow sub-millisecond clock jitter around a display refresh boundary.
+    if (sinceLast + 1 < frameBudgetMs) {
       this._busy = false;
       this.schedule(frameBudgetMs - sinceLast);
       return;
     }
 
-    this._lastTick = now;
+    // Keep the intended cadence instead of adding each callback's lateness to
+    // the next deadline. After a long pause, start a new cadence without a burst.
+    this._lastTick = Number.isFinite(this._lastTick) && sinceLast < Math.max(250, 2 * frameBudgetMs)
+      ? this._lastTick + frameBudgetMs : now;
+    const frameDelay = Number.isFinite(this.lastStarted) ? Math.max(0, now - this.lastStarted - frameBudgetMs) : 0;
+    this.lastStarted = now;
 
     try {
       // The controls already refresh these parameters and read back LO edits.
@@ -350,7 +368,9 @@ class Plot {
       }
 
       const frameParameters = {...this.driver.parameters};
+      const readStarted = performance.now();
       const phaseNoise: Float32Array = await this.driver.getPhaseNoise();
+      const received = performance.now();
       if (this.disposed) { return; }
       this.phase_psd = phaseNoise;
       if (this.n_pts !== phaseNoise.length) {
@@ -381,12 +401,14 @@ class Plot {
         this.lastTableUpdate = now;
       }
 
+      const drawStarted = performance.now();
       this.redraw(() => {
           this._busy = false;
           if (this.disposed) { return; }
-          if (ready) { this.recordFrame(); }
-          const elapsed = performance.now() - now;
-          this.schedule(Math.max(0, frameBudgetMs - elapsed));
+          const drawn = performance.now();
+          if (ready) { this.recordFrame(received - readStarted, drawStarted - received, drawn - drawStarted,
+            frameDelay); }
+          this.schedule(Math.max(0, this._lastTick + frameBudgetMs - drawn));
         });
     } catch (err) {
       if (this.disposed) { return; }
@@ -400,36 +422,60 @@ class Plot {
 
   private schedule(delay: number): void {
     window.clearTimeout(this.timer);
+    window.cancelAnimationFrame(this.animation);
     if (this.disposed || this.document.hidden) { return; }
-    // A timer followed by requestAnimationFrame adds a second wait and can
-    // halve the cadence on a 60 Hz screen. Keep one serial polling loop.
-    this.timer = window.setTimeout(() => { void this.updatePlot(); }, delay);
+    const update = () => {
+      window.clearTimeout(this.timer);
+      void this.updatePlot();
+    };
+    // Pace normal reads directly with the screen. A timer followed by a screen
+    // callback adds two waits; keep a single serial loop and use timers only
+    // for the slower unavailable/LO polling.
+    if (delay <= 1000 / this._targetHz) {
+      this.animation = window.requestAnimationFrame(update);
+    } else {
+      this.timer = window.setTimeout(update, Math.ceil(delay));
+    }
   }
 
   private resetRate(): void {
     this.rateStarted = performance.now();
     this.displayedFrames = 0;
+    this.lastStarted = -Infinity;
+    this.readMs = this.processMs = this.drawMs = this.schedulerMs = 0;
     const rate = this.document.getElementById('refresh-rate');
-    if (rate) { rate.textContent = '— FPS'; }
+    if (rate) {
+      rate.textContent = '— FPS';
+      rate.title = `Displayed spectrum updates per second; target ${this._targetHz} FPS`;
+    }
   }
 
-  private recordFrame(): void {
+  private recordFrame(readMs = 0, processMs = 0, drawMs = 0, schedulerMs = 0): void {
     if (this.document.hidden) { return; }
     this.displayedFrames++;
+    this.readMs += readMs;
+    this.processMs += processMs;
+    this.drawMs += drawMs;
+    this.schedulerMs += schedulerMs;
     const elapsed = performance.now() - this.rateStarted;
     if (elapsed < 1000) { return; }
     const rate = this.document.getElementById('refresh-rate');
     if (rate) {
       rate.textContent = (this.displayedFrames * 1000 / elapsed).toFixed(0) + ' FPS';
-      rate.title = `Displayed spectrum updates per second; target ${this._targetHz} FPS`;
+      const mean = (time: number) => (time / this.displayedFrames).toFixed(1);
+      rate.title = `Displayed spectrum updates per second; target ${this._targetHz} FPS`
+        + `; read ${mean(this.readMs)} ms; process ${mean(this.processMs)} ms`
+        + `; draw ${mean(this.drawMs)} ms; scheduling delay ${mean(this.schedulerMs)} ms`;
     }
     this.rateStarted = performance.now();
     this.displayedFrames = 0;
+    this.readMs = this.processMs = this.drawMs = this.schedulerMs = 0;
   }
 
   dispose(): void {
     this.disposed = true;
     window.clearTimeout(this.timer);
+    window.cancelAnimationFrame(this.animation);
     this.document.removeEventListener('visibilitychange', this.visibilityHandler);
     this.resetRate();
   }

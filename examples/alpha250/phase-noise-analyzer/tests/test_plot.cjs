@@ -15,6 +15,8 @@ function fixture(t) {
     const plot = Object.create(w.Plot.prototype);
     const state = {range: null, redraw: null, fits: 0, legendRefreshes: 0};
     plot.document = w.document;
+    plot.lastStarted = -Infinity;
+    plot.readMs = plot.processMs = plot.drawMs = plot.schedulerMs = 0;
     plot.rateStarted = 0; plot.displayedFrames = 0; plot.lastTableUpdate = -Infinity;
     w.setTimeout = () => 0;
     plot.n_pts = 16385; plot.samplingFrequency = 5e6;
@@ -390,9 +392,12 @@ test('plot defaults to a 60 FPS target and disposal cancels the pending update',
     assert.equal(live._targetHz, 60);
     const cancelled = [];
     w.clearTimeout = id => cancelled.push(id);
+    w.cancelAnimationFrame = id => cancelled.push(id);
     live.timer = 42;
+    live.animation = 43;
     live.dispose();
     assert(cancelled.includes(42));
+    assert(cancelled.includes(43));
     assert.equal(w.document.getElementById('refresh-rate').textContent, '— FPS');
 });
 
@@ -416,25 +421,63 @@ test('FPS counts completed valid spectrum displays; reference redraws and unavai
 
 test('polling respects the target, permits only one in-flight read, and pauses while hidden', async t => {
     const {plot, window: w} = fixture(t);
-    const timers = [];
-    w.setTimeout = (callback, delay) => { timers.push({callback, delay}); return timers.length; };
+    const frames = [];
+    w.requestAnimationFrame = callback => { frames.push(callback); return frames.length; };
+    w.setTimeout = () => { throw new Error('normal display pacing must not introduce a timer wait'); };
     let now = 1000;
     Object.defineProperty(w.performance, 'now', {value: () => now});
     plot._lastTick = now - 5;
     await plot.updatePlot();
-    assert.ok(Math.abs(timers[0].delay - (1000 / 60 - 5)) < 1e-9);
+    assert.equal(frames.length, 1);
     let finish, reads = 0;
     plot.driver.getPhaseNoise = () => { reads++; return new Promise(resolve => { finish = resolve; }); };
-    now += 20;
+    now += 12;
     const pending = plot.updatePlot();
     await Promise.resolve();
     await plot.updatePlot();
-    assert.equal(reads, 1);
+    assert.equal(reads, 1, 'the next display refresh starts one read');
     Object.defineProperty(w.document, 'hidden', {value: true, configurable: true});
     plot.plotBasics.redraw = (data, size, peak, label, done) => done();
     finish(new Float32Array(16385).fill(2));
     await pending;
-    assert.equal(timers.length, 1, 'hidden page must not schedule another read');
+    assert.equal(frames.length, 1, 'hidden page must not schedule another read');
     await plot.updatePlot();
     assert.equal(reads, 1);
+});
+
+test('display refresh jitter does not accumulate or halve the cadence; faster screens remain capped', async t => {
+    const {plot, window: w} = fixture(t);
+    let now = 1000, reads = 0;
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    plot.driver.getPhaseNoise = async () => { reads++; return new Float32Array(16385).fill(2); };
+    plot.plotBasics.redraw = (data, size, peak, label, done) => done();
+    for (let i = 0; i < 120; i++) {
+        now = 1000 + i * (1000 / 120) + (i % 2 ? 0.3 : -0.3);
+        await plot.updatePlot();
+    }
+    assert.equal(reads, 60, 'a jittery 120 Hz screen displays 60 spectra in one second');
+    now += 500;
+    await plot.updatePlot();
+    assert.equal(reads, 61);
+    now += 1000 / 120;
+    await plot.updatePlot();
+    assert.equal(reads, 61, 'a long pause starts a new cadence without a catch-up burst');
+});
+
+test('a late frame retains the cadence deadline and reports its timing', async t => {
+    const {plot, window: w} = fixture(t);
+    let now = 1002;
+    const frames = [];
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    w.requestAnimationFrame = callback => { frames.push(callback); return frames.length; };
+    plot._lastTick = 1000 - 1000 / 60;
+    plot.lastStarted = plot._lastTick;
+    plot.driver.getPhaseNoise = async () => { now += 3; return new Float32Array(16385).fill(2); };
+    plot.plotBasics.redraw = (data, size, peak, label, done) => { now += 2; done(); };
+    await plot.updatePlot();
+    assert.equal(plot._lastTick, 1000, 'the cadence stays anchored despite starting this frame 2 ms late');
+    assert.equal(frames.length, 1);
+    assert.match(w.document.getElementById('refresh-rate').title, /read 3\.0 ms; process 0\.0 ms; draw 2\.0 ms; scheduling delay 2\.0 ms/);
+    plot.markUnavailable('Disconnected');
+    assert.doesNotMatch(w.document.getElementById('refresh-rate').title, /read .* ms/, 'unavailable data clears the previous timing sample');
 });

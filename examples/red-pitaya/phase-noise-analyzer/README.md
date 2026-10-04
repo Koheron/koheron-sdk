@@ -35,8 +35,11 @@ stale and provides a Retry button.
 ## Spectrum display and reference trace
 
 The header shows measured display FPS, with a default target of 60 updates/s.
+Hover over it for average read, processing, drawing and scheduling times.
 Polling pauses while the tab is hidden. This measures displayed spectrum updates;
 hardware acquisition cadence remains independent and may be lower.
+Spectrum reads return the latest completed result without waiting for the next
+FFT calculation. Retuning still clears the published spectrum while settling.
 
 Use **Capture ref** beside the plot to freeze the displayed spectrum, as in
 the FFT workspace. The button becomes **Replace ref**; **Clear ref** removes

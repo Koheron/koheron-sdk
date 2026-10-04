@@ -160,6 +160,9 @@ class Core
     std::mutex dma_mtx; // serializes DMA operations and CIC rate changes
     std::atomic<uint32_t> dma_settings_pending{0}; // give queued setters the next DMA lock
     mutable std::shared_mutex data_mtx; // settings, processing and published results
+    // The published spectrum can be read while the next FFT is processing.
+    // Writers hold data_mtx before spectrum_mtx; readers only take spectrum_mtx.
+    mutable std::shared_mutex spectrum_mtx;
 
     // Data acquisition thread
     std::thread acq_thread;
@@ -408,7 +411,7 @@ typename Core<Board>::PhaseDataArray Core<Board>::get_phase() const {
 
 template<class Board>
 typename Core<Board>::PhaseNoiseDensityVector Core<Board>::get_phase_noise() const {
-    std::shared_lock lk(data_mtx);
+    std::shared_lock lk(spectrum_mtx);
     return phase_noise;
 }
 
@@ -700,7 +703,10 @@ void Core<Board>::invalidate_results() {
     reset_tracking_observations();
     averager.clear();
     phase.fill(Phase{});
-    phase_noise.assign(1 + fft_size / 2, PhaseNoiseDensity{});
+    {
+        std::unique_lock spectrum_lk(spectrum_mtx);
+        phase_noise.assign(1 + fft_size / 2, PhaseNoiseDensity{});
+    }
     phase_jitter = std::numeric_limits<Phase>::quiet_NaN();
     time_jitter = std::numeric_limits<Time>::quiet_NaN();
     f_lo_used = std::numeric_limits<Frequency>::quiet_NaN();
@@ -822,7 +828,10 @@ void Core<Board>::acquisition_thread() {
             auto new_pn = compute_phase_noise(*samples, trend);
             compute_jitter(new_pn, acquired_lo);
             phase = std::move(new_phase);
-            phase_noise = std::move(new_pn);
+            {
+                std::unique_lock spectrum_lk(spectrum_mtx);
+                phase_noise = std::move(new_pn);
+            }
             ++accepted_captures;
             capture_state = Valid;
             processing_ms = std::chrono::duration<double, std::milli>(
