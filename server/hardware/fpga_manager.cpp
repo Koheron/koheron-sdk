@@ -2,6 +2,7 @@
 // (c) Koheron
 
 #include "server/hardware/fpga_manager.hpp"
+#include "server/hardware/firmware_files.hpp"
 #include "server/runtime/syslog.hpp"
 
 #include <array>
@@ -261,35 +262,14 @@ int FpgaManager::check_bitstream_loaded(const fs::path& fprog_done_path, char ex
 // Overlay path
 // -----------------------------------------------------------------------------
 
-int FpgaManager::copy_firmware() {
-    const fs::path libfw = "/lib/firmware/";
+int FpgaManager::prepare_firmware() {
     const auto bitbin = fs::path{INSTRUMENT_NAME ".bit.bin"};
-
-    if (!fs::exists(live_instrument_dirname)) {
-        logf<ERROR>("FpgaManager: copy_firmware: source dir '{}' missing\n", live_instrument_dirname);
-        return -1;
-    }
-    if (!fs::exists(libfw)) {
-        std::error_code ec;
-        fs::create_directories(libfw, ec);
-        if (ec) {
-            logf<ERROR>("FpgaManager: copy_firmware: mkdir '{}' failed: {}\n", libfw, ec.message());
-            return -1;
-        }
-    }
-
-    std::error_code ec1, ec2;
-    fs::copy_file(live_instrument_dirname / "pl.dtbo", libfw / "pl.dtbo",
-                  fs::copy_options::overwrite_existing, ec1);
-    if (ec1) {
-        logf<ERROR>("FpgaManager: copy_firmware: pl.dtbo copy failed: {}\n", ec1.message());
-        return -1;
-    }
-
-    fs::copy_file(live_instrument_dirname / bitbin, libfw / bitbin,
-                  fs::copy_options::overwrite_existing, ec2);
-    if (ec2) {
-        logf<ERROR>("FpgaManager: copy_firmware: '{}' copy failed: {}\n", bitbin, ec2.message());
+    const auto result = prepare_firmware_files(live_instrument_dirname, bitbin,
+                                              "/lib/firmware",
+                                              "/sys/module/firmware_class/parameters/path");
+    if (result.error) {
+        logf<ERROR>("FpgaManager: preparing '{}' failed: {}\n",
+                    result.failed_path, result.error.message());
         return -1;
     }
     return 0;
@@ -412,8 +392,8 @@ int FpgaManager::load_bitstream_overlay() {
     const auto bitbin = fs::path{INSTRUMENT_NAME ".bit.bin"};
     logf<INFO>("FpgaManager: Loading {}\n", bitbin);
 
-    if (copy_firmware() < 0) {
-        logf<ERROR>("FpgaManager: copy_firmware() failed — could not install 'pl.dtbo' or '{}' into /lib/firmware\n", bitbin);
+    if (prepare_firmware() < 0) {
+        logf<ERROR>("FpgaManager: could not prepare 'pl.dtbo' or '{}' for loading\n", bitbin);
         return -1;
     }
     if (setup_overlay_path() < 0) {
