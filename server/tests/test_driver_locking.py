@@ -23,7 +23,8 @@ using driver_list = std::tuple<LockingInstrument>;
 ''')
         (build / 'drivers.hpp').write_text('#include "driver_locking_instrument.hpp"\n')
         methods = ('set', 'get', 'set_vector', 'get_vector', 'get_span', 'get_array',
-                   'get_fixed_span', 'get_views', 'busy')
+                   'get_fixed_span', 'get_views', 'busy', 'set_scalars', 'fixed_types',
+                   'mixed_types', 'empty_arrays', 'large_arrays')
         ops = ','.join(f'Op<&LockingInstrument::{method}>' for method in methods)
         (build / 'interface_drivers.hpp').write_text(f'''
 #include "server/executor/driver_adapter.hpp"
@@ -47,7 +48,7 @@ namespace koheron { inline std::string build_drivers_json() { return "[]"; } }
                    'network/websocket.cpp', 'network/sha1.cpp', 'network/base64.cpp',
                    'utilities/rate_tracker.cpp', 'tests/driver_locking.cpp')
         command = [os.environ.get('CXX', 'g++'), '-std=c++20', '-O2', '-Wall',
-                   '-Wextra', '-Werror', '-pthread', '-DKOHERON_SERVER_BUILD',
+                   '-Wextra', '-Werror', '-pthread', '-DKOHERON_SERVER_BUILD', '-Wl,--wrap=read',
                    '-I', str(build), '-I', str(ROOT), '-I', str(ROOT / 'server/tests'),
                    '-I', str(ROOT / 'server/external_libs'),
                    '-I', os.environ.get('EIGEN_INCLUDE_DIR', '/usr/include/eigen3')]
@@ -69,6 +70,18 @@ namespace koheron { inline std::string build_drivers_json() { return "[]"; } }
     def test_concurrent_first_commands(self): self.run_case('concurrent-first')
     def test_truncated_input(self): self.run_case('truncated-input')
     def test_shared_driver_publication(self): self.run_case('manager-publication')
+    def test_batched_tcp_read_calls(self): self.run_case('tcp-read-calls')
+    def test_batched_unix_read_calls(self): self.run_case('unix-read-calls')
+    def test_fixed_tcp_wire_format(self): self.run_case('fixed-tcp')
+    def test_fixed_websocket_wire_format(self): self.run_case('fixed-ws')
+    def test_partial_tcp_batch(self): self.run_case('partial-tcp-batch')
+    def test_partial_unix_batch(self): self.run_case('partial-unix-batch')
+    def test_truncated_tcp_batch(self): self.run_case('truncated-tcp-batch')
+    def test_truncated_websocket_batch(self): self.run_case('truncated-ws-batch')
+    def test_mixed_tcp_arguments(self): self.run_case('mixed-tcp')
+    def test_mixed_websocket_arguments(self): self.run_case('mixed-ws')
+    def test_empty_fixed_arrays(self): self.run_case('empty-arrays')
+    def test_large_fixed_arrays(self): self.run_case('large-arrays')
 
 
 if __name__ == '__main__':
