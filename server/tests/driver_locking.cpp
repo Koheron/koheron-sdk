@@ -155,13 +155,21 @@ template<int Kind> void stalled_output(uint16_t operation, bool disconnect = fal
     slow.send(command(operation));
     until([] { return LockingInstrument::readers.load() == 1; });
     // The first client does not read. Its 2 MiB reply cannot fit the socket buffer.
-    healthy.send(scalar_command(0, 0x44444444)); healthy.send(command(1));
-    check(healthy.response(12) == scalar_response(1, 0x44444444), "Writer held the driver lock");
-    if (disconnect) return; // RAII shutdown must also wake a blocked send.
+    healthy.send(scalar_command(0, 0x44444444)); healthy.consumed(); healthy.send(command(1));
+    pollfd ready{healthy.client, POLLIN, 0};
+    check(::poll(&ready, 1, 100) == 0, "Driver storage unlocked before its reply finished");
+    check(LockingInstrument::calls == 0, "Borrowed storage mutated during transmission");
+    if (disconnect) {
+        ::shutdown(slow.client, SHUT_RDWR);
+        ::shutdown(slow.server, SHUT_RDWR);
+        check(healthy.response(12) == scalar_response(1, 0x44444444), "Disconnected writer kept the driver locked");
+        return;
+    }
     Bytes expected = command(operation);
     append_be(expected, 512 * 1024 * sizeof(uint32_t), sizeof(size_t));
     expected.resize(expected.size() + 512 * 1024 * sizeof(uint32_t), 0x33);
-    check(slow.response(expected.size()) == expected, "Borrowed response changed after unlocking");
+    check(slow.response(expected.size()) == expected, "Borrowed response changed during transmission");
+    check(healthy.response(12) == scalar_response(1, 0x44444444), "Driver stayed locked after its reply finished");
     slow.send(command(1)); check(slow.response(12) == scalar_response(1, 0x44444444), "Connection lost after large reply");
 }
 

@@ -71,20 +71,5 @@ namespace koheron { inline std::string build_drivers_json() { return "[]"; } }
     def test_shared_driver_publication(self): self.run_case('manager-publication')
 
 
-class PreparedResponseTest(unittest.TestCase):
-    def test_wire_format_and_borrowed_storage(self):
-        with tempfile.TemporaryDirectory() as build:
-            binary = Path(build) / 'prepared-response'
-            command = [os.environ.get('CXX', 'g++'), '-std=c++20', '-O2', '-Wall',
-                       '-Wextra', '-Werror', '-pthread', '-I', str(ROOT),
-                       '-I', str(ROOT / 'server/external_libs'),
-                       '-I', os.environ.get('EIGEN_INCLUDE_DIR', '/usr/include/eigen3')]
-            command += shlex.split(os.environ.get('CXXFLAGS', ''))
-            command += [str(ROOT / 'server/tests/prepared_response.cpp'),
-                        str(ROOT / 'server/utilities/rate_tracker.cpp'), '-o', str(binary)]
-            subprocess.run(command, check=True, timeout=120)
-            subprocess.run([str(binary)], check=True, timeout=15)
-
-
 if __name__ == '__main__':
     unittest.main()

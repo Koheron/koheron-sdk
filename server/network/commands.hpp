@@ -319,18 +319,10 @@ class Command
             invoke();
             return 0;
         } else {
-            if (!mutex) {
-                decltype(auto) r = invoke();
-                return send(std::forward<decltype(r)>(r));
-            }
-            // Serialize while locked: returned references, spans, pointers and
-            // nested views may otherwise be invalidated by the next command.
-            auto response = [&] {
-                decltype(auto) r = invoke();
-                return session->prepare_response(driver, operation, std::forward<decltype(r)>(r));
-            }();
-            lock.unlock();
-            return session->send_prepared_response(response);
+            // Keep borrowed return storage protected until transmission finishes.
+            // This preserves direct payload sends without a reply-sized snapshot.
+            decltype(auto) r = invoke();
+            return send(std::forward<decltype(r)>(r));
         }
     }
 

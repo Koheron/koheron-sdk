@@ -17,7 +17,6 @@
 #include <tuple>
 #include <span>
 #include <memory_resource>
-#include <vector>
 #include <sys/socket.h>
 
 namespace net {
@@ -35,53 +34,6 @@ class Session
 
     virtual ~Session() = default;
 
-  protected:
-    // One prepared reply at a time: header and heterogeneous data use send_buffer.
-    struct PreparedResponse {
-        bool has_payload = false;
-        // Large payloads use ordinary storage, released after this response.
-        // Growing the session's monotonic pool would retain old allocations.
-        std::vector<std::byte> payload;
-    };
-
-    template<typename T>
-    PreparedResponse prepare_response(uint16_t class_id, uint16_t func_id, T&& value) {
-        builder.reset_into(send_buffer);
-        builder.write_header(class_id, func_id);
-        using value_t = std::remove_cvref_t<T>;
-        PreparedResponse response;
-        if constexpr (is_std_span_v<value_t> || is_std_array_v<value_t> || is_std_vector_v<value_t>) {
-            if constexpr (is_std_vector_v<value_t>) {
-                builder.push(value.size() * sizeof(typename value_t::value_type));
-            } else if constexpr (is_std_span_v<value_t>) {
-                if constexpr (value_t::extent == std::dynamic_extent) {
-                    builder.push(value.size_bytes());
-                }
-            }
-            auto bytes = std::as_bytes(std::span{value});
-            response.has_payload = true;
-            response.payload.assign(bytes.begin(), bytes.end());
-        } else {
-            // CommandBuilder recursively copies strings, tuples and views.
-            builder.push(std::forward<T>(value));
-        }
-        return response;
-    }
-
-    int send_prepared_response(const PreparedResponse& response) {
-        if (response.has_payload) {
-            // The snapshot only lives until send returns; do not use ZEROCOPY.
-            return send_payload(std::span{response.payload}, MSG_NOSIGNAL);
-        }
-        int n = write_bytes(std::as_bytes(std::span{send_buffer}));
-        tx_tracker.update(n);
-        if (n == 0) {
-            status = CLOSED;
-        }
-        return n;
-    }
-
-  public:
     template<typename... Args>
     int send(uint16_t class_id, uint16_t func_id, Args&&... args) {
         constexpr auto nargs = sizeof...(Args);
