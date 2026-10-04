@@ -81,7 +81,7 @@ test('number edits validate before commands; typing alone does not commit', asyn
     input.dispatchEvent(new window.Event('change', {bubbles: true}));
     await settle();
     assert.deepEqual(driver.calls, [[0, 'carrier', 11e6]]);
-    assert.match(target.querySelector('.pm-status').textContent, /Amplitude:/); // An unrelated acknowledgement preserves invalid entry.
+    assert.match(target.querySelector('.pm-status').textContent, /PM depth:/); // An unrelated acknowledgement preserves invalid entry.
     target.querySelector('[data-field="deviation"]').dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
     assert.equal(target.querySelector('.pm-status').hidden, true);
 });
@@ -125,7 +125,7 @@ test('readbacks preserve numeric drafts and their validation until correction or
     assert.equal(input.value, '361');
     assert.equal(input.getAttribute('aria-invalid'), 'true');
     assert(input.getAttribute('aria-description'));
-    assert.match(target.querySelector('.pm-status').textContent, /Amplitude:/);
+    assert.match(target.querySelector('.pm-status').textContent, /PM depth:/);
     assert.equal(target.querySelector('.pm-status').getAttribute('role'), 'alert');
     input.value = '2'; input.dispatchEvent(new window.Event('input', {bubbles: true}));
     assert.equal(input.hasAttribute('aria-invalid'), false);
@@ -137,7 +137,7 @@ test('readbacks preserve numeric drafts and their validation until correction or
     input.dispatchEvent(new window.Event('change', {bubbles: true}));
     driver.set = async () => { throw new Error('Sample clock stopped'); };
     target.querySelector('[data-action="output"]').click(); await settle();
-    assert.match(target.querySelector('.pm-status').textContent, /Sample clock stopped.*Amplitude:/);
+    assert.match(target.querySelector('.pm-status').textContent, /Sample clock stopped.*PM depth:/);
     input.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
     assert.match(target.querySelector('.pm-status').textContent, /^(?:Error: )?Sample clock stopped$/);
 });

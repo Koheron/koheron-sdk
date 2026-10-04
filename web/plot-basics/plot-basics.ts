@@ -30,6 +30,7 @@ class PlotBasics {
     private clickDatapoint: number[];
     private clickSeriesIndex = 0;
     private clickTraceLabel: string;
+    private primaryTraceLabel: string;
 
     constructor(document: Document, private plot_placeholder: JQuery, private n_pts: number, public x_min, public x_max, public y_min, public y_max,
         private driver, private rangeFunction, private plotTitle: string) {
@@ -162,6 +163,11 @@ class PlotBasics {
         this.reset_range = true;
     }
 
+    setPrimaryTraceLabel(label: string): void {
+        this.primaryTraceLabel = label;
+        this.refreshLegend();
+    }
+
     setRangeX(from: number, to: number) {
         this.x_min = from;
         this.x_max = to;
@@ -181,7 +187,7 @@ class PlotBasics {
     private static readonly log10T = (v: number) => Math.log(v) * Math.LOG10E;
     private static readonly pow10  = (v: number) => Math.exp(v * Math.LN10);
 
-    setLogX() {
+    setLogX(adaptiveTicks = false) {
         this.log_x = true;
 
         this.options.xaxis.transform = PlotBasics.log10T;
@@ -198,12 +204,37 @@ class PlotBasics {
             for (let p = pMin; p <= pMax; p++) {
                 majors.push(Math.pow(10, p));
             }
-
+            if (adaptiveTicks) {
+                const visible = majors.filter(v => v >= min && v <= max);
+                if (visible.length >= 2 || !(max > min)) { return visible; }
+                // A zoom between decade marks still needs frequency labels.
+                const intermediate: number[] = [];
+                for (let p = pMin; p <= pMax; p++) {
+                    for (const m of [1, 2, 5]) {
+                        const value = m * Math.pow(10, p);
+                        if (value >= min && value <= max) { intermediate.push(value); }
+                    }
+                }
+                if (intermediate.length >= 2) { return intermediate; }
+                const rawStep = (max - min) / 4;
+                const power = Math.pow(10, Math.floor(Math.log10(rawStep)));
+                const fraction = rawStep / power;
+                const step = power * (fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10);
+                const first = Math.ceil(min / step) * step;
+                const ticks: number[] = [];
+                for (let i = 0; i < 8 && first + i * step <= max; i++) { ticks.push(first + i * step); }
+                return ticks;
+            }
             return majors;
         };
 
         this.options.xaxis.tickDecimals = 0;
         this.options.xaxis.tickFormatter = (val: number, axis) => {
+            if (adaptiveTicks) {
+                const scale = val >= 1e6 ? 1e6 : val >= 1e3 ? 1e3 : 1;
+                const digits = Math.min(12, Math.max(0, Math.ceil(-Math.log10((axis.max - axis.min) / scale / 4))));
+                return String(Number((val / scale).toFixed(digits))) + (scale === 1e6 ? 'M' : scale === 1e3 ? 'k' : '');
+            }
             if (val >= 1e6) {
                 return (val / 1e6).toFixed(axis.tickDecimals || 0) + "M";
             }
@@ -414,13 +445,13 @@ class PlotBasics {
 
     redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void, reference?: number[][], peakIsFinal = false, traces: jquery.flot.dataSeries[] = [], overlayLabel?: string) {
         this.seriesOne.length = (reference ? 2 : 1) + traces.length;
-        this.options.legend.noColumns = overlayLabel ? 0 : reference || traces.length ? 1 : 0;
+        this.options.legend.noColumns = overlayLabel || this.primaryTraceLabel ? 0 : reference || traces.length ? 1 : 0;
         if (reference) {
             this.seriesOne[1] = {label: overlayLabel || "Reference", data: reference, color: overlayLabel ? "#006400" : "#a178b5", lines: {lineWidth: 1}};
         }
         traces.forEach((trace, i) => { this.seriesOne[(reference ? 2 : 1) + i] = {...trace, lines: {lineWidth: 1, ...trace.lines}}; });
         if (!this.plot) {
-            this.seriesOne[0].label = !overlayLabel && (reference || traces.length) ? "Live · " + ylabel : ylabel;
+            this.seriesOne[0].label = this.primaryTraceLabel || (!overlayLabel && (reference || traces.length) ? "Live · " + ylabel : ylabel);
             this.seriesOne[0].data  = []; // temporary
             this.plot = $.plot(this.plot_placeholder, this.seriesOne, this.options);
         }
@@ -447,7 +478,7 @@ class PlotBasics {
             this.seriesOne[0].data  = plot_data;
         }
 
-        this.seriesOne[0].label = !overlayLabel && (reference || traces.length) ? "Live · " + ylabel : ylabel;
+        this.seriesOne[0].label = this.primaryTraceLabel || (!overlayLabel && (reference || traces.length) ? "Live · " + ylabel : ylabel);
 
         if (this.reset_range) {
             if (this.log_y) {
@@ -697,7 +728,7 @@ class PlotBasics {
                 this.hoverDatapoint[1] = item.datapoint[1];
 
                 this.hoverDatapointSpan.style.display = "inline-block";
-                this.updateDatapointSpan(this.hoverDatapoint, this.hoverDatapointSpan, item.series.label === "Reference" ? "Ref " : ["Average", "Max hold"].includes(item.series.label) ? item.series.label + " " : "");
+                this.updateDatapointSpan(this.hoverDatapoint, this.hoverDatapointSpan, item.series.label === "Reference" ? "Ref " : ["Average", "Max hold", "Smoothed"].includes(item.series.label) ? item.series.label + " " : "");
             } else {
                 this.hoverDatapointSpan.style.display = "none";
             }
@@ -707,13 +738,13 @@ class PlotBasics {
     showClickPoint(): void {
         this.plot_placeholder.bind("plotclick", (event: JQueryEventObject, pos, item) => {
             if (item) {
-                this.clickTraceLabel = ["Average", "Max hold"].includes(item.series.label) ? item.series.label : undefined;
+                this.clickTraceLabel = ["Average", "Max hold", "Smoothed"].includes(item.series.label) ? item.series.label : undefined;
                 this.clickSeriesIndex = item.series.label === "Reference" ? 1 : 0;
                 this.clickDatapoint[0] = item.datapoint[0];
                 this.clickDatapoint[1] = item.datapoint[1];
 
                 this.clickDatapointSpan.style.display = "inline-block";
-                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan, item.series.label === "Reference" ? "Ref " : ["Average", "Max hold"].includes(item.series.label) ? item.series.label + " " : "");
+                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan, item.series.label === "Reference" ? "Ref " : ["Average", "Max hold", "Smoothed"].includes(item.series.label) ? item.series.label + " " : "");
 
                 this.plot.unhighlight();
                 this.plot.highlight(item.series, this.clickDatapoint);

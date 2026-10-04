@@ -24,6 +24,7 @@ class PhaseNoiseAnalyzer {
     auto get_measurements(uint32_t navg) { return core.get_measurements(navg); }
     auto get_phase() const { return core.get_phase(); }
     auto get_phase_noise() const { return core.get_phase_noise(); }
+    auto get_average_status() const { return core.get_average_status(); }
 
  private:
     phase_noise::Core<Alpha250PhaseNoiseBoard> core;

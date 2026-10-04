@@ -27,6 +27,7 @@ class PhaseNoiseAnalyzer {
     bool set_phase_precision(uint32_t bits) { return core.set_phase_precision(bits); }
     auto get_precision_status() { return core.get_precision_status(); }
     auto get_phase_snapshot() const { return core.get_phase_snapshot(); }
+    auto get_average_status() const { return core.get_average_status(); }
 
  private:
     phase_noise::Core<RedPitayaPhaseNoiseBoard> core;

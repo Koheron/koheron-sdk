@@ -85,6 +85,7 @@ int main() {
     auto& ctl = hw::get_memory<mem::control>();
     ram.drift = 3.141592653589793 / 2048; // one count/sample, exactly representable in raw DMA
     PhaseNoiseAnalyzer analyzer;
+    assert((analyzer.get_average_status() == std::tuple{0u, 1u}));
     unsigned waits = 1;
     dma.wait_until(waits);
     auto acquire = [&](bool success = true) {
@@ -104,12 +105,15 @@ int main() {
     auto readers = std::async(std::launch::async, [&] {
         analyzer.get_parameters(); analyzer.get_phase(); analyzer.get_phase_noise();
         analyzer.get_measurements(1); analyzer.get_jitter();
+        analyzer.get_average_status();
     });
     assert(readers.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
     readers.get();
     for (int i = 0; i < 4; ++i) acquire(); // LO settling
+    assert((analyzer.get_average_status() == std::tuple{0u, 1u}));
     assert(analyzer.get_phase()[100].eval() == 0.f);
     acquire();
+    assert((analyzer.get_average_status() == std::tuple{1u, 1u}));
     const auto phase = analyzer.get_phase();
     assert(phase.front().eval() == 0.f);
     assert(std::abs(phase.back().eval() - ram.drift * 65535) < .01);
@@ -132,7 +136,22 @@ int main() {
     assert(ctl.writes.load() == writes);
     assert(analyzer.get_phase_noise() == pn);
 
+    // Progress follows the actual ring, including retained samples on resize.
+    analyzer.set_fft_navg(4);
+    assert((analyzer.get_average_status() == std::tuple{1u, 4u}));
+    for (uint32_t count = 2; count <= 4; ++count) {
+        acquire();
+        assert((analyzer.get_average_status() == std::tuple{count, 4u}));
+    }
+    acquire();
+    assert((analyzer.get_average_status() == std::tuple{4u, 4u}));
+    analyzer.set_fft_navg(2);
+    assert((analyzer.get_average_status() == std::tuple{2u, 2u}));
+    analyzer.set_fft_navg(4);
+    assert((analyzer.get_average_status() == std::tuple{2u, 4u}));
+
     analyzer.set_channel(1);
+    assert((analyzer.get_average_status() == std::tuple{0u, 4u}));
     assert(analyzer.get_phase()[100].eval() == 0.f);
     assert(std::isnan(std::get<0>(analyzer.get_jitter()).eval()));
     for (int i = 0; i < 2; ++i) acquire();
@@ -140,6 +159,7 @@ int main() {
     acquire();
     const auto reads = ram.reads.load();
     acquire(false);
+    assert((analyzer.get_average_status() == std::tuple{0u, 4u}));
     assert(ram.reads.load() == reads); // failed DMA cannot read stale RAM
     assert(analyzer.get_phase()[100].eval() == 0.f);
     assert(std::isnan(std::get<0>(analyzer.get_jitter()).eval()));

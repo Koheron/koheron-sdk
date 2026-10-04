@@ -32,7 +32,8 @@ class PhasePrecision {
             await this.refresh();
         } catch (error) {
             if (!this.stopped) {
-                this.status.textContent = 'Unable to change precision. Retry.';
+                this.status.textContent = 'Change failed';
+                this.status.title = 'Unable to change phase precision. Retry the selection.';
                 this.status.dataset.state = 'error';
             }
         } finally {
@@ -51,14 +52,15 @@ class PhasePrecision {
         if (!this.changing) { this.select.value = String(requested); }
         const resolution = step >= 1e-3 ? `${(step * 1e3).toPrecision(4)} mrad`
                                      : `${(step * 1e6).toPrecision(4)} µrad`;
-        const messages = [ 'Settling…', 'Live',
-            requested > 0 ? 'Phase overrange: reduce precision or bring the LO closer to the carrier.'
-                          : 'Phase overrange: bring the LO closer to the carrier.',
-            'Acquisition error; retrying…' ];
-        this.status.textContent = `${resolution} / count · ${messages[state] || 'Waiting…'}`;
-        this.status.dataset.state = state > 1 ? 'error' : 'live';
-        this.status.title = `Requested +${requested} bits; last packet +${captured} bits. ` +
-            'Higher precision reduces the available phase range.';
+        const messages = ['Settling…', 'Live', 'Overrange', 'Read error'];
+        this.status.textContent = `${resolution} · ${messages[state] || 'Waiting…'}`;
+        this.status.dataset.state = state > 1 ? 'error' : state === 1 ? 'live' : 'waiting';
+        const detail = state === 2
+            ? requested > 0 ? 'Reduce precision or bring the LO closer to the carrier.'
+                            : 'Bring the LO closer to the carrier.'
+            : state === 3 ? 'Acquisition error; retrying automatically.'
+            : 'Higher precision reduces the available phase range.';
+        this.status.title = `${resolution} per count. Requested +${requested} bits; last packet +${captured} bits. ${detail}`;
     }
 
     private schedule(): void {
@@ -68,7 +70,8 @@ class PhasePrecision {
                 if (!this.changing) { await this.refresh(); }
             } catch (error) {
                 if (!this.stopped) {
-                    this.status.textContent = 'Precision status unavailable.';
+                    this.status.textContent = 'Status unavailable';
+                    this.status.title = 'Unable to read phase precision. Retrying automatically.';
                     this.status.dataset.state = 'error';
                 }
             } finally { this.schedule(); }

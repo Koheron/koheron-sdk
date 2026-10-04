@@ -129,6 +129,10 @@ class Core
 
     PhaseDataArray get_phase() const;
     PhaseNoiseDensityVector get_phase_noise() const;
+    auto get_average_status() const {
+        std::shared_lock lk(data_mtx);
+        return std::tuple{uint32_t(averager.count()), uint32_t(averager.window())};
+    }
 
   private:
     Board board;

@@ -43,6 +43,11 @@ interface IMeasurements {
   carrier_power: number;
 }
 
+interface IAverageStatus {
+  count: number;
+  target: number;
+}
+
 class PhaseNoiseAnalyzer {
   private driver: Driver;
   private id: number;
@@ -88,6 +93,12 @@ class PhaseNoiseAnalyzer {
     this.client.send(Command(this.id, this.cmds['set_fft_navg'], navg));
   }
 
+  async getAverageStatus(): Promise<IAverageStatus> {
+    const [count, target] = await this.client.readTuple<[number, number]>(
+      Command(this.id, this.cmds['get_average_status']), 'II');
+    return {count, target};
+  }
+
   setLocalOscillator(channel: number, freqHz: number): void {
     this.client.send(Command(this.id, this.cmds['set_local_oscillator'], channel, freqHz));
   }
@@ -106,7 +117,7 @@ class PhaseNoiseAnalyzer {
   }
 
   async getPhaseNoise(): Promise<Float32Array> {
-    return await this.client.readFloat32Array(Command(this.id, this.cmds['get_phase_noise']));
+    return await this.client.readFloat32Vector(Command(this.id, this.cmds['get_phase_noise']));
   }
 
   setCicRate(cic_rate: number): void {

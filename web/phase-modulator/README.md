@@ -124,7 +124,7 @@ digits are grouped and retain decimal places for tuning; values within half a
 hardware LSB are normalized to hide quantization artifacts such as
 `9.9999999996 kHz`. Hover over a numeric field for its accepted value.
 The Python native-word/Decimal API remains available for exact scripted work.
-Output amplitude is full scale; the amplitude field controls phase in degrees.
+Output amplitude is full scale; the PM depth field controls phase deviation in degrees.
 
 See the [ALPHA250 example](../../examples/alpha250/phase-modulator/web/index.html)
 for a minimal host page and application bootstrap.
