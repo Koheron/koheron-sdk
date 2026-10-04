@@ -115,7 +115,6 @@
 .pna-workspace .pna-generator[open] > summary { margin-bottom: 4px; }
 .pna-workspace .pna-generator > .dds-pm-widget { max-width: 1100px; }
 .pna-workspace .laser-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 6px 0; }
-.pna-workspace .plot-empty-card { border: 1px solid var(--border-light); border-radius: 2px; box-shadow: none; }
 .pna-workspace #decade-values-table { table-layout: fixed; }
 .pna-workspace #decade-values-table col:first-child { width: 50%; }
 

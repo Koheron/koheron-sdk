@@ -101,7 +101,7 @@ class App {
             precision.dataset.state = 'unknown';
             precision.title = 'Acquisition status unavailable while disconnected';
         }
-        if (this.plot) { this.plot.showUnavailable('Disconnected', 'Reconnect to resume live measurement.'); }
+        if (this.plot) { this.plot.markUnavailable('Disconnected'); }
         console.error('Analyzer connection failed:', error);
         this.shutdown(document);
     }

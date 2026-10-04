@@ -291,19 +291,16 @@ class Plot {
       button.title = ready ? (button.classList.contains('export-data') ? 'Export the displayed spectrum as CSV' : 'Export the noise plot as PNG')
         : 'Waiting for a valid live spectrum';
     });
+    this.document.getElementById('plot-placeholder')?.setAttribute('aria-label',
+      ready ? 'Live noise spectrum' : 'Noise spectrum; no live data');
     if (!ready) { this.frameParameters = undefined; }
   }
 
-  public showUnavailable(title: string, message: string): void {
+  public markUnavailable(reason: string): void {
     this.setCaptureReady(false);
     this.resetRate();
-    const empty = document.getElementById('plot-empty');
-    if (!empty) { return; }
-    empty.classList.remove('hidden');
-    const heading = empty.querySelector('h4');
-    const detail = empty.querySelector('p');
-    if (heading) { heading.textContent = title; }
-    if (detail) { detail.textContent = message; }
+    this.document.getElementById('plot-placeholder')?.setAttribute('aria-label',
+      `${reason}; spectrum is not live`);
   }
 
   private redraw(callback: () => void): void {
@@ -340,10 +337,8 @@ class Plot {
       const parameters = this.driver.parameters;
       const ddsFreq = parameters.channel === 0 ? parameters.fdds0 : parameters.fdds1;
 
-      const plotEmptyDiv: HTMLElement = document.getElementById('plot-empty')!;
-
       if (!this.loIsSet(ddsFreq)) {
-        this.showUnavailable('Local oscillator not set', 'Set the local oscillator frequency to start measurement.');
+        this.markUnavailable('Local oscillator not set');
         this._busy = false;
         this.schedule(this._loBackoffMs);
         return;
@@ -371,13 +366,12 @@ class Plot {
       const ready = phaseNoise.subarray(2).some(v => Number.isFinite(v) && v > 0);
       this.setCaptureReady(ready);
       if (ready) {
-        plotEmptyDiv.classList.add('hidden');
         if (!this.hasInitialFit) {
           this.plotBasics.setLinY();
           this.hasInitialFit = true;
         }
       } else {
-        this.showUnavailable('Waiting for valid spectrum', 'Acquisition is settling. The plot will resume automatically.');
+        this.markUnavailable('Acquisition settling');
       }
       this.updateReferenceDisplay();
 
@@ -397,7 +391,7 @@ class Plot {
     } catch (err) {
       if (this.disposed) { return; }
       console.error('updatePlot error:', err);
-      this.showUnavailable('Measurement unavailable', 'Unable to read the live spectrum.');
+      this.markUnavailable('Measurement unavailable');
       this.onConnectionError?.(err);
       this._busy = false;
       this.schedule(500);

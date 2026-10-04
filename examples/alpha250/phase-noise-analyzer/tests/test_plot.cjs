@@ -6,7 +6,7 @@ const ts = require('typescript');
 const {JSDOM} = require('jsdom');
 
 function fixture(t) {
-    const dom = new JSDOM('<span id="refresh-rate">— FPS</span><div id="plot-empty"></div><table id="decade-values-table"></table><input id="show-smoothed-trace" type="checkbox" checked><button id="capture-reference" disabled></button><button id="clear-reference" disabled></button><div id="reference-info" hidden><span id="reference-status"></span></div>', {runScripts: 'outside-only', pretendToBeVisual: true});
+    const dom = new JSDOM('<span id="refresh-rate">— FPS</span><table id="decade-values-table"></table><input id="show-smoothed-trace" type="checkbox" checked><button id="capture-reference" disabled></button><button id="clear-reference" disabled></button><div id="reference-info" hidden><span id="reference-status"></span></div>', {runScripts: 'outside-only', pretendToBeVisual: true});
     const w = dom.window;
     t.after(() => w.close());
     w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../web/plot.ts'), 'utf8'),
@@ -200,12 +200,15 @@ test('FFT-style reference capture copies the full PSD and frame settings; replac
 
 test('settling, failed acquisition and unset LO disable capture without clearing the reference', async t => {
     const {plot, state, window: w} = fixture(t);
+    w.document.body.insertAdjacentHTML('beforeend', '<div id="plot-placeholder"></div>');
     await plot.updatePlot(); plot.captureReference();
     const psd = plot.referencePSD;
     plot.driver.getPhaseNoise = async () => new Float32Array(16385);
     plot._busy = false; plot._lastTick = -1000;
     await plot.updatePlot();
     assert.equal(w.document.getElementById('capture-reference').disabled, true);
+    assert.equal(w.document.getElementById('plot-placeholder').getAttribute('aria-label'), 'Acquisition settling; spectrum is not live');
+    assert.equal(w.document.querySelector('.plot-empty'), null);
     plot.captureReference(); assert.equal(plot.referencePSD, psd);
     plot.driver.parameters.fdds0 = 0;
     plot._busy = false; plot._lastTick = -1000;

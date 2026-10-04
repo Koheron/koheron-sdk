@@ -51,7 +51,7 @@ async function host(t, failGenerator = false, failConnection = false) {
     window.PlotBasics = class {};
     window.Plot = class {
         constructor() { trace.push('plot-ready'); }
-        showUnavailable(title) { trace.push(title); }
+        markUnavailable(title) { trace.push(title); }
         dispose() { trace.push('plot-disposed'); }
     };
     window.ExportFile = class {};
