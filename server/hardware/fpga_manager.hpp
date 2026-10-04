@@ -31,7 +31,7 @@ class FpgaManager {
     const Path overlay_path      = "/sys/kernel/config/device-tree/overlays/full";
     const Path overlay_fpga_done = "/sys/kernel/config/device-tree/overlays/full/status";
 
-    int copy_firmware();
+    int prepare_firmware();
     int clean_up_previous_overlays();
     int mount_configfs();
     int setup_overlay_path();
