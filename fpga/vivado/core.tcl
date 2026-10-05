@@ -26,6 +26,7 @@ set inputs [concat $rtl $cfg \
   [glob -nocomplain $core_path/*.tcl] \
   [glob -nocomplain $core_path/*.xdc] \
   [glob -nocomplain $core_path/*.mem] \
+  [glob -nocomplain $core_path/*.md] \
   [list [info script]]]
 
 # Helper: latest mtime in a list (0 if empty)
@@ -46,7 +47,7 @@ if {[file exists $comp_xml]} {
   set out_mtime [file mtime $comp_xml]
   if {$in_mtime != 0 && $in_mtime <= $out_mtime} {
     puts "$core_name up-to-date"
-    exit 0
+    return
   }
 }
 

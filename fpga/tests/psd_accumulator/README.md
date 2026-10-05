@@ -1,5 +1,9 @@
 # PSD counter and accumulator regression
 
+This regression covers the legacy counter/Tcl accumulator. The FFT examples
+now use the [packaged AXI4-Stream accumulator](../../ip/axis_accumulator_v1_0/README.md),
+which has separate stream, catalog and timing regressions.
+
 After sourcing Vivado's `settings64.sh`, run from the SDK root:
 
 ```sh

@@ -22,7 +22,7 @@ $(TMP_CORES_PATH)/: ; @mkdir -p $@
 
 define make_core_target
 $(TMP_CORES_PATH)/$(notdir $1)/component.xml: \
-    $(wildcard $1/*.v $1/*.sv $1/*.vh $1/*.vhd $1/*.vhdl $1/*.xci $1/*.xdc $1/*.tcl $1/*.mem) $1/core_config.tcl $(FPGA_PATH)/vivado/core.tcl | $(TMP_CORES_PATH)/
+    $(wildcard $1/*.v $1/*.sv $1/*.vh $1/*.vhd $1/*.vhdl $1/*.xci $1/*.xdc $1/*.tcl $1/*.mem $1/*.md) $1/core_config.tcl $(FPGA_PATH)/vivado/core.tcl | $(TMP_CORES_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/core.tcl -tclargs $1 $(PART) $(TMP_CORES_PATH)
 	$(call ok,$$@)
 endef
