@@ -29,6 +29,9 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     "$output/dds"
     g++-13 "${flags[@]}" "$tests/test_moving_averager.cpp" -o "$output/averager"
     "$output/averager"
+    g++-13 "${flags[@]}" "$tests/test_welch.cpp" \
+        server/external_libs/pffft/pffft.cpp -o "$output/welch"
+    "$output/welch"
     # Both instruments use the extracted phase conversion/detrending helper.
     g++-13 "${flags[@]}" examples/alpha250-4/phase-noise-analyzer/tests/test_core.cpp -o "$output/alpha250-4-core"
     "$output/alpha250-4-core"

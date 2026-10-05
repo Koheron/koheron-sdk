@@ -220,7 +220,8 @@ class Core
     auto read_dma();
     void update_interferometer_transfer_function();
     void set_power_conversion_factor();
-    auto compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend);
+    auto compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend,
+                             PhaseDataArray& phase_snapshot);
     auto compute_jitter(const PhaseNoiseDensityVector& new_pn, Frequency acquired_lo);
     void acquisition_thread();
     void start_acquisition();
@@ -624,8 +625,9 @@ void Core<Board>::set_power_conversion_factor() {
 }
 
 template<class Board>
-auto Core<Board>::compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend) {
-    auto phase_psd = spectrum.density(raw, trend, phase_conversion_factor, fs);
+auto Core<Board>::compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend,
+                                    PhaseDataArray& phase_snapshot) {
+    auto phase_psd = spectrum.density(raw, trend, phase_conversion_factor, fs, &phase_snapshot);
 
     if (analyzer_mode == AnalyzerMode::LASER) {
         using namespace sci::operators;
@@ -824,8 +826,7 @@ void Core<Board>::acquisition_thread() {
                 dma_lk.unlock();
             }
             PhaseDataArray new_phase{};
-            convert_relative_phase(*samples, new_phase, phase_conversion_factor);
-            auto new_pn = compute_phase_noise(*samples, trend);
+            auto new_pn = compute_phase_noise(*samples, trend, new_phase);
             compute_jitter(new_pn, acquired_lo);
             phase = std::move(new_phase);
             {
