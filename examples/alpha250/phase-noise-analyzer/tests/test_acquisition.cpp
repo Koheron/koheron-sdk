@@ -104,6 +104,7 @@ int main() {
     // Snapshot readers must finish while DMA remains blocked.
     auto readers = std::async(std::launch::async, [&] {
         analyzer.get_parameters(); analyzer.get_phase(); analyzer.get_phase_noise();
+        analyzer.get_spectrum_snapshot();
         analyzer.get_measurements(1); analyzer.get_jitter();
         analyzer.get_average_status();
     });
@@ -118,6 +119,11 @@ int main() {
     assert(phase.front().eval() == 0.f);
     assert(std::abs(phase.back().eval() - ram.drift * 65535) < .01);
     const auto pn = analyzer.get_phase_noise();
+    const auto spectrum_frame = analyzer.get_spectrum_snapshot();
+    assert(std::get<1>(spectrum_frame) == 1u);
+    assert(std::get<3>(spectrum_frame) == 6250000.0);
+    assert(std::get<9>(spectrum_frame) == std::get<5>(parameters));
+    assert(std::get<16>(spectrum_frame) == pn);
     // Integrated bin-64 PM, after Hann leakage. Detrending must retain known power.
     double tone_power = 0;
     for (unsigned i = 62; i <= 66; ++i) tone_power += pn[i].eval() * 6250000 / 32768;
@@ -140,13 +146,22 @@ int main() {
     analyzer.set_fft_navg(4);
     assert((analyzer.get_average_status() == std::tuple{1u, 4u}));
     for (uint32_t count = 2; count <= 4; ++count) {
+        ram.amplitude = .1 * count;
         acquire();
         assert((analyzer.get_average_status() == std::tuple{count, 4u}));
     }
+    ram.amplitude = .5;
     acquire();
     assert((analyzer.get_average_status() == std::tuple{4u, 4u}));
     analyzer.set_fft_navg(2);
     assert((analyzer.get_average_status() == std::tuple{2u, 2u}));
+    // Resizing publishes the retained two spectra immediately, rather than
+    // pairing the old four-window density with a new two-window count.
+    const auto resized = analyzer.get_spectrum_snapshot();
+    assert(std::get<7>(resized) == 2u && std::get<8>(resized) == 2u);
+    const double expected_ratio = (.4 * .4 + .5 * .5) / 2 / (.1 * .1);
+    assert(std::abs(std::get<16>(resized)[64].eval() / pn[64].eval() / expected_ratio - 1) < .01);
+    ram.amplitude = .1;
     analyzer.set_fft_navg(4);
     assert((analyzer.get_average_status() == std::tuple{2u, 4u}));
 

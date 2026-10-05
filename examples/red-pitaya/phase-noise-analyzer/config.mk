@@ -1,5 +1,5 @@
 NAME := phase-noise-analyzer
-VERSION := 1.1.0
+VERSION := 1.1.1
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya
@@ -14,6 +14,7 @@ CORES += $(SDK_PATH)/fpga/cores/axis_constant_v1_0
 CORES += $(SDK_PATH)/fpga/cores/latched_mux_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_quantizer_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_lfsr_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_stochastic_round_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_unwrapper_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_prefilter_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
@@ -29,6 +30,8 @@ DRIVERS += $(PROJECT_PATH)/dds.cpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.hpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.cpp
 include $(SDK_PATH)/server/drivers/phase-noise/fft.mk
+
+WEB_FILES += $(SDK_PATH)/web/phase-noise/spectrum.ts $(SDK_PATH)/web/phase-noise/plot.ts
 
 # Share the ALPHA250 analyzer workspace, with board-specific entry points.
 PNA_WEB_REFERENCE := $(SDK_PATH)/examples/alpha250/phase-noise-analyzer/web

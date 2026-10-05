@@ -1,5 +1,7 @@
 """Exercise the actual Python RPC client and its spectral normalization."""
 import sys
+import struct
+import importlib.util
 import unittest
 from pathlib import Path
 
@@ -28,9 +30,17 @@ class FakeClient:
         return True
 
     def recv_all(self, size):
+        if getattr(self, 'payload', b''):
+            data, self.payload = self.payload[:size], self.payload[size:]
+            return data
         return np.arange(size // 4, dtype='<f4').tobytes()
 
     def recv_tuple(self, fmt):
+        if fmt == 'II':
+            return (3, 8)
+        if fmt == 'QIIdIIIIIddddIdI':
+            self.payload = struct.pack('>I', 12) + np.array([0, -2, 4], dtype='<f4').tobytes()
+            return (7, 1, 8, self.sample_rate, 1, 32, 8, 3, 8, 10e6, 20e6, 0., 0., 0, 0., 2)
         if fmt == 'IIdIQQQdd':
             return (8, 8, .000006, 1, 100, 0, 0, 10., 90.)
         if fmt == 'QI?':
@@ -55,6 +65,25 @@ class ClientTests(unittest.TestCase):
     def setUp(self):
         self.client = FakeClient()
         self.driver = PhaseNoiseAnalyzer(self.client)
+
+    def test_shared_controls_and_spectrum_snapshot_on_both_single_channel_boards(self):
+        rp_path = ROOT / 'examples/red-pitaya/phase-noise-analyzer/phase_noise_analyzer.py'
+        spec = importlib.util.spec_from_file_location('red_pitaya_pna', rp_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for cls in (PhaseNoiseAnalyzer, module.PhaseNoiseAnalyzer):
+            client = FakeClient()
+            driver = cls(client)
+            self.assertEqual(driver.get_average_status(), (3, 8))
+            driver.set_fft_navg(8)
+            driver.save_config()
+            metadata, density = driver.get_spectrum_snapshot()
+            self.assertEqual(metadata[:3], (7, 1, 8))
+            np.testing.assert_array_equal(density, [0, -2, 4])
+            self.assertEqual(client.payload, b'', 'consume one header and the full vector')
+            self.assertEqual([cmd[1] for cmd in client.commands],
+                ['get_average_status', 'set_fft_navg', 'save_config', 'get_spectrum_snapshot'])
+            self.assertFalse(hasattr(driver, 'get_data'))
 
     def test_precision_and_atomic_snapshot(self):
         self.assertTrue(self.driver.set_phase_precision(8))

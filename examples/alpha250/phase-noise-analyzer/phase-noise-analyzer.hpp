@@ -30,6 +30,8 @@ class PhaseNoiseAnalyzer {
     auto get_precision_status() { return core.get_precision_status(); }
     auto get_phase_snapshot() const { return core.get_phase_snapshot(); }
 
+    auto get_spectrum_snapshot() const { return core.get_spectrum_snapshot(); }
+
  private:
     phase_noise::Core<Alpha250PhaseNoiseBoard> core;
 };

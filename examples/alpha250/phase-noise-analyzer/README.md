@@ -1,5 +1,10 @@
 # ALPHA250 phase-noise analyzer
 
+The analyzer now uses the [shared PNA plot and atomic spectrum snapshot](../../../server/drivers/phase-noise/README.md).
+Captured settings accompany each spectrum; FPS uses its publication sequence.
+Existing spectrum and phase RPCs remain available, and the browser supports
+older firmware through the existing read path.
+
 ## Runtime phase precision
 
 Version 1.3.1 calculates 24-bit CORDIC phase and uses a dedicated random stream
@@ -192,8 +197,8 @@ The plot and decade readouts average linear density over 0.1-decade frequency
 windows before converting to dB. The **Smoothed trace** checkbox controls the
 overlay; raw PSD, server averaging and jitter are unchanged by display
 smoothing. CSV exports include raw and smoothed display values plus the
-original server PSD in rad²/Hz, including DC and Nyquist. Plot updates run at
-up to 10 Hz, measurement readouts at 4 Hz and settings polling at 2 Hz.
+original server PSD in rad²/Hz, including DC and Nyquist. Spectrum polling targets
+60 reads/s; FPS counts new spectra, measurement readouts at 4 Hz and settings polling at 2 Hz.
 
 This correction assumes the current CIC/FIR configuration and concerns gain near
 DC. It does not compensate passband frequency response or the optical delay-line

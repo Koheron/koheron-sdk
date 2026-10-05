@@ -1,6 +1,7 @@
 #pragma once
 #include "phase-processing.hpp"
 #include "welch-spectrum.hpp"
+#include "spectrum-publication.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/config_manager.hpp"
@@ -79,6 +80,8 @@ class Core
         return std::tuple{accepted_captures, captured_precision, phase_conversion_factor,
                           capture_state == Valid, phase};
     }
+
+    auto get_spectrum_snapshot() const { return publication.snapshot(); }
 
     auto get_tracking_parameters() {
         std::shared_lock lk(data_mtx);
@@ -160,9 +163,8 @@ class Core
     std::mutex dma_mtx; // serializes DMA operations and CIC rate changes
     std::atomic<uint32_t> dma_settings_pending{0}; // give queued setters the next DMA lock
     mutable std::shared_mutex data_mtx; // settings, processing and published results
-    // The published spectrum can be read while the next FFT is processing.
-    // Writers hold data_mtx before spectrum_mtx; readers only take spectrum_mtx.
-    mutable std::shared_mutex spectrum_mtx;
+    SpectrumPublication<PhaseNoiseDensity> publication{1 + fft_size / 2};
+    void publish_spectrum(const std::array<double, 4>& acquired_lo);
 
     // Data acquisition thread
     std::thread acq_thread;
@@ -209,7 +211,7 @@ class Core
     // ----------------- Private functions
 
     void load_config();
-    void invalidate_results(); // caller holds data_mtx
+    void invalidate_results(CaptureState state = Settling); // caller holds data_mtx
     double carrier_power(uint32_t navg); // caller holds data_mtx
     double effective_tracking_bandwidth() const;
     void reset_tracking_observations(); // caller holds data_mtx
@@ -412,8 +414,7 @@ typename Core<Board>::PhaseDataArray Core<Board>::get_phase() const {
 
 template<class Board>
 typename Core<Board>::PhaseNoiseDensityVector Core<Board>::get_phase_noise() const {
-    std::shared_lock lk(spectrum_mtx);
-    return phase_noise;
+    return publication.spectrum();
 }
 
 template<class Board>
@@ -421,6 +422,12 @@ void Core<Board>::set_fft_navg(uint32_t n_avg) {
     std::unique_lock lk(data_mtx);
     fft_navg = std::clamp(n_avg, 1u, 100u);
     averager.set_navg(fft_navg);
+    if (capture_state == Valid) {
+        phase_noise = averager.average();
+        const auto frequencies = publication.settings().lo;
+        compute_jitter(phase_noise, Frequency(frequencies[channel]));
+        publish_spectrum(frequencies);
+    }
 }
 
 template<class Board>
@@ -700,15 +707,31 @@ void Core<Board>::start_acquisition() {
 }
 
 template<class Board>
-void Core<Board>::invalidate_results() {
-    capture_state = Settling;
+void Core<Board>::publish_spectrum(const std::array<double, 4>& acquired_lo) {
+    SpectrumMetadata metadata;
+    metadata.state = capture_state;
+    metadata.precision = captured_precision;
+    metadata.fs = double(fs.eval());
+    metadata.channel = channel;
+    metadata.cic_rate = cic_rate;
+    metadata.navg = fft_navg;
+    metadata.count = averager.count();
+    metadata.target = averager.window();
+    metadata.lo = acquired_lo;
+    metadata.mode = analyzer_mode;
+    metadata.delay = double(interferometer_delay.eval());
+    metadata.reference_clock = board.reference_clock();
+    publication.publish(metadata, phase_noise);
+}
+
+template<class Board>
+void Core<Board>::invalidate_results(CaptureState state) {
+    capture_state = state;
     reset_tracking_observations();
     averager.clear();
     phase.fill(Phase{});
-    {
-        std::unique_lock spectrum_lk(spectrum_mtx);
-        phase_noise.assign(1 + fft_size / 2, PhaseNoiseDensity{});
-    }
+    phase_noise.assign(1 + fft_size / 2, PhaseNoiseDensity{});
+    publish_spectrum({dds.get_dds_freq(0), dds.get_dds_freq(1), 0.0, 0.0});
     phase_jitter = std::numeric_limits<Phase>::quiet_NaN();
     time_jitter = std::numeric_limits<Time>::quiet_NaN();
     f_lo_used = std::numeric_limits<Frequency>::quiet_NaN();
@@ -805,12 +828,10 @@ void Core<Board>::acquisition_thread() {
         if (!samples) {
             ++dma_errors;
             dirty_cnt = std::max(dirty_cnt, 2u);
-            invalidate_results();
-            capture_state = DmaError;
+            invalidate_results(DmaError);
         } else if (packet_status & 0x10u) {
             ++overflow_captures;
-            invalidate_results();
-            capture_state = Overrange;
+            invalidate_results(Overrange);
         } else if (captured_precision != phase_precision) {
             invalidate_results();
         } else if (dirty_cnt > 0) {
@@ -818,7 +839,9 @@ void Core<Board>::acquisition_thread() {
             capture_state = Settling;
         } else {
             const auto process_start = std::chrono::steady_clock::now();
-            const auto acquired_lo = Frequency(dds.get_dds_freq(channel));
+            const std::array<double, 4> acquired_frequencies{
+                dds.get_dds_freq(0), dds.get_dds_freq(1), 0.0, 0.0};
+            const auto acquired_lo = Frequency(acquired_frequencies[channel]);
             const auto trend = fit_raw_phase_prefix<data_size>(*samples);
             update_tracking(trend.slope * double(phase_conversion_factor.eval()));
             if (tracking_capture) {
@@ -829,12 +852,10 @@ void Core<Board>::acquisition_thread() {
             auto new_pn = compute_phase_noise(*samples, trend, new_phase);
             compute_jitter(new_pn, acquired_lo);
             phase = std::move(new_phase);
-            {
-                std::unique_lock spectrum_lk(spectrum_mtx);
-                phase_noise = std::move(new_pn);
-            }
+            phase_noise = std::move(new_pn);
             ++accepted_captures;
             capture_state = Valid;
+            publish_spectrum(acquired_frequencies);
             processing_ms = std::chrono::duration<double, std::milli>(
                 std::chrono::steady_clock::now() - process_start).count();
         }

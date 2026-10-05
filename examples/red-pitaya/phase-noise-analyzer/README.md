@@ -1,5 +1,15 @@
 # Red Pitaya phase-noise analyzer
 
+The analyzer now uses the [shared PNA plot and atomic spectrum snapshot](../../../server/drivers/phase-noise/README.md).
+Captured settings accompany each spectrum; FPS uses its publication sequence.
+Existing spectrum and phase RPCs remain available, and the browser supports
+older firmware through the existing read path.
+
+Version 1.1.1 ports the ALPHA designs' 24-bit CORDIC phase calculation and
+independent stochastic phase rounding. The legacy radians-per-count scale and
+0–8 extra CIC precision bits are retained. This addresses deterministic phase
+quantization harmonics; hardware PM/noise-floor validation remains necessary.
+
 A two-input analyzer for the 125 MS/s, 14-bit Red Pitaya (Zynq-7010).
 It measures one selected ADC at a time with independent 48-bit local oscillators.
 The FPGA uses the improved four-stage mixer prefilter, CORDIC phase extraction,
@@ -214,3 +224,11 @@ bus-skew checks (WNS 0.175 ns, WHS 0.012 ns), with no unconstrained internal
 endpoints. The inherited board constraints still omit some external I/O delays.
 At placement the design uses 13122 LUTs, 18734 registers, 26 block RAMs and
 53 DSP slices.
+
+Validate the phase-rounding connections after generating the Vivado project:
+
+```sh
+source /tools/Xilinx/2025.1/Vivado/settings64.sh
+vivado -mode batch -source examples/red-pitaya/phase-noise-analyzer/tests/check_fpga.tcl \
+    -tclargs tmp/examples/red-pitaya/phase-noise-analyzer/fpga/phase-noise-analyzer.xpr
+```

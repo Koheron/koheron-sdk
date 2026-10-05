@@ -711,6 +711,22 @@ class Client {
         }, fn);
     }
 
+    // Heterogeneous replies retain the regular header; the vector's byte count
+    // follows its scalar metadata instead of immediately following the header.
+    async readTupleWithFloat32Vector<T extends any[]>(cmd: CmdMessage, fmt: string,
+        metadataBytes: number): Promise<{metadata: T; values: Float32Array}> {
+        const dv = await this._readBaseAsync('static', cmd);
+        if (dv.byteLength < metadataBytes + 4) { throw new Error('Truncated spectrum metadata'); }
+        const metadata = this.deserialize(fmt,
+            new DataView(dv.buffer, dv.byteOffset, metadataBytes)) as T;
+        const bytes = dv.getUint32(metadataBytes);
+        if (bytes % 4 !== 0 || dv.byteLength !== metadataBytes + 4 + bytes) {
+            throw new Error('Invalid spectrum vector length');
+        }
+        const offset = dv.byteOffset + metadataBytes + 4;
+        return {metadata, values: new Float32Array(dv.buffer.slice(offset, offset + bytes))};
+    }
+
     readFloat64Vector(cmd: CmdMessage, fn: (x: Float64Array) => void): void;
     readFloat64Vector(cmd: CmdMessage): Promise<Float64Array>;
     readFloat64Vector(cmd: CmdMessage, fn?: (x: Float64Array) => void) {
@@ -807,6 +823,14 @@ class Client {
 
                 case 'I': tuple.push(dv.getUint32(offset, little)); offset += 4; break;
                 case 'i': tuple.push(dv.getInt32(offset,  little)); offset += 4; break;
+
+                case 'Q': {
+                    const high = dv.getUint32(offset + (little ? 4 : 0), little);
+                    const low = dv.getUint32(offset + (little ? 0 : 4), little);
+                    const value = high * 4294967296 + low;
+                    if (!Number.isSafeInteger(value)) { throw new Error('Uint64 exceeds JavaScript integer precision'); }
+                    tuple.push(value); offset += 8; break;
+                }
 
                 case 'f': tuple.push(dv.getFloat32(offset, little)); offset += 4; break;
                 case 'd': tuple.push(dv.getFloat64(offset, little)); offset += 8; break;
