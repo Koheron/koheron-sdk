@@ -44,7 +44,10 @@ bits before spectral conversion to float.
 Version 1.2.0 carries over the ALPHA250-4 analyzer's mixer prefilter. Each
 ADC's I/Q mixer outputs pass through four cascaded 16-sample moving sums before
 the CORDIC, replacing the four-sample boxcar. The equivalent 61-tap FIR has
-unity DC gain. Intermediate sums retain full precision; the final 16-bit
+unity DC gain. Mixer and filter outputs now retain 24 Cartesian bits before
+the 24-bit CORDIC. This avoids a carrier-dependent small-PM gain error caused
+by rounding mixer products to 16 bits; randomized tie breaking cannot remove
+that staircase. Intermediate sums retain full precision; the final 24-bit
 output uses stochastic rounding. Each ADC channel selects a distinct nonzero
 seed for the shared 64-bit XOR LFSR; mixer and I/Q filter rounding use separate
 bits of that channel's sequence.
@@ -69,6 +72,7 @@ Run the FPGA regressions and build from the SDK root:
 ```sh
 PNA_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh \
     bash examples/alpha250/phase-noise-analyzer/tests/run-fpga.sh
+.venv/bin/python3 examples/alpha250/phase-noise-analyzer/tests/check_cartesian_precision.py
 make CFG=examples/alpha250/phase-noise-analyzer/config.mk fpga N_CPUS=4
 ```
 
@@ -392,6 +396,7 @@ These checks establish recovery in these conditions; they do not
 guarantee continuous service under every load or exhaustive processing of all
 acquired samples.
 
-Vivado 2025.1 routed setup/hold and bus-skew checks passed (WNS +0.047 ns,
-WHS +0.004 ns). External I/O-delay omissions in the board constraints remain;
+The later shared 24-bit Cartesian build passes Vivado 2025.1 routed setup/hold
+and bus-skew checks (WNS +0.076660 ns, WHS +0.040732 ns). Board validation of
+that revision remains pending. External I/O-delay omissions in the board constraints remain;
 there were no unconstrained internal endpoints.

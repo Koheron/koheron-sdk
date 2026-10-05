@@ -38,6 +38,7 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
   private samplingFrequency: number;
   private decadeValuesTable: HTMLTableElement;
   private frameParameters: P;
+  private lastReplyParameters: P;
   private frameSequence: number;
   private renderedPlotType: 'phase' | 'frequency';
   public frameReceivedAt: string;
@@ -429,15 +430,16 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
       }
       const changed = snapshot.sequence === undefined ? this.spectrumChanged(phaseNoise)
         : snapshot.sequence !== this.frameSequence;
-      if (!changed && this.frameParameters && this.renderedPlotType === this.laserPlotType &&
-          (Object.keys(frameParameters) as (keyof P)[]).every(key => Object.is(frameParameters[key], this.frameParameters[key]))) {
+      const ready = (snapshot.state === undefined || snapshot.state === 1) && phaseNoise.subarray(2).some(v => this.validDensity(v));
+      if (!changed && this.lastReplyParameters && this.captureReady === ready && this.renderedPlotType === this.laserPlotType &&
+          (Object.keys(frameParameters) as (keyof P)[]).every(key => Object.is(frameParameters[key], this.lastReplyParameters[key]))) {
         // The server returns its last published PSD between acquisitions.
         // A zoom/resize still needs a redraw, but keeps the capture timestamp.
         const drawStarted = performance.now();
         const complete = () => {
           this._busy = false;
           if (this.disposed) { return; }
-          this.recordFrame(received - readStarted, 0, performance.now() - drawStarted, frameDelay, false);
+          if (ready) { this.recordFrame(received - readStarted, 0, performance.now() - drawStarted, frameDelay, false); }
           this.schedule(Math.max(0, this._lastTick + frameBudgetMs - performance.now()));
         };
         if (this.plotBasics.needsRedraw()) { this.redraw(complete); }
@@ -457,8 +459,8 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
       this.computeSmoothedPlot(2);
       this.renderedPlotType = this.laserPlotType;
       this.frameParameters = {...frameParameters, fs: this.samplingFrequency, data_size: phaseNoise.length};
+      this.lastReplyParameters = {...frameParameters};
       this.frameReceivedAt = new Date().toISOString();
-      const ready = (snapshot.state === undefined || snapshot.state === 1) && phaseNoise.subarray(2).some(v => this.validDensity(v));
       this.setCaptureReady(ready);
       if (ready) {
         if (!this.hasInitialFit) {

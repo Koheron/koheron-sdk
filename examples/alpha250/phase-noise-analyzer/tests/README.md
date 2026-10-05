@@ -75,6 +75,7 @@ From the SDK root:
 ```sh
 PNA_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh \
     bash examples/alpha250/phase-noise-analyzer/tests/run-fpga.sh
+.venv/bin/python3 examples/alpha250/phase-noise-analyzer/tests/check_cartesian_precision.py
 make CFG=examples/alpha250/phase-noise-analyzer/config.mk fpga N_CPUS=4
 source /tools/Xilinx/2025.1/Vivado/settings64.sh
 vivado -mode batch -source examples/alpha250/phase-noise-analyzer/tests/check_fpga.tcl \
@@ -90,12 +91,23 @@ independence at all lags. The Python test needs NumPy and SciPy and checks unity
 gain, mixing-image rejection and known PM through an ideal real mixer/filter/
 atan model; vendor IP quantization is excluded.
 
+The Cartesian precision regression uses AMD's installed bit-accurate multiplier
+and CORDIC models, with no vendor files committed. It injects 1 mrad peak PM
+at two ADC signal levels and thirteen carrier phases for 125, 200 and 250 MS/s.
+The reference uses the same integer ADC/LO samples and full products through
+an independent filter/atan2 calculation. This isolates the digital gain error
+from ADC quantization and analog effects. A 16-bit Cartesian path must reproduce
+more than 2% power error; the 24-bit path must remain below 0.2% at every tested
+phase. Wider phase output alone does not satisfy this check. These model
+limits do not establish hardware accuracy or an analog noise floor.
+`PNA_VIVADO_PATH` overrides the default `/tools/Xilinx/2025.1/Vivado` model path.
+
 The block-design check verifies four prefilters, I/Q and rounding-bit ordering,
 clock/reset wiring, distinct channel seeds and the independent DAC/reference
 paths. The full build enforces routed setup, hold and bus-skew timing.
 
 The integrated design passed Vivado 2025.1 routing at 200 MHz with setup
-slack +0.055 ns and hold slack +0.005 ns; the bus-skew constraints also pass.
+slack +0.076660 ns and hold slack +0.040732 ns; the bus-skew constraints also pass.
 The shared RTL and ideal mixer regressions, and the generated block-design
 connection checks passed. Board validation of this ALPHA250 bitstream remains
 pending. The SDK timing report also flags 14 inputs and 41 outputs without
@@ -135,3 +147,6 @@ calibration and reject stale-scale/overflow packets; ALPHA250-4 DMA tests
 preserve per-stream metadata across ring wrap and queued setting changes.
 Run ALPHA250-4 `tests/run-fpga.sh` for the shared quantizer and packet-metadata
 simulations as well as the paired rate/precision/reset controller checks.
+The quantizer separates rounding and saturation into four pipeline stages
+to meet ALPHA250-4 timing. All PNA boards share that implementation; throughput
+remains one sample per clock and packet metadata follows the same stalls.

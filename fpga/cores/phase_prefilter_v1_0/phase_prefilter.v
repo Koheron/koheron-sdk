@@ -3,28 +3,30 @@
 // H(z) = ((1 + z^-1 + ... + z^-15)/16)^4.
 // No interstage truncation: four sums add 16 bits of precision.
 // One sample per clock, five pipeline clocks, unity DC gain.
-module phase_prefilter (
+module phase_prefilter #(
+  parameter integer WIDTH = 16
+) (
   input wire clk,
   input wire aresetn,
-  input wire signed [15:0] din,
+  input wire signed [WIDTH-1:0] din,
   input wire [15:0] random_round,
-  output reg signed [15:0] dout
+  output reg signed [WIDTH-1:0] dout
 );
-  wire signed [15:0] stage0 = din;
-  wire signed [19:0] stage1;
-  wire signed [23:0] stage2;
-  wire signed [27:0] stage3;
-  wire signed [31:0] stage4;
+  wire signed [WIDTH-1:0] stage0 = din;
+  wire signed [WIDTH+3:0] stage1;
+  wire signed [WIDTH+7:0] stage2;
+  wire signed [WIDTH+11:0] stage3;
+  wire signed [WIDTH+15:0] stage4;
 
-  phase_moving_sum #(.WIDTH(16)) s0(clk, aresetn, stage0, stage1);
-  phase_moving_sum #(.WIDTH(20)) s1(clk, aresetn, stage1, stage2);
-  phase_moving_sum #(.WIDTH(24)) s2(clk, aresetn, stage2, stage3);
-  phase_moving_sum #(.WIDTH(28)) s3(clk, aresetn, stage3, stage4);
+  phase_moving_sum #(.WIDTH(WIDTH)) s0(clk, aresetn, stage0, stage1);
+  phase_moving_sum #(.WIDTH(WIDTH+4)) s1(clk, aresetn, stage1, stage2);
+  phase_moving_sum #(.WIDTH(WIDTH+8)) s2(clk, aresetn, stage2, stage3);
+  phase_moving_sum #(.WIDTH(WIDTH+12)) s3(clk, aresetn, stage3, stage4);
 
   // Uniform [0, 65535] rounding makes either sign unbiased. Extend before
   // adding, so a positive full-scale input cannot overflow the signed sum.
-  wire signed [32:0] rounded = $signed({stage4[31], stage4})
-                            + $signed({17'b0, random_round});
+  wire signed [WIDTH+16:0] rounded = $signed({stage4[WIDTH+15], stage4})
+                                 + $signed({{(WIDTH+1){1'b0}}, random_round});
   always @(posedge clk)
     if (!aresetn) dout <= 0;
     else dout <= rounded >>> 16;

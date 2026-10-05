@@ -2,6 +2,7 @@
 open_project [lindex $argv 0]
 open_bd_design [get_files */system.bd]
 validate_bd_design
+source [file join [file dirname [info script]] check_extractor.tcl]
 
 proc require_same_net {left right} {
     # Include segments on both sides of a hierarchical boundary (e.g. demod).
@@ -24,6 +25,7 @@ for {set channel 0} {$channel < 2} {incr channel} {
     }
 
     set path cordic$channel
+    check_phase_extractor $path
     set lfsr [get_bd_cells $path/lfsr]
     if {[get_property CONFIG.SEED $lfsr] != [lindex $rounding_seeds $channel] ||
         [get_property CONFIG.FEEDBACK_MASK $lfsr] != 0xd800000000000000 ||
@@ -40,8 +42,8 @@ for {set channel 0} {$channel < 2} {incr channel} {
         require_same_net $filter/aresetn $path/lfsr/aresetn
         require_same_net $filter/dout $path/concat_dout_dout/In$component
 
-        set low [expr {16 * $component}]
-        set high [expr {$low + 15}]
+        set low [expr {24 * $component}]
+        set high [expr {$low + 23}]
         set data_slice $path/slice_${high}_${low}_ccomplex_mult_m_axis_dout_tdata
         require_same_net $path/complex_mult/m_axis_dout_tdata $data_slice/Din
         require_same_net $data_slice/Dout $filter/din
@@ -53,7 +55,7 @@ for {set channel 0} {$channel < 2} {incr channel} {
         require_same_net $random_slice/Dout $filter/random_round
     }
     require_same_net $path/concat_dout_dout/dout $path/cordic/s_axis_cartesian_tdata
-    require_same_net $path/concat_dout_dout/dout $path/demod
+    require_same_net $path/demod_quantized/dout $path/demod
 }
 require_same_net awg/sample_clk adc_dac/adc_clk
 if {[get_property CONFIG.CHANNELS [get_bd_cells awg]] != 2} {error "Two DAC channels required"}

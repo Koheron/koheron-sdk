@@ -1,10 +1,12 @@
 `timescale 1ns/1ps
-module test_phase_prefilter;
+module test_phase_prefilter #(parameter integer WIDTH=24);
   reg clk=0;
   always #2.5 clk=~clk;
   reg reset_n=0;
-  reg signed [15:0] din=0;
-  wire signed [15:0] dout;
+  localparam integer MAX_VALUE=(1 << (WIDTH-1))-1;
+  localparam integer MIN_VALUE=-(1 << (WIDTH-1));
+  reg signed [WIDTH-1:0] din=0;
+  wire signed [WIDTH-1:0] dout;
   wire [63:0] randoms [0:3];
   wire [3:0] valid;
   function automatic [63:0] seed(input integer channel);
@@ -21,7 +23,7 @@ module test_phase_prefilter;
       .FEEDBACK_XNOR(0)) r(.aclk(clk),.aresetn(reset_n),
       .m_axis_tready(1'b1),.m_axis_tdata(randoms[g]),.m_axis_tvalid(valid[g]));
   end endgenerate
-  phase_prefilter filter(clk,reset_n,din,randoms[0][31:16],dout);
+  phase_prefilter #(.WIDTH(WIDTH)) filter(clk,reset_n,din,randoms[0][31:16],dout);
   integer coefficients[0:60], history[0:64], ones[0:3], correlations[0:5];
   integer i,j,a,b,c,d,pair_index, expected, rounding;
   longint signed sum;
@@ -39,10 +41,10 @@ module test_phase_prefilter;
     for(i=0;i<100000;i=i+1) begin
       @(negedge clk);
       // Steady extrema, impulses, cancellation, fractional values and noise.
-      if(i<100) din=32767;
-      else if(i<200) din=-32768;
-      else if(i<400) din=(i==250 ? 32767 : 0);
-      else if(i<800) din=(i%2 ? -32768 : 32767);
+      if(i<100) din=MAX_VALUE;
+      else if(i<200) din=MIN_VALUE;
+      else if(i<400) din=(i==250 ? MAX_VALUE : 0);
+      else if(i<800) din=(i%2 ? MIN_VALUE : MAX_VALUE);
       else if(i<1200) din=(i%2 ? -1 : 0);
       else din=$random;
       for(j=64;j>0;j=j-1) history[j]=history[j-1];

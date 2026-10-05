@@ -45,10 +45,16 @@ module phase_quantizer #(
                 ((|input_data[DROP-2:0]) || input_data[DROP]);
     end endgenerate
 
-    // Three pipeline stages: packet selection, shift/round decision, saturation.
+    // Keep rounding and saturation in separate stages: a 41-bit carry chain
+    // followed by overflow detection and the saturation mux exceeds the
+    // four-channel analyzer's 200 MHz timing budget. Throughput stays one
+    // sample per clock, with all metadata stalled alongside its sample.
     reg signed [39:0] quotient_reg;
     reg increment_reg, last_reg, valid_reg, upstream_overflow_reg;
     reg [3:0] bits_reg, output_bits;
+    reg signed [40:0] rounded_reg;
+    reg rounded_last, rounded_valid, rounded_upstream_overflow;
+    reg [3:0] rounded_bits;
     reg output_overflow, packet_overflow;
     reg [23:0] packet_sequence;
     assign sample_status = {output_overflow, output_bits};
@@ -56,7 +62,7 @@ module phase_quantizer #(
     assign s_axis_tready = advance;
     wire signed [40:0] rounded = {quotient_reg[39], quotient_reg} +
                                  $signed({40'd0, increment_reg});
-    wire overflow = rounded[40:31] != {10{rounded[31]}};
+    wire overflow = rounded_reg[40:31] != {10{rounded_reg[31]}};
 
     always @(posedge aclk) begin
         if (!aresetn) begin
@@ -64,6 +70,7 @@ module phase_quantizer #(
             active_bits <= 0;
             input_valid <= 0;
             valid_reg <= 0;
+            rounded_valid <= 0;
             m_axis_tvalid <= 0;
             m_axis_tdata <= 0;
             m_axis_tlast <= 0;
@@ -83,12 +90,17 @@ module phase_quantizer #(
                 end
             end
             if (advance) begin
-                m_axis_tvalid <= valid_reg;
-                m_axis_tlast <= last_reg;
-                output_bits <= bits_reg;
-                output_overflow <= overflow | upstream_overflow_reg;
-                m_axis_tdata <= overflow ? (rounded[40] ? 32'h80000000 : 32'h7fffffff)
-                                        : rounded[31:0];
+                m_axis_tvalid <= rounded_valid;
+                m_axis_tlast <= rounded_last;
+                output_bits <= rounded_bits;
+                output_overflow <= overflow | rounded_upstream_overflow;
+                m_axis_tdata <= overflow ? (rounded_reg[40] ? 32'h80000000 : 32'h7fffffff)
+                                        : rounded_reg[31:0];
+                rounded_reg <= rounded;
+                rounded_valid <= valid_reg;
+                rounded_last <= last_reg;
+                rounded_bits <= bits_reg;
+                rounded_upstream_overflow <= upstream_overflow_reg;
                 valid_reg <= input_valid;
                 quotient_reg <= quotient;
                 increment_reg <= increments[input_bits];

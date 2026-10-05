@@ -40,6 +40,7 @@ def wait_captures(count):
 
 try:
     analyzer.set_tracking_enabled(False)
+    analyzer.set_analyzer_mode(0)
     analyzer.set_channel(0)
     analyzer.set_cic_rate(rate)
     analyzer.set_fft_navg(8)
@@ -47,7 +48,8 @@ try:
     assert analyzer.set_phase_precision(bits), "Unsupported precision"
     parameters = analyzer.get_parameters()
     fs, bins = parameters[1], parameters[0]
-    assert bins == 16385 and fs == 125e6 / (2 * rate)
+    # The legacy parameters RPC carries the sample rate as a float32.
+    assert bins == 16385 and fs == float(np.float32(125e6 / (2 * rate)))
     df = fs / (2 * (bins - 1))
     tone_bin = 64
     tone_hz = tone_bin * df
@@ -78,6 +80,7 @@ finally:
     analyzer.set_local_oscillator(0, tracking[5])
     analyzer.set_local_oscillator(1, tracking[6])
     analyzer.set_phase_precision(precision)
+    analyzer.set_analyzer_mode(original[7])
     for channel, words in enumerate(generator_words):
         assert not generator.configure_words_checked(channel, *words[1:], True, True)
         assert generator._get_settings_words(channel) == words
