@@ -18,6 +18,7 @@
   <link rel="stylesheet" type="text/css" href="main.css">
   <link rel="stylesheet" href="phase-noise-plot.css">
   <link rel="stylesheet" href="phase-noise.css">
+  <link rel="stylesheet" href="phase-precision.css">
 
   <script type="text/javascript" src="html-imports.min.js"></script>
 
@@ -54,6 +55,16 @@
         <label class="control-field" title="CIC decimation rate">Decimation<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="20" min="4" step="1" max="8192" required data-command="setCicRate" class="cic-rate-input"></span></label>
         <label class="control-field">Averages<span class="pna-digit-control pna-average-control"><span id="average-status" role="status" data-state="unknown" title="Actual spectra in the rolling average">—/</span><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1" min="1" step="1" max="200" required class="plot-navg-input"></span></label>
         <button type="button" class="reset-cumulative-averager-btn" hidden>Reset XY average</button><div id="reference-clock"></div>
+        <label class="control-field" title="Extra fractional bits preserve smaller phase changes, at the cost of phase range.">Phase precision
+          <select id="phase-precision">
+            <option value="0">Standard</option>
+            <option value="1">+1 bit</option><option value="2">+2 bits</option>
+            <option value="3">+3 bits</option><option value="4">+4 bits</option>
+            <option value="5">+5 bits</option><option value="6">+6 bits</option>
+            <option value="7">+7 bits</option><option value="8">+8 bits</option>
+          </select>
+        </label>
+        <span id="precision-status" class="precision-status" role="status">Waiting…</span>
       </div>
       <div class="display-controls"><div class="segmented">
         <label><input type="radio" name="laser-plot-type" value="phase" checked class="laser-plot-type"><span>Phase noise</span></label>

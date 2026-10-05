@@ -58,7 +58,7 @@ class PhasePrecision {
         const detail = state === 2
             ? requested > 0 ? 'Reduce precision or bring the LO closer to the carrier.'
                             : 'Bring the LO closer to the carrier.'
-            : state === 3 ? 'Acquisition error; retrying automatically.'
+            : state === 3 ? 'Acquisition error; reconnect or restart the instrument if it persists.'
             : 'Higher precision reduces the available phase range.';
         this.status.title = `${resolution} per count. Requested +${requested} bits; last packet +${captured} bits. ${detail}`;
     }

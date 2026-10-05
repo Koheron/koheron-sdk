@@ -57,6 +57,16 @@ for {set i 0} {$i < 4} {incr i} {
 
 source $project_path/tcl/cordic.tcl
 
+cell xilinx.com:ip:util_vector_logic:2.0 filter_reset {
+  C_SIZE 1 C_OPERATION not
+} {}
+cell xilinx.com:ip:util_vector_logic:2.0 phase_reset {
+  C_SIZE 1 C_OPERATION or
+} {
+  Op1 [get_slice_pin [ctl_pin cordic] 1 1]
+  Op2 filter_reset/Res
+}
+
 set adc_chans {00 01 10 11}
 
 for {set i 0} {$i < 4} {incr i} {
@@ -73,7 +83,7 @@ for {set i 0} {$i < 4} {incr i} {
         aclk adc/adc_clk
         aresetn rst_adc_clk/peripheral_aresetn
         acc_on [get_slice_pin [ctl_pin cordic] 0 0]
-        rst_phase [get_slice_pin [ctl_pin cordic] 1 1]
+        rst_phase phase_reset/Res
     }
 
     connect_pins cordic$i/demod [sts_pin demod$i]
@@ -97,7 +107,7 @@ for {set i 0} {$i < 4} {incr i} {
 cell xilinx.com:ip:c_addsub:12.0 phase_diff0 {
   A_WIDTH 32
   B_WIDTH 32
-  OUT_WIDTH 32
+  OUT_WIDTH 33
   ADD_MODE Subtract
   CE false
 } {
@@ -109,7 +119,7 @@ cell xilinx.com:ip:c_addsub:12.0 phase_diff0 {
 cell xilinx.com:ip:c_addsub:12.0 phase_diff1 {
   A_WIDTH 32
   B_WIDTH 32
-  OUT_WIDTH 32
+  OUT_WIDTH 33
   ADD_MODE Subtract
   CE false
 } {
@@ -141,6 +151,14 @@ cell koheron:user:axis_stream_packet_mux:1.0 axis_stream_packet_m_0 {
   aresetn proc_sys_reset_1/peripheral_aresetn
 }
 
+cell koheron:user:paired_cic_control:1.0 paired_cic_control {} {
+  aclk adc/adc_clk
+  aresetn rst_adc_clk/peripheral_aresetn
+  requested_rate [ctl_pin cic_rate]
+  requested_bits [get_slice_pin [ctl_pin phase_precision] 3 0]
+  requested_epoch [get_slice_pin [ctl_pin phase_precision] 8 8]
+}
+
 for {set i 0} {$i < 2} {incr i} {
   cell xilinx.com:ip:cic_compiler:4.0 cic$i {
     Filter_Type Decimation
@@ -154,13 +172,13 @@ for {set i 0} {$i < 2} {incr i} {
     Clock_Frequency [expr [get_parameter adc_clk] / 1000000.0]
     Input_Data_Width 32
     Quantization Truncation
-    Output_Data_Width 32
+    Output_Data_Width [get_parameter phase_filter_width]
     Use_Xtreme_DSP_Slice false
     HAS_DOUT_TREADY true
     HAS_ARESETN true
   } {
     aclk adc/adc_clk
-    s_axis_data_tdata phase_diff$i/S
+    s_axis_data_tdata [get_slice_pin phase_diff$i/S 31 0]
   }
 
   cell xilinx.com:ip:fir_compiler:7.2 fir$i {
@@ -168,9 +186,9 @@ for {set i 0} {$i < 2} {incr i} {
     Sample_Frequency [expr [get_parameter adc_clk] / 1000000. / $dec_rate_min]
     Clock_Frequency [expr [get_parameter adc_clk] / 1000000.]
     Coefficient_Width 32
-    Data_Width 32
+    Data_Width [get_parameter phase_filter_width]
     Output_Rounding_Mode Convergent_Rounding_to_Even
-    Output_Width 32
+    Output_Width [get_parameter phase_filter_width]
     Decimation_Rate 2
     BestPrecision true
     CoefficientVector [subst {{$fir_coeffs}}]
@@ -182,15 +200,45 @@ for {set i 0} {$i < 2} {incr i} {
     S_AXIS_DATA cic$i/M_AXIS_DATA
   }
 
+  cell xilinx.com:ip:util_vector_logic:2.0 difference_overflow$i {
+    C_SIZE 1 C_OPERATION xor
+  } {
+    Op1 [get_slice_pin phase_diff$i/S 32 32]
+    Op2 [get_slice_pin phase_diff$i/S 31 31]
+  }
+  cell xilinx.com:ip:util_vector_logic:2.0 cordic_overflow$i {
+    C_SIZE 1 C_OPERATION or
+  } {
+    Op1 cordic[expr 2*$i]/overflow
+    Op2 cordic[expr 2*$i+1]/overflow
+  }
+  cell xilinx.com:ip:util_vector_logic:2.0 upstream_overflow$i {
+    C_SIZE 1 C_OPERATION or
+  } {
+    Op1 cordic_overflow$i/Res
+    Op2 difference_overflow$i/Res
+  }
+  cell koheron:user:phase_quantizer:1.0 phase_quantizer$i {
+    PKT_LENGTH 8192
+    BASE_SHIFT 8
+  } {
+    aclk adc/adc_clk
+    requested_bits paired_cic_control/active_bits
+    upstream_overflow paired_cic_control/overflow_[lindex {x y} $i]
+    S_AXIS fir$i/M_AXIS_DATA
+  }
+
   cell xilinx.com:ip:axis_data_fifo:2.0 axis_data_fifo_$i {
     FIFO_DEPTH 32768
     TDATA_NUM_BYTES 4
+    TUSER_WIDTH 5
     IS_ACLK_ASYNC 1
     HAS_PROG_FULL 1
     PROG_FULL_THRESH 16384
     HAS_WR_DATA_COUNT 1
   } {
-    S_AXIS fir$i/M_AXIS_DATA
+    S_AXIS phase_quantizer$i/M_AXIS
+    s_axis_tuser phase_quantizer$i/sample_status
     s_axis_aclk adc/adc_clk
     m_axis_aclk ps_0/FCLK_CLK1
     M_AXIS axis_stream_packet_m_0/S_AXIS_$i
@@ -201,22 +249,20 @@ for {set i 0} {$i < 2} {incr i} {
 
 # Separate FIFO drains must not let X/Y accept different live ADC samples.
 # A shared rate source also keeps a runtime rate change on one sample epoch.
-cell koheron:user:paired_cic_control:1.0 paired_cic_control {} {
-  aclk adc/adc_clk
-  aresetn rst_adc_clk/peripheral_aresetn
-  requested_rate [ctl_pin cic_rate]
-  data_ready_x cic0/s_axis_data_tready
-  data_ready_y cic1/s_axis_data_tready
-  data_valid cic0/s_axis_data_tvalid
-  config_ready_x cic0/s_axis_config_tready
-  config_ready_y cic1/s_axis_config_tready
-  config_valid cic0/s_axis_config_tvalid
-}
+connect_pins paired_cic_control/filter_resetn filter_reset/Op1
+connect_pins paired_cic_control/data_ready_x cic0/s_axis_data_tready
+connect_pins paired_cic_control/data_ready_y cic1/s_axis_data_tready
+connect_pins paired_cic_control/data_valid cic0/s_axis_data_tvalid
+connect_pins paired_cic_control/config_ready_x cic0/s_axis_config_tready
+connect_pins paired_cic_control/config_ready_y cic1/s_axis_config_tready
+connect_pins paired_cic_control/config_valid cic0/s_axis_config_tvalid
 connect_pins paired_cic_control/data_valid cic1/s_axis_data_tvalid
 connect_pins paired_cic_control/config_valid cic1/s_axis_config_tvalid
 connect_pins paired_cic_control/config_rate cic0/s_axis_config_tdata
 connect_pins paired_cic_control/config_rate cic1/s_axis_config_tdata
 for {set i 0} {$i < 2} {incr i} {
+  connect_pins upstream_overflow$i/Res paired_cic_control/upstream_overflow_[lindex {x y} $i]
+  connect_pins paired_cic_control/filter_resetn phase_quantizer$i/aresetn
   connect_pins paired_cic_control/filter_resetn cic$i/aresetn
   connect_pins paired_cic_control/filter_resetn fir$i/aresetn
   connect_pins paired_cic_control/filter_resetn axis_data_fifo_$i/s_axis_aresetn

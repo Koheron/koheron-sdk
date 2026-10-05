@@ -34,6 +34,8 @@ class AxisStreamPacketMux {
         write_ctrl(sel, length_beats, true);
     }
 
+    uint32_t get_packet_status() { return hw::get_memory<mem::mux>().read<0x4>(); }
+
     auto get_settings() {
         return std::tuple{sel, length_beats};
     }

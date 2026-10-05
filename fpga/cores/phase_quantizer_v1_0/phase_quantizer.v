@@ -18,6 +18,7 @@ module phase_quantizer #(
     output reg m_axis_tvalid,
     input wire m_axis_tready,
     output reg m_axis_tlast,
+    output wire [4:0] sample_status,
     output reg [31:0] packet_status
 );
     localparam COUNT_WIDTH = $clog2(PKT_LENGTH);
@@ -50,6 +51,7 @@ module phase_quantizer #(
     reg [3:0] bits_reg, output_bits;
     reg output_overflow, packet_overflow;
     reg [23:0] packet_sequence;
+    assign sample_status = {output_overflow, output_bits};
     wire advance = m_axis_tready || !m_axis_tvalid;
     assign s_axis_tready = advance;
     wire signed [40:0] rounded = {quotient_reg[39], quotient_reg} +

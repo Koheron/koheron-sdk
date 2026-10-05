@@ -34,6 +34,26 @@ int main() {
     });
     // Continuous acquisition must give a waiting configuration call a turn.
     assert(std::chrono::steady_clock::now() - configuration_start < std::chrono::seconds(1));
+    // Old-scale chunks and overflow remain marked even after the live FPGA
+    // status changes. Wait for fresh complete windows for each injected epoch.
+    uint64_t consumed = dma.completed_chunks() + 8;
+    hw::injected_x_status.store(8);
+    hw::injected_y_status.store(8);
+    auto precise = dma.read_xy<65536>(consumed, running);
+    check(precise);
+    assert(precise->matches_precision(8) && !precise->overflow);
+    consumed = dma.completed_chunks() + 8;
+    hw::injected_y_status.store(7);
+    auto mismatched = dma.read_xy<65536>(consumed, running);
+    assert(!mismatched->matches_precision(8));
+    consumed = dma.completed_chunks() + 8;
+    hw::injected_y_status.store(8 | 0x10u);
+    auto clipped = dma.read_xy<65536>(consumed, running);
+    assert(clipped->matches_precision(8) && clipped->overflow);
+    consumed = dma.completed_chunks() + 8;
+    hw::injected_x_status.store(8 | 0x20u);
+    auto mixed = dma.read_xy<65536>(consumed, running);
+    assert(!mixed->matches_precision(8) && mixed->mixed_precision);
     running.store(false);
     const auto before = std::chrono::steady_clock::now();
     assert(!dma.read_xy<65536>(UINT64_MAX, running));

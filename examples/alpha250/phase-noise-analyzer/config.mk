@@ -1,5 +1,5 @@
 NAME := phase-noise-analyzer
-VERSION := 1.2.0
+VERSION := 1.3.0
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
@@ -11,7 +11,7 @@ XDC += $(SDK_PATH)/boards/alpha250/config/ports.xdc
 include $(BOARD_PATH)/cores/cores.mk
 CORES += $(SDK_PATH)/fpga/cores/axis_constant_v1_0
 CORES += $(SDK_PATH)/fpga/cores/latched_mux_v1_0
-CORES += $(SDK_PATH)/fpga/cores/tlast_gen_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_quantizer_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_lfsr_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_unwrapper_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_prefilter_v1_0
@@ -30,6 +30,8 @@ DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.cpp
 include $(SDK_PATH)/server/drivers/phase-noise/fft.mk
 
 # Web assets
+WEB_FILES += $(SDK_PATH)/web/phase-noise/phase-precision.ts
+WEB_FILES += $(SDK_PATH)/web/phase-noise/phase-precision.css
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.ts
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/frequency-input.ts
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator-widget.ts

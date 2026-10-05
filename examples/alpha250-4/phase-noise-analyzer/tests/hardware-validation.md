@@ -292,3 +292,54 @@ validated CIC 133 setting for this PM experiment.
 Raw NPZ captures, JSON measurements, deployment hashes, instrument/settings
 backups and browser exports are under `tmp/pna-pm-port-20261005` in the main
 workspace; software build/test logs are under `tmp/pna-port` in the port worktree.
+
+## Runtime precision validation — 2026-10-05
+
+PNA 1.3.0 on ALPHA250 `192.168.1.105` drives DAC0 into ADC1/ADC3 of
+ALPHA250-4 `192.168.1.12` (PNA 1.2.0). ADC0/ADC2 receive the 10 MHz reference.
+DAC0 is a 10 MHz carrier with 1° peak sinusoidal PM at 10 kHz; DAC1 is muted.
+CIC rate 133 gives 751879.718 Hz phase sampling. XY averaging and slow
+tracking remain enabled. Both full FPGA/server/web packages were rebuilt and
+all installed file hashes checked; existing settings and the generator words
+were preserved during installation.
+
+Software/RTL checks passed separately from these board measurements: native
+ASan/UBSan acquisition/DMA/scaling suites, Python RPC tests, web tests,
+quantizer signed ties/saturation/all nine precisions under stalls, and paired
+controller/FIFO metadata regressions. Strict routed timing checks passed:
+ALPHA250 setup 0.071 ns, hold 0.000 ns; ALPHA250-4 setup 0.192 ns, hold 0.039 ns.
+The ALPHA250 hold margin is very small. The ALPHA250-4 IP status report marks
+its custom cores up to date; generated RTL hashes match the checked sources.
+
+Eight fresh, metadata-validated XY captures at every setting 0–8 recovered
+0.99949–0.99982° mean peak PM in both streams. Maximum relative PM phase stayed
+below 0.027°. A longer comparison used 80 distinct valid XY snapshots per
+setting (Standard and +8). Standard's step was 2.437810 mrad/count; +8's was
+9.522696 µrad/count, exactly 256 times finer. The measured band averages were:
+
+| Offset band | Standard negative bins | +8 negative bins | Standard X auto PSD | +8 X auto PSD |
+| --- | ---: | ---: | ---: | ---: |
+| 20–50 kHz | 41.0% | 0.334% | -122.68 dBc/Hz | -142.22 dBc/Hz |
+| 50–100 kHz | 40.1% | 0.702% | -123.10 dBc/Hz | -142.01 dBc/Hz |
+| 100–280 kHz | 36.5% | 0.724% | -122.80 dBc/Hz | -142.04 dBc/Hz |
+
+The 10 kHz modulation remained 0.99972–0.99975° in this longer comparison.
+These results identify a substantial output-quantization limitation in this
+setup; they do not establish an absolute analog noise floor or imply that all
+negative cross-spectrum estimates disappear with higher precision. Signed
+estimates are still retained rather than clipped or replaced by magnitudes.
+
+A deliberate +300 kHz DUT-X LO offset at +8 caused hardware overrange;
+`get_phase_snapshot()` marked the capture invalid, the spectrum was cleared,
+and the overflow counter incremented. Restoring the nominal LO resumed valid
+acquisition. No DMA errors occurred. +8 was saved on the receiver and survived
+an instrument restart with all four nominal LOs unchanged. ALPHA250's runtime
+controls and captured precision metadata were exercised at all nine settings;
+its acquisition reported overrange with the present ADC inputs, so the
+calibrated PM validation is limited to the wired ALPHA250-4 receiver.
+
+Local evidence: `tmp/pna-precision/hardware/precision-sweep.json`,
+`precision-comparison.json`, `precision-*-*.npz`, `overrange.json`,
+`persistence.json`, deployment manifests, generator before/after settings,
+and `precision-comparison.png`. The scripts and complete build/test logs are
+under `tmp/pna-precision/`; these temporary artifacts are not committed.

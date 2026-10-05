@@ -4,6 +4,35 @@ The server returns a one-sided phase PSD in rad²/Hz. Positive estimates convert
 to single-sideband phase noise with `10 * log10(PSD / 2)`; frequency-noise
 density is `f² * PSD` in Hz²/Hz.
 
+## Runtime phase precision
+
+The acquisition toolbar selects **Standard** or **+1…+8 bits**. The CIC and
+compensation FIR retain 40 bits; the packet quantizer rounds to even and
+saturates into the 32-bit DMA output. Each extra bit halves radians per count
+and the available phase range. Standard retains the previous nominal scale;
++8 gives 256 times finer output steps. This changes quantization, not the
+CORDIC resolution or analog noise floor.
+
+`set_phase_precision(bits)` accepts integers 0–8 and returns a boolean. The
+choice is stored by **Save settings** (older configurations default to 0).
+`get_precision_status()` reports requested/captured precision, radians per
+count, state (0 settling, 1 live, 2 overrange, 3 DMA error), accepted/overflow/
+DMA-error counters and processing/capture times in milliseconds. Saturated
+and stale-scale captures clear the current spectrum and do not enter averages
+or tracking. Reduce precision or bring the LO closer to the carrier when the
+status reports overrange. Integer-domain drift removal preserves the extra
+bits before spectral conversion to float.
+
+
+ALPHA250-4 applies one precision to both streams. Metadata travels through
+the asynchronous FIFOs with each sample and is committed at each DMA packet
+boundary. A rate, precision or LO change restarts both filter histories and
+unwrappers; settling discards queued samples. Upstream unwrap/subtractor
+overflow is sticky within that epoch. Overrange automatically rebases the
+paired pipeline at most once per second before acquisition resumes. The
+reported radians-per-count value is for X; frequency-ratio scaling also
+applies independently to Y.
+
 Build with:
 
 ```sh

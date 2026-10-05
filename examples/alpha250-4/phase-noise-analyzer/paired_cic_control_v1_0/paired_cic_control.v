@@ -6,6 +6,9 @@ module paired_cic_control (
     input wire aclk,
     input wire aresetn,
     input wire [15:0] requested_rate,
+    input wire [3:0] requested_bits,
+    input wire requested_epoch,
+    output wire [3:0] active_bits,
     input wire data_ready_x,
     input wire data_ready_y,
     output wire data_valid,
@@ -13,26 +16,46 @@ module paired_cic_control (
     input wire config_ready_y,
     output wire config_valid,
     output wire [15:0] config_rate,
+    input wire upstream_overflow_x,
+    input wire upstream_overflow_y,
+    output reg overflow_x = 0,
+    output reg overflow_y = 0,
     output wire filter_resetn
 );
     localparam WAIT_RATE=0, RESET=1, CONFIGURE=2, PRIME=3, STREAM=4;
     reg [2:0] state=WAIT_RATE;
     reg [5:0] reset_count=0;
     reg [15:0] rate=0;
+    reg [3:0] precision=0;
+    reg epoch=0;
+    assign active_bits = precision;
     wire valid_rate = requested_rate >= 4 && requested_rate <= 8192;
     // Reset both CIC/FIR histories and FIFO queues, not only the rate registers.
     // 32 ADC clocks also covers the async FIFO's slower read-clock reset width.
     assign filter_resetn = aresetn && (state==CONFIGURE || state==PRIME || state==STREAM);
-    assign data_valid = state==STREAM && requested_rate==rate && data_ready_x && data_ready_y;
+    assign data_valid = state==STREAM && requested_rate==rate && requested_bits==precision && requested_epoch==epoch && data_ready_x && data_ready_y;
     assign config_valid = state==CONFIGURE && config_ready_x && config_ready_y;
     assign config_rate = rate;
+    always @(posedge aclk) begin
+        if (!filter_resetn) begin
+            overflow_x <= 0;
+            overflow_y <= 0;
+        end else begin
+            overflow_x <= overflow_x | upstream_overflow_x;
+            overflow_y <= overflow_y | upstream_overflow_y;
+        end
+    end
     always @(posedge aclk) begin
         if(!aresetn) begin
             state<=WAIT_RATE;
             reset_count<=0;
             rate<=0;
-        end else if(valid_rate && requested_rate!=rate) begin
+            precision<=0;
+            epoch<=0;
+        end else if(valid_rate && requested_bits<=8 && (requested_rate!=rate || requested_bits!=precision || requested_epoch!=epoch)) begin
             rate<=requested_rate;
+            precision<=requested_bits;
+            epoch<=requested_epoch;
             reset_count<=0;
             state<=RESET;
         end else begin

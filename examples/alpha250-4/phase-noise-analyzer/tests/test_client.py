@@ -23,7 +23,19 @@ class FakeClient:
         if name == 'reset_cumulative_averager':
             self.count = 0
 
+    def recv_bool(self):
+        return True
+
+    def recv_all(self, size):
+        return np.arange(size // 4, dtype='<f4').tobytes()
+
     def recv_tuple(self, fmt):
+        if fmt == 'IIdIQQQdd':
+            return (8, 8, .000006, 1, 100, 0, 0, 10., 90.)
+        if fmt == 'QI?':
+            return (100, 8, True)
+        if fmt == 'QIf?':
+            return (100, 8, .000006, True)
         if fmt == 'dddd':
             return (10e6, 10e6 + .001, 10e6, 10e6)
         if fmt == 'II':
@@ -42,6 +54,15 @@ class ClientTests(unittest.TestCase):
     def setUp(self):
         self.client = FakeClient()
         self.driver = PhaseNoiseAnalyzer(self.client)
+
+    def test_precision_and_atomic_snapshot(self):
+        self.assertTrue(self.driver.set_phase_precision(8))
+        self.assertEqual(self.driver.get_precision_status()[:2], (8, 8))
+        snapshot = self.driver.get_phase_snapshot()
+        self.assertEqual(snapshot[:2], (100, 8))
+        self.assertTrue(snapshot[2])
+        np.testing.assert_array_equal(snapshot[3], np.arange(65536, dtype=np.float32))
+        self.assertEqual(snapshot[4][0], 65536)
 
     def test_dds_command_preserves_precision(self):
         frequency = 10e6 + 0.637

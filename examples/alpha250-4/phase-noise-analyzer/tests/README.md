@@ -132,3 +132,9 @@ DMA path. The initial FPGA review found three measurement concerns:
   now preserve alignment across rate changes. Shared stalls can still discard
   ADC-time samples; these regressions do not establish lossless sampling under
   arbitrary FIFO pressure.
+
+Precision regressions cover signed round-to-even and saturation at all 0–8
+shifts under AXIS stalls. DMA metadata regressions include ring wrap, stale
+precision, different X/Y scales, packet overflow and mixed-scale packets.
+The paired controller is tested through rate, precision and reset epochs.
+The shared web tests exercise the same precision widget on all three boards.

@@ -42,3 +42,14 @@ if rg -q 'Fatal:|ERROR:|FATAL:' prefilter.log; then
     exit 1
 fi
 "${PNA_PYTHON:-$repo/.venv/bin/python3}" "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_prefilter_response.py"
+xvlog "$repo/fpga/cores/phase_quantizer_v1_0/phase_quantizer.v" \
+      "$repo/examples/alpha250-4/phase-noise-analyzer/axis_stream_packet_mux_v1_0/axis_stream_packet_mux.v"
+xvlog --sv "$repo/fpga/cores/phase_quantizer_v1_0/phase_quantizer_tb.sv" \
+      "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_packet_metadata.sv"
+for pna_test in phase_quantizer_tb test_packet_metadata; do
+    xelab "work.$pna_test" -s "$pna_test"
+    xsim "$pna_test" -runall > "$pna_test.log" 2>&1
+    cat "$pna_test.log"
+    rg -q 'passed' "$pna_test.log"
+    if rg -q 'Fatal:|ERROR:|FATAL:' "$pna_test.log"; then exit 1; fi
+done

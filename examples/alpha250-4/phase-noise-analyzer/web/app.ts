@@ -7,6 +7,7 @@ class App {
     private clockGeneratorApp: ClockGeneratorApp;
     private phaseNoiseAnalyzer: PhaseNoiseAnalyzer;
     private phaseNoiseAnalyzerApp: PhaseNoiseAnalyzerApp;
+    private phasePrecision: PhasePrecision;
     public plot: Plot;
     private plotBasics: PlotBasics;
     private exportFile: ExportFile;
@@ -35,6 +36,8 @@ class App {
                 this.phaseNoiseAnalyzerApp = new PhaseNoiseAnalyzerApp(document, this.phaseNoiseAnalyzer, error => this.connectionFailed(document, error));
 
                 await this.phaseNoiseAnalyzerApp.init();
+                this.phasePrecision = new PhasePrecision(client, document);
+                await this.phasePrecision.init();
                 if (this.stopped) { return; }
                 this.n_pts = this.phaseNoiseAnalyzerApp.nPoints;
                 this.x_min = 100;
@@ -102,6 +105,7 @@ class App {
         if (this.stopped) { return; }
         this.stopped = true;
         if (this.plot) { this.plot.dispose(); }
+        if (this.phasePrecision) { this.phasePrecision.dispose(); }
         if (this.phaseNoiseAnalyzerApp) { this.phaseNoiseAnalyzerApp.dispose(); }
         for (const id of ['instrument-controls', 'plot-controls']) {
             (document.getElementById(id) as HTMLFieldSetElement).disabled = true;

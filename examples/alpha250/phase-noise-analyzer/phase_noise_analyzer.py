@@ -21,6 +21,20 @@ class PhaseNoiseAnalyzer(object):
         pass
 
     @command()
+    def set_phase_precision(self, bits):
+        return self.client.recv_bool()
+
+    @command()
+    def get_precision_status(self):
+        return self.client.recv_tuple('IIdIQQQdd')
+
+    @command()
+    def get_phase_snapshot(self):
+        sequence, bits, radians_per_count, valid = self.client.recv_tuple('QIf?')
+        phase = np.frombuffer(self.client.recv_all(self.npts * 4), dtype='<f4')
+        return sequence, bits, radians_per_count, valid, phase
+
+    @command()
     def set_cic_rate(self, rate):
         self.fs = 200E6 / (2.0 * rate)
 

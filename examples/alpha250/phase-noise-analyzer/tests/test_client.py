@@ -24,7 +24,19 @@ class FakeClient:
     def send_command(self, device, name, types, *args):
         self.commands.append((device, name, args))
 
+    def recv_bool(self):
+        return True
+
+    def recv_all(self, size):
+        return np.arange(size // 4, dtype='<f4').tobytes()
+
     def recv_tuple(self, fmt):
+        if fmt == 'IIdIQQQdd':
+            return (8, 8, .000006, 1, 100, 0, 0, 10., 90.)
+        if fmt == 'QI?':
+            return (100, 8, True)
+        if fmt == 'QIf?':
+            return (100, 8, .000006, True)
         assert fmt == "IfIIIddIfI"
         return 16385, self.sample_rate, 0, 32, 1, 10e6 + .637, 10e6, 0, 0., 0
 
@@ -43,6 +55,14 @@ class ClientTests(unittest.TestCase):
     def setUp(self):
         self.client = FakeClient()
         self.driver = PhaseNoiseAnalyzer(self.client)
+
+    def test_precision_and_atomic_snapshot(self):
+        self.assertTrue(self.driver.set_phase_precision(8))
+        self.assertEqual(self.driver.get_precision_status()[:2], (8, 8))
+        snapshot = self.driver.get_phase_snapshot()
+        self.assertEqual(snapshot[:2], (100, 8))
+        self.assertTrue(snapshot[3])
+        np.testing.assert_array_equal(snapshot[4], np.arange(65536, dtype=np.float32))
 
     def test_compatibility_dds_setter_uses_analyzer_invalidation(self):
         self.driver.set_dds_freq(1, 10e6 + .637)

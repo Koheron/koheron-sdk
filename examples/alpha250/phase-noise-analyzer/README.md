@@ -1,5 +1,24 @@
 # ALPHA250 phase-noise analyzer
 
+## Runtime phase precision
+
+The acquisition toolbar selects **Standard** or **+1…+8 bits**. The CIC and
+compensation FIR retain 40 bits; the packet quantizer rounds to even and
+saturates into the 32-bit DMA output. Each extra bit halves radians per count
+and the available phase range. Standard retains the previous nominal scale;
++8 gives 256 times finer output steps. This changes quantization, not the
+CORDIC resolution or analog noise floor.
+
+`set_phase_precision(bits)` accepts integers 0–8 and returns a boolean. The
+choice is stored by **Save settings** (older configurations default to 0).
+`get_precision_status()` reports requested/captured precision, radians per
+count, state (0 settling, 1 live, 2 overrange, 3 DMA error), accepted/overflow/
+DMA-error counters and processing/capture times in milliseconds. Saturated
+and stale-scale captures clear the current spectrum and do not enter averages
+or tracking. Reduce precision or bring the LO closer to the carrier when the
+status reports overrange. Integer-domain drift removal preserves the extra
+bits before spectral conversion to float.
+
 ## FPGA phase-extraction filter
 
 Version 1.2.0 carries over the ALPHA250-4 analyzer's mixer prefilter. Each

@@ -11,6 +11,7 @@ proc pins {cmd} {
     $cmd -dir I -from 0  -to 0 acc_on
     $cmd -dir I -from 0  -to 0 rst_phase
     $cmd -dir O -from 16 -to 0 freq
+    $cmd -dir O -from 0 -to 0 overflow
     $cmd -dir O -from 31 -to 0 phase
     $cmd -dir O -from 31 -to 0 demod
 }
@@ -93,6 +94,7 @@ proc create {module_name rounding_seed} {
         phase_out m_axis_tdata
         freq_out freq
         phase_out phase
+        overflow overflow
     }
 
   current_bd_instance $bd
