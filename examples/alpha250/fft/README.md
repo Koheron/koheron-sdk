@@ -67,7 +67,11 @@ fallback when a visible window delays animation callbacks. The header shows actu
 Hover over it for the acquisition rate. Pause or hiding the tab suspends host
 requests and drawing; the FPGA continues acquiring. Drawing preserves the minimum
 and maximum in each screen column, retains missing-data gaps, and returns to
-all bins when zoomed in. Board telemetry refreshes once per second; acquisition
+all bins when zoomed in. Dense spectrum curves use short, overlapping canvas
+strokes to keep deep noise
+zooms responsive, including reference, average and max-hold overlays. Resizing
+a paused spectrum refreshes the drawn reduction using its retained samples.
+Board telemetry refreshes once per second; acquisition
 controls continue to refresh four times per second. Captured references are
 converted only on capture or unit changes. Measurements and exports retain
 all FFT bins.
