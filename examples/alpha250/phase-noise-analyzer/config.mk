@@ -1,5 +1,5 @@
 NAME := phase-noise-analyzer
-VERSION := 1.3.0
+VERSION := 1.3.1
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
@@ -15,6 +15,7 @@ CORES += $(SDK_PATH)/fpga/cores/phase_quantizer_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_lfsr_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_unwrapper_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_prefilter_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_stochastic_round_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
 
 CORES += $(SDK_PATH)/fpga/ip/awg_v1_0

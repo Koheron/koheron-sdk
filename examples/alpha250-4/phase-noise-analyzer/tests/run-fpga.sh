@@ -16,6 +16,20 @@ xvlog "$repo/fpga/cores/phase_unwrapper_v1_0/phase_unwrapper.v" \
       "$repo/fpga/cores/boxcar_filter_v1_0/boxcar_filter.v" \
       "$repo/fpga/cores/axis_lfsr_v1_0/axis_lfsr.v" \
       "$repo/fpga/cores/phase_prefilter_v1_0/phase_prefilter.v"
+xvlog "$repo/fpga/cores/phase_range_guard_v1_0/phase_range_guard.v"
+xvlog "$repo/fpga/cores/phase_stochastic_round_v1_0/phase_stochastic_round.v"
+xvlog --sv "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_phase_rounding.sv"
+xelab work.test_phase_rounding -s test_phase_rounding
+xsim test_phase_rounding -runall > phase-rounding.log 2>&1
+cat phase-rounding.log
+rg -q 'Phase rounding checks passed' phase-rounding.log
+if rg -q 'Fatal:|ERROR:|FATAL:' phase-rounding.log; then exit 1; fi
+xvlog --sv "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_phase_headroom.sv"
+xelab work.test_phase_headroom -s test_phase_headroom
+xsim test_phase_headroom -runall > headroom.log 2>&1
+cat headroom.log
+rg -q 'Phase headroom checks passed' headroom.log
+if rg -q 'Fatal:|ERROR:|FATAL:' headroom.log; then exit 1; fi
 xvlog "$repo/examples/alpha250-4/phase-noise-analyzer/paired_cic_control_v1_0/paired_cic_control.v"
 xvlog --sv "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_paired_cic_control.sv"
 xelab work.test_paired_cic_control -s paired_cic_control

@@ -33,6 +33,18 @@ paired pipeline at most once per second before acquisition resumes. The
 reported radians-per-count value is for X; frequency-ratio scaling also
 applies independently to Y.
 
+Phase extraction calculates 24-bit CORDIC output before converting to the
+legacy 16-bit phase unit with unbiased stochastic rounding. A dedicated
+random generator per channel separates this conversion from mixer and I/Q
+rounding. This avoids the deterministic phase staircase that produced coherent
+LO harmonics; CIC precision alone could not remove those upstream errors.
+Absolute phases accumulate in 64 bits and retain that width through frequency
+scaling. The 65-bit pair difference is range-checked and saturated into the
+32-bit CIC input. Thus a large common LO phase can cancel before any range
+restriction, rather than overflowing an individual 32-bit phase accumulator
+and clearing a valid cumulative average. True differential or packet range
+loss still reports overrange. Packet formats and radians per count are unchanged.
+
 Build with:
 
 ```sh
@@ -74,9 +86,9 @@ from 32000 samples and controls X and Y independently in XY mode.
 
 The FPGA prefilter is four cascaded 16-sample moving averages, equivalent to a
 61-tap FIR with unity DC gain. Intermediate sums retain full precision; the
-final 16-bit output uses stochastic rounding. Each channel uses a separately
-seeded 64-bit XOR LFSR for mixer and filter rounding. Shared LFSR defaults keep
-other instruments' previous recurrence.
+final 16-bit output uses stochastic rounding. Each channel uses separately
+seeded 64-bit XOR LFSRs for mixer/filter rounding and CORDIC phase rounding.
+Shared LFSR defaults keep other instruments' previous recurrence.
 
 At 200 MS/s, the filter attenuates the 20 MHz mixing image by 57.27 dB, versus
 2.28 dB for the former boxcar. Its passband loss is 0.091 dB at 500 kHz,
@@ -112,16 +124,12 @@ The Python client exposes `get_nominal_frequencies()` and
 `get_average_status()`; a zero average target denotes cumulative XY averaging. The shared INI parser now keeps trimmed storage alive while
 restoring numeric and boolean settings.
 
-For the shared 10 MHz reference and DAC experiment, a validated operating
-setup is CIC 133, XY, +8 bits, with both X LOs at 10.001 MHz and both Y LOs
-at 10.0017 MHz. Slow tracking can remain enabled. Keeping each pair's nominal
-frequencies equal preserves its phase comparison, while using different
-frequencies between pairs reduces the LO-dependent correlated spurs observed
-with all four LOs equal. This is a measured mitigation, not a calibrated
-noise floor or a general removal of front-end artifacts. Extra CIC precision
-does not increase the upstream 16-bit CORDIC resolution. See the latest
-[hardware validation notes](tests/hardware-validation.md) for the signed
-spectra and broadband PM check; remaining negative estimates are retained.
+The earlier distinct-pair LO mitigation and subsequent root-cause investigation
+are recorded in the [hardware validation notes](tests/hardware-validation.md).
+Signed cross-spectrum estimates are retained; the phase-extraction correction
+does not replace negative values by magnitudes or establish an absolute noise
+floor. FIFO timing under pressure and close-offset response remain separate
+measurement limitations.
 
 Run the software and FPGA regressions described in [tests/README.md](tests/README.md).
 The calculation audit compares the production C++ pipeline with independent

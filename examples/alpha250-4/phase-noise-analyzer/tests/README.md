@@ -138,3 +138,25 @@ shifts under AXIS stalls. DMA metadata regressions include ring wrap, stale
 precision, different X/Y scales, packet overflow and mixed-scale packets.
 The paired controller is tested through rate, precision and reset epochs.
 The shared web tests exercise the same precision widget on all three boards.
+
+The phase-rounding regression exhausts all 256 fractional codes and all 256
+random values at negative, zero and positive phases, including the Pi
+boundary. The mean is exactly the 24-bit input in legacy 16-bit phase units.
+The headroom regression reproduces the former signed-32 wrap, crosses the same
+boundary with the actual 64-bit unwrapper, and tests common-carrier cancellation
+plus both differential saturation limits. These tests run in `run-fpga.sh`.
+
+To reproduce the coherent 104th/204th LO harmonics with AMD's bit-accurate
+CORDIC model, run:
+
+```sh
+.venv/bin/python examples/alpha250-4/phase-noise-analyzer/tests/check_cordic_precision.py
+```
+
+This extracts the model from a locally installed Vivado 2025.1 archive into
+ignored `tmp/tests`; no vendor files are redistributed. `PNA_VIVADO_PATH`
+overrides the install path. At a Cartesian magnitude of 3000 codes, comparable
+to the wired experiment, a complete angular sweep verifies that 24-bit output
+reduces both harmonics by more than 40 dB relative to 16-bit output. The model
+checks phase calculation error relative to the exact quantized I/Q angle;
+it does not model ADC noise, stochastic Cartesian rounding, or the full board.

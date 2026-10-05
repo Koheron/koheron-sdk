@@ -61,3 +61,5 @@ parameters:
   cic_n_stages: 6
   n_pts: 262144
   phase_filter_width: 40
+  cordic_phase_width: 24
+  phase_accumulator_width: 32

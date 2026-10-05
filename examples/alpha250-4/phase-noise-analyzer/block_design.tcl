@@ -89,11 +89,11 @@ for {set i 0} {$i < 4} {incr i} {
     connect_pins cordic$i/demod [sts_pin demod$i]
 
     cell xilinx.com:ip:mult_gen:12.0 scaler$i {
-      PortAWidth 32
+      PortAWidth [get_parameter phase_accumulator_width]
       PortBWidth 32
       PortAType Signed
       PortBType Signed
-      OutputWidthHigh 61
+      OutputWidthHigh [expr [get_parameter phase_accumulator_width] + 29]
       OutputWidthLow 30
       Use_Custom_Output_Width true
       PipeStages 5
@@ -105,9 +105,9 @@ for {set i 0} {$i < 4} {incr i} {
 }
 
 cell xilinx.com:ip:c_addsub:12.0 phase_diff0 {
-  A_WIDTH 32
-  B_WIDTH 32
-  OUT_WIDTH 33
+  A_WIDTH [get_parameter phase_accumulator_width]
+  B_WIDTH [get_parameter phase_accumulator_width]
+  OUT_WIDTH [expr [get_parameter phase_accumulator_width] + 1]
   ADD_MODE Subtract
   CE false
 } {
@@ -117,9 +117,9 @@ cell xilinx.com:ip:c_addsub:12.0 phase_diff0 {
 }
 
 cell xilinx.com:ip:c_addsub:12.0 phase_diff1 {
-  A_WIDTH 32
-  B_WIDTH 32
-  OUT_WIDTH 33
+  A_WIDTH [get_parameter phase_accumulator_width]
+  B_WIDTH [get_parameter phase_accumulator_width]
+  OUT_WIDTH [expr [get_parameter phase_accumulator_width] + 1]
   ADD_MODE Subtract
   CE false
 } {
@@ -160,6 +160,14 @@ cell koheron:user:paired_cic_control:1.0 paired_cic_control {} {
 }
 
 for {set i 0} {$i < 2} {incr i} {
+  cell koheron:user:phase_range_guard:1.0 difference_range$i {
+    INPUT_WIDTH [expr [get_parameter phase_accumulator_width] + 1]
+    OUTPUT_WIDTH 32
+  } {
+    clk adc/adc_clk
+    aresetn paired_cic_control/filter_resetn
+    din phase_diff$i/S
+  }
   cell xilinx.com:ip:cic_compiler:4.0 cic$i {
     Filter_Type Decimation
     Number_Of_Stages $n_stages
@@ -178,7 +186,7 @@ for {set i 0} {$i < 2} {incr i} {
     HAS_ARESETN true
   } {
     aclk adc/adc_clk
-    s_axis_data_tdata [get_slice_pin phase_diff$i/S 31 0]
+    s_axis_data_tdata difference_range$i/dout
   }
 
   cell xilinx.com:ip:fir_compiler:7.2 fir$i {
@@ -200,12 +208,6 @@ for {set i 0} {$i < 2} {incr i} {
     S_AXIS_DATA cic$i/M_AXIS_DATA
   }
 
-  cell xilinx.com:ip:util_vector_logic:2.0 difference_overflow$i {
-    C_SIZE 1 C_OPERATION xor
-  } {
-    Op1 [get_slice_pin phase_diff$i/S 32 32]
-    Op2 [get_slice_pin phase_diff$i/S 31 31]
-  }
   cell xilinx.com:ip:util_vector_logic:2.0 cordic_overflow$i {
     C_SIZE 1 C_OPERATION or
   } {
@@ -216,7 +218,7 @@ for {set i 0} {$i < 2} {incr i} {
     C_SIZE 1 C_OPERATION or
   } {
     Op1 cordic_overflow$i/Res
-    Op2 difference_overflow$i/Res
+    Op2 difference_range$i/overflow
   }
   cell koheron:user:phase_quantizer:1.0 phase_quantizer$i {
     PKT_LENGTH 8192

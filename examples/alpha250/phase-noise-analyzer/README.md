@@ -2,6 +2,12 @@
 
 ## Runtime phase precision
 
+Version 1.3.1 calculates 24-bit CORDIC phase and uses a dedicated random stream
+to round it without bias into the existing phase unit. This corrects coherent
+harmonics introduced by the former deterministic 16-bit phase output. The
+downstream 0–8-bit CIC precision settings and radians-per-count scaling are
+unchanged; ALPHA250 resets its phase accumulator for each DMA acquisition.
+
 The acquisition toolbar selects **Standard** or **+1…+8 bits**. The CIC and
 compensation FIR retain 40 bits; the packet quantizer rounds to even and
 saturates into the 32-bit DMA output. Each extra bit halves radians per count

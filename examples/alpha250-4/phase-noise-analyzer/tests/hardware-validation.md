@@ -401,3 +401,103 @@ Local evidence: `tmp/pna-negative-current/diagnose.py`, `matched-fixed.npz`,
 `offset-1300.npz`, `offset-split.npz`, `split-broadband.npz`,
 `split-tracking.npz`, their summaries, saved receiver/generator settings,
 and `lo-artifact-comparison.png`. Temporary artifacts are not committed.
+
+Root-cause correction — 2026-10-05, ALPHA250-4 1.2.1:
+
+Two upstream FPGA defects were reproduced independently of the spectrum
+estimator and of the distinct-pair LO mitigation:
+
+- AMD's installed bit-accurate CORDIC model, with the instrument's 16-bit
+  Cartesian inputs and rounding mode, produces deterministic phase errors.
+  At an I/Q radius of 3000 codes, the 16-bit output has 1.2104e-4 rad RMS
+  error against atan2 of those same integer inputs. Its 104th and 204th
+  angular harmonics are 6.3587e-6 and 9.1916e-6 rad. These harmonics explain
+  the LO-dependent coherent artifacts observed when varying the LO offset.
+  Calculating 24-bit phase reduces those harmonics by 53.95 and 55.69 dB in
+  the model. These are model error reductions, not calibrated hardware
+  noise-floor improvements.
+- Absolute phase accumulated in signed 32-bit registers before pair
+  subtraction. A 3 kHz common LO offset reaches that range after
+  `2^31 / (16384 * 3000) = 43.6907 s`, even though the differential phase
+  remains small. The old board reported overrange at 43.8538 s and cleared
+  its cumulative average with no configuration change.
+
+The correction calculates 24-bit phase, then uses dedicated per-channel
+random streams for unbiased rounding into the legacy phase unit. Retaining
+that unit keeps the existing CIC input range and published radians per count.
+Absolute phase and frequency scaling now retain 64 bits; subtraction retains
+65 bits until an explicit saturating 32-bit differential range check. The
+ALPHA250 design receives the same phase-extraction correction; its accumulator
+already resets for each DMA acquisition.
+
+The ALPHA250-4 passed strict routed timing: WNS +0.042042 ns, WHS +0.029840 ns,
+and all 12 bus-skew checks. The installed package's FPGA, server and web hashes
+match the local package; the server is active and FPGA reports operating.
+Signed-rounding RTL tests exhaust all 256 fractional codes and all 256 random
+values at three signed phase positions. Headroom tests reproduce the former
+positive and negative overflow and check common-phase cancellation, saturation
+and reset. Native sanitizer, Python, browser and spectrum calculation
+regressions also pass.
+
+Live comparison used the existing reference/DAC wiring, CIC 133, XY, +8 bits,
+slow tracking, and **all four nominal LOs at 10.001 MHz**. Each firmware
+contributed 100 distinct valid phase snapshots. The DAC remained a 10 MHz
+carrier with 1 degree peak sinusoidal PM at 10 kHz.
+
+| Offset band | Old negative-bin fraction | Corrected negative-bin fraction |
+| --- | ---: | ---: |
+| 20–50 kHz | 0.501% | 0% |
+| 50–100 kHz | 1.203% | 0% |
+| 100–280 kHz | 2.089% | 0% |
+
+The corrected PM fits were 0.999698 and 0.999708 degrees; maximum X/Y relative
+phase was 0.00604 degrees. The signed live server average likewise had no
+negative bins in these three bands. Some close-offset estimates remain
+negative; this test establishes removal of the coherent artifacts in the
+stated bands, not universal positivity or an absolute floor calibration.
+
+With all four nominal LOs at 10.003 MHz, 150 seconds of monitoring crossed
+more than three former overflow intervals with no new overrange or DMA error.
+The cumulative average increased monotonically. All nine precision settings
+recovered the 1 degree PM tone within 0.00056 degrees in an eight-snapshot
+check per setting. A deliberate 300 kHz error on one LO still reported
+overrange and rejected the saturated snapshot; returning the LO restored
+valid acquisition.
+
+An 80-snapshot common broadband PM test used uniform noise with 0.2 degree
+configured deviation and a 1 MHz update rate, again with equal nominal LOs.
+No negative bins occurred from 1–280 kHz; band cross/auto integrated power
+ratios were 0.99894–0.99906. The generator's exact acknowledged settings were
+restored afterward.
+
+Local evidence is in `tmp/pna-root-cause`: build/test logs, deployment hashes,
+`overflow-repro.json`, `headroom-live.json`, `precision-sweep.json`, generator
+settings and `phase-rounding-fix.png`. Identically processed before/after
+phase snapshots and summaries are
+`tmp/pna-negative-current/baseline-equal-1k.npz`, `fixed-equal-1k.npz` and
+`fixed-broadband-equal.npz`. Vendor model files remain local and are not
+redistributed.
+
+ALPHA250 1.3.1 also passed strict routed timing (WNS +0.024815 ns,
+WHS +0.038527 ns; all 10 bus-skew checks). Its instrument-specific
+`Performance_ExplorePostRoutePhysOpt` strategy closes the existing DAC
+controller path without relaxing clock constraints. FPGA, server and web
+hashes were verified after installation on 192.168.1.105. Both DAC channels'
+exact acknowledged settings match the pre-install settings. Precision requests
+0–8 and rejection of 9 were checked over RPC; its ADCs are not connected to
+the receiver wiring, so this is not a hardware calibration of ALPHA250's ADC
+measurement path.
+
+The receiver's equal nominal LOs, CIC 133, XY, +8 and enabled tracking were
+saved and verified after an instrument reload. Its single deliberate
+range-test overflow is expected; the long stability run had no overflows.
+
+After both corrected packages were installed and the receiver reloaded,
+a further 100 fresh snapshots recovered 0.999762 / 0.999772 degrees with
+maximum relative phase 0.00510 degrees, no overrange and no DMA error.
+The 20–50 and 50–100 kHz bands had no negative bins. The 100–280 kHz band
+contained one negative bin (0.0139%) at 192.005 kHz, -151.37 dBc/Hz magnitude
+and coherence 0.0113. For comparison, the strongest old negative spur in
+20–280 kHz was -122.40 dBc/Hz with coherence 0.9671. This distinguishes the
+removed coherent artifact from a residual small cross-spectrum estimate.
+The final snapshots are `tmp/pna-negative-current/final-both-fixed.npz`.

@@ -6,13 +6,13 @@ proc pins {cmd} {
     $cmd -dir I -from 31 -to 0 s_axis_data_a
     $cmd -dir I -from [expr (1 + 2 * ([get_parameter dds_output_width] - 1) / 16) * 16 - 1] -to 0 s_axis_data_b
     $cmd -dir I -from 0  -to 0 s_axis_tvalid
-    $cmd -dir O -from 31 -to 0 m_axis_tdata
+    $cmd -dir O -from [expr [get_parameter phase_accumulator_width] - 1] -to 0 m_axis_tdata
     $cmd -dir O -from 0  -to 0 m_axis_tvalid
     $cmd -dir I -from 0  -to 0 acc_on
     $cmd -dir I -from 0  -to 0 rst_phase
     $cmd -dir O -from 16 -to 0 freq
     $cmd -dir O -from 0 -to 0 overflow
-    $cmd -dir O -from 31 -to 0 phase
+    $cmd -dir O -from [expr [get_parameter phase_accumulator_width] - 1] -to 0 phase
     $cmd -dir O -from 31 -to 0 demod
 }
 
@@ -63,14 +63,15 @@ proc create {module_name rounding_seed} {
         }
     }
 
-    # Cordic
+    # Retain eight phase fractional bits before the CIC. Sixteen-bit CORDIC
+    # output rounding produces coherent LO harmonics that averaging cannot undo.
 
     cell xilinx.com:ip:cordic:6.0 cordic {
         Functional_Selection Translate
         Pipelining_Mode Maximum
         Phase_Format Scaled_Radians
         Input_Width 16
-        Output_Width 16
+        Output_Width [get_parameter cordic_phase_width]
         Round_Mode Round_Pos_Neg_Inf
     } {
         aclk aclk
@@ -81,16 +82,35 @@ proc create {module_name rounding_seed} {
 
     connect_bd_net [get_bd_pins demod] [get_bd_pins concat_dout_dout/dout]
 
+    # Use a separate random stream: delayed slices of the Cartesian/mixer
+    # LFSR can overlap the phase-input noise and bias stochastic rounding.
+    cell pavel-demin:user:axis_lfsr:1.0 phase_lfsr {
+        SEED [format 0x%016llx [expr {$rounding_seed ^ 0xa0761d6478bd642f}]]
+        FEEDBACK_MASK 0xd800000000000000
+        FEEDBACK_XNOR 0
+    } {
+        aclk aclk
+        aresetn aresetn
+    }
+
+    # Convert only after accurate phase extraction, in the legacy phase unit.
+    cell koheron:user:phase_stochastic_round:1.0 phase_round {} {
+        clk aclk
+        aresetn aresetn
+        phase_in [get_slice_pin cordic/m_axis_dout_tdata 47 24]
+        random_round [get_slice_pin phase_lfsr/m_axis_tdata 7 0]
+    }
+
     # Phase unwrapping
 
     cell koheron:user:phase_unwrapper:1.0 phase_unwrapper {
         DIN_WIDTH 16
-        DOUT_WIDTH 32
+        DOUT_WIDTH [get_parameter phase_accumulator_width]
     } {
         clk aclk
         acc_on acc_on
         rst rst_phase
-        phase_in [get_slice_pin cordic/m_axis_dout_tdata 31 16]
+        phase_in phase_round/phase_out
         phase_out m_axis_tdata
         freq_out freq
         phase_out phase
