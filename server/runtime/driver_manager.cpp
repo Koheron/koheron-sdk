@@ -85,7 +85,6 @@ DriverManager::DriverManager(alloc_fail_cb on_alloc_fail)
 : driver_container()
 , on_alloc_fail_(std::move(on_alloc_fail))
 {
-    is_started.fill(false);
 }
 
 DriverManager::~DriverManager() = default;
@@ -94,7 +93,7 @@ template<driver_id id>
 void DriverManager::alloc_core_() {
     std::scoped_lock lock(mutex);
 
-    if (std::get<id - drivers::table::offset>(is_started)) {
+    if (std::get<id - drivers::table::offset>(is_started).load(std::memory_order_relaxed)) {
         return;
     }
 
@@ -111,7 +110,8 @@ void DriverManager::alloc_core_() {
         return;
     }
 
-    std::get<id - drivers::table::offset>(is_started) = true;
+    // Publish the fully constructed driver to get() callers outside the mutex.
+    std::get<id - drivers::table::offset>(is_started).store(true, std::memory_order_release);
 }
 
 void DriverManager::alloc_core(driver_id id) {

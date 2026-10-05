@@ -125,7 +125,7 @@ int SocketSession<socket_type>::read_command(Command& cmd) {
             return 0;
         }
 
-        if (websock.payload_size() < Command::header_size) {
+        if (websock.payload_size() < static_cast<int64_t>(Command::header_size)) {
             log<ERROR>("WebSocket: Command too small\n");
             return -1;
         }

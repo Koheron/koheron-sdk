@@ -39,3 +39,26 @@ jobs:
           done < <(find examples -name config.mk | sort)
           test "$count" -gt 0
           echo "Validated $count instrument configurations"
+
+  server-network:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      CXX: g++-13
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install server test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y g++-13 libeigen3-dev
+      - name: Test server dispatch and clients
+        run: python3 -m unittest discover -s server/tests -v
+      - name: Check server locking with sanitizers
+        env:
+          CXXFLAGS: -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -g -no-pie
+        run: python3 -m unittest discover -s server/tests -p test_driver_locking.py -v

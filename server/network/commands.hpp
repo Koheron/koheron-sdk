@@ -19,6 +19,7 @@
 #include <tuple>
 #include <initializer_list>
 #include <span>
+#include <mutex>
 
 namespace net {
 
@@ -85,14 +86,14 @@ class Command
 
     // Non-const member functions
     template<class C, class Ret, class... Args>
-    int op_invoke(C& obj, Ret (C::*pmf)(Args...)) {
-        return op_invoke_impl(obj, pmf);
+    int op_invoke(C& obj, Ret (C::*pmf)(Args...), std::mutex* mutex = nullptr) {
+        return op_invoke_impl(obj, pmf, mutex);
     }
 
     // const member functions
     template<class C, class Ret, class... Args>
-    int op_invoke(const C& obj, Ret (C::*pmf)(Args...) const) {
-        return op_invoke_impl(obj, pmf);
+    int op_invoke(const C& obj, Ret (C::*pmf)(Args...) const, std::mutex* mutex = nullptr) {
+        return op_invoke_impl(obj, pmf, mutex);
     }
 
     template<typename... Args>
@@ -277,13 +278,24 @@ class Command
 
     template <class Tuple, std::size_t... I>
     bool read_arguments(Tuple& args, std::index_sequence<I...>) {
-        bool ok = true;
-        (void)std::initializer_list<int>{ (ok = ok && read_one(std::get<I>(args)), 0)... };
-        return ok;
+        if constexpr (sizeof...(I) > 1 && all_args_static<Tuple>(std::index_sequence<I...>{})) {
+            // The complete fixed-size body is known from the method signature.
+            // Read it once, preserving the existing scalar and raw-array format.
+            auto decoded = deserialize<std::tuple_element_t<I, Tuple>...>();
+            if (std::get<0>(decoded) < 0) {
+                return false;
+            }
+            ((std::get<I>(args) = std::move(std::get<I + 1>(decoded))), ...);
+            return true;
+        } else {
+            bool ok = true;
+            (void)std::initializer_list<int>{ (ok = ok && read_one(std::get<I>(args)), 0)... };
+            return ok;
+        }
     }
 
     template<class Obj, class PMF>
-    int op_invoke_impl(Obj&& obj, PMF pmf) {
+    int op_invoke_impl(Obj&& obj, PMF pmf, std::mutex* mutex) {
         using traits     = pmf_traits<PMF>;
         using Ret        = typename traits::ret;
         using ArgsTuple  = typename traits::args;
@@ -296,35 +308,32 @@ class Command
             static_assert(need <= CMD_PAYLOAD_BUFFER_LEN, "Buffer size too small");
         }
 
-        if constexpr (N == 0) {
-            // No payload to read
-            if constexpr (std::is_void_v<Ret>) {
-                std::invoke(pmf, std::forward<Obj>(obj));
-                return 0;
-            } else {
-                decltype(auto) r = std::invoke(pmf, std::forward<Obj>(obj));
-                return send(std::forward<decltype(r)>(r));
-            }
+        using IS = std::make_index_sequence<N>;
+        using DecayedArgsTuple = typename decayed_tuple_from_seq<ArgsTuple, IS>::type;
+        DecayedArgsTuple args{};
+        // A client waiting to finish a request must not hold the driver lock.
+        if (!read_arguments(args, IS{})) {
+            return -1;
+        }
+
+        std::unique_lock<std::mutex> lock;
+        if (mutex) {
+            lock = std::unique_lock<std::mutex>(*mutex);
+        }
+        auto invoke = [&]() -> decltype(auto) {
+            return std::apply([&](auto&... a) -> decltype(auto) {
+                return std::invoke(pmf, std::forward<Obj>(obj), a...);
+            }, args);
+        };
+
+        if constexpr (std::is_void_v<Ret>) {
+            invoke();
+            return 0;
         } else {
-            using IS = std::make_index_sequence<N>;
-            using DecayedArgsTuple = typename decayed_tuple_from_seq<ArgsTuple, IS>::type;
-
-            DecayedArgsTuple args{};
-            if (!read_arguments(args, IS{})) {
-                return -1;
-            }
-
-            if constexpr (std::is_void_v<Ret>) {
-                std::apply([&](auto&... a) {
-                    std::invoke(pmf, std::forward<Obj>(obj), a...);
-                }, args);
-                return 0;
-            } else {
-                decltype(auto) r = std::apply([&](auto&... a) -> decltype(auto) {
-                    return std::invoke(pmf, std::forward<Obj>(obj), a...);
-                }, args);
-                return send(std::forward<decltype(r)>(r));
-            }
+            // Keep borrowed return storage protected until transmission finishes.
+            // This preserves direct payload sends without a reply-sized snapshot.
+            decltype(auto) r = invoke();
+            return send(std::forward<decltype(r)>(r));
         }
     }
 
