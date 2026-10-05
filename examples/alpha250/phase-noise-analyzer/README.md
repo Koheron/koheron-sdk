@@ -373,10 +373,14 @@ PM at CIC rates 16, 20, 60 and 100 and extra precision bits 0, 4 and 8. All
 twelve measurements were within 1% of the injected phase amplitude after DAC
 startup settling. The range endpoints also passed at +8 bits: CIC 4 with
 10 kHz PM and CIC 8192 with 300 Hz PM (5.37-second spectrum windows).
-DAC0 retained its separate stimulus for the ALPHA250-4.
+DAC0’s generator settings were preserved for its ALPHA250-4 connection.
 
 At CIC 20 with tracking off and one spectrum per average, 20-second runs
 produced about 46 spectra/s with no new overrange, DMA errors or sample gaps.
+A separate 30-second run with 60 full spectrum reads/s delivered 42.6 fresh
+spectra/s. Every frame was valid, the largest fresh-spectrum interval was
+40 ms, and no capture-error counter increased. This exercises RPC traffic;
+it does not measure browser drawing time.
 Pausing the server CPU for one second left FPGA acquisition running: 611
 packets completed, exceeding the 512-packet ring. After resume, the analyzer
 published a fresh valid PM spectrum without a capture error. A forced S2MM
