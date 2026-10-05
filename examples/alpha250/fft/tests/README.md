@@ -84,6 +84,8 @@ hidden-tab suspension, measured FPS, and error retry backoff. Checks received
 history retention for cached PSD replies, skipped redundant spectrum paints,
 latest-frame replacement back to the displayed PSD, and changed-spectrum FPS
 while overlays, metadata, history views or resized axes still require painting.
+Failed paints retain the last completed frame and retry cached replies without
+inflating changed-spectrum FPS.
 Also checks preservation of single-bin peaks, minima, missing-data gaps, boundary neighbours and
 frequency ordering during rendering reduction, plus full-bin rendering when
 zoomed in. Comparison tests check reference-cache reuse and

@@ -129,7 +129,25 @@ vm.runInContext(`
     assert.equal(withGap.spectrumChanged(new Float32Array([3, NaN])), false);
     assert.equal(withGap.spectrumChanged(new Float32Array([4, NaN])), true);
     assert.equal(withGap.spectrumChanged(new Float32Array([3])), true);
-    now = 164; const slow = plot.updatePlot(); now = 220; finishRead(raw); await slow;
+    const display = plot.displaySpectrum;
+    plot.displaySpectrum = () => { throw new Error('expected paint failure'); };
+    plot.acceptSpectrum(new Float32Array([4]), .148);
+    const paintError = console.error; console.error = () => {};
+    now = 165; animation(now); console.error = paintError;
+    assert.deepEqual(Array.from(plot.psd), [3]); // A failed paint is not a displayed spectrum.
+    assert.equal(plot.renderedFrames, freshFrames);
+    assert.equal(plot.paintFailed, true);
+    plot.displaySpectrum = display;
+    const beforeRecovery = drawn.length;
+    plot.acceptSpectrum(new Float32Array([3]), .166);
+    now = 184; animation(now);
+    assert.equal(plot.paintFailed, false);
+    assert.equal(drawn.length, beforeRecovery + 1); // Recovery redraws even an unchanged cached PSD.
+    assert.equal(plot.renderedFrames, freshFrames);
+    plot.acceptSpectrum(new Float32Array([4]), .185);
+    now = 202; animation(now);
+    assert.equal(plot.renderedFrames, freshFrames + 1); // The previously failed PSD counts only when shown.
+    now = 224; const slow = plot.updatePlot(); now = 280; finishRead(raw); await slow;
     assert.equal(scheduled, 0); // Slow reads do not add another idle interval.
     plot.setPaused(true); assert.equal(plot.pending, undefined);
     const pausedReads = reads; await plot.updatePlot(); assert.equal(reads, pausedReads);

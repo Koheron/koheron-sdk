@@ -14,6 +14,7 @@ class Plot {
     private rateStarted = performance.now();
     private renderedFrames = 0;
     private paintedFrames = 0;
+    private paintFailed = false;
     private acquiredFrames = 0;
     private renderMs = 0;
     private historyMs = 0;
@@ -155,17 +156,22 @@ class Plot {
             }
             this.lastFrameTime = timestamp;
             const fresh = this.spectrumChanged(this.pending.psd);
+            const previousPSD = this.psd, previousStatus = this.frameStatus;
             this.psd = this.pending.psd;
             this.frameStatus = this.pending.status;
             this.pending = undefined;
             try {
                 const started = performance.now();
                 this.displaySpectrum();
+                this.paintFailed = false;
                 this.renderMs += performance.now() - started;
                 this.paintedFrames++;
                 if (fresh) { this.renderedFrames++; }
                 this.setStatus('live', 'Live spectrum');
             } catch (error) {
+                this.psd = previousPSD;
+                this.frameStatus = previousStatus;
+                this.paintFailed = true;
                 this.setStatus('error', 'Unable to display spectrum');
                 console.error('Spectrum display failed:', error);
             }
@@ -240,7 +246,7 @@ class Plot {
         if (this.history) { this.history.add(psd, status, time); }
         this.historyMs += performance.now() - historyStarted;
         this.acquiredFrames++;
-        if (!this.spectrumChanged(psd) && this.sameFrameStatus(status) && this.view === 'spectrum' &&
+        if (!this.paintFailed && !this.spectrumChanged(psd) && this.sameFrameStatus(status) && this.view === 'spectrum' &&
             !(this.document.getElementById('average-trace') as HTMLInputElement).checked &&
             !(this.document.getElementById('max-hold-trace') as HTMLInputElement).checked &&
             !this.plotBasics.needsRedraw()) {
