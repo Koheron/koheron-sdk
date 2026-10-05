@@ -18,11 +18,6 @@ DRIVERS += $(BOARD_PATH)/drivers/phase-modulator.hpp
 DRIVERS += $(PROJECT_PATH)/fft.hpp
 DRIVERS += $(PROJECT_PATH)/fft.cpp
 
-WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
-WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.ts
-WEB_FILES += $(SDK_PATH)/web/phase-modulator/frequency-input.ts
-WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator-widget.ts
-WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.css
-WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
-WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
+include $(SDK_PATH)/web/fft/components.mk
 WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
+WEB_FILES := $(filter-out $(PROJECT_PATH)/web/app.ts,$(WEB_FILES)) $(PROJECT_PATH)/web/app.ts

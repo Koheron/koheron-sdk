@@ -107,14 +107,20 @@ Host regression instructions are in [tests/README.md](tests/README.md).
 
 ## Red Pitaya reuse
 
-`examples/red-pitaya/fft/config.mk` builds the spectrum controls, plotting,
-history views, exports, DDS controls and CSS directly from this workspace's
-sources. Red Pitaya keeps its board entry page and a protocol adapter for its
-six-field control tuple plus window-index command. Its exports identify the
-board and fixed onboard clock; ALPHA250 exports retain their existing labels.
-ALPHA250-only clock selection and precision-I/O controls are omitted.
+Both board configs include `web/fft/components.mk`. The shared `web/fft`
+workspace owns the layout, lifecycle, acquisition controls, transport, spectrum,
+history, exports and styling. Board adapters only decode their wire responses
+and add hardware-specific controls. ALPHA250 adds clock selection and precision
+I/O; Red Pitaya has a fixed 125 MS/s clock and identifies its board in exports.
+
+Both use the same two-channel DDS/PM FPGA IP and shared PNA generator widget,
+including output enable, all PM sources and selected-digit editors. Red Pitaya
+uses its board-level `PhaseModulator` driver shared with PNA and the same signed
+16-to-14-bit half-amplitude DAC scaling as PNA. Its outputs start muted; the
+legacy `FFT.set_dds_freq` RPC changes the carrier without enabling output or
+changing PM settings. Enable outputs explicitly through `PhaseModulator`.
 
 The Red Pitaya implementation uses the shared FPGA PSD pipeline and C++ FFT
 core with a 14-bit ADC at 125 MS/s, a 2048-point FFT and LUT butterflies to fit
-the Zynq-7010. Its AXI fabric requests 143 MHz (142.857 MHz with the standard 1 GHz IO PLL). The ALPHA250 configuration retains
+the Zynq-7010. Its AXI control fabric runs at 125 MHz to meet timing with the DDS/PM hardware. The ALPHA250 configuration retains
 its reference parameters and DSP butterflies.

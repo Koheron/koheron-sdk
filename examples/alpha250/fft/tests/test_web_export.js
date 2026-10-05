@@ -4,7 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const ts = require('typescript');
-const source = path.resolve(__dirname, '../web/export-file/export-file.ts');
+const source = path.resolve(__dirname, '../../../../web/fft/export-file/export-file.ts');
 const context = vm.createContext({assert, console, Blob});
 vm.runInContext(ts.transpileModule(fs.readFileSync(source, 'utf8'), {
     compilerOptions: {target: ts.ScriptTarget.ES2020}

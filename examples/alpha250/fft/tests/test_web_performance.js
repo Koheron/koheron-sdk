@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const ts = require('typescript');
 const root = path.resolve(__dirname, '../../../..');
 const context = vm.createContext({console, assert});
-for (const file of ['examples/alpha250/fft/web/fft/fft-app.ts', 'examples/alpha250/fft/web/plot/spectrum-history.ts', 'examples/alpha250/fft/web/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {
+for (const file of ['web/fft/controls/fft-app.ts', 'web/fft/plot/spectrum-history.ts', 'web/fft/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {
     vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
         compilerOptions: {target: ts.ScriptTarget.ES2020}
     }).outputText, context);
