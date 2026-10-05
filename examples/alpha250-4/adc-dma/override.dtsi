@@ -1,0 +1,4 @@
+// The instrument server owns both DMA engines through their MMIO registers.
+// Prevent the Linux DMAengine driver from resetting them or handling their IRQs.
+&dma0 { status = "disabled"; };
+&dma1 { status = "disabled"; };

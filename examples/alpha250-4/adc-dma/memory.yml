@@ -1,0 +1,68 @@
+memory:
+  - name: control
+    offset: 0x4000_0000
+    range: 4K
+    registers:
+      - mmcm
+      - precision_dac_ctl
+      - precision_dac_data[2]
+      - acq_reset
+      - trigger
+      - sample_count
+      - test_pattern
+  - name: ps_control
+    offset: 0x5400_0000
+    range: 4K
+    registers:
+      - spi_cfg_data
+      - spi_cfg_cmd
+  - name: status
+    offset: 0x5000_0000
+    range: 4K
+    registers:
+      - capture_status
+      - captured_samples
+      - pll_locked
+  - name: ps_status
+    offset: 0x5800_0000
+    range: 4K
+    registers:
+      - spi_cfg_sts
+  - name: xadc
+    offset: 0x43C0_0000
+    range: 64K
+  - name: ram0
+    offset: 0x1800_0000
+    range: 64M
+    compatible: "koheron,mem-wc-1.0"
+    dev: /dev/mem_wc
+  - name: ram1
+    offset: 0x1C00_0000
+    range: 64M
+    compatible: "koheron,mem-wc-1.0"
+    dev: /dev/mem_wc
+  - name: dma0
+    offset: 0x4040_0000
+    range: 64K
+  - name: dma1
+    offset: 0x4041_0000
+    range: 64K
+  - name: axi_hp0
+    offset: 0xF800_8000
+    range: 4K
+  - name: axi_hp2
+    offset: 0xF800_A000
+    range: 4K
+  - name: ocm0
+    offset: 0xFFFF_0000
+    range: 16K
+  - name: ocm1
+    offset: 0xFFFF_4000
+    range: 16K
+  - name: sclr
+    offset: 0xF800_0000
+    range: 4K
+
+parameters:
+  fclk0: 143000000
+  adc_clk: 200000000
