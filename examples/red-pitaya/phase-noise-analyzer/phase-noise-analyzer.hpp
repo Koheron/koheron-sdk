@@ -29,6 +29,8 @@ class PhaseNoiseAnalyzer {
     auto get_phase_snapshot() const { return core.get_phase_snapshot(); }
     auto get_average_status() const { return core.get_average_status(); }
 
+    auto get_spectrum_snapshot() const { return core.get_spectrum_snapshot(); }
+
  private:
     phase_noise::Core<RedPitayaPhaseNoiseBoard> core;
 };

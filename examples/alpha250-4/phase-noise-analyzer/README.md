@@ -1,4 +1,9 @@
 This instrument measures the phase difference between IN0/IN1 (X) or IN2/IN3
+
+The analyzer now uses the [shared PNA plot and atomic spectrum snapshot](../../../server/drivers/phase-noise/README.md).
+Captured settings accompany each spectrum; FPS uses its publication sequence.
+Existing spectrum and phase RPCs remain available, and the browser supports
+older firmware through the existing read path.
 (Y), or their cross-spectrum (XY). Channel selectors are X = 0, Y = 1, XY = 2.
 The server returns a one-sided phase PSD in rad²/Hz. Positive estimates convert
 to single-sideband phase noise with `10 * log10(PSD / 2)`; frequency-noise

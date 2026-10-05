@@ -11,6 +11,8 @@ function fixture(t) {
   const dom = new JSDOM('<body data-board="alpha250-4"><button id="capture-reference"></button><button id="clear-reference"></button><button id="fit-view"></button><div id="reference-info"><span id="reference-status"></span></div><table id="decade-values-table"></table><span id="refresh-rate"></span><div id="plot-placeholder"></div><input id="show-smoothed-trace" type="checkbox" checked><button class="export-data"></button><button class="export-plot"></button></body>', {runScripts: 'outside-only', pretendToBeVisual: true});
   t.after(() => dom.window.close());
   const w = dom.window;
+  w.eval(ts.transpileModule(fs.readFileSync(path.resolve(__dirname, '../../../../web/phase-noise/plot.ts'), 'utf8'),
+    {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.PnaPlot = PnaPlot;');
   w.eval(ts.transpileModule(fs.readFileSync(path.join(project, 'web/plot.ts'), 'utf8'),
     {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.Plot = Plot;');
   w.setTimeout = () => 0; w.requestAnimationFrame = () => 0;

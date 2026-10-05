@@ -5,11 +5,9 @@
 
 namespace phase_calibration {
 
-// Inverse DC gain for this instrument's 32-bit CIC/FIR phase path.
-// The FIR's 32 fractional coefficient bits and 66 -> 32-bit output give
-// a gain of 1/4. CIC truncation divides (R*M)^N by the next power of two.
+// Inverse CIC DC gain. Truncation divides (R*M)^N by the next power of two.
 // Call only with a valid positive rate, delay and stage count.
-constexpr double filter_correction(uint32_t rate, uint32_t stages, uint32_t delay) {
+constexpr double cic_correction(uint32_t rate, uint32_t stages, uint32_t delay) {
     double cic_gain = 1.0;
     for (uint32_t i = 0; i < stages; ++i) {
         cic_gain *= double(rate) * double(delay);
@@ -19,7 +17,12 @@ constexpr double filter_correction(uint32_t rate, uint32_t stages, uint32_t dela
     while (cic_gain > 1.0) {
         cic_gain *= 0.5;
     }
-    return 4.0 / cic_gain;
+    return 1.0 / cic_gain;
+}
+
+// The phase FIR's fixed-point scaling contributes another inverse gain of 4.
+constexpr double filter_correction(uint32_t rate, uint32_t stages, uint32_t delay) {
+    return 4.0 * cic_correction(rate, stages, delay);
 }
 
 } // namespace phase_calibration

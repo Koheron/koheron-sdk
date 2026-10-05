@@ -113,7 +113,21 @@ class PhaseNoiseAnalyzer {
   }
 
   async getPhaseNoise(): Promise<Float32Array> {
-    return await this.client.readFloat32Array(Command(this.id, this.cmds['get_phase_noise']));
+    return await this.client.readFloat32Vector(Command(this.id, this.cmds['get_phase_noise']));
+  }
+
+  async getSpectrumSnapshot(): Promise<PnaSpectrumFrame<IParameters>> {
+    // Fall back when browsing an older V1 instrument.
+    if (!this.cmds['get_spectrum_snapshot']) {
+      return {sequence: undefined, state: undefined, precision: undefined,
+        parameters: {...this.parameters}, values: await this.getPhaseNoise()};
+    }
+    const reply = await readPnaSpectrum(this.client, Command(this.id, this.cmds['get_spectrum_snapshot']));
+    const m = reply.metadata;
+    const parameters: IParameters = {...this.parameters, ...m};
+    parameters.min_freq = 2 * m.fs / (2 * (m.data_size - 1));
+    return {sequence: m.sequence, state: m.state, precision: m.precision,
+      parameters, values: reply.values};
   }
 
   setCicRate(rate: number): void {

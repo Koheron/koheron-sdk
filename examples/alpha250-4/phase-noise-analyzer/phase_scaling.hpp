@@ -1,6 +1,7 @@
 #ifndef ALPHA250_4_PHASE_SCALING_HPP
 #define ALPHA250_4_PHASE_SCALING_HPP
 
+#include "server/drivers/phase-noise/phase-calibration.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -12,12 +13,7 @@ struct PhaseScaling {
 };
 
 inline double cic_gain_compensation(uint32_t rate, uint32_t stages, uint32_t delay) {
-    // PG140: programmable truncated output shifts by the current rate's bit growth.
-    // Input and output are both 32 bits, so DC gain is (R*M)^N / 2^ceil(log2((R*M)^N)).
-    const double gain = std::pow(double(rate) * delay, stages);
-    int exponent = 0;
-    const double fraction = std::frexp(gain, &exponent);
-    return std::ldexp(1.0, fraction <= 0.5 ? exponent - 1 : exponent) / gain;
+    return phase_calibration::cic_correction(rate, stages, delay);
 }
 
 inline PhaseScaling phase_scaling(double dut_hz, double reference_hz) {

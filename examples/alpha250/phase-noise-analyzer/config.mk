@@ -1,5 +1,5 @@
 NAME := phase-noise-analyzer
-VERSION := 1.3.1
+VERSION := 1.3.2
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
@@ -31,6 +31,7 @@ DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.cpp
 include $(SDK_PATH)/server/drivers/phase-noise/fft.mk
 
 # Web assets
+WEB_FILES += $(SDK_PATH)/web/phase-noise/spectrum.ts $(SDK_PATH)/web/phase-noise/plot.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/phase-precision.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/phase-precision.css
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.ts

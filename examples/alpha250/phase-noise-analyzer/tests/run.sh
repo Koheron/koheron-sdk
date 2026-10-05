@@ -32,10 +32,12 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     g++-13 "${flags[@]}" "$tests/test_welch.cpp" \
         server/external_libs/pffft/pffft.cpp -o "$output/welch"
     "$output/welch"
+    g++-13 "${flags[@]}" server/drivers/phase-noise/tests/test_spectrum_publication.cpp -o "$output/publication"
+    "$output/publication" "$output/spectrum-frame.bin"
     # Both instruments use the extracted phase conversion/detrending helper.
     g++-13 "${flags[@]}" examples/alpha250-4/phase-noise-analyzer/tests/test_core.cpp -o "$output/alpha250-4-core"
     "$output/alpha250-4-core"
-    g++-13 "${flags[@]}" examples/alpha250-4/phase-noise-analyzer/tests/test_phase_spectrum.cpp -o "$output/alpha250-4-spectrum"
+    g++-13 "${flags[@]}" examples/alpha250-4/phase-noise-analyzer/tests/test_phase_spectrum.cpp server/external_libs/pffft/pffft.cpp -o "$output/alpha250-4-spectrum"
     "$output/alpha250-4-spectrum"
 '
 docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
@@ -47,5 +49,5 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     if ! node -e "require.resolve(\"jsdom\"); require.resolve(\"typescript\")" >/dev/null 2>&1; then
         npm install --prefix "$deps" --no-save --package-lock=false typescript@5.6.3 jsdom@26.1.0
     fi
-    node --test "$tests/test_plot.cjs" "$tests/test_rendering.cjs" "$tests/test_numeric_controls.cjs" "$tests/test_signal_generator.cjs" web/phase-noise/tests/test_phase_precision.cjs
+    node --test "$tests/test_plot.cjs" "$tests/test_rendering.cjs" "$tests/test_numeric_controls.cjs" "$tests/test_signal_generator.cjs" web/phase-noise/tests/test_phase_precision.cjs web/phase-noise/tests/test_spectrum.cjs
 '

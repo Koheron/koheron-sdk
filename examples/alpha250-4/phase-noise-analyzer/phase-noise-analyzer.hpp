@@ -25,6 +25,7 @@
 #include "./moving_averager.hpp"
 #include "./cumulative_averager.hpp"
 #include "./phase-dma.hpp"
+#include "server/drivers/phase-noise/spectrum-publication.hpp"
 #include "./phase_scaling.hpp"
 #include "./phase-processing.hpp"
 #include "./tracking_lock.hpp"
@@ -44,9 +45,8 @@ class PhaseNoiseAnalyzer
                 scicpp::units::frequency<float>>;
     using ComplexPhaseNoiseDensity = std::complex<PhaseNoiseDensity>;
 
-    // FFT buffer sizes
-    static constexpr uint32_t fft_size = 32768;
-    static constexpr uint32_t data_size = fft_size;
+    // Acquisition and spectrum sizes
+    static constexpr uint32_t data_size = 32768; // Raw acquisition samples per channel.
     static constexpr uint32_t spectrum_samples = 30000;
     static constexpr uint32_t spectrum_bins = spectrum_samples / 2 + 1;
     // Standard precision retains the pi/8192 CORDIC scale and the fixed-point
@@ -76,8 +76,7 @@ class PhaseNoiseAnalyzer
                           base_dds_freq[2].eval(), base_dds_freq[3].eval()};
     }
     auto get_average_status() const {
-        std::shared_lock lk(publication_mtx);
-        return std::tuple{published_count, published_target};
+        return publication.average_status();
     }
     void set_tracking_enabled(bool enabled);
     void set_tracking_bandwidth(float bandwidth_hz);
@@ -162,6 +161,8 @@ class PhaseNoiseAnalyzer
         return std::tuple{accepted_captures, captured_precision, capture_state == Valid, phase_x | phase_y};
     }
 
+    auto get_spectrum_snapshot() const { return publication.snapshot(); }
+
   private:
     rt::ConfigManager& cfg;
     Ltc2157& ltc2157;
@@ -192,13 +193,8 @@ class PhaseNoiseAnalyzer
     Time dma_transfer_duration;
 
     mutable std::shared_mutex data_mtx; // protects settings, snapshots and spectral state
-    // PSD reads use a short publication lock instead of waiting for the FFT.
-    // Writers acquire data_mtx before publication_mtx; readers need only one.
-    mutable std::shared_mutex publication_mtx;
-    PhaseNoiseDensityVector published_phase_noise = PhaseNoiseDensityVector(spectrum_bins);
-    uint32_t published_count = 0;
-    uint32_t published_target = 1; // Zero denotes cumulative XY averaging.
-    void publish_spectrum();
+    phase_noise::SpectrumPublication<PhaseNoiseDensity> publication{spectrum_bins};
+    void publish_spectrum(std::optional<std::array<double, 4>> acquired_lo = std::nullopt);
 
     PhaseDataArray phase_x{};
     PhaseDataArray phase_y{};
@@ -265,7 +261,7 @@ class PhaseNoiseAnalyzer
     void compute_jitter(Frequency f_dut);
     double carrier_power(uint32_t navg);
     void configure_cic_rate(uint32_t rate);
-    void invalidate_acquisition();
+    void invalidate_acquisition(CaptureState state = Settling);
     Frequency effective_tracking_bandwidth() const;
     void apply_tracking_update(Phase mean_dphi, Time block_duration, uint32_t input_channel);
     void start_spectrum_analyzer();

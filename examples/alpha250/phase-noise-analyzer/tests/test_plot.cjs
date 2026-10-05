@@ -9,6 +9,8 @@ function fixture(t) {
     const dom = new JSDOM('<span id="refresh-rate">— FPS</span><table id="decade-values-table"></table><input id="show-smoothed-trace" type="checkbox" checked><button id="capture-reference" disabled></button><button id="clear-reference" disabled></button><div id="reference-info" hidden><span id="reference-status"></span></div>', {runScripts: 'outside-only', pretendToBeVisual: true});
     const w = dom.window;
     t.after(() => w.close());
+  w.eval(ts.transpileModule(fs.readFileSync(path.resolve(__dirname, '../../../../web/phase-noise/plot.ts'), 'utf8'),
+    {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.PnaPlot = PnaPlot;');
     w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../web/plot.ts'), 'utf8'),
         {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.Plot = Plot;');
     // Select methods without starting the constructor's polling loop.

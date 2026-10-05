@@ -249,21 +249,33 @@ PhaseNoiseAnalyzer::get_phase_xy_sync() {
 }
 
 PhaseNoiseAnalyzer::PhaseNoiseDensityVector PhaseNoiseAnalyzer::get_phase_noise() const {
-    std::shared_lock lk(publication_mtx);
-    return published_phase_noise;
+    return publication.spectrum();
 }
 
-void PhaseNoiseAnalyzer::publish_spectrum() {
-    std::unique_lock lk(publication_mtx);
-    published_phase_noise = phase_noise;
-    published_count = channel == XY ? averager_xy.count() : averager.count();
-    published_target = channel == XY ? 0u : fft_navg;
+void PhaseNoiseAnalyzer::publish_spectrum(std::optional<std::array<double, 4>> acquired_lo) {
+    phase_noise::SpectrumMetadata metadata;
+    metadata.state = capture_state;
+    metadata.precision = captured_precision;
+    metadata.fs = fs.eval();
+    metadata.channel = channel;
+    metadata.cic_rate = cic_rate;
+    metadata.navg = fft_navg;
+    metadata.count = channel == XY ? averager_xy.count() : averager.count();
+    metadata.target = channel == XY ? 0u : fft_navg;
+    metadata.lo = acquired_lo ? *acquired_lo : capture_state == Valid ? publication.settings().lo : std::array<double, 4>{
+        dds.get_dds_freq(0), dds.get_dds_freq(1), dds.get_dds_freq(2), dds.get_dds_freq(3)};
+    metadata.reference_clock = rt::get_driver<ClockGenerator>().get_reference_clock();
+    publication.publish(metadata, phase_noise);
 }
 
 void PhaseNoiseAnalyzer::set_fft_navg(uint32_t n_avg) {
     std::unique_lock lk(data_mtx);
     fft_navg = std::clamp(n_avg, 1u, 200u);
     averager.set_navg(fft_navg);
+    if (capture_state == Valid && channel != XY) {
+        phase_noise = averager.average();
+        compute_jitter(Frequency(publication.settings().lo[channel == Y ? DUTY : DUTX]));
+    }
     publish_spectrum();
 }
 
@@ -449,8 +461,8 @@ void PhaseNoiseAnalyzer::start_spectrum_analyzer() {
     }
 }
 
-void PhaseNoiseAnalyzer::invalidate_acquisition() {
-    capture_state = Settling;
+void PhaseNoiseAnalyzer::invalidate_acquisition(CaptureState state) {
+    capture_state = state;
     phase_x.fill(Phase{});
     phase_y.fill(Phase{});
     tracking_locks = {};
@@ -498,9 +510,8 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
         auto snapshot = dma.read_xy<data_size>(consumed, spectrum_analyzer_started);
         if (!snapshot) {
             std::unique_lock lk(data_mtx);
-            invalidate_acquisition();
             ++dma_errors;
-            capture_state = DmaError;
+            invalidate_acquisition(DmaError);
             return;
         }
 
@@ -517,7 +528,7 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
         captured_precision = snapshot->precision_x;
         if (snapshot->sample_gap) {
             ++gap_captures;
-            invalidate_acquisition();
+            invalidate_acquisition(SampleGap);
             if (now - last_overrange_reset >= std::chrono::seconds(1)) {
                 restart_filters();
                 last_overrange_reset = now;
@@ -527,7 +538,7 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
         }
         if (snapshot->overflow) {
             ++overflow_captures;
-            invalidate_acquisition();
+            invalidate_acquisition(Overrange);
             // Continuous unwrappers cannot retain an overflow forever. Rebase
             // together and drain their filter history; limit retries to 1 Hz.
             if (now - last_overrange_reset >= std::chrono::seconds(1)) {
@@ -553,7 +564,9 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
         const auto slope_x = Phase{float(trend_x.slope * double(scale_x.eval()))};
         const auto slope_y = Phase{float(trend_y.slope * double(scale_y.eval()))};
 
-        const double f_dds = dds.get_dds_freq(channel == Y ? DUTY : DUTX);
+        const std::array<double, 4> acquired_frequencies{
+            dds.get_dds_freq(0), dds.get_dds_freq(1), dds.get_dds_freq(2), dds.get_dds_freq(3)};
+        const double f_dds = acquired_frequencies[channel == Y ? DUTY : DUTX];
         if (channel == X) {
             phase_noise = compute_phase_noise(spectral_x);
             apply_tracking_update(tracking_sign_x * slope_x, block_duration, X);
@@ -576,7 +589,7 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
         processing_ms = std::chrono::duration<double, std::milli>(
             std::chrono::steady_clock::now() - process_start).count();
         compute_jitter(Frequency(f_dds));
-        publish_spectrum();
+        publish_spectrum(acquired_frequencies);
     }
 }
 

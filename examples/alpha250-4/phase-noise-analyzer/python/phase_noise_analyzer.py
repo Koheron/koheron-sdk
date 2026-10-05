@@ -2,6 +2,7 @@ import numpy as np
 import time
 from scipy.ndimage import median_filter
 from koheron import command
+from koheron.phase_noise import get_spectrum_snapshot
 
 def remove_spurs_db(phase_noise, kernel_size=31, threshold_db=8.0):
     """
@@ -88,6 +89,8 @@ def smooth_phase_noise_logfreq(freqs, phase_noise, nstart=1, half_width_decades=
 
 
 class PhaseNoiseAnalyzer(object):
+    get_spectrum_snapshot = get_spectrum_snapshot
+
     def __init__(self, client):
         self.client = client
         self.npts = 65536
