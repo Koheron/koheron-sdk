@@ -11,34 +11,15 @@ connect_cell adc_dac {
 }
 
 ####################################
-# Direct Digital Synthesis
+# Shared PNA DAC signal generator
 ####################################
 
-for {set i 0} {$i < 2} {incr i} {
-
-  cell xilinx.com:ip:dds_compiler:6.0 dds$i {
-    PartsPresent Phase_Generator_and_SIN_COS_LUT
-    DDS_Clock_Rate [expr [get_parameter adc_clk] / 1000000.0]
-    Parameter_Entry Hardware_Parameters
-    Phase_Width 32
-    Output_Width 16
-    Phase_Increment Programmable
-    Latency_Configuration Configurable
-    Latency 9
-  } {
-    aclk adc_dac/adc_clk
-  }
-
-  connect_pins adc_dac/dac[expr $i+1] [get_slice_pin dds$i/m_axis_data_tdata 15 2]
-
-  cell pavel-demin:user:axis_constant:1.0 phase_increment$i {
-    AXIS_TDATA_WIDTH 32
-  } {
-    cfg_data [ctl_pin phase_incr$i]
-    aclk adc_dac/adc_clk
-    M_AXIS dds$i/S_AXIS_CONFIG
-  }
-
+source $sdk_path/fpga/ip/awg_v1_0/integration.tcl
+set outputs [dds_pm::add awg awg adc_dac/adc_clk [get_parameter adc_clk] \
+    [dict create CHANNELS 2]]
+# Scale the 16-bit DAC stimulus to signed 14-bit at half amplitude (analog voltage depends on the load).
+for {set channel 0} {$channel < [llength $outputs]} {incr channel} {
+    connect_pins adc_dac/dac[expr {$channel+1}] [get_concat_pin [list [get_slice_pin [lindex $outputs $channel] 15 3] [get_slice_pin [lindex $outputs $channel] 15 15]] dac_scale$channel]
 }
 
 ####################################
@@ -111,4 +92,6 @@ set_property CONFIG.S00_HAS_REGSLICE 1 [get_bd_cells axi_mem_intercon_0]
 
 # Use the reference post-route hold repair flow.
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
-set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE ExploreWithAggressiveHoldFix [get_runs impl_1]
+set_property STEPS.PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
+set_property STEPS.PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveFanoutOpt [get_runs impl_1]
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize $sdk_path/fpga/lib/post_route_hold_fix.tcl] [get_runs impl_1]
