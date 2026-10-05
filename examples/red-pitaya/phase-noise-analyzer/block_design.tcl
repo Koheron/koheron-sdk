@@ -63,24 +63,39 @@ cell xilinx.com:ip:util_vector_logic:2.0 phase_history_reset {
 } { Op1 phase_stream_control/filter_resetn }
 
 
-set rounding_seeds {0x9e3779b97f4a7c15 0xd1b54a32d192ed03}
-for {set i 0} {$i < 2} {incr i} {
-
-    # Separate mixer and prefilter rounding sequences for the two ADC channels.
-    cordic::create cordic$i [lindex $rounding_seeds $i]
-
-    connect_cell cordic$i {
-        s_axis_data_a [get_concat_pin [list [get_constant_pin 0 2] adc_dac/adc[expr {$i+1}] [get_constant_pin 0 16]]]
-        s_axis_data_b dds$i/m_axis_data_tdata
-        s_axis_tvalid dds$i/m_axis_data_tvalid
-        aclk adc_dac/adc_clk
-        aresetn proc_sys_reset_adc_clk/peripheral_aresetn
-        acc_on [get_slice_pin [ctl_pin cordic] $i $i]
-        rst_phase phase_history_reset/Res
-    }
-
-  connect_pins cordic$i/demod [sts_pin demod$i]
+# Only the selected ADC is analyzed. Share the complete 24-bit extractor,
+# selecting its ADC and independent reference together before demodulation.
+# Channel changes reset the phase/filter epoch and discard warm-up samples.
+foreach {name width inputs} [list \
+    adc_mux 32 [list \
+      [get_concat_pin [list [get_constant_pin 0 2] adc_dac/adc1 [get_constant_pin 0 16]]] \
+      [get_concat_pin [list [get_constant_pin 0 2] adc_dac/adc2 [get_constant_pin 0 16]]]] \
+    reference_mux 32 [list dds0/m_axis_data_tdata dds1/m_axis_data_tdata] \
+    accumulate_mux 1 [list [get_slice_pin [ctl_pin cordic] 0 0] [get_slice_pin [ctl_pin cordic] 1 1]]] {
+  cell koheron:user:latched_mux:1.0 $name {
+    WIDTH $width N_INPUTS 2 SEL_WIDTH 1
+  } {
+    clk adc_dac/adc_clk clken [get_constant_pin 1 1]
+    din [get_concat_pin $inputs ${name}_inputs]
+    sel [get_slice_pin [ctl_pin cordic] 4 4]
+  }
 }
+cordic::create cordic0 0x9e3779b97f4a7c15
+connect_cell cordic0 {
+  s_axis_data_a adc_mux/dout
+  s_axis_data_b reference_mux/dout
+  s_axis_tvalid dds0/m_axis_data_tvalid
+  aclk adc_dac/adc_clk
+  aresetn proc_sys_reset_adc_clk/peripheral_aresetn
+  acc_on accumulate_mux/dout
+  rst_phase phase_history_reset/Res
+}
+# The server reads the selected channel's demod register; both aliases refer
+# to that active extractor. Raw ADC status registers remain independent.
+connect_pins cordic0/demod [sts_pin demod0]
+connect_pins cordic0/demod [sts_pin demod1]
+set pna_phase_sources {cordic0/phase}
+set pna_overflow_sources {cordic0/overflow}
 
 ####################################
 # Monitor Phase with DMA
@@ -90,7 +105,6 @@ source $sdk_path/fpga/lib/pna_single_stream.tcl
 # The Zynq-7010 has spare DSP slices but limited LUTs. Map the same CIC
 # arithmetic into DSPs; its widths, truncation and calibrated gain are unchanged.
 set_property CONFIG.Use_Xtreme_DSP_Slice true [get_bd_cells cic]
-
 # Repair short DAC paths after routing; refresh reports for strict timing checks.
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize [file join [file dirname [info script]] post_route.tcl]] [get_runs impl_1]

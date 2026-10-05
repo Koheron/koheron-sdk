@@ -6,7 +6,7 @@ Existing spectrum and phase RPCs remain available, and the browser supports
 older firmware through the existing read path.
 
 Version 1.1.1 ports the ALPHA designs' 24-bit CORDIC phase calculation and
-independent stochastic phase rounding. The legacy radians-per-count scale and
+stochastic phase rounding. The legacy radians-per-count scale and
 0–8 extra CIC precision bits are retained. This addresses deterministic phase
 quantization harmonics; hardware PM/noise-floor validation remains necessary.
 
@@ -30,7 +30,11 @@ epoch. Gap, overrange and DMA failures discard the affected spectrum and
 restart acquisition. The shared [acquisition documentation](../../../server/drivers/phase-noise/README.md#acquisition-boundaries)
 describes the ring, diagnostics and tracking behavior. The 32768-point Welch
 estimator, calibration and 0–8-bit phase precision remain unchanged.
-Red Pitaya maps the CIC arithmetic into DSP slices to fit its smaller FPGA.
+Red Pitaya maps CIC arithmetic into DSP slices and shares one 24-bit phase
+extractor. ADC and reference muxes select the input and its independent LO
+together before demodulation. Channel changes reset the acquisition epoch;
+only the selected input is analyzed. Both demod status registers alias the
+active extractor, while raw ADC status and DAC generators remain independent.
 
 ## Averaging progress
 
@@ -94,12 +98,11 @@ steps and a bandwidth well below the plotted offset range. Disabling it restores
 both nominal LOs. For details see the ALPHA250 analyzer README.
 
 The CIC range is 4–8192. The output rate is `125e6 / (2 * CIC rate)`.
-Each DMA transfer contains 131072 signed phase samples. The server processes
-65536 samples with a 32768-point Hann Welch estimator, yielding 16385 bins in
-rad²/Hz. The plotted single-sideband phase noise is `10 log10(S_phi / 2)` dBc/Hz.
-Changing acquisition settings discards settling data and clears averages.
-The analyzed block starts 32768 samples into each packet, leaving ample settling
-time while halving the unused capture data from the original design.
+DMA packets contain 8192 signed phase samples in a 512-packet cyclic ring.
+The server selects the latest coherent 65536-sample window for a 32768-point
+Hann Welch estimator, yielding 16385 bins in rad²/Hz. The plotted single-sideband
+phase noise is `10 log10(S_phi / 2)` dBc/Hz. Acquisition changes reset phase and
+filter history, discard warm-up data and clear averages.
 
 ## Runtime phase precision
 
@@ -119,17 +122,17 @@ At CIC 20, the final phase steps are:
 
 These are filtered output steps; the CORDIC itself remains at π/8192 rad.
 Higher precision reduces the available output range by the same factor. The
-unwrapper resets between acquisitions, so a large LO-to-carrier offset can
+unwrapper resets at acquisition epoch changes or recovery, so a large LO-to-carrier offset can
 overflow at high precision. A packet overflow invalidates its phase, spectrum
 and jitter rather than publishing wrapped values. Reduce precision or bring the
-LO closer to the carrier to recover. The upstream 32-bit phase accumulator has
+LO closer to the carrier to recover. The 64-bit phase accumulator feeds a 32-bit CIC input range guard with
 a separate limit of approximately ±823550 rad (131072 turns) between resets,
 at every output precision. Its overflow also invalidates the entire packet;
 bring the LO closer to the carrier in that case. Other CIC rates have different
 filter gains.
 
 `get_precision_status()` returns requested/captured extra bits, radians/count,
-state (0 settling, 1 valid, 2 overrange, 3 DMA error), valid/overflow/error counts,
+state (0 settling, 1 valid, 2 overrange, 3 DMA error, 4 sample gap), valid/overflow/error counts,
 processing time and capture period in milliseconds. `get_phase_snapshot()`
 returns one coherent capture count, scale and validity flag alongside the phase
 array in radians. Existing phase and spectrum commands keep their formats.
@@ -174,7 +177,19 @@ scaling follows [AMD PG104](https://docs.amd.com/r/en-US/pg104-cmpy/Output-Produ
 A DAC/ADC loopback shares the board clock and measures residual path noise;
 an external carrier is needed to characterize independent source phase noise.
 
-## Hardware results
+## Continuous DMA FPGA validation (1.2.0)
+
+Vivado 2025.1 placed the shared-extractor design using 12954 LUTs, 20306
+registers, 45.5 block RAM tiles and 63 DSP slices on the Zynq-7010. The
+block-design assertions check both ADC/reference selection paths, 24-bit
+CORDIC rounding, full-history reset, packet metadata and cyclic SG DMA.
+ALPHA250's default two-extractor wiring remains identical after this refactor.
+Red Pitaya hardware validation is still required for the new image.
+
+## Hardware results before continuous DMA
+
+These measurements and utilization figures predate version 1.2.0. The new
+continuous DMA/shared-extractor image still requires Red Pitaya hardware validation.
 
 Validated on a Red Pitaya with DAC0 connected to ADC0 (LV): all nine precision
 settings measured the 0.1 rad PM tone at 6103.515625 Hz within 0.16% of the

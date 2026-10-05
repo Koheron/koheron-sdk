@@ -32,7 +32,7 @@ CORDIC resolution or analog noise floor.
 `set_phase_precision(bits)` accepts integers 0–8 and returns a boolean. The
 choice is stored by **Save settings** (older configurations default to 0).
 `get_precision_status()` reports requested/captured precision, radians per
-count, state (0 settling, 1 live, 2 overrange, 3 DMA error), accepted/overflow/
+count, state (0 settling, 1 live, 2 overrange, 3 DMA error, 4 sample gap), accepted/overflow/
 DMA-error counters and processing/capture times in milliseconds. Saturated
 and stale-scale captures clear the current spectrum and do not enter averages
 or tracking. Reduce precision or bring the LO closer to the carrier when the
@@ -133,7 +133,7 @@ or computing phase-noise PSD and jitter. Clients must not apply another phase
 calibration to those outputs.
 
 The CORDIC/unwrapper scale is `pi / 8192` radians per unfiltered count. For the
-current six-stage CIC with differential delay 1 and 32-bit input/output, the
+current six-stage CIC with differential delay 1 and the standard 32-bit DMA scale, the
 low-frequency filter correction at CIC rate `R` is:
 
 ```text
@@ -142,7 +142,7 @@ phase_radians = (filtered_DMA_counts - first_count) * C(R) * pi / 8192
 ```
 
 The factor 4 compensates the FIR's fixed-point scaling: 32 fractional coefficient
-bits, a 66-bit accumulator, and a 32-bit output give a DC gain of approximately
+bits, a 74-bit accumulator, and a 40-bit output give a DC gain of approximately
 1/4. The second factor compensates the CIC's power-of-two truncation of its
 full-precision gain `R^6`. See [AMD PG140](https://docs.amd.com/r/en-US/pg140-cic-compiler/Output-Width-and-Gain)
 and [PG149](https://docs.amd.com/r/en-US/pg149-fir-compiler/Output-Width-and-Bit-Growth).
@@ -177,14 +177,13 @@ Hann window and one-sided density normalization, including DC and Nyquist,
 are unchanged. PFFFT is vendored with its license in the instrument archive;
 no FFT runtime package is required on the board.
 
-Settings, spectral processing and publication share a lock. DMA waits use a
-separate lock so snapshot getters remain available during acquisition. Rate
-changes wait for the current DMA transfer. Channel and rate changes discard
-two transfers, and LO changes discard four. Failed or timed-out transfers
-clear the published data and averages and discard two successful transfers
-before publishing again. While results are invalid, phase and PSD are zero
-and jitter/integration bounds are NaN. Shutdown still waits for an in-flight
-DMA transfer to finish or time out.
+Settings and spectral processing share a lock. DMA waits hold neither that
+lock nor the DMA settings lock, so even the slowest decimation is cancellable.
+Snapshot reads use a short publication lock. Acquisition changes reset phase,
+filter and FIFO history as one epoch; warm-up windows are excluded. Failed,
+overrange or gapped captures clear published data and averages and restart
+acquisition. Invalid phase/PSD are zero and jitter/integration bounds are NaN.
+Shutdown cancels a waiting read without completing its acquisition window.
 
 The LO driver rounds to the nearest 48-bit DDS tuning word using the ADC clock,
 reports the implemented frequency, and saves/loads frequencies as doubles.
@@ -221,7 +220,7 @@ remains necessary. See [issue #711](https://github.com/Koheron/koheron-sdk/issue
 tracks only the selected ADC's LO; the other LO retains its last correction.
 Each channel has a separate correction and lock history. Editing a nominal LO
 resets that channel's correction. Turning tracking off restores both nominal
-frequencies and discards four transfers. Saving analyzer configuration stores
+frequencies and resets the acquisition epoch. Saving analyzer configuration stores
 the nominal frequencies and tracking settings; acquired corrections are not
 persisted. A saved enabled setting resumes tracking after instrument startup.
 
@@ -243,14 +242,14 @@ limit, with a doubled exit threshold; correction saturation clears lock.
 The reported effective bandwidth is a configured ceiling. Capture cadence
 and correction limits also determine actual convergence.
 
-Automatic LO updates use the raw-count drift fit, before the next DMA starts.
-The next capture overlaps phase snapshot conversion and spectrum calculation.
-The existing startup prefix is skipped to allow the pipeline to settle. Queued
-DMA setting changes receive the next lock handoff; toggling tracking or changing
-the total bound can still
-wait for the current transfer. Phase-noise averaging continues through small
-automatic corrections; manual retunes, failures and acquisition changes clear
-results and lock history. Jitter uses the LO that acquired the spectrum.
+Automatic LO updates use the raw-count drift fit after a coherent window is
+copied. Each DDS change resets the acquisition epoch, preventing windows from
+straddling a retune. Between updates, cyclic DMA overlaps phase conversion and
+spectral processing. Queued settings receive the next processing-lock handoff;
+they do not wait for a complete slow-decimation window. Averaging continues
+through small automatic corrections; manual retunes, failures and acquisition
+changes clear results and lock history. Jitter uses the LO that acquired the
+spectrum.
 
 Tracking can suppress frequency fluctuations near its loop bandwidth. Disable
 it when studying those fluctuations. Lock indicates frequency convergence;
@@ -366,3 +365,29 @@ Check that settled phase, PSD, and jitter agree with the expected modulation.
 Sweep modulation frequency separately to assess the measurement passband.
 
 All numeric web controls use selected-digit tuning by default, including local oscillators, acquisition settings, delay, and DAC angles, duty cycle and seed. Click a digit and scroll anywhere while the input retains focus; Left/Right selects its place, Up/Down tunes it. F2 or Ctrl+A selects the complete value for keyboard entry; Enter applies and Escape cancels. Integer fields reject fractions and out-of-range values. Local-oscillator display units can be changed without writing hardware.
+
+## Continuous DMA hardware validation (1.4.0)
+
+On ALPHA250, DAC1 → ADC0 measured a 10 MHz carrier with 10 kHz, 1° peak sine
+PM at CIC rates 16, 20, 60 and 100 and extra precision bits 0, 4 and 8. All
+twelve measurements were within 1% of the injected phase amplitude after DAC
+startup settling. The range endpoints also passed at +8 bits: CIC 4 with
+10 kHz PM and CIC 8192 with 300 Hz PM (5.37-second spectrum windows).
+DAC0 retained its separate stimulus for the ALPHA250-4.
+
+At CIC 20 with tracking off and one spectrum per average, 20-second runs
+produced about 46 spectra/s with no new overrange, DMA errors or sample gaps.
+Pausing the server CPU for one second left FPGA acquisition running: 611
+packets completed, exceeding the 512-packet ring. After resume, the analyzer
+published a fresh valid PM spectrum without a capture error. A forced S2MM
+halt raised the DMA-error counter and automatically recovered in a new epoch.
+Slow tracking reduced a +0.25 Hz LO offset to approximately 0.003 Hz in
+15 seconds without new capture errors. Switching from CIC 8192 back to 20 recovered without waiting for the
+slow window (the synchronous setting/reply round trip took under 10 ms).
+These checks establish recovery in these conditions; they do not
+guarantee continuous service under every load or exhaustive processing of all
+acquired samples.
+
+Vivado 2025.1 routed setup/hold and bus-skew checks passed (WNS +0.047 ns,
+WHS +0.004 ns). External I/O-delay omissions in the board constraints remain;
+there were no unconstrained internal endpoints.

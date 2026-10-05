@@ -1,24 +1,30 @@
 # Shared single-channel CIC/FIR, metadata FIFO and cyclic SG DMA.
-cell koheron:user:latched_mux:1.0 phase_mux {
-    WIDTH [get_parameter phase_accumulator_width]
-    N_INPUTS 2
-    SEL_WIDTH 1
-} {
-    clk adc_dac/adc_clk
-    clken [get_constant_pin 1 1]
-    din [get_concat_pin [list cordic0/phase cordic1/phase]]
-    sel [get_slice_pin [ctl_pin cordic] 4 4]
+# Boards may supply one shared extractor after selecting ADC and reference.
+# Otherwise preserve ALPHA250's two independent phase histories.
+if {![info exists pna_phase_sources]} {
+  set pna_phase_sources {cordic0/phase cordic1/phase}
+  set pna_overflow_sources {cordic0/overflow cordic1/overflow}
 }
-
-cell koheron:user:latched_mux:1.0 overflow_mux {
-    WIDTH 1
-    N_INPUTS 2
-    SEL_WIDTH 1
-} {
-    clk adc_dac/adc_clk
-    clken [get_constant_pin 1 1]
-    din [get_concat_pin [list cordic0/overflow cordic1/overflow]]
+if {[llength $pna_phase_sources] == 1} {
+  set phase_source [lindex $pna_phase_sources 0]
+  set overflow_source [lindex $pna_overflow_sources 0]
+} else {
+  cell koheron:user:latched_mux:1.0 phase_mux {
+    WIDTH [get_parameter phase_accumulator_width] N_INPUTS 2 SEL_WIDTH 1
+  } {
+    clk adc_dac/adc_clk clken [get_constant_pin 1 1]
+    din [get_concat_pin $pna_phase_sources]
     sel [get_slice_pin [ctl_pin cordic] 4 4]
+  }
+  cell koheron:user:latched_mux:1.0 overflow_mux {
+    WIDTH 1 N_INPUTS 2 SEL_WIDTH 1
+  } {
+    clk adc_dac/adc_clk clken [get_constant_pin 1 1]
+    din [get_concat_pin $pna_overflow_sources]
+    sel [get_slice_pin [ctl_pin cordic] 4 4]
+  }
+  set phase_source phase_mux/dout
+  set overflow_source overflow_mux/dout
 }
 
 cell koheron:user:phase_range_guard:1.0 phase_range {
@@ -27,12 +33,12 @@ cell koheron:user:phase_range_guard:1.0 phase_range {
 } {
   clk adc_dac/adc_clk
   aresetn phase_stream_control/filter_resetn
-  din phase_mux/dout
+  din $phase_source
 }
 cell xilinx.com:ip:util_vector_logic:2.0 phase_overflow {
   C_SIZE 1 C_OPERATION or
 } {
-  Op1 overflow_mux/dout
+  Op1 $overflow_source
   Op2 phase_range/overflow
   Res phase_stream_control/upstream_overflow
 }

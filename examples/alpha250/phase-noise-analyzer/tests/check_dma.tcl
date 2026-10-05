@@ -20,14 +20,19 @@ pna_dma_net phase_stream_control/config_ready cic/s_axis_config_tready
 pna_dma_net phase_quantizer/sample_status sample_metadata/In0
 pna_dma_net phase_stream_control/sample_gap sample_metadata/In1
 pna_dma_net sample_metadata/dout phase_fifo/s_axis_tuser
-pna_dma_net phase_fifo/m_axis_tdata phase_packet_framer/s_axis_0_tdata
-pna_dma_net phase_fifo/m_axis_tuser phase_packet_framer/s_axis_0_tuser
-pna_dma_net phase_packet_framer/m_axis_tlast axi_dma_0/s_axis_s2mm_tlast
+foreach pair {{phase_fifo/M_AXIS phase_packet_framer/S_AXIS_0} {phase_packet_framer/M_AXIS axi_dma_0/S_AXIS_S2MM}} {
+  lassign $pair left right
+  set a [get_bd_intf_nets -of_objects [get_bd_intf_pins $left]]
+  set b [get_bd_intf_nets -of_objects [get_bd_intf_pins $right]]
+  if {[llength $a] != 1 || $a ne $b} {error "Wrong DMA AXIS connection: $left -> $right"}
+}
 pna_dma_net phase_range/overflow phase_overflow/Op2
 pna_dma_net phase_overflow/Res phase_stream_control/upstream_overflow
-for {set i 0} {$i < 2} {incr i} {
+foreach i {0 1} {
+  if {![llength [get_bd_cells -quiet cordic$i]]} {continue}
   if {[get_property CONFIG.DOUT_WIDTH [get_bd_cells cordic$i/phase_unwrapper]] != 64} {error "Narrow accumulator"}
-  pna_dma_net phase_history_reset/Res cordic$i/phase_unwrapper/rst
+  pna_dma_net phase_history_reset/Res cordic$i/rst_phase
+  pna_dma_net cordic$i/rst_phase cordic$i/phase_unwrapper/rst
 }
 foreach space {Data_S2MM Data_SG} {
   set segment [get_bd_addr_segs axi_dma_0/$space/SEG_ps_0_HP0_DDR_LOWOCM]
