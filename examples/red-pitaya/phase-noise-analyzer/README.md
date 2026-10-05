@@ -181,7 +181,10 @@ an external carrier is needed to characterize independent source phase noise.
 
 Vivado 2025.1 placed the shared-extractor design using 12954 LUTs, 20306
 registers, 45.5 block RAM tiles and 63 DSP slices on the Zynq-7010. The
-block-design assertions check both ADC/reference selection paths, 24-bit
+routed setup/hold and bus-skew checks passed (WNS +0.459 ns, WHS +0.019 ns;
+15 bus-skew constraints checked). There were no unconstrained internal endpoints;
+inherited external I/O-delay omissions remain. The block-design assertions
+check both ADC/reference selection paths, 24-bit
 CORDIC rounding, full-history reset, packet metadata and cyclic SG DMA.
 ALPHA250's default two-extractor wiring remains identical after this refactor.
 Red Pitaya hardware validation is still required for the new image.
