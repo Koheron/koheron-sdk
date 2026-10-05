@@ -77,6 +77,14 @@ spikes and discontinuities all contribute to the spectrum. There are no jump,
 peak/RMS or output-code rejection thresholds. DMA completeness and acquisition
 epoch checks still prevent mixing incomplete or stale captures into averages.
 
+Version 1.2.2 retains the Hann weights, FFT plans and work buffers across
+captures. The 30000-sample level uses separate PFFFT complex transforms for
+X and Y, running concurrently; the 3000- and 300-sample levels reuse Eigen
+plans. Separate transforms preserve a quiet channel when X and Y have very
+different amplitudes. Sample lengths, centering, one-sided density scaling,
+FIR compensation, stitching and signed cross-spectrum averaging are unchanged.
+This is a server optimization and uses the same FPGA design as 1.2.1.
+
 The stitched spectrum contains 15001 bins with spacing `fs / 30000`, where
 `fs = 200 MHz / (2 * CIC rate)`. Clients display offsets from two bins to 75%
 of Nyquist. Jitter integration uses full decades within that band. A fitted

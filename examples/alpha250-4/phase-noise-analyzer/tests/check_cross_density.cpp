@@ -9,7 +9,7 @@ int main(int argc,char** argv) {
  std::ofstream output(argv[2],std::ios::binary);
  const float fs=std::stof(argv[3]);
  const bool detrend=std::stoi(argv[4])!=0;
- scicpp::signal::Spectrum<float> spectrum;
+ pna_spectrum::MultirateSpectrum spectrum;
  std::array<float,32000> a{},b{};
  std::array<Phase,32000> x{},y{};
  while(input.read(reinterpret_cast<char*>(a.data()),sizeof(a))) {

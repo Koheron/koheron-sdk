@@ -28,6 +28,7 @@
 #include "./phase_scaling.hpp"
 #include "./phase-processing.hpp"
 #include "./tracking_lock.hpp"
+#include "./phase-spectrum.hpp"
 
 namespace rt { class ConfigManager; }
 class Ltc2157;
@@ -212,7 +213,7 @@ class PhaseNoiseAnalyzer
     // Spectrum analyzer
     std::thread sa_thread;
     std::atomic<bool> spectrum_analyzer_started{false};
-    scicpp::signal::Spectrum<float> spectrum;
+    pna_spectrum::MultirateSpectrum spectrum;
     PhaseNoiseDensityVector phase_noise;
     MovingAverager<PhaseNoiseDensity> averager;
     CumulativeAverager<ComplexPhaseNoiseDensity> averager_xy;

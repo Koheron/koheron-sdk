@@ -501,3 +501,55 @@ and coherence 0.0113. For comparison, the strongest old negative spur in
 20–280 kHz was -122.40 dBc/Hz with coherence 0.9671. This distinguishes the
 removed coherent artifact from a residual small cross-spectrum estimate.
 The final snapshots are `tmp/pna-negative-current/final-both-fixed.npz`.
+
+
+FFT throughput validation — 2026-10-05, ALPHA250-4 PNA 1.2.2
+
+With browser controls idle, the same connected pair was measured before and
+after the server optimization. IN0/IN2 received the 10 MHz reference;
+ALPHA250 at 192.168.1.105 supplied DAC0 to IN1/IN3 with 10 MHz carrier,
+10 kHz sinusoidal PM and 1 degree peak deviation. Tests used XY, +8 bits,
+all nominal LOs at 10.001 MHz and tracking enabled. Each throughput sample
+covered 12 seconds after three seconds of settling; processing times are
+medians of the receiver telemetry.
+
+| CIC rate | Accepted windows/s, 1.2.1 → 1.2.2 | Processing ms, 1.2.1 → 1.2.2 |
+| --- | --- | --- |
+| 133 | 11.44 → 11.46 | 69.67 → 40.67 |
+| 67 | 13.29 → 21.25 | 69.99 → 41.21 |
+
+CIC 133 is limited by acquisition duration. CIC 67 showed approximately 60%
+more accepted windows per second. These are short controlled observations,
+not a guarantee of lossless ADC-time sampling under shared backpressure.
+Neither run incremented overflow or DMA-error counters; the old instrument
+already had one overflow from earlier control changes.
+
+Before/after captures each contained 100 fresh synchronized snapshots at
+CIC 133. Fitted PM peaks were 0.999717/0.999729 degrees before and
+0.999738/0.999743 after, with maximum relative phase differences of
+0.00654 and 0.00639 degrees. Independent double-precision SciPy calculations
+and the new production C++ estimator agreed within 0.01% complex RMS in
+each stitched segment on both captured sets. Signed values remain intact;
+near-zero cross estimates can still be negative. The final capture had no
+overflows or DMA errors.
+
+Build checks: the ARM server compiled with strict warnings and NEON enabled;
+web assets built; the complete software regression runner passed, including
+ASan/UBSan, Python and browser tests and the independent SciPy oracle. The
+single-window reference comparison also passed directly on the receiver's
+ARM CPU, covering sample lengths 30000/3000/300/301, rate changes and Y/X
+gains of 1e-6, 1 and 1e6.
+
+Deployment reused the verified 1.2.1 FPGA bitstream and device-tree overlay
+byte for byte; no FPGA source or constraints changed and no new routed timing
+result is claimed. The installed bitstream `.bit.bin` SHA256 remains
+`da2b0535dde2efe58e38bbb62e641d7e7c8de0bb5fa8a7f85568d7018e032798`.
+All installed package files were checked by SHA256 and the saved INI was
+preserved. The user's live CIC 50, channel Y, 14 averages, +8, four 10 MHz
+nominal LOs and enabled tracking were restored. Both source DAC channels'
+exact acknowledged settings stayed unchanged.
+
+Local artifacts: `tmp/pna-throughput/controlled-{before,after}-rate.json`,
+`captured-{before,after}-audit.log`, `deployment/deployment.json`,
+`user-state-{before,restored}.json`, and
+`tmp/pna-negative-current/throughput-{before,after}.npz`.

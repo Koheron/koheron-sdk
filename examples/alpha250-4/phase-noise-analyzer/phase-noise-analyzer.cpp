@@ -49,10 +49,6 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
 
     load_config();
 
-    // Configure the spectrum analyzer
-    spectrum.window(sig::windows::hann<float>(fft_size));
-    spectrum.nthreads(2);
-    spectrum.fs(fs);
     phase_noise.reserve(spectrum_bins);
     reset_phase_unwrapper();
     dma.set_fs(fs);
@@ -163,7 +159,6 @@ void PhaseNoiseAnalyzer::configure_cic_rate(uint32_t rate) {
     logf("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
 
     dma.configure_sampling(fs, [this] { ctl.write<reg::cic_rate>(cic_rate); });
-    spectrum.fs(fs);
     invalidate_acquisition();
 }
 
@@ -363,21 +358,8 @@ void PhaseNoiseAnalyzer::set_power_conversion_factor() {
 }
 
 auto PhaseNoiseAnalyzer::compute_phase_noise(SpectrumPhaseArray& new_phase) {
-    constexpr std::size_t base_size = 32000;
-    static_assert(base_size <= data_size, "base_size must fit acquisition buffer");
-
-    auto d0 = new_phase; // Already detrended in raw integer counts.
-
-    auto [x0, x1, x2] = build_decimation_chain<fft_decimation_steps>(d0);
-
-    auto s0 = welch_density(spectrum, x0, fs);
-    auto s1 = welch_density(spectrum, x1, fs / 10.0f);
-    auto s2 = welch_density(spectrum, x2, fs / 100.0f);
-
-    compensate_decimated_psd<1>(s1);
-    compensate_decimated_psd<2>(s2);
-
-    auto phase_psd = stitch_segments(s0, s1, s2);
+    auto phase_psd = pna_spectrum::auto_density(new_phase,
+        sci::units::frequency<float>{float(fs.eval())}, spectrum);
 
     // Keep the one-window history current when averaging is disabled so growing
     // the window cannot bring back spectra from before the unaveraged interval.

@@ -33,6 +33,7 @@ Coverage includes:
 - Shared DMA API compatibility, successful completion, timeout and error status.
 - DDS frequency precision, concurrent reads/writes, and nonfinite input rejection.
 - Python command dispatch, cross-correlation selection, complete phase arrays and frequency axes.
+- Cached single-window FFTs against the previous estimator, including signed CSD, six decades of channel ratio, sample-rate changes, DC and even/odd endpoints.
 - Signed-spectrum smoothing, first-valid-bin boundaries, retained raw spectra and frequency-noise conversion.
 - Web measurement and tracking decoders against C++ serialized quantities.
 - Browser signed smoothing/table values, magnitude display with negative markers, negative-only reference capture, retained reference frequency axes, duplicate-frame accounting, disposal, and signed CSV exports with four LO frequencies and cumulative metadata.

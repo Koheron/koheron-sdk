@@ -1,5 +1,5 @@
 NAME := phase-noise-analyzer
-VERSION := 1.2.1
+VERSION := 1.2.2
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250-4
@@ -27,6 +27,7 @@ DRIVERS += $(PROJECT_PATH)/dds.hpp
 DRIVERS += $(PROJECT_PATH)/dds.cpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.hpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.cpp
+include $(SDK_PATH)/server/drivers/phase-noise/fft.mk
 
 # Web assets
 WEB_FILES += $(SDK_PATH)/web/phase-noise/phase-precision.ts
