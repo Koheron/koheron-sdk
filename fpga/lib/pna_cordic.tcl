@@ -18,6 +18,8 @@ proc pins {cmd} {
 
 proc create {module_name rounding_seed} {
 
+    set cartesian_width 24
+
     set bd [current_bd_instance .]
     current_bd_instance [create_bd_cell -type hier $module_name]
 
@@ -39,7 +41,7 @@ proc create {module_name rounding_seed} {
     cell xilinx.com:ip:cmpy:6.0 complex_mult {
         APortWidth 16
         BPortWidth [get_parameter dds_output_width]
-        OutputWidth 16
+        OutputWidth $cartesian_width
         OptimizeGoal Performance
         RoundMode Random_Rounding
     } {
@@ -54,11 +56,15 @@ proc create {module_name rounding_seed} {
 
     # Suppress the mixing image before nonlinear phase extraction.
 
+    # Mixer rounding only randomizes exact half-way ties. Retain enough
+    # Cartesian bits here to avoid a coherent small-PM gain error before the
+    # linear prefilter; widening only the CORDIC phase output cannot undo it.
+    set cartesian_slot [expr {8 * (($cartesian_width + 7) / 8)}]
     for {set i 0} {$i < 2} {incr i} {
-        cell koheron:user:phase_prefilter:1.0 prefilter$i {} {
+        cell koheron:user:phase_prefilter:1.0 prefilter$i [list WIDTH $cartesian_width] {
             clk aclk
             aresetn aresetn
-            din [get_slice_pin complex_mult/m_axis_dout_tdata [expr 15 + 16 * $i] [expr 16 * $i]]
+            din [get_slice_pin complex_mult/m_axis_dout_tdata [expr $cartesian_width - 1 + $cartesian_slot * $i] [expr $cartesian_slot * $i]]
             random_round [get_slice_pin lfsr/m_axis_tdata [expr 31 + 16 * $i] [expr 16 + 16 * $i]]
         }
     }
@@ -70,7 +76,7 @@ proc create {module_name rounding_seed} {
         Functional_Selection Translate
         Pipelining_Mode Maximum
         Phase_Format Scaled_Radians
-        Input_Width 16
+        Input_Width $cartesian_width
         Output_Width [get_parameter cordic_phase_width]
         Round_Mode Round_Pos_Neg_Inf
     } {
@@ -80,7 +86,10 @@ proc create {module_name rounding_seed} {
         m_axis_dout_tvalid m_axis_tvalid
     }
 
-    connect_bd_net [get_bd_pins demod] [get_bd_pins concat_dout_dout/dout]
+    # Preserve the carrier-power status register's existing I/Q units.
+    connect_pins demod [get_concat_pin [list \
+        [get_slice_pin prefilter0/dout [expr $cartesian_width-1] [expr $cartesian_width-16]] \
+        [get_slice_pin prefilter1/dout [expr $cartesian_width-1] [expr $cartesian_width-16]]] demod_quantized]
 
     # Use a separate random stream: delayed slices of the Cartesian/mixer
     # LFSR can overlap the phase-input noise and bias stochastic rounding.

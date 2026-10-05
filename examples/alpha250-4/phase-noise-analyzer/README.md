@@ -38,6 +38,11 @@ paired pipeline at most once per second before acquisition resumes. The
 reported radians-per-count value is for X; frequency-ratio scaling also
 applies independently to Y.
 
+The shared extractor retains 24-bit Cartesian mixer and prefilter outputs,
+avoiding the carrier-dependent weak-PM gain error from 16-bit mixer rounding.
+Reapplying the current channel, rate, precision, average target or LO tuning
+word preserves acquisition and averaging history. Repeating the nominal LO
+after tracking has moved it still restores the requested frequency.
 Phase extraction calculates 24-bit CORDIC output before converting to the
 legacy 16-bit phase unit with unbiased stochastic rounding. A dedicated
 random generator per channel separates this conversion from mixer and I/Q
@@ -131,7 +136,7 @@ from 32000 samples and controls X and Y independently in XY mode.
 
 The FPGA prefilter is four cascaded 16-sample moving averages, equivalent to a
 61-tap FIR with unity DC gain. Intermediate sums retain full precision; the
-final 16-bit output uses stochastic rounding. Each channel uses separately
+final 24-bit output uses stochastic rounding. Each channel uses separately
 seeded 64-bit XOR LFSRs for mixer/filter rounding and CORDIC phase rounding.
 Shared LFSR defaults keep other instruments' previous recurrence.
 
@@ -179,10 +184,12 @@ measurement limitations.
 Run the software and FPGA regressions described in [tests/README.md](tests/README.md).
 The calculation audit compares the production C++ pipeline with independent
 SciPy calculations, including signed cross spectra and known modulation power.
-The final prefilter bitstream passed Vivado 2025.1 routing at 200 MHz with
-setup slack +0.149 ns and hold slack +0.024 ns, using 18,227 LUTs, 23,636 registers
-and 94 DSPs. Board operation and the browser were checked with a shared 10 MHz
-oscillator on IN0/IN2 and ALPHA250 DAC0 on IN1/IN3. Detailed measurements and
+The 24-bit Cartesian bitstream passed Vivado 2025.1 routing at 200 MHz with
+setup slack +0.046937 ns and hold slack +0.012307 ns, using 29,401 LUTs,
+37,666 registers, 109 block RAM tiles and 94 DSPs at placement. This revision
+has build, RTL, model and software validation; board validation remains pending.
+The earlier 16-bit Cartesian prefilter image was checked on the board and in
+the browser with a shared 10 MHz oscillator on IN0/IN2 and ALPHA250 DAC0 on IN1/IN3. Detailed measurements and
 prior implementation results are in [hardware validation notes](tests/hardware-validation.md).
 
 Remaining limitations include absolute ADC/DAC phase-noise and carrier-power

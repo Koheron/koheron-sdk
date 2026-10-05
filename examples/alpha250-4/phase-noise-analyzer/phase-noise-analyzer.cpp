@@ -91,6 +91,15 @@ void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t channel, double freq_hz) 
         log<ERROR>("PhaseNoiseAnalyzer::set_local_oscillator: Invalid frequency\n");
         return;
     }
+    // Preserve a coherent capture for read-back values and requests that
+    // select the same tuning word. A manual request must still restore the
+    // nominal frequency after tracking has moved the hardware oscillator.
+    const double tuning_factor = std::ldexp(1.0, 48) /
+        rt::get_driver<ClockGenerator>().get_adc_sampling_freq()[channel / 2];
+    if (spectrum_analyzer_started.load(std::memory_order_acquire) &&
+        std::llround(freq_hz * tuning_factor) == std::llround(base_dds_freq[channel].eval() * tuning_factor) &&
+        std::llround(freq_hz * tuning_factor) == std::llround(dds.get_dds_freq(channel) * tuning_factor))
+        return;
     base_dds_freq[channel] = Frequency(freq_hz);
     tracking_correction[channel] = Frequency{0.0f};
     dds.set_dds_freq(channel, base_dds_freq[channel].eval(), true);
@@ -149,6 +158,8 @@ void PhaseNoiseAnalyzer::configure_cic_rate(uint32_t rate) {
         return;
     }
 
+    // Saved defaults still initialize the hardware during construction.
+    if (spectrum_analyzer_started.load(std::memory_order_acquire) && rate == cic_rate) return;
     cic_rate = rate;
     cic_output_scale = cic_gain_compensation(rate, prm::cic_n_stages, prm::cic_differential_delay);
     fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
@@ -174,6 +185,7 @@ void PhaseNoiseAnalyzer::restart_filters() {
 bool PhaseNoiseAnalyzer::set_phase_precision(uint32_t bits) {
     if (bits > 8) return false;
     std::unique_lock lk(data_mtx);
+    if (spectrum_analyzer_started.load(std::memory_order_acquire) && bits == phase_precision) return true;
     phase_precision = bits;
     restart_filters();
     invalidate_acquisition();
@@ -199,6 +211,7 @@ void PhaseNoiseAnalyzer::set_channel(uint32_t chan) {
         return;
     }
 
+    if (spectrum_analyzer_started.load(std::memory_order_acquire) && chan == channel) return;
     channel = chan;
     invalidate_acquisition();
     set_power_conversion_factor();
@@ -270,7 +283,9 @@ void PhaseNoiseAnalyzer::publish_spectrum(std::optional<std::array<double, 4>> a
 
 void PhaseNoiseAnalyzer::set_fft_navg(uint32_t n_avg) {
     std::unique_lock lk(data_mtx);
-    fft_navg = std::clamp(n_avg, 1u, 200u);
+    const auto target = std::clamp(n_avg, 1u, 200u);
+    if (spectrum_analyzer_started.load(std::memory_order_acquire) && target == fft_navg) return;
+    fft_navg = target;
     averager.set_navg(fft_navg);
     if (capture_state == Valid && channel != XY) {
         phase_noise = averager.average();
@@ -637,7 +652,7 @@ void PhaseNoiseAnalyzer::compute_jitter(Frequency f_dut) {
             return;
         }
 
-        const std::size_t k1 = std::max(1u, static_cast<std::size_t>(sci::ceil(f_lo_used / df).eval()));
+        const std::size_t k1 = std::max(std::size_t{1}, static_cast<std::size_t>(sci::ceil(f_lo_used / df).eval()));
         const std::size_t k2 = std::min(n_bins - 1u, static_cast<std::size_t>(sci::floor(f_hi_used / df).eval()));
         if (k2 <= k1) {
             phase_jitter = std::numeric_limits<Phase>::quiet_NaN();

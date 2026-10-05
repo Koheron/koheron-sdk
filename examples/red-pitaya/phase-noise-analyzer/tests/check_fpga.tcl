@@ -9,6 +9,8 @@ proc same_net {a b} {
     error "Missing connection $a -> $b"
 }
 set c cordic0
+source [file join [file dirname [info script]] ../../../alpha250/phase-noise-analyzer/tests/check_extractor.tcl]
+check_phase_extractor $c
 if {[get_property CONFIG.Output_Width [get_bd_cells $c/cordic]] != 24} {error "Wrong CORDIC width"}
 if {[get_property CONFIG.DOUT_WIDTH [get_bd_cells $c/phase_unwrapper]] != 64} {error "Wrong accumulator width"}
 same_net $c/phase_round/phase_out $c/phase_unwrapper/phase_in

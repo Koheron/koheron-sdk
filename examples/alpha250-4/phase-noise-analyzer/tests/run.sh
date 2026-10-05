@@ -31,6 +31,13 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     g++-13 -I"$tests/stubs" "${flags[@]}" "$tests/test_dds.cpp" \
         examples/alpha250-4/phase-noise-analyzer/dds.cpp -o "$output/dds"
     "$output/dds"
+    g++-13 -I"$tests/stubs" \
+        -Iexamples/alpha250/phase-noise-analyzer/tests/stubs "${flags[@]}" \
+        "$tests/test_settings.cpp" \
+        examples/alpha250-4/phase-noise-analyzer/phase-noise-analyzer.cpp \
+        examples/alpha250-4/phase-noise-analyzer/dds.cpp \
+        server/external_libs/pffft/pffft.cpp -o "$output/settings"
+    "$output/settings"
 '
 docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     "${PNA_WEB_IMAGE:-koheron-web:node20}" node "$pna_tests/test_web.cjs" \

@@ -63,6 +63,9 @@ The separate FPGA block simulation uses Vivado's `xvlog`, `xelab` and `xsim`:
 ```sh
 PNA_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh \
     bash examples/alpha250-4/phase-noise-analyzer/tests/run-fpga.sh
+.venv/bin/python3 examples/alpha250/phase-noise-analyzer/tests/check_cartesian_precision.py
+vivado -mode batch -source examples/alpha250-4/phase-noise-analyzer/tests/check_fpga.tcl \
+    -tclargs tmp/examples/alpha250-4/phase-noise-analyzer/fpga/phase-noise-analyzer.xpr
 ```
 
 It checks the actual signed four-sample boxcar arithmetic with extreme and
@@ -71,6 +74,24 @@ The paired-control regression checks accepted ADC-clock sample identities,
 decimated output timestamps, reset duration and simultaneous configuration
 epochs; a negative control reproduces unequal sample counts with the former
 always-valid inputs.
+
+The shared Cartesian regression exercises 24-bit mixer, prefilter and CORDIC
+inputs at every PNA sample clock (125, 200 and 250 MS/s), two ADC levels and
+thirteen carrier phases. AMD's local bit-accurate models reproduce more than
+2% worst-case power error with 16-bit I/Q; 24-bit I/Q must stay below 0.2%.
+This isolates digital rounding from analog converter errors. The design
+check verifies all four extractors and the legacy carrier-power status units.
+
+The shared quantizer has four pipeline stages, separating its wide rounding
+adder from saturation to meet the four-channel timing budget. The stream still
+accepts one sample per clock. Quantizer and packet-metadata regressions check
+signed ties, clipping, all precisions and downstream stalls.
+
+The native settings regression compiles the production four-channel driver
+against the descriptor-ring simulator and common configuration stub. It
+builds an averaging history, checks that unchanged controls preserve the
+history, publication and DMA epoch, and verifies that changed settings and
+restoring a corrected LO still take effect. X, Y and XY selections are covered.
 
 For a board alignment regression, split one phase-modulated 10 MHz AWG output
 into IN1/IN3 and one reference into IN0/IN2. Set sinusoidal PM to 1° peak at

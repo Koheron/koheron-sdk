@@ -17,6 +17,12 @@ phase unwrapping, programmable six-stage CIC and compensation FIR from ALPHA250.
 The server shares its phase conversion, drift removal, Welch spectrum, averaging,
 jitter and optional slow LO tracking with the ALPHA250 analyzer.
 
+The shared extractor retains 24-bit Cartesian mixer and prefilter outputs on
+Red Pitaya, ALPHA250 and ALPHA250-4. Rounding mixer products to 16 bits produced
+a carrier-dependent weak-PM gain error that wider CORDIC phase output alone
+could not remove. The carrier-power status register keeps its existing 16-bit
+I/Q units; phase scaling, filter response and DMA formats are unchanged.
+
 The web interface provides phase/frequency noise plots, smoothing, decade
 readouts, CSV export and an independent two-channel DAC phase modulator.
 Its LO limits and tuning resolution come from the actual sample rate.
@@ -120,7 +126,8 @@ At CIC 20, the final phase steps are:
 | 4 | 100.531 µrad | approximately ±215889 rad |
 | 8 | 6.28319 µrad | approximately ±13493 rad |
 
-These are filtered output steps; the CORDIC itself remains at π/8192 rad.
+These are filtered output steps. The CORDIC calculates phase at π/2²¹ rad,
+then stochastically rounds to the legacy π/8192 rad unit before CIC averaging.
 Higher precision reduces the available output range by the same factor. The
 unwrapper resets at acquisition epoch changes or recovery, so a large LO-to-carrier offset can
 overflow at high precision. A packet overflow invalidates its phase, spectrum
@@ -179,14 +186,15 @@ an external carrier is needed to characterize independent source phase noise.
 
 ## Continuous DMA FPGA validation (1.2.0)
 
-Vivado 2025.1 placed the shared-extractor design using 12954 LUTs, 20306
-registers, 45.5 block RAM tiles and 63 DSP slices on the Zynq-7010. The
-routed setup/hold and bus-skew checks passed (WNS +0.459 ns, WHS +0.019 ns;
+The latest 24-bit Cartesian shared-extractor build uses 13169 LUTs, 20586
+registers, 45.5 block RAM tiles and 63 DSP slices at placement on the Zynq-7010.
+Vivado 2025.1 routed setup/hold and bus-skew checks passed (WNS +0.421511 ns, WHS +0.007958 ns;
 15 bus-skew constraints checked). There were no unconstrained internal endpoints;
 inherited external I/O-delay omissions remain. The block-design assertions
 check both ADC/reference selection paths, 24-bit
 CORDIC rounding, full-history reset, packet metadata and cyclic SG DMA.
-ALPHA250's default two-extractor wiring remains identical after this refactor.
+The shared Cartesian precision and quantizer timing improvements also build
+on ALPHA250 and ALPHA250-4.
 The [continuous DMA hardware results](tests/hardware-validation.md) cover
 PM calibration, acquisition cadence, settings changes and the remaining
 small-signal error on this image.
@@ -259,6 +267,9 @@ Validate the phase-rounding connections after generating the Vivado project:
 
 ```sh
 source /tools/Xilinx/2025.1/Vivado/settings64.sh
+PNA_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh \
+    bash examples/red-pitaya/phase-noise-analyzer/tests/run-fpga.sh
+.venv/bin/python3 examples/alpha250/phase-noise-analyzer/tests/check_cartesian_precision.py
 vivado -mode batch -source examples/red-pitaya/phase-noise-analyzer/tests/check_fpga.tcl \
     -tclargs tmp/examples/red-pitaya/phase-noise-analyzer/fpga/phase-noise-analyzer.xpr
 ```
