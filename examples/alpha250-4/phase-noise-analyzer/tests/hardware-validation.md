@@ -626,3 +626,67 @@ and `tmp/pna-dma-continuity/{live-summary.json,cic-*.npz,server-pause-cic*-summa
 current.npz,captured-audit.log,continuity-before-after.png,strict-bitstream.log,
 software-tests-final.log,rtl-tests-final.log,deployment-final/deployment.json,
 user-state-restored.json,source-after.json}`.
+
+30000-point throughput validation — 2026-10-05, ALPHA250-4 PNA 1.2.4
+
+The browser's explicit 20/s polling limit predated cyclic DMA. Its target
+is now 60/s; identical cached replies remain excluded from displayed FPS.
+The three FFT lengths, Hann windows, bin spacing, stitching and density
+normalization remain 30000/3000/300 with the same sample-rate relationships.
+Fresh acquisition windows are now 32768 samples, containing all 30880
+samples needed by the FIR chain instead of waiting for 65536 samples.
+Raw phase snapshots therefore contain 32768 samples per channel, exposed
+by `get_phase_sample_count()`. Updated Python clients query the length and
+fall back to 65536 for older instruments.
+
+ARM FIR decimation evaluates four taps per NEON operation; startup samples
+retain the scalar zero-history calculation. Double representations retain
+the scalar implementation. Independent X/Y decimation runs concurrently.
+The original FIR coefficients and output timestamps are unchanged; float
+accumulation order changes. A direct ARM comparison against the scalar
+reference passed for noise, impulses, ramps, tones and quantities, including
+the double-precision fallback. With the receiver server paused to isolate
+the benchmark, decimation fell from 5.024 to 4.003 ms per channel and the
+cross-density pipeline from 28.960 to 26.687 ms before parallel decimation.
+
+Observed live rates before and after the combined changes:
+
+| CIC / channel | Accepted windows/s, 1.2.3 → 1.2.4 | Median processing ms, 1.2.3 → 1.2.4 |
+| --- | --- | --- |
+| 60 / Y | 25.35 → 38.89 | 27.07 → 23.81 |
+| 50 / Y | 30.43 → 35.81 | 27.06 → 24.06 |
+| 50 / XY | 21.77 → 24.27 | 40.42 → 37.71 |
+
+These short observations include client load; browser polling increased
+from 20/s to 60/s and reconnected during the first post-install run.
+They are not maximum-throughput guarantees. A final eight-second run at
+the user's restored CIC 60 / Y settings accepted 35.85 windows/s; the browser
+showed 32 new spectra/s while polling at 60/s, with approximately 4.0 ms
+read, 2.1 ms processing and 2.3 ms drawing per poll. Acquisition and DSP,
+rather than the previous display cap, now limit the rate. 60 fresh FPS
+has not been achieved.
+
+Forty fresh paired windows at each CIC rate 60, 50, 4 and 133 recovered
+0.999858–1.000061 degree peak PM, with maximum X/Y mismatch 0.07792 degrees
+and zero overflows, sample gaps or DMA errors. Ten captured windows ran
+through the actual ARM/NEON production estimator and independent SciPy
+oracle; relative complex RMS error was below 0.014% in all three segments.
+A one-second server SIGSTOP at CIC 60 transferred another 408 hardware
+packets with FIFO maxima 143/8186 and no sample gap.
+
+Build checks: strict ARM server and web builds passed, as did the full
+ASan/UBSan suite, 12 Python tests, 10 browser tests and the independent
+calculation oracle. Additional DMA tests cover 32768-sample fresh windows.
+This is a software-only deployment: FPGA and overlay hashes match 1.2.3
+byte for byte, with its previously verified strict timing; no new routed
+timing result is claimed. Installed package files were verified by SHA256.
+The saved INI and exact source DAC settings are unchanged. The user's
+latest CIC 60 / Y, one average, +8 bits, nominal 10 MHz LOs, internal
+reference clock and enabled tracking were restored, with both trackers
+allowed to reacquire before returning to Y.
+
+Artifacts are under `tmp/pna-30000-fps`: `{before,after}-rate.json`,
+`final-state.json`, `live-summary.json`, `current.npz`,
+`captured-arm-audit.log`, `isolated-profile.log`, `server-pause-summary.json`,
+`software-tests-final.log`, `short-window-tests.log`,
+`deployment/deployment.json` and `source-{before,after}.json`.

@@ -52,7 +52,7 @@ int main() {
     dma.start_acquisition();
     const auto check=[](const auto& block) {
         assert(block);
-        for(uint32_t i=0;i<65536;++i) {
+        for(uint32_t i=0;i<block->x.size();++i) {
             assert(block->x[i]==block->x[0]+int32_t(i));
             assert(block->y[i]==block->x[i]+100);
         }
@@ -61,6 +61,9 @@ int main() {
     auto next=dma.read_xy<65536>(first->end_chunk,running);check(next);
     assert(next->end_chunk>=first->end_chunk+8);
     assert(next->x[0]>first->x.back());
+    auto shorter=dma.read_xy<32768>(next->end_chunk,running);check(shorter);
+    assert(shorter->end_chunk>=next->end_chunk+4);
+    assert(shorter->x[0]>next->x.back());
     auto wrap=dma.read_xy<65536>(PhaseDma::ring_chunks-4,running);check(wrap);
     assert(wrap->end_chunk>=PhaseDma::ring_chunks+4);
     // Configuration pauses the producer, resets both sample histories, then

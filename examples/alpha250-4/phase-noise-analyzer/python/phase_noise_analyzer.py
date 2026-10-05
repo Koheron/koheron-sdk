@@ -91,6 +91,17 @@ class PhaseNoiseAnalyzer(object):
     def __init__(self, client):
         self.client = client
         self.npts = 65536
+        # Older instruments expose fixed 65536-sample snapshots.
+        try:
+            client.get_ids('PhaseNoiseAnalyzer', 'get_phase_sample_count')
+        except KeyError:
+            pass
+        else:
+            self.npts = self.get_phase_sample_count()
+
+    @command()
+    def get_phase_sample_count(self):
+        return self.client.recv_uint32()
 
     @command()
     def set_local_oscillator(self, channel, freq):

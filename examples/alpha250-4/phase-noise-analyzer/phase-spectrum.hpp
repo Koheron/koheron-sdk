@@ -143,8 +143,13 @@ auto cross_density(const std::array<Phase, N>& x, const std::array<Phase, N>& y,
     constexpr std::size_t base_size = 32000;
     auto x0 = remove_drift ? detrended_phase_prefix<base_size>(x) : take_prefix<Phase, base_size>(x);
     auto y0 = remove_drift ? detrended_phase_prefix<base_size>(y) : take_prefix<Phase, base_size>(y);
-    auto [dx0, dx1, dx2] = build_decimation_chain<fft_decimation_steps>(x0);
+    // The two channel filters are independent. Use both ARM cores before
+    // the paired transforms, without sharing mutable FFT workspaces.
+    auto x_chain = std::async(std::launch::async, [&] {
+        return build_decimation_chain<fft_decimation_steps>(x0);
+    });
     auto [dy0, dy1, dy2] = build_decimation_chain<fft_decimation_steps>(y0);
+    auto [dx0, dx1, dx2] = x_chain.get();
     auto s0 = spectrum.full.cross_density(dx0, dy0, fs);
     auto s1 = spectrum.middle.cross_density(dx1, dy1, fs / 10.0f);
     auto s2 = spectrum.low.cross_density(dx2, dy2, fs / 100.0f);

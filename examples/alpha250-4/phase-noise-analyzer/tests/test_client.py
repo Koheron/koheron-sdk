@@ -16,6 +16,8 @@ class FakeClient:
         self.count = 0
 
     def get_ids(self, device, name):
+        if name == 'get_phase_sample_count':
+            raise KeyError(name)
         return 1, name, ()
 
     def send_command(self, device, name, types, *args):
@@ -53,6 +55,18 @@ class FakeClient:
 
 
 class ClientTests(unittest.TestCase):
+    def test_new_instrument_reports_shorter_snapshot_length(self):
+        class NewClient(FakeClient):
+            def get_ids(self, device, name):
+                return 1, name, ()
+            def recv_uint32(self):
+                return 32768
+        driver = PhaseNoiseAnalyzer(NewClient())
+        snapshot = driver.get_phase_snapshot()
+        self.assertEqual(len(snapshot[3]), 32768)
+        self.assertEqual(snapshot[4][0], 32768)
+        self.assertEqual(len(driver.get_phase_x()), 32768)
+
     def setUp(self):
         self.client = FakeClient()
         self.driver = PhaseNoiseAnalyzer(self.client)

@@ -46,7 +46,7 @@ class PhaseNoiseAnalyzer
 
     // FFT buffer sizes
     static constexpr uint32_t fft_size = 32768;
-    static constexpr uint32_t data_size = 2 * fft_size;
+    static constexpr uint32_t data_size = fft_size;
     static constexpr uint32_t spectrum_samples = 30000;
     static constexpr uint32_t spectrum_bins = spectrum_samples / 2 + 1;
     // Standard precision retains the pi/8192 CORDIC scale and the fixed-point
@@ -140,6 +140,7 @@ class PhaseNoiseAnalyzer
     }
 
     PhaseDataArray get_phase_x();
+    uint32_t get_phase_sample_count() const { return data_size; }
     PhaseDataArray get_phase_y();
     std::array<Phase, 2 * data_size> get_phase_xy_sync();
     PhaseNoiseDensityVector get_phase_noise() const;

@@ -48,6 +48,19 @@ loss still reports overrange. Packet formats and radians per count are unchanged
 Version 1.2.3 requires its cyclic-DMA FPGA and server to be deployed together.
 It is incompatible with the former software-triggered packet design.
 
+Version 1.2.4 retains the 30000/3000/300-point FFTs and frequency grid,
+but consumes fresh 32768-sample windows instead of 65536 samples. The
+30880 samples required by both FIR stages fit within that window. Phase
+snapshots now contain 32768 samples per channel; clients should query
+`get_phase_sample_count()`. The Python client queries this automatically
+and retains compatibility with older 65536-sample instruments.
+The browser polls at up to 60/s and counts only changed displayed spectra.
+Actual FPS depends on acquisition, processing, network and drawing times.
+ARM decimation uses NEON FIR evaluation and independent X/Y decimation
+runs concurrently. FIR coefficients, timestamps, compensation and FFT
+normalization are retained; SIMD accumulation can change float rounding.
+The FPGA and device-tree overlay are unchanged from 1.2.3.
+
 Build with:
 
 ```sh

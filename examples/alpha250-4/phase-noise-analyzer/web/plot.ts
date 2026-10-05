@@ -191,7 +191,7 @@ class Plot {
   }
 
   private _busy = false;
-  private _targetHz = 20; // Paired DMA acquisition shares the ARM CPU with reads.
+  private _targetHz = 60; // Cached replies do not count as newly displayed spectra.
   private _lastTick = -Infinity;
   private lastStarted = -Infinity;
   private timer: number;
