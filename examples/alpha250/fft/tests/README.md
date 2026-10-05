@@ -35,6 +35,8 @@ spectrum length, zero-DC peak handling, pause/resume, unit conversion of retaine
 samples while paused, displayed-frame metadata,
 startup auto-scaling after an empty accumulator frame, and cursor interpolation
 when a shared plot uses decimation.
+It also checks that resizing a paused spectrum redraws retained samples without
+another acquisition or changing its captured settings or paused status.
 
 DDS and precision DAC editor regression:
 
@@ -83,6 +85,14 @@ of single-bin peaks, minima, missing-data gaps, boundary neighbours and
 frequency ordering during rendering reduction, plus full-bin rendering when
 zoomed in. Comparison tests check reference-cache reuse and
 invalidation after unit changes or replacement.
+
+The FFT interfaces also opt into the shared batched canvas renderer. Its geometry
+regressions check clipped segments, sharp extrema, gaps, line styles, cursor
+ownership and sparse-zoom fallback:
+
+```sh
+node --test examples/alpha250/phase-noise-analyzer/tests/test_rendering.cjs
+```
 
 Received history regression:
 

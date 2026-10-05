@@ -17,6 +17,12 @@ class Plot {
     private renderMs = 0;
     private historyMs = 0;
     private waitMs = 0;
+    private resizeHandler = () => {
+        if (this.running && !this.document.hidden && this.psd && this.plotBasics.needsRedraw()) {
+            // A paused spectrum still needs fresh column reduction after resize.
+            this.redraw();
+        }
+    };
     private visibilityHandler = () => {
         window.clearTimeout(this.timer);
         window.cancelAnimationFrame(this.animation);
@@ -49,6 +55,7 @@ class Plot {
         this.n_pts = fft.fft_size / 2;
         // Reduce only the drawn curves; measurements and exports retain every bin.
         this.plotBasics.enableSpectrumReduction();
+        this.plotBasics.enableBatchedLines();
         this.plotBasics.setLinY();
         for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('.unit-input'))) {
             input.addEventListener('change', () => {
@@ -82,6 +89,7 @@ class Plot {
             if (this.plot_data.length) { this.redraw(); }
         });
         document.addEventListener('visibilitychange', this.visibilityHandler);
+        window.addEventListener('resize', this.resizeHandler);
         if (typeof Worker !== 'undefined' && typeof fft.startPSDStream === 'function') {
             try {
                 this.stream = fft.startPSDStream((psd, time) => {
@@ -343,6 +351,7 @@ class Plot {
         window.cancelAnimationFrame(this.animation);
         window.clearTimeout(this.drawTimer);
         this.document.removeEventListener('visibilitychange', this.visibilityHandler);
+        window.removeEventListener('resize', this.resizeHandler);
         this.pending = undefined;
     }
 }

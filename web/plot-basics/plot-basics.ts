@@ -359,7 +359,7 @@ class PlotBasics {
                         if (segments >= 32) {
                             flush();
                             // Repeat the last segment so its join survives the
-                            // batch boundary. PNA trace colors are opaque.
+                            // batch boundary. Opt-in trace colors are opaque.
                             context.moveTo(lastSegment[0], lastSegment[1]);
                             context.lineTo(lastSegment[2], lastSegment[3]); segments = 1;
                         }

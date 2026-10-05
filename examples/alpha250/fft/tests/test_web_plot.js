@@ -29,7 +29,10 @@ vm.runInContext(`
     globalThis.$ = () => ({on() {}, off() {}});
     let pendingFrame, frameTime = 0;
     const flushFrame = () => { const frame = pendingFrame; pendingFrame = undefined; if (frame) frame(frameTime += 17); };
-    globalThis.window = {setTimeout: () => 1, clearTimeout() {}, requestAnimationFrame(fn) { pendingFrame = fn; return 1; }, cancelAnimationFrame() { pendingFrame = undefined; }};
+    const windowEvents = new Map();
+    globalThis.window = {addEventListener(name, fn) { windowEvents.set(name, fn); },
+        removeEventListener(name, fn) { if (windowEvents.get(name) === fn) windowEvents.delete(name); },
+        setTimeout: () => 1, clearTimeout() {}, requestAnimationFrame(fn) { pendingFrame = fn; return 1; }, cancelAnimationFrame() { pendingFrame = undefined; }};
     globalThis.setTimeout = window.setTimeout;
     let reads = 0;
     const psd = new Float32Array(4096).fill(1e-16);
@@ -38,8 +41,10 @@ vm.runInContext(`
     const fft = {fft_size: 8192, status: {fs: 250e6, W1: .25, W2: .375, dds_freq: [40e6, 0]},
                  async read_psd() { reads++; return psd; }};
     let drawn;
-    const basics = {enableSpectrumReduction() {}, setLinY() {}, setRangeX() {}, getRangeX() { return {from: 0, to: 125}; },
-                    redraw(data, count, peak, label, callback) { drawn = {data, count, peak}; callback(); }};
+    let resized = false, draws = 0;
+    const basics = {enableSpectrumReduction() {}, enableBatchedLines() {}, needsRedraw() { return resized; },
+                    setLinY() {}, setRangeX() {}, getRangeX() { return {from: 0, to: 125}; },
+                    redraw(data, count, peak, label, callback) { draws++; resized = false; drawn = {data, count, peak}; callback(); }};
     const plot = new Plot(doc, fft, basics);
     await Promise.resolve(); flushFrame();
     assert.equal(drawn.count, 4096);
@@ -48,6 +53,14 @@ vm.runInContext(`
     assert.equal(drawn.peak[0], 40.008544921875);
     assert.equal(fields.get('peak-frequency').textContent, '40.008545 MHz');
     plot.setPaused(true);
+    const beforeResize = draws;
+    windowEvents.get('resize')();
+    assert.equal(draws, beforeResize); // Same dimensions do not repeat reduction.
+    resized = true; windowEvents.get('resize')();
+    assert.equal(draws, beforeResize + 1); // Paused resize uses the retained spectrum.
+    assert.equal(reads, 1);
+    assert.equal(plot.frameStatus.fs, 250e6);
+    assert.equal(fields.get('connection-status').textContent, 'Display paused');
     await plot.updatePlot();
     assert.equal(reads, 1);
     assert.equal(unit.disabled, false);
