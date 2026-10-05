@@ -101,7 +101,7 @@ class PhaseModulatorWidget {
             `<div class="pm-channel"><div class="pm-row">
                 <div class="pm-output"><strong>DAC ${channel}</strong>${placeholder}</div>
                 ${field('carrier', 'Carrier')}<span class="pm-pm"></span>
-                ${field('waveform', 'Source')}${field('modulation', 'Rate')}${field('deviation', 'Amplitude')}
+                ${field('waveform', 'PM source')}${field('modulation', 'PM rate')}${field('deviation', 'PM depth')}
                 <span class="pm-more pm-placeholder"></span></div><div class="pm-status-slot"></div></div>`).join('');
         return `<div class="pm-skeleton" aria-hidden="true"><div class="pm-toolbar"><strong>Signal generator</strong>
             <span class="pm-clock">Reading…</span><button type="button" disabled>Refresh</button></div>${channels}
@@ -134,10 +134,10 @@ class PhaseModulatorWidget {
                     aria-pressed="false" aria-label="Enable DAC ${channel} output">Muted</button></div>
                 ${this.input('carrier', 'Carrier', 'MHz', '0', String(nyquist / 1e6))}
                 <label class="pm-pm"><input type="checkbox" data-field="pm" ${!options ? 'disabled' : ''}>PM</label>
-                <label class="pm-field pm-waveform"><span>Source</span><select data-field="waveform" aria-label="PM source">
+                <label class="pm-field pm-waveform"><span>PM source</span><select data-field="waveform" aria-label="PM source">
                     ${options || '<option value="0">No PM sources</option>'}</select></label>
-                ${this.input('modulation', 'Rate', 'kHz', '0', String(nyquist / 1e3))}
-                ${this.input('deviation', 'Amplitude', '°', '0', '360')}
+                ${this.input('modulation', 'PM rate', 'kHz', '0', String(nyquist / 1e3))}
+                ${this.input('deviation', 'PM depth', '°', '0', '360')}
                 <button type="button" class="pm-more" data-action="more" aria-expanded="false" aria-label="More DAC ${channel} settings">More <span aria-hidden="true">▾</span></button>
             </div><div class="pm-advanced" hidden>
                 ${this.input('phase', 'Carrier phase', '°', '', '')}

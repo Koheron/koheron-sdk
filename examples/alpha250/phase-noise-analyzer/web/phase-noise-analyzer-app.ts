@@ -14,14 +14,15 @@ class PhaseNoiseAnalyzerApp {
   private interferometerDelayInput: HTMLInputElement;
 
   private ddsInputs: HTMLInputElement[];
-  private ddsSetButtons: HTMLButtonElement[];
   private trackingEnabledInput: HTMLInputElement;
+  private averageStatus: HTMLElement;
 
   private numbers: {[field: string]: DigitInput} = {};
   public nPoints: number;
   public channel: number;
 
-  constructor(private document: Document, private driver: PhaseNoiseAnalyzer) {}
+  constructor(private document: Document, private driver: PhaseNoiseAnalyzer,
+      private onConnectionError: (error: unknown) => void = () => {}) {}
 
   dispose(): void { this.disposed = true; Object.keys(this.numbers).forEach(key => this.numbers[key].dispose()); }
 
@@ -39,10 +40,9 @@ class PhaseNoiseAnalyzerApp {
 
     this.ddsInputs = [0, 1].map(i =>
       this.document.querySelector<HTMLInputElement>(`.dds-input${i}`)!);
-    this.ddsSetButtons = [0, 1].map(i =>
-      this.document.querySelector<HTMLButtonElement>(`.dds-set${i}`)!);
-
     this.initNumbers(parameters, tracking);
+    this.initSaveConfig();
+    this.averageStatus = this.document.querySelector('#average-status');
     this.trackingEnabledInput = this.document.querySelector('.tracking-enabled-input');
     this.trackingEnabledInput.checked = tracking.enabled;
     this.trackingEnabledInput.addEventListener('change', () =>
@@ -78,7 +78,26 @@ class PhaseNoiseAnalyzerApp {
           return channel === 0 ? t.nominal0 : t.nominal1;
         }
       });
-      this.ddsSetButtons[channel].addEventListener('click', () => this.numbers['lo' + channel].commit());
+    });
+  }
+
+  private initSaveConfig(): void {
+    const button = this.document.querySelector<HTMLButtonElement>('.save-cfg');
+    button?.addEventListener('click', () => {
+      if (this.disposed) { return; }
+      const status = this.document.getElementById('save-config-status');
+      try {
+        this.driver.saveConfig();
+        // The existing save RPC has no acknowledgement. Describe the request
+        // honestly instead of claiming that the file write was verified.
+        button.textContent = 'Save requested';
+        if (status) { status.textContent = 'Analyzer settings save requested.'; }
+      } catch (error) {
+        button.textContent = 'Save failed';
+        if (status) { status.textContent = 'Unable to send the save request.'; }
+        this.onConnectionError(error);
+      }
+      setTimeout(() => { if (!this.disposed) { button.textContent = 'Save settings'; } }, 2000);
     });
   }
 
@@ -122,8 +141,8 @@ class PhaseNoiseAnalyzerApp {
   }
 
   private formatMeasurement(value: number, unit: string, digits: number = 2): string {
-    if (Number.isNaN(value)) {
-      return "---";
+    if (!Number.isFinite(value)) {
+      return '—';
     } else {
       return `${value.toFixed(digits)}  ${unit}`;
     }
@@ -131,63 +150,96 @@ class PhaseNoiseAnalyzerApp {
 
   private async updateMeasurements() {
     if (this.disposed) { return; }
-    const navg: number = 400;
-    const meas = await this.driver.getMeasurements(navg);
-    if (this.disposed) { return; }
+    try {
+      const navg: number = 400;
+      const meas = await this.driver.getMeasurements(navg);
+      if (this.disposed) { return; }
 
-    this.carrierPowerSpan.innerHTML = this.formatMeasurement(meas.carrier_power, "dBm");
-    const freqRange = `(${this.formatFrequency(meas.freq_lo)} - ${this.formatFrequency(meas.freq_hi)})`;
-
-    this.phaseJitterSpan.innerHTML =
-      this.formatMeasurement(meas.phase_jitter * 1E3, `mrad<sub>rms</sub> ${freqRange}`);
-    this.timeJitterSpan.innerHTML =
-      this.formatMeasurement(meas.time_jitter * 1E12, `ps<sub>rms</sub> ${freqRange}`);
-
-    setTimeout(() => { this.updateMeasurements(); }, 250);
+      this.carrierPowerSpan.innerHTML = this.formatMeasurement(meas.carrier_power, "dBm");
+      this.phaseJitterSpan.innerHTML =
+        this.formatMeasurement(meas.phase_jitter * 1E3, 'mrad<sub>rms</sub>');
+      this.timeJitterSpan.innerHTML =
+        this.formatMeasurement(meas.time_jitter * 1E12, 'ps<sub>rms</sub>');
+      const range = this.document.getElementById('jitter-range');
+      if (range) {
+        range.textContent = Number.isFinite(meas.freq_lo) && Number.isFinite(meas.freq_hi)
+          ? `${this.formatFrequency(meas.freq_lo)} – ${this.formatFrequency(meas.freq_hi)}` : '—';
+      }
+    } catch (error) {
+      if (!this.disposed) { this.onConnectionError(error); }
+    } finally {
+      if (!this.disposed) { setTimeout(() => { this.updateMeasurements(); }, 250); }
+    }
   }
 
   private async updateControls(): Promise<void> {
     if (this.disposed) { return; }
-    const parameters = await this.driver.getParameters();
-    if (this.disposed) { return; }
-    const tracking = await this.driver.getTrackingParameters();
-    if (this.disposed) { return; }
+    try {
+      const parameters = await this.driver.getParameters();
+      if (this.disposed) { return; }
+      const tracking = await this.driver.getTrackingParameters();
+      if (this.disposed) { return; }
 
-    if (parameters.channel == 0) {
-      this.channelInputs[0].checked = true;
-      this.channelInputs[1].checked = false;
-    } else {
-      this.channelInputs[0].checked = false;
-      this.channelInputs[1].checked = true;
+      if (parameters.channel == 0) {
+        this.channelInputs[0].checked = true;
+        this.channelInputs[1].checked = false;
+      } else {
+        this.channelInputs[0].checked = false;
+        this.channelInputs[1].checked = true;
+      }
+
+      this.numbers.cic.setValue(parameters.cic_rate);
+      this.numbers.navg.setValue(parameters.fft_navg);
+      this.numbers.lo0.setValue(tracking.nominal0);
+      this.numbers.lo1.setValue(tracking.nominal1);
+      this.trackingEnabledInput.checked = tracking.enabled;
+      const fixed = (value: number) => Number.isFinite(value) ? (Math.abs(value) < .0005 ? '0.000' : value.toFixed(3)) : '—';
+      this.document.querySelector('.tracking-effective-bandwidth').textContent = fixed(tracking.effectiveBandwidth);
+      this.document.querySelector('.tracking-correction-0').textContent = fixed(tracking.correction0);
+      this.document.querySelector('.tracking-correction-1').textContent = fixed(tracking.correction1);
+      const locked = parameters.channel === 0 ? tracking.locked0 : tracking.locked1;
+      const nominal = parameters.channel === 0 ? tracking.nominal0 : tracking.nominal1;
+      const paused = tracking.effectiveBandwidth <= 0 || tracking.maxStep <= 0 ||
+        tracking.maxCorrection <= 0 || nominal <= 0;
+      this.document.querySelector('.tracking-state').textContent =
+        !tracking.enabled ? 'Off' : paused ? `ADC${parameters.channel} paused` :
+        locked ? `ADC${parameters.channel} locked` : `ADC${parameters.channel} acquiring`;
+
+      const laserModeEnabled: boolean = parameters.analyzer_mode === 'laser';
+      this.laserModeEnableCheckbox.checked = laserModeEnabled;
+      this.interferometerDelayInput.disabled = !laserModeEnabled;
+
+      this.numbers.delay.setValue(parameters.interferometer_delay * 1e9);
+
+      const referenceClock = this.document.querySelector<HTMLInputElement>(
+        "[data-command='setReferenceClock'][value='" + parameters.clkIndex + "']");
+      if (referenceClock) { referenceClock.checked = true; }
+
+      await this.updateAverageProgress();
+    } catch (error) {
+      if (!this.disposed) { this.onConnectionError(error); }
+    } finally {
+      if (!this.disposed) { setTimeout(() => { this.updateControls(); }, 500); }
     }
+  }
 
-    this.numbers.cic.setValue(parameters.cic_rate);
-    this.numbers.navg.setValue(parameters.fft_navg);
-    this.numbers.lo0.setValue(tracking.nominal0);
-    this.numbers.lo1.setValue(tracking.nominal1);
-    this.trackingEnabledInput.checked = tracking.enabled;
-    const fixed = (value: number) => Number.isFinite(value) ? value.toFixed(3) : '---';
-    this.document.querySelector('.tracking-effective-bandwidth').textContent = fixed(tracking.effectiveBandwidth);
-    this.document.querySelector('.tracking-correction-0').textContent = fixed(tracking.correction0);
-    this.document.querySelector('.tracking-correction-1').textContent = fixed(tracking.correction1);
-    const locked = parameters.channel === 0 ? tracking.locked0 : tracking.locked1;
-    const nominal = parameters.channel === 0 ? tracking.nominal0 : tracking.nominal1;
-    const paused = tracking.effectiveBandwidth <= 0 || tracking.maxStep <= 0 ||
-      tracking.maxCorrection <= 0 || nominal <= 0;
-    this.document.querySelector('.tracking-state').textContent =
-      !tracking.enabled ? 'Off' : paused ? `ADC${parameters.channel} paused` :
-      locked ? `ADC${parameters.channel} locked` : `ADC${parameters.channel} acquiring`;
-
-    const laserModeEnabled: boolean = parameters.analyzer_mode === 'laser';
-    this.laserModeEnableCheckbox.checked = laserModeEnabled;
-    this.interferometerDelayInput.disabled = !laserModeEnabled;
-
-    this.numbers.delay.setValue(parameters.interferometer_delay * 1e9);
-
-    const referenceClock = this.document.querySelector<HTMLInputElement>(
-      "[data-command='setReferenceClock'][value='" + parameters.clkIndex + "']");
-    if (referenceClock) { referenceClock.checked = true; }
-
-    setTimeout(() => { this.updateControls(); }, 500);
+  private async updateAverageProgress(): Promise<void> {
+    if (!this.averageStatus) { return; }
+    try {
+      const {count, target} = await this.driver.getAverageStatus();
+      if (this.disposed) { return; }
+      this.averageStatus.dataset.state = count === 0 ? 'waiting' : count < target ? 'filling' : 'full';
+      this.averageStatus.textContent = `${count}/`;
+      this.averageStatus.title = `${count} of ${target} spectra in the rolling average. ` +
+        (count === 0 ? 'Waiting for acquisition.' : count < target ? 'Window filling.' : 'Full window; new spectra replace the oldest.');
+      this.averageStatus.setAttribute('aria-label', `${count} of ${target} spectra averaged`);
+    } catch (error) {
+      if (this.disposed) { return; }
+      this.averageStatus.dataset.state = 'unknown';
+      this.averageStatus.textContent = '—/';
+      this.averageStatus.title = 'Average progress unavailable';
+      this.averageStatus.setAttribute('aria-label', 'Average progress unavailable');
+      this.onConnectionError(error);
+    }
   }
 }

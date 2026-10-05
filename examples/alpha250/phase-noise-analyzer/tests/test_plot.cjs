@@ -6,22 +6,31 @@ const ts = require('typescript');
 const {JSDOM} = require('jsdom');
 
 function fixture(t) {
-    const dom = new JSDOM('<div id="plot-empty"></div><table id="decade-values-table"></table><input id="show-smoothed-trace" type="checkbox" checked>', {runScripts: 'outside-only'});
+    const dom = new JSDOM('<span id="refresh-rate">— FPS</span><table id="decade-values-table"></table><input id="show-smoothed-trace" type="checkbox" checked><button id="capture-reference" disabled></button><button id="clear-reference" disabled></button><div id="reference-info" hidden><span id="reference-status"></span></div>', {runScripts: 'outside-only', pretendToBeVisual: true});
     const w = dom.window;
     t.after(() => w.close());
     w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../web/plot.ts'), 'utf8'),
         {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.Plot = Plot;');
     // Select methods without starting the constructor's polling loop.
     const plot = Object.create(w.Plot.prototype);
-    const state = {range: null, redraw: null};
+    const state = {range: null, redraw: null, fits: 0, legendRefreshes: 0};
+    plot.document = w.document;
+    plot.lastStarted = -Infinity;
+    plot.readMs = plot.processMs = plot.drawMs = plot.schedulerMs = 0;
+    plot.rateStarted = 0; plot.displayedFrames = 0; plot.lastTableUpdate = -Infinity;
+    plot.receivedFrames = 0;
+    w.setTimeout = () => 0;
     plot.n_pts = 16385; plot.samplingFrequency = 5e6;
-    plot.plot_data = []; plot.laserPlotType = 'phase';
+    plot.plot_data = []; plot.laserPlotType = 'phase'; plot.yLabel = 'Phase noise (dBc/Hz)';
     plot.plotBasics = {
+        needsRedraw() { return false; },
         setRangeX(low, high) { state.range = [low, high]; },
-        redraw(data, size, peak, label, callback, smooth) { state.redraw = {data, size, smooth}; }
+        setLinY() { state.fits++; },
+        refreshLegend() { state.legendRefreshes++; },
+        redraw(data, size, peak, label, callback, reference, final, traces) { state.redraw = {data, size, reference, smooth: traces?.[0]?.data}; }
     };
     plot.driver = {
-        parameters: {fs: 5e6, channel: 0},
+        parameters: {data_size: 16385, fs: 5e6, channel: 0, cic_rate: 20, fft_navg: 8, analyzer_mode: 'rf', fdds0: 10e6, fdds1: 20e6, interferometer_delay: 1e-9},
         async getPhaseNoise() { return new Float32Array(16385).fill(2); }
     };
     plot.decadeValuesTable = w.document.querySelector('table');
@@ -111,18 +120,462 @@ test('CSV exports raw and smoothed display values plus the original linear PSD',
         <span><input class="dds-input" value="10000000.637"><select class="lo-unit"><option>Hz</option></select></span>
         <input class="cic-rate-input" value="20"><input class="plot-navg-input" value="1">
         <span><button class="export-data">CSV</button><a></a></span>`);
-    let exported;
-    w.HTMLAnchorElement.prototype.click = function () { exported = decodeURI(this.href); };
+    let exported, blob, filename;
+    w.Blob = Blob;
+    w.URL.createObjectURL = value => { blob = value; return 'blob:http://test/download'; };
+    w.URL.revokeObjectURL = () => {};
+    w.HTMLAnchorElement.prototype.click = function () { filename = this.download; };
     w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../web/export-file/export-file.ts'), 'utf8'),
         {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.ExportFile = ExportFile;');
     new w.ExportFile(w.document, plot);
     w.document.querySelector('.export-data').click();
-    assert.ok(exported.includes('"LO 0 frequency (MHz)",10.000000637'));
-    assert.ok(exported.includes('"PHASE PSD (rad^2/Hz)"'));
-    const table = exported.split('"CARRIER OFFSET FREQUENCY (Hz)"')[1].trim().split('\n').slice(1);
+    exported = await blob.text();
+    assert.ok(exported.includes('"LO 0 frequency (Hz)",10000000'));
+    assert.match(filename, /^phase-noise-analyzer-.*\.csv$/);
+    assert.ok(exported.includes('"Phase PSD (rad^2/Hz)"'));
+    const table = exported.split('"Offset frequency (Hz)"')[1].trim().split('\n').slice(1);
     assert.equal(table.length, 16385);
     const row = table[64].split(',').map(Number);
     assert.equal(row[0], 64 * 5e6 / 32768);
     assert.ok(Math.abs(row[1]) < 1e-12 && Math.abs(row[2]) < 1e-12);
     assert.equal(row[3], 2);
+
+    // The same CSV workflow exports a frozen reference on its own grid.
+    plot.captureReference();
+    plot.driver.parameters.fs = 1e6;
+    plot.driver.parameters.channel = 1;
+    plot._busy = false; plot._lastTick = -1000;
+    await plot.updatePlot();
+    w.document.querySelector('.export-data').click();
+    exported = await blob.text();
+    const reference = exported.split('Reference trace\n')[1];
+    assert.ok(reference.includes('"Input channel",0\n'));
+    assert.ok(reference.includes('"Sampling frequency (Hz)",5000000\n'));
+    const referenceTable = reference.split('"Offset frequency (Hz)"')[1].trim().split('\n').slice(1);
+    assert.equal(referenceTable.length, 16385);
+    const referenceRow = referenceTable[64].split(',').map(Number);
+    assert.equal(referenceRow[0], 64 * 5e6 / 32768);
+    assert.equal(referenceRow[3], 2);
+    // Red Pitaya has a fixed clock and no reference-clock radio group.
+    w.document.body.dataset.board = 'red-pitaya';
+    w.document.querySelector('[data-command="setReferenceClock"]').remove();
+    w.document.querySelector('.export-data').click();
+    exported = await blob.text();
+    assert.ok(exported.includes('"Reference clock",Fixed onboard'));
+});
+
+
+test('FFT-style reference capture copies the full PSD and frame settings; replacement and clear work', async t => {
+    const {plot, state, window: w} = fixture(t);
+    await plot.updatePlot();
+    const fits = state.fits;
+    plot.captureReference();
+    assert.equal(state.fits, fits, 'capture preserves the Y zoom');
+    assert.equal(plot.referencePSD.length, 16385);
+    assert.equal(plot.referencePSD[64], 2);
+    assert.equal(w.document.getElementById('capture-reference').textContent, 'Replace ref');
+    assert.equal(w.document.getElementById('clear-reference').disabled, false);
+    assert.equal(w.document.getElementById('reference-info').hidden, false);
+    plot.phase_psd.fill(20);
+    plot.driver.parameters.fs = 1e6;
+    plot.driver.parameters.channel = 1;
+    assert.equal(plot.referencePSD[64], 2);
+    assert.equal(plot.referenceParameters.channel, 0);
+    plot._busy = false; plot._lastTick = -1000;
+    await plot.updatePlot();
+    assert.equal(state.redraw.reference[64][0], 64 * 5e6 / 32768);
+    assert.equal(state.redraw.data[64][0], 64 * 1e6 / 32768);
+    plot.laserPlotType = 'frequency'; plot.showSmoothedInput.checked = false;
+    plot._busy = false; plot._lastTick = -1000;
+    await plot.updatePlot();
+    assert.equal(state.redraw.reference[64][1], 10 * Math.log10(2 * (64 * 5e6 / 32768) ** 2));
+    plot.captureReference();
+    assert.equal(plot.referenceParameters.channel, 1);
+    assert.equal(plot.referenceParameters.fs, 1e6);
+    const fitsBeforeClear = state.fits;
+    plot.clearReference();
+    assert.equal(state.fits, fitsBeforeClear, 'clear preserves the Y zoom');
+    assert.equal(plot.referencePSD, undefined);
+    assert.equal(plot.reference_data, undefined);
+    assert.equal(w.document.getElementById('capture-reference').textContent, 'Capture ref');
+    assert.equal(w.document.getElementById('clear-reference').disabled, true);
+    assert.equal(w.document.getElementById('reference-info').hidden, true);
+});
+
+test('settling, failed acquisition and unset LO disable capture without clearing the reference', async t => {
+    const {plot, state, window: w} = fixture(t);
+    w.document.body.insertAdjacentHTML('beforeend', '<div id="plot-placeholder"></div>');
+    await plot.updatePlot(); plot.captureReference();
+    const psd = plot.referencePSD;
+    plot.driver.getPhaseNoise = async () => new Float32Array(16385);
+    plot._busy = false; plot._lastTick = -1000;
+    await plot.updatePlot();
+    assert.equal(w.document.getElementById('capture-reference').disabled, true);
+    assert.equal(w.document.getElementById('plot-placeholder').getAttribute('aria-label'), 'Acquisition settling; spectrum is not live');
+    assert.equal(w.document.querySelector('.plot-empty'), null);
+    plot.captureReference(); assert.equal(plot.referencePSD, psd);
+    plot.driver.parameters.fdds0 = 0;
+    plot._busy = false; plot._lastTick = -1000;
+    await plot.updatePlot();
+    assert.equal(w.document.getElementById('capture-reference').disabled, true);
+    assert.equal(plot.referencePSD, psd);
+    plot.driver.parameters.fdds0 = 10e6;
+    plot.driver.getPhaseNoise = async () => { throw new Error('Acquisition failed'); };
+    w.console.error = () => {};
+    plot._busy = false; plot._lastTick = -1000;
+    await plot.updatePlot();
+    assert.equal(w.document.getElementById('capture-reference').disabled, true);
+    assert.equal(plot.referencePSD, psd);
+    plot.clearReference();
+    assert.equal(state.redraw.reference, undefined);
+});
+
+test('web driver strips the vector byte-length prefix and preserves DC through Nyquist', async t => {
+    const {window: w} = fixture(t);
+    for (const [file, exports] of [
+        ['../../../../web/koheron.ts', ['Client']],
+        ['../web/phase-noise-analyzer.ts', ['PhaseNoiseAnalyzer']]
+    ]) {
+        w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, file), 'utf8'),
+            {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + exports.map(name => `\nwindow.${name} = ${name};`).join(''));
+    }
+    const client = Object.create(w.Client.prototype);
+    const wire = new w.DataView(new w.ArrayBuffer(12 + 4 * 16385));
+    wire.setUint16(4, 5); wire.setUint16(6, 7); wire.setUint32(8, 4 * 16385);
+    for (let bin = 0; bin < 16385; bin++) wire.setFloat32(12 + 4 * bin, bin + .5, true);
+    client.getDriver = () => ({id: 5, getCmds: () => ({get_phase_noise: {id: 7, args: []}})});
+    client._readBaseAsync = async mode => client.getPayload(mode, {data: wire.buffer}).dv;
+    const psd = await new w.PhaseNoiseAnalyzer(client).getPhaseNoise();
+    assert.equal(psd.length, 16385);
+    assert.equal(psd[0], .5);
+    assert.equal(psd[64], 64.5);
+    assert.equal(psd[16384], 16384.5);
+});
+
+test('exports wait for a valid frame and become unavailable again after a read failure', async t => {
+    const {plot, window: w} = fixture(t);
+    w.document.body.insertAdjacentHTML('beforeend', '<button class="export-data"></button><button class="export-plot"></button>');
+    w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../web/export-file/export-file.ts'), 'utf8'),
+        {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.ExportFile = ExportFile;');
+    let downloads = 0;
+    w.URL.createObjectURL = () => { downloads++; return 'blob:http://test/download'; };
+    const exporter = new w.ExportFile(w.document, plot);
+    exporter.exportData(); exporter.exportPlot();
+    assert.equal(downloads, 0);
+    assert.equal(w.document.querySelector('.export-plot').disabled, true);
+    await plot.updatePlot();
+    assert.equal(w.document.querySelector('.export-data').disabled, false);
+    assert.equal(w.document.querySelector('.export-plot').disabled, false);
+    const failures = [];
+    plot.onConnectionError = error => failures.push(error.message);
+    plot.driver.getPhaseNoise = async () => { throw new Error('Disconnected'); };
+    plot._busy = false; plot._lastTick = -1000;
+    w.console.error = () => {};
+    await plot.updatePlot();
+    assert.deepEqual(failures, ['Disconnected']);
+    assert.equal(plot.frameStatus, undefined);
+    assert.equal(w.document.querySelector('.export-data').disabled, true);
+    exporter.exportData(); exporter.exportPlot();
+    assert.equal(downloads, 0);
+});
+
+test('PNG includes a white background, measurement units and every trace label at HiDPI resolution', async t => {
+    const {plot, window: w} = fixture(t);
+    await plot.updatePlot();
+    w.document.body.insertAdjacentHTML('beforeend', '<div id="plot-placeholder"><canvas class="flot-base"></canvas></div><button class="export-plot"></button>');
+    const canvas = w.document.querySelector('canvas');
+    canvas.width = 640; canvas.height = 400;
+    Object.defineProperty(canvas, 'clientWidth', {value: 320});
+    const draw = [];
+    let image;
+    w.HTMLCanvasElement.prototype.getContext = function () {
+        image = this;
+        return {measureText: text => ({width: text.length * 6}), scale: (...args) => draw.push(['scale', ...args]),
+            fillRect: (...args) => draw.push(['fillRect', ...args]), fillText: (...args) => draw.push(['text', ...args]),
+            drawImage: (...args) => draw.push(['image', ...args])};
+    };
+    w.Blob = Blob;
+    w.HTMLCanvasElement.prototype.toBlob = function (callback) { callback(new Blob([], {type: 'image/png'})); };
+    w.URL.createObjectURL = () => 'blob:http://test/download';
+    w.URL.revokeObjectURL = () => {};
+    w.HTMLAnchorElement.prototype.click = () => {};
+    plot.plotBasics.plot = {getData: () => [{label: 'Raw', color: 'blue'}, {label: 'Smoothed', color: 'green'}]};
+    w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../web/export-file/export-file.ts'), 'utf8'),
+        {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.ExportFile = ExportFile;');
+    new w.ExportFile(w.document, plot);
+    w.document.querySelector('.export-plot').click();
+    assert.equal(image.width, 640);
+    assert.ok(image.height > 400);
+    assert.deepEqual(draw.find(c => c[0] === 'scale'), ['scale', 2, 2]);
+    assert.equal(draw.find(c => c[0] === 'fillRect')[3], 320);
+    assert.ok(draw.some(c => c[0] === 'text' && c[1].includes('dBc/Hz')));
+    assert.ok(draw.some(c => c[0] === 'text' && c[1] === 'Offset frequency (Hz)'));
+    assert.ok(draw.some(c => c[0] === 'text' && c[1] === 'Raw'));
+    assert.ok(draw.some(c => c[0] === 'text' && c[1] === 'Smoothed'));
+    assert.equal(draw.find(c => c[0] === 'image')[1], canvas);
+});
+
+test('a cursor clicked on the smoothed trace stays with that trace across live redraws', t => {
+    const {window: w} = fixture(t);
+    w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../../../../web/plot-basics/plot-basics.ts'), 'utf8'),
+        {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.PlotBasics = PlotBasics;');
+    const basics = Object.create(w.PlotBasics.prototype);
+    const events = new Map();
+    let prefix, highlighted;
+    Object.assign(basics, {
+        plot_placeholder: {bind: (name, listener) => events.set(name, listener)},
+        plot: {getData: () => basics.seriesOne, setData() {}, draw() {}, unhighlight() {},
+            highlight(series) { highlighted = series.label; }},
+        options: {legend: {}}, seriesOne: [{label: 'Raw'}], reset_range: false, decimate: false,
+        clickDatapoint: [], clickDatapointSpan: {style: {}}, peakDatapointSpan: {style: {}},
+        range_x: {from: 0, to: 30}, range_y: {from: 0, to: 100},
+        updateDatapointSpan(point, span, label) { prefix = label; }
+    });
+    basics.showClickPoint();
+    events.get('plotclick')({}, {}, {datapoint: [15, 30], series: {label: 'Smoothed'}});
+    assert.equal(prefix, 'Smoothed ');
+    const smooth = [{label: 'Smoothed', data: [[0, 20], [30, 60]]}];
+    basics.redraw([[0, 90], [30, 10]], 2, [], 'PSD', () => {}, [[0, 10], [30, 40]], false, smooth);
+    assert.equal(basics.clickDatapoint[1], 40);
+    assert.equal(highlighted, 'Smoothed');
+    basics.redraw([[0, 90], [30, 10]], 2, [], 'PSD', () => {}, undefined, false, smooth);
+    assert.equal(basics.clickDatapoint[1], 40);
+    assert.equal(highlighted, 'Smoothed');
+    basics.redraw([[0, 90], [30, 10]], 2, [], 'PSD', () => {});
+    assert.equal(basics.clickDatapoint.length, 0);
+});
+
+test('logarithmic zoom retains distinct frequency labels between decade marks', t => {
+    const {window: w} = fixture(t);
+    w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../../../../web/plot-basics/plot-basics.ts'), 'utf8'),
+        {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.PlotBasics = PlotBasics;');
+    const basics = Object.create(w.PlotBasics.prototype);
+    basics.options = {xaxis: {}, grid: {}};
+    basics.setLogX(true);
+    for (const axis of [{min: 1200, max: 9400}, {min: 1200, max: 1700}, {min: 2000, max: 2001}]) {
+        const ticks = basics.options.xaxis.ticks(axis);
+        const labels = ticks.map(v => basics.options.xaxis.tickFormatter(v, axis));
+        assert.ok(ticks.length >= 2);
+        assert.equal(new Set(labels).size, ticks.length);
+        assert.ok(ticks.every(v => v >= axis.min && v <= axis.max));
+    }
+});
+
+test('analyzer can retain its page on socket loss while other SDK clients retain automatic reload', t => {
+    const {window: w} = fixture(t);
+    w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../../../../web/koheron.ts'), 'utf8'),
+        {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.WebSocketPool = WebSocketPool;');
+    let socket;
+    const timers = [];
+    w.setTimeout = (fn, ms) => { timers.push(ms); return 1; };
+    w.WebSocketPool.prototype._newWebSocket = () => socket = {
+        readyState: 1,
+        close() { this.readyState = 3; this.onclose?.(); }
+    };
+    w.WebSocketPool.prototype.waitForConnection = (s, interval, done) => done();
+    const errors = [];
+    let pool = new w.WebSocketPool(1, 'ws://test', () => {}, error => { errors.push(error.message); pool.exit(); });
+    socket.onopen(); socket.onclose();
+    assert.deepEqual(errors, ['WebSocket connection lost']);
+    assert.equal(timers.length, 0);
+    socket.onclose();
+    assert.equal(errors.length, 1, 'intentional socket cleanup does not report another loss');
+    pool = new w.WebSocketPool(1, 'ws://test', () => {});
+    socket.onopen(); socket.onclose();
+    assert.deepEqual(timers, [1000]);
+    pool.exit();
+});
+
+
+test('plot defaults to a 60 FPS target and disposal cancels the pending update', t => {
+    const {plot, window: w} = fixture(t);
+    Object.assign(plot.plotBasics, {setLogX() {}, enableDecimation() {}, enableBatchedLines() {}, setPrimaryTraceLabel() {}});
+    const live = new w.Plot(w.document, plot.driver, plot.plotBasics);
+    assert.equal(live._targetHz, 60);
+    const cancelled = [];
+    w.clearTimeout = id => cancelled.push(id);
+    w.cancelAnimationFrame = id => cancelled.push(id);
+    live.timer = 42;
+    live.animation = 43;
+    live.dispose();
+    assert(cancelled.includes(42));
+    assert(cancelled.includes(43));
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '— FPS');
+});
+
+test('FPS counts completed valid spectrum displays; reference redraws and unavailable data do not count', async t => {
+    const {plot, window: w} = fixture(t);
+    let now = 1000;
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    plot.rateStarted = 0; plot.displayedFrames = 59;
+    plot.plotBasics.redraw = (data, size, peak, label, done) => done();
+    await plot.updatePlot();
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '60 FPS');
+    assert.equal(plot.displayedFrames, 0);
+    plot.captureReference();
+    assert.equal(plot.displayedFrames, 0, 'reference redraw is not a new spectrum');
+    now += 1000;
+    plot.driver.getPhaseNoise = async () => new Float32Array(16385);
+    await plot.updatePlot();
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '— FPS');
+    assert.equal(plot.displayedFrames, 0);
+});
+
+test('polling respects the target, permits only one in-flight read, and pauses while hidden', async t => {
+    const {plot, window: w} = fixture(t);
+    const frames = [];
+    w.requestAnimationFrame = callback => { frames.push(callback); return frames.length; };
+    const timers = [];
+    w.setTimeout = (callback, delay) => { timers.push({callback, delay}); return timers.length; };
+    let now = 1000;
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    plot._lastTick = now - 5;
+    await plot.updatePlot();
+    assert.equal(frames.length, 1);
+    assert.equal(timers[0].delay, 12);
+    let finish, reads = 0;
+    plot.driver.getPhaseNoise = () => { reads++; return new Promise(resolve => { finish = resolve; }); };
+    now += 12;
+    const pending = plot.updatePlot();
+    await Promise.resolve();
+    await plot.updatePlot();
+    assert.equal(reads, 1, 'the next display refresh starts one read');
+    Object.defineProperty(w.document, 'hidden', {value: true, configurable: true});
+    plot.plotBasics.redraw = (data, size, peak, label, done) => done();
+    finish(new Float32Array(16385).fill(2));
+    await pending;
+    assert.equal(frames.length, 1, 'hidden page must not schedule another read');
+    assert.equal(timers.length, 1, 'hidden page must not schedule a fallback timer');
+    await plot.updatePlot();
+    assert.equal(reads, 1);
+});
+
+test('display refresh jitter does not accumulate or halve the cadence; faster screens remain capped', async t => {
+    const {plot, window: w} = fixture(t);
+    let now = 1000, reads = 0;
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    plot.driver.getPhaseNoise = async () => { reads++; return new Float32Array(16385).fill(2); };
+    plot.plotBasics.redraw = (data, size, peak, label, done) => done();
+    for (let i = 0; i < 120; i++) {
+        now = 1000 + i * (1000 / 120) + (i % 2 ? 0.3 : -0.3);
+        await plot.updatePlot();
+    }
+    assert.equal(reads, 60, 'a jittery 120 Hz screen displays 60 spectra in one second');
+    now += 500;
+    await plot.updatePlot();
+    assert.equal(reads, 61);
+    now += 1000 / 120;
+    await plot.updatePlot();
+    assert.equal(reads, 61, 'a long pause starts a new cadence without a catch-up burst');
+});
+
+test('a late frame retains the cadence deadline and reports its timing', async t => {
+    const {plot, window: w} = fixture(t);
+    let now = 1002;
+    const frames = [];
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    w.requestAnimationFrame = callback => { frames.push(callback); return frames.length; };
+    plot._lastTick = 1000 - 1000 / 60;
+    plot.lastStarted = plot._lastTick;
+    plot.driver.getPhaseNoise = async () => { now += 3; return new Float32Array(16385).fill(2); };
+    plot.plotBasics.redraw = (data, size, peak, label, done) => { now += 2; done(); };
+    await plot.updatePlot();
+    assert.equal(plot._lastTick, 1000, 'the cadence stays anchored despite starting this frame 2 ms late');
+    assert.equal(frames.length, 1);
+    assert.match(w.document.getElementById('refresh-rate').title, /read 3\.0 ms; process 0\.0 ms; draw 2\.0 ms; scheduling delay 2\.0 ms/);
+    plot.markUnavailable('Disconnected');
+    assert.doesNotMatch(w.document.getElementById('refresh-rate').title, /read .* ms/, 'unavailable data clears the previous timing sample');
+});
+
+test('FPS excludes repeated cached PSDs, including laser-mode NaNs', async t => {
+    const {plot, window: w} = fixture(t);
+    let now = 1000, draws = 0;
+    const psd = new Float32Array(16385).fill(2);
+    psd[0] = NaN;
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    plot.driver.getPhaseNoise = async () => psd.slice();
+    plot.plotBasics.redraw = (data, size, peak, label, done) => { draws++; done(); };
+    await plot.updatePlot();
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '1 FPS');
+    plot.frameReceivedAt = 'first-frame';
+    now += 1000;
+    await plot.updatePlot();
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '0 FPS', 'an identical owned reply is not new spectrum data');
+    assert.equal(draws, 1, 'cached replies do not repaint the canvas');
+    assert.equal(plot.frameReceivedAt, 'first-frame');
+    assert.match(w.document.getElementById('refresh-rate').title, /polling 1\/s/);
+    psd[64] = 3;
+    now += 1000;
+    await plot.updatePlot();
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '1 FPS');
+    assert.equal(plot.phase_psd[64], 3);
+    assert.equal(draws, 2);
+});
+
+test('a stalled screen callback has a timer fallback and the winner cancels its counterpart', t => {
+    const {plot, window: w} = fixture(t);
+    let now = 1000, id = 0, updates = 0;
+    const timers = new Map(), animations = new Map();
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    w.setTimeout = callback => { timers.set(++id, callback); return id; };
+    w.requestAnimationFrame = callback => { animations.set(++id, callback); return id; };
+    w.clearTimeout = id => timers.delete(id);
+    w.cancelAnimationFrame = id => animations.delete(id);
+    plot.updatePlot = () => { updates++; };
+    plot._lastTick = now;
+    const fire = callbacks => {
+        const [id, callback] = callbacks.entries().next().value;
+        callbacks.delete(id); callback();
+    };
+    plot.schedule(1000 / 60);
+    now += 8;
+    fire(animations);
+    assert.equal(updates, 0, 'an early screen callback leaves the deadline timer intact');
+    assert.equal(timers.size, 1);
+    now += 9;
+    fire(timers);
+    assert.equal(updates, 1, 'the timer proceeds even if the next screen callback never arrives');
+    plot.schedule(0);
+    fire(animations);
+    assert.equal(updates, 2);
+    assert.equal(timers.size, 0, 'a screen callback that wins cancels the timer');
+    assert.equal(animations.size, 0);
+});
+
+test('cached PSDs still honor zoom requests without changing frame metadata or FPS', async t => {
+    const {plot, window: w} = fixture(t);
+    let now = 1000, draws = 0;
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    plot.plotBasics.redraw = (data, size, peak, label, done) => { draws++; done(); };
+    await plot.updatePlot();
+    plot.frameReceivedAt = 'original-capture';
+    plot.plotBasics.needsRedraw = () => true;
+    now += 1000;
+    await plot.updatePlot();
+    assert.equal(draws, 2, 'zoom applies to a stationary spectrum');
+    assert.equal(plot.frameReceivedAt, 'original-capture');
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '0 FPS');
+    const oldFrequency = plot.plot_data[64][0];
+    plot.driver.parameters.fs *= 2;
+    now += 1000; await plot.updatePlot();
+    assert.equal(plot.plot_data[64][0], oldFrequency * 2, 'settings changes rebuild the axis even for identical PSD bytes');
+    assert.equal(draws, 3);
+});
+
+test('an empty or truncated spectrum cannot corrupt the retained axis or reference', async t => {
+    const {plot} = fixture(t);
+    plot.plotBasics.redraw = (data, size, peak, label, done) => done();
+    await plot.updatePlot(); plot.captureReference();
+    const points = plot.n_pts, frequency = plot.plot_data[64][0], reference = plot.referencePSD;
+    let delay;
+    plot.schedule = value => { delay = value; };
+    for (const length of [0, 1, 2]) {
+        plot.driver.getPhaseNoise = async () => new Float32Array(length);
+        plot._lastTick = -1000; await plot.updatePlot();
+        assert.equal(plot.n_pts, points);
+        assert.equal(plot.plot_data[64][0], frequency);
+        assert.equal(plot.referencePSD, reference);
+        assert.equal(plot.frameStatus, undefined);
+        assert.equal(delay, 500, 'invalid frames back off instead of spinning');
+    }
 });

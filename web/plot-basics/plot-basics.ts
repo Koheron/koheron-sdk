@@ -13,6 +13,9 @@ class PlotBasics {
     public LogYaxisFormatter;
     private decimate: boolean;
     private spectrumReduction = false;
+    private batchedLines = false;
+    private drawnWidth: number;
+    private drawnHeight: number;
 
     private reset_range: boolean;
     private options: jquery.flot.plotOptions;
@@ -30,6 +33,7 @@ class PlotBasics {
     private clickDatapoint: number[];
     private clickSeriesIndex = 0;
     private clickTraceLabel: string;
+    private primaryTraceLabel: string;
 
     constructor(document: Document, private plot_placeholder: JQuery, private n_pts: number, public x_min, public x_max, public y_min, public y_max,
         private driver, private rangeFunction, private plotTitle: string) {
@@ -162,6 +166,11 @@ class PlotBasics {
         this.reset_range = true;
     }
 
+    setPrimaryTraceLabel(label: string): void {
+        this.primaryTraceLabel = label;
+        this.refreshLegend();
+    }
+
     setRangeX(from: number, to: number) {
         this.x_min = from;
         this.x_max = to;
@@ -181,7 +190,7 @@ class PlotBasics {
     private static readonly log10T = (v: number) => Math.log(v) * Math.LOG10E;
     private static readonly pow10  = (v: number) => Math.exp(v * Math.LN10);
 
-    setLogX() {
+    setLogX(adaptiveTicks = false) {
         this.log_x = true;
 
         this.options.xaxis.transform = PlotBasics.log10T;
@@ -198,12 +207,37 @@ class PlotBasics {
             for (let p = pMin; p <= pMax; p++) {
                 majors.push(Math.pow(10, p));
             }
-
+            if (adaptiveTicks) {
+                const visible = majors.filter(v => v >= min && v <= max);
+                if (visible.length >= 2 || !(max > min)) { return visible; }
+                // A zoom between decade marks still needs frequency labels.
+                const intermediate: number[] = [];
+                for (let p = pMin; p <= pMax; p++) {
+                    for (const m of [1, 2, 5]) {
+                        const value = m * Math.pow(10, p);
+                        if (value >= min && value <= max) { intermediate.push(value); }
+                    }
+                }
+                if (intermediate.length >= 2) { return intermediate; }
+                const rawStep = (max - min) / 4;
+                const power = Math.pow(10, Math.floor(Math.log10(rawStep)));
+                const fraction = rawStep / power;
+                const step = power * (fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10);
+                const first = Math.ceil(min / step) * step;
+                const ticks: number[] = [];
+                for (let i = 0; i < 8 && first + i * step <= max; i++) { ticks.push(first + i * step); }
+                return ticks;
+            }
             return majors;
         };
 
         this.options.xaxis.tickDecimals = 0;
         this.options.xaxis.tickFormatter = (val: number, axis) => {
+            if (adaptiveTicks) {
+                const scale = val >= 1e6 ? 1e6 : val >= 1e3 ? 1e3 : 1;
+                const digits = Math.min(12, Math.max(0, Math.ceil(-Math.log10((axis.max - axis.min) / scale / 4))));
+                return String(Number((val / scale).toFixed(digits))) + (scale === 1e6 ? 'M' : scale === 1e3 ? 'k' : '');
+            }
             if (val >= 1e6) {
                 return (val / 1e6).toFixed(axis.tickDecimals || 0) + "M";
             }
@@ -258,6 +292,110 @@ class PlotBasics {
 
     enableDecimation() {
         this.decimate = true;
+    }
+
+    needsRedraw(): boolean {
+        if (this.batchedLines && this.plot) {
+            const width = this.plot_placeholder.width(), height = this.plot_placeholder.height();
+            if (width > 0 && height > 0 && (width !== this.drawnWidth || height !== this.drawnHeight)) {
+                this.reset_range = true;
+            }
+        }
+        return this.reset_range;
+    }
+
+    // Large, jagged paths are expensive for the canvas rasterizer even when
+    // issuing their drawing commands is fast. Short overlapping paths retain
+    // the same line and joins without tessellating the entire noise trace.
+    enableBatchedLines(): void {
+        this.batchedLines = true;
+        const widths = new Map<any, number>();
+        const restoreLines = () => {
+            widths.forEach((width, series) => { series.lines.lineWidth = width; });
+            widths.clear();
+        };
+        this.options.hooks = <jquery.flot.hooks>{
+            processOptions: [], processRawData: [], processDatapoints: [], processOffset: [],
+            drawBackground: [restoreLines], bindEvents: [], drawOverlay: [], shutdown: [restoreLines],
+            drawSeries: [(plot, context, series) => {
+                if (!series.lines.show || series.lines.fill || series.lines.steps || series.shadowSize > 0 ||
+                    !(series.lines.lineWidth > 0) || series.data.length < 256) { return; }
+                PlotBasics.drawBatchedLines(context, series, plot.getPlotOffset(), plot.width(), plot.height());
+                widths.set(series, series.lines.lineWidth);
+                // Flot still owns the series, axes, legend and hit testing.
+                // Suppress only its duplicate stroke during this draw call.
+                series.lines.lineWidth = 0;
+            }],
+            draw: [restoreLines]
+        };
+    }
+
+    private static drawBatchedLines(context: CanvasRenderingContext2D, series: any,
+        offset: {left: number; top: number}, width: number, height: number): void {
+        context.save();
+        context.translate(offset.left, offset.top);
+        context.beginPath(); context.rect(0, 0, width, height); context.clip();
+        context.strokeStyle = series.color;
+        context.lineWidth = series.lines.lineWidth;
+        context.lineJoin = 'round';
+        let previous: number[], endpoint: number[], lastSegment: number[];
+        let segments = 0;
+        const flush = () => {
+            if (segments) { context.stroke(); }
+            context.beginPath(); segments = 0;
+        };
+        context.beginPath();
+        for (const point of series.data) {
+            const x = point[0], y = point[1];
+            if (x == null || y == null || !Number.isFinite(x) || !Number.isFinite(y)) {
+                flush(); previous = endpoint = lastSegment = undefined; continue;
+            }
+            if (previous) {
+                const line = PlotBasics.clipLine(previous, point, series.xaxis, series.yaxis);
+                if (line) {
+                    const pixel = [series.xaxis.p2c(line[0]), series.yaxis.p2c(line[1]),
+                        series.xaxis.p2c(line[2]), series.yaxis.p2c(line[3])];
+                    if (pixel.every(Number.isFinite)) {
+                        if (segments >= 32) {
+                            flush();
+                            // Repeat the last segment so its join survives the
+                            // batch boundary. PNA trace colors are opaque.
+                            context.moveTo(lastSegment[0], lastSegment[1]);
+                            context.lineTo(lastSegment[2], lastSegment[3]); segments = 1;
+                        }
+                        if (!endpoint || endpoint[0] !== pixel[0] || endpoint[1] !== pixel[1]) {
+                            context.moveTo(pixel[0], pixel[1]);
+                        }
+                        context.lineTo(pixel[2], pixel[3]); segments++;
+                        endpoint = [pixel[2], pixel[3]]; lastSegment = pixel;
+                    }
+                }
+            }
+            previous = point;
+        }
+        flush();
+        context.restore();
+    }
+
+    // Clip in data coordinates before applying a logarithmic transform, as
+    // Flot does. Extreme Y zooms never send enormous coordinates to canvas.
+    private static clipLine(from: number[], to: number[], xaxis: any, yaxis: any): number[] {
+        const line = [from[0], from[1], to[0], to[1]];
+        for (const [index, axis] of [[1, yaxis], [0, xaxis]] as [number, any][]) {
+            for (const [bound, lower] of [[axis.min, true], [axis.max, false]] as [number, boolean][]) {
+                const outside = (value: number) => lower ? value < bound : value > bound;
+                const first = outside(line[index]), last = outside(line[index + 2]);
+                if (first && last) { return; }
+                if (first !== last) {
+                    const t = (bound - line[index]) / (line[index + 2] - line[index]);
+                    const other = 1 - index;
+                    const intersection = line[other] + t * (line[other + 2] - line[other]);
+                    const end = first ? 0 : 2;
+                    line[index + end] = bound; line[other + end] = intersection;
+                }
+            }
+        }
+        return line;
     }
 
     disableDecimation() {
@@ -365,7 +503,7 @@ class PlotBasics {
         const ph = this.plot?.getPlaceholder() ?? this.plot_placeholder;
         const wAll = ph.width() || 800;
         const off = this.plot ? this.plot.getPlotOffset() : { left: 0, right: 0 };
-        const innerW = Math.max(1, wAll - (off.left || 0) - (off.right || 0));
+        const innerW = Math.max(1, Math.floor(wAll - (off.left || 0) - (off.right || 0)));
         // Use the requested range, rather than the previous Flot axes. During
         // startup or zoom, old axes can otherwise discard boundary bins and
         // omit their extrema from the new automatic Y range.
@@ -377,6 +515,13 @@ class PlotBasics {
 
         const i0 = this.bsLeft(plot_data, xMin);
         const i1 = this.bsRight(plot_data, xMax);
+        const first = Math.max(0, i0 - 1), last = Math.min(plot_data.length - 1, i1 + 1);
+        // Sparse zooms show every bin, including neighbors needed to clip the
+        // curve at the edges. Column extrema are only needed for dense traces.
+        if (last - first + 1 <= 2 * innerW) {
+            return plot_data.slice(first, last + 1);
+        }
+        if (first < i0) { out.push(plot_data[first]); }
     
         let currCol = -2;
         let minY = Infinity, maxY = -Infinity, minI = -1, maxI = -1;
@@ -409,18 +554,19 @@ class PlotBasics {
             if (y > maxY) { maxY = y; maxI = i; }
         }
         flush();
+        if (last > i1) { out.push(plot_data[last]); }
         return out;
     }
 
     redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void, reference?: number[][], peakIsFinal = false, traces: jquery.flot.dataSeries[] = [], overlayLabel?: string) {
         this.seriesOne.length = (reference ? 2 : 1) + traces.length;
-        this.options.legend.noColumns = overlayLabel ? 0 : reference || traces.length ? 1 : 0;
+        this.options.legend.noColumns = overlayLabel || this.primaryTraceLabel ? 0 : reference || traces.length ? 1 : 0;
         if (reference) {
             this.seriesOne[1] = {label: overlayLabel || "Reference", data: reference, color: overlayLabel ? "#006400" : "#a178b5", lines: {lineWidth: 1}};
         }
         traces.forEach((trace, i) => { this.seriesOne[(reference ? 2 : 1) + i] = {...trace, lines: {lineWidth: 1, ...trace.lines}}; });
         if (!this.plot) {
-            this.seriesOne[0].label = !overlayLabel && (reference || traces.length) ? "Live · " + ylabel : ylabel;
+            this.seriesOne[0].label = this.primaryTraceLabel || (!overlayLabel && (reference || traces.length) ? "Live · " + ylabel : ylabel);
             this.seriesOne[0].data  = []; // temporary
             this.plot = $.plot(this.plot_placeholder, this.seriesOne, this.options);
         }
@@ -447,7 +593,7 @@ class PlotBasics {
             this.seriesOne[0].data  = plot_data;
         }
 
-        this.seriesOne[0].label = !overlayLabel && (reference || traces.length) ? "Live · " + ylabel : ylabel;
+        this.seriesOne[0].label = this.primaryTraceLabel || (!overlayLabel && (reference || traces.length) ? "Live · " + ylabel : ylabel);
 
         if (this.reset_range) {
             if (this.log_y) {
@@ -482,7 +628,7 @@ class PlotBasics {
 
         let localData: jquery.flot.dataSeries[] = this.plot.getData();
 
-        if (this.spectrumReduction) { this.plot.unhighlight(); }
+        if (this.spectrumReduction || this.batchedLines) { this.plot.unhighlight(); }
         else { setTimeout(() => {this.plot.unhighlight()}, 100); }
 
         const extra = traces.findIndex(trace => trace.label === this.clickTraceLabel);
@@ -546,6 +692,10 @@ class PlotBasics {
             this.peakDatapointSpan.style.display = "none";
         }
 
+        if (this.batchedLines) {
+            this.drawnWidth = this.plot_placeholder.width();
+            this.drawnHeight = this.plot_placeholder.height();
+        }
         callback();
     }
 
@@ -652,7 +802,7 @@ class PlotBasics {
                 }
 
                 this.range_x = {
-                    from: Math.max(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.min), 0),
+                    from: Math.max(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.min), this.log_x ? this.x_min : 0),
                     to: Math.min(x0 - (1 + zoomRatio * delta) * (x0 - this.plot.getAxes().xaxis.max), this.x_max)
                 };
 
@@ -697,7 +847,7 @@ class PlotBasics {
                 this.hoverDatapoint[1] = item.datapoint[1];
 
                 this.hoverDatapointSpan.style.display = "inline-block";
-                this.updateDatapointSpan(this.hoverDatapoint, this.hoverDatapointSpan, item.series.label === "Reference" ? "Ref " : ["Average", "Max hold"].includes(item.series.label) ? item.series.label + " " : "");
+                this.updateDatapointSpan(this.hoverDatapoint, this.hoverDatapointSpan, item.series.label === "Reference" ? "Ref " : ["Average", "Max hold", "Smoothed"].includes(item.series.label) ? item.series.label + " " : "");
             } else {
                 this.hoverDatapointSpan.style.display = "none";
             }
@@ -707,13 +857,13 @@ class PlotBasics {
     showClickPoint(): void {
         this.plot_placeholder.bind("plotclick", (event: JQueryEventObject, pos, item) => {
             if (item) {
-                this.clickTraceLabel = ["Average", "Max hold"].includes(item.series.label) ? item.series.label : undefined;
+                this.clickTraceLabel = ["Average", "Max hold", "Smoothed"].includes(item.series.label) ? item.series.label : undefined;
                 this.clickSeriesIndex = item.series.label === "Reference" ? 1 : 0;
                 this.clickDatapoint[0] = item.datapoint[0];
                 this.clickDatapoint[1] = item.datapoint[1];
 
                 this.clickDatapointSpan.style.display = "inline-block";
-                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan, item.series.label === "Reference" ? "Ref " : ["Average", "Max hold"].includes(item.series.label) ? item.series.label + " " : "");
+                this.updateDatapointSpan(this.clickDatapoint, this.clickDatapointSpan, item.series.label === "Reference" ? "Ref " : ["Average", "Max hold", "Smoothed"].includes(item.series.label) ? item.series.label + " " : "");
 
                 this.plot.unhighlight();
                 this.plot.highlight(item.series, this.clickDatapoint);

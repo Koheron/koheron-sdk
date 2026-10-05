@@ -59,6 +59,11 @@ class PhaseNoiseAnalyzer(object):
         pass
 
     @command()
+    def get_average_status(self):
+        """Actual spectra in the rolling average and its target window size."""
+        return self.client.recv_tuple('II')
+
+    @command()
     def set_fft_navg(self, navg):
         pass
 

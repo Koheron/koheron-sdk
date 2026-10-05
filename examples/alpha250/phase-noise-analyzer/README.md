@@ -45,21 +45,19 @@ DDSs remain unmodulated references for ADC phase extraction. This separation
 lets an electrical loopback retain the injected PM in the measured phase.
 Changing a local oscillator no longer changes a DAC output.
 
-Open **DAC signal generator** above the plot to use the shared compact widget.
-The page follows the ALPHA250 FFT and ALPHA250-4 analyzer workspace: a slim
-header, horizontal acquisition/reference controls, a full-width plot, inline
-jitter readouts and secondary laser settings. Phase/frequency display and
-CSV/PNG export stay beside the plot; controls remain disabled until connected.
-It starts collapsed to preserve plot space. The generator reads existing settings
-when the page loads and on Refresh, supports keyboard/digit/wheel editing, and uses the same
+The **DAC signal generator** is open in the right sidebar. Acquisition and
+spectrum controls share a compact toolbar; jitter readouts sit below the plot.
+Offset readings and laser settings are collapsible sections in the sidebar.
+Controls remain disabled until connected, and smoothing starts off.
+The generator reads existing settings
+when the page loads, supports keyboard/digit/wheel editing, and uses the same
 checked `PhaseModulator` RPC as the standalone example. Outputs start muted after
 FPGA reset; explicitly prepare and enable the desired signal. Carrier amplitude
 is full digital scale; the amplitude field sets phase deviation in degrees.
 
 For a loopback, connect a DAC to its corresponding ADC and match its carrier to
 that ADC channel's **Local Oscillator**. PM affects the stimulus only. Choose
-modulation frequencies within the acquisition filter's passband. **Save Analyzer
-Config** saves the analyzer settings; generator settings are not persisted by it.
+modulation frequencies within the acquisition filter's passband. **Save settings** saves the analyzer settings; generator settings are not persisted by it.
 
 The existing Python phase-modulator client can share the analyzer's connection.
 From the SDK root, after installing this instrument on a board:
@@ -239,6 +237,54 @@ print(analyzer.get_tracking_parameters())
 analyzer.set_tracking_enabled(False)
 ```
 
+## Averaging progress
+
+The **Averages** control shows `k/N`: the actual number of spectra in the rolling
+window followed by the editable target. For example, `3/90` is still filling and
+`90/90` is full. Hover over the count for a description of the current state.
+A full window continues updating by replacing its oldest spectrum; it does not
+stop acquisition or indicate a completed measurement. The server divides by the
+actual count while the window is filling, so early spectra contain fewer averages.
+Changing acquisition settings or a failed/invalid capture clears the window.
+Changing the target retains the most recent spectra that fit the new window.
+The indicator polls the server twice per second and resumes correctly after a
+page reload. `get_average_status()` returns `(count, target)` as two uint32 values.
+
+The plot fits the first valid spectrum and keeps the current zoom when a
+reference is captured, replaced or cleared. CSV and PNG exports wait for valid
+live data. CSV uses the displayed frame's acquisition settings; PNG includes
+the trace legend and units on a white background. Both jitter readouts share
+the integration band shown beneath the plot. Connection loss marks the view
+stale and provides a Retry button.
+
+## Spectrum display and reference trace
+
+The header counts changed spectra displayed per second; repeated cached replies
+are excluded. The polling target defaults to 60 reads/s and pauses while the tab
+is hidden. Hover over FPS for the measured polling rate and average read,
+processing, drawing and scheduling times. Hardware acquisition cadence may be
+lower than the polling target, so the noise trace and FPS follow new PSD data.
+Spectrum reads return the latest completed result without waiting for the next
+FFT calculation. Retuning still clears the published spectrum while settling.
+Dense noise traces use short canvas strokes to keep magnified plots responsive.
+Logarithmic column reduction retains extrema and gaps; sparse zooms restore all
+visible bins. References, capture and CSV retain the full spectrum.
+
+Use **Capture ref** beside the plot to freeze the displayed spectrum, as in
+the FFT workspace. The button becomes **Replace ref**; **Clear ref** removes
+the overlay. The reference retains the full linear PSD and the displayed
+frame's analyzer settings, including its own sample rate. Changing live
+decimation does not move the reference's frequency bins. Phase/frequency
+selection and the smoothing checkbox apply to both live and reference curves.
+
+CSV export includes a separate reference section with its captured settings,
+raw and smoothed display values, and the original PSD in rad²/Hz, including
+DC and Nyquist. References last for the current page session; export a CSV
+to keep a copy. Saving analyzer configuration does not save the reference.
+Settings and spectra are separate RPC reads, so metadata can differ during
+a retune. Capture is disabled while the LO is unset, acquisition fails or
+the spectrum is empty; an existing reference is retained.
+
 ## Validation
 
 Run the software integration regressions (Docker C++/web images and a Python
@@ -264,7 +310,8 @@ The regression checks every supported rate against exact integer CIC gain,
 including the maximum rate, power-of-two rates, and truncation-bit boundaries.
 The simulated-MMIO regression also checks sample-clock selection, read-only
 generator discovery, mute/resume and independence of DAC/reference settings.
-Host web checks cover the collapsed panel, checked DAC editing, retry and teardown.
+Host web checks cover the open DAC panel, checked editing, references and exports,
+averaging progress, display cadence, retry, navigation recovery and teardown.
 FPGA builds enforce routed timing, including the packaged CDC bus-skew constraints.
 After `make xpr`, check the actual block-design connections and address window:
 

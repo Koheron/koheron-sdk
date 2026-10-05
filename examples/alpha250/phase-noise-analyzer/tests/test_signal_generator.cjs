@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const ts = require('typescript');
+const vm = require('node:vm');
 const {JSDOM} = require('jsdom');
 const root = path.resolve(__dirname, '../../../..');
 const settle = () => new Promise(resolve => setTimeout(resolve, 10));
@@ -43,12 +44,14 @@ async function host(t, failGenerator = false, failConnection = false) {
     window.ClockGeneratorApp = class {};
     window.PhaseNoiseAnalyzer = class {};
     window.PhaseNoiseAnalyzerApp = class {
+        constructor(document, driver, onError) { client.fail = onError; }
         async init() { trace.push('analyzer-init'); this.nPoints = 16384; }
         dispose() { trace.push('analyzer-disposed'); }
     };
     window.PlotBasics = class {};
     window.Plot = class {
         constructor() { trace.push('plot-ready'); }
+        markUnavailable(title) { trace.push(title); }
         dispose() { trace.push('plot-disposed'); }
     };
     window.ExportFile = class {};
@@ -68,10 +71,10 @@ async function host(t, failGenerator = false, failConnection = false) {
     return {window, target: window.document.getElementById('phase-modulator'), port, client, trace};
 }
 
-test('analyzer starts before generator discovery; collapsed panel reads without DAC writes', async t => {
+test('analyzer starts before generator discovery; visible panel reads without DAC writes', async t => {
     const h = await host(t);
     assert.deepEqual(h.trace, ['analyzer-init', 'plot-ready', 'generator-read']);
-    assert.equal(h.target.closest('details').open, false);
+    assert.equal(h.target.closest('details').open, true);
     assert.equal(h.target.querySelectorAll('[data-channel]').length, 2);
     assert.match(h.target.querySelector('.pm-clock').textContent, /200 MS\/s/);
     assert.equal(h.port.calls.length, 0);
@@ -130,3 +133,48 @@ test('generator failure has its own retry while the analyzer plot remains availa
     assert.equal(h.target.querySelector('[role="alert"]'), null);
     assert.equal(h.port.calls.length, 0);
 });
+
+test('connection loss after initialization marks readings stale and disables writes without touching DAC settings', async t => {
+    const h = await host(t);
+    h.window.console.error = () => {};
+    h.window.document.body.insertAdjacentHTML('beforeend', '<span id="precision-status">Live</span><span class="tracking-state">Locked</span>');
+    h.window.document.querySelector('#decade-values-table').innerHTML = '<tbody><tr><td>1 kHz</td><td>-120 dBc/Hz</td></tr></tbody>';
+    h.client.fail(new Error('WebSocket closed'));
+    assert.equal(h.window.document.getElementById('connection-status').textContent, 'Disconnected');
+    assert.match(h.window.document.getElementById('connection-error-message').textContent, /Connection lost.*stale/);
+    assert.equal(h.window.document.getElementById('precision-status').textContent, '—');
+    assert.equal(h.window.document.querySelector('.tracking-state').textContent, '—');
+    assert.equal(h.window.document.querySelector('#decade-values-table tbody td:last-child').textContent, '—');
+    assert.equal(h.window.document.getElementById('average-status').textContent, '—/');
+    assert.equal(h.window.document.querySelector('.phase-jitter-span').textContent, '—');
+    assert.equal(h.window.document.getElementById('instrument-controls').disabled, true);
+    assert.equal(h.target.querySelector('fieldset').disabled, true);
+    assert.equal(h.port.calls.length, 0);
+    assert(h.trace.includes('Disconnected') && h.trace.includes('plot-disposed'));
+    assert.equal(h.client.exits, 1);
+});
+
+for (const board of ['alpha250', 'red-pitaya']) {
+    test(`${board}: a cached Back/Forward return reconnects after page shutdown`, () => {
+        const handlers = new Map();
+        const controls = new Map(['instrument-controls', 'plot-controls', 'laser-controls']
+            .map(id => [id, {disabled: false}]));
+        let reloads = 0;
+        let exits = 0;
+        const context = vm.createContext({Client: class { exit() { exits++; } }});
+        const source = fs.readFileSync(path.join(root, `examples/${board}/phase-noise-analyzer/web/app.ts`), 'utf8')
+            .replace(/let app = new App\([^;]+;/, '') + '\nthis.TestApp = App;';
+        vm.runInContext(ts.transpileModule(source, {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText, context);
+        new context.TestApp({
+            addEventListener: (name, handler) => handlers.set(name, handler),
+            location: {reload() { reloads++; }}
+        }, {getElementById: id => controls.get(id)}, 'localhost', {});
+        handlers.get('pageshow')({persisted: false});
+        assert.equal(reloads, 0, 'ordinary load must not reload in a loop');
+        handlers.get('pagehide')();
+        assert.equal(exits, 1);
+        assert([...controls.values()].every(control => control.disabled));
+        handlers.get('pageshow')({persisted: true});
+        assert.equal(reloads, 1, 'cached disposed page must start a fresh connection');
+    });
+}

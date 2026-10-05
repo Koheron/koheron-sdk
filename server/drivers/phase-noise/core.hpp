@@ -129,6 +129,10 @@ class Core
 
     PhaseDataArray get_phase() const;
     PhaseNoiseDensityVector get_phase_noise() const;
+    auto get_average_status() const {
+        std::shared_lock lk(data_mtx);
+        return std::tuple{uint32_t(averager.count()), uint32_t(averager.window())};
+    }
 
   private:
     Board board;
@@ -156,6 +160,9 @@ class Core
     std::mutex dma_mtx; // serializes DMA operations and CIC rate changes
     std::atomic<uint32_t> dma_settings_pending{0}; // give queued setters the next DMA lock
     mutable std::shared_mutex data_mtx; // settings, processing and published results
+    // The published spectrum can be read while the next FFT is processing.
+    // Writers hold data_mtx before spectrum_mtx; readers only take spectrum_mtx.
+    mutable std::shared_mutex spectrum_mtx;
 
     // Data acquisition thread
     std::thread acq_thread;
@@ -213,7 +220,8 @@ class Core
     auto read_dma();
     void update_interferometer_transfer_function();
     void set_power_conversion_factor();
-    auto compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend);
+    auto compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend,
+                             PhaseDataArray& phase_snapshot);
     auto compute_jitter(const PhaseNoiseDensityVector& new_pn, Frequency acquired_lo);
     void acquisition_thread();
     void start_acquisition();
@@ -404,7 +412,7 @@ typename Core<Board>::PhaseDataArray Core<Board>::get_phase() const {
 
 template<class Board>
 typename Core<Board>::PhaseNoiseDensityVector Core<Board>::get_phase_noise() const {
-    std::shared_lock lk(data_mtx);
+    std::shared_lock lk(spectrum_mtx);
     return phase_noise;
 }
 
@@ -617,8 +625,9 @@ void Core<Board>::set_power_conversion_factor() {
 }
 
 template<class Board>
-auto Core<Board>::compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend) {
-    auto phase_psd = spectrum.density(raw, trend, phase_conversion_factor, fs);
+auto Core<Board>::compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend,
+                                    PhaseDataArray& phase_snapshot) {
+    auto phase_psd = spectrum.density(raw, trend, phase_conversion_factor, fs, &phase_snapshot);
 
     if (analyzer_mode == AnalyzerMode::LASER) {
         using namespace sci::operators;
@@ -696,7 +705,10 @@ void Core<Board>::invalidate_results() {
     reset_tracking_observations();
     averager.clear();
     phase.fill(Phase{});
-    phase_noise.assign(1 + fft_size / 2, PhaseNoiseDensity{});
+    {
+        std::unique_lock spectrum_lk(spectrum_mtx);
+        phase_noise.assign(1 + fft_size / 2, PhaseNoiseDensity{});
+    }
     phase_jitter = std::numeric_limits<Phase>::quiet_NaN();
     time_jitter = std::numeric_limits<Time>::quiet_NaN();
     f_lo_used = std::numeric_limits<Frequency>::quiet_NaN();
@@ -814,11 +826,13 @@ void Core<Board>::acquisition_thread() {
                 dma_lk.unlock();
             }
             PhaseDataArray new_phase{};
-            convert_relative_phase(*samples, new_phase, phase_conversion_factor);
-            auto new_pn = compute_phase_noise(*samples, trend);
+            auto new_pn = compute_phase_noise(*samples, trend, new_phase);
             compute_jitter(new_pn, acquired_lo);
             phase = std::move(new_phase);
-            phase_noise = std::move(new_pn);
+            {
+                std::unique_lock spectrum_lk(spectrum_mtx);
+                phase_noise = std::move(new_pn);
+            }
             ++accepted_captures;
             capture_state = Valid;
             processing_ms = std::chrono::duration<double, std::milli>(
