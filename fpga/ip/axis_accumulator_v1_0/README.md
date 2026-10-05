@@ -206,7 +206,22 @@ The ALPHA250 setup and hold margins are narrow, so changed placement or
 configurations need another strict timing check. ALPHA15 uses about 90% of
 available BRAM. The SDK reports existing incomplete external I/O delay
 constraints; the passing checks cover constrained paths, pulse width and bus skew.
-Live board operation and analog measurements remain unverified.
+Live ALPHA250 checks are described below. The other three boards and calibrated
+analog accuracy remain unverified.
+
+The ALPHA250 package was installed and checked on `192.168.1.13` on
+2026-10-05. Both ADC channels produced finite, nonnegative, changing spectra
+with all four windows at 200 and 250 MS/s. Captured DDS/PM native words,
+precision-DAC voltages and raw codes, clock selection and acquisition controls
+were restored after the tests. FFT remains the default instrument at boot.
+Against the prior instrument with the same input and settings, the peak remained
+in bin 465 and integrated power changed by +0.000847 dB; this is a relative
+comparison using the existing input, rather than a calibrated accuracy result.
+A direct BRAM read captured sixteen complete 8192-bin frames, all finite and
+changing. Seventy-five progress wraps had a median period of 33.528 ms versus
+the expected 33.522 ms. The live interface displayed about 30 changed spectra/s,
+and the new server journal contained no warnings or errors. Installed package,
+bitstream, server and web assets matched the validated build.
 
 Both FFT servers and web interfaces compiled, and the shared generator/precision
 editor regressions and both FFT protocol decoders passed. Instrument ZIPs passed
