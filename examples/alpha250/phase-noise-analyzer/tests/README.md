@@ -24,8 +24,11 @@ fractional LO configuration round-tripping, large phase-count offsets,
 drift rejection and known PM power, settings validation, settling discards,
 failed-transfer rejection without a RAM read, rate changes during acquisition,
 RF/laser average invalidation and averaging-window growth after unaveraged
-acquisition. DMA failures are injected; the DMA hardware driver itself is
-not simulated by this fixture.
+acquisition. DMA failures and sample gaps are injected at the transport
+boundary. A separate autonomous descriptor-engine fixture exercises the
+production cyclic driver: fresh windows, ring wrap, delayed DDR writeback,
+stale Complete bits, precision/overflow/gap metadata, restart at a nonzero
+slot, slow consumers, malformed descriptors, producer stalls and cancellation.
 
 The shared phase helper is also checked through the existing ALPHA250-4 core
 and spectral regressions, including int32 subtraction extremes and near-carrier

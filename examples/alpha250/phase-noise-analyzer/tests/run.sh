@@ -34,6 +34,8 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     "$output/welch"
     g++-13 "${flags[@]}" server/drivers/phase-noise/tests/test_spectrum_publication.cpp -o "$output/publication"
     "$output/publication" "$output/spectrum-frame.bin"
+    g++-13 -Iserver/drivers/phase-noise/tests/stubs "${flags[@]}" server/drivers/phase-noise/tests/test_cyclic_phase_dma.cpp -o "$output/cyclic-dma"
+    "$output/cyclic-dma"
     # Both instruments use the extracted phase conversion/detrending helper.
     g++-13 "${flags[@]}" examples/alpha250-4/phase-noise-analyzer/tests/test_core.cpp -o "$output/alpha250-4-core"
     "$output/alpha250-4-core"

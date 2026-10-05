@@ -39,6 +39,13 @@ rg -q 'Paired CIC control checks passed' paired-cic-control.log
 if rg -q 'Fatal:|ERROR:|FATAL:' paired-cic-control.log; then
     exit 1
 fi
+xvlog "$repo/fpga/cores/phase_stream_control_v1_0/phase_stream_control.v"
+xvlog --sv "$repo/fpga/cores/phase_stream_control_v1_0/phase_stream_control_tb.sv"
+xelab work.phase_stream_control_tb -s phase_stream_control_tb
+xsim phase_stream_control_tb -runall > single-stream-control.log 2>&1
+cat single-stream-control.log
+rg -q 'Single-stream control checks passed' single-stream-control.log
+if rg -q 'Fatal:|ERROR:|FATAL:' single-stream-control.log; then exit 1; fi
 xvlog --sv "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_fpga_blocks.sv"
 xelab work.test_fpga_blocks -s audit_fpga
 xsim audit_fpga -runall > simulation.log 2>&1
@@ -57,7 +64,7 @@ if rg -q 'Fatal:|ERROR:|FATAL:' prefilter.log; then
 fi
 "${PNA_PYTHON:-$repo/.venv/bin/python3}" "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_prefilter_response.py"
 xvlog "$repo/fpga/cores/phase_quantizer_v1_0/phase_quantizer.v" \
-      "$repo/examples/alpha250-4/phase-noise-analyzer/axis_stream_packet_mux_v1_0/axis_stream_packet_mux.v"
+      "$repo/fpga/cores/axis_stream_packet_mux_v1_0/axis_stream_packet_mux.v"
 xvlog --sv "$repo/fpga/cores/phase_quantizer_v1_0/phase_quantizer_tb.sv" \
       "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_packet_metadata.sv"
 for pna_test in phase_quantizer_tb test_packet_metadata; do

@@ -1,5 +1,5 @@
 NAME := phase-noise-analyzer
-VERSION := 1.3.2
+VERSION := 1.4.0
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
@@ -23,7 +23,6 @@ TCL_FILES = $(BD_TCL) $(PROJECT_PATH)/post_route.tcl $(wildcard $(PROJECT_PATH)/
 
 include $(BOARD_PATH)/drivers/drivers.mk
 DRIVERS += $(BOARD_PATH)/drivers/phase-modulator.hpp
-DRIVERS += $(SDK_PATH)/server/drivers/dma-s2mm.hpp
 DRIVERS += $(PROJECT_PATH)/dds.hpp
 DRIVERS += $(PROJECT_PATH)/dds.cpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.hpp
@@ -44,3 +43,7 @@ WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
 WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
 
 OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi
+
+CORES += $(SDK_PATH)/fpga/cores/axis_stream_packet_mux_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_stream_control_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_range_guard_v1_0

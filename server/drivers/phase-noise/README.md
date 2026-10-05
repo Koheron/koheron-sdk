@@ -23,7 +23,7 @@ All three designs expose `get_spectrum_snapshot()`. The result is a tuple:
 ```
 
 Sequence is a uint64 publication counter. State 1 means valid; other states
-mark settling, overrange, DMA failure or an ALPHA250-4 sample gap. A changed
+mark settling, overrange, DMA failure or a sample gap. A changed
 publication, including invalidation, advances sequence. Average target zero
 means cumulative XY averaging. Unused LOs are zero; mode/delay are zero for
 ALPHA250-4. LO fields describe applied frequencies; saved nominal frequencies
@@ -43,12 +43,37 @@ publication lock and do not wait for acquisition or FFT work.
 
 ## Acquisition boundaries
 
-ALPHA250-4 uses continuous paired cyclic SG DMA with per-packet precision,
-overrange and sample-gap metadata. ALPHA250 and Red Pitaya retain simple DMA
-and rearm between acquisitions. Sharing DSP and publication does not establish
-continuous acquisition on those boards. A future single-stream ring port must
-cover FIFO history reset, accumulator headroom, packet metadata, cancellation,
-retuning and slow tracking before hardware deployment.
+All three designs use cyclic scatter/gather DMA. ALPHA250-4 retains its paired
+X/Y ring; ALPHA250 and Red Pitaya share `cyclic-phase-dma.hpp`, a single-stream
+ring of 512 packets of 8192 int32 samples (16 MiB payload plus descriptors).
+The FPGA continues filling DDR while software computes FFTs or serves clients.
+Readers select the latest complete window, require 65536 new samples for the
+single-channel Welch estimator, validate descriptor status and queued precision/
+overrange/gap metadata, then recheck ring retention after the copy. Falling
+behind discards older windows, without changing sample spacing within a window.
+Two packets are withheld for DDR writeback and the first packet of each epoch is
+excluded for filter settling. Watchdogs reject stopped producers, malformed
+completed descriptors and ambiguous 24-bit packet-sequence rollover.
+
+Rate, channel, precision and manual LO changes stop the stream, reset phase,
+CIC, FIR and FIFO histories, then restart an acquisition epoch with DMA armed.
+A generation check rejects a window copied before a concurrent change. Gap or
+overrange metadata is sticky until reset; affected captures clear averages and
+trigger automatic restart. Shutdown cancels a waiting read without waiting for
+a full slow-decimation window. The FPGA phase accumulator is 64 bits; a range
+guard and packet quantizer still bound the calibrated 32-bit DMA output.
+
+Tracking retunes also establish a new hardware epoch to prevent a window from
+straddling a DDS update. Acquisition is continuous between retunes; intentional
+setting changes and recovery discard data. This does not promise an exhaustive
+FFT of every sample or 60 fresh spectra/s. FFT sizes and board calibration are
+unchanged by the DMA port.
+
+ALPHA250 and Red Pitaya append `get_dma_status()` without changing older RPC
+shapes. It returns four uint64 values: completed packet count, consumed packet
+count, acquisition generation, and sample-gap capture count. Packet counters
+stay monotonic across restarts. Existing precision status reports state 4 for
+a discarded sample gap, alongside overflow/DMA-error counts.
 
 ## Validation
 

@@ -36,6 +36,8 @@ class FakeClient:
         return np.arange(size // 4, dtype='<f4').tobytes()
 
     def recv_tuple(self, fmt):
+        if fmt == 'QQQQ':
+            return (1024, 1016, 3, 0)
         if fmt == 'II':
             return (3, 8)
         if fmt == 'QIIdIIIIIddddIdI':
@@ -75,6 +77,7 @@ class ClientTests(unittest.TestCase):
             client = FakeClient()
             driver = cls(client)
             self.assertEqual(driver.get_average_status(), (3, 8))
+            self.assertEqual(driver.get_dma_status(), (1024, 1016, 3, 0))
             driver.set_fft_navg(8)
             driver.save_config()
             metadata, density = driver.get_spectrum_snapshot()
@@ -82,7 +85,7 @@ class ClientTests(unittest.TestCase):
             np.testing.assert_array_equal(density, [0, -2, 4])
             self.assertEqual(client.payload, b'', 'consume one header and the full vector')
             self.assertEqual([cmd[1] for cmd in client.commands],
-                ['get_average_status', 'set_fft_navg', 'save_config', 'get_spectrum_snapshot'])
+                ['get_average_status', 'get_dma_status', 'set_fft_navg', 'save_config', 'get_spectrum_snapshot'])
             self.assertFalse(hasattr(driver, 'get_data'))
 
     def test_precision_and_atomic_snapshot(self):

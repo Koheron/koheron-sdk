@@ -261,6 +261,16 @@ int main() {
     acquire();
     assert(std::get<3>(analyzer.get_precision_status()) == 1);
 
+    const auto gaps_before = std::get<3>(analyzer.get_dma_status());
+    hw::injected_packet_flags.store(0x40);
+    acquire();
+    assert(std::get<3>(analyzer.get_precision_status()) == 4);
+    assert(std::get<3>(analyzer.get_dma_status()) == gaps_before + 1);
+    assert(analyzer.get_phase_noise()[64].eval() == 0.f);
+    hw::injected_packet_flags.store(0);
+    acquire();
+    assert(std::get<3>(analyzer.get_precision_status()) == 1);
+
     // Stop the simulated DMA before the analyzer's destructor joins acquisition.
     dma.cancel();
     std::cout << "Production acquisition, precision, drift, settling, failure and averaging checks passed\n";

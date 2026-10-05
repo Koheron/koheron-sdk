@@ -4,6 +4,7 @@
 //   [1]     enable     (R/W) write 1 to send exactly one packet, auto-clears to 0 at end
 //   [15:2]  length     (R/W) beats per packet (0 => 1)
 // CSR @0x00 bit 16 enables continuous alternating packets for cyclic DMA.
+// CSR @0x00 bit 17 disables alternation in continuous mode (selected input only).
 // CSR @0x1000 holds a ring of 1024 completed packet metadata words.
 // CSR @0x04: [3:0] precision, [4] overflow, [5] mixed precision, [6] sample gap, [31:8] sequence.
 // Metadata is consumed with each FIFO beat; status commits on DMA TLAST.
@@ -74,7 +75,7 @@ module axi_stream_packet_mux #(
     reg                        cfg_enable;              // bit 1 (one-shot) - single owner block below
     reg  [LENGTH_WIDTH-1:0]    cfg_length;              // bits [15:2]
 
-    reg cfg_continuous;
+    reg cfg_continuous, cfg_single_stream;
 
     // Address decode (only one 32-bit register at 0x00)
     wire addr_is_reg0 = (s_axi_awaddr[ADDR_WIDTH-1:ADDR_LSB] == { (ADDR_WIDTH-ADDR_LSB){1'b0} });
@@ -94,6 +95,7 @@ module axi_stream_packet_mux #(
             cfg_sel       <= 1'b0;
             cfg_length    <= {LENGTH_WIDTH{1'b0}};
             cfg_continuous <= 0;
+            cfg_single_stream <= 0;
         end else begin
             s_axi_awready <= (~s_axi_awready) && s_axi_awvalid && s_axi_wvalid;
             s_axi_wready  <= (~s_axi_wready)  && s_axi_awvalid && s_axi_wvalid;
@@ -109,7 +111,10 @@ module axi_stream_packet_mux #(
                 if (s_axi_wstrb[1]) begin
                     cfg_length[LENGTH_WIDTH-1:6] <= s_axi_wdata[15:8];
                 end
-                if (s_axi_wstrb[2]) cfg_continuous <= s_axi_wdata[16];
+                if (s_axi_wstrb[2]) begin
+                    cfg_continuous <= s_axi_wdata[16];
+                    cfg_single_stream <= s_axi_wdata[17];
+                end
             end
 
             if (wr_hs && ~s_axi_bvalid) begin
@@ -125,7 +130,7 @@ module axi_stream_packet_mux #(
     reg [6:0] metadata_ring [0:1023];
     // Read
     wire [31:0] reg0_read = {
-        15'd0, cfg_continuous,               // [31:16]
+        14'd0, cfg_single_stream, cfg_continuous,               // [31:16]
         cfg_length[LENGTH_WIDTH-1:6],       // [15:8] length[13:6]
         {cfg_length[5:0], cfg_enable, cfg_sel} // [7:0] length[5:0], enable, sel
     };
@@ -161,7 +166,7 @@ module axi_stream_packet_mux #(
     reg stream_sel;
 
     // Current selected input (latched per packet)
-    wire cur_sel   = cfg_continuous ? stream_sel : (active ? sel_latched : cfg_sel);
+    wire cur_sel   = cfg_continuous ? (cfg_single_stream ? cfg_sel : stream_sel) : (active ? sel_latched : cfg_sel);
     wire in_valid  = cur_sel ? s_axis_1_tvalid : s_axis_0_tvalid;
     wire want_data = cfg_enable && m_axis_tready;
 
@@ -227,7 +232,7 @@ module axi_stream_packet_mux #(
                 packet_sequence <= packet_sequence + 1'b1;
                 packet_status <= {packet_sequence + 24'd1, 1'b0, completed_metadata};
                 metadata_ring[packet_sequence[9:0]] <= completed_metadata;
-                if (cfg_continuous) stream_sel <= !stream_sel;
+                if (cfg_continuous && !cfg_single_stream) stream_sel <= !stream_sel;
             end
         end
     end
