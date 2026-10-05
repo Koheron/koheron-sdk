@@ -63,8 +63,11 @@ UI work, timestamps replies at receipt, and transfers batches with acknowledgeme
 backpressure. At most 256 frames wait for a busy UI; older frames expire with their
 original time gaps. Browsers without worker support use main-thread polling.
 The newest spectrum is drawn up to 60 times per second, with a bounded timer
-fallback when a visible window delays animation callbacks. The header shows actual fresh-spectrum FPS.
-Hover over it for the acquisition rate. Pause or hiding the tab suspends host
+fallback when a visible window delays animation callbacks. The header counts
+changed spectra displayed per second, excluding cached PSD replies. Hover over
+it for the received-reply rate and drawing timings. Cached replies still enter
+received history; redraws continue for history scrolling, average/max-hold
+overlays, settings changes and resized axes. Pause or hiding the tab suspends host
 requests and drawing; the FPGA continues acquiring. Drawing preserves the minimum
 and maximum in each screen column, retains missing-data gaps, and returns to
 all bins when zoomed in. Dense spectrum curves use short, overlapping canvas
