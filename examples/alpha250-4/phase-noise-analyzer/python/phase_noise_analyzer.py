@@ -101,6 +101,21 @@ class PhaseNoiseAnalyzer(object):
         pass
 
     @command()
+    def set_phase_precision(self, bits):
+        return self.client.recv_bool()
+
+    @command()
+    def get_precision_status(self):
+        return self.client.recv_tuple('IIdIQQQdd')
+
+    @command()
+    def get_phase_snapshot(self):
+        # One response header, big-endian scalar metadata, then native arrays.
+        sequence, bits, valid = self.client.recv_tuple('QI?')
+        pair = np.frombuffer(self.client.recv_all(2 * self.npts * 4), dtype='<f4')
+        return sequence, bits, valid, pair[:self.npts], pair[self.npts:]
+
+    @command()
     def set_cic_rate(self, rate):
         pass
 
@@ -115,6 +130,15 @@ class PhaseNoiseAnalyzer(object):
     @command()
     def get_parameters(self):
         return self.client.recv_tuple('IdIdIddddII')
+
+    @command()
+    def get_nominal_frequencies(self):
+        return self.client.recv_tuple('dddd')
+
+    @command()
+    def get_average_status(self):
+        # Target zero denotes cumulative XY averaging.
+        return self.client.recv_tuple('II')
 
     def averager_xy_count(self):
         tup = self.get_parameters()

@@ -10,6 +10,7 @@ memory:
     - cordic
     - cic_rate
     - scaling[4]
+    - phase_precision
   - name: ps_control
     offset: 0x6000_0000
     range: 4K
@@ -61,3 +62,6 @@ parameters:
   cic_decimation_rate_max: 8192
   cic_n_stages: 6
   n_pts: 262144
+  phase_filter_width: 40
+  cordic_phase_width: 24
+  phase_accumulator_width: 64

@@ -17,6 +17,7 @@ class DmaS2MM {
         for (uint32_t i = 0; i < length / sizeof(int32_t); ++i) {
             ram.data[address / sizeof(int32_t) + i] = count * 8192 + i + (y ? 100 : 0);
         }
+        hw::completed_packet_status.store((y ? hw::injected_y_status : hw::injected_x_status).load());
         ++count;
         return true;
     }

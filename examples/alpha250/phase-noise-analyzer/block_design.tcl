@@ -71,13 +71,24 @@ for {set i 0} {$i < 2} {incr i} {
 ####################################
 
 cell koheron:user:latched_mux:1.0 phase_mux {
-    WIDTH 32
+    WIDTH [get_parameter phase_accumulator_width]
     N_INPUTS 2
     SEL_WIDTH 1
 } {
     clk adc_dac/adc_clk
     clken [get_constant_pin 1 1]
     din [get_concat_pin [list cordic0/phase cordic1/phase]]
+    sel [get_slice_pin [ctl_pin cordic] 4 4]
+}
+
+cell koheron:user:latched_mux:1.0 overflow_mux {
+    WIDTH 1
+    N_INPUTS 2
+    SEL_WIDTH 1
+} {
+    clk adc_dac/adc_clk
+    clken [get_constant_pin 1 1]
+    din [get_concat_pin [list cordic0/overflow cordic1/overflow]]
     sel [get_slice_pin [ctl_pin cordic] 4 4]
 }
 
@@ -101,7 +112,7 @@ cell xilinx.com:ip:cic_compiler:4.0 cic {
   Clock_Frequency [expr [get_parameter adc_clk] / 1000000.0]
   Input_Data_Width 32
   Quantization Truncation
-  Output_Data_Width 32
+  Output_Data_Width [get_parameter phase_filter_width]
   Use_Xtreme_DSP_Slice false
   HAS_DOUT_TREADY true
 } {
@@ -126,9 +137,9 @@ cell xilinx.com:ip:fir_compiler:7.2 fir {
   Sample_Frequency [expr [get_parameter adc_clk] / 1000000. / $dec_rate_min]
   Clock_Frequency [expr [get_parameter adc_clk] / 1000000.]
   Coefficient_Width 32
-  Data_Width 32
+  Data_Width [get_parameter phase_filter_width]
   Output_Rounding_Mode Convergent_Rounding_to_Even
-  Output_Width 32
+  Output_Width [get_parameter phase_filter_width]
   Decimation_Rate 2
   BestPrecision true
   CoefficientVector [subst {{$fir_coeffs}}]
@@ -151,27 +162,31 @@ connect_bd_intf_net -boundary_type upper [get_bd_intf_pins axi_mem_intercon_1/M0
 connect_bd_net [get_bd_pins axi_mem_intercon_1/S01_ACLK] [get_bd_pins ps_0/FCLK_CLK1]
 connect_bd_net [get_bd_pins axi_mem_intercon_1/S01_ARESETN] [get_bd_pins proc_sys_reset_1/peripheral_aresetn]
 
+cell koheron:user:phase_quantizer:1.0 phase_quantizer {
+  PKT_LENGTH [get_parameter n_pts]
+  BASE_SHIFT 8
+} {
+  aclk adc_dac/adc_clk
+  aresetn rst_adc_clk/peripheral_aresetn
+  requested_bits [get_slice_pin [ctl_pin phase_precision] 3 0]
+  upstream_overflow overflow_mux/dout
+  S_AXIS fir/M_AXIS_DATA
+  packet_status [sts_pin phase_packet]
+}
+
 # Use AXI Stream clock converter (ADC clock -> FPGA clock)
 set intercon_idx 1
 set idx [add_master_interface $intercon_idx]
 
 cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
   TDATA_NUM_BYTES 4
+  HAS_TLAST 1
 } {
-  S_AXIS fir/M_AXIS_DATA
+  S_AXIS phase_quantizer/M_AXIS
   s_axis_aresetn rst_adc_clk/peripheral_aresetn
   m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
   s_axis_aclk adc_dac/adc_clk
   m_axis_aclk ps_0/FCLK_CLK1
-}
-
-cell koheron:user:tlast_gen:1.0 tlast_gen_0 {
-  TDATA_WIDTH 32
-  PKT_LENGTH [expr [get_parameter n_pts]]
-} {
-  aclk ps_0/FCLK_CLK1
-  resetn proc_sys_reset_1/peripheral_aresetn
-  s_axis adc_clock_converter/M_AXIS
 }
 
 cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
@@ -181,7 +196,7 @@ cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
   c_sg_length_width 23
   c_s2mm_burst_size 16
 } {
-  S_AXIS_S2MM tlast_gen_0/m_axis
+  S_AXIS_S2MM adc_clock_converter/M_AXIS
   S_AXI_LITE axi_mem_intercon_1/M00_AXI
   s_axi_lite_aclk ps_0/FCLK_CLK1
   M_AXI_S2MM axi_mem_intercon_1/S01_AXI
@@ -205,5 +220,6 @@ delete_bd_objs [get_bd_addr_segs -excluded axi_dma_0/Data_S2MM/SEG_axi_dma_0_Reg
 delete_bd_objs [get_bd_addr_segs ps_0/Data/SEG_ps_0_HP0_DDR_LOWOCM]
 
 # Repair short DAC paths after routing; refresh reports for strict timing checks.
+set_property STRATEGY Performance_ExplorePostRoutePhysOpt [get_runs impl_1]
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize [file join [file dirname [info script]] post_route.tcl]] [get_runs impl_1]

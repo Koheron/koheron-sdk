@@ -74,6 +74,11 @@ class PhaseDma
         std::array<int32_t, data_size> x;
         std::array<int32_t, data_size> y;
         uint64_t end_chunk;
+        uint32_t precision_x = 0, precision_y = 0;
+        bool overflow = false, mixed_precision = false;
+        bool matches_precision(uint32_t requested) const {
+            return !mixed_precision && precision_x == requested && precision_y == requested;
+        }
     };
 
     template<uint32_t data_size>
@@ -94,7 +99,17 @@ class PhaseDma
             Snapshot<data_size> snapshot;
             snapshot.end_chunk = window->end_chunk;
             for (uint32_t j = 0; j < chunks; ++j) {
-                const uint32_t offset = ((window->first_chunk + j) % n_chunks) * chunk_bytes;
+                const uint32_t slot = (window->first_chunk + j) % n_chunks;
+                const uint32_t metadata = packet_metadata[slot].load(std::memory_order_acquire);
+                const uint32_t x_bits = metadata & 0xfu, y_bits = (metadata >> 8) & 0xfu;
+                if (j == 0) {
+                    snapshot.precision_x = x_bits;
+                    snapshot.precision_y = y_bits;
+                }
+                snapshot.overflow |= (metadata & 0x1010u) != 0;
+                snapshot.mixed_precision |= (metadata & 0x2020u) != 0 ||
+                    x_bits != snapshot.precision_x || y_bits != snapshot.precision_y;
+                const uint32_t offset = slot * chunk_bytes;
                 const auto& x = ram.read_reg_array<int32_t, samples_per_chunk>(x_byte_offset + offset);
                 const auto& y = ram.read_reg_array<int32_t, samples_per_chunk>(y_byte_offset + offset);
                 std::copy(x.begin(), x.end(), snapshot.x.begin() + j * samples_per_chunk);
@@ -144,6 +159,9 @@ class PhaseDma
     static constexpr uint32_t x_byte_offset = 0;
     static constexpr uint32_t y_byte_offset = buffer_size;
 
+    // Atomic side metadata is published with the completed pair count. The
+    // ring-intact check also covers metadata overwritten during a snapshot.
+    std::array<std::atomic<uint32_t>, n_chunks> packet_metadata{};
     AxisStreamPacketMux axis_stream_mux;
 
     // Data acquisition thread
@@ -178,6 +196,8 @@ class PhaseDma
                 return;
             }
 
+            const uint32_t x_status = axis_stream_mux.get_packet_status();
+
             axis_stream_mux.select_input(1);
             dma.start_transfer(dma_y_start_addr + byte_offset, chunk_bytes);
             axis_stream_mux.trigger();
@@ -186,6 +206,8 @@ class PhaseDma
                 return;
             }
 
+            const uint32_t y_status = axis_stream_mux.get_packet_status();
+            packet_metadata[idx].store((x_status & 0x3fu) | ((y_status & 0x3fu) << 8), std::memory_order_release);
             write_count.store(count + 1, std::memory_order_release);
             ++count;
         }

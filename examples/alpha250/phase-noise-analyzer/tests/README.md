@@ -125,3 +125,10 @@ It includes the failing case: append 1 and 2 with capacity 2, grow to 4, append 
 the average must be 2.
 
 This is a host test. It does not access hardware or test concurrent settings changes.
+
+Precision regressions cover all 0–8 shifts with signed round-to-even and
+saturation under AXIS stalls. ALPHA250 native acquisition tests verify PM
+calibration and reject stale-scale/overflow packets; ALPHA250-4 DMA tests
+preserve per-stream metadata across ring wrap and queued setting changes.
+Run ALPHA250-4 `tests/run-fpga.sh` for the shared quantizer and packet-metadata
+simulations as well as the paired rate/precision/reset controller checks.

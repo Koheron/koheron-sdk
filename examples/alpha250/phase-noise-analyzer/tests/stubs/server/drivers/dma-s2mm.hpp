@@ -16,6 +16,7 @@ public:
     template<int, uint32_t, class> void start_transfer() {
         auto& ctl = hw::get_memory<mem::control>();
         hw::captured_channel = (ctl.words[reg::cordic / 4].load() >> 4) & 1;
+        hw::captured_precision = ctl.words[reg::phase_precision / 4].load();
         hw::captured_rate = ctl.words[reg::cic_rate / 4].load();
         const uint32_t word = 2 * hw::captured_channel;
         const uint64_t increment = uint64_t(ctl.words[word].load()) | uint64_t(ctl.words[word + 1].load()) << 32;
@@ -29,6 +30,9 @@ public:
         cv.wait(lock, [&] { return cancelled || !completions.empty(); });
         hw::dma_in_flight.store(false);
         if (cancelled) return false;
+        hw::get_memory<mem::status>().words[reg::phase_packet / 4].store(
+            (hw::injected_precision.load() <= 15 ? hw::injected_precision.load() : hw::captured_precision) |
+            hw::injected_packet_flags.load());
         const bool result = completions.front();
         completions.pop_front();
         return result;

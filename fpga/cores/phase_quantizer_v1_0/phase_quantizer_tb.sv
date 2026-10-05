@@ -9,6 +9,7 @@ module phase_quantizer_tb;
     reg s_axis_tvalid=0, m_axis_tready=0;
     wire s_axis_tready, m_axis_tvalid, m_axis_tlast;
     wire [31:0] m_axis_tdata, packet_status;
+    wire [4:0] sample_status;
     phase_quantizer #(.PKT_LENGTH(16), .BASE_SHIFT(BASE_SHIFT)) dut(.*);
     reg [31:0] expected_data[0:4095];
     reg expected_clip[0:4095];
@@ -18,7 +19,7 @@ module phase_quantizer_tb;
     reg packet_clip=0;
     reg [31:0] expected_status=0;
     reg stalled=0;
-    reg [32:0] held;
+    reg [37:0] held;
     longint signed value, magnitude, divisor, quotient, remainder, rounded;
 
     initial begin
@@ -28,10 +29,10 @@ module phase_quantizer_tb;
     always @(posedge aclk) if (aresetn) begin
         cycles=cycles+1;
         if(cycles>20000) $fatal(1,"stream did not drain");
-        if(stalled && (!m_axis_tvalid || {m_axis_tlast,m_axis_tdata} !== held))
+        if(stalled && (!m_axis_tvalid || {sample_status,m_axis_tlast,m_axis_tdata} !== held))
             $fatal(1,"output changed under backpressure");
         stalled=m_axis_tvalid && !m_axis_tready;
-        held={m_axis_tlast,m_axis_tdata};
+        held={sample_status,m_axis_tlast,m_axis_tdata};
         if(s_axis_tvalid && s_axis_tready) begin
             if(produced%16==0) active=requested_bits<=8 ? requested_bits : 0;
             coverage=coverage | (1<<active);
@@ -53,6 +54,8 @@ module phase_quantizer_tb;
             if(consumed>=produced || m_axis_tdata !== expected_data[consumed] ||
                m_axis_tlast !== (consumed%16==15))
                 $fatal(1,"wrong rounded sample or packet boundary at %d",consumed);
+            if (sample_status !== {expected_clip[consumed], 4'(expected_bits[consumed])})
+                $fatal(1,"sample metadata mismatch at %d",consumed);
             packet_clip=packet_clip | expected_clip[consumed];
             if(m_axis_tlast) begin
                 packet_number=packet_number+1;

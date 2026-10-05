@@ -214,6 +214,38 @@ int main() {
     assert(invalidated.size() == 16385);
     assert(std::all_of(invalidated.begin(), invalidated.end(), [](auto value) { return value.eval() == 0.f; }));
 
+    // Every retained-bit choice must preserve the calibrated PM power. Reject
+    // stale packet scales and overrange data instead of publishing clipped PSD.
+    ram.origin = 0; ram.drift = .001; ram.amplitude = .1;
+    for (uint32_t bits = 0; bits <= 8; ++bits) {
+        assert(analyzer.set_phase_precision(bits));
+        for (unsigned i = 0; i < 5; ++i) acquire();
+        const auto status = analyzer.get_precision_status();
+        assert(std::get<0>(status) == bits && std::get<1>(status) == bits && std::get<3>(status) == 1);
+        assert(std::abs(std::get<2>(status) / (scicpp::pi<double> / 2048 * std::exp2(-double(bits))) - 1) < 1e-6);
+        const auto precise_psd = analyzer.get_phase_noise();
+        double precise_power = 0;
+        for (unsigned i = 62; i <= 66; ++i) precise_power += precise_psd[i].eval() * 3125000 / 32768;
+        assert(std::abs(precise_power / (.1 * .1 / 2) - 1) < .005);
+        assert(std::get<1>(analyzer.get_phase_snapshot()) == bits);
+    }
+    assert(!analyzer.set_phase_precision(9));
+    analyzer.save_config();
+    assert(cfg.get<uint32_t>("PhaseNoiseAnalyzer", "phase_precision") == 8);
+    hw::injected_precision.store(7);
+    acquire();
+    assert(std::get<3>(analyzer.get_precision_status()) == 0);
+    assert(!std::get<3>(analyzer.get_phase_snapshot()));
+    hw::injected_precision.store(32);
+    hw::injected_packet_flags.store(0x10);
+    acquire();
+    assert(std::get<3>(analyzer.get_precision_status()) == 2);
+    assert(std::get<5>(analyzer.get_precision_status()) == 1);
+    assert(analyzer.get_phase_noise()[64].eval() == 0.f);
+    hw::injected_packet_flags.store(0);
+    acquire();
+    assert(std::get<3>(analyzer.get_precision_status()) == 1);
+
     // Stop the simulated DMA before the analyzer's destructor joins acquisition.
     dma.cancel();
     std::cout << "Production acquisition, precision, drift, settling, failure and averaging checks passed\n";

@@ -47,5 +47,5 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     if ! node -e "require.resolve(\"jsdom\"); require.resolve(\"typescript\")" >/dev/null 2>&1; then
         npm install --prefix "$deps" --no-save --package-lock=false typescript@5.6.3 jsdom@26.1.0
     fi
-    node --test "$tests/test_plot.cjs" "$tests/test_rendering.cjs" "$tests/test_numeric_controls.cjs" "$tests/test_signal_generator.cjs"
+    node --test "$tests/test_plot.cjs" "$tests/test_rendering.cjs" "$tests/test_numeric_controls.cjs" "$tests/test_signal_generator.cjs" web/phase-noise/tests/test_phase_precision.cjs
 '

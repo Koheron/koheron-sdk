@@ -9,6 +9,8 @@
 #include <atomic>
 #include <cstdint>
 #include <complex>
+#include <cmath>
+#include <chrono>
 #include <shared_mutex>
 #include <tuple>
 #include <vector>
@@ -46,8 +48,8 @@ class PhaseNoiseAnalyzer
     static constexpr uint32_t data_size = 2 * fft_size;
     static constexpr uint32_t spectrum_samples = 30000;
     static constexpr uint32_t spectrum_bins = spectrum_samples / 2 + 1;
-    // CORDIC uses pi/8192 radians/count. The normalized FPGA FIR's 32-bit
-    // output drops two additional accumulator bits, giving a DC gain of 1/4.
+    // Standard precision retains the pi/8192 CORDIC scale and the fixed-point
+    // FIR DC gain of 1/4. Additional retained bits divide radians/count by 2^bits.
     static constexpr auto calib_factor = 4.0f * scicpp::pi<Phase> / 8192.0f;
 
     static constexpr uint32_t fifo_depth = 32768;
@@ -67,6 +69,15 @@ class PhaseNoiseAnalyzer
     void set_channel(uint32_t chan);
     void set_fft_navg(uint32_t n_avg);
     void reset_cumulative_averager();
+    auto get_nominal_frequencies() {
+        std::shared_lock lk(data_mtx);
+        return std::tuple{base_dds_freq[0].eval(), base_dds_freq[1].eval(),
+                          base_dds_freq[2].eval(), base_dds_freq[3].eval()};
+    }
+    auto get_average_status() const {
+        std::shared_lock lk(publication_mtx);
+        return std::tuple{published_count, published_target};
+    }
     void set_tracking_enabled(bool enabled);
     void set_tracking_bandwidth(float bandwidth_hz);
     void set_tracking_max_correction(float max_correction_hz);
@@ -131,6 +142,18 @@ class PhaseNoiseAnalyzer
     PhaseDataArray get_phase_y();
     std::array<Phase, 2 * data_size> get_phase_xy_sync();
     PhaseNoiseDensityVector get_phase_noise() const;
+    bool set_phase_precision(uint32_t bits);
+    auto get_precision_status() {
+        std::shared_lock lk(data_mtx);
+        return std::tuple{phase_precision, captured_precision,
+            double(calib_factor.eval()) * cic_output_scale * phase_scale_x * std::exp2(-double(phase_precision)),
+            capture_state, accepted_captures, overflow_captures, dma_errors, processing_ms, capture_period_ms};
+    }
+    auto get_phase_snapshot() {
+        using namespace scicpp::operators;
+        std::shared_lock lk(data_mtx);
+        return std::tuple{accepted_captures, captured_precision, capture_state == Valid, phase_x | phase_y};
+    }
 
   private:
     rt::ConfigManager& cfg;
@@ -162,12 +185,29 @@ class PhaseNoiseAnalyzer
     Time dma_transfer_duration;
 
     mutable std::shared_mutex data_mtx; // protects settings, snapshots and spectral state
+    // PSD reads use a short publication lock instead of waiting for the FFT.
+    // Writers acquire data_mtx before publication_mtx; readers need only one.
+    mutable std::shared_mutex publication_mtx;
+    PhaseNoiseDensityVector published_phase_noise = PhaseNoiseDensityVector(spectrum_bins);
+    uint32_t published_count = 0;
+    uint32_t published_target = 1; // Zero denotes cumulative XY averaging.
+    void publish_spectrum();
 
     PhaseDataArray phase_x{};
     PhaseDataArray phase_y{};
     double phase_scale_x = 1.0, phase_scale_y = 1.0;
     double cic_output_scale = 1.0;
     uint64_t acquisition_epoch = 0;
+    uint32_t phase_precision = 0, captured_precision = 0;
+    enum CaptureState : uint32_t { Settling, Valid, Overrange, DmaError };
+    uint32_t capture_state = Settling;
+    uint32_t hardware_epoch = 0;
+    uint64_t accepted_captures = 0, overflow_captures = 0, dma_errors = 0;
+    double processing_ms = 0.0, capture_period_ms = 0.0;
+    std::chrono::steady_clock::time_point last_capture_time{};
+    std::chrono::steady_clock::time_point last_overrange_reset{};
+    void restart_filters();
+    using SpectrumPhaseArray = std::array<Phase, 32000>;
 
     // Spectrum analyzer
     std::thread sa_thread;
@@ -213,14 +253,13 @@ class PhaseNoiseAnalyzer
     void set_frequency_scalings();
     void update_interferometer_transfer_function();
     void set_power_conversion_factor();
-    auto compute_phase_noise(PhaseDataArray& new_phase);
-    auto compute_crossed_phase_noise(PhaseDataArray& new_phase_x, PhaseDataArray& new_phase_y);
+    auto compute_phase_noise(SpectrumPhaseArray& new_phase);
+    auto compute_crossed_phase_noise(SpectrumPhaseArray& new_phase_x, SpectrumPhaseArray& new_phase_y);
     void compute_jitter(Frequency f_dut);
     double carrier_power(uint32_t navg);
     void configure_cic_rate(uint32_t rate);
     void invalidate_acquisition();
     Frequency effective_tracking_bandwidth() const;
-    Phase estimate_mean_dphi(const PhaseDataArray& p) const;
     void apply_tracking_update(Phase mean_dphi, Time block_duration, uint32_t input_channel);
     void start_spectrum_analyzer();
     void spectrum_analyzer_thread();
