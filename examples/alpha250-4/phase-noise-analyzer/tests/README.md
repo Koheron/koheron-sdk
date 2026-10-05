@@ -22,7 +22,7 @@ Coverage includes:
 
 - Averaging-window growth, shrinkage and clear operations against a deque oracle.
 - Fresh, disjoint acquisition windows and detection of overwritten ring data.
-- Actual DMA copying across the ring boundary, synchronized X/Y data, cancellation, and configuration between complete transfer pairs.
+- Autonomous cyclic DMA copying across the ring boundary, synchronized X/Y data, producer progress while the reader pauses, cancellation, a concurrent reader during configuration epoch restart, and per-packet precision/gap metadata.
 - Fractional phase scaling above and below unity, including sub-hertz carrier offsets.
 - CIC gain compensation at power-of-two and arbitrary rates.
 - Retained FIR outputs against the original filter for impulses, ramps, noise and tones; cached response corrections across sample rates.

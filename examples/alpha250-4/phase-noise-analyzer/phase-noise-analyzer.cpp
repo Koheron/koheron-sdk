@@ -164,7 +164,7 @@ void PhaseNoiseAnalyzer::configure_cic_rate(uint32_t rate) {
 
 void PhaseNoiseAnalyzer::restart_filters() {
     // The FPGA restarts both filters/FIFOs and unwrappers on this epoch toggle.
-    // Wait until a complete X/Y DMA pair has finished before changing hardware.
+    // Hold sample admission off while resetting and rearming the paired ring.
     dma.configure_sampling(fs, [this] {
         hardware_epoch ^= 0x100u;
         ctl.write<reg::phase_precision>(phase_precision | hardware_epoch);
@@ -515,6 +515,16 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
             capture_period_ms = std::chrono::duration<double, std::milli>(now - last_capture_time).count();
         last_capture_time = now;
         captured_precision = snapshot->precision_x;
+        if (snapshot->sample_gap) {
+            ++gap_captures;
+            invalidate_acquisition();
+            if (now - last_overrange_reset >= std::chrono::seconds(1)) {
+                restart_filters();
+                last_overrange_reset = now;
+            }
+            capture_state = SampleGap;
+            continue;
+        }
         if (snapshot->overflow) {
             ++overflow_captures;
             invalidate_acquisition();

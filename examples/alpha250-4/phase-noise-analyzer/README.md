@@ -16,7 +16,7 @@ CORDIC resolution or analog noise floor.
 `set_phase_precision(bits)` accepts integers 0–8 and returns a boolean. The
 choice is stored by **Save settings** (older configurations default to 0).
 `get_precision_status()` reports requested/captured precision, radians per
-count, state (0 settling, 1 live, 2 overrange, 3 DMA error), accepted/overflow/
+count, state (0 settling, 1 live, 2 overrange, 3 DMA error, 4 sample gap), accepted/overflow/
 DMA-error counters and processing/capture times in milliseconds. Saturated
 and stale-scale captures clear the current spectrum and do not enter averages
 or tracking. Reduce precision or bring the LO closer to the carrier when the
@@ -45,6 +45,9 @@ restriction, rather than overflowing an individual 32-bit phase accumulator
 and clearing a valid cumulative average. True differential or packet range
 loss still reports overrange. Packet formats and radians per count are unchanged.
 
+Version 1.2.3 requires its cyclic-DMA FPGA and server to be deployed together.
+It is incompatible with the former software-triggered packet design.
+
 Build with:
 
 ```sh
@@ -58,7 +61,8 @@ and compensates the CIC's rate-dependent gain and downstream FIR scaling.
 
 Each spectrum consumes a fresh, non-overlapping DMA window. The XY cumulative
 count reports processed windows. Configuration changes clear averages and
-drain queued samples; DMA configuration is applied between complete X/Y pairs.
+drain queued samples. Configuration holds both filters in reset, aborts the
+old DMA epoch and restarts the descriptor chain on X.
 Phase getters return the latest synchronized pair, with the integer unwrap
 offset removed before float conversion. They return zeros before acquisition.
 
@@ -69,8 +73,23 @@ independent FIFO draining from shifting the X/Y time axes and attenuating or
 reversing the real cross spectrum of a shared phase-modulated signal.
 On a rate change, the controller resets both CIC/FIR histories and FIFO queues
 for 32 ADC clocks, configures both CICs together, then resumes paired sampling.
-Backpressure can still discard shared ADC-clock instants; paired acceptance
-preserves X/Y alignment rather than guaranteeing lossless sampling.
+A cyclic scatter/gather DMA ring and hardware packet alternation drain both
+FIFOs without a Linux rearm operation between packets. The reserved RAM contains
+1024 descriptors and 512 complete X/Y packet pairs. A separate 1024-entry
+hardware metadata ring retains each packet's precision and validity flags.
+The reader withholds one completed pair until subsequent descriptor progress
+confirms DDR writeback, validates descriptor completion/length and rejects
+windows overtaken during copying.
+
+This removes the software stalls that previously filled the FIFOs at CIC 50
+and joined phase samples across missing ADC-clock intervals. A sticky hardware
+flag also detects any CIC-input stall during a live epoch. Packets carrying
+that flag clear the averages and report **Sample gap**; they do not enter the
+FFT or tracking. Acquisition restarts together at most once per second.
+`get_acquisition_status()` returns rejected gap captures, X/Y FIFO occupancies
+and the current hardware gap flag. Hardware tests must establish the usable
+rate under the actual DDR load; paired acceptance alone is not a lossless
+sampling guarantee.
 
 Phase-based block rejection is removed: quiet blocks, sparse quantized steps,
 spikes and discontinuities all contribute to the spectrum. There are no jump,

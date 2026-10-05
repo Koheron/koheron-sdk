@@ -553,3 +553,76 @@ Local artifacts: `tmp/pna-throughput/controlled-{before,after}-rate.json`,
 `captured-{before,after}-audit.log`, `deployment/deployment.json`,
 `user-state-{before,restored}.json`, and
 `tmp/pna-negative-current/throughput-{before,after}.npz`.
+
+Continuous acquisition validation — 2026-10-05, ALPHA250-4 PNA 1.2.3
+
+At CIC 50 the previous packet-by-packet DMA rearming filled the Y FIFO
+to 32769 samples. The paired CIC then stopped admitting ADC samples.
+Captured modulation phase jumped at each 8192-sample packet boundary:
+the median absolute jump was 94.42 degrees. This produced the broad
+rippled skirt around the 10 kHz PM tone. A whole-window fit recovered
+only 0.410 degrees despite individual packets containing the expected
+1 degree modulation. An independent spectrum calculation reproduced
+the displayed artifact.
+
+The receiver now uses hardware-alternating X/Y packets and cyclic SG DMA.
+Neither packet boundaries nor Linux scheduling require DMA rearming.
+Per-packet metadata carries a sticky hardware sample-gap indication;
+flagged windows are discarded and the paired acquisition restarts.
+The first live deployment also exposed a concurrent settings-change race:
+the reader could observe the temporary ring stop before restart completed.
+Its running-state check now takes the configuration mutex, with a native
+regression covering an active reader during a delayed reconfiguration.
+
+Hardware checks used the same connected pair and unchanged source DAC0:
+10 MHz carrier, 10 kHz sinusoidal PM, 1 degree peak. Forty fresh paired
+windows at each CIC rate 50, 4, 8, 20, 67, 90, 133 and 50 passed with
+zero sample gaps, overflows and DMA errors. Mean per-packet PM peaks
+were 0.999982–1.000154 degrees. Maximum within-window phase change
+between packet fits was 0.14774 degrees over the full sweep; at CIC 50
+the median was 0.00633 degrees and maximum 0.05625 degrees. A complete
+CIC 50 window recovered 1.000004 degrees. FIFO observations during the
+sweep stayed below 8154 samples, well below the previous full FIFO.
+
+The entire receiver server was deliberately stopped with SIGSTOP for
+one second, then resumed with SIGCONT. DMA and the ADC timeline continued
+autonomously, including multiple DDR ring wraps at CIC 4:
+
+| CIC rate | Packets transferred during pause | Maximum FIFO X / Y | Sample gap |
+| --- | --- | --- | --- |
+| 90 | 272 | 1 / 8177 | None |
+| 50 | 488 | 206 / 8157 | None |
+| 4 | 6112 | 3456 / 8185 | None |
+
+After every pause, the receiver returned valid fresh spectra with zero
+gap and DMA-error counters. These checks establish continuity under the
+tested rates and pauses; other hardware failures remain detectable by
+the gap metadata. They do not claim calibrated absolute noise floors.
+
+Build checks: the complete ASan/UBSan software suite, 11 Python tests,
+10 browser tests, independent SciPy oracle and RTL regressions passed.
+The ARM server and web assets built successfully. Final strict routed
+timing passed at the original clocks: WNS +0.006492 ns, WHS +0.024840 ns,
+all 12 bus-skew constraints checked. The first route missed setup by
+0.044011 ns inside the programmable CIC scaler. Committed post-route
+physical optimization and the shared hold-fix hook close timing without
+relaxing constraints. The final package used that checked bitstream and
+the matching SG device tree; enabling physical optimization on the existing
+implementation run did not change synthesized interfaces or constraints.
+The installed `.bit.bin` SHA256 is
+`abccd24478e1bea33db557ba44fb47d45829c13fb64303c702b3fe7b38f2af57`.
+
+Forty captured windows at the restored settings also passed the independent
+production-estimator/SciPy calculation audit. The refreshed browser showed
+the narrow PM tone without the former broad rippled skirt, with live
+precision status and tracking locked. All installed files were checked by
+SHA256, and the saved INI remained byte-identical. The user's latest live
+CIC 90, Y, 104 averages, +8 bits, four nominal 10 MHz LOs and enabled tracking
+were restored. Both source DAC channels' exact acknowledged settings
+remained unchanged.
+
+Local artifacts: `tmp/pna-browser-strange/{current.npz,fifo-counts.json,packet-analysis.json}`
+and `tmp/pna-dma-continuity/{live-summary.json,cic-*.npz,server-pause-cic*-summary.json,
+current.npz,captured-audit.log,continuity-before-after.png,strict-bitstream.log,
+software-tests-final.log,rtl-tests-final.log,deployment-final/deployment.json,
+user-state-restored.json,source-after.json}`.

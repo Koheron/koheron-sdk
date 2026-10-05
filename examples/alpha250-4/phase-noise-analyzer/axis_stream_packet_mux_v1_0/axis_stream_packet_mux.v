@@ -3,7 +3,9 @@
 //   [0]     sel        (R/W) 0=s_axis_0, 1=s_axis_1
 //   [1]     enable     (R/W) write 1 to send exactly one packet, auto-clears to 0 at end
 //   [15:2]  length     (R/W) beats per packet (0 => 1)
-// CSR @0x04: [3:0] precision, [4] overflow, [5] mixed precision, [31:8] sequence.
+// CSR @0x00 bit 16 enables continuous alternating packets for cyclic DMA.
+// CSR @0x1000 holds a ring of 1024 completed packet metadata words.
+// CSR @0x04: [3:0] precision, [4] overflow, [5] mixed precision, [6] sample gap, [31:8] sequence.
 // Metadata is consumed with each FIFO beat; status commits on DMA TLAST.
 // TLAST is asserted on the last beat of the packet (output only). Slave TLAST/TKEEP not used.
 // Output TKEEP is all 1s (full-beat framing).
@@ -11,7 +13,7 @@
 module axi_stream_packet_mux #(
     parameter integer DATA_WIDTH   = 32,
     parameter integer KEEP_WIDTH   = (DATA_WIDTH/8),
-    parameter integer ADDR_WIDTH   = 4,   // >=4 (32-bit aligned)
+    parameter integer ADDR_WIDTH   = 13,   // >=4 (32-bit aligned)
     parameter integer LENGTH_LSB   = 2,   // length starts at bit 2
     parameter integer LENGTH_MSB   = 15
 )(
@@ -20,13 +22,13 @@ module axi_stream_packet_mux #(
 
     // AXI4-Stream slave input 0 (no tkeep/tlast)
     input  wire [DATA_WIDTH-1:0]     s_axis_0_tdata,
-    input  wire [4:0]                 s_axis_0_tuser,
+    input  wire [5:0]                 s_axis_0_tuser,
     input  wire                      s_axis_0_tvalid,
     output wire                      s_axis_0_tready,
 
     // AXI4-Stream slave input 1 (no tkeep/tlast)
     input  wire [DATA_WIDTH-1:0]     s_axis_1_tdata,
-    input  wire [4:0]                 s_axis_1_tuser,
+    input  wire [5:0]                 s_axis_1_tuser,
     input  wire                      s_axis_1_tvalid,
     output wire                      s_axis_1_tready,
 
@@ -72,6 +74,8 @@ module axi_stream_packet_mux #(
     reg                        cfg_enable;              // bit 1 (one-shot) - single owner block below
     reg  [LENGTH_WIDTH-1:0]    cfg_length;              // bits [15:2]
 
+    reg cfg_continuous;
+
     // Address decode (only one 32-bit register at 0x00)
     wire addr_is_reg0 = (s_axi_awaddr[ADDR_WIDTH-1:ADDR_LSB] == { (ADDR_WIDTH-ADDR_LSB){1'b0} });
     wire ar_is_reg0   = (s_axi_araddr[ADDR_WIDTH-1:ADDR_LSB] == { (ADDR_WIDTH-ADDR_LSB){1'b0} });
@@ -89,6 +93,7 @@ module axi_stream_packet_mux #(
             s_axi_bresp   <= 2'b00;
             cfg_sel       <= 1'b0;
             cfg_length    <= {LENGTH_WIDTH{1'b0}};
+            cfg_continuous <= 0;
         end else begin
             s_axi_awready <= (~s_axi_awready) && s_axi_awvalid && s_axi_wvalid;
             s_axi_wready  <= (~s_axi_wready)  && s_axi_awvalid && s_axi_wvalid;
@@ -104,7 +109,7 @@ module axi_stream_packet_mux #(
                 if (s_axi_wstrb[1]) begin
                     cfg_length[LENGTH_WIDTH-1:6] <= s_axi_wdata[15:8];
                 end
-                // Byte lanes 2..3: reserved
+                if (s_axi_wstrb[2]) cfg_continuous <= s_axi_wdata[16];
             end
 
             if (wr_hs && ~s_axi_bvalid) begin
@@ -117,9 +122,10 @@ module axi_stream_packet_mux #(
     end
 
     reg [31:0] packet_status;
+    reg [6:0] metadata_ring [0:1023];
     // Read
     wire [31:0] reg0_read = {
-        16'd0,                              // [31:16]
+        15'd0, cfg_continuous,               // [31:16]
         cfg_length[LENGTH_WIDTH-1:6],       // [15:8] length[13:6]
         {cfg_length[5:0], cfg_enable, cfg_sel} // [7:0] length[5:0], enable, sel
     };
@@ -133,7 +139,9 @@ module axi_stream_packet_mux #(
         end else begin
             s_axi_arready <= (~s_axi_arready) && s_axi_arvalid;
             if (rd_hs) begin
-                s_axi_rdata <= ar_is_reg0 ? reg0_read : (s_axi_araddr == 4 ? packet_status : 32'd0);
+                if (s_axi_araddr >= 'h1000 && s_axi_araddr < 'h2000)
+                    s_axi_rdata <= {25'd0, metadata_ring[s_axi_araddr[11:2]]};
+                else s_axi_rdata <= ar_is_reg0 ? reg0_read : (s_axi_araddr == 4 ? packet_status : 32'd0);
                 s_axi_rvalid <= 1'b1;
                 s_axi_rresp  <= 2'b00; // OKAY
             end else if (s_axi_rvalid && s_axi_rready) begin
@@ -150,9 +158,10 @@ module axi_stream_packet_mux #(
     reg                         active;
     reg [LENGTH_WIDTH-1:0]      remaining;
     reg                         sel_latched;
+    reg stream_sel;
 
     // Current selected input (latched per packet)
-    wire cur_sel   = active ? sel_latched : cfg_sel;
+    wire cur_sel   = cfg_continuous ? stream_sel : (active ? sel_latched : cfg_sel);
     wire in_valid  = cur_sel ? s_axis_1_tvalid : s_axis_0_tvalid;
     wire want_data = cfg_enable && m_axis_tready;
 
@@ -183,17 +192,19 @@ module axi_stream_packet_mux #(
         if (!aresetn) begin
             cfg_enable <= 1'b0;
         end else begin
-            cfg_enable <= (cfg_enable | wr_set_enable) & ~(wr_clr_enable | pkt_last_now);
+            cfg_enable <= (cfg_enable | wr_set_enable) & ~(wr_clr_enable | (pkt_last_now && !cfg_continuous));
         end
     end
 
-    wire [4:0] metadata = cur_sel ? s_axis_1_tuser : s_axis_0_tuser;
+    wire [5:0] metadata = cur_sel ? s_axis_1_tuser : s_axis_0_tuser;
     reg [3:0] packet_bits;
-    reg packet_overflow, packet_mixed;
+    reg packet_overflow, packet_mixed, packet_gap;
     reg [23:0] packet_sequence;
     wire [3:0] current_bits = active ? packet_bits : metadata[3:0];
     wire current_overflow = metadata[4] | (active && packet_overflow);
     wire current_mixed = active && (packet_mixed || metadata[3:0] != packet_bits);
+    wire current_gap = metadata[5] | (active && packet_gap);
+    wire [6:0] completed_metadata = {current_gap, current_mixed, current_overflow, current_bits};
     always @(posedge aclk) begin
         if (!aresetn) begin
             packet_status <= 0;
@@ -201,14 +212,22 @@ module axi_stream_packet_mux #(
             packet_bits <= 0;
             packet_overflow <= 0;
             packet_mixed <= 0;
+            packet_gap <= 0;
+            stream_sel <= 0;
+        end else if (wr_clr_enable) begin
+            packet_sequence <= 0;
+            packet_status <= 0;
+            stream_sel <= s_axi_wdata[0];
         end else if (do_hs) begin
             packet_bits <= current_bits;
             packet_overflow <= current_overflow;
             packet_mixed <= current_mixed;
+            packet_gap <= current_gap;
             if (pkt_last_now) begin
                 packet_sequence <= packet_sequence + 1'b1;
-                packet_status <= {packet_sequence + 24'd1, 2'b00,
-                                  current_mixed, current_overflow, current_bits};
+                packet_status <= {packet_sequence + 24'd1, 1'b0, completed_metadata};
+                metadata_ring[packet_sequence[9:0]] <= completed_metadata;
+                if (cfg_continuous) stream_sel <= !stream_sel;
             end
         end
     end

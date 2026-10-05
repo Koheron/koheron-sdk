@@ -109,6 +109,11 @@ class PhaseNoiseAnalyzer(object):
         return self.client.recv_tuple('IIdIQQQdd')
 
     @command()
+    def get_acquisition_status(self):
+        # Rejected gap captures, X/Y FIFO occupancy, sticky hardware gap flag.
+        return self.client.recv_tuple('QII?')
+
+    @command()
     def get_phase_snapshot(self):
         # One response header, big-endian scalar metadata, then native arrays.
         sequence, bits, valid = self.client.recv_tuple('QI?')

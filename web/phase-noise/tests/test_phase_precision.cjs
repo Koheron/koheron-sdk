@@ -36,6 +36,10 @@ for (const board of ['alpha250', 'alpha250-4', 'red-pitaya']) {
     state = 2; await timer();
     assert.match(status.textContent, /Overrange/);
     assert.match(status.title, /Reduce precision/);
+    state = 4; await timer();
+    assert.match(status.textContent, /Sample gap/);
+    assert.match(status.title, /ADC samples were lost/);
+    assert.equal(status.dataset.state, 'error');
     widget.dispose();
     assert.deepEqual(calls.at(-1), ['cancel', 42]);
     const before = calls.length;

@@ -11,6 +11,7 @@ memory:
     - cic_rate
     - scaling[4]
     - phase_precision
+    - acquisition_run
   - name: ps_control
     offset: 0x6000_0000
     range: 4K
@@ -24,6 +25,7 @@ memory:
     - adc[n_adc]
     - demod[n_adc]
     - fifo_wr_data_count[2]
+    - sample_gap
   - name: ps_status
     offset: 0x7000_0000
     range: 4K
@@ -46,7 +48,7 @@ memory:
     range: 4K
   - name: mux
     offset: 0x8001_0000
-    range: 4K
+    range: 8K
 
 parameters:
   fclk0: 200000000

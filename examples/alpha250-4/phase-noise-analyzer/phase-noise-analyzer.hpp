@@ -150,6 +150,11 @@ class PhaseNoiseAnalyzer
             double(calib_factor.eval()) * cic_output_scale * phase_scale_x * std::exp2(-double(phase_precision)),
             capture_state, accepted_captures, overflow_captures, dma_errors, processing_ms, capture_period_ms};
     }
+    auto get_acquisition_status() {
+        std::shared_lock lk(data_mtx);
+        return std::tuple{gap_captures, sts.read<reg::fifo_wr_data_count0>(),
+            sts.read<reg::fifo_wr_data_count1>(), (sts.read<reg::sample_gap>() & 1u) != 0};
+    }
     auto get_phase_snapshot() {
         using namespace scicpp::operators;
         std::shared_lock lk(data_mtx);
@@ -200,10 +205,10 @@ class PhaseNoiseAnalyzer
     double cic_output_scale = 1.0;
     uint64_t acquisition_epoch = 0;
     uint32_t phase_precision = 0, captured_precision = 0;
-    enum CaptureState : uint32_t { Settling, Valid, Overrange, DmaError };
+    enum CaptureState : uint32_t { Settling, Valid, Overrange, DmaError, SampleGap };
     uint32_t capture_state = Settling;
     uint32_t hardware_epoch = 0;
-    uint64_t accepted_captures = 0, overflow_captures = 0, dma_errors = 0;
+    uint64_t accepted_captures = 0, overflow_captures = 0, dma_errors = 0, gap_captures = 0;
     double processing_ms = 0.0, capture_period_ms = 0.0;
     std::chrono::steady_clock::time_point last_capture_time{};
     std::chrono::steady_clock::time_point last_overrange_reset{};
