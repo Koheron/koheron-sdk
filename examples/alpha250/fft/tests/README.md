@@ -80,8 +80,11 @@ node examples/alpha250/fft/tests/test_web_performance.js
 Checks one-second telemetry polling while controls stay at 4 Hz, independent
 acquisition pacing, latest-frame replacement, single queued paint, ownership
 of waiting samples and metadata, the 60 Hz paint cap on faster monitors, pause,
-hidden-tab suspension, measured FPS, and error retry backoff. Also checks preservation
-of single-bin peaks, minima, missing-data gaps, boundary neighbours and
+hidden-tab suspension, measured FPS, and error retry backoff. Checks received
+history retention for cached PSD replies, skipped redundant spectrum paints,
+latest-frame replacement back to the displayed PSD, and changed-spectrum FPS
+while overlays, metadata, history views or resized axes still require painting.
+Also checks preservation of single-bin peaks, minima, missing-data gaps, boundary neighbours and
 frequency ordering during rendering reduction, plus full-bin rendering when
 zoomed in. Comparison tests check reference-cache reuse and
 invalidation after unit changes or replacement.
