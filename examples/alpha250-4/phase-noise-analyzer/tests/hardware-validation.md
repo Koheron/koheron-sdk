@@ -343,3 +343,61 @@ Local evidence: `tmp/pna-precision/hardware/precision-sweep.json`,
 `persistence.json`, deployment manifests, generator before/after settings,
 and `precision-comparison.png`. The scripts and complete build/test logs are
 under `tmp/pna-precision/`; these temporary artifacts are not committed.
+
+2026-10-05 — remaining negative components after the precision port
+
+The user's follow-up prompted a new check of the connected pair. The receiver
+had +8 active, CIC 50, Y selected and unequal nominal frequencies within a
+pair. The source retained the 10 MHz carrier and 1° peak, 10 kHz sine PM.
+The ALPHA250 source's ADC acquisition was still overrange; only the wired
+ALPHA250-4 receiver provides a valid analyzer measurement in this setup.
+
+Restoring CIC 133, XY and four nominal LOs at 10.001 MHz did not eliminate
+every negative component. One hundred fresh, distinct valid snapshots gave
+0.999645° and 0.999653° peak PM, with maximum relative PM phase 0.00483°.
+The remaining negatives included coherent narrow spurs, rather than only
+uncorrelated finite-average residuals. For example, the 103.810 kHz spur had
+coherence 0.972 and real cross magnitude -130.27 dBc/Hz. Moving all four LOs
+from carrier +1 kHz to carrier +1.3 kHz moved that spur to 135.013 kHz;
+another moved from 203.634 to 264.837 kHz. Those shifts correspond to the
+104th and 204th harmonics of the 300 Hz LO change. This demonstrates
+LO-dependent analyzer artifacts. Upstream phase quantization is a candidate,
+but these measurements do not isolate the mixer, CORDIC and ADC contributions.
+The CIC precision change does not increase the 16-bit CORDIC resolution.
+
+Setting both X LOs to 10.001 MHz and both Y LOs to 10.0017 MHz reduced the
+coherent negative spurs without changing the incoming signal or rectifying
+the estimator. With tracking disabled, 100 fresh snapshots gave:
+
+| Offset band | Equal pair frequencies: negative bins | Distinct pair frequencies: negative bins |
+| --- | ---: | ---: |
+| 20–50 kHz | 0.585% | 0.084% |
+| 50–100 kHz | 1.654% | 0.100% |
+| 100–280 kHz | 0.668% | 0.125% |
+
+The strongest remaining negative in the distinct-frequency capture was
+approximately -140.2 dBc/Hz with coherence 0.04, compared with approximately
+-129.8 dBc/Hz and coherence 0.89 in the equal-frequency capture. The 1° PM
+fit remained 0.999756° / 0.999762°, with maximum relative phase 0.00668°.
+
+A separate 80-snapshot test applied uniform-noise PM with 0.2° configured
+deviation and a 1 MHz update rate. The distinct-frequency setup returned no
+negative bins from 1–280 kHz. Cross/auto integrated power ratios were
+0.99878–0.99903 across the tested bands, and median coherence was
+0.9980–0.9983. This tests recovery of a common broadband modulation above the
+residual floor; it does not calibrate the absolute floor.
+
+The generator was restored to its exact acknowledged sine-PM settings.
+With slow tracking re-enabled, another 100 fresh snapshots recovered
+0.999822° / 0.999836° and maximum relative phase 0.00734°. Negative fractions
+were 0%, 0% and 0.167% in the three bands above; the live server's concurrent
+199-window average gave 0%, 0% and 0.111%. Both tracking loops reported lock.
+The receiver's distinct-pair LO settings, CIC 133, XY, +8 and tracking enabled
+were saved. This is an operating mitigation, not a complete front-end fix.
+Longer observation also found an overrange-triggered averaging reset with
+unchanged configuration; continuous averaging stability remains unresolved.
+
+Local evidence: `tmp/pna-negative-current/diagnose.py`, `matched-fixed.npz`,
+`offset-1300.npz`, `offset-split.npz`, `split-broadband.npz`,
+`split-tracking.npz`, their summaries, saved receiver/generator settings,
+and `lo-artifact-comparison.png`. Temporary artifacts are not committed.

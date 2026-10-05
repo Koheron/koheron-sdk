@@ -112,6 +112,17 @@ The Python client exposes `get_nominal_frequencies()` and
 `get_average_status()`; a zero average target denotes cumulative XY averaging. The shared INI parser now keeps trimmed storage alive while
 restoring numeric and boolean settings.
 
+For the shared 10 MHz reference and DAC experiment, a validated operating
+setup is CIC 133, XY, +8 bits, with both X LOs at 10.001 MHz and both Y LOs
+at 10.0017 MHz. Slow tracking can remain enabled. Keeping each pair's nominal
+frequencies equal preserves its phase comparison, while using different
+frequencies between pairs reduces the LO-dependent correlated spurs observed
+with all four LOs equal. This is a measured mitigation, not a calibrated
+noise floor or a general removal of front-end artifacts. Extra CIC precision
+does not increase the upstream 16-bit CORDIC resolution. See the latest
+[hardware validation notes](tests/hardware-validation.md) for the signed
+spectra and broadband PM check; remaining negative estimates are retained.
+
 Run the software and FPGA regressions described in [tests/README.md](tests/README.md).
 The calculation audit compares the production C++ pipeline with independent
 SciPy calculations, including signed cross spectra and known modulation power.
