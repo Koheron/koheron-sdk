@@ -278,9 +278,20 @@ class Command
 
     template <class Tuple, std::size_t... I>
     bool read_arguments(Tuple& args, std::index_sequence<I...>) {
-        bool ok = true;
-        (void)std::initializer_list<int>{ (ok = ok && read_one(std::get<I>(args)), 0)... };
-        return ok;
+        if constexpr (sizeof...(I) > 1 && all_args_static<Tuple>(std::index_sequence<I...>{})) {
+            // The complete fixed-size body is known from the method signature.
+            // Read it once, preserving the existing scalar and raw-array format.
+            auto decoded = deserialize<std::tuple_element_t<I, Tuple>...>();
+            if (std::get<0>(decoded) < 0) {
+                return false;
+            }
+            ((std::get<I>(args) = std::move(std::get<I + 1>(decoded))), ...);
+            return true;
+        } else {
+            bool ok = true;
+            (void)std::initializer_list<int>{ (ok = ok && read_one(std::get<I>(args)), 0)... };
+            return ok;
+        }
     }
 
     template<class Obj, class PMF>
