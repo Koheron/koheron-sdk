@@ -9,6 +9,7 @@ memory:
     - phase_incr[4]
     - cordic
     - cic_rate
+    - phase_precision
   - name: ps_control
     offset: 0x6000_0000
     range: 4K
@@ -21,6 +22,7 @@ memory:
     registers:
     - adc[n_adc]
     - demod[n_adc]
+    - phase_packet
   - name: ps_status
     offset: 0x7000_0000
     range: 4K
@@ -29,6 +31,9 @@ memory:
   - name: xadc
     offset: 0x43C0_0000
     range: 64K
+  - name: awg
+    offset: 0x4400_0000
+    range: 8K
   - name: ram
     offset: 0x1E00_0000
     range: 32M
@@ -55,3 +60,6 @@ parameters:
   cic_decimation_rate_max: 8192
   cic_n_stages: 6
   n_pts: 262144
+  phase_filter_width: 40
+  cordic_phase_width: 24
+  phase_accumulator_width: 32

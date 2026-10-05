@@ -16,6 +16,8 @@ class FakeClient:
         self.count = 0
 
     def get_ids(self, device, name):
+        if name == 'get_phase_sample_count':
+            raise KeyError(name)
         return 1, name, ()
 
     def send_command(self, device, name, types, *args):
@@ -23,7 +25,25 @@ class FakeClient:
         if name == 'reset_cumulative_averager':
             self.count = 0
 
+    def recv_bool(self):
+        return True
+
+    def recv_all(self, size):
+        return np.arange(size // 4, dtype='<f4').tobytes()
+
     def recv_tuple(self, fmt):
+        if fmt == 'IIdIQQQdd':
+            return (8, 8, .000006, 1, 100, 0, 0, 10., 90.)
+        if fmt == 'QII?':
+            return (3, 120, 8192, False)
+        if fmt == 'QI?':
+            return (100, 8, True)
+        if fmt == 'QIf?':
+            return (100, 8, .000006, True)
+        if fmt == 'dddd':
+            return (10e6, 10e6 + .001, 10e6, 10e6)
+        if fmt == 'II':
+            return (42, 0)
         self.count += 1
         return (15001, 5e6, 2, 5e6 / 15000, 1, 10e6, 10e6, 10e6, 10e6, 0, self.count)
 
@@ -35,14 +55,45 @@ class FakeClient:
 
 
 class ClientTests(unittest.TestCase):
+    def test_new_instrument_reports_shorter_snapshot_length(self):
+        class NewClient(FakeClient):
+            def get_ids(self, device, name):
+                return 1, name, ()
+            def recv_uint32(self):
+                return 32768
+        driver = PhaseNoiseAnalyzer(NewClient())
+        snapshot = driver.get_phase_snapshot()
+        self.assertEqual(len(snapshot[3]), 32768)
+        self.assertEqual(snapshot[4][0], 32768)
+        self.assertEqual(len(driver.get_phase_x()), 32768)
+
     def setUp(self):
         self.client = FakeClient()
         self.driver = PhaseNoiseAnalyzer(self.client)
+
+    def test_precision_and_atomic_snapshot(self):
+        self.assertTrue(self.driver.set_phase_precision(8))
+        self.assertEqual(self.driver.get_precision_status()[:2], (8, 8))
+        snapshot = self.driver.get_phase_snapshot()
+        self.assertEqual(snapshot[:2], (100, 8))
+        self.assertTrue(snapshot[2])
+        np.testing.assert_array_equal(snapshot[3], np.arange(65536, dtype=np.float32))
+        self.assertEqual(snapshot[4][0], 65536)
+
+    def test_acquisition_gap_and_fifo_status(self):
+        self.assertEqual(self.driver.get_acquisition_status(), (3, 120, 8192, False))
+        self.assertEqual(self.client.commands, [('get_acquisition_status', ())])
 
     def test_dds_command_preserves_precision(self):
         frequency = 10e6 + 0.637
         self.driver.set_local_oscillator(1, frequency)
         self.assertEqual(self.client.commands, [('set_local_oscillator', (1, frequency))])
+
+    def test_nominal_frequencies_and_cumulative_status(self):
+        self.assertEqual(self.driver.get_nominal_frequencies()[1], 10e6 + .001)
+        self.assertEqual(self.driver.get_average_status(), (42, 0))
+        self.assertEqual(self.client.commands, [('get_nominal_frequencies', ()),
+                                                ('get_average_status', ())])
 
     def test_axis_matches_received_spectrum(self):
         freqs, low, high = self.driver.get_freqs(15001)

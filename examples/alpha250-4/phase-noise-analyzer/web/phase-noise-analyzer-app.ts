@@ -1,278 +1,131 @@
-// Interface for the Phase Noise Analyzer driver
-// (c) Koheron
-
 class PhaseNoiseAnalyzerApp {
-  private minFrequencyInput: HTMLInputElement;
-  private nAvgInput: HTMLInputElement;
-  private resetCumulativeAveragerBtn: HTMLButtonElement;
-  private channelInputs: HTMLInputElement[];
-  private carrierPowerSpan: HTMLElement;
-  private phaseJitterSpan: HTMLElement;
-  private timeJitterSpan: HTMLElement;
-
-  private ddsInputs: HTMLInputElement[];
-  private ddsSetButtons: HTMLButtonElement[];
-  private trackingEnabledInput: HTMLInputElement;
-  private trackingEffectiveBandwidthSpan: HTMLElement;
-  private trackingCorrectionXSpan: HTMLElement;
-  private trackingCorrectionYSpan: HTMLElement;
-
+  private disposed = false;
   private updatingControls = false;
-
-  private isEditingMinFrequency: boolean;
-  private isEditingNavg: boolean;
-  private isEditingDdsInputs: boolean;
+  private numbers: {[field: string]: DigitInput} = {};
   public nPoints: number;
   public channel: number;
 
-  constructor(document: Document, private driver: PhaseNoiseAnalyzer) {}
+  constructor(private document: Document, private driver: PhaseNoiseAnalyzer,
+      private onConnectionError: (error: unknown) => void = () => {}) {}
+
+  dispose(): void {
+    this.disposed = true;
+    Object.keys(this.numbers).forEach(key => this.numbers[key].dispose());
+  }
 
   async init(): Promise<void> {
-    const parameters = await this.driver.getParameters();
-    this.nPoints = parameters.data_size;
-
-    this.channelInputs = <HTMLInputElement[]><any>document.getElementsByClassName("channel-input");
-    this.carrierPowerSpan = <HTMLElement>document.getElementsByClassName("carrier-power-span")[0];
-    this.phaseJitterSpan = <HTMLElement>document.getElementsByClassName("phase-jitter-span")[0];
-    this.timeJitterSpan = <HTMLElement>document.getElementsByClassName("time-jitter-span")[0];
-
-    this.ddsInputs = [0, 1, 2, 3].map(i =>
-      document.querySelector<HTMLInputElement>(`.dds-input${i}`)!);
-    this.ddsSetButtons = [0, 1, 2, 3].map(i =>
-      document.querySelector<HTMLButtonElement>(`.dds-set${i}`)!);
-    this.trackingEnabledInput = document.querySelector<HTMLInputElement>('.tracking-enabled-input')!;
-    this.trackingEffectiveBandwidthSpan = document.querySelector<HTMLElement>('.tracking-effective-bandwidth')!;
-    this.trackingCorrectionXSpan = document.querySelector<HTMLElement>('.tracking-correction-x')!;
-    this.trackingCorrectionYSpan = document.querySelector<HTMLElement>('.tracking-correction-y')!;
-
-    this.initMinFrequencyInput();
-    this.initNavgInput();
-    this.initChannelInput();
-    this.updateMeasurements();
-    this.updateControls();
-  }
-
-  initMinFrequencyInput(): void {
-    this.minFrequencyInput = <HTMLInputElement>document.getElementsByClassName("min-frequency-input")[0];
-
-    this.minFrequencyInput.addEventListener("focus", () => {
-      this.isEditingMinFrequency = true;
-    });
-
-    this.minFrequencyInput.addEventListener("blur", () => {
-      this.isEditingMinFrequency = false;
-      this.updateControls();
-    });
-
-    let events = ['change'];
-    for (let j = 0; j < events.length; j++) {
-      this.minFrequencyInput.addEventListener(events[j], (event) => {
-          let command = (<HTMLInputElement>event.currentTarget).dataset.command;
-          let value = (<HTMLInputElement>event.currentTarget).value;
-          const frequency = parseFloat(value);
-          if (Number.isFinite(frequency) && frequency > 0) this.driver[command](frequency);
-      });
-    }
-
-    const editingChannels = new Set<number>();
-    for (let channel = 0; channel < this.ddsInputs.length; channel++) {
-      const input = this.ddsInputs[channel];
-      let dirty = false;
-      let acceptedValue = input.value;
-      const finishEditing = () => {
-        editingChannels.delete(channel);
-        this.isEditingDdsInputs = editingChannels.size > 0;
-      };
-      const commit = () => {
-        if (!dirty) { finishEditing(); return; }
-        const frequency = 1E6 * Number(input.value);
-        if (input.value.trim() === '' || !input.checkValidity() ||
-            !Number.isFinite(frequency) || frequency < 0 || frequency > 100E6) return;
-        this.driver.setLocalOscillator(channel, frequency);
-        acceptedValue = input.value;
-        dirty = false;
-        finishEditing();
-        this.updateControls();
-      };
-      input.addEventListener('focus', () => {
-        if (!dirty) acceptedValue = input.value;
-        editingChannels.add(channel);
-        this.isEditingDdsInputs = true;
-      });
-      input.addEventListener('input', () => {
-        dirty = true;
-        editingChannels.add(channel);
-        this.isEditingDdsInputs = true;
-      });
-      input.addEventListener('blur', commit);
-      input.addEventListener('keydown', (event: KeyboardEvent) => {
-        if (event.key === 'Enter') { event.preventDefault(); commit(); }
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          input.value = acceptedValue;
-          dirty = false;
-          finishEditing();
-          this.updateControls();
+    const p = await this.driver.getParameters();
+    const nominal = await this.driver.getNominalFrequencies();
+    if (this.disposed) { return; }
+    this.nPoints = p.data_size;
+    const number = (selector: string, value: number, commit: (value: number) => void,
+        read: (p: IParameters) => number) => {
+      const input = this.document.querySelector<HTMLInputElement>(selector);
+      return new NumberInput(input, {value, minimum: Number(input.min), maximum: Number(input.max),
+        resolution: 1, integer: true, commit: async value => {
+          commit(value); return read(await this.driver.getParameters());
+        }});
+    };
+    this.numbers.cic = number('.cic-rate-input', p.cic_rate,
+      value => this.driver.setCicRate(value), p => p.cic_rate);
+    this.numbers.navg = number('.plot-navg-input', p.fft_navg,
+      value => this.driver.setFFTNavg(value), p => p.fft_navg);
+    nominal.forEach((value, channel) => {
+      const input = this.document.querySelector<HTMLInputElement>('.dds-input' + channel);
+      this.numbers['lo' + channel] = new FrequencyInput(input, input.parentElement.querySelector('.lo-unit'), {
+        value, maximum: 100E6, inclusiveMaximum: true, resolution: 1E-3, // Tune in millihertz; the DDS accepts finer steps.
+        commit: async frequency => {
+          this.driver.setLocalOscillator(channel, frequency);
+          await this.driver.getParameters();
+          return (await this.driver.getNominalFrequencies())[channel];
         }
       });
-      this.ddsSetButtons[channel].addEventListener('click', commit);
-    }
-
-    this.trackingEnabledInput.addEventListener('change', (event) => {
-      const enabled = (event.currentTarget as HTMLInputElement).checked;
-      this.driver.setTrackingEnabled(enabled);
     });
-  }
-
-  initNavgInput(): void {
-    this.nAvgInput = <HTMLInputElement>document.getElementsByClassName("plot-navg-input")[0];
-    this.resetCumulativeAveragerBtn = <HTMLButtonElement>document.getElementsByClassName("reset-cumulative-averager-btn")[0];
-
-    this.nAvgInput.addEventListener("focus", () => {
-      this.isEditingNavg = true;
+    this.document.querySelectorAll<HTMLInputElement>('.channel-input').forEach(input => {
+      input.addEventListener('change', () => this.driver.setChannel(Number(input.value)));
     });
-
-    this.nAvgInput.addEventListener("blur", () => {
-      this.isEditingNavg = false;
-      this.updateControls();
+    const tracking = this.document.querySelector<HTMLInputElement>('.tracking-enabled-input');
+    tracking.addEventListener('change', () => this.driver.setTrackingEnabled(tracking.checked));
+    this.document.querySelector('.reset-cumulative-averager-btn').addEventListener('click', () =>
+      this.driver.resetCumulativeAverager());
+    const save = this.document.querySelector<HTMLButtonElement>('.save-cfg');
+    save.addEventListener('click', () => {
+      try {
+        this.driver.saveConfig();
+        save.textContent = 'Save requested';
+        this.document.getElementById('save-config-status').textContent = 'Analyzer settings save requested.';
+      } catch (error) { this.onConnectionError(error); }
+      setTimeout(() => { if (!this.disposed) { save.textContent = 'Save settings'; } }, 2000);
     });
-
-    let events = ['change'];
-    for (let j = 0; j < events.length; j++) {
-      this.nAvgInput.addEventListener(events[j], (event) => {
-          let value = parseInt((<HTMLInputElement>event.currentTarget).value);
-          if (Number.isFinite(value) && value >= 1 && value <= 200) this.setNavg(value);
-      });
-    }
-
-    this.resetCumulativeAveragerBtn.addEventListener("click", () => {
-      this.driver.resetCumulativeAverager();
-      this.updateControls();
-    });
-  }
-
-  initChannelInput(): void {
-    for (let i = 0; i < this.channelInputs.length; i++) {
-      this.channelInputs[i].addEventListener('change', (event) => {
-        this.channel = parseInt((<HTMLInputElement>event.currentTarget).value);
-        this.driver[(<HTMLInputElement>event.currentTarget).dataset.command](this.channel);
-      })
-    }
-  }
-
-  private setNavg(navg: number) {
-    this.driver.setFFTNavg(navg);
-  }
-
-  private formatFrequency(freq: number): string {
-    if (!Number.isFinite(freq)) {
-      return "---";
-    }
-
-    const absFreq = Math.abs(freq);
-
-    if (absFreq >= 1e9) {
-      return `${(freq / 1e9).toFixed(0)} GHz`;
-    } else if (absFreq >= 1e6) {
-      return `${(freq / 1e6).toFixed(0)} MHz`;
-    } else if (absFreq >= 1e3) {
-      return `${(freq / 1e3).toFixed(0)} kHz`;
-    } else {
-      return `${freq.toFixed(0)} Hz`;
-    }
-  }
-
-  private formatMeasurement(value: number, unit: string, digits: number = 2): string {
-    if (!Number.isFinite(value)) {
-      return "---";
-    } else {
-      return `${value.toFixed(digits)}  ${unit}`;
-    }
-  }
-
-  private async updateMeasurements() {
-    try {
-      const navg: number = 400;
-      const meas = await this.driver.getMeasurements(navg);
-
-      this.carrierPowerSpan.innerHTML = this.formatMeasurement(meas.carrier_power, "dBm");
-      const freqRange = `(${this.formatFrequency(meas.freq_lo)} - ${this.formatFrequency(meas.freq_hi)})`;
-
-      this.phaseJitterSpan.innerHTML =
-        this.formatMeasurement(meas.phase_jitter * 1E3, `mrad<sub>rms</sub> ${freqRange}`);
-      this.timeJitterSpan.innerHTML =
-        this.formatMeasurement(meas.time_jitter * 1E12, `ps<sub>rms</sub> ${freqRange}`);
-
-    } catch (error) {
-      console.error('updateMeasurements error:', error);
-    } finally {
-      setTimeout(() => { this.updateMeasurements(); }, 250);
-    }
+    void this.updateControls();
+    void this.updateMeasurements();
   }
 
   private async updateControls(): Promise<void> {
-    if (this.updatingControls) return;
+    if (this.disposed || this.updatingControls) { return; }
     this.updatingControls = true;
     try {
-      const parameters = await this.driver.getParameters();
-      const trackingParameters = await this.driver.getTrackingParameters();
-
-      if (parameters.channel == 0) {
-        this.channelInputs[0].checked = true;
-        this.channelInputs[1].checked = false;
-        this.channelInputs[2].checked = false;
-      } else if (parameters.channel == 1) {
-        this.channelInputs[0].checked = false;
-        this.channelInputs[1].checked = true;
-        this.channelInputs[2].checked = false;
-      } else {
-        this.channelInputs[0].checked = false;
-        this.channelInputs[1].checked = false;
-        this.channelInputs[2].checked = true;
-      }
-
-      if (!this.isEditingMinFrequency) {
-        this.minFrequencyInput.value = parameters.min_freq.toFixed(2).toString();
-      }
-
-      if (!this.isEditingNavg) {
-        if (parameters.channel < 2) {
-          this.nAvgInput.value = parameters.fft_navg.toString();
-          this.nAvgInput.readOnly = false;
-          this.nAvgInput.disabled = false;
-          this.resetCumulativeAveragerBtn.style.display = "none";
-          this.resetCumulativeAveragerBtn.disabled = true;
-        } else { // XY mode
-          this.nAvgInput.value = parameters.avgxy_count.toString();
-          this.nAvgInput.readOnly = true;
-          this.nAvgInput.disabled = true;
-          this.resetCumulativeAveragerBtn.style.display = "";
-          this.resetCumulativeAveragerBtn.disabled = false;
-        }
-      }
-
-      if (!this.isEditingDdsInputs) {
-        this.ddsInputs[0].value = (parameters.fdds0 / 1E6).toFixed(9);
-        this.ddsInputs[1].value = (parameters.fdds1 / 1E6).toFixed(9);
-        this.ddsInputs[2].value = (parameters.fdds2 / 1E6).toFixed(9);
-        this.ddsInputs[3].value = (parameters.fdds3 / 1E6).toFixed(9);
-      }
-
-      this.trackingEnabledInput.checked = trackingParameters.tracking_enabled;
-      this.trackingEffectiveBandwidthSpan.textContent = trackingParameters.effective_tracking_bandwidth.toFixed(6);
-      this.trackingCorrectionXSpan.textContent = trackingParameters.tracking_correction_x.toFixed(6);
-      this.trackingCorrectionYSpan.textContent = trackingParameters.tracking_correction_y.toFixed(6);
-
-      (<HTMLInputElement>document.querySelector("[data-command='setReferenceClock'][value='" + parameters.clkIndex + "']")).checked = true;
-
+      const p = await this.driver.getParameters();
+      const nominal = await this.driver.getNominalFrequencies();
+      const tracking = await this.driver.getTrackingParameters();
+      const average = await this.driver.getAverageStatus();
+      if (this.disposed) { return; }
+      this.channel = p.channel;
+      this.document.querySelectorAll<HTMLInputElement>('.channel-input').forEach(input => {
+        input.checked = Number(input.value) === p.channel;
+      });
+      this.numbers.cic.setValue(p.cic_rate);
+      this.numbers.navg.setValue(p.fft_navg);
+      nominal.forEach((frequency, channel) => this.numbers['lo' + channel].setValue(frequency));
+      const cumulative = p.channel === 2;
+      const navg = this.document.querySelector<HTMLInputElement>('.plot-navg-input');
+      navg.disabled = cumulative;
+      navg.hidden = cumulative;
+      (this.document.querySelector('.reset-cumulative-averager-btn') as HTMLButtonElement).hidden = !cumulative;
+      const status = this.document.getElementById('average-status');
+      status.textContent = cumulative ? `${average.count} cumulative` : `${average.count}/`;
+      status.dataset.state = average.count === 0 ? 'waiting' : cumulative ? 'cumulative'
+        : average.count < average.target ? 'filling' : 'full';
+      status.title = cumulative ? `${average.count} fresh synchronized X/Y windows; averaging continues until reset.`
+        : `${average.count} of ${average.target} spectra in the rolling average.`;
+      status.setAttribute('aria-label', status.title);
+      this.document.querySelector<HTMLInputElement>('.tracking-enabled-input').checked = tracking.tracking_enabled;
+      const fixed = (value: number) => Number.isFinite(value) ? value.toFixed(3) : '—';
+      this.document.querySelector('.tracking-effective-bandwidth').textContent = fixed(tracking.effective_tracking_bandwidth);
+      this.document.querySelector('.tracking-correction-x').textContent = fixed(tracking.tracking_correction_x);
+      this.document.querySelector('.tracking-correction-y').textContent = fixed(tracking.tracking_correction_y);
+      this.document.querySelector('.tracking-state').textContent = !tracking.tracking_enabled ? 'Off'
+        : tracking.tracking_locked ? 'Locked' : 'Acquiring';
+      const reference = this.document.querySelector<HTMLInputElement>(
+        `[data-command='setReferenceClock'][value='${p.clkIndex}']`);
+      if (reference) { reference.checked = true; }
     } catch (error) {
-      console.error('updateControls error:', error);
+      if (!this.disposed) { this.onConnectionError(error); }
     } finally {
-      // Keep the guard set while waiting so edits cannot create another loop.
-      setTimeout(() => {
+      if (!this.disposed) { setTimeout(() => {
         this.updatingControls = false;
-        this.updateControls();
-      }, 250);
+        void this.updateControls();
+      }, 500); }
+    }
+  }
+
+  private async updateMeasurements(): Promise<void> {
+    if (this.disposed) { return; }
+    try {
+      const m = await this.driver.getMeasurements(400);
+      if (this.disposed) { return; }
+      const value = (x: number, unit: string) => Number.isFinite(x) ? `${x.toFixed(2)} ${unit}` : '—';
+      this.document.querySelector('.carrier-power-span').textContent = value(m.carrier_power, 'dBm');
+      this.document.querySelector('.phase-jitter-span').textContent = value(m.phase_jitter * 1E3, 'mrad rms');
+      this.document.querySelector('.time-jitter-span').textContent = value(m.time_jitter * 1E12, 'ps rms');
+      const frequency = (f: number) => f >= 1E6 ? `${(f / 1E6).toFixed(0)} MHz`
+        : f >= 1E3 ? `${(f / 1E3).toFixed(0)} kHz` : `${f.toFixed(0)} Hz`;
+      this.document.getElementById('jitter-range').textContent = Number.isFinite(m.freq_lo) && Number.isFinite(m.freq_hi)
+        ? `${frequency(m.freq_lo)} – ${frequency(m.freq_hi)}` : '—';
+    } catch (error) {
+      if (!this.disposed) { this.onConnectionError(error); }
+    } finally {
+      if (!this.disposed) { setTimeout(() => this.updateMeasurements(), 250); }
     }
   }
 }

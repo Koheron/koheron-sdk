@@ -13,6 +13,8 @@ class Plot {
         this.n_pts = this.fft.fft_size / 2;
         this.peakDatapoint = [];
         this.plot_data = [];
+        this.plotBasics.enableSpectrumReduction();
+        this.plotBasics.enableBatchedLines();
 
         this.updatePlot();
     }

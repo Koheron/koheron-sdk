@@ -3,7 +3,7 @@
 # Usage:
 #   build_base_rootfs_tar.sh <root_tar_path> <base_rootfs_tar> <qemu_path>
 # Env (optional):
-#   TIMEZONE=Europe/Paris  PASSWD=changeme
+#   TIMEZONE=Europe/Paris  PASSWORD=changeme (PASSWD also accepted)
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -13,24 +13,49 @@ BASE_ROOTFS_TAR=${2:?usage: build_base_rootfs_tar.sh <root_tar_path> <base_rootf
 qemu_path=${3:?usage: build_base_rootfs_tar.sh <root_tar_path> <base_rootfs_tar> <qemu_path>}
 
 TIMEZONE=${TIMEZONE:-Europe/Paris}
-PASSWD=${PASSWD:-changeme}
+PASSWD=${PASSWORD:-${PASSWD:-changeme}}
+if [[ $PASSWD == *$'\n'* || $PASSWD == *$'\r'* ]]; then
+  echo "Root password must be a single line" >&2
+  exit 1
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHROOT_PAYLOAD="$SCRIPT_DIR/chroot_base_rootfs.sh"
+FINALIZE_ROOTFS="$SCRIPT_DIR/finalize_rootfs.sh"
 
 WORKDIR="${WORKDIR:-$PWD/tmp}"
 mkdir -p "$WORKDIR"
 root_dir="$(mktemp -d "$WORKDIR/BASE.XXXXXXXXXX")"
+out_tmp=""
+
+unmount_rootfs() {
+  local target failed=0
+  for target in run dev sys proc; do
+    if mountpoint -q "$root_dir/$target"; then
+      umount -R "$root_dir/$target" || failed=1
+    fi
+  done
+  return "$failed"
+}
 
 cleanup() {
+  local status=$?
   set +e
-  umount -l  "$root_dir/run" 2>/dev/null || true
-  umount -R  "$root_dir/dev" 2>/dev/null || true
-  umount -R  "$root_dir/sys" 2>/dev/null || true
-  umount -l  "$root_dir/proc" 2>/dev/null || true
-  rmdir "$root_dir" 2>/dev/null || true
+  if unmount_rootfs; then
+    rm -rf --one-file-system -- "$root_dir" || {
+      echo "Could not remove build tree at $root_dir" >&2
+      [ "$status" -ne 0 ] || status=1
+    }
+  else
+    echo "Rootfs mounts remain; keeping build tree at $root_dir" >&2
+    [ "$status" -ne 0 ] || status=1
+  fi
+  [ -z "$out_tmp" ] || rm -f -- "$out_tmp"
+  exit "$status"
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 # 1) lay down minimal rootfs
 [ -s "$root_tar_path" ] || { echo "Missing or empty rootfs tar: $root_tar_path" >&2; exit 1; }
@@ -44,8 +69,10 @@ install -D -m0755 "$qemu_path" "$root_dir/usr/bin/$(basename "$qemu_path")"
 
 # 2) mount pseudo-fs and run chroot via qemu (no binfmt needed)
 mount -t proc proc "$root_dir/proc"
-mount --rbind /sys "$root_dir/sys" && mount --make-rslave "$root_dir/sys"
-mount --rbind /dev "$root_dir/dev" && mount --make-rslave "$root_dir/dev"
+mount --rbind /sys "$root_dir/sys"
+mount --make-rslave "$root_dir/sys"
+mount --rbind /dev "$root_dir/dev"
+mount --make-rslave "$root_dir/dev"
 mount --bind  /run "$root_dir/run" || true
 
 install -D -m0755 "$CHROOT_PAYLOAD" "$root_dir/chroot.sh"
@@ -57,14 +84,12 @@ if [ ! -x "$root_dir/usr/bin/$(basename "$qemu_path")" ]; then
 fi
 
 # Run chroot payload under qemu explicitly (avoid login shell to skip profile scripts).
-chroot "$root_dir" "/usr/bin/$(basename "$qemu_path")" /bin/bash --noprofile --norc -c \
-  "export DEBIAN_FRONTEND=noninteractive LANG=C LC_ALL=C TIMEZONE='$TIMEZONE' PASSWD='$PASSWD'; /bin/bash /chroot.sh"
+DEBIAN_FRONTEND=noninteractive LANG=C LC_ALL=C TIMEZONE="$TIMEZONE" PASSWD="$PASSWD" \
+  chroot "$root_dir" "/usr/bin/$(basename "$qemu_path")" /bin/bash --noprofile --norc /chroot.sh
 
 # 3) unmount and pack the base
-umount -l "$root_dir/run" 2>/dev/null || true
-umount -R "$root_dir/dev" 2>/dev/null || true
-umount -R "$root_dir/sys" 2>/dev/null || true
-umount -l "$root_dir/proc" 2>/dev/null || true
+unmount_rootfs
+bash "$FINALIZE_ROOTFS" "$root_dir" "$(basename "$qemu_path")"
 
 # Make sure the output directory exists, and turn it into an absolute path
 out="$BASE_ROOTFS_TAR"
@@ -72,5 +97,10 @@ out_dir="$(dirname "$out")"
 mkdir -p "$out_dir"
 out_abs="$(cd "$out_dir" && pwd)/$(basename "$out")"
 
-# Now pack using an absolute path (works no matter what our cwd is)
-tar -C "$root_dir" -czf "$out_abs" .
+# Publish only a complete archive; leave any existing cache intact on failure.
+out_tmp=$(mktemp "${out_abs}.tmp.XXXXXXXX")
+tar -C "$root_dir" -czf "$out_tmp" .
+chmod 0644 "$out_tmp"
+rm -rf --one-file-system -- "$root_dir"
+mv -f -- "$out_tmp" "$out_abs"
+out_tmp=""

@@ -1,88 +1,71 @@
 `timescale 1 ns / 1 ps
 
-module phase_unwrapper_tb();
-
-  parameter DIN_WIDTH = 8;
-  parameter DOUT_WIDTH = 16;
-
-  reg clk;
-  reg acc_on;
-  reg rst;
-  reg signed [DIN_WIDTH-1:0] phase_in;
-  wire signed [DIN_WIDTH+1-1:0] freq_out;
+module phase_unwrapper_tb;
+  localparam DIN_WIDTH = 8;
+  localparam DOUT_WIDTH = 10;
+  reg clk = 0, acc_on = 0, rst = 1;
+  reg signed [DIN_WIDTH-1:0] phase_in = 0;
+  wire signed [DIN_WIDTH:0] freq_out;
   wire signed [DOUT_WIDTH-1:0] phase_out;
+  wire overflow;
+  always #4 clk = ~clk;
 
-  phase_unwrapper #(
-    .DIN_WIDTH(DIN_WIDTH),
-    .DOUT_WIDTH(DOUT_WIDTH)
-  )
-  DUT (
-    .clk(clk),
-    .acc_on(acc_on),
-    .rst(rst),
-    .phase_in(phase_in),
-    .freq_out(freq_out),
-    .phase_out(phase_out)
+  phase_unwrapper #(.DIN_WIDTH(DIN_WIDTH), .DOUT_WIDTH(DOUT_WIDTH)) DUT (
+    .clk(clk), .acc_on(acc_on), .rst(rst), .phase_in(phase_in),
+    .freq_out(freq_out), .phase_out(phase_out), .overflow(overflow)
   );
 
-  parameter CLK_PERIOD = 8;
-
-  initial begin
-    clk = 1;
-    acc_on = 1;
-    rst = 0;
-    phase_in = 0;
-    #(CLK_PERIOD) phase_in = 0;
-    #(CLK_PERIOD) phase_in = 5;
-    #(CLK_PERIOD) phase_in = 10;
-    #(CLK_PERIOD) phase_in = 15;
-    #(CLK_PERIOD) phase_in = 20;
-    #(CLK_PERIOD) phase_in = 25;
-    #(CLK_PERIOD) phase_in = 30;
-    #(CLK_PERIOD) phase_in = -29;
-    #(CLK_PERIOD) phase_in = -24;
-    #(CLK_PERIOD) phase_in = -19;
-    #(CLK_PERIOD) phase_in = -14;
-    #(CLK_PERIOD) phase_in = -9;
-    #(CLK_PERIOD) phase_in = -4;
-    #(CLK_PERIOD) phase_in = 1;
-    #(CLK_PERIOD) phase_in = 6;
-    #(CLK_PERIOD) phase_in = 11;
-    #(CLK_PERIOD) phase_in = 16;
-    #(CLK_PERIOD) phase_in = 21; acc_on = 0;
-    #(CLK_PERIOD) phase_in = 26;
-    #(CLK_PERIOD) phase_in = 31;
-    #(CLK_PERIOD) phase_in = -28;
-    #(CLK_PERIOD) phase_in = -23;
-    #(CLK_PERIOD) phase_in = -18;
-    #(CLK_PERIOD) phase_in = -13;
-    #(CLK_PERIOD) phase_in = -8;
-    #(CLK_PERIOD) phase_in = -3; acc_on = 1;
-    #(CLK_PERIOD) phase_in = 2;
-    #(CLK_PERIOD) phase_in = 7;
-    #(CLK_PERIOD) phase_in = 12;
-    #(CLK_PERIOD) phase_in = 17; rst = 1;
-    #(CLK_PERIOD) phase_in = -29;
-    #(CLK_PERIOD) phase_in = -24;
-    #(CLK_PERIOD) phase_in = -19;
-    #(CLK_PERIOD) phase_in = 0;
-    #(CLK_PERIOD) phase_in = 5; rst = 0;
-    #(CLK_PERIOD) phase_in = 10;
-    #(CLK_PERIOD) phase_in = 15;
-    #(CLK_PERIOD) phase_in = 20;
-    #(CLK_PERIOD) phase_in = 25;
-    #(CLK_PERIOD) phase_in = 30;
-    #(CLK_PERIOD) phase_in = -29;
-    #(CLK_PERIOD) phase_in = -24;
-    #(CLK_PERIOD) phase_in = -19;
-    #(CLK_PERIOD) phase_in = -14;
-    #(CLK_PERIOD) phase_in = -9;
-    #(CLK_PERIOD) phase_in = -4;
-    $finish;
+  integer expected_phase = 0, next_value;
+  reg expected_overflow = 0;
+  always @(posedge clk) begin
+    if (rst) begin
+      expected_phase = 0;
+      expected_overflow = 0;
+    end else if (acc_on) begin
+      next_value = expected_phase + $signed(freq_out);
+      if (next_value > 511 || next_value < -512) expected_overflow = 1;
+      if (next_value > 511) next_value = next_value - 1024;
+      if (next_value < -512) next_value = next_value + 1024;
+      expected_phase = next_value;
+    end
+    #1;
+    if ($signed(phase_out) !== expected_phase || overflow !== expected_overflow)
+      $fatal(1, "wrong accumulated phase or sticky overflow");
   end
 
-  always #(CLK_PERIOD/2) clk = ~clk;
+  task ramp(input integer step);
+    integer i, value;
+    begin
+      value = 0;
+      acc_on = 0;
+      for (i = 0; i < 340; i = i + 1) begin
+        @(negedge clk);
+        value = value + step;
+        if (value > 31) value = value - 64;
+        if (value < -32) value = value + 64;
+        phase_in = value;
+        if (i == 4) acc_on = 1;
+        @(posedge clk); #2;
+        if (i > 4 && $signed(freq_out) != step)
+          $fatal(1, "wrong frequency across a wrapped phase boundary");
+      end
+      if (!overflow) $fatal(1, "overflow was not detected");
+      @(negedge clk); acc_on = 0;
+      repeat (6) @(negedge clk);
+      if (!overflow) $fatal(1, "overflow did not remain sticky while paused");
+      rst = 1;
+      repeat (4) @(negedge clk);
+      if (overflow || phase_out != 0) $fatal(1, "reset did not clear overflow/phase");
+      rst = 0;
+    end
+  endtask
 
+  initial begin
+    repeat (4) @(negedge clk);
+    rst = 0;
+    ramp(5);
+    ramp(-5);
+    $display("Phase unwrapping passed: both directions, accumulator wrap, pause and reset");
+    $finish;
+  end
 endmodule
-
-

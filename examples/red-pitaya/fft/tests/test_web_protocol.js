@@ -1,4 +1,4 @@
-// Verify the Red Pitaya wire adapter used by the shared ALPHA250 workspace.
+// Verify the Red Pitaya wire adapter used by the shared FFT workspace.
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const ts = require('typescript');
 const root = path.resolve(__dirname, '../../../..');
 const context = vm.createContext({console, assert});
-for (const file of ['web/koheron.ts', 'examples/red-pitaya/fft/web/fft.ts']) {
+for (const file of ['web/koheron.ts', 'web/fft/driver.ts', 'examples/red-pitaya/fft/web/fft.ts']) {
     vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
         compilerOptions: {target: ts.ScriptTarget.ES2020}
     }).outputText, context);

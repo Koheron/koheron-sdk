@@ -4,16 +4,19 @@ proc pins {cmd} {
     $cmd -dir I -type clk      aclk
     $cmd -dir I -from 0  -to 0 aresetn
     $cmd -dir I -from 31 -to 0 s_axis_data_a
-    $cmd -dir I -from 31 -to 0 s_axis_data_b
+    $cmd -dir I -from [expr (1 + 2 * ([get_parameter dds_output_width] - 1) / 16) * 16 - 1] -to 0 s_axis_data_b
     $cmd -dir I -from 0  -to 0 s_axis_tvalid
     $cmd -dir O -from 31 -to 0 m_axis_tdata
     $cmd -dir O -from 0  -to 0 m_axis_tvalid
     $cmd -dir I -from 0  -to 0 acc_on
+    $cmd -dir I -from 0  -to 0 rst_phase
     $cmd -dir O -from 16 -to 0 freq
     $cmd -dir O -from 31 -to 0 phase
+    $cmd -dir O -from 0 -to 0 overflow
+    $cmd -dir O -from 31 -to 0 demod
 }
 
-proc create {module_name} {
+proc create {module_name rounding_seed} {
 
     set bd [current_bd_instance .]
     current_bd_instance [create_bd_cell -type hier $module_name]
@@ -22,14 +25,20 @@ proc create {module_name} {
 
     # Complex multiplier, rounded with a linear feedback shift register
 
-    cell pavel-demin:user:axis_lfsr:1.0 lfsr {} {
+    # XAPP052 taps 64,63,61,60; XOR form excludes the zero state.
+    # Legacy LFSR defaults remain unchanged for other instruments.
+    cell pavel-demin:user:axis_lfsr:1.0 lfsr {
+        SEED $rounding_seed
+        FEEDBACK_MASK 0xd800000000000000
+        FEEDBACK_XNOR 0
+    } {
         aclk aclk
         aresetn aresetn
     }
 
     cell xilinx.com:ip:cmpy:6.0 complex_mult {
         APortWidth 16
-        BPortWidth 16
+        BPortWidth [get_parameter dds_output_width]
         OutputWidth 16
         OptimizeGoal Performance
         RoundMode Random_Rounding
@@ -43,14 +52,14 @@ proc create {module_name} {
         s_axis_ctrl_tvalid lfsr/m_axis_tvalid
     }
 
-    # Filter the multiplier output with a boxcar filter
+    # Suppress the mixing image before nonlinear phase extraction.
 
     for {set i 0} {$i < 2} {incr i} {
-        cell koheron:user:boxcar_filter:1.0 boxcar$i {
-            DATA_WIDTH 16
-        } {
+        cell koheron:user:phase_prefilter:1.0 prefilter$i {} {
             clk aclk
+            aresetn aresetn
             din [get_slice_pin complex_mult/m_axis_dout_tdata [expr 15 + 16 * $i] [expr 16 * $i]]
+            random_round [get_slice_pin lfsr/m_axis_tdata [expr 31 + 16 * $i] [expr 16 + 16 * $i]]
         }
     }
 
@@ -66,9 +75,11 @@ proc create {module_name} {
     } {
         aclk aclk
         s_axis_cartesian_tvalid [get_constant_pin 1 1]
-        s_axis_cartesian_tdata [get_concat_pin [list boxcar0/dout boxcar1/dout]]
+        s_axis_cartesian_tdata [get_concat_pin [list prefilter0/dout prefilter1/dout]]
         m_axis_dout_tvalid m_axis_tvalid
     }
+
+    connect_bd_net [get_bd_pins demod] [get_bd_pins concat_dout_dout/dout]
 
     # Phase unwrapping
 
@@ -78,10 +89,12 @@ proc create {module_name} {
     } {
         clk aclk
         acc_on acc_on
+        rst rst_phase
         phase_in [get_slice_pin cordic/m_axis_dout_tdata 31 16]
         phase_out m_axis_tdata
         freq_out freq
         phase_out phase
+        overflow overflow
     }
 
   current_bd_instance $bd

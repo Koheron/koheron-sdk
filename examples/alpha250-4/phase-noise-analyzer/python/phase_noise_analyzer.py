@@ -91,6 +91,17 @@ class PhaseNoiseAnalyzer(object):
     def __init__(self, client):
         self.client = client
         self.npts = 65536
+        # Older instruments expose fixed 65536-sample snapshots.
+        try:
+            client.get_ids('PhaseNoiseAnalyzer', 'get_phase_sample_count')
+        except KeyError:
+            pass
+        else:
+            self.npts = self.get_phase_sample_count()
+
+    @command()
+    def get_phase_sample_count(self):
+        return self.client.recv_uint32()
 
     @command()
     def set_local_oscillator(self, channel, freq):
@@ -99,6 +110,26 @@ class PhaseNoiseAnalyzer(object):
     @command(classname="ClockGenerator")
     def set_reference_clock(self, val):
         pass
+
+    @command()
+    def set_phase_precision(self, bits):
+        return self.client.recv_bool()
+
+    @command()
+    def get_precision_status(self):
+        return self.client.recv_tuple('IIdIQQQdd')
+
+    @command()
+    def get_acquisition_status(self):
+        # Rejected gap captures, X/Y FIFO occupancy, sticky hardware gap flag.
+        return self.client.recv_tuple('QII?')
+
+    @command()
+    def get_phase_snapshot(self):
+        # One response header, big-endian scalar metadata, then native arrays.
+        sequence, bits, valid = self.client.recv_tuple('QI?')
+        pair = np.frombuffer(self.client.recv_all(2 * self.npts * 4), dtype='<f4')
+        return sequence, bits, valid, pair[:self.npts], pair[self.npts:]
 
     @command()
     def set_cic_rate(self, rate):
@@ -115,6 +146,15 @@ class PhaseNoiseAnalyzer(object):
     @command()
     def get_parameters(self):
         return self.client.recv_tuple('IdIdIddddII')
+
+    @command()
+    def get_nominal_frequencies(self):
+        return self.client.recv_tuple('dddd')
+
+    @command()
+    def get_average_status(self):
+        # Target zero denotes cumulative XY averaging.
+        return self.client.recv_tuple('II')
 
     def averager_xy_count(self):
         tup = self.get_parameters()

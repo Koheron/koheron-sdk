@@ -57,7 +57,8 @@ class WebSocketPool {
     private socketCounter: number;
     private exiting: boolean;
 
-    constructor(private poolSize: number, private url: string, private onOpenCallback: any) {
+    constructor(private poolSize: number, private url: string, private onOpenCallback: any,
+                private onDisconnect?: (error: Error) => void) {
         this.poolSize = poolSize;
         this.url = url;
 
@@ -79,7 +80,8 @@ class WebSocketPool {
                     websocket.ID = this.socketCounter;
                     websocket.onclose = evt => {
                         if (!this.exiting) {
-                            setTimeout(function(){ location.reload(); }, 1000);
+                            if (this.onDisconnect) { this.onDisconnect(new Error('WebSocket connection lost')); }
+                            else { setTimeout(function(){ location.reload(); }, 1000); }
                         }
                     };
                     websocket.onerror = evt => {
@@ -399,7 +401,8 @@ class Client {
     private exiting: boolean = false;
     private initTimeoutMs: number = 10000;
 
-    constructor(private IP: string, private websockPoolSize: number) {
+    constructor(private IP: string, private websockPoolSize: number,
+                private onDisconnect?: (error: Error) => void) {
         if (websockPoolSize == null) { websockPoolSize = 5; }
         this.websockPoolSize = websockPoolSize;
         this.url = `ws://${IP}:8080`;
@@ -442,7 +445,7 @@ class Client {
                             this.closeWebSocketPool();
                             reject(err instanceof Error ? err : new Error(String(err)));
                         });
-                });
+                }, this.onDisconnect);
             } catch (e) {
                 if (settled) { return; }
                 settled = true;

@@ -38,7 +38,7 @@ declare function Command(id: number, cmd: ICommand, ...params: any[]): CmdMessag
 declare class Client {
     public websockpool: WebSocketPool;
 
-    constructor(IP: string, websockPoolSize?: number);
+    constructor(IP: string, websockPoolSize?: number, onDisconnect?: (error: Error) => void);
 
     init(callback: () => void): void;
     exit(): void;

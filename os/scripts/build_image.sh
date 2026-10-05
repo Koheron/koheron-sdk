@@ -45,6 +45,24 @@ boot_part_end_mib=$((boot_part_start_mib + boot_part_required_mib))
 # Build it with build_base_rootfs_tar.sh first, then pass via env from Make:
 #   env BASE_ROOTFS_TAR=".../.cache/base-rootfs-<mode>.tgz"
 BASE_ROOTFS_TAR="${BASE_ROOTFS_TAR:?BASE_ROOTFS_TAR must be set (run: make base-rootfs)}"
+EXTLINUX_CONF="${EXTLINUX_CONF:?EXTLINUX_CONF must be set}"
+
+# Check inputs before overwriting the loose image or attaching a loop device.
+for input in "$BASE_ROOTFS_TAR" "$overlay_tar" "$qemu_path" \
+  "$tmp_os_path/$boot_bin" "$tmp_os_path/kernel.itb" "$EXTLINUX_CONF" \
+  "$tmp_project_path/manifest-${release_name}.txt" \
+  "$os_path/config/nginx.conf" "$os_path/config/nginx-server.conf" \
+  "$os_path/systemd/nginx.service" "$os_path/scripts/finalize_rootfs.sh"; do
+  if [ ! -f "$input" ] || [ ! -r "$input" ] || [ ! -s "$input" ]; then
+    echo "Missing, unreadable or empty required input: $input" >&2
+    exit 1
+  fi
+done
+case "$(basename "$qemu_path")" in
+  qemu-arm-static|qemu-aarch64-static) ;;
+  *) echo "Unexpected QEMU helper: $qemu_path" >&2; exit 1 ;;
+esac
+
 passwd=changeme
 timezone=Europe/Paris
 
@@ -52,24 +70,61 @@ timezone=Europe/Paris
 device=""            # will be set later by losetup
 boot_dir=""          # set by mktemp
 root_dir=""          # set by mktemp
+package_dir=""       # fresh ZIP staging directory, on the output filesystem
+
+unmount_chroot() {
+  local failed=0 mount_path
+  if [ -n "$root_dir" ]; then
+    for mount_path in "$root_dir/run" "$root_dir/dev" "$root_dir/sys" "$root_dir/proc"; do
+      if mountpoint -q "$mount_path"; then
+        if ! umount -R "$mount_path"; then
+          echo "[cleanup] Could not unmount $mount_path" >&2
+          failed=1
+        fi
+      fi
+    done
+  fi
+  return "$failed"
+}
 
 cleanup() {
   # preserve original exit code
   rc=$?
   set +e
 
-  # Unmount filesystems if mounted
-  [ -n "$boot_dir" ] && mountpoint -q "$boot_dir" && umount "$boot_dir"
-  [ -n "$root_dir" ] && mountpoint -q "$root_dir" && umount "$root_dir"
+  # A failed post-overlay chroot can leave these bind mounts below root_dir.
+  # Unmount them before the root filesystem so the loop device can detach.
+  mounts_remain=0
+  unmount_chroot || { mounts_remain=1; [ "$rc" -ne 0 ] || rc=1; }
 
-  # Detach loop if set
+  # Unmount filesystems if mounted
+  for mount_path in "$boot_dir" "$root_dir"; do
+    if [ -n "$mount_path" ] && mountpoint -q "$mount_path"; then
+      if ! umount "$mount_path"; then
+        echo "[cleanup] Could not unmount $mount_path" >&2
+        mounts_remain=1
+        [ "$rc" -ne 0 ] || rc=1
+      fi
+    fi
+  done
+
+  # Keep the loop attached if unmounting failed so it can be recovered safely.
   if [ -n "$device" ]; then
-    losetup -d "$device" 2>/dev/null || true
+    if [ "$mounts_remain" -eq 0 ]; then
+      losetup -d "$device" || { [ "$rc" -ne 0 ] || rc=1; }
+    else
+      echo "[cleanup] Mounts remain; keeping $device attached" >&2
+    fi
   fi
 
   # Remove temp dirs
   [ -n "$boot_dir" ] && rmdir "$boot_dir" 2>/dev/null || true
   [ -n "$root_dir" ] && rmdir "$root_dir" 2>/dev/null || true
+  if [ -n "$package_dir" ]; then
+    # This directory contains only packaging outputs, including any scratch
+    # files left by an interrupted zip command. No filesystems are mounted here.
+    rm -rf -- "$package_dir"
+  fi
 
   # Make outputs owned by host user even on interruption
   if [ -n "${HOST_UID:-}" ] && [ -n "${HOST_GID:-}" ]; then
@@ -89,7 +144,8 @@ cleanup() {
 
 # Fire cleanup on any exit and on Ctrl-C/TERM
 trap 'cleanup' EXIT
-trap 'exit 130' INT TERM
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 # --- create raw image & loop device ---
 dd if=/dev/zero of="$image" bs=1M count=0 seek="${size}"
@@ -200,21 +256,20 @@ install -D -m0644 "$os_path/systemd/nginx.service" \
 if [ -f "$os_path/scripts/chroot_overlay.sh" ]; then
   # Minimal pseudo-fs mounts (short-lived, just for overlay tasks)
   mount -t proc proc "$root_dir/proc"
-  mount --rbind /sys  "$root_dir/sys"  && mount --make-rslave "$root_dir/sys"
-  mount --rbind /dev  "$root_dir/dev"  && mount --make-rslave "$root_dir/dev"
+  mount --rbind /sys "$root_dir/sys"
+  mount --make-rslave "$root_dir/sys"
+  mount --rbind /dev "$root_dir/dev"
+  mount --make-rslave "$root_dir/dev"
   mount --bind  /run  "$root_dir/run"  || true
 
   install -D -m0755 "$os_path/scripts/chroot_overlay.sh" "$root_dir/chroot_overlay.sh"
   chroot "$root_dir" "/usr/bin/$(basename "$qemu_path")" /bin/bash -lc "/bin/bash /chroot_overlay.sh"
 
-  umount -l "$root_dir/run" 2>/dev/null || true
-  umount -R  "$root_dir/dev" 2>/dev/null || true
-  umount -R  "$root_dir/sys" 2>/dev/null || true
-  umount -l  "$root_dir/proc" 2>/dev/null || true
+  unmount_chroot
 fi
 
-# Remove qemu helper from the target rootfs
-rm -f "$root_dir/usr/bin/$(basename "$qemu_path")"
+# Reset identity even when an older base-rootfs cache is reused.
+bash "$os_path/scripts/finalize_rootfs.sh" "$root_dir" "$(basename "$qemu_path")"
 
 # --- Unmount file systems ---
 umount "$boot_dir"
@@ -267,6 +322,14 @@ else
   parted -s "$device" unit s resizepart 2 "${new_p2_end}" >/dev/null 2>&1 || true
 fi
 
+# Check the on-disk partition table before truncating the image. A resize
+# command can fail while the script is still able to create a ZIP archive.
+current_end=$(parted -sm "$device" unit s print | awk -F: '/^2:/{gsub(/s/,"",$3); print $3+0}')
+if [ -z "$current_end" ] || [ "$current_end" -ne "$new_p2_end" ]; then
+  echo "[shrink] ERROR: p2 end mismatch (${current_end:-missing} != $new_p2_end); keeping the untruncated image" >&2
+  exit 1
+fi
+
 # 5) truncate the image to the end of p2
 new_img_bytes=$(( (new_p2_end + 1) * 512 ))
 truncate -s "$new_img_bytes" "$image"
@@ -281,13 +344,20 @@ losetup -c "$device" 2>/dev/null || true
 boot_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '2!d')"
 root_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '3!d')"
 
-# sanity: verify the new end
-current_end=$(parted -sm "$device" unit s print | awk -F: '/^2:/{gsub(/s/,"",$3); print $3+0}')
-[ "$current_end" -eq "$new_p2_end" ] || echo "[shrink] WARN: p2 end mismatch ($current_end != $new_p2_end)"
-
 # zerofree "$root_dev" >/dev/null 2>&1 || true
 
+# Release the loop before publishing an archive. A detach failure must not
+# replace a previously successful release ZIP.
+if ! losetup -d "$device"; then
+  echo "[cleanup] Could not detach $device; refusing to package" >&2
+  exit 1
+fi
+device=""
+
 # --- package (sha + zip) ---
+# Stage on the output filesystem so the final rename is atomic. Starting with
+# a fresh archive also prevents zip from retaining obsolete entries.
+package_dir=$(mktemp -d "$(cd "$tmp_project_path" && pwd)/.package.XXXXXXXXXX")
 (
   set -Eeuo pipefail
   cd "$tmp_project_path"
@@ -306,5 +376,6 @@ current_end=$(parted -sm "$device" unit s print | awk -F: '/^2:/{gsub(/s/,"",$3)
   sha256sum -- "$img" > "$sha"
 
   # -1 is much faster with small ratio loss; keep -X to strip extra attrs
-  zip -X -1 "$zipfile" "$img" "$manifest" "$sha"
+  zip -X -1 "$package_dir/$zipfile" "$img" "$manifest" "$sha"
+  mv -f -- "$package_dir/$zipfile" "$zipfile"
 )

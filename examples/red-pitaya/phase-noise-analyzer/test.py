@@ -1,88 +1,85 @@
-import numpy as np
-import matplotlib
-matplotlib.use('GTKAgg')
-from matplotlib import pyplot as plt
+"""Validate known sine PM using DAC0 -> ADC0 (LV input range)."""
 import os
+from pathlib import Path
+import sys
 import time
-from koheron import connect, command
 
-class PhaseNoiseAnalyzer(object):
-    def __init__(self, client):
-        self.client = client
+import numpy as np
+from koheron import connect
+from phase_noise_analyzer import PhaseNoiseAnalyzer
 
-    @command(classname="Dds")
-    def set_dds_freq(self, channel, freq):
-        pass
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "alpha250/phase-modulator"))
+from phase_modulator import PhaseModulator
 
-    @command(classname='Dma')
-    def get_data(self):
-        return self.client.recv_array(1000000, dtype='int32')
+host = os.getenv("HOST", "192.168.1.84")
+client = connect(host, "phase-noise-analyzer")
+analyzer = PhaseNoiseAnalyzer(client)
+generator = PhaseModulator(client)
+original = analyzer.get_parameters()
+tracking = analyzer.get_tracking_parameters()
+precision = analyzer.get_precision_status()[0]
+generator_words = [generator._get_settings_words(channel) for channel in range(2)]
+bits = int(os.getenv("PHASE_BITS", "0"))
+rate = int(os.getenv("CIC_RATE", "20"))
+beta = float(os.getenv("PM_RADIANS", ".1"))
+assert beta > 0 and np.isfinite(beta)
 
 
-host = os.getenv('HOST','192.168.1.24')
-freq = 40e6
+def wait_captures(count):
+    first = analyzer.get_precision_status()[4]
+    deadline = time.monotonic() + max(10, (count + 6) * 3 * 131072 / fs)
+    while time.monotonic() < deadline:
+        status = analyzer.get_precision_status()
+        assert status[3] != 2, "Phase overrange: reduce precision or LO offset"
+        if status[4] >= first + count and status[3] == 1:
+            assert status[:2] == (bits, bits)
+            return
+        time.sleep(.02)
+    raise TimeoutError("Analyzer did not publish enough valid captures")
 
-driver = PhaseNoiseAnalyzer(connect(host, 'phase-noise-analyzer'))
-driver.set_dds_freq(0,freq)
 
-n = 1000000
-
-n = 1000000
-fs = 125e6
-cic_rate = 20
-n_avg = 100
-
-ffft = np.fft.fftfreq(n) * fs / (cic_rate * 2)
-
-y = np.ones(n)
-
-# Dynamic plot
-fig = plt.figure()
-ax = fig.add_subplot(111)
-
-li, = ax.semilogx(np.fft.fftshift(ffft[1:n/2+1]), y[1:n/2+1], label="{} MHz carrier".format(freq*1e-6), linewidth=2)
-
-ax.set_xlim((10, 1e6))
-ax.set_ylim((-170, 0))
-ax.set_xlabel('Frequency Offset (Hz)')
-ax.set_ylabel('Phase Noise (dBc/Hz)')
-
-ax.legend(loc="upper right")
-
-ax.grid(True, which='major', linestyle='-', linewidth=1.5, color='0.35')
-ax.grid(True, which='minor', linestyle='-', color='0.35')
-ax.axhline(linewidth=2)
-ax.axvline(linewidth=2)
-ax.set_axisbelow(True)
-xlabels = ['', '10', '100', '1k', '10k', '100k', '1M']
-ax.set_xticklabels(xlabels)
-
-fig.canvas.draw()
-
-#window = signal.blackmanharris(n)
-#window = 0.5 * (1 - np.cos(2*np.pi*np.arange(n)/(n-1)))
-#window = signal.nuttall(n)
-window = signal.chebwin(n, at=200)
-
-W = np.sum(window ** 2) # Correction factor for window
-
-psd = np.zeros((n_avg, n))
-i = 0
-
-while True:
-    try:
-        i = (i + 1) % n_avg
-        data = driver.get_data()
-        print(i, np.mean(data))
-        data = data / 8192.0 * np.pi
-        data -= np.mean(data)
-        psd[i,:] = np.abs(np.fft.fft(window * data))**2
-        psd[i,:] /= (fs / (cic_rate * 2) * W) # rad^2/Hz
-        mean_psd = np.mean(psd, axis=0)
-        li.set_ydata(np.fft.fftshift(10*np.log10(mean_psd[1:n/2+1]/2)))
-        fig.canvas.draw()
-        np.save('phase-noise-red-pitaya.npy', [np.fft.fftshift(ffft[1:n/2+1]), np.fft.fftshift(10*np.log10(mean_psd[1:n/2+1]/2))])
-        plt.pause(0.001)
-    except KeyboardInterrupt:
-        break
-
+try:
+    analyzer.set_tracking_enabled(False)
+    analyzer.set_channel(0)
+    analyzer.set_cic_rate(rate)
+    analyzer.set_fft_navg(8)
+    analyzer.set_local_oscillator(0, 10e6)
+    assert analyzer.set_phase_precision(bits), "Unsupported precision"
+    parameters = analyzer.get_parameters()
+    fs, bins = parameters[1], parameters[0]
+    assert bins == 16385 and fs == 125e6 / (2 * rate)
+    df = fs / (2 * (bins - 1))
+    tone_bin = 64
+    tone_hz = tone_bin * df
+    generator.configure(carrier_hz=10e6, modulation_hz=tone_hz,
+                        deviation=beta * 180 / np.pi, waveform="sine",
+                        output_enabled=True, pm_enabled=False, channel=0)
+    wait_captures(12)
+    baseline = analyzer.get_phase_noise()
+    generator.enable_pm(True, channel=0)
+    wait_captures(12)
+    pm = analyzer.get_phase_noise()
+    tone_power = np.sum((pm - baseline)[tone_bin-2:tone_bin+3]) * df
+    expected = beta**2 / 2
+    relative_error = tone_power / expected - 1
+    print(f"CIC {rate}, +{bits} bits, PM {beta:g} rad at {tone_hz:.6f} Hz")
+    print(f"Phase power: {tone_power:.6g} rad²; expected {expected:.6g}; error {relative_error:+.2%}")
+    folder = Path("tmp/tests/red-pitaya-phase-noise-analyzer")
+    folder.mkdir(parents=True, exist_ok=True)
+    np.savez(folder / f"loopback-r{rate}-b{bits}-pm{beta:g}.npz",
+             frequency=np.arange(bins)*df, baseline=baseline, pm=pm,
+             expected_power=expected, measured_power=tone_power)
+    assert np.isfinite(pm).all() and abs(relative_error) < .05
+finally:
+    analyzer.set_tracking_enabled(False)
+    analyzer.set_cic_rate(original[3])
+    analyzer.set_channel(original[2])
+    analyzer.set_fft_navg(original[4])
+    analyzer.set_local_oscillator(0, tracking[5])
+    analyzer.set_local_oscillator(1, tracking[6])
+    analyzer.set_phase_precision(precision)
+    for channel, words in enumerate(generator_words):
+        assert not generator.configure_words_checked(channel, *words[1:], True, True)
+        assert generator._get_settings_words(channel) == words
+    analyzer.set_tracking_enabled(tracking[0])
+    client.sock.close()

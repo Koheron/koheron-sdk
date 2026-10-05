@@ -21,14 +21,19 @@ $(TMP_API_PATH)/app/%: $(OS_PATH)/api/%
 	# create parents and copy
 	install -D -m0644 $< $@
 
-PASSWORD ?= changeme
+ifeq ($(origin PASSWORD),undefined)
+PASSWORD := $(if $(value PASSWD),$(value PASSWD),changeme)
+endif
+export PASSWORD TIMEZONE
+
+api_sync www_sync: export SSHPASS = $(value PASSWORD)
 
 .PHONY: api_sync
 api_sync: $(API_FILES)
-	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" "$(TMP_API_PATH)/." "root@$(HOST):/usr/local/api/"
-	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" "$(OS_PATH)/config/nginx.conf" "root@$(HOST):/etc/nginx/nginx.conf"
-	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" "$(OS_PATH)/config/nginx-server.conf" "root@$(HOST):/etc/nginx/sites-available/koheron.conf"
-	sshpass -p "$(PASSWORD)" ssh -i /ssh-private-key "root@$(HOST)" 'systemctl daemon-reload || true; systemctl reload-or-restart uwsgi || true; systemctl reload nginx || true'
+	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" "$(TMP_API_PATH)/." "root@$(HOST):/usr/local/api/"
+	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" "$(OS_PATH)/config/nginx.conf" "root@$(HOST):/etc/nginx/nginx.conf"
+	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" "$(OS_PATH)/config/nginx-server.conf" "root@$(HOST):/etc/nginx/sites-available/koheron.conf"
+	sshpass -e ssh -i /ssh-private-key "root@$(HOST)" 'systemctl daemon-reload || true; systemctl reload-or-restart uwsgi || true; systemctl reload nginx || true'
 
 .PHONY: api_clean
 api_clean:
@@ -67,7 +72,7 @@ www : $(WWW_ASSETS)
 
 .PHONY: www_sync
 www_sync: www
-	sshpass -p "$(PASSWORD)" rsync -avz -e "ssh -i /ssh-private-key" "$(TMP_WWW_PATH)/." "root@$(HOST):/usr/local/www/"
+	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" "$(TMP_WWW_PATH)/." "root@$(HOST):/usr/local/www/"
 
 .PHONY: clean_www
 clean_www:
@@ -162,18 +167,18 @@ $(TMP_WWW_PATH)/html-imports.min.js.map:
 # BASE ROOTFS
 ###############################################################################
 
-UBUNTU_VERSION ?= 24.04.3
+UBUNTU_VERSION ?= 24.04.5
 
 ROOT_TAR      := ubuntu-base-$(UBUNTU_VERSION)-base-$(UBUNTU_ARCH).tar.gz
 ROOT_TAR_URL  := https://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/$(ROOT_TAR)
 ROOT_TAR_PATH := $(TMP)/$(ROOT_TAR)
 
-# NEW: versioned SHA256SUMS
+# Versioned checksum list shared by Ubuntu architectures.
 SHA256SUMS_URL  := https://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/SHA256SUMS
 SHA256SUMS_PATH := $(TMP)/ubuntu-base-$(UBUNTU_VERSION)-SHA256SUMS
-ABS_SHA256SUMS  := $(abspath $(SHA256SUMS_PATH))
 
 BASE_ROOTFS_TAR := $(TMP)/ubuntu-base-$(UBUNTU_VERSION)-base-koheron-$(UBUNTU_ARCH).tgz
+BASE_ROOTFS_SETTINGS := $(BASE_ROOTFS_TAR).settings.sha256
 OVERLAY_TAR     := $(TMP_OS_PATH)/rootfs_overlay.tar
 ABS_ROOT_TAR_PATH := $(abspath $(ROOT_TAR_PATH))
 ABS_OVERLAY_TAR   := $(abspath $(OVERLAY_TAR))
@@ -181,25 +186,41 @@ OVERLAY_DIR       := $(TMP_OS_PATH)/rootfs_overlay
 
 $(SHA256SUMS_PATH):
 	mkdir -p $(@D)
-	curl -fL $(SHA256SUMS_URL) -o $@
+	@download=$$(mktemp "$@.download.XXXXXX"); \
+	  trap 'rm -f -- "$$download"' EXIT; \
+	  trap 'exit 130' INT; trap 'exit 143' TERM; \
+	  curl -fsSL --retry 3 "$(SHA256SUMS_URL)" -o "$$download"; \
+	  if ! awk -v archive="$(ROOT_TAR)" \
+	    '{ name=$$2; sub(/^\*/, "", name); if (name == archive) { count++; if (NF != 2 || length($$1) != 64 || $$1 ~ /[^0-9a-f]/) bad=1; } } END { exit (count != 1 || bad) }' \
+	    "$$download"; then \
+	    echo "No unique valid SHA-256 checksum for $(ROOT_TAR)" >&2; exit 1; \
+	  fi; \
+	  chmod 0644 "$$download"; \
+	  mv -f -- "$$download" "$@"
 	$(call ok,$@)
 
-$(ROOT_TAR_PATH): $(SHA256SUMS_PATH)
-	mkdir -p $(@D)
-	curl -fL $(ROOT_TAR_URL) -o $@
-	@cd $(@D); \
-	  grep -E "^[0-9a-f]{64}[[:space:]]+\\*?$(ROOT_TAR)$$" $(ABS_SHA256SUMS) | sha256sum -c -; \
-	  status=$$?; \
-	  if [ $$status -ne 0 ]; then echo "Checksum verification FAILED for $(ROOT_TAR)"; rm -f $(@F); exit $$status; fi
+# Recheck cached source archives before reuse, without changing their timestamps
+# or rebuilding the configured base when the contents are still valid.
+$(ROOT_TAR_PATH): $(SHA256SUMS_PATH) $(OS_PATH)/scripts/download_verified.sh FORCE
+	bash "$(OS_PATH)/scripts/download_verified.sh" "$(SHA256SUMS_PATH)" "$@" "$(ROOT_TAR_URL)"
 	$(call ok,$@)
 
+$(BASE_ROOTFS_SETTINGS): FORCE
+	@mkdir -p $(@D)
+	@umask 077; fingerprint=$$(mktemp "$@.tmp.XXXXXXXX"); \
+	  trap 'rm -f -- "$$fingerprint"' EXIT; \
+	  trap 'exit 130' INT; trap 'exit 143' TERM; \
+	  printf '%s\0%s' "$$PASSWORD" "$${TIMEZONE:-Europe/Paris}" | sha256sum > "$$fingerprint"; \
+	  cmp -s "$$fingerprint" "$@" || mv -f -- "$$fingerprint" "$@"
+
+$(BASE_ROOTFS_TAR): DOCKER_ROOT_EXTRA_ENV += -e PASSWORD -e TIMEZONE
 $(BASE_ROOTFS_TAR): \
   $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
   $(OS_PATH)/scripts/chroot_base_rootfs.sh \
-  $(ROOT_TAR_PATH)
+  $(OS_PATH)/scripts/finalize_rootfs.sh \
+  $(ROOT_TAR_PATH) $(BASE_ROOTFS_SETTINGS)
 	@mkdir -p $(@D)
 	@test -s "$(ROOT_TAR_PATH)" || { echo "Missing root tar: $(ROOT_TAR_PATH)"; exit 1; }
-	# Optional envs: TIMEZONE, PASSWD
 	$(DOCKER_ROOT) bash $(OS_PATH)/scripts/build_base_rootfs_tar.sh \
 	  "$(ROOT_TAR_PATH)" "$@" "$(QEMU_BIN)"
 	$(call ok,$@)
@@ -388,6 +409,8 @@ OVERLAY_FILES := \
   $(OVERLAY_DIR)/etc/systemd/system/unzip-default-instrument.service \
   $(OVERLAY_DIR)/etc/systemd/system/koheron-server.service \
   $(OVERLAY_DIR)/etc/systemd/system/koheron-server-init.service \
+  $(OVERLAY_DIR)/etc/systemd/system/ssh-host-keys.service \
+  $(OVERLAY_DIR)/etc/systemd/system/ssh.service.d/host-keys.conf \
   $(OVERLAY_DIR)/etc/uwsgi/uwsgi.ini \
   $(OVERLAY_DIR)/etc/systemd/system/uwsgi.service \
   $(OVERLAY_DIR)/etc/systemd/system/uwsgi.socket \
@@ -433,6 +456,7 @@ EXTLINUX_CONF ?= $(OS_PATH)/extlinux.conf
 $(RELEASE_ZIP): $(BASE_ROOTFS_TAR) \
   $(OS_FILES) \
   $(OS_PATH)/scripts/build_image.sh \
+  $(OS_PATH)/scripts/finalize_rootfs.sh \
   $(OVERLAY_TAR) $(MANIFEST_TXT) $(EXTLINUX_CONF) \
   $(OS_PATH)/scripts/chroot_overlay.sh
 	@mkdir -p $(@D)

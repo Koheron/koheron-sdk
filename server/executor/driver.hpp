@@ -17,6 +17,8 @@ class DriverAbstract {
     : type(type_)
     {}
 
+    virtual ~DriverAbstract() = default;
+
     driver_id type = 0;
 };
 

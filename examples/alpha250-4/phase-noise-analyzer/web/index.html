@@ -16,8 +16,9 @@
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
-  <link rel="stylesheet" type="text/css" href="phase-noise-plot.css">
-  <link rel="stylesheet" type="text/css" href="phase-noise.css">
+  <link rel="stylesheet" href="phase-noise-plot.css">
+  <link rel="stylesheet" href="phase-noise.css">
+  <link rel="stylesheet" href="phase-precision.css">
 
   <script type="text/javascript" src="html-imports.min.js"></script>
 
@@ -30,58 +31,75 @@
   <link rel="import" href="export-file.html" data-parent="export-file">
 </head>
 
-<body class="pna-workspace">
+<body class="pna-workspace" data-board="alpha250-4">
 <header class="app-header">
   <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
-  <h1>Phase noise</h1><span class="board-tag">ALPHA250-4</span>
+  <h1>Phase noise</h1><span class="board-tag">ALPHA250-4 · 200 MS/s</span>
+  <span id="refresh-rate" class="board-tag" title="New spectra displayed per second; polling target 60/s; cached replies excluded">— FPS</span>
+  <span class="connection-control">
+  <span id="connection-status" class="connection-status" role="status" data-state="connecting">Connecting…</span>
+    <span id="connection-error" class="connection-error" role="alert" hidden><span id="connection-error-message" class="sr-only">Unable to connect to the phase-noise analyzer.</span><button type="button" onclick="location.reload()">Retry</button></span>
+  </span>
   <nav aria-label="Board navigation"><a href="/koheron">Instruments</a><a href="/koheron/logs_rate.html">Logs &amp; data rates</a></nav>
 </header>
 <main id="main">
-  <section class="instrument-toolbar" aria-label="Acquisition settings">
-    <div class="acquisition-controls">
-      <div class="control-field"><span class="control-label">Channel</span><div class="segmented">
-        <label><input type="radio" name="channel" value="0" checked class="channel-input" data-valuestr="0" data-command="setChannel"><span>|X|²</span></label>
-        <label><input type="radio" name="channel" value="1" class="channel-input" data-valuestr="1" data-command="setChannel"><span>|Y|²</span></label>
+  <div class="measurement-toolbar">
+    <fieldset id="instrument-controls" disabled class="instrument-toolbar">
+      <legend class="sr-only">Acquisition settings and reference oscillators</legend>
+      <div class="acquisition-controls">
+        <div class="control-field"><span class="control-label">Input</span><div class="segmented">
+          <label><input type="radio" name="channel" value="0" checked class="channel-input" data-valuestr="0" data-command="setChannel"><span>|X|²</span></label>
+          <label><input type="radio" name="channel" value="1" class="channel-input" data-valuestr="1" data-command="setChannel"><span>|Y|²</span></label>
         <label><input type="radio" name="channel" value="2" class="channel-input" data-valuestr="2" data-command="setChannel"><span>X·Y*</span></label>
       </div></div>
-      <label class="control-field">Min offset (Hz)<input type="number" value="100" min="0.1" step="any" data-command="setMinFrequency" class="min-frequency-input"></label>
-      <label class="control-field">Averages<input type="number" value="1" min="1" step="1" max="200" class="plot-navg-input"></label>
-      <button type="button" class="reset-cumulative-averager-btn" title="Clear the cumulative cross-spectrum average">Reset average</button>
-      <div id="reference-clock"></div>
-    </div>
-    <div id="dds-frequency" class="oscillator-controls"></div>
-  </section>
-  <section class="spectrum-panel" aria-label="Noise spectrum">
-    <div class="spectrum-toolbar">
-      <div class="display-controls">
-        <div class="segmented">
-          <label><input type="radio" name="noise-plot-type" class="laser-plot-type" value="phase" checked><span>Phase noise</span></label>
-          <label><input type="radio" name="noise-plot-type" class="laser-plot-type" value="frequency"><span>Frequency noise</span></label>
-        </div>
-        <label class="toggle"><input type="checkbox" id="show-smoothed-trace" checked>Smoothed · 0.1 decade</label>
+        <label class="control-field" title="CIC decimation rate">Decimation<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="20" min="4" step="1" max="8192" required data-command="setCicRate" class="cic-rate-input"></span></label>
+        <label class="control-field">Averages<span class="pna-digit-control pna-average-control"><span id="average-status" role="status" data-state="unknown" title="Actual spectra in the rolling average">—/</span><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1" min="1" step="1" max="200" required class="plot-navg-input"></span></label>
+        <button type="button" class="reset-cumulative-averager-btn" hidden>Reset XY average</button><div id="reference-clock"></div>
+        <label class="control-field" title="Extra fractional bits preserve smaller phase changes, at the cost of phase range.">Phase precision
+          <select id="phase-precision">
+            <option value="0">Standard</option>
+            <option value="1">+1 bit</option><option value="2">+2 bits</option>
+            <option value="3">+3 bits</option><option value="4">+4 bits</option>
+            <option value="5">+5 bits</option><option value="6">+6 bits</option>
+            <option value="7">+7 bits</option><option value="8">+8 bits</option>
+          </select>
+        </label>
+        <span id="precision-status" class="precision-status" role="status">Waiting…</span>
       </div>
-      <div class="plot-actions"><div id="export-file"></div><button class="save-cfg" onclick="app.phaseNoiseAnalyzer.saveConfig()">Save config</button></div>
-    </div>
+      <div class="display-controls"><div class="segmented">
+        <label><input type="radio" name="laser-plot-type" value="phase" checked class="laser-plot-type"><span>Phase noise</span></label>
+        <label><input type="radio" name="laser-plot-type" value="frequency" class="laser-plot-type"><span>Frequency noise</span></label>
+      </div><span id="spectrum-unit" class="spectrum-unit">dBc/Hz</span><label class="toggle"><input type="checkbox" id="show-smoothed-trace">Smoothed</label></div>
+      <div class="config-actions"><button type="button" class="save-cfg" title="Save analyzer and local oscillator settings on the board.">Save settings</button><span id="save-config-status" class="sr-only" role="status"></span></div>
+      <div id="dds-frequency" class="oscillator-controls"></div>
+    </fieldset>
+    <fieldset id="plot-controls" disabled class="spectrum-toolbar">
+      <legend class="sr-only">Spectrum actions and export</legend>
+      <div class="plot-actions"><button id="fit-view" type="button" disabled title="Reset plot zoom to the full spectrum">Fit</button><div id="reference-actions" class="toolbar-actions"><button id="capture-reference" type="button" disabled title="Capture the displayed spectrum as a reference">Capture ref</button><button id="clear-reference" type="button" disabled title="Clear the reference spectrum">Clear ref</button></div><div id="export-file"></div></div>
+    </fieldset>
+  </div>
+  <section class="spectrum-panel" aria-label="Noise spectrum">
     <div id="plot-wrap">
-      <div id="plot-placeholder" class="plot-placeholder" aria-label="Live noise spectrum"></div>
+      <div id="plot-placeholder" class="plot-placeholder" aria-label="Noise spectrum"></div>
       <div id="plot-basics"></div>
-      <div id="plot-empty" class="plot-empty hidden"><div class="plot-empty-card"><h4>Local oscillator not set</h4><p>Set the DDS frequency to start measurement.</p></div></div>
     </div>
     <div class="spectrum-readouts">
       <div><span class="readout-label">Carrier</span><strong class="carrier-power-span">—</strong></div>
       <div><span class="readout-label">Phase jitter</span><strong class="phase-jitter-span">—</strong></div>
       <div><span class="readout-label">Time jitter</span><strong class="time-jitter-span">—</strong></div>
-      <span class="plot-help">Drag to zoom · Double-click to reset</span>
+      <span class="jitter-range"><span class="readout-label">Jitter band</span> <span id="jitter-range">—</span></span>
     </div>
-    <p class="spectrum-note">Magnitude in dB · Red markers: negative estimates · Smoothing averages signed values first.</p>
   </section>
-  <div class="measurement-details">
-    <section aria-label="Noise at decade offsets"><table id="decade-values-table"></table></section>
-    <details class="signal-details"><summary>Signal paths &amp; interpretation</summary>
-      <p>X = FFT{ Φ(DUT X) − Φ(REF X) }<br>Y = FFT{ Φ(DUT Y) − Φ(REF Y) }</p>
-      <p>Red markers identify negative cross-spectrum estimates. Their displayed magnitude is not a positive noise-power measurement. Nonpositive signed averages are unavailable in the decade table.</p>
-    </details>
-  </div>
+  <aside class="pna-sidebar" aria-label="Measurement details">
+    <div class="measurement-details">
+      <div id="reference-info" class="reference-info" hidden><span class="readout-label">Reference</span><strong id="reference-status"></strong></div>
+      <details class="noise-offsets">
+        <summary>Offset / phase noise</summary>
+        <table id="decade-values-table" aria-label="Noise at decade offsets"></table>
+      </details>
+      <details class="signal-details"><summary>Signal paths &amp; interpretation</summary><p>X compares ADC0/ADC1; Y compares ADC2/ADC3. XY is their signed cross-spectrum.</p><p>The plot shows magnitude in dB. Red markers identify negative estimates. Smoothing averages signed values before conversion; nonpositive decade averages remain unavailable.</p></details>
+    </div>
+  </aside>
 </main>
 
   <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
@@ -92,6 +110,7 @@
   <script language="javascript" type="text/javascript" src="jquery.flot.canvas.js"></script>
 
   <script src="app.js"></script>
+
 </body>
 
 </html>

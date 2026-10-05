@@ -7,7 +7,7 @@ const ts = require('typescript');
 const root = path.resolve(__dirname, '../../../..');
 const context = vm.createContext({assert, console, Blob});
 for (const file of ['plot/spectrum-history.ts', 'plot/spectrum-views.ts', 'export-file/export-file.ts']) {
-    vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(root, 'examples/alpha250/fft/web', file), 'utf8'), {
+    vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(root, 'web/fft', file), 'utf8'), {
         compilerOptions: {target: ts.ScriptTarget.ES2020}
     }).outputText, context);
 }

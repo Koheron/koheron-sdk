@@ -1,91 +1,52 @@
 # koheron-sdk
 
-Build high-performance instruments for Xilinx Zynq-based boards with a Make-based toolchain that coordinates FPGA, embedded Linux, C++ servers and web front-ends.
+Build instruments for Xilinx Zynq boards: FPGA designs, Linux images, C++ servers and web interfaces.
 
-> **Breaking change in V1**
-> **TL;DR:** V1 is not backward-compatible with 0.x.
-> - Starting a V1 project? Clone and build the `V1` branch explicitly.
-> - Upgrading from 0.x? Follow **[MIGRATING.md](./MIGRATING.md)**.
-
----
-
-## Table of contents
-
-1. [Features](#features)
-2. [Requirements](#requirements)
-3. [Quick start](#quick-start)
-4. [Configuration model](#configuration-model)
-5. [Development workflow](#development-workflow)
-6. [Creating a new instrument](#creating-a-new-instrument)
-7. [Repository layout](#repository-layout)
-8. [Instrument packaging](#instrument-packaging)
-9. [Image contents](#image-contents)
-10. [Staying on 0.x](#staying-on-0x)
-11. [Further resources](#further-resources)
-12. [Acknowledgments](#acknowledgments)
-
----
-
-## Features
-
-- Unified `make` flow to build FPGA bitstreams, Linux images, TCP/WebSocket servers and web interfaces.
-- Optimized for rapid iteration on Zynq-7000 and Zynq UltraScale+ instruments.
-- Generates deployable instrument archives that can be pushed to boards over HTTP.
-- Supports per-project Vivado block designs, memory maps and driver customisation via modular makefiles.
-
----
+> **V1 is the default branch and recommended for new instrument development.** It remains under development ahead of the major release.
+> Boards ship with V0; use a V1 OS image for V1 development. V1 images do not support V0 instruments.
+> See [MIGRATING.md](./MIGRATING.md) for porting or [Staying on 0.x](#staying-on-0x) for the supplied image.
 
 ## Requirements
 
-The SDK is developed and tested on **Ubuntu 24.04** with **Vivado/Vitis 2025.1** installed in `/tools/Xilinx`.
+Reference host: **Ubuntu 24.04** with **Vivado/Vitis 2025.1** under `/tools/Xilinx/2025.1`. Override `VIVADO_PATH` and `VITIS_PATH` on the Make command line for other installation paths.
 
-Run the helper target to prepare the host:
-
-```bash
-make setup
-```
-
-`make setup` installs host dependencies, the Koheron Python package, Docker, and the SDK Docker images. It prompts for sudo authentication when needed.
-
-Additional board-specific dependencies (Vivado board files, licenses, etc.) should be installed before launching the build.
-
----
+Install Vivado/Vitis and any required board files or licenses separately. `make setup` installs host dependencies, the Python environment and Koheron package, Docker and SDK Docker images.
 
 ## Quick start
 
 ```bash
-git clone -b V1 https://github.com/Koheron/koheron-sdk.git
+git clone https://github.com/Koheron/koheron-sdk.git
 cd koheron-sdk
 make setup
 
-# Build an example instrument archive
-make -j CFG=examples/alpha250/fft/config.mk
-
-# Build a bootable SD card image
+# Build an ALPHA250 image with the FFT instrument
 make -j CFG=examples/alpha250/fft/config.mk image
+```
 
-# Deploy the instrument to a board via HTTP
+Extract the `.img` from `tmp/examples/alpha250/fft/alpha250-fft.zip` and write it to an SD card. Writing erases the card; keep the supplied V0 card to return to V0.
+
+Insert the card with the board powered off, then boot and find its IP address. The image includes the FFT instrument. Use an example for your board when setting `CFG`.
+
+Build and deploy subsequent instrument changes:
+
+```bash
 make -j CFG=examples/alpha250/fft/config.mk HOST=192.168.1.100 run
 ```
 
-Replace `CFG` with the path to another `config.mk` to target a different instrument or board.
-
----
+`run` streams logs after starting the instrument. `Ctrl+C` stops the stream and leaves it running. The [Python upload/run API](https://www.koheron.com/software-development-kit/documentation/v1/python-api/#upload-and-run-an-instrument) returns after deployment for scripts and agents. Rebuild the image for OS, kernel, boot, board support or default instrument changes.
 
 ## Configuration model
 
-V1 no longer uses the old `CONFIG=.../config.yml` flow. Each instrument is selected with `CFG=.../config.mk`:
+`CFG` selects the instrument's `config.mk`:
 
-- `config.mk` contains build settings such as the instrument name, board path, Vivado cores, drivers and web assets.
-- `memory.yml` lives next to `config.mk` and defines the memory map, registers, Linux devices and build-time parameters used to generate FPGA, C++ and device-tree artefacts.
+- `config.mk`: name, board, FPGA cores, constraints, drivers and web assets.
+- `memory.yml`: memory map, registers, Linux mappings and parameters; generates Tcl, C++ and device-tree definitions.
 
-For example, `examples/alpha250/fft/config.mk` selects the Alpha250 board, FFT drivers and web files, while `examples/alpha250/fft/memory.yml` defines register regions, `/dev/mem_wc` mappings and parameters such as `fft_size`.
-
----
+`SDK_PATH` is the SDK root; `PROJECT_PATH` is the directory containing `config.mk`.
 
 ## Development workflow
 
-Common targets provided by the top-level `Makefile`:
+Pass `CFG=.../config.mk` to build and deployment targets. `make help` lists targets; `VERBOSE=1` adds build details.
 
 | Command | Description |
 | --- | --- |
@@ -95,34 +56,26 @@ Common targets provided by the top-level `Makefile`:
 | `make web` | Builds the TypeScript/CSS assets for the web UI. |
 | `make os` | Builds the Linux root filesystem for the selected board. |
 | `make image` | Produces a bootable SD card image combining OS, boot files and instrument artefacts. |
-| `make run` | Uploads and starts the instrument on a remote board through the HTTP API. |
-
-Verbose logs are available by passing `VERBOSE=1`, and the active board/instrument configuration is controlled through the `CFG` variable.
-
----
+| `make run` | Builds, uploads and starts the instrument, then streams logs. |
+| `make copy CFG=... DEST=...` | Copies an instrument's sources and sets its package name from the destination directory. |
+| `make doctor` | Checks host tools and an optional `CFG`. |
+| `make list` | Lists example instruments. |
+| `make validate CFG=...` | Validates `config.mk` and `memory.yml`. |
 
 ## Creating a new instrument
 
-Start by copying a nearby example, then edit the build settings, memory map, drivers and web UI for your hardware design.
-
-```text
-examples/<board>/<instrument>/
-  config.mk
-  memory.yml
-  block_design.tcl
-  <driver>.hpp
-  <driver>.cpp
-  web/
+```bash
+make copy CFG=examples/alpha250/fft/config.mk DEST=examples/alpha250/my-instrument
 ```
 
-For example:
+`copy` sets `NAME := my-instrument`; the archive and stored instrument use this name. It refuses an existing destination or the source name. Metadata and dependency caches are skipped.
+
+Board settings, `VERSION`, driver names and shared SDK references are preserved. The API class remains `FFT`. Change hard-coded client instrument names, such as `connect(host, 'fft')`, to `my-instrument`.
 
 ```bash
-cp -r examples/alpha250/fft examples/alpha250/my-instrument
+make validate CFG=examples/alpha250/my-instrument/config.mk
 make -j CFG=examples/alpha250/my-instrument/config.mk
 ```
-
----
 
 ## Repository layout
 
@@ -137,54 +90,47 @@ server/    # C++ server sources and build rules
 web/       # Front-end assets shared across instruments
 ```
 
-Exploring these directories is the best way to learn how to assemble your own instrument configuration.
-
 Within `fpga/`, `cores/` contains reusable RTL primitives, `modules/` contains
 Tcl assemblies, and [`ip/`](./fpga/ip/) contains configurable Vivado IP
 subsystems, starting with the AXI DDS phase modulator.
 
----
-
 ## Instrument packaging
 
-Running `make` with `CFG` set produces `<instrument>.zip` in `tmp/<board>/instruments/`. Each archive contains:
+Instrument ZIP: `tmp/<project>/<NAME>.zip`, also copied to `tmp/<board>/instruments/<NAME>.zip`. Contents:
 
 - Runtime FPGA bitstream binary loaded by FPGA Manager (`.bit.bin`).
 - Device-tree overlay (`pl.dtbo`).
 - Original Vivado bitstream kept for debugging/reference (`.bit`).
 - Compiled server executable (`serverd`).
-- Driver JSON generated from the selected drivers.
+- Driver metadata (`drivers.json`).
 - Built web assets referenced by the server.
 - A `version` file tying the artefacts together.
 
-The instrument archive can be uploaded with `make run` or the HTTP API directly, and is consumable by the Python client utilities located in [`python/`](./python).
-
----
-
 ## Image contents
 
-Generated SD card images boot **Ubuntu 24.04.3** with the **`xilinx-linux-v2025.1`** kernel. The runtime environment includes:
+Generated SD card images boot **Ubuntu 24.04.5** with the **`xilinx-linux-v2025.1`** kernel. The runtime environment includes:
 
 - **nginx** serving static files and proxying **WebSocket** traffic.
-- An HTTP API (powered by **uWSGI**) to upload, start and stop instruments.
+- An HTTP API (powered by **uWSGI**) for uploads and instrument management.
 
-This setup lets you iterate rapidly without having to rebuild the entire OS for every code change.
-
----
+See [OS image build notes](./os/README.md) for settings and tests.
 
 ## Staying on 0.x
 
-If you rely on the 0.x toolchain, use a published 0.x release such as **V0.24** from the GitHub releases page. A dedicated `v0-maintenance` branch is not referenced here until it is published.
+Use the [`master` branch](https://github.com/Koheron/koheron-sdk/tree/master) with the V0 image supplied with your board:
 
----
+```bash
+git clone -b master https://github.com/Koheron/koheron-sdk.git
+```
+
+Follow the [V0 documentation](https://www.koheron.com/software-development-kit/documentation/) and use `CONFIG=.../config.yml`. [V0 images](https://www.koheron.com/software-development-kit/documentation/ubuntu-zynq/) remain available. For a fixed SDK revision, use a published 0.x release such as [V0.24](https://github.com/Koheron/koheron-sdk/releases/tag/V0.24).
 
 ## Further resources
 
+- [AGENTS.md](./AGENTS.md) — short SDK hints for coding agents.
 - [MIGRATING.md](./MIGRATING.md) — guidance for upgrading existing instruments to V1.
 - [boards/](./boards) — board definitions and bootloader settings.
 - [examples/](./examples) — complete reference designs you can adapt for your projects.
-
----
 
 ## Acknowledgments
 

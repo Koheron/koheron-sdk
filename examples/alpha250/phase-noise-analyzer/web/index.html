@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>Koheron</title>
+  <title>Phase noise · ALPHA250 · Koheron</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Koheron">
   <meta charset="utf-8">
@@ -16,157 +16,106 @@
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
-  <link rel="stylesheet" type="text/css" href="phase-noise.css">
-  <link rel="stylesheet" type="text/css" href="phase-noise-plot.css">
+  <link rel="stylesheet" href="phase-noise-plot.css">
+  <link rel="stylesheet" href="phase-noise.css">
+  <link rel="stylesheet" href="phase-precision.css">
+  <link rel="stylesheet" href="phase-modulator.css">
 
   <script type="text/javascript" src="html-imports.min.js"></script>
 
   <script type="text/javascript" src="jquery.min.js"></script>
   <script type="text/javascript" src="bootstrap.min.js"></script>
 
-  <link rel="import" href="navigation.html" data-parent="navigation">
   <link rel="import" href="dds-frequency.html" data-parent="dds-frequency">
   <link rel="import" href="reference-clock.html" data-parent="reference-clock">
   <link rel="import" href="plot-basics.html" data-parent="plot-basics">
   <link rel="import" href="export-file.html" data-parent="export-file">
 </head>
 
-<body>
-
-<div id="navigation"></div>
-  <div id="main" class="container-fluid" style="padding: 10px">
-    <div class="row">
-      <div class="col-md-8">
-        <div id="plot-wrap">
-          <div id="plot-placeholder" class="plot-placeholder"></div>
-          <div id="plot-empty" class="plot-empty hidden">
-            <div class="plot-empty-card">
-              <h4>Local oscillator not set</h4>
-              <p>Set the DDS frequency to start measurement.</p>
-            </div>
-          </div>
-        </div>
-
-        <div id="plot-basics"></div>
+<body class="pna-workspace" data-board="alpha250">
+<header class="app-header">
+  <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
+  <h1>Phase noise</h1><span class="board-tag">ALPHA250 · 200 MS/s</span>
+  <span id="refresh-rate" class="board-tag" title="New spectra displayed per second; polling target 60/s; cached replies excluded">— FPS</span>
+  <span class="connection-control">
+  <span id="connection-status" class="connection-status" role="status" data-state="connecting">Connecting…</span>
+    <span id="connection-error" class="connection-error" role="alert" hidden><span id="connection-error-message" class="sr-only">Unable to connect to the phase-noise analyzer.</span><button type="button" onclick="location.reload()">Retry</button></span>
+  </span>
+  <nav aria-label="Board navigation"><a href="/koheron">Instruments</a><a href="/koheron/logs_rate.html">Logs &amp; data rates</a></nav>
+</header>
+<main id="main">
+  <div class="measurement-toolbar">
+    <fieldset id="instrument-controls" disabled class="instrument-toolbar">
+      <legend class="sr-only">Acquisition settings and reference oscillators</legend>
+      <div class="acquisition-controls">
+        <div class="control-field"><span class="control-label">Input</span><div class="segmented">
+          <label><input type="radio" name="channel" value="0" checked class="channel-input" data-valuestr="0" data-command="setChannel"><span>ADC 0</span></label>
+          <label><input type="radio" name="channel" value="1" class="channel-input" data-valuestr="1" data-command="setChannel"><span>ADC 1</span></label>
+        </div></div>
+        <label class="control-field" title="CIC decimation rate">Decimation<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="20" min="4" step="1" max="8192" required data-command="setCicRate" class="cic-rate-input"></span></label>
+        <label class="control-field">Averages<span class="pna-digit-control pna-average-control"><span id="average-status" role="status" data-state="unknown" title="Actual spectra in the rolling average">—/</span><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1" min="1" step="1" max="100" required class="plot-navg-input"></span></label>
+        <div id="reference-clock"></div>
+        <label class="control-field" title="Extra fractional bits preserve smaller phase changes, at the cost of phase range.">Phase precision
+          <select id="phase-precision">
+            <option value="0">Standard</option>
+            <option value="1">+1 bit</option><option value="2">+2 bits</option>
+            <option value="3">+3 bits</option><option value="4">+4 bits</option>
+            <option value="5">+5 bits</option><option value="6">+6 bits</option>
+            <option value="7">+7 bits</option><option value="8">+8 bits</option>
+          </select>
+        </label>
+        <span id="precision-status" class="precision-status" role="status">Waiting…</span>
       </div>
-
-      <div class="col-md-3">
-        <section style="margin-bottom: 20px;">
-          <div id="reference-clock"></div>
-        </section>
-
-        <section id="dds-frequency"></section>
-
-        <section style="margin-bottom: 20px;">
-          <div class="crossed">
-            <span>Acquisition</span>
-          </div>
-
-          <label for="channel-clock">Channel:</label>
-          <div class="radio-wrapper">
-            <input type="radio" name="channel" value="0" checked class="channel-input" data-valuestr="0" data-command="setChannel">0
-          </div>
-          <div class="radio-wrapper">
-            <input type="radio" name="channel" value="1" class="channel-input" data-valuestr="1" data-command="setChannel">1
-          </div>
-
-          <table class="full-width" style="margin-top: 20px;">
-            <tr>
-              <td style="width: 160px">
-                Decimation Rate
-              </td>
-              <td style="width: 120px">
-                <input type="number" value="20" min="4" step="1" max="8192" data-command="setCicRate" class="cic-rate-input">
-              </td>
-            </tr>
-            <tr>
-              <td style="width: 160px">
-                Averages
-              </td>
-              <td style="width: 120px">
-                <input type="number" value="1" min="1" step="1" max="1000" class="plot-navg-input">
-              </td>
-            </tr>
-          </table>
-        </section>
-
-        <section style="margin-bottom: 20px;">
-          <details id="laser-section" class="collapsible"><!-- add "open" if you want it expanded by default -->
-            <summary class="collapsible-summary">
-              <span class="chevron" aria-hidden="true"></span>
-              <div class="crossed flex-fill">
-                <span>Laser Phase Noise Analysis</span>
-              </div>
-            </summary>
-
-            <table class="full-width" style="margin-top: 20px;">
-              <tr>
-                <td style="width: 160px">
-                  Enable Laser Mode
-                </td>
-                <td style="width: 120px">
-                  <input type="checkbox" class="laser-mode-input">
-                </td>
-              </tr>
-              <tr>
-                <td style="width: 200px">
-                  Interferometer delay (ns)
-                </td>
-                <td style="width: 120px">
-                  <input type="number" value="1" min="1" step="1" max="1000" disabled=1 class="interferometer-delay">
-                </td>
-              </tr>
-              <tr>
-                <td style="width: 160px">
-                  Plot
-                </td>
-                <td style="width: 250px">
-                  <div class="radio-wrapper">
-                    <input type="radio" name="laser-plot-type" value="phase" checked class="laser-plot-type">Phase Noise (dBc/Hz)
-                  </div>
-                  <div class="radio-wrapper">
-                    <input type="radio" name="laser-plot-type" value="frequency" class="laser-plot-type">Frequency Noise (dB Hz<sup>2</sup>/Hz)
-                  </div>
-                </td>
-              </tr>
-            </table>
-          </details>
-        </section>
-
-        <section style="margin-bottom: 20px;">
-          <div class="crossed">
-            <span>Measurements</span>
-          </div>
-          <table class="full-width">
-            <tr>
-              <td>Carrier Power</td>
-              <td style="text-align: right">
-                <span class="carrier-power-span"></span>
-              </td>
-            </tr>
-            <tr>
-              <td>Phase Jitter</td>
-              <td style="text-align: right">
-                <span class="phase-jitter-span"></span>
-              </td>
-            </tr>
-            <tr>
-              <td>Time Jitter</td>
-              <td style="text-align: right">
-                <span class="time-jitter-span"></span>
-              </td>
-            </tr>
-          </table>
-          <table id="decade-values-table" class="table">
-          </table>
-        </section>
-        <section id="export-file"></section>
-        <section style="margin-bottom: 20px;"></section>
-        <button class="default-btn save-cfg" onclick="app.phaseNoiseAnalyzer.saveConfig()">Save Config</button>
-      </section>
-      </div>
-    </div>
+      <div class="display-controls"><div class="segmented">
+        <label><input type="radio" name="laser-plot-type" value="phase" checked class="laser-plot-type"><span>Phase noise</span></label>
+        <label><input type="radio" name="laser-plot-type" value="frequency" class="laser-plot-type"><span>Frequency noise</span></label>
+      </div><span id="spectrum-unit" class="spectrum-unit">dBc/Hz</span><label class="toggle"><input type="checkbox" id="show-smoothed-trace">Smoothed</label></div>
+      <div class="config-actions"><button type="button" class="save-cfg" title="Save analyzer and local oscillator settings on the board. DAC settings are independent.">Save settings</button><span id="save-config-status" class="sr-only" role="status"></span></div>
+      <div id="dds-frequency" class="oscillator-controls"></div>
+    </fieldset>
+    <fieldset id="plot-controls" disabled class="spectrum-toolbar">
+      <legend class="sr-only">Spectrum actions and export</legend>
+      <div class="plot-actions"><button id="fit-view" type="button" disabled title="Reset plot zoom to the full spectrum">Fit</button><div id="reference-actions" class="toolbar-actions"><button id="capture-reference" type="button" disabled title="Capture the displayed spectrum as a reference">Capture ref</button><button id="clear-reference" type="button" disabled title="Clear the reference spectrum">Clear ref</button></div><div id="export-file"></div></div>
+    </fieldset>
   </div>
+  <section class="spectrum-panel" aria-label="Noise spectrum">
+    <div id="plot-wrap">
+      <div id="plot-placeholder" class="plot-placeholder" aria-label="Noise spectrum"></div>
+      <div id="plot-basics"></div>
+    </div>
+    <div class="spectrum-readouts">
+      <div><span class="readout-label">Carrier</span><strong class="carrier-power-span">—</strong></div>
+      <div><span class="readout-label">Phase jitter</span><strong class="phase-jitter-span">—</strong></div>
+      <div><span class="readout-label">Time jitter</span><strong class="time-jitter-span">—</strong></div>
+      <span class="jitter-range"><span class="readout-label">Jitter band</span> <span id="jitter-range">—</span></span>
+    </div>
+  </section>
+  <aside class="pna-sidebar" aria-label="Signal generator and measurement details">
+    <details class="pna-generator" open>
+      <summary>DAC signal generator</summary>
+      <div id="phase-modulator" class="dds-pm-widget" aria-label="DAC signal generator" style="--pm-loading-channels: 2">
+        <div class="pm-initial-layout" aria-hidden="true"></div>
+      </div>
+    </details>
+    <div class="measurement-details">
+      <div id="reference-info" class="reference-info" hidden><span class="readout-label">Reference</span><strong id="reference-status"></strong></div>
+      <details class="noise-offsets">
+        <summary>Offset / phase noise</summary>
+        <table id="decade-values-table" aria-label="Noise at decade offsets"></table>
+      </details>
+      <details id="laser-section" class="signal-details">
+        <summary>Laser phase-noise analysis</summary>
+        <fieldset id="laser-controls" disabled>
+          <legend class="sr-only">Laser interferometer settings</legend>
+          <div class="laser-controls">
+            <label class="toggle"><input type="checkbox" class="laser-mode-input">Enable laser mode</label>
+            <label class="control-field">Interferometer delay (ns)<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1" min="1" step="1" max="1000" required disabled class="interferometer-delay"></span></label>
+          </div>
+        </fieldset>
+      </details>
+    </div>
+  </aside>
+</main>
 
   <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
@@ -175,8 +124,7 @@
   <script language="javascript" type="text/javascript" src="jquery.flot.axislabels.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.canvas.js"></script>
 
-  <script src="app.js?random=<?php echo uniqid(); ?>"></script>
-</div>
+  <script src="app.js"></script>
 
 </body>
 

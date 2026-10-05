@@ -9,6 +9,20 @@ export DEBIAN_FRONTEND=noninteractive
 export LANG=C
 export LC_ALL=C
 
+# Package installation must not start services in the build chroot.
+policy_created=0
+if [ ! -e /usr/sbin/policy-rc.d ]; then
+  printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d
+  chmod 0755 /usr/sbin/policy-rc.d
+  policy_created=1
+fi
+cleanup_policy() {
+  if [ "$policy_created" -eq 1 ]; then
+    rm -f /usr/sbin/policy-rc.d
+  fi
+}
+trap cleanup_policy EXIT
+
 # PATH for login shells
 cat >/etc/environment <<'EOF'
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/koheron-server"
@@ -55,13 +69,14 @@ deb http://ports.ubuntu.com/ubuntu-ports noble-security main universe
 EOF_SOURCES
 rm -f /etc/apt/sources.list.d/ubuntu.sources
 
-# /dev/null safety
-rm -f /dev/null && mknod /dev/null c 1 3 && chmod 666 /dev/null
+# /dev is bind-mounted from the builder; never replace its device nodes.
+test -c /dev/null
 
 # Minimal modules file for dpkg triggers’ sanity
 install -D -m0644 /dev/null /etc/modules
 
-apt-get update
+# Do not build from stale indexes when a repository refresh only partly succeeds.
+apt-get update --error-on=any
 apt-get -yq -o Dpkg::Use-Pty=0 install --no-install-recommends locales eatmydata tzdata
 
 # systemd-related system users (tmpfiles expects them)
@@ -86,5 +101,5 @@ eatmydata apt-get -yq install -o Dpkg::Use-Pty=0 --no-install-recommends \
 # Clean & hygiene
 eatmydata apt-get clean
 rm -rf /var/lib/apt/lists/*
-echo "root:${PASSWD}" | chpasswd
+printf 'root:%s\n' "$PASSWD" | chpasswd
 rm -f /root/.bash_history /root/.ash_history /root/.python_history /root/.lesshst || true

@@ -1,29 +1,11 @@
 <template class="template">
-  <div class="crossed">
-    <span>DDS Frequency (MHz)</span>
+  <span class="oscillator-label">Local oscillators</span>
+  <div class="oscillator-grid">
+    <div class="oscillator-field"><label for="lo-0">LO 0</label><span class="pna-digit-control"><input id="lo-0" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="0" min="0" step="0.000001" max="100" required class="dds-input dds-input0" title="Nominal analyzer reference frequency in MHz; tracking adds the displayed correction"><select class="lo-unit" aria-label="Frequency unit"><option>Hz</option><option>kHz</option><option selected>MHz</option><option>GHz</option></select></span></div>
+    <div class="oscillator-field"><label for="lo-1">LO 1</label><span class="pna-digit-control"><input id="lo-1" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="0" min="0" step="0.000001" max="100" required class="dds-input dds-input1" title="Nominal analyzer reference frequency in MHz; tracking adds the displayed correction"><select class="lo-unit" aria-label="Frequency unit"><option>Hz</option><option>kHz</option><option selected>MHz</option><option>GHz</option></select></span></div>
   </div>
-  <table class="full-width">
-    <tr>
-      <td style="width: 60px">
-        OUT 0
-      </td>
-      <td style="width: 120px">
-        <input type="number" value="0" min="0" step="0.000001" max="125.0" class="dds-input0">
-      </td>
-      <td>
-        <button class="default-btn dds-set0">Set LO0</button>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        OUT 1
-      </td>
-      <td>
-        <input type="number" value="0" min="0" step="0.000001" max="125.0" class="dds-input1">
-      </td>
-      <td>
-        <button class="default-btn dds-set1">Set LO1</button>
-      </td>
-    </tr>
-  </table>
+  <div class="tracking-controls">
+    <label class="toggle" title="Track the selected ADC carrier slowly. Turning off restores the nominal LO frequencies."><input type="checkbox" class="tracking-enabled-input">Slow tracking</label>
+    <span class="tracking-readout"><span class="tracking-state">Off</span><span>BW ≤ <span class="tracking-effective-bandwidth">---</span> Hz</span><span>LO 0 <span class="tracking-correction-0">---</span> Hz</span><span>LO 1 <span class="tracking-correction-1">---</span> Hz</span></span>
+  </div>
 </template>

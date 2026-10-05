@@ -27,7 +27,7 @@ class WebSocket
     void set_id(int comm_fd_);
     int authenticate();
 
-    template<uint32_t HEADER_SIZE, uint32_t CMD_PAYLOAD_BUFFER_LEN>
+    template<std::size_t HEADER_SIZE, std::size_t CMD_PAYLOAD_BUFFER_LEN>
     int receive_cmd(Buffer<HEADER_SIZE>& cmd_header,
                     Buffer<CMD_PAYLOAD_BUFFER_LEN>& cmd_payload);
 
@@ -101,7 +101,7 @@ class WebSocket
     // Internal functions
     int read_http_packet();
 
-    template<uint32_t HEADER_SIZE, uint32_t PAYLOAD_SIZE>
+    template<std::size_t HEADER_SIZE, std::size_t PAYLOAD_SIZE>
     int decode_raw_stream_cmd(Buffer<HEADER_SIZE>& cmd_header,
                               Buffer<PAYLOAD_SIZE>& cmd_payload);
     int read_stream();
@@ -232,7 +232,7 @@ int WebSocket::send(const Rh& h, const Rp& p) {
     return static_cast<int>(total);
 }
 
-template<uint32_t HEADER_SIZE, uint32_t CMD_PAYLOAD_BUFFER_LEN>
+template<std::size_t HEADER_SIZE, std::size_t CMD_PAYLOAD_BUFFER_LEN>
 int WebSocket::receive_cmd(Buffer<HEADER_SIZE>& cmd_header,
                            Buffer<CMD_PAYLOAD_BUFFER_LEN>& cmd_payload) {
     if (connection_closed) [[unlikely]] {
@@ -256,7 +256,7 @@ int WebSocket::receive_cmd(Buffer<HEADER_SIZE>& cmd_header,
     return header.payload_size;
 }
 
-template<uint32_t HEADER_SIZE, uint32_t PAYLOAD_SIZE>
+template<std::size_t HEADER_SIZE, std::size_t PAYLOAD_SIZE>
 int WebSocket::decode_raw_stream_cmd(Buffer<HEADER_SIZE>& cmd_header,
                                      Buffer<PAYLOAD_SIZE>& cmd_payload) {
     // We need: base header up to mask, +4 mask bytes, + payload bytes
@@ -269,7 +269,7 @@ int WebSocket::decode_raw_stream_cmd(Buffer<HEADER_SIZE>& cmd_header,
         return -1;
     }
 
-    if (header.payload_size < HEADER_SIZE) {
+    if (header.payload_size < static_cast<int64_t>(HEADER_SIZE)) {
         log<CRITICAL>("WebSocket: payload smaller than command header\n");
         return -1;
     }

@@ -41,12 +41,13 @@ int main() {
     const double expected = std::pow(1.0 + 6.0 / (scicpp::pi<double> * scicpp::pi<double> * 4.0 * 3.0), 2);
     assert(std::abs(ratio - expected) < .001);
     // Exercise the actual production cross-spectrum and cumulative average.
+    pna_spectrum::MultirateSpectrum cached_spectrum;
     const auto shared = pna_spectrum::cross_density(tone, tone,
-        scicpp::units::frequency<float>{1e6f}, spectrum);
+        scicpp::units::frequency<float>{1e6f}, cached_spectrum);
     auto opposite = tone;
     for (auto& value : opposite) value = -value;
     const auto opposed = pna_spectrum::cross_density(tone, opposite,
-        scicpp::units::frequency<float>{1e6f}, spectrum);
+        scicpp::units::frequency<float>{1e6f}, cached_spectrum);
     using Density = typename decltype(shared)::value_type;
     CumulativeAverager<Density> average;
     for (std::size_t i = 0; i < shared.size(); ++i) {

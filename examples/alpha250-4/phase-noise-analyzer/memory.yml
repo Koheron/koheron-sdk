@@ -10,6 +10,8 @@ memory:
     - cordic
     - cic_rate
     - scaling[4]
+    - phase_precision
+    - acquisition_run
   - name: ps_control
     offset: 0x6000_0000
     range: 4K
@@ -23,6 +25,7 @@ memory:
     - adc[n_adc]
     - demod[n_adc]
     - fifo_wr_data_count[2]
+    - sample_gap
   - name: ps_status
     offset: 0x7000_0000
     range: 4K
@@ -45,7 +48,7 @@ memory:
     range: 4K
   - name: mux
     offset: 0x8001_0000
-    range: 4K
+    range: 8K
 
 parameters:
   fclk0: 200000000
@@ -61,3 +64,6 @@ parameters:
   cic_decimation_rate_max: 8192
   cic_n_stages: 6
   n_pts: 262144
+  phase_filter_width: 40
+  cordic_phase_width: 24
+  phase_accumulator_width: 64

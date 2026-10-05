@@ -15,7 +15,7 @@ function environment(t) {
             compilerOptions: {target: ts.ScriptTarget.ES2020}
         }).outputText + '\nwindow.TestDriver = typeof PhaseModulatorDriver !== "undefined" ? PhaseModulatorDriver : window.TestDriver;' +
             '\nwindow.TestWidget = typeof PhaseModulatorWidget !== "undefined" ? PhaseModulatorWidget : window.TestWidget;' +
-            '\nif (typeof FrequencyInput !== "undefined") window.FrequencyInput = FrequencyInput;' +
+            '\nif (typeof FrequencyInput !== "undefined") { window.FrequencyInput = FrequencyInput; window.NumberInput = NumberInput; }' +
             '\nwindow.TestClient = typeof Client !== "undefined" ? Client : window.TestClient;');
     }
     return dom.window;
@@ -37,7 +37,7 @@ function change(window, root, channel, field, value) {
     input.dispatchEvent(new window.Event('change', {bubbles: true}));
     return input;
 }
-const settle = () => new Promise(resolve => setTimeout(resolve, 10));
+const settle = () => new Promise(resolve => setTimeout(resolve, 20));
 
 test('opening reads current hardware without writes; widget instances are isolated', async t => {
     const window = environment(t);
@@ -81,7 +81,7 @@ test('number edits validate before commands; typing alone does not commit', asyn
     input.dispatchEvent(new window.Event('change', {bubbles: true}));
     await settle();
     assert.deepEqual(driver.calls, [[0, 'carrier', 11e6]]);
-    assert.match(target.querySelector('.pm-status').textContent, /Amplitude:/); // An unrelated acknowledgement preserves invalid entry.
+    assert.match(target.querySelector('.pm-status').textContent, /PM depth:/); // An unrelated acknowledgement preserves invalid entry.
     target.querySelector('[data-field="deviation"]').dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
     assert.equal(target.querySelector('.pm-status').hidden, true);
 });
@@ -125,7 +125,7 @@ test('readbacks preserve numeric drafts and their validation until correction or
     assert.equal(input.value, '361');
     assert.equal(input.getAttribute('aria-invalid'), 'true');
     assert(input.getAttribute('aria-description'));
-    assert.match(target.querySelector('.pm-status').textContent, /Amplitude:/);
+    assert.match(target.querySelector('.pm-status').textContent, /PM depth:/);
     assert.equal(target.querySelector('.pm-status').getAttribute('role'), 'alert');
     input.value = '2'; input.dispatchEvent(new window.Event('input', {bubbles: true}));
     assert.equal(input.hasAttribute('aria-invalid'), false);
@@ -137,7 +137,7 @@ test('readbacks preserve numeric drafts and their validation until correction or
     input.dispatchEvent(new window.Event('change', {bubbles: true}));
     driver.set = async () => { throw new Error('Sample clock stopped'); };
     target.querySelector('[data-action="output"]').click(); await settle();
-    assert.match(target.querySelector('.pm-status').textContent, /Sample clock stopped.*Amplitude:/);
+    assert.match(target.querySelector('.pm-status').textContent, /Sample clock stopped.*PM depth:/);
     input.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
     assert.match(target.querySelector('.pm-status').textContent, /^(?:Error: )?Sample clock stopped$/);
 });
@@ -241,7 +241,7 @@ test('pending commands lock only their channel; failures show accepted hardware 
     change(window, target, 0, 'carrier', 12);
     await settle();
     assert.equal(target.querySelector('[data-channel="0"] fieldset').getAttribute('aria-busy'), 'true');
-    assert.equal(target.querySelector('[data-field="phase"]').readOnly, true);
+    assert.equal(target.querySelector('[data-field="phase"]').readOnly, false); // Every numeric tuner can queue behind the channel operation.
     assert.equal(input.readOnly, false); // Digit tuning can accumulate while a request is pending.
     assert.equal(window.document.activeElement, input); // Pending commits retain keyboard focus.
     assert.equal(target.querySelector('[data-channel="1"] fieldset').disabled, false);
@@ -535,4 +535,35 @@ test('trackpad accumulation resets between gestures and selected digits', async 
     wheel(); wheel(); wheel(); await settle(); assert.equal(f.calls.length, 0);
     wheel(); await settle();
     assert.deepEqual(f.calls, [10.0001e6]);
+});
+
+test('all scalar settings use selected-digit tuning, including angles, percent and integer seed', async t => {
+    const window = environment(t); const root = window.document.getElementById('first'); const driver = port(1);
+    const widget = new window.TestWidget(root, driver); await widget.init();
+    assert.equal(root.querySelectorAll('input[type="number"]').length, 0);
+    assert.equal(root.querySelectorAll('input[role="spinbutton"]').length, 6);
+    const amplitude = root.querySelector('[data-field="deviation"]');
+    amplitude.focus();
+    amplitude.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true}));
+    assert.equal(amplitude.value, '1.0');
+    assert.equal(amplitude.selectionEnd - amplitude.selectionStart, 1);
+    root.dispatchEvent(new window.WheelEvent('wheel', {deltaY: -40, bubbles: true, cancelable: true}));
+    await settle();
+    assert.deepEqual(driver.calls, [[0, 'deviation', 1.1]]);
+    assert.equal(amplitude.value, '1.1');
+    const phase = root.querySelector('[data-field="phase"]');
+    phase.focus(); phase.value = '-1'; phase.dispatchEvent(new window.Event('input', {bubbles: true}));
+    phase.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Enter', bubbles: true})); await settle();
+    phase.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'ArrowUp', bubbles: true})); await new Promise(resolve => setTimeout(resolve, 120));
+    assert.equal(driver.values[0].phase, 0);
+    const seed = root.querySelector('[data-field="seed"]');
+    seed.disabled = false; seed.focus();
+    seed.value = '1.5'; seed.dispatchEvent(new window.Event('input', {bubbles: true}));
+    seed.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Enter', bubbles: true})); await settle();
+    assert.equal(driver.values[0].seed, 1);
+    assert.equal(seed.getAttribute('aria-invalid'), 'true');
+    widget.dispose();
+    const calls = driver.calls.length;
+    root.dispatchEvent(new window.WheelEvent('wheel', {deltaY: -40, bubbles: true, cancelable: true}));
+    await settle(); assert.equal(driver.calls.length, calls);
 });

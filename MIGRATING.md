@@ -1,8 +1,10 @@
 # Migrating from Koheron SDK 0.x to V1
 
-V1 changes both the build configuration model and the runtime FPGA-loading path. This guide summarizes the main differences to check when porting an existing 0.x instrument.
+V1 changes the build configuration and FPGA-loading runtime.
 
 ## Runtime compatibility
+
+Boards ship with V0. See the [quick start](./README.md#quick-start) to build and install a V1 image.
 
 - V1 instruments may still run on some V0 OS images through the legacy `/dev/xdevcfg` path.
 - V1 OS images use Linux FPGA Manager and device-tree overlays to load the programmable logic.
@@ -10,9 +12,9 @@ V1 changes both the build configuration model and the runtime FPGA-loading path.
 
 ## Move from `/dev/xdevcfg` to FPGA Manager
 
-`/dev/xdevcfg` is no longer present on V1 OS images. Each V1 instrument ships a device-tree overlay (`pl.dtbo`) alongside the FPGA bitstream binary (`<instrument>.bit.bin`) and relies on the Linux FPGA Manager overlay interface to load the bitstream and configure the PL clocks.
+V1 images use the Linux FPGA Manager overlay interface in place of `/dev/xdevcfg`. Instruments package `pl.dtbo` and `<instrument>.bit.bin` to load the FPGA and configure PL clocks.
 
-The device-tree overlay can be customized to access Linux drivers such as `/dev/uio*` or `/dev/mem_wc*`.
+Device-tree overrides support Linux drivers such as `/dev/uio*` and `/dev/mem_wc*`.
 
 ## `config.yml` is split between `config.mk` and `memory.yml`
 
@@ -24,7 +26,8 @@ make CONFIG=examples/alpha250/fft/config.yml
 make CFG=examples/alpha250/fft/config.mk
 ```
 
-Build settings live in `config.mk` (instrument name, board path, Vivado cores, drivers, web assets, etc.). The memory map, register lists, Linux device mappings and tunable parameters live in `memory.yml`, which is consumed by `make.py` to generate `memory.tcl`, `memory.hpp` and `memory.dtsi`.
+- `config.mk`: name, board, cores, drivers and web assets.
+- `memory.yml`: memory map, registers, Linux mappings and parameters; generates `memory.tcl`, `memory.hpp` and `memory.dtsi`.
 
 ## Device-tree overlay
 
@@ -49,7 +52,7 @@ memory:
     dev: /dev/mem_wc
 ```
 
-The `compatible: "koheron,mem-wc-1.0"` attribute tells the build system to add a fragment in `memory.dtsi`:
+`compatible: "koheron,mem-wc-1.0"` generates this `memory.dtsi` fragment:
 
 ```dtsi
 /* memory.dtsi */
@@ -58,12 +61,12 @@ The `compatible: "koheron,mem-wc-1.0"` attribute tells the build system to add a
     #size-cells    = <1>;
     kmem_ram: ram@1E000000 {
         compatible = "koheron,mem-wc-1.0";
-        reg = <0x1E000000 0x04000000>;
+        reg = <0x1E000000 0x02000000>;
     };
 };
 ```
 
-The `dev: /dev/mem_wc` attribute tells the server to use `/dev/mem_wc@0x1E000000` instead of the default `/dev/mem`.
+`dev: /dev/mem_wc` selects `/dev/mem_wc@0x1E000000` for server memory access; the default is `/dev/mem`.
 
 ### Example 2: Interrupt access in userspace
 
@@ -86,11 +89,11 @@ memory:
 };
 ```
 
-The fragment defined in `override.dtsi` allows Linux to bind the FIFO to a `/dev/uio*` device. The `dev: /dev/uio` attribute tells the server to map to a `/dev/uio*` device that matches the range and offset attributes.
+The override binds the FIFO to `/dev/uio*`. `dev: /dev/uio` selects the device matching the region's offset and range.
 
 ## Other V1 changes
 
-The image can be built in parallel without `sudo`:
+Image builds support parallel execution without `sudo`:
 
 ```bash
 make CFG=examples/alpha250/fft/config.mk -j image

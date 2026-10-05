@@ -1,162 +1,35 @@
-/// PhaseNoiseAnalyzer driver
-///
-/// (c) Koheron
+#pragma once
+#include "phase-noise-board.hpp"
+#include "server/drivers/phase-noise/core.hpp"
 
-#ifndef __PHASE_NOISE_ANALYZER_HPP__
-#define __PHASE_NOISE_ANALYZER_HPP__
+// Keep the analyzer RPC method order and response shapes common across boards.
+class PhaseNoiseAnalyzer {
+ public:
+    PhaseNoiseAnalyzer() = default;
+    void save_config() { core.save_config(); }
+    void set_local_oscillator(uint32_t channel, double freq_hz) { core.set_local_oscillator(channel, freq_hz); }
+    void set_cic_rate(uint32_t rate) { core.set_cic_rate(rate); }
+    void set_channel(uint32_t chan) { core.set_channel(chan); }
+    void set_fft_navg(uint32_t n_avg) { core.set_fft_navg(n_avg); }
+    void set_analyzer_mode(uint32_t mode) { core.set_analyzer_mode(mode); }
+    void set_interferometer_delay(float delay_s) { core.set_interferometer_delay(delay_s); }
+    void set_tracking_enabled(bool enabled) { core.set_tracking_enabled(enabled); }
+    void set_tracking_bandwidth(float bandwidth_hz) { core.set_tracking_bandwidth(bandwidth_hz); }
+    void set_tracking_max_step(float max_step_hz) { core.set_tracking_max_step(max_step_hz); }
+    void set_tracking_max_correction(float max_correction_hz) { core.set_tracking_max_correction(max_correction_hz); }
+    auto get_tracking_parameters() { return core.get_tracking_parameters(); }
+    auto get_parameters() { return core.get_parameters(); }
+    double get_carrier_power(uint32_t navg) { return core.get_carrier_power(navg); }
+    auto get_jitter() { return core.get_jitter(); }
+    auto get_measurements(uint32_t navg) { return core.get_measurements(navg); }
+    auto get_phase() const { return core.get_phase(); }
+    auto get_phase_noise() const { return core.get_phase_noise(); }
+    auto get_average_status() const { return core.get_average_status(); }
 
-#include <array>
-#include <atomic>
-#include <cstdint>
-#include <shared_mutex>
-#include <tuple>
-#include <vector>
-#include <scicpp/core.hpp>
-#include <scicpp/signal.hpp>
+    bool set_phase_precision(uint32_t bits) { return core.set_phase_precision(bits); }
+    auto get_precision_status() { return core.get_precision_status(); }
+    auto get_phase_snapshot() const { return core.get_phase_snapshot(); }
 
-#include "server/runtime/driver_manager.hpp"
-#include "server/hardware/memory_manager.hpp"
-#include "boards/alpha250/drivers/clock-generator.hpp"
-
-#include "./dds.hpp"
-#include "./moving_averager.hpp"
-#include "./phase_calibration.hpp"
-
-namespace rt { class ConfigManager; }
-class DmaS2MM;
-class Ltc2157;
-class Dds;
-
-class PhaseNoiseAnalyzer
-{
-    using Phase = scicpp::units::radian<float>;
-    using Time = scicpp::units::time<float>;
-    using Frequency = scicpp::units::frequency<float>;
-    using PhaseNoiseDensity = scicpp::units::quantity_divide<
-                scicpp::units::quantity_multiply<Phase, Phase>,
-                Frequency>;
-
-    static constexpr uint32_t fft_size = 32768;
-    static constexpr uint32_t data_size = 2 * fft_size;
-    static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2; // Do use the first transfered points
-
-    using PhaseDataArray = std::array<Phase, data_size>;
-    using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
-
-  public:
-    PhaseNoiseAnalyzer();
-    ~PhaseNoiseAnalyzer();
-
-    void save_config();
-    void set_local_oscillator(uint32_t channel, double freq_hz);
-    void set_cic_rate(uint32_t rate);
-    void set_channel(uint32_t chan);
-    void set_fft_navg(uint32_t n_avg);
-    void set_analyzer_mode(uint32_t mode);
-    void set_interferometer_delay(float delay_s);
-
-    auto get_parameters() {
-        return std::tuple{
-            fft_size / 2,
-            fs,
-            channel,
-            cic_rate,
-            fft_navg,
-            dds.get_dds_freq(0),
-            dds.get_dds_freq(1),
-            analyzer_mode,
-            interferometer_delay,
-            rt::get_driver<ClockGenerator>().get_reference_clock()
-        };
-    }
-
-    double get_carrier_power(uint32_t navg); // Carrier power in dBm
-
-    auto get_jitter() {
-        return std::tuple{
-            phase_jitter,
-            time_jitter,
-            f_lo_used,
-            f_hi_used
-        };
-    }
-
-    auto get_measurements(uint32_t navg) {
-        return std::tuple{
-            phase_jitter,
-            time_jitter,
-            f_lo_used,
-            f_hi_used,
-            get_carrier_power(navg)
-        };
-    }
-
-    PhaseDataArray get_phase() const;
-    PhaseNoiseDensityVector get_phase_noise() const;
-
-  private:
-    rt::ConfigManager& cfg;
-    DmaS2MM& dma;
-    Ltc2157& ltc2157;
-    Dds& dds;
-    hw::Memory<mem::control>& ctl;
-    hw::Memory<mem::status>& sts;
-
-    uint32_t channel;
-    uint32_t fft_navg;
-    uint32_t cic_rate;
-    Phase phase_conversion_factor{0.0f}; // Radians per filtered DMA count
-    std::atomic<int32_t> dirty_cnt = 0;
-    Frequency fs_adc, fs;
-    Time dma_transfer_duration;
-
-    std::mutex dma_mtx; // Guard DMA transfer, rate changes and phase processing
-    mutable std::shared_mutex data_mtx; // protects phase & phase_noise
-
-    // Data acquisition thread
-    std::thread acq_thread;
-    std::atomic<bool> acquisition_started{false};
-
-    PhaseDataArray phase;
-
-    // Spectrum analyzer
-    scicpp::signal::Spectrum<float> spectrum;
-    PhaseNoiseDensityVector phase_noise;
-    MovingAverager<PhaseNoiseDensity> averager;
-
-    // Jitter (integrated noise)
-    Phase phase_jitter{0.0f};
-    Time time_jitter{0.0f};
-    Frequency f_lo_used{0.0f}; // Integration interval start
-    Frequency f_hi_used{0.0f}; // Integration interval end
-
-    // Laser phase noise
-    enum AnalyzerMode: uint32_t {
-        RF,   // Return the RF signal phase noise
-        LASER // Return the laser phase noise (compensate for interferometer response)
-    };
-
-    uint32_t analyzer_mode = AnalyzerMode::RF;
-    Time interferometer_delay{0.0f};
-    std::array<float, 1 + fft_size / 2> interferometer_tf{}; // Interferometer transfer function
-
-    // Carrier power
-    scicpp::units::dimensionless<double> conv_factor_dBm;
-    std::array<scicpp::units::electric_potential<double>, 2> vrange;
-
-    // ----------------- Private functions
-
-    void load_config();
-    void reset_phase_unwrapper();
-    // Caller must hold dma_mtx for DMA operations.
-    void kick_dma();
-    auto read_dma();
-    void update_interferometer_transfer_function();
-    void set_power_conversion_factor();
-    auto compute_phase_noise(PhaseDataArray& new_phase);
-    auto compute_jitter(const PhaseNoiseDensityVector& new_pn);
-    void acquisition_thread();
-    void start_acquisition();
+ private:
+    phase_noise::Core<Alpha250PhaseNoiseBoard> core;
 };
-
-#endif // __PHASE_NOISE_ANALYZER_HPP__

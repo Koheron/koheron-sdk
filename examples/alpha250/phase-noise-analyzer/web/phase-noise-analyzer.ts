@@ -2,9 +2,26 @@
 // (c) Koheron
 
 type TupleGetParameters = [number, number, number, number, number, number, number, number, number, number];
+type TupleGetTrackingParameters = [boolean, number, number, number, number, number, number, number, number, number, number, boolean, boolean];
+
+interface ITrackingParameters {
+  enabled: boolean;
+  bandwidth: number;
+  effectiveBandwidth: number;
+  maxStep: number;
+  maxCorrection: number;
+  nominal0: number;
+  nominal1: number;
+  correction0: number;
+  correction1: number;
+  error0: number;
+  error1: number;
+  locked0: boolean;
+  locked1: boolean;
+}
 
 interface IParameters {
-  data_size: number; // fft_size/2
+  data_size: number; // fft_size/2 + 1 (includes DC and Nyquist)
   fs: number;        // Sampling frequency (Hz)
   channel: number;   // Acquired channel
   cic_rate: number;
@@ -24,6 +41,11 @@ interface IMeasurements {
   freq_lo: number; // Integration interval start
   freq_hi: number; // Integration interval end
   carrier_power: number;
+}
+
+interface IAverageStatus {
+  count: number;
+  target: number;
 }
 
 class PhaseNoiseAnalyzer {
@@ -71,12 +93,31 @@ class PhaseNoiseAnalyzer {
     this.client.send(Command(this.id, this.cmds['set_fft_navg'], navg));
   }
 
+  async getAverageStatus(): Promise<IAverageStatus> {
+    const [count, target] = await this.client.readTuple<[number, number]>(
+      Command(this.id, this.cmds['get_average_status']), 'II');
+    return {count, target};
+  }
+
   setLocalOscillator(channel: number, freqHz: number): void {
     this.client.send(Command(this.id, this.cmds['set_local_oscillator'], channel, freqHz));
   }
 
+  setTrackingEnabled(enabled: boolean): void {
+    this.client.send(Command(this.id, this.cmds['set_tracking_enabled'], enabled));
+  }
+
+  async getTrackingParameters(): Promise<ITrackingParameters> {
+    const [enabled, bandwidth, effectiveBandwidth, maxStep, maxCorrection,
+      nominal0, nominal1, correction0, correction1, error0, error1, locked0, locked1] =
+      await this.client.readTuple<TupleGetTrackingParameters>(
+        Command(this.id, this.cmds['get_tracking_parameters']), '?dddddddddd??');
+    return {enabled, bandwidth, effectiveBandwidth, maxStep, maxCorrection,
+      nominal0, nominal1, correction0, correction1, error0, error1, locked0, locked1};
+  }
+
   async getPhaseNoise(): Promise<Float32Array> {
-    return await this.client.readFloat32Array(Command(this.id, this.cmds['get_phase_noise']));
+    return await this.client.readFloat32Vector(Command(this.id, this.cmds['get_phase_noise']));
   }
 
   setCicRate(cic_rate: number): void {

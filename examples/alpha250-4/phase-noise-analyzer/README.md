@@ -4,6 +4,63 @@ The server returns a one-sided phase PSD in rad²/Hz. Positive estimates convert
 to single-sideband phase noise with `10 * log10(PSD / 2)`; frequency-noise
 density is `f² * PSD` in Hz²/Hz.
 
+## Runtime phase precision
+
+The acquisition toolbar selects **Standard** or **+1…+8 bits**. The CIC and
+compensation FIR retain 40 bits; the packet quantizer rounds to even and
+saturates into the 32-bit DMA output. Each extra bit halves radians per count
+and the available phase range. Standard retains the previous nominal scale;
++8 gives 256 times finer output steps. This changes quantization, not the
+CORDIC resolution or analog noise floor.
+
+`set_phase_precision(bits)` accepts integers 0–8 and returns a boolean. The
+choice is stored by **Save settings** (older configurations default to 0).
+`get_precision_status()` reports requested/captured precision, radians per
+count, state (0 settling, 1 live, 2 overrange, 3 DMA error, 4 sample gap), accepted/overflow/
+DMA-error counters and processing/capture times in milliseconds. Saturated
+and stale-scale captures clear the current spectrum and do not enter averages
+or tracking. Reduce precision or bring the LO closer to the carrier when the
+status reports overrange. Integer-domain drift removal preserves the extra
+bits before spectral conversion to float.
+
+
+ALPHA250-4 applies one precision to both streams. Metadata travels through
+the asynchronous FIFOs with each sample and is committed at each DMA packet
+boundary. A rate, precision or LO change restarts both filter histories and
+unwrappers; settling discards queued samples. Upstream unwrap/subtractor
+overflow is sticky within that epoch. Overrange automatically rebases the
+paired pipeline at most once per second before acquisition resumes. The
+reported radians-per-count value is for X; frequency-ratio scaling also
+applies independently to Y.
+
+Phase extraction calculates 24-bit CORDIC output before converting to the
+legacy 16-bit phase unit with unbiased stochastic rounding. A dedicated
+random generator per channel separates this conversion from mixer and I/Q
+rounding. This avoids the deterministic phase staircase that produced coherent
+LO harmonics; CIC precision alone could not remove those upstream errors.
+Absolute phases accumulate in 64 bits and retain that width through frequency
+scaling. The 65-bit pair difference is range-checked and saturated into the
+32-bit CIC input. Thus a large common LO phase can cancel before any range
+restriction, rather than overflowing an individual 32-bit phase accumulator
+and clearing a valid cumulative average. True differential or packet range
+loss still reports overrange. Packet formats and radians per count are unchanged.
+
+Version 1.2.3 requires its cyclic-DMA FPGA and server to be deployed together.
+It is incompatible with the former software-triggered packet design.
+
+Version 1.2.4 retains the 30000/3000/300-point FFTs and frequency grid,
+but consumes fresh 32768-sample windows instead of 65536 samples. The
+30880 samples required by both FIR stages fit within that window. Phase
+snapshots now contain 32768 samples per channel; clients should query
+`get_phase_sample_count()`. The Python client queries this automatically
+and retains compatibility with older 65536-sample instruments.
+The browser polls at up to 60/s and counts only changed displayed spectra.
+Actual FPS depends on acquisition, processing, network and drawing times.
+ARM decimation uses NEON FIR evaluation and independent X/Y decimation
+runs concurrently. FIR coefficients, timestamps, compensation and FFT
+normalization are retained; SIMD accumulation can change float rounding.
+The FPGA and device-tree overlay are unchanged from 1.2.3.
+
 Build with:
 
 ```sh
@@ -17,14 +74,48 @@ and compensates the CIC's rate-dependent gain and downstream FIR scaling.
 
 Each spectrum consumes a fresh, non-overlapping DMA window. The XY cumulative
 count reports processed windows. Configuration changes clear averages and
-drain queued samples; DMA configuration is applied between complete X/Y pairs.
+drain queued samples. Configuration holds both filters in reset, aborts the
+old DMA epoch and restarts the descriptor chain on X.
 Phase getters return the latest synchronized pair, with the integer unwrap
 offset removed before float conversion. They return zeros before acquisition.
+
+The two CICs admit live ADC-clock samples together. If either input is stalled
+by its downstream FIFO, neither accepts the next live sample. One shared rate
+source commits configuration to both CICs on the same clock. This prevents
+independent FIFO draining from shifting the X/Y time axes and attenuating or
+reversing the real cross spectrum of a shared phase-modulated signal.
+On a rate change, the controller resets both CIC/FIR histories and FIFO queues
+for 32 ADC clocks, configures both CICs together, then resumes paired sampling.
+A cyclic scatter/gather DMA ring and hardware packet alternation drain both
+FIFOs without a Linux rearm operation between packets. The reserved RAM contains
+1024 descriptors and 512 complete X/Y packet pairs. A separate 1024-entry
+hardware metadata ring retains each packet's precision and validity flags.
+The reader withholds one completed pair until subsequent descriptor progress
+confirms DDR writeback, validates descriptor completion/length and rejects
+windows overtaken during copying.
+
+This removes the software stalls that previously filled the FIFOs at CIC 50
+and joined phase samples across missing ADC-clock intervals. A sticky hardware
+flag also detects any CIC-input stall during a live epoch. Packets carrying
+that flag clear the averages and report **Sample gap**; they do not enter the
+FFT or tracking. Acquisition restarts together at most once per second.
+`get_acquisition_status()` returns rejected gap captures, X/Y FIFO occupancies
+and the current hardware gap flag. Hardware tests must establish the usable
+rate under the actual DDR load; paired acceptance alone is not a lossless
+sampling guarantee.
 
 Phase-based block rejection is removed: quiet blocks, sparse quantized steps,
 spikes and discontinuities all contribute to the spectrum. There are no jump,
 peak/RMS or output-code rejection thresholds. DMA completeness and acquisition
 epoch checks still prevent mixing incomplete or stale captures into averages.
+
+Version 1.2.2 retains the Hann weights, FFT plans and work buffers across
+captures. The 30000-sample level uses separate PFFFT complex transforms for
+X and Y, running concurrently; the 3000- and 300-sample levels reuse Eigen
+plans. Separate transforms preserve a quiet channel when X and Y have very
+different amplitudes. Sample lengths, centering, one-sided density scaling,
+FIR compensation, stitching and signed cross-spectrum averaging are unchanged.
+This is a server optimization and uses the same FPGA design as 1.2.1.
 
 The stitched spectrum contains 15001 bins with spacing `fs / 30000`, where
 `fs = 200 MHz / (2 * CIC rate)`. Clients display offsets from two bins to 75%
@@ -35,9 +126,9 @@ from 32000 samples and controls X and Y independently in XY mode.
 
 The FPGA prefilter is four cascaded 16-sample moving averages, equivalent to a
 61-tap FIR with unity DC gain. Intermediate sums retain full precision; the
-final 16-bit output uses stochastic rounding. Each channel uses a separately
-seeded 64-bit XOR LFSR for mixer and filter rounding. Shared LFSR defaults keep
-other instruments' previous recurrence.
+final 16-bit output uses stochastic rounding. Each channel uses separately
+seeded 64-bit XOR LFSRs for mixer/filter rounding and CORDIC phase rounding.
+Shared LFSR defaults keep other instruments' previous recurrence.
 
 At 200 MS/s, the filter attenuates the 20 MHz mixing image by 57.27 dB, versus
 2.28 dB for the former boxcar. Its passband loss is 0.091 dB at 500 kHz,
@@ -54,11 +145,31 @@ frequencies. Python captures also retain `phase_psd`; spur removal is opt-in.
 
 The workspace follows the compact FFT interface: acquisition and local
 oscillators above a full-width spectrum, phase/frequency controls, CSV/PNG
-exports and jitter readouts. Drag zooms; double-click resets. DDS fields retain
-millihertz precision, apply valid edits on Enter or blur, and restore the last
-accepted value on Escape. Plot polling is limited to 10 Hz and controls to
-approximately 4 Hz. The shared INI parser now keeps trimmed storage alive while
+exports and jitter readouts. Drag zooms; double-click resets. All four nominal LO fields support Hz/kHz/MHz/GHz units and digit tuning with
+arrow keys or the mouse wheel. Enter or blur applies valid edits; Escape restores
+the accepted value. Tracking corrections are displayed separately from nominal
+frequencies. CIC and rolling-average controls accept integers only. XY reports
+cumulative synchronized windows and provides an explicit reset.
+
+Capture ref retains a copy of the signed PSD, its frequency axis, acquisition
+settings and receipt timestamp. CSV exports contain signed live/reference PSD
+and all four applied LO frequencies; PNG exports include acquisition labels.
+The plot polls the latest published PSD at up to 20 Hz, excludes cached replies
+from its FPS counter, and pauses when hidden. Controls refresh at 2 Hz.
+Connection failures disable controls and mark readings stale; leaving the page
+closes its connections. A separate short publication lock lets PSD readers
+continue while the next stitched FFT is processing. The four-input FPGA, phase
+scaling and signed stitched-spectrum estimator are unchanged by this port.
+The Python client exposes `get_nominal_frequencies()` and
+`get_average_status()`; a zero average target denotes cumulative XY averaging. The shared INI parser now keeps trimmed storage alive while
 restoring numeric and boolean settings.
+
+The earlier distinct-pair LO mitigation and subsequent root-cause investigation
+are recorded in the [hardware validation notes](tests/hardware-validation.md).
+Signed cross-spectrum estimates are retained; the phase-extraction correction
+does not replace negative values by magnitudes or establish an absolute noise
+floor. FIFO timing under pressure and close-offset response remain separate
+measurement limitations.
 
 Run the software and FPGA regressions described in [tests/README.md](tests/README.md).
 The calculation audit compares the production C++ pipeline with independent
@@ -72,6 +183,6 @@ prior implementation results are in [hardware validation notes](tests/hardware-v
 Remaining limitations include absolute ADC/DAC phase-noise and carrier-power
 calibration, close-offset detrending response, the CIC 4 scaling discrepancy,
 frequency-dependent residuals, shutdown hangs observed during testing, and
-sample alignment if downstream FIFOs stall. Spectrum and settings are separate
+sample timing if downstream FIFOs stall. Spectrum and settings are separate
 RPC reads and can disagree during a configuration change. Existing checks
 establish calculation consistency, not an absolute instrument noise floor.
