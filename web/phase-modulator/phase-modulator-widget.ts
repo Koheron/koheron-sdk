@@ -94,6 +94,20 @@ class PhaseModulatorWidget {
         }
     }
 
+    // Host clock changes update the shared adapter metadata, editor limits and
+    // native-word readbacks without configuring or restarting either output.
+    setSampleRate(sampleRate: number): void {
+        if (this.disposed || !this.info.length || !(sampleRate > 0) || !Number.isFinite(sampleRate) || this.info[0].sampleRate === sampleRate) { return; }
+        this.info.forEach((metadata, channel) => {
+            metadata.sampleRate = sampleRate;
+            for (const field of ['carrier', 'modulation']) {
+                this.numbers[channel][field].setLimits(sampleRate / 2, sampleRate / Math.pow(2, metadata.phaseWidth));
+            }
+            void this.perform(channel, async () => {}, 'Reading…', true);
+        });
+        this.root.querySelector('.pm-clock').textContent = `${sampleRate / 1e6} MS/s`;
+    }
+
     static loadingMarkup(expectedChannels: 1 | 2 = 2, halfScaleOutput = false): string {
         const placeholder = '<span class="pm-placeholder"></span>';
         const field = (name: string, title: string) => `<label class="pm-field pm-${name}"><span>${title}</span>${placeholder}</label>`;

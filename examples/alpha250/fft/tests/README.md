@@ -24,6 +24,19 @@ g++ -std=c++20 -fsyntax-only -DKOHERON_SERVER_BUILD \
 These tests do not require or control a board. They do not validate FPGA timing,
 FFT numerical accuracy, or acquisition boundaries after a settings change.
 
+Shared PNA DAC integration (requires `typescript` and `jsdom` on `NODE_PATH`):
+
+```sh
+node --test examples/alpha250/fft/tests/test_signal_generator.cjs
+node --test examples/alpha250/phase-modulator/tests/test_web_widget.js
+PYTHONPATH=python .venv/bin/python3 examples/alpha250/phase-noise-analyzer/tests/test_phase_modulator.py
+PYTHONPATH=python .venv/bin/python3 -m pytest fpga/ip/awg_v1_0/tests/test_client.py
+```
+
+Checks read-only startup, independent DAC edits, teardown, generator retry,
+native readback and Nyquist limits after host clock changes, draft preservation,
+and shared driver/Python frequency conversion at the actual DAC sample rate.
+
 Spectrum display regression:
 
 ```sh

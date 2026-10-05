@@ -1,7 +1,25 @@
 # FFT spectrum interface
 
-Acquisition and DDS settings are above the spectrum. Board monitoring and
-precision I/O expand below it.
+Acquisition settings and plot actions stay above the spectrum. The shared PNA
+DAC signal generator, captured-reference details, and expandable board monitoring
+and precision I/O sit in a right-hand sidebar, following the PNA workspace.
+Below 1100 px they stack beneath the plot. The plot fills the available height;
+status and FPS have reserved space so live updates do not move the controls.
+
+The generator reuses the two-channel DDS phase-modulator FPGA IP, ALPHA250
+driver, transport adapter and widget used by the phase-noise analyzer. Each DAC
+has output enable, carrier frequency, PM source/rate/depth, and **More** for
+phase, duty, seed and restart. Outputs start muted; opening the page reads
+settings without enabling a DAC. Edits preserve oscillator phase. Frequency
+entry and selected-digit tuning follow the [shared widget](../../../web/phase-modulator/README.md).
+
+The generator follows FFT's selected 200 or 250 MS/s clock. Changing the clock
+preserves native oscillator words, so carrier and modulation frequencies scale
+with it; readbacks and editor limits update to the new rate. The shared Python
+client in `examples/alpha250/phase-modulator/phase_modulator.py` also works with
+FFT. The legacy `FFT.set_dds_freq` RPC sets the shared generator's carrier while
+preserving output-enable and PM settings; its control tuple reports the actual
+DAC frequencies. Enable an output through `PhaseModulator` when scripting.
 
 - **View** switches between Spectrum, Spectrogram and Density. All three share
   the frequency zoom. Drag to zoom horizontally in a history view; double-click
@@ -54,8 +72,8 @@ precision I/O expand below it.
   to the latest received spectrum. Partial rows at both ends are included;
   the final interval ends at the selected history duration. A 5-second export
   therefore has 100 rows at a time boundary or 101 between boundaries.
-- Typed DDS and precision DAC values commit on Enter or leaving the field.
-  Invalid values do not reach the instrument. Sliders update continuously.
+- Typed generator and precision DAC values commit on Enter or leaving the field.
+  Invalid values do not reach the instrument. Precision DAC sliders update continuously.
 
 Acquisition runs independently of drawing, targeting 60 spectra per second
 with at most one request in flight. A dedicated worker polls independently of

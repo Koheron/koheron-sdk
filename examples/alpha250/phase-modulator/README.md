@@ -102,9 +102,10 @@ alongside this client to use the new RPC methods. The shared C++ driver offers
 the same engineering-unit configuration, partial updates, mute, restart and
 native settings readback; see the [IP driver example](../../../fpga/ip/awg_v1_0/README.md).
 
-The example selects 250 MS/s through the ALPHA250 clock driver. If you change
-the sampling clock through another driver, restore it before using this client;
-the frequency conversion uses the example's configured sample rate.
+The standalone example starts at the ALPHA250's default 250 MS/s clock. The
+shared driver leaves clock selection to its host and uses the actual DAC rate.
+The Python client refreshes that rate before frequency conversion and readback,
+so it also works with the FFT instrument's selectable sampling clock.
 Two independent commits do not synchronize channel start to the same sample.
 The server reads the FPGA channel count and the Python client rejects absent
 channels. For a single-channel instrument, set `CHANNELS 1` in the block design

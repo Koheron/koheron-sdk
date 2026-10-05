@@ -48,6 +48,7 @@ def test_invalid_ranges():
 def test_configuration_keeps_native_words():
     generator = object.__new__(module.PhaseModulator)
     generator.sample_rate = 250_000_000
+    generator.get_sample_rate = lambda: 250_000_000
     generator.channels = 2
     generator._info = ((48, 24, 14, 31, 16, 1023),) * 2
     calls = []
@@ -77,8 +78,21 @@ def generator():
     pm = object.__new__(module.PhaseModulator)
     pm.channels = 1
     pm.sample_rate = 250_000_000
+    pm.get_sample_rate = lambda: 250_000_000
     pm._info = ((48, 24, 14, 7, 16, 1023),)
     return pm
+
+
+def test_frequency_updates_follow_a_changed_host_clock(generator):
+    calls = []
+    generator.get_sample_rate = lambda: 200_000_000
+    generator._set_carrier_increment = lambda *args: calls.append(args) or ""
+    generator.set_frequency(50_000_000)
+    assert calls == [(0, 1 << 46)]
+    assert generator.info()["sample_rate"] == 200_000_000
+    with pytest.raises(ValueError, match="below Nyquist"):
+        generator.set_frequency(100_000_000)
+    assert len(calls) == 1
 
 
 def test_connection_discovers_metadata_once(monkeypatch):

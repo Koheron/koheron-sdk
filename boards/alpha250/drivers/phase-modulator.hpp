@@ -10,19 +10,14 @@
 
 class PhaseModulator {
 public:
-    PhaseModulator() : controller(hw::get_memory<mem::awg>(), static_cast<long double>(prm::adc_clk)) {
+    PhaseModulator() : controller(hw::get_memory<mem::awg>()) {
         if (!controller.valid()) logf<ERROR>("PhaseModulator: {}\n", controller.initialization_result().message());
-        // Match the host instrument's clock; the analyzer uses 200 MS/s.
-        static_assert(prm::adc_clk == 200000000 || prm::adc_clk == 250000000 ||
-                      prm::adc_clk == 100000000 || prm::adc_clk == 240000000,
-                      "Unsupported ALPHA250 phase-modulator sample rate");
-        constexpr uint32_t clock_selection = prm::adc_clk == 200000000 ? 0 :
-            prm::adc_clk == 250000000 ? 1 : prm::adc_clk == 100000000 ? 2 : 3;
-        rt::get_driver<ClockGenerator>().set_sampling_frequency(clock_selection);
+        // The host owns clock selection. Discovery must not reset an FFT
+        // instrument that has already switched from 250 to 200 MS/s.
     }
 
     uint32_t get_channel_count() { return controller.channel_count(); }
-    uint32_t get_sample_rate() { return prm::adc_clk; }
+    uint32_t get_sample_rate() { return static_cast<uint32_t>(rt::get_driver<ClockGenerator>().get_dac_sampling_freq()); }
     uint32_t get_phase_width(uint32_t channel) { return controller.phase_width(channel); }
     uint32_t get_capabilities(uint32_t channel) { return controller.capabilities(channel); }
 
@@ -90,7 +85,7 @@ public:
         signal.waveform = static_cast<dds_pm::Waveform>(waveform);
         signal.output_enabled = output_enabled;
         signal.pm_enabled = pm_enabled;
-        return response(channel, controller.configure_signal(channel, signal, prm::adc_clk, restart, restart));
+        return response(channel, controller.configure_signal(channel, signal, get_sample_rate(), restart, restart));
     }
     std::string set_carrier_increment(uint32_t channel, uint64_t word) {
         return response(channel, controller.set_carrier_increment(channel, word));
@@ -113,10 +108,10 @@ public:
         return response(channel, controller.set_pm_enabled(channel, enabled));
     }
     std::string set_carrier_frequency(uint32_t channel, double hz) {
-        return response(channel, controller.set_carrier_frequency(channel, static_cast<long double>(hz), prm::adc_clk));
+        return response(channel, controller.set_carrier_frequency(channel, static_cast<long double>(hz), get_sample_rate()));
     }
     std::string set_modulation_frequency(uint32_t channel, double hz) {
-        return response(channel, controller.set_modulation_frequency(channel, static_cast<long double>(hz), prm::adc_clk));
+        return response(channel, controller.set_modulation_frequency(channel, static_cast<long double>(hz), get_sample_rate()));
     }
     std::string set_phase(uint32_t channel, double degrees) {
         return response(channel, controller.set_phase(channel, static_cast<long double>(degrees)));

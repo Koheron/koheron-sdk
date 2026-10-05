@@ -34,6 +34,9 @@ const generator = new PhaseModulatorWidget(document.getElementById('generator'),
     {expectedChannels: 2});
 await generator.init();
 
+// If the host changes the sampling clock, pass its accepted rate:
+generator.setSampleRate(actualSampleRate);
+
 // During host teardown:
 generator.dispose();
 ```
@@ -63,6 +66,10 @@ For a project with a different driver, implement `PhaseModulatorPort`
 (`init`, `settings`, `set`, `restart`) and inject that adapter instead. Keep
 clock selection in the host application and report its actual sample rate.
 No board-specific clock or DAC logic lives in the widget.
+`setSampleRate` updates the shared metadata, frequency limits and readbacks
+without writing or restarting either DAC. Native oscillator words are retained,
+so their frequencies scale with the sampling clock. Unfinished text edits remain
+visible and are validated against the new Nyquist limit when committed.
 
 ## Editing behavior
 
