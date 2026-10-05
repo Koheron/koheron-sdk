@@ -48,6 +48,7 @@ proc create {module_name} {
     for {set i 0} {$i < 2} {incr i} {
         cell koheron:user:boxcar_filter:1.0 boxcar$i {
             DATA_WIDTH 16
+            LOW_LATENCY 1
         } {
             clk aclk
             din [get_slice_pin complex_mult/m_axis_dout_tdata [expr 15 + 16 * $i] [expr 16 * $i]]
@@ -58,7 +59,7 @@ proc create {module_name} {
 
     cell xilinx.com:ip:cordic:6.0 cordic {
         Functional_Selection Translate
-        Pipelining_Mode Maximum
+        Pipelining_Mode Optimal
         Phase_Format Scaled_Radians
         Input_Width 16
         Output_Width 16

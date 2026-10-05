@@ -2,6 +2,7 @@ NAME := dpll
 VERSION := 0.1.0
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
+ENFORCE_TIMING := 1
 
 MEMORY_YML = $(PROJECT_PATH)/memory.yml
 

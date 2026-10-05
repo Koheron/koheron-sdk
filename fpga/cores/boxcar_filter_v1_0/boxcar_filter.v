@@ -2,7 +2,8 @@
 
 module boxcar_filter #
 (
-  parameter integer DATA_WIDTH = 16
+  parameter integer DATA_WIDTH = 16,
+  parameter integer LOW_LATENCY = 0
 )
 (
   input  wire clk,
@@ -17,17 +18,30 @@ module boxcar_filter #
   reg signed [DATA_WIDTH-1:0] din0;
   reg signed [DATA_WIDTH-1:0] din1;
   reg signed [DATA_WIDTH-1:0] din2;
-  reg signed [DATA_WIDTH-1:0] din3;
 
   always @(posedge clk) begin
     din0 <= din;
     din1 <= din0;
     din2 <= din1;
-    din3 <= din2;
-    sum0 <= din0 + din2;
-    sum1 <= din1 + din3;
     sum <= sum0 + sum1;
   end
+
+  generate
+    if (LOW_LATENCY) begin : low_latency
+      // The same four consecutive samples, arriving at sum one clock earlier.
+      always @(posedge clk) begin
+        sum0 <= din + din1;
+        sum1 <= din0 + din2;
+      end
+    end else begin : legacy_latency
+      reg signed [DATA_WIDTH-1:0] din3;
+      always @(posedge clk) begin
+        din3 <= din2;
+        sum0 <= din0 + din2;
+        sum1 <= din1 + din3;
+      end
+    end
+  endgenerate
 
   assign dout = sum[DATA_WIDTH+2-1:2];
 
