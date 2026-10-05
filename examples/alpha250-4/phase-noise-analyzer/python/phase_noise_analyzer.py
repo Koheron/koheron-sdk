@@ -91,6 +91,17 @@ class PhaseNoiseAnalyzer(object):
     def __init__(self, client):
         self.client = client
         self.npts = 65536
+        # Older instruments expose fixed 65536-sample snapshots.
+        try:
+            client.get_ids('PhaseNoiseAnalyzer', 'get_phase_sample_count')
+        except KeyError:
+            pass
+        else:
+            self.npts = self.get_phase_sample_count()
+
+    @command()
+    def get_phase_sample_count(self):
+        return self.client.recv_uint32()
 
     @command()
     def set_local_oscillator(self, channel, freq):
@@ -107,6 +118,11 @@ class PhaseNoiseAnalyzer(object):
     @command()
     def get_precision_status(self):
         return self.client.recv_tuple('IIdIQQQdd')
+
+    @command()
+    def get_acquisition_status(self):
+        # Rejected gap captures, X/Y FIFO occupancy, sticky hardware gap flag.
+        return self.client.recv_tuple('QII?')
 
     @command()
     def get_phase_snapshot(self):

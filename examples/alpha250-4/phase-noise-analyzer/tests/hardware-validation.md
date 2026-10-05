@@ -501,3 +501,192 @@ and coherence 0.0113. For comparison, the strongest old negative spur in
 20–280 kHz was -122.40 dBc/Hz with coherence 0.9671. This distinguishes the
 removed coherent artifact from a residual small cross-spectrum estimate.
 The final snapshots are `tmp/pna-negative-current/final-both-fixed.npz`.
+
+
+FFT throughput validation — 2026-10-05, ALPHA250-4 PNA 1.2.2
+
+With browser controls idle, the same connected pair was measured before and
+after the server optimization. IN0/IN2 received the 10 MHz reference;
+ALPHA250 at 192.168.1.105 supplied DAC0 to IN1/IN3 with 10 MHz carrier,
+10 kHz sinusoidal PM and 1 degree peak deviation. Tests used XY, +8 bits,
+all nominal LOs at 10.001 MHz and tracking enabled. Each throughput sample
+covered 12 seconds after three seconds of settling; processing times are
+medians of the receiver telemetry.
+
+| CIC rate | Accepted windows/s, 1.2.1 → 1.2.2 | Processing ms, 1.2.1 → 1.2.2 |
+| --- | --- | --- |
+| 133 | 11.44 → 11.46 | 69.67 → 40.67 |
+| 67 | 13.29 → 21.25 | 69.99 → 41.21 |
+
+CIC 133 is limited by acquisition duration. CIC 67 showed approximately 60%
+more accepted windows per second. These are short controlled observations,
+not a guarantee of lossless ADC-time sampling under shared backpressure.
+Neither run incremented overflow or DMA-error counters; the old instrument
+already had one overflow from earlier control changes.
+
+Before/after captures each contained 100 fresh synchronized snapshots at
+CIC 133. Fitted PM peaks were 0.999717/0.999729 degrees before and
+0.999738/0.999743 after, with maximum relative phase differences of
+0.00654 and 0.00639 degrees. Independent double-precision SciPy calculations
+and the new production C++ estimator agreed within 0.01% complex RMS in
+each stitched segment on both captured sets. Signed values remain intact;
+near-zero cross estimates can still be negative. The final capture had no
+overflows or DMA errors.
+
+Build checks: the ARM server compiled with strict warnings and NEON enabled;
+web assets built; the complete software regression runner passed, including
+ASan/UBSan, Python and browser tests and the independent SciPy oracle. The
+single-window reference comparison also passed directly on the receiver's
+ARM CPU, covering sample lengths 30000/3000/300/301, rate changes and Y/X
+gains of 1e-6, 1 and 1e6.
+
+Deployment reused the verified 1.2.1 FPGA bitstream and device-tree overlay
+byte for byte; no FPGA source or constraints changed and no new routed timing
+result is claimed. The installed bitstream `.bit.bin` SHA256 remains
+`da2b0535dde2efe58e38bbb62e641d7e7c8de0bb5fa8a7f85568d7018e032798`.
+All installed package files were checked by SHA256 and the saved INI was
+preserved. The user's live CIC 50, channel Y, 14 averages, +8, four 10 MHz
+nominal LOs and enabled tracking were restored. Both source DAC channels'
+exact acknowledged settings stayed unchanged.
+
+Local artifacts: `tmp/pna-throughput/controlled-{before,after}-rate.json`,
+`captured-{before,after}-audit.log`, `deployment/deployment.json`,
+`user-state-{before,restored}.json`, and
+`tmp/pna-negative-current/throughput-{before,after}.npz`.
+
+Continuous acquisition validation — 2026-10-05, ALPHA250-4 PNA 1.2.3
+
+At CIC 50 the previous packet-by-packet DMA rearming filled the Y FIFO
+to 32769 samples. The paired CIC then stopped admitting ADC samples.
+Captured modulation phase jumped at each 8192-sample packet boundary:
+the median absolute jump was 94.42 degrees. This produced the broad
+rippled skirt around the 10 kHz PM tone. A whole-window fit recovered
+only 0.410 degrees despite individual packets containing the expected
+1 degree modulation. An independent spectrum calculation reproduced
+the displayed artifact.
+
+The receiver now uses hardware-alternating X/Y packets and cyclic SG DMA.
+Neither packet boundaries nor Linux scheduling require DMA rearming.
+Per-packet metadata carries a sticky hardware sample-gap indication;
+flagged windows are discarded and the paired acquisition restarts.
+The first live deployment also exposed a concurrent settings-change race:
+the reader could observe the temporary ring stop before restart completed.
+Its running-state check now takes the configuration mutex, with a native
+regression covering an active reader during a delayed reconfiguration.
+
+Hardware checks used the same connected pair and unchanged source DAC0:
+10 MHz carrier, 10 kHz sinusoidal PM, 1 degree peak. Forty fresh paired
+windows at each CIC rate 50, 4, 8, 20, 67, 90, 133 and 50 passed with
+zero sample gaps, overflows and DMA errors. Mean per-packet PM peaks
+were 0.999982–1.000154 degrees. Maximum within-window phase change
+between packet fits was 0.14774 degrees over the full sweep; at CIC 50
+the median was 0.00633 degrees and maximum 0.05625 degrees. A complete
+CIC 50 window recovered 1.000004 degrees. FIFO observations during the
+sweep stayed below 8154 samples, well below the previous full FIFO.
+
+The entire receiver server was deliberately stopped with SIGSTOP for
+one second, then resumed with SIGCONT. DMA and the ADC timeline continued
+autonomously, including multiple DDR ring wraps at CIC 4:
+
+| CIC rate | Packets transferred during pause | Maximum FIFO X / Y | Sample gap |
+| --- | --- | --- | --- |
+| 90 | 272 | 1 / 8177 | None |
+| 50 | 488 | 206 / 8157 | None |
+| 4 | 6112 | 3456 / 8185 | None |
+
+After every pause, the receiver returned valid fresh spectra with zero
+gap and DMA-error counters. These checks establish continuity under the
+tested rates and pauses; other hardware failures remain detectable by
+the gap metadata. They do not claim calibrated absolute noise floors.
+
+Build checks: the complete ASan/UBSan software suite, 11 Python tests,
+10 browser tests, independent SciPy oracle and RTL regressions passed.
+The ARM server and web assets built successfully. Final strict routed
+timing passed at the original clocks: WNS +0.006492 ns, WHS +0.024840 ns,
+all 12 bus-skew constraints checked. The first route missed setup by
+0.044011 ns inside the programmable CIC scaler. Committed post-route
+physical optimization and the shared hold-fix hook close timing without
+relaxing constraints. The final package used that checked bitstream and
+the matching SG device tree; enabling physical optimization on the existing
+implementation run did not change synthesized interfaces or constraints.
+The installed `.bit.bin` SHA256 is
+`abccd24478e1bea33db557ba44fb47d45829c13fb64303c702b3fe7b38f2af57`.
+
+Forty captured windows at the restored settings also passed the independent
+production-estimator/SciPy calculation audit. The refreshed browser showed
+the narrow PM tone without the former broad rippled skirt, with live
+precision status and tracking locked. All installed files were checked by
+SHA256, and the saved INI remained byte-identical. The user's latest live
+CIC 90, Y, 104 averages, +8 bits, four nominal 10 MHz LOs and enabled tracking
+were restored. Both source DAC channels' exact acknowledged settings
+remained unchanged.
+
+Local artifacts: `tmp/pna-browser-strange/{current.npz,fifo-counts.json,packet-analysis.json}`
+and `tmp/pna-dma-continuity/{live-summary.json,cic-*.npz,server-pause-cic*-summary.json,
+current.npz,captured-audit.log,continuity-before-after.png,strict-bitstream.log,
+software-tests-final.log,rtl-tests-final.log,deployment-final/deployment.json,
+user-state-restored.json,source-after.json}`.
+
+30000-point throughput validation — 2026-10-05, ALPHA250-4 PNA 1.2.4
+
+The browser's explicit 20/s polling limit predated cyclic DMA. Its target
+is now 60/s; identical cached replies remain excluded from displayed FPS.
+The three FFT lengths, Hann windows, bin spacing, stitching and density
+normalization remain 30000/3000/300 with the same sample-rate relationships.
+Fresh acquisition windows are now 32768 samples, containing all 30880
+samples needed by the FIR chain instead of waiting for 65536 samples.
+Raw phase snapshots therefore contain 32768 samples per channel, exposed
+by `get_phase_sample_count()`. Updated Python clients query the length and
+fall back to 65536 for older instruments.
+
+ARM FIR decimation evaluates four taps per NEON operation; startup samples
+retain the scalar zero-history calculation. Double representations retain
+the scalar implementation. Independent X/Y decimation runs concurrently.
+The original FIR coefficients and output timestamps are unchanged; float
+accumulation order changes. A direct ARM comparison against the scalar
+reference passed for noise, impulses, ramps, tones and quantities, including
+the double-precision fallback. With the receiver server paused to isolate
+the benchmark, decimation fell from 5.024 to 4.003 ms per channel and the
+cross-density pipeline from 28.960 to 26.687 ms before parallel decimation.
+
+Observed live rates before and after the combined changes:
+
+| CIC / channel | Accepted windows/s, 1.2.3 → 1.2.4 | Median processing ms, 1.2.3 → 1.2.4 |
+| --- | --- | --- |
+| 60 / Y | 25.35 → 38.89 | 27.07 → 23.81 |
+| 50 / Y | 30.43 → 35.81 | 27.06 → 24.06 |
+| 50 / XY | 21.77 → 24.27 | 40.42 → 37.71 |
+
+These short observations include client load; browser polling increased
+from 20/s to 60/s and reconnected during the first post-install run.
+They are not maximum-throughput guarantees. A final eight-second run at
+the user's restored CIC 60 / Y settings accepted 35.85 windows/s; the browser
+showed 32 new spectra/s while polling at 60/s, with approximately 4.0 ms
+read, 2.1 ms processing and 2.3 ms drawing per poll. Acquisition and DSP,
+rather than the previous display cap, now limit the rate. 60 fresh FPS
+has not been achieved.
+
+Forty fresh paired windows at each CIC rate 60, 50, 4 and 133 recovered
+0.999858–1.000061 degree peak PM, with maximum X/Y mismatch 0.07792 degrees
+and zero overflows, sample gaps or DMA errors. Ten captured windows ran
+through the actual ARM/NEON production estimator and independent SciPy
+oracle; relative complex RMS error was below 0.014% in all three segments.
+A one-second server SIGSTOP at CIC 60 transferred another 408 hardware
+packets with FIFO maxima 143/8186 and no sample gap.
+
+Build checks: strict ARM server and web builds passed, as did the full
+ASan/UBSan suite, 12 Python tests, 10 browser tests and the independent
+calculation oracle. Additional DMA tests cover 32768-sample fresh windows.
+This is a software-only deployment: FPGA and overlay hashes match 1.2.3
+byte for byte, with its previously verified strict timing; no new routed
+timing result is claimed. Installed package files were verified by SHA256.
+The saved INI and exact source DAC settings are unchanged. The user's
+latest CIC 60 / Y, one average, +8 bits, nominal 10 MHz LOs, internal
+reference clock and enabled tracking were restored, with both trackers
+allowed to reacquire before returning to Y.
+
+Artifacts are under `tmp/pna-30000-fps`: `{before,after}-rate.json`,
+`final-state.json`, `live-summary.json`, `current.npz`,
+`captured-arm-audit.log`, `isolated-profile.log`, `server-pause-summary.json`,
+`software-tests-final.log`, `short-window-tests.log`,
+`deployment/deployment.json` and `source-{before,after}.json`.

@@ -22,7 +22,7 @@ Coverage includes:
 
 - Averaging-window growth, shrinkage and clear operations against a deque oracle.
 - Fresh, disjoint acquisition windows and detection of overwritten ring data.
-- Actual DMA copying across the ring boundary, synchronized X/Y data, cancellation, and configuration between complete transfer pairs.
+- Autonomous cyclic DMA copying across the ring boundary, synchronized X/Y data, producer progress while the reader pauses, cancellation, a concurrent reader during configuration epoch restart, and per-packet precision/gap metadata.
 - Fractional phase scaling above and below unity, including sub-hertz carrier offsets.
 - CIC gain compensation at power-of-two and arbitrary rates.
 - Retained FIR outputs against the original filter for impulses, ramps, noise and tones; cached response corrections across sample rates.
@@ -33,6 +33,7 @@ Coverage includes:
 - Shared DMA API compatibility, successful completion, timeout and error status.
 - DDS frequency precision, concurrent reads/writes, and nonfinite input rejection.
 - Python command dispatch, cross-correlation selection, complete phase arrays and frequency axes.
+- Cached single-window FFTs against the previous estimator, including signed CSD, six decades of channel ratio, sample-rate changes, DC and even/odd endpoints.
 - Signed-spectrum smoothing, first-valid-bin boundaries, retained raw spectra and frequency-noise conversion.
 - Web measurement and tracking decoders against C++ serialized quantities.
 - Browser signed smoothing/table values, magnitude display with negative markers, negative-only reference capture, retained reference frequency axes, duplicate-frame accounting, disposal, and signed CSV exports with four LO frequencies and cumulative metadata.

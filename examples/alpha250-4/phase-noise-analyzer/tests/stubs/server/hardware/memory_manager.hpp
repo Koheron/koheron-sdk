@@ -3,18 +3,21 @@
 #include <atomic>
 #include <cstdint>
 #include <vector>
+#include <mutex>
 
 using MemID = int;
 namespace mem { enum {ram, mux, control, dma, axi_hp0}; }
-namespace reg { constexpr uint32_t phase_incr0 = 0; }
+namespace reg { constexpr uint32_t phase_incr0 = 0; constexpr uint32_t acquisition_run = 4; }
 namespace hw {
+inline std::recursive_mutex simulated_bus;
+inline std::atomic<uint32_t> simulated_epoch{0};
 inline std::atomic<uint32_t> selected_input{0};
 inline std::atomic<uint32_t> injected_x_status{0}, injected_y_status{0}, completed_packet_status{0};
 template<int id> class Memory {
   public:
     static constexpr uint32_t phys_addr = 0;
     static constexpr uint32_t size = 128 * 1024 * 1024;
-    std::array<uint32_t, 64> registers{};
+    std::array<std::atomic<uint32_t>, 2048> registers{};
     std::vector<int32_t> data;
     Memory() { if constexpr (id == mem::ram) data.resize(128 * 1024 * 1024 / sizeof(int32_t)); }
     template<typename T, uint32_t N> auto& read_reg_array(uint32_t offset) {
@@ -26,10 +29,24 @@ template<int id> class Memory {
     }
     template<uint32_t offset, uint32_t bit> bool read_bit() { return (read<offset>() >> bit) & 1; }
     template<uint32_t offset, uint32_t bit> void set_bit() { registers[offset / 4] |= 1u << bit; }
-    template<typename T> void write_reg(uint32_t, T) {}
+    template<typename T=uint32_t> T read_reg(uint32_t offset) {
+        if constexpr(id==mem::ram) return T(data[offset/4]);
+        else return T(registers[offset/4].load());
+    }
+    template<typename T> void write_reg(uint32_t offset, T value) {
+        if constexpr(id==mem::ram) data[offset/4]=int32_t(value);
+        else registers[offset/4].store(uint32_t(value));
+    }
     template<uint32_t offset> void write(uint32_t value) {
-        if constexpr (id == mem::mux) selected_input.store(value & 1);
-        else registers[offset / 4] = value;
+        std::lock_guard lock(simulated_bus);
+        if constexpr (id == mem::mux) {
+            selected_input.store(value & 1);
+            registers[offset/4]=value;
+            if(!(value&2)) { completed_packet_status.store(0); ++simulated_epoch; }
+        } else if constexpr(id==mem::dma && offset==0x30) {
+            registers[offset/4]=(value&4) ? 0u : value;
+            registers[0x34/4]=(value&4) ? 1u : 0u;
+        } else registers[offset / 4] = value;
     }
 };
 template<int id> Memory<id>& get_memory() { static Memory<id> memory; return memory; }

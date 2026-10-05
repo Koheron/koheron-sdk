@@ -6,6 +6,9 @@ module test_paired_cic_control;
     wire valid,config_valid,filter_resetn;
     wire [15:0] config_rate;
     reg [3:0] requested_bits=0;
+    reg requested_run=0;
+    reg expected_gap=0;
+    wire sample_gap;
     reg requested_epoch=0, upstream_overflow_x=0, upstream_overflow_y=0;
     wire [3:0] active_bits;
     wire overflow_x, overflow_y;
@@ -24,6 +27,7 @@ module test_paired_cic_control;
             config_ready_y=(tick%13)<5;
             if(tick==8) resetn=1;
             if(tick==10) requested_rate=20;
+            if(tick==50) requested_run=1;
             if(tick==6001) requested_rate=67;
             if(tick==6007) requested_rate=100; // Supersede a rate during reset.
             if(tick==12001) requested_rate=133;
@@ -62,7 +66,10 @@ module test_paired_cic_control;
                 if(count_x!=count_y || last_x!=last_y) $fatal(1,"Different accepted ADC sample identities");
                 if(outputs_x!=outputs_y) $fatal(1,"Different decimated output timestamps");
             end
+            if (!filter_resetn) expected_gap=0;
+            else if(dut.state==4 && (!ready_x || !ready_y)) expected_gap=1;
             #1;
+            if(sample_gap!==expected_gap) $fatal(1,"Lost or stale sample gap flag");
             if(tick>4000 && tick<6001 && !overflow_x) $fatal(1,"Lost sticky X overflow");
             if(tick>10000 && tick<12001 && !overflow_y) $fatal(1,"Lost sticky Y overflow");
             if(was_reset && !filter_resetn && (overflow_x || overflow_y)) $fatal(1,"Overflow leaked across epoch");

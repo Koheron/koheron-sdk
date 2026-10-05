@@ -5,7 +5,11 @@
 #include <array>
 #include <cmath>
 #include <complex>
+#include <type_traits>
 #include <scicpp/core.hpp>
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#endif
 
 namespace pna_dsp {
 namespace sci = scicpp;
@@ -55,10 +59,40 @@ auto decimate_by_10_fir_exact(const std::array<T, N>& in) {
     constexpr std::size_t delay = Ntaps / 2;
     static_assert(10 * M + delay <= N);
     std::array<T, M> out{};
+#if defined(__ARM_NEON)
+    // Convert quantities once, then evaluate retained FIR outputs four taps
+    // at a time. Keep startup zero-history handling identical to the scalar
+    // implementation, and retain the original coefficients and sample times.
+    std::array<float, N> samples{};
+    for (std::size_t i = 0; i < N; ++i) {
+        if constexpr (sci::units::is_quantity_v<T>) samples[i] = in[i].eval();
+        else samples[i] = in[i];
+    }
+    constexpr auto reversed = [&] {
+        std::array<float, Ntaps> result{};
+        for (std::size_t j = 0; j < Ntaps; ++j) result[j] = b[Ntaps - 1 - j];
+        return result;
+    }();
+#endif
     // Evaluate only retained outputs, with the same zero history and FIR delay.
     for (std::size_t i = 0; i < M; ++i) {
         const std::size_t sample = 10 * i + delay;
         const std::size_t taps = std::min(Ntaps, sample + 1);
+#if defined(__ARM_NEON)
+        if (taps == Ntaps && std::is_same_v<sci::units::representation_t<T>, float>) {
+            const std::size_t first = sample - (Ntaps - 1);
+            auto sum = vdupq_n_f32(0.0f);
+            std::size_t j = 0;
+            for (; j + 4 <= Ntaps; j += 4)
+                sum = vaddq_f32(sum, vmulq_f32(vld1q_f32(samples.data() + first + j),
+                                               vld1q_f32(reversed.data() + j)));
+            const auto halves = vadd_f32(vget_low_f32(sum), vget_high_f32(sum));
+            float value = vget_lane_f32(halves, 0) + vget_lane_f32(halves, 1);
+            for (; j < Ntaps; ++j) value += samples[first + j] * reversed[j];
+            out[i] = T{value};
+            continue;
+        }
+#endif
         for (std::size_t j = 0; j < taps; ++j) {
             out[i] += in[sample - j] * b[j];
         }

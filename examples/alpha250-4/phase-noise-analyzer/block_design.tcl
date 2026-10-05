@@ -142,7 +142,7 @@ set n_stages [get_parameter cic_n_stages]
 
 set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rate_min $diff_delay print]
 
-set_property -dict [list CONFIG.NUM_SI {2} CONFIG.NUM_MI {3}] [get_bd_cells axi_mem_intercon_1]
+set_property -dict [list CONFIG.NUM_SI {3} CONFIG.NUM_MI {3}] [get_bd_cells axi_mem_intercon_1]
 
 cell koheron:user:axis_stream_packet_mux:1.0 axis_stream_packet_m_0 {
 } {
@@ -157,6 +157,8 @@ cell koheron:user:paired_cic_control:1.0 paired_cic_control {} {
   requested_rate [ctl_pin cic_rate]
   requested_bits [get_slice_pin [ctl_pin phase_precision] 3 0]
   requested_epoch [get_slice_pin [ctl_pin phase_precision] 8 8]
+  requested_run [get_slice_pin [ctl_pin acquisition_run] 0 0]
+  sample_gap [sts_pin sample_gap]
 }
 
 for {set i 0} {$i < 2} {incr i} {
@@ -230,17 +232,21 @@ for {set i 0} {$i < 2} {incr i} {
     S_AXIS fir$i/M_AXIS_DATA
   }
 
+  cell xilinx.com:ip:xlconcat:2.1 sample_metadata$i { NUM_PORTS 2 } {
+    In0 phase_quantizer$i/sample_status
+    In1 paired_cic_control/sample_gap
+  }
   cell xilinx.com:ip:axis_data_fifo:2.0 axis_data_fifo_$i {
     FIFO_DEPTH 32768
     TDATA_NUM_BYTES 4
-    TUSER_WIDTH 5
+    TUSER_WIDTH 6
     IS_ACLK_ASYNC 1
     HAS_PROG_FULL 1
     PROG_FULL_THRESH 16384
     HAS_WR_DATA_COUNT 1
   } {
     S_AXIS phase_quantizer$i/M_AXIS
-    s_axis_tuser phase_quantizer$i/sample_status
+    s_axis_tuser sample_metadata$i/dout
     s_axis_aclk adc/adc_clk
     m_axis_aclk ps_0/FCLK_CLK1
     M_AXIS axis_stream_packet_m_0/S_AXIS_$i
@@ -273,7 +279,7 @@ for {set i 0} {$i < 2} {incr i} {
 # set idx_dma [add_master_interface $intercon_idx]
 
 cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
-  c_include_sg 0
+  c_include_sg 1
   c_include_mm2s 0
   c_sg_include_stscntrl_strm 0
   c_sg_length_width 23
@@ -283,6 +289,8 @@ cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
   S_AXI_LITE axi_mem_intercon_1/M01_AXI
   s_axi_lite_aclk ps_0/FCLK_CLK1
   M_AXI_S2MM axi_mem_intercon_1/S01_AXI
+  M_AXI_SG axi_mem_intercon_1/S02_AXI
+  m_axi_sg_aclk ps_0/FCLK_CLK1
   m_axi_s2mm_aclk ps_0/FCLK_CLK1
   axi_resetn proc_sys_reset_1/peripheral_aresetn
   s2mm_introut [get_interrupt_pin]
@@ -296,6 +304,9 @@ connect_pins ps_0/S_AXI_HP0_ACLK ps_0/FCLK_CLK1
 set_property -dict [list CONFIG.STRATEGY {1}] [get_bd_cells axi_mem_intercon_1]
 
 connect_bd_intf_net -boundary_type upper [get_bd_intf_pins axi_mem_intercon_1/M02_AXI] [get_bd_intf_pins ps_0/S_AXI_HP0]
+connect_bd_net [get_bd_pins axi_mem_intercon_1/S02_ACLK] [get_bd_pins ps_0/FCLK_CLK1]
+connect_bd_net [get_bd_pins axi_mem_intercon_1/S02_ARESETN] [get_bd_pins proc_sys_reset_1/peripheral_aresetn]
+
 connect_bd_net [get_bd_pins axi_mem_intercon_1/S01_ACLK] [get_bd_pins ps_0/FCLK_CLK1]
 connect_bd_net [get_bd_pins axi_mem_intercon_1/S01_ARESETN] [get_bd_pins proc_sys_reset_1/peripheral_aresetn]
 
@@ -316,9 +327,18 @@ assign_bd_address [get_bd_addr_segs {ps_0/S_AXI_HP0/HP0_DDR_LOWOCM }]
 set_property range [get_memory_range ram] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM}]
 set_property offset [get_memory_offset ram] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM}]
 
+set_property range [get_memory_range ram] [get_bd_addr_segs {axi_dma_0/Data_SG/SEG_ps_0_HP0_DDR_LOWOCM}]
+set_property offset [get_memory_offset ram] [get_bd_addr_segs {axi_dma_0/Data_SG/SEG_ps_0_HP0_DDR_LOWOCM}]
+
 assign_bd_address -target_address_space /ps_0/Data [get_bd_addr_segs axis_stream_packet_m_0/s_axi/reg0] -force
 set_property range [get_memory_range mux] [get_bd_addr_segs {ps_0/Data/SEG_axis_stream_packet_m_0_reg0}]
 set_property offset [get_memory_offset mux] [get_bd_addr_segs {ps_0/Data/SEG_axis_stream_packet_m_0_reg0}]
 
 delete_bd_objs [get_bd_addr_segs -excluded axi_dma_0/Data_S2MM/SEG_axi_dma_0_Reg]
+delete_bd_objs [get_bd_addr_segs -excluded axi_dma_0/Data_SG/SEG_axi_dma_0_Reg]
 delete_bd_objs [get_bd_addr_segs ps_0/Data/SEG_ps_0_HP0_DDR_LOWOCM]
+
+# Physical optimization closes the expanded phase pipeline at 200 MHz.
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveExplore [get_runs impl_1]
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize [file join [file dirname [info script]] post_route.tcl]] [get_runs impl_1]

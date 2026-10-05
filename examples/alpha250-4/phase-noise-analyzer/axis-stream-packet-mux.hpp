@@ -34,7 +34,15 @@ class AxisStreamPacketMux {
         write_ctrl(sel, length_beats, true);
     }
 
-    uint32_t get_packet_status() { return hw::get_memory<mem::mux>().read<0x4>(); }
+    void stop() { sel = 0; write_ctrl(0, length_beats, false); }
+    void start_continuous(uint32_t length) {
+        length_beats = std::min(length, max_length);
+        hw::get_memory<mem::mux>().write<0x0>((1u << 16) | (length_beats << 2) | 2u);
+    }
+    uint32_t get_queued_status(uint32_t packet) const {
+        return hw::get_memory<mem::mux>().read_reg(0x1000 + 4 * (packet % 1024));
+    }
+    uint32_t get_packet_status() const { return hw::get_memory<mem::mux>().read<0x4>(); }
 
     auto get_settings() {
         return std::tuple{sel, length_beats};
