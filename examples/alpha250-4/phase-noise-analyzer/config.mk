@@ -1,5 +1,5 @@
 NAME := phase-noise-analyzer
-VERSION := 1.0.0
+VERSION := 1.1.0
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250-4
 
@@ -26,6 +26,7 @@ DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.hpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.cpp
 
 # Web assets
+WEB_FILES += $(SDK_PATH)/web/phase-modulator/frequency-input.ts
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html

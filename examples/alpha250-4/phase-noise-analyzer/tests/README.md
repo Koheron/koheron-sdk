@@ -15,6 +15,8 @@ The runner expects `.venv/bin/python3` with NumPy, SciPy and the Python client
 requirements, plus the `cross-armhf:24.04` and `koheron-web:node20` Docker images.
 `PNA_PYTHON`, `PNA_CPP_IMAGE` and `PNA_WEB_IMAGE` can override these defaults. The
 C++ image must also provide native `g++-13`, since these tests run on the host CPU.
+Browser workspace tests use TypeScript 5.6.3 and jsdom 26.1.0, installed on first
+run into the ignored `tmp/tests` dependency directory.
 
 Coverage includes:
 
@@ -33,7 +35,8 @@ Coverage includes:
 - Python command dispatch, cross-correlation selection, complete phase arrays and frequency axes.
 - Signed-spectrum smoothing, first-valid-bin boundaries, retained raw spectra and frequency-noise conversion.
 - Web measurement and tracking decoders against C++ serialized quantities.
-- Browser signed smoothing/table values, magnitude display with negative markers, duplicate polling prevention, and signed CSV exports with DDS metadata.
+- Browser signed smoothing/table values, magnitude display with negative markers, negative-only reference capture, retained reference frequency axes, duplicate-frame accounting, disposal, and signed CSV exports with four LO frequencies and cumulative metadata.
+- All four digit-editable LO controls retain sub-hertz settings; CIC controls reject fractional rates and XY displays cumulative progress.
 - Plot decimation preserves frequency order, extrema and gaps, while compressing dense finite traces.
 - The PNA draw call uses the shared V1 renderer without confusing smoothing labels with the FFT peak flag; negative markers keep their point styling and decimated buffers remain independent.
 

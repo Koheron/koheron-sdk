@@ -24,6 +24,10 @@ class FakeClient:
             self.count = 0
 
     def recv_tuple(self, fmt):
+        if fmt == 'dddd':
+            return (10e6, 10e6 + .001, 10e6, 10e6)
+        if fmt == 'II':
+            return (42, 0)
         self.count += 1
         return (15001, 5e6, 2, 5e6 / 15000, 1, 10e6, 10e6, 10e6, 10e6, 0, self.count)
 
@@ -43,6 +47,12 @@ class ClientTests(unittest.TestCase):
         frequency = 10e6 + 0.637
         self.driver.set_local_oscillator(1, frequency)
         self.assertEqual(self.client.commands, [('set_local_oscillator', (1, frequency))])
+
+    def test_nominal_frequencies_and_cumulative_status(self):
+        self.assertEqual(self.driver.get_nominal_frequencies()[1], 10e6 + .001)
+        self.assertEqual(self.driver.get_average_status(), (42, 0))
+        self.assertEqual(self.client.commands, [('get_nominal_frequencies', ()),
+                                                ('get_average_status', ())])
 
     def test_axis_matches_received_spectrum(self):
         freqs, low, high = self.driver.get_freqs(15001)

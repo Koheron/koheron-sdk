@@ -231,3 +231,64 @@ stack-use-after-scope while restoring the saved tracking flag. The parser now
 owns the trimmed string for the duration of each parse. Regressions cover
 saved boolean, float and integer settings, whitespace, long decimal values
 and invalid numeric suffixes.
+
+
+## 2026-10-05 ALPHA250 PNA workspace port
+
+Boards: ALPHA250 DAC0 at 192.168.1.105 supplies both IN1/IN3 on the
+ALPHA250-4 at 192.168.1.12. The independent 10 MHz reference supplies IN0/IN2.
+Both boards run V1 PNA packages based on SDK commit `176be15d`; the receiver
+software update is package 1.1.0. Its FPGA binaries and overlay are byte-identical
+to the verified V1 package installed earlier that day. Source changes are on `feat/alpha250-4-pna-improvements`.
+
+The source uses a 10 MHz carrier and sine PM. At CIC 133, five fresh synchronized
+phase fits and at least 25 cumulative windows per setting yielded:
+
+| PM offset | Commanded peak | Fitted X peak | Fitted Y peak | Integrated XY equivalent peak |
+| --- | --- | --- | --- | --- |
+| 10 kHz | 0.1° | 0.099710° | 0.099689° | 0.099668° |
+| 10 kHz | 0.3° | 0.299763° | 0.299683° | 0.299725° |
+| 1 kHz | 1° | 1.000017° | 1.000285° | 0.999741° |
+| 10 kHz | 1° | 0.999953° | 1.000166° | 0.999980° |
+| 10 kHz | 3° | 3.000935° | 3.000705° | 3.000773° |
+| 50 kHz | 1° | 0.997807° | 0.997813° | 0.997810° |
+
+The integrated XY result uses the signed PSD around the modulation line, with
+peak phase computed as `sqrt(2 * integrated_power)`. Negative estimates remain
+signed in CSV and reference storage. The zero-PM fitted baseline was below
+0.0006° on both channels; this is not an absolute noise-floor calibration.
+DAC0 was restored to 10 kHz sine PM, 1° peak; DAC1 remains disabled. Receiver
+settings are restored to XY, CIC 133, with saved nominal frequencies unchanged.
+
+The server/browser builds, Python tests, ASan/UBSan native regressions, seven
+browser workspace tests, serialized-payload checks and independent calculation
+audit pass. Browser checks include reference capture, signed CSV and PNG
+exports, smoothing and frequency-noise conversion, stale-state handling during
+instrument restarts and Retry reconnection. New nominal-frequency and average
+status RPCs were exercised live: rolling status reached `(4, 4)` and cumulative
+XY reported a positive count with target zero.
+
+For 120 sequential PSD reads at CIC 133, the old server's median/p95/p99 were
+1.55/71.54/73.41 ms. The publication cache measured 1.84/3.59/11.21 ms with the
+browser active. These timings include network and host overhead and are not a
+hard real-time guarantee. With the final 20 Hz polling cap and active browser,
+the median/p95/p99 were 1.48/2.21/3.04 ms. A 60 Hz browser poll target overloaded the faster
+CIC 67 acquisition in one repeat, while the same check passed with the browser
+closed. Polling is therefore capped at 20 Hz for this paired-DMA receiver;
+cached replies are excluded from displayed FPS. At 20 Hz, CIC 67 passed one
+repeat but failed another phase-fit check (0.941° versus 1° commanded), despite
+closely aligned channels and an integrated XY equivalent peak of 0.9971°.
+This cap reduces load but does not establish a uniform time axis at CIC 67. The ALPHA250-4 stitched signed
+estimator is retained instead of replacing it with ALPHA250's single-channel
+Welch backend.
+
+CIC 20 failed the fixed-10-kHz phase-fit criterion with both the previous and
+updated servers, despite closely aligned X/Y phases and integrated XY tone
+power within 3% of the command. This run therefore does not validate the fastest
+rate's uniform time axis. Shared FIFO backpressure can discard ADC-clock sample
+instants; the cause of this particular failure is not established. Use the
+validated CIC 133 setting for this PM experiment.
+
+Raw NPZ captures, JSON measurements, deployment hashes, instrument/settings
+backups and browser exports are under `tmp/pna-pm-port-20261005` in the main
+workspace; software build/test logs are under `tmp/pna-port` in the port worktree.

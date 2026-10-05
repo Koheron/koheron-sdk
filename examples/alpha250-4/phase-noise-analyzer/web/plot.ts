@@ -2,45 +2,73 @@
 // (c) Koheron
 
 class Plot {
+  private disposed = false;
   public n_pts: number;
   public plot: jquery.flot.plot;
   public plot_data: Array<Array<number>>;
-  public signed_phase_psd: Float32Array = new Float32Array(0);
-  public smooth_plot_data: Array<Array<number>>;
   private negative_plot_data: number[][] = [];
   private negative_smooth_data: number[][] = [];
+  private reference_negative_data: number[][] = [];
+  private reference_negative_smooth_data: number[][] = [];
+  public phase_psd: Float32Array = new Float32Array(0);
+  public smooth_plot_data: Array<Array<number>>;
   private linear_plot_data: Array<Array<number>>;
   private samplingFrequency: number;
   private decadeValuesTable: HTMLTableElement;
+  private frameParameters: IParameters;
+  private renderedPlotType: 'phase' | 'frequency';
+  public frameReceivedAt: string;
+  private reference: {psd: Float32Array; parameters: IParameters; receivedAt: string};
+  private hasInitialFit = false;
+  private referencePlotType: string;
+  public reference_data: number[][];
+  public reference_smooth_data: number[][];
+  public get referenceParameters(): IParameters { return this.reference?.parameters; }
+  public get referencePSD(): Float32Array { return this.reference?.psd; }
+  public get referenceReceivedAt(): string { return this.reference?.receivedAt; }
+  public get frameStatus(): IParameters { return this.frameParameters; }
 
   private laserPlotTypeInputs: HTMLInputElement[];
   private showSmoothedInput: HTMLInputElement;
   private laserPlotType: 'phase' | 'frequency' = 'phase';
-  private displayedChannel: number;
 
-  public yLabel: string = "PHASE NOISE MAGNITUDE (dBc/Hz)";
+  public yLabel: string = 'Phase noise magnitude (dBc/Hz)';
   private peakDatapoint: number[];
 
-  constructor(document: Document, private driver: PhaseNoiseAnalyzer, public plotBasics: PlotBasics) {
+  constructor(private document: Document, private driver: PhaseNoiseAnalyzer, public plotBasics: PlotBasics,
+      private onConnectionError: (error: unknown) => void = () => {}) {
     this.peakDatapoint = [];
     this.plot_data = [];
     this.smooth_plot_data = [];
     this.linear_plot_data = [];
     this.init();
     this.decadeValuesTable = <HTMLTableElement>document.getElementById('decade-values-table');
+    this.document.addEventListener('visibilitychange', this.visibilityHandler);
     this.updatePlot();
   }
 
   init() {
-    this.n_pts = 0;
+    this.n_pts = this.driver.parameters.data_size;
     this.samplingFrequency = this.driver.parameters.fs;
     this.setFreqAxis();
-    this.plotBasics.setLogX();
-    this.plotBasics.setLinY(); // Autoscale the first spectrum, then retain user zoom.
+    this.plotBasics.setLogX(true);
     this.plotBasics.enableDecimation();
+    this.plotBasics.enableBatchedLines();
+    this.plotBasics.setPrimaryTraceLabel('Raw');
 
     this.initLaserPlotType();
-    this.initSmoothedToggle();
+    this.showSmoothedInput = document.getElementById('show-smoothed-trace') as HTMLInputElement;
+    this.showSmoothedInput?.addEventListener('change', () => {
+      this.plotBasics.refreshLegend();
+      if (this.frameParameters) { this.redraw(() => {}); }
+    });
+    document.getElementById('capture-reference')?.addEventListener('click', () => this.captureReference());
+    document.getElementById('clear-reference')?.addEventListener('click', () => this.clearReference());
+    document.getElementById('fit-view')?.addEventListener('click', () => {
+      this.plotBasics.setRangeX(this.plotBasics.x_min, this.plotBasics.x_max);
+      this.plotBasics.setLinY();
+      if (this.frameParameters) { this.redraw(() => {}); }
+    });
   }
 
   initLaserPlotType(): void {
@@ -53,9 +81,19 @@ class Plot {
       const nextType = (selected?.value as 'phase' | 'frequency') ?? 'phase';
       if (nextType !== this.laserPlotType) {
         this.laserPlotType = nextType;
-        // Flot rebuilds its legend on setupGrid, rather than setData/draw.
-        // Recompute the Y range when changing units and retain the X range.
+        // Rebuild the legend and fit the new units while retaining the X zoom.
         this.plotBasics.setLinY();
+      }
+      this.yLabel = this.laserPlotType === 'phase' ? 'Phase noise magnitude (dBc/Hz)' : 'Frequency noise magnitude (dB Hz²/Hz)';
+      const unit = document.getElementById('spectrum-unit');
+      if (unit) { unit.textContent = this.laserPlotType === 'phase' ? 'dBc/Hz' : 'dB Hz²/Hz'; }
+      if (this.frameParameters) {
+        this.computeDisplaySpectrum(this.phase_psd, 2);
+        this.computeSmoothedPlot(2);
+        this.renderedPlotType = this.laserPlotType;
+        this.updateReferenceDisplay();
+        this.setDecadeValuesTable();
+        this.redraw(() => {});
       }
     };
 
@@ -66,33 +104,17 @@ class Plot {
     syncPlotType();
   }
 
-
-  initSmoothedToggle(): void {
-    this.showSmoothedInput = document.getElementById('show-smoothed-trace') as HTMLInputElement;
-
-    if (!this.showSmoothedInput) {
-      return;
-    }
-
-    this.showSmoothedInput.addEventListener('change', () => {
-      // Rebuild the legend without resetting the user's axis ranges.
-      this.plotBasics.refreshLegend();
-    });
-  }
-
   setFreqAxis(): void {
     this.ensurePlotBuffer();
-
-    const fftSize = 2 * (this.n_pts - 1);
-    const df = this.samplingFrequency / fftSize;
+    const binWidth = this.samplingFrequency / (2 * (this.n_pts - 1));
 
     for (let i = 0; i < this.n_pts; i++) {
-      this.plot_data[i][0] = i * df;
-      this.linear_plot_data[i][0] = i * df;
-      this.smooth_plot_data[i][0] = i * df;
+      this.plot_data[i][0] = i * binWidth;
+      this.linear_plot_data[i][0] = i * binWidth;
+      this.smooth_plot_data[i][0] = i * binWidth;
     }
 
-    this.plotBasics.x_min = 2 * df;
+    this.plotBasics.x_min = 2 * binWidth;
     this.plotBasics.x_max = 0.75 * 0.5 * this.samplingFrequency;
     this.plotBasics.setRangeX(this.plotBasics.x_min, this.plotBasics.x_max);
   }
@@ -108,54 +130,30 @@ class Plot {
   }
 
   getDecadeValues(): Array<Array<number>> {
-    const fmin = this.plotBasics.x_min;
-    const fmax = this.plotBasics.x_max;
+    let fmin: number = this.plotBasics.x_min;
+    let fmax: number = this.plotBasics.x_max;
 
-    const freqDecades = [1E-1, 1E0, 1E1, 1E2, 1E3, 1E4, 1E5, 1E6, 1E7];
-    const decadeValues: Array<Array<number>> = [];
+    let freq_decades: number[] = [1E-1, 1E0, 1E1, 1E2, 1E3, 1E4, 1E5, 1E6, 1E7];
+    let decade_values = [];
 
-    // Total averaging span = 0.10 decade
-    const halfWidthDecades = 0.05;
-    const scale = Math.pow(10, halfWidthDecades);
-
-    for (const freq of freqDecades) {
+    for (const freq of freq_decades) {
       if (freq < fmin || freq > fmax) {
         continue;
       }
 
-      const fLow = freq / scale;
-      const fHigh = freq * scale;
-
-      let sumLinear = 0;
-      let count = 0;
-
-      for (let i = 0; i < this.plot_data.length; i++) {
-        const f = this.plot_data[i][0];
-
-        if (f < fLow) {
-          continue;
-        }
-
-        if (f > fHigh) {
-          break;
-        }
-
+      const scale = Math.pow(10, 0.05);
+      const binsPerHz = 2 * (this.n_pts - 1) / this.samplingFrequency;
+      const i0 = Math.max(2, Math.ceil(freq / scale * binsPerHz));
+      const i1 = Math.min(this.n_pts - 1, Math.floor(freq * scale * binsPerHz));
+      let sum = 0, count = 0;
+      for (let i = i0; i <= i1; i++) {
         const value = this.linear_plot_data[i][1];
-
-        if (Number.isFinite(value)) {
-          sumLinear += value;
-          count++;
-        }
+        if (Number.isFinite(value)) { sum += value; count++; }
       }
-
-      let value: number;
-
-      value = count > 0 && sumLinear > 0 ? 10 * Math.log10(sumLinear / count) : NaN;
-
-      decadeValues.push([freq, value]);
+      decade_values.push([freq, count > 0 && sum > 0 ? 10 * Math.log10(sum / count) : NaN]);
     }
 
-    return decadeValues;
+    return decade_values;
   }
 
   private setDecadeValuesTable(): void {
@@ -163,13 +161,13 @@ class Plot {
 
     this.decadeValuesTable.innerHTML = `
       <colgroup>
-        <col style="width:50%">
+        <col>
         <col>
       </colgroup>
       <thead>
         <tr>
-          <th>Carrier Offset Frequency</th>
-          <th>${this.laserPlotType === 'phase' ? 'Phase Noise' : 'Frequency Noise'}</th>
+          <th>Offset</th>
+          <th>${this.laserPlotType === 'phase' ? 'Phase noise' : 'Frequency noise'}</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -183,7 +181,8 @@ class Plot {
       freqCell.innerHTML = this.frequencyFormater(value[0]);
 
       const valueCell = row.insertCell(1);
-      valueCell.innerHTML = Number.isFinite(value[1]) ? `${value[1].toFixed(2)} ${this.laserPlotType === 'phase' ? 'dBc/Hz' : 'dB Hz²/Hz'}` : 'Nonpositive estimate';
+      const unit = this.laserPlotType === 'phase' ? 'dBc/Hz' : 'dB Hz²/Hz';
+      valueCell.innerHTML = Number.isFinite(value[1]) ? `${value[1].toFixed(2)} ${unit}` : '—';
     }
   }
 
@@ -192,106 +191,166 @@ class Plot {
   }
 
   private _busy = false;
-  private _targetHz = 10; // plot update cadence
-  private _lastTick = 0;
+  private _targetHz = 20; // Paired DMA acquisition shares the ARM CPU with reads.
+  private _lastTick = -Infinity;
+  private lastStarted = -Infinity;
+  private timer: number;
+  private animation: number;
+  private rateStarted = performance.now();
+  private displayedFrames = 0;
+  private receivedFrames = 0;
+  private readMs = 0;
+  private processMs = 0;
+  private drawMs = 0;
+  private schedulerMs = 0;
+  private lastTableUpdate = -Infinity;
+  private visibilityHandler = () => {
+    window.clearTimeout(this.timer);
+    window.cancelAnimationFrame(this.animation);
+    this.resetRate();
+    if (!this.document.hidden) { void this.updatePlot(); }
+  };
   private _loBackoffMs = 250; // slower polling when LO is off
 
   private ensurePlotBuffer() {
     if (!this.plot_data || this.plot_data.length !== this.n_pts) {
       this.plot_data = Array.from({ length: this.n_pts }, () => [0, NaN]);
     }
-
     if (!this.linear_plot_data || this.linear_plot_data.length !== this.n_pts) {
       this.linear_plot_data = Array.from({ length: this.n_pts }, () => [0, NaN]);
     }
-
     if (!this.smooth_plot_data || this.smooth_plot_data.length !== this.n_pts) {
       this.smooth_plot_data = Array.from({ length: this.n_pts }, () => [0, NaN]);
     }
-
-    for (let i = 0; i < this.n_pts; i++) {
-      this.smooth_plot_data[i][0] = this.plot_data[i][0];
-    }
   }
 
-  private computeSmoothedPlot(nstart: number): void {
-    const src = this.linear_plot_data;
-    const dst = this.smooth_plot_data;
-    const N = this.n_pts;
-    this.negative_smooth_data = [];
-
-    const halfWidthDecades = 0.05;
-    const scale = Math.pow(10, halfWidthDecades);
-
-    for (let i = 0; i < nstart - 1; i++) {
-      dst[i][1] = NaN;
-    }
-
-    let j0 = nstart - 1;
-    let j1 = nstart - 2;
-
-    let sumLinear = 0;
-    let cnt = 0;
-
-    const add = (j: number) => {
-      const value = src[j][1];
-      if (Number.isFinite(value)) {
-        sumLinear += value;
-        cnt++;
-      }
-    };
-
-    const remove = (j: number) => {
-      const value = src[j][1];
-      if (Number.isFinite(value)) {
-        sumLinear -= value;
-        cnt--;
-      }
-    };
-
-    for (let i = nstart - 1; i < N; i++) {
-      const fi = src[i][0];
-
-      if (!Number.isFinite(fi) || fi <= 0) {
-        dst[i][1] = NaN;
-        continue;
-      }
-
-      const fMin = fi / scale;
-      const fMax = fi * scale;
-
-      while (j1 + 1 < N && src[j1 + 1][0] <= fMax) {
-        j1++;
-        add(j1);
-      }
-
-      while (j0 < N && src[j0][0] < fMin) {
-        remove(j0);
-        j0++;
-      }
-
-      // Average signed estimates BEFORE taking the magnitude for display.
-      const mean = cnt > 0 ? sumLinear / cnt : NaN;
-      dst[i][1] = Number.isFinite(mean) && mean !== 0
-        ? 10 * Math.log10(Math.abs(mean)) : NaN;
-      if (mean < 0) this.negative_smooth_data.push([fi, dst[i][1]]);
-    }
-  }
-
-  private computeDisplaySpectrum(phaseNoise: Float32Array, nstart: number): void {
-    this.negative_plot_data = [];
-    for (let i = 0; i < this.n_pts; i++) {
-      const f = this.plot_data[i][0];
-      const value = phaseNoise[i] * (this.laserPlotType === 'phase' ? 0.5 : f ** 2);
-      this.linear_plot_data[i][1] = i >= nstart - 1 ? value : NaN;
-      this.plot_data[i][1] = i >= nstart - 1 && Number.isFinite(value) && value !== 0
+  private computeDisplaySpectrum(phaseNoise: Float32Array, firstBin: number,
+      data = this.plot_data, linear = this.linear_plot_data, negative = this.negative_plot_data): void {
+    negative.length = 0;
+    for (let i = 0; i < phaseNoise.length; i++) {
+      const f = data[i][0];
+      const value = phaseNoise[i] * (this.laserPlotType === 'phase' ? 0.5 : f * f);
+      linear[i][1] = i >= firstBin && Number.isFinite(value) ? value : NaN;
+      data[i][1] = i >= firstBin && Number.isFinite(value) && value !== 0
         ? 10 * Math.log10(Math.abs(value)) : NaN;
-      if (i >= nstart - 1 && value < 0) this.negative_plot_data.push([f, this.plot_data[i][1]]);
+      if (i >= firstBin && value < 0) { negative.push([f, data[i][1]]); }
     }
+  }
+
+  private computeSmoothedPlot(firstBin: number, src = this.linear_plot_data, dst = this.smooth_plot_data, negative = this.negative_smooth_data): void {
+    negative.length = 0;
+    // ALPHA250-4 display smoothing: average linear density in a 0.1-decade
+    // frequency window, then convert to dB. Keep raw data and jitter unchanged.
+    const scale = Math.pow(10, 0.05);
+    let j0 = firstBin, j1 = firstBin - 1, sum = 0, count = 0;
+    for (let i = 0; i < firstBin; i++) dst[i][1] = NaN;
+    for (let i = firstBin; i < src.length; i++) {
+      const f = src[i][0];
+      while (j1 + 1 < src.length && src[j1 + 1][0] <= f * scale) {
+        const value = src[++j1][1];
+        if (Number.isFinite(value)) { sum += value; count++; }
+      }
+      while (j0 <= j1 && src[j0][0] < f / scale) {
+        const value = src[j0++][1];
+        if (Number.isFinite(value)) { sum -= value; count--; }
+      }
+      const mean = count > 0 ? sum / count : NaN;
+      dst[i][1] = Number.isFinite(mean) && mean !== 0 ? 10 * Math.log10(Math.abs(mean)) : NaN;
+      if (mean < 0) { negative.push([f, dst[i][1]]); }
+    }
+  }
+
+  captureReference(): void {
+    if (!this.frameParameters || !this.phase_psd.subarray(2).some(v => Number.isFinite(v) && v !== 0)) { return; }
+    // Same snapshot model as the FFT workspace: retain linear density and the
+    // displayed frame's settings, so later rate/unit changes cannot alter it.
+    this.reference = {psd: this.phase_psd.slice(), parameters: {...this.frameParameters}, receivedAt: this.frameReceivedAt};
+    this.reference_data = undefined;
+    document.getElementById('capture-reference').textContent = 'Replace ref';
+    (document.getElementById('clear-reference') as HTMLButtonElement).disabled = false;
+    document.getElementById('reference-info').hidden = false;
+    const p = this.reference.parameters;
+    document.getElementById('reference-status').textContent =
+      `${["X", "Y", "XY"][p.channel]} · CIC ${p.cic_rate} · ${p.channel === 2 ? p.avgxy_count + " cumulative windows" : "N " + p.fft_navg}`;
+    document.getElementById('reference-info').title = `Captured ${new Date(this.reference.receivedAt).toLocaleString()}`;
+    this.updateReferenceDisplay();
+    this.plotBasics.refreshLegend();
+    this.redraw(() => {});
+  }
+
+  clearReference(): void {
+    this.reference = undefined;
+    this.reference_data = this.reference_smooth_data = undefined;
+    document.getElementById('capture-reference').textContent = 'Capture ref';
+    (document.getElementById('clear-reference') as HTMLButtonElement).disabled = true;
+    document.getElementById('reference-info').hidden = true;
+    this.plotBasics.refreshLegend();
+    this.redraw(() => {});
+  }
+
+  private updateReferenceDisplay(): void {
+    if (!this.reference || (this.reference_data && this.referencePlotType === this.laserPlotType)) { return; }
+    const {psd, parameters} = this.reference;
+    const binWidth = parameters.fs / (2 * (psd.length - 1));
+    this.reference_data = Array.from(psd, (_, i) => [i * binWidth, NaN]);
+    this.reference_smooth_data = this.reference_data.map(row => row.slice());
+    const linear = this.reference_data.map(row => row.slice());
+    this.computeDisplaySpectrum(psd, 2, this.reference_data, linear, this.reference_negative_data);
+    this.computeSmoothedPlot(2, linear, this.reference_smooth_data, this.reference_negative_smooth_data);
+    this.referencePlotType = this.laserPlotType;
+  }
+
+  private captureReady: boolean;
+  private setCaptureReady(ready: boolean): void {
+    if (!ready) { this.frameParameters = undefined; }
+    // Readiness rarely changes. Rewriting titles, disabled states and ARIA on
+    // every frame also wakes browser/extension observers at the display rate.
+    if (this.captureReady === ready) { return; }
+    this.captureReady = ready;
+    const button = document.getElementById('capture-reference') as HTMLButtonElement;
+    if (button) { button.disabled = !ready; }
+    const fit = document.getElementById('fit-view') as HTMLButtonElement;
+    if (fit) { fit.disabled = !ready; }
+    document.querySelectorAll<HTMLButtonElement>('.export-data, .export-plot').forEach(button => {
+      button.disabled = !ready;
+      button.title = ready ? (button.classList.contains('export-data') ? 'Export the displayed spectrum as CSV' : 'Export the noise plot as PNG')
+        : 'Waiting for a valid live spectrum';
+    });
+    this.document.getElementById('plot-placeholder')?.setAttribute('aria-label',
+      ready ? 'Live noise spectrum' : 'Noise spectrum; no live data');
+  }
+
+  public markUnavailable(reason: string): void {
+    this.setCaptureReady(false);
+    this.resetRate();
+    this.document.getElementById('plot-placeholder')?.setAttribute('aria-label',
+      `${reason}; spectrum is not live`);
+  }
+
+  private redraw(callback: () => void): void {
+    if (!this.plot_data.length) { return; }
+    this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, callback,
+      this.reference ? (this.showSmoothedInput?.checked ? this.reference_smooth_data : this.reference_data) : undefined,
+      false,
+      [
+        ...(this.showSmoothedInput?.checked ? [{label: 'Smoothed', data: this.smooth_plot_data, color: '#006400'}] : []),
+        {label: 'Negative estimates', data: this.negative_plot_data, color: '#c33', lines: {show: false}, points: {show: true, radius: 1.5}},
+        {data: this.showSmoothedInput?.checked ? this.negative_smooth_data : [], color: '#c33', lines: {show: false}, points: {show: true, radius: 1.5}},
+        {data: this.reference ? (this.showSmoothedInput?.checked ? this.reference_negative_smooth_data : this.reference_negative_data) : [], color: '#c33', lines: {show: false}, points: {show: true, radius: 1.5}}
+      ]);
+  }
+
+  private spectrumChanged(next: Float32Array): boolean {
+    if (!this.phase_psd || next.length !== this.phase_psd.length) { return true; }
+    for (let i = 0; i < next.length; i++) {
+      // Identical nonfinite bins are not a new frame.
+      if (!Object.is(next[i], this.phase_psd[i])) { return true; }
+    }
+    return false;
   }
 
   async updatePlot() {
-    if (this._busy) {
+    if (this.disposed || this.document.hidden || this._busy) {
       return;
     }
 
@@ -302,26 +361,33 @@ class Plot {
     const sinceLast = now - this._lastTick;
 
     // Throttle to targetHz
-    if (sinceLast < frameBudgetMs) {
+    // Allow sub-millisecond clock jitter around a display refresh boundary.
+    if (sinceLast + 1 < frameBudgetMs) {
       this._busy = false;
-      setTimeout(() => requestAnimationFrame(() => this.updatePlot()), Math.ceil(frameBudgetMs - sinceLast));
+      this.schedule(frameBudgetMs - sinceLast);
       return;
     }
 
-    this._lastTick = now;
+    // Keep the intended cadence instead of adding each callback's lateness to
+    // the next deadline. After a long pause, start a new cadence without a burst.
+    this._lastTick = Number.isFinite(this._lastTick) && sinceLast < Math.max(250, 2 * frameBudgetMs)
+      ? this._lastTick + frameBudgetMs : now;
+    const frameDelay = Number.isFinite(this.lastStarted) ? Math.max(0, now - this.lastStarted - frameBudgetMs) : 0;
+    this.lastStarted = now;
 
     try {
-      const ddsFreq = await app.dds.getDDSFreq(this.driver.parameters.channel === 1 ? 2 : 0);
+      // The controls already refresh these parameters and read back LO edits.
+      // Avoid an extra RPC round trip for every displayed spectrum.
+      const parameters = this.driver.parameters;
+      const frequencies = parameters.channel === 0 ? [parameters.fdds0, parameters.fdds1]
+        : parameters.channel === 1 ? [parameters.fdds2, parameters.fdds3]
+        : [parameters.fdds0, parameters.fdds1, parameters.fdds2, parameters.fdds3];
 
-      const plotEmptyDiv: HTMLElement = document.getElementById('plot-empty')!;
-
-      if (!this.loIsSet(ddsFreq)) {
-        plotEmptyDiv.classList.remove('hidden');
+      if (!frequencies.every(frequency => this.loIsSet(frequency))) {
+        this.markUnavailable('Local oscillator not set');
         this._busy = false;
-        setTimeout(() => requestAnimationFrame(() => this.updatePlot()), this._loBackoffMs);
+        this.schedule(this._loBackoffMs);
         return;
-      } else {
-        plotEmptyDiv.classList.add('hidden');
       }
 
       if (this.driver.parameters.fs !== this.samplingFrequency) {
@@ -329,53 +395,145 @@ class Plot {
         this.setFreqAxis();
       }
 
+      const frameParameters = {...this.driver.parameters};
+      const readStarted = performance.now();
       const phaseNoise: Float32Array = await this.driver.getPhaseNoise();
-      this.signed_phase_psd = phaseNoise;
-
+      const received = performance.now();
+      if (this.disposed) { return; }
+      if (this.document.hidden) { this._busy = false; return; }
+      if (phaseNoise.length < 3) {
+        this.markUnavailable('Measurement unavailable');
+        this._busy = false;
+        this.schedule(500);
+        return;
+      }
+      const changed = this.spectrumChanged(phaseNoise);
+      if (!changed && this.frameParameters && this.renderedPlotType === this.laserPlotType &&
+          (Object.keys(frameParameters) as (keyof IParameters)[]).every(key => Object.is(frameParameters[key], this.frameParameters[key]))) {
+        // The server returns its last published PSD between acquisitions.
+        // A zoom/resize still needs a redraw, but keeps the capture timestamp.
+        const drawStarted = performance.now();
+        const complete = () => {
+          this._busy = false;
+          if (this.disposed) { return; }
+          this.recordFrame(received - readStarted, 0, performance.now() - drawStarted, frameDelay, false);
+          this.schedule(Math.max(0, this._lastTick + frameBudgetMs - performance.now()));
+        };
+        if (this.plotBasics.needsRedraw()) { this.redraw(complete); }
+        else { complete(); }
+        return;
+      }
+      this.phase_psd = phaseNoise;
       if (this.n_pts !== phaseNoise.length) {
         this.n_pts = phaseNoise.length;
         this.setFreqAxis();
       }
-
       this.ensurePlotBuffer();
 
-      const nstart = 3;
-      if (this.displayedChannel !== this.driver.parameters.channel) {
-        this.displayedChannel = this.driver.parameters.channel;
-        this.plotBasics.setLinY();
+      this.computeDisplaySpectrum(phaseNoise, 2);
+      this.computeSmoothedPlot(2);
+      this.renderedPlotType = this.laserPlotType;
+      this.frameParameters = {...frameParameters, fs: this.samplingFrequency, data_size: phaseNoise.length};
+      this.frameReceivedAt = new Date().toISOString();
+      const ready = phaseNoise.subarray(2).some(v => Number.isFinite(v) && v !== 0);
+      this.setCaptureReady(ready);
+      if (ready) {
+        if (!this.hasInitialFit) {
+          this.plotBasics.setLinY();
+          this.hasInitialFit = true;
+        }
+      } else {
+        this.markUnavailable('Acquisition settling');
       }
-      this.yLabel = this.laserPlotType === 'phase'
-        ? "PHASE NOISE MAGNITUDE (dBc/Hz)" : "FREQUENCY NOISE MAGNITUDE (dB Hz²/Hz)";
-      this.computeDisplaySpectrum(phaseNoise, nstart);
+      this.updateReferenceDisplay();
 
-      this.computeSmoothedPlot(nstart);
-      this.setDecadeValuesTable();
+      // Numeric readouts need a lower cadence than the spectrum animation.
+      if (now - this.lastTableUpdate >= 250) {
+        this.setDecadeValuesTable();
+        this.lastTableUpdate = now;
+      }
 
-      const smoothedVisible = this.showSmoothedInput ? this.showSmoothedInput.checked : true;
-
-      this.plotBasics.redraw(
-        this.plot_data,
-        this.n_pts,
-        this.peakDatapoint,
-        this.yLabel,
-        () => {
+      const drawStarted = performance.now();
+      this.redraw(() => {
           this._busy = false;
-          const elapsed = performance.now() - now;
-          const delay = Math.max(0, Math.ceil(frameBudgetMs - elapsed));
-          setTimeout(() => requestAnimationFrame(() => this.updatePlot()), delay);
-        },
-        smoothedVisible ? this.smooth_plot_data : undefined,
-        false,
-        this.displayedChannel === 2 ? [{ label: 'Negative estimate', data: this.negative_plot_data, color: '#c43b36',
-           lines: { show: false }, points: { show: true, radius: 1.5, lineWidth: 1 } },
-         ...(smoothedVisible ? [{ label: 'Negative smoothed estimate', data: this.negative_smooth_data,
-           color: '#c43b36', lines: { show: false }, points: { show: true, radius: 3, lineWidth: 1 } }] : [])] : [],
-        `${this.yLabel} (smoothed)`
-      );
+          if (this.disposed) { return; }
+          const drawn = performance.now();
+          if (ready) { this.recordFrame(received - readStarted, drawStarted - received, drawn - drawStarted,
+            frameDelay, changed); }
+          this.schedule(Math.max(0, this._lastTick + frameBudgetMs - drawn));
+        });
     } catch (err) {
+      if (this.disposed) { return; }
       console.error('updatePlot error:', err);
+      this.markUnavailable('Measurement unavailable');
+      this.onConnectionError?.(err);
       this._busy = false;
-      setTimeout(() => requestAnimationFrame(() => this.updatePlot()), 500);
+      this.schedule(500);
     }
+  }
+
+  private schedule(delay: number): void {
+    window.clearTimeout(this.timer);
+    window.cancelAnimationFrame(this.animation);
+    if (this.disposed || this.document.hidden) { return; }
+    const update = () => {
+      window.clearTimeout(this.timer);
+      window.cancelAnimationFrame(this.animation);
+      void this.updatePlot();
+    };
+    // Some visible/occluded browser windows throttle screen callbacks to 1 Hz.
+    // Race a deadline timer against the screen callback, as in the FFT display;
+    // whichever wins cancels the other, keeping only one serial read loop.
+    this.timer = window.setTimeout(update, Math.ceil(delay));
+    if (delay <= 1000 / this._targetHz) {
+      this.animation = window.requestAnimationFrame(() => {
+        if (performance.now() + 1 >= this._lastTick + 1000 / this._targetHz) { update(); }
+      });
+    }
+  }
+
+  private resetRate(): void {
+    this.rateStarted = performance.now();
+    this.displayedFrames = 0;
+    this.receivedFrames = 0;
+    this.lastStarted = -Infinity;
+    this.readMs = this.processMs = this.drawMs = this.schedulerMs = 0;
+    const rate = this.document.getElementById('refresh-rate');
+    if (rate) {
+      rate.textContent = '— FPS';
+      rate.title = `New spectra displayed per second; polling target ${this._targetHz}/s; cached replies excluded`;
+    }
+  }
+
+  private recordFrame(readMs = 0, processMs = 0, drawMs = 0, schedulerMs = 0, changed = true): void {
+    if (this.document.hidden) { return; }
+    if (changed) { this.displayedFrames++; }
+    this.receivedFrames++;
+    this.readMs += readMs;
+    this.processMs += processMs;
+    this.drawMs += drawMs;
+    this.schedulerMs += schedulerMs;
+    const elapsed = performance.now() - this.rateStarted;
+    if (elapsed < 1000) { return; }
+    const rate = this.document.getElementById('refresh-rate');
+    if (rate) {
+      rate.textContent = (this.displayedFrames * 1000 / elapsed).toFixed(0) + ' FPS';
+      const mean = (time: number) => (time / this.receivedFrames).toFixed(1);
+      rate.title = `New spectra displayed per second; polling ${(this.receivedFrames * 1000 / elapsed).toFixed(0)}/s (target ${this._targetHz}/s)`
+        + `; read ${mean(this.readMs)} ms; process ${mean(this.processMs)} ms`
+        + `; draw ${mean(this.drawMs)} ms; scheduling delay ${mean(this.schedulerMs)} ms`;
+    }
+    this.rateStarted = performance.now();
+    this.displayedFrames = 0;
+    this.receivedFrames = 0;
+    this.readMs = this.processMs = this.drawMs = this.schedulerMs = 0;
+  }
+
+  dispose(): void {
+    this.disposed = true;
+    window.clearTimeout(this.timer);
+    window.cancelAnimationFrame(this.animation);
+    this.document.removeEventListener('visibilitychange', this.visibilityHandler);
+    this.resetRate();
   }
 }

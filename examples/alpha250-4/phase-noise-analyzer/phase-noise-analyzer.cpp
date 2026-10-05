@@ -234,14 +234,22 @@ PhaseNoiseAnalyzer::get_phase_xy_sync() {
 }
 
 PhaseNoiseAnalyzer::PhaseNoiseDensityVector PhaseNoiseAnalyzer::get_phase_noise() const {
-    std::shared_lock lk(data_mtx);
-    return phase_noise;
+    std::shared_lock lk(publication_mtx);
+    return published_phase_noise;
+}
+
+void PhaseNoiseAnalyzer::publish_spectrum() {
+    std::unique_lock lk(publication_mtx);
+    published_phase_noise = phase_noise;
+    published_count = channel == XY ? averager_xy.count() : averager.count();
+    published_target = channel == XY ? 0u : fft_navg;
 }
 
 void PhaseNoiseAnalyzer::set_fft_navg(uint32_t n_avg) {
     std::unique_lock lk(data_mtx);
     fft_navg = std::clamp(n_avg, 1u, 200u);
     averager.set_navg(fft_navg);
+    publish_spectrum();
 }
 
 void PhaseNoiseAnalyzer::reset_cumulative_averager() {
@@ -445,6 +453,7 @@ void PhaseNoiseAnalyzer::invalidate_acquisition() {
     averager.clear();
     averager_xy.clear();
     phase_noise.assign(spectrum_bins, PhaseNoiseDensity{});
+    publish_spectrum();
     phase_jitter = std::numeric_limits<Phase>::quiet_NaN();
     time_jitter = std::numeric_limits<Time>::quiet_NaN();
     f_lo_used = std::numeric_limits<Frequency>::quiet_NaN();
@@ -469,6 +478,10 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
             }
             if (reset_cumulative_requested.exchange(false, std::memory_order_acq_rel)) {
                 averager_xy.clear();
+                if (channel == XY) {
+                    phase_noise.assign(spectrum_bins, PhaseNoiseDensity{});
+                    publish_spectrum();
+                }
                 consumed = std::max(consumed, dma.completed_chunks());
                 tracking_last_mean_dphi = Phase{0.0f};
                 tracking_last_error = Frequency{0.0f};
@@ -513,6 +526,7 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
             tracking_locked = x_locked && tracking_locked;
         }
         compute_jitter(Frequency(f_dds));
+        publish_spectrum();
     }
 }
 

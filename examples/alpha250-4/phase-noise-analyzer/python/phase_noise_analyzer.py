@@ -116,6 +116,15 @@ class PhaseNoiseAnalyzer(object):
     def get_parameters(self):
         return self.client.recv_tuple('IdIdIddddII')
 
+    @command()
+    def get_nominal_frequencies(self):
+        return self.client.recv_tuple('dddd')
+
+    @command()
+    def get_average_status(self):
+        # Target zero denotes cumulative XY averaging.
+        return self.client.recv_tuple('II')
+
     def averager_xy_count(self):
         tup = self.get_parameters()
         return tup[10]

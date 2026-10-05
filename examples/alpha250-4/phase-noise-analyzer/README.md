@@ -64,10 +64,23 @@ frequencies. Python captures also retain `phase_psd`; spur removal is opt-in.
 
 The workspace follows the compact FFT interface: acquisition and local
 oscillators above a full-width spectrum, phase/frequency controls, CSV/PNG
-exports and jitter readouts. Drag zooms; double-click resets. DDS fields retain
-millihertz precision, apply valid edits on Enter or blur, and restore the last
-accepted value on Escape. Plot polling is limited to 10 Hz and controls to
-approximately 4 Hz. The shared INI parser now keeps trimmed storage alive while
+exports and jitter readouts. Drag zooms; double-click resets. All four nominal LO fields support Hz/kHz/MHz/GHz units and digit tuning with
+arrow keys or the mouse wheel. Enter or blur applies valid edits; Escape restores
+the accepted value. Tracking corrections are displayed separately from nominal
+frequencies. CIC and rolling-average controls accept integers only. XY reports
+cumulative synchronized windows and provides an explicit reset.
+
+Capture ref retains a copy of the signed PSD, its frequency axis, acquisition
+settings and receipt timestamp. CSV exports contain signed live/reference PSD
+and all four applied LO frequencies; PNG exports include acquisition labels.
+The plot polls the latest published PSD at up to 20 Hz, excludes cached replies
+from its FPS counter, and pauses when hidden. Controls refresh at 2 Hz.
+Connection failures disable controls and mark readings stale; leaving the page
+closes its connections. A separate short publication lock lets PSD readers
+continue while the next stitched FFT is processing. The four-input FPGA, phase
+scaling and signed stitched-spectrum estimator are unchanged by this port.
+The Python client exposes `get_nominal_frequencies()` and
+`get_average_status()`; a zero average target denotes cumulative XY averaging. The shared INI parser now keeps trimmed storage alive while
 restoring numeric and boolean settings.
 
 Run the software and FPGA regressions described in [tests/README.md](tests/README.md).

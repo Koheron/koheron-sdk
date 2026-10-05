@@ -35,4 +35,15 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     tmp/examples/alpha250-4/phase-noise-analyzer/web/app.js \
     "$pna_output/measurements.bin" "$pna_output/tracking.bin"
 
+docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
+    "${PNA_WEB_IMAGE:-koheron-web:node20}" sh -c '
+    set -eu
+    deps=tmp/tests/alpha250-4-phase-noise-analyzer/web-deps
+    export NODE_PATH="$PWD/$deps/node_modules:/opt/app/node_modules"
+    if ! node -e "require.resolve(\"jsdom\"); require.resolve(\"typescript\")" >/dev/null 2>&1; then
+        npm install --prefix "$deps" --no-save --package-lock=false typescript@5.6.3 jsdom@26.1.0
+    fi
+    node --test examples/alpha250-4/phase-noise-analyzer/tests/test_workspace.cjs
+'
+
 "${PNA_PYTHON:-.venv/bin/python3}" "$pna_tests/check_calculations.py"

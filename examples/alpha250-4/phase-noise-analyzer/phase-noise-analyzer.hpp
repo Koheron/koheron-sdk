@@ -67,6 +67,15 @@ class PhaseNoiseAnalyzer
     void set_channel(uint32_t chan);
     void set_fft_navg(uint32_t n_avg);
     void reset_cumulative_averager();
+    auto get_nominal_frequencies() {
+        std::shared_lock lk(data_mtx);
+        return std::tuple{base_dds_freq[0].eval(), base_dds_freq[1].eval(),
+                          base_dds_freq[2].eval(), base_dds_freq[3].eval()};
+    }
+    auto get_average_status() const {
+        std::shared_lock lk(publication_mtx);
+        return std::tuple{published_count, published_target};
+    }
     void set_tracking_enabled(bool enabled);
     void set_tracking_bandwidth(float bandwidth_hz);
     void set_tracking_max_correction(float max_correction_hz);
@@ -162,6 +171,13 @@ class PhaseNoiseAnalyzer
     Time dma_transfer_duration;
 
     mutable std::shared_mutex data_mtx; // protects settings, snapshots and spectral state
+    // PSD reads use a short publication lock instead of waiting for the FFT.
+    // Writers acquire data_mtx before publication_mtx; readers need only one.
+    mutable std::shared_mutex publication_mtx;
+    PhaseNoiseDensityVector published_phase_noise = PhaseNoiseDensityVector(spectrum_bins);
+    uint32_t published_count = 0;
+    uint32_t published_target = 1; // Zero denotes cumulative XY averaging.
+    void publish_spectrum();
 
     PhaseDataArray phase_x{};
     PhaseDataArray phase_y{};

@@ -8,6 +8,7 @@ interface IParameters {
   fs: number;        // Sampling frequency (Hz)
   channel: number;   // Acquired channel
   min_freq: number;
+  cic_rate: number;
   fft_navg: number;
   fdds0: number;
   fdds1: number;
@@ -64,7 +65,7 @@ class PhaseNoiseAnalyzer {
       clkIndex = "2";
     }
 
-    this.parameters = { data_size, fs, channel, min_freq, fft_navg, fdds0, fdds1, fdds2, fdds3, clkIndex, avgxy_count };
+    this.parameters = { data_size, fs, channel, min_freq, fft_navg, fdds0, fdds1, fdds2, fdds3, clkIndex, avgxy_count, cic_rate: Math.round(100E6 / fs) };
     return this.parameters;
   }
 
@@ -113,6 +114,21 @@ class PhaseNoiseAnalyzer {
 
   async getPhaseNoise(): Promise<Float32Array> {
     return await this.client.readFloat32Array(Command(this.id, this.cmds['get_phase_noise']));
+  }
+
+  setCicRate(rate: number): void {
+    this.client.send(Command(this.id, this.cmds['set_cic_rate'], rate));
+  }
+
+  async getNominalFrequencies(): Promise<number[]> {
+    return await this.client.readTuple<[number, number, number, number]>(
+      Command(this.id, this.cmds['get_nominal_frequencies']), 'dddd');
+  }
+
+  async getAverageStatus(): Promise<{count: number; target: number}> {
+    const [count, target] = await this.client.readTuple<[number, number]>(
+      Command(this.id, this.cmds['get_average_status']), 'II');
+    return {count, target};
   }
 
   setMinFrequency(minFrequencyHz: number): void {
