@@ -57,6 +57,10 @@ completed descriptors and ambiguous 24-bit packet-sequence rollover.
 
 Rate, channel, precision and manual LO changes stop the stream, reset phase,
 CIC, FIR and FIFO histories, then restart an acquisition epoch with DMA armed.
+Reapplying an unchanged channel, rate, precision or average target preserves
+the running measurement. An LO request that rounds to the existing nominal
+and applied tuning word also preserves it. Repeating the nominal LO still
+retunes when tracking has moved the applied frequency.
 A generation check rejects a window copied before a concurrent change. Gap or
 overrange metadata is sticky until reset; affected captures clear averages and
 trigger automatic restart. Shutdown cancels a waiting read without waiting for

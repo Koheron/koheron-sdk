@@ -301,6 +301,14 @@ void Core<Board>::set_local_oscillator(uint32_t lo_channel, double freq_hz) {
         log<ERROR>("PhaseNoiseAnalyzer: Invalid local oscillator setting\n");
         return;
     }
+    // Compare hardware tuning words: a read-back frequency (or another value
+    // rounding to it) should preserve acquisition. A manual request must still
+    // restore the nominal LO when tracking has applied a correction.
+    const double tuning_factor = std::ldexp(1.0, 48) / board.sampling_frequency();
+    if (acquisition_started.load(std::memory_order_acquire) &&
+        std::llround(freq_hz * tuning_factor) == std::llround(base_dds_freq[lo_channel] * tuning_factor) &&
+        std::llround(freq_hz * tuning_factor) == std::llround(dds.get_dds_freq(lo_channel) * tuning_factor))
+        return;
     dma.configure_sampling(fs, [&] { dds.set_dds_freq(lo_channel, freq_hz); });
     base_dds_freq[lo_channel] = dds.get_dds_freq(lo_channel);
     tracking_correction[lo_channel] = 0.0;
@@ -321,6 +329,9 @@ void Core<Board>::set_cic_rate(uint32_t rate) {
     std::unique_lock dma_lk(dma_mtx);
     std::unique_lock lk(data_mtx);
 
+    // Construction must still initialize the rate and calibration, even when
+    // the saved setting equals the member's default.
+    if (acquisition_started.load(std::memory_order_acquire) && rate == cic_rate) return;
     cic_rate = rate;
     phase_conversion_factor = float(phase_calibration::filter_correction(
         rate, prm::cic_n_stages, prm::cic_differential_delay) * std::exp2(-double(phase_precision))) * sci::pi<Phase> / 8192.0f;
@@ -340,6 +351,7 @@ bool Core<Board>::set_phase_precision(uint32_t bits) {
     detail::DmaSettingsGuard pending(dma_settings_pending);
     std::unique_lock dma_lk(dma_mtx);
     std::unique_lock lk(data_mtx);
+    if (acquisition_started.load(std::memory_order_acquire) && bits == phase_precision) return true;
     // Restart the complete hardware epoch, including queued FIFO samples.
     dma.configure_sampling(fs, [&] {
         if constexpr (Board::max_phase_precision > 0) board.set_phase_precision(bits);
@@ -362,6 +374,7 @@ void Core<Board>::set_channel(uint32_t chan) {
     detail::DmaSettingsGuard pending(dma_settings_pending);
     std::unique_lock dma_lk(dma_mtx);
     std::unique_lock lk(data_mtx);
+    if (acquisition_started.load(std::memory_order_acquire) && chan == channel) return;
     channel = chan;
     dirty_cnt = 2;
     invalidate_results();
@@ -414,7 +427,9 @@ typename Core<Board>::PhaseNoiseDensityVector Core<Board>::get_phase_noise() con
 template<class Board>
 void Core<Board>::set_fft_navg(uint32_t n_avg) {
     std::unique_lock lk(data_mtx);
-    fft_navg = std::clamp(n_avg, 1u, 100u);
+    const auto target = std::clamp(n_avg, 1u, 100u);
+    if (fft_navg == target) return;
+    fft_navg = target;
     averager.set_navg(fft_navg);
     if (capture_state == Valid) {
         phase_noise = averager.average();

@@ -564,6 +564,36 @@ test('cached PSDs still honor zoom requests without changing frame metadata or F
     assert.equal(draws, 3);
 });
 
+test('cached zero spectra skip repainting, retain zoom support and recover when data becomes measurable', async t => {
+    const {plot, window: w} = fixture(t);
+    let now = 1000, draws = 0;
+    const psd = new Float32Array(16385);
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    plot.driver.getPhaseNoise = async () => psd.slice();
+    plot.plotBasics.redraw = (data, size, peak, label, done) => { draws++; done(); };
+    await plot.updatePlot();
+    assert.equal(draws, 1);
+    assert.equal(plot.frameStatus, undefined);
+    now += 1000; await plot.updatePlot();
+    assert.equal(draws, 1, 'a valid capture below the phase resolution does not repaint at the polling rate');
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '— FPS');
+    assert.equal(w.document.getElementById('capture-reference').disabled, true);
+    plot.plotBasics.needsRedraw = () => true;
+    now += 1000; await plot.updatePlot();
+    assert.equal(draws, 2, 'zoom still redraws the empty spectrum');
+    plot.plotBasics.needsRedraw = () => false;
+    psd[64] = 2;
+    now += 1000; await plot.updatePlot();
+    assert.equal(draws, 3);
+    assert.equal(w.document.getElementById('capture-reference').disabled, false);
+    // Recovering a cached live frame after a transient failure must restore
+    // capture/export readiness rather than taking the unavailable fast path.
+    plot.markUnavailable('Read failed');
+    now += 1000; await plot.updatePlot();
+    assert.equal(draws, 4);
+    assert.equal(w.document.getElementById('capture-reference').disabled, false);
+});
+
 test('an empty or truncated spectrum cannot corrupt the retained axis or reference', async t => {
     const {plot} = fixture(t);
     plot.plotBasics.redraw = (data, size, peak, label, done) => done();

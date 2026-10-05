@@ -124,6 +124,21 @@ int main() {
     assert(std::get<3>(spectrum_frame) == 6250000.0);
     assert(std::get<9>(spectrum_frame) == std::get<5>(parameters));
     assert(std::get<16>(spectrum_frame) == pn);
+    // Reapplying unchanged controls must not restart DMA or empty averages.
+    // In particular, a repeated setting at slow decimation would otherwise
+    // discard many seconds of a valid spectrum window.
+    const auto unchanged_writes = ctl.writes.load();
+    const auto unchanged_dma = analyzer.get_dma_status();
+    analyzer.set_channel(std::get<2>(parameters));
+    analyzer.set_cic_rate(std::get<3>(parameters));
+    assert(analyzer.set_phase_precision(0));
+    analyzer.set_local_oscillator(0, std::get<5>(parameters));
+    analyzer.set_local_oscillator(0, std::get<5>(parameters) + .25 * lsb);
+    analyzer.set_local_oscillator(1, std::get<6>(parameters));
+    analyzer.set_fft_navg(std::get<4>(parameters));
+    assert(ctl.writes.load() == unchanged_writes);
+    assert(analyzer.get_dma_status() == unchanged_dma);
+    assert(analyzer.get_spectrum_snapshot() == spectrum_frame);
     // Integrated bin-64 PM, after Hann leakage. Detrending must retain known power.
     double tone_power = 0;
     for (unsigned i = 62; i <= 66; ++i) tone_power += pn[i].eval() * 6250000 / 32768;
@@ -205,7 +220,7 @@ int main() {
     acquire();
     assert(std::abs(analyzer.get_phase_noise()[64].eval() / rf - 1) < 1e-5);
 
-    // A rate change waits for the transfer, and clears the prior calibration/results.
+    // A rate change cancels the transfer and clears the prior calibration/results.
     auto rate_change = std::async(std::launch::async, [&] { analyzer.set_cic_rate(32); });
     for (int i = 0; i < 10 && rate_change.wait_for(std::chrono::milliseconds(20)) != std::future_status::ready; ++i)
         acquire();
@@ -218,7 +233,7 @@ int main() {
     // lock is held. A blocked calibration gives this test a deterministic writer.
     auto& adc = rt::get_driver<Ltc2157>();
     adc.block_conversion();
-    auto channel_change = std::async(std::launch::async, [&] { analyzer.set_channel(1); });
+    auto channel_change = std::async(std::launch::async, [&] { analyzer.set_channel(0); });
     adc.wait_for_conversion();
     auto spectrum_read = std::async(std::launch::async, [&] { return analyzer.get_phase_noise(); });
     const auto snapshot_status = spectrum_read.wait_for(std::chrono::seconds(1));

@@ -99,6 +99,12 @@ int main() {
     analyzer.set_tracking_bandwidth(.1f);
     assert(std::abs(std::get<2>(analyzer.get_tracking_parameters()) - 24414.0625 / (50 * 32768)) < 1e-12);
 
+    // Repeating the nominal request is a real retune when tracking has moved
+    // the applied LO, including an oscillator on the unselected input.
+    boundary_change([&] { analyzer.set_local_oscillator(0, nominal0); });
+    assert(std::get<5>(analyzer.get_parameters()) == nominal0);
+    assert(std::get<7>(analyzer.get_tracking_parameters()) == 0.);
+
     boundary_change([&] { analyzer.set_tracking_enabled(false); });
     assert(!std::get<0>(analyzer.get_tracking_parameters()));
     assert(std::get<5>(analyzer.get_parameters()) == nominal0);

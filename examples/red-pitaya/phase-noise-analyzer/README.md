@@ -187,12 +187,14 @@ inherited external I/O-delay omissions remain. The block-design assertions
 check both ADC/reference selection paths, 24-bit
 CORDIC rounding, full-history reset, packet metadata and cyclic SG DMA.
 ALPHA250's default two-extractor wiring remains identical after this refactor.
-Red Pitaya hardware validation is still required for the new image.
+The [continuous DMA hardware results](tests/hardware-validation.md) cover
+PM calibration, acquisition cadence, settings changes and the remaining
+small-signal error on this image.
 
 ## Hardware results before continuous DMA
 
-These measurements and utilization figures predate version 1.2.0. The new
-continuous DMA/shared-extractor image still requires Red Pitaya hardware validation.
+These measurements and utilization figures predate version 1.2.0. See the
+[current hardware results](tests/hardware-validation.md) for continuous DMA.
 
 Validated on a Red Pitaya with DAC0 connected to ADC0 (LV): all nine precision
 settings measured the 0.1 rad PM tone at 6103.515625 Hz within 0.16% of the
