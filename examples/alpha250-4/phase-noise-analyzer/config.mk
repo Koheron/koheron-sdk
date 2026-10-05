@@ -18,7 +18,7 @@ CORES += $(SDK_PATH)/fpga/cores/phase_range_guard_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_stochastic_round_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_prefilter_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
-CORES += $(PROJECT_PATH)/axis_stream_packet_mux_v1_0
+CORES += $(SDK_PATH)/fpga/cores/axis_stream_packet_mux_v1_0
 CORES += $(PROJECT_PATH)/paired_cic_control_v1_0
 
 include $(BOARD_PATH)/drivers/drivers.mk

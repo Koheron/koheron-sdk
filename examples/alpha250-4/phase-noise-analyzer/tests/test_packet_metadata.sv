@@ -17,7 +17,7 @@ module test_packet_metadata;
     wire [1:0] s_axi_bresp,s_axi_rresp;
     axi_stream_packet_mux dut(.*);
     integer accepted=0,cycles=0;
-    reg expected_sel=0, continuous_testing=0;
+    reg expected_sel=0, continuous_testing=0, single_testing=0;
     reg stalled=0;
     reg [32:0] held=0;
     always @(posedge aclk) if(aresetn) begin
@@ -28,7 +28,7 @@ module test_packet_metadata;
         stalled=m_axis_tvalid && !m_axis_tready;
         held={m_axis_tlast,m_axis_tdata};
         if(m_axis_tvalid && m_axis_tready) begin
-            if(continuous_testing) expected_sel=(accepted/16)%2;
+            if(continuous_testing) expected_sel=single_testing ? 0 : (accepted/16)%2;
             if(m_axis_tdata !== accepted+ (expected_sel ? 1000 : 0)) $fatal(1,"Wrong sample order");
             if(m_axis_tlast !== (accepted%16==15)) $fatal(1,"Wrong packet length");
             if(s_axis_0_tready && s_axis_1_tready) $fatal(1,"Both inputs advanced");
@@ -89,7 +89,17 @@ module test_packet_metadata;
         check_status('h58, 'h1004);
         write_csr(16<<2);
         check_status(0);
-        $display("FIFO packet metadata checks passed: queued precision changes, X/Y selection, overflow/gaps, continuous alternation, ring wrap, stalls and CSR publication");
+        single_testing=1;
+        s_axis_0_tvalid=1; // input 1 is deliberately absent
+        write_csr((1<<17)|(1<<16)|(16<<2)|2);
+        wait(accepted>=32+1026*16+8*16);
+        @(negedge aclk);s_axis_0_tvalid=0;
+        repeat(3) @(negedge aclk);
+        check_status('h72, 'h1000);
+        check_status('h72, 'h1004);
+        write_csr(16<<2);
+        check_status(0);
+        $display("FIFO packet metadata checks passed: queued precision changes, X/Y selection, overflow/gaps, continuous alternation and single-stream, ring wrap, stalls and CSR publication");
         $finish;
     end
 endmodule

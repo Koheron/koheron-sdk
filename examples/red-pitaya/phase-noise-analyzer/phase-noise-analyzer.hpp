@@ -30,6 +30,7 @@ class PhaseNoiseAnalyzer {
     auto get_average_status() const { return core.get_average_status(); }
 
     auto get_spectrum_snapshot() const { return core.get_spectrum_snapshot(); }
+    auto get_dma_status() { return core.get_dma_status(); }
 
  private:
     phase_noise::Core<RedPitayaPhaseNoiseBoard> core;

@@ -8,6 +8,7 @@ memory:
     - cordic
     - cic_rate
     - phase_precision
+    - acquisition_run
   - name: status
     offset: 0x5000_0000
     range: 4K
@@ -15,6 +16,7 @@ memory:
     - adc[n_adc]
     - demod[n_adc]
     - phase_packet
+    - sample_gap
   - name: xadc
     offset: 0x43C0_0000
     range: 64K
@@ -32,6 +34,9 @@ memory:
   - name: axi_hp0
     offset: 0xF800_8000
     range: 4K
+  - name: mux
+    offset: 0x8001_0000
+    range: 8K
 
 parameters:
   fclk0: 125000000
@@ -47,6 +52,5 @@ parameters:
   cic_decimation_rate_min: 4
   cic_decimation_rate_max: 8192
   cic_n_stages: 6
-  n_pts: 131072
   cordic_phase_width: 24
-  phase_accumulator_width: 32
+  phase_accumulator_width: 64

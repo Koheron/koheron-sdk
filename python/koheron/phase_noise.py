@@ -89,6 +89,11 @@ class SingleChannelPhaseNoiseAnalyzer:
         pass
 
     @command()
+    def get_dma_status(self):
+        # Completed packets, consumed packets, hardware epoch, sample-gap captures.
+        return self.client.recv_tuple('QQQQ')
+
+    @command()
     def get_average_status(self):
         return self.client.recv_tuple('II')
 

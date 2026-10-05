@@ -5,7 +5,7 @@
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/config_manager.hpp"
-#include "server/drivers/dma-s2mm.hpp"
+#include "server/drivers/phase-noise/cyclic-phase-dma.hpp"
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -31,7 +31,6 @@
 #include "server/drivers/phase-noise/tracking-lock.hpp"
 
 namespace rt { class ConfigManager; }
-class DmaS2MM;
 
 namespace phase_noise {
 
@@ -47,8 +46,6 @@ class Core
 
     static constexpr uint32_t fft_size = 32768;
     static constexpr uint32_t data_size = 2 * fft_size;
-    // Memory offsets are bytes; take the middle of the packet after settling.
-    static constexpr uint32_t read_offset = ((prm::n_pts - data_size) / 2) * sizeof(int32_t);
 
     using PhaseDataArray = std::array<Phase, data_size>;
     using RawPhaseDataArray = std::array<int32_t, data_size>;
@@ -82,6 +79,10 @@ class Core
     }
 
     auto get_spectrum_snapshot() const { return publication.snapshot(); }
+    auto get_dma_status() {
+        std::shared_lock lk(data_mtx);
+        return std::tuple{dma.completed_chunks(), consumed_chunks, dma.generation(), gap_captures};
+    }
 
     auto get_tracking_parameters() {
         std::shared_lock lk(data_mtx);
@@ -140,7 +141,8 @@ class Core
   private:
     Board board;
     rt::ConfigManager& cfg;
-    DmaS2MM& dma;
+    CyclicPhaseDma dma;
+    uint64_t consumed_chunks = 0;
     typename Board::Oscillator& dds;
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::status>& sts;
@@ -151,16 +153,16 @@ class Core
     Phase phase_conversion_factor{0.0f}; // Radians per filtered DMA count
     uint32_t dirty_cnt = 0; // guarded by data_mtx
     uint32_t phase_precision = 0, captured_precision = 0;
-    enum CaptureState : uint32_t { Settling, Valid, Overrange, DmaError };
+    enum CaptureState : uint32_t { Settling, Valid, Overrange, DmaError, SampleGap };
     uint32_t capture_state = Settling;
-    uint64_t accepted_captures = 0, overflow_captures = 0, dma_errors = 0;
+    uint64_t accepted_captures = 0, overflow_captures = 0, dma_errors = 0, gap_captures = 0;
     double processing_ms = 0.0, capture_period_ms = 0.0;
     std::chrono::steady_clock::time_point last_capture_time{};
     Frequency fs_adc, fs;
     Time dma_transfer_duration;
 
     // Always acquire dma_mtx before data_mtx when both are needed.
-    std::mutex dma_mtx; // serializes DMA operations and CIC rate changes
+    std::mutex dma_mtx; // serializes epoch changes with captured-settings publication
     std::atomic<uint32_t> dma_settings_pending{0}; // give queued setters the next DMA lock
     mutable std::shared_mutex data_mtx; // settings, processing and published results
     SpectrumPublication<PhaseNoiseDensity> publication{1 + fft_size / 2};
@@ -216,10 +218,6 @@ class Core
     double effective_tracking_bandwidth() const;
     void reset_tracking_observations(); // caller holds data_mtx
     void update_tracking(double slope_radians_per_sample); // caller holds both mutexes when enabled
-    void reset_phase_unwrapper();
-    // Caller must hold dma_mtx for DMA operations.
-    void kick_dma();
-    auto read_dma();
     void update_interferometer_transfer_function();
     void set_power_conversion_factor();
     auto compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend,
@@ -250,7 +248,6 @@ class DmaSettingsGuard {
 template<class Board>
 Core<Board>::Core()
 : cfg    (services::require<rt::ConfigManager>())
-, dma    (rt::get_driver<DmaS2MM>())
 , dds    (rt::get_driver<typename Board::Oscillator>())
 , ctl    (hw::get_memory<mem::control>())
 , sts    (hw::get_memory<mem::status>())
@@ -296,13 +293,15 @@ void Core<Board>::save_config() {
 
 template<class Board>
 void Core<Board>::set_local_oscillator(uint32_t lo_channel, double freq_hz) {
+    detail::DmaSettingsGuard pending(dma_settings_pending);
+    std::unique_lock dma_lk(dma_mtx);
     std::unique_lock lk(data_mtx);
     if (lo_channel >= 2 || !std::isfinite(freq_hz) || freq_hz < 0.0 ||
         freq_hz > static_cast<double>(fs_adc.eval()) / 2.0) {
         log<ERROR>("PhaseNoiseAnalyzer: Invalid local oscillator setting\n");
         return;
     }
-    dds.set_dds_freq(lo_channel, freq_hz);
+    dma.configure_sampling(fs, [&] { dds.set_dds_freq(lo_channel, freq_hz); });
     base_dds_freq[lo_channel] = dds.get_dds_freq(lo_channel);
     tracking_correction[lo_channel] = 0.0;
     set_power_conversion_factor();
@@ -319,41 +318,32 @@ void Core<Board>::set_cic_rate(uint32_t rate) {
     }
 
     detail::DmaSettingsGuard pending(dma_settings_pending);
-    std::unique_lock dma_lk(dma_mtx); // block until any DMA transfer finishes
-    if (acquisition_started.load(std::memory_order_acquire)) {
-        Time duration;
-        bool changing;
-        {
-            std::shared_lock lk(data_mtx);
-            duration = dma_transfer_duration;
-            changing = rate != cic_rate;
-        }
-        // Processing may already have started the next transfer. Finish it at
-        // its original rate before changing the expected DMA duration.
-        if (changing) (void)dma.wait_for_transfer_checked(duration);
-    }
+    std::unique_lock dma_lk(dma_mtx);
     std::unique_lock lk(data_mtx);
 
     cic_rate = rate;
     phase_conversion_factor = float(phase_calibration::filter_correction(
         rate, prm::cic_n_stages, prm::cic_differential_delay) * std::exp2(-double(phase_precision))) * sci::pi<Phase> / 8192.0f;
     fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
-    dma_transfer_duration = prm::n_pts / fs;
-    logf("DMA transfer duration = {} s\n", dma_transfer_duration.eval());
+    dma_transfer_duration = data_size / fs;
+    logf("Spectrum window duration = {} s\n", dma_transfer_duration.eval());
 
     update_interferometer_transfer_function();
     invalidate_results();
     dirty_cnt = 2;
-    ctl.write<reg::cic_rate>(cic_rate);
+    dma.configure_sampling(fs, [&] { ctl.write<reg::cic_rate>(cic_rate); });
 }
 
 template<class Board>
 bool Core<Board>::set_phase_precision(uint32_t bits) {
     if (bits > Board::max_phase_precision) return false;
+    detail::DmaSettingsGuard pending(dma_settings_pending);
+    std::unique_lock dma_lk(dma_mtx);
     std::unique_lock lk(data_mtx);
-    // The FPGA latches this at packet start. Packet metadata lets acquisition
-    // reject the old scale, so a precision request need not wait for slow DMA.
-    if constexpr (Board::max_phase_precision > 0) board.set_phase_precision(bits);
+    // Restart the complete hardware epoch, including queued FIFO samples.
+    dma.configure_sampling(fs, [&] {
+        if constexpr (Board::max_phase_precision > 0) board.set_phase_precision(bits);
+    });
     phase_precision = bits;
     phase_conversion_factor = float(phase_calibration::filter_correction(
         cic_rate, prm::cic_n_stages, prm::cic_differential_delay) * std::exp2(-double(bits))) * sci::pi<Phase> / 8192.0f;
@@ -369,12 +359,16 @@ void Core<Board>::set_channel(uint32_t chan) {
         return;
     }
 
+    detail::DmaSettingsGuard pending(dma_settings_pending);
+    std::unique_lock dma_lk(dma_mtx);
     std::unique_lock lk(data_mtx);
     channel = chan;
     dirty_cnt = 2;
     invalidate_results();
     set_power_conversion_factor();
-    ctl.write_mask<reg::cordic, 0b10000>((channel & 1) << 4);
+    dma.configure_sampling(fs, [&] {
+        ctl.write_mask<reg::cordic, 0b10000>((channel & 1) << 4);
+    });
 }
 
 // Carrier power in dBm
@@ -468,10 +462,12 @@ void Core<Board>::set_tracking_enabled(bool enabled) {
     if (tracking_enabled == enabled) return;
     tracking_enabled = enabled;
     if (!enabled) {
-        for (uint32_t i = 0; i < 2; ++i) {
-            dds.set_dds_freq(i, base_dds_freq[i]);
-            tracking_correction[i] = 0.0;
-        }
+        dma.configure_sampling(fs, [&] {
+            for (uint32_t i = 0; i < 2; ++i) {
+                dds.set_dds_freq(i, base_dds_freq[i]);
+                tracking_correction[i] = 0.0;
+            }
+        });
         set_power_conversion_factor();
     }
     dirty_cnt = std::max(dirty_cnt, 4u);
@@ -516,7 +512,7 @@ void Core<Board>::set_tracking_max_correction(float max_correction_hz) {
         if (std::abs(tracking_correction[i]) > tracking_max_correction) {
             const double correction = std::clamp(tracking_correction[i],
                 -tracking_max_correction, tracking_max_correction);
-            dds.set_dds_freq(i, base_dds_freq[i] + correction);
+            dma.configure_sampling(fs, [&] { dds.set_dds_freq(i, base_dds_freq[i] + correction); });
             tracking_correction[i] = dds.get_dds_freq(i) - base_dds_freq[i];
             retuned = true;
         }
@@ -589,32 +585,6 @@ void Core<Board>::load_config() {
             ? cfg.get<uint32_t>("PhaseNoiseAnalyzer", "phase_precision") : 0u;
         if (!set_phase_precision(bits)) set_phase_precision(0);
     }
-}
-
-template<class Board>
-void Core<Board>::reset_phase_unwrapper() {
-    ctl.write_mask<reg::cordic, 0b1100>(0b1100);
-    ctl.write_mask<reg::cordic, 0b1100>(0b0000);
-}
-
-template<class Board>
-void Core<Board>::kick_dma() {
-    reset_phase_unwrapper();
-    dma.start_transfer<mem::ram, prm::n_pts, int32_t>();
-}
-
-template<class Board>
-auto Core<Board>::read_dma() {
-    std::optional<std::array<int32_t, data_size>> samples;
-    Time duration;
-    {
-        std::shared_lock lk(data_mtx);
-        duration = dma_transfer_duration;
-    }
-    if (!dma.wait_for_transfer_checked(duration)) return samples;
-    auto& ram = hw::get_memory<mem::ram>();
-    samples = ram.read_array<int32_t, data_size, read_offset>();
-    return samples;
 }
 
 template<class Board>
@@ -777,10 +747,11 @@ void Core<Board>::update_tracking(double slope_radians_per_sample) {
     const double requested = std::clamp(base_dds_freq[channel] + correction,
         0.0, static_cast<double>(fs_adc.eval()) / 2.0);
     // The mixer uses cos(LO) + j*sin(LO): measured slope is LO minus input.
-    // Change the selected LO after the drift fit and before the next packet.
+    // Retune only after copying a coherent window; reset queued history so
+    // the next window cannot straddle the DDS change.
     if (std::abs(requested - dds.get_dds_freq(channel)) >=
         board.sampling_frequency() / std::pow(2.0, 49)) {
-        dds.set_dds_freq(channel, requested);
+        dma.configure_sampling(fs, [&] { dds.set_dds_freq(channel, requested); });
         tracking_correction[channel] = dds.get_dds_freq(channel) - base_dds_freq[channel];
         set_power_conversion_factor();
     }
@@ -793,10 +764,8 @@ template<class Board>
 void Core<Board>::acquisition_thread() {
     {
         std::unique_lock dma_lk(dma_mtx);
-        std::unique_lock lk(data_mtx);
-        kick_dma();
+        dma.start_acquisition();
     }
-
     while (acquisition_started.load(std::memory_order_acquire)) {
         auto pending = dma_settings_pending.load(std::memory_order_acquire);
         while (pending > 0) {
@@ -804,36 +773,38 @@ void Core<Board>::acquisition_thread() {
             pending = dma_settings_pending.load(std::memory_order_acquire);
         }
         if (!acquisition_started.load(std::memory_order_acquire)) break;
+        // Polling never holds the settings/processing locks. A slow window at
+        // high decimation is cancellable and does not delay a rate/LO request.
+        auto snapshot = dma.read<data_size>(consumed_chunks, acquisition_started);
         std::unique_lock dma_lk(dma_mtx);
-        auto samples = read_dma(); // wait without blocking snapshot getters
-        uint32_t packet_status = 0;
-        if constexpr (Board::max_phase_precision > 0)
-            packet_status = board.phase_packet_status();
         std::unique_lock lk(data_mtx);
         if (!acquisition_started.load(std::memory_order_acquire)) break;
+        // A setter may have restarted the producer after the copy completed.
+        if (snapshot && snapshot->generation != dma.generation()) continue;
         const auto now = std::chrono::steady_clock::now();
         if (last_capture_time != std::chrono::steady_clock::time_point{})
             capture_period_ms = std::chrono::duration<double, std::milli>(now - last_capture_time).count();
         last_capture_time = now;
-        captured_precision = packet_status & 0xfu;
-
-        // Tracking must update the LO between packets. Do that before spectral
-        // processing so the next transfer can run while the FFT is computed.
-        const bool tracking_capture = tracking_enabled;
-        if (!tracking_capture) {
-            kick_dma();
-            dma_lk.unlock();
+        if (snapshot) {
+            consumed_chunks = snapshot->end_chunk;
+            captured_precision = snapshot->precision;
         }
-
-        if (!samples) {
+        if (!snapshot) {
             ++dma_errors;
             dirty_cnt = std::max(dirty_cnt, 2u);
             invalidate_results(DmaError);
-        } else if (packet_status & 0x10u) {
-            ++overflow_captures;
-            invalidate_results(Overrange);
-        } else if (captured_precision != phase_precision) {
+            dma.configure_sampling(fs, [] {});
+            dma.start_acquisition();
+        } else if (snapshot->sample_gap || snapshot->overflow) {
+            if (snapshot->overflow) ++overflow_captures;
+            if (snapshot->sample_gap) ++gap_captures;
+            invalidate_results(snapshot->sample_gap ? SampleGap : Overrange);
+            // Gap/overflow is sticky for the hardware epoch. Restart it before
+            // taking another window rather than accepting damaged history.
+            dma.configure_sampling(fs, [] {});
+        } else if (!snapshot->matches_precision(phase_precision)) {
             invalidate_results();
+            dma.configure_sampling(fs, [] {});
         } else if (dirty_cnt > 0) {
             --dirty_cnt;
             capture_state = Settling;
@@ -842,14 +813,11 @@ void Core<Board>::acquisition_thread() {
             const std::array<double, 4> acquired_frequencies{
                 dds.get_dds_freq(0), dds.get_dds_freq(1), 0.0, 0.0};
             const auto acquired_lo = Frequency(acquired_frequencies[channel]);
-            const auto trend = fit_raw_phase_prefix<data_size>(*samples);
+            const auto trend = fit_raw_phase_prefix<data_size>(snapshot->samples);
             update_tracking(trend.slope * double(phase_conversion_factor.eval()));
-            if (tracking_capture) {
-                kick_dma();
-                dma_lk.unlock();
-            }
+            dma_lk.unlock();
             PhaseDataArray new_phase{};
-            auto new_pn = compute_phase_noise(*samples, trend, new_phase);
+            auto new_pn = compute_phase_noise(snapshot->samples, trend, new_phase);
             compute_jitter(new_pn, acquired_lo);
             phase = std::move(new_phase);
             phase_noise = std::move(new_pn);
@@ -859,12 +827,9 @@ void Core<Board>::acquisition_thread() {
             processing_ms = std::chrono::duration<double, std::milli>(
                 std::chrono::steady_clock::now() - process_start).count();
         }
-        if (dma_lk.owns_lock()) {
-            kick_dma();
-            dma_lk.unlock();
-        }
-        if (!samples) {
+        if (!snapshot) {
             lk.unlock();
+            dma_lk.unlock();
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }

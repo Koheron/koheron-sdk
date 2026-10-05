@@ -22,6 +22,16 @@ readouts, CSV export and an independent two-channel DAC phase modulator.
 Its LO limits and tuning resolution come from the actual sample rate.
 The reference clock is fixed; ALPHA250 clock-selection controls are omitted.
 
+## Continuous acquisition
+
+Version 1.2.0 uses continuous cyclic DMA. Hardware acquires while the CPU
+processes spectra; settings changes reset phase/filter/FIFO history as one
+epoch. Gap, overrange and DMA failures discard the affected spectrum and
+restart acquisition. The shared [acquisition documentation](../../../server/drivers/phase-noise/README.md#acquisition-boundaries)
+describes the ring, diagnostics and tracking behavior. The 32768-point Welch
+estimator, calibration and 0–8-bit phase precision remain unchanged.
+Red Pitaya maps the CIC arithmetic into DSP slices to fit its smaller FPGA.
+
 ## Averaging progress
 
 The **Averages** control shows `k/N`: the actual number of spectra in the rolling

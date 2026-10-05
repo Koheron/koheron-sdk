@@ -5,13 +5,22 @@ Captured settings accompany each spectrum; FPS uses its publication sequence.
 Existing spectrum and phase RPCs remain available, and the browser supports
 older firmware through the existing read path.
 
+## Continuous acquisition
+
+Version 1.4.0 uses continuous cyclic DMA. Hardware acquires while the CPU
+processes spectra; settings changes reset phase/filter/FIFO history as one
+epoch. Gap, overrange and DMA failures discard the affected spectrum and
+restart acquisition. The shared [acquisition documentation](../../../server/drivers/phase-noise/README.md#acquisition-boundaries)
+describes the ring, diagnostics and tracking behavior. The 32768-point Welch
+estimator, calibration and 0–8-bit phase precision remain unchanged.
+
 ## Runtime phase precision
 
 Version 1.3.1 calculates 24-bit CORDIC phase and uses a dedicated random stream
 to round it without bias into the existing phase unit. This corrects coherent
 harmonics introduced by the former deterministic 16-bit phase output. The
 downstream 0–8-bit CIC precision settings and radians-per-count scaling are
-unchanged; ALPHA250 resets its phase accumulator for each DMA acquisition.
+unchanged; the phase accumulator resets on an acquisition epoch change or recovery.
 
 The acquisition toolbar selects **Standard** or **+1…+8 bits**. The CIC and
 compensation FIR retain 40 bits; the packet quantizer rounds to even and

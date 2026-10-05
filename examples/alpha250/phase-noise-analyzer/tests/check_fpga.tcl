@@ -65,6 +65,7 @@ set bytes [expr [string map {K *1024 M *1024*1024} [get_property RANGE $segment]
 if {[get_property OFFSET $segment] != 0x44000000 || $bytes != 8192} {
     error "Wrong DDS PM address window"
 }
+source [file join [file dirname [info script]] check_dma.tcl]
 puts "PASS: independent DAC stimulus and analyzer reference paths; 8 KiB AXI window"
 puts "PASS: four phase prefilters, I/Q ordering, resets and independently seeded rounding"
 close_project

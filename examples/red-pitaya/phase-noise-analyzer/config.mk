@@ -1,5 +1,5 @@
 NAME := phase-noise-analyzer
-VERSION := 1.1.1
+VERSION := 1.2.0
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya
@@ -24,7 +24,6 @@ TCL_FILES = $(BD_TCL) $(PROJECT_PATH)/post_route.tcl $(wildcard $(PROJECT_PATH)/
 
 DRIVERS += $(BOARD_PATH)/drivers/common.hpp
 DRIVERS += $(BOARD_PATH)/drivers/phase-modulator.hpp
-DRIVERS += $(SDK_PATH)/server/drivers/dma-s2mm.hpp
 DRIVERS += $(PROJECT_PATH)/dds.hpp
 DRIVERS += $(PROJECT_PATH)/dds.cpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.hpp
@@ -51,3 +50,7 @@ WEB_FILES += $(wildcard $(PNA_WEB_REFERENCE)/dds-frequency/* $(PNA_WEB_REFERENCE
 WEB_FILES += $(wildcard $(PROJECT_PATH)/web/*)
 
 OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi
+
+CORES += $(SDK_PATH)/fpga/cores/axis_stream_packet_mux_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_stream_control_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_range_guard_v1_0
