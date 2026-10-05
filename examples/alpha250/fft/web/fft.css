@@ -96,10 +96,16 @@
 .fft-workspace .precision-table th { padding: 3px; color: var(--muted); font-weight: 400; }
 .fft-workspace .precision-table thead th { border-bottom: 1px solid var(--border-light); text-align: left; }
 .fft-workspace .precision-table th:first-child { width: 36px; }
-.fft-workspace .precision-table th:nth-child(2) { width: 96px; }
+.fft-workspace .precision-table th:nth-child(2) { width: 140px; }
 .fft-workspace .precision-table th:last-child { width: 80px; }
 .fft-workspace .precision-table td:last-child, .fft-workspace .precision-table thead th:last-child { text-align: right; }
 .fft-workspace .precision-table td input[type="number"] { width: 100%; text-align: right; }
+.fft-workspace .precision-digit-control { position: relative; display: block; min-width: 0; }
+.fft-workspace .precision-digit-control .digit-input { width: 100%; min-width: 0; height: var(--control-height); padding: 2px 6px; border: 1px solid var(--border-light); border-radius: 2px; background: #fafafa; color: #333; font: 15px/20px ui-monospace, SFMono-Regular, Consolas, monospace; text-align: right; font-variant-numeric: tabular-nums; }
+.fft-workspace .digit-input::selection { background: var(--accent); color: white; }
+.fft-workspace .precision-digit-control .digit-input[aria-invalid="true"] { border-color: #bc4828; }
+.fft-workspace .precision-digit-control .pm-frequency-help { display: none; position: absolute; top: calc(100% + 3px); right: 0; z-index: 10; max-width: 240px; padding: 3px 6px; border: 1px solid #ddad9f; border-radius: 2px; background: white; color: #a53e25; font-size: 11px; pointer-events: none; }
+.fft-workspace .precision-digit-control .pm-frequency-help[data-state="error"] { display: block; }
 .fft-workspace #plot-placeholder table { width: auto; }
 .fft-workspace #plot-placeholder td { padding: 2px; }
 .fft-workspace #plot-placeholder .legend b { font-size: 12px !important; font-weight: 600; }

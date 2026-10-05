@@ -7,7 +7,8 @@ class FFTApp {
     private fftSelects: HTMLSelectElement[];
     private fftInputs: HTMLInputElement[];
 
-    constructor(document: Document, private driver, private samplingRateChanged?: (rate: number) => void) {
+    constructor(document: Document, private driver, private samplingRateChanged?: (rate: number) => void,
+                private precisionDacChanged?: (values: ArrayLike<number>) => void) {
         this.fftSelects = <HTMLSelectElement[]><any>document.getElementsByClassName("fft-select");
         this.initFFTSelects();
         this.fftInputs = <HTMLInputElement[]><any>document.getElementsByClassName("fft-input");
@@ -165,7 +166,8 @@ class FFTApp {
                     (<HTMLSpanElement>document.querySelector(".precision-adc-span[data-channel='" + i.toString() + "']")).textContent = (brdParams.adcValues[i] * 1000).toFixed(4);
                 }
 
-                for (let i = 0; i < 4; i++) {
+                if (this.precisionDacChanged) { this.precisionDacChanged(brdParams.dacValues); }
+                else for (let i = 0; i < 4; i++) {
                     let inputs = <HTMLInputElement[]><any>document.querySelectorAll(".precision-dac-input[data-command='setDac'][data-channel='" + i.toString() + "']");
                     let inputsArray = [];
                     for (let j = 0; j < inputs.length; j++) {

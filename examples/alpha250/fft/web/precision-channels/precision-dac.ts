@@ -13,8 +13,7 @@ class PrecisionDac {
         this.client.send(Command(this.id, this.cmds['set_dac_value_volts'], channel, voltage));
     }
 
-    getDacValues(cb: (values: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['get_dac_values']),
-                                 (values: Float32Array) => {cb(values)});
+    getDacValues(): Promise<Float32Array> {
+        return this.client.readFloat32Array(Command(this.id, this.cmds['get_dac_values']));
     }
 }

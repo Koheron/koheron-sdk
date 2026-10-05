@@ -39,6 +39,8 @@ class App {
 
                 this.fftApp = new FFTApp(document, this.fft, sampleRate => {
                     if (this.signalGenerator) { this.signalGenerator.setSampleRate(sampleRate); }
+                }, values => {
+                    if (this.precisionChannelsApp) { this.precisionChannelsApp.setValues(values); }
                 });
 
                 this.n_pts = this.fft.fft_size / 2;
@@ -52,6 +54,8 @@ class App {
 
                 this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
                 this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionDac);
+                await this.precisionChannelsApp.init();
+                if (this.stopped) { return; }
                 this.exportFile = new ExportFile(document, this.plot);
                 (document.getElementById('instrument-controls') as HTMLFieldSetElement).disabled = false;
                 (document.getElementById('board-controls') as HTMLFieldSetElement).disabled = false;

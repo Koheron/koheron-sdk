@@ -72,8 +72,11 @@ DAC frequencies. Enable an output through `PhaseModulator` when scripting.
   to the latest received spectrum. Partial rows at both ends are included;
   the final interval ends at the selected history duration. A 5-second export
   therefore has 100 rows at a time boundary or 101 between boundaries.
-- Typed generator and precision DAC values commit on Enter or leaving the field.
-  Invalid values do not reach the instrument. Precision DAC sliders update continuously.
+- Generator and precision DAC fields reuse the shared digit input. Click a digit
+  and use the mouse wheel or arrow keys to tune its place value; typed values
+  commit on Enter or leaving the field, and Escape cancels an edit. Precision
+  DACs accept 0–2500 mV and display the returned setting. Invalid edits remain
+  visible through telemetry updates and never reach the instrument.
 
 Acquisition runs independently of drawing, targeting 60 spectra per second
 with at most one request in flight. A dedicated worker polls independently of

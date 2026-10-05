@@ -33,7 +33,8 @@ async function host(t, failure = false) {
         constructor(document, driver, changed) { client.changed = changed; }
         stop() { trace.push('controls-stopped'); }
     };
-    for (const name of ['PrecisionDac', 'ClockGenerator', 'ClockGeneratorApp', 'PrecisionChannelsApp', 'PlotBasics', 'ExportFile']) {
+    window.PrecisionChannelsApp = class { async init() {} setValues() {} dispose() {} };
+    for (const name of ['PrecisionDac', 'ClockGenerator', 'ClockGeneratorApp', 'PlotBasics', 'ExportFile']) {
         window[name] = class {};
     }
     window.Plot = class { constructor() { trace.push('plot-ready'); } dispose() { trace.push('plot-stopped'); } };

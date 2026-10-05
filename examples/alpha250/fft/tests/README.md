@@ -28,6 +28,7 @@ Shared PNA DAC integration (requires `typescript` and `jsdom` on `NODE_PATH`):
 
 ```sh
 node --test examples/alpha250/fft/tests/test_signal_generator.cjs
+node --test examples/alpha250/fft/tests/test_precision_channels.cjs
 node --test examples/alpha250/phase-modulator/tests/test_web_widget.js
 PYTHONPATH=python .venv/bin/python3 examples/alpha250/phase-noise-analyzer/tests/test_phase_modulator.py
 PYTHONPATH=python .venv/bin/python3 -m pytest fpga/ip/awg_v1_0/tests/test_client.py
@@ -51,7 +52,7 @@ when a shared plot uses decimation.
 It also checks that resizing a paused spectrum redraws retained samples without
 another acquisition or changing its captured settings or paused status.
 
-DDS and precision DAC editor regression:
+DDS editor regression:
 
 ```sh
 node examples/alpha250/fft/tests/test_web_controls.js
@@ -59,10 +60,14 @@ node examples/alpha250/fft/tests/test_web_controls.js
 
 Checks that typed frequencies commit on change, invalid edits do not send
 commands or move the paired slider, sliders send one live command per input,
-DDS edits respect an updated sample-rate limit, and precision DAC values convert
-from millivolts to volts only on valid commits. The shared DDS widget uses
-these editing rules across instruments. The web regressions also run
-in the `fft-web` CI job.
+DDS edits respect an updated sample-rate limit. The shared DDS widget uses
+these editing rules across instruments.
+
+Precision DAC tests exercise the actual shared digit input with the precision
+driver adapter: read-only startup, mV-to-volts conversion, independent channels,
+returned settings, selected-digit tuning, invalid and unfinished drafts surviving
+telemetry, Escape recovery, and disposal cancelling queued writes. Precision DAC
+controls contain no sliders.
 
 Export regression:
 
