@@ -6,12 +6,14 @@ interface FFTBoardControls {
 
 interface FFTWorkspaceOptions {
     boardName: string;
+    instrumentName?: string;
+    signalGenerator?: boolean;
     halfScaleOutput?: boolean;
     createDriver: (client: Client) => FFTDriver;
     createBoard: (client: Client, document: Document) => FFTBoardControls;
 }
 
-// Both boards use this lifecycle, acquisition controls, plot, actions and exports.
+// FFT boards share this lifecycle, acquisition controls, plot, actions and exports.
 class FFTWorkspace {
     public plot: Plot;
     public fftApp: FFTApp;
@@ -30,6 +32,10 @@ class FFTWorkspace {
             try {
                 new Imports(document);
                 document.getElementById('board-label').textContent = options.boardName;
+                if (options.instrumentName) { document.querySelector('h1').textContent = options.instrumentName; }
+                if (options.signalGenerator === false) {
+                    document.querySelector<HTMLElement>('.fft-generator').hidden = true;
+                }
                 await this.client.init();
                 if (this.stopped) { return; }
                 this.fft = options.createDriver(this.client);
@@ -41,12 +47,15 @@ class FFTWorkspace {
                     values => this.board.precisionDacChanged?.(values));
                 // Imports mount the shared plot before selecting its placeholder.
                 const placeholder = $('#plot-placeholder');
-                this.plotBasics = new PlotBasics(document, placeholder, this.fft.fft_size / 2,
-                    0, this.fft.status.fs / 1e6 / 2, -200, 170, this.fft, '', 'Frequency (MHz)');
+                const grid = this.fft.status.spectrum;
+                this.plotBasics = new PlotBasics(document, placeholder, grid ? grid.frequencies.length : this.fft.fft_size / 2,
+                    grid ? 10 : 0, grid ? this.fft.status.fs / 2 : this.fft.status.fs / 1e6 / 2,
+                    -200, 170, this.fft, '', 'Frequency (' + (grid ? grid.unit : 'MHz') + ')');
+                if (grid?.logarithmic) { this.plotBasics.setLogX(true); }
                 this.plot = new Plot(document, this.fft, this.plotBasics);
                 await this.board.init();
                 if (this.stopped) { return; }
-                this.exportFile = new ExportFile(document, this.plot, options.boardName);
+                this.exportFile = new ExportFile(document, this.plot, options.boardName, options.instrumentName || 'FFT');
                 (document.getElementById('instrument-controls') as HTMLFieldSetElement).disabled = false;
                 const pause = document.getElementById('pause-display') as HTMLButtonElement;
                 const reset = document.getElementById('reset-view') as HTMLButtonElement;
@@ -58,6 +67,7 @@ class FFTWorkspace {
                     this.plot.setPaused(paused);
                 });
                 reset.addEventListener('click', () => placeholder.trigger('dblclick'));
+                if (options.signalGenerator === false) { return; }
                 this.generator = new PhaseModulatorWidget(document.getElementById('phase-modulator'),
                     new PhaseModulatorDriver(this.client), {expectedChannels: 2, halfScaleOutput: options.halfScaleOutput});
                 void this.generator.init().then(() => {

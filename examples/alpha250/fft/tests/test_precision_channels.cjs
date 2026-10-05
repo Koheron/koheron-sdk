@@ -21,7 +21,7 @@ async function host(t) {
     };
     for (const [file, exports] of [
         ['web/phase-modulator/frequency-input.ts', ['NumberInput']],
-        ['examples/alpha250/fft/web/precision-channels/precision-channels-app.ts', ['PrecisionChannelsApp']]
+        ['web/fft/controls/precision-channels.ts', ['PrecisionChannelsApp']]
     ]) {
         window.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
             compilerOptions: {target: ts.ScriptTarget.ES2020}

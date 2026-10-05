@@ -9,6 +9,11 @@ interface IFFTStatus {
     W2: number; // FFT window correction (sum w^2)
     window_index: number;
     clkIndex: string;
+    // Optional voltage spectrum with a nonuniform, board-defined frequency grid.
+    spectrum?: {frequencies: ReadonlyArray<number>; bandwidths: ReadonlyArray<number>;
+        binSpacings?: ReadonlyArray<number>; unit: string; logarithmic: boolean};
+    inputRanges?: number[];
+    acquisitionKey?: string;
 }
 
 interface IBoardParameters {

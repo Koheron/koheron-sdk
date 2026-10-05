@@ -26,10 +26,8 @@ class Decimator {
         this.status = <IDecimatorStatus>{};
     }
 
-    init(cb: () => void): void {
-        this.getControlParameters( () => {
-            cb();
-        });
+    async init(): Promise<void> {
+        await this.getControlParameters();
     }
 
     setFFTWindow(windowIndex: number): void {
@@ -44,17 +42,10 @@ class Decimator {
         return await this.client.readFloat64Vector(Command(this.id, this.cmds['spectral_density1']));
     }
 
-    getControlParameters(cb: (status: IDecimatorStatus) => void): void {
-        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'ffffIII',
-                               (tup: [number, number, number, number, number, number, number]) => {
-            this.status.fs = tup[0];
-            this.status.fs_lf = tup[1];
-            this.status.tx_duration = tup[2];
-            this.status.tx_duration_lf = tup[3];
-            this.status.cic_rate = tup[4];
-            this.status.cic_rate_lf = tup[5];
-            this.status.n_pts = tup[6];
-            cb(this.status);
-        });
+    async getControlParameters(): Promise<IDecimatorStatus> {
+        const tuple = await this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'ffffIII');
+        this.status = {fs: tuple[0], fs_lf: tuple[1], tx_duration: tuple[2], tx_duration_lf: tuple[3],
+            cic_rate: tuple[4], cic_rate_lf: tuple[5], n_pts: tuple[6]};
+        return this.status;
     }
 }

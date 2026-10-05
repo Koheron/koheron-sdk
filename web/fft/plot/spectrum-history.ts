@@ -77,7 +77,7 @@ class SpectrumHistory {
     }
 
     add(psd: Float32Array, status: IFFTStatus, time: number): void {
-        const signature = [psd.length, status.fs, status.channel, status.window_index, status.W1, status.W2, status.clkIndex].join('/');
+        const signature = [psd.length, status.fs, status.channel, status.window_index, status.W1, status.W2, status.clkIndex, status.acquisitionKey].join('/');
         if (signature !== this.signature) {
             this.reset(); this.signature = signature;
             this.status = {...status, dds_freq: status.dds_freq.slice()};

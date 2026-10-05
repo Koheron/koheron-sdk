@@ -54,7 +54,7 @@ class Plot {
     public frameStatus: IFFTStatus;
 
     constructor(private document: Document, private fft: FFTDriver, private plotBasics: PlotBasics) {
-        this.n_pts = fft.fft_size / 2;
+        this.n_pts = fft.status.spectrum ? fft.status.spectrum.frequencies.length : fft.fft_size / 2;
         // Reduce only the drawn curves; measurements and exports retain every bin.
         this.plotBasics.enableSpectrumReduction();
         this.plotBasics.enableBatchedLines();
@@ -68,9 +68,10 @@ class Plot {
         const canvas = document.getElementById('history-canvas') as HTMLCanvasElement;
         if (canvas && typeof canvas.getContext === 'function') {
             this.views = new SpectrumViews(document, this.history, () => this.plotBasics.getRangeX(),
-                (power, unit) => this.convertValue(power, unit, this.history.status),
+                (power, unit, index) => this.convertValue(power, unit, this.history.status, index),
                 (from, to) => { this.plotBasics.setVisibleRangeX(from, to); this.redraw(); },
-                () => { this.plotBasics.setLinY(); if (this.psd) { this.displaySpectrum(); } });
+                () => { this.plotBasics.setLinY(); if (this.psd) { this.displaySpectrum(); } },
+                fft.status.spectrum);
         }
         for (const id of ['average-trace', 'max-hold-trace']) {
             document.getElementById(id).addEventListener('change', () => {
@@ -270,7 +271,7 @@ class Plot {
 
     private sameFrameStatus(status: IFFTStatus): boolean {
         return !!this.frameStatus &&
-            (['fs', 'channel', 'window_index', 'W1', 'W2', 'clkIndex'] as (keyof IFFTStatus)[])
+            (['fs', 'channel', 'window_index', 'W1', 'W2', 'clkIndex', 'acquisitionKey'] as (keyof IFFTStatus)[])
                 .every(key => Object.is(status[key], this.frameStatus[key])) &&
             status.dds_freq.length === this.frameStatus.dds_freq.length &&
             status.dds_freq.every((value, i) => Object.is(value, this.frameStatus.dds_freq[i]));
@@ -278,11 +279,11 @@ class Plot {
 
     private displaySpectrum(): void {
         this.unit = this.document.querySelector<HTMLInputElement>('.unit-input:checked').value;
-        this.yLabel = this.unit === 'dBm-Hz' ? 'PSD (dBm/Hz)' : this.unit === 'dBm' ? 'Power (dBm)' : 'Voltage noise (nV/√Hz)';
+        this.yLabel = this.unit === 'dBV' ? 'Voltage (dBV)' : this.unit === 'dbv-rtHz' ? 'Voltage noise (dBV/√Hz)' : this.unit === 'dBm-Hz' ? 'PSD (dBm/Hz)' : this.unit === 'dBm' ? 'Power (dBm)' : 'Voltage noise (nV/√Hz)';
         const fs = this.frameStatus.fs;
         if (fs !== this.samplingFrequency) {
             this.samplingFrequency = fs;
-            this.plotBasics.setRangeX(0, fs / 2e6);
+            this.plotBasics.setRangeX(this.frameStatus.spectrum ? 10 : 0, this.frameStatus.spectrum ? fs / 2 : fs / 2e6);
         }
         // Bin k is at k * fs / FFT size. The server returns N/2 bins,
         // including DC and excluding Nyquist; never add a synthetic tail bin.
@@ -290,16 +291,18 @@ class Plot {
         this.plot_data.length = length;
         for (let i = 0; i < length; i++) {
             const row = this.plot_data[i] || (this.plot_data[i] = [0, 0]);
-            row[0] = i * fs / this.fft.fft_size / 1e6;
-            row[1] = this.convertValue(this.psd[i], this.unit);
+            row[0] = this.frequencyAt(i, this.frameStatus);
+            row[1] = this.convertValue(this.psd[i], this.unit, this.frameStatus, i);
         }
-        this.document.getElementById('bin-spacing').textContent = (fs / this.fft.fft_size / 1000).toFixed(3) + ' kHz';
+        this.document.getElementById('bin-spacing').textContent = this.frameStatus.spectrum?.binSpacings
+            ? this.frameStatus.spectrum.binSpacings.map(step => Number((step < 1000 ? step : step / 1000).toPrecision(3)) + (step < 1000 ? ' Hz' : ' kHz')).join(' / ')
+            : (fs / this.fft.fft_size / 1000).toFixed(3) + ' kHz';
         this.document.getElementById('fft-size').textContent = this.fft.fft_size.toLocaleString() + ' points';
         // A captured frame is immutable: convert it only after capture or a unit change.
         if (this.reference && (!this.reference_data || this.referenceUnit !== this.unit)) {
             this.reference_data = Array.from(this.reference.psd, (value, index) => [
-                index * this.reference.status.fs / this.fft.fft_size / 1e6,
-                this.convertValue(value, this.unit, this.reference.status)
+                this.frequencyAt(index, this.reference.status),
+                this.convertValue(value, this.unit, this.reference.status, index)
             ]);
             this.referenceUnit = this.unit;
         }
@@ -308,8 +311,8 @@ class Plot {
             data = data || []; data.length = values.length;
             for (let i = 0; i < values.length; i++) {
                 const row = data[i] || (data[i] = [0, 0]);
-                row[0] = i * this.history.status.fs / this.fft.fft_size / 1e6;
-                row[1] = this.convertValue(values[i], this.unit, this.history.status);
+                row[0] = this.frequencyAt(i, this.history.status);
+                row[1] = this.convertValue(values[i], this.unit, this.history.status, i);
             }
             return data;
         };
@@ -328,7 +331,7 @@ class Plot {
         (this.document.getElementById('clear-reference') as HTMLButtonElement).disabled = false;
         this.document.getElementById('reference-info').hidden = false;
         const windows = ['Rectangular', 'Hann', 'Flat top', 'Blackman–Harris'];
-        this.document.getElementById('reference-status').textContent = 'ADC ' + this.reference.status.channel
+        this.document.getElementById('reference-status').textContent = this.channelLabel(this.reference.status)
             + ' · ' + (windows[this.reference.status.window_index] || 'Window ' + this.reference.status.window_index) + ' · ' + this.reference.status.fs / 1e6 + ' MS/s';
         this.plotBasics.setLinY();
         this.displaySpectrum();
@@ -358,8 +361,8 @@ class Plot {
             if (row[0] < range.from || row[0] > range.to || (excludeDC && row[0] === 0)) { continue; }
             if (Number.isFinite(row[1]) && (!peak.length || row[1] > peak[1])) { peak = row.slice(); }
         }
-        this.document.getElementById('peak-frequency').textContent = peak.length ? peak[0].toFixed(6) + ' MHz' : '—';
-        const unitLabel = this.unit === 'dBm-Hz' ? 'dBm/Hz' : this.unit === 'dBm' ? 'dBm' : 'nV/√Hz';
+        this.document.getElementById('peak-frequency').textContent = peak.length ? (this.frequencyUnit === 'Hz' ? Number(peak[0].toPrecision(7)).toLocaleString() : peak[0].toFixed(6)) + ' ' + this.frequencyUnit : '—';
+        const unitLabel = this.unit === 'dBV' ? 'dBV' : this.unit === 'dbv-rtHz' ? 'dBV/√Hz' : this.unit === 'dBm-Hz' ? 'dBm/Hz' : this.unit === 'dBm' ? 'dBm' : 'nV/√Hz';
         this.document.getElementById('peak-level').textContent = peak.length ? peak[1].toFixed(2) + ' ' + unitLabel : '—';
         this.peak = peak;
         if (this.view !== 'spectrum') { this.views.render(this.unit, this.yLabel, this.paused); return; }
@@ -369,13 +372,28 @@ class Plot {
         this.plotBasics.redraw(this.plot_data, this.plot_data.length, this.peak.slice(), this.yLabel, () => {}, this.reference_data, true, traces);
     }
 
-    convertValue(value: number, unit: string, status: IFFTStatus = this.frameStatus || this.fft.status): number {
+    convertValue(value: number, unit: string, status: IFFTStatus = this.frameStatus || this.fft.status, index = 0): number {
         if (!Number.isFinite(value) || value < 0) { return NaN; }
+        if (status.spectrum) {
+            if (unit === 'dbv-rtHz') { return 10 * Math.log10(value); }
+            if (unit === 'dBV') { return 10 * Math.log10(value * status.spectrum.bandwidths[index]); }
+            return Math.sqrt(value) * 1e9;
+        }
         if (unit === 'dBm-Hz') { return 10 * Math.log10(value / 1e-3); }
         if (unit === 'dBm') {
             return 10 * Math.log10(value * (status.W2 / status.W1) * status.fs / this.fft.fft_size / 1e-3);
         }
         return Math.sqrt(50 * value) * 1e9;
+    }
+
+    get frequencyUnit(): string { return (this.frameStatus || this.fft.status).spectrum?.unit || 'MHz'; }
+
+    frequencyAt(index: number, status: IFFTStatus = this.frameStatus): number {
+        return status.spectrum ? status.spectrum.frequencies[index] : index * status.fs / this.fft.fft_size / 1e6;
+    }
+
+    channelLabel(status: IFFTStatus): string {
+        return status.spectrum && status.channel >= 2 ? (status.channel === 2 ? 'ADC 0 − 1' : 'ADC 0 + 1') : 'ADC ' + status.channel;
     }
 
     dispose(): void {

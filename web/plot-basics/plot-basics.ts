@@ -409,7 +409,7 @@ class PlotBasics {
 
     // Keep both extrema per screen column, in frequency order. Retain NaN gaps
     // and the boundary neighbours so zooming does not invent connecting lines.
-    static reduceSpectrum(data: number[][], from: number, to: number, width: number): number[][] {
+    static reduceSpectrum(data: number[][], from: number, to: number, width: number, logarithmic = false): number[][] {
         if (!data.length || !(to > from)) { return data; }
         width = Math.max(1, Math.floor(width));
         let first = 0, last = data.length - 1;
@@ -420,6 +420,8 @@ class PlotBasics {
         if (last - first + 1 <= 2 * width) {
             return first === 0 && last === data.length - 1 ? data : data.slice(first, last + 1);
         }
+        const transform = logarithmic ? Math.log10 : (value: number) => value;
+        const lower = transform(from), span = transform(to) - lower;
         const out: number[][] = [];
         let column = -Infinity, min = -1, max = -1, previous = -1;
         const push = (index: number) => {
@@ -432,7 +434,7 @@ class PlotBasics {
         };
         push(first);
         for (let i = first; i <= last; i++) {
-            const nextColumn = Math.floor((data[i][0] - from) * width / (to - from));
+            const nextColumn = Math.floor((transform(data[i][0]) - lower) * width / span);
             if (nextColumn !== column || !Number.isFinite(data[i][1])) {
                 flush(); column = nextColumn;
             }
@@ -574,12 +576,12 @@ class PlotBasics {
         if (this.spectrumReduction) {
             const offsets = this.plot.getPlotOffset();
             const width = Math.max(1, (this.plot_placeholder.width() || 800) - offsets.left - offsets.right);
-            this.seriesOne[0].data = PlotBasics.reduceSpectrum(plot_data, this.range_x.from, this.range_x.to, width);
+            this.seriesOne[0].data = PlotBasics.reduceSpectrum(plot_data, this.range_x.from, this.range_x.to, width, this.log_x);
             if (reference) {
-                this.seriesOne[1].data = PlotBasics.reduceSpectrum(reference, this.range_x.from, this.range_x.to, width);
+                this.seriesOne[1].data = PlotBasics.reduceSpectrum(reference, this.range_x.from, this.range_x.to, width, this.log_x);
             }
             traces.forEach((trace, i) => {
-                this.seriesOne[(reference ? 2 : 1) + i].data = PlotBasics.reduceSpectrum(trace.data as number[][], this.range_x.from, this.range_x.to, width);
+                this.seriesOne[(reference ? 2 : 1) + i].data = PlotBasics.reduceSpectrum(trace.data as number[][], this.range_x.from, this.range_x.to, width, this.log_x);
             });
         } else if (this.decimate) {
             const xMin = this.reset_range ? this.range_x.from : this.plot.getAxes().xaxis.min;
