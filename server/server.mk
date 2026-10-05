@@ -56,6 +56,14 @@ DRIVERS_CPP := $(filter %.cpp,$(DRIVERS))
 DRIVERS_CPP_REL := $(patsubst $(SDK_FULL_PATH)/%,%,$(DRIVERS_CPP))
 DRIVERS_OBJ := $(addprefix $(TMP_SERVER_PATH)/,$(DRIVERS_CPP_REL:.cpp=.o))
 
+# PFFFT's system-header wrapper keeps vendor warnings out of SDK builds, but
+# -MMD omits its included C sources and SIMD headers. Track them explicitly.
+PFFFT_DRIVER_OBJ := $(filter %/external_libs/pffft/pffft.o,$(DRIVERS_OBJ))
+ifneq ($(PFFFT_DRIVER_OBJ),)
+$(PFFFT_DRIVER_OBJ): $(wildcard $(SERVER_PATH)/external_libs/pffft/*.c \
+    $(SERVER_PATH)/external_libs/pffft/*.h $(SERVER_PATH)/external_libs/pffft/simd/*.h)
+endif
+
 .PHONY: list_drivers
 list_drivers:
 	@echo $(DRIVERS)

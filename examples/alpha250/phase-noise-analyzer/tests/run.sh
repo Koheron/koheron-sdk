@@ -35,6 +35,9 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
         g++-13 "${flags[@]}" "${extra[@]}" "$tests/test_welch.cpp" \
             server/external_libs/pffft/pffft.cpp -o "$output/welch-$backend"
         "$output/welch-$backend"
+        g++-13 "${flags[@]}" "${extra[@]}" server/external_libs/pffft/tests/test_transform.cpp \
+            server/external_libs/pffft/pffft.cpp -o "$output/fft-$backend"
+        "$output/fft-$backend"
     done
     g++-13 "${flags[@]}" server/drivers/phase-noise/tests/test_spectrum_publication.cpp -o "$output/publication"
     "$output/publication" "$output/spectrum-frame.bin"
