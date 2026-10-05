@@ -34,7 +34,8 @@ PYTHONPATH=python .venv/bin/python3 examples/alpha250/phase-noise-analyzer/tests
 PYTHONPATH=python .venv/bin/python3 -m pytest fpga/ip/awg_v1_0/tests/test_client.py
 ```
 
-Checks read-only startup, independent DAC edits, teardown, generator retry,
+Checks both boards mounting the same workspace and PNA widget, connection retry,
+read-only startup, independent DAC edits, teardown, generator retry,
 native readback and Nyquist limits after host clock changes, draft preservation,
 and shared driver/Python frequency conversion at the actual DAC sample rate.
 

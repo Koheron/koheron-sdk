@@ -1,5 +1,5 @@
 NAME := fft
-VERSION := 0.2.2
+VERSION := 0.3.0
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya
@@ -14,18 +14,15 @@ CORES += $(SDK_PATH)/fpga/cores/latched_mux_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_constant_v1_0
 CORES += $(SDK_PATH)/fpga/cores/psd_counter_v1_0
 
+CORES += $(SDK_PATH)/fpga/ip/awg_v1_0
+TCL_FILES = $(BD_TCL) $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(BOARD_PATH)/config/board_preset.tcl $(wildcard $(FPGA_PATH)/lib/*.tcl) $(SDK_PATH)/fpga/ip/awg_v1_0/integration.tcl
+
 DRIVERS += $(SDK_PATH)/boards/red-pitaya/drivers/common.hpp
 DRIVERS += $(SDK_PATH)/server/drivers/xadc.hpp
+DRIVERS += $(BOARD_PATH)/drivers/phase-modulator.hpp
 DRIVERS += $(PROJECT_PATH)/drivers/fft.hpp
 DRIVERS += $(PROJECT_PATH)/drivers/redpitaya_adc_calibration.hpp
 
-WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
-WEB_FILES += $(SDK_PATH)/web/dds-frequency/dds-frequency.ts
-WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
-WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
+include $(SDK_PATH)/web/fft/components.mk
 WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
-
-# Reuse the ALPHA250 FFT workspace directly; only board entry points differ.
-FFT_WEB_REFERENCE := $(SDK_PATH)/examples/alpha250/fft/web
-WEB_FILES += $(FFT_WEB_REFERENCE)/fft.css $(FFT_WEB_REFERENCE)/dds-frequency.html
-WEB_FILES += $(wildcard $(FFT_WEB_REFERENCE)/fft/* $(FFT_WEB_REFERENCE)/plot/* $(FFT_WEB_REFERENCE)/export-file/*)
+WEB_FILES := $(filter-out $(PROJECT_PATH)/web/app.ts,$(WEB_FILES)) $(PROJECT_PATH)/web/app.ts

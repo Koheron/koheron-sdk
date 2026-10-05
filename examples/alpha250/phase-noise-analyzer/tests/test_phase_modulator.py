@@ -1,4 +1,4 @@
-"""Exercise the shared ALPHA250 RPC driver with simulated MMIO; no board access."""
+"""Exercise the shared ALPHA250 and Red Pitaya RPC drivers with simulated MMIO; no board access."""
 
 import os
 from pathlib import Path
@@ -118,6 +118,7 @@ int main() {
     assert(pm.mute(0).empty());
     assert(!std::get<9>(pm.get_settings_words(0)));
     assert(std::get<1>(pm.get_settings_words(0)) == std::get<1>(settings));
+#ifndef TEST_RED_PITAYA
     clock.rate = TEST_SAMPLE_RATE == 200000000 ? 250000000 : 200000000;
     assert(pm.get_sample_rate() == clock.rate);
     const auto other = pm.get_settings_words(1);
@@ -131,6 +132,7 @@ int main() {
     const auto after = awg.writes.size();
     assert(!pm.set_carrier_frequency(0, clock.rate / 2).empty());
     assert(awg.writes.size() == after);
+#endif
 }
 ''',
             }
@@ -139,13 +141,16 @@ int main() {
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(contents)
             compiler = shlex.split(os.environ.get("CXX", "g++"))
-            for rate in (200_000_000, 250_000_000, 100_000_000, 240_000_000):
-                with self.subTest(sample_rate=rate):
+            configurations = [("alpha250", rate) for rate in (200_000_000, 250_000_000, 100_000_000, 240_000_000)]
+            configurations.append(("red-pitaya", 125_000_000))
+            for board, rate in configurations:
+                with self.subTest(board=board, sample_rate=rate):
                     executable = temp / f"test-{rate}"
                     subprocess.run(compiler + [
                         "-std=c++20", "-Wall", "-Wextra", "-Werror", "-Wpedantic", "-fno-exceptions",
                         f"-DTEST_SAMPLE_RATE={rate}",
-                        f'-DPHASE_MODULATOR_HEADER="{root}/boards/alpha250/drivers/phase-modulator.hpp"',
+                        f'-DPHASE_MODULATOR_HEADER="{root}/boards/{board}/drivers/phase-modulator.hpp"',
+                        *(['-DTEST_RED_PITAYA'] if board == 'red-pitaya' else []),
                         "-I", str(temp), "-I", str(root), str(temp / "test.cpp"),
                         str(root / "examples/alpha250/phase-noise-analyzer/dds.cpp"),
                         "-o", str(executable),

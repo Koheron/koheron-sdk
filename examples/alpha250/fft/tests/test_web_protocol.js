@@ -6,7 +6,7 @@ const ts = require('typescript');
 
 const root = path.resolve(__dirname, '../../../..');
 const context = vm.createContext({console});
-for (const file of ['web/koheron.ts', 'examples/alpha250/fft/web/fft.ts']) {
+for (const file of ['web/koheron.ts', 'web/fft/driver.ts', 'examples/alpha250/fft/web/fft.ts']) {
     const source = fs.readFileSync(path.join(root, file), 'utf8');
     vm.runInContext(ts.transpileModule(source, {
         compilerOptions: {target: ts.ScriptTarget.ES2020}
