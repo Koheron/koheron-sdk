@@ -29,9 +29,13 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     "$output/dds"
     g++-13 "${flags[@]}" "$tests/test_moving_averager.cpp" -o "$output/averager"
     "$output/averager"
-    g++-13 "${flags[@]}" "$tests/test_welch.cpp" \
-        server/external_libs/pffft/pffft.cpp -o "$output/welch"
-    "$output/welch"
+    for backend in simd scalar; do
+        extra=()
+        if [ "$backend" = scalar ]; then extra=(-DPFFFT_SIMD_DISABLE); fi
+        g++-13 "${flags[@]}" "${extra[@]}" "$tests/test_welch.cpp" \
+            server/external_libs/pffft/pffft.cpp -o "$output/welch-$backend"
+        "$output/welch-$backend"
+    done
     g++-13 "${flags[@]}" server/drivers/phase-noise/tests/test_spectrum_publication.cpp -o "$output/publication"
     "$output/publication" "$output/spectrum-frame.bin"
     g++-13 -Iserver/drivers/phase-noise/tests/stubs "${flags[@]}" server/drivers/phase-noise/tests/test_cyclic_phase_dma.cpp -o "$output/cyclic-dma"

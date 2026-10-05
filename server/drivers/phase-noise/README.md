@@ -3,9 +3,19 @@
 ALPHA250 and Red Pitaya select `Core<Board>` and its 32768-point, 50%-overlapped
 Welch estimator. ALPHA250-4 selects `multirate-spectrum.hpp`: 30000, 3000 and
 300-point Hann transforms at fs, fs/10 and fs/100, with signed cross spectra.
-Both estimators use cached PFFFT workspaces. Moving averaging, raw-count drift
+Both estimators cache FFT plans and workspaces. The four-channel estimator uses
+PFFFT complex transforms where supported and Eigen for its smaller lengths.
+Moving averaging, raw-count drift
 fitting, CIC gain correction, tracking lock detection and spectrum publication
 are shared. Estimator selection and board calibration remain explicit.
+
+The Welch estimator accumulates each segment's power in compact PFFFT native
+order. A permutation derived from the plan at construction maps the merged
+power directly into the final PSD, eliminating per-segment complex-spectrum
+reordering. DC/Nyquist packing, worker accumulation order, Hann normalization
+and scalar fallback for ARMv7 subnormals are preserved. This path is shared by
+Red Pitaya and ALPHA250; ALPHA250-4's stitched periodograms do not repeat Welch
+segments and are unchanged by this optimization.
 
 The browser workspace uses `web/phase-noise/plot.ts` with board adapters for
 LO selection, reference labels and signed-density display. Single-channel

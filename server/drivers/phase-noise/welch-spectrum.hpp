@@ -7,8 +7,10 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstdint>
 #include <future>
 #include <memory>
+#include <type_traits>
 #include <vector>
 #if defined(__ARM_NEON)
 #include <arm_neon.h>
@@ -17,16 +19,31 @@
 namespace phase_noise {
 
 namespace detail {
-inline void accumulate_welch_power(const float* transformed, float* power, std::size_t fft_size) {
-    const auto nyquist = fft_size / 2;
-    // Real transforms pack DC and Nyquist into the first pair.
+// Compact native-order power into N/2+1 floats, without storing zero imaginary
+// lanes. DC stays first and Nyquist stays last; SIMD ordinary bins retain the
+// transform's four-lane block order until final density publication.
+inline void accumulate_welch_power(const float* transformed, float* power,
+                                   std::size_t fft_size, int simd_size) {
+    if (simd_size == 1) {
+        power[0] += transformed[0] * transformed[0];
+        power[fft_size / 2] += transformed[fft_size - 1] * transformed[fft_size - 1];
+        for (std::size_t i = 1; i < fft_size - 1; i += 2)
+            power[(i + 1) / 2] += transformed[i] * transformed[i] + transformed[i + 1] * transformed[i + 1];
+        return;
+    }
+    assert(simd_size == 4);
+    // SIMD native layout is four real lanes followed by four imaginary lanes.
+    // In the first block, lane 0 is DC and lane 4 is Nyquist, not a complex pair.
     power[0] += transformed[0] * transformed[0];
-    power[nyquist] += transformed[1] * transformed[1];
-    std::size_t i = 1;
+    power[fft_size / 2] += transformed[4] * transformed[4];
+    for (std::size_t i = 1; i < 4; ++i)
+        power[i] += transformed[i] * transformed[i] + transformed[i + 4] * transformed[i + 4];
+    std::size_t i = 8;
 #if defined(__ARM_NEON)
-    for (; i + 4 <= nyquist; i += 4) {
-        const auto value = vld2q_f32(transformed + 2 * i);
-        const auto old = vld1q_f32(power + i);
+    for (; i < fft_size; i += 8) {
+        const auto real = vld1q_f32(transformed + i);
+        const auto imaginary = vld1q_f32(transformed + i + 4);
+        const auto old = vld1q_f32(power + i / 2);
         const auto magnitude = [](float32x4_t v) {
             return vandq_u32(vreinterpretq_u32_f32(v), vdupq_n_u32(0x7fffffffu));
         };
@@ -37,24 +54,23 @@ inline void accumulate_welch_power(const float* transformed, float* power, std::
         // ARMv7 NEON flushes subnormals. Inspect the bits, since even a floating
         // comparison can flush its operand. Fall back when squaring or adding
         // could lose a nonzero subnormal that scalar VFP would retain.
-        auto valid = vandq_u32(safe(magnitude(value.val[0]), 0x20000000u),
-                              safe(magnitude(value.val[1]), 0x20000000u)); // sqrt(FLT_MIN)
+        auto valid = vandq_u32(safe(magnitude(real), 0x20000000u),
+                              safe(magnitude(imaginary), 0x20000000u)); // sqrt(FLT_MIN)
         valid = vandq_u32(valid, safe(magnitude(old), 0x00800000u)); // FLT_MIN
         const auto halves = vreinterpretq_u64_u32(valid);
         if ((vgetq_lane_u64(halves, 0) & vgetq_lane_u64(halves, 1)) == UINT64_MAX) {
-            const auto norm = vaddq_f32(vmulq_f32(value.val[0], value.val[0]),
-                                       vmulq_f32(value.val[1], value.val[1]));
-            vst1q_f32(power + i, vaddq_f32(old, norm));
+            const auto norm = vaddq_f32(vmulq_f32(real, real), vmulq_f32(imaginary, imaginary));
+            vst1q_f32(power + i / 2, vaddq_f32(old, norm));
         } else {
             for (std::size_t j = i; j < i + 4; ++j)
-                power[j] += transformed[2 * j] * transformed[2 * j] +
-                            transformed[2 * j + 1] * transformed[2 * j + 1];
+                power[i / 2 + j - i] += transformed[j] * transformed[j] +
+                            transformed[j + 4] * transformed[j + 4];
         }
     }
 #endif
-    for (; i < nyquist; ++i)
-        power[i] += transformed[2 * i] * transformed[2 * i] +
-                    transformed[2 * i + 1] * transformed[2 * i + 1];
+    for (; i < fft_size; i += 8)
+        for (std::size_t j = i; j < i + 4; ++j)
+            power[i / 2 + j - i] += transformed[j] * transformed[j] + transformed[j + 4] * transformed[j + 4];
 }
 } // namespace detail
 
@@ -63,6 +79,7 @@ inline void accumulate_welch_power(const float* transformed, float* power, std::
 template<std::size_t FftSize>
 class WelchSpectrum {
     static_assert(FftSize >= 32 && (FftSize & (FftSize - 1)) == 0);
+    static_assert(FftSize <= (1u << 24), "Bin markers must be exact float integers");
     static constexpr std::size_t bins = FftSize / 2 + 1;
     std::vector<float> window = scicpp::signal::windows::hann<float>(FftSize);
     struct AlignedFree {
@@ -76,6 +93,11 @@ class WelchSpectrum {
     }
     std::unique_ptr<PFFFT_Setup, decltype(&pffft_destroy_setup)> setup{
         pffft_new_setup(int(FftSize), PFFFT_REAL), pffft_destroy_setup};
+    const int simd_size = pffft_simd_size();
+    // Derive the publication permutation from PFFFT itself, once per plan,
+    // rather than duplicating its reversed/quadrant-specific bin ordering.
+    using BinIndex = std::conditional_t<(bins <= 65536), uint16_t, uint32_t>;
+    std::array<BinIndex, bins> bin_positions{};
     struct Workspace {
         Buffer weighted = make_buffer();
         Buffer transformed = make_buffer();
@@ -100,10 +122,10 @@ class WelchSpectrum {
             for (std::size_t segment = worker; segment < segments; segment += 2) {
                 const auto offset = segment * (FftSize / 2);
                 prepare(offset, workspace.weighted.get());
-                pffft_transform_ordered(setup.get(), workspace.weighted.get(),
+                pffft_transform(setup.get(), workspace.weighted.get(),
                     workspace.transformed.get(), workspace.scratch.get(), PFFFT_FORWARD);
                 const auto* transformed = workspace.transformed.get();
-                detail::accumulate_welch_power(transformed, workspace.power.data(), FftSize);
+                detail::accumulate_welch_power(transformed, workspace.power.data(), FftSize, simd_size);
             }
         };
         std::future<void> background;
@@ -118,17 +140,31 @@ class WelchSpectrum {
         else finish();
         const float scale = float(1.0 / (double(segments) * double(fs.eval()) * window_power));
         std::vector<Density> result(bins);
-        for (std::size_t i = 0; i < bins; ++i)
-            result[i] = Density{(workspaces[0].power[i] + workspaces[1].power[i]) * scale *
+        for (std::size_t i = 0; i < bins; ++i) {
+            const auto native = bin_positions[i];
+            result[i] = Density{(workspaces[0].power[native] + workspaces[1].power[native]) * scale *
                 (i == 0 || i == bins - 1 ? 1.0f : 2.0f)};
+        }
         return result;
     }
 
   public:
     WelchSpectrum() {
         assert(setup);
+        assert(simd_size == 1 || simd_size == 4);
         for (const auto value : window)
             window_power += double(value) * double(value);
+        auto* native = workspaces[0].weighted.get();
+        auto* ordered = workspaces[0].transformed.get();
+        for (std::size_t i = 0; i < FftSize; ++i) native[i] = float(i);
+        pffft_zreorder(setup.get(), native, ordered, PFFFT_FORWARD);
+        for (std::size_t i = 0; i < bins; ++i) {
+            const auto lane = std::size_t(ordered[i == bins - 1 ? 1 : 2 * i]);
+            const auto index = simd_size == 1 ? (lane + 1) / 2 :
+                (i == bins - 1 ? FftSize / 2 : (lane / 8) * 4 + lane % 8);
+            assert(index < bins);
+            bin_positions[i] = BinIndex(index);
+        }
     }
 
     template<class Array>

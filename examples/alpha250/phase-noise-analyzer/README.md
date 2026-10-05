@@ -176,7 +176,10 @@ FPGA filter's passband response.
 The sample loop is unrolled fourfold to pipeline independent Cortex-A9 VFP
 operations while preserving each sample's arithmetic and rounding order.
 The Welch estimator uses a cached PFFFT plan and aligned buffers with ARM NEON
-on the Cortex-A9. Two workers process alternate 50%-overlapped segments. The
+on the Cortex-A9. Two workers process alternate 50%-overlapped segments.
+Segment powers accumulate in compact native order; the merged estimate is
+mapped to frequency order only when producing the final PSD. This avoids
+reordering every complex FFT output and is shared with Red Pitaya. The
 Hann window and one-sided density normalization, including DC and Nyquist,
 are unchanged. PFFFT is vendored with its license in the instrument archive;
 no FFT runtime package is required on the board.

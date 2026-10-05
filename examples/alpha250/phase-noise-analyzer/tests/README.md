@@ -45,8 +45,11 @@ One browser regression checks that tracking telemetry preserves nominal LO edits
 The simulation excludes vendor IP, analog effects and real FIFO timing.
 
 The Welch regression compares concurrent phase snapshots with scalar conversion
-at signed-count extremes and checks power accumulation bit for bit, including
-subnormal values. To exercise ARMv7 NEON and its scalar VFP fallback, use a
+at signed-count extremes and checks native-order power accumulation bit for
+bit, including subnormal values, nonfinite values and DC/Nyquist packing.
+One-, two-, three- and five-segment estimates must match a separate ordered-FFT
+reference bit for bit. Host checks cover SIMD and, when built with
+`-DPFFFT_SIMD_DISABLE`, the scalar PFFFT layout. To exercise ARMv7 NEON and its scalar VFP fallback, use a
 cross-compilation image containing `arm-linux-gnueabihf-g++-13`, `qemu-arm`
 (the Ubuntu `qemu-user` package) and the ARM sysroot:
 

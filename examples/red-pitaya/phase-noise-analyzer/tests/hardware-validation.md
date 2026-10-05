@@ -165,3 +165,72 @@ RPC median/p95 latency was 2.89/13.17 ms. The browser showed Connected,
 60 reads/s target. Build logs, deployment readback and the acquisition benchmark
 are in `tmp/pna-redp-review/build-final-*.log`, `deploy-final.log` and
 `final-cic20-bits8.json`.
+
+## Welch native-order power optimization (2026-10-06)
+
+The shared Red Pitaya/ALPHA250 estimator now uses unordered PFFFT transforms,
+accumulates power in compact native order and maps the merged sum directly
+into the published PSD. The plan's permutation is derived with PFFFT at
+construction; there is no per-segment complex-spectrum reorder. FFT lengths,
+Hann weights, overlap, accumulation order and normalization are retained.
+ALPHA250-4's stitched periodograms do not repeat Welch segments, so this
+optimization does not change that estimator.
+
+### Numerical and build validation
+
+- Independent ordered-FFT references match every PSD bin bit for bit for
+  one, two, three and five segments, including signed raw-count extremes.
+- Host SIMD and scalar backends pass ASan/UBSan; the NEON/VFP regression passes
+  directly on Red Pitaya, including subnormal power, DC/Nyquist packing,
+  nonfinite values and concurrent phase snapshots.
+- Acquisition, tracking, DMA, publication and numerical regressions pass;
+  all 48 browser regressions pass.
+- Strict ARM server builds and instrument packaging pass for Red Pitaya and
+  ALPHA250. ALPHA250 hardware validation remains pending. The deployed Red
+  Pitaya FPGA, overlay, RPC metadata and browser assets are byte-identical
+  to the previous archive; this is a server update using that routed image.
+
+### Isolated ARM and live measurements
+
+With the receiver service paused, three runs alternate the old and new
+estimators over the same 65536-sample signed-count ramp plus small PM. Each
+run measures 80 calls per variant, including window preparation, three FFTs,
+power accumulation and phase snapshot conversion; the drift fit is outside
+the timed region. All 16385 PSD bins match bit for bit.
+
+| Run | Previous median (ms) | Native-order median (ms) |
+| --- | --- | --- |
+| 1 | 15.3678 | 14.7653 |
+| 2 | 16.0449 | 15.0331 |
+| 3 | 15.8560 | 14.9647 |
+
+These runs show a 3.9–6.3% reduction in estimator time on Cortex-A9. Host SSE
+measurements were approximately neutral and do not predict the ARM gain.
+
+Separate 12-second live runs use ADC0, +8 bits, 25 averages, tracking off,
+matched 10 MHz LO/carrier and 0.74° peak sine PM at 10 kHz. The client targets
+60 snapshot reads/s and samples processing telemetry at 4 Hz:
+
+| CIC | Accepted captures/s, previous → native | Median processing ms, previous → native |
+| --- | --- | --- |
+| 4 | 42.40 → 44.29 | 21.41 → 20.24 |
+| 20 | 42.82 → 44.91 | 21.21 → 20.66 |
+
+Each run retains its DMA epoch and reports no new gaps, DMA errors or
+overflows. These are short controlled comparisons, not maximum throughput
+guarantees. Separate +8-bit loopback checks at CIC 20 recover 100 mrad and
+10 mrad peak PM with +0.12% and +0.09% power error respectively. The earlier
+1 mrad carrier-phase-dependent calibration limitation remains unresolved;
+this optimization does not alter the measured estimator values.
+
+The new Red Pitaya server was deployed and read back over HTTP:
+`serverd` SHA-256
+`8dd8abf539ad202ad5e8d2f1c2557760fe41e85c105cd852b21beda2790d5fe1`.
+Archive SHA-256
+`4a062f6a8b7a8fb15b983fa971469607e2ec3d63ae3aaba9f6c4a9f7a862178a`.
+Saved live analyzer and native DAC settings were restored after every hardware
+test. The browser shows Connected and Live precision at approximately 41 fresh
+spectra/s with the user's restored controls. Artifacts and logs are in
+`tmp/pna-native-order/`: `benchmark-arm.log`, `arm-regression-final.log`,
+`kernel-checks-final.log`, `regressions-final.log`, `build-*-server-final.log`,
+`before-live.json`, `after-live.json`, `deploy.log` and `calibration-*.log`.
