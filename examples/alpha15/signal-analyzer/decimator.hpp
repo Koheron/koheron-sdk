@@ -17,6 +17,15 @@ class Decimator
     Decimator();
     void set_fft_window(uint32_t window_id);
 
+    uint32_t restart_acquisition() {
+        const auto generation = analyzer0.restart_acquisition();
+        analyzer1.restart_acquisition();
+        return generation;
+    }
+
+    auto get_spectrum_snapshot0() const { return analyzer0.get_spectrum_snapshot(); }
+    auto get_spectrum_snapshot1() const { return analyzer1.get_spectrum_snapshot(); }
+
     auto get_control_parameters() const {
         return std::tuple{
             analyzer0.fs,

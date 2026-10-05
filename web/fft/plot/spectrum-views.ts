@@ -29,9 +29,10 @@ class SpectrumViews {
 
     constructor(private document: Document, private history: SpectrumHistory,
         private range: () => {from: number; to: number},
-        private convert: (power: number, unit: string) => number,
+        private convert: (power: number, unit: string, index?: number) => number,
         private selectRange: (from: number, to: number) => void,
-        private redraw: () => void) {
+        private redraw: () => void,
+        private grid?: IFFTStatus['spectrum']) {
         this.canvas = document.getElementById('history-canvas') as HTMLCanvasElement;
         this.texture = document.createElement('canvas');
         this.overlay = document.getElementById('history-overlay') as HTMLCanvasElement;
@@ -111,7 +112,7 @@ class SpectrumViews {
             const end = e.clientX - this.canvas.getBoundingClientRect().left;
             if (this.drag !== undefined && Math.abs(end - this.drag) > 6) {
                 const range = this.range(), b = this.bounds;
-                const x = (px: number) => range.from + Math.max(0, Math.min(1, (px - b.left) / b.width)) * (range.to - range.from);
+                const x = (px: number) => this.frequencyPosition(Math.max(0, Math.min(1, (px - b.left) / b.width)), range);
                 const from = x(Math.min(this.drag, end)), to = x(Math.max(this.drag, end));
                 if (to > from) { this.selectRange(from, to); }
             }
@@ -143,10 +144,37 @@ class SpectrumViews {
     }
     private columns(range: {from: number; to: number}, width: number): {first: number; last: number}[] {
         const size = this.history.average.length, step = this.history.status.fs / (size * 2) / 1e6;
+        if (this.grid) {
+            const frequencies = this.grid.frequencies;
+            const lowerBound = (value: number) => {
+                let lo = 0, hi = size;
+                while (lo < hi) { const mid = (lo + hi) >>> 1; if (frequencies[mid] < value) { lo = mid + 1; } else { hi = mid; } }
+                return lo;
+            };
+            return Array.from({length: width}, (_, x) => {
+                const lo = this.frequencyPosition(x / width, range), hi = this.frequencyPosition((x + 1) / width, range);
+                const first = lowerBound(lo), last = Math.min(size - 1, lowerBound(hi) - 1);
+                // Sparse zoom: retain the nearest bin within its half-bin cell.
+                if (first > last) {
+                    const nearest = Math.min(size - 1, first === 0 || first < size && frequencies[first] - lo < lo - frequencies[first - 1] ? first : first - 1);
+                    const half = (frequencies[Math.min(size - 1, nearest + 1)] - frequencies[Math.max(0, nearest - 1)]) / 4;
+                    if (nearest >= 0 && lo <= frequencies[nearest] + half && hi >= frequencies[nearest] - half) { return {first: nearest, last: nearest}; }
+                }
+                return {first, last};
+            });
+        }
         return Array.from({length: width}, (_, x) => ({
             first: Math.max(0, Math.min(size - 1, Math.floor((range.from + x / width * (range.to - range.from)) / step))),
             last: Math.max(0, Math.min(size - 1, Math.ceil((range.from + (x + 1) / width * (range.to - range.from)) / step) - 1))
         }));
+    }
+
+    private frequencyPosition(position: number, range: {from: number; to: number}): number {
+        return this.grid?.logarithmic ? range.from * Math.pow(range.to / range.from, position) : range.from + position * (range.to - range.from);
+    }
+
+    private densityRow(code: number, unit: string, index: number, rows: number): number {
+        return this.grid && unit === 'dBV' ? Math.floor((this.high - this.convert(SpectrumHistory.power(code), unit, index)) / (this.high - this.low) * (rows - 1)) : this.densityY[code];
     }
 
     render(unit: string, label: string, paused = false): void {
@@ -192,8 +220,15 @@ class SpectrumViews {
         const cursor = this.document.getElementById('history-cursor');
         if (cursor.textContent === 'Waiting for received spectra…' || cursor.textContent === 'History cleared · Resume to collect spectra') { cursor.textContent = ''; }
         if (!this.manual) {
-            const min = this.convert(this.history.minPower, unit), max = this.convert(this.history.maxPower, unit);
-            if (unit === 'dBm-Hz' || unit === 'dBm') {
+            let min = this.convert(this.history.minPower, unit), max = this.convert(this.history.maxPower, unit);
+            if (this.grid && unit === 'dBV') {
+                for (let i = 0; i < this.grid.frequencies.length; i++) {
+                    if (i && this.history.status.spectrum.bandwidths[i] === this.history.status.spectrum.bandwidths[i - 1]) { continue; }
+                    min = Math.min(min, this.convert(this.history.minPower, unit, i));
+                    max = Math.max(max, this.convert(this.history.maxPower, unit, i));
+                }
+            }
+            if (unit === 'dBm-Hz' || unit === 'dBm' || unit === 'dBV' || unit === 'dbv-rtHz') {
                 this.low = Math.floor((min - 5) / 10) * 10; this.high = Math.ceil((max + 5) / 10) * 10;
             } else {
                 this.low = Math.max(0, min * .9); this.high = Math.max(this.low + 1, max * 1.1);
@@ -240,20 +275,20 @@ class SpectrumViews {
                 const offset = (row.bucket % rows) * columns;
                 for (let x = 0; x < columns; x++) {
                     let power = NaN;
+                    const indexed = this.grid && unit === 'dBV';
                     for (let i = bins[x].first; i <= bins[x].last; i++) {
-                        const value = row.psd[i]; if (Number.isFinite(value) && (!Number.isFinite(power) || value > power)) { power = value; }
+                        const value = indexed ? this.convert(row.psd[i], unit, i) : row.psd[i]; if (Number.isFinite(value) && (!Number.isFinite(power) || value > power)) { power = value; }
                     }
-                    this.pixels[offset + x] = this.palette[this.color(this.convert(power, unit))];
+                    this.pixels[offset + x] = this.palette[this.color(indexed ? power : this.convert(power, unit))];
                 }
             }
             this.lastBucket = bucket; this.lastVersion = latest.version;
         } else {
             const hits = this.hits; hits.fill(0);
-            const y = this.densityY;
             for (let x = 0; x < columns; x++) {
                 for (let i = bins[x].first; i <= bins[x].last; i++) {
                     for (let code = this.history.densityLow[i]; code <= this.history.densityHigh[i]; code++) {
-                        const row = y[code]; if (row < 0 || row >= rows) { continue; }
+                        const row = this.densityRow(code, unit, i, rows); if (row < 0 || row >= rows) { continue; }
                         const index = row * columns + x;
                         hits[index] = Math.max(hits[index], this.history.density[i * 256 + code]);
                     }
@@ -284,9 +319,9 @@ class SpectrumViews {
         } else { ctx.drawImage(this.texture, b.left, b.top, b.width, b.height); }
         ctx.font = '11px sans-serif'; ctx.fillStyle = '#555'; ctx.strokeStyle = '#d5d5d5'; ctx.lineWidth = 1;
         ctx.strokeRect(b.left, b.top, b.width, b.height);
-        ctx.textAlign = 'center'; ctx.fillText('Frequency (MHz)', b.left + b.width / 2, height - 6);
+        ctx.textAlign = 'center'; ctx.fillText('Frequency (' + (this.grid?.unit || 'MHz') + ')', b.left + b.width / 2, height - 6);
         for (let i = 0; i <= 4; i++) {
-            const x = b.left + i * b.width / 4; ctx.fillText(this.format(range.from + i * (range.to - range.from) / 4), x, b.top + b.height + 16);
+            const x = b.left + i * b.width / 4; ctx.fillText(this.format(this.frequencyPosition(i / 4, range)), x, b.top + b.height + 16);
             ctx.textAlign = 'right'; ctx.fillText(this.format(this.mode === 'spectrogram' ? i * this.history.duration / 4 : this.high - i * (this.high - this.low) / 4), b.left - 6, b.top + i * b.height / 4 + 4); ctx.textAlign = 'center';
         }
         ctx.save(); ctx.translate(12, b.top + b.height / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(this.mode === 'spectrogram' ? 'Age (s)' : label, 0, 0); ctx.restore();
@@ -339,13 +374,18 @@ class SpectrumViews {
         const rect = this.canvas.getBoundingClientRect(), b = this.bounds, range = this.range();
         const x = (e.clientX - rect.left - b.left) / b.width, y = (e.clientY - rect.top - b.top) / b.height;
         if (x < 0 || x > 1 || y < 0 || y > 1) { this.document.getElementById('history-cursor').textContent = ''; return; }
-        const frequency = range.from + x * (range.to - range.from), step = this.history.status.fs / (this.history.average.length * 2) / 1e6;
+        const frequency = this.frequencyPosition(x, range), step = this.history.status.fs / (this.history.average.length * 2) / 1e6;
         // Inspect the same texture cell used to draw the heatmap. A display
         // column can merge several FFT bins; report its strongest contributor.
         if (!this.bins || !this.texture.width) { return; }
         const column = Math.min(this.texture.width - 1, Math.floor(x * this.texture.width));
         const span = this.bins[column];
+        if (span.first > span.last) {
+            this.document.getElementById('history-cursor').textContent = this.format(frequency) + ' ' + (this.grid?.unit || 'MHz') + ' · No received data';
+            return;
+        }
         let bin = Math.min(span.last, Math.max(span.first, Math.round(frequency / step)));
+        if (this.grid) { bin = span.first; }
         let detail: string;
         if (this.mode === 'spectrogram') {
             const latest = this.history.currentBucket;
@@ -353,29 +393,30 @@ class SpectrumViews {
             const bucket = latest - Math.floor(1 - phase + y * this.history.duration / this.history.interval);
             const row = this.history.rows.find(r => r.bucket === bucket);
             let power = NaN;
+            const indexed = this.grid && this.unit === 'dBV';
             if (row) {
                 for (let i = span.first; i <= span.last; i++) {
-                    const value = row.psd[i];
+                    const value = indexed ? this.convert(row.psd[i], this.unit, i) : row.psd[i];
                     if (Number.isFinite(value) && (!Number.isFinite(power) || value > power)) { power = value; bin = i; }
                 }
             }
             detail = (y * this.history.duration).toFixed(2) + ' s ago · ' +
-                (Number.isFinite(power) ? this.format(this.convert(power, this.unit)) + ' ' + this.label : 'No received data');
+                (Number.isFinite(power) ? this.format(indexed ? power : this.convert(power, this.unit)) + ' ' + this.label : 'No received data');
         } else {
             const pixelY = Math.min(this.texture.height - 1, Math.floor(y * this.texture.height));
             let hits = 0, code = 0;
             for (let i = span.first; i <= span.last; i++) {
                 for (let k = this.history.densityLow[i]; k <= this.history.densityHigh[i]; k++) {
                     const count = this.history.density[i * 256 + k];
-                    if (this.densityY[k] === pixelY && count > hits) { hits = count; bin = i; code = k; }
+                    if (this.densityRow(k, this.unit, i, this.texture.height) === pixelY && count > hits) { hits = count; bin = i; code = k; }
                 }
             }
-            detail = hits ? this.format(this.convert(SpectrumHistory.power(code), this.unit)) + ' ' + this.label +
+            detail = hits ? this.format(this.convert(SpectrumHistory.power(code), this.unit, bin)) + ' ' + this.label +
                 ' · ' + hits + '/' + this.history.densityFrames + ' hits (' +
                 (100 * hits / Math.max(1, this.history.densityFrames)).toFixed(2) + '%)' :
                 this.format(this.high - y * (this.high - this.low)) + ' ' + this.label + ' · No occurrences';
         }
-        const text = (bin * step).toFixed(6) + ' MHz · ' + detail;
+        const text = (this.grid ? this.format(this.grid.frequencies[bin]) : (bin * step).toFixed(6)) + ' ' + (this.grid?.unit || 'MHz') + ' · ' + detail;
         const cursor = this.document.getElementById('history-cursor');
         if (cursor.textContent !== text) { cursor.textContent = text; }
     }

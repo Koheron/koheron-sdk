@@ -9,6 +9,11 @@ interface IFFTStatus {
     W2: number; // FFT window correction (sum w^2)
     window_index: number;
     clkIndex: string;
+    // Optional voltage spectrum with a nonuniform, board-defined frequency grid.
+    spectrum?: {frequencies: ReadonlyArray<number>; bandwidths: ReadonlyArray<number>;
+        binSpacings?: ReadonlyArray<number>; unit: string; logarithmic: boolean};
+    inputRanges?: number[];
+    acquisitionKey?: string;
 }
 
 interface IBoardParameters {
@@ -18,7 +23,13 @@ interface IBoardParameters {
     temperatures: Float32Array;
 }
 
+interface SpectrumFrame {
+    psd: Float32Array;
+    status: IFFTStatus;
+}
+
 abstract class FFTDriver {
+    public get waitingForSpectrum(): boolean { return false; }
     protected driver: Driver;
     protected id: number;
     protected cmds: Commands;
@@ -71,6 +82,11 @@ abstract class FFTDriver {
 
     async read_psd(): Promise<Float32Array> {
         return await this.client.readFloat32Array(Command(this.id, this.cmds['read_psd']));
+    }
+
+    async readSpectrum(): Promise<SpectrumFrame | undefined> {
+        const psd = await this.read_psd();
+        return {psd, status: this.status};
     }
 
     setDDSFreq(channel: number, freq_hz: number): void {

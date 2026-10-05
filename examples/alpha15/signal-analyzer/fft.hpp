@@ -6,6 +6,7 @@
 #define __ALPHA15_SIGNAL_ANALYZER_FFT_HPP__
 
 #include "server/hardware/memory_manager.hpp"
+#include "./spectrum_snapshot.hpp"
 
 #include <atomic>
 #include <cstdint>
@@ -26,6 +27,11 @@ class FFT
 
     // Return the PSD in W/Hz
     std::array<float, prm::fft_size/2> read_psd();
+    uint32_t restart_acquisition();
+    auto get_spectrum_snapshot() {
+        std::lock_guard lock(mutex);
+        return publication.snapshot();
+    }
 
     uint32_t get_number_averages() const {
         return prm::n_cycles;
@@ -36,10 +42,12 @@ class FFT
     }
 
     auto get_window_index() const {
+        std::lock_guard lock(mutex);
         return window_index;
     }
 
     auto get_control_parameters() {
+        std::lock_guard lock(mutex);
         return std::tuple{fs_adc, input_channel, input_operation, S1, S2, ENBW};
     }
 
@@ -58,7 +66,9 @@ class FFT
 
     std::array<float, prm::fft_size/2> psd_buffer;
     std::thread psd_thread;
-    std::mutex mutex;
+    mutable std::mutex mutex;
+    SpectrumSnapshot publication{prm::fft_size / 2};
+    uint32_t skip_cycles = 1;
     std::atomic<bool> psd_acquisition_started{false};
     std::atomic<uint32_t> acq_cycle_index{0};
 

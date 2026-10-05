@@ -1,7 +1,8 @@
 // (c) Koheron
 
 class ExportFile {
-    constructor(private document: Document, private spectrum: Plot, private boardName: string = 'ALPHA250') {
+    constructor(private document: Document, private spectrum: Plot, private boardName: string = 'ALPHA250',
+                private instrumentName = 'FFT') {
         document.querySelector('.export-data').addEventListener('click', () => this.exportData());
         document.querySelector('.export-plot').addEventListener('click', () => this.exportPlot());
     }
@@ -28,7 +29,7 @@ class ExportFile {
         context.fillRect(0, 0, width, height + headerHeight + 30);
         context.fillStyle = '#333';
         context.font = '12px sans-serif';
-        context.fillText(this.boardName + ' FFT · ' + (historyView ? this.spectrum.view + ' · ' : '') + this.spectrum.yLabel, 12, 20);
+        context.fillText(this.boardName + ' ' + this.instrumentName + ' · ' + (historyView ? this.spectrum.view + ' · ' : '') + this.spectrum.yLabel, 12, 20);
         context.font = '11px sans-serif';
         context.fillText((reference ? 'Live · ' : '') + this.frameLabel(status), 12, 38);
         if (reference) {
@@ -38,14 +39,16 @@ class ExportFile {
         }
         context.drawImage(canvas, 0, headerHeight, width, height);
         context.textAlign = 'center';
-        if (!historyView) { context.fillText('Frequency (MHz)', width / 2, height + headerHeight + 20); }
+        if (!historyView) { context.fillText('Frequency (' + (status.spectrum?.unit || 'MHz') + ')', width / 2, height + headerHeight + 20); }
         image.toBlob(blob => { if (blob) { this.download(blob, 'koheron_fft.png'); } });
     }
 
     private frameLabel(status: IFFTStatus): string {
         const windows = ['Rectangular', 'Hann', 'Flat top', 'Blackman–Harris'];
-        return 'ADC ' + status.channel + ' · ' + (windows[status.window_index] || 'Window ' + status.window_index)
-            + ' · ' + status.fs / 1e6 + ' MS/s';
+        const channel = status.spectrum && status.channel >= 2 ? (status.channel === 2 ? 'ADC 0 − 1' : 'ADC 0 + 1') : 'ADC ' + status.channel;
+        return channel + ' · ' + (windows[status.window_index] || 'Window ' + status.window_index)
+            + ' · ' + status.fs / 1e6 + ' MS/s'
+            + (status.inputRanges ? ' · ' + status.inputRanges.join(' / ') + ' V ranges' : '');
     }
 
     private frameRows(status: IFFTStatus): string[] {
@@ -54,10 +57,10 @@ class ExportFile {
             'Input channel,' + status.channel,
             'Sampling frequency (Hz),' + status.fs,
             'Reference clock,' + (status.clkIndex === 'fixed' ? 'Fixed onboard' : status.clkIndex === '0' ? 'External' : 'Internal'),
-            'DDS 0 (Hz),' + status.dds_freq[0],
-            'DDS 1 (Hz),' + status.dds_freq[1],
+            ...(status.inputRanges ? status.inputRanges.map((value, i) => 'ADC ' + i + ' range (V),' + value) : [
+                'DDS 0 (Hz),' + status.dds_freq[0], 'DDS 1 (Hz),' + status.dds_freq[1]]),
             '',
-            'Frequency (MHz),' + this.spectrum.yLabel
+            'Frequency (' + (status.spectrum?.unit || 'MHz') + '),' + this.spectrum.yLabel
         ];
     }
 
@@ -75,7 +78,7 @@ class ExportFile {
         if (!status) { return; }
         if (this.spectrum.view && this.spectrum.view !== 'spectrum') { this.exportHistory(); return; }
         // Use the displayed frame's metadata, including while the plot is paused.
-        const rows = ['Koheron ' + this.boardName + ' FFT', 'Exported at,' + new Date().toISOString(), ...this.frameRows(status)];
+        const rows = ['Koheron ' + this.boardName + ' ' + this.instrumentName, 'Exported at,' + new Date().toISOString(), ...this.frameRows(status)];
         for (const row of this.spectrum.plot_data) { rows.push(row.join(',')); }
         if (this.spectrum.referenceStatus) {
             rows.push('', 'Reference trace', ...this.frameRows(this.spectrum.referenceStatus));
@@ -90,13 +93,13 @@ class ExportFile {
         const history = this.spectrum.history;
         if (!history.samples) { return; }
         const step = history.status.fs / (history.average.length * 2) / 1e6;
-        const frequencies = Array.from(history.average, (_, i) => i * step);
-        const rows = ['Koheron ' + this.boardName + ' FFT ' + this.spectrum.view, 'Exported at,' + new Date().toISOString(),
+        const frequencies = Array.from(history.average, (_, i) => history.status.spectrum ? history.status.spectrum.frequencies[i] : i * step);
+        const rows = ['Koheron ' + this.boardName + ' ' + this.instrumentName + ' ' + this.spectrum.view, 'Exported at,' + new Date().toISOString(),
             'Acquisition metadata,At history start', ...this.frameRows(history.status).slice(0, -2), 'History duration (s),' + history.duration];
         if (this.spectrum.view === 'spectrogram') {
             rows.push('Time row (s),' + history.interval,
                 'Age convention,Younger edge of each visible interval; final interval ends at history duration',
-                'Values,' + this.spectrum.yLabel, '', 'Age (s) / Frequency (MHz),' + frequencies.join(','));
+                'Values,' + this.spectrum.yLabel, '', 'Age (s) / Frequency (' + (history.status.spectrum?.unit || 'MHz') + '),' + frequencies.join(','));
             const latest = history.currentBucket;
             const phase = history.bucketPhase;
             // Match the fractional viewport: omit a newest bucket with no elapsed
@@ -108,14 +111,23 @@ class ExportFile {
             for (let bucket = first; bucket >= oldest; bucket--) {
                 const row = byBucket.get(bucket);
                 const age = Math.max(0, history.now - (bucket + 1) * history.interval);
-                rows.push(Number(age.toFixed(6)) + ',' + (row ? Array.from(row.psd, power => {
-                    const value = this.spectrum.convertValue(power, this.spectrum.unit, history.status);
+                rows.push(Number(age.toFixed(6)) + ',' + (row ? Array.from(row.psd, (power, index) => {
+                    const value = this.spectrum.convertValue(power, this.spectrum.unit, history.status, index);
                     return Number.isNaN(value) ? '' : String(value);
                 }) : frequencies.map(() => '')).join(','));
             }
+        } else if (history.status.spectrum && this.spectrum.unit === 'dBV') {
+            // Integrated voltage has a different bandwidth in every band.
+            rows.push('Received spectra,' + history.densityFrames, 'Values,Occurrence count', '', 'Frequency (Hz),Voltage (dBV),Count');
+            for (let i = 0; i < frequencies.length; i++) {
+                for (let code = history.densityLow[i]; code <= history.densityHigh[i]; code++) {
+                    const count = history.density[i * 256 + code];
+                    if (count) { rows.push([frequencies[i], this.spectrum.convertValue(SpectrumHistory.power(code), this.spectrum.unit, history.status, i), count].join(',')); }
+                }
+            }
         } else {
             rows.push('Received spectra,' + history.densityFrames, 'Values,Occurrence count', 'PSD quantization (dB),' + 220 / 254,
-                '', this.spectrum.yLabel + ' / Frequency (MHz),' + frequencies.join(','));
+                '', this.spectrum.yLabel + ' / Frequency (' + (history.status.spectrum?.unit || 'MHz') + '),' + frequencies.join(','));
             for (let code = 255; code >= 1; code--) {
                 const level = this.spectrum.convertValue(SpectrumHistory.power(code), this.spectrum.unit, history.status);
                 rows.push(level + ',' + frequencies.map((_, i) => history.density[i * 256 + code]).join(','));

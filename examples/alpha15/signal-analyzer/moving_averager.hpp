@@ -7,6 +7,14 @@
 
 template<std::size_t navg, typename T=double>
 struct MovingAverager {
+    static_assert(navg > 0);
+
+    void clear() {
+        idx = 0;
+        is_full = false;
+        for (auto& vec : circ_buffer) { vec.clear(); }
+    }
+
     void append(std::vector<T> &&vec) {
         // Assume all append vectors have the same size
         circ_buffer[idx] = std::move(vec);

@@ -32,6 +32,7 @@ void FFT::set_offsets(uint32_t off0, uint32_t off1) {
 }
 
 void FFT::select_adc_channel(uint32_t channel) {
+    std::lock_guard lock(mutex);
     logf("FFT: Select channel {}\n", channel);
 
     if (channel == 0) {
@@ -52,6 +53,7 @@ void FFT::select_adc_channel(uint32_t channel) {
 }
 
 void FFT::set_operation(uint32_t operation) {
+    std::lock_guard lock(mutex);
     // operation:
     // 0 : Substration
     // 1 : Addition
@@ -69,6 +71,7 @@ void FFT::set_scale_sch(uint32_t scale_sch) {
 }
 
 void FFT::set_fft_window(uint32_t window_id) {
+    std::lock_guard lock(mutex);
     switch (window_id) {
       case 0:
         set_window(win::boxcar<double, prm::fft_size>());
@@ -96,7 +99,16 @@ std::array<float, prm::fft_size/2> FFT::read_psd() {
     return psd_buffer;
 }
 
+uint32_t FFT::restart_acquisition() {
+    std::lock_guard lock(mutex);
+    psd_buffer.fill(std::numeric_limits<float>::quiet_NaN());
+    // The next accumulator wrap may include samples from before the edit.
+    skip_cycles = 1;
+    return publication.restart();
+}
+
 double FFT::input_voltage_range() {
+    std::lock_guard lock(mutex);
     // TODO Use calibration from EEPROM
 
     if (input_range() == 0) {
@@ -125,7 +137,7 @@ uint32_t FFT::input_range() {
 
 // Factor to convert PSD raw data into V^2/Hz
 float FFT::calibration() {
-    const double vrange = input_voltage_range() / (2 << 21);
+    const double vrange = (input_range() == 0 ? 2.048 : 8.192) / (2 << 21);
     return vrange * vrange / prm::n_cycles / fs_adc / W2;
 }
 
@@ -180,9 +192,14 @@ void FFT::psd_acquisition_thread() {
             using namespace sci::operators;
 
             std::lock_guard<std::mutex> lock(mutex);
-            const auto calib = calibration();
-            auto& psd_map = hw::get_memory<mem::psd>();
-            psd_buffer = calib * psd_map.read_array<float, prm::fft_size/2, 0>();
+            if (skip_cycles) {
+                --skip_cycles;
+            } else {
+                const auto calib = calibration();
+                auto& psd_map = hw::get_memory<mem::psd>();
+                psd_buffer = calib * psd_map.read_array<float, prm::fft_size/2, 0>();
+                publication.publish(psd_buffer);
+            }
         }
 
         acq_cycle_index = get_cycle_index();

@@ -1,6 +1,6 @@
 # Shared FFT interface
 
-ALPHA250 and Red Pitaya FFT both include `components.mk`. It packages one
+ALPHA250 FFT, Red Pitaya FFT and ALPHA15 signal analyzer include `components.mk`. It packages one
 workspace template, stylesheet, lifecycle, transport, acquisition controls,
 spectrum/history views, exports and the shared PNA DDS/PM widget and digit inputs.
 
@@ -19,3 +19,12 @@ See the [FFT interface guide](../../examples/alpha250/fft/README.md) and
 [host tests](../../examples/alpha250/fft/tests/README.md). The generator integration
 tests mount both board pages with these actual templates and the actual PNA
 widget, including failure and teardown paths.
+
+ALPHA15 opts out of the RF DAC generator and supplies a voltage spectrum grid
+with per-band bandwidths. Its adapter combines the two decimator snapshots and
+FPGA FFT in ascending bin order. The same plot, references, history views and
+exports use that grid, with a logarithmic Hz axis and voltage units. Input range
+changes participate in the history signature. Precision DAC digit editing is
+shared by ALPHA250 and ALPHA15; board telemetry remains board-specific.
+See `examples/alpha15/signal-analyzer/README.md` for acquisition limitations and
+host tests.
