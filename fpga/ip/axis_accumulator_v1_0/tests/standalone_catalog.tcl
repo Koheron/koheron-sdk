@@ -21,6 +21,12 @@ foreach {name bins frames sync} {accum_0 16 3 0 accum_1 64 7 1} {
     connect_bd_net $reset [get_bd_pins $name/aresetn]
     foreach {interface mode} {S_AXIS Slave M_AXIS Master} {
         set port [create_bd_intf_port -mode $mode -vlnv xilinx.com:interface:axis_rtl:1.0 ${name}_$interface]
+        # Slave ports do not inherit the IP's stream width during propagation.
+        # Specify the float32 contract so the wrapper cannot truncate input data.
+        if {$mode eq "Slave"} {
+            set_property -dict {CONFIG.TDATA_NUM_BYTES 4 CONFIG.HAS_TLAST 1 \
+                CONFIG.HAS_TREADY 1 CONFIG.TUSER_WIDTH 0} $port
+        }
         connect_bd_intf_net $port [get_bd_intf_pins $name/$interface]
         lappend buses ${name}_$interface
     }
@@ -36,6 +42,13 @@ add_files [make_wrapper -files [get_files native.bd] -top]
 set_property top native_wrapper [current_fileset]
 update_compile_order -fileset sources_1
 synth_design -top native_wrapper -mode out_of_context -part xc7z010clg400-1
+foreach name {accum_0 accum_1} {
+    foreach interface {S_AXIS M_AXIS} {
+        if {[llength [get_ports -quiet [format {%s_%s_tdata[*]} $name $interface]]] != 32} {
+            error "Exported $name/$interface data was truncated in the consumer wrapper"
+        }
+    }
+}
 if {[llength [get_cells -quiet -hier -filter {IS_BLACKBOX == 1}]]} {
     error {Exported IP has unresolved black boxes}
 }

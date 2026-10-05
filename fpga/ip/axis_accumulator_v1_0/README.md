@@ -42,7 +42,7 @@ create_bd_cell -type ip -vlnv koheron:user:axis_accumulator:1.0 accum_0
 set_property -dict {CONFIG.FRAME_LENGTH 8192 CONFIG.N_FRAMES 1023} [get_bd_cells accum_0]
 ```
 
-The export was verified with Vivado 2026.1. The package depends on the installed
+The export was verified with Vivado 2025.1. The package depends on the installed
 Xilinx Floating-Point 7.1 core; other Vivado releases need their own compatibility
 check or IP upgrade.
 
@@ -167,60 +167,70 @@ board I/O constraints. Board-level routing and analog measurements are separate.
 
 ### Validation results
 
-Vivado 2026.1 on `xc7z020clg400-2`, `N_FRAMES=1023`, native TLAST validation:
+Vivado 2025.1 on `xc7z020clg400-2`, `N_FRAMES=1023`, native TLAST validation:
 
 | Bins | LUTs | Flip-flops | BRAM36 | DSPs | Setup slack at 250 MHz | Hold slack |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 2048 | 563 | 948 | 4 | 0 | +0.222 ns | +0.098 ns |
-| 8192 | 572 | 963 | 16 | 0 | +0.076 ns | +0.083 ns |
+| 2048 | 562 | 949 | 4 | 0 | +0.249 ns | +0.077 ns |
+| 8192 | 570 | 963 | 16 | 0 | +0.187 ns | +0.101 ns |
 
 These counts include the embedded floating-point adder and both banks, and
-exclude the example's result recorder. Two banks consume twice the accumulation
-storage of the former single-bank module. The 8192-bin setup margin is narrow;
-integration and changed configurations require their own timing checks.
+exclude the example's result recorder. Two banks increase accumulation storage
+relative to the former single-bank module. Integration and changed configurations
+require their own timing checks.
 
-All twelve stream simulation profiles passed, including production-size 8192-bin
-frames, the ten/eleven-bin pipeline boundary, reset during a partial group and
-while a completed output is stalled. The direct catalog-to-recorder simulation and
-synthesis passed without vendor black boxes. The vendor PSD arithmetic
-regressions cover TLAST/data alignment through pauses in both blocking and
-nonblocking pipelines. All four migrated instrument configurations validated,
-generated their full block designs and built bitstreams with `ENFORCE_TIMING=1`:
+All twelve stream simulation profiles passed with the actual vendor adder,
+including production-size 8192-bin frames, the ten/eleven-bin pipeline boundary,
+reset during a partial group and while a completed output is stalled. The direct
+catalog-to-recorder simulation and synthesis passed without vendor black boxes.
+The vendor PSD arithmetic regressions cover TLAST/data alignment through pauses
+in both blocking and nonblocking pipelines.
+
+All four migrated configurations validated and built full instrument packages
+against V1 `627a45be` with Vivado 2025.1 and `ENFORCE_TIMING=1`:
 
 | Instrument | Setup slack | Hold slack | Bus-skew constraints checked |
 | --- | ---: | ---: | ---: |
-| ALPHA250 FFT | +0.043 ns | +0.002 ns | 6 |
-| ALPHA250-4 FFT | +0.192 ns | +0.030 ns | 6 |
-| ALPHA15 signal analyzer | +0.115 ns | +0.037 ns | 16 |
-| Red Pitaya FFT | +0.008 ns | +0.007 ns | 11 |
+| ALPHA250 FFT | +0.022069 ns | +0.006827 ns | 8 |
+| ALPHA250-4 FFT | +0.223449 ns | +0.028520 ns | 6 |
+| ALPHA15 signal analyzer | +0.248534 ns | +0.015330 ns | 16 |
+| Red Pitaya FFT | +0.208643 ns | +0.030968 ns | 13 |
 
-These are whole-design margins at the examples' existing clocks. Red Pitaya
-uses `Performance_NetDelay_high`; it and both ALPHA250 examples enable
-post-route physical optimization with `ExploreWithAggressiveHoldFix`. No
-clock periods or timing exceptions were relaxed. The ALPHA250 hold and Red
-Pitaya setup margins are especially narrow, so changed placement or
-configurations need another strict timing check. The SDK reports existing
-incomplete external I/O delay constraints; the passing checks cover constrained
-paths, pulse width and bus skew. Live board operation and analog measurements
-remain unverified.
+These are whole-design margins with the current V1 clocks and timing exceptions.
+ALPHA250 and Red Pitaya retain their shared PNA DDS/PM generator hardware and
+FFT workspace. Red Pitaya retains V1's 125 MHz AXI clock and 125 MS/s ADC/DAC
+rate; it uses `Performance_NetDelay_high`. ALPHA250 and Red Pitaya retain the
+shared post-route hold-repair hook, and ALPHA250-4 enables post-route physical
+optimization. No timing constraints or exceptions were relaxed relative to V1.
+The ALPHA250 setup and hold margins are narrow, so changed placement or
+configurations need another strict timing check. ALPHA15 uses about 90% of
+available BRAM. The SDK reports existing incomplete external I/O delay
+constraints; the passing checks cover constrained paths, pulse width and bus skew.
+Live board operation and analog measurements remain unverified.
 
-The exported ZIP was also extracted into a separate directory and consumed by
-a fresh `xc7z010clg400-1` project using only standard Vivado commands. Two native
-AXIS instances with different frame lengths, frame counts and reset options
-validated and synthesized without black boxes. The export itself was built
-for `xc7z020clg400-2`, verifying device regeneration on import. Reproduce that
-consumer check after extracting the archive:
+Both FFT servers and web interfaces compiled, and the shared generator/precision
+editor regressions and both FFT protocol decoders passed. Instrument ZIPs passed
+integrity checks; packaging used the installed host device-tree compiler.
+
+The exported ZIP passed integrity checks and repeat export. It was also extracted
+into a separate directory and consumed by a fresh `xc7z010clg400-1` project using
+only standard Vivado commands. Two native AXIS instances with different frame
+lengths, frame counts and reset options validated and synthesized without black
+boxes. The consumer explicitly configures float32 slave ports and checks the
+synthesized 32-bit input/output widths, avoiding Vivado's default 8-bit input
+ports. The export itself was built for `xc7z020clg400-2`, verifying device
+regeneration on import. Reproduce that consumer check after extracting the archive:
 
 ```sh
 vivado -mode batch -source fpga/ip/axis_accumulator_v1_0/tests/standalone_catalog.tcl \
   -tclargs /path/to/extracted/ip_repo tmp/standalone-accumulator
 ```
 
-To reproduce the full builds with Vivado 2026.1:
+To reproduce the strict full FPGA builds with Vivado 2025.1:
 
 ```sh
-make fpga CFG=examples/alpha250/fft/config.mk VIVADO_VERSION=2026.1 ENFORCE_TIMING=1 N_CPUS=4
-make fpga CFG=examples/alpha250-4/fft/config.mk VIVADO_VERSION=2026.1 ENFORCE_TIMING=1 N_CPUS=4
-make fpga CFG=examples/alpha15/signal-analyzer/config.mk VIVADO_VERSION=2026.1 ENFORCE_TIMING=1 N_CPUS=4
-make fpga CFG=examples/red-pitaya/fft/config.mk VIVADO_VERSION=2026.1 ENFORCE_TIMING=1 N_CPUS=4
+make fpga CFG=examples/alpha250/fft/config.mk VIVADO_VERSION=2025.1 ENFORCE_TIMING=1 N_CPUS=4
+make fpga CFG=examples/alpha250-4/fft/config.mk VIVADO_VERSION=2025.1 ENFORCE_TIMING=1 N_CPUS=4
+make fpga CFG=examples/alpha15/signal-analyzer/config.mk VIVADO_VERSION=2025.1 ENFORCE_TIMING=1 N_CPUS=4
+make fpga CFG=examples/red-pitaya/fft/config.mk VIVADO_VERSION=2025.1 ENFORCE_TIMING=1 N_CPUS=4
 ```
