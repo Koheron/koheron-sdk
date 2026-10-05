@@ -13,6 +13,8 @@ class Plot {
     private pending: {psd: Float32Array; status: IFFTStatus};
     private rateStarted = performance.now();
     private renderedFrames = 0;
+    private paintedFrames = 0;
+    private paintFailed = false;
     private acquiredFrames = 0;
     private renderMs = 0;
     private historyMs = 0;
@@ -129,8 +131,8 @@ class Plot {
 
     private setStatus(state: string, text: string): void {
         const status = this.document.getElementById('connection-status');
-        status.dataset.state = state;
-        status.textContent = text;
+        if (status.dataset.state !== state) { status.dataset.state = state; }
+        if (status.textContent !== text) { status.textContent = text; }
     }
 
     private schedule(delay: number): void {
@@ -146,23 +148,30 @@ class Plot {
             window.cancelAnimationFrame(this.animation);
             window.clearTimeout(this.drawTimer);
             this.animation = 0;
-            this.waitMs += performance.now() - requested;
             if (!this.running || this.paused || this.document.hidden || !this.pending) { return; }
+            this.waitMs += performance.now() - requested;
             if (timestamp - this.lastFrameTime < 1000 / 60 - .5) {
                 this.requestDraw();
                 return;
             }
             this.lastFrameTime = timestamp;
+            const fresh = this.spectrumChanged(this.pending.psd);
+            const previousPSD = this.psd, previousStatus = this.frameStatus;
             this.psd = this.pending.psd;
             this.frameStatus = this.pending.status;
             this.pending = undefined;
             try {
                 const started = performance.now();
                 this.displaySpectrum();
+                this.paintFailed = false;
                 this.renderMs += performance.now() - started;
-                this.renderedFrames++;
+                this.paintedFrames++;
+                if (fresh) { this.renderedFrames++; }
                 this.setStatus('live', 'Live spectrum');
             } catch (error) {
+                this.psd = previousPSD;
+                this.frameStatus = previousStatus;
+                this.paintFailed = true;
                 this.setStatus('error', 'Unable to display spectrum');
                 console.error('Spectrum display failed:', error);
             }
@@ -177,12 +186,12 @@ class Plot {
 
     private resetRate(): void {
         this.rateStarted = performance.now();
-        this.renderedFrames = this.acquiredFrames = 0;
+        this.renderedFrames = this.paintedFrames = this.acquiredFrames = 0;
         this.renderMs = this.historyMs = this.waitMs = 0;
         const rate = this.document.getElementById('refresh-rate');
         if (rate) {
             rate.textContent = this.paused ? 'Paused' : '— FPS';
-            rate.title = 'Fresh spectra displayed per second';
+            rate.title = 'Changed spectra displayed per second; cached replies excluded';
         }
     }
 
@@ -192,14 +201,14 @@ class Plot {
         const rate = this.document.getElementById('refresh-rate');
         if (rate) {
             rate.textContent = (this.renderedFrames * 1000 / elapsed).toFixed(0) + ' FPS';
-            rate.title = 'Fresh spectra displayed per second; acquisition: '
+            rate.title = 'Changed spectra displayed per second; received: '
                 + (this.acquiredFrames * 1000 / elapsed).toFixed(0) + ' spectra/s'
-                + '; render ' + (this.renderMs / Math.max(1, this.renderedFrames)).toFixed(2) + ' ms'
+                + '; render ' + (this.renderMs / Math.max(1, this.paintedFrames)).toFixed(2) + ' ms'
                 + '; history ' + (this.historyMs / Math.max(1, this.acquiredFrames)).toFixed(2) + ' ms'
-                + '; frame wait ' + (this.waitMs / Math.max(1, this.renderedFrames)).toFixed(1) + ' ms';
+                + '; frame wait ' + (this.waitMs / Math.max(1, this.paintedFrames)).toFixed(1) + ' ms';
         }
         this.rateStarted = performance.now();
-        this.renderedFrames = this.acquiredFrames = 0;
+        this.renderedFrames = this.paintedFrames = this.acquiredFrames = 0;
         this.renderMs = this.historyMs = this.waitMs = 0;
     }
 
@@ -232,12 +241,39 @@ class Plot {
         if (!psd.some(value => Number.isFinite(value) && value > 0)) {
             this.setStatus('connecting', 'Waiting for spectrum…'); return;
         }
-        this.pending = {psd: psd.slice(), status: {...this.fft.status, dds_freq: this.fft.status.dds_freq.slice()}};
+        const status = {...this.fft.status, dds_freq: this.fft.status.dds_freq.slice()};
         const historyStarted = performance.now();
-        if (this.history) { this.history.add(psd, this.pending.status, time); }
+        if (this.history) { this.history.add(psd, status, time); }
         this.historyMs += performance.now() - historyStarted;
         this.acquiredFrames++;
+        if (!this.paintFailed && !this.spectrumChanged(psd) && this.sameFrameStatus(status) && this.view === 'spectrum' &&
+            !(this.document.getElementById('average-trace') as HTMLInputElement).checked &&
+            !(this.document.getElementById('max-hold-trace') as HTMLInputElement).checked &&
+            !this.plotBasics.needsRedraw()) {
+            // The newest reply matches the displayed frame. Discard an older
+            // waiting frame too, while retaining every receipt in history.
+            this.pending = undefined;
+            this.setStatus('live', 'Live spectrum');
+            return;
+        }
+        this.pending = {psd: psd.slice(), status};
         this.requestDraw();
+    }
+
+    private spectrumChanged(next: Float32Array): boolean {
+        if (!this.psd || next.length !== this.psd.length) { return true; }
+        for (let i = 0; i < next.length; i++) {
+            if (!Object.is(next[i], this.psd[i])) { return true; }
+        }
+        return false;
+    }
+
+    private sameFrameStatus(status: IFFTStatus): boolean {
+        return !!this.frameStatus &&
+            (['fs', 'channel', 'window_index', 'W1', 'W2', 'clkIndex'] as (keyof IFFTStatus)[])
+                .every(key => Object.is(status[key], this.frameStatus[key])) &&
+            status.dds_freq.length === this.frameStatus.dds_freq.length &&
+            status.dds_freq.every((value, i) => Object.is(value, this.frameStatus.dds_freq[i]));
     }
 
     private displaySpectrum(): void {

@@ -49,7 +49,8 @@ vm.runInContext(`
     const status = {dds_freq: [10,0], fs: 250e6};
     const plot = Object.assign(Object.create(Plot.prototype), {
         document: doc, history: new SpectrumHistory(), running: true, paused: false, busy: false, animation: 0,
-        lastFrameTime: -Infinity, rateStarted: 0, acquiredFrames: 0, renderedFrames: 0,
+        lastFrameTime: -Infinity, rateStarted: 0, acquiredFrames: 0, renderedFrames: 0, paintedFrames: 0,
+        plotBasics: {needsRedraw: () => false},
         fft: {status, read_psd() { reads++; return new Promise(resolve => { finishRead = resolve; }); }},
         displaySpectrum() { drawn.push({psd: Array.from(this.psd), status: this.frameStatus}); },
         setStatus() {}, schedule(delay) { scheduled = delay; }
@@ -76,7 +77,77 @@ vm.runInContext(`
     now = 34; const fast = plot.updatePlot(); finishRead(raw); await fast;
     animation(41.7); assert.equal(drawn.length, 1); // Cap paint at 60 Hz on faster monitors.
     animation(50.1); assert.equal(drawn.length, 2);
-    now = 100; const slow = plot.updatePlot(); now = 160; finishRead(raw); await slow;
+    const freshFrames = plot.renderedFrames;
+    const historySamples = plot.history.samples;
+    const paintRequests = animationRequests;
+    now = 68; plot.acceptSpectrum(new Float32Array([3]), now/1000);
+    assert.equal(animationRequests, paintRequests); // Cached PSD needs no paint.
+    assert.equal(plot.history.samples, historySamples + 1); // Preserve received-history timing.
+    assert.equal(plot.renderedFrames, freshFrames);
+    // An undrawn transient must not be painted after the newest reply returns
+    // to the displayed PSD; count changed spectra only when actually shown.
+    plot.acceptSpectrum(new Float32Array([4]), .07);
+    plot.acceptSpectrum(new Float32Array([3]), .071);
+    assert.equal(plot.pending, undefined);
+    now = 72; animation(now);
+    assert.equal(drawn.length, 2);
+    // Metadata, overlays, history scrolling and resized axes still redraw a
+    // cached spectrum, without inflating the changed-spectrum FPS counter.
+    status.dds_freq[0] = 31;
+    plot.acceptSpectrum(new Float32Array([3]), .073);
+    now = 74; animation(now);
+    assert.equal(drawn.at(-1).status.dds_freq[0], 31);
+    assert.equal(plot.renderedFrames, freshFrames);
+    fields.get('average-trace').checked = true;
+    plot.acceptSpectrum(new Float32Array([3]), .075);
+    now = 92; animation(now);
+    assert.equal(plot.renderedFrames, freshFrames);
+    fields.get('average-trace').checked = false;
+    fields.get('max-hold-trace').checked = true;
+    plot.acceptSpectrum(new Float32Array([3]), .093);
+    now = 110; animation(now);
+    assert.equal(plot.renderedFrames, freshFrames);
+    fields.get('max-hold-trace').checked = false;
+    plot.views = {mode: 'spectrogram'};
+    plot.acceptSpectrum(new Float32Array([3]), .111);
+    now = 128; animation(now);
+    assert.equal(plot.renderedFrames, freshFrames); // Time-axis scrolling is still painted.
+    plot.views = undefined;
+    plot.plotBasics.needsRedraw = () => true;
+    plot.acceptSpectrum(new Float32Array([3]), .129);
+    now = 146; animation(now);
+    assert.equal(plot.renderedFrames, freshFrames); // A cached PSD honors resized/selected axes.
+    plot.plotBasics.needsRedraw = () => false;
+    const connection = doc.getElementById('connection-status');
+    connection.dataset.state = 'error'; connection.textContent = 'Disconnected';
+    plot.setStatus = Plot.prototype.setStatus;
+    plot.acceptSpectrum(new Float32Array([3]), .147);
+    assert.equal(connection.dataset.state, 'live'); // Recovery can return the same valid PSD.
+    assert.equal(connection.textContent, 'Live spectrum');
+    plot.setStatus = () => {};
+    const withGap = Object.assign(Object.create(Plot.prototype), {psd: new Float32Array([3, NaN])});
+    assert.equal(withGap.spectrumChanged(new Float32Array([3, NaN])), false);
+    assert.equal(withGap.spectrumChanged(new Float32Array([4, NaN])), true);
+    assert.equal(withGap.spectrumChanged(new Float32Array([3])), true);
+    const display = plot.displaySpectrum;
+    plot.displaySpectrum = () => { throw new Error('expected paint failure'); };
+    plot.acceptSpectrum(new Float32Array([4]), .148);
+    const paintError = console.error; console.error = () => {};
+    now = 165; animation(now); console.error = paintError;
+    assert.deepEqual(Array.from(plot.psd), [3]); // A failed paint is not a displayed spectrum.
+    assert.equal(plot.renderedFrames, freshFrames);
+    assert.equal(plot.paintFailed, true);
+    plot.displaySpectrum = display;
+    const beforeRecovery = drawn.length;
+    plot.acceptSpectrum(new Float32Array([3]), .166);
+    now = 184; animation(now);
+    assert.equal(plot.paintFailed, false);
+    assert.equal(drawn.length, beforeRecovery + 1); // Recovery redraws even an unchanged cached PSD.
+    assert.equal(plot.renderedFrames, freshFrames);
+    plot.acceptSpectrum(new Float32Array([4]), .185);
+    now = 202; animation(now);
+    assert.equal(plot.renderedFrames, freshFrames + 1); // The previously failed PSD counts only when shown.
+    now = 224; const slow = plot.updatePlot(); now = 280; finishRead(raw); await slow;
     assert.equal(scheduled, 0); // Slow reads do not add another idle interval.
     plot.setPaused(true); assert.equal(plot.pending, undefined);
     const pausedReads = reads; await plot.updatePlot(); assert.equal(reads, pausedReads);
@@ -90,7 +161,7 @@ vm.runInContext(`
     assert.equal(scheduled, 1000); // Preserve retry backoff.
     assert.equal(plot.pending, undefined); // A stale paint cannot hide an acquisition error.
     assert.equal(plot.animation, 0);
-    now = 2000; plot.rateStarted = 1000; plot.renderedFrames = 60; plot.acquiredFrames = 61;
+    now = 2000; plot.rateStarted = 1000; plot.renderedFrames = 60; plot.paintedFrames = 60; plot.acquiredFrames = 61;
     plot.updateRate(); assert.equal(fields.get('refresh-rate').textContent, '60 FPS');
     assert.ok(fields.get('refresh-rate').title.includes('61 spectra/s'));
 

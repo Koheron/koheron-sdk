@@ -2,7 +2,7 @@
 <header class="app-header">
   <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
   <h1>FFT</h1><span id="board-label" class="board-tag"></span>
-  <span id="refresh-rate" class="board-tag" title="Fresh spectra displayed per second">— FPS</span>
+  <span id="refresh-rate" class="board-tag" title="Changed spectra displayed per second; cached replies excluded">— FPS</span>
   <div class="connection-control">
     <span id="connection-status" class="connection-status" role="status" data-state="connecting">Connecting…</span>
     <div id="connection-error" class="connection-error" role="alert" hidden><span id="connection-error-message" class="sr-only">Unable to connect to the FFT instrument.</span><button type="button" onclick="location.reload()">Retry</button></div>
