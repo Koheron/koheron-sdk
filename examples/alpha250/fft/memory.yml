@@ -36,6 +36,9 @@ memory:
     offset: 0x6000_0000
     range: 32K
     dev: /dev/mem_wc
+  - name: awg
+    offset: 0x4800_0000
+    range: 8K
   - name: psd
     offset: 0x7000_0000
     range: 32K

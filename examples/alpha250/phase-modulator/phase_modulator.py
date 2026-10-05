@@ -80,6 +80,7 @@ class PhaseModulator:
     def settings(self, channel=0):
         """Read the acknowledged hardware settings in Hz, degrees and duty fraction."""
         self._validate_channel(channel)
+        self.sample_rate = self.get_sample_rate()
         code, carrier, phase, modulation, mod_phase, depth, duty, seed, shape, enabled, pm = self._get_settings_words(channel)
         if code:
             raise RuntimeError(self.get_error_message(code))
@@ -104,6 +105,7 @@ class PhaseModulator:
 
     def info(self, channel=0):
         self._validate_channel(channel)
+        self.sample_rate = self.get_sample_rate()
         fields = ("phase_width", "modulation_width", "lut_bits", "prbs_width", "output_width", "capabilities")
         return dict(zip(fields, self._info[channel]), sample_rate=self.sample_rate,
                     waveforms=tuple(shape.name.lower() for shape in self.available_waveforms(channel)))
@@ -193,11 +195,13 @@ class PhaseModulator:
 
     def set_frequency(self, hz, channel=0):
         self._validate_channel(channel)
+        self.sample_rate = self.get_sample_rate()
         word = frequency_word(hz, self.sample_rate, self._info[channel][0])
         return self._check_response(self._set_carrier_increment(channel, word))
 
     def set_modulation_frequency(self, hz, channel=0):
         self._validate_channel(channel)
+        self.sample_rate = self.get_sample_rate()
         word = frequency_word(hz, self.sample_rate, self._info[channel][0])
         return self._check_response(self._set_modulation_increment(channel, word))
 
@@ -220,6 +224,7 @@ class PhaseModulator:
                   deviation=30, duty="0.5", seed=1, output_enabled=True,
                   pm_enabled=True, restart=True):
         self._validate_channel(channel)
+        self.sample_rate = self.get_sample_rate()
         width = self._info[channel][0]
         if not 32 <= width <= 48:
             raise ValueError("Unsupported phase width")

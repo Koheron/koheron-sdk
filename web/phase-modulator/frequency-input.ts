@@ -402,6 +402,14 @@ class DigitInput {
             `Step ${Number((step / scale).toPrecision(8))} ${unit} · ↑ ↓ or wheel`;
     }
 
+    setLimits(maximum: number, resolution: number): void {
+        this.cancelQueued();
+        this.options.maximum = maximum;
+        this.options.resolution = resolution;
+        this.minimumExponent = Math.ceil(Math.log(resolution) / Math.LN10);
+        this.input.setAttribute('aria-valuemax', String(maximum - (this.options.inclusiveMaximum ? 0 : resolution)));
+    }
+
     setValue(hz: number): void {
         this.accepted = hz;
         if (this.dirty || this.queued || this.inFlight) { return; }

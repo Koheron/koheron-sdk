@@ -4,7 +4,7 @@ class App {
     private plotBasics: PlotBasics;
     private fft: FFT;
     public fftApp: FFTApp;
-    public ddsFrequency: DDSFrequency;
+    private signalGenerator: PhaseModulatorWidget;
     private clockGenerator: ClockGenerator;
     private clockGeneratorApp: ClockGeneratorApp;
     private precisionDac: PrecisionDac;
@@ -37,8 +37,11 @@ class App {
                 await this.fft.init();
                 if (this.stopped) { return; }
 
-                this.fftApp = new FFTApp(document, this.fft);
-                this.ddsFrequency = new DDSFrequency(document, this.fft);
+                this.fftApp = new FFTApp(document, this.fft, sampleRate => {
+                    if (this.signalGenerator) { this.signalGenerator.setSampleRate(sampleRate); }
+                }, values => {
+                    if (this.precisionChannelsApp) { this.precisionChannelsApp.setValues(values); }
+                });
 
                 this.n_pts = this.fft.fft_size / 2;
                 this.x_min = 0;
@@ -51,6 +54,8 @@ class App {
 
                 this.clockGeneratorApp = new ClockGeneratorApp(document, this.clockGenerator);
                 this.precisionChannelsApp = new PrecisionChannelsApp(document, this.precisionDac);
+                await this.precisionChannelsApp.init();
+                if (this.stopped) { return; }
                 this.exportFile = new ExportFile(document, this.plot);
                 (document.getElementById('instrument-controls') as HTMLFieldSetElement).disabled = false;
                 (document.getElementById('board-controls') as HTMLFieldSetElement).disabled = false;
@@ -64,8 +69,14 @@ class App {
                     this.plot.setPaused(paused);
                 });
                 reset.addEventListener('click', () => plot_placeholder.trigger('dblclick'));
-
-
+                // Generator failures have their own retry and leave acquisition
+                // available, just as in the phase-noise analyzer.
+                this.signalGenerator = new PhaseModulatorWidget(
+                    document.getElementById('phase-modulator'),
+                    new PhaseModulatorDriver(this.client), {expectedChannels: 2});
+                void this.signalGenerator.init().then(() => {
+                    if (!this.stopped) { this.signalGenerator.setSampleRate(this.fft.status.fs); }
+                }).catch(() => {});
             } catch (err) {
                 if (this.stopped) { return; }
                 document.getElementById('connection-error').hidden = false;
