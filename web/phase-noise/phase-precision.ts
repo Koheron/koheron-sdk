@@ -52,13 +52,14 @@ class PhasePrecision {
         if (!this.changing) { this.select.value = String(requested); }
         const resolution = step >= 1e-3 ? `${(step * 1e3).toPrecision(4)} mrad`
                                      : `${(step * 1e6).toPrecision(4)} µrad`;
-        const messages = ['Settling…', 'Live', 'Overrange', 'Read error'];
+        const messages = ['Settling…', 'Live', 'Overrange', 'Read error', 'Sample gap'];
         this.status.textContent = `${resolution} · ${messages[state] || 'Waiting…'}`;
         this.status.dataset.state = state > 1 ? 'error' : state === 1 ? 'live' : 'waiting';
         const detail = state === 2
             ? requested > 0 ? 'Reduce precision or bring the LO closer to the carrier.'
                             : 'Bring the LO closer to the carrier.'
-            : state === 3 ? 'Acquisition error; retrying automatically.'
+            : state === 4 ? 'ADC samples were lost; this capture was discarded and acquisition is restarting.'
+            : state === 3 ? 'Acquisition error; reconnect or restart the instrument if it persists.'
             : 'Higher precision reduces the available phase range.';
         this.status.title = `${resolution} per count. Requested +${requested} bits; last packet +${captured} bits. ${detail}`;
     }

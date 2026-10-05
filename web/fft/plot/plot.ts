@@ -53,7 +53,7 @@ class Plot {
     public unit = 'dBm-Hz';
     public frameStatus: IFFTStatus;
 
-    constructor(private document: Document, private fft: FFT, private plotBasics: PlotBasics) {
+    constructor(private document: Document, private fft: FFTDriver, private plotBasics: PlotBasics) {
         this.n_pts = fft.fft_size / 2;
         // Reduce only the drawn curves; measurements and exports retain every bin.
         this.plotBasics.enableSpectrumReduction();

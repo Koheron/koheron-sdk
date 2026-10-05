@@ -355,7 +355,7 @@ bool Core<Board>::set_phase_precision(uint32_t bits) {
     phase_precision = bits;
     phase_conversion_factor = float(phase_calibration::filter_correction(
         cic_rate, prm::cic_n_stages, prm::cic_differential_delay) * std::exp2(-double(bits))) * sci::pi<Phase> / 8192.0f;
-    dirty_cnt = 2;
+    dirty_cnt = std::max(dirty_cnt, 2u);
     invalidate_results();
     return true;
 }

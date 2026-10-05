@@ -3,6 +3,7 @@
 
 #include "phase-decimation.hpp"
 #include "phase-processing.hpp"
+#include "server/drivers/phase-noise/single-window-spectrum.hpp"
 #include <array>
 #include <tuple>
 #include <scicpp/signal.hpp>
@@ -24,6 +25,12 @@ constexpr std::size_t fir_delay = fir_ntaps / 2;
 constexpr std::size_t decimated2_size = 300;
 constexpr std::size_t decimated1_size = 10 * decimated2_size;
 constexpr std::size_t decimated0_size = 10 * decimated1_size;
+
+struct MultirateSpectrum {
+    phase_noise::SingleWindowSpectrum full{decimated0_size};
+    phase_noise::SingleWindowSpectrum middle{decimated1_size};
+    phase_noise::SingleWindowSpectrum low{decimated2_size};
+};
 
 // Temporary d1 must be longer so second decimation can discard FIR delay.
 constexpr std::size_t decimated1_tmp_size = decimated1_size + fir_delay;
@@ -119,16 +126,33 @@ auto stitch_segments(const Spectrum0& s0,
 
 
 template <typename Phase, std::size_t N>
+auto auto_density(const std::array<Phase, N>& input,
+                  sci::units::frequency<float> fs, MultirateSpectrum& spectrum) {
+    auto [x0, x1, x2] = build_decimation_chain<fft_decimation_steps>(input);
+    auto s0 = spectrum.full.density(x0, fs);
+    auto s1 = spectrum.middle.density(x1, fs / 10.0f);
+    auto s2 = spectrum.low.density(x2, fs / 100.0f);
+    compensate_decimated_psd<1>(s1);
+    compensate_decimated_psd<2>(s2);
+    return stitch_segments(s0, s1, s2);
+}
+
+template <typename Phase, std::size_t N>
 auto cross_density(const std::array<Phase, N>& x, const std::array<Phase, N>& y,
-                   sci::units::frequency<float> fs, sig::Spectrum<float>& spectrum, bool remove_drift = true) {
+                   sci::units::frequency<float> fs, MultirateSpectrum& spectrum, bool remove_drift = true) {
     constexpr std::size_t base_size = 32000;
     auto x0 = remove_drift ? detrended_phase_prefix<base_size>(x) : take_prefix<Phase, base_size>(x);
     auto y0 = remove_drift ? detrended_phase_prefix<base_size>(y) : take_prefix<Phase, base_size>(y);
-    auto [dx0, dx1, dx2] = build_decimation_chain<fft_decimation_steps>(x0);
+    // The two channel filters are independent. Use both ARM cores before
+    // the paired transforms, without sharing mutable FFT workspaces.
+    auto x_chain = std::async(std::launch::async, [&] {
+        return build_decimation_chain<fft_decimation_steps>(x0);
+    });
     auto [dy0, dy1, dy2] = build_decimation_chain<fft_decimation_steps>(y0);
-    auto s0 = csd_density(spectrum, dx0, dy0, fs);
-    auto s1 = csd_density(spectrum, dx1, dy1, fs / 10.0f);
-    auto s2 = csd_density(spectrum, dx2, dy2, fs / 100.0f);
+    auto [dx0, dx1, dx2] = x_chain.get();
+    auto s0 = spectrum.full.cross_density(dx0, dy0, fs);
+    auto s1 = spectrum.middle.cross_density(dx1, dy1, fs / 10.0f);
+    auto s2 = spectrum.low.cross_density(dx2, dy2, fs / 100.0f);
     compensate_decimated_psd<1>(s1);
     compensate_decimated_psd<2>(s2);
     return stitch_segments(s0, s1, s2);

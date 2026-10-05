@@ -22,7 +22,7 @@ CORES += $(SDK_PATH)/fpga/ip/awg_v1_0
 TCL_FILES = $(BD_TCL) $(PROJECT_PATH)/post_route.tcl $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(BOARD_PATH)/config/board_preset.tcl $(wildcard $(FPGA_PATH)/lib/*.tcl) $(SDK_PATH)/fpga/ip/awg_v1_0/integration.tcl
 
 DRIVERS += $(BOARD_PATH)/drivers/common.hpp
-DRIVERS += $(PROJECT_PATH)/phase-modulator.hpp
+DRIVERS += $(BOARD_PATH)/drivers/phase-modulator.hpp
 DRIVERS += $(SDK_PATH)/server/drivers/dma-s2mm.hpp
 DRIVERS += $(PROJECT_PATH)/dds.hpp
 DRIVERS += $(PROJECT_PATH)/dds.cpp
@@ -36,6 +36,8 @@ WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.ts
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/frequency-input.ts
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator-widget.ts
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.css
+WEB_FILES += $(SDK_PATH)/web/phase-noise/phase-precision.ts
+WEB_FILES += $(SDK_PATH)/web/phase-noise/phase-precision.css
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html

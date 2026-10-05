@@ -6,7 +6,7 @@
 #include <limits>
 
 namespace prm {
-constexpr uint32_t n_pts = 262144;
+constexpr uint32_t n_pts = 262144, phase_filter_width = 40;
 constexpr uint32_t cic_decimation_rate_min = 4, cic_decimation_rate_max = 8192;
 constexpr uint32_t cic_decimation_rate_default = 20;
 constexpr uint32_t cic_n_stages = 6, cic_differential_delay = 1;
@@ -14,13 +14,15 @@ constexpr uint32_t cic_n_stages = 6, cic_differential_delay = 1;
 namespace mem { enum {control, status, ram}; }
 namespace reg {
 constexpr uint32_t phase_incr0 = 0, cordic = 16, cic_rate = 20;
-constexpr uint32_t demod0 = 0, demod1 = 4;
+constexpr uint32_t demod0 = 0, demod1 = 4, phase_packet = 8, phase_precision = 24;
 }
 namespace hw {
 inline std::atomic<bool> dma_in_flight{false};
 inline std::atomic<unsigned> dds_writes_during_transfer{0};
 inline uint32_t captured_channel = 0, captured_rate = 20;
 inline double captured_lo = 10e6;
+inline uint32_t captured_precision = 0;
+inline std::atomic<uint32_t> injected_packet_flags{0}, injected_precision{32};
 template<int id> class Memory {
 public:
     std::array<std::atomic<uint32_t>, 16> words{};
@@ -56,6 +58,7 @@ public:
             const double gain = std::pow(captured_rate, 6);
             radians_per_count = 4 * std::exp2(std::ceil(std::log2(gain))) / gain * 3.141592653589793 / 8192;
         }
+        radians_per_count *= std::exp2(-double(captured_precision));
         for (uint32_t i = 0; i < N; ++i)
             result[i] = origin + static_cast<int32_t>(std::llround(
                 (slope * i + amplitude * std::sin(2.0 * 3.141592653589793 * 64 * i / 32768)) / radians_per_count));

@@ -1,4 +1,4 @@
-"""Exercise the shared ALPHA250 RPC driver with simulated MMIO; no board access."""
+"""Exercise the shared ALPHA250 and Red Pitaya RPC drivers with simulated MMIO; no board access."""
 
 import os
 from pathlib import Path
@@ -63,9 +63,10 @@ template<int id> Memory<id>& get_memory() { static Memory<id> value; return valu
 class ClockGenerator {
 public:
     uint32_t selection = 99;
+    double rate = TEST_SAMPLE_RATE;
     void set_sampling_frequency(uint32_t value) { selection = value; }
-    double get_dac_sampling_freq() { return TEST_SAMPLE_RATE; }
-    double get_adc_sampling_freq() { return TEST_SAMPLE_RATE; }
+    double get_dac_sampling_freq() { return rate; }
+    double get_adc_sampling_freq() { return rate; }
 };
 namespace rt {
 template<class T> T& get_driver() { static T value; return value; }
@@ -85,9 +86,7 @@ template<class T> T& get_driver() { static T value; return value; }
 int main() {
     PhaseModulator pm;
     auto& clock = rt::get_driver<ClockGenerator>();
-    constexpr uint32_t expected = TEST_SAMPLE_RATE == 200000000 ? 0 :
-        TEST_SAMPLE_RATE == 250000000 ? 1 : TEST_SAMPLE_RATE == 100000000 ? 2 : 3;
-    assert(clock.selection == expected);
+    assert(clock.selection == 99); // Discovery never selects a host clock.
     assert(pm.get_sample_rate() == TEST_SAMPLE_RATE);
     assert(pm.get_channel_count() == 2 && pm.get_phase_width(0) == 48);
     assert(pm.get_initialization_error().empty());
@@ -119,6 +118,21 @@ int main() {
     assert(pm.mute(0).empty());
     assert(!std::get<9>(pm.get_settings_words(0)));
     assert(std::get<1>(pm.get_settings_words(0)) == std::get<1>(settings));
+#ifndef TEST_RED_PITAYA
+    clock.rate = TEST_SAMPLE_RATE == 200000000 ? 250000000 : 200000000;
+    assert(pm.get_sample_rate() == clock.rate);
+    const auto other = pm.get_settings_words(1);
+    assert(pm.set_carrier_frequency(0, 12e6).empty());
+    assert(std::get<1>(pm.get_settings_words(0)) ==
+        static_cast<uint64_t>(std::round(12e6L / clock.rate * turn)));
+    assert(pm.set_modulation_frequency(0, 12e3).empty());
+    assert(std::get<3>(pm.get_settings_words(0)) ==
+        static_cast<uint64_t>(std::round(12e3L / clock.rate * turn)));
+    assert(pm.get_settings_words(1) == other);
+    const auto after = awg.writes.size();
+    assert(!pm.set_carrier_frequency(0, clock.rate / 2).empty());
+    assert(awg.writes.size() == after);
+#endif
 }
 ''',
             }
@@ -127,13 +141,16 @@ int main() {
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(contents)
             compiler = shlex.split(os.environ.get("CXX", "g++"))
-            for rate in (200_000_000, 250_000_000, 100_000_000, 240_000_000):
-                with self.subTest(sample_rate=rate):
+            configurations = [("alpha250", rate) for rate in (200_000_000, 250_000_000, 100_000_000, 240_000_000)]
+            configurations.append(("red-pitaya", 125_000_000))
+            for board, rate in configurations:
+                with self.subTest(board=board, sample_rate=rate):
                     executable = temp / f"test-{rate}"
                     subprocess.run(compiler + [
                         "-std=c++20", "-Wall", "-Wextra", "-Werror", "-Wpedantic", "-fno-exceptions",
                         f"-DTEST_SAMPLE_RATE={rate}",
-                        f'-DPHASE_MODULATOR_HEADER="{root}/boards/alpha250/drivers/phase-modulator.hpp"',
+                        f'-DPHASE_MODULATOR_HEADER="{root}/boards/{board}/drivers/phase-modulator.hpp"',
+                        *(['-DTEST_RED_PITAYA'] if board == 'red-pitaya' else []),
                         "-I", str(temp), "-I", str(root), str(temp / "test.cpp"),
                         str(root / "examples/alpha250/phase-noise-analyzer/dds.cpp"),
                         "-o", str(executable),

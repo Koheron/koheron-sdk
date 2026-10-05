@@ -1,5 +1,5 @@
 NAME := fft
-VERSION := 0.2.1
+VERSION := 0.3.0
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
@@ -10,13 +10,14 @@ include $(SDK_PATH)/boards/alpha250/cores/cores.mk
 CORES += $(SDK_PATH)/fpga/cores/axis_constant_v1_0
 CORES += $(SDK_PATH)/fpga/cores/latched_mux_v1_0
 CORES += $(SDK_PATH)/fpga/cores/psd_counter_v1_0
+CORES += $(SDK_PATH)/fpga/ip/awg_v1_0
+TCL_FILES = $(BD_TCL) $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(BOARD_PATH)/config/board_preset.tcl $(wildcard $(FPGA_PATH)/lib/*.tcl) $(SDK_PATH)/fpga/ip/awg_v1_0/integration.tcl
 
 include $(SDK_PATH)/boards/alpha250/drivers/drivers.mk
+DRIVERS += $(BOARD_PATH)/drivers/phase-modulator.hpp
 DRIVERS += $(PROJECT_PATH)/fft.hpp
 DRIVERS += $(PROJECT_PATH)/fft.cpp
 
-WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
-WEB_FILES += $(SDK_PATH)/web/dds-frequency/dds-frequency.ts
-WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
-WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
+include $(SDK_PATH)/web/fft/components.mk
 WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
+WEB_FILES := $(filter-out $(PROJECT_PATH)/web/app.ts,$(WEB_FILES)) $(PROJECT_PATH)/web/app.ts

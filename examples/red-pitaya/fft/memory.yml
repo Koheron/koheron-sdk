@@ -8,7 +8,7 @@ memory:
     - ctl_fft
     - psd_valid
     - psd_input_sel
-    - phase_incr[2]
+    - phase_incr[2] # Reserved for legacy register offsets; DDS now uses awg.
   - name: status
     offset: 0x5000_0000
     range: 4K
@@ -18,6 +18,9 @@ memory:
   - name: xadc
     offset: 0x43C0_0000
     range: 64K
+  - name: awg
+    offset: 0x4400_0000
+    range: 8K
   # Window coefficient BRAM used by the shared FFT core.
   - name: demod
     offset: 0x6000_0000
@@ -27,7 +30,7 @@ memory:
     range: 8K
 
 parameters:
-  fclk0: 143000000 # 1 GHz I/O PLL / 7 generates 142.857 MHz.
+  fclk0: 125000000 # AXI control fabric; closes timing with the two-channel DDS/PM.
   adc_clk: 125000000
   dac_width: 14
   adc_width: 14

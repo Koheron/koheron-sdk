@@ -53,6 +53,18 @@ int main() {
     const auto output=decimate_by_10_fir_exact<Phase,90>(phase);
     const auto scalar=decimate_by_10_fir_exact<float,90>(input);
     for(std::size_t i=0;i<output.size();++i)assert(output[i].eval()==scalar[i]);
+    // The SIMD path applies only to float representations; generic double
+    // callers retain the scalar arithmetic and its precision.
+    std::array<double,1000> doubles{};
+    for(std::size_t i=0;i<doubles.size();++i)doubles[i]=double(input[i])+.00000000001*double(i);
+    const auto precise=decimate_by_10_fir_exact<double,90>(doubles);
+    constexpr auto coefficients=make_lowpass_fir<fir_ntaps>(fir_cutoff);
+    for(std::size_t i=0;i<precise.size();++i) {
+        double expected=0;
+        const auto sample=10*i+fir_ntaps/2;
+        for(std::size_t j=0;j<std::min(fir_ntaps,sample+1);++j)expected+=doubles[sample-j]*coefficients[j];
+        assert(precise[i]==expected);
+    }
     check_compensation<1501,1>();check_compensation<151,2>();
     std::cout << "Retained FIR samples and cached spectral compensation match reference processing\n";
 }

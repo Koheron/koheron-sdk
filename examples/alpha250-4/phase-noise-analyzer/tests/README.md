@@ -15,12 +15,14 @@ The runner expects `.venv/bin/python3` with NumPy, SciPy and the Python client
 requirements, plus the `cross-armhf:24.04` and `koheron-web:node20` Docker images.
 `PNA_PYTHON`, `PNA_CPP_IMAGE` and `PNA_WEB_IMAGE` can override these defaults. The
 C++ image must also provide native `g++-13`, since these tests run on the host CPU.
+Browser workspace tests use TypeScript 5.6.3 and jsdom 26.1.0, installed on first
+run into the ignored `tmp/tests` dependency directory.
 
 Coverage includes:
 
 - Averaging-window growth, shrinkage and clear operations against a deque oracle.
 - Fresh, disjoint acquisition windows and detection of overwritten ring data.
-- Actual DMA copying across the ring boundary, synchronized X/Y data, cancellation, and configuration between complete transfer pairs.
+- Autonomous cyclic DMA copying across the ring boundary, synchronized X/Y data, producer progress while the reader pauses, cancellation, a concurrent reader during configuration epoch restart, and per-packet precision/gap metadata.
 - Fractional phase scaling above and below unity, including sub-hertz carrier offsets.
 - CIC gain compensation at power-of-two and arbitrary rates.
 - Retained FIR outputs against the original filter for impulses, ramps, noise and tones; cached response corrections across sample rates.
@@ -31,9 +33,11 @@ Coverage includes:
 - Shared DMA API compatibility, successful completion, timeout and error status.
 - DDS frequency precision, concurrent reads/writes, and nonfinite input rejection.
 - Python command dispatch, cross-correlation selection, complete phase arrays and frequency axes.
+- Cached single-window FFTs against the previous estimator, including signed CSD, six decades of channel ratio, sample-rate changes, DC and even/odd endpoints.
 - Signed-spectrum smoothing, first-valid-bin boundaries, retained raw spectra and frequency-noise conversion.
 - Web measurement and tracking decoders against C++ serialized quantities.
-- Browser signed smoothing/table values, magnitude display with negative markers, duplicate polling prevention, and signed CSV exports with DDS metadata.
+- Browser signed smoothing/table values, magnitude display with negative markers, negative-only reference capture, retained reference frequency axes, duplicate-frame accounting, disposal, and signed CSV exports with four LO frequencies and cumulative metadata.
+- All four digit-editable LO controls retain sub-hertz settings; CIC controls reject fractional rates and XY displays cumulative progress.
 - Plot decimation preserves frequency order, extrema and gaps, while compressing dense finite traces.
 - The PNA draw call uses the shared V1 renderer without confusing smoothing labels with the FFT peak flag; negative markers keep their point styling and decimated buffers remain independent.
 
@@ -129,3 +133,31 @@ DMA path. The initial FPGA review found three measurement concerns:
   now preserve alignment across rate changes. Shared stalls can still discard
   ADC-time samples; these regressions do not establish lossless sampling under
   arbitrary FIFO pressure.
+
+Precision regressions cover signed round-to-even and saturation at all 0–8
+shifts under AXIS stalls. DMA metadata regressions include ring wrap, stale
+precision, different X/Y scales, packet overflow and mixed-scale packets.
+The paired controller is tested through rate, precision and reset epochs.
+The shared web tests exercise the same precision widget on all three boards.
+
+The phase-rounding regression exhausts all 256 fractional codes and all 256
+random values at negative, zero and positive phases, including the Pi
+boundary. The mean is exactly the 24-bit input in legacy 16-bit phase units.
+The headroom regression reproduces the former signed-32 wrap, crosses the same
+boundary with the actual 64-bit unwrapper, and tests common-carrier cancellation
+plus both differential saturation limits. These tests run in `run-fpga.sh`.
+
+To reproduce the coherent 104th/204th LO harmonics with AMD's bit-accurate
+CORDIC model, run:
+
+```sh
+.venv/bin/python examples/alpha250-4/phase-noise-analyzer/tests/check_cordic_precision.py
+```
+
+This extracts the model from a locally installed Vivado 2025.1 archive into
+ignored `tmp/tests`; no vendor files are redistributed. `PNA_VIVADO_PATH`
+overrides the install path. At a Cartesian magnitude of 3000 codes, comparable
+to the wired experiment, a complete angular sweep verifies that 24-bit output
+reduces both harmonics by more than 40 dB relative to 16-bit output. The model
+checks phase calculation error relative to the exact quantized I/Q angle;
+it does not model ADC noise, stochastic Cartesian rounding, or the full board.

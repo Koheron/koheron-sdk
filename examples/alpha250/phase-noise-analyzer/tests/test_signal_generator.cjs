@@ -36,8 +36,11 @@ async function host(t, failGenerator = false, failConnection = false) {
             initialized = failConnection ? Promise.reject(new Error('Connection unavailable')) : Promise.resolve();
             return initialized;
         }
+        getDriver() { return {id: 1, getCmds: () => ({get_precision_status: 1, set_phase_precision: 2})}; }
+        async readTuple() { return [0, 0, .0015, 1, 1, 0, 0, 0, 0, 0, 0, 5, 20]; }
         exit() { client.exits++; }
     };
+    window.Command = (...args) => args;
     window.Imports = class {};
     window.DDS = class {};
     window.ClockGenerator = class {};
@@ -58,6 +61,7 @@ async function host(t, failGenerator = false, failConnection = false) {
     window.PhaseModulatorDriver = class { constructor() { return port; } };
     window.$ = () => ({});
     for (const [file, exported] of [
+        ['web/phase-noise/phase-precision.ts', 'PhasePrecision'],
         ['web/phase-modulator/frequency-input.ts', 'FrequencyInput'],
         ['web/phase-modulator/phase-modulator-widget.ts', 'PhaseModulatorWidget'],
         ['examples/alpha250/phase-noise-analyzer/web/app.ts', null]
