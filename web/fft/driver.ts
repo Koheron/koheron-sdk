@@ -23,7 +23,13 @@ interface IBoardParameters {
     temperatures: Float32Array;
 }
 
+interface SpectrumFrame {
+    psd: Float32Array;
+    status: IFFTStatus;
+}
+
 abstract class FFTDriver {
+    public get waitingForSpectrum(): boolean { return false; }
     protected driver: Driver;
     protected id: number;
     protected cmds: Commands;
@@ -76,6 +82,11 @@ abstract class FFTDriver {
 
     async read_psd(): Promise<Float32Array> {
         return await this.client.readFloat32Array(Command(this.id, this.cmds['read_psd']));
+    }
+
+    async readSpectrum(): Promise<SpectrumFrame | undefined> {
+        const psd = await this.read_psd();
+        return {psd, status: this.status};
     }
 
     setDDSFreq(channel: number, freq_hz: number): void {

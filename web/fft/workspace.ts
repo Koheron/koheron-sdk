@@ -10,7 +10,7 @@ interface FFTWorkspaceOptions {
     signalGenerator?: boolean;
     halfScaleOutput?: boolean;
     createDriver: (client: Client) => FFTDriver;
-    createBoard: (client: Client, document: Document) => FFTBoardControls;
+    createBoard: (client: Client, document: Document, driver: FFTDriver) => FFTBoardControls;
 }
 
 // FFT boards share this lifecycle, acquisition controls, plot, actions and exports.
@@ -41,7 +41,7 @@ class FFTWorkspace {
                 this.fft = options.createDriver(this.client);
                 await this.fft.init();
                 if (this.stopped) { return; }
-                this.board = options.createBoard(this.client, document);
+                this.board = options.createBoard(this.client, document, this.fft);
                 this.fftApp = new FFTApp(document, this.fft,
                     rate => this.generator?.setSampleRate(rate),
                     values => this.board.precisionDacChanged?.(values));

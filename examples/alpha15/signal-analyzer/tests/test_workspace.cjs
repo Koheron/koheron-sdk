@@ -15,7 +15,7 @@ async function host(t, failure = false) {
     });
     t.after(() => dom.window.close());
     const w = dom.window, d = w.document;
-    const state = {writes: [], reads: [], exits: 0, window: 1, channel: 0, operation: 0, ranges: [0, 0], reference: 2, errors: []};
+    const state = {writes: [], reads: [], exits: 0, window: 1, channel: 0, operation: 0, ranges: [0, 0], reference: 2, errors: [], generations: {FFT: 1, Decimator: 1}, sequences: [1, 1, 1], noise: 1e-16};
     w.console.error = (...args) => state.errors.push(args);
     const timers = new Map(), frames = new Map();
     let id = 0, time = 0;
@@ -57,6 +57,7 @@ async function host(t, failure = false) {
         async readUint32(command) {
             state.reads.push(command);
             switch (command.name) {
+                case 'restart_acquisition': state.sequences = [1, 1, 1]; return ++state.generations[command.driver];
                 case 'get_fft_size': return 8192;
                 case 'get_window_index': return state.window;
                 case 'input_range': return state.ranges[command.args[0]];
@@ -82,6 +83,14 @@ async function host(t, failure = false) {
                 case 'get_supplies_ui': return new w.Float32Array([.1, 12, .02, 3.3]);
                 default: throw new Error(command.name);
             }
+        }
+        async readTupleWithFloat32Vector(command, format, bytes) {
+            state.reads.push(command);
+            assert.equal(format, 'IQ'); assert.equal(bytes, 12);
+            const band = command.name === 'get_spectrum_snapshot1' ? 0 : command.name === 'get_spectrum_snapshot0' ? 1 : 2;
+            const values = new w.Float32Array(band === 2 ? 4096 : 4097).fill(state.noise);
+            if (band === 2) values[1311] = 1e-8;
+            return {metadata: [state.generations[command.driver], state.sequences[band]], values};
         }
         async readFloat64Vector(command) { state.reads.push(command); return new w.Float64Array(4097).fill(1e-16); }
     };
@@ -139,9 +148,9 @@ test('multiband grid is zero based, strictly ordered, covers RF, and uses each b
     assert.equal(plot.convertValue(1e-12, 'dbv-rtHz', fft.status), -120);
     assert(Math.abs(plot.convertValue(1e-12, 'dBV', fft.status, 0) - 10 * Math.log10(1e-12 * 1.5 * 15e6 / 512 / 8192)) < 1e-9);
     assert(Math.abs(plot.convertValue(1e-12, 'dBV', fft.status, data.length - 1) - 10 * Math.log10(1e-12 * 1.5 * 15e6 / 8192)) < 1e-9);
-    const lowReads = h.state.reads.filter(c => c.name === 'spectral_density1').length;
+    const lowReads = h.state.reads.filter(c => c.name === 'get_spectrum_snapshot1').length;
     await fft.read_psd();
-    assert.equal(h.state.reads.filter(c => c.name === 'spectral_density1').length, lowReads);
+    assert.equal(h.state.reads.filter(c => c.name === 'get_spectrum_snapshot1').length, lowReads);
     const view = plot.views;
     assert(Math.abs(view.frequencyPosition(.5, {from: 10, to: 1e6}) - Math.sqrt(1e7)) < 1e-9);
     const spans = view.columns({from: 10, to: 7.5e6}, 800);
@@ -243,4 +252,196 @@ test('density and spectrogram render the nonuniform grid with voltage bandwidth 
     const column = views.columns(range, 1)[0];
     const frequencies = plot.frameStatus.spectrum.frequencies;
     assert(frequencies[column.first] >= 1000 && frequencies[column.last] <= 10000);
+});
+
+test('late spectrum replies cannot restore cache entries invalidated by a settings change', async t => {
+    const h = await host(t), fft = h.app.fft;
+    h.app.plot.setPaused(true);
+    const client = fft.client, original = client.readTupleWithFloat32Vector.bind(client);
+    let release, started;
+    const reading = new Promise(resolve => { started = resolve; });
+    client.readTupleWithFloat32Vector = command => {
+        if (command.name !== 'get_spectrum_snapshot1') return original(command, 'IQ', 12);
+        started();
+        return new Promise(resolve => { release = resolve; });
+    };
+    fft.snapshots = [];
+    fft.fetchedAt = [-Infinity, -Infinity, -Infinity];
+    const oldRead = fft.readSpectrum();
+    await reading;
+    h.state.channel = 1;
+    await fft.getControlParameters();
+    h.state.noise = 1e-12;
+    client.readTupleWithFloat32Vector = original;
+    const fresh = await fft.readSpectrum();
+    release({metadata: [h.state.generations.Decimator - 1, 1], values: new h.w.Float32Array(4097).fill(1e-16)});
+    assert.equal(await oldRead, undefined);
+    assert.equal(fresh.status.channel, 1);
+    assert(Math.abs(fresh.psd[1] - 1e-12) < 1e-19);
+    assert(Math.abs(fft.snapshots[0][1] - 1e-12) < 1e-19);
+    assert(Math.abs(fft.snapshots[1][1] - 1e-12) < 1e-19);
+});
+
+test('local edits suspend spectrum reads until fresh controls arrive, ignoring a pre-edit control reply', async t => {
+    const h = await host(t), fft = h.app.fft;
+    h.app.plot.setPaused(true);
+    const client = fft.client, original = client.readTuple.bind(client);
+    let release, started;
+    const reading = new Promise(resolve => { started = resolve; });
+    client.readTuple = async (command, format) => {
+        const value = await original(command, format);
+        started();
+        return new Promise(resolve => { release = () => resolve(value); });
+    };
+    const oldControls = fft.getControlParameters();
+    await reading;
+    fft.setInputChannel(1);
+    h.state.channel = 1;
+    const before = h.state.reads.length;
+    assert.equal(await fft.readSpectrum(), undefined);
+    assert.equal(h.state.reads.length, before);
+    release(); await oldControls;
+    assert.equal(fft.status.channel, 0);
+    assert.equal(await fft.readSpectrum(), undefined);
+    client.readTuple = original;
+    await fft.getControlParameters();
+    assert.equal((await fft.readSpectrum()).status.channel, 1);
+    for (const selector of [".adc-range[value='1']", ".clkgen-input[value='0']"]) {
+        h.d.querySelector(selector).dispatchEvent(new h.w.Event('change'));
+        assert.equal(await fft.readSpectrum(), undefined);
+        await fft.getControlParameters();
+        assert(await fft.readSpectrum());
+    }
+});
+
+test('a malformed band is not cached and the next read retries that band', async t => {
+    const h = await host(t), fft = h.app.fft;
+    h.app.plot.setPaused(true);
+    fft.snapshots = [];
+    fft.fetchedAt = [-Infinity, -Infinity, -Infinity];
+    const client = fft.client, original = client.readTupleWithFloat32Vector.bind(client);
+    h.state.sequences = [2, 2, 2];
+    client.readTupleWithFloat32Vector = async command => {
+        const reply = await original(command, 'IQ', 12);
+        if (command.name === 'get_spectrum_snapshot1') reply.values = new h.w.Float32Array(1);
+        return reply;
+    };
+    await assert.rejects(fft.readSpectrum(), /Incomplete spectrum band/);
+    assert.equal(fft.snapshots[0], undefined);
+    client.readTupleWithFloat32Vector = original;
+    assert(await fft.readSpectrum());
+});
+
+test('the plot retains the settings attached to a returned spectrum frame', async t => {
+    const h = await host(t), fft = h.app.fft, plot = h.app.plot;
+    plot.setPaused(true);
+    h.state.sequences = [2, 2, 2]; fft.fetchedAt = [-Infinity, -Infinity, -Infinity];
+    const frame = await fft.readSpectrum();
+    fft.status = {...fft.status, channel: 1};
+    fft.readSpectrum = async () => frame;
+    plot.setPaused(false);
+    await h.flush();
+    assert.equal(plot.frameStatus.channel, 0);
+    assert.equal(plot.history.status.channel, 0);
+});
+
+test('history receives each stitched acquisition once, only after every band advances', async t => {
+    const h = await host(t), fft = h.app.fft, plot = h.app.plot;
+    plot.setPaused(true);
+    const samples = plot.history.samples;
+    const poll = async () => {
+        fft.fetchedAt = [-Infinity, -Infinity, -Infinity];
+        const frame = await fft.readSpectrum();
+        if (frame) plot.acceptSpectrum(frame.psd, 1, frame.status);
+        return frame;
+    };
+    assert.equal(await poll(), undefined);
+    h.state.sequences[2] = 50;
+    assert.equal(await poll(), undefined);
+    h.state.sequences[1] = 5;
+    assert.equal(await poll(), undefined);
+    assert.equal(plot.history.samples, samples);
+    h.state.sequences[0] = 2;
+    assert(await poll());
+    assert.equal(plot.history.samples, samples + 1);
+    assert.equal(await poll(), undefined);
+    assert.equal(plot.history.samples, samples + 1);
+});
+
+test('restart waits for complete fresh averages and rejects the previous acquisition generation', async t => {
+    const h = await host(t), fft = h.app.fft;
+    h.app.plot.setPaused(true);
+    fft.setInputChannel(1); h.state.channel = 1;
+    await fft.getControlParameters();
+    h.state.sequences = [0, 0, 0];
+    assert.equal(await fft.readSpectrum(), undefined);
+    const lowReads = h.state.reads.filter(c => c.name === 'get_spectrum_snapshot1').length;
+    assert.equal(await fft.readSpectrum(), undefined);
+    assert.equal(h.state.reads.filter(c => c.name === 'get_spectrum_snapshot1').length, lowReads);
+    assert.equal(fft.waitingForSpectrum, true);
+    h.app.plot.setPaused(false); await h.flush();
+    assert.equal(h.d.getElementById('connection-status').textContent, 'Waiting for fresh spectrum…');
+    h.app.plot.setPaused(true);
+    assert(fft.snapshots.every(values => !values));
+    h.state.sequences = [1, 1, 1];
+    const client = fft.client, original = client.readTupleWithFloat32Vector.bind(client);
+    client.readTupleWithFloat32Vector = async command => {
+        const reply = await original(command, 'IQ', 12);
+        if (command.name === 'get_spectrum_snapshot1') reply.metadata[0]--;
+        return reply;
+    };
+    fft.fetchedAt = [-Infinity, -Infinity, -Infinity];
+    assert.equal(await fft.readSpectrum(), undefined);
+    assert.equal(fft.snapshots[0], undefined);
+    client.readTupleWithFloat32Vector = original;
+    fft.fetchedAt = [-Infinity, -Infinity, -Infinity];
+    const frame = await fft.readSpectrum();
+    assert(frame); assert.equal(frame.status.channel, 1);
+    assert.equal(fft.waitingForSpectrum, false);
+});
+
+test('the actual client decodes generation and sequence with an owned spectrum vector', async () => {
+    const vm = require('node:vm');
+    const context = vm.createContext({assert});
+    vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(root, 'web/koheron.ts'), 'utf8'), {
+        compilerOptions: {target: ts.ScriptTarget.ES2020}
+    }).outputText, context);
+    await vm.runInContext(`(async () => {
+        // A sliced network buffer also exercises unaligned payload ownership.
+        const wire = new DataView(new ArrayBuffer(27), 3, 24);
+        wire.setUint32(0, 7);
+        wire.setBigUint64(4, 4294967301n);
+        wire.setUint32(12, 8);
+        wire.setFloat32(16, 1e-12, true);
+        wire.setFloat32(20, NaN, true);
+        const client = {_readBaseAsync: async () => wire, deserialize: Client.prototype.deserialize};
+        const read = () => Client.prototype.readTupleWithFloat32Vector.call(client, {}, 'IQ', 12);
+        const reply = await read();
+        assert.equal(reply.metadata[0], 7); assert.equal(reply.metadata[1], 4294967301);
+        assert.equal(reply.values.length, 2); assert(Number.isNaN(reply.values[1]));
+        assert(Math.abs(reply.values[0] - 1e-12) < 1e-19);
+        reply.values[0] = 99;
+        assert(Math.abs(wire.getFloat32(16, true) - 1e-12) < 1e-19);
+        wire.setUint32(12, 7);
+        await assert.rejects(read(), /Invalid spectrum vector length/);
+    })()`, context);
+});
+
+test('a restart by another client refreshes controls and resumes without repeated server restarts', async t => {
+    const h = await host(t), fft = h.app.fft;
+    h.app.plot.setPaused(true);
+    h.state.generations.FFT++; h.state.generations.Decimator++;
+    h.state.sequences = [1, 1, 1];
+    const restarts = h.state.reads.filter(c => c.name === 'restart_acquisition').length;
+    let frame;
+    for (let i = 0; i < 4; i++) {
+        fft.fetchedAt = [-Infinity, -Infinity, -Infinity];
+        frame = await fft.readSpectrum();
+        if (frame) break;
+        assert.equal(fft.controlsPending, true);
+        await fft.getControlParameters();
+    }
+    assert(frame);
+    assert.deepEqual(Array.from(fft.generations), [h.state.generations.Decimator, h.state.generations.Decimator, h.state.generations.FFT]);
+    assert.equal(h.state.reads.filter(c => c.name === 'restart_acquisition').length, restarts);
 });

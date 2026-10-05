@@ -34,6 +34,15 @@ class Decimator {
         this.client.send(Command(this.id, this.cmds['set_fft_window'], windowIndex));
     }
 
+    restartAcquisition(): Promise<number> {
+        return this.client.readUint32(Command(this.id, this.cmds['restart_acquisition']));
+    }
+
+    readSnapshot(band: number): Promise<{metadata: number[]; values: Float32Array}> {
+        return this.client.readTupleWithFloat32Vector(Command(this.id,
+            this.cmds[band === 0 ? 'get_spectrum_snapshot1' : 'get_spectrum_snapshot0']), 'IQ', 12);
+    }
+
     async spectralDensity(): Promise<Float64Array> {
         return await this.client.readFloat64Vector(Command(this.id, this.cmds['spectral_density0']));
     }

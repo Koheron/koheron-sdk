@@ -219,9 +219,11 @@ class Plot {
         const started = performance.now();
         let delay = 1000 / 60;
         try {
-            const psd = await this.fft.read_psd();
+            const frame = typeof this.fft.readSpectrum === 'function' ? await this.fft.readSpectrum()
+                : {psd: await this.fft.read_psd(), status: this.fft.status};
             if (!this.running || this.paused || this.document.hidden) { return; }
-            this.acceptSpectrum(psd, performance.now() / 1000);
+            if (frame) { this.acceptSpectrum(frame.psd, performance.now() / 1000, frame.status); }
+            else if (this.fft.waitingForSpectrum) { this.setStatus('connecting', 'Waiting for fresh spectrum…'); }
         } catch (error) {
             if (!this.running || this.paused || this.document.hidden) { return; }
             this.pending = undefined;
@@ -238,11 +240,11 @@ class Plot {
         }
     }
 
-    private acceptSpectrum(psd: Float32Array, time: number): void {
+    private acceptSpectrum(psd: Float32Array, time: number, frameStatus: IFFTStatus = this.fft.status): void {
         if (!psd.some(value => Number.isFinite(value) && value > 0)) {
             this.setStatus('connecting', 'Waiting for spectrum…'); return;
         }
-        const status = {...this.fft.status, dds_freq: this.fft.status.dds_freq.slice()};
+        const status = {...frameStatus, dds_freq: frameStatus.dds_freq.slice()};
         const historyStarted = performance.now();
         if (this.history) { this.history.add(psd, status, time); }
         this.historyMs += performance.now() - historyStarted;

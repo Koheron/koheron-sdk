@@ -3,6 +3,7 @@
 
 #include "./fft.hpp"
 #include "./moving_averager.hpp"
+#include "./spectrum_snapshot.hpp"
 
 #include "server/runtime/driver_manager.hpp"
 #include "server/runtime/syslog.hpp"
@@ -35,12 +36,24 @@ class FifoSpectralAnalyzer {
 
     template<win::Window window>
     void set_window() {
+        std::lock_guard lock(mutex);
         spectrum.window(window, Cfg::n_pts);
+        restart_locked();
     }
 
     auto spectral_density() const {
         std::lock_guard lock(mutex);
         return psd;
+    }
+
+    uint32_t restart_acquisition() {
+        std::lock_guard lock(mutex);
+        return restart_locked();
+    }
+
+    auto get_spectrum_snapshot() const {
+        std::lock_guard lock(mutex);
+        return publication.snapshot();
     }
 
     void start_acquisition() {
@@ -68,6 +81,16 @@ class FifoSpectralAnalyzer {
     scicpp::signal::Spectrum<double> spectrum;
     MovingAverager<Cfg::navg> averager;
     std::vector<double> psd;
+    SpectrumSnapshot publication{1 + Cfg::n_pts / 2};
+    bool reset_pending = true;
+    uint32_t discard_remaining = 0;
+
+    uint32_t restart_locked() {
+        averager.clear();
+        std::fill(psd.begin(), psd.end(), std::numeric_limits<double>::quiet_NaN());
+        reset_pending = true;
+        return publication.restart();
+    }
 
     void set_cic_rate() {
         static_assert(Cfg::cic_rate > prm::cic_decimation_rate_min &&
@@ -92,22 +115,33 @@ class FifoSpectralAnalyzer {
     }
 
     void acquire(uint32_t ntps_pts_fifo) {
-        const double vrange = rt::get_driver<FFT>().input_voltage_range();
         constexpr double nmax = 262144.0; // 2^18
 
         fifo.wait_for_data(ntps_pts_fifo, fs);
 
+        std::lock_guard lock(mutex);
+        if (reset_pending) {
+            seg_cnt = 0;
+            // Drain queued FIFO samples and a full segment of CIC/FIR settling.
+            // Only the acquisition thread touches the FIFO and segment state.
+            discard_remaining = Cfg::n_fifo + Cfg::n_pts;
+            reset_pending = false;
+        }
+        const double vrange = rt::get_driver<FFT>().input_voltage_range();
+
         for (uint32_t i = 0; i < ntps_pts_fifo; i++) {
-            seg_data[seg_cnt] = vrange * static_cast<int32_t>(fifo.read()) / nmax / 4096.0;;
+            const auto sample = static_cast<int32_t>(fifo.read());
+            if (discard_remaining) { --discard_remaining; continue; }
+            seg_data[seg_cnt] = vrange * sample / nmax / 4096.0;
             ++seg_cnt;
 
             if (seg_cnt == Cfg::n_pts) {
                 seg_cnt = 0;
-                std::lock_guard lock(mutex);
                 averager.append(spectrum.periodogram<sig::SpectrumScaling::DENSITY, false>(seg_data));
 
                 if (averager.full()) {
                     psd = averager.average();
+                    publication.publish(psd);
                 }
             }
         }

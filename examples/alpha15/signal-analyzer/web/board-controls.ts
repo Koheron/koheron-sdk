@@ -8,7 +8,7 @@ class Alpha15SignalAnalyzerControls implements FFTBoardControls {
     private temperature: TemperatureSensor;
     private power: PowerMonitor;
 
-    constructor(private client: Client, private document: Document) {}
+    constructor(private client: Client, private document: Document, private settingsChanged: () => void) {}
 
     async init(): Promise<void> {
         this.ranges = new Ltc2387(this.client);
@@ -18,10 +18,16 @@ class Alpha15SignalAnalyzerControls implements FFTBoardControls {
         this.power = new PowerMonitor(this.client);
         this.precision = new PrecisionChannelsApp(this.document, this.dac);
         for (const input of Array.from(this.document.querySelectorAll<HTMLInputElement>('.adc-range'))) {
-            input.addEventListener('change', () => this.ranges.setInputRange(Number(input.value)));
+            input.addEventListener('change', () => {
+                this.settingsChanged();
+                this.ranges.setInputRange(Number(input.value));
+            });
         }
         for (const input of Array.from(this.document.querySelectorAll<HTMLInputElement>('.clkgen-input'))) {
-            input.addEventListener('change', () => this.clock.setReferenceClock(Number(input.value)));
+            input.addEventListener('change', () => {
+                this.settingsChanged();
+                this.clock.setReferenceClock(Number(input.value));
+            });
         }
         await this.precision.init();
         if (this.disposed) { return; }
