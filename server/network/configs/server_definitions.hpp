@@ -39,7 +39,7 @@ constexpr int KOHERON_RECV_DATA_BUFF_LEN = 16384 * 16;
 /// Websocket receive buffer size
 constexpr int WEBSOCK_READ_STR_LEN = KOHERON_RECV_DATA_BUFF_LEN;
 
-/// Websocket send buffer size (bytes)
+/// Maximum Websocket send frame size (bytes)
 constexpr int WEBSOCK_SEND_BUF_LEN = 16384 * 16;
 
 // ------------------------------------------

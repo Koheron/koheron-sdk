@@ -14,6 +14,8 @@
 #include <ranges>
 #include <cstring>
 #include <string_view>
+#include <span>
+#include <cstddef>
 
 namespace net {
 
@@ -53,7 +55,7 @@ class WebSocket
     std::array<char, WEBSOCK_READ_STR_LEN> read_str{};
 
     unsigned char sha_str[21];
-    std::array<unsigned char, WEBSOCK_SEND_BUF_LEN> send_buf{};
+    std::array<unsigned char, 10> send_header{};
 
     void reset_read_buff();
 
@@ -110,6 +112,10 @@ class WebSocket
     int read_n_bytes(int64_t bytes, int64_t expected);
 
     int set_send_header(int64_t data_len, unsigned int format);
+    int send_frame(std::span<const std::byte> h,
+                   std::span<const std::byte> p, unsigned int format);
+    int send_message(std::span<const std::byte> h,
+                     std::span<const std::byte> p);
 
     template<std::ranges::contiguous_range R>
     int send_request(const R& r, int64_t len);
@@ -124,112 +130,24 @@ int WebSocket::send_request(const R& r, int64_t len) {
 
 template<std::ranges::contiguous_range R>
 int WebSocket::send(const R& r) {
-    using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
+    const auto bytes = std::as_bytes(std::span{std::data(r), std::size(r)});
 
     if (connection_closed) {
         return 0;
     }
 
-    auto char_data_len = std::size(r) * sizeof(T) / sizeof(char);
-
-    if (char_data_len + 10 > send_buf.size()) {
+    if (bytes.size() > WEBSOCK_SEND_BUF_LEN - send_header.size()) {
         return -1;
     }
 
-    auto mask_offset = set_send_header(char_data_len, (1 << 7) + BINARY_FRAME);
-    std::memcpy(&send_buf[mask_offset], std::data(r), char_data_len);
-    return send_request(send_buf, static_cast<int64_t>(mask_offset) + static_cast<int64_t>(char_data_len));
+    return send_frame(bytes, {}, (1 << 7) + BINARY_FRAME);
 }
 
 template<std::ranges::contiguous_range Rh,
          std::ranges::contiguous_range Rp>
 int WebSocket::send(const Rh& h, const Rp& p) {
-    using H = std::remove_cvref_t<std::ranges::range_value_t<Rh>>;
-    using P = std::remove_cvref_t<std::ranges::range_value_t<Rp>>;
-
-    if (connection_closed) {
-        return 0;
-    }
-
-    // bytes lengths
-    const std::size_t hbytes = std::size(h) * sizeof(H);
-    const std::size_t pbytes = std::size(p) * sizeof(P);
-    const std::size_t total  = hbytes + pbytes;
-
-    // Heuristic max header size allowance you already use (+10)
-    // (Server frames are unmasked; 10 bytes covers max server header)
-    constexpr std::size_t MAX_WS_HDR = 10;
-
-    // ---- Fast path: one frame (FIN=1, opcode=BINARY) ----
-    if (total + MAX_WS_HDR <= send_buf.size()) {
-        const auto payload_off = set_send_header(static_cast<int64_t>(total),
-                                                 (1 << 7) + BINARY_FRAME); // FIN=1 | BINARY
-        // copy header then payload into the frame
-        std::memcpy(send_buf.data() + payload_off, std::data(h), hbytes);
-        std::memcpy(send_buf.data() + payload_off + hbytes, std::data(p), pbytes);
-
-        return send_request(send_buf,
-                            static_cast<int64_t>(payload_off) +
-                            static_cast<int64_t>(total));
-    }
-
-    // ---- Fallback: fragmented send (no heap, no extra copies) ----
-    // First fragment: application header only (FIN=0, opcode=BINARY)
-    if (hbytes + MAX_WS_HDR > send_buf.size()) {
-        // Extremely large "application header" (unusual): chunk it too.
-        // Send as first fragment(s) with opcode=BINARY then CONTINUATION.
-        // 1) First chunk as BINARY, FIN=0
-        std::size_t sent = 0;
-        {
-            const std::size_t chunk = send_buf.size() - MAX_WS_HDR;
-            const std::size_t sz    = std::min(hbytes, chunk);
-            const auto off = set_send_header(static_cast<int64_t>(sz), BINARY_FRAME); // FIN=0
-            std::memcpy(send_buf.data() + off,
-                        reinterpret_cast<const unsigned char*>(std::data(h)), sz);
-            const int n = send_request(send_buf, static_cast<int64_t>(off) + static_cast<int64_t>(sz));
-            if (n <= 0) return n;
-            sent += sz;
-        }
-        // 2) Remaining header as CONTINUATION fragments, FIN=0 (until last)
-        while (sent < hbytes) {
-            const std::size_t chunk = send_buf.size() - MAX_WS_HDR;
-            const std::size_t sz    = std::min(hbytes - sent, chunk);
-            // If there is payload following or more header remains after this, FIN=0
-            const bool fin = (sent + sz == hbytes) && (pbytes == 0);
-            const auto fmt = (fin ? (1 << 7) : 0) + CONTINUATION_FRAME;
-            const auto off = set_send_header(static_cast<int64_t>(sz), fmt);
-            std::memcpy(send_buf.data() + off,
-                        reinterpret_cast<const unsigned char*>(std::data(h)) + sent, sz);
-            const int n = send_request(send_buf, static_cast<int64_t>(off) + static_cast<int64_t>(sz));
-            if (n <= 0) return n;
-            sent += sz;
-        }
-    } else {
-        // Header fits → single first fragment contains the app header
-        const auto off = set_send_header(static_cast<int64_t>(hbytes), BINARY_FRAME); // FIN=0
-        std::memcpy(send_buf.data() + off, std::data(h), hbytes);
-        const int n = send_request(send_buf, static_cast<int64_t>(off) + static_cast<int64_t>(hbytes));
-        if (n <= 0) return n;
-    }
-
-    // Continuation fragments for the payload (FIN=1 on the last one)
-    std::size_t psent = 0;
-    while (psent < pbytes) {
-        const std::size_t chunk = send_buf.size() - MAX_WS_HDR;
-        const std::size_t sz    = std::min(pbytes - psent, chunk);
-        const bool last         = (psent + sz == pbytes);
-        const auto fmt          = (last ? (1 << 7) : 0) + CONTINUATION_FRAME; // FIN on last
-
-        const auto off = set_send_header(static_cast<int64_t>(sz), fmt);
-        std::memcpy(send_buf.data() + off,
-                    reinterpret_cast<const unsigned char*>(std::data(p)) + psent, sz);
-
-        const int n = send_request(send_buf, static_cast<int64_t>(off) + static_cast<int64_t>(sz));
-        if (n <= 0) return n;
-        psent += sz;
-    }
-
-    return static_cast<int>(total);
+    return send_message(std::as_bytes(std::span{std::data(h), std::size(h)}),
+                        std::as_bytes(std::span{std::data(p), std::size(p)}));
 }
 
 template<std::size_t HEADER_SIZE, std::size_t CMD_PAYLOAD_BUFFER_LEN>

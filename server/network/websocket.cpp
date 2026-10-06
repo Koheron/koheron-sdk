@@ -10,12 +10,15 @@
 #include "server/utilities/endian_utils.hpp"
 
 #include <array>
+#include <algorithm>
 #include <string>
 #include <string_view>
 #include <span>
 #include <cstdint>
 #include <cerrno>
 #include <cstring>
+#include <limits>
+#include <sys/uio.h>
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -138,7 +141,7 @@ int WebSocket::set_send_header(int64_t data_len, unsigned int format) {
         return -1;
     }
 
-    std::span<uint8_t> b(send_buf.data(), send_buf.size());
+    std::span<uint8_t> b(send_header);
     b[0] = static_cast<uint8_t>(format);
 
     if (data_len <= SMALL_STREAM) {
@@ -159,8 +162,114 @@ int WebSocket::set_send_header(int64_t data_len, unsigned int format) {
     return BIG_OFFSET;
 }
 
+int WebSocket::send_frame(std::span<const std::byte> h,
+                          std::span<const std::byte> p, unsigned int format) {
+    if (connection_closed) {
+        return 0;
+    }
+
+    const auto header_len = set_send_header(static_cast<int64_t>(h.size() + p.size()), format);
+    if (header_len < 0) {
+        return -1;
+    }
+
+    std::array<iovec, 3> iov{{
+        {send_header.data(), static_cast<std::size_t>(header_len)},
+        {const_cast<std::byte*>(h.data()), h.size()},
+        {const_cast<std::byte*>(p.data()), p.size()}
+    }};
+    std::size_t first = 0;
+    std::size_t total_sent = 0;
+
+    while (first < iov.size()) {
+        if (iov[first].iov_len == 0) {
+            ++first;
+            continue;
+        }
+
+        msghdr msg{};
+        msg.msg_iov = iov.data() + first;
+        msg.msg_iovlen = iov.size() - first;
+        const auto n = ::sendmsg(comm_fd, &msg, MSG_NOSIGNAL);
+
+        if (n == 0) {
+            connection_closed = true;
+            log("WebSocket: Connection closed by client\n");
+            return 0;
+        }
+
+        if (n < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+
+            connection_closed = true;
+            logf<ERROR>("WebSocket: Cannot send frame. Error {}\n", errno);
+            return -1;
+        }
+
+        total_sent += static_cast<std::size_t>(n);
+        auto remaining = static_cast<std::size_t>(n);
+        while (remaining > 0) {
+            if (remaining >= iov[first].iov_len) {
+                remaining -= iov[first].iov_len;
+                ++first;
+            } else {
+                iov[first].iov_base = static_cast<std::byte*>(iov[first].iov_base) + remaining;
+                iov[first].iov_len -= remaining;
+                remaining = 0;
+            }
+        }
+    }
+
+    logf<DEBUG>("[S] {} bytes\n", total_sent);
+    return static_cast<int>(total_sent);
+}
+
+int WebSocket::send_message(std::span<const std::byte> h,
+                            std::span<const std::byte> p) {
+    if (connection_closed) {
+        return 0;
+    }
+
+    // Keep the existing frame sizes while borrowing the application buffers.
+    constexpr std::size_t chunk_size = WEBSOCK_SEND_BUF_LEN - 10;
+    constexpr auto max_size = static_cast<std::size_t>(std::numeric_limits<int>::max());
+    if (h.size() > max_size || p.size() > max_size - h.size()) {
+        return -1;
+    }
+    const auto total = h.size() + p.size();
+    if (total <= chunk_size) {
+        return send_frame(h, p, (1 << 7) + BINARY_FRAME);
+    }
+
+    std::size_t sent = 0;
+    do {
+        const auto size = std::min(h.size() - sent, chunk_size);
+        const bool last = sent + size == h.size() && p.empty();
+        const auto format = (sent == 0 ? BINARY_FRAME : CONTINUATION_FRAME) |
+                            (last ? (1 << 7) : 0);
+        const int n = send_frame(h.subspan(sent, size), {}, format);
+        if (n <= 0) return n;
+        sent += size;
+    } while (sent < h.size());
+
+    sent = 0;
+    while (sent < p.size()) {
+        const auto size = std::min(p.size() - sent, chunk_size);
+        const bool last = sent + size == p.size();
+        const auto format = CONTINUATION_FRAME | (last ? (1 << 7) : 0);
+        const int n = send_frame({}, p.subspan(sent, size), format);
+        if (n <= 0) return n;
+        sent += size;
+    }
+
+    // Preserve the fragmented-send return value (application bytes only).
+    return static_cast<int>(total);
+}
+
 int WebSocket::exit() {
-    return send_request(send_buf, set_send_header(0, (1 << 7) + CONNECTION_CLOSE));
+    return send_request(send_header, set_send_header(0, (1 << 7) + CONNECTION_CLOSE));
 }
 
 int WebSocket::read_stream() {
