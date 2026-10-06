@@ -7,7 +7,7 @@ set_property IP_REPO_PATHS $cores [current_project]
 update_ip_catalog
 create_bd_design corrector
 source $repo/fpga/lib/utilities.tcl
-source $repo/examples/alpha250/dpll/tcl/corrector.tcl
+source $repo/examples/alpha250/dpll/tests/legacy_corrector.tcl
 
 create_bd_port -dir I -type clk clk
 set_property CONFIG.FREQ_HZ 250000000 [get_bd_ports clk]

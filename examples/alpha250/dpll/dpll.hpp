@@ -9,6 +9,7 @@
 #include "server/runtime/driver_manager.hpp"
 #include "server/hardware/memory_manager.hpp"
 #include "boards/alpha250/drivers/clock-generator.hpp"
+#include "gain_control.hpp"
 
 #include <array>
 #include <limits>
@@ -21,7 +22,10 @@ class Dpll
   public:
     Dpll()
     : ctl(hw::get_memory<mem::control>())
+    , sts(hw::get_memory<mem::status>())
     , clk_gen(rt::get_driver<ClockGenerator>())
+    , gain_tables(ctl, sts, reg::gain_table_command, reg::gain_table_data0,
+                  reg::gain_table_ack, reg::gain_table_banks, reg::gain_coefficients0)
     {
         static_assert(prm::adc_clk == 200000000 || prm::adc_clk == 250000000,
                       "DPLL supports 200 or 250 MHz sampling clocks");
@@ -29,6 +33,7 @@ class Dpll
     }
 
     void set_integrator( uint32_t channel, uint32_t integrator_index, bool integrator_on) {
+        if (channel >= 2 || integrator_index >= 4) return;
         ctl.write_bit_reg(reg::integrators0 + 4*channel, integrator_index, integrator_on);
     }
 
@@ -83,44 +88,89 @@ class Dpll
     }
 
     void set_p_gain(uint32_t channel, int32_t p_gain_) {
+        if (!set_integer_gain(channel, 0, p_gain_)) return;
         ctl.write_reg<int32_t>(reg::p_gain0 + 4*channel, p_gain_);
         logf("channel {}, p_gain set to {}\n", channel, p_gain_);
     }
 
     void set_pi_gain(uint32_t channel, int32_t pi_gain_) {
+        if (!set_integer_gain(channel, 1, pi_gain_)) return;
         ctl.write_reg<int32_t>(reg::pi_gain0 + 4*channel, pi_gain_);
         logf("channel {}, pi_gain set to {}\n", channel, pi_gain_);
     }
 
     void set_i2_gain(uint32_t channel, int32_t i2_gain_) {
+        if (!set_integer_gain(channel, 2, i2_gain_)) return;
         ctl.write_reg<int32_t>(reg::i2_gain0 + 4*channel, i2_gain_);
         logf("channel {}, i2_gain set to {}\n", channel, i2_gain_);
     }
 
     void set_i3_gain(uint32_t channel, int32_t i3_gain_) {
+        if (!set_integer_gain(channel, 3, i3_gain_)) return;
         ctl.write_reg<int32_t>(reg::i3_gain0 + 4*channel, i3_gain_);
     }
 
     auto get_control_parameters() {
+        if (!gain_tables.synchronize()) log<ERROR>("DPLL gain programmer timeout\n");
         return std::tuple{
             dds_freq[0],
             dds_freq[1],
-            ctl.read<reg::p_gain0>(),
-            ctl.read<reg::p_gain1>(),
-            ctl.read<reg::pi_gain0>(),
-            ctl.read<reg::pi_gain1>(),
-            ctl.read<reg::i2_gain0>(),
-            ctl.read<reg::i2_gain1>(),
-            ctl.read<reg::i3_gain0>(),
-            ctl.read<reg::i3_gain1>(),
+            legacy_gain(0, 0), legacy_gain(1, 0),
+            legacy_gain(0, 1), legacy_gain(1, 1),
+            legacy_gain(0, 2), legacy_gain(1, 2),
+            legacy_gain(0, 3), legacy_gain(1, 3),
             ctl.read<reg::integrators0>(),
             ctl.read<reg::integrators1>()
         };
     }
 
+    auto get_dac_outputs() {
+        const auto sel = ctl.read<reg::dac_sel>();
+        return std::tuple{sel & 0b111U, (sel >> 3) & 0b111U};
+    }
+
+    // New RPCs are appended so existing command IDs remain unchanged.
+    // step is an integer number of sixteenth-octave increments, 0..496.
+    int32_t set_geometric_gain(uint32_t channel, uint32_t gain, int32_t sign, uint32_t step) {
+        int64_t coefficient = 0;
+        if (channel >= 2 || gain >= 4 || !dpll_gain::geometric(sign, step, coefficient)) return -1;
+        return gain_tables.program(channel, gain, coefficient) ? 0 : -2;
+    }
+
+    std::array<double, 8> get_gain_values() {
+        std::array<double, 8> values{};
+        if (!gain_tables.synchronize()) {
+            log<ERROR>("DPLL gain programmer timeout\n");
+            values.fill(std::numeric_limits<double>::quiet_NaN());
+            return values;
+        }
+        for (uint32_t gain = 0; gain < 4; ++gain)
+            for (uint32_t channel = 0; channel < 2; ++channel)
+                values[2 * gain + channel] = double(gain_tables.coefficient(channel, gain)) / 2048.0;
+        return values;
+    }
+
   private:
+    bool set_integer_gain(uint32_t channel, uint32_t gain, int32_t value) {
+        if (channel >= 2) return false;
+        if (!gain_tables.program(channel, gain, int64_t(value) * 2048)) {
+            log<ERROR>("DPLL gain table update failed\n");
+            return false;
+        }
+        return true;
+    }
+
+    // Preserve the legacy tuple layout. Fractional geometric gains are rounded
+    // here; get_gain_values() reports the exact applied coefficients instead.
+    uint32_t legacy_gain(uint32_t channel, uint32_t gain) {
+        return static_cast<uint32_t>(static_cast<int32_t>(
+            std::llround(double(gain_tables.coefficient(channel, gain)) / 2048.0)));
+    }
+
     hw::Memory<mem::control>& ctl;
+    hw::Memory<mem::status>& sts;
     ClockGenerator& clk_gen;
+    dpll_gain::Tables<hw::Memory<mem::control>, hw::Memory<mem::status>> gain_tables;
 
     std::array<double, 2> dds_freq = {{0.0, 0.0}};
 };

@@ -1,304 +1,135 @@
+// Each loop owns its editors so polling never moves a draft between channels.
 class Control {
+  private frequencies: FrequencyInput[] = [];
+  private gainRows: HTMLTableRowElement[];
+  private removers: Array<() => void> = [];
+  private disposed = false;
+  private sampleRate = 0;
+  private pendingGains = new Set<HTMLTableRowElement>();
 
-  private channelButtons: any;
-  private frequencyInput: HTMLInputElement;
-  private frequencyButton: HTMLButtonElement;
-  private gainPowerMin: number;
-  private gainPowerMax: number;
-  private gainButtons: any;
-  private gainInputs: any;
-  private gainSaveButtons: any;
-  private integratorSwitches: any;
-  private dacOutputSelects: any;
-
-  constructor(document: Document, private dpll: Dpll) {
-
-    this.channelButtons = <HTMLButtonElement[]><any>document.getElementsByClassName("channel-button");
-
-    this.frequencyInput = <HTMLInputElement>document.getElementsByClassName("frequency-input")[0];
-    this.frequencyButton = <HTMLButtonElement>document.getElementsByClassName("frequency-save")[0];
-    this.integratorSwitches = <HTMLInputElement[]><any>document.getElementsByClassName("integrator-switch");
-
-    this.gainPowerMin = 0;
-    this.gainPowerMax = 30.99;
-
-    this.gainButtons = <HTMLButtonElement[]><any>document.getElementsByClassName("gain-button");
-    this.gainInputs = <HTMLInputElement[]><any>document.getElementsByClassName("gain-input");
-    this.gainSaveButtons = <HTMLButtonElement[]><any>document.getElementsByClassName("gain-save");
-
-    for (let i = 0; i < this.gainInputs.length; i++) {
-      this.gainInputs[i].min = this.gainPowerMin;
-      this.gainInputs[i].max = this.gainPowerMax;
-      this.gainInputs[i].step = 0.01;
-    }
-
-    this.dacOutputSelects = <HTMLSelectElement[]><any>document.getElementsByClassName("dac-output");
-
-    this.setChannel();
-    this.updateFrequencies();
-    this.saveFrequencies();
-    this.setIntegrators();
-    this.updateGainInputs();
-    this.updateGainFactors();
-    this.saveGains();
-    this.setDacOutputs();
-    this.updateStatus();
-  }
-
-  updateStatus() {
-    this.dpll.getControlParameters( (sts: IDpllStatus) => {
-
-      for (let key in sts) {
-
-        if (sts.hasOwnProperty(key)) {
-
-          let currentChannel: number = 0;
-
-          for (let i = 0; i < this.channelButtons.length; i++) {
-            if (this.channelButtons[i].classList.contains("active")) {
-              currentChannel = i;
-            }
-          }
-
-          if ( key == "dds_freq" ) {
-
-            let input = <HTMLInputElement>document.querySelector(".status-input[data-status='" + key + "'][data-channel='" + currentChannel.toString() + "']");
-            let button = <HTMLButtonElement>document.querySelector(".frequency-save[data-channel='" + currentChannel.toString() + "']");
-            if ( button.classList.contains("disabled") ) {
-              input.value = (sts[key][currentChannel] / 1e6).toString();
-            }
-
-          } else if ( key.indexOf("gain") > -1 ) {
-
-              let input = <HTMLInputElement>document.querySelector(".status-input[data-status='" + key + "'][data-channel='" + currentChannel.toString() + "']");
-              let buttons = <HTMLButtonElement[]><any>document.querySelectorAll(".status-button[data-status='" + key + "'][data-channel='" + currentChannel.toString() + "']");
-              let value: string = "";
-              let saveButton = <HTMLButtonElement>document.querySelector(".gain-save[data-status='" + key + "'][data-channel='" + currentChannel.toString() + "']");
-
-              let buttonsArray = [];
-              for (let j = 0; j < buttons.length; j++) {
-                buttonsArray.push(buttons[j]);
-              }
-
-              if ( saveButton.classList.contains("disabled") ) {
-
-                if (sts[key][currentChannel] === 0) {
-                  value = "0";
-                } else if (sts[key][currentChannel] > 0){
-                    value = "+1";
-                } else if (sts[key][currentChannel] < 0) {
-                    value = "-1";
-                }
-
-                let button = <HTMLButtonElement>document.querySelector(".status-button[data-status='" + key + "'][data-channel='" + currentChannel.toString() + "'][value='" + value + "']");
-                button.click();
-
-                if (sts[key][currentChannel] !== 0) {
-                  input.value = (Math.round(Math.log(Math.abs(sts[key][currentChannel])) / Math.log(2) * 100)/100.0).toString();
-                }
-
-                saveButton.classList.add("disabled");
-              }
-
-            } else if (key == "integrators") {
-
-            let count: number = 4;
-            let status: string = sts[key][currentChannel].toString(2).split("").reverse().join("");
-            while (status.length < count) {
-              status += '0';
-            }
-
-            for (let j = 0; j < status.length; j++) {
-              let intOn: boolean = !!+status.charAt(j) ;
-              let intSwitch = <HTMLInputElement>document.querySelector(".integrator-switch[data-integratorindex='" + j.toString() + "'][data-channel='" + currentChannel.toString() + "']");
-              intSwitch.checked = intOn;
-            }
-          }
-
-
+  constructor(private document: Document, private dpll: Dpll,
+              private fail: (error: unknown) => void) {
+    for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('.frequency-input'))) {
+      const channel = Number(input.dataset.channel);
+      const unit = document.querySelector<HTMLSelectElement>(`.frequency-unit[data-channel="${channel}"]`);
+      this.frequencies[channel] = new FrequencyInput(input, unit, {
+        value: 0, maximum: 0, resolution: 1, inclusiveMaximum: true,
+        commit: async frequency => {
+          try {
+            this.dpll.setDDSFreq(channel, frequency);
+            const status = await this.dpll.getControlParameters();
+            return status.dds_freq[channel];
+          } catch (error) { this.fail(error); throw error; }
         }
+      });
+    }
+    this.gainRows = Array.from(document.querySelectorAll<HTMLTableRowElement>('.gain-row'));
+    for (const row of this.gainRows) {
+      const input = row.querySelector<HTMLInputElement>('.gain-input');
+      const save = row.querySelector<HTMLButtonElement>('.gain-save');
+      this.listen(input, 'input', () => { save.disabled = false; input.setCustomValidity(''); });
+      this.listen(input, 'keydown', event => {
+        if ((event as KeyboardEvent).key === 'Enter') { save.click(); }
+        if ((event as KeyboardEvent).key === 'Escape') {
+          save.disabled = true;
+          input.setCustomValidity('');
+          void this.refreshGains();
+        }
+      });
+      for (const button of Array.from(row.querySelectorAll<HTMLButtonElement>('.gain-button'))) {
+        this.listen(button, 'click', () => {
+          this.selectSign(row, Number(button.value));
+          if (!input.value) { input.value = '0'; }
+          save.disabled = false;
+          input.setCustomValidity('');
+        });
       }
-
-      requestAnimationFrame( () => { this.updateStatus(); } )
-    });
-  }
-
-  updateFrequencies() {
-    let events = ['change', 'keyup'];
-    for (let j = 0; j < events.length; j++) {
-      this.frequencyInput.addEventListener( events[j], (event) => {
-        let channel: number = parseInt((<HTMLButtonElement>event.currentTarget).dataset.channel);
-        let button = <HTMLButtonElement>document.querySelector(".frequency-save[data-channel='" + channel + "']");
-        button.classList.remove("disabled");
-      })
+      this.listen(save, 'click', async () => {
+        if (this.pendingGains.has(row)) { return; }
+        const sign = Number(row.querySelector<HTMLButtonElement>('[aria-pressed="true"]').value);
+        // Zero needs no exponent; 0 * 2^NaN must never reach the integer RPC.
+        const exponent = sign === 0 ? 0 : Number(input.value);
+        const step = Math.round(exponent * 16);
+        if (sign !== 0 && (!input.value || !input.checkValidity() || !Number.isFinite(exponent) ||
+            exponent < 0 || exponent > 31 || (sign > 0 && step === 496))) {
+          input.setCustomValidity('Use multiples of 1/16 from 0 to 30.9375 (31 for negative gains).');
+          input.reportValidity();
+          return;
+        }
+        this.pendingGains.add(row);
+        save.disabled = true;
+        try {
+          await this.dpll.setGeometricGain(Number(row.dataset.channel), Number(row.dataset.gain), sign, step);
+          this.pendingGains.delete(row);
+          await this.refreshGains();
+        } catch (error) { this.pendingGains.delete(row); this.fail(error); }
+      });
+    }
+    for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('.integrator-switch'))) {
+      this.listen(input, 'change', () => {
+        try { this.dpll.setIntegrator(Number(input.dataset.channel), Number(input.dataset.integratorindex), input.checked); }
+        catch (error) { this.fail(error); }
+      });
+    }
+    for (const select of Array.from(document.querySelectorAll<HTMLSelectElement>('.dac-output'))) {
+      this.listen(select, 'change', () => {
+        try { this.dpll.setDacOutput(Number(select.dataset.channel), Number(select.value)); }
+        catch (error) { this.fail(error); }
+      });
     }
   }
 
-  saveFrequencies() {
+  private listen(target: HTMLElement, event: string, listener: EventListener): void {
+    target.addEventListener(event, listener);
+    this.removers.push(() => target.removeEventListener(event, listener));
+  }
 
-    let saveFrequencyButtons = <HTMLButtonElement[]><any>document.querySelectorAll(".frequency-save");
-    for (let i = 0; i < saveFrequencyButtons.length ; i++) {
-      saveFrequencyButtons[i].addEventListener( 'click', (event) => {
-        let channel: number = parseInt((<HTMLButtonElement>event.currentTarget).dataset.channel);
-        let command: string = (<HTMLButtonElement>event.currentTarget).dataset.command;
-        let value: string = (<HTMLInputElement>document.querySelector(".frequency-input[data-channel='" + channel + "']")).value;
-        this.dpll[command](channel, 1e6 * parseFloat(value));
-        (<HTMLButtonElement>event.currentTarget).classList.add("disabled");
-      })
+  private selectSign(row: HTMLTableRowElement, sign: number): void {
+    for (const button of Array.from(row.querySelectorAll<HTMLButtonElement>('.gain-button'))) {
+      button.setAttribute('aria-pressed', String(Number(button.value) === sign));
+    }
+    row.querySelector<HTMLInputElement>('.gain-input').disabled = sign === 0;
+  }
+
+  private async refreshGains(): Promise<void> {
+    try { this.renderGains(await this.dpll.getControlParameters()); }
+    catch (error) { this.fail(error); }
+  }
+
+  private renderGains(status: IDpllStatus): void {
+    if (this.disposed) { return; }
+    for (const row of this.gainRows) {
+      const save = row.querySelector<HTMLButtonElement>('.gain-save');
+      const gain = status[row.dataset.status][Number(row.dataset.channel)];
+      const applied = row.querySelector<HTMLOutputElement>('.gain-value');
+      applied.value = String(gain);
+      applied.title = `Applied gain: ${gain}`;
+      if (!save.disabled || this.pendingGains.has(row)) { continue; }
+      this.selectSign(row, Math.sign(gain));
+      row.querySelector<HTMLInputElement>('.gain-input').value = gain === 0 ? '' :
+        String(Math.round(Math.log(Math.abs(gain)) / Math.LN2 * 16) / 16);
     }
   }
 
-  updateGainInputs() {
-
-    let events = ['change', 'keyup'];
-    for (let i = 0; i < this.gainInputs.length ; i++) {
-      for (let j = 0; j < events.length; j++) {
-        this.gainInputs[i].addEventListener( events[j], (event) => {
-          let channel: number = parseInt((<HTMLButtonElement>event.currentTarget).dataset.channel);
-          let status: string = event.currentTarget.dataset.status;
-          let saveButton = <HTMLButtonElement>document.querySelector(".gain-save[data-status='" + status + "'][data-channel='" + channel + "']");
-          saveButton.classList.remove("disabled");
-        })
-      }
+  render(status: IDpllStatus, routes: number[], sampleRate: number): void {
+    if (this.disposed) { return; }
+    if (sampleRate !== this.sampleRate) {
+      this.sampleRate = sampleRate;
+      this.frequencies.forEach(frequency => frequency.setLimits(sampleRate / 2, sampleRate / Math.pow(2, 48)));
     }
-
-  }
-
-  updateGainFactors() {
-
-    for ( let i = 0; i < this.gainButtons.length ; i++ ) {
-
-      this.gainButtons[i].addEventListener('click', (event) => {
-
-        let buttons = event.target.parentElement.getElementsByClassName("gain-button");
-        for (let i = 0; i < buttons.length; i ++) {
-          if (event.target == buttons[i]) {
-            buttons[i].classList.add("active");
-          } else {
-            buttons[i].classList.remove("active");
-          }
-        }
-
-        let channel: number = parseInt(event.currentTarget.dataset.channel);
-        let status: string = event.currentTarget.dataset.status;
-        let input = <HTMLInputElement><any>document.querySelector("input[data-status='" + status + "'][data-channel='" + channel + "']");
-
-        if (event.currentTarget.value === "0") {
-          input.disabled = true;
-          input.style.color = "hsl(0, 0%, 60%)";
-          input.value = "";
-        } else {
-          input.disabled = false;
-          input.style.color = "inherit";
-        }
-
-        let saveButton = <HTMLButtonElement>document.querySelector(".gain-save[data-status='" + status + "'][data-channel='" + channel + "']");
-        saveButton.classList.remove("disabled");
-
-      })
+    this.frequencies.forEach((frequency, channel) => frequency.setValue(status.dds_freq[channel]));
+    this.renderGains(status);
+    for (const input of Array.from(this.document.querySelectorAll<HTMLInputElement>('.integrator-switch'))) {
+      input.checked = !!(status.integrators[Number(input.dataset.channel)] & (1 << Number(input.dataset.integratorindex)));
     }
-
-  }
-
-  saveGains() {
-    for (let i = 0; i < this.gainSaveButtons.length ; i++) {
-      this.gainSaveButtons[i].addEventListener( 'click', (event) => {
-        let channel: number = parseInt((<HTMLButtonElement>event.currentTarget).dataset.channel);
-        let command: string = (<HTMLButtonElement>event.currentTarget).dataset.command;
-        let status: string = (<HTMLButtonElement>event.currentTarget).dataset.status;
-        let factorButton = <HTMLButtonElement>document.querySelector(".gain-button.active[data-status='" + status + "'][data-channel='" + channel + "']");
-        let factor: number = parseInt(factorButton.value);
-        let input = <HTMLInputElement>document.querySelector(".gain-input[data-status='" + status + "'][data-channel='" + channel + "']");
-        let gain = Math.round(factor * Math.pow(2, parseFloat(input.value)));
-
-        this.dpll[command](channel, gain);
-        (<HTMLButtonElement>event.currentTarget).classList.add("disabled");
-      })
+    for (const select of Array.from(this.document.querySelectorAll<HTMLSelectElement>('.dac-output'))) {
+      select.value = String(routes[Number(select.dataset.channel)]);
     }
   }
 
-  setIntegrators() {
-
-    for (let i = 0; i < this.integratorSwitches.length; i++) {
-      this.integratorSwitches[i].addEventListener('change', (event) => {
-
-        let integratorOn:boolean;
-
-        if (this.integratorSwitches[i].checked) {
-          integratorOn = true;
-        } else {
-          integratorOn = false;
-        }
-
-        let channel: number = parseInt(this.integratorSwitches[i].dataset.channel);
-        let integratorIndex: number = parseInt(this.integratorSwitches[i].dataset.integratorindex);
-
-        this.dpll.setIntegrator(channel, integratorIndex, integratorOn);
-
-      })
-    }
-
+  dispose(): void {
+    this.disposed = true;
+    this.frequencies.forEach(frequency => frequency.dispose());
+    this.removers.forEach(remove => remove());
   }
-
-  setChannel() {
-
-    for (let i = 0; i < this.channelButtons.length; i++) {
-      this.channelButtons[i].addEventListener( 'click', (event) => {
-
-        let currentChannel: string = event.currentTarget.value;
-        event.currentTarget.classList.add("active");
-
-        for (let j = 0; j < this.channelButtons.length; j++) {
-          if (i !== j) {
-            this.channelButtons[j].classList.remove("active");
-          }
-        }
-
-        this.frequencyInput.dataset.channel = currentChannel;
-        this.frequencyButton.dataset.channel = currentChannel;
-
-        for (let k = 0; k < this.integratorSwitches.length; k++) {
-          this.integratorSwitches[k].dataset.channel = currentChannel;
-        }
-
-        for (let k = 0; k < this.gainButtons.length; k++) {
-          this.gainButtons[k].dataset.channel = currentChannel;
-        }
-
-        for (let k = 0; k < this.gainInputs.length; k++) {
-          this.gainInputs[k].dataset.channel = currentChannel;
-        }
-
-        for (let k = 0; k < this.gainSaveButtons.length; k++) {
-          this.gainSaveButtons[k].dataset.channel = currentChannel;
-        }
-
-        let animationClass: string = "slide-in-right";
-
-        if (currentChannel == "0") {
-          animationClass = "slide-in-right";
-        } else if (currentChannel == "1") {
-          animationClass = "slide-in-left";
-        }
-
-        document.getElementById("channel-parameters").classList.add(animationClass);
-        setTimeout(() => {
-          document.getElementById("channel-parameters").classList.remove(animationClass);
-        }, 500)
-
-      })
-    }
-
-  }
-
-  setDacOutputs() {
-    for (let i = 0; i < this.dacOutputSelects.length; i++) {
-      this.dacOutputSelects[i].addEventListener('change', (event) => {
-        let channel: number = parseInt(event.currentTarget.dataset.channel);
-        let sel: number = parseInt(event.currentTarget.value);
-        this.dpll.setDacOutput(channel, sel);
-      })
-    }
-  }
-
 }

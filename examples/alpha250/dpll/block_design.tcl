@@ -88,6 +88,19 @@ for {set i 0} {$i < 2} {incr i} {
 source $project_path/tcl/cordic.tcl
 source $project_path/tcl/corrector.tcl
 
+create_bd_cell -type module -reference gain_programmer gain_programmer
+connect_cell gain_programmer {
+    clk adc_dac/adc_clk
+    resetn rst_adc_clk/peripheral_aresetn
+    cfg_command [ctl_pin gain_table_command]
+    cfg_data [get_concat_pin [list [ctl_pin gain_table_data0] [ctl_pin gain_table_data1]]]
+    ack [sts_pin gain_table_ack]
+}
+connect_pins [get_concat_pin [list gain_programmer/active_banks [get_constant_pin 0 24]]] [sts_pin gain_table_banks]
+for {set word 0} {$word < 16} {incr word} {
+    connect_pins [get_slice_pin gain_programmer/coefficients [expr 32*$word+31] [expr 32*$word]] [sts_pin gain_coefficients$word]
+}
+
 for {set i 0} {$i < 2} {incr i} {
 
     cordic::create cordic$i
@@ -107,11 +120,10 @@ for {set i 0} {$i < 2} {incr i} {
         clk adc_dac/adc_clk
         freq_in cordic$i/freq
         phase_in cordic$i/phase
-        p_gain [ctl_pin p_gain$i]
-        pi_gain [ctl_pin pi_gain$i]
-        i2_gain [ctl_pin i2_gain$i]
-        i3_gain [ctl_pin i3_gain$i]
-        sclr [get_slice_pin [ctl_pin integrators$i] 3 1]
+        active_banks [get_slice_pin gain_programmer/active_banks [expr 4*$i+3] [expr 4*$i]]
+        table_command gain_programmer/command$i
+        table_data gain_programmer/data
+        enabled [get_slice_pin [ctl_pin integrators$i] 3 1]
     }
 
 }
@@ -281,3 +293,6 @@ set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize $project_
 
 # Make the short CIC rate-scaling carry chain available for LUT replication.
 set_property STEPS.OPT_DESIGN.TCL.POST [file normalize $project_path/tcl/optimize_timing.tcl] [get_runs impl_1]
+
+# Additional standalone RTL sources must not change automatic top selection.
+set_property top system_wrapper [current_fileset]
