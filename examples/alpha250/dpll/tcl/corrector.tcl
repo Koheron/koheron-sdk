@@ -1,3 +1,5 @@
+add_files -norecurse [file normalize [file join [file dirname [info script]] ../gain_multiplier.v]]
+
 namespace eval corrector {
 
 proc pins {cmd} {
@@ -16,6 +18,11 @@ proc pins {cmd} {
     $cmd -dir O -from 15 -to 0 slow_corr
 }
 
+proc gain {name width low out_width} {
+    create_bd_cell -type module -reference gain_multiplier $name
+    set_cell_props $name [list A_WIDTH $width B_WIDTH 32 OUTPUT_LOW $low OUTPUT_WIDTH $out_width]
+}
+
 proc create {module_name} {
 
     set bd [current_bd_instance .]
@@ -23,29 +30,15 @@ proc create {module_name} {
 
     pins create_bd_pin
 
-    cell xilinx.com:ip:mult_gen:12.0 proportional {
-        PortAWidth 17
-        PortBWidth 32
-        OptGoal Speed
-        PipeStages 3
-        Use_Custom_Output_Width true
-        OutputWidthHigh 31
-        OutputWidthLow 0
-    } {
+    gain proportional 17 0 32
+    connect_cell proportional {
         CLK clk
         A freq_in
         B p_gain
     }
 
-    cell xilinx.com:ip:mult_gen:12.0 integral {
-        PortAWidth 32
-        PortBWidth 32
-        OptGoal Speed
-        PipeStages 3
-        Use_Custom_Output_Width true
-        OutputWidthHigh 47
-        OutputWidthLow 16
-    } {
+    gain integral 32 16 32
+    connect_cell integral {
         CLK clk
         A phase_in
         B pi_gain
@@ -75,15 +68,8 @@ proc create {module_name} {
         SCLR [get_not_pin [get_slice_pin sclr 0 0]]
     }
 
-    cell xilinx.com:ip:mult_gen:12.0 double_integral {
-        PortAWidth 48
-        PortBWidth 32
-        OptGoal Speed
-        PipeStages 3
-        Use_Custom_Output_Width true
-        OutputWidthHigh 79
-        OutputWidthLow 48
-    } {
+    gain double_integral 48 48 32
+    connect_cell double_integral {
         CLK clk
         A first_accumulator/Q
         B i2_gain
@@ -113,12 +99,8 @@ proc create {module_name} {
         SCLR [get_not_pin [get_slice_pin sclr 1 1]]
     }
 
-    cell xilinx.com:ip:mult_gen:12.0 triple_integral {
-        PortAWidth 32
-        PortBWidth 32
-        OptGoal Speed
-        PipeStages 3
-    } {
+    gain triple_integral 32 0 64
+    connect_cell triple_integral {
         CLK clk
         A second_accumulator/Q
         B i3_gain

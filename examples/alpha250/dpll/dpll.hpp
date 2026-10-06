@@ -23,7 +23,9 @@ class Dpll
     : ctl(hw::get_memory<mem::control>())
     , clk_gen(rt::get_driver<ClockGenerator>())
     {
-        clk_gen.set_sampling_frequency(0);
+        static_assert(prm::adc_clk == 200000000 || prm::adc_clk == 250000000,
+                      "DPLL supports 200 or 250 MHz sampling clocks");
+        clk_gen.set_sampling_frequency(prm::adc_clk == 250000000 ? 1 : 0);
     }
 
     void set_integrator( uint32_t channel, uint32_t integrator_index, bool integrator_on) {
