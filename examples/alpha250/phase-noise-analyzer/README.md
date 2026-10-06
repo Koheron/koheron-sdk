@@ -1,3 +1,18 @@
+## Split CIC acquisition
+
+The phase extractor runs at 250 MHz. A full-precision six-stage fixed CIC
+first decimates by two, retaining all 38 output bits. The stream crosses to
+143 MHz before the programmable six-stage CIC, compensation FIR and packet
+quantizer. The shared hardware is in
+[`pna_filter.tcl`](../../../fpga/lib/pna_filter.tcl).
+
+Total CIC rates are **even integers from 4 through 8192**, default 20. The slow
+CIC uses rate R/2. The cascade preserves the original six-stage CIC response,
+DC gain and software calibration; all internal arithmetic is retained before
+40-bit normalization. Odd saved rates migrate to the next even rate. Live odd
+rate requests are rejected. Precision controls, DMA packet format and FFT
+processing retain their existing behavior.
+
 The shared estimator now processes 32768-point Hann segments every 16384 samples,
 reusing the last three segment spectra for streaming Welch. Each segment receives
 its own integer-domain linear detrend. Successive estimates overlap and are
@@ -60,7 +75,7 @@ output uses stochastic rounding. Each ADC channel selects a distinct nonzero
 seed for the shared 64-bit XOR LFSR; mixer and I/Q filter rounding use separate
 bits of that channel's sequence.
 
-At the existing 200 MS/s sample clock and a 10 MHz carrier, the filter
+At the previous 200 MS/s sample clock and a 10 MHz carrier, the filter
 attenuates the 20 MHz mixing image by 57.27 dB, versus 2.28 dB for the old
 boxcar. Its passband loss is 0.091 dB at 500 kHz, 0.365 dB at 1 MHz and
 1.470 dB at 2 MHz. Software does not invert this response. The filter is
@@ -91,7 +106,7 @@ and a board validation procedure.
 ## DAC phase-modulated stimulus
 
 The design includes the shared two-channel [DDS phase-modulator IP](../../../fpga/ip/awg_v1_0/)
-on DAC0/DAC1, running at the analyzer's existing **200 MS/s**. The two original
+on DAC0/DAC1, running at the analyzer's **250 MS/s**. The two original
 DDSs remain unmodulated references for ADC phase extraction. This separation
 lets an electrical loopback retain the injected PM in the measured phase.
 Changing a local oscillator no longer changes a DAC output.
@@ -135,7 +150,7 @@ generator.mute(0)
 The DAC subsystem occupies `0x44000000`–`0x44001fff`; existing analyzer register
 addresses remain unchanged. The reusable ALPHA250
 RPC driver lives in `boards/alpha250/drivers/phase-modulator.hpp` and selects the
-host instrument's sample clock, including 200 MS/s here and 250 MS/s in the
+host instrument's sample clock, including 250 MS/s here and in the
 standalone example.
 
 ## Phase conversion

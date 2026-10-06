@@ -1,3 +1,18 @@
+## Split CIC acquisition
+
+The phase extractor runs at 125 MHz. A full-precision six-stage fixed CIC
+first decimates by two, retaining all 38 output bits. The stream crosses to
+125 MHz before the programmable six-stage CIC, compensation FIR and packet
+quantizer. The shared hardware is in
+[`pna_filter.tcl`](../../../fpga/lib/pna_filter.tcl).
+
+Total CIC rates are **even integers from 4 through 8192**, default 20. The slow
+CIC uses rate R/2. The cascade preserves the original six-stage CIC response,
+DC gain and software calibration; all internal arithmetic is retained before
+40-bit normalization. Odd saved rates migrate to the next even rate. Live odd
+rate requests are rejected. Precision controls, DMA packet format and FFT
+processing retain their existing behavior.
+
 The shared estimator now processes 32768-point Hann segments every 16384 samples,
 reusing the last three segment spectra for streaming Welch. Each segment receives
 its own integer-domain linear detrend. Successive estimates overlap and are
@@ -44,7 +59,7 @@ epoch. Gap, overrange and DMA failures discard the affected spectrum and
 restart acquisition. The shared [acquisition documentation](../../../server/drivers/phase-noise/README.md#acquisition-boundaries)
 describes the ring, diagnostics and tracking behavior. The 32768-point Welch
 estimator, calibration and 0–8-bit phase precision remain unchanged.
-Red Pitaya maps CIC arithmetic into DSP slices and shares one 24-bit phase
+Red Pitaya shares the full-precision split CIC and one 24-bit phase
 extractor. ADC and reference muxes select the input and its independent LO
 together before demodulation. Channel changes reset the acquisition epoch;
 only the selected input is analyzed. Both demod status registers alias the
@@ -111,7 +126,7 @@ off by default. When enabled it follows only the selected input, with bounded
 steps and a bandwidth well below the plotted offset range. Disabling it restores
 both nominal LOs. For details see the ALPHA250 analyzer README.
 
-The CIC range is 4–8192. The output rate is `125e6 / (2 * CIC rate)`.
+The total CIC range is even rates 4–8192. The output rate is `125e6 / (2 * CIC rate)`.
 DMA packets contain 8192 signed phase samples in a 512-packet cyclic ring.
 The server selects the latest coherent 65536-sample window for a 32768-point
 Hann Welch estimator, yielding 16385 bins in rad²/Hz. The plotted single-sideband

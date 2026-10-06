@@ -1,7 +1,9 @@
 `timescale 1ns/1ps
 // Live ADC-clock phase cannot be backpressured. Any missed instant is sticky
 // sample-gap metadata; reset filter and FIFO histories on every acquisition epoch.
-module phase_stream_control (
+module phase_stream_control #(
+    parameter integer RATE_STEP = 1
+) (
     input wire aclk,
     input wire aresetn,
     input wire [15:0] requested_rate,
@@ -26,11 +28,13 @@ module phase_stream_control (
     reg [3:0] precision=0;
     reg epoch=0;
     assign active_bits = precision;
-    wire valid_rate = requested_rate >= 4 && requested_rate <= 8192;
+    wire valid_rate = requested_rate >= 4 && requested_rate <= 8192 && requested_rate % RATE_STEP == 0;
     // Reset CIC/FIR history and FIFO queue, not only the rate registers.
     // 32 ADC clocks also covers the async FIFO's slower read-clock reset width.
     assign filter_resetn = aresetn && requested_run && (state==CONFIGURE || state==PRIME || state==STREAM);
-    assign data_valid = state==STREAM && requested_rate==rate && requested_bits==precision && requested_epoch==epoch && data_ready;
+    // A settings change enters RESET at this clock edge and flushes the whole
+    // epoch. Do not route its wide comparator into every filter register CE.
+    assign data_valid = state==STREAM && data_ready;
     assign config_valid = state==CONFIGURE && config_ready;
     assign config_rate = rate;
     always @(posedge aclk) begin

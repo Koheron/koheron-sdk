@@ -42,7 +42,7 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
               1_V * ltc2157.get_input_voltage_range(1, 0) };
 
     auto& clk_gen = rt::get_driver<ClockGenerator>();
-    clk_gen.set_sampling_frequency(0); // 200 MHz
+    clk_gen.set_sampling_frequency(1); // 250 MHz
     fs_adc = Frequency(clk_gen.get_adc_sampling_freq()[0]); // Assume both ADCs have same frequency
 
     ctl.set_bit<reg::cordic, 0>(); // Phase accumulator on
@@ -153,8 +153,8 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
 
 void PhaseNoiseAnalyzer::configure_cic_rate(uint32_t rate) {
     if (rate < prm::cic_decimation_rate_min ||
-        rate > prm::cic_decimation_rate_max) {
-        log<ERROR>("PhaseNoiseAnalyzer: CIC rate out of range\n");
+        rate > prm::cic_decimation_rate_max || rate % 2 != 0) {
+        log<ERROR>("PhaseNoiseAnalyzer: Unsupported CIC rate (use even rates)\n");
         return;
     }
 
@@ -199,7 +199,7 @@ void PhaseNoiseAnalyzer::set_min_frequency(float min_frequency_hz) {
     }
     std::unique_lock lk(data_mtx);
     const double rate_f = std::clamp(
-        std::round(fs_adc.eval() / (spectrum_samples * double(min_frequency_hz))),
+        2.0 * std::round(fs_adc.eval() / (2.0 * spectrum_samples * double(min_frequency_hz))),
         double(prm::cic_decimation_rate_min), double(prm::cic_decimation_rate_max));
     configure_cic_rate(static_cast<uint32_t>(rate_f));
 }
@@ -314,7 +314,9 @@ void PhaseNoiseAnalyzer::load_config() {
     }
 
     if (cfg.has("PhaseNoiseAnalyzer", "cic_rate")) {
-        set_cic_rate(cfg.get<uint32_t>("PhaseNoiseAnalyzer", "cic_rate"));
+        const auto saved = cfg.get<uint32_t>("PhaseNoiseAnalyzer", "cic_rate");
+        set_cic_rate(saved >= prm::cic_decimation_rate_min && saved <= prm::cic_decimation_rate_max
+            ? (saved + 1u) & ~1u : prm::cic_decimation_rate_default);
     } else {
         set_cic_rate(prm::cic_decimation_rate_default);
     }

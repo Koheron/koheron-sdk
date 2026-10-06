@@ -10,6 +10,7 @@
 #include "server/hardware/memory_manager.hpp"
 #include "boards/alpha250/drivers/clock-generator.hpp"
 #include "gain_control.hpp"
+#include "monitor_revision.hpp"
 
 #include <array>
 #include <limits>
@@ -33,11 +34,13 @@ class Dpll
     }
 
     void set_integrator( uint32_t channel, uint32_t integrator_index, bool integrator_on) {
+        dpll_monitor::ControlChange monitor_change;
         if (channel >= 2 || integrator_index >= 4) return;
         ctl.write_bit_reg(reg::integrators0 + 4*channel, integrator_index, integrator_on);
     }
 
     void set_dac_output(uint32_t channel, uint32_t sel) {
+        dpll_monitor::ControlChange monitor_change;
         // sel =
         // 0: fast_corr0
         // 1: fast_corr1
@@ -57,6 +60,7 @@ class Dpll
     }
 
     void set_dds_freq(uint32_t channel, double freq_hz) {
+        dpll_monitor::ControlChange monitor_change;
         if (channel >= 2) {
             log<ERROR>("FFT::set_dds_freq invalid channel\n");
             return;
@@ -132,6 +136,7 @@ class Dpll
     // New RPCs are appended so existing command IDs remain unchanged.
     // step is an integer number of sixteenth-octave increments, 0..496.
     int32_t set_geometric_gain(uint32_t channel, uint32_t gain, int32_t sign, uint32_t step) {
+        dpll_monitor::ControlChange monitor_change;
         int64_t coefficient = 0;
         if (channel >= 2 || gain >= 4 || !dpll_gain::geometric(sign, step, coefficient)) return -1;
         return gain_tables.program(channel, gain, coefficient) ? 0 : -2;
@@ -150,8 +155,16 @@ class Dpll
         return values;
     }
 
+    double get_dds_freq(uint32_t channel) {
+        if (channel >= 2) return std::numeric_limits<double>::quiet_NaN();
+        std::shared_lock lock(dpll_monitor::controls_mutex);
+        return double(ctl.read_reg<uint64_t>(reg::phase_incr0 + 8 * channel) &
+            ((uint64_t{1} << 48) - 1)) * double(prm::adc_clk) / double(uint64_t{1} << 48);
+    }
+
   private:
     bool set_integer_gain(uint32_t channel, uint32_t gain, int32_t value) {
+        dpll_monitor::ControlChange monitor_change;
         if (channel >= 2) return false;
         if (!gain_tables.program(channel, gain, int64_t(value) * 2048)) {
             log<ERROR>("DPLL gain table update failed\n");

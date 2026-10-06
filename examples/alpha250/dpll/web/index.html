@@ -11,14 +11,21 @@
   <link rel="shortcut icon" href="kbird.ico">
   <link rel="stylesheet" href="bootstrap.min.css">
   <link rel="stylesheet" href="main.css">
+  <link rel="stylesheet" href="phase-noise-plot.css">
+  <link rel="stylesheet" href="phase-precision.css">
   <link rel="stylesheet" href="dpll.css">
+  <link rel="stylesheet" href="monitor.css">
+  <script src="jquery.min.js"></script>
   <script src="html-imports.min.js"></script>
   <link rel="import" href="reference-clock.html" data-parent="reference-clock">
+  <link rel="import" href="plot-basics.html" data-parent="plot-basics">
+  <link rel="import" href="export-file.html" data-parent="export-file">
 </head>
-<body class="dpll-workspace">
+<body class="dpll-workspace" data-board="alpha250-dpll">
   <header class="app-header">
     <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
     <h1>DPLL</h1><span id="board-label" class="board-tag">ALPHA250</span>
+    <span id="refresh-rate" class="board-tag">— FPS</span>
     <span class="connection-control">
       <span id="connection-status" class="connection-status" role="status" data-state="connecting">Connecting…</span>
       <span id="connection-error" role="alert" hidden><button type="button" onclick="location.reload()">Retry</button></span>
@@ -26,6 +33,57 @@
     <nav aria-label="Board navigation"><a href="/koheron">Instruments</a><a href="/koheron/logs_rate.html">Logs &amp; data rates</a></nav>
   </header>
   <main id="main">
+    <section class="monitor-panel" aria-label="Phase noise monitor">
+      <h2>Phase noise monitor</h2>
+      <fieldset id="monitor-controls" disabled>
+        <legend class="sr-only">Monitor acquisition and display</legend>
+        <div class="monitor-acquisition">
+          <div class="control-field"><span>Input</span><div class="segmented">
+            <label><input type="radio" name="monitor-channel" value="0" checked><span>ADC 0</span></label>
+            <label><input type="radio" name="monitor-channel" value="1"><span>ADC 1</span></label>
+          </div></div>
+          <label class="control-field">Decimation (even)<span class="digit-control"><input id="monitor-decimation" type="text" inputmode="numeric" value="20" aria-label="Monitor decimation (even rates from 4 to 8192)"></span></label>
+          <label class="control-field">Averages<span class="average-control"><span id="average-status">—/</span><input id="monitor-averages" type="text" inputmode="numeric" value="1" aria-label="Monitor averaging window"></span></label>
+          <button id="reset-average" type="button">Restart average</button>
+        <label class="control-field" title="Extra fractional bits preserve smaller phase changes, at the cost of phase range.">Phase precision
+          <select id="phase-precision">
+            <option value="0">Standard</option>
+            <option value="1">+1 bit</option><option value="2">+2 bits</option>
+            <option value="3">+3 bits</option><option value="4">+4 bits</option>
+            <option value="5">+5 bits</option><option value="6">+6 bits</option>
+            <option value="7">+7 bits</option><option value="8">+8 bits</option>
+          </select>
+        </label>
+        <span id="precision-status" class="precision-status" role="status">Waiting…</span>
+
+        </div>
+        <div class="display-controls"><div class="segmented">
+          <label><input type="radio" name="laser-plot-type" value="phase" checked class="laser-plot-type"><span>Phase noise</span></label>
+          <label><input type="radio" name="laser-plot-type" value="frequency" class="laser-plot-type"><span>Frequency noise</span></label>
+        </div><span id="spectrum-unit">dBc/Hz</span><label><input type="checkbox" id="show-smoothed-trace"> Smoothed</label></div>
+      </fieldset>
+    <fieldset id="plot-controls" disabled class="spectrum-toolbar">
+      <legend class="sr-only">Spectrum actions and export</legend>
+      <div class="plot-actions"><button id="fit-view" type="button" disabled title="Reset plot zoom to the full spectrum">Fit</button><div id="reference-actions" class="toolbar-actions"><button id="capture-reference" type="button" disabled title="Capture the displayed spectrum as a reference">Capture ref</button><button id="clear-reference" type="button" disabled title="Clear the reference spectrum">Clear ref</button></div><div id="export-file"></div></div>
+    </fieldset>
+  <section class="spectrum-panel" aria-label="Noise spectrum">
+    <div id="plot-wrap">
+      <div id="plot-placeholder" class="plot-placeholder" aria-label="Noise spectrum"></div>
+      <div id="plot-basics"></div>
+    </div>
+    <div class="spectrum-readouts">
+      <div><span class="readout-label">Carrier</span><strong class="carrier-power-span">—</strong></div>
+      <div><span class="readout-label">Phase jitter</span><strong class="phase-jitter-span">—</strong></div>
+      <div><span class="readout-label">Time jitter</span><strong class="time-jitter-span">—</strong></div>
+      <span class="jitter-range"><span class="readout-label">Jitter band</span> <span id="jitter-range">—</span></span>
+    </div>
+  </section>
+
+      <div id="reference-info" class="reference-info" hidden><span>Reference </span><strong id="reference-status"></strong></div>
+      <details class="noise-offsets"><summary>Offset / phase noise</summary><table id="decade-values-table" aria-label="Noise at decade offsets"></table></details>
+    </section>
+    <section class="loop-controls-panel" aria-label="Feedback loop controls">
+
     <fieldset id="instrument-controls" disabled>
       <legend class="sr-only">DPLL settings</legend>
       <div class="instrument-toolbar"><div id="reference-clock"></div></div>
@@ -183,9 +241,16 @@
       </section>
     </fieldset>
     <aside class="diagram-panel" aria-label="DPLL signal path">
-      <details open><summary>Loop signal path</summary><img src="block_diagram_path.svg" alt="DPLL phase detector, four integrators, signed gains and fast corrector signal path"></details>
+      <details><summary>Loop signal path</summary><img src="block_diagram_path.svg" alt="DPLL phase detector, four integrators, signed gains and fast corrector signal path"></details>
     </aside>
+    </section>
   </main>
+  <script src="jquery.flot.js"></script>
+  <script src="jquery.flot.resize.js"></script>
+  <script src="jquery.flot.selection.js"></script>
+  <script src="jquery.flot.time.js"></script>
+  <script src="jquery.flot.axislabels.js"></script>
+  <script src="jquery.flot.canvas.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

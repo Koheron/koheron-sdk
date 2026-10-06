@@ -22,7 +22,11 @@ class PhaseNoiseAnalyzerApp {
         read: (p: IParameters) => number) => {
       const input = this.document.querySelector<HTMLInputElement>(selector);
       return new NumberInput(input, {value, minimum: Number(input.min), maximum: Number(input.max),
-        resolution: 1, integer: true, commit: async value => {
+        resolution: 1, integer: true, step: selector === '.cic-rate-input' ? 2 : 1,
+        validate: value => {
+          if (selector === '.cic-rate-input' && value % 2 !== 0) throw new Error('Use an even decimation rate.');
+        },
+        commit: async value => {
           commit(value); return read(await this.driver.getParameters());
         }});
     };
@@ -33,7 +37,7 @@ class PhaseNoiseAnalyzerApp {
     nominal.forEach((value, channel) => {
       const input = this.document.querySelector<HTMLInputElement>('.dds-input' + channel);
       this.numbers['lo' + channel] = new FrequencyInput(input, input.parentElement.querySelector('.lo-unit'), {
-        value, maximum: 100E6, inclusiveMaximum: true, resolution: 1E-3, // Tune in millihertz; the DDS accepts finer steps.
+        value, maximum: p.fs * p.cic_rate, inclusiveMaximum: true, resolution: 1E-3, // Tune in millihertz; the DDS accepts finer steps.
         commit: async frequency => {
           this.driver.setLocalOscillator(channel, frequency);
           await this.driver.getParameters();

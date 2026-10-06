@@ -54,10 +54,10 @@ test('analyzer numbers select a digit by default and wheel works anywhere on the
     assert.equal(input.selectionEnd - input.selectionStart, 1);
     const wheel = new w.WheelEvent('wheel', {deltaY: -40, bubbles: true, cancelable: true});
     w.document.querySelector('#plot-placeholder').dispatchEvent(wheel); await settle();
-    assert.equal(wheel.defaultPrevented, true); assert.deepEqual(calls, [['cic', 21]]);
+    assert.equal(wheel.defaultPrevented, true); assert.deepEqual(calls, [['cic', 22]]);
     h.key(input, 'ArrowLeft'); h.key(input, 'ArrowUp');
     await new Promise(resolve => setTimeout(resolve, 120));
-    assert.deepEqual(calls.at(-1), ['cic', 31]);
+    assert.deepEqual(calls.at(-1), ['cic', 32]);
     const count = calls.length; h.app.dispose();
     w.document.body.dispatchEvent(new w.WheelEvent('wheel', {deltaY: -40, bubbles: true, cancelable: true})); await settle();
     assert.equal(calls.length, count);

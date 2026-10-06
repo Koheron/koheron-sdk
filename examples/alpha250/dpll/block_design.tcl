@@ -171,114 +171,48 @@ for {set i 0} {$i < 2} {incr i} {
 # Monitor Phase with DMA
 ####################################
 
-cell koheron:user:latched_mux:1.0 phase_mux {
-    WIDTH 32
-    N_INPUTS 2
-    SEL_WIDTH 1
+# The monitor uses the exact shared PNA extractor, independently of the fast
+# feedback detector. One selected ADC/DDS pair feeds its 24-bit mixer, fourth-
+# order prefilter and fully pipelined 24-bit CORDIC.
+source $sdk_path/fpga/lib/pna_cordic.tcl
+cordic::create monitor_cordic 0x9e3779b97f4a7c15
+foreach {name sources} {
+    monitor_adc {adc_dac/adc0 adc_dac/adc1}
+    monitor_dds {dds0/m_axis_data_tdata dds1/m_axis_data_tdata}
 } {
-    clk adc_dac/adc_clk
-    clken [get_constant_pin 1 1]
-    din [get_concat_pin [list cordic0/phase cordic1/phase]]
-    sel [get_slice_pin [ctl_pin phase_sel] 0 0]
+    set width [expr {$name eq "monitor_adc" ? 16 : 32}]
+    cell koheron:user:latched_mux:1.0 $name [list WIDTH $width N_INPUTS 2 SEL_WIDTH 1] {
+        clk adc_dac/adc_clk clken [get_constant_pin 1 1]
+        din [get_concat_pin $sources]
+        sel [get_slice_pin [ctl_pin phase_sel] 0 0]
+    }
 }
-
-# Define CIC parameters
-
-set diff_delay [get_parameter cic_differential_delay]
-set dec_rate_default [get_parameter cic_decimation_rate_default]
-set n_stages [get_parameter cic_n_stages]
-
-source $project_path/tcl/monitor_filter.tcl
-monitor_filter::create_cic cic
-connect_cell cic {
-  aclk adc_dac/adc_clk
-  s_axis_data_tdata phase_mux/dout
-  s_axis_data_tvalid [get_constant_pin 1 1]
-}
-
-cell pavel-demin:user:axis_variable:1.0 cic_rate {
-  AXIS_TDATA_WIDTH 16
-} {
-  cfg_data [ctl_pin cic_rate]
+cell koheron:user:phase_stream_control:1.0 phase_stream_control { RATE_STEP 2 } {
   aclk adc_dac/adc_clk
   aresetn rst_adc_clk/peripheral_aresetn
-  M_AXIS cic/S_AXIS_CONFIG
+  requested_rate [ctl_pin cic_rate]
+  requested_bits [get_slice_pin [ctl_pin phase_precision] 3 0]
+  requested_epoch [get_slice_pin [ctl_pin phase_precision] 8 8]
+  requested_run [get_slice_pin [ctl_pin acquisition_run] 0 0]
+  sample_gap [sts_pin sample_gap]
 }
-
-set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rate_default $diff_delay print]
-
-monitor_filter::create_fir fir $fir_coeffs
-connect_cell fir {
-  aclk adc_dac/adc_clk
-  S_AXIS_DATA cic/M_AXIS_DATA
+cell xilinx.com:ip:util_vector_logic:2.0 monitor_phase_reset {
+  C_SIZE 1 C_OPERATION not
+} { Op1 phase_stream_control/filter_resetn }
+connect_cell monitor_cordic {
+    s_axis_data_a [get_concat_pin [list monitor_adc/dout [get_constant_pin 0 16]]]
+    s_axis_data_b monitor_dds/dout
+    s_axis_tvalid [get_constant_pin 1 1]
+    aclk adc_dac/adc_clk
+    aresetn rst_adc_clk/peripheral_aresetn
+    acc_on [get_constant_pin 1 1]
+    rst_phase monitor_phase_reset/Res
+    demod [sts_pin monitor_demod]
 }
-
-set_property -dict [list CONFIG.PCW_USE_S_AXI_HP0 {1} CONFIG.PCW_S_AXI_HP0_DATA_WIDTH {32}] [get_bd_cells ps_0]
-connect_pins ps_0/S_AXI_HP0_ACLK ps_0/FCLK_CLK1
-set_property -dict [list CONFIG.NUM_SI {2} CONFIG.NUM_MI {2}] [get_bd_cells axi_mem_intercon_1]
-
-#https://forums.xilinx.com/t5/Design-Entry/BD-41-237-Bus-Interface-property-ID-WIDTH-does-not-match/td-p/655028/page/2
-set_property -dict [list CONFIG.STRATEGY {1}] [get_bd_cells axi_mem_intercon_1]
-
-#connect_pins ps_0/FCLK_CLK1 axi_mem_intercon_1/M00_ACLK
-#connect_pins axi_mem_intercon_1/M00_ARESETN proc_sys_reset_1/peripheral_aresetn
-connect_bd_intf_net -boundary_type upper [get_bd_intf_pins axi_mem_intercon_1/M01_AXI] [get_bd_intf_pins ps_0/S_AXI_HP0]
-connect_bd_net [get_bd_pins axi_mem_intercon_1/S01_ACLK] [get_bd_pins ps_0/FCLK_CLK1]
-connect_bd_net [get_bd_pins axi_mem_intercon_1/S01_ARESETN] [get_bd_pins proc_sys_reset_1/peripheral_aresetn]
-
-# Use AXI Stream clock converter (ADC clock -> FPGA clock)
-set intercon_idx 1
-set idx [add_master_interface $intercon_idx]
-
-cell xilinx.com:ip:axis_clock_converter:1.1 adc_clock_converter {
-  TDATA_NUM_BYTES 4
-} {
-  S_AXIS fir/M_AXIS_DATA
-  s_axis_aresetn rst_adc_clk/peripheral_aresetn
-  m_axis_aresetn [set rst${intercon_idx}_name]/peripheral_aresetn
-  s_axis_aclk adc_dac/adc_clk
-  m_axis_aclk ps_0/FCLK_CLK1
-}
-
-cell koheron:user:tlast_gen:1.0 tlast_gen_0 {
-  TDATA_WIDTH 32
-  PKT_LENGTH [expr [get_parameter n_pts]]
-} {
-  aclk ps_0/FCLK_CLK1
-  resetn proc_sys_reset_1/peripheral_aresetn
-  s_axis adc_clock_converter/M_AXIS
-}
-
-cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
-  c_include_sg 0
-  c_include_mm2s 0
-  c_sg_include_stscntrl_strm 0
-  c_sg_length_width 23
-  c_s2mm_burst_size 16
-} {
-  S_AXIS_S2MM tlast_gen_0/m_axis
-  S_AXI_LITE axi_mem_intercon_1/M00_AXI
-  s_axi_lite_aclk ps_0/FCLK_CLK1
-  M_AXI_S2MM axi_mem_intercon_1/S01_AXI
-  m_axi_s2mm_aclk ps_0/FCLK_CLK1
-  axi_resetn proc_sys_reset_1/peripheral_aresetn
-  s2mm_introut [get_interrupt_pin]
-}
-
-connect_bd_net [get_bd_pins axi_mem_intercon_1/M01_ACLK] [get_bd_pins ps_0/FCLK_CLK1]
-connect_bd_net [get_bd_pins axi_mem_intercon_1/M01_ARESETN] [get_bd_pins proc_sys_reset_1/peripheral_aresetn]
-
-assign_bd_address [get_bd_addr_segs {axi_dma_0/S_AXI_LITE/Reg }]
-set_property range [get_memory_range dma] [get_bd_addr_segs {ps_0/Data/SEG_axi_dma_0_Reg}]
-set_property offset [get_memory_offset dma] [get_bd_addr_segs {ps_0/Data/SEG_axi_dma_0_Reg}]
-
-assign_bd_address [get_bd_addr_segs {ps_0/S_AXI_HP0/HP0_DDR_LOWOCM }]
-set_property range [get_memory_range ram] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM}]
-set_property offset [get_memory_offset ram] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM}]
-
-
-delete_bd_objs [get_bd_addr_segs -excluded axi_dma_0/Data_S2MM/SEG_axi_dma_0_Reg]
-delete_bd_objs [get_bd_addr_segs ps_0/Data/SEG_ps_0_HP0_DDR_LOWOCM]
+set pna_phase_sources {monitor_cordic/phase}
+set pna_overflow_sources {monitor_cordic/overflow}
+set pna_phase_selector [get_slice_pin [ctl_pin phase_sel] 0 0]
+source $sdk_path/fpga/lib/pna_single_stream.tcl
 
 # Replicate timing-critical control nets without adding pipeline stages.
 set_property STEPS.PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
@@ -291,7 +225,7 @@ set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveExplore [get_runs impl_1]
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize $project_path/tcl/post_route_opt.tcl] [get_runs impl_1]
 
-# Make the short CIC rate-scaling carry chain available for LUT replication.
+# Keep DAC output registers near their physical handoff.
 set_property STEPS.OPT_DESIGN.TCL.POST [file normalize $project_path/tcl/optimize_timing.tcl] [get_runs impl_1]
 
 # Additional standalone RTL sources must not change automatic top selection.

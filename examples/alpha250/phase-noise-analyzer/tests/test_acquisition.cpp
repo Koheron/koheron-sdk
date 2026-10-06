@@ -78,7 +78,7 @@ int main() {
     }
 
     auto& cfg = services::require<rt::ConfigManager>();
-    cfg.set("PhaseNoiseAnalyzer", "cic_rate", 16u);
+    cfg.set("PhaseNoiseAnalyzer", "cic_rate", 15u); // Older odd-rate configuration migrates to 16.
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[0]", 10e6 + 0.637);
     auto& dma = rt::get_driver<DmaS2MM>();
     auto& ram = hw::get_memory<mem::ram>();
@@ -95,6 +95,7 @@ int main() {
     auto parameters = analyzer.get_parameters();
     assert(!std::get<0>(analyzer.get_tracking_parameters())); // legacy configs remain opt-in
     assert(std::get<0>(parameters) == 16385);
+    assert(std::get<3>(parameters) == 16);
     assert(std::get<1>(parameters).eval() == 6250000.f);
     constexpr double lsb = 200e6 / (uint64_t{1} << 48);
     assert(std::abs(std::get<5>(parameters) - (10e6 + 0.637)) <= lsb / 2);
@@ -152,6 +153,7 @@ int main() {
     analyzer.set_local_oscillator(2, 1e6);
     analyzer.set_channel(2);
     analyzer.set_cic_rate(0);
+    analyzer.set_cic_rate(17); // Live odd requests are rejected.
     analyzer.set_analyzer_mode(2);
     analyzer.set_interferometer_delay(-1.f);
     assert(ctl.writes.load() == writes);

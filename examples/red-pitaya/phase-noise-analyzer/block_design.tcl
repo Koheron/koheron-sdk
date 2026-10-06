@@ -102,9 +102,6 @@ set pna_overflow_sources {cordic0/overflow}
 ####################################
 
 source $sdk_path/fpga/lib/pna_single_stream.tcl
-# The Zynq-7010 has spare DSP slices but limited LUTs. Map the same CIC
-# arithmetic into DSPs; its widths, truncation and calibrated gain are unchanged.
-set_property CONFIG.Use_Xtreme_DSP_Slice true [get_bd_cells cic]
 # Repair short DAC paths after routing; refresh reports for strict timing checks.
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize [file join [file dirname [info script]] post_route.tcl]] [get_runs impl_1]

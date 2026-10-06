@@ -2,6 +2,7 @@ class App {
   private client: Client;
   private control: Control;
   private dpll: Dpll;
+  private monitor: DpllMonitor;
   private clockGenerator: ClockGenerator;
   private stopped = false;
   private timer: number;
@@ -36,6 +37,9 @@ class App {
         this.removers.push(() => input.removeEventListener('change', listener));
       }
       await this.poll();
+      if (this.stopped) { return; }
+      this.monitor = new DpllMonitor(this.document, location.hostname, error => this.fail(error));
+      await this.monitor.init();
     } catch (error) { this.fail(error); }
   }
 
@@ -78,6 +82,7 @@ class App {
     this.window.clearTimeout(this.timer);
     (this.document.getElementById('instrument-controls') as HTMLFieldSetElement).disabled = true;
     this.control?.dispose();
+    this.monitor?.dispose();
     this.removers.forEach(remove => remove());
     this.client.exit();
   }

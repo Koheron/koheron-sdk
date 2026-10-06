@@ -8,17 +8,24 @@ proc pna_dma_net {left right} {
 if {[get_property CONFIG.c_include_sg [get_bd_cells axi_dma_0]] != 1} {error "DMA is not SG"}
 if {[get_property CONFIG.PKT_LENGTH [get_bd_cells phase_quantizer]] != 8192} {error "Wrong phase packet size"}
 if {[get_property CONFIG.TUSER_WIDTH [get_bd_cells phase_fifo]] != 6} {error "Missing packet metadata"}
-foreach core {cic fir phase_quantizer phase_range} {
+foreach core {phase_fixed_decimator phase_range} {
   pna_dma_net phase_stream_control/filter_resetn $core/aresetn
 }
-pna_dma_net phase_stream_control/filter_resetn phase_fifo/s_axis_aresetn
-pna_dma_net phase_stream_control/data_valid cic/s_axis_data_tvalid
-pna_dma_net phase_stream_control/data_ready cic/s_axis_data_tready
-pna_dma_net phase_stream_control/config_rate cic/s_axis_config_tdata
-pna_dma_net phase_stream_control/config_valid cic/s_axis_config_tvalid
-pna_dma_net phase_stream_control/config_ready cic/s_axis_config_tready
+foreach core {cic fir phase_quantizer} {
+  pna_dma_net phase_filter_cdc/resetn $core/aresetn
+  pna_dma_net ps_0/FCLK_CLK1 $core/aclk
+}
+pna_dma_net phase_filter_cdc/resetn phase_fifo/s_axis_aresetn
+pna_dma_net phase_stream_control/data_valid phase_fixed_decimator/s_axis_tvalid
+pna_dma_net phase_stream_control/data_ready phase_fixed_decimator/s_axis_tready
+pna_dma_net phase_stream_control/config_rate phase_filter_cdc/rate_in
+pna_dma_net phase_filter_cdc/rate cic/total_rate
+pna_dma_net adc_dac/adc_clk phase_fixed_decimator/aclk
+pna_dma_net adc_dac/adc_clk phase_cic_clock_converter/s_axis_aclk
+pna_dma_net ps_0/FCLK_CLK1 phase_cic_clock_converter/m_axis_aclk
+if {[get_property CONFIG.RATE_STEP [get_bd_cells phase_stream_control]] != 2} {error "Expected even CIC rates"}
 pna_dma_net phase_quantizer/sample_status sample_metadata/In0
-pna_dma_net phase_stream_control/sample_gap sample_metadata/In1
+pna_dma_net phase_quantizer/packet_status phase_filter_cdc/packet_in
 pna_dma_net sample_metadata/dout phase_fifo/s_axis_tuser
 foreach pair {{phase_fifo/M_AXIS phase_packet_framer/S_AXIS_0} {phase_packet_framer/M_AXIS axi_dma_0/S_AXIS_S2MM}} {
   lassign $pair left right
@@ -41,4 +48,4 @@ foreach space {Data_S2MM Data_SG} {
     error "Incorrect DMA DDR region"
   }
 }
-puts "PASS: single-stream cyclic SG DMA, full-history reset, wide phase and queued precision/gap metadata"
+puts "PASS: split CIC, slow programmable filters, cyclic SG DMA, full-history reset and queued precision/gap metadata"

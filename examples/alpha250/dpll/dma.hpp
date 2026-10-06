@@ -1,66 +1,39 @@
-/// DMA driver
-///
-/// (c) Koheron
+#pragma once
+#include "monitor-board.hpp"
+#include "server/drivers/phase-noise/core.hpp"
 
-#ifndef __ALPHA250_DPLL_DMA_HPP__
-#define __ALPHA250_DPLL_DMA_HPP__
-
-#include "server/runtime/syslog.hpp"
-#include "server/runtime/driver_manager.hpp"
-#include "server/hardware/memory_manager.hpp"
-#include "server/drivers/dma-s2mm.hpp"
-#include "boards/alpha250/drivers/clock-generator.hpp"
-
-#include <cstdint>
-#include <array>
-
-class Dma
-{
+class Dma {
   public:
-    Dma() {
-        fs_adc = rt::get_driver<ClockGenerator>().get_adc_sampling_freq();
-        set_cic_rate(prm::cic_decimation_rate_default);
-        logf("DMA transfer duration = {} s\n", double(dma_transfer_duration));
-    }
-
-    void set_cic_rate(uint32_t rate) {
-        if (rate < prm::cic_decimation_rate_min ||
-            rate > prm::cic_decimation_rate_max) {
-            log<ERROR>("DMA: CIC rate out of range\n");
-            return;
+    // Preserve the four original RPC IDs and raw capture's fixed array shape.
+    void set_cic_rate(uint32_t rate) { core.set_cic_rate(rate); }
+    const auto& get_data() {
+        raw_valid = core.copy_raw_capture(raw);
+        if (!raw_valid) {
+            raw.fill(0);
+            log<ERROR>("DPLL raw phase capture interrupted; use get_raw_capture_valid before accepting it\n");
         }
-
-        cic_rate = rate;
-        fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
-        dma_transfer_duration = prm::n_pts / fs;
-        hw::get_memory<mem::control>().write<reg::cic_rate>(cic_rate);
+        return raw;
     }
+    uint32_t get_data_size() { return raw.size(); }
+    uint32_t get_sampling_frequency() { return std::get<1>(core.get_parameters()).eval(); }
 
-    auto& get_data() {
-        auto& dma = rt::get_driver<DmaS2MM>();
-        dma.start_transfer(mem::ram_addr, sizeof(int32_t) * prm::n_pts);
-        dma.wait_for_transfer(dma_transfer_duration);
-        auto& ram = hw::get_memory<mem::ram>();
-        return ram.read_array<int32_t, data_size, read_offset>();
-    }
-
-    uint32_t get_data_size() {
-        return data_size;
-    }
-
-    uint32_t get_sampling_frequency() {
-        return fs;
-    }
+    void set_channel(uint32_t channel) { core.set_channel(channel); }
+    void set_fft_navg(uint32_t count) { core.set_fft_navg(count); }
+    bool set_phase_precision(uint32_t bits) { return core.set_phase_precision(bits); }
+    auto get_parameters() { return core.get_parameters(); }
+    auto get_spectrum_snapshot() const { return core.get_spectrum_snapshot(); }
+    auto get_phase_noise() const { return core.get_phase_noise(); }
+    auto get_average_status() const { return core.get_average_status(); }
+    auto get_precision_status() { return core.get_precision_status(); }
+    auto get_stream_status() { return core.get_stream_status(); }
+    auto get_phase_snapshot() const { return core.get_phase_snapshot(); }
+    auto get_dma_status() { return core.get_dma_status(); }
+    auto get_measurements(uint32_t navg) { return core.get_measurements(navg); }
+    void reset_average() { core.reset_average(); }
+    bool get_raw_capture_valid() const { return raw_valid; }
 
   private:
-    static constexpr uint32_t data_size = 1000000;
-    static constexpr uint32_t read_offset = (prm::n_pts - data_size) / 2;
-
-    uint32_t cic_rate;
-    float fs_adc, fs;
-    float dma_transfer_duration;
-
-    std::array<int32_t, data_size> data;
+    phase_noise::Core<DpllMonitorBoard> core;
+    std::array<int32_t, 1000000> raw{};
+    bool raw_valid = false;
 };
-
-#endif // __ALPHA250_DPLL_DMA_HPP__

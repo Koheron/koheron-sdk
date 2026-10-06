@@ -8,7 +8,7 @@
 int main() {
     PhaseNoiseAnalyzer analyzer;
     analyzer.set_tracking_enabled(false);
-    analyzer.set_cic_rate(67);
+    analyzer.set_cic_rate(68);
     analyzer.set_channel(0); // X
     analyzer.set_fft_navg(25);
     assert(analyzer.set_phase_precision(8));
@@ -36,7 +36,7 @@ int main() {
     const auto average=std::tuple{std::get<7>(snapshot), std::get<8>(snapshot)};
     assert(std::get<0>(average)>0 && std::get<1>(average)==25);
     const auto sequence=std::get<0>(snapshot);
-    analyzer.set_cic_rate(67);
+    analyzer.set_cic_rate(68);
     analyzer.set_channel(0);
     analyzer.set_fft_navg(25);
     assert(analyzer.set_phase_precision(8));
@@ -74,7 +74,7 @@ int main() {
     // both rolling and cumulative averages, without restarting valid DMA.
     for (unsigned selected : {0u, 2u}) {
         analyzer.set_channel(selected);
-        analyzer.set_cic_rate(selected == 0 ? 30 : 31);
+        analyzer.set_cic_rate(selected == 0 ? 30 : 32);
         auto fast=std::make_unique<SimulatedDma>(std::chrono::microseconds(100));
         const auto filled_deadline=std::chrono::steady_clock::now()+std::chrono::seconds(10);
         while (std::get<0>(analyzer.get_average_status()) < 3) {

@@ -54,3 +54,8 @@ OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi
 CORES += $(SDK_PATH)/fpga/cores/axis_stream_packet_mux_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_stream_control_v1_0
 CORES += $(SDK_PATH)/fpga/cores/phase_range_guard_v1_0
+
+# Full-precision split CIC and shared acquisition clock crossing.
+CORES += $(SDK_PATH)/fpga/cores/phase_fixed_decimator_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_cic_decimator_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_stream_cdc_v1_0

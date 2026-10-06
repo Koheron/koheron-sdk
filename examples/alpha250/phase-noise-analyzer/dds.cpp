@@ -11,7 +11,7 @@
 Dds::Dds()
 : clk_gen(rt::get_driver<ClockGenerator>())
 {
-    clk_gen.set_sampling_frequency(0);
+    clk_gen.set_sampling_frequency(1); // 250 MHz, matching the FPGA clock.
 }
 
 void Dds::set_dds_freq(uint32_t channel, double freq_hz) {

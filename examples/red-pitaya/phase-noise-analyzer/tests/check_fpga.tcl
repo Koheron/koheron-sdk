@@ -36,7 +36,7 @@ same_net cordic0/overflow phase_overflow/Op1
 foreach mux {adc_mux reference_mux accumulate_mux} {
     same_net slice_4_4_c_ctl_cordic/Dout $mux/sel
 }
-if {![get_property CONFIG.Use_Xtreme_DSP_Slice [get_bd_cells cic]]} {error "RP CIC must use DSPs"}
+if {[get_property VLNV [get_bd_cells cic]] ne "koheron:user:phase_cic_decimator:1.0"} {error "Expected shared slow CIC"}
 source [file join [file dirname [info script]] ../../../alpha250/phase-noise-analyzer/tests/check_dma.tcl]
 puts "PASS: RP 24-bit phase extraction, selected ADC/reference muxes and DAC/reference separation"
 close_project

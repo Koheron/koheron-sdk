@@ -132,15 +132,8 @@ cell xilinx.com:ip:c_addsub:12.0 phase_diff1 {
 # Monitor Phase with DMA
 ####################################
 
-# Define CIC parameters
-
-set diff_delay [get_parameter cic_differential_delay]
-set dec_rate_default [get_parameter cic_decimation_rate_default]
-set dec_rate_min [get_parameter cic_decimation_rate_min]
-set dec_rate_max [get_parameter cic_decimation_rate_max]
-set n_stages [get_parameter cic_n_stages]
-
-set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rate_min $diff_delay print]
+source $sdk_path/fpga/lib/pna_filter.tcl
+set_property XPM_LIBRARIES [lsort -unique [concat [get_property XPM_LIBRARIES [current_project]] XPM_CDC]] [current_project]
 
 set_property -dict [list CONFIG.NUM_SI {3} CONFIG.NUM_MI {3}] [get_bd_cells axi_mem_intercon_1]
 
@@ -161,6 +154,13 @@ cell koheron:user:paired_cic_control:1.0 paired_cic_control {} {
   sample_gap [sts_pin sample_gap]
 }
 
+cell koheron:user:phase_stream_cdc:1.0 phase_filter_cdc { METADATA_WIDTH 7 } {
+  clk ps_0/FCLK_CLK1 status_clk adc/adc_clk
+  resetn_in paired_cic_control/filter_resetn rate_in paired_cic_control/config_rate
+  metadata_in [get_concat_pin [list paired_cic_control/active_bits paired_cic_control/overflow_x paired_cic_control/overflow_y paired_cic_control/sample_gap]]
+  packet_in [get_constant_pin 0 32]
+}
+
 for {set i 0} {$i < 2} {incr i} {
   cell koheron:user:phase_range_guard:1.0 difference_range$i {
     INPUT_WIDTH [expr [get_parameter phase_accumulator_width] + 1]
@@ -170,45 +170,10 @@ for {set i 0} {$i < 2} {incr i} {
     aresetn paired_cic_control/filter_resetn
     din phase_diff$i/S
   }
-  cell xilinx.com:ip:cic_compiler:4.0 cic$i {
-    Filter_Type Decimation
-    Number_Of_Stages $n_stages
-    Fixed_Or_Initial_Rate $dec_rate_default
-    Sample_Rate_Changes Programmable
-    Minimum_Rate $dec_rate_min
-    Maximum_Rate $dec_rate_max
-    Differential_Delay $diff_delay
-    Input_Sample_Frequency [expr [get_parameter adc_clk] / 1000000.0]
-    Clock_Frequency [expr [get_parameter adc_clk] / 1000000.0]
-    Input_Data_Width 32
-    Quantization Truncation
-    Output_Data_Width [get_parameter phase_filter_width]
-    Use_Xtreme_DSP_Slice false
-    HAS_DOUT_TREADY true
-    HAS_ARESETN true
-  } {
-    aclk adc/adc_clk
-    s_axis_data_tdata difference_range$i/dout
-  }
-
-  cell xilinx.com:ip:fir_compiler:7.2 fir$i {
-    Filter_Type Decimation
-    Sample_Frequency [expr [get_parameter adc_clk] / 1000000. / $dec_rate_min]
-    Clock_Frequency [expr [get_parameter adc_clk] / 1000000.]
-    Coefficient_Width 32
-    Data_Width [get_parameter phase_filter_width]
-    Output_Rounding_Mode Convergent_Rounding_to_Even
-    Output_Width [get_parameter phase_filter_width]
-    Decimation_Rate 2
-    BestPrecision true
-    CoefficientVector [subst {{$fir_coeffs}}]
-    M_DATA_Has_TREADY true
-    Has_ARESETn true
-    Reset_Data_Vector true
-  } {
-    aclk adc/adc_clk
-    S_AXIS_DATA cic$i/M_AXIS_DATA
-  }
+  set input_ready [pna_create_filter $i adc/adc_clk paired_cic_control/filter_resetn \
+    difference_range$i/dout paired_cic_control/data_valid ps_0/FCLK_CLK1 \
+    [expr {[get_parameter fclk1] / 1000000.}] phase_filter_cdc/resetn phase_filter_cdc/rate]
+  connect_pins paired_cic_control/data_ready_[lindex {x y} $i] $input_ready
 
   cell xilinx.com:ip:util_vector_logic:2.0 cordic_overflow$i {
     C_SIZE 1 C_OPERATION or
@@ -226,15 +191,23 @@ for {set i 0} {$i < 2} {incr i} {
     PKT_LENGTH 8192
     BASE_SHIFT 8
   } {
-    aclk adc/adc_clk
-    requested_bits paired_cic_control/active_bits
-    upstream_overflow paired_cic_control/overflow_[lindex {x y} $i]
+    aclk ps_0/FCLK_CLK1
+    aresetn phase_filter_cdc/resetn
+    requested_bits [get_slice_pin phase_filter_cdc/metadata 3 0]
+    upstream_overflow [get_slice_pin phase_filter_cdc/metadata [expr {4+$i}] [expr {4+$i}]]
     S_AXIS fir$i/M_AXIS_DATA
   }
 
   cell xilinx.com:ip:xlconcat:2.1 sample_metadata$i { NUM_PORTS 2 } {
     In0 phase_quantizer$i/sample_status
-    In1 paired_cic_control/sample_gap
+    In1 [get_slice_pin phase_filter_cdc/metadata 6 6]
+  }
+  cell koheron:user:phase_stream_cdc:1.0 fifo_count_cdc$i {} {
+    clk ps_0/FCLK_CLK1 status_clk adc/adc_clk
+    resetn_in paired_cic_control/filter_resetn
+    rate_in paired_cic_control/config_rate
+    metadata_in [get_constant_pin 0 6]
+    packet_status [sts_pin fifo_wr_data_count$i]
   }
   cell xilinx.com:ip:axis_data_fifo:2.0 axis_data_fifo_$i {
     FIFO_DEPTH 32768
@@ -247,33 +220,22 @@ for {set i 0} {$i < 2} {incr i} {
   } {
     S_AXIS phase_quantizer$i/M_AXIS
     s_axis_tuser sample_metadata$i/dout
-    s_axis_aclk adc/adc_clk
+    s_axis_aclk ps_0/FCLK_CLK1
+    s_axis_aresetn phase_filter_cdc/resetn
     m_axis_aclk ps_0/FCLK_CLK1
     M_AXIS axis_stream_packet_m_0/S_AXIS_$i
     prog_full [get_interrupt_pin]
-    axis_wr_data_count [sts_pin fifo_wr_data_count$i]
+    axis_wr_data_count fifo_count_cdc$i/packet_in
   }
 }
 
 # Separate FIFO drains must not let X/Y accept different live ADC samples.
 # A shared rate source also keeps a runtime rate change on one sample epoch.
 connect_pins paired_cic_control/filter_resetn filter_reset/Op1
-connect_pins paired_cic_control/data_ready_x cic0/s_axis_data_tready
-connect_pins paired_cic_control/data_ready_y cic1/s_axis_data_tready
-connect_pins paired_cic_control/data_valid cic0/s_axis_data_tvalid
-connect_pins paired_cic_control/config_ready_x cic0/s_axis_config_tready
-connect_pins paired_cic_control/config_ready_y cic1/s_axis_config_tready
-connect_pins paired_cic_control/config_valid cic0/s_axis_config_tvalid
-connect_pins paired_cic_control/data_valid cic1/s_axis_data_tvalid
-connect_pins paired_cic_control/config_valid cic1/s_axis_config_tvalid
-connect_pins paired_cic_control/config_rate cic0/s_axis_config_tdata
-connect_pins paired_cic_control/config_rate cic1/s_axis_config_tdata
+connect_pins paired_cic_control/config_ready_x [get_constant_pin 1 1]
+connect_pins paired_cic_control/config_ready_y [get_constant_pin 1 1]
 for {set i 0} {$i < 2} {incr i} {
   connect_pins upstream_overflow$i/Res paired_cic_control/upstream_overflow_[lindex {x y} $i]
-  connect_pins paired_cic_control/filter_resetn phase_quantizer$i/aresetn
-  connect_pins paired_cic_control/filter_resetn cic$i/aresetn
-  connect_pins paired_cic_control/filter_resetn fir$i/aresetn
-  connect_pins paired_cic_control/filter_resetn axis_data_fifo_$i/s_axis_aresetn
 }
 
 # set idx_dma [add_master_interface $intercon_idx]
@@ -338,7 +300,7 @@ delete_bd_objs [get_bd_addr_segs -excluded axi_dma_0/Data_S2MM/SEG_axi_dma_0_Reg
 delete_bd_objs [get_bd_addr_segs -excluded axi_dma_0/Data_SG/SEG_axi_dma_0_Reg]
 delete_bd_objs [get_bd_addr_segs ps_0/Data/SEG_ps_0_HP0_DDR_LOWOCM]
 
-# Physical optimization closes the expanded phase pipeline at 200 MHz.
+# Physical optimization closes the phase extractor at 250 MHz.
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveExplore [get_runs impl_1]
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize [file join [file dirname [info script]] post_route.tcl]] [get_runs impl_1]
