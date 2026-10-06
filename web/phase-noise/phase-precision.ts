@@ -46,6 +46,13 @@ class PhasePrecision {
         // Read uint64 counters as pairs to avoid depending on BigInt support.
         const values = await this.client.readTuple(
             Command(this.id, this.commands['get_precision_status']), 'IIdIIIIIIIdd');
+        let overruns = 0;
+        if (this.commands['get_stream_status'] !== undefined) {
+            const stream = await this.client.readTuple(
+                Command(this.id, this.commands['get_stream_status']), 'IIIIIII');
+            // RPC integers are network byte order: high uint32 precedes low.
+            overruns = 4294967296 * stream[2] + stream[3];
+        }
         if (this.stopped) { return; }
         const [requested, captured, step, state] = values;
         // A pending user choice takes precedence over an older polling response.
@@ -53,7 +60,7 @@ class PhasePrecision {
         const resolution = step >= 1e-3 ? `${(step * 1e3).toPrecision(4)} mrad`
                                      : `${(step * 1e6).toPrecision(4)} µrad`;
         const messages = ['Settling…', 'Live', 'Overrange', 'Read error', 'Sample gap'];
-        this.status.textContent = `${resolution} · ${messages[state] || 'Waiting…'}`;
+        this.status.textContent = `${resolution} · ${state === 1 && overruns ? 'Live · Skips' : messages[state] || 'Waiting…'}`;
         this.status.dataset.state = state > 1 ? 'error' : state === 1 ? 'live' : 'waiting';
         const detail = state === 2
             ? requested > 0 ? 'Reduce precision or bring the LO closer to the carrier.'
@@ -61,7 +68,10 @@ class PhasePrecision {
             : state === 4 ? 'ADC samples were lost; this capture was discarded and acquisition is restarting.'
             : state === 3 ? 'Acquisition error; reconnect or restart the instrument if it persists.'
             : 'Higher precision reduces the available phase range.';
-        this.status.title = `${resolution} per count. Requested +${requested} bits; last packet +${captured} bits. ${detail}`;
+        const coverage = overruns
+            ? ` ${overruns} consumer overruns since instrument start: FFT windows were skipped, while valid averages were retained. Increase decimation for continuous coverage.`
+            : '';
+        this.status.title = `${resolution} per count. Requested +${requested} bits; last packet +${captured} bits. ${detail}${coverage}`;
     }
 
     private schedule(): void {

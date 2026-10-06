@@ -46,6 +46,24 @@ class SimulatedDma {
     ~SimulatedDma() {running.store(false);worker.join();}
 };
 
+template<class Block> void check(const Block& block) {
+    assert(block);
+    for(uint32_t i=0;i<block->samples.size();++i) {
+        assert(block->samples[i]==block->samples[0]+int32_t(i));
+    }
+}
+
+void check_overrun_recovery(CyclicPhaseDma& dma, const std::atomic<bool>& running, uint64_t old_end) {
+    const auto old_generation=dma.generation();
+    auto recovered=dma.read<32768>(old_end,running,2,true);check(recovered);
+    assert(recovered->skipped_hops>0);
+    assert(recovered->end_chunk==old_end+2*(1+recovered->skipped_hops));
+    assert(recovered->generation==old_generation && dma.generation()==old_generation);
+    assert(dma.overruns()==1);
+    auto after_recovery=dma.read<32768>(recovered->end_chunk,running,2,true);check(after_recovery);
+    assert(after_recovery->end_chunk==recovered->end_chunk+2 && after_recovery->skipped_hops==0);
+}
+
 int main() {
     std::atomic<bool> running{true};
     CyclicPhaseDma dma;
@@ -53,12 +71,7 @@ int main() {
     SimulatedDma producer;
     dma.configure_sampling(scicpp::units::frequency<float>{5e6f}, []{});
     dma.start_acquisition();
-    const auto check=[](const auto& block) {
-        assert(block);
-        for(uint32_t i=0;i<block->samples.size();++i) {
-            assert(block->samples[i]==block->samples[0]+int32_t(i));
-        }
-    };
+
     auto first=dma.read<65536>(0,running);check(first);
     auto next=dma.read<65536>(first->end_chunk,running);check(next);
     assert(next->end_chunk>=first->end_chunk+8);
@@ -66,6 +79,11 @@ int main() {
     auto shorter=dma.read<32768>(next->end_chunk,running);check(shorter);
     assert(shorter->end_chunk>=next->end_chunk+4);
     assert(shorter->samples[0]>next->samples.back());
+    auto stream_first=dma.read<32768>(shorter->end_chunk,running,2,false);check(stream_first);
+    auto stream_next=dma.read<32768>(stream_first->end_chunk,running,2,true);check(stream_next);
+    assert(stream_next->end_chunk==stream_first->end_chunk+2);
+    assert(stream_next->samples[0]==stream_first->samples[16384]);
+    assert(stream_next->generation==stream_first->generation);
     auto wrap=dma.read<65536>(CyclicPhaseDma::ring_chunks-4,running);check(wrap);
     assert(wrap->end_chunk>=CyclicPhaseDma::ring_chunks+4);
     // Configuration pauses the producer, resets phase and filter histories, then
@@ -133,6 +151,17 @@ int main() {
     dma.configure_sampling(scicpp::units::frequency<float>{5e6f},[]{});
     dma.start_acquisition();
     check(dma.read<65536>(dma.completed_chunks(),running));
+    // An overwritten hop resumes with a fully contiguous recent window,
+    // explicit coverage loss, and no producer reset or generation change.
+    const auto old_end=dma.completed_chunks();
+    const auto overrun_deadline=std::chrono::steady_clock::now()+std::chrono::seconds(10);
+    while(dma.completed_chunks()<old_end+CyclicPhaseDma::ring_chunks+4) {
+        assert(std::chrono::steady_clock::now()<overrun_deadline);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    check_overrun_recovery(dma, running, old_end);
+    dma.configure_sampling(scicpp::units::frequency<float>{5e6f},[]{});
+    check(dma.read<32768>(dma.completed_chunks(),running));
     hw::get_memory<mem::dma>().registers[0x34/4]=0x10;
     assert(!dma.read<65536>(UINT64_MAX,running));
     running.store(false);

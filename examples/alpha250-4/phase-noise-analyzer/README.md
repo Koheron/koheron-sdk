@@ -1,13 +1,49 @@
-This instrument measures the phase difference between IN0/IN1 (X) or IN2/IN3
+## Streaming Welch — version 1.3.0
 
-The analyzer now uses the [shared PNA plot and atomic spectrum snapshot](../../../server/drivers/phase-noise/README.md).
-Captured settings accompany each spectrum; FPS uses its publication sequence.
-Existing spectrum and phase RPCs remain available, and the browser supports
-older firmware through the existing read path.
+This revision shares the streaming Welch engine and cyclic DMA reader with
+ALPHA250 and Red Pitaya. A 32768-point real FFT starts every 16384 samples;
+software processes every queued hop until ring capacity is exhausted. X/Y
+publish a rolling three-segment Hann estimate, followed by the selected moving
+average. XY cumulatively averages signed complex segment cross spectra, counting
+each new segment once. Overlapping segments remain statistically correlated.
+
+Software multirate FIR filtering and frequency-bin stitching are removed.
+The spectrum has **16385 bins** with spacing **fs/32768**, replacing 15001 bins
+at fs/30000. Per-segment integer-domain detrending replaces the former global
+fit; close-offset response and averaging statistics change. Phase snapshots
+remain 32768 samples per channel and the FPGA packet format is unchanged.
+
+FFT workspaces and the paired worker persist across updates. Raw phase snapshots
+are converted only when requested; settings locks are released during FFT work.
+`get_stream_status()` reports processed segments, ring overruns, FFT length,
+hop length and Welch depth. Epoch changes invalidate retained segment history.
+An overwritten or damaged window is rejected rather than joined across a gap.
+Consumer overruns resume at a complete recent window, preserving valid averages
+and the DMA epoch. Only the three-segment Welch history resets across the skip;
+Chrome reports skipped coverage in the acquisition status. Settings changes,
+overflow, FPGA sample gaps and actual DMA errors still invalidate averages.
+
+At CIC 133 the acquisition ceiling is approximately 45.9 segments/s; at CIC 50
+it is approximately 122.1/s. Actual rates depend on processing and board load.
+Build/software checks and board measurements are reported separately below.
+
+On 192.168.1.12, XY at CIC 133 increased from 23.0 to 45.9 new segments/s,
+with median processing falling from 36.0 to approximately 11 ms. Thirty-second
+checks at CIC 100 and 133 reached 61.0 and 45.9/s without overruns, DMA errors,
+sample gaps or overflows. CIC 50 exceeded sustained CPU capacity and explicitly
+reported ring overruns. Use CIC 100 or higher for continuous half-window
+coverage under the tested load. See [hardware validation](tests/hardware-validation.md#streaming-welch-commonization-2026-10-06-pna-130).
+
+This instrument measures the phase difference between IN0/IN1 (X) or IN2/IN3
 (Y), or their cross-spectrum (XY). Channel selectors are X = 0, Y = 1, XY = 2.
 The server returns a one-sided phase PSD in rad²/Hz. Positive estimates convert
 to single-sideband phase noise with `10 * log10(PSD / 2)`; frequency-noise
 density is `f² * PSD` in Hz²/Hz.
+
+The analyzer uses the [shared PNA plot and atomic spectrum snapshot](../../../server/drivers/phase-noise/README.md).
+Captured settings accompany each spectrum; FPS uses its publication sequence.
+Existing spectrum and phase RPCs remain available, and the browser supports
+older firmware through the existing read path.
 
 ## Runtime phase precision
 
@@ -82,8 +118,8 @@ bitstream together: the normalized Q2.30 phase coefficients are incompatible
 with the old integer-multiplier bitstream. The server restores DUT radians
 and compensates the CIC's rate-dependent gain and downstream FIR scaling.
 
-Each spectrum consumes a fresh, non-overlapping DMA window. The XY cumulative
-count reports processed windows. Configuration changes clear averages and
+Each spectrum advances by half an FFT window. The XY cumulative
+count reports processed segments, which overlap and are correlated. Configuration changes clear averages and
 drain queued samples. Configuration holds both filters in reset, aborts the
 old DMA epoch and restarts the descriptor chain on X.
 Phase getters return the latest synchronized pair, with the integer unwrap
@@ -127,12 +163,12 @@ different amplitudes. Sample lengths, centering, one-sided density scaling,
 FIR compensation, stitching and signed cross-spectrum averaging are unchanged.
 This is a server optimization and uses the same FPGA design as 1.2.1.
 
-The stitched spectrum contains 15001 bins with spacing `fs / 30000`, where
+Before version 1.3.0, the stitched spectrum contained 15001 bins with spacing `fs / 30000`, where
 `fs = 200 MHz / (2 * CIC rate)`. Clients display offsets from two bins to 75%
 of Nyquist. Jitter integration uses full decades within that band. A fitted
 linear phase trend is removed before spectral processing; raw phase snapshots
-and tracking telemetry retain the original samples. Tracking estimates slope
-from 32000 samples and controls X and Y independently in XY mode.
+and tracking telemetry retain the original samples. Tracking now estimates slope
+from the current 32768-sample segment and controls X and Y independently in XY mode.
 
 The FPGA prefilter is four cascaded 16-sample moving averages, equivalent to a
 61-tap FIR with unity DC gain. Intermediate sums retain full precision; the

@@ -124,22 +124,22 @@ static NEVER_INLINE(void) passf2_ps(int ido, int l1, const v4sf * RESTRICT cc, v
   int l1ido = l1*ido;
   if (ido <= 2) {
     for (k=0; k < l1ido; k += ido, ch += ido, cc+= 2*ido) {
-      ch[0]         = VADD(cc[0], cc[ido+0]);
-      ch[l1ido]     = VSUB(cc[0], cc[ido+0]);
-      ch[1]         = VADD(cc[1], cc[ido+1]);
-      ch[l1ido + 1] = VSUB(cc[1], cc[ido+1]);
+      PFFFT_VSTORE(ch + (0), VADD(PFFFT_VLOAD(cc + (0)), PFFFT_VLOAD(cc + (ido+0))));
+      PFFFT_VSTORE(ch + (l1ido), VSUB(PFFFT_VLOAD(cc + (0)), PFFFT_VLOAD(cc + (ido+0))));
+      PFFFT_VSTORE(ch + (1), VADD(PFFFT_VLOAD(cc + (1)), PFFFT_VLOAD(cc + (ido+1))));
+      PFFFT_VSTORE(ch + (l1ido + 1), VSUB(PFFFT_VLOAD(cc + (1)), PFFFT_VLOAD(cc + (ido+1))));
     }
   } else {
     for (k=0; k < l1ido; k += ido, ch += ido, cc += 2*ido) {
       for (i=0; i<ido-1; i+=2) {
-        v4sf tr2 = VSUB(cc[i+0], cc[i+ido+0]);
-        v4sf ti2 = VSUB(cc[i+1], cc[i+ido+1]);
+        v4sf tr2 = VSUB(PFFFT_VLOAD(cc + (i+0)), PFFFT_VLOAD(cc + (i+ido+0)));
+        v4sf ti2 = VSUB(PFFFT_VLOAD(cc + (i+1)), PFFFT_VLOAD(cc + (i+ido+1)));
         v4sf wr = LD_PS1(wa1[i]), wi = VMUL(LD_PS1(fsign), LD_PS1(wa1[i+1]));
-        ch[i]   = VADD(cc[i+0], cc[i+ido+0]);
-        ch[i+1] = VADD(cc[i+1], cc[i+ido+1]);
+        PFFFT_VSTORE(ch + (i), VADD(PFFFT_VLOAD(cc + (i+0)), PFFFT_VLOAD(cc + (i+ido+0))));
+        PFFFT_VSTORE(ch + (i+1), VADD(PFFFT_VLOAD(cc + (i+1)), PFFFT_VLOAD(cc + (i+ido+1))));
         VCPLXMUL(tr2, ti2, wr, wi);
-        ch[i+l1ido]   = tr2;
-        ch[i+l1ido+1] = ti2;
+        PFFFT_VSTORE(ch + (i+l1ido), tr2);
+        PFFFT_VSTORE(ch + (i+l1ido+1), ti2);
       }
     }
   }
@@ -163,25 +163,25 @@ static NEVER_INLINE(void) passf3_ps(int ido, int l1, const v4sf * RESTRICT cc, v
   assert(ido > 2);
   for (k=0; k< l1ido; k += ido, cc+= 3*ido, ch +=ido) {
     for (i=0; i<ido-1; i+=2) {
-      tr2 = VADD(cc[i+ido], cc[i+2*ido]);
-      cr2 = SVMADD(taur, tr2, cc[i]);
-      ch[i]    = VADD(cc[i], tr2);
-      ti2 = VADD(cc[i+ido+1], cc[i+2*ido+1]);
-      ci2 = SVMADD(taur, ti2, cc[i    +1]);
-      ch[i+1]  = VADD(cc[i+1], ti2);
-      cr3 = SVMUL(taui, VSUB(cc[i+ido], cc[i+2*ido]));
-      ci3 = SVMUL(taui, VSUB(cc[i+ido+1], cc[i+2*ido+1]));
+      tr2 = VADD(PFFFT_VLOAD(cc + (i+ido)), PFFFT_VLOAD(cc + (i+2*ido)));
+      cr2 = SVMADD(taur, tr2, PFFFT_VLOAD(cc + (i)));
+      PFFFT_VSTORE(ch + (i), VADD(PFFFT_VLOAD(cc + (i)), tr2));
+      ti2 = VADD(PFFFT_VLOAD(cc + (i+ido+1)), PFFFT_VLOAD(cc + (i+2*ido+1)));
+      ci2 = SVMADD(taur, ti2, PFFFT_VLOAD(cc + (i    +1)));
+      PFFFT_VSTORE(ch + (i+1), VADD(PFFFT_VLOAD(cc + (i+1)), ti2));
+      cr3 = SVMUL(taui, VSUB(PFFFT_VLOAD(cc + (i+ido)), PFFFT_VLOAD(cc + (i+2*ido))));
+      ci3 = SVMUL(taui, VSUB(PFFFT_VLOAD(cc + (i+ido+1)), PFFFT_VLOAD(cc + (i+2*ido+1))));
       dr2 = VSUB(cr2, ci3);
       dr3 = VADD(cr2, ci3);
       di2 = VADD(ci2, cr3);
       di3 = VSUB(ci2, cr3);
       wr1=wa1[i]; wi1=fsign*wa1[i+1]; wr2=wa2[i]; wi2=fsign*wa2[i+1];
       VCPLXMUL(dr2, di2, LD_PS1(wr1), LD_PS1(wi1));
-      ch[i+l1ido] = dr2;
-      ch[i+l1ido + 1] = di2;
+      PFFFT_VSTORE(ch + (i+l1ido), dr2);
+      PFFFT_VSTORE(ch + (i+l1ido + 1), di2);
       VCPLXMUL(dr3, di3, LD_PS1(wr2), LD_PS1(wi2));
-      ch[i+2*l1ido] = dr3;
-      ch[i+2*l1ido+1] = di3;
+      PFFFT_VSTORE(ch + (i+2*l1ido), dr3);
+      PFFFT_VSTORE(ch + (i+2*l1ido+1), di3);
     }
   }
 } /* passf3 */
@@ -195,40 +195,40 @@ static NEVER_INLINE(void) passf4_ps(int ido, int l1, const v4sf * RESTRICT cc, v
   int l1ido = l1*ido;
   if (ido == 2) {
     for (k=0; k < l1ido; k += ido, ch += ido, cc += 4*ido) {
-      tr1 = VSUB(cc[0], cc[2*ido + 0]);
-      tr2 = VADD(cc[0], cc[2*ido + 0]);
-      ti1 = VSUB(cc[1], cc[2*ido + 1]);
-      ti2 = VADD(cc[1], cc[2*ido + 1]);
-      ti4 = VMUL(VSUB(cc[1*ido + 0], cc[3*ido + 0]), LD_PS1(fsign));
-      tr4 = VMUL(VSUB(cc[3*ido + 1], cc[1*ido + 1]), LD_PS1(fsign));
-      tr3 = VADD(cc[ido + 0], cc[3*ido + 0]);
-      ti3 = VADD(cc[ido + 1], cc[3*ido + 1]);
+      tr1 = VSUB(PFFFT_VLOAD(cc + (0)), PFFFT_VLOAD(cc + (2*ido + 0)));
+      tr2 = VADD(PFFFT_VLOAD(cc + (0)), PFFFT_VLOAD(cc + (2*ido + 0)));
+      ti1 = VSUB(PFFFT_VLOAD(cc + (1)), PFFFT_VLOAD(cc + (2*ido + 1)));
+      ti2 = VADD(PFFFT_VLOAD(cc + (1)), PFFFT_VLOAD(cc + (2*ido + 1)));
+      ti4 = VMUL(VSUB(PFFFT_VLOAD(cc + (1*ido + 0)), PFFFT_VLOAD(cc + (3*ido + 0))), LD_PS1(fsign));
+      tr4 = VMUL(VSUB(PFFFT_VLOAD(cc + (3*ido + 1)), PFFFT_VLOAD(cc + (1*ido + 1))), LD_PS1(fsign));
+      tr3 = VADD(PFFFT_VLOAD(cc + (ido + 0)), PFFFT_VLOAD(cc + (3*ido + 0)));
+      ti3 = VADD(PFFFT_VLOAD(cc + (ido + 1)), PFFFT_VLOAD(cc + (3*ido + 1)));
 
-      ch[0*l1ido + 0] = VADD(tr2, tr3);
-      ch[0*l1ido + 1] = VADD(ti2, ti3);
-      ch[1*l1ido + 0] = VADD(tr1, tr4);
-      ch[1*l1ido + 1] = VADD(ti1, ti4);
-      ch[2*l1ido + 0] = VSUB(tr2, tr3);
-      ch[2*l1ido + 1] = VSUB(ti2, ti3);
-      ch[3*l1ido + 0] = VSUB(tr1, tr4);
-      ch[3*l1ido + 1] = VSUB(ti1, ti4);
+      PFFFT_VSTORE(ch + (0*l1ido + 0), VADD(tr2, tr3));
+      PFFFT_VSTORE(ch + (0*l1ido + 1), VADD(ti2, ti3));
+      PFFFT_VSTORE(ch + (1*l1ido + 0), VADD(tr1, tr4));
+      PFFFT_VSTORE(ch + (1*l1ido + 1), VADD(ti1, ti4));
+      PFFFT_VSTORE(ch + (2*l1ido + 0), VSUB(tr2, tr3));
+      PFFFT_VSTORE(ch + (2*l1ido + 1), VSUB(ti2, ti3));
+      PFFFT_VSTORE(ch + (3*l1ido + 0), VSUB(tr1, tr4));
+      PFFFT_VSTORE(ch + (3*l1ido + 1), VSUB(ti1, ti4));
     }
   } else {
     for (k=0; k < l1ido; k += ido, ch+=ido, cc += 4*ido) {
       for (i=0; i<ido-1; i+=2) {
         float wr1, wi1, wr2, wi2, wr3, wi3;
-        tr1 = VSUB(cc[i + 0], cc[i + 2*ido + 0]);
-        tr2 = VADD(cc[i + 0], cc[i + 2*ido + 0]);
-        ti1 = VSUB(cc[i + 1], cc[i + 2*ido + 1]);
-        ti2 = VADD(cc[i + 1], cc[i + 2*ido + 1]);
-        tr4 = VMUL(VSUB(cc[i + 3*ido + 1], cc[i + 1*ido + 1]), LD_PS1(fsign));
-        ti4 = VMUL(VSUB(cc[i + 1*ido + 0], cc[i + 3*ido + 0]), LD_PS1(fsign));
-        tr3 = VADD(cc[i + ido + 0], cc[i + 3*ido + 0]);
-        ti3 = VADD(cc[i + ido + 1], cc[i + 3*ido + 1]);
+        tr1 = VSUB(PFFFT_VLOAD(cc + (i + 0)), PFFFT_VLOAD(cc + (i + 2*ido + 0)));
+        tr2 = VADD(PFFFT_VLOAD(cc + (i + 0)), PFFFT_VLOAD(cc + (i + 2*ido + 0)));
+        ti1 = VSUB(PFFFT_VLOAD(cc + (i + 1)), PFFFT_VLOAD(cc + (i + 2*ido + 1)));
+        ti2 = VADD(PFFFT_VLOAD(cc + (i + 1)), PFFFT_VLOAD(cc + (i + 2*ido + 1)));
+        tr4 = VMUL(VSUB(PFFFT_VLOAD(cc + (i + 3*ido + 1)), PFFFT_VLOAD(cc + (i + 1*ido + 1))), LD_PS1(fsign));
+        ti4 = VMUL(VSUB(PFFFT_VLOAD(cc + (i + 1*ido + 0)), PFFFT_VLOAD(cc + (i + 3*ido + 0))), LD_PS1(fsign));
+        tr3 = VADD(PFFFT_VLOAD(cc + (i + ido + 0)), PFFFT_VLOAD(cc + (i + 3*ido + 0)));
+        ti3 = VADD(PFFFT_VLOAD(cc + (i + ido + 1)), PFFFT_VLOAD(cc + (i + 3*ido + 1)));
 
-        ch[i] = VADD(tr2, tr3);
+        PFFFT_VSTORE(ch + (i), VADD(tr2, tr3));
         cr3    = VSUB(tr2, tr3);
-        ch[i + 1] = VADD(ti2, ti3);
+        PFFFT_VSTORE(ch + (i + 1), VADD(ti2, ti3));
         ci3 = VSUB(ti2, ti3);
 
         cr2 = VADD(tr1, tr4);
@@ -238,17 +238,17 @@ static NEVER_INLINE(void) passf4_ps(int ido, int l1, const v4sf * RESTRICT cc, v
         wr1=wa1[i]; wi1=fsign*wa1[i+1];
         VCPLXMUL(cr2, ci2, LD_PS1(wr1), LD_PS1(wi1));
         wr2=wa2[i]; wi2=fsign*wa2[i+1];
-        ch[i + l1ido] = cr2;
-        ch[i + l1ido + 1] = ci2;
+        PFFFT_VSTORE(ch + (i + l1ido), cr2);
+        PFFFT_VSTORE(ch + (i + l1ido + 1), ci2);
 
         VCPLXMUL(cr3, ci3, LD_PS1(wr2), LD_PS1(wi2));
         wr3=wa3[i]; wi3=fsign*wa3[i+1];
-        ch[i + 2*l1ido] = cr3;
-        ch[i + 2*l1ido + 1] = ci3;
+        PFFFT_VSTORE(ch + (i + 2*l1ido), cr3);
+        PFFFT_VSTORE(ch + (i + 2*l1ido + 1), ci3);
 
         VCPLXMUL(cr4, ci4, LD_PS1(wr3), LD_PS1(wi3));
-        ch[i + 3*l1ido] = cr4;
-        ch[i + 3*l1ido + 1] = ci4;
+        PFFFT_VSTORE(ch + (i + 3*l1ido), cr4);
+        PFFFT_VSTORE(ch + (i + 3*l1ido + 1), ci4);
       }
     }
   }
@@ -272,8 +272,8 @@ static NEVER_INLINE(void) passf5_ps(int ido, int l1, const v4sf * RESTRICT cc, v
 
   float wr1, wi1, wr2, wi2, wr3, wi3, wr4, wi4;
 
-#define cc_ref(a_1,a_2) cc[(a_2-1)*ido + a_1 + 1]
-#define ch_ref(a_1,a_3) ch[(a_3-1)*l1*ido + a_1 + 1]
+#define cc_ref(a_1,a_2) PFFFT_VLOAD(cc + ((a_2-1)*ido + a_1 + 1))
+#define ch_store(a_1,a_3,value) PFFFT_VSTORE(ch + ((a_3-1)*l1*ido + a_1 + 1), value)
 
   assert(ido > 2);
   for (k = 0; k < l1; ++k, cc += 5*ido, ch += ido) {
@@ -286,8 +286,8 @@ static NEVER_INLINE(void) passf5_ps(int ido, int l1, const v4sf * RESTRICT cc, v
       tr2 = VADD(cc_ref(i-1, 2), cc_ref(i-1, 5));
       tr4 = VSUB(cc_ref(i-1, 3), cc_ref(i-1, 4));
       tr3 = VADD(cc_ref(i-1, 3), cc_ref(i-1, 4));
-      ch_ref(i-1, 1) = VADD(cc_ref(i-1, 1), VADD(tr2, tr3));
-      ch_ref(i  , 1) = VADD(cc_ref(i  , 1), VADD(ti2, ti3));
+      ch_store(i-1, 1, VADD(cc_ref(i-1, 1), VADD(tr2, tr3)));
+      ch_store(i  , 1, VADD(cc_ref(i  , 1), VADD(ti2, ti3)));
       cr2 = VADD(cc_ref(i-1, 1), SVMADD(tr11, tr2, SVMUL(tr12, tr3)));
       ci2 = VADD(cc_ref(i  , 1), SVMADD(tr11, ti2, SVMUL(tr12, ti3)));
       cr3 = VADD(cc_ref(i-1, 1), SVMADD(tr12, tr2, SVMUL(tr11, tr3)));
@@ -307,20 +307,20 @@ static NEVER_INLINE(void) passf5_ps(int ido, int l1, const v4sf * RESTRICT cc, v
       wr1=wa1[i]; wi1=fsign*wa1[i+1]; wr2=wa2[i]; wi2=fsign*wa2[i+1];
       wr3=wa3[i]; wi3=fsign*wa3[i+1]; wr4=wa4[i]; wi4=fsign*wa4[i+1];
       VCPLXMUL(dr2, di2, LD_PS1(wr1), LD_PS1(wi1));
-      ch_ref(i - 1, 2) = dr2;
-      ch_ref(i, 2)     = di2;
+      ch_store(i - 1, 2, dr2);
+      ch_store(i, 2, di2);
       VCPLXMUL(dr3, di3, LD_PS1(wr2), LD_PS1(wi2));
-      ch_ref(i - 1, 3) = dr3;
-      ch_ref(i, 3)     = di3;
+      ch_store(i - 1, 3, dr3);
+      ch_store(i, 3, di3);
       VCPLXMUL(dr4, di4, LD_PS1(wr3), LD_PS1(wi3));
-      ch_ref(i - 1, 4) = dr4;
-      ch_ref(i, 4)     = di4;
+      ch_store(i - 1, 4, dr4);
+      ch_store(i, 4, di4);
       VCPLXMUL(dr5, di5, LD_PS1(wr4), LD_PS1(wi4));
-      ch_ref(i - 1, 5) = dr5;
-      ch_ref(i, 5)     = di5;
+      ch_store(i - 1, 5, dr5);
+      ch_store(i, 5, di5);
     }
   }
-#undef ch_ref
+#undef ch_store
 #undef cc_ref
 }
 
@@ -419,28 +419,28 @@ static NEVER_INLINE(void) radf2_ps(int ido, int l1, const v4sf * RESTRICT cc, v4
   static const float minus_one = -1.f;
   int i, k, l1ido = l1*ido;
   for (k=0; k < l1ido; k += ido) {
-    v4sf a = cc[k], b = cc[k + l1ido];
-    ch[2*k] = VADD(a, b);
-    ch[2*(k+ido)-1] = VSUB(a, b);
+    v4sf a = PFFFT_VLOAD(cc + (k)), b = PFFFT_VLOAD(cc + (k + l1ido));
+    PFFFT_VSTORE(ch + (2*k), VADD(a, b));
+    PFFFT_VSTORE(ch + (2*(k+ido)-1), VSUB(a, b));
   }
   if (ido < 2) return;
   if (ido != 2) {
     for (k=0; k < l1ido; k += ido) {
       for (i=2; i<ido; i+=2) {
-        v4sf tr2 = cc[i - 1 + k + l1ido], ti2 = cc[i + k + l1ido];
-        v4sf br = cc[i - 1 + k], bi = cc[i + k];
+        v4sf tr2 = PFFFT_VLOAD(cc + (i - 1 + k + l1ido)), ti2 = PFFFT_VLOAD(cc + (i + k + l1ido));
+        v4sf br = PFFFT_VLOAD(cc + (i - 1 + k)), bi = PFFFT_VLOAD(cc + (i + k));
         VCPLXMULCONJ(tr2, ti2, LD_PS1(wa1[i - 2]), LD_PS1(wa1[i - 1]));
-        ch[i + 2*k] = VADD(bi, ti2);
-        ch[2*(k+ido) - i] = VSUB(ti2, bi);
-        ch[i - 1 + 2*k] = VADD(br, tr2);
-        ch[2*(k+ido) - i -1] = VSUB(br, tr2);
+        PFFFT_VSTORE(ch + (i + 2*k), VADD(bi, ti2));
+        PFFFT_VSTORE(ch + (2*(k+ido) - i), VSUB(ti2, bi));
+        PFFFT_VSTORE(ch + (i - 1 + 2*k), VADD(br, tr2));
+        PFFFT_VSTORE(ch + (2*(k+ido) - i -1), VSUB(br, tr2));
       }
     }
     if (ido % 2 == 1) return;
   }
   for (k=0; k < l1ido; k += ido) {
-    ch[2*k + ido] = SVMUL(minus_one, cc[ido-1 + k + l1ido]);
-    ch[2*k + ido-1] = cc[k + ido-1];
+    PFFFT_VSTORE(ch + (2*k + ido), SVMUL(minus_one, PFFFT_VLOAD(cc + (ido-1 + k + l1ido))));
+    PFFFT_VSTORE(ch + (2*k + ido-1), PFFFT_VLOAD(cc + (k + ido-1)));
   }
 } /* radf2 */
 
@@ -621,14 +621,14 @@ static NEVER_INLINE(void) radf4_ps(int ido, int l1, const v4sf *RESTRICT cc, v4s
     v4sf * RESTRICT ch_ = ch;
     while (cc < cc_end) {
       /* this loop represents between 25% and 40% of total radf4_ps cost ! */
-      v4sf a0 = cc[0], a1 = cc[l1ido];
-      v4sf a2 = cc[2*l1ido], a3 = cc[3*l1ido];
+      v4sf a0 = PFFFT_VLOAD(cc + (0)), a1 = PFFFT_VLOAD(cc + (l1ido));
+      v4sf a2 = PFFFT_VLOAD(cc + (2*l1ido)), a3 = PFFFT_VLOAD(cc + (3*l1ido));
       v4sf tr1 = VADD(a1, a3);
       v4sf tr2 = VADD(a0, a2);
-      ch[2*ido-1] = VSUB(a0, a2);
-      ch[2*ido  ] = VSUB(a3, a1);
-      ch[0      ] = VADD(tr1, tr2);
-      ch[4*ido-1] = VSUB(tr2, tr1);
+      PFFFT_VSTORE(ch + (2*ido-1), VSUB(a0, a2));
+      PFFFT_VSTORE(ch + (2*ido  ), VSUB(a3, a1));
+      PFFFT_VSTORE(ch + (0      ), VADD(tr1, tr2));
+      PFFFT_VSTORE(ch + (4*ido-1), VSUB(tr2, tr1));
       cc += ido; ch += 4*ido;
     }
     cc = cc_; ch = ch_;
@@ -639,37 +639,37 @@ static NEVER_INLINE(void) radf4_ps(int ido, int l1, const v4sf *RESTRICT cc, v4s
     v4sf wr, wi, cr2, ci2, cr3, ci3, cr4, ci4;
     v4sf tr1, ti1, tr2, ti2, tr3, ti3, tr4, ti4;
     for (k = 0; k < l1ido; k += ido) {
-      cr2 = cc[1 + k + 1*l1ido];
-      ci2 = cc[1 + k + 1*l1ido + 1];
+      cr2 = PFFFT_VLOAD(cc + (1 + k + 1*l1ido));
+      ci2 = PFFFT_VLOAD(cc + (1 + k + 1*l1ido + 1));
       wr = LD_PS1(wa1[0]); wi = LD_PS1(wa1[1]);
       VCPLXMULCONJ(cr2, ci2, wr, wi);
 
-      cr3 = cc[1 + k + 2*l1ido];
-      ci3 = cc[1 + k + 2*l1ido + 1];
+      cr3 = PFFFT_VLOAD(cc + (1 + k + 2*l1ido));
+      ci3 = PFFFT_VLOAD(cc + (1 + k + 2*l1ido + 1));
       wr = LD_PS1(wa2[0]); wi = LD_PS1(wa2[1]);
       VCPLXMULCONJ(cr3, ci3, wr, wi);
 
-      cr4 = cc[1 + k + 3*l1ido];
-      ci4 = cc[1 + k + 3*l1ido + 1];
+      cr4 = PFFFT_VLOAD(cc + (1 + k + 3*l1ido));
+      ci4 = PFFFT_VLOAD(cc + (1 + k + 3*l1ido + 1));
       wr = LD_PS1(wa3[0]); wi = LD_PS1(wa3[1]);
       VCPLXMULCONJ(cr4, ci4, wr, wi);
 
       tr1 = VADD(cr2, cr4);
       tr4 = VSUB(cr4, cr2);
-      tr2 = VADD(cc[1 + k], cr3);
-      tr3 = VSUB(cc[1 + k], cr3);
-      ch[1 + 4*k] = VADD(tr1, tr2);
-      ch[0 + 4*k + 3*ido] = VSUB(tr2, tr1);
+      tr2 = VADD(PFFFT_VLOAD(cc + (1 + k)), cr3);
+      tr3 = VSUB(PFFFT_VLOAD(cc + (1 + k)), cr3);
+      PFFFT_VSTORE(ch + (1 + 4*k), VADD(tr1, tr2));
+      PFFFT_VSTORE(ch + (0 + 4*k + 3*ido), VSUB(tr2, tr1));
       ti1 = VADD(ci2, ci4);
       ti4 = VSUB(ci2, ci4);
-      ch[1 + 4*k + 2*ido] = VADD(ti4, tr3);
-      ch[0 + 4*k + 1*ido] = VSUB(tr3, ti4);
-      ti2 = VADD(cc[1 + k + 1], ci3);
-      ti3 = VSUB(cc[1 + k + 1], ci3);
-      ch[2 + 4*k] = VADD(ti1, ti2);
-      ch[1 + 4*k + 3*ido] = VSUB(ti1, ti2);
-      ch[2 + 4*k + 2*ido] = VADD(tr4, ti3);
-      ch[1 + 4*k + 1*ido] = VSUB(tr4, ti3);
+      PFFFT_VSTORE(ch + (1 + 4*k + 2*ido), VADD(ti4, tr3));
+      PFFFT_VSTORE(ch + (0 + 4*k + 1*ido), VSUB(tr3, ti4));
+      ti2 = VADD(PFFFT_VLOAD(cc + (1 + k + 1)), ci3);
+      ti3 = VSUB(PFFFT_VLOAD(cc + (1 + k + 1)), ci3);
+      PFFFT_VSTORE(ch + (2 + 4*k), VADD(ti1, ti2));
+      PFFFT_VSTORE(ch + (1 + 4*k + 3*ido), VSUB(ti1, ti2));
+      PFFFT_VSTORE(ch + (2 + 4*k + 2*ido), VADD(tr4, ti3));
+      PFFFT_VSTORE(ch + (1 + 4*k + 1*ido), VSUB(tr4, ti3));
     }
     return;
   }
@@ -681,20 +681,20 @@ static NEVER_INLINE(void) radf4_ps(int ido, int l1, const v4sf *RESTRICT cc, v4s
         v4sf wr, wi, cr2, ci2, cr3, ci3, cr4, ci4;
         v4sf tr1, ti1, tr2, ti2, tr3, ti3, tr4, ti4;
 
-        cr2 = pc[1*l1ido+0];
-        ci2 = pc[1*l1ido+1];
+        cr2 = PFFFT_VLOAD(pc + (1*l1ido+0));
+        ci2 = PFFFT_VLOAD(pc + (1*l1ido+1));
         wr=LD_PS1(wa1[i - 2]);
         wi=LD_PS1(wa1[i - 1]);
         VCPLXMULCONJ(cr2,ci2,wr,wi);
 
-        cr3 = pc[2*l1ido+0];
-        ci3 = pc[2*l1ido+1];
+        cr3 = PFFFT_VLOAD(pc + (2*l1ido+0));
+        ci3 = PFFFT_VLOAD(pc + (2*l1ido+1));
         wr = LD_PS1(wa2[i-2]);
         wi = LD_PS1(wa2[i-1]);
         VCPLXMULCONJ(cr3, ci3, wr, wi);
 
-        cr4 = pc[3*l1ido];
-        ci4 = pc[3*l1ido+1];
+        cr4 = PFFFT_VLOAD(pc + (3*l1ido));
+        ci4 = PFFFT_VLOAD(pc + (3*l1ido+1));
         wr = LD_PS1(wa3[i-2]);
         wi = LD_PS1(wa3[i-1]);
         VCPLXMULCONJ(cr4, ci4, wr, wi);
@@ -703,33 +703,33 @@ static NEVER_INLINE(void) radf4_ps(int ido, int l1, const v4sf *RESTRICT cc, v4s
 
         tr1 = VADD(cr2,cr4);
         tr4 = VSUB(cr4,cr2);
-        tr2 = VADD(pc[0],cr3);
-        tr3 = VSUB(pc[0],cr3);
-        ch[i - 1 + 4*k] = VADD(tr1,tr2);
-        ch[ic - 1 + 4*k + 3*ido] = VSUB(tr2,tr1); /* at this point tr1 and tr2 can be disposed */
+        tr2 = VADD(PFFFT_VLOAD(pc + (0)),cr3);
+        tr3 = VSUB(PFFFT_VLOAD(pc + (0)),cr3);
+        PFFFT_VSTORE(ch + (i - 1 + 4*k), VADD(tr1,tr2));
+        PFFFT_VSTORE(ch + (ic - 1 + 4*k + 3*ido), VSUB(tr2,tr1)); /* at this point tr1 and tr2 can be disposed */
         ti1 = VADD(ci2,ci4);
         ti4 = VSUB(ci2,ci4);
-        ch[i - 1 + 4*k + 2*ido] = VADD(ti4,tr3);
-        ch[ic - 1 + 4*k + 1*ido] = VSUB(tr3,ti4); /* dispose tr3, ti4 */
-        ti2 = VADD(pc[1],ci3);
-        ti3 = VSUB(pc[1],ci3);
-        ch[i + 4*k] = VADD(ti1, ti2);
-        ch[ic + 4*k + 3*ido] = VSUB(ti1, ti2);
-        ch[i + 4*k + 2*ido] = VADD(tr4, ti3);
-        ch[ic + 4*k + 1*ido] = VSUB(tr4, ti3);
+        PFFFT_VSTORE(ch + (i - 1 + 4*k + 2*ido), VADD(ti4,tr3));
+        PFFFT_VSTORE(ch + (ic - 1 + 4*k + 1*ido), VSUB(tr3,ti4)); /* dispose tr3, ti4 */
+        ti2 = VADD(PFFFT_VLOAD(pc + (1)),ci3);
+        ti3 = VSUB(PFFFT_VLOAD(pc + (1)),ci3);
+        PFFFT_VSTORE(ch + (i + 4*k), VADD(ti1, ti2));
+        PFFFT_VSTORE(ch + (ic + 4*k + 3*ido), VSUB(ti1, ti2));
+        PFFFT_VSTORE(ch + (i + 4*k + 2*ido), VADD(tr4, ti3));
+        PFFFT_VSTORE(ch + (ic + 4*k + 1*ido), VSUB(tr4, ti3));
       }
     }
     if (ido % 2 == 1) return;
   }
   for (k=0; k<l1ido; k += ido) {
-    v4sf a = cc[ido-1 + k + l1ido], b = cc[ido-1 + k + 3*l1ido];
-    v4sf c = cc[ido-1 + k], d = cc[ido-1 + k + 2*l1ido];
+    v4sf a = PFFFT_VLOAD(cc + (ido-1 + k + l1ido)), b = PFFFT_VLOAD(cc + (ido-1 + k + 3*l1ido));
+    v4sf c = PFFFT_VLOAD(cc + (ido-1 + k)), d = PFFFT_VLOAD(cc + (ido-1 + k + 2*l1ido));
     v4sf ti1 = SVMUL(minus_hsqt2, VADD(a, b));
     v4sf tr1 = SVMUL(minus_hsqt2, VSUB(b, a));
-    ch[ido-1 + 4*k] = VADD(tr1, c);
-    ch[ido-1 + 4*k + 2*ido] = VSUB(c, tr1);
-    ch[4*k + 1*ido] = VSUB(ti1, d);
-    ch[4*k + 3*ido] = VADD(ti1, d);
+    PFFFT_VSTORE(ch + (ido-1 + 4*k), VADD(tr1, c));
+    PFFFT_VSTORE(ch + (ido-1 + 4*k + 2*ido), VSUB(c, tr1));
+    PFFFT_VSTORE(ch + (4*k + 1*ido), VSUB(ti1, d));
+    PFFFT_VSTORE(ch + (4*k + 3*ido), VADD(ti1, d));
   }
 } /* radf4 */
 
@@ -1436,15 +1436,15 @@ void FUNC_CPLX_FINALIZE(int Ncvec, const v4sf *in, v4sf *out, const v4sf *e) {
   v4sf sr0, dr0, sr1, dr1, si0, di0, si1, di1;
   assert(in != out);
   for (k=0; k < dk; ++k) {
-    r0 = in[8*k+0]; i0 = in[8*k+1];
-    r1 = in[8*k+2]; i1 = in[8*k+3];
-    r2 = in[8*k+4]; i2 = in[8*k+5];
-    r3 = in[8*k+6]; i3 = in[8*k+7];
+    r0 = PFFFT_VLOAD(in + (8*k+0)); i0 = PFFFT_VLOAD(in + (8*k+1));
+    r1 = PFFFT_VLOAD(in + (8*k+2)); i1 = PFFFT_VLOAD(in + (8*k+3));
+    r2 = PFFFT_VLOAD(in + (8*k+4)); i2 = PFFFT_VLOAD(in + (8*k+5));
+    r3 = PFFFT_VLOAD(in + (8*k+6)); i3 = PFFFT_VLOAD(in + (8*k+7));
     VTRANSPOSE4(r0,r1,r2,r3);
     VTRANSPOSE4(i0,i1,i2,i3);
-    VCPLXMUL(r1,i1,e[k*6+0],e[k*6+1]);
-    VCPLXMUL(r2,i2,e[k*6+2],e[k*6+3]);
-    VCPLXMUL(r3,i3,e[k*6+4],e[k*6+5]);
+    VCPLXMUL(r1,i1,PFFFT_VLOAD(e + (k*6+0)),PFFFT_VLOAD(e + (k*6+1)));
+    VCPLXMUL(r2,i2,PFFFT_VLOAD(e + (k*6+2)),PFFFT_VLOAD(e + (k*6+3)));
+    VCPLXMUL(r3,i3,PFFFT_VLOAD(e + (k*6+4)),PFFFT_VLOAD(e + (k*6+5)));
 
     sr0 = VADD(r0,r2); dr0 = VSUB(r0, r2);
     sr1 = VADD(r1,r3); dr1 = VSUB(r1, r3);
@@ -1469,8 +1469,8 @@ void FUNC_CPLX_FINALIZE(int Ncvec, const v4sf *in, v4sf *out, const v4sf *e) {
     r2 = VSUB(sr0, sr1); i2 = VSUB(si0, si1);
     r3 = VSUB(dr0, di1); i3 = VADD(di0, dr1);
 
-    *out++ = r0; *out++ = i0; *out++ = r1; *out++ = i1;
-    *out++ = r2; *out++ = i2; *out++ = r3; *out++ = i3;
+    PFFFT_VSTORE(out++, r0); PFFFT_VSTORE(out++, i0); PFFFT_VSTORE(out++, r1); PFFFT_VSTORE(out++, i1);
+    PFFFT_VSTORE(out++, r2); PFFFT_VSTORE(out++, i2); PFFFT_VSTORE(out++, r3); PFFFT_VSTORE(out++, i3);
   }
 }
 
@@ -1512,8 +1512,8 @@ static ALWAYS_INLINE(void) FUNC_REAL_FINALIZE_4X4(const v4sf *in0, const v4sf *i
                             const v4sf *e, v4sf *out) {
   v4sf r0, i0, r1, i1, r2, i2, r3, i3;
   v4sf sr0, dr0, sr1, dr1, si0, di0, si1, di1;
-  r0 = *in0; i0 = *in1;
-  r1 = *in++; i1 = *in++; r2 = *in++; i2 = *in++; r3 = *in++; i3 = *in++;
+  r0 = PFFFT_VLOAD(in0); i0 = PFFFT_VLOAD(in1);
+  r1 = PFFFT_VLOAD(in++); i1 = PFFFT_VLOAD(in++); r2 = PFFFT_VLOAD(in++); i2 = PFFFT_VLOAD(in++); r3 = PFFFT_VLOAD(in++); i3 = PFFFT_VLOAD(in++);
   VTRANSPOSE4(r0,r1,r2,r3);
   VTRANSPOSE4(i0,i1,i2,i3);
 
@@ -1533,9 +1533,9 @@ static ALWAYS_INLINE(void) FUNC_REAL_FINALIZE_4X4(const v4sf *in0, const v4sf *i
   /* cerr << "matrix initial, before e , REAL:\n 1: " << r0 << "\n 1: " << r1 << "\n 1: " << r2 << "\n 1: " << r3 << "\n"; */
   /* cerr << "matrix initial, before e, IMAG :\n 1: " << i0 << "\n 1: " << i1 << "\n 1: " << i2 << "\n 1: " << i3 << "\n"; */
 
-  VCPLXMUL(r1,i1,e[0],e[1]);
-  VCPLXMUL(r2,i2,e[2],e[3]);
-  VCPLXMUL(r3,i3,e[4],e[5]);
+  VCPLXMUL(r1,i1,PFFFT_VLOAD(e + (0)),PFFFT_VLOAD(e + (1)));
+  VCPLXMUL(r2,i2,PFFFT_VLOAD(e + (2)),PFFFT_VLOAD(e + (3)));
+  VCPLXMUL(r3,i3,PFFFT_VLOAD(e + (4)),PFFFT_VLOAD(e + (5)));
 
   /* cerr << "matrix initial, real part:\n 1: " << r0 << "\n 1: " << r1 << "\n 1: " << r2 << "\n 1: " << r3 << "\n"; */
   /* cerr << "matrix initial, imag part:\n 1: " << i0 << "\n 1: " << i1 << "\n 1: " << i2 << "\n 1: " << i3 << "\n"; */
@@ -1554,14 +1554,14 @@ static ALWAYS_INLINE(void) FUNC_REAL_FINALIZE_4X4(const v4sf *in0, const v4sf *i
   i1 = VSUB(dr1, di0);
   i2 = VADD(dr1, di0);
 
-  *out++ = r0;
-  *out++ = i0;
-  *out++ = r1;
-  *out++ = i1;
-  *out++ = r2;
-  *out++ = i2;
-  *out++ = r3;
-  *out++ = i3;
+  PFFFT_VSTORE(out++, r0);
+  PFFFT_VSTORE(out++, i0);
+  PFFFT_VSTORE(out++, r1);
+  PFFFT_VSTORE(out++, i1);
+  PFFFT_VSTORE(out++, r2);
+  PFFFT_VSTORE(out++, i2);
+  PFFFT_VSTORE(out++, r3);
+  PFFFT_VSTORE(out++, i3);
 
 }
 

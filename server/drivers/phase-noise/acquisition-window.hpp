@@ -24,4 +24,18 @@ inline bool acquisition_window_is_intact(
     return completed >= window.end_chunk && completed - window.first_chunk < ring_chunks;
 }
 
+// Streaming Welch consumes every half-window, including when several hops are
+// already queued. The first read fills the window; later reads retain overlap.
+// The caller checks retention before copying and reports a ring overrun.
+inline std::optional<AcquisitionWindow> streaming_acquisition_window(
+    uint64_t completed, uint64_t consumed, uint32_t chunks,
+    uint32_t hop, bool initialized) {
+    const uint32_t advance = initialized ? hop : chunks;
+    if (hop == 0 || hop > chunks || completed < consumed ||
+        completed - consumed < advance) return std::nullopt;
+    const uint64_t end = consumed + advance;
+    if (end < chunks) return std::nullopt;
+    return AcquisitionWindow{end - chunks, end};
+}
+
 #endif

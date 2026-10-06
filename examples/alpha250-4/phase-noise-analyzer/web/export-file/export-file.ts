@@ -27,7 +27,7 @@ class ExportFile {
             '"LO 3 frequency (Hz)",' + parameters.fdds3,
             '"Decimation rate",' + parameters.cic_rate,
             '"Averaging window (spectra)",' + parameters.fft_navg,
-            '"Cumulative XY windows",' + parameters.avgxy_count,
+            '"Cumulative XY segments",' + parameters.avgxy_count,
             '',
             '"Offset frequency (Hz)","' + this.plot_.yLabel + '","' + this.plot_.yLabel + ' (smoothed)","Signed phase PSD (rad^2/Hz)"'
         ];
@@ -52,7 +52,7 @@ class ExportFile {
     }
 
     private frameLabel(p: IParameters): string {
-        return `${["X", "Y", "XY"][p.channel]} · CIC ${p.cic_rate} · ${p.channel === 2 ? p.avgxy_count + " cumulative windows" : "averaging window " + p.fft_navg}`;
+        return `${["X", "Y", "XY"][p.channel]} · CIC ${p.cic_rate} · ${p.channel === 2 ? p.avgxy_count + " cumulative segments" : "averaging window " + p.fft_navg}`;
     }
 
     private exportPlot(): void {

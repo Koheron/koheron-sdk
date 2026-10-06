@@ -8,7 +8,7 @@ class SimulatedDma {
     std::atomic<bool> running{true};
     std::thread worker;
   public:
-    SimulatedDma() : worker([this] {
+    explicit SimulatedDma(std::chrono::microseconds packet_period = std::chrono::microseconds(100)) : worker([this, packet_period] {
         auto& ram=hw::get_memory<mem::ram>();
         auto& engine=hw::get_memory<mem::dma>();
         auto& ctl=hw::get_memory<mem::control>();
@@ -37,7 +37,7 @@ class SimulatedDma {
                     if(y) sample+=PhaseDma::samples_per_chunk;
                 }
             }
-            std::this_thread::sleep_for(std::chrono::microseconds(100));
+            std::this_thread::sleep_for(packet_period);
         }
     }) {}
     ~SimulatedDma() {running.store(false);worker.join();}

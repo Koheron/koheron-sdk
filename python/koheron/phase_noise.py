@@ -16,8 +16,15 @@ def get_spectrum_snapshot(self):
     return metadata, values
 
 
+@command(classname="PhaseNoiseAnalyzer")
+def get_stream_status(self):
+    """New segment count, ring overruns, FFT length, hop length, Welch depth."""
+    return self.client.recv_tuple("QQIII")
+
+
 class SingleChannelPhaseNoiseAnalyzer:
     get_spectrum_snapshot = get_spectrum_snapshot
+    get_stream_status = get_stream_status
 
     def __init__(self, client):
         self.client = client

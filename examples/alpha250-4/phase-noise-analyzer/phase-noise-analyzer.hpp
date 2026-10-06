@@ -29,7 +29,7 @@
 #include "./phase_scaling.hpp"
 #include "./phase-processing.hpp"
 #include "./tracking_lock.hpp"
-#include "./phase-spectrum.hpp"
+#include "server/drivers/phase-noise/streaming-welch.hpp"
 
 namespace rt { class ConfigManager; }
 class Ltc2157;
@@ -47,7 +47,7 @@ class PhaseNoiseAnalyzer
 
     // Acquisition and spectrum sizes
     static constexpr uint32_t data_size = 32768; // Raw acquisition samples per channel.
-    static constexpr uint32_t spectrum_samples = 30000;
+    static constexpr uint32_t spectrum_samples = 32768;
     static constexpr uint32_t spectrum_bins = spectrum_samples / 2 + 1;
     // Standard precision retains the pi/8192 CORDIC scale and the fixed-point
     // FIR DC gain of 1/4. Additional retained bits divide radians/count by 2^bits.
@@ -158,10 +158,16 @@ class PhaseNoiseAnalyzer
     auto get_phase_snapshot() {
         using namespace scicpp::operators;
         std::shared_lock lk(data_mtx);
-        return std::tuple{accepted_captures, captured_precision, capture_state == Valid, phase_x | phase_y};
+        return std::tuple{accepted_captures, captured_precision, capture_state == Valid, relative_phase_snapshot(raw_phase_x, captured_scale_x) | relative_phase_snapshot(raw_phase_y, captured_scale_y)};
     }
 
     auto get_spectrum_snapshot() const { return publication.snapshot(); }
+    auto get_stream_status() const {
+        std::shared_lock lk(data_mtx);
+        return std::tuple{processed_segments, dma.overruns(), spectrum_samples,
+                          spectrum_samples / 2, 3u};
+    }
+
 
   private:
     rt::ConfigManager& cfg;
@@ -196,8 +202,8 @@ class PhaseNoiseAnalyzer
     phase_noise::SpectrumPublication<PhaseNoiseDensity> publication{spectrum_bins};
     void publish_spectrum(std::optional<std::array<double, 4>> acquired_lo = std::nullopt);
 
-    PhaseDataArray phase_x{};
-    PhaseDataArray phase_y{};
+    std::array<int32_t, data_size> raw_phase_x{}, raw_phase_y{};
+    Phase captured_scale_x{}, captured_scale_y{};
     double phase_scale_x = 1.0, phase_scale_y = 1.0;
     double cic_output_scale = 1.0;
     uint64_t acquisition_epoch = 0;
@@ -210,12 +216,12 @@ class PhaseNoiseAnalyzer
     std::chrono::steady_clock::time_point last_capture_time{};
     std::chrono::steady_clock::time_point last_overrange_reset{};
     void restart_filters();
-    using SpectrumPhaseArray = std::array<Phase, 32000>;
 
     // Spectrum analyzer
     std::thread sa_thread;
     std::atomic<bool> spectrum_analyzer_started{false};
-    pna_spectrum::MultirateSpectrum spectrum;
+    phase_noise::StreamingWelch<spectrum_samples> spectrum;
+    uint64_t processed_segments = 0;
     PhaseNoiseDensityVector phase_noise;
     MovingAverager<PhaseNoiseDensity> averager;
     CumulativeAverager<ComplexPhaseNoiseDensity> averager_xy;
@@ -256,8 +262,6 @@ class PhaseNoiseAnalyzer
     void set_frequency_scalings();
     void update_interferometer_transfer_function();
     void set_power_conversion_factor();
-    auto compute_phase_noise(SpectrumPhaseArray& new_phase);
-    auto compute_crossed_phase_noise(SpectrumPhaseArray& new_phase_x, SpectrumPhaseArray& new_phase_y);
     void compute_jitter(Frequency f_dut);
     double carrier_power(uint32_t navg);
     void configure_cic_rate(uint32_t rate);

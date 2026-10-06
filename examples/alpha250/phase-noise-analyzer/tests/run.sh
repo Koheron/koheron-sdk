@@ -29,9 +29,16 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     "$output/dds"
     g++-13 "${flags[@]}" "$tests/test_moving_averager.cpp" -o "$output/averager"
     "$output/averager"
-    g++-13 "${flags[@]}" "$tests/test_welch.cpp" \
-        server/external_libs/pffft/pffft.cpp -o "$output/welch"
-    "$output/welch"
+    for backend in simd scalar; do
+        extra=()
+        if [ "$backend" = scalar ]; then extra=(-DPFFFT_SIMD_DISABLE); fi
+        g++-13 "${flags[@]}" "${extra[@]}" "$tests/test_welch.cpp" \
+            server/external_libs/pffft/pffft.cpp -o "$output/welch-$backend"
+        "$output/welch-$backend"
+        g++-13 "${flags[@]}" "${extra[@]}" server/external_libs/pffft/tests/test_transform.cpp \
+            server/external_libs/pffft/pffft.cpp -o "$output/fft-$backend"
+        "$output/fft-$backend"
+    done
     g++-13 "${flags[@]}" server/drivers/phase-noise/tests/test_spectrum_publication.cpp -o "$output/publication"
     "$output/publication" "$output/spectrum-frame.bin"
     g++-13 -Iserver/drivers/phase-noise/tests/stubs "${flags[@]}" server/drivers/phase-noise/tests/test_cyclic_phase_dma.cpp -o "$output/cyclic-dma"
@@ -41,6 +48,9 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     "$output/alpha250-4-core"
     g++-13 "${flags[@]}" examples/alpha250-4/phase-noise-analyzer/tests/test_phase_spectrum.cpp server/external_libs/pffft/pffft.cpp -o "$output/alpha250-4-spectrum"
     "$output/alpha250-4-spectrum"
+    g++-13 "${flags[@]}" server/drivers/phase-noise/tests/test_streaming_welch.cpp \
+        server/external_libs/pffft/pffft.cpp -o "$output/streaming-welch"
+    "$output/streaming-welch" "$output/streaming-welch.bin"
 '
 docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     "${PNA_WEB_IMAGE:-koheron-web:node20}" sh -c '
@@ -53,3 +63,5 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     fi
     node --test "$tests/test_plot.cjs" "$tests/test_rendering.cjs" "$tests/test_numeric_controls.cjs" "$tests/test_signal_generator.cjs" web/phase-noise/tests/test_phase_precision.cjs web/phase-noise/tests/test_spectrum.cjs
 '
+
+"${PNA_PYTHON:-.venv/bin/python3}" server/drivers/phase-noise/tests/check_streaming_welch.py "$pna_output/streaming-welch.bin"

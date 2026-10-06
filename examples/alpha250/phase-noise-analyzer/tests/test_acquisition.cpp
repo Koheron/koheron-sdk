@@ -174,7 +174,9 @@ int main() {
     // pairing the old four-window density with a new two-window count.
     const auto resized = analyzer.get_spectrum_snapshot();
     assert(std::get<7>(resized) == 2u && std::get<8>(resized) == 2u);
-    const double expected_ratio = (.4 * .4 + .5 * .5) / 2 / (.1 * .1);
+    // Two retained updates each contain the latest three unique segments.
+    const double expected_ratio = ((.2*.2 + .3*.3 + .4*.4) / 3 +
+                                   (.3*.3 + .4*.4 + .5*.5) / 3) / 2 / (.1*.1);
     assert(std::abs(std::get<16>(resized)[64].eval() / pn[64].eval() / expected_ratio - 1) < .01);
     ram.amplitude = .1;
     analyzer.set_fft_navg(4);
@@ -199,7 +201,7 @@ int main() {
     analyzer.set_fft_navg(2); acquire();
     analyzer.set_fft_navg(1);
     ram.amplitude = 0; ram.drift = 0;
-    acquire();
+    for (unsigned i = 0; i < 3; ++i) acquire(); // Drain the rolling Welch history.
     analyzer.set_fft_navg(2); acquire();
     assert(analyzer.get_phase_noise()[64].eval() == 0.f); // no old unaveraged history
 
@@ -208,7 +210,7 @@ int main() {
     assert(std::get<4>(analyzer.get_parameters()) == 100);
     analyzer.set_fft_navg(0);
     assert(std::get<4>(analyzer.get_parameters()) == 1);
-    acquire();
+    for (unsigned i = 0; i < 3; ++i) acquire();
     const auto rf = analyzer.get_phase_noise()[64].eval();
     analyzer.set_interferometer_delay(1e-6f);
     analyzer.set_analyzer_mode(1);

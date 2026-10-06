@@ -1,3 +1,11 @@
+The shared estimator now processes 32768-point Hann segments every 16384 samples,
+reusing the last three segment spectra for streaming Welch. Each segment receives
+its own integer-domain linear detrend. Successive estimates overlap and are
+correlated. Existing 65536-sample phase RPCs are retained; raw phase conversion
+runs only when a client requests it. `get_stream_status()` returns processed
+segments, ring overruns, FFT length, hop length and Welch depth. See the
+[shared processing notes](../../../server/drivers/phase-noise/README.md).
+
 # ALPHA250 phase-noise analyzer
 
 The analyzer now uses the [shared PNA plot and atomic spectrum snapshot](../../../server/drivers/phase-noise/README.md).

@@ -11,15 +11,15 @@ for (const board of ['alpha250', 'alpha250-4', 'red-pitaya']) {
     const dom = new JSDOM(fs.readFileSync(path.join(root, `examples/${board}/phase-noise-analyzer/web/index.html`), 'utf8'), {runScripts: 'outside-only'});
     t.after(() => dom.window.close());
     const w = dom.window, calls = [];
-    let requested = 0, captured = 0, state = 1, timer;
+    let requested = 0, captured = 0, state = 1, overruns = 0, timer;
     w.setTimeout = callback => {timer = callback; return 42;};
     w.clearTimeout = id => calls.push(['cancel', id]);
     w.Command = (id, command, ...args) => [command, ...args];
     w.eval(ts.transpileModule(fs.readFileSync(path.join(root, 'web/phase-noise/phase-precision.ts'), 'utf8'),
       {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.PhasePrecision = PhasePrecision;');
     const client = {
-      getDriver() {return {id: 1, getCmds: () => ({set_phase_precision: 'set', get_precision_status: 'get'})};},
-      async readTuple() {return [requested, captured, .0016 / 2**requested, state];},
+      getDriver() {return {id: 1, getCmds: () => ({set_phase_precision: 'set', get_precision_status: 'get', get_stream_status: 'stream'})};},
+      async readTuple(command) {return command[0] === 'stream' ? [0,0,Math.floor(overruns / 4294967296),overruns % 4294967296,32768,16384,3] : [requested, captured, .0016 / 2**requested, state];},
       async readBool(command) {calls.push(command); requested = captured = command[1]; return true;}
     };
     const widget = new w.PhasePrecision(client, w.document);
@@ -33,6 +33,12 @@ for (const board of ['alpha250', 'alpha250-4', 'red-pitaya']) {
       assert.match(status.title, new RegExp(`Requested \\+${bits} bits; last packet \\+${bits} bits`));
       assert.equal(select.disabled, false);
     }
+    overruns = 3; await timer();
+    assert.match(status.textContent, /Live · Skips/);
+    assert.match(status.title, /3 consumer overruns/);
+    assert.match(status.title, /valid averages were retained/);
+    overruns = 4294967299; await timer();
+    assert.match(status.title, /4294967299 consumer overruns/);
     state = 2; await timer();
     assert.match(status.textContent, /Overrange/);
     assert.match(status.title, /Reduce precision/);

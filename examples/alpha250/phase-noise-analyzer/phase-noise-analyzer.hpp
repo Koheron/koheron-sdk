@@ -32,6 +32,7 @@ class PhaseNoiseAnalyzer {
 
     auto get_spectrum_snapshot() const { return core.get_spectrum_snapshot(); }
     auto get_dma_status() { return core.get_dma_status(); }
+    auto get_stream_status() { return core.get_stream_status(); }
 
  private:
     phase_noise::Core<Alpha250PhaseNoiseBoard> core;
