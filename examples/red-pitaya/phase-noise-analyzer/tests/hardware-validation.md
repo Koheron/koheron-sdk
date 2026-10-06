@@ -332,3 +332,210 @@ Artifacts are in `tmp/pffft-gcc/`: `core-bench-final.log`, `pna-bench.log`,
 `arm-final-checks.log`, `transform-tests.log`, `regressions.log`,
 `build-*-final.log`, `dependency-check.json`, `before-live.json`,
 `after-live.json`, `deploy.log`, settings snapshots and before/after archives.
+
+## Single CIC restored in 1.3.1 (2026-10-06)
+
+The split-CIC 1.3.0 FPGA introduced hardware sample gaps on this 125 MHz
+board. Twenty-four trials across both inputs, CIC 10, 20, 50 and 80, and three
+acquisition restarts per setting recorded 447 gaps. The previous 1.2.0 FPGA
+recorded zero in the same trials, using either the previous server or the new
+streaming server. This isolates the regression to the new FPGA acquisition
+path; it does not identify the failing RTL stage.
+
+Version 1.3.1 restores the six-stage programmable Xilinx CIC on the ADC clock,
+followed by the compensation FIR and quantizer. The filtered stream crosses
+to FCLK1 through the existing DMA FIFO. Integer CIC rates, including odd rates,
+are supported again. The 65536-sample phase snapshots, cyclic SG DMA ring,
+packet metadata, precision controls and new streaming DSP remain in use.
+ALPHA250 instruments retain their split filter.
+
+### Build checks
+
+- Full Vivado 2025.1 instrument build, ARM server, browser bundle, overlay and
+  ZIP package passed with timing enforcement enabled.
+- Routed setup slack +0.284088 ns, hold slack +0.008955 ns; pulse-width checks
+  and 15 bus-skew constraints passed. Inherited external I/O-delay omissions
+  remain; these margins cover the constrained paths.
+- Red Pitaya connection assertions passed for the single CIC, 125 MHz
+  filter clocks, configuration handshake, epoch resets, precision/gap metadata,
+  phase extraction, ADC/reference muxes and cyclic DMA.
+- Seven numeric-control browser tests passed, including odd-rate Red Pitaya
+  acceptance and even-rate ALPHA250 validation. ALPHA250 project generation
+  and split-filter connection assertions also passed. This follow-up did not
+  repeat ALPHA250 routing or hardware measurements.
+
+### Hardware tests
+
+The complete 1.3.1 archive was deployed to `192.168.1.84`. HTTP readback of
+the server, FPGA binary, overlay, RPC metadata and browser bundle matched the
+archive. FPGA SHA-256:
+`914bdf5870c99ebbc68aa348ed29636304d03d7348b254caf3c3cda6bee2bead`.
+Archive SHA-256:
+`0ad63e1c7218597aa8f1017e086987b9a118b6781d0e8417c64b4fe7a6e2d50a`.
+
+Thirty-six two-second trials covered both inputs, CIC 4, 10, 20, 50, 67 and
+80, with three precision-triggered acquisition restarts per setting. All
+trials produced valid captures: 5137 accepted in total, with zero hardware
+sample gaps, DMA errors or overflows. The CPU can still skip processing hops
+at fast rates; that coverage counter is separate from hardware sample gaps.
+
+At CIC 8192, parameter and spectrum reads returned in 0.76 and 2.50 ms while
+acquisition was settling. Changing to odd rate 67 recovered valid spectra.
+This checks control responsiveness and cancellation, not a complete slow-rate
+capture at 8192.
+
+A separate 60.06-second run used the restored ADC1, CIC 43, +8-bit precision,
+70 averages and 10 MHz LOs. It accepted 4872 captures and advanced DMA by
+10654 packets without new gaps, DMA errors, overflows or epoch changes.
+The phase snapshot contained 65536 finite float32 radians; spectra contained
+16385 finite float32 density bins with positive non-DC power. All polled
+spectra stayed valid, with 1624 distinct publications observed. Snapshot RPC
+median/p95 latency was 2.82/3.35 ms. These measurements are finite-duration
+acquisition tests, not a new PM gain calibration or a maximum-rate guarantee.
+
+Fresh analyzer and native DAC settings were saved before deployment and
+matched the final readback after all tests. No server ERROR/CRITICAL entries
+occurred after the new FPGA loaded. The board remains running 1.3.1.
+
+Evidence is in `tmp/review/`: `redp-single-cic-build.log`,
+`redp-single-cic-connections.log`, `redp-single-cic-web-test.log`,
+`alpha-split-connections.log`, `redp-deployment-single-cic.json`,
+`gap-sweep-single-cic.json`, `redp-single-cic-rate-transition.json`,
+`redp-runtime-single-cic.json` and the settings/readback snapshots.
+
+
+## Split-CIC gap investigation: reset decoding (2026-10-06)
+
+The split design's gaps are caused by its reset path in the tested Red Pitaya
+implementation. They are not an inherent limitation of two unrelated 125 MHz
+clocks. The production AXIS converter has `IS_ACLK_ASYNC=1`; it was not
+accidentally configured as a synchronous crossing.
+
+### Hardware comparison
+
+First, the original split FPGA was kept unchanged while a diagnostic server
+changed FCLK1 to 125, 100, 111.111 and back to 125 MHz. The ADC clock remained
+125 MHz. For each clock, both inputs were tested at CIC 10, 20, 50 and 80 with
+three one-second acquisition restarts per setting. Gap counters increased by
+447, 648, 407 and 481 respectively, with no DMA errors. A different clock ratio
+alone did not cure the failure. These counters count gap detections and retries,
+not the number of missing ADC instants.
+
+A second diagnostic FPGA included both the original decoded reset and a
+registered reset, selected by a stable control bit. The filter, converter,
+DMA, server, placement and routing were identical between modes. Two 125 MHz
+passes per mode reproduced the failure and recovery when switching modes;
+one pass per mode also exercised each slower clock:
+
+| FCLK1 | Trials per mode | Decoded-reset gap detections | Registered-reset gap detections | Registered-reset accepted captures |
+| --- | ---: | ---: | ---: | ---: |
+| 125 MHz | 48 | 1296 | 0 | 3420 |
+| 111.111 MHz | 24 | 650 | 0 | 1716 |
+| 100 MHz | 24 | 647 | 0 | 1693 |
+
+Every registered-reset trial accepted captures. All 192 trials had zero new
+DMA errors; all 96 registered-reset trials also had zero raw hardware-gap
+polls. The decoded-reset mode accepted no captures in this particular routed
+image. That differs from the original split image's intermittent success,
+consistent with the failure depending on implementation delays.
+
+A separate 60.014-second registered-reset run at 125 MHz used ADC1, CIC 80,
++8 bits, 70 averages and 10 MHz LOs. It accepted 2862 captures, advanced DMA
+by 5724 packets and published 1432 distinct spectra, with no new gaps, DMA
+errors, overflows or epoch changes. Phase and PSD snapshots contained 65536
+and 16385 finite float32 values respectively. Snapshot median/p95 latency
+was 2.56/4.06 ms. This is acquisition validation, not a PM calibration.
+
+After the diagnostic test, the known-good single-CIC 1.3.1 image and the saved
+analyzer/native DAC settings were restored and verified. FCLK1 returned to
+125 MHz. The single-CIC Red Pitaya topology remains the production choice.
+
+### Mechanism and regression checks
+
+`filter_resetn` previously decoded CONFIGURE, PRIME and STREAM from a binary
+state register. PRIME (`011`) to STREAM (`100`) changes three bits. Unequal
+physical delays can briefly make the decoded reset low. The ADC-clock logic
+may miss this pulse while `phase_stream_cdc`'s asynchronous reset synchronizer
+asserts the destination reset. AMD documents that behavior for
+[XPM_CDC_ASYNC_RST](https://docs.amd.com/r/en-US/pg382-xpm-cdc-generator/XPM_CDC_ASYNC_RST).
+
+A controlled post-route timing experiment added 400 ps to one state-bit path.
+The decoded reset produced a 395 ps pulse and asserted the destination reset
+in 10/10 epochs; the registered reset produced no pulses in 10/10 epochs.
+These are controlled SDF experiments, not measurements of the board's pulse
+width. The same-image hardware comparison above isolates the reset-path
+change, independently of this chosen simulation skew.
+
+The shared single-stream controller and ALPHA250-4 paired controller now drive
+reset directly from an ADC-clock register, retaining the 32-clock reset hold.
+The hazard is common to the split designs; its presence does not depend on
+whether the ADC clock is 125 or 250 MHz. The new synthesis regression verifies
+a direct register-Q reset source for both rate steps and the paired controller;
+it rejects the previous LUT decoder. Existing controller simulations pass
+14463 single-stream samples and 9607 matched paired samples over seven epochs.
+
+Separate clock-matrix RTL simulations use the production converter and FIR.
+Each board model passes 102 epochs across clock phases and small frequency
+offsets, including forced backpressure and recovery. Red Pitaya covers
+125-to-125 and 125-to-100 MHz; ALPHA250 covers 250-to-142.857 MHz. These RTL
+checks establish functional clock-crossing behavior, not absence of physical
+combinational glitches or hardware validation of the 250 MHz boards.
+
+### Build checks
+
+The switchable diagnostic FPGA passed strict setup, hold, pulse-width and all
+16 bus-skew checks: WNS +0.017005 ns, WHS +0.009009 ns. An isolated
+registered-reset split build initially failed setup timing in the DAC control
+and DMA paths. Reimplementation with `Performance_Explore` passed the same
+unchanged gates: WNS +0.079575 ns, WHS +0.021342 ns, 16 bus-skew checks.
+Only timing-qualified images were deployed. Neither diagnostic clock/reset
+RPC nor the mode selector is part of the production sources.
+
+Evidence is in `tmp/review/`: `clock-hardware-sweep.json`,
+`reset-mode-hardware-sweep.json`, `redp-runtime-reset-select.json`,
+`redp-reset-select-build.log`, `redp-registered-reset-explore.log`,
+`control-timing-manual/simulate-skew.log`,
+`control-timing-fixed-manual/simulate.log`, `clock-matrix-redp.log`,
+`clock-matrix-alpha.log`, and deployment/settings readbacks.
+
+## Final production image with registered reset (2026-10-06)
+
+The final single-CIC 1.3.1 production package includes the shared controller's
+registered reset. It was built with Vivado 2025.1 and passed strict setup,
+hold, pulse-width and 15 bus-skew checks: WNS +0.178767 ns and WHS +0.013317 ns.
+The ARM server, web bundle, overlay and instrument package also build.
+
+The deployed archive SHA-256 is
+`a19df30ecd5e0706a00ab339f5e417acbcab167c19a45078b44b70e6f4dcb1f0`;
+the FPGA binary SHA-256 is
+`ae00331cf7f34822c075b9d21c8dc975bff12d7498b25d10210df347f8b47982`.
+Readback verified the deployed file hashes on `192.168.1.84`.
+
+Hardware tests covered both inputs, CIC 4, 10, 20, 50, 67 and 80, and three
+two-second restarts per setting. All 36 trials accepted captures: 5062 total,
+with zero new hardware gap detections, DMA errors or overflows. CPU coverage
+and skipped processing windows are separate from hardware sample gaps.
+
+A separate 60.035-second run at CIC 50 and +8-bit precision accepted 4581
+captures, advanced DMA by 9160 packets and observed 1527 distinct spectra.
+There were no new hardware gaps, DMA errors, overflows or epoch changes.
+Snapshots contained 65536 finite float32 phase values and 16385 finite
+float32 PSD bins. Snapshot median/p95 latency was 2.819/3.325 ms.
+These are finite-duration acquisition checks, not a PM calibration or a
+maximum-rate guarantee.
+
+Analyzer and native DAC settings matched the saved pre-deployment readback
+after testing. There were no server ERROR/CRITICAL entries after FPGA load.
+The board remains running this production image.
+
+The final ALPHA250 and ALPHA250-4 PNA packages also pass routed timing;
+hardware testing on those boards is pending. The final DPLL build fails
+setup by 0.031810 ns in its gain-programming command-enable path and remains
+unqualified. See the [build results](../../../../fpga/lib/pna_filter.md#final-registered-reset-build-checks--2026-10-06).
+
+Evidence is in `tmp/review/`: `redp-final-registered-reset-build.log`,
+`redp-deployment-registered-final.json`, `gap-sweep-registered-final.json`,
+`redp-runtime-registered-final.json`, `redp-registered-final-validation.log`,
+`alpha250-final-registered-reset-build.log`,
+`alpha250-4-final-registered-reset-build.log` and
+`dpll-final-registered-reset-build.log`.

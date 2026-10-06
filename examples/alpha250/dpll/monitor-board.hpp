@@ -25,8 +25,8 @@ struct DpllMonitorBoard {
         return hw::get_memory<mem::status>().read<reg::phase_packet>();
     }
     double sampling_frequency() { return prm::adc_clk; }
-    uint32_t reference_clock() { return rt::get_driver<ClockGenerator>().get_reference_clock(); }
-    uint64_t configuration_revision() {
+    uint32_t reference_clock() const { return rt::get_driver<ClockGenerator>().get_reference_clock(); }
+    uint64_t configuration_revision() const {
         std::shared_lock lock(dpll_monitor::controls_mutex);
         return 8 * dpll_monitor::controls_revision + reference_clock();
     }

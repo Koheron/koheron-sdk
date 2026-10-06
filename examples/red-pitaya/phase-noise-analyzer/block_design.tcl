@@ -101,6 +101,7 @@ set pna_overflow_sources {cordic0/overflow}
 # Monitor Phase with DMA
 ####################################
 
+set pna_split_filter 0
 source $sdk_path/fpga/lib/pna_single_stream.tcl
 # Repair short DAC paths after routing; refresh reports for strict timing checks.
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]

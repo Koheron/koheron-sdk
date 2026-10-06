@@ -13,7 +13,7 @@ struct RedPitayaPhaseNoiseBoard {
     }
     using Oscillator = Dds;
     static constexpr uint32_t max_phase_precision = 8;
-    static constexpr uint32_t cic_rate_step = 2;
+    static constexpr uint32_t cic_rate_step = 1;
     static_assert(prm::phase_filter_width == 40);
     void set_phase_precision(uint32_t bits) {
         hw::get_memory<mem::control>().write<reg::phase_precision>(bits);

@@ -1,22 +1,34 @@
-# The fixed CIC accepts every ADC sample; all programmable filtering and
-# packet logic run on FCLK1. Stable configuration crosses during epoch reset.
+# 250 MHz instruments use the split filter on FCLK1. Red Pitaya keeps its
+# single programmable CIC, FIR and quantizer on the 125 MHz ADC clock.
 if {![info exists pna_phase_selector]} { set pna_phase_selector [get_slice_pin [ctl_pin cordic] 4 4] }
-set_cell_props phase_stream_control { RATE_STEP 2 }
-set_property XPM_LIBRARIES [lsort -unique [concat [get_property XPM_LIBRARIES [current_project]] XPM_CDC]] [current_project]
-cell koheron:user:phase_stream_cdc:1.0 phase_filter_cdc {} {
-  clk ps_0/FCLK_CLK1 status_clk adc_dac/adc_clk
-  resetn_in phase_stream_control/filter_resetn
-  rate_in phase_stream_control/config_rate
-  metadata_in [get_concat_pin [list phase_stream_control/active_bits phase_stream_control/overflow phase_stream_control/sample_gap]]
-  packet_status [sts_pin phase_packet]
+if {![info exists pna_split_filter]} { set pna_split_filter 1 }
+if {$pna_split_filter} {
+  set_cell_props phase_stream_control { RATE_STEP 2 }
+  set_property XPM_LIBRARIES [lsort -unique [concat [get_property XPM_LIBRARIES [current_project]] XPM_CDC]] [current_project]
+  cell koheron:user:phase_stream_cdc:1.0 phase_filter_cdc {} {
+    clk ps_0/FCLK_CLK1 status_clk adc_dac/adc_clk
+    resetn_in phase_stream_control/filter_resetn
+    rate_in phase_stream_control/config_rate
+    metadata_in [get_concat_pin [list phase_stream_control/active_bits phase_stream_control/overflow phase_stream_control/sample_gap]]
+    packet_status [sts_pin phase_packet]
+  }
+  set pna_filter_clock ps_0/FCLK_CLK1
+  set pna_filter_mhz [expr {[get_parameter fclk1] / 1000000.}]
+  set pna_filter_resetn phase_filter_cdc/resetn
+  set pna_filter_bits [get_slice_pin phase_filter_cdc/metadata 3 0]
+  set pna_filter_overflow [get_slice_pin phase_filter_cdc/metadata 4 4]
+  set pna_filter_gap [get_slice_pin phase_filter_cdc/metadata 5 5]
+  set pna_packet_status phase_filter_cdc/packet_in
+} else {
+  set_cell_props phase_stream_control { RATE_STEP 1 }
+  set pna_filter_clock adc_dac/adc_clk
+  set pna_filter_mhz [expr {[get_parameter adc_clk] / 1000000.}]
+  set pna_filter_resetn phase_stream_control/filter_resetn
+  set pna_filter_bits phase_stream_control/active_bits
+  set pna_filter_overflow phase_stream_control/overflow
+  set pna_filter_gap phase_stream_control/sample_gap
+  set pna_packet_status [sts_pin phase_packet]
 }
-set pna_filter_clock ps_0/FCLK_CLK1
-set pna_filter_mhz [expr {[get_parameter fclk1] / 1000000.}]
-set pna_filter_resetn phase_filter_cdc/resetn
-set pna_filter_bits [get_slice_pin phase_filter_cdc/metadata 3 0]
-set pna_filter_overflow [get_slice_pin phase_filter_cdc/metadata 4 4]
-set pna_filter_gap [get_slice_pin phase_filter_cdc/metadata 5 5]
-set pna_packet_status phase_filter_cdc/packet_in
 # Shared single-channel CIC/FIR, metadata FIFO and cyclic SG DMA.
 # Boards may supply one shared extractor after selecting ADC and reference.
 # Otherwise preserve ALPHA250's two independent phase histories.
@@ -62,11 +74,18 @@ cell xilinx.com:ip:util_vector_logic:2.0 phase_overflow {
   Res phase_stream_control/upstream_overflow
 }
 source $sdk_path/fpga/lib/pna_filter.tcl
-set filter_ready [pna_create_filter {} adc_dac/adc_clk phase_stream_control/filter_resetn \
-  phase_range/dout phase_stream_control/data_valid $pna_filter_clock $pna_filter_mhz \
-  $pna_filter_resetn phase_filter_cdc/rate]
-connect_pins phase_stream_control/data_ready $filter_ready
-connect_pins phase_stream_control/config_ready [get_constant_pin 1 1]
+if {$pna_split_filter} {
+  set filter_ready [pna_create_filter {} adc_dac/adc_clk phase_stream_control/filter_resetn \
+    phase_range/dout phase_stream_control/data_valid $pna_filter_clock $pna_filter_mhz \
+    $pna_filter_resetn phase_filter_cdc/rate]
+  connect_pins phase_stream_control/data_ready $filter_ready
+  connect_pins phase_stream_control/config_ready [get_constant_pin 1 1]
+} else {
+  pna_create_unsplit_filter {} $pna_filter_clock $pna_filter_mhz $pna_filter_resetn \
+    phase_range/dout phase_stream_control/data_valid phase_stream_control/config_rate phase_stream_control/config_valid
+  connect_pins phase_stream_control/data_ready cic/s_axis_data_tready
+  connect_pins phase_stream_control/config_ready cic/s_axis_config_tready
+}
 
 # Control registers and DDR traffic use independent interconnects. DMA cannot
 # address register slaves; the smaller 2-to-1 DDR fabric fits Zynq-7010 too.

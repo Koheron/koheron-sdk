@@ -62,32 +62,14 @@ class Core
     using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
 
   public:
+    static constexpr uint32_t phase_sample_count = data_size;
+
     Core();
     ~Core();
 
     // A passive instrument shares the estimator and acquisition machinery,
     // while its own driver retains ownership of references and feedback state.
     void reset_average();
-    template<std::size_t Size>
-    bool copy_raw_capture(std::array<int32_t, Size>& output) {
-        uint64_t end = 0, epoch = 0;
-        uint32_t bits = 0;
-        std::size_t copied = 0;
-        while (copied < Size && acquisition_started.load()) {
-            const auto raw = dma.read<data_size>(end, acquisition_started,
-                data_size / CyclicPhaseDma::samples_per_chunk, copied != 0);
-            if (!raw || raw->sample_gap || raw->overflow || raw->mixed_precision ||
-                (copied && (raw->generation != epoch || raw->precision != bits || raw->skipped_hops ||
-                 raw->end_chunk != end + data_size / CyclicPhaseDma::samples_per_chunk))) return false;
-            const auto count = std::min<std::size_t>(data_size, Size - copied);
-            std::copy_n(raw->samples.begin(), count, output.begin() + copied);
-            copied += count;
-            end = raw->end_chunk;
-            epoch = raw->generation;
-            bits = raw->precision;
-        }
-        return copied == Size && epoch == dma.generation();
-    }
     void save_config();
     void set_local_oscillator(uint32_t channel, double freq_hz);
     void set_cic_rate(uint32_t rate);
@@ -103,15 +85,29 @@ class Core
     auto get_precision_status() {
         std::shared_lock lk(data_mtx);
         return std::tuple{phase_precision, captured_precision, double(phase_conversion_factor.eval()),
-            capture_state, accepted_captures, overflow_captures, dma_errors, processing_ms, capture_period_ms};
+            monitor_results_current() ? capture_state : uint32_t(Settling),
+            accepted_captures, overflow_captures, dma_errors, processing_ms, capture_period_ms};
     }
     auto get_phase_snapshot() const {
         std::shared_lock lk(data_mtx);
         return std::tuple{accepted_captures, captured_precision, phase_conversion_factor,
-                          capture_state == Valid, relative_phase_snapshot(phase_raw, snapshot_scale)};
+                          capture_state == Valid && monitor_results_current(), phase_snapshot()};
     }
 
-    auto get_spectrum_snapshot() const { return publication.snapshot(); }
+    auto get_spectrum_snapshot() const {
+        if constexpr (!passive_monitor) return publication.snapshot();
+        else {
+            std::shared_lock lk(data_mtx);
+            auto snapshot = publication.snapshot();
+            if (!monitor_results_current()) {
+                std::get<1>(snapshot) = uint32_t(Settling);
+                std::get<7>(snapshot) = 0;
+                auto& density = std::get<16>(snapshot);
+                std::fill(density.begin(), density.end(), PhaseNoiseDensity{});
+            }
+            return snapshot;
+        }
+    }
     auto get_stream_status() {
         std::shared_lock lk(data_mtx);
         return std::tuple{spectrum.segment_count(), dma.overruns(), fft_size, fft_size / 2, 3u};
@@ -165,6 +161,9 @@ class Core
 
     auto get_jitter() {
         std::shared_lock lk(data_mtx);
+        if (!monitor_results_current()) return std::tuple{
+            std::numeric_limits<Phase>::quiet_NaN(), std::numeric_limits<Time>::quiet_NaN(),
+            std::numeric_limits<Frequency>::quiet_NaN(), std::numeric_limits<Frequency>::quiet_NaN()};
         return std::tuple{
             phase_jitter,
             time_jitter,
@@ -175,6 +174,10 @@ class Core
 
     auto get_measurements(uint32_t navg) {
         std::shared_lock lk(data_mtx);
+        if (!monitor_results_current()) return std::tuple{
+            std::numeric_limits<Phase>::quiet_NaN(), std::numeric_limits<Time>::quiet_NaN(),
+            std::numeric_limits<Frequency>::quiet_NaN(), std::numeric_limits<Frequency>::quiet_NaN(),
+            std::numeric_limits<double>::quiet_NaN()};
         return std::tuple{
             phase_jitter,
             time_jitter,
@@ -188,7 +191,8 @@ class Core
     PhaseNoiseDensityVector get_phase_noise() const;
     auto get_average_status() const {
         std::shared_lock lk(data_mtx);
-        return std::tuple{uint32_t(averager.count()), uint32_t(averager.window())};
+        return std::tuple{monitor_results_current() ? uint32_t(averager.count()) : 0u,
+                          uint32_t(averager.window())};
     }
 
   private:
@@ -273,6 +277,15 @@ class Core
 
     void load_config();
     bool synchronize_monitor();
+    // Snapshot readers never wait for DMA. An external loop edit makes the
+    // previous epoch unavailable immediately, before the worker restarts it.
+    bool monitor_results_current() const {
+        if constexpr (passive_monitor) return board.configuration_revision() == board_revision;
+        else return true;
+    }
+    PhaseDataArray phase_snapshot() const { // caller holds data_mtx
+        return monitor_results_current() ? relative_phase_snapshot(phase_raw, snapshot_scale) : PhaseDataArray{};
+    }
     void invalidate_results(CaptureState state = Settling); // caller holds data_mtx
     double carrier_power(uint32_t navg); // caller holds data_mtx
     double effective_tracking_bandwidth() const;
@@ -452,7 +465,7 @@ void Core<Board>::set_channel(uint32_t chan) {
 template<class Board>
 double Core<Board>::get_carrier_power(uint32_t navg) {
     std::shared_lock lk(data_mtx);
-    return carrier_power(navg);
+    return monitor_results_current() ? carrier_power(navg) : std::numeric_limits<double>::quiet_NaN();
 }
 
 template<class Board>
@@ -476,12 +489,16 @@ double Core<Board>::carrier_power(uint32_t navg) {
 template<class Board>
 typename Core<Board>::PhaseDataArray Core<Board>::get_phase() const {
     std::shared_lock lk(data_mtx);
-    return relative_phase_snapshot(phase_raw, snapshot_scale);
+    return phase_snapshot();
 }
 
 template<class Board>
 typename Core<Board>::PhaseNoiseDensityVector Core<Board>::get_phase_noise() const {
-    return publication.spectrum();
+    if constexpr (passive_monitor) {
+        std::shared_lock lk(data_mtx);
+        if (!monitor_results_current()) return PhaseNoiseDensityVector(1 + fft_size / 2);
+        return publication.spectrum();
+    } else return publication.spectrum();
 }
 
 template<class Board>

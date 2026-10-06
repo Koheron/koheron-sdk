@@ -45,6 +45,14 @@ rg -q 'Paired CIC control checks passed' paired-cic-control.log
 if rg -q 'Fatal:|ERROR:|FATAL:' paired-cic-control.log; then
     exit 1
 fi
+# RTL cannot expose hazards caused by skew between state-register outputs.
+# Ensure that the reset entering the asynchronous CDC is a register output.
+vivado -mode batch -nolog -nojournal -notrace \
+    -source "$repo/examples/alpha250-4/phase-noise-analyzer/tests/check_registered_reset.tcl" \
+    > registered-reset.log 2>&1
+cat registered-reset.log
+[[ $(rg -c '^PASS:' registered-reset.log) == 3 ]]
+
 xvlog "$repo/fpga/cores/phase_stream_control_v1_0/phase_stream_control.v"
 xvlog --sv "$repo/fpga/cores/phase_stream_control_v1_0/phase_stream_control_tb.sv"
 xelab work.phase_stream_control_tb -s phase_stream_control_tb

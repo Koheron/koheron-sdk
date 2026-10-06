@@ -71,7 +71,6 @@ parameters:
   cic_decimation_rate_min: 4
   cic_decimation_rate_max: 8192
   cic_n_stages: 6
-  n_pts: 1048576
   phase_filter_width: 40
   phase_accumulator_width: 64
   cordic_phase_width: 24

@@ -1,7 +1,7 @@
 # Shared PNA split CIC
 
-`fpga/lib/pna_filter.tcl` builds the same filter for DPLL, ALPHA250 PNA,
-ALPHA250-4 PNA and Red Pitaya PNA:
+`fpga/lib/pna_filter.tcl` builds the split filter for the 250 MHz instruments:
+DPLL, ALPHA250 PNA and ALPHA250-4 PNA:
 
 ```
 32-bit phase at ADC clock
@@ -28,7 +28,10 @@ is discarded. Pipeline registers add fixed delay, which does not change the
 phase-noise PSD response.
 
 Configure with the **total** even rate R, 4 through 8192. Each acquisition epoch
-resets every history. The controller holds the rate word stable during its
+resets every history. The controller drives `filter_resetn` from an ADC-clock
+register: combinational decoding of its binary state can create a brief reset
+pulse during PRIME-to-STREAM and asynchronously reset the destination filter.
+The controller holds the rate word stable during its
 32-ADC-clock reset interval; `phase_stream_cdc` synchronizes the word and reset.
 The slow CIC latches the rate once after reset. Live rate changes require a new
 epoch. The fixed stage reports input readiness only after its downstream FIFO
@@ -49,7 +52,17 @@ rates. `test_monitor_stream.tcl` checks sustained 250/143 MHz acquisition with
 the production AXIS converter and FIR, plus gap detection and epoch recovery.
 Full routed builds and board measurements are separate checks.
 
-## Build validation — 2026-10-06
+Red Pitaya instead uses `pna_create_unsplit_filter`: one programmable
+six-stage Xilinx CIC, followed by the shared compensation FIR and quantizer,
+all on its 125 MHz ADC clock. Its existing DMA FIFO crosses the filtered
+stream to FCLK1. It accepts every integer CIC rate from 4 through 8192.
+Both topologies use the same packet format, calibration and cyclic DMA ring.
+The split topology's clock relaxation is needed by the 250 MHz instruments;
+Red Pitaya retains its original filter clock period without an input crossing.
+
+## Initial build validation — 2026-10-06
+
+The following results precede the registered-reset correction described below.
 
 Vivado 2025.1 full instrument implementations pass the SDK's strict setup,
 hold, pulse-width and bus-skew gates. ARM servers, device-tree overlays,
@@ -60,7 +73,8 @@ web bundles and instrument ZIP packages also build successfully.
 | ALPHA250 DPLL | 250 MHz | 143 MHz | 0.035455 | 0.039732 | 9 |
 | ALPHA250 PNA | 250 MHz | 143 MHz | 0.029770 | 0.012405 | 11 |
 | ALPHA250-4 PNA | 250 MHz | 143 MHz | 0.021506 | 0.041813 | 12 |
-| Red Pitaya PNA | 125 MHz | 125 MHz | 0.186185 | 0.019563 | 16 |
+| Red Pitaya PNA (superseded split build) | 125 MHz | 125 MHz | 0.186185 | 0.019563 | 16 |
+| Red Pitaya PNA 1.3.1 (single CIC) | 125 MHz | 125 MHz | 0.284088 | 0.008955 | 15 |
 
 The 143 MHz clock is the Zynq's actual 142.857 MHz FCLK1. The DPLL's final
 physical implementation reuses its unchanged synthesized/placed full-design
@@ -76,8 +90,44 @@ saved-rate migration. Chrome exercises the built DPLL UI with simulated
 transport, including channel changes, reference traces, CSV/PNG exports,
 coverage/queue status and wide/narrow layouts.
 
-**Hardware validation:** the new packages have not been deployed or tested
-on a board. These results establish build, simulation and software behavior;
-they do not establish measured phase noise, sustained CPU coverage, converter
-latency or loop stability. Existing PNA hardware measurements describe the
-previous 200 MHz design. Use a V1 OS image with these instruments.
+**Hardware validation:** the split Red Pitaya build passed timing but failed
+settings-change tests on `192.168.1.84`: 24 trials across both inputs and CIC
+10, 20, 50 and 80 recorded 447 hardware sample gaps. The previous FPGA
+recorded zero gaps in the same trials, both with the previous server and with
+the new streaming server. Red Pitaya therefore uses the single CIC again.
+The rebuilt 1.3.1 single-CIC image passed 36 two-second trials across both
+inputs and rates 4, 10, 20, 50, 67 and 80, accepting 5137 captures with zero
+hardware gaps, DMA errors or overflows. A separate one-minute run at the
+restored CIC 43 and +8-bit precision also recorded none. See the
+[Red Pitaya hardware validation](../../examples/red-pitaya/phase-noise-analyzer/tests/hardware-validation.md#single-cic-restored-in-131-2026-10-06).
+ALPHA250 package hardware validation remains pending. Build and simulation
+results do not establish measured phase noise, sustained CPU coverage or loop
+stability. Use a V1 OS image with these instruments.
+
+## Final registered-reset build checks — 2026-10-06
+
+Full production builds were repeated after registering the reset in both
+controllers. The earlier DPLL timing pass above does not qualify this revision.
+
+| Instrument | Setup slack (ns) | Hold slack (ns) | Result |
+| --- | ---: | ---: | --- |
+| Red Pitaya PNA (single CIC) | 0.178767 | 0.013317 | Full package and strict timing gates pass |
+| ALPHA250 PNA | 0.039072 | 0.040046 | Full package and strict timing gates pass |
+| ALPHA250-4 PNA | 0.103758 | 0.025333 | Full package and strict timing gates pass |
+| ALPHA250 DPLL | -0.031810 | 0.042 | Setup gate fails; package not qualified |
+
+The DPLL failure has 18 setup endpoints in the existing gain-programming
+command-enable path, from `pending_reg[24]` to command-register clock enables.
+Server, web, overlay and synthesis checks complete, but routed timing closure
+remains a merge blocker. No timing gate or feedback latency was changed to
+accept this result. The three PNA builds also pass pulse-width and their
+15, 11 and 12 bus-skew checks respectively.
+
+**Hardware tests:** the final Red Pitaya production image passed 36 restart
+trials across both inputs and CIC 4, 10, 20, 50, 67 and 80, accepting 5062
+captures with zero new hardware gaps, DMA errors or overflows. A separate
+60-second CIC 50 run accepted 4581 captures with the same zero-error result.
+ALPHA250 and ALPHA250-4 hardware validation remains pending. See the
+[final production validation](../../examples/red-pitaya/phase-noise-analyzer/tests/hardware-validation.md#final-production-image-with-registered-reset-2026-10-06)
+and the reset-path investigation immediately above it for the measured cause
+of the original split-design gaps.

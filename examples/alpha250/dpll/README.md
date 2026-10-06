@@ -89,13 +89,32 @@ CIC at rate R. The fixed stage retains all six extra bits; the slow stage uses
 110-bit modular arithmetic and the existing PNA power-of-two normalization.
 The shared implementation is in [`pna_filter.tcl`](../../../fpga/lib/pna_filter.tcl).
 
-The original `Dma` RPC IDs 0–3 and one-million-int32 raw capture response are
-retained. `get_data()` now copies consecutive windows from the running ring.
-Check `get_raw_capture_valid()` before using that legacy capture: an interrupted
-capture returns zeros and a false validity flag. For calibrated data with
-validity and precision in the same reply, use `get_phase_snapshot()`; for the
-spectrum use `get_spectrum_snapshot()`. Raw `DmaS2MM.start_transfer` is disabled
-on SG hardware to protect the continuous ring. New monitor RPCs are appended.
+The monitor uses the same acquisition buffers and DMA mode as the PNA designs:
+512 cyclic SG DMA packets of 8192 samples, copied into a 65536-sample processing
+window. The server continuously advances by 16384 samples (50% FFT overlap)
+and forms its three-periodogram Welch estimate using 32768-point FFTs. There
+is no separate raw-capture buffer or DMA reader.
+
+The original `Dma` command IDs 0–3 are retained, but **`get_data()` now returns
+65536 float32 phase values in radians**, matching PNA `get_phase()`, instead
+of one million int32 raw counts. CIC/FIR gain and precision correction are
+already applied; custom clients must update their reply length/type and remove
+any raw-count conversion. `get_data_size()` reports 65536. `get_phase()` is
+also available under the shared PNA name.
+
+These calls return the latest processed phase window without waiting for or
+restarting DMA. For validity, precision and a sequence number in the same reply,
+use `get_phase_snapshot()`; a repeated sequence means no new window is available.
+Use `get_spectrum_snapshot()` for the server's continuously averaged spectrum.
+Loop edits immediately make old phase, spectra and jitter unavailable while the
+worker starts a new acquisition epoch. Raw `DmaS2MM.start_transfer` remains
+disabled on SG hardware to protect the continuous ring.
+
+`test_time.py` displays the shared server spectrum with a read-only Python client:
+
+```sh
+python examples/alpha250/dpll/test_time.py 192.168.1.100
+```
 
 ## Host checks
 

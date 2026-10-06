@@ -2,6 +2,7 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 mkdir -p tmp/tests/alpha250-dpll
+"${PNA_PYTHON:-.venv/bin/python3}" examples/alpha250/dpll/tests/test_monitor_client.py
 docker run --rm -u "$(id -u):$(id -g)" -v "$PWD:/review" -w /review \
   "${PNA_CPP_IMAGE:-cross-armhf:24.04}" bash -lc '
   set -euo pipefail

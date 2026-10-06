@@ -7,12 +7,13 @@ const ts = require('typescript');
 const {JSDOM} = require('jsdom');
 const root = path.resolve(__dirname, '../../../..');
 const settle = () => new Promise(resolve => setTimeout(resolve, 15));
-async function fixture(t) {
+async function fixture(t, board = 'alpha250') {
     const project = 'examples/alpha250/phase-noise-analyzer/';
-    const dom = new JSDOM(fs.readFileSync(path.join(root, project + 'web/index.html'), 'utf8'), {runScripts: 'outside-only'});
+    const dom = new JSDOM(fs.readFileSync(path.join(root, `examples/${board}/phase-noise-analyzer/web/index.html`), 'utf8'), {runScripts: 'outside-only'});
     const w = dom.window; t.after(() => w.close());
     w.document.querySelector('#dds-frequency').innerHTML = fs.readFileSync(path.join(root, project + 'web/dds-frequency/dds-frequency.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
-    w.document.querySelector('#reference-clock').innerHTML = fs.readFileSync(path.join(root, project + 'web/clock-generator/reference-clock.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
+    const referenceClock = w.document.querySelector('#reference-clock');
+    if (referenceClock) referenceClock.innerHTML = fs.readFileSync(path.join(root, project + 'web/clock-generator/reference-clock.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
     w.requestAnimationFrame = () => 0;
     for (const [file, exports] of [['web/phase-modulator/frequency-input.ts', ['FrequencyInput', 'NumberInput']], [project + 'web/phase-noise-analyzer-app.ts', ['PhaseNoiseAnalyzerApp']]]) {
         w.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + exports.map(name => `\nwindow.${name} = ${name};`).join(''));
@@ -61,6 +62,22 @@ test('analyzer numbers select a digit by default and wheel works anywhere on the
     const count = calls.length; h.app.dispose();
     w.document.body.dispatchEvent(new w.WheelEvent('wheel', {deltaY: -40, bubbles: true, cancelable: true})); await settle();
     assert.equal(calls.length, count);
+});
+
+test('Red Pitaya accepts odd CIC rates while ALPHA250 requires even rates', async t => {
+    const redp = await fixture(t, 'red-pitaya');
+    const input = redp.w.document.querySelector('.cic-rate-input');
+    input.focus(); redp.enter(input, '67'); await settle();
+    assert.deepEqual(redp.calls, [['cic', 67]]);
+    redp.key(input, 'ArrowUp');
+    await new Promise(resolve => setTimeout(resolve, 120));
+    assert.deepEqual(redp.calls.at(-1), ['cic', 68]);
+    const alpha = await fixture(t);
+    const evenInput = alpha.w.document.querySelector('.cic-rate-input');
+    evenInput.focus(); alpha.enter(evenInput, '67'); await settle();
+    assert.equal(alpha.calls.length, 0);
+    alpha.enter(evenInput, '68'); await settle();
+    assert.deepEqual(alpha.calls, [['cic', 68]]);
 });
 
 test('tracking is opt-in and telemetry does not overwrite nominal LO edits', async t => {
