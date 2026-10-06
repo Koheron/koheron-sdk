@@ -31,6 +31,9 @@ class Dma {
     auto get_measurements(uint32_t navg) { return core.get_measurements(navg); }
     void reset_average() { core.reset_average(); }
     bool get_raw_capture_valid() const { return raw_valid; }
+    auto get_stream_coverage() const { return core.get_stream_coverage(); }
+    auto get_stream_performance() { return core.get_stream_performance(); }
+    auto get_fft_performance() const { return core.get_fft_performance(); }
 
   private:
     phase_noise::Core<DpllMonitorBoard> core;

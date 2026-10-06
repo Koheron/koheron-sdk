@@ -47,6 +47,8 @@ test('monitor uses the shared PNA frame, precision and controls without loop wri
   assert.equal(d.querySelector('.phase-jitter-span').textContent, '12.34 mrad');
   assert.equal(monitor.plot.phase_psd.length, 16385);
   assert.equal(monitor.plot.frameStatus.fs, 6250000);
+  assert.equal(d.getElementById('coverage-status').textContent, 'Coverage 100%');
+  assert.equal(d.getElementById('performance-status').hidden, false);
   assert.ok(state.calls.every(call => call.id === 'Dma'));
   d.getElementById('capture-reference').click();
   assert.equal(monitor.plot.referenceParameters.channel, 0);

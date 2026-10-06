@@ -96,7 +96,7 @@ int main() {
         }
         const auto [coverage_epoch, covered, span] = analyzer.get_stream_coverage();
         assert(covered > 0 && covered < span);
-        analyzer.set_cic_rate(selected == 0 ? 32 : 33);
+        analyzer.set_cic_rate(selected == 0 ? 32 : 34);
         const auto [reset_epoch, reset_covered, reset_span] = analyzer.get_stream_coverage();
         assert(reset_epoch > coverage_epoch && reset_covered == 0 && reset_span == 0);
         fast.reset();

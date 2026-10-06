@@ -41,6 +41,8 @@ zoom/Fit, frozen reference traces, CSV/PNG export, carrier power and integrated
 phase/time jitter with its actual integration band. Precision is selectable
 from standard through eight extra fractional bits. The reference is the
 selected loop's existing DDS frequency; set it close to the input carrier.
+Coverage and queue indicators use the shared PNA status widget, reporting
+skipped sample coverage and whether processing keeps up with incoming windows.
 
 The monitor has a separate measurement path, using the shared
 [`pna_cordic.tcl`](../../../fpga/lib/pna_cordic.tcl) and

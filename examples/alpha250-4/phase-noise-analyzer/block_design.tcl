@@ -89,6 +89,7 @@ for {set i 0} {$i < 4} {incr i} {
     connect_pins cordic$i/demod [sts_pin demod$i]
 
     cell xilinx.com:ip:mult_gen:12.0 scaler$i {
+      Multiplier_Construction Use_Mults
       PortAWidth [get_parameter phase_accumulator_width]
       PortBWidth 32
       PortAType Signed
@@ -96,7 +97,7 @@ for {set i 0} {$i < 4} {incr i} {
       OutputWidthHigh [expr [get_parameter phase_accumulator_width] + 29]
       OutputWidthLow 30
       Use_Custom_Output_Width true
-      PipeStages 5
+      PipeStages 8
     } {
       A cordic$i/phase
       B [ctl_pin scaling$i]

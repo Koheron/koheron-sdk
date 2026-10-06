@@ -31,6 +31,9 @@ module.exports = function installMonitorClient(w) {
         case 'get_measurements': return [.01234, 196.35e-12, 1e3, 1e5, -3.21];
         case 'get_precision_status': return [state.bits, state.bits, 6.28e-6, 1, 0, 100, 0, 0, 0, 0, 1, 10];
         case 'get_stream_status': return [0, 100, 0, 0, 32768, 16384, 3];
+        case 'get_stream_coverage': return [0, 1, 0, 32768, 0, 32768];
+        case 'get_stream_performance': return [1, .6, .1, .1, .1, 0, 100, 381, 1000];
+        case 'get_fft_performance': return [.1, .2, .1, .1, 0];
         case 'get_control_parameters': return [...state.frequencies, ...state.gains, 5, 10];
         case 'get_dac_outputs': return [0, 1];
         default: throw new Error(command.name);

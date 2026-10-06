@@ -5,6 +5,11 @@ validate_bd_design
 source [file join [file dirname [info script]] ../../../alpha250/phase-noise-analyzer/tests/check_extractor.tcl]
 for {set channel 0} {$channel < 4} {incr channel} {
     check_phase_extractor cordic$channel
+    foreach {key expected} {Multiplier_Construction Use_Mults PipeStages 8 PortAWidth 64 PortBWidth 32 OutputWidthHigh 93 OutputWidthLow 30} {
+        if {[get_property CONFIG.$key [get_bd_cells scaler$channel]] ne $expected} {
+            error "scaler$channel: unexpected $key"
+        }
+    }
     pna_same_net dds$channel/m_axis_data_tdata cordic$channel/s_axis_data_b
     pna_same_net dds$channel/m_axis_data_tvalid cordic$channel/s_axis_tvalid
 }

@@ -16,6 +16,21 @@ processing retain their existing behavior.
 The hardware measurements below describe the previous 200 MHz revision;
 they have not been repeated with the split filter at 250 MHz.
 
+The four 64-by-32-bit phase scalers use DSP multipliers with an identical
+eight-clock pipeline, preserving the original signed product bits 93:30.
+This adds three clocks of common measurement delay relative to the old LUT
+scalers. The phase difference, paired sampling and spectral response are
+unchanged. Validate the production scaler configuration and arithmetic with:
+
+```sh
+vivado -mode batch -nolog -nojournal -notrace \
+  -source examples/alpha250-4/phase-noise-analyzer/tests/check_fpga.tcl \
+  -tclargs tmp/examples/alpha250-4/phase-noise-analyzer/fpga/phase-noise-analyzer.xpr
+vivado -mode batch -nolog -nojournal -notrace \
+  -source examples/alpha250-4/phase-noise-analyzer/tests/test_phase_scaler.tcl \
+  -tclargs tmp/examples/alpha250-4/phase-noise-analyzer/fpga/phase-noise-analyzer.xpr
+```
+
 ## Streaming Welch — version 1.3.0
 
 This revision shares the streaming Welch engine and cyclic DMA reader with

@@ -217,6 +217,7 @@ source $sdk_path/fpga/lib/pna_single_stream.tcl
 # Replicate timing-critical control nets without adding pipeline stages.
 set_property STEPS.PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
 set_property STEPS.PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveFanoutOpt [get_runs impl_1]
+set_property STEPS.PHYS_OPT_DESIGN.TCL.POST [file normalize $project_path/tcl/replicate_gain_control.tcl] [get_runs impl_1]
 set_property STEPS.PLACE_DESIGN.ARGS.DIRECTIVE Explore [get_runs impl_1]
 set_property STEPS.ROUTE_DESIGN.ARGS.DIRECTIVE Explore [get_runs impl_1]
 
