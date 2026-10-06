@@ -20,7 +20,7 @@ proc pins {cmd} {
 
 proc gain {name width low out_width} {
     create_bd_cell -type module -reference gain_multiplier $name
-    set_cell_props $name [list A_WIDTH $width B_WIDTH 32 OUTPUT_LOW $low OUTPUT_WIDTH $out_width]
+    set_cell_props $name [list A_WIDTH $width OUTPUT_LOW $low OUTPUT_WIDTH $out_width]
 }
 
 proc create {module_name} {

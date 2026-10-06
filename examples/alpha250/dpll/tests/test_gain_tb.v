@@ -5,17 +5,23 @@ module test_gain_tb;
     reg signed [31:0] b = 0;
     wire [31:0] p, pi, i2;
     wire [63:0] i3;
+    wire [48:0] full17;
+    wire [79:0] full48;
     reg signed [79:0] product48;
     reg signed [63:0] product32;
     reg signed [48:0] product17;
     reg [31:0] ref_p [0:2], ref_pi [0:2], ref_i2 [0:2];
     reg [63:0] ref_i3 [0:2];
+    reg [48:0] ref_full17 [0:2];
+    reg [79:0] ref_full48 [0:2];
     integer cycle = 0, checked = 0, n, j, seed = 79631;
     always #2 clk = ~clk;
     gain_multiplier #(.A_WIDTH(17), .OUTPUT_WIDTH(32)) gp(clk, a[16:0], b, p);
     gain_multiplier #(.OUTPUT_LOW(16), .OUTPUT_WIDTH(32)) gpi(clk, a[31:0], b, pi);
     gain_multiplier #(.A_WIDTH(48), .OUTPUT_LOW(48), .OUTPUT_WIDTH(32)) gi2(clk, a, b, i2);
     gain_multiplier gi3(clk, a[31:0], b, i3);
+    gain_multiplier #(.A_WIDTH(17)) gfull17(clk, a[16:0], b, full17);
+    gain_multiplier #(.A_WIDTH(48)) gfull48(clk, a, b, full48);
     always @(posedge clk) begin
         product17 = $signed(a[16:0]) * b;
         product32 = $signed(a[31:0]) * b;
@@ -24,14 +30,18 @@ module test_gain_tb;
         ref_pi[0] <= product32[47:16];
         ref_i2[0] <= product48[79:48];
         ref_i3[0] <= product32;
+        ref_full17[0] <= product17;
+        ref_full48[0] <= product48;
         for (j = 1; j < 3; j = j + 1) begin
             ref_p[j] <= ref_p[j-1]; ref_pi[j] <= ref_pi[j-1];
             ref_i2[j] <= ref_i2[j-1]; ref_i3[j] <= ref_i3[j-1];
+            ref_full17[j] <= ref_full17[j-1]; ref_full48[j] <= ref_full48[j-1];
         end
         cycle = cycle + 1;
         #1;
         if (cycle > 32) begin
-            if ({p, pi, i2, i3} !== {ref_p[2], ref_pi[2], ref_i2[2], ref_i3[2]})
+            if ({p, pi, i2, i3, full17, full48} !==
+                {ref_p[2], ref_pi[2], ref_i2[2], ref_i3[2], ref_full17[2], ref_full48[2]})
                 $fatal(1, "Gain product/latency mismatch at cycle %0d", cycle);
             checked = checked + 1;
         end
@@ -56,7 +66,7 @@ module test_gain_tb;
             end
         end
         repeat (4) @(negedge clk);
-        $display("Gain checks passed: %0d cycles, full 17/32/48-bit signed ranges, exact three-clock latency", checked);
+        $display("Gain checks passed: %0d cycles, full signed products and DPLL slices, exact three-clock latency", checked);
         $finish;
     end
 endmodule

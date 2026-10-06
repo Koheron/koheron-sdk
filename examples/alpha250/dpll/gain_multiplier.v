@@ -1,27 +1,51 @@
 `timescale 1 ns / 1 ps
 
 // DPLL's 17/32/48-bit signed inputs times a 32-bit gain in three clocks:
-// parallel DSP products, carry-save
-// reduction, then one carry-propagating sum. Splitting the operands avoids
+// parallel DSP products, carry-save reduction, then one carry-propagating
+// sum. Splitting the operands avoids
 // the long unregistered DSP cascade of a wide mult_gen with three stages.
 module gain_multiplier #(
     parameter integer A_WIDTH = 32,
-    parameter integer B_WIDTH = 32,
     parameter integer OUTPUT_LOW = 0,
-    parameter integer OUTPUT_WIDTH = A_WIDTH + B_WIDTH
+    parameter integer OUTPUT_WIDTH = A_WIDTH + 32
 )(
     input wire CLK,
     input wire signed [A_WIDTH-1:0] A,
-    input wire signed [B_WIDTH-1:0] B,
+    input wire signed [31:0] B,
     output reg signed [OUTPUT_WIDTH-1:0] P = 0
 );
     localparam NA = (A_WIDTH + 15) / 16;
-    localparam NB = (B_WIDTH + 15) / 16;
+    localparam NB = 2;
     localparam TERMS = NA * NB;
     localparam WIDTH = 16 * (NA + NB);
     wire signed [16*NA-1:0] a_ext = A;
     wire signed [16*NB-1:0] b_ext = B;
     wire [WIDTH-1:0] term [0:TERMS-1];
+
+    initial begin
+        if (A_WIDTH != 17 && A_WIDTH != 32 && A_WIDTH != 48)
+            $error("DPLL gain input width must be 17, 32 or 48");
+        if (OUTPUT_LOW < 0 || OUTPUT_WIDTH < 1 || OUTPUT_LOW + OUTPUT_WIDTH > A_WIDTH + 32)
+            $error("DPLL gain output slice exceeds the signed product width");
+    end
+
+    // For a signed 32-bit partial product x, flipping its sign bit gives
+    // the unsigned value x + 2^31. Cancel those biases with one constant.
+    // Its low 32 bits are zero for these input widths, so it fits in the
+    // unused upper bits of the bottom unsigned product: no extra add stage.
+    function [WIDTH-1:0] sign_correction(input integer a_chunks);
+        integer i, j;
+        reg [WIDTH-1:0] one;
+        begin
+            one = 1;
+            sign_correction = 0;
+            for (i = 0; i < a_chunks; i = i + 1)
+                for (j = 0; j < NB; j = j + 1)
+                    if (i == a_chunks-1 || j == NB-1)
+                        sign_correction = sign_correction - (one << (31 + 16*(i+j)));
+        end
+    endfunction
+    localparam [WIDTH-1:0] SIGN_CORRECTION = sign_correction(NA);
 
     genvar ai, bi;
     generate
@@ -53,15 +77,15 @@ module gain_multiplier #(
                     .RSTINMODE(1'b0), .RSTCTRL(1'b0), .RSTALUMODE(1'b0),
                     .RSTALLCARRYIN(1'b0), .RSTM(1'b0), .RSTP(1'b0), .P(product)
                 );
-                // Unsigned 16x16 fits 32 unsigned bits; every other chunk
-                // pair fits 32 signed bits. Expose these exact zero/sign bits
-                // rather than asking synthesis to infer them through a DSP.
-                wire signed [WIDTH-1:0] extended;
-                if (ai < NA-1 && bi < NB-1)
-                    assign extended = {{(WIDTH-32){1'b0}}, product[31:0]};
+                // All partial products fit in 32 bits. Bias signed pairs so
+                // every tree input is unsigned, with no wide sign fanout.
+                localparam SIGNED_PAIR = ai == NA-1 || bi == NB-1;
+                wire [WIDTH-1:0] shifted =
+                    {{(WIDTH-32){1'b0}}, product[31] ^ SIGNED_PAIR, product[30:0]} << (16*(ai+bi));
+                if (ai == 0 && bi == 0)
+                    assign term[ai*NB+bi] = shifted | SIGN_CORRECTION;
                 else
-                    assign extended = $signed(product[31:0]);
-                assign term[ai*NB+bi] = extended << (16 * (ai + bi));
+                    assign term[ai*NB+bi] = shifted;
             end
         end
     endgenerate
@@ -89,8 +113,9 @@ module gain_multiplier #(
     wire [WIDTH-1:0] tree [0:(LEVELS+1)*TERMS-1];
     genvar level, group_index, remainder_index, term_index;
     generate
-        for (term_index = 0; term_index < TERMS; term_index = term_index + 1)
+        for (term_index = 0; term_index < TERMS; term_index = term_index + 1) begin : initial_term
             assign tree[term_index] = term[term_index];
+        end
         for (level = 0; level < LEVELS; level = level + 1) begin : reduction
             localparam COUNT = term_count(level);
             for (group_index = 0; group_index < COUNT/3; group_index = group_index + 1) begin : triple
@@ -100,9 +125,10 @@ module gain_multiplier #(
                 assign tree[(level+1)*TERMS + 2*group_index] = x ^ y ^ z;
                 assign tree[(level+1)*TERMS + 2*group_index + 1] = ((x & y) | (x & z) | (y & z)) << 1;
             end
-            for (remainder_index = 0; remainder_index < COUNT%3; remainder_index = remainder_index + 1)
+            for (remainder_index = 0; remainder_index < COUNT%3; remainder_index = remainder_index + 1) begin : remainder
                 assign tree[(level+1)*TERMS + 2*(COUNT/3) + remainder_index] =
                     tree[level*TERMS + 3*(COUNT/3) + remainder_index];
+            end
         end
     endgenerate
     reg [WIDTH-1:0] sum_reg = 0, carry_reg = 0;

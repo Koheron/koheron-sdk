@@ -280,4 +280,4 @@ set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveExplore [
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize $project_path/tcl/post_route_opt.tcl] [get_runs impl_1]
 
 # Make the short CIC rate-scaling carry chain available for LUT replication.
-set_property STEPS.OPT_DESIGN.TCL.POST [file normalize $project_path/tcl/optimize_monitor.tcl] [get_runs impl_1]
+set_property STEPS.OPT_DESIGN.TCL.POST [file normalize $project_path/tcl/optimize_timing.tcl] [get_runs impl_1]
