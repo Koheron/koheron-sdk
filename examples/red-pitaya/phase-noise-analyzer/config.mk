@@ -1,5 +1,5 @@
 NAME := phase-noise-analyzer
-VERSION := 1.3.0
+VERSION := 1.3.1
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya

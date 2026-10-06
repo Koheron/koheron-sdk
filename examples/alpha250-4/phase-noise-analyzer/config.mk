@@ -41,5 +41,11 @@ WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name
 
 # Board Tcl changes must invalidate the generated Vivado project as well.
 TCL_FILES = $(BD_TCL) $(PROJECT_PATH)/post_route.tcl $(SDK_PATH)/fpga/lib/post_route_hold_fix.tcl $(SDK_PATH)/fpga/lib/pna_cordic.tcl $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(BOARD_PATH)/config/board_preset.tcl
+TCL_FILES += $(SDK_PATH)/fpga/lib/pna_filter.tcl
 
 OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi
+
+# Full-precision split CIC and shared acquisition clock crossing.
+CORES += $(SDK_PATH)/fpga/cores/phase_fixed_decimator_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_cic_decimator_v1_0
+CORES += $(SDK_PATH)/fpga/cores/phase_stream_cdc_v1_0

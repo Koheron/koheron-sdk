@@ -39,6 +39,14 @@ namespace phase_noise {
 template<class Board>
 class Core
 {
+    static constexpr bool passive_monitor = [] {
+        if constexpr (requires { Board::passive_monitor; }) return Board::passive_monitor;
+        else return false;
+    }();
+    static constexpr uint32_t cic_rate_step = [] {
+        if constexpr (requires { Board::cic_rate_step; }) return Board::cic_rate_step;
+        else return 1u;
+    }();
     using Phase = scicpp::units::radian<float>;
     using Time = scicpp::units::time<float>;
     using Frequency = scicpp::units::frequency<float>;
@@ -54,9 +62,14 @@ class Core
     using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
 
   public:
+    static constexpr uint32_t phase_sample_count = data_size;
+
     Core();
     ~Core();
 
+    // A passive instrument shares the estimator and acquisition machinery,
+    // while its own driver retains ownership of references and feedback state.
+    void reset_average();
     void save_config();
     void set_local_oscillator(uint32_t channel, double freq_hz);
     void set_cic_rate(uint32_t rate);
@@ -72,15 +85,29 @@ class Core
     auto get_precision_status() {
         std::shared_lock lk(data_mtx);
         return std::tuple{phase_precision, captured_precision, double(phase_conversion_factor.eval()),
-            capture_state, accepted_captures, overflow_captures, dma_errors, processing_ms, capture_period_ms};
+            monitor_results_current() ? capture_state : uint32_t(Settling),
+            accepted_captures, overflow_captures, dma_errors, processing_ms, capture_period_ms};
     }
     auto get_phase_snapshot() const {
         std::shared_lock lk(data_mtx);
         return std::tuple{accepted_captures, captured_precision, phase_conversion_factor,
-                          capture_state == Valid, relative_phase_snapshot(phase_raw, snapshot_scale)};
+                          capture_state == Valid && monitor_results_current(), phase_snapshot()};
     }
 
-    auto get_spectrum_snapshot() const { return publication.snapshot(); }
+    auto get_spectrum_snapshot() const {
+        if constexpr (!passive_monitor) return publication.snapshot();
+        else {
+            std::shared_lock lk(data_mtx);
+            auto snapshot = publication.snapshot();
+            if (!monitor_results_current()) {
+                std::get<1>(snapshot) = uint32_t(Settling);
+                std::get<7>(snapshot) = 0;
+                auto& density = std::get<16>(snapshot);
+                std::fill(density.begin(), density.end(), PhaseNoiseDensity{});
+            }
+            return snapshot;
+        }
+    }
     auto get_stream_status() {
         std::shared_lock lk(data_mtx);
         return std::tuple{spectrum.segment_count(), dma.overruns(), fft_size, fft_size / 2, 3u};
@@ -134,6 +161,9 @@ class Core
 
     auto get_jitter() {
         std::shared_lock lk(data_mtx);
+        if (!monitor_results_current()) return std::tuple{
+            std::numeric_limits<Phase>::quiet_NaN(), std::numeric_limits<Time>::quiet_NaN(),
+            std::numeric_limits<Frequency>::quiet_NaN(), std::numeric_limits<Frequency>::quiet_NaN()};
         return std::tuple{
             phase_jitter,
             time_jitter,
@@ -144,6 +174,10 @@ class Core
 
     auto get_measurements(uint32_t navg) {
         std::shared_lock lk(data_mtx);
+        if (!monitor_results_current()) return std::tuple{
+            std::numeric_limits<Phase>::quiet_NaN(), std::numeric_limits<Time>::quiet_NaN(),
+            std::numeric_limits<Frequency>::quiet_NaN(), std::numeric_limits<Frequency>::quiet_NaN(),
+            std::numeric_limits<double>::quiet_NaN()};
         return std::tuple{
             phase_jitter,
             time_jitter,
@@ -157,7 +191,8 @@ class Core
     PhaseNoiseDensityVector get_phase_noise() const;
     auto get_average_status() const {
         std::shared_lock lk(data_mtx);
-        return std::tuple{uint32_t(averager.count()), uint32_t(averager.window())};
+        return std::tuple{monitor_results_current() ? uint32_t(averager.count()) : 0u,
+                          uint32_t(averager.window())};
     }
 
   private:
@@ -167,7 +202,7 @@ class Core
     uint64_t consumed_chunks = 0;
     typename Board::Oscillator& dds;
     hw::Memory<mem::control>& ctl;
-    hw::Memory<mem::status>& sts;
+    uint64_t board_revision = 0;
 
     uint32_t channel = 0;
     uint32_t fft_navg = 1;
@@ -241,6 +276,16 @@ class Core
     // ----------------- Private functions
 
     void load_config();
+    bool synchronize_monitor();
+    // Snapshot readers never wait for DMA. An external loop edit makes the
+    // previous epoch unavailable immediately, before the worker restarts it.
+    bool monitor_results_current() const {
+        if constexpr (passive_monitor) return board.configuration_revision() == board_revision;
+        else return true;
+    }
+    PhaseDataArray phase_snapshot() const { // caller holds data_mtx
+        return monitor_results_current() ? relative_phase_snapshot(phase_raw, snapshot_scale) : PhaseDataArray{};
+    }
     void invalidate_results(CaptureState state = Settling); // caller holds data_mtx
     double carrier_power(uint32_t navg); // caller holds data_mtx
     double effective_tracking_bandwidth() const;
@@ -277,15 +322,20 @@ Core<Board>::Core()
 : cfg    (services::require<rt::ConfigManager>())
 , dds    (rt::get_driver<typename Board::Oscillator>())
 , ctl    (hw::get_memory<mem::control>())
-, sts    (hw::get_memory<mem::status>())
 , phase_noise(1 + fft_size / 2)
 , averager(1)
 {
     fs_adc = Frequency(board.sampling_frequency());
 
-    ctl.write_mask<reg::cordic, 0b11>(0b11); // Phase accumulator on
-
-    load_config();
+    board.initialize_phase();
+    if constexpr (passive_monitor) {
+        set_channel(0);
+        set_cic_rate(prm::cic_decimation_rate_default);
+        set_phase_precision(0);
+        board_revision = board.configuration_revision();
+    } else {
+        load_config();
+    }
 
     phase_noise.reserve(1 + fft_size / 2);
     start_acquisition();
@@ -347,8 +397,8 @@ void Core<Board>::set_local_oscillator(uint32_t lo_channel, double freq_hz) {
 template<class Board>
 void Core<Board>::set_cic_rate(uint32_t rate) {
     if (rate < prm::cic_decimation_rate_min ||
-        rate > prm::cic_decimation_rate_max) {
-        log<ERROR>("PhaseNoiseAnalyzer: CIC rate out of range\n");
+        rate > prm::cic_decimation_rate_max || rate % cic_rate_step != 0) {
+        log<ERROR>("PhaseNoiseAnalyzer: Unsupported CIC rate\n");
         return;
     }
 
@@ -407,7 +457,7 @@ void Core<Board>::set_channel(uint32_t chan) {
     invalidate_results();
     set_power_conversion_factor();
     dma.configure_sampling(fs, [&] {
-        ctl.write_mask<reg::cordic, 0b10000>((channel & 1) << 4);
+        board.select_channel(channel);
     });
 }
 
@@ -415,7 +465,7 @@ void Core<Board>::set_channel(uint32_t chan) {
 template<class Board>
 double Core<Board>::get_carrier_power(uint32_t navg) {
     std::shared_lock lk(data_mtx);
-    return carrier_power(navg);
+    return monitor_results_current() ? carrier_power(navg) : std::numeric_limits<double>::quiet_NaN();
 }
 
 template<class Board>
@@ -425,11 +475,7 @@ double Core<Board>::carrier_power(uint32_t navg) {
     double res = 0.0;
 
     for (uint32_t i=0; i<navg; ++i) {
-        if (channel == 0) {
-            demod_raw = sts.read<reg::demod0, uint32_t>();
-        } else {
-            demod_raw = sts.read<reg::demod1, uint32_t>();
-        }
+        demod_raw = board.demodulated(channel);
 
         // Extract real and imaginary parts and convert fix16_0 to float to obtain complex IQ signal
         const auto z = std::complex(static_cast<int16_t>(demod_raw & 0xFFFF) / 65536.0,
@@ -443,12 +489,16 @@ double Core<Board>::carrier_power(uint32_t navg) {
 template<class Board>
 typename Core<Board>::PhaseDataArray Core<Board>::get_phase() const {
     std::shared_lock lk(data_mtx);
-    return relative_phase_snapshot(phase_raw, snapshot_scale);
+    return phase_snapshot();
 }
 
 template<class Board>
 typename Core<Board>::PhaseNoiseDensityVector Core<Board>::get_phase_noise() const {
-    return publication.spectrum();
+    if constexpr (passive_monitor) {
+        std::shared_lock lk(data_mtx);
+        if (!monitor_results_current()) return PhaseNoiseDensityVector(1 + fft_size / 2);
+        return publication.spectrum();
+    } else return publication.spectrum();
 }
 
 template<class Board>
@@ -586,7 +636,12 @@ void Core<Board>::load_config() {
     }
 
     if (cfg.has("PhaseNoiseAnalyzer", "cic_rate")) {
-        set_cic_rate(cfg.get<uint32_t>("PhaseNoiseAnalyzer", "cic_rate"));
+        const auto saved = cfg.get<uint32_t>("PhaseNoiseAnalyzer", "cic_rate");
+        // Migrate odd rates saved by the unsplit CIC to the next supported
+        // rate. Invalid saved values still initialize a usable default.
+        set_cic_rate(saved >= prm::cic_decimation_rate_min && saved <= prm::cic_decimation_rate_max
+            ? saved + (cic_rate_step - saved % cic_rate_step) % cic_rate_step
+            : prm::cic_decimation_rate_default);
     } else {
         set_cic_rate(prm::cic_decimation_rate_default);
     }
@@ -809,6 +864,32 @@ void Core<Board>::update_tracking(double slope_radians_per_sample) {
 }
 
 template<class Board>
+void Core<Board>::reset_average() {
+    detail::DmaSettingsGuard pending(dma_settings_pending);
+    std::unique_lock dma_lk(dma_mtx);
+    std::unique_lock lk(data_mtx);
+    dma.configure_sampling(fs, [] {});
+    dirty_cnt = 2;
+    invalidate_results();
+}
+
+template<class Board>
+bool Core<Board>::synchronize_monitor() {
+    if constexpr (passive_monitor) {
+        const auto revision = board.configuration_revision();
+        if (revision != board_revision) {
+            board_revision = revision;
+            dma.configure_sampling(fs, [] {});
+            dirty_cnt = 2;
+            set_power_conversion_factor();
+            invalidate_results();
+            return false;
+        }
+    }
+    return true;
+}
+
+template<class Board>
 void Core<Board>::acquisition_thread() {
     {
         std::unique_lock dma_lk(dma_mtx);
@@ -821,6 +902,11 @@ void Core<Board>::acquisition_thread() {
             pending = dma_settings_pending.load(std::memory_order_acquire);
         }
         if (!acquisition_started.load(std::memory_order_acquire)) break;
+        if constexpr (passive_monitor) {
+            std::unique_lock dma_lk(dma_mtx);
+            std::unique_lock lk(data_mtx);
+            synchronize_monitor();
+        }
         // Polling never holds the settings/processing locks. A slow window at
         // high decimation is cancellable and does not delay a rate/LO request.
         auto snapshot = dma.read<data_size>(consumed_chunks, acquisition_started,
@@ -830,6 +916,7 @@ void Core<Board>::acquisition_thread() {
         if (!acquisition_started.load(std::memory_order_acquire)) break;
         // A setter may have restarted the producer after the copy completed.
         if (snapshot && snapshot->generation != dma.generation()) continue;
+        if (!synchronize_monitor()) continue;
         const auto now = std::chrono::steady_clock::now();
         if (last_capture_time != std::chrono::steady_clock::time_point{})
             capture_period_ms = std::chrono::duration<double, std::milli>(now - last_capture_time).count();
@@ -864,7 +951,9 @@ void Core<Board>::acquisition_thread() {
                 dds.get_dds_freq(0), dds.get_dds_freq(1), 0.0, 0.0};
             const auto acquired_lo = Frequency(acquired_frequencies[channel]);
             const auto trend = fit_raw_phase_prefix<data_size>(snapshot->samples);
-            update_tracking(trend.slope * double(phase_conversion_factor.eval()));
+            if constexpr (!passive_monitor)
+                update_tracking(trend.slope * double(phase_conversion_factor.eval()));
+            else (void)trend;
             dma_lk.unlock();
             const bool seed = estimator_generation != snapshot->generation || snapshot->skipped_hops;
             estimator_generation = snapshot->generation;
@@ -872,6 +961,12 @@ void Core<Board>::acquisition_thread() {
             double average_ms = 0;
             compute_phase_noise(snapshot->samples, seed, average_ms);
             const double fft_ms = elapsed_ms(fft_start) - average_ms;
+            if constexpr (passive_monitor) {
+                if (board.configuration_revision() != board_revision) {
+                    invalidate_results();
+                    continue;
+                }
+            }
             double publication_ms = 0;
             phase_raw = std::move(snapshot->samples);
             snapshot_scale = phase_conversion_factor;

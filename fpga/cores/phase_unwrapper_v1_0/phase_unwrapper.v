@@ -3,7 +3,8 @@
 module phase_unwrapper #
 (
   parameter integer DIN_WIDTH = 16,
-  parameter integer DOUT_WIDTH = 32
+  parameter integer DOUT_WIDTH = 32,
+  parameter integer PIPELINED_OVERFLOW = 0
 )
 (
   input  wire clk,
@@ -54,17 +55,40 @@ module phase_unwrapper #
   always @(posedge clk) begin
     if (rst) begin
       phase_out <= 0;
-      overflow <= 0;
     end else begin
       if (acc_on) begin
         phase_out <= next_phase[DOUT_WIDTH-1:0];
-        // Sticky until the packet's phase reset, even if phase wraps back.
-        overflow <= overflow | (next_phase[DOUT_WIDTH] != next_phase[DOUT_WIDTH-1]);
       end else begin
         phase_out <= phase_out;
       end
     end
   end
+
+  generate if (PIPELINED_OVERFLOW) begin : delayed_overflow
+    // Check signs after the sum has been registered. Only the sticky error
+    // flag is delayed; phase and frequency samples retain their latency.
+    // PNA filtering delays the affected sample well beyond this one clock.
+    reg previous_sign=0, difference_sign=0, accumulated=0;
+    always @(posedge clk) begin
+      if (rst) begin
+        previous_sign <= 0;
+        difference_sign <= 0;
+        accumulated <= 0;
+        overflow <= 0;
+      end else begin
+        previous_sign <= phase_out[DOUT_WIDTH-1];
+        difference_sign <= unwrapped_diff[DIN_WIDTH];
+        accumulated <= acc_on;
+        overflow <= overflow | (accumulated && previous_sign==difference_sign &&
+                               phase_out[DOUT_WIDTH-1]!=previous_sign);
+      end
+    end
+  end else begin : immediate_overflow
+    always @(posedge clk) begin
+      if (rst) overflow <= 0;
+      else if (acc_on) overflow <= overflow | (next_phase[DOUT_WIDTH] != next_phase[DOUT_WIDTH-1]);
+    end
+  end endgenerate
 
   assign freq_out = unwrapped_diff;
 

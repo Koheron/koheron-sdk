@@ -54,7 +54,7 @@ memory:
 parameters:
   fclk0: 200000000
   fclk1: 143000000
-  adc_clk: 200000000
+  adc_clk: 250000000
   dac_width: 16
   adc_width: 16
   dds_output_width: 16

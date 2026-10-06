@@ -9,6 +9,7 @@ interface DigitInputOptions {
     frequency?: boolean;
     validate?: (value: number) => void;
     resolution: number; // Hardware LSB in the stored unit.
+    step?: number; // Optional minimum tuning increment (e.g. even decimation).
     commit: (value: number) => Promise<number>; // Returns the accepted value.
     validation?: (message: string) => void; // Empty when the entry is corrected/cancelled.
 }
@@ -277,7 +278,7 @@ class DigitInput {
                 this.dirty = false;
             }
             // Decimal rounding prevents 0.1 Hz steps accumulating binary noise.
-            const step = Math.pow(10, this.exponent);
+            const step = Math.max(Math.pow(10, this.exponent), this.options.step || 0);
             const value = Number((this.desired + direction * step).toPrecision(15));
             this.validate(value);
             this.desired = value;

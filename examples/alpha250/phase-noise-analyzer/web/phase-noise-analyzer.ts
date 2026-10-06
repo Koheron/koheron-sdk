@@ -54,8 +54,8 @@ class PhaseNoiseAnalyzer {
   private cmds: Commands;
   public parameters: IParameters;
 
-  constructor(private client: Client) {
-    this.driver = this.client.getDriver('PhaseNoiseAnalyzer');
+  constructor(private client: Client, driverName = 'PhaseNoiseAnalyzer') {
+    this.driver = this.client.getDriver(driverName);
     this.id = this.driver.id;
     this.cmds = this.driver.getCmds();
   }

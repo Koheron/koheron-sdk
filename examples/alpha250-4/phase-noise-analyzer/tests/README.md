@@ -166,6 +166,10 @@ Precision regressions cover signed round-to-even and saturation at all 0–8
 shifts under AXIS stalls. DMA metadata regressions include ring wrap, stale
 precision, different X/Y scales, packet overflow and mixed-scale packets.
 The paired controller is tested through rate, precision and reset epochs.
+`run-fpga.sh` also synthesizes the shared controller at both rate steps and
+the paired controller, requiring `filter_resetn` to come directly from a
+flip-flop on `aclk`. This detects the combinational reset decoder that can
+glitch physically even when zero-delay RTL simulations pass.
 The shared web tests exercise the same precision widget on all three boards.
 
 The phase-rounding regression exhausts all 256 fractional codes and all 256

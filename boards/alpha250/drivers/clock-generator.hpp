@@ -2,6 +2,7 @@
 #define __ALPHA_DRIVERS_CLOCK_GENERATOR_HPP__
 
 #include <array>
+#include <atomic>
 #include <string_view>
 #include <cstdint>
 
@@ -110,7 +111,8 @@ class ClockGenerator
     static constexpr auto filename = "/tmp/clock-generator-initialized"sv;
     bool is_clock_generator_initialized = true;
 
-    uint32_t clkin = clock_cfg::TCXO_CLOCK; // Current input clock
+    // Acquisition workers read the selected reference alongside RPC edits.
+    std::atomic<uint32_t> clkin{clock_cfg::TCXO_CLOCK};
     uint32_t fs_selected = clock_cfg::configs.size(); // Current frequency configuration
     std::array<uint32_t, clock_cfg::num_params> clk_cfg;
 

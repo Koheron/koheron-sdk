@@ -6,6 +6,9 @@ proc pna_same_net {left right} {
     error "Missing phase-extractor connection $left -> $right"
 }
 proc check_phase_extractor {path} {
+    if {[get_property CONFIG.PIPELINED_OVERFLOW [get_bd_cells $path/phase_unwrapper]] != 1} {
+        error "Expected delayed monitor overflow check: $path"
+    }
     foreach {cell property expected} {
         complex_mult OutputWidth 24
         prefilter0 WIDTH 24

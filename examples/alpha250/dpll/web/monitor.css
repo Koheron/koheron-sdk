@@ -1,0 +1,22 @@
+.dpll-workspace #main { grid-template-columns: minmax(0, 1fr) 560px; max-width: none; gap: 20px; padding-top: 12px; }
+.dpll-workspace .loop-controls-panel { border-left: 1px solid var(--border-light); padding-left: 16px; }
+.dpll-workspace .monitor-panel { min-width: 0; }
+.dpll-workspace .monitor-acquisition, .dpll-workspace .display-controls, .dpll-workspace .plot-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; }
+.dpll-workspace .display-controls { border-bottom: 1px solid var(--border-light); padding-bottom: 8px; }
+.dpll-workspace .plot-actions { gap: 8px; }
+.dpll-workspace #reference-actions, .dpll-workspace #export-file, .dpll-workspace .export-actions { display: inline-flex; gap: 6px; }
+.dpll-workspace #monitor-decimation { width: 76px; }
+.dpll-workspace #monitor-averages { width: 50px; }
+.dpll-workspace .average-control { display: flex; align-items: center; gap: 3px; }
+.dpll-workspace #average-status { font-variant-numeric: tabular-nums; }
+.dpll-workspace #plot-wrap { height: clamp(350px, 56vh, 680px); }
+.dpll-workspace .spectrum-readouts { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 10px 0; border-top: 1px solid var(--border-light); font-variant-numeric: tabular-nums; }
+.dpll-workspace .readout-label { display: block; font-size: 10px; color: #777; }
+.dpll-workspace .reference-info { padding: 6px 0; font-size: 11px; color: #666; }
+.dpll-workspace #decade-values-table { width: 100%; }
+.dpll-workspace #decade-values-table td, .dpll-workspace #decade-values-table th { padding: 3px 8px; border-bottom: 1px solid var(--border-light); }
+.dpll-workspace .diagram-panel { padding-left: 0; border-left: 0; border-top: 1px solid var(--border-light); margin-top: 10px; }
+@media (max-width: 1250px) {
+  .dpll-workspace #main { grid-template-columns: minmax(0, 1fr); }
+  .dpll-workspace .loop-controls-panel { border-left: 0; border-top: 1px solid var(--border-light); padding: 12px 0 0; }
+}

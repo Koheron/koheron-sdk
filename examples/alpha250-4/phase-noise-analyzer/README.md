@@ -1,3 +1,36 @@
+## Split CIC acquisition
+
+The phase extractor runs at 250 MHz. A full-precision six-stage fixed CIC
+first decimates by two, retaining all 38 output bits. The stream crosses to
+143 MHz before the programmable six-stage CIC, compensation FIR and packet
+quantizer. The shared hardware is in
+[`pna_filter.tcl`](../../../fpga/lib/pna_filter.tcl).
+
+Total CIC rates are **even integers from 4 through 8192**, default 20. The slow
+CIC uses rate R/2. The cascade preserves the original six-stage CIC response,
+DC gain and software calibration; all internal arithmetic is retained before
+40-bit normalization. Odd saved rates migrate to the next even rate. Live odd
+rate requests are rejected. Precision controls, DMA packet format and FFT
+processing retain their existing behavior.
+
+The hardware measurements below describe the previous 200 MHz revision;
+they have not been repeated with the split filter at 250 MHz.
+
+The four 64-by-32-bit phase scalers use DSP multipliers with an identical
+eight-clock pipeline, preserving the original signed product bits 93:30.
+This adds three clocks of common measurement delay relative to the old LUT
+scalers. The phase difference, paired sampling and spectral response are
+unchanged. Validate the production scaler configuration and arithmetic with:
+
+```sh
+vivado -mode batch -nolog -nojournal -notrace \
+  -source examples/alpha250-4/phase-noise-analyzer/tests/check_fpga.tcl \
+  -tclargs tmp/examples/alpha250-4/phase-noise-analyzer/fpga/phase-noise-analyzer.xpr
+vivado -mode batch -nolog -nojournal -notrace \
+  -source examples/alpha250-4/phase-noise-analyzer/tests/test_phase_scaler.tcl \
+  -tclargs tmp/examples/alpha250-4/phase-noise-analyzer/fpga/phase-noise-analyzer.xpr
+```
+
 ## Streaming Welch — version 1.3.0
 
 This revision shares the streaming Welch engine and cyclic DMA reader with
