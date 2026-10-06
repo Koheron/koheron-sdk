@@ -18,6 +18,7 @@
 
 template<uint32_t Size> struct PhaseRingSnapshotBase {
     uint64_t end_chunk = 0, generation = 0, skipped_hops = 0;
+    double copy_ms = 0;
     bool overflow = false, mixed_precision = false, sample_gap = false;
 };
 template<uint32_t Size, uint32_t Streams> struct PhaseRingSnapshot;
@@ -127,12 +128,13 @@ class BasicCyclicPhaseDma {
                         window->end_chunk += skipped * hop;
                         window->first_chunk = window->end_chunk - chunks;
                     }
+                    const auto copy_start = std::chrono::steady_clock::now();
                     Snapshot<data_size> snapshot;
                     snapshot.end_chunk = window->end_chunk;
                     snapshot.generation = ring_generation;
                     snapshot.skipped_hops = skipped_hops;
                     const uint32_t retained = hop && initialized && cache_generation == ring_generation &&
-                        cache_end == consumed && cached[0].size() == data_size &&
+                        cache_end == consumed && cached[0].size() == data_size - hop * samples_per_chunk &&
                         snapshot.end_chunk - consumed < chunks ?
                         chunks - uint32_t(snapshot.end_chunk - consumed) : 0;
                     for (uint32_t channel = 0; channel < Streams; ++channel) {
@@ -172,11 +174,14 @@ class BasicCyclicPhaseDma {
                             if (hop) {
                                 for (uint32_t channel = 0; channel < Streams; ++channel) {
                                     const auto& output = snapshot.data(channel);
-                                    cached[channel].assign(output.begin(), output.end());
+                                    // The next window needs only the retained tail.
+                                    cached[channel].assign(output.begin() + hop * samples_per_chunk, output.end());
                                 }
                                 cache_end = snapshot.end_chunk;
                                 cache_generation = ring_generation;
                             }
+                            snapshot.copy_ms = std::chrono::duration<double, std::milli>(
+                                std::chrono::steady_clock::now() - copy_start).count();
                             return snapshot;
                         }
                         // An intact published window must have complete, full

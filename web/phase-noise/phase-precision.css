@@ -1,2 +1,9 @@
 .pna-workspace .precision-status { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .pna-workspace .precision-status[data-state="error"] { color: #a53e25; }
+
+.coverage-status { display: inline-flex; align-items: center; white-space: nowrap; padding: 2px 6px; border: 1px solid #ddd; border-radius: 2px; font-variant-numeric: tabular-nums; }
+.coverage-status[data-state="live"] { color: #287b36; }
+.coverage-status[data-state="warning"] { color: #a65e12; }
+.coverage-status[data-state="waiting"], .coverage-status[data-state="unknown"] { color: #777; }
+
+.coverage-status[hidden] { display: none; }

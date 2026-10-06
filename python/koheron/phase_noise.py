@@ -22,9 +22,30 @@ def get_stream_status(self):
     return self.client.recv_tuple("QQIII")
 
 
+@command(classname="PhaseNoiseAnalyzer")
+def get_stream_coverage(self):
+    """Acquisition epoch, unique covered chunks and accounted sample-span chunks."""
+    return self.client.recv_tuple("QQQ")
+
+
+@command(classname="PhaseNoiseAnalyzer")
+def get_stream_performance(self):
+    """Service/FFT/average/publication/copy/queue/retention ms, required/capacity Hz."""
+    return self.client.recv_tuple("ddddddddd")
+
+
+@command(classname="PhaseNoiseAnalyzer")
+def get_fft_performance(self):
+    """Fit, window preparation, transform, density reduction and paired wait ms."""
+    return self.client.recv_tuple("ddddd")
+
+
 class SingleChannelPhaseNoiseAnalyzer:
     get_spectrum_snapshot = get_spectrum_snapshot
     get_stream_status = get_stream_status
+    get_stream_coverage = get_stream_coverage
+    get_stream_performance = get_stream_performance
+    get_fft_performance = get_fft_performance
 
     def __init__(self, client):
         self.client = client

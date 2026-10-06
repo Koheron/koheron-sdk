@@ -3,6 +3,8 @@
 #include "../phase_scaling.hpp"
 #include "../phase-processing.hpp"
 #include "../tracking_lock.hpp"
+#include "server/drivers/phase-noise/stream-coverage.hpp"
+#include "server/drivers/phase-noise/stream-performance.hpp"
 #include "server/network/serializer_deserializer.hpp"
 
 #include <cassert>
@@ -11,6 +13,35 @@
 #include <iostream>
 #include <numeric>
 #include <random>
+
+void test_coverage() {
+    phase_noise::StreamPerformance performance;
+    assert(std::get<8>(performance.status(0, 100, 200)) == 0);
+    performance.append(4, 2, .5, .5, 1);
+    assert((performance.status(10, 100, 200) == std::tuple{5., 2., .5, .5, 1., 10., 100., 200., 200.}));
+    performance.append(6, 3, .5, .5, 1);
+    assert(std::abs(std::get<0>(performance.status(0, 100, 200)) - 5.1) < 1e-12);
+    performance.reset();
+    assert(std::get<8>(performance.status(0, 100, 200)) == 0);
+    phase_noise::StreamCoverage coverage;
+    assert((coverage.status() == std::tuple{uint64_t{0}, uint64_t{0}, uint64_t{0}}));
+    coverage.append(100, 4);
+    coverage.append(102, 4); // half-window overlap adds only two chunks
+    coverage.append(102, 4); // duplicate contributes nothing
+    coverage.append(100, 4); // stale publication contributes nothing
+    assert((coverage.status() == std::tuple{uint64_t{0}, uint64_t{6}, uint64_t{6}}));
+    coverage.append(106, 4); // skipped FFT hop, but samples remain fully covered
+    assert((coverage.status() == std::tuple{uint64_t{0}, uint64_t{10}, uint64_t{10}}));
+    coverage.append(112, 4); // six-chunk advance leaves two chunks uncovered
+    assert((coverage.status() == std::tuple{uint64_t{0}, uint64_t{14}, uint64_t{16}}));
+    coverage.append(124, 8); // three-window seed covers eight, not twelve chunks
+    assert((coverage.status() == std::tuple{uint64_t{0}, uint64_t{22}, uint64_t{28}}));
+    coverage.reset();
+    assert((coverage.status() == std::tuple{uint64_t{1}, uint64_t{0}, uint64_t{0}}));
+    coverage.append((uint64_t{1} << 40) + 8, 8);
+    coverage.append((uint64_t{1} << 40) + 10, 4);
+    assert((coverage.status() == std::tuple{uint64_t{1}, uint64_t{10}, uint64_t{10}}));
+}
 
 void test_averager() {
     MovingAverager<float> avg(3);
@@ -138,6 +169,7 @@ int main(int argc, char** argv) {
     assert(!lock.update(0.2, 0.02, 0.005));
     lock.reset();
     assert(!lock.update(0.008, 0.02, 0.005)); // reset restores the tighter entry tolerance
+    test_coverage();
     test_averager();
     test_windows();
     test_scaling();

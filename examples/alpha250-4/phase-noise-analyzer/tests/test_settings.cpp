@@ -94,6 +94,11 @@ int main() {
             assert(std::get<6>(analyzer.get_precision_status())==errors);
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
+        const auto [coverage_epoch, covered, span] = analyzer.get_stream_coverage();
+        assert(covered > 0 && covered < span);
+        analyzer.set_cic_rate(selected == 0 ? 32 : 33);
+        const auto [reset_epoch, reset_covered, reset_span] = analyzer.get_stream_coverage();
+        assert(reset_epoch > coverage_epoch && reset_covered == 0 && reset_span == 0);
         fast.reset();
         // Configure the next producer before the 100-ms watchdog expires.
     }

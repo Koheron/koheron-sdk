@@ -288,7 +288,8 @@ void PhaseNoiseAnalyzer::set_fft_navg(uint32_t n_avg) {
     fft_navg = target;
     averager.set_navg(fft_navg);
     if (capture_state == Valid && channel != XY) {
-        phase_noise = averager.average();
+        averager.average_to(native_phase_noise);
+        spectrum.order_to(native_phase_noise, phase_noise);
         compute_jitter(Frequency(publication.settings().lo[channel == Y ? DUTY : DUTX]));
     }
     publish_spectrum();
@@ -459,6 +460,8 @@ void PhaseNoiseAnalyzer::start_spectrum_analyzer() {
 
 void PhaseNoiseAnalyzer::invalidate_acquisition(CaptureState state) {
     capture_state = state;
+    coverage.reset();
+    performance.reset();
     raw_phase_x.fill(0);
     raw_phase_y.fill(0);
     tracking_locks = {};
@@ -493,6 +496,8 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
                 have_window = false;
             }
             if (reset_cumulative_requested.exchange(false, std::memory_order_acq_rel)) {
+                coverage.reset();
+                performance.reset();
                 averager_xy.clear();
                 if (channel == XY) {
                     phase_noise.assign(spectrum_bins, PhaseNoiseDensity{});
@@ -529,6 +534,7 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
             (spectrum_samples / 2) / PhaseDma::samples_per_chunk : snapshot->end_chunk - consumed) *
             PhaseDma::samples_per_chunk / fs;
         consumed = snapshot->end_chunk;
+        consumed_chunks = consumed;
         have_window = true;
         const auto now = std::chrono::steady_clock::now();
         if (last_capture_time != std::chrono::steady_clock::time_point{})
@@ -573,15 +579,18 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
         if (estimator_epoch != epoch || snapshot->skipped_hops) {
             spectrum.reset(); estimator_epoch = epoch;
         }
-        if (selected == XY) spectrum.process(snapshot->x, scale_x.eval(), sampling, snapshot->y, scale_y.eval(), false);
+        const auto fft_start = phase_noise::StreamClock::now();
+        if (selected == XY) spectrum.process(snapshot->x, scale_x.eval(), sampling, snapshot->y, scale_y.eval(), false, true);
         else spectrum.process(selected == Y ? std::span<const int32_t>(snapshot->y) : std::span<const int32_t>(snapshot->x),
-                              selected == Y ? scale_y.eval() : scale_x.eval(), sampling);
+                              selected == Y ? scale_y.eval() : scale_x.eval(), sampling, {}, 0, true, true);
+        const double fft_ms = phase_noise::elapsed_ms(fft_start);
         lk.lock();
         if (epoch != acquisition_epoch || reset_cumulative_requested.load(std::memory_order_acquire)) continue;
         raw_phase_x = std::move(snapshot->x);
         raw_phase_y = std::move(snapshot->y);
         captured_scale_x = scale_x;
         captured_scale_y = scale_y;
+        const auto average_start = phase_noise::StreamClock::now();
         if (selected == XY) {
             // Each new segment enters the cumulative CSD once. Averaging rolling
             // three-segment results would repeatedly count the same FFTs.
@@ -589,14 +598,12 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
             averager_xy.append_transformed(values, [](std::complex<float> value) {
                 return ComplexPhaseNoiseDensity{PhaseNoiseDensity{value.real()}, PhaseNoiseDensity{value.imag()}};
             });
-            averager_xy.average_real_to(phase_noise);
         } else {
             const auto& values = spectrum.density();
-            PhaseNoiseDensityVector estimate(values.size());
-            for (std::size_t k = 0; k < values.size(); ++k) estimate[k] = PhaseNoiseDensity{values[k]};
-            averager.append(std::move(estimate));
-            phase_noise = averager.average();
+            averager.append_transformed(values, [](std::size_t, float value) { return PhaseNoiseDensity{value}; });
         }
+        const double average_ms = phase_noise::elapsed_ms(average_start);
+        coverage.append(snapshot->end_chunk, spectrum_samples / PhaseDma::samples_per_chunk);
         ++processed_segments;
         const auto slope_x = Phase{float(spectrum.trend().slope * double((selected == Y ? scale_y : scale_x).eval()))};
         if (selected != XY) apply_tracking_update(slope_x, block_duration, selected);
@@ -613,10 +620,18 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
         }
         ++accepted_captures;
         capture_state = Valid;
-        processing_ms = std::chrono::duration<double, std::milli>(
-            std::chrono::steady_clock::now() - process_start).count();
-        compute_jitter(Frequency(f_dds));
-        publish_spectrum(acquired_frequencies);
+        double publication_ms = 0;
+        if (publication.ready()) {
+            const auto publish_start = phase_noise::StreamClock::now();
+            if (selected == XY) averager_xy.average_real_to(native_phase_noise);
+            else averager.average_to(native_phase_noise);
+            spectrum.order_to(native_phase_noise, phase_noise);
+            compute_jitter(Frequency(f_dds));
+            publish_spectrum(acquired_frequencies);
+            publication_ms = phase_noise::elapsed_ms(publish_start);
+        }
+        processing_ms = phase_noise::elapsed_ms(process_start);
+        performance.append(processing_ms, fft_ms, average_ms, publication_ms, snapshot->copy_ms, spectrum.stage_times());
     }
 }
 

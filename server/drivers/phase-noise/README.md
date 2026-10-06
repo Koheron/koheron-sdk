@@ -53,6 +53,26 @@ Install the SDK Python package when updating clients. The old batch Welch and
 multirate helpers remain numerical regression references; production analyzers
 use the shared streaming estimator.
 
+## Sample coverage
+
+`get_stream_coverage()` returns `(epoch, covered_chunks, span_chunks)` as `QQQ`.
+Each chunk represents 8192 phase samples after decimation. The counters measure
+the union of accepted FFT windows from the first valid window through the latest
+accepted window; overlap counts once. Queued samples are excluded until accepted
+or skipped. A missed FFT hop can still leave 100% sample coverage when neighboring
+windows cover the complete interval. Coverage measures sample-time gaps, not the
+number of FFT segments or independent averages. Single-channel seed windows cover
+65536 samples; steady-state FFTs cover only their final 32768 samples.
+
+Settings changes, invalid acquisitions and manual XY resets start a new coverage
+epoch. Consumer overruns preserve it and add only the recent window's actual
+sample coverage. Chrome shows `Coverage 100%` beside FPS and connection status when recent acquisitions have no
+uncovered sample interval, using approximately ten seconds of counter updates.
+Its tooltip reports total coverage/skipped sample time since acquisition reset.
+FPGA sample-loss metadata is reported separately because its missing-sample count
+is not available. Older instruments show `Coverage n/a`; disconnected or settling
+instruments show an unavailable value rather than stale coverage.
+
 ## Atomic spectrum snapshot
 
 All three designs expose `get_spectrum_snapshot()`. The result is a tuple:
@@ -130,3 +150,44 @@ publication regression tests concurrent metadata/data reads and emits a frame
 for the browser's production decoder. Python regressions exercise both
 single-channel board adapters. FPGA block-design and routed timing checks are
 separate from hardware PM and throughput measurements.
+
+## Processing capacity and display cadence
+
+All three designs accumulate every accepted half-window FFT. Displayed spectra,
+metadata and integrated jitter are materialized at up to 30 Hz; settings changes,
+invalidations and the first valid result publish immediately. Averaging retains
+native FFT-bin order between publications. Only the final output is permuted into
+ascending frequency order, including the interferometer compensation's matching
+frequency-bin lookup. Atomic snapshot counts describe the displayed spectrum.
+
+Moving-average ring slots and publication vectors retain their allocations.
+The shared DMA cache retains only the tail needed by the next overlapping window.
+ARM builds use NEON. Each FFT workspace times both window-preparation kernels
+on its first capture and selects NEON only when it is at least 10% faster than
+the double reference. The window-preparation fast path
+subtracts the raw fitted ramp using signed Q31.32 arithmetic before converting
+its residual to float. Intercept/slope quantization contributes less than 7.7e-6
+raw counts for windows of up to 65536 samples, before normal float rounding.
+Out-of-range fitted lines/residuals and extreme scales use the double reference
+path. The integer least-squares fit, Hann weights and spectral normalization are
+retained. Scalar builds use the double path.
+
+`get_stream_performance()` returns nine doubles: smoothed total service, FFT,
+average accumulation, spectrum/jitter publication and DMA-copy times in ms,
+current queued sample time in ms, approximate retained-buffer time in ms,
+required windows/s and estimated processing capacity in windows/s. Total service
+includes DMA copying and processing through publication, and excludes waiting for
+new samples. The capacity estimate is indicative; contention and scheduling can
+reduce achieved throughput. Processing times in `get_precision_status()` now
+include jitter and publication on every board, excluding DMA copying.
+
+`get_fft_performance()` returns five doubles: smoothed fit, window preparation,
+transform, density reduction and paired-worker wait times in ms. Paired transform
+stages report the larger per-channel time; their sum is not a complete wall-clock
+profile. Single-channel reseeding processes three FFTs, while the substage values
+describe the last of those segments.
+
+The shared header shows queued sample time beside coverage. Amber warns when
+estimated capacity is below the required half-window rate or the queue exceeds
+half its retained buffer. The tooltip exposes capacity and stage timings, so a
+queue building behind an initial 100% coverage reading is visible before loss.

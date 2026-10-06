@@ -839,3 +839,125 @@ regressions cover counters above 2^32. The final web bundle was rebuilt and
 deployed, and Chrome showed the correct 4-event counter. Before that deployment
 the user had selected Y / CIC 80 / 41 averages; those latest settings were
 captured and restored. The final browser showed 41/41 with tracking locked.
+
+### Live sample-coverage indicator (2026-10-06)
+
+The header now displays recent `Coverage`, with 100% as the target. The new
+`get_stream_coverage()` RPC returns acquisition epoch, unique covered chunks and
+accounted span chunks (`QQQ`, 8192 phase samples per chunk). Accepted FFT windows
+contribute their sample-interval union; overlap is counted once. Pending queued
+data is excluded until accepted or skipped. This is sample-time coverage after
+decimation, rather than a count of processed FFT hops or independent averages.
+The display uses approximately ten seconds of counter updates; the tooltip also
+reports total coverage/skipped sample time since acquisition reset. Settings,
+invalid captures and manual cumulative resets clear its history. Consumer
+recovery preserves the coverage epoch and accounts for the actual missing
+interval. FPGA sample-loss flags remain separate because their missing-sample
+count is unavailable.
+
+Build/software checks:
+
+- All three ARM server and web builds pass; both ALPHA software suites pass
+  under ASan/UBSan. The shared coverage regression covers half-window overlap,
+  a skipped FFT hop with no sample gap, true gaps, duplicate/stale windows,
+  single-channel seed spans, epoch resets and large absolute DMA positions.
+- Production overload tests confirm reduced coverage while retaining averages,
+  and verify settings reset the coverage epoch. Browser tests on all three
+  boards check recent recovery to 100%, lifetime tooltip totals, network-order
+  uint64 high words, invalid/unavailable status and older-instrument fallback.
+  The complete suites report 51 and 13 passing browser tests. Final header
+  placement also passes the shared widget and quad workspace regressions.
+
+Hardware checks on 192.168.1.12, XY, +8-bit precision and enabled 0.1 Hz tracking:
+
+| CIC | Duration | Sample coverage over measured counter interval | New consumer overruns | New DMA errors |
+| --- | ---: | ---: | ---: | ---: |
+| 110 | 19.94 s | 100.00% | 0 | 0 |
+| 30 | 13.98 s | 33.88% | 7 | 0 |
+| 110 restored | 11.87 s | 100.00% | 0 | 0 |
+
+The same backend's preceding run measured 100%, 33.32%, then 100% over
+24.99, 17.80 and 11.90 seconds respectively. Chrome visibly reported partial
+coverage under load and 100% after restoring CIC 110, while tracking remained
+locked. A header placement change keeps the acquisition controls on one row.
+The user's original XY / CIC 110 / 41-average / nominal 10.001 MHz settings were
+captured immediately before each deployment and restored. Before the required
+server restart, the original 85,001-segment cumulative spectrum was archived as
+`tmp/pna-coverage/previous-measurement.csv` and `.npz`, including captured metadata
+and phase snapshots in the NPZ. Raw logs, telemetry and screenshots are under
+`tmp/pna-coverage/` (ignored artifacts).
+
+Final archive SHA-256:
+`74acc3bb8f168e5537ecc05b9b38734c97d31c964140347471df10b2ae65cd00`.
+Live read-back matches the local package: server SHA-256
+`2fd266eb92166fb6238a2c903c16d2ad6bd4849bf66d100470b26ff9084261d7`,
+web bundle `8918020021937cdd181c08d88a06ed4ba0aa4bac9c0f333ef8b542d110e0f0d0`.
+No FPGA logic or constraints changed, and no new FPGA timing run was required.
+
+### Shared processing capacity improvements (2026-10-06)
+
+All three PNA designs now reuse averaging/publication buffers, retain only the
+DMA tail needed for the following window, and accumulate spectra in native FFT
+order. Frequency ordering, averaged-spectrum materialization and jitter
+calculation run at up to 30 Hz; every accepted half-window segment still enters
+the averager. ARM window preparation benchmarks the double reference and guarded
+NEON implementation once per channel, selecting NEON only for a measured win of
+at least 10%. The least-squares fit, Hann window and signed density normalization
+remain unchanged. Fixed-point detrending has a bounded sub-count error and
+falls back for extreme inputs; this is a numerical optimization, not analog
+noise-floor calibration.
+
+The shared header's Queue badge reports pending phase-stream time. Its tooltip
+reports ring retention, required/estimated processing rates, DMA copy,
+estimation, averaging and publication service times, plus FFT stage timings.
+Estimated capacity excludes waiting for samples and is indicative rather than
+a guarantee under competing CPU/DDR/client load. The Coverage badge continues
+to count the union of accepted sample intervals, including skipped intervals
+when they are resolved by consumer recovery.
+
+Build/software checks: strict ARM server and web builds pass for ALPHA250,
+ALPHA250-4 and Red Pitaya. Both complete ALPHA suites pass, including ASan/UBSan,
+Python, shared DMA/recovery tests and 54/16 browser tests respectively. Host
+SIMD/scalar numerical checks and the Cortex-A9 NEON estimator under QEMU pass
+the independent SciPy oracle, including seven full-size drift/endpoint cases,
+quiet-channel cross spectra and native/ordered output comparisons. Final host
+and ARM oracle RMS differences are below the 2 ppm tolerance. QEMU validates
+numerics; the following throughput measurements use the physical board.
+
+Hardware checks use ALPHA250-4 at 192.168.1.12, XY, +8 bits, ten moving averages,
+tracking disabled, internal reference, unchanged input signals and effective
+DDS frequencies. Fixed CIC 60 comparisons were made with Chrome disconnected
+from the instrument; the final CIC 90 browser check had Chrome displaying the
+live spectrum. Rates count overlapping FFT segments, not independent averages.
+
+| Build / CIC | Duration | Accepted segments/s | Sample coverage | New consumer overruns | New DMA errors / gaps / overflows |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Baseline / 60 | 39.79 s | 74.61 | 74.75% | 4 | 0 / 0 / 0 |
+| Optimized / 60 | 44.77 s | 82.68 | 83.11% | 3 | 0 / 0 / 0 |
+| Optimized / 90 | 39.84 s | 67.82 | 100.00% | 0 | 0 / 0 / 0 |
+| Optimized / 90, Chrome active | 24.75 s | 67.83 | 100.00% | 0 | 0 / 0 / 0 |
+
+The fixed CIC 60 comparison improves sustained segment throughput by 10.8%, but
+still cannot sustain its required 101.73 segments/s. CIC 90 meets its required
+67.82 segments/s under the tested load. All sampled cumulative counts remain
+monotonic and acquisition epochs remain unchanged within each run. ALPHA250
+and Red Pitaya hardware validation remains pending.
+
+The user's latest CIC 20 / XY / +8 / ten-average settings and disabled tracking
+were restored, preserving nominal and effective DDS frequencies. A final
+14.93-second Chrome-active check retains averages through 14 consumer overruns,
+with no new DMA errors, gaps, overflows or epochs; its 23.54% coverage reflects
+the required 305.18 segments/s exceeding CPU capacity. The prebenchmark
+28,349-segment measurement was saved before settings changes, and subsequent
+measurements were archived before each server restart and final restoration.
+
+This deployment changes software only: FPGA and overlay bytes match the prior
+verified package, with no new FPGA build or routed timing claim. HTTP readback
+of server, web assets, bitstream and overlay matches the final archive.
+Archive SHA-256:
+`9ec0617a9595ae92ec81cfa5319453bb9a9baf9b21b5d441cc7ae40bfe241580`.
+Server SHA-256:
+`d8ac535f89b42ef7edd3123748d554bf473d41e8640d1c2741289670f5f18b89`.
+Artifacts are under `tmp/pna-performance/`: fixed baseline/final telemetry,
+`prebenchmark-measurement.csv`, deployment measurements, restored settings,
+package/readback hashes, numerical/build/test logs and Chrome screenshots.

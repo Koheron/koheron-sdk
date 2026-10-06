@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cassert>
 #include <span>
+#include <cmath>
 #include <scicpp/core.hpp>
 #if defined(__ARM_NEON)
 #include <arm_neon.h>
@@ -72,6 +73,74 @@ inline RawPhaseTrend fit_raw_phase(std::span<const int32_t> raw) {
     const double n = double(samples), anchor = double(raw[samples / 2]);
     return {anchor, double(sum) / n - anchor,
             double(twice_covariance) / (n * (n * n - 1.0) / 6.0)};
+}
+
+inline void prepare_phase_window_reference(std::span<const int32_t> raw, const RawPhaseTrend& trend,
+                                           double scale, std::span<const float> window, float* output) {
+    assert(raw.size() > 1 && raw.size() <= 65536 && raw.size() == window.size());
+    const double mean = trend.anchor + trend.mean;
+    const double center = double(raw.size() - 1) / 2;
+#pragma GCC unroll 4
+    for (std::size_t i = 0; i < raw.size(); ++i)
+        output[i] = float((double(raw[i]) - mean - trend.slope * (double(i) - center)) * scale) * window[i];
+}
+
+inline void prepare_phase_window(std::span<const int32_t> raw, const RawPhaseTrend& trend,
+                                 double scale, std::span<const float> window, float* output) {
+    assert(raw.size() > 1 && raw.size() <= 65536 && raw.size() == window.size());
+#if defined(__ARM_NEON)
+    const double mean = trend.anchor + trend.mean;
+    const double center = double(raw.size() - 1) / 2;
+    // Subtract the fitted ramp in signed Q31.32 BEFORE converting to float.
+    // Out-of-range fitted lines/residuals use the double fallback. Rounding the
+    // intercept/slope adds at most (N + 1)/2^33 raw counts (< 7.7e-6 at N=65536).
+    // This retains small steps on a full-range ramp without per-sample double
+    // arithmetic or ARM's software int64-to-float conversion helpers.
+    const double first_line = mean - trend.slope * center;
+    const double last_line = mean + trend.slope * center;
+    if (std::abs(scale) >= 1e-12 && std::abs(scale) <= 1e12 &&
+        std::abs(first_line) < 2147483647.5 && std::abs(last_line) < 2147483647.5) {
+        constexpr double unit = 4294967296.0;
+        const int64_t first = std::llround(first_line * unit);
+        const int64_t step = std::llround(trend.slope * unit);
+        const int64_t initial[]{first, first + step};
+        auto line = vld1q_s64(initial);
+        const auto advance = vdupq_n_s64(2 * step);
+        const float factor = float(scale);
+        bool overflow = false;
+        std::size_t i = 0;
+        for (; i + 4 <= raw.size(); i += 4) {
+            const auto input = vld1q_s32(raw.data() + i);
+            const auto low_raw = vshlq_n_s64(vmovl_s32(vget_low_s32(input)), 32);
+            const auto low = vsubq_s64(low_raw, line);
+            auto errors = vandq_s64(veorq_s64(low_raw, line), veorq_s64(low_raw, low));
+            line = vaddq_s64(line, advance);
+            const auto high_raw = vshlq_n_s64(vmovl_s32(vget_high_s32(input)), 32);
+            const auto high = vsubq_s64(high_raw, line);
+            errors = vorrq_s64(errors, vandq_s64(veorq_s64(high_raw, line), veorq_s64(high_raw, high)));
+            const auto signs = vshrq_n_s64(errors, 63);
+            if ((vgetq_lane_s64(signs, 0) | vgetq_lane_s64(signs, 1)) != 0) { overflow = true; break; }
+            line = vaddq_s64(line, advance);
+            const auto low_sign = vshrq_n_s64(low, 63), high_sign = vshrq_n_s64(high, 63);
+            const auto low_abs = vreinterpretq_u64_s64(vsubq_s64(veorq_s64(low, low_sign), low_sign));
+            const auto high_abs = vreinterpretq_u64_s64(vsubq_s64(veorq_s64(high, high_sign), high_sign));
+            // Convert the magnitude to avoid cancellation for negative
+            // sub-count residuals, then restore its sign through the float bits.
+            const auto integers = vcombine_u32(vmovn_u64(vshrq_n_u64(low_abs, 32)), vmovn_u64(vshrq_n_u64(high_abs, 32)));
+            const auto fractions = vcombine_u32(vmovn_u64(low_abs), vmovn_u64(high_abs));
+            const auto magnitude = vaddq_f32(vcvtq_f32_u32(integers),
+                                            vmulq_n_f32(vcvtq_f32_u32(fractions), 0x1p-32f));
+            const auto sign = vreinterpretq_u32_s32(vcombine_s32(vmovn_s64(low_sign), vmovn_s64(high_sign)));
+            const auto residual = vreinterpretq_f32_u32(veorq_u32(vreinterpretq_u32_f32(magnitude),
+                vandq_u32(sign, vdupq_n_u32(0x80000000u))));
+            vst1q_f32(output + i, vmulq_f32(vmulq_n_f32(residual, factor), vld1q_f32(window.data() + i)));
+        }
+        for (; !overflow && i < raw.size(); ++i)
+            output[i] = float((double(raw[i]) - mean - trend.slope * (double(i) - center)) * scale) * window[i];
+        if (!overflow) return;
+    }
+#endif
+    prepare_phase_window_reference(raw, trend, scale, window, output);
 }
 
 template<std::size_t Samples, std::size_t N>

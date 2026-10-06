@@ -30,8 +30,8 @@ assert np.all(actual[:, 19, 2] < 0)
 print("SciPy streaming auto/CSD, rolling three-segment averages, large drift and 120 dB channel ratio: PASS", errors)
 
 edge_size = 32768
-edge_raw = np.fromfile(sys.argv[1] + ".edge.raw", dtype="<i4").reshape(4, 2, edge_size)
-edge_actual = np.fromfile(sys.argv[1] + ".edge", dtype="<f4").reshape(4, edge_size // 2 + 1, 3)
+edge_raw = np.fromfile(sys.argv[1] + ".edge.raw", dtype="<i4").reshape(-1, 2, edge_size)
+edge_actual = np.fromfile(sys.argv[1] + ".edge", dtype="<f4").reshape(-1, edge_size // 2 + 1, 3)
 window = signal.windows.hann(edge_size, sym=True)
 for index, pair in enumerate(edge_raw):
     centered = pair.astype(np.float64) - pair[:, :1].astype(np.float64)
