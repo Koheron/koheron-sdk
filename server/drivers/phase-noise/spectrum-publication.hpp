@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <mutex>
 #include <shared_mutex>
@@ -26,16 +27,27 @@ class SpectrumPublication {
     uint64_t sequence = 0;
     SpectrumMetadata metadata;
     std::vector<Density> density;
+    std::chrono::steady_clock::time_point last_publish{};
 
   public:
     explicit SpectrumPublication(std::size_t bins) : density(bins) {}
 
     // Acquisition/settings writers own their processing lock before publishing.
-    void publish(SpectrumMetadata next, std::vector<Density> values) {
+    void publish(SpectrumMetadata next, const std::vector<Density>& values) {
         std::unique_lock lock(mutex);
         metadata = next;
-        density = std::move(values);
+        density.assign(values.begin(), values.end());
         ++sequence;
+        last_publish = std::chrono::steady_clock::now();
+    }
+
+    // Every accepted FFT still enters the averager. Only materialization of
+    // the displayed spectrum/jitter is limited to 30 Hz. Explicit settings
+    // changes and invalidations publish immediately through publish().
+    bool ready() const {
+        std::shared_lock lock(mutex);
+        return sequence == 0 || metadata.state != 1 ||
+            std::chrono::steady_clock::now() - last_publish >= std::chrono::duration<double>(1.0 / 30.0);
     }
 
     auto settings() const {

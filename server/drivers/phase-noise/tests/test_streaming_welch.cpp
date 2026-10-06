@@ -3,6 +3,20 @@
 #include <fstream>
 #include <iostream>
 
+template<typename T>
+void check_same_spectrum(const std::vector<T>& actual, const std::vector<T>& expected) {
+    assert(actual.size() == expected.size());
+    double error = 0, norm = 0;
+    for (std::size_t k = 0; k < actual.size(); ++k) {
+        const double delta = std::abs(actual[k] - expected[k]);
+        const double magnitude = std::abs(expected[k]);
+        error += delta * delta; norm += magnitude * magnitude;
+    }
+    // Each workspace independently chooses its measured preparation kernel.
+    // Both must agree within the existing independent SciPy oracle tolerance.
+    assert(error <= 4e-12 * norm + 1e-60);
+}
+
 int main(int argc, char** argv) {
     assert(argc == 2);
     constexpr std::size_t size = 512, hops = 12, samples = size + (hops - 1) * size / 2;
@@ -19,12 +33,22 @@ int main(int argc, char** argv) {
     raw.write(reinterpret_cast<const char*>(x.data()), sizeof(x));
     raw.write(reinterpret_cast<const char*>(y.data()), sizeof(y));
     std::ofstream output(argv[1], std::ios::binary);
-    phase_noise::StreamingWelch<size> single, paired;
+    phase_noise::StreamingWelch<size> single, paired, native_single, native_paired;
+    std::vector<float> ordered_power;
+    std::vector<std::complex<float>> ordered_cross;
     for (std::size_t hop = 0; hop < hops; ++hop) {
         const auto a = std::span<const int32_t>(x.data() + hop * size / 2, size);
         const auto b = std::span<const int32_t>(y.data() + hop * size / 2, size);
         single.process(a, 1e-5, 123456);
         paired.process(a, 1e-5, 123456, b, 1e-11); // Quiet channel: 120 dB power ratio.
+        native_single.process(a, 1e-5, 123456, {}, 0, true, true);
+        native_paired.process(a, 1e-5, 123456, b, 1e-11, true, true);
+        native_single.order_to(native_single.density(), ordered_power);
+        check_same_spectrum(ordered_power, single.density());
+        native_paired.order_to(native_paired.latest_cross(), ordered_cross);
+        check_same_spectrum(ordered_cross, paired.latest_cross());
+        native_paired.order_to(native_paired.density(), ordered_power);
+        check_same_spectrum(ordered_power, paired.density());
         assert(single.segment_count() == hop + 1);
         assert(paired.segment_count() == hop + 1);
         assert(single.retained_segments() == std::min(hop + 1, std::size_t{3}));
@@ -51,7 +75,7 @@ int main(int argc, char** argv) {
     std::array<int32_t, edge_size> a{}, b{};
     std::ofstream edge_raw(std::string(argv[1]) + ".edge.raw", std::ios::binary);
     std::ofstream edge_output(std::string(argv[1]) + ".edge", std::ios::binary);
-    for (int test = 0; test < 4; ++test) {
+    for (int test = 0; test < 7; ++test) {
         for (std::size_t i = 0; i < edge_size; ++i) {
             const double tone = std::round(20 * std::sin(2 * scicpp::pi<double> * 113 * double(i) / edge_size));
             if (test == 0) {
@@ -61,10 +85,30 @@ int main(int argc, char** argv) {
                 const double drift = -2000000000 + 122070.3125 * double(i);
                 a[i] = int32_t((test == 1 ? drift : -drift) + tone);
                 b[i] = int32_t((test == 1 ? -drift : drift) - tone);
+            } else if (test == 4) {
+                a[i] = int32_t(-1900000000 + 115987.123456 * double(i)) + int(i % 7 == 0);
+                b[i] = -a[i];
+            } else if (test == 5) {
+                a[i] = i < edge_size / 2 ? INT32_MIN : INT32_MAX;
+                b[i] = ~a[i];
+            } else if (test == 6) {
+                a[i] = i % 3 == 0 ? INT32_MAX : INT32_MIN;
+                b[i] = ~a[i];
             } else {
                 a[i] = i % 2 ? INT32_MAX : INT32_MIN;
                 b[i] = i % 2 ? INT32_MIN : INT32_MAX;
             }
+        }
+        // Check preparation itself against the double reference, including
+        // wide residuals and fractional slopes on large raw offsets.
+        const auto trend = phase_noise::fit_raw_phase(a);
+        const auto win = scicpp::signal::windows::hann<float>(edge_size);
+        std::array<float, edge_size> prepared{};
+        phase_noise::prepare_phase_window(a, trend, 1., win, prepared.data());
+        for (std::size_t i = 0; i < edge_size; ++i) {
+            const double expected = (double(a[i]) - (trend.anchor + trend.mean) -
+                trend.slope * (double(i) - double(edge_size - 1) / 2)) * win[i];
+            assert(std::abs(double(prepared[i]) - expected) <= 1e-4 + 3e-7 * std::abs(expected));
         }
         edge_raw.write(reinterpret_cast<const char*>(a.data()), sizeof(a));
         edge_raw.write(reinterpret_cast<const char*>(b.data()), sizeof(b));

@@ -56,14 +56,30 @@ class MovingAverager {
         write_slot(slot, std::move(v));
     }
 
-    std::vector<T> average() const {
-        using namespace scicpp::operators;
-
-        if (filled_ == 0) {
-            return {};
+    template<typename Array, typename Convert>
+    void append_transformed(const Array& values, Convert convert) {
+        ensure_shape(values.size());
+        auto& slot = ring_[next_slot()];
+        const bool retained = slot.size() == width_;
+        slot.resize(width_);
+        for (std::size_t i = 0; i < width_; ++i) {
+            if (retained) sum_[i] -= slot[i];
+            slot[i] = convert(i, values[i]);
+            sum_[i] += slot[i];
         }
+    }
 
-        return sum_ / static_cast<RepT>(filled_);
+    void average_to(std::vector<T>& output) const {
+        if (!filled_) { output.clear(); return; }
+        output.resize(width_);
+        const auto divisor = static_cast<RepT>(filled_);
+        for (std::size_t i = 0; i < width_; ++i) output[i] = sum_[i] / divisor;
+    }
+
+    std::vector<T> average() const {
+        std::vector<T> output;
+        average_to(output);
+        return output;
     }
 
     void set_navg(std::size_t new_navg) {

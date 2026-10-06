@@ -1,6 +1,8 @@
 #pragma once
 #include "phase-processing.hpp"
 #include "streaming-welch.hpp"
+#include "stream-coverage.hpp"
+#include "stream-performance.hpp"
 #include "spectrum-publication.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
@@ -82,6 +84,22 @@ class Core
     auto get_stream_status() {
         std::shared_lock lk(data_mtx);
         return std::tuple{spectrum.segment_count(), dma.overruns(), fft_size, fft_size / 2, 3u};
+    }
+    auto get_stream_coverage() const {
+        std::shared_lock lk(data_mtx);
+        return coverage.status();
+    }
+    auto get_stream_performance() {
+        std::shared_lock lk(data_mtx);
+        const auto completed = dma.completed_chunks();
+        const double chunk_ms = 1000.0 * CyclicPhaseDma::samples_per_chunk / double(fs.eval());
+        return performance.status(completed > consumed_chunks ? (completed - consumed_chunks) * chunk_ms : 0.0,
+            (CyclicPhaseDma::ring_chunks - 3 - data_size / CyclicPhaseDma::samples_per_chunk) * chunk_ms,
+            double(fs.eval()) / (fft_size / 2));
+    }
+    auto get_fft_performance() const {
+        std::shared_lock lk(data_mtx);
+        return performance.fft_status();
     }
     auto get_dma_status() {
         std::shared_lock lk(data_mtx);
@@ -181,9 +199,12 @@ class Core
 
     // Spectrum analyzer
     StreamingWelch<fft_size> spectrum;
+    StreamCoverage coverage;
+    StreamPerformance performance;
     std::atomic<bool> stream_initialized{false};
     uint64_t estimator_generation = UINT64_MAX;
     PhaseNoiseDensityVector phase_noise;
+    PhaseNoiseDensityVector native_phase_noise;
     MovingAverager<PhaseNoiseDensity> averager;
 
     // Jitter (integrated noise)
@@ -227,7 +248,7 @@ class Core
     void update_tracking(double slope_radians_per_sample); // caller holds both mutexes when enabled
     void update_interferometer_transfer_function();
     void set_power_conversion_factor();
-    auto compute_phase_noise(const RawPhaseDataArray& raw, bool seed);
+    void compute_phase_noise(const RawPhaseDataArray& raw, bool seed, double& average_ms);
     auto compute_jitter(const PhaseNoiseDensityVector& new_pn, Frequency acquired_lo);
     void acquisition_thread();
     void start_acquisition();
@@ -438,7 +459,8 @@ void Core<Board>::set_fft_navg(uint32_t n_avg) {
     fft_navg = target;
     averager.set_navg(fft_navg);
     if (capture_state == Valid) {
-        phase_noise = averager.average();
+        averager.average_to(native_phase_noise);
+        spectrum.order_to(native_phase_noise, phase_noise);
         const auto frequencies = publication.settings().lo;
         compute_jitter(phase_noise, Frequency(frequencies[channel]));
         publish_spectrum(frequencies);
@@ -623,24 +645,19 @@ void Core<Board>::set_power_conversion_factor() {
 }
 
 template<class Board>
-auto Core<Board>::compute_phase_noise(const RawPhaseDataArray& raw, bool seed) {
+void Core<Board>::compute_phase_noise(const RawPhaseDataArray& raw, bool seed, double& average_ms) {
     const std::size_t first = seed ? 0 : data_size - fft_size;
     if (seed) spectrum.reset();
     for (std::size_t offset = first; offset + fft_size <= data_size; offset += fft_size / 2)
         spectrum.process(std::span<const int32_t>(raw.data() + offset, fft_size),
-                         phase_conversion_factor.eval(), fs.eval());
+                         phase_conversion_factor.eval(), fs.eval(), {}, 0, true, true);
     const auto& density = spectrum.density();
-    PhaseNoiseDensityVector phase_psd(density.size());
-    for (std::size_t k = 0; k < density.size(); ++k) phase_psd[k] = PhaseNoiseDensity{density[k]};
-
-    if (analyzer_mode == AnalyzerMode::LASER) {
-        using namespace sci::operators;
-        phase_psd = std::move(phase_psd) * interferometer_tf;
-    }
-
+    const auto average_start = StreamClock::now();
     // Keep one-window history current even while averaging is disabled.
-    averager.append(std::move(phase_psd));
-    return averager.average();
+    averager.append_transformed(density, [this](std::size_t k, float value) {
+        return PhaseNoiseDensity{value * (analyzer_mode == AnalyzerMode::LASER ? interferometer_tf[spectrum.frequency_bin(k)] : 1.f)};
+    });
+    average_ms = elapsed_ms(average_start);
 }
 
 template<class Board>
@@ -723,6 +740,8 @@ void Core<Board>::publish_spectrum(const std::array<double, 4>& acquired_lo) {
 
 template<class Board>
 void Core<Board>::invalidate_results(CaptureState state) {
+    coverage.reset();
+    performance.reset();
     stream_initialized.store(false);
     estimator_generation = UINT64_MAX;
     capture_state = state;
@@ -849,16 +868,28 @@ void Core<Board>::acquisition_thread() {
             dma_lk.unlock();
             const bool seed = estimator_generation != snapshot->generation || snapshot->skipped_hops;
             estimator_generation = snapshot->generation;
-            auto new_pn = compute_phase_noise(snapshot->samples, seed);
-            compute_jitter(new_pn, acquired_lo);
+            const auto fft_start = StreamClock::now();
+            double average_ms = 0;
+            compute_phase_noise(snapshot->samples, seed, average_ms);
+            const double fft_ms = elapsed_ms(fft_start) - average_ms;
+            double publication_ms = 0;
             phase_raw = std::move(snapshot->samples);
             snapshot_scale = phase_conversion_factor;
-            phase_noise = std::move(new_pn);
+            coverage.append(snapshot->end_chunk,
+                (seed ? data_size : fft_size) / CyclicPhaseDma::samples_per_chunk);
             ++accepted_captures;
             capture_state = Valid;
-            publish_spectrum(acquired_frequencies);
+            if (publication.ready()) {
+                const auto publish_start = StreamClock::now();
+                averager.average_to(native_phase_noise);
+                spectrum.order_to(native_phase_noise, phase_noise);
+                compute_jitter(phase_noise, acquired_lo);
+                publish_spectrum(acquired_frequencies);
+                publication_ms = elapsed_ms(publish_start);
+            }
             processing_ms = std::chrono::duration<double, std::milli>(
                 std::chrono::steady_clock::now() - process_start).count();
+            performance.append(processing_ms, fft_ms, average_ms, publication_ms, snapshot->copy_ms, spectrum.stage_times());
         }
         if (!snapshot) {
             lk.unlock();

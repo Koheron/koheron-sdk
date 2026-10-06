@@ -10,11 +10,12 @@ class CyclicPhaseDma {
     bool started = false;
     std::atomic<uint64_t> completed{0};
 public:
-    static constexpr uint32_t samples_per_chunk = 8192;
+    static constexpr uint32_t samples_per_chunk = 8192, ring_chunks = 512;
     uint64_t overruns() const { return 0; }
     template<uint32_t N> struct Snapshot {
         std::array<int32_t, N> samples;
         uint64_t end_chunk, generation, skipped_hops = 0;
+        double copy_ms = 0;
         uint32_t precision;
         bool overflow, sample_gap, mixed_precision;
         bool matches_precision(uint32_t bits) const { return !mixed_precision && precision == bits; }

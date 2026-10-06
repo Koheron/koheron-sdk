@@ -14,6 +14,9 @@ class Check {
 
     void verify() const {
         const auto result = actual.average();
+        std::vector<double> reused;
+        actual.average_to(reused);
+        if (reused != result) throw std::runtime_error("in-place average differs");
         if (actual.count() != samples.size() || actual.window() != capacity) {
             throw std::runtime_error("incorrect sample count or capacity");
         }
@@ -38,7 +41,10 @@ class Check {
     void append(double value) {
         std::vector<double> sample{value, -2 * value, value + 10};
         // Exercise both append overloads.
-        if (samples.size() % 2) actual.append(std::vector<double>(sample));
+        if (samples.size() % 3 == 2) {
+            const std::vector<double> raw{value, -value, value + 10};
+            actual.append_transformed(raw, [](std::size_t k, double v) { return k == 1 ? 2 * v : v; });
+        } else if (samples.size() % 2) actual.append(std::vector<double>(sample));
         else actual.append(sample);
         samples.push_back(sample);
         if (samples.size() > capacity) samples.pop_front();

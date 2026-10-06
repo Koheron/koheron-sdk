@@ -30,6 +30,8 @@
 #include "./phase-processing.hpp"
 #include "./tracking_lock.hpp"
 #include "server/drivers/phase-noise/streaming-welch.hpp"
+#include "server/drivers/phase-noise/stream-coverage.hpp"
+#include "server/drivers/phase-noise/stream-performance.hpp"
 
 namespace rt { class ConfigManager; }
 class Ltc2157;
@@ -168,6 +170,24 @@ class PhaseNoiseAnalyzer
                           spectrum_samples / 2, 3u};
     }
 
+    auto get_stream_coverage() const {
+        std::shared_lock lk(data_mtx);
+        return coverage.status();
+    }
+
+    auto get_stream_performance() {
+        std::shared_lock lk(data_mtx);
+        const auto completed = dma.completed_chunks();
+        const double chunk_ms = 1000.0 * PhaseDma::samples_per_chunk / fs.eval();
+        return performance.status(completed > consumed_chunks ? (completed - consumed_chunks) * chunk_ms : 0.0,
+            (PhaseDma::ring_chunks - 3 - data_size / PhaseDma::samples_per_chunk) * chunk_ms,
+            fs.eval() / (spectrum_samples / 2));
+    }
+
+    auto get_fft_performance() const {
+        std::shared_lock lk(data_mtx);
+        return performance.fft_status();
+    }
 
   private:
     rt::ConfigManager& cfg;
@@ -177,6 +197,10 @@ class PhaseNoiseAnalyzer
     hw::Memory<mem::status>& sts;
 
     PhaseDma dma;
+    phase_noise::StreamCoverage coverage;
+    phase_noise::StreamPerformance performance;
+    PhaseNoiseDensityVector native_phase_noise;
+    uint64_t consumed_chunks = 0;
 
     enum InputChannel: uint32_t {
         X,   // Phase difference between IN0 and IN1
