@@ -8,6 +8,7 @@
 #include "server/runtime/syslog.hpp"
 #include "server/network/configs/server_definitions.hpp"
 #include "server/network/buffer.hpp"
+#include "server/network/websocket_mask.hpp"
 
 #include <array>
 #include <string>
@@ -199,12 +200,7 @@ int WebSocket::decode_raw_stream_cmd(Buffer<HEADER_SIZE>& cmd_header,
 
     // 1) decode command header
     auto* dst = reinterpret_cast<uint8_t*>(cmd_header.data());
-    std::size_t k = 0; // mask index
-
-    for (std::size_t i = 0; i < HEADER_SIZE; ++i) {
-        dst[i] = src[i] ^ mask[k];
-        k = (k + 1) & 3;
-    }
+    detail::unmask(src, dst, HEADER_SIZE, mask);
 
     // 2) decode payload (continue mask phase from HEADER_SIZE)
     const std::size_t payload_bytes =
@@ -217,12 +213,7 @@ int WebSocket::decode_raw_stream_cmd(Buffer<HEADER_SIZE>& cmd_header,
 
     const auto* sp = src + HEADER_SIZE;
     auto* dp = reinterpret_cast<uint8_t*>(cmd_payload.data());
-    k = (HEADER_SIZE) & 3; // continue phase
-
-    for (std::size_t i = 0; i < payload_bytes; ++i) {
-        dp[i] = sp[i] ^ mask[k];
-        k = (k + 1) & 3;
-    }
+    detail::unmask(sp, dp, payload_bytes, mask, HEADER_SIZE & 3);
 
     return 0;
 }

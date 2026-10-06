@@ -25,9 +25,64 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#if defined(KOHERON_WEBSOCKET_RUNTIME_NEON)
+#include <sys/auxv.h>
+#include <asm/hwcap.h>
+#pragma GCC push_options
+#pragma GCC target("fpu=neon")
+#include <arm_neon.h>
+#pragma GCC pop_options
+#elif defined(__ARM_NEON)
+#include <arm_neon.h>
+#endif
+
 using namespace std::string_view_literals;
 
 namespace net {
+
+#if defined(KOHERON_WEBSOCKET_RUNTIME_NEON) || defined(__ARM_NEON)
+namespace detail {
+
+#if defined(KOHERON_WEBSOCKET_RUNTIME_NEON)
+__attribute__((target("fpu=neon"), noinline))
+#endif
+static void unmask_neon(const uint8_t* src, uint8_t* dst, std::size_t size,
+                        const uint8_t* mask, std::size_t phase) {
+    // A byte pattern avoids alignment, aliasing and endian assumptions.
+    const uint8_t pattern[16] = {
+        mask[phase & 3], mask[(phase + 1) & 3],
+        mask[(phase + 2) & 3], mask[(phase + 3) & 3],
+        mask[phase & 3], mask[(phase + 1) & 3],
+        mask[(phase + 2) & 3], mask[(phase + 3) & 3],
+        mask[phase & 3], mask[(phase + 1) & 3],
+        mask[(phase + 2) & 3], mask[(phase + 3) & 3],
+        mask[phase & 3], mask[(phase + 1) & 3],
+        mask[(phase + 2) & 3], mask[(phase + 3) & 3]
+    };
+    const auto key = vld1q_u8(pattern);
+    while (size >= 16) {
+        vst1q_u8(dst, veorq_u8(vld1q_u8(src), key));
+        src += 16;
+        dst += 16;
+        size -= 16;
+    }
+    unmask_scalar(src, dst, size, mask, phase);
+}
+
+void unmask_bulk(const uint8_t* src, uint8_t* dst, std::size_t size,
+                 const uint8_t* mask, std::size_t phase) {
+#if defined(KOHERON_WEBSOCKET_RUNTIME_NEON)
+    static const bool has_neon = (getauxval(AT_HWCAP) & HWCAP_NEON) != 0;
+    if (!has_neon) {
+        unmask_scalar(src, dst, size, mask, phase);
+        return;
+    }
+#endif
+    unmask_neon(src, dst, size, mask, phase);
+}
+
+} // namespace detail
+#endif
 
 WebSocket::WebSocket()
   : comm_fd(-1)
