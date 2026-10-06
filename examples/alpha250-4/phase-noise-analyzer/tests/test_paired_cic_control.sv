@@ -30,7 +30,7 @@ module test_paired_cic_control;
             if(tick==50) requested_run=1;
             if(tick==6001) requested_rate=67;
             if(tick==6007) requested_rate=100; // Supersede a rate during reset.
-            if(tick==12001) requested_rate=133;
+            if(tick==12001) requested_rate=134;
             if(tick==16001) requested_rate=20;
             if(tick==3001) requested_bits=8;
             if(tick==9001) requested_bits=3;

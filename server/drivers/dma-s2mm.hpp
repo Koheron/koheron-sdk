@@ -29,6 +29,12 @@ class DmaS2MM
     }
 
     void start_transfer(uint32_t dest_addr, uint32_t length) {
+        // A cyclic SG consumer owns the descriptor ring. Legacy simple-mode
+        // RPCs must never reset it or write a raw destination into that engine.
+        if (dma.read<s2mm_dmasr>() & 8u) {
+            log<ERROR>("Simple DMA transfer is unavailable on an SG engine\n");
+            return;
+        }
         reset();
         start();
         set_destination_address(dest_addr);
@@ -64,6 +70,7 @@ class DmaS2MM
     }
 
     bool wait_for_transfer_checked(float dma_transfer_duration_seconds) {
+        if (dma.read<s2mm_dmasr>() & 8u) return false;
         if (idle()) return (dma.read<s2mm_dmasr>() & 0x70u) == 0;
         if (!std::isfinite(dma_transfer_duration_seconds) || dma_transfer_duration_seconds <= 0.0f)
             return false;

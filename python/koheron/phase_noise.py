@@ -5,7 +5,7 @@ import struct
 from koheron import command
 
 
-@command(classname="PhaseNoiseAnalyzer")
+@command()
 def get_spectrum_snapshot(self):
     """Common metadata tuple and signed float-radian density vector."""
     metadata = self.client.recv_tuple("QIIdIIIIIddddIdI")
@@ -40,6 +40,13 @@ def get_fft_performance(self):
     return self.client.recv_tuple("ddddd")
 
 
+@command()
+def get_phase_snapshot(self):
+    sequence, bits, radians_per_count, valid = self.client.recv_tuple('QIf?')
+    phase = np.frombuffer(self.client.recv_all(self.npts * 4), dtype='<f4')
+    return sequence, bits, radians_per_count, valid, phase
+
+
 class SingleChannelPhaseNoiseAnalyzer:
     get_spectrum_snapshot = get_spectrum_snapshot
     get_stream_status = get_stream_status
@@ -68,11 +75,7 @@ class SingleChannelPhaseNoiseAnalyzer:
     def get_precision_status(self):
         return self.client.recv_tuple('IIdIQQQdd')
 
-    @command()
-    def get_phase_snapshot(self):
-        sequence, bits, radians_per_count, valid = self.client.recv_tuple('QIf?')
-        phase = np.frombuffer(self.client.recv_all(self.npts * 4), dtype='<f4')
-        return sequence, bits, radians_per_count, valid, phase
+    get_phase_snapshot = get_phase_snapshot
 
     @command()
     def set_cic_rate(self, rate):

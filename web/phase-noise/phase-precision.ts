@@ -12,8 +12,8 @@ class PhasePrecision {
     private stopped = false;
     private changing = false;
 
-    constructor(private client: Client, document: Document) {
-        const driver = client.getDriver('PhaseNoiseAnalyzer');
+    constructor(private client: Client, document: Document, driverName = 'PhaseNoiseAnalyzer') {
+        const driver = client.getDriver(driverName);
         this.id = driver.id;
         this.commands = driver.getCmds();
         this.select = document.getElementById('phase-precision') as HTMLSelectElement;

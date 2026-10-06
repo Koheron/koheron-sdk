@@ -17,6 +17,12 @@ xvlog "$repo/fpga/cores/phase_unwrapper_v1_0/phase_unwrapper.v" \
       "$repo/fpga/cores/axis_lfsr_v1_0/axis_lfsr.v" \
       "$repo/fpga/cores/phase_prefilter_v1_0/phase_prefilter.v"
 xvlog "$repo/fpga/cores/phase_range_guard_v1_0/phase_range_guard.v"
+xvlog --sv "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_phase_unwrapper_pipeline.sv"
+xelab work.test_phase_unwrapper_pipeline -s test_phase_unwrapper_pipeline
+xsim test_phase_unwrapper_pipeline -runall > unwrapper-pipeline.log 2>&1
+cat unwrapper-pipeline.log
+rg -q 'Unwrapper overflow pipeline checks passed' unwrapper-pipeline.log
+if rg -q 'Fatal:|ERROR:|FATAL:' unwrapper-pipeline.log; then exit 1; fi
 xvlog "$repo/fpga/cores/phase_stochastic_round_v1_0/phase_stochastic_round.v"
 xvlog --sv "$repo/examples/alpha250-4/phase-noise-analyzer/tests/test_phase_rounding.sv"
 xelab work.test_phase_rounding -s test_phase_rounding
@@ -39,6 +45,14 @@ rg -q 'Paired CIC control checks passed' paired-cic-control.log
 if rg -q 'Fatal:|ERROR:|FATAL:' paired-cic-control.log; then
     exit 1
 fi
+# RTL cannot expose hazards caused by skew between state-register outputs.
+# Ensure that the reset entering the asynchronous CDC is a register output.
+vivado -mode batch -nolog -nojournal -notrace \
+    -source "$repo/examples/alpha250-4/phase-noise-analyzer/tests/check_registered_reset.tcl" \
+    > registered-reset.log 2>&1
+cat registered-reset.log
+[[ $(rg -c '^PASS:' registered-reset.log) == 3 ]]
+
 xvlog "$repo/fpga/cores/phase_stream_control_v1_0/phase_stream_control.v"
 xvlog --sv "$repo/fpga/cores/phase_stream_control_v1_0/phase_stream_control_tb.sv"
 xelab work.phase_stream_control_tb -s phase_stream_control_tb

@@ -33,11 +33,95 @@ Startup reads existing settings without changing them. Connection failures
 disable controls and expose Retry. Closing the page stops polling and cancels
 queued frequency edits. The loop signal-path diagram is packaged with the UI.
 
+## Continuous phase-noise monitor
+
+The spectrum panel uses the standard PNA implementation: channel selection,
+CIC decimation, 1–100 rolling averages, phase/frequency noise, smoothing,
+zoom/Fit, frozen reference traces, CSV/PNG export, carrier power and integrated
+phase/time jitter with its actual integration band. Precision is selectable
+from standard through eight extra fractional bits. The reference is the
+selected loop's existing DDS frequency; set it close to the input carrier.
+Coverage and queue indicators use the shared PNA status widget, reporting
+skipped sample coverage and whether processing keeps up with incoming windows.
+
+The monitor has a separate measurement path, using the shared
+[`pna_cordic.tcl`](../../../fpga/lib/pna_cordic.tcl) and
+[`pna_single_stream.tcl`](../../../fpga/lib/pna_single_stream.tcl):
+
+```text
+ADC + loop reference DDS
+  → 24-bit complex mixer
+  → fourth-order 16-sample moving-average prefilter (no interstage truncation)
+  → fully pipelined 24-bit CORDIC
+  → stochastic phase rounding + independent 64-bit phase history
+  → full-precision six-stage fixed CIC /2 (38 bits)
+  → clock crossing to 143 MHz
+  → six-stage programmable CIC /(R/2), normalized to 40 bits
+  → 40-bit compensation FIR /2 → packet quantizer → cyclic SG DMA → DDR
+```
+
+The mixer, prefilter, CORDIC and first decimator accept every 250 MS/s input
+sample. The programmable CIC, FIR, packet quantizer and DMA run at 143 MHz. Their pipeline latency
+is outside the feedback path. The two feedback detectors and controllers keep
+their existing arithmetic and pipeline stages. Routed timing still needs to be
+checked whenever monitor logic changes placement or routing.
+
+Monitor resets only affect its phase history, filters, FIFO and DMA. Channel,
+decimation and precision changes never reset a feedback accumulator, modify a
+loop gain, switch a DAC route, or retune a reference. The monitor also measures
+with loop integrators disabled. Loop setting changes invalidate old averages
+and start a new monitor epoch. Input selection is one ADC/DDS pair at a time.
+
+The server uses the shared PNA `Core`, cyclic DMA reader, 32768-point Hann FFTs
+with 50% overlap, three-periodogram Welch estimate, rolling averager, calibration
+and atomic spectrum snapshots. The web UI uses the shared PNA driver adapter,
+plot, precision widget, numeric editors and exports. A separate ordered socket
+keeps monitor replies out of the feedback-control command queue.
+
+DMA acquisition continues while the CPU computes spectra or the browser is
+closed. Slow consumers can skip FFT windows; the existing PNA status reports
+these skips and preserves valid averages. Damaged/overrange packets are rejected
+and restart only the monitor. At the default R=20 the filtered sample rate is
+6.25 MS/s; at R=8192 it is about 15.259 kS/s.
+Total CIC rates are even integers from 4 through 8192. Both halves use six
+stages, so their cascade has the same CIC response and gain as one six-stage
+CIC at rate R. The fixed stage retains all six extra bits; the slow stage uses
+110-bit modular arithmetic and the existing PNA power-of-two normalization.
+The shared implementation is in [`pna_filter.tcl`](../../../fpga/lib/pna_filter.tcl).
+
+The monitor uses the same acquisition buffers and DMA mode as the PNA designs:
+512 cyclic SG DMA packets of 8192 samples, copied into a 65536-sample processing
+window. The server continuously advances by 16384 samples (50% FFT overlap)
+and forms its three-periodogram Welch estimate using 32768-point FFTs. There
+is no separate raw-capture buffer or DMA reader.
+
+The original `Dma` command IDs 0–3 are retained, but **`get_data()` now returns
+65536 float32 phase values in radians**, matching PNA `get_phase()`, instead
+of one million int32 raw counts. CIC/FIR gain and precision correction are
+already applied; custom clients must update their reply length/type and remove
+any raw-count conversion. `get_data_size()` reports 65536. `get_phase()` is
+also available under the shared PNA name.
+
+These calls return the latest processed phase window without waiting for or
+restarting DMA. For validity, precision and a sequence number in the same reply,
+use `get_phase_snapshot()`; a repeated sequence means no new window is available.
+Use `get_spectrum_snapshot()` for the server's continuously averaged spectrum.
+Loop edits immediately make old phase, spectra and jitter unavailable while the
+worker starts a new acquisition epoch. Raw `DmaS2MM.start_transfer` remains
+disabled on SG hardware to protect the continuous ring.
+
+`test_time.py` displays the shared server spectrum with a read-only Python client:
+
+```sh
+python examples/alpha250/dpll/test_time.py 192.168.1.100
+```
+
 ## Host checks
 
 ```sh
 make CFG=examples/alpha250/dpll/config.mk web server drivers_json
 bash examples/alpha250/dpll/tests/run-host.sh
+bash examples/alpha250/dpll/tests/run-monitor.sh
 ```
 
 The host script requires a C++20 compiler and `typescript` and `jsdom`
@@ -50,7 +134,9 @@ channel isolation, signed/zero gain validation, frequency units and limits,
 clock/routing commands, failure handling and disposal.
 
 These are build and host checks. They do not validate board lock performance,
-loop stability or FPGA timing. FPGA simulation checks remain in `tests/run-fpga.sh`.
+loop stability or FPGA timing. `run-monitor.sh` also simulates coherent status,
+reset and metadata transfer between the 250 MHz and 143 MHz domains. FPGA
+feedback simulation checks remain in `tests/run-fpga.sh`.
 
 ## Gain implementation and APIs
 
@@ -101,12 +187,24 @@ vivado -mode batch -nolog -nojournal -notrace \
   -source examples/alpha250/dpll/tests/check_table_design.tcl \
   -tclargs tmp/examples/alpha250/dpll/fpga/dpll.xpr \
   tmp/tests/alpha250-dpll/full-design
+vivado -mode batch -nolog -nojournal -notrace \
+  -source examples/alpha250/dpll/tests/check_monitor_design.tcl \
+  -tclargs tmp/examples/alpha250/dpll/fpga/dpll.xpr
+vivado -mode batch -nolog -nojournal -notrace \
+  -source examples/alpha250/dpll/tests/test_monitor_stream.tcl \
+  -tclargs tmp/examples/alpha250/dpll/fpga/dpll.xpr
+vivado -mode batch -nolog -nojournal -notrace \
+  -source examples/alpha250/dpll/tests/test_split_cic.tcl \
+  -tclargs tmp/examples/alpha250/dpll/fpga/dpll.xpr
 ```
 
 The normal build enforces routed setup, hold, pulse-width and bus-skew checks
 before writing the bitstream. The additional design check verifies the full
 instrument top, 250 MHz clocks, both selected controllers and all eight table
-gain paths. The DAC handoff placement fix moves an existing register; it adds
-no pipeline stages and retains the startup clock-phase timing constraints.
+gain paths. Physical optimization adds no pipeline stages and retains the
+startup clock-phase timing constraints.
+The monitor stream simulation uses the shared CIC RTL and imports the production
+clock converter and FIR configurations. It checks ordering, sustained throughput at R=4/20/8192,
+sample-gap reporting under backpressure and recovery after an epoch reset.
 Build results and hardware measurements are reported separately in the
 [latency notes](tests/gain_latency/README.md#integration-and-hardware-status).

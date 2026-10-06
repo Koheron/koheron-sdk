@@ -113,6 +113,7 @@ proc create {module_name rounding_seed} {
     # Phase unwrapping
 
     cell koheron:user:phase_unwrapper:1.0 phase_unwrapper {
+        PIPELINED_OVERFLOW 1
         DIN_WIDTH 16
         DOUT_WIDTH [get_parameter phase_accumulator_width]
     } {

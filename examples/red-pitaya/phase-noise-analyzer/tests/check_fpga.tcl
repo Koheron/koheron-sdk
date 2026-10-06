@@ -36,7 +36,8 @@ same_net cordic0/overflow phase_overflow/Op1
 foreach mux {adc_mux reference_mux accumulate_mux} {
     same_net slice_4_4_c_ctl_cordic/Dout $mux/sel
 }
-if {![get_property CONFIG.Use_Xtreme_DSP_Slice [get_bd_cells cic]]} {error "RP CIC must use DSPs"}
+if {[get_property VLNV [get_bd_cells cic]] ne "xilinx.com:ip:cic_compiler:4.0"} {error "Expected single 125 MHz CIC"}
+if {[llength [get_bd_cells -quiet {phase_fixed_decimator phase_filter_cdc phase_cic_clock_converter}]]} {error "Unexpected split CIC on Red Pitaya"}
 source [file join [file dirname [info script]] ../../../alpha250/phase-noise-analyzer/tests/check_dma.tcl]
 puts "PASS: RP 24-bit phase extraction, selected ADC/reference muxes and DAC/reference separation"
 close_project

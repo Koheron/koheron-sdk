@@ -78,8 +78,17 @@ async function host(t, options = {}) {
     }
   };
   window.console.error = () => {};
-  const link = document.querySelector('link[rel="import"]');
-  link.import = new window.DOMParser().parseFromString(read('examples/alpha250/dpll/web/clock-generator/reference-clock.html'), 'text/html');
+  for (const link of document.querySelectorAll('link[rel="import"]')) {
+    const paths = {
+      'reference-clock.html': 'examples/alpha250/dpll/web/clock-generator/reference-clock.html',
+      'plot-basics.html': 'web/plot-basics/plot-basics.html',
+      'export-file.html': 'examples/alpha250/phase-noise-analyzer/web/export-file/export-file.html'
+    };
+    link.import = new window.DOMParser().parseFromString(read(paths[link.getAttribute('href')]), 'text/html');
+  }
+  // These tests isolate the feedback controls. The actual monitor composition
+  // and shared PNA plot are exercised by test_monitor_web.cjs.
+  window.DpllMonitor = class { async init() {} dispose() {} };
   // Mount using the actual shared import implementation, with the real drivers and editors.
   const koheron = read('web/koheron.ts');
   const sources = koheron.slice(koheron.indexOf('class Imports {')) + '\n' + [

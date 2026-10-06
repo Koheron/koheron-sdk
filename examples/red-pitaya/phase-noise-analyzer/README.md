@@ -1,3 +1,19 @@
+# Red Pitaya phase-noise analyzer
+
+## Single CIC acquisition
+
+Version 1.3.1 keeps the six-stage programmable CIC, compensation FIR and
+packet quantizer on the 125 MHz ADC clock. The stream crosses to FCLK1
+after filtering, through the existing DMA FIFO. Red Pitaya does not use
+the fixed /2 CIC or the filter-input clock crossing used by the 250 MHz
+instruments. The shared hardware is in
+[`pna_filter.tcl`](../../../fpga/lib/pna_filter.tcl).
+
+CIC rates are **integers from 4 through 8192**, default 20, including odd
+rates. The original CIC response, normalization and calibration are retained.
+The 512-packet cyclic DMA ring, 8192-sample packets, 65536-sample phase
+snapshots and runtime precision controls are retained.
+
 The shared estimator now processes 32768-point Hann segments every 16384 samples,
 reusing the last three segment spectra for streaming Welch. Each segment receives
 its own integer-domain linear detrend. Successive estimates overlap and are
@@ -5,8 +21,6 @@ correlated. Existing 65536-sample phase RPCs are retained; raw phase conversion
 runs only when a client requests it. `get_stream_status()` returns processed
 segments, ring overruns, FFT length, hop length and Welch depth. See the
 [shared processing notes](../../../server/drivers/phase-noise/README.md).
-
-# Red Pitaya phase-noise analyzer
 
 The analyzer now uses the [shared PNA plot and atomic spectrum snapshot](../../../server/drivers/phase-noise/README.md).
 Captured settings accompany each spectrum; FPS uses its publication sequence.
@@ -44,8 +58,8 @@ epoch. Gap, overrange and DMA failures discard the affected spectrum and
 restart acquisition. The shared [acquisition documentation](../../../server/drivers/phase-noise/README.md#acquisition-boundaries)
 describes the ring, diagnostics and tracking behavior. The 32768-point Welch
 estimator, calibration and 0–8-bit phase precision remain unchanged.
-Red Pitaya maps CIC arithmetic into DSP slices and shares one 24-bit phase
-extractor. ADC and reference muxes select the input and its independent LO
+Red Pitaya uses one programmable CIC and one 24-bit phase extractor.
+ADC and reference muxes select the input and its independent LO
 together before demodulation. Channel changes reset the acquisition epoch;
 only the selected input is analyzed. Both demod status registers alias the
 active extractor, while raw ADC status and DAC generators remain independent.
@@ -111,7 +125,7 @@ off by default. When enabled it follows only the selected input, with bounded
 steps and a bandwidth well below the plotted offset range. Disabling it restores
 both nominal LOs. For details see the ALPHA250 analyzer README.
 
-The CIC range is 4–8192. The output rate is `125e6 / (2 * CIC rate)`.
+The CIC range is integer rates 4–8192. The output rate is `125e6 / (2 * CIC rate)`.
 DMA packets contain 8192 signed phase samples in a 512-packet cyclic ring.
 The server selects the latest coherent 65536-sample window for a 32768-point
 Hann Welch estimator, yielding 16385 bins in rad²/Hz. The plotted single-sideband

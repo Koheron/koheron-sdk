@@ -17,6 +17,8 @@ memory:
     - cic_rate
     - gain_table_command
     - gain_table_data[2]
+    - phase_precision
+    - acquisition_run
   - name: ps_control
     offset: 0x6400_0000
     range: 4K
@@ -31,6 +33,9 @@ memory:
     - gain_table_ack
     - gain_table_banks
     - gain_coefficients[16]
+    - phase_packet
+    - sample_gap
+    - monitor_demod
   - name: ps_status
     offset: 0x5400_0000
     range: 4K
@@ -42,12 +47,17 @@ memory:
   - name: ram
     offset: 0x1E00_0000
     range: 32M
+    compatible: "koheron,mem-wc-1.0"
+    dev: /dev/mem_wc
   - name: dma
     offset: 0x8000_0000
     range: 64K
   - name: axi_hp0
     offset: 0xF800_8000
     range: 4K
+  - name: mux
+    offset: 0x8001_0000
+    range: 8K
 
 parameters:
   fclk0: 200000000
@@ -61,4 +71,7 @@ parameters:
   cic_decimation_rate_min: 4
   cic_decimation_rate_max: 8192
   cic_n_stages: 6
-  n_pts: 1048576
+  phase_filter_width: 40
+  phase_accumulator_width: 64
+  cordic_phase_width: 24
+  dds_output_width: 16

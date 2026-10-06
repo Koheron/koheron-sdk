@@ -21,7 +21,7 @@ module paired_cic_control (
     input wire upstream_overflow_y,
     output reg overflow_x = 0,
     output reg overflow_y = 0,
-    output wire filter_resetn,
+    output reg filter_resetn=0,
     output reg sample_gap = 0
 );
     localparam WAIT_RATE=0, RESET=1, CONFIGURE=2, PRIME=3, STREAM=4;
@@ -31,11 +31,13 @@ module paired_cic_control (
     reg [3:0] precision=0;
     reg epoch=0;
     assign active_bits = precision;
-    wire valid_rate = requested_rate >= 4 && requested_rate <= 8192;
+    wire valid_rate = requested_rate >= 4 && requested_rate <= 8192 && !requested_rate[0];
     // Reset both CIC/FIR histories and FIFO queues, not only the rate registers.
     // 32 ADC clocks also covers the async FIFO's slower read-clock reset width.
-    assign filter_resetn = aresetn && requested_run && (state==CONFIGURE || state==PRIME || state==STREAM);
-    assign data_valid = state==STREAM && requested_rate==rate && requested_bits==precision && requested_epoch==epoch && data_ready_x && data_ready_y;
+    // Registered reset avoids decoder hazards entering async reset consumers.
+    // Changed settings reset both histories at the next edge. Keeping that
+    // comparison in the state machine avoids a high-fanout filter-enable path.
+    assign data_valid = state==STREAM && data_ready_x && data_ready_y;
     assign config_valid = state==CONFIGURE && config_ready_x && config_ready_y;
     assign config_rate = rate;
     always @(posedge aclk) begin
@@ -51,18 +53,21 @@ module paired_cic_control (
     end
     always @(posedge aclk) begin
         if(!aresetn) begin
+            filter_resetn<=0;
             state<=WAIT_RATE;
             reset_count<=0;
             rate<=0;
             precision<=0;
             epoch<=0;
         end else if(!requested_run) begin
+            filter_resetn<=0;
             state<=RESET;
             reset_count<=0;
             rate<=requested_rate;
             precision<=requested_bits;
             epoch<=requested_epoch;
         end else if(valid_rate && requested_bits<=8 && (requested_rate!=rate || requested_bits!=precision || requested_epoch!=epoch)) begin
+            filter_resetn<=0;
             rate<=requested_rate;
             precision<=requested_bits;
             epoch<=requested_epoch;
@@ -72,13 +77,13 @@ module paired_cic_control (
             case(state)
                 WAIT_RATE: begin end
                 RESET: begin
-                    if(reset_count==31) state<=CONFIGURE;
+                    if(reset_count==31) begin filter_resetn<=1;state<=CONFIGURE;end
                     else reset_count<=reset_count+1'b1;
                 end
                 CONFIGURE: if(config_valid) state<=PRIME;
                 PRIME: if(data_ready_x && data_ready_y) state<=STREAM;
                 STREAM: begin end
-                default: state<=WAIT_RATE;
+                default: begin filter_resetn<=0;state<=WAIT_RATE;end
             endcase
         end
     end

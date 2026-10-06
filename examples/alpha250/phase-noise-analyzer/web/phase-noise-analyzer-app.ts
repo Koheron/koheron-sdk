@@ -57,9 +57,14 @@ class PhaseNoiseAnalyzerApp {
     this.cicRateInput = this.document.querySelector('.cic-rate-input');
     this.nAvgInput = this.document.querySelector('.plot-navg-input');
     this.interferometerDelayInput = this.document.querySelector('.interferometer-delay');
+    const cicRateStep = Number(this.cicRateInput.step) || 1;
     const number = (input: HTMLInputElement, value: number, unitLabel: string, commit: (value: number) => void, read: (parameters: IParameters) => number) =>
       new NumberInput(input, {
         value, minimum: Number(input.min), maximum: Number(input.max), resolution: 1, integer: true, unitLabel,
+        step: input === this.cicRateInput ? cicRateStep : 1,
+        validate: value => {
+          if (input === this.cicRateInput && value % cicRateStep !== 0) throw new Error('Use an even decimation rate.');
+        },
         commit: async value => { commit(value); return read(await this.driver.getParameters()); }
       });
     this.numbers.cic = number(this.cicRateInput, parameters.cic_rate, '', value => this.driver.setCicRate(value), p => p.cic_rate);

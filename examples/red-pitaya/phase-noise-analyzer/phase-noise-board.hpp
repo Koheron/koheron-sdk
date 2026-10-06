@@ -3,8 +3,17 @@
 #include "server/hardware/memory_manager.hpp"
 
 struct RedPitayaPhaseNoiseBoard {
+    void initialize_phase() { hw::get_memory<mem::control>().write_mask<reg::cordic, 3>(3); }
+    void select_channel(uint32_t channel) {
+        hw::get_memory<mem::control>().write_mask<reg::cordic, 16>((channel & 1) << 4);
+    }
+    uint32_t demodulated(uint32_t channel) {
+        auto& status = hw::get_memory<mem::status>();
+        return channel == 0 ? status.read<reg::demod0>() : status.read<reg::demod1>();
+    }
     using Oscillator = Dds;
     static constexpr uint32_t max_phase_precision = 8;
+    static constexpr uint32_t cic_rate_step = 1;
     static_assert(prm::phase_filter_width == 40);
     void set_phase_precision(uint32_t bits) {
         hw::get_memory<mem::control>().write<reg::phase_precision>(bits);
