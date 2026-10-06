@@ -52,7 +52,10 @@ void ClockGenerator::init() {
     eeprom.read<eeprom_map::clock_generator_calib::offset>(cal_array);
     logf("Clock generator: TCXO calibration is {}\n", cal_array[0]);
     set_tcxo_clock(cal_array[0]);
-    configure(CFG_ALL, clock_cfg::TCXO_CLOCK, clock_cfg::fs_250MHz);
+    if (configure(CFG_ALL, clock_cfg::TCXO_CLOCK, clock_cfg::fs_250MHz) == 0) {
+        // Keep a subsequent request for the same rate from shifting the MMCM again.
+        fs_selected = 1;
+    }
 }
 
 // 0: Ext. clock, 1: FPGA clock, 2: TCXO, 4: Automatic

@@ -20,3 +20,5 @@ set_property INTERFACE_MODE slave $bus
 set bus [ipx::get_bus_interfaces aclk]
 set parameter [ipx::get_bus_parameters -of_objects $bus ASSOCIATED_BUSIF]
 set_property VALUE S_AXI $parameter
+
+core_parameter PREDECODE_WRITES {Predecode write addresses} {Capture the word select on AW acceptance to shorten the write-enable path without changing AXI response latency.}
