@@ -42,8 +42,24 @@ foreach pin [get_bd_pins -of_objects $reset_net] {
     if {[regexp {(^|/)(corrector[01]|cordic[01])(/|$)} $pin]} {error "Monitor reset reaches feedback: $pin"}
 }
 foreach i {0 1} {
-    if {[get_property CONFIG.Output_Width [get_bd_cells cordic$i/cordic]] != 16} {
-        error "Feedback detector width changed"
+    foreach {cell property expected} {
+        complex_mult OutputWidth 24
+        boxcar0 DATA_WIDTH 24
+        boxcar1 DATA_WIDTH 24
+        phase_extractor INPUT_WIDTH 24
+        phase_extractor PHASE_WIDTH 24
+        phase_extractor RESIDUAL_CORRECTION 1
+        phase_unwrapper DIN_WIDTH 24
+        phase_unwrapper DOUT_WIDTH 40
+    } {
+        if {[get_property CONFIG.$property [get_bd_cells cordic$i/$cell]] != $expected} {
+            error "Unexpected feedback setting: cordic$i/$cell $property"
+        }
+    }
+    same_net corrector$i/phase_in cordic$i/phase_feedback
+    same_net corrector$i/freq_in cordic$i/freq_feedback
+    if {[get_property CONFIG.PHASE_FRACTION_BITS [get_bd_cells corrector$i]] != 8} {
+        error "Feedback controller must retain eight phase fractional bits"
     }
     if {[get_property CONFIG.GAIN_STAGES [get_bd_cells corrector$i]] != 2} {
         error "Feedback gain latency changed"
@@ -52,5 +68,5 @@ foreach i {0 1} {
         error "Feedback unwrapper behavior changed"
     }
 }
-puts "PASS: shared 24-bit PNA monitor, fixed /2, 143 MHz CIC/FIR/packets, cyclic DMA and isolated feedback"
+puts "PASS: shared 24-bit PNA monitor, fixed /2, 143 MHz CIC/FIR/packets, cyclic DMA and isolated 24-bit feedback"
 close_project
