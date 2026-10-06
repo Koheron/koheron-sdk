@@ -153,3 +153,10 @@ simulations as well as the paired rate/precision/reset controller checks.
 The quantizer separates rounding and saturation into four pipeline stages
 to meet ALPHA250-4 timing. All PNA boards share that implementation; throughput
 remains one sample per clock and packet metadata follows the same stalls.
+
+The shared PFFFT transform regression runs with host SIMD and scalar
+ASan/UBSan. It compares small real/complex FFTs with an independent double DFT
+and checks Parseval energy, native/canonical ordering, in-place buffers and
+forward/inverse transforms up to the production 32768/30000-point sizes.
+Direct ARM NEON checks and GCC memory-access performance measurements are in
+the [Red Pitaya hardware notes](../../../red-pitaya/phase-noise-analyzer/tests/hardware-validation.md#gcc-armv7-pffft-memory-access-optimization-2026-10-06).

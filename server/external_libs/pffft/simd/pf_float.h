@@ -73,6 +73,20 @@ typedef float vsfscalar;
 
 #include "pf_scalar_float.h"
 
+/* GCC ARMv7 lowers ordinary vector dereferences to pairs of 64-bit VFP
+   loads/stores, even in NEON butterflies. Explicit 128-bit NEON accesses
+   avoid that overhead without changing alignment or floating-point math.
+   Keep other compilers/backends on the original typed accesses. */
+#if defined(__GNUC__) && !defined(__clang__) && defined(__arm__) && \
+    defined(PFFFT_ENABLE_NEON) && !defined(PFFFT_SIMD_DISABLE) && \
+    !defined(PFFFT_DISABLE_GCC_NEON_MEMORY_ACCESS)
+#  define PFFFT_VLOAD(ptr) vld1q_f32((const float*)(ptr))
+#  define PFFFT_VSTORE(ptr, value) vst1q_f32((float*)(ptr), value)
+#else
+#  define PFFFT_VLOAD(ptr) (*(ptr))
+#  define PFFFT_VSTORE(ptr, value) (*(ptr) = (value))
+#endif
+
 /* shortcuts for complex multiplcations */
 #define VCPLXMUL(ar,ai,br,bi) { v4sf tmp; tmp=VMUL(ar,bi); ar=VMSUB(ai,bi,VMUL(ar,br)); ai=VMADD(ai,br,tmp); }
 #define VCPLXMULCONJ(ar,ai,br,bi) { v4sf tmp; tmp=VMUL(ai,bi); ai=VMSUB(ar,bi,VMUL(ai,br)); ar=VMADD(ar,br,tmp); }
@@ -87,4 +101,3 @@ typedef float vsfscalar;
 #endif
 
 #endif /* PF_FLT_H */
-
