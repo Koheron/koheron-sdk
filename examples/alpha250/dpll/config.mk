@@ -23,4 +23,5 @@ DRIVERS += $(SDK_PATH)/server/drivers/dma-s2mm.hpp
 DRIVERS += $(PROJECT_PATH)/dpll.hpp
 DRIVERS += $(PROJECT_PATH)/dma.hpp
 
-WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
+WEB_FILES += $(SDK_PATH)/web/phase-modulator/frequency-input.ts
+WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' -o -name '*.svg' \))

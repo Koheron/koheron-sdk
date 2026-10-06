@@ -14,20 +14,10 @@ class Dpll {
   private id: number;
   private cmds: Commands;
 
-  public status: IDpllStatus;
-
   constructor (private client: Client) {
     this.driver = this.client.getDriver('Dpll');
     this.id = this.driver.id;
     this.cmds = this.driver.getCmds();
-
-    this.status = <IDpllStatus>{};
-    this.status.dds_freq = [];
-    this.status.p_gain = [];
-    this.status.pi_gain = [];
-    this.status.i2_gain = [];
-    this.status.i3_gain = [];
-    this.status.integrators = [];
   }
 
   setDDSFreq(channel: number, freq_hz: number): void {
@@ -58,23 +48,30 @@ class Dpll {
     this.client.send(Command(this.id, this.cmds['set_dac_output'], channel, sel));
   }
 
-  getControlParameters(cb: (status: IDpllStatus) => void): void {
-    this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'ddiiiiiiiiII',
-                           (tup: any) => {
-        this.status.dds_freq[0] = tup[0];
-        this.status.dds_freq[1] = tup[1];
-        this.status.p_gain[0] = tup[2];
-        this.status.p_gain[1] = tup[3];
-        this.status.pi_gain[0] = tup[4];
-        this.status.pi_gain[1] = tup[5];
-        this.status.i2_gain[0] = tup[6];
-        this.status.i2_gain[1] = tup[7];
-        this.status.i3_gain[0] = tup[8];
-        this.status.i3_gain[1] = tup[9];
-        this.status.integrators[0] = tup[10];
-        this.status.integrators[1] = tup[11];
-        cb(this.status);
-    });
+  async getControlParameters(): Promise<IDpllStatus> {
+    const [tup, gains] = await Promise.all([
+      this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'ddiiiiiiiiII'),
+      this.client.readFloat64Array(Command(this.id, this.cmds['get_gain_values']))
+    ]);
+    if (gains.length !== 8 || !Array.from(gains).every(Number.isFinite)) {
+      throw new Error('Invalid gain readback.');
+    }
+    return {
+      dds_freq: [tup[0], tup[1]],
+      p_gain: [gains[0], gains[1]],
+      pi_gain: [gains[2], gains[3]],
+      i2_gain: [gains[4], gains[5]],
+      i3_gain: [gains[6], gains[7]],
+      integrators: [tup[10], tup[11]]
+    };
   }
 
+  getDacOutputs(): Promise<number[]> {
+    return this.client.readTuple(Command(this.id, this.cmds['get_dac_outputs']), 'II');
+  }
+
+  async setGeometricGain(channel: number, gain: number, sign: number, step: number): Promise<void> {
+    const result = await this.client.readInt32(Command(this.id, this.cmds['set_geometric_gain'], channel, gain, sign, step));
+    if (result !== 0) { throw new Error(`Gain update failed (${result}).`); }
+  }
 }
