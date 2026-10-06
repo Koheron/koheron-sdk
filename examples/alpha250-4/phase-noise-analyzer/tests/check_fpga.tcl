@@ -2,6 +2,9 @@
 open_project [lindex $argv 0]
 open_bd_design [get_files */system.bd]
 validate_bd_design
+if {[get_property CONFIG.PREDECODE_WRITES [get_bd_cells ctl/axi_ctl_register]] != 1} {
+    error "Expected predecoded AXI settings writes at 250 MHz"
+}
 source [file join [file dirname [info script]] ../../../alpha250/phase-noise-analyzer/tests/check_extractor.tcl]
 for {set channel 0} {$channel < 4} {incr channel} {
     check_phase_extractor cordic$channel

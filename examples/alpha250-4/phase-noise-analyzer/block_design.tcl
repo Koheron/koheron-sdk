@@ -6,6 +6,7 @@ source $board_path/adc.tcl
 # Add config and status registers
 source $sdk_path/fpga/lib/ctl_sts.tcl
 add_ctl_sts adc/adc_clk rst_adc_clk/peripheral_aresetn
+set_cell_props ctl/axi_ctl_register {PREDECODE_WRITES 1}
 
 connect_cell adc {
     ctl [ctl_pin mmcm]

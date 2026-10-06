@@ -48,3 +48,36 @@ internal modular overflow. The test also stalls the output and resets between
 rates. `test_monitor_stream.tcl` checks sustained 250/143 MHz acquisition with
 the production AXIS converter and FIR, plus gap detection and epoch recovery.
 Full routed builds and board measurements are separate checks.
+
+## Build validation — 2026-10-06
+
+Vivado 2025.1 full instrument implementations pass the SDK's strict setup,
+hold, pulse-width and bus-skew gates. ARM servers, device-tree overlays,
+web bundles and instrument ZIP packages also build successfully.
+
+| Instrument | ADC clock | Programmable filter clock | Setup slack (ns) | Hold slack (ns) | Bus-skew constraints checked |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| ALPHA250 DPLL | 250 MHz | 143 MHz | 0.035455 | 0.039732 | 9 |
+| ALPHA250 PNA | 250 MHz | 143 MHz | 0.029770 | 0.012405 | 11 |
+| ALPHA250-4 PNA | 250 MHz | 143 MHz | 0.021506 | 0.041813 | 12 |
+| Red Pitaya PNA | 125 MHz | 125 MHz | 0.186185 | 0.019563 | 16 |
+
+The 143 MHz clock is the Zynq's actual 142.857 MHz FCLK1. The DPLL's final
+physical implementation reuses its unchanged synthesized/placed full-design
+checkpoint while rerunning physical optimization, routing and strict timing
+checks with the final gain-control replication hook. No feedback pipeline
+stages or timing exceptions are added.
+
+Reproduce from a clean checkout with `make -j2 N_CPUS=4 CFG=.../config.mk all`
+for each of the four instruments. The shared filter simulations, production
+DSP scaler simulation, paired stream/reset tests and DPLL feedback/AXI
+simulations pass. PNA and DPLL host/GUI suites pass, including sanitizers and
+saved-rate migration. Chrome exercises the built DPLL UI with simulated
+transport, including channel changes, reference traces, CSV/PNG exports,
+coverage/queue status and wide/narrow layouts.
+
+**Hardware validation:** the new packages have not been deployed or tested
+on a board. These results establish build, simulation and software behavior;
+they do not establish measured phase noise, sustained CPU coverage, converter
+latency or loop stability. Existing PNA hardware measurements describe the
+previous 200 MHz design. Use a V1 OS image with these instruments.
