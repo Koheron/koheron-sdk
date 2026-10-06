@@ -1,8 +1,15 @@
 # DPLL gain and controller latency experiments
 
+These measurements record the original gain/controller optimization with a
+19-clock, 16-bit vendor phase extractor and the controller's legacy fixed-point
+widths. The current [24-bit phase design](../phase_extraction/README.md) takes
+14 extraction clocks, with eight extra fractional bits throughout feedback and
+controller states. Its direct-phase converter/pipeline subtotal is 164 ns.
+Full-instrument timing for the widened controller has not been validated.
+
 The selected table-gain design supports **16 geometric steps per octave**, prepares gain
 tables only when settings change, and produces the fast correction **two clocks
-(8 ns) earlier** at 250 MHz. The complete two-loop instrument passes routed
+(8 ns) earlier** at 250 MHz. The historical two-loop instrument passed routed
 timing with the existing board constraints. Coefficient error is at most **0.020372503%**, below the
 accepted 0.5% limit.
 
@@ -336,5 +343,6 @@ vivado -mode batch -nolog -nojournal -notrace \
   tmp/tests/alpha250-dpll/full-design/dac-phases
 ```
 
-No table-gain candidate has been installed. No analog latency, loop lock or
-stability measurement has been made. The CORDIC remains unchanged in this PR.
+No table-gain candidate was installed for these measurements. No analog latency,
+loop lock or stability measurement was made. The vendor CORDIC was unchanged
+during this gain experiment; the later phase extraction results are linked above.

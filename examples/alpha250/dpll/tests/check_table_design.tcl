@@ -8,7 +8,22 @@ if {[get_property top [current_fileset]] ne "system_wrapper"} {
 }
 open_bd_design [get_files */system.bd]
 foreach channel {0 1} {
-    foreach {name expected} {FUSED 1 GAIN_STAGES 2 TAIL_GAIN_STAGES 3 FINAL_CSA_LEVELS 2 CARRY_BLOCK 0} {
+    foreach {name expected} {INPUT_WIDTH 24 PHASE_WIDTH 24 ITERATIONS 24 ROTATIONS_PER_CLOCK 2 PAIR_START 8 FUSE_ROUND 1 COMPACT_PREP 0 RESIDUAL_CORRECTION 1} {
+        if {[get_property CONFIG.$name [get_bd_cells cordic$channel/phase_extractor]] != $expected} {
+            error "Incorrect phase extractor parameter: loop $channel $name"
+        }
+    }
+    foreach {cell property} {complex_mult OutputWidth boxcar0 DATA_WIDTH boxcar1 DATA_WIDTH} {
+        if {[get_property CONFIG.$property [get_bd_cells cordic$channel/$cell]] != 24} {
+            error "Incorrect Cartesian width in loop $channel/$cell"
+        }
+    }
+    foreach {name expected} {DIN_WIDTH 24 DOUT_WIDTH 40} {
+        if {[get_property CONFIG.$name [get_bd_cells cordic$channel/phase_unwrapper]] != $expected} {
+            error "Incorrect phase scale in loop $channel"
+        }
+    }
+    foreach {name expected} {PHASE_FRACTION_BITS 8 FUSED 1 GAIN_STAGES 2 TAIL_GAIN_STAGES 3 FINAL_CSA_LEVELS 2 CARRY_BLOCK 0} {
         if {[get_property CONFIG.$name [get_bd_cells corrector$channel]] != $expected} {
             error "Incorrect controller parameter: loop $channel $name"
         }
@@ -32,6 +47,19 @@ foreach kind {max min} {
     puts $result "$kind slack=[get_property SLACK $path] ns"
 }
 foreach channel {0 1} {
+    set phase_prefix "system_i/cordic$channel/phase_extractor/inst"
+    set phase_cells [get_cells -hier -filter "NAME =~ $phase_prefix/* && IS_PRIMITIVE"]
+    if {[llength $phase_cells] == 0} {error "Missing custom phase extractor in loop $channel"}
+    if {[llength [filter $phase_cells {REF_NAME == DSP48E1}]] != 2} {
+        error "Expected two residual-correction DSPs in phase extractor loop $channel"
+    }
+    set phase_pins [get_pins -hier -filter "NAME =~ $phase_prefix/*"]
+    set phase_path [get_timing_paths -through $phase_pins -max_paths 1 -no_report_unconstrained]
+    if {[llength $phase_path] != 1 || [get_property SLACK $phase_path] < 0} {
+        error "Missing or failing phase extraction timing in loop $channel"
+    }
+    puts $result "loop=$channel phase_extractor_setup=[get_property SLACK $phase_path] ns primitives=[llength $phase_cells]"
+    report_timing -through $phase_pins -max_paths 4 -file $out/loop${channel}-phase.rpt
     foreach gain {gp gpi gi2 gi3} {
         set prefix "system_i/corrector$channel/inst/$gain"
         set cells [get_cells -hier -filter "NAME =~ $prefix/* && IS_PRIMITIVE"]

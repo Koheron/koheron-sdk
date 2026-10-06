@@ -19,3 +19,10 @@ xsim test_table_system_tb -runall > simulation.log 2>&1
 rg 'checks passed|Fatal:|ERROR:' simulation.log || true
 rg -q 'Table system checks passed' simulation.log
 if rg -q 'Fatal:|ERROR:|FATAL:' simulation.log; then exit 1; fi
+
+# Check the historical interface as well as the selected eight extra phase bits.
+xelab work.test_table_system_tb -generic_top PHASE_FRACTION_BITS=0 -s test_table_system_legacy > legacy-elaborate.log 2>&1
+xsim test_table_system_legacy -runall > legacy-simulation.log 2>&1
+rg 'checks passed|Fatal:|ERROR:|FATAL:' legacy-simulation.log || true
+rg -q 'Table system checks passed' legacy-simulation.log
+if rg -q 'Fatal:|ERROR:|FATAL:' legacy-simulation.log; then exit 1; fi

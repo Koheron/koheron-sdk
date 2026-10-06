@@ -70,3 +70,12 @@ if rg -q 'Fatal:|ERROR:|FATAL:' cic.log; then exit 1; fi
 # Production table-gain arithmetic and the complete two-loop programming path.
 bash "$repo/examples/alpha250/dpll/tests/gain_latency/run-corrector.sh"
 bash "$repo/examples/alpha250/dpll/tests/run-table-system.sh"
+bash "$repo/examples/alpha250/dpll/tests/phase_extraction/run.sh"
+
+# Width/scaling validation for full-precision controller feedback only.
+vivado -mode batch -nolog -nojournal -notrace \
+    -source "$repo/examples/alpha250/dpll/tests/check_phase_feedback.tcl" \
+    -tclargs "$cores" "$out/phase-feedback" > phase-feedback.log 2>&1
+rg 'checks passed|Fatal:|ERROR:' phase-feedback.log || true
+rg -q 'Phase feedback wiring checks passed' phase-feedback.log
+if rg -q 'Fatal:|ERROR:|FATAL:' phase-feedback.log; then exit 1; fi

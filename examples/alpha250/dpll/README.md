@@ -57,7 +57,7 @@ loop stability or FPGA timing. FPGA simulation checks remain in `tests/run-fpga.
 Both controllers use double-buffered lookup tables prepared when a gain changes.
 P/PI gains take two clocks and I2/I3 take three. Combining the fast summing node
 and accumulator removes another clock: fast correction arrives two clocks
-(8 ns at 250 MHz) earlier than the previous controller. The CORDIC is unchanged.
+(8 ns at 250 MHz) earlier than the previous controller.
 See the [arithmetic and latency measurements](tests/gain_latency/README.md).
 
 The existing `set_p_gain`, `set_pi_gain`, `set_i2_gain` and `set_i3_gain` RPCs
@@ -92,6 +92,39 @@ export DPLL_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh
 bash examples/alpha250/dpll/tests/run-table-system.sh
 ```
 
+## Phase extraction
+
+Both loops retain 24-bit I/Q and produce **24-bit phase** with pi = 2^21.
+The extractor normalizes into 27-bit coordinates, performs eight CORDIC rotations
+with a 32-bit internal angle accumulator, then applies a three-clock residual
+correction using an interpolated reciprocal. It accepts one sample per clock
+and takes **14 clocks (56 ns)** at 250 MHz,
+compared with 28 clocks for the PNA's 24-bit vendor CORDIC configuration.
+The independent atan2 simulation checks 192,533 samples: peak error is
+**1.115 µrad**, RMS error is **0.405 µrad**. These are arithmetic errors, not
+hardware phase-noise measurements.
+
+Unwrapping retains 40-bit phase and 25-bit frequency. Controllers carry the eight
+extra fractional bits through every product and accumulator, removing them at
+the DAC output. Existing gain settings retain their physical scale. Compatibility
+outputs keep the existing monitor and direct phase-DAC units; controllers use the
+full-precision feedback pins. Monitoring sources are unchanged.
+The vendor core and 16-bit phase configuration remain regression references.
+Experimental compact preparation is disabled; it has not been qualified at this
+precision.
+
+The full phase detector takes 23 clocks (92 ns). The direct phase-feedback
+converter/pipeline subtotal is 164 ns; add 6 ns boxcar group delay and the
+board/interface/analog delays. These are pipeline counts, not measured connector
+latency or closed-loop bandwidth. Only standalone extractor timing was checked
+for the current design; full-instrument timing and hardware testing are deferred.
+See the [phase extraction checks and results](tests/phase_extraction/README.md).
+
+```sh
+export DPLL_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh
+DPLL_PHASE_ROUTE=1 bash examples/alpha250/dpll/tests/phase_extraction/run.sh
+```
+
 ## Full FPGA build
 
 ```sh
@@ -105,8 +138,7 @@ vivado -mode batch -nolog -nojournal -notrace \
 
 The normal build enforces routed setup, hold, pulse-width and bus-skew checks
 before writing the bitstream. The additional design check verifies the full
-instrument top, 250 MHz clocks, both selected controllers and all eight table
-gain paths. The DAC handoff placement fix moves an existing register; it adds
-no pipeline stages and retains the startup clock-phase timing constraints.
+instrument top, 250 MHz clocks, both phase extractors, both selected controllers
+and all eight table gain paths.
 Build results and hardware measurements are reported separately in the
 [latency notes](tests/gain_latency/README.md#integration-and-hardware-status).

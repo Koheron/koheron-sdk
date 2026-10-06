@@ -118,8 +118,8 @@ for {set i 0} {$i < 2} {incr i} {
 
     connect_cell corrector$i {
         clk adc_dac/adc_clk
-        freq_in cordic$i/freq
-        phase_in cordic$i/phase
+        freq_in cordic$i/freq_feedback
+        phase_in cordic$i/phase_feedback
         active_banks [get_slice_pin gain_programmer/active_banks [expr 4*$i+3] [expr 4*$i]]
         table_command gain_programmer/command$i
         table_data gain_programmer/data

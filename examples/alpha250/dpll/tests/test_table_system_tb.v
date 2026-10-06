@@ -1,5 +1,5 @@
 `timescale 1 ns / 1 ps
-module test_table_system_tb;
+module test_table_system_tb #(parameter integer PHASE_FRACTION_BITS=8);
     reg clk=0, resetn=0;
     always #2 clk=~clk;
     reg [15:0] awaddr=0, araddr=0;
@@ -14,8 +14,8 @@ module test_table_system_tb;
     wire [511:0] coefficients;
     wire [8:0] command0,command1;
     wire [63:0] data;
-    reg signed [16:0] freq[0:1];
-    reg signed [31:0] phase[0:1];
+    reg signed [16+PHASE_FRACTION_BITS:0] freq[0:1];
+    reg signed [31+PHASE_FRACTION_BITS:0] phase[0:1];
     reg signed [63:0] gains[0:7];
     reg signed [63:0] requested_coefficient=0;
     reg [7:0] previous_banks=0;
@@ -51,14 +51,14 @@ module test_table_system_tb;
     generate for(channel=0;channel<2;channel=channel+1) begin : loop_dut
         wire [2:0] enabled=control[513+32*channel +: 3];
         wire [15:0] fast,slow;
-        table_corrector #(.FUSED(1),.GAIN_STAGES(2),.TAIL_GAIN_STAGES(3),.FINAL_CSA_LEVELS(2))
+        table_corrector #(.PHASE_FRACTION_BITS(PHASE_FRACTION_BITS),.FUSED(1),.GAIN_STAGES(2),.TAIL_GAIN_STAGES(3),.FINAL_CSA_LEVELS(2))
             dut(clk,freq[channel],phase[channel],enabled,banks[4*channel +: 4],
                 channel ? command1 : command0,data,fast,slow);
-        reg [31:0] rp[0:1],rpi[0:1],ri2[0:2];
-        reg [63:0] ri3[0:2];
-        reg [31:0] first_sum=0,acc2=0;
-        reg signed [47:0] acc1=0;
-        reg [63:0] acc3=0;
+        reg [31+PHASE_FRACTION_BITS:0] rp[0:1],rpi[0:1],ri2[0:2];
+        reg [63+PHASE_FRACTION_BITS:0] ri3[0:2];
+        reg [31+PHASE_FRACTION_BITS:0] first_sum=0,acc2=0;
+        reg signed [47+PHASE_FRACTION_BITS:0] acc1=0;
+        reg [63+PHASE_FRACTION_BITS:0] acc3=0;
         reg signed [127:0] product_p,product_pi,product_i2,product_i3;
         integer x;
         initial begin
@@ -70,8 +70,8 @@ module test_table_system_tb;
             product_pi=$signed(phase[channel])*gains[4*channel+1];
             product_i2=$signed(acc1)*gains[4*channel+2];
             product_i3=$signed(acc2)*gains[4*channel+3];
-            rp[0]<=product_p[42:11];rpi[0]<=product_pi[58:27];
-            ri2[0]<=product_i2[90:59];ri3[0]<=product_i3[74:11];
+            rp[0]<=product_p[11 +: 32+PHASE_FRACTION_BITS];rpi[0]<=product_pi[27 +: 32+PHASE_FRACTION_BITS];
+            ri2[0]<=product_i2[59 +: 32+PHASE_FRACTION_BITS];ri3[0]<=product_i3[11 +: 64+PHASE_FRACTION_BITS];
             rp[1]<=rp[0];rpi[1]<=rpi[0];
             for(x=1;x<3;x=x+1) begin ri2[x]<=ri2[x-1];ri3[x]<=ri3[x-1];end
             first_sum<=rp[1]+rpi[1];
@@ -80,14 +80,15 @@ module test_table_system_tb;
             if(!enabled[2]) acc3<=0;else acc3<=acc3+ri3[2];
             #1;
             if(cycles>12 && {dut.p,dut.pi,dut.i2,dut.i3,dut.acc1,dut.acc2,dut.acc3,fast,slow} !==
-                 {rp[1],rpi[1],ri2[2],ri3[2],acc1,acc2,acc3,acc2[31:16],~acc3[63],acc3[62:48]})
+                 {rp[1],rpi[1],ri2[2],ri3[2],acc1,acc2,acc3,acc2[31+PHASE_FRACTION_BITS:16+PHASE_FRACTION_BITS],~acc3[63+PHASE_FRACTION_BITS],acc3[62+PHASE_FRACTION_BITS:48+PHASE_FRACTION_BITS]})
                 $fatal(1,"Integrated controller mismatch channel=%0d cycle=%0d",channel,cycles);
         end
     end endgenerate
 
     always @(negedge clk) begin
         for(loop_index=0;loop_index<2;loop_index=loop_index+1) begin
-            freq[loop_index]=$random(seed);phase[loop_index]=$random(seed);
+            freq[loop_index]=$random(seed);
+            phase[loop_index]={$random(seed),$random(seed)};
         end
     end
     always @(posedge clk) begin
