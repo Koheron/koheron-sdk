@@ -89,7 +89,11 @@ void print(std::string_view msg, Args&&... args) {
 
 template<int S=INFO, typename... Args>
 void print_fmt(std::format_string<Args...> fmt, Args&&... args) {
-    print<S>(std::format(fmt, std::forward<Args>(args)...));
+    static_assert(S >= 0 && S < syslog_severity_num, "Invalid logging level");
+
+    if constexpr (S <= INFO || config::log::verbose) {
+        print<S>(std::format(fmt, std::forward<Args>(args)...));
+    }
 }
 
 } // namespace rt
