@@ -10,7 +10,7 @@ module test_detector_tb;
   reg [16:0] freq_d1, freq_d2;
   integer cycle = 0, checked = 0, i, seed = 91473;
 
-  always #2.5 aclk = ~aclk;
+  always #2 aclk = ~aclk;
   detector_wrapper dut (
     .aclk(aclk), .aresetn(aresetn), .acc_on(acc_on), .valid(valid),
     .data_a(data_a), .data_b(data_b),

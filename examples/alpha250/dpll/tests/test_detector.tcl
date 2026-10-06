@@ -11,7 +11,7 @@ source $repo/fpga/lib/utilities.tcl
 source $repo/examples/alpha250/dpll/tcl/cordic.tcl
 
 create_bd_port -dir I -type clk aclk
-set_property CONFIG.FREQ_HZ 200000000 [get_bd_ports aclk]
+set_property CONFIG.FREQ_HZ 250000000 [get_bd_ports aclk]
 create_bd_port -dir I -type rst aresetn
 set_property CONFIG.POLARITY ACTIVE_LOW [get_bd_ports aresetn]
 foreach name {acc_on valid} { create_bd_port -dir I $name }

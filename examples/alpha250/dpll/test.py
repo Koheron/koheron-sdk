@@ -63,7 +63,7 @@ if __name__=="__main__":
     #driver.set_tcxo_clock(117)
 
     driver.set_reference_clock(0)
-    driver.set_sampling_frequency(0)
+    # Keep the sampling frequency selected by the instrument.
 
     #driver.set_dds_freq(0, 30e6)
 

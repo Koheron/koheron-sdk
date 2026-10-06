@@ -4,7 +4,8 @@ module axi_ctl_register #
 (
   parameter integer CTL_DATA_WIDTH = 1024,
   parameter integer AXI_DATA_WIDTH = 32,
-  parameter integer AXI_ADDR_WIDTH = 16
+  parameter integer AXI_ADDR_WIDTH = 16,
+  parameter integer PREDECODE_WRITES = 0
 )
 (
   input  wire                        aclk,
@@ -60,13 +61,13 @@ module axi_ctl_register #
       awaddr_q  <= {AXI_ADDR_WIDTH{1'b0}};
       wdata_q   <= {AXI_DATA_WIDTH{1'b0}};
       wstrb_q   <= {(AXI_DATA_WIDTH/8){1'b0}};
-      regs_flat <= {CTL_DATA_WIDTH{1'b0}};
+      if (!PREDECODE_WRITES) regs_flat <= {CTL_DATA_WIDTH{1'b0}};
     end else begin
       if (aw_fire) begin aw_hold <= 1'b1; awaddr_q <= s_axi_awaddr; end
       if (w_fire ) begin w_hold  <= 1'b1; wdata_q  <= s_axi_wdata;  wstrb_q <= s_axi_wstrb; end
       if (aw_hold & w_hold & ~bvalid) begin
         widx = awaddr_q >> ADDR_LSB;
-        if (widx < CTL_SIZE) begin
+        if (!PREDECODE_WRITES && widx < CTL_SIZE) begin
           base = widx*AXI_DATA_WIDTH;
           for (wb=0; wb<AXI_DATA_WIDTH/8; wb=wb+1)
             if (wstrb_q[wb])
@@ -79,6 +80,29 @@ module axi_ctl_register #
       if (bvalid & s_axi_bready) bvalid <= 1'b0;
     end
   end
+
+  generate
+    if (PREDECODE_WRITES) begin : write_decode
+      // Capture the word select with AW, ahead of the existing write commit.
+      // AW/W ordering, byte strobes and response latency remain unchanged.
+      reg [CTL_SIZE-1:0] word_select;
+      genvar word_index, byte_index;
+      for (word_index = 0; word_index < CTL_SIZE; word_index = word_index + 1) begin : word
+        always @(posedge aclk) begin
+          if (!aresetn) word_select[word_index] <= 1'b0;
+          else if (aw_fire)
+            word_select[word_index] <= (s_axi_awaddr[AXI_ADDR_WIDTH-1:ADDR_LSB] == word_index);
+        end
+        for (byte_index = 0; byte_index < AXI_DATA_WIDTH/8; byte_index = byte_index + 1) begin : byte_lane
+          always @(posedge aclk) begin
+            if (!aresetn) regs_flat[word_index*AXI_DATA_WIDTH + byte_index*8 +: 8] <= 0;
+            else if (aw_hold && w_hold && !bvalid && word_select[word_index] && wstrb_q[byte_index])
+              regs_flat[word_index*AXI_DATA_WIDTH + byte_index*8 +: 8] <= wdata_q[byte_index*8 +: 8];
+          end
+        end
+      end
+    end
+  endgenerate
 
   assign s_axi_bvalid = bvalid;
   assign s_axi_bresp  = 2'b00;

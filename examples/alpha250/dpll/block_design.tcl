@@ -7,6 +7,7 @@ source $board_path/adc_dac.tcl
 # Add config and status registers
 source $sdk_path/fpga/lib/ctl_sts.tcl
 add_ctl_sts adc_dac/adc_clk rst_adc_clk/peripheral_aresetn
+set_cell_props ctl/axi_ctl_register {PREDECODE_WRITES 1}
 
 connect_cell adc_dac {
     adc0 [sts_pin adc0]
@@ -173,26 +174,11 @@ cell koheron:user:latched_mux:1.0 phase_mux {
 
 set diff_delay [get_parameter cic_differential_delay]
 set dec_rate_default [get_parameter cic_decimation_rate_default]
-set dec_rate_min [get_parameter cic_decimation_rate_min]
-set dec_rate_max [get_parameter cic_decimation_rate_max]
 set n_stages [get_parameter cic_n_stages]
 
-cell xilinx.com:ip:cic_compiler:4.0 cic {
-  Filter_Type Decimation
-  Number_Of_Stages $n_stages
-  Fixed_Or_Initial_Rate $dec_rate_default
-  Sample_Rate_Changes Programmable
-  Minimum_Rate $dec_rate_min
-  Maximum_Rate $dec_rate_max
-  Differential_Delay $diff_delay
-  Input_Sample_Frequency [expr [get_parameter adc_clk] / 1000000.]
-  Clock_Frequency [expr [get_parameter adc_clk] / 1000000.]
-  Input_Data_Width 32
-  Quantization Truncation
-  Output_Data_Width 32
-  Use_Xtreme_DSP_Slice false
-  HAS_DOUT_TREADY true
-} {
+source $project_path/tcl/monitor_filter.tcl
+monitor_filter::create_cic cic
+connect_cell cic {
   aclk adc_dac/adc_clk
   s_axis_data_tdata phase_mux/dout
   s_axis_data_tvalid [get_constant_pin 1 1]
@@ -209,19 +195,8 @@ cell pavel-demin:user:axis_variable:1.0 cic_rate {
 
 set fir_coeffs [exec -- env -i $python -I fpga/scripts/fir.py $n_stages $dec_rate_default $diff_delay print]
 
-cell xilinx.com:ip:fir_compiler:7.2 fir {
-  Filter_Type Decimation
-  Sample_Frequency [expr [get_parameter adc_clk] / 1000000. / $dec_rate_default]
-  Clock_Frequency [expr [get_parameter fclk1] / 1000000.]
-  Coefficient_Width 32
-  Data_Width 32
-  Output_Rounding_Mode Convergent_Rounding_to_Even
-  Output_Width 32
-  Decimation_Rate 2
-  BestPrecision true
-  CoefficientVector [subst {{$fir_coeffs}}]
-  M_DATA_Has_TREADY true
-} {
+monitor_filter::create_fir fir $fir_coeffs
+connect_cell fir {
   aclk adc_dac/adc_clk
   S_AXIS_DATA cic/M_AXIS_DATA
 }
@@ -293,6 +268,16 @@ set_property offset [get_memory_offset ram] [get_bd_addr_segs {axi_dma_0/Data_S2
 delete_bd_objs [get_bd_addr_segs -excluded axi_dma_0/Data_S2MM/SEG_axi_dma_0_Reg]
 delete_bd_objs [get_bd_addr_segs ps_0/Data/SEG_ps_0_HP0_DDR_LOWOCM]
 
+# Replicate timing-critical control nets without adding pipeline stages.
+set_property STEPS.PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
+set_property STEPS.PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveFanoutOpt [get_runs impl_1]
+set_property STEPS.PLACE_DESIGN.ARGS.DIRECTIVE Explore [get_runs impl_1]
+set_property STEPS.ROUTE_DESIGN.ARGS.DIRECTIVE Explore [get_runs impl_1]
+
 # Repair short DAC paths after routing without adding pipeline registers.
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
-set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize $sdk_path/fpga/lib/post_route_hold_fix.tcl] [get_runs impl_1]
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveExplore [get_runs impl_1]
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize $project_path/tcl/post_route_opt.tcl] [get_runs impl_1]
+
+# Make the short CIC rate-scaling carry chain available for LUT replication.
+set_property STEPS.OPT_DESIGN.TCL.POST [file normalize $project_path/tcl/optimize_timing.tcl] [get_runs impl_1]
