@@ -14,6 +14,9 @@ int main(int argc, char** argv) {
     metadata.lo = {10e6 + .125, 10e6, 20e6 + .25, 20e6};
     metadata.reference_clock = 2;
     publication.publish(metadata, {0.f, 0.f, -2.f, 4.f, 8.f});
+    assert(!publication.ready());
+    std::this_thread::sleep_for(std::chrono::milliseconds(35));
+    assert(publication.ready());
     auto snapshot = publication.snapshot();
     assert(std::get<0>(snapshot) == 1);
     assert(std::get<16>(snapshot) == publication.spectrum());

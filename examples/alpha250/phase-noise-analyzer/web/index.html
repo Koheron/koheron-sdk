@@ -36,11 +36,13 @@
 <header class="app-header">
   <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
   <h1>Phase noise</h1><span class="board-tag">ALPHA250 · 200 MS/s</span>
-  <span id="refresh-rate" class="board-tag" title="New spectra displayed per second; polling target 60/s; cached replies excluded">— FPS</span>
+  <span id="refresh-rate" class="board-tag" title="New spectra displayed per second; publication target 30/s; cached replies excluded">— FPS</span>
   <span class="connection-control">
   <span id="connection-status" class="connection-status" role="status" data-state="connecting">Connecting…</span>
     <span id="connection-error" class="connection-error" role="alert" hidden><span id="connection-error-message" class="sr-only">Unable to connect to the phase-noise analyzer.</span><button type="button" onclick="location.reload()">Retry</button></span>
   </span>
+  <span id="coverage-status" class="coverage-status" role="status" data-state="waiting" title="Recent phase-stream sample coverage; target 100%">Coverage —</span>
+  <span id="performance-status" class="coverage-status" role="status" data-state="waiting" title="Queued sample time and processing capacity" hidden>Queue —</span>
   <nav aria-label="Board navigation"><a href="/koheron">Instruments</a><a href="/koheron/logs_rate.html">Logs &amp; data rates</a></nav>
 </header>
 <main id="main">

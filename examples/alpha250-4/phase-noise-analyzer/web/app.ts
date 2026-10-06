@@ -90,6 +90,14 @@ class App {
         }
         document.querySelectorAll('.carrier-power-span, .phase-jitter-span, .time-jitter-span, #jitter-range, .tracking-state, .tracking-effective-bandwidth, .tracking-correction-x, .tracking-correction-y, #decade-values-table tbody td:last-child')
             .forEach(node => { node.textContent = '—'; });
+        const performanceStatus = document.getElementById('performance-status');
+        if (performanceStatus) { performanceStatus.textContent = 'Queue —'; performanceStatus.dataset.state = 'unknown'; performanceStatus.title = 'Processing status unavailable while disconnected'; }
+        const coverage = document.getElementById('coverage-status');
+        if (coverage) {
+            coverage.textContent = 'Coverage —';
+            coverage.dataset.state = 'unknown';
+            coverage.title = 'Coverage unavailable while disconnected';
+        }
         const precision = document.getElementById('precision-status');
         if (precision) {
             precision.textContent = '—';

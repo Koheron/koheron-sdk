@@ -423,3 +423,23 @@ The later shared 24-bit Cartesian build passes Vivado 2025.1 routed setup/hold
 and bus-skew checks (WNS +0.076660 ns, WHS +0.040732 ns). Board validation of
 that revision remains pending. External I/O-delay omissions in the board constraints remain;
 there were no unconstrained internal endpoints.
+
+### Live sample coverage
+
+The header beside FPS and connection status shows recent **Coverage**, with 100% as the target.
+It measures sample time included in accepted FFT windows after decimation,
+counting overlap once. The display uses approximately ten seconds of acquisition
+updates; its tooltip includes the total since acquisition reset. Queued data is
+excluded until analyzed or skipped. Settings changes restart the coverage history.
+A skipped FFT hop can still leave full sample coverage when adjacent windows
+cover its samples. This percentage is separate from the number of independent
+averages and from hardware sample-gap reporting.
+
+### Processing capacity
+
+The header's **Queue** badge shows queued sample time. Hover it for required and
+estimated processing rates, buffer retention and shared stage timings. Amber
+indicates insufficient estimated capacity or a queue beyond half its buffer.
+Every accepted FFT enters the average; spectrum/jitter publication is capped at
+30 Hz. Shared native-order averaging, retained buffers and ARM window preparation
+are documented in the [shared PNA processing guide](../../../server/drivers/phase-noise/README.md#processing-capacity-and-display-cadence).

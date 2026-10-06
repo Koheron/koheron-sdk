@@ -89,6 +89,8 @@ int main() {
     unsigned waits = 1;
     dma.wait_until(waits);
     auto acquire = [&](bool success = true) {
+        // Inspect each displayed result after its 30 Hz publication interval.
+        std::this_thread::sleep_for(std::chrono::milliseconds(35));
         dma.complete(success);
         dma.wait_until(++waits); // next wait starts after processing/publication
     };

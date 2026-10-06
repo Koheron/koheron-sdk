@@ -32,6 +32,9 @@ class PhaseNoiseAnalyzer {
     auto get_spectrum_snapshot() const { return core.get_spectrum_snapshot(); }
     auto get_dma_status() { return core.get_dma_status(); }
     auto get_stream_status() { return core.get_stream_status(); }
+    auto get_stream_coverage() const { return core.get_stream_coverage(); }
+    auto get_stream_performance() { return core.get_stream_performance(); }
+    auto get_fft_performance() const { return core.get_fft_performance(); }
 
  private:
     phase_noise::Core<RedPitayaPhaseNoiseBoard> core;
