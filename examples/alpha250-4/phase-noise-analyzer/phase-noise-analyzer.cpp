@@ -3,7 +3,7 @@
 /// (c) Koheron
 
 #include "./phase-noise-analyzer.hpp"
-#include "./phase-spectrum.hpp"
+
 
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
@@ -22,7 +22,7 @@ namespace sci = scicpp;
 namespace sig = scicpp::signal;
 
 namespace {
-using namespace pna_spectrum;
+
 constexpr float tracking_sign_x = +1.0f;
 constexpr float tracking_sign_y = +1.0f;
 } // namespace
@@ -246,19 +246,19 @@ double PhaseNoiseAnalyzer::carrier_power(uint32_t navg) {
 
 PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase_x() {
     std::shared_lock lk(data_mtx);
-    return phase_x;
+    return relative_phase_snapshot(raw_phase_x, captured_scale_x);
 }
 
 PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase_y() {
     std::shared_lock lk(data_mtx);
-    return phase_y;
+    return relative_phase_snapshot(raw_phase_y, captured_scale_y);
 }
 
 std::array<PhaseNoiseAnalyzer::Phase, 2 * PhaseNoiseAnalyzer::data_size>
 PhaseNoiseAnalyzer::get_phase_xy_sync() {
     using namespace sci::operators;
     std::shared_lock lk(data_mtx);
-    return phase_x | phase_y;
+    return relative_phase_snapshot(raw_phase_x, captured_scale_x) | relative_phase_snapshot(raw_phase_y, captured_scale_y);
 }
 
 PhaseNoiseAnalyzer::PhaseNoiseDensityVector PhaseNoiseAnalyzer::get_phase_noise() const {
@@ -384,25 +384,6 @@ void PhaseNoiseAnalyzer::set_power_conversion_factor() {
     static_assert(sci::units::is_dimensionless<decltype(conv_factor_dBm)>);
 }
 
-auto PhaseNoiseAnalyzer::compute_phase_noise(SpectrumPhaseArray& new_phase) {
-    auto phase_psd = pna_spectrum::auto_density(new_phase,
-        sci::units::frequency<float>{float(fs.eval())}, spectrum);
-
-    // Keep the one-window history current when averaging is disabled so growing
-    // the window cannot bring back spectra from before the unaveraged interval.
-    averager.append(std::move(phase_psd));
-    return averager.average();
-}
-
-auto PhaseNoiseAnalyzer::compute_crossed_phase_noise(SpectrumPhaseArray& new_phase_x,
-                                                     SpectrumPhaseArray& new_phase_y) {
-    auto phase_psd = pna_spectrum::cross_density(new_phase_x, new_phase_y,
-        sci::units::frequency<float>{float(fs.eval())}, spectrum, false);
-
-    averager_xy.append(phase_psd);
-    return sci::real(averager_xy.average());
-}
-
 PhaseNoiseAnalyzer::Frequency PhaseNoiseAnalyzer::effective_tracking_bandwidth() const {
     return sci::units::fmin(tracking_bandwidth,
                             sci::units::fmin(min_frequency / 100.0f, Frequency{0.1f}));
@@ -478,8 +459,8 @@ void PhaseNoiseAnalyzer::start_spectrum_analyzer() {
 
 void PhaseNoiseAnalyzer::invalidate_acquisition(CaptureState state) {
     capture_state = state;
-    phase_x.fill(Phase{});
-    phase_y.fill(Phase{});
+    raw_phase_x.fill(0);
+    raw_phase_y.fill(0);
     tracking_locks = {};
     tracking_locked = false;
     averager.clear();
@@ -495,6 +476,8 @@ void PhaseNoiseAnalyzer::invalidate_acquisition(CaptureState state) {
 
 void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
     uint64_t consumed = 0;
+    bool have_window = false;
+    uint64_t estimator_epoch = UINT64_MAX;
     uint64_t epoch;
     {
         std::shared_lock lk(data_mtx);
@@ -507,6 +490,7 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
                 epoch = acquisition_epoch;
                 // Drain queued samples generated under the previous configuration.
                 consumed = dma.completed_chunks() + discard_acquisitions_after_reset;
+                have_window = false;
             }
             if (reset_cumulative_requested.exchange(false, std::memory_order_acq_rel)) {
                 averager_xy.clear();
@@ -515,6 +499,8 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
                     publish_spectrum();
                 }
                 consumed = std::max(consumed, dma.completed_chunks());
+                have_window = false;
+                estimator_epoch = UINT64_MAX;
                 tracking_last_mean_dphi = Phase{0.0f};
                 tracking_last_error = Frequency{0.0f};
                 tracking_locked = false;
@@ -522,20 +508,28 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
             }
         }
 
-        auto snapshot = dma.read_xy<data_size>(consumed, spectrum_analyzer_started);
+        auto snapshot = dma.read_xy<data_size>(consumed, spectrum_analyzer_started,
+            (spectrum_samples / 2) / PhaseDma::samples_per_chunk, have_window);
         if (!snapshot) {
             std::unique_lock lk(data_mtx);
+            if (!spectrum_analyzer_started.load(std::memory_order_acquire)) return;
             ++dma_errors;
+            restart_filters();
             invalidate_acquisition(DmaError);
-            return;
+            continue;
         }
 
         std::unique_lock lk(data_mtx);
         if (epoch != acquisition_epoch || reset_cumulative_requested.load(std::memory_order_acquire)) {
             continue;
         }
-        const Time block_duration = double(snapshot->end_chunk - consumed) * PhaseDma::samples_per_chunk / fs;
+        // A recent slope cannot stand in for phase evolution during skipped
+        // windows. Advance tracking by one observed hop after consumer loss.
+        const Time block_duration = double(snapshot->skipped_hops ?
+            (spectrum_samples / 2) / PhaseDma::samples_per_chunk : snapshot->end_chunk - consumed) *
+            PhaseDma::samples_per_chunk / fs;
         consumed = snapshot->end_chunk;
+        have_window = true;
         const auto now = std::chrono::steady_clock::now();
         if (last_capture_time != std::chrono::steady_clock::time_point{})
             capture_period_ms = std::chrono::duration<double, std::milli>(now - last_capture_time).count();
@@ -570,30 +564,48 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
         const auto process_start = std::chrono::steady_clock::now();
         const auto scale_x = calib_factor * float(cic_output_scale * phase_scale_x * std::exp2(-double(phase_precision)));
         const auto scale_y = calib_factor * float(cic_output_scale * phase_scale_y * std::exp2(-double(phase_precision)));
-        convert_relative_phase(snapshot->x, phase_x, scale_x);
-        convert_relative_phase(snapshot->y, phase_y, scale_y);
-        const auto trend_x = phase_noise::fit_raw_phase_prefix<32000>(snapshot->x);
-        const auto trend_y = phase_noise::fit_raw_phase_prefix<32000>(snapshot->y);
-        auto spectral_x = phase_noise::detrended_raw_phase_prefix<32000>(snapshot->x, trend_x, scale_x);
-        auto spectral_y = phase_noise::detrended_raw_phase_prefix<32000>(snapshot->y, trend_y, scale_y);
-        const auto slope_x = Phase{float(trend_x.slope * double(scale_x.eval()))};
-        const auto slope_y = Phase{float(trend_y.slope * double(scale_y.eval()))};
-
+        const uint32_t selected = channel;
+        const double sampling = fs.eval();
         const std::array<double, 4> acquired_frequencies{
             dds.get_dds_freq(0), dds.get_dds_freq(1), dds.get_dds_freq(2), dds.get_dds_freq(3)};
-        const double f_dds = acquired_frequencies[channel == Y ? DUTY : DUTX];
-        if (channel == X) {
-            phase_noise = compute_phase_noise(spectral_x);
-            apply_tracking_update(tracking_sign_x * slope_x, block_duration, X);
-        } else if (channel == Y) {
-            phase_noise = compute_phase_noise(spectral_y);
-            apply_tracking_update(tracking_sign_y * slope_y, block_duration, Y);
+        const double f_dds = acquired_frequencies[selected == Y ? DUTY : DUTX];
+        lk.unlock();
+        if (estimator_epoch != epoch || snapshot->skipped_hops) {
+            spectrum.reset(); estimator_epoch = epoch;
+        }
+        if (selected == XY) spectrum.process(snapshot->x, scale_x.eval(), sampling, snapshot->y, scale_y.eval(), false);
+        else spectrum.process(selected == Y ? std::span<const int32_t>(snapshot->y) : std::span<const int32_t>(snapshot->x),
+                              selected == Y ? scale_y.eval() : scale_x.eval(), sampling);
+        lk.lock();
+        if (epoch != acquisition_epoch || reset_cumulative_requested.load(std::memory_order_acquire)) continue;
+        raw_phase_x = std::move(snapshot->x);
+        raw_phase_y = std::move(snapshot->y);
+        captured_scale_x = scale_x;
+        captured_scale_y = scale_y;
+        if (selected == XY) {
+            // Each new segment enters the cumulative CSD once. Averaging rolling
+            // three-segment results would repeatedly count the same FFTs.
+            const auto& values = spectrum.latest_cross();
+            averager_xy.append_transformed(values, [](std::complex<float> value) {
+                return ComplexPhaseNoiseDensity{PhaseNoiseDensity{value.real()}, PhaseNoiseDensity{value.imag()}};
+            });
+            averager_xy.average_real_to(phase_noise);
         } else {
-            phase_noise = compute_crossed_phase_noise(spectral_x, spectral_y);
+            const auto& values = spectrum.density();
+            PhaseNoiseDensityVector estimate(values.size());
+            for (std::size_t k = 0; k < values.size(); ++k) estimate[k] = PhaseNoiseDensity{values[k]};
+            averager.append(std::move(estimate));
+            phase_noise = averager.average();
+        }
+        ++processed_segments;
+        const auto slope_x = Phase{float(spectrum.trend().slope * double((selected == Y ? scale_y : scale_x).eval()))};
+        if (selected != XY) apply_tracking_update(slope_x, block_duration, selected);
+        else {
             apply_tracking_update(tracking_sign_x * slope_x, block_duration, X);
             const auto x_dphi = tracking_last_mean_dphi;
             const auto x_error = tracking_last_error;
             const bool x_locked = tracking_locked;
+            const auto slope_y = Phase{float(spectrum.trend(1).slope * double(scale_y.eval()))};
             apply_tracking_update(tracking_sign_y * slope_y, block_duration, Y);
             tracking_last_mean_dphi = 0.5f * (x_dphi + tracking_last_mean_dphi);
             tracking_last_error = 0.5 * (x_error + tracking_last_error);

@@ -3,7 +3,12 @@
 
 #include <array>
 #include <cstdint>
+#include <cassert>
+#include <span>
 #include <scicpp/core.hpp>
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#endif
 
 template<typename Phase, std::size_t N>
 void convert_relative_phase(const std::array<int32_t, N>& raw,
@@ -21,6 +26,14 @@ void convert_relative_phase(const std::array<int32_t, N>& raw,
     }
 }
 
+template<typename Phase, std::size_t N>
+std::array<Phase, N> relative_phase_snapshot(const std::array<int32_t, N>& raw,
+                                            Phase radians_per_count) {
+    std::array<Phase, N> result;
+    convert_relative_phase(raw, result, radians_per_count);
+    return result;
+}
+
 namespace phase_noise {
 
 // Keep the fit in raw counts. Casting a large carrier-drift ramp to float
@@ -31,21 +44,42 @@ struct RawPhaseTrend {
     double slope;
 };
 
+inline RawPhaseTrend fit_raw_phase(std::span<const int32_t> raw) {
+    const auto samples = raw.size();
+    assert(samples > 1 && samples <= 65536);
+    int64_t sum = 0, twice_covariance = 0;
+    std::size_t i = 0;
+#if defined(__ARM_NEON)
+    const int32_t first = -int32_t(samples - 1);
+    const int32_t weights[]{first, first + 2, first + 4, first + 6};
+    auto weight = vld1q_s32(weights);
+    auto totals = vdupq_n_s64(0), covariance = vdupq_n_s64(0);
+    for (; i + 4 <= samples; i += 4) {
+        const auto value = vld1q_s32(raw.data() + i);
+        totals = vaddq_s64(totals, vaddq_s64(vmovl_s32(vget_low_s32(value)), vmovl_s32(vget_high_s32(value))));
+        covariance = vaddq_s64(covariance, vmull_s32(vget_low_s32(value), vget_low_s32(weight)));
+        covariance = vaddq_s64(covariance, vmull_s32(vget_high_s32(value), vget_high_s32(weight)));
+        weight = vaddq_s32(weight, vdupq_n_s32(8));
+    }
+    sum = vgetq_lane_s64(totals, 0) + vgetq_lane_s64(totals, 1);
+    twice_covariance = vgetq_lane_s64(covariance, 0) + vgetq_lane_s64(covariance, 1);
+#endif
+    for (; i < samples; ++i) {
+        const auto weight = int32_t(2 * i) - int32_t(samples - 1);
+        sum += int64_t(raw[i]);
+        twice_covariance += int64_t(weight) * int64_t(raw[i]);
+    }
+    const double n = double(samples), anchor = double(raw[samples / 2]);
+    return {anchor, double(sum) / n - anchor,
+            double(twice_covariance) / (n * (n * n - 1.0) / 6.0)};
+}
+
 template<std::size_t Samples, std::size_t N>
 RawPhaseTrend fit_raw_phase_prefix(const std::array<int32_t, N>& raw) {
     // Centered weights sum to zero. At up to 65536 samples, both exact
     // integer sums fit int64_t even for the full signed 32-bit input range.
     static_assert(Samples > 1 && Samples <= N && Samples <= 65536);
-    const double anchor = double(raw[Samples / 2]);
-    int64_t sum = 0, twice_covariance = 0;
-    for (std::size_t i = 0; i < Samples; ++i) {
-        const auto weight = int32_t(2 * i) - int32_t(Samples - 1);
-        sum += int64_t(raw[i]);
-        twice_covariance += int64_t(weight) * int64_t(raw[i]);
-    }
-    const double n = double(Samples);
-    return {anchor, double(sum) / n - anchor,
-            double(twice_covariance) / (n * (n * n - 1.0) / 6.0)};
+    return fit_raw_phase(std::span<const int32_t>(raw.data(), Samples));
 }
 
 template<std::size_t Samples, typename Phase, std::size_t N>

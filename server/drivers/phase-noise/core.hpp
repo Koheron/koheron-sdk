@@ -1,6 +1,6 @@
 #pragma once
 #include "phase-processing.hpp"
-#include "welch-spectrum.hpp"
+#include "streaming-welch.hpp"
 #include "spectrum-publication.hpp"
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
@@ -75,10 +75,14 @@ class Core
     auto get_phase_snapshot() const {
         std::shared_lock lk(data_mtx);
         return std::tuple{accepted_captures, captured_precision, phase_conversion_factor,
-                          capture_state == Valid, phase};
+                          capture_state == Valid, relative_phase_snapshot(phase_raw, snapshot_scale)};
     }
 
     auto get_spectrum_snapshot() const { return publication.snapshot(); }
+    auto get_stream_status() {
+        std::shared_lock lk(data_mtx);
+        return std::tuple{spectrum.segment_count(), dma.overruns(), fft_size, fft_size / 2, 3u};
+    }
     auto get_dma_status() {
         std::shared_lock lk(data_mtx);
         return std::tuple{dma.completed_chunks(), consumed_chunks, dma.generation(), gap_captures};
@@ -172,10 +176,13 @@ class Core
     std::thread acq_thread;
     std::atomic<bool> acquisition_started{false};
 
-    PhaseDataArray phase{};
+    RawPhaseDataArray phase_raw{};
+    Phase snapshot_scale{};
 
     // Spectrum analyzer
-    WelchSpectrum<fft_size> spectrum;
+    StreamingWelch<fft_size> spectrum;
+    std::atomic<bool> stream_initialized{false};
+    uint64_t estimator_generation = UINT64_MAX;
     PhaseNoiseDensityVector phase_noise;
     MovingAverager<PhaseNoiseDensity> averager;
 
@@ -220,8 +227,7 @@ class Core
     void update_tracking(double slope_radians_per_sample); // caller holds both mutexes when enabled
     void update_interferometer_transfer_function();
     void set_power_conversion_factor();
-    auto compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend,
-                             PhaseDataArray& phase_snapshot);
+    auto compute_phase_noise(const RawPhaseDataArray& raw, bool seed);
     auto compute_jitter(const PhaseNoiseDensityVector& new_pn, Frequency acquired_lo);
     void acquisition_thread();
     void start_acquisition();
@@ -416,7 +422,7 @@ double Core<Board>::carrier_power(uint32_t navg) {
 template<class Board>
 typename Core<Board>::PhaseDataArray Core<Board>::get_phase() const {
     std::shared_lock lk(data_mtx);
-    return phase;
+    return relative_phase_snapshot(phase_raw, snapshot_scale);
 }
 
 template<class Board>
@@ -617,9 +623,15 @@ void Core<Board>::set_power_conversion_factor() {
 }
 
 template<class Board>
-auto Core<Board>::compute_phase_noise(const RawPhaseDataArray& raw, const RawPhaseTrend& trend,
-                                    PhaseDataArray& phase_snapshot) {
-    auto phase_psd = spectrum.density(raw, trend, phase_conversion_factor, fs, &phase_snapshot);
+auto Core<Board>::compute_phase_noise(const RawPhaseDataArray& raw, bool seed) {
+    const std::size_t first = seed ? 0 : data_size - fft_size;
+    if (seed) spectrum.reset();
+    for (std::size_t offset = first; offset + fft_size <= data_size; offset += fft_size / 2)
+        spectrum.process(std::span<const int32_t>(raw.data() + offset, fft_size),
+                         phase_conversion_factor.eval(), fs.eval());
+    const auto& density = spectrum.density();
+    PhaseNoiseDensityVector phase_psd(density.size());
+    for (std::size_t k = 0; k < density.size(); ++k) phase_psd[k] = PhaseNoiseDensity{density[k]};
 
     if (analyzer_mode == AnalyzerMode::LASER) {
         using namespace sci::operators;
@@ -711,10 +723,12 @@ void Core<Board>::publish_spectrum(const std::array<double, 4>& acquired_lo) {
 
 template<class Board>
 void Core<Board>::invalidate_results(CaptureState state) {
+    stream_initialized.store(false);
+    estimator_generation = UINT64_MAX;
     capture_state = state;
     reset_tracking_observations();
     averager.clear();
-    phase.fill(Phase{});
+    phase_raw.fill(0);
     phase_noise.assign(1 + fft_size / 2, PhaseNoiseDensity{});
     publish_spectrum({dds.get_dds_freq(0), dds.get_dds_freq(1), 0.0, 0.0});
     phase_jitter = std::numeric_limits<Phase>::quiet_NaN();
@@ -790,7 +804,8 @@ void Core<Board>::acquisition_thread() {
         if (!acquisition_started.load(std::memory_order_acquire)) break;
         // Polling never holds the settings/processing locks. A slow window at
         // high decimation is cancellable and does not delay a rate/LO request.
-        auto snapshot = dma.read<data_size>(consumed_chunks, acquisition_started);
+        auto snapshot = dma.read<data_size>(consumed_chunks, acquisition_started,
+            (fft_size / 2) / CyclicPhaseDma::samples_per_chunk, stream_initialized.load());
         std::unique_lock dma_lk(dma_mtx);
         std::unique_lock lk(data_mtx);
         if (!acquisition_started.load(std::memory_order_acquire)) break;
@@ -802,6 +817,7 @@ void Core<Board>::acquisition_thread() {
         last_capture_time = now;
         if (snapshot) {
             consumed_chunks = snapshot->end_chunk;
+            stream_initialized.store(true);
             captured_precision = snapshot->precision;
         }
         if (!snapshot) {
@@ -831,10 +847,12 @@ void Core<Board>::acquisition_thread() {
             const auto trend = fit_raw_phase_prefix<data_size>(snapshot->samples);
             update_tracking(trend.slope * double(phase_conversion_factor.eval()));
             dma_lk.unlock();
-            PhaseDataArray new_phase{};
-            auto new_pn = compute_phase_noise(snapshot->samples, trend, new_phase);
+            const bool seed = estimator_generation != snapshot->generation || snapshot->skipped_hops;
+            estimator_generation = snapshot->generation;
+            auto new_pn = compute_phase_noise(snapshot->samples, seed);
             compute_jitter(new_pn, acquired_lo);
-            phase = std::move(new_phase);
+            phase_raw = std::move(snapshot->samples);
+            snapshot_scale = phase_conversion_factor;
             phase_noise = std::move(new_pn);
             ++accepted_captures;
             capture_state = Valid;

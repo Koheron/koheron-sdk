@@ -103,7 +103,7 @@ test('CSV exports signed live/reference PSD, four LOs and captured metadata', as
   const csv = await new Promise(resolve => {const reader=new w.FileReader();reader.onload=()=>resolve(reader.result);reader.readAsText(blob);});
   assert.ok(csv.includes('Signed phase PSD (rad^2/Hz)'));
   assert.ok(csv.includes('"LO 3 frequency (Hz)",10000000'));
-  assert.ok(csv.includes('"Cumulative XY windows",64'));
+  assert.ok(csv.includes('"Cumulative XY segments",64'));
   assert.ok(csv.includes('Reference trace'));
   assert.ok(csv.split('\n').some(line=>line.endsWith(',-2')));
 });

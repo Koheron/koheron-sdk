@@ -1,5 +1,5 @@
 NAME := phase-noise-analyzer
-VERSION := 1.4.0
+VERSION := 1.5.0
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250

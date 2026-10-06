@@ -1,3 +1,10 @@
+The production estimator is now shared streaming Welch. Both software runners
+execute the new per-segment/rolling SciPy audit under `server/drivers/phase-noise/tests`,
+including large raw drift, signed cross spectra and a 120 dB channel-power ratio.
+Both DMA simulators assert 16384-sample overlap between successive 32768-sample
+windows. The multirate calculation tests below retain the old numerical model
+as a regression reference; they do not validate the new streaming estimator.
+
 These regressions run without a board. They exercise the production averager,
 DMA reader and DDS driver, using an in-memory hardware backend for DMA and DDS.
 The C++ tests run with AddressSanitizer and UndefinedBehaviorSanitizer. The web

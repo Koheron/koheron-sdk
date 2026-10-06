@@ -19,14 +19,14 @@ int main() {
     // thread, then stop the producer so publication is stable for the checks.
     hw::injected_x_status.store(8);
     hw::injected_y_status.store(8);
-    auto producer=std::make_unique<SimulatedDma>();
+    auto producer=std::make_unique<SimulatedDma>(std::chrono::microseconds(5000));
     const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(10);
     while (std::get<0>(analyzer.get_average_status()) < 3) {
         assert(std::chrono::steady_clock::now()<deadline);
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
     producer.reset();
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
     assert(std::get<3>(analyzer.get_precision_status())==1); // Valid
 
     const auto epoch=hw::simulated_epoch.load();
@@ -69,5 +69,33 @@ int main() {
     analyzer.set_cic_rate(20);
     assert(hw::simulated_epoch.load()>changed_epoch);
     assert(!analyzer.set_phase_precision(9));
-    std::cout << "Production four-channel settings passed: unchanged settings preserve averages/epoch/publication; corrected LO and changed rate restart\n";
+
+    // Saturate the production consumer deliberately. Recovery must preserve
+    // both rolling and cumulative averages, without restarting valid DMA.
+    for (unsigned selected : {0u, 2u}) {
+        analyzer.set_channel(selected);
+        analyzer.set_cic_rate(selected == 0 ? 30 : 31);
+        auto fast=std::make_unique<SimulatedDma>(std::chrono::microseconds(100));
+        const auto filled_deadline=std::chrono::steady_clock::now()+std::chrono::seconds(10);
+        while (std::get<0>(analyzer.get_average_status()) < 3) {
+            assert(std::chrono::steady_clock::now()<filled_deadline);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+        const auto stable_epoch=hw::simulated_epoch.load();
+        const auto errors=std::get<6>(analyzer.get_precision_status());
+        const auto initial_overruns=std::get<1>(analyzer.get_stream_status());
+        auto count=std::get<0>(analyzer.get_average_status());
+        while (std::get<1>(analyzer.get_stream_status()) < initial_overruns+3) {
+            assert(std::chrono::steady_clock::now()<filled_deadline);
+            const auto current=std::get<0>(analyzer.get_average_status());
+            assert(current>=count);
+            count=current;
+            assert(hw::simulated_epoch.load()==stable_epoch);
+            assert(std::get<6>(analyzer.get_precision_status())==errors);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+        fast.reset();
+        // Configure the next producer before the 100-ms watchdog expires.
+    }
+    std::cout << "Production four-channel settings passed: unchanged settings preserve averages/epoch/publication; corrected LO and changed rate restart; rolling/cumulative averages survive consumer overruns\n";
 }

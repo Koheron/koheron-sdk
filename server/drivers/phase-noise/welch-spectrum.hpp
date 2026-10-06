@@ -4,6 +4,7 @@
 #include <scicpp/signal/windows.hpp>
 #include "server/external_libs/pffft/pffft.h"
 #include "phase-processing.hpp"
+#include "fft-layout.hpp"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -93,11 +94,7 @@ class WelchSpectrum {
     }
     std::unique_ptr<PFFFT_Setup, decltype(&pffft_destroy_setup)> setup{
         pffft_new_setup(int(FftSize), PFFFT_REAL), pffft_destroy_setup};
-    const int simd_size = pffft_simd_size();
-    // Derive the publication permutation from PFFFT itself, once per plan,
-    // rather than duplicating its reversed/quadrant-specific bin ordering.
-    using BinIndex = std::conditional_t<(bins <= 65536), uint16_t, uint32_t>;
-    std::array<BinIndex, bins> bin_positions{};
+    detail::NativeRealFftLayout<FftSize> layout{setup.get()};
     struct Workspace {
         Buffer weighted = make_buffer();
         Buffer transformed = make_buffer();
@@ -125,7 +122,7 @@ class WelchSpectrum {
                 pffft_transform(setup.get(), workspace.weighted.get(),
                     workspace.transformed.get(), workspace.scratch.get(), PFFFT_FORWARD);
                 const auto* transformed = workspace.transformed.get();
-                detail::accumulate_welch_power(transformed, workspace.power.data(), FftSize, simd_size);
+                detail::accumulate_welch_power(transformed, workspace.power.data(), FftSize, layout.simd_size);
             }
         };
         std::future<void> background;
@@ -141,7 +138,7 @@ class WelchSpectrum {
         const float scale = float(1.0 / (double(segments) * double(fs.eval()) * window_power));
         std::vector<Density> result(bins);
         for (std::size_t i = 0; i < bins; ++i) {
-            const auto native = bin_positions[i];
+            const auto native = layout.positions[i];
             result[i] = Density{(workspaces[0].power[native] + workspaces[1].power[native]) * scale *
                 (i == 0 || i == bins - 1 ? 1.0f : 2.0f)};
         }
@@ -151,20 +148,8 @@ class WelchSpectrum {
   public:
     WelchSpectrum() {
         assert(setup);
-        assert(simd_size == 1 || simd_size == 4);
         for (const auto value : window)
             window_power += double(value) * double(value);
-        auto* native = workspaces[0].weighted.get();
-        auto* ordered = workspaces[0].transformed.get();
-        for (std::size_t i = 0; i < FftSize; ++i) native[i] = float(i);
-        pffft_zreorder(setup.get(), native, ordered, PFFFT_FORWARD);
-        for (std::size_t i = 0; i < bins; ++i) {
-            const auto lane = std::size_t(ordered[i == bins - 1 ? 1 : 2 * i]);
-            const auto index = simd_size == 1 ? (lane + 1) / 2 :
-                (i == bins - 1 ? FftSize / 2 : (lane / 8) * 4 + lane % 8);
-            assert(index < bins);
-            bin_positions[i] = BinIndex(index);
-        }
     }
 
     template<class Array>

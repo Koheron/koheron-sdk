@@ -690,3 +690,152 @@ Artifacts are under `tmp/pna-30000-fps`: `{before,after}-rate.json`,
 `captured-arm-audit.log`, `isolated-profile.log`, `server-pause-summary.json`,
 `software-tests-final.log`, `short-window-tests.log`,
 `deployment/deployment.json` and `source-{before,after}.json`.
+
+## Streaming Welch commonization (2026-10-06, PNA 1.3.0)
+
+ALPHA250, ALPHA250-4 and Red Pitaya now share a streaming 32768-point
+real-FFT engine, a 16384-sample hop and one single/paired cyclic DMA reader.
+X/Y use rolling three-segment Hann estimates followed by their selected
+moving average. XY accumulates each signed complex segment cross spectrum
+once. Overlap correlates segments; doubling the update count does not imply
+doubling the number of independent observations. The former quad software
+multirate FIR/stitching pipeline is replaced; close-offset detrending and
+averaging statistics change. The density grid is now 16385 bins at fs/32768.
+
+PR #772's native-order accumulation and plan-derived publication permutation
+are shared by the streaming and batch reference estimators. PR #773's GCC
+ARMv7 vector memory-access changes and vendor build dependencies are included.
+The paired worker and FFT plans persist, FFT input/output alias safely, and
+ARM integer phase fitting is exact. SIMD spectrum operations retain scalar
+fallbacks for extreme/subnormal operands. XY skips unused rolling means.
+Raw snapshots are converted only on request. The DMA reader reuses overlap
+while checking metadata and descriptors over the entire retained window.
+
+Build/software checks:
+
+- Strict ARM server and web builds pass for all three boards. Both ALPHA
+  software suites pass with ASan/UBSan, Python and browser regressions.
+- The PR #772 ordered/native batch comparisons and PR #773 independent DFT,
+  Parseval, ordering and in-place checks pass with host SIMD and scalar builds.
+- The new streaming oracle checks every segment and rolling auto/signed CSD
+  estimate against independent SciPy calculations. It covers a 120 dB
+  channel-power ratio, one-count steps on large offsets, nearly full-range
+  positive/negative ramps, signed endpoints, history resets and the XY path
+  without rolling means. Relative auto/complex errors remain below 3e-7.
+  Host SIMD/scalar and Cortex-A9 NEON under QEMU pass. QEMU checks numerical
+  behavior; live timings below are measured on the physical ALPHA250-4.
+- DMA regressions check exact half-window overlap, retention loss, watchdogs,
+  epoch changes and automatic rearming after DMA errors. A recovery bug found
+  during the first live sweep is fixed: clearing the running flag no longer
+  clears the request to restart acquisition.
+- The complete Vivado 2025.1 quad build passes strict routed timing:
+  WNS +0.046937 ns, WHS +0.012307 ns and all 12 bus-skew constraints.
+  No FPGA source or constraints changed in this port.
+
+Hardware measurements use 192.168.1.12, unchanged connected signals, +8 bits,
+one moving average, four nominal 10.001 MHz LOs and enabled tracking. Baseline
+1.2.5 runs cover eight seconds; final 1.3.0 runs cover ten seconds after three
+seconds of settling. Processing values are medians of live telemetry.
+
+| CIC / channel | Accepted updates/s, 1.2.5 → 1.3.0 | Processing ms, 1.2.5 → 1.3.0 | New ring overruns |
+| --- | --- | --- | --- |
+| 133 / XY | 22.99 → 45.88 | 36.02 → 11.04 | 0 |
+| 67 / XY | 26.53 → 73.37 | 35.66 → 11.20 | 0 in this short run |
+| 50 / XY | 26.31 → 72.55 | 36.15 → 11.19 | 2 |
+| 50 / X | — → 79.47 | — → 9.94 | 2 |
+| 50 / Y | — → 79.45 | — → 9.92 | 2 |
+
+The new count measures overlapping segments, whereas 1.2.5 counted disjoint
+windows. These rates measure update throughput, not independent-average
+convergence. CIC 67/50 produce hops faster than the CPU can consume them;
+queued data eventually overruns the ring. In this initial measurement, such
+windows were rejected and the epoch restarted, incrementing the overrun and
+DMA-error counters. The consumer-recovery fix documented below supersedes that
+behavior; these measurements remain the pre-fix evidence.
+The short CIC 67 run does not establish sustained coverage. Neither sweep
+reported a hardware sample gap or phase overflow.
+
+Separate 30-second XY checks at CIC 100 and 133 reached 61.05 and 45.90
+segments/s respectively, with no new DMA errors, overruns, gaps or overflows.
+Both reach their acquisition ceilings. CIC 100 or higher is appropriate for
+continuous half-window processing under this tested load; other client/DDR
+loads can change that limit. Hardware phase snapshots remain synchronized
+32768-sample pairs with finite values and matching +8 metadata. This test does
+not establish absolute noise-floor or analog PM calibration for the new
+close-offset response. ALPHA250/Red Pitaya hardware validation of this
+streaming port remains pending.
+
+PNA 1.3.0 is installed and remains the default instrument. HTTP readback of
+server, FPGA, overlay, app.js and version matches the final archive by SHA256.
+Server SHA256: `4ab5df18a9f9a29a775c781c0b91d084cfb2c15d8832950ad0498798963227f9`.
+Bitstream SHA256: `1808b9c36da9b7f53ea535e76862d2ae5c2ee2295c336f7964d685d77fdc9129`.
+The final live controls are restored to CIC 133, XY, +8, one average, internal
+reference and the four nominal 10.001 MHz LOs. Tracking stays enabled.
+
+Local artifacts are in `tmp/pna-streaming`: baseline/final rate JSON, sustained
+checks, synchronized snapshots, deployment hashes, final state, build/test
+logs and the ARM/SciPy oracle results. The previous working 1.2.5 archive is
+retained separately for rollback.
+
+### Consumer-overrun recovery (2026-10-06)
+
+Chrome exposed repeated average resets at CIC 30, Y, 60 moving averages and
++8-bit precision. Read-only telemetry reproduced the count falling from 60 to
+25/31/0 while consumer-overrun and DMA-error counters advanced together; FPGA
+sample-gap and overflow counters stayed zero. CIC 30 produces 203.45 half-window
+hops/s, exceeding measured CPU throughput. Restarting the DMA epoch for a lost
+consumer window incorrectly discarded valid earlier averages.
+
+The shared ring reader now resumes at the latest complete window on the same
+hop grid and returns the number of skipped hops. It preserves the hardware
+generation, validates every descriptor and metadata item, and never joins
+samples across the missing interval. The estimator's three-segment history
+resets across that interval, while valid outer moving/cumulative averages stay
+intact. Tracking advances by one observed hop instead of integrating an
+unobserved interval. Actual DMA errors, FPGA sample gaps, overflow and settings
+changes retain their invalidation behavior. Chrome displays `Live · Skips`;
+its tooltip reports consumer-overrun events since instrument start.
+
+Build/software checks: all three ARM server/web builds pass. Both ALPHA test
+suites pass, including ASan/UBSan and independent numerical checks. Production
+quad overload regressions exercise X and XY through three overruns each and
+assert monotonic average counts, unchanged producer generation and unchanged
+DMA-error counts. Both shared DMA variants check contiguous recovery, explicit
+skipped-hop accounting and normal overlap on the following read. Browser
+precision/status regressions pass on all three boards. No FPGA change or new
+FPGA timing run was needed for this recovery fix.
+
+Live tests on 192.168.1.12 used the current connected signals, +8-bit precision,
+60 moving averages, nominal 10.001 MHz LOs and enabled 0.1 Hz tracking. Runs start
+after three seconds of settling. The user's current CIC 100/Y selection was
+captured immediately before deployment and restored after the CIC 30 stress test.
+
+| CIC / channel | Duration | Accepted segments/s | Average count | New consumer overruns | New DMA errors / hardware gaps / overflows |
+| --- | ---: | ---: | --- | ---: | --- |
+| 100 / XY | 39.74 s | 61.05 | 174 → 2599, no decreases | 0 | 0 / 0 / 0 |
+| 100 / Y | 39.92 s | 61.03 | 60 throughout | 0 | 0 / 0 / 0 |
+| 30 / XY | 29.81 s | 61.53 | 189 → 2023, no decreases | 17 | 0 / 0 / 0 |
+| 30 / Y | 29.94 s | 70.36 | 60 throughout | 16 | 0 / 0 / 0 |
+
+All sampled publications stayed Valid, and tracking was locked at each run's
+end. Retaining averages fixes recovery; CIC 30 still loses temporal coverage
+when the CPU cannot consume every hop. No known-amplitude modulation or absolute
+phase-noise calibration was performed in this recovery test.
+
+Deployed archive SHA-256:
+`b5df64f4d4fbb31c1d3fdafb4a5f5f65aca3b8858e2b808fedc2fe0b2a537849`.
+The live `serverd` SHA-256 is
+`d023cb0bfb1df8625f0cdb49e82056e577099def6e456f34b36ef1ff24a8974b`;
+`app.js` is
+`62b414c95a9c4f80db045a38bd95f30a962e609610e79a367ac18fa70ea6040d`.
+HTTP read-back hashes match the local package; the FPGA bitstream remains
+`1808b9c36da9b7f53ea535e76862d2ae5c2ee2295c336f7964d685d77fdc9129`.
+Raw telemetry, build/test logs and the Chrome screenshot are retained in
+`tmp/pna-streaming/average-recovery/` (ignored build artifacts).
+
+Chrome verification also caught a network-byte-order error in the new uint64
+overrun display. The widget now reads high/low uint32 halves correctly; browser
+regressions cover counters above 2^32. The final web bundle was rebuilt and
+deployed, and Chrome showed the correct 4-event counter. Before that deployment
+the user had selected Y / CIC 80 / 41 averages; those latest settings were
+captured and restored. The final browser showed 41/41 with tracking locked.

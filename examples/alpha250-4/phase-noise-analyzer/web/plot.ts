@@ -7,6 +7,6 @@ class Plot extends PnaPlot<IParameters> {
       : [p.fdds0, p.fdds1, p.fdds2, p.fdds3];
   }
   protected referenceLabel(p: IParameters): string {
-    return `${["X", "Y", "XY"][p.channel]} · CIC ${p.cic_rate} · ${p.channel === 2 ? p.avgxy_count + " cumulative windows" : "N " + p.fft_navg}`;
+    return `${["X", "Y", "XY"][p.channel]} · CIC ${p.cic_rate} · ${p.channel === 2 ? p.avgxy_count + " cumulative segments" : "N " + p.fft_navg}`;
   }
 }

@@ -38,6 +38,9 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
         examples/alpha250-4/phase-noise-analyzer/dds.cpp \
         server/external_libs/pffft/pffft.cpp -o "$output/settings"
     "$output/settings"
+    g++-13 "${flags[@]}" server/drivers/phase-noise/tests/test_streaming_welch.cpp \
+        server/external_libs/pffft/pffft.cpp -o "$output/streaming-welch"
+    "$output/streaming-welch" "$output/streaming-welch.bin"
 '
 docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     "${PNA_WEB_IMAGE:-koheron-web:node20}" node "$pna_tests/test_web.cjs" \
@@ -56,3 +59,5 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
 '
 
 "${PNA_PYTHON:-.venv/bin/python3}" "$pna_tests/check_calculations.py"
+
+"${PNA_PYTHON:-.venv/bin/python3}" server/drivers/phase-noise/tests/check_streaming_welch.py "$pna_output/streaming-welch.bin"
