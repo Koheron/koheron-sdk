@@ -74,6 +74,12 @@ foreach channel {0 1} {
     }
     puts $result "loop=$channel phase_extractor_setup=[get_property SLACK $phase_path] ns primitives=[llength $phase_cells]"
     report_timing -through $phase_pins -max_paths 4 -file $out/loop${channel}-phase.rpt
+    foreach prefix [list "system_i/cordic$channel/consumers/inst" "system_i/corrector$channel/inst/accurate_controller"] {
+        set dsps [get_cells -hier -filter "NAME =~ $prefix/* && REF_NAME == DSP48E1"]
+        if {[llength $dsps]!=1 || [get_property PREG $dsps]!=1 || [get_property USE_MULT $dsps] ne "NONE"} {
+            error "Expected a registered DSP accumulator in $prefix"
+        }
+    }
     foreach gain {gp gpi gi2 gi3} {
         set prefix "system_i/corrector$channel/inst/accurate_controller/$gain"
         set cells [get_cells -hier -filter "NAME =~ $prefix/* && IS_PRIMITIVE"]

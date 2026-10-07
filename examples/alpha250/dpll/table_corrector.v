@@ -42,7 +42,7 @@ module table_corrector #(
     reg [31:0] i_acc=0;
     reg [31:0] higher_acc=0;
     reg signed [47:0] acc1=0;
-    reg [31:0] acc2=0;
+    (* use_dsp="yes" *) reg [31:0] acc2=0;
     reg [63:0] acc3=0;
     table_gain #(.A_WIDTH(FREQ_WIDTH), .OUTPUT_LOW(PHASE_FRAC), .OUTPUT_WIDTH(32), .PIPE_STAGES(GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
         gp(clk,freq_in,active_banks[0],we[0],table_command[7],table_command[6],table_command[5:2],table_data,p);
@@ -70,8 +70,9 @@ module table_corrector #(
     end
     generate if(FUSED) begin : fused
         // Combine the second summing node and fast accumulator in one clock.
-        // A carry-save compressor followed by one 32-bit carry chain avoids
-        // cascading two carry-propagating adders.
+        // The native case maps the three-input accumulation into one DSP.
+        // Other states and the optional carry-block implementation retain a
+        // carry-save compressor followed by one carry-propagating adder.
         wire [31:0] sum=acc2^first_sum^i2;
         wire [31:0] carry=((acc2&first_sum)|(acc2&i2)|(first_sum&i2))<<1;
         wire [31:0] integral_sum=integral_acc^first_pi^i2;
@@ -84,6 +85,7 @@ module table_corrector #(
         dpll_carry_adder #(.BLOCK(CARRY_BLOCK)) higher_add(higher_acc,i2,1'b0,higher_next);
         always @(posedge clk) begin
             if(!enabled[1]) acc2<=0;
+            else if(CARRY_BLOCK==0) acc2<=acc2+first_sum+i2;
             else acc2<=acc2_next;
             if(!enabled[1]) p_acc<=0;
             else p_acc<=p_next;

@@ -137,17 +137,18 @@ module table_gain #(
     end else if(PIPE_STAGES==4 && FINAL_CSA_LEVELS>0 && (FRACTION_BITS+OUTPUT_LOW)>0) begin : split_final
         // Lower bits affect the retained output only through their carry.
         // Compute that carry at the existing intermediate register boundary.
-        localparam CUT=(FRACTION_BITS+OUTPUT_LOW<32) ? FRACTION_BITS+OUTPUT_LOW : 32;
+        localparam CUT=FRACTION_BITS+OUTPUT_LOW;
         reg [WIDTH-CUT-1:0] sum=0,carry=0;
         reg low_carry=0;
-        wire [CUT:0] low_total={1'b0,stage[LEVELS*TERMS][CUT-1:0]}+
-                                  {1'b0,stage[LEVELS*TERMS+1][CUT-1:0]};
+        wire low_next;
+        dpll_carry_out #(.WIDTH(CUT)) carry_out(
+            stage[LEVELS*TERMS][CUT-1:0],stage[LEVELS*TERMS+1][CUT-1:0],low_next);
         wire [WIDTH-CUT-1:0] product;
         dpll_carry_adder #(.WIDTH(WIDTH-CUT),.BLOCK(CARRY_BLOCK)) final_add(sum,carry,low_carry,product);
         always @(posedge CLK) begin
             sum<=stage[LEVELS*TERMS][WIDTH-1:CUT];
             carry<=stage[LEVELS*TERMS+1][WIDTH-1:CUT];
-            low_carry<=low_total[CUT];
+            low_carry<=low_next;
             P<=product[FRACTION_BITS+OUTPUT_LOW-CUT +: OUTPUT_WIDTH];
         end
     end else begin : conventional
@@ -159,6 +160,34 @@ module table_gain #(
             P<=product[FRACTION_BITS+OUTPUT_LOW +: OUTPUT_WIDTH];
         end
     end
+    end endgenerate
+endmodule
+
+// Only the carry of the discarded bits crosses the stage boundary.
+module dpll_carry_out #(
+    parameter integer WIDTH=32,
+    parameter integer BLOCK=8
+)(input wire [WIDTH-1:0] x,y, output wire carry);
+    localparam BLOCKS=(WIDTH+BLOCK-1)/BLOCK;
+    localparam GROUPS=(BLOCKS+3)/4;
+    wire [GROUPS*4-1:0] g,p;
+    wire [GROUPS*4:0] c;
+    assign c[0]=0;
+    assign carry=c[BLOCKS];
+    genvar i;
+    generate for(i=0;i<BLOCKS;i=i+1) begin : chunk
+        localparam N=(WIDTH-i*BLOCK<BLOCK) ? WIDTH-i*BLOCK : BLOCK;
+        wire [N-1:0] a=x[i*BLOCK +: N],b=y[i*BLOCK +: N];
+        wire [N:0] zero={1'b0,a}+{1'b0,b};
+        assign g[i]=zero[N];
+        assign p[i]=&(a^b);
+    end
+    for(i=BLOCKS;i<GROUPS*4;i=i+1) begin : pad
+        assign g[i]=0; assign p[i]=0;
+    end
+    for(i=0;i<GROUPS;i=i+1) begin : carry_group
+        CARRY4 chain(.CI(i==0 ? 1'b0 : c[4*i]),.CYINIT(1'b0),.DI(g[4*i +: 4]),.S(p[4*i +: 4]),
+                     .CO(c[4*i+1 +: 4]),.O());
     end endgenerate
 endmodule
 

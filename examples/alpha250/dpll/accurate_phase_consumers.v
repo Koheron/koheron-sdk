@@ -5,7 +5,8 @@ module accurate_phase_consumers(
     input wire signed [24:0] frequency,
     input wire signed [63:0] phase,
     input wire [7:0] random_round,
-    output reg signed [39:0] feedback_phase=0,
+    // Keep the one-clock accumulation in a DSP rather than a fabric carry chain.
+    (* use_dsp = "yes" *) output reg signed [39:0] feedback_phase=0,
     output reg signed [63:0] monitor_phase=0
 );
     wire signed [64:0] rounded=$signed({phase[63],phase})+$signed({57'b0,random_round});

@@ -254,9 +254,12 @@ clock before the I/status phase register, so total P latency is retained. The
 existing double-bank programming protocol is retained. It captures the gain
 from the unsigned address-one entry. The wider I gain and accurate controller
 gains use four-clock table reductions. All paths accept one sample per clock.
-The third table pipeline stage also computes the carry from discarded lower
-bits, shortening the final gain sum without changing numerical precision or
-latency.
+The third table pipeline stage computes the carry from all discarded lower
+bits using short carry-generate blocks. The last stage adds only the retained
+output bits, shortening the I² gain's final sum from 59 to 32 bits without
+changing numerical precision or latency. Feedback phase and the accurate
+second integrator each use a DSP accumulator with their existing one-clock
+update, adding four DSPs across the two channels.
 The shared accurate extractor uses the wider phase interface described above.
 Earlier controller measurements used narrower two-clock P/PI tables.
 See the [arithmetic and latency measurements](tests/gain_latency/README.md).
