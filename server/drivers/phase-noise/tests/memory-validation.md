@@ -39,13 +39,13 @@ candidate run. X/Y baselines were taken immediately before the candidate run.
 
 | Instrument / mode | Original ms | Optimized ms | Reduction |
 | --- | ---: | ---: | ---: |
-| ALPHA250 / ADC0 | 11.257 | 10.339 | 8.2% |
-| ALPHA250-4 / XY | 11.556 | 10.736 | 7.1% |
-| ALPHA250-4 / X | 10.575 | 9.030 | 14.6% |
-| ALPHA250-4 / Y | 10.270 | 8.995 | 12.4% |
+| ALPHA250 / ADC0 | 11.358 | 10.302 | 9.3% |
+| ALPHA250-4 / XY | 11.450 | 10.381 | 9.3% |
+| ALPHA250-4 / X | 10.718 | 9.684 | 9.6% |
+| ALPHA250-4 / Y | 10.227 | 9.244 | 9.6% |
 
-Auto-spectrum reduction time fell from about 1.91 to 1.64 ms on ALPHA250 and
-from 1.76–1.82 to 1.41 ms on ALPHA250-4. XY retains two independent transforms
+Auto-spectrum reduction time fell from about 1.93 to 1.61 ms on ALPHA250 and
+from 1.80–1.89 to 1.47–1.55 ms on ALPHA250-4. XY retains two independent transforms
 and its original complex cross reduction; its gain comes from capture handling.
 These are representative measurements under the current board/client load,
 not a guaranteed throughput increase at every rate.
@@ -53,8 +53,8 @@ not a guaranteed throughput increase at every rate.
 All sampled cases maintained 100% unique-sample coverage, with no new DMA errors,
 overflow captures or ring overruns during the sampling intervals. Phase RPCs
 returned valid snapshots of the expected lengths. The quad's 10 kHz PM power
-agreed with the 0.1 degree source setting within 0.07%; candidate/original power
-agreed within 0.03% when compared after equivalent restarts. The initial long
+agreed with the 0.1 degree source setting within 0.2%; candidate/original power
+agreed within 0.05% when compared after equivalent restarts. The initial long
 running cumulative baseline was excluded from that power comparison.
 
 Temporary candidate packages used the boards' original FPGA payloads and web
