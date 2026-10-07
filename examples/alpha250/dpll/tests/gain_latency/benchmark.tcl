@@ -6,7 +6,7 @@ file mkdir $out
 cd $out
 create_project -in_memory -part xc7z020clg400-2
 set_param general.maxThreads 4
-read_verilog [list $here/../../gain_multiplier.v $here/geometric_gain.v $here/constant_gain.v $here/../../table_gain.v $here/benchmark.v]
+read_verilog [list $here/../reference/gain_multiplier.v $here/geometric_gain.v $here/constant_gain.v $here/../../table_gain.v $here/benchmark.v]
 synth_design -top gain_benchmark -mode out_of_context -generic MODE=$mode -flatten_hierarchy none
 create_clock -name clk -period 4.000 [get_ports clk]
 set_clock_uncertainty 0.100 [get_clocks clk]

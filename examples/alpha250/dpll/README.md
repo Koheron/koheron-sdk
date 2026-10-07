@@ -245,10 +245,15 @@ bash examples/alpha250/dpll/tests/run-dac-mux.sh
 bash examples/alpha250/dpll/tests/run-monitor.sh
 ```
 
-The host script requires a C++20 compiler and `typescript` and `jsdom`
+The host script requires g++-13, Eigen, NumPy/SciPy, and `typescript` and `jsdom`
 (listed in `web/package.json`, install there with `npm install`). Set `NODE_PATH`
 if they are installed elsewhere. It tests coefficient generation and the
 acknowledged programming protocol with address/undefined-behavior sanitizers.
+It delegates to the [shared host runner](../../../server/drivers/phase-noise/tests/README.md)
+and also covers monitor acquisition and Python clients without Vivado. Set
+`PNA_TEST_MODE=docker` to use the SDK test images. The historical detector and
+integer-gain references live in `tests/reference/`; production feedback wiring
+checks instantiate `split_detector::create`.
 The web tests mount the actual templates, driver adapters and shared
 frequency editor with a simulated transport. They check read-only startup,
 channel isolation, signed/zero gain validation, frequency units and limits,

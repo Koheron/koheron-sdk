@@ -1,5 +1,5 @@
 namespace eval cordic {
-variable extractor_source [file normalize [file join [file dirname [info script]] ../phase_extractor.v]]
+variable extractor_source [file normalize [file join [file dirname [info script]] ../../phase_extractor.v]]
 
 proc pins {cmd {phase_width 24}} {
     $cmd -dir I -type clk      aclk

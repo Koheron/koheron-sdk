@@ -20,15 +20,15 @@ async function host(t) {
   };
   for (const [id, p] of [
     ['plot-basics', 'web/plot-basics/plot-basics.html'],
-    ['export-file', 'examples/alpha250/phase-noise-analyzer/web/export-file/export-file.html']]) {
+    ['export-file', 'web/phase-noise/analyzer/export-file/export-file.html']]) {
     const template = new w.DOMParser().parseFromString(read(p), 'text/html').querySelector('template');
     d.getElementById(id).appendChild(d.importNode(template.content, true));
   }
   const files = ['web/phase-modulator/frequency-input.ts', 'web/phase-noise/spectrum.ts',
     'web/phase-noise/plot.ts', 'web/phase-noise/phase-precision.ts',
-    'examples/alpha250/phase-noise-analyzer/web/phase-noise-analyzer.ts',
-    'examples/alpha250/phase-noise-analyzer/web/plot.ts',
-    'examples/alpha250/phase-noise-analyzer/web/export-file/export-file.ts',
+    'web/phase-noise/analyzer/phase-noise-analyzer.ts',
+    'web/phase-noise/analyzer/plot.ts',
+    'web/phase-noise/analyzer/export-file/export-file.ts',
     'examples/alpha250/dpll/web/monitor.ts'];
   w.eval(ts.transpileModule(files.map(read).join('\n'), {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText + '\nwindow.DpllMonitor = DpllMonitor;');
   const errors = [];

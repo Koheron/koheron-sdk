@@ -1,4 +1,4 @@
-add_files -norecurse [file normalize [file join [file dirname [info script]] ../gain_multiplier.v]]
+add_files -norecurse [file normalize [file join [file dirname [info script]] gain_multiplier.v]]
 
 namespace eval corrector {
 

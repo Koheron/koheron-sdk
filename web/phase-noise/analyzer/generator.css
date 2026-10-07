@@ -1,0 +1,45 @@
+.pna-workspace .pna-generator { margin: 0; }
+.pna-workspace .pna-generator > summary { padding: 3px 0; }
+.pna-workspace .pna-generator[open] > summary { margin-bottom: 4px; }
+.pna-workspace .pna-generator > .dds-pm-widget { max-width: 1100px; }
+.pna-workspace .laser-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 6px 0; }
+
+/* Use the same control scale in the embedded generator. */
+.pna-workspace .dds-pm-widget { font: inherit; --pm-border: var(--border-light); }
+.pna-workspace .dds-pm-widget :is(.pm-toolbar, .pm-footnote) { display: none; }
+.pna-workspace .dds-pm-widget :is(.pm-number, .pm-frequency-number, select, button, .pm-output, .pm-pm) { height: var(--control-height); }
+.pna-workspace .dds-pm-widget :is(.pm-number, .pm-frequency-number) { font-size: 13px; line-height: 18px; padding-top: 1px; padding-bottom: 1px; }
+.pna-workspace .dds-pm-widget .pm-frequency-help { top: calc(var(--control-height) + 1px); }
+.pna-workspace .dds-pm-widget .pm-input-unit .pm-frequency-help { top: calc(var(--control-height) + 1px); }
+.pna-workspace .dds-pm-widget :is(.pm-frequency-control, .pm-input-unit) .pm-frequency-help:not([data-state="error"]) { display: none; }
+
+/* Compact channel controls in the sidebar, with labels beside their fields. */
+.pna-workspace .pna-sidebar .pm-carrier,
+.pna-workspace .pna-sidebar .pm-waveform { flex-direction: row; align-items: center; gap: 8px; }
+.pna-workspace .pna-sidebar :is(.pm-carrier, .pm-waveform) > span:first-child { flex: 0 0 56px; }
+.pna-workspace .pna-sidebar .pm-carrier .pm-frequency-control { flex: 1; min-width: 0; }
+.pna-workspace .pna-sidebar .pm-waveform select { flex: 1; min-width: 0; width: auto; }
+@container (max-width: 560px) {
+  .pna-workspace .pna-sidebar .pm-carrier { grid-column: 1 / -1; padding-right: 0; }
+  .pna-workspace .pna-sidebar .pm-pm { grid-column: 2; grid-row: 1; justify-self: start; align-self: center; }
+}
+
+/* Leave the full unit visible; the native select remains clickable and focusable. */
+.pna-workspace .dds-pm-widget .pm-frequency-control select {
+  appearance: none; -webkit-appearance: none;
+  padding: 2px 4px; text-align: center; text-align-last: center; cursor: pointer;
+}
+.pna-workspace .dds-pm-widget .pm-frequency-control:focus-within {
+  outline: 1px solid #888; outline-offset: 0;
+}
+
+/* The generator shares the workspace control height, including its loading state. */
+.pna-workspace .dds-pm-widget .pm-placeholder { height: var(--control-height); }
+.pna-workspace .dds-pm-widget .pm-row { gap: 4px 8px; }
+.pna-workspace .dds-pm-widget .pm-channel { padding: 3px 0; }
+.pna-workspace .dds-pm-widget .pm-advanced { gap: 4px 8px; padding-top: 5px; }
+.pna-workspace .dds-pm-widget .pm-status-slot { height: 16px; }
+
+@container pna (min-width: 1100px) {
+  .pna-workspace .dds-pm-widget .pm-initial-layout { height: calc(var(--pm-loading-channels) * 140px); }
+}

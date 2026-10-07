@@ -11,11 +11,11 @@ async function fixture(t, board = 'alpha250') {
     const project = 'examples/alpha250/phase-noise-analyzer/';
     const dom = new JSDOM(fs.readFileSync(path.join(root, `examples/${board}/phase-noise-analyzer/web/index.html`), 'utf8'), {runScripts: 'outside-only'});
     const w = dom.window; t.after(() => w.close());
-    w.document.querySelector('#dds-frequency').innerHTML = fs.readFileSync(path.join(root, project + 'web/dds-frequency/dds-frequency.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
+    w.document.querySelector('#dds-frequency').innerHTML = fs.readFileSync(path.join(root, 'web/phase-noise/analyzer/dds-frequency/dds-frequency.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
     const referenceClock = w.document.querySelector('#reference-clock');
     if (referenceClock) referenceClock.innerHTML = fs.readFileSync(path.join(root, project + 'web/clock-generator/reference-clock.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
     w.requestAnimationFrame = () => 0;
-    for (const [file, exports] of [['web/phase-modulator/frequency-input.ts', ['FrequencyInput', 'NumberInput']], [project + 'web/phase-noise-analyzer-app.ts', ['PhaseNoiseAnalyzerApp']]]) {
+    for (const [file, exports] of [['web/phase-modulator/frequency-input.ts', ['FrequencyInput', 'NumberInput']], ['web/phase-noise/analyzer/phase-noise-analyzer-app.ts', ['PhaseNoiseAnalyzerApp']]]) {
         w.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + exports.map(name => `\nwindow.${name} = ${name};`).join(''));
     }
     const parameters = {data_size: 16384, fs: 5e6, channel: 0, cic_rate: 20, fft_navg: 1, fdds0: 10e6, fdds1: 10e6, analyzer_mode: 'RF', interferometer_delay: 1e-9, clkIndex: 2};
@@ -130,7 +130,7 @@ test('LO unit entry tunes only the reference and accepts 100 MHz; laser delay st
 
 test('CSV uses the displayed frame metadata when editable controls have changed', async t => {
     const h = await fixture(t); const {w} = h;
-    const file = 'examples/alpha250/phase-noise-analyzer/web/export-file/';
+    const file = 'web/phase-noise/analyzer/export-file/';
     w.document.querySelector('#export-file').innerHTML = fs.readFileSync(path.join(root, file + 'export-file.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
     w.eval(ts.transpileModule(fs.readFileSync(path.join(root, file + 'export-file.ts'), 'utf8'), {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.ExportFile = ExportFile;');
     let blob;

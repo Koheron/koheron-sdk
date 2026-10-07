@@ -14,7 +14,9 @@ The runner defaults to `.venv/bin/python3`, `cross-armhf:24.04` and
 `PNA_WEB_IMAGE`. The Python environment needs NumPy, SciPy and the Koheron
 client dependencies. The C++ image needs g++-13 and Eigen; the web image needs
 Node.js and npm. If TypeScript or jsdom are missing, the runner caches the
-versions specified for these tests under `tmp/tests/alpha250-phase-noise-analyzer/web-deps`.
+versions specified for these tests under `tmp/tests/phase-noise/web-deps`.
+The wrapper delegates to the [shared host runner](../../../../server/drivers/phase-noise/tests/README.md),
+which also supports native execution and separate Python/C++/browser stages.
 
 The production analyzer and DDS are compiled against controlled DMA, MMIO,
 clock, ADC and in-memory configuration dependencies. Address and undefined
@@ -30,8 +32,8 @@ production cyclic driver: fresh windows, ring wrap, delayed DDR writeback,
 stale Complete bits, precision/overflow/gap metadata, restart at a nonzero
 slot, slow consumers, malformed descriptors, producer stalls and cancellation.
 
-The shared phase helper is also checked through the existing ALPHA250-4 core
-and spectral regressions, including int32 subtraction extremes and near-carrier
+ALPHA250-4 core and spectral regressions run in that instrument's suite and the
+combined host suite, including int32 subtraction extremes and near-carrier
 detrending response. Python spectra are compared with SciPy's periodogram;
 web checks cover exact FFT bin centers, Nyquist, decade density averaging,
 linear smoothing with invalid bins, display units, raw/smoothed/PSD export

@@ -12,7 +12,7 @@ mkdir -p "$out"
 cd "$out"
 python3 "$here/vectors.py" "$out/vectors.hex" > vectors.log
 count=$(wc -l < vectors.hex)
-xvlog --sv "$here/../../gain_multiplier.v" "$here/geometric_gain.v" "$here/test_tb.v" \
+xvlog --sv "$here/../reference/gain_multiplier.v" "$here/geometric_gain.v" "$here/test_tb.v" \
     "$XILINX_VIVADO/data/verilog/src/glbl.v" > compile.log 2>&1
 xelab -L unisims_ver work.geometric_gain_test work.glbl -s geometric_gain_test > elaborate.log 2>&1
 xsim geometric_gain_test -testplusarg "vectors=$out/vectors.hex" -testplusarg "count=$count" -runall > simulation.log 2>&1

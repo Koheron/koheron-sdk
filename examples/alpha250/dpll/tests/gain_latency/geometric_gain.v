@@ -1,6 +1,6 @@
 `timescale 1 ns / 1 ps
 
-// Experimental only: the instrument still uses gain_multiplier.v.
+// Historical experiment; production uses table gains and manual_p_corrector.v.
 // Gain = signed COEFFICIENT / 2048 * 2^OCTAVE. The host chooses one of
 // round(2048 * 2^(j/12)), j=0..11, and optionally negates it or sends zero.
 // Retain fractional bits until the final existing DPLL output slice.

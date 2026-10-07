@@ -13,7 +13,7 @@ function fixture(t) {
   for (const [file, names] of [
     ['web/koheron.ts', ['Client']], ['web/phase-noise/spectrum.ts', ['readPnaSpectrum']],
     ['web/phase-noise/plot.ts', ['PnaPlot']],
-    ['examples/alpha250/phase-noise-analyzer/web/plot.ts', ['Plot']]
+    ['web/phase-noise/analyzer/plot.ts', ['Plot']]
   ]) {
     w.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'),
       {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText

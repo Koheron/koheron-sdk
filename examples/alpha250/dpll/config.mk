@@ -30,16 +30,6 @@ DRIVERS += $(SDK_PATH)/server/drivers/dma-s2mm.hpp
 DRIVERS += $(PROJECT_PATH)/dpll.hpp
 DRIVERS += $(PROJECT_PATH)/dma.hpp
 
-WEB_FILES += $(SDK_PATH)/web/phase-modulator/frequency-input.ts
-WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' -o -name '*.svg' \))
-
 include $(SDK_PATH)/server/drivers/phase-noise/fft.mk
-WEB_FILES += $(SDK_PATH)/web/phase-noise/spectrum.ts $(SDK_PATH)/web/phase-noise/plot.ts
-WEB_FILES += $(SDK_PATH)/web/phase-noise/phase-precision.ts $(SDK_PATH)/web/phase-noise/phase-precision.css
-WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
-WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts $(SDK_PATH)/web/plot-basics/plot-basics.html
-WEB_FILES += $(SDK_PATH)/examples/alpha250/phase-noise-analyzer/web/phase-noise-plot.css
-WEB_FILES += $(SDK_PATH)/examples/alpha250/phase-noise-analyzer/web/export-file/export-file.ts
-WEB_FILES += $(SDK_PATH)/examples/alpha250/phase-noise-analyzer/web/export-file/export-file.html
-WEB_FILES += $(SDK_PATH)/examples/alpha250/phase-noise-analyzer/web/phase-noise-analyzer.ts
-WEB_FILES += $(SDK_PATH)/examples/alpha250/phase-noise-analyzer/web/plot.ts
+include $(SDK_PATH)/web/phase-noise/analyzer/components.mk
+WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' -o -name '*.svg' \))

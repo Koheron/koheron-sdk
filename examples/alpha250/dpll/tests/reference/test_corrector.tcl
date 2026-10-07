@@ -1,13 +1,13 @@
 if {$argc != 2} { error "Expected core-directory and output-directory" }
 set cores [file normalize [lindex $argv 0]]
 set out [file normalize [lindex $argv 1]]
-set repo [file normalize [file join [file dirname [info script]] ../../../..]]
+set repo [file normalize [file join [file dirname [info script]] ../../../../..]]
 create_project -force corrector_test $out -part xc7z020clg400-2
 set_property IP_REPO_PATHS $cores [current_project]
 update_ip_catalog
 create_bd_design corrector
 source $repo/fpga/lib/utilities.tcl
-source $repo/examples/alpha250/dpll/tests/legacy_corrector.tcl
+source $repo/examples/alpha250/dpll/tests/reference/corrector.tcl
 
 create_bd_port -dir I -type clk clk
 set_property CONFIG.FREQ_HZ 250000000 [get_bd_ports clk]
@@ -46,7 +46,7 @@ save_bd_design
 set bd [get_files */corrector.bd]
 generate_target all $bd
 add_files [make_wrapper -files $bd -top]
-add_files -fileset sim_1 $repo/examples/alpha250/dpll/tests/test_corrector_tb.v
+add_files -fileset sim_1 $repo/examples/alpha250/dpll/tests/reference/test_corrector_tb.v
 set_property top test_corrector_tb [get_filesets sim_1]
 set_property xsim.simulate.runtime all [get_filesets sim_1]
 launch_simulation

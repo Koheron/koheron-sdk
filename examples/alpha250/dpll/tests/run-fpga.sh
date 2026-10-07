@@ -21,21 +21,9 @@ cat boxcar.log
 rg -q 'Boxcar checks passed' boxcar.log
 if rg -q 'Fatal:|ERROR:|FATAL:' boxcar.log; then exit 1; fi
 
-vivado -mode batch -nolog -nojournal -notrace \
-    -source "$repo/examples/alpha250/dpll/tests/test_detector.tcl" \
-    -tclargs "$cores" "$out/detector" > detector.log 2>&1
-rg 'Detector checks passed|Fatal:|ERROR:' detector.log || true
-rg -q 'Detector checks passed' detector.log
-if rg -q 'Fatal:|ERROR:|FATAL:' detector.log; then exit 1; fi
-
-xvlog --sv "$repo/examples/alpha250/dpll/gain_multiplier.v" \
-    "$repo/examples/alpha250/dpll/tests/test_gain_tb.v" \
-    "$XILINX_VIVADO/data/verilog/src/glbl.v" > gain-compile.log 2>&1
-xelab -L unisims_ver work.test_gain_tb work.glbl -s test_gain_tb > gain-elaborate.log 2>&1
-xsim test_gain_tb -runall > gain.log 2>&1
-rg 'Gain checks passed|Fatal:|ERROR:' gain.log || true
-rg -q 'Gain checks passed' gain.log
-if rg -q 'Fatal:|ERROR:|FATAL:' gain.log; then exit 1; fi
+# Historical detector and integer-gain implementations are independent references.
+DPLL_REFERENCE_OUT=${DPLL_REFERENCE_OUT:-"$out/reference"} \
+    bash "$repo/examples/alpha250/dpll/tests/reference/run.sh"
 
 xvlog --sv "$repo/fpga/cores/axi_ctl_register_v1_0/axi_ctl_register.v" \
     "$repo/examples/alpha250/dpll/tests/test_control_tb.v" > control-compile.log 2>&1
@@ -44,13 +32,6 @@ xsim test_control_tb -runall > control.log 2>&1
 rg 'Control checks passed|Fatal:|ERROR:' control.log || true
 rg -q 'Control checks passed' control.log
 if rg -q 'Fatal:|ERROR:|FATAL:' control.log; then exit 1; fi
-
-vivado -mode batch -nolog -nojournal -notrace \
-    -source "$repo/examples/alpha250/dpll/tests/test_corrector.tcl" \
-    -tclargs "$cores" "$out/corrector" > corrector.log 2>&1
-rg 'Corrector checks passed|Fatal:|ERROR:' corrector.log || true
-rg -q 'Corrector checks passed' corrector.log
-if rg -q 'Fatal:|ERROR:|FATAL:' corrector.log; then exit 1; fi
 
 export DPLL_TEST_PYTHON=${DPLL_TEST_PYTHON:-"$repo/.venv/bin/python3"}
 vivado -mode batch -nolog -nojournal -notrace \
