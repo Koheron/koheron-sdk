@@ -108,7 +108,7 @@ async function host(t, options = {}) {
     'examples/alpha250/dpll/web/clock-generator/clock-generator.ts',
     'examples/alpha250/dpll/web/control.ts', 'examples/alpha250/dpll/web/app.ts'
   ].map(read).join('\n');
-  window.eval(ts.transpileModule(sources, {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText);
+  window.eval(ts.transpileModule(sources, {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText);
   window.dispatchEvent(new window.Event('HTMLImportsLoaded'));
   await settle();
   const inputs = Array.from(document.querySelectorAll('.frequency-input'));

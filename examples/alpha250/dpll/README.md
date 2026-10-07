@@ -381,8 +381,23 @@ vectors pass 55,408 cycles; controller arithmetic passes 33,890 cycles, mapped
 DSP controllers pass 19,548 cycles, and the two-controller programming test
 passes 200,452 cycles with 4,352 transactions, 4,096 writes and 128 commits.
 The production frontend, phase/history, host/web and monitor regressions pass.
-No instrument has been installed or tested on hardware. External I/O timing
-coverage remains at the board constraints' existing 14 inputs and 41 outputs
+The combined instrument was installed on ALPHA250 `192.168.1.13` on
+2026-10-07. Chrome tests with DAC0→ADC0 and DAC1→ADC1 verified both
+DDS loopbacks, monitor acquisition, gain readback, and manual Fast P+I
+calibration. A +1 kHz input/reference offset on ADC0 measured
+−999.999982 Hz phase slope. Both Fast paths reported within range at
+31.25 MHz. These tests do not establish closed-loop stability or analog latency.
+
+The hardware test exposed two UI defects, now fixed: an expected Fast-mode
+calibration rejection disconnected the ES5 build, and a valid all-zero
+spectrum was misleadingly labelled as settling. The UI now retains the
+connection, identifies integrators 1 and 3, and visibly recommends greater
+phase precision when no noise is resolved. At decimation 200 and +8-bit
+precision the tested monitor achieved 100% coverage; decimation 50 exceeded
+the measured processing capacity. Original settings were restored after testing.
+CSV download verification was inconclusive because browser automation timed out.
+
+External I/O timing coverage remains at the board constraints' existing 14 inputs and 41 outputs
 without delay constraints; lock, stability, phase noise and analog latency
 still require hardware measurements.
 

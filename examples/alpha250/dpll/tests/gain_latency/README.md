@@ -35,7 +35,8 @@ The table multiplier and controller are now production sources at
 [`../../table_gain.v`](../../table_gain.v) and
 [`../../table_corrector.v`](../../table_corrector.v), selected by `corrector.tcl`.
 The measurements below distinguish the original controller benchmarks from
-full-instrument validation. The previously installed instrument remains unchanged.
+full-instrument validation. The combined design was installed and loopback-tested
+on 2026-10-07; see the current hardware status in the main README.
 
 ## Working architecture
 
@@ -370,5 +371,6 @@ vivado -mode batch -nolog -nojournal -notrace \
   tmp/tests/alpha250-dpll/full-design/dac-phases
 ```
 
-No table-gain candidate has been installed. No analog latency, loop lock or
-stability measurement has been made. The CORDIC was unchanged for those measurements.
+The combined table-gain design was installed and loopback-tested on 2026-10-07.
+No analog latency, closed-loop lock or stability measurement has been made.
+The historical measurements above used their stated extractor revisions.

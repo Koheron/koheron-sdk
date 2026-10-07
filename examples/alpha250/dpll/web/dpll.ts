@@ -10,7 +10,12 @@ interface IDpllStatus {
 
 
 class PModeError extends Error {
-  constructor(public code: number, message: string) { super(message); }
+  constructor(public code: number, message: string) {
+    super(message);
+    // The production ES5 build must retain instanceof for recoverable errors.
+    Object.setPrototypeOf(this, PModeError.prototype);
+    this.name = 'PModeError';
+  }
 }
 
 class Dpll {
@@ -86,7 +91,7 @@ class Dpll {
   async setPMode(channel: number, mode: number): Promise<void> {
     const result = await this.client.readInt32(Command(this.id, this.cmds['set_p_mode'], channel, mode));
     if (result !== 0) {
-      throw new PModeError(result, result === -3 ? 'Enable integrators 0 and 2 and provide a stable signal before selecting Fast P + I.' :
+      throw new PModeError(result, result === -3 ? 'Enable integrators 1 and 3 and provide a stable signal before selecting Fast P + I.' :
         `P path update failed (${result}).`);
     }
   }

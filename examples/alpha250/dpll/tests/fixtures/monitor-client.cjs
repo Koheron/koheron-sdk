@@ -47,6 +47,7 @@ module.exports = function installMonitorClient(w) {
         const f = i * fs / 32768;
         values[i] = 2 * 10 ** ((-133 + 23/(1+(f/2500)**2) + 30*Math.exp(-(((f-10000)/500)**2)) + Math.sin(i*1.7)*3) / 10);
       }
+      if (state.zeroSpectrum) values.fill(0);
       return {metadata: [state.sequence, 1, state.bits, fs, state.channel, state.rate, state.navg,
         state.navg, state.navg, ...state.frequencies, 0, 0, 0, 0, 2], values};
     }

@@ -332,6 +332,10 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
     // every frame also wakes browser/extension observers at the display rate.
     if (this.captureReady === ready) { return; }
     this.captureReady = ready;
+    if (ready) {
+      const status = this.document.getElementById('spectrum-status');
+      if (status) { status.hidden = true; }
+    }
     const button = document.getElementById('capture-reference') as HTMLButtonElement;
     if (button) { button.disabled = !ready; }
     const fit = document.getElementById('fit-view') as HTMLButtonElement;
@@ -350,6 +354,18 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
     this.resetRate();
     this.document.getElementById('plot-placeholder')?.setAttribute('aria-label',
       `${reason}; spectrum is not live`);
+    const plot = this.document.getElementById('plot-placeholder');
+    if (plot) {
+      let status = this.document.getElementById('spectrum-status');
+      if (!status) {
+        status = this.document.createElement('p');
+        status.id = 'spectrum-status';
+        status.setAttribute('role', 'status');
+        plot.parentElement.insertBefore(status, plot);
+      }
+      status.textContent = reason;
+      status.hidden = false;
+    }
   }
 
   private redraw(callback: () => void): void {
@@ -468,7 +484,11 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
           this.hasInitialFit = true;
         }
       } else {
-        this.markUnavailable('Acquisition settling');
+        const live = snapshot.state === 1;
+        const allZero = phaseNoise.subarray(2).every(v => v === 0);
+        this.markUnavailable(!live ? 'Acquisition settling' : allZero
+          ? 'No noise resolved at this precision. Increase phase precision to resolve smaller changes.'
+          : 'No valid noise spectrum available');
       }
       this.updateReferenceDisplay();
 
