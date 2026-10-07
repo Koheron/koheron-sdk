@@ -55,7 +55,7 @@ async function host(t, failure = false, board = 'alpha250', connectionFailure = 
     window.PhaseModulatorDriver = class { constructor() { return port; } };
     window.$ = () => ({trigger() {}});
     for (const [file, exports] of [
-        ['web/phase-modulator/frequency-input.ts', ['FrequencyInput', 'NumberInput']],
+        ['web/inputs/digit-input.ts', ['FrequencyInput', 'NumberInput']],
         ['web/phase-modulator/phase-modulator-widget.ts', ['PhaseModulatorWidget']],
         ['web/fft/workspace.ts', ['FFTWorkspace']],
         [`examples/${board}/fft/web/board-controls.ts`, [board === 'alpha250' ? 'Alpha250FFTControls' : 'RedPitayaFFTControls']],

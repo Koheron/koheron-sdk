@@ -24,7 +24,7 @@ async function host(t, options = {}) {
     const template = new w.DOMParser().parseFromString(read(p), 'text/html').querySelector('template');
     d.getElementById(id).appendChild(d.importNode(template.content, true));
   }
-  const files = ['web/phase-modulator/frequency-input.ts', 'web/phase-noise/spectrum.ts',
+  const files = ['web/inputs/digit-input.ts', 'web/phase-noise/spectrum.ts',
     'web/phase-noise/plot.ts', 'web/phase-noise/phase-precision.ts',
     'web/phase-noise/analyzer/phase-noise-analyzer.ts',
     'web/phase-noise/analyzer/plot.ts',

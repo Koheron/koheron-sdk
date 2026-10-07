@@ -66,7 +66,7 @@ if [[ $stage == all || $stage == cpp ]]; then
 fi
 
 if [[ $stage == all || $stage == web ]]; then
-    run_web bash web/phase-noise/tests/run.sh "$suite"
+    run_web bash web/tests/run.sh "$suite"
 fi
 
 if [[ $stage == all && ( $suite == all || $suite == alpha250-4 ) ]]; then

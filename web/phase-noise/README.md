@@ -13,8 +13,8 @@ Include the appropriate component list before an instrument's local web assets:
   lifecycle, acquisition editors, polling and readouts used by DPLL.
 - `reference-clock/components.mk`: the identical reference-clock driver, selector
   and bindings used by the two ALPHA PNA interfaces.
-- `reference-clock/driver.mk`: just the clock RPC adapter, also used by DPLL. Its
-  reference-clock read supports callbacks and Promises; the DPLL clock template
+- `../clock-generator/driver.mk`: just the clock RPC adapter, also used by FFT
+  and DPLL. Its reference-clock read supports callbacks and Promises; the DPLL clock template
   and connection lifecycle remain local.
 
 ALPHA250-4 includes `components.mk` and supplies its own cross-spectrum driver,
@@ -43,7 +43,7 @@ Generic canvas-rendering checks live in `web/plot-basics/tests/` and run once in
 the shared browser suite. Export regressions cover each consumer's metadata,
 signed samples, reference grids and HiDPI PNG dimensions.
 
-`bash web/phase-noise/tests/run.sh` runs the common and instrument browser suites
+`bash web/tests/run.sh pna` runs the shared and PNA/DPLL browser suites
 after the host runner's `cpp` stage has generated the spectrum payload fixture.
 The [shared host runner](../../server/drivers/phase-noise/tests/README.md) adds
 Python clients, sanitized C++ fixtures and compiled-payload integration checks.

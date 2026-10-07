@@ -20,6 +20,11 @@ See the [FFT interface guide](../../examples/alpha250/fft/README.md) and
 tests mount both board pages with these actual templates and the actual PNA
 widget, including failure and teardown paths.
 
+Numeric editors are packaged from `web/inputs`; the ALPHA250 clock adapter and
+bindings come from `web/clock-generator`, shared with PNA/DPLL. Clock templates
+stay board-specific. `bash web/tests/run.sh fft` runs the generic clock/plot and
+FFT browser regressions; `web/fft/tests/run.sh` runs just the FFT suites.
+
 ALPHA15 opts out of the RF DAC generator and supplies a voltage spectrum grid
 with per-band bandwidths. Its adapter combines the two decimator snapshots and
 FPGA FFT in ascending bin order. The same plot, references, history views and

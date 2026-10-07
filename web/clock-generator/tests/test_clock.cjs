@@ -18,7 +18,7 @@ function fixture() {
         send(command) { commands.push(command); }
     };
     const context = vm.createContext({Command: (id, command, ...args) => ({id, command, args})});
-    const source = fs.readFileSync(path.join(__dirname, '../reference-clock/clock-generator.ts'), 'utf8');
+    const source = fs.readFileSync(path.join(__dirname, '../clock-generator.ts'), 'utf8');
     vm.runInContext(ts.transpileModule(source, {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText
         + '\nglobalThis.ClockGenerator = ClockGenerator;', context);
     return {clock: new context.ClockGenerator(client), client, commands};

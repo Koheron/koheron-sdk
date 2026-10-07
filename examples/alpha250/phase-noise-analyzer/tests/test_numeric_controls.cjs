@@ -14,7 +14,7 @@ async function fixture(t, board = 'alpha250') {
     const referenceClock = w.document.querySelector('#reference-clock');
     if (referenceClock) referenceClock.innerHTML = fs.readFileSync(path.join(root, 'web/phase-noise/reference-clock/reference-clock.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
     w.requestAnimationFrame = () => 0;
-    for (const [file, exports] of [['web/phase-modulator/frequency-input.ts', ['FrequencyInput', 'NumberInput']], ['web/phase-noise/analyzer/phase-noise-analyzer-app.ts', ['PhaseNoiseAnalyzerApp']]]) {
+    for (const [file, exports] of [['web/inputs/digit-input.ts', ['FrequencyInput', 'NumberInput']], ['web/phase-noise/analyzer/phase-noise-analyzer-app.ts', ['PhaseNoiseAnalyzerApp']]]) {
         w.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + exports.map(name => `\nwindow.${name} = ${name};`).join(''));
     }
     const parameters = {data_size: 16384, fs: 5e6, channel: 0, cic_rate: 20, fft_navg: 1, fdds0: 10e6, fdds1: 10e6, analyzer_mode: 'RF', interferometer_delay: 1e-9, clkIndex: 2};

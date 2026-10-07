@@ -1,7 +1,8 @@
 # PNA and DPLL host regressions
 
 The shared runner checks phase-noise processing, acquisition, Python clients and
-browser controls without accessing a board or starting Vivado:
+browser controls without accessing a board or starting Vivado. Its default `all`
+suite also runs the FFT and standalone generator browser regressions:
 
 ```sh
 make CFG=examples/alpha250-4/phase-noise-analyzer/config.mk web
@@ -38,8 +39,10 @@ collisions. Output and fallback browser dependencies are under `tmp/tests`.
 
 Shared publication, cyclic DMA and streaming Welch tests run once per invocation.
 Instrument C++ fixtures stay with their examples. The workflow in
-`.github/workflows/ci.yml` compiles all four consuming web applications and runs
-the complete host suite natively.
+`.github/workflows/ci.yml` compiles nine web applications (PNA, DPLL, FFT,
+ALPHA15 and the standalone generator) and runs the complete host suite natively.
+`bash web/tests/run.sh fft` runs just the shared/FFT browser checks, without
+requiring PNA C++ payloads.
 
 FPGA simulation and routed timing remain separate checks using each instrument's
 FPGA runners. The DPLL `tests/reference/` directory contains historical detector

@@ -1,6 +1,6 @@
 # Common PNA assets. Include before instrument adapters and entry points.
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
-WEB_FILES += $(SDK_PATH)/web/phase-modulator/frequency-input.ts
+include $(SDK_PATH)/web/inputs/components.mk
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
 WEB_FILES += $(SDK_PATH)/web/phase-noise/spectrum.ts

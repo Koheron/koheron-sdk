@@ -113,7 +113,7 @@ test('all four nominal LO fields commit in Hz, reject invalid integers and show 
   const dom = new JSDOM(html,{runScripts:'outside-only',pretendToBeVisual:true});
   t.after(()=>dom.window.close());const w=dom.window;
   w.document.getElementById('dds-frequency').innerHTML = fs.readFileSync(path.join(project,'web/dds-frequency/dds-frequency.html'),'utf8').replace(/<\/?template[^>]*>/g,'');
-  for (const file of [path.join(root,'web/phase-modulator/frequency-input.ts'),path.join(project,'web/phase-noise-analyzer-app.ts')])
+  for (const file of [path.join(root,'web/inputs/digit-input.ts'),path.join(project,'web/phase-noise-analyzer-app.ts')])
     w.eval(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText+'\n'+(file.includes('analyzer-app')?'window.ControlApp=PhaseNoiseAnalyzerApp;':'window.NumberInput=NumberInput; window.FrequencyInput=FrequencyInput;'));
   const browserTimeout=w.setTimeout.bind(w);
   w.setTimeout=(callback,delay)=>delay===0?browserTimeout(callback,0):0;

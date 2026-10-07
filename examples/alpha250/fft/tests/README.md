@@ -1,5 +1,9 @@
 # Host regression tests
 
+`bash web/tests/run.sh fft` runs the shared clock/plot checks and all FFT browser
+regressions below, including the ALPHA15 workspace suite. The CI host job also
+builds all FFT web applications and runs these suites.
+
 From the repository root, with the SDK Python dependencies installed:
 
 ```sh

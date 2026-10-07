@@ -20,7 +20,7 @@ async function host(t) {
         async getDacValues() { return values.slice(); }
     };
     for (const [file, exports] of [
-        ['web/phase-modulator/frequency-input.ts', ['NumberInput']],
+        ['web/inputs/digit-input.ts', ['NumberInput']],
         ['web/fft/controls/precision-channels.ts', ['PrecisionChannelsApp']]
     ]) {
         window.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {

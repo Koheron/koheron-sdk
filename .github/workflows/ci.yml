@@ -96,9 +96,9 @@ jobs:
           npm install --prefix web --no-package-lock
       - name: Compile instrument web assets
         run: |
-          for project in alpha250/phase-noise-analyzer alpha250-4/phase-noise-analyzer red-pitaya/phase-noise-analyzer alpha250/dpll; do
+          for project in alpha250/phase-noise-analyzer alpha250-4/phase-noise-analyzer red-pitaya/phase-noise-analyzer alpha250/dpll alpha250/fft red-pitaya/fft alpha250-4/fft alpha15/signal-analyzer alpha250/phase-modulator; do
             make CFG="examples/$project/config.mk" WEB_DOWNLOADS_MK=/dev/null \
               TSC='web/node_modules/.bin/tsc --target ES5 --lib es6,dom --alwaysStrict --skipLibCheck --module system --incremental --typeRoots web/node_modules/@types' web
           done
-      - name: Check PNA processing, acquisition, clients and DPLL controls
+      - name: Check PNA processing, clients and shared PNA, DPLL and FFT interfaces
         run: bash server/drivers/phase-noise/tests/run-host.sh

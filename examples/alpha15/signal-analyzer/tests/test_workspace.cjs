@@ -104,7 +104,7 @@ async function host(t, failure = false) {
         redraw(data, count, peak, label, cb) { drawn = {data, count, peak, label}; cb(); }
     };
     const files = ['web/fft/driver.ts', 'web/fft/controls/fft-app.ts', 'web/fft/controls/precision-channels.ts',
-        'web/phase-modulator/frequency-input.ts', 'web/fft/plot/spectrum-history.ts', 'web/fft/plot/spectrum-views.ts',
+        'web/inputs/digit-input.ts', 'web/fft/plot/spectrum-history.ts', 'web/fft/plot/spectrum-views.ts',
         'web/fft/plot/plot.ts', 'web/fft/export-file/export-file.ts', 'web/fft/workspace.ts',
         ...['adc-range/ltc2387.ts', 'clock-generator/clock-generator.ts', 'precision-channels/precision-dac.ts',
             'temperature-sensor/temperature-sensor.ts', 'power-monitor/power-monitor.ts', 'decimator.ts', 'fft.ts', 'board-controls.ts', 'app.ts'].map(file => `${project}/web/${file}`)];
