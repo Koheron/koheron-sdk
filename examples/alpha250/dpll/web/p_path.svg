@@ -1,85 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="560" height="650" viewBox="0 0 560 650" role="img" aria-labelledby="title desc">
-<title id="title">DPLL signal flow and controller</title><desc id="desc">One of two identical channels. A shared mixer feeds parallel Fast and Accurate estimators. Accurate frequency and phase feed P and PI gains, followed by nested I squared and I cubed stages. Integrators are numbered to match the controls. Fast mode substitutes P and I while retaining the accurate I squared contribution. Monitoring and the precision DAC remain accurate.</desc>
-<defs><marker id="a" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#647681"/></marker></defs>
-<style>text{font-family:Arial,sans-serif;text-anchor:middle;fill:#303d46;font-size:12px}.small{font-size:10.5px;fill:#62737e}.strong{font-weight:600}.wire{fill:none;stroke:#647681;stroke-width:1.3;marker-end:url(#a)}.fast{fill:#fff8ec;stroke:#c5a36c}.accurate{fill:#eef8fc;stroke:#78aec5}.neutral{fill:#fafbfc;stroke:#b9c5cd}.gain{fill:white;stroke:#78aec5}.sum{fill:white;stroke:#647681}</style>
-<text x="280" y="15" class="small">ONE CHANNEL · REPEATED FOR ADC 0 AND ADC 1</text>
-<rect x="179" y="28" width="202" height="46" rx="4" class="neutral"/>
-<text x="280.0" y="47.0" class="strong">ADC × DDS</text>
-<text x="280.0" y="63.0" class="small">24-bit I/Q mixer</text>
-<path class="wire" d="M280 74V91H85V111" />
-<path class="wire" d="M280 91H365V111" />
-<circle cx="280" cy="91" r="2.3" fill="#647681"/>
-<rect x="20" y="111" width="130" height="66" rx="4" class="fast"/>
-<text x="85.0" y="132.0" class="strong">Fast estimate</text>
-<text x="85.0" y="148.0" class="small">4-sample filter</text>
-<text x="85.0" y="164.0" class="small">Calibrated projection</text>
-<rect x="205" y="111" width="320" height="66" rx="4" class="accurate"/>
-<text x="365.0" y="132.0" class="strong">Accurate estimate</text>
-<text x="365.0" y="148.0" class="small">4 × 16-sample filter · 24-bit extraction</text>
-<text x="365.0" y="164.0" class="small">Unwrap → Δφ;  ∑₁ → φ</text>
-<path class="wire" d="M85 177V242" />
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="620" viewBox="0 0 560 620" role="img" aria-labelledby="title desc">
+<title id="title">DPLL — one channel</title>
+<desc id="desc">A shared ADC and DDS mixer feeds parallel estimators. Fast P and I combine with the accurate higher-order contribution. The Accurate controller contains the P, PI, I squared and I cubed gains and integrators 2, 3 and 4; phase reconstruction uses integrator 1. The manual selector feeds RF DAC routing. The precision DAC and monitor always use Accurate signals. Controller equations show functional structure, omitting fixed-point scaling.</desc>
+<defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#657984"/></marker></defs>
+<style>
+text{font-family:Arial,sans-serif;fill:#283c47;text-anchor:middle;font-size:13px}
+.title{font-weight:600;font-size:14px}.sub{font-size:11px;fill:#627782}.equation{font-size:14px;font-family:Georgia,serif}.wire{fill:none;stroke:#657984;stroke-width:1.4;marker-end:url(#arrow)}.fast{fill:#fff8ec;stroke:#c3a16c}.accurate{fill:#eff8fc;stroke:#7cacc1}.neutral{fill:#fafbfc;stroke:#bdc9d0}.output{fill:white;stroke:#aabcc6}
+</style>
+<text class="sub" x="280" y="18">ONE CHANNEL · IDENTICAL FOR ADC 0 AND ADC 1</text>
+<rect class="neutral" x="170" y="34" width="220" height="48" rx="5"/>
+<text class="title" x="280" y="55">ADC × DDS</text><text class="sub" x="280" y="72">24-bit I/Q mixer</text>
+<path class="wire" d="M280 82V101H109V124"/><path class="wire" d="M280 101H384V124"/><circle cx="280" cy="101" r="2.5" fill="#657984"/>
 
-<rect x="190" y="212" width="350" height="298" rx="6" fill="#f9fcfd" stroke="#d5e5ec"/>
-<text x="365" y="228" class="small">ACCURATE CONTROLLER</text>
-<path class="wire" d="M255 177V248" />
-<text x="270" y="199" class="small">Δφ</text>
-<path class="wire" d="M475 177V248" />
-<text x="490" y="199" class="small">φ</text>
-<rect x="225" y="248" width="60" height="32" rx="4" class="gain"/>
-<text x="255.0" y="268.0" class="strong">P</text>
-<rect x="445" y="248" width="60" height="32" rx="4" class="gain"/>
-<text x="475.0" y="268.0" class="strong">PI</text>
-<path class="wire" d="M285 264H315V300H355" />
-<path class="wire" d="M445 264H415V300H375" />
-<circle cx="365" cy="300" r="10" class="sum"/>
-<text x="365" y="304" class="">+</text>
-<path class="wire" d="M365 310V396" />
-<circle cx="365" cy="324" r="2.3" fill="#647681"/>
-<path class="wire" d="M365 324H245V342" />
-<rect x="215" y="342" width="60" height="30" rx="4" class="accurate"/>
-<text x="245.0" y="361.0" class="strong">∑₂</text>
-<path class="wire" d="M245 372V390" />
-<rect x="215" y="390" width="60" height="32" rx="4" class="gain"/>
-<text x="245.0" y="410.0" class="strong">I²</text>
-<path class="wire" d="M275 406H355" />
-<circle cx="365" cy="406" r="10" class="sum"/>
-<text x="365" y="410" class="">+</text>
-<path class="wire" d="M365 416V442" />
-<rect x="335" y="442" width="60" height="30" rx="4" class="accurate"/>
-<text x="365.0" y="461.0" class="strong">∑₃</text>
-<rect x="20" y="242" width="130" height="66" rx="4" class="fast"/>
-<text x="85.0" y="263.0" class="strong">Fast P + I</text>
-<text x="85.0" y="279.0" class="small">Same P / PI gains</text>
-<text x="85.0" y="295.0" class="small">Own I state</text>
-<path class="wire" d="M85 308V534H90" />
-<path class="wire" d="M335 457H300V490H120V534H110" stroke-dasharray="4 3"/>
-<text x="220" y="483" class="small">I² component</text>
-<circle cx="100" cy="534" r="10" class="sum"/>
-<text x="100" y="538" class="">+</text>
-<path class="wire" d="M365 472V560H330" />
-<circle cx="365" cy="488" r="2.3" fill="#647681"/>
-<path class="wire" d="M365 488H425" />
-<rect x="425" y="473" width="48" height="30" rx="4" class="gain"/>
-<text x="449.0" y="492.0" class="strong">I³</text>
-<path class="wire" d="M473 488H490" />
-<rect x="490" y="473" width="34" height="30" rx="4" class="accurate"/>
-<text x="507.0" y="492.0" class="strong">∑₄</text>
-<path class="wire" d="M100 544V560H160" />
-<text x="131" y="551" class="small">Fast</text>
-<text x="337" y="529" class="small">Accurate</text>
-<rect x="160" y="538" width="170" height="44" rx="4" class="neutral"/>
-<text x="245.0" y="556.0" class="strong">P + I mode</text>
-<text x="245.0" y="572.0" class="small">Manual, continuous handoff</text>
-<path class="wire" d="M245 582V610" />
-<rect x="170" y="610" width="150" height="30" rx="4" class="neutral"/>
-<text x="245.0" y="629.0" class="strong">RF DAC routing</text>
-<path class="wire" d="M507 503V519H398V597H428V610" />
-<rect x="358" y="610" width="140" height="30" rx="4" class="neutral"/>
-<text x="428.0" y="629.0" class="strong">Precision DAC</text>
-<path class="wire" d="M525 144H550V558H524" />
-<rect x="410" y="538" width="114" height="44" rx="4" class="neutral"/>
-<text x="467.0" y="556.0" class="strong">Monitor</text>
-<text x="467.0" y="572.0" class="small">CIC · FIR · DMA</text>
-<text x="105" y="627" class="strong">∑₁…∑₄</text>
-<text x="85" y="643" class="small">Integrator controls 1–4</text>
+<rect class="fast" x="24" y="124" width="170" height="84" rx="5"/>
+<text class="title" x="109" y="147">Fast estimate</text><text x="109" y="170">4-sample filter</text><text class="sub" x="109" y="190">Calibrated local projection</text>
+<rect class="accurate" x="240" y="124" width="288" height="84" rx="5"/>
+<text class="title" x="384" y="147">Accurate estimate</text><text x="384" y="170">4 × 16 filter · 24-bit extraction</text><text class="sub" x="384" y="190">Unwrap → Δφ;  ∑₁ → φ</text>
+<path class="wire" d="M109 208V250M384 208V250"/>
+
+<rect class="fast" x="24" y="250" width="170" height="106" rx="5"/>
+<text class="title" x="109" y="275">Fast P + I</text>
+<text class="equation" x="109" y="306">P φ<tspan baseline-shift="sub" font-size="10">f</tspan> + PI ∑φ<tspan baseline-shift="sub" font-size="10">f</tspan></text>
+<text class="sub" x="109" y="337">Same gains · separate I state</text>
+<rect class="accurate" x="240" y="250" width="288" height="130" rx="5"/>
+<text class="title" x="384" y="275">Accurate controller</text>
+<text class="equation" x="384" y="305">s = P Δφ + PI φ</text>
+<text class="equation" x="384" y="333">u<tspan baseline-shift="sub" font-size="10">A</tspan> = ∑₃(s + I² ∑₂s)</text>
+<text class="equation" x="384" y="361">v<tspan baseline-shift="sub" font-size="10">A</tspan> = ∑₄(I³ u<tspan baseline-shift="sub" font-size="10">A</tspan>)</text>
+
+<path class="wire" d="M109 356V400"/>
+<path class="wire" d="M240 344H220V412H121" stroke-dasharray="4 3"/>
+<text class="sub" x="179" y="398">I² contribution</text>
+<circle cx="109" cy="412" r="12" fill="white" stroke="#657984" stroke-width="1.4"/><text x="109" y="417" font-size="18">+</text>
+<path class="wire" d="M109 424V460H160"/>
+<text class="sub" x="125" y="447">Fast</text>
+<path class="wire" d="M384 380V460H340"/>
+<text class="sub" x="367" y="437">u<tspan baseline-shift="sub" font-size="8">A</tspan></text>
+<rect class="neutral" x="160" y="438" width="180" height="48" rx="5"/>
+<text class="title" x="250" y="459">P + I mode</text><text class="sub" x="250" y="476">Manual · continuous handoff</text>
+
+<path class="wire" d="M250 486V526H109V556"/>
+<path class="wire" d="M496 380V514H293V556"/>
+<text class="sub" x="484" y="410">v<tspan baseline-shift="sub" font-size="8">A</tspan></text>
+<path class="wire" d="M528 166H549V578H538"/>
+<rect class="output" x="24" y="556" width="170" height="44" rx="5"/><text class="title" x="109" y="582">RF DAC routing</text>
+<rect class="output" x="218" y="556" width="150" height="44" rx="5"/><text class="title" x="293" y="582">Precision DAC</text>
+<rect class="output" x="388" y="556" width="150" height="44" rx="5"/><text class="title" x="463" y="575">Monitor</text><text class="sub" x="463" y="591">CIC · FIR · DMA</text>
+<text class="sub" x="280" y="617">∑₁…∑₄: integrators 1–4 · fixed-point scaling omitted</text>
 </svg>

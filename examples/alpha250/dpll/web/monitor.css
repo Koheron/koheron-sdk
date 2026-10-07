@@ -24,7 +24,14 @@
 
 .dpll-workspace .diagram-panel img[src="p_path.svg"] { width: 100%; max-width: 560px; }
 
-.dpll-workspace .diagram-panel summary { display: flex; align-items: center; gap: 8px; list-style: none; }
-.dpll-workspace .diagram-panel summary::-webkit-details-marker { display: none; }
-.dpll-workspace .diagram-panel summary::before { content: ''; width: 5px; height: 5px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(-45deg); flex: none; }
-.dpll-workspace .diagram-panel details[open] > summary::before { transform: rotate(45deg); }
+.dpll-workspace .loop-controls-panel summary { display: flex; align-items: center; gap: 8px; list-style: none; }
+.dpll-workspace .loop-controls-panel summary::-webkit-details-marker { display: none; }
+.dpll-workspace .loop-controls-panel summary::before { content: ''; width: 5px; height: 5px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(-45deg); flex: none; }
+.dpll-workspace .loop-controls-panel details[open] > summary::before { transform: rotate(45deg); }
+
+.dpll-workspace .loop-controls-panel summary { min-height: 30px; font-weight: 600; }
+.dpll-workspace .loop-controls-panel details[open] > summary { margin-bottom: 8px; }
+.dpll-workspace .channel-grid { align-items: start; }
+.dpll-workspace .channel-panel { padding-top: 0; }
+.dpll-workspace .reference-panel { border-bottom: 1px solid var(--border-light); margin-bottom: 6px; }
+.dpll-workspace .reference-panel .instrument-toolbar { border-bottom: 0; }

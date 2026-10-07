@@ -88,10 +88,10 @@
 
     <fieldset id="instrument-controls" disabled>
       <legend class="sr-only">DPLL settings</legend>
-      <div class="instrument-toolbar"><div id="reference-clock"></div></div>
+      <details class="reference-panel" open><summary>Reference clock</summary><div class="instrument-toolbar"><div id="reference-clock"></div></div></details>
       <div class="channel-grid">
         <section class="channel-panel" aria-labelledby="channel-title-0">
-          <h2 id="channel-title-0">ADC 0 loop</h2>
+          <details open><summary id="channel-title-0">ADC 0 loop</summary>
           <div class="frequency-row">
             <label for="frequency-0">Reference frequency</label>
             <div class="frequency-control digit-control">
@@ -159,9 +159,10 @@
               </tr>
             </tbody>
           </table>
+          </details>
         </section>
         <section class="channel-panel" aria-labelledby="channel-title-1">
-          <h2 id="channel-title-1">ADC 1 loop</h2>
+          <details open><summary id="channel-title-1">ADC 1 loop</summary>
           <div class="frequency-row">
             <label for="frequency-1">Reference frequency</label>
             <div class="frequency-control digit-control">
@@ -229,11 +230,11 @@
               </tr>
             </tbody>
           </table>
+          </details>
         </section>
       </div>
-      <p class="control-help">Frequency: click a digit and use ↑/↓ or the wheel to tune. Type a value and press Enter or leave the field to apply; Escape cancels. Gain changes use Apply.</p>
       <section class="routing-panel" aria-labelledby="routing-title">
-        <h2 id="routing-title">DAC routing</h2>
+        <details open><summary id="routing-title">DAC routing</summary>
         <div class="routing-controls">
         <label class="control-field">DAC 0<select class="dac-output" data-channel="0">
           <option value="0">Fast corrector 0</option>
@@ -256,10 +257,11 @@
           <option value="7">DDS 1</option>
         </select></label>
         </div>
+      </details>
       </section>
     </fieldset>
     <aside class="diagram-panel" aria-label="DPLL signal path">
-      <details><summary>Signal flow</summary><img src="p_path.svg" width="560" height="650" alt="Complete DPLL channel: Fast and Accurate estimators, P, PI, I squared and I cubed gains, integrators 1 to 4, mode selection and outputs"></details>
+      <details><summary>Signal flow</summary><img src="p_path.svg" width="560" height="620" alt="Complete DPLL channel: Fast and Accurate estimators, P, PI, I squared and I cubed gains, integrators 1 to 4, mode selection and outputs"></details>
     </aside>
     </section>
   </main>
