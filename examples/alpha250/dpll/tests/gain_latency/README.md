@@ -1,13 +1,14 @@
 # DPLL gain and controller latency experiments
 
-The current Fast P + I instrument passed its 250 MHz production build on
+The original PR 782 Fast P + I instrument passed its 250 MHz production build on
 2026-10-07, with setup slack +0.004494 ns, hold slack +0.026840 ns and all nine
 bus-skew checks passing. The final placement hook was validated by rerunning
 physical optimization on the synthesized and routed instrument. Digital paths
 are 56 ns for Fast P and 80 ns for Fast I, plus 6 ns fast-filter group delay;
 I²/I³ and the phase-noise monitor share the accurate extractor. See the
-[current build results](../../README.md#current-fast-p--i-build-2026-10-07)
-for resources, functional checks and hardware-test limits.
+[current build results](../../README.md#historical-pr-782-fast-p--i-build-2026-10-07)
+for that revision's resources, functional checks and hardware-test limits. The
+combined PR 780/782 build is reported separately in the instrument README.
 
 These are historical gain-controller measurements, before the shared 24-bit
 accurate extractor and manual Fast P + I path. Their register counts and full

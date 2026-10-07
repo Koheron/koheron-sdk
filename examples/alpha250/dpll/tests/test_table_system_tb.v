@@ -1,7 +1,8 @@
 `timescale 1 ns / 1 ps
 module test_table_system_tb;
-    reg clk=0, resetn=0;
+    reg clk=0, resetn=0, program_clk=0;
     always #2 clk=~clk;
+    initial begin #1.3; forever #3.5 program_clk=~program_clk; end
     reg [15:0] awaddr=0, araddr=0;
     reg [31:0] wdata=0;
     reg awvalid=0, wvalid=0, bready=0, arvalid=0, rready=0;
@@ -44,7 +45,7 @@ module test_table_system_tb;
         .s_axi_araddr(araddr),.s_axi_arvalid(arvalid),.s_axi_arready(arready),
         .s_axi_rdata(rdata),.s_axi_rresp(),.s_axi_rvalid(rvalid),.s_axi_rready(rready)
     );
-    gain_programmer programmer(clk,resetn,control[672 +: 32],control[704 +: 64],
+    gain_programmer programmer(clk,resetn,program_clk,control[672 +: 32],control[704 +: 64],
                                ack,banks,coefficients,command0,command1,data);
     reg [7:0] prepared0=0,prepared1=0;
     reg [63:0] prepared_data=0;
@@ -164,7 +165,7 @@ module test_table_system_tb;
             response=~request;watchdog=0;
             while((response & 32'hbfffffff)!=request) begin
                 axi_read(8,response);watchdog=watchdog+1;
-                if(watchdog>20) $fatal(1,"Programming acknowledgement timeout");
+                if(watchdog>300) $fatal(1,"Programming acknowledgement timeout");
             end
             if(response[30]!==reject_expected) $fatal(1,"Unexpected programming status %h",response);
             if(commit_expected) $fatal(1,"Acknowledged before atomic commit");

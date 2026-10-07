@@ -19,7 +19,9 @@ source [file normalize [file join [file dirname [info script]] gain_programming_
 # logical fanout can span both clock columns; create local launch copies rather
 # than adding another sample of delay to the control loop.
 set frequency_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *phase_unwrapper/inst/*unwrapped_diff_reg*}]
-if {[llength $frequency_sources] < 50} {error "Expected both 25-bit frequency launch registers"}
+# Canonical phase differences sign-extend 22 independent bits to the 25-bit
+# interface. Synthesis can merge the three duplicated sign registers.
+if {[llength $frequency_sources] < 44} {error "Expected both canonical frequency launch buses"}
 set loop_sources [get_cells -hier -filter {REF_NAME == FDRE && (NAME =~ *phase_unwrapper/inst/*unwrapped_diff_reg* || NAME =~ *consumers/inst/feedback_phase_reg* || NAME =~ *reference_pipeline.fast_i_phase_reg* || NAME =~ *accurate_controller/fused.acc2_reg* || NAME =~ *accurate_controller/acc1_reg* || NAME =~ *selector/active_fast_reg* || NAME =~ *detector/phase_reg*)}]
 set loop_nets [get_nets -of_objects [get_pins -of_objects $loop_sources -filter {REF_PIN_NAME == Q}]]
 set_property FORCE_MAX_FANOUT 8 $loop_nets

@@ -17,6 +17,27 @@ module test_phase_history_tb;
         clk,acc_on,rst,phase_in,frequency[1],history[1],overflow[1]);
     phase_unwrapper #(.DIN_WIDTH(24),.DOUT_WIDTH(64),.PIPELINED_OVERFLOW(1),.PIPELINED_HISTORY(1)) piped(
         clk,acc_on,rst,phase_in,frequency[2],history[2],overflow[2]);
+    // Exercise the combined extractor's fused difference with the wide,
+    // pipelined monitor history. Delay the fused input by one clock so its
+    // frequency, history and overflow must match the conventional path.
+    reg signed [23:0] delayed_phase=0, delayed_canonical=0;
+    wire signed [23:0] canonical={{2{phase_in[21]}},phase_in[21:0]};
+    always @(posedge clk) begin
+        delayed_phase<=phase_in;
+        delayed_canonical<=canonical;
+    end
+    wire signed [24:0] fused_frequency[0:2];
+    wire signed [63:0] fused_history[0:2];
+    wire fused_overflow[0:2];
+    phase_unwrapper #(.DIN_WIDTH(24),.DOUT_WIDTH(64),.PIPELINED_OVERFLOW(1),
+        .PIPELINED_HISTORY(1),.FUSED_DIFFERENCE(1)) general_fused(
+        clk,acc_on,rst,delayed_phase,fused_frequency[0],fused_history[0],fused_overflow[0]);
+    phase_unwrapper #(.DIN_WIDTH(24),.DOUT_WIDTH(64),.PIPELINED_OVERFLOW(1),
+        .PIPELINED_HISTORY(1)) canonical_reference(
+        clk,acc_on,rst,canonical,fused_frequency[1],fused_history[1],fused_overflow[1]);
+    phase_unwrapper #(.DIN_WIDTH(24),.DOUT_WIDTH(64),.PIPELINED_OVERFLOW(1),
+        .PIPELINED_HISTORY(1),.FUSED_DIFFERENCE(1),.CANONICAL_INPUT(1)) canonical_fused(
+        clk,acc_on,rst,delayed_canonical,fused_frequency[2],fused_history[2],fused_overflow[2]);
     reg signed [23:0] previous=0;
     reg signed [24:0] difference=0,increment=0;
     reg signed [64:0] next_history;
@@ -44,6 +65,10 @@ module test_phase_history_tb;
            overflow[0]!==sticky || overflow[1]!==sticky_d ||
            history[2]!==expected_d || frequency[2]!==increment || overflow[2]!==sticky_dd)
             $fatal(1,"Phase history arithmetic/reset/overflow mismatch cycle=%0d",cycle);
+        if(fused_frequency[0]!==frequency[2] || fused_history[0]!==history[2] ||
+           fused_overflow[0]!==overflow[2] || fused_frequency[1]!==fused_frequency[2] ||
+           fused_history[1]!==fused_history[2] || fused_overflow[1]!==fused_overflow[2])
+            $fatal(1,"Fused wide phase history mismatch cycle=%0d",cycle);
         cycle=cycle+1;
     end
     initial begin
@@ -63,6 +88,8 @@ module test_phase_history_tb;
         bounded.phase_out=64'h7fffffffffffffff;
         piped.phase_out=64'h7fffffffffffffff;
         piped.split_history.low_state=32'hffffffff;
+        general_fused.phase_out=64'h7fffffffffffffff;
+        general_fused.split_history.low_state=32'hffffffff;
         expected=64'h7fffffffffffffff;
         for(integer k=0;k<16;k=k+1) begin
             case(k)
@@ -83,7 +110,7 @@ module test_phase_history_tb;
             acc_on=(k%11!=0);rst=(k%997==996);
             @(negedge clk);
         end
-        $display("Phase history checks passed: 5000 full-width sums, pi boundaries, full-width differences, 10000 random samples, 64-bit overflow, enables and reset");
+        $display("Phase history checks passed: 5000 full-width sums, pi boundaries, full-width differences, 10000 random samples, 64-bit overflow, enables, reset and fused/canonical wide history");
         $finish;
     end
 endmodule

@@ -92,6 +92,7 @@ create_bd_cell -type module -reference gain_programmer gain_programmer
 connect_cell gain_programmer {
     clk adc_dac/adc_clk
     resetn rst_adc_clk/peripheral_aresetn
+    program_clk ps_0/FCLK_CLK1
     cfg_command [ctl_pin gain_table_command]
     cfg_data [get_concat_pin [list [ctl_pin gain_table_data0] [ctl_pin gain_table_data1]]]
     ack [sts_pin gain_table_ack]

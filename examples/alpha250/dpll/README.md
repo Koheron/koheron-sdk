@@ -45,7 +45,7 @@ Each ADC/DDS pair has one 24-bit complex mixer, split before filtering:
 ```text
                          → four-sample boxcar → calibrated projection → P + I
 ADC + DDS → 24-bit mixer
-                         → four 16-sample moving sums → 24-bit CORDIC → unwrap
+                         → four 16-sample moving sums → custom 24-bit extractor → unwrap
                                                                       ├→ accurate controller
                                                                       └→ monitor selector
                                                                            → epoch origin → CIC/FIR/DMA
@@ -54,7 +54,10 @@ ADC + DDS → 24-bit mixer
 The accurate filter retains full intermediate sums and has 120 ns group delay
 plus five pipeline clocks (20 ns) at 250 MHz. The fast boxcar retains its two
 pipeline clocks and 6 ns group delay. Sharing the accurate extractor eliminates
-the dedicated monitor CORDIC. Monitor resets change its downstream origin;
+the dedicated monitor CORDIC. The accurate branch selects PR 780's
+15-clock, 24-bit custom extractor and canonical fused unwrapping; its filter
+and the Fast P + I controller retain PR 782's architecture. A vendor CORDIC
+remains selectable in `split_detector::create` as a regression reference. Monitor resets change its downstream origin;
 feedback phase history and controller states are independent of monitor epochs,
 channel selection, decimation, precision and backpressure.
 The continuous 64-bit monitor history uses two 32-bit words and is delayed by
@@ -118,16 +121,16 @@ disabled required integrators / inadequate reference amplitude.
 channels, jump-free handoffs, independent accurate states, fast I response,
 fractional gain scaling, modular phase reference capture, monitor reset isolation
 and the generated production frontend. See the build section for full timing.
-The pulse-valid test of the production IP measures four mixer clocks and 28
-clocks for the 24-bit CORDIC. Register delays at 250 MHz are:
+The pulse-valid test measures four mixer clocks and 15 clocks for the selected
+24-bit custom extractor. Register delays at 250 MHz are:
 
 | Stage | Fast P | Fast I | Accurate P | Accurate I |
 | --- | ---: | ---: | ---: | ---: |
 | Shared mixer | 4 | 4 | 4 | 4 |
 | Prefilter pipeline | 2 | 2 | 5 | 5 |
 | Local projection | 3 | 4 | — | — |
-| CORDIC | — | — | 28 | 28 |
-| Difference and unwrap | — | — | 2 | 2 |
+| Custom phase extraction | — | — | 15 | 15 |
+| Difference and unwrap | — | — | 1 | 1 |
 | Phase reconstruction | — | — | — | 1 |
 | Captured reference addition | — | 2 | — | — |
 | Gain | 3 | 4 | 4 | 4 |
@@ -136,7 +139,7 @@ clocks for the 24-bit CORDIC. Register delays at 250 MHz are:
 | I + I² preparation | — | 1 | — | — |
 | Mode selector | 1 | 1 | 1 | 1 |
 | RF DAC mux | 1 | 1 | 1 | 1 |
-| **Total clocks / time** | **14 / 56 ns** | **20 / 80 ns** | **47 / 188 ns** | **48 / 192 ns** |
+| **Total clocks / time** | **14 / 56 ns** | **20 / 80 ns** | **33 / 132 ns** | **34 / 136 ns** |
 
 From filtered I/Q through the selector, Fast P is seven clocks (28 ns) and
 Fast I is thirteen (52 ns). The accurate I² branch adds five clocks (20 ns) after
@@ -280,8 +283,11 @@ acknowledgement before reusing the port. Hardware issues a single RAM write and
 rejects active-bank writes. A commit switches banks and records the coefficient
 on the same clock. RPC serialization protects this shared programming port.
 Server restarts read the active banks and coefficients from hardware.
-Programming now takes six controller clocks: address and payload are prepared
-before the registered write strobe, providing two full setup clocks at the RAM.
+Gain requests are validated and decoded at 143 MHz, using PR 780's registered
+CDC handshakes and reset draining. RAM writes and atomic bank/coefficient commits
+remain at 250 MHz. Address and payload precede the registered write strobe,
+preserving PR 782's two-clock RAM setup budget. Acknowledgement follows the write
+or commit. Reset preserves committed gains while cancelling pending transfers.
 Only these held RAM programming inputs use two-clock timing constraints; the
 write strobe, bank commits, lookup addresses and feedback remain at 250 MHz.
 
@@ -328,9 +334,10 @@ sample-gap reporting under backpressure and recovery after an epoch reset.
 Build results and hardware measurements are reported separately in the
 [latency notes](tests/gain_latency/README.md#integration-and-hardware-status).
 
-### Current Fast P + I build (2026-10-07)
+### Historical PR 782 Fast P + I build (2026-10-07)
 
-The complete ALPHA250 instrument builds with Vivado 2025.1 at 250 MHz, including
+Before integrating PR 780, the ALPHA250 instrument built with Vivado 2025.1 at
+250 MHz, including
 the shared accurate extractor, manual Fast P + I controller and monitor.
 Synthesis, placement and routing completed; after the placement-only hook change,
 the final physical optimization step was rerun using the existing synthesis and
@@ -355,4 +362,5 @@ host/web and shared-monitor checks pass. The frontend response simulation covers
 a 31.25 MHz carrier, arbitrary lock phase, a 10-degree phase step and both mode
 handoffs. Other carriers and hardware lock, phase noise, stability and analog
 latency have not been characterized. The new instrument has not been installed
-on a board.
+on a board. These timing results qualify the original PR 782 revision, not the
+combined extractor/programmer design; the combined build is recorded separately.

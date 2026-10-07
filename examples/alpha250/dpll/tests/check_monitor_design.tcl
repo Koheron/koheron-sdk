@@ -13,10 +13,13 @@ foreach i {0 1} {
     foreach {leaf property expected} {
         complex_mult APortWidth 16 complex_mult OutputWidth 24
         prefilter0 WIDTH 24 prefilter1 WIDTH 24
-        cordic Input_Width 24 cordic Output_Width 24 cordic Pipelining_Mode Maximum
+        phase_extractor INPUT_WIDTH 24 phase_extractor PHASE_WIDTH 24
+        phase_extractor COMPACT_PREP 0 phase_extractor RESIDUAL_CORRECTION 1
         phase_unwrapper DIN_WIDTH 24 phase_unwrapper DOUT_WIDTH 64
         phase_unwrapper PIPELINED_OVERFLOW 1
         phase_unwrapper PIPELINED_HISTORY 1
+        phase_unwrapper FUSED_DIFFERENCE 1
+        phase_unwrapper CANONICAL_INPUT 1
     } {
         if {[get_property CONFIG.$property [get_bd_cells cordic$i/$leaf]] ne $expected} {
             error "Unexpected shared extractor setting: cordic$i/$leaf $property"

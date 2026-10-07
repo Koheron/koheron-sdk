@@ -17,12 +17,13 @@ set_property CONFIG.POLARITY ACTIVE_LOW [get_bd_ports aresetn]
 foreach name {acc_on valid} { create_bd_port -dir I $name }
 foreach name {data_a data_b} { create_bd_port -dir I -from 31 -to 0 $name }
 
-foreach kind {old new} {
-    cordic::create det_$kind
+foreach kind {old new fast} {
+    # Keep both historical 16-bit vendor detectors as regression references.
+    cordic::create det_$kind [expr {$kind eq "fast" ? "fast" : "vendor"}] [expr {$kind eq "fast" ? 24 : 16}] [expr {$kind eq "fast" ? 24 : 16}]
     if {$kind eq "old"} {
         foreach i {0 1} { set_property CONFIG.LOW_LATENCY 0 [get_bd_cells det_old/boxcar$i] }
         set_property CONFIG.Pipelining_Mode Maximum [get_bd_cells det_old/cordic]
-    } else {
+    } elseif {$kind eq "new"} {
         foreach i {0 1} {
             if {[get_property CONFIG.LOW_LATENCY [get_bd_cells det_new/boxcar$i]] != 1} {
                 error "Production detector must use the low-latency boxcar"
@@ -30,6 +31,26 @@ foreach kind {old new} {
         }
         if {[get_property CONFIG.Pipelining_Mode [get_bd_cells det_new/cordic]] ne "Optimal"} {
             error "Production detector must use optimal CORDIC pipelining"
+        }
+    } else {
+        foreach {name property expected} {
+            complex_mult OutputWidth 24
+            boxcar0 DATA_WIDTH 24
+            boxcar1 DATA_WIDTH 24
+            phase_extractor INPUT_WIDTH 24
+            phase_extractor PHASE_WIDTH 24
+            phase_extractor ITERATIONS 24
+            phase_extractor ROTATIONS_PER_CLOCK 2
+            phase_extractor PAIR_START 8
+            phase_extractor FUSE_ROUND 1
+            phase_extractor COMPACT_PREP 0
+            phase_extractor RESIDUAL_CORRECTION 1
+            phase_unwrapper FUSED_DIFFERENCE 1
+        phase_unwrapper CANONICAL_INPUT 1
+        } {
+            if {[get_property CONFIG.$property [get_bd_cells det_fast/$name]] != $expected} {
+                error "Wrong 24-bit detector configuration: $name $property"
+            }
         }
     }
     foreach {port pin} {aclk aclk aresetn aresetn acc_on acc_on valid s_axis_tvalid data_a s_axis_data_a data_b s_axis_data_b} {
@@ -41,6 +62,18 @@ foreach kind {old new} {
         create_bd_port -dir O -from [expr {$width - 1}] -to 0 ${port}_$kind
         connect_bd_net [get_bd_ports ${port}_$kind] [get_bd_pins det_$kind/$pin]
     }
+}
+
+foreach {port pin width} {phase_precise phase_feedback 40 freq_precise freq_feedback 25} {
+    create_bd_port -dir O -from [expr {$width-1}] -to 0 $port
+    connect_bd_net [get_bd_ports $port] [get_bd_pins det_fast/$pin]
+}
+
+# Observe the filtered Cartesian values to check that fractional mixer bits
+# reach extraction through both 24-bit lanes, rather than padding 16-bit IQ.
+foreach {port boxcar} {iq_i_fast boxcar0 iq_q_fast boxcar1} {
+    create_bd_port -dir O -from 23 -to 0 $port
+    connect_bd_net [get_bd_ports $port] [get_bd_pins det_fast/$boxcar/dout]
 }
 
 validate_bd_design

@@ -1,5 +1,6 @@
 add_files -norecurse [file normalize [file join [file dirname [info script]] .. accurate_phase_consumers.v]]
 namespace eval split_detector {
+variable source_directory [file normalize [file join [file dirname [info script]] ..]]
 
 proc pins {cmd} {
     $cmd -dir I -type clk      aclk
@@ -18,7 +19,15 @@ proc pins {cmd} {
     $cmd -dir O -from 31 -to 0 demod
 }
 
-proc create {module_name {seed 0x9e3779b97f4a7c15}} {
+proc create {module_name {seed 0x9e3779b97f4a7c15} {phase_implementation fast}} {
+
+    if {$phase_implementation ni {fast vendor}} {error "Unknown accurate phase extractor: $phase_implementation"}
+    if {$phase_implementation eq "fast"} {
+        variable source_directory
+        foreach source {phase_extractor.v phase_residual.v} {
+            add_files -norecurse [file join $source_directory $source]
+        }
+    }
 
     set bd [current_bd_instance .]
     current_bd_instance [create_bd_cell -type hier $module_name]
@@ -69,7 +78,8 @@ proc create {module_name {seed 0x9e3779b97f4a7c15}} {
             random_round [get_slice_pin lfsr/m_axis_tdata [expr 31+16*$i] [expr 16+16*$i]]
         }
     }
-    cell xilinx.com:ip:cordic:6.0 cordic {
+    if {$phase_implementation eq "vendor"} {
+      cell xilinx.com:ip:cordic:6.0 cordic {
         Functional_Selection Translate Pipelining_Mode Maximum
         Phase_Format Scaled_Radians Input_Width 24 Output_Width 24
         Round_Mode Round_Pos_Neg_Inf
@@ -77,14 +87,29 @@ proc create {module_name {seed 0x9e3779b97f4a7c15}} {
         aclk aclk s_axis_cartesian_tvalid [get_constant_pin 1 1]
         s_axis_cartesian_tdata [get_concat_pin [list prefilter0/dout prefilter1/dout] accurate_cartesian]
         m_axis_dout_tvalid m_axis_tvalid
+      }
+      set phase_pin [get_slice_pin cordic/m_axis_dout_tdata 47 24]
+    } else {
+      create_bd_cell -type module -reference phase_extractor phase_extractor
+      set_cell_props phase_extractor {
+          INPUT_WIDTH 24 PHASE_WIDTH 24 ITERATIONS 24
+          ROTATIONS_PER_CLOCK 2 PAIR_START 8 FUSE_ROUND 1
+          COMPACT_PREP 0 RESIDUAL_CORRECTION 1
+      }
+      connect_cell phase_extractor {
+          clk aclk resetn aresetn valid_in [get_constant_pin 1 1]
+          i_in prefilter0/dout q_in prefilter1/dout valid_out m_axis_tvalid
+      }
+      set phase_pin phase_extractor/phase_out
     }
     cell koheron:user:phase_unwrapper:1.0 phase_unwrapper {
         DIN_WIDTH 24 DOUT_WIDTH 64 PIPELINED_OVERFLOW 1 PIPELINED_HISTORY 1
     } {
         clk aclk acc_on [get_constant_pin 1 1] rst [get_not_pin aresetn]
-        phase_in [get_slice_pin cordic/m_axis_dout_tdata 47 24]
+        phase_in $phase_pin
         freq_out freq
     }
+    set_cell_props phase_unwrapper [list FUSED_DIFFERENCE [expr {$phase_implementation eq "fast"}] CANONICAL_INPUT [expr {$phase_implementation eq "fast"}]]
     cell pavel-demin:user:axis_lfsr:1.0 phase_lfsr [list SEED [format 0x%016llx [expr {$seed ^ 0xa0761d6478bd642f}]] FEEDBACK_MASK 0xd800000000000000 FEEDBACK_XNOR 0] {aclk aclk aresetn aresetn}
     create_bd_cell -type module -reference accurate_phase_consumers consumers
     connect_cell consumers {
