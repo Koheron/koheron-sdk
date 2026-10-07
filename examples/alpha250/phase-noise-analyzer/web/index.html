@@ -35,7 +35,7 @@
 <body class="pna-workspace" data-board="alpha250">
 <header class="app-header">
   <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
-  <h1>Phase noise</h1><span class="board-tag">ALPHA250 · 200 MS/s</span>
+  <h1>Phase noise</h1><span class="board-tag">ALPHA250 · <span id="sample-rate-label">—</span> MS/s</span>
   <span id="refresh-rate" class="board-tag" title="New spectra displayed per second; publication target 30/s; cached replies excluded">— FPS</span>
   <span class="connection-control">
   <span id="connection-status" class="connection-status" role="status" data-state="connecting">Connecting…</span>
@@ -56,6 +56,10 @@
         </div></div>
         <label class="control-field" title="Even CIC rates from 4 to 8192">Decimation (even)<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="20" min="4" step="2" max="8192" required data-command="setCicRate" class="cic-rate-input"></span></label>
         <label class="control-field">Averages<span class="pna-digit-control pna-average-control"><span id="average-status" role="status" data-state="unknown" title="Actual spectra in the rolling average">—/</span><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1" min="1" step="1" max="100" required class="plot-navg-input"></span></label>
+        <label class="control-field" title="Changing the ADC/DAC sample clock pauses acquisition and clears the spectrum average.">Sample rate
+          <select id="sample-rate" disabled><option value="250000000">250 MS/s</option><option value="200000000">200 MS/s</option></select>
+        </label>
+        <span id="sample-rate-status" class="precision-status" role="status"></span>
         <div id="reference-clock"></div>
         <label class="control-field" title="Extra fractional bits preserve smaller phase changes, at the cost of phase range.">Phase precision
           <select id="phase-precision">

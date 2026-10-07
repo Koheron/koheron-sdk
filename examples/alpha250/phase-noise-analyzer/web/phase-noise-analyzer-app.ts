@@ -26,6 +26,11 @@ class PhaseNoiseAnalyzerApp {
 
   dispose(): void { this.disposed = true; Object.keys(this.numbers).forEach(key => this.numbers[key].dispose()); }
 
+  setSampleRate(rate: number): void {
+    for (const channel of [0, 1])
+      this.numbers['lo' + channel]?.setLimits(rate / 2, rate / Math.pow(2, 48));
+  }
+
   async init(): Promise<void> {
     const parameters = await this.driver.getParameters();
     if (this.disposed) { return; }

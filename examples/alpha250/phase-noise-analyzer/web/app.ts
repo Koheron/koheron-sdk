@@ -1,6 +1,7 @@
 class App {
     private imports: Imports;
     private signalGenerator: PhaseModulatorWidget;
+    private sampleRate: PnaSampleRate;
     private stopped = false;
     private client: Client;
     public dds: DDS;
@@ -40,6 +41,12 @@ class App {
                 this.phasePrecision = new PhasePrecision(client, document);
                 await this.phasePrecision.init();
                 if (this.stopped) { return; }
+                this.sampleRate = new PnaSampleRate(document, this.phaseNoiseAnalyzer, rate => {
+                    this.phaseNoiseAnalyzerApp.setSampleRate(rate);
+                    this.signalGenerator?.setSampleRate(rate);
+                }, error => this.connectionFailed(document, error));
+                await this.sampleRate.init();
+                if (this.stopped) { return; }
                 this.n_pts = this.phaseNoiseAnalyzerApp.nPoints;
                 this.x_min = 100;
                 this.x_max = 2E6;
@@ -56,7 +63,7 @@ class App {
                 status.textContent = 'Connected';
                 status.dataset.state = 'live';
 
-                // The analyzer establishes its 200 MS/s clock before the
+                // The analyzer establishes its selected sample clock before the
                 // generator reads metadata. Generator errors retain their own
                 // retry control and leave acquisition available.
                 this.signalGenerator = new PhaseModulatorWidget(
@@ -121,6 +128,7 @@ class App {
         if (this.stopped) { return; }
         this.stopped = true;
         if (this.signalGenerator) { this.signalGenerator.dispose(); }
+        if (this.sampleRate) { this.sampleRate.dispose(); }
         if (this.plot) { this.plot.dispose(); }
         if (this.phasePrecision) { this.phasePrecision.dispose(); }
         if (this.phaseNoiseAnalyzerApp) { this.phaseNoiseAnalyzerApp.dispose(); }

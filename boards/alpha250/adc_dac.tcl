@@ -107,6 +107,12 @@ if {[get_parameter adc_clk] == 250000000} {
     set_property PROCESSING_ORDER LATE [get_files $dac_phase_xdc]
 }
 
+# PNA clocks MMCM phase commands independently, including while resetting the
+# ADC clock. Other designs retain their existing ADC-domain phase controls.
+set mmcm_phase_clock mmcm/clk_out1
+if {[info exists alpha250_mmcm_ps_control] && $alpha250_mmcm_ps_control} {
+    set mmcm_phase_clock ps_clk
+}
 # Mixed-mode clock manager
 cell xilinx.com:ip:clk_wiz:6.0 mmcm {
     PRIMITIVE              MMCM
@@ -129,8 +135,8 @@ cell xilinx.com:ip:clk_wiz:6.0 mmcm {
     clk_out1 adc_clk
     clk_in_sel [get_not_pin [get_slice_pin ctl 0 0]]
     reset [get_slice_pin ctl 1 1]
-    psclk mmcm/clk_out1
-    psen [get_edge_detector_pin [get_slice_pin ctl 2 2] mmcm/clk_out1]
+    psclk $mmcm_phase_clock
+    psen [get_edge_detector_pin [get_slice_pin ctl 2 2] $mmcm_phase_clock]
     psincdec [get_slice_pin ctl 3 3]
 }
 

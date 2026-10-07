@@ -82,6 +82,11 @@ class Core
     void set_tracking_max_step(float max_step_hz);
     void set_tracking_max_correction(float max_correction_hz);
     bool set_phase_precision(uint32_t bits);
+    bool set_sampling_frequency(uint32_t rate);
+    uint32_t get_sampling_frequency() const {
+        std::shared_lock lk(data_mtx);
+        return static_cast<uint32_t>(fs_adc.eval());
+    }
     auto get_precision_status() {
         std::shared_lock lk(data_mtx);
         return std::tuple{phase_precision, captured_precision, double(phase_conversion_factor.eval()),
@@ -355,6 +360,8 @@ void Core<Board>::save_config() {
     cfg.set("PhaseNoiseAnalyzer", "channel", channel);
     cfg.set("PhaseNoiseAnalyzer", "fft_navg", fft_navg);
     cfg.set("PhaseNoiseAnalyzer", "cic_rate", cic_rate);
+    if constexpr (requires { board.set_sampling_frequency(0u); })
+        cfg.set("PhaseNoiseAnalyzer", "sampling_frequency", static_cast<uint32_t>(fs_adc.eval()));
     if constexpr (Board::max_phase_precision > 0)
         cfg.set("PhaseNoiseAnalyzer", "phase_precision", phase_precision);
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[0]", base_dds_freq[0]);
@@ -420,6 +427,43 @@ void Core<Board>::set_cic_rate(uint32_t rate) {
     invalidate_results();
     dirty_cnt = 2;
     dma.configure_sampling(fs, [&] { ctl.write<reg::cic_rate>(cic_rate); });
+}
+
+template<class Board>
+bool Core<Board>::set_sampling_frequency(uint32_t rate) {
+    if constexpr (!requires { board.set_sampling_frequency(rate); }) {
+        return false;
+    } else {
+        if (rate != 200000000 && rate != 250000000) return false;
+        detail::DmaSettingsGuard pending(dma_settings_pending);
+        std::unique_lock dma_lk(dma_mtx);
+        std::unique_lock lk(data_mtx);
+        auto clock_lk = board.lock_sampling_settings();
+        if (rate == static_cast<uint32_t>(fs_adc.eval())) return true;
+        const std::array<double, 2> applied{dds.get_dds_freq(0), dds.get_dds_freq(1)};
+        for (uint32_t channel_index = 0; channel_index < 2; ++channel_index)
+            if (base_dds_freq[channel_index] > rate / 2.0 || applied[channel_index] > rate / 2.0) return false;
+        if (!board.sample_rate_compatible(rate)) return false;
+        const auto new_fs = Frequency(float(rate)) / (2.0f * cic_rate);
+        bool changed = false;
+        dma.configure_sampling(new_fs, [&] {
+            changed = board.set_sampling_frequency(rate);
+            if (!changed) return;
+            fs_adc = Frequency(float(rate));
+            fs = new_fs;
+            dma_transfer_duration = data_size / fs;
+            for (uint32_t channel_index = 0; channel_index < 2; ++channel_index) {
+                dds.set_dds_freq(channel_index, applied[channel_index]);
+                tracking_correction[channel_index] = dds.get_dds_freq(channel_index) - base_dds_freq[channel_index];
+            }
+            set_power_conversion_factor();
+            update_interferometer_transfer_function();
+        });
+        if (!changed) dma.configure_sampling(fs, [] {});
+        dirty_cnt = std::max(dirty_cnt, 4u);
+        invalidate_results();
+        return changed;
+    }
 }
 
 template<class Board>
@@ -670,6 +714,11 @@ void Core<Board>::load_config() {
         set_interferometer_delay(0.0f);
     }
 
+    if constexpr (requires { board.set_sampling_frequency(0u); }) {
+        if (cfg.has("PhaseNoiseAnalyzer", "sampling_frequency") &&
+            !set_sampling_frequency(cfg.get<uint32_t>("PhaseNoiseAnalyzer", "sampling_frequency")))
+            log<WARNING>("PhaseNoiseAnalyzer: Saved sample clock could not be applied; retaining 250 MS/s\n");
+    }
     if (cfg.has("PhaseNoiseAnalyzer", "tracking_bandwidth"))
         set_tracking_bandwidth(cfg.get<float>("PhaseNoiseAnalyzer", "tracking_bandwidth"));
     if (cfg.has("PhaseNoiseAnalyzer", "tracking_max_step"))

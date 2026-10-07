@@ -60,11 +60,13 @@ template<int id> Memory<id>& get_memory() { static Memory<id> value; return valu
                 "boards/alpha250/drivers/clock-generator.hpp": r'''
 #pragma once
 #include <cstdint>
+#include <mutex>
+namespace clock_cfg { inline std::recursive_mutex sampling_mutex; }
 class ClockGenerator {
 public:
     uint32_t selection = 99;
     double rate = TEST_SAMPLE_RATE;
-    void set_sampling_frequency(uint32_t value) { selection = value; }
+    void set_sampling_frequency(uint32_t value) { selection = value; rate = value == 0 ? 200000000 : 250000000; }
     double get_dac_sampling_freq() { return rate; }
     double get_adc_sampling_freq() { return rate; }
 };
@@ -83,6 +85,15 @@ template<class T> T& get_driver() { static T value; return value; }
 #include <cassert>
 #include <cmath>
 #include <string>
+#ifndef TEST_RED_PITAYA
+struct Alpha250PhaseNoiseBoard {
+    static bool compatible(PhaseModulator& pm, uint32_t rate) { return pm.sample_rate_compatible(rate); }
+    static bool change(PhaseModulator& pm, uint32_t rate) {
+        std::lock_guard lock(clock_cfg::sampling_mutex);
+        return pm.change_sample_rate(rate);
+    }
+};
+#endif
 int main() {
     PhaseModulator pm;
     auto& clock = rt::get_driver<ClockGenerator>();
@@ -132,6 +143,35 @@ int main() {
     const auto after = awg.writes.size();
     assert(!pm.set_carrier_frequency(0, clock.rate / 2).empty());
     assert(awg.writes.size() == after);
+    assert(pm.set_output_enabled(0, true).empty());
+    assert(pm.configure(1, 15e6, 23, 17e3, 11, .87, .4, 123, 0, false, true, false).empty());
+    for (uint32_t rate : {200000000u, 250000000u, 200000000u, 250000000u}) {
+        const auto saved0 = pm.get_settings_words(0), saved1 = pm.get_settings_words(1);
+        assert(Alpha250PhaseNoiseBoard::change(pm, rate));
+        assert(pm.get_sample_rate() == rate);
+        const auto changed0 = pm.get_settings_words(0), changed1 = pm.get_settings_words(1);
+        assert(std::abs(double(std::get<1>(changed0)) / turn * rate - 12e6) < 1e-6);
+        assert(std::abs(double(std::get<3>(changed0)) / turn * rate - 12e3) < 1e-6);
+        assert(std::abs(double(std::get<1>(changed1)) / turn * rate - 15e6) < 1e-6);
+        assert(std::abs(double(std::get<3>(changed1)) / turn * rate - 17e3) < 1e-6);
+        for (const auto& pair : {std::pair{saved0, changed0}, std::pair{saved1, changed1}}) {
+            assert(std::get<2>(pair.first) == std::get<2>(pair.second));
+            assert(std::get<4>(pair.first) == std::get<4>(pair.second));
+            assert(std::get<5>(pair.first) == std::get<5>(pair.second));
+            assert(std::get<6>(pair.first) == std::get<6>(pair.second));
+            assert(std::get<7>(pair.first) == std::get<7>(pair.second));
+            assert(std::get<8>(pair.first) == std::get<8>(pair.second));
+            assert(std::get<9>(pair.first) == std::get<9>(pair.second));
+            assert(std::get<10>(pair.first) == std::get<10>(pair.second));
+        }
+    }
+    assert(pm.set_carrier_frequency(1, 110e6).empty());
+    const auto rejected = pm.get_settings_words(1);
+    const auto writes_before_rejection = awg.writes.size();
+    assert(!Alpha250PhaseNoiseBoard::compatible(pm, 200000000));
+    assert(!Alpha250PhaseNoiseBoard::change(pm, 200000000));
+    assert(pm.get_sample_rate() == 250000000);
+    assert(pm.get_settings_words(1) == rejected && awg.writes.size() == writes_before_rejection);
 #endif
 }
 ''',

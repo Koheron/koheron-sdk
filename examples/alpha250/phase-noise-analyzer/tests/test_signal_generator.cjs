@@ -45,10 +45,14 @@ async function host(t, failGenerator = false, failConnection = false) {
     window.DDS = class {};
     window.ClockGenerator = class {};
     window.ClockGeneratorApp = class {};
-    window.PhaseNoiseAnalyzer = class {};
+    window.PhaseNoiseAnalyzer = class {
+        supportsSampleRate() { return true; }
+        async getSamplingFrequency() { return 200e6; }
+    };
     window.PhaseNoiseAnalyzerApp = class {
         constructor(document, driver, onError) { client.fail = onError; }
         async init() { trace.push('analyzer-init'); this.nPoints = 16384; }
+        setSampleRate() {}
         dispose() { trace.push('analyzer-disposed'); }
     };
     window.PlotBasics = class {};
@@ -64,6 +68,7 @@ async function host(t, failGenerator = false, failConnection = false) {
         ['web/phase-noise/phase-precision.ts', 'PhasePrecision'],
         ['web/phase-modulator/frequency-input.ts', 'FrequencyInput'],
         ['web/phase-modulator/phase-modulator-widget.ts', 'PhaseModulatorWidget'],
+        ['examples/alpha250/phase-noise-analyzer/web/sample-rate.ts', 'PnaSampleRate'],
         ['examples/alpha250/phase-noise-analyzer/web/app.ts', null]
     ]) {
         window.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {

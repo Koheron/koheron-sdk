@@ -36,6 +36,8 @@ class PhaseNoiseAnalyzer {
     auto get_stream_coverage() const { return core.get_stream_coverage(); }
     auto get_stream_performance() { return core.get_stream_performance(); }
     auto get_fft_performance() const { return core.get_fft_performance(); }
+    bool set_sampling_frequency(uint32_t rate_hz) { return core.set_sampling_frequency(rate_hz); }
+    uint32_t get_sampling_frequency() const { return core.get_sampling_frequency(); }
 
  private:
     phase_noise::Core<Alpha250PhaseNoiseBoard> core;

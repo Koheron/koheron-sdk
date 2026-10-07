@@ -3,6 +3,7 @@
 #include "server/hardware/memory_manager.hpp"
 #include "boards/alpha250/drivers/clock-generator.hpp"
 #include "boards/alpha250/drivers/ltc2157.hpp"
+#include "boards/alpha250/drivers/phase-modulator.hpp"
 #include "server/runtime/driver_manager.hpp"
 #include <scicpp/polynomials.hpp>
 
@@ -26,8 +27,18 @@ struct Alpha250PhaseNoiseBoard {
         return hw::get_memory<mem::status>().read<reg::phase_packet>();
     }
     auto& clock() { return rt::get_driver<ClockGenerator>(); }
-    Alpha250PhaseNoiseBoard() { clock().set_sampling_frequency(1); }
+    Alpha250PhaseNoiseBoard() {
+        clock().use_ps_phase_control(reg::mmcm_ps);
+        clock().set_sampling_frequency(1);
+    }
     double sampling_frequency() { return clock().get_adc_sampling_freq(); }
+    auto lock_sampling_settings() { return std::unique_lock(clock_cfg::sampling_mutex); }
+    bool sample_rate_compatible(uint32_t rate) {
+        return rt::get_driver<PhaseModulator>().sample_rate_compatible(rate);
+    }
+    bool set_sampling_frequency(uint32_t rate) {
+        return rt::get_driver<PhaseModulator>().change_sample_rate(rate);
+    }
     uint32_t reference_clock() { return clock().get_reference_clock(); }
     double power_conversion(uint32_t channel, double frequency) {
         auto& adc = rt::get_driver<Ltc2157>();

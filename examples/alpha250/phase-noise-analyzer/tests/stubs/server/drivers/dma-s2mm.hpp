@@ -20,7 +20,7 @@ public:
         hw::captured_rate = ctl.words[reg::cic_rate / 4].load();
         const uint32_t word = 2 * hw::captured_channel;
         const uint64_t increment = uint64_t(ctl.words[word].load()) | uint64_t(ctl.words[word + 1].load()) << 32;
-        hw::captured_lo = static_cast<double>(increment) * 200e6 / (uint64_t{1} << 48);
+        hw::captured_lo = static_cast<double>(increment) * hw::test_sampling_frequency / (uint64_t{1} << 48);
         hw::dma_in_flight.store(true);
     }
     template<class Duration> bool wait_for_transfer_checked(Duration) {

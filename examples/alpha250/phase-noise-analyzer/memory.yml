@@ -17,6 +17,7 @@ memory:
     registers:
     - spi_cfg_data
     - spi_cfg_cmd
+    - mmcm_ps
   - name: status
     offset: 0x5000_0000
     range: 4K
