@@ -34,13 +34,13 @@ class StreamingWelch {
     std::array<Workspace, 2> work;
     const std::vector<float> window = scicpp::signal::windows::hann<float>(FftSize);
     double window_power = 0;
-    std::vector<float> power = std::vector<float>(bins), averaged_power = std::vector<float>(bins);
+    std::vector<float> averaged_power = std::vector<float>(bins);
     std::vector<float> native_power = std::vector<float>(bins);
     std::vector<std::complex<float>> cross = std::vector<std::complex<float>>(bins);
     std::vector<std::complex<float>> native_cross = std::vector<std::complex<float>>(bins);
     std::array<std::vector<float>, 3> history{
         std::vector<float>(bins), std::vector<float>(bins), std::vector<float>(bins)};
-    std::size_t head = 0, filled = 0;
+    std::size_t head = 0, filled = 0, latest_head = 0;
     uint64_t segments = 0;
     std::array<double, 5> timing{};
 
@@ -204,20 +204,21 @@ class StreamingWelch {
         const auto reduce_start = StreamClock::now();
         const float normalization = float(1.0 / (fs * window_power));
         if (y.empty()) {
-            std::fill(native_power.begin(), native_power.end(), 0.f);
-            detail::accumulate_welch_power(work[0].transformed.get(), native_power.data(), FftSize, layout.simd_size);
+            // Production consumers retain native bin order: write normalized
+            // power directly into the rolling slot, without clearing, adding
+            // an all-zero spectrum, or copying an intermediate periodogram.
+            auto& output = native_output ? history[head] : native_power;
+            detail::accumulate_welch_power<false>(work[0].transformed.get(), output.data(),
+                                                FftSize, layout.simd_size, normalization);
+            if (!native_output)
+                for (std::size_t k = 0; k < bins; ++k) history[head][k] = native_power[layout.positions[k]];
         } else {
             fill_cross(normalization);
             if (!rolling) { timing[3] = elapsed_ms(reduce_start); ++segments; return; }
+            for (std::size_t k = 0; k < bins; ++k)
+                history[head][k] = (native_output ? native_cross[k] : cross[k]).real();
         }
-        for (std::size_t k = 0; k < bins; ++k) {
-            const float factor = normalization * (k == 0 || k == bins - 1 ? 1.f : 2.f);
-            if (y.empty()) power[k] = native_power[native_output ? k : layout.positions[k]] * factor;
-            else {
-                power[k] = (native_output ? native_cross[k] : cross[k]).real();
-            }
-            history[head][k] = power[k];
-        }
+        latest_head = head;
         head = (head + 1) % 3;
         filled = std::min(filled + 1, std::size_t{3});
         ++segments;
@@ -244,7 +245,7 @@ class StreamingWelch {
         }
         timing[3] = elapsed_ms(reduce_start);
     }
-    const auto& latest_power() const { return power; }
+    const auto& latest_power() const { return history[latest_head]; }
     const auto& latest_cross() const { return native_output ? native_cross : cross; }
     const auto& density() const { return averaged_power; }
     auto trend(std::size_t channel = 0) const { return work[channel].trend; }

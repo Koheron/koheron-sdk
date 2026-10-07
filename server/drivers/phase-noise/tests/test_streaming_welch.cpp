@@ -2,6 +2,7 @@
 #include "server/drivers/phase-noise/acquisition-window.hpp"
 #include <fstream>
 #include <iostream>
+#include <bit>
 
 template<typename T>
 void check_same_spectrum(const std::vector<T>& actual, const std::vector<T>& expected) {
@@ -19,6 +20,21 @@ void check_same_spectrum(const std::vector<T>& actual, const std::vector<T>& exp
 
 int main(int argc, char** argv) {
     assert(argc == 2);
+    // Fusing normalization must retain DC/Nyquist scaling and gradual
+    // underflow, including the ARMv7 NEON scalar fallback.
+    for (const int simd : {1, 4}) for (const float normalization : {1e-39f, 1e-15f, 1e-3f, 1.f, 1e3f}) {
+        std::array<float, 64> transformed{};
+        const float values[]{0.f, 1e-22f, -1e-20f, 1e-10f, -1.f, 1e10f};
+        for (std::size_t k = 0; k < transformed.size(); ++k) transformed[k] = values[k % 6];
+        std::array<float, 33> original{}, fused{};
+        phase_noise::detail::accumulate_welch_power(transformed.data(), original.data(), 64, simd);
+        phase_noise::detail::accumulate_welch_power<false>(transformed.data(), fused.data(), 64, simd, normalization);
+        for (std::size_t k = 0; k < original.size(); ++k) {
+            const volatile float unscaled = original[k];
+            const float expected = unscaled * (k == 0 || k == 32 ? normalization : 2.f * normalization);
+            assert(std::bit_cast<uint32_t>(fused[k]) == std::bit_cast<uint32_t>(expected));
+        }
+    }
     constexpr std::size_t size = 512, hops = 12, samples = size + (hops - 1) * size / 2;
     std::array<int32_t, samples> x{}, y{};
     uint32_t random = 13;

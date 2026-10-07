@@ -1,6 +1,7 @@
 #include "server/drivers/phase-noise/cyclic-phase-dma.hpp"
 #include <cassert>
 #include <iostream>
+#include <memory>
 
 // Autonomous descriptor engine: publication at TLAST precedes DDR writeback.
 // It deliberately ignores stale Complete bits on subsequent cyclic laps.
@@ -84,6 +85,18 @@ int main() {
     assert(stream_next->end_chunk==stream_first->end_chunk+2);
     assert(stream_next->samples[0]==stream_first->samples[16384]);
     assert(stream_next->generation==stream_first->generation);
+    // Reuse dirty scratch storage without retaining metadata from a previous
+    // failed capture, and keep the published phase window untouched.
+    auto reused = std::make_unique<CyclicPhaseDma::Snapshot<32768>>();
+    reused->overflow = reused->sample_gap = reused->mixed_precision = true;
+    reused->skipped_hops = 123;
+    const auto published = std::make_unique<std::array<int32_t, 32768>>(stream_next->samples);
+    const auto* storage = reused->samples.data();
+    assert(dma.read_into(*reused, stream_next->end_chunk, running, 2, true));
+    check(reused);
+    assert(reused->samples.data() == storage && stream_next->samples == *published);
+    assert(!reused->overflow && !reused->sample_gap && !reused->mixed_precision && !reused->skipped_hops);
+    assert(reused->samples[0] == (*published)[16384]);
     auto wrap=dma.read<65536>(CyclicPhaseDma::ring_chunks-4,running);check(wrap);
     assert(wrap->end_chunk>=CyclicPhaseDma::ring_chunks+4);
     // Configuration pauses the producer, resets phase and filter histories, then

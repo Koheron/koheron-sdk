@@ -12,6 +12,7 @@
 #include <cmath>
 #include <chrono>
 #include <shared_mutex>
+#include <memory>
 #include <tuple>
 #include <vector>
 #include <scicpp/core.hpp>
@@ -169,7 +170,7 @@ class PhaseNoiseAnalyzer
     auto get_phase_snapshot() {
         using namespace scicpp::operators;
         std::shared_lock lk(data_mtx);
-        return std::tuple{accepted_captures, captured_precision, capture_state == Valid, relative_phase_snapshot(raw_phase_x, captured_scale_x) | relative_phase_snapshot(raw_phase_y, captured_scale_y)};
+        return std::tuple{accepted_captures, captured_precision, capture_state == Valid, relative_phase_snapshot(phase_capture->x, captured_scale_x) | relative_phase_snapshot(phase_capture->y, captured_scale_y)};
     }
 
     auto get_spectrum_snapshot() const { return publication.snapshot(); }
@@ -235,7 +236,8 @@ class PhaseNoiseAnalyzer
     phase_noise::SpectrumPublication<PhaseNoiseDensity> publication{spectrum_bins};
     void publish_spectrum(std::optional<std::array<double, 4>> acquired_lo = std::nullopt);
 
-    std::array<int32_t, data_size> raw_phase_x{}, raw_phase_y{};
+    std::unique_ptr<PhaseDma::Snapshot<data_size>> phase_capture =
+        std::make_unique<PhaseDma::Snapshot<data_size>>();
     Phase captured_scale_x{}, captured_scale_y{};
     double phase_scale_x = 1.0, phase_scale_y = 1.0;
     double cic_output_scale = 1.0;

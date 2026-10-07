@@ -187,6 +187,21 @@ stages report the larger per-channel time; their sum is not a complete wall-cloc
 profile. Single-channel reseeding processes three FFTs, while the substage values
 describe the last of those segments.
 
+ALPHA250 1.5.2, ALPHA250-4 1.3.2 and Red Pitaya 1.3.2 reuse two owned raw
+capture buffers. DMA fills the worker's scratch buffer with `read_into()`;
+accepting a capture swaps its ownership with the published phase buffer under
+the existing data lock. Phase RPCs therefore retain one coherent accepted
+capture without a full-array return or publication copy. Invalid captures never
+replace it, and acquisition resets still clear the published phase samples.
+DMA descriptor, metadata, generation and overwrite checks remain in the copy
+path; overlapping windows still reuse the retained-tail cache.
+
+Auto spectra write normalized native-order FFT magnitudes directly into the
+rolling Welch slot. This removes its intermediate clear, accumulation and
+periodogram copy passes. DC/Nyquist scaling, gradual-underflow fallbacks and the
+three-segment average remain unchanged. The DPLL's shared passive monitor also
+uses these paths. See the [build and hardware validation](tests/memory-validation.md).
+
 The shared header shows queued sample time beside coverage. Amber warns when
 estimated capacity is below the required half-window rate or the queue exceeds
 half its retained buffer. The tooltip exposes capacity and stage timings, so a
