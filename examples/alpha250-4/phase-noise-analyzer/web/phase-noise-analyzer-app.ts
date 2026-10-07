@@ -92,7 +92,7 @@ class PhaseNoiseAnalyzerApp {
       navg.hidden = cumulative;
       (this.document.querySelector('.reset-cumulative-averager-btn') as HTMLButtonElement).hidden = !cumulative;
       const status = this.document.getElementById('average-status');
-      status.textContent = cumulative ? `${average.count} cumulative` : `${average.count}/`;
+      status.textContent = cumulative ? `${average.count}` : `${average.count}/`;
       status.dataset.state = average.count === 0 ? 'waiting' : cumulative ? 'cumulative'
         : average.count < average.target ? 'filling' : 'full';
       status.title = cumulative ? `${average.count} fresh synchronized X/Y windows; averaging continues until reset.`

@@ -126,7 +126,7 @@ test('all four nominal LO fields commit in Hz, reject invalid integers and show 
     setLocalOscillator(channel,hz){calls.push([channel,hz]);nominal[channel]=hz;},setCicRate(value){calls.push(['cic',value]);p.cic_rate=value;}};
   const app = new w.ControlApp(w.document,driver);await app.init();await new Promise(resolve=>setImmediate(resolve));
   assert.equal(w.document.querySelector('.plot-navg-input').disabled,true);
-  assert.ok(w.document.getElementById('average-status').textContent.includes('42 cumulative'));
+  assert.equal(w.document.getElementById('average-status').textContent, '42');
   const input=w.document.querySelector('.dds-input3');
   input.dispatchEvent(new w.FocusEvent('focus'));input.value='10.000000001';input.dispatchEvent(new w.Event('input'));
   input.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));await new Promise(resolve=>setTimeout(resolve,20));
