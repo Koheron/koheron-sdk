@@ -12,8 +12,9 @@ Choose `all` (default), `alpha250`, `alpha250-4` or `dpll` as the first argument
 The optional second argument selects `python`, `cpp`, `web` or `all` (default).
 The `cpp` stage includes the independent SciPy numerical audits. The `all` stage
 also decodes ALPHA250-4 C++ payloads through its compiled web bundle, so build that
-bundle first when selecting ALPHA250-4 or all instruments. Browser-only checks
-load the real sources and templates directly and need no prior build.
+bundle first when selecting ALPHA250-4 or all instruments. Browser checks load
+the real sources and templates directly and need no web build, but their wire
+format integration fixture requires the `cpp` stage to have run first.
 
 For native execution, install g++-13, Eigen, the Python client dependencies,
 NumPy and SciPy, and run `npm install --prefix web --no-package-lock`. Then use:

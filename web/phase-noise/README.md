@@ -22,6 +22,7 @@ Browser regression tests are in `tests/` and the consuming instruments' `tests/`
 directories. Those fixtures load the shared sources directly; update their paths
 when moving components.
 
-`bash web/phase-noise/tests/run.sh` runs the common and instrument browser suites.
+`bash web/phase-noise/tests/run.sh` runs the common and instrument browser suites
+after the host runner's `cpp` stage has generated the spectrum payload fixture.
 The [shared host runner](../../server/drivers/phase-noise/tests/README.md) adds
 Python clients, sanitized C++ fixtures and compiled-payload integration checks.
