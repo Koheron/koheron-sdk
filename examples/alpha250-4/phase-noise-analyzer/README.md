@@ -15,7 +15,8 @@ phase commands now use the independent PS control clock.
 
 ## Split CIC acquisition
 
-The phase extractor runs at 250 MHz. A full-precision six-stage fixed CIC
+The phase extractor runs at the selected 200 or 250 MS/s; FPGA timing is
+constrained at 250 MHz. A full-precision six-stage fixed CIC
 first decimates by two, retaining all 38 output bits. The stream crosses to
 143 MHz before the programmable six-stage CIC, compensation FIR and packet
 quantizer. The shared hardware is in

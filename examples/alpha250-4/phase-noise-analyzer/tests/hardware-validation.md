@@ -961,3 +961,23 @@ Server SHA-256:
 Artifacts are under `tmp/pna-performance/`: fixed baseline/final telemetry,
 `prebenchmark-measurement.csv`, deployment measurements, restored settings,
 package/readback hashes, numerical/build/test logs and Chrome screenshots.
+
+
+## Sample-rate selector (2026-10-07, PNA 1.3.1)
+
+Build checks: Vivado 2026.1 strict routed timing passed at 250 MHz
+(WNS +0.028467 ns, WHS +0.053104 ns; all 18 bus-skew constraints passed).
+Production design checks confirm the MMCM controls remain on FCLK0.
+The quad software/sanitizer/SciPy runner, saved-rate startup checks, eight
+workspace tests and 11 ALPHA250 shared-selector/generator browser tests passed.
+The ALPHA250-4 FFT server also compiled against the updated clock driver.
+Existing missing I/O-delay warnings remain (28 inputs, 5 outputs).
+
+Hardware checks on 192.168.1.12: repeated 200/250 MS/s transitions changed both
+ADC clock readbacks, retained all four nominal 10.001 MHz LOs and CIC 134,
+and reported phase sample rates 746268.656716 and 932835.820896 Hz respectively.
+Unsupported 240 MS/s was rejected. The starting 250 MS/s rate and saved +8-bit
+precision were retained. Acquisition reported Valid, 22 processed segments,
+zero overflows, DMA errors and ring overruns at the end of the short check.
+This verifies live switching and acquisition; no analog calibration or
+noise-floor comparison between rates was performed.

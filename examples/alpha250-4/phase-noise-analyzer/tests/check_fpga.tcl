@@ -30,8 +30,10 @@ for {set stream 0} {$stream < 2} {incr stream} {
     pna_same_net phase_filter_cdc/rate cic$stream/total_rate
 }
 puts "PASS: paired fixed /2 and synchronized X/Y admission, slow CIC/FIR/packets"
-pna_same_net ps_0/FCLK_CLK0 adc/mmcm/psclk
+pna_same_net ps_0/FCLK_CLK0 adc/ps_clk
+pna_same_net adc/ps_clk adc/mmcm/psclk
 pna_same_net ps_ctl/mmcm_ps adc/ctl
-pna_same_net ps_0/FCLK_CLK0 ps_ctl/axi_ps_ctl_register/aclk
+pna_same_net ps_0/FCLK_CLK0 ps_ctl/aclk
+pna_same_net ps_ctl/aclk ps_ctl/axi_ps_ctl_register/aclk
 puts "PASS: MMCM reset and phase commands use the independent PS clock/control path"
 close_project

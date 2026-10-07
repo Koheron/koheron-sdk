@@ -44,6 +44,7 @@ Coverage includes:
 - Signed-spectrum smoothing, first-valid-bin boundaries, retained raw spectra and frequency-noise conversion.
 - Web measurement and tracking decoders against C++ serialized quantities.
 - Browser signed smoothing/table values, magnitude display with negative markers, negative-only reference capture, retained reference frequency axes, duplicate-frame accounting, disposal, and signed CSV exports with four LO frequencies and cumulative metadata.
+- Repeated 200/250 MS/s switches preserve four LO frequencies, update sampling metadata, restart paired DMA, reject Nyquist violations, and restore/save the selected rate. The shared selector is exercised on both board pages.
 - All four digit-editable LO controls retain sub-hertz settings; CIC controls reject fractional rates and XY displays cumulative progress.
 - Plot decimation preserves frequency order, extrema and gaps, while compressing dense finite traces.
 - The PNA draw call uses the shared V1 renderer without confusing smoothing labels with the FFT peak flag; negative markers keep their point styling and decimated buffers remain independent.
