@@ -18,8 +18,15 @@ set nets [get_nets -of_objects [get_pins -of_objects $sources -filter {REF_PIN_N
 set_property FORCE_MAX_FANOUT 16 $nets
 phys_opt_design -force_replication_on_nets $nets
 
-# Replicated registers retain the same two-clock programming protocol.
+# Replicated registers retain the same three-clock programming protocol.
 source [file normalize [file join [file dirname [info script]] gain_programming_timing.tcl]]
+
+# The acceptance-state decode also controls the applied bank registers.
+set state_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *gain_programmer/inst/fast_state_reg*}]
+if {![llength $state_sources]} {error "Missing gain programming state registers"}
+set state_nets [get_nets -of_objects [get_pins -of_objects $state_sources -filter {REF_PIN_NAME == Q}]]
+set_property FORCE_MAX_FANOUT 4 $state_nets
+phys_opt_design -force_replication_on_nets $state_nets
 
 # Phase and state registers also address wide distributed tables. Their small
 # logical fanout can span both clock columns; create local launch copies rather

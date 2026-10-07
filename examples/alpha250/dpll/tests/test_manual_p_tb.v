@@ -21,7 +21,7 @@ module test_manual_p_tb;
     integer cycle=0,checked=0,k,top,address,seed=38146;
     integer impulse,fast_arrival,production_arrival,accurate_arrival;
     wire [15:0] production_fast;
-    manual_p_corrector #(.GAIN_STAGES(4),.FAST_GAIN_STAGES(3),.TAIL_GAIN_STAGES(4),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),.FAST_P_DSP(1),.PIPELINED_REFERENCE(1),.PRECOMBINE_I(1),.SELECTOR_CARRY_BLOCK(0)) production_controller(
+    manual_p_corrector #(.GAIN_STAGES(4),.FAST_GAIN_STAGES(3),.TAIL_GAIN_STAGES(4),.I2_GAIN_STAGES(5),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),.FAST_P_DSP(1),.PIPELINED_REFERENCE(1),.PRECOMBINE_I(1),.SELECTOR_CARRY_BLOCK(0)) production_controller(
         clk,resetn,freq,phase,i_in,q_in,cx,cy,request,capture_request,enabled,banks,
         command,data,production_fast,,,);
     reg [15:0] previous_baseline=0;

@@ -1,6 +1,6 @@
 `timescale 1 ns / 1 ps
 
-// Programmable constant multiplier with two to four pipeline stages. For four-bit
+// Programmable constant multiplier with two to five pipeline stages. For four-bit
 // chunks, software prepares sixteen multiples of the signed Q*.11 gain,
 // including the octave, for unsigned nibbles and sixteen for the signed top
 // nibble. Small asynchronous LUT RAMs
@@ -88,7 +88,7 @@ module table_gain #(
     genvar i,l,g,r;
     for(l=0;l<=LEVELS;l=l+1) begin : stage_boundary
         for(i=0;i<term_count(l);i=i+1) begin : term
-            if((PIPE_STAGES==4 || (PIPE_STAGES>=2 && FINAL_CSA_LEVELS>0)) && l==SPLIT) begin : pipeline
+            if((PIPE_STAGES>=4 || (PIPE_STAGES>=2 && FINAL_CSA_LEVELS>0)) && l==SPLIT) begin : pipeline
                 reg [WIDTH-1:0] value=0;
                 always @(posedge CLK) value<=tree[l*TERMS+i];
                 assign stage[l*TERMS+i]=value;
@@ -134,20 +134,35 @@ module table_gain #(
         dpll_carry_adder #(.WIDTH(WIDTH),.BLOCK(CARRY_BLOCK)) final_add(
             stage[LEVELS*TERMS],stage[LEVELS*TERMS+1],1'b0,product);
         always @(posedge CLK) P<=product[FRACTION_BITS+OUTPUT_LOW +: OUTPUT_WIDTH];
-    end else if(PIPE_STAGES==4 && FINAL_CSA_LEVELS>0 && (FRACTION_BITS+OUTPUT_LOW)>0) begin : split_final
+    end else if((PIPE_STAGES==4 || PIPE_STAGES==5) && FINAL_CSA_LEVELS>0 && (FRACTION_BITS+OUTPUT_LOW)>0) begin : split_final
         // Lower bits affect the retained output only through their carry.
         // Compute that carry at the existing intermediate register boundary.
         localparam CUT=FRACTION_BITS+OUTPUT_LOW;
         reg [WIDTH-CUT-1:0] sum=0,carry=0;
         reg low_carry=0;
+        wire [WIDTH-1:0] final_sum,final_carry;
+        if(PIPE_STAGES==5) begin : reduction_stage
+            // Keep the final two compressor levels separate from the carry
+            // of the discarded bits. This costs one sample clock.
+            reg [WIDTH-1:0] sum=0,carry=0;
+            always @(posedge CLK) begin
+                sum<=stage[LEVELS*TERMS];
+                carry<=stage[LEVELS*TERMS+1];
+            end
+            assign final_sum=sum;
+            assign final_carry=carry;
+        end else begin : direct_reduction
+            assign final_sum=stage[LEVELS*TERMS];
+            assign final_carry=stage[LEVELS*TERMS+1];
+        end
         wire low_next;
         dpll_carry_out #(.WIDTH(CUT)) carry_out(
-            stage[LEVELS*TERMS][CUT-1:0],stage[LEVELS*TERMS+1][CUT-1:0],low_next);
+            final_sum[CUT-1:0],final_carry[CUT-1:0],low_next);
         wire [WIDTH-CUT-1:0] product;
         dpll_carry_adder #(.WIDTH(WIDTH-CUT),.BLOCK(CARRY_BLOCK)) final_add(sum,carry,low_carry,product);
         always @(posedge CLK) begin
-            sum<=stage[LEVELS*TERMS][WIDTH-1:CUT];
-            carry<=stage[LEVELS*TERMS+1][WIDTH-1:CUT];
+            sum<=final_sum[WIDTH-1:CUT];
+            carry<=final_carry[WIDTH-1:CUT];
             low_carry<=low_next;
             P<=product[FRACTION_BITS+OUTPUT_LOW-CUT +: OUTPUT_WIDTH];
         end

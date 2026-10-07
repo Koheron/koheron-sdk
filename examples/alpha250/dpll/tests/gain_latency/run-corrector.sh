@@ -10,8 +10,8 @@ repo=$(cd "$here/../../../../.." && pwd)
 out=${DPLL_GAIN_BENCH_OUT:-"$repo/tmp/tests/alpha250-dpll/table-corrector"}
 mkdir -p "$out"
 cd "$out"
-xvlog --sv "$here/../../table_gain.v" "$here/../../table_corrector.v" "$here/corrector_table_tb.v" > compile.log 2>&1
-xelab work.corrector_table_test -s corrector_table_test > elaborate.log 2>&1
+xvlog --sv "$XILINX_VIVADO/data/verilog/src/glbl.v" "$here/../../table_gain.v" "$here/../../table_corrector.v" "$here/corrector_table_tb.v" > compile.log 2>&1
+xelab -L unisims_ver work.corrector_table_test work.glbl -s corrector_table_test > elaborate.log 2>&1
 xsim corrector_table_test -runall > simulation.log 2>&1
 rg 'checks passed|Fast correction impulse|Two-cycle gain impulse|Mixed gain impulse|Fatal:|ERROR:' simulation.log || true
 rg -q 'Table corrector checks passed' simulation.log

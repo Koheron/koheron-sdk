@@ -17,9 +17,9 @@ module test_p_frontend_tb;
     reg [63:0] data=0;
     wire [15:0] fast,slow,baseline_fast,baseline_slow;
     wire [31:0] snapshot,status;
-    manual_p_corrector #(.GAIN_STAGES(4),.FAST_GAIN_STAGES(3),.TAIL_GAIN_STAGES(4),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),.FAST_P_DSP(1),.PIPELINED_REFERENCE(1),.PRECOMBINE_I(1),.SELECTOR_CARRY_BLOCK(0),.FREQ_WIDTH(25),.PHASE_WIDTH(40),.PHASE_FRAC(8)) controller(clk,resetn,freq,phase,i_filtered,q_filtered,cx,cy,
+    manual_p_corrector #(.GAIN_STAGES(4),.FAST_GAIN_STAGES(3),.TAIL_GAIN_STAGES(4),.I2_GAIN_STAGES(5),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),.FAST_P_DSP(1),.PIPELINED_REFERENCE(1),.PRECOMBINE_I(1),.SELECTOR_CARRY_BLOCK(0),.FREQ_WIDTH(25),.PHASE_WIDTH(40),.PHASE_FRAC(8)) controller(clk,resetn,freq,phase,i_filtered,q_filtered,cx,cy,
         request,capture_request,enabled,banks,command,data,fast,slow,snapshot,status);
-    table_corrector #(.FUSED(1),.GAIN_STAGES(4),.TAIL_GAIN_STAGES(4),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),.FREQ_WIDTH(25),.PHASE_WIDTH(40),.PHASE_FRAC(8))
+    table_corrector #(.FUSED(1),.GAIN_STAGES(4),.TAIL_GAIN_STAGES(4),.I2_GAIN_STAGES(5),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),.FREQ_WIDTH(25),.PHASE_WIDTH(40),.PHASE_FRAC(8))
         baseline(clk,freq,phase,enabled,banks,command,data,baseline_fast,baseline_slow,,,,,);
     reg signed [15:0] accurate_delayed=0;
     integer sample=0,cycle=0,k,top,address,fast_arrival,accurate_arrival,disturbance;

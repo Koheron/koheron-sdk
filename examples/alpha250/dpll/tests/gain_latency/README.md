@@ -1,5 +1,14 @@
 # DPLL gain and controller latency experiments
 
+The combined design uses four-clock P/I/I³ gains and a five-clock I² gain.
+The added I² register separates the final carry-save reduction from its 59-bit
+discarded-bit carry (one additional clock / 4 ns). Direct Fast P/I and accurate
+P/I delays are unchanged. The current five-clock multiplier regression checks
+55,408 cycles; the controller regression includes the production mixed
+four/five-clock pipelines, signed wraparound, enable clearing and gain changes.
+Full-instrument timing is reported in the instrument README.
+
+
 The original PR 782 Fast P + I instrument passed its 250 MHz production build on
 2026-10-07, with setup slack +0.004494 ns, hold slack +0.026840 ns and all nine
 bus-skew checks passing. The final placement hook was validated by rerunning
@@ -261,9 +270,10 @@ The table simulation defaults to four-bit chunks, Q1.11 and three clocks.
 `DPLL_GAIN_FINAL_CSA_LEVELS`, `DPLL_GAIN_CARRY_BLOCK`, `DPLL_GAIN_PHASE_FRAC` and
 `DPLL_GAIN_BENCH_OUT` override its settings/output directory.
 For the current Q8 interfaces, set `DPLL_GAIN_PHASE_FRAC=8`,
-`DPLL_GAIN_PIPE_STAGES=4` and `DPLL_GAIN_FINAL_CSA_LEVELS=2`. This checks the
+`DPLL_GAIN_PIPE_STAGES=4` (P/I/I³) or `5` (I²), and
+`DPLL_GAIN_FINAL_CSA_LEVELS=2`. This checks the
 25-bit P input, 40-bit PI input and unchanged fast DSP input against independent
-integer products, including their exact four- and three-clock latencies.
+integer products, including exact four/five-clock table and three-clock DSP latencies.
 The corrector benchmark's first argument selects fused (1) or separate (0).
 Optional final arguments set initial gain stages, final CSA levels, carry-block
 width and I2/I3 gain stages. **`2 2 0 3` is the selected mixed pipeline**;

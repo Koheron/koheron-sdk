@@ -7,6 +7,7 @@ module manual_p_corrector #(
     parameter integer PIPELINED_REFERENCE=0,
     parameter integer PRECOMBINE_I=0,
     parameter integer TAIL_GAIN_STAGES=3,
+    parameter integer I2_GAIN_STAGES=TAIL_GAIN_STAGES,
     parameter integer FINAL_CSA_LEVELS=2,
     parameter integer CARRY_BLOCK=0,
     parameter integer SELECTOR_CARRY_BLOCK=CARRY_BLOCK,
@@ -62,7 +63,7 @@ module manual_p_corrector #(
 
 
     table_corrector #(.FUSED(FUSED),.GAIN_STAGES(GAIN_STAGES),
-        .TAIL_GAIN_STAGES(TAIL_GAIN_STAGES),.FINAL_CSA_LEVELS(FINAL_CSA_LEVELS),
+        .TAIL_GAIN_STAGES(TAIL_GAIN_STAGES),.I2_GAIN_STAGES(I2_GAIN_STAGES),.FINAL_CSA_LEVELS(FINAL_CSA_LEVELS),
         .CARRY_BLOCK(CARRY_BLOCK),.FREQ_WIDTH(FREQ_WIDTH),
         .PHASE_WIDTH(PHASE_WIDTH),.PHASE_FRAC(PHASE_FRAC)) accurate_controller(
         .clk(clk),.freq_in(freq_in),.phase_in(phase_in),.enabled(enabled),

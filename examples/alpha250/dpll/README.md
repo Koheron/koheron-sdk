@@ -142,10 +142,12 @@ The pulse-valid test measures four mixer clocks and 15 clocks for the selected
 | **Total clocks / time** | **14 / 56 ns** | **20 / 80 ns** | **33 / 132 ns** | **34 / 136 ns** |
 
 From filtered I/Q through the selector, Fast P is seven clocks (28 ns) and
-Fast I is thirteen (52 ns). The accurate I² branch adds five clocks (20 ns) after
+Fast I is thirteen (52 ns). The accurate I² branch adds six clocks (24 ns) after
 the corresponding direct accurate contribution through the first accumulator
 and I² gain. In Fast mode, its output also passes through the I + I² preparation
-register. I³ has its own gain and accumulator before the precision DAC;
+register. This includes one additional 4 ns register in the I² gain; direct
+Fast P/I and accurate P/I delays in the table are unchanged. I³ retains its
+four-clock gain and accumulator before the precision DAC;
 that DAC's serial transfer and settling are separate from RF feedback timing.
 
 These are register delays. Add 6 ns filter group delay for Fast, or 120 ns for
@@ -253,11 +255,11 @@ final sum. It takes three clocks, receiving the combinational projection one
 clock before the I/status phase register, so total P latency is retained. The
 existing double-bank programming protocol is retained. It captures the gain
 from the unsigned address-one entry. The wider I gain and accurate controller
-gains use four-clock table reductions. All paths accept one sample per clock.
-The third table pipeline stage computes the carry from all discarded lower
-bits using short carry-generate blocks. The last stage adds only the retained
-output bits, shortening the I² gain's final sum from 59 to 32 bits without
-changing numerical precision or latency. Feedback phase and the accurate
+P/I and I³ gains use four-clock table reductions. The I² gain takes five clocks:
+its final carry-save reduction, discarded-bit carry and retained-bit sum have
+separate registers. The carry uses short carry-generate blocks, and the final
+sum is only 32 bits. This adds exactly 4 ns to I² while retaining its numerical
+precision. All paths accept one sample per clock. Feedback phase and the accurate
 second integrator each use a DSP accumulator with their existing one-clock
 update, adding four DSPs across the two channels.
 The shared accurate extractor uses the wider phase interface described above.
@@ -289,11 +291,11 @@ Server restarts read the active banks and coefficients from hardware.
 Gain requests are validated and decoded at 143 MHz, using PR 780's registered
 CDC handshakes and reset draining. RAM writes and atomic bank/coefficient commits
 remain at 250 MHz. Address and payload precede the registered write strobe,
-preserving PR 782's two-clock RAM setup budget. Acknowledgement follows the write
+with a setup wait giving three clocks (12 ns) before RAM capture. Acknowledgement follows the write
 or commit. The acceptance decision and one-hot gain destination are registered
 before driving table controls; that extra programming clock does not affect
 feedback latency. Reset preserves committed gains while cancelling pending transfers.
-Only these held RAM programming inputs use two-clock timing constraints; the
+Only these held RAM programming inputs use three-clock timing constraints; the
 write strobe, bank commits, lookup addresses and feedback remain at 250 MHz.
 
 The AXI/controller integration simulation runs two controllers against independent

@@ -1,5 +1,5 @@
 # gain_programmer prepares fields before its registered strobe. The RAM captures
-# them two clocks after preparation. Strobes, bank commits and feedback retain
+# them three clocks after preparation. Strobes, bank commits and feedback retain
 # the normal 4 ns requirement. Apply before placement and again after replication.
 proc dpll_constrain_gain_programming {} {
     set programming_sources [get_cells -hier -filter {REF_NAME == FDRE && (NAME =~ *gain_programmer/inst/data_reg* || NAME =~ *gain_programmer/inst/command*_reg*)}]
@@ -14,8 +14,8 @@ proc dpll_constrain_gain_programming {} {
     # Tables consume 48 payload bits. Coefficient readback now comes directly
     # from the coherent response, so unused upper payload registers disappear.
     if {[llength $held_sources] < 64 || ![llength $write_pins]} {error "Missing held gain programming inputs"}
-    set_multicycle_path 2 -setup -from $held_sources -to $write_pins
-    set_multicycle_path 1 -hold -from $held_sources -to $write_pins
+    set_multicycle_path 3 -setup -from $held_sources -to $write_pins
+    set_multicycle_path 2 -hold -from $held_sources -to $write_pins
     puts "DPLL held programming timing: [llength $held_sources] sources, [llength $write_pins] physical RAM pins"
 }
 dpll_constrain_gain_programming

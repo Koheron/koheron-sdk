@@ -1,11 +1,12 @@
 `timescale 1 ns / 1 ps
-// Production accurate gains use four stages; the separate DSP Fast P gain
+// Production accurate P/I/I3 gains use four stages, I2 uses five; DSP Fast P
 // takes three clocks from its earlier projection tap. Defaults retain the
 // historical three-clock controller.
 module table_corrector #(
     parameter integer FUSED=1,
     parameter integer GAIN_STAGES=3,
     parameter integer TAIL_GAIN_STAGES=GAIN_STAGES,
+    parameter integer I2_GAIN_STAGES=TAIL_GAIN_STAGES,
     parameter integer FINAL_CSA_LEVELS=0,
     parameter integer CARRY_BLOCK=0,
     parameter integer FREQ_WIDTH=17,
@@ -48,7 +49,7 @@ module table_corrector #(
         gp(clk,freq_in,active_banks[0],we[0],table_command[7],table_command[6],table_command[5:2],table_data,p);
     table_gain #(.A_WIDTH(PHASE_WIDTH), .OUTPUT_LOW(16+PHASE_FRAC), .OUTPUT_WIDTH(32), .PIPE_STAGES(GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
         gpi(clk,phase_in,active_banks[1],we[1],table_command[7],table_command[6],table_command[5:2],table_data,pi);
-    table_gain #(.A_WIDTH(48), .OUTPUT_LOW(48), .OUTPUT_WIDTH(32), .PIPE_STAGES(TAIL_GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
+    table_gain #(.A_WIDTH(48), .OUTPUT_LOW(48), .OUTPUT_WIDTH(32), .PIPE_STAGES(I2_GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
         gi2(clk,acc1,active_banks[2],we[2],table_command[7],table_command[6],table_command[5:2],table_data,i2);
     table_gain #(.A_WIDTH(32), .OUTPUT_WIDTH(64), .PIPE_STAGES(TAIL_GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
         gi3(clk,acc2,active_banks[3],we[3],table_command[7],table_command[6],table_command[5:2],table_data,i3);

@@ -19,9 +19,9 @@ module gain_programmer (
     output reg [63:0] data = 0
 );
     localparam F_DRAIN=0, F_IDLE=1, F_WAIT=2, F_APPLIED=3, F_RETURN=4,
-               F_STROBE=5, F_WRITE=6, F_ACCEPT=7;
+               F_STROBE=5, F_WRITE=6, F_ACCEPT=7, F_SETUP=8;
     localparam S_DRAIN=0, S_IDLE=1, S_WAIT=2, S_RETURN=3;
-    reg [2:0] fast_state=F_DRAIN;
+    reg [3:0] fast_state=F_DRAIN;
     reg [1:0] slow_state=S_DRAIN;
     reg [5:0] fast_flush=0, slow_flush=0;
     reg [95:0] request_held=0;
@@ -149,13 +149,14 @@ module gain_programmer (
                         end else begin
                             data<=response_word[95:32];
                             // Hold payload/address before asserting the write
-                            // strobe, retaining the two-clock RAM setup budget.
+                            // strobe, providing three complete setup clocks.
                             if (loop_requested) command1<={1'b0,response_word[103:96]};
                             else command0<={1'b0,response_word[103:96]};
                         end
                     end
-                    fast_state<=(!rejected && !commit_requested) ? F_STROBE : F_APPLIED;
+                    fast_state<=(!rejected && !commit_requested) ? F_SETUP : F_APPLIED;
                 end
+                F_SETUP: fast_state<=F_STROBE;
                 F_STROBE: begin
                     if (loop_requested) command1[8]<=1;
                     else command0[8]<=1;

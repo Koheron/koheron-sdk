@@ -10,6 +10,7 @@ proc create {module_name} {
         GAIN_STAGES 4
         FAST_GAIN_STAGES 3
         TAIL_GAIN_STAGES 4
+        I2_GAIN_STAGES 5
         FINAL_CSA_LEVELS 2
         CARRY_BLOCK 0
         FAST_P_DSP 1

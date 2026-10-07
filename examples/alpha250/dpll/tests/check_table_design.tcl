@@ -18,7 +18,7 @@ foreach channel {0 1} {
             error "Incorrect shared phase history: loop $channel $name"
         }
     }
-    foreach {name expected} {FUSED 1 GAIN_STAGES 4 FAST_GAIN_STAGES 3 TAIL_GAIN_STAGES 4 FINAL_CSA_LEVELS 2 CARRY_BLOCK 0 FAST_P_DSP 1 PIPELINED_REFERENCE 1 PRECOMBINE_I 1 SELECTOR_CARRY_BLOCK 0 PHASE_FRAC 8 FREQ_WIDTH 25 PHASE_WIDTH 40} {
+    foreach {name expected} {FUSED 1 GAIN_STAGES 4 FAST_GAIN_STAGES 3 TAIL_GAIN_STAGES 4 I2_GAIN_STAGES 5 FINAL_CSA_LEVELS 2 CARRY_BLOCK 0 FAST_P_DSP 1 PIPELINED_REFERENCE 1 PRECOMBINE_I 1 SELECTOR_CARRY_BLOCK 0 PHASE_FRAC 8 FREQ_WIDTH 25 PHASE_WIDTH 40} {
         if {[get_property CONFIG.$name [get_bd_cells corrector$channel]] != $expected} {
             error "Incorrect controller parameter: loop $channel $name"
         }
@@ -130,7 +130,7 @@ set memories [get_cells -hier -filter {IS_PRIMITIVE && (REF_NAME =~ RAMD* || REF
 set write_pins [get_pins -leaf -of_objects $memories -filter {REF_PIN_NAME =~ WADR* || REF_PIN_NAME =~ ADR* || REF_PIN_NAME == I || REF_PIN_NAME == WE}]
 set bank_sources [filter $programmer {REF_NAME == FDRE && NAME =~ *active_banks_reg*}]
 if {[llength $held_sources]<64 || ![llength $write_pins]} {error "Missing held programming paths"}
-foreach {kind sources targets expected} [list held $held_sources $write_pins 8.0 strobe $strobe_sources $write_pins 4.0 bank $bank_sources {} 4.0] {
+foreach {kind sources targets expected} [list held $held_sources $write_pins 12.0 strobe $strobe_sources $write_pins 4.0 bank $bank_sources {} 4.0] {
     if {![llength $sources]} {error "Missing $kind programming sources"}
     if {[llength $targets]} {
         set path [get_timing_paths -from $sources -to $targets -max_paths 1 -no_report_unconstrained]

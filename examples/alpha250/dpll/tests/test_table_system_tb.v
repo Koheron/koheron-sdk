@@ -49,14 +49,17 @@ module test_table_system_tb;
                                ack,banks,coefficients,command0,command1,data);
     reg [7:0] prepared0=0,prepared1=0;
     reg [63:0] prepared_data=0;
+    reg [7:0] earlier0=0,earlier1=0;
+    reg [63:0] earlier_data=0;
     always @(posedge clk) begin
         #1;
-        // Preparing fields before raising the registered strobe provides two
-        // complete setup clocks before the RAM's following capture edge.
-        if(command0[8] && (command0[7:0]!==prepared0 || data!==prepared_data))
+        // Preparing fields, waiting one clock, then raising the registered strobe
+        // provides three complete setup clocks before the RAM capture edge.
+        if(command0[8] && (command0[7:0]!==prepared0 || command0[7:0]!==earlier0 || data!==prepared_data || data!==earlier_data))
             $fatal(1,"Channel zero RAM fields were not prepared before strobe");
-        if(command1[8] && (command1[7:0]!==prepared1 || data!==prepared_data))
+        if(command1[8] && (command1[7:0]!==prepared1 || command1[7:0]!==earlier1 || data!==prepared_data || data!==earlier_data))
             $fatal(1,"Channel one RAM fields were not prepared before strobe");
+        earlier0=prepared0;earlier1=prepared1;earlier_data=prepared_data;
         prepared0=command0[7:0];prepared1=command1[7:0];prepared_data=data;
     end
 
@@ -64,11 +67,11 @@ module test_table_system_tb;
     generate for(channel=0;channel<2;channel=channel+1) begin : loop_dut
         wire [2:0] enabled=control[513+32*channel +: 3];
         wire [15:0] fast,slow;
-        table_corrector #(.FUSED(1),.GAIN_STAGES(4),.TAIL_GAIN_STAGES(4),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),
+        table_corrector #(.FUSED(1),.GAIN_STAGES(4),.TAIL_GAIN_STAGES(4),.I2_GAIN_STAGES(5),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),
                              .FREQ_WIDTH(25),.PHASE_WIDTH(40),.PHASE_FRAC(8))
             dut(clk,freq[channel],phase[channel],enabled,banks[4*channel +: 4],
                 channel ? command1 : command0,data,fast,slow,,,);
-        reg [31:0] rp[0:3],rpi[0:3],ri2[0:3];
+        reg [31:0] rp[0:3],rpi[0:3],ri2[0:4];
         reg [63:0] ri3[0:3];
         reg [31:0] first_sum=0,acc2=0;
         reg signed [47:0] acc1=0;
@@ -77,7 +80,8 @@ module test_table_system_tb;
         integer x;
         initial begin
             for(x=0;x<4;x=x+1) begin rp[x]=0;rpi[x]=0;end
-            for(x=0;x<4;x=x+1) begin ri2[x]=0;ri3[x]=0;end
+            for(x=0;x<5;x=x+1) begin ri2[x]=0;end
+            for(x=0;x<4;x=x+1) ri3[x]=0;
         end
         always @(posedge clk) begin
             product_p=$signed(freq[channel])*gains[4*channel];
@@ -87,14 +91,15 @@ module test_table_system_tb;
             rp[0]<=product_p[50:19];rpi[0]<=product_pi[66:35];
             ri2[0]<=product_i2[90:59];ri3[0]<=product_i3[74:11];
             for(x=1;x<4;x=x+1) begin rp[x]<=rp[x-1];rpi[x]<=rpi[x-1];end
-            for(x=1;x<4;x=x+1) begin ri2[x]<=ri2[x-1];ri3[x]<=ri3[x-1];end
+            for(x=1;x<5;x=x+1) begin ri2[x]<=ri2[x-1];end
+            for(x=1;x<4;x=x+1) ri3[x]<=ri3[x-1];
             first_sum<=rp[3]+rpi[3];
             if(!enabled[0]) acc1<=0;else acc1<=acc1+$signed(first_sum);
-            if(!enabled[1]) acc2<=0;else acc2<=acc2+first_sum+ri2[3];
+            if(!enabled[1]) acc2<=0;else acc2<=acc2+first_sum+ri2[4];
             if(!enabled[2]) acc3<=0;else acc3<=acc3+ri3[3];
             #1;
             if(cycles>12 && {dut.p,dut.pi,dut.i2,dut.i3,dut.acc1,dut.acc2,dut.acc3,fast,slow} !==
-                 {rp[3],rpi[3],ri2[3],ri3[3],acc1,acc2,acc3,acc2[31:16],~acc3[63],acc3[62:48]})
+                 {rp[3],rpi[3],ri2[4],ri3[3],acc1,acc2,acc3,acc2[31:16],~acc3[63],acc3[62:48]})
                 $fatal(1,"Integrated controller mismatch channel=%0d cycle=%0d",channel,cycles);
         end
     end endgenerate
