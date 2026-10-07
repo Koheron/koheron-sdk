@@ -27,6 +27,8 @@ jobs:
         run: python3 -m pip install --disable-pip-version-check PyYAML
       - name: Test instrument copying
         run: python3 -m unittest discover -s python/tests -p test_copy_instrument.py
+      - name: Test image toolchain manifest
+        run: python3 -m unittest discover -s os/tests -p test_toolchain_manifest.py
       - name: Validate instrument configurations
         run: |
           count=0
