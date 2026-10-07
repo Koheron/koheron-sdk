@@ -8,6 +8,9 @@ if {[get_property top [current_fileset]] ne "system_wrapper"} {
 }
 open_bd_design [get_files */system.bd]
 foreach channel {0 1} {
+    if {[get_property CONFIG.OUTPUT_STAGES [get_bd_cells dac_mux$channel]] != 2} {
+        error "Expected a two-clock RF DAC mux"
+    }
     foreach {name expected} {INPUT_WIDTH 24 PHASE_WIDTH 24 ITERATIONS 24 ROTATIONS_PER_CLOCK 2 PAIR_START 8 FUSE_ROUND 1 COMPACT_PREP 0 RESIDUAL_CORRECTION 1} {
         if {[get_property CONFIG.$name [get_bd_cells cordic$channel/phase_extractor]] != $expected} {
             error "Incorrect phase extractor parameter: loop $channel $name"
@@ -18,7 +21,7 @@ foreach channel {0 1} {
             error "Incorrect shared phase history: loop $channel $name"
         }
     }
-    foreach {name expected} {FUSED 1 GAIN_STAGES 4 FAST_GAIN_STAGES 3 TAIL_GAIN_STAGES 4 I2_GAIN_STAGES 5 FINAL_CSA_LEVELS 2 CARRY_BLOCK 0 FAST_P_DSP 1 PIPELINED_REFERENCE 1 PRECOMBINE_I 1 SELECTOR_CARRY_BLOCK 0 PHASE_FRAC 8 FREQ_WIDTH 25 PHASE_WIDTH 40} {
+    foreach {name expected} {FUSED 1 GAIN_STAGES 4 FAST_GAIN_STAGES 3 TAIL_GAIN_STAGES 4 I2_GAIN_STAGES 4 FINAL_CSA_LEVELS 2 CARRY_BLOCK 0 FAST_P_DSP 1 PIPELINED_REFERENCE 1 PRECOMBINE_I 1 SELECTOR_CARRY_BLOCK 0 PHASE_FRAC 8 FREQ_WIDTH 25 PHASE_WIDTH 40} {
         if {[get_property CONFIG.$name [get_bd_cells corrector$channel]] != $expected} {
             error "Incorrect controller parameter: loop $channel $name"
         }
@@ -74,10 +77,13 @@ foreach channel {0 1} {
     }
     puts $result "loop=$channel phase_extractor_setup=[get_property SLACK $phase_path] ns primitives=[llength $phase_cells]"
     report_timing -through $phase_pins -max_paths 4 -file $out/loop${channel}-phase.rpt
-    foreach prefix [list "system_i/cordic$channel/consumers/inst" "system_i/corrector$channel/inst/accurate_controller"] {
+    foreach {prefix count} [list "system_i/cordic$channel/consumers/inst" 1 "system_i/corrector$channel/inst/accurate_controller" 2] {
         set dsps [get_cells -hier -filter "NAME =~ $prefix/* && REF_NAME == DSP48E1"]
-        if {[llength $dsps]!=1 || [get_property PREG $dsps]!=1 || [get_property USE_MULT $dsps] ne "NONE"} {
-            error "Expected a registered DSP accumulator in $prefix"
+        if {[llength $dsps]!=$count} {error "Expected $count DSP accumulators in $prefix"}
+        foreach dsp $dsps {
+            if {[get_property PREG $dsp]!=1 || [get_property USE_MULT $dsp] ne "NONE"} {
+                error "Expected a registered DSP accumulator in $prefix"
+            }
         }
     }
     foreach gain {gp gpi gi2 gi3} {

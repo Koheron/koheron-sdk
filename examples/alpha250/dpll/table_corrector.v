@@ -1,5 +1,5 @@
 `timescale 1 ns / 1 ps
-// Production accurate P/I/I3 gains use four stages, I2 uses five; DSP Fast P
+// Production accurate gains use four stages; DSP Fast P
 // takes three clocks from its earlier projection tap. Defaults retain the
 // historical three-clock controller.
 module table_corrector #(
@@ -42,7 +42,7 @@ module table_corrector #(
     reg [31:0] integral_acc=0;
     reg [31:0] i_acc=0;
     reg [31:0] higher_acc=0;
-    reg signed [47:0] acc1=0;
+    (* use_dsp="yes" *) reg signed [47:0] acc1=0;
     (* use_dsp="yes" *) reg [31:0] acc2=0;
     reg [63:0] acc3=0;
     table_gain #(.A_WIDTH(FREQ_WIDTH), .OUTPUT_LOW(PHASE_FRAC), .OUTPUT_WIDTH(32), .PIPE_STAGES(GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
@@ -65,6 +65,7 @@ module table_corrector #(
         first_p<=p;
         first_pi<=pi;
         if(!enabled[0]) acc1<=0;
+        else if(CARRY_BLOCK==0) acc1<=acc1+$signed(first_sum);
         else acc1<=acc1_next;
         if(!enabled[2]) acc3<=0;
         else acc3<=acc3_next;

@@ -156,7 +156,7 @@ module table_gain #(
             assign final_carry=stage[LEVELS*TERMS+1];
         end
         wire low_next;
-        dpll_carry_out #(.WIDTH(CUT)) carry_out(
+        dpll_carry_out #(.WIDTH(CUT),.BLOCK(0)) carry_out(
             final_sum[CUT-1:0],final_carry[CUT-1:0],low_next);
         wire [WIDTH-CUT-1:0] product;
         dpll_carry_adder #(.WIDTH(WIDTH-CUT),.BLOCK(CARRY_BLOCK)) final_add(sum,carry,low_carry,product);
@@ -183,6 +183,10 @@ module dpll_carry_out #(
     parameter integer WIDTH=32,
     parameter integer BLOCK=8
 )(input wire [WIDTH-1:0] x,y, output wire carry);
+    generate if(BLOCK==0) begin : native_carry
+        wire [WIDTH:0] full_sum={1'b0,x}+{1'b0,y};
+        assign carry=full_sum[WIDTH];
+    end else begin : grouped_carry
     localparam BLOCKS=(WIDTH+BLOCK-1)/BLOCK;
     localparam GROUPS=(BLOCKS+3)/4;
     wire [GROUPS*4-1:0] g,p;
@@ -190,7 +194,7 @@ module dpll_carry_out #(
     assign c[0]=0;
     assign carry=c[BLOCKS];
     genvar i;
-    generate for(i=0;i<BLOCKS;i=i+1) begin : chunk
+    for(i=0;i<BLOCKS;i=i+1) begin : chunk
         localparam N=(WIDTH-i*BLOCK<BLOCK) ? WIDTH-i*BLOCK : BLOCK;
         wire [N-1:0] a=x[i*BLOCK +: N],b=y[i*BLOCK +: N];
         wire [N:0] zero={1'b0,a}+{1'b0,b};
@@ -203,6 +207,7 @@ module dpll_carry_out #(
     for(i=0;i<GROUPS;i=i+1) begin : carry_group
         CARRY4 chain(.CI(i==0 ? 1'b0 : c[4*i]),.CYINIT(1'b0),.DI(g[4*i +: 4]),.S(p[4*i +: 4]),
                      .CO(c[4*i+1 +: 4]),.O());
+    end
     end endgenerate
 endmodule
 

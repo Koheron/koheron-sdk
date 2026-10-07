@@ -168,6 +168,7 @@ for {set i 0} {$i < 2} {incr i} {
        WIDTH 16
        N_INPUTS 8
        SEL_WIDTH 3
+       OUTPUT_STAGES 2
     } {
        clk adc_dac/adc_clk
        clken [get_constant_pin 1 1]

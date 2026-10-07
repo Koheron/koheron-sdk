@@ -17,7 +17,7 @@ module corrector_table_test #(parameter integer CARRY_BLOCK=0);
     generate for(mode=0;mode<5;mode=mode+1) begin : implementation
         localparam STAGES=(mode==4) ? 4 : ((mode>=2) ? 2 : 3);
         localparam TAIL_STAGES=(mode==4) ? 4 : ((mode==2) ? 2 : 3);
-        localparam I2_STAGES=(mode==4) ? 5 : TAIL_STAGES;
+        localparam I2_STAGES=TAIL_STAGES;
         table_corrector #(.FUSED(mode!=0), .GAIN_STAGES(STAGES), .TAIL_GAIN_STAGES(TAIL_STAGES), .I2_GAIN_STAGES(I2_STAGES), .FINAL_CSA_LEVELS((mode>=2) ? 2 : 0), .CARRY_BLOCK((mode==2) ? CARRY_BLOCK : 0)) dut(clk,freq,phase,enabled,banks,command,data,fast[mode],slow[mode],,,);
         wire [31:0] decomposed=dut.p_correction+dut.integral_correction;
         reg [31:0] rp[0:STAGES-1],rpi[0:STAGES-1];

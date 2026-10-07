@@ -12,10 +12,10 @@ module test_fast_pi_tb;
     reg [63:0] data=0;
     wire [15:0] output_word,slow,baseline_slow;
     wire [31:0] status,snapshot,accurate,baseline_i,baseline_higher;
-    manual_p_corrector #(.GAIN_STAGES(4),.FAST_GAIN_STAGES(3),.TAIL_GAIN_STAGES(4),.I2_GAIN_STAGES(5),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),.FAST_P_DSP(1),.PIPELINED_REFERENCE(1),.PRECOMBINE_I(1),.SELECTOR_CARRY_BLOCK(0),.FREQ_WIDTH(25),.PHASE_WIDTH(40),.PHASE_FRAC(8)) dut(
+    manual_p_corrector #(.GAIN_STAGES(4),.FAST_GAIN_STAGES(3),.TAIL_GAIN_STAGES(4),.I2_GAIN_STAGES(4),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),.FAST_P_DSP(1),.PIPELINED_REFERENCE(1),.PRECOMBINE_I(1),.SELECTOR_CARRY_BLOCK(0),.FREQ_WIDTH(25),.PHASE_WIDTH(40),.PHASE_FRAC(8)) dut(
         clk,resetn,freq,phase,16'sd4096,iq,32'sd0,32'sd166886,
         request,capture_request,enabled,banks,command,data,output_word,slow,snapshot,status);
-    table_corrector #(.FUSED(1),.GAIN_STAGES(4),.TAIL_GAIN_STAGES(4),.I2_GAIN_STAGES(5),
+    table_corrector #(.FUSED(1),.GAIN_STAGES(4),.TAIL_GAIN_STAGES(4),.I2_GAIN_STAGES(4),
         .FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),.FREQ_WIDTH(25),.PHASE_WIDTH(40),.PHASE_FRAC(8)) baseline(
         clk,freq,phase,enabled,banks,command,data,,baseline_slow,accurate,,,
         baseline_i,baseline_higher);

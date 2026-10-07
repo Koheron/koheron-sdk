@@ -4,7 +4,8 @@ module latched_mux #
 (
   parameter integer WIDTH = 32,
   parameter integer N_INPUTS = 3,
-  parameter integer SEL_WIDTH = 2
+  parameter integer SEL_WIDTH = 2,
+  parameter integer OUTPUT_STAGES = 1
 )
 (
   input  wire                          clk,
@@ -23,11 +24,21 @@ module latched_mux #
     end
   end
 
-  // http://stackoverflow.com/questions/25123924/verilog-range-must-be-bounded-by-constant-expression
+  wire [WIDTH-1:0] selected;
+  generate if (OUTPUT_STAGES == 2) begin : output_pipeline
+    reg [WIDTH-1:0] mux_word = 0;
+    always @(posedge clk) mux_word <= din[sel_reg * WIDTH +: WIDTH];
+    assign selected = mux_word;
+  end else begin : direct_output
+    assign selected = din[sel_reg * WIDTH +: WIDTH];
+  end endgenerate
+
+  initial if (OUTPUT_STAGES != 1 && OUTPUT_STAGES != 2)
+    $error("Latched mux OUTPUT_STAGES must be 1 or 2");
+
   always @(posedge clk) begin
-    dout <= din[sel_reg * WIDTH +: WIDTH];
+    dout <= selected;
   end
 
 endmodule
-
 

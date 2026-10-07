@@ -138,16 +138,17 @@ The pulse-valid test measures four mixer clocks and 15 clocks for the selected
 | RF accumulation | — | 1 | 1 | 1 |
 | I + I² preparation | — | 1 | — | — |
 | Mode selector | 1 | 1 | 1 | 1 |
-| RF DAC mux | 1 | 1 | 1 | 1 |
-| **Total clocks / time** | **14 / 56 ns** | **20 / 80 ns** | **33 / 132 ns** | **34 / 136 ns** |
+| RF DAC mux | 2 | 2 | 2 | 2 |
+| **Total clocks / time** | **15 / 60 ns** | **21 / 84 ns** | **34 / 136 ns** | **35 / 140 ns** |
 
 From filtered I/Q through the selector, Fast P is seven clocks (28 ns) and
-Fast I is thirteen (52 ns). The accurate I² branch adds six clocks (24 ns) after
+Fast I is thirteen (52 ns). The accurate I² branch adds five clocks (20 ns) after
 the corresponding direct accurate contribution through the first accumulator
 and I² gain. In Fast mode, its output also passes through the I + I² preparation
-register. This includes one additional 4 ns register in the I² gain; direct
-Fast P/I and accurate P/I delays in the table are unchanged. I³ retains its
-four-clock gain and accumulator before the precision DAC;
+register. All RF DAC modes include one additional 4 ns output register after
+the source-selection register. The first register can remain near the loop
+logic while the final register sits near the DAC pins. I³ has its own gain
+and accumulator before the precision DAC;
 that DAC's serial transfer and settling are separate from RF feedback timing.
 
 These are register delays. Add 6 ns filter group delay for Fast, or 120 ns for
@@ -230,6 +231,7 @@ python examples/alpha250/dpll/test_time.py 192.168.1.100
 make CFG=examples/alpha250/dpll/config.mk web server drivers_json
 bash examples/alpha250/dpll/tests/run-host.sh
 bash examples/alpha250/dpll/tests/run-p-path.sh
+bash examples/alpha250/dpll/tests/run-dac-mux.sh
 bash examples/alpha250/dpll/tests/run-monitor.sh
 ```
 
@@ -255,13 +257,13 @@ final sum. It takes three clocks, receiving the combinational projection one
 clock before the I/status phase register, so total P latency is retained. The
 existing double-bank programming protocol is retained. It captures the gain
 from the unsigned address-one entry. The wider I gain and accurate controller
-P/I and I³ gains use four-clock table reductions. The I² gain takes five clocks:
-its final carry-save reduction, discarded-bit carry and retained-bit sum have
-separate registers. The carry uses short carry-generate blocks, and the final
-sum is only 32 bits. This adds exactly 4 ns to I² while retaining its numerical
-precision. All paths accept one sample per clock. Feedback phase and the accurate
-second integrator each use a DSP accumulator with their existing one-clock
-update, adding four DSPs across the two channels.
+gains use four-clock table reductions. Native carry chains compute the carry
+from all discarded lower bits at the third register boundary; the last stage
+adds only the retained output bits. The I² final sum is 32 bits. Feedback phase
+and the accurate first and second integrators use DSP accumulators with their
+existing one-clock updates, adding six DSPs across the two channels. All paths
+accept one sample per clock. The sole additional RF feedback clock is in the
+DAC output mux, selected only for DPLL; the shared mux defaults to one clock.
 The shared accurate extractor uses the wider phase interface described above.
 Earlier controller measurements used narrower two-clock P/PI tables.
 See the [arithmetic and latency measurements](tests/gain_latency/README.md).
