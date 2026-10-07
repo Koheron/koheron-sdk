@@ -1,4 +1,8 @@
+set alpha250_mmcm_ps_control 1
 source ${board_path}/starting_point.tcl
+# MMCM reset and phase commands must remain accessible while its output stops.
+disconnect_bd_net [get_bd_nets -of_objects [get_bd_pins adc_dac/ctl]] [get_bd_pins adc_dac/ctl]
+connect_pins adc_dac/ctl [ps_ctl_pin mmcm_ps]
 source $sdk_path/fpga/ip/awg_v1_0/integration.tcl
 
 ####################################

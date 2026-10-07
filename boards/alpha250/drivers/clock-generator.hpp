@@ -5,6 +5,7 @@
 #include <atomic>
 #include <string_view>
 #include <cstdint>
+#include <mutex>
 
 class Eeprom;
 class SpiConfig;
@@ -12,6 +13,8 @@ class SpiConfig;
 using namespace std::string_view_literals;
 
 namespace clock_cfg {
+    // A clock transition and DAC engineering-unit edits must share one epoch.
+    inline std::recursive_mutex sampling_mutex;
     // Input clock selection
     constexpr uint32_t EXT_CLOCK = 0;
     constexpr uint32_t FPGA_CLOCK = 1;
@@ -105,6 +108,14 @@ class ClockGenerator
     uint32_t get_reference_clock() const;
 
   private:
+    friend struct Alpha250PhaseNoiseBoard;
+    // PNA drives the MMCM from FCLK0 so reset remains writable while the ADC
+    // clock is stopped. Other instruments retain their existing control path.
+    void use_ps_phase_control(uint32_t offset);
+    uint32_t read_phase_control();
+    void write_phase_control(uint32_t value);
+    bool phase_control_ps = false;
+    uint32_t phase_control_offset = 0;
     Eeprom& eeprom;
     SpiConfig& spi_cfg;
 

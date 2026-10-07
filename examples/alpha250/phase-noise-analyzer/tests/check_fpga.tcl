@@ -15,6 +15,12 @@ proc require_same_net {left right} {
 }
 
 set rounding_seeds {0x9e3779b97f4a7c15 0xd1b54a32d192ed03}
+require_same_net ps_ctl/mmcm_ps adc_dac/ctl
+require_same_net ps_0/FCLK_CLK0 ps_ctl/aclk
+require_same_net ps_ctl/aclk ps_ctl/axi_ps_ctl_register/aclk
+require_same_net ps_0/FCLK_CLK0 adc_dac/ps_clk
+require_same_net adc_dac/ps_clk adc_dac/mmcm/psclk
+puts "PASS: MMCM reset/control and phase-command clock remain on independent FCLK0"
 for {set channel 0} {$channel < 2} {incr channel} {
     require_same_net awg/dac${channel}_data adc_dac/dac$channel
     require_same_net dds$channel/m_axis_data_tdata cordic$channel/s_axis_data_b

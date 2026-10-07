@@ -11,10 +11,11 @@
 Dds::Dds()
 : clk_gen(rt::get_driver<ClockGenerator>())
 {
-    clk_gen.set_sampling_frequency(1); // 250 MHz, matching the FPGA clock.
+    // The analyzer owns sample-clock selection, including saved 200 MS/s.
 }
 
 void Dds::set_dds_freq(uint32_t channel, double freq_hz) {
+    std::lock_guard clock_lock(clock_cfg::sampling_mutex);
     std::lock_guard lock(mutex);
     if (channel >= 2) {
         log<ERROR>("Dds::set_dds_freq invalid channel\n");

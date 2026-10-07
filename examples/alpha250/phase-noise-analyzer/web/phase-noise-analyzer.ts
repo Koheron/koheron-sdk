@@ -60,6 +60,18 @@ class PhaseNoiseAnalyzer {
     this.cmds = this.driver.getCmds();
   }
 
+  supportsSampleRate(): boolean {
+    return !!this.cmds['set_sampling_frequency'] && !!this.cmds['get_sampling_frequency'];
+  }
+
+  async getSamplingFrequency(): Promise<number> {
+    return await this.client.readUint32(Command(this.id, this.cmds['get_sampling_frequency']));
+  }
+
+  async setSamplingFrequency(rate: number): Promise<boolean> {
+    return await this.client.readBool(Command(this.id, this.cmds['set_sampling_frequency'], rate));
+  }
+
   async getParameters(): Promise<IParameters> {
     const [data_size, fs, channel, cic_rate, fft_navg, fdds0, fdds1, mode, interferometer_delay, clkin] =
       await this.client.readTuple<TupleGetParameters>(

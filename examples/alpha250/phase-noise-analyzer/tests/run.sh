@@ -24,6 +24,12 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
         examples/alpha250/phase-noise-analyzer/dds.cpp \
         server/external_libs/pffft/pffft.cpp -o "$output/tracking"
     "$output/tracking"
+    g++-13 -I"$tests/stubs" "${flags[@]}" "$tests/test_sample_rate.cpp" \
+        examples/alpha250/phase-noise-analyzer/phase-noise-analyzer.cpp \
+        examples/alpha250/phase-noise-analyzer/dds.cpp \
+        server/external_libs/pffft/pffft.cpp -o "$output/sample-rate"
+    "$output/sample-rate"
+    "$output/sample-rate" --saved
     g++-13 -I"$tests/stubs" "${flags[@]}" "$tests/test_dds.cpp" \
         examples/alpha250/phase-noise-analyzer/dds.cpp -o "$output/dds"
     "$output/dds"
@@ -61,7 +67,7 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     if ! node -e "require.resolve(\"jsdom\"); require.resolve(\"typescript\")" >/dev/null 2>&1; then
         npm install --prefix "$deps" --no-save --package-lock=false typescript@5.6.3 jsdom@26.1.0
     fi
-    node --test "$tests/test_plot.cjs" "$tests/test_rendering.cjs" "$tests/test_numeric_controls.cjs" "$tests/test_signal_generator.cjs" web/phase-noise/tests/test_phase_precision.cjs web/phase-noise/tests/test_spectrum.cjs
+    node --test "$tests/test_plot.cjs" "$tests/test_rendering.cjs" "$tests/test_numeric_controls.cjs" "$tests/test_signal_generator.cjs" "$tests/test_sample_rate.cjs" web/phase-noise/tests/test_phase_precision.cjs web/phase-noise/tests/test_spectrum.cjs
 '
 
 "${PNA_PYTHON:-.venv/bin/python3}" server/drivers/phase-noise/tests/check_streaming_welch.py "$pna_output/streaming-welch.bin"

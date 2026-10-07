@@ -1,6 +1,6 @@
 ## Split CIC acquisition
 
-The phase extractor runs at 250 MHz. A full-precision six-stage fixed CIC
+The phase extractor runs at the selected 200 or 250 MHz. A full-precision six-stage fixed CIC
 first decimates by two, retaining all 38 output bits. The stream crosses to
 143 MHz before the programmable six-stage CIC, compensation FIR and packet
 quantizer. The shared hardware is in
@@ -22,6 +22,33 @@ segments, ring overruns, FFT length, hop length and Welch depth. See the
 [shared processing notes](../../../server/drivers/phase-noise/README.md).
 
 # ALPHA250 phase-noise analyzer
+
+## Selectable sample clock
+
+Version 1.5.1 provides a **Sample rate** selector for **200 or 250 MS/s** in
+the acquisition toolbar. Both rates use the same FPGA image, constrained for
+250 MS/s; the fixed /2 filter remains within the 143 MHz processing clock at
+either rate. The ADC, reference DDSs and DAC stimulus share the selected clock.
+MMCM reset and phase commands use an independent FCLK0 control register, so
+clock changes can always release reset without accessing the stopped ADC bus.
+
+Switching pauses acquisition, mutes the DACs while the clock relocks, preserves
+the LO and DAC carrier/modulation frequencies in Hz, and starts a new acquisition
+epoch and spectrum average. The CIC rate and phase precision remain unchanged;
+phase sample rate, FFT frequency spacing and filter bandwidth follow the new
+clock. The header and DAC editor limits read the actual selected rate.
+
+Selecting 200 MS/s is rejected when either LO exceeds 100 MHz, or either DAC
+carrier/modulation frequency reaches 100 MHz. A rejected compatibility check
+preserves the current measurement. **Save settings** persists the sample clock;
+older saved configurations default to 250 MS/s. Use the analyzer RPC, rather
+than changing the raw ClockGenerator driver, to keep acquisition metadata and
+all oscillator tuning words synchronized:
+
+```python
+assert analyzer.set_sampling_frequency(200_000_000)
+print(analyzer.get_sampling_frequency())
+```
 
 The analyzer now uses the [shared PNA plot and atomic spectrum snapshot](../../../server/drivers/phase-noise/README.md).
 Captured settings accompany each spectrum; FPS uses its publication sequence.

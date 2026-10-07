@@ -1,4 +1,5 @@
 #pragma once
+#include "boards/alpha250/drivers/clock-generator.hpp"
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -13,6 +14,7 @@ constexpr uint32_t cic_n_stages = 6, cic_differential_delay = 1;
 }
 namespace mem { enum {control, status, ram}; }
 namespace reg {
+constexpr uint32_t mmcm_ps = 8;
 constexpr uint32_t phase_incr0 = 0, cordic = 16, cic_rate = 20;
 constexpr uint32_t demod0 = 0, demod1 = 4, phase_packet = 8, phase_precision = 24;
 }
@@ -53,7 +55,7 @@ public:
         double radians_per_count = 3.141592653589793 / 2048;
         if (std::isfinite(carrier_frequency[captured_channel])) {
             // Real ADC*cos+j*sin(LO) demodulation yields LO minus carrier.
-            const double fs = 200e6 / (2 * captured_rate);
+            const double fs = test_sampling_frequency / (2 * captured_rate);
             slope = 2 * 3.141592653589793 * (captured_lo - carrier_frequency[captured_channel]) / fs;
             const double gain = std::pow(captured_rate, 6);
             radians_per_count = 4 * std::exp2(std::ceil(std::log2(gain))) / gain * 3.141592653589793 / 8192;
