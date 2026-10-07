@@ -112,9 +112,9 @@
             <label><input type="checkbox" class="integrator-switch" data-channel="0" data-integratorindex="2"> 3</label>
             <label><input type="checkbox" class="integrator-switch" data-channel="0" data-integratorindex="3"> 4</label>
           </div></div>
-          <table class="gain-table" title="Gain = sign × 2^exponent; 16 steps per octave">
+          <table class="gain-table" title="Gain magnitude relative to coefficient 1; polarity is separate. 16 steps per octave (≈0.376 dB).">
             <caption class="sr-only">16 steps per octave</caption>
-            <thead><tr><th scope="col">Gain</th><th scope="col">Sign</th><th scope="col">Exponent</th><th scope="col"><span class="sr-only">Apply</span></th></tr></thead>
+            <thead><tr><th scope="col">Gain</th><th scope="col">Sign</th><th scope="col"><select class="gain-unit" data-channel="0" aria-label="ADC 0 gain units" title="Magnitude: dB = 20 log₁₀ |g|; log₂ = exponent. Polarity is separate."><option value="db">dB</option><option value="exponent">log₂</option></select></th><th scope="col"><span class="sr-only">Apply</span></th></tr></thead>
             <tbody>
               <tr class="gain-row" data-channel="0" data-status="p_gain" data-gain="0">
                 <th scope="row"><label for="p_gain-0">P</label></th>
@@ -123,7 +123,7 @@
                   <button type="button" class="gain-button" value="0" aria-pressed="true">0</button>
                   <button type="button" class="gain-button" value="1" aria-pressed="false">+</button>
                 </div></td>
-                <td><input id="p_gain-0" type="number" min="0" max="31" step="0.0625" class="gain-input" disabled aria-label="ADC 0 P gain exponent"></td>
+                <td><input id="p_gain-0" type="number" min="0" max="186.64" step="any" required data-unit="db" class="gain-input" disabled aria-label="ADC 0 P gain magnitude in dB"></td>
                 <td><button type="button" class="gain-save" disabled>Apply</button></td>
               </tr>
               <tr class="gain-row" data-channel="0" data-status="pi_gain" data-gain="1">
@@ -133,7 +133,7 @@
                   <button type="button" class="gain-button" value="0" aria-pressed="true">0</button>
                   <button type="button" class="gain-button" value="1" aria-pressed="false">+</button>
                 </div></td>
-                <td><input id="pi_gain-0" type="number" min="0" max="31" step="0.0625" class="gain-input" disabled aria-label="ADC 0 PI gain exponent"></td>
+                <td><input id="pi_gain-0" type="number" min="0" max="186.64" step="any" required data-unit="db" class="gain-input" disabled aria-label="ADC 0 PI gain magnitude in dB"></td>
                 <td><button type="button" class="gain-save" disabled>Apply</button></td>
               </tr>
               <tr class="gain-row" data-channel="0" data-status="i2_gain" data-gain="2">
@@ -143,7 +143,7 @@
                   <button type="button" class="gain-button" value="0" aria-pressed="true">0</button>
                   <button type="button" class="gain-button" value="1" aria-pressed="false">+</button>
                 </div></td>
-                <td><input id="i2_gain-0" type="number" min="0" max="31" step="0.0625" class="gain-input" disabled aria-label="ADC 0 I² gain exponent"></td>
+                <td><input id="i2_gain-0" type="number" min="0" max="186.64" step="any" required data-unit="db" class="gain-input" disabled aria-label="ADC 0 I² gain magnitude in dB"></td>
                 <td><button type="button" class="gain-save" disabled>Apply</button></td>
               </tr>
               <tr class="gain-row" data-channel="0" data-status="i3_gain" data-gain="3">
@@ -153,7 +153,7 @@
                   <button type="button" class="gain-button" value="0" aria-pressed="true">0</button>
                   <button type="button" class="gain-button" value="1" aria-pressed="false">+</button>
                 </div></td>
-                <td><input id="i3_gain-0" type="number" min="0" max="31" step="0.0625" class="gain-input" disabled aria-label="ADC 0 I³ gain exponent"></td>
+                <td><input id="i3_gain-0" type="number" min="0" max="186.64" step="any" required data-unit="db" class="gain-input" disabled aria-label="ADC 0 I³ gain magnitude in dB"></td>
                 <td><button type="button" class="gain-save" disabled>Apply</button></td>
               </tr>
             </tbody>
@@ -182,9 +182,9 @@
             <label><input type="checkbox" class="integrator-switch" data-channel="1" data-integratorindex="2"> 3</label>
             <label><input type="checkbox" class="integrator-switch" data-channel="1" data-integratorindex="3"> 4</label>
           </div></div>
-          <table class="gain-table" title="Gain = sign × 2^exponent; 16 steps per octave">
+          <table class="gain-table" title="Gain magnitude relative to coefficient 1; polarity is separate. 16 steps per octave (≈0.376 dB).">
             <caption class="sr-only">16 steps per octave</caption>
-            <thead><tr><th scope="col">Gain</th><th scope="col">Sign</th><th scope="col">Exponent</th><th scope="col"><span class="sr-only">Apply</span></th></tr></thead>
+            <thead><tr><th scope="col">Gain</th><th scope="col">Sign</th><th scope="col"><select class="gain-unit" data-channel="1" aria-label="ADC 1 gain units" title="Magnitude: dB = 20 log₁₀ |g|; log₂ = exponent. Polarity is separate."><option value="db">dB</option><option value="exponent">log₂</option></select></th><th scope="col"><span class="sr-only">Apply</span></th></tr></thead>
             <tbody>
               <tr class="gain-row" data-channel="1" data-status="p_gain" data-gain="0">
                 <th scope="row"><label for="p_gain-1">P</label></th>
@@ -193,7 +193,7 @@
                   <button type="button" class="gain-button" value="0" aria-pressed="true">0</button>
                   <button type="button" class="gain-button" value="1" aria-pressed="false">+</button>
                 </div></td>
-                <td><input id="p_gain-1" type="number" min="0" max="31" step="0.0625" class="gain-input" disabled aria-label="ADC 1 P gain exponent"></td>
+                <td><input id="p_gain-1" type="number" min="0" max="186.64" step="any" required data-unit="db" class="gain-input" disabled aria-label="ADC 1 P gain magnitude in dB"></td>
                 <td><button type="button" class="gain-save" disabled>Apply</button></td>
               </tr>
               <tr class="gain-row" data-channel="1" data-status="pi_gain" data-gain="1">
@@ -203,7 +203,7 @@
                   <button type="button" class="gain-button" value="0" aria-pressed="true">0</button>
                   <button type="button" class="gain-button" value="1" aria-pressed="false">+</button>
                 </div></td>
-                <td><input id="pi_gain-1" type="number" min="0" max="31" step="0.0625" class="gain-input" disabled aria-label="ADC 1 PI gain exponent"></td>
+                <td><input id="pi_gain-1" type="number" min="0" max="186.64" step="any" required data-unit="db" class="gain-input" disabled aria-label="ADC 1 PI gain magnitude in dB"></td>
                 <td><button type="button" class="gain-save" disabled>Apply</button></td>
               </tr>
               <tr class="gain-row" data-channel="1" data-status="i2_gain" data-gain="2">
@@ -213,7 +213,7 @@
                   <button type="button" class="gain-button" value="0" aria-pressed="true">0</button>
                   <button type="button" class="gain-button" value="1" aria-pressed="false">+</button>
                 </div></td>
-                <td><input id="i2_gain-1" type="number" min="0" max="31" step="0.0625" class="gain-input" disabled aria-label="ADC 1 I² gain exponent"></td>
+                <td><input id="i2_gain-1" type="number" min="0" max="186.64" step="any" required data-unit="db" class="gain-input" disabled aria-label="ADC 1 I² gain magnitude in dB"></td>
                 <td><button type="button" class="gain-save" disabled>Apply</button></td>
               </tr>
               <tr class="gain-row" data-channel="1" data-status="i3_gain" data-gain="3">
@@ -223,7 +223,7 @@
                   <button type="button" class="gain-button" value="0" aria-pressed="true">0</button>
                   <button type="button" class="gain-button" value="1" aria-pressed="false">+</button>
                 </div></td>
-                <td><input id="i3_gain-1" type="number" min="0" max="31" step="0.0625" class="gain-input" disabled aria-label="ADC 1 I³ gain exponent"></td>
+                <td><input id="i3_gain-1" type="number" min="0" max="186.64" step="any" required data-unit="db" class="gain-input" disabled aria-label="ADC 1 I³ gain magnitude in dB"></td>
                 <td><button type="button" class="gain-save" disabled>Apply</button></td>
               </tr>
             </tbody>
@@ -235,8 +235,8 @@
         <details open><summary id="routing-title">DAC routing</summary>
         <div class="routing-controls">
         <label class="control-field">DAC 0<select class="dac-output" data-channel="0">
-          <option value="0">Fast corrector 0</option>
-          <option value="1">Fast corrector 1</option>
+          <option value="0">Loop 0 correction</option>
+          <option value="1">Loop 1 correction</option>
           <option value="2">Phase 0 (16 LSBs)</option>
           <option value="3">Phase 1 (16 LSBs)</option>
           <option value="4">Phase 0 (16 MSBs)</option>
@@ -245,8 +245,8 @@
           <option value="7">DDS 1</option>
         </select></label>
         <label class="control-field">DAC 1<select class="dac-output" data-channel="1">
-          <option value="0">Fast corrector 0</option>
-          <option value="1">Fast corrector 1</option>
+          <option value="0">Loop 0 correction</option>
+          <option value="1">Loop 1 correction</option>
           <option value="2">Phase 0 (16 LSBs)</option>
           <option value="3">Phase 1 (16 LSBs)</option>
           <option value="4">Phase 0 (16 MSBs)</option>
@@ -259,7 +259,7 @@
       </section>
     </fieldset>
     <aside class="diagram-panel" aria-label="DPLL signal path">
-      <details><summary>Signal flow</summary><img src="p_path.svg" width="560" height="620" alt="Complete DPLL channel: Fast and Accurate estimators, P, PI, I squared and I cubed gains, integrators 1 to 4, mode selection and outputs"></details>
+      <details><summary>Signal flow</summary><label class="diagram-channel">Channel <select id="diagram-channel" aria-label="Signal flow channel"><option value="0">ADC0</option><option value="1">ADC1</option></select></label><div id="live-diagram"><img src="p_path.svg" width="560" height="800" alt="Complete DPLL channel: Fast and Accurate estimators, P, PI, I squared and I cubed gains, integrators 1 to 4, mode selection and outputs"></div></details>
     </aside>
     </section>
   </main>

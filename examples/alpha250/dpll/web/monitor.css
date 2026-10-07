@@ -35,3 +35,8 @@
 .dpll-workspace .channel-panel { padding-top: 0; }
 .dpll-workspace .reference-panel { border-bottom: 1px solid var(--border-light); margin-bottom: 6px; }
 .dpll-workspace .reference-panel .instrument-toolbar { border-bottom: 0; }
+
+.dpll-workspace #live-diagram { width: 100%; max-width: 560px; aspect-ratio: 560 / 800; }
+.dpll-workspace #live-diagram > * { display: block; width: 100%; height: auto; max-width: none; }
+.dpll-workspace .diagram-channel { display: flex; align-items: center; gap: 8px; font-size: 12px; margin: 6px 0 0; }
+.dpll-workspace .diagram-channel select { width: auto; padding: 2px 6px; }

@@ -1,17 +1,19 @@
 // Each loop owns its editors so polling never moves a draft between channels.
 class Control {
+  private diagram: DpllDiagram;
   private frequencies: FrequencyInput[] = [];
   private gainRows: HTMLTableRowElement[];
   private removers: Array<() => void> = [];
   private disposed = false;
   private sampleRate = 0;
   private pendingGains = new Set<HTMLTableRowElement>();
-  private gainExponents = new Map<HTMLTableRowElement, string>();
+  private gainSteps = new Map<HTMLTableRowElement, number>();
   private pendingPaths = new Set<HTMLSelectElement>();
   private pathErrors = new Map<number, string>();
 
   constructor(private document: Document, private dpll: Dpll,
               private fail: (error: unknown) => void) {
+    this.diagram = new DpllDiagram(document);
     for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('.frequency-input'))) {
       const channel = Number(input.dataset.channel);
       const unit = document.querySelector<HTMLSelectElement>(`.frequency-unit[data-channel="${channel}"]`);
@@ -30,7 +32,7 @@ class Control {
     for (const row of this.gainRows) {
       const input = row.querySelector<HTMLInputElement>('.gain-input');
       const save = row.querySelector<HTMLButtonElement>('.gain-save');
-      input.title = '↑/↓: 1/16 octave · Shift+↑/↓: 1 octave · Enter: apply · Escape: cancel';
+      this.configureGainInput(row);
       this.listen(input, 'input', () => { save.disabled = false; input.setCustomValidity(''); });
       this.listen(input, 'keydown', event => {
         const key = event as KeyboardEvent;
@@ -39,8 +41,8 @@ class Control {
           event.preventDefault();
           if (!input.value || !Number.isFinite(Number(input.value))) { return; }
           const sign = Number(row.querySelector<HTMLButtonElement>('[aria-pressed="true"]').value);
-          const step = Math.round(Number(input.value) * 16) + (key.key === 'ArrowUp' ? 1 : -1) * (key.shiftKey ? 16 : 1);
-          input.value = String(Math.max(0, Math.min(sign > 0 ? 495 : 496, step)) / 16);
+          const step = DpllGain.inputStep(input.value, input.dataset.unit) + (key.key === 'ArrowUp' ? 1 : -1) * (key.shiftKey ? 16 : 1);
+          input.value = DpllGain.value(Math.max(0, Math.min(sign > 0 ? 495 : 496, step)), input.dataset.unit);
           input.setCustomValidity('');
           save.disabled = false;
         }
@@ -56,7 +58,7 @@ class Control {
       for (const button of Array.from(row.querySelectorAll<HTMLButtonElement>('.gain-button'))) {
         this.listen(button, 'click', () => {
           this.selectSign(row, Number(button.value));
-          if (!input.value) { input.value = '0'; }
+          if (!input.value && !input.disabled) { input.value = '0'; }
           save.disabled = false;
           input.setCustomValidity('');
         });
@@ -65,11 +67,11 @@ class Control {
         if (this.pendingGains.has(row)) { return; }
         const sign = Number(row.querySelector<HTMLButtonElement>('[aria-pressed="true"]').value);
         // Zero needs no exponent; 0 * 2^NaN must never reach the integer RPC.
-        const exponent = sign === 0 ? 0 : Number(input.value);
-        const step = Math.round(exponent * 16);
-        if (sign !== 0 && (!input.value || !input.checkValidity() || !Number.isFinite(exponent) ||
-            exponent < 0 || exponent > 31 || (sign > 0 && step === 496))) {
-          input.setCustomValidity('Use multiples of 1/16 from 0 to 30.9375 (31 for negative gains).');
+        const value = sign === 0 ? 0 : Number(input.value);
+        const step = sign === 0 ? 0 : DpllGain.inputStep(input.value, input.dataset.unit);
+        if (sign !== 0 && (!input.value || !input.checkValidity() || !Number.isFinite(value) ||
+            step < 0 || step > (sign > 0 ? 495 : 496))) {
+          input.setCustomValidity(input.dataset.unit === 'db' ? 'Use 0 to 186.26 dB (186.64 dB for negative gains); rounded to the nearest hardware step.' : 'Use multiples of 1/16 from 0 to 30.9375 (31 for negative gains).');
           input.reportValidity();
           return;
         }
@@ -80,6 +82,24 @@ class Control {
           this.pendingGains.delete(row);
           await this.refreshGains();
         } catch (error) { this.pendingGains.delete(row); this.fail(error); }
+      });
+    }
+    for (const select of Array.from(document.querySelectorAll<HTMLSelectElement>('.gain-unit'))) {
+      this.listen(select, 'change', () => {
+        const rows = this.gainRows.filter(row => row.dataset.channel === select.dataset.channel);
+        const invalid = rows.map(row => row.querySelector<HTMLInputElement>('.gain-input')).find(input => !input.disabled && !input.checkValidity());
+        if (invalid) {
+          select.value = invalid.dataset.unit;
+          invalid.reportValidity();
+          return;
+        }
+        for (const row of rows) {
+          const input = row.querySelector<HTMLInputElement>('.gain-input');
+          const step = input.value ? DpllGain.inputStep(input.value, input.dataset.unit) : Number(input.dataset.resumeStep || 0);
+          input.dataset.unit = select.value;
+          this.configureGainInput(row);
+          if (input.value) { input.value = DpllGain.value(step, select.value); }
+        }
       });
     }
     for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('.integrator-switch'))) {
@@ -125,7 +145,28 @@ class Control {
     for (const button of Array.from(row.querySelectorAll<HTMLButtonElement>('.gain-button'))) {
       button.setAttribute('aria-pressed', String(Number(button.value) === sign));
     }
-    row.querySelector<HTMLInputElement>('.gain-input').disabled = sign === 0;
+    const input = row.querySelector<HTMLInputElement>('.gain-input');
+    if (sign === 0) {
+      if (input.value && Number.isFinite(Number(input.value))) {
+        input.dataset.resumeStep = String(DpllGain.inputStep(input.value, input.dataset.unit));
+      }
+      input.value = '';
+    } else if (!input.value && input.disabled) {
+      input.value = DpllGain.value(Number(input.dataset.resumeStep || 0), input.dataset.unit);
+    }
+    input.placeholder = sign === 0 ? 'Off' : '';
+    input.disabled = sign === 0;
+    this.configureGainInput(row);
+  }
+
+  private configureGainInput(row: HTMLTableRowElement): void {
+    const input = row.querySelector<HTMLInputElement>('.gain-input');
+    const db = input.dataset.unit === 'db';
+    const positive = row.querySelector<HTMLButtonElement>('[aria-pressed="true"]').value === '1';
+    input.max = DpllGain.value(positive ? 495 : 496, input.dataset.unit);
+    input.step = db ? 'any' : '0.0625';
+    input.setAttribute('aria-label', `ADC ${row.dataset.channel} ${row.querySelector('label').textContent} gain ${db ? 'magnitude in dB' : 'exponent'}`);
+    input.title = `${db ? '20 log₁₀ |g|, relative to coefficient 1. Rounded to ≈0.376 dB steps.' : 'Base-2 exponent, 16 steps per octave.'} ↑/↓: one step · Shift+↑/↓: one octave · Enter: apply · Escape: cancel`;
   }
 
   private async refreshGains(): Promise<void> {
@@ -139,16 +180,18 @@ class Control {
       const save = row.querySelector<HTMLButtonElement>('.gain-save');
       const gain = status[row.dataset.status][Number(row.dataset.channel)];
       if (gain !== 0) {
-        this.gainExponents.set(row, String(Math.round(Math.log(Math.abs(gain)) / Math.LN2 * 16) / 16));
+        this.gainSteps.set(row, DpllGain.step(gain));
       }
       if (!save.disabled || this.pendingGains.has(row)) { continue; }
+      const input = row.querySelector<HTMLInputElement>('.gain-input');
+      input.value = input.dataset.unit === 'db' && gain !== 0 ? DpllGain.db(gain) : DpllGain.value(this.gainSteps.get(row) || 0, input.dataset.unit);
       this.selectSign(row, Math.sign(gain));
-      row.querySelector<HTMLInputElement>('.gain-input').value = this.gainExponents.get(row) || '0';
     }
   }
 
   render(status: IDpllStatus, routes: number[], sampleRate: number): void {
     if (this.disposed) { return; }
+    this.diagram.render(status, routes, sampleRate);
     if (sampleRate !== this.sampleRate) {
       this.sampleRate = sampleRate;
       this.frequencies.forEach(frequency => frequency.setLimits(sampleRate / 2, sampleRate / Math.pow(2, 48)));
@@ -181,6 +224,7 @@ class Control {
 
   dispose(): void {
     this.disposed = true;
+    this.diagram.dispose();
     this.frequencies.forEach(frequency => frequency.dispose());
     this.removers.forEach(remove => remove());
   }
