@@ -1,85 +1,114 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="560" height="676" viewBox="0 0 560 676" role="img" aria-labelledby="title desc">
-  <title id="title">DPLL signal flow for one channel</title>
-  <desc id="desc">ADC and reference DDS feed a shared I/Q mixer. Parallel Fast and Accurate estimators feed their controllers. Fast P and I combine with the Accurate I squared contribution before manual mode selection. The selected correction feeds RF DAC routing. The Accurate correction also feeds I cubed and integrator 4 to the precision DAC. The monitor taps the Accurate estimator independently. Integrators 1 through 4 correspond to the web controls. Controller stages are shown functionally; arithmetic scaling and pipeline registers are omitted.</desc>
-  <defs>
-    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 8 4 0 8Z" fill="#647780"/></marker>
-    <marker id="blue-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#1882a4"/></marker>
-  </defs>
-  <style>
-    text { font-family: Arial, sans-serif; font-size: 13px; fill: #33434b; text-anchor: middle; }
-    .heading { font-size: 14px; font-weight: 600; }
-    .small { font-size: 11px; fill: #647780; }
-    .label { font-size: 11px; font-weight: 600; letter-spacing: .8px; }
-    .wire { fill: none; stroke: #647780; stroke-width: 1.5; stroke-linejoin: round; marker-end: url(#arrow); }
-    .accurate-wire { fill: none; stroke: #1882a4; stroke-width: 1.5; stroke-linejoin: round; marker-end: url(#blue-arrow); }
-    .box { fill: #fff; stroke: #ced7dc; }
-    .fast-box { fill: #fffaf0; stroke: #d8bd83; }
-    .accurate-box { fill: #f2f9fc; stroke: #91c2d2; }
-  </style>
-
-  <text class="small" x="280" y="17">One channel · repeated for ADC 0 and ADC 1 · 250 MS/s</text>
-  <rect class="box" x="94" y="32" width="128" height="28" rx="4"/>
-  <text x="158" y="51">ADC input</text>
-  <rect class="box" x="338" y="32" width="128" height="28" rx="4"/>
-  <text x="402" y="51">Reference DDS</text>
-  <path class="wire" d="M158 60V83H202"/>
-  <path class="wire" d="M402 60V83H358"/>
-  <rect class="box" x="202" y="67" width="156" height="32" rx="4"/>
-  <text class="heading" x="280" y="88">24-bit I/Q mixer</text>
-  <path class="wire" d="M280 99V112H126V144"/>
-  <path class="wire" d="M280 112H414V144"/>
-  <circle cx="280" cy="112" r="2.5" fill="#647780"/>
-
-  <rect class="fast-box" x="16" y="144" width="220" height="82" rx="5"/>
-  <text class="heading" x="126" y="168">Fast · near lock</text>
-  <text x="126" y="189">4-sample filter · local projection</text>
-  <text class="small" x="126" y="211">Calibrate phase and amplitude after lock</text>
-  <rect class="accurate-box" x="284" y="144" width="260" height="82" rx="5"/>
-  <text class="heading" x="414" y="168">Accurate · full range</text>
-  <text x="414" y="189">4 × 16 filter · 24-bit extraction</text>
-  <text class="small" x="414" y="211">Unwrap · phase reconstruction (integrator 1)</text>
-  <path class="wire" d="M126 226V258"/>
-  <path class="accurate-wire" d="M414 226V258"/>
-
-  <rect class="fast-box" x="16" y="258" width="220" height="110" rx="5"/>
-  <text class="heading" x="126" y="283">P + I controller</text>
-  <text x="126" y="309">P × local phase</text>
-  <text x="126" y="331">PI × accumulated phase error</text>
-  <text class="small" x="126" y="354">Shared gains · separate I state</text>
-  <rect class="accurate-box" x="284" y="258" width="260" height="110" rx="5"/>
-  <text class="heading" x="414" y="283">P + I + I² controller</text>
-  <text x="414" y="307">P / PI gains · nested I² branch</text>
-  <text x="414" y="330">Integrators 2 and 3 → RF correction</text>
-  <text class="small" x="414" y="357">Accurate states run in both modes</text>
-
-  <path class="wire" d="M126 368V400"/>
-  <path class="accurate-wire" d="M284 344H260V412H138"/>
-  <text class="small" x="202" y="400" style="fill:#1882a4">I² contribution</text>
-  <circle cx="126" cy="412" r="12" fill="#fff" stroke="#647780" stroke-width="1.5"/>
-  <path d="M121 412H131M126 407V417" stroke="#647780" stroke-width="1.5"/>
-  <path class="wire" d="M126 424V466H180"/>
-  <text class="small" x="148" y="456">Fast</text>
-  <path class="accurate-wire" d="M414 368V466H380"/>
-  <text class="small" x="437" y="447" style="fill:#1882a4">Accurate</text>
-  <rect class="box" x="180" y="442" width="200" height="50" rx="5"/>
-  <text class="heading" x="280" y="462">P + I mode selector</text>
-  <text class="small" x="280" y="481">Manual · continuous handoff</text>
-
-  <path class="wire" d="M280 492V508H126V526"/>
-  <path class="accurate-wire" d="M414 389H506V508H414V526"/>
-  <circle cx="414" cy="389" r="2.5" fill="#1882a4"/>
-  <rect class="box" x="16" y="526" width="220" height="52" rx="5"/>
-  <text class="heading" x="126" y="548">RF DAC routing</text>
-  <text class="small" x="126" y="566">Selected loop correction</text>
-  <rect class="accurate-box" x="284" y="526" width="260" height="52" rx="5"/>
-  <text class="heading" x="414" y="548">Precision DAC</text>
-  <text class="small" x="414" y="566">Accurate correction → I³ gain → integrator 4</text>
-
-  <path class="accurate-wire" d="M544 201H552V624H544"/>
-  <rect class="accurate-box" x="284" y="598" width="260" height="52" rx="5"/>
-  <text class="heading" x="414" y="620">Phase-noise monitor</text>
-  <text class="small" x="414" y="639">Accurate phase → CIC · FIR · DMA</text>
-  <text class="small" x="126" y="617">Numbers match the integrator controls</text>
-  <text class="small" x="126" y="635">Fast requires 1 and 3 enabled</text>
-  <text class="small" x="280" y="672">Both paths run continuously · mode selection changes the RF correction</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="800" viewBox="0 0 560 800" role="img" aria-labelledby="title desc">
+<title id="title">DPLL channel signal flow</title>
+<desc id="desc">A shared mixer feeds Fast and Accurate phase detectors. Fast phase feeds P and an integral PI path. Accurate phase increment feeds P and integrator 1 followed by PI. Their sum feeds integrator 3 directly and a higher-order branch through integrator 2, I squared gain and integrator 3. The higher-order correction is added to both RF candidates. Manual selection with continuity offset drives RF DAC routing. Accurate RF correction drives I cubed and integrator 4 for the precision DAC. The monitor has a separate Accurate phase tap. Repeated integrator 3 symbols represent separately tracked contributions under the same enable control. Scaling and register delays are omitted.</desc>
+<defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#647780"/></marker></defs>
+<style>
+text{font:13px Arial,sans-serif;fill:#263b45;text-anchor:middle}
+.small{font-size:11px;fill:#647780}.head{font-weight:600;font-size:14px}
+.wire{fill:none;stroke:#647780;stroke-width:1.35;stroke-linejoin:round;marker-end:url(#arrow)}
+.line{fill:none;stroke:#647780;stroke-width:1.35;stroke-linejoin:round}
+.block{fill:white;stroke:#a9bac3;stroke-width:1.1}
+.fast{fill:#fff9ed;stroke:#c5a773}.accurate{fill:#f3f9fb;stroke:#83b3c4}
+</style>
+<text x="280" y="18" class="small">ONE CHANNEL · 250 MS/s</text>
+<rect x="46" y="34" width="124" height="28" rx="3" class="block"/>
+<text x="108.0" y="52.0" class="head">ADC</text>
+<rect x="390" y="34" width="124" height="28" rx="3" class="block"/>
+<text x="452.0" y="52.0" class="head">Reference DDS</text>
+<path class="wire" d="M108 62V86H214"/>
+<path class="wire" d="M452 62V86H346"/>
+<rect x="214" y="70" width="132" height="32" rx="3" class="block"/>
+<text x="280.0" y="90.0" class="head">I/Q mixer</text>
+<path class="wire" d="M280 102V120H104V150"/>
+<path class="wire" d="M280 120H384V150"/>
+<circle cx="280" cy="120" r="2.5" fill="#647780"/>
+<text x="50" y="141" class="small">FAST</text>
+<text x="285" y="141" class="small">ACCURATE</text>
+<rect x="20" y="150" width="168" height="34" rx="3" class="fast"/>
+<text x="104.0" y="171.0" class="head">4-sample filter</text>
+<rect x="244" y="150" width="280" height="34" rx="3" class="accurate"/>
+<text x="384.0" y="171.0" class="head">4 × 16-sample filter</text>
+<path class="wire" d="M104 184V200"/>
+<path class="wire" d="M384 184V200"/>
+<rect x="20" y="200" width="168" height="44" rx="3" class="fast"/>
+<text x="104.0" y="220" class="head">Phase projection</text>
+<text x="104.0" y="236" class="small">Calibrated near lock</text>
+<rect x="244" y="200" width="280" height="44" rx="3" class="accurate"/>
+<text x="384.0" y="220" class="head">24-bit phase extraction</text>
+<text x="384.0" y="236" class="small">Unwrap · phase and phase increment</text>
+<path class="wire" d="M104 244V260H54V310"/>
+<path class="wire" d="M104 260H154V265"/>
+<circle cx="104" cy="260" r="2.5" fill="#647780"/>
+<circle cx="154" cy="276" r="11" fill="white" stroke="#647780" stroke-width="1.35"/><path class="line" d="M149 276H159M154 271V281"/>
+<path class="wire" d="M220 276H165"/>
+<text x="205" y="264" class="small">Lock phase</text>
+<path class="wire" d="M154 287V310"/>
+<rect x="30" y="310" width="48" height="34" rx="3" class="fast"/>
+<text x="54.0" y="331.0" class="">P</text>
+<rect x="130" y="310" width="48" height="34" rx="3" class="fast"/>
+<text x="154.0" y="331.0" class="">PI</text>
+<path class="wire" d="M154 344V360"/>
+<rect x="130" y="360" width="48" height="34" rx="3" class="fast"/>
+<text x="154.0" y="381.0" class="">Int 3</text>
+<path class="wire" d="M54 344V410H93"/>
+<path class="wire" d="M154 394V410H115"/>
+<circle cx="104" cy="410" r="11" fill="white" stroke="#647780" stroke-width="1.35"/><path class="line" d="M99 410H109M104 405V415"/>
+<text x="147" y="445" class="small">P + I</text>
+<path class="wire" d="M104 421V567"/>
+<path class="wire" d="M384 244V264H294V290"/>
+<path class="wire" d="M384 264H474V282"/>
+<circle cx="384" cy="264" r="2.5" fill="#647780"/>
+<rect x="270" y="290" width="48" height="34" rx="3" class="accurate"/>
+<text x="294.0" y="311.0" class="">P</text>
+<rect x="450" y="282" width="48" height="34" rx="3" class="accurate"/>
+<text x="474.0" y="303.0" class="">Int 1</text>
+<path class="wire" d="M474 316V338"/>
+<rect x="450" y="338" width="48" height="34" rx="3" class="accurate"/>
+<text x="474.0" y="359.0" class="">PI</text>
+<path class="wire" d="M294 324V396H373"/>
+<path class="wire" d="M474 372V396H395"/>
+<circle cx="384" cy="396" r="11" fill="white" stroke="#647780" stroke-width="1.35"/><path class="line" d="M379 396H389M384 391V401"/>
+<path class="wire" d="M384 407V426H458V452"/>
+<path class="wire" d="M384 426H272V510"/>
+<circle cx="384" cy="426" r="2.5" fill="#647780"/>
+<rect x="434" y="452" width="48" height="34" rx="3" class="accurate"/>
+<text x="458.0" y="473.0" class="">Int 3</text>
+<rect x="248" y="510" width="48" height="34" rx="3" class="accurate"/>
+<text x="272.0" y="531.0" class="">Int 2</text>
+<rect x="314" y="510" width="48" height="34" rx="3" class="accurate"/>
+<text x="338.0" y="531.0" class="">I²</text>
+<rect x="380" y="510" width="48" height="34" rx="3" class="accurate"/>
+<text x="404.0" y="531.0" class="">Int 3</text>
+<path class="wire" d="M296 527H314"/>
+<path class="wire" d="M362 527H380"/>
+<text x="340" y="498" class="small">I² branch</text>
+<text x="493" y="475" class="small">P + I</text>
+<path class="wire" d="M458 486V567"/>
+<path class="wire" d="M428 527H436V554H226V578H115"/>
+<path class="wire" d="M436 554V578H447"/>
+<circle cx="436" cy="554" r="2.5" fill="#647780"/>
+<text x="184" y="545" class="small">I² correction</text>
+<circle cx="104" cy="578" r="11" fill="white" stroke="#647780" stroke-width="1.35"/><path class="line" d="M99 578H109M104 573V583"/>
+<circle cx="458" cy="578" r="11" fill="white" stroke="#647780" stroke-width="1.35"/><path class="line" d="M453 578H463M458 573V583"/>
+<path class="wire" d="M104 589V650H174"/>
+<path class="wire" d="M458 589V650H386"/>
+<text x="130" y="639" class="small">Fast</text>
+<text x="427" y="639" class="small">Accurate</text>
+<rect x="174" y="626" width="212" height="48" rx="3" class="block"/>
+<text x="280.0" y="646" class="head">Mode selection</text>
+<text x="280.0" y="662" class="small">Manual · continuity offset</text>
+<path class="wire" d="M280 674V700H98V726"/>
+<path class="wire" d="M458 605H532V708H280V726"/>
+<circle cx="458" cy="605" r="2.5" fill="#647780"/>
+<path class="wire" d="M524 222H548V752H528"/>
+<rect x="16" y="726" width="164" height="46" rx="3" class="block"/>
+<text x="98.0" y="746" class="head">RF DAC routing</text>
+<text x="98.0" y="762" class="small">Selected correction</text>
+<rect x="198" y="726" width="164" height="46" rx="3" class="accurate"/>
+<text x="280.0" y="746" class="head">Precision DAC</text>
+<text x="280.0" y="762" class="small">I³ gain → integrator 4</text>
+<rect x="380" y="726" width="148" height="46" rx="3" class="accurate"/>
+<text x="454.0" y="746" class="head">Phase monitor</text>
+<text x="454.0" y="762" class="small">CIC · FIR · DMA</text>
+<text x="280" y="789" class="small">Int n follows switch n · repeated blocks share the enable · scaling omitted</text>
 </svg>
