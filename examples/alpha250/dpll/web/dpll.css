@@ -96,3 +96,8 @@
 .dpll-workspace .gain-input { appearance: textfield; -moz-appearance: textfield; }
 .dpll-workspace .gain-input::-webkit-inner-spin-button, .dpll-workspace .gain-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .dpll-workspace .gain-save { width: 100%; padding: 0 3px; }
+
+.dpll-workspace .gain-unit { width: 100%; height: 20px; border-color: transparent; background: transparent; padding: 0 2px; color: #666; }
+.dpll-workspace .gain-row[data-linked="true"] { background: #e5f5fb; }
+.dpll-workspace .integrators label[data-linked="true"] { outline: 1px solid var(--accent); outline-offset: 2px; }
+.dpll-workspace .channel-panel[data-diagram-selected="true"] > details > summary { color: var(--accent-dark); }

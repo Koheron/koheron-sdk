@@ -112,11 +112,17 @@ async function host(t, options = {}) {
   const sources = koheron.slice(koheron.indexOf('class Imports {')) + '\n' + [
     'web/phase-modulator/frequency-input.ts', 'examples/alpha250/dpll/web/dpll.ts',
     'examples/alpha250/dpll/web/clock-generator/clock-generator.ts',
-    'examples/alpha250/dpll/web/diagram.ts', 'examples/alpha250/dpll/web/control.ts', 'examples/alpha250/dpll/web/app.ts'
+    'examples/alpha250/dpll/web/gain-display.ts', 'examples/alpha250/dpll/web/diagram.ts', 'examples/alpha250/dpll/web/control.ts', 'examples/alpha250/dpll/web/app.ts'
   ].map(read).join('\n');
   window.eval(ts.transpileModule(sources, {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText);
   window.dispatchEvent(new window.Event('HTMLImportsLoaded'));
   await settle();
+  // Existing editor regression cases exercise the explicit base-2 unit.
+  if (options.gainUnit !== 'db') {
+    for (const select of document.querySelectorAll('.gain-unit')) {
+      select.value = 'exponent'; select.dispatchEvent(new window.Event('change'));
+    }
+  }
   const inputs = Array.from(document.querySelectorAll('.frequency-input'));
   const row = (channel = 0, status = 'p_gain') => document.querySelector(`.gain-row[data-channel="${channel}"][data-status="${status}"]`);
   const type = (input, value) => { input.value = value; input.dispatchEvent(new window.Event('input', {bubbles: true})); };
@@ -326,8 +332,11 @@ test('zeroing a gain preserves its last applied exponent for re-enabling', async
   const h = await host(t), row = h.row();
   row.querySelector('.gain-button[value="0"]').click();
   row.querySelector('.gain-save').click(); await settle();
-  assert.equal(row.querySelector('.gain-input').value, '3');
+  assert.equal(row.querySelector('.gain-input').value, '');
+  assert.equal(row.querySelector('.gain-input').placeholder, 'Off');
   row.querySelector('.gain-button[value="1"]').click();
+  assert.equal(row.querySelector('.gain-input').value, '3');
+  assert.equal(row.querySelector('.gain-input').placeholder, '');
   row.querySelector('.gain-save').click(); await settle();
   assert.deepEqual(h.writes.at(-1), {name:'set_geometric_gain', args:[0,0,1,48]});
 });
@@ -354,7 +363,7 @@ test('live schematic follows applied channel settings without writes or draft le
   const label = name => svg.querySelector(`[data-label="${name}"]`).textContent;
   assert.equal(label('adc'), 'ADC0');
   assert.equal(label('mode'), 'Accurate selected');
-  assert.equal(svg.querySelector('[data-gain="p_gain"] text').textContent, '−P');
+  assert.equal(svg.querySelector('[data-gain="p_gain"] text').textContent, '− P');
   assert.equal(svg.querySelector('[data-gain="pi_gain"]').getAttribute('data-state'), 'disabled');
   for (const block of svg.querySelectorAll('[data-integrator="2"]')) {
     assert.equal(block.getAttribute('data-state'), 'enabled');
@@ -362,7 +371,7 @@ test('live schematic follows applied channel settings without writes or draft le
   h.type(h.row().querySelector('.gain-input'), '12');
   h.row().querySelector('.gain-button[value="0"]').click();
   await settle(280);
-  assert.equal(svg.querySelector('[data-gain="p_gain"] title').textContent, 'P = -8 (applied)');
+  assert.match(svg.querySelector('[data-gain="p_gain"] title').textContent, /Negative · 18.06 dB · coefficient -8/);
   h.state.paths[1] = 1;
   const select = h.document.querySelector('#diagram-channel');
   select.value = '1'; select.dispatchEvent(new h.window.Event('change'));
@@ -409,4 +418,86 @@ test('SVG resolving after shutdown cannot display stale live settings', async t 
   h.window.dispatchEvent(new h.window.Event('pagehide'));
   h.resolveSvg(); await settle();
   assert.equal(h.document.querySelector('#live-diagram svg'), null);
+});
+
+test('dB magnitude keeps polarity separate and applies only on Enter', async t => {
+  const h = await host(t, {gainUnit:'db'}), row = h.row(), input = row.querySelector('.gain-input');
+  const blocks = h.document.querySelectorAll('svg [data-gain="p_gain"]');
+  assert.equal(input.value, '18.06');
+  for (const block of blocks) {
+    assert.equal(block.querySelector('.gain-name').textContent, '− P');
+    assert.equal(block.querySelector('.gain-db').textContent, '18.06 dB');
+  }
+  assert.equal(h.document.querySelector('svg [data-gain="pi_gain"] .gain-db').textContent, 'Off');
+  h.type(input, '6.02'); await settle(280);
+  assert.equal(blocks[0].querySelector('.gain-db').textContent, '18.06 dB');
+  assert.equal(h.writes.length, 0);
+  h.key(input, 'Enter'); await settle(280);
+  assert.deepEqual(h.writes, [{name:'set_geometric_gain', args:[0,0,-1,16]}]);
+  assert.equal(blocks[0].querySelector('.gain-db').textContent, '6.02 dB');
+  h.key(input, 'ArrowUp');
+  assert.equal(input.value, '6.40');
+  h.key(input, 'Escape'); await settle();
+  assert.equal(input.value, '6.02');
+});
+
+test('unit changes preserve a valid pending gain and never apply it', async t => {
+  const h = await host(t, {gainUnit:'db'}), row = h.row(), input = row.querySelector('.gain-input');
+  const unit = h.document.querySelector('.gain-unit[data-channel="0"]');
+  h.type(input, '24.08');
+  unit.value='exponent'; unit.dispatchEvent(new h.window.Event('change'));
+  assert.equal(input.value, '4');
+  assert.equal(row.querySelector('.gain-save').disabled, false);
+  assert.equal(h.row(1).querySelector('.gain-input').value, '24.08');
+  unit.value='db'; unit.dispatchEvent(new h.window.Event('change'));
+  assert.equal(input.value, '24.08');
+  await settle(280);
+  assert.equal(input.value, '24.08');
+  assert.equal(h.writes.length, 0);
+  h.key(input,'Escape'); await settle();
+  assert.equal(input.value, '18.06');
+  h.type(input,'');
+  unit.value='exponent'; unit.dispatchEvent(new h.window.Event('change'));
+  assert.equal(unit.value,'db');
+  assert.equal(input.value,'');
+});
+
+test('dB endpoints, unity and off retain signed hardware limits', async t => {
+  const h = await host(t, {gainUnit:'db'}), row = h.row(), input = row.querySelector('.gain-input');
+  h.type(input, '186.64'); h.key(input,'Enter'); await settle();
+  assert.deepEqual(h.writes.at(-1), {name:'set_geometric_gain', args:[0,0,-1,496]});
+  row.querySelector('.gain-button[value="1"]').click();
+  h.key(input,'Enter'); await settle();
+  assert.equal(h.writes.length,1);
+  h.type(input,'186.26'); h.key(input,'Enter'); await settle();
+  assert.deepEqual(h.writes.at(-1), {name:'set_geometric_gain', args:[0,0,1,495]});
+  h.type(input,'0'); h.key(input,'Enter'); await settle();
+  assert.equal(h.state.gains[0][0],1);
+  row.querySelector('.gain-button[value="0"]').click();
+  row.querySelector('.gain-save').click(); await settle(280);
+  assert.equal(h.state.gains[0][0],0);
+  assert.equal(input.value,'');
+  assert.equal(input.placeholder,'Off');
+  assert.equal(h.document.querySelector('svg [data-gain="p_gain"] .gain-db').textContent,'Off');
+});
+
+test('diagram links and control focus select the matching channel without hardware writes', async t => {
+  const h = await host(t, {gainUnit:'db'});
+  const row = h.row(1), input = row.querySelector('.gain-input');
+  input.focus();
+  assert.equal(h.document.querySelector('#diagram-channel').value,'1');
+  let blocks = Array.from(h.document.querySelectorAll('svg [data-gain="p_gain"]'));
+  assert.ok(blocks.every(b => b.getAttribute('data-linked') === 'true'));
+  assert.equal(row.dataset.linked,'true');
+  row.closest('details').open = false;
+  blocks[1].dispatchEvent(new h.window.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+  assert.equal(row.closest('details').open,true);
+  assert.equal(h.document.activeElement,input);
+  const integrator = h.document.querySelector('svg [data-integrator="2"]');
+  integrator.dispatchEvent(new h.window.MouseEvent('click',{bubbles:true}));
+  assert.equal(h.document.activeElement, h.document.querySelector('.integrator-switch[data-channel="1"][data-integratorindex="2"]'));
+  assert.equal(h.writes.length,0);
+  h.window.dispatchEvent(new h.window.Event('pagehide'));
+  assert.equal(h.document.querySelector('svg [tabindex="0"]'),null);
+  assert.equal(h.document.querySelector('[data-linked]'),null);
 });

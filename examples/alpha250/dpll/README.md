@@ -20,18 +20,28 @@ with optional units. Enter or leaving the field applies a typed value; Escape
 restores the latest readback. Changing the unit alone changes the display.
 The allowed range is 0 through half the actual DAC sample rate, inclusive.
 
-Gains use a sign and a base-2 exponent in increments of 1/16 (16 steps per
-octave, about 4.43% between steps). The applied gain appears below the exponent.
-Coefficient approximation error is at most 0.020373%. Sign 0 disables the gain.
-Press Apply to send a gain;
-Enter also applies and Escape cancels an exponent draft. Drafts survive polling
-and stay with their ADC channel. Gain magnitudes retain the signed 32-bit limits.
-The positive exponent limit is 30.9375; negative gains also allow 31.
+Gains show polarity separately from magnitude. The magnitude column defaults to
+**dB** (`20 log10 |g|`, relative to coefficient 1); its header switches to **log₂**
+for base-2 exponent editing. Values use 16 steps per octave (about 0.376 dB).
+Typed dB values round to the nearest hardware step. Coefficient approximation
+error is at most 0.020373%. Sign 0 disables the gain and displays **Off**; 0 dB
+with either nonzero sign means magnitude 1. Re-enabling restores the last applied
+magnitude. Unit changes do not send commands or apply pending edits.
+Press Apply or Enter to send a gain, Escape to cancel a draft. Arrow keys tune one
+step; Shift + arrow tunes one octave. Drafts survive polling and stay with their
+ADC channel. The positive exponent limit is 30.9375 (186.26 dB); negative gains
+also allow 31 (186.64 dB).
 Integrator checkboxes, DAC routes and the 10 MHz clock reference apply directly.
 
 Startup reads existing settings without changing them. Connection failures
 disable controls and expose Retry. Closing the page stops polling and cancels
-queued frequency edits. The loop signal-path diagram is packaged with the UI.
+queued frequency edits. The collapsible signal diagram follows applied readback for its selected channel,
+including signed dB gains, enabled integrators, mode, reference and routing.
+Focusing a loop control selects that channel in the diagram. Matching gains and
+integrators highlight together; clicking a block (or Enter/Space when focused)
+opens and focuses its control without applying a setting. The diagram keeps
+applied values while an editor contains a draft. Its geometry stays fixed, and
+motion follows the browser's reduced-motion preference.
 
 ## Manual Accurate / Fast P + I
 

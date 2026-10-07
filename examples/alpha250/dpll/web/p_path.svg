@@ -14,11 +14,15 @@ svg.dpll-schematic .block{fill:white;stroke:#a9bac3;stroke-width:1.1}
 svg.dpll-schematic .fast{fill:#fff9ed;stroke:#c5a773}
 svg.dpll-schematic .accurate{fill:#f3f9fb;stroke:#83b3c4}
 svg.dpll-schematic [data-gain],svg.dpll-schematic [data-integrator],svg.dpll-schematic [data-mode]{transition:opacity 180ms ease,stroke 180ms ease}
-svg.dpll-schematic[data-live] [data-state="disabled"]{opacity:.42}
-svg.dpll-schematic[data-live] [data-state="disabled"] rect{stroke-dasharray:3 2}
+svg.dpll-schematic[data-live] [data-state="disabled"] text{fill:#6e7c84}
+svg.dpll-schematic[data-live] [data-state="disabled"] rect{stroke-dasharray:3 2;fill:#fafafa;stroke:#c5cdd1}
 svg.dpll-schematic[data-live] [data-mode]{opacity:.35}
 svg.dpll-schematic[data-live] [data-mode][data-selected="true"]{opacity:1;stroke:#147b94;stroke-width:2.8}
 @media(prefers-reduced-motion:reduce){svg.dpll-schematic [data-gain],svg.dpll-schematic [data-integrator],svg.dpll-schematic [data-mode]{transition:none}}
+svg.dpll-schematic .gain-name{font-size:12px;font-weight:600}
+svg.dpll-schematic .gain-db{font-size:11px;font-variant-numeric:tabular-nums}
+svg.dpll-schematic [role="button"]{cursor:pointer;outline:none}
+svg.dpll-schematic [data-linked="true"] rect,svg.dpll-schematic [role="button"]:focus-visible rect{stroke:#008fbe;stroke-width:2;stroke-dasharray:none;fill:#e5f5fb}
 </style>
 <text data-label="header" x="280" y="18" class="small">ONE CHANNEL · 250 MS/s</text>
 <rect x="46" y="34" width="124" height="28" rx="3" class="block"/>
@@ -51,10 +55,10 @@ svg.dpll-schematic[data-live] [data-mode][data-selected="true"]{opacity:1;stroke
 <circle cx="104" cy="260" r="2.5" fill="#647780"/>
 <circle cx="154" cy="276" r="11" fill="white" stroke="#647780" stroke-width="1.35"/><path class="line" d="M149 276H159M154 271V281"/>
 <path class="wire" d="M154 287V310"/>
-<g data-gain="p_gain"><title>P gain</title><rect x="30" y="310" width="48" height="34" rx="3" class="fast"/>
-<text x="54.0" y="331.0" class="">P</text></g>
-<g data-gain="pi_gain"><title>PI gain</title><rect x="130" y="310" width="48" height="34" rx="3" class="fast"/>
-<text x="154.0" y="331.0" class="">PI</text></g>
+<g data-gain="p_gain"><title>P gain</title><rect x="22" y="310" width="64" height="34" rx="3" class="fast"/>
+<text class="gain-name" x="54" y="323">P</text><text class="gain-db" x="54" y="337">—</text></g>
+<g data-gain="pi_gain"><title>PI gain</title><rect x="122" y="310" width="64" height="34" rx="3" class="fast"/>
+<text class="gain-name" x="154" y="323">PI</text><text class="gain-db" x="154" y="337">—</text></g>
 <path class="wire" d="M154 344V360"/>
 <g data-integrator="2"><title>Integrator 3</title><rect x="130" y="360" width="48" height="34" rx="3" class="fast"/>
 <text x="154.0" y="381.0" class="">Int 3</text></g>
@@ -69,20 +73,20 @@ svg.dpll-schematic[data-live] [data-mode][data-selected="true"]{opacity:1;stroke
 <path class="wire" d="M384 244V264H294V290"/>
 <path class="wire" d="M384 264H474V282"/>
 <circle cx="384" cy="264" r="2.5" fill="#647780"/>
-<g data-gain="p_gain"><title>P gain</title><rect x="270" y="290" width="48" height="34" rx="3" class="accurate"/>
-<text x="294.0" y="311.0" class="">P</text></g>
+<g data-gain="p_gain"><title>P gain</title><rect x="262" y="290" width="64" height="34" rx="3" class="accurate"/>
+<text class="gain-name" x="294" y="303">P</text><text class="gain-db" x="294" y="317">—</text></g>
 <g data-integrator="0"><title>Integrator 1</title><rect x="450" y="282" width="48" height="34" rx="3" class="accurate"/>
 <text x="474.0" y="303.0" class="">Int 1</text></g>
 <path class="wire" d="M474 316V338"/>
-<g data-gain="pi_gain"><title>PI gain</title><rect x="450" y="338" width="48" height="34" rx="3" class="accurate"/>
-<text x="474.0" y="359.0" class="">PI</text></g>
+<g data-gain="pi_gain"><title>PI gain</title><rect x="442" y="338" width="64" height="34" rx="3" class="accurate"/>
+<text class="gain-name" x="474" y="351">PI</text><text class="gain-db" x="474" y="365">—</text></g>
 <path class="wire" d="M294 324V396H373"/>
 <path class="wire" d="M474 372V396H395"/>
 <!-- Capture the Accurate phase reference only when entering Fast. -->
 <path d="M474 327H220V276H165" fill="none" stroke="white" stroke-width="4"/>
 <path class="capture" d="M474 327H220V276H165"/>
 <circle cx="474" cy="327" r="2.5" fill="#647780"/>
-<text x="192" y="267" class="signal">φ₀</text>
+<text x="192" y="267" class="signal"><title>Accurate phase captured on entry to Fast; added to the local Fast phase for PI.</title>φ₀</text>
 
 <circle cx="384" cy="396" r="11" fill="white" stroke="#647780" stroke-width="1.35"/><path class="line" d="M379 396H389M384 391V401"/>
 <path class="wire" d="M384 407V426H458V452"/>
@@ -92,12 +96,12 @@ svg.dpll-schematic[data-live] [data-mode][data-selected="true"]{opacity:1;stroke
 <text x="458.0" y="473.0" class="">Int 3</text></g>
 <g data-integrator="1"><title>Integrator 2</title><rect x="248" y="510" width="48" height="34" rx="3" class="accurate"/>
 <text x="272.0" y="531.0" class="">Int 2</text></g>
-<g data-gain="i2_gain"><title>I² gain</title><rect x="314" y="510" width="48" height="34" rx="3" class="accurate"/>
-<text x="338.0" y="531.0" class="">I²</text></g>
+<g data-gain="i2_gain"><title>I² gain</title><rect x="306" y="510" width="64" height="34" rx="3" class="accurate"/>
+<text class="gain-name" x="338" y="523">I²</text><text class="gain-db" x="338" y="537">—</text></g>
 <g data-integrator="2"><title>Integrator 3</title><rect x="380" y="510" width="48" height="34" rx="3" class="accurate"/>
 <text x="404.0" y="531.0" class="">Int 3</text></g>
-<path class="wire" d="M296 527H314"/>
-<path class="wire" d="M362 527H380"/>
+<path class="wire" d="M296 527H306"/>
+<path class="wire" d="M370 527H380"/>
 <text x="340" y="498" class="small">I² branch</text>
 
 <path class="wire" d="M458 486V567"/>
@@ -115,10 +119,10 @@ svg.dpll-schematic[data-live] [data-mode][data-selected="true"]{opacity:1;stroke
 <text data-label="mode" x="280.0" y="646" class="head">Mode selection</text>
 <text x="280.0" y="662" class="small">Manual · continuity offset</text>
 <path class="wire" d="M280 674V700H98V726"/>
-<path class="wire" d="M458 605H532V693H480"/>
-<g data-gain="i3_gain"><title>I³ gain</title><rect x="432" y="676" width="48" height="34" rx="3" class="accurate"/>
-<text x="456" y="697">I³</text></g>
-<path class="wire" d="M432 693H408"/>
+<path class="wire" d="M458 605H532V693H488"/>
+<g data-gain="i3_gain"><title>I³ gain</title><rect x="424" y="676" width="64" height="34" rx="3" class="accurate"/>
+<text class="gain-name" x="456" y="689">I³</text><text class="gain-db" x="456" y="703">—</text></g>
+<path class="wire" d="M424 693H408"/>
 <g data-integrator="3"><title>Integrator 4</title><rect x="352" y="676" width="56" height="34" rx="3" class="accurate"/>
 <text x="380" y="697">Int 4</text></g>
 <path class="wire" d="M380 710V718H280V726"/>
