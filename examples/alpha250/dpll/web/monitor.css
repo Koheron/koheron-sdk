@@ -10,6 +10,7 @@
 .dpll-workspace .average-control { display: flex; align-items: center; gap: 3px; }
 .dpll-workspace #average-status { font-variant-numeric: tabular-nums; }
 .dpll-workspace #plot-wrap { height: clamp(350px, 56vh, 680px); }
+.dpll-workspace #spectrum-status { position: absolute; top: 0; left: 0; right: 0; z-index: 2; margin: 0; padding: 6px; background: white; }
 .dpll-workspace .spectrum-readouts { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 10px 0; border-top: 1px solid var(--border-light); font-variant-numeric: tabular-nums; }
 .dpll-workspace .readout-label { display: block; font-size: 10px; color: #777; }
 .dpll-workspace .reference-info { padding: 6px 0; font-size: 11px; color: #666; }

@@ -192,6 +192,14 @@ test('gain drafts stay with their channel, zero is exact, and invalid signed gai
   assert.deepEqual(h.writes[2], {name: 'set_geometric_gain', args: [1, 0, -1, 496]});
   h.type(input, '7'); h.key(input, 'Escape'); await settle();
   assert.equal(input.value, '31');
+  const zero = row.querySelector('.gain-button[value="0"]');
+  zero.click();
+  assert.equal(input.disabled, true);
+  h.key(zero, 'Escape'); await settle();
+  assert.equal(input.disabled, false);
+  assert.equal(input.value, '31');
+  assert.equal(apply.disabled, true);
+  assert.equal(h.writes.length, 3);
 });
 
 test('integrator, DAC route and clock changes keep their native command values', async t => {

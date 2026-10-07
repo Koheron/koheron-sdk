@@ -32,7 +32,10 @@ class Control {
       this.listen(input, 'input', () => { save.disabled = false; input.setCustomValidity(''); });
       this.listen(input, 'keydown', event => {
         if ((event as KeyboardEvent).key === 'Enter') { save.click(); }
+      });
+      this.listen(row, 'keydown', event => {
         if ((event as KeyboardEvent).key === 'Escape') {
+          event.preventDefault();
           save.disabled = true;
           input.setCustomValidity('');
           void this.refreshGains();

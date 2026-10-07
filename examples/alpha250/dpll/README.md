@@ -395,7 +395,12 @@ connection, identifies integrators 1 and 3, and visibly recommends greater
 phase precision when no noise is resolved. At decimation 200 and +8-bit
 precision the tested monitor achieved 100% coverage; decimation 50 exceeded
 the measured processing capacity. Original settings were restored after testing.
-CSV download verification was inconclusive because browser automation timed out.
+Follow-up Chrome tests verified CSV (including live and reference spectra) and
+PNG exports, eight-spectrum averaging, invalid frequency/decimation rejection,
+1 Hz digit tuning, and negative fractional gain readback. Escape now cancels
+gain drafts from sign buttons as well as the exponent input. Live/empty plot
+states retain identical plot and control bounds; no extra feedback panels were
+added. Original settings were restored after these checks.
 
 External I/O timing coverage remains at the board constraints' existing 14 inputs and 41 outputs
 without delay constraints; lock, stability, phase noise and analog latency
