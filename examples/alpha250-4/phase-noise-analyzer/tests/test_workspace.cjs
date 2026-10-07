@@ -118,6 +118,7 @@ test('all four nominal LO fields commit in Hz, reject invalid integers and show 
   const browserTimeout=w.setTimeout.bind(w);
   w.setTimeout=(callback,delay)=>delay===0?browserTimeout(callback,0):0;
   w.document.getElementById('instrument-controls').disabled=false;
+  w.document.getElementById('settings-controls').disabled=false;
   const p={data_size:15001,channel:2,fs:100e6/133,cic_rate:133,fft_navg:8,clkIndex:'2'};
   const nominal=[10e6,10e6,10e6,10e6];const calls=[];
   const driver={async getParameters(){return p;},async getNominalFrequencies(){return nominal;},

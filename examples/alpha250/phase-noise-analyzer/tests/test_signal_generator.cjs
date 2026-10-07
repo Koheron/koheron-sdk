@@ -124,7 +124,7 @@ test('connection failure retains locked controls and shows a retry without DAC w
     assert.deepEqual(h.trace, []);
     assert.equal(h.port.calls.length, 0);
     assert.equal(h.client.exits, 1);
-    for (const id of ['instrument-controls', 'plot-controls', 'laser-controls']) {
+    for (const id of ['instrument-controls', 'settings-controls', 'plot-controls', 'laser-controls']) {
         assert.equal(h.window.document.getElementById(id).disabled, true);
     }
     assert.equal(h.window.document.getElementById('connection-error').hidden, false);
@@ -166,7 +166,7 @@ test('connection loss after initialization marks readings stale and disables wri
 for (const board of ['alpha250', 'red-pitaya']) {
     test(`${board}: a cached Back/Forward return reconnects after page shutdown`, () => {
         const handlers = new Map();
-        const controls = new Map(['instrument-controls', 'plot-controls', 'laser-controls']
+        const controls = new Map(['instrument-controls', 'settings-controls', 'plot-controls', 'laser-controls']
             .map(id => [id, {disabled: false}]));
         let reloads = 0;
         let exits = 0;

@@ -55,22 +55,13 @@
         </div></div>
         <label class="control-field" title="Integer CIC rates from 4 to 8192">Decimation<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="20" min="4" step="1" max="8192" required data-command="setCicRate" class="cic-rate-input"></span></label>
         <label class="control-field">Averages<span class="pna-digit-control pna-average-control"><span id="average-status" role="status" data-state="unknown" title="Actual spectra in the rolling average">—/</span><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1" min="1" step="1" max="100" required class="plot-navg-input"></span></label>
-        <label class="control-field" title="Extra fractional bits preserve smaller phase changes, at the cost of phase range.">Phase precision
-          <select id="phase-precision">
-            <option value="0">Standard</option>
-            <option value="1">+1 bit</option><option value="2">+2 bits</option>
-            <option value="3">+3 bits</option><option value="4">+4 bits</option>
-            <option value="5">+5 bits</option><option value="6">+6 bits</option>
-            <option value="7">+7 bits</option><option value="8">+8 bits</option>
-          </select>
-        </label>
-        <span id="precision-status" class="precision-status" role="status">Waiting…</span>
+
       </div>
       <div class="display-controls"><div class="segmented">
         <label><input type="radio" name="laser-plot-type" value="phase" checked class="laser-plot-type"><span>Phase noise</span></label>
         <label><input type="radio" name="laser-plot-type" value="frequency" class="laser-plot-type"><span>Frequency noise</span></label>
       </div><span id="spectrum-unit" class="spectrum-unit">dBc/Hz</span><label class="toggle"><input type="checkbox" id="show-smoothed-trace">Smoothed</label></div>
-      <div class="config-actions"><button type="button" class="save-cfg" title="Save analyzer and local oscillator settings on the board. DAC settings are independent.">Save settings</button><span id="save-config-status" class="sr-only" role="status"></span></div>
+
       <div id="dds-frequency" class="oscillator-controls"></div>
     </fieldset>
     <fieldset id="plot-controls" disabled class="spectrum-toolbar">
@@ -91,6 +82,27 @@
     </div>
   </section>
   <aside class="pna-sidebar" aria-label="Signal generator and measurement details">
+    <details class="acquisition-settings">
+      <summary>Acquisition settings</summary>
+      <fieldset id="settings-controls" disabled>
+        <legend class="sr-only">Phase precision and tracking settings</legend>
+        <label class="control-field" title="Extra fractional bits preserve smaller phase changes, at the cost of phase range.">Phase precision
+          <select id="phase-precision">
+            <option value="0">Standard</option>
+            <option value="1">+1 bit</option><option value="2">+2 bits</option>
+            <option value="3">+3 bits</option><option value="4">+4 bits</option>
+            <option value="5">+5 bits</option><option value="6">+6 bits</option>
+            <option value="7">+7 bits</option><option value="8">+8 bits</option>
+          </select>
+        </label>
+        <span id="precision-status" class="precision-status" role="status">Waiting…</span>
+        <div class="tracking-controls">
+          <label class="toggle" title="Track the selected ADC carrier slowly. Turning off restores the nominal LO frequencies."><input type="checkbox" class="tracking-enabled-input">Slow tracking</label>
+          <span class="tracking-readout"><span class="tracking-state">Off</span><span>BW ≤ <span class="tracking-effective-bandwidth">---</span> Hz</span><span>LO 0 <span class="tracking-correction-0">---</span> Hz</span><span>LO 1 <span class="tracking-correction-1">---</span> Hz</span></span>
+        </div>
+        <div class="config-actions"><button type="button" class="save-cfg" title="Save analyzer and local oscillator settings on the board. DAC settings are independent.">Save settings</button><span id="save-config-status" class="sr-only" role="status"></span></div>
+      </fieldset>
+    </details>
     <details class="pna-generator" open>
       <summary>DAC signal generator</summary>
       <div id="phase-modulator" class="dds-pm-widget" aria-label="DAC signal generator" style="--pm-loading-channels: 2">
