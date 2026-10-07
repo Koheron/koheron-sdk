@@ -141,9 +141,6 @@ class Control {
       if (gain !== 0) {
         this.gainExponents.set(row, String(Math.round(Math.log(Math.abs(gain)) / Math.LN2 * 16) / 16));
       }
-      const applied = row.querySelector<HTMLOutputElement>('.gain-value');
-      applied.value = String(gain);
-      applied.title = `Applied gain: ${gain}`;
       if (!save.disabled || this.pendingGains.has(row)) { continue; }
       this.selectSign(row, Math.sign(gain));
       row.querySelector<HTMLInputElement>('.gain-input').value = this.gainExponents.get(row) || '0';

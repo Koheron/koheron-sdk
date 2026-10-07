@@ -65,12 +65,11 @@
 .dpll-workspace .gain-table caption { padding: 3px 0 6px; color: #666; font-size: 11px; }
 .dpll-workspace .gain-table th { color: #666; font-weight: 400; }
 .dpll-workspace .gain-table thead th { border-bottom: 1px solid var(--border-light); }
-.dpll-workspace .gain-table td, .dpll-workspace .gain-table th { padding: 3px 4px; }
+.dpll-workspace .gain-table td, .dpll-workspace .gain-table th { padding: 3px 4px; vertical-align: middle; }
 .dpll-workspace .gain-table th:first-child { width: 36px; }
 .dpll-workspace .gain-table th:nth-child(2) { width: 92px; }
 .dpll-workspace .gain-table th:last-child { width: 55px; }
 .dpll-workspace .gain-input { width: 100%; text-align: right; }
-.dpll-workspace .gain-value { display: block; overflow: hidden; text-overflow: ellipsis; text-align: right; font-size: 10px; color: #666; }
 .dpll-workspace .control-help { margin: 0 0 8px; color: #666; font-size: 11px; }
 .dpll-workspace .routing-panel { padding-top: 8px; border-top: 1px solid var(--border-light); }
 .dpll-workspace .routing-controls { display: flex; flex-wrap: wrap; gap: 6px 18px; }
