@@ -150,9 +150,9 @@ $(TMP_OS_PATH)/bootmp.bin: \
   $(TMP_OS_PATH)/fsbl/executable.elf \
   $(BITSTREAM) \
   $(TMP_OS_PATH)/u-boot.elf
-	echo "img:{ [fsbl_config] a53_x64" > $(TMP_OS_PATH)/boot.bif
+	echo "img:{" > $(TMP_OS_PATH)/boot.bif
 	echo "[pmufw_image] $(TMP_OS_PATH)/pmu/executable.elf" >> $(TMP_OS_PATH)/boot.bif
-	echo "[bootloader] $(TMP_OS_PATH)/fsbl/executable.elf" >> $(TMP_OS_PATH)/boot.bif
+	echo "[bootloader,destination_cpu=a53-0] $(TMP_OS_PATH)/fsbl/executable.elf" >> $(TMP_OS_PATH)/boot.bif
 	echo "[destination_device=pl] $(BITSTREAM)" >> $(TMP_OS_PATH)/boot.bif
 	echo "[destination_cpu=a53-0,exception_level=el-3] $(TMP_OS_PATH)/bl31.elf" >> $(TMP_OS_PATH)/boot.bif
 	echo "[destination_cpu=a53-0,exception_level=el-2] $(TMP_OS_PATH)/u-boot.elf" >> $(TMP_OS_PATH)/boot.bif
