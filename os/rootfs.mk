@@ -277,6 +277,8 @@ $(MANIFEST_TXT): FORCE
 	  echo "kernel=$(LINUX_TAG)"; \
 	  echo "u-boot=$(UBOOT_TAG)"; \
 	  echo "device-tree=$(DTREE_TAG)"; \
+	  python3 "$(OS_PATH)/scripts/toolchain_versions.py" \
+	    --vivado-path "$(VIVADO_PATH)" --vitis-path "$(VITIS_PATH)"; \
 	  echo "koheron_version=$(KOHERON_VERSION)"; \
 	  echo "git_commit=$(GIT_COMMIT)"; \
 	  echo "git_branch=$(GIT_BRANCH)"; \
