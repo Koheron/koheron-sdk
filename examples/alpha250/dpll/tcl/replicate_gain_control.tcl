@@ -4,7 +4,7 @@
 set sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *gain_programmer/inst/command*_reg*}]
 if {[llength $sources] < 18} {error "Expected both nine-bit gain programming commands"}
 set data_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *gain_programmer/inst/data_reg*}]
-if {[llength $data_sources] < 64} {error "Expected the 64-bit gain programming payload"}
+if {[llength $data_sources] < 48} {error "Expected the 48 used gain table payload bits"}
 set bank_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *gain_programmer/inst/active_banks_reg*}]
 if {[llength $bank_sources] < 8} {error "Expected eight applied gain banks"}
 set sources [concat $sources $data_sources $bank_sources]

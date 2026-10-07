@@ -123,7 +123,7 @@ foreach source $programming_sources {
 set memories [get_cells -hier -filter {IS_PRIMITIVE && (REF_NAME =~ RAMD* || REF_NAME =~ RAMS*) && (NAME =~ *tables.chunk*.products_reg* || NAME =~ *dsp_p.coefficients_reg*)}]
 set write_pins [get_pins -leaf -of_objects $memories -filter {REF_PIN_NAME =~ WADR* || REF_PIN_NAME =~ ADR* || REF_PIN_NAME == I || REF_PIN_NAME == WE}]
 set bank_sources [filter $programmer {REF_NAME == FDRE && NAME =~ *active_banks_reg*}]
-if {[llength $held_sources]<80 || ![llength $write_pins]} {error "Missing held programming paths"}
+if {[llength $held_sources]<64 || ![llength $write_pins]} {error "Missing held programming paths"}
 foreach {kind sources targets expected} [list held $held_sources $write_pins 8.0 strobe $strobe_sources $write_pins 4.0 bank $bank_sources {} 4.0] {
     if {![llength $sources]} {error "Missing $kind programming sources"}
     if {[llength $targets]} {

@@ -11,7 +11,9 @@ proc dpll_constrain_gain_programming {} {
     # The macro WE pins have no timing checks and are invalid exception endpoints.
     set gain_memories [get_cells -hier -filter {IS_PRIMITIVE && (REF_NAME =~ RAMD* || REF_NAME =~ RAMS*) && (NAME =~ *tables.chunk*.products_reg* || NAME =~ *dsp_p.coefficients_reg*)}]
     set write_pins [get_pins -leaf -of_objects $gain_memories -filter {REF_PIN_NAME =~ WADR* || REF_PIN_NAME =~ ADR* || REF_PIN_NAME == I || REF_PIN_NAME == WE}]
-    if {[llength $held_sources] < 80 || ![llength $write_pins]} {error "Missing held gain programming inputs"}
+    # Tables consume 48 payload bits. Coefficient readback now comes directly
+    # from the coherent response, so unused upper payload registers disappear.
+    if {[llength $held_sources] < 64 || ![llength $write_pins]} {error "Missing held gain programming inputs"}
     set_multicycle_path 2 -setup -from $held_sources -to $write_pins
     set_multicycle_path 1 -hold -from $held_sources -to $write_pins
     puts "DPLL held programming timing: [llength $held_sources] sources, [llength $write_pins] physical RAM pins"
