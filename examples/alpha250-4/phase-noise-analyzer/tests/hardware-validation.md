@@ -1015,3 +1015,24 @@ The fifth/seventh harmonics measured -14.014/-16.913 dB versus theoretical
 estimate XY captures, with no new overflows, DMA errors or ring overruns.
 Original DAC settings were restored again. The measurements are retained under
 `tmp/examples/alpha250-4/phase-noise-analyzer/pm-harmonics/`.
+
+The source-clock-dependent approximately 4.6 kHz spur was investigated separately.
+With DAC0 PM disabled and receiver settings fixed, changing the source from
+200 to 250 MS/s moved the dominant line from approximately 4.8--5.1 kHz to
+5.8--6.1 kHz. Its frequency also wandered between captures. A two-by-two clock
+comparison found 4.783/4.754 kHz for source 200 MS/s with receiver 200/250 MS/s,
+and 6.126/5.921 kHz for source 250 MS/s with receiver 200/250 MS/s.
+Thus the line follows the source clock rather than the receiver clock.
+It remained with DAC1 muted and DAC0's modulation frequency/depth set to zero,
+source CIC changed between 100/200/400 and receiver CIC between 128/132/134.
+These controls support a source clock/DAC-path artifact; its physical origin
+(clock beat, PLL/DAC spur or coupled activity) remains unconfirmed.
+
+Six transient receiver overrange events occurred during the initial source
+clock/carrier transitions at +8. Later clock tests temporarily selected standard
+precision during transitions and added no further overflows. Accepted spectra
+were Valid; DMA errors and ring overruns remained zero. Both original DAC
+setting-word tuples and acquisition settings were restored: source 200 MS/s,
+receiver 250 MS/s, CIC 134 and +8, with DAC0's starting sine PM enabled.
+Evidence and clock comparison plot are under `clock-spur/`, `clock-spur-matrix/`
+and `spur-activity/` in `tmp/examples/alpha250-4/phase-noise-analyzer/`.
