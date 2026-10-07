@@ -21,3 +21,5 @@
   .dpll-workspace #main { grid-template-columns: minmax(0, 1fr); }
   .dpll-workspace .loop-controls-panel { border-left: 0; border-top: 1px solid var(--border-light); padding: 12px 0 0; }
 }
+
+.dpll-workspace .diagram-panel img[src="p_path.svg"] { width: 100%; max-width: 560px; }

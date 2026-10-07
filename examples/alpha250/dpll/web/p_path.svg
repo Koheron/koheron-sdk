@@ -1,14 +1,66 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="330" viewBox="0 0 900 330" role="img" aria-labelledby="title desc">
-<title id="title">Fast P and I, accurate higher integrators and monitoring</title><desc id="desc">A shared wide mixer feeds a short fast filter and an accurate four-stage filter. Fast phase drives P and I; accurate phase drives I squared, I cubed and phase-noise monitoring.</desc>
-<style>text{font:17px sans-serif;fill:#19334d}.box{fill:#edf4fa;stroke:#4b7293;stroke-width:2}.line{fill:none;stroke:#4b7293;stroke-width:2;marker-end:url(#arrow)}</style>
-<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="#4b7293"/></marker></defs>
-<rect class="box" x="15" y="125" width="170" height="60" rx="6"/><text x="30" y="151">ADC + DDS</text><text x="30" y="174">24-bit I/Q mixer</text>
-<rect class="box" x="235" y="35" width="180" height="65" rx="6"/><text x="250" y="62">4-sample filter</text><text x="250" y="87">Local projection</text>
-<rect class="box" x="465" y="35" width="160" height="65" rx="6"/><text x="485" y="62">Fast P + I</text><text x="477" y="87">Accurate reference</text>
-<rect class="box" x="235" y="195" width="195" height="85" rx="6"/><text x="250" y="223">4 × 16-sample filter</text><text x="250" y="248">24-bit extractor</text><text x="250" y="272">Accurate unwrap</text>
-<rect class="box" x="470" y="195" width="160" height="60" rx="6"/><text x="485" y="222">Accurate I² / I³</text><text x="485" y="245">Independent states</text>
-<rect class="box" x="690" y="100" width="190" height="70" rx="6"/><text x="705" y="129">Manual selector</text><text x="705" y="154">RF DACs</text>
-<text x="480" y="285">I³ → precision DACs</text>
-<rect class="box" x="690" y="240" width="190" height="65" rx="6"/><text x="705" y="268">Monitor selector</text><text x="705" y="293">CIC → FIR → DMA</text>
-<path class="line" d="M185 155H205V67H235"/><path class="line" d="M205 155V235H235"/><path class="line" d="M415 67H465"/><path class="line" d="M625 67H655V125H690"/><path class="line" d="M430 225H470"/><path class="line" d="M630 225H655V150H690"/><path class="line" d="M430 263H660V272H690"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="440" viewBox="0 0 560 440" role="img" aria-labelledby="title desc">
+  <title id="title">DPLL signal flow, one channel</title>
+  <desc id="desc">The ADC and DDS feed a shared I/Q mixer. Parallel Fast and Accurate estimators run continuously. The Accurate controller supplies its complete RF correction, the I squared contribution for Fast mode, and the precision DAC. A manual selector chooses Accurate correction or Fast P plus I with accurate I squared. Monitoring always uses the accurate phase.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 8 4 0 8Z" fill="#697985"/></marker>
+  </defs>
+  <style>
+    text { font-family: Arial, sans-serif; fill: #303c45; text-anchor: middle; }
+    .label { font-size: 13px; font-weight: 600; }
+    .detail { font-size: 11px; fill: #64727d; }
+    .wire { fill: none; stroke: #697985; stroke-width: 1.4; marker-end: url(#arrow); }
+    .branch { fill: none; stroke: #697985; stroke-width: 1.4; }
+    .neutral { fill: #fafbfc; stroke: #bbc5cc; }
+    .fast { fill: #fff9ef; stroke: #c5a36c; }
+    .accurate { fill: #eff8fc; stroke: #78aec5; }
+    .port { fill: white; stroke: #bbc5cc; }
+  </style>
+  <text class="detail" x="280" y="14">ONE CHANNEL · TWO PARALLEL ESTIMATES</text>
+  <rect class="neutral" x="177" y="28" width="206" height="48" rx="5"/>
+  <text class="label" x="280" y="48">ADC × DDS</text>
+  <text class="detail" x="280" y="65">24-bit I/Q mixer</text>
+  <path class="branch" d="M280 76V90H140M280 90H410"/>
+  <circle cx="280" cy="90" r="2.5" fill="#697985"/>
+  <path class="wire" d="M140 90V112M410 90V112"/>
+
+  <rect class="fast" x="40" y="112" width="200" height="66" rx="5"/>
+  <text class="label" x="140" y="132">Fast estimate</text>
+  <text class="detail" x="140" y="151">4-sample filter · local projection</text>
+  <text class="detail" x="140" y="167">Calibrated near lock</text>
+  <rect class="accurate" x="310" y="112" width="200" height="66" rx="5"/>
+  <text class="label" x="410" y="132">Accurate estimate</text>
+  <text class="detail" x="410" y="151">4 × 16-sample filter</text>
+  <text class="detail" x="410" y="167">24-bit phase extraction + unwrap</text>
+  <path class="wire" d="M120 178V218M400 178V218"/>
+
+  <rect class="fast" x="40" y="218" width="152" height="48" rx="5"/>
+  <text class="label" x="116" y="247">P + I</text>
+  <rect class="accurate" x="286" y="218" width="224" height="48" rx="5"/>
+  <text class="label" x="398" y="238">Accurate controller</text>
+  <text class="detail" x="398" y="256">P · I · I² · I³</text>
+  <path class="wire" d="M192 242H217M286 242H241"/>
+  <text class="detail" x="263" y="232">I²</text>
+  <circle cx="229" cy="242" r="11" fill="white" stroke="#697985" stroke-width="1.4"/>
+  <text x="229" y="247" font-size="17">+</text>
+  <path class="wire" d="M229 253V294M355 266V318H314"/>
+  <text class="detail" x="260" y="285">Fast</text>
+  <text class="detail" x="325" y="285">Accurate</text>
+
+  <rect class="neutral" x="114" y="294" width="200" height="48" rx="5"/>
+  <text class="label" x="214" y="314">P + I mode</text>
+  <text class="detail" x="214" y="332">Manual selection · continuous handoff</text>
+  <path class="wire" d="M214 342V376"/>
+  <rect class="port" x="114" y="376" width="200" height="40" rx="5"/>
+  <text class="label" x="214" y="401">RF DAC routing</text>
+
+  <path class="wire" d="M510 148H545V314H530"/>
+  <rect class="port" x="418" y="294" width="112" height="48" rx="5"/>
+  <text class="label" x="474" y="314">Monitor</text>
+  <text class="detail" x="474" y="332">CIC · FIR · DMA</text>
+  <path class="wire" d="M398 266V396H418"/>
+  <text class="detail" x="383" y="366">I³</text>
+  <rect class="port" x="418" y="376" width="112" height="40" rx="5"/>
+  <text class="label" x="474" y="393">Precision</text>
+  <text class="detail" x="474" y="407">DAC</text>
+  <text class="detail" x="280" y="437">I², I³ and monitoring always use the Accurate path.</text>
 </svg>
