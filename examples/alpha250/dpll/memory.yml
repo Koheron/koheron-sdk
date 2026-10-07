@@ -19,6 +19,8 @@ memory:
     - gain_table_data[2]
     - phase_precision
     - acquisition_run
+    - p_path_control
+    - p_fast_coeff[4]
   - name: ps_control
     offset: 0x6400_0000
     range: 4K
@@ -36,6 +38,8 @@ memory:
     - phase_packet
     - sample_gap
     - monitor_demod
+    - p_path_status[2]
+    - p_snapshot[2]
   - name: ps_status
     offset: 0x5400_0000
     range: 4K

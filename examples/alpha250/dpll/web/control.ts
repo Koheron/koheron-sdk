@@ -6,6 +6,9 @@ class Control {
   private disposed = false;
   private sampleRate = 0;
   private pendingGains = new Set<HTMLTableRowElement>();
+  private gainExponents = new Map<HTMLTableRowElement, string>();
+  private pendingPaths = new Set<HTMLSelectElement>();
+  private pathErrors = new Map<number, string>();
 
   constructor(private document: Document, private dpll: Dpll,
               private fail: (error: unknown) => void) {
@@ -27,10 +30,24 @@ class Control {
     for (const row of this.gainRows) {
       const input = row.querySelector<HTMLInputElement>('.gain-input');
       const save = row.querySelector<HTMLButtonElement>('.gain-save');
+      input.title = '↑/↓: 1/16 octave · Shift+↑/↓: 1 octave · Enter: apply · Escape: cancel';
       this.listen(input, 'input', () => { save.disabled = false; input.setCustomValidity(''); });
       this.listen(input, 'keydown', event => {
-        if ((event as KeyboardEvent).key === 'Enter') { save.click(); }
+        const key = event as KeyboardEvent;
+        if (key.key === 'Enter') { event.preventDefault(); save.click(); }
+        if ((key.key === 'ArrowUp' || key.key === 'ArrowDown') && !key.ctrlKey && !key.metaKey && !key.altKey) {
+          event.preventDefault();
+          if (!input.value || !Number.isFinite(Number(input.value))) { return; }
+          const sign = Number(row.querySelector<HTMLButtonElement>('[aria-pressed="true"]').value);
+          const step = Math.round(Number(input.value) * 16) + (key.key === 'ArrowUp' ? 1 : -1) * (key.shiftKey ? 16 : 1);
+          input.value = String(Math.max(0, Math.min(sign > 0 ? 495 : 496, step)) / 16);
+          input.setCustomValidity('');
+          save.disabled = false;
+        }
+      });
+      this.listen(row, 'keydown', event => {
         if ((event as KeyboardEvent).key === 'Escape') {
+          event.preventDefault();
           save.disabled = true;
           input.setCustomValidity('');
           void this.refreshGains();
@@ -77,6 +94,26 @@ class Control {
         catch (error) { this.fail(error); }
       });
     }
+    for (const select of Array.from(document.querySelectorAll<HTMLSelectElement>('.p-mode'))) {
+      this.listen(select, 'change', async () => {
+        if (this.pendingPaths.has(select)) { return; }
+        const channel = Number(select.dataset.channel);
+        this.pathErrors.delete(channel);
+        this.pendingPaths.add(select); select.disabled = true;
+        try {
+          await this.dpll.setPMode(channel, Number(select.value));
+          this.pendingPaths.delete(select);
+          this.renderPaths(await this.dpll.getControlParameters());
+        } catch (error) {
+          this.pendingPaths.delete(select);
+          if (error instanceof PModeError && error.code === -3) {
+            this.pathErrors.set(channel, error.message);
+            try { this.renderPaths(await this.dpll.getControlParameters()); }
+            catch (readError) { this.fail(readError); }
+          } else this.fail(error);
+        }
+      });
+    }
   }
 
   private listen(target: HTMLElement, event: string, listener: EventListener): void {
@@ -101,13 +138,12 @@ class Control {
     for (const row of this.gainRows) {
       const save = row.querySelector<HTMLButtonElement>('.gain-save');
       const gain = status[row.dataset.status][Number(row.dataset.channel)];
-      const applied = row.querySelector<HTMLOutputElement>('.gain-value');
-      applied.value = String(gain);
-      applied.title = `Applied gain: ${gain}`;
+      if (gain !== 0) {
+        this.gainExponents.set(row, String(Math.round(Math.log(Math.abs(gain)) / Math.LN2 * 16) / 16));
+      }
       if (!save.disabled || this.pendingGains.has(row)) { continue; }
       this.selectSign(row, Math.sign(gain));
-      row.querySelector<HTMLInputElement>('.gain-input').value = gain === 0 ? '' :
-        String(Math.round(Math.log(Math.abs(gain)) / Math.LN2 * 16) / 16);
+      row.querySelector<HTMLInputElement>('.gain-input').value = this.gainExponents.get(row) || '0';
     }
   }
 
@@ -119,11 +155,27 @@ class Control {
     }
     this.frequencies.forEach((frequency, channel) => frequency.setValue(status.dds_freq[channel]));
     this.renderGains(status);
+    this.renderPaths(status);
     for (const input of Array.from(this.document.querySelectorAll<HTMLInputElement>('.integrator-switch'))) {
       input.checked = !!(status.integrators[Number(input.dataset.channel)] & (1 << Number(input.dataset.integratorindex)));
     }
     for (const select of Array.from(this.document.querySelectorAll<HTMLSelectElement>('.dac-output'))) {
       select.value = String(routes[Number(select.dataset.channel)]);
+    }
+  }
+
+  private renderPaths(status: IDpllStatus): void {
+    if (this.disposed) { return; }
+    for (const select of Array.from(this.document.querySelectorAll<HTMLSelectElement>('.p-mode'))) {
+      if (this.pendingPaths.has(select)) { continue; }
+      const channel = Number(select.dataset.channel);
+      const bits = status.p_path[channel];
+      select.value = String(bits & 1); select.disabled = false;
+      const output = this.document.querySelector<HTMLOutputElement>(`.p-mode-status[data-channel="${channel}"]`);
+      output.textContent = this.pathErrors.get(channel) || (bits & 1 ?
+        (bits & 2 ? 'Fast · within estimate range' : 'Fast · outside estimate range') :
+        'Accurate · full phase range');
+      output.title = output.textContent;
     }
   }
 

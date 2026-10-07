@@ -33,6 +33,131 @@ Startup reads existing settings without changing them. Connection failures
 disable controls and expose Retry. Closing the page stops polling and cancels
 queued frequency edits. The loop signal-path diagram is packaged with the UI.
 
+## Manual Accurate / Fast P + I
+
+Each channel defaults to Accurate. Acquire lock, then select **Fast · near lock**
+manually. Fast replaces the direct P and I contributions with a calibrated local
+phase estimate. I²/I³ remain on the accurate estimator and retain their states.
+Both sources run continuously; automatic switching is not implemented.
+
+Each ADC/DDS pair has one 24-bit complex mixer, split before filtering:
+
+```text
+                         → four-sample boxcar → calibrated projection → P + I
+ADC + DDS → 24-bit mixer
+                         → four 16-sample moving sums → custom 24-bit extractor → unwrap
+                                                                      ├→ accurate controller
+                                                                      └→ monitor selector
+                                                                           → epoch origin → CIC/FIR/DMA
+```
+
+The accurate filter retains full intermediate sums and has 120 ns group delay
+plus five pipeline clocks (20 ns) at 250 MHz. The fast boxcar retains its two
+pipeline clocks and 6 ns group delay. Sharing the accurate extractor eliminates
+the dedicated monitor CORDIC. The accurate branch selects PR 780's
+15-clock, 24-bit custom extractor and canonical fused unwrapping; its filter
+and the Fast P + I controller retain PR 782's architecture. A vendor CORDIC
+remains selectable in `split_detector::create` as a regression reference. Monitor resets change its downstream origin;
+feedback phase history and controller states are independent of monitor epochs,
+channel selection, decimation, precision and backpressure.
+The continuous 64-bit monitor history uses two 32-bit words and is delayed by
+one further clock (4 ns). Feedback phase reconstruction uses the frequency bus
+directly and retains the delays below.
+
+The accurate phase remains in Q8 legacy phase units through unwrapping and into
+both initial gain tables: frequency is signed 25-bit and feedback phase is
+signed 40-bit. Their output shifts absorb the eight extra fractional bits;
+legacy gain values and accumulator units are retained. The monitor rounds the
+continuous 64-bit Q8 phase history into its existing phase unit only at its
+consumer interface, with an independent rounding stream.
+
+Entry captures a coherent 64-sample average of fast-filtered I/Q and accurate
+feedback phase. Phase averaging uses modular differences around its first sample
+so crossing the feedback phase wrap does not corrupt the reference. Two further
+clocks drain the registered phase averaging arithmetic before acknowledgement;
+these clocks affect manual calibration only. Software
+programs signed Q6.18 projection coefficients:
+
+```text
+S = 8192/pi
+cx = -Q0*S/(I0²+Q0²)
+cy =  I0*S/(I0²+Q0²)
+local_phase = I*cx + Q*cy = S*(A/A0)*sin(phi-phi0)
+fast_I_phase = captured_accurate_phase + local_phase
+```
+
+The fast I reference therefore retains the actual accurate error rather than
+redefining the captured lock phase as zero. The minimum reference amplitude is
+64 filtered I/Q counts. Amplitude changes scale detector gain by A/A0; the
+sine approximation has 0.51% error at ±10 degrees for stable amplitude. The
+range diagnostic reports roughly ±14 degrees and at least half the captured
+amplitude. It is not lock detection and never switches modes automatically.
+Image rejection of the short boxcar depends on carrier frequency. The generated
+frontend test covers 31.25 MHz; other carriers need characterization before Fast
+is used in feedback.
+
+The fast I accumulator follows the accurate direct I state while Accurate is
+selected, then integrates fast phase in Fast mode. The always-running accurate
+controller separately tracks direct P, direct I and I² contributions; their
+modular sum equals its full RF correction. Its nested higher-order states never
+consume fast phase. The selector first combines fast I and accurate I² in a
+register, then adds fast P and the handoff offset in the output register. This
+adds no clock to P. Entry waits sixteen clocks for calibration to propagate;
+each handoff holds one sample and captures a constant offset to preserve
+continuity.
+
+Fast requires phase reconstruction and RF accumulation (API indices 0 and 2,
+labelled integrators 1 and 3 in the UI). Disabling either or changing DDS
+frequency returns to Accurate. After changing the signal or reference, reacquire
+and select Fast again.
+
+The latest V1 RPC IDs 0–11 are retained. Appended calls are `set_p_mode`
+(ID 12, mode 0=Accurate/1=Fast) and `get_p_path_status` (ID 13). These legacy
+prototype names now control P and I together. Mode selection returns 0 after
+hardware acknowledgement, -1 for invalid input, -2 on timeout, or -3 for
+disabled required integrators / inadequate reference amplitude.
+
+`tests/run-p-path.sh` checks projection arithmetic, coherent captures, both AXI
+channels, jump-free handoffs, independent accurate states, fast I response,
+fractional gain scaling, modular phase reference capture, monitor reset isolation
+and the generated production frontend. See the build section for full timing.
+The pulse-valid test measures four mixer clocks and 15 clocks for the selected
+24-bit custom extractor. Register delays at 250 MHz are:
+
+| Stage | Fast P | Fast I | Accurate P | Accurate I |
+| --- | ---: | ---: | ---: | ---: |
+| Shared mixer | 4 | 4 | 4 | 4 |
+| Prefilter pipeline | 2 | 2 | 5 | 5 |
+| Local projection | 3 | 4 | — | — |
+| Custom phase extraction | — | — | 15 | 15 |
+| Difference and unwrap | — | — | 1 | 1 |
+| Phase reconstruction | — | — | — | 1 |
+| Captured reference addition | — | 2 | — | — |
+| Gain | 3 | 4 | 4 | 4 |
+| First controller sum | — | — | 1 | 1 |
+| RF accumulation | — | 1 | 1 | 1 |
+| I + I² preparation | — | 1 | — | — |
+| Mode selector | 1 | 1 | 1 | 1 |
+| RF DAC mux | 2 | 2 | 2 | 2 |
+| **Total clocks / time** | **15 / 60 ns** | **21 / 84 ns** | **34 / 136 ns** | **35 / 140 ns** |
+
+From filtered I/Q through the selector, Fast P is seven clocks (28 ns) and
+Fast I is thirteen (52 ns). The accurate I² branch adds five clocks (20 ns) after
+the corresponding direct accurate contribution through the first accumulator
+and I² gain. In Fast mode, its output also passes through the I + I² preparation
+register. All RF DAC modes include one additional 4 ns output register after
+the source-selection register. The first register can remain near the loop
+logic while the final register sits near the DAC pins. I³ has its own gain
+and accumulator before the precision DAC;
+that DAC's serial transfer and settling are separate from RF feedback timing.
+
+These are register delays. Add 6 ns filter group delay for Fast, or 120 ns for
+Accurate, when budgeting small-signal phase delay. Converter pipelines,
+ADC/DAC interface timing and the analog plant are also separate. The DDS runs
+in parallel and its reference-generation latency is not added to the ADC
+disturbance path.
+Hardware lock, noise, loop stability and analog latency still require board tests.
+
 ## Continuous phase-noise monitor
 
 The spectrum panel uses the standard PNA implementation: channel selection,
@@ -44,33 +169,17 @@ selected loop's existing DDS frequency; set it close to the input carrier.
 Coverage and queue indicators use the shared PNA status widget, reporting
 skipped sample coverage and whether processing keeps up with incoming windows.
 
-The monitor has a separate measurement path, using the shared
-[`pna_cordic.tcl`](../../../fpga/lib/pna_cordic.tcl) and
-[`pna_single_stream.tcl`](../../../fpga/lib/pna_single_stream.tcl):
+The monitor consumes the selected loop's shared accurate phase history after
+its own epoch origin. The shared `pna_single_stream.tcl` retains the full-precision
+six-stage fixed CIC /2 at 250 MHz, a crossing to 143 MHz, six-stage programmable
+CIC /(R/2), 40-bit FIR /2, packet quantization and cyclic SG DMA. These stages
+remain outside feedback. Changes to monitor logic require routed timing checks
+because placement and routing are shared with the controllers.
 
-```text
-ADC + loop reference DDS
-  → 24-bit complex mixer
-  → fourth-order 16-sample moving-average prefilter (no interstage truncation)
-  → fully pipelined 24-bit CORDIC
-  → stochastic phase rounding + independent 64-bit phase history
-  → full-precision six-stage fixed CIC /2 (38 bits)
-  → clock crossing to 143 MHz
-  → six-stage programmable CIC /(R/2), normalized to 40 bits
-  → 40-bit compensation FIR /2 → packet quantizer → cyclic SG DMA → DDR
-```
-
-The mixer, prefilter, CORDIC and first decimator accept every 250 MS/s input
-sample. The programmable CIC, FIR, packet quantizer and DMA run at 143 MHz. Their pipeline latency
-is outside the feedback path. The two feedback detectors and controllers keep
-their existing arithmetic and pipeline stages. Routed timing still needs to be
-checked whenever monitor logic changes placement or routing.
-
-Monitor resets only affect its phase history, filters, FIFO and DMA. Channel,
-decimation and precision changes never reset a feedback accumulator, modify a
-loop gain, switch a DAC route, or retune a reference. The monitor also measures
-with loop integrators disabled. Loop setting changes invalidate old averages
-and start a new monitor epoch. Input selection is one ADC/DDS pair at a time.
+Monitor resets, channel, decimation and precision changes do not reset feedback
+accumulators, change gains, switch DAC routes or retune a reference. Monitoring
+continues with feedback integrators disabled. Loop edits invalidate monitor
+averages and start a new acquisition epoch.
 
 The server uses the shared PNA `Core`, cyclic DMA reader, 32768-point Hann FFTs
 with 50% overlap, three-periodogram Welch estimate, rolling averager, calibration
@@ -121,6 +230,8 @@ python examples/alpha250/dpll/test_time.py 192.168.1.100
 ```sh
 make CFG=examples/alpha250/dpll/config.mk web server drivers_json
 bash examples/alpha250/dpll/tests/run-host.sh
+bash examples/alpha250/dpll/tests/run-p-path.sh
+bash examples/alpha250/dpll/tests/run-dac-mux.sh
 bash examples/alpha250/dpll/tests/run-monitor.sh
 ```
 
@@ -141,9 +252,20 @@ feedback simulation checks remain in `tests/run-fpga.sh`.
 ## Gain implementation and APIs
 
 Both controllers use double-buffered lookup tables prepared when a gain changes.
-P/PI gains take two clocks and I2/I3 take three. Combining the fast summing node
-and accumulator removes another clock: fast correction arrives two clocks
-(8 ns at 250 MHz) earlier than the previous controller. The CORDIC is unchanged.
+The fast P gain uses registered DSP inputs, two parallel products and a small
+final sum. It takes three clocks, receiving the combinational projection one
+clock before the I/status phase register, so total P latency is retained. The
+existing double-bank programming protocol is retained. It captures the gain
+from the unsigned address-one entry. The wider I gain and accurate controller
+gains use four-clock table reductions. Native carry chains compute the carry
+from all discarded lower bits at the third register boundary; the last stage
+adds only the retained output bits. The I² final sum is 32 bits. Feedback phase
+and the accurate first and second integrators use DSP accumulators with their
+existing one-clock updates, adding six DSPs across the two channels. All paths
+accept one sample per clock. The sole additional RF feedback clock is in the
+DAC output mux, selected only for DPLL; the shared mux defaults to one clock.
+The shared accurate extractor uses the wider phase interface described above.
+Earlier controller measurements used narrower two-clock P/PI tables.
 See the [arithmetic and latency measurements](tests/gain_latency/README.md).
 
 The existing `set_p_gain`, `set_pi_gain`, `set_i2_gain` and `set_i3_gain` RPCs
@@ -168,6 +290,15 @@ acknowledgement before reusing the port. Hardware issues a single RAM write and
 rejects active-bank writes. A commit switches banks and records the coefficient
 on the same clock. RPC serialization protects this shared programming port.
 Server restarts read the active banks and coefficients from hardware.
+Gain requests are validated and decoded at 143 MHz, using PR 780's registered
+CDC handshakes and reset draining. RAM writes and atomic bank/coefficient commits
+remain at 250 MHz. Address and payload precede the registered write strobe,
+with a setup wait giving three clocks (12 ns) before RAM capture. Acknowledgement follows the write
+or commit. The acceptance decision and one-hot gain destination are registered
+before driving table controls; that extra programming clock does not affect
+feedback latency. Reset preserves committed gains while cancelling pending transfers.
+Only these held RAM programming inputs use three-clock timing constraints; the
+write strobe, bank commits, lookup addresses and feedback remain at 250 MHz.
 
 The AXI/controller integration simulation runs two controllers against independent
 signed-product/state models while programming gains, including reset, rejected
@@ -196,6 +327,9 @@ vivado -mode batch -nolog -nojournal -notrace \
 vivado -mode batch -nolog -nojournal -notrace \
   -source examples/alpha250/dpll/tests/test_split_cic.tcl \
   -tclargs tmp/examples/alpha250/dpll/fpga/dpll.xpr
+vivado -mode batch -nolog -nojournal -notrace \
+  -source examples/alpha250/dpll/tests/test_extractor_latency.tcl \
+  -tclargs tmp/examples/alpha250/dpll/fpga/dpll.xpr
 ```
 
 The normal build enforces routed setup, hold, pulse-width and bus-skew checks
@@ -203,8 +337,104 @@ before writing the bitstream. The additional design check verifies the full
 instrument top, 250 MHz clocks, both selected controllers and all eight table
 gain paths. Physical optimization adds no pipeline stages and retains the
 startup clock-phase timing constraints.
+The extractor's final register follows scale selection and zero handling, so
+unwrapping starts from a registered phase word without adding a feedback clock.
+Gain acceptance has its own programming stage. The former vendor-CORDIC
+netlist's fixed register placements are removed so the combined instrument can
+be placed and qualified afresh.
 The monitor stream simulation uses the shared CIC RTL and imports the production
 clock converter and FIR configurations. It checks ordering, sustained throughput at R=4/20/8192,
 sample-gap reporting under backpressure and recovery after an epoch reset.
 Build results and hardware measurements are reported separately in the
 [latency notes](tests/gain_latency/README.md#integration-and-hardware-status).
+
+### Combined PR 780/782 build (2026-10-07)
+
+The complete ALPHA250 instrument builds at 250 MHz with Vivado 2025.1.
+Strict timing enforcement passes before writing `dpll.bit` and packaging
+`dpll.zip`: setup slack **+0.006867 ns**, hold slack **+0.024832 ns**, zero total
+negative slack and all **10 bus-skew constraints** passing. Setup margin is
+small; subsequent logic or placement changes require qualification again.
+The full design was synthesized and placed afresh. After adding the guarded
+reference-launch routing hook, post-route optimization was rerun from the same
+route checkpoint, followed by the normal strict build and packaging steps.
+The routing hook checks identical data, clock, enable, reset and initialization
+before using an existing projection register for two reference-carry inputs.
+It adds no latency.
+
+The final critical path is programming-state control to an applied-bank
+register's enable, with a 4 ns requirement. Held programming address/data
+inputs have a 12 ns requirement and +3.405 ns setup margin; the write strobe
+and bank commits retain 4 ns requirements. Routed utilization is **22,338 LUTs**,
+**31,089 flip-flops**, **101 DSPs** and **36.5 BRAM tiles**.
+
+The single additional feedback clock is the RF DAC output register: Fast P/I
+and accurate P/I register delays are **60/84/136/140 ns**, respectively.
+All accurate gains retain four-clock latency. The generated configuration and
+both controllers' extractor, gain, detector and selector timing checks pass.
+Explicit DAC checks pass at startup phase 0 (setup +1.022 ns, hold +0.090 ns)
+and the normal 56-step phase (setup +0.022 ns, hold +1.090 ns).
+
+The DAC mux regression covers both its unchanged one-clock default and the
+DPLL two-clock selection, each for 10,002 cycles. Independent four-clock gain
+vectors pass 55,408 cycles; controller arithmetic passes 33,890 cycles, mapped
+DSP controllers pass 19,548 cycles, and the two-controller programming test
+passes 200,452 cycles with 4,352 transactions, 4,096 writes and 128 commits.
+The production frontend, phase/history, host/web and monitor regressions pass.
+The combined instrument was installed on ALPHA250 `192.168.1.13` on
+2026-10-07. Chrome tests with DAC0→ADC0 and DAC1→ADC1 verified both
+DDS loopbacks, monitor acquisition, gain readback, and manual Fast P+I
+calibration. A +1 kHz input/reference offset on ADC0 measured
+−999.999982 Hz phase slope. Both Fast paths reported within range at
+31.25 MHz. These tests do not establish closed-loop stability or analog latency.
+
+The hardware test exposed two UI defects, now fixed: an expected Fast-mode
+calibration rejection disconnected the ES5 build, and a valid all-zero
+spectrum was misleadingly labelled as settling. The UI now retains the
+connection, identifies integrators 1 and 3, and visibly recommends greater
+phase precision when no noise is resolved. At decimation 200 and +8-bit
+precision the tested monitor achieved 100% coverage; decimation 50 exceeded
+the measured processing capacity. Original settings were restored after testing.
+Follow-up Chrome tests verified CSV (including live and reference spectra) and
+PNG exports, eight-spectrum averaging, invalid frequency/decimation rejection,
+1 Hz digit tuning, and negative fractional gain readback. Escape now cancels
+gain drafts from sign buttons as well as the exponent input. Gain editors retain the last nonzero
+exponent while zeroed within the current page. Arrow keys tune by 1/16 octave;
+Shift+Arrow keys tune by one octave. Changes still require Enter or Apply. Live/empty plot
+states retain identical plot and control bounds; no extra feedback panels were
+added. Original settings were restored after these checks.
+
+External I/O timing coverage remains at the board constraints' existing 14 inputs and 41 outputs
+without delay constraints; lock, stability, phase noise and analog latency
+still require hardware measurements.
+
+### Historical PR 782 Fast P + I build (2026-10-07)
+
+Before integrating PR 780, the ALPHA250 instrument built with Vivado 2025.1 at
+250 MHz, including
+the shared accurate extractor, manual Fast P + I controller and monitor.
+Synthesis, placement and routing completed; after the placement-only hook change,
+the final physical optimization step was rerun using the existing synthesis and
+route checkpoints. Strict timing enforcement passed before writing `dpll.bit`
+and packaging `dpll.zip`: setup slack **+0.004494 ns**, hold slack **+0.026840 ns**,
+zero total negative slack and all **nine bus-skew constraints** passing.
+This leaves little setup margin; subsequent logic or placement changes require
+the full timing checks again.
+
+Routed utilization is **24,147 LUTs**, **33,930 flip-flops**, **91 DSPs** and
+**36.5 BRAM tiles**. Both controllers' accurate and fast gain paths pass their
+individual timing checks. The held gain-programming address/data fields have
+an 8 ns requirement, while write strobes, bank selection and feedback retain
+their 4 ns requirement. DAC setup and hold pass at both initial phase 0 and
+the normal 56-step startup shift.
+External I/O timing coverage remains incomplete: Vivado reports 14 inputs and
+41 outputs without delay constraints. The passing checks use the existing board
+constraints; external-interface validation still requires hardware measurements.
+
+Production RTL, independent Q8 gain-product vectors, table programming,
+host/web and shared-monitor checks pass. The frontend response simulation covers
+a 31.25 MHz carrier, arbitrary lock phase, a 10-degree phase step and both mode
+handoffs. Other carriers and hardware lock, phase noise, stability and analog
+latency have not been characterized. The new instrument has not been installed
+on a board. These timing results qualify the original PR 782 revision, not the
+combined extractor/programmer design; the combined build is recorded separately.

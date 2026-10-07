@@ -27,5 +27,5 @@ module table_corrector_benchmark #(
         banks_reg<=active_banks;command_reg<=table_command;data_reg<=table_data;
         result<={slow,fast};
     end
-    table_corrector #(.FUSED(FUSED), .GAIN_STAGES(GAIN_STAGES), .TAIL_GAIN_STAGES(TAIL_GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK)) corrector(clk,freq_reg,phase_reg,enabled_reg,banks_reg,command_reg,data_reg,fast,slow);
+    table_corrector #(.FUSED(FUSED), .GAIN_STAGES(GAIN_STAGES), .TAIL_GAIN_STAGES(TAIL_GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK)) corrector(clk,freq_reg,phase_reg,enabled_reg,banks_reg,command_reg,data_reg,fast,slow,,,);
 endmodule

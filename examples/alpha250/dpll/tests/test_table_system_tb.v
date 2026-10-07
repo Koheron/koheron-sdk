@@ -1,7 +1,8 @@
 `timescale 1 ns / 1 ps
 module test_table_system_tb;
-    reg clk=0, resetn=0;
+    reg clk=0, resetn=0, program_clk=0;
     always #2 clk=~clk;
+    initial begin #1.3; forever #3.5 program_clk=~program_clk; end
     reg [15:0] awaddr=0, araddr=0;
     reg [31:0] wdata=0;
     reg awvalid=0, wvalid=0, bready=0, arvalid=0, rready=0;
@@ -14,8 +15,8 @@ module test_table_system_tb;
     wire [511:0] coefficients;
     wire [8:0] command0,command1;
     wire [63:0] data;
-    reg signed [16:0] freq[0:1];
-    reg signed [31:0] phase[0:1];
+    reg signed [24:0] freq[0:1];
+    reg signed [39:0] phase[0:1];
     reg signed [63:0] gains[0:7];
     reg signed [63:0] requested_coefficient=0;
     reg [7:0] previous_banks=0;
@@ -44,50 +45,68 @@ module test_table_system_tb;
         .s_axi_araddr(araddr),.s_axi_arvalid(arvalid),.s_axi_arready(arready),
         .s_axi_rdata(rdata),.s_axi_rresp(),.s_axi_rvalid(rvalid),.s_axi_rready(rready)
     );
-    gain_programmer programmer(clk,resetn,control[672 +: 32],control[704 +: 64],
+    gain_programmer programmer(clk,resetn,program_clk,control[672 +: 32],control[704 +: 64],
                                ack,banks,coefficients,command0,command1,data);
+    reg [7:0] prepared0=0,prepared1=0;
+    reg [63:0] prepared_data=0;
+    reg [7:0] earlier0=0,earlier1=0;
+    reg [63:0] earlier_data=0;
+    always @(posedge clk) begin
+        #1;
+        // Preparing fields, waiting one clock, then raising the registered strobe
+        // provides three complete setup clocks before the RAM capture edge.
+        if(command0[8] && (command0[7:0]!==prepared0 || command0[7:0]!==earlier0 || data!==prepared_data || data!==earlier_data))
+            $fatal(1,"Channel zero RAM fields were not prepared before strobe");
+        if(command1[8] && (command1[7:0]!==prepared1 || command1[7:0]!==earlier1 || data!==prepared_data || data!==earlier_data))
+            $fatal(1,"Channel one RAM fields were not prepared before strobe");
+        earlier0=prepared0;earlier1=prepared1;earlier_data=prepared_data;
+        prepared0=command0[7:0];prepared1=command1[7:0];prepared_data=data;
+    end
 
     genvar channel;
     generate for(channel=0;channel<2;channel=channel+1) begin : loop_dut
         wire [2:0] enabled=control[513+32*channel +: 3];
         wire [15:0] fast,slow;
-        table_corrector #(.FUSED(1),.GAIN_STAGES(2),.TAIL_GAIN_STAGES(3),.FINAL_CSA_LEVELS(2))
+        table_corrector #(.FUSED(1),.GAIN_STAGES(4),.TAIL_GAIN_STAGES(4),.I2_GAIN_STAGES(4),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),
+                             .FREQ_WIDTH(25),.PHASE_WIDTH(40),.PHASE_FRAC(8))
             dut(clk,freq[channel],phase[channel],enabled,banks[4*channel +: 4],
-                channel ? command1 : command0,data,fast,slow);
-        reg [31:0] rp[0:1],rpi[0:1],ri2[0:2];
-        reg [63:0] ri3[0:2];
+                channel ? command1 : command0,data,fast,slow,,,);
+        reg [31:0] rp[0:3],rpi[0:3],ri2[0:3];
+        reg [63:0] ri3[0:3];
         reg [31:0] first_sum=0,acc2=0;
         reg signed [47:0] acc1=0;
         reg [63:0] acc3=0;
         reg signed [127:0] product_p,product_pi,product_i2,product_i3;
         integer x;
         initial begin
-            for(x=0;x<2;x=x+1) begin rp[x]=0;rpi[x]=0;end
-            for(x=0;x<3;x=x+1) begin ri2[x]=0;ri3[x]=0;end
+            for(x=0;x<4;x=x+1) begin rp[x]=0;rpi[x]=0;end
+            for(x=0;x<4;x=x+1) begin ri2[x]=0;end
+            for(x=0;x<4;x=x+1) ri3[x]=0;
         end
         always @(posedge clk) begin
             product_p=$signed(freq[channel])*gains[4*channel];
             product_pi=$signed(phase[channel])*gains[4*channel+1];
             product_i2=$signed(acc1)*gains[4*channel+2];
             product_i3=$signed(acc2)*gains[4*channel+3];
-            rp[0]<=product_p[42:11];rpi[0]<=product_pi[58:27];
+            rp[0]<=product_p[50:19];rpi[0]<=product_pi[66:35];
             ri2[0]<=product_i2[90:59];ri3[0]<=product_i3[74:11];
-            rp[1]<=rp[0];rpi[1]<=rpi[0];
-            for(x=1;x<3;x=x+1) begin ri2[x]<=ri2[x-1];ri3[x]<=ri3[x-1];end
-            first_sum<=rp[1]+rpi[1];
+            for(x=1;x<4;x=x+1) begin rp[x]<=rp[x-1];rpi[x]<=rpi[x-1];end
+            for(x=1;x<4;x=x+1) begin ri2[x]<=ri2[x-1];end
+            for(x=1;x<4;x=x+1) ri3[x]<=ri3[x-1];
+            first_sum<=rp[3]+rpi[3];
             if(!enabled[0]) acc1<=0;else acc1<=acc1+$signed(first_sum);
-            if(!enabled[1]) acc2<=0;else acc2<=acc2+first_sum+ri2[2];
-            if(!enabled[2]) acc3<=0;else acc3<=acc3+ri3[2];
+            if(!enabled[1]) acc2<=0;else acc2<=acc2+first_sum+ri2[3];
+            if(!enabled[2]) acc3<=0;else acc3<=acc3+ri3[3];
             #1;
             if(cycles>12 && {dut.p,dut.pi,dut.i2,dut.i3,dut.acc1,dut.acc2,dut.acc3,fast,slow} !==
-                 {rp[1],rpi[1],ri2[2],ri3[2],acc1,acc2,acc3,acc2[31:16],~acc3[63],acc3[62:48]})
+                 {rp[3],rpi[3],ri2[3],ri3[3],acc1,acc2,acc3,acc2[31:16],~acc3[63],acc3[62:48]})
                 $fatal(1,"Integrated controller mismatch channel=%0d cycle=%0d",channel,cycles);
         end
     end endgenerate
 
     always @(negedge clk) begin
         for(loop_index=0;loop_index<2;loop_index=loop_index+1) begin
-            freq[loop_index]=$random(seed);phase[loop_index]=$random(seed);
+            freq[loop_index]=$random(seed);phase[loop_index]={$random(seed),8'($random(seed))};
         end
     end
     always @(posedge clk) begin
@@ -151,7 +170,7 @@ module test_table_system_tb;
             response=~request;watchdog=0;
             while((response & 32'hbfffffff)!=request) begin
                 axi_read(8,response);watchdog=watchdog+1;
-                if(watchdog>20) $fatal(1,"Programming acknowledgement timeout");
+                if(watchdog>300) $fatal(1,"Programming acknowledgement timeout");
             end
             if(response[30]!==reject_expected) $fatal(1,"Unexpected programming status %h",response);
             if(commit_expected) $fatal(1,"Acknowledged before atomic commit");

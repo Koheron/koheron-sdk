@@ -30,7 +30,7 @@ async function host(t) {
     'examples/alpha250/phase-noise-analyzer/web/plot.ts',
     'examples/alpha250/phase-noise-analyzer/web/export-file/export-file.ts',
     'examples/alpha250/dpll/web/monitor.ts'];
-  w.eval(ts.transpileModule(files.map(read).join('\n'), {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.DpllMonitor = DpllMonitor;');
+  w.eval(ts.transpileModule(files.map(read).join('\n'), {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText + '\nwindow.DpllMonitor = DpllMonitor;');
   const errors = [];
   const monitor = new w.DpllMonitor(d, 'board', error => { errors.push(error); monitor.dispose(); });
   t.after(() => { monitor.dispose(); w.close(); });
@@ -106,4 +106,19 @@ test('monitor decimation rejects odd entry and tunes by two without loop writes'
   input.dispatchEvent(new w.KeyboardEvent('keydown', {key: 'ArrowUp', bubbles: true}));
   await settle();
   assert.deepEqual(state.writes.map(call => [call.id, call.name, call.args[0]]), [['Dma', 'set_cic_rate', 22]]);
+});
+
+
+test('live zero spectrum explains precision limit and recovers when noise is resolved', async t => {
+  const {d, state} = await host(t);
+  state.zeroSpectrum = true; state.sequence++;
+  await settle();
+  const status = d.getElementById('spectrum-status');
+  assert.ok(status && !status.hidden);
+  assert.match(status.textContent, /Increase phase precision/);
+  assert.equal(d.getElementById('capture-reference').disabled, true);
+  state.zeroSpectrum = false; state.sequence++;
+  await settle();
+  assert.equal(status.hidden, true);
+  assert.equal(d.getElementById('capture-reference').disabled, false);
 });

@@ -4,7 +4,7 @@
   --accent-light: hsl(196, 99%, 90%);
   --border: hsl(0, 0%, 85%);
   --border-light: hsl(0, 0%, 90%);
-  --control-height: 26px;
+  --control-height: 22px;
   margin: 0;
   background: white;
   color: #333;
@@ -28,21 +28,21 @@
 .dpll-workspace fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .dpll-workspace .instrument-toolbar { display: flex; align-items: center; flex-wrap: wrap; padding-bottom: 6px; border-bottom: 1px solid var(--border-light); }
 .dpll-workspace section { margin: 0; }
-.dpll-workspace .channel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.dpll-workspace .channel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .dpll-workspace .channel-panel { min-width: 0; padding: 8px 0; }
 .dpll-workspace h2 { margin: 0 0 8px; font-size: 12px; font-weight: 700; }
 .dpll-workspace label, .dpll-workspace .control-label { margin: 0; color: #555; font-weight: 400; }
 .dpll-workspace .control-field { display: flex; align-items: center; gap: 6px; }
-.dpll-workspace .frequency-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
-.dpll-workspace .frequency-control { display: flex; flex: 1; min-width: 190px; }
+.dpll-workspace .frequency-row { display: flex; align-items: center; gap: 6px; }
+.dpll-workspace .frequency-control { display: flex; flex: 1; min-width: 0; }
 .dpll-workspace .digit-control { position: relative; }
-.dpll-workspace .digit-input { min-width: 0; width: 100%; text-align: right; font: 15px/20px ui-monospace, SFMono-Regular, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.dpll-workspace .digit-input { min-width: 0; width: 100%; text-align: right; font: 13px/18px ui-monospace, SFMono-Regular, Consolas, monospace; font-variant-numeric: tabular-nums; }
 .dpll-workspace .digit-input::selection { background: var(--accent); color: white; }
 .dpll-workspace .frequency-unit { flex: 0 0 62px; width: 62px; border-left: 0; }
 .dpll-workspace .pm-frequency-help { display: none; position: absolute; top: calc(100% + 3px); right: 0; z-index: 2; max-width: 280px; padding: 3px 6px; border: 1px solid #ddad9f; background: white; color: #a53e25; font-size: 11px; pointer-events: none; }
 .dpll-workspace .pm-frequency-help[data-state="error"] { display: block; }
-.dpll-workspace .integrator-row { display: flex; align-items: center; gap: 12px; margin: 10px 0; }
-.dpll-workspace .integrators { display: flex; gap: 18px; }
+.dpll-workspace .integrator-row { display: flex; align-items: center; gap: 6px; margin: 5px 0; }
+.dpll-workspace .integrators { display: flex; gap: 12px; }
 .dpll-workspace .integrators label { display: inline-flex; align-items: center; gap: 4px; }
 .dpll-workspace input[type="checkbox"] { margin: 0; accent-color: var(--accent); }
 .dpll-workspace button, .dpll-workspace select, .dpll-workspace input[type="number"], .dpll-workspace input[type="text"] { height: var(--control-height); padding: 2px 6px; border: 1px solid var(--border-light); border-radius: 2px; background: #fafafa; color: #333; }
@@ -59,18 +59,17 @@
 .dpll-workspace .segmented span { display: flex; align-items: center; height: var(--control-height); padding: 2px 9px; border: 1px solid var(--border-light); background: #fafafa; }
 .dpll-workspace .segmented input:checked + span { background: var(--accent-light); color: var(--accent-dark); }
 .dpll-workspace .segmented input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
-.dpll-workspace .segmented button { min-width: 28px; }
+.dpll-workspace .segmented button { min-width: 24px; }
 .dpll-workspace .segmented button + button, .dpll-workspace .segmented label + label span { border-left: 0; }
 .dpll-workspace .gain-table { width: 100%; table-layout: fixed; font-variant-numeric: tabular-nums; }
 .dpll-workspace .gain-table caption { padding: 3px 0 6px; color: #666; font-size: 11px; }
 .dpll-workspace .gain-table th { color: #666; font-weight: 400; }
 .dpll-workspace .gain-table thead th { border-bottom: 1px solid var(--border-light); }
-.dpll-workspace .gain-table td, .dpll-workspace .gain-table th { padding: 3px 4px; }
-.dpll-workspace .gain-table th:first-child { width: 36px; }
-.dpll-workspace .gain-table th:nth-child(2) { width: 92px; }
-.dpll-workspace .gain-table th:last-child { width: 55px; }
+.dpll-workspace .gain-table td, .dpll-workspace .gain-table th { padding: 1px 3px; vertical-align: middle; }
+.dpll-workspace .gain-table th:first-child { width: 28px; }
+.dpll-workspace .gain-table th:nth-child(2) { width: 78px; }
+.dpll-workspace .gain-table th:last-child { width: 48px; }
 .dpll-workspace .gain-input { width: 100%; text-align: right; }
-.dpll-workspace .gain-value { display: block; overflow: hidden; text-overflow: ellipsis; text-align: right; font-size: 10px; color: #666; }
 .dpll-workspace .control-help { margin: 0 0 8px; color: #666; font-size: 11px; }
 .dpll-workspace .routing-panel { padding-top: 8px; border-top: 1px solid var(--border-light); }
 .dpll-workspace .routing-controls { display: flex; flex-wrap: wrap; gap: 6px 18px; }
@@ -89,3 +88,11 @@
   .dpll-workspace .channel-grid { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .dpll-workspace .channel-panel + .channel-panel { border-top: 1px solid var(--border-light); }
 }
+
+.dpll-workspace .p-mode-row { display: grid; grid-template-columns: 58px minmax(0, 1fr); align-items: center; gap: 2px 6px; margin: 5px 0; }
+.dpll-workspace .p-mode-row output { grid-column: 2; padding: 0; height: 15px; line-height: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #666; font-size: 11px; }
+
+.dpll-workspace .frequency-row > label, .dpll-workspace .integrator-row > .control-label { flex: 0 0 58px; }
+.dpll-workspace .gain-input { appearance: textfield; -moz-appearance: textfield; }
+.dpll-workspace .gain-input::-webkit-inner-spin-button, .dpll-workspace .gain-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.dpll-workspace .gain-save { width: 100%; padding: 0 3px; }

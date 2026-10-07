@@ -1,7 +1,7 @@
-.dpll-workspace #main { grid-template-columns: minmax(0, 1fr) 560px; max-width: none; gap: 20px; padding-top: 12px; }
-.dpll-workspace .loop-controls-panel { border-left: 1px solid var(--border-light); padding-left: 16px; }
+.dpll-workspace #main { grid-template-columns: minmax(0, 1fr) 520px; max-width: none; gap: 12px; padding-top: 8px; }
+.dpll-workspace .loop-controls-panel { border-left: 1px solid var(--border-light); padding-left: 10px; }
 .dpll-workspace .monitor-panel { min-width: 0; }
-.dpll-workspace .monitor-acquisition, .dpll-workspace .display-controls, .dpll-workspace .plot-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; }
+.dpll-workspace .monitor-acquisition, .dpll-workspace .display-controls, .dpll-workspace .plot-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin-bottom: 6px; }
 .dpll-workspace .display-controls { border-bottom: 1px solid var(--border-light); padding-bottom: 8px; }
 .dpll-workspace .plot-actions { gap: 8px; }
 .dpll-workspace #reference-actions, .dpll-workspace #export-file, .dpll-workspace .export-actions { display: inline-flex; gap: 6px; }
@@ -10,6 +10,7 @@
 .dpll-workspace .average-control { display: flex; align-items: center; gap: 3px; }
 .dpll-workspace #average-status { font-variant-numeric: tabular-nums; }
 .dpll-workspace #plot-wrap { height: clamp(350px, 56vh, 680px); }
+.dpll-workspace #spectrum-status { position: absolute; top: 0; left: 0; right: 0; z-index: 2; margin: 0; padding: 6px; background: white; }
 .dpll-workspace .spectrum-readouts { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 10px 0; border-top: 1px solid var(--border-light); font-variant-numeric: tabular-nums; }
 .dpll-workspace .readout-label { display: block; font-size: 10px; color: #777; }
 .dpll-workspace .reference-info { padding: 6px 0; font-size: 11px; color: #666; }
@@ -20,3 +21,17 @@
   .dpll-workspace #main { grid-template-columns: minmax(0, 1fr); }
   .dpll-workspace .loop-controls-panel { border-left: 0; border-top: 1px solid var(--border-light); padding: 12px 0 0; }
 }
+
+.dpll-workspace .diagram-panel img[src="p_path.svg"] { width: 100%; max-width: 560px; }
+
+.dpll-workspace .loop-controls-panel summary { display: flex; align-items: center; gap: 8px; list-style: none; }
+.dpll-workspace .loop-controls-panel summary::-webkit-details-marker { display: none; }
+.dpll-workspace .loop-controls-panel summary::before { content: ''; width: 5px; height: 5px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(-45deg); flex: none; }
+.dpll-workspace .loop-controls-panel details[open] > summary::before { transform: rotate(45deg); }
+
+.dpll-workspace .loop-controls-panel summary { min-height: 24px; font-weight: 600; }
+.dpll-workspace .loop-controls-panel details[open] > summary { margin-bottom: 4px; }
+.dpll-workspace .channel-grid { align-items: start; }
+.dpll-workspace .channel-panel { padding-top: 0; }
+.dpll-workspace .reference-panel { border-bottom: 1px solid var(--border-light); margin-bottom: 6px; }
+.dpll-workspace .reference-panel .instrument-toolbar { border-bottom: 0; }

@@ -13,13 +13,14 @@ frac=${DPLL_GAIN_FRACTION_BITS:-11}
 stages=${DPLL_GAIN_PIPE_STAGES:-3}
 final_levels=${DPLL_GAIN_FINAL_CSA_LEVELS:-0}
 carry_block=${DPLL_GAIN_CARRY_BLOCK:-0}
+phase_frac=${DPLL_GAIN_PHASE_FRAC:-0}
 mkdir -p "$out"
 cd "$out"
-python3 "$here/table_vectors.py" "$out/vectors.hex" --chunk-bits "$bits" --fraction-bits "$frac" > vectors.log
+python3 "$here/table_vectors.py" "$out/vectors.hex" --chunk-bits "$bits" --fraction-bits "$frac" --phase-frac "$phase_frac" > vectors.log
 count=$(wc -l < vectors.hex)
-xvlog --sv "$here/../../table_gain.v" "$here/table_tb.v" > compile.log 2>&1
-xelab work.table_gain_test -generic_top "CHUNK_BITS=$bits" -generic_top "FRACTION_BITS=$frac" \
-    -generic_top "PIPE_STAGES=$stages" -generic_top "FINAL_CSA_LEVELS=$final_levels" -generic_top "CARRY_BLOCK=$carry_block" \
+xvlog --sv "$XILINX_VIVADO/data/verilog/src/glbl.v" "$here/../../table_gain.v" "$here/table_tb.v" > compile.log 2>&1
+xelab -L unisims_ver work.table_gain_test work.glbl -generic_top "CHUNK_BITS=$bits" -generic_top "FRACTION_BITS=$frac" \
+    -generic_top "PIPE_STAGES=$stages" -generic_top "FINAL_CSA_LEVELS=$final_levels" -generic_top "CARRY_BLOCK=$carry_block" -generic_top "PHASE_FRAC=$phase_frac" \
     -s table_gain_test > elaborate.log 2>&1
 xsim table_gain_test -testplusarg "vectors=$out/vectors.hex" -testplusarg "count=$count" -runall > simulation.log 2>&1
 cat vectors.log
