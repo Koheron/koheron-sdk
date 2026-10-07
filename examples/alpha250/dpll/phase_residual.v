@@ -320,12 +320,13 @@ module phase_residual (
     end
     wire signed [17:0] reciprocal = {1'b0,reciprocal_acc[27:11]};
     // AREG captures y at stage 2. MREG/CREG capture the residual product and
-    // aligned angle at stage 3. PREG completes the angle at stage 4. This
-    // separates the multiplier and post-adder into robust clock boundaries.
-    wire signed [47:0] accumulated;
-    phase_residual_mac #(.REGISTER_RESULT(1), .REGISTER_MULTIPLIER(1), .REGISTER_A(1), .REGISTER_C(1)) final_angle (
+    // aligned angle at stage 3. A fabric register completes stage 4 after the
+    // post-adder, scale selection and zero handling, leaving a registered
+    // phase word for the downstream canonical subtraction.
+    wire signed [47:0] accumulated_comb;
+    phase_residual_mac #(.REGISTER_RESULT(0), .REGISTER_MULTIPLIER(1), .REGISTER_A(1), .REGISTER_C(1)) final_angle (
         .clk(clk), .a({{9{y1[20]}},y1}), .b(reciprocal),
-        .c(angle2), .p(accumulated)
+        .c(angle2), .p(accumulated_comb)
     );
     always @(posedge clk) begin
         scale3 <= scale2;
@@ -335,9 +336,17 @@ module phase_residual (
         zero4 <= zero3;
         valid4 <= resetn && valid3;
     end
-    wire signed [21:0] rounded = scale4 == 2 ? accumulated[43:22] :
-                                 scale4 == 1 ? accumulated[42:21] : accumulated[41:20];
-    assign phase_out = zero4 ? 24'sd0 : {{2{rounded[21]}},rounded};
+    wire signed [21:0] rounded = scale3 == 2 ? accumulated_comb[43:22] :
+                                 scale3 == 1 ? accumulated_comb[42:21] : accumulated_comb[41:20];
+    reg signed [23:0] phase_word = 0;
+    always @(posedge clk)
+        phase_word <= zero3 ? 24'sd0 : {{2{rounded[21]}},rounded};
+    assign phase_out = phase_word;
+`ifndef SYNTHESIS
+    // Preserve the aligned unrounded sample for numerical regression checks.
+    reg signed [47:0] accumulated = 0;
+    always @(posedge clk) accumulated <= accumulated_comb;
+`endif
     assign valid_out = valid4;
 endmodule
 

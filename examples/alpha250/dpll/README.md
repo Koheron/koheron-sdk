@@ -330,10 +330,11 @@ before writing the bitstream. The additional design check verifies the full
 instrument top, 250 MHz clocks, both selected controllers and all eight table
 gain paths. Physical optimization adds no pipeline stages and retains the
 startup clock-phase timing constraints.
-The fused canonical subtraction and 40-bit feedback accumulator use short local
-carry chains with unchanged register delays. Gain acceptance has its own
-programming stage. The former vendor-CORDIC netlist's fixed register placements
-are removed so the combined instrument can be placed and qualified afresh.
+The extractor's final register follows scale selection and zero handling, so
+unwrapping starts from a registered phase word without adding a feedback clock.
+Gain acceptance has its own programming stage. The former vendor-CORDIC
+netlist's fixed register placements are removed so the combined instrument can
+be placed and qualified afresh.
 The monitor stream simulation uses the shared CIC RTL and imports the production
 clock converter and FIR configurations. It checks ordering, sustained throughput at R=4/20/8192,
 sample-gap reporting under backpressure and recovery after an epoch reset.

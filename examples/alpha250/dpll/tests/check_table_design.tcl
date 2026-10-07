@@ -57,7 +57,7 @@ foreach channel {0 1} {
     # into fabric leaves a multiply-plus-add input path at 250 MHz.
     foreach {mac registers} {
         interpolation {AREG 1 BREG 1 CREG 1 MREG 0 PREG 1}
-        final_angle {AREG 1 BREG 0 CREG 1 MREG 1 PREG 1}
+        final_angle {AREG 1 BREG 0 CREG 1 MREG 1 PREG 0}
     } {
         set dsp [get_cells "$phase_prefix/residual_completion.completion/$mac/dsp"]
         if {[llength $dsp] != 1} {error "Missing residual DSP: loop $channel $mac"}

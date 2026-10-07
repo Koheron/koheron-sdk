@@ -18,7 +18,8 @@ accumulator. Four residual-correction clocks then complete the angle: a
 256-entry distributed ROM supplies a reciprocal and interpolation slope; one
 DSP interpolates the reciprocal; a second DSP multiplies the remaining y and
 adds the base angle. The small-angle approximation atan(y/x) ≈ y/x contributes
-approximately 0.16 µrad at |y/x| = 1/128. Explicit DSP register placement keeps
+approximately 0.16 µrad at |y/x| = 1/128. DSP input and multiplier registers,
+followed by a fabric register after scale selection and zero handling, keep
 this completion to four clocks. Final rounding is nearest with ties toward
 positive infinity; output phase is canonical `[-pi, pi)`. Zero IQ produces zero
 phase, though its angle is undefined. Reset flushes output-valid metadata.
@@ -46,7 +47,16 @@ preserving existing gain settings and DAC conventions. Controllers connect to
 retain existing monitoring and direct phase-DAC units. Monitoring sources are
 unchanged.
 
-## Registered detector pipeline, 2026-10-07
+## Combined instrument output register, 2026-10-07
+
+The final register follows scale selection and zero handling rather than
+preceding them inside the final DSP. This preserves the 15-clock extractor
+latency and all 192,485 checked outputs while giving the canonical unwrapper
+a registered input. The isolated detector route passes with setup +0.071 ns
+and hold +0.043 ns at 250 MHz plus 0.100 ns added uncertainty. Full-instrument
+qualification is separate and is recorded in the instrument README.
+
+## Historical PR 780 registered detector pipeline, 2026-10-07
 
 Extraction now uses 15 clocks and the DPLL unwrapper uses two. The combined
 17-clock latency and complete 23-clock detector latency are unchanged.
