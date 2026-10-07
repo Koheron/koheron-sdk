@@ -87,13 +87,13 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: web/package.json
       - name: Install host test dependencies
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y g++-13 libeigen3-dev
           python3 -m pip install -r python/requirements.txt numpy scipy
-          npm ci --prefix web
+          npm install --prefix web --no-package-lock
       - name: Compile instrument web assets
         run: |
           for project in alpha250/phase-noise-analyzer alpha250-4/phase-noise-analyzer red-pitaya/phase-noise-analyzer alpha250/dpll; do

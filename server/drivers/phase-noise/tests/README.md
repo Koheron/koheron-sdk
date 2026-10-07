@@ -16,7 +16,7 @@ bundle first when selecting ALPHA250-4 or all instruments. Browser-only checks
 load the real sources and templates directly and need no prior build.
 
 For native execution, install g++-13, Eigen, the Python client dependencies,
-NumPy and SciPy, and run `npm ci --prefix web`. Then use:
+NumPy and SciPy, and run `npm install --prefix web --no-package-lock`. Then use:
 
 ```sh
 PNA_TEST_MODE=native bash server/drivers/phase-noise/tests/run-host.sh all
