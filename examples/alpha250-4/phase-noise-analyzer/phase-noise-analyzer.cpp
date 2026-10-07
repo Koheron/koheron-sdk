@@ -282,19 +282,19 @@ double PhaseNoiseAnalyzer::carrier_power(uint32_t navg) {
 
 PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase_x() {
     std::shared_lock lk(data_mtx);
-    return relative_phase_snapshot(raw_phase_x, captured_scale_x);
+    return relative_phase_snapshot(phase_capture->x, captured_scale_x);
 }
 
 PhaseNoiseAnalyzer::PhaseDataArray PhaseNoiseAnalyzer::get_phase_y() {
     std::shared_lock lk(data_mtx);
-    return relative_phase_snapshot(raw_phase_y, captured_scale_y);
+    return relative_phase_snapshot(phase_capture->y, captured_scale_y);
 }
 
 std::array<PhaseNoiseAnalyzer::Phase, 2 * PhaseNoiseAnalyzer::data_size>
 PhaseNoiseAnalyzer::get_phase_xy_sync() {
     using namespace sci::operators;
     std::shared_lock lk(data_mtx);
-    return relative_phase_snapshot(raw_phase_x, captured_scale_x) | relative_phase_snapshot(raw_phase_y, captured_scale_y);
+    return relative_phase_snapshot(phase_capture->x, captured_scale_x) | relative_phase_snapshot(phase_capture->y, captured_scale_y);
 }
 
 PhaseNoiseAnalyzer::PhaseNoiseDensityVector PhaseNoiseAnalyzer::get_phase_noise() const {
@@ -504,8 +504,8 @@ void PhaseNoiseAnalyzer::invalidate_acquisition(CaptureState state) {
     capture_state = state;
     coverage.reset();
     performance.reset();
-    raw_phase_x.fill(0);
-    raw_phase_y.fill(0);
+    phase_capture->x.fill(0);
+    phase_capture->y.fill(0);
     tracking_locks = {};
     tracking_locked = false;
     averager.clear();
@@ -520,6 +520,7 @@ void PhaseNoiseAnalyzer::invalidate_acquisition(CaptureState state) {
 }
 
 void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
+    auto capture = std::make_unique<PhaseDma::Snapshot<data_size>>();
     uint64_t consumed = 0;
     bool have_window = false;
     uint64_t estimator_epoch = UINT64_MAX;
@@ -555,8 +556,8 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
             }
         }
 
-        auto snapshot = dma.read_xy<data_size>(consumed, spectrum_analyzer_started,
-            (spectrum_samples / 2) / PhaseDma::samples_per_chunk, have_window);
+        auto* snapshot = dma.read_into(*capture, consumed, spectrum_analyzer_started,
+            (spectrum_samples / 2) / PhaseDma::samples_per_chunk, have_window) ? capture.get() : nullptr;
         if (!snapshot) {
             std::unique_lock lk(data_mtx);
             if (!spectrum_analyzer_started.load(std::memory_order_acquire)) return;
@@ -628,8 +629,7 @@ void PhaseNoiseAnalyzer::spectrum_analyzer_thread() {
         const double fft_ms = phase_noise::elapsed_ms(fft_start);
         lk.lock();
         if (epoch != acquisition_epoch || reset_cumulative_requested.load(std::memory_order_acquire)) continue;
-        raw_phase_x = std::move(snapshot->x);
-        raw_phase_y = std::move(snapshot->y);
+        phase_capture.swap(capture);
         captured_scale_x = scale_x;
         captured_scale_y = scale_y;
         const auto average_start = phase_noise::StreamClock::now();

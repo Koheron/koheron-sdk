@@ -7,6 +7,7 @@
 #include "fft-layout.hpp"
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cassert>
 #include <cstdint>
 #include <future>
@@ -23,28 +24,39 @@ namespace detail {
 // Compact native-order power into N/2+1 floats, without storing zero imaginary
 // lanes. DC stays first and Nyquist stays last; SIMD ordinary bins retain the
 // transform's four-lane block order until final density publication.
+template<bool Accumulate = true>
 inline void accumulate_welch_power(const float* transformed, float* power,
-                                   std::size_t fft_size, int simd_size) {
+                                   std::size_t fft_size, int simd_size, float normalization = 1.f) {
+    const auto store = [&](std::size_t bin, float value) {
+        if constexpr (Accumulate) power[bin] += value;
+        else power[bin] = value * (bin == 0 || bin == fft_size / 2 ? normalization : 2.f * normalization);
+    };
     if (simd_size == 1) {
-        power[0] += transformed[0] * transformed[0];
-        power[fft_size / 2] += transformed[fft_size - 1] * transformed[fft_size - 1];
+        store(0, transformed[0] * transformed[0]);
+        store(fft_size / 2, transformed[fft_size - 1] * transformed[fft_size - 1]);
         for (std::size_t i = 1; i < fft_size - 1; i += 2)
-            power[(i + 1) / 2] += transformed[i] * transformed[i] + transformed[i + 1] * transformed[i + 1];
+            store((i + 1) / 2, transformed[i] * transformed[i] + transformed[i + 1] * transformed[i + 1]);
         return;
     }
     assert(simd_size == 4);
     // SIMD native layout is four real lanes followed by four imaginary lanes.
     // In the first block, lane 0 is DC and lane 4 is Nyquist, not a complex pair.
-    power[0] += transformed[0] * transformed[0];
-    power[fft_size / 2] += transformed[4] * transformed[4];
+    store(0, transformed[0] * transformed[0]);
+    store(fft_size / 2, transformed[4] * transformed[4]);
     for (std::size_t i = 1; i < 4; ++i)
-        power[i] += transformed[i] * transformed[i] + transformed[i + 4] * transformed[i + 4];
+        store(i, transformed[i] * transformed[i] + transformed[i + 4] * transformed[i + 4]);
     std::size_t i = 8;
 #if defined(__ARM_NEON)
+    const bool normal_factor = Accumulate ||
+        (std::bit_cast<uint32_t>(2.f * normalization) & 0x7fffffffu) >= 0x00800000u;
+    const float normalized_minimum = Accumulate ? 0.f : std::nextafter(
+        std::max(std::numeric_limits<float>::min(),
+                 float(double(std::numeric_limits<float>::min()) / (2.0 * double(normalization)))),
+        std::numeric_limits<float>::infinity());
     for (; i < fft_size; i += 8) {
         const auto real = vld1q_f32(transformed + i);
         const auto imaginary = vld1q_f32(transformed + i + 4);
-        const auto old = vld1q_f32(power + i / 2);
+        const auto old = Accumulate ? vld1q_f32(power + i / 2) : vdupq_n_f32(0);
         const auto magnitude = [](float32x4_t v) {
             return vandq_u32(vreinterpretq_u32_f32(v), vdupq_n_u32(0x7fffffffu));
         };
@@ -59,19 +71,30 @@ inline void accumulate_welch_power(const float* transformed, float* power,
                               safe(magnitude(imaginary), 0x20000000u)); // sqrt(FLT_MIN)
         valid = vandq_u32(valid, safe(magnitude(old), 0x00800000u)); // FLT_MIN
         const auto halves = vreinterpretq_u64_u32(valid);
-        if ((vgetq_lane_u64(halves, 0) & vgetq_lane_u64(halves, 1)) == UINT64_MAX) {
+        bool valid_lanes = (vgetq_lane_u64(halves, 0) & vgetq_lane_u64(halves, 1)) == UINT64_MAX;
+        if constexpr (!Accumulate) {
+            // The fused normalization must also preserve nonzero subnormals.
+            // Raw products are checked above before using the NEON result.
             const auto norm = vaddq_f32(vmulq_f32(real, real), vmulq_f32(imaginary, imaginary));
-            vst1q_f32(power + i / 2, vaddq_f32(old, norm));
+            const auto bits = vreinterpretq_u32_f32(norm);
+            const auto mask = vorrq_u32(vceqq_u32(bits, vdupq_n_u32(0)),
+                vcgeq_u32(bits, vreinterpretq_u32_f32(vdupq_n_f32(normalized_minimum))));
+            const auto lanes = vreinterpretq_u64_u32(mask);
+            valid_lanes &= normal_factor && (vgetq_lane_u64(lanes, 0) & vgetq_lane_u64(lanes, 1)) == UINT64_MAX;
+        }
+        if (valid_lanes) {
+            const auto norm = vaddq_f32(vmulq_f32(real, real), vmulq_f32(imaginary, imaginary));
+            if constexpr (Accumulate) vst1q_f32(power + i / 2, vaddq_f32(old, norm));
+            else vst1q_f32(power + i / 2, vmulq_n_f32(norm, 2.f * normalization));
         } else {
             for (std::size_t j = i; j < i + 4; ++j)
-                power[i / 2 + j - i] += transformed[j] * transformed[j] +
-                            transformed[j + 4] * transformed[j + 4];
+                store(i / 2 + j - i, transformed[j] * transformed[j] + transformed[j + 4] * transformed[j + 4]);
         }
     }
 #endif
     for (; i < fft_size; i += 8)
         for (std::size_t j = i; j < i + 4; ++j)
-            power[i / 2 + j - i] += transformed[j] * transformed[j] + transformed[j + 4] * transformed[j + 4];
+            store(i / 2 + j - i, transformed[j] * transformed[j] + transformed[j + 4] * transformed[j + 4]);
 }
 } // namespace detail
 

@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <shared_mutex>
 #include <mutex>
+#include <memory>
 #include <thread>
 #include <chrono>
 #include <tuple>
@@ -234,7 +235,10 @@ class Core
     std::thread acq_thread;
     std::atomic<bool> acquisition_started{false};
 
-    RawPhaseDataArray phase_raw{};
+    // Phase clients read the published buffer under data_mtx; the worker fills
+    // the other buffer and transfers ownership only after accepting its epoch.
+    std::unique_ptr<CyclicPhaseDma::Snapshot<data_size>> phase_capture =
+        std::make_unique<CyclicPhaseDma::Snapshot<data_size>>();
     Phase snapshot_scale{};
 
     // Spectrum analyzer
@@ -289,7 +293,7 @@ class Core
         else return true;
     }
     PhaseDataArray phase_snapshot() const { // caller holds data_mtx
-        return monitor_results_current() ? relative_phase_snapshot(phase_raw, snapshot_scale) : PhaseDataArray{};
+        return monitor_results_current() ? relative_phase_snapshot(phase_capture->samples, snapshot_scale) : PhaseDataArray{};
     }
     void invalidate_results(CaptureState state = Settling); // caller holds data_mtx
     double carrier_power(uint32_t navg); // caller holds data_mtx
@@ -851,7 +855,7 @@ void Core<Board>::invalidate_results(CaptureState state) {
     capture_state = state;
     reset_tracking_observations();
     averager.clear();
-    phase_raw.fill(0);
+    phase_capture->samples.fill(0);
     phase_noise.assign(1 + fft_size / 2, PhaseNoiseDensity{});
     publish_spectrum({dds.get_dds_freq(0), dds.get_dds_freq(1), 0.0, 0.0});
     phase_jitter = std::numeric_limits<Phase>::quiet_NaN();
@@ -940,6 +944,7 @@ bool Core<Board>::synchronize_monitor() {
 
 template<class Board>
 void Core<Board>::acquisition_thread() {
+    auto capture = std::make_unique<CyclicPhaseDma::Snapshot<data_size>>();
     {
         std::unique_lock dma_lk(dma_mtx);
         dma.start_acquisition();
@@ -958,8 +963,8 @@ void Core<Board>::acquisition_thread() {
         }
         // Polling never holds the settings/processing locks. A slow window at
         // high decimation is cancellable and does not delay a rate/LO request.
-        auto snapshot = dma.read<data_size>(consumed_chunks, acquisition_started,
-            (fft_size / 2) / CyclicPhaseDma::samples_per_chunk, stream_initialized.load());
+        auto* snapshot = dma.read_into(*capture, consumed_chunks, acquisition_started,
+            (fft_size / 2) / CyclicPhaseDma::samples_per_chunk, stream_initialized.load()) ? capture.get() : nullptr;
         std::unique_lock dma_lk(dma_mtx);
         std::unique_lock lk(data_mtx);
         if (!acquisition_started.load(std::memory_order_acquire)) break;
@@ -1017,7 +1022,7 @@ void Core<Board>::acquisition_thread() {
                 }
             }
             double publication_ms = 0;
-            phase_raw = std::move(snapshot->samples);
+            phase_capture.swap(capture);
             snapshot_scale = phase_conversion_factor;
             coverage.append(snapshot->end_chunk,
                 (seed ? data_size : fft_size) / CyclicPhaseDma::samples_per_chunk);

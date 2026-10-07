@@ -29,6 +29,13 @@ public:
     uint64_t completed_chunks() const { return completed.load(); }
     uint64_t generation() const { return epoch.load(); }
     void start_acquisition() { started = true; }
+    template<uint32_t N> bool read_into(Snapshot<N>& output, uint64_t consumed,
+                                      const std::atomic<bool>& running, uint32_t hop = 0, bool initialized = false) {
+        auto snapshot = read<N>(consumed, running, hop, initialized);
+        if (!snapshot) return false;
+        output = std::move(*snapshot);
+        return true;
+    }
     template<uint32_t N> std::optional<Snapshot<N>> read(uint64_t, const std::atomic<bool>& running, uint32_t = 0, bool = false) {
         if (!started || !running.load()) return std::nullopt;
         const auto generation = epoch.load();

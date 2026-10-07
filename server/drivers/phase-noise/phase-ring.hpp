@@ -100,6 +100,16 @@ class BasicCyclicPhaseDma {
     template<uint32_t data_size>
     std::optional<Snapshot<data_size>> read(uint64_t consumed, const std::atomic<bool>& keep_running,
                                             uint32_t hop = 0, bool initialized = false) {
+        Snapshot<data_size> snapshot;
+        if (!read_into(snapshot, consumed, keep_running, hop, initialized)) return std::nullopt;
+        return snapshot;
+    }
+
+    // The acquisition worker owns and reuses this buffer. Failed reads may
+    // overwrite it; only a successful read can be published to phase clients.
+    template<uint32_t data_size>
+    bool read_into(Snapshot<data_size>& snapshot, uint64_t consumed,
+                   const std::atomic<bool>& keep_running, uint32_t hop = 0, bool initialized = false) {
         static_assert(data_size > 0 && data_size % samples_per_chunk == 0);
         constexpr uint32_t chunks = data_size / samples_per_chunk;
         static_assert(chunks + withheld_packets + 1 < ring_chunks);
@@ -111,7 +121,7 @@ class BasicCyclicPhaseDma {
                 // A configuration change temporarily stops the ring while
                 // holding this mutex. Observe its final state only after the
                 // restart, rather than mistaking that pause for a DMA failure.
-                if (!acquisition_started.load()) return std::nullopt;
+                if (!acquisition_started.load()) return false;
                 const uint64_t lower = std::max(consumed, generation_base + 1);
                 // A reset observed during the wait must refill an entire window.
                 const bool same_epoch = initialized && consumed > generation_base;
@@ -129,7 +139,8 @@ class BasicCyclicPhaseDma {
                         window->first_chunk = window->end_chunk - chunks;
                     }
                     const auto copy_start = std::chrono::steady_clock::now();
-                    Snapshot<data_size> snapshot;
+                    // Reset metadata without clearing the reusable sample arrays.
+                    static_cast<PhaseRingSnapshotBase<data_size>&>(snapshot) = {};
                     snapshot.end_chunk = window->end_chunk;
                     snapshot.generation = ring_generation;
                     snapshot.skipped_hops = skipped_hops;
@@ -166,7 +177,7 @@ class BasicCyclicPhaseDma {
                         }
                     }
                     update_progress();
-                    if (!acquisition_started.load()) return std::nullopt;
+                    if (!acquisition_started.load()) return false;
                     // Reserve the in-flight packet and the DDR writeback margin
                     // withheld by update_progress().
                     if (acquisition_window_is_intact(*window, write_count, ring_chunks - withheld_packets - 1)) {
@@ -182,12 +193,12 @@ class BasicCyclicPhaseDma {
                             }
                             snapshot.copy_ms = std::chrono::duration<double, std::milli>(
                                 std::chrono::steady_clock::now() - copy_start).count();
-                            return snapshot;
+                            return true;
                         }
                         // An intact published window must have complete, full
                         // descriptors. Do not poll forever on malformed DMA data.
                         acquisition_started.store(false);
-                        return std::nullopt;
+                        return false;
                     }
                     // A copy raced a full ring lap; the next iteration selects
                     // a fresh intact window and records the skipped hops.
@@ -195,7 +206,7 @@ class BasicCyclicPhaseDma {
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
-        return std::nullopt;
+        return false;
     }
 
     template<uint32_t data_size>

@@ -1,6 +1,7 @@
 #include "../phase-dma.hpp"
 #include <cassert>
 #include <iostream>
+#include <memory>
 
 #include "simulated_dma.hpp"
 
@@ -43,6 +44,16 @@ int main() {
     assert(stream_next->end_chunk==stream_first->end_chunk+2);
     assert(stream_next->x[0]==stream_first->x[16384]);
     assert(stream_next->generation==stream_first->generation);
+    auto reused = std::make_unique<PhaseDma::Snapshot<32768>>();
+    reused->overflow = reused->sample_gap = reused->mixed_precision = true;
+    reused->skipped_hops = 123;
+    const auto published = std::make_unique<PhaseDma::Snapshot<32768>>(*stream_next);
+    const auto* storage = reused->x.data();
+    assert(dma.read_into(*reused, stream_next->end_chunk, running, 2, true));
+    check(reused);
+    assert(reused->x.data() == storage && stream_next->x == published->x && stream_next->y == published->y);
+    assert(!reused->overflow && !reused->sample_gap && !reused->mixed_precision && !reused->skipped_hops);
+    assert(reused->x[0] == published->x[16384] && reused->y[0] == published->y[16384]);
     auto wrap=dma.read_xy<65536>(PhaseDma::ring_chunks-4,running);check(wrap);
     assert(wrap->end_chunk>=PhaseDma::ring_chunks+4);
     // Configuration pauses the producer, resets both sample histories, then
