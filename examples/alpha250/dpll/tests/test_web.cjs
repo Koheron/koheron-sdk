@@ -18,7 +18,7 @@ async function host(t, options = {}) {
   const state = {
     frequencies: [1e6, 2e6], gains: [[-8, 16], [0, -32], [64, 0], [0, 128]],
     integrators: [5, 10], routes: [6, 1], reference: 2, sampleRate: 250e6,
-    failed: false, exits: 0, pool: 0
+    paths: [0, 0], failed: false, exits: 0, pool: 0
   };
   let resolveInit;
   window.Command = (id, name, ...args) => ({id, name, args});
@@ -33,11 +33,12 @@ async function host(t, options = {}) {
     send({name, args}) {
       writes.push({name, args});
       const [channel, value] = args;
-      if (name === 'set_dds_freq') { state.frequencies[channel] = value; }
+      if (name === 'set_dds_freq') { state.frequencies[channel] = value; state.paths[channel] &= ~1; }
       const index = ['set_p_gain', 'set_pi_gain', 'set_i2_gain', 'set_i3_gain'].indexOf(name);
       if (index >= 0) { state.gains[index][channel] = value; }
       if (name === 'set_integrator') {
         state.integrators[channel] = args[2] ? state.integrators[channel] | (1 << value) : state.integrators[channel] & ~(1 << value);
+        if (value === 1 && !args[2]) { state.paths[channel] &= ~1; }
       }
       if (name === 'set_dac_output') { state.routes[channel] = value; }
       if (name === 'set_reference_clock') { state.reference = channel; }
@@ -57,7 +58,18 @@ async function host(t, options = {}) {
       if (state.failed) { throw new Error('read failed'); }
       return new Float64Array(state.gains.flat());
     }
+    async readUint32Array({name}) {
+      assert.equal(name, 'get_p_path_status');
+      if (state.failed) { throw new Error('read failed'); }
+      return new Uint32Array(state.paths);
+    }
     async readInt32({name, args}) {
+      if (name === 'set_p_mode') {
+        writes.push({name, args});
+        if (options.failPath) { return -3; }
+        state.paths[args[0]] = args[1] ? 3 : 0;
+        return 0;
+      }
       assert.equal(name, 'set_geometric_gain');
       writes.push({name, args});
       const [channel, gain, sign, step] = args;
@@ -265,4 +277,34 @@ test('hardware rejection of a gain update disables controls instead of claiming 
   await settle();
   assert.equal(h.document.querySelector('#connection-status').dataset.state, 'error');
   assert.equal(h.document.querySelector('#instrument-controls').disabled, true);
+});
+
+
+test('manual P mode is read-only at startup, isolated per channel, and uses acknowledged updates', async t => {
+  const h = await host(t);
+  const selects = h.document.querySelectorAll('.p-mode');
+  assert.deepEqual(Array.from(selects, s => s.value), ['0', '0']);
+  assert.equal(h.writes.length, 0);
+  selects[1].value = '1'; selects[1].dispatchEvent(new h.window.Event('change'));
+  assert.equal(selects[1].disabled, true);
+  await settle();
+  assert.deepEqual(h.writes, [{name: 'set_p_mode', args: [1, 1]}]);
+  assert.equal(selects[0].value, '0'); assert.equal(selects[1].value, '1');
+  assert.equal(selects[1].disabled, false);
+  h.state.paths[1] = 1; await settle(280);
+  assert.match(h.document.querySelector('.p-mode-status[data-channel="1"]').textContent, /outside estimate range/);
+  assert.equal(h.writes.length, 1); // Range telemetry never switches automatically.
+  selects[1].value = '0'; selects[1].dispatchEvent(new h.window.Event('change')); await settle();
+  assert.deepEqual(h.writes[1], {name: 'set_p_mode', args: [1, 0]});
+  assert.equal(selects[1].value, '0');
+});
+
+test('rejected manual P calibration retains Accurate mode and allows recovery', async t => {
+  const h = await host(t, {failPath: true});
+  const select = h.document.querySelector('.p-mode');
+  select.value = '1'; select.dispatchEvent(new h.window.Event('change')); await settle();
+  assert.equal(h.document.querySelector('#instrument-controls').disabled, false);
+  assert.equal(h.document.querySelector('#connection-status').dataset.state, 'live');
+  assert.equal(select.value, '0'); assert.equal(select.disabled, false);
+  assert.match(h.document.querySelector('.p-mode-status').textContent, /stable signal/);
 });

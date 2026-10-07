@@ -17,7 +17,9 @@ module gain_programmer (
     output reg [8:0] command1 = 0,
     output reg [63:0] data = 0
 );
-    reg [1:0] state = 0;
+    reg [2:0] state = 0;
+    reg [7:0] commits=0, writes=0;
+    integer k;
     reg [31:0] pending = 0;
     reg rejected = 0;
     wire [2:0] target = pending[8:6];
@@ -38,28 +40,42 @@ module gain_programmer (
                     state <= 1;
                 end
                 1: begin
+                    // Decode before driving the replicated programming registers.
+                    // This slow handshake never lies on the sample feedback path.
                     rejected <= (|pending[30:10]) ||
                                 (!pending[9] && pending[5] == active_banks[target]);
-                    if (!(|pending[30:10])) begin
-                        if (pending[9]) begin
-                            active_banks[target] <= pending[5];
-                            coefficients[64*target +: 64] <= data;
-                        end else if (pending[5] != active_banks[target]) begin
-                            if (pending[8])
-                                command1 <= {1'b1, pending[5:4], pending[3:0], pending[7:6]};
-                            else
-                                command0 <= {1'b1, pending[5:4], pending[3:0], pending[7:6]};
-                        end
+                    for(k=0;k<8;k=k+1) begin
+                        commits[k] <= !(|pending[30:10]) && pending[9] && target==k;
+                        writes[k] <= !(|pending[30:10]) && !pending[9] && target==k &&
+                                     pending[5]!=active_banks[k];
                     end
                     state <= 2;
                 end
                 2: begin
-                    // The RAM samples the previous cycle's write command here.
-                    command0 <= 0;
-                    command1 <= 0;
+                    for(k=0;k<8;k=k+1) if(commits[k]) begin
+                        active_banks[k] <= pending[5];
+                        coefficients[64*k +: 64] <= data;
+                    end
+                    if(|writes[3:0])
+                        command0 <= {1'b0, pending[5:4], pending[3:0], pending[7:6]};
+                    if(|writes[7:4])
+                        command1 <= {1'b0, pending[5:4], pending[3:0], pending[7:6]};
                     state <= 3;
                 end
                 3: begin
+                    // Address and payload precede the strobe. The RAM samples
+                    // the strobe next clock, with at least two setup clocks.
+                    if(|writes[3:0]) command0[8]<=1;
+                    if(|writes[7:4]) command1[8]<=1;
+                    state<=4;
+                end
+                4: begin
+                    // The RAM samples the previous cycle's write command here.
+                    command0 <= 0;
+                    command1 <= 0;
+                    state <= 5;
+                end
+                5: begin
                     ack <= pending | (rejected ? 32'h40000000 : 0);
                     state <= 0;
                 end

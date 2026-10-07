@@ -1,5 +1,20 @@
 # DPLL gain and controller latency experiments
 
+The current Fast P + I instrument passed its 250 MHz production build on
+2026-10-07, with setup slack +0.004494 ns, hold slack +0.026840 ns and all nine
+bus-skew checks passing. The final placement hook was validated by rerunning
+physical optimization on the synthesized and routed instrument. Digital paths
+are 56 ns for Fast P and 80 ns for Fast I, plus 6 ns fast-filter group delay;
+I²/I³ and the phase-noise monitor share the accurate extractor. See the
+[current build results](../../README.md#current-fast-p--i-build-2026-10-07)
+for resources, functional checks and hardware-test limits.
+
+These are historical gain-controller measurements, before the shared 24-bit
+accurate extractor and manual Fast P + I path. Their register counts and full
+instrument timing results describe that earlier build. See the [current
+architecture](../../README.md#manual-accurate--fast-p--i) for the production
+interfaces and current validation; gain-only arithmetic remains comparable.
+
 The selected table-gain design supports **16 geometric steps per octave**, prepares gain
 tables only when settings change, and produces the fast correction **two clocks
 (8 ns) earlier** at 250 MHz. The complete two-loop instrument passes routed
@@ -242,8 +257,12 @@ vivado -mode batch -nolog -nojournal -notrace \
 
 The table simulation defaults to four-bit chunks, Q1.11 and three clocks.
 `DPLL_GAIN_CHUNK_BITS`, `DPLL_GAIN_FRACTION_BITS`, `DPLL_GAIN_PIPE_STAGES`,
-`DPLL_GAIN_FINAL_CSA_LEVELS`, `DPLL_GAIN_CARRY_BLOCK` and
+`DPLL_GAIN_FINAL_CSA_LEVELS`, `DPLL_GAIN_CARRY_BLOCK`, `DPLL_GAIN_PHASE_FRAC` and
 `DPLL_GAIN_BENCH_OUT` override its settings/output directory.
+For the current Q8 interfaces, set `DPLL_GAIN_PHASE_FRAC=8`,
+`DPLL_GAIN_PIPE_STAGES=4` and `DPLL_GAIN_FINAL_CSA_LEVELS=2`. This checks the
+25-bit P input, 40-bit PI input and unchanged fast DSP input against independent
+integer products, including their exact four- and three-clock latencies.
 The corrector benchmark's first argument selects fused (1) or separate (0).
 Optional final arguments set initial gain stages, final CSA levels, carry-block
 width and I2/I3 gain stages. **`2 2 0 3` is the selected mixed pipeline**;
@@ -260,7 +279,12 @@ A negative slack is recorded as an experimental result, not a Tcl execution fail
 
 ## Integration and hardware status
 
-Both production controllers select P/PI at two clocks and I2/I3 at three clocks,
+This section records the narrower gain-table design tested on 2026-10-06,
+before Fast P+I and the shared accurate extractor. Its passing timing and resource
+figures do not apply to the current design; see the
+[instrument README](../../README.md#full-fpga-build) for current build status.
+
+That version selected P/PI at two clocks and I2/I3 at three clocks,
 with the fused fast accumulator. `gain_programmer.v` supplies single-cycle RAM
 writes through an acknowledged command toggle. `gain_control.hpp` fills the
 inactive bank and waits for the last write acknowledgement before committing.
@@ -273,7 +297,7 @@ layouts. The new geometric RPC and full-precision readback are documented in the
 magnitude limits. The RTL experiments also test larger octaves outside this API
 range. Negative octaves/sub-unity gains are not implemented.
 
-Integration checks on 2026-10-06:
+Gain-table integration checks on 2026-10-06, before the manual P selector:
 
 - The two-controller AXI simulation passes 125,896 cycles against independent
   signed-product/state models, with 4,352 acknowledged transactions, 4,096 RAM
@@ -286,7 +310,7 @@ Integration checks on 2026-10-06:
   channel isolation, frequency controls and connection lifecycle.
 - The ARM server, generated RPC metadata and web assets build successfully.
 
-The normal `make -j4 CFG=examples/alpha250/dpll/config.mk all` flow completes
+For that gain-table version, `make -j4 CFG=examples/alpha250/dpll/config.mk all` completed
 full synthesis, placement, routing, physical optimization, timing enforcement,
 bitstream generation and instrument packaging. The final `system_wrapper`
 contains both controllers with the selected parameters and no DSP multipliers
@@ -314,7 +338,7 @@ The final critical path is the DAC handoff, with a narrow 2.44 ps setup margin.
 Automatic placement initially left DAC0 bit 1 failing by 74.6 ps. The production
 post-route hook moves its existing mux register within the DAC handoff pblock,
 reroutes and repeats physical optimization and hold repair. It adds no clocked
-stage and does not relax any timing constraint. The normal build reproduces
+stage and does not relax any timing constraint. That build reproduced
 the passing result.
 
 The separate board DAC timing check passes both bitstream phase 0 (setup
@@ -337,4 +361,4 @@ vivado -mode batch -nolog -nojournal -notrace \
 ```
 
 No table-gain candidate has been installed. No analog latency, loop lock or
-stability measurement has been made. The CORDIC remains unchanged in this PR.
+stability measurement has been made. The CORDIC was unchanged for those measurements.

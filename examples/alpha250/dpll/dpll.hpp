@@ -10,6 +10,7 @@
 #include "server/hardware/memory_manager.hpp"
 #include "boards/alpha250/drivers/clock-generator.hpp"
 #include "gain_control.hpp"
+#include "p_path_control.hpp"
 #include "monitor_revision.hpp"
 
 #include <array>
@@ -27,6 +28,8 @@ class Dpll
     , clk_gen(rt::get_driver<ClockGenerator>())
     , gain_tables(ctl, sts, reg::gain_table_command, reg::gain_table_data0,
                   reg::gain_table_ack, reg::gain_table_banks, reg::gain_coefficients0)
+    , p_paths(ctl, sts, reg::p_path_control, reg::p_fast_coeff0,
+              reg::p_path_status0, reg::p_snapshot0, reg::integrators0)
     {
         static_assert(prm::adc_clk == 200000000 || prm::adc_clk == 250000000,
                       "DPLL supports 200 or 250 MHz sampling clocks");
@@ -36,6 +39,10 @@ class Dpll
     void set_integrator( uint32_t channel, uint32_t integrator_index, bool integrator_on) {
         dpll_monitor::ControlChange monitor_change;
         if (channel >= 2 || integrator_index >= 4) return;
+        if ((integrator_index == 0 || integrator_index == 2) && !integrator_on && p_paths.select(channel, 0) != 0) {
+            log<ERROR>("DPLL failed to disable fast P\n");
+            return;
+        }
         ctl.write_bit_reg(reg::integrators0 + 4*channel, integrator_index, integrator_on);
     }
 
@@ -79,6 +86,13 @@ class Dpll
 
         if (freq_hz < 0.0) {
             freq_hz = 0.0;
+        }
+
+        // Frequency changes invalidate the captured lock reference. Return to
+        // the accurate source before changing the DDS; enable Fast manually.
+        if (p_paths.select(channel, 0) != 0) {
+            log<ERROR>("DPLL failed to return P to accurate mode\n");
+            return;
         }
 
         double factor = (uint64_t(1) << 48) / fs_adc;
@@ -162,6 +176,16 @@ class Dpll
             ((uint64_t{1} << 48) - 1)) * double(prm::adc_clk) / double(uint64_t{1} << 48);
     }
 
+    // Appended RPCs preserve all existing command IDs. 0=Accurate, 1=Fast.
+    int32_t set_p_mode(uint32_t channel, uint32_t mode) {
+        dpll_monitor::ControlChange monitor_change;
+        return p_paths.select(channel, mode);
+    }
+
+    std::array<uint32_t, 2> get_p_path_status() {
+        return {sts.read<reg::p_path_status0>(), sts.read<reg::p_path_status1>()};
+    }
+
   private:
     bool set_integer_gain(uint32_t channel, uint32_t gain, int32_t value) {
         dpll_monitor::ControlChange monitor_change;
@@ -184,6 +208,7 @@ class Dpll
     hw::Memory<mem::status>& sts;
     ClockGenerator& clk_gen;
     dpll_gain::Tables<hw::Memory<mem::control>, hw::Memory<mem::status>> gain_tables;
+    dpll_p::Paths<hw::Memory<mem::control>, hw::Memory<mem::status>> p_paths;
 
     std::array<double, 2> dds_freq = {{0.0, 0.0}};
 };

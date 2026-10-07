@@ -89,3 +89,6 @@
   .dpll-workspace .channel-grid { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .dpll-workspace .channel-panel + .channel-panel { border-top: 1px solid var(--border-light); }
 }
+
+.dpll-workspace .p-mode-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0; }
+.dpll-workspace .p-mode-row output, .dpll-workspace .p-mode-row small { flex-basis: 100%; color: #666; font-size: 11px; }

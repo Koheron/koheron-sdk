@@ -6,6 +6,8 @@ class Control {
   private disposed = false;
   private sampleRate = 0;
   private pendingGains = new Set<HTMLTableRowElement>();
+  private pendingPaths = new Set<HTMLSelectElement>();
+  private pathErrors = new Map<number, string>();
 
   constructor(private document: Document, private dpll: Dpll,
               private fail: (error: unknown) => void) {
@@ -77,6 +79,26 @@ class Control {
         catch (error) { this.fail(error); }
       });
     }
+    for (const select of Array.from(document.querySelectorAll<HTMLSelectElement>('.p-mode'))) {
+      this.listen(select, 'change', async () => {
+        if (this.pendingPaths.has(select)) { return; }
+        const channel = Number(select.dataset.channel);
+        this.pathErrors.delete(channel);
+        this.pendingPaths.add(select); select.disabled = true;
+        try {
+          await this.dpll.setPMode(channel, Number(select.value));
+          this.pendingPaths.delete(select);
+          this.renderPaths(await this.dpll.getControlParameters());
+        } catch (error) {
+          this.pendingPaths.delete(select);
+          if (error instanceof PModeError && error.code === -3) {
+            this.pathErrors.set(channel, error.message);
+            try { this.renderPaths(await this.dpll.getControlParameters()); }
+            catch (readError) { this.fail(readError); }
+          } else this.fail(error);
+        }
+      });
+    }
   }
 
   private listen(target: HTMLElement, event: string, listener: EventListener): void {
@@ -119,11 +141,26 @@ class Control {
     }
     this.frequencies.forEach((frequency, channel) => frequency.setValue(status.dds_freq[channel]));
     this.renderGains(status);
+    this.renderPaths(status);
     for (const input of Array.from(this.document.querySelectorAll<HTMLInputElement>('.integrator-switch'))) {
       input.checked = !!(status.integrators[Number(input.dataset.channel)] & (1 << Number(input.dataset.integratorindex)));
     }
     for (const select of Array.from(this.document.querySelectorAll<HTMLSelectElement>('.dac-output'))) {
       select.value = String(routes[Number(select.dataset.channel)]);
+    }
+  }
+
+  private renderPaths(status: IDpllStatus): void {
+    if (this.disposed) { return; }
+    for (const select of Array.from(this.document.querySelectorAll<HTMLSelectElement>('.p-mode'))) {
+      if (this.pendingPaths.has(select)) { continue; }
+      const channel = Number(select.dataset.channel);
+      const bits = status.p_path[channel];
+      select.value = String(bits & 1); select.disabled = false;
+      const output = this.document.querySelector<HTMLOutputElement>(`.p-mode-status[data-channel="${channel}"]`);
+      output.textContent = this.pathErrors.get(channel) || (bits & 1 ?
+        (bits & 2 ? 'Fast · within estimate range' : 'Fast · outside estimate range') :
+        'Accurate · full phase range');
     }
   }
 

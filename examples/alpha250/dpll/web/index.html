@@ -99,6 +99,14 @@
               <select class="frequency-unit" data-channel="0" aria-label="ADC 0 frequency unit"><option>Hz</option><option>kHz</option><option selected>MHz</option><option>GHz</option></select>
             </div>
           </div>
+          <div class="p-mode-row">
+            <label for="p-mode-0">P + I phase estimate</label>
+            <select id="p-mode-0" class="p-mode" data-channel="0">
+              <option value="0">Accurate</option><option value="1">Fast · near lock</option>
+            </select>
+            <output class="p-mode-status" data-channel="0" role="status"></output>
+            <small>Select Fast after lock; captures the current phase and amplitude. I² and I³ remain accurate.</small>
+          </div>
           <div class="integrator-row"><span class="control-label">Integrators</span><div class="integrators">
             <label><input type="checkbox" class="integrator-switch" data-channel="0" data-integratorindex="0"> 1</label>
             <label><input type="checkbox" class="integrator-switch" data-channel="0" data-integratorindex="1"> 2</label>
@@ -160,6 +168,14 @@
               <input id="frequency-1" class="frequency-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" data-channel="1">
               <select class="frequency-unit" data-channel="1" aria-label="ADC 1 frequency unit"><option>Hz</option><option>kHz</option><option selected>MHz</option><option>GHz</option></select>
             </div>
+          </div>
+          <div class="p-mode-row">
+            <label for="p-mode-1">P + I phase estimate</label>
+            <select id="p-mode-1" class="p-mode" data-channel="1">
+              <option value="0">Accurate</option><option value="1">Fast · near lock</option>
+            </select>
+            <output class="p-mode-status" data-channel="1" role="status"></output>
+            <small>Select Fast after lock; captures the current phase and amplitude. I² and I³ remain accurate.</small>
           </div>
           <div class="integrator-row"><span class="control-label">Integrators</span><div class="integrators">
             <label><input type="checkbox" class="integrator-switch" data-channel="1" data-integratorindex="0"> 1</label>
@@ -243,7 +259,8 @@
       </section>
     </fieldset>
     <aside class="diagram-panel" aria-label="DPLL signal path">
-      <details><summary>Loop signal path</summary><img src="block_diagram_path.svg" alt="DPLL phase detector, four integrators, signed gains and fast corrector signal path"></details>
+      <details open><summary>P + I phase estimate paths</summary><img src="p_path.svg" alt="Parallel Accurate and Fast P + I estimates with the I² and I³ on accurate phase"></details>
+      <details><summary>Accurate controller signal path</summary><img src="block_diagram_path.svg" alt="DPLL phase detector, four integrators, signed gains and accurate corrector signal path"></details>
     </aside>
     </section>
   </main>

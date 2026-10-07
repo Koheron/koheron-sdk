@@ -11,6 +11,8 @@ proc pins {cmd} {
     $cmd -dir I -from 0  -to 0 acc_on
     $cmd -dir O -from 16 -to 0 freq
     $cmd -dir O -from 31 -to 0 phase
+    $cmd -dir O -from 15 -to 0 i_filtered
+    $cmd -dir O -from 15 -to 0 q_filtered
 }
 
 proc create {module_name} {
@@ -56,6 +58,8 @@ proc create {module_name} {
     }
 
     # Cordic
+    connect_pins boxcar0/dout i_filtered
+    connect_pins boxcar1/dout q_filtered
 
     cell xilinx.com:ip:cordic:6.0 cordic {
         Functional_Selection Translate

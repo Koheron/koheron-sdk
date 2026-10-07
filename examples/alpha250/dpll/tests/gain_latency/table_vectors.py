@@ -16,6 +16,7 @@ def main():
     parser.add_argument("output", type=Path)
     parser.add_argument("--chunk-bits", type=int, default=6)
     parser.add_argument("--fraction-bits", type=int, default=11)
+    parser.add_argument("--phase-frac", type=int, default=0)
     args = parser.parse_args()
     rng = random.Random(671091)
     mantissas = [round(2 ** (args.fraction_bits + j/16)) for j in range(16)]
@@ -29,7 +30,7 @@ def main():
     active_gain = 0
     count = 0
     edges = [0, 1, -1]
-    for width in [17, 32, 48]:
+    for width in sorted({17, 32, 48, 17+args.phase_frac, 32+args.phase_frac}):
         edges += [-(1 << (width-1)), (1 << (width-1))-1, (1 << width)-1]
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w") as f:
@@ -39,15 +40,18 @@ def main():
                 a = rng.getrandbits(48)
             expected = 0
             bit = 0
-            for width, low, out in [(17,0,32), (32,16,32), (48,48,32), (32,0,64)]:
+            for width, low, out in [(17+args.phase_frac,args.phase_frac,32),
+                                   (32+args.phase_frac,16+args.phase_frac,32),
+                                   (48,48,32), (32,0,64)]:
                 y = signed(a,width)*active_gain // (1 << (args.fraction_bits+low))
                 expected |= (y & ((1 << out)-1)) << bit
                 bit += out
             packed = a & ((1 << 48)-1)
             for value,width in [(we,1), (target,1), (top,1), (address,8),
-                                (data,64), (bank,1), (expected,160)]:
+                                (data,64), (bank,1), (expected,160),
+                                (signed(a,17)*active_gain // (1 << args.fraction_bits),32)]:
                 packed = (packed << width) | (value & ((1 << width)-1))
-            f.write(f"{packed:071x}\n")
+            f.write(f"{packed:079x}\n")
             count += 1
         for gain in gains:
             target = 1-bank

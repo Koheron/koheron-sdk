@@ -85,7 +85,7 @@ for {set i 0} {$i < 2} {incr i} {
 # Digital PLL
 ####################################
 
-source $project_path/tcl/cordic.tcl
+source $project_path/tcl/split_detector.tcl
 source $project_path/tcl/corrector.tcl
 
 create_bd_cell -type module -reference gain_programmer gain_programmer
@@ -103,7 +103,7 @@ for {set word 0} {$word < 16} {incr word} {
 
 for {set i 0} {$i < 2} {incr i} {
 
-    cordic::create cordic$i
+    split_detector::create cordic$i [format 0x%016llx [expr {0x9e3779b97f4a7c15 ^ ($i*0x517cc1b727220a95)}]]
 
     connect_cell cordic$i {
         s_axis_data_a [get_concat_pin [list adc_dac/adc$i [get_constant_pin 0 16]]]
@@ -118,8 +118,17 @@ for {set i 0} {$i < 2} {incr i} {
 
     connect_cell corrector$i {
         clk adc_dac/adc_clk
+        resetn rst_adc_clk/peripheral_aresetn
         freq_in cordic$i/freq
         phase_in cordic$i/phase
+        i_in cordic$i/i_filtered
+        q_in cordic$i/q_filtered
+        cx [ctl_pin p_fast_coeff[expr 2*$i]]
+        cy [ctl_pin p_fast_coeff[expr 2*$i+1]]
+        request_fast [get_slice_pin [ctl_pin p_path_control] $i $i]
+        snapshot_request [get_slice_pin [ctl_pin p_path_control] [expr 8+$i] [expr 8+$i]]
+        snapshot [sts_pin p_snapshot$i]
+        path_status [sts_pin p_path_status$i]
         active_banks [get_slice_pin gain_programmer/active_banks [expr 4*$i+3] [expr 4*$i]]
         table_command gain_programmer/command$i
         table_data gain_programmer/data
@@ -145,10 +154,10 @@ connect_pins [get_concat_pin [list corrector0/slow_corr corrector1/slow_corr]] c
 set outputs [get_concat_pin [list \
     corrector0/fast_corr \
     corrector1/fast_corr \
-    [get_concat_pin [list [get_slice_pin cordic0/phase 14 0] [get_slice_pin cordic0/phase 31 31]] "phase0_lsbs"] \
-    [get_concat_pin [list [get_slice_pin cordic1/phase 14 0] [get_slice_pin cordic1/phase 31 31]] "phase1_lsbs"] \
-    [get_slice_pin cordic0/phase 31 16] \
-    [get_slice_pin cordic1/phase 31 16] \
+    [get_concat_pin [list [get_slice_pin cordic0/phase 22 8] [get_slice_pin cordic0/phase 39 39]] "phase0_lsbs"] \
+    [get_concat_pin [list [get_slice_pin cordic1/phase 22 8] [get_slice_pin cordic1/phase 39 39]] "phase1_lsbs"] \
+    [get_slice_pin cordic0/phase 39 24] \
+    [get_slice_pin cordic1/phase 39 24] \
     [get_slice_pin dds0/m_axis_data_tdata 15 0] \
     [get_slice_pin dds1/m_axis_data_tdata 15 0] \
 ]]
@@ -171,21 +180,18 @@ for {set i 0} {$i < 2} {incr i} {
 # Monitor Phase with DMA
 ####################################
 
-# The monitor uses the exact shared PNA extractor, independently of the fast
-# feedback detector. One selected ADC/DDS pair feeds its 24-bit mixer, fourth-
-# order prefilter and fully pipelined 24-bit CORDIC.
-source $sdk_path/fpga/lib/pna_cordic.tcl
-cordic::create monitor_cordic 0x9e3779b97f4a7c15
-foreach {name sources} {
-    monitor_adc {adc_dac/adc0 adc_dac/adc1}
-    monitor_dds {dds0/m_axis_data_tdata dds1/m_axis_data_tdata}
-} {
-    set width [expr {$name eq "monitor_adc" ? 16 : 32}]
-    cell koheron:user:latched_mux:1.0 $name [list WIDTH $width N_INPUTS 2 SEL_WIDTH 1] {
-        clk adc_dac/adc_clk clken [get_constant_pin 1 1]
-        din [get_concat_pin $sources]
-        sel [get_slice_pin [ctl_pin phase_sel] 0 0]
-    }
+# Both loops share accurate phase extraction with the monitor. Selection and
+# epoch resets are downstream of extraction and cannot reset feedback state.
+cell koheron:user:latched_mux:1.0 monitor_phase_mux {WIDTH 64 N_INPUTS 2 SEL_WIDTH 1} {
+    clk adc_dac/adc_clk clken [get_constant_pin 1 1]
+    din [get_concat_pin [list cordic0/monitor_phase cordic1/monitor_phase]]
+    sel [get_slice_pin [ctl_pin phase_sel] 0 0]
+}
+cell koheron:user:latched_mux:1.0 monitor_demod_mux {WIDTH 32 N_INPUTS 2 SEL_WIDTH 1} {
+    clk adc_dac/adc_clk clken [get_constant_pin 1 1]
+    din [get_concat_pin [list cordic0/demod cordic1/demod]]
+    sel [get_slice_pin [ctl_pin phase_sel] 0 0]
+    dout [sts_pin monitor_demod]
 }
 cell koheron:user:phase_stream_control:1.0 phase_stream_control { RATE_STEP 2 } {
   aclk adc_dac/adc_clk
@@ -196,21 +202,13 @@ cell koheron:user:phase_stream_control:1.0 phase_stream_control { RATE_STEP 2 } 
   requested_run [get_slice_pin [ctl_pin acquisition_run] 0 0]
   sample_gap [sts_pin sample_gap]
 }
-cell xilinx.com:ip:util_vector_logic:2.0 monitor_phase_reset {
-  C_SIZE 1 C_OPERATION not
-} { Op1 phase_stream_control/filter_resetn }
-connect_cell monitor_cordic {
-    s_axis_data_a [get_concat_pin [list monitor_adc/dout [get_constant_pin 0 16]]]
-    s_axis_data_b monitor_dds/dout
-    s_axis_tvalid [get_constant_pin 1 1]
-    aclk adc_dac/adc_clk
-    aresetn rst_adc_clk/peripheral_aresetn
-    acc_on [get_constant_pin 1 1]
-    rst_phase monitor_phase_reset/Res
-    demod [sts_pin monitor_demod]
+create_bd_cell -type module -reference monitor_phase_origin monitor_origin
+connect_cell monitor_origin {
+    clk adc_dac/adc_clk resetn phase_stream_control/filter_resetn
+    phase monitor_phase_mux/dout
 }
-set pna_phase_sources {monitor_cordic/phase}
-set pna_overflow_sources {monitor_cordic/overflow}
+set pna_phase_sources {monitor_origin/relative_phase}
+set pna_overflow_sources {monitor_origin/overflow}
 set pna_phase_selector [get_slice_pin [ctl_pin phase_sel] 0 0]
 source $sdk_path/fpga/lib/pna_single_stream.tcl
 

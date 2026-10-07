@@ -68,5 +68,6 @@ rg -q 'CIC checks passed' cic.log
 if rg -q 'Fatal:|ERROR:|FATAL:' cic.log; then exit 1; fi
 
 # Production table-gain arithmetic and the complete two-loop programming path.
+bash "$repo/examples/alpha250/dpll/tests/run-p-path.sh"
 bash "$repo/examples/alpha250/dpll/tests/gain_latency/run-corrector.sh"
 bash "$repo/examples/alpha250/dpll/tests/run-table-system.sh"
