@@ -68,7 +68,7 @@ async function host(t, failGenerator = false, failConnection = false) {
         ['web/phase-noise/phase-precision.ts', 'PhasePrecision'],
         ['web/phase-modulator/frequency-input.ts', 'FrequencyInput'],
         ['web/phase-modulator/phase-modulator-widget.ts', 'PhaseModulatorWidget'],
-        ['examples/alpha250/phase-noise-analyzer/web/sample-rate.ts', 'PnaSampleRate'],
+        ['web/phase-noise/sample-rate.ts', 'PnaSampleRate'],
         ['examples/alpha250/phase-noise-analyzer/web/app.ts', null]
     ]) {
         window.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {

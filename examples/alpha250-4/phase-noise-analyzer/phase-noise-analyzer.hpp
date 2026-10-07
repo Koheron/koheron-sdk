@@ -68,6 +68,15 @@ class PhaseNoiseAnalyzer
     void save_config();
     void set_local_oscillator(uint32_t channel, double freq_hz);
     void set_cic_rate(uint32_t rate);
+    bool set_sampling_frequency(uint32_t rate);
+    uint32_t get_sampling_frequency() const {
+        std::shared_lock lk(data_mtx);
+        return static_cast<uint32_t>(fs_adc.eval());
+    }
+    uint32_t get_cic_rate() const {
+        std::shared_lock lk(data_mtx);
+        return cic_rate;
+    }
     void set_min_frequency(float min_frequency_hz);
     void set_channel(uint32_t chan);
     void set_fft_navg(uint32_t n_avg);

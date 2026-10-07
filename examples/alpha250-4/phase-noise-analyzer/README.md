@@ -1,3 +1,18 @@
+## Sample-rate selection — version 1.3.1
+
+The acquisition toolbar selects **200 or 250 MS/s**, default 250 MS/s.
+The same selector is used by the ALPHA250 PNA. Both ADC chips and all four
+phase extractors switch together; the CIC rate and LO frequencies stay fixed.
+A change restarts paired DMA and clears spectra, averages and tracking lock.
+The spectrum frequency axis, density calibration and LO editor limits follow
+the selected clock. Re-selecting the current rate preserves acquisition.
+
+`set_sampling_frequency(rate_hz)` returns a boolean; `get_sampling_frequency()`
+reads the active rate. Other rates and transitions that would place any nominal
+or applied LO above Nyquist are rejected. **Save settings** persists the rate.
+This version requires its updated FPGA and server together: MMCM reset and
+phase commands now use the independent PS control clock.
+
 ## Split CIC acquisition
 
 The phase extractor runs at 250 MHz. A full-precision six-stage fixed CIC

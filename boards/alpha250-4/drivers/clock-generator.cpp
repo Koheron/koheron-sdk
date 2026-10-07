@@ -14,6 +14,7 @@ ClockGenerator::ClockGenerator()
 : eeprom(rt::get_driver<Eeprom>())
 , spi_cfg(services::require<SpiConfig>())
 {
+    phase_control_offset = reg::mmcm;
     std::ifstream ifile(filename.data());
 
     if (!ifile.good()) {
@@ -25,6 +26,7 @@ ClockGenerator::ClockGenerator()
 }
 
 void ClockGenerator::phase_shift(uint32_t n_shifts) {
+    std::lock_guard lock(clock_cfg::sampling_mutex);
     // Phase shift the MMCM
     while (n_shifts--) {
         single_phase_shift(1);
@@ -44,6 +46,7 @@ int32_t ClockGenerator::set_tcxo_clock(uint8_t value) {
 }
 
 void ClockGenerator::init() {
+    std::lock_guard lock(clock_cfg::sampling_mutex);
     log("Clock generator: Setting default configuration ...\n");
     std::array<uint8_t, 1> cal_array;
     eeprom.read<eeprom_map::clock_generator_calib::offset>(cal_array);
@@ -54,12 +57,14 @@ void ClockGenerator::init() {
 
 // 0: Ext. clock, 1: FPGA clock, 2: TCXO, 4: Automatic
 void ClockGenerator::set_reference_clock(uint32_t clkin_) {
+    std::lock_guard lock(clock_cfg::sampling_mutex);
     if (clkin_ != clkin) {
         configure(CLKIN_SELECT, clkin_, clk_cfg);
     }
 }
 
 void ClockGenerator::set_sampling_frequency(uint32_t fs_select) {
+    std::lock_guard lock(clock_cfg::sampling_mutex);
     if (fs_select < clock_cfg::configs.size() && fs_select != fs_selected) {
         if (configure(SAMPLING_FREQ_SET, clkin, clock_cfg::configs[fs_select]) == 0) {
             fs_selected = fs_select;
@@ -70,9 +75,27 @@ void ClockGenerator::set_sampling_frequency(uint32_t fs_select) {
 void ClockGenerator::single_phase_shift(uint32_t incdec) {
     constexpr uint32_t psen_bit = 2;
     constexpr uint32_t psincdec_bit = 3;
-    auto& ctl = hw::get_memory<mem::control>();
-    ctl.write_mask<reg::mmcm, (1 << psen_bit) + (1 << psincdec_bit)>((1 << psen_bit) + (incdec << psincdec_bit));
-    ctl.clear_bit<reg::mmcm, psen_bit>();
+    const uint32_t mask = (1 << psen_bit) + (1 << psincdec_bit);
+    auto value = (read_phase_control() & ~mask) | (1 << psen_bit) | (incdec << psincdec_bit);
+    write_phase_control(value);
+    write_phase_control(value & ~(1 << psen_bit));
+}
+
+void ClockGenerator::use_ps_phase_control(uint32_t offset) {
+    std::lock_guard lock(clock_cfg::sampling_mutex);
+    phase_control_ps = true;
+    phase_control_offset = offset;
+    fs_selected = clock_cfg::configs.size(); // Apply the selected rate to the new path.
+}
+
+uint32_t ClockGenerator::read_phase_control() {
+    return phase_control_ps ? hw::get_memory<mem::ps_control>().read_reg<uint32_t>(phase_control_offset)
+                            : hw::get_memory<mem::control>().read_reg<uint32_t>(phase_control_offset);
+}
+
+void ClockGenerator::write_phase_control(uint32_t value) {
+    if (phase_control_ps) hw::get_memory<mem::ps_control>().write_reg(phase_control_offset, value);
+    else hw::get_memory<mem::control>().write_reg(phase_control_offset, value);
 }
 
 void ClockGenerator::write_reg(uint32_t data) {
@@ -286,7 +309,10 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
     logf<INFO>("Clock generator: Ref: {}, VCO: {} MHz, ADC0: {} MHz, ADC1: {} MHz\n",
          clock_cfg::clkin_names[clkin_select].data(), f_vco * 1E-6, fs_adc[0] * 1E-6, fs_adc[1] * 1E-6);
 
-    spi_cfg.lock(); // ?
+    // Use the PS register to release reset after the ADC clock stops.
+    if (phase_control_ps && (cfg_mode == SAMPLING_FREQ_SET || cfg_mode == CFG_ALL))
+        write_phase_control(read_phase_control() | (1 << 1));
+    spi_cfg.lock();
 
     if (!is_clock_generator_initialized) {
         write_reg(1 << 17); // Reset
@@ -345,9 +371,13 @@ int ClockGenerator::configure(uint32_t cfg_mode, uint32_t clkin_select, const st
     spi_cfg.unlock();
 
     if (cfg_mode == SAMPLING_FREQ_SET || cfg_mode == CFG_ALL) {
-        // Wait for the clock to stabilize before sending commands
-        // to the FPGA for MMCM phase-shift
-        std::this_thread::sleep_for(std::chrono::microseconds(50));
+        if (phase_control_ps) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            write_phase_control(read_phase_control() & ~(1 << 1));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        } else {
+            std::this_thread::sleep_for(std::chrono::microseconds(50));
+        }
         phase_shift(clk_cfg[9]);
     }
 

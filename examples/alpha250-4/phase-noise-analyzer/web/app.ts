@@ -1,5 +1,6 @@
 class App {
     private imports: Imports;
+    private sampleRate: PnaSampleRate;
     private stopped = false;
     private client: Client;
     public dds: DDS;
@@ -38,6 +39,11 @@ class App {
                 await this.phaseNoiseAnalyzerApp.init();
                 this.phasePrecision = new PhasePrecision(client, document);
                 await this.phasePrecision.init();
+                if (this.stopped) { return; }
+                this.sampleRate = new PnaSampleRate(document, this.phaseNoiseAnalyzer,
+                    rate => this.phaseNoiseAnalyzerApp.setSampleRate(rate),
+                    error => this.connectionFailed(document, error));
+                await this.sampleRate.init();
                 if (this.stopped) { return; }
                 this.n_pts = this.phaseNoiseAnalyzerApp.nPoints;
                 this.x_min = 100;
@@ -113,6 +119,7 @@ class App {
         if (this.stopped) { return; }
         this.stopped = true;
         if (this.plot) { this.plot.dispose(); }
+        if (this.sampleRate) { this.sampleRate.dispose(); }
         if (this.phasePrecision) { this.phasePrecision.dispose(); }
         if (this.phaseNoiseAnalyzerApp) { this.phaseNoiseAnalyzerApp.dispose(); }
         for (const id of ['instrument-controls', 'plot-controls']) {

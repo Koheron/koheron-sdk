@@ -1,6 +1,7 @@
 set board_preset $board_path/config/board_preset.tcl
 source $sdk_path/fpga/lib/starting_point.tcl
 
+set alpha250_4_mmcm_ps_control 1
 source $board_path/adc.tcl
 
 # Add config and status registers
@@ -9,7 +10,7 @@ add_ctl_sts adc/adc_clk rst_adc_clk/peripheral_aresetn
 set_cell_props ctl/axi_ctl_register {PREDECODE_WRITES 1}
 
 connect_cell adc {
-    ctl [ctl_pin mmcm]
+    ctl [ps_ctl_pin mmcm_ps]
     cfg_data [ps_ctl_pin spi_cfg_data]
     cfg_cmd [ps_ctl_pin spi_cfg_cmd]
     cfg_sts [ps_sts_pin spi_cfg_sts]
