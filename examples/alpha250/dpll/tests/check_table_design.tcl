@@ -18,12 +18,12 @@ foreach channel {0 1} {
             error "Incorrect Cartesian width in loop $channel/$cell"
         }
     }
-    foreach {name expected} {DIN_WIDTH 24 DOUT_WIDTH 40} {
+    foreach {name expected} {DIN_WIDTH 24 DOUT_WIDTH 40 FUSED_DIFFERENCE 1 CANONICAL_INPUT 1} {
         if {[get_property CONFIG.$name [get_bd_cells cordic$channel/phase_unwrapper]] != $expected} {
             error "Incorrect phase scale in loop $channel"
         }
     }
-    foreach {name expected} {PHASE_FRACTION_BITS 8 FUSED 1 GAIN_STAGES 2 TAIL_GAIN_STAGES 3 FINAL_CSA_LEVELS 2 CARRY_BLOCK 0} {
+    foreach {name expected} {PHASE_FRACTION_BITS 8 FUSED 1 GAIN_STAGES 2 TAIL_GAIN_STAGES 3 FINAL_CSA_LEVELS 2 CARRY_BLOCK 0 TAIL_CARRY_BLOCK 8} {
         if {[get_property CONFIG.$name [get_bd_cells corrector$channel]] != $expected} {
             error "Incorrect controller parameter: loop $channel $name"
         }
@@ -52,6 +52,20 @@ foreach channel {0 1} {
     if {[llength $phase_cells] == 0} {error "Missing custom phase extractor in loop $channel"}
     if {[llength [filter $phase_cells {REF_NAME == DSP48E1}]] != 2} {
         error "Expected two residual-correction DSPs in phase extractor loop $channel"
+    }
+    # Keep the interpolation input registers in the DSP. Extracting these
+    # into fabric leaves a multiply-plus-add input path at 250 MHz.
+    foreach {mac registers} {
+        interpolation {AREG 1 BREG 1 CREG 1 MREG 0 PREG 1}
+        final_angle {AREG 1 BREG 0 CREG 1 MREG 1 PREG 1}
+    } {
+        set dsp [get_cells "$phase_prefix/residual_completion.completion/$mac/dsp"]
+        if {[llength $dsp] != 1} {error "Missing residual DSP: loop $channel $mac"}
+        foreach {name expected} $registers {
+            if {[get_property $name $dsp] != $expected} {
+                error "Residual DSP register changed: loop $channel $mac $name"
+            }
+        }
     }
     set phase_pins [get_pins -hier -filter "NAME =~ $phase_prefix/*"]
     set phase_path [get_timing_paths -through $phase_pins -max_paths 1 -no_report_unconstrained]

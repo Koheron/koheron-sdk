@@ -13,8 +13,8 @@ module table_gain #(
     parameter integer CHUNK_BITS=4,
     parameter integer FRACTION_BITS=11,
     parameter integer PIPE_STAGES=2,
-    // Two-stage alternative: leave this many compressor levels after the
-    // intermediate register, balancing LUT-read/reduction against final sum.
+    // Leave this many compressor levels after the intermediate register,
+    // balancing reduction against the final sum in either pipeline depth.
     parameter integer FINAL_CSA_LEVELS=0,
     // Zero uses a ripple carry chain. Positive values bound each carry-select
     // block's width, calculating its carry-zero and carry-one sums in parallel.
@@ -49,13 +49,18 @@ module table_gain #(
         end
     endfunction
     localparam LEVELS=tree_depth(TERMS);
-    localparam SPLIT=(FINAL_CSA_LEVELS>LEVELS) ? 0 : LEVELS-FINAL_CSA_LEVELS;
+    // Three-clock carry-select paths use: partial reduction, registered
+    // candidate sums, then carry selection. Move one more compressor level
+    // after the first register to balance the RAM-read/reduction stage.
+    localparam REGISTER_SUMS=(PIPE_STAGES==3 && FINAL_CSA_LEVELS>0 && CARRY_BLOCK>0);
+    localparam REMAINING_LEVELS=FINAL_CSA_LEVELS+REGISTER_SUMS;
+    localparam SPLIT=(REMAINING_LEVELS>LEVELS) ? 0 : LEVELS-REMAINING_LEVELS;
     wire [WIDTH-1:0] tree [0:(LEVELS+1)*TERMS-1];
     wire [WIDTH-1:0] stage [0:(LEVELS+1)*TERMS-1];
     genvar i,l,g,r;
     generate for(l=0;l<=LEVELS;l=l+1) begin : stage_boundary
         for(i=0;i<term_count(l);i=i+1) begin : term
-            if(PIPE_STAGES==2 && FINAL_CSA_LEVELS>0 && l==SPLIT) begin : pipeline
+            if(FINAL_CSA_LEVELS>0 && l==SPLIT) begin : pipeline
                 reg [WIDTH-1:0] value=0;
                 always @(posedge CLK) value<=tree[l*TERMS+i];
                 assign stage[l*TERMS+i]=value;
@@ -73,7 +78,7 @@ module table_gain #(
                 products[{WRITE_BANK,WRITE_ADDRESS}]<=WRITE_DATA;
         wire signed [TABLE_WIDTH-1:0] lookup=products[{ACTIVE_BANK,a_ext[CHUNK_BITS*i +: CHUNK_BITS]}];
         wire signed [TABLE_WIDTH-1:0] partial;
-        if(PIPE_STAGES==3) begin : lookup_stage
+        if(PIPE_STAGES==3 && !REGISTER_SUMS) begin : lookup_stage
             reg signed [TABLE_WIDTH-1:0] value=0;
             always @(posedge CLK) value<=lookup;
             assign partial=value;
@@ -96,7 +101,7 @@ module table_gain #(
             assign tree[(l+1)*TERMS+2*(N/3)+r]=stage[l*TERMS+3*(N/3)+r];
         end
     end endgenerate
-    generate if(PIPE_STAGES==2 && FINAL_CSA_LEVELS>0) begin : balanced
+    generate if(FINAL_CSA_LEVELS>0) begin : balanced
         wire [WIDTH-1:0] product;
         if(CARRY_BLOCK>0) begin : carry_select
             localparam BLOCKS=(WIDTH+CARRY_BLOCK-1)/CARRY_BLOCK;
@@ -108,9 +113,29 @@ module table_gain #(
                 wire [N-1:0] y=stage[LEVELS*TERMS+1][i*CARRY_BLOCK +: N];
                 wire [N:0] zero_carry={1'b0,x}+{1'b0,y};
                 wire [N-1:0] one_carry=x+y+1'b1;
+                wire [N:0] zero_stage;
+                wire [N-1:0] one_stage;
+                wire propagate;
+                if(REGISTER_SUMS) begin : candidates
+                    reg [N:0] zero_value=0;
+                    reg [N-1:0] one_value=0;
+                    reg propagate_value=0;
+                    always @(posedge CLK) begin
+                        zero_value<=zero_carry;
+                        one_value<=one_carry;
+                        propagate_value<=&(x^y);
+                    end
+                    assign zero_stage=zero_value;
+                    assign one_stage=one_value;
+                    assign propagate=propagate_value;
+                end else begin
+                    assign zero_stage=zero_carry;
+                    assign one_stage=one_carry;
+                    assign propagate=&(x^y);
+                end
                 // Carry generates within this block or propagates through it.
-                assign c[i+1]=zero_carry[N] | ((&(x^y)) & c[i]);
-                assign product[i*CARRY_BLOCK +: N]=c[i] ? one_carry : zero_carry[N-1:0];
+                assign c[i+1]=zero_stage[N] | (propagate & c[i]);
+                assign product[i*CARRY_BLOCK +: N]=c[i] ? one_stage : zero_stage[N-1:0];
             end
         end else begin
             assign product=stage[LEVELS*TERMS]+stage[LEVELS*TERMS+1];

@@ -166,31 +166,48 @@ acknowledgement, active banks and eight signed 64-bit Q*.11 coefficients.
 The driver writes both data words, changes the command toggle, and waits for
 acknowledgement before reusing the port. Hardware issues a single RAM write and
 rejects active-bank writes. A commit switches banks and records the coefficient
-on the same clock. RPC serialization protects this shared programming port.
+on the same clock. Request validation and table-command decoding run at 143 MHz.
+Registered XPM handshakes transfer coherent requests and decoded responses;
+the 250 MHz registers issue one-cycle table writes and atomic bank/coefficient
+commits. Acknowledgement follows application, so slower programming does not
+add feedback latency. Reset preserves committed gains, drains stale transfers
+and waits for both clock domains to be ready. RPC serialization protects this
+shared programming port.
 Server restarts read the active banks and coefficients from hardware.
 
 The AXI/controller integration simulation runs two controllers against independent
 signed-product/state models while programming gains, including reset, rejected
-writes and held commands with changing data:
+writes and held commands with changing data, using nonaligned 250/143 MHz
+clocks. Separate tests reset programming at 65 positions throughout a transfer
+and compare the retimed phase/unwrap path against the original timing and an
+independent arithmetic model at 8/16/24 bits:
 
 ```sh
 export DPLL_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh
 bash examples/alpha250/dpll/tests/run-table-system.sh
+bash examples/alpha250/dpll/tests/run-gain-programmer.sh
+bash examples/alpha250/dpll/tests/run-phase-unwrapper.sh
 ```
 
 ## Phase extraction
 
 Both loops retain 24-bit I/Q and produce **24-bit phase** with pi = 2^21.
 The extractor normalizes into 27-bit coordinates, performs eight CORDIC rotations
-with a 32-bit internal angle accumulator, then applies a three-clock residual
+with a 32-bit internal angle accumulator, then applies a four-clock residual
 correction using an interpolated reciprocal. It accepts one sample per clock
-and takes **14 clocks (56 ns)** at 250 MHz,
+and takes **15 clocks (60 ns)** at 250 MHz,
 compared with 28 clocks for the PNA's 24-bit vendor CORDIC configuration.
-The independent atan2 simulation checks 192,533 samples: peak error is
+The independent atan2 simulation checks 192,485 samples: peak error is
 **1.115 µrad**, RMS error is **0.405 µrad**. These are arithmetic errors, not
 hardware phase-noise measurements.
 
-Unwrapping retains 40-bit phase and 25-bit frequency. Controllers carry the eight
+Unwrapping retains 40-bit phase and 25-bit frequency. The DPLL selects
+`FUSED_DIFFERENCE=1`, combining subtraction and unwrap into one clock before
+accumulation. Extraction (15) plus unwrapping (2) retains the previous 17-clock
+combined latency; the complete mixer/boxcar/detector remains 23 clocks.
+Independent 8/16/24-bit tests verify cycle-for-cycle identical frequency, phase
+and overflow with a one-clock input delay and the fused core. Other instruments
+retain the default three-clock unwrapper pipeline. Controllers carry the eight
 extra fractional bits through every product and accumulator, removing them at
 the DAC output. Existing gain settings retain their physical scale. Compatibility
 outputs keep the existing monitor and direct phase-DAC units; controllers use the
@@ -202,8 +219,14 @@ precision.
 The full phase detector takes 23 clocks (92 ns). The direct phase-feedback
 converter/pipeline subtotal is 164 ns; add 6 ns boxcar group delay and the
 board/interface/analog delays. These are pipeline counts, not measured connector
-latency or closed-loop bandwidth. Only standalone extractor timing was checked
-for the current design; full-instrument timing and hardware testing are deferred.
+latency or closed-loop bandwidth. Combined extraction/unwrap routing passes
+250 MHz with +0.075 ns setup and +0.035 ns hold slack, including 0.100 ns added
+clock uncertainty. The complete instrument does **not** yet pass timing:
+the 2026-10-07 normal build reports -0.365 ns worst setup slack and
+-11.435 ns total setup slack; hold and pulse-width checks pass.
+The remaining violations include gain arithmetic and the DAC handoff.
+The strict timing gate prevents bitstream generation. Hardware testing has
+not been performed; this revision is not ready to merge or deploy.
 See the [phase extraction checks and results](tests/phase_extraction/README.md).
 
 ```sh

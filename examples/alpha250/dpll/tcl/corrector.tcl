@@ -11,6 +11,7 @@ proc create {module_name {phase_fraction_bits 8}} {
         TAIL_GAIN_STAGES 3
         FINAL_CSA_LEVELS 2
         CARRY_BLOCK 0
+        TAIL_CARRY_BLOCK 8
     }]
 }
 }

@@ -10,6 +10,8 @@ foreach {cell property expected} {
     monitor_cordic/cordic Output_Width 24
     monitor_cordic/cordic Pipelining_Mode Maximum
     monitor_cordic/phase_unwrapper DOUT_WIDTH 64
+    monitor_cordic/phase_unwrapper FUSED_DIFFERENCE 0
+    monitor_cordic/phase_unwrapper CANONICAL_INPUT 0
     monitor_cordic/phase_unwrapper PIPELINED_OVERFLOW 1
     fir Data_Width 40
     fir Output_Width 40
@@ -26,6 +28,8 @@ proc same_net {a b} {
         error "Expected a shared net: $a and $b"
     }
 }
+same_net gain_programmer/program_clk ps_0/FCLK_CLK1
+same_net gain_programmer/clk adc_dac/adc_clk
 same_net fir/aclk ps_0/FCLK_CLK1
 same_net phase_quantizer/aclk ps_0/FCLK_CLK1
 same_net cic/aclk ps_0/FCLK_CLK1
@@ -51,6 +55,8 @@ foreach i {0 1} {
         phase_extractor RESIDUAL_CORRECTION 1
         phase_unwrapper DIN_WIDTH 24
         phase_unwrapper DOUT_WIDTH 40
+        phase_unwrapper FUSED_DIFFERENCE 1
+        phase_unwrapper CANONICAL_INPUT 1
     } {
         if {[get_property CONFIG.$property [get_bd_cells cordic$i/$cell]] != $expected} {
             error "Unexpected feedback setting: cordic$i/$cell $property"

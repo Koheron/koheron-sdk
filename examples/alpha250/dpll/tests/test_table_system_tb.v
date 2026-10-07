@@ -2,6 +2,8 @@
 module test_table_system_tb #(parameter integer PHASE_FRACTION_BITS=8);
     reg clk=0, resetn=0;
     always #2 clk=~clk;
+    reg program_clk=0;
+    initial begin #0.7; forever #3.5 program_clk=~program_clk; end
     reg [15:0] awaddr=0, araddr=0;
     reg [31:0] wdata=0;
     reg awvalid=0, wvalid=0, bready=0, arvalid=0, rready=0;
@@ -44,14 +46,14 @@ module test_table_system_tb #(parameter integer PHASE_FRACTION_BITS=8);
         .s_axi_araddr(araddr),.s_axi_arvalid(arvalid),.s_axi_arready(arready),
         .s_axi_rdata(rdata),.s_axi_rresp(),.s_axi_rvalid(rvalid),.s_axi_rready(rready)
     );
-    gain_programmer programmer(clk,resetn,control[672 +: 32],control[704 +: 64],
+    gain_programmer programmer(clk,resetn,program_clk,control[672 +: 32],control[704 +: 64],
                                ack,banks,coefficients,command0,command1,data);
 
     genvar channel;
     generate for(channel=0;channel<2;channel=channel+1) begin : loop_dut
         wire [2:0] enabled=control[513+32*channel +: 3];
         wire [15:0] fast,slow;
-        table_corrector #(.PHASE_FRACTION_BITS(PHASE_FRACTION_BITS),.FUSED(1),.GAIN_STAGES(2),.TAIL_GAIN_STAGES(3),.FINAL_CSA_LEVELS(2))
+        table_corrector #(.PHASE_FRACTION_BITS(PHASE_FRACTION_BITS),.FUSED(1),.GAIN_STAGES(2),.TAIL_GAIN_STAGES(3),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),.TAIL_CARRY_BLOCK(8))
             dut(clk,freq[channel],phase[channel],enabled,banks[4*channel +: 4],
                 channel ? command1 : command0,data,fast,slow);
         reg [31+PHASE_FRACTION_BITS:0] rp[0:1],rpi[0:1],ri2[0:2];
@@ -152,7 +154,7 @@ module test_table_system_tb #(parameter integer PHASE_FRACTION_BITS=8);
             response=~request;watchdog=0;
             while((response & 32'hbfffffff)!=request) begin
                 axi_read(8,response);watchdog=watchdog+1;
-                if(watchdog>20) $fatal(1,"Programming acknowledgement timeout");
+                if(watchdog>100) $fatal(1,"Programming acknowledgement timeout");
             end
             if(response[30]!==reject_expected) $fatal(1,"Unexpected programming status %h",response);
             if(commit_expected) $fatal(1,"Acknowledged before atomic commit");

@@ -1,9 +1,10 @@
-if {$argc!=2 && $argc!=5 && $argc!=6} {error "Expected fused flag, output directory, optional gain stages / final CSA levels / carry block / optional tail stages"}
+if {$argc!=2 && $argc!=5 && $argc!=6 && $argc!=7} {error "Expected fused flag, output directory, optional gain stages / final CSA levels / carry block / optional tail stages"}
 set generics [list FUSED=[lindex $argv 0]]
 if {$argc>=5} {
     lappend generics GAIN_STAGES=[lindex $argv 2] FINAL_CSA_LEVELS=[lindex $argv 3] CARRY_BLOCK=[lindex $argv 4]
 }
-if {$argc==6} {lappend generics TAIL_GAIN_STAGES=[lindex $argv 5]}
+if {$argc>=6} {lappend generics TAIL_GAIN_STAGES=[lindex $argv 5]}
+if {$argc==7} {lappend generics TAIL_CARRY_BLOCK=[lindex $argv 6]}
 set fused [lindex $argv 0]
 set out [file normalize [lindex $argv 1]]
 set here [file dirname [file normalize [info script]]]

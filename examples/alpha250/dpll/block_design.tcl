@@ -90,6 +90,7 @@ source $project_path/tcl/corrector.tcl
 
 create_bd_cell -type module -reference gain_programmer gain_programmer
 connect_cell gain_programmer {
+    program_clk ps_0/FCLK_CLK1
     clk adc_dac/adc_clk
     resetn rst_adc_clk/peripheral_aresetn
     cfg_command [ctl_pin gain_table_command]

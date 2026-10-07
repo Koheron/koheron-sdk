@@ -102,6 +102,8 @@ proc create {module_name {phase_implementation fast} {cartesian_width 24} {phase
     cell koheron:user:phase_unwrapper:1.0 phase_unwrapper {
         DIN_WIDTH $phase_width
         DOUT_WIDTH [expr {$phase_width+16}]
+        FUSED_DIFFERENCE [expr {$phase_implementation eq "fast" && $phase_width == 24 && $cartesian_width == 24}]
+        CANONICAL_INPUT [expr {$phase_implementation eq "fast" && $phase_width == 24 && $cartesian_width == 24}]
     } {
         clk aclk
         acc_on acc_on

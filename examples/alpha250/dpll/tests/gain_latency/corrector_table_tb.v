@@ -1,5 +1,5 @@
 `timescale 1 ns / 1 ps
-module corrector_table_test #(parameter integer CARRY_BLOCK=0);
+module corrector_table_test #(parameter integer CARRY_BLOCK=8);
     reg clk=0;
     always #2 clk=~clk;
     reg signed [16:0] freq=0;
@@ -17,7 +17,7 @@ module corrector_table_test #(parameter integer CARRY_BLOCK=0);
     generate for(mode=0;mode<4;mode=mode+1) begin : implementation
         localparam STAGES=(mode>=2) ? 2 : 3;
         localparam TAIL_STAGES=(mode==2) ? 2 : 3;
-        table_corrector #(.FUSED(mode!=0), .GAIN_STAGES(STAGES), .TAIL_GAIN_STAGES(TAIL_STAGES), .FINAL_CSA_LEVELS((mode>=2) ? 2 : 0), .CARRY_BLOCK((mode==2) ? CARRY_BLOCK : 0)) dut(clk,freq,phase,enabled,banks,command,data,fast[mode],slow[mode]);
+        table_corrector #(.FUSED(mode!=0), .GAIN_STAGES(STAGES), .TAIL_GAIN_STAGES(TAIL_STAGES), .FINAL_CSA_LEVELS((mode>=2) ? 2 : 0), .CARRY_BLOCK((mode==2) ? CARRY_BLOCK : 0), .TAIL_CARRY_BLOCK((mode>=2) ? CARRY_BLOCK : 0)) dut(clk,freq,phase,enabled,banks,command,data,fast[mode],slow[mode]);
         reg [31:0] rp[0:STAGES-1],rpi[0:STAGES-1];
         reg [31:0] ri2[0:TAIL_STAGES-1];
         reg [63:0] ri3[0:TAIL_STAGES-1];

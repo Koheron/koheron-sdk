@@ -38,8 +38,8 @@ module phase_extractor #(
     localparam integer INPUT_COORD_WIDTH = INPUT_WIDTH > 21 ? INPUT_WIDTH + 3 : 24;
     localparam integer W = PHASE_WIDTH+3 > INPUT_COORD_WIDTH ? PHASE_WIDTH+3 : INPUT_COORD_WIDTH;
     localparam integer GROUPS = PAIR_START + (N - PAIR_START + ROTATIONS_PER_CLOCK - 1) / ROTATIONS_PER_CLOCK;
-    // Residual completion selects 14 clocks: three preparation stages, eight
-    // vectoring stages and three small-angle correction stages. The full
+    // Residual completion selects 15 clocks: three preparation stages, eight
+    // vectoring stages and four small-angle correction stages. The full
     // 24-rotation fallback takes 19 clocks. Compact preparation is experimental.
     wire signed [INPUT_WIDTH:0] extended_i = {i_in[INPUT_WIDTH-1], i_in};
     wire signed [INPUT_WIDTH:0] extended_q = {q_in[INPUT_WIDTH-1], q_in};

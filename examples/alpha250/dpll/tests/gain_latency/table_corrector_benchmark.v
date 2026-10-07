@@ -4,7 +4,8 @@ module table_corrector_benchmark #(
     parameter integer GAIN_STAGES=3,
     parameter integer TAIL_GAIN_STAGES=GAIN_STAGES,
     parameter integer FINAL_CSA_LEVELS=0,
-    parameter integer CARRY_BLOCK=0
+    parameter integer CARRY_BLOCK=0,
+    parameter integer TAIL_CARRY_BLOCK=CARRY_BLOCK
 )(
     input wire clk,
     input wire [16:0] freq,
@@ -27,5 +28,5 @@ module table_corrector_benchmark #(
         banks_reg<=active_banks;command_reg<=table_command;data_reg<=table_data;
         result<={slow,fast};
     end
-    table_corrector #(.FUSED(FUSED), .GAIN_STAGES(GAIN_STAGES), .TAIL_GAIN_STAGES(TAIL_GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK)) corrector(clk,freq_reg,phase_reg,enabled_reg,banks_reg,command_reg,data_reg,fast,slow);
+    table_corrector #(.FUSED(FUSED), .GAIN_STAGES(GAIN_STAGES), .TAIL_GAIN_STAGES(TAIL_GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK),.TAIL_CARRY_BLOCK(TAIL_CARRY_BLOCK)) corrector(clk,freq_reg,phase_reg,enabled_reg,banks_reg,command_reg,data_reg,fast,slow);
 endmodule

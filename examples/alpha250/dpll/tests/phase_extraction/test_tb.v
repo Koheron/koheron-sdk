@@ -9,7 +9,7 @@ module phase_extraction_test;
     always #2 clk=~clk;
     real exact=0, exact_pipe[0:18];
     reg [18:0] valid_pipe=0;
-    integer history[0:4];
+    integer history[0:3];
     integer k,dx,dy,ev,vv,rr,file,status,checked=0,cycles=0,difference;
     real error,peak=0,squared=0,raw,raw_error,raw_peak=0,raw_squared=0;
     reg [2047:0] vector_path;
@@ -17,14 +17,14 @@ module phase_extraction_test;
         for(k=18;k>0;k=k-1) exact_pipe[k]=exact_pipe[k-1];
         exact_pipe[0]=exact*256.0;
         valid_pipe=resetn ? {valid_pipe[17:0],valid} : 0;
-        for(k=4;k>0;k=k-1) history[k]=history[k-1];
+        for(k=3;k>0;k=k-1) history[k]=history[k-1];
         history[0]=fast;
         cycles=cycles+1;
         #0.1;
-        if(vf !== valid_pipe[13] || vr !== valid_pipe[18]) $fatal(1,"Latency/reset mismatch at cycle %0d",cycles);
+        if(vf !== valid_pipe[14] || vr !== valid_pipe[18]) $fatal(1,"Latency/reset mismatch at cycle %0d",cycles);
         if(vf) begin
             if ((^fast) === 1'bx) $fatal(1,"Unknown phase output");
-            error=$signed(fast)-exact_pipe[13];
+            error=$signed(fast)-exact_pipe[14];
             if(error>2097152) error=error-4194304;
             if(error< -2097152) error=error+4194304;
             if(error<0) error=-error;
@@ -32,10 +32,10 @@ module phase_extraction_test;
             if(error>1.5) $fatal(1,"Angular error exceeds 1.5 urad: %f at cycle %0d",error,cycles);
             if(error>peak) peak=error;
             squared=squared+error*error;
-            raw=dut.residual_completion.completion.zero3 ? 0.0 :
+            raw=dut.residual_completion.completion.zero4 ? 0.0 :
                 $signed(dut.residual_completion.completion.accumulated) /
-                (1048576.0*(2**dut.residual_completion.completion.scale3))-0.5;
-            raw_error=raw-exact_pipe[13];
+                (1048576.0*(2**dut.residual_completion.completion.scale4))-0.5;
+            raw_error=raw-exact_pipe[14];
             if(raw_error>2097152) raw_error=raw_error-4194304;
             if(raw_error< -2097152) raw_error=raw_error+4194304;
             if(raw_error<0) raw_error=-raw_error;
@@ -46,7 +46,7 @@ module phase_extraction_test;
             checked=checked+1;
         end
         if(vr) begin
-            difference=$signed(reference_phase)-history[4];
+            difference=$signed(reference_phase)-history[3];
             if(difference>2097152) difference=difference-4194304;
             if(difference< -2097152) difference=difference+4194304;
             if(difference>2 || difference< -2) $fatal(1,"Residual/CORDIC phase disagreement %0d counts",difference);
@@ -54,7 +54,7 @@ module phase_extraction_test;
     end
     initial begin
         for(k=0;k<19;k=k+1) exact_pipe[k]=0;
-        for(k=0;k<5;k=k+1) history[k]=0;
+        for(k=0;k<4;k=k+1) history[k]=0;
         if(!$value$plusargs("VECTORS=%s",vector_path)) $fatal(1,"Missing vectors");
         file=$fopen(vector_path,"r");
         if(!file) $fatal(1,"Cannot open vectors");
@@ -72,7 +72,7 @@ module phase_extraction_test;
         valid=0; resetn=1;
         repeat(21) @(negedge clk);
         if(checked<100000) $fatal(1,"Too few checked samples");
-        $display("Phase extraction checks passed: %0d samples; selected latency=14 clocks / 56 ns; peak=%f urad RMS=%f urad",checked,peak,$sqrt(squared/checked));
+        $display("Phase extraction checks passed: %0d samples; selected latency=15 clocks / 60 ns; peak=%f urad RMS=%f urad",checked,peak,$sqrt(squared/checked));
         $display("Before output rounding: peak=%f urad RMS=%f urad",raw_peak,$sqrt(raw_squared/checked));
         $finish;
     end

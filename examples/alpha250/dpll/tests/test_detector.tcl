@@ -45,6 +45,8 @@ foreach kind {old new fast} {
             phase_extractor FUSE_ROUND 1
             phase_extractor COMPACT_PREP 0
             phase_extractor RESIDUAL_CORRECTION 1
+            phase_unwrapper FUSED_DIFFERENCE 1
+        phase_unwrapper CANONICAL_INPUT 1
         } {
             if {[get_property CONFIG.$property [get_bd_cells det_fast/$name]] != $expected} {
                 error "Wrong 24-bit detector configuration: $name $property"

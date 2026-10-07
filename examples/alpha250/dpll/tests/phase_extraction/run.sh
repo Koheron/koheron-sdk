@@ -39,3 +39,9 @@ if [[ ${DPLL_PHASE_ROUTE:-0} == 1 ]]; then
         -tclargs 2 "$out/route" > route.log 2>&1
     cat route/result.txt
 fi
+
+if [[ ${DPLL_DETECTOR_ROUTE:-0} == 1 ]]; then
+    vivado -mode batch -nolog -nojournal -notrace -source "$here/benchmark_detector.tcl" \
+        -tclargs 2 "$out/detector-route" > detector-route.log 2>&1
+    cat detector-route/result.txt
+fi

@@ -3,9 +3,34 @@
 These measurements record the original gain/controller optimization with a
 19-clock, 16-bit vendor phase extractor and the controller's legacy fixed-point
 widths. The current [24-bit phase design](../phase_extraction/README.md) takes
-14 extraction clocks, with eight extra fractional bits throughout feedback and
-controller states. Its direct-phase converter/pipeline subtotal is 164 ns.
-Full-instrument timing for the widened controller has not been validated.
+15 extraction clocks, with eight extra fractional bits throughout feedback and
+controller states. Two-clock unwrapping offsets the added extractor result
+register; its direct-phase converter/pipeline subtotal remains 164 ns.
+The current controller retains ripple-carry P/PI sums and uses 8-bit
+carry-select blocks with registered candidate sums for I2/I3. This balances the
+widened arithmetic while retaining the stated latencies. Gain-command decoding
+runs at 143 MHz with handshakes to the 250 MHz table-write/commit registers.
+Full-instrument timing for this revision fails; the tables below record the
+earlier controller benchmarks.
+
+The 2026-10-07 normal `make -j2 N_CPUS=4
+CFG=examples/alpha250/dpll/config.mk all` run completes synthesis and routing,
+then the strict timing gate rejects setup slack **-0.364774 ns**, total setup
+slack **-11.435364 ns**, and 215 failing endpoints. The 250 MHz arithmetic
+domain has worst setup slack **-0.132 ns**; the global worst path is the DAC
+handoff. Worst hold slack is **+0.030 ns**; hold, pulse-width and all eight
+bus-skew checks pass. No bitstream is generated and no hardware test is run.
+The routed CDC report has no critical findings; the new programmer crossings
+are classified as synchronized one-bit control and synchronized reset paths.
+These results supersede the historical passing full-instrument table below
+for the widened feedback design.
+
+The current controller model passes 33,890 cycles and retains the two-clock
+latency saving. Both phase-fraction modes pass the independent two-controller
+model for 183,164 cycles each, including 4,352 acknowledged transactions,
+4,096 RAM writes and 128 atomic commits per mode. The gain-programmer reset
+test checks cancellation/recovery at 65 transfer positions. Arithmetic passes
+do not override the failed full-instrument timing check.
 
 The selected table-gain design supports **16 geometric steps per octave**, prepares gain
 tables only when settings change, and produces the fast correction **two clocks
@@ -244,7 +269,7 @@ bash examples/alpha250/dpll/tests/gain_latency/run-corrector.sh
 source "$DPLL_VIVADO_SETTINGS"
 vivado -mode batch -nolog -nojournal -notrace \
   -source examples/alpha250/dpll/tests/gain_latency/benchmark_corrector.tcl \
-  -tclargs 1 tmp/tests/alpha250-dpll/table-corrector/fused-mixed 2 2 0 3
+  -tclargs 1 tmp/tests/alpha250-dpll/table-corrector/fused-mixed 2 2 0 3 16
 ```
 
 The table simulation defaults to four-bit chunks, Q1.11 and three clocks.
@@ -253,7 +278,8 @@ The table simulation defaults to four-bit chunks, Q1.11 and three clocks.
 `DPLL_GAIN_BENCH_OUT` override its settings/output directory.
 The corrector benchmark's first argument selects fused (1) or separate (0).
 Optional final arguments set initial gain stages, final CSA levels, carry-block
-width and I2/I3 gain stages. **`2 2 0 3` is the selected mixed pipeline**;
+width, I2/I3 gain stages and optional I2/I3 carry-block width. **`2 2 0 3 16` is the current mixed pipeline**;
+`2 2 0 3` reproduces the historical mixed pipeline before widening feedback;
 `3 0 0 3` reproduces the slower all-three-clock fallback. `2 2 0` selects the
 all-two-clock ripple-carry variant, which fails timing.
 

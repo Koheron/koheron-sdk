@@ -70,6 +70,8 @@ if rg -q 'Fatal:|ERROR:|FATAL:' cic.log; then exit 1; fi
 # Production table-gain arithmetic and the complete two-loop programming path.
 bash "$repo/examples/alpha250/dpll/tests/gain_latency/run-corrector.sh"
 bash "$repo/examples/alpha250/dpll/tests/run-table-system.sh"
+bash "$repo/examples/alpha250/dpll/tests/run-gain-programmer.sh"
+bash "$repo/examples/alpha250/dpll/tests/run-phase-unwrapper.sh"
 bash "$repo/examples/alpha250/dpll/tests/phase_extraction/run.sh"
 
 # Width/scaling validation for full-precision controller feedback only.

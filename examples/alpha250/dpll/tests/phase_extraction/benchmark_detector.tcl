@@ -16,13 +16,13 @@ file mkdir $out
 cd $out
 create_project -in_memory -part xc7z020clg400-2
 set_param general.maxThreads 4
-read_verilog [list $here/../../phase_residual.v $here/../../phase_extractor.v $here/benchmark.v]
+read_verilog [list $here/../../phase_residual.v $here/../../phase_extractor.v $here/../../../../../fpga/cores/phase_unwrapper_v1_0/phase_unwrapper.v $here/detector_benchmark.v]
 synth_design -top phase_extraction_benchmark -mode out_of_context -generic [list ROTATIONS_PER_CLOCK=$rotations PAIR_START=$pair_start COMPACT_PREP=$compact_prep FUSE_ROUND=$fuse_round RESIDUAL_CORRECTION=$residual_correction] -flatten_hierarchy rebuilt
 create_clock -name clk -period 4 [get_ports clk]
 set_clock_uncertainty 0.100 [get_clocks clk]
 # Wrapper registers define boundaries; every internal path remains timed.
 set_false_path -from [get_ports {i_in[*] q_in[*] resetn valid}]
-set_false_path -to [get_ports {phase[*] phase_valid}]
+set_false_path -to [get_ports {phase[*] phase_valid frequency[*] error}]
 opt_design
 place_design
 phys_opt_design
@@ -37,8 +37,8 @@ report_utilization -file $out/utilization.rpt
 set setup [get_property SLACK [get_timing_paths -delay_type max -max_paths 1]]
 set hold [get_property SLACK [get_timing_paths -delay_type min -max_paths 1]]
 set f [open $out/result.txt w]
-puts $f "rotations_per_clock=$rotations pair_start=$pair_start compact_prep=$compact_prep fuse_round=$fuse_round residual_correction=$residual_correction latency_clocks=$latency setup_slack_ns=$setup hold_slack_ns=$hold"
+puts $f "rotations_per_clock=$rotations pair_start=$pair_start compact_prep=$compact_prep fuse_round=$fuse_round residual_correction=$residual_correction extraction_latency_clocks=$latency unwrap_latency_clocks=2 combined_latency_clocks=[expr {$latency+2}] setup_slack_ns=$setup hold_slack_ns=$hold"
 close $f
 write_checkpoint -force $out/routed.dcp
-puts "Phase extraction route: rotations=$rotations setup=$setup hold=$hold"
-if {$setup < 0 || $hold < 0} {error "Phase extractor does not meet 250 MHz"}
+puts "Phase detector route: rotations=$rotations setup=$setup hold=$hold"
+if {$setup < 0 || $hold < 0} {error "Phase detector does not meet 250 MHz"}

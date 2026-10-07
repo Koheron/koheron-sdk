@@ -1,6 +1,6 @@
 `timescale 1 ns / 1 ps
 
-// Three-clock small-angle completion after eight vectoring rotations.
+// Four-clock small-angle completion after eight vectoring rotations.
 // x is positive, with leading bit 23..25; |y/x| is approximately <= 2^-7.
 // atan(y/x) is replaced by y/x, with <= 0.160 urad approximation error at
 // that bound. An interpolated reciprocal includes the scaled-radian factor.
@@ -279,33 +279,36 @@ module phase_residual (
         reciprocal_rom[254] = 26'h1473a52;
         reciprocal_rom[255] = 26'h1469651;
     end
-    reg [25:0] lookup = 0;
-    reg signed [20:0] y1 = 0, y2 = 0;
+    // Read all three leading-bit cases in parallel. Select the ROM word
+    // afterward so scale decoding does not drive every ROM address consumer.
+    (* KEEP = "TRUE" *) wire [25:0] lookup_large=reciprocal_rom[x_in[24:17]];
+    (* KEEP = "TRUE" *) wire [25:0] lookup_middle=reciprocal_rom[x_in[23:16]];
+    (* KEEP = "TRUE" *) wire [25:0] lookup_small=reciprocal_rom[x_in[22:15]];
+    wire [25:0] lookup=x_in[25] ? lookup_large :
+                       x_in[24] ? lookup_middle : lookup_small;
+    reg signed [20:0] y1 = 0;
     reg signed [31:0] angle1 = 0;
     reg signed [47:0] angle2 = 0;
-    reg [1:0] scale1 = 0, scale2 = 0, scale3 = 0;
-    reg zero1 = 1, zero2 = 1, zero3 = 1;
-    reg valid1 = 0, valid2 = 0, valid3 = 0;
+    reg [1:0] scale1 = 0, scale2 = 0, scale3 = 0, scale4 = 0;
+    reg zero1 = 1, zero2 = 1, zero3 = 1, zero4 = 1;
+    reg valid1 = 0, valid2 = 0, valid3 = 0, valid4 = 0;
     // Stage 1: one synchronous ROM read alongside coordinate/angle metadata.
     always @(posedge clk) begin
-        lookup <= reciprocal_rom[mantissa[18:11]];
         y1 <= y_in;
         angle1 <= angle_in + 32'sd128;
         scale1 <= scale;
         zero1 <= zero_in;
         valid1 <= resetn && valid_in;
     end
-    // Stage 2 registers the complete interpolation in PREG. The distributed
-    // lookup has a fast registered output; its fractional address is captured
-    // in AREG at stage 1. PREG keeps the interpolation post-adder out of the
-    // path to the next DSP multiplier, without adding a clock.
+    // Stage 1 captures fractional address and ROM outputs in AREG/BREG/CREG.
+    // Stage 2 registers the complete interpolation in PREG. Input registers
+    // keep the ROM routing outside the multiplier/post-adder timing budget.
     wire signed [47:0] reciprocal_acc;
-    phase_residual_mac #(.SUBTRACT(1), .REGISTER_RESULT(1), .REGISTER_A(1)) interpolation (
+    phase_residual_mac #(.SUBTRACT(1), .REGISTER_RESULT(1), .REGISTER_A(1), .REGISTER_B(1), .REGISTER_C(1)) interpolation (
         .clk(clk), .a({19'd0,mantissa[10:0]}), .b({9'd0,lookup[8:0]}),
         .c({20'd0,lookup[25:9],1'b1,10'd0}), .p(reciprocal_acc)
     );
     always @(posedge clk) begin
-        y2 <= y1;
         case (scale1)
             2: angle2 <= {{2{angle1[31]}},angle1,14'd0};
             1: angle2 <= {{3{angle1[31]}},angle1,13'd0};
@@ -316,30 +319,37 @@ module phase_residual (
         valid2 <= resetn && valid1;
     end
     wire signed [17:0] reciprocal = {1'b0,reciprocal_acc[27:11]};
-    // Stage 3 registers the final product and aligned base angle inside
-    // the DSP. Its post-adder and the phase slice are combinational outputs.
+    // AREG captures y at stage 2. MREG/CREG capture the residual product and
+    // aligned angle at stage 3. PREG completes the angle at stage 4. This
+    // separates the multiplier and post-adder into robust clock boundaries.
     wire signed [47:0] accumulated;
-    phase_residual_mac final_angle (
-        .clk(clk), .a({{9{y2[20]}},y2}), .b(reciprocal),
+    phase_residual_mac #(.REGISTER_RESULT(1), .REGISTER_MULTIPLIER(1), .REGISTER_A(1), .REGISTER_C(1)) final_angle (
+        .clk(clk), .a({{9{y1[20]}},y1}), .b(reciprocal),
         .c(angle2), .p(accumulated)
     );
     always @(posedge clk) begin
         scale3 <= scale2;
         zero3 <= zero2;
         valid3 <= resetn && valid2;
+        scale4 <= scale3;
+        zero4 <= zero3;
+        valid4 <= resetn && valid3;
     end
-    wire signed [21:0] rounded = scale3 == 2 ? accumulated[43:22] :
-                                 scale3 == 1 ? accumulated[42:21] : accumulated[41:20];
-    assign phase_out = zero3 ? 24'sd0 : {{2{rounded[21]}},rounded};
-    assign valid_out = valid3;
+    wire signed [21:0] rounded = scale4 == 2 ? accumulated[43:22] :
+                                 scale4 == 1 ? accumulated[42:21] : accumulated[41:20];
+    assign phase_out = zero4 ? 24'sd0 : {{2{rounded[21]}},rounded};
+    assign valid_out = valid4;
 endmodule
 
 // Signed MAC with explicit register boundaries. REGISTER_RESULT selects PREG
-// instead of MREG/CREG; REGISTER_A captures its A operand one clock earlier.
+// instead of MREG; REGISTER_A/B/C capture their operands one clock earlier.
 module phase_residual_mac #(
     parameter integer SUBTRACT=0,
     parameter integer REGISTER_RESULT=0,
-    parameter integer REGISTER_A=0
+    parameter integer REGISTER_MULTIPLIER=(REGISTER_RESULT ? 0 : 1),
+    parameter integer REGISTER_A=0,
+    parameter integer REGISTER_B=0,
+    parameter integer REGISTER_C=(REGISTER_RESULT ? 0 : 1)
 ) (
     input wire clk,
     input wire signed [29:0] a,
@@ -347,9 +357,12 @@ module phase_residual_mac #(
     input wire signed [47:0] c,
     output wire signed [47:0] p
 );
-    DSP48E1 #(
-        .AREG(REGISTER_A), .ACASCREG(REGISTER_A), .BREG(0), .BCASCREG(0),
-        .MREG(REGISTER_RESULT ? 0 : 1), .CREG(REGISTER_RESULT ? 0 : 1),
+    // Preserve these explicit arithmetic boundaries. DSP register optimization
+    // otherwise extracts BREG/CREG into fabric, exposing multiply-plus-add input
+    // timing and defeating the 250 MHz interpolation pipeline.
+    (* DONT_TOUCH = "TRUE" *) DSP48E1 #(
+        .AREG(REGISTER_A), .ACASCREG(REGISTER_A), .BREG(REGISTER_B), .BCASCREG(REGISTER_B),
+        .MREG(REGISTER_MULTIPLIER), .CREG(REGISTER_C),
         .PREG(REGISTER_RESULT ? 1 : 0), .ADREG(0), .DREG(0),
         .ALUMODEREG(0), .OPMODEREG(0), .INMODEREG(0),
         .CARRYINREG(0), .CARRYINSELREG(0), .USE_DPORT("FALSE"),
