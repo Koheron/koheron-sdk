@@ -316,3 +316,29 @@ test('rejected manual P calibration retains Accurate mode and allows recovery', 
   assert.equal(select.value, '0'); assert.equal(select.disabled, false);
   assert.match(h.document.querySelector('.p-mode-status').textContent, /stable signal/);
 });
+
+test('zeroing a gain preserves its last applied exponent for re-enabling', async t => {
+  const h = await host(t), row = h.row();
+  row.querySelector('.gain-button[value="0"]').click();
+  row.querySelector('.gain-save').click(); await settle();
+  assert.equal(row.querySelector('.gain-input').value, '3');
+  assert.equal(row.querySelector('.gain-value').value, '0');
+  row.querySelector('.gain-button[value="1"]').click();
+  row.querySelector('.gain-save').click(); await settle();
+  assert.deepEqual(h.writes.at(-1), {name:'set_geometric_gain', args:[0,0,1,48]});
+});
+
+test('gain arrow tuning supports fine and octave steps without applying until Enter', async t => {
+  const h = await host(t), row = h.row(), input = row.querySelector('.gain-input');
+  h.key(input, 'ArrowUp'); assert.equal(input.value, '3.0625');
+  input.dispatchEvent(new h.window.KeyboardEvent('keydown', {key:'ArrowDown', shiftKey:true, bubbles:true}));
+  assert.equal(input.value, '2.0625');
+  assert.equal(h.writes.length, 0);
+  h.key(input, 'Enter'); await settle();
+  assert.deepEqual(h.writes.at(-1), {name:'set_geometric_gain', args:[0,0,-1,33]});
+  row.querySelector('.gain-button[value="1"]').click();
+  h.type(input, '30.9375'); h.key(input, 'ArrowUp');
+  assert.equal(input.value, '30.9375');
+  h.type(input, '0'); h.key(input, 'ArrowDown'); assert.equal(input.value, '0');
+  h.key(input, 'Escape'); await settle(); assert.equal(input.value, '2.0625');
+});

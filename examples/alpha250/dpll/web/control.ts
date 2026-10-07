@@ -6,6 +6,7 @@ class Control {
   private disposed = false;
   private sampleRate = 0;
   private pendingGains = new Set<HTMLTableRowElement>();
+  private gainExponents = new Map<HTMLTableRowElement, string>();
   private pendingPaths = new Set<HTMLSelectElement>();
   private pathErrors = new Map<number, string>();
 
@@ -29,9 +30,20 @@ class Control {
     for (const row of this.gainRows) {
       const input = row.querySelector<HTMLInputElement>('.gain-input');
       const save = row.querySelector<HTMLButtonElement>('.gain-save');
+      input.title = '↑/↓: 1/16 octave · Shift+↑/↓: 1 octave · Enter: apply · Escape: cancel';
       this.listen(input, 'input', () => { save.disabled = false; input.setCustomValidity(''); });
       this.listen(input, 'keydown', event => {
-        if ((event as KeyboardEvent).key === 'Enter') { save.click(); }
+        const key = event as KeyboardEvent;
+        if (key.key === 'Enter') { event.preventDefault(); save.click(); }
+        if ((key.key === 'ArrowUp' || key.key === 'ArrowDown') && !key.ctrlKey && !key.metaKey && !key.altKey) {
+          event.preventDefault();
+          if (!input.value || !Number.isFinite(Number(input.value))) { return; }
+          const sign = Number(row.querySelector<HTMLButtonElement>('[aria-pressed="true"]').value);
+          const step = Math.round(Number(input.value) * 16) + (key.key === 'ArrowUp' ? 1 : -1) * (key.shiftKey ? 16 : 1);
+          input.value = String(Math.max(0, Math.min(sign > 0 ? 495 : 496, step)) / 16);
+          input.setCustomValidity('');
+          save.disabled = false;
+        }
       });
       this.listen(row, 'keydown', event => {
         if ((event as KeyboardEvent).key === 'Escape') {
@@ -126,13 +138,15 @@ class Control {
     for (const row of this.gainRows) {
       const save = row.querySelector<HTMLButtonElement>('.gain-save');
       const gain = status[row.dataset.status][Number(row.dataset.channel)];
+      if (gain !== 0) {
+        this.gainExponents.set(row, String(Math.round(Math.log(Math.abs(gain)) / Math.LN2 * 16) / 16));
+      }
       const applied = row.querySelector<HTMLOutputElement>('.gain-value');
       applied.value = String(gain);
       applied.title = `Applied gain: ${gain}`;
       if (!save.disabled || this.pendingGains.has(row)) { continue; }
       this.selectSign(row, Math.sign(gain));
-      row.querySelector<HTMLInputElement>('.gain-input').value = gain === 0 ? '' :
-        String(Math.round(Math.log(Math.abs(gain)) / Math.LN2 * 16) / 16);
+      row.querySelector<HTMLInputElement>('.gain-input').value = this.gainExponents.get(row) || '0';
     }
   }
 

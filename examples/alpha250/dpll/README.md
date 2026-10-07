@@ -398,7 +398,9 @@ the measured processing capacity. Original settings were restored after testing.
 Follow-up Chrome tests verified CSV (including live and reference spectra) and
 PNG exports, eight-spectrum averaging, invalid frequency/decimation rejection,
 1 Hz digit tuning, and negative fractional gain readback. Escape now cancels
-gain drafts from sign buttons as well as the exponent input. Live/empty plot
+gain drafts from sign buttons as well as the exponent input. Gain editors retain the last nonzero
+exponent while zeroed within the current page. Arrow keys tune by 1/16 octave;
+Shift+Arrow keys tune by one octave. Changes still require Enter or Apply. Live/empty plot
 states retain identical plot and control bounds; no extra feedback panels were
 added. Original settings were restored after these checks.
 
