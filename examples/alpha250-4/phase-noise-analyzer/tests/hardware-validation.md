@@ -1005,3 +1005,13 @@ four nominal 10.001 MHz LOs, XY channel, averaging length and enabled tracking
 were restored. Subsequent readback confirmed Valid acquisition and tracking lock.
 Raw spectra, settings and the check script are retained locally under
 `tmp/examples/alpha250-4/phase-noise-analyzer/external-pm/` and its parent directory.
+
+A follow-up at 200 MS/s checked the conspicuous 30 kHz line with the restored
+10 kHz square PM. Integrated over +/-250 Hz, its power was -9.545 dB relative
+to the fundamental, matching the square wave's third harmonic (-9.542 dB).
+The fifth/seventh harmonics measured -14.014/-16.913 dB versus theoretical
+-13.979/-16.902 dB. Switching to sine PM reduced the 30 kHz band power by
+46.7 dB; disabling PM brought it close to the background. These were 64-or-more
+estimate XY captures, with no new overflows, DMA errors or ring overruns.
+Original DAC settings were restored again. The measurements are retained under
+`tmp/examples/alpha250-4/phase-noise-analyzer/pm-harmonics/`.
