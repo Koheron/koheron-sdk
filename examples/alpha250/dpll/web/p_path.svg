@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="560" height="676" viewBox="0 0 560 676" role="img" aria-labelledby="title desc">
   <title id="title">DPLL signal flow for one channel</title>
-  <desc id="desc">ADC and reference DDS feed a shared I/Q mixer. Parallel Fast and Accurate estimators feed their controllers. Fast P and I combine with the Accurate I squared contribution before manual mode selection. The selected correction feeds RF DAC routing. The Accurate correction also feeds I cubed and integrator 4 to the precision DAC. The monitor taps the Accurate estimator independently. Integrators 1 through 4 correspond to the web controls. Equations omit fixed-point scaling and pipeline delays.</desc>
+  <desc id="desc">ADC and reference DDS feed a shared I/Q mixer. Parallel Fast and Accurate estimators feed their controllers. Fast P and I combine with the Accurate I squared contribution before manual mode selection. The selected correction feeds RF DAC routing. The Accurate correction also feeds I cubed and integrator 4 to the precision DAC. The monitor taps the Accurate estimator independently. Integrators 1 through 4 correspond to the web controls. Controller stages are shown functionally; arithmetic scaling and pipeline registers are omitted.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 8 4 0 8Z" fill="#647780"/></marker>
     <marker id="blue-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#1882a4"/></marker>
@@ -10,7 +10,6 @@
     .heading { font-size: 14px; font-weight: 600; }
     .small { font-size: 11px; fill: #647780; }
     .label { font-size: 11px; font-weight: 600; letter-spacing: .8px; }
-    .equation { font-family: Georgia, serif; font-size: 15px; }
     .wire { fill: none; stroke: #647780; stroke-width: 1.5; stroke-linejoin: round; marker-end: url(#arrow); }
     .accurate-wire { fill: none; stroke: #1882a4; stroke-width: 1.5; stroke-linejoin: round; marker-end: url(#blue-arrow); }
     .box { fill: #fff; stroke: #ced7dc; }
@@ -38,7 +37,7 @@
   <rect class="accurate-box" x="284" y="144" width="260" height="82" rx="5"/>
   <text class="heading" x="414" y="168">Accurate · full range</text>
   <text x="414" y="189">4 × 16 filter · 24-bit extraction</text>
-  <text class="small" x="414" y="211">Phase increment Δφ → ∑₁ → phase φ</text>
+  <text class="small" x="414" y="211">Unwrap · phase reconstruction (integrator 1)</text>
   <path class="wire" d="M126 226V258"/>
   <path class="accurate-wire" d="M414 226V258"/>
 
@@ -49,8 +48,8 @@
   <text class="small" x="126" y="354">Shared gains · separate I state</text>
   <rect class="accurate-box" x="284" y="258" width="260" height="110" rx="5"/>
   <text class="heading" x="414" y="283">P + I + I² controller</text>
-  <text class="equation" x="414" y="312">s = P Δφ + PI φ</text>
-  <text class="equation" x="414" y="338">u = ∑₃(s + I² ∑₂s)</text>
+  <text x="414" y="307">P / PI gains · nested I² branch</text>
+  <text x="414" y="330">Integrators 2 and 3 → RF correction</text>
   <text class="small" x="414" y="357">Accurate states run in both modes</text>
 
   <path class="wire" d="M126 368V400"/>
@@ -74,13 +73,13 @@
   <text class="small" x="126" y="566">Selected loop correction</text>
   <rect class="accurate-box" x="284" y="526" width="260" height="52" rx="5"/>
   <text class="heading" x="414" y="548">Precision DAC</text>
-  <text class="small" x="414" y="566">Accurate u → I³ → ∑₄</text>
+  <text class="small" x="414" y="566">Accurate correction → I³ gain → integrator 4</text>
 
   <path class="accurate-wire" d="M544 201H552V624H544"/>
   <rect class="accurate-box" x="284" y="598" width="260" height="52" rx="5"/>
   <text class="heading" x="414" y="620">Phase-noise monitor</text>
   <text class="small" x="414" y="639">Accurate phase → CIC · FIR · DMA</text>
-  <text class="small" x="126" y="617">∑₁…∑₄ = integrators 1–4</text>
+  <text class="small" x="126" y="617">Numbers match the integrator controls</text>
   <text class="small" x="126" y="635">Fast requires 1 and 3 enabled</text>
-  <text class="small" x="280" y="672">Functional signal flow · fixed-point scaling and pipeline delays omitted</text>
+  <text class="small" x="280" y="672">Both paths run continuously · mode selection changes the RF correction</text>
 </svg>
