@@ -8,7 +8,7 @@ const install = require('./fixtures/monitor-client.cjs');
 const root = path.resolve(__dirname, '../../../..');
 const read = p => fs.readFileSync(path.join(root, p), 'utf8');
 const settle = () => new Promise(resolve => setTimeout(resolve, 30));
-async function host(t) {
+async function host(t, options = {}) {
   const dom = new JSDOM(read('examples/alpha250/dpll/web/index.html'), {runScripts: 'outside-only', pretendToBeVisual: true});
   const w = dom.window, d = w.document, state = install(w);
   w.Client = w.MockClient; w.Command = w.MockCommand;
@@ -30,14 +30,28 @@ async function host(t) {
     'web/phase-noise/analyzer/plot.ts',
     'web/phase-noise/export-file/export-file.ts',
     'web/phase-noise/analyzer/export-file/export-file.ts',
+    'web/phase-noise/analyzer/monitor.ts',
     'examples/alpha250/dpll/web/monitor.ts'];
-  w.eval(ts.transpileModule(files.map(read).join('\n'), {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText + '\nwindow.DpllMonitor = DpllMonitor;');
+  w.eval(ts.transpileModule(files.map(read).join('\n'), {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText + '\nwindow.PnaMonitor = PnaMonitor; window.DpllMonitor = DpllMonitor;');
   const errors = [];
-  const monitor = new w.DpllMonitor(d, 'board', error => { errors.push(error); monitor.dispose(); });
+  const fail = error => { errors.push(error); monitor.dispose(); };
+  const monitor = options.driverName
+    ? new w.PnaMonitor(d, new w.MockClient('board', 1), options.driverName, fail)
+    : new w.DpllMonitor(d, 'board', fail);
   t.after(() => { monitor.dispose(); w.close(); });
   await monitor.init(); await settle();
   return {w, d, monitor, errors, state};
 }
+
+test('shared monitor directs all RPCs to its selected driver without accessing feedback', async t => {
+  const {d, state, errors} = await host(t, {driverName: 'PassivePhase'});
+  assert.deepEqual(errors, []);
+  assert.deepEqual(state.writes, []);
+  assert.ok(state.calls.length > 0);
+  assert.ok(state.calls.every(command => command.id === 'PassivePhase'));
+  d.getElementById('reset-average').click();
+  assert.deepEqual(state.writes.map(command => [command.id, command.name]), [['PassivePhase', 'reset_average']]);
+});
 
 test('monitor uses the shared PNA frame, precision and controls without loop writes on startup', async t => {
   const {d, state, monitor, errors} = await host(t);

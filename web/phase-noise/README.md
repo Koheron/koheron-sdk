@@ -9,8 +9,13 @@ Include the appropriate component list before an instrument's local web assets:
   plot adapter and CSV/PNG export used by ALPHA250, Red Pitaya and the DPLL monitor.
 - `analyzer/workspace.mk`: the single-stream components plus two-channel analyzer
   controls, oscillator template and embedded signal-generator styles and code.
+- `analyzer/monitor.mk`: the single-stream components plus the passive monitor
+  lifecycle, acquisition editors, polling and readouts used by DPLL.
 - `reference-clock/components.mk`: the identical reference-clock driver, selector
   and bindings used by the two ALPHA PNA interfaces.
+- `reference-clock/driver.mk`: just the clock RPC adapter, also used by DPLL. Its
+  reference-clock read supports callbacks and Promises; the DPLL clock template
+  and connection lifecycle remain local.
 
 ALPHA250-4 includes `components.mk` and supplies its own cross-spectrum driver,
 plot, export metadata and controls. Its local `phase-noise.css` adds cumulative averaging
@@ -22,6 +27,13 @@ examples when they differ. Reusable assets belong here. The shared `PnaExportFil
 owns CSV rows, reference traces, PNG rendering and downloads; analyzer adapters
 provide acquisition metadata and frame labels. The web packager flattens HTML/CSS asset
 names, so component lists must avoid duplicate non-TypeScript basenames.
+
+`PnaMonitor(document, client, driverName, onError)` owns the supplied connection,
+initializes the single-stream driver, plot, precision and export controls, and
+closes the connection on disposal. It uses the monitor DOM IDs in the DPLL page
+and the even-rate 4–8192 CIC controls. All monitor RPCs use `driverName`. The DPLL
+adapter supplies its separate ordered socket and `Dma` driver; feedback controls,
+reference edits and their socket stay with the DPLL application.
 
 Browser regression tests are in `tests/` and the consuming instruments' `tests/`
 directories. Those fixtures load the shared sources directly; update their paths

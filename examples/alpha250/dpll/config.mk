@@ -31,5 +31,6 @@ DRIVERS += $(PROJECT_PATH)/dpll.hpp
 DRIVERS += $(PROJECT_PATH)/dma.hpp
 
 include $(SDK_PATH)/server/drivers/phase-noise/fft.mk
-include $(SDK_PATH)/web/phase-noise/analyzer/components.mk
+include $(SDK_PATH)/web/phase-noise/analyzer/monitor.mk
+include $(SDK_PATH)/web/phase-noise/reference-clock/driver.mk
 WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' -o -name '*.svg' \))

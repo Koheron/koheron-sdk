@@ -111,7 +111,7 @@ async function host(t, options = {}) {
   const koheron = read('web/koheron.ts');
   const sources = koheron.slice(koheron.indexOf('class Imports {')) + '\n' + [
     'web/phase-modulator/frequency-input.ts', 'examples/alpha250/dpll/web/dpll.ts',
-    'examples/alpha250/dpll/web/clock-generator/clock-generator.ts',
+    'web/phase-noise/reference-clock/clock-generator.ts',
     'examples/alpha250/dpll/web/gain-display.ts', 'examples/alpha250/dpll/web/diagram.ts', 'examples/alpha250/dpll/web/control.ts', 'examples/alpha250/dpll/web/app.ts'
   ].map(read).join('\n');
   window.eval(ts.transpileModule(sources, {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText);

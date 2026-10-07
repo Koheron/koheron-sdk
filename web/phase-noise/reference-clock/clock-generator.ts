@@ -9,9 +9,19 @@ class ClockGenerator {
         this.cmds = this.driver.getCmds();
     }
 
-    getReferenceClock(cb: (clkin: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['get_reference_clock']),
-                                 (clkin: number) => {cb(clkin)});
+    getReferenceClock(cb: (clkin: number) => void): void;
+    getReferenceClock(): Promise<number>;
+    getReferenceClock(cb?: (clkin: number) => void): void | Promise<number> {
+        if (cb) {
+            this.client.readUint32(Command(this.id, this.cmds['get_reference_clock']),
+                                     (clkin: number) => {cb(clkin)});
+        } else {
+            return this.client.readUint32(Command(this.id, this.cmds['get_reference_clock']));
+        }
+    }
+
+    getDacSamplingFrequency(): Promise<number> {
+        return this.client.readFloat64(Command(this.id, this.cmds['get_dac_sampling_freq']));
     }
 
     setReferenceClock(clkin: number): void {

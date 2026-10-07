@@ -194,8 +194,11 @@ averages and start a new acquisition epoch.
 The server uses the shared PNA `Core`, cyclic DMA reader, 32768-point Hann FFTs
 with 50% overlap, three-periodogram Welch estimate, rolling averager, calibration
 and atomic spectrum snapshots. The web UI uses the shared PNA driver adapter,
-plot, precision widget, numeric editors and exports. A separate ordered socket
-keeps monitor replies out of the feedback-control command queue.
+passive monitor lifecycle, plot, precision widget, numeric editors and exports.
+The local `DpllMonitor` adapter supplies a separate ordered socket and the `Dma`
+driver to `PnaMonitor`, keeping monitor replies out of the feedback-control
+command queue. The clock RPC adapter is also shared with the ALPHA PNA pages;
+DPLL retains its own clock template and feedback-control lifecycle.
 
 DMA acquisition continues while the CPU computes spectra or the browser is
 closed. Slow consumers can skip FFT windows; the existing PNA status reports
