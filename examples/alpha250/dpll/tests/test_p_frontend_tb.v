@@ -75,7 +75,7 @@ module test_p_frontend_tb;
             if((accurate_delayed-accurate_before>100 || accurate_delayed-accurate_before < -100) && accurate_arrival<0)
                 accurate_arrival=cycle-disturbance;
         end
-        if(fast_arrival<0 || accurate_arrival<0 || accurate_arrival-fast_arrival<4)
+        if(fast_arrival<0 || accurate_arrival<0 || accurate_arrival-fast_arrival<18)
             $fatal(1,"No front-end latency saving fast=%0d accurate=%0d",fast_arrival,accurate_arrival);
         // At 10 degrees, sin differs from angle by only 2.3 phase counts.
         if(($signed(fast)-fast_before)-(accurate_delayed-accurate_before)>6 ||
