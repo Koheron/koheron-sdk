@@ -14,8 +14,8 @@ module gain_programmer (
     output reg [31:0] ack = 0,
     output reg [7:0] active_banks = 0,
     output reg [511:0] coefficients = 0,
-    output reg [8:0] command0 = 0,
-    output reg [8:0] command1 = 0,
+    (* max_fanout=16 *) output reg [8:0] command0 = 0,
+    (* max_fanout=16 *) output reg [8:0] command1 = 0,
     output reg [63:0] data = 0
 );
     localparam F_DRAIN=0, F_IDLE=1, F_WAIT=2, F_APPLIED=3, F_RETURN=4,
