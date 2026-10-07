@@ -46,14 +46,17 @@ $(LINUX_CONFIG): $(LINUX_SYNC_STAMP) $(OS_PATH)/xilinx_$(ZYNQ_TYPE)_defconfig
 	$(call ok,$@)
 
 # normal build
-$(LINUX_BUILD_STAMP): $(LINUX_CONFIG) $(LINUX_SYNC_STAMP)
+$(LINUX_BUILD_STAMP): $(LINUX_CONFIG) $(LINUX_SYNC_STAMP) $(DTC_BIN)
 	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) \
 	  CROSS_COMPILE=$(GCC_ARCH)- --jobs=$(N_CPUS) $(KERNEL_BIN) dtbs
 	@touch $@
 	$(call ok,$@)
 
-$(DTC_BIN): $(LINUX_PATH)/.unpacked $(LINUX_BUILD_STAMP)
-	@true
+# Instrument overlays need the host compiler, not a full kernel build.
+$(DTC_BIN): $(LINUX_CONFIG) $(LINUX_SYNC_STAMP)
+	$(DOCKER) make -C $(LINUX_PATH) ARCH=$(ARCH) \
+	  CROSS_COMPILE=$(GCC_ARCH)- --jobs=$(N_CPUS) scripts_dtc
+	@test -x $@ && touch $@
 
 .PHONY: clean_linux
 clean_linux:

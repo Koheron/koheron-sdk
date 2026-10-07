@@ -29,6 +29,8 @@ jobs:
         run: python3 -m unittest discover -s python/tests -p test_copy_instrument.py
       - name: Test image toolchain manifest
         run: python3 -m unittest discover -s os/tests -p test_toolchain_manifest.py
+      - name: Test kernel and device-tree compiler dependencies
+        run: python3 -m unittest discover -s os/tests -p test_linux_make.py
       - name: Validate instrument configurations
         run: |
           count=0
