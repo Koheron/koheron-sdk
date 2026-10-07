@@ -1,12 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="560" height="800" viewBox="0 0 560 800" role="img" aria-labelledby="title desc">
 <title id="title">DPLL channel signal flow</title>
-<desc id="desc">A shared mixer feeds Fast and Accurate phase detectors. Fast phase feeds P and an integral PI path. Accurate phase increment feeds P and integrator 1 followed by PI. Their sum feeds integrator 3 directly and a higher-order branch through integrator 2, I squared gain and integrator 3. The higher-order correction is added to both RF candidates. Manual selection with continuity offset drives RF DAC routing. Accurate RF correction drives I cubed and integrator 4 for the precision DAC. The monitor has a separate Accurate phase tap. Repeated integrator 3 symbols represent separately tracked contributions under the same enable control. Scaling and register delays are omitted.</desc>
+<desc id="desc">A shared mixer feeds Fast and Accurate phase detectors. Fast phase feeds P and an integral PI path. Accurate phase increment feeds P and integrator 1 followed by PI. Their sum feeds integrator 3 directly and a higher-order branch through integrator 2, I squared gain and integrator 3. The higher-order correction is added to both RF candidates. Manual selection with continuity offset drives RF DAC routing. Accurate RF correction drives I cubed and integrator 4 for the precision DAC. The dashed reference connection captures Accurate phase for the Fast integral branch on mode entry. The monitor has a separate Accurate phase tap independent of integrator 1. Repeated integrator 3 symbols represent separately tracked contributions under the same enable control. Scaling and register delays are omitted.</desc>
 <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#647780"/></marker></defs>
 <style>
 text{font:13px Arial,sans-serif;fill:#263b45;text-anchor:middle}
 .small{font-size:11px;fill:#647780}.head{font-weight:600;font-size:14px}
 .wire{fill:none;stroke:#647780;stroke-width:1.35;stroke-linejoin:round;marker-end:url(#arrow)}
 .line{fill:none;stroke:#647780;stroke-width:1.35;stroke-linejoin:round}
+.capture{fill:none;stroke:#8b9ba3;stroke-width:1.2;stroke-dasharray:3 3;marker-end:url(#arrow)}
+.signal{font:italic 13px Georgia,serif;fill:#536c78}
 .block{fill:white;stroke:#a9bac3;stroke-width:1.1}
 .fast{fill:#fff9ed;stroke:#c5a773}.accurate{fill:#f3f9fb;stroke:#83b3c4}
 </style>
@@ -18,30 +20,28 @@ text{font:13px Arial,sans-serif;fill:#263b45;text-anchor:middle}
 <path class="wire" d="M108 62V86H214"/>
 <path class="wire" d="M452 62V86H346"/>
 <rect x="214" y="70" width="132" height="32" rx="3" class="block"/>
-<text x="280.0" y="90.0" class="head">I/Q mixer</text>
+<text x="280.0" y="90.0" class="head">24-bit I/Q mixer</text>
 <path class="wire" d="M280 102V120H104V150"/>
 <path class="wire" d="M280 120H384V150"/>
 <circle cx="280" cy="120" r="2.5" fill="#647780"/>
 <text x="50" y="141" class="small">FAST</text>
 <text x="285" y="141" class="small">ACCURATE</text>
 <rect x="20" y="150" width="168" height="34" rx="3" class="fast"/>
-<text x="104.0" y="171.0" class="head">4-sample filter</text>
+<text x="104.0" y="171.0" class="head">4-sample boxcar</text>
 <rect x="244" y="150" width="280" height="34" rx="3" class="accurate"/>
-<text x="384.0" y="171.0" class="head">4 × 16-sample filter</text>
+<text x="384.0" y="171.0" class="head">4 × 16-sample moving sums</text>
 <path class="wire" d="M104 184V200"/>
 <path class="wire" d="M384 184V200"/>
 <rect x="20" y="200" width="168" height="44" rx="3" class="fast"/>
 <text x="104.0" y="220" class="head">Phase projection</text>
 <text x="104.0" y="236" class="small">Calibrated near lock</text>
 <rect x="244" y="200" width="280" height="44" rx="3" class="accurate"/>
-<text x="384.0" y="220" class="head">24-bit phase extraction</text>
-<text x="384.0" y="236" class="small">Unwrap · phase and phase increment</text>
+<text x="384.0" y="220" class="head">24-bit atan2 · unwrap</text>
+<text x="384.0" y="236" class="small">Continuous phase / phase increment</text>
 <path class="wire" d="M104 244V260H54V310"/>
 <path class="wire" d="M104 260H154V265"/>
 <circle cx="104" cy="260" r="2.5" fill="#647780"/>
 <circle cx="154" cy="276" r="11" fill="white" stroke="#647780" stroke-width="1.35"/><path class="line" d="M149 276H159M154 271V281"/>
-<path class="wire" d="M220 276H165"/>
-<text x="205" y="264" class="small">Lock phase</text>
 <path class="wire" d="M154 287V310"/>
 <rect x="30" y="310" width="48" height="34" rx="3" class="fast"/>
 <text x="54.0" y="331.0" class="">P</text>
@@ -53,8 +53,11 @@ text{font:13px Arial,sans-serif;fill:#263b45;text-anchor:middle}
 <path class="wire" d="M54 344V410H93"/>
 <path class="wire" d="M154 394V410H115"/>
 <circle cx="104" cy="410" r="11" fill="white" stroke="#647780" stroke-width="1.35"/><path class="line" d="M99 410H109M104 405V415"/>
-<text x="147" y="445" class="small">P + I</text>
+<text x="147" y="445" class="small">Direct P + I</text>
 <path class="wire" d="M104 421V567"/>
+<text x="78" y="254" class="signal">φ<tspan baseline-shift="sub" font-size="10">f</tspan></text>
+<text x="410" y="259" class="signal">Δφ</text>
+<text x="493" y="331" class="signal">φ</text>
 <path class="wire" d="M384 244V264H294V290"/>
 <path class="wire" d="M384 264H474V282"/>
 <circle cx="384" cy="264" r="2.5" fill="#647780"/>
@@ -67,6 +70,12 @@ text{font:13px Arial,sans-serif;fill:#263b45;text-anchor:middle}
 <text x="474.0" y="359.0" class="">PI</text>
 <path class="wire" d="M294 324V396H373"/>
 <path class="wire" d="M474 372V396H395"/>
+<!-- Capture the Accurate phase reference only when entering Fast. -->
+<path d="M474 327H220V276H165" fill="none" stroke="white" stroke-width="4"/>
+<path class="capture" d="M474 327H220V276H165"/>
+<circle cx="474" cy="327" r="2.5" fill="#647780"/>
+<text x="192" y="267" class="signal">φ₀</text>
+
 <circle cx="384" cy="396" r="11" fill="white" stroke="#647780" stroke-width="1.35"/><path class="line" d="M379 396H389M384 391V401"/>
 <path class="wire" d="M384 407V426H458V452"/>
 <path class="wire" d="M384 426H272V510"/>
@@ -82,7 +91,7 @@ text{font:13px Arial,sans-serif;fill:#263b45;text-anchor:middle}
 <path class="wire" d="M296 527H314"/>
 <path class="wire" d="M362 527H380"/>
 <text x="340" y="498" class="small">I² branch</text>
-<text x="493" y="475" class="small">P + I</text>
+
 <path class="wire" d="M458 486V567"/>
 <path class="wire" d="M428 527H436V554H226V578H115"/>
 <path class="wire" d="M436 554V578H447"/>
@@ -98,7 +107,13 @@ text{font:13px Arial,sans-serif;fill:#263b45;text-anchor:middle}
 <text x="280.0" y="646" class="head">Mode selection</text>
 <text x="280.0" y="662" class="small">Manual · continuity offset</text>
 <path class="wire" d="M280 674V700H98V726"/>
-<path class="wire" d="M458 605H532V708H280V726"/>
+<path class="wire" d="M458 605H532V693H480"/>
+<rect x="432" y="676" width="48" height="34" rx="3" class="accurate"/>
+<text x="456" y="697">I³</text>
+<path class="wire" d="M432 693H408"/>
+<rect x="352" y="676" width="56" height="34" rx="3" class="accurate"/>
+<text x="380" y="697">Int 4</text>
+<path class="wire" d="M380 710V718H280V726"/>
 <circle cx="458" cy="605" r="2.5" fill="#647780"/>
 <path class="wire" d="M524 222H548V752H528"/>
 <rect x="16" y="726" width="164" height="46" rx="3" class="block"/>
@@ -106,9 +121,9 @@ text{font:13px Arial,sans-serif;fill:#263b45;text-anchor:middle}
 <text x="98.0" y="762" class="small">Selected correction</text>
 <rect x="198" y="726" width="164" height="46" rx="3" class="accurate"/>
 <text x="280.0" y="746" class="head">Precision DAC</text>
-<text x="280.0" y="762" class="small">I³ gain → integrator 4</text>
+<text x="280.0" y="762" class="small">Slow correction</text>
 <rect x="380" y="726" width="148" height="46" rx="3" class="accurate"/>
 <text x="454.0" y="746" class="head">Phase monitor</text>
 <text x="454.0" y="762" class="small">CIC · FIR · DMA</text>
-<text x="280" y="789" class="small">Int n follows switch n · repeated blocks share the enable · scaling omitted</text>
+<text x="280" y="789" class="small">Int 3: separate states, common enable · dashed: capture on Fast entry</text>
 </svg>
